@@ -1,7 +1,7 @@
 From: Richard Weinberger <richard@nod.at>
-Subject: [PATCH 20/44] sh: Use get_signal() signal_setup_done()
-Date: Mon,  3 Mar 2014 00:57:24 +0100
-Message-ID: <1393804646-7797-10-git-send-email-richard@nod.at>
+Subject: [PATCH 18/44] s390: Use get_signal() signal_setup_done()
+Date: Mon,  3 Mar 2014 00:57:22 +0100
+Message-ID: <1393804646-7797-8-git-send-email-richard@nod.at>
 References: <1393804646-7797-1-git-send-email-richard@nod.at>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1393804646-7797-1-git-send-email-richard@nod.at>
@@ -15,79 +15,243 @@ for signal delivery.
 
 Signed-off-by: Richard Weinberger <richard@nod.at>
 ---
- arch/sh/kernel/signal_32.c | 79 ++++++++++++++++++--------------------------
- arch/sh/kernel/signal_64.c | 82 ++++++++++++++++++----------------------------
- 2 files changed, 64 insertions(+), 97 deletions(-)
+ arch/s390/kernel/compat_signal.c | 79 ++++++++++++++++++----------------------
+ arch/s390/kernel/entry.h         |  4 +-
+ arch/s390/kernel/signal.c        | 79 ++++++++++++++++------------------------
+ 3 files changed, 69 insertions(+), 93 deletions(-)
 
-diff --git a/arch/sh/kernel/signal_32.c b/arch/sh/kernel/signal_32.c
-index 6af6e7c..2ee67c5 100644
---- a/arch/sh/kernel/signal_32.c
-+++ b/arch/sh/kernel/signal_32.c
-@@ -266,17 +266,17 @@ get_sigframe(struct k_sigaction *ka, unsigned long sp, size_t frame_size)
- extern void __kernel_sigreturn(void);
- extern void __kernel_rt_sigreturn(void);
+diff --git a/arch/s390/kernel/compat_signal.c b/arch/s390/kernel/compat_signal.c
+index 8b84bc3..f6c6140 100644
+--- a/arch/s390/kernel/compat_signal.c
++++ b/arch/s390/kernel/compat_signal.c
+@@ -320,38 +320,39 @@ static inline int map_signal(int sig)
+ 		return sig;
+ }
  
--static int setup_frame(int sig, struct k_sigaction *ka,
--			sigset_t *set, struct pt_regs *regs)
-+static int setup_frame(struct ksignal *ksig, sigset_t *set,
-+		       struct pt_regs *regs)
+-static int setup_frame32(int sig, struct k_sigaction *ka,
+-			sigset_t *set, struct pt_regs * regs)
++static int setup_frame32(struct ksignal *ksig, sigset_t *set,
++			 struct pt_regs *regs)
  {
- 	struct sigframe __user *frame;
--	int err = 0;
-+	int err = 0, sig = ksig->sig;
- 	int signal;
+-	sigframe32 __user *frame = get_sigframe(ka, regs, sizeof(sigframe32));
++	int sig = ksig->sig;
++	sigframe32 __user *frame = get_sigframe(&ksig->ka, regs, sizeof(sigframe32));
  
--	frame = get_sigframe(ka, regs->regs[15], sizeof(*frame));
-+	frame = get_sigframe(&ksig->ka, regs->regs[15], sizeof(*frame));
- 
- 	if (!access_ok(VERIFY_WRITE, frame, sizeof(*frame)))
+ 	if (frame == (void __user *) -1UL)
 -		goto give_sigsegv;
 +		return -EFAULT;
  
- 	signal = current_thread_info()->exec_domain
- 		&& current_thread_info()->exec_domain->signal_invmap
-@@ -292,8 +292,8 @@ static int setup_frame(int sig, struct k_sigaction *ka,
+ 	if (__copy_to_user(&frame->sc.oldmask, &set->sig, _SIGMASK_COPY_SIZE32))
+-		goto give_sigsegv;
++		return -EFAULT;
+ 
+ 	if (save_sigregs32(regs, &frame->sregs))
+-		goto give_sigsegv;
++		return -EFAULT;
+ 	if (save_sigregs_gprs_high(regs, frame->gprs_high))
+-		goto give_sigsegv;
++		return -EFAULT;
+ 	if (__put_user((unsigned long) &frame->sregs, &frame->sc.sregs))
+-		goto give_sigsegv;
++		return -EFAULT;
  
  	/* Set up to return from userspace.  If provided, use a stub
  	   already in userspace.  */
 -	if (ka->sa.sa_flags & SA_RESTORER) {
--		regs->pr = (unsigned long) ka->sa.sa_restorer;
+-		regs->gprs[14] = (__u64 __force) ka->sa.sa_restorer | PSW32_ADDR_AMODE;
 +	if (ksig->ka.sa.sa_flags & SA_RESTORER) {
-+		regs->pr = (unsigned long) ksig->ka.sa.sa_restorer;
- #ifdef CONFIG_VSYSCALL
- 	} else if (likely(current->mm->context.vdso)) {
- 		regs->pr = VDSO_SYM(&__kernel_sigreturn);
-@@ -313,7 +313,7 @@ static int setup_frame(int sig, struct k_sigaction *ka,
- 	}
++		regs->gprs[14] = (__u64 __force) ksig->ka.sa.sa_restorer | PSW32_ADDR_AMODE;
+ 	} else {
+ 		regs->gprs[14] = (__u64 __force) frame->retcode | PSW32_ADDR_AMODE;
+ 		if (__put_user(S390_SYSCALL_OPCODE | __NR_sigreturn,
+ 			       (u16 __force __user *)(frame->retcode)))
+-			goto give_sigsegv;
++			return -EFAULT;
+         }
  
- 	if (err)
+ 	/* Set up backchain. */
+ 	if (__put_user(regs->gprs[15], (unsigned int __user *) frame))
 -		goto give_sigsegv;
 +		return -EFAULT;
  
  	/* Set up registers for signal handler */
- 	regs->regs[15] = (unsigned long) frame;
-@@ -323,15 +323,15 @@ static int setup_frame(int sig, struct k_sigaction *ka,
+ 	regs->gprs[15] = (__force __u64) frame;
+@@ -359,7 +360,7 @@ static int setup_frame32(int sig, struct k_sigaction *ka,
+ 	regs->psw.mask = PSW_MASK_BA |
+ 		(PSW_USER_BITS & PSW_MASK_ASC) |
+ 		(regs->psw.mask & ~PSW_MASK_ASC);
+-	regs->psw.addr = (__force __u64) ka->sa.sa_handler;
++	regs->psw.addr = (__force __u64) ksig->ka.sa.sa_handler;
  
- 	if (current->personality & FDPIC_FUNCPTRS) {
- 		struct fdpic_func_descriptor __user *funcptr =
--			(struct fdpic_func_descriptor __user *)ka->sa.sa_handler;
-+			(struct fdpic_func_descriptor __user *)ksig->ka.sa.sa_handler;
+ 	regs->gprs[2] = map_signal(sig);
+ 	regs->gprs[3] = (__force __u64) &frame->sc;
+@@ -376,25 +377,21 @@ static int setup_frame32(int sig, struct k_sigaction *ka,
  
- 		err |= __get_user(regs->pc, &funcptr->text);
- 		err |= __get_user(regs->regs[12], &funcptr->GOT);
- 	} else
--		regs->pc = (unsigned long)ka->sa.sa_handler;
-+		regs->pc = (unsigned long)ksig->ka.sa.sa_handler;
+ 	/* Place signal number on stack to allow backtrace from handler.  */
+ 	if (__put_user(regs->gprs[2], (int __force __user *) &frame->signo))
+-		goto give_sigsegv;
++		return -EFAULT;
+ 	return 0;
+-
+-give_sigsegv:
+-	force_sigsegv(sig, current);
+-	return -EFAULT;
+ }
  
+-static int setup_rt_frame32(int sig, struct k_sigaction *ka, siginfo_t *info,
+-			   sigset_t *set, struct pt_regs * regs)
++static int setup_rt_frame32(struct ksignal *ksig, sigset_t *set,
++			    struct pt_regs *regs)
+ {
+ 	int err = 0;
+-	rt_sigframe32 __user *frame = get_sigframe(ka, regs, sizeof(rt_sigframe32));
++	rt_sigframe32 __user *frame = get_sigframe(&ksig->ka, regs, sizeof(rt_sigframe32));
+ 
+ 	if (frame == (void __user *) -1UL)
+-		goto give_sigsegv;
++		return -EFAULT;
+ 
+-	if (copy_siginfo_to_user32(&frame->info, info))
+-		goto give_sigsegv;
++	if (copy_siginfo_to_user32(&frame->info, &ksig->info))
++		return -EFAULT;
+ 
+ 	/* Create the ucontext.  */
+ 	err |= __put_user(UC_EXTENDED, &frame->uc.uc_flags);
+@@ -404,22 +401,22 @@ static int setup_rt_frame32(int sig, struct k_sigaction *ka, siginfo_t *info,
+ 	err |= save_sigregs_gprs_high(regs, frame->gprs_high);
+ 	err |= __copy_to_user(&frame->uc.uc_sigmask, set, sizeof(*set));
  	if (err)
 -		goto give_sigsegv;
 +		return -EFAULT;
  
- 	set_fs(USER_DS);
+ 	/* Set up to return from userspace.  If provided, use a stub
+ 	   already in userspace.  */
+-	if (ka->sa.sa_flags & SA_RESTORER) {
+-		regs->gprs[14] = (__u64 __force) ka->sa.sa_restorer | PSW32_ADDR_AMODE;
++	if (ksig->ka.sa.sa_flags & SA_RESTORER) {
++		regs->gprs[14] = (__u64 __force) ksig->ka.sa.sa_restorer | PSW32_ADDR_AMODE;
+ 	} else {
+ 		regs->gprs[14] = (__u64 __force) frame->retcode | PSW32_ADDR_AMODE;
+ 		if (__put_user(S390_SYSCALL_OPCODE | __NR_rt_sigreturn,
+ 			       (u16 __force __user *)(frame->retcode)))
+-			goto give_sigsegv;
++			return -EFAULT;
+ 	}
  
-@@ -339,23 +339,19 @@ static int setup_frame(int sig, struct k_sigaction *ka,
- 		 current->comm, task_pid_nr(current), frame, regs->pc, regs->pr);
+ 	/* Set up backchain. */
+ 	if (__put_user(regs->gprs[15], (unsigned int __force __user *) frame))
+-		goto give_sigsegv;
++		return -EFAULT;
  
+ 	/* Set up registers for signal handler */
+ 	regs->gprs[15] = (__force __u64) frame;
+@@ -427,36 +424,30 @@ static int setup_rt_frame32(int sig, struct k_sigaction *ka, siginfo_t *info,
+ 	regs->psw.mask = PSW_MASK_BA |
+ 		(PSW_USER_BITS & PSW_MASK_ASC) |
+ 		(regs->psw.mask & ~PSW_MASK_ASC);
+-	regs->psw.addr = (__u64 __force) ka->sa.sa_handler;
++	regs->psw.addr = (__u64 __force) ksig->ka.sa.sa_handler;
+ 
+-	regs->gprs[2] = map_signal(sig);
++	regs->gprs[2] = map_signal(ksig->sig);
+ 	regs->gprs[3] = (__force __u64) &frame->info;
+ 	regs->gprs[4] = (__force __u64) &frame->uc;
+ 	regs->gprs[5] = task_thread_info(current)->last_break;
+ 	return 0;
+-
+-give_sigsegv:
+-	force_sigsegv(sig, current);
+-	return -EFAULT;
+ }
+ 
+ /*
+  * OK, we're invoking a handler
+  */	
+ 
+-void handle_signal32(unsigned long sig, struct k_sigaction *ka,
+-		    siginfo_t *info, sigset_t *oldset, struct pt_regs *regs)
++void handle_signal32(struct ksignal *ksig, sigset_t *oldset,
++		     struct pt_regs *regs)
+ {
+ 	int ret;
+ 
+ 	/* Set up the stack frame */
+-	if (ka->sa.sa_flags & SA_SIGINFO)
+-		ret = setup_rt_frame32(sig, ka, info, oldset, regs);
++	if (ksig->ka.sa.sa_flags & SA_SIGINFO)
++		ret = setup_rt_frame32(ksig, oldset, regs);
+ 	else
+-		ret = setup_frame32(sig, ka, oldset, regs);
+-	if (ret)
+-		return;
+-	signal_delivered(sig, info, ka, regs,
+-				 test_thread_flag(TIF_SINGLE_STEP));
++		ret = setup_frame32(ksig, oldset, regs);
++
++	signal_setup_done(ret, ksig, test_thread_flag(TIF_SINGLE_STEP));
+ }
+ 
+diff --git a/arch/s390/kernel/entry.h b/arch/s390/kernel/entry.h
+index cb533f7..6376fd6 100644
+--- a/arch/s390/kernel/entry.h
++++ b/arch/s390/kernel/entry.h
+@@ -48,8 +48,8 @@ void do_per_trap(struct pt_regs *regs);
+ void syscall_trace(struct pt_regs *regs, int entryexit);
+ void kernel_stack_overflow(struct pt_regs * regs);
+ void do_signal(struct pt_regs *regs);
+-void handle_signal32(unsigned long sig, struct k_sigaction *ka,
+-		    siginfo_t *info, sigset_t *oldset, struct pt_regs *regs);
++void handle_signal32(struct ksignal *ksig, sigset_t *oldset,
++		     struct pt_regs *regs);
+ void do_notify_resume(struct pt_regs *regs);
+ 
+ void __init init_IRQ(void);
+diff --git a/arch/s390/kernel/signal.c b/arch/s390/kernel/signal.c
+index d8fd508..0e420a1 100644
+--- a/arch/s390/kernel/signal.c
++++ b/arch/s390/kernel/signal.c
+@@ -200,15 +200,15 @@ static int setup_frame(int sig, struct k_sigaction *ka,
+ 	frame = get_sigframe(ka, regs, sizeof(sigframe));
+ 
+ 	if (frame == (void __user *) -1UL)
+-		goto give_sigsegv;
++		return -EFAULT;
+ 
+ 	if (__copy_to_user(&frame->sc.oldmask, &set->sig, _SIGMASK_COPY_SIZE))
+-		goto give_sigsegv;
++		return -EFAULT;
+ 
+ 	if (save_sigregs(regs, &frame->sregs))
+-		goto give_sigsegv;
++		return -EFAULT;
+ 	if (__put_user(&frame->sregs, &frame->sc.sregs))
+-		goto give_sigsegv;
++		return -EFAULT;
+ 
+ 	/* Set up to return from userspace.  If provided, use a stub
+ 	   already in userspace.  */
+@@ -220,12 +220,12 @@ static int setup_frame(int sig, struct k_sigaction *ka,
+ 			frame->retcode | PSW_ADDR_AMODE;
+ 		if (__put_user(S390_SYSCALL_OPCODE | __NR_sigreturn,
+ 	                       (u16 __user *)(frame->retcode)))
+-			goto give_sigsegv;
++			return -EFAULT;
+ 	}
+ 
+ 	/* Set up backchain. */
+ 	if (__put_user(regs->gprs[15], (addr_t __user *) frame))
+-		goto give_sigsegv;
++		return -EFAULT;
+ 
+ 	/* Set up registers for signal handler */
+ 	regs->gprs[15] = (unsigned long) frame;
+@@ -250,27 +250,23 @@ static int setup_frame(int sig, struct k_sigaction *ka,
+ 
+ 	/* Place signal number on stack to allow backtrace from handler.  */
+ 	if (__put_user(regs->gprs[2], (int __user *) &frame->signo))
+-		goto give_sigsegv;
++		return -EFAULT;
  	return 0;
 -
 -give_sigsegv:
@@ -96,75 +260,69 @@ index 6af6e7c..2ee67c5 100644
  }
  
 -static int setup_rt_frame(int sig, struct k_sigaction *ka, siginfo_t *info,
--			   sigset_t *set, struct pt_regs *regs)
+-			   sigset_t *set, struct pt_regs * regs)
 +static int setup_rt_frame(struct ksignal *ksig, sigset_t *set,
 +			  struct pt_regs *regs)
  {
- 	struct rt_sigframe __user *frame;
--	int err = 0;
-+	int err = 0, sig = ksig->sig;
- 	int signal;
+ 	int err = 0;
+ 	rt_sigframe __user *frame;
  
--	frame = get_sigframe(ka, regs->regs[15], sizeof(*frame));
-+	frame = get_sigframe(&ksig->ka, regs->regs[15], sizeof(*frame));
+-	frame = get_sigframe(ka, regs, sizeof(rt_sigframe));
++	frame = get_sigframe(&ksig->ka, regs, sizeof(rt_sigframe));
  
- 	if (!access_ok(VERIFY_WRITE, frame, sizeof(*frame)))
+ 	if (frame == (void __user *) -1UL)
 -		goto give_sigsegv;
 +		return -EFAULT;
  
- 	signal = current_thread_info()->exec_domain
- 		&& current_thread_info()->exec_domain->signal_invmap
-@@ -363,7 +359,7 @@ static int setup_rt_frame(int sig, struct k_sigaction *ka, siginfo_t *info,
- 		? current_thread_info()->exec_domain->signal_invmap[sig]
- 		: sig;
- 
--	err |= copy_siginfo_to_user(&frame->info, info);
-+	err |= copy_siginfo_to_user(&frame->info, &ksig->info);
+-	if (copy_siginfo_to_user(&frame->info, info))
+-		goto give_sigsegv;
++	if (copy_siginfo_to_user(&frame->info, &ksig->info))
++		return -EFAULT;
  
  	/* Create the ucontext.  */
  	err |= __put_user(0, &frame->uc.uc_flags);
-@@ -375,8 +371,8 @@ static int setup_rt_frame(int sig, struct k_sigaction *ka, siginfo_t *info,
+@@ -279,24 +275,24 @@ static int setup_rt_frame(int sig, struct k_sigaction *ka, siginfo_t *info,
+ 	err |= save_sigregs(regs, &frame->uc.uc_mcontext);
+ 	err |= __copy_to_user(&frame->uc.uc_sigmask, set, sizeof(*set));
+ 	if (err)
+-		goto give_sigsegv;
++		return -EFAULT;
  
  	/* Set up to return from userspace.  If provided, use a stub
  	   already in userspace.  */
 -	if (ka->sa.sa_flags & SA_RESTORER) {
--		regs->pr = (unsigned long) ka->sa.sa_restorer;
 +	if (ksig->ka.sa.sa_flags & SA_RESTORER) {
-+		regs->pr = (unsigned long) ksig->ka.sa.sa_restorer;
- #ifdef CONFIG_VSYSCALL
- 	} else if (likely(current->mm->context.vdso)) {
- 		regs->pr = VDSO_SYM(&__kernel_rt_sigreturn);
-@@ -396,7 +392,7 @@ static int setup_rt_frame(int sig, struct k_sigaction *ka, siginfo_t *info,
+                 regs->gprs[14] = (unsigned long)
+-			ka->sa.sa_restorer | PSW_ADDR_AMODE;
++			ksig->ka.sa.sa_restorer | PSW_ADDR_AMODE;
+ 	} else {
+                 regs->gprs[14] = (unsigned long)
+ 			frame->retcode | PSW_ADDR_AMODE;
+ 		if (__put_user(S390_SYSCALL_OPCODE | __NR_rt_sigreturn,
+ 			       (u16 __user *)(frame->retcode)))
+-			goto give_sigsegv;
++			return -EFAULT;
  	}
  
- 	if (err)
+ 	/* Set up backchain. */
+ 	if (__put_user(regs->gprs[15], (addr_t __user *) frame))
 -		goto give_sigsegv;
 +		return -EFAULT;
  
  	/* Set up registers for signal handler */
- 	regs->regs[15] = (unsigned long) frame;
-@@ -406,15 +402,15 @@ static int setup_rt_frame(int sig, struct k_sigaction *ka, siginfo_t *info,
+ 	regs->gprs[15] = (unsigned long) frame;
+@@ -304,34 +300,27 @@ static int setup_rt_frame(int sig, struct k_sigaction *ka, siginfo_t *info,
+ 	regs->psw.mask = PSW_MASK_EA | PSW_MASK_BA |
+ 		(PSW_USER_BITS & PSW_MASK_ASC) |
+ 		(regs->psw.mask & ~PSW_MASK_ASC);
+-	regs->psw.addr = (unsigned long) ka->sa.sa_handler | PSW_ADDR_AMODE;
++	regs->psw.addr = (unsigned long) ksig->ka.sa.sa_handler | PSW_ADDR_AMODE;
  
- 	if (current->personality & FDPIC_FUNCPTRS) {
- 		struct fdpic_func_descriptor __user *funcptr =
--			(struct fdpic_func_descriptor __user *)ka->sa.sa_handler;
-+			(struct fdpic_func_descriptor __user *)ksig->ka.sa.sa_handler;
- 
- 		err |= __get_user(regs->pc, &funcptr->text);
- 		err |= __get_user(regs->regs[12], &funcptr->GOT);
- 	} else
--		regs->pc = (unsigned long)ka->sa.sa_handler;
-+		regs->pc = (unsigned long)ksig->ka.sa.sa_handler;
- 
- 	if (err)
--		goto give_sigsegv;
-+		return -EFAULT;
- 
- 	set_fs(USER_DS);
- 
-@@ -422,10 +418,6 @@ static int setup_rt_frame(int sig, struct k_sigaction *ka, siginfo_t *info,
- 		 current->comm, task_pid_nr(current), frame, regs->pc, regs->pr);
- 
+-	regs->gprs[2] = map_signal(sig);
++	regs->gprs[2] = map_signal(ksig->sig);
+ 	regs->gprs[3] = (unsigned long) &frame->info;
+ 	regs->gprs[4] = (unsigned long) &frame->uc;
+ 	regs->gprs[5] = task_thread_info(current)->last_break;
  	return 0;
 -
 -give_sigsegv:
@@ -172,272 +330,12 @@ index 6af6e7c..2ee67c5 100644
 -	return -EFAULT;
  }
  
- static inline void
-@@ -459,22 +451,18 @@ handle_syscall_restart(unsigned long save_r0, struct pt_regs *regs,
-  * OK, we're invoking a handler
-  */
- static void
--handle_signal(unsigned long sig, struct k_sigaction *ka, siginfo_t *info,
--	      struct pt_regs *regs, unsigned int save_r0)
-+handle_signal(struct ksignal *ksig, struct pt_regs *regs, unsigned int save_r0)
- {
- 	sigset_t *oldset = sigmask_to_save();
- 	int ret;
- 
- 	/* Set up the stack frame */
--	if (ka->sa.sa_flags & SA_SIGINFO)
--		ret = setup_rt_frame(sig, ka, info, oldset, regs);
-+	if (ksig->ka.sa.sa_flags & SA_SIGINFO)
-+		ret = setup_rt_frame(ksig, oldset, regs);
- 	else
--		ret = setup_frame(sig, ka, oldset, regs);
-+		ret = setup_frame(ksig, oldset, regs);
- 
--	if (ret)
--		return;
--	signal_delivered(sig, info, ka, regs,
--			test_thread_flag(TIF_SINGLESTEP));
-+	signal_setup_done(ret, ksig, test_thread_flag(TIF_SINGLESTEP));
- }
- 
- /*
-@@ -488,9 +476,7 @@ handle_signal(unsigned long sig, struct k_sigaction *ka, siginfo_t *info,
-  */
- static void do_signal(struct pt_regs *regs, unsigned int save_r0)
- {
--	siginfo_t info;
--	int signr;
--	struct k_sigaction ka;
-+	struct ksignal ksig;
- 
- 	/*
- 	 * We want the common case to go fast, which
-@@ -501,12 +487,11 @@ static void do_signal(struct pt_regs *regs, unsigned int save_r0)
- 	if (!user_mode(regs))
- 		return;
- 
--	signr = get_signal_to_deliver(&info, &ka, regs, NULL);
--	if (signr > 0) {
--		handle_syscall_restart(save_r0, regs, &ka.sa);
-+	if (get_signal(&ksig)) {
-+		handle_syscall_restart(save_r0, regs, &ksig.ka.sa);
- 
- 		/* Whee!  Actually deliver the signal.  */
--		handle_signal(signr, &ka, &info, regs, save_r0);
-+		handle_signal(&ksig, regs, save_r0);
- 		return;
- 	}
- 
-diff --git a/arch/sh/kernel/signal_64.c b/arch/sh/kernel/signal_64.c
-index 23d4c71..897abe7 100644
---- a/arch/sh/kernel/signal_64.c
-+++ b/arch/sh/kernel/signal_64.c
-@@ -41,8 +41,7 @@
- #define DEBUG_SIG 0
- 
- static void
--handle_signal(unsigned long sig, siginfo_t *info, struct k_sigaction *ka,
--		struct pt_regs * regs);
-+handle_signal(struct ksignal *ksig, struct pt_regs *regs);
- 
- static inline void
- handle_syscall_restart(struct pt_regs *regs, struct sigaction *sa)
-@@ -82,9 +81,7 @@ handle_syscall_restart(struct pt_regs *regs, struct sigaction *sa)
-  */
- static void do_signal(struct pt_regs *regs)
- {
--	siginfo_t info;
--	int signr;
--	struct k_sigaction ka;
-+	struct ksignal ksig;
- 
- 	/*
- 	 * We want the common case to go fast, which
-@@ -95,12 +92,11 @@ static void do_signal(struct pt_regs *regs)
- 	if (!user_mode(regs))
- 		return;
- 
--	signr = get_signal_to_deliver(&info, &ka, regs, 0);
--	if (signr > 0) {
--		handle_syscall_restart(regs, &ka.sa);
-+	if (get_signal(&ksig)) {
-+		handle_syscall_restart(regs, &ksig.ka.sa);
- 
- 		/* Whee!  Actually deliver the signal.  */
--		handle_signal(signr, &info, &ka, regs);
-+		handle_signal(&ksig, regs);
- 		return;
- 	}
- 
-@@ -378,17 +374,16 @@ get_sigframe(struct k_sigaction *ka, unsigned long sp, size_t frame_size)
- void sa_default_restorer(void);		/* See comments below */
- void sa_default_rt_restorer(void);	/* See comments below */
- 
--static int setup_frame(int sig, struct k_sigaction *ka,
--		       sigset_t *set, struct pt_regs *regs)
-+static int setup_frame(struct ksignal *ksig, sigset_t *set, struct pt_regs *regs)
- {
- 	struct sigframe __user *frame;
--	int err = 0;
-+	int err = 0, sig = ksig->sig;
- 	int signal;
- 
--	frame = get_sigframe(ka, regs->regs[REG_SP], sizeof(*frame));
-+	frame = get_sigframe(&ksig->ka, regs->regs[REG_SP], sizeof(*frame));
- 
- 	if (!access_ok(VERIFY_WRITE, frame, sizeof(*frame)))
--		goto give_sigsegv;
-+		return -EFAULT;
- 
- 	signal = current_thread_info()->exec_domain
- 		&& current_thread_info()->exec_domain->signal_invmap
-@@ -400,7 +395,7 @@ static int setup_frame(int sig, struct k_sigaction *ka,
- 
- 	/* Give up earlier as i386, in case */
- 	if (err)
--		goto give_sigsegv;
-+		return -EFAULT;
- 
- 	if (_NSIG_WORDS > 1) {
- 		err |= __copy_to_user(frame->extramask, &set->sig[1],
-@@ -408,16 +403,16 @@ static int setup_frame(int sig, struct k_sigaction *ka,
- 
- 	/* Give up earlier as i386, in case */
- 	if (err)
--		goto give_sigsegv;
-+		return -EFAULT;
- 
- 	/* Set up to return from userspace.  If provided, use a stub
- 	   already in userspace.  */
--	if (ka->sa.sa_flags & SA_RESTORER) {
-+	if (ksig->ka.sa.sa_flags & SA_RESTORER) {
- 		/*
- 		 * On SH5 all edited pointers are subject to NEFF
- 		 */
- 		DEREF_REG_PR = neff_sign_extend((unsigned long)
--			ka->sa.sa_restorer | 0x1);
-+			ksig->ka->sa.sa_restorer | 0x1);
- 	} else {
- 		/*
- 		 * Different approach on SH5.
-@@ -435,7 +430,7 @@ static int setup_frame(int sig, struct k_sigaction *ka,
- 
- 		if (__copy_to_user(frame->retcode,
- 			(void *)((unsigned long)sa_default_restorer & (~1)), 16) != 0)
--			goto give_sigsegv;
-+			return -EFAULT;
- 
- 		/* Cohere the trampoline with the I-cache. */
- 		flush_cache_sigtramp(DEREF_REG_PR-1);
-@@ -460,7 +455,7 @@ static int setup_frame(int sig, struct k_sigaction *ka,
- 	regs->regs[REG_ARG2] = (unsigned long long)(unsigned long)(signed long)&frame->sc;
- 	regs->regs[REG_ARG3] = (unsigned long long)(unsigned long)(signed long)&frame->sc;
- 
--	regs->pc = neff_sign_extend((unsigned long)ka->sa.sa_handler);
-+	regs->pc = neff_sign_extend((unsigned long)ksig->ka.sa.sa_handler);
- 
- 	set_fs(USER_DS);
- 
-@@ -471,23 +466,19 @@ static int setup_frame(int sig, struct k_sigaction *ka,
- 		 DEREF_REG_PR >> 32, DEREF_REG_PR & 0xffffffff);
- 
- 	return 0;
--
--give_sigsegv:
--	force_sigsegv(sig, current);
--	return -EFAULT;
- }
- 
--static int setup_rt_frame(int sig, struct k_sigaction *ka, siginfo_t *info,
--			  sigset_t *set, struct pt_regs *regs)
-+static int setup_rt_frame(struct ksignal *kig, sigset_t *set,
+-static void handle_signal(unsigned long sig, struct k_sigaction *ka,
+-			 siginfo_t *info, sigset_t *oldset,
+-			 struct pt_regs *regs)
++static void handle_signal(struct ksignal *ksig, sigset_t *oldset,
 +			  struct pt_regs *regs)
  {
- 	struct rt_sigframe __user *frame;
--	int err = 0;
-+	int err = 0, sig = ksig->sig;
- 	int signal;
- 
--	frame = get_sigframe(ka, regs->regs[REG_SP], sizeof(*frame));
-+	frame = get_sigframe(&ksig->ka, regs->regs[REG_SP], sizeof(*frame));
- 
- 	if (!access_ok(VERIFY_WRITE, frame, sizeof(*frame)))
--		goto give_sigsegv;
-+		return -EFAULT;
- 
- 	signal = current_thread_info()->exec_domain
- 		&& current_thread_info()->exec_domain->signal_invmap
-@@ -497,11 +488,11 @@ static int setup_rt_frame(int sig, struct k_sigaction *ka, siginfo_t *info,
- 
- 	err |= __put_user(&frame->info, &frame->pinfo);
- 	err |= __put_user(&frame->uc, &frame->puc);
--	err |= copy_siginfo_to_user(&frame->info, info);
-+	err |= copy_siginfo_to_user(&frame->info, &ksig->info);
- 
- 	/* Give up earlier as i386, in case */
- 	if (err)
--		goto give_sigsegv;
-+		return -EFAULT;
- 
- 	/* Create the ucontext.  */
- 	err |= __put_user(0, &frame->uc.uc_flags);
-@@ -513,16 +504,16 @@ static int setup_rt_frame(int sig, struct k_sigaction *ka, siginfo_t *info,
- 
- 	/* Give up earlier as i386, in case */
- 	if (err)
--		goto give_sigsegv;
-+		return -EFAULT;
- 
- 	/* Set up to return from userspace.  If provided, use a stub
- 	   already in userspace.  */
--	if (ka->sa.sa_flags & SA_RESTORER) {
-+	if (ksig->ka.sa.sa_flags & SA_RESTORER) {
- 		/*
- 		 * On SH5 all edited pointers are subject to NEFF
- 		 */
- 		DEREF_REG_PR = neff_sign_extend((unsigned long)
--			ka->sa.sa_restorer | 0x1);
-+			ksig->ka.sa.sa_restorer | 0x1);
- 	} else {
- 		/*
- 		 * Different approach on SH5.
-@@ -540,7 +531,7 @@ static int setup_rt_frame(int sig, struct k_sigaction *ka, siginfo_t *info,
- 
- 		if (__copy_to_user(frame->retcode,
- 			(void *)((unsigned long)sa_default_rt_restorer & (~1)), 16) != 0)
--			goto give_sigsegv;
-+			return -EFAULT;
- 
- 		/* Cohere the trampoline with the I-cache. */
- 		flush_icache_range(DEREF_REG_PR-1, DEREF_REG_PR-1+15);
-@@ -554,7 +545,7 @@ static int setup_rt_frame(int sig, struct k_sigaction *ka, siginfo_t *info,
- 	regs->regs[REG_ARG1] = signal; /* Arg for signal handler */
- 	regs->regs[REG_ARG2] = (unsigned long long)(unsigned long)(signed long)&frame->info;
- 	regs->regs[REG_ARG3] = (unsigned long long)(unsigned long)(signed long)&frame->uc.uc_mcontext;
--	regs->pc = neff_sign_extend((unsigned long)ka->sa.sa_handler);
-+	regs->pc = neff_sign_extend((unsigned long)ksig->ka.sa.sa_handler);
- 
- 	set_fs(USER_DS);
- 
-@@ -564,33 +555,24 @@ static int setup_rt_frame(int sig, struct k_sigaction *ka, siginfo_t *info,
- 		 DEREF_REG_PR >> 32, DEREF_REG_PR & 0xffffffff);
- 
- 	return 0;
--
--give_sigsegv:
--	force_sigsegv(sig, current);
--	return -EFAULT;
- }
- 
- /*
-  * OK, we're invoking a handler
-  */
- static void
--handle_signal(unsigned long sig, siginfo_t *info, struct k_sigaction *ka,
--		struct pt_regs * regs)
-+handle_signal(struct ksignal *ksig, struct pt_regs *regs)
- {
- 	sigset_t *oldset = sigmask_to_save();
  	int ret;
  
  	/* Set up the stack frame */
@@ -447,16 +345,58 @@ index 23d4c71..897abe7 100644
 +		ret = setup_rt_frame(ksig, oldset, regs);
  	else
 -		ret = setup_frame(sig, ka, oldset, regs);
--
 -	if (ret)
 -		return;
-+		ret = setup_frame(ksig, oldset, regs);
- 
 -	signal_delivered(sig, info, ka, regs,
--			test_thread_flag(TIF_SINGLESTEP));
-+	signal_setup_done(ret, ksig, test_thread_flag(TIF_SINGLESTEP));
+-				 test_thread_flag(TIF_SINGLE_STEP));
++		ret = setup_frame(ksig->sig, &ksig->ka, oldset, regs);
++
++	signal_setup_done(ret, ksig, test_thread_flag(TIF_SINGLE_STEP));
  }
  
- asmlinkage void do_notify_resume(struct pt_regs *regs, unsigned long thread_info_flags)
+ /*
+@@ -345,9 +334,7 @@ static void handle_signal(unsigned long sig, struct k_sigaction *ka,
+  */
+ void do_signal(struct pt_regs *regs)
+ {
+-	siginfo_t info;
+-	int signr;
+-	struct k_sigaction ka;
++	struct ksignal ksig;
+ 	sigset_t *oldset = sigmask_to_save();
+ 
+ 	/*
+@@ -357,9 +344,7 @@ void do_signal(struct pt_regs *regs)
+ 	 */
+ 	current_thread_info()->system_call =
+ 		test_thread_flag(TIF_SYSCALL) ? regs->int_code : 0;
+-	signr = get_signal_to_deliver(&info, &ka, regs, NULL);
+-
+-	if (signr > 0) {
++	if (get_signal(&ksig)) {
+ 		/* Whee!  Actually deliver the signal.  */
+ 		if (current_thread_info()->system_call) {
+ 			regs->int_code = current_thread_info()->system_call;
+@@ -370,7 +355,7 @@ void do_signal(struct pt_regs *regs)
+ 				regs->gprs[2] = -EINTR;
+ 				break;
+ 			case -ERESTARTSYS:
+-				if (!(ka.sa.sa_flags & SA_RESTART)) {
++				if (!(ksig.ka.sa.sa_flags & SA_RESTART)) {
+ 					regs->gprs[2] = -EINTR;
+ 					break;
+ 				}
+@@ -387,9 +372,9 @@ void do_signal(struct pt_regs *regs)
+ 		clear_thread_flag(TIF_SYSCALL);
+ 
+ 		if (is_compat_task())
+-			handle_signal32(signr, &ka, &info, oldset, regs);
++			handle_signal32(&ksig, oldset, regs);
+ 		else
+-			handle_signal(signr, &ka, &info, oldset, regs);
++			handle_signal(&ksig, oldset, regs);
+ 		return;
+ 	}
+ 
 -- 
 1.8.4.2
