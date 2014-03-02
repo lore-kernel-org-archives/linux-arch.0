@@ -1,7 +1,7 @@
 From: Richard Weinberger <richard@nod.at>
-Subject: [PATCH 31/44] arm64: Use translate_signal()
-Date: Mon,  3 Mar 2014 00:59:14 +0100
-Message-ID: <1393804758-7916-9-git-send-email-richard@nod.at>
+Subject: [PATCH 35/44] m68k: Use translate_signal()
+Date: Mon,  3 Mar 2014 00:59:18 +0100
+Message-ID: <1393804758-7916-13-git-send-email-richard@nod.at>
 References: <1393804758-7916-1-git-send-email-richard@nod.at>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1393804758-7916-1-git-send-email-richard@nod.at>
@@ -14,38 +14,48 @@ Use the common helper instead of it's own open coded variant.
 
 Signed-off-by: Richard Weinberger <richard@nod.at>
 ---
- arch/arm64/kernel/signal.c | 9 +--------
- 1 file changed, 1 insertion(+), 8 deletions(-)
+ arch/m68k/kernel/signal.c | 15 ++-------------
+ 1 file changed, 2 insertions(+), 13 deletions(-)
 
-diff --git a/arch/arm64/kernel/signal.c b/arch/arm64/kernel/signal.c
-index f6f23dd..165a72a 100644
---- a/arch/arm64/kernel/signal.c
-+++ b/arch/arm64/kernel/signal.c
-@@ -19,7 +19,6 @@
- 
- #include <linux/errno.h>
- #include <linux/signal.h>
+diff --git a/arch/m68k/kernel/signal.c b/arch/m68k/kernel/signal.c
+index c8e6fa8..b8a428b 100644
+--- a/arch/m68k/kernel/signal.c
++++ b/arch/m68k/kernel/signal.c
+@@ -39,7 +39,6 @@
+ #include <linux/unistd.h>
+ #include <linux/stddef.h>
+ #include <linux/highuid.h>
 -#include <linux/personality.h>
- #include <linux/freezer.h>
- #include <linux/uaccess.h>
- #include <linux/tracehook.h>
-@@ -282,16 +281,10 @@ static void handle_signal(struct ksignal *ksig, struct pt_regs *regs)
- 	struct thread_info *thread = current_thread_info();
- 	struct task_struct *tsk = current;
- 	sigset_t *oldset = sigmask_to_save();
--	int usig = ksig->sig;
-+	int usig = translate_signal(ksig->sig);
- 	int ret;
+ #include <linux/tty.h>
+ #include <linux/binfmts.h>
+ #include <linux/module.h>
+@@ -871,12 +870,7 @@ static int setup_frame(struct ksignal *ksig, sigset_t *set,
+ 	if (fsize)
+ 		err |= copy_to_user (frame + 1, regs + 1, fsize);
  
- 	/*
--	 * translate the signal
--	 */
--	if (usig < 32 && thread->exec_domain && thread->exec_domain->signal_invmap)
--		usig = thread->exec_domain->signal_invmap[usig];
--
--	/*
- 	 * Set up the stack frame
- 	 */
- 	if (is_compat_task()) {
+-	err |= __put_user((current_thread_info()->exec_domain
+-			   && current_thread_info()->exec_domain->signal_invmap
+-			   && sig < 32
+-			   ? current_thread_info()->exec_domain->signal_invmap[sig]
+-			   : sig),
+-			  &frame->sig);
++	err |= __put_user(translate_signal(sig), &frame->sig);
+ 
+ 	err |= __put_user(regs->vector, &frame->code);
+ 	err |= __put_user(&frame->sc, &frame->psc);
+@@ -956,12 +950,7 @@ static int setup_rt_frame(struct ksignal *ksig, sigset_t *set,
+ 	if (fsize)
+ 		err |= copy_to_user (&frame->uc.uc_extra, regs + 1, fsize);
+ 
+-	err |= __put_user((current_thread_info()->exec_domain
+-			   && current_thread_info()->exec_domain->signal_invmap
+-			   && sig < 32
+-			   ? current_thread_info()->exec_domain->signal_invmap[sig]
+-			   : sig),
+-			  &frame->sig);
++	err |= __put_user(translate_signal(sig), &frame->sig);
+ 	err |= __put_user(&frame->info, &frame->pinfo);
+ 	err |= __put_user(&frame->uc, &frame->puc);
+ 	err |= copy_siginfo_to_user(&frame->info, &ksig->info);
 -- 
 1.8.4.2
