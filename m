@@ -1,63 +1,54 @@
 From: Richard Weinberger <richard@nod.at>
-Subject: [PATCH 35/44] m68k: Use translate_signal()
-Date: Mon,  3 Mar 2014 01:00:35 +0100
-Message-ID: <1393804844-8008-1-git-send-email-richard@nod.at>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.sigma-star.at ([95.130.255.111]:62422 "EHLO
-	mail.sigma-star.at" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753662AbaCCABY (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 2 Mar 2014 19:01:24 -0500
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Subject: [PATCH 34/44] m32r: Use translate_signal()
+Date: Mon,  3 Mar 2014 00:59:17 +0100
+Message-ID: <1393804758-7916-12-git-send-email-richard@nod.at>
+References: <1393804758-7916-1-git-send-email-richard@nod.at>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1393804758-7916-1-git-send-email-richard@nod.at>
+Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
 Cc: linux-arch@vger.kernel.org, viro@zeniv.linux.org.uk, vgupta@synopsys.com, catalin.marinas@arm.com, will.deacon@arm.com, hskinnemoen@gmail.com, egtvedt@samfundet.no, vapier@gentoo.org, msalter@redhat.com, a-jacquiot@ti.com, starvik@axis.com, jesper.nilsson@axis.com, dhowells@redhat.com, rkuo@codeaurora.org, tony.luck@intel.com, fenghua.yu@intel.com, takata@linux-m32r.org, geert@linux-m68k.org, james.hogan@imgtec.com, monstr@monstr.eu, yasutake.koichi@jp.panasonic.com, ralf@linux-mips.org, jonas@southpole.se, jejb@parisc-linux.org, deller@gmx.de, benh@kernel.crashing.org, paulus@samba.org, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, liqin.linux@gmail.com, lennox.wu@gmail.com, cmetcalf@tilera.com, gxt@mprc.pku.edu.cn, linux-xtensa@linux-xtensa.org, akpm@linux-foundation.org, oleg@redhat.com, tj@kernel.org, hch@infradead.org, Richard Weinberger <richard@nod.at>
+List-Id: linux-arch.vger.kernel.org
 
 Use the common helper instead of it's own open coded variant.
 
 Signed-off-by: Richard Weinberger <richard@nod.at>
 ---
- arch/m68k/kernel/signal.c | 15 ++-------------
- 1 file changed, 2 insertions(+), 13 deletions(-)
+ arch/m32r/kernel/signal.c | 9 ++-------
+ 1 file changed, 2 insertions(+), 7 deletions(-)
 
-diff --git a/arch/m68k/kernel/signal.c b/arch/m68k/kernel/signal.c
-index c8e6fa8..b8a428b 100644
---- a/arch/m68k/kernel/signal.c
-+++ b/arch/m68k/kernel/signal.c
-@@ -39,7 +39,6 @@
+diff --git a/arch/m32r/kernel/signal.c b/arch/m32r/kernel/signal.c
+index cce3fd3..2673513 100644
+--- a/arch/m32r/kernel/signal.c
++++ b/arch/m32r/kernel/signal.c
+@@ -19,7 +19,6 @@
+ #include <linux/wait.h>
  #include <linux/unistd.h>
  #include <linux/stddef.h>
- #include <linux/highuid.h>
 -#include <linux/personality.h>
- #include <linux/tty.h>
- #include <linux/binfmts.h>
- #include <linux/module.h>
-@@ -871,12 +870,7 @@ static int setup_frame(struct ksignal *ksig, sigset_t *set,
- 	if (fsize)
- 		err |= copy_to_user (frame + 1, regs + 1, fsize);
+ #include <linux/tracehook.h>
+ #include <asm/cacheflush.h>
+ #include <asm/ucontext.h>
+@@ -178,18 +177,14 @@ static int setup_rt_frame(struct ksignal *ksig, sigset_t *set,
+ {
+ 	struct rt_sigframe __user *frame;
+ 	int err = 0;
+-	int signal, sig = ksig->sig;
++	int signal;
  
--	err |= __put_user((current_thread_info()->exec_domain
--			   && current_thread_info()->exec_domain->signal_invmap
--			   && sig < 32
--			   ? current_thread_info()->exec_domain->signal_invmap[sig]
--			   : sig),
--			  &frame->sig);
-+	err |= __put_user(translate_signal(sig), &frame->sig);
+ 	frame = get_sigframe(&ksig->ka, regs->spu, sizeof(*frame));
  
- 	err |= __put_user(regs->vector, &frame->code);
- 	err |= __put_user(&frame->sc, &frame->psc);
-@@ -956,12 +950,7 @@ static int setup_rt_frame(struct ksignal *ksig, sigset_t *set,
- 	if (fsize)
- 		err |= copy_to_user (&frame->uc.uc_extra, regs + 1, fsize);
+ 	if (!access_ok(VERIFY_WRITE, frame, sizeof(*frame)))
+ 		return -EFAULT;
  
--	err |= __put_user((current_thread_info()->exec_domain
--			   && current_thread_info()->exec_domain->signal_invmap
--			   && sig < 32
--			   ? current_thread_info()->exec_domain->signal_invmap[sig]
--			   : sig),
--			  &frame->sig);
-+	err |= __put_user(translate_signal(sig), &frame->sig);
- 	err |= __put_user(&frame->info, &frame->pinfo);
- 	err |= __put_user(&frame->uc, &frame->puc);
- 	err |= copy_siginfo_to_user(&frame->info, &ksig->info);
+-	signal = current_thread_info()->exec_domain
+-		&& current_thread_info()->exec_domain->signal_invmap
+-		&& sig < 32
+-		? current_thread_info()->exec_domain->signal_invmap[sig]
+-		: sig;
++	signal = translate_signal(ksig->sig);
+ 
+ 	err |= __put_user(signal, &frame->sig);
+ 	if (err)
 -- 
 1.8.4.2
