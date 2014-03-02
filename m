@@ -1,7 +1,7 @@
 From: Richard Weinberger <richard@nod.at>
-Subject: [PATCH 35/44] m68k: Use translate_signal()
-Date: Mon,  3 Mar 2014 00:59:18 +0100
-Message-ID: <1393804758-7916-13-git-send-email-richard@nod.at>
+Subject: [PATCH 33/44] frv: Use translate_signal()
+Date: Mon,  3 Mar 2014 00:59:16 +0100
+Message-ID: <1393804758-7916-11-git-send-email-richard@nod.at>
 References: <1393804758-7916-1-git-send-email-richard@nod.at>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1393804758-7916-1-git-send-email-richard@nod.at>
@@ -14,48 +14,95 @@ Use the common helper instead of it's own open coded variant.
 
 Signed-off-by: Richard Weinberger <richard@nod.at>
 ---
- arch/m68k/kernel/signal.c | 15 ++-------------
- 1 file changed, 2 insertions(+), 13 deletions(-)
+ arch/frv/kernel/signal.c | 27 ++++++---------------------
+ 1 file changed, 6 insertions(+), 21 deletions(-)
 
-diff --git a/arch/m68k/kernel/signal.c b/arch/m68k/kernel/signal.c
-index c8e6fa8..b8a428b 100644
---- a/arch/m68k/kernel/signal.c
-+++ b/arch/m68k/kernel/signal.c
-@@ -39,7 +39,6 @@
+diff --git a/arch/frv/kernel/signal.c b/arch/frv/kernel/signal.c
+index 8e37cf2..108a74e 100644
+--- a/arch/frv/kernel/signal.c
++++ b/arch/frv/kernel/signal.c
+@@ -19,7 +19,6 @@
+ #include <linux/wait.h>
+ #include <linux/ptrace.h>
  #include <linux/unistd.h>
- #include <linux/stddef.h>
- #include <linux/highuid.h>
 -#include <linux/personality.h>
- #include <linux/tty.h>
- #include <linux/binfmts.h>
- #include <linux/module.h>
-@@ -871,12 +870,7 @@ static int setup_frame(struct ksignal *ksig, sigset_t *set,
- 	if (fsize)
- 		err |= copy_to_user (frame + 1, regs + 1, fsize);
+ #include <linux/tracehook.h>
+ #include <asm/ucontext.h>
+ #include <asm/uaccess.h>
+@@ -183,7 +182,6 @@ static inline void __user *get_sigframe(struct k_sigaction *ka,
+ static int setup_frame(struct ksignal *ksig, sigset_t *set)
+ {
+ 	struct sigframe __user *frame;
+-	int rsig, sig = ksig->sig;
  
--	err |= __put_user((current_thread_info()->exec_domain
--			   && current_thread_info()->exec_domain->signal_invmap
--			   && sig < 32
--			   ? current_thread_info()->exec_domain->signal_invmap[sig]
--			   : sig),
--			  &frame->sig);
-+	err |= __put_user(translate_signal(sig), &frame->sig);
+ 	set_fs(USER_DS);
  
- 	err |= __put_user(regs->vector, &frame->code);
- 	err |= __put_user(&frame->sc, &frame->psc);
-@@ -956,12 +950,7 @@ static int setup_rt_frame(struct ksignal *ksig, sigset_t *set,
- 	if (fsize)
- 		err |= copy_to_user (&frame->uc.uc_extra, regs + 1, fsize);
+@@ -192,13 +190,7 @@ static int setup_frame(struct ksignal *ksig, sigset_t *set)
+ 	if (!access_ok(VERIFY_WRITE, frame, sizeof(*frame)))
+ 		return -EFAULT;
  
--	err |= __put_user((current_thread_info()->exec_domain
--			   && current_thread_info()->exec_domain->signal_invmap
--			   && sig < 32
--			   ? current_thread_info()->exec_domain->signal_invmap[sig]
--			   : sig),
--			  &frame->sig);
-+	err |= __put_user(translate_signal(sig), &frame->sig);
- 	err |= __put_user(&frame->info, &frame->pinfo);
- 	err |= __put_user(&frame->uc, &frame->puc);
- 	err |= copy_siginfo_to_user(&frame->info, &ksig->info);
+-	rsig = sig;
+-	if (sig < 32 &&
+-	    __current_thread_info->exec_domain &&
+-	    __current_thread_info->exec_domain->signal_invmap)
+-		rsig = __current_thread_info->exec_domain->signal_invmap[sig];
+-
+-	if (__put_user(rsig, &frame->sig) < 0)
++	if (__put_user(translate_signal(ksig->sig), &frame->sig) < 0)
+ 		return -EFAULT;
+ 
+ 	if (setup_sigcontext(&frame->sc, set->sig[0]))
+@@ -246,11 +238,11 @@ static int setup_frame(struct ksignal *ksig, sigset_t *set)
+ 
+ 	__frame->sp   = (unsigned long) frame;
+ 	__frame->lr   = (unsigned long) &frame->retcode;
+-	__frame->gr8  = sig;
++	__frame->gr8  = ksig->sig;
+ 
+ #if DEBUG_SIG
+ 	printk("SIG deliver %d (%s:%d): sp=%p pc=%lx ra=%p\n",
+-	       sig, current->comm, current->pid, frame, __frame->pc,
++	       ksig->sig, current->comm, current->pid, frame, __frame->pc,
+ 	       frame->pretcode);
+ #endif
+ 
+@@ -264,7 +256,6 @@ static int setup_frame(struct ksignal *ksig, sigset_t *set)
+ static int setup_rt_frame(struct ksignal *ksig, sigset_t *set)
+ {
+ 	struct rt_sigframe __user *frame;
+-	int rsig, sig = ksig->sig;
+ 
+ 	set_fs(USER_DS);
+ 
+@@ -273,13 +264,7 @@ static int setup_rt_frame(struct ksignal *ksig, sigset_t *set)
+ 	if (!access_ok(VERIFY_WRITE, frame, sizeof(*frame)))
+ 		return -EFAULT;
+ 
+-	rsig = sig;
+-	if (sig < 32 &&
+-	    __current_thread_info->exec_domain &&
+-	    __current_thread_info->exec_domain->signal_invmap)
+-		rsig = __current_thread_info->exec_domain->signal_invmap[sig];
+-
+-	if (__put_user(rsig,		&frame->sig) ||
++	if (__put_user(translate_signal(ksig->sig), &frame->sig) ||
+ 	    __put_user(&frame->info,	&frame->pinfo) ||
+ 	    __put_user(&frame->uc,	&frame->puc))
+ 		return -EFAULT;
+@@ -335,12 +320,12 @@ static int setup_rt_frame(struct ksignal *ksig, sigset_t *set)
+ 
+ 	__frame->sp  = (unsigned long) frame;
+ 	__frame->lr  = (unsigned long) &frame->retcode;
+-	__frame->gr8 = sig;
++	__frame->gr8 = ksig->sig;
+ 	__frame->gr9 = (unsigned long) &frame->info;
+ 
+ #if DEBUG_SIG
+ 	printk("SIG deliver %d (%s:%d): sp=%p pc=%lx ra=%p\n",
+-	       sig, current->comm, current->pid, frame, __frame->pc,
++	       ksig->sig, current->comm, current->pid, frame, __frame->pc,
+ 	       frame->pretcode);
+ #endif
+ 	return 0;
 -- 
 1.8.4.2
