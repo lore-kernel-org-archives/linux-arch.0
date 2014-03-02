@@ -1,133 +1,61 @@
 From: Richard Weinberger <richard@nod.at>
-Subject: [PATCH 19/44] score: Use get_signal() signal_setup_done()
-Date: Mon,  3 Mar 2014 00:57:23 +0100
-Message-ID: <1393804646-7797-9-git-send-email-richard@nod.at>
-References: <1393804646-7797-1-git-send-email-richard@nod.at>
+Subject: [PATCH 26/44] tracehook_signal_handler: Remove sig, info, ka and regs
+Date: Mon,  3 Mar 2014 00:59:09 +0100
+Message-ID: <1393804758-7916-4-git-send-email-richard@nod.at>
+References: <1393804758-7916-1-git-send-email-richard@nod.at>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1393804646-7797-1-git-send-email-richard@nod.at>
+In-Reply-To: <1393804758-7916-1-git-send-email-richard@nod.at>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
 Cc: linux-arch@vger.kernel.org, viro@zeniv.linux.org.uk, vgupta@synopsys.com, catalin.marinas@arm.com, will.deacon@arm.com, hskinnemoen@gmail.com, egtvedt@samfundet.no, vapier@gentoo.org, msalter@redhat.com, a-jacquiot@ti.com, starvik@axis.com, jesper.nilsson@axis.com, dhowells@redhat.com, rkuo@codeaurora.org, tony.luck@intel.com, fenghua.yu@intel.com, takata@linux-m32r.org, geert@linux-m68k.org, james.hogan@imgtec.com, monstr@monstr.eu, yasutake.koichi@jp.panasonic.com, ralf@linux-mips.org, jonas@southpole.se, jejb@parisc-linux.org, deller@gmx.de, benh@kernel.crashing.org, paulus@samba.org, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, liqin.linux@gmail.com, lennox.wu@gmail.com, cmetcalf@tilera.com, gxt@mprc.pku.edu.cn, linux-xtensa@linux-xtensa.org, akpm@linux-foundation.org, oleg@redhat.com, tj@kernel.org, hch@infradead.org, Richard Weinberger <richard@nod.at>
 List-Id: linux-arch.vger.kernel.org
 
-Use the more generic functions get_signal() signal_setup_done()
-for signal delivery.
+These parameters are nowhere used, so we can remove them.
 
-Acked-by: Lennox Wu <lennox.wu@gmail.com>
 Signed-off-by: Richard Weinberger <richard@nod.at>
 ---
- arch/score/kernel/signal.c | 43 ++++++++++++++++++-------------------------
- 1 file changed, 18 insertions(+), 25 deletions(-)
+ include/linux/tracehook.h | 8 +-------
+ kernel/signal.c           | 2 +-
+ 2 files changed, 2 insertions(+), 8 deletions(-)
 
-diff --git a/arch/score/kernel/signal.c b/arch/score/kernel/signal.c
-index a00fba3..1651807 100644
---- a/arch/score/kernel/signal.c
-+++ b/arch/score/kernel/signal.c
-@@ -173,15 +173,15 @@ badframe:
- 	return 0;
+diff --git a/include/linux/tracehook.h b/include/linux/tracehook.h
+index 1e98b55..c4877e3 100644
+--- a/include/linux/tracehook.h
++++ b/include/linux/tracehook.h
+@@ -133,10 +133,6 @@ static inline void tracehook_report_syscall_exit(struct pt_regs *regs, int step)
+ 
+ /**
+  * tracehook_signal_handler - signal handler setup is complete
+- * @sig:		number of signal being delivered
+- * @info:		siginfo_t of signal being delivered
+- * @ka:			sigaction setting that chose the handler
+- * @regs:		user register state
+  * @stepping:		nonzero if debugger single-step or block-step in use
+  *
+  * Called by the arch code after a signal handler has been set up.
+@@ -146,9 +142,7 @@ static inline void tracehook_report_syscall_exit(struct pt_regs *regs, int step)
+  * Called without locks, shortly before returning to user mode
+  * (or handling more signals).
+  */
+-static inline void tracehook_signal_handler(int sig, siginfo_t *info,
+-					    const struct k_sigaction *ka,
+-					    struct pt_regs *regs, int stepping)
++static inline void tracehook_signal_handler(int stepping)
+ {
+ 	if (stepping)
+ 		ptrace_notify(SIGTRAP);
+diff --git a/kernel/signal.c b/kernel/signal.c
+index bd649bd..b0a6256 100644
+--- a/kernel/signal.c
++++ b/kernel/signal.c
+@@ -2403,7 +2403,7 @@ void signal_delivered(int sig, siginfo_t *info, struct k_sigaction *ka,
+ 	if (!(ka->sa.sa_flags & SA_NODEFER))
+ 		sigaddset(&blocked, sig);
+ 	set_current_blocked(&blocked);
+-	tracehook_signal_handler(sig, info, ka, regs, stepping);
++	tracehook_signal_handler(stepping);
  }
  
--static int setup_rt_frame(struct k_sigaction *ka, struct pt_regs *regs,
--		int signr, sigset_t *set, siginfo_t *info)
-+static int setup_rt_frame(struct ksignal *ksig, struct pt_regs *regs,
-+			  sigset_t *set)
- {
- 	struct rt_sigframe __user *frame;
- 	int err = 0;
- 
--	frame = get_sigframe(ka, regs, sizeof(*frame));
-+	frame = get_sigframe(&ksig->ka, regs, sizeof(*frame));
- 	if (!access_ok(VERIFY_WRITE, frame, sizeof(*frame)))
--		goto give_sigsegv;
-+		return -EFAULT;
- 
- 	/*
- 	 * Set up the return code ...
-@@ -194,7 +194,7 @@ static int setup_rt_frame(struct k_sigaction *ka, struct pt_regs *regs,
- 	err |= __put_user(0x80008002, frame->rs_code + 1);
- 	flush_cache_sigtramp((unsigned long) frame->rs_code);
- 
--	err |= copy_siginfo_to_user(&frame->rs_info, info);
-+	err |= copy_siginfo_to_user(&frame->rs_info, &ksig->info);
- 	err |= __put_user(0, &frame->rs_uc.uc_flags);
- 	err |= __put_user(NULL, &frame->rs_uc.uc_link);
- 	err |= __save_altstack(&frame->rs_uc.uc_stack, regs->regs[0]);
-@@ -202,26 +202,23 @@ static int setup_rt_frame(struct k_sigaction *ka, struct pt_regs *regs,
- 	err |= __copy_to_user(&frame->rs_uc.uc_sigmask, set, sizeof(*set));
- 
- 	if (err)
--		goto give_sigsegv;
-+		return -EFAULT;
- 
- 	regs->regs[0] = (unsigned long) frame;
- 	regs->regs[3] = (unsigned long) frame->rs_code;
--	regs->regs[4] = signr;
-+	regs->regs[4] = ksig->sig;
- 	regs->regs[5] = (unsigned long) &frame->rs_info;
- 	regs->regs[6] = (unsigned long) &frame->rs_uc;
--	regs->regs[29] = (unsigned long) ka->sa.sa_handler;
--	regs->cp0_epc = (unsigned long) ka->sa.sa_handler;
-+	regs->regs[29] = (unsigned long) ksig->ka.sa.sa_handler;
-+	regs->cp0_epc = (unsigned long) ksig->ka.sa.sa_handler;
- 
- 	return 0;
--
--give_sigsegv:
--	force_sigsegv(signr, current);
--	return -EFAULT;
- }
- 
--static void handle_signal(unsigned long sig, siginfo_t *info,
--	struct k_sigaction *ka, struct pt_regs *regs)
-+static void handle_signal(struct ksignal *ksig, struct pt_regs *regs)
- {
-+	int ret;
-+
- 	if (regs->is_syscall) {
- 		switch (regs->regs[4]) {
- 		case ERESTART_RESTARTBLOCK:
-@@ -229,7 +226,7 @@ static void handle_signal(unsigned long sig, siginfo_t *info,
- 			regs->regs[4] = EINTR;
- 			break;
- 		case ERESTARTSYS:
--			if (!(ka->sa.sa_flags & SA_RESTART)) {
-+			if (!(ksig->ka.sa.sa_flags & SA_RESTART)) {
- 				regs->regs[4] = EINTR;
- 				break;
- 			}
-@@ -245,17 +242,14 @@ static void handle_signal(unsigned long sig, siginfo_t *info,
- 	/*
- 	 * Set up the stack frame
- 	 */
--	if (setup_rt_frame(ka, regs, sig, sigmask_to_save(), info) < 0)
--		return;
-+	ret = setup_rt_frame(ksig, regs, sigmask_to_save());
- 
--	signal_delivered(sig, info, ka, regs, 0);
-+	signal_setup_done(ret, ksig, 0);
- }
- 
- static void do_signal(struct pt_regs *regs)
- {
--	struct k_sigaction ka;
--	siginfo_t info;
--	int signr;
-+	struct ksignal ksig;
- 
- 	/*
- 	 * We want the common case to go fast, which is why we may in certain
-@@ -265,10 +259,9 @@ static void do_signal(struct pt_regs *regs)
- 	if (!user_mode(regs))
- 		return;
- 
--	signr = get_signal_to_deliver(&info, &ka, regs, NULL);
--	if (signr > 0) {
-+	if (get_signal(&ksig)) {
- 		/* Actually deliver the signal.  */
--		handle_signal(signr, &info, &ka, regs);
-+		handle_signal(&ksig, regs);
- 		return;
- 	}
- 
+ void signal_setup_done(int failed, struct ksignal *ksig, int stepping)
 -- 
 1.8.4.2
