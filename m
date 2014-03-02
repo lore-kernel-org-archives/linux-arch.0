@@ -1,169 +1,138 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.sigma-star.at ([95.130.255.111]:62417 "EHLO
+Received: from mail.sigma-star.at ([95.130.255.111]:62416 "EHLO
 	mail.sigma-star.at" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753842AbaCBX4s (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 2 Mar 2014 18:56:48 -0500
+	with ESMTP id S1753836AbaCBX4p (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 2 Mar 2014 18:56:45 -0500
 From: Richard Weinberger <richard@nod.at>
-Subject: [PATCH 09/44] ia64: Use get_signal() signal_setup_done()
-Date: Mon,  3 Mar 2014 00:55:58 +0100
-Message-ID: <1393804559-7701-10-git-send-email-richard@nod.at>
+Subject: [PATCH 08/44] hexagon: Use get_signal() signal_setup_done()
+Date: Mon,  3 Mar 2014 00:55:57 +0100
+Message-ID: <1393804559-7701-9-git-send-email-richard@nod.at>
 In-Reply-To: <1393804559-7701-1-git-send-email-richard@nod.at>
 References: <1393804559-7701-1-git-send-email-richard@nod.at>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
 Cc: linux-arch@vger.kernel.org, viro@zeniv.linux.org.uk, vgupta@synopsys.com, catalin.marinas@arm.com, will.deacon@arm.com, hskinnemoen@gmail.com, egtvedt@samfundet.no, vapier@gentoo.org, msalter@redhat.com, a-jacquiot@ti.com, starvik@axis.com, jesper.nilsson@axis.com, dhowells@redhat.com, rkuo@codeaurora.org, tony.luck@intel.com, fenghua.yu@intel.com, takata@linux-m32r.org, geert@linux-m68k.org, james.hogan@imgtec.com, monstr@monstr.eu, yasutake.koichi@jp.panasonic.com, ralf@linux-mips.org, jonas@southpole.se, jejb@parisc-linux.org, deller@gmx.de, benh@kernel.crashing.org, paulus@samba.org, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, liqin.linux@gmail.com, lennox.wu@gmail.com, cmetcalf@tilera.com, gxt@mprc.pku.edu.cn, linux-xtensa@linux-xtensa.org, akpm@linux-foundation.org, oleg@redhat.com, tj@kernel.org, hch@infradead.org, Richard Weinberger <richard@nod.at>
-Message-ID: <20140302235558.TUaxJ3vkIUA1VoCqiIWSOdjlnUX5wFU04f8Mf_DoPFU@z>
+Message-ID: <20140302235557.ooXIqAqnhza-dFciov8hLO20mggCB4_0_frfzR2vSiU@z>
 
 Use the more generic functions get_signal() signal_setup_done()
 for signal delivery.
-This inverts also the return codes of force_sigsegv_info()
-and setup_frame() to follow the kernel convention.
 
+Acked-by: Richard Kuo <rkuo@codeaurora.org>
 Signed-off-by: Richard Weinberger <richard@nod.at>
 ---
- arch/ia64/kernel/signal.c | 46 +++++++++++++++++++++-------------------------
- 1 file changed, 21 insertions(+), 25 deletions(-)
+ arch/hexagon/kernel/signal.c | 45 ++++++++++++++++++--------------------------
+ 1 file changed, 18 insertions(+), 27 deletions(-)
 
-diff --git a/arch/ia64/kernel/signal.c b/arch/ia64/kernel/signal.c
-index 33cab9a..6d92170 100644
---- a/arch/ia64/kernel/signal.c
-+++ b/arch/ia64/kernel/signal.c
-@@ -309,12 +309,11 @@ force_sigsegv_info (int sig, void __user *addr)
- 	si.si_uid = from_kuid_munged(current_user_ns(), current_uid());
- 	si.si_addr = addr;
- 	force_sig_info(SIGSEGV, &si, current);
--	return 0;
-+	return 1;
- }
- 
- static long
--setup_frame (int sig, struct k_sigaction *ka, siginfo_t *info, sigset_t *set,
--	     struct sigscratch *scr)
-+setup_frame(struct ksignal *ksig, sigset_t *set, struct sigscratch *scr)
+diff --git a/arch/hexagon/kernel/signal.c b/arch/hexagon/kernel/signal.c
+index d7c7387..6525358 100644
+--- a/arch/hexagon/kernel/signal.c
++++ b/arch/hexagon/kernel/signal.c
+@@ -112,20 +112,20 @@ static int restore_sigcontext(struct pt_regs *regs,
+ /*
+  * Setup signal stack frame with siginfo structure
+  */
+-static int setup_rt_frame(int signr, struct k_sigaction *ka, siginfo_t *info,
+-			  sigset_t *set,  struct pt_regs *regs)
++static int setup_rt_frame(struct ksignal *ksig, sigset_t *set,
++			  struct pt_regs *regs)
  {
- 	extern char __kernel_sigtramp[];
- 	unsigned long tramp_addr, new_rbs = 0, new_sp;
-@@ -323,7 +322,7 @@ setup_frame (int sig, struct k_sigaction *ka, siginfo_t *info, sigset_t *set,
+ 	int err = 0;
+ 	struct rt_sigframe __user *frame;
+ 	struct hexagon_vdso *vdso = current->mm->context.vdso;
  
- 	new_sp = scr->pt.r12;
- 	tramp_addr = (unsigned long) __kernel_sigtramp;
--	if (ka->sa.sa_flags & SA_ONSTACK) {
-+	if (ksig->ka.sa.sa_flags & SA_ONSTACK) {
- 		int onstack = sas_ss_flags(new_sp);
+-	frame = get_sigframe(ka, regs, sizeof(struct rt_sigframe));
++	frame = get_sigframe(&ksig->ka, regs, sizeof(struct rt_sigframe));
  
- 		if (onstack == 0) {
-@@ -347,29 +346,29 @@ setup_frame (int sig, struct k_sigaction *ka, siginfo_t *info, sigset_t *set,
- 			 */
- 			check_sp = (new_sp - sizeof(*frame)) & -STACK_ALIGN;
- 			if (!likely(on_sig_stack(check_sp)))
--				return force_sigsegv_info(sig, (void __user *)
-+				return force_sigsegv_info(ksig->sig, (void __user *)
- 							  check_sp);
- 		}
- 	}
- 	frame = (void __user *) ((new_sp - sizeof(*frame)) & -STACK_ALIGN);
+ 	if (!access_ok(VERIFY_WRITE, frame, sizeof(struct rt_sigframe)))
+-		goto	sigsegv;
++		return -EFAULT;
  
- 	if (!access_ok(VERIFY_WRITE, frame, sizeof(*frame)))
--		return force_sigsegv_info(sig, frame);
-+		return force_sigsegv_info(ksig->sig, frame);
+-	if (copy_siginfo_to_user(&frame->info, info))
+-		goto	sigsegv;
++	if (copy_siginfo_to_user(&frame->info, &ksig->info))
++		return -EFAULT;
  
--	err  = __put_user(sig, &frame->arg0);
-+	err  = __put_user(ksig->sig, &frame->arg0);
- 	err |= __put_user(&frame->info, &frame->arg1);
- 	err |= __put_user(&frame->sc, &frame->arg2);
- 	err |= __put_user(new_rbs, &frame->sc.sc_rbs_base);
- 	err |= __put_user(0, &frame->sc.sc_loadrs);	/* initialize to zero */
--	err |= __put_user(ka->sa.sa_handler, &frame->handler);
-+	err |= __put_user(ksig->ka.sa.sa_handler, &frame->handler);
+ 	/* The on-stack signal trampoline is no longer executed;
+ 	 * however, the libgcc signal frame unwinding code checks for
+@@ -137,29 +137,26 @@ static int setup_rt_frame(int signr, struct k_sigaction *ka, siginfo_t *info,
+ 	err |= __copy_to_user(&frame->uc.uc_sigmask, set, sizeof(*set));
+ 	err |= __save_altstack(&frame->uc.uc_stack, user_stack_pointer(regs));
+ 	if (err)
+-		goto sigsegv;
++		return -EFAULT;
  
--	err |= copy_siginfo_to_user(&frame->info, info);
-+	err |= copy_siginfo_to_user(&frame->info, &ksig->info);
+ 	/* Load r0/r1 pair with signumber/siginfo pointer... */
+ 	regs->r0100 = ((unsigned long long)((unsigned long)&frame->info) << 32)
+-		| (unsigned long long)signr;
++		| (unsigned long long)ksig->sig;
+ 	regs->r02 = (unsigned long) &frame->uc;
+ 	regs->r31 = (unsigned long) vdso->rt_signal_trampoline;
+ 	pt_psp(regs) = (unsigned long) frame;
+-	pt_set_elr(regs, (unsigned long)ka->sa.sa_handler);
++	pt_set_elr(regs, (unsigned long)ksig->ka.sa.sa_handler);
  
- 	err |= __save_altstack(&frame->sc.sc_stack, scr->pt.r12);
- 	err |= setup_sigcontext(&frame->sc, set, scr);
- 
- 	if (unlikely(err))
--		return force_sigsegv_info(sig, frame);
-+		return force_sigsegv_info(ksig->sig, frame);
- 
- 	scr->pt.r12 = (unsigned long) frame - 16;	/* new stack pointer */
- 	scr->pt.ar_fpsr = FPSR_DEFAULT;			/* reset fpsr for signal handler */
-@@ -394,22 +393,20 @@ setup_frame (int sig, struct k_sigaction *ka, siginfo_t *info, sigset_t *set,
- 
- #if DEBUG_SIG
- 	printk("SIG deliver (%s:%d): sig=%d sp=%lx ip=%lx handler=%p\n",
--	       current->comm, current->pid, sig, scr->pt.r12, frame->sc.sc_ip, frame->handler);
-+	       current->comm, current->pid, ksig->sig, scr->pt.r12, frame->sc.sc_ip, frame->handler);
- #endif
--	return 1;
-+	return 0;
- }
- 
- static long
--handle_signal (unsigned long sig, struct k_sigaction *ka, siginfo_t *info,
--	       struct sigscratch *scr)
-+handle_signal (struct ksignal *ksig, struct sigscratch *scr)
- {
--	if (!setup_frame(sig, ka, info, sigmask_to_save(), scr))
--		return 0;
-+	int ret = setup_frame(ksig, sigmask_to_save(), scr);
- 
--	signal_delivered(sig, info, ka, &scr->pt,
--				 test_thread_flag(TIF_SINGLESTEP));
-+	if (!ret)
-+		signal_setup_done(ret, ksig, test_thread_flag(TIF_SINGLESTEP));
- 
--	return 1;
-+	return ret;
+ 	return 0;
+-
+-sigsegv:
+-	force_sigsegv(signr, current);
+-	return -EFAULT;
  }
  
  /*
-@@ -419,17 +416,16 @@ handle_signal (unsigned long sig, struct k_sigaction *ka, siginfo_t *info,
- void
- ia64_do_signal (struct sigscratch *scr, long in_syscall)
+  * Setup invocation of signal handler
+  */
+-static void handle_signal(int sig, siginfo_t *info, struct k_sigaction *ka,
+-			 struct pt_regs *regs)
++static void handle_signal(struct ksignal *ksig, struct pt_regs *regs)
  {
--	struct k_sigaction ka;
++	int ret;
++
+ 	/*
+ 	 * If we're handling a signal that aborted a system call,
+ 	 * set up the error return value before adding the signal
+@@ -173,7 +170,7 @@ static void handle_signal(int sig, siginfo_t *info, struct k_sigaction *ka,
+ 			regs->r00 = -EINTR;
+ 			break;
+ 		case -ERESTARTSYS:
+-			if (!(ka->sa.sa_flags & SA_RESTART)) {
++			if (!(ksig->ka.sa.sa_flags & SA_RESTART)) {
+ 				regs->r00 = -EINTR;
+ 				break;
+ 			}
+@@ -193,11 +190,9 @@ static void handle_signal(int sig, siginfo_t *info, struct k_sigaction *ka,
+ 	 * only set up the rt_frame flavor.
+ 	 */
+ 	/* If there was an error on setup, no signal was delivered. */
+-	if (setup_rt_frame(sig, ka, info, sigmask_to_save(), regs) < 0)
+-		return;
++	ret = setup_rt_frame(ksig, sigmask_to_save(), regs);
+ 
+-	signal_delivered(sig, info, ka, regs,
+-			test_thread_flag(TIF_SINGLESTEP));
++	signal_setup_done(ret, ksig, test_thread_flag(TIF_SINGLESTEP));
+ }
+ 
+ /*
+@@ -205,17 +200,13 @@ static void handle_signal(int sig, siginfo_t *info, struct k_sigaction *ka,
+  */
+ void do_signal(struct pt_regs *regs)
+ {
+-	struct k_sigaction sigact;
 -	siginfo_t info;
- 	long restart = in_syscall;
- 	long errno = scr->pt.r8;
+-	int signo;
 +	struct ksignal ksig;
  
- 	/*
- 	 * This only loops in the rare cases of handle_signal() failing, in which case we
- 	 * need to push through a forced SIGSEGV.
- 	 */
- 	while (1) {
--		int signr = get_signal_to_deliver(&info, &ka, &scr->pt, NULL);
-+		get_signal(&ksig);
+ 	if (!user_mode(regs))
+ 		return;
  
- 		/*
- 		 * get_signal_to_deliver() may have run a debugger (via notify_parent())
-@@ -446,7 +442,7 @@ ia64_do_signal (struct sigscratch *scr, long in_syscall)
- 			 */
- 			restart = 0;
- 
--		if (signr <= 0)
-+		if (ksig.sig <= 0)
- 			break;
- 
- 		if (unlikely(restart)) {
-@@ -458,7 +454,7 @@ ia64_do_signal (struct sigscratch *scr, long in_syscall)
- 				break;
- 
- 			      case ERESTARTSYS:
--				if ((ka.sa.sa_flags & SA_RESTART) == 0) {
-+				if ((ksig.ka.sa.sa_flags & SA_RESTART) == 0) {
- 					scr->pt.r8 = EINTR;
- 					/* note: scr->pt.r10 is already -1 */
- 					break;
-@@ -473,7 +469,7 @@ ia64_do_signal (struct sigscratch *scr, long in_syscall)
- 		 * Whee!  Actually deliver the signal.  If the delivery failed, we need to
- 		 * continue to iterate in this loop so we can deliver the SIGSEGV...
- 		 */
--		if (handle_signal(signr, &ka, &info, scr))
-+		if (handle_signal(&ksig, scr))
- 			return;
+-	signo = get_signal_to_deliver(&info, &sigact, regs, NULL);
+-
+-	if (signo > 0) {
+-		handle_signal(signo, &info, &sigact, regs);
++	if (get_signal(&ksig)) {
++		handle_signal(&ksig, regs);
+ 		return;
  	}
  
 -- 
