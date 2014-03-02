@@ -1,122 +1,67 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.sigma-star.at ([95.130.255.111]:62423 "EHLO
+Received: from mail.sigma-star.at ([95.130.255.111]:62419 "EHLO
 	mail.sigma-star.at" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754502AbaCCABZ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 2 Mar 2014 19:01:25 -0500
+	with ESMTP id S1754430AbaCBX75 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 2 Mar 2014 18:59:57 -0500
 From: Richard Weinberger <richard@nod.at>
-Subject: [PATCH 38/44] s390: Use translate_signal()
-Date: Mon,  3 Mar 2014 01:00:38 +0100
-Message-ID: <1393804844-8008-4-git-send-email-richard@nod.at>
-In-Reply-To: <1393804844-8008-1-git-send-email-richard@nod.at>
-References: <1393804844-8008-1-git-send-email-richard@nod.at>
+Subject: [PATCH 35/44] m68k: Use translate_signal()
+Date: Mon,  3 Mar 2014 00:59:18 +0100
+Message-ID: <1393804758-7916-13-git-send-email-richard@nod.at>
+In-Reply-To: <1393804758-7916-1-git-send-email-richard@nod.at>
+References: <1393804758-7916-1-git-send-email-richard@nod.at>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
 Cc: linux-arch@vger.kernel.org, viro@zeniv.linux.org.uk, vgupta@synopsys.com, catalin.marinas@arm.com, will.deacon@arm.com, hskinnemoen@gmail.com, egtvedt@samfundet.no, vapier@gentoo.org, msalter@redhat.com, a-jacquiot@ti.com, starvik@axis.com, jesper.nilsson@axis.com, dhowells@redhat.com, rkuo@codeaurora.org, tony.luck@intel.com, fenghua.yu@intel.com, takata@linux-m32r.org, geert@linux-m68k.org, james.hogan@imgtec.com, monstr@monstr.eu, yasutake.koichi@jp.panasonic.com, ralf@linux-mips.org, jonas@southpole.se, jejb@parisc-linux.org, deller@gmx.de, benh@kernel.crashing.org, paulus@samba.org, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, liqin.linux@gmail.com, lennox.wu@gmail.com, cmetcalf@tilera.com, gxt@mprc.pku.edu.cn, linux-xtensa@linux-xtensa.org, akpm@linux-foundation.org, oleg@redhat.com, tj@kernel.org, hch@infradead.org, Richard Weinberger <richard@nod.at>
-Message-ID: <20140303000038.3cAboVHmpFeFGAeXY84N7ae61bZ2dx_QI3me7Op3j8c@z>
+Message-ID: <20140302235918.LIqmczeISQlU3qv--6tj4JvwA8cCSMOMkYryaNHKXdI@z>
 
-Use the common helper instead of it's own variant.
+Use the common helper instead of it's own open coded variant.
 
 Signed-off-by: Richard Weinberger <richard@nod.at>
 ---
- arch/s390/kernel/compat_signal.c | 15 ++-------------
- arch/s390/kernel/signal.c        | 15 ++-------------
- 2 files changed, 4 insertions(+), 26 deletions(-)
+ arch/m68k/kernel/signal.c | 15 ++-------------
+ 1 file changed, 2 insertions(+), 13 deletions(-)
 
-diff --git a/arch/s390/kernel/compat_signal.c b/arch/s390/kernel/compat_signal.c
-index f6c6140..0ac6be5 100644
---- a/arch/s390/kernel/compat_signal.c
-+++ b/arch/s390/kernel/compat_signal.c
-@@ -20,7 +20,6 @@
+diff --git a/arch/m68k/kernel/signal.c b/arch/m68k/kernel/signal.c
+index c8e6fa8..b8a428b 100644
+--- a/arch/m68k/kernel/signal.c
++++ b/arch/m68k/kernel/signal.c
+@@ -39,7 +39,6 @@
  #include <linux/unistd.h>
  #include <linux/stddef.h>
- #include <linux/tty.h>
+ #include <linux/highuid.h>
 -#include <linux/personality.h>
- #include <linux/binfmts.h>
- #include <asm/ucontext.h>
- #include <asm/uaccess.h>
-@@ -310,16 +309,6 @@ get_sigframe(struct k_sigaction *ka, struct pt_regs * regs, size_t frame_size)
- 	return (void __user *)((sp - frame_size) & -8ul);
- }
- 
--static inline int map_signal(int sig)
--{
--	if (current_thread_info()->exec_domain
--	    && current_thread_info()->exec_domain->signal_invmap
--	    && sig < 32)
--		return current_thread_info()->exec_domain->signal_invmap[sig];
--        else
--		return sig;
--}
--
- static int setup_frame32(struct ksignal *ksig, sigset_t *set,
- 			 struct pt_regs *regs)
- {
-@@ -362,7 +351,7 @@ static int setup_frame32(struct ksignal *ksig, sigset_t *set,
- 		(regs->psw.mask & ~PSW_MASK_ASC);
- 	regs->psw.addr = (__force __u64) ksig->ka.sa.sa_handler;
- 
--	regs->gprs[2] = map_signal(sig);
-+	regs->gprs[2] = translate_signal(sig);
- 	regs->gprs[3] = (__force __u64) &frame->sc;
- 
- 	/* We forgot to include these in the sigcontext.
-@@ -426,7 +415,7 @@ static int setup_rt_frame32(struct ksignal *ksig, sigset_t *set,
- 		(regs->psw.mask & ~PSW_MASK_ASC);
- 	regs->psw.addr = (__u64 __force) ksig->ka.sa.sa_handler;
- 
--	regs->gprs[2] = map_signal(ksig->sig);
-+	regs->gprs[2] = translate_signal(ksig->sig);
- 	regs->gprs[3] = (__force __u64) &frame->info;
- 	regs->gprs[4] = (__force __u64) &frame->uc;
- 	regs->gprs[5] = task_thread_info(current)->last_break;
-diff --git a/arch/s390/kernel/signal.c b/arch/s390/kernel/signal.c
-index 0e420a1..d63272b 100644
---- a/arch/s390/kernel/signal.c
-+++ b/arch/s390/kernel/signal.c
-@@ -20,7 +20,6 @@
- #include <linux/unistd.h>
- #include <linux/stddef.h>
  #include <linux/tty.h>
--#include <linux/personality.h>
  #include <linux/binfmts.h>
- #include <linux/tracehook.h>
- #include <linux/syscalls.h>
-@@ -182,16 +181,6 @@ get_sigframe(struct k_sigaction *ka, struct pt_regs * regs, size_t frame_size)
- 	return (void __user *)((sp - frame_size) & -8ul);
- }
+ #include <linux/module.h>
+@@ -871,12 +870,7 @@ static int setup_frame(struct ksignal *ksig, sigset_t *set,
+ 	if (fsize)
+ 		err |= copy_to_user (frame + 1, regs + 1, fsize);
  
--static inline int map_signal(int sig)
--{
--	if (current_thread_info()->exec_domain
--	    && current_thread_info()->exec_domain->signal_invmap
--	    && sig < 32)
--		return current_thread_info()->exec_domain->signal_invmap[sig];
--	else
--		return sig;
--}
--
- static int setup_frame(int sig, struct k_sigaction *ka,
- 		       sigset_t *set, struct pt_regs * regs)
- {
-@@ -235,7 +224,7 @@ static int setup_frame(int sig, struct k_sigaction *ka,
- 		(regs->psw.mask & ~PSW_MASK_ASC);
- 	regs->psw.addr = (unsigned long) ka->sa.sa_handler | PSW_ADDR_AMODE;
+-	err |= __put_user((current_thread_info()->exec_domain
+-			   && current_thread_info()->exec_domain->signal_invmap
+-			   && sig < 32
+-			   ? current_thread_info()->exec_domain->signal_invmap[sig]
+-			   : sig),
+-			  &frame->sig);
++	err |= __put_user(translate_signal(sig), &frame->sig);
  
--	regs->gprs[2] = map_signal(sig);
-+	regs->gprs[2] = translate_signal(sig);
- 	regs->gprs[3] = (unsigned long) &frame->sc;
+ 	err |= __put_user(regs->vector, &frame->code);
+ 	err |= __put_user(&frame->sc, &frame->psc);
+@@ -956,12 +950,7 @@ static int setup_rt_frame(struct ksignal *ksig, sigset_t *set,
+ 	if (fsize)
+ 		err |= copy_to_user (&frame->uc.uc_extra, regs + 1, fsize);
  
- 	/* We forgot to include these in the sigcontext.
-@@ -302,7 +291,7 @@ static int setup_rt_frame(struct ksignal *ksig, sigset_t *set,
- 		(regs->psw.mask & ~PSW_MASK_ASC);
- 	regs->psw.addr = (unsigned long) ksig->ka.sa.sa_handler | PSW_ADDR_AMODE;
- 
--	regs->gprs[2] = map_signal(ksig->sig);
-+	regs->gprs[2] = translate_signal(ksig->sig);
- 	regs->gprs[3] = (unsigned long) &frame->info;
- 	regs->gprs[4] = (unsigned long) &frame->uc;
- 	regs->gprs[5] = task_thread_info(current)->last_break;
+-	err |= __put_user((current_thread_info()->exec_domain
+-			   && current_thread_info()->exec_domain->signal_invmap
+-			   && sig < 32
+-			   ? current_thread_info()->exec_domain->signal_invmap[sig]
+-			   : sig),
+-			  &frame->sig);
++	err |= __put_user(translate_signal(sig), &frame->sig);
+ 	err |= __put_user(&frame->info, &frame->pinfo);
+ 	err |= __put_user(&frame->uc, &frame->puc);
+ 	err |= copy_siginfo_to_user(&frame->info, &ksig->info);
 -- 
 1.8.4.2
 
