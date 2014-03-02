@@ -1,16 +1,16 @@
 From: Oleg Nesterov <oleg@redhat.com>
-Subject: Re: [PATCH v5 3/8] qspinlock,
-	x86: Add x86 specific optimization	for 2 contending tasks
-Date: Sun, 2 Mar 2014 14:16:38 +0100
-Message-ID: <20140302131638.GB13206@redhat.com>
+Subject: Re: [PATCH v5 2/8] qspinlock,
+	x86: Enable x86-64 to use queue	spinlock
+Date: Sun, 2 Mar 2014 15:10:58 +0100
+Message-ID: <20140302141058.GA15629@redhat.com>
 References: <1393475567-4453-1-git-send-email-Waiman.Long@hp.com>
-	<1393475567-4453-4-git-send-email-Waiman.Long@hp.com>
+	<1393475567-4453-3-git-send-email-Waiman.Long@hp.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 Return-path: <xen-devel-bounces@lists.xen.org>
 Content-Disposition: inline
-In-Reply-To: <1393475567-4453-4-git-send-email-Waiman.Long@hp.com>
+In-Reply-To: <1393475567-4453-3-git-send-email-Waiman.Long@hp.com>
 List-Unsubscribe: <http://lists.xen.org/cgi-bin/mailman/options/xen-devel>,
 	<mailto:xen-devel-request@lists.xen.org?subject=unsubscribe>
 List-Post: <mailto:xen-devel@lists.xen.org>
@@ -25,13 +25,20 @@ List-Id: linux-arch.vger.kernel.org
 
 On 02/26, Waiman Long wrote:
 >
-> @@ -144,7 +317,7 @@ static __always_inline int queue_spin_setlock(struct qspinlock *lock)
->  	int qlcode = atomic_read(lock->qlcode);
->  
->  	if (!(qlcode & _QSPINLOCK_LOCKED) && (atomic_cmpxchg(&lock->qlcode,
-> -		qlcode, qlcode|_QSPINLOCK_LOCKED) == qlcode))
-> +		qlcode, code|_QSPINLOCK_LOCKED) == qlcode))
+> +#define _ARCH_SUPPORTS_ATOMIC_8_16_BITS_OPS
+> +
+> +/*
+> + * x86-64 specific queue spinlock union structure
+> + */
+> +union arch_qspinlock {
+> +	struct qspinlock slock;
+> +	u8		 lock;	/* Lock bit	*/
+> +};
 
-Hmm. didn't read the patch, but this change looks like accidental typo...
+And this enables the optimized version of queue_spin_setlock().
+
+But why does it check ACCESS_ONCE(qlock->lock) == 0 ? This is called
+right after queue_get_lock_qcode() returns 0, this locked should be
+likely unlocked.
 
 Oleg.
