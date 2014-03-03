@@ -1,62 +1,64 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.sigma-star.at ([95.130.255.111]:62410 "EHLO
+Received: from mail.sigma-star.at ([95.130.255.111]:62409 "EHLO
 	mail.sigma-star.at" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754557AbaCCABj (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 2 Mar 2014 19:01:39 -0500
+	with ESMTP id S1754558AbaCCABi (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 2 Mar 2014 19:01:38 -0500
 From: Richard Weinberger <richard@nod.at>
-Subject: [PATCH 44/44] xtensa: Use translate_signal()
-Date: Mon,  3 Mar 2014 01:00:44 +0100
-Message-ID: <1393804844-8008-10-git-send-email-richard@nod.at>
+Subject: [PATCH 43/44] um/x86: Use translate_signal()
+Date: Mon,  3 Mar 2014 01:00:43 +0100
+Message-ID: <1393804844-8008-9-git-send-email-richard@nod.at>
 In-Reply-To: <1393804844-8008-1-git-send-email-richard@nod.at>
 References: <1393804844-8008-1-git-send-email-richard@nod.at>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
 Cc: linux-arch@vger.kernel.org, viro@zeniv.linux.org.uk, vgupta@synopsys.com, catalin.marinas@arm.com, will.deacon@arm.com, hskinnemoen@gmail.com, egtvedt@samfundet.no, vapier@gentoo.org, msalter@redhat.com, a-jacquiot@ti.com, starvik@axis.com, jesper.nilsson@axis.com, dhowells@redhat.com, rkuo@codeaurora.org, tony.luck@intel.com, fenghua.yu@intel.com, takata@linux-m32r.org, geert@linux-m68k.org, james.hogan@imgtec.com, monstr@monstr.eu, yasutake.koichi@jp.panasonic.com, ralf@linux-mips.org, jonas@southpole.se, jejb@parisc-linux.org, deller@gmx.de, benh@kernel.crashing.org, paulus@samba.org, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, liqin.linux@gmail.com, lennox.wu@gmail.com, cmetcalf@tilera.com, gxt@mprc.pku.edu.cn, linux-xtensa@linux-xtensa.org, akpm@linux-foundation.org, oleg@redhat.com, tj@kernel.org, hch@infradead.org, Richard Weinberger <richard@nod.at>
-Message-ID: <20140303000044.YlQkRovZFGysJsh-iFLVbPKYd48OJITbf8VQSppWfVU@z>
+Message-ID: <20140303000043.db3cHVmbCImKy7RwINBEIG_hrl4w_o1O6lXSwv7yLOY@z>
 
-Use the common helper instead of it's own open coded variant.
+Use the common helper instead of it's own variant.
 
 Signed-off-by: Richard Weinberger <richard@nod.at>
 ---
- arch/xtensa/kernel/signal.c | 10 ++--------
- 1 file changed, 2 insertions(+), 8 deletions(-)
+ arch/x86/um/signal.c | 11 ++---------
+ 1 file changed, 2 insertions(+), 9 deletions(-)
 
-diff --git a/arch/xtensa/kernel/signal.c b/arch/xtensa/kernel/signal.c
-index 4612321..905a574 100644
---- a/arch/xtensa/kernel/signal.c
-+++ b/arch/xtensa/kernel/signal.c
-@@ -18,7 +18,6 @@
- #include <linux/signal.h>
- #include <linux/errno.h>
- #include <linux/ptrace.h>
+diff --git a/arch/x86/um/signal.c b/arch/x86/um/signal.c
+index 79d8245..1ffafa1 100644
+--- a/arch/x86/um/signal.c
++++ b/arch/x86/um/signal.c
+@@ -5,7 +5,6 @@
+  */
+ 
+ 
 -#include <linux/personality.h>
- #include <linux/tracehook.h>
- 
- #include <asm/ucontext.h>
-@@ -335,8 +334,7 @@ static int setup_frame(struct ksignal *ksig, sigset_t *set,
- 		       struct pt_regs *regs)
+ #include <linux/ptrace.h>
+ #include <linux/kernel.h>
+ #include <asm/unistd.h>
+@@ -504,7 +503,7 @@ int setup_signal_stack_si(unsigned long stack_top, struct ksignal *ksig,
+ 			  struct pt_regs *regs, sigset_t *set)
  {
- 	struct rt_sigframe *frame;
+ 	struct rt_sigframe __user *frame;
 -	int err = 0, sig = ksig->sig;
--	int signal;
-+	int err = 0, signal;
- 	unsigned long sp, ra, tp;
++	int err = 0;
  
- 	sp = regs->areg[1];
-@@ -354,11 +352,7 @@ static int setup_frame(struct ksignal *ksig, sigset_t *set,
- 		return -EFAULT;
- 	}
+ 	frame = (struct rt_sigframe __user *)
+ 		round_down(stack_top - sizeof(struct rt_sigframe), 16);
+@@ -550,14 +549,8 @@ int setup_signal_stack_si(unsigned long stack_top, struct ksignal *ksig,
+ 		return err;
  
--	signal = current_thread_info()->exec_domain
--		&& current_thread_info()->exec_domain->signal_invmap
--		&& sig < 32
--		? current_thread_info()->exec_domain->signal_invmap[sig]
--		: sig;
-+	signal = translate_signal(ksig->sig);
+ 	/* Set up registers for signal handler */
+-	{
+-		struct exec_domain *ed = current_thread_info()->exec_domain;
+-		if (unlikely(ed && ed->signal_invmap && sig < 32))
+-			sig = ed->signal_invmap[sig];
+-	}
+-
+ 	PT_REGS_SP(regs) = (unsigned long) frame;
+-	PT_REGS_DI(regs) = sig;
++	PT_REGS_DI(regs) = translate_signal(ksig->sig);
+ 	/* In case the signal handler was declared without prototypes */
+ 	PT_REGS_AX(regs) = 0;
  
- 	if (ksig->ka.sa.sa_flags & SA_SIGINFO) {
- 		err |= copy_siginfo_to_user(&frame->info, &ksig->info);
 -- 
 1.8.4.2
 
