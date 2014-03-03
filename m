@@ -1,152 +1,232 @@
 From: Daniel Vetter <daniel@ffwll.ch>
-Subject: Re: [PATCH 2/6] seqno-fence: Hardware dma-buf implementation of
- fencing (v4)
-Date: Mon, 3 Mar 2014 22:01:04 +0100
-Message-ID: <20140303210104.GJ17001@phenom.ffwll.local>
+Subject: Re: [PATCH 4/6] android: convert sync to fence api, v4
+Date: Mon, 3 Mar 2014 22:11:10 +0100
+Message-ID: <CAKMK7uESOhk_i8ui1pVknA=6s8oQsBOCTULYszxe5fodcBwTGw@mail.gmail.com>
 References: <20140217155056.20337.25254.stgit@patser>
- <20140217155556.20337.37589.stgit@patser>
- <53023F3E.3080107@vodafone.de>
- <CAF6AEGtHSg=qESbGE8LZsQPrRfHnrSQOjpEAVKeZ5o9k07ZNcA@mail.gmail.com>
- <530248B1.2090405@vodafone.de>
- <CAF6AEGtk1dGdFg2wk-ofRQmaxEnnEOQBOg=JNaPRVapQqsML+w@mail.gmail.com>
- <530257E3.2060508@vodafone.de>
- <5304B0E7.4000802@canonical.com>
+	<20140217155640.20337.13331.stgit@patser>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
-Content-Transfer-Encoding: QUOTED-PRINTABLE
+Content-Type: text/plain; charset=ISO-8859-1
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ea0-f175.google.com ([209.85.215.175]:35439 "EHLO
-	mail-ea0-f175.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752636AbaCCVBJ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 3 Mar 2014 16:01:09 -0500
-Received: by mail-ea0-f175.google.com with SMTP id d10so1651164eaj.34
-        for <linux-arch@vger.kernel.org>; Mon, 03 Mar 2014 13:01:08 -0800 (PST)
-Content-Disposition: inline
-In-Reply-To: <5304B0E7.4000802@canonical.com>
+Received: from mail-ig0-f175.google.com ([209.85.213.175]:56756 "EHLO
+	mail-ig0-f175.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753590AbaCCVLM (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 3 Mar 2014 16:11:12 -0500
+Received: by mail-ig0-f175.google.com with SMTP id ur14so3398664igb.2
+        for <linux-arch@vger.kernel.org>; Mon, 03 Mar 2014 13:11:10 -0800 (PST)
+In-Reply-To: <20140217155640.20337.13331.stgit@patser>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Maarten Lankhorst <maarten.lankhorst@canonical.com>
-Cc: Christian =?iso-8859-1?Q?K=F6nig?= <deathsimple@vodafone.de>, Rob Clark <robdclark@gmail.com>, linux-arch@vger.kernel.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "dri-devel@lists.freedesktop.org" <dri-devel@lists.freedesktop.org>, "linaro-mm-sig@lists.linaro.org" <linaro-mm-sig@lists.linaro.org>, Colin Cross <ccross@google.com>, "linux-media@vger.kernel.org" <linux-media@vger.kernel.org>
+To: Maarten Lankhorst <maarten.lankhorst@canonical.com>, Ian Lister <ian.lister@intel.com>
+Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Colin Cross <ccross@google.com>, "linaro-mm-sig@lists.linaro.org" <linaro-mm-sig@lists.linaro.org>, "Clark, Rob" <robdclark@gmail.com>, dri-devel <dri-devel@lists.freedesktop.org>, Daniel Vetter <daniel@ffwll.ch>, Sumit Semwal <sumit.semwal@linaro.org>, "linux-media@vger.kernel.org" <linux-media@vger.kernel.org>
 
-On Wed, Feb 19, 2014 at 02:25:59PM +0100, Maarten Lankhorst wrote:
-> op 17-02-14 19:41, Christian K=F6nig schreef:
-> >Am 17.02.2014 19:24, schrieb Rob Clark:
-> >>On Mon, Feb 17, 2014 at 12:36 PM, Christian K=F6nig
-> >><deathsimple@vodafone.de> wrote:
-> >>>Am 17.02.2014 18:27, schrieb Rob Clark:
-> >>>
-> >>>>On Mon, Feb 17, 2014 at 11:56 AM, Christian K=F6nig
-> >>>><deathsimple@vodafone.de> wrote:
-> >>>>>Am 17.02.2014 16:56, schrieb Maarten Lankhorst:
-> >>>>>
-> >>>>>>This type of fence can be used with hardware synchronization fo=
-r simple
-> >>>>>>hardware that can block execution until the condition
-> >>>>>>(dma_buf[offset] - value) >=3D 0 has been met.
-> >>>>>
-> >>>>>Can't we make that just "dma_buf[offset] !=3D 0" instead? As far=
- as I know
-> >>>>>this way it would match the definition M$ uses in their WDDM
-> >>>>>specification
-> >>>>>and so make it much more likely that hardware supports it.
-> >>>>well 'buf[offset] >=3D value' at least means the same slot can be=
- used
-> >>>>for multiple operations (with increasing values of 'value').. not=
- sure
-> >>>>if that is something people care about.
-> >>>>
-> >>>>>=3Dvalue seems to be possible with adreno and radeon.  I'm not r=
-eally sure
-> >>>>>about others (although I presume it as least supported for nv de=
-sktop
-> >>>>>stuff).  For hw that cannot do >=3Dvalue, we can either have a d=
-ifferent fence
-> >>>>>implementation which uses the !=3D0 approach.  Or change seqno-f=
-ence
-> >>>>>implementation later if needed.  But if someone has hw that can =
-do !=3D0 but
-> >>>>>not >=3Dvalue, speak up now ;-)
-> >>>
-> >>>Here! Radeon can only do >=3Dvalue on the DMA and 3D engine, but n=
-ot with UVD
-> >>>or VCE. And for the 3D engine it means draining the pipe, which is=
-n't really
-> >>>a good idea.
-> >>hmm, ok.. forgot you have a few extra rings compared to me.  Is UVD
-> >>re-ordering from decode-order to display-order for you in hw? If no=
-t,
-> >>I guess you need sw intervention anyways when a frame is done for
-> >>frame re-ordering, so maybe hw->hw sync doesn't really matter as mu=
-ch
-> >>as compared to gpu/3d->display.  For dma<->3d interactions, seems l=
-ike
-> >>you would care more about hw<->hw sync, but I guess you aren't like=
-ly
-> >>to use GPU A to do a resolve blit for GPU B..
-> >
-> >No UVD isn't reordering, but since frame reordering is predictable y=
-ou usually end up with pipelining everything to the hardware. E.g. you =
-send the decode commands in decode order to the UVD block and if you ha=
-ve overlay active one of the frames are going to be the first to displa=
-y and then you want to wait for it on the display side.
-> >
-> >>For 3D ring, I assume you probably want a CP_WAIT_FOR_IDLE before a
-> >>CP_MEM_WRITE to update fence value in memory (for the one signallin=
-g
-> >>the fence).  But why would you need that before a CP_WAIT_REG_MEM (=
-for
-> >>the one waiting for the fence)?  I don't exactly have documentation
-> >>for adreno version of CP_WAIT_REG_{MEM,EQ,GTE}..  but PFP and ME
-> >>appear to be same instruction set as r600, so I'm pretty sure they
-> >>should have similar capabilities.. CP_WAIT_REG_MEM appears to be sa=
-me
-> >>but with 32bit gpu addresses vs 64b.
-> >
-> >You shouldn't use any of the CP commands for engine synchronization =
-(neither for wait nor for signal). The PFP and ME are just the top of a=
- quite deep pipeline and when you use any of the CP_WAIT functions you =
-block them for something and that's draining the pipeline.
-> >
-> >With the semaphore and fence commands the values are just attached a=
-s prerequisite to the draw command, e.g. the CP setups the draw environ=
-ment and issues the command, but the actual execution of it is delayed =
-until the "!=3D 0" condition hits. And in the meantime the CP already p=
-repares the next draw operation.
-> >
-> >But at least for compute queues wait semaphore aren't the perfect so=
-lution either. What you need then is a GPU scheduler that uses a kernel=
- task for setting up the command submission for you when all prerequisi=
-tes are meet.
-> nouveau has sort of a scheduler in hardware. It can yield when waitin=
-g
-> on a semaphore. And each process gets their own context and the
-> timeslices can be adjusted. ;-) But I don't mind changing this patch
-> when an actual user pops up. Nouveau can do a  wait for (*sema & mask=
-)
-> !=3D 0 only on nvc0 and newer, where mask can be chosen. But it can d=
-o =3D=3D
-> somevalue and >=3D somevalue on older relevant optimus hardware, so i=
-f we
-> know that it was zero before and we know the sign of the new value th=
-at
-> could work too.
->=20
-> Adding ops and a separate mask later on when users pop up is fine wit=
-h
-> me, the original design here was chosen so I could map the intel stat=
-us
-> page read-only into the process specific nvidia vm.
+On Mon, Feb 17, 2014 at 04:57:19PM +0100, Maarten Lankhorst wrote:
+> Android syncpoints can be mapped to a timeline. This removes the need
+> to maintain a separate api for synchronization. I've left the android
+> trace events in place, but the core fence events should already be
+> sufficient for debugging.
+>
+> v2:
+> - Call fence_remove_callback in sync_fence_free if not all fences have fired.
+> v3:
+> - Merge Colin Cross' bugfixes, and the android fence merge optimization.
+> v4:
+> - Merge with the upstream fixes.
+>
+> Signed-off-by: Maarten Lankhorst <maarten.lankhorst@canonical.com>
+> ---
 
-Yeah, I guess in the end we might end up having a pile of different
-memory-based (shared through dma-bufs) based fences. But imo getting th=
-is
-thing of the ground is more important, and you can always do crazy
-per-platform/generation/whatever hacks and match on that specific fence
-type in the interim. That'll cut it for the SoC madness, which also see=
-ms
-to be what google does with the android syncpoint stuff.
+Snipped everything but headers - Ian Lister from our android team is
+signed up to have a more in-depth look at proper integration with android
+syncpoints. Adding him to cc.
+
+> diff --git a/drivers/staging/android/sync.h b/drivers/staging/android/sync.h
+> index 62e2255b1c1e..6036dbdc8e6f 100644
+> --- a/drivers/staging/android/sync.h
+> +++ b/drivers/staging/android/sync.h
+> @@ -21,6 +21,7 @@
+>  #include <linux/list.h>
+>  #include <linux/spinlock.h>
+>  #include <linux/wait.h>
+> +#include <linux/fence.h>
+>
+>  struct sync_timeline;
+>  struct sync_pt;
+> @@ -40,8 +41,6 @@ struct sync_fence;
+>   * -1 if a will signal before b
+>   * @free_pt: called before sync_pt is freed
+>   * @release_obj: called before sync_timeline is freed
+> - * @print_obj: deprecated
+> - * @print_pt: deprecated
+>   * @fill_driver_data: write implementation specific driver data to data.
+>   *  should return an error if there is not enough room
+>   *  as specified by size.  This information is returned
+> @@ -67,13 +66,6 @@ struct sync_timeline_ops {
+>   /* optional */
+>   void (*release_obj)(struct sync_timeline *sync_timeline);
+>
+> - /* deprecated */
+> - void (*print_obj)(struct seq_file *s,
+> -  struct sync_timeline *sync_timeline);
+> -
+> - /* deprecated */
+> - void (*print_pt)(struct seq_file *s, struct sync_pt *sync_pt);
+> -
+>   /* optional */
+>   int (*fill_driver_data)(struct sync_pt *syncpt, void *data, int size);
+>
+> @@ -104,42 +96,48 @@ struct sync_timeline {
+>
+>   /* protected by child_list_lock */
+>   bool destroyed;
+> + int context, value;
+>
+>   struct list_head child_list_head;
+>   spinlock_t child_list_lock;
+>
+>   struct list_head active_list_head;
+> - spinlock_t active_list_lock;
+>
+> +#ifdef CONFIG_DEBUG_FS
+>   struct list_head sync_timeline_list;
+> +#endif
+>  };
+>
+>  /**
+>   * struct sync_pt - sync point
+> - * @parent: sync_timeline to which this sync_pt belongs
+> + * @fence: base fence class
+>   * @child_list: membership in sync_timeline.child_list_head
+>   * @active_list: membership in sync_timeline.active_list_head
+> +<<<<<<< current
+>   * @signaled_list: membership in temporary signaled_list on stack
+>   * @fence: sync_fence to which the sync_pt belongs
+>   * @pt_list: membership in sync_fence.pt_list_head
+>   * @status: 1: signaled, 0:active, <0: error
+>   * @timestamp: time which sync_pt status transitioned from active to
+>   *  signaled or error.
+> +=======
+> +>>>>>>> patched
+
+Conflict markers ...
+
+>   */
+>  struct sync_pt {
+> - struct sync_timeline *parent;
+> - struct list_head child_list;
+> + struct fence base;
+
+Hm, embedding feels wrong, since that still means that I'll need to
+implement two kinds of fences in i915 - one using the seqno fence to make
+dma-buf sync work, and one to implmenent sync_pt to make the android folks
+happy.
+
+If I can dream I think we should have a pointer to an underlying fence
+here, i.e. a struct sync_pt would just be a userspace interface wrapper to
+do explicit syncing using native fences, instead of implicit syncing like
+with dma-bufs. But this is all drive-by comments from a very cursory
+high-level look. I might be full of myself again ;-)
 -Daniel
---=20
+
+>
+> + struct list_head child_list;
+>   struct list_head active_list;
+> - struct list_head signaled_list;
+> -
+> - struct sync_fence *fence;
+> - struct list_head pt_list;
+> +};
+>
+> - /* protected by parent->active_list_lock */
+> - int status;
+> +static inline struct sync_timeline *sync_pt_parent(struct sync_pt *pt) {
+> + return container_of(pt->base.lock, struct sync_timeline, child_list_lock);
+> +}
+>
+> - ktime_t timestamp;
+> +struct sync_fence_cb {
+> + struct fence_cb cb;
+> + struct fence *sync_pt;
+> + struct sync_fence *fence;
+>  };
+>
+>  /**
+> @@ -149,9 +147,7 @@ struct sync_pt {
+>   * @name: name of sync_fence.  Useful for debugging
+>   * @pt_list_head: list of sync_pts in the fence.  immutable once fence
+>   *  is created
+> - * @waiter_list_head: list of asynchronous waiters on this fence
+> - * @waiter_list_lock: lock protecting @waiter_list_head and @status
+> - * @status: 1: signaled, 0:active, <0: error
+> + * @status: 0: signaled, >0:active, <0: error
+>   *
+>   * @wq: wait queue for fence signaling
+>   * @sync_fence_list: membership in global fence list
+> @@ -160,17 +156,15 @@ struct sync_fence {
+>   struct file *file;
+>   struct kref kref;
+>   char name[32];
+> -
+> - /* this list is immutable once the fence is created */
+> - struct list_head pt_list_head;
+> -
+> - struct list_head waiter_list_head;
+> - spinlock_t waiter_list_lock; /* also protects status */
+> - int status;
+> +#ifdef CONFIG_DEBUG_FS
+> + struct list_head sync_fence_list;
+> +#endif
+> + int num_fences;
+>
+>   wait_queue_head_t wq;
+> + atomic_t status;
+>
+> - struct list_head sync_fence_list;
+> + struct sync_fence_cb cbs[];
+>  };
+>
+>  struct sync_fence_waiter;
+> @@ -184,14 +178,14 @@ typedef void (*sync_callback_t)(struct sync_fence *fence,
+>   * @callback_data: pointer to pass to @callback
+>   */
+>  struct sync_fence_waiter {
+> - struct list_head waiter_list;
+> -
+> - sync_callback_t callback;
+> + wait_queue_t work;
+> + sync_callback_t callback;
+>  };
+>
+>  static inline void sync_fence_waiter_init(struct sync_fence_waiter *waiter,
+>    sync_callback_t callback)
+>  {
+> + INIT_LIST_HEAD(&waiter->work.task_list);
+>   waiter->callback = callback;
+>  }
+>
+> @@ -423,4 +417,22 @@ struct sync_fence_info_data {
+>  #define SYNC_IOC_FENCE_INFO _IOWR(SYNC_IOC_MAGIC, 2,\
+>   struct sync_fence_info_data)
+>
+> +#ifdef CONFIG_DEBUG_FS
+> +
+> +extern void sync_timeline_debug_add(struct sync_timeline *obj);
+> +extern void sync_timeline_debug_remove(struct sync_timeline *obj);
+> +extern void sync_fence_debug_add(struct sync_fence *fence);
+> +extern void sync_fence_debug_remove(struct sync_fence *fence);
+> +extern void sync_dump(void);
+> +
+> +#else
+> +# define sync_timeline_debug_add(obj)
+> +# define sync_timeline_debug_remove(obj)
+> +# define sync_fence_debug_add(fence)
+> +# define sync_fence_debug_remove(fence)
+> +# define sync_dump()
+> +#endif
+> +int sync_fence_wake_up_wq(wait_queue_t *curr, unsigned mode,
+> + int wake_flags, void *key);
+> +
+>  #endif /* _LINUX_SYNC_H */
+-- 
 Daniel Vetter
 Software Engineer, Intel Corporation
 +41 (0) 79 365 57 48 - http://blog.ffwll.ch
