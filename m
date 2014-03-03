@@ -1,12 +1,15 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:53014 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:34738 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755638AbaCCTIj (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 3 Mar 2014 14:08:39 -0500
+	id S1755633AbaCCTCX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 3 Mar 2014 14:02:23 -0500
 Subject: Re: [RFC][PATCH 0/5] arch: atomic rework
 From: Torvald Riegel <triegel@redhat.com>
-In-Reply-To: <20140301005047.GA14777@linux.vnet.ibm.com>
-References: <CA+55aFw5tdjmNyHCdcyZ8NPpd1wCgOjLRzstRhp0Njs9azpi8Q@mail.gmail.com>
+In-Reply-To: <CA+55aFzav_2ayvEgbgeAzQohJ7EQH0tgUU0WcSyvUA6hgOo_Ow@mail.gmail.com>
+References: <CA+55aFyjzR_Ga_HOKnBXpKYbuesqovj1-sFTVisD9UwA6JuJtw@mail.gmail.com>
+	 <20140223063426.GT4250@linux.vnet.ibm.com>
+	 <CA+55aFxMJvaQhoEwqgN=XA6gDOdZwoZQHdcAnB-FhAri_hK-6Q@mail.gmail.com>
+	 <CA+55aFw5tdjmNyHCdcyZ8NPpd1wCgOjLRzstRhp0Njs9azpi8Q@mail.gmail.com>
 	 <20140224172110.GO8264@linux.vnet.ibm.com>
 	 <CA+55aFyi45f7oaG4MYP41TOc=E8Ze8Om88dV2Lq4F=qebhxt4A@mail.gmail.com>
 	 <20140224185341.GU8264@linux.vnet.ibm.com>
@@ -15,69 +18,47 @@ References: <CA+55aFw5tdjmNyHCdcyZ8NPpd1wCgOjLRzstRhp0Njs9azpi8Q@mail.gmail.com>
 	 <CA+55aFyE58NokYdoU+-feHTXv+5snByu+vCyMtg2fNc7npMbDg@mail.gmail.com>
 	 <20140227190611.GU8264@linux.vnet.ibm.com>
 	 <CA+55aFzav_2ayvEgbgeAzQohJ7EQH0tgUU0WcSyvUA6hgOo_Ow@mail.gmail.com>
-	 <20140227205312.GX8264@linux.vnet.ibm.com>
-	 <20140301005047.GA14777@linux.vnet.ibm.com>
 Content-Type: text/plain; charset="UTF-8"
-Date: Mon, 03 Mar 2014 19:55:08 +0100
-Message-ID: <1393872908.28840.11660.camel@triegel.csb>
+Date: Mon, 03 Mar 2014 19:59:31 +0100
+Message-ID: <1393873171.28840.11667.camel@triegel.csb>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: paulmck@linux.vnet.ibm.com
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
-Message-ID: <20140303185508.1FZGZ69NXZkFqOZ4VG8D4trjs64Y9_iPsA928D6Gufg@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Paul McKenney <paulmck@linux.vnet.ibm.com>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
+Message-ID: <20140303185931.UAhddAO-W5z77EjWsqlvtHFDp4qmj1zq5QGNSo9haSQ@z>
 
-On Fri, 2014-02-28 at 16:50 -0800, Paul E. McKenney wrote:
-> +o	Do not use the results from the boolean "&&" and "||" when
-> +	dereferencing.	For example, the following (rather improbable)
-> +	code is buggy:
-> +
-> +		int a[2];
-> +		int index;
-> +		int force_zero_index = 1;
-> +
-> +		...
-> +
-> +		r1 = rcu_dereference(i1)
-> +		r2 = a[r1 && force_zero_index];  /* BUGGY!!! */
-> +
-> +	The reason this is buggy is that "&&" and "||" are often compiled
-> +	using branches.  While weak-memory machines such as ARM or PowerPC
-> +	do order stores after such branches, they can speculate loads,
-> +	which can result in misordering bugs.
-> +
-> +o	Do not use the results from relational operators ("==", "!=",
-> +	">", ">=", "<", or "<=") when dereferencing.  For example,
-> +	the following (quite strange) code is buggy:
-> +
-> +		int a[2];
-> +		int index;
-> +		int flip_index = 0;
-> +
-> +		...
-> +
-> +		r1 = rcu_dereference(i1)
-> +		r2 = a[r1 != flip_index];  /* BUGGY!!! */
-> +
-> +	As before, the reason this is buggy is that relational operators
-> +	are often compiled using branches.  And as before, although
-> +	weak-memory machines such as ARM or PowerPC do order stores
-> +	after such branches, but can speculate loads, which can again
-> +	result in misordering bugs.
+On Thu, 2014-02-27 at 11:47 -0800, Linus Torvalds wrote:
+> On Thu, Feb 27, 2014 at 11:06 AM, Paul E. McKenney
+> <paulmck@linux.vnet.ibm.com> wrote:
+> >
+> > 3.      The comparison was against another RCU-protected pointer,
+> >         where that other pointer was properly fetched using one
+> >         of the RCU primitives.  Here it doesn't matter which pointer
+> >         you use.  At least as long as the rcu_assign_pointer() for
+> >         that other pointer happened after the last update to the
+> >         pointed-to structure.
+> >
+> > I am a bit nervous about #3.  Any thoughts on it?
+> 
+> I think that it might be worth pointing out as an example, and saying
+> that code like
+> 
+>    p = atomic_read(consume);
+>    X;
+>    q = atomic_read(consume);
+>    Y;
+>    if (p == q)
+>         data = p->val;
+> 
+> then the access of "p->val" is constrained to be data-dependent on
+> *either* p or q, but you can't really tell which, since the compiler
+> can decide that the values are interchangeable.
 
-Those two would be allowed by the wording I have recently proposed,
-AFAICS.  r1 != flip_index would result in two possible values (unless
-there are further constraints due to the type of r1 and the values that
-flip_index can have).
-
-I don't think the wording is flawed.  We could raise the requirement of
-having more than one value left for r1 to having more than N with N > 1
-values left, but the fundamental problem remains in that a compiler
-could try to generate a (big) switch statement.
-
-Instead, I think that this indicates that the value_dep_preserving type
-modifier would be useful: It would tell the compiler that it shouldn't
-transform this into a branch in this case, yet allow that optimization
-for all other code.
+The wording I proposed would make the p dereference have a value
+dependency unless X and Y would somehow restrict p and q.  The reasoning
+is that if the atomic loads return potentially more than one value, then
+even if we find out that two such loads did return the same value, we
+still don't know what the exact value was.
 
