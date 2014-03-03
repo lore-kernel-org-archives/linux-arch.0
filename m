@@ -1,144 +1,286 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from [217.156.133.130] ([217.156.133.130]:36774 "EHLO
-	imgpgp01.kl.imgtec.org" rhost-flags-FAIL-FAIL-OK-FAIL)
-	by vger.kernel.org with ESMTP id S1753726AbaCCLqE (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 3 Mar 2014 06:46:04 -0500
-Message-ID: <53146440.707@imgtec.com>
-Date: Mon, 3 Mar 2014 11:15:12 +0000
-From: James Hogan <james.hogan@imgtec.com>
-MIME-Version: 1.0
-Subject: Re: [PATCH 12/44] metag: Use get_signal() signal_setup_done()
-References: <1393804646-7797-1-git-send-email-richard@nod.at> <1393804646-7797-2-git-send-email-richard@nod.at>
-In-Reply-To: <1393804646-7797-2-git-send-email-richard@nod.at>
-Content-Type: multipart/signed; micalg=pgp-sha1;
-	protocol="application/pgp-signature";
-	boundary="d8V3PGl5ELvXKeuSWonKftvQgGEsidMj5"
+Received: from mx1.redhat.com ([209.132.183.28]:40542 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1754103AbaCCPgt (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 3 Mar 2014 10:36:49 -0500
+Subject: Re: [RFC][PATCH 0/5] arch: atomic rework
+From: Torvald Riegel <triegel@redhat.com>
+In-Reply-To: <CA+55aFyE58NokYdoU+-feHTXv+5snByu+vCyMtg2fNc7npMbDg@mail.gmail.com>
+References: <CA+55aFwos2Gwd2LEvht4ymVxHb6GRVjtZ9wwJSaj1p--FqNUWw@mail.gmail.com>
+	 <1393095223.28840.4914.camel@triegel.csb>
+	 <CA+55aFz9=RQoMO2ipyZgNPNzWGVXi_R9Ar5=o9VBWwXzDDz6jg@mail.gmail.com>
+	 <20140223003933.GQ4250@linux.vnet.ibm.com>
+	 <CA+55aFyjzR_Ga_HOKnBXpKYbuesqovj1-sFTVisD9UwA6JuJtw@mail.gmail.com>
+	 <20140223063426.GT4250@linux.vnet.ibm.com>
+	 <CA+55aFxMJvaQhoEwqgN=XA6gDOdZwoZQHdcAnB-FhAri_hK-6Q@mail.gmail.com>
+	 <CA+55aFw5tdjmNyHCdcyZ8NPpd1wCgOjLRzstRhp0Njs9azpi8Q@mail.gmail.com>
+	 <20140224172110.GO8264@linux.vnet.ibm.com>
+	 <CA+55aFyi45f7oaG4MYP41TOc=E8Ze8Om88dV2Lq4F=qebhxt4A@mail.gmail.com>
+	 <20140224185341.GU8264@linux.vnet.ibm.com>
+	 <CA+55aFzXyob0aKnv1u7Stbu0rH5Aq2jaA1rHb=TvQe9c1KY0oQ@mail.gmail.com>
+	 <1393515453.28840.9961.camel@triegel.csb>
+	 <CA+55aFyE58NokYdoU+-feHTXv+5snByu+vCyMtg2fNc7npMbDg@mail.gmail.com>
+Content-Type: text/plain; charset="UTF-8"
+Date: Mon, 03 Mar 2014 16:36:01 +0100
+Message-ID: <1393860961.28840.11426.camel@triegel.csb>
+Mime-Version: 1.0
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Richard Weinberger <richard@nod.at>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, viro@zeniv.linux.org.uk, vgupta@synopsys.com, catalin.marinas@arm.com, will.deacon@arm.com, hskinnemoen@gmail.com, egtvedt@samfundet.no, vapier@gentoo.org, msalter@redhat.com, a-jacquiot@ti.com, starvik@axis.com, jesper.nilsson@axis.com, dhowells@redhat.com, rkuo@codeaurora.org, tony.luck@intel.com, fenghua.yu@intel.com, takata@linux-m32r.org, geert@linux-m68k.org, monstr@monstr.eu, yasutake.koichi@jp.panasonic.com, ralf@linux-mips.org, jonas@southpole.se, jejb@parisc-linux.org, deller@gmx.de, benh@kernel.crashing.org, paulus@samba.org, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, liqin.linux@gmail.com, lennox.wu@gmail.com, cmetcalf@tilera.com, gxt@mprc.pku.edu.cn, linux-xtensa@linux-xtensa.org, akpm@linux-foundation.org, oleg@redhat.com, tj@kernel.org, hch@infradead.org, linux-metag <linux-metag@vger.kernel.org>
-Message-ID: <20140303111512.oc4VX78za87op5WFPywZHuNf7tCAFO3OEoX79yIP-lk@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Paul McKenney <paulmck@linux.vnet.ibm.com>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>, Peter Sewell <Peter.Sewell@cl.cam.ac.uk>
+Message-ID: <20140303153601.VdnZ2C9c_5ECt3wAIEYT8DdmqD36N73ncXknaJ7FMkc@z>
 
---d8V3PGl5ELvXKeuSWonKftvQgGEsidMj5
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: quoted-printable
+On Thu, 2014-02-27 at 09:01 -0800, Linus Torvalds wrote:
+> On Thu, Feb 27, 2014 at 7:37 AM, Torvald Riegel <triegel@redhat.com> wrote:
+> > Regarding the latter, we make a fresh start at each mo_consume load (ie,
+> > we assume we know nothing -- L could have returned any possible value);
+> > I believe this is easier to reason about than other scopes like function
+> > granularities (what happens on inlining?), or translation units.  It
+> > should also be simple to implement for compilers, and would hopefully
+> > not constrain optimization too much.
+> >
+> > [...]
+> >
+> > Paul's litmus test would work, because we guarantee to the programmer
+> > that it can assume that the mo_consume load would return any value
+> > allowed by the type; effectively, this forbids the compiler analysis
+> > Paul thought about:
+> 
+> So realistically, since with the new wording we can ignore the silly
+> cases (ie "p-p") and we can ignore the trivial-to-optimize compiler
+> cases ("if (p == &variable) .. use p"), and you would forbid the
+> "global value range optimization case" that Paul bright up, what
+> remains would seem to be just really subtle compiler transformations
+> of data dependencies to control dependencies.
+> 
+> And the only such thing I can think of is basically compiler-initiated
+> value-prediction, presumably directed by PGO (since now if the value
+> prediction is in the source code, it's considered to break the value
+> chain).
 
-Hi Richard,
+The other example that comes to mind would be feedback-directed JIT
+compilation.  I don't think that's widely used today, and it might never
+be for the kernel -- but *in the standard*, we at least have to consider
+what the future might bring.
 
-On 02/03/14 23:57, Richard Weinberger wrote:
-> @@ -235,10 +230,8 @@ static void handle_signal(unsigned long sig, sigin=
-fo_t *info,
->  static int do_signal(struct pt_regs *regs, int syscall)
->  {
->  	unsigned int retval =3D 0, continue_addr =3D 0, restart_addr =3D 0;
-> -	struct k_sigaction ka;
-> -	siginfo_t info;
-> -	int signr;
->  	int restart =3D 0;
-> +	struct ksignal ksig;
-> =20
->  	/*
->  	 * By the end of rt_sigreturn the context describes the point that th=
-e
-> @@ -272,30 +265,30 @@ static int do_signal(struct pt_regs *regs, int sy=
-scall)
->  	}
-> =20
->  	/*
-> -	 * Get the signal to deliver. When running under ptrace, at this poin=
-t
-> -	 * the debugger may change all our registers ...
-> -	 */
-> -	signr =3D get_signal_to_deliver(&info, &ka, regs, NULL);
-> -	/*
->  	 * Depending on the signal settings we may need to revert the decisio=
-n
->  	 * to restart the system call. But skip this if a debugger has chosen=
- to
->  	 * restart at a different PC.
->  	 */
->  	if (regs->REG_PC !=3D restart_addr)
->  		restart =3D 0;
-> -	if (signr > 0) {
-> +
-> +	/*
-> +	 * Get the signal to deliver. When running under ptrace, at this poin=
-t
-> +	 * the debugger may change all our registers ...
-> +	 */
-> +	if (get_signal(&ksig)) {
+> The good thing is that afaik, value-prediction is largely not used in
+> real life, afaik. There are lots of papers on it, but I don't think
+> anybody actually does it (although I can easily see some
+> specint-specific optimization pattern that is build up around it).
+> 
+> And even value prediction is actually fine, as long as the compiler
+> can see the memory *source* of the value prediction (and it isn't a
+> mo_consume). So it really ends up limiting your value prediction in
+> very simple ways: you cannot do it to function arguments if they are
+> registers. But you can still do value prediction on values you loaded
+> from memory, if you can actually *see* that memory op.
 
-The patch all looks good to me except for this bit. You've moved the bit
-at which a ptrace debugger can alter the registers to after the check
-for whether the PC has been altered, which would still need to cancel
-the restart.
+I think one would need to show that the source is *not even indirectly*
+a mo_consume load.  With the wording I proposed, value dependencies
+don't break when storing to / loading from memory locations.
 
-Does something like the hunks below look reasonable to you?
+Thus, if a compiler ends up at a memory load after waling SSA, it needs
+to prove that the load cannot read a value that (1) was produced by a
+store sequenced-before the load and (2) might carry a value dependency
+(e.g., by being a mo_consume load) that the value prediction in question
+would break.  This, in general, requires alias analysis.
+Deciding whether a prediction would break a value dependency has to
+consider what later stages in a compiler would be doing, including LTO
+or further rounds of inlining/optimizations.  OTOH, if the compiler can
+treat an mo_consume load as returning all possible values (eg, by
+ignoring all knowledge about it), then it can certainly do so with other
+memory loads too.
 
-Would you like me to take this patch through the metag tree or do you
-want to keep them together?
+So, I think that the constraints due to value dependencies can matter in
+practice.  However, the impact on optimizations on
+non-mo_consume-related code are hard to estimate -- I don't see a huge
+amount of impact right now, but I also wouldn't want to predict that
+this can't change in the future.
 
-Cheers
-James
+> Of course, on more strongly ordered CPU's, even that "register
+> argument" limitation goes away.
+> 
+> So I agree that there is basically no real optimization constraint.
+> Value-prediction is of dubious value to begin with, and the actual
+> constraint on its use if some compiler writer really wants to is not
+> onerous.
+> 
+> > What I have in mind is roughly the following (totally made-up syntax --
+> > suggestions for how to do this properly are very welcome):
+> > * Have a type modifier (eg, like restrict), that specifies that
+> > operations on data of this type are preserving value dependencies:
+> 
+> So I'm not violently opposed, but I think the upsides are not great.
+> Note that my earlier suggestion to use "restrict" wasn't because I
+> believed the annotation itself would be visible, but basically just as
+> a legalistic promise to the compiler that *if* it found an alias, then
+> it didn't need to worry about ordering. So to me, that type modifier
+> was about conceptual guarantees, not about actual value chains.
+> 
+> Anyway, the reason I don't believe any type modifier (and
+> "[[carries_dependency]]" is basically just that) is worth it is simply
+> that it adds a real burden on the programmer, without actually giving
+> the programmer any real upside:
+> 
+> Within a single function, the compiler already sees that mo_consume
+> source, and so doing a type-based restriction doesn't really help. The
+> information is already there, without any burden on the programmer.
 
-@@ -275,7 +268,7 @@ static int do_signal(struct pt_regs *regs, int syscal=
-l)
- 	 * Get the signal to deliver. When running under ptrace, at this point
- 	 * the debugger may change all our registers ...
- 	 */
--	signr =3D get_signal_to_deliver(&info, &ka, regs, NULL);
-+	get_signal(&ksig);
- 	/*
- 	 * Depending on the signal settings we may need to revert the decision
- 	 * to restart the system call. But skip this if a debugger has chosen t=
-o
-@@ -283,19 +276,19 @@ static int do_signal(struct pt_regs *regs, int sysc=
-all)
- 	 */
- 	if (regs->REG_PC !=3D restart_addr)
- 		restart =3D 0;
--	if (signr > 0) {
-+	if (ksig.sig > 0) {
- 		if (unlikely(restart)) {
- 			if (retval =3D=3D -ERESTARTNOHAND
- 			    || retval =3D=3D -ERESTART_RESTARTBLOCK
- 			    || (retval =3D=3D -ERESTARTSYS
--				&& !(ka.sa.sa_flags & SA_RESTART))) {
-+				&& !(ksig.ka.sa.sa_flags & SA_RESTART))) {
- 				regs->REG_RETVAL =3D -EINTR;
- 				regs->REG_PC =3D continue_addr;
- 			}
- 		}
-=20
- 		/* Whee! Actually deliver the signal.  */
--		handle_signal(signr, &info, &ka, regs);
-+		handle_signal(&ksig, regs);
- 		return 0;
- 	}
-=20
+I think it's not just a question of whether we're talking a single
+function or across functions, but to which extent other code can detect
+whether it might have to consider value dependencies.  The store/load
+case above is an example that complicates the detection for a compiler.
+
+In cases in which the mo_consume load is used directly, we don't need to
+use any annotations on the type:
+  int val = atomic_load_explicit(ptr, mo_consume)->value;
+
+However, if we need to use the load's result more than once (which I
+think will happen often), then we do need the type annotation:
+  s value_dep_preserving *ptr = atomic_load_explicit(ptr, mo_consume);
+  if (ptr != 0)
+    int val = ptr->value;
+
+If we want to avoid the annotation in this case, and still want to avoid
+the store/load vs. alias analysis problem mentioned above, we'd need to
+require that ptr isn't a variable that's visible to other code not
+related to this mo_consume load.  But I believe that such a requirement
+would be awkward, and also hard to specify.
+
+I hope that Paul's look at rcu_derefence() usage could provide some
+indication of how much annotation overhead there actually would be for a
+programmer.
+
+> 
+> And across functions, the compiler has already - by definition -
+> mostly lost sight of all the things it could use to reduce the value
+> space.
+
+I don't think that I agree here.  
+
+Assume we have two separate functions bar and foo, and one temporary
+variable t of a type int012 that holds values 0,1,2 (excuse the somewhat
+artificial example):
+
+int012 t;
+int arr[20];
+
+int bar(int a)
+{
+  bar_stuff(a);  // compiler knows this is noop with arguments 0 or 1
+                 // and this will *never* touch t nor arr
+  return a;
+}
+
+int foo(int a)
+{
+  foo_stuff(a); // compiler knows this is noop with arguments 1 or 2
+                // and this will *never* touch t nor arr
+  return a;
+}
+
+void main() {
+  t = atomic_load_explicit(&source, mo_consume);
+  x = arr[bar(foo(t))];  // value-dependent?
+}
+
+If a compiler looks at foo() and bar() separately, I think it might want
+to optimize bar() to the following:
+
+int bar_opt(int a)
+{
+  if (a != 2) return a;
+  bar_stuff(a);
+  return a;
+}
+
+int foo_opt(int a)
+{
+  if (a != 0) return a;
+  foo_stuff(a);
+  return a;
+}
+
+I think that those could be valuable optimizations for general-purpose
+code.
+
+What happens if the compiler does LTO afterwards and combines the foo
+and bar calls?:
+
+int bar_opt_foo_opt(int a)
+{
+  if (a == 1) return a;
+  if (a == 0) foo_stuff(a);
+  else bar_stuff(a);
+  return a;
+}
+
+This still looks like a good thing to do for general-purpose code, and
+it doesn't do any value prediction.
+
+If we inline this into main, it becomes kind of difficult for the
+compiler because it cannot just weave in bar_opt_foo_opt, or it might
+get:
+
+  t = atomic_load_explicit(&source, mo_consume);
+  if (t == 1) goto next;
+  if (t == 0) foo_stuff(t);
+  else bar_stuff(t);
+access:
+  x = arr[t];  // value-dependent?
+
+Would this be still value-dependent for the hardware, or would the
+branch prediction interfere?
+
+Even if this would still be okay from the hardware POV, other compiler
+transformations now need to pay attention to where the value comes from.
+In particular, we can't specialize this into the following (which
+doesn't predict any values):
+
+  t = atomic_load_explicit(&source, mo_consume);
+  if (t == 1) x = arr[1];
+  else {
+    if (t == 0) foo_stuff(t);
+    else bar_stuff(t);
+    x = arr[t];
+  }
+
+We could argue that this wouldn't be allowed because t is coming from an
+mo_consume load, but then we also need to say that this can in fact
+affect compiler transformations other than just value prediction.
+
+At least in this example, introducing the value_dep_preserving type
+modifier would have made this easier because it would have allowed the
+compiler to avoid the initial value prediction.
+
+However, I think that we might get a few interesting issues even with
+value_dep_preserving, so this needs further investigation.  Nonetheless,
+my gut feeling is that having value_dep_preserving makes this all a lot
+easier because if unsure, the compiler can just use a bigger hammer for
+value_dep_preserving without having to worry about preventing
+optimizations on unrelated code.
+
+> Even Paul's example doesn't really work if the use of the
+> "mo_consume" value has been passed to another function, because inside
+> a separate function, the compiler couldn't see that the value it uses
+> comes from only two possible values.
+> 
+> And as mentioned, even *if* the compiler wants to do value prediction
+> that turns a data dependency into a control dependency, the limitation
+> to say "no, you can't do it unless you saw where the value got loaded"
+> really isn't that onerous.
+> 
+> I bet that if you ask actual production compiler people (as opposed to
+> perhaps academia), none of them actually really believe in value
+> prediction to begin with.
+
+What about keeping whether we really need value_dep_preserving as an
+open question for now, and try to get more feeback by compiler
+implementers on what the consequences of not having it would be?  This
+should help us assess the current implementation perspective.  We would
+still need to extrapolate what future compilers might want to do,
+though; thus, deciding to not use it will remain somewhat risky for
+future optimizations.
 
 
---d8V3PGl5ELvXKeuSWonKftvQgGEsidMj5
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: OpenPGP digital signature
-Content-Disposition: attachment; filename="signature.asc"
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.13 (GNU/Linux)
-
-iQIcBAEBAgAGBQJTFGRMAAoJEKHZs+irPybfNMkQAKVmUuho1EqnH4mXchsFEDZT
-qEsiOMB9WKgE1DqtlhU1Aumj+ji1Ck8JKtXMZiKmXCLp09ZLQYT/w5y0T4riXGqr
-O55XUDjXh9qEbSiN2ZlndzOOFCxxSBA7kNflQMZv4QYLarayadoaeR5ubw9KLxJy
-JtkUH2SR5FZ00rtGQz+TZe2B5tXwwq7A3E7xr2gGamza9KqJyS+tznRplKkXimqA
-DYghTcyY6MtOdF72XWsTNBuejRyfMTVEfJ6kq6hzhz9qA9nxW8R79o6KsLOApezq
-BowqWUu3T+TJsNAO6FjmjZXoEw6Q+cbECdE7VMNYOKjQ3CdqxROBl7YrsLjgmakm
-VhFArpBIHO7mLYigKtrNTUr61nzohMEWzXvdtpM+RMLUuMtYe7EzzSk1JZEikDUs
-VY3LHeCCap3K5U7dcDrdTg/khcDSnXZ2uQN+9V8TQ75zoOXf4otDSl6j8DtpZCVZ
-s+MZrxL9ewvT+Rc42YDKBUHdoIEiasCI/bNx2yFBoE/gu0Kof31Y1P7c4GFhncO/
-TMBmyfKI9IipgVCO19xu+WEVwLmPbHaok8QHBni952dUrOPaIrUqUNpxJ1oF2Eya
-apQducBpF5ep9vUDfRYOqDHwZ2PdwI3Ch8uU9CnjE/e3zRuRB+0LMsf3Io2urZlk
-KEghC1TqDIgQ2fAucpQT
-=fyQJ
------END PGP SIGNATURE-----
-
---d8V3PGl5ELvXKeuSWonKftvQgGEsidMj5--
