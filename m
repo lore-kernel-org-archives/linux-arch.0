@@ -1,51 +1,28 @@
 From: Torvald Riegel <triegel@redhat.com>
 Subject: Re: [RFC][PATCH 0/5] arch: atomic rework
-Date: Mon, 03 Mar 2014 19:59:31 +0100
-Message-ID: <1393873171.28840.11667.camel@triegel.csb>
-References: <CA+55aFyjzR_Ga_HOKnBXpKYbuesqovj1-sFTVisD9UwA6JuJtw@mail.gmail.com>	 <20140223063426.GT4250@linux.vnet.ibm.com>	 <CA+55aFxMJvaQhoEwqgN=XA6gDOdZwoZQHdcAnB-FhAri_hK-6Q@mail.gmail.com>	 <CA+55aFw5tdjmNyHCdcyZ8NPpd1wCgOjLRzstRhp0Njs9azpi8Q@mail.gmail.com>	 <20140224172110.GO8264@linux.vnet.ibm.com>	 <CA+55aFyi45f7oaG4MYP41TOc=E8Ze8Om88dV2Lq4F=qebhxt4A@mail.gmail.com>	 <20140224185341.GU8264@linux.vnet.ibm.com>	 <CA+55aFzXyob0aKnv1u7Stbu0rH5Aq2jaA1rHb=TvQe9c1KY0oQ@mail.gmail.com>	 <1393515453.28840.9961.camel@triegel.csb>	 <CA+55aFyE58NokYdoU+-feHTXv+5snByu+vCyMtg2fNc7npMbDg@mail.gmail.com>	 <20140227190611.GU8264@linux.vnet.ibm.com>	 <CA+55aFzav_2ayvEgbgeAzQohJ7EQH0tgUU0WcSyvUA6hgOo_Ow@mail.gmail.com>
+Date: Mon, 03 Mar 2014 20:01:10 +0100
+Message-ID: <1393873270.28840.11671.camel@triegel.csb>
+References: <20140223003933.GQ4250@linux.vnet.ibm.com>	 <CA+55aFyjzR_Ga_HOKnBXpKYbuesqovj1-sFTVisD9UwA6JuJtw@mail.gmail.com>	 <20140223063426.GT4250@linux.vnet.ibm.com>	 <CA+55aFxMJvaQhoEwqgN=XA6gDOdZwoZQHdcAnB-FhAri_hK-6Q@mail.gmail.com>	 <CA+55aFw5tdjmNyHCdcyZ8NPpd1wCgOjLRzstRhp0Njs9azpi8Q@mail.gmail.com>	 <20140224172110.GO8264@linux.vnet.ibm.com>	 <CA+55aFyi45f7oaG4MYP41TOc=E8Ze8Om88dV2Lq4F=qebhxt4A@mail.gmail.com>	 <20140224185341.GU8264@linux.vnet.ibm.com>	 <CA+55aFzXyob0aKnv1u7Stbu0rH5Aq2jaA1rHb=TvQe9c1KY0oQ@mail.gmail.com>	 <1393515453.28840.9961.camel@triegel.csb>	 <20140227175021.GT8264@linux.vnet.ibm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: 7bit
-Return-path: <gcc-return-182423-gcc=m.gmane.org@gcc.gnu.org>
+Return-path: <gcc-return-182424-gcc=m.gmane.org@gcc.gnu.org>
 List-Unsubscribe: <mailto:gcc-unsubscribe-gcc=m.gmane.org@gcc.gnu.org>
 List-Archive: <http://gcc.gnu.org/ml/gcc/>
 List-Post: <mailto:gcc@gcc.gnu.org>
 List-Help: <http://gcc.gnu.org/ml/>
 Sender: gcc-owner@gcc.gnu.org
-In-Reply-To: <CA+55aFzav_2ayvEgbgeAzQohJ7EQH0tgUU0WcSyvUA6hgOo_Ow@mail.gmail.com>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Paul McKenney <paulmck@linux.vnet.ibm.com>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
+In-Reply-To: <20140227175021.GT8264@linux.vnet.ibm.com>
+To: paulmck@linux.vnet.ibm.com
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, 2014-02-27 at 11:47 -0800, Linus Torvalds wrote:
-> On Thu, Feb 27, 2014 at 11:06 AM, Paul E. McKenney
-> <paulmck@linux.vnet.ibm.com> wrote:
-> >
-> > 3.      The comparison was against another RCU-protected pointer,
-> >         where that other pointer was properly fetched using one
-> >         of the RCU primitives.  Here it doesn't matter which pointer
-> >         you use.  At least as long as the rcu_assign_pointer() for
-> >         that other pointer happened after the last update to the
-> >         pointed-to structure.
-> >
-> > I am a bit nervous about #3.  Any thoughts on it?
+On Thu, 2014-02-27 at 09:50 -0800, Paul E. McKenney wrote:
+> Your proposal looks quite promising at first glance.  But rather than
+> try and comment on it immediately, I am going to take a number of uses of
+> RCU from the Linux kernel and apply your proposal to them, then respond
+> with the results
 > 
-> I think that it might be worth pointing out as an example, and saying
-> that code like
-> 
->    p = atomic_read(consume);
->    X;
->    q = atomic_read(consume);
->    Y;
->    if (p == q)
->         data = p->val;
-> 
-> then the access of "p->val" is constrained to be data-dependent on
-> *either* p or q, but you can't really tell which, since the compiler
-> can decide that the values are interchangeable.
+> Fair enough?
 
-The wording I proposed would make the p dereference have a value
-dependency unless X and Y would somehow restrict p and q.  The reasoning
-is that if the atomic loads return potentially more than one value, then
-even if we find out that two such loads did return the same value, we
-still don't know what the exact value was.
+Sure.  Thanks for doing the cross-check!
