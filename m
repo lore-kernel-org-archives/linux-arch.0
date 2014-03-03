@@ -1,40 +1,83 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:16792 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:53014 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754777AbaCCTBx (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 3 Mar 2014 14:01:53 -0500
+	id S1755638AbaCCTIj (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 3 Mar 2014 14:08:39 -0500
 Subject: Re: [RFC][PATCH 0/5] arch: atomic rework
 From: Torvald Riegel <triegel@redhat.com>
-In-Reply-To: <20140227175021.GT8264@linux.vnet.ibm.com>
-References: <20140223003933.GQ4250@linux.vnet.ibm.com>
-	 <CA+55aFyjzR_Ga_HOKnBXpKYbuesqovj1-sFTVisD9UwA6JuJtw@mail.gmail.com>
-	 <20140223063426.GT4250@linux.vnet.ibm.com>
-	 <CA+55aFxMJvaQhoEwqgN=XA6gDOdZwoZQHdcAnB-FhAri_hK-6Q@mail.gmail.com>
-	 <CA+55aFw5tdjmNyHCdcyZ8NPpd1wCgOjLRzstRhp0Njs9azpi8Q@mail.gmail.com>
+In-Reply-To: <20140301005047.GA14777@linux.vnet.ibm.com>
+References: <CA+55aFw5tdjmNyHCdcyZ8NPpd1wCgOjLRzstRhp0Njs9azpi8Q@mail.gmail.com>
 	 <20140224172110.GO8264@linux.vnet.ibm.com>
 	 <CA+55aFyi45f7oaG4MYP41TOc=E8Ze8Om88dV2Lq4F=qebhxt4A@mail.gmail.com>
 	 <20140224185341.GU8264@linux.vnet.ibm.com>
 	 <CA+55aFzXyob0aKnv1u7Stbu0rH5Aq2jaA1rHb=TvQe9c1KY0oQ@mail.gmail.com>
 	 <1393515453.28840.9961.camel@triegel.csb>
-	 <20140227175021.GT8264@linux.vnet.ibm.com>
+	 <CA+55aFyE58NokYdoU+-feHTXv+5snByu+vCyMtg2fNc7npMbDg@mail.gmail.com>
+	 <20140227190611.GU8264@linux.vnet.ibm.com>
+	 <CA+55aFzav_2ayvEgbgeAzQohJ7EQH0tgUU0WcSyvUA6hgOo_Ow@mail.gmail.com>
+	 <20140227205312.GX8264@linux.vnet.ibm.com>
+	 <20140301005047.GA14777@linux.vnet.ibm.com>
 Content-Type: text/plain; charset="UTF-8"
-Date: Mon, 03 Mar 2014 20:01:10 +0100
-Message-ID: <1393873270.28840.11671.camel@triegel.csb>
+Date: Mon, 03 Mar 2014 19:55:08 +0100
+Message-ID: <1393872908.28840.11660.camel@triegel.csb>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: paulmck@linux.vnet.ibm.com
 Cc: Linus Torvalds <torvalds@linux-foundation.org>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
-Message-ID: <20140303190110.LKzEQcK_jMFRrT43K8ylRm1dBUbU8BTbe0hjCUqVA2w@z>
+Message-ID: <20140303185508.1FZGZ69NXZkFqOZ4VG8D4trjs64Y9_iPsA928D6Gufg@z>
 
-On Thu, 2014-02-27 at 09:50 -0800, Paul E. McKenney wrote:
-> Your proposal looks quite promising at first glance.  But rather than
-> try and comment on it immediately, I am going to take a number of uses of
-> RCU from the Linux kernel and apply your proposal to them, then respond
-> with the results
-> 
-> Fair enough?
+On Fri, 2014-02-28 at 16:50 -0800, Paul E. McKenney wrote:
+> +o	Do not use the results from the boolean "&&" and "||" when
+> +	dereferencing.	For example, the following (rather improbable)
+> +	code is buggy:
+> +
+> +		int a[2];
+> +		int index;
+> +		int force_zero_index = 1;
+> +
+> +		...
+> +
+> +		r1 = rcu_dereference(i1)
+> +		r2 = a[r1 && force_zero_index];  /* BUGGY!!! */
+> +
+> +	The reason this is buggy is that "&&" and "||" are often compiled
+> +	using branches.  While weak-memory machines such as ARM or PowerPC
+> +	do order stores after such branches, they can speculate loads,
+> +	which can result in misordering bugs.
+> +
+> +o	Do not use the results from relational operators ("==", "!=",
+> +	">", ">=", "<", or "<=") when dereferencing.  For example,
+> +	the following (quite strange) code is buggy:
+> +
+> +		int a[2];
+> +		int index;
+> +		int flip_index = 0;
+> +
+> +		...
+> +
+> +		r1 = rcu_dereference(i1)
+> +		r2 = a[r1 != flip_index];  /* BUGGY!!! */
+> +
+> +	As before, the reason this is buggy is that relational operators
+> +	are often compiled using branches.  And as before, although
+> +	weak-memory machines such as ARM or PowerPC do order stores
+> +	after such branches, but can speculate loads, which can again
+> +	result in misordering bugs.
 
-Sure.  Thanks for doing the cross-check!
+Those two would be allowed by the wording I have recently proposed,
+AFAICS.  r1 != flip_index would result in two possible values (unless
+there are further constraints due to the type of r1 and the values that
+flip_index can have).
+
+I don't think the wording is flawed.  We could raise the requirement of
+having more than one value left for r1 to having more than N with N > 1
+values left, but the fundamental problem remains in that a compiler
+could try to generate a (big) switch statement.
+
+Instead, I think that this indicates that the value_dep_preserving type
+modifier would be useful: It would tell the compiler that it shouldn't
+transform this into a branch in this case, yet allow that optimization
+for all other code.
 
