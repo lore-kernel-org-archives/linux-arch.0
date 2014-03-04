@@ -1,140 +1,61 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtprelay0063.hostedemail.com ([216.40.44.63]:59155 "EHLO
-	smtprelay.hostedemail.com" rhost-flags-OK-OK-OK-FAIL)
-	by vger.kernel.org with ESMTP id S932255AbaCDUck (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 4 Mar 2014 15:32:40 -0500
-Received: from smtprelay.hostedemail.com (ff-bigip1 [10.5.19.254])
-	by smtpgrave03.hostedemail.com (Postfix) with ESMTP id 29A9628DBDE
-	for <linux-arch@vger.kernel.org>; Tue,  4 Mar 2014 20:23:28 +0000 (UTC)
-Message-ID: <1393964591.20435.58.camel@joe-AO722>
-Subject: [RFC PATCH] Remove CONFIG_DCACHE_WORD_ACCESS
-From: Joe Perches <joe@perches.com>
-Date: Tue, 04 Mar 2014 12:23:11 -0800
-Content-Type: text/plain; charset="ISO-8859-1"
-Mime-Version: 1.0
+Received: from b.ns.miles-group.at ([95.130.255.144]:1661 "EHLO radon.swed.at"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1757591AbaCDUne (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 4 Mar 2014 15:43:34 -0500
+Message-ID: <53163ADE.8080905@nod.at>
+Date: Tue, 04 Mar 2014 21:43:10 +0100
+From: Richard Weinberger <richard@nod.at>
+MIME-Version: 1.0
+Subject: Re: [PATCH 28/44] Add translate_signal() helper
+References: <1393804758-7916-1-git-send-email-richard@nod.at> <1393804758-7916-6-git-send-email-richard@nod.at> <20140304184109.GB19393@redhat.com>
+In-Reply-To: <20140304184109.GB19393@redhat.com>
+Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch <linux-arch@vger.kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>
-Cc: Russell King <linux@arm.linux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Alexander Viro <viro@zeniv.linux.org.uk>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-fsdevel <linux-fsdevel@vger.kernel.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>
-Message-ID: <20140304202311.HUTAnOcwSwjuMyG1lDBCLlNEANq7bHrJLL9zhg7rPGU@z>
+To: Oleg Nesterov <oleg@redhat.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, viro@zeniv.linux.org.uk, vgupta@synopsys.com, catalin.marinas@arm.com, will.deacon@arm.com, hskinnemoen@gmail.com, egtvedt@samfundet.no, vapier@gentoo.org, msalter@redhat.com, a-jacquiot@ti.com, starvik@axis.com, jesper.nilsson@axis.com, dhowells@redhat.com, rkuo@codeaurora.org, tony.luck@intel.com, fenghua.yu@intel.com, takata@linux-m32r.org, geert@linux-m68k.org, james.hogan@imgtec.com, monstr@monstr.eu, yasutake.koichi@jp.panasonic.com, ralf@linux-mips.org, jonas@southpole.se, jejb@parisc-linux.org, deller@gmx.de, benh@kernel.crashing.org, paulus@samba.org, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, liqin.linux@gmail.com, lennox.wu@gmail.com, cmetcalf@tilera.com, gxt@mprc.pku.edu.cn, linux-xtensa@linux-xtensa.org, akpm@linux-foundation.org, tj@kernel.org, hch@infradead.org
+Message-ID: <20140304204310.j7KLCzxzhOgjvs3zQYvD282yv2JMn9Nz0up125Me6mA@z>
 
-It seems to duplicate CONFIG_HAVE_EFFICIENT_UNALIGNED_ACCESS
-so use that instead.
+Am 04.03.2014 19:41, schrieb Oleg Nesterov:
+> On 03/03, Richard Weinberger wrote:
+>>
+>> +static inline int translate_signal(int sig)
+>> +{
+>> +	struct thread_info *info = current_thread_info();
+>> +
+>> +	if (info->exec_domain
+> 
+> Afaics it can't be NULL.
 
-This changes the !CPU_LITTLE_ENDIAN powerpc arch to use unaligned
-accesses in fs/dcache.c and fs/namei.c as
-CONFIG_HAVE_EFFICIENT_UNALIGNED_ACCESS is enabled for that arch.
+Good point. Will change.
 
-Remove the now unused DCACHE_WORD_ACCESS defines & uses.
+>> && info->exec_domain->signal_invmap && sig < 32)
+>> +		return info->exec_domain->signal_invmap[sig];
+>> +
+> 
+> And why default_exec_domain has .signal_invmap = ident_map ?
+> translate_signal-like code should check ->signal_invmap != NULL
+> anyway.
+> 
+> Off topic, but can't we kill exec_domain->signal_map ? it seems that
+> it is unused.
+> 
+> Hmm. And who actually uses exec_domain->handler() ?? asm-offsets.c,
+> but I do not see any usage of TI_EXEC_DOMAIN.
+> 
+> In short: I agree with this change but I am totally confused. To the
+> point, I am not sure I even understand ->signal_invmap. I mean, it
+> seems that only arthur_exec_domain has a non-ident map. Why, say,
+> x86 does signr_convert() ? and only if CONFIG_X86_32? Is there any
+> external module which does register_exec_domain(strange_invmap) ?
 
-Signed-off-by: Joe Perches <joe@perches.com>
----
- arch/arm/Kconfig                      | 1 -
- arch/arm/include/asm/word-at-a-time.h | 4 ++--
- arch/arm64/Kconfig                    | 1 -
- arch/x86/Kconfig                      | 1 -
- fs/Kconfig                            | 4 ----
- fs/dcache.c                           | 2 +-
- fs/namei.c                            | 2 +-
- 7 files changed, 4 insertions(+), 11 deletions(-)
+I remember a discussion with Al where he noted that register_exec_domain()
+is currently only used by out of tree horrors. B-)
 
-diff --git a/arch/arm/Kconfig b/arch/arm/Kconfig
-index 623a272..d5a2e60 100644
---- a/arch/arm/Kconfig
-+++ b/arch/arm/Kconfig
-@@ -12,7 +12,6 @@ config ARM
- 	select BUILDTIME_EXTABLE_SORT if MMU
- 	select CLONE_BACKWARDS
- 	select CPU_PM if (SUSPEND || CPU_IDLE)
--	select DCACHE_WORD_ACCESS if HAVE_EFFICIENT_UNALIGNED_ACCESS
- 	select GENERIC_ATOMIC64 if (CPU_V7M || CPU_V6 || !CPU_32v6K || !AEABI)
- 	select GENERIC_CLOCKEVENTS_BROADCAST if SMP
- 	select GENERIC_IDLE_POLL_SETUP
-diff --git a/arch/arm/include/asm/word-at-a-time.h b/arch/arm/include/asm/word-at-a-time.h
-index a6d0a29..778b2ad 100644
---- a/arch/arm/include/asm/word-at-a-time.h
-+++ b/arch/arm/include/asm/word-at-a-time.h
-@@ -54,7 +54,7 @@ static inline unsigned long find_zero(unsigned long mask)
- #include <asm-generic/word-at-a-time.h>
- #endif
- 
--#ifdef CONFIG_DCACHE_WORD_ACCESS
-+#ifdef CONFIG_HAVE_EFFICIENT_UNALIGNED_ACCESS
- 
- /*
-  * Load an unaligned word from kernel space.
-@@ -94,5 +94,5 @@ static inline unsigned long load_unaligned_zeropad(const void *addr)
- 	return ret;
- }
- 
--#endif	/* DCACHE_WORD_ACCESS */
-+#endif	/* HAVE_EFFICIENT_UNALIGNED_ACCESS */
- #endif /* __ASM_ARM_WORD_AT_A_TIME_H */
-diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
-index 764d682..2d6978c 100644
---- a/arch/arm64/Kconfig
-+++ b/arch/arm64/Kconfig
-@@ -13,7 +13,6 @@ config ARM64
- 	select CLONE_BACKWARDS
- 	select COMMON_CLK
- 	select CPU_PM if (SUSPEND || CPU_IDLE)
--	select DCACHE_WORD_ACCESS
- 	select GENERIC_CLOCKEVENTS
- 	select GENERIC_CLOCKEVENTS_BROADCAST if SMP
- 	select GENERIC_IOMAP
-diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
-index abb261e..60cfa073 100644
---- a/arch/x86/Kconfig
-+++ b/arch/x86/Kconfig
-@@ -98,7 +98,6 @@ config X86
- 	select CLKEVT_I8253
- 	select ARCH_HAVE_NMI_SAFE_CMPXCHG
- 	select GENERIC_IOMAP
--	select DCACHE_WORD_ACCESS
- 	select GENERIC_SMP_IDLE_THREAD
- 	select ARCH_WANT_IPC_PARSE_VERSION if X86_32
- 	select HAVE_ARCH_SECCOMP_FILTER
-diff --git a/fs/Kconfig b/fs/Kconfig
-index 312393f..7511271 100644
---- a/fs/Kconfig
-+++ b/fs/Kconfig
-@@ -4,10 +4,6 @@
- 
- menu "File systems"
- 
--# Use unaligned word dcache accesses
--config DCACHE_WORD_ACCESS
--       bool
--
- if BLOCK
- 
- source "fs/ext2/Kconfig"
-diff --git a/fs/dcache.c b/fs/dcache.c
-index 265e0ce..4e3c195 100644
---- a/fs/dcache.c
-+++ b/fs/dcache.c
-@@ -163,7 +163,7 @@ int proc_nr_dentry(ctl_table *table, int write, void __user *buffer,
-  * Compare 2 name strings, return 0 if they match, otherwise non-zero.
-  * The strings are both count bytes long, and count is non-zero.
-  */
--#ifdef CONFIG_DCACHE_WORD_ACCESS
-+#ifdef CONFIG_HAVE_EFFICIENT_UNALIGNED_ACCESS
- 
- #include <asm/word-at-a-time.h>
- /*
-diff --git a/fs/namei.c b/fs/namei.c
-index 385f781..1ee33ca 100644
---- a/fs/namei.c
-+++ b/fs/namei.c
-@@ -1618,7 +1618,7 @@ static inline int nested_symlink(struct path *path, struct nameidata *nd)
-  *   the final mask". Again, that could be replaced with a
-  *   efficient population count instruction or similar.
-  */
--#ifdef CONFIG_DCACHE_WORD_ACCESS
-+#ifdef CONFIG_HAVE_EFFICIENT_UNALIGNED_ACCESS
- 
- #include <asm/word-at-a-time.h>
- 
+I'm sure we can rip it out of most archs. They seem to have it only because
+they've copy&pasted it from i386.
 
-
+Thanks,
+//richard
