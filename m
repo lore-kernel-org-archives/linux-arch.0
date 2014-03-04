@@ -1,64 +1,140 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:43638 "EHLO mail.zytor.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754598AbaCDT1y (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 4 Mar 2014 14:27:54 -0500
-Message-ID: <53162927.4040401@zytor.com>
-Date: Tue, 04 Mar 2014 11:27:35 -0800
-From: "H. Peter Anvin" <hpa@zytor.com>
-MIME-Version: 1.0
-Subject: Re: Making a universal list of syscalls?
-References: <CALCETrWbjazg_kAY1uAB+cMTdaJqtyGrTwQWNFCSzZ56B0KEkw@mail.gmail.com>
-In-Reply-To: <CALCETrWbjazg_kAY1uAB+cMTdaJqtyGrTwQWNFCSzZ56B0KEkw@mail.gmail.com>
-Content-Type: text/plain; charset=UTF-8
+Received: from smtprelay0063.hostedemail.com ([216.40.44.63]:59155 "EHLO
+	smtprelay.hostedemail.com" rhost-flags-OK-OK-OK-FAIL)
+	by vger.kernel.org with ESMTP id S932255AbaCDUck (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 4 Mar 2014 15:32:40 -0500
+Received: from smtprelay.hostedemail.com (ff-bigip1 [10.5.19.254])
+	by smtpgrave03.hostedemail.com (Postfix) with ESMTP id 29A9628DBDE
+	for <linux-arch@vger.kernel.org>; Tue,  4 Mar 2014 20:23:28 +0000 (UTC)
+Message-ID: <1393964591.20435.58.camel@joe-AO722>
+Subject: [RFC PATCH] Remove CONFIG_DCACHE_WORD_ACCESS
+From: Joe Perches <joe@perches.com>
+Date: Tue, 04 Mar 2014 12:23:11 -0800
+Content-Type: text/plain; charset="ISO-8859-1"
+Mime-Version: 1.0
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andy Lutomirski <luto@amacapital.net>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, libseccomp-discuss@lists.sourceforge.net
-Message-ID: <20140304192735.BqE7EDXgMuYo5LjgNvE3QTiqAbQELYuJf2Cx7nOUPw0@z>
+To: linux-arch <linux-arch@vger.kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>
+Cc: Russell King <linux@arm.linux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Alexander Viro <viro@zeniv.linux.org.uk>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-fsdevel <linux-fsdevel@vger.kernel.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>
+Message-ID: <20140304202311.HUTAnOcwSwjuMyG1lDBCLlNEANq7bHrJLL9zhg7rPGU@z>
 
-On 02/27/2014 12:40 PM, Andy Lutomirski wrote:
-> Currently, dealing with Linux syscalls in an architecture-independent
-> way is a mess.  Here are some issues:
-> 
->  1. There's no clean way to map between syscall names and numbers on
-> different architectures.  The kernel contains a number of tables (that
-> work differently for different architectures).  strace has some arcane
-> mechanism.  libseccomp has another.
-> 
->  2. There's no clean way to map between syscall argument registers and
-> logical syscall arguments.  Each architecture knows how to do it, as
-> do strace and glibc, but I suspect that *everyone* else gets it wrong.
->  Especially on ARM.
-> 
->  3. Determining which architectures have which syscalls is a mess.
-> Recent kernel builds love to warn me that finit_module is missing on
-> x86_64.  This is simply not true.  I have no idea why.
-> 
->  4. Actually issuing a nontrivial syscall is annoying.  syscall(2) can
-> do it for the native architecture (only).
-> 
->  5. Decoding ucontext from SIGSYS is a mess.  I have prototype code
-> for libseccomp that can do it, but it gets the arguments wrong due to
-> ABI issues.  See (2).
-> 
-> I'd like to see a master list in the kernel that lists, for every
-> syscall, the name, the number for each architecture that implements it
-> (using the AUDIT_ARCH semantics, probably), and the signature.  The
-> build process could parse this table to replace the current per-arch
-> mess.
-> 
+It seems to duplicate CONFIG_HAVE_EFFICIENT_UNALIGNED_ACCESS
+so use that instead.
 
-Hi Andy,
+This changes the !CPU_LITTLE_ENDIAN powerpc arch to use unaligned
+accesses in fs/dcache.c and fs/namei.c as
+CONFIG_HAVE_EFFICIENT_UNALIGNED_ACCESS is enabled for that arch.
 
-I have brought that up a lot of times, originally dating back from my
-work on klibc.  I have tried to keep the klibc syscall list in a sane
-format with architecture annotations, but it doesn't contain all the
-syscalls in the system.
+Remove the now unused DCACHE_WORD_ACCESS defines & uses.
 
-Extending that work and making it encompass everything the kernel
-exports would be highly useful, but it would take a lot of work.
+Signed-off-by: Joe Perches <joe@perches.com>
+---
+ arch/arm/Kconfig                      | 1 -
+ arch/arm/include/asm/word-at-a-time.h | 4 ++--
+ arch/arm64/Kconfig                    | 1 -
+ arch/x86/Kconfig                      | 1 -
+ fs/Kconfig                            | 4 ----
+ fs/dcache.c                           | 2 +-
+ fs/namei.c                            | 2 +-
+ 7 files changed, 4 insertions(+), 11 deletions(-)
 
-	-hpa
+diff --git a/arch/arm/Kconfig b/arch/arm/Kconfig
+index 623a272..d5a2e60 100644
+--- a/arch/arm/Kconfig
++++ b/arch/arm/Kconfig
+@@ -12,7 +12,6 @@ config ARM
+ 	select BUILDTIME_EXTABLE_SORT if MMU
+ 	select CLONE_BACKWARDS
+ 	select CPU_PM if (SUSPEND || CPU_IDLE)
+-	select DCACHE_WORD_ACCESS if HAVE_EFFICIENT_UNALIGNED_ACCESS
+ 	select GENERIC_ATOMIC64 if (CPU_V7M || CPU_V6 || !CPU_32v6K || !AEABI)
+ 	select GENERIC_CLOCKEVENTS_BROADCAST if SMP
+ 	select GENERIC_IDLE_POLL_SETUP
+diff --git a/arch/arm/include/asm/word-at-a-time.h b/arch/arm/include/asm/word-at-a-time.h
+index a6d0a29..778b2ad 100644
+--- a/arch/arm/include/asm/word-at-a-time.h
++++ b/arch/arm/include/asm/word-at-a-time.h
+@@ -54,7 +54,7 @@ static inline unsigned long find_zero(unsigned long mask)
+ #include <asm-generic/word-at-a-time.h>
+ #endif
+ 
+-#ifdef CONFIG_DCACHE_WORD_ACCESS
++#ifdef CONFIG_HAVE_EFFICIENT_UNALIGNED_ACCESS
+ 
+ /*
+  * Load an unaligned word from kernel space.
+@@ -94,5 +94,5 @@ static inline unsigned long load_unaligned_zeropad(const void *addr)
+ 	return ret;
+ }
+ 
+-#endif	/* DCACHE_WORD_ACCESS */
++#endif	/* HAVE_EFFICIENT_UNALIGNED_ACCESS */
+ #endif /* __ASM_ARM_WORD_AT_A_TIME_H */
+diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
+index 764d682..2d6978c 100644
+--- a/arch/arm64/Kconfig
++++ b/arch/arm64/Kconfig
+@@ -13,7 +13,6 @@ config ARM64
+ 	select CLONE_BACKWARDS
+ 	select COMMON_CLK
+ 	select CPU_PM if (SUSPEND || CPU_IDLE)
+-	select DCACHE_WORD_ACCESS
+ 	select GENERIC_CLOCKEVENTS
+ 	select GENERIC_CLOCKEVENTS_BROADCAST if SMP
+ 	select GENERIC_IOMAP
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index abb261e..60cfa073 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -98,7 +98,6 @@ config X86
+ 	select CLKEVT_I8253
+ 	select ARCH_HAVE_NMI_SAFE_CMPXCHG
+ 	select GENERIC_IOMAP
+-	select DCACHE_WORD_ACCESS
+ 	select GENERIC_SMP_IDLE_THREAD
+ 	select ARCH_WANT_IPC_PARSE_VERSION if X86_32
+ 	select HAVE_ARCH_SECCOMP_FILTER
+diff --git a/fs/Kconfig b/fs/Kconfig
+index 312393f..7511271 100644
+--- a/fs/Kconfig
++++ b/fs/Kconfig
+@@ -4,10 +4,6 @@
+ 
+ menu "File systems"
+ 
+-# Use unaligned word dcache accesses
+-config DCACHE_WORD_ACCESS
+-       bool
+-
+ if BLOCK
+ 
+ source "fs/ext2/Kconfig"
+diff --git a/fs/dcache.c b/fs/dcache.c
+index 265e0ce..4e3c195 100644
+--- a/fs/dcache.c
++++ b/fs/dcache.c
+@@ -163,7 +163,7 @@ int proc_nr_dentry(ctl_table *table, int write, void __user *buffer,
+  * Compare 2 name strings, return 0 if they match, otherwise non-zero.
+  * The strings are both count bytes long, and count is non-zero.
+  */
+-#ifdef CONFIG_DCACHE_WORD_ACCESS
++#ifdef CONFIG_HAVE_EFFICIENT_UNALIGNED_ACCESS
+ 
+ #include <asm/word-at-a-time.h>
+ /*
+diff --git a/fs/namei.c b/fs/namei.c
+index 385f781..1ee33ca 100644
+--- a/fs/namei.c
++++ b/fs/namei.c
+@@ -1618,7 +1618,7 @@ static inline int nested_symlink(struct path *path, struct nameidata *nd)
+  *   the final mask". Again, that could be replaced with a
+  *   efficient population count instruction or similar.
+  */
+-#ifdef CONFIG_DCACHE_WORD_ACCESS
++#ifdef CONFIG_HAVE_EFFICIENT_UNALIGNED_ACCESS
+ 
+ #include <asm/word-at-a-time.h>
+ 
 
 
