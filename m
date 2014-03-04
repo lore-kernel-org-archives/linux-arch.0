@@ -1,17 +1,20 @@
 From: Waiman Long <waiman.long@hp.com>
-Subject: Re: [PATCH RFC v5 4/8] pvqspinlock, x86: Allow unfair spinlock in
-	a real PV environment
-Date: Tue, 04 Mar 2014 10:15:58 -0500
-Message-ID: <5315EE2E.2060002@hp.com>
+Subject: Re: [PATCH v5 3/8] qspinlock, x86: Add x86 specific optimization
+	for 2 contending tasks
+Date: Tue, 04 Mar 2014 10:27:03 -0500
+Message-ID: <5315F0C7.8090909@hp.com>
 References: <1393427668-60228-1-git-send-email-Waiman.Long@hp.com>
-	<1393427668-60228-5-git-send-email-Waiman.Long@hp.com>
-	<20140226170734.GB20775@phenom.dumpdata.com>
-	<5310C21F.7000809@hp.com> <53145FAD.3020905@redhat.com>
+	<1393427668-60228-4-git-send-email-Waiman.Long@hp.com>
+	<20140226162057.GW6835@laptop.programming.kicks-ass.net>
+	<530FA32B.8010202@hp.com>
+	<20140228092945.GG27965@twins.programming.kicks-ass.net>
+	<5310BB81.3090508@hp.com>
+	<20140303174305.GK9987@twins.programming.kicks-ass.net>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"; Format="flowed"
 Content-Transfer-Encoding: 7bit
 Return-path: <virtualization-bounces@lists.linux-foundation.org>
-In-Reply-To: <53145FAD.3020905@redhat.com>
+In-Reply-To: <20140303174305.GK9987@twins.programming.kicks-ass.net>
 List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
 	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
 List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
@@ -21,50 +24,89 @@ List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualizati
 	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
 Sender: virtualization-bounces@lists.linux-foundation.org
 Errors-To: virtualization-bounces@lists.linux-foundation.org
-To: Paolo Bonzini <pbonzini@redhat.com>
-Cc: Jeremy Fitzhardinge <jeremy@goop.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, Peter Zijlstra <peterz@infradead.org>, virtualization@lists.linux-foundation.org, Andi Kleen <andi@firstfloor.org>, "H. Peter Anvin" <hpa@zytor.com>, Michel Lespinasse <walken@google.com>, Alok Kataria <akataria@vmware.com>, linux-arch@vger.kernel.org, x86@kernel.org, Ingo Molnar <mingo@redhat.com>, Scott J Norton <scott.norton@hp.com>, xen-devel@lists.xenproject.org, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Alexander Fyodorov <halcy@yandex.ru>, Rik van Riel <riel@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Daniel J Blueman <daniel@numascale.com>, Oleg Nesterov <oleg@redhat.com>, Steven Rostedt <rostedt@goodmis.org>, Chris Wright <chrisw@sous-sol.org>, George Spelvin <linux@horizon.com>, Thomas Gleixner <tglx@linutronix.de>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Jeremy Fitzhardinge <jeremy@goop.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, virtualization@lists.linux-foundation.org, Andi Kleen <andi@firstfloor.org>, "H. Peter Anvin" <hpa@zytor.com>, Michel Lespinasse <walken@google.com>, Alok Kataria <akataria@vmware.com>, linux-arch@vger.kernel.org, x86@kernel.org, Ingo Molnar <mingo@redhat.com>, Scott J Norton <scott.norton@hp.com>, xen-devel@lists.xenproject.org, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Alexander Fyodorov <halcy@yandex.ru>, Rik van Riel <riel@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Daniel J Blueman <daniel@numascale.com>, Oleg Nesterov <oleg@redhat.com>, Steven Rostedt <rostedt@goodmis.org>, Chris Wright <chrisw@sous-sol.org>, George Spelvin <linux@horizon.com>, Thomas Gleixner <tglx@linutro>
 List-Id: linux-arch.vger.kernel.org
 
-On 03/03/2014 05:55 AM, Paolo Bonzini wrote:
-> Il 28/02/2014 18:06, Waiman Long ha scritto:
->> On 02/26/2014 12:07 PM, Konrad Rzeszutek Wilk wrote:
->>> On Wed, Feb 26, 2014 at 10:14:24AM -0500, Waiman Long wrote:
->>>> Locking is always an issue in a virtualized environment as the virtual
->>>> CPU that is waiting on a lock may get scheduled out and hence block
->>>> any progress in lock acquisition even when the lock has been freed.
->>>>
->>>> One solution to this problem is to allow unfair lock in a
->>>> para-virtualized environment. In this case, a new lock acquirer can
->>>> come and steal the lock if the next-in-line CPU to get the lock is
->>>> scheduled out. Unfair lock in a native environment is generally not a
->>> Hmm, how do you know if the 'next-in-line CPU' is scheduled out? As
->>> in the hypervisor knows - but you as a guest might have no idea
->>> of it.
->>
->> I use a heart-beat counter to see if the other side responses within a
->> certain time limit. If not, I assume it has been scheduled out probably
->> due to PLE.
+On 03/03/2014 12:43 PM, Peter Zijlstra wrote:
+> Hi,
 >
-> PLE is unnecessary if you have "true" pv spinlocks where the 
-> next-in-line schedules itself out with a hypercall (Xen) or hlt 
-> instruction (KVM).  Set a bit in the qspinlock before going to sleep, 
-> and the lock owner will know that it needs to kick the next-in-line.
+> Here are some numbers for my version -- also attached is the test code.
+> I found that booting big machines is tediously slow so I lifted the
+> whole lot to userspace.
 >
-> I think there is no need for the unfair lock bits.  1-2% is a pretty 
-> large hit.
+> I measure the cycles spend in arch_spin_lock() + arch_spin_unlock().
 >
-> Paolo
+> The machines used are a 4 node (2 socket) AMD Interlagos, and a 2 node
+> (2 socket) Intel Westmere-EP.
+>
+> AMD (ticket)		AMD (qspinlock + pending + opt)
+>
+> Local:                  Local:
+>
+> 1:    324.425530        1:    324.102142
+> 2:  17141.324050        2:    620.185930
+> 3:  52212.232343        3:  25242.574661
+> 4:  93136.458314        4:  47982.037866
+> 6: 167967.455965        6:  95345.011864
+> 8: 245402.534869        8: 142412.451438
+>
+> 2 - nodes:              2 - nodes:
+>
+> 2:  12763.640956        2:   1879.460823
+> 4:  94423.027123        4:  48278.719130
+> 6: 167903.698361        6:  96747.767310
+> 8: 257243.508294        8: 144672.846317
+>
+> 4 - nodes:              4 - nodes:
+>
+>   4:  82408.853603        4:  49820.323075
+>   8: 260492.952355        8: 143538.264724
+> 16: 630099.031148       16: 337796.553795
+>
+>
+>
+> Intel (ticket)		Intel (qspinlock + pending + opt)
+>
+> Local:                  Local:
+>
+> 1:    19.002249         1:    29.002844
+> 2:  5093.275530         2:  1282.209519
+> 3: 22300.859761         3: 22127.477388
+> 4: 44929.922325         4: 44493.881832
+> 6: 86338.755247         6: 86360.083940
+>
+> 2 - nodes:              2 - nodes:
+>
+> 2:   1509.193824        2:   1209.090219
+> 4:  48154.495998        4:  48547.242379
+> 8: 137946.787244        8: 141381.498125
+>
+> ---
+>
+> There a few curious facts I found (assuming my test code is sane).
+>
+>   - Intel seems to be an order of magnitude faster on uncontended LOCKed
+>     ops compared to AMD
+>
+>   - On Intel the uncontended qspinlock fast path (cmpxchg) seems slower
+>     than the uncontended ticket xadd -- although both are plenty fast
+>     when compared to AMD.
+>
+>   - In general, replacing cmpxchg loops with unconditional atomic ops
+>     doesn't seem to matter a whole lot when the thing is contended.
+>
+> Below is the (rather messy) qspinlock slow path code (the only thing
+> that really differs between our versions.
+>
+> I'll try and slot your version in tomorrow.
+>
+> ---
+>
 
-I don't think that PLE is something that can be controlled by software. 
-It is done in hardware. I maybe wrong. Anyway, I plan to add code to 
-schedule out the CPUs waiting in the queue except the first 2 in the 
-next version of the patch.
-
-The PV code in the v5 patch did seem to improve benchmark performance 
-with moderate to heavy spinlock contention. However, I didn't see much 
-CPU kicking going on. My theory is that the additional PV code 
-complicates the pause loop timing so that the hardware PLE didn't kick 
-in, whereas the original pause loop is pretty simple causing PLE to 
-happen fairly frequently.
+It is curious to see that the qspinlock code offers a big benefit on AMD 
+machines, but no so much on Intel. Anyway, I am working on a revised 
+version of the patch that includes some of your comments. I will also 
+try to see if I can get an AMD machine to run test on.
 
 -Longman
