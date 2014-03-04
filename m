@@ -1,60 +1,50 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v5 3/8] qspinlock, x86: Add x86 specific optimization for
-	2 contending tasks
-Date: Tue, 4 Mar 2014 19:09:09 +0100
-Message-ID: <20140304180909.GO3104@twins.programming.kicks-ass.net>
-References: <1393427668-60228-1-git-send-email-Waiman.Long@hp.com>
-	<1393427668-60228-4-git-send-email-Waiman.Long@hp.com>
-	<20140226162057.GW6835@laptop.programming.kicks-ass.net>
-	<530FA32B.8010202@hp.com>
-	<20140228092945.GG27965@twins.programming.kicks-ass.net>
-	<5310BB81.3090508@hp.com>
-	<20140303174305.GK9987@twins.programming.kicks-ass.net>
-	<20140304165800.GN3104@twins.programming.kicks-ass.net>
+From: Oleg Nesterov <oleg@redhat.com>
+Subject: Re: [PATCH 28/44] Add translate_signal() helper
+Date: Tue, 4 Mar 2014 19:41:09 +0100
+Message-ID: <20140304184109.GB19393@redhat.com>
+References: <1393804758-7916-1-git-send-email-richard@nod.at> <1393804758-7916-6-git-send-email-richard@nod.at>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <virtualization-bounces@lists.linux-foundation.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mx1.redhat.com ([209.132.183.28]:60954 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1753642AbaCDSoO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 4 Mar 2014 13:44:14 -0500
 Content-Disposition: inline
-In-Reply-To: <20140304165800.GN3104@twins.programming.kicks-ass.net>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
-List-Post: <mailto:virtualization@lists.linux-foundation.org>
-List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
-Sender: virtualization-bounces@lists.linux-foundation.org
-Errors-To: virtualization-bounces@lists.linux-foundation.org
-To: Waiman Long <waiman.long@hp.com>
-Cc: Jeremy Fitzhardinge <jeremy@goop.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, virtualization@lists.linux-foundation.org, Andi Kleen <andi@firstfloor.org>, "H. Peter Anvin" <hpa@zytor.com>, Michel Lespinasse <walken@google.com>, Alok Kataria <akataria@vmware.com>, linux-arch@vger.kernel.org, x86@kernel.org, Ingo Molnar <mingo@redhat.com>, Scott J Norton <scott.norton@hp.com>, xen-devel@lists.xenproject.org, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Alexander Fyodorov <halcy@yandex.ru>, Rik van Riel <riel@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Daniel J Blueman <daniel@numascale.com>, Oleg Nesterov <oleg@redhat.com>, Steven Rostedt <rostedt@goodmis.org>, Chris Wright <chrisw@sous-sol.org>, George Spelvin <linux@horizon.com>, Thomas Gleixner <tglx@linutro>
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <1393804758-7916-6-git-send-email-richard@nod.at>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Richard Weinberger <richard@nod.at>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, viro@zeniv.linux.org.uk, vgupta@synopsys.com, catalin.marinas@arm.com, will.deacon@arm.com, hskinnemoen@gmail.com, egtvedt@samfundet.no, vapier@gentoo.org, msalter@redhat.com, a-jacquiot@ti.com, starvik@axis.com, jesper.nilsson@axis.com, dhowells@redhat.com, rkuo@codeaurora.org, tony.luck@intel.com, fenghua.yu@intel.com, takata@linux-m32r.org, geert@linux-m68k.org, james.hogan@imgtec.com, monstr@monstr.eu, yasutake.koichi@jp.panasonic.com, ralf@linux-mips.org, jonas@southpole.se, jejb@parisc-linux.org, deller@gmx.de, benh@kernel.crashing.org, paulus@samba.org, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, liqin.linux@gmail.com, lennox.wu@gmail.com, cmetcalf@tilera.com, gxt@mprc.pku.edu.cn, linux-xtensa@linux-xtensa.org, akpm@linux-foundation.org, tj@kernel.org, hch@infradead.org
 
-On Tue, Mar 04, 2014 at 05:58:00PM +0100, Peter Zijlstra wrote:
->  2:  17141.324050        2:    620.185930        2:    618.737681
+On 03/03, Richard Weinberger wrote:
+>
+> +static inline int translate_signal(int sig)
+> +{
+> +	struct thread_info *info = current_thread_info();
+> +
+> +	if (info->exec_domain
 
-So I forgot that AMD has compute units that share L2:
+Afaics it can't be NULL.
 
-root@interlagos:~/spinlocks# export LOCK=./ticket ; ($LOCK 0 1 ; $LOCK 0 2) | awk '/^total/ { print $2 }'
-982.938839
-1325.702905
-root@interlagos:~/spinlocks# export LOCK=./qspinlock-pending-opt2 ; ($LOCK 0 1 ; $LOCK 0 2) | awk '/^total/ { print $2 }'
-630.684313
-999.119087
-root@interlagos:~/spinlocks# export LOCK=./waiman ; ($LOCK 0 1 ; $LOCK 0 2) | awk '/^total/ { print $2 }'
-620.562791
-1644.700639
+> && info->exec_domain->signal_invmap && sig < 32)
+> +		return info->exec_domain->signal_invmap[sig];
+> +
 
+And why default_exec_domain has .signal_invmap = ident_map ?
+translate_signal-like code should check ->signal_invmap != NULL
+anyway.
 
-Doing the same for Intel SMT, which shares L1:
+Off topic, but can't we kill exec_domain->signal_map ? it seems that
+it is unused.
 
+Hmm. And who actually uses exec_domain->handler() ?? asm-offsets.c,
+but I do not see any usage of TI_EXEC_DOMAIN.
 
-root@westmere:~/spinlocks# export LOCK=./ticket ; ($LOCK 0 12 ; $LOCK 0 1) | awk '/^total/ { print $2 }'
-45.765302
-1292.721827
-root@westmere:~/spinlocks# export LOCK=./qspinlock-pending-opt2 ; ($LOCK 0 12 ; $LOCK 0 1) | awk '/^total/ { print $2 }'
-54.536890
-1260.467527
-root@westmere:~/spinlocks# export LOCK=./waiman ; ($LOCK 0 12 ; $LOCK 0 1) | awk '/^total/ { print $2 }'
-65.944794
-1230.522895
+In short: I agree with this change but I am totally confused. To the
+point, I am not sure I even understand ->signal_invmap. I mean, it
+seems that only arthur_exec_domain has a non-ident map. Why, say,
+x86 does signr_convert() ? and only if CONFIG_X86_32? Is there any
+external module which does register_exec_domain(strange_invmap) ?
+
+Oleg.
