@@ -1,61 +1,39 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from b.ns.miles-group.at ([95.130.255.144]:1661 "EHLO radon.swed.at"
-	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1757591AbaCDUne (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 4 Mar 2014 15:43:34 -0500
-Message-ID: <53163ADE.8080905@nod.at>
-Date: Tue, 04 Mar 2014 21:43:10 +0100
-From: Richard Weinberger <richard@nod.at>
-MIME-Version: 1.0
+Received: from bombadil.infradead.org ([198.137.202.9]:56352 "EHLO
+	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1757948AbaCDVAe (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 4 Mar 2014 16:00:34 -0500
+Date: Tue, 4 Mar 2014 13:00:10 -0800
+From: Christoph Hellwig <hch@infradead.org>
 Subject: Re: [PATCH 28/44] Add translate_signal() helper
-References: <1393804758-7916-1-git-send-email-richard@nod.at> <1393804758-7916-6-git-send-email-richard@nod.at> <20140304184109.GB19393@redhat.com>
-In-Reply-To: <20140304184109.GB19393@redhat.com>
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
+Message-ID: <20140304210010.GA6464@infradead.org>
+References: <1393804758-7916-1-git-send-email-richard@nod.at>
+ <1393804758-7916-6-git-send-email-richard@nod.at>
+ <20140304184109.GB19393@redhat.com>
+ <53163ADE.8080905@nod.at>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <53163ADE.8080905@nod.at>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Oleg Nesterov <oleg@redhat.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, viro@zeniv.linux.org.uk, vgupta@synopsys.com, catalin.marinas@arm.com, will.deacon@arm.com, hskinnemoen@gmail.com, egtvedt@samfundet.no, vapier@gentoo.org, msalter@redhat.com, a-jacquiot@ti.com, starvik@axis.com, jesper.nilsson@axis.com, dhowells@redhat.com, rkuo@codeaurora.org, tony.luck@intel.com, fenghua.yu@intel.com, takata@linux-m32r.org, geert@linux-m68k.org, james.hogan@imgtec.com, monstr@monstr.eu, yasutake.koichi@jp.panasonic.com, ralf@linux-mips.org, jonas@southpole.se, jejb@parisc-linux.org, deller@gmx.de, benh@kernel.crashing.org, paulus@samba.org, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, liqin.linux@gmail.com, lennox.wu@gmail.com, cmetcalf@tilera.com, gxt@mprc.pku.edu.cn, linux-xtensa@linux-xtensa.org, akpm@linux-foundation.org, tj@kernel.org, hch@infradead.org
-Message-ID: <20140304204310.j7KLCzxzhOgjvs3zQYvD282yv2JMn9Nz0up125Me6mA@z>
+To: Richard Weinberger <richard@nod.at>
+Cc: Oleg Nesterov <oleg@redhat.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, viro@zeniv.linux.org.uk, vgupta@synopsys.com, catalin.marinas@arm.com, will.deacon@arm.com, hskinnemoen@gmail.com, egtvedt@samfundet.no, vapier@gentoo.org, msalter@redhat.com, a-jacquiot@ti.com, starvik@axis.com, jesper.nilsson@axis.com, dhowells@redhat.com, rkuo@codeaurora.org, tony.luck@intel.com, fenghua.yu@intel.com, takata@linux-m32r.org, geert@linux-m68k.org, james.hogan@imgtec.com, monstr@monstr.eu, yasutake.koichi@jp.panasonic.com, ralf@linux-mips.org, jonas@southpole.se, jejb@parisc-linux.org, deller@gmx.de, benh@kernel.crashing.org, paulus@samba.org, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, liqin.linux@gmail.com, lennox.wu@gmail.com, cmetcalf@tilera.com, gxt@mprc.pku.edu.cn, linux-xtensa@linux-xtensa.org, akpm@linux-foundation.org, tj@kernel.org, hch@infradead.org
+Message-ID: <20140304210010.cHQL3y9iE5beaL3hfGuR6nt2s6xbDVh71IFIz_D5kCs@z>
 
-Am 04.03.2014 19:41, schrieb Oleg Nesterov:
-> On 03/03, Richard Weinberger wrote:
->>
->> +static inline int translate_signal(int sig)
->> +{
->> +	struct thread_info *info = current_thread_info();
->> +
->> +	if (info->exec_domain
+On Tue, Mar 04, 2014 at 09:43:10PM +0100, Richard Weinberger wrote:
+> I remember a discussion with Al where he noted that register_exec_domain()
+> is currently only used by out of tree horrors. B-)
 > 
-> Afaics it can't be NULL.
+> I'm sure we can rip it out of most archs. They seem to have it only because
+> they've copy&pasted it from i386.
 
-Good point. Will change.
+We do have a few in-tree uses obviously.  Would be good to know how much
+of that actuall is used.
 
->> && info->exec_domain->signal_invmap && sig < 32)
->> +		return info->exec_domain->signal_invmap[sig];
->> +
-> 
-> And why default_exec_domain has .signal_invmap = ident_map ?
-> translate_signal-like code should check ->signal_invmap != NULL
-> anyway.
-> 
-> Off topic, but can't we kill exec_domain->signal_map ? it seems that
-> it is unused.
-> 
-> Hmm. And who actually uses exec_domain->handler() ?? asm-offsets.c,
-> but I do not see any usage of TI_EXEC_DOMAIN.
-> 
-> In short: I agree with this change but I am totally confused. To the
-> point, I am not sure I even understand ->signal_invmap. I mean, it
-> seems that only arthur_exec_domain has a non-ident map. Why, say,
-> x86 does signr_convert() ? and only if CONFIG_X86_32? Is there any
-> external module which does register_exec_domain(strange_invmap) ?
-
-I remember a discussion with Al where he noted that register_exec_domain()
-is currently only used by out of tree horrors. B-)
-
-I'm sure we can rip it out of most archs. They seem to have it only because
-they've copy&pasted it from i386.
-
-Thanks,
-//richard
+Except for that the major users is iBCS which became linux-abi long time
+ago.  I think someone is still keeing it on life support and
+occasionally forward porting it, but that's not a reason to keep any of
+this in tree.  Back when I maintained it linux-abi already was a large
+patch to core code and not just modules, and I doubt that has changed in
+the last 10 years.
