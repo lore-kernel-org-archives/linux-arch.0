@@ -1,90 +1,131 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:4666 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753787AbaCCUq4 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 3 Mar 2014 15:46:56 -0500
-Subject: Re: [RFC][PATCH 0/5] arch: atomic rework
-From: Torvald Riegel <triegel@redhat.com>
-In-Reply-To: <20140303192026.GO11910@linux.vnet.ibm.com>
-References: <CA+55aFyi45f7oaG4MYP41TOc=E8Ze8Om88dV2Lq4F=qebhxt4A@mail.gmail.com>
-	 <20140224185341.GU8264@linux.vnet.ibm.com>
-	 <CA+55aFzXyob0aKnv1u7Stbu0rH5Aq2jaA1rHb=TvQe9c1KY0oQ@mail.gmail.com>
-	 <1393515453.28840.9961.camel@triegel.csb>
-	 <CA+55aFyE58NokYdoU+-feHTXv+5snByu+vCyMtg2fNc7npMbDg@mail.gmail.com>
-	 <20140227190611.GU8264@linux.vnet.ibm.com>
-	 <CA+55aFzav_2ayvEgbgeAzQohJ7EQH0tgUU0WcSyvUA6hgOo_Ow@mail.gmail.com>
-	 <20140227205312.GX8264@linux.vnet.ibm.com>
-	 <20140301005047.GA14777@linux.vnet.ibm.com>
-	 <1393872908.28840.11660.camel@triegel.csb>
-	 <20140303192026.GO11910@linux.vnet.ibm.com>
-Content-Type: text/plain; charset="UTF-8"
-Date: Mon, 03 Mar 2014 21:46:19 +0100
-Message-ID: <1393879579.28840.11949.camel@triegel.csb>
-Mime-Version: 1.0
+Received: from youngberry.canonical.com ([91.189.89.112]:60132 "EHLO
+	youngberry.canonical.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756305AbaCDHuo (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 4 Mar 2014 02:50:44 -0500
+Message-ID: <531585CE.9020509@canonical.com>
+Date: Tue, 04 Mar 2014 08:50:38 +0100
+From: Maarten Lankhorst <maarten.lankhorst@canonical.com>
+MIME-Version: 1.0
+Subject: Re: [PATCH 4/6] android: convert sync to fence api, v4
+References: <20140217155056.20337.25254.stgit@patser>	<20140217155640.20337.13331.stgit@patser> <CAKMK7uESOhk_i8ui1pVknA=6s8oQsBOCTULYszxe5fodcBwTGw@mail.gmail.com>
+In-Reply-To: <CAKMK7uESOhk_i8ui1pVknA=6s8oQsBOCTULYszxe5fodcBwTGw@mail.gmail.com>
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: paulmck@linux.vnet.ibm.com
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
-Message-ID: <20140303204619.bIQa_PMUW7UbO-3LZxvJPmnsKeaBmyd-RFwy1IZZtQU@z>
+To: Daniel Vetter <daniel@ffwll.ch>, Ian Lister <ian.lister@intel.com>
+Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Colin Cross <ccross@google.com>, "linaro-mm-sig@lists.linaro.org" <linaro-mm-sig@lists.linaro.org>, "Clark, Rob" <robdclark@gmail.com>, dri-devel <dri-devel@lists.freedesktop.org>, Sumit Semwal <sumit.semwal@linaro.org>, "linux-media@vger.kernel.org" <linux-media@vger.kernel.org>
+Message-ID: <20140304075038.mQKVUu9tT3EPGOAVnctMtlxoyJn4Fvf6JTVnNw4Gy5I@z>
 
-On Mon, 2014-03-03 at 11:20 -0800, Paul E. McKenney wrote:
-> On Mon, Mar 03, 2014 at 07:55:08PM +0100, Torvald Riegel wrote:
-> > xagsmtp2.20140303190831.9500@uk1vsc.vnet.ibm.com
-> > X-Xagent-Gateway: uk1vsc.vnet.ibm.com (XAGSMTP2 at UK1VSC)
-> > 
-> > On Fri, 2014-02-28 at 16:50 -0800, Paul E. McKenney wrote:
-> > > +o	Do not use the results from the boolean "&&" and "||" when
-> > > +	dereferencing.	For example, the following (rather improbable)
-> > > +	code is buggy:
-> > > +
-> > > +		int a[2];
-> > > +		int index;
-> > > +		int force_zero_index = 1;
-> > > +
-> > > +		...
-> > > +
-> > > +		r1 = rcu_dereference(i1)
-> > > +		r2 = a[r1 && force_zero_index];  /* BUGGY!!! */
-> > > +
-> > > +	The reason this is buggy is that "&&" and "||" are often compiled
-> > > +	using branches.  While weak-memory machines such as ARM or PowerPC
-> > > +	do order stores after such branches, they can speculate loads,
-> > > +	which can result in misordering bugs.
-> > > +
-> > > +o	Do not use the results from relational operators ("==", "!=",
-> > > +	">", ">=", "<", or "<=") when dereferencing.  For example,
-> > > +	the following (quite strange) code is buggy:
-> > > +
-> > > +		int a[2];
-> > > +		int index;
-> > > +		int flip_index = 0;
-> > > +
-> > > +		...
-> > > +
-> > > +		r1 = rcu_dereference(i1)
-> > > +		r2 = a[r1 != flip_index];  /* BUGGY!!! */
-> > > +
-> > > +	As before, the reason this is buggy is that relational operators
-> > > +	are often compiled using branches.  And as before, although
-> > > +	weak-memory machines such as ARM or PowerPC do order stores
-> > > +	after such branches, but can speculate loads, which can again
-> > > +	result in misordering bugs.
-> > 
-> > Those two would be allowed by the wording I have recently proposed,
-> > AFAICS.  r1 != flip_index would result in two possible values (unless
-> > there are further constraints due to the type of r1 and the values that
-> > flip_index can have).
-> 
-> And I am OK with the value_dep_preserving type providing more/better
-> guarantees than we get by default from current compilers.
-> 
-> One question, though.  Suppose that the code did not want a value
-> dependency to be tracked through a comparison operator.  What does
-> the developer do in that case?  (The reason I ask is that I have
-> not yet found a use case in the Linux kernel that expects a value
-> dependency to be tracked through a comparison.)
+op 03-03-14 22:11, Daniel Vetter schreef:
+> On Mon, Feb 17, 2014 at 04:57:19PM +0100, Maarten Lankhorst wrote:
+>> Android syncpoints can be mapped to a timeline. This removes the need
+>> to maintain a separate api for synchronization. I've left the android
+>> trace events in place, but the core fence events should already be
+>> sufficient for debugging.
+>>
+>> v2:
+>> - Call fence_remove_callback in sync_fence_free if not all fences have fired.
+>> v3:
+>> - Merge Colin Cross' bugfixes, and the android fence merge optimization.
+>> v4:
+>> - Merge with the upstream fixes.
+>>
+>> Signed-off-by: Maarten Lankhorst <maarten.lankhorst@canonical.com>
+>> ---
+> Snipped everything but headers - Ian Lister from our android team is
+> signed up to have a more in-depth look at proper integration with android
+> syncpoints. Adding him to cc.
+>
+>> diff --git a/drivers/staging/android/sync.h b/drivers/staging/android/sync.h
+>> index 62e2255b1c1e..6036dbdc8e6f 100644
+>> --- a/drivers/staging/android/sync.h
+>> +++ b/drivers/staging/android/sync.h
+>> @@ -21,6 +21,7 @@
+>>   #include <linux/list.h>
+>>   #include <linux/spinlock.h>
+>>   #include <linux/wait.h>
+>> +#include <linux/fence.h>
+>>
+>>   struct sync_timeline;
+>>   struct sync_pt;
+>> @@ -40,8 +41,6 @@ struct sync_fence;
+>>    * -1 if a will signal before b
+>>    * @free_pt: called before sync_pt is freed
+>>    * @release_obj: called before sync_timeline is freed
+>> - * @print_obj: deprecated
+>> - * @print_pt: deprecated
+>>    * @fill_driver_data: write implementation specific driver data to data.
+>>    *  should return an error if there is not enough room
+>>    *  as specified by size.  This information is returned
+>> @@ -67,13 +66,6 @@ struct sync_timeline_ops {
+>>    /* optional */
+>>    void (*release_obj)(struct sync_timeline *sync_timeline);
+>>
+>> - /* deprecated */
+>> - void (*print_obj)(struct seq_file *s,
+>> -  struct sync_timeline *sync_timeline);
+>> -
+>> - /* deprecated */
+>> - void (*print_pt)(struct seq_file *s, struct sync_pt *sync_pt);
+>> -
+>>    /* optional */
+>>    int (*fill_driver_data)(struct sync_pt *syncpt, void *data, int size);
+>>
+>> @@ -104,42 +96,48 @@ struct sync_timeline {
+>>
+>>    /* protected by child_list_lock */
+>>    bool destroyed;
+>> + int context, value;
+>>
+>>    struct list_head child_list_head;
+>>    spinlock_t child_list_lock;
+>>
+>>    struct list_head active_list_head;
+>> - spinlock_t active_list_lock;
+>>
+>> +#ifdef CONFIG_DEBUG_FS
+>>    struct list_head sync_timeline_list;
+>> +#endif
+>>   };
+>>
+>>   /**
+>>    * struct sync_pt - sync point
+>> - * @parent: sync_timeline to which this sync_pt belongs
+>> + * @fence: base fence class
+>>    * @child_list: membership in sync_timeline.child_list_head
+>>    * @active_list: membership in sync_timeline.active_list_head
+>> +<<<<<<< current
+>>    * @signaled_list: membership in temporary signaled_list on stack
+>>    * @fence: sync_fence to which the sync_pt belongs
+>>    * @pt_list: membership in sync_fence.pt_list_head
+>>    * @status: 1: signaled, 0:active, <0: error
+>>    * @timestamp: time which sync_pt status transitioned from active to
+>>    *  signaled or error.
+>> +=======
+>> +>>>>>>> patched
+> Conflict markers ...
+Oops.
+>>    */
+>>   struct sync_pt {
+>> - struct sync_timeline *parent;
+>> - struct list_head child_list;
+>> + struct fence base;
+> Hm, embedding feels wrong, since that still means that I'll need to
+> implement two kinds of fences in i915 - one using the seqno fence to make
+> dma-buf sync work, and one to implmenent sync_pt to make the android folks
+> happy.
+>
+> If I can dream I think we should have a pointer to an underlying fence
+> here, i.e. a struct sync_pt would just be a userspace interface wrapper to
+> do explicit syncing using native fences, instead of implicit syncing like
+> with dma-bufs. But this is all drive-by comments from a very cursory
+> high-level look. I might be full of myself again ;-)
+> -Daniel
+>
+No, the idea is that because android syncpoint is simply another type of dma-fence, that if you deal with normal fences then android can automatically
+be handled too. The userspace fence api android exposes could be very easily made to work for dma-fence, just pass a dma-fence to sync_fence_create.
+So exposing dma-fence would probably work for android too.
 
-Hmm.  I suppose use an explicit cast to non-vdp before or after the
-comparison?
-
+~Maarten
