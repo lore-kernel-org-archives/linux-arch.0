@@ -1,161 +1,172 @@
-From: Maarten Lankhorst <maarten.lankhorst@canonical.com>
-Subject: Re: [PATCH 4/6] android: convert sync to fence api, v4
-Date: Tue, 04 Mar 2014 11:42:24 +0100
-Message-ID: <5315AE10.9030800@canonical.com>
-References: <20140217155056.20337.25254.stgit@patser>
-	<20140217155640.20337.13331.stgit@patser>
-	<CAKMK7uESOhk_i8ui1pVknA=6s8oQsBOCTULYszxe5fodcBwTGw@mail.gmail.com>
-	<531585CE.9020509@canonical.com>
-	<20140304081411.GK17001@phenom.ffwll.local>
-	<53158CEA.30004@canonical.com>
-	<20140304100036.GX17001@phenom.ffwll.local>
+From: Waiman Long <waiman.long@hp.com>
+Subject: Re: [PATCH v5 1/8] qspinlock: Introducing a 4-byte queue spinlock
+	implementation
+Date: Tue, 04 Mar 2014 09:46:25 -0500
+Message-ID: <5315E741.2000205@hp.com>
+References: <1393475567-4453-1-git-send-email-Waiman.Long@hp.com>
+	<1393475567-4453-2-git-send-email-Waiman.Long@hp.com>
+	<20140302131228.GA13206@redhat.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"; Format="flowed"
 Content-Transfer-Encoding: 7bit
-Return-path: <dri-devel-bounces@lists.freedesktop.org>
-In-Reply-To: <20140304100036.GX17001@phenom.ffwll.local>
-List-Unsubscribe: <http://lists.freedesktop.org/mailman/options/dri-devel>,
-	<mailto:dri-devel-request@lists.freedesktop.org?subject=unsubscribe>
-List-Archive: <http://lists.freedesktop.org/archives/dri-devel>
-List-Post: <mailto:dri-devel@lists.freedesktop.org>
-List-Help: <mailto:dri-devel-request@lists.freedesktop.org?subject=help>
-List-Subscribe: <http://lists.freedesktop.org/mailman/listinfo/dri-devel>,
-	<mailto:dri-devel-request@lists.freedesktop.org?subject=subscribe>
-Sender: dri-devel-bounces@lists.freedesktop.org
-Errors-To: dri-devel-bounces@lists.freedesktop.org
-To: Ian Lister <ian.lister@intel.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Colin Cross <ccross@google.com>, "linaro-mm-sig@lists.linaro.org" <linaro-mm-sig@lists.linaro.org>, "Clark, Rob" <robdclark@gmail.com>, dri-devel <dri-devel@lists.freedesktop.org>, Sumit Semwal <sumit.semwal@linaro.org>, "linux-media@vger.kernel.org" <linux-media@vger.kernel.org>
+Return-path: <virtualization-bounces@lists.linux-foundation.org>
+In-Reply-To: <20140302131228.GA13206@redhat.com>
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
+List-Post: <mailto:virtualization@lists.linux-foundation.org>
+List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
+Sender: virtualization-bounces@lists.linux-foundation.org
+Errors-To: virtualization-bounces@lists.linux-foundation.org
+To: Oleg Nesterov <oleg@redhat.com>
+Cc: Jeremy Fitzhardinge <jeremy@goop.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, kvm@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, virtualization@lists.linux-foundation.org, Andi Kleen <andi@firstfloor.org>, "H. Peter Anvin" <hpa@zytor.com>, Michel Lespinasse <walken@google.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, Gleb Natapov <gleb@redhat.com>, x86@kernel.org, Ingo Molnar <mingo@redhat.com>, xen-devel@lists.xenproject.org, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Rik van Riel <riel@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Scott J Norton <scott.norton@hp.com>, Steven Rostedt <rostedt@goodmis.org>, Chris Wright <chrisw@sous-sol.org>, Alok Kataria <akataria@vmware.com>, Aswin Chandramouleeswaran <aswin@hp.com>, Chegu Vinod <chegu_vinod@hp.com>
 List-Id: linux-arch.vger.kernel.org
 
-op 04-03-14 11:00, Daniel Vetter schreef:
-> On Tue, Mar 04, 2014 at 09:20:58AM +0100, Maarten Lankhorst wrote:
->> op 04-03-14 09:14, Daniel Vetter schreef:
->>> On Tue, Mar 04, 2014 at 08:50:38AM +0100, Maarten Lankhorst wrote:
->>>> op 03-03-14 22:11, Daniel Vetter schreef:
->>>>> On Mon, Feb 17, 2014 at 04:57:19PM +0100, Maarten Lankhorst wrote:
->>>>>> Android syncpoints can be mapped to a timeline. This removes the need
->>>>>> to maintain a separate api for synchronization. I've left the android
->>>>>> trace events in place, but the core fence events should already be
->>>>>> sufficient for debugging.
->>>>>>
->>>>>> v2:
->>>>>> - Call fence_remove_callback in sync_fence_free if not all fences have fired.
->>>>>> v3:
->>>>>> - Merge Colin Cross' bugfixes, and the android fence merge optimization.
->>>>>> v4:
->>>>>> - Merge with the upstream fixes.
->>>>>>
->>>>>> Signed-off-by: Maarten Lankhorst <maarten.lankhorst@canonical.com>
->>>>>> ---
->>>>> Snipped everything but headers - Ian Lister from our android team is
->>>>> signed up to have a more in-depth look at proper integration with android
->>>>> syncpoints. Adding him to cc.
->>>>>
->>>>>> diff --git a/drivers/staging/android/sync.h b/drivers/staging/android/sync.h
->>>>>> index 62e2255b1c1e..6036dbdc8e6f 100644
->>>>>> --- a/drivers/staging/android/sync.h
->>>>>> +++ b/drivers/staging/android/sync.h
->>>>>> @@ -21,6 +21,7 @@
->>>>>>   #include <linux/list.h>
->>>>>>   #include <linux/spinlock.h>
->>>>>>   #include <linux/wait.h>
->>>>>> +#include <linux/fence.h>
->>>>>>
->>>>>>   struct sync_timeline;
->>>>>>   struct sync_pt;
->>>>>> @@ -40,8 +41,6 @@ struct sync_fence;
->>>>>>    * -1 if a will signal before b
->>>>>>    * @free_pt: called before sync_pt is freed
->>>>>>    * @release_obj: called before sync_timeline is freed
->>>>>> - * @print_obj: deprecated
->>>>>> - * @print_pt: deprecated
->>>>>>    * @fill_driver_data: write implementation specific driver data to data.
->>>>>>    *  should return an error if there is not enough room
->>>>>>    *  as specified by size.  This information is returned
->>>>>> @@ -67,13 +66,6 @@ struct sync_timeline_ops {
->>>>>>    /* optional */
->>>>>>    void (*release_obj)(struct sync_timeline *sync_timeline);
->>>>>>
->>>>>> - /* deprecated */
->>>>>> - void (*print_obj)(struct seq_file *s,
->>>>>> -  struct sync_timeline *sync_timeline);
->>>>>> -
->>>>>> - /* deprecated */
->>>>>> - void (*print_pt)(struct seq_file *s, struct sync_pt *sync_pt);
->>>>>> -
->>>>>>    /* optional */
->>>>>>    int (*fill_driver_data)(struct sync_pt *syncpt, void *data, int size);
->>>>>>
->>>>>> @@ -104,42 +96,48 @@ struct sync_timeline {
->>>>>>
->>>>>>    /* protected by child_list_lock */
->>>>>>    bool destroyed;
->>>>>> + int context, value;
->>>>>>
->>>>>>    struct list_head child_list_head;
->>>>>>    spinlock_t child_list_lock;
->>>>>>
->>>>>>    struct list_head active_list_head;
->>>>>> - spinlock_t active_list_lock;
->>>>>>
->>>>>> +#ifdef CONFIG_DEBUG_FS
->>>>>>    struct list_head sync_timeline_list;
->>>>>> +#endif
->>>>>>   };
->>>>>>
->>>>>>   /**
->>>>>>    * struct sync_pt - sync point
->>>>>> - * @parent: sync_timeline to which this sync_pt belongs
->>>>>> + * @fence: base fence class
->>>>>>    * @child_list: membership in sync_timeline.child_list_head
->>>>>>    * @active_list: membership in sync_timeline.active_list_head
->>>>>> +<<<<<<< current
->>>>>>    * @signaled_list: membership in temporary signaled_list on stack
->>>>>>    * @fence: sync_fence to which the sync_pt belongs
->>>>>>    * @pt_list: membership in sync_fence.pt_list_head
->>>>>>    * @status: 1: signaled, 0:active, <0: error
->>>>>>    * @timestamp: time which sync_pt status transitioned from active to
->>>>>>    *  signaled or error.
->>>>>> +=======
->>>>>> +>>>>>>> patched
->>>>> Conflict markers ...
->>>> Oops.
->>>>>>    */
->>>>>>   struct sync_pt {
->>>>>> - struct sync_timeline *parent;
->>>>>> - struct list_head child_list;
->>>>>> + struct fence base;
->>>>> Hm, embedding feels wrong, since that still means that I'll need to
->>>>> implement two kinds of fences in i915 - one using the seqno fence to make
->>>>> dma-buf sync work, and one to implmenent sync_pt to make the android folks
->>>>> happy.
->>>>>
->>>>> If I can dream I think we should have a pointer to an underlying fence
->>>>> here, i.e. a struct sync_pt would just be a userspace interface wrapper to
->>>>> do explicit syncing using native fences, instead of implicit syncing like
->>>>> with dma-bufs. But this is all drive-by comments from a very cursory
->>>>> high-level look. I might be full of myself again ;-)
->>>>> -Daniel
->>>>>
->>>> No, the idea is that because android syncpoint is simply another type of
->>>> dma-fence, that if you deal with normal fences then android can
->>>> automatically be handled too. The userspace fence api android exposes
->>>> could be very easily made to work for dma-fence, just pass a dma-fence
->>>> to sync_fence_create.
->>>> So exposing dma-fence would probably work for android too.
->>> Hm, then why do we still have struct sync_pt around? Since it's just the
->>> internal bit, with the userspace facing object being struct sync_fence,
->>> I'd opt to shuffle any useful features into the core struct fence.
->>> -Daniel
->> To keep compatibility with the android api. I think that gradually converting them is going to be
->> more useful than to force all drivers to use a new api all at once. They could keep android
->> syncpoint api for exporting, as long as they accept dma-fence for importing/waiting.
-> We don't have any users of the android sync_pt stuff (outside of the
-> framework itself). So any considerations for existing drivers for
-> upstreaming are imo moot. At least for the in-kernel interfaces used. For
-> the actual userspace interface I guess keeping the android syncpt ioctls
-> as-is has value, at least if we conclude that their not badly broken. In
-> which case we need to fix that before moving it out of staging.
-Any driver has to implement sync_timeline_ops though, which interacts with sync_pt?
-And creating a userspace fence requires a sync_pt, although it could very trivially be changed to require a fence too.
+On 03/02/2014 08:12 AM, Oleg Nesterov wrote:
+> On 02/26, Waiman Long wrote:
+>> +void queue_spin_lock_slowpath(struct qspinlock *lock, int qsval)
+>> +{
+>> +	unsigned int cpu_nr, qn_idx;
+>> +	struct qnode *node, *next;
+>> +	u32 prev_qcode, my_qcode;
+>> +
+>> +	/*
+>> +	 * Get the queue node
+>> +	 */
+>> +	cpu_nr = smp_processor_id();
+>> +	node   = get_qnode(&qn_idx);
+>> +
+>> +	/*
+>> +	 * It should never happen that all the queue nodes are being used.
+>> +	 */
+>> +	BUG_ON(!node);
+>> +
+>> +	/*
+>> +	 * Set up the new cpu code to be exchanged
+>> +	 */
+>> +	my_qcode = queue_encode_qcode(cpu_nr, qn_idx);
+>> +
+>> +	/*
+>> +	 * Initialize the queue node
+>> +	 */
+>> +	node->wait = true;
+>> +	node->next = NULL;
+>> +
+>> +	/*
+>> +	 * The lock may be available at this point, try again if no task was
+>> +	 * waiting in the queue.
+>> +	 */
+>> +	if (!(qsval>>  _QCODE_OFFSET)&&  queue_spin_trylock(lock)) {
+>> +		put_qnode();
+>> +		return;
+>> +	}
+> Cosmetic, but probably "goto release_node" would be more consistent.
 
-~Maarten
+Yes, that is true.
+
+> And I am wondering how much this "qsval>>  _QCODE_OFFSET" check can help.
+> Note that this is the only usage of this arg, perhaps it would be better
+> to simply remove it and shrink the caller's code a bit? It is also used
+> in 3/8, but we can read the "fresh" value of ->qlcode (trylock does this
+> anyway), and perhaps it can actually help if it is already unlocked.
+
+First of all, there is no shrinkage in the caller code even if the qsval 
+argument is removed, at least for x86. The caller just targets the 
+return register of the cmpxchg instruction to be the 2nd function 
+parameter register.
+
+When the lock is lightly contended, there isn't much difference on 
+whether to check qsval or a fresh copy of qlcode. However, when the lock 
+is heavily contended, every additional read or write will contribute to 
+the cacheline bouncing traffic. The code was written to minimize those 
+optional read request.
+
+>> +	prev_qcode = atomic_xchg(&lock->qlcode, my_qcode);
+>> +	/*
+>> +	 * It is possible that we may accidentally steal the lock. If this is
+>> +	 * the case, we need to either release it if not the head of the queue
+>> +	 * or get the lock and be done with it.
+>> +	 */
+>> +	if (unlikely(!(prev_qcode&  _QSPINLOCK_LOCKED))) {
+>> +		if (prev_qcode == 0) {
+>> +			/*
+>> +			 * Got the lock since it is at the head of the queue
+>> +			 * Now try to atomically clear the queue code.
+>> +			 */
+>> +			if (atomic_cmpxchg(&lock->qlcode, my_qcode,
+>> +					  _QSPINLOCK_LOCKED) == my_qcode)
+>> +				goto release_node;
+>> +			/*
+>> +			 * The cmpxchg fails only if one or more tasks
+>> +			 * are added to the queue. In this case, we need to
+>> +			 * notify the next one to be the head of the queue.
+>> +			 */
+>> +			goto notify_next;
+>> +		}
+>> +		/*
+>> +		 * Accidentally steal the lock, release the lock and
+>> +		 * let the queue head get it.
+>> +		 */
+>> +		queue_spin_unlock(lock);
+>> +	} else
+>> +		prev_qcode&= ~_QSPINLOCK_LOCKED;	/* Clear the lock bit */
+> You know, actually I started this email because I thought that "goto notify_next"
+> is wrong, I misread the patch as if this "goto" can happen even if prev_qcode != 0.
+>
+> So feel free to ignore, all my comments are cosmetic/subjective, but to me it
+> would be more clean/clear to rewrite the code above as
+>
+> 	if (prev_qcode == 0) {
+> 		if (atomic_cmpxchg(..., _QSPINLOCK_LOCKED) == my_qcode)
+> 			goto release_node;
+> 		goto notify_next;
+> 	}
+>
+> 	if (prev_qcode&  _QSPINLOCK_LOCKED)
+> 		prev_qcode&= ~_QSPINLOCK_LOCKED;
+> 	else
+> 		queue_spin_unlock(lock);
+>
+
+This part of the code cause confusion and make it harder to read. I am 
+planning to rewrite it to use cmpxchg to make sure that it won't 
+accidentally steal the lock. That should make the code easier to 
+understand and make it possible to write better optimized code in other 
+part of the function.
+
+>> +	while (true) {
+>> +		u32 qcode;
+>> +		int retval;
+>> +
+>> +		retval = queue_get_lock_qcode(lock,&qcode, my_qcode);
+>> +		if (retval>  0)
+>> +			;	/* Lock not available yet */
+>> +		else if (retval<  0)
+>> +			/* Lock taken, can release the node&  return */
+>> +			goto release_node;
+> I guess this is for 3/8which adds the optimized version of
+> queue_get_lock_qcode(), so perhaps this "retval<  0" block can go into 3/8
+> as well.
+>
+
+Yes, that is true.
+
+>> +		else if (qcode != my_qcode) {
+>> +			/*
+>> +			 * Just get the lock with other spinners waiting
+>> +			 * in the queue.
+>> +			 */
+>> +			if (queue_spin_setlock(lock))
+>> +				goto notify_next;
+> OTOH, at least the generic (non-optimized) version of queue_spin_setlock()
+> could probably accept "qcode" and avoid atomic_read() + _QSPINLOCK_LOCKED
+> check.
+>
+
+Will do so.
+
+Thank for the comments.
+
+-Longman
