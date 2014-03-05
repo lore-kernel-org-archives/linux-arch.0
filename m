@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:54620 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:59226 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1757709AbaCEV3S (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 5 Mar 2014 16:29:18 -0500
+	id S1754511AbaCEV27 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 5 Mar 2014 16:28:59 -0500
 From: Richard Guy Briggs <rgb@redhat.com>
-Subject: [PATCH 5/6][RFC] audit: drop args from syscall_get_arch() interface
-Date: Wed,  5 Mar 2014 16:27:06 -0500
-Message-ID: <46abd0fd000ac83cf5c4344cdfe1e349a09cb565.1393974970.git.rgb@redhat.com>
+Subject: [PATCH 3/6][RFC] audit: __audit_syscall_entry: ignore arch arg and call syscall_get_arch() directly
+Date: Wed,  5 Mar 2014 16:27:04 -0500
+Message-ID: <fc170f50376a56ea82d25fbf1587f64b76177e0f.1393974970.git.rgb@redhat.com>
 In-Reply-To: <cover.1393974970.git.rgb@redhat.com>
 References: <cover.1393974970.git.rgb@redhat.com>
 In-Reply-To: <cover.1393974970.git.rgb@redhat.com>
@@ -15,300 +15,190 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-audit@redhat.com, linux-kernel@vger.kernel.org
 Cc: Richard Guy Briggs <rgb@redhat.com>, eparis@redhat.com, sgrubb@redhat.com, oleg@redhat.com, linux-arm-kernel@lists.infradead.org, x86@kernel.org, linux-ia64@vger.kernel.org, microblaze-uclinux@itee.uq.edu.au, linux-mips@linux-mips.org, linux@openrisc.net, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, user-mode-linux-devel@lists.sourceforge.net, linux-arch@vger.kernel.org
-Message-ID: <20140305212706.lXlooEsdpl-B9Iw8B1BPKNKSMARp02Bxj5ObRagAC0Y@z>
+Message-ID: <20140305212704.JxUVdPq3CHTVb2eIY1u466LhyHXmJ7TdTQHm8mZg2N8@z>
 
-Since all callers of syscall_get_arch() call with task "current" and none of
-the arch-dependent functions use the "regs" parameter (which could just as
-easily be found with task_pt_regs()), delete both parameters.
+Since all the callers of syscall_get_arch() presently pass "current" and none
+of the arch-specific syscall_get_arch() implementations use the regs parameter,
+ignore the passed in arch parameter to __audit_syscall_entry() and call
+syscall_get_arch() directly.
+
+Change the audit header file from the kernel internal to the user api version
+to get the architecture numbers, but to avoid a circular header reference
+between audit and syscall.h
 
 Signed-off-by: Richard Guy Briggs <rgb@redhat.com>
 
 ---
- arch/arm/include/asm/syscall.h        |    3 +--
- arch/ia64/include/asm/syscall.h       |    3 +--
- arch/microblaze/include/asm/syscall.h |    3 +--
- arch/mips/include/asm/syscall.h       |    8 +-------
- arch/openrisc/include/asm/syscall.h   |    3 +--
- arch/parisc/include/asm/syscall.h     |    3 +--
- arch/powerpc/include/asm/syscall.h    |    3 +--
- arch/s390/include/asm/syscall.h       |    5 ++---
- arch/sh/include/asm/syscall.h         |    3 +--
- arch/sparc/include/asm/syscall.h      |    3 +--
- arch/x86/include/asm/syscall.h        |    8 +++-----
- include/asm-generic/syscall.h         |    6 ++----
- include/linux/audit.h                 |    2 +-
- kernel/auditsc.c                      |    5 ++---
- kernel/seccomp.c                      |    4 ++--
- 15 files changed, 21 insertions(+), 41 deletions(-)
+ arch/arm/include/asm/syscall.h        |    2 +-
+ arch/ia64/include/asm/syscall.h       |    2 +-
+ arch/microblaze/include/asm/syscall.h |    2 +-
+ arch/mips/include/asm/syscall.h       |    2 +-
+ arch/openrisc/include/asm/syscall.h   |    2 +-
+ arch/parisc/include/asm/syscall.h     |    2 +-
+ arch/powerpc/include/asm/syscall.h    |    2 +-
+ arch/s390/include/asm/syscall.h       |    2 +-
+ arch/sh/include/asm/syscall.h         |    2 +-
+ arch/sparc/include/asm/syscall.h      |    2 +-
+ arch/x86/include/asm/syscall.h        |    2 +-
+ kernel/auditsc.c                      |    2 +-
+ 12 files changed, 12 insertions(+), 12 deletions(-)
 
 diff --git a/arch/arm/include/asm/syscall.h b/arch/arm/include/asm/syscall.h
-index a749123..4651f69 100644
+index 73ddd72..a749123 100644
 --- a/arch/arm/include/asm/syscall.h
 +++ b/arch/arm/include/asm/syscall.h
-@@ -103,8 +103,7 @@ static inline void syscall_set_arguments(struct task_struct *task,
- 	memcpy(&regs->ARM_r0 + i, args, n * sizeof(args[0]));
- }
+@@ -7,7 +7,7 @@
+ #ifndef _ASM_ARM_SYSCALL_H
+ #define _ASM_ARM_SYSCALL_H
  
--static inline int syscall_get_arch(struct task_struct *task,
--				   struct pt_regs *regs)
-+static inline int syscall_get_arch(void)
- {
- 	/* ARM tasks don't change audit architectures on the fly. */
- 	return AUDIT_ARCH_ARM;
+-#include <linux/audit.h> /* for AUDIT_ARCH_* */
++#include <uapi/linux/audit.h> /* for AUDIT_ARCH_* */
+ #include <linux/elf.h> /* for ELF_EM */
+ #include <linux/err.h>
+ #include <linux/sched.h>
 diff --git a/arch/ia64/include/asm/syscall.h b/arch/ia64/include/asm/syscall.h
-index 9c82767..1ae443a 100644
+index 0fd2a7a..9c82767 100644
 --- a/arch/ia64/include/asm/syscall.h
 +++ b/arch/ia64/include/asm/syscall.h
-@@ -81,8 +81,7 @@ static inline void syscall_set_arguments(struct task_struct *task,
- 	ia64_syscall_get_set_arguments(task, regs, i, n, args, 1);
- }
+@@ -15,7 +15,7 @@
  
--static inline int syscall_get_arch(struct task_struct *tsk,
--				   struct pt_regs *regs)
-+static inline int syscall_get_arch(void)
- {
- 	return AUDIT_ARCH_IA64;
- }
+ #include <linux/sched.h>
+ #include <linux/err.h>
+-#include <linux/audit.h>
++#include <uapi/linux/audit.h>
+ 
+ static inline long syscall_get_nr(struct task_struct *task,
+ 				  struct pt_regs *regs)
 diff --git a/arch/microblaze/include/asm/syscall.h b/arch/microblaze/include/asm/syscall.h
-index e1acf8a..5292281 100644
+index 06854da..e1acf8a 100644
 --- a/arch/microblaze/include/asm/syscall.h
 +++ b/arch/microblaze/include/asm/syscall.h
-@@ -100,8 +100,7 @@ static inline void syscall_set_arguments(struct task_struct *task,
- asmlinkage long do_syscall_trace_enter(struct pt_regs *regs);
- asmlinkage void do_syscall_trace_leave(struct pt_regs *regs);
+@@ -3,7 +3,7 @@
  
--static inline int syscall_get_arch(struct tast_struct *tsk,
--				   struct pt_regs *regs)
-+static inline int syscall_get_arch(void)
- {
- 	return AUDIT_ARCH_MICROBLAZE;
- }
+ #include <linux/kernel.h>
+ #include <linux/sched.h>
+-#include <linux/audit.h>
++#include <uapi/linux/audit.h>
+ #include <asm/ptrace.h>
+ 
+ /* The system call number is given by the user in R12 */
 diff --git a/arch/mips/include/asm/syscall.h b/arch/mips/include/asm/syscall.h
-index a8234f2..992b6ab 100644
+index 41ecde4..a8234f2 100644
 --- a/arch/mips/include/asm/syscall.h
 +++ b/arch/mips/include/asm/syscall.h
-@@ -101,7 +101,7 @@ extern const unsigned long sys_call_table[];
- extern const unsigned long sys32_call_table[];
- extern const unsigned long sysn32_call_table[];
+@@ -13,7 +13,7 @@
+ #ifndef __ASM_MIPS_SYSCALL_H
+ #define __ASM_MIPS_SYSCALL_H
  
--static inline int __syscall_get_arch(void)
-+static inline int syscall_get_arch(void)
- {
- 	int arch = AUDIT_ARCH_MIPS;
- #ifdef CONFIG_64BIT
-@@ -113,10 +113,4 @@ static inline int __syscall_get_arch(void)
- 	return arch;
- }
- 
--static inline int syscall_get_arch(struct task_struct *task,
--				   struct pt_regs *regs)
--{
--	return __syscall_get_arch();
--}
--
- #endif	/* __ASM_MIPS_SYSCALL_H */
+-#include <linux/audit.h>
++#include <uapi/linux/audit.h>
+ #include <linux/elf-em.h>
+ #include <linux/kernel.h>
+ #include <linux/sched.h>
 diff --git a/arch/openrisc/include/asm/syscall.h b/arch/openrisc/include/asm/syscall.h
-index 2bbe0e9..e598095 100644
+index 534b9c3..2bbe0e9 100644
 --- a/arch/openrisc/include/asm/syscall.h
 +++ b/arch/openrisc/include/asm/syscall.h
-@@ -72,8 +72,7 @@ syscall_set_arguments(struct task_struct *task, struct pt_regs *regs,
- 	memcpy(&regs->gpr[3 + i], args, n * sizeof(args[0]));
- }
+@@ -21,7 +21,7 @@
  
--static inline int syscall_get_arch(struct task_struct *tsk,
--				   struct pt_regs *regs)
-+static inline int syscall_get_arch(void)
- {
- 	return AUDIT_ARCH_OPENRISC;
- }
+ #include <linux/err.h>
+ #include <linux/sched.h>
+-#include <linux/audit.h>
++#include <uapi/linux/audit.h>
+ 
+ static inline int
+ syscall_get_nr(struct task_struct *task, struct pt_regs *regs)
 diff --git a/arch/parisc/include/asm/syscall.h b/arch/parisc/include/asm/syscall.h
-index 2bf23b1..87cc53d 100644
+index b3b604f..2bf23b1 100644
 --- a/arch/parisc/include/asm/syscall.h
 +++ b/arch/parisc/include/asm/syscall.h
-@@ -39,8 +39,7 @@ static inline void syscall_get_arguments(struct task_struct *tsk,
- 	}
- }
+@@ -5,7 +5,7 @@
  
--static inline int syscall_get_arch(struct task_struct *tsk,
--				   struct pt_regs *regs)
-+static inline int syscall_get_arch(void)
- {
- 	int arch = AUDIT_ARCH_PARISC;
- #ifdef CONFIG_64BIT
+ #include <linux/err.h>
+ #include <linux/compat.h>
+-#include <linux/audit.h>
++#include <uapi/linux/audit.h>
+ #include <asm/ptrace.h>
+ 
+ static inline long syscall_get_nr(struct task_struct *tsk,
 diff --git a/arch/powerpc/include/asm/syscall.h b/arch/powerpc/include/asm/syscall.h
-index 36bd9ef..616705b 100644
+index b824eb2..36bd9ef 100644
 --- a/arch/powerpc/include/asm/syscall.h
 +++ b/arch/powerpc/include/asm/syscall.h
-@@ -88,8 +88,7 @@ static inline void syscall_set_arguments(struct task_struct *task,
- 	memcpy(&regs->gpr[3 + i], args, n * sizeof(args[0]));
- }
+@@ -15,7 +15,7 @@
  
--static inline int syscall_get_arch(struct task_struct *tsk,
--				   struct pt_regs *regs)
-+static inline int syscall_get_arch(void)
- {
- 	int arch = AUDIT_ARCH_PPC;
+ #include <linux/sched.h>
+ #include <linux/compat.h>
+-#include <linux/audit.h>
++#include <uapi/linux/audit.h>
  
+ /* ftrace syscalls requires exporting the sys_call_table */
+ #ifdef CONFIG_FTRACE_SYSCALLS
 diff --git a/arch/s390/include/asm/syscall.h b/arch/s390/include/asm/syscall.h
-index 79d1805..32cd7f7 100644
+index cd29d2f..79d1805 100644
 --- a/arch/s390/include/asm/syscall.h
 +++ b/arch/s390/include/asm/syscall.h
-@@ -89,11 +89,10 @@ static inline void syscall_set_arguments(struct task_struct *task,
- 		regs->orig_gpr2 = args[0];
- }
+@@ -12,7 +12,7 @@
+ #ifndef _ASM_SYSCALL_H
+ #define _ASM_SYSCALL_H	1
  
--static inline int syscall_get_arch(struct task_struct *task,
--				   struct pt_regs *regs)
-+static inline int syscall_get_arch(void)
- {
- #ifdef CONFIG_COMPAT
--	if (test_tsk_thread_flag(task, TIF_31BIT))
-+	if (test_thread_flag(TIF_31BIT))
- 		return AUDIT_ARCH_S390;
- #endif
- 	return sizeof(long) == 8 ? AUDIT_ARCH_S390X : AUDIT_ARCH_S390;
+-#include <linux/audit.h>
++#include <uapi/linux/audit.h>
+ #include <linux/sched.h>
+ #include <linux/err.h>
+ #include <asm/ptrace.h>
 diff --git a/arch/sh/include/asm/syscall.h b/arch/sh/include/asm/syscall.h
-index 33e60e0..aac9800 100644
+index f1a79d4..33e60e0 100644
 --- a/arch/sh/include/asm/syscall.h
 +++ b/arch/sh/include/asm/syscall.h
-@@ -11,8 +11,7 @@ extern const unsigned long sys_call_table[];
+@@ -9,7 +9,7 @@ extern const unsigned long sys_call_table[];
+ # include <asm/syscall_64.h>
+ #endif
  
- # include <uapi/linux/audit.h>
+-# include <linux/audit.h>
++# include <uapi/linux/audit.h>
  
--static inline int syscall_get_arch(struct task_struct *tsk,
--				   struct pt_regs *regs)
-+static inline int syscall_get_arch(void)
- {
- 	int arch = AUDIT_ARCH_SH;
- 
+ static inline int syscall_get_arch(struct task_struct *tsk,
+ 				   struct pt_regs *regs)
 diff --git a/arch/sparc/include/asm/syscall.h b/arch/sparc/include/asm/syscall.h
-index eddc60e..82b5b96 100644
+index c7a8f75..eddc60e 100644
 --- a/arch/sparc/include/asm/syscall.h
 +++ b/arch/sparc/include/asm/syscall.h
-@@ -125,8 +125,7 @@ static inline void syscall_set_arguments(struct task_struct *task,
- 		regs->u_regs[UREG_I0 + i + j] = args[j];
- }
+@@ -3,7 +3,7 @@
  
--static inline int syscall_get_arch(struct task_struct *tsk,
--				   struct pt_regs *regs)
-+static inline int syscall_get_arch(void)
- {
- 	return test_thread_flag(TIF_32BIT) ? AUDIT_ARCH_SPARC
- 					   : AUDIT_ARCH_SPARC64;
+ #include <linux/kernel.h>
+ #include <linux/sched.h>
+-#include <linux/audit.h>
++#include <uapi/linux/audit.h>
+ #include <asm/ptrace.h>
+ 
+ /*
 diff --git a/arch/x86/include/asm/syscall.h b/arch/x86/include/asm/syscall.h
-index c98e0ec..d6a756a 100644
+index aea284b..c98e0ec 100644
 --- a/arch/x86/include/asm/syscall.h
 +++ b/arch/x86/include/asm/syscall.h
-@@ -91,8 +91,7 @@ static inline void syscall_set_arguments(struct task_struct *task,
- 	memcpy(&regs->bx + i, args, n * sizeof(args[0]));
- }
+@@ -13,7 +13,7 @@
+ #ifndef _ASM_X86_SYSCALL_H
+ #define _ASM_X86_SYSCALL_H
  
--static inline int syscall_get_arch(struct task_struct *task,
--				   struct pt_regs *regs)
-+static inline int syscall_get_arch(void)
- {
- 	return AUDIT_ARCH_I386;
- }
-@@ -221,8 +220,7 @@ static inline void syscall_set_arguments(struct task_struct *task,
- 		}
- }
- 
--static inline int syscall_get_arch(struct task_struct *task,
--				   struct pt_regs *regs)
-+static inline int syscall_get_arch(void)
- {
- #ifdef CONFIG_IA32_EMULATION
- 	/*
-@@ -234,7 +232,7 @@ static inline int syscall_get_arch(struct task_struct *task,
- 	 *
- 	 * x32 tasks should be considered AUDIT_ARCH_X86_64.
- 	 */
--	if (task_thread_info(task)->status & TS_COMPAT)
-+	if (task_thread_info(current)->status & TS_COMPAT)
- 		return AUDIT_ARCH_I386;
- #endif
- 	/* Both x32 and x86_64 are considered "64-bit". */
-diff --git a/include/asm-generic/syscall.h b/include/asm-generic/syscall.h
-index 5b09392..0c938a4 100644
---- a/include/asm-generic/syscall.h
-+++ b/include/asm-generic/syscall.h
-@@ -144,16 +144,14 @@ void syscall_set_arguments(struct task_struct *task, struct pt_regs *regs,
- 
- /**
-  * syscall_get_arch - return the AUDIT_ARCH for the current system call
-- * @task:	task of interest, must be in system call entry tracing
-- * @regs:	task_pt_regs() of @task
-  *
-  * Returns the AUDIT_ARCH_* based on the system call convention in use.
-  *
-- * It's only valid to call this when @task is stopped on entry to a system
-+ * It's only valid to call this when current is stopped on entry to a system
-  * call, due to %TIF_SYSCALL_TRACE, %TIF_SYSCALL_AUDIT, or %TIF_SECCOMP.
-  *
-  * Architectures which permit CONFIG_HAVE_ARCH_SECCOMP_FILTER must
-  * provide an implementation of this.
-  */
--int syscall_get_arch(struct task_struct *task, struct pt_regs *regs);
-+int syscall_get_arch(void);
- #endif	/* _ASM_SYSCALL_H */
-diff --git a/include/linux/audit.h b/include/linux/audit.h
-index 0e63eb1..ee452f1 100644
---- a/include/linux/audit.h
-+++ b/include/linux/audit.h
-@@ -133,7 +133,7 @@ static inline void audit_syscall_entry(int major, unsigned long a0,
- 				       unsigned long a3)
- {
- 	if (unlikely(current->audit_context))
--		__audit_syscall_entry(syscall_get_arch(current, NULL), major, a0, a1, a2, a3);
-+		__audit_syscall_entry(syscall_get_arch(), major, a0, a1, a2, a3);
- }
- static inline void audit_syscall_exit(void *pt_regs)
- {
+-#include <linux/audit.h>
++#include <uapi/linux/audit.h>
+ #include <linux/sched.h>
+ #include <linux/err.h>
+ #include <asm/asm-offsets.h>	/* For NR_syscalls */
 diff --git a/kernel/auditsc.c b/kernel/auditsc.c
-index 0c9fe06..565f7b7 100644
+index 7317f46..0c9fe06 100644
 --- a/kernel/auditsc.c
 +++ b/kernel/auditsc.c
 @@ -1461,7 +1461,7 @@ void __audit_syscall_entry(int arch, int major,
  	if (!audit_enabled)
  		return;
  
--	context->arch	    = syscall_get_arch(current, NULL);
-+	context->arch	    = syscall_get_arch();
+-	context->arch	    = arch;
++	context->arch	    = syscall_get_arch(current, NULL);
  	context->major      = major;
  	context->argv[0]    = a1;
  	context->argv[1]    = a2;
-@@ -2416,8 +2416,7 @@ void __audit_seccomp(unsigned long syscall, long signr, int code)
- 		return;
- 	audit_log_task(ab);
- 	audit_log_format(ab, " sig=%ld", signr);
--	audit_log_format(ab, " arch=%x",
--			 syscall_get_arch(current, task_pt_regs(current)));
-+	audit_log_format(ab, " arch=%x", syscall_get_arch());
- 	audit_log_format(ab, " syscall=%ld", syscall);
- 	audit_log_format(ab, " compat=%d", is_compat_task());
- 	audit_log_format(ab, " ip=0x%lx", KSTK_EIP(current));
-diff --git a/kernel/seccomp.c b/kernel/seccomp.c
-index b7a1004..eda2da3 100644
---- a/kernel/seccomp.c
-+++ b/kernel/seccomp.c
-@@ -95,7 +95,7 @@ u32 seccomp_bpf_load(int off)
- 	if (off == BPF_DATA(nr))
- 		return syscall_get_nr(current, regs);
- 	if (off == BPF_DATA(arch))
--		return syscall_get_arch(current, regs);
-+		return syscall_get_arch();
- 	if (off >= BPF_DATA(args[0]) && off < BPF_DATA(args[6])) {
- 		unsigned long value;
- 		int arg = (off - BPF_DATA(args[0])) / sizeof(u64);
-@@ -351,7 +351,7 @@ static void seccomp_send_sigsys(int syscall, int reason)
- 	info.si_code = SYS_SECCOMP;
- 	info.si_call_addr = (void __user *)KSTK_EIP(current);
- 	info.si_errno = reason;
--	info.si_arch = syscall_get_arch(current, task_pt_regs(current));
-+	info.si_arch = syscall_get_arch();
- 	info.si_syscall = syscall;
- 	force_sig_info(SIGSYS, &info, current);
- }
 -- 
 1.7.1
 
