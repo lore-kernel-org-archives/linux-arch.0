@@ -1,58 +1,77 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v5 3/8] qspinlock, x86: Add x86 specific optimization for
-	2 contending tasks
-Date: Wed, 5 Mar 2014 21:59:13 +0100
-Message-ID: <20140305205913.GS3104@twins.programming.kicks-ass.net>
-References: <1393427668-60228-1-git-send-email-Waiman.Long@hp.com>
-	<1393427668-60228-4-git-send-email-Waiman.Long@hp.com>
-	<20140226162057.GW6835@laptop.programming.kicks-ass.net>
-	<530FA32B.8010202@hp.com>
-	<20140228092945.GG27965@twins.programming.kicks-ass.net>
-	<5310BB81.3090508@hp.com>
-	<20140303174305.GK9987@twins.programming.kicks-ass.net>
-	<531611EA.6020200@hp.com>
-	<20140304224043.GQ9987@twins.programming.kicks-ass.net>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <virtualization-bounces@lists.linux-foundation.org>
-Content-Disposition: inline
-In-Reply-To: <20140304224043.GQ9987@twins.programming.kicks-ass.net>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
-List-Post: <mailto:virtualization@lists.linux-foundation.org>
-List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
-Sender: virtualization-bounces@lists.linux-foundation.org
-Errors-To: virtualization-bounces@lists.linux-foundation.org
-To: Waiman Long <waiman.long@hp.com>
-Cc: Jeremy Fitzhardinge <jeremy@goop.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, virtualization@lists.linux-foundation.org, Andi Kleen <andi@firstfloor.org>, "H. Peter Anvin" <hpa@zytor.com>, Michel Lespinasse <walken@google.com>, Alok Kataria <akataria@vmware.com>, linux-arch@vger.kernel.org, x86@kernel.org, Ingo Molnar <mingo@redhat.com>, Scott J Norton <scott.norton@hp.com>, xen-devel@lists.xenproject.org, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Alexander Fyodorov <halcy@yandex.ru>, Rik van Riel <riel@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Daniel J Blueman <daniel@numascale.com>, Oleg Nesterov <oleg@redhat.com>, Steven Rostedt <rostedt@goodmis.org>, Chris Wright <chrisw@sous-sol.org>, George Spelvin <linux@horizon.com>, Thomas Gleixner <tglx@linutro>
+From: Richard Guy Briggs <rgb@redhat.com>
+Subject: [PATCH 0/6][RFC] audit: standardize and simplify syscall_get_arch()
+Date: Wed,  5 Mar 2014 16:27:01 -0500
+Message-ID: <cover.1393974970.git.rgb@redhat.com>
+Return-path: <linux-mips-bounce@linux-mips.org>
+Sender: linux-mips-bounce@linux-mips.org
+Errors-to: linux-mips-bounce@linux-mips.org
+List-help: <mailto:ecartis@linux-mips.org?Subject=help>
+List-unsubscribe: <mailto:ecartis@linux-mips.org?subject=unsubscribe%20linux-mips>
+List-software: Ecartis version 1.0.0
+List-subscribe: <mailto:ecartis@linux-mips.org?subject=subscribe%20linux-mips>
+List-owner: <mailto:ralf@linux-mips.org>
+List-post: <mailto:linux-mips@linux-mips.org>
+List-archive: <http://www.linux-mips.org/archives/linux-mips/>
+To: linux-audit@redhat.com, linux-kernel@vger.kernel.org
+Cc: Richard Guy Briggs <rgb@redhat.com>, eparis@redhat.com, sgrubb@redhat.com, oleg@redhat.com, linux-arm-kernel@lists.infradead.org, x86@kernel.org, linux-ia64@vger.kernel.org, microblaze-uclinux@itee.uq.edu.au, linux-mips@linux-mips.org, linux@openrisc.net, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, user-mode-linux-devel@lists.sourceforge.net, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Mar 04, 2014 at 11:40:43PM +0100, Peter Zijlstra wrote:
-> On Tue, Mar 04, 2014 at 12:48:26PM -0500, Waiman Long wrote:
-> > Peter,
-> > 
-> > I was trying to implement the generic queue code exchange code using
-> > cmpxchg as suggested by you. However, when I gathered the performance
-> > data, the code performed worse than I expected at a higher contention
-> > level. Below were the execution time of the benchmark tool that I sent
-> > you:
-> 
-> I'm just not seeing that; with test-4 modified to take the AMD compute
-> units into account:
+Each arch that supports audit requires syscall_get_arch() to able to log
+and identify architecture-dependent syscall numbers.  The information is used
+in at least two different subsystems, so standardize it in the same call across
+all arches.
 
-OK; I tried on a few larger machines and I can indeed see it there.
+Use the standardized syscall_get_arch() locally to add the arch to the
+AUDIT_SECCOMP record to identify which syscall was issued.
 
-That said; our code doesn't differ that much. I see why you're not doing
-too well on the 2 CPU contention. You've got an atomic op too much in
-that path. But given you see benefit even with 2 atomic ops (I had mixed
-results on that) we can do the pending/waiter thing unconditionally for
-NR_CPUS>16k.
+Since all the callers of syscall_get_arch() presently pass "current" and none
+of the arch-specific syscall_get_arch() implementations use the regs parameter,
+call syscall_get_arch() locally where it is needed and drop passing around
+arch, current and regs in __audit_syscall_entry() and audit_syscall_entry().
 
-I also think I can do your full xchg thing without allowing lock steals.
+Compiles and runs on i686, x86_64, ppc, ppc64, s390, s390x, manually tested in
+an x86_64 VM.  aarch64 will be added soon.
 
-I'll try and do a full series tomorrow that starts with simple code and
-builds on that, doing each optimization one by one.
+Richard Guy Briggs (6):
+  syscall: define syscall_get_arch() for each audit-supported arch
+  audit: add arch field to seccomp event log
+  audit: __audit_syscall_entry: ignore arch arg and call
+    syscall_get_arch() directly
+  audit: drop arch from audit_syscall_entry() interface
+  audit: drop args from syscall_get_arch() interface
+  audit: drop arch from __audit_syscall_entry() interface
+
+ arch/arm/include/asm/syscall.h        |    5 ++---
+ arch/arm/kernel/ptrace.c              |    2 +-
+ arch/ia64/include/asm/syscall.h       |    6 ++++++
+ arch/ia64/kernel/ptrace.c             |    2 +-
+ arch/microblaze/include/asm/syscall.h |    5 +++++
+ arch/microblaze/kernel/ptrace.c       |    2 +-
+ arch/mips/include/asm/syscall.h       |    6 +++---
+ arch/mips/kernel/ptrace.c             |    3 +--
+ arch/openrisc/include/asm/syscall.h   |    5 +++++
+ arch/openrisc/kernel/ptrace.c         |    2 +-
+ arch/parisc/include/asm/syscall.h     |   11 +++++++++++
+ arch/parisc/kernel/ptrace.c           |    5 ++---
+ arch/powerpc/include/asm/syscall.h    |   12 ++++++++++++
+ arch/powerpc/kernel/ptrace.c          |    6 ++----
+ arch/s390/include/asm/syscall.h       |    7 +++----
+ arch/s390/kernel/ptrace.c             |    4 +---
+ arch/sh/include/asm/syscall.h         |   16 ++++++++++++++++
+ arch/sh/kernel/ptrace_32.c            |   13 +------------
+ arch/sh/kernel/ptrace_64.c            |   16 +---------------
+ arch/sparc/include/asm/syscall.h      |    7 +++++++
+ arch/sparc/kernel/ptrace_64.c         |    5 +----
+ arch/um/kernel/ptrace.c               |    3 +--
+ arch/x86/ia32/ia32entry.S             |   12 ++++++------
+ arch/x86/include/asm/syscall.h        |   10 ++++------
+ arch/x86/kernel/entry_32.S            |   11 +++++------
+ arch/x86/kernel/entry_64.S            |   11 +++++------
+ arch/x86/kernel/ptrace.c              |    6 ++----
+ arch/xtensa/kernel/ptrace.c           |    2 +-
+ include/asm-generic/syscall.h         |    6 ++----
+ include/linux/audit.h                 |    9 ++++-----
+ include/uapi/linux/audit.h            |    1 +
+ kernel/auditsc.c                      |    6 ++++--
+ kernel/seccomp.c                      |    4 ++--
+ 33 files changed, 120 insertions(+), 101 deletions(-)
