@@ -1,344 +1,281 @@
-From: Torvald Riegel <triegel@redhat.com>
+From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
 Subject: Re: [RFC][PATCH 0/5] arch: atomic rework
-Date: Wed, 05 Mar 2014 18:15:18 +0100
-Message-ID: <1394039718.28840.15041.camel@triegel.csb>
-References: <CA+55aFyi45f7oaG4MYP41TOc=E8Ze8Om88dV2Lq4F=qebhxt4A@mail.gmail.com>	 <20140224185341.GU8264@linux.vnet.ibm.com>	 <CA+55aFzXyob0aKnv1u7Stbu0rH5Aq2jaA1rHb=TvQe9c1KY0oQ@mail.gmail.com>	 <1393515453.28840.9961.camel@triegel.csb>	 <CA+55aFyE58NokYdoU+-feHTXv+5snByu+vCyMtg2fNc7npMbDg@mail.gmail.com>	 <20140227190611.GU8264@linux.vnet.ibm.com>	 <CA+55aFzav_2ayvEgbgeAzQohJ7EQH0tgUU0WcSyvUA6hgOo_Ow@mail.gmail.com>	 <20140227205312.GX8264@linux.vnet.ibm.com>	 <20140301005047.GA14777@linux.vnet.ibm.com>	 <CAHWkzRQd7EOqM4pQCB-FaF2byJ5QM8X2WLymoqURmJb4Bd+BJA@mail.gmail.com>	 <20140301140351.GO11910@linux.vnet.ibm.com>	 <CAHWkzRRrrsVK7NdFN=mW55OuVnY82vvW_heKH9ACBPVEUchQjw@mail.gmail.com>	 <1393879459.28840.11943.camel@triegel.csb>	 <CAHWkzRRHMjji3oZx5C8S57Z+Xf9NSoK4AyeXx=NMU8JSB3-=6g@mail
- .gmail.com>
+Date: Wed, 5 Mar 2014 10:01:36 -0800
+Message-ID: <20140305180136.GL3334@linux.vnet.ibm.com>
+References: <CA+55aFyE58NokYdoU+-feHTXv+5snByu+vCyMtg2fNc7npMbDg@mail.gmail.com>
+ <20140227190611.GU8264@linux.vnet.ibm.com>
+ <CA+55aFzav_2ayvEgbgeAzQohJ7EQH0tgUU0WcSyvUA6hgOo_Ow@mail.gmail.com>
+ <20140227205312.GX8264@linux.vnet.ibm.com>
+ <20140301005047.GA14777@linux.vnet.ibm.com>
+ <1393872908.28840.11660.camel@triegel.csb>
+ <20140303192026.GO11910@linux.vnet.ibm.com>
+ <1393879579.28840.11949.camel@triegel.csb>
+ <20140304190032.GY11910@linux.vnet.ibm.com>
+ <1394036796.28840.14900.camel@triegel.csb>
+Reply-To: paulmck@linux.vnet.ibm.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
-Return-path: <gcc-return-182476-gcc=m.gmane.org@gcc.gnu.org>
-List-Unsubscribe: <mailto:gcc-unsubscribe-gcc=m.gmane.org@gcc.gnu.org>
-List-Archive: <http://gcc.gnu.org/ml/gcc/>
-List-Post: <mailto:gcc@gcc.gnu.org>
-List-Help: <http://gcc.gnu.org/ml/>
-Sender: gcc-owner@gcc.gnu.org
-In-Reply-To: <CAHWkzRRHMjji3oZx5C8S57Z+Xf9NSoK4AyeXx=NMU8JSB3-=6g@mail.gmail.com>
-To: Peter.Sewell@cl.cam.ac.uk
-Cc: Paul McKenney <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from e33.co.us.ibm.com ([32.97.110.151]:34354 "EHLO
+	e33.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751967AbaCESBm (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 5 Mar 2014 13:01:42 -0500
+Received: from /spool/local
+	by e33.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
+	Wed, 5 Mar 2014 11:01:42 -0700
+Content-Disposition: inline
+In-Reply-To: <1394036796.28840.14900.camel@triegel.csb>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Torvald Riegel <triegel@redhat.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
 
-On Tue, 2014-03-04 at 22:11 +0000, Peter Sewell wrote:
-> On 3 March 2014 20:44, Torvald Riegel <triegel@redhat.com> wrote:
-> > On Sun, 2014-03-02 at 04:05 -0600, Peter Sewell wrote:
-> >> On 1 March 2014 08:03, Paul E. McKenney <paulmck@linux.vnet.ibm.com> wrote:
-> >> > On Sat, Mar 01, 2014 at 04:06:34AM -0600, Peter Sewell wrote:
-> >> >> Hi Paul,
-> >> >>
-> >> >> On 28 February 2014 18:50, Paul E. McKenney <paulmck@linux.vnet.ibm.com> wrote:
-> >> >> > On Thu, Feb 27, 2014 at 12:53:12PM -0800, Paul E. McKenney wrote:
-> >> >> >> On Thu, Feb 27, 2014 at 11:47:08AM -0800, Linus Torvalds wrote:
-> >> >> >> > On Thu, Feb 27, 2014 at 11:06 AM, Paul E. McKenney
-> >> >> >> > <paulmck@linux.vnet.ibm.com> wrote:
-> >> >> >> > >
-> >> >> >> > > 3.      The comparison was against another RCU-protected pointer,
-> >> >> >> > >         where that other pointer was properly fetched using one
-> >> >> >> > >         of the RCU primitives.  Here it doesn't matter which pointer
-> >> >> >> > >         you use.  At least as long as the rcu_assign_pointer() for
-> >> >> >> > >         that other pointer happened after the last update to the
-> >> >> >> > >         pointed-to structure.
-> >> >> >> > >
-> >> >> >> > > I am a bit nervous about #3.  Any thoughts on it?
-> >> >> >> >
-> >> >> >> > I think that it might be worth pointing out as an example, and saying
-> >> >> >> > that code like
-> >> >> >> >
-> >> >> >> >    p = atomic_read(consume);
-> >> >> >> >    X;
-> >> >> >> >    q = atomic_read(consume);
-> >> >> >> >    Y;
-> >> >> >> >    if (p == q)
-> >> >> >> >         data = p->val;
-> >> >> >> >
-> >> >> >> > then the access of "p->val" is constrained to be data-dependent on
-> >> >> >> > *either* p or q, but you can't really tell which, since the compiler
-> >> >> >> > can decide that the values are interchangeable.
-> >> >> >> >
-> >> >> >> > I cannot for the life of me come up with a situation where this would
-> >> >> >> > matter, though. If "X" contains a fence, then that fence will be a
-> >> >> >> > stronger ordering than anything the consume through "p" would
-> >> >> >> > guarantee anyway. And if "X" does *not* contain a fence, then the
-> >> >> >> > atomic reads of p and q are unordered *anyway*, so then whether the
-> >> >> >> > ordering to the access through "p" is through p or q is kind of
-> >> >> >> > irrelevant. No?
-> >> >> >>
-> >> >> >> I can make a contrived litmus test for it, but you are right, the only
-> >> >> >> time you can see it happen is when X has no barriers, in which case
-> >> >> >> you don't have any ordering anyway -- both the compiler and the CPU can
-> >> >> >> reorder the loads into p and q, and the read from p->val can, as you say,
-> >> >> >> come from either pointer.
-> >> >> >>
-> >> >> >> For whatever it is worth, hear is the litmus test:
-> >> >> >>
-> >> >> >> T1:   p = kmalloc(...);
-> >> >> >>       if (p == NULL)
-> >> >> >>               deal_with_it();
-> >> >> >>       p->a = 42;  /* Each field in its own cache line. */
-> >> >> >>       p->b = 43;
-> >> >> >>       p->c = 44;
-> >> >> >>       atomic_store_explicit(&gp1, p, memory_order_release);
-> >> >> >>       p->b = 143;
-> >> >> >>       p->c = 144;
-> >> >> >>       atomic_store_explicit(&gp2, p, memory_order_release);
-> >> >> >>
-> >> >> >> T2:   p = atomic_load_explicit(&gp2, memory_order_consume);
-> >> >> >>       r1 = p->b;  /* Guaranteed to get 143. */
-> >> >> >>       q = atomic_load_explicit(&gp1, memory_order_consume);
-> >> >> >>       if (p == q) {
-> >> >> >>               /* The compiler decides that q->c is same as p->c. */
-> >> >> >>               r2 = p->c; /* Could get 44 on weakly order system. */
-> >> >> >>       }
-> >> >> >>
-> >> >> >> The loads from gp1 and gp2 are, as you say, unordered, so you get what
-> >> >> >> you get.
-> >> >> >>
-> >> >> >> And publishing a structure via one RCU-protected pointer, updating it,
-> >> >> >> then publishing it via another pointer seems to me to be asking for
-> >> >> >> trouble anyway.  If you really want to do something like that and still
-> >> >> >> see consistency across all the fields in the structure, please put a lock
-> >> >> >> in the structure and use it to guard updates and accesses to those fields.
-> >> >> >
-> >> >> > And here is a patch documenting the restrictions for the current Linux
-> >> >> > kernel.  The rules change a bit due to rcu_dereference() acting a bit
-> >> >> > differently than atomic_load_explicit(&p, memory_order_consume).
-> >> >> >
-> >> >> > Thoughts?
-> >> >>
-> >> >> That might serve as informal documentation for linux kernel
-> >> >> programmers about the bounds on the optimisations that you expect
-> >> >> compilers to do for common-case RCU code - and I guess that's what you
-> >> >> intend it to be for.   But I don't see how one can make it precise
-> >> >> enough to serve as a language definition, so that compiler people
-> >> >> could confidently say "yes, we respect that", which I guess is what
-> >> >> you really need.  As a useful criterion, we should aim for something
-> >> >> precise enough that in a verified-compiler context you can
-> >> >> mathematically prove that the compiler will satisfy it  (even though
-> >> >> that won't happen anytime soon for GCC), and that analysis tool
-> >> >> authors can actually know what they're working with.   All this stuff
-> >> >> about "you should avoid cancellation", and "avoid masking with just a
-> >> >> small number of bits" is just too vague.
-> >> >
-> >> > Understood, and yes, this is intended to document current compiler
-> >> > behavior for the Linux kernel community.  It would not make sense to show
-> >> > it to the C11 or C++11 communities, except perhaps as an informational
-> >> > piece on current practice.
-> >> >
-> >> >> The basic problem is that the compiler may be doing sophisticated
-> >> >> reasoning with a bunch of non-local knowledge that it's deduced from
-> >> >> the code, neither of which are well-understood, and here we have to
-> >> >> identify some envelope, expressive enough for RCU idioms, in which
-> >> >> that reasoning doesn't allow data/address dependencies to be removed
-> >> >> (and hence the hardware guarantee about them will be maintained at the
-> >> >> source level).
-> >> >>
-> >> >> The C11 syntactic notion of dependency, whatever its faults, was at
-> >> >> least precise, could be reasoned about locally (just looking at the
-> >> >> syntactic code in question), and did do that.  The fact that current
-> >> >> compilers do optimisations that remove dependencies and will likely
-> >> >> have many bugs at present is besides the point - this was surely
-> >> >> intended as a *new* constraint on what they are allowed to do.  The
-> >> >> interesting question is really whether the compiler writers think that
-> >> >> they *could* implement it in a reasonable way - I'd like to hear
-> >> >> Torvald and his colleagues' opinion on that.
-> >> >>
-> >> >> What you're doing above seems to be basically a very cut-down version
-> >> >> of that, but with a fuzzy boundary.   If you want it to be precise,
-> >> >> maybe it needs to be much simpler (which might force you into ruling
-> >> >> out some current code idioms).
-> >> >
-> >> > I hope that Torvald Riegel's proposal (https://lkml.org/lkml/2014/2/27/806)
-> >> > can be developed to serve this purpose.
-> >>
-> >> (I missed that mail when it first came past, sorry)
-> >>
-> >> That's also going to be tricky, I'm afraid.  The key condition there is:
-> >>
-> >> "* at the time of execution of E, L       [PS: I assume that L is a
-> >> typo and should be E]
-> >
-> > No, L was intended. (But see below.)
+On Wed, Mar 05, 2014 at 05:26:36PM +0100, Torvald Riegel wrote:
+> xagsmtp3.20140305162928.8243@uk1vsc.vnet.ibm.com
+> X-Xagent-Gateway: uk1vsc.vnet.ibm.com (XAGSMTP3 at UK1VSC)
 > 
-> then I misunderstood...
+> On Tue, 2014-03-04 at 11:00 -0800, Paul E. McKenney wrote:
+> > On Mon, Mar 03, 2014 at 09:46:19PM +0100, Torvald Riegel wrote:
+> > > xagsmtp2.20140303204700.3556@vmsdvma.vnet.ibm.com
+> > > X-Xagent-Gateway: vmsdvma.vnet.ibm.com (XAGSMTP2 at VMSDVMA)
+> > > 
+> > > On Mon, 2014-03-03 at 11:20 -0800, Paul E. McKenney wrote:
+> > > > On Mon, Mar 03, 2014 at 07:55:08PM +0100, Torvald Riegel wrote:
+> > > > > xagsmtp2.20140303190831.9500@uk1vsc.vnet.ibm.com
+> > > > > X-Xagent-Gateway: uk1vsc.vnet.ibm.com (XAGSMTP2 at UK1VSC)
+> > > > > 
+> > > > > On Fri, 2014-02-28 at 16:50 -0800, Paul E. McKenney wrote:
+> > > > > > +o	Do not use the results from the boolean "&&" and "||" when
+> > > > > > +	dereferencing.	For example, the following (rather improbable)
+> > > > > > +	code is buggy:
+> > > > > > +
+> > > > > > +		int a[2];
+> > > > > > +		int index;
+> > > > > > +		int force_zero_index = 1;
+> > > > > > +
+> > > > > > +		...
+> > > > > > +
+> > > > > > +		r1 = rcu_dereference(i1)
+> > > > > > +		r2 = a[r1 && force_zero_index];  /* BUGGY!!! */
+> > > > > > +
+> > > > > > +	The reason this is buggy is that "&&" and "||" are often compiled
+> > > > > > +	using branches.  While weak-memory machines such as ARM or PowerPC
+> > > > > > +	do order stores after such branches, they can speculate loads,
+> > > > > > +	which can result in misordering bugs.
+> > > > > > +
+> > > > > > +o	Do not use the results from relational operators ("==", "!=",
+> > > > > > +	">", ">=", "<", or "<=") when dereferencing.  For example,
+> > > > > > +	the following (quite strange) code is buggy:
+> > > > > > +
+> > > > > > +		int a[2];
+> > > > > > +		int index;
+> > > > > > +		int flip_index = 0;
+> > > > > > +
+> > > > > > +		...
+> > > > > > +
+> > > > > > +		r1 = rcu_dereference(i1)
+> > > > > > +		r2 = a[r1 != flip_index];  /* BUGGY!!! */
+> > > > > > +
+> > > > > > +	As before, the reason this is buggy is that relational operators
+> > > > > > +	are often compiled using branches.  And as before, although
+> > > > > > +	weak-memory machines such as ARM or PowerPC do order stores
+> > > > > > +	after such branches, but can speculate loads, which can again
+> > > > > > +	result in misordering bugs.
+> > > > > 
+> > > > > Those two would be allowed by the wording I have recently proposed,
+> > > > > AFAICS.  r1 != flip_index would result in two possible values (unless
+> > > > > there are further constraints due to the type of r1 and the values that
+> > > > > flip_index can have).
+> > > > 
+> > > > And I am OK with the value_dep_preserving type providing more/better
+> > > > guarantees than we get by default from current compilers.
+> > > > 
+> > > > One question, though.  Suppose that the code did not want a value
+> > > > dependency to be tracked through a comparison operator.  What does
+> > > > the developer do in that case?  (The reason I ask is that I have
+> > > > not yet found a use case in the Linux kernel that expects a value
+> > > > dependency to be tracked through a comparison.)
+> > > 
+> > > Hmm.  I suppose use an explicit cast to non-vdp before or after the
+> > > comparison?
+> > 
+> > That should work well assuming that things like "if", "while", and "?:"
+> > conditions are happy to take a vdp.
 > 
-> >>         can possibly have returned at
-> >>         least two different values under the assumption that L itself
-> >>         could have returned any value allowed by L's type."
-> >>
-> >> First, the evaluation of E might be nondeterministic  - e.g., for an
-> >> artificial example, if it's just a nondeterministic value obtained
-> >> from the result of a race on SC atomics.  The above doesn't
-> >> distinguish between that (which doesn't have a real dependency on L)
-> >> and that XOR'd with L (which does).  And it does so in the wrong
-> >> direction: it'll say there the former has a dependency on L.
-> >
-> > I'm not quite sure I understand the examples you want to point out
-> > (could you add brief code snippets, perhaps?) -- but the informal
-> > definition I proposed also says that E must have used L in some way to
-> > make it's computation.  That's pretty vague, and the way I phrased the
-> > requirement is probably not optimal.
-> 
-> ...so this example isn't so relevant, but it's maybe interesting
-> anyway. In free-wheeling psuedocode:
-> 
-> x = read_consume(L)     // a memory_order_consume read of a 1-bit value from L
-> y = nondet()                     // some code that
-> nondeterministically produces another 1-bit value, eg by spawning two
-> threads that each do an SC-atomic write to some other location,
-> returning 0 or 1 depending on which wins
-> 
-> then evaluate either just
-> 
-> z=y
-> 
-> or
-> 
-> z = x XOR y
-> 
-> In my misinterpretation of what you wrote, your definition would say
-> there's a dependency from the load of L to the evalution of y, even
-> though there isn't.
+> I currently don't see a reason why that should be disallowed.  If we
+> have allowed an implicit conversion to non-vdp, I believe that should
+> follow.
 
-The evaluations "z==y" or "z=y" wouldn't depend on L, assuming nondet()
-doesn't depend on L (e.g., by using x).  They don't use x's value.  (And
-I don't have a precise definition for this, unfortunately, but I hope
-the intent is clear.)
+I am a bit nervous about a silent implicit conversion from vdp to
+non-vdp in the general case.  However, when the result is being used by
+a conditional, the silent implicit conversion makes a lot of sense.
+Is that distinction something that the compiler can handle easily?
 
-"x XOR y" would depend on L, because this does take x into account, and
-x's value remains relevant irrespective of which value y has.  y would
-be non-vdp, and the compiler could have specialized the code into two
-branches for both 1 and 0 values of y; but it would still need x to
-compute z in the last evaluation.
+On the other hand, silent implicit conversion from non-vdp to vdp
+is very useful for common code that can be invoked both by RCU
+readers and by updaters.
 
+>          ?: could be somewhat special, in that the type depends on the
+> 2nd and 3rd operand.  Thus, "vdp x = non-vdp ? vdp : vdp;" should be
+> allowed, whereas "vdp x = non-vdp ? non-vdp : vdp;" probably should be
+> disallowed if we don't provide for implicit casts from non-vdp to vdp.
+
+Actually, from the Linux-kernel code that I am seeing, we want to be able
+to silently convert from non-vdp to vdp in order to permit common code
+that is invoked from both RCU readers (vdp) and updaters (often non-vdp).
+This common code must be compiled conservatively to allow vdp, but should
+be just find with non-vdp.
+
+Going through the combinations...
+
+ 0.	vdp x = vdp ? vdp : vdp;		 /* OK, matches. */
+ 1.	vdp x = vdp ? vdp : non-vdp;		 /* Silent conversion. */
+ 2.	vdp x = vdp ? non-vdp : vdp;		 /* Silent conversion. */
+ 3.	vdp x = vdp ? non-vdp : non-vdp;	 /* Silent conversion. */
+ 4.	vdp x = non-vdp ? vdp : vdp;		 /* OK, matches. */
+ 5.	vdp x = non-vdp ? vdp : non-vdp;	 /* Silent conversion. */
+ 6.	vdp x = non-vdp ? non-vdp : vdp;	 /* Silent conversion. */
+ 7.	vdp x = non-vdp ? non-vdp : non-vdp;	 /* Silent conversion. */
+ 8.	non-vdp x = vdp ? vdp : vdp;		 /* Warning unless condition. */
+ 9.	non-vdp x = vdp ? vdp : non-vdp;	 /* Warning unless condition. */
+10.	non-vdp x = vdp ? non-vdp : vdp;	 /* Warning unless condition. */
+11.	non-vdp x = vdp ? non-vdp : non-vdp;	 /* OK, matches. */
+12.	non-vdp x = non-vdp ? vdp : vdp;	 /* Warning unless condition. */
+13.	non-vdp x = non-vdp ? vdp : non-vdp;	 /* Warning unless condition. */
+14.	non-vdp x = non-vdp ? non-vdp : vdp;	 /* Warning unless condition. */
+15.	non-vdp x = non-vdp ? non-vdp : non-vdp; /* OK, matches. */
+
+0, 4, 11, and 15 are OK because both legs of the ?: match the variable
+being assigned to.  1, 2, 3, 4, 6, and 7 are implicit silent conversions
+from non-vdp to vdp, which is always safe and is useful for common code.
+8, 9, 10, 12, 13, and 14 are mismatches: A vdp quantity is being assigned
+to a non-vdp variable, which could potentially be passed to a vdp-oblivious
+function.  However, 8, 9, 10, 12, 13, and 14 are OK if the result is
+consumed by a conditional.  That said, I would not complain if something
+like the following kicked out a warning:
+
+	struct foo value_dep_preserving *p;
+	struct foo *q;
+
+	p = rcu_dereference(gp);
+	q = f() ? p : p + 1;
+	if (q < THE_LIMIT)
+		do_something();
+	else
+		do_something_else(p);
+
+The warning could be avoided by marking q value_dep_preserving or by
+eliminating q entirely:
+
+	struct foo value_dep_preserving *p;
+
+	p = rcu_dereference(gp);
+	if ((f() ? p : p + 1) < THE_LIMIT)
+		do_something();
+	else
+		do_something_else(p);
+
+Or, for that matter, by using a cast:
+
+	struct foo value_dep_preserving *p;
+	struct foo *q;
+
+	p = rcu_dereference(gp);
+	q = (struct foo *)(f() ? p : p + 1);
+	if (q < THE_LIMIT)
+		do_something();
+	else
+		do_something_else(p);
+
+Does that make sense?
+
+> > This assumes that p->a only returns
+> > vdp if field "a" is declared vdp, otherwise we have vdps running wild
+> > through the program.  ;-)
 > 
-> > So let me expand a bit on the background first.  What I tried to capture
-> > with the rules is that an evaluation (ie, E), really uses the value
-> > returned by L, and not just a, for example, constant value that can be
-> > inferred from whatever was executed between L and E.  This (is intended
-> > to) prevent value prediction and such by programmers.  The compiler in
-> > turn knows what a real program is allowed to do that still wants to rely
-> > on the ordering by the consume.  Basing all of this on the values seemed
-> > to be helpful because basing it on *purely* syntax didn't seem
-> > implementable; for the latter, we'd need to disallow cases such as x-x
-> > or require compilers to include artificial dependencies if a program
-> > indeed does value speculation.  IOW, it didn't seem possible to draw a
-> > clear distinction between a data dependency defined purely based on
-> > syntax and control dependencies.
-> >
-> > Another way to perhaps phrase the requirement might be to construct it
-> > inductively, so that "E uses the value returned by L" becomes clearer.
-> > However, I currently don't really know how to do that without any holes.
-> >
-> > For example, let's say that an atomic mo_consume load has a value
-> > dependency to itself; the dependency has an associated set of values,
-> > which is equal to all values allowed by the type (but see also below).
-> > Then, an evaluation A that uses B as operand has a value dependency on B
-> > if the associated set of values can still have more than one element.
-> > Whether that's the case depends on the operation, and the other
-> > operands, including their values at the time of execution.
-> > However, it's not just results of evaluations that effectively constrain
-> > the set of values.  Conditional execution does as well, because the
-> > condition being true might establish a constraint on L, which might
-> > remove any dependency when L (or a result of a computation involving L)
-> > is used.  So I'm not sure the inductive approach would work.
-> >
-> > You said you thought I might have wanted to say that:
-> > "E  really-depends on L if there exist two different values that (just
-> > according to typing) might be read for L that give rise to two
-> > different values for E".
-> >
-> > Which should follow from the above, or at least should not conflict with
-> > it.  My "definition" tried to capture that the program must not
-> > establish so many constraints between E and L that the value of L is
-> > clear in the sense of having exactly one value.  If we dereference such
-> > an E whose execution in fact constrains L to one value, there is no real
-> > dependency anymore.
-> > However, by itself, this doesn't cover that E must use L in it's
-> > computation -- which your formulation does, I think.
+> That's a good question.  For the scheme I had in mind, I'm not concerned
+> about vdps running wild because one needs to assign to explicitly
+> vdp-typed variables (or function arguments, etc.) to let vdp extend to
+> beyond single expressions.
 > 
-> unfortunately not - that's what the example above shows.
+> Nonetheless, I think it's a good question how -> should behave if the
+> field is not vdp; in particular, should vdp->non_vdp be automatically
+> vdp?  One concern might be that we know something about non-vdp -- OTOH,
+> we shouldn't be able to do so because we (assume to) don't know anything
+> about the vdp pointer, so we can't infer something about something it
+> points to.
 
-Now I think I understand.
+In almost all the cases I am seeing in the Linux kernel, p->f wants to
+be non-vdp.  A common case is that "f" is an integer that is used in
+later computation, but where the ordering is needed only when fetching
+p->f, not during later use of the resulting integer.
 
-> > Another way might be to try to define which constraints established by
-> > an execution (based on the executed code's semantics) actually remove
-> > value dependencies on L.
-> >
-> > Do you have any suggestions for how to define this (ie, true value
-> > dependencies) in a better way?
+So it is looking like p->f should be vdp only if field "f" is declared vdp.
+
+> > The other thing that can happen is that a vdp can get handed off to
+> > another synchronization mechanism, for example, to reference counting:
+> > 
+> > 	p = atomic_load_explicit(&gp, memory_order_consume);
+> > 	if (do_something_with(p->a)) {
+> > 		/* fast path protected by RCU. */
+> > 		return 0;
+> > 	}
+> > 	if (atomic_inc_not_zero(&p->refcnt) {
 > 
-> not at the moment.  I need to think some more about your vdps, though.
->  As I understand it, you're agreeing with the general intent of the
-> original C11 design that some new mechanism to tell the compiler not
-> to optimise in certain places in required, but differing in the way
-> you identify those?
+> Is the argument to atomic_inc_no_zero vdp or non-vdp?
 
-Yes, we still need such a mechanism because we need to prevent the
-compiler from doing value prediction or something similar that uses
-control dependencies to avoid data dependencies.  For example, it could
-use a large switch statement to add code specialized for each possible
-value returned from an mo_consume load.  Thus, at least for the
-standard, we need some mechanism that prevents certain compiler
-optimizations.
+The argument to atomic_inc_not_zero() is non-vdp, and because it is an
+atomic operation, it would not make sense to mark it vdp.  This results
+in a bit of a dilemma: I am finding code that wants "&p->f" to be vdp
+if "p" is vdp, and I am finding other code (like the above) that wants
+"&p->f" to be non-vdp always.
 
-Where it differs to C11 is that we're not trying to use just such a
-mechanism built on syntax to try to define when we actually have a real
-value dependency.
+The approaches I can think of at the moment include:
 
+1.	If "p" is vdp, make "&p->f" be vdp, but don't complain about
+	subsequent assignments to non-vdp variables.  Sounds like quite
+	a mess in the compiler.
+
+2.	Propagate value_dep_preserving tags throughout the kernel.
+	Sounds like a good recipe for a Linux-kernel revolt against
+	this proposal.
+
+3.	Require explicit casts to avoid warnings:
+
+	if atomic_inc_not_zero((struct foo *)&p->refcnt) {
+
+	This would not be as bad as #2, but would still require
+	a fair amount of markup.
+
+4.	Use something like kill_dependency().  This has strengths
+	and weaknesses similar to #3, but has the advantage of
+	being useful in type-generic macros.
+
+5.	Either #3 or #4 above, but have a command-line flag that
+	shuts off the warnings.  That way, people who want the
+	diagnostics can enable them in their own code, and people
+	who don't can disable them.
+
+#5 looks like the way to go to me.  So "&p->f" has the same vdp-ness
+as "p", so that assigning it to a non-vdp variable, passing it via a
+non-vdp argument, or returning it via a non-vdp return value will
+cause a warning.  However, that warning can be easily shut off on a
+file-by-file basis.
+
+Seem reasonable?
+
+> > 		/* slow path protected by reference counting. */
+> > 		return do_something_else_with((struct foo *)p);  /* CHANGE */
+> > 	}
+> > 	/* Needed slow path, but raced with deletion. */
+> > 	return -EAGAIN;
+> > 
+> > I am guessing that the cast ends the vdp.  Is that the case?
 > 
-> >> Second, it involves reasoning about counterfactual executions.  That
-> >> doesn't necessarily make it wrong, per se, but probably makes it hard
-> >> to work with.  For example, suppose that in all the actual
-> >> whole-program executions, a runtime occurrence of L only ever returns
-> >> one particular value (perhaps because of some simple #define'd
-> >> configuration)
-> >
-> > Right, or just because it's a deterministic program.
-> >
-> > This is a problem for the definition of value dependencies, AFAICT,
-> > because where do you put the line for what the compiler is allowed to
-> > speculate about?  When does the program indeed "reveal" the value of a
-> > load, and when does it not?  Is a compiler to do out-of-band tracking
-> > for certain memory locations, and thus predict the value?
-> >
-> > Adding the assumption that L, at least conceptually, might return any
-> > value seemed to be a simple way to remove that uncertainty regarding
-> > what the compiler might know about.
-> 
-> ...but it brings in a lot of baggage.
+> That would end it, yes.  The other way this could happen is that the
+> argument of do_something_else_with() would be specified to be non-vdp.
 
-Which baggage do you mean?  In terms of verification, or definitions in
-the standard, or effects on compilers?
+Agreed.
 
-> >> , and that the code used in the evaluation of E depends
-> >> on some invariant which is related to that configuration.
-> >
-> > A related issue that I've been thinking about is whether things like
-> > divide-by-zero (ie, operations that give rise to undefined behavior)
-> > should be considered as constraints on the values or not.  I guess they
-> > should, but then this seems closer what you mention, invariants
-> > established by the whole program.
-> >
-> >> The
-> >> hypothetical execution used above in which a different value is used
-> >> is one in the code is being run in a situation with broken invariants.
-> >>    Then there will be technical difficulties in using the definition:
-> >> I don't see how one would persuade oneself that a compiler always
-> >> satisfies it, because these hypothetical executions are far removed
-> >> from what it's actually working on.
-> >
-> > I think the above is easy to implement for a compiler.  At the
-> > mo_consume load, you simply forget any information you have about this
-> > value / memory location; for operations on value_dep_preserving types,
-> 
-> are all the subexpressions likewise forced to be of vdp types?
-
-I'd like to avoid that if possible.  Things like "vdp-pointer + int"
-should Just Work in the sense of being still vdp-typed without requiring
-an explicit cast for the int operand.  Operators ||, &&, ?: might
-justify more fine-grained rules, but I guess it's better to just make
-more stuff vdp if that's easier.  vdp is not a sufficient condition for
-there being a value-dependency anyway, and the few optimizations it
-prevents on expressions containing some vdp-typed operands probably
-don't matter much.  Also, as I mentioned in the reply to Paul, I believe
-that if the compiler can prove that there's no value-dependency, it can
-ignore the vdp-annotation (IOW, as-if is still possible).
+							Thanx, Paul
