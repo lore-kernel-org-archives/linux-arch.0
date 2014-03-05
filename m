@@ -1,38 +1,34 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e37.co.us.ibm.com ([32.97.110.158]:39487 "EHLO
-	e37.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754958AbaCDVfJ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 4 Mar 2014 16:35:09 -0500
-Received: from /spool/local
-	by e37.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-	Tue, 4 Mar 2014 14:35:09 -0700
-Date: Tue, 4 Mar 2014 13:35:04 -0800
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Received: from mx1.redhat.com ([209.132.183.28]:16595 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1755791AbaCEQ1R (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 5 Mar 2014 11:27:17 -0500
 Subject: Re: [RFC][PATCH 0/5] arch: atomic rework
-Message-ID: <20140304213504.GA9809@linux.vnet.ibm.com>
-Reply-To: paulmck@linux.vnet.ibm.com
-References: <1393515453.28840.9961.camel@triegel.csb>
- <CA+55aFyE58NokYdoU+-feHTXv+5snByu+vCyMtg2fNc7npMbDg@mail.gmail.com>
- <20140227190611.GU8264@linux.vnet.ibm.com>
- <CA+55aFzav_2ayvEgbgeAzQohJ7EQH0tgUU0WcSyvUA6hgOo_Ow@mail.gmail.com>
- <20140227205312.GX8264@linux.vnet.ibm.com>
- <20140301005047.GA14777@linux.vnet.ibm.com>
- <1393872908.28840.11660.camel@triegel.csb>
- <20140303192026.GO11910@linux.vnet.ibm.com>
- <1393879579.28840.11949.camel@triegel.csb>
- <20140304190032.GY11910@linux.vnet.ibm.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
+From: Torvald Riegel <triegel@redhat.com>
 In-Reply-To: <20140304190032.GY11910@linux.vnet.ibm.com>
+References: <CA+55aFzXyob0aKnv1u7Stbu0rH5Aq2jaA1rHb=TvQe9c1KY0oQ@mail.gmail.com>
+	 <1393515453.28840.9961.camel@triegel.csb>
+	 <CA+55aFyE58NokYdoU+-feHTXv+5snByu+vCyMtg2fNc7npMbDg@mail.gmail.com>
+	 <20140227190611.GU8264@linux.vnet.ibm.com>
+	 <CA+55aFzav_2ayvEgbgeAzQohJ7EQH0tgUU0WcSyvUA6hgOo_Ow@mail.gmail.com>
+	 <20140227205312.GX8264@linux.vnet.ibm.com>
+	 <20140301005047.GA14777@linux.vnet.ibm.com>
+	 <1393872908.28840.11660.camel@triegel.csb>
+	 <20140303192026.GO11910@linux.vnet.ibm.com>
+	 <1393879579.28840.11949.camel@triegel.csb>
+	 <20140304190032.GY11910@linux.vnet.ibm.com>
+Content-Type: text/plain; charset="UTF-8"
+Date: Wed, 05 Mar 2014 17:26:36 +0100
+Message-ID: <1394036796.28840.14900.camel@triegel.csb>
+Mime-Version: 1.0
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Torvald Riegel <triegel@redhat.com>
+To: paulmck@linux.vnet.ibm.com
 Cc: Linus Torvalds <torvalds@linux-foundation.org>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
-Message-ID: <20140304213504.fDCElrTBUFI6k4FdkQR5uSTTNP1t6HCgTuTQmpZfJf0@z>
+Message-ID: <20140305162636.sVbxFi47teM5xY9ZWsgdhcZ87BEmNGvKWIGqy0w3PD4@z>
 
-On Tue, Mar 04, 2014 at 11:00:32AM -0800, Paul E. McKenney wrote:
+On Tue, 2014-03-04 at 11:00 -0800, Paul E. McKenney wrote:
 > On Mon, Mar 03, 2014 at 09:46:19PM +0100, Torvald Riegel wrote:
 > > xagsmtp2.20140303204700.3556@vmsdvma.vnet.ibm.com
 > > X-Xagent-Gateway: vmsdvma.vnet.ibm.com (XAGSMTP2 at VMSDVMA)
@@ -98,10 +94,31 @@ On Tue, Mar 04, 2014 at 11:00:32AM -0800, Paul E. McKenney wrote:
 > > comparison?
 > 
 > That should work well assuming that things like "if", "while", and "?:"
-> conditions are happy to take a vdp.  This assumes that p->a only returns
+> conditions are happy to take a vdp.
+
+I currently don't see a reason why that should be disallowed.  If we
+have allowed an implicit conversion to non-vdp, I believe that should
+follow.  ?: could be somewhat special, in that the type depends on the
+2nd and 3rd operand.  Thus, "vdp x = non-vdp ? vdp : vdp;" should be
+allowed, whereas "vdp x = non-vdp ? non-vdp : vdp;" probably should be
+disallowed if we don't provide for implicit casts from non-vdp to vdp.
+
+> This assumes that p->a only returns
 > vdp if field "a" is declared vdp, otherwise we have vdps running wild
 > through the program.  ;-)
-> 
+
+That's a good question.  For the scheme I had in mind, I'm not concerned
+about vdps running wild because one needs to assign to explicitly
+vdp-typed variables (or function arguments, etc.) to let vdp extend to
+beyond single expressions.
+
+Nonetheless, I think it's a good question how -> should behave if the
+field is not vdp; in particular, should vdp->non_vdp be automatically
+vdp?  One concern might be that we know something about non-vdp -- OTOH,
+we shouldn't be able to do so because we (assume to) don't know anything
+about the vdp pointer, so we can't infer something about something it
+points to.
+
 > The other thing that can happen is that a vdp can get handed off to
 > another synchronization mechanism, for example, to reference counting:
 > 
@@ -111,6 +128,9 @@ On Tue, Mar 04, 2014 at 11:00:32AM -0800, Paul E. McKenney wrote:
 > 		return 0;
 > 	}
 > 	if (atomic_inc_not_zero(&p->refcnt) {
+
+Is the argument to atomic_inc_no_zero vdp or non-vdp?
+
 > 		/* slow path protected by reference counting. */
 > 		return do_something_else_with((struct foo *)p);  /* CHANGE */
 > 	}
@@ -119,20 +139,6 @@ On Tue, Mar 04, 2014 at 11:00:32AM -0800, Paul E. McKenney wrote:
 > 
 > I am guessing that the cast ends the vdp.  Is that the case?
 
-And here is a more elaborate example from the Linux kernel:
-
-	struct md_rdev value_dep_preserving *rdev;  /* CHANGE */
-
-	rdev = rcu_dereference(conf->mirrors[disk].rdev);
-	if (r1_bio->bios[disk] == IO_BLOCKED
-	    || rdev == NULL
-	    || test_bit(Unmerged, &rdev->flags)
-	    || test_bit(Faulty, &rdev->flags))
-		continue;
-
-The fact that the "rdev == NULL" returns vdp does not force the "||"
-operators to be evaluated arithmetically because the entire function
-is an "if" condition, correct?
-
-							Thanx, Paul
+That would end it, yes.  The other way this could happen is that the
+argument of do_something_else_with() would be specified to be non-vdp.
 
