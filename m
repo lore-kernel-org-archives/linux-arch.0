@@ -1,34 +1,86 @@
-From: Rik van Riel <riel@redhat.com>
-Subject: Re: [PATCH 6/6] arch: Remove stub cputime.h headers
-Date: Thu, 06 Mar 2014 14:40:29 -0500
-Message-ID: <5318CF2D.70408@redhat.com>
-References: <1394128601-26034-1-git-send-email-fweisbec@gmail.com> <1394128601-26034-7-git-send-email-fweisbec@gmail.com>
+From: Richard Guy Briggs <rgb@redhat.com>
+Subject: Re: [PATCH 1/6][RFC] syscall: define syscall_get_arch() for each
+	audit-supported arch
+Date: Thu, 6 Mar 2014 14:55:10 -0500
+Message-ID: <20140306195510.GA16640@madcap2.tricolour.ca>
+References: <cover.1393974970.git.rgb@redhat.com>
+	<cb88576237b1bc4fc7981200c2c23ae05790db0d.1393974970.git.rgb@redhat.com>
+	<531833F0.8080300@imgtec.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:56721 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750988AbaCFTmZ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 6 Mar 2014 14:42:25 -0500
-In-Reply-To: <1394128601-26034-7-git-send-email-fweisbec@gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Frederic Weisbecker <fweisbec@gmail.com>, LKML <linux-kernel@vger.kernel.org>
-Cc: Archs <linux-arch@vger.kernel.org>, Ingo Molnar <mingo@kernel.org>, Marcelo Tosatti <mtosatti@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>
+Return-path: <linux-audit-bounces@redhat.com>
+Content-Disposition: inline
+In-Reply-To: <531833F0.8080300@imgtec.com>
+List-Unsubscribe: <https://www.redhat.com/mailman/options/linux-audit>,
+	<mailto:linux-audit-request@redhat.com?subject=unsubscribe>
+List-Archive: <https://www.redhat.com/archives/linux-audit>
+List-Post: <mailto:linux-audit@redhat.com>
+List-Help: <mailto:linux-audit-request@redhat.com?subject=help>
+List-Subscribe: <https://www.redhat.com/mailman/listinfo/linux-audit>,
+	<mailto:linux-audit-request@redhat.com?subject=subscribe>
+Sender: linux-audit-bounces@redhat.com
+Errors-To: linux-audit-bounces@redhat.com
+To: Markos Chandras <Markos.Chandras@imgtec.com>
+Cc: linux-arch@vger.kernel.org, linux-mips@linux-mips.org, user-mode-linux-devel@lists.sourceforge.net, linux-kernel@vger.kernel.org, oleg@redhat.com, linux-audit@redhat.com
+List-Id: linux-arch.vger.kernel.org
 
-On 03/06/2014 12:56 PM, Frederic Weisbecker wrote:
-> Many architectures have a stub cputime.h that only include the default
-> cputime.h
->
-> Lets remove the useless headers, we only need to mention that we want
-> the default headers on the Kbuild files.
->
-> Cc: Archs <linux-arch@vger.kernel.org>
-> Cc: Ingo Molnar <mingo@kernel.org>
-> Cc: Marcelo Tosatti <mtosatti@redhat.com>
-> Cc: Peter Zijlstra <peterz@infradead.org>
-> Cc: Thomas Gleixner <tglx@linutronix.de>
-> Signed-off-by: Frederic Weisbecker <fweisbec@gmail.com>
+On 14/03/06, Markos Chandras wrote:
+> Hi Richard,
 
-Acked-by: Rik van Riel <riel@redhat.com>
+Hi Markos,
+
+> On 03/05/2014 09:27 PM, Richard Guy Briggs wrote:
+> >Each arch that supports audit requires syscall_get_arch() to able to log and
+> >identify architecture-dependent syscall numbers.  The information is used in at
+> >least two different subsystems, so standardize it in the same call across all
+> >arches.
+> >
+> >Signed-off-by: Richard Guy Briggs <rgb@redhat.com>
+> >
+> >---
+> >diff --git a/arch/mips/include/asm/syscall.h b/arch/mips/include/asm/syscall.h
+> >index 81c8913..41ecde4 100644
+> >--- a/arch/mips/include/asm/syscall.h
+> >+++ b/arch/mips/include/asm/syscall.h
+> >@@ -103,7 +103,7 @@ extern const unsigned long sysn32_call_table[];
+> >
+> >  static inline int __syscall_get_arch(void)
+> >  {
+> >-	int arch = EM_MIPS;
+> >+	int arch = AUDIT_ARCH_MIPS;
+> >  #ifdef CONFIG_64BIT
+> >  	arch |=  __AUDIT_ARCH_64BIT;
+> >  #endif
+> >@@ -113,4 +113,10 @@ static inline int __syscall_get_arch(void)
+> >  	return arch;
+> >  }
+> >
+> >+static inline int syscall_get_arch(struct task_struct *task,
+> >+				   struct pt_regs *regs)
+> >+{
+> >+	return __syscall_get_arch();
+> >+}
+> >+
+> >  #endif	/* __ASM_MIPS_SYSCALL_H */
+> 
+> This is already fixed for MIPS
+> 
+> http://patchwork.linux-mips.org/patch/6398/
+> 
+> The code is in linux-next targeting 3.15 as far as I can tell.
+
+Ok, good to see that it is pretty much the same approach.
+
+My patchset is based on 3.13 (as I assume this patch is), so that
+conflict will be sorted out once I add to linux-next...
+
+> markos
+
+- RGB
+
+--
+Richard Guy Briggs <rbriggs@redhat.com>
+Senior Software Engineer, Kernel Security, AMER ENG Base Operating Systems, Red Hat
+Remote, Ottawa, Canada
+Voice: +1.647.777.2635, Internal: (81) 32635, Alt: +1.613.693.0684x3545
