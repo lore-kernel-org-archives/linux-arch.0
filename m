@@ -1,26 +1,26 @@
 From: Heiko Carstens <heiko.carstens@de.ibm.com>
-Subject: [PATCH/RFC 05/16] kernel/compat: convert to COMPAT_SYSCALL_DEFINE
-Date: Thu,  6 Mar 2014 16:51:12 +0100
-Message-ID: <1394121083-2507-6-git-send-email-heiko.carstens@de.ibm.com>
+Subject: [PATCH/RFC 06/16] net/compat: convert to COMPAT_SYSCALL_DEFINE
+Date: Thu,  6 Mar 2014 16:51:13 +0100
+Message-ID: <1394121083-2507-7-git-send-email-heiko.carstens@de.ibm.com>
 References: <1394121083-2507-1-git-send-email-heiko.carstens@de.ibm.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e06smtp17.uk.ibm.com ([195.75.94.113]:47471 "EHLO
-	e06smtp17.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753234AbaCFPve (ORCPT
+Received: from e06smtp13.uk.ibm.com ([195.75.94.109]:54624 "EHLO
+	e06smtp13.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753280AbaCFPve (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>); Thu, 6 Mar 2014 10:51:34 -0500
 Received: from /spool/local
-	by e06smtp17.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	by e06smtp13.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
 	for <linux-arch@vger.kernel.org> from <heiko.carstens@de.ibm.com>;
-	Thu, 6 Mar 2014 15:51:33 -0000
-Received: from b06cxnps4074.portsmouth.uk.ibm.com (d06relay11.portsmouth.uk.ibm.com [9.149.109.196])
-	by d06dlp02.portsmouth.uk.ibm.com (Postfix) with ESMTP id CB8B82190041
-	for <linux-arch@vger.kernel.org>; Thu,  6 Mar 2014 15:51:25 +0000 (GMT)
+	Thu, 6 Mar 2014 15:51:32 -0000
+Received: from b06cxnps4075.portsmouth.uk.ibm.com (d06relay12.portsmouth.uk.ibm.com [9.149.109.197])
+	by d06dlp03.portsmouth.uk.ibm.com (Postfix) with ESMTP id 0851E1B08040
+	for <linux-arch@vger.kernel.org>; Thu,  6 Mar 2014 15:51:15 +0000 (GMT)
 Received: from d06av04.portsmouth.uk.ibm.com (d06av04.portsmouth.uk.ibm.com [9.149.37.216])
-	by b06cxnps4074.portsmouth.uk.ibm.com (8.13.8/8.13.8/NCO v10.0) with ESMTP id s26FpHKO65011864
-	for <linux-arch@vger.kernel.org>; Thu, 6 Mar 2014 15:51:17 GMT
+	by b06cxnps4075.portsmouth.uk.ibm.com (8.13.8/8.13.8/NCO v10.0) with ESMTP id s26FpIcf57147556
+	for <linux-arch@vger.kernel.org>; Thu, 6 Mar 2014 15:51:18 GMT
 Received: from d06av04.portsmouth.uk.ibm.com (localhost [127.0.0.1])
-	by d06av04.portsmouth.uk.ibm.com (8.14.4/8.14.4/NCO v10.0 AVout) with ESMTP id s26FpRtA017396
-	for <linux-arch@vger.kernel.org>; Thu, 6 Mar 2014 08:51:28 -0700
+	by d06av04.portsmouth.uk.ibm.com (8.14.4/8.14.4/NCO v10.0 AVout) with ESMTP id s26FpSfF017426
+	for <linux-arch@vger.kernel.org>; Thu, 6 Mar 2014 08:51:29 -0700
 In-Reply-To: <1394121083-2507-1-git-send-email-heiko.carstens@de.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
@@ -35,272 +35,84 @@ zero and sign extension to 64 bit of all parameters if needed.
 
 Signed-off-by: Heiko Carstens <heiko.carstens@de.ibm.com>
 ---
- kernel/compat.c | 90 ++++++++++++++++++++++++++++-----------------------------
- kernel/ptrace.c |  4 +--
- 2 files changed, 47 insertions(+), 47 deletions(-)
+ net/compat.c | 24 ++++++++++++------------
+ 1 file changed, 12 insertions(+), 12 deletions(-)
 
-diff --git a/kernel/compat.c b/kernel/compat.c
-index 0a09e481b70b..2622011a44c9 100644
---- a/kernel/compat.c
-+++ b/kernel/compat.c
-@@ -110,8 +110,8 @@ static int compat_put_timex(struct compat_timex __user *utp, struct timex *txc)
- 	return 0;
+diff --git a/net/compat.c b/net/compat.c
+index f50161fb812e..706b78be9a23 100644
+--- a/net/compat.c
++++ b/net/compat.c
+@@ -384,8 +384,8 @@ static int compat_sock_setsockopt(struct socket *sock, int level, int optname,
+ 	return sock_setsockopt(sock, level, optname, optval, optlen);
  }
  
--asmlinkage long compat_sys_gettimeofday(struct compat_timeval __user *tv,
--		struct timezone __user *tz)
-+COMPAT_SYSCALL_DEFINE2(gettimeofday, struct compat_timeval __user *, tv,
-+		       struct timezone __user *, tz)
+-asmlinkage long compat_sys_setsockopt(int fd, int level, int optname,
+-				char __user *optval, unsigned int optlen)
++COMPAT_SYSCALL_DEFINE5(setsockopt, int, fd, int, level, int, optname,
++		       char __user *, optval, unsigned int, optlen)
  {
- 	if (tv) {
- 		struct timeval ktv;
-@@ -127,8 +127,8 @@ asmlinkage long compat_sys_gettimeofday(struct compat_timeval __user *tv,
- 	return 0;
- }
- 
--asmlinkage long compat_sys_settimeofday(struct compat_timeval __user *tv,
--		struct timezone __user *tz)
-+COMPAT_SYSCALL_DEFINE2(settimeofday, struct compat_timeval __user *, tv,
-+		       struct timezone __user *, tz)
- {
- 	struct timespec kts;
- 	struct timezone ktz;
-@@ -236,8 +236,8 @@ static long compat_nanosleep_restart(struct restart_block *restart)
- 	return ret;
- }
- 
--asmlinkage long compat_sys_nanosleep(struct compat_timespec __user *rqtp,
--				     struct compat_timespec __user *rmtp)
-+COMPAT_SYSCALL_DEFINE2(nanosleep, struct compat_timespec __user *, rqtp,
-+		       struct compat_timespec __user *, rmtp)
- {
- 	struct timespec tu, rmt;
- 	mm_segment_t oldfs;
-@@ -328,7 +328,7 @@ static compat_clock_t clock_t_to_compat_clock_t(clock_t x)
- 	return compat_jiffies_to_clock_t(clock_t_to_jiffies(x));
- }
- 
--asmlinkage long compat_sys_times(struct compat_tms __user *tbuf)
-+COMPAT_SYSCALL_DEFINE1(times, struct compat_tms __user *, tbuf)
- {
- 	if (tbuf) {
- 		struct tms tms;
-@@ -354,7 +354,7 @@ asmlinkage long compat_sys_times(struct compat_tms __user *tbuf)
-  * types that can be passed to put_user()/get_user().
-  */
- 
--asmlinkage long compat_sys_sigpending(compat_old_sigset_t __user *set)
-+COMPAT_SYSCALL_DEFINE1(sigpending, compat_old_sigset_t __user *, set)
- {
- 	old_sigset_t s;
- 	long ret;
-@@ -424,8 +424,8 @@ COMPAT_SYSCALL_DEFINE3(sigprocmask, int, how,
- 
- #endif
- 
--asmlinkage long compat_sys_setrlimit(unsigned int resource,
--		struct compat_rlimit __user *rlim)
-+COMPAT_SYSCALL_DEFINE2(setrlimit, unsigned int, resource,
-+		       struct compat_rlimit __user *, rlim)
- {
- 	struct rlimit r;
- 
-@@ -443,8 +443,8 @@ asmlinkage long compat_sys_setrlimit(unsigned int resource,
- 
- #ifdef COMPAT_RLIM_OLD_INFINITY
- 
--asmlinkage long compat_sys_old_getrlimit(unsigned int resource,
--		struct compat_rlimit __user *rlim)
-+COMPAT_SYSCALL_DEFINE2(old_getrlimit, unsigned int, resource,
-+		       struct compat_rlimit __user *, rlim)
- {
- 	struct rlimit r;
- 	int ret;
-@@ -470,8 +470,8 @@ asmlinkage long compat_sys_old_getrlimit(unsigned int resource,
- 
- #endif
- 
--asmlinkage long compat_sys_getrlimit(unsigned int resource,
--		struct compat_rlimit __user *rlim)
-+COMPAT_SYSCALL_DEFINE2(getrlimit, unsigned int, resource,
-+		       struct compat_rlimit __user *, rlim)
- {
- 	struct rlimit r;
- 	int ret;
-@@ -596,9 +596,9 @@ static int compat_get_user_cpu_mask(compat_ulong_t __user *user_mask_ptr,
- 	return compat_get_bitmap(k, user_mask_ptr, len * 8);
- }
- 
--asmlinkage long compat_sys_sched_setaffinity(compat_pid_t pid,
--					     unsigned int len,
--					     compat_ulong_t __user *user_mask_ptr)
-+COMPAT_SYSCALL_DEFINE3(sched_setaffinity, compat_pid_t, pid,
-+		       unsigned int, len,
-+		       compat_ulong_t __user *, user_mask_ptr)
- {
- 	cpumask_var_t new_mask;
- 	int retval;
-@@ -616,8 +616,8 @@ out:
- 	return retval;
- }
- 
--asmlinkage long compat_sys_sched_getaffinity(compat_pid_t pid, unsigned int len,
--					     compat_ulong_t __user *user_mask_ptr)
-+COMPAT_SYSCALL_DEFINE3(sched_getaffinity, compat_pid_t,  pid, unsigned int, len,
-+		       compat_ulong_t __user *, user_mask_ptr)
- {
- 	int ret;
- 	cpumask_var_t mask;
-@@ -662,9 +662,9 @@ int put_compat_itimerspec(struct compat_itimerspec __user *dst,
- 	return 0;
- }
- 
--long compat_sys_timer_create(clockid_t which_clock,
--			struct compat_sigevent __user *timer_event_spec,
--			timer_t __user *created_timer_id)
-+COMPAT_SYSCALL_DEFINE3(timer_create, clockid_t, which_clock,
-+		       struct compat_sigevent __user *, timer_event_spec,
-+		       timer_t __user *, created_timer_id)
- {
- 	struct sigevent __user *event = NULL;
- 
-@@ -680,9 +680,9 @@ long compat_sys_timer_create(clockid_t which_clock,
- 	return sys_timer_create(which_clock, event, created_timer_id);
- }
- 
--long compat_sys_timer_settime(timer_t timer_id, int flags,
--			  struct compat_itimerspec __user *new,
--			  struct compat_itimerspec __user *old)
-+COMPAT_SYSCALL_DEFINE4(timer_settime, timer_t, timer_id, int, flags,
-+		       struct compat_itimerspec __user *, new,
-+		       struct compat_itimerspec __user *, old)
- {
- 	long err;
- 	mm_segment_t oldfs;
-@@ -703,8 +703,8 @@ long compat_sys_timer_settime(timer_t timer_id, int flags,
- 	return err;
- }
- 
--long compat_sys_timer_gettime(timer_t timer_id,
--		struct compat_itimerspec __user *setting)
-+COMPAT_SYSCALL_DEFINE2(timer_gettime, timer_t, timer_id,
-+		       struct compat_itimerspec __user *, setting)
- {
- 	long err;
- 	mm_segment_t oldfs;
-@@ -720,8 +720,8 @@ long compat_sys_timer_gettime(timer_t timer_id,
- 	return err;
- }
- 
--long compat_sys_clock_settime(clockid_t which_clock,
--		struct compat_timespec __user *tp)
-+COMPAT_SYSCALL_DEFINE2(clock_settime, clockid_t, which_clock,
-+		       struct compat_timespec __user *, tp)
- {
- 	long err;
- 	mm_segment_t oldfs;
-@@ -737,8 +737,8 @@ long compat_sys_clock_settime(clockid_t which_clock,
- 	return err;
- }
- 
--long compat_sys_clock_gettime(clockid_t which_clock,
--		struct compat_timespec __user *tp)
-+COMPAT_SYSCALL_DEFINE2(clock_gettime, clockid_t, which_clock,
-+		       struct compat_timespec __user *, tp)
- {
- 	long err;
- 	mm_segment_t oldfs;
-@@ -754,8 +754,8 @@ long compat_sys_clock_gettime(clockid_t which_clock,
- 	return err;
- }
- 
--long compat_sys_clock_adjtime(clockid_t which_clock,
--		struct compat_timex __user *utp)
-+COMPAT_SYSCALL_DEFINE2(clock_adjtime, clockid_t, which_clock,
-+		       struct compat_timex __user *, utp)
- {
- 	struct timex txc;
- 	mm_segment_t oldfs;
-@@ -777,8 +777,8 @@ long compat_sys_clock_adjtime(clockid_t which_clock,
- 	return ret;
- }
- 
--long compat_sys_clock_getres(clockid_t which_clock,
--		struct compat_timespec __user *tp)
-+COMPAT_SYSCALL_DEFINE2(clock_getres, clockid_t, which_clock,
-+		       struct compat_timespec __user *, tp)
- {
- 	long err;
- 	mm_segment_t oldfs;
-@@ -818,9 +818,9 @@ static long compat_clock_nanosleep_restart(struct restart_block *restart)
- 	return err;
- }
- 
--long compat_sys_clock_nanosleep(clockid_t which_clock, int flags,
--			    struct compat_timespec __user *rqtp,
--			    struct compat_timespec __user *rmtp)
-+COMPAT_SYSCALL_DEFINE4(clock_nanosleep, clockid_t, which_clock, int, flags,
-+		       struct compat_timespec __user *, rqtp,
-+		       struct compat_timespec __user *, rmtp)
- {
- 	long err;
- 	mm_segment_t oldfs;
-@@ -1010,7 +1010,7 @@ COMPAT_SYSCALL_DEFINE4(rt_sigtimedwait, compat_sigset_t __user *, uthese,
- 
- /* compat_time_t is a 32 bit "long" and needs to get converted. */
- 
--asmlinkage long compat_sys_time(compat_time_t __user * tloc)
-+COMPAT_SYSCALL_DEFINE1(time, compat_time_t __user *, tloc)
- {
- 	compat_time_t i;
- 	struct timeval tv;
-@@ -1026,7 +1026,7 @@ asmlinkage long compat_sys_time(compat_time_t __user * tloc)
- 	return i;
- }
- 
--asmlinkage long compat_sys_stime(compat_time_t __user *tptr)
-+COMPAT_SYSCALL_DEFINE1(stime, compat_time_t __user *, tptr)
- {
- 	struct timespec tv;
  	int err;
-@@ -1046,7 +1046,7 @@ asmlinkage long compat_sys_stime(compat_time_t __user *tptr)
+ 	struct socket *sock = sockfd_lookup(fd, &err);
+@@ -504,8 +504,8 @@ int compat_sock_get_timestampns(struct sock *sk, struct timespec __user *usersta
+ }
+ EXPORT_SYMBOL(compat_sock_get_timestampns);
  
- #endif /* __ARCH_WANT_COMPAT_SYS_TIME */
- 
--asmlinkage long compat_sys_adjtimex(struct compat_timex __user *utp)
-+COMPAT_SYSCALL_DEFINE1(adjtimex, struct compat_timex __user *, utp)
+-asmlinkage long compat_sys_getsockopt(int fd, int level, int optname,
+-				char __user *optval, int __user *optlen)
++COMPAT_SYSCALL_DEFINE5(getsockopt, int, fd, int, level, int, optname,
++		       char __user *, optval, int __user *, optlen)
  {
- 	struct timex txc;
- 	int err, ret;
-@@ -1085,10 +1085,10 @@ asmlinkage long compat_sys_move_pages(pid_t pid, unsigned long nr_pages,
- 	return sys_move_pages(pid, nr_pages, pages, nodes, status, flags);
+ 	int err;
+ 	struct socket *sock = sockfd_lookup(fd, &err);
+@@ -735,15 +735,15 @@ static unsigned char nas[21] = {
+ };
+ #undef AL
+ 
+-asmlinkage long compat_sys_sendmsg(int fd, struct compat_msghdr __user *msg, unsigned int flags)
++COMPAT_SYSCALL_DEFINE3(sendmsg, int, fd, struct compat_msghdr __user *, msg, unsigned int, flags)
+ {
+ 	if (flags & MSG_CMSG_COMPAT)
+ 		return -EINVAL;
+ 	return __sys_sendmsg(fd, (struct msghdr __user *)msg, flags | MSG_CMSG_COMPAT);
  }
  
--asmlinkage long compat_sys_migrate_pages(compat_pid_t pid,
--			compat_ulong_t maxnode,
--			const compat_ulong_t __user *old_nodes,
--			const compat_ulong_t __user *new_nodes)
-+COMPAT_SYSCALL_DEFINE4(migrate_pages, compat_pid_t, pid,
-+		       compat_ulong_t, maxnode,
-+		       const compat_ulong_t __user *, old_nodes,
-+		       const compat_ulong_t __user *, new_nodes)
+-asmlinkage long compat_sys_sendmmsg(int fd, struct compat_mmsghdr __user *mmsg,
+-				    unsigned int vlen, unsigned int flags)
++COMPAT_SYSCALL_DEFINE4(sendmmsg, int, fd, struct compat_mmsghdr __user *, mmsg,
++		       unsigned int, vlen, unsigned int, flags)
  {
- 	unsigned long __user *old = NULL;
- 	unsigned long __user *new = NULL;
-diff --git a/kernel/ptrace.c b/kernel/ptrace.c
-index 1f4bcb3cc21c..adf98622cb32 100644
---- a/kernel/ptrace.c
-+++ b/kernel/ptrace.c
-@@ -1180,8 +1180,8 @@ int compat_ptrace_request(struct task_struct *child, compat_long_t request,
- 	return ret;
+ 	if (flags & MSG_CMSG_COMPAT)
+ 		return -EINVAL;
+@@ -751,7 +751,7 @@ asmlinkage long compat_sys_sendmmsg(int fd, struct compat_mmsghdr __user *mmsg,
+ 			      flags | MSG_CMSG_COMPAT);
  }
  
--asmlinkage long compat_sys_ptrace(compat_long_t request, compat_long_t pid,
--				  compat_long_t addr, compat_long_t data)
-+COMPAT_SYSCALL_DEFINE4(ptrace, compat_long_t, request, compat_long_t, pid,
-+		       compat_long_t, addr, compat_long_t, data)
+-asmlinkage long compat_sys_recvmsg(int fd, struct compat_msghdr __user *msg, unsigned int flags)
++COMPAT_SYSCALL_DEFINE3(recvmsg, int, fd, struct compat_msghdr __user *, msg, unsigned int, flags)
  {
- 	struct task_struct *child;
- 	long ret;
+ 	if (flags & MSG_CMSG_COMPAT)
+ 		return -EINVAL;
+@@ -770,9 +770,9 @@ asmlinkage long compat_sys_recvfrom(int fd, void __user *buf, size_t len,
+ 	return sys_recvfrom(fd, buf, len, flags | MSG_CMSG_COMPAT, addr, addrlen);
+ }
+ 
+-asmlinkage long compat_sys_recvmmsg(int fd, struct compat_mmsghdr __user *mmsg,
+-				    unsigned int vlen, unsigned int flags,
+-				    struct compat_timespec __user *timeout)
++COMPAT_SYSCALL_DEFINE5(recvmmsg, int, fd, struct compat_mmsghdr __user *, mmsg,
++		       unsigned int, vlen, unsigned int, flags,
++		       struct compat_timespec __user *, timeout)
+ {
+ 	int datagrams;
+ 	struct timespec ktspec;
+@@ -795,7 +795,7 @@ asmlinkage long compat_sys_recvmmsg(int fd, struct compat_mmsghdr __user *mmsg,
+ 	return datagrams;
+ }
+ 
+-asmlinkage long compat_sys_socketcall(int call, u32 __user *args)
++COMPAT_SYSCALL_DEFINE2(socketcall, int, call, u32 __user *, args)
+ {
+ 	int ret;
+ 	u32 a[6];
 -- 
 1.8.4.5
