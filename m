@@ -1,37 +1,81 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [PATCH/RFC 00/16] compat: convert to COMPAT_SYSCALL_DEFINE
-Date: Thu, 6 Mar 2014 17:14:55 +0100
-Message-ID: <CAMuHMdWFNtuo0bK==yEUw++F1SciMoHXHHgxPCy-erN-L327hg@mail.gmail.com>
-References: <1394121083-2507-1-git-send-email-heiko.carstens@de.ibm.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+From: Frederic Weisbecker <fweisbec@gmail.com>
+Subject: [PATCH 0/6] cputime: Fixes and cleanups on steal time accounting
+Date: Thu,  6 Mar 2014 18:56:35 +0100
+Message-ID: <1394128601-26034-1-git-send-email-fweisbec@gmail.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pa0-f49.google.com ([209.85.220.49]:57794 "EHLO
-	mail-pa0-f49.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752993AbaCFQO4 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 6 Mar 2014 11:14:56 -0500
-Received: by mail-pa0-f49.google.com with SMTP id lj1so2827426pab.22
-        for <linux-arch@vger.kernel.org>; Thu, 06 Mar 2014 08:14:55 -0800 (PST)
-In-Reply-To: <1394121083-2507-1-git-send-email-heiko.carstens@de.ibm.com>
+Received: from mail-we0-f170.google.com ([74.125.82.170]:50653 "EHLO
+	mail-we0-f170.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752616AbaCFR4r (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 6 Mar 2014 12:56:47 -0500
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Heiko Carstens <heiko.carstens@de.ibm.com>
-Cc: Al Viro <viro@zeniv.linux.org.uk>, "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, Linux-Arch <linux-arch@vger.kernel.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>
+To: LKML <linux-kernel@vger.kernel.org>
+Cc: Frederic Weisbecker <fweisbec@gmail.com>, Archs <linux-arch@vger.kernel.org>, Ingo Molnar <mingo@kernel.org>, Marcelo Tosatti <mtosatti@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Huiqingding <huding@redhat.com>
 
-On Thu, Mar 6, 2014 at 4:51 PM, Heiko Carstens
-<heiko.carstens@de.ibm.com> wrote:
-> FWIW, this patch series omits the whole s390 patches, since I assume
-> they are not very interesting to non-s390 people ;)
+Hi,
 
-"Given enough eyeballs, all bugs are shallow"
+The main purpose of this set is to fix a bug on full dynticks configs
+where steal time accounting appears to be zero in /proc/stat even
+after a few seconds of competing guests running busy loops in a same
+host CPU. It's not a regression though as it was there since the
+beginning with full dynticks.
 
-Gr{oetje,eeting}s,
+So patch [4/6] is the most important. The rest is preparatory work
+to fix the bug and various cleanups.
 
-                        Geert
+Thanks.
 
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+---
+git://git.kernel.org/pub/scm/linux/kernel/git/frederic/linux-dynticks.git
+	timers/cputime-fix-steal
 
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+Frederic Weisbecker (6):
+  cputime: Fix nsecs_to_cputime() return type cast
+  cputime: Default implementation of nsecs -> cputime conversion
+  cputime: Bring cputime -> nsecs conversion
+  cputime: Fix jiffies based cputime assumption on steal accounting
+  sched: Remove needless round trip nsecs <-> tick conversion of steal
+    time
+  arch: Remove stub cputime.h headers
+
+ arch/alpha/include/asm/Kbuild         |  1 +
+ arch/alpha/include/asm/cputime.h      |  6 ------
+ arch/cris/include/asm/Kbuild          |  1 +
+ arch/cris/include/asm/cputime.h       |  6 ------
+ arch/frv/include/asm/Kbuild           |  1 +
+ arch/frv/include/asm/cputime.h        |  6 ------
+ arch/m32r/include/asm/Kbuild          |  1 +
+ arch/m32r/include/asm/cputime.h       |  6 ------
+ arch/microblaze/include/asm/Kbuild    |  1 +
+ arch/microblaze/include/asm/cputime.h |  1 -
+ arch/mn10300/include/asm/Kbuild       |  1 +
+ arch/mn10300/include/asm/cputime.h    |  1 -
+ arch/score/include/asm/Kbuild         |  2 +-
+ arch/score/include/asm/cputime.h      |  6 ------
+ arch/x86/include/asm/Kbuild           |  1 +
+ arch/x86/include/asm/cputime.h        |  1 -
+ drivers/cpufreq/cpufreq_stats.c       |  2 +-
+ drivers/s390/cio/cio.c                |  2 +-
+ fs/proc/stat.c                        |  2 +-
+ fs/proc/uptime.c                      |  2 +-
+ include/asm-generic/cputime_jiffies.h |  4 +++-
+ include/asm-generic/cputime_nsecs.h   |  5 ++++-
+ include/linux/cputime.h               | 16 ++++++++++++++++
+ include/linux/kernel_stat.h           |  2 +-
+ include/linux/sched.h                 |  2 +-
+ kernel/sched/core.c                   |  6 ------
+ kernel/sched/cputime.c                | 11 ++++++-----
+ kernel/sched/sched.h                  | 10 ----------
+ 28 files changed, 43 insertions(+), 63 deletions(-)
+ delete mode 100644 arch/alpha/include/asm/cputime.h
+ delete mode 100644 arch/cris/include/asm/cputime.h
+ delete mode 100644 arch/frv/include/asm/cputime.h
+ delete mode 100644 arch/m32r/include/asm/cputime.h
+ delete mode 100644 arch/microblaze/include/asm/cputime.h
+ delete mode 100644 arch/mn10300/include/asm/cputime.h
+ delete mode 100644 arch/score/include/asm/cputime.h
+ delete mode 100644 arch/x86/include/asm/cputime.h
+ create mode 100644 include/linux/cputime.h
+
+-- 
+1.8.3.1
