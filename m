@@ -1,82 +1,48 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:49058 "EHLO mx1.redhat.com"
+Received: from gate.crashing.org ([63.228.1.57]:56467 "EHLO gate.crashing.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753245AbaCFTzi (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 6 Mar 2014 14:55:38 -0500
-Date: Thu, 6 Mar 2014 14:55:10 -0500
-From: Richard Guy Briggs <rgb@redhat.com>
-Subject: Re: [PATCH 1/6][RFC] syscall: define syscall_get_arch() for each
- audit-supported arch
-Message-ID: <20140306195510.GA16640@madcap2.tricolour.ca>
-References: <cover.1393974970.git.rgb@redhat.com>
- <cb88576237b1bc4fc7981200c2c23ae05790db0d.1393974970.git.rgb@redhat.com>
- <531833F0.8080300@imgtec.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <531833F0.8080300@imgtec.com>
+	id S1752393AbaCGC7d (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 6 Mar 2014 21:59:33 -0500
+Message-ID: <1394161051.26321.71.camel@pasglop>
+Subject: Re: [PATCH v2 14/52] powerpc, sysfs: Fix CPU hotplug callback
+ registration
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Date: Fri, 07 Mar 2014 13:57:31 +1100
+In-Reply-To: <20140214075215.22701.23653.stgit@srivatsabhat.in.ibm.com>
+References: <20140214074750.22701.47330.stgit@srivatsabhat.in.ibm.com>
+	 <20140214075215.22701.23653.stgit@srivatsabhat.in.ibm.com>
+Content-Type: text/plain; charset="UTF-8"
+Mime-Version: 1.0
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Markos Chandras <Markos.Chandras@imgtec.com>
-Cc: linux-audit@redhat.com, linux-kernel@vger.kernel.org, eparis@redhat.com, sgrubb@redhat.com, oleg@redhat.com, linux-mips@linux-mips.org, user-mode-linux-devel@lists.sourceforge.net, linux-arch@vger.kernel.org
-Message-ID: <20140306195510.PFraQXbTyjmUHDfzLTpRUc4nPTxYlDZY2g_Tr1CxOc4@z>
+To: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Cc: paulus@samba.org, oleg@redhat.com, mingo@kernel.org, rusty@rustcorp.com.au, peterz@infradead.org, tglx@linutronix.de, akpm@linux-foundation.org, paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, rjw@rjwysocki.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Olof Johansson <olof@lixom.net>, Wang Dongsheng <dongsheng.wang@freescale.com>, linuxppc-dev@lists.ozlabs.org, Madhavan Srinivasan <maddy@linux.vnet.ibm.com>
+Message-ID: <20140307025731.Tc8Vn5VPHW_FR-2mgt68KmqkhS1LMdgpQGBy0V9zj7E@z>
 
-On 14/03/06, Markos Chandras wrote:
-> Hi Richard,
-
-Hi Markos,
-
-> On 03/05/2014 09:27 PM, Richard Guy Briggs wrote:
-> >Each arch that supports audit requires syscall_get_arch() to able to log and
-> >identify architecture-dependent syscall numbers.  The information is used in at
-> >least two different subsystems, so standardize it in the same call across all
-> >arches.
-> >
-> >Signed-off-by: Richard Guy Briggs <rgb@redhat.com>
-> >
-> >---
-> >diff --git a/arch/mips/include/asm/syscall.h b/arch/mips/include/asm/syscall.h
-> >index 81c8913..41ecde4 100644
-> >--- a/arch/mips/include/asm/syscall.h
-> >+++ b/arch/mips/include/asm/syscall.h
-> >@@ -103,7 +103,7 @@ extern const unsigned long sysn32_call_table[];
-> >
-> >  static inline int __syscall_get_arch(void)
-> >  {
-> >-	int arch = EM_MIPS;
-> >+	int arch = AUDIT_ARCH_MIPS;
-> >  #ifdef CONFIG_64BIT
-> >  	arch |=  __AUDIT_ARCH_64BIT;
-> >  #endif
-> >@@ -113,4 +113,10 @@ static inline int __syscall_get_arch(void)
-> >  	return arch;
-> >  }
-> >
-> >+static inline int syscall_get_arch(struct task_struct *task,
-> >+				   struct pt_regs *regs)
-> >+{
-> >+	return __syscall_get_arch();
-> >+}
-> >+
-> >  #endif	/* __ASM_MIPS_SYSCALL_H */
+On Fri, 2014-02-14 at 13:22 +0530, Srivatsa S. Bhat wrote:
+> Subsystems that want to register CPU hotplug callbacks, as well as perform
+> initialization for the CPUs that are already online, often do it as shown
+> below:
 > 
-> This is already fixed for MIPS
+> 	get_online_cpus();
 > 
-> http://patchwork.linux-mips.org/patch/6398/
+> 	for_each_online_cpu(cpu)
+> 		init_cpu(cpu);
 > 
-> The code is in linux-next targeting 3.15 as far as I can tell.
+> 	register_cpu_notifier(&foobar_cpu_notifier);
+> 
+> 	put_online_cpus();
 
-Ok, good to see that it is pretty much the same approach.
+This patch breaks a good half of my test configs with:
 
-My patchset is based on 3.13 (as I assume this patch is), so that
-conflict will be sorted out once I add to linux-next...
+/home/benh/linux-powerpc-test/arch/powerpc/kernel/sysfs.c: In function 'topology_init':
+/home/benh/linux-powerpc-test/arch/powerpc/kernel/sysfs.c:979:2: error: implicit declaration of function 'cpu_notifier_register_begin' [-Werror=implicit-function-declaration]
+/home/benh/linux-powerpc-test/arch/powerpc/kernel/sysfs.c:1004:2: error: implicit declaration of function '__register_cpu_notifier' [-Werror=implicit-function-declaration]
+/home/benh/linux-powerpc-test/arch/powerpc/kernel/sysfs.c:1006:2: error: implicit declaration of function 'cpu_notifier_register_done' [-Werror=implicit-function-declaration]
+cc1: all warnings being treated as errors
+make[2]: *** [arch/powerpc/kernel/sysfs.o] Error 1
+make[2]: *** Waiting for unfinished jobs....
 
-> markos
 
-- RGB
 
---
-Richard Guy Briggs <rbriggs@redhat.com>
-Senior Software Engineer, Kernel Security, AMER ENG Base Operating Systems, Red Hat
-Remote, Ottawa, Canada
-Voice: +1.647.777.2635, Internal: (81) 32635, Alt: +1.613.693.0684x3545
