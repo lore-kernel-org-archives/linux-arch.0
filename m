@@ -1,17 +1,16 @@
 From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH v3 04/52] CPU hotplug,
- perf: Fix CPU hotplug callback registration
-Date: Tue, 11 Mar 2014 02:04:39 +0530
-Message-ID: <20140310203438.10746.24505.stgit@srivatsabhat.in.ibm.com>
+Subject: [PATCH v3 07/52] ia64, topology: Fix CPU hotplug callback registration
+Date: Tue, 11 Mar 2014 02:04:58 +0530
+Message-ID: <20140310203458.10746.59610.stgit@srivatsabhat.in.ibm.com>
 References: <20140310203312.10746.310.stgit@srivatsabhat.in.ibm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-pm-owner@vger.kernel.org>
 In-Reply-To: <20140310203312.10746.310.stgit@srivatsabhat.in.ibm.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: oleg@redhat.com, rjw@rjwysocki.net, rusty@rustcorp.com.au, tglx@linutronix.de, akpm@linux-foundation.org
-Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-pm@vger.kernel.org, linuxppc-dev@ozlabs.org, srivatsa.bhat@linux.vnet.ibm.com, Peter Zijlstra <peterz@infradead.org>, Paul Mackerras <paulus@samba.org>, Ingo Molnar <mingo@kernel.org>, Arnaldo Carvalho de Melo <acme@ghostprotocols.net>"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Sender: linux-pm-owner@vger.kernel.org
+To: paulus@samba.org, oleg@redhat.com, rjw@rjwysocki.net, rusty@rustcorp.com.au, peterz@infradead.org, tglx@linutronix.de, akpm@linux-foundation.org
+Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-pm@vger.kernel.org, linuxppc-dev@ozlabs.org, srivatsa.bhat@linux.vnet.ibm.com, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Ingo Molnar <mingo@kernel.org>, linux-ia64@vger.kernel.org"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
 List-Id: linux-arch.vger.kernel.org
 
 Subsystems that want to register CPU hotplug callbacks, as well as perform
@@ -45,57 +44,39 @@ registration is:
 	cpu_notifier_register_done();
 
 
-Fix the perf subsystem's hotplug notifier by using this latter form of
-callback registration.
+Fix the topology code in ia64 by using this latter form of callback
+registration.
 
-Also provide a bare-bones version of perf_cpu_notifier() that doesn't
-invoke the notifiers for the already online CPUs. This would be useful
-for subsystems that need to perform a different set of initialization
-for the already online CPUs, or don't need the initialization altogether.
-
-Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Paul Mackerras <paulus@samba.org>
+Cc: Tony Luck <tony.luck@intel.com>
+Cc: Fenghua Yu <fenghua.yu@intel.com>
 Cc: Ingo Molnar <mingo@kernel.org>
-Cc: Arnaldo Carvalho de Melo <acme@ghostprotocols.net>
+Cc: linux-ia64@vger.kernel.org
 Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
 ---
 
- include/linux/perf_event.h |   16 +++++++++++++++-
- 1 file changed, 15 insertions(+), 1 deletion(-)
+ arch/ia64/kernel/topology.c |    6 +++++-
+ 1 file changed, 5 insertions(+), 1 deletion(-)
 
-diff --git a/include/linux/perf_event.h b/include/linux/perf_event.h
-index e56b07f..3356abc 100644
---- a/include/linux/perf_event.h
-+++ b/include/linux/perf_event.h
-@@ -835,6 +835,8 @@ do {									\
- 		{ .notifier_call = fn, .priority = CPU_PRI_PERF };	\
- 	unsigned long cpu = smp_processor_id();				\
- 	unsigned long flags;						\
-+									\
-+	cpu_notifier_register_begin();					\
- 	fn(&fn##_nb, (unsigned long)CPU_UP_PREPARE,			\
- 		(void *)(unsigned long)cpu);				\
- 	local_irq_save(flags);						\
-@@ -843,9 +845,21 @@ do {									\
- 	local_irq_restore(flags);					\
- 	fn(&fn##_nb, (unsigned long)CPU_ONLINE,				\
- 		(void *)(unsigned long)cpu);				\
--	register_cpu_notifier(&fn##_nb);				\
-+	__register_cpu_notifier(&fn##_nb);				\
-+	cpu_notifier_register_done();					\
- } while (0)
+diff --git a/arch/ia64/kernel/topology.c b/arch/ia64/kernel/topology.c
+index ca69a5a..f295f9a 100644
+--- a/arch/ia64/kernel/topology.c
++++ b/arch/ia64/kernel/topology.c
+@@ -454,12 +454,16 @@ static int __init cache_sysfs_init(void)
+ {
+ 	int i;
  
-+/*
-+ * Bare-bones version of perf_cpu_notifier(), which doesn't invoke the
-+ * callback for already online CPUs.
-+ */
-+#define __perf_cpu_notifier(fn)						\
-+do {									\
-+	static struct notifier_block fn##_nb =				\
-+		{ .notifier_call = fn, .priority = CPU_PRI_PERF };	\
-+									\
-+	__register_cpu_notifier(&fn##_nb);				\
-+} while (0)
++	cpu_notifier_register_begin();
++
+ 	for_each_online_cpu(i) {
+ 		struct device *sys_dev = get_cpu_device((unsigned int)i);
+ 		cache_add_dev(sys_dev);
+ 	}
  
- struct perf_pmu_events_attr {
- 	struct device_attribute attr;
+-	register_hotcpu_notifier(&cache_cpu_notifier);
++	__register_hotcpu_notifier(&cache_cpu_notifier);
++
++	cpu_notifier_register_done();
+ 
+ 	return 0;
+ }
+
