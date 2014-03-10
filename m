@@ -1,16 +1,16 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e28smtp03.in.ibm.com ([122.248.162.3]:46886 "EHLO
-	e28smtp03.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755139AbaCJUj7 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 10 Mar 2014 16:39:59 -0400
+Received: from e28smtp04.in.ibm.com ([122.248.162.4]:48233 "EHLO
+	e28smtp04.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755155AbaCJUkF (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 10 Mar 2014 16:40:05 -0400
 Received: from /spool/local
-	by e28smtp03.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	by e28smtp04.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
 	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
-	Tue, 11 Mar 2014 02:09:57 +0530
+	Tue, 11 Mar 2014 02:10:03 +0530
 From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH v3 34/52] scsi, bnx2fc: Fix CPU hotplug callback registration
-Date: Tue, 11 Mar 2014 02:09:45 +0530
-Message-ID: <20140310203945.10746.2812.stgit@srivatsabhat.in.ibm.com>
+Subject: [PATCH v3 35/52] scsi, fcoe: Fix CPU hotplug callback registration
+Date: Tue, 11 Mar 2014 02:09:52 +0530
+Message-ID: <20140310203952.10746.35946.stgit@srivatsabhat.in.ibm.com>
 In-Reply-To: <20140310203312.10746.310.stgit@srivatsabhat.in.ibm.com>
 References: <20140310203312.10746.310.stgit@srivatsabhat.in.ibm.com>
 MIME-Version: 1.0
@@ -19,8 +19,8 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: paulus@samba.org, oleg@redhat.com, mingo@kernel.org, rjw@rjwysocki.net, rusty@rustcorp.com.au, peterz@infradead.org, tglx@linutronix.de, akpm@linux-foundation.org
-Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-pm@vger.kernel.org, linuxppc-dev@ozlabs.org, srivatsa.bhat@linux.vnet.ibm.com, Eddie Wai <eddie.wai@broadcom.com>, "James E.J. Bottomley" <JBottomley@parallels.com>, linux-scsi@vger.kernel.org"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Message-ID: <20140310203945.RBcmORUWnQcOP3BBMMpFO2kvy3vLTOvf3F-Lb6ovnVs@z>
+Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-pm@vger.kernel.org, linuxppc-dev@ozlabs.org, srivatsa.bhat@linux.vnet.ibm.com, Robert Love <robert.w.love@intel.com>, "James E.J. Bottomley" <JBottomley@parallels.com>, fcoe-devel@open-fcoe.org, linux-scsi@vger.kernel.org"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Message-ID: <20140310203952.4CXZiWtybJr4xePwXh1iCTajcN6kSn4BO8BOgd2QNhg@z>
 
 Subsystems that want to register CPU hotplug callbacks, as well as perform
 initialization for the CPUs that are already online, often do it as shown
@@ -53,58 +53,68 @@ registration is:
 	cpu_notifier_register_done();
 
 
-Fix the bnx2fc code in scsi by using this latter form of callback
-registration.
+Fix the fcoe code in scsi by using this latter form of callback registration.
 
-Cc: Eddie Wai <eddie.wai@broadcom.com>
+Cc: Robert Love <robert.w.love@intel.com>
 Cc: "James E.J. Bottomley" <JBottomley@parallels.com>
 Cc: Ingo Molnar <mingo@kernel.org>
+Cc: fcoe-devel@open-fcoe.org
 Cc: linux-scsi@vger.kernel.org
 Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
 ---
 
- drivers/scsi/bnx2fc/bnx2fc_fcoe.c |   12 ++++++++++--
- 1 file changed, 10 insertions(+), 2 deletions(-)
+ drivers/scsi/fcoe/fcoe.c |   15 +++++++++++++--
+ 1 file changed, 13 insertions(+), 2 deletions(-)
 
-diff --git a/drivers/scsi/bnx2fc/bnx2fc_fcoe.c b/drivers/scsi/bnx2fc/bnx2fc_fcoe.c
-index 9b94850..c4ec235 100644
---- a/drivers/scsi/bnx2fc/bnx2fc_fcoe.c
-+++ b/drivers/scsi/bnx2fc/bnx2fc_fcoe.c
-@@ -2586,12 +2586,16 @@ static int __init bnx2fc_mod_init(void)
- 		spin_lock_init(&p->fp_work_lock);
+diff --git a/drivers/scsi/fcoe/fcoe.c b/drivers/scsi/fcoe/fcoe.c
+index f317000..d5e105b 100644
+--- a/drivers/scsi/fcoe/fcoe.c
++++ b/drivers/scsi/fcoe/fcoe.c
+@@ -2633,14 +2633,18 @@ static int __init fcoe_init(void)
+ 		skb_queue_head_init(&p->fcoe_rx_list);
  	}
  
 +	cpu_notifier_register_begin();
 +
- 	for_each_online_cpu(cpu) {
- 		bnx2fc_percpu_thread_create(cpu);
- 	}
+ 	for_each_online_cpu(cpu)
+ 		fcoe_percpu_thread_create(cpu);
  
  	/* Initialize per CPU interrupt thread */
--	register_hotcpu_notifier(&bnx2fc_cpu_notifier);
-+	__register_hotcpu_notifier(&bnx2fc_cpu_notifier);
+-	rc = register_hotcpu_notifier(&fcoe_cpu_notifier);
++	rc = __register_hotcpu_notifier(&fcoe_cpu_notifier);
+ 	if (rc)
+ 		goto out_free;
+ 
++	cpu_notifier_register_done();
++
+ 	/* Setup link change notification */
+ 	fcoe_dev_setup();
+ 
+@@ -2655,6 +2659,9 @@ out_free:
+ 	for_each_online_cpu(cpu) {
+ 		fcoe_percpu_thread_destroy(cpu);
+ 	}
 +
 +	cpu_notifier_register_done();
++
+ 	mutex_unlock(&fcoe_config_mutex);
+ 	destroy_workqueue(fcoe_wq);
+ 	return rc;
+@@ -2687,11 +2694,15 @@ static void __exit fcoe_exit(void)
+ 	}
+ 	rtnl_unlock();
  
- 	cnic_register_driver(CNIC_ULP_FCOE, &bnx2fc_cnic_cb);
- 
-@@ -2656,13 +2660,17 @@ static void __exit bnx2fc_mod_exit(void)
- 	if (l2_thread)
- 		kthread_stop(l2_thread);
- 
--	unregister_hotcpu_notifier(&bnx2fc_cpu_notifier);
+-	unregister_hotcpu_notifier(&fcoe_cpu_notifier);
 +	cpu_notifier_register_begin();
  
- 	/* Destroy per cpu threads */
- 	for_each_online_cpu(cpu) {
- 		bnx2fc_percpu_thread_destroy(cpu);
- 	}
+ 	for_each_online_cpu(cpu)
+ 		fcoe_percpu_thread_destroy(cpu);
  
-+	__unregister_hotcpu_notifier(&bnx2fc_cpu_notifier);
++	__unregister_hotcpu_notifier(&fcoe_cpu_notifier);
 +
 +	cpu_notifier_register_done();
 +
- 	destroy_workqueue(bnx2fc_wq);
+ 	mutex_unlock(&fcoe_config_mutex);
+ 
  	/*
- 	 * detach from scsi transport
 
