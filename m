@@ -1,17 +1,16 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e23smtp04.au.ibm.com ([202.81.31.146]:49832 "EHLO
-	e23smtp04.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754386AbaCJUk3 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 10 Mar 2014 16:40:29 -0400
+Received: from e28smtp06.in.ibm.com ([122.248.162.6]:42376 "EHLO
+	e28smtp06.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755228AbaCJUkm (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 10 Mar 2014 16:40:42 -0400
 Received: from /spool/local
-	by e23smtp04.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	by e28smtp06.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
 	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
-	Tue, 11 Mar 2014 06:40:27 +1000
+	Tue, 11 Mar 2014 02:10:40 +0530
 From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH v3 38/52] drivers/base/topology.c: Fix CPU hotplug callback
- registration
-Date: Tue, 11 Mar 2014 02:10:12 +0530
-Message-ID: <20140310204012.10746.6803.stgit@srivatsabhat.in.ibm.com>
+Subject: [PATCH v3 40/52] intel-idle: Fix CPU hotplug callback registration
+Date: Tue, 11 Mar 2014 02:10:30 +0530
+Message-ID: <20140310204030.10746.17666.stgit@srivatsabhat.in.ibm.com>
 In-Reply-To: <20140310203312.10746.310.stgit@srivatsabhat.in.ibm.com>
 References: <20140310203312.10746.310.stgit@srivatsabhat.in.ibm.com>
 MIME-Version: 1.0
@@ -20,8 +19,8 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: paulus@samba.org, oleg@redhat.com, mingo@kernel.org, rjw@rjwysocki.net, rusty@rustcorp.com.au, peterz@infradead.org, tglx@linutronix.de, akpm@linux-foundation.org
-Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-pm@vger.kernel.org, linuxppc-dev@ozlabs.org, srivatsa.bhat@linux.vnet.ibm.com, Greg Kroah-Hartman <gregkh@linuxfoundation.org>"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Message-ID: <20140310204012.1Tj30oonIk_LJ1Wb3-TF-V3ZbUVlF-54kGXTY8UNd_E@z>
+Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-pm@vger.kernel.org, linuxppc-dev@ozlabs.org, srivatsa.bhat@linux.vnet.ibm.com, Len Brown <lenb@kernel.org>linux-pm@vger.kernel.org"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Message-ID: <20140310204030.4BhFf0dTbWSffuXhMXPL1HcyQobtfI5_a8nJ5hvVfJM@z>
 
 Subsystems that want to register CPU hotplug callbacks, as well as perform
 initialization for the CPUs that are already online, often do it as shown
@@ -54,43 +53,56 @@ registration is:
 	cpu_notifier_register_done();
 
 
-Fix the topology code by using this latter form of callback registration.
+Fix the intel-idle code by using this latter form of callback registration.
 
+Cc: Len Brown <lenb@kernel.org>
+Cc: "Rafael J. Wysocki" <rjw@rjwysocki.net>
 Cc: Ingo Molnar <mingo@kernel.org>
-Acked-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Cc: linux-pm@vger.kernel.org
 Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
 ---
 
- drivers/base/topology.c |   12 ++++++++----
- 1 file changed, 8 insertions(+), 4 deletions(-)
+ drivers/idle/intel_idle.c |   12 ++++++++++--
+ 1 file changed, 10 insertions(+), 2 deletions(-)
 
-diff --git a/drivers/base/topology.c b/drivers/base/topology.c
-index 94ffee3..a738d10 100644
---- a/drivers/base/topology.c
-+++ b/drivers/base/topology.c
-@@ -161,16 +161,20 @@ static int topology_cpu_callback(struct notifier_block *nfb,
- static int topology_sysfs_init(void)
- {
- 	int cpu;
--	int rc;
-+	int rc = 0;
+diff --git a/drivers/idle/intel_idle.c b/drivers/idle/intel_idle.c
+index 8e1939f..51493ed 100644
+--- a/drivers/idle/intel_idle.c
++++ b/drivers/idle/intel_idle.c
+@@ -681,14 +681,19 @@ static int __init intel_idle_init(void)
+ 	if (intel_idle_cpuidle_devices == NULL)
+ 		return -ENOMEM;
+ 
++	cpu_notifier_register_begin();
 +
+ 	for_each_online_cpu(i) {
+ 		retval = intel_idle_cpu_init(i);
+ 		if (retval) {
++			cpu_notifier_register_done();
+ 			cpuidle_unregister_driver(&intel_idle_driver);
+ 			return retval;
+ 		}
+ 	}
+-	register_cpu_notifier(&cpu_hotplug_notifier);
++	__register_cpu_notifier(&cpu_hotplug_notifier);
++
++	cpu_notifier_register_done();
+ 
+ 	return 0;
+ }
+@@ -698,10 +703,13 @@ static void __exit intel_idle_exit(void)
+ 	intel_idle_cpuidle_devices_uninit();
+ 	cpuidle_unregister_driver(&intel_idle_driver);
+ 
 +	cpu_notifier_register_begin();
  
- 	for_each_online_cpu(cpu) {
- 		rc = topology_add_dev(cpu);
- 		if (rc)
--			return rc;
-+			goto out;
- 	}
--	hotcpu_notifier(topology_cpu_callback, 0);
-+	__hotcpu_notifier(topology_cpu_callback, 0);
- 
--	return 0;
-+out:
+ 	if (lapic_timer_reliable_states != LAPIC_TIMER_ALWAYS_RELIABLE)
+ 		on_each_cpu(__setup_broadcast_timer, (void *)false, 1);
+-	unregister_cpu_notifier(&cpu_hotplug_notifier);
++	__unregister_cpu_notifier(&cpu_hotplug_notifier);
++
 +	cpu_notifier_register_done();
-+	return rc;
- }
  
- device_initcall(topology_sysfs_init);
+ 	return;
+ }
 
