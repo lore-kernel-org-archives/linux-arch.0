@@ -1,16 +1,17 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e23smtp02.au.ibm.com ([202.81.31.144]:42519 "EHLO
-	e23smtp02.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754711AbaCJUm4 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 10 Mar 2014 16:42:56 -0400
+Received: from e28smtp06.in.ibm.com ([122.248.162.6]:42886 "EHLO
+	e28smtp06.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755404AbaCJUnE (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 10 Mar 2014 16:43:04 -0400
 Received: from /spool/local
-	by e23smtp02.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	by e28smtp06.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
 	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
-	Tue, 11 Mar 2014 06:42:55 +1000
+	Tue, 11 Mar 2014 02:13:02 +0530
 From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH v3 50/52] mm, zswap: Fix CPU hotplug callback registration
-Date: Tue, 11 Mar 2014 02:12:40 +0530
-Message-ID: <20140310204239.10746.94222.stgit@srivatsabhat.in.ibm.com>
+Subject: [PATCH v3 51/52] net/core/flow.c: Fix CPU hotplug callback
+ registration
+Date: Tue, 11 Mar 2014 02:12:51 +0530
+Message-ID: <20140310204250.10746.61946.stgit@srivatsabhat.in.ibm.com>
 In-Reply-To: <20140310203312.10746.310.stgit@srivatsabhat.in.ibm.com>
 References: <20140310203312.10746.310.stgit@srivatsabhat.in.ibm.com>
 MIME-Version: 1.0
@@ -19,8 +20,8 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: paulus@samba.org, oleg@redhat.com, mingo@kernel.org, rjw@rjwysocki.net, rusty@rustcorp.com.au, peterz@infradead.org, tglx@linutronix.de, akpm@linux-foundation.org
-Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-pm@vger.kernel.org, linuxppc-dev@ozlabs.org, srivatsa.bhat@linux.vnet.ibm.com, linux-mm@kvack.org"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Message-ID: <20140310204240.RUdzZhOgLF27OvHkr119XpChfQCCFfUTzOvrrgXfYEo@z>
+Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-pm@vger.kernel.org, linuxppc-dev@ozlabs.org, srivatsa.bhat@linux.vnet.ibm.com, Li RongQing <roy.qing.li@gmail.com>, Sasha Levin <sasha.levin@oracle.com>, Chris Metcalf <cmetcalf@tilera.com>, netdev@vger.kernel.org, "David S. Miller" <davem@davemloft.net>"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Message-ID: <20140310204251.39s5CzAq72logcb1q0cQXgATdPbmoxLnY2GW9cJZXo4@z>
 
 Subsystems that want to register CPU hotplug callbacks, as well as perform
 initialization for the CPUs that are already online, often do it as shown
@@ -53,41 +54,53 @@ registration is:
 	cpu_notifier_register_done();
 
 
-Fix the zswap code by using this latter form of callback registration.
+Fix the code in net/core/flow.c by using this latter form of callback
+registration.
 
+Cc: Li RongQing <roy.qing.li@gmail.com>
+Cc: Sasha Levin <sasha.levin@oracle.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>
+Cc: Chris Metcalf <cmetcalf@tilera.com>
 Cc: Ingo Molnar <mingo@kernel.org>
-Cc: linux-mm@kvack.org
+Cc: netdev@vger.kernel.org
+Acked-by: David S. Miller <davem@davemloft.net>
 Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
 ---
 
- mm/zswap.c |    8 ++++----
- 1 file changed, 4 insertions(+), 4 deletions(-)
+ net/core/flow.c |    8 +++++++-
+ 1 file changed, 7 insertions(+), 1 deletion(-)
 
-diff --git a/mm/zswap.c b/mm/zswap.c
-index e55bab9..d7337fb 100644
---- a/mm/zswap.c
-+++ b/mm/zswap.c
-@@ -387,18 +387,18 @@ static int zswap_cpu_init(void)
- {
- 	unsigned long cpu;
+diff --git a/net/core/flow.c b/net/core/flow.c
+index dfa602c..9a2151f 100644
+--- a/net/core/flow.c
++++ b/net/core/flow.c
+@@ -456,6 +456,8 @@ static int __init flow_cache_init(struct flow_cache *fc)
+ 	if (!fc->percpu)
+ 		return -ENOMEM;
  
--	get_online_cpus();
 +	cpu_notifier_register_begin();
- 	for_each_online_cpu(cpu)
- 		if (__zswap_cpu_notifier(CPU_UP_PREPARE, cpu) != NOTIFY_OK)
- 			goto cleanup;
--	register_cpu_notifier(&zswap_cpu_notifier_block);
--	put_online_cpus();
-+	__register_cpu_notifier(&zswap_cpu_notifier_block);
++
+ 	for_each_online_cpu(i) {
+ 		if (flow_cache_cpu_prepare(fc, i))
+ 			goto err;
+@@ -463,7 +465,9 @@ static int __init flow_cache_init(struct flow_cache *fc)
+ 	fc->hotcpu_notifier = (struct notifier_block){
+ 		.notifier_call = flow_cache_cpu,
+ 	};
+-	register_hotcpu_notifier(&fc->hotcpu_notifier);
++	__register_hotcpu_notifier(&fc->hotcpu_notifier);
++
 +	cpu_notifier_register_done();
- 	return 0;
  
- cleanup:
- 	for_each_online_cpu(cpu)
- 		__zswap_cpu_notifier(CPU_UP_CANCELED, cpu);
--	put_online_cpus();
+ 	setup_timer(&fc->rnd_timer, flow_cache_new_hashrnd,
+ 		    (unsigned long) fc);
+@@ -479,6 +483,8 @@ err:
+ 		fcp->hash_table = NULL;
+ 	}
+ 
 +	cpu_notifier_register_done();
- 	return -ENOMEM;
- }
++
+ 	free_percpu(fc->percpu);
+ 	fc->percpu = NULL;
  
 
