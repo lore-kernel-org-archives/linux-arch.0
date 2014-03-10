@@ -1,17 +1,16 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e28smtp05.in.ibm.com ([122.248.162.5]:33911 "EHLO
-	e28smtp05.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754976AbaCJUiz (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 10 Mar 2014 16:38:55 -0400
+Received: from e28smtp07.in.ibm.com ([122.248.162.7]:34952 "EHLO
+	e28smtp07.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755007AbaCJUjO (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 10 Mar 2014 16:39:14 -0400
 Received: from /spool/local
-	by e28smtp05.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	by e28smtp07.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
 	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
-	Tue, 11 Mar 2014 02:08:53 +0530
+	Tue, 11 Mar 2014 02:09:13 +0530
 From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH v3 27/52] x86, pci,
- amd-bus: Fix CPU hotplug callback registration
-Date: Tue, 11 Mar 2014 02:08:43 +0530
-Message-ID: <20140310203842.10746.18948.stgit@srivatsabhat.in.ibm.com>
+Subject: [PATCH v3 29/52] x86, kvm: Fix CPU hotplug callback registration
+Date: Tue, 11 Mar 2014 02:09:01 +0530
+Message-ID: <20140310203901.10746.635.stgit@srivatsabhat.in.ibm.com>
 In-Reply-To: <20140310203312.10746.310.stgit@srivatsabhat.in.ibm.com>
 References: <20140310203312.10746.310.stgit@srivatsabhat.in.ibm.com>
 MIME-Version: 1.0
@@ -20,8 +19,8 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: paulus@samba.org, oleg@redhat.com, mingo@kernel.org, rjw@rjwysocki.net, rusty@rustcorp.com.au, peterz@infradead.org, tglx@linutronix.de, akpm@linux-foundation.org
-Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-pm@vger.kernel.org, linuxppc-dev@ozlabs.org, srivatsa.bhat@linux.vnet.ibm.com, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, linux-pci@vger.kernel.org, Bjorn Helgaas <bhelgaas@google.com>"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Message-ID: <20140310203843.UFEbjjWTzrp1HaPVj04TOefsmS9-Fs-hqG8_UAgx8bY@z>
+Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-pm@vger.kernel.org, linuxppc-dev@ozlabs.org, srivatsa.bhat@linux.vnet.ibm.com, Gleb Natapov <gleb@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, kvm@vger.kernel.org, Paolo Bonzini <pbonzini@redhat.com>"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Message-ID: <20140310203901.IJSWBOuGV76rVXtynebceMLXNU334qxWjNzmEG_94f4@z>
 
 Subsystems that want to register CPU hotplug callbacks, as well as perform
 initialization for the CPUs that are already online, often do it as shown
@@ -54,38 +53,44 @@ registration is:
 	cpu_notifier_register_done();
 
 
-Fix the amd-bus code in x86 by using this latter form of callback
-registration.
+Fix the kvm code in x86 by using this latter form of callback registration.
 
+Cc: Gleb Natapov <gleb@kernel.org>
 Cc: Thomas Gleixner <tglx@linutronix.de>
 Cc: Ingo Molnar <mingo@kernel.org>
 Cc: "H. Peter Anvin" <hpa@zytor.com>
 Cc: x86@kernel.org
-Cc: linux-pci@vger.kernel.org
-Acked-by: Bjorn Helgaas <bhelgaas@google.com>
+Cc: kvm@vger.kernel.org
+Acked-by: Paolo Bonzini <pbonzini@redhat.com>
 Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
 ---
 
- arch/x86/pci/amd_bus.c |    5 ++++-
- 1 file changed, 4 insertions(+), 1 deletion(-)
+ arch/x86/kvm/x86.c |    7 ++++++-
+ 1 file changed, 6 insertions(+), 1 deletion(-)
 
-diff --git a/arch/x86/pci/amd_bus.c b/arch/x86/pci/amd_bus.c
-index a48be98..f05cbf0 100644
---- a/arch/x86/pci/amd_bus.c
-+++ b/arch/x86/pci/amd_bus.c
-@@ -380,10 +380,13 @@ static int __init pci_io_ecs_init(void)
- 	if (early_pci_allowed())
- 		pci_enable_pci_io_ecs();
+diff --git a/arch/x86/kvm/x86.c b/arch/x86/kvm/x86.c
+index 2b85784..4db6f56 100644
+--- a/arch/x86/kvm/x86.c
++++ b/arch/x86/kvm/x86.c
+@@ -5365,7 +5365,8 @@ static void kvm_timer_init(void)
+ 	int cpu;
  
--	register_cpu_notifier(&amd_cpu_notifier);
+ 	max_tsc_khz = tsc_khz;
+-	register_hotcpu_notifier(&kvmclock_cpu_notifier_block);
++
 +	cpu_notifier_register_begin();
+ 	if (!boot_cpu_has(X86_FEATURE_CONSTANT_TSC)) {
+ #ifdef CONFIG_CPU_FREQ
+ 		struct cpufreq_policy policy;
+@@ -5382,6 +5383,10 @@ static void kvm_timer_init(void)
+ 	pr_debug("kvm: max_tsc_khz = %ld\n", max_tsc_khz);
  	for_each_online_cpu(cpu)
- 		amd_cpu_notify(&amd_cpu_notifier, (unsigned long)CPU_ONLINE,
- 			       (void *)(long)cpu);
-+	__register_cpu_notifier(&amd_cpu_notifier);
+ 		smp_call_function_single(cpu, tsc_khz_changed, NULL, 1);
++
++	__register_hotcpu_notifier(&kvmclock_cpu_notifier_block);
 +	cpu_notifier_register_done();
 +
- 	pci_probe |= PCI_HAS_IO_ECS;
+ }
  
- 	return 0;
+ static DEFINE_PER_CPU(struct kvm_vcpu *, current_vcpu);
 
