@@ -1,25 +1,17 @@
 From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH v3 33/52] scsi, bnx2i: Fix CPU hotplug callback registration
-Date: Tue, 11 Mar 2014 02:09:39 +0530
-Message-ID: <20140310203938.10746.18579.stgit@srivatsabhat.in.ibm.com>
+Subject: [PATCH v3 34/52] scsi, bnx2fc: Fix CPU hotplug callback registration
+Date: Tue, 11 Mar 2014 02:09:45 +0530
+Message-ID: <20140310203945.10746.2812.stgit@srivatsabhat.in.ibm.com>
 References: <20140310203312.10746.310.stgit@srivatsabhat.in.ibm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e28smtp06.in.ibm.com ([122.248.162.6]:55669 "EHLO
-	e28smtp06.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755110AbaCJUjv (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 10 Mar 2014 16:39:51 -0400
-Received: from /spool/local
-	by e28smtp06.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
-	Tue, 11 Mar 2014 02:09:49 +0530
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20140310203312.10746.310.stgit@srivatsabhat.in.ibm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: paulus@samba.org, oleg@redhat.com, rjw@rjwysocki.net, rusty@rustcorp.com.au, peterz@infradead.org, tglx@linutronix.de, akpm@linux-foundation.org
 Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-pm@vger.kernel.org, linuxppc-dev@ozlabs.org, srivatsa.bhat@linux.vnet.ibm.com, Eddie Wai <eddie.wai@broadcom.com>, "James E.J. Bottomley" <JBottomley@parallels.com>, Ingo Molnar <mingo@kernel.org>, linux-scsi@vger.kernel.org"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+List-Id: linux-arch.vger.kernel.org
 
 Subsystems that want to register CPU hotplug callbacks, as well as perform
 initialization for the CPUs that are already online, often do it as shown
@@ -52,7 +44,8 @@ registration is:
 	cpu_notifier_register_done();
 
 
-Fix the bnx2i code in scsi by using this latter form of callback registration.
+Fix the bnx2fc code in scsi by using this latter form of callback
+registration.
 
 Cc: Eddie Wai <eddie.wai@broadcom.com>
 Cc: "James E.J. Bottomley" <JBottomley@parallels.com>
@@ -61,44 +54,47 @@ Cc: linux-scsi@vger.kernel.org
 Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
 ---
 
- drivers/scsi/bnx2i/bnx2i_init.c |   12 ++++++++++--
+ drivers/scsi/bnx2fc/bnx2fc_fcoe.c |   12 ++++++++++--
  1 file changed, 10 insertions(+), 2 deletions(-)
 
-diff --git a/drivers/scsi/bnx2i/bnx2i_init.c b/drivers/scsi/bnx2i/bnx2i_init.c
-index 34c294b..80c03b4 100644
---- a/drivers/scsi/bnx2i/bnx2i_init.c
-+++ b/drivers/scsi/bnx2i/bnx2i_init.c
-@@ -537,11 +537,15 @@ static int __init bnx2i_mod_init(void)
- 		p->iothread = NULL;
+diff --git a/drivers/scsi/bnx2fc/bnx2fc_fcoe.c b/drivers/scsi/bnx2fc/bnx2fc_fcoe.c
+index 9b94850..c4ec235 100644
+--- a/drivers/scsi/bnx2fc/bnx2fc_fcoe.c
++++ b/drivers/scsi/bnx2fc/bnx2fc_fcoe.c
+@@ -2586,12 +2586,16 @@ static int __init bnx2fc_mod_init(void)
+ 		spin_lock_init(&p->fp_work_lock);
  	}
  
 +	cpu_notifier_register_begin();
 +
- 	for_each_online_cpu(cpu)
- 		bnx2i_percpu_thread_create(cpu);
+ 	for_each_online_cpu(cpu) {
+ 		bnx2fc_percpu_thread_create(cpu);
+ 	}
  
  	/* Initialize per CPU interrupt thread */
--	register_hotcpu_notifier(&bnx2i_cpu_notifier);
-+	__register_hotcpu_notifier(&bnx2i_cpu_notifier);
+-	register_hotcpu_notifier(&bnx2fc_cpu_notifier);
++	__register_hotcpu_notifier(&bnx2fc_cpu_notifier);
 +
 +	cpu_notifier_register_done();
  
- 	return 0;
+ 	cnic_register_driver(CNIC_ULP_FCOE, &bnx2fc_cnic_cb);
  
-@@ -581,11 +585,15 @@ static void __exit bnx2i_mod_exit(void)
- 	}
- 	mutex_unlock(&bnx2i_dev_lock);
+@@ -2656,13 +2660,17 @@ static void __exit bnx2fc_mod_exit(void)
+ 	if (l2_thread)
+ 		kthread_stop(l2_thread);
  
--	unregister_hotcpu_notifier(&bnx2i_cpu_notifier);
+-	unregister_hotcpu_notifier(&bnx2fc_cpu_notifier);
 +	cpu_notifier_register_begin();
  
- 	for_each_online_cpu(cpu)
- 		bnx2i_percpu_thread_destroy(cpu);
+ 	/* Destroy per cpu threads */
+ 	for_each_online_cpu(cpu) {
+ 		bnx2fc_percpu_thread_destroy(cpu);
+ 	}
  
-+	__unregister_hotcpu_notifier(&bnx2i_cpu_notifier);
++	__unregister_hotcpu_notifier(&bnx2fc_cpu_notifier);
 +
 +	cpu_notifier_register_done();
 +
- 	iscsi_unregister_transport(&bnx2i_iscsi_transport);
- 	cnic_unregister_driver(CNIC_ULP_ISCSI);
- }
+ 	destroy_workqueue(bnx2fc_wq);
+ 	/*
+ 	 * detach from scsi transport
