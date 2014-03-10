@@ -1,58 +1,104 @@
 From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH v3 06/52] ia64, palinfo: Fix CPU hotplug callback registration
-Date: Tue, 11 Mar 2014 02:04:52 +0530
-Message-ID: <20140310203451.10746.45775.stgit@srivatsabhat.in.ibm.com>
+Subject: [PATCH v3 33/52] scsi, bnx2i: Fix CPU hotplug callback registration
+Date: Tue, 11 Mar 2014 02:09:39 +0530
+Message-ID: <20140310203938.10746.18579.stgit@srivatsabhat.in.ibm.com>
 References: <20140310203312.10746.310.stgit@srivatsabhat.in.ibm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from e28smtp06.in.ibm.com ([122.248.162.6]:55669 "EHLO
+	e28smtp06.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755110AbaCJUjv (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 10 Mar 2014 16:39:51 -0400
+Received: from /spool/local
+	by e28smtp06.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
+	Tue, 11 Mar 2014 02:09:49 +0530
 In-Reply-To: <20140310203312.10746.310.stgit@srivatsabhat.in.ibm.com>
-List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
-List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
-List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
-List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
-List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
-Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
-Sender: "Linuxppc-dev"
- <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: paulus@samba.org, oleg@redhat.com, rjw@rjwysocki.net, rusty@rustcorp.com.au, peterz@infradead.org, tglx@linutronix.de, akpm@linux-foundation.org
-Cc: linux-arch@vger.kernel.org, ego@linux.vnet.ibm.com, walken@google.com, linux@arm.linux.org.uk, linux-pm@vger.kernel.org, linux-kernel@vger.kernel.org, Fenghua Yu <fenghua.yu@intel.com>, linuxppc-dev@ozlabs.org, Tony Luck <tony.luck@intel.com>, "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, tj@kernel.org, linux-ia64@vger.kernel.org, paulmck@linux.vnet.ibm.com, Ingo Molnar <mingo@kernel.org>
-List-Id: linux-arch.vger.kernel.org
+Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-pm@vger.kernel.org, linuxppc-dev@ozlabs.org, srivatsa.bhat@linux.vnet.ibm.com, Eddie Wai <eddie.wai@broadcom.com>, "James E.J. Bottomley" <JBottomley@parallels.com>, Ingo Molnar <mingo@kernel.org>, linux-scsi@vger.kernel.org"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
 
-U3Vic3lzdGVtcyB0aGF0IHdhbnQgdG8gcmVnaXN0ZXIgQ1BVIGhvdHBsdWcgY2FsbGJhY2tzLCBh
-cyB3ZWxsIGFzIHBlcmZvcm0KaW5pdGlhbGl6YXRpb24gZm9yIHRoZSBDUFVzIHRoYXQgYXJlIGFs
-cmVhZHkgb25saW5lLCBvZnRlbiBkbyBpdCBhcyBzaG93bgpiZWxvdzoKCglnZXRfb25saW5lX2Nw
-dXMoKTsKCglmb3JfZWFjaF9vbmxpbmVfY3B1KGNwdSkKCQlpbml0X2NwdShjcHUpOwoKCXJlZ2lz
-dGVyX2NwdV9ub3RpZmllcigmZm9vYmFyX2NwdV9ub3RpZmllcik7CgoJcHV0X29ubGluZV9jcHVz
-KCk7CgpUaGlzIGlzIHdyb25nLCBzaW5jZSBpdCBpcyBwcm9uZSB0byBBQkJBIGRlYWRsb2NrcyBp
-bnZvbHZpbmcgdGhlCmNwdV9hZGRfcmVtb3ZlX2xvY2sgYW5kIHRoZSBjcHVfaG90cGx1Zy5sb2Nr
-ICh3aGVuIHJ1bm5pbmcgY29uY3VycmVudGx5CndpdGggQ1BVIGhvdHBsdWcgb3BlcmF0aW9ucyku
-CgpJbnN0ZWFkLCB0aGUgY29ycmVjdCBhbmQgcmFjZS1mcmVlIHdheSBvZiBwZXJmb3JtaW5nIHRo
-ZSBjYWxsYmFjawpyZWdpc3RyYXRpb24gaXM6CgoJY3B1X25vdGlmaWVyX3JlZ2lzdGVyX2JlZ2lu
-KCk7CgoJZm9yX2VhY2hfb25saW5lX2NwdShjcHUpCgkJaW5pdF9jcHUoY3B1KTsKCgkvKiBOb3Rl
-IHRoZSB1c2Ugb2YgdGhlIGRvdWJsZSB1bmRlcnNjb3JlZCB2ZXJzaW9uIG9mIHRoZSBBUEkgKi8K
-CV9fcmVnaXN0ZXJfY3B1X25vdGlmaWVyKCZmb29iYXJfY3B1X25vdGlmaWVyKTsKCgljcHVfbm90
-aWZpZXJfcmVnaXN0ZXJfZG9uZSgpOwoKCkZpeCB0aGUgcGFsaW5mbyBjb2RlIGluIGlhNjQgYnkg
-dXNpbmcgdGhpcyBsYXR0ZXIgZm9ybSBvZiBjYWxsYmFjawpyZWdpc3RyYXRpb24uCgpDYzogVG9u
-eSBMdWNrIDx0b255Lmx1Y2tAaW50ZWwuY29tPgpDYzogRmVuZ2h1YSBZdSA8ZmVuZ2h1YS55dUBp
-bnRlbC5jb20+CkNjOiBJbmdvIE1vbG5hciA8bWluZ29Aa2VybmVsLm9yZz4KQ2M6IGxpbnV4LWlh
-NjRAdmdlci5rZXJuZWwub3JnClNpZ25lZC1vZmYtYnk6IFNyaXZhdHNhIFMuIEJoYXQgPHNyaXZh
-dHNhLmJoYXRAbGludXgudm5ldC5pYm0uY29tPgotLS0KCiBhcmNoL2lhNjQva2VybmVsL3BhbGlu
-Zm8uYyB8ICAgIDYgKysrKystCiAxIGZpbGUgY2hhbmdlZCwgNSBpbnNlcnRpb25zKCspLCAxIGRl
-bGV0aW9uKC0pCgpkaWZmIC0tZ2l0IGEvYXJjaC9pYTY0L2tlcm5lbC9wYWxpbmZvLmMgYi9hcmNo
-L2lhNjQva2VybmVsL3BhbGluZm8uYwppbmRleCBhYjMzMzI4Li5jMzljM2NkIDEwMDY0NAotLS0g
-YS9hcmNoL2lhNjQva2VybmVsL3BhbGluZm8uYworKysgYi9hcmNoL2lhNjQva2VybmVsL3BhbGlu
-Zm8uYwpAQCAtOTk2LDEzICs5OTYsMTcgQEAgcGFsaW5mb19pbml0KHZvaWQpCiAJaWYgKCFwYWxp
-bmZvX2RpcikKIAkJcmV0dXJuIC1FTk9NRU07CiAKKwljcHVfbm90aWZpZXJfcmVnaXN0ZXJfYmVn
-aW4oKTsKKwogCS8qIENyZWF0ZSBwYWxpbmZvIGRpcnMgaW4gL3Byb2MgZm9yIGFsbCBvbmxpbmUg
-Y3B1cyAqLwogCWZvcl9lYWNoX29ubGluZV9jcHUoaSkgewogCQljcmVhdGVfcGFsaW5mb19wcm9j
-X2VudHJpZXMoaSk7CiAJfQogCiAJLyogUmVnaXN0ZXIgZm9yIGZ1dHVyZSBkZWxpdmVyeSB2aWEg
-bm90aWZ5IHJlZ2lzdHJhdGlvbiAqLwotCXJlZ2lzdGVyX2hvdGNwdV9ub3RpZmllcigmcGFsaW5m
-b19jcHVfbm90aWZpZXIpOworCV9fcmVnaXN0ZXJfaG90Y3B1X25vdGlmaWVyKCZwYWxpbmZvX2Nw
-dV9ub3RpZmllcik7CisKKwljcHVfbm90aWZpZXJfcmVnaXN0ZXJfZG9uZSgpOwogCiAJcmV0dXJu
-IDA7CiB9CgpfX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fXwpM
-aW51eHBwYy1kZXYgbWFpbGluZyBsaXN0CkxpbnV4cHBjLWRldkBsaXN0cy5vemxhYnMub3JnCmh0
-dHBzOi8vbGlzdHMub3psYWJzLm9yZy9saXN0aW5mby9saW51eHBwYy1kZXY=
+Subsystems that want to register CPU hotplug callbacks, as well as perform
+initialization for the CPUs that are already online, often do it as shown
+below:
+
+	get_online_cpus();
+
+	for_each_online_cpu(cpu)
+		init_cpu(cpu);
+
+	register_cpu_notifier(&foobar_cpu_notifier);
+
+	put_online_cpus();
+
+This is wrong, since it is prone to ABBA deadlocks involving the
+cpu_add_remove_lock and the cpu_hotplug.lock (when running concurrently
+with CPU hotplug operations).
+
+Instead, the correct and race-free way of performing the callback
+registration is:
+
+	cpu_notifier_register_begin();
+
+	for_each_online_cpu(cpu)
+		init_cpu(cpu);
+
+	/* Note the use of the double underscored version of the API */
+	__register_cpu_notifier(&foobar_cpu_notifier);
+
+	cpu_notifier_register_done();
+
+
+Fix the bnx2i code in scsi by using this latter form of callback registration.
+
+Cc: Eddie Wai <eddie.wai@broadcom.com>
+Cc: "James E.J. Bottomley" <JBottomley@parallels.com>
+Cc: Ingo Molnar <mingo@kernel.org>
+Cc: linux-scsi@vger.kernel.org
+Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
+---
+
+ drivers/scsi/bnx2i/bnx2i_init.c |   12 ++++++++++--
+ 1 file changed, 10 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/scsi/bnx2i/bnx2i_init.c b/drivers/scsi/bnx2i/bnx2i_init.c
+index 34c294b..80c03b4 100644
+--- a/drivers/scsi/bnx2i/bnx2i_init.c
++++ b/drivers/scsi/bnx2i/bnx2i_init.c
+@@ -537,11 +537,15 @@ static int __init bnx2i_mod_init(void)
+ 		p->iothread = NULL;
+ 	}
+ 
++	cpu_notifier_register_begin();
++
+ 	for_each_online_cpu(cpu)
+ 		bnx2i_percpu_thread_create(cpu);
+ 
+ 	/* Initialize per CPU interrupt thread */
+-	register_hotcpu_notifier(&bnx2i_cpu_notifier);
++	__register_hotcpu_notifier(&bnx2i_cpu_notifier);
++
++	cpu_notifier_register_done();
+ 
+ 	return 0;
+ 
+@@ -581,11 +585,15 @@ static void __exit bnx2i_mod_exit(void)
+ 	}
+ 	mutex_unlock(&bnx2i_dev_lock);
+ 
+-	unregister_hotcpu_notifier(&bnx2i_cpu_notifier);
++	cpu_notifier_register_begin();
+ 
+ 	for_each_online_cpu(cpu)
+ 		bnx2i_percpu_thread_destroy(cpu);
+ 
++	__unregister_hotcpu_notifier(&bnx2i_cpu_notifier);
++
++	cpu_notifier_register_done();
++
+ 	iscsi_unregister_transport(&bnx2i_iscsi_transport);
+ 	cnic_unregister_driver(CNIC_ULP_ISCSI);
+ }
