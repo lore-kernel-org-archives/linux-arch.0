@@ -1,16 +1,16 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e28smtp05.in.ibm.com ([122.248.162.5]:48729 "EHLO
-	e28smtp05.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753831AbaCJUhW (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 10 Mar 2014 16:37:22 -0400
+Received: from e23smtp07.au.ibm.com ([202.81.31.140]:58484 "EHLO
+	e23smtp07.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752845AbaCJUgg (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 10 Mar 2014 16:36:36 -0400
 Received: from /spool/local
-	by e28smtp05.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	by e23smtp07.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
 	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
-	Tue, 11 Mar 2014 02:07:20 +0530
+	Tue, 11 Mar 2014 06:36:34 +1000
 From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH v3 15/52] x86, msr: Fix CPU hotplug callback registration
-Date: Tue, 11 Mar 2014 02:06:37 +0530
-Message-ID: <20140310203637.10746.41491.stgit@srivatsabhat.in.ibm.com>
+Subject: [PATCH v3 13/52] sparc, sysfs: Fix CPU hotplug callback registration
+Date: Tue, 11 Mar 2014 02:06:09 +0530
+Message-ID: <20140310203609.10746.87407.stgit@srivatsabhat.in.ibm.com>
 In-Reply-To: <20140310203312.10746.310.stgit@srivatsabhat.in.ibm.com>
 References: <20140310203312.10746.310.stgit@srivatsabhat.in.ibm.com>
 MIME-Version: 1.0
@@ -19,8 +19,8 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: paulus@samba.org, oleg@redhat.com, mingo@kernel.org, rjw@rjwysocki.net, rusty@rustcorp.com.au, peterz@infradead.org, tglx@linutronix.de, akpm@linux-foundation.org
-Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-pm@vger.kernel.org, linuxppc-dev@ozlabs.org, srivatsa.bhat@linux.vnet.ibm.com, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Message-ID: <20140310203637.9fTo6fh4pBoJ4RJugGGlqgtCyBgn2f4Vt5Cu4bwqsgc@z>
+Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-pm@vger.kernel.org, linuxppc-dev@ozlabs.org, srivatsa.bhat@linux.vnet.ibm.com, sparclinux@vger.kernel.org, "David S. Miller" <davem@davemloft.net>"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Message-ID: <20140310203609.DbKaXY5lcn4lloI7a74_7OpTSmrMIj0v-OXq8KHtA-w@z>
 
 Subsystems that want to register CPU hotplug callbacks, as well as perform
 initialization for the CPUs that are already online, often do it as shown
@@ -53,66 +53,40 @@ registration is:
 	cpu_notifier_register_done();
 
 
-Fix the msr code in x86 by using this latter form of callback registration.
+Fix the sysfs code in sparc by using this latter form of callback
+registration.
 
-Cc: "H. Peter Anvin" <hpa@zytor.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>
 Cc: Ingo Molnar <mingo@kernel.org>
-Cc: x86@kernel.org
+Cc: sparclinux@vger.kernel.org
+Acked-by: David S. Miller <davem@davemloft.net>
 Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
 ---
 
- arch/x86/kernel/msr.c |   16 +++++++++-------
- 1 file changed, 9 insertions(+), 7 deletions(-)
+ arch/sparc/kernel/sysfs.c |    6 +++++-
+ 1 file changed, 5 insertions(+), 1 deletion(-)
 
-diff --git a/arch/x86/kernel/msr.c b/arch/x86/kernel/msr.c
-index 05266b5..c9603ac 100644
---- a/arch/x86/kernel/msr.c
-+++ b/arch/x86/kernel/msr.c
-@@ -259,14 +259,15 @@ static int __init msr_init(void)
- 		goto out_chrdev;
- 	}
- 	msr_class->devnode = msr_devnode;
--	get_online_cpus();
-+
-+	cpu_notifier_register_begin();
- 	for_each_online_cpu(i) {
- 		err = msr_device_create(i);
- 		if (err != 0)
- 			goto out_class;
- 	}
--	register_hotcpu_notifier(&msr_class_cpu_notifier);
--	put_online_cpus();
-+	__register_hotcpu_notifier(&msr_class_cpu_notifier);
-+	cpu_notifier_register_done();
+diff --git a/arch/sparc/kernel/sysfs.c b/arch/sparc/kernel/sysfs.c
+index c21c673..a364000 100644
+--- a/arch/sparc/kernel/sysfs.c
++++ b/arch/sparc/kernel/sysfs.c
+@@ -300,7 +300,7 @@ static int __init topology_init(void)
  
- 	err = 0;
- 	goto out;
-@@ -275,7 +276,7 @@ out_class:
- 	i = 0;
- 	for_each_online_cpu(i)
- 		msr_device_destroy(i);
--	put_online_cpus();
-+	cpu_notifier_register_done();
- 	class_destroy(msr_class);
- out_chrdev:
- 	__unregister_chrdev(MSR_MAJOR, 0, NR_CPUS, "cpu/msr");
-@@ -286,13 +287,14 @@ out:
- static void __exit msr_exit(void)
- {
- 	int cpu = 0;
--	get_online_cpus();
-+
+ 	check_mmu_stats();
+ 
+-	register_cpu_notifier(&sysfs_cpu_nb);
 +	cpu_notifier_register_begin();
- 	for_each_online_cpu(cpu)
- 		msr_device_destroy(cpu);
- 	class_destroy(msr_class);
- 	__unregister_chrdev(MSR_MAJOR, 0, NR_CPUS, "cpu/msr");
--	unregister_hotcpu_notifier(&msr_class_cpu_notifier);
--	put_online_cpus();
-+	__unregister_hotcpu_notifier(&msr_class_cpu_notifier);
+ 
+ 	for_each_possible_cpu(cpu) {
+ 		struct cpu *c = &per_cpu(cpu_devices, cpu);
+@@ -310,6 +310,10 @@ static int __init topology_init(void)
+ 			register_cpu_online(cpu);
+ 	}
+ 
++	__register_cpu_notifier(&sysfs_cpu_nb);
++
 +	cpu_notifier_register_done();
++
+ 	return 0;
  }
  
- module_init(msr_init);
 
