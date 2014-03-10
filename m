@@ -1,8 +1,8 @@
 From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH v3 38/52] drivers/base/topology.c: Fix CPU hotplug callback
- registration
-Date: Tue, 11 Mar 2014 02:10:12 +0530
-Message-ID: <20140310204012.10746.6803.stgit@srivatsabhat.in.ibm.com>
+Subject: [PATCH v3 41/52] oprofile,
+ nmi-timer: Fix CPU hotplug callback registration
+Date: Tue, 11 Mar 2014 02:10:36 +0530
+Message-ID: <20140310204036.10746.10550.stgit@srivatsabhat.in.ibm.com>
 References: <20140310203312.10746.310.stgit@srivatsabhat.in.ibm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
@@ -11,7 +11,7 @@ Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20140310203312.10746.310.stgit@srivatsabhat.in.ibm.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: paulus@samba.org, oleg@redhat.com, rjw@rjwysocki.net, rusty@rustcorp.com.au, peterz@infradead.org, tglx@linutronix.de, akpm@linux-foundation.org
-Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-pm@vger.kernel.org, linuxppc-dev@ozlabs.org, srivatsa.bhat@linux.vnet.ibm.com, Ingo Molnar <mingo@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-pm@vger.kernel.org, linuxppc-dev@ozlabs.org, srivatsa.bhat@linux.vnet.ibm.com, Robert Richter <rric@kernel.org>, Ingo Molnar <mingo@kernel.org>"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
 List-Id: linux-arch.vger.kernel.org
 
 Subsystems that want to register CPU hotplug callbacks, as well as perform
@@ -45,42 +45,69 @@ registration is:
 	cpu_notifier_register_done();
 
 
-Fix the topology code by using this latter form of callback registration.
+Fix the nmi-timer code in oprofile by using this latter form of callback
+registration.
 
+Cc: Robert Richter <rric@kernel.org>
 Cc: Ingo Molnar <mingo@kernel.org>
-Acked-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
 Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
 ---
 
- drivers/base/topology.c |   12 ++++++++----
- 1 file changed, 8 insertions(+), 4 deletions(-)
+ drivers/oprofile/nmi_timer_int.c |   23 +++++++++++++----------
+ 1 file changed, 13 insertions(+), 10 deletions(-)
 
-diff --git a/drivers/base/topology.c b/drivers/base/topology.c
-index 94ffee3..a738d10 100644
---- a/drivers/base/topology.c
-+++ b/drivers/base/topology.c
-@@ -161,16 +161,20 @@ static int topology_cpu_callback(struct notifier_block *nfb,
- static int topology_sysfs_init(void)
- {
+diff --git a/drivers/oprofile/nmi_timer_int.c b/drivers/oprofile/nmi_timer_int.c
+index 76f1c93..9559829 100644
+--- a/drivers/oprofile/nmi_timer_int.c
++++ b/drivers/oprofile/nmi_timer_int.c
+@@ -108,8 +108,8 @@ static void nmi_timer_shutdown(void)
+ 	struct perf_event *event;
  	int cpu;
--	int rc;
-+	int rc = 0;
-+
+ 
+-	get_online_cpus();
+-	unregister_cpu_notifier(&nmi_timer_cpu_nb);
 +	cpu_notifier_register_begin();
- 
- 	for_each_online_cpu(cpu) {
- 		rc = topology_add_dev(cpu);
- 		if (rc)
--			return rc;
-+			goto out;
++	__unregister_cpu_notifier(&nmi_timer_cpu_nb);
+ 	for_each_possible_cpu(cpu) {
+ 		event = per_cpu(nmi_timer_events, cpu);
+ 		if (!event)
+@@ -119,7 +119,7 @@ static void nmi_timer_shutdown(void)
+ 		perf_event_release_kernel(event);
  	}
--	hotcpu_notifier(topology_cpu_callback, 0);
-+	__hotcpu_notifier(topology_cpu_callback, 0);
  
--	return 0;
-+out:
+-	put_online_cpus();
 +	cpu_notifier_register_done();
-+	return rc;
  }
  
- device_initcall(topology_sysfs_init);
+ static int nmi_timer_setup(void)
+@@ -132,20 +132,23 @@ static int nmi_timer_setup(void)
+ 	do_div(period, HZ);
+ 	nmi_timer_attr.sample_period = period;
+ 
+-	get_online_cpus();
+-	err = register_cpu_notifier(&nmi_timer_cpu_nb);
++	cpu_notifier_register_begin();
++	err = __register_cpu_notifier(&nmi_timer_cpu_nb);
+ 	if (err)
+ 		goto out;
++
+ 	/* can't attach events to offline cpus: */
+ 	for_each_online_cpu(cpu) {
+ 		err = nmi_timer_start_cpu(cpu);
+-		if (err)
+-			break;
++		if (err) {
++			cpu_notifier_register_done();
++			nmi_timer_shutdown();
++			return err;
++		}
+ 	}
+-	if (err)
+-		nmi_timer_shutdown();
++
+ out:
+-	put_online_cpus();
++	cpu_notifier_register_done();
+ 	return err;
+ }
+ 
