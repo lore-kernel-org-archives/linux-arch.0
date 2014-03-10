@@ -1,8 +1,8 @@
 From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH v3 25/52] x86, amd,
- uncore: Fix CPU hotplug callback registration
-Date: Tue, 11 Mar 2014 02:08:29 +0530
-Message-ID: <20140310203829.10746.20437.stgit@srivatsabhat.in.ibm.com>
+Subject: [PATCH v3 31/52] arm64,
+ debug-monitors: Fix CPU hotplug callback registration
+Date: Tue, 11 Mar 2014 02:09:20 +0530
+Message-ID: <20140310203919.10746.1234.stgit@srivatsabhat.in.ibm.com>
 References: <20140310203312.10746.310.stgit@srivatsabhat.in.ibm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
@@ -10,8 +10,8 @@ Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20140310203312.10746.310.stgit@srivatsabhat.in.ibm.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: oleg@redhat.com, rjw@rjwysocki.net, rusty@rustcorp.com.au, akpm@linux-foundation.org
-Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-pm@vger.kernel.org, linuxppc-dev@ozlabs.org, srivatsa.bhat@linux.vnet.ibm.com, Peter Zijlstra <peterz@infradead.org>, Paul Mackerras <paulus@samba.org>, Ingo Molnar <mingo@kernel.org>, Arnaldo Carvalho de Melo <acme@ghostprotocols.net>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+To: paulus@samba.org, oleg@redhat.com, rjw@rjwysocki.net, rusty@rustcorp.com.au, peterz@infradead.org, tglx@linutronix.de, akpm@linux-foundation.org
+Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-pm@vger.kernel.org, linuxppc-dev@ozlabs.org, srivatsa.bhat@linux.vnet.ibm.com, Catalin Marinas <catalin.marinas@arm.com>, Russell King <rmk+kernel@arm.linux.org.uk>, Ingo Molnar <mingo@kernel.org>, linux-arm-kernel@lists.infradead.org, Will Deacon <will.deacon@arm.com>"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
 List-Id: linux-arch.vger.kernel.org
 
 Subsystems that want to register CPU hotplug callbacks, as well as perform
@@ -45,43 +45,39 @@ registration is:
 	cpu_notifier_register_done();
 
 
-Fix the amd-uncore code in x86 by using this latter form of callback
+Fix the debug-monitors code in arm64 by using this latter form of callback
 registration.
 
-Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Paul Mackerras <paulus@samba.org>
+Cc: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Russell King <rmk+kernel@arm.linux.org.uk>
 Cc: Ingo Molnar <mingo@kernel.org>
-Cc: Arnaldo Carvalho de Melo <acme@ghostprotocols.net>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: "H. Peter Anvin" <hpa@zytor.com>
-Cc: x86@kernel.org
+Cc: linux-arm-kernel@lists.infradead.org
+Acked-by: Will Deacon <will.deacon@arm.com>
 Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
 ---
 
- arch/x86/kernel/cpu/perf_event_amd_uncore.c |    7 ++++---
- 1 file changed, 4 insertions(+), 3 deletions(-)
+ arch/arm64/kernel/debug-monitors.c |    6 +++++-
+ 1 file changed, 5 insertions(+), 1 deletion(-)
 
-diff --git a/arch/x86/kernel/cpu/perf_event_amd_uncore.c b/arch/x86/kernel/cpu/perf_event_amd_uncore.c
-index 754291a..3bbdf4c 100644
---- a/arch/x86/kernel/cpu/perf_event_amd_uncore.c
-+++ b/arch/x86/kernel/cpu/perf_event_amd_uncore.c
-@@ -531,15 +531,16 @@ static int __init amd_uncore_init(void)
- 	if (ret)
- 		return -ENODEV;
+diff --git a/arch/arm64/kernel/debug-monitors.c b/arch/arm64/kernel/debug-monitors.c
+index 636ba8b..c985531 100644
+--- a/arch/arm64/kernel/debug-monitors.c
++++ b/arch/arm64/kernel/debug-monitors.c
+@@ -155,12 +155,16 @@ static struct notifier_block os_lock_nb = {
  
--	get_online_cpus();
+ static int debug_monitors_init(void)
+ {
 +	cpu_notifier_register_begin();
 +
- 	/* init cpus already online before registering for hotplug notifier */
- 	for_each_online_cpu(cpu) {
- 		amd_uncore_cpu_up_prepare(cpu);
- 		smp_call_function_single(cpu, init_cpu_already_online, NULL, 1);
- 	}
+ 	/* Clear the OS lock. */
+ 	smp_call_function(clear_os_lock, NULL, 1);
+ 	clear_os_lock(NULL);
  
--	register_cpu_notifier(&amd_uncore_cpu_notifier_block);
--	put_online_cpus();
-+	__register_cpu_notifier(&amd_uncore_cpu_notifier_block);
+ 	/* Register hotplug handler. */
+-	register_cpu_notifier(&os_lock_nb);
++	__register_cpu_notifier(&os_lock_nb);
++
 +	cpu_notifier_register_done();
- 
  	return 0;
  }
+ postcore_initcall(debug_monitors_init);
