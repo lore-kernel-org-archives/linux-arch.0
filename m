@@ -1,17 +1,17 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e28smtp07.in.ibm.com ([122.248.162.7]:41388 "EHLO
-	e28smtp07.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754527AbaCJUew (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 10 Mar 2014 16:34:52 -0400
+Received: from e23smtp05.au.ibm.com ([202.81.31.147]:53621 "EHLO
+	e23smtp05.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754450AbaCJUej (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 10 Mar 2014 16:34:39 -0400
 Received: from /spool/local
-	by e28smtp07.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	by e23smtp05.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
 	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
-	Tue, 11 Mar 2014 02:04:50 +0530
+	Tue, 11 Mar 2014 06:34:36 +1000
 From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH v3 04/52] CPU hotplug,
- perf: Fix CPU hotplug callback registration
-Date: Tue, 11 Mar 2014 02:04:39 +0530
-Message-ID: <20140310203438.10746.24505.stgit@srivatsabhat.in.ibm.com>
+Subject: [PATCH v3 02/52] CPU hotplug: Provide lockless versions of callback
+ registration functions
+Date: Tue, 11 Mar 2014 02:04:14 +0530
+Message-ID: <20140310203413.10746.88124.stgit@srivatsabhat.in.ibm.com>
 In-Reply-To: <20140310203312.10746.310.stgit@srivatsabhat.in.ibm.com>
 References: <20140310203312.10746.310.stgit@srivatsabhat.in.ibm.com>
 MIME-Version: 1.0
@@ -20,12 +20,12 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: paulus@samba.org, oleg@redhat.com, mingo@kernel.org, rjw@rjwysocki.net, rusty@rustcorp.com.au, peterz@infradead.org, tglx@linutronix.de, akpm@linux-foundation.org
-Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-pm@vger.kernel.org, linuxppc-dev@ozlabs.org, srivatsa.bhat@linux.vnet.ibm.com, Arnaldo Carvalho de Melo <acme@ghostprotocols.net>"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Message-ID: <20140310203439.Ra9V8oTqa3i9k5tq9LESf6YKR9x0PJyxk9HfMC8vh5k@z>
+Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-pm@vger.kernel.org, linuxppc-dev@ozlabs.org, srivatsa.bhat@linux.vnet.ibm.com, Toshi Kani <toshi.kani@hp.com>"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Message-ID: <20140310203414.31qsrciI-r8bd6ku0FKMn-JELHmwwUHq98oTyXBJFzA@z>
 
-Subsystems that want to register CPU hotplug callbacks, as well as perform
-initialization for the CPUs that are already online, often do it as shown
-below:
+The following method of CPU hotplug callback registration is not safe
+due to the possibility of an ABBA deadlock involving the cpu_add_remove_lock
+and the cpu_hotplug.lock.
 
 	get_online_cpus();
 
@@ -36,76 +36,274 @@ below:
 
 	put_online_cpus();
 
-This is wrong, since it is prone to ABBA deadlocks involving the
-cpu_add_remove_lock and the cpu_hotplug.lock (when running concurrently
-with CPU hotplug operations).
+The deadlock is shown below:
 
-Instead, the correct and race-free way of performing the callback
-registration is:
+          CPU 0                                         CPU 1
+          -----                                         -----
 
-	cpu_notifier_register_begin();
+   Acquire cpu_hotplug.lock
+   [via get_online_cpus()]
+
+                                              CPU online/offline operation
+                                              takes cpu_add_remove_lock
+                                              [via cpu_maps_update_begin()]
+
+
+   Try to acquire
+   cpu_add_remove_lock
+   [via register_cpu_notifier()]
+
+
+                                              CPU online/offline operation
+                                              tries to acquire cpu_hotplug.lock
+                                              [via cpu_hotplug_begin()]
+
+
+                            *** DEADLOCK! ***
+
+The problem here is that callback registration takes the locks in one order
+whereas the CPU hotplug operations take the same locks in the opposite order.
+To avoid this issue and to provide a race-free method to register CPU hotplug
+callbacks (along with initialization of already online CPUs), introduce new
+variants of the callback registration APIs that simply register the callbacks
+without holding the cpu_add_remove_lock during the registration. That way,
+we can avoid the ABBA scenario. However, we will need to hold the
+cpu_add_remove_lock throughout the entire critical section, to protect updates
+to the callback/notifier chain.
+
+This can be achieved by writing the callback registration code as follows:
+
+	cpu_maps_update_begin(); [ or cpu_notifier_register_begin(); see below ]
 
 	for_each_online_cpu(cpu)
 		init_cpu(cpu);
 
-	/* Note the use of the double underscored version of the API */
+	/* This doesn't take the cpu_add_remove_lock */
 	__register_cpu_notifier(&foobar_cpu_notifier);
 
-	cpu_notifier_register_done();
+	cpu_maps_update_done();  [ or cpu_notifier_register_done(); see below ]
 
+Note that we can't use get_online_cpus() here instead of cpu_maps_update_begin()
+because the cpu_hotplug.lock is dropped during the invocation of CPU_POST_DEAD
+notifiers, and hence get_online_cpus() cannot provide the necessary
+synchronization to protect the callback/notifier chains against concurrent
+reads and writes. On the other hand, since the cpu_add_remove_lock protects
+the entire hotplug operation (including CPU_POST_DEAD), we can use
+cpu_maps_update_begin/done() to guarantee proper synchronization.
 
-Fix the perf subsystem's hotplug notifier by using this latter form of
-callback registration.
+Also, since cpu_maps_update_begin/done() is like a super-set of
+get/put_online_cpus(), the former naturally protects the critical sections
+from concurrent hotplug operations.
 
-Also provide a bare-bones version of perf_cpu_notifier() that doesn't
-invoke the notifiers for the already online CPUs. This would be useful
-for subsystems that need to perform a different set of initialization
-for the already online CPUs, or don't need the initialization altogether.
+Since the names cpu_maps_update_begin/done() don't make much sense in CPU
+hotplug callback registration scenarios, we'll introduce new APIs named
+cpu_notifier_register_begin/done() and map them to cpu_maps_update_begin/done().
 
+In summary, introduce the lockless variants of un/register_cpu_notifier() and
+also export the cpu_notifier_register_begin/done() APIs for use by modules.
+This way, we provide a race-free way to register hotplug callbacks as well as
+perform initialization for the CPUs that are already online.
+
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: "Rafael J. Wysocki" <rjw@rjwysocki.net>
+Cc: Andrew Morton <akpm@linux-foundation.org>
 Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Paul Mackerras <paulus@samba.org>
 Cc: Ingo Molnar <mingo@kernel.org>
-Cc: Arnaldo Carvalho de Melo <acme@ghostprotocols.net>
+Acked-by: Oleg Nesterov <oleg@redhat.com>
+Acked-by: Toshi Kani <toshi.kani@hp.com>
+Reviewed-by: Gautham R. Shenoy <ego@linux.vnet.ibm.com>
 Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
 ---
 
- include/linux/perf_event.h |   16 +++++++++++++++-
- 1 file changed, 15 insertions(+), 1 deletion(-)
+ include/linux/cpu.h |   47 +++++++++++++++++++++++++++++++++++++++++++++++
+ kernel/cpu.c        |   21 +++++++++++++++++++--
+ 2 files changed, 66 insertions(+), 2 deletions(-)
 
-diff --git a/include/linux/perf_event.h b/include/linux/perf_event.h
-index e56b07f..3356abc 100644
---- a/include/linux/perf_event.h
-+++ b/include/linux/perf_event.h
-@@ -835,6 +835,8 @@ do {									\
- 		{ .notifier_call = fn, .priority = CPU_PRI_PERF };	\
- 	unsigned long cpu = smp_processor_id();				\
- 	unsigned long flags;						\
-+									\
-+	cpu_notifier_register_begin();					\
- 	fn(&fn##_nb, (unsigned long)CPU_UP_PREPARE,			\
- 		(void *)(unsigned long)cpu);				\
- 	local_irq_save(flags);						\
-@@ -843,9 +845,21 @@ do {									\
- 	local_irq_restore(flags);					\
- 	fn(&fn##_nb, (unsigned long)CPU_ONLINE,				\
- 		(void *)(unsigned long)cpu);				\
--	register_cpu_notifier(&fn##_nb);				\
-+	__register_cpu_notifier(&fn##_nb);				\
-+	cpu_notifier_register_done();					\
- } while (0)
+diff --git a/include/linux/cpu.h b/include/linux/cpu.h
+index 03e235ad..488d6eb 100644
+--- a/include/linux/cpu.h
++++ b/include/linux/cpu.h
+@@ -122,26 +122,46 @@ enum {
+ 		{ .notifier_call = fn, .priority = pri };	\
+ 	register_cpu_notifier(&fn##_nb);			\
+ }
++
++#define __cpu_notifier(fn, pri) {				\
++	static struct notifier_block fn##_nb =			\
++		{ .notifier_call = fn, .priority = pri };	\
++	__register_cpu_notifier(&fn##_nb);			\
++}
+ #else /* #if defined(CONFIG_HOTPLUG_CPU) || !defined(MODULE) */
+ #define cpu_notifier(fn, pri)	do { (void)(fn); } while (0)
++#define __cpu_notifier(fn, pri)	do { (void)(fn); } while (0)
+ #endif /* #else #if defined(CONFIG_HOTPLUG_CPU) || !defined(MODULE) */
++
+ #ifdef CONFIG_HOTPLUG_CPU
+ extern int register_cpu_notifier(struct notifier_block *nb);
++extern int __register_cpu_notifier(struct notifier_block *nb);
+ extern void unregister_cpu_notifier(struct notifier_block *nb);
++extern void __unregister_cpu_notifier(struct notifier_block *nb);
+ #else
  
-+/*
-+ * Bare-bones version of perf_cpu_notifier(), which doesn't invoke the
-+ * callback for already online CPUs.
-+ */
-+#define __perf_cpu_notifier(fn)						\
-+do {									\
-+	static struct notifier_block fn##_nb =				\
-+		{ .notifier_call = fn, .priority = CPU_PRI_PERF };	\
-+									\
-+	__register_cpu_notifier(&fn##_nb);				\
-+} while (0)
+ #ifndef MODULE
+ extern int register_cpu_notifier(struct notifier_block *nb);
++extern int __register_cpu_notifier(struct notifier_block *nb);
+ #else
+ static inline int register_cpu_notifier(struct notifier_block *nb)
+ {
+ 	return 0;
+ }
++
++static inline int __register_cpu_notifier(struct notifier_block *nb)
++{
++	return 0;
++}
+ #endif
  
- struct perf_pmu_events_attr {
- 	struct device_attribute attr;
+ static inline void unregister_cpu_notifier(struct notifier_block *nb)
+ {
+ }
++
++static inline void __unregister_cpu_notifier(struct notifier_block *nb)
++{
++}
+ #endif
+ 
+ int cpu_up(unsigned int cpu);
+@@ -149,19 +169,32 @@ void notify_cpu_starting(unsigned int cpu);
+ extern void cpu_maps_update_begin(void);
+ extern void cpu_maps_update_done(void);
+ 
++#define cpu_notifier_register_begin	cpu_maps_update_begin
++#define cpu_notifier_register_done	cpu_maps_update_done
++
+ #else	/* CONFIG_SMP */
+ 
+ #define cpu_notifier(fn, pri)	do { (void)(fn); } while (0)
++#define __cpu_notifier(fn, pri)	do { (void)(fn); } while (0)
+ 
+ static inline int register_cpu_notifier(struct notifier_block *nb)
+ {
+ 	return 0;
+ }
+ 
++static inline int __register_cpu_notifier(struct notifier_block *nb)
++{
++	return 0;
++}
++
+ static inline void unregister_cpu_notifier(struct notifier_block *nb)
+ {
+ }
+ 
++static inline void __unregister_cpu_notifier(struct notifier_block *nb)
++{
++}
++
+ static inline void cpu_maps_update_begin(void)
+ {
+ }
+@@ -170,6 +203,14 @@ static inline void cpu_maps_update_done(void)
+ {
+ }
+ 
++static inline void cpu_notifier_register_begin(void)
++{
++}
++
++static inline void cpu_notifier_register_done(void)
++{
++}
++
+ #endif /* CONFIG_SMP */
+ extern struct bus_type cpu_subsys;
+ 
+@@ -183,8 +224,11 @@ extern void put_online_cpus(void);
+ extern void cpu_hotplug_disable(void);
+ extern void cpu_hotplug_enable(void);
+ #define hotcpu_notifier(fn, pri)	cpu_notifier(fn, pri)
++#define __hotcpu_notifier(fn, pri)	__cpu_notifier(fn, pri)
+ #define register_hotcpu_notifier(nb)	register_cpu_notifier(nb)
++#define __register_hotcpu_notifier(nb)	__register_cpu_notifier(nb)
+ #define unregister_hotcpu_notifier(nb)	unregister_cpu_notifier(nb)
++#define __unregister_hotcpu_notifier(nb)	__unregister_cpu_notifier(nb)
+ void clear_tasks_mm_cpumask(int cpu);
+ int cpu_down(unsigned int cpu);
+ 
+@@ -197,9 +241,12 @@ static inline void cpu_hotplug_done(void) {}
+ #define cpu_hotplug_disable()	do { } while (0)
+ #define cpu_hotplug_enable()	do { } while (0)
+ #define hotcpu_notifier(fn, pri)	do { (void)(fn); } while (0)
++#define __hotcpu_notifier(fn, pri)	do { (void)(fn); } while (0)
+ /* These aren't inline functions due to a GCC bug. */
+ #define register_hotcpu_notifier(nb)	({ (void)(nb); 0; })
++#define __register_hotcpu_notifier(nb)	({ (void)(nb); 0; })
+ #define unregister_hotcpu_notifier(nb)	({ (void)(nb); })
++#define __unregister_hotcpu_notifier(nb)	({ (void)(nb); })
+ #endif		/* CONFIG_HOTPLUG_CPU */
+ 
+ #ifdef CONFIG_PM_SLEEP_SMP
+diff --git a/kernel/cpu.c b/kernel/cpu.c
+index 33caf5e..a9e710e 100644
+--- a/kernel/cpu.c
++++ b/kernel/cpu.c
+@@ -28,18 +28,23 @@
+ static DEFINE_MUTEX(cpu_add_remove_lock);
+ 
+ /*
+- * The following two API's must be used when attempting
+- * to serialize the updates to cpu_online_mask, cpu_present_mask.
++ * The following two APIs (cpu_maps_update_begin/done) must be used when
++ * attempting to serialize the updates to cpu_online_mask & cpu_present_mask.
++ * The APIs cpu_notifier_register_begin/done() must be used to protect CPU
++ * hotplug callback (un)registration performed using __register_cpu_notifier()
++ * or __unregister_cpu_notifier().
+  */
+ void cpu_maps_update_begin(void)
+ {
+ 	mutex_lock(&cpu_add_remove_lock);
+ }
++EXPORT_SYMBOL(cpu_notifier_register_begin);
+ 
+ void cpu_maps_update_done(void)
+ {
+ 	mutex_unlock(&cpu_add_remove_lock);
+ }
++EXPORT_SYMBOL(cpu_notifier_register_done);
+ 
+ static RAW_NOTIFIER_HEAD(cpu_chain);
+ 
+@@ -183,6 +188,11 @@ int __ref register_cpu_notifier(struct notifier_block *nb)
+ 	return ret;
+ }
+ 
++int __ref __register_cpu_notifier(struct notifier_block *nb)
++{
++	return raw_notifier_chain_register(&cpu_chain, nb);
++}
++
+ static int __cpu_notify(unsigned long val, void *v, int nr_to_call,
+ 			int *nr_calls)
+ {
+@@ -206,6 +216,7 @@ static void cpu_notify_nofail(unsigned long val, void *v)
+ 	BUG_ON(cpu_notify(val, v));
+ }
+ EXPORT_SYMBOL(register_cpu_notifier);
++EXPORT_SYMBOL(__register_cpu_notifier);
+ 
+ void __ref unregister_cpu_notifier(struct notifier_block *nb)
+ {
+@@ -215,6 +226,12 @@ void __ref unregister_cpu_notifier(struct notifier_block *nb)
+ }
+ EXPORT_SYMBOL(unregister_cpu_notifier);
+ 
++void __ref __unregister_cpu_notifier(struct notifier_block *nb)
++{
++	raw_notifier_chain_unregister(&cpu_chain, nb);
++}
++EXPORT_SYMBOL(__unregister_cpu_notifier);
++
+ /**
+  * clear_tasks_mm_cpumask - Safely clear tasks' mm_cpumask for a CPU
+  * @cpu: a CPU id
 
