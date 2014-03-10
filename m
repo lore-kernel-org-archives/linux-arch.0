@@ -1,8 +1,7 @@
 From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH v3 24/52] x86, intel,
- rapl: Fix CPU hotplug callback registration
-Date: Tue, 11 Mar 2014 02:08:09 +0530
-Message-ID: <20140310203809.10746.41940.stgit@srivatsabhat.in.ibm.com>
+Subject: [PATCH v3 26/52] x86, hpet: Fix CPU hotplug callback registration
+Date: Tue, 11 Mar 2014 02:08:36 +0530
+Message-ID: <20140310203836.10746.23134.stgit@srivatsabhat.in.ibm.com>
 References: <20140310203312.10746.310.stgit@srivatsabhat.in.ibm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
@@ -10,8 +9,8 @@ Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20140310203312.10746.310.stgit@srivatsabhat.in.ibm.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: oleg@redhat.com, rjw@rjwysocki.net, rusty@rustcorp.com.au, akpm@linux-foundation.org
-Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-pm@vger.kernel.org, linuxppc-dev@ozlabs.org, srivatsa.bhat@linux.vnet.ibm.com, Peter Zijlstra <peterz@infradead.org>, Paul Mackerras <paulus@samba.org>, Ingo Molnar <mingo@kernel.org>, Arnaldo Carvalho de Melo <acme@ghostprotocols.net>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+To: paulus@samba.org, oleg@redhat.com, rjw@rjwysocki.net, rusty@rustcorp.com.au, peterz@infradead.org, akpm@linux-foundation.org
+Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-pm@vger.kernel.org, linuxppc-dev@ozlabs.org, srivatsa.bhat@linux.vnet.ibm.com, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
 List-Id: linux-arch.vger.kernel.org
 
 Subsystems that want to register CPU hotplug callbacks, as well as perform
@@ -45,55 +44,34 @@ registration is:
 	cpu_notifier_register_done();
 
 
-Fix the intel rapl code in x86 by using this latter form of callback
-registration.
+Fix the hpet code in x86 by using this latter form of callback registration.
 
-Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Paul Mackerras <paulus@samba.org>
-Cc: Ingo Molnar <mingo@kernel.org>
-Cc: Arnaldo Carvalho de Melo <acme@ghostprotocols.net>
 Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Ingo Molnar <mingo@kernel.org>
 Cc: "H. Peter Anvin" <hpa@zytor.com>
 Cc: x86@kernel.org
 Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
 ---
 
- arch/x86/kernel/cpu/perf_event_intel_rapl.c |    9 +++++----
- 1 file changed, 5 insertions(+), 4 deletions(-)
+ arch/x86/kernel/hpet.c |    4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
 
-diff --git a/arch/x86/kernel/cpu/perf_event_intel_rapl.c b/arch/x86/kernel/cpu/perf_event_intel_rapl.c
-index 5ad35ad..059218e 100644
---- a/arch/x86/kernel/cpu/perf_event_intel_rapl.c
-+++ b/arch/x86/kernel/cpu/perf_event_intel_rapl.c
-@@ -646,19 +646,20 @@ static int __init rapl_pmu_init(void)
- 		/* unsupported */
+diff --git a/arch/x86/kernel/hpet.c b/arch/x86/kernel/hpet.c
+index da85a8e..d89382b 100644
+--- a/arch/x86/kernel/hpet.c
++++ b/arch/x86/kernel/hpet.c
+@@ -943,12 +943,14 @@ static __init int hpet_late_init(void)
+ 	if (boot_cpu_has(X86_FEATURE_ARAT))
  		return 0;
- 	}
--	get_online_cpus();
-+
+ 
 +	cpu_notifier_register_begin();
- 
  	for_each_online_cpu(cpu) {
- 		rapl_cpu_prepare(cpu);
- 		rapl_cpu_init(cpu);
+ 		hpet_cpuhp_notify(NULL, CPU_ONLINE, (void *)(long)cpu);
  	}
  
--	perf_cpu_notifier(rapl_cpu_notifier);
-+	__perf_cpu_notifier(rapl_cpu_notifier);
- 
- 	ret = perf_pmu_register(&rapl_pmu_class, "power", -1);
- 	if (WARN_ON(ret)) {
- 		pr_info("RAPL PMU detected, registration failed (%d), RAPL PMU disabled\n", ret);
--		put_online_cpus();
-+		cpu_notifier_register_done();
- 		return -1;
- 	}
- 
-@@ -672,7 +673,7 @@ static int __init rapl_pmu_init(void)
- 		hweight32(rapl_cntr_mask),
- 		ktime_to_ms(pmu->timer_interval));
- 
--	put_online_cpus();
+ 	/* This notifier should be called after workqueue is ready */
+-	hotcpu_notifier(hpet_cpuhp_notify, -20);
++	__hotcpu_notifier(hpet_cpuhp_notify, -20);
 +	cpu_notifier_register_done();
  
  	return 0;
