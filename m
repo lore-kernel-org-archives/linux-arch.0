@@ -1,17 +1,17 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e23smtp02.au.ibm.com ([202.81.31.144]:42263 "EHLO
-	e23smtp02.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754433AbaCJUjh (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 10 Mar 2014 16:39:37 -0400
+Received: from e28smtp08.in.ibm.com ([122.248.162.8]:38158 "EHLO
+	e28smtp08.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755239AbaCJUks (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 10 Mar 2014 16:40:48 -0400
 Received: from /spool/local
-	by e23smtp02.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	by e28smtp08.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
 	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
-	Tue, 11 Mar 2014 06:39:35 +1000
+	Tue, 11 Mar 2014 02:10:46 +0530
 From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH v3 28/52] x86, oprofile,
- nmi: Fix CPU hotplug callback registration
-Date: Tue, 11 Mar 2014 02:08:49 +0530
-Message-ID: <20140310203849.10746.36718.stgit@srivatsabhat.in.ibm.com>
+Subject: [PATCH v3 41/52] oprofile,
+ nmi-timer: Fix CPU hotplug callback registration
+Date: Tue, 11 Mar 2014 02:10:36 +0530
+Message-ID: <20140310204036.10746.10550.stgit@srivatsabhat.in.ibm.com>
 In-Reply-To: <20140310203312.10746.310.stgit@srivatsabhat.in.ibm.com>
 References: <20140310203312.10746.310.stgit@srivatsabhat.in.ibm.com>
 MIME-Version: 1.0
@@ -20,8 +20,8 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: paulus@samba.org, oleg@redhat.com, mingo@kernel.org, rjw@rjwysocki.net, rusty@rustcorp.com.au, peterz@infradead.org, tglx@linutronix.de, akpm@linux-foundation.org
-Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-pm@vger.kernel.org, linuxppc-dev@ozlabs.org, srivatsa.bhat@linux.vnet.ibm.com, Robert Richter <rric@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Message-ID: <20140310203849.Vwck3BmNlaFnjrbTgal2FHAsONAi-NijD-3HqFG9JLQ@z>
+Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-pm@vger.kernel.org, linuxppc-dev@ozlabs.org, srivatsa.bhat@linux.vnet.ibm.com, Robert Richter <rric@kernel.org>"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Message-ID: <20140310204036.YE2SLSHgbuVbQQbmbd2gwbB_GQO-JYmc-Dz-0EhMEEI@z>
 
 Subsystems that want to register CPU hotplug callbacks, as well as perform
 initialization for the CPUs that are already online, often do it as shown
@@ -54,71 +54,70 @@ registration is:
 	cpu_notifier_register_done();
 
 
-Fix the oprofile code in x86 by using this latter form of callback
-registration. But retain the calls to get/put_online_cpus(), since they are
-used in other places as well, to protect the variables 'nmi_enabled' and
-'ctr_running'. Strictly speaking, this is not necessary since
-cpu_notifier_register_begin/done() provide a stronger synchronization
-with CPU hotplug than get/put_online_cpus(). However, let's retain the
-calls to get/put_online_cpus() to be consistent with the other call-sites.
-
-By nesting get/put_online_cpus() *inside* cpu_notifier_register_begin/done(),
-we avoid the ABBA deadlock possibility mentioned above.
+Fix the nmi-timer code in oprofile by using this latter form of callback
+registration.
 
 Cc: Robert Richter <rric@kernel.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>
 Cc: Ingo Molnar <mingo@kernel.org>
-Cc: "H. Peter Anvin" <hpa@zytor.com>
-Cc: x86@kernel.org
 Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
 ---
 
- arch/x86/oprofile/nmi_int.c |   15 +++++++++++++--
- 1 file changed, 13 insertions(+), 2 deletions(-)
+ drivers/oprofile/nmi_timer_int.c |   23 +++++++++++++----------
+ 1 file changed, 13 insertions(+), 10 deletions(-)
 
-diff --git a/arch/x86/oprofile/nmi_int.c b/arch/x86/oprofile/nmi_int.c
-index 6890d84..379e8bd 100644
---- a/arch/x86/oprofile/nmi_int.c
-+++ b/arch/x86/oprofile/nmi_int.c
-@@ -494,14 +494,19 @@ static int nmi_setup(void)
+diff --git a/drivers/oprofile/nmi_timer_int.c b/drivers/oprofile/nmi_timer_int.c
+index 76f1c93..9559829 100644
+--- a/drivers/oprofile/nmi_timer_int.c
++++ b/drivers/oprofile/nmi_timer_int.c
+@@ -108,8 +108,8 @@ static void nmi_timer_shutdown(void)
+ 	struct perf_event *event;
+ 	int cpu;
+ 
+-	get_online_cpus();
+-	unregister_cpu_notifier(&nmi_timer_cpu_nb);
++	cpu_notifier_register_begin();
++	__unregister_cpu_notifier(&nmi_timer_cpu_nb);
+ 	for_each_possible_cpu(cpu) {
+ 		event = per_cpu(nmi_timer_events, cpu);
+ 		if (!event)
+@@ -119,7 +119,7 @@ static void nmi_timer_shutdown(void)
+ 		perf_event_release_kernel(event);
+ 	}
+ 
+-	put_online_cpus();
++	cpu_notifier_register_done();
+ }
+ 
+ static int nmi_timer_setup(void)
+@@ -132,20 +132,23 @@ static int nmi_timer_setup(void)
+ 	do_div(period, HZ);
+ 	nmi_timer_attr.sample_period = period;
+ 
+-	get_online_cpus();
+-	err = register_cpu_notifier(&nmi_timer_cpu_nb);
++	cpu_notifier_register_begin();
++	err = __register_cpu_notifier(&nmi_timer_cpu_nb);
  	if (err)
- 		goto fail;
- 
-+	cpu_notifier_register_begin();
+ 		goto out;
 +
-+	/* Use get/put_online_cpus() to protect 'nmi_enabled' */
- 	get_online_cpus();
--	register_cpu_notifier(&oprofile_cpu_nb);
- 	nmi_enabled = 1;
- 	/* make nmi_enabled visible to the nmi handler: */
- 	smp_mb();
- 	on_each_cpu(nmi_cpu_setup, NULL, 1);
-+	__register_cpu_notifier(&oprofile_cpu_nb);
- 	put_online_cpus();
- 
+ 	/* can't attach events to offline cpus: */
+ 	for_each_online_cpu(cpu) {
+ 		err = nmi_timer_start_cpu(cpu);
+-		if (err)
+-			break;
++		if (err) {
++			cpu_notifier_register_done();
++			nmi_timer_shutdown();
++			return err;
++		}
+ 	}
+-	if (err)
+-		nmi_timer_shutdown();
++
+ out:
+-	put_online_cpus();
 +	cpu_notifier_register_done();
-+
- 	return 0;
- fail:
- 	free_msrs();
-@@ -512,12 +517,18 @@ static void nmi_shutdown(void)
- {
- 	struct op_msrs *msrs;
+ 	return err;
+ }
  
-+	cpu_notifier_register_begin();
-+
-+	/* Use get/put_online_cpus() to protect 'nmi_enabled' & 'ctr_running' */
- 	get_online_cpus();
--	unregister_cpu_notifier(&oprofile_cpu_nb);
- 	on_each_cpu(nmi_cpu_shutdown, NULL, 1);
- 	nmi_enabled = 0;
- 	ctr_running = 0;
-+	__unregister_cpu_notifier(&oprofile_cpu_nb);
- 	put_online_cpus();
-+
-+	cpu_notifier_register_done();
-+
- 	/* make variables visible to the nmi handler: */
- 	smp_mb();
- 	unregister_nmi_handler(NMI_LOCAL, "oprofile");
 
