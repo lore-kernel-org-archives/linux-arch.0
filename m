@@ -1,16 +1,17 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e23smtp03.au.ibm.com ([202.81.31.145]:60725 "EHLO
-	e23smtp03.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754766AbaCJUh1 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 10 Mar 2014 16:37:27 -0400
+Received: from e28smtp03.in.ibm.com ([122.248.162.3]:51343 "EHLO
+	e28smtp03.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754192AbaCJUhj (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 10 Mar 2014 16:37:39 -0400
 Received: from /spool/local
-	by e23smtp03.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	by e28smtp03.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
 	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
-	Tue, 11 Mar 2014 06:37:25 +1000
+	Tue, 11 Mar 2014 02:07:37 +0530
 From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH v3 19/52] x86, mce: Fix CPU hotplug callback registration
-Date: Tue, 11 Mar 2014 02:07:04 +0530
-Message-ID: <20140310203703.10746.30680.stgit@srivatsabhat.in.ibm.com>
+Subject: [PATCH v3 18/52] x86, intel,
+ uncore: Fix CPU hotplug callback registration
+Date: Tue, 11 Mar 2014 02:06:57 +0530
+Message-ID: <20140310203657.10746.98632.stgit@srivatsabhat.in.ibm.com>
 In-Reply-To: <20140310203312.10746.310.stgit@srivatsabhat.in.ibm.com>
 References: <20140310203312.10746.310.stgit@srivatsabhat.in.ibm.com>
 MIME-Version: 1.0
@@ -19,8 +20,8 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: paulus@samba.org, oleg@redhat.com, mingo@kernel.org, rjw@rjwysocki.net, rusty@rustcorp.com.au, peterz@infradead.org, tglx@linutronix.de, akpm@linux-foundation.org
-Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-pm@vger.kernel.org, linuxppc-dev@ozlabs.org, srivatsa.bhat@linux.vnet.ibm.com, Tony Luck <tony.luck@intel.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, linux-edac@vger.kernel.org"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Message-ID: <20140310203704.yZQ7rt5YaqbwUMmnuxPj9NL1ig4wC-AT4p5W41osMlk@z>
+Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-pm@vger.kernel.org, linuxppc-dev@ozlabs.org, srivatsa.bhat@linux.vnet.ibm.com, Arnaldo Carvalho de Melo <acme@ghostprotocols.net>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Message-ID: <20140310203657.VdIs1VtQs-T9umtJL_eJbox_1353ApiJjykmObH7Ad8@z>
 
 Subsystems that want to register CPU hotplug callbacks, as well as perform
 initialization for the CPUs that are already online, often do it as shown
@@ -53,44 +54,45 @@ registration is:
 	cpu_notifier_register_done();
 
 
-Fix the mce code in x86 by using this latter form of callback registration.
+Fix the uncore code in intel-x86 by using this latter form of callback
+registration.
 
-Cc: Tony Luck <tony.luck@intel.com>
-Cc: Borislav Petkov <bp@alien8.de>
-Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: Paul Mackerras <paulus@samba.org>
 Cc: Ingo Molnar <mingo@kernel.org>
+Cc: Arnaldo Carvalho de Melo <acme@ghostprotocols.net>
+Cc: Thomas Gleixner <tglx@linutronix.de>
 Cc: "H. Peter Anvin" <hpa@zytor.com>
 Cc: x86@kernel.org
-Cc: linux-edac@vger.kernel.org
 Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
 ---
 
- arch/x86/kernel/cpu/mcheck/mce.c |    8 ++++++--
- 1 file changed, 6 insertions(+), 2 deletions(-)
+ arch/x86/kernel/cpu/perf_event_intel_uncore.c |    6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
 
-diff --git a/arch/x86/kernel/cpu/mcheck/mce.c b/arch/x86/kernel/cpu/mcheck/mce.c
-index 4d5419b..9b7734b 100644
---- a/arch/x86/kernel/cpu/mcheck/mce.c
-+++ b/arch/x86/kernel/cpu/mcheck/mce.c
-@@ -2434,14 +2434,18 @@ static __init int mcheck_init_device(void)
- 	if (err)
- 		return err;
+diff --git a/arch/x86/kernel/cpu/perf_event_intel_uncore.c b/arch/x86/kernel/cpu/perf_event_intel_uncore.c
+index c88f7f4..e90183d 100644
+--- a/arch/x86/kernel/cpu/perf_event_intel_uncore.c
++++ b/arch/x86/kernel/cpu/perf_event_intel_uncore.c
+@@ -3816,7 +3816,7 @@ static int __init uncore_cpu_init(void)
+ 	if (ret)
+ 		return ret;
  
+-	get_online_cpus();
 +	cpu_notifier_register_begin();
- 	for_each_online_cpu(i) {
- 		err = mce_device_create(i);
--		if (err)
-+		if (err) {
-+			cpu_notifier_register_done();
- 			return err;
-+		}
- 	}
  
- 	register_syscore_ops(&mce_syscore_ops);
--	register_hotcpu_notifier(&mce_cpu_notifier);
-+	__register_hotcpu_notifier(&mce_cpu_notifier);
+ 	for_each_online_cpu(cpu) {
+ 		int i, phys_id = topology_physical_package_id(cpu);
+@@ -3835,9 +3835,9 @@ static int __init uncore_cpu_init(void)
+ 	}
+ 	on_each_cpu(uncore_cpu_setup, NULL, 1);
+ 
+-	register_cpu_notifier(&uncore_cpu_nb);
++	__register_cpu_notifier(&uncore_cpu_nb);
+ 
+-	put_online_cpus();
 +	cpu_notifier_register_done();
  
- 	/* register character device /dev/mcelog */
- 	misc_register(&mce_chrdev_device);
+ 	return 0;
+ }
 
