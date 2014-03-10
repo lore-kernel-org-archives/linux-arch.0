@@ -1,196 +1,47 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:44728 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751646AbaCGSeF (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 7 Mar 2014 13:34:05 -0500
-Subject: Re: [RFC][PATCH 0/5] arch: atomic rework
-From: Torvald Riegel <triegel@redhat.com>
-In-Reply-To: <20140305181537.GM3334@linux.vnet.ibm.com>
-References: <20140227190611.GU8264@linux.vnet.ibm.com>
-	 <CA+55aFzav_2ayvEgbgeAzQohJ7EQH0tgUU0WcSyvUA6hgOo_Ow@mail.gmail.com>
-	 <20140227205312.GX8264@linux.vnet.ibm.com>
-	 <20140301005047.GA14777@linux.vnet.ibm.com>
-	 <1393872908.28840.11660.camel@triegel.csb>
-	 <20140303192026.GO11910@linux.vnet.ibm.com>
-	 <1393879579.28840.11949.camel@triegel.csb>
-	 <20140304190032.GY11910@linux.vnet.ibm.com>
-	 <20140304213504.GA9809@linux.vnet.ibm.com>
-	 <1394038499.28840.14979.camel@triegel.csb>
-	 <20140305181537.GM3334@linux.vnet.ibm.com>
-Content-Type: text/plain; charset="UTF-8"
-Date: Fri, 07 Mar 2014 19:33:25 +0100
-Message-ID: <1394217205.28840.19576.camel@triegel.csb>
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+Received: from relay5-d.mail.gandi.net ([217.70.183.197]:50746 "EHLO
+	relay5-d.mail.gandi.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753005AbaCJBCR (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 9 Mar 2014 21:02:17 -0400
+Date: Sun, 9 Mar 2014 18:02:10 -0700
+From: Josh Triplett <josh@joshtriplett.org>
+Subject: [PATCH v3 3/5] bug: When !CONFIG_BUG, make WARN call no_printk to
+ check format and args
+Message-ID: <04b030fe345cba242bc672cecc79ee0cac1b79bd.1394412745.git.josh@joshtriplett.org>
+References: <17c859aa7dcccec43df0a0c8908911b982764c76.1394412745.git.josh@joshtriplett.org>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <17c859aa7dcccec43df0a0c8908911b982764c76.1394412745.git.josh@joshtriplett.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: paulmck@linux.vnet.ibm.com
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>
-Message-ID: <20140307183325.aAMbnQZoWtaq1xVmOtz2esxinDP1ztY-M2uWZduCurc@z>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20140310010210.Ou3qu1cwaLw6mB1KlpTxGUfpM7zZVc1moB_TLjwF8ng@z>
 
-On Wed, 2014-03-05 at 10:15 -0800, Paul E. McKenney wrote:
-> On Wed, Mar 05, 2014 at 05:54:59PM +0100, Torvald Riegel wrote:
-> > On Tue, 2014-03-04 at 13:35 -0800, Paul E. McKenney wrote:
-> > > On Tue, Mar 04, 2014 at 11:00:32AM -0800, Paul E. McKenney wrote:
-> > > > On Mon, Mar 03, 2014 at 09:46:19PM +0100, Torvald Riegel wrote:
-> > > > > xagsmtp2.20140303204700.3556@vmsdvma.vnet.ibm.com
-> > > > > X-Xagent-Gateway: vmsdvma.vnet.ibm.com (XAGSMTP2 at VMSDVMA)
-> > > > > 
-> > > > > On Mon, 2014-03-03 at 11:20 -0800, Paul E. McKenney wrote:
-> > > > > > On Mon, Mar 03, 2014 at 07:55:08PM +0100, Torvald Riegel wrote:
-> > > > > > > xagsmtp2.20140303190831.9500@uk1vsc.vnet.ibm.com
-> > > > > > > X-Xagent-Gateway: uk1vsc.vnet.ibm.com (XAGSMTP2 at UK1VSC)
-> > > > > > > 
-> > > > > > > On Fri, 2014-02-28 at 16:50 -0800, Paul E. McKenney wrote:
-> > > > > > > > +o	Do not use the results from the boolean "&&" and "||" when
-> > > > > > > > +	dereferencing.	For example, the following (rather improbable)
-> > > > > > > > +	code is buggy:
-> > > > > > > > +
-> > > > > > > > +		int a[2];
-> > > > > > > > +		int index;
-> > > > > > > > +		int force_zero_index = 1;
-> > > > > > > > +
-> > > > > > > > +		...
-> > > > > > > > +
-> > > > > > > > +		r1 = rcu_dereference(i1)
-> > > > > > > > +		r2 = a[r1 && force_zero_index];  /* BUGGY!!! */
-> > > > > > > > +
-> > > > > > > > +	The reason this is buggy is that "&&" and "||" are often compiled
-> > > > > > > > +	using branches.  While weak-memory machines such as ARM or PowerPC
-> > > > > > > > +	do order stores after such branches, they can speculate loads,
-> > > > > > > > +	which can result in misordering bugs.
-> > > > > > > > +
-> > > > > > > > +o	Do not use the results from relational operators ("==", "!=",
-> > > > > > > > +	">", ">=", "<", or "<=") when dereferencing.  For example,
-> > > > > > > > +	the following (quite strange) code is buggy:
-> > > > > > > > +
-> > > > > > > > +		int a[2];
-> > > > > > > > +		int index;
-> > > > > > > > +		int flip_index = 0;
-> > > > > > > > +
-> > > > > > > > +		...
-> > > > > > > > +
-> > > > > > > > +		r1 = rcu_dereference(i1)
-> > > > > > > > +		r2 = a[r1 != flip_index];  /* BUGGY!!! */
-> > > > > > > > +
-> > > > > > > > +	As before, the reason this is buggy is that relational operators
-> > > > > > > > +	are often compiled using branches.  And as before, although
-> > > > > > > > +	weak-memory machines such as ARM or PowerPC do order stores
-> > > > > > > > +	after such branches, but can speculate loads, which can again
-> > > > > > > > +	result in misordering bugs.
-> > > > > > > 
-> > > > > > > Those two would be allowed by the wording I have recently proposed,
-> > > > > > > AFAICS.  r1 != flip_index would result in two possible values (unless
-> > > > > > > there are further constraints due to the type of r1 and the values that
-> > > > > > > flip_index can have).
-> > > > > > 
-> > > > > > And I am OK with the value_dep_preserving type providing more/better
-> > > > > > guarantees than we get by default from current compilers.
-> > > > > > 
-> > > > > > One question, though.  Suppose that the code did not want a value
-> > > > > > dependency to be tracked through a comparison operator.  What does
-> > > > > > the developer do in that case?  (The reason I ask is that I have
-> > > > > > not yet found a use case in the Linux kernel that expects a value
-> > > > > > dependency to be tracked through a comparison.)
-> > > > > 
-> > > > > Hmm.  I suppose use an explicit cast to non-vdp before or after the
-> > > > > comparison?
-> > > > 
-> > > > That should work well assuming that things like "if", "while", and "?:"
-> > > > conditions are happy to take a vdp.  This assumes that p->a only returns
-> > > > vdp if field "a" is declared vdp, otherwise we have vdps running wild
-> > > > through the program.  ;-)
-> > > > 
-> > > > The other thing that can happen is that a vdp can get handed off to
-> > > > another synchronization mechanism, for example, to reference counting:
-> > > > 
-> > > > 	p = atomic_load_explicit(&gp, memory_order_consume);
-> > > > 	if (do_something_with(p->a)) {
-> > > > 		/* fast path protected by RCU. */
-> > > > 		return 0;
-> > > > 	}
-> > > > 	if (atomic_inc_not_zero(&p->refcnt) {
-> > > > 		/* slow path protected by reference counting. */
-> > > > 		return do_something_else_with((struct foo *)p);  /* CHANGE */
-> > > > 	}
-> > > > 	/* Needed slow path, but raced with deletion. */
-> > > > 	return -EAGAIN;
-> > > > 
-> > > > I am guessing that the cast ends the vdp.  Is that the case?
-> > > 
-> > > And here is a more elaborate example from the Linux kernel:
-> > > 
-> > > 	struct md_rdev value_dep_preserving *rdev;  /* CHANGE */
-> > > 
-> > > 	rdev = rcu_dereference(conf->mirrors[disk].rdev);
-> > > 	if (r1_bio->bios[disk] == IO_BLOCKED
-> > > 	    || rdev == NULL
-> > > 	    || test_bit(Unmerged, &rdev->flags)
-> > > 	    || test_bit(Faulty, &rdev->flags))
-> > > 		continue;
-> > > 
-> > > The fact that the "rdev == NULL" returns vdp does not force the "||"
-> > > operators to be evaluated arithmetically because the entire function
-> > > is an "if" condition, correct?
-> > 
-> > That's a good question, and one that as far as I understand currently,
-> > essentially boils down to whether we want to have tight restrictions on
-> > which operations are still vdp.
-> > 
-> > If we look at the different combinations, then it seems we can't decide
-> > on whether we have a value-dependency just due to a vdp type:
-> > * non-vdp || vdp:  vdp iff non-vdp == false
-> > * vdp || non-vdp:  vdp iff non-vdp == false?
-> > * vdp || vdp: always vdp? (and dependency on both?)
-> > 
-> > I'm not sure it makes sense to try to not make all of those
-> > vdp-by-default.  The first and second case show that it's dependent on
-> > the specific execution anyway, and thus is already covered by the
-> > requirement that the value must still matter.   The vdp type is just a
-> > way to prevent inappropriate compiler optimizations; it's not critical
-> > for correctness is we make more stuff vdp, yet it may prevent some
-> > optimizations in the affected expression.
-> > 
-> > If the compiler knows that some vdp-typed evaluation will not have a
-> > value-dependency anyway, then it can just optimize this evaluation like
-> > non-vdp code.
-> > 
-> > I guess not much would change for the code you posted, because we
-> > already have to evaluate || operands in order, I believe (e.g., don't
-> > access rdev->flags before doing the rdev == NULL check, modulo as-if).
-> > Do I understand your question correctly?
-> 
-> Let me give an example for the other side:
-> 
-> 	struct foo value_dep_preserving *p;
-> 	struct foo value_dep_preserving *q;
-> 
-> 	p = rcu_dereference(gp);
-> 	q = rcu_dereference(gq);
-> 	return myarray[p || q]];  /* Linux kernel doesn't do this. */
-> 
-> If we wanted this to work (and I am not at all convinced that we do),
-> the compiler would have to force a data dependency through the "||".
+The stub version of WARN for !CONFIG_BUG completely ignored its format
+string and subsequent arguments; make it check them instead, using
+no_printk.
 
-Yes.
+Reported-by: Arnd Bergmann <arnd@arndb.de>
+Signed-off-by: Josh Triplett <josh@joshtriplett.org>
+---
+v3: Patch unchanged from v2.
+ include/asm-generic/bug.h | 1 +
+ 1 file changed, 1 insertion(+)
 
-> But I would be just as happy to instead just say that boolean logical
-> operators ("||" and "&&") never return vdp values.
-
-I think those aren't actually the problem (or if they were, we'd need to
-think about & and | on 1-bit integers or bitfields as well), but ...
-
-> Ditto for the
-> relational operators ("==", "!=", ">", ">=", "<", and "<=").  No one
-> seems to rely on value dependencies via these operators, after all,
-> and preserving value dependencies through them seems to require that
-> the compiler generate odd code.
-
-... that any conversion from vdp to bool requires specialized handling
-by the compiler.  That happens on implicit conversion (as in "p || q")
-and in the operators you mentioned.
-
-I don't see a reason why conversion to bool (or any other operator
-returning bool and taking vdp as operand) should be *always* non-vdp.
-But it seems it would be easier to misuse than other operators.
+diff --git a/include/asm-generic/bug.h b/include/asm-generic/bug.h
+index 2d54d8d..a97fa11 100644
+--- a/include/asm-generic/bug.h
++++ b/include/asm-generic/bug.h
+@@ -155,6 +155,7 @@ extern void warn_slowpath_null(const char *file, const int line);
+ #ifndef WARN
+ #define WARN(condition, format...) ({					\
+ 	int __ret_warn_on = !!(condition);				\
++	no_printk(format);						\
+ 	unlikely(__ret_warn_on);					\
+ })
+ #endif
+-- 
+1.9.0
 
