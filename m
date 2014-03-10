@@ -1,17 +1,16 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e28smtp05.in.ibm.com ([122.248.162.5]:34275 "EHLO
-	e28smtp05.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755211AbaCJUkf (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 10 Mar 2014 16:40:35 -0400
+Received: from e28smtp03.in.ibm.com ([122.248.162.3]:46886 "EHLO
+	e28smtp03.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755139AbaCJUj7 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 10 Mar 2014 16:39:59 -0400
 Received: from /spool/local
-	by e28smtp05.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	by e28smtp03.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
 	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
-	Tue, 11 Mar 2014 02:10:33 +0530
+	Tue, 11 Mar 2014 02:09:57 +0530
 From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH v3 39/52] clocksource,
- dummy-timer: Fix CPU hotplug callback registration
-Date: Tue, 11 Mar 2014 02:10:23 +0530
-Message-ID: <20140310204023.10746.32020.stgit@srivatsabhat.in.ibm.com>
+Subject: [PATCH v3 34/52] scsi, bnx2fc: Fix CPU hotplug callback registration
+Date: Tue, 11 Mar 2014 02:09:45 +0530
+Message-ID: <20140310203945.10746.2812.stgit@srivatsabhat.in.ibm.com>
 In-Reply-To: <20140310203312.10746.310.stgit@srivatsabhat.in.ibm.com>
 References: <20140310203312.10746.310.stgit@srivatsabhat.in.ibm.com>
 MIME-Version: 1.0
@@ -20,8 +19,8 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: paulus@samba.org, oleg@redhat.com, mingo@kernel.org, rjw@rjwysocki.net, rusty@rustcorp.com.au, peterz@infradead.org, tglx@linutronix.de, akpm@linux-foundation.org
-Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-pm@vger.kernel.org, linuxppc-dev@ozlabs.org, srivatsa.bhat@linux.vnet.ibm.com, Daniel Lezcano <daniel.lezcano@linaro.org>"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Message-ID: <20140310204023.VAEfPEttVccwMAn3BsZO4O5M30QStBbkzJDRPKgYXjU@z>
+Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-pm@vger.kernel.org, linuxppc-dev@ozlabs.org, srivatsa.bhat@linux.vnet.ibm.com, Eddie Wai <eddie.wai@broadcom.com>, "James E.J. Bottomley" <JBottomley@parallels.com>, linux-scsi@vger.kernel.org"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Message-ID: <20140310203945.RBcmORUWnQcOP3BBMMpFO2kvy3vLTOvf3F-Lb6ovnVs@z>
 
 Subsystems that want to register CPU hotplug callbacks, as well as perform
 initialization for the CPUs that are already online, often do it as shown
@@ -54,43 +53,58 @@ registration is:
 	cpu_notifier_register_done();
 
 
-Fix the clocksource dummy-timer code by using this latter form of callback
+Fix the bnx2fc code in scsi by using this latter form of callback
 registration.
 
-Cc: Daniel Lezcano <daniel.lezcano@linaro.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Eddie Wai <eddie.wai@broadcom.com>
+Cc: "James E.J. Bottomley" <JBottomley@parallels.com>
 Cc: Ingo Molnar <mingo@kernel.org>
+Cc: linux-scsi@vger.kernel.org
 Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
 ---
 
- drivers/clocksource/dummy_timer.c |   11 ++++++++---
- 1 file changed, 8 insertions(+), 3 deletions(-)
+ drivers/scsi/bnx2fc/bnx2fc_fcoe.c |   12 ++++++++++--
+ 1 file changed, 10 insertions(+), 2 deletions(-)
 
-diff --git a/drivers/clocksource/dummy_timer.c b/drivers/clocksource/dummy_timer.c
-index b3eb582..ad35725 100644
---- a/drivers/clocksource/dummy_timer.c
-+++ b/drivers/clocksource/dummy_timer.c
-@@ -56,14 +56,19 @@ static struct notifier_block dummy_timer_cpu_nb = {
+diff --git a/drivers/scsi/bnx2fc/bnx2fc_fcoe.c b/drivers/scsi/bnx2fc/bnx2fc_fcoe.c
+index 9b94850..c4ec235 100644
+--- a/drivers/scsi/bnx2fc/bnx2fc_fcoe.c
++++ b/drivers/scsi/bnx2fc/bnx2fc_fcoe.c
+@@ -2586,12 +2586,16 @@ static int __init bnx2fc_mod_init(void)
+ 		spin_lock_init(&p->fp_work_lock);
+ 	}
  
- static int __init dummy_timer_register(void)
- {
--	int err = register_cpu_notifier(&dummy_timer_cpu_nb);
-+	int err = 0;
-+
 +	cpu_notifier_register_begin();
-+	err = __register_cpu_notifier(&dummy_timer_cpu_nb);
- 	if (err)
--		return err;
-+		goto out;
++
+ 	for_each_online_cpu(cpu) {
+ 		bnx2fc_percpu_thread_create(cpu);
+ 	}
  
- 	/* We won't get a call on the boot CPU, so register immediately */
- 	if (num_possible_cpus() > 1)
- 		dummy_timer_setup();
- 
--	return 0;
-+out:
+ 	/* Initialize per CPU interrupt thread */
+-	register_hotcpu_notifier(&bnx2fc_cpu_notifier);
++	__register_hotcpu_notifier(&bnx2fc_cpu_notifier);
++
 +	cpu_notifier_register_done();
-+	return err;
- }
- early_initcall(dummy_timer_register);
+ 
+ 	cnic_register_driver(CNIC_ULP_FCOE, &bnx2fc_cnic_cb);
+ 
+@@ -2656,13 +2660,17 @@ static void __exit bnx2fc_mod_exit(void)
+ 	if (l2_thread)
+ 		kthread_stop(l2_thread);
+ 
+-	unregister_hotcpu_notifier(&bnx2fc_cpu_notifier);
++	cpu_notifier_register_begin();
+ 
+ 	/* Destroy per cpu threads */
+ 	for_each_online_cpu(cpu) {
+ 		bnx2fc_percpu_thread_destroy(cpu);
+ 	}
+ 
++	__unregister_hotcpu_notifier(&bnx2fc_cpu_notifier);
++
++	cpu_notifier_register_done();
++
+ 	destroy_workqueue(bnx2fc_wq);
+ 	/*
+ 	 * detach from scsi transport
 
