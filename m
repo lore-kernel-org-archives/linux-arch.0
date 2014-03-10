@@ -1,17 +1,16 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e28smtp06.in.ibm.com ([122.248.162.6]:42886 "EHLO
-	e28smtp06.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755404AbaCJUnE (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 10 Mar 2014 16:43:04 -0400
+Received: from e23smtp07.au.ibm.com ([202.81.31.140]:39471 "EHLO
+	e23smtp07.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753669AbaCJUma (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 10 Mar 2014 16:42:30 -0400
 Received: from /spool/local
-	by e28smtp06.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	by e23smtp07.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
 	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
-	Tue, 11 Mar 2014 02:13:02 +0530
+	Tue, 11 Mar 2014 06:42:29 +1000
 From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH v3 51/52] net/core/flow.c: Fix CPU hotplug callback
- registration
-Date: Tue, 11 Mar 2014 02:12:51 +0530
-Message-ID: <20140310204250.10746.61946.stgit@srivatsabhat.in.ibm.com>
+Subject: [PATCH v3 48/52] profile: Fix CPU hotplug callback registration
+Date: Tue, 11 Mar 2014 02:12:08 +0530
+Message-ID: <20140310204207.10746.84822.stgit@srivatsabhat.in.ibm.com>
 In-Reply-To: <20140310203312.10746.310.stgit@srivatsabhat.in.ibm.com>
 References: <20140310203312.10746.310.stgit@srivatsabhat.in.ibm.com>
 MIME-Version: 1.0
@@ -20,8 +19,8 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: paulus@samba.org, oleg@redhat.com, mingo@kernel.org, rjw@rjwysocki.net, rusty@rustcorp.com.au, peterz@infradead.org, tglx@linutronix.de, akpm@linux-foundation.org
-Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-pm@vger.kernel.org, linuxppc-dev@ozlabs.org, srivatsa.bhat@linux.vnet.ibm.com, Li RongQing <roy.qing.li@gmail.com>, Sasha Levin <sasha.levin@oracle.com>, Chris Metcalf <cmetcalf@tilera.com>, netdev@vger.kernel.org, "David S. Miller" <davem@davemloft.net>"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Message-ID: <20140310204251.39s5CzAq72logcb1q0cQXgATdPbmoxLnY2GW9cJZXo4@z>
+Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-pm@vger.kernel.org, linuxppc-dev@ozlabs.org, srivatsa.bhat@linux.vnet.ibm.com, Al Viro <viro@zeniv.linux.org.uk>, Mauro Carvalho Chehab <mchehab@redhat.com>"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Message-ID: <20140310204208.kCmgxkwmdo7chfTSBQk68vPjq0oYoLjbq7Xo9Gz5ZS8@z>
 
 Subsystems that want to register CPU hotplug callbacks, as well as perform
 initialization for the CPUs that are already online, often do it as shown
@@ -54,53 +53,53 @@ registration is:
 	cpu_notifier_register_done();
 
 
-Fix the code in net/core/flow.c by using this latter form of callback
-registration.
+Fix the profile code by using this latter form of callback registration.
 
-Cc: Li RongQing <roy.qing.li@gmail.com>
-Cc: Sasha Levin <sasha.levin@oracle.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>
-Cc: Chris Metcalf <cmetcalf@tilera.com>
+Cc: Al Viro <viro@zeniv.linux.org.uk>
+Cc: Mauro Carvalho Chehab <mchehab@redhat.com>
 Cc: Ingo Molnar <mingo@kernel.org>
-Cc: netdev@vger.kernel.org
-Acked-by: David S. Miller <davem@davemloft.net>
 Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
 ---
 
- net/core/flow.c |    8 +++++++-
- 1 file changed, 7 insertions(+), 1 deletion(-)
+ kernel/profile.c |   20 +++++++++++++++-----
+ 1 file changed, 15 insertions(+), 5 deletions(-)
 
-diff --git a/net/core/flow.c b/net/core/flow.c
-index dfa602c..9a2151f 100644
---- a/net/core/flow.c
-+++ b/net/core/flow.c
-@@ -456,6 +456,8 @@ static int __init flow_cache_init(struct flow_cache *fc)
- 	if (!fc->percpu)
- 		return -ENOMEM;
+diff --git a/kernel/profile.c b/kernel/profile.c
+index 6631e1e..4c0cb95 100644
+--- a/kernel/profile.c
++++ b/kernel/profile.c
+@@ -591,18 +591,28 @@ out_cleanup:
+ int __ref create_proc_profile(void) /* false positive from hotcpu_notifier */
+ {
+ 	struct proc_dir_entry *entry;
++	int err = 0;
  
+ 	if (!prof_on)
+ 		return 0;
+-	if (create_hash_tables())
+-		return -ENOMEM;
++
 +	cpu_notifier_register_begin();
 +
- 	for_each_online_cpu(i) {
- 		if (flow_cache_cpu_prepare(fc, i))
- 			goto err;
-@@ -463,7 +465,9 @@ static int __init flow_cache_init(struct flow_cache *fc)
- 	fc->hotcpu_notifier = (struct notifier_block){
- 		.notifier_call = flow_cache_cpu,
- 	};
--	register_hotcpu_notifier(&fc->hotcpu_notifier);
-+	__register_hotcpu_notifier(&fc->hotcpu_notifier);
++	if (create_hash_tables()) {
++		err = -ENOMEM;
++		goto out;
++	}
 +
-+	cpu_notifier_register_done();
- 
- 	setup_timer(&fc->rnd_timer, flow_cache_new_hashrnd,
- 		    (unsigned long) fc);
-@@ -479,6 +483,8 @@ err:
- 		fcp->hash_table = NULL;
- 	}
- 
-+	cpu_notifier_register_done();
+ 	entry = proc_create("profile", S_IWUSR | S_IRUGO,
+ 			    NULL, &proc_profile_operations);
+ 	if (!entry)
+-		return 0;
++		goto out;
+ 	proc_set_size(entry, (1 + prof_len) * sizeof(atomic_t));
+-	hotcpu_notifier(profile_cpu_callback, 0);
+-	return 0;
++	__hotcpu_notifier(profile_cpu_callback, 0);
 +
- 	free_percpu(fc->percpu);
- 	fc->percpu = NULL;
- 
++out:
++	cpu_notifier_register_done();
++	return err;
+ }
+ module_init(create_proc_profile);
+ #endif /* CONFIG_PROC_FS */
 
