@@ -1,16 +1,17 @@
 From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH v3 36/52] zsmalloc: Fix CPU hotplug callback registration
-Date: Tue, 11 Mar 2014 02:09:59 +0530
-Message-ID: <20140310203959.10746.61303.stgit@srivatsabhat.in.ibm.com>
+Subject: [PATCH v3 38/52] drivers/base/topology.c: Fix CPU hotplug callback
+ registration
+Date: Tue, 11 Mar 2014 02:10:12 +0530
+Message-ID: <20140310204012.10746.6803.stgit@srivatsabhat.in.ibm.com>
 References: <20140310203312.10746.310.stgit@srivatsabhat.in.ibm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Return-path: <owner-linux-mm@kvack.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20140310203312.10746.310.stgit@srivatsabhat.in.ibm.com>
-Sender: owner-linux-mm@kvack.org
+Sender: linux-kernel-owner@vger.kernel.org
 To: paulus@samba.org, oleg@redhat.com, rjw@rjwysocki.net, rusty@rustcorp.com.au, peterz@infradead.org, tglx@linutronix.de, akpm@linux-foundation.org
-Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-pm@vger.kernel.org, linuxppc-dev@ozlabs.org, srivatsa.bhat@linux.vnet.ibm.com, Minchan Kim <minchan@kernel.org>, Nitin Gupta <ngupta@vflare.org>, Ingo Molnar <mingo@kernel.org>, linux-mm@kvack.org"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-pm@vger.kernel.org, linuxppc-dev@ozlabs.org, srivatsa.bhat@linux.vnet.ibm.com, Ingo Molnar <mingo@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
 List-Id: linux-arch.vger.kernel.org
 
 Subsystems that want to register CPU hotplug callbacks, as well as perform
@@ -44,61 +45,42 @@ registration is:
 	cpu_notifier_register_done();
 
 
-Fix the zsmalloc code by using this latter form of callback registration.
+Fix the topology code by using this latter form of callback registration.
 
-Cc: Minchan Kim <minchan@kernel.org>
-Cc: Nitin Gupta <ngupta@vflare.org>
 Cc: Ingo Molnar <mingo@kernel.org>
-Cc: linux-mm@kvack.org
+Acked-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
 Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
 ---
 
- mm/zsmalloc.c |   17 ++++++++++++++---
- 1 file changed, 14 insertions(+), 3 deletions(-)
+ drivers/base/topology.c |   12 ++++++++----
+ 1 file changed, 8 insertions(+), 4 deletions(-)
 
-diff --git a/mm/zsmalloc.c b/mm/zsmalloc.c
-index c03ca5e..36b4591 100644
---- a/mm/zsmalloc.c
-+++ b/mm/zsmalloc.c
-@@ -814,21 +814,32 @@ static void zs_exit(void)
+diff --git a/drivers/base/topology.c b/drivers/base/topology.c
+index 94ffee3..a738d10 100644
+--- a/drivers/base/topology.c
++++ b/drivers/base/topology.c
+@@ -161,16 +161,20 @@ static int topology_cpu_callback(struct notifier_block *nfb,
+ static int topology_sysfs_init(void)
  {
  	int cpu;
- 
+-	int rc;
++	int rc = 0;
++
 +	cpu_notifier_register_begin();
-+
- 	for_each_online_cpu(cpu)
- 		zs_cpu_notifier(NULL, CPU_DEAD, (void *)(long)cpu);
--	unregister_cpu_notifier(&zs_cpu_nb);
-+	__unregister_cpu_notifier(&zs_cpu_nb);
-+
+ 
+ 	for_each_online_cpu(cpu) {
+ 		rc = topology_add_dev(cpu);
+ 		if (rc)
+-			return rc;
++			goto out;
+ 	}
+-	hotcpu_notifier(topology_cpu_callback, 0);
++	__hotcpu_notifier(topology_cpu_callback, 0);
+ 
+-	return 0;
++out:
 +	cpu_notifier_register_done();
++	return rc;
  }
  
- static int zs_init(void)
- {
- 	int cpu, ret;
- 
--	register_cpu_notifier(&zs_cpu_nb);
-+	cpu_notifier_register_begin();
-+
-+	__register_cpu_notifier(&zs_cpu_nb);
- 	for_each_online_cpu(cpu) {
- 		ret = zs_cpu_notifier(NULL, CPU_UP_PREPARE, (void *)(long)cpu);
--		if (notifier_to_errno(ret))
-+		if (notifier_to_errno(ret)) {
-+			cpu_notifier_register_done();
- 			goto fail;
-+		}
- 	}
-+
-+	cpu_notifier_register_done();
-+
- 	return 0;
- fail:
- 	zs_exit();
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+ device_initcall(topology_sysfs_init);
