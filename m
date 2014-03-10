@@ -1,16 +1,17 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e28smtp06.in.ibm.com ([122.248.162.6]:55669 "EHLO
-	e28smtp06.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755110AbaCJUjv (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 10 Mar 2014 16:39:51 -0400
+Received: from e23smtp05.au.ibm.com ([202.81.31.147]:45291 "EHLO
+	e23smtp05.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755121AbaCJUjz (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 10 Mar 2014 16:39:55 -0400
 Received: from /spool/local
-	by e28smtp06.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	by e23smtp05.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
 	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
-	Tue, 11 Mar 2014 02:09:49 +0530
+	Tue, 11 Mar 2014 06:39:53 +1000
 From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH v3 33/52] scsi, bnx2i: Fix CPU hotplug callback registration
-Date: Tue, 11 Mar 2014 02:09:39 +0530
-Message-ID: <20140310203938.10746.18579.stgit@srivatsabhat.in.ibm.com>
+Subject: [PATCH v3 30/52] arm64,
+ hw_breakpoint.c: Fix CPU hotplug callback registration
+Date: Tue, 11 Mar 2014 02:09:08 +0530
+Message-ID: <20140310203907.10746.60164.stgit@srivatsabhat.in.ibm.com>
 In-Reply-To: <20140310203312.10746.310.stgit@srivatsabhat.in.ibm.com>
 References: <20140310203312.10746.310.stgit@srivatsabhat.in.ibm.com>
 MIME-Version: 1.0
@@ -19,8 +20,8 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: paulus@samba.org, oleg@redhat.com, mingo@kernel.org, rjw@rjwysocki.net, rusty@rustcorp.com.au, peterz@infradead.org, tglx@linutronix.de, akpm@linux-foundation.org
-Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-pm@vger.kernel.org, linuxppc-dev@ozlabs.org, srivatsa.bhat@linux.vnet.ibm.com, Eddie Wai <eddie.wai@broadcom.com>, "James E.J. Bottomley" <JBottomley@parallels.com>, linux-scsi@vger.kernel.org"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Message-ID: <20140310203939.LDcx-UJ3iL3glBGOZR-XVn8XcK952FSHA0kz7X4aTuA@z>
+Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-pm@vger.kernel.org, linuxppc-dev@ozlabs.org, srivatsa.bhat@linux.vnet.ibm.com, Catalin Marinas <catalin.marinas@arm.com>, Lorenzo Pieralisi <Lorenzo.Pieralisi@arm.com>, linux-arm-kernel@lists.infradead.org, Will Deacon <will.deacon@arm.com>"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Message-ID: <20140310203908.HVLE88spg7hwVJVME8HtacGDiFye0iVOwF5hkzoNDLY@z>
 
 Subsystems that want to register CPU hotplug callbacks, as well as perform
 initialization for the CPUs that are already online, often do it as shown
@@ -53,54 +54,43 @@ registration is:
 	cpu_notifier_register_done();
 
 
-Fix the bnx2i code in scsi by using this latter form of callback registration.
+Fix the hw-breakpoint code in arm64 by using this latter form of callback
+registration.
 
-Cc: Eddie Wai <eddie.wai@broadcom.com>
-Cc: "James E.J. Bottomley" <JBottomley@parallels.com>
+Cc: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Lorenzo Pieralisi <Lorenzo.Pieralisi@arm.com>
 Cc: Ingo Molnar <mingo@kernel.org>
-Cc: linux-scsi@vger.kernel.org
+Cc: linux-arm-kernel@lists.infradead.org
+Acked-by: Will Deacon <will.deacon@arm.com>
 Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
 ---
 
- drivers/scsi/bnx2i/bnx2i_init.c |   12 ++++++++++--
- 1 file changed, 10 insertions(+), 2 deletions(-)
+ arch/arm64/kernel/hw_breakpoint.c |    7 ++++++-
+ 1 file changed, 6 insertions(+), 1 deletion(-)
 
-diff --git a/drivers/scsi/bnx2i/bnx2i_init.c b/drivers/scsi/bnx2i/bnx2i_init.c
-index 34c294b..80c03b4 100644
---- a/drivers/scsi/bnx2i/bnx2i_init.c
-+++ b/drivers/scsi/bnx2i/bnx2i_init.c
-@@ -537,11 +537,15 @@ static int __init bnx2i_mod_init(void)
- 		p->iothread = NULL;
- 	}
+diff --git a/arch/arm64/kernel/hw_breakpoint.c b/arch/arm64/kernel/hw_breakpoint.c
+index f17f581..bee7897 100644
+--- a/arch/arm64/kernel/hw_breakpoint.c
++++ b/arch/arm64/kernel/hw_breakpoint.c
+@@ -913,6 +913,8 @@ static int __init arch_hw_breakpoint_init(void)
+ 	pr_info("found %d breakpoint and %d watchpoint registers.\n",
+ 		core_num_brps, core_num_wrps);
  
 +	cpu_notifier_register_begin();
 +
- 	for_each_online_cpu(cpu)
- 		bnx2i_percpu_thread_create(cpu);
+ 	/*
+ 	 * Reset the breakpoint resources. We assume that a halting
+ 	 * debugger will leave the world in a nice state for us.
+@@ -927,7 +929,10 @@ static int __init arch_hw_breakpoint_init(void)
+ 			      TRAP_HWBKPT, "hw-watchpoint handler");
  
- 	/* Initialize per CPU interrupt thread */
--	register_hotcpu_notifier(&bnx2i_cpu_notifier);
-+	__register_hotcpu_notifier(&bnx2i_cpu_notifier);
-+
-+	cpu_notifier_register_done();
- 
- 	return 0;
- 
-@@ -581,11 +585,15 @@ static void __exit bnx2i_mod_exit(void)
- 	}
- 	mutex_unlock(&bnx2i_dev_lock);
- 
--	unregister_hotcpu_notifier(&bnx2i_cpu_notifier);
-+	cpu_notifier_register_begin();
- 
- 	for_each_online_cpu(cpu)
- 		bnx2i_percpu_thread_destroy(cpu);
- 
-+	__unregister_hotcpu_notifier(&bnx2i_cpu_notifier);
+ 	/* Register hotplug notifier. */
+-	register_cpu_notifier(&hw_breakpoint_reset_nb);
++	__register_cpu_notifier(&hw_breakpoint_reset_nb);
 +
 +	cpu_notifier_register_done();
 +
- 	iscsi_unregister_transport(&bnx2i_iscsi_transport);
- 	cnic_unregister_driver(CNIC_ULP_ISCSI);
- }
+ 	/* Register cpu_suspend hw breakpoint restore hook */
+ 	cpu_suspend_set_dbg_restorer(hw_breakpoint_reset);
+ 
 
