@@ -1,87 +1,58 @@
 From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH v3 29/52] x86, kvm: Fix CPU hotplug callback registration
-Date: Tue, 11 Mar 2014 02:09:01 +0530
-Message-ID: <20140310203901.10746.635.stgit@srivatsabhat.in.ibm.com>
+Subject: [PATCH v3 06/52] ia64, palinfo: Fix CPU hotplug callback registration
+Date: Tue, 11 Mar 2014 02:04:52 +0530
+Message-ID: <20140310203451.10746.45775.stgit@srivatsabhat.in.ibm.com>
 References: <20140310203312.10746.310.stgit@srivatsabhat.in.ibm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: 7bit
-Return-path: <kvm-owner@vger.kernel.org>
+Content-Transfer-Encoding: base64
+Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
 In-Reply-To: <20140310203312.10746.310.stgit@srivatsabhat.in.ibm.com>
-Sender: kvm-owner@vger.kernel.org
-To: paulus@samba.org, oleg@redhat.com, rjw@rjwysocki.net, rusty@rustcorp.com.au, peterz@infradead.org, akpm@linux-foundation.org
-Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-pm@vger.kernel.org, linuxppc-dev@ozlabs.org, srivatsa.bhat@linux.vnet.ibm.com, Gleb Natapov <gleb@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, kvm@vger.kernel.org, Paolo Bonzini <pbonzini@redhat.com>"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
+ <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
+List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
+List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
+List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
+List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
+ <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
+Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
+Sender: "Linuxppc-dev"
+ <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
+To: paulus@samba.org, oleg@redhat.com, rjw@rjwysocki.net, rusty@rustcorp.com.au, peterz@infradead.org, tglx@linutronix.de, akpm@linux-foundation.org
+Cc: linux-arch@vger.kernel.org, ego@linux.vnet.ibm.com, walken@google.com, linux@arm.linux.org.uk, linux-pm@vger.kernel.org, linux-kernel@vger.kernel.org, Fenghua Yu <fenghua.yu@intel.com>, linuxppc-dev@ozlabs.org, Tony Luck <tony.luck@intel.com>, "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, tj@kernel.org, linux-ia64@vger.kernel.org, paulmck@linux.vnet.ibm.com, Ingo Molnar <mingo@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-Subsystems that want to register CPU hotplug callbacks, as well as perform
-initialization for the CPUs that are already online, often do it as shown
-below:
-
-	get_online_cpus();
-
-	for_each_online_cpu(cpu)
-		init_cpu(cpu);
-
-	register_cpu_notifier(&foobar_cpu_notifier);
-
-	put_online_cpus();
-
-This is wrong, since it is prone to ABBA deadlocks involving the
-cpu_add_remove_lock and the cpu_hotplug.lock (when running concurrently
-with CPU hotplug operations).
-
-Instead, the correct and race-free way of performing the callback
-registration is:
-
-	cpu_notifier_register_begin();
-
-	for_each_online_cpu(cpu)
-		init_cpu(cpu);
-
-	/* Note the use of the double underscored version of the API */
-	__register_cpu_notifier(&foobar_cpu_notifier);
-
-	cpu_notifier_register_done();
-
-
-Fix the kvm code in x86 by using this latter form of callback registration.
-
-Cc: Gleb Natapov <gleb@kernel.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Ingo Molnar <mingo@kernel.org>
-Cc: "H. Peter Anvin" <hpa@zytor.com>
-Cc: x86@kernel.org
-Cc: kvm@vger.kernel.org
-Acked-by: Paolo Bonzini <pbonzini@redhat.com>
-Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
----
-
- arch/x86/kvm/x86.c |    7 ++++++-
- 1 file changed, 6 insertions(+), 1 deletion(-)
-
-diff --git a/arch/x86/kvm/x86.c b/arch/x86/kvm/x86.c
-index 2b85784..4db6f56 100644
---- a/arch/x86/kvm/x86.c
-+++ b/arch/x86/kvm/x86.c
-@@ -5365,7 +5365,8 @@ static void kvm_timer_init(void)
- 	int cpu;
- 
- 	max_tsc_khz = tsc_khz;
--	register_hotcpu_notifier(&kvmclock_cpu_notifier_block);
-+
-+	cpu_notifier_register_begin();
- 	if (!boot_cpu_has(X86_FEATURE_CONSTANT_TSC)) {
- #ifdef CONFIG_CPU_FREQ
- 		struct cpufreq_policy policy;
-@@ -5382,6 +5383,10 @@ static void kvm_timer_init(void)
- 	pr_debug("kvm: max_tsc_khz = %ld\n", max_tsc_khz);
- 	for_each_online_cpu(cpu)
- 		smp_call_function_single(cpu, tsc_khz_changed, NULL, 1);
-+
-+	__register_hotcpu_notifier(&kvmclock_cpu_notifier_block);
-+	cpu_notifier_register_done();
-+
- }
- 
- static DEFINE_PER_CPU(struct kvm_vcpu *, current_vcpu);
-
+U3Vic3lzdGVtcyB0aGF0IHdhbnQgdG8gcmVnaXN0ZXIgQ1BVIGhvdHBsdWcgY2FsbGJhY2tzLCBh
+cyB3ZWxsIGFzIHBlcmZvcm0KaW5pdGlhbGl6YXRpb24gZm9yIHRoZSBDUFVzIHRoYXQgYXJlIGFs
+cmVhZHkgb25saW5lLCBvZnRlbiBkbyBpdCBhcyBzaG93bgpiZWxvdzoKCglnZXRfb25saW5lX2Nw
+dXMoKTsKCglmb3JfZWFjaF9vbmxpbmVfY3B1KGNwdSkKCQlpbml0X2NwdShjcHUpOwoKCXJlZ2lz
+dGVyX2NwdV9ub3RpZmllcigmZm9vYmFyX2NwdV9ub3RpZmllcik7CgoJcHV0X29ubGluZV9jcHVz
+KCk7CgpUaGlzIGlzIHdyb25nLCBzaW5jZSBpdCBpcyBwcm9uZSB0byBBQkJBIGRlYWRsb2NrcyBp
+bnZvbHZpbmcgdGhlCmNwdV9hZGRfcmVtb3ZlX2xvY2sgYW5kIHRoZSBjcHVfaG90cGx1Zy5sb2Nr
+ICh3aGVuIHJ1bm5pbmcgY29uY3VycmVudGx5CndpdGggQ1BVIGhvdHBsdWcgb3BlcmF0aW9ucyku
+CgpJbnN0ZWFkLCB0aGUgY29ycmVjdCBhbmQgcmFjZS1mcmVlIHdheSBvZiBwZXJmb3JtaW5nIHRo
+ZSBjYWxsYmFjawpyZWdpc3RyYXRpb24gaXM6CgoJY3B1X25vdGlmaWVyX3JlZ2lzdGVyX2JlZ2lu
+KCk7CgoJZm9yX2VhY2hfb25saW5lX2NwdShjcHUpCgkJaW5pdF9jcHUoY3B1KTsKCgkvKiBOb3Rl
+IHRoZSB1c2Ugb2YgdGhlIGRvdWJsZSB1bmRlcnNjb3JlZCB2ZXJzaW9uIG9mIHRoZSBBUEkgKi8K
+CV9fcmVnaXN0ZXJfY3B1X25vdGlmaWVyKCZmb29iYXJfY3B1X25vdGlmaWVyKTsKCgljcHVfbm90
+aWZpZXJfcmVnaXN0ZXJfZG9uZSgpOwoKCkZpeCB0aGUgcGFsaW5mbyBjb2RlIGluIGlhNjQgYnkg
+dXNpbmcgdGhpcyBsYXR0ZXIgZm9ybSBvZiBjYWxsYmFjawpyZWdpc3RyYXRpb24uCgpDYzogVG9u
+eSBMdWNrIDx0b255Lmx1Y2tAaW50ZWwuY29tPgpDYzogRmVuZ2h1YSBZdSA8ZmVuZ2h1YS55dUBp
+bnRlbC5jb20+CkNjOiBJbmdvIE1vbG5hciA8bWluZ29Aa2VybmVsLm9yZz4KQ2M6IGxpbnV4LWlh
+NjRAdmdlci5rZXJuZWwub3JnClNpZ25lZC1vZmYtYnk6IFNyaXZhdHNhIFMuIEJoYXQgPHNyaXZh
+dHNhLmJoYXRAbGludXgudm5ldC5pYm0uY29tPgotLS0KCiBhcmNoL2lhNjQva2VybmVsL3BhbGlu
+Zm8uYyB8ICAgIDYgKysrKystCiAxIGZpbGUgY2hhbmdlZCwgNSBpbnNlcnRpb25zKCspLCAxIGRl
+bGV0aW9uKC0pCgpkaWZmIC0tZ2l0IGEvYXJjaC9pYTY0L2tlcm5lbC9wYWxpbmZvLmMgYi9hcmNo
+L2lhNjQva2VybmVsL3BhbGluZm8uYwppbmRleCBhYjMzMzI4Li5jMzljM2NkIDEwMDY0NAotLS0g
+YS9hcmNoL2lhNjQva2VybmVsL3BhbGluZm8uYworKysgYi9hcmNoL2lhNjQva2VybmVsL3BhbGlu
+Zm8uYwpAQCAtOTk2LDEzICs5OTYsMTcgQEAgcGFsaW5mb19pbml0KHZvaWQpCiAJaWYgKCFwYWxp
+bmZvX2RpcikKIAkJcmV0dXJuIC1FTk9NRU07CiAKKwljcHVfbm90aWZpZXJfcmVnaXN0ZXJfYmVn
+aW4oKTsKKwogCS8qIENyZWF0ZSBwYWxpbmZvIGRpcnMgaW4gL3Byb2MgZm9yIGFsbCBvbmxpbmUg
+Y3B1cyAqLwogCWZvcl9lYWNoX29ubGluZV9jcHUoaSkgewogCQljcmVhdGVfcGFsaW5mb19wcm9j
+X2VudHJpZXMoaSk7CiAJfQogCiAJLyogUmVnaXN0ZXIgZm9yIGZ1dHVyZSBkZWxpdmVyeSB2aWEg
+bm90aWZ5IHJlZ2lzdHJhdGlvbiAqLwotCXJlZ2lzdGVyX2hvdGNwdV9ub3RpZmllcigmcGFsaW5m
+b19jcHVfbm90aWZpZXIpOworCV9fcmVnaXN0ZXJfaG90Y3B1X25vdGlmaWVyKCZwYWxpbmZvX2Nw
+dV9ub3RpZmllcik7CisKKwljcHVfbm90aWZpZXJfcmVnaXN0ZXJfZG9uZSgpOwogCiAJcmV0dXJu
+IDA7CiB9CgpfX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fXwpM
+aW51eHBwYy1kZXYgbWFpbGluZyBsaXN0CkxpbnV4cHBjLWRldkBsaXN0cy5vemxhYnMub3JnCmh0
+dHBzOi8vbGlzdHMub3psYWJzLm9yZy9saXN0aW5mby9saW51eHBwYy1kZXY=
