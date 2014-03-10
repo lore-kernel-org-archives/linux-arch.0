@@ -1,17 +1,17 @@
 From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH v3 39/52] clocksource,
- dummy-timer: Fix CPU hotplug callback registration
-Date: Tue, 11 Mar 2014 02:10:23 +0530
-Message-ID: <20140310204023.10746.32020.stgit@srivatsabhat.in.ibm.com>
+Subject: [PATCH v3 42/52] octeon,
+ watchdog: Fix CPU hotplug callback registration
+Date: Tue, 11 Mar 2014 02:10:43 +0530
+Message-ID: <20140310204042.10746.60098.stgit@srivatsabhat.in.ibm.com>
 References: <20140310203312.10746.310.stgit@srivatsabhat.in.ibm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-pm-owner@vger.kernel.org>
 In-Reply-To: <20140310203312.10746.310.stgit@srivatsabhat.in.ibm.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: paulus@samba.org, oleg@redhat.com, rjw@rjwysocki.net, rusty@rustcorp.com.au, peterz@infradead.org, akpm@linux-foundation.org
-Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-pm@vger.kernel.org, linuxppc-dev@ozlabs.org, srivatsa.bhat@linux.vnet.ibm.com, Daniel Lezcano <daniel.lezcano@linaro.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@kernel.org>"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Sender: linux-pm-owner@vger.kernel.org
+To: paulus@samba.org, oleg@redhat.com, rjw@rjwysocki.net, rusty@rustcorp.com.au, peterz@infradead.org, tglx@linutronix.de, akpm@linux-foundation.org
+Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-pm@vger.kernel.org, linuxppc-dev@ozlabs.org, srivatsa.bhat@linux.vnet.ibm.com, Wim Van Sebroeck <wim@iguana.be>, Ingo Molnar <mingo@kernel.org>, linux-watchdog@vger.kernel.org"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
 List-Id: linux-arch.vger.kernel.org
 
 Subsystems that want to register CPU hotplug callbacks, as well as perform
@@ -45,42 +45,55 @@ registration is:
 	cpu_notifier_register_done();
 
 
-Fix the clocksource dummy-timer code by using this latter form of callback
+Fix the watchdog code in octeon by using this latter form of callback
 registration.
 
-Cc: Daniel Lezcano <daniel.lezcano@linaro.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Wim Van Sebroeck <wim@iguana.be>
 Cc: Ingo Molnar <mingo@kernel.org>
+Cc: linux-watchdog@vger.kernel.org
 Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
 ---
 
- drivers/clocksource/dummy_timer.c |   11 ++++++++---
- 1 file changed, 8 insertions(+), 3 deletions(-)
+ drivers/watchdog/octeon-wdt-main.c |   11 +++++++++--
+ 1 file changed, 9 insertions(+), 2 deletions(-)
 
-diff --git a/drivers/clocksource/dummy_timer.c b/drivers/clocksource/dummy_timer.c
-index b3eb582..ad35725 100644
---- a/drivers/clocksource/dummy_timer.c
-+++ b/drivers/clocksource/dummy_timer.c
-@@ -56,14 +56,19 @@ static struct notifier_block dummy_timer_cpu_nb = {
+diff --git a/drivers/watchdog/octeon-wdt-main.c b/drivers/watchdog/octeon-wdt-main.c
+index 4612088..4baf2d7 100644
+--- a/drivers/watchdog/octeon-wdt-main.c
++++ b/drivers/watchdog/octeon-wdt-main.c
+@@ -708,10 +708,13 @@ static int __init octeon_wdt_init(void)
  
- static int __init dummy_timer_register(void)
- {
--	int err = register_cpu_notifier(&dummy_timer_cpu_nb);
-+	int err = 0;
-+
+ 	cpumask_clear(&irq_enabled_cpus);
+ 
 +	cpu_notifier_register_begin();
-+	err = __register_cpu_notifier(&dummy_timer_cpu_nb);
- 	if (err)
--		return err;
-+		goto out;
+ 	for_each_online_cpu(cpu)
+ 		octeon_wdt_setup_interrupt(cpu);
  
- 	/* We won't get a call on the boot CPU, so register immediately */
- 	if (num_possible_cpus() > 1)
- 		dummy_timer_setup();
- 
--	return 0;
-+out:
+-	register_hotcpu_notifier(&octeon_wdt_cpu_notifier);
++	__register_hotcpu_notifier(&octeon_wdt_cpu_notifier);
 +	cpu_notifier_register_done();
-+	return err;
++
+ out:
+ 	return ret;
  }
- early_initcall(dummy_timer_register);
+@@ -725,7 +728,8 @@ static void __exit octeon_wdt_cleanup(void)
+ 
+ 	misc_deregister(&octeon_wdt_miscdev);
+ 
+-	unregister_hotcpu_notifier(&octeon_wdt_cpu_notifier);
++	cpu_notifier_register_begin();
++	__unregister_hotcpu_notifier(&octeon_wdt_cpu_notifier);
+ 
+ 	for_each_online_cpu(cpu) {
+ 		int core = cpu2core(cpu);
+@@ -734,6 +738,9 @@ static void __exit octeon_wdt_cleanup(void)
+ 		/* Free the interrupt handler */
+ 		free_irq(OCTEON_IRQ_WDOG0 + core, octeon_wdt_poke_irq);
+ 	}
++
++	cpu_notifier_register_done();
++
+ 	/*
+ 	 * Disable the boot-bus memory, the code it points to is soon
+ 	 * to go missing.
+
