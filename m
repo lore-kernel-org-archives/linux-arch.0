@@ -1,16 +1,16 @@
 From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH v3 48/52] profile: Fix CPU hotplug callback registration
-Date: Tue, 11 Mar 2014 02:12:08 +0530
-Message-ID: <20140310204207.10746.84822.stgit@srivatsabhat.in.ibm.com>
+Subject: [PATCH v3 49/52] mm, vmstat: Fix CPU hotplug callback registration
+Date: Tue, 11 Mar 2014 02:12:27 +0530
+Message-ID: <20140310204226.10746.64059.stgit@srivatsabhat.in.ibm.com>
 References: <20140310203312.10746.310.stgit@srivatsabhat.in.ibm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <owner-linux-mm@kvack.org>
 In-Reply-To: <20140310203312.10746.310.stgit@srivatsabhat.in.ibm.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: paulus@samba.org, oleg@redhat.com, rjw@rjwysocki.net, rusty@rustcorp.com.au, peterz@infradead.org, tglx@linutronix.de, akpm@linux-foundation.org
-Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-pm@vger.kernel.org, linuxppc-dev@ozlabs.org, srivatsa.bhat@linux.vnet.ibm.com, Al Viro <viro@zeniv.linux.org.uk>, Mauro Carvalho Chehab <mchehab@redhat.com>, Ingo Molnar <mingo@kernel.org>"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Sender: owner-linux-mm@kvack.org
+To: paulus@samba.org, oleg@redhat.com, rjw@rjwysocki.net, rusty@rustcorp.com.au, peterz@infradead.org, tglx@linutronix.de
+Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-pm@vger.kernel.org, linuxppc-dev@ozlabs.org, srivatsa.bhat@linux.vnet.ibm.com, Andrew Morton <akpm@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, Cody P Schafer <cody@linux.vnet.ibm.com>, Toshi Kani <toshi.kani@hp.com>, Dave Hansen <dave@sr71.net>, Ingo Molnar <mingo@kernel.org>, linux-mm@kvack.org, Christoph Lameter <cl@linux.com>, Rik van Riel <riel@redhat.com>"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
 List-Id: linux-arch.vger.kernel.org
 
 Subsystems that want to register CPU hotplug callbacks, as well as perform
@@ -44,52 +44,50 @@ registration is:
 	cpu_notifier_register_done();
 
 
-Fix the profile code by using this latter form of callback registration.
+Fix the vmstat code in the MM subsystem by using this latter form of callback
+registration.
 
-Cc: Al Viro <viro@zeniv.linux.org.uk>
-Cc: Mauro Carvalho Chehab <mchehab@redhat.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>
+Cc: Johannes Weiner <hannes@cmpxchg.org>
+Cc: Cody P Schafer <cody@linux.vnet.ibm.com>
+Cc: Toshi Kani <toshi.kani@hp.com>
+Cc: Dave Hansen <dave@sr71.net>
 Cc: Ingo Molnar <mingo@kernel.org>
+Cc: linux-mm@kvack.org
+Acked-by: Christoph Lameter <cl@linux.com>
+Acked-by: Rik van Riel <riel@redhat.com>
+Reviewed-by: Yasuaki Ishimatsu <isimatu.yasuaki@jp.fujitsu.com>
 Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
 ---
 
- kernel/profile.c |   20 +++++++++++++++-----
- 1 file changed, 15 insertions(+), 5 deletions(-)
+ mm/vmstat.c |    6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
 
-diff --git a/kernel/profile.c b/kernel/profile.c
-index 6631e1e..4c0cb95 100644
---- a/kernel/profile.c
-+++ b/kernel/profile.c
-@@ -591,18 +591,28 @@ out_cleanup:
- int __ref create_proc_profile(void) /* false positive from hotcpu_notifier */
- {
- 	struct proc_dir_entry *entry;
-+	int err = 0;
+diff --git a/mm/vmstat.c b/mm/vmstat.c
+index def5dd2..58c6f3d 100644
+--- a/mm/vmstat.c
++++ b/mm/vmstat.c
+@@ -1292,14 +1292,14 @@ static int __init setup_vmstat(void)
+ #ifdef CONFIG_SMP
+ 	int cpu;
  
- 	if (!prof_on)
- 		return 0;
--	if (create_hash_tables())
--		return -ENOMEM;
-+
+-	register_cpu_notifier(&vmstat_notifier);
 +	cpu_notifier_register_begin();
-+
-+	if (create_hash_tables()) {
-+		err = -ENOMEM;
-+		goto out;
-+	}
-+
- 	entry = proc_create("profile", S_IWUSR | S_IRUGO,
- 			    NULL, &proc_profile_operations);
- 	if (!entry)
--		return 0;
-+		goto out;
- 	proc_set_size(entry, (1 + prof_len) * sizeof(atomic_t));
--	hotcpu_notifier(profile_cpu_callback, 0);
--	return 0;
-+	__hotcpu_notifier(profile_cpu_callback, 0);
-+
-+out:
++	__register_cpu_notifier(&vmstat_notifier);
+ 
+-	get_online_cpus();
+ 	for_each_online_cpu(cpu) {
+ 		start_cpu_timer(cpu);
+ 		node_set_state(cpu_to_node(cpu), N_CPU);
+ 	}
+-	put_online_cpus();
 +	cpu_notifier_register_done();
-+	return err;
- }
- module_init(create_proc_profile);
- #endif /* CONFIG_PROC_FS */
+ #endif
+ #ifdef CONFIG_PROC_FS
+ 	proc_create("buddyinfo", S_IRUGO, NULL, &fragmentation_file_operations);
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
