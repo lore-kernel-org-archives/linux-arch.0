@@ -1,17 +1,17 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e28smtp08.in.ibm.com ([122.248.162.8]:38158 "EHLO
-	e28smtp08.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755239AbaCJUks (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 10 Mar 2014 16:40:48 -0400
+Received: from e23smtp08.au.ibm.com ([202.81.31.141]:34978 "EHLO
+	e23smtp08.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753906AbaCJUlQ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 10 Mar 2014 16:41:16 -0400
 Received: from /spool/local
-	by e28smtp08.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	by e23smtp08.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
 	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
-	Tue, 11 Mar 2014 02:10:46 +0530
+	Tue, 11 Mar 2014 06:41:15 +1000
 From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH v3 41/52] oprofile,
- nmi-timer: Fix CPU hotplug callback registration
-Date: Tue, 11 Mar 2014 02:10:36 +0530
-Message-ID: <20140310204036.10746.10550.stgit@srivatsabhat.in.ibm.com>
+Subject: [PATCH v3 43/52] thermal,
+ x86-pkg-temp: Fix CPU hotplug callback registration
+Date: Tue, 11 Mar 2014 02:10:54 +0530
+Message-ID: <20140310204054.10746.57627.stgit@srivatsabhat.in.ibm.com>
 In-Reply-To: <20140310203312.10746.310.stgit@srivatsabhat.in.ibm.com>
 References: <20140310203312.10746.310.stgit@srivatsabhat.in.ibm.com>
 MIME-Version: 1.0
@@ -20,8 +20,8 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: paulus@samba.org, oleg@redhat.com, mingo@kernel.org, rjw@rjwysocki.net, rusty@rustcorp.com.au, peterz@infradead.org, tglx@linutronix.de, akpm@linux-foundation.org
-Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-pm@vger.kernel.org, linuxppc-dev@ozlabs.org, srivatsa.bhat@linux.vnet.ibm.com, Robert Richter <rric@kernel.org>"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Message-ID: <20140310204036.YE2SLSHgbuVbQQbmbd2gwbB_GQO-JYmc-Dz-0EhMEEI@z>
+Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-pm@vger.kernel.org, linuxppc-dev@ozlabs.org, srivatsa.bhat@linux.vnet.ibm.com, Zhang Rui <rui.zhang@intel.com>, Eduardo Valentin <eduardo.valentin@ti.com>linux-pm@vger.kernel.org"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Message-ID: <20140310204054.r9AWc8rMKKWOt2vVk8-EyjdkzecV8hts6HcVFikAtqs@z>
 
 Subsystems that want to register CPU hotplug callbacks, as well as perform
 initialization for the CPUs that are already online, often do it as shown
@@ -54,70 +54,66 @@ registration is:
 	cpu_notifier_register_done();
 
 
-Fix the nmi-timer code in oprofile by using this latter form of callback
+Fix the thermal x86-pkg-temp code by using this latter form of callback
 registration.
 
-Cc: Robert Richter <rric@kernel.org>
+Cc: Zhang Rui <rui.zhang@intel.com>
+Cc: Eduardo Valentin <eduardo.valentin@ti.com>
 Cc: Ingo Molnar <mingo@kernel.org>
+Cc: linux-pm@vger.kernel.org
 Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
 ---
 
- drivers/oprofile/nmi_timer_int.c |   23 +++++++++++++----------
- 1 file changed, 13 insertions(+), 10 deletions(-)
+ drivers/thermal/x86_pkg_temp_thermal.c |   14 +++++++-------
+ 1 file changed, 7 insertions(+), 7 deletions(-)
 
-diff --git a/drivers/oprofile/nmi_timer_int.c b/drivers/oprofile/nmi_timer_int.c
-index 76f1c93..9559829 100644
---- a/drivers/oprofile/nmi_timer_int.c
-+++ b/drivers/oprofile/nmi_timer_int.c
-@@ -108,8 +108,8 @@ static void nmi_timer_shutdown(void)
- 	struct perf_event *event;
- 	int cpu;
+diff --git a/drivers/thermal/x86_pkg_temp_thermal.c b/drivers/thermal/x86_pkg_temp_thermal.c
+index 081fd7e..9ea3d9d 100644
+--- a/drivers/thermal/x86_pkg_temp_thermal.c
++++ b/drivers/thermal/x86_pkg_temp_thermal.c
+@@ -590,12 +590,12 @@ static int __init pkg_temp_thermal_init(void)
+ 	platform_thermal_package_rate_control =
+ 			pkg_temp_thermal_platform_thermal_rate_control;
  
 -	get_online_cpus();
--	unregister_cpu_notifier(&nmi_timer_cpu_nb);
 +	cpu_notifier_register_begin();
-+	__unregister_cpu_notifier(&nmi_timer_cpu_nb);
- 	for_each_possible_cpu(cpu) {
- 		event = per_cpu(nmi_timer_events, cpu);
- 		if (!event)
-@@ -119,7 +119,7 @@ static void nmi_timer_shutdown(void)
- 		perf_event_release_kernel(event);
- 	}
+ 	for_each_online_cpu(i)
+ 		if (get_core_online(i))
+ 			goto err_ret;
+-	register_hotcpu_notifier(&pkg_temp_thermal_notifier);
+-	put_online_cpus();
++	__register_hotcpu_notifier(&pkg_temp_thermal_notifier);
++	cpu_notifier_register_done();
  
+ 	pkg_temp_debugfs_init(); /* Don't care if fails */
+ 
+@@ -604,7 +604,7 @@ static int __init pkg_temp_thermal_init(void)
+ err_ret:
+ 	for_each_online_cpu(i)
+ 		put_core_offline(i);
 -	put_online_cpus();
 +	cpu_notifier_register_done();
- }
- 
- static int nmi_timer_setup(void)
-@@ -132,20 +132,23 @@ static int nmi_timer_setup(void)
- 	do_div(period, HZ);
- 	nmi_timer_attr.sample_period = period;
+ 	kfree(pkg_work_scheduled);
+ 	platform_thermal_package_notify = NULL;
+ 	platform_thermal_package_rate_control = NULL;
+@@ -617,8 +617,8 @@ static void __exit pkg_temp_thermal_exit(void)
+ 	struct phy_dev_entry *phdev, *n;
+ 	int i;
  
 -	get_online_cpus();
--	err = register_cpu_notifier(&nmi_timer_cpu_nb);
+-	unregister_hotcpu_notifier(&pkg_temp_thermal_notifier);
 +	cpu_notifier_register_begin();
-+	err = __register_cpu_notifier(&nmi_timer_cpu_nb);
- 	if (err)
- 		goto out;
-+
- 	/* can't attach events to offline cpus: */
- 	for_each_online_cpu(cpu) {
- 		err = nmi_timer_start_cpu(cpu);
--		if (err)
--			break;
-+		if (err) {
-+			cpu_notifier_register_done();
-+			nmi_timer_shutdown();
-+			return err;
-+		}
- 	}
--	if (err)
--		nmi_timer_shutdown();
-+
- out:
++	__unregister_hotcpu_notifier(&pkg_temp_thermal_notifier);
+ 	mutex_lock(&phy_dev_list_mutex);
+ 	list_for_each_entry_safe(phdev, n, &phy_dev_list, list) {
+ 		/* Retore old MSR value for package thermal interrupt */
+@@ -636,7 +636,7 @@ static void __exit pkg_temp_thermal_exit(void)
+ 	for_each_online_cpu(i)
+ 		cancel_delayed_work_sync(
+ 			&per_cpu(pkg_temp_thermal_threshold_work, i));
 -	put_online_cpus();
 +	cpu_notifier_register_done();
- 	return err;
- }
+ 
+ 	kfree(pkg_work_scheduled);
  
 
