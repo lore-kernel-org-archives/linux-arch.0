@@ -1,16 +1,17 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e23smtp04.au.ibm.com ([202.81.31.146]:49967 "EHLO
+Received: from e23smtp04.au.ibm.com ([202.81.31.146]:49832 "EHLO
 	e23smtp04.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754197AbaCJUmr (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 10 Mar 2014 16:42:47 -0400
+	with ESMTP id S1754386AbaCJUk3 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 10 Mar 2014 16:40:29 -0400
 Received: from /spool/local
 	by e23smtp04.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
 	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
-	Tue, 11 Mar 2014 06:42:45 +1000
+	Tue, 11 Mar 2014 06:40:27 +1000
 From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH v3 49/52] mm, vmstat: Fix CPU hotplug callback registration
-Date: Tue, 11 Mar 2014 02:12:27 +0530
-Message-ID: <20140310204226.10746.64059.stgit@srivatsabhat.in.ibm.com>
+Subject: [PATCH v3 38/52] drivers/base/topology.c: Fix CPU hotplug callback
+ registration
+Date: Tue, 11 Mar 2014 02:10:12 +0530
+Message-ID: <20140310204012.10746.6803.stgit@srivatsabhat.in.ibm.com>
 In-Reply-To: <20140310203312.10746.310.stgit@srivatsabhat.in.ibm.com>
 References: <20140310203312.10746.310.stgit@srivatsabhat.in.ibm.com>
 MIME-Version: 1.0
@@ -19,8 +20,8 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: paulus@samba.org, oleg@redhat.com, mingo@kernel.org, rjw@rjwysocki.net, rusty@rustcorp.com.au, peterz@infradead.org, tglx@linutronix.de, akpm@linux-foundation.org
-Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-pm@vger.kernel.org, linuxppc-dev@ozlabs.org, srivatsa.bhat@linux.vnet.ibm.com, Johannes Weiner <hannes@cmpxchg.org>, Cody P Schafer <cody@linux.vnet.ibm.com>, Toshi Kani <toshi.kani@hp.com>, Dave Hansen <dave@sr71.net>, linux-mm@kvack.org, Christoph Lameter <cl@linux.com>, Rik van Riel <riel@redhat.com>"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Message-ID: <20140310204227.GWxKmCpZJAW5ipRq9GksnOuGH6QbhWg3j-CQ-aLuso4@z>
+Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-pm@vger.kernel.org, linuxppc-dev@ozlabs.org, srivatsa.bhat@linux.vnet.ibm.com, Greg Kroah-Hartman <gregkh@linuxfoundation.org>"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Message-ID: <20140310204012.1Tj30oonIk_LJ1Wb3-TF-V3ZbUVlF-54kGXTY8UNd_E@z>
 
 Subsystems that want to register CPU hotplug callbacks, as well as perform
 initialization for the CPUs that are already online, often do it as shown
@@ -53,45 +54,43 @@ registration is:
 	cpu_notifier_register_done();
 
 
-Fix the vmstat code in the MM subsystem by using this latter form of callback
-registration.
+Fix the topology code by using this latter form of callback registration.
 
-Cc: Andrew Morton <akpm@linux-foundation.org>
-Cc: Johannes Weiner <hannes@cmpxchg.org>
-Cc: Cody P Schafer <cody@linux.vnet.ibm.com>
-Cc: Toshi Kani <toshi.kani@hp.com>
-Cc: Dave Hansen <dave@sr71.net>
 Cc: Ingo Molnar <mingo@kernel.org>
-Cc: linux-mm@kvack.org
-Acked-by: Christoph Lameter <cl@linux.com>
-Acked-by: Rik van Riel <riel@redhat.com>
-Reviewed-by: Yasuaki Ishimatsu <isimatu.yasuaki@jp.fujitsu.com>
+Acked-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
 Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
 ---
 
- mm/vmstat.c |    6 +++---
- 1 file changed, 3 insertions(+), 3 deletions(-)
+ drivers/base/topology.c |   12 ++++++++----
+ 1 file changed, 8 insertions(+), 4 deletions(-)
 
-diff --git a/mm/vmstat.c b/mm/vmstat.c
-index def5dd2..58c6f3d 100644
---- a/mm/vmstat.c
-+++ b/mm/vmstat.c
-@@ -1292,14 +1292,14 @@ static int __init setup_vmstat(void)
- #ifdef CONFIG_SMP
+diff --git a/drivers/base/topology.c b/drivers/base/topology.c
+index 94ffee3..a738d10 100644
+--- a/drivers/base/topology.c
++++ b/drivers/base/topology.c
+@@ -161,16 +161,20 @@ static int topology_cpu_callback(struct notifier_block *nfb,
+ static int topology_sysfs_init(void)
+ {
  	int cpu;
- 
--	register_cpu_notifier(&vmstat_notifier);
+-	int rc;
++	int rc = 0;
++
 +	cpu_notifier_register_begin();
-+	__register_cpu_notifier(&vmstat_notifier);
  
--	get_online_cpus();
  	for_each_online_cpu(cpu) {
- 		start_cpu_timer(cpu);
- 		node_set_state(cpu_to_node(cpu), N_CPU);
+ 		rc = topology_add_dev(cpu);
+ 		if (rc)
+-			return rc;
++			goto out;
  	}
--	put_online_cpus();
+-	hotcpu_notifier(topology_cpu_callback, 0);
++	__hotcpu_notifier(topology_cpu_callback, 0);
+ 
+-	return 0;
++out:
 +	cpu_notifier_register_done();
- #endif
- #ifdef CONFIG_PROC_FS
- 	proc_create("buddyinfo", S_IRUGO, NULL, &fragmentation_file_operations);
++	return rc;
+ }
+ 
+ device_initcall(topology_sysfs_init);
 
