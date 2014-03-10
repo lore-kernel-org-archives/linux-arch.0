@@ -1,17 +1,17 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e23smtp06.au.ibm.com ([202.81.31.148]:59302 "EHLO
+Received: from e23smtp06.au.ibm.com ([202.81.31.148]:59373 "EHLO
 	e23smtp06.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753326AbaCJUmN (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 10 Mar 2014 16:42:13 -0400
+	with ESMTP id S1755425AbaCJUnW (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 10 Mar 2014 16:43:22 -0400
 Received: from /spool/local
 	by e23smtp06.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
 	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
-	Tue, 11 Mar 2014 06:42:11 +1000
+	Tue, 11 Mar 2014 06:43:20 +1000
 From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH v3 47/52] trace,
- ring-buffer: Fix CPU hotplug callback registration
-Date: Tue, 11 Mar 2014 02:11:56 +0530
-Message-ID: <20140310204156.10746.79965.stgit@srivatsabhat.in.ibm.com>
+Subject: [PATCH v3 52/52] net/iucv/iucv.c: Fix CPU hotplug callback
+ registration
+Date: Tue, 11 Mar 2014 02:12:57 +0530
+Message-ID: <20140310204257.10746.50242.stgit@srivatsabhat.in.ibm.com>
 In-Reply-To: <20140310203312.10746.310.stgit@srivatsabhat.in.ibm.com>
 References: <20140310203312.10746.310.stgit@srivatsabhat.in.ibm.com>
 MIME-Version: 1.0
@@ -20,8 +20,8 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: paulus@samba.org, oleg@redhat.com, mingo@kernel.org, rjw@rjwysocki.net, rusty@rustcorp.com.au, peterz@infradead.org, tglx@linutronix.de, akpm@linux-foundation.org
-Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-pm@vger.kernel.org, linuxppc-dev@ozlabs.org, srivatsa.bhat@linux.vnet.ibm.com, Frederic Weisbecker <fweisbec@gmail.com>, Steven Rostedt <rostedt@goodmis.org>"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Message-ID: <20140310204156.JBlugCER9-M3LGgpB-f0_d6O8AR9IAvOU2eW5nlQEYI@z>
+Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-pm@vger.kernel.org, linuxppc-dev@ozlabs.org, srivatsa.bhat@linux.vnet.ibm.com, Ursula Braun <ursula.braun@de.ibm.com>, linux-s390@vger.kernel.org, netdev@vger.kernel.org, "David S. Miller" <davem@davemloft.net>"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Message-ID: <20140310204257.X6pwZS2eyWvAGsf8960jo1HFJd8X_UjcK5N_vxHHZbA@z>
 
 Subsystems that want to register CPU hotplug callbacks, as well as perform
 initialization for the CPUs that are already online, often do it as shown
@@ -54,75 +54,193 @@ registration is:
 	cpu_notifier_register_done();
 
 
-Fix the tracing ring-buffer code by using this latter form of callback
-registration.
+Fix the code in net/iucv/iucv.c by using this latter form of callback
+registration. Also, provide helper functions to perform the common memory
+allocations and frees, to condense repetitive code.
 
-Cc: Frederic Weisbecker <fweisbec@gmail.com>
+Cc: Ursula Braun <ursula.braun@de.ibm.com>
 Cc: Ingo Molnar <mingo@kernel.org>
-Acked-by: Steven Rostedt <rostedt@goodmis.org>
+Cc: linux-s390@vger.kernel.org
+Cc: netdev@vger.kernel.org
+Acked-by: David S. Miller <davem@davemloft.net>
 Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
 ---
 
- kernel/trace/ring_buffer.c |   19 +++++++++++--------
- 1 file changed, 11 insertions(+), 8 deletions(-)
+ net/iucv/iucv.c |  121 ++++++++++++++++++++++++++-----------------------------
+ 1 file changed, 57 insertions(+), 64 deletions(-)
 
-diff --git a/kernel/trace/ring_buffer.c b/kernel/trace/ring_buffer.c
-index fc4da2d..c634868 100644
---- a/kernel/trace/ring_buffer.c
-+++ b/kernel/trace/ring_buffer.c
-@@ -1301,7 +1301,7 @@ struct ring_buffer *__ring_buffer_alloc(unsigned long size, unsigned flags,
- 	 * In that off case, we need to allocate for all possible cpus.
- 	 */
- #ifdef CONFIG_HOTPLUG_CPU
--	get_online_cpus();
-+	cpu_notifier_register_begin();
- 	cpumask_copy(buffer->cpumask, cpu_online_mask);
- #else
- 	cpumask_copy(buffer->cpumask, cpu_possible_mask);
-@@ -1324,10 +1324,10 @@ struct ring_buffer *__ring_buffer_alloc(unsigned long size, unsigned flags,
- #ifdef CONFIG_HOTPLUG_CPU
- 	buffer->cpu_notify.notifier_call = rb_cpu_notify;
- 	buffer->cpu_notify.priority = 0;
--	register_cpu_notifier(&buffer->cpu_notify);
-+	__register_cpu_notifier(&buffer->cpu_notify);
-+	cpu_notifier_register_done();
- #endif
+diff --git a/net/iucv/iucv.c b/net/iucv/iucv.c
+index cd5b8ec..79a0ce9 100644
+--- a/net/iucv/iucv.c
++++ b/net/iucv/iucv.c
+@@ -621,6 +621,42 @@ static void iucv_disable(void)
+ 	put_online_cpus();
+ }
  
--	put_online_cpus();
- 	mutex_init(&buffer->mutex);
- 
- 	return buffer;
-@@ -1341,7 +1341,9 @@ struct ring_buffer *__ring_buffer_alloc(unsigned long size, unsigned flags,
- 
-  fail_free_cpumask:
- 	free_cpumask_var(buffer->cpumask);
--	put_online_cpus();
-+#ifdef CONFIG_HOTPLUG_CPU
-+	cpu_notifier_register_done();
-+#endif
- 
-  fail_free_buffer:
- 	kfree(buffer);
-@@ -1358,16 +1360,17 @@ ring_buffer_free(struct ring_buffer *buffer)
++static void free_iucv_data(int cpu)
++{
++	kfree(iucv_param_irq[cpu]);
++	iucv_param_irq[cpu] = NULL;
++	kfree(iucv_param[cpu]);
++	iucv_param[cpu] = NULL;
++	kfree(iucv_irq_data[cpu]);
++	iucv_irq_data[cpu] = NULL;
++}
++
++static int alloc_iucv_data(int cpu)
++{
++	/* Note: GFP_DMA used to get memory below 2G */
++	iucv_irq_data[cpu] = kmalloc_node(sizeof(struct iucv_irq_data),
++			     GFP_KERNEL|GFP_DMA, cpu_to_node(cpu));
++	if (!iucv_irq_data[cpu])
++		goto out_free;
++
++	/* Allocate parameter blocks. */
++	iucv_param[cpu] = kmalloc_node(sizeof(union iucv_param),
++			  GFP_KERNEL|GFP_DMA, cpu_to_node(cpu));
++	if (!iucv_param[cpu])
++		goto out_free;
++
++	iucv_param_irq[cpu] = kmalloc_node(sizeof(union iucv_param),
++			  GFP_KERNEL|GFP_DMA, cpu_to_node(cpu));
++	if (!iucv_param_irq[cpu])
++		goto out_free;
++
++	return 0;
++
++out_free:
++	free_iucv_data(cpu);
++	return -ENOMEM;
++}
++
+ static int iucv_cpu_notify(struct notifier_block *self,
+ 				     unsigned long action, void *hcpu)
  {
- 	int cpu;
- 
--	get_online_cpus();
+@@ -630,38 +666,14 @@ static int iucv_cpu_notify(struct notifier_block *self,
+ 	switch (action) {
+ 	case CPU_UP_PREPARE:
+ 	case CPU_UP_PREPARE_FROZEN:
+-		iucv_irq_data[cpu] = kmalloc_node(sizeof(struct iucv_irq_data),
+-					GFP_KERNEL|GFP_DMA, cpu_to_node(cpu));
+-		if (!iucv_irq_data[cpu])
+-			return notifier_from_errno(-ENOMEM);
 -
- #ifdef CONFIG_HOTPLUG_CPU
--	unregister_cpu_notifier(&buffer->cpu_notify);
+-		iucv_param[cpu] = kmalloc_node(sizeof(union iucv_param),
+-				     GFP_KERNEL|GFP_DMA, cpu_to_node(cpu));
+-		if (!iucv_param[cpu]) {
+-			kfree(iucv_irq_data[cpu]);
+-			iucv_irq_data[cpu] = NULL;
++		if (alloc_iucv_data(cpu))
+ 			return notifier_from_errno(-ENOMEM);
+-		}
+-		iucv_param_irq[cpu] = kmalloc_node(sizeof(union iucv_param),
+-					GFP_KERNEL|GFP_DMA, cpu_to_node(cpu));
+-		if (!iucv_param_irq[cpu]) {
+-			kfree(iucv_param[cpu]);
+-			iucv_param[cpu] = NULL;
+-			kfree(iucv_irq_data[cpu]);
+-			iucv_irq_data[cpu] = NULL;
+-			return notifier_from_errno(-ENOMEM);
+-		}
+ 		break;
+ 	case CPU_UP_CANCELED:
+ 	case CPU_UP_CANCELED_FROZEN:
+ 	case CPU_DEAD:
+ 	case CPU_DEAD_FROZEN:
+-		kfree(iucv_param_irq[cpu]);
+-		iucv_param_irq[cpu] = NULL;
+-		kfree(iucv_param[cpu]);
+-		iucv_param[cpu] = NULL;
+-		kfree(iucv_irq_data[cpu]);
+-		iucv_irq_data[cpu] = NULL;
++		free_iucv_data(cpu);
+ 		break;
+ 	case CPU_ONLINE:
+ 	case CPU_ONLINE_FROZEN:
+@@ -2025,33 +2037,20 @@ static int __init iucv_init(void)
+ 		goto out_int;
+ 	}
+ 
+-	for_each_online_cpu(cpu) {
+-		/* Note: GFP_DMA used to get memory below 2G */
+-		iucv_irq_data[cpu] = kmalloc_node(sizeof(struct iucv_irq_data),
+-				     GFP_KERNEL|GFP_DMA, cpu_to_node(cpu));
+-		if (!iucv_irq_data[cpu]) {
+-			rc = -ENOMEM;
+-			goto out_free;
+-		}
 +	cpu_notifier_register_begin();
-+	__unregister_cpu_notifier(&buffer->cpu_notify);
- #endif
  
- 	for_each_buffer_cpu(buffer, cpu)
- 		rb_free_cpu_buffer(buffer->buffers[cpu]);
- 
--	put_online_cpus();
-+#ifdef CONFIG_HOTPLUG_CPU
+-		/* Allocate parameter blocks. */
+-		iucv_param[cpu] = kmalloc_node(sizeof(union iucv_param),
+-				  GFP_KERNEL|GFP_DMA, cpu_to_node(cpu));
+-		if (!iucv_param[cpu]) {
+-			rc = -ENOMEM;
+-			goto out_free;
+-		}
+-		iucv_param_irq[cpu] = kmalloc_node(sizeof(union iucv_param),
+-				  GFP_KERNEL|GFP_DMA, cpu_to_node(cpu));
+-		if (!iucv_param_irq[cpu]) {
++	for_each_online_cpu(cpu) {
++		if (alloc_iucv_data(cpu)) {
+ 			rc = -ENOMEM;
+ 			goto out_free;
+ 		}
+-
+ 	}
+-	rc = register_hotcpu_notifier(&iucv_cpu_notifier);
++	rc = __register_hotcpu_notifier(&iucv_cpu_notifier);
+ 	if (rc)
+ 		goto out_free;
++
 +	cpu_notifier_register_done();
-+#endif
- 
- 	kfree(buffer->buffers);
- 	free_cpumask_var(buffer->cpumask);
++
+ 	rc = register_reboot_notifier(&iucv_reboot_notifier);
+ 	if (rc)
+ 		goto out_cpu;
+@@ -2069,16 +2068,14 @@ static int __init iucv_init(void)
+ out_reboot:
+ 	unregister_reboot_notifier(&iucv_reboot_notifier);
+ out_cpu:
+-	unregister_hotcpu_notifier(&iucv_cpu_notifier);
++	cpu_notifier_register_begin();
++	__unregister_hotcpu_notifier(&iucv_cpu_notifier);
+ out_free:
+-	for_each_possible_cpu(cpu) {
+-		kfree(iucv_param_irq[cpu]);
+-		iucv_param_irq[cpu] = NULL;
+-		kfree(iucv_param[cpu]);
+-		iucv_param[cpu] = NULL;
+-		kfree(iucv_irq_data[cpu]);
+-		iucv_irq_data[cpu] = NULL;
+-	}
++	for_each_possible_cpu(cpu)
++		free_iucv_data(cpu);
++
++	cpu_notifier_register_done();
++
+ 	root_device_unregister(iucv_root);
+ out_int:
+ 	unregister_external_interrupt(0x4000, iucv_external_interrupt);
+@@ -2105,15 +2102,11 @@ static void __exit iucv_exit(void)
+ 		kfree(p);
+ 	spin_unlock_irq(&iucv_queue_lock);
+ 	unregister_reboot_notifier(&iucv_reboot_notifier);
+-	unregister_hotcpu_notifier(&iucv_cpu_notifier);
+-	for_each_possible_cpu(cpu) {
+-		kfree(iucv_param_irq[cpu]);
+-		iucv_param_irq[cpu] = NULL;
+-		kfree(iucv_param[cpu]);
+-		iucv_param[cpu] = NULL;
+-		kfree(iucv_irq_data[cpu]);
+-		iucv_irq_data[cpu] = NULL;
+-	}
++	cpu_notifier_register_begin();
++	__unregister_hotcpu_notifier(&iucv_cpu_notifier);
++	for_each_possible_cpu(cpu)
++		free_iucv_data(cpu);
++	cpu_notifier_register_done();
+ 	root_device_unregister(iucv_root);
+ 	bus_unregister(&iucv_bus);
+ 	unregister_external_interrupt(0x4000, iucv_external_interrupt);
 
