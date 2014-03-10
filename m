@@ -1,16 +1,16 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e28smtp03.in.ibm.com ([122.248.162.3]:51222 "EHLO
-	e28smtp03.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753230AbaCJUgp (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 10 Mar 2014 16:36:45 -0400
+Received: from e28smtp02.in.ibm.com ([122.248.162.2]:45652 "EHLO
+	e28smtp02.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753648AbaCJUhA (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 10 Mar 2014 16:37:00 -0400
 Received: from /spool/local
-	by e28smtp03.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	by e28smtp02.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
 	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
-	Tue, 11 Mar 2014 02:06:43 +0530
+	Tue, 11 Mar 2014 02:06:59 +0530
 From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH v3 14/52] powerpc, sysfs: Fix CPU hotplug callback registration
-Date: Tue, 11 Mar 2014 02:06:31 +0530
-Message-ID: <20140310203630.10746.99418.stgit@srivatsabhat.in.ibm.com>
+Subject: [PATCH v3 16/52] x86, cpuid: Fix CPU hotplug callback registration
+Date: Tue, 11 Mar 2014 02:06:44 +0530
+Message-ID: <20140310203644.10746.75727.stgit@srivatsabhat.in.ibm.com>
 In-Reply-To: <20140310203312.10746.310.stgit@srivatsabhat.in.ibm.com>
 References: <20140310203312.10746.310.stgit@srivatsabhat.in.ibm.com>
 MIME-Version: 1.0
@@ -19,8 +19,8 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: paulus@samba.org, oleg@redhat.com, mingo@kernel.org, rjw@rjwysocki.net, rusty@rustcorp.com.au, peterz@infradead.org, tglx@linutronix.de, akpm@linux-foundation.org
-Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-pm@vger.kernel.org, linuxppc-dev@ozlabs.org, srivatsa.bhat@linux.vnet.ibm.com, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Olof Johansson <olof@lixom.net>, Wang Dongsheng <dongsheng.wang@freescale.com>, linuxppc-dev@lists.ozlabs.org, Madhavan Srinivasan <maddy@linux.vnet.ibm.com>"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Message-ID: <20140310203631.5eICcXpRQBGu8ZUMHJ3CSwOVMnrZbh73uFqo2UOTf6E@z>
+Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-pm@vger.kernel.org, linuxppc-dev@ozlabs.org, srivatsa.bhat@linux.vnet.ibm.com, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Message-ID: <20140310203644.WZ2Zc4C5QvbWjg11FOm4eiyt4iDrnpM1OM-Tqa75nWo@z>
 
 Subsystems that want to register CPU hotplug callbacks, as well as perform
 initialization for the CPUs that are already online, often do it as shown
@@ -53,46 +53,65 @@ registration is:
 	cpu_notifier_register_done();
 
 
-Fix the sysfs code in powerpc by using this latter form of callback
-registration.
+Fix the cpuid code in x86 by using this latter form of callback registration.
 
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: Paul Mackerras <paulus@samba.org>
-Cc: Olof Johansson <olof@lixom.net>
-Cc: Wang Dongsheng <dongsheng.wang@freescale.com>
+Cc: "H. Peter Anvin" <hpa@zytor.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>
 Cc: Ingo Molnar <mingo@kernel.org>
-Cc: linuxppc-dev@lists.ozlabs.org
-Acked-by: Madhavan Srinivasan <maddy@linux.vnet.ibm.com>
+Cc: x86@kernel.org
 Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
 ---
 
- arch/powerpc/kernel/sysfs.c |    8 +++++++-
- 1 file changed, 7 insertions(+), 1 deletion(-)
+ arch/x86/kernel/cpuid.c |   15 ++++++++-------
+ 1 file changed, 8 insertions(+), 7 deletions(-)
 
-diff --git a/arch/powerpc/kernel/sysfs.c b/arch/powerpc/kernel/sysfs.c
-index 97e1dc9..d90d4b7 100644
---- a/arch/powerpc/kernel/sysfs.c
-+++ b/arch/powerpc/kernel/sysfs.c
-@@ -975,7 +975,8 @@ static int __init topology_init(void)
- 	int cpu;
- 
- 	register_nodes();
--	register_cpu_notifier(&sysfs_cpu_nb);
+diff --git a/arch/x86/kernel/cpuid.c b/arch/x86/kernel/cpuid.c
+index 7d9481c..3225ae6c 100644
+--- a/arch/x86/kernel/cpuid.c
++++ b/arch/x86/kernel/cpuid.c
+@@ -198,14 +198,15 @@ static int __init cpuid_init(void)
+ 		goto out_chrdev;
+ 	}
+ 	cpuid_class->devnode = cpuid_devnode;
+-	get_online_cpus();
 +
 +	cpu_notifier_register_begin();
- 
- 	for_each_possible_cpu(cpu) {
- 		struct cpu *c = &per_cpu(cpu_devices, cpu);
-@@ -999,6 +1000,11 @@ static int __init topology_init(void)
- 		if (cpu_online(cpu))
- 			register_cpu_online(cpu);
+ 	for_each_online_cpu(i) {
+ 		err = cpuid_device_create(i);
+ 		if (err != 0)
+ 			goto out_class;
  	}
-+
-+	__register_cpu_notifier(&sysfs_cpu_nb);
-+
+-	register_hotcpu_notifier(&cpuid_class_cpu_notifier);
+-	put_online_cpus();
++	__register_hotcpu_notifier(&cpuid_class_cpu_notifier);
 +	cpu_notifier_register_done();
-+
- #ifdef CONFIG_PPC64
- 	sysfs_create_dscr_default();
- #endif /* CONFIG_PPC64 */
+ 
+ 	err = 0;
+ 	goto out;
+@@ -215,7 +216,7 @@ out_class:
+ 	for_each_online_cpu(i) {
+ 		cpuid_device_destroy(i);
+ 	}
+-	put_online_cpus();
++	cpu_notifier_register_done();
+ 	class_destroy(cpuid_class);
+ out_chrdev:
+ 	__unregister_chrdev(CPUID_MAJOR, 0, NR_CPUS, "cpu/cpuid");
+@@ -227,13 +228,13 @@ static void __exit cpuid_exit(void)
+ {
+ 	int cpu = 0;
+ 
+-	get_online_cpus();
++	cpu_notifier_register_begin();
+ 	for_each_online_cpu(cpu)
+ 		cpuid_device_destroy(cpu);
+ 	class_destroy(cpuid_class);
+ 	__unregister_chrdev(CPUID_MAJOR, 0, NR_CPUS, "cpu/cpuid");
+-	unregister_hotcpu_notifier(&cpuid_class_cpu_notifier);
+-	put_online_cpus();
++	__unregister_hotcpu_notifier(&cpuid_class_cpu_notifier);
++	cpu_notifier_register_done();
+ }
+ 
+ module_init(cpuid_init);
 
