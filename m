@@ -1,17 +1,16 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e28smtp08.in.ibm.com ([122.248.162.8]:49443 "EHLO
-	e28smtp08.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755041AbaCJUjb (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 10 Mar 2014 16:39:31 -0400
+Received: from e28smtp06.in.ibm.com ([122.248.162.6]:55669 "EHLO
+	e28smtp06.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755110AbaCJUjv (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 10 Mar 2014 16:39:51 -0400
 Received: from /spool/local
-	by e28smtp08.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	by e28smtp06.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
 	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
-	Tue, 11 Mar 2014 02:09:29 +0530
+	Tue, 11 Mar 2014 02:09:49 +0530
 From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH v3 31/52] arm64,
- debug-monitors: Fix CPU hotplug callback registration
-Date: Tue, 11 Mar 2014 02:09:20 +0530
-Message-ID: <20140310203919.10746.1234.stgit@srivatsabhat.in.ibm.com>
+Subject: [PATCH v3 33/52] scsi, bnx2i: Fix CPU hotplug callback registration
+Date: Tue, 11 Mar 2014 02:09:39 +0530
+Message-ID: <20140310203938.10746.18579.stgit@srivatsabhat.in.ibm.com>
 In-Reply-To: <20140310203312.10746.310.stgit@srivatsabhat.in.ibm.com>
 References: <20140310203312.10746.310.stgit@srivatsabhat.in.ibm.com>
 MIME-Version: 1.0
@@ -20,8 +19,8 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: paulus@samba.org, oleg@redhat.com, mingo@kernel.org, rjw@rjwysocki.net, rusty@rustcorp.com.au, peterz@infradead.org, tglx@linutronix.de, akpm@linux-foundation.org
-Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-pm@vger.kernel.org, linuxppc-dev@ozlabs.org, srivatsa.bhat@linux.vnet.ibm.com, Catalin Marinas <catalin.marinas@arm.com>, Russell King <rmk+kernel@arm.linux.org.uk>, linux-arm-kernel@lists.infradead.org, Will Deacon <will.deacon@arm.com>"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Message-ID: <20140310203920.b8MPQwPyYIllwQcDDl2vwpq0FrNZ3cHne9DG7dJDtgw@z>
+Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-pm@vger.kernel.org, linuxppc-dev@ozlabs.org, srivatsa.bhat@linux.vnet.ibm.com, Eddie Wai <eddie.wai@broadcom.com>, "James E.J. Bottomley" <JBottomley@parallels.com>, linux-scsi@vger.kernel.org"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Message-ID: <20140310203939.LDcx-UJ3iL3glBGOZR-XVn8XcK952FSHA0kz7X4aTuA@z>
 
 Subsystems that want to register CPU hotplug callbacks, as well as perform
 initialization for the CPUs that are already online, often do it as shown
@@ -54,40 +53,54 @@ registration is:
 	cpu_notifier_register_done();
 
 
-Fix the debug-monitors code in arm64 by using this latter form of callback
-registration.
+Fix the bnx2i code in scsi by using this latter form of callback registration.
 
-Cc: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Russell King <rmk+kernel@arm.linux.org.uk>
+Cc: Eddie Wai <eddie.wai@broadcom.com>
+Cc: "James E.J. Bottomley" <JBottomley@parallels.com>
 Cc: Ingo Molnar <mingo@kernel.org>
-Cc: linux-arm-kernel@lists.infradead.org
-Acked-by: Will Deacon <will.deacon@arm.com>
+Cc: linux-scsi@vger.kernel.org
 Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
 ---
 
- arch/arm64/kernel/debug-monitors.c |    6 +++++-
- 1 file changed, 5 insertions(+), 1 deletion(-)
+ drivers/scsi/bnx2i/bnx2i_init.c |   12 ++++++++++--
+ 1 file changed, 10 insertions(+), 2 deletions(-)
 
-diff --git a/arch/arm64/kernel/debug-monitors.c b/arch/arm64/kernel/debug-monitors.c
-index 636ba8b..c985531 100644
---- a/arch/arm64/kernel/debug-monitors.c
-+++ b/arch/arm64/kernel/debug-monitors.c
-@@ -155,12 +155,16 @@ static struct notifier_block os_lock_nb = {
+diff --git a/drivers/scsi/bnx2i/bnx2i_init.c b/drivers/scsi/bnx2i/bnx2i_init.c
+index 34c294b..80c03b4 100644
+--- a/drivers/scsi/bnx2i/bnx2i_init.c
++++ b/drivers/scsi/bnx2i/bnx2i_init.c
+@@ -537,11 +537,15 @@ static int __init bnx2i_mod_init(void)
+ 		p->iothread = NULL;
+ 	}
  
- static int debug_monitors_init(void)
- {
 +	cpu_notifier_register_begin();
 +
- 	/* Clear the OS lock. */
- 	smp_call_function(clear_os_lock, NULL, 1);
- 	clear_os_lock(NULL);
+ 	for_each_online_cpu(cpu)
+ 		bnx2i_percpu_thread_create(cpu);
  
- 	/* Register hotplug handler. */
--	register_cpu_notifier(&os_lock_nb);
-+	__register_cpu_notifier(&os_lock_nb);
+ 	/* Initialize per CPU interrupt thread */
+-	register_hotcpu_notifier(&bnx2i_cpu_notifier);
++	__register_hotcpu_notifier(&bnx2i_cpu_notifier);
 +
 +	cpu_notifier_register_done();
+ 
  	return 0;
+ 
+@@ -581,11 +585,15 @@ static void __exit bnx2i_mod_exit(void)
+ 	}
+ 	mutex_unlock(&bnx2i_dev_lock);
+ 
+-	unregister_hotcpu_notifier(&bnx2i_cpu_notifier);
++	cpu_notifier_register_begin();
+ 
+ 	for_each_online_cpu(cpu)
+ 		bnx2i_percpu_thread_destroy(cpu);
+ 
++	__unregister_hotcpu_notifier(&bnx2i_cpu_notifier);
++
++	cpu_notifier_register_done();
++
+ 	iscsi_unregister_transport(&bnx2i_iscsi_transport);
+ 	cnic_unregister_driver(CNIC_ULP_ISCSI);
  }
- postcore_initcall(debug_monitors_init);
 
