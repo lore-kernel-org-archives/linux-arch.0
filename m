@@ -1,16 +1,16 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e23smtp07.au.ibm.com ([202.81.31.140]:39471 "EHLO
-	e23smtp07.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753669AbaCJUma (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 10 Mar 2014 16:42:30 -0400
+Received: from e23smtp04.au.ibm.com ([202.81.31.146]:49967 "EHLO
+	e23smtp04.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754197AbaCJUmr (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 10 Mar 2014 16:42:47 -0400
 Received: from /spool/local
-	by e23smtp07.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	by e23smtp04.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
 	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
-	Tue, 11 Mar 2014 06:42:29 +1000
+	Tue, 11 Mar 2014 06:42:45 +1000
 From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH v3 48/52] profile: Fix CPU hotplug callback registration
-Date: Tue, 11 Mar 2014 02:12:08 +0530
-Message-ID: <20140310204207.10746.84822.stgit@srivatsabhat.in.ibm.com>
+Subject: [PATCH v3 49/52] mm, vmstat: Fix CPU hotplug callback registration
+Date: Tue, 11 Mar 2014 02:12:27 +0530
+Message-ID: <20140310204226.10746.64059.stgit@srivatsabhat.in.ibm.com>
 In-Reply-To: <20140310203312.10746.310.stgit@srivatsabhat.in.ibm.com>
 References: <20140310203312.10746.310.stgit@srivatsabhat.in.ibm.com>
 MIME-Version: 1.0
@@ -19,8 +19,8 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: paulus@samba.org, oleg@redhat.com, mingo@kernel.org, rjw@rjwysocki.net, rusty@rustcorp.com.au, peterz@infradead.org, tglx@linutronix.de, akpm@linux-foundation.org
-Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-pm@vger.kernel.org, linuxppc-dev@ozlabs.org, srivatsa.bhat@linux.vnet.ibm.com, Al Viro <viro@zeniv.linux.org.uk>, Mauro Carvalho Chehab <mchehab@redhat.com>"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Message-ID: <20140310204208.kCmgxkwmdo7chfTSBQk68vPjq0oYoLjbq7Xo9Gz5ZS8@z>
+Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-pm@vger.kernel.org, linuxppc-dev@ozlabs.org, srivatsa.bhat@linux.vnet.ibm.com, Johannes Weiner <hannes@cmpxchg.org>, Cody P Schafer <cody@linux.vnet.ibm.com>, Toshi Kani <toshi.kani@hp.com>, Dave Hansen <dave@sr71.net>, linux-mm@kvack.org, Christoph Lameter <cl@linux.com>, Rik van Riel <riel@redhat.com>"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Message-ID: <20140310204227.GWxKmCpZJAW5ipRq9GksnOuGH6QbhWg3j-CQ-aLuso4@z>
 
 Subsystems that want to register CPU hotplug callbacks, as well as perform
 initialization for the CPUs that are already online, often do it as shown
@@ -53,53 +53,45 @@ registration is:
 	cpu_notifier_register_done();
 
 
-Fix the profile code by using this latter form of callback registration.
+Fix the vmstat code in the MM subsystem by using this latter form of callback
+registration.
 
-Cc: Al Viro <viro@zeniv.linux.org.uk>
-Cc: Mauro Carvalho Chehab <mchehab@redhat.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>
+Cc: Johannes Weiner <hannes@cmpxchg.org>
+Cc: Cody P Schafer <cody@linux.vnet.ibm.com>
+Cc: Toshi Kani <toshi.kani@hp.com>
+Cc: Dave Hansen <dave@sr71.net>
 Cc: Ingo Molnar <mingo@kernel.org>
+Cc: linux-mm@kvack.org
+Acked-by: Christoph Lameter <cl@linux.com>
+Acked-by: Rik van Riel <riel@redhat.com>
+Reviewed-by: Yasuaki Ishimatsu <isimatu.yasuaki@jp.fujitsu.com>
 Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
 ---
 
- kernel/profile.c |   20 +++++++++++++++-----
- 1 file changed, 15 insertions(+), 5 deletions(-)
+ mm/vmstat.c |    6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
 
-diff --git a/kernel/profile.c b/kernel/profile.c
-index 6631e1e..4c0cb95 100644
---- a/kernel/profile.c
-+++ b/kernel/profile.c
-@@ -591,18 +591,28 @@ out_cleanup:
- int __ref create_proc_profile(void) /* false positive from hotcpu_notifier */
- {
- 	struct proc_dir_entry *entry;
-+	int err = 0;
+diff --git a/mm/vmstat.c b/mm/vmstat.c
+index def5dd2..58c6f3d 100644
+--- a/mm/vmstat.c
++++ b/mm/vmstat.c
+@@ -1292,14 +1292,14 @@ static int __init setup_vmstat(void)
+ #ifdef CONFIG_SMP
+ 	int cpu;
  
- 	if (!prof_on)
- 		return 0;
--	if (create_hash_tables())
--		return -ENOMEM;
-+
+-	register_cpu_notifier(&vmstat_notifier);
 +	cpu_notifier_register_begin();
-+
-+	if (create_hash_tables()) {
-+		err = -ENOMEM;
-+		goto out;
-+	}
-+
- 	entry = proc_create("profile", S_IWUSR | S_IRUGO,
- 			    NULL, &proc_profile_operations);
- 	if (!entry)
--		return 0;
-+		goto out;
- 	proc_set_size(entry, (1 + prof_len) * sizeof(atomic_t));
--	hotcpu_notifier(profile_cpu_callback, 0);
--	return 0;
-+	__hotcpu_notifier(profile_cpu_callback, 0);
-+
-+out:
++	__register_cpu_notifier(&vmstat_notifier);
+ 
+-	get_online_cpus();
+ 	for_each_online_cpu(cpu) {
+ 		start_cpu_timer(cpu);
+ 		node_set_state(cpu_to_node(cpu), N_CPU);
+ 	}
+-	put_online_cpus();
 +	cpu_notifier_register_done();
-+	return err;
- }
- module_init(create_proc_profile);
- #endif /* CONFIG_PROC_FS */
+ #endif
+ #ifdef CONFIG_PROC_FS
+ 	proc_create("buddyinfo", S_IRUGO, NULL, &fragmentation_file_operations);
 
