@@ -1,17 +1,17 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e28smtp03.in.ibm.com ([122.248.162.3]:51343 "EHLO
-	e28smtp03.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754192AbaCJUhj (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 10 Mar 2014 16:37:39 -0400
+Received: from e23smtp07.au.ibm.com ([202.81.31.140]:39243 "EHLO
+	e23smtp07.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754019AbaCJUiP (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 10 Mar 2014 16:38:15 -0400
 Received: from /spool/local
-	by e28smtp03.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	by e23smtp07.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
 	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
-	Tue, 11 Mar 2014 02:07:37 +0530
+	Tue, 11 Mar 2014 06:38:14 +1000
 From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH v3 18/52] x86, intel,
- uncore: Fix CPU hotplug callback registration
-Date: Tue, 11 Mar 2014 02:06:57 +0530
-Message-ID: <20140310203657.10746.98632.stgit@srivatsabhat.in.ibm.com>
+Subject: [PATCH v3 23/52] x86, intel,
+ cacheinfo: Fix CPU hotplug callback registration
+Date: Tue, 11 Mar 2014 02:07:57 +0530
+Message-ID: <20140310203757.10746.76090.stgit@srivatsabhat.in.ibm.com>
 In-Reply-To: <20140310203312.10746.310.stgit@srivatsabhat.in.ibm.com>
 References: <20140310203312.10746.310.stgit@srivatsabhat.in.ibm.com>
 MIME-Version: 1.0
@@ -20,8 +20,8 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: paulus@samba.org, oleg@redhat.com, mingo@kernel.org, rjw@rjwysocki.net, rusty@rustcorp.com.au, peterz@infradead.org, tglx@linutronix.de, akpm@linux-foundation.org
-Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-pm@vger.kernel.org, linuxppc-dev@ozlabs.org, srivatsa.bhat@linux.vnet.ibm.com, Arnaldo Carvalho de Melo <acme@ghostprotocols.net>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Message-ID: <20140310203657.VdIs1VtQs-T9umtJL_eJbox_1353ApiJjykmObH7Ad8@z>
+Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-pm@vger.kernel.org, linuxppc-dev@ozlabs.org, srivatsa.bhat@linux.vnet.ibm.com, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Borislav Petkov <bp@suse.de>"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Message-ID: <20140310203757.jOFszPGVDB5dBUg6fEdTLjWHfR_jTmi5zupjkJt2w5E@z>
 
 Subsystems that want to register CPU hotplug callbacks, as well as perform
 initialization for the CPUs that are already online, often do it as shown
@@ -54,45 +54,52 @@ registration is:
 	cpu_notifier_register_done();
 
 
-Fix the uncore code in intel-x86 by using this latter form of callback
+Fix the intel cacheinfo code in x86 by using this latter form of callback
 registration.
 
-Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Paul Mackerras <paulus@samba.org>
-Cc: Ingo Molnar <mingo@kernel.org>
-Cc: Arnaldo Carvalho de Melo <acme@ghostprotocols.net>
 Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Ingo Molnar <mingo@kernel.org>
 Cc: "H. Peter Anvin" <hpa@zytor.com>
 Cc: x86@kernel.org
+Cc: Borislav Petkov <bp@suse.de>
 Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
 ---
 
- arch/x86/kernel/cpu/perf_event_intel_uncore.c |    6 +++---
- 1 file changed, 3 insertions(+), 3 deletions(-)
+ arch/x86/kernel/cpu/intel_cacheinfo.c |   13 ++++++++-----
+ 1 file changed, 8 insertions(+), 5 deletions(-)
 
-diff --git a/arch/x86/kernel/cpu/perf_event_intel_uncore.c b/arch/x86/kernel/cpu/perf_event_intel_uncore.c
-index c88f7f4..e90183d 100644
---- a/arch/x86/kernel/cpu/perf_event_intel_uncore.c
-+++ b/arch/x86/kernel/cpu/perf_event_intel_uncore.c
-@@ -3816,7 +3816,7 @@ static int __init uncore_cpu_init(void)
- 	if (ret)
- 		return ret;
+diff --git a/arch/x86/kernel/cpu/intel_cacheinfo.c b/arch/x86/kernel/cpu/intel_cacheinfo.c
+index 0641113..a952e9c 100644
+--- a/arch/x86/kernel/cpu/intel_cacheinfo.c
++++ b/arch/x86/kernel/cpu/intel_cacheinfo.c
+@@ -1225,21 +1225,24 @@ static struct notifier_block cacheinfo_cpu_notifier = {
  
--	get_online_cpus();
+ static int __init cache_sysfs_init(void)
+ {
+-	int i;
++	int i, err = 0;
+ 
+ 	if (num_cache_leaves == 0)
+ 		return 0;
+ 
 +	cpu_notifier_register_begin();
+ 	for_each_online_cpu(i) {
+-		int err;
+ 		struct device *dev = get_cpu_device(i);
  
- 	for_each_online_cpu(cpu) {
- 		int i, phys_id = topology_physical_package_id(cpu);
-@@ -3835,9 +3835,9 @@ static int __init uncore_cpu_init(void)
+ 		err = cache_add_dev(dev);
+ 		if (err)
+-			return err;
++			goto out;
  	}
- 	on_each_cpu(uncore_cpu_setup, NULL, 1);
- 
--	register_cpu_notifier(&uncore_cpu_nb);
-+	__register_cpu_notifier(&uncore_cpu_nb);
- 
--	put_online_cpus();
+-	register_hotcpu_notifier(&cacheinfo_cpu_notifier);
+-	return 0;
++	__register_hotcpu_notifier(&cacheinfo_cpu_notifier);
++
++out:
 +	cpu_notifier_register_done();
- 
- 	return 0;
++	return err;
  }
+ 
+ device_initcall(cache_sysfs_init);
 
