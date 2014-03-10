@@ -1,17 +1,17 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e23smtp04.au.ibm.com ([202.81.31.146]:48000 "EHLO
-	e23smtp04.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753468AbaCJUf0 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 10 Mar 2014 16:35:26 -0400
+Received: from e28smtp08.in.ibm.com ([122.248.162.8]:48535 "EHLO
+	e28smtp08.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754494AbaCJUeo (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 10 Mar 2014 16:34:44 -0400
 Received: from /spool/local
-	by e23smtp04.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	by e28smtp08.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
 	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
-	Tue, 11 Mar 2014 06:35:24 +1000
+	Tue, 11 Mar 2014 02:04:42 +0530
 From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH v3 08/52] ia64,
- err-inject: Fix CPU hotplug callback registration
-Date: Tue, 11 Mar 2014 02:05:10 +0530
-Message-ID: <20140310203510.10746.62381.stgit@srivatsabhat.in.ibm.com>
+Subject: [PATCH v3 03/52] Doc/cpu-hotplug: Specify race-free way to register
+ CPU hotplug callbacks
+Date: Tue, 11 Mar 2014 02:04:32 +0530
+Message-ID: <20140310203432.10746.96084.stgit@srivatsabhat.in.ibm.com>
 In-Reply-To: <20140310203312.10746.310.stgit@srivatsabhat.in.ibm.com>
 References: <20140310203312.10746.310.stgit@srivatsabhat.in.ibm.com>
 MIME-Version: 1.0
@@ -20,93 +20,84 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: paulus@samba.org, oleg@redhat.com, mingo@kernel.org, rjw@rjwysocki.net, rusty@rustcorp.com.au, peterz@infradead.org, tglx@linutronix.de, akpm@linux-foundation.org
-Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-pm@vger.kernel.org, linuxppc-dev@ozlabs.org, srivatsa.bhat@linux.vnet.ibm.com, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, linux-ia64@vger.kernel.org"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Message-ID: <20140310203510.lyhckmcyZmtAoLMHAoVDZJFnz2s9RbHrumdOni8KHkg@z>
+Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-pm@vger.kernel.org, linuxppc-dev@ozlabs.org, srivatsa.bhat@linux.vnet.ibm.com, Rob Landley <rob@landley.net>, linux-doc@vger.kernel.org"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Message-ID: <20140310203432.uJ9rIKzdaxuptdrRSp1FV0aKrebajE5ZhMyz2l8Yg7Q@z>
 
-Subsystems that want to register CPU hotplug callbacks, as well as perform
-initialization for the CPUs that are already online, often do it as shown
-below:
+Recommend the usage of the new CPU hotplug callback registration APIs
+(__register_cpu_notifier() etc), when subsystems need to also perform
+initialization for already online CPUs. Provide examples of correct
+and race-free ways of achieving this, and point out the kinds of code
+that are error-prone.
 
-	get_online_cpus();
-
-	for_each_online_cpu(cpu)
-		init_cpu(cpu);
-
-	register_cpu_notifier(&foobar_cpu_notifier);
-
-	put_online_cpus();
-
-This is wrong, since it is prone to ABBA deadlocks involving the
-cpu_add_remove_lock and the cpu_hotplug.lock (when running concurrently
-with CPU hotplug operations).
-
-Instead, the correct and race-free way of performing the callback
-registration is:
-
-	cpu_notifier_register_begin();
-
-	for_each_online_cpu(cpu)
-		init_cpu(cpu);
-
-	/* Note the use of the double underscored version of the API */
-	__register_cpu_notifier(&foobar_cpu_notifier);
-
-	cpu_notifier_register_done();
-
-
-Fix the error injection code in ia64 by using this latter form of callback
-registration.
-
-Cc: Tony Luck <tony.luck@intel.com>
-Cc: Fenghua Yu <fenghua.yu@intel.com>
+Cc: Rob Landley <rob@landley.net>
 Cc: Ingo Molnar <mingo@kernel.org>
-Cc: linux-ia64@vger.kernel.org
+Cc: linux-doc@vger.kernel.org
 Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
 ---
 
- arch/ia64/kernel/err_inject.c |   15 +++++++++++++--
- 1 file changed, 13 insertions(+), 2 deletions(-)
+ Documentation/cpu-hotplug.txt |   45 +++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 45 insertions(+)
 
-diff --git a/arch/ia64/kernel/err_inject.c b/arch/ia64/kernel/err_inject.c
-index f59c0b8..0c161ed 100644
---- a/arch/ia64/kernel/err_inject.c
-+++ b/arch/ia64/kernel/err_inject.c
-@@ -269,12 +269,17 @@ err_inject_init(void)
- #ifdef ERR_INJ_DEBUG
- 	printk(KERN_INFO "Enter error injection driver.\n");
- #endif
-+
-+	cpu_notifier_register_begin();
-+
+diff --git a/Documentation/cpu-hotplug.txt b/Documentation/cpu-hotplug.txt
+index be675d2..a0b005d 100644
+--- a/Documentation/cpu-hotplug.txt
++++ b/Documentation/cpu-hotplug.txt
+@@ -312,12 +312,57 @@ things will happen if a notifier in path sent a BAD notify code.
+ Q: I don't see my action being called for all CPUs already up and running?
+ A: Yes, CPU notifiers are called only when new CPUs are on-lined or offlined.
+    If you need to perform some action for each cpu already in the system, then
++   do this:
+ 
  	for_each_online_cpu(i) {
- 		err_inject_cpu_callback(&err_inject_cpu_notifier, CPU_ONLINE,
- 				(void *)(long)i);
+ 		foobar_cpu_callback(&foobar_cpu_notifier, CPU_UP_PREPARE, i);
+ 		foobar_cpu_callback(&foobar_cpu_notifier, CPU_ONLINE, i);
  	}
  
--	register_hotcpu_notifier(&err_inject_cpu_notifier);
-+	__register_hotcpu_notifier(&err_inject_cpu_notifier);
++   However, if you want to register a hotplug callback, as well as perform
++   some initialization for CPUs that are already online, then do this:
++
++   Version 1: (Correct)
++   ---------
++
++   	cpu_notifier_register_begin();
++
++		for_each_online_cpu(i) {
++			foobar_cpu_callback(&foobar_cpu_notifier,
++					    CPU_UP_PREPARE, i);
++			foobar_cpu_callback(&foobar_cpu_notifier,
++					    CPU_ONLINE, i);
++		}
++
++	/* Note the use of the double underscored version of the API */
++	__register_cpu_notifier(&foobar_cpu_notifier);
 +
 +	cpu_notifier_register_done();
- 
- 	return 0;
- }
-@@ -288,11 +293,17 @@ err_inject_exit(void)
- #ifdef ERR_INJ_DEBUG
- 	printk(KERN_INFO "Exit error injection driver.\n");
- #endif
 +
-+	cpu_notifier_register_begin();
++   Note that the following code is *NOT* the right way to achieve this,
++   because it is prone to an ABBA deadlock between the cpu_add_remove_lock
++   and the cpu_hotplug.lock.
 +
- 	for_each_online_cpu(i) {
- 		sys_dev = get_cpu_device(i);
- 		sysfs_remove_group(&sys_dev->kobj, &err_inject_attr_group);
- 	}
--	unregister_hotcpu_notifier(&err_inject_cpu_notifier);
++   Version 2: (Wrong!)
++   ---------
 +
-+	__unregister_hotcpu_notifier(&err_inject_cpu_notifier);
++	get_online_cpus();
 +
-+	cpu_notifier_register_done();
- }
- 
- module_init(err_inject_init);
++		for_each_online_cpu(i) {
++			foobar_cpu_callback(&foobar_cpu_notifier,
++					    CPU_UP_PREPARE, i);
++			foobar_cpu_callback(&foobar_cpu_notifier,
++					    CPU_ONLINE, i);
++		}
++
++	register_cpu_notifier(&foobar_cpu_notifier);
++
++	put_online_cpus();
++
++    So always use the first version shown above when you want to register
++    callbacks as well as initialize the already online CPUs.
++
++
+ Q: If i would like to develop cpu hotplug support for a new architecture,
+    what do i need at a minimum?
+ A: The following are what is required for CPU hotplug infrastructure to work
 
