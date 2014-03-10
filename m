@@ -1,63 +1,46 @@
-From: Josh Triplett <josh@joshtriplett.org>
-Subject: [PATCH v3 5/5] x86: Always define BUG() and HAVE_ARCH_BUG, even with
- !CONFIG_BUG
-Date: Sun, 9 Mar 2014 18:03:10 -0700
-Message-ID: <0c48ec31fe236361884f49d559f895b3883846c2.1394412745.git.josh@joshtriplett.org>
-References: <17c859aa7dcccec43df0a0c8908911b982764c76.1394412745.git.josh@joshtriplett.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: [RFC][PATCH 4/7] x86: Add atomic_test_and_set_bit()
+Date: Mon, 10 Mar 2014 16:42:40 +0100
+Message-ID: <20140310155543.591055845@infradead.org>
+References: <20140310154236.038181843@infradead.org>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from relay5-d.mail.gandi.net ([217.70.183.197]:51081 "EHLO
-	relay5-d.mail.gandi.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752179AbaCJBDQ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 9 Mar 2014 21:03:16 -0400
-Content-Disposition: inline
-In-Reply-To: <17c859aa7dcccec43df0a0c8908911b982764c76.1394412745.git.josh@joshtriplett.org>
+Received: from merlin.infradead.org ([205.233.59.134]:53923 "EHLO
+	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752277AbaCJQCd (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 10 Mar 2014 12:02:33 -0400
+Content-Disposition: inline; filename=peterz-atomic_set_and_test_bit.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: Waiman Long <waiman.long@hp.com>
+Cc: arnd@arndb.de, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, rostedt@goodmis.org, akpm@linux-foundation.org, walken@google.com, andi@firstfloor.org, riel@redhat.com, paulmck@linux.vnet.ibm.com, torvalds@linux-foundation.org, oleg@redhat.com, Peter Zijlstra <peterz@infradead.org>
 
-This ensures that BUG() always has a definition that causes a trap (via
-an undefined instruction), and that the compiler still recognizes the
-code following BUG() as unreachable, avoiding warnings that would
-otherwise appear (such as on non-void functions that don't return a
-value after BUG()).
+For use in qspinlock because unconditional atomic ops scale better
+than cmpxchg loops.
 
-In addition to saving a few bytes over the generic infinite-loop
-implementation, this implementation traps rather than looping, which
-potentially allows for better error-recovery behavior (such as by
-rebooting).
-
-Reported-by: Arnd Bergmann <arnd@arndb.de>
-Signed-off-by: Josh Triplett <josh@joshtriplett.org>
+Signed-off-by: Peter Zijlstra <peterz@infradead.org>
 ---
-v3: New patch for x86-optimized implementation of a simple bug for
-!CONFIG_BUG, based on Arnd Bergmann's proposal.
+ arch/x86/include/asm/atomic.h |   13 +++++++++++++
+ 1 file changed, 13 insertions(+)
 
- arch/x86/include/asm/bug.h | 3 ---
- 1 file changed, 3 deletions(-)
-
-diff --git a/arch/x86/include/asm/bug.h b/arch/x86/include/asm/bug.h
-index 2f03ff0..ba38ebb 100644
---- a/arch/x86/include/asm/bug.h
-+++ b/arch/x86/include/asm/bug.h
-@@ -1,7 +1,6 @@
- #ifndef _ASM_X86_BUG_H
- #define _ASM_X86_BUG_H
+--- a/arch/x86/include/asm/atomic.h
++++ b/arch/x86/include/asm/atomic.h
+@@ -218,6 +218,19 @@ static inline short int atomic_inc_short
+ 	return *v;
+ }
  
--#ifdef CONFIG_BUG
- #define HAVE_ARCH_BUG
- 
- #ifdef CONFIG_DEBUG_BUGVERBOSE
-@@ -33,8 +32,6 @@ do {								\
- } while (0)
- #endif
- 
--#endif /* !CONFIG_BUG */
--
- #include <asm-generic/bug.h>
- 
- #endif /* _ASM_X86_BUG_H */
--- 
-1.9.0
++/**
++ * test_and_set_bit - Set a bit and return its old value
++ * @nr: Bit to set
++ * @addr: Address to count from
++ *
++ * This operation is atomic and cannot be reordered.
++ * It also implies a memory barrier.
++ */
++static inline int atomic_test_and_set_bit(int nr, atomic_t *v)
++{
++	GEN_BINARY_RMWcc(LOCK_PREFIX "bts", v->counter, "Ir", nr, "%0", "c");
++}
++
+ #ifdef CONFIG_X86_64
+ /**
+  * atomic_or_long - OR of two long integers
