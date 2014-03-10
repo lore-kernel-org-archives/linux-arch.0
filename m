@@ -1,14 +1,14 @@
 From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH v3 07/52] ia64, topology: Fix CPU hotplug callback registration
-Date: Tue, 11 Mar 2014 02:04:58 +0530
-Message-ID: <20140310203458.10746.59610.stgit@srivatsabhat.in.ibm.com>
+Subject: [PATCH v3 05/52] ia64, salinfo: Fix hotplug callback registration
+Date: Tue, 11 Mar 2014 02:04:45 +0530
+Message-ID: <20140310203445.10746.19931.stgit@srivatsabhat.in.ibm.com>
 References: <20140310203312.10746.310.stgit@srivatsabhat.in.ibm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-pm-owner@vger.kernel.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20140310203312.10746.310.stgit@srivatsabhat.in.ibm.com>
-Sender: linux-pm-owner@vger.kernel.org
+Sender: linux-kernel-owner@vger.kernel.org
 To: paulus@samba.org, oleg@redhat.com, rjw@rjwysocki.net, rusty@rustcorp.com.au, peterz@infradead.org, tglx@linutronix.de, akpm@linux-foundation.org
 Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-pm@vger.kernel.org, linuxppc-dev@ozlabs.org, srivatsa.bhat@linux.vnet.ibm.com, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Ingo Molnar <mingo@kernel.org>, linux-ia64@vger.kernel.org"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
 List-Id: linux-arch.vger.kernel.org
@@ -44,7 +44,7 @@ registration is:
 	cpu_notifier_register_done();
 
 
-Fix the topology code in ia64 by using this latter form of callback
+Fix the salinfo code in ia64 by using this latter form of callback
 registration.
 
 Cc: Tony Luck <tony.luck@intel.com>
@@ -54,29 +54,30 @@ Cc: linux-ia64@vger.kernel.org
 Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
 ---
 
- arch/ia64/kernel/topology.c |    6 +++++-
+ arch/ia64/kernel/salinfo.c |    6 +++++-
  1 file changed, 5 insertions(+), 1 deletion(-)
 
-diff --git a/arch/ia64/kernel/topology.c b/arch/ia64/kernel/topology.c
-index ca69a5a..f295f9a 100644
---- a/arch/ia64/kernel/topology.c
-+++ b/arch/ia64/kernel/topology.c
-@@ -454,12 +454,16 @@ static int __init cache_sysfs_init(void)
- {
- 	int i;
+diff --git a/arch/ia64/kernel/salinfo.c b/arch/ia64/kernel/salinfo.c
+index 960a396..ee9719e 100644
+--- a/arch/ia64/kernel/salinfo.c
++++ b/arch/ia64/kernel/salinfo.c
+@@ -635,6 +635,8 @@ salinfo_init(void)
+ 					   (void *)salinfo_entries[i].feature);
+ 	}
  
 +	cpu_notifier_register_begin();
 +
- 	for_each_online_cpu(i) {
- 		struct device *sys_dev = get_cpu_device((unsigned int)i);
- 		cache_add_dev(sys_dev);
- 	}
+ 	for (i = 0; i < ARRAY_SIZE(salinfo_log_name); i++) {
+ 		data = salinfo_data + i;
+ 		data->type = i;
+@@ -669,7 +671,9 @@ salinfo_init(void)
+ 	salinfo_timer.function = &salinfo_timeout;
+ 	add_timer(&salinfo_timer);
  
--	register_hotcpu_notifier(&cache_cpu_notifier);
-+	__register_hotcpu_notifier(&cache_cpu_notifier);
+-	register_hotcpu_notifier(&salinfo_cpu_notifier);
++	__register_hotcpu_notifier(&salinfo_cpu_notifier);
 +
 +	cpu_notifier_register_done();
  
  	return 0;
  }
-
