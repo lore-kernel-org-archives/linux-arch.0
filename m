@@ -1,17 +1,17 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e23smtp08.au.ibm.com ([202.81.31.141]:34978 "EHLO
-	e23smtp08.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753906AbaCJUlQ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 10 Mar 2014 16:41:16 -0400
+Received: from e23smtp07.au.ibm.com ([202.81.31.140]:39357 "EHLO
+	e23smtp07.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754200AbaCJUk7 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 10 Mar 2014 16:40:59 -0400
 Received: from /spool/local
-	by e23smtp08.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	by e23smtp07.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
 	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
-	Tue, 11 Mar 2014 06:41:15 +1000
+	Tue, 11 Mar 2014 06:40:57 +1000
 From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH v3 43/52] thermal,
- x86-pkg-temp: Fix CPU hotplug callback registration
-Date: Tue, 11 Mar 2014 02:10:54 +0530
-Message-ID: <20140310204054.10746.57627.stgit@srivatsabhat.in.ibm.com>
+Subject: [PATCH v3 42/52] octeon,
+ watchdog: Fix CPU hotplug callback registration
+Date: Tue, 11 Mar 2014 02:10:43 +0530
+Message-ID: <20140310204042.10746.60098.stgit@srivatsabhat.in.ibm.com>
 In-Reply-To: <20140310203312.10746.310.stgit@srivatsabhat.in.ibm.com>
 References: <20140310203312.10746.310.stgit@srivatsabhat.in.ibm.com>
 MIME-Version: 1.0
@@ -20,8 +20,8 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: paulus@samba.org, oleg@redhat.com, mingo@kernel.org, rjw@rjwysocki.net, rusty@rustcorp.com.au, peterz@infradead.org, tglx@linutronix.de, akpm@linux-foundation.org
-Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-pm@vger.kernel.org, linuxppc-dev@ozlabs.org, srivatsa.bhat@linux.vnet.ibm.com, Zhang Rui <rui.zhang@intel.com>, Eduardo Valentin <eduardo.valentin@ti.com>linux-pm@vger.kernel.org"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Message-ID: <20140310204054.r9AWc8rMKKWOt2vVk8-EyjdkzecV8hts6HcVFikAtqs@z>
+Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-pm@vger.kernel.org, linuxppc-dev@ozlabs.org, srivatsa.bhat@linux.vnet.ibm.com, Wim Van Sebroeck <wim@iguana.be>, linux-watchdog@vger.kernel.org"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Message-ID: <20140310204043.GElDMfzmsdsZPmzihFxZw2nmiXIEZHPdImP5Nhk4E9s@z>
 
 Subsystems that want to register CPU hotplug callbacks, as well as perform
 initialization for the CPUs that are already online, often do it as shown
@@ -54,66 +54,55 @@ registration is:
 	cpu_notifier_register_done();
 
 
-Fix the thermal x86-pkg-temp code by using this latter form of callback
+Fix the watchdog code in octeon by using this latter form of callback
 registration.
 
-Cc: Zhang Rui <rui.zhang@intel.com>
-Cc: Eduardo Valentin <eduardo.valentin@ti.com>
+Cc: Wim Van Sebroeck <wim@iguana.be>
 Cc: Ingo Molnar <mingo@kernel.org>
-Cc: linux-pm@vger.kernel.org
+Cc: linux-watchdog@vger.kernel.org
 Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
 ---
 
- drivers/thermal/x86_pkg_temp_thermal.c |   14 +++++++-------
- 1 file changed, 7 insertions(+), 7 deletions(-)
+ drivers/watchdog/octeon-wdt-main.c |   11 +++++++++--
+ 1 file changed, 9 insertions(+), 2 deletions(-)
 
-diff --git a/drivers/thermal/x86_pkg_temp_thermal.c b/drivers/thermal/x86_pkg_temp_thermal.c
-index 081fd7e..9ea3d9d 100644
---- a/drivers/thermal/x86_pkg_temp_thermal.c
-+++ b/drivers/thermal/x86_pkg_temp_thermal.c
-@@ -590,12 +590,12 @@ static int __init pkg_temp_thermal_init(void)
- 	platform_thermal_package_rate_control =
- 			pkg_temp_thermal_platform_thermal_rate_control;
+diff --git a/drivers/watchdog/octeon-wdt-main.c b/drivers/watchdog/octeon-wdt-main.c
+index 4612088..4baf2d7 100644
+--- a/drivers/watchdog/octeon-wdt-main.c
++++ b/drivers/watchdog/octeon-wdt-main.c
+@@ -708,10 +708,13 @@ static int __init octeon_wdt_init(void)
  
--	get_online_cpus();
+ 	cpumask_clear(&irq_enabled_cpus);
+ 
 +	cpu_notifier_register_begin();
- 	for_each_online_cpu(i)
- 		if (get_core_online(i))
- 			goto err_ret;
--	register_hotcpu_notifier(&pkg_temp_thermal_notifier);
--	put_online_cpus();
-+	__register_hotcpu_notifier(&pkg_temp_thermal_notifier);
+ 	for_each_online_cpu(cpu)
+ 		octeon_wdt_setup_interrupt(cpu);
+ 
+-	register_hotcpu_notifier(&octeon_wdt_cpu_notifier);
++	__register_hotcpu_notifier(&octeon_wdt_cpu_notifier);
 +	cpu_notifier_register_done();
++
+ out:
+ 	return ret;
+ }
+@@ -725,7 +728,8 @@ static void __exit octeon_wdt_cleanup(void)
  
- 	pkg_temp_debugfs_init(); /* Don't care if fails */
+ 	misc_deregister(&octeon_wdt_miscdev);
  
-@@ -604,7 +604,7 @@ static int __init pkg_temp_thermal_init(void)
- err_ret:
- 	for_each_online_cpu(i)
- 		put_core_offline(i);
--	put_online_cpus();
-+	cpu_notifier_register_done();
- 	kfree(pkg_work_scheduled);
- 	platform_thermal_package_notify = NULL;
- 	platform_thermal_package_rate_control = NULL;
-@@ -617,8 +617,8 @@ static void __exit pkg_temp_thermal_exit(void)
- 	struct phy_dev_entry *phdev, *n;
- 	int i;
- 
--	get_online_cpus();
--	unregister_hotcpu_notifier(&pkg_temp_thermal_notifier);
+-	unregister_hotcpu_notifier(&octeon_wdt_cpu_notifier);
 +	cpu_notifier_register_begin();
-+	__unregister_hotcpu_notifier(&pkg_temp_thermal_notifier);
- 	mutex_lock(&phy_dev_list_mutex);
- 	list_for_each_entry_safe(phdev, n, &phy_dev_list, list) {
- 		/* Retore old MSR value for package thermal interrupt */
-@@ -636,7 +636,7 @@ static void __exit pkg_temp_thermal_exit(void)
- 	for_each_online_cpu(i)
- 		cancel_delayed_work_sync(
- 			&per_cpu(pkg_temp_thermal_threshold_work, i));
--	put_online_cpus();
++	__unregister_hotcpu_notifier(&octeon_wdt_cpu_notifier);
+ 
+ 	for_each_online_cpu(cpu) {
+ 		int core = cpu2core(cpu);
+@@ -734,6 +738,9 @@ static void __exit octeon_wdt_cleanup(void)
+ 		/* Free the interrupt handler */
+ 		free_irq(OCTEON_IRQ_WDOG0 + core, octeon_wdt_poke_irq);
+ 	}
++
 +	cpu_notifier_register_done();
- 
- 	kfree(pkg_work_scheduled);
- 
++
+ 	/*
+ 	 * Disable the boot-bus memory, the code it points to is soon
+ 	 * to go missing.
 
