@@ -1,46 +1,37 @@
 From: Peter Zijlstra <peterz@infradead.org>
-Subject: [RFC][PATCH 4/7] x86: Add atomic_test_and_set_bit()
-Date: Mon, 10 Mar 2014 16:42:40 +0100
-Message-ID: <20140310155543.591055845@infradead.org>
-References: <20140310154236.038181843@infradead.org>
+Subject: [RFC][PATCH 0/7] locking: qspinlock
+Date: Mon, 10 Mar 2014 16:42:36 +0100
+Message-ID: <20140310154236.038181843@infradead.org>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:53923 "EHLO
+Received: from merlin.infradead.org ([205.233.59.134]:53941 "EHLO
 	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752277AbaCJQCd (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 10 Mar 2014 12:02:33 -0400
-Content-Disposition: inline; filename=peterz-atomic_set_and_test_bit.patch
+	with ESMTP id S1754051AbaCJQCh (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 10 Mar 2014 12:02:37 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Waiman Long <waiman.long@hp.com>
 Cc: arnd@arndb.de, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, rostedt@goodmis.org, akpm@linux-foundation.org, walken@google.com, andi@firstfloor.org, riel@redhat.com, paulmck@linux.vnet.ibm.com, torvalds@linux-foundation.org, oleg@redhat.com, Peter Zijlstra <peterz@infradead.org>
 
-For use in qspinlock because unconditional atomic ops scale better
-than cmpxchg loops.
+Hi Waiman,
 
-Signed-off-by: Peter Zijlstra <peterz@infradead.org>
----
- arch/x86/include/asm/atomic.h |   13 +++++++++++++
- 1 file changed, 13 insertions(+)
+I promised you this series a number of days ago; sorry for the delay I've been
+somewhat unwell :/
 
---- a/arch/x86/include/asm/atomic.h
-+++ b/arch/x86/include/asm/atomic.h
-@@ -218,6 +218,19 @@ static inline short int atomic_inc_short
- 	return *v;
- }
- 
-+/**
-+ * test_and_set_bit - Set a bit and return its old value
-+ * @nr: Bit to set
-+ * @addr: Address to count from
-+ *
-+ * This operation is atomic and cannot be reordered.
-+ * It also implies a memory barrier.
-+ */
-+static inline int atomic_test_and_set_bit(int nr, atomic_t *v)
-+{
-+	GEN_BINARY_RMWcc(LOCK_PREFIX "bts", v->counter, "Ir", nr, "%0", "c");
-+}
-+
- #ifdef CONFIG_X86_64
- /**
-  * atomic_or_long - OR of two long integers
+That said, these few patches start with a (hopefully) simple and correct form
+of the queue spinlock, and then gradually build upon it, explaining each
+optimization as we go.
+
+Having these optimizations as separate patches helps twofold; firstly it makes
+one aware of which exact optimizations were done, and secondly it allows one to
+proove or disprove any one step; seeing how they should be mostly identity
+transforms.
+
+The resulting code is near to what you posted I think; however it has one
+atomic op less in the pending wait-acquire case for NR_CPUS != huge. It also
+doesn't do lock stealing; its still perfectly fair afaict.
+
+Have I missed any tricks from your code?
+
+The patches apply to tip/master + lkml.kernel.org/r/20140210195820.834693028@infradead.org
+
+I've yet to look at the paravirt stuff.
