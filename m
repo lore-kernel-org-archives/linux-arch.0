@@ -1,16 +1,16 @@
 From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH v3 14/52] powerpc, sysfs: Fix CPU hotplug callback registration
-Date: Tue, 11 Mar 2014 02:06:31 +0530
-Message-ID: <20140310203630.10746.99418.stgit@srivatsabhat.in.ibm.com>
+Subject: [PATCH v3 17/52] x86, vsyscall: Fix CPU hotplug callback registration
+Date: Tue, 11 Mar 2014 02:06:50 +0530
+Message-ID: <20140310203650.10746.63031.stgit@srivatsabhat.in.ibm.com>
 References: <20140310203312.10746.310.stgit@srivatsabhat.in.ibm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-pm-owner@vger.kernel.org>
 In-Reply-To: <20140310203312.10746.310.stgit@srivatsabhat.in.ibm.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: oleg@redhat.com, rjw@rjwysocki.net, rusty@rustcorp.com.au, peterz@infradead.org, tglx@linutronix.de, akpm@linux-foundation.org
-Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-pm@vger.kernel.org, linuxppc-dev@ozlabs.org, srivatsa.bhat@linux.vnet.ibm.com, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Olof Johansson <olof@lixom.net>, Wang Dongsheng <dongsheng.wang@freescale.com>, Ingo Molnar <mingo@kernel.org>, linuxppc-dev@lists.ozlabs.org, Madhavan Srinivasan <maddy@linux.vnet.ibm.com>"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Sender: linux-pm-owner@vger.kernel.org
+To: paulus@samba.org, oleg@redhat.com, rjw@rjwysocki.net, rusty@rustcorp.com.au, peterz@infradead.org, akpm@linux-foundation.org
+Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-pm@vger.kernel.org, linuxppc-dev@ozlabs.org, srivatsa.bhat@linux.vnet.ibm.com, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
 List-Id: linux-arch.vger.kernel.org
 
 Subsystems that want to register CPU hotplug callbacks, as well as perform
@@ -44,45 +44,36 @@ registration is:
 	cpu_notifier_register_done();
 
 
-Fix the sysfs code in powerpc by using this latter form of callback
+Fix the vsyscall code in x86 by using this latter form of callback
 registration.
 
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: Paul Mackerras <paulus@samba.org>
-Cc: Olof Johansson <olof@lixom.net>
-Cc: Wang Dongsheng <dongsheng.wang@freescale.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>
 Cc: Ingo Molnar <mingo@kernel.org>
-Cc: linuxppc-dev@lists.ozlabs.org
-Acked-by: Madhavan Srinivasan <maddy@linux.vnet.ibm.com>
+Cc: "H. Peter Anvin" <hpa@zytor.com>
+Cc: x86@kernel.org
 Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
 ---
 
- arch/powerpc/kernel/sysfs.c |    8 +++++++-
- 1 file changed, 7 insertions(+), 1 deletion(-)
+ arch/x86/kernel/vsyscall_64.c |    6 +++++-
+ 1 file changed, 5 insertions(+), 1 deletion(-)
 
-diff --git a/arch/powerpc/kernel/sysfs.c b/arch/powerpc/kernel/sysfs.c
-index 97e1dc9..d90d4b7 100644
---- a/arch/powerpc/kernel/sysfs.c
-+++ b/arch/powerpc/kernel/sysfs.c
-@@ -975,7 +975,8 @@ static int __init topology_init(void)
- 	int cpu;
+diff --git a/arch/x86/kernel/vsyscall_64.c b/arch/x86/kernel/vsyscall_64.c
+index 1f96f93..556eaf2 100644
+--- a/arch/x86/kernel/vsyscall_64.c
++++ b/arch/x86/kernel/vsyscall_64.c
+@@ -393,9 +393,13 @@ static int __init vsyscall_init(void)
+ {
+ 	BUG_ON(VSYSCALL_ADDR(0) != __fix_to_virt(VSYSCALL_FIRST_PAGE));
  
- 	register_nodes();
--	register_cpu_notifier(&sysfs_cpu_nb);
-+
 +	cpu_notifier_register_begin();
- 
- 	for_each_possible_cpu(cpu) {
- 		struct cpu *c = &per_cpu(cpu_devices, cpu);
-@@ -999,6 +1000,11 @@ static int __init topology_init(void)
- 		if (cpu_online(cpu))
- 			register_cpu_online(cpu);
- 	}
 +
-+	__register_cpu_notifier(&sysfs_cpu_nb);
+ 	on_each_cpu(cpu_vsyscall_init, NULL, 1);
+ 	/* notifier priority > KVM */
+-	hotcpu_notifier(cpu_vsyscall_notifier, 30);
++	__hotcpu_notifier(cpu_vsyscall_notifier, 30);
 +
 +	cpu_notifier_register_done();
-+
- #ifdef CONFIG_PPC64
- 	sysfs_create_dscr_default();
- #endif /* CONFIG_PPC64 */
+ 
+ 	return 0;
+ }
+
