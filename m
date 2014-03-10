@@ -1,118 +1,64 @@
 From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH v3 35/52] scsi, fcoe: Fix CPU hotplug callback registration
-Date: Tue, 11 Mar 2014 02:09:52 +0530
-Message-ID: <20140310203952.10746.35946.stgit@srivatsabhat.in.ibm.com>
+Subject: [PATCH v3 20/52] x86,
+ therm_throt.c: Fix CPU hotplug callback registration
+Date: Tue, 11 Mar 2014 02:07:21 +0530
+Message-ID: <20140310203721.10746.47726.stgit@srivatsabhat.in.ibm.com>
 References: <20140310203312.10746.310.stgit@srivatsabhat.in.ibm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e28smtp04.in.ibm.com ([122.248.162.4]:48233 "EHLO
-	e28smtp04.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755155AbaCJUkF (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 10 Mar 2014 16:40:05 -0400
-Received: from /spool/local
-	by e28smtp04.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
-	Tue, 11 Mar 2014 02:10:03 +0530
+Content-Transfer-Encoding: base64
+Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
 In-Reply-To: <20140310203312.10746.310.stgit@srivatsabhat.in.ibm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: paulus@samba.org, oleg@redhat.com, rjw@rjwysocki.net, rusty@rustcorp.com.au, peterz@infradead.org, tglx@linutronix.de, akpm@linux-foundation.org
-Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-pm@vger.kernel.org, linuxppc-dev@ozlabs.org, srivatsa.bhat@linux.vnet.ibm.com, Robert Love <robert.w.love@intel.com>, "James E.J. Bottomley" <JBottomley@parallels.com>, Ingo Molnar <mingo@kernel.org>, fcoe-devel@open-fcoe.org, linux-scsi@vger.kernel.org"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
+ <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
+List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
+List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
+List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
+List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
+ <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
+Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
+Sender: "Linuxppc-dev"
+ <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
+To: paulus@samba.org, oleg@redhat.com, rjw@rjwysocki.net, rusty@rustcorp.com.au, peterz@infradead.org, akpm@linux-foundation.org
+Cc: linux-arch@vger.kernel.org, ego@linux.vnet.ibm.com, walken@google.com, linux@arm.linux.org.uk, linux-pm@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, linuxppc-dev@ozlabs.org, Tony Luck <tony.luck@intel.com>, Borislav Petkov <bp@alien8.de>, "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, "H. Peter Anvin" <hpa@zytor.com>, tj@kernel.org, Thomas Gleixner <tglx@linutronix.de>, paulmck@linux.vnet.ibm.com, Ingo Molnar <mingo@kernel.org>, linux-edac@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-Subsystems that want to register CPU hotplug callbacks, as well as perform
-initialization for the CPUs that are already online, often do it as shown
-below:
-
-	get_online_cpus();
-
-	for_each_online_cpu(cpu)
-		init_cpu(cpu);
-
-	register_cpu_notifier(&foobar_cpu_notifier);
-
-	put_online_cpus();
-
-This is wrong, since it is prone to ABBA deadlocks involving the
-cpu_add_remove_lock and the cpu_hotplug.lock (when running concurrently
-with CPU hotplug operations).
-
-Instead, the correct and race-free way of performing the callback
-registration is:
-
-	cpu_notifier_register_begin();
-
-	for_each_online_cpu(cpu)
-		init_cpu(cpu);
-
-	/* Note the use of the double underscored version of the API */
-	__register_cpu_notifier(&foobar_cpu_notifier);
-
-	cpu_notifier_register_done();
-
-
-Fix the fcoe code in scsi by using this latter form of callback registration.
-
-Cc: Robert Love <robert.w.love@intel.com>
-Cc: "James E.J. Bottomley" <JBottomley@parallels.com>
-Cc: Ingo Molnar <mingo@kernel.org>
-Cc: fcoe-devel@open-fcoe.org
-Cc: linux-scsi@vger.kernel.org
-Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
----
-
- drivers/scsi/fcoe/fcoe.c |   15 +++++++++++++--
- 1 file changed, 13 insertions(+), 2 deletions(-)
-
-diff --git a/drivers/scsi/fcoe/fcoe.c b/drivers/scsi/fcoe/fcoe.c
-index f317000..d5e105b 100644
---- a/drivers/scsi/fcoe/fcoe.c
-+++ b/drivers/scsi/fcoe/fcoe.c
-@@ -2633,14 +2633,18 @@ static int __init fcoe_init(void)
- 		skb_queue_head_init(&p->fcoe_rx_list);
- 	}
- 
-+	cpu_notifier_register_begin();
-+
- 	for_each_online_cpu(cpu)
- 		fcoe_percpu_thread_create(cpu);
- 
- 	/* Initialize per CPU interrupt thread */
--	rc = register_hotcpu_notifier(&fcoe_cpu_notifier);
-+	rc = __register_hotcpu_notifier(&fcoe_cpu_notifier);
- 	if (rc)
- 		goto out_free;
- 
-+	cpu_notifier_register_done();
-+
- 	/* Setup link change notification */
- 	fcoe_dev_setup();
- 
-@@ -2655,6 +2659,9 @@ out_free:
- 	for_each_online_cpu(cpu) {
- 		fcoe_percpu_thread_destroy(cpu);
- 	}
-+
-+	cpu_notifier_register_done();
-+
- 	mutex_unlock(&fcoe_config_mutex);
- 	destroy_workqueue(fcoe_wq);
- 	return rc;
-@@ -2687,11 +2694,15 @@ static void __exit fcoe_exit(void)
- 	}
- 	rtnl_unlock();
- 
--	unregister_hotcpu_notifier(&fcoe_cpu_notifier);
-+	cpu_notifier_register_begin();
- 
- 	for_each_online_cpu(cpu)
- 		fcoe_percpu_thread_destroy(cpu);
- 
-+	__unregister_hotcpu_notifier(&fcoe_cpu_notifier);
-+
-+	cpu_notifier_register_done();
-+
- 	mutex_unlock(&fcoe_config_mutex);
- 
- 	/*
+U3Vic3lzdGVtcyB0aGF0IHdhbnQgdG8gcmVnaXN0ZXIgQ1BVIGhvdHBsdWcgY2FsbGJhY2tzLCBh
+cyB3ZWxsIGFzIHBlcmZvcm0KaW5pdGlhbGl6YXRpb24gZm9yIHRoZSBDUFVzIHRoYXQgYXJlIGFs
+cmVhZHkgb25saW5lLCBvZnRlbiBkbyBpdCBhcyBzaG93bgpiZWxvdzoKCglnZXRfb25saW5lX2Nw
+dXMoKTsKCglmb3JfZWFjaF9vbmxpbmVfY3B1KGNwdSkKCQlpbml0X2NwdShjcHUpOwoKCXJlZ2lz
+dGVyX2NwdV9ub3RpZmllcigmZm9vYmFyX2NwdV9ub3RpZmllcik7CgoJcHV0X29ubGluZV9jcHVz
+KCk7CgpUaGlzIGlzIHdyb25nLCBzaW5jZSBpdCBpcyBwcm9uZSB0byBBQkJBIGRlYWRsb2NrcyBp
+bnZvbHZpbmcgdGhlCmNwdV9hZGRfcmVtb3ZlX2xvY2sgYW5kIHRoZSBjcHVfaG90cGx1Zy5sb2Nr
+ICh3aGVuIHJ1bm5pbmcgY29uY3VycmVudGx5CndpdGggQ1BVIGhvdHBsdWcgb3BlcmF0aW9ucyku
+CgpJbnN0ZWFkLCB0aGUgY29ycmVjdCBhbmQgcmFjZS1mcmVlIHdheSBvZiBwZXJmb3JtaW5nIHRo
+ZSBjYWxsYmFjawpyZWdpc3RyYXRpb24gaXM6CgoJY3B1X25vdGlmaWVyX3JlZ2lzdGVyX2JlZ2lu
+KCk7CgoJZm9yX2VhY2hfb25saW5lX2NwdShjcHUpCgkJaW5pdF9jcHUoY3B1KTsKCgkvKiBOb3Rl
+IHRoZSB1c2Ugb2YgdGhlIGRvdWJsZSB1bmRlcnNjb3JlZCB2ZXJzaW9uIG9mIHRoZSBBUEkgKi8K
+CV9fcmVnaXN0ZXJfY3B1X25vdGlmaWVyKCZmb29iYXJfY3B1X25vdGlmaWVyKTsKCgljcHVfbm90
+aWZpZXJfcmVnaXN0ZXJfZG9uZSgpOwoKCkZpeCB0aGUgdGhlcm1hbCB0aHJvdHRsZSBjb2RlIGlu
+IHg4NiBieSB1c2luZyB0aGlzIGxhdHRlciBmb3JtIG9mIGNhbGxiYWNrCnJlZ2lzdHJhdGlvbi4K
+CkNjOiBUb255IEx1Y2sgPHRvbnkubHVja0BpbnRlbC5jb20+CkNjOiBCb3Jpc2xhdiBQZXRrb3Yg
+PGJwQGFsaWVuOC5kZT4KQ2M6IFRob21hcyBHbGVpeG5lciA8dGdseEBsaW51dHJvbml4LmRlPgpD
+YzogSW5nbyBNb2xuYXIgPG1pbmdvQGtlcm5lbC5vcmc+CkNjOiAiSC4gUGV0ZXIgQW52aW4iIDxo
+cGFAenl0b3IuY29tPgpDYzogeDg2QGtlcm5lbC5vcmcKQ2M6IGxpbnV4LWVkYWNAdmdlci5rZXJu
+ZWwub3JnClNpZ25lZC1vZmYtYnk6IFNyaXZhdHNhIFMuIEJoYXQgPHNyaXZhdHNhLmJoYXRAbGlu
+dXgudm5ldC5pYm0uY29tPgotLS0KCiBhcmNoL3g4Ni9rZXJuZWwvY3B1L21jaGVjay90aGVybV90
+aHJvdC5jIHwgICAgNSArKysrLQogMSBmaWxlIGNoYW5nZWQsIDQgaW5zZXJ0aW9ucygrKSwgMSBk
+ZWxldGlvbigtKQoKZGlmZiAtLWdpdCBhL2FyY2gveDg2L2tlcm5lbC9jcHUvbWNoZWNrL3RoZXJt
+X3Rocm90LmMgYi9hcmNoL3g4Ni9rZXJuZWwvY3B1L21jaGVjay90aGVybV90aHJvdC5jCmluZGV4
+IDNlZWM3ZGUuLmUwNWRmYTMgMTAwNjQ0Ci0tLSBhL2FyY2gveDg2L2tlcm5lbC9jcHUvbWNoZWNr
+L3RoZXJtX3Rocm90LmMKKysrIGIvYXJjaC94ODYva2VybmVsL2NwdS9tY2hlY2svdGhlcm1fdGhy
+b3QuYwpAQCAtMzE5LDcgKzMxOSw3IEBAIHN0YXRpYyBfX2luaXQgaW50IHRoZXJtYWxfdGhyb3R0
+bGVfaW5pdF9kZXZpY2Uodm9pZCkKIAlpZiAoIWF0b21pY19yZWFkKCZ0aGVybV90aHJvdF9lbikp
+CiAJCXJldHVybiAwOwogCi0JcmVnaXN0ZXJfaG90Y3B1X25vdGlmaWVyKCZ0aGVybWFsX3Rocm90
+dGxlX2NwdV9ub3RpZmllcik7CisJY3B1X25vdGlmaWVyX3JlZ2lzdGVyX2JlZ2luKCk7CiAKICNp
+ZmRlZiBDT05GSUdfSE9UUExVR19DUFUKIAltdXRleF9sb2NrKCZ0aGVybV9jcHVfbG9jayk7CkBA
+IC0zMzMsNiArMzMzLDkgQEAgc3RhdGljIF9faW5pdCBpbnQgdGhlcm1hbF90aHJvdHRsZV9pbml0
+X2RldmljZSh2b2lkKQogCW11dGV4X3VubG9jaygmdGhlcm1fY3B1X2xvY2spOwogI2VuZGlmCiAK
+KwlfX3JlZ2lzdGVyX2hvdGNwdV9ub3RpZmllcigmdGhlcm1hbF90aHJvdHRsZV9jcHVfbm90aWZp
+ZXIpOworCWNwdV9ub3RpZmllcl9yZWdpc3Rlcl9kb25lKCk7CisKIAlyZXR1cm4gMDsKIH0KIGRl
+dmljZV9pbml0Y2FsbCh0aGVybWFsX3Rocm90dGxlX2luaXRfZGV2aWNlKTsKCl9fX19fX19fX19f
+X19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fCkxpbnV4cHBjLWRldiBtYWlsaW5n
+IGxpc3QKTGludXhwcGMtZGV2QGxpc3RzLm96bGFicy5vcmcKaHR0cHM6Ly9saXN0cy5vemxhYnMu
+b3JnL2xpc3RpbmZvL2xpbnV4cHBjLWRldg==
