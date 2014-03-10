@@ -1,25 +1,18 @@
 From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH v3 22/52] x86, amd, ibs: Fix CPU hotplug callback registration
-Date: Tue, 11 Mar 2014 02:07:45 +0530
-Message-ID: <20140310203744.10746.96582.stgit@srivatsabhat.in.ibm.com>
+Subject: [PATCH v3 24/52] x86, intel,
+ rapl: Fix CPU hotplug callback registration
+Date: Tue, 11 Mar 2014 02:08:09 +0530
+Message-ID: <20140310203809.10746.41940.stgit@srivatsabhat.in.ibm.com>
 References: <20140310203312.10746.310.stgit@srivatsabhat.in.ibm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e23smtp02.au.ibm.com ([202.81.31.144]:60761 "EHLO
-	e23smtp02.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753443AbaCJUib (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 10 Mar 2014 16:38:31 -0400
-Received: from /spool/local
-	by e23smtp02.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
-	Tue, 11 Mar 2014 06:38:30 +1000
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20140310203312.10746.310.stgit@srivatsabhat.in.ibm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: oleg@redhat.com, rjw@rjwysocki.net, rusty@rustcorp.com.au, akpm@linux-foundation.org
 Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-pm@vger.kernel.org, linuxppc-dev@ozlabs.org, srivatsa.bhat@linux.vnet.ibm.com, Peter Zijlstra <peterz@infradead.org>, Paul Mackerras <paulus@samba.org>, Ingo Molnar <mingo@kernel.org>, Arnaldo Carvalho de Melo <acme@ghostprotocols.net>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+List-Id: linux-arch.vger.kernel.org
 
 Subsystems that want to register CPU hotplug callbacks, as well as perform
 initialization for the CPUs that are already online, often do it as shown
@@ -52,7 +45,7 @@ registration is:
 	cpu_notifier_register_done();
 
 
-Fix the amd-ibs code in x86 by using this latter form of callback
+Fix the intel rapl code in x86 by using this latter form of callback
 registration.
 
 Cc: Peter Zijlstra <peterz@infradead.org>
@@ -65,27 +58,43 @@ Cc: x86@kernel.org
 Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
 ---
 
- arch/x86/kernel/cpu/perf_event_amd_ibs.c |    6 +++---
- 1 file changed, 3 insertions(+), 3 deletions(-)
+ arch/x86/kernel/cpu/perf_event_intel_rapl.c |    9 +++++----
+ 1 file changed, 5 insertions(+), 4 deletions(-)
 
-diff --git a/arch/x86/kernel/cpu/perf_event_amd_ibs.c b/arch/x86/kernel/cpu/perf_event_amd_ibs.c
-index 4b8e4d3..4c36bbe 100644
---- a/arch/x86/kernel/cpu/perf_event_amd_ibs.c
-+++ b/arch/x86/kernel/cpu/perf_event_amd_ibs.c
-@@ -926,13 +926,13 @@ static __init int amd_ibs_init(void)
- 		goto out;
- 
- 	perf_ibs_pm_init();
+diff --git a/arch/x86/kernel/cpu/perf_event_intel_rapl.c b/arch/x86/kernel/cpu/perf_event_intel_rapl.c
+index 5ad35ad..059218e 100644
+--- a/arch/x86/kernel/cpu/perf_event_intel_rapl.c
++++ b/arch/x86/kernel/cpu/perf_event_intel_rapl.c
+@@ -646,19 +646,20 @@ static int __init rapl_pmu_init(void)
+ 		/* unsupported */
+ 		return 0;
+ 	}
 -	get_online_cpus();
++
 +	cpu_notifier_register_begin();
- 	ibs_caps = caps;
- 	/* make ibs_caps visible to other cpus: */
- 	smp_mb();
--	perf_cpu_notifier(perf_ibs_cpu_notifier);
- 	smp_call_function(setup_APIC_ibs, NULL, 1);
+ 
+ 	for_each_online_cpu(cpu) {
+ 		rapl_cpu_prepare(cpu);
+ 		rapl_cpu_init(cpu);
+ 	}
+ 
+-	perf_cpu_notifier(rapl_cpu_notifier);
++	__perf_cpu_notifier(rapl_cpu_notifier);
+ 
+ 	ret = perf_pmu_register(&rapl_pmu_class, "power", -1);
+ 	if (WARN_ON(ret)) {
+ 		pr_info("RAPL PMU detected, registration failed (%d), RAPL PMU disabled\n", ret);
+-		put_online_cpus();
++		cpu_notifier_register_done();
+ 		return -1;
+ 	}
+ 
+@@ -672,7 +673,7 @@ static int __init rapl_pmu_init(void)
+ 		hweight32(rapl_cntr_mask),
+ 		ktime_to_ms(pmu->timer_interval));
+ 
 -	put_online_cpus();
-+	__perf_cpu_notifier(perf_ibs_cpu_notifier);
 +	cpu_notifier_register_done();
  
- 	ret = perf_event_ibs_init();
- out:
+ 	return 0;
+ }
