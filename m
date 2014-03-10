@@ -1,16 +1,17 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e28smtp06.in.ibm.com ([122.248.162.6]:42376 "EHLO
-	e28smtp06.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755228AbaCJUkm (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 10 Mar 2014 16:40:42 -0400
+Received: from e23smtp03.au.ibm.com ([202.81.31.145]:56267 "EHLO
+	e23smtp03.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754627AbaCJUli (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 10 Mar 2014 16:41:38 -0400
 Received: from /spool/local
-	by e28smtp06.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	by e23smtp03.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
 	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
-	Tue, 11 Mar 2014 02:10:40 +0530
+	Tue, 11 Mar 2014 06:41:36 +1000
 From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH v3 40/52] intel-idle: Fix CPU hotplug callback registration
-Date: Tue, 11 Mar 2014 02:10:30 +0530
-Message-ID: <20140310204030.10746.17666.stgit@srivatsabhat.in.ibm.com>
+Subject: [PATCH v3 44/52] hwmon,
+ coretemp: Fix CPU hotplug callback registration
+Date: Tue, 11 Mar 2014 02:11:11 +0530
+Message-ID: <20140310204111.10746.4119.stgit@srivatsabhat.in.ibm.com>
 In-Reply-To: <20140310203312.10746.310.stgit@srivatsabhat.in.ibm.com>
 References: <20140310203312.10746.310.stgit@srivatsabhat.in.ibm.com>
 MIME-Version: 1.0
@@ -19,8 +20,8 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: paulus@samba.org, oleg@redhat.com, mingo@kernel.org, rjw@rjwysocki.net, rusty@rustcorp.com.au, peterz@infradead.org, tglx@linutronix.de, akpm@linux-foundation.org
-Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-pm@vger.kernel.org, linuxppc-dev@ozlabs.org, srivatsa.bhat@linux.vnet.ibm.com, Len Brown <lenb@kernel.org>linux-pm@vger.kernel.org"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Message-ID: <20140310204030.4BhFf0dTbWSffuXhMXPL1HcyQobtfI5_a8nJ5hvVfJM@z>
+Cc: paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-pm@vger.kernel.org, linuxppc-dev@ozlabs.org, srivatsa.bhat@linux.vnet.ibm.com, Fenghua Yu <fenghua.yu@intel.com>, Jean Delvare <jdelvare@suse.de>, lm-sensors@lm-sensors.org, Guenter Roeck <linux@roeck-us.net>"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Message-ID: <20140310204111.BHl-akZ63EX2EDdfoUAbUrD5YJzNdoaaxBvcwJKRnZY@z>
 
 Subsystems that want to register CPU hotplug callbacks, as well as perform
 initialization for the CPUs that are already online, often do it as shown
@@ -53,56 +54,67 @@ registration is:
 	cpu_notifier_register_done();
 
 
-Fix the intel-idle code by using this latter form of callback registration.
+Fix the hwmon coretemp code by using this latter form of callback
+registration.
 
-Cc: Len Brown <lenb@kernel.org>
-Cc: "Rafael J. Wysocki" <rjw@rjwysocki.net>
+Cc: Fenghua Yu <fenghua.yu@intel.com>
+Cc: Jean Delvare <jdelvare@suse.de>
 Cc: Ingo Molnar <mingo@kernel.org>
-Cc: linux-pm@vger.kernel.org
+Cc: lm-sensors@lm-sensors.org
+Acked-by: Guenter Roeck <linux@roeck-us.net>
 Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
 ---
 
- drivers/idle/intel_idle.c |   12 ++++++++++--
- 1 file changed, 10 insertions(+), 2 deletions(-)
+ drivers/hwmon/coretemp.c |   14 +++++++-------
+ 1 file changed, 7 insertions(+), 7 deletions(-)
 
-diff --git a/drivers/idle/intel_idle.c b/drivers/idle/intel_idle.c
-index 8e1939f..51493ed 100644
---- a/drivers/idle/intel_idle.c
-+++ b/drivers/idle/intel_idle.c
-@@ -681,14 +681,19 @@ static int __init intel_idle_init(void)
- 	if (intel_idle_cpuidle_devices == NULL)
- 		return -ENOMEM;
+diff --git a/drivers/hwmon/coretemp.c b/drivers/hwmon/coretemp.c
+index bbb0b0d..746a6ad 100644
+--- a/drivers/hwmon/coretemp.c
++++ b/drivers/hwmon/coretemp.c
+@@ -849,20 +849,20 @@ static int __init coretemp_init(void)
+ 	if (err)
+ 		goto exit;
  
+-	get_online_cpus();
 +	cpu_notifier_register_begin();
-+
- 	for_each_online_cpu(i) {
- 		retval = intel_idle_cpu_init(i);
- 		if (retval) {
-+			cpu_notifier_register_done();
- 			cpuidle_unregister_driver(&intel_idle_driver);
- 			return retval;
- 		}
+ 	for_each_online_cpu(i)
+ 		get_core_online(i);
+ 
+ #ifndef CONFIG_HOTPLUG_CPU
+ 	if (list_empty(&pdev_list)) {
+-		put_online_cpus();
++		cpu_notifier_register_done();
+ 		err = -ENODEV;
+ 		goto exit_driver_unreg;
  	}
--	register_cpu_notifier(&cpu_hotplug_notifier);
-+	__register_cpu_notifier(&cpu_hotplug_notifier);
-+
-+	cpu_notifier_register_done();
+ #endif
  
+-	register_hotcpu_notifier(&coretemp_cpu_notifier);
+-	put_online_cpus();
++	__register_hotcpu_notifier(&coretemp_cpu_notifier);
++	cpu_notifier_register_done();
  	return 0;
- }
-@@ -698,10 +703,13 @@ static void __exit intel_idle_exit(void)
- 	intel_idle_cpuidle_devices_uninit();
- 	cpuidle_unregister_driver(&intel_idle_driver);
  
+ #ifndef CONFIG_HOTPLUG_CPU
+@@ -877,8 +877,8 @@ static void __exit coretemp_exit(void)
+ {
+ 	struct pdev_entry *p, *n;
+ 
+-	get_online_cpus();
+-	unregister_hotcpu_notifier(&coretemp_cpu_notifier);
 +	cpu_notifier_register_begin();
- 
- 	if (lapic_timer_reliable_states != LAPIC_TIMER_ALWAYS_RELIABLE)
- 		on_each_cpu(__setup_broadcast_timer, (void *)false, 1);
--	unregister_cpu_notifier(&cpu_hotplug_notifier);
-+	__unregister_cpu_notifier(&cpu_hotplug_notifier);
-+
++	__unregister_hotcpu_notifier(&coretemp_cpu_notifier);
+ 	mutex_lock(&pdev_list_mutex);
+ 	list_for_each_entry_safe(p, n, &pdev_list, list) {
+ 		platform_device_unregister(p->pdev);
+@@ -886,7 +886,7 @@ static void __exit coretemp_exit(void)
+ 		kfree(p);
+ 	}
+ 	mutex_unlock(&pdev_list_mutex);
+-	put_online_cpus();
 +	cpu_notifier_register_done();
- 
- 	return;
+ 	platform_driver_unregister(&coretemp_driver);
  }
+ 
 
