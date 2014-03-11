@@ -1,156 +1,174 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:38928 "EHLO gate.crashing.org"
+Received: from mx1.redhat.com ([209.132.183.28]:43671 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753782AbaCKUjK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 11 Mar 2014 16:39:10 -0400
-Message-ID: <1394570240.4840.48.camel@pasglop>
-Subject: Re: [RFC PATCH] Remove CONFIG_DCACHE_WORD_ACCESS
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Date: Wed, 12 Mar 2014 07:37:20 +1100
-In-Reply-To: <1393964591.20435.58.camel@joe-AO722>
-References: <1393964591.20435.58.camel@joe-AO722>
-Content-Type: text/plain; charset="UTF-8"
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+	id S1755886AbaCKVdn (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 11 Mar 2014 17:33:43 -0400
+From: Eric Paris <eparis@redhat.com>
+Subject: [PATCH 1/2] syscall_get_arch: remove useless function arguments
+Date: Tue, 11 Mar 2014 17:32:57 -0400
+Message-ID: <1394573578-2558-1-git-send-email-eparis@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Joe Perches <joe@perches.com>
-Cc: linux-arch <linux-arch@vger.kernel.org>, Paul Mackerras <paulus@samba.org>, Russell King <linux@arm.linux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Alexander Viro <viro@zeniv.linux.org.uk>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-fsdevel <linux-fsdevel@vger.kernel.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, Anton Blanchard <anton@au1.ibm.com>
-Message-ID: <20140311203720.waVVX3QsCpqMCpOQ_ayfNWsyi_G_Vyjv0r1e_hK1Aq8@z>
+To: linux-audit@redhat.com
+Cc: Eric Paris <eparis@redhat.com>, linux-arm-kernel@lists.infradead.org, linux-mips@linux-mips.org, linux390@de.ibm.com, x86@kernel.org, linux-kernel@vger.kernel.org, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20140311213257.SQdejtz5U59KQfalKVQo4P0a1WRUse_nJ98vE-keBVw@z>
 
-On Tue, 2014-03-04 at 12:23 -0800, Joe Perches wrote:
-> It seems to duplicate CONFIG_HAVE_EFFICIENT_UNALIGNED_ACCESS
-> so use that instead.
-> 
-> This changes the !CPU_LITTLE_ENDIAN powerpc arch to use unaligned
-> accesses in fs/dcache.c and fs/namei.c as
-> CONFIG_HAVE_EFFICIENT_UNALIGNED_ACCESS is enabled for that arch.
-> 
-> Remove the now unused DCACHE_WORD_ACCESS defines & uses.
+Every caller of syscall_get_arch() uses current for the task and no
+implementors of the function need args.  So just get rid of both of
+those things.  Admittedly, since these are inline functions we aren't
+wasting stack space, but it just makes the prototypes better.
 
-Interesting.. we have word-at-a-time but we never enabled
-DCACHE_WORD_ACCESS, I wonder why that is. In fact, we should
-probably do it for LE as well for P8 if we can make a P8
-only config option...
+Signed-off-by: Eric Paris <eparis@redhat.com>
+Cc: linux-arm-kernel@lists.infradead.org
+Cc: linux-mips@linux-mips.org
+Cc: linux390@de.ibm.com
+Cc: x86@kernel.org
+Cc: linux-kernel@vger.kernel.org
+Cc: linux-s390@vger.kernel.org
+Cc: linux-arch@vger.kernel.org
+---
+ arch/arm/include/asm/syscall.h  | 3 +--
+ arch/mips/include/asm/syscall.h | 2 +-
+ arch/mips/kernel/ptrace.c       | 2 +-
+ arch/s390/include/asm/syscall.h | 5 ++---
+ arch/x86/include/asm/syscall.h  | 8 +++-----
+ include/asm-generic/syscall.h   | 4 +---
+ kernel/seccomp.c                | 4 ++--
+ 7 files changed, 11 insertions(+), 17 deletions(-)
 
-Anton, what do you reckon here ?
-
-Cheers,
-Ben.
-
-> Signed-off-by: Joe Perches <joe@perches.com>
-> ---
->  arch/arm/Kconfig                      | 1 -
->  arch/arm/include/asm/word-at-a-time.h | 4 ++--
->  arch/arm64/Kconfig                    | 1 -
->  arch/x86/Kconfig                      | 1 -
->  fs/Kconfig                            | 4 ----
->  fs/dcache.c                           | 2 +-
->  fs/namei.c                            | 2 +-
->  7 files changed, 4 insertions(+), 11 deletions(-)
-> 
-> diff --git a/arch/arm/Kconfig b/arch/arm/Kconfig
-> index 623a272..d5a2e60 100644
-> --- a/arch/arm/Kconfig
-> +++ b/arch/arm/Kconfig
-> @@ -12,7 +12,6 @@ config ARM
->  	select BUILDTIME_EXTABLE_SORT if MMU
->  	select CLONE_BACKWARDS
->  	select CPU_PM if (SUSPEND || CPU_IDLE)
-> -	select DCACHE_WORD_ACCESS if HAVE_EFFICIENT_UNALIGNED_ACCESS
->  	select GENERIC_ATOMIC64 if (CPU_V7M || CPU_V6 || !CPU_32v6K || !AEABI)
->  	select GENERIC_CLOCKEVENTS_BROADCAST if SMP
->  	select GENERIC_IDLE_POLL_SETUP
-> diff --git a/arch/arm/include/asm/word-at-a-time.h b/arch/arm/include/asm/word-at-a-time.h
-> index a6d0a29..778b2ad 100644
-> --- a/arch/arm/include/asm/word-at-a-time.h
-> +++ b/arch/arm/include/asm/word-at-a-time.h
-> @@ -54,7 +54,7 @@ static inline unsigned long find_zero(unsigned long mask)
->  #include <asm-generic/word-at-a-time.h>
->  #endif
->  
-> -#ifdef CONFIG_DCACHE_WORD_ACCESS
-> +#ifdef CONFIG_HAVE_EFFICIENT_UNALIGNED_ACCESS
->  
->  /*
->   * Load an unaligned word from kernel space.
-> @@ -94,5 +94,5 @@ static inline unsigned long load_unaligned_zeropad(const void *addr)
->  	return ret;
->  }
->  
-> -#endif	/* DCACHE_WORD_ACCESS */
-> +#endif	/* HAVE_EFFICIENT_UNALIGNED_ACCESS */
->  #endif /* __ASM_ARM_WORD_AT_A_TIME_H */
-> diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
-> index 764d682..2d6978c 100644
-> --- a/arch/arm64/Kconfig
-> +++ b/arch/arm64/Kconfig
-> @@ -13,7 +13,6 @@ config ARM64
->  	select CLONE_BACKWARDS
->  	select COMMON_CLK
->  	select CPU_PM if (SUSPEND || CPU_IDLE)
-> -	select DCACHE_WORD_ACCESS
->  	select GENERIC_CLOCKEVENTS
->  	select GENERIC_CLOCKEVENTS_BROADCAST if SMP
->  	select GENERIC_IOMAP
-> diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
-> index abb261e..60cfa073 100644
-> --- a/arch/x86/Kconfig
-> +++ b/arch/x86/Kconfig
-> @@ -98,7 +98,6 @@ config X86
->  	select CLKEVT_I8253
->  	select ARCH_HAVE_NMI_SAFE_CMPXCHG
->  	select GENERIC_IOMAP
-> -	select DCACHE_WORD_ACCESS
->  	select GENERIC_SMP_IDLE_THREAD
->  	select ARCH_WANT_IPC_PARSE_VERSION if X86_32
->  	select HAVE_ARCH_SECCOMP_FILTER
-> diff --git a/fs/Kconfig b/fs/Kconfig
-> index 312393f..7511271 100644
-> --- a/fs/Kconfig
-> +++ b/fs/Kconfig
-> @@ -4,10 +4,6 @@
->  
->  menu "File systems"
->  
-> -# Use unaligned word dcache accesses
-> -config DCACHE_WORD_ACCESS
-> -       bool
-> -
->  if BLOCK
->  
->  source "fs/ext2/Kconfig"
-> diff --git a/fs/dcache.c b/fs/dcache.c
-> index 265e0ce..4e3c195 100644
-> --- a/fs/dcache.c
-> +++ b/fs/dcache.c
-> @@ -163,7 +163,7 @@ int proc_nr_dentry(ctl_table *table, int write, void __user *buffer,
->   * Compare 2 name strings, return 0 if they match, otherwise non-zero.
->   * The strings are both count bytes long, and count is non-zero.
->   */
-> -#ifdef CONFIG_DCACHE_WORD_ACCESS
-> +#ifdef CONFIG_HAVE_EFFICIENT_UNALIGNED_ACCESS
->  
->  #include <asm/word-at-a-time.h>
->  /*
-> diff --git a/fs/namei.c b/fs/namei.c
-> index 385f781..1ee33ca 100644
-> --- a/fs/namei.c
-> +++ b/fs/namei.c
-> @@ -1618,7 +1618,7 @@ static inline int nested_symlink(struct path *path, struct nameidata *nd)
->   *   the final mask". Again, that could be replaced with a
->   *   efficient population count instruction or similar.
->   */
-> -#ifdef CONFIG_DCACHE_WORD_ACCESS
-> +#ifdef CONFIG_HAVE_EFFICIENT_UNALIGNED_ACCESS
->  
->  #include <asm/word-at-a-time.h>
->  
-> 
-> 
-> --
-> To unsubscribe from this list: send the line "unsubscribe linux-arch" in
-> the body of a message to majordomo@vger.kernel.org
-> More majordomo info at  http://vger.kernel.org/majordomo-info.html
-
+diff --git a/arch/arm/include/asm/syscall.h b/arch/arm/include/asm/syscall.h
+index 73ddd72..ed805f1 100644
+--- a/arch/arm/include/asm/syscall.h
++++ b/arch/arm/include/asm/syscall.h
+@@ -103,8 +103,7 @@ static inline void syscall_set_arguments(struct task_struct *task,
+ 	memcpy(&regs->ARM_r0 + i, args, n * sizeof(args[0]));
+ }
+ 
+-static inline int syscall_get_arch(struct task_struct *task,
+-				   struct pt_regs *regs)
++static inline int syscall_get_arch(void)
+ {
+ 	/* ARM tasks don't change audit architectures on the fly. */
+ 	return AUDIT_ARCH_ARM;
+diff --git a/arch/mips/include/asm/syscall.h b/arch/mips/include/asm/syscall.h
+index 81c8913..625e709 100644
+--- a/arch/mips/include/asm/syscall.h
++++ b/arch/mips/include/asm/syscall.h
+@@ -101,7 +101,7 @@ extern const unsigned long sys_call_table[];
+ extern const unsigned long sys32_call_table[];
+ extern const unsigned long sysn32_call_table[];
+ 
+-static inline int __syscall_get_arch(void)
++static inline int syscall_get_arch(void)
+ {
+ 	int arch = EM_MIPS;
+ #ifdef CONFIG_64BIT
+diff --git a/arch/mips/kernel/ptrace.c b/arch/mips/kernel/ptrace.c
+index b52e1d2..65ba622 100644
+--- a/arch/mips/kernel/ptrace.c
++++ b/arch/mips/kernel/ptrace.c
+@@ -671,7 +671,7 @@ asmlinkage void syscall_trace_enter(struct pt_regs *regs)
+ 	if (unlikely(test_thread_flag(TIF_SYSCALL_TRACEPOINT)))
+ 		trace_sys_enter(regs, regs->regs[2]);
+ 
+-	audit_syscall_entry(__syscall_get_arch(),
++	audit_syscall_entry(syscall_get_arch(),
+ 			    regs->regs[2],
+ 			    regs->regs[4], regs->regs[5],
+ 			    regs->regs[6], regs->regs[7]);
+diff --git a/arch/s390/include/asm/syscall.h b/arch/s390/include/asm/syscall.h
+index cd29d2f..bebc0bd 100644
+--- a/arch/s390/include/asm/syscall.h
++++ b/arch/s390/include/asm/syscall.h
+@@ -89,11 +89,10 @@ static inline void syscall_set_arguments(struct task_struct *task,
+ 		regs->orig_gpr2 = args[0];
+ }
+ 
+-static inline int syscall_get_arch(struct task_struct *task,
+-				   struct pt_regs *regs)
++static inline int syscall_get_arch(void)
+ {
+ #ifdef CONFIG_COMPAT
+-	if (test_tsk_thread_flag(task, TIF_31BIT))
++	if (test_tsk_thread_flag(current, TIF_31BIT))
+ 		return AUDIT_ARCH_S390;
+ #endif
+ 	return sizeof(long) == 8 ? AUDIT_ARCH_S390X : AUDIT_ARCH_S390;
+diff --git a/arch/x86/include/asm/syscall.h b/arch/x86/include/asm/syscall.h
+index aea284b..7e6d0c4 100644
+--- a/arch/x86/include/asm/syscall.h
++++ b/arch/x86/include/asm/syscall.h
+@@ -91,8 +91,7 @@ static inline void syscall_set_arguments(struct task_struct *task,
+ 	memcpy(&regs->bx + i, args, n * sizeof(args[0]));
+ }
+ 
+-static inline int syscall_get_arch(struct task_struct *task,
+-				   struct pt_regs *regs)
++static inline int syscall_get_arch(void)
+ {
+ 	return AUDIT_ARCH_I386;
+ }
+@@ -221,8 +220,7 @@ static inline void syscall_set_arguments(struct task_struct *task,
+ 		}
+ }
+ 
+-static inline int syscall_get_arch(struct task_struct *task,
+-				   struct pt_regs *regs)
++static inline int syscall_get_arch(void)
+ {
+ #ifdef CONFIG_IA32_EMULATION
+ 	/*
+@@ -234,7 +232,7 @@ static inline int syscall_get_arch(struct task_struct *task,
+ 	 *
+ 	 * x32 tasks should be considered AUDIT_ARCH_X86_64.
+ 	 */
+-	if (task_thread_info(task)->status & TS_COMPAT)
++	if (task_thread_info(current)->status & TS_COMPAT)
+ 		return AUDIT_ARCH_I386;
+ #endif
+ 	/* Both x32 and x86_64 are considered "64-bit". */
+diff --git a/include/asm-generic/syscall.h b/include/asm-generic/syscall.h
+index 5b09392..d401e54 100644
+--- a/include/asm-generic/syscall.h
++++ b/include/asm-generic/syscall.h
+@@ -144,8 +144,6 @@ void syscall_set_arguments(struct task_struct *task, struct pt_regs *regs,
+ 
+ /**
+  * syscall_get_arch - return the AUDIT_ARCH for the current system call
+- * @task:	task of interest, must be in system call entry tracing
+- * @regs:	task_pt_regs() of @task
+  *
+  * Returns the AUDIT_ARCH_* based on the system call convention in use.
+  *
+@@ -155,5 +153,5 @@ void syscall_set_arguments(struct task_struct *task, struct pt_regs *regs,
+  * Architectures which permit CONFIG_HAVE_ARCH_SECCOMP_FILTER must
+  * provide an implementation of this.
+  */
+-int syscall_get_arch(struct task_struct *task, struct pt_regs *regs);
++int syscall_get_arch(void);
+ #endif	/* _ASM_SYSCALL_H */
+diff --git a/kernel/seccomp.c b/kernel/seccomp.c
+index b7a1004..eda2da3 100644
+--- a/kernel/seccomp.c
++++ b/kernel/seccomp.c
+@@ -95,7 +95,7 @@ u32 seccomp_bpf_load(int off)
+ 	if (off == BPF_DATA(nr))
+ 		return syscall_get_nr(current, regs);
+ 	if (off == BPF_DATA(arch))
+-		return syscall_get_arch(current, regs);
++		return syscall_get_arch();
+ 	if (off >= BPF_DATA(args[0]) && off < BPF_DATA(args[6])) {
+ 		unsigned long value;
+ 		int arg = (off - BPF_DATA(args[0])) / sizeof(u64);
+@@ -351,7 +351,7 @@ static void seccomp_send_sigsys(int syscall, int reason)
+ 	info.si_code = SYS_SECCOMP;
+ 	info.si_call_addr = (void __user *)KSTK_EIP(current);
+ 	info.si_errno = reason;
+-	info.si_arch = syscall_get_arch(current, task_pt_regs(current));
++	info.si_arch = syscall_get_arch();
+ 	info.si_syscall = syscall;
+ 	force_sig_info(SIGSYS, &info, current);
+ }
+-- 
+1.8.5.3
 
