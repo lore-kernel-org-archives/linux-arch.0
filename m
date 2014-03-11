@@ -1,64 +1,131 @@
-From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH v3 20/52] x86,
- therm_throt.c: Fix CPU hotplug callback registration
-Date: Tue, 11 Mar 2014 02:07:21 +0530
-Message-ID: <20140310203721.10746.47726.stgit@srivatsabhat.in.ibm.com>
+From: "Rafael J. Wysocki" <rjw@rjwysocki.net>
+Subject: Re: [PATCH v3 00/52] CPU hotplug: Fix issues with callback registration
+Date: Tue, 11 Mar 2014 01:31:28 +0100
+Message-ID: <2714771.szsVpCAzkq@vostro.rjw.lan>
 References: <20140310203312.10746.310.stgit@srivatsabhat.in.ibm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
+Content-Transfer-Encoding: 7Bit
+Return-path: <linux-pm-owner@vger.kernel.org>
 In-Reply-To: <20140310203312.10746.310.stgit@srivatsabhat.in.ibm.com>
-List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
-List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
-List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
-List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
-List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
-Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
-Sender: "Linuxppc-dev"
- <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
-To: paulus@samba.org, oleg@redhat.com, rjw@rjwysocki.net, rusty@rustcorp.com.au, peterz@infradead.org, akpm@linux-foundation.org
-Cc: linux-arch@vger.kernel.org, ego@linux.vnet.ibm.com, walken@google.com, linux@arm.linux.org.uk, linux-pm@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, linuxppc-dev@ozlabs.org, Tony Luck <tony.luck@intel.com>, Borislav Petkov <bp@alien8.de>, "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, "H. Peter Anvin" <hpa@zytor.com>, tj@kernel.org, Thomas Gleixner <tglx@linutronix.de>, paulmck@linux.vnet.ibm.com, Ingo Molnar <mingo@kernel.org>, linux-edac@vger.kernel.org
+Sender: linux-pm-owner@vger.kernel.org
+To: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Cc: paulus@samba.org, oleg@redhat.com, mingo@kernel.org, rusty@rustcorp.com.au, peterz@infradead.org, tglx@linutronix.de, akpm@linux-foundation.org, paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-pm@vger.kernel.org, linuxppc-dev@ozlabs.org
 List-Id: linux-arch.vger.kernel.org
 
-U3Vic3lzdGVtcyB0aGF0IHdhbnQgdG8gcmVnaXN0ZXIgQ1BVIGhvdHBsdWcgY2FsbGJhY2tzLCBh
-cyB3ZWxsIGFzIHBlcmZvcm0KaW5pdGlhbGl6YXRpb24gZm9yIHRoZSBDUFVzIHRoYXQgYXJlIGFs
-cmVhZHkgb25saW5lLCBvZnRlbiBkbyBpdCBhcyBzaG93bgpiZWxvdzoKCglnZXRfb25saW5lX2Nw
-dXMoKTsKCglmb3JfZWFjaF9vbmxpbmVfY3B1KGNwdSkKCQlpbml0X2NwdShjcHUpOwoKCXJlZ2lz
-dGVyX2NwdV9ub3RpZmllcigmZm9vYmFyX2NwdV9ub3RpZmllcik7CgoJcHV0X29ubGluZV9jcHVz
-KCk7CgpUaGlzIGlzIHdyb25nLCBzaW5jZSBpdCBpcyBwcm9uZSB0byBBQkJBIGRlYWRsb2NrcyBp
-bnZvbHZpbmcgdGhlCmNwdV9hZGRfcmVtb3ZlX2xvY2sgYW5kIHRoZSBjcHVfaG90cGx1Zy5sb2Nr
-ICh3aGVuIHJ1bm5pbmcgY29uY3VycmVudGx5CndpdGggQ1BVIGhvdHBsdWcgb3BlcmF0aW9ucyku
-CgpJbnN0ZWFkLCB0aGUgY29ycmVjdCBhbmQgcmFjZS1mcmVlIHdheSBvZiBwZXJmb3JtaW5nIHRo
-ZSBjYWxsYmFjawpyZWdpc3RyYXRpb24gaXM6CgoJY3B1X25vdGlmaWVyX3JlZ2lzdGVyX2JlZ2lu
-KCk7CgoJZm9yX2VhY2hfb25saW5lX2NwdShjcHUpCgkJaW5pdF9jcHUoY3B1KTsKCgkvKiBOb3Rl
-IHRoZSB1c2Ugb2YgdGhlIGRvdWJsZSB1bmRlcnNjb3JlZCB2ZXJzaW9uIG9mIHRoZSBBUEkgKi8K
-CV9fcmVnaXN0ZXJfY3B1X25vdGlmaWVyKCZmb29iYXJfY3B1X25vdGlmaWVyKTsKCgljcHVfbm90
-aWZpZXJfcmVnaXN0ZXJfZG9uZSgpOwoKCkZpeCB0aGUgdGhlcm1hbCB0aHJvdHRsZSBjb2RlIGlu
-IHg4NiBieSB1c2luZyB0aGlzIGxhdHRlciBmb3JtIG9mIGNhbGxiYWNrCnJlZ2lzdHJhdGlvbi4K
-CkNjOiBUb255IEx1Y2sgPHRvbnkubHVja0BpbnRlbC5jb20+CkNjOiBCb3Jpc2xhdiBQZXRrb3Yg
-PGJwQGFsaWVuOC5kZT4KQ2M6IFRob21hcyBHbGVpeG5lciA8dGdseEBsaW51dHJvbml4LmRlPgpD
-YzogSW5nbyBNb2xuYXIgPG1pbmdvQGtlcm5lbC5vcmc+CkNjOiAiSC4gUGV0ZXIgQW52aW4iIDxo
-cGFAenl0b3IuY29tPgpDYzogeDg2QGtlcm5lbC5vcmcKQ2M6IGxpbnV4LWVkYWNAdmdlci5rZXJu
-ZWwub3JnClNpZ25lZC1vZmYtYnk6IFNyaXZhdHNhIFMuIEJoYXQgPHNyaXZhdHNhLmJoYXRAbGlu
-dXgudm5ldC5pYm0uY29tPgotLS0KCiBhcmNoL3g4Ni9rZXJuZWwvY3B1L21jaGVjay90aGVybV90
-aHJvdC5jIHwgICAgNSArKysrLQogMSBmaWxlIGNoYW5nZWQsIDQgaW5zZXJ0aW9ucygrKSwgMSBk
-ZWxldGlvbigtKQoKZGlmZiAtLWdpdCBhL2FyY2gveDg2L2tlcm5lbC9jcHUvbWNoZWNrL3RoZXJt
-X3Rocm90LmMgYi9hcmNoL3g4Ni9rZXJuZWwvY3B1L21jaGVjay90aGVybV90aHJvdC5jCmluZGV4
-IDNlZWM3ZGUuLmUwNWRmYTMgMTAwNjQ0Ci0tLSBhL2FyY2gveDg2L2tlcm5lbC9jcHUvbWNoZWNr
-L3RoZXJtX3Rocm90LmMKKysrIGIvYXJjaC94ODYva2VybmVsL2NwdS9tY2hlY2svdGhlcm1fdGhy
-b3QuYwpAQCAtMzE5LDcgKzMxOSw3IEBAIHN0YXRpYyBfX2luaXQgaW50IHRoZXJtYWxfdGhyb3R0
-bGVfaW5pdF9kZXZpY2Uodm9pZCkKIAlpZiAoIWF0b21pY19yZWFkKCZ0aGVybV90aHJvdF9lbikp
-CiAJCXJldHVybiAwOwogCi0JcmVnaXN0ZXJfaG90Y3B1X25vdGlmaWVyKCZ0aGVybWFsX3Rocm90
-dGxlX2NwdV9ub3RpZmllcik7CisJY3B1X25vdGlmaWVyX3JlZ2lzdGVyX2JlZ2luKCk7CiAKICNp
-ZmRlZiBDT05GSUdfSE9UUExVR19DUFUKIAltdXRleF9sb2NrKCZ0aGVybV9jcHVfbG9jayk7CkBA
-IC0zMzMsNiArMzMzLDkgQEAgc3RhdGljIF9faW5pdCBpbnQgdGhlcm1hbF90aHJvdHRsZV9pbml0
-X2RldmljZSh2b2lkKQogCW11dGV4X3VubG9jaygmdGhlcm1fY3B1X2xvY2spOwogI2VuZGlmCiAK
-KwlfX3JlZ2lzdGVyX2hvdGNwdV9ub3RpZmllcigmdGhlcm1hbF90aHJvdHRsZV9jcHVfbm90aWZp
-ZXIpOworCWNwdV9ub3RpZmllcl9yZWdpc3Rlcl9kb25lKCk7CisKIAlyZXR1cm4gMDsKIH0KIGRl
-dmljZV9pbml0Y2FsbCh0aGVybWFsX3Rocm90dGxlX2luaXRfZGV2aWNlKTsKCl9fX19fX19fX19f
-X19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fCkxpbnV4cHBjLWRldiBtYWlsaW5n
-IGxpc3QKTGludXhwcGMtZGV2QGxpc3RzLm96bGFicy5vcmcKaHR0cHM6Ly9saXN0cy5vemxhYnMu
-b3JnL2xpc3RpbmZvL2xpbnV4cHBjLWRldg==
+On Tuesday, March 11, 2014 02:03:52 AM Srivatsa S. Bhat wrote:
+> Hi,
+
+Hi,
+
+> Many subsystems and drivers have the need to register CPU hotplug callbacks
+> from their init routines and also perform initialization for the CPUs that are
+> already online. But unfortunately there is no race-free way to achieve this
+> today.
+> 
+> For example, consider this piece of code:
+> 
+> 	get_online_cpus();
+> 
+> 	for_each_online_cpu(cpu)
+> 		init_cpu(cpu);
+> 
+> 	register_cpu_notifier(&foobar_cpu_notifier);
+> 
+> 	put_online_cpus();
+> 
+> This is not safe because there is a possibility of an ABBA deadlock involving
+> the cpu_add_remove_lock and the cpu_hotplug.lock.
+> 
+>           CPU 0                                         CPU 1
+>           -----                                         -----
+> 
+>    Acquire cpu_hotplug.lock
+>    [via get_online_cpus()]
+> 
+>                                               CPU online/offline operation
+>                                               takes cpu_add_remove_lock
+>                                               [via cpu_maps_update_begin()]
+> 
+>    Try to acquire
+>    cpu_add_remove_lock
+>    [via register_cpu_notifier()]
+> 
+>                                               CPU online/offline operation
+>                                               tries to acquire cpu_hotplug.lock
+>                                               [via cpu_hotplug_begin()]
+> 
+>                             *** DEADLOCK! ***
+> 
+> 
+> Other combinations of callback registration also don't work correctly.
+> Examples:
+> 
+> 	register_cpu_notifier(&foobar_cpu_notifier);
+> 
+> 	get_online_cpus();
+> 
+> 	for_each_online_cpu(cpu)
+> 		init_cpu(cpu);
+> 
+> 	put_online_cpus();
+> 
+> This can lead to double initialization if a hotplug operation occurs after
+> registering the notifier and before invoking get_online_cpus().
+> 
+> On the other hand, the following piece of code can miss hotplug events
+> altogether:
+> 
+> 	get_online_cpus();
+> 
+> 	for_each_online_cpu(cpu)
+> 		init_cpu(cpu);
+> 
+> 	put_online_cpus();
+>               ^
+>               |   Race window; Can miss hotplug events here
+>               v
+> 	register_cpu_notifier(&foobar_cpu_notifier);
+> 
+> 
+> To solve these issues and provide a race-free method to register CPU hotplug
+> callbacks, this patchset introduces new variants of the callback registration
+> APIs that don't hold the cpu_add_remove_lock, and exports the
+> cpu_add_remove_lock via 2 new APIs cpu_notifier_register_begin/done() for use
+> by various subsystems. With this in place, the following code snippet will
+> register a hotplug callback as well as initialize already online CPUs without
+> any race conditions.
+> 
+> 	cpu_notifier_register_begin();
+> 
+> 	for_each_online_cpu(cpu)
+> 		init_cpu(cpu);
+> 
+> 	/* This doesn't take the cpu_add_remove_lock */
+> 	__register_cpu_notifier(&foobar_cpu_notifier);
+> 
+> 	cpu_notifier_register_done();
+> 
+> 
+> In this patchset, patch 1 adds lockdep annotations to catch the above mentioned
+> deadlock scenario. Patch 2 introduces the new APIs and infrastructure necessary
+> for race-free callback registration. The remaining patches perform tree-wide
+> conversions (to use this model).
+> 
+> This patchset has been hosted in the below git tree. It applies cleanly on
+> v3.14-rc6.
+> 
+> git://github.com/srivatsabhat/linux.git cpuhp-registration-fixes-v3
+
+So to me, this is a useful patchset and it addresses a real problem.  It has
+gone through several rounds of review and recently I haven't really seen any
+objections against is from anyone.  On the contrary, I've seen ACKs from a
+number of people whom I trust.
+
+Thus, if nobody objects, I'm going to take this series into the PM tree for 3.15.
+
+Thanks!
+
+-- 
+I speak only for myself.
+Rafael J. Wysocki, Intel Open Source Technology Center.
