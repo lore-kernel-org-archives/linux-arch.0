@@ -1,70 +1,42 @@
-From: Ingo Molnar <mingo@kernel.org>
-Subject: Re: [RFC][PATCH 0/7] locking: qspinlock
-Date: Tue, 11 Mar 2014 12:04:47 +0100
-Message-ID: <20140311110447.GA27009@gmail.com>
-References: <20140310154236.038181843@infradead.org>
- <20140311104503.GA10916@gmail.com>
- <20140311110202.GT27965@twins.programming.kicks-ass.net>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH v3 1/5] bug: When !CONFIG_BUG, simplify WARN_ON_ONCE and family
+Date: Tue, 11 Mar 2014 17:40:25 +0100
+Message-ID: <201403111740.25606.arnd@arndb.de>
+References: <469b5dc113cb468232291527642f8dc47663e945.1393385236.git.josh@joshtriplett.org> <6915585.VegnvotSUi@wuerfel> <17c859aa7dcccec43df0a0c8908911b982764c76.1394412745.git.josh@joshtriplett.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: Text/Plain;
+  charset="iso-8859-1"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ea0-f174.google.com ([209.85.215.174]:59817 "EHLO
-	mail-ea0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751957AbaCKLEw (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 11 Mar 2014 07:04:52 -0400
-Content-Disposition: inline
-In-Reply-To: <20140311110202.GT27965@twins.programming.kicks-ass.net>
+Received: from moutng.kundenserver.de ([212.227.126.130]:58720 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751945AbaCKQk0 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 11 Mar 2014 12:40:26 -0400
+In-Reply-To: <17c859aa7dcccec43df0a0c8908911b982764c76.1394412745.git.josh@joshtriplett.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Waiman Long <waiman.long@hp.com>, arnd@arndb.de, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, rostedt@goodmis.org, akpm@linux-foundation.org, walken@google.com, andi@firstfloor.org, riel@redhat.com, paulmck@linux.vnet.ibm.com, torvalds@linux-foundation.org, oleg@redhat.com
+To: Josh Triplett <josh@joshtriplett.org>
+Cc: Andrew Morton <akpm@linux-foundation.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-
-* Peter Zijlstra <peterz@infradead.org> wrote:
-
-> On Tue, Mar 11, 2014 at 11:45:03AM +0100, Ingo Molnar wrote:
-> > 
-> > * Peter Zijlstra <peterz@infradead.org> wrote:
-> > 
-> > > Hi Waiman,
-> > > 
-> > > I promised you this series a number of days ago; sorry for the delay 
-> > > I've been somewhat unwell :/
-> > > 
-> > > That said, these few patches start with a (hopefully) simple and 
-> > > correct form of the queue spinlock, and then gradually build upon 
-> > > it, explaining each optimization as we go.
-> > > 
-> > > Having these optimizations as separate patches helps twofold; 
-> > > firstly it makes one aware of which exact optimizations were done, 
-> > > and secondly it allows one to proove or disprove any one step; 
-> > > seeing how they should be mostly identity transforms.
-> > > 
-> > > The resulting code is near to what you posted I think; however it 
-> > > has one atomic op less in the pending wait-acquire case for NR_CPUS 
-> > > != huge. It also doesn't do lock stealing; its still perfectly fair 
-> > > afaict.
-> > > 
-> > > Have I missed any tricks from your code?
-> > 
-> > Waiman, you indicated in the other thread that these look good to 
-> > you, right? If so then I can queue them up so that they form a 
-> > base for further work.
+On Monday 10 March 2014, Josh Triplett wrote:
 > 
-> Ah, no that was on the qrwlock; I think we managed to cross wires 
-> somewhere.
-
-Oops, too many q-locks ;-)
-
-> I've got this entire pile waiting for something:
+> When !CONFIG_BUG, WARN_ON and family become simple passthroughs of their
+> condition argument; however, WARN_ON_ONCE and family still have
+> conditions and a boolean to detect one-time invocation, even though the
+> warning they'd emit doesn't exist.  Make the existing definitions
+> conditional on CONFIG_BUG, and add definitions for !CONFIG_BUG that map
+> to the passthrough versions of WARN and WARN_ON.
 > 
->   lkml.kernel.org/r/20140210195820.834693028@infradead.org
+> This saves 4.4k on a minimized configuration (smaller than
+> allnoconfig), and 20.6k with defconfig plus CONFIG_BUG=n.
 > 
-> That's 5 mutex patches and the 2 qrwlock patches. Not sure what to 
-> do with them. To merge or not, that is the question.
+> Signed-off-by: Josh Triplett <josh@joshtriplett.org>
+> ---
+> v3: Patch unchanged from v2.
+> 
+> Andrew, can you please replace the entire v2 series currently in -mm
+> with this new series?
 
-Can merge them in tip:core/locking if there's no objections.
 
-Thanks,
-
-	Ingo
+[all patches]
+Acked-by: Arnd Bergmann <arnd@arndb.de>
