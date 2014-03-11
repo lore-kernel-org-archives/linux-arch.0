@@ -1,136 +1,51 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from v094114.home.net.pl ([79.96.170.134]:58245 "HELO
-	v094114.home.net.pl" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with SMTP id S1753087AbaCKAQL (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 10 Mar 2014 20:16:11 -0400
-From: "Rafael J. Wysocki" <rjw@rjwysocki.net>
-Subject: Re: [PATCH v3 00/52] CPU hotplug: Fix issues with callback registration
-Date: Tue, 11 Mar 2014 01:31:28 +0100
-Message-ID: <2714771.szsVpCAzkq@vostro.rjw.lan>
-In-Reply-To: <20140310203312.10746.310.stgit@srivatsabhat.in.ibm.com>
-References: <20140310203312.10746.310.stgit@srivatsabhat.in.ibm.com>
+Received: from relay4-d.mail.gandi.net ([217.70.183.196]:52936 "EHLO
+	relay4-d.mail.gandi.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755232AbaCKRtW (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 11 Mar 2014 13:49:22 -0400
+Date: Tue, 11 Mar 2014 10:49:15 -0700
+From: Josh Triplett <josh@joshtriplett.org>
+Subject: Re: [PATCH v3 1/5] bug: When !CONFIG_BUG, simplify WARN_ON_ONCE and
+ family
+Message-ID: <20140311174914.GA3101@leaf>
+References: <469b5dc113cb468232291527642f8dc47663e945.1393385236.git.josh@joshtriplett.org>
+ <6915585.VegnvotSUi@wuerfel>
+ <17c859aa7dcccec43df0a0c8908911b982764c76.1394412745.git.josh@joshtriplett.org>
+ <201403111740.25606.arnd@arndb.de>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 7Bit
-Content-Type: text/plain; charset="utf-8"
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <201403111740.25606.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Cc: paulus@samba.org, oleg@redhat.com, mingo@kernel.org, rusty@rustcorp.com.au, peterz@infradead.org, tglx@linutronix.de, akpm@linux-foundation.org, paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-pm@vger.kernel.org, linuxppc-dev@ozlabs.org
-Message-ID: <20140311003128.OPGNSmDOlfS5HvaRN8w9LBbkxjaqYjE5wSOmQRXBeIM@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Andrew Morton <akpm@linux-foundation.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20140311174915.3-lvQ4YUBbX9nPn7Fif4Mn32PsKC6hNItLL5FNCVcTE@z>
 
-On Tuesday, March 11, 2014 02:03:52 AM Srivatsa S. Bhat wrote:
-> Hi,
-
-Hi,
-
-> Many subsystems and drivers have the need to register CPU hotplug callbacks
-> from their init routines and also perform initialization for the CPUs that are
-> already online. But unfortunately there is no race-free way to achieve this
-> today.
-> 
-> For example, consider this piece of code:
-> 
-> 	get_online_cpus();
-> 
-> 	for_each_online_cpu(cpu)
-> 		init_cpu(cpu);
-> 
-> 	register_cpu_notifier(&foobar_cpu_notifier);
-> 
-> 	put_online_cpus();
-> 
-> This is not safe because there is a possibility of an ABBA deadlock involving
-> the cpu_add_remove_lock and the cpu_hotplug.lock.
-> 
->           CPU 0                                         CPU 1
->           -----                                         -----
-> 
->    Acquire cpu_hotplug.lock
->    [via get_online_cpus()]
-> 
->                                               CPU online/offline operation
->                                               takes cpu_add_remove_lock
->                                               [via cpu_maps_update_begin()]
-> 
->    Try to acquire
->    cpu_add_remove_lock
->    [via register_cpu_notifier()]
-> 
->                                               CPU online/offline operation
->                                               tries to acquire cpu_hotplug.lock
->                                               [via cpu_hotplug_begin()]
-> 
->                             *** DEADLOCK! ***
+On Tue, Mar 11, 2014 at 05:40:25PM +0100, Arnd Bergmann wrote:
+> On Monday 10 March 2014, Josh Triplett wrote:
+> > 
+> > When !CONFIG_BUG, WARN_ON and family become simple passthroughs of their
+> > condition argument; however, WARN_ON_ONCE and family still have
+> > conditions and a boolean to detect one-time invocation, even though the
+> > warning they'd emit doesn't exist.  Make the existing definitions
+> > conditional on CONFIG_BUG, and add definitions for !CONFIG_BUG that map
+> > to the passthrough versions of WARN and WARN_ON.
+> > 
+> > This saves 4.4k on a minimized configuration (smaller than
+> > allnoconfig), and 20.6k with defconfig plus CONFIG_BUG=n.
+> > 
+> > Signed-off-by: Josh Triplett <josh@joshtriplett.org>
+> > ---
+> > v3: Patch unchanged from v2.
+> > 
+> > Andrew, can you please replace the entire v2 series currently in -mm
+> > with this new series?
 > 
 > 
-> Other combinations of callback registration also don't work correctly.
-> Examples:
-> 
-> 	register_cpu_notifier(&foobar_cpu_notifier);
-> 
-> 	get_online_cpus();
-> 
-> 	for_each_online_cpu(cpu)
-> 		init_cpu(cpu);
-> 
-> 	put_online_cpus();
-> 
-> This can lead to double initialization if a hotplug operation occurs after
-> registering the notifier and before invoking get_online_cpus().
-> 
-> On the other hand, the following piece of code can miss hotplug events
-> altogether:
-> 
-> 	get_online_cpus();
-> 
-> 	for_each_online_cpu(cpu)
-> 		init_cpu(cpu);
-> 
-> 	put_online_cpus();
->               ^
->               |   Race window; Can miss hotplug events here
->               v
-> 	register_cpu_notifier(&foobar_cpu_notifier);
-> 
-> 
-> To solve these issues and provide a race-free method to register CPU hotplug
-> callbacks, this patchset introduces new variants of the callback registration
-> APIs that don't hold the cpu_add_remove_lock, and exports the
-> cpu_add_remove_lock via 2 new APIs cpu_notifier_register_begin/done() for use
-> by various subsystems. With this in place, the following code snippet will
-> register a hotplug callback as well as initialize already online CPUs without
-> any race conditions.
-> 
-> 	cpu_notifier_register_begin();
-> 
-> 	for_each_online_cpu(cpu)
-> 		init_cpu(cpu);
-> 
-> 	/* This doesn't take the cpu_add_remove_lock */
-> 	__register_cpu_notifier(&foobar_cpu_notifier);
-> 
-> 	cpu_notifier_register_done();
-> 
-> 
-> In this patchset, patch 1 adds lockdep annotations to catch the above mentioned
-> deadlock scenario. Patch 2 introduces the new APIs and infrastructure necessary
-> for race-free callback registration. The remaining patches perform tree-wide
-> conversions (to use this model).
-> 
-> This patchset has been hosted in the below git tree. It applies cleanly on
-> v3.14-rc6.
-> 
-> git://github.com/srivatsabhat/linux.git cpuhp-registration-fixes-v3
-
-So to me, this is a useful patchset and it addresses a real problem.  It has
-gone through several rounds of review and recently I haven't really seen any
-objections against is from anyone.  On the contrary, I've seen ACKs from a
-number of people whom I trust.
-
-Thus, if nobody objects, I'm going to take this series into the PM tree for 3.15.
+> [all patches]
+> Acked-by: Arnd Bergmann <arnd@arndb.de>
 
 Thanks!
 
--- 
-I speak only for myself.
-Rafael J. Wysocki, Intel Open Source Technology Center.
+- Josh Triplett
