@@ -1,46 +1,108 @@
-From: Josh Triplett <josh@joshtriplett.org>
-Subject: Re: [PATCH v3 1/5] bug: When !CONFIG_BUG, simplify WARN_ON_ONCE and
- family
-Date: Tue, 11 Mar 2014 10:49:15 -0700
-Message-ID: <20140311174914.GA3101@leaf>
-References: <469b5dc113cb468232291527642f8dc47663e945.1393385236.git.josh@joshtriplett.org>
- <6915585.VegnvotSUi@wuerfel>
- <17c859aa7dcccec43df0a0c8908911b982764c76.1394412745.git.josh@joshtriplett.org>
- <201403111740.25606.arnd@arndb.de>
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Subject: Re: [RFC PATCH] Remove CONFIG_DCACHE_WORD_ACCESS
+Date: Wed, 12 Mar 2014 07:37:20 +1100
+Message-ID: <1394570240.4840.48.camel@pasglop>
+References: <1393964591.20435.58.camel@joe-AO722>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <201403111740.25606.arnd@arndb.de>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Andrew Morton <akpm@linux-foundation.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
+In-Reply-To: <1393964591.20435.58.camel@joe-AO722>
+List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
+ <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
+List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
+List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
+List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
+List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
+ <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
+Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
+Sender: "Linuxppc-dev"
+ <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
+To: Joe Perches <joe@perches.com>
+Cc: linux-arch <linux-arch@vger.kernel.org>, Anton Blanchard <anton@au1.ibm.com>, Russell King <linux@arm.linux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, x86@kernel.org, Will Deacon <will.deacon@arm.com>, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, Paul Mackerras <paulus@samba.org>, Alexander Viro <viro@zeniv.linux.org.uk>, "H. Peter
+ Anvin" <hpa@zytor.com>, linux-fsdevel <linux-fsdevel@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, linux-arm-kernel@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Mar 11, 2014 at 05:40:25PM +0100, Arnd Bergmann wrote:
-> On Monday 10 March 2014, Josh Triplett wrote:
-> > 
-> > When !CONFIG_BUG, WARN_ON and family become simple passthroughs of their
-> > condition argument; however, WARN_ON_ONCE and family still have
-> > conditions and a boolean to detect one-time invocation, even though the
-> > warning they'd emit doesn't exist.  Make the existing definitions
-> > conditional on CONFIG_BUG, and add definitions for !CONFIG_BUG that map
-> > to the passthrough versions of WARN and WARN_ON.
-> > 
-> > This saves 4.4k on a minimized configuration (smaller than
-> > allnoconfig), and 20.6k with defconfig plus CONFIG_BUG=n.
-> > 
-> > Signed-off-by: Josh Triplett <josh@joshtriplett.org>
-> > ---
-> > v3: Patch unchanged from v2.
-> > 
-> > Andrew, can you please replace the entire v2 series currently in -mm
-> > with this new series?
-> 
-> 
-> [all patches]
-> Acked-by: Arnd Bergmann <arnd@arndb.de>
-
-Thanks!
-
-- Josh Triplett
+T24gVHVlLCAyMDE0LTAzLTA0IGF0IDEyOjIzIC0wODAwLCBKb2UgUGVyY2hlcyB3cm90ZToKPiBJ
+dCBzZWVtcyB0byBkdXBsaWNhdGUgQ09ORklHX0hBVkVfRUZGSUNJRU5UX1VOQUxJR05FRF9BQ0NF
+U1MKPiBzbyB1c2UgdGhhdCBpbnN0ZWFkLgo+IAo+IFRoaXMgY2hhbmdlcyB0aGUgIUNQVV9MSVRU
+TEVfRU5ESUFOIHBvd2VycGMgYXJjaCB0byB1c2UgdW5hbGlnbmVkCj4gYWNjZXNzZXMgaW4gZnMv
+ZGNhY2hlLmMgYW5kIGZzL25hbWVpLmMgYXMKPiBDT05GSUdfSEFWRV9FRkZJQ0lFTlRfVU5BTElH
+TkVEX0FDQ0VTUyBpcyBlbmFibGVkIGZvciB0aGF0IGFyY2guCj4gCj4gUmVtb3ZlIHRoZSBub3cg
+dW51c2VkIERDQUNIRV9XT1JEX0FDQ0VTUyBkZWZpbmVzICYgdXNlcy4KCkludGVyZXN0aW5nLi4g
+d2UgaGF2ZSB3b3JkLWF0LWEtdGltZSBidXQgd2UgbmV2ZXIgZW5hYmxlZApEQ0FDSEVfV09SRF9B
+Q0NFU1MsIEkgd29uZGVyIHdoeSB0aGF0IGlzLiBJbiBmYWN0LCB3ZSBzaG91bGQKcHJvYmFibHkg
+ZG8gaXQgZm9yIExFIGFzIHdlbGwgZm9yIFA4IGlmIHdlIGNhbiBtYWtlIGEgUDgKb25seSBjb25m
+aWcgb3B0aW9uLi4uCgpBbnRvbiwgd2hhdCBkbyB5b3UgcmVja29uIGhlcmUgPwoKQ2hlZXJzLApC
+ZW4uCgo+IFNpZ25lZC1vZmYtYnk6IEpvZSBQZXJjaGVzIDxqb2VAcGVyY2hlcy5jb20+Cj4gLS0t
+Cj4gIGFyY2gvYXJtL0tjb25maWcgICAgICAgICAgICAgICAgICAgICAgfCAxIC0KPiAgYXJjaC9h
+cm0vaW5jbHVkZS9hc20vd29yZC1hdC1hLXRpbWUuaCB8IDQgKystLQo+ICBhcmNoL2FybTY0L0tj
+b25maWcgICAgICAgICAgICAgICAgICAgIHwgMSAtCj4gIGFyY2gveDg2L0tjb25maWcgICAgICAg
+ICAgICAgICAgICAgICAgfCAxIC0KPiAgZnMvS2NvbmZpZyAgICAgICAgICAgICAgICAgICAgICAg
+ICAgICB8IDQgLS0tLQo+ICBmcy9kY2FjaGUuYyAgICAgICAgICAgICAgICAgICAgICAgICAgIHwg
+MiArLQo+ICBmcy9uYW1laS5jICAgICAgICAgICAgICAgICAgICAgICAgICAgIHwgMiArLQo+ICA3
+IGZpbGVzIGNoYW5nZWQsIDQgaW5zZXJ0aW9ucygrKSwgMTEgZGVsZXRpb25zKC0pCj4gCj4gZGlm
+ZiAtLWdpdCBhL2FyY2gvYXJtL0tjb25maWcgYi9hcmNoL2FybS9LY29uZmlnCj4gaW5kZXggNjIz
+YTI3Mi4uZDVhMmU2MCAxMDA2NDQKPiAtLS0gYS9hcmNoL2FybS9LY29uZmlnCj4gKysrIGIvYXJj
+aC9hcm0vS2NvbmZpZwo+IEBAIC0xMiw3ICsxMiw2IEBAIGNvbmZpZyBBUk0KPiAgCXNlbGVjdCBC
+VUlMRFRJTUVfRVhUQUJMRV9TT1JUIGlmIE1NVQo+ICAJc2VsZWN0IENMT05FX0JBQ0tXQVJEUwo+
+ICAJc2VsZWN0IENQVV9QTSBpZiAoU1VTUEVORCB8fCBDUFVfSURMRSkKPiAtCXNlbGVjdCBEQ0FD
+SEVfV09SRF9BQ0NFU1MgaWYgSEFWRV9FRkZJQ0lFTlRfVU5BTElHTkVEX0FDQ0VTUwo+ICAJc2Vs
+ZWN0IEdFTkVSSUNfQVRPTUlDNjQgaWYgKENQVV9WN00gfHwgQ1BVX1Y2IHx8ICFDUFVfMzJ2Nksg
+fHwgIUFFQUJJKQo+ICAJc2VsZWN0IEdFTkVSSUNfQ0xPQ0tFVkVOVFNfQlJPQURDQVNUIGlmIFNN
+UAo+ICAJc2VsZWN0IEdFTkVSSUNfSURMRV9QT0xMX1NFVFVQCj4gZGlmZiAtLWdpdCBhL2FyY2gv
+YXJtL2luY2x1ZGUvYXNtL3dvcmQtYXQtYS10aW1lLmggYi9hcmNoL2FybS9pbmNsdWRlL2FzbS93
+b3JkLWF0LWEtdGltZS5oCj4gaW5kZXggYTZkMGEyOS4uNzc4YjJhZCAxMDA2NDQKPiAtLS0gYS9h
+cmNoL2FybS9pbmNsdWRlL2FzbS93b3JkLWF0LWEtdGltZS5oCj4gKysrIGIvYXJjaC9hcm0vaW5j
+bHVkZS9hc20vd29yZC1hdC1hLXRpbWUuaAo+IEBAIC01NCw3ICs1NCw3IEBAIHN0YXRpYyBpbmxp
+bmUgdW5zaWduZWQgbG9uZyBmaW5kX3plcm8odW5zaWduZWQgbG9uZyBtYXNrKQo+ICAjaW5jbHVk
+ZSA8YXNtLWdlbmVyaWMvd29yZC1hdC1hLXRpbWUuaD4KPiAgI2VuZGlmCj4gIAo+IC0jaWZkZWYg
+Q09ORklHX0RDQUNIRV9XT1JEX0FDQ0VTUwo+ICsjaWZkZWYgQ09ORklHX0hBVkVfRUZGSUNJRU5U
+X1VOQUxJR05FRF9BQ0NFU1MKPiAgCj4gIC8qCj4gICAqIExvYWQgYW4gdW5hbGlnbmVkIHdvcmQg
+ZnJvbSBrZXJuZWwgc3BhY2UuCj4gQEAgLTk0LDUgKzk0LDUgQEAgc3RhdGljIGlubGluZSB1bnNp
+Z25lZCBsb25nIGxvYWRfdW5hbGlnbmVkX3plcm9wYWQoY29uc3Qgdm9pZCAqYWRkcikKPiAgCXJl
+dHVybiByZXQ7Cj4gIH0KPiAgCj4gLSNlbmRpZgkvKiBEQ0FDSEVfV09SRF9BQ0NFU1MgKi8KPiAr
+I2VuZGlmCS8qIEhBVkVfRUZGSUNJRU5UX1VOQUxJR05FRF9BQ0NFU1MgKi8KPiAgI2VuZGlmIC8q
+IF9fQVNNX0FSTV9XT1JEX0FUX0FfVElNRV9IICovCj4gZGlmZiAtLWdpdCBhL2FyY2gvYXJtNjQv
+S2NvbmZpZyBiL2FyY2gvYXJtNjQvS2NvbmZpZwo+IGluZGV4IDc2NGQ2ODIuLjJkNjk3OGMgMTAw
+NjQ0Cj4gLS0tIGEvYXJjaC9hcm02NC9LY29uZmlnCj4gKysrIGIvYXJjaC9hcm02NC9LY29uZmln
+Cj4gQEAgLTEzLDcgKzEzLDYgQEAgY29uZmlnIEFSTTY0Cj4gIAlzZWxlY3QgQ0xPTkVfQkFDS1dB
+UkRTCj4gIAlzZWxlY3QgQ09NTU9OX0NMSwo+ICAJc2VsZWN0IENQVV9QTSBpZiAoU1VTUEVORCB8
+fCBDUFVfSURMRSkKPiAtCXNlbGVjdCBEQ0FDSEVfV09SRF9BQ0NFU1MKPiAgCXNlbGVjdCBHRU5F
+UklDX0NMT0NLRVZFTlRTCj4gIAlzZWxlY3QgR0VORVJJQ19DTE9DS0VWRU5UU19CUk9BRENBU1Qg
+aWYgU01QCj4gIAlzZWxlY3QgR0VORVJJQ19JT01BUAo+IGRpZmYgLS1naXQgYS9hcmNoL3g4Ni9L
+Y29uZmlnIGIvYXJjaC94ODYvS2NvbmZpZwo+IGluZGV4IGFiYjI2MWUuLjYwY2ZhMDczIDEwMDY0
+NAo+IC0tLSBhL2FyY2gveDg2L0tjb25maWcKPiArKysgYi9hcmNoL3g4Ni9LY29uZmlnCj4gQEAg
+LTk4LDcgKzk4LDYgQEAgY29uZmlnIFg4Ngo+ICAJc2VsZWN0IENMS0VWVF9JODI1Mwo+ICAJc2Vs
+ZWN0IEFSQ0hfSEFWRV9OTUlfU0FGRV9DTVBYQ0hHCj4gIAlzZWxlY3QgR0VORVJJQ19JT01BUAo+
+IC0Jc2VsZWN0IERDQUNIRV9XT1JEX0FDQ0VTUwo+ICAJc2VsZWN0IEdFTkVSSUNfU01QX0lETEVf
+VEhSRUFECj4gIAlzZWxlY3QgQVJDSF9XQU5UX0lQQ19QQVJTRV9WRVJTSU9OIGlmIFg4Nl8zMgo+
+ICAJc2VsZWN0IEhBVkVfQVJDSF9TRUNDT01QX0ZJTFRFUgo+IGRpZmYgLS1naXQgYS9mcy9LY29u
+ZmlnIGIvZnMvS2NvbmZpZwo+IGluZGV4IDMxMjM5M2YuLjc1MTEyNzEgMTAwNjQ0Cj4gLS0tIGEv
+ZnMvS2NvbmZpZwo+ICsrKyBiL2ZzL0tjb25maWcKPiBAQCAtNCwxMCArNCw2IEBACj4gIAo+ICBt
+ZW51ICJGaWxlIHN5c3RlbXMiCj4gIAo+IC0jIFVzZSB1bmFsaWduZWQgd29yZCBkY2FjaGUgYWNj
+ZXNzZXMKPiAtY29uZmlnIERDQUNIRV9XT1JEX0FDQ0VTUwo+IC0gICAgICAgYm9vbAo+IC0KPiAg
+aWYgQkxPQ0sKPiAgCj4gIHNvdXJjZSAiZnMvZXh0Mi9LY29uZmlnIgo+IGRpZmYgLS1naXQgYS9m
+cy9kY2FjaGUuYyBiL2ZzL2RjYWNoZS5jCj4gaW5kZXggMjY1ZTBjZS4uNGUzYzE5NSAxMDA2NDQK
+PiAtLS0gYS9mcy9kY2FjaGUuYwo+ICsrKyBiL2ZzL2RjYWNoZS5jCj4gQEAgLTE2Myw3ICsxNjMs
+NyBAQCBpbnQgcHJvY19ucl9kZW50cnkoY3RsX3RhYmxlICp0YWJsZSwgaW50IHdyaXRlLCB2b2lk
+IF9fdXNlciAqYnVmZmVyLAo+ICAgKiBDb21wYXJlIDIgbmFtZSBzdHJpbmdzLCByZXR1cm4gMCBp
+ZiB0aGV5IG1hdGNoLCBvdGhlcndpc2Ugbm9uLXplcm8uCj4gICAqIFRoZSBzdHJpbmdzIGFyZSBi
+b3RoIGNvdW50IGJ5dGVzIGxvbmcsIGFuZCBjb3VudCBpcyBub24temVyby4KPiAgICovCj4gLSNp
+ZmRlZiBDT05GSUdfRENBQ0hFX1dPUkRfQUNDRVNTCj4gKyNpZmRlZiBDT05GSUdfSEFWRV9FRkZJ
+Q0lFTlRfVU5BTElHTkVEX0FDQ0VTUwo+ICAKPiAgI2luY2x1ZGUgPGFzbS93b3JkLWF0LWEtdGlt
+ZS5oPgo+ICAvKgo+IGRpZmYgLS1naXQgYS9mcy9uYW1laS5jIGIvZnMvbmFtZWkuYwo+IGluZGV4
+IDM4NWY3ODEuLjFlZTMzY2EgMTAwNjQ0Cj4gLS0tIGEvZnMvbmFtZWkuYwo+ICsrKyBiL2ZzL25h
+bWVpLmMKPiBAQCAtMTYxOCw3ICsxNjE4LDcgQEAgc3RhdGljIGlubGluZSBpbnQgbmVzdGVkX3N5
+bWxpbmsoc3RydWN0IHBhdGggKnBhdGgsIHN0cnVjdCBuYW1laWRhdGEgKm5kKQo+ICAgKiAgIHRo
+ZSBmaW5hbCBtYXNrIi4gQWdhaW4sIHRoYXQgY291bGQgYmUgcmVwbGFjZWQgd2l0aCBhCj4gICAq
+ICAgZWZmaWNpZW50IHBvcHVsYXRpb24gY291bnQgaW5zdHJ1Y3Rpb24gb3Igc2ltaWxhci4KPiAg
+ICovCj4gLSNpZmRlZiBDT05GSUdfRENBQ0hFX1dPUkRfQUNDRVNTCj4gKyNpZmRlZiBDT05GSUdf
+SEFWRV9FRkZJQ0lFTlRfVU5BTElHTkVEX0FDQ0VTUwo+ICAKPiAgI2luY2x1ZGUgPGFzbS93b3Jk
+LWF0LWEtdGltZS5oPgo+ICAKPiAKPiAKPiAtLQo+IFRvIHVuc3Vic2NyaWJlIGZyb20gdGhpcyBs
+aXN0OiBzZW5kIHRoZSBsaW5lICJ1bnN1YnNjcmliZSBsaW51eC1hcmNoIiBpbgo+IHRoZSBib2R5
+IG9mIGEgbWVzc2FnZSB0byBtYWpvcmRvbW9Admdlci5rZXJuZWwub3JnCj4gTW9yZSBtYWpvcmRv
+bW8gaW5mbyBhdCAgaHR0cDovL3ZnZXIua2VybmVsLm9yZy9tYWpvcmRvbW8taW5mby5odG1sCgoK
+X19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX18KTGludXhwcGMt
+ZGV2IG1haWxpbmcgbGlzdApMaW51eHBwYy1kZXZAbGlzdHMub3psYWJzLm9yZwpodHRwczovL2xp
+c3RzLm96bGFicy5vcmcvbGlzdGluZm8vbGludXhwcGMtZGV2
