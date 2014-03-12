@@ -1,7 +1,7 @@
-From: Linus Torvalds <torvalds@linux-foundation.org>
+From: Steven Rostedt <rostedt@goodmis.org>
 Subject: Re: [RFC][PATCH 0/7] locking: qspinlock
-Date: Wed, 12 Mar 2014 09:06:11 -0700
-Message-ID: <CA+55aFwXEL8nd+QL1CuMZRi6dnKkj92-UH0hfsPCR6Qaj+rVNQ@mail.gmail.com>
+Date: Wed, 12 Mar 2014 12:19:33 -0400
+Message-ID: <20140312121933.40f63087@gandalf.local.home>
 References: <20140310154236.038181843@infradead.org>
 	<20140312023153.GW13647@dastard>
 	<20140311231159.25a0d8dc@gandalf.local.home>
@@ -9,24 +9,28 @@ References: <20140310154236.038181843@infradead.org>
 	<20140312060730.435122f0@gandalf.local.home>
 	<20140312155754.GG27965@twins.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-vc0-f178.google.com ([209.85.220.178]:50760 "EHLO
-	mail-vc0-f178.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755185AbaCLQGM (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 12 Mar 2014 12:06:12 -0400
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20140312155754.GG27965@twins.programming.kicks-ass.net>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: Peter Zijlstra <peterz@infradead.org>
-Cc: Steven Rostedt <rostedt@goodmis.org>, Dave Chinner <david@fromorbit.com>, Waiman Long <waiman.long@hp.com>, Arnd Bergmann <arnd@arndb.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, the arch/x86 maintainers <x86@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Oleg Nesterov <oleg@redhat.com>
+Cc: Dave Chinner <david@fromorbit.com>, Waiman Long <waiman.long@hp.com>, arnd@arndb.de, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, akpm@linux-foundation.org, walken@google.com, andi@firstfloor.org, riel@redhat.com, paulmck@linux.vnet.ibm.com, torvalds@linux-foundation.org, oleg@redhat.com
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, Mar 12, 2014 at 8:57 AM, Peter Zijlstra <peterz@infradead.org> wrote:
->
+On Wed, 12 Mar 2014 16:57:54 +0100
+Peter Zijlstra <peterz@infradead.org> wrote:
+
+
+> I build and booted these patches against tip/master as of this morning.
+> It build ~50 defconfig kernels on my WSM-EP.
+> 
 > I've not managed to reproduce the hang as reported by Dave, but then I
 > doubt building kernels has anywhere near the lock contention he
 > generated.
+> 
 
-Building kernels has basically no lock contention at all.
+Have you tried hackbench? That usually gives rq spinlocks a bit of
+contention.
 
-                Linus
+-- Steve
