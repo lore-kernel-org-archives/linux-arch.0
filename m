@@ -1,134 +1,118 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e06smtp13.uk.ibm.com ([195.75.94.109]:38586 "EHLO
-	e06smtp13.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750967AbaCLTpc (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 12 Mar 2014 15:45:32 -0400
+Received: from e28smtp06.in.ibm.com ([122.248.162.6]:43044 "EHLO
+	e28smtp06.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750751AbaCLUtN (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 12 Mar 2014 16:49:13 -0400
 Received: from /spool/local
-	by e06smtp13.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <heiko.carstens@de.ibm.com>;
-	Wed, 12 Mar 2014 19:45:31 -0000
-Date: Wed, 12 Mar 2014 20:45:26 +0100
-From: Heiko Carstens <heiko.carstens@de.ibm.com>
-Subject: Re: [PATCH/RFC 00/16] compat: convert to COMPAT_SYSCALL_DEFINE
-Message-ID: <20140312194526.GA3755@osiris>
-References: <1394121083-2507-1-git-send-email-heiko.carstens@de.ibm.com>
+	by e28smtp06.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
+	Thu, 13 Mar 2014 02:19:10 +0530
+Message-ID: <5320C839.5010206@linux.vnet.ibm.com>
+Date: Thu, 13 Mar 2014 02:18:57 +0530
+From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1394121083-2507-1-git-send-email-heiko.carstens@de.ibm.com>
+Subject: Re: [PATCH v3 00/52] CPU hotplug: Fix issues with callback registration
+References: <20140310203312.10746.310.stgit@srivatsabhat.in.ibm.com> <20140311150733.efcc594dd7fe59c9c5fe9325@linux-foundation.org>
+In-Reply-To: <20140311150733.efcc594dd7fe59c9c5fe9325@linux-foundation.org>
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Stephen Rothwell <sfr@canb.auug.org.au>
-Cc: linux-next@vger.kernel.org, Al Viro <viro@ZenIV.linux.org.uk>, "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, Martin Schwidefsky <schwidefsky@de.ibm.com>, "H. Peter Anvin" <hpa@linux.intel.com>
-Message-ID: <20140312194526.F7_fFXASuAlHK87YjLINUqGxRfpOXiXQ08zCRdEm668@z>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: paulus@samba.org, oleg@redhat.com, mingo@kernel.org, rjw@rjwysocki.net, rusty@rustcorp.com.au, peterz@infradead.org, tglx@linutronix.de, paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-pm@vger.kernel.org, linuxppc-dev@ozlabs.org
+Message-ID: <20140312204857.mfsmmGCWthTt-yfKy7m9xmcaa1HZRd3tTRQYI3yS8jg@z>
 
-Hi Stephen,
+On 03/12/2014 03:37 AM, Andrew Morton wrote:
+> On Tue, 11 Mar 2014 02:03:52 +0530 "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com> wrote:
+> 
+>> Hi,
+>>
+>> Many subsystems and drivers have the need to register CPU hotplug callbacks
+>> from their init routines and also perform initialization for the CPUs that are
+>> already online. But unfortunately there is no race-free way to achieve this
+>> today.
+>>
+>> For example, consider this piece of code:
+>>
+>> 	get_online_cpus();
+>>
+>> 	for_each_online_cpu(cpu)
+>> 		init_cpu(cpu);
+>>
+>> 	register_cpu_notifier(&foobar_cpu_notifier);
+>>
+>> 	put_online_cpus();
+>>
+>> This is not safe because there is a possibility of an ABBA deadlock involving
+>> the cpu_add_remove_lock and the cpu_hotplug.lock.
+>>
+>>           CPU 0                                         CPU 1
+>>           -----                                         -----
+>>
+>>    Acquire cpu_hotplug.lock
+>>    [via get_online_cpus()]
+>>
+>>                                               CPU online/offline operation
+>>                                               takes cpu_add_remove_lock
+>>                                               [via cpu_maps_update_begin()]
+>>
+>>    Try to acquire
+>>    cpu_add_remove_lock
+>>    [via register_cpu_notifier()]
+>>
+>>                                               CPU online/offline operation
+>>                                               tries to acquire cpu_hotplug.lock
+>>                                               [via cpu_hotplug_begin()]
+> 
+> Can't we fix this by using a different (ie: new) lock to protect
+> cpu_chain?
+> 
 
-since nobody objected to the compat changes I described below, could you
-please add the tree
+No, that won't be a better solution than this one :-( The reason is that
+CPU_POST_DEAD notifiers are invoked with the cpu_hotplug.lock dropped (by
+design). So if we introduce the new lock, the locking would look as shown
+below at the CPU hotplug side:
 
-  git://git.kernel.org/pub/scm/linux/kernel/git/s390/linux.git compat
+[ Note that it is unsafe to acquire and release the cpu-chain lock separately
+for each invocation of the notifiers, because that would allow manipulations
+of the cpu-chain in between two sets of notifications (such as CPU_DOWN_PREPARE
+and CPU_DEAD, corresponding to the same CPU hotplug operation), which is
+clearly wrong. So we need to acquire the new lock at the very beginning of
+the hotplug operation and release it at the very end, after all notifiers
+have been invoked.]
 
-to linux-next?
 
-Thanks,
-Heiko
+cpu_maps_update_begin(); //acquire cpu_add_remove_lock
+    cpu_hotplug_begin(); //acquire cpu_hotplug.lock
 
-[full quote below]
+        cpu_chain_lock(); //acquire a new lock that protects the cpu_chain
 
-On Thu, Mar 06, 2014 at 04:51:07PM +0100, Heiko Carstens wrote:
-> Hi all,
-> 
-> this patch series converts all common code compat syscalls to use the new
-> COMPAT_SYSCALL_DEFINE macros introduced by Al Viro.
-> My main motivation is to get rid of the 1400+ line s390 specific assembler
-> file which contains code for each and every compat system call to perform
-> proper sign, zero and pointer conversion.
-> 
-> Eventually the conversion is pretty trivial, except that for a couple of
-> compat syscalls argument types needed to be changed from e.g. 'long' to
-> 'compat_long_t' so that the COMPAT_SYSCALL_DEFINE macro can perform
-> proper sign extension from the 32 bit compat system call argument like
-> it was orginally passed in from user space.
-> 
-> The patch series keeps the "noop" conversions (5-10) and those with type
-> changes (11-15) separate.
-> 
-> Patches 1-4 are just additional cleanup patches.
-> 
-> Especially I'd like to know from somebody familiar with the x32 ABI if
-> any of the type changes break x32?
-> I intentionally did not touch the preadv64 and pwritev64 compat system
-> calls since they have been explicitly added to allow x32 pass 64 bit
-> arguments.
-> However it's not obvious to me if any of my other compat system call
-> changes break x32 or not.
-> 
-> FWIW, this patch series omits the whole s390 patches, since I assume
-> they are not very interesting to non-s390 people ;)
-> 
-> The complete series (including the s390 only patches) is available at
-> 
->   git://git.kernel.org/pub/scm/linux/kernel/git/s390/linux.git compat
-> 
-> If nobody objects I'd like to have the branch integrated into linux-next
-> to get some additional testing.
-> 
-> So, please let me know if I screwed up something! :)
-> 
-> Thanks,
-> Heiko
-> 
-> Heiko Carstens (16):
->       compat: let architectures define __ARCH_WANT_COMPAT_SYS_GETDENTS64
->       compat: add COMPAT_SYSCALL_DEFINE0 macro
->       ipc/compat_sys_msgrcv: change msgtyp type from long to compat_long_t
->       fs/compat: optional preadv64/pwrite64 compat system calls
->       kernel/compat: convert to COMPAT_SYSCALL_DEFINE
->       net/compat: convert to COMPAT_SYSCALL_DEFINE
->       mm/compat: convert to COMPAT_SYSCALL_DEFINE
->       security/compat: convert to COMPAT_SYSCALL_DEFINE
->       fs/compat: convert to COMPAT_SYSCALL_DEFINE
->       ipc/compat: convert to COMPAT_SYSCALL_DEFINE
->       fs/compat: convert to COMPAT_SYSCALL_DEFINE with changing parameter types
->       ipc/compat: convert to COMPAT_SYSCALL_DEFINE with changing parameter types
->       net/compat: convert to COMPAT_SYSCALL_DEFINE with changing parameter types
->       kexec/compat: convert to COMPAT_SYSCALL_DEFINE with changing parameter types
->       mm/compat: convert to COMPAT_SYSCALL_DEFINE with changing parameter types
->       s390/compat: build error for large compat syscall args
-> 
-> (diffstat below includes the s390 only patches)
-> 
->  arch/arm64/include/asm/unistd.h   |    1 +
->  arch/mips/include/asm/unistd.h    |    1 -
->  arch/s390/include/asm/compat.h    |    6 +-
->  arch/s390/kernel/compat_linux.c   |  116 +--
->  arch/s390/kernel/compat_linux.h   |   81 +--
->  arch/s390/kernel/compat_signal.c  |    4 +-
->  arch/s390/kernel/compat_wrapper.S | 1425 -------------------------------------
->  arch/s390/kernel/compat_wrapper.c |  209 ++++++
->  arch/s390/kernel/entry.h          |    6 +-
->  arch/s390/kernel/syscalls.S       |  504 ++++++-------
->  arch/x86/include/asm/unistd.h     |    3 +
->  fs/compat.c                       |  121 ++--
->  fs/compat_ioctl.c                 |    5 +-
->  fs/exec.c                         |    6 +-
->  fs/read_write.c                   |   36 +-
->  include/linux/compat.h            |   62 +-
->  include/linux/kexec.h             |    6 -
->  include/linux/syscalls.h          |    2 +
->  include/uapi/asm-generic/unistd.h |    1 +
->  ipc/compat.c                      |   13 +-
->  ipc/compat_mq.c                   |   32 +-
->  kernel/compat.c                   |  100 +--
->  kernel/kexec.c                    |    8 +-
->  kernel/ptrace.c                   |    4 +-
->  mm/mempolicy.c                    |   18 +-
->  mm/process_vm_access.c            |   26 +-
->  net/compat.c                      |   32 +-
->  security/keys/compat.c            |    4 +-
->  28 files changed, 828 insertions(+), 2004 deletions(-)
-> 
-> -- 
-> 1.8.4.5
+		Invoke CPU_DOWN_PREPARE notifiers
+		//take cpu offline using stop-machine
+		Invoke CPU_DEAD notifiers
+
+    cpu_hotplug_done(); //release cpu_hotplug.lock
+
+		Invoke CPU_POST_DEAD notifiers
+
+        cpu_chain_unlock(); //release a new lock that protects the cpu_chain
+
+cpu_maps_update_done(); //release cpu_add_remove_lock
+
+
+So, if you observe the nesting of locks, it looks weird, because
+cpu_hotplug.lock is acquired first, followed by cpu_chain_lock,
+but they are released in the same order! IOW, they don't nest "properly".
+
+To avoid this, if we reorder the locks in such a way that cpu_chain_lock
+is the outer lock compared to cpu_hotplug.lock, then it becomes exactly
+same as cpu_add_remove_lock. In other words, we can reuse the
+cpu_add_remove_lock for this very purpose of protecting the cpu-chains
+without adding any new lock to the CPU hotplug core code. And this is
+what the existing code already does. I just utilize this fact and make
+sure that we don't deadlock in the scenarios mentioned in the cover-letter
+of this patchset.
+
+Regards,
+Srivatsa S. Bhat
 
