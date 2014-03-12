@@ -1,37 +1,42 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:51731 "EHLO
-	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753718AbaCLJo5 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 12 Mar 2014 05:44:57 -0400
-Date: Wed, 12 Mar 2014 10:44:47 +0100
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH 6/6] arch: Remove stub cputime.h headers
-Message-ID: <20140312094447.GP30956@twins.programming.kicks-ass.net>
-References: <1394590202-772-1-git-send-email-fweisbec@gmail.com>
- <1394590202-772-7-git-send-email-fweisbec@gmail.com>
+Received: from cdptpa-outbound-snat.email.rr.com ([107.14.166.230]:38316 "EHLO
+	cdptpa-oedge-vip.email.rr.com" rhost-flags-OK-OK-OK-FAIL)
+	by vger.kernel.org with ESMTP id S1754612AbaCLQTg (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Wed, 12 Mar 2014 12:19:36 -0400
+Date: Wed, 12 Mar 2014 12:19:33 -0400
+From: Steven Rostedt <rostedt@goodmis.org>
+Subject: Re: [RFC][PATCH 0/7] locking: qspinlock
+Message-ID: <20140312121933.40f63087@gandalf.local.home>
+In-Reply-To: <20140312155754.GG27965@twins.programming.kicks-ass.net>
+References: <20140310154236.038181843@infradead.org>
+	<20140312023153.GW13647@dastard>
+	<20140311231159.25a0d8dc@gandalf.local.home>
+	<20140312042616.GX13647@dastard>
+	<20140312060730.435122f0@gandalf.local.home>
+	<20140312155754.GG27965@twins.programming.kicks-ass.net>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1394590202-772-7-git-send-email-fweisbec@gmail.com>
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Frederic Weisbecker <fweisbec@gmail.com>
-Cc: Ingo Molnar <mingo@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, LKML <linux-kernel@vger.kernel.org>, Archs <linux-arch@vger.kernel.org>, Marcelo Tosatti <mtosatti@redhat.com>
-Message-ID: <20140312094447.7Jt9iRtXem-w7f_atMdSDq1CQQtcQBNjY9kdQ5ZKc0Q@z>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Dave Chinner <david@fromorbit.com>, Waiman Long <waiman.long@hp.com>, arnd@arndb.de, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, akpm@linux-foundation.org, walken@google.com, andi@firstfloor.org, riel@redhat.com, paulmck@linux.vnet.ibm.com, torvalds@linux-foundation.org, oleg@redhat.com
+Message-ID: <20140312161933.ObPxdr6Qmy7YijJo8JlsrTRlG9S3zaRdtbLUhllL36Y@z>
 
-On Wed, Mar 12, 2014 at 03:10:02AM +0100, Frederic Weisbecker wrote:
-> diff --git a/arch/alpha/include/asm/Kbuild b/arch/alpha/include/asm/Kbuild
-> index a73a8e2..1a81a8b 100644
-> --- a/arch/alpha/include/asm/Kbuild
-> +++ b/arch/alpha/include/asm/Kbuild
-> @@ -5,3 +5,4 @@ generic-y += exec.h
->  generic-y += trace_clock.h
->  generic-y += preempt.h
->  generic-y += hash.h
-> +generic-y += cputime.h
-> \ No newline at end of file
+On Wed, 12 Mar 2014 16:57:54 +0100
+Peter Zijlstra <peterz@infradead.org> wrote:
 
-That's a double fail there, not sorted and no EOL.
 
-Please run the script from commit: b119fa61d440f after you touch the
-asm/Kbuild files.
+> I build and booted these patches against tip/master as of this morning.
+> It build ~50 defconfig kernels on my WSM-EP.
+> 
+> I've not managed to reproduce the hang as reported by Dave, but then I
+> doubt building kernels has anywhere near the lock contention he
+> generated.
+> 
+
+Have you tried hackbench? That usually gives rq spinlocks a bit of
+contention.
+
+-- Steve
