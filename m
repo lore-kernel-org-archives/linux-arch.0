@@ -1,49 +1,32 @@
-From: Peter Zijlstra <peterz@infradead.org>
+From: Linus Torvalds <torvalds@linux-foundation.org>
 Subject: Re: [RFC][PATCH 0/7] locking: qspinlock
-Date: Wed, 12 Mar 2014 16:57:54 +0100
-Message-ID: <20140312155754.GG27965@twins.programming.kicks-ass.net>
+Date: Wed, 12 Mar 2014 09:06:11 -0700
+Message-ID: <CA+55aFwXEL8nd+QL1CuMZRi6dnKkj92-UH0hfsPCR6Qaj+rVNQ@mail.gmail.com>
 References: <20140310154236.038181843@infradead.org>
- <20140312023153.GW13647@dastard>
- <20140311231159.25a0d8dc@gandalf.local.home>
- <20140312042616.GX13647@dastard>
- <20140312060730.435122f0@gandalf.local.home>
+	<20140312023153.GW13647@dastard>
+	<20140311231159.25a0d8dc@gandalf.local.home>
+	<20140312042616.GX13647@dastard>
+	<20140312060730.435122f0@gandalf.local.home>
+	<20140312155754.GG27965@twins.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:37280 "EHLO
-	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754877AbaCLP6S (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 12 Mar 2014 11:58:18 -0400
-Content-Disposition: inline
-In-Reply-To: <20140312060730.435122f0@gandalf.local.home>
+Received: from mail-vc0-f178.google.com ([209.85.220.178]:50760 "EHLO
+	mail-vc0-f178.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755185AbaCLQGM (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 12 Mar 2014 12:06:12 -0400
+In-Reply-To: <20140312155754.GG27965@twins.programming.kicks-ass.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Steven Rostedt <rostedt@goodmis.org>
-Cc: Dave Chinner <david@fromorbit.com>, Waiman Long <waiman.long@hp.com>, arnd@arndb.de, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, akpm@linux-foundation.org, walken@google.com, andi@firstfloor.org, riel@redhat.com, paulmck@linux.vnet.ibm.com, torvalds@linux-foundation.org, oleg@redhat.com
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Steven Rostedt <rostedt@goodmis.org>, Dave Chinner <david@fromorbit.com>, Waiman Long <waiman.long@hp.com>, Arnd Bergmann <arnd@arndb.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, the arch/x86 maintainers <x86@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Michel Lespinasse <walken@google.com>, Andi Kleen <andi@firstfloor.org>, Rik van Riel <riel@redhat.com>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Oleg Nesterov <oleg@redhat.com>
 
-On Wed, Mar 12, 2014 at 06:07:30AM -0400, Steven Rostedt wrote:
-> On Wed, 12 Mar 2014 15:26:16 +1100
-> Dave Chinner <david@fromorbit.com> wrote:
-> 
-> 
-> > I did apply them manually - but the patchset is based on the
-> > tip/master, plus some patches from a previous patch set that aren't
-> > in tip/locking to be able to apply this patchset cleanly in the
-> > first place. So there's no "start froma known working kernel" case
-> > that applies here :/
-> 
-> Peter,
-> 
-> Which kernel should we start testing your code against?
+On Wed, Mar 12, 2014 at 8:57 AM, Peter Zijlstra <peterz@infradead.org> wrote:
+>
+> I've not managed to reproduce the hang as reported by Dave, but then I
+> doubt building kernels has anywhere near the lock contention he
+> generated.
 
-I build and booted these patches against tip/master as of this morning.
-It build ~50 defconfig kernels on my WSM-EP.
+Building kernels has basically no lock contention at all.
 
-I've not managed to reproduce the hang as reported by Dave, but then I
-doubt building kernels has anywhere near the lock contention he
-generated.
-
-I did run my userspace on both the WSM-EP as well as the Interlagos box,
-topping out at 24 and 32 contending cpus resp.
-
-No weird lockups :/
+                Linus
