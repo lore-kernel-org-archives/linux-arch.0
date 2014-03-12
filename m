@@ -1,46 +1,79 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:38552 "EHLO
-	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755117AbaCLQXy (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 12 Mar 2014 12:23:54 -0400
-Date: Wed, 12 Mar 2014 17:23:28 +0100
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [RFC][PATCH 0/7] locking: qspinlock
-Message-ID: <20140312162328.GH27965@twins.programming.kicks-ass.net>
-References: <20140310154236.038181843@infradead.org>
- <20140312023153.GW13647@dastard>
- <20140311231159.25a0d8dc@gandalf.local.home>
- <20140312042616.GX13647@dastard>
- <20140312060730.435122f0@gandalf.local.home>
- <20140312155754.GG27965@twins.programming.kicks-ass.net>
- <20140312121933.40f63087@gandalf.local.home>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20140312121933.40f63087@gandalf.local.home>
+Received: from mail-wi0-f177.google.com ([209.85.212.177]:42074 "EHLO
+	mail-wi0-f177.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755399AbaCLQgV (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 12 Mar 2014 12:36:21 -0400
+From: Frederic Weisbecker <fweisbec@gmail.com>
+Subject: [GIT PULL v2] timers updates for 3.15
+Date: Wed, 12 Mar 2014 17:36:14 +0100
+Message-ID: <1394642174-14315-1-git-send-email-fweisbec@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Steven Rostedt <rostedt@goodmis.org>
-Cc: Dave Chinner <david@fromorbit.com>, Waiman Long <waiman.long@hp.com>, arnd@arndb.de, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, akpm@linux-foundation.org, walken@google.com, andi@firstfloor.org, riel@redhat.com, paulmck@linux.vnet.ibm.com, torvalds@linux-foundation.org, oleg@redhat.com
-Message-ID: <20140312162328.2z8RStXQy24Nm--6nyHuyOVvHk215MVIEGjaI_51Epo@z>
+To: Ingo Molnar <mingo@kernel.org>, Thomas Gleixner <tglx@linutronix.de>
+Cc: LKML <linux-kernel@vger.kernel.org>, Frederic Weisbecker <fweisbec@gmail.com>, Archs <linux-arch@vger.kernel.org>, Marcelo Tosatti <mtosatti@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Rik van Riel <riel@redhat.com>, Huiqingding <huding@redhat.com>
+Message-ID: <20140312163614.FtHRyqMlkmogn0V5tffNCbsqYc9GxGreL6FxbDaIhKg@z>
 
-On Wed, Mar 12, 2014 at 12:19:33PM -0400, Steven Rostedt wrote:
-> On Wed, 12 Mar 2014 16:57:54 +0100
-> Peter Zijlstra <peterz@infradead.org> wrote:
-> 
-> 
-> > I build and booted these patches against tip/master as of this morning.
-> > It build ~50 defconfig kernels on my WSM-EP.
-> > 
-> > I've not managed to reproduce the hang as reported by Dave, but then I
-> > doubt building kernels has anywhere near the lock contention he
-> > generated.
-> > 
-> 
-> Have you tried hackbench? That usually gives rq spinlocks a bit of
-> contention.
+Ingo, Thomas,
 
-Ha!, bang it goes. I suppose my userspace contention is too nice or
-something for not triggering this.
+Please pull the timers/cputime-fix-steal-v3 branch that can be found at:
 
-Lemme try and put it together again :-)
+git://git.kernel.org/pub/scm/linux/kernel/git/frederic/linux-dynticks.git
+	timers/cputime-fix-steal-v3
+
+Only the last patch changed to address Peterz concern on arch Kbuild
+layout. This got sorted out by running the script from b119fa61d440f
+to alpabetically sort the entries.
+
+---
+The main purpose of this set is to fix a bug on full dynticks configs
+where steal time accounting appears to be zero in /proc/stat even
+after a few seconds of competing guests running busy loops in a same
+host CPU. It's not a regression though as it was there since the
+beginning with full dynticks.
+
+So patch [4/6] ("cputime: Fix jiffies based cputime assumption on
+steal accounting") is the most important patch of the series. The rest
+is mostly preparatory work to fix the bug plus various cleanups.
+
+Thanks,
+	Frederic
+---
+
+Frederic Weisbecker (6):
+      cputime: Fix nsecs_to_cputime() return type cast
+      cputime: Default implementation of nsecs -> cputime conversion
+      cputime: Bring cputime -> nsecs conversion
+      cputime: Fix jiffies based cputime assumption on steal accounting
+      sched: Remove needless round trip nsecs <-> tick conversion of steal time
+      arch: Remove stub cputime.h headers
+
+
+ arch/alpha/include/asm/Kbuild         |  7 ++++---
+ arch/alpha/include/asm/cputime.h      |  6 ------
+ arch/cris/include/asm/Kbuild          |  3 ++-
+ arch/cris/include/asm/cputime.h       |  6 ------
+ arch/frv/include/asm/Kbuild           |  5 +++--
+ arch/frv/include/asm/cputime.h        |  6 ------
+ arch/m32r/include/asm/Kbuild          |  5 +++--
+ arch/m32r/include/asm/cputime.h       |  6 ------
+ arch/microblaze/include/asm/Kbuild    |  5 +++--
+ arch/microblaze/include/asm/cputime.h |  1 -
+ arch/mn10300/include/asm/Kbuild       |  3 ++-
+ arch/mn10300/include/asm/cputime.h    |  1 -
+ arch/score/include/asm/Kbuild         |  4 ++--
+ arch/score/include/asm/cputime.h      |  6 ------
+ arch/x86/include/asm/Kbuild           |  1 +
+ arch/x86/include/asm/cputime.h        |  1 -
+ drivers/cpufreq/cpufreq_stats.c       |  2 +-
+ drivers/s390/cio/cio.c                |  2 +-
+ fs/proc/stat.c                        |  2 +-
+ fs/proc/uptime.c                      |  2 +-
+ include/asm-generic/cputime_jiffies.h |  4 +++-
+ include/asm-generic/cputime_nsecs.h   |  5 ++++-
+ include/linux/cputime.h               | 16 ++++++++++++++++
+ include/linux/kernel_stat.h           |  2 +-
+ include/linux/sched.h                 |  2 +-
+ kernel/sched/core.c                   |  6 ------
+ kernel/sched/cputime.c                | 16 +++++++++++-----
+ kernel/sched/sched.h                  | 10 ----------
+ 28 files changed, 60 insertions(+), 75 deletions(-)
