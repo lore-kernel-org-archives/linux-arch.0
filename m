@@ -1,109 +1,118 @@
-From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: Re: [PATCH v3 00/52] CPU hotplug: Fix issues with callback registration
-Date: Thu, 13 Mar 2014 02:18:57 +0530
-Message-ID: <5320C839.5010206@linux.vnet.ibm.com>
-References: <20140310203312.10746.310.stgit@srivatsabhat.in.ibm.com> <20140311150733.efcc594dd7fe59c9c5fe9325@linux-foundation.org>
+From: Jacob Pan <jacob.jun.pan@linux.intel.com>
+Subject: Re: [PATCH v3 32/52] powercap, intel-rapl: Fix CPU hotplug callback
+ registration
+Date: Wed, 12 Mar 2014 15:27:39 -0700
+Message-ID: <20140312152739.12311e48@ultegra>
+References: <20140310203312.10746.310.stgit@srivatsabhat.in.ibm.com>
+	<20140310203926.10746.11524.stgit@srivatsabhat.in.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
+Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-pm-owner@vger.kernel.org>
-In-Reply-To: <20140311150733.efcc594dd7fe59c9c5fe9325@linux-foundation.org>
-Sender: linux-pm-owner@vger.kernel.org
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: paulus@samba.org, oleg@redhat.com, mingo@kernel.org, rjw@rjwysocki.net, rusty@rustcorp.com.au, peterz@infradead.org, tglx@linutronix.de, paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-pm@vger.kernel.org, linuxppc-dev@ozlabs.org
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mga02.intel.com ([134.134.136.20]:3759 "EHLO mga02.intel.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751265AbaCLW2p (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 12 Mar 2014 18:28:45 -0400
+In-Reply-To: <20140310203926.10746.11524.stgit@srivatsabhat.in.ibm.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Cc: paulus@samba.org, oleg@redhat.com, mingo@kernel.org, rjw@rjwysocki.net, rusty@rustcorp.com.au, peterz@infradead.org, tglx@linutronix.de, akpm@linux-foundation.org, paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-pm@vger.kernel.org, linuxppc-dev@ozlabs.org, Srinivas Pandruvada <srinivas.pandruvada@linux.intel.com>
 
-On 03/12/2014 03:37 AM, Andrew Morton wrote:
-> On Tue, 11 Mar 2014 02:03:52 +0530 "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com> wrote:
+On Tue, 11 Mar 2014 02:09:26 +0530
+"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com> wrote:
+
+> Subsystems that want to register CPU hotplug callbacks, as well as
+> perform initialization for the CPUs that are already online, often do
+> it as shown below:
 > 
->> Hi,
->>
->> Many subsystems and drivers have the need to register CPU hotplug callbacks
->> from their init routines and also perform initialization for the CPUs that are
->> already online. But unfortunately there is no race-free way to achieve this
->> today.
->>
->> For example, consider this piece of code:
->>
->> 	get_online_cpus();
->>
->> 	for_each_online_cpu(cpu)
->> 		init_cpu(cpu);
->>
->> 	register_cpu_notifier(&foobar_cpu_notifier);
->>
->> 	put_online_cpus();
->>
->> This is not safe because there is a possibility of an ABBA deadlock involving
->> the cpu_add_remove_lock and the cpu_hotplug.lock.
->>
->>           CPU 0                                         CPU 1
->>           -----                                         -----
->>
->>    Acquire cpu_hotplug.lock
->>    [via get_online_cpus()]
->>
->>                                               CPU online/offline operation
->>                                               takes cpu_add_remove_lock
->>                                               [via cpu_maps_update_begin()]
->>
->>    Try to acquire
->>    cpu_add_remove_lock
->>    [via register_cpu_notifier()]
->>
->>                                               CPU online/offline operation
->>                                               tries to acquire cpu_hotplug.lock
->>                                               [via cpu_hotplug_begin()]
+> 	get_online_cpus();
 > 
-> Can't we fix this by using a different (ie: new) lock to protect
-> cpu_chain?
+> 	for_each_online_cpu(cpu)
+> 		init_cpu(cpu);
+> 
+> 	register_cpu_notifier(&foobar_cpu_notifier);
+> 
+> 	put_online_cpus();
+> 
+> This is wrong, since it is prone to ABBA deadlocks involving the
+> cpu_add_remove_lock and the cpu_hotplug.lock (when running
+> concurrently with CPU hotplug operations).
+> 
+> Instead, the correct and race-free way of performing the callback
+> registration is:
+> 
+> 	cpu_notifier_register_begin();
+> 
+> 	for_each_online_cpu(cpu)
+> 		init_cpu(cpu);
+> 
+> 	/* Note the use of the double underscored version of the API
+> */ __register_cpu_notifier(&foobar_cpu_notifier);
+> 
+> 	cpu_notifier_register_done();
+> 
+> 
+> Fix the intel-rapl code in the powercap driver by using this latter
+> form of callback registration. But retain the calls to
+> get/put_online_cpus(), since they also protect the function
+> rapl_cleanup_data(). By nesting get/put_online_cpus() *inside*
+> cpu_notifier_register_begin/done(), we avoid the ABBA deadlock
+> possibility mentioned above.
+> 
+> Cc: "Rafael J. Wysocki" <rjw@rjwysocki.net>
+> Cc: Jacob Pan <jacob.jun.pan@linux.intel.com>
+> Cc: Srinivas Pandruvada <srinivas.pandruvada@linux.intel.com>
+> Cc: Ingo Molnar <mingo@kernel.org>
+> Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
+> ---
 > 
 
-No, that won't be a better solution than this one :-( The reason is that
-CPU_POST_DEAD notifiers are invoked with the cpu_hotplug.lock dropped (by
-design). So if we introduce the new lock, the locking would look as shown
-below at the CPU hotplug side:
+Tested-by: Jacob Pan <jacob.jun.pan@linux.intel.com>
 
-[ Note that it is unsafe to acquire and release the cpu-chain lock separately
-for each invocation of the notifiers, because that would allow manipulations
-of the cpu-chain in between two sets of notifications (such as CPU_DOWN_PREPARE
-and CPU_DEAD, corresponding to the same CPU hotplug operation), which is
-clearly wrong. So we need to acquire the new lock at the very beginning of
-the hotplug operation and release it at the very end, after all notifiers
-have been invoked.]
+>  drivers/powercap/intel_rapl.c |   10 ++++++++--
+>  1 file changed, 8 insertions(+), 2 deletions(-)
+> 
+> diff --git a/drivers/powercap/intel_rapl.c
+> b/drivers/powercap/intel_rapl.c index 3c67683..d6c74c1 100644
+> --- a/drivers/powercap/intel_rapl.c
+> +++ b/drivers/powercap/intel_rapl.c
+> @@ -1369,6 +1369,9 @@ static int __init rapl_init(void)
+>  
+>  		return -ENODEV;
+>  	}
+> +
+> +	cpu_notifier_register_begin();
+> +
+>  	/* prevent CPU hotplug during detection */
+>  	get_online_cpus();
+>  	ret = rapl_detect_topology();
+> @@ -1380,20 +1383,23 @@ static int __init rapl_init(void)
+>  		ret = -ENODEV;
+>  		goto done;
+>  	}
+> -	register_hotcpu_notifier(&rapl_cpu_notifier);
+> +	__register_hotcpu_notifier(&rapl_cpu_notifier);
+>  done:
+>  	put_online_cpus();
+> +	cpu_notifier_register_done();
+>  
+>  	return ret;
+>  }
+>  
+>  static void __exit rapl_exit(void)
+>  {
+> +	cpu_notifier_register_begin();
+>  	get_online_cpus();
+> -	unregister_hotcpu_notifier(&rapl_cpu_notifier);
+> +	__unregister_hotcpu_notifier(&rapl_cpu_notifier);
+>  	rapl_unregister_powercap();
+>  	rapl_cleanup_data();
+>  	put_online_cpus();
+> +	cpu_notifier_register_done();
+>  }
+>  
+>  module_init(rapl_init);
+> 
 
-
-cpu_maps_update_begin(); //acquire cpu_add_remove_lock
-    cpu_hotplug_begin(); //acquire cpu_hotplug.lock
-
-        cpu_chain_lock(); //acquire a new lock that protects the cpu_chain
-
-		Invoke CPU_DOWN_PREPARE notifiers
-		//take cpu offline using stop-machine
-		Invoke CPU_DEAD notifiers
-
-    cpu_hotplug_done(); //release cpu_hotplug.lock
-
-		Invoke CPU_POST_DEAD notifiers
-
-        cpu_chain_unlock(); //release a new lock that protects the cpu_chain
-
-cpu_maps_update_done(); //release cpu_add_remove_lock
-
-
-So, if you observe the nesting of locks, it looks weird, because
-cpu_hotplug.lock is acquired first, followed by cpu_chain_lock,
-but they are released in the same order! IOW, they don't nest "properly".
-
-To avoid this, if we reorder the locks in such a way that cpu_chain_lock
-is the outer lock compared to cpu_hotplug.lock, then it becomes exactly
-same as cpu_add_remove_lock. In other words, we can reuse the
-cpu_add_remove_lock for this very purpose of protecting the cpu-chains
-without adding any new lock to the CPU hotplug core code. And this is
-what the existing code already does. I just utilize this fact and make
-sure that we don't deadlock in the scenarios mentioned in the cover-letter
-of this patchset.
-
-Regards,
-Srivatsa S. Bhat
-
+[Jacob Pan]
