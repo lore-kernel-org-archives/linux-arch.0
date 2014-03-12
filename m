@@ -1,32 +1,40 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH 6/6] arch: Remove stub cputime.h headers
-Date: Wed, 12 Mar 2014 10:44:47 +0100
-Message-ID: <20140312094447.GP30956@twins.programming.kicks-ass.net>
-References: <1394590202-772-1-git-send-email-fweisbec@gmail.com>
- <1394590202-772-7-git-send-email-fweisbec@gmail.com>
+From: Steven Rostedt <rostedt@goodmis.org>
+Subject: Re: [RFC][PATCH 0/7] locking: qspinlock
+Date: Wed, 12 Mar 2014 06:07:30 -0400
+Message-ID: <20140312060730.435122f0@gandalf.local.home>
+References: <20140310154236.038181843@infradead.org>
+	<20140312023153.GW13647@dastard>
+	<20140311231159.25a0d8dc@gandalf.local.home>
+	<20140312042616.GX13647@dastard>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <1394590202-772-7-git-send-email-fweisbec@gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Frederic Weisbecker <fweisbec@gmail.com>
-Cc: Ingo Molnar <mingo@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, LKML <linux-kernel@vger.kernel.org>, Archs <linux-arch@vger.kernel.org>, Marcelo Tosatti <mtosatti@redhat.com>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from cdptpa-outbound-snat.email.rr.com ([107.14.166.228]:51975 "EHLO
+	cdptpa-oedge-vip.email.rr.com" rhost-flags-OK-OK-OK-FAIL)
+	by vger.kernel.org with ESMTP id S1750967AbaCLKHc (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Wed, 12 Mar 2014 06:07:32 -0400
+In-Reply-To: <20140312042616.GX13647@dastard>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Dave Chinner <david@fromorbit.com>
+Cc: Peter Zijlstra <peterz@infradead.org>, Waiman Long <waiman.long@hp.com>, arnd@arndb.de, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, akpm@linux-foundation.org, walken@google.com, andi@firstfloor.org, riel@redhat.com, paulmck@linux.vnet.ibm.com, torvalds@linux-foundation.org, oleg@redhat.com
 
-On Wed, Mar 12, 2014 at 03:10:02AM +0100, Frederic Weisbecker wrote:
-> diff --git a/arch/alpha/include/asm/Kbuild b/arch/alpha/include/asm/Kbuild
-> index a73a8e2..1a81a8b 100644
-> --- a/arch/alpha/include/asm/Kbuild
-> +++ b/arch/alpha/include/asm/Kbuild
-> @@ -5,3 +5,4 @@ generic-y += exec.h
->  generic-y += trace_clock.h
->  generic-y += preempt.h
->  generic-y += hash.h
-> +generic-y += cputime.h
-> \ No newline at end of file
+On Wed, 12 Mar 2014 15:26:16 +1100
+Dave Chinner <david@fromorbit.com> wrote:
 
-That's a double fail there, not sorted and no EOL.
 
-Please run the script from commit: b119fa61d440f after you touch the
-asm/Kbuild files.
+> I did apply them manually - but the patchset is based on the
+> tip/master, plus some patches from a previous patch set that aren't
+> in tip/locking to be able to apply this patchset cleanly in the
+> first place. So there's no "start froma known working kernel" case
+> that applies here :/
+
+Peter,
+
+Which kernel should we start testing your code against?
+
+Thanks,
+
+-- Steve
