@@ -1,74 +1,135 @@
-From: Frederic Weisbecker <fweisbec@gmail.com>
-Subject: [GIT PULL v2] timers updates for 3.15
-Date: Wed, 12 Mar 2014 17:36:14 +0100
-Message-ID: <1394642174-14315-1-git-send-email-fweisbec@gmail.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Ingo Molnar <mingo@kernel.org>, Thomas Gleixner <tglx@linutronix.de>
-Cc: LKML <linux-kernel@vger.kernel.org>, Frederic Weisbecker <fweisbec@gmail.com>, Archs <linux-arch@vger.kernel.org>, Marcelo Tosatti <mtosatti@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Rik van Riel <riel@redhat.com>, Huiqingding <huding@redhat.com>
+From: Waiman Long <Waiman.Long@hp.com>
+Subject: [PATCH v6 00/11] qspinlock: a 4-byte queue spinlock with PV support
+Date: Wed, 12 Mar 2014 14:54:47 -0400
+Message-ID: <1394650498-30118-1-git-send-email-Waiman.Long@hp.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <virtualization-bounces@lists.linux-foundation.org>
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
+List-Post: <mailto:virtualization@lists.linux-foundation.org>
+List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
+Sender: virtualization-bounces@lists.linux-foundation.org
+Errors-To: virtualization-bounces@lists.linux-foundation.org
+To: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, Peter Zijlstra <peterz@infradead.org>
+Cc: Jeremy Fitzhardinge <jeremy@goop.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, kvm@vger.kernel.org, virtualization@lists.linux-foundation.org, Andi Kleen <andi@firstfloor.org>, Michel Lespinasse <walken@google.com>, Alok Kataria <akataria@vmware.com>, linux-arch@vger.kernel.org, Gleb Natapov <gleb@redhat.com>, x86@kernel.org, xen-devel@lists.xenproject.org, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Rik van Riel <riel@redhat.com>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Scott J Norton <scott.norton@hp.com>, Steven Rostedt <rostedt@goodmis.org>, Chris Wright <chrisw@sous-sol.org>, Oleg Nesterov <oleg@redhat.com>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Aswin Chandramouleeswaran <aswin@hp.com>, Chegu Vinod <chegu_vinod@hp.com>, Waiman Long <Waiman.Long@hp.com>, linux-kernel@vger.kernel.org, David Vrabel <david.vrabel@citrix.com>, Andrew
 List-Id: linux-arch.vger.kernel.org
 
-Ingo, Thomas,
+v5->v6:
+ - Change the optimized 2-task contending code to make it fairer at the
+   expense of a bit of performance.
+ - Add a patch to support unfair queue spinlock for Xen.
+ - Modify the PV qspinlock code to follow what was done in the PV
+   ticketlock.
+ - Add performance data for the unfair lock as well as the PV
+   support code.
 
-Please pull the timers/cputime-fix-steal-v3 branch that can be found at:
+v4->v5:
+ - Move the optimized 2-task contending code to the generic file to
+   enable more architectures to use it without code duplication.
+ - Address some of the style-related comments by PeterZ.
+ - Allow the use of unfair queue spinlock in a real para-virtualized
+   execution environment.
+ - Add para-virtualization support to the qspinlock code by ensuring
+   that the lock holder and queue head stay alive as much as possible.
 
-git://git.kernel.org/pub/scm/linux/kernel/git/frederic/linux-dynticks.git
-	timers/cputime-fix-steal-v3
+v3->v4:
+ - Remove debugging code and fix a configuration error
+ - Simplify the qspinlock structure and streamline the code to make it
+   perform a bit better
+ - Add an x86 version of asm/qspinlock.h for holding x86 specific
+   optimization.
+ - Add an optimized x86 code path for 2 contending tasks to improve
+   low contention performance.
 
-Only the last patch changed to address Peterz concern on arch Kbuild
-layout. This got sorted out by running the script from b119fa61d440f
-to alpabetically sort the entries.
+v2->v3:
+ - Simplify the code by using numerous mode only without an unfair option.
+ - Use the latest smp_load_acquire()/smp_store_release() barriers.
+ - Move the queue spinlock code to kernel/locking.
+ - Make the use of queue spinlock the default for x86-64 without user
+   configuration.
+ - Additional performance tuning.
 
----
-The main purpose of this set is to fix a bug on full dynticks configs
-where steal time accounting appears to be zero in /proc/stat even
-after a few seconds of competing guests running busy loops in a same
-host CPU. It's not a regression though as it was there since the
-beginning with full dynticks.
+v1->v2:
+ - Add some more comments to document what the code does.
+ - Add a numerous CPU mode to support >= 16K CPUs
+ - Add a configuration option to allow lock stealing which can further
+   improve performance in many cases.
+ - Enable wakeup of queue head CPU at unlock time for non-numerous
+   CPU mode.
 
-So patch [4/6] ("cputime: Fix jiffies based cputime assumption on
-steal accounting") is the most important patch of the series. The rest
-is mostly preparatory work to fix the bug plus various cleanups.
+This patch set has 3 different sections:
+ 1) Patches 1-4: Introduces a queue-based spinlock implementation that
+    can replace the default ticket spinlock without increasing the
+    size of the spinlock data structure. As a result, critical kernel
+    data structures that embed spinlock won't increase in size and
+    break data alignments.
+ 2) Patches 5-7: Enables the use of unfair queue spinlock in a
+    para-virtualized execution environment. This can resolve some
+    of the locking related performance issues due to the fact that
+    the next CPU to get the lock may have been scheduled out for a
+    period of time.
+ 3) Patches 8-11: Enable qspinlock para-virtualization support
+    by halting the waiting CPUs after spinning for a certain amount of
+    time. The unlock code will detect the a sleeping waiter and wake it
+    up. This is essentially the same logic as the PV ticketlock code.
 
-Thanks,
-	Frederic
----
+Patches 1-8 are fully tested and ready for production. Patches 9-11
+may still need further testing and tuning.
 
-Frederic Weisbecker (6):
-      cputime: Fix nsecs_to_cputime() return type cast
-      cputime: Default implementation of nsecs -> cputime conversion
-      cputime: Bring cputime -> nsecs conversion
-      cputime: Fix jiffies based cputime assumption on steal accounting
-      sched: Remove needless round trip nsecs <-> tick conversion of steal time
-      arch: Remove stub cputime.h headers
+The queue spinlock has slightly better performance than the ticket
+spinlock in uncontended case. Its performance can be much better
+with moderate to heavy contention.  This patch has the potential of
+improving the performance of all the workloads that have moderate to
+heavy spinlock contention.
 
+The queue spinlock is especially suitable for NUMA machines with at
+least 2 sockets, though noticeable performance benefit probably won't
+show up in machines with less than 4 sockets.
 
- arch/alpha/include/asm/Kbuild         |  7 ++++---
- arch/alpha/include/asm/cputime.h      |  6 ------
- arch/cris/include/asm/Kbuild          |  3 ++-
- arch/cris/include/asm/cputime.h       |  6 ------
- arch/frv/include/asm/Kbuild           |  5 +++--
- arch/frv/include/asm/cputime.h        |  6 ------
- arch/m32r/include/asm/Kbuild          |  5 +++--
- arch/m32r/include/asm/cputime.h       |  6 ------
- arch/microblaze/include/asm/Kbuild    |  5 +++--
- arch/microblaze/include/asm/cputime.h |  1 -
- arch/mn10300/include/asm/Kbuild       |  3 ++-
- arch/mn10300/include/asm/cputime.h    |  1 -
- arch/score/include/asm/Kbuild         |  4 ++--
- arch/score/include/asm/cputime.h      |  6 ------
- arch/x86/include/asm/Kbuild           |  1 +
- arch/x86/include/asm/cputime.h        |  1 -
- drivers/cpufreq/cpufreq_stats.c       |  2 +-
- drivers/s390/cio/cio.c                |  2 +-
- fs/proc/stat.c                        |  2 +-
- fs/proc/uptime.c                      |  2 +-
- include/asm-generic/cputime_jiffies.h |  4 +++-
- include/asm-generic/cputime_nsecs.h   |  5 ++++-
- include/linux/cputime.h               | 16 ++++++++++++++++
- include/linux/kernel_stat.h           |  2 +-
- include/linux/sched.h                 |  2 +-
- kernel/sched/core.c                   |  6 ------
- kernel/sched/cputime.c                | 16 +++++++++++-----
- kernel/sched/sched.h                  | 10 ----------
- 28 files changed, 60 insertions(+), 75 deletions(-)
+The purpose of this patch set is not to solve any particular spinlock
+contention problems. Those need to be solved by refactoring the code
+to make more efficient use of the lock or finer granularity ones. The
+main purpose is to make the lock contention problems more tolerable
+until someone can spend the time and effort to fix them.
+
+Waiman Long (11):
+  qspinlock: A generic 4-byte queue spinlock implementation
+  qspinlock, x86: Enable x86-64 to use queue spinlock
+  qspinlock: More optimized code for smaller NR_CPUS
+  qspinlock: Optimized code path for 2 contending tasks
+  pvqspinlock, x86: Allow unfair spinlock in a PV guest
+  pvqspinlock, x86: Allow unfair queue spinlock in a KVM guest
+  pvqspinlock, x86: Allow unfair queue spinlock in a XEN guest
+  pvqspinlock, x86: Rename paravirt_ticketlocks_enabled
+  pvqspinlock, x86: Add qspinlock para-virtualization support
+  pvqspinlock, x86: Enable qspinlock PV support for KVM
+  pvqspinlock, x86: Enable qspinlock PV support for XEN
+
+ arch/x86/Kconfig                      |   12 +
+ arch/x86/include/asm/paravirt.h       |   12 +-
+ arch/x86/include/asm/paravirt_types.h |   12 +
+ arch/x86/include/asm/pvqspinlock.h    |  232 +++++++++++
+ arch/x86/include/asm/qspinlock.h      |  161 ++++++++
+ arch/x86/include/asm/spinlock.h       |    9 +-
+ arch/x86/include/asm/spinlock_types.h |    4 +
+ arch/x86/kernel/Makefile              |    1 +
+ arch/x86/kernel/kvm.c                 |  106 +++++-
+ arch/x86/kernel/paravirt-spinlocks.c  |   16 +-
+ arch/x86/xen/setup.c                  |   19 +
+ arch/x86/xen/spinlock.c               |   97 +++++-
+ include/asm-generic/qspinlock.h       |  122 ++++++
+ include/asm-generic/qspinlock_types.h |   61 +++
+ kernel/Kconfig.locks                  |    7 +
+ kernel/locking/Makefile               |    1 +
+ kernel/locking/qspinlock.c            |  698 +++++++++++++++++++++++++++++++++
+ 17 files changed, 1558 insertions(+), 12 deletions(-)
+ create mode 100644 arch/x86/include/asm/pvqspinlock.h
+ create mode 100644 arch/x86/include/asm/qspinlock.h
+ create mode 100644 include/asm-generic/qspinlock.h
+ create mode 100644 include/asm-generic/qspinlock_types.h
+ create mode 100644 kernel/locking/qspinlock.c
