@@ -1,79 +1,37 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wg0-f51.google.com ([74.125.82.51]:49897 "EHLO
-	mail-wg0-f51.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756027AbaCLCKJ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 11 Mar 2014 22:10:09 -0400
-From: Frederic Weisbecker <fweisbec@gmail.com>
-Subject: [GIT PULL] timers updates for 3.15
-Date: Wed, 12 Mar 2014 03:09:56 +0100
-Message-ID: <1394590202-772-1-git-send-email-fweisbec@gmail.com>
+Received: from merlin.infradead.org ([205.233.59.134]:51731 "EHLO
+	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753718AbaCLJo5 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 12 Mar 2014 05:44:57 -0400
+Date: Wed, 12 Mar 2014 10:44:47 +0100
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH 6/6] arch: Remove stub cputime.h headers
+Message-ID: <20140312094447.GP30956@twins.programming.kicks-ass.net>
+References: <1394590202-772-1-git-send-email-fweisbec@gmail.com>
+ <1394590202-772-7-git-send-email-fweisbec@gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1394590202-772-7-git-send-email-fweisbec@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ingo Molnar <mingo@kernel.org>, Thomas Gleixner <tglx@linutronix.de>
-Cc: LKML <linux-kernel@vger.kernel.org>, Frederic Weisbecker <fweisbec@gmail.com>, Archs <linux-arch@vger.kernel.org>, Marcelo Tosatti <mtosatti@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Rik van Riel <riel@redhat.com>, Huiqingding <huding@redhat.com>
-Message-ID: <20140312020956.UIWXangxMP6UiCWKyC0EFvOTSz2obx-NrJpE7VlxX6A@z>
+To: Frederic Weisbecker <fweisbec@gmail.com>
+Cc: Ingo Molnar <mingo@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, LKML <linux-kernel@vger.kernel.org>, Archs <linux-arch@vger.kernel.org>, Marcelo Tosatti <mtosatti@redhat.com>
+Message-ID: <20140312094447.7Jt9iRtXem-w7f_atMdSDq1CQQtcQBNjY9kdQ5ZKc0Q@z>
 
-Ingo, Thomas,
+On Wed, Mar 12, 2014 at 03:10:02AM +0100, Frederic Weisbecker wrote:
+> diff --git a/arch/alpha/include/asm/Kbuild b/arch/alpha/include/asm/Kbuild
+> index a73a8e2..1a81a8b 100644
+> --- a/arch/alpha/include/asm/Kbuild
+> +++ b/arch/alpha/include/asm/Kbuild
+> @@ -5,3 +5,4 @@ generic-y += exec.h
+>  generic-y += trace_clock.h
+>  generic-y += preempt.h
+>  generic-y += hash.h
+> +generic-y += cputime.h
+> \ No newline at end of file
 
-Please pull the timers/cputime-fix-steal-v2 branch that can be found at:
+That's a double fail there, not sorted and no EOL.
 
-git://git.kernel.org/pub/scm/linux/kernel/git/frederic/linux-dynticks.git
-	timers/cputime-fix-steal-v2
-
-It's based on tip:timers/core. The patches are essentially unchanged
-since the last version (https://lkml.org/lkml/2014/3/6/376). I only
-added a small comment in 4/6 and acks from Rik.
-
----
-The main purpose of this set is to fix a bug on full dynticks configs
-where steal time accounting appears to be zero in /proc/stat even
-after a few seconds of competing guests running busy loops in a same
-host CPU. It's not a regression though as it was there since the
-beginning with full dynticks.
-
-So patch [4/6] ("cputime: Fix jiffies based cputime assumption on
-steal accounting") is the most important patch of the series. The rest
-is mostly preparatory work to fix the bug plus various cleanups.
-
-Thanks,
-	Frederic
----
-
-Frederic Weisbecker (6):
-      cputime: Fix nsecs_to_cputime() return type cast
-      cputime: Default implementation of nsecs -> cputime conversion
-      cputime: Bring cputime -> nsecs conversion
-      cputime: Fix jiffies based cputime assumption on steal accounting
-      sched: Remove needless round trip nsecs <-> tick conversion of steal time
-      arch: Remove stub cputime.h headers
-
-
- arch/alpha/include/asm/Kbuild         |  1 +
- arch/alpha/include/asm/cputime.h      |  6 ------
- arch/cris/include/asm/Kbuild          |  1 +
- arch/cris/include/asm/cputime.h       |  6 ------
- arch/frv/include/asm/Kbuild           |  1 +
- arch/frv/include/asm/cputime.h        |  6 ------
- arch/m32r/include/asm/Kbuild          |  1 +
- arch/m32r/include/asm/cputime.h       |  6 ------
- arch/microblaze/include/asm/Kbuild    |  1 +
- arch/microblaze/include/asm/cputime.h |  1 -
- arch/mn10300/include/asm/Kbuild       |  1 +
- arch/mn10300/include/asm/cputime.h    |  1 -
- arch/score/include/asm/Kbuild         |  2 +-
- arch/score/include/asm/cputime.h      |  6 ------
- arch/x86/include/asm/Kbuild           |  1 +
- arch/x86/include/asm/cputime.h        |  1 -
- drivers/cpufreq/cpufreq_stats.c       |  2 +-
- drivers/s390/cio/cio.c                |  2 +-
- fs/proc/stat.c                        |  2 +-
- fs/proc/uptime.c                      |  2 +-
- include/asm-generic/cputime_jiffies.h |  4 +++-
- include/asm-generic/cputime_nsecs.h   |  5 ++++-
- include/linux/cputime.h               | 16 ++++++++++++++++
- include/linux/kernel_stat.h           |  2 +-
- include/linux/sched.h                 |  2 +-
- kernel/sched/core.c                   |  6 ------
- kernel/sched/cputime.c                | 16 +++++++++++-----
- kernel/sched/sched.h                  | 10 ----------
- 28 files changed, 48 insertions(+), 63 deletions(-)
+Please run the script from commit: b119fa61d440f after you touch the
+asm/Kbuild files.
