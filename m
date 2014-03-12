@@ -1,117 +1,104 @@
-From: Christoffer Dall <christoffer.dall@linaro.org>
-Subject: Re: [PATCH v3 10/52] arm, kvm: Fix CPU hotplug callback registration
-Date: Wed, 12 Mar 2014 16:21:27 -0700
-Message-ID: <20140312232127.GC24808@cbox>
-References: <20140310203312.10746.310.stgit@srivatsabhat.in.ibm.com>
- <20140310203538.10746.25364.stgit@srivatsabhat.in.ibm.com>
+From: Dave Chinner <david@fromorbit.com>
+Subject: Re: [RFC][PATCH 0/7] locking: qspinlock
+Date: Thu, 13 Mar 2014 10:48:57 +1100
+Message-ID: <20140312234857.GG13647@dastard>
+References: <20140310154236.038181843@infradead.org>
+ <20140312023153.GW13647@dastard>
+ <20140312061503.GH30956@twins.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from ipmail06.adl6.internode.on.net ([150.101.137.145]:36144 "EHLO
+	ipmail06.adl6.internode.on.net" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1750751AbaCLXtJ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Wed, 12 Mar 2014 19:49:09 -0400
 Content-Disposition: inline
-In-Reply-To: <20140310203538.10746.25364.stgit@srivatsabhat.in.ibm.com>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Cc: ego@linux.vnet.ibm.com, kvm@vger.kernel.org, peterz@infradead.org, linux-kernel@vger.kernel.org, linuxppc-dev@ozlabs.org, paulus@samba.org, walken@google.com, kvmarm@lists.cs.columbia.edu, linux-arch@vger.kernel.org, linux@arm.linux.org.uk, mingo@kernel.org, marc.zyngier@arm.com, paulmck@linux.vnet.ibm.com, linux-pm@vger.kernel.org, Gleb Natapov <gleb@kernel.org>, rusty@rustcorp.com.au, tglx@linutronix.de, linux-arm-kernel@lists.infradead.org, rjw@rjwysocki.net, oleg@redhat.com, tj@kernel.org, Paolo Bonzini <pbonzini@redhat.com>, akpm@linux-foundation.org
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <20140312061503.GH30956@twins.programming.kicks-ass.net>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Waiman Long <waiman.long@hp.com>, arnd@arndb.de, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, rostedt@goodmis.org, akpm@linux-foundation.org, walken@google.com, andi@firstfloor.org, riel@redhat.com, paulmck@linux.vnet.ibm.com, torvalds@linux-foundation.org, oleg@redhat.com
 
-On Tue, Mar 11, 2014 at 02:05:38AM +0530, Srivatsa S. Bhat wrote:
-> Subsystems that want to register CPU hotplug callbacks, as well as perform
-> initialization for the CPUs that are already online, often do it as shown
-> below:
+On Wed, Mar 12, 2014 at 07:15:03AM +0100, Peter Zijlstra wrote:
+> On Wed, Mar 12, 2014 at 01:31:53PM +1100, Dave Chinner wrote:
+> > With the queuing spinlock, I expected to see somewhat better
+> > results, but I didn't at first. Turns out if you have any sort of
+> > lock debugging turned on, then the code doesn't ever go into the
+> > lock slow path and hence does not ever enter the "lock failed" slow
+> > path where all the contention fixes are supposed to be.
 > 
-> 	get_online_cpus();
+> Yeah; its a 'feature' of the spinlock debugging to turn all spinlocks
+> into test-and-set thingies.
 > 
-> 	for_each_online_cpu(cpu)
-> 		init_cpu(cpu);
+> > Anyway, with all lock debugging turned off, the system hangs
+> > the instant I start the multithreaded bulkstat workload. Even the
+> > console is unrepsonsive. 
 > 
-> 	register_cpu_notifier(&foobar_cpu_notifier);
+> Oops, I only briefly tested this series in userspace and that seemed to
+> work. I'll go prod at it. Thanks for having a look though.
 > 
-> 	put_online_cpus();
-> 
-> This is wrong, since it is prone to ABBA deadlocks involving the
-> cpu_add_remove_lock and the cpu_hotplug.lock (when running concurrently
-> with CPU hotplug operations).
-> 
-> Instead, the correct and race-free way of performing the callback
-> registration is:
-> 
-> 	cpu_notifier_register_begin();
-> 
-> 	for_each_online_cpu(cpu)
-> 		init_cpu(cpu);
-> 
-> 	/* Note the use of the double underscored version of the API */
-> 	__register_cpu_notifier(&foobar_cpu_notifier);
-> 
-> 	cpu_notifier_register_done();
-> 
-> 
-> Fix the kvm code in arm by using this latter form of callback registration.
-> 
-> Cc: Christoffer Dall <christoffer.dall@linaro.org>
-> Cc: Gleb Natapov <gleb@kernel.org>
-> Cc: Russell King <linux@arm.linux.org.uk>
-> Cc: Ingo Molnar <mingo@kernel.org>
-> Cc: kvmarm@lists.cs.columbia.edu
-> Cc: kvm@vger.kernel.org
-> Cc: linux-arm-kernel@lists.infradead.org
-> Acked-by: Paolo Bonzini <pbonzini@redhat.com>
-> Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
-> ---
-> 
->  arch/arm/kvm/arm.c |    7 ++++++-
->  1 file changed, 6 insertions(+), 1 deletion(-)
-> 
-> diff --git a/arch/arm/kvm/arm.c b/arch/arm/kvm/arm.c
-> index bd18bb8..f0e50a0 100644
-> --- a/arch/arm/kvm/arm.c
-> +++ b/arch/arm/kvm/arm.c
-> @@ -1051,21 +1051,26 @@ int kvm_arch_init(void *opaque)
->  		}
->  	}
->  
-> +	cpu_notifier_register_begin();
-> +
->  	err = init_hyp_mode();
->  	if (err)
->  		goto out_err;
->  
-> -	err = register_cpu_notifier(&hyp_init_cpu_nb);
-> +	err = __register_cpu_notifier(&hyp_init_cpu_nb);
->  	if (err) {
->  		kvm_err("Cannot register HYP init CPU notifier (%d)\n", err);
->  		goto out_err;
->  	}
->  
-> +	cpu_notifier_register_done();
-> +
->  	hyp_cpu_pm_init();
->  
->  	kvm_coproc_table_init();
->  	return 0;
->  out_err:
-> +	cpu_notifier_register_done();
->  	return err;
->  }
->  
-> 
+> Is that bstat test any easier/faster to setup/run than the aim7 crap?
 
-Just so we're clear, the existing code was simply racy as not prone to
-deadlocks, right?
+Depends. I've got a VM setup with a sparse 100TB block device hosted
+on SSDs where I can create 50M inodes using fsmark in about 3
+and half minutes. I also have a hacked xfstests::src/bstat.c that is
+multithreaded that I then run and it triggers it staight away.
 
-This makes it clear that the test above for compatible CPUs can be quite
-easily evaded by using CPU hotplug, but we don't really have a good
-solution for handling that yet...  Hmmm, grumble grumble, I guess if you
-hotplug unsupported CPUs on a KVM/ARM system for now, stuff will break.
+Quite frankly, you don't need bulkstat to produce this lock
+contention - you'll see it running this on a wide directory
+structure on XFS and an SSD:
 
-In any case:
-Acked-by: Christoffer Dall <christoffer.dall@linaro.org>
+$ cat ~/tests/walk-scratch.sh 
+#!/bin/bash
+
+echo Walking via find -ctime
+echo 3 > /proc/sys/vm/drop_caches
+time (
+        for d in /mnt/scratch/[0-9]* ; do
+
+                for i in $d/*; do
+                        (
+                                echo $i
+                                find $i -ctime 1 > /dev/null
+                        ) > /dev/null 2>&1
+                done &
+        done
+        wait
+)
+
+echo Walking via ls -R
+echo 3 > /proc/sys/vm/drop_caches
+time (
+        for d in /mnt/scratch/[0-9]* ; do
+
+                for i in $d/*; do
+                        (
+                                echo $i
+                                ls -R $i
+                        ) > /dev/null 2>&1
+                done &
+        done
+        wait
+)
+$
+
+The directory structure I create has 16 top level directories (0-15)
+each with 30-40 subdirectories containing 100,000 files each.
+There's a thread per top level directory, and running it on a 16p VM
+and an SSD that can do 30,000 IOPS will generate sufficient inode
+cache pressure to trigger severe lock contention.
+
+My usual test script for this workload runs mkfs, fsmark,
+xfs_repair, bstat, walk-scratch, and finally a multi-threaded rm to
+clean up. Usual inode numbers are in the 50-100million for zero
+length file workloads, 10-20 million for single block (small) files,
+and 100,000-1million for larger files. it's great for stressing VFs,
+FS and IO level scalability...
+
+Cheers,
+
+Dave.
+-- 
+Dave Chinner
+david@fromorbit.com
