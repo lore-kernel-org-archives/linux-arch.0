@@ -1,81 +1,103 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v6 04/11] qspinlock: Optimized code path for 2 contending
-	tasks
-Date: Thu, 13 Mar 2014 14:57:01 +0100
-Message-ID: <20140313135701.GB25546@laptop.programming.kicks-ass.net>
-References: <1394650498-30118-1-git-send-email-Waiman.Long@hp.com>
-	<1394650498-30118-5-git-send-email-Waiman.Long@hp.com>
-	<5320B0A8.8030805@hp.com>
+From: Paolo Bonzini <pbonzini@redhat.com>
+Subject: Re: [PATCH RFC v6 09/11] pvqspinlock, x86: Add qspinlock para-virtualization
+ support
+Date: Thu, 13 Mar 2014 14:57:45 +0100
+Message-ID: <5321B959.5050305@redhat.com>
+References: <1394650498-30118-1-git-send-email-Waiman.Long@hp.com>	<1394650498-30118-10-git-send-email-Waiman.Long@hp.com> <5321949F.1010103@citrix.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
 Content-Transfer-Encoding: 7bit
-Return-path: <virtualization-bounces@lists.linux-foundation.org>
-Content-Disposition: inline
-In-Reply-To: <5320B0A8.8030805@hp.com>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
-List-Post: <mailto:virtualization@lists.linux-foundation.org>
-List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
-Sender: virtualization-bounces@lists.linux-foundation.org
-Errors-To: virtualization-bounces@lists.linux-foundation.org
-To: Waiman Long <waiman.long@hp.com>
-Cc: Jeremy Fitzhardinge <jeremy@goop.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, kvm@vger.kernel.org, Boris Ostrovsky <boris.ostrovsky@oracle.com>, virtualization@lists.linux-foundation.org, Andi Kleen <andi@firstfloor.org>, "H. Peter Anvin" <hpa@zytor.com>, Michel Lespinasse <walken@google.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, Gleb Natapov <gleb@redhat.com>, x86@kernel.org, Ingo Molnar <mingo@redhat.com>, xen-devel@lists.xenproject.org, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Rik van Riel <riel@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Scott J Norton <scott.norton@hp.com>, Steven Rostedt <rostedt@goodmis.org>, Chris Wright <chrisw@sous-sol.org>, Oleg Nesterov <oleg@redhat.com>, Alok Kataria <akataria@vmware.com>, Aswin Chandramouleeswaran <aswin@hp.com>, Chegu
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-ee0-f49.google.com ([74.125.83.49]:60827 "EHLO
+	mail-ee0-f49.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752752AbaCMN5w (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 13 Mar 2014 09:57:52 -0400
+In-Reply-To: <5321949F.1010103@citrix.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: David Vrabel <david.vrabel@citrix.com>, Waiman Long <Waiman.Long@hp.com>
+Cc: Jeremy Fitzhardinge <jeremy@goop.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, kvm@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, virtualization@lists.linux-foundation.org, Andi Kleen <andi@firstfloor.org>, "H. Peter Anvin" <hpa@zytor.com>, Michel Lespinasse <walken@google.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, Gleb Natapov <gleb@redhat.com>, x86@kernel.org, Ingo Molnar <mingo@redhat.com>, xen-devel@lists.xenproject.org, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Rik van Riel <riel@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Scott J Norton <scott.norton@hp.com>, Steven Rostedt <rostedt@goodmis.org>, Chris Wright <chrisw@sous-sol.org>, Oleg Nesterov <oleg@redhat.com>, Alok Kataria <akataria@vmware.com>, Aswin Chandramouleeswaran <aswin@hp.com>, Chegu
 
-On Wed, Mar 12, 2014 at 03:08:24PM -0400, Waiman Long wrote:
-> On 03/12/2014 02:54 PM, Waiman Long wrote:
-> >+		/*
-> >+		 * Set the lock bit&  clear the waiting bit simultaneously
-> >+		 * It is assumed that there is no lock stealing with this
-> >+		 * quick path active.
-> >+		 *
-> >+		 * A direct memory store of _QSPINLOCK_LOCKED into the
-> >+		 * lock_wait field causes problem with the lockref code, e.g.
-> >+		 *   ACCESS_ONCE(qlock->lock_wait) = _QSPINLOCK_LOCKED;
-> >+		 *
-> >+		 * It is not currently clear why this happens. A workaround
-> >+		 * is to use atomic instruction to store the new value.
-> >+		 */
-> >+		{
-> >+			u16 lw = xchg(&qlock->lock_wait, _QSPINLOCK_LOCKED);
-> >+			BUG_ON(lw != _QSPINLOCK_WAITING);
-> >+		}
+Il 13/03/2014 12:21, David Vrabel ha scritto:
+> On 12/03/14 18:54, Waiman Long wrote:
+>> This patch adds para-virtualization support to the queue spinlock in
+>> the same way as was done in the PV ticket lock code. In essence, the
+>> lock waiters will spin for a specified number of times (QSPIN_THRESHOLD
+>> = 2^14) and then halted itself. The queue head waiter will spins
+>> 2*QSPIN_THRESHOLD times before halting itself. When it has spinned
+>> QSPIN_THRESHOLD times, the queue head will assume that the lock
+>> holder may be scheduled out and attempt to kick the lock holder CPU
+>> if it has the CPU number on hand.
+>
+> I don't really understand the reasoning for kicking the lock holder.
 
-> It was found that when I used a direct memory store instead of an atomic op,
-> the following kernel crash might happen at filesystem dismount time:
-> 
-> [ 1529.936714] Call Trace:
-> [ 1529.936714]  [<ffffffff811c2d03>] d_walk+0xc3/0x260
-> [ 1529.936714]  [<ffffffff811c1770>] ? check_and_collect+0x30/0x30
-> [ 1529.936714]  [<ffffffff811c3985>] shrink_dcache_for_umount+0x75/0x120
-> [ 1529.936714]  [<ffffffff811adf21>] generic_shutdown_super+0x21/0xf0
-> [ 1529.936714]  [<ffffffff811ae207>] kill_block_super+0x27/0x70
-> [ 1529.936714]  [<ffffffff811ae4ed>] deactivate_locked_super+0x3d/0x60
-> [ 1529.936714]  [<ffffffff811aea96>] deactivate_super+0x46/0x60
-> [ 1529.936714]  [<ffffffff811ca277>] mntput_no_expire+0xa7/0x140
-> [ 1529.936714]  [<ffffffff811cb6ce>] SyS_umount+0x8e/0x100
-> [ 1529.936714]  [<ffffffff815d2c29>] system_call_fastpath+0x16/0x1b
+I agree.  If the lock holder isn't running, there's probably a good 
+reason for that and going to sleep will not necessarily convince the 
+scheduler to give more CPU to the lock holder.  I think there are two 
+choices:
 
-> It was more readily reproducible in a KVM guest. It was harder to reproduce
-> in a bare metal machine, but kernel crash still happened after several
-> tries.
-> 
-> I am not sure what exactly cause this crash, but it will have something to
-> do with the interaction between the lockref and the qspinlock code. I would
-> like more eyes on that to find the root cause of it.
+1) use yield_to to donate part of the waiter's quantum to the lock 
+holder?    For this we probably need a new, separate hypercall 
+interface.  For KVM it would be the same as hlt in the guest but with an 
+additional yield_to in the host.
 
-I cannot reproduce with my series that has the one word write.
+2) do nothing, just go to sleep.
 
-What I did was I made my swap partition (who needs that anyway on a
-machine with 16G of memory) into an XFS partition.
+Could you get (or do you have) numbers for (2)?
 
-Then I copied my linux.git onto it and unmounted.
+More important, I think a barrier is missing:
 
-I'll try a few more times; the above trace seems to suggest it happens
-during dcache cleanup, so I suppose I should read the filesystem some
-and unmount again.
+	Lock holder ---------------------------------------
 
-Is there anything specific you did to make it go bang?
+	// queue_spin_unlock
+	barrier();
+	ACCESS_ONCE(qlock->lock) = 0;
+	barrier();
+
+	// pv_kick_node:
+	if (pv->cpustate != PV_CPU_HALTED)
+		return;
+	ACCESS_ONCE(pv->cpustate) = PV_CPU_KICKED;
+	__queue_kick_cpu(pv->mycpu, PV_KICK_QUEUE_HEAD);
+
+		Waiter -------------------------------------------
+
+		// pv_head_spin_check
+		ACCESS_ONCE(pv->cpustate) = PV_CPU_HALTED;
+		lockval = cmpxchg(&qlock->lock,
+				  _QSPINLOCK_LOCKED,
+				  _QSPINLOCK_LOCKED_SLOWPATH);
+		if (lockval == 0) {
+			/*
+			 * Can exit now as the lock is free
+			 */
+			ACCESS_ONCE(pv->cpustate) = PV_CPU_ACTIVE;
+			*count = 0;
+			return;
+		}
+		__queue_hibernate();
+
+Nothing protects from writing qlock->lock before pv->cpustate is read, 
+leading to this:
+
+	Lock holder			Waiter
+	---------------------------------------------------------------
+	read pv->cpustate
+		(it is PV_CPU_ACTIVE)
+					pv->cpustate = PV_CPU_HALTED
+					lockval = cmpxchg(...)
+					hibernate()
+	qlock->lock = 0
+	if (pv->cpustate != PV_CPU_HALTED)
+		return;
+
+I think you need this:
+
+-	if (pv->cpustate != PV_CPU_HALTED)
+-		return;
+-	ACCESS_ONCE(pv->cpustate) = PV_CPU_KICKED;
++	if (cmpxchg(pv->cpustate, PV_CPU_HALTED, PV_CPU_KICKED)
++			!= PV_CPU_HALTED)
++		return;
+
+Paolo
