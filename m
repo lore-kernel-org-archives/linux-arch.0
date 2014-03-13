@@ -1,33 +1,96 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH RFC v6 10/11] pvqspinlock, x86: Enable qspinlock PV
-	support for KVM
-Date: Thu, 13 Mar 2014 16:25:39 +0100
-Message-ID: <20140313152539.GD25546@laptop.programming.kicks-ass.net>
-References: <1394650498-30118-1-git-send-email-Waiman.Long@hp.com>
-	<1394650498-30118-11-git-send-email-Waiman.Long@hp.com>
+From: Frederic Weisbecker <fweisbec@gmail.com>
+Subject: Re: [GIT PULL v2] timers updates for 3.15
+Date: Thu, 13 Mar 2014 16:33:04 +0100
+Message-ID: <20140313153301.GA25296@localhost.localdomain>
+References: <1394642174-14315-1-git-send-email-fweisbec@gmail.com>
+ <20140313110510.GA10424@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <virtualization-bounces@lists.linux-foundation.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-ea0-f179.google.com ([209.85.215.179]:40078 "EHLO
+	mail-ea0-f179.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753632AbaCMPdJ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 13 Mar 2014 11:33:09 -0400
 Content-Disposition: inline
-In-Reply-To: <1394650498-30118-11-git-send-email-Waiman.Long@hp.com>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
-List-Post: <mailto:virtualization@lists.linux-foundation.org>
-List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
-Sender: virtualization-bounces@lists.linux-foundation.org
-Errors-To: virtualization-bounces@lists.linux-foundation.org
-To: Waiman Long <Waiman.Long@hp.com>
-Cc: Jeremy Fitzhardinge <jeremy@goop.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, kvm@vger.kernel.org, Boris Ostrovsky <boris.ostrovsky@oracle.com>, virtualization@lists.linux-foundation.org, Andi Kleen <andi@firstfloor.org>, "H. Peter Anvin" <hpa@zytor.com>, Michel Lespinasse <walken@google.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, Gleb Natapov <gleb@redhat.com>, x86@kernel.org, Ingo Molnar <mingo@redhat.com>, xen-devel@lists.xenproject.org, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Rik van Riel <riel@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Scott J Norton <scott.norton@hp.com>, Steven Rostedt <rostedt@goodmis.org>, Chris Wright <chrisw@sous-sol.org>, Oleg Nesterov <oleg@redhat.com>, Alok Kataria <akataria@vmware.com>, Aswin Chandramouleeswaran <aswin@hp.com>, Chegu
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <20140313110510.GA10424@gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Ingo Molnar <mingo@kernel.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>, LKML <linux-kernel@vger.kernel.org>, Archs <linux-arch@vger.kernel.org>, Marcelo Tosatti <mtosatti@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Rik van Riel <riel@redhat.com>, Huiqingding <huding@redhat.com>
 
-On Wed, Mar 12, 2014 at 02:54:57PM -0400, Waiman Long wrote:
-> A KVM guest of 20 CPU cores was created to run the disk workload of
-> the AIM7 benchmark on both ext4 and xfs RAM disks at 3000 users on a
-> 3.14-rc6 based kernel. The JPM (jobs/minute) data of the test run were:
+On Thu, Mar 13, 2014 at 12:05:10PM +0100, Ingo Molnar wrote:
+> 
+> * Frederic Weisbecker <fweisbec@gmail.com> wrote:
+> 
+> > Ingo, Thomas,
+> > 
+> > Please pull the timers/cputime-fix-steal-v3 branch that can be found at:
+> > 
+> > git://git.kernel.org/pub/scm/linux/kernel/git/frederic/linux-dynticks.git
+> > 	timers/cputime-fix-steal-v3
+> > 
+> > Only the last patch changed to address Peterz concern on arch Kbuild
+> > layout. This got sorted out by running the script from b119fa61d440f
+> > to alpabetically sort the entries.
+> > 
+> > ---
+> > The main purpose of this set is to fix a bug on full dynticks configs
+> > where steal time accounting appears to be zero in /proc/stat even
+> > after a few seconds of competing guests running busy loops in a same
+> > host CPU. It's not a regression though as it was there since the
+> > beginning with full dynticks.
+> > 
+> > So patch [4/6] ("cputime: Fix jiffies based cputime assumption on
+> > steal accounting") is the most important patch of the series. The rest
+> > is mostly preparatory work to fix the bug plus various cleanups.
+> > 
+> > Thanks,
+> > 	Frederic
+> > ---
+> > 
+> > Frederic Weisbecker (6):
+> >       cputime: Fix nsecs_to_cputime() return type cast
+> >       cputime: Default implementation of nsecs -> cputime conversion
+> >       cputime: Bring cputime -> nsecs conversion
+> >       cputime: Fix jiffies based cputime assumption on steal accounting
+> >       sched: Remove needless round trip nsecs <-> tick conversion of steal time
+> >       arch: Remove stub cputime.h headers
+> > 
+> > 
+> >  arch/alpha/include/asm/Kbuild         |  7 ++++---
+> >  arch/alpha/include/asm/cputime.h      |  6 ------
+> >  arch/cris/include/asm/Kbuild          |  3 ++-
+> >  arch/cris/include/asm/cputime.h       |  6 ------
+> >  arch/frv/include/asm/Kbuild           |  5 +++--
+> >  arch/frv/include/asm/cputime.h        |  6 ------
+> >  arch/m32r/include/asm/Kbuild          |  5 +++--
+> >  arch/m32r/include/asm/cputime.h       |  6 ------
+> >  arch/microblaze/include/asm/Kbuild    |  5 +++--
+> >  arch/microblaze/include/asm/cputime.h |  1 -
+> >  arch/mn10300/include/asm/Kbuild       |  3 ++-
+> >  arch/mn10300/include/asm/cputime.h    |  1 -
+> >  arch/score/include/asm/Kbuild         |  4 ++--
+> >  arch/score/include/asm/cputime.h      |  6 ------
+> >  arch/x86/include/asm/Kbuild           |  1 +
+> >  arch/x86/include/asm/cputime.h        |  1 -
+> 
+> Does this tree also address the heavy conflicts with tip:core/locking? 
 
-You really should just delete that aim7 crap. A benchmark that runs for
-hours is _NOT_ usable.
+Ah I didn't hear about that. Thomas told me there was a conflict issue but
+he couldn't tell me more about it.
+
+> If not then we should probably carry this in a separate branch that 
+> merges tip:core/locking and tip:timers/core.
+
+So I propose you something even more simple. The choice of tip:timers/core
+as a base was actually just about topic. But there is no dependency on it.
+(And actually sched/core would have been a better choice for a base if any).
+
+So in order to fix the conflict and minimize the dependencies, I just
+rebased the patches on top of tip:core/locking only. No merge on top of that.
+It seems to work pretty well.
+
+The pullable result is in sched/cputime on my tree. Let me know if that's ok
+for you.
+
+Thanks.
