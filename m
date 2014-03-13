@@ -1,115 +1,103 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pb0-f47.google.com ([209.85.160.47]:33361 "EHLO
-	mail-pb0-f47.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751162AbaCLX3u (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 12 Mar 2014 19:29:50 -0400
-Received: by mail-pb0-f47.google.com with SMTP id up15so221957pbc.20
-        for <linux-arch@vger.kernel.org>; Wed, 12 Mar 2014 16:29:42 -0700 (PDT)
-Date: Wed, 12 Mar 2014 16:21:27 -0700
-From: Christoffer Dall <christoffer.dall@linaro.org>
-Subject: Re: [PATCH v3 10/52] arm, kvm: Fix CPU hotplug callback registration
-Message-ID: <20140312232127.GC24808@cbox>
-References: <20140310203312.10746.310.stgit@srivatsabhat.in.ibm.com>
- <20140310203538.10746.25364.stgit@srivatsabhat.in.ibm.com>
+Received: from mail-ea0-f173.google.com ([209.85.215.173]:51919 "EHLO
+	mail-ea0-f173.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750983AbaCMNQO (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 13 Mar 2014 09:16:14 -0400
+Message-ID: <5321AF96.6070909@redhat.com>
+Date: Thu, 13 Mar 2014 14:16:06 +0100
+From: Paolo Bonzini <pbonzini@redhat.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20140310203538.10746.25364.stgit@srivatsabhat.in.ibm.com>
+Subject: Re: [PATCH v6 05/11] pvqspinlock, x86: Allow unfair spinlock in a
+ PV guest
+References: <1394650498-30118-1-git-send-email-Waiman.Long@hp.com>	<1394650498-30118-6-git-send-email-Waiman.Long@hp.com> <53218E7A.8090707@citrix.com>
+In-Reply-To: <53218E7A.8090707@citrix.com>
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Cc: paulus@samba.org, oleg@redhat.com, mingo@kernel.org, rjw@rjwysocki.net, rusty@rustcorp.com.au, peterz@infradead.org, tglx@linutronix.de, akpm@linux-foundation.org, paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-pm@vger.kernel.org, linuxppc-dev@ozlabs.org, Gleb Natapov <gleb@kernel.org>, kvmarm@lists.cs.columbia.edu, kvm@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Paolo Bonzini <pbonzini@redhat.com>, marc.zyngier@arm.com
-Message-ID: <20140312232127._PINHtbt16Cgw0xcNLVt0c4m2C9V_uH6jUn8XtBIDWY@z>
+To: David Vrabel <david.vrabel@citrix.com>, Waiman Long <Waiman.Long@hp.com>
+Cc: Jeremy Fitzhardinge <jeremy@goop.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, kvm@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, virtualization@lists.linux-foundation.org, Andi Kleen <andi@firstfloor.org>, "H. Peter Anvin" <hpa@zytor.com>, Michel Lespinasse <walken@google.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, Gleb Natapov <gleb@redhat.com>, x86@kernel.org, Ingo Molnar <mingo@redhat.com>, xen-devel@lists.xenproject.org, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Rik van Riel <riel@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Scott J Norton <scott.norton@hp.com>, Steven Rostedt <rostedt@goodmis.org>, Chris Wright <chrisw@sous-sol.org>, Oleg Nesterov <oleg@redhat.com>, Alok Kataria <akataria@vmware.com>, Aswin Chandramouleeswaran <aswin@hp.com>, Chegu Vinod <chegu_vinod@hp.com>
+Message-ID: <20140313131606.EIZqEz8qmnXOrQ2YkxKNixxBXiGIU_Gnpv3TA80a4Xg@z>
 
-On Tue, Mar 11, 2014 at 02:05:38AM +0530, Srivatsa S. Bhat wrote:
-> Subsystems that want to register CPU hotplug callbacks, as well as perform
-> initialization for the CPUs that are already online, often do it as shown
-> below:
-> 
-> 	get_online_cpus();
-> 
-> 	for_each_online_cpu(cpu)
-> 		init_cpu(cpu);
-> 
-> 	register_cpu_notifier(&foobar_cpu_notifier);
-> 
-> 	put_online_cpus();
-> 
-> This is wrong, since it is prone to ABBA deadlocks involving the
-> cpu_add_remove_lock and the cpu_hotplug.lock (when running concurrently
-> with CPU hotplug operations).
-> 
-> Instead, the correct and race-free way of performing the callback
-> registration is:
-> 
-> 	cpu_notifier_register_begin();
-> 
-> 	for_each_online_cpu(cpu)
-> 		init_cpu(cpu);
-> 
-> 	/* Note the use of the double underscored version of the API */
-> 	__register_cpu_notifier(&foobar_cpu_notifier);
-> 
-> 	cpu_notifier_register_done();
-> 
-> 
-> Fix the kvm code in arm by using this latter form of callback registration.
-> 
-> Cc: Christoffer Dall <christoffer.dall@linaro.org>
-> Cc: Gleb Natapov <gleb@kernel.org>
-> Cc: Russell King <linux@arm.linux.org.uk>
-> Cc: Ingo Molnar <mingo@kernel.org>
-> Cc: kvmarm@lists.cs.columbia.edu
-> Cc: kvm@vger.kernel.org
-> Cc: linux-arm-kernel@lists.infradead.org
-> Acked-by: Paolo Bonzini <pbonzini@redhat.com>
-> Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
-> ---
-> 
->  arch/arm/kvm/arm.c |    7 ++++++-
->  1 file changed, 6 insertions(+), 1 deletion(-)
-> 
-> diff --git a/arch/arm/kvm/arm.c b/arch/arm/kvm/arm.c
-> index bd18bb8..f0e50a0 100644
-> --- a/arch/arm/kvm/arm.c
-> +++ b/arch/arm/kvm/arm.c
-> @@ -1051,21 +1051,26 @@ int kvm_arch_init(void *opaque)
->  		}
->  	}
->  
-> +	cpu_notifier_register_begin();
-> +
->  	err = init_hyp_mode();
->  	if (err)
->  		goto out_err;
->  
-> -	err = register_cpu_notifier(&hyp_init_cpu_nb);
-> +	err = __register_cpu_notifier(&hyp_init_cpu_nb);
->  	if (err) {
->  		kvm_err("Cannot register HYP init CPU notifier (%d)\n", err);
->  		goto out_err;
->  	}
->  
-> +	cpu_notifier_register_done();
-> +
->  	hyp_cpu_pm_init();
->  
->  	kvm_coproc_table_init();
->  	return 0;
->  out_err:
-> +	cpu_notifier_register_done();
->  	return err;
->  }
->  
-> 
+Il 13/03/2014 11:54, David Vrabel ha scritto:
+> On 12/03/14 18:54, Waiman Long wrote:
+>> Locking is always an issue in a virtualized environment as the virtual
+>> CPU that is waiting on a lock may get scheduled out and hence block
+>> any progress in lock acquisition even when the lock has been freed.
+>>
+>> One solution to this problem is to allow unfair lock in a
+>> para-virtualized environment. In this case, a new lock acquirer can
+>> come and steal the lock if the next-in-line CPU to get the lock is
+>> scheduled out. Unfair lock in a native environment is generally not a
+>> good idea as there is a possibility of lock starvation for a heavily
+>> contended lock.
+>
+> I do not think this is a good idea -- the problems with unfair locks are
+> worse in a virtualized guest.  If a waiting VCPU deschedules and has to
+> be kicked to grab a lock then it is very likely to lose a race with
+> another running VCPU trying to take a lock (since it takes time for the
+> VCPU to be rescheduled).
 
-Just so we're clear, the existing code was simply racy as not prone to
-deadlocks, right?
+Actually, I think the unfair version should be automatically selected if 
+running on a hypervisor.  Per-hypervisor pvops can choose to enable the 
+fair one.
 
-This makes it clear that the test above for compatible CPUs can be quite
-easily evaded by using CPU hotplug, but we don't really have a good
-solution for handling that yet...  Hmmm, grumble grumble, I guess if you
-hotplug unsupported CPUs on a KVM/ARM system for now, stuff will break.
+Lock unfairness may be particularly evident on a virtualized guest when 
+the host is overcommitted, but problems with fair locks are even worse.
 
-In any case:
-Acked-by: Christoffer Dall <christoffer.dall@linaro.org>
+In fact, RHEL/CentOS 6 already uses unfair locks if 
+X86_FEATURE_HYPERVISOR is set.  The patch was rejected upstream in favor 
+of pv ticketlocks, but pv ticketlocks do not cover all hypervisors so 
+perhaps we could revisit that choice.
+
+Measurements were done by Gleb for two guests running 2.6.32 with 16 
+vcpus each, on a 16-core system.  One guest ran with unfair locks, one 
+guest ran with fair locks.  Two kernel compilations ("time make -j 16 
+all") were started at the same time on both guests, and times were as 
+follows:
+
+     unfair:                         fair:
+     real 13m34.674s                 real 19m35.827s
+     user 96m2.638s                  user 102m38.665s
+     sys 56m14.991s                  sys 158m22.470s
+
+     real 13m3.768s                  real 19m4.375s
+     user 95m34.509s                 user 111m9.903s
+     sys 53m40.550s                  sys 141m59.370s
+
+Actually, interpreting the numbers shows an even worse slowdown.
+
+Compilation took ~6.5 minutes in a guest when the host was not 
+overcommitted, and with unfair locks everything scaled just fine.
+
+Ticketlocks fell completely apart; during the first 13 minutes they were 
+allotted 16*6.5=104 minutes of CPU time, and they spent almost all of it 
+spinning in the kernel (102 minutes in the first run).  They did perhaps 
+30 seconds worth of work because, as soon as the unfair-lock guest 
+finished and the host was no longer overcommitted, compilation finished 
+in 6 minutes.
+
+So that's approximately 12x slowdown from using non-pv fair locks (vs. 
+unfair locks) on a 200%-overcommitted host.
+
+Paolo
+
+>> With the unfair locking activated on bare metal 4-socket Westmere-EX
+>> box, the execution times (in ms) of a spinlock micro-benchmark were
+>> as follows:
+>>
+>>   # of    Ticket       Fair	    Unfair
+>>   tasks    lock     queue lock    queue lock
+>>   ------  -------   ----------    ----------
+>>     1       135        135	     137
+>>     2      1045       1120	     747
+>>     3      1827       2345     	    1084
+>>     4      2689       2934	    1438
+>>     5      3736       3658	    1722
+>>     6      4942       4434	    2092
+>>     7      6304       5176          2245
+>>     8      7736       5955          2388
+>
+> Are these figures with or without the later PV support patches?
+
+
