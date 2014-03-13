@@ -1,63 +1,81 @@
-From: David Vrabel <david.vrabel@citrix.com>
-Subject: Re: [PATCH v6 05/11] pvqspinlock, x86: Allow unfair spinlock in a
-	PV guest
-Date: Thu, 13 Mar 2014 10:54:50 +0000
-Message-ID: <53218E7A.8090707@citrix.com>
-References: <1394650498-30118-1-git-send-email-Waiman.Long@hp.com>
-	<1394650498-30118-6-git-send-email-Waiman.Long@hp.com>
+From: Ingo Molnar <mingo@kernel.org>
+Subject: Re: [GIT PULL v2] timers updates for 3.15
+Date: Thu, 13 Mar 2014 12:05:10 +0100
+Message-ID: <20140313110510.GA10424@gmail.com>
+References: <1394642174-14315-1-git-send-email-fweisbec@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <virtualization-bounces@lists.linux-foundation.org>
-In-Reply-To: <1394650498-30118-6-git-send-email-Waiman.Long@hp.com>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
-List-Post: <mailto:virtualization@lists.linux-foundation.org>
-List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
-Sender: virtualization-bounces@lists.linux-foundation.org
-Errors-To: virtualization-bounces@lists.linux-foundation.org
-To: Waiman Long <Waiman.Long@hp.com>
-Cc: Jeremy Fitzhardinge <jeremy@goop.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, kvm@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, virtualization@lists.linux-foundation.org, Andi Kleen <andi@firstfloor.org>, "H.
-	Peter Anvin" <hpa@zytor.com>, Michel Lespinasse <walken@google.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, Gleb Natapov <gleb@redhat.com>, x86@kernel.org, Ingo Molnar <mingo@redhat.com>, xen-devel@lists.xenproject.org, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Rik van Riel <riel@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Scott J Norton <scott.norton@hp.com>, Steven Rostedt <rostedt@goodmis.org>, Chris Wright <chrisw@sous-sol.org>, Oleg Nesterov <oleg@redhat.com>, Alok Kataria <akataria@vmware.com>, Aswin Chandramouleeswaran <aswin@hp.com>, Chegu Vinod <chegu>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-ea0-f169.google.com ([209.85.215.169]:50152 "EHLO
+	mail-ea0-f169.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753764AbaCMLFO (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 13 Mar 2014 07:05:14 -0400
+Content-Disposition: inline
+In-Reply-To: <1394642174-14315-1-git-send-email-fweisbec@gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Frederic Weisbecker <fweisbec@gmail.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>, LKML <linux-kernel@vger.kernel.org>, Archs <linux-arch@vger.kernel.org>, Marcelo Tosatti <mtosatti@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Rik van Riel <riel@redhat.com>, Huiqingding <huding@redhat.com>
 
-On 12/03/14 18:54, Waiman Long wrote:
-> Locking is always an issue in a virtualized environment as the virtual
-> CPU that is waiting on a lock may get scheduled out and hence block
-> any progress in lock acquisition even when the lock has been freed.
+
+* Frederic Weisbecker <fweisbec@gmail.com> wrote:
+
+> Ingo, Thomas,
 > 
-> One solution to this problem is to allow unfair lock in a
-> para-virtualized environment. In this case, a new lock acquirer can
-> come and steal the lock if the next-in-line CPU to get the lock is
-> scheduled out. Unfair lock in a native environment is generally not a
-> good idea as there is a possibility of lock starvation for a heavily
-> contended lock.
-
-I do not think this is a good idea -- the problems with unfair locks are
-worse in a virtualized guest.  If a waiting VCPU deschedules and has to
-be kicked to grab a lock then it is very likely to lose a race with
-another running VCPU trying to take a lock (since it takes time for the
-VCPU to be rescheduled).
-
-> With the unfair locking activated on bare metal 4-socket Westmere-EX
-> box, the execution times (in ms) of a spinlock micro-benchmark were
-> as follows:
+> Please pull the timers/cputime-fix-steal-v3 branch that can be found at:
 > 
->   # of    Ticket       Fair	    Unfair
->   tasks    lock     queue lock    queue lock
->   ------  -------   ----------    ----------
->     1       135        135	     137
->     2      1045       1120	     747
->     3      1827       2345     	    1084
->     4      2689       2934	    1438
->     5      3736       3658	    1722
->     6      4942       4434	    2092
->     7      6304       5176          2245
->     8      7736       5955          2388
+> git://git.kernel.org/pub/scm/linux/kernel/git/frederic/linux-dynticks.git
+> 	timers/cputime-fix-steal-v3
+> 
+> Only the last patch changed to address Peterz concern on arch Kbuild
+> layout. This got sorted out by running the script from b119fa61d440f
+> to alpabetically sort the entries.
+> 
+> ---
+> The main purpose of this set is to fix a bug on full dynticks configs
+> where steal time accounting appears to be zero in /proc/stat even
+> after a few seconds of competing guests running busy loops in a same
+> host CPU. It's not a regression though as it was there since the
+> beginning with full dynticks.
+> 
+> So patch [4/6] ("cputime: Fix jiffies based cputime assumption on
+> steal accounting") is the most important patch of the series. The rest
+> is mostly preparatory work to fix the bug plus various cleanups.
+> 
+> Thanks,
+> 	Frederic
+> ---
+> 
+> Frederic Weisbecker (6):
+>       cputime: Fix nsecs_to_cputime() return type cast
+>       cputime: Default implementation of nsecs -> cputime conversion
+>       cputime: Bring cputime -> nsecs conversion
+>       cputime: Fix jiffies based cputime assumption on steal accounting
+>       sched: Remove needless round trip nsecs <-> tick conversion of steal time
+>       arch: Remove stub cputime.h headers
+> 
+> 
+>  arch/alpha/include/asm/Kbuild         |  7 ++++---
+>  arch/alpha/include/asm/cputime.h      |  6 ------
+>  arch/cris/include/asm/Kbuild          |  3 ++-
+>  arch/cris/include/asm/cputime.h       |  6 ------
+>  arch/frv/include/asm/Kbuild           |  5 +++--
+>  arch/frv/include/asm/cputime.h        |  6 ------
+>  arch/m32r/include/asm/Kbuild          |  5 +++--
+>  arch/m32r/include/asm/cputime.h       |  6 ------
+>  arch/microblaze/include/asm/Kbuild    |  5 +++--
+>  arch/microblaze/include/asm/cputime.h |  1 -
+>  arch/mn10300/include/asm/Kbuild       |  3 ++-
+>  arch/mn10300/include/asm/cputime.h    |  1 -
+>  arch/score/include/asm/Kbuild         |  4 ++--
+>  arch/score/include/asm/cputime.h      |  6 ------
+>  arch/x86/include/asm/Kbuild           |  1 +
+>  arch/x86/include/asm/cputime.h        |  1 -
 
-Are these figures with or without the later PV support patches?
+Does this tree also address the heavy conflicts with tip:core/locking? 
+If not then we should probably carry this in a separate branch that 
+merges tip:core/locking and tip:timers/core.
 
-David
+Thanks,
+
+	Ingo
