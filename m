@@ -1,43 +1,41 @@
-From: Ingo Molnar <mingo@kernel.org>
-Subject: Re: [GIT PULL v2] timers updates for 3.15
-Date: Fri, 14 Mar 2014 09:36:52 +0100
-Message-ID: <20140314083652.GA22913@gmail.com>
-References: <1394642174-14315-1-git-send-email-fweisbec@gmail.com>
- <20140313110510.GA10424@gmail.com>
- <20140313153301.GA25296@localhost.localdomain>
+From: Paolo Bonzini <pbonzini@redhat.com>
+Subject: Re: [PATCH RFC v6 10/11] pvqspinlock, x86: Enable qspinlock PV support
+	for KVM
+Date: Fri, 14 Mar 2014 09:42:31 +0100
+Message-ID: <5322C0F7.2090604@redhat.com>
+References: <1394650498-30118-1-git-send-email-Waiman.Long@hp.com>	<1394650498-30118-11-git-send-email-Waiman.Long@hp.com>	<5321B9BE.7050209@redhat.com>
+	<5322035B.5000205@hp.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ee0-f43.google.com ([74.125.83.43]:53057 "EHLO
-	mail-ee0-f43.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755477AbaCNIg4 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 14 Mar 2014 04:36:56 -0400
-Content-Disposition: inline
-In-Reply-To: <20140313153301.GA25296@localhost.localdomain>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Frederic Weisbecker <fweisbec@gmail.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>, LKML <linux-kernel@vger.kernel.org>, Archs <linux-arch@vger.kernel.org>, Marcelo Tosatti <mtosatti@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Rik van Riel <riel@redhat.com>, Huiqingding <huding@redhat.com>
+Content-Type: text/plain; charset="us-ascii"; Format="flowed"
+Content-Transfer-Encoding: 7bit
+Return-path: <virtualization-bounces@lists.linux-foundation.org>
+In-Reply-To: <5322035B.5000205@hp.com>
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
+List-Post: <mailto:virtualization@lists.linux-foundation.org>
+List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
+Sender: virtualization-bounces@lists.linux-foundation.org
+Errors-To: virtualization-bounces@lists.linux-foundation.org
+To: Waiman Long <waiman.long@hp.com>
+Cc: Jeremy Fitzhardinge <jeremy@goop.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, linux-kernel@vger, Gleb Natapov <gleb@redhat.com>, Peter Zijlstra <peterz@infradead.org>, virtualization@lists.linux-foundation.org, Andi Kleen <andi@firstfloor.org>, "H. Peter Anvin" <hpa@zytor.com>, Michel Lespinasse <walken@google.com>, Alok Kataria <akataria@vmware.com>, linux-arch@vger.kernel.org, kvm@vger.kernel.org, x86@kernel.org, Ingo Molnar <mingo@redhat.com>, xen-devel@lists.xenproject.org, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Arnd Bergmann <arnd@arndb.de>, Scott J Norton <scott.norton@hp.com>, Steven Rostedt <rostedt@goodmis.org>, Chris Wright <chrisw@sous-sol.org>, Thomas Gleixner <tglx@linutronix.de>, Aswin Chandramouleeswaran <aswin@hp.com>, Chegu Vinod <chegu_vinod@hp.com>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Oleg Nesterov <oleg@redhat.co>
+List-Id: linux-arch.vger.kernel.org
 
+Il 13/03/2014 20:13, Waiman Long ha scritto:
+>>>
+>>
+>> This should also disable the unfair path.
+>>
+>> Paolo
+>>
+>
+> The unfair lock uses a different jump label and does not require any
+> special PV ops. There is a separate init function for that.
 
-* Frederic Weisbecker <fweisbec@gmail.com> wrote:
+Yeah, what I mean is that the patches that enable paravirtualization 
+should also take care of decreasing the unfair-lock jump label when 
+paravirtualization is enabled.
 
-> So I propose you something even more simple. The choice of 
-> tip:timers/core as a base was actually just about topic. But there 
-> is no dependency on it. (And actually sched/core would have been a 
-> better choice for a base if any).
-> 
-> So in order to fix the conflict and minimize the dependencies, I 
-> just rebased the patches on top of tip:core/locking only. No merge 
-> on top of that. It seems to work pretty well.
-> 
-> The pullable result is in sched/cputime on my tree. Let me know if 
-> that's ok for you.
-
-Yeah, that sounds excellent. Thomas, you might want to keep this in a 
-sparate branch from timers/core though. We still have timers/nohz for 
-example.
-
-Thanks,
-
-	Ingo
+Paolo
