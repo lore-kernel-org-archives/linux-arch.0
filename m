@@ -1,87 +1,43 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v6 05/11] pvqspinlock, x86: Allow unfair spinlock in a PV
-	guest
-Date: Fri, 14 Mar 2014 09:30:01 +0100
-Message-ID: <20140314083001.GN27965@twins.programming.kicks-ass.net>
-References: <1394650498-30118-1-git-send-email-Waiman.Long@hp.com>
-	<1394650498-30118-6-git-send-email-Waiman.Long@hp.com>
-	<20140313151515.GC25546@laptop.programming.kicks-ass.net>
-	<53220F7F.2040701@hp.com>
+From: Ingo Molnar <mingo@kernel.org>
+Subject: Re: [GIT PULL v2] timers updates for 3.15
+Date: Fri, 14 Mar 2014 09:36:52 +0100
+Message-ID: <20140314083652.GA22913@gmail.com>
+References: <1394642174-14315-1-git-send-email-fweisbec@gmail.com>
+ <20140313110510.GA10424@gmail.com>
+ <20140313153301.GA25296@localhost.localdomain>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <virtualization-bounces@lists.linux-foundation.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-ee0-f43.google.com ([74.125.83.43]:53057 "EHLO
+	mail-ee0-f43.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755477AbaCNIg4 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 14 Mar 2014 04:36:56 -0400
 Content-Disposition: inline
-In-Reply-To: <53220F7F.2040701@hp.com>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
-List-Post: <mailto:virtualization@lists.linux-foundation.org>
-List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
-Sender: virtualization-bounces@lists.linux-foundation.org
-Errors-To: virtualization-bounces@lists.linux-foundation.org
-To: Waiman Long <waiman.long@hp.com>
-Cc: Jeremy Fitzhardinge <jeremy@goop.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, kvm@vger.kernel.org, Boris Ostrovsky <boris.ostrovsky@oracle.com>, virtualization@lists.linux-foundation.org, Andi Kleen <andi@firstfloor.org>, "H. Peter Anvin" <hpa@zytor.com>, Michel Lespinasse <walken@google.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, Gleb Natapov <gleb@redhat.com>, x86@kernel.org, Ingo Molnar <mingo@redhat.com>, xen-devel@lists.xenproject.org, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Rik van Riel <riel@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Scott J Norton <scott.norton@hp.com>, Steven Rostedt <rostedt@goodmis.org>, Chris Wright <chrisw@sous-sol.org>, Oleg Nesterov <oleg@redhat.com>, Alok Kataria <akataria@vmware.com>, Aswin Chandramouleeswaran <aswin@hp.com>, Chegu
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <20140313153301.GA25296@localhost.localdomain>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Frederic Weisbecker <fweisbec@gmail.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>, LKML <linux-kernel@vger.kernel.org>, Archs <linux-arch@vger.kernel.org>, Marcelo Tosatti <mtosatti@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Rik van Riel <riel@redhat.com>, Huiqingding <huding@redhat.com>
 
-On Thu, Mar 13, 2014 at 04:05:19PM -0400, Waiman Long wrote:
-> On 03/13/2014 11:15 AM, Peter Zijlstra wrote:
-> >On Wed, Mar 12, 2014 at 02:54:52PM -0400, Waiman Long wrote:
-> >>+static inline void arch_spin_lock(struct qspinlock *lock)
-> >>+{
-> >>+	if (static_key_false(&paravirt_unfairlocks_enabled))
-> >>+		queue_spin_lock_unfair(lock);
-> >>+	else
-> >>+		queue_spin_lock(lock);
-> >>+}
-> >So I would have expected something like:
-> >
-> >	if (static_key_false(&paravirt_spinlock)) {
-> >		while (!queue_spin_trylock(lock))
-> >			cpu_relax();
-> >		return;
-> >	}
-> >
-> >At the top of queue_spin_lock_slowpath().
+
+* Frederic Weisbecker <fweisbec@gmail.com> wrote:
+
+> So I propose you something even more simple. The choice of 
+> tip:timers/core as a base was actually just about topic. But there 
+> is no dependency on it. (And actually sched/core would have been a 
+> better choice for a base if any).
 > 
-> I don't like the idea of constantly spinning on the lock. That can cause all
-> sort of performance issues.
-
-Its bloody virt; _that_ is a performance issue to begin with.
-
-Anybody half sane stops using virt (esp. if they care about
-performance).
-
-> My version of the unfair lock tries to grab the
-> lock ignoring if there are others waiting in the queue or not. So instead of
-> the doing a cmpxchg of the whole 32-bit word, I just do a cmpxchg of the
-> lock byte in the unfair version. A CPU has only one chance to steal the
-> lock. If it can't, it will be lined up in the queue just like the fair
-> version. It is not as unfair as the other unfair locking schemes that spins
-> on the lock repetitively. So lock starvation should be less a problem.
+> So in order to fix the conflict and minimize the dependencies, I 
+> just rebased the patches on top of tip:core/locking only. No merge 
+> on top of that. It seems to work pretty well.
 > 
-> On the other hand, it may not perform as well as the other unfair locking
-> schemes. It is a compromise to provide some lock unfairness without
-> sacrificing the good cacheline behavior of the queue spinlock.
+> The pullable result is in sched/cputime on my tree. Let me know if 
+> that's ok for you.
 
-But but but,.. any kind of queueing gets you into a world of hurt with
-virt.
+Yeah, that sounds excellent. Thomas, you might want to keep this in a 
+sparate branch from timers/core though. We still have timers/nohz for 
+example.
 
-The simple test-and-set lock (as per the above) still sucks due to lock
-holder preemption, but at least the suckage doesn't queue. Because with
-queueing you not only have to worry about the lock holder getting
-preemption, but also the waiter(s).
+Thanks,
 
-Take the situation of 3 (v)CPUs where cpu0 holds the lock but is
-preempted. cpu1 queues, cpu2 queues. Then cpu1 gets preempted, after
-which cpu0 gets back online.
-
-The simple test-and-set lock will now let cpu2 acquire. Your queue
-however will just sit there spinning, waiting for cpu1 to come back from
-holiday.
-
-I think you're way over engineering this. Just do the simple
-test-and-set lock for virt && !paravirt (as I think Paolo Bonzini
-suggested RHEL6 already does).
+	Ingo
