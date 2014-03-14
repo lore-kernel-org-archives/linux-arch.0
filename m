@@ -1,130 +1,135 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from g4t3426.houston.hp.com ([15.201.208.54]:28059 "EHLO
-	g4t3426.houston.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754763AbaCMTtp (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 13 Mar 2014 15:49:45 -0400
-Message-ID: <53220BBC.4040608@hp.com>
-Date: Thu, 13 Mar 2014 15:49:16 -0400
-From: Waiman Long <waiman.long@hp.com>
+Received: from e23smtp02.au.ibm.com ([202.81.31.144]:58082 "EHLO
+	e23smtp02.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751893AbaCNFnx (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 14 Mar 2014 01:43:53 -0400
+Received: from /spool/local
+	by e23smtp02.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
+	Fri, 14 Mar 2014 15:43:50 +1000
+Message-ID: <53229701.8050405@linux.vnet.ibm.com>
+Date: Fri, 14 Mar 2014 11:13:29 +0530
+From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
 MIME-Version: 1.0
-Subject: Re: [PATCH RFC v6 09/11] pvqspinlock, x86: Add qspinlock para-virtualization
- support
-References: <1394650498-30118-1-git-send-email-Waiman.Long@hp.com>	<1394650498-30118-10-git-send-email-Waiman.Long@hp.com> <5321949F.1010103@citrix.com> <5321B959.5050305@redhat.com>
-In-Reply-To: <5321B959.5050305@redhat.com>
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Subject: Re: [PATCH v3 10/52] arm, kvm: Fix CPU hotplug callback registration
+References: <20140310203312.10746.310.stgit@srivatsabhat.in.ibm.com> <20140310203538.10746.25364.stgit@srivatsabhat.in.ibm.com> <20140312232127.GC24808@cbox>
+In-Reply-To: <20140312232127.GC24808@cbox>
+Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Paolo Bonzini <pbonzini@redhat.com>
-Cc: David Vrabel <david.vrabel@citrix.com>, Jeremy Fitzhardinge <jeremy@goop.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, kvm@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, virtualization@lists.linux-foundation.org, Andi Kleen <andi@firstfloor.org>, "H. Peter Anvin" <hpa@zytor.com>, Michel Lespinasse <walken@google.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, Gleb Natapov <gleb@redhat.com>, x86@kernel.org, Ingo Molnar <mingo@redhat.com>, xen-devel@lists.xenproject.org, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Rik van Riel <riel@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Scott J Norton <scott.norton@hp.com>, Steven Rostedt <rostedt@goodmis.org>, Chris Wright <chrisw@sous-sol.org>, Oleg Nesterov <oleg@redhat.com>, Alok Kataria <akataria@vmware.com>, Aswin Chandramouleeswaran <aswin@hp.com>, Chegu Vinod <chegu_vinod@hp.com>
-Message-ID: <20140313194916.0uunWZrlzvljHb43FrxuqfLBGrYn_MViEJN83E7se2E@z>
+To: Christoffer Dall <christoffer.dall@linaro.org>
+Cc: paulus@samba.org, oleg@redhat.com, mingo@kernel.org, rjw@rjwysocki.net, rusty@rustcorp.com.au, peterz@infradead.org, tglx@linutronix.de, akpm@linux-foundation.org, paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-pm@vger.kernel.org, linuxppc-dev@ozlabs.org, Gleb Natapov <gleb@kernel.org>, kvmarm@lists.cs.columbia.edu, kvm@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Paolo Bonzini <pbonzini@redhat.com>, marc.zyngier@arm.com
+Message-ID: <20140314054329.1PT8t13AnF_LHWJrikGzVOLG84Aemr-OrkVxQqoh8nQ@z>
 
-On 03/13/2014 09:57 AM, Paolo Bonzini wrote:
-> Il 13/03/2014 12:21, David Vrabel ha scritto:
->> On 12/03/14 18:54, Waiman Long wrote:
->>> This patch adds para-virtualization support to the queue spinlock in
->>> the same way as was done in the PV ticket lock code. In essence, the
->>> lock waiters will spin for a specified number of times (QSPIN_THRESHOLD
->>> = 2^14) and then halted itself. The queue head waiter will spins
->>> 2*QSPIN_THRESHOLD times before halting itself. When it has spinned
->>> QSPIN_THRESHOLD times, the queue head will assume that the lock
->>> holder may be scheduled out and attempt to kick the lock holder CPU
->>> if it has the CPU number on hand.
+On 03/13/2014 04:51 AM, Christoffer Dall wrote:
+> On Tue, Mar 11, 2014 at 02:05:38AM +0530, Srivatsa S. Bhat wrote:
+>> Subsystems that want to register CPU hotplug callbacks, as well as perform
+>> initialization for the CPUs that are already online, often do it as shown
+>> below:
 >>
->> I don't really understand the reasoning for kicking the lock holder.
->
-> I agree.  If the lock holder isn't running, there's probably a good 
-> reason for that and going to sleep will not necessarily convince the 
-> scheduler to give more CPU to the lock holder.  I think there are two 
-> choices:
->
-> 1) use yield_to to donate part of the waiter's quantum to the lock 
-> holder?    For this we probably need a new, separate hypercall 
-> interface.  For KVM it would be the same as hlt in the guest but with 
-> an additional yield_to in the host.
->
-> 2) do nothing, just go to sleep.
->
-> Could you get (or do you have) numbers for (2)?
+>> 	get_online_cpus();
+>>
+>> 	for_each_online_cpu(cpu)
+>> 		init_cpu(cpu);
+>>
+>> 	register_cpu_notifier(&foobar_cpu_notifier);
+>>
+>> 	put_online_cpus();
+>>
+>> This is wrong, since it is prone to ABBA deadlocks involving the
+>> cpu_add_remove_lock and the cpu_hotplug.lock (when running concurrently
+>> with CPU hotplug operations).
+>>
+>> Instead, the correct and race-free way of performing the callback
+>> registration is:
+>>
+>> 	cpu_notifier_register_begin();
+>>
+>> 	for_each_online_cpu(cpu)
+>> 		init_cpu(cpu);
+>>
+>> 	/* Note the use of the double underscored version of the API */
+>> 	__register_cpu_notifier(&foobar_cpu_notifier);
+>>
+>> 	cpu_notifier_register_done();
+>>
+>>
+>> Fix the kvm code in arm by using this latter form of callback registration.
+>>
+>> Cc: Christoffer Dall <christoffer.dall@linaro.org>
+>> Cc: Gleb Natapov <gleb@kernel.org>
+>> Cc: Russell King <linux@arm.linux.org.uk>
+>> Cc: Ingo Molnar <mingo@kernel.org>
+>> Cc: kvmarm@lists.cs.columbia.edu
+>> Cc: kvm@vger.kernel.org
+>> Cc: linux-arm-kernel@lists.infradead.org
+>> Acked-by: Paolo Bonzini <pbonzini@redhat.com>
+>> Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
+>> ---
+>>
+>>  arch/arm/kvm/arm.c |    7 ++++++-
+>>  1 file changed, 6 insertions(+), 1 deletion(-)
+>>
+>> diff --git a/arch/arm/kvm/arm.c b/arch/arm/kvm/arm.c
+>> index bd18bb8..f0e50a0 100644
+>> --- a/arch/arm/kvm/arm.c
+>> +++ b/arch/arm/kvm/arm.c
+>> @@ -1051,21 +1051,26 @@ int kvm_arch_init(void *opaque)
+>>  		}
+>>  	}
+>>  
+>> +	cpu_notifier_register_begin();
+>> +
+>>  	err = init_hyp_mode();
+>>  	if (err)
+>>  		goto out_err;
+>>  
+>> -	err = register_cpu_notifier(&hyp_init_cpu_nb);
+>> +	err = __register_cpu_notifier(&hyp_init_cpu_nb);
+>>  	if (err) {
+>>  		kvm_err("Cannot register HYP init CPU notifier (%d)\n", err);
+>>  		goto out_err;
+>>  	}
+>>  
+>> +	cpu_notifier_register_done();
+>> +
+>>  	hyp_cpu_pm_init();
+>>  
+>>  	kvm_coproc_table_init();
+>>  	return 0;
+>>  out_err:
+>> +	cpu_notifier_register_done();
+>>  	return err;
+>>  }
+>>  
+>>
+> 
+> Just so we're clear, the existing code was simply racy as not prone to
+> deadlocks, right?
+> 
+> This makes it clear that the test above for compatible CPUs can be quite
+> easily evaded by using CPU hotplug, but we don't really have a good
+> solution for handling that yet...  Hmmm, grumble grumble, I guess if you
+> hotplug unsupported CPUs on a KVM/ARM system for now, stuff will break.
+> 
 
-I will take out the lock holder kick portion from the patch. I will also 
-try to collect more test data.
+In this particular case, there was no deadlock possibility, rather the
+existing code had insufficient synchronization against CPU hotplug.
 
->
-> More important, I think a barrier is missing:
->
->     Lock holder ---------------------------------------
->
->     // queue_spin_unlock
->     barrier();
->     ACCESS_ONCE(qlock->lock) = 0;
->     barrier();
->
+init_hyp_mode() would invoke cpu_init_hyp_mode() on currently online CPUs
+using on_each_cpu(). If a CPU came online after this point and before calling
+register_cpu_notifier(), that CPU would remain uninitialized because this
+subsystem would miss the hot-online event. This patch fixes this bug and
+also uses the new synchronization method (instead of get/put_online_cpus())
+to ensure that we don't deadlock with CPU hotplug.
 
-This is not the unlock code that is used when PV spinlock is enabled. 
-The right unlock code is
+> In any case:
+> Acked-by: Christoffer Dall <christoffer.dall@linaro.org>
+> 
 
-         if (static_key_false(&paravirt_spinlocks_enabled)) {
-                 /*
-                  * Need to atomically clear the lock byte to avoid 
-racing with
-                  * queue head waiter trying to set 
-_QSPINLOCK_LOCKED_SLOWPATH.
-                  */
-                 if (likely(cmpxchg(&qlock->lock, _QSPINLOCK_LOCKED, 0)
-                                 == _QSPINLOCK_LOCKED))
-                         return;
-                 else
-                         queue_spin_unlock_slowpath(lock);
+Thanks a lot!
 
-         } else {
-                 __queue_spin_unlock(lock);
-         }
-
->     // pv_kick_node:
->     if (pv->cpustate != PV_CPU_HALTED)
->         return;
->     ACCESS_ONCE(pv->cpustate) = PV_CPU_KICKED;
->     __queue_kick_cpu(pv->mycpu, PV_KICK_QUEUE_HEAD);
->
->         Waiter -------------------------------------------
->
->         // pv_head_spin_check
->         ACCESS_ONCE(pv->cpustate) = PV_CPU_HALTED;
->         lockval = cmpxchg(&qlock->lock,
->                   _QSPINLOCK_LOCKED,
->                   _QSPINLOCK_LOCKED_SLOWPATH);
->         if (lockval == 0) {
->             /*
->              * Can exit now as the lock is free
->              */
->             ACCESS_ONCE(pv->cpustate) = PV_CPU_ACTIVE;
->             *count = 0;
->             return;
->         }
->         __queue_hibernate();
->
-> Nothing protects from writing qlock->lock before pv->cpustate is read, 
-> leading to this:
->
->     Lock holder            Waiter
->     ---------------------------------------------------------------
->     read pv->cpustate
->         (it is PV_CPU_ACTIVE)
->                     pv->cpustate = PV_CPU_HALTED
->                     lockval = cmpxchg(...)
->                     hibernate()
->     qlock->lock = 0
->     if (pv->cpustate != PV_CPU_HALTED)
->         return;
->
-
-The lock holder will read cpustate only if the lock byte has been 
-changed to _QSPINLOCK_LOCKED_SLOWPATH. So the setting of the lock byte 
-synchronize the 2 threads. The only thing that I am not certain is when 
-the waiter is trying to go to sleep while, at the same time, the lock 
-holder is trying to kick it. Will there be a missed wakeup because of 
-this timing issue?
-
--Longman
+Regards,
+Srivatsa S. Bhat
 
