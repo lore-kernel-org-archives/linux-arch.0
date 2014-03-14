@@ -1,67 +1,87 @@
-From: Minchan Kim <minchan@kernel.org>
-Subject: Re: [PATCH v3 36/52] zsmalloc: Fix CPU hotplug callback registration
-Date: Fri, 14 Mar 2014 15:41:08 +0900
-Message-ID: <20140314064108.GD20556@bbox>
-References: <20140310203312.10746.310.stgit@srivatsabhat.in.ibm.com>
- <20140310203959.10746.61303.stgit@srivatsabhat.in.ibm.com>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH v6 05/11] pvqspinlock, x86: Allow unfair spinlock in a PV
+	guest
+Date: Fri, 14 Mar 2014 09:30:01 +0100
+Message-ID: <20140314083001.GN27965@twins.programming.kicks-ass.net>
+References: <1394650498-30118-1-git-send-email-Waiman.Long@hp.com>
+	<1394650498-30118-6-git-send-email-Waiman.Long@hp.com>
+	<20140313151515.GC25546@laptop.programming.kicks-ass.net>
+	<53220F7F.2040701@hp.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from LGEMRELSE1Q.lge.com ([156.147.1.111]:64356 "EHLO
-	LGEMRELSE1Q.lge.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755663AbaCNGko (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 14 Mar 2014 02:40:44 -0400
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <virtualization-bounces@lists.linux-foundation.org>
 Content-Disposition: inline
-In-Reply-To: <20140310203959.10746.61303.stgit@srivatsabhat.in.ibm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Cc: paulus@samba.org, oleg@redhat.com, mingo@kernel.org, rjw@rjwysocki.net, rusty@rustcorp.com.au, peterz@infradead.org, tglx@linutronix.de, akpm@linux-foundation.org, paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-pm@vger.kernel.org, linuxppc-dev@ozlabs.org, Nitin Gupta <ngupta@vflare.org>, linux-mm@kvack.org
+In-Reply-To: <53220F7F.2040701@hp.com>
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
+List-Post: <mailto:virtualization@lists.linux-foundation.org>
+List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
+Sender: virtualization-bounces@lists.linux-foundation.org
+Errors-To: virtualization-bounces@lists.linux-foundation.org
+To: Waiman Long <waiman.long@hp.com>
+Cc: Jeremy Fitzhardinge <jeremy@goop.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, kvm@vger.kernel.org, Boris Ostrovsky <boris.ostrovsky@oracle.com>, virtualization@lists.linux-foundation.org, Andi Kleen <andi@firstfloor.org>, "H. Peter Anvin" <hpa@zytor.com>, Michel Lespinasse <walken@google.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, Gleb Natapov <gleb@redhat.com>, x86@kernel.org, Ingo Molnar <mingo@redhat.com>, xen-devel@lists.xenproject.org, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Rik van Riel <riel@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Scott J Norton <scott.norton@hp.com>, Steven Rostedt <rostedt@goodmis.org>, Chris Wright <chrisw@sous-sol.org>, Oleg Nesterov <oleg@redhat.com>, Alok Kataria <akataria@vmware.com>, Aswin Chandramouleeswaran <aswin@hp.com>, Chegu
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, Mar 11, 2014 at 02:09:59AM +0530, Srivatsa S. Bhat wrote:
-> Subsystems that want to register CPU hotplug callbacks, as well as perform
-> initialization for the CPUs that are already online, often do it as shown
-> below:
+On Thu, Mar 13, 2014 at 04:05:19PM -0400, Waiman Long wrote:
+> On 03/13/2014 11:15 AM, Peter Zijlstra wrote:
+> >On Wed, Mar 12, 2014 at 02:54:52PM -0400, Waiman Long wrote:
+> >>+static inline void arch_spin_lock(struct qspinlock *lock)
+> >>+{
+> >>+	if (static_key_false(&paravirt_unfairlocks_enabled))
+> >>+		queue_spin_lock_unfair(lock);
+> >>+	else
+> >>+		queue_spin_lock(lock);
+> >>+}
+> >So I would have expected something like:
+> >
+> >	if (static_key_false(&paravirt_spinlock)) {
+> >		while (!queue_spin_trylock(lock))
+> >			cpu_relax();
+> >		return;
+> >	}
+> >
+> >At the top of queue_spin_lock_slowpath().
 > 
-> 	get_online_cpus();
-> 
-> 	for_each_online_cpu(cpu)
-> 		init_cpu(cpu);
-> 
-> 	register_cpu_notifier(&foobar_cpu_notifier);
-> 
-> 	put_online_cpus();
-> 
-> This is wrong, since it is prone to ABBA deadlocks involving the
-> cpu_add_remove_lock and the cpu_hotplug.lock (when running concurrently
-> with CPU hotplug operations).
-> 
-> Instead, the correct and race-free way of performing the callback
-> registration is:
-> 
-> 	cpu_notifier_register_begin();
-> 
-> 	for_each_online_cpu(cpu)
-> 		init_cpu(cpu);
-> 
-> 	/* Note the use of the double underscored version of the API */
-> 	__register_cpu_notifier(&foobar_cpu_notifier);
-> 
-> 	cpu_notifier_register_done();
-> 
-> 
-> Fix the zsmalloc code by using this latter form of callback registration.
-> 
-> Cc: Minchan Kim <minchan@kernel.org>
-> Cc: Nitin Gupta <ngupta@vflare.org>
-> Cc: Ingo Molnar <mingo@kernel.org>
-> Cc: linux-mm@kvack.org
-> Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
+> I don't like the idea of constantly spinning on the lock. That can cause all
+> sort of performance issues.
 
-Acked-by: Minchan Kim <minchan@kernel.org>
+Its bloody virt; _that_ is a performance issue to begin with.
 
-Thanks.
+Anybody half sane stops using virt (esp. if they care about
+performance).
 
--- 
-Kind regards,
-Minchan Kim
+> My version of the unfair lock tries to grab the
+> lock ignoring if there are others waiting in the queue or not. So instead of
+> the doing a cmpxchg of the whole 32-bit word, I just do a cmpxchg of the
+> lock byte in the unfair version. A CPU has only one chance to steal the
+> lock. If it can't, it will be lined up in the queue just like the fair
+> version. It is not as unfair as the other unfair locking schemes that spins
+> on the lock repetitively. So lock starvation should be less a problem.
+> 
+> On the other hand, it may not perform as well as the other unfair locking
+> schemes. It is a compromise to provide some lock unfairness without
+> sacrificing the good cacheline behavior of the queue spinlock.
+
+But but but,.. any kind of queueing gets you into a world of hurt with
+virt.
+
+The simple test-and-set lock (as per the above) still sucks due to lock
+holder preemption, but at least the suckage doesn't queue. Because with
+queueing you not only have to worry about the lock holder getting
+preemption, but also the waiter(s).
+
+Take the situation of 3 (v)CPUs where cpu0 holds the lock but is
+preempted. cpu1 queues, cpu2 queues. Then cpu1 gets preempted, after
+which cpu0 gets back online.
+
+The simple test-and-set lock will now let cpu2 acquire. Your queue
+however will just sit there spinning, waiting for cpu1 to come back from
+holiday.
+
+I think you're way over engineering this. Just do the simple
+test-and-set lock for virt && !paravirt (as I think Paolo Bonzini
+suggested RHEL6 already does).
