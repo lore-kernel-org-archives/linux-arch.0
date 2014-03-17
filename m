@@ -1,25 +1,37 @@
-From: Adrian Gillian Bayford <wiltsi@morrisville.edu>
-Subject: Re Grant Donation!!!
-Date: Tue, 18 Mar 2014 00:00:11 +0530
-Message-ID: <1b42fe93-2907-404a-bb38-605f444e0f98@system38.csntprod.morrisville.edu>
-Reply-To: <adriangillian_b04@qq.com>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH v6 05/11] pvqspinlock, x86: Allow unfair spinlock in a PV
+	guest
+Date: Mon, 17 Mar 2014 19:54:47 +0100
+Message-ID: <20140317185447.GM25546@laptop.programming.kicks-ass.net>
+References: <1394650498-30118-1-git-send-email-Waiman.Long@hp.com>
+	<1394650498-30118-6-git-send-email-Waiman.Long@hp.com>
+	<20140313151515.GC25546@laptop.programming.kicks-ass.net>
+	<53220F7F.2040701@hp.com>
+	<20140314083001.GN27965@twins.programming.kicks-ass.net>
+	<53273482.3030102@hp.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="Windows-1251"
+Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bn1un0246.outbound.protection.outlook.com ([157.56.110.246]:38333
-	"EHLO na01-bn1-obe.outbound.protection.outlook.com"
-	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S932706AbaCQSbJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 17 Mar 2014 14:31:09 -0400
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Return-path: <virtualization-bounces@lists.linux-foundation.org>
+Content-Disposition: inline
+In-Reply-To: <53273482.3030102@hp.com>
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
+List-Post: <mailto:virtualization@lists.linux-foundation.org>
+List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
+Sender: virtualization-bounces@lists.linux-foundation.org
+Errors-To: virtualization-bounces@lists.linux-foundation.org
+To: Waiman Long <waiman.long@hp.com>
+Cc: Jeremy Fitzhardinge <jeremy@goop.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, kvm@vger.kernel.org, Boris Ostrovsky <boris.ostrovsky@oracle.com>, virtualization@lists.linux-foundation.org, Andi Kleen <andi@firstfloor.org>, "H. Peter Anvin" <hpa@zytor.com>, Michel Lespinasse <walken@google.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, Gleb Natapov <gleb@redhat.com>, x86@kernel.org, Ingo Molnar <mingo@redhat.com>, xen-devel@lists.xenproject.org, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Rik van Riel <riel@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Scott J Norton <scott.norton@hp.com>, Steven Rostedt <rostedt@goodmis.org>, Chris Wright <chrisw@sous-sol.org>, Oleg Nesterov <oleg@redhat.com>, Alok Kataria <akataria@vmware.com>, Aswin Chandramouleeswaran <aswin@hp.com>, Chegu
+List-Id: linux-arch.vger.kernel.org
 
-We are donating 800,000 pounds to you, Send Name, Country, Mobile Number, Sex, Age, Occupation for more details so that we can send your details to our verification department. You can verify this by visiting the web pages below.
+On Mon, Mar 17, 2014 at 01:44:34PM -0400, Waiman Long wrote:
+> The PV ticketlock code was designed to handle lock holder preemption by
+> redirecting CPU resources in a preempted guest to another guest that can
+> better use it and then return the preempted CPU back sooner.
 
-http://www.bbc.co.uk/news/uk-england-19254228
-
-We anticipate your earliest response.
-God bless you.
-Best of luck,
-Adrian and Gillian Bayford.
+But that's the PV code, not the unfair bit. And your fuller PV thing
+doesn't need the unfair option.
