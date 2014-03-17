@@ -1,18 +1,15 @@
 From: Waiman Long <waiman.long@hp.com>
-Subject: Re: [PATCH v6 05/11] pvqspinlock, x86: Allow unfair spinlock in a
-	PV guest
-Date: Mon, 17 Mar 2014 13:44:34 -0400
-Message-ID: <53273482.3030102@hp.com>
-References: <1394650498-30118-1-git-send-email-Waiman.Long@hp.com>
-	<1394650498-30118-6-git-send-email-Waiman.Long@hp.com>
-	<20140313151515.GC25546@laptop.programming.kicks-ass.net>
-	<53220F7F.2040701@hp.com>
-	<20140314083001.GN27965@twins.programming.kicks-ass.net>
+Subject: Re: [PATCH RFC v6 10/11] pvqspinlock, x86: Enable qspinlock PV support
+	for KVM
+Date: Mon, 17 Mar 2014 13:47:30 -0400
+Message-ID: <53273532.1010003@hp.com>
+References: <1394650498-30118-1-git-send-email-Waiman.Long@hp.com>	<1394650498-30118-11-git-send-email-Waiman.Long@hp.com>	<5321B9BE.7050209@redhat.com>
+	<5322035B.5000205@hp.com> <5322C0F7.2090604@redhat.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"; Format="flowed"
 Content-Transfer-Encoding: 7bit
 Return-path: <virtualization-bounces@lists.linux-foundation.org>
-In-Reply-To: <20140314083001.GN27965@twins.programming.kicks-ass.net>
+In-Reply-To: <5322C0F7.2090604@redhat.com>
 List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
 	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
 List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
@@ -22,80 +19,30 @@ List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualizati
 	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
 Sender: virtualization-bounces@lists.linux-foundation.org
 Errors-To: virtualization-bounces@lists.linux-foundation.org
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Jeremy Fitzhardinge <jeremy@goop.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, kvm@vger.kernel.org, Boris Ostrovsky <boris.ostrovsky@oracle.com>, virtualization@lists.linux-foundation.org, Andi Kleen <andi@firstfloor.org>, "H. Peter Anvin" <hpa@zytor.com>, Michel Lespinasse <walken@google.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, Gleb Natapov <gleb@redhat.com>, x86@kernel.org, Ingo Molnar <mingo@redhat.com>, xen-devel@lists.xenproject.org, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Rik van Riel <riel@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Scott J Norton <scott.norton@hp.com>, Steven Rostedt <rostedt@goodmis.org>, Chris Wright <chrisw@sous-sol.org>, Oleg Nesterov <oleg@redhat.com>, Alok Kataria <akataria@vmware.com>, Aswin Chandramouleeswaran <aswin@hp.com>, Chegu
+To: Paolo Bonzini <pbonzini@redhat.com>
+Cc: Jeremy Fitzhardinge <jeremy@goop.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, Gleb Natapov <gleb@redhat.com>, Peter Zijlstra <peterz@infradead.org>, virtualization@lists.linux-foundation.org, Andi Kleen <andi@firstfloor.org>, "H. Peter Anvin" <hpa@zytor.com>, Michel Lespinasse <walken@google.com>, Alok Kataria <akataria@vmware.com>, linux-arch@vger.kernel.org, kvm@vger.kernel.org, x86@kernel.org, Ingo Molnar <mingo@redhat.com>, xen-devel@lists.xenproject.org, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Arnd Bergmann <arnd@arndb.de>, Scott J Norton <scott.norton@hp.com>, Steven Rostedt <rostedt@goodmis.org>, Chris Wright <chrisw@sous-sol.org>, Thomas Gleixner <tglx@linutronix.de>, Aswin Chandramouleeswaran <aswin@hp.com>, Chegu Vinod <chegu_vinod@hp.com>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Oleg Nesterov <oleg@redhat.com>, linux-kernel@vger.
 List-Id: linux-arch.vger.kernel.org
 
-On 03/14/2014 04:30 AM, Peter Zijlstra wrote:
-> On Thu, Mar 13, 2014 at 04:05:19PM -0400, Waiman Long wrote:
->> On 03/13/2014 11:15 AM, Peter Zijlstra wrote:
->>> On Wed, Mar 12, 2014 at 02:54:52PM -0400, Waiman Long wrote:
->>>> +static inline void arch_spin_lock(struct qspinlock *lock)
->>>> +{
->>>> +	if (static_key_false(&paravirt_unfairlocks_enabled))
->>>> +		queue_spin_lock_unfair(lock);
->>>> +	else
->>>> +		queue_spin_lock(lock);
->>>> +}
->>> So I would have expected something like:
+On 03/14/2014 04:42 AM, Paolo Bonzini wrote:
+> Il 13/03/2014 20:13, Waiman Long ha scritto:
+>>>>
 >>>
->>> 	if (static_key_false(&paravirt_spinlock)) {
->>> 		while (!queue_spin_trylock(lock))
->>> 			cpu_relax();
->>> 		return;
->>> 	}
+>>> This should also disable the unfair path.
 >>>
->>> At the top of queue_spin_lock_slowpath().
->> I don't like the idea of constantly spinning on the lock. That can cause all
->> sort of performance issues.
-> Its bloody virt; _that_ is a performance issue to begin with.
->
-> Anybody half sane stops using virt (esp. if they care about
-> performance).
->
->> My version of the unfair lock tries to grab the
->> lock ignoring if there are others waiting in the queue or not. So instead of
->> the doing a cmpxchg of the whole 32-bit word, I just do a cmpxchg of the
->> lock byte in the unfair version. A CPU has only one chance to steal the
->> lock. If it can't, it will be lined up in the queue just like the fair
->> version. It is not as unfair as the other unfair locking schemes that spins
->> on the lock repetitively. So lock starvation should be less a problem.
+>>> Paolo
+>>>
 >>
->> On the other hand, it may not perform as well as the other unfair locking
->> schemes. It is a compromise to provide some lock unfairness without
->> sacrificing the good cacheline behavior of the queue spinlock.
-> But but but,.. any kind of queueing gets you into a world of hurt with
-> virt.
+>> The unfair lock uses a different jump label and does not require any
+>> special PV ops. There is a separate init function for that.
 >
-> The simple test-and-set lock (as per the above) still sucks due to lock
-> holder preemption, but at least the suckage doesn't queue. Because with
-> queueing you not only have to worry about the lock holder getting
-> preemption, but also the waiter(s).
+> Yeah, what I mean is that the patches that enable paravirtualization 
+> should also take care of decreasing the unfair-lock jump label when 
+> paravirtualization is enabled.
 >
-> Take the situation of 3 (v)CPUs where cpu0 holds the lock but is
-> preempted. cpu1 queues, cpu2 queues. Then cpu1 gets preempted, after
-> which cpu0 gets back online.
->
-> The simple test-and-set lock will now let cpu2 acquire. Your queue
-> however will just sit there spinning, waiting for cpu1 to come back from
-> holiday.
->
-> I think you're way over engineering this. Just do the simple
-> test-and-set lock for virt&&  !paravirt (as I think Paolo Bonzini
-> suggested RHEL6 already does).
+> Paolo
 
-The PV ticketlock code was designed to handle lock holder preemption by 
-redirecting CPU resources in a preempted guest to another guest that can 
-better use it and then return the preempted CPU back sooner.
-
-Using a simple test-and-set lock will not allow us to enable this PV 
-spinlock functionality as there is no structure to decide who does what. 
-I can extend the current unfair lock code to allow those waiting in the 
-queue to also attempt to steal the lock, though at a lesser frequency so 
-that the queue head has a higher chance of getting the lock. This will 
-solve the lock waiter preemption problem that you worry about. This does 
-make the code a bit more complex, but it allow us to enable both the 
-unfair lock and the PV spinlock code together to solve the lock waiter 
-and lock holder preemption problems.
+As there are people who don't like unfair lock at all, I prefer to give 
+them the option to turn this on or off instead of forcing them to always 
+use unfair lock in a PV guest.
 
 -Longman
