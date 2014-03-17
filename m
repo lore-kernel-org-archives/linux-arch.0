@@ -1,96 +1,85 @@
-From: Stephen Rothwell <sfr@canb.auug.org.au>
-Subject: Re: [PATCH/RFC 00/16] compat: convert to COMPAT_SYSCALL_DEFINE
-Date: Mon, 17 Mar 2014 17:02:41 +1100
-Message-ID: <20140317170241.9197da46cdc87f6c3df6b517@canb.auug.org.au>
-References: <1394121083-2507-1-git-send-email-heiko.carstens@de.ibm.com>
-	<20140312194526.GA3755@osiris>
+From: Waiman Long <waiman.long@hp.com>
+Subject: Re: [PATCH v6 04/11] qspinlock: Optimized code path for 2 contending
+	tasks
+Date: Mon, 17 Mar 2014 13:23:55 -0400
+Message-ID: <53272FAB.3070204@hp.com>
+References: <1394650498-30118-1-git-send-email-Waiman.Long@hp.com>
+	<1394650498-30118-5-git-send-email-Waiman.Long@hp.com>
+	<5320B0A8.8030805@hp.com>
+	<20140313135701.GB25546@laptop.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: multipart/signed; protocol="application/pgp-signature";
- micalg="PGP-SHA256";
- boundary="Signature=_Mon__17_Mar_2014_17_02_41_+1100_QkHRoQ5ZfZGGV6xA"
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from ozlabs.org ([203.10.76.45]:52732 "EHLO ozlabs.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1756290AbaCQGCx (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 17 Mar 2014 02:02:53 -0400
-In-Reply-To: <20140312194526.GA3755@osiris>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Heiko Carstens <heiko.carstens@de.ibm.com>
-Cc: linux-next@vger.kernel.org, Al Viro <viro@ZenIV.linux.org.uk>, "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, Martin Schwidefsky <schwidefsky@de.ibm.com>, "H. Peter Anvin" <hpa@linux.intel.com>, Mark Brown <broonie@kernel.org>
+Content-Type: text/plain; charset="us-ascii"; Format="flowed"
+Content-Transfer-Encoding: 7bit
+Return-path: <virtualization-bounces@lists.linux-foundation.org>
+In-Reply-To: <20140313135701.GB25546@laptop.programming.kicks-ass.net>
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
+List-Post: <mailto:virtualization@lists.linux-foundation.org>
+List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
+Sender: virtualization-bounces@lists.linux-foundation.org
+Errors-To: virtualization-bounces@lists.linux-foundation.org
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Jeremy Fitzhardinge <jeremy@goop.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, kvm@vger.kernel.org, Boris Ostrovsky <boris.ostrovsky@oracle.com>, virtualization@lists.linux-foundation.org, Andi Kleen <andi@firstfloor.org>, "H. Peter Anvin" <hpa@zytor.com>, Michel Lespinasse <walken@google.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, Gleb Natapov <gleb@redhat.com>, x86@kernel.org, Ingo Molnar <mingo@redhat.com>, xen-devel@lists.xenproject.org, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Rik van Riel <riel@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Scott J Norton <scott.norton@hp.com>, Steven Rostedt <rostedt@goodmis.org>, Chris Wright <chrisw@sous-sol.org>, Oleg Nesterov <oleg@redhat.com>, Alok Kataria <akataria@vmware.com>, Aswin Chandramouleeswaran <aswin@hp.com>, Chegu
+List-Id: linux-arch.vger.kernel.org
 
---Signature=_Mon__17_Mar_2014_17_02_41_+1100_QkHRoQ5ZfZGGV6xA
-Content-Type: text/plain; charset=US-ASCII
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
-
-Hi Heiko,
-
-On Wed, 12 Mar 2014 20:45:26 +0100 Heiko Carstens <heiko.carstens@de.ibm.co=
-m> wrote:
+On 03/13/2014 09:57 AM, Peter Zijlstra wrote:
+> On Wed, Mar 12, 2014 at 03:08:24PM -0400, Waiman Long wrote:
+>> On 03/12/2014 02:54 PM, Waiman Long wrote:
+>>> +		/*
+>>> +		 * Set the lock bit&   clear the waiting bit simultaneously
+>>> +		 * It is assumed that there is no lock stealing with this
+>>> +		 * quick path active.
+>>> +		 *
+>>> +		 * A direct memory store of _QSPINLOCK_LOCKED into the
+>>> +		 * lock_wait field causes problem with the lockref code, e.g.
+>>> +		 *   ACCESS_ONCE(qlock->lock_wait) = _QSPINLOCK_LOCKED;
+>>> +		 *
+>>> +		 * It is not currently clear why this happens. A workaround
+>>> +		 * is to use atomic instruction to store the new value.
+>>> +		 */
+>>> +		{
+>>> +			u16 lw = xchg(&qlock->lock_wait, _QSPINLOCK_LOCKED);
+>>> +			BUG_ON(lw != _QSPINLOCK_WAITING);
+>>> +		}
+>> It was found that when I used a direct memory store instead of an atomic op,
+>> the following kernel crash might happen at filesystem dismount time:
+>>
+>> [ 1529.936714] Call Trace:
+>> [ 1529.936714]  [<ffffffff811c2d03>] d_walk+0xc3/0x260
+>> [ 1529.936714]  [<ffffffff811c1770>] ? check_and_collect+0x30/0x30
+>> [ 1529.936714]  [<ffffffff811c3985>] shrink_dcache_for_umount+0x75/0x120
+>> [ 1529.936714]  [<ffffffff811adf21>] generic_shutdown_super+0x21/0xf0
+>> [ 1529.936714]  [<ffffffff811ae207>] kill_block_super+0x27/0x70
+>> [ 1529.936714]  [<ffffffff811ae4ed>] deactivate_locked_super+0x3d/0x60
+>> [ 1529.936714]  [<ffffffff811aea96>] deactivate_super+0x46/0x60
+>> [ 1529.936714]  [<ffffffff811ca277>] mntput_no_expire+0xa7/0x140
+>> [ 1529.936714]  [<ffffffff811cb6ce>] SyS_umount+0x8e/0x100
+>> [ 1529.936714]  [<ffffffff815d2c29>] system_call_fastpath+0x16/0x1b
+>> It was more readily reproducible in a KVM guest. It was harder to reproduce
+>> in a bare metal machine, but kernel crash still happened after several
+>> tries.
+>>
+>> I am not sure what exactly cause this crash, but it will have something to
+>> do with the interaction between the lockref and the qspinlock code. I would
+>> like more eyes on that to find the root cause of it.
+> I cannot reproduce with my series that has the one word write.
 >
-> since nobody objected to the compat changes I described below, could you
-> please add the tree
->=20
->   git://git.kernel.org/pub/scm/linux/kernel/git/s390/linux.git compat
->=20
-> to linux-next?
+> What I did was I made my swap partition (who needs that anyway on a
+> machine with 16G of memory) into an XFS partition.
+>
+> Then I copied my linux.git onto it and unmounted.
+>
+> I'll try a few more times; the above trace seems to suggest it happens
+> during dcache cleanup, so I suppose I should read the filesystem some
+> and unmount again.
+>
+> Is there anything specific you did to make it go bang?
 
-Mark added this the other day and I will add it to my tree from today.
+I had found the reason for the crash, it has to do with my original 
+definition of the queue_spin_value_unlocked() function. When I extended 
+it to cover the first 2 bytes (lock + wait bit), the problem is gone.
 
-Thanks for adding your subsystem tree as a participant of linux-next.  As
-you may know, this is not a judgment of your code.  The purpose of
-linux-next is for integration testing and to lower the impact of
-conflicts between subsystems in the next merge window.=20
-
-You will need to ensure that the patches/commits in your tree/series have
-been:
-     * submitted under GPL v2 (or later) and include the Contributor's
-	Signed-off-by,
-     * posted to the relevant mailing list,
-     * reviewed by you (or another maintainer of your subsystem tree),
-     * successfully unit tested, and=20
-     * destined for the current or next Linux merge window.
-
-Basically, this should be just what you would send to Linus (or ask him
-to fetch).  It is allowed to be rebased if you deem it necessary.
-
---=20
-Cheers,
-Stephen Rothwell=20
-sfr@canb.auug.org.au
-
-Legal Stuff:
-By participating in linux-next, your subsystem tree contributions are
-public and will be included in the linux-next trees.  You may be sent
-e-mail messages indicating errors or other issues when the
-patches/commits from your subsystem tree are merged and tested in
-linux-next.  These messages may also be cross-posted to the linux-next
-mailing list, the linux-kernel mailing list, etc.  The linux-next tree
-project and IBM (my employer) make no warranties regarding the linux-next
-project, the testing procedures, the results, the e-mails, etc.  If you
-don't agree to these ground rules, let me know and I'll remove your tree
-from participation in linux-next.
-
---Signature=_Mon__17_Mar_2014_17_02_41_+1100_QkHRoQ5ZfZGGV6xA
-Content-Type: application/pgp-signature
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v2.0.22 (GNU/Linux)
-
-iQIcBAEBCAAGBQJTJpAFAAoJEMDTa8Ir7ZwVJBkP/0+3aiTt+VRWhBTOrQERfq/Y
-jYHiYgJcW0OxBB0C2zovFCeN19QHaSSCAA21bEyMtT4rmUNZYozcb6RCsGSTHHCC
-ZycBrmO/v+RLv1/MC1r81p3onpRIVqBOyzMuJM0TNwjlesPfTh4TKgyj/UrXwiId
-XrZv6Jfjt8jBXXY0fbQR+RqNM2IG9IeXjeNxUKS2XrzK4tGxBkes/H2Mgz4UaGwV
-by+Q/H+8N+7MBUV7kNwsEfOgJF1GxsynJb7hRl/2p6Yf/z/KmXPDOUkA1ad9aMt9
-1s3k7dNCrXAQRHE+ubvDu3DD8eq5fNyIwz92cEXi6kFvY+AM3yzqRj8EbXAcvB++
-Ng+mZL+c9nYvsvJope6X7p8AoaAp/5k2wM8uP/2fsez61HjWnTZZVAvwLz8ShnSi
-F3kgmS7S5qA0b3F/mtTmoRS9RuP7+VTNcwWZ+xmkmUkuddaImptDCL3KXs2OfP28
-W5Denq3z+B17OyK9dsqS7ToYCHGhTmAVweZ9DNNPuorFXgJurZA1a7WIDtBHEWkD
-dtYG3Q5+q7JNTOTcv5n5siiGhMzneooSbj0fjjzZ2oiw/T+AM3EEADILYjlHyGrm
-IY5ELsR5MR5m4SS7beDZPus9QyNrelMYq6nCaRmqqrwAsieP1XPp6poyzTJ7Ojex
-g70OcWYwSNI7Vya/phQY
-=iBdP
------END PGP SIGNATURE-----
-
---Signature=_Mon__17_Mar_2014_17_02_41_+1100_QkHRoQ5ZfZGGV6xA--
+-Longman
