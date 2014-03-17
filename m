@@ -1,140 +1,44 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pb0-f47.google.com ([209.85.160.47]:42831 "EHLO
-	mail-pb0-f47.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754933AbaCNTK5 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 14 Mar 2014 15:10:57 -0400
-Received: by mail-pb0-f47.google.com with SMTP id up15so3011313pbc.20
-        for <linux-arch@vger.kernel.org>; Fri, 14 Mar 2014 12:10:57 -0700 (PDT)
-Date: Fri, 14 Mar 2014 12:10:55 -0700
-From: Christoffer Dall <christoffer.dall@linaro.org>
-Subject: Re: [PATCH v3 10/52] arm, kvm: Fix CPU hotplug callback registration
-Message-ID: <20140314191055.GF28661@cbox>
-References: <20140310203312.10746.310.stgit@srivatsabhat.in.ibm.com>
- <20140310203538.10746.25364.stgit@srivatsabhat.in.ibm.com>
- <20140312232127.GC24808@cbox>
- <53229701.8050405@linux.vnet.ibm.com>
+Received: from g6t1526.atlanta.hp.com ([15.193.200.69]:30285 "EHLO
+	g6t1526.atlanta.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752668AbaCQRr5 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 17 Mar 2014 13:47:57 -0400
+Message-ID: <53273532.1010003@hp.com>
+Date: Mon, 17 Mar 2014 13:47:30 -0400
+From: Waiman Long <waiman.long@hp.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <53229701.8050405@linux.vnet.ibm.com>
+Subject: Re: [PATCH RFC v6 10/11] pvqspinlock, x86: Enable qspinlock PV support
+ for KVM
+References: <1394650498-30118-1-git-send-email-Waiman.Long@hp.com>	<1394650498-30118-11-git-send-email-Waiman.Long@hp.com>	<5321B9BE.7050209@redhat.com> <5322035B.5000205@hp.com> <5322C0F7.2090604@redhat.com>
+In-Reply-To: <5322C0F7.2090604@redhat.com>
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Cc: paulus@samba.org, oleg@redhat.com, mingo@kernel.org, rjw@rjwysocki.net, rusty@rustcorp.com.au, peterz@infradead.org, tglx@linutronix.de, akpm@linux-foundation.org, paulmck@linux.vnet.ibm.com, tj@kernel.org, walken@google.com, ego@linux.vnet.ibm.com, linux@arm.linux.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-pm@vger.kernel.org, linuxppc-dev@ozlabs.org, Gleb Natapov <gleb@kernel.org>, kvmarm@lists.cs.columbia.edu, kvm@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Paolo Bonzini <pbonzini@redhat.com>, marc.zyngier@arm.com
-Message-ID: <20140314191055.dmH6XdZ70GePW_az48ThD-7HPTJwvjz_1DNR96IGMCA@z>
+To: Paolo Bonzini <pbonzini@redhat.com>
+Cc: Jeremy Fitzhardinge <jeremy@goop.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, kvm@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, virtualization@lists.linux-foundation.org, Andi Kleen <andi@firstfloor.org>, "H. Peter Anvin" <hpa@zytor.com>, Michel Lespinasse <walken@google.com>, Alok Kataria <akataria@vmware.com>, linux-arch@vger.kernel.org, Gleb Natapov <gleb@redhat.com>, x86@kernel.org, Ingo Molnar <mingo@redhat.com>, xen-devel@lists.xenproject.org, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Arnd Bergmann <arnd@arndb.de>, Scott J Norton <scott.norton@hp.com>, Steven Rostedt <rostedt@goodmis.org>, Chris Wright <chrisw@sous-sol.org>, Thomas Gleixner <tglx@linutronix.de>, Aswin Chandramouleeswaran <aswin@hp.com>, Chegu Vinod <chegu_vinod@hp.com>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Oleg Nesterov <oleg@redhat.com>, linux-kernel@vger.kernel.org
+Message-ID: <20140317174730.PFEkJQsm73y8RWJei5Mtepdbmo3PfU0tperrEUu1e6M@z>
 
-On Fri, Mar 14, 2014 at 11:13:29AM +0530, Srivatsa S. Bhat wrote:
-> On 03/13/2014 04:51 AM, Christoffer Dall wrote:
-> > On Tue, Mar 11, 2014 at 02:05:38AM +0530, Srivatsa S. Bhat wrote:
-> >> Subsystems that want to register CPU hotplug callbacks, as well as perform
-> >> initialization for the CPUs that are already online, often do it as shown
-> >> below:
-> >>
-> >> 	get_online_cpus();
-> >>
-> >> 	for_each_online_cpu(cpu)
-> >> 		init_cpu(cpu);
-> >>
-> >> 	register_cpu_notifier(&foobar_cpu_notifier);
-> >>
-> >> 	put_online_cpus();
-> >>
-> >> This is wrong, since it is prone to ABBA deadlocks involving the
-> >> cpu_add_remove_lock and the cpu_hotplug.lock (when running concurrently
-> >> with CPU hotplug operations).
-> >>
-> >> Instead, the correct and race-free way of performing the callback
-> >> registration is:
-> >>
-> >> 	cpu_notifier_register_begin();
-> >>
-> >> 	for_each_online_cpu(cpu)
-> >> 		init_cpu(cpu);
-> >>
-> >> 	/* Note the use of the double underscored version of the API */
-> >> 	__register_cpu_notifier(&foobar_cpu_notifier);
-> >>
-> >> 	cpu_notifier_register_done();
-> >>
-> >>
-> >> Fix the kvm code in arm by using this latter form of callback registration.
-> >>
-> >> Cc: Christoffer Dall <christoffer.dall@linaro.org>
-> >> Cc: Gleb Natapov <gleb@kernel.org>
-> >> Cc: Russell King <linux@arm.linux.org.uk>
-> >> Cc: Ingo Molnar <mingo@kernel.org>
-> >> Cc: kvmarm@lists.cs.columbia.edu
-> >> Cc: kvm@vger.kernel.org
-> >> Cc: linux-arm-kernel@lists.infradead.org
-> >> Acked-by: Paolo Bonzini <pbonzini@redhat.com>
-> >> Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
-> >> ---
-> >>
-> >>  arch/arm/kvm/arm.c |    7 ++++++-
-> >>  1 file changed, 6 insertions(+), 1 deletion(-)
-> >>
-> >> diff --git a/arch/arm/kvm/arm.c b/arch/arm/kvm/arm.c
-> >> index bd18bb8..f0e50a0 100644
-> >> --- a/arch/arm/kvm/arm.c
-> >> +++ b/arch/arm/kvm/arm.c
-> >> @@ -1051,21 +1051,26 @@ int kvm_arch_init(void *opaque)
-> >>  		}
-> >>  	}
-> >>  
-> >> +	cpu_notifier_register_begin();
-> >> +
-> >>  	err = init_hyp_mode();
-> >>  	if (err)
-> >>  		goto out_err;
-> >>  
-> >> -	err = register_cpu_notifier(&hyp_init_cpu_nb);
-> >> +	err = __register_cpu_notifier(&hyp_init_cpu_nb);
-> >>  	if (err) {
-> >>  		kvm_err("Cannot register HYP init CPU notifier (%d)\n", err);
-> >>  		goto out_err;
-> >>  	}
-> >>  
-> >> +	cpu_notifier_register_done();
-> >> +
-> >>  	hyp_cpu_pm_init();
-> >>  
-> >>  	kvm_coproc_table_init();
-> >>  	return 0;
-> >>  out_err:
-> >> +	cpu_notifier_register_done();
-> >>  	return err;
-> >>  }
-> >>  
-> >>
-> > 
-> > Just so we're clear, the existing code was simply racy as not prone to
-> > deadlocks, right?
-> > 
-> > This makes it clear that the test above for compatible CPUs can be quite
-> > easily evaded by using CPU hotplug, but we don't really have a good
-> > solution for handling that yet...  Hmmm, grumble grumble, I guess if you
-> > hotplug unsupported CPUs on a KVM/ARM system for now, stuff will break.
-> > 
-> 
-> In this particular case, there was no deadlock possibility, rather the
-> existing code had insufficient synchronization against CPU hotplug.
-> 
-> init_hyp_mode() would invoke cpu_init_hyp_mode() on currently online CPUs
-> using on_each_cpu(). If a CPU came online after this point and before calling
-> register_cpu_notifier(), that CPU would remain uninitialized because this
-> subsystem would miss the hot-online event. This patch fixes this bug and
-> also uses the new synchronization method (instead of get/put_online_cpus())
-> to ensure that we don't deadlock with CPU hotplug.
-> 
+On 03/14/2014 04:42 AM, Paolo Bonzini wrote:
+> Il 13/03/2014 20:13, Waiman Long ha scritto:
+>>>>
+>>>
+>>> This should also disable the unfair path.
+>>>
+>>> Paolo
+>>>
+>>
+>> The unfair lock uses a different jump label and does not require any
+>> special PV ops. There is a separate init function for that.
+>
+> Yeah, what I mean is that the patches that enable paravirtualization 
+> should also take care of decreasing the unfair-lock jump label when 
+> paravirtualization is enabled.
+>
+> Paolo
 
-Yes, that was my conclusion as well.  Thanks for clarifying.  (It could
-be noted in the commit message as well if you should feel so inclined).
+As there are people who don't like unfair lock at all, I prefer to give 
+them the option to turn this on or off instead of forcing them to always 
+use unfair lock in a PV guest.
 
-> > In any case:
-> > Acked-by: Christoffer Dall <christoffer.dall@linaro.org>
-> > 
-> 
-> Thanks a lot!
-> 
-Thanks,
--Christoffer
+-Longman
