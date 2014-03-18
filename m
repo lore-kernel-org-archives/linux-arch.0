@@ -1,145 +1,156 @@
-From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [UPDATED PATCH v3 10/52] arm, kvm: Fix CPU hotplug callback registration
-Date: Tue, 18 Mar 2014 15:53:05 +0530
-Message-ID: <53281E89.7080201@linux.vnet.ibm.com>
-References: <20140310203312.10746.310.stgit@srivatsabhat.in.ibm.com> <20140310203538.10746.25364.stgit@srivatsabhat.in.ibm.com> <20140312232127.GC24808@cbox> <53229701.8050405@linux.vnet.ibm.com> <20140314191055.GF28661@cbox>
+From: James Hogan <james.hogan@imgtec.com>
+Subject: Re: [PATCH 12/44] metag: Use get_signal() signal_setup_done()
+Date: Tue, 18 Mar 2014 11:41:42 +0000
+Message-ID: <532830F6.8090305@imgtec.com>
+References: <1393804646-7797-1-git-send-email-richard@nod.at> <1393804646-7797-2-git-send-email-richard@nod.at> <53146440.707@imgtec.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+Content-Type: multipart/signed; micalg=pgp-sha1;
+	protocol="application/pgp-signature";
+	boundary="Xv2dRd4QbdO0uLoxOfUOlEn63mHEUm8WF"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e23smtp03.au.ibm.com ([202.81.31.145]:35228 "EHLO
-	e23smtp03.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753800AbaCRKXg (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 18 Mar 2014 06:23:36 -0400
-Received: from /spool/local
-	by e23smtp03.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
-	Tue, 18 Mar 2014 20:23:34 +1000
-In-Reply-To: <20140314191055.GF28661@cbox>
+Received: from [217.156.133.130] ([217.156.133.130]:43255 "EHLO
+	imgpgp01.kl.imgtec.org" rhost-flags-FAIL-FAIL-OK-FAIL)
+	by vger.kernel.org with ESMTP id S1752329AbaCRLmN (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Tue, 18 Mar 2014 07:42:13 -0400
+In-Reply-To: <53146440.707@imgtec.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christoffer Dall <christoffer.dall@linaro.org>
-Cc: ego@linux.vnet.ibm.com, kvm@vger.kernel.org, peterz@infradead.org, linux-kernel@vger.kernel.org, linuxppc-dev@ozlabs.org, paulus@samba.org, walken@google.com, kvmarm@lists.cs.columbia.edu, linux-arch@vger.kernel.org, linux@arm.linux.org.uk, mingo@kernel.org, marc.zyngier@arm.com, paulmck@linux.vnet.ibm.com, linux-pm@vger.kernel.org, Gleb Natapov <gleb@kernel.org>, rusty@rustcorp.com.au, tglx@linutronix.de, linux-arm-kernel@lists.infradead.org, rjw@rjwysocki.net, oleg@redhat.com, tj@kernel.org, Paolo Bonzini <pbonzini@redhat.com>, akpm@linux-foundation.org
+To: Richard Weinberger <richard@nod.at>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, viro@zeniv.linux.org.uk, vgupta@synopsys.com, catalin.marinas@arm.com, will.deacon@arm.com, hskinnemoen@gmail.com, egtvedt@samfundet.no, vapier@gentoo.org, msalter@redhat.com, a-jacquiot@ti.com, starvik@axis.com, jesper.nilsson@axis.com, dhowells@redhat.com, rkuo@codeaurora.org, tony.luck@intel.com, fenghua.yu@intel.com, takata@linux-m32r.org, geert@linux-m68k.org, monstr@monstr.eu, yasutake.koichi@jp.panasonic.com, ralf@linux-mips.org, jonas@southpole.se, jejb@parisc-linux.org, deller@gmx.de, benh@kernel.crashing.org, paulus@samba.org, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, liqin.linux@gmail.com, lennox.wu@gmail.com, cmetcalf@tilera.com, gxt@mprc.pku.edu.cn, linux-xtensa@linux-xtensa.org, akpm@linux-foundation.org, oleg@redhat.
 
-On 03/15/2014 12:40 AM, Christoffer Dall wrote:
-> On Fri, Mar 14, 2014 at 11:13:29AM +0530, Srivatsa S. Bhat wrote:
->> On 03/13/2014 04:51 AM, Christoffer Dall wrote:
->>> On Tue, Mar 11, 2014 at 02:05:38AM +0530, Srivatsa S. Bhat wrote:
->>>> Subsystems that want to register CPU hotplug callbacks, as well as perform
->>>> initialization for the CPUs that are already online, often do it as shown
->>>> below:
->>>>
-[...]
->>> Just so we're clear, the existing code was simply racy as not prone to
->>> deadlocks, right?
->>>
->>> This makes it clear that the test above for compatible CPUs can be quite
->>> easily evaded by using CPU hotplug, but we don't really have a good
->>> solution for handling that yet...  Hmmm, grumble grumble, I guess if you
->>> hotplug unsupported CPUs on a KVM/ARM system for now, stuff will break.
->>>
->>
->> In this particular case, there was no deadlock possibility, rather the
->> existing code had insufficient synchronization against CPU hotplug.
->>
->> init_hyp_mode() would invoke cpu_init_hyp_mode() on currently online CPUs
->> using on_each_cpu(). If a CPU came online after this point and before calling
->> register_cpu_notifier(), that CPU would remain uninitialized because this
->> subsystem would miss the hot-online event. This patch fixes this bug and
->> also uses the new synchronization method (instead of get/put_online_cpus())
->> to ensure that we don't deadlock with CPU hotplug.
->>
-> 
-> Yes, that was my conclusion as well.  Thanks for clarifying.  (It could
-> be noted in the commit message as well if you should feel so inclined).
-> 
+--Xv2dRd4QbdO0uLoxOfUOlEn63mHEUm8WF
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: quoted-printable
 
-Please find the patch with updated changelog (and your Ack) below.
-(No changes in code).
+On 03/03/14 11:15, James Hogan wrote:
+> Hi Richard,
+>=20
+> On 02/03/14 23:57, Richard Weinberger wrote:
+>> @@ -235,10 +230,8 @@ static void handle_signal(unsigned long sig, sigi=
+nfo_t *info,
+>>  static int do_signal(struct pt_regs *regs, int syscall)
+>>  {
+>>  	unsigned int retval =3D 0, continue_addr =3D 0, restart_addr =3D 0;
+>> -	struct k_sigaction ka;
+>> -	siginfo_t info;
+>> -	int signr;
+>>  	int restart =3D 0;
+>> +	struct ksignal ksig;
+>> =20
+>>  	/*
+>>  	 * By the end of rt_sigreturn the context describes the point that t=
+he
+>> @@ -272,30 +265,30 @@ static int do_signal(struct pt_regs *regs, int s=
+yscall)
+>>  	}
+>> =20
+>>  	/*
+>> -	 * Get the signal to deliver. When running under ptrace, at this poi=
+nt
+>> -	 * the debugger may change all our registers ...
+>> -	 */
+>> -	signr =3D get_signal_to_deliver(&info, &ka, regs, NULL);
+>> -	/*
+>>  	 * Depending on the signal settings we may need to revert the decisi=
+on
+>>  	 * to restart the system call. But skip this if a debugger has chose=
+n to
+>>  	 * restart at a different PC.
+>>  	 */
+>>  	if (regs->REG_PC !=3D restart_addr)
+>>  		restart =3D 0;
+>> -	if (signr > 0) {
+>> +
+>> +	/*
+>> +	 * Get the signal to deliver. When running under ptrace, at this poi=
+nt
+>> +	 * the debugger may change all our registers ...
+>> +	 */
+>> +	if (get_signal(&ksig)) {
+>=20
+> The patch all looks good to me except for this bit. You've moved the bi=
+t
+> at which a ptrace debugger can alter the registers to after the check
+> for whether the PC has been altered, which would still need to cancel
+> the restart.
+>=20
+> Does something like the hunks below look reasonable to you?
+>=20
+> Would you like me to take this patch through the metag tree or do you
+> want to keep them together?
 
-From: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH] arm, kvm: Fix CPU hotplug callback registration
+I've applied the altered version of this patch to the metag tree for v3.1=
+5.
 
-Subsystems that want to register CPU hotplug callbacks, as well as perform
-initialization for the CPUs that are already online, often do it as shown
-below:
+Thanks
+James
 
-	get_online_cpus();
+>=20
+> Cheers
+> James
+>=20
+> @@ -275,7 +268,7 @@ static int do_signal(struct pt_regs *regs, int sysc=
+all)
+>  	 * Get the signal to deliver. When running under ptrace, at this poin=
+t
+>  	 * the debugger may change all our registers ...
+>  	 */
+> -	signr =3D get_signal_to_deliver(&info, &ka, regs, NULL);
+> +	get_signal(&ksig);
+>  	/*
+>  	 * Depending on the signal settings we may need to revert the decisio=
+n
+>  	 * to restart the system call. But skip this if a debugger has chosen=
+ to
+> @@ -283,19 +276,19 @@ static int do_signal(struct pt_regs *regs, int sy=
+scall)
+>  	 */
+>  	if (regs->REG_PC !=3D restart_addr)
+>  		restart =3D 0;
+> -	if (signr > 0) {
+> +	if (ksig.sig > 0) {
+>  		if (unlikely(restart)) {
+>  			if (retval =3D=3D -ERESTARTNOHAND
+>  			    || retval =3D=3D -ERESTART_RESTARTBLOCK
+>  			    || (retval =3D=3D -ERESTARTSYS
+> -				&& !(ka.sa.sa_flags & SA_RESTART))) {
+> +				&& !(ksig.ka.sa.sa_flags & SA_RESTART))) {
+>  				regs->REG_RETVAL =3D -EINTR;
+>  				regs->REG_PC =3D continue_addr;
+>  			}
+>  		}
+> =20
+>  		/* Whee! Actually deliver the signal.  */
+> -		handle_signal(signr, &info, &ka, regs);
+> +		handle_signal(&ksig, regs);
+>  		return 0;
+>  	}
+> =20
+>=20
 
-	for_each_online_cpu(cpu)
-		init_cpu(cpu);
 
-	register_cpu_notifier(&foobar_cpu_notifier);
+--Xv2dRd4QbdO0uLoxOfUOlEn63mHEUm8WF
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: OpenPGP digital signature
+Content-Disposition: attachment; filename="signature.asc"
 
-	put_online_cpus();
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.13 (GNU/Linux)
 
-This is wrong, since it is prone to ABBA deadlocks involving the
-cpu_add_remove_lock and the cpu_hotplug.lock (when running concurrently
-with CPU hotplug operations).
+iQIcBAEBAgAGBQJTKDD9AAoJEGwLaZPeOHZ65bgP/iyE+ySo0E5wPRP5zDvQb5qA
+LTYlxrR+sfnaO5cqnMuSmu5jnGI4bhokApgZGPPHcz8RsX7RnwsVOBOfnDrNf348
+qtFT32/WFObeqw9gZl7ZreVa/vAGXLtOQqN6y3rBh0OKqL/q3aDCHuU+FGY37bb4
+xCDSucR1Fqgjo/LyFWFrbWAWrWH1IgbJcGa0BD6cpxNNWVkE4w+VIzEq40jwOP/O
+e9LYrPIhRVSBi4c25hIknxY8qUHEO6WmyKBCzxdN0lDtnqszmpDfHF1qTFZVd+Wg
+xQEj4bJ7QDON/kJ0n3evOa9b9d77YbhlB4NomKApamSJlhYaCN4U87wbX3Eu3Wgo
+J4dHbhuyeDihMZjrDWZkkkpDVppmQdiROO4tyUVZAm9Kj1todibna1csqMnKwJfU
+MNL6BUo0LnHbhz8soCfpKDCKSuH71e3zWmfoZg/7znCLr80b10WwoYlm11OhLC8n
+C744SorxtNRP/UgJNMzLQCCUTjB4e5n4n0A3Nnr6+TNXY5D3Iz5fmtbxJIt1EWAU
+IJgDxwY1uiSDlZISQCMlkLmJc/w33JnjFeFQAAZHp6DUsEaqrTxrWRV3Z5wKvUie
+V6Z3AMhre8RGvAWFeOh4WkvCqRWWPg3lrCfwqRO2OgZrgoqgWQy6PHPEbmHj/WpV
+p0T8cQysOdtR2LTCl/x0
+=iV3W
+-----END PGP SIGNATURE-----
 
-Instead, the correct and race-free way of performing the callback
-registration is:
-
-	cpu_notifier_register_begin();
-
-	for_each_online_cpu(cpu)
-		init_cpu(cpu);
-
-	/* Note the use of the double underscored version of the API */
-	__register_cpu_notifier(&foobar_cpu_notifier);
-
-	cpu_notifier_register_done();
-
-
-In the existing arm kvm code, there is no synchronization with CPU hotplug
-to avoid missing the hotplug events that might occur after invoking
-init_hyp_mode() and before calling register_cpu_notifier(). Fix this bug
-and also use the new synchronization method (instead of get/put_online_cpus())
-to ensure that we don't deadlock with CPU hotplug.
-
-Cc: Gleb Natapov <gleb@kernel.org>
-Cc: Russell King <linux@arm.linux.org.uk>
-Cc: Ingo Molnar <mingo@kernel.org>
-Cc: kvmarm@lists.cs.columbia.edu
-Cc: kvm@vger.kernel.org
-Cc: linux-arm-kernel@lists.infradead.org
-Acked-by: Paolo Bonzini <pbonzini@redhat.com>
-Acked-by: Christoffer Dall <christoffer.dall@linaro.org>
-Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
----
-
- arch/arm/kvm/arm.c |    7 ++++++-
- 1 file changed, 6 insertions(+), 1 deletion(-)
-
-diff --git a/arch/arm/kvm/arm.c b/arch/arm/kvm/arm.c
-index bd18bb8..f0e50a0 100644
---- a/arch/arm/kvm/arm.c
-+++ b/arch/arm/kvm/arm.c
-@@ -1051,21 +1051,26 @@ int kvm_arch_init(void *opaque)
- 		}
- 	}
- 
-+	cpu_notifier_register_begin();
-+
- 	err = init_hyp_mode();
- 	if (err)
- 		goto out_err;
- 
--	err = register_cpu_notifier(&hyp_init_cpu_nb);
-+	err = __register_cpu_notifier(&hyp_init_cpu_nb);
- 	if (err) {
- 		kvm_err("Cannot register HYP init CPU notifier (%d)\n", err);
- 		goto out_err;
- 	}
- 
-+	cpu_notifier_register_done();
-+
- 	hyp_cpu_pm_init();
- 
- 	kvm_coproc_table_init();
- 	return 0;
- out_err:
-+	cpu_notifier_register_done();
- 	return err;
- }
- 
+--Xv2dRd4QbdO0uLoxOfUOlEn63mHEUm8WF--
