@@ -1,41 +1,43 @@
-From: Michael Kerrisk <mtk.manpages@gmail.com>
-Subject: Re: Making a universal list of syscalls?
-Date: Mon, 17 Mar 2014 20:36:50 +0100
-Message-ID: <CAHO5Pa22=TGDS8JvvskL2BZiwXU2qcyD0FvJ1GinXHF4JXwZsA@mail.gmail.com>
-References: <CALCETrWbjazg_kAY1uAB+cMTdaJqtyGrTwQWNFCSzZ56B0KEkw@mail.gmail.com>
- <15044.1394017702@warthog.procyon.org.uk> <531906C7.5030409@zytor.com> <CALCETrXt7bqQxymOC0ke+4Uaqv7nGOHqw3YhVHf4YKvJ4b8WpQ@mail.gmail.com>
+From: Paolo Bonzini <pbonzini@redhat.com>
+Subject: Re: [PATCH v6 05/11] pvqspinlock, x86: Allow unfair spinlock in a
+	PV guest
+Date: Tue, 18 Mar 2014 09:14:45 +0100
+Message-ID: <53280075.1020804@redhat.com>
+References: <1394650498-30118-1-git-send-email-Waiman.Long@hp.com>	<1394650498-30118-6-git-send-email-Waiman.Long@hp.com>	<53218E7A.8090707@citrix.com>
+	<5321AF96.6070909@redhat.com>
+	<20140317190511.GB11707@phenom.dumpdata.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wg0-f48.google.com ([74.125.82.48]:43931 "EHLO
-	mail-wg0-f48.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750706AbaCQThM (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 17 Mar 2014 15:37:12 -0400
-In-Reply-To: <CALCETrXt7bqQxymOC0ke+4Uaqv7nGOHqw3YhVHf4YKvJ4b8WpQ@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Andy Lutomirski <luto@amacapital.net>
-Cc: "H. Peter Anvin" <hpa@zytor.com>, David Howells <dhowells@redhat.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, libseccomp-discuss@lists.sourceforge.net, Michael Kerrisk-manpages <mtk.manpages@gmail.com>
+Content-Type: text/plain; charset="us-ascii"; Format="flowed"
+Content-Transfer-Encoding: 7bit
+Return-path: <virtualization-bounces@lists.linux-foundation.org>
+In-Reply-To: <20140317190511.GB11707@phenom.dumpdata.com>
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
+List-Post: <mailto:virtualization@lists.linux-foundation.org>
+List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
+Sender: virtualization-bounces@lists.linux-foundation.org
+Errors-To: virtualization-bounces@lists.linux-foundation.org
+To: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
+Cc: Jeremy Fitzhardinge <jeremy@goop.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, kvm@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, virtualization@lists.linux-foundation.org, Andi Kleen <andi@firstfloor.org>, "H. Peter Anvin" <hpa@zytor.com>, Michel Lespinasse <walken@google.com>, Alok Kataria <akataria@vmware.com>, linux-arch@vger.kernel.org, Gleb Natapov <gleb@redhat.com>, x86@kernel.org, Ingo Molnar <mingo@redhat.com>, xen-devel@lists.xenproject.org, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Rik van Riel <riel@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Scott J Norton <scott.norton@hp.com>, Steven Rostedt <rostedt@goodmis.org>, Chris Wright <chrisw@sous-sol.org>, Thomas Gleixner <tglx@linutronix.de>, Aswin Chandramouleeswaran <aswin@hp.com>, Chegu Vinod <chegu_vinod@hp.com>, Waiman Long <Waiman.Long@hp.com>, Oleg Nesterov <oleg@redhat.com>
+List-Id: linux-arch.vger.kernel.org
 
-On Fri, Mar 7, 2014 at 12:40 AM, Andy Lutomirski <luto@amacapital.net> wrote:
-> On Thu, Mar 6, 2014 at 3:37 PM, H. Peter Anvin <hpa@zytor.com> wrote:
->> On 03/05/2014 03:08 AM, David Howells wrote:
->>> It would be really nice if we could do this in such a manner that we could
->>> build strace from it.
->>
->> strace, seccomp, klibc, ... we all need more or less the same stuff.
->
-> strace also needs to know what the pointed-to type is for pointer
-> arguments, whether pointers are input, output, or both, and what kind
-> of flags / constants fit in which integer slot.
->
-> --Andy
+Il 17/03/2014 20:05, Konrad Rzeszutek Wilk ha scritto:
+>> > Measurements were done by Gleb for two guests running 2.6.32 with 16
+>> > vcpus each, on a 16-core system.  One guest ran with unfair locks,
+>> > one guest ran with fair locks.  Two kernel compilations ("time make
+> And when you say fair locks are you saying PV ticketlocks or generic
+> ticketlocks?
 
+Generic, of course.
 
-Late to the party, but... Obviously man-pages would be interested in
-any results here, so if you CCed me on any future work/results that
-would be great.
+> You should see the same values with the PV ticketlock. It is not clear
+> to me if this testing did include that variant of locks?
 
-Thanks,
+Yes, PV is fine.  But up to this point of the series, we are concerned 
+about spinlock performance when running on an overcommitted hypervisor 
+that doesn't support PV spinlocks.
 
-Michael
+Paolo
