@@ -1,41 +1,145 @@
-From: Paolo Bonzini <pbonzini@redhat.com>
-Subject: Re: [PATCH RFC v6 10/11] pvqspinlock, x86: Enable qspinlock PV support
-	for KVM
-Date: Tue, 18 Mar 2014 09:18:13 +0100
-Message-ID: <53280145.5050809@redhat.com>
-References: <1394650498-30118-1-git-send-email-Waiman.Long@hp.com>	<1394650498-30118-11-git-send-email-Waiman.Long@hp.com>	<5321B9BE.7050209@redhat.com>	<5322035B.5000205@hp.com>
-	<5322C0F7.2090604@redhat.com> <53273532.1010003@hp.com>
+From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Subject: [UPDATED PATCH v3 10/52] arm, kvm: Fix CPU hotplug callback registration
+Date: Tue, 18 Mar 2014 15:53:05 +0530
+Message-ID: <53281E89.7080201@linux.vnet.ibm.com>
+References: <20140310203312.10746.310.stgit@srivatsabhat.in.ibm.com> <20140310203538.10746.25364.stgit@srivatsabhat.in.ibm.com> <20140312232127.GC24808@cbox> <53229701.8050405@linux.vnet.ibm.com> <20140314191055.GF28661@cbox>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"; Format="flowed"
+Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
-Return-path: <virtualization-bounces@lists.linux-foundation.org>
-In-Reply-To: <53273532.1010003@hp.com>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
-List-Post: <mailto:virtualization@lists.linux-foundation.org>
-List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
-Sender: virtualization-bounces@lists.linux-foundation.org
-Errors-To: virtualization-bounces@lists.linux-foundation.org
-To: Waiman Long <waiman.long@hp.com>
-Cc: Jeremy Fitzhardinge <jeremy@goop.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, linux-kernel@vger, kvm@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, virtualization@lists.linux-foundation.org, Andi Kleen <andi@firstfloor.org>, "H. Peter Anvin" <hpa@zytor.com>, Michel Lespinasse <walken@google.com>, Alok Kataria <akataria@vmware.com>, linux-arch@vger.kernel.org, Gleb Natapov <gleb@redhat.com>, x86@kernel.org, Ingo Molnar <mingo@redhat.com>, xen-devel@lists.xenproject.org, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Arnd Bergmann <arnd@arndb.de>, Scott J Norton <scott.norton@hp.com>, Steven Rostedt <rostedt@goodmis.org>, Chris Wright <chrisw@sous-sol.org>, Thomas Gleixner <tglx@linutronix.de>, Aswin Chandramouleeswaran <aswin@hp.com>, Chegu Vinod <chegu_vinod@hp.com>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Oleg Nesterov <oleg@redhat.co>
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from e23smtp03.au.ibm.com ([202.81.31.145]:35228 "EHLO
+	e23smtp03.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753800AbaCRKXg (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 18 Mar 2014 06:23:36 -0400
+Received: from /spool/local
+	by e23smtp03.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
+	Tue, 18 Mar 2014 20:23:34 +1000
+In-Reply-To: <20140314191055.GF28661@cbox>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Christoffer Dall <christoffer.dall@linaro.org>
+Cc: ego@linux.vnet.ibm.com, kvm@vger.kernel.org, peterz@infradead.org, linux-kernel@vger.kernel.org, linuxppc-dev@ozlabs.org, paulus@samba.org, walken@google.com, kvmarm@lists.cs.columbia.edu, linux-arch@vger.kernel.org, linux@arm.linux.org.uk, mingo@kernel.org, marc.zyngier@arm.com, paulmck@linux.vnet.ibm.com, linux-pm@vger.kernel.org, Gleb Natapov <gleb@kernel.org>, rusty@rustcorp.com.au, tglx@linutronix.de, linux-arm-kernel@lists.infradead.org, rjw@rjwysocki.net, oleg@redhat.com, tj@kernel.org, Paolo Bonzini <pbonzini@redhat.com>, akpm@linux-foundation.org
 
-Il 17/03/2014 18:47, Waiman Long ha scritto:
->> Yeah, what I mean is that the patches that enable paravirtualization
->> should also take care of decreasing the unfair-lock jump label when
->> paravirtualization is enabled.
->
-> As there are people who don't like unfair lock at all, I prefer to give
-> them the option to turn this on or off instead of forcing them to always
-> use unfair lock in a PV guest.
+On 03/15/2014 12:40 AM, Christoffer Dall wrote:
+> On Fri, Mar 14, 2014 at 11:13:29AM +0530, Srivatsa S. Bhat wrote:
+>> On 03/13/2014 04:51 AM, Christoffer Dall wrote:
+>>> On Tue, Mar 11, 2014 at 02:05:38AM +0530, Srivatsa S. Bhat wrote:
+>>>> Subsystems that want to register CPU hotplug callbacks, as well as perform
+>>>> initialization for the CPUs that are already online, often do it as shown
+>>>> below:
+>>>>
+[...]
+>>> Just so we're clear, the existing code was simply racy as not prone to
+>>> deadlocks, right?
+>>>
+>>> This makes it clear that the test above for compatible CPUs can be quite
+>>> easily evaded by using CPU hotplug, but we don't really have a good
+>>> solution for handling that yet...  Hmmm, grumble grumble, I guess if you
+>>> hotplug unsupported CPUs on a KVM/ARM system for now, stuff will break.
+>>>
+>>
+>> In this particular case, there was no deadlock possibility, rather the
+>> existing code had insufficient synchronization against CPU hotplug.
+>>
+>> init_hyp_mode() would invoke cpu_init_hyp_mode() on currently online CPUs
+>> using on_each_cpu(). If a CPU came online after this point and before calling
+>> register_cpu_notifier(), that CPU would remain uninitialized because this
+>> subsystem would miss the hot-online event. This patch fixes this bug and
+>> also uses the new synchronization method (instead of get/put_online_cpus())
+>> to ensure that we don't deadlock with CPU hotplug.
+>>
+> 
+> Yes, that was my conclusion as well.  Thanks for clarifying.  (It could
+> be noted in the commit message as well if you should feel so inclined).
+> 
 
-I understand, but this is virtualization after all.  A bad scheduler 
-decision means no progress at all.  That's much worse than unfairness.
+Please find the patch with updated changelog (and your Ack) below.
+(No changes in code).
 
-And also, KVM and Xen will stay fair, so if you want fairness just pick 
-a hypervisor that supports it.
+From: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
+Subject: [PATCH] arm, kvm: Fix CPU hotplug callback registration
 
-Paolo
+Subsystems that want to register CPU hotplug callbacks, as well as perform
+initialization for the CPUs that are already online, often do it as shown
+below:
+
+	get_online_cpus();
+
+	for_each_online_cpu(cpu)
+		init_cpu(cpu);
+
+	register_cpu_notifier(&foobar_cpu_notifier);
+
+	put_online_cpus();
+
+This is wrong, since it is prone to ABBA deadlocks involving the
+cpu_add_remove_lock and the cpu_hotplug.lock (when running concurrently
+with CPU hotplug operations).
+
+Instead, the correct and race-free way of performing the callback
+registration is:
+
+	cpu_notifier_register_begin();
+
+	for_each_online_cpu(cpu)
+		init_cpu(cpu);
+
+	/* Note the use of the double underscored version of the API */
+	__register_cpu_notifier(&foobar_cpu_notifier);
+
+	cpu_notifier_register_done();
+
+
+In the existing arm kvm code, there is no synchronization with CPU hotplug
+to avoid missing the hotplug events that might occur after invoking
+init_hyp_mode() and before calling register_cpu_notifier(). Fix this bug
+and also use the new synchronization method (instead of get/put_online_cpus())
+to ensure that we don't deadlock with CPU hotplug.
+
+Cc: Gleb Natapov <gleb@kernel.org>
+Cc: Russell King <linux@arm.linux.org.uk>
+Cc: Ingo Molnar <mingo@kernel.org>
+Cc: kvmarm@lists.cs.columbia.edu
+Cc: kvm@vger.kernel.org
+Cc: linux-arm-kernel@lists.infradead.org
+Acked-by: Paolo Bonzini <pbonzini@redhat.com>
+Acked-by: Christoffer Dall <christoffer.dall@linaro.org>
+Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
+---
+
+ arch/arm/kvm/arm.c |    7 ++++++-
+ 1 file changed, 6 insertions(+), 1 deletion(-)
+
+diff --git a/arch/arm/kvm/arm.c b/arch/arm/kvm/arm.c
+index bd18bb8..f0e50a0 100644
+--- a/arch/arm/kvm/arm.c
++++ b/arch/arm/kvm/arm.c
+@@ -1051,21 +1051,26 @@ int kvm_arch_init(void *opaque)
+ 		}
+ 	}
+ 
++	cpu_notifier_register_begin();
++
+ 	err = init_hyp_mode();
+ 	if (err)
+ 		goto out_err;
+ 
+-	err = register_cpu_notifier(&hyp_init_cpu_nb);
++	err = __register_cpu_notifier(&hyp_init_cpu_nb);
+ 	if (err) {
+ 		kvm_err("Cannot register HYP init CPU notifier (%d)\n", err);
+ 		goto out_err;
+ 	}
+ 
++	cpu_notifier_register_done();
++
+ 	hyp_cpu_pm_init();
+ 
+ 	kvm_coproc_table_init();
+ 	return 0;
+ out_err:
++	cpu_notifier_register_done();
+ 	return err;
+ }
+ 
