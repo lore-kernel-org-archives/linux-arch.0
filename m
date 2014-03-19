@@ -1,46 +1,79 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:52979 "EHLO
+Received: from merlin.infradead.org ([205.233.59.134]:52977 "EHLO
 	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756312AbaCSG43 (ORCPT
+	with ESMTP id S1756228AbaCSG43 (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>); Wed, 19 Mar 2014 02:56:29 -0400
-Message-ID: <20140319065204.317916607@infradead.org>
-Date: Wed, 19 Mar 2014 07:47:39 +0100
+Message-ID: <20140319065204.150839038@infradead.org>
+Date: Wed, 19 Mar 2014 07:47:36 +0100
 From: Peter Zijlstra <peterz@infradead.org>
-Subject: [PATCH 10/31] arch,c6x: Convert smp_mb__*
+Subject: [PATCH 07/31] arch,arm64: Convert smp_mb__*
 References: <20140319064729.660482086@infradead.org>
-Content-Disposition: inline; filename=peterz-c6x-smp_mb__atomic.patch
+Content-Disposition: inline; filename=peterz-arm64-smp_mb__atomic.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 Cc: torvalds@linux-foundation.org, akpm@linux-foundation.org, mingo@kernel.org, will.deacon@arm.com, paulmck@linux.vnet.ibm.com, Peter Zijlstra <peterz@infradead.org>
-Message-ID: <20140319064739.bCo9rv-yflTRougd4cdccbRs9JsXlQbCs5VybjCgJCs@z>
+Message-ID: <20140319064736.LZL5bDPfOsz4w0F-vt_ifemj_ZCwpnNXLGqi5WM3Fx0@z>
 
-c6x doesn't have a barrier.h and completely relies on
-asm-generic/barrier.h. Therefore its smp_mb() is barrier() and we can
-use the default versions that are smp_mb().
+AARGH64 uses ll/sc primitives that do not imply any barriers for the
+normal atomics, therefore smp_mb__{before,after} should be a full
+barrier.
+
+Since AARGH64 doesn't use asm-generic/barrier.h, add the required
+definitions to its asm/barrier.h.
 
 Signed-off-by: Peter Zijlstra <peterz@infradead.org>
 ---
- arch/c6x/include/asm/bitops.h |    8 +-------
- 1 file changed, 1 insertion(+), 7 deletions(-)
+ arch/arm64/include/asm/atomic.h  |    5 -----
+ arch/arm64/include/asm/barrier.h |    3 +++
+ arch/arm64/include/asm/bitops.h  |    9 ---------
+ 3 files changed, 3 insertions(+), 14 deletions(-)
 
---- a/arch/c6x/include/asm/bitops.h
-+++ b/arch/c6x/include/asm/bitops.h
-@@ -14,14 +14,8 @@
- #ifdef __KERNEL__
+--- a/arch/arm64/include/asm/atomic.h
++++ b/arch/arm64/include/asm/atomic.h
+@@ -152,11 +152,6 @@ static inline int __atomic_add_unless(at
  
- #include <linux/bitops.h>
--
- #include <asm/byteorder.h>
--
--/*
-- * clear_bit() doesn't provide any barrier for the compiler.
-- */
--#define smp_mb__before_clear_bit() barrier()
--#define smp_mb__after_clear_bit()  barrier()
-+#include <asm/barrier.h>
+ #define atomic_add_negative(i,v) (atomic_add_return(i, v) < 0)
  
+-#define smp_mb__before_atomic_dec()	smp_mb()
+-#define smp_mb__after_atomic_dec()	smp_mb()
+-#define smp_mb__before_atomic_inc()	smp_mb()
+-#define smp_mb__after_atomic_inc()	smp_mb()
+-
  /*
-  * We are lucky, DSP is perfect for bitops: do it in 3 cycles
+  * 64-bit atomic operations.
+  */
+--- a/arch/arm64/include/asm/barrier.h
++++ b/arch/arm64/include/asm/barrier.h
+@@ -97,6 +97,9 @@ do {									\
+ #define set_mb(var, value)	do { var = value; smp_mb(); } while (0)
+ #define nop()		asm volatile("nop");
+ 
++#define smp_mb__before_atomic()	smp_mb()
++#define smp_mb__after_atomic()	smp_mb()
++
+ #endif	/* __ASSEMBLY__ */
+ 
+ #endif	/* __ASM_BARRIER_H */
+--- a/arch/arm64/include/asm/bitops.h
++++ b/arch/arm64/include/asm/bitops.h
+@@ -17,17 +17,8 @@
+ #define __ASM_BITOPS_H
+ 
+ #include <linux/compiler.h>
+-
+ #include <asm/barrier.h>
+ 
+-/*
+- * clear_bit may not imply a memory barrier
+- */
+-#ifndef smp_mb__before_clear_bit
+-#define smp_mb__before_clear_bit()	smp_mb()
+-#define smp_mb__after_clear_bit()	smp_mb()
+-#endif
+-
+ #ifndef _LINUX_BITOPS_H
+ #error only <linux/bitops.h> can be included directly
+ #endif
 
 
