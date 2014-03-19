@@ -1,32 +1,56 @@
-From: David Miller <davem@davemloft.net>
-Subject: Re: [PATCH 26/31] arch,sparc: Convert smp_mb__*
-Date: Wed, 19 Mar 2014 13:54:28 -0400 (EDT)
-Message-ID: <20140319.135428.665886252770597921.davem@davemloft.net>
+From: Lennox Wu <lennox.wu@gmail.com>
+Subject: Re: [PATCH 24/31] arch,score: Convert smp_mb__*
+Date: Thu, 20 Mar 2014 02:53:50 +0800
+Message-ID: <CAF0htA44Skgit5kE6g1zFQZr2byQeD_Ek5EmvQzQ6hT7nYb4qg@mail.gmail.com>
 References: <20140319064729.660482086@infradead.org>
-	<20140319065205.163413133@infradead.org>
+	<20140319065205.060180266@infradead.org>
 Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=ISO-8859-1
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from shards.monkeyblade.net ([149.20.54.216]:37047 "EHLO
-	shards.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751898AbaCSRya (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 19 Mar 2014 13:54:30 -0400
-In-Reply-To: <20140319065205.163413133@infradead.org>
+Received: from mail-vc0-f169.google.com ([209.85.220.169]:45076 "EHLO
+	mail-vc0-f169.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753402AbaCSSxv (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 19 Mar 2014 14:53:51 -0400
+In-Reply-To: <20140319065205.060180266@infradead.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: peterz@infradead.org
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, torvalds@linux-foundation.org, akpm@linux-foundation.org, mingo@kernel.org, will.deacon@arm.com, paulmck@linux.vnet.ibm.com
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: linux-arch@vger.kernel.org, open list <linux-kernel@vger.kernel.org>
 
-From: Peter Zijlstra <peterz@infradead.org>
-Date: Wed, 19 Mar 2014 07:47:55 +0100
+It's fine to S+core
+Thanks :)
 
-> sparc32: fully relies on asm-generic/barrier.h and thus can use its
-> 	 implementation.
-> 
-> sparc64: is strongly ordered and its atomic ops imply a full barrier,
-> 	 implement the new primitives using barrier().
-> 
+Acked-by: Lennox Wu<lennox.wu@gmail.com>
+
+2014-03-19 14:47 GMT+08:00 Peter Zijlstra <peterz@infradead.org>:
+> score fully relies on asm-generic/barrier.h, so it can use its default
+> implementation.
+>
 > Signed-off-by: Peter Zijlstra <peterz@infradead.org>
-
-Acked-by: David S. Miller <davem@davemloft.net>
+> ---
+>  arch/score/include/asm/bitops.h |    7 +------
+>  1 file changed, 1 insertion(+), 6 deletions(-)
+>
+> --- a/arch/score/include/asm/bitops.h
+> +++ b/arch/score/include/asm/bitops.h
+> @@ -2,12 +2,7 @@
+>  #define _ASM_SCORE_BITOPS_H
+>
+>  #include <asm/byteorder.h> /* swab32 */
+> -
+> -/*
+> - * clear_bit() doesn't provide any barrier for the compiler.
+> - */
+> -#define smp_mb__before_clear_bit()     barrier()
+> -#define smp_mb__after_clear_bit()      barrier()
+> +#include <asm/barrier.h>
+>
+>  #include <asm-generic/bitops.h>
+>  #include <asm-generic/bitops/__fls.h>
+>
+>
+> --
+> To unsubscribe from this list: send the line "unsubscribe linux-kernel" in
+> the body of a message to majordomo@vger.kernel.org
+> More majordomo info at  http://vger.kernel.org/majordomo-info.html
+> Please read the FAQ at  http://www.tux.org/lkml/
