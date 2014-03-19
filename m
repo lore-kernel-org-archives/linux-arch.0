@@ -1,37 +1,30 @@
-From: Max Filippov <jcmvbkbc@gmail.com>
+From: Peter Zijlstra <peterz@infradead.org>
 Subject: Re: [PATCH 29/31] arch,xtensa: Convert smp_mb__*
-Date: Wed, 19 Mar 2014 17:11:34 +0400
-Message-ID: <CAMo8BfLLFqYz96LLJy0f+9XgAdQVUVhRg_VGp+yG92Gfk=sfaQ@mail.gmail.com>
+Date: Wed, 19 Mar 2014 14:30:30 +0100
+Message-ID: <20140319133030.GA7744@laptop.programming.kicks-ass.net>
 References: <20140319064729.660482086@infradead.org>
-	<20140319065205.319240141@infradead.org>
+ <20140319065205.319240141@infradead.org>
+ <CAMo8BfLLFqYz96LLJy0f+9XgAdQVUVhRg_VGp+yG92Gfk=sfaQ@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20140319065205.319240141@infradead.org>
+Content-Disposition: inline
+In-Reply-To: <CAMo8BfLLFqYz96LLJy0f+9XgAdQVUVhRg_VGp+yG92Gfk=sfaQ@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Peter Zijlstra <peterz@infradead.org>
+To: Max Filippov <jcmvbkbc@gmail.com>
 Cc: Linux-Arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, will.deacon@arm.com, Paul McKenney <paulmck@linux.vnet.ibm.com>
 List-Id: linux-arch.vger.kernel.org
 
-Hi Peter,
+On Wed, Mar 19, 2014 at 05:11:34PM +0400, Max Filippov wrote:
+> Hi Peter,
+> 
+> On Wed, Mar 19, 2014 at 10:47 AM, Peter Zijlstra <peterz@infradead.org> wrote:
+> > Xtensa SMP has ll/sc which is fully serializing, therefore its exising
+> 
+> One minor correction: current xtensa ISA doens't have ll/sc, it only
+> has cas (s32c1i instruction), which is fully serializing.
 
-On Wed, Mar 19, 2014 at 10:47 AM, Peter Zijlstra <peterz@infradead.org> wrote:
-> Xtensa SMP has ll/sc which is fully serializing, therefore its exising
+Oh; my bad in reading your asm. The l32i and s32cli read like a load 32
+and store 32 conditional to me. But sure, cas works too :-)
 
-One minor correction: current xtensa ISA doens't have ll/sc, it only
-has cas (s32c1i instruction), which is fully serializing.
-
-> smp_mb__{before,after}_clear_bit() appear unduly heavy.
->
-> Implement the new barriers are barrier().
->
-> Signed-off-by: Peter Zijlstra <peterz@infradead.org>
-> ---
->  arch/xtensa/include/asm/atomic.h  |    7 +------
->  arch/xtensa/include/asm/barrier.h |    3 +++
->  arch/xtensa/include/asm/bitops.h  |    4 +---
->  3 files changed, 5 insertions(+), 9 deletions(-)
-
--- 
-Thanks.
--- Max
+I'll ammend the changelog. Thanks!
