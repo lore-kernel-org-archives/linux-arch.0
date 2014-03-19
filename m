@@ -1,57 +1,56 @@
 From: Peter Zijlstra <peterz@infradead.org>
-Subject: [PATCH 13/31] arch,hexagon: Convert smp_mb__*
-Date: Wed, 19 Mar 2014 07:47:42 +0100
-Message-ID: <20140319065204.474701877@infradead.org>
+Subject: [PATCH 01/31] ia64: Fix up smp_mb__{before,after}_clear_bit
+Date: Wed, 19 Mar 2014 07:47:30 +0100
+Message-ID: <20140319065203.838756777@infradead.org>
 References: <20140319064729.660482086@infradead.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline; filename=peterz-hexagon-smp_mb__atomic.patch
+Content-Disposition: inline; filename=peterz-ia64-atomics.patch
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 Cc: torvalds@linux-foundation.org, akpm@linux-foundation.org, mingo@kernel.org, will.deacon@arm.com, paulmck@linux.vnet.ibm.com, Peter Zijlstra <peterz@infradead.org>
 List-Id: linux-arch.vger.kernel.org
 
-Hexagon uses asm-gemeric/barrier.h and its smp_mb() is barrier().
-Therefore we can use the default implementation that uses smp_mb().
+IA64 doesn't actually have acquire/release barriers, its a lie!
+
+Add a comment explaining this and fix up the bitop barriers.
 
 Signed-off-by: Peter Zijlstra <peterz@infradead.org>
 ---
- arch/hexagon/include/asm/atomic.h |    6 +-----
- arch/hexagon/include/asm/bitops.h |    4 +---
- 2 files changed, 2 insertions(+), 8 deletions(-)
+ arch/ia64/include/asm/bitops.h       |    7 ++-----
+ arch/ia64/include/uapi/asm/cmpxchg.h |    9 +++++++++
+ 2 files changed, 11 insertions(+), 5 deletions(-)
 
---- a/arch/hexagon/include/asm/atomic.h
-+++ b/arch/hexagon/include/asm/atomic.h
-@@ -24,6 +24,7 @@
+--- a/arch/ia64/include/asm/bitops.h
++++ b/arch/ia64/include/asm/bitops.h
+@@ -65,11 +65,8 @@ __set_bit (int nr, volatile void *addr)
+ 	*((__u32 *) addr + (nr >> 5)) |= (1 << (nr & 31));
+ }
  
- #include <linux/types.h>
- #include <asm/cmpxchg.h>
-+#include <asm/barrier.h>
+-/*
+- * clear_bit() has "acquire" semantics.
+- */
+-#define smp_mb__before_clear_bit()	smp_mb()
+-#define smp_mb__after_clear_bit()	do { /* skip */; } while (0)
++#define smp_mb__before_clear_bit()	barrier();
++#define smp_mb__after_clear_bit()	barrier();
  
- #define ATOMIC_INIT(i)		{ (i) }
- #define atomic_set(v, i)	((v)->counter = (i))
-@@ -163,9 +164,4 @@ static inline int __atomic_add_unless(at
- #define atomic_inc_return(v) (atomic_add_return(1, v))
- #define atomic_dec_return(v) (atomic_sub_return(1, v))
+ /**
+  * clear_bit - Clears a bit in memory
+--- a/arch/ia64/include/uapi/asm/cmpxchg.h
++++ b/arch/ia64/include/uapi/asm/cmpxchg.h
+@@ -118,6 +118,15 @@ extern long ia64_cmpxchg_called_with_bad
+ #define cmpxchg_rel(ptr, o, n)	\
+ 	ia64_cmpxchg(rel, (ptr), (o), (n), sizeof(*(ptr)))
  
--#define smp_mb__before_atomic_dec()	barrier()
--#define smp_mb__after_atomic_dec()	barrier()
--#define smp_mb__before_atomic_inc()	barrier()
--#define smp_mb__after_atomic_inc()	barrier()
--
- #endif
---- a/arch/hexagon/include/asm/bitops.h
-+++ b/arch/hexagon/include/asm/bitops.h
-@@ -25,12 +25,10 @@
- #include <linux/compiler.h>
- #include <asm/byteorder.h>
- #include <asm/atomic.h>
-+#include <asm/barrier.h>
- 
- #ifdef __KERNEL__
- 
--#define smp_mb__before_clear_bit()	barrier()
--#define smp_mb__after_clear_bit()	barrier()
--
- /*
-  * The offset calculations for these are based on BITS_PER_LONG == 32
-  * (i.e. I get to shift by #5-2 (32 bits per long, 4 bytes per access),
++/*
++ * Worse still - early processor implementations actually just ignored
++ * the acquire/release and did a full fence all the time.  Unfortunately
++ * this meant a lot of badly written code that used .acq when they really
++ * wanted .rel became legacy out in the wild - so when we made a cpu
++ * that strictly did the .acq or .rel ... all that code started breaking - so
++ * we had to back-pedal and keep the "legacy" behavior of a full fence :-(
++ */
++
+ /* for compatibility with other platforms: */
+ #define cmpxchg(ptr, o, n)	cmpxchg_acq((ptr), (o), (n))
+ #define cmpxchg64(ptr, o, n)	cmpxchg_acq((ptr), (o), (n))
