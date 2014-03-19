@@ -1,71 +1,36 @@
 From: Peter Zijlstra <peterz@infradead.org>
-Subject: [PATCH 15/31] arch,m32r: Convert smp_mb__*
-Date: Wed, 19 Mar 2014 07:47:44 +0100
-Message-ID: <20140319065204.578288229@infradead.org>
+Subject: [PATCH 24/31] arch,score: Convert smp_mb__*
+Date: Wed, 19 Mar 2014 07:47:53 +0100
+Message-ID: <20140319065205.060180266@infradead.org>
 References: <20140319064729.660482086@infradead.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline; filename=peterz-m32r-smp_mb__atomic.patch
+Content-Disposition: inline; filename=peterz-score-smp_mb__atomic.patch
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 Cc: torvalds@linux-foundation.org, akpm@linux-foundation.org, mingo@kernel.org, will.deacon@arm.com, paulmck@linux.vnet.ibm.com, Peter Zijlstra <peterz@infradead.org>
 List-Id: linux-arch.vger.kernel.org
 
-M32r uses asm-generic/barrier.h and its smp_mb() is barrier();
-therefore we can use the generic versions which default to smp_mb().
+score fully relies on asm-generic/barrier.h, so it can use its default
+implementation.
 
 Signed-off-by: Peter Zijlstra <peterz@infradead.org>
 ---
- arch/m32r/include/asm/atomic.h |    7 +------
- arch/m32r/include/asm/bitops.h |    6 ++----
- 2 files changed, 3 insertions(+), 10 deletions(-)
+ arch/score/include/asm/bitops.h |    7 +------
+ 1 file changed, 1 insertion(+), 6 deletions(-)
 
---- a/arch/m32r/include/asm/atomic.h
-+++ b/arch/m32r/include/asm/atomic.h
-@@ -13,6 +13,7 @@
- #include <asm/assembler.h>
- #include <asm/cmpxchg.h>
- #include <asm/dcache_clear.h>
-+#include <asm/barrier.h>
+--- a/arch/score/include/asm/bitops.h
++++ b/arch/score/include/asm/bitops.h
+@@ -2,12 +2,7 @@
+ #define _ASM_SCORE_BITOPS_H
  
- /*
-  * Atomic operations that C can't guarantee us.  Useful for
-@@ -308,10 +309,4 @@ static __inline__ void atomic_set_mask(u
- 	local_irq_restore(flags);
- }
- 
--/* Atomic operations are already serializing on m32r */
--#define smp_mb__before_atomic_dec()	barrier()
--#define smp_mb__after_atomic_dec()	barrier()
--#define smp_mb__before_atomic_inc()	barrier()
--#define smp_mb__after_atomic_inc()	barrier()
+ #include <asm/byteorder.h> /* swab32 */
 -
- #endif	/* _ASM_M32R_ATOMIC_H */
---- a/arch/m32r/include/asm/bitops.h
-+++ b/arch/m32r/include/asm/bitops.h
-@@ -21,6 +21,7 @@
- #include <asm/byteorder.h>
- #include <asm/dcache_clear.h>
- #include <asm/types.h>
-+#include <asm/barrier.h>
- 
- /*
-  * These have to be done with inline assembly: that way the bit-setting
-@@ -73,7 +74,7 @@ static __inline__ void set_bit(int nr, v
-  *
-  * clear_bit() is atomic and may not be reordered.  However, it does
-  * not contain a memory barrier, so if it is used for locking purposes,
-- * you should call smp_mb__before_clear_bit() and/or smp_mb__after_clear_bit()
-+ * you should call smp_mb__before_atomic() and/or smp_mb__after_atomic()
-  * in order to ensure changes are visible on other processors.
-  */
- static __inline__ void clear_bit(int nr, volatile void * addr)
-@@ -103,9 +104,6 @@ static __inline__ void clear_bit(int nr,
- 	local_irq_restore(flags);
- }
- 
+-/*
+- * clear_bit() doesn't provide any barrier for the compiler.
+- */
 -#define smp_mb__before_clear_bit()	barrier()
 -#define smp_mb__after_clear_bit()	barrier()
--
- /**
-  * change_bit - Toggle a bit in memory
-  * @nr: Bit to clear
++#include <asm/barrier.h>
+ 
+ #include <asm-generic/bitops.h>
+ #include <asm-generic/bitops/__fls.h>
