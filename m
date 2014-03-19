@@ -1,84 +1,101 @@
 From: Peter Zijlstra <peterz@infradead.org>
-Subject: [PATCH 14/31] arch,ia64: Convert smp_mb__*
-Date: Wed, 19 Mar 2014 07:47:43 +0100
-Message-ID: <20140319065204.526383736@infradead.org>
+Subject: [PATCH 02/31] arc,hexagon: Delete asm/barrier.h
+Date: Wed, 19 Mar 2014 07:47:31 +0100
+Message-ID: <20140319065203.890725970@infradead.org>
 References: <20140319064729.660482086@infradead.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline; filename=peterz-ia64-smp_mb__atomic.patch
+Content-Disposition: inline; filename=peterz-kill-arc-hexagon-barrier.patch
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 Cc: torvalds@linux-foundation.org, akpm@linux-foundation.org, mingo@kernel.org, will.deacon@arm.com, paulmck@linux.vnet.ibm.com, Peter Zijlstra <peterz@infradead.org>
 List-Id: linux-arch.vger.kernel.org
 
-ia64 atomic ops are full barriers; implement the new
-smp_mb__{before,after}_atomic().
+Both already use asm-generic/barrier.h as per their
+include/asm/Kbuild. Remove the stale files.
 
 Signed-off-by: Peter Zijlstra <peterz@infradead.org>
 ---
- arch/ia64/include/asm/atomic.h  |    7 +------
- arch/ia64/include/asm/barrier.h |    3 +++
- arch/ia64/include/asm/bitops.h  |    6 ++----
- 3 files changed, 6 insertions(+), 10 deletions(-)
+ arch/arc/include/asm/barrier.h     |   37 -------------------------------------
+ arch/hexagon/include/asm/barrier.h |   37 -------------------------------------
+ 2 files changed, 74 deletions(-)
 
---- a/arch/ia64/include/asm/atomic.h
-+++ b/arch/ia64/include/asm/atomic.h
-@@ -15,6 +15,7 @@
- #include <linux/types.h>
- 
- #include <asm/intrinsics.h>
-+#include <asm/barrier.h>
- 
- 
- #define ATOMIC_INIT(i)		{ (i) }
-@@ -208,10 +209,4 @@ atomic64_add_negative (__s64 i, atomic64
- #define atomic64_inc(v)			atomic64_add(1, (v))
- #define atomic64_dec(v)			atomic64_sub(1, (v))
- 
--/* Atomic operations are already serializing */
--#define smp_mb__before_atomic_dec()	barrier()
--#define smp_mb__after_atomic_dec()	barrier()
--#define smp_mb__before_atomic_inc()	barrier()
--#define smp_mb__after_atomic_inc()	barrier()
+--- a/arch/arc/include/asm/barrier.h
++++ /dev/null
+@@ -1,37 +0,0 @@
+-/*
+- * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
+- *
+- * This program is free software; you can redistribute it and/or modify
+- * it under the terms of the GNU General Public License version 2 as
+- * published by the Free Software Foundation.
+- */
 -
- #endif /* _ASM_IA64_ATOMIC_H */
---- a/arch/ia64/include/asm/barrier.h
-+++ b/arch/ia64/include/asm/barrier.h
-@@ -55,6 +55,9 @@
- 
- #endif
- 
-+#define smp_mb__before_atomic()	barrier()
-+#define smp_mb__after_atomic()	barrier()
-+
- /*
-  * IA64 GCC turns volatile stores into st.rel and volatile loads into ld.acq no
-  * need for asm trickery!
---- a/arch/ia64/include/asm/bitops.h
-+++ b/arch/ia64/include/asm/bitops.h
-@@ -16,6 +16,7 @@
- #include <linux/compiler.h>
- #include <linux/types.h>
- #include <asm/intrinsics.h>
-+#include <asm/barrier.h>
- 
- /**
-  * set_bit - Atomically set a bit in memory
-@@ -65,9 +66,6 @@ __set_bit (int nr, volatile void *addr)
- 	*((__u32 *) addr + (nr >> 5)) |= (1 << (nr & 31));
- }
- 
--#define smp_mb__before_clear_bit()	barrier();
--#define smp_mb__after_clear_bit()	barrier();
+-#ifndef __ASM_BARRIER_H
+-#define __ASM_BARRIER_H
 -
- /**
-  * clear_bit - Clears a bit in memory
-  * @nr: Bit to clear
-@@ -75,7 +73,7 @@ __set_bit (int nr, volatile void *addr)
-  *
-  * clear_bit() is atomic and may not be reordered.  However, it does
-  * not contain a memory barrier, so if it is used for locking purposes,
-- * you should call smp_mb__before_clear_bit() and/or smp_mb__after_clear_bit()
-+ * you should call smp_mb__before_atomic() and/or smp_mb__after_atomic()
-  * in order to ensure changes are visible on other processors.
-  */
- static __inline__ void
+-#ifndef __ASSEMBLY__
+-
+-/* TODO-vineetg: Need to see what this does, don't we need sync anywhere */
+-#define mb() __asm__ __volatile__ ("" : : : "memory")
+-#define rmb() mb()
+-#define wmb() mb()
+-#define set_mb(var, value)  do { var = value; mb(); } while (0)
+-#define set_wmb(var, value) do { var = value; wmb(); } while (0)
+-#define read_barrier_depends()  mb()
+-
+-/* TODO-vineetg verify the correctness of macros here */
+-#ifdef CONFIG_SMP
+-#define smp_mb()        mb()
+-#define smp_rmb()       rmb()
+-#define smp_wmb()       wmb()
+-#else
+-#define smp_mb()        barrier()
+-#define smp_rmb()       barrier()
+-#define smp_wmb()       barrier()
+-#endif
+-
+-#define smp_read_barrier_depends()      do { } while (0)
+-
+-#endif
+-
+-#endif
+--- a/arch/hexagon/include/asm/barrier.h
++++ /dev/null
+@@ -1,37 +0,0 @@
+-/*
+- * Memory barrier definitions for the Hexagon architecture
+- *
+- * Copyright (c) 2010-2011, The Linux Foundation. All rights reserved.
+- *
+- * This program is free software; you can redistribute it and/or modify
+- * it under the terms of the GNU General Public License version 2 and
+- * only version 2 as published by the Free Software Foundation.
+- *
+- * This program is distributed in the hope that it will be useful,
+- * but WITHOUT ANY WARRANTY; without even the implied warranty of
+- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+- * GNU General Public License for more details.
+- *
+- * You should have received a copy of the GNU General Public License
+- * along with this program; if not, write to the Free Software
+- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+- * 02110-1301, USA.
+- */
+-
+-#ifndef _ASM_BARRIER_H
+-#define _ASM_BARRIER_H
+-
+-#define rmb()				barrier()
+-#define read_barrier_depends()		barrier()
+-#define wmb()				barrier()
+-#define mb()				barrier()
+-#define smp_rmb()			barrier()
+-#define smp_read_barrier_depends()	barrier()
+-#define smp_wmb()			barrier()
+-#define smp_mb()			barrier()
+-
+-/*  Set a value and use a memory barrier.  Used by the scheduler somewhere.  */
+-#define set_mb(var, value) \
+-	do { var = value; mb(); } while (0)
+-
+-#endif /* _ASM_BARRIER_H */
