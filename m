@@ -1,35 +1,32 @@
-From: Chris Metcalf <cmetcalf@tilera.com>
-Subject: Re: [PATCH 27/31] arch,tile: Convert smp_mb__*
-Date: Wed, 19 Mar 2014 13:49:59 -0400
-Message-ID: <5329D8C7.3070605@tilera.com>
-References: <20140319064729.660482086@infradead.org> <20140319065205.215604416@infradead.org>
+From: David Miller <davem@davemloft.net>
+Subject: Re: [PATCH 26/31] arch,sparc: Convert smp_mb__*
+Date: Wed, 19 Mar 2014 13:54:28 -0400 (EDT)
+Message-ID: <20140319.135428.665886252770597921.davem@davemloft.net>
+References: <20140319064729.660482086@infradead.org>
+	<20140319065205.163413133@infradead.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="ISO-8859-1"
+Content-Type: Text/Plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20140319065205.215604416@infradead.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Peter Zijlstra <peterz@infradead.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: torvalds@linux-foundation.org, akpm@linux-foundation.org, mingo@kernel.org, will.deacon@arm.com, paulmck@linux.vnet.ibm.com
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from shards.monkeyblade.net ([149.20.54.216]:37047 "EHLO
+	shards.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751898AbaCSRya (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 19 Mar 2014 13:54:30 -0400
+In-Reply-To: <20140319065205.163413133@infradead.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: peterz@infradead.org
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, torvalds@linux-foundation.org, akpm@linux-foundation.org, mingo@kernel.org, will.deacon@arm.com, paulmck@linux.vnet.ibm.com
 
-On 3/19/2014 2:58 AM, Peter Zijlstra wrote:
-> Implement the new smp_mb__* ops as per the old ones.
->
+From: Peter Zijlstra <peterz@infradead.org>
+Date: Wed, 19 Mar 2014 07:47:55 +0100
+
+> sparc32: fully relies on asm-generic/barrier.h and thus can use its
+> 	 implementation.
+> 
+> sparc64: is strongly ordered and its atomic ops imply a full barrier,
+> 	 implement the new primitives using barrier().
+> 
 > Signed-off-by: Peter Zijlstra <peterz@infradead.org>
-> ---
->  arch/tile/include/asm/atomic_32.h |   10 ----------
->  arch/tile/include/asm/atomic_64.h |    6 ------
->  arch/tile/include/asm/barrier.h   |   14 ++++++++++++++
->  arch/tile/include/asm/bitops.h    |    1 +
->  arch/tile/include/asm/bitops_32.h |    8 ++------
->  arch/tile/include/asm/bitops_64.h |    4 ----
->  6 files changed, 17 insertions(+), 26 deletions(-)
 
-Looks good, thanks.
-
-Acked-by: Chris Metcalf <cmetcalf@tilera.com>
-
--- 
-Chris Metcalf, Tilera Corp.
-http://www.tilera.com
+Acked-by: David S. Miller <davem@davemloft.net>
