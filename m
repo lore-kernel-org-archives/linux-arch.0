@@ -1,42 +1,67 @@
-From: Waiman Long <waiman.long@hp.com>
-Subject: Re: [PATCH v6 05/11] pvqspinlock, x86: Allow unfair spinlock in a
- PV guest
-Date: Tue, 18 Mar 2014 23:15:25 -0400
-Message-ID: <53290BCD.8010001@hp.com>
-References: <1394650498-30118-1-git-send-email-Waiman.Long@hp.com>	<1394650498-30118-6-git-send-email-Waiman.Long@hp.com>	<53218E7A.8090707@citrix.com> <5321AF96.6070909@redhat.com> <20140317190511.GB11707@phenom.dumpdata.com> <53280075.1020804@redhat.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
-Content-Transfer-Encoding: 7bit
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: [PATCH 12/31] arch,frv: Convert smp_mb__*
+Date: Wed, 19 Mar 2014 07:47:41 +0100
+Message-ID: <20140319065204.422709709@infradead.org>
+References: <20140319064729.660482086@infradead.org>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from g6t1524.atlanta.hp.com ([15.193.200.67]:19432 "EHLO
-	g6t1524.atlanta.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932755AbaCSDPd (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 18 Mar 2014 23:15:33 -0400
-In-Reply-To: <53280075.1020804@redhat.com>
+Received: from merlin.infradead.org ([205.233.59.134]:52913 "EHLO
+	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753380AbaCSG40 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 19 Mar 2014 02:56:26 -0400
+Content-Disposition: inline; filename=peterz-frv-smp_mb__atomic.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Paolo Bonzini <pbonzini@redhat.com>
-Cc: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Jeremy Fitzhardinge <jeremy@goop.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, Gleb Natapov <gleb@redhat.com>, Peter Zijlstra <peterz@infradead.org>, virtualization@lists.linux-foundation.org, Andi Kleen <andi@firstfloor.org>, "H. Peter Anvin" <hpa@zytor.com>, Michel Lespinasse <walken@google.com>, Alok Kataria <akataria@vmware.com>, linux-arch@vger.kernel.org, kvm@vger.kernel.org, x86@kernel.org, Ingo Molnar <mingo@redhat.com>, xen-devel@lists.xenproject.org, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Rik van Riel <riel@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Scott J Norton <scott.norton@hp.com>, Steven Rostedt <rostedt@goodmis.org>, Chris Wright <chrisw@sous-sol.org>, Thomas Gleixner <tglx@linutronix.de>, Aswin Chandramouleeswaran <aswin@hp.com>, Chegu Vinod <chegu_vinod@hp.com>, Oleg
+To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Cc: torvalds@linux-foundation.org, akpm@linux-foundation.org, mingo@kernel.org, will.deacon@arm.com, paulmck@linux.vnet.ibm.com, Peter Zijlstra <peterz@infradead.org>
 
-On 03/18/2014 04:14 AM, Paolo Bonzini wrote:
-> Il 17/03/2014 20:05, Konrad Rzeszutek Wilk ha scritto:
->>> > Measurements were done by Gleb for two guests running 2.6.32 with 16
->>> > vcpus each, on a 16-core system.  One guest ran with unfair locks,
->>> > one guest ran with fair locks.  Two kernel compilations ("time make
->> And when you say fair locks are you saying PV ticketlocks or generic
->> ticketlocks?
->
-> Generic, of course.
->
->> You should see the same values with the PV ticketlock. It is not clear
->> to me if this testing did include that variant of locks?
->
-> Yes, PV is fine.  But up to this point of the series, we are concerned 
-> about spinlock performance when running on an overcommitted hypervisor 
-> that doesn't support PV spinlocks.
+Because:
 
-The unfair queue lock is designed in such a way that it will only be 
-activated when running in a PV guest or it won't be mergeable upstream. 
-So there must be some way to determine if it is running under a hypervisor.
+arch/frv/include/asm/smp.h:#error SMP not supported
 
--Longman
+smp_mb() is barrier() and we can use the default implementation that
+uses smp_mb().
+
+Signed-off-by: Peter Zijlstra <peterz@infradead.org>
+---
+ arch/frv/include/asm/atomic.h |    7 +------
+ arch/frv/include/asm/bitops.h |    6 ------
+ 2 files changed, 1 insertion(+), 12 deletions(-)
+
+--- a/arch/frv/include/asm/atomic.h
++++ b/arch/frv/include/asm/atomic.h
+@@ -17,6 +17,7 @@
+ #include <linux/types.h>
+ #include <asm/spr-regs.h>
+ #include <asm/cmpxchg.h>
++#include <asm/barrier.h>
+ 
+ #ifdef CONFIG_SMP
+ #error not SMP safe
+@@ -29,12 +30,6 @@
+  * We do not have SMP systems, so we don't have to deal with that.
+  */
+ 
+-/* Atomic operations are already serializing */
+-#define smp_mb__before_atomic_dec()	barrier()
+-#define smp_mb__after_atomic_dec()	barrier()
+-#define smp_mb__before_atomic_inc()	barrier()
+-#define smp_mb__after_atomic_inc()	barrier()
+-
+ #define ATOMIC_INIT(i)		{ (i) }
+ #define atomic_read(v)		(*(volatile int *)&(v)->counter)
+ #define atomic_set(v, i)	(((v)->counter) = (i))
+--- a/arch/frv/include/asm/bitops.h
++++ b/arch/frv/include/asm/bitops.h
+@@ -25,12 +25,6 @@
+ 
+ #include <asm-generic/bitops/ffz.h>
+ 
+-/*
+- * clear_bit() doesn't provide any barrier for the compiler.
+- */
+-#define smp_mb__before_clear_bit()	barrier()
+-#define smp_mb__after_clear_bit()	barrier()
+-
+ #ifndef CONFIG_FRV_OUTOFLINE_ATOMIC_OPS
+ static inline
+ unsigned long atomic_test_and_ANDNOT_mask(unsigned long mask, volatile unsigned long *v)
