@@ -1,56 +1,72 @@
 From: Peter Zijlstra <peterz@infradead.org>
-Subject: [PATCH 01/31] ia64: Fix up smp_mb__{before,after}_clear_bit
-Date: Wed, 19 Mar 2014 07:47:30 +0100
-Message-ID: <20140319065203.838756777@infradead.org>
+Subject: [PATCH 19/31] arch,mn10300: Convert smp_mb__*
+Date: Wed, 19 Mar 2014 07:47:48 +0100
+Message-ID: <20140319065204.800659849@infradead.org>
 References: <20140319064729.660482086@infradead.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline; filename=peterz-ia64-atomics.patch
+Content-Disposition: inline; filename=peterz-mn10300-smp_mb__atomic.patch
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 Cc: torvalds@linux-foundation.org, akpm@linux-foundation.org, mingo@kernel.org, will.deacon@arm.com, paulmck@linux.vnet.ibm.com, Peter Zijlstra <peterz@infradead.org>
 List-Id: linux-arch.vger.kernel.org
 
-IA64 doesn't actually have acquire/release barriers, its a lie!
-
-Add a comment explaining this and fix up the bitop barriers.
+mn10300 fully relies on asm-generic/barrier.h and therefore its
+smp_mb() is barrier(). We can use the default implementation.
 
 Signed-off-by: Peter Zijlstra <peterz@infradead.org>
 ---
- arch/ia64/include/asm/bitops.h       |    7 ++-----
- arch/ia64/include/uapi/asm/cmpxchg.h |    9 +++++++++
- 2 files changed, 11 insertions(+), 5 deletions(-)
+ arch/mn10300/include/asm/atomic.h |    7 +------
+ arch/mn10300/include/asm/bitops.h |    4 +---
+ arch/mn10300/mm/tlb-smp.c         |    4 ++--
+ 3 files changed, 4 insertions(+), 11 deletions(-)
 
---- a/arch/ia64/include/asm/bitops.h
-+++ b/arch/ia64/include/asm/bitops.h
-@@ -65,11 +65,8 @@ __set_bit (int nr, volatile void *addr)
- 	*((__u32 *) addr + (nr >> 5)) |= (1 << (nr & 31));
+--- a/arch/mn10300/include/asm/atomic.h
++++ b/arch/mn10300/include/asm/atomic.h
+@@ -13,6 +13,7 @@
+ 
+ #include <asm/irqflags.h>
+ #include <asm/cmpxchg.h>
++#include <asm/barrier.h>
+ 
+ #ifndef CONFIG_SMP
+ #include <asm-generic/atomic.h>
+@@ -234,12 +235,6 @@ static inline void atomic_set_mask(unsig
+ #endif
  }
  
--/*
-- * clear_bit() has "acquire" semantics.
-- */
--#define smp_mb__before_clear_bit()	smp_mb()
--#define smp_mb__after_clear_bit()	do { /* skip */; } while (0)
-+#define smp_mb__before_clear_bit()	barrier();
-+#define smp_mb__after_clear_bit()	barrier();
+-/* Atomic operations are already serializing on MN10300??? */
+-#define smp_mb__before_atomic_dec()	barrier()
+-#define smp_mb__after_atomic_dec()	barrier()
+-#define smp_mb__before_atomic_inc()	barrier()
+-#define smp_mb__after_atomic_inc()	barrier()
+-
+ #endif /* __KERNEL__ */
+ #endif /* CONFIG_SMP */
+ #endif /* _ASM_ATOMIC_H */
+--- a/arch/mn10300/include/asm/bitops.h
++++ b/arch/mn10300/include/asm/bitops.h
+@@ -18,9 +18,7 @@
+ #define __ASM_BITOPS_H
  
- /**
-  * clear_bit - Clears a bit in memory
---- a/arch/ia64/include/uapi/asm/cmpxchg.h
-+++ b/arch/ia64/include/uapi/asm/cmpxchg.h
-@@ -118,6 +118,15 @@ extern long ia64_cmpxchg_called_with_bad
- #define cmpxchg_rel(ptr, o, n)	\
- 	ia64_cmpxchg(rel, (ptr), (o), (n), sizeof(*(ptr)))
+ #include <asm/cpu-regs.h>
+-
+-#define smp_mb__before_clear_bit()	barrier()
+-#define smp_mb__after_clear_bit()	barrier()
++#include <asm/barrier.h>
  
-+/*
-+ * Worse still - early processor implementations actually just ignored
-+ * the acquire/release and did a full fence all the time.  Unfortunately
-+ * this meant a lot of badly written code that used .acq when they really
-+ * wanted .rel became legacy out in the wild - so when we made a cpu
-+ * that strictly did the .acq or .rel ... all that code started breaking - so
-+ * we had to back-pedal and keep the "legacy" behavior of a full fence :-(
-+ */
-+
- /* for compatibility with other platforms: */
- #define cmpxchg(ptr, o, n)	cmpxchg_acq((ptr), (o), (n))
- #define cmpxchg64(ptr, o, n)	cmpxchg_acq((ptr), (o), (n))
+ /*
+  * set bit
+--- a/arch/mn10300/mm/tlb-smp.c
++++ b/arch/mn10300/mm/tlb-smp.c
+@@ -78,9 +78,9 @@ void smp_flush_tlb(void *unused)
+ 	else
+ 		local_flush_tlb_page(flush_mm, flush_va);
+ 
+-	smp_mb__before_clear_bit();
++	smp_mb__before_atomic();
+ 	cpumask_clear_cpu(cpu_id, &flush_cpumask);
+-	smp_mb__after_clear_bit();
++	smp_mb__after_atomic();
+ out:
+ 	put_cpu();
+ }
