@@ -1,193 +1,161 @@
-From: Waiman Long <Waiman.Long@hp.com>
-Subject: [PATCH RFC v7 11/11] pvqspinlock,
-	x86: Enable qspinlock PV support for XEN
-Date: Wed, 19 Mar 2014 16:14:09 -0400
-Message-ID: <1395260049-30839-12-git-send-email-Waiman.Long@hp.com>
+From: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
+Subject: Re: [PATCH v7 02/11] qspinlock, x86: Enable x86-64 to use queue
+	spinlock
+Date: Wed, 19 Mar 2014 16:24:05 -0400
+Message-ID: <20140319202405.GA11210@phenom.dumpdata.com>
 References: <1395260049-30839-1-git-send-email-Waiman.Long@hp.com>
+	<1395260049-30839-3-git-send-email-Waiman.Long@hp.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-Return-path: <xen-devel-bounces@lists.xen.org>
-In-Reply-To: <1395260049-30839-1-git-send-email-Waiman.Long@hp.com>
-List-Unsubscribe: <http://lists.xen.org/cgi-bin/mailman/options/xen-devel>,
-	<mailto:xen-devel-request@lists.xen.org?subject=unsubscribe>
-List-Post: <mailto:xen-devel@lists.xen.org>
-List-Help: <mailto:xen-devel-request@lists.xen.org?subject=help>
-List-Subscribe: <http://lists.xen.org/cgi-bin/mailman/listinfo/xen-devel>,
-	<mailto:xen-devel-request@lists.xen.org?subject=subscribe>
-Sender: xen-devel-bounces@lists.xen.org
-Errors-To: xen-devel-bounces@lists.xen.org
-To: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, Peter Zijlstra <peterz@infradead.org>
-Cc: Jeremy Fitzhardinge <jeremy@goop.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, kvm@vger.kernel.org, virtualization@lists.linux-foundation.org, Andi Kleen <andi@firstfloor.org>, Michel Lespinasse <walken@google.com>, Alok Kataria <akataria@vmware.com>, linux-arch@vger.kernel.org, Gleb Natapov <gleb@redhat.com>, x86@kernel.org, xen-devel@lists.xenproject.org, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Scott J Norton <scott.norton@hp.com>, Rusty Russell <rusty@rustcorp.com.au>, Steven Rostedt <rostedt@goodmis.org>, Chris Wright <chrisw@sous-sol.org>, Oleg Nesterov <oleg@redhat.com>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Aswin Chandramouleeswaran <aswin@hp.com>, Chegu Vinod <chegu_vinod@hp.com>, Waiman Long <Waiman.Long@hp.com>, linux-kernel@vger.kernel.org, David Vrabel <david.vrabel@citrix.com>, Andrew Morton <akpm@linux-foundation.org>, Linu
+Return-path: <virtualization-bounces@lists.linux-foundation.org>
+Content-Disposition: inline
+In-Reply-To: <1395260049-30839-3-git-send-email-Waiman.Long@hp.com>
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
+List-Post: <mailto:virtualization@lists.linux-foundation.org>
+List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
+Sender: virtualization-bounces@lists.linux-foundation.org
+Errors-To: virtualization-bounces@lists.linux-foundation.org
+To: Waiman Long <Waiman.Long@hp.com>
+Cc: Jeremy Fitzhardinge <jeremy@goop.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, kvm@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, virtualization@lists.linux-foundation.org, Andi Kleen <andi@firstfloor.org>, "H. Peter Anvin" <hpa@zytor.com>, Michel Lespinasse <walken@google.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, Gleb Natapov <gleb@redhat.com>, x86@kernel.org, Ingo Molnar <mingo@redhat.com>, xen-devel@lists.xenproject.org, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Rik van Riel <riel@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Scott J Norton <scott.norton@hp.com>, Steven Rostedt <rostedt@goodmis.org>, Chris Wright <chrisw@sous-sol.org>, Oleg Nesterov <oleg@redhat.com>, Alok Kataria <akataria@vmware.com>, Aswin Chandramouleeswaran <aswin@hp.com>, Chegu Vinod <chegu_vinod@hp.com>, Boris Ostrovsky <boris.ostrovsky>
 List-Id: linux-arch.vger.kernel.org
 
-This patch adds the necessary KVM specific code to allow XEN to support
-the sleeping and CPU kicking operations needed by the queue spinlock PV
-code.
+On Wed, Mar 19, 2014 at 04:14:00PM -0400, Waiman Long wrote:
+> This patch makes the necessary changes at the x86 architecture
+> specific layer to enable the use of queue spinlock for x86-64. As
+> x86-32 machines are typically not multi-socket. The benefit of queue
+> spinlock may not be apparent. So queue spinlock is not enabled.
+> 
+> Currently, there is some incompatibilities between the para-virtualized
+> spinlock code (which hard-codes the use of ticket spinlock) and the
+> queue spinlock. Therefore, the use of queue spinlock is disabled when
+> the para-virtualized spinlock is enabled.
 
-Signed-off-by: Waiman Long <Waiman.Long@hp.com>
----
- arch/x86/xen/spinlock.c |   90 ++++++++++++++++++++++++++++++++++++++++++++---
- kernel/Kconfig.locks    |    2 +-
- 2 files changed, 86 insertions(+), 6 deletions(-)
+And how does this patch do that? I think that comment is obsolete?
 
-diff --git a/arch/x86/xen/spinlock.c b/arch/x86/xen/spinlock.c
-index 06f4a64..78891ee 100644
---- a/arch/x86/xen/spinlock.c
-+++ b/arch/x86/xen/spinlock.c
-@@ -17,6 +17,12 @@
- #include "xen-ops.h"
- #include "debugfs.h"
- 
-+static DEFINE_PER_CPU(int, lock_kicker_irq) = -1;
-+static DEFINE_PER_CPU(char *, irq_name);
-+static bool xen_pvspin = true;
-+
-+#ifndef CONFIG_QUEUE_SPINLOCK
-+
- enum xen_contention_stat {
- 	TAKEN_SLOW,
- 	TAKEN_SLOW_PICKUP,
-@@ -100,12 +106,9 @@ struct xen_lock_waiting {
- 	__ticket_t want;
- };
- 
--static DEFINE_PER_CPU(int, lock_kicker_irq) = -1;
--static DEFINE_PER_CPU(char *, irq_name);
- static DEFINE_PER_CPU(struct xen_lock_waiting, lock_waiting);
- static cpumask_t waiting_cpus;
- 
--static bool xen_pvspin = true;
- __visible void xen_lock_spinning(struct arch_spinlock *lock, __ticket_t want)
- {
- 	int irq = __this_cpu_read(lock_kicker_irq);
-@@ -213,6 +216,74 @@ static void xen_unlock_kick(struct arch_spinlock *lock, __ticket_t next)
- 	}
- }
- 
-+#else /* CONFIG_QUEUE_SPINLOCK */
-+
-+#ifdef CONFIG_XEN_DEBUG_FS
-+static u32 kick_stats;		/* CPU kick count    */
-+static u32 hibernate_stats;	/* Hibernation count */
-+
-+static inline void inc_kick_stats(void)
-+{
-+	add_smp(&kick_stats, 1);
-+}
-+
-+static inline void inc_hib_stats(void)
-+{
-+	add_smp(&hibernate_stats, 1);
-+}
-+#else /* CONFIG_XEN_DEBUG_FS */
-+static inline void inc_kick_stats(void)
-+{
-+}
-+
-+static inline void inc_hib_stats(void)
-+{
-+
-+}
-+#endif /* CONFIG_XEN_DEBUG_FS */
-+
-+static void xen_kick_cpu_type(int cpu)
-+{
-+	xen_send_IPI_one(cpu, XEN_SPIN_UNLOCK_VECTOR);
-+	inc_kick_stats();
-+}
-+
-+/*
-+ * Halt the current CPU & release it back to the host
-+ */
-+static void xen_hibernate(void)
-+{
-+	int irq = __this_cpu_read(lock_kicker_irq);
-+	unsigned long flags;
-+
-+	/* If kicker interrupts not initialized yet, just spin */
-+	if (irq == -1)
-+		return;
-+
-+	/*
-+	 * Make sure an interrupt handler can't upset things in a
-+	 * partially setup state.
-+	 */
-+	local_irq_save(flags);
-+
-+	inc_hib_stats();
-+	/* clear pending */
-+	xen_clear_irq_pending(irq);
-+
-+	/* Allow interrupts while blocked */
-+	local_irq_restore(flags);
-+
-+	/*
-+	 * If an interrupt happens here, it will leave the wakeup irq
-+	 * pending, which will cause xen_poll_irq() to return
-+	 * immediately.
-+	 */
-+
-+	/* Block until irq becomes pending (or perhaps a spurious wakeup) */
-+	xen_poll_irq(irq);
-+}
-+#endif /* CONFIG_QUEUE_SPINLOCK */
-+
- static irqreturn_t dummy_handler(int irq, void *dev_id)
- {
- 	BUG();
-@@ -258,7 +329,6 @@ void xen_uninit_lock_cpu(int cpu)
- 	per_cpu(irq_name, cpu) = NULL;
- }
- 
--
- /*
-  * Our init of PV spinlocks is split in two init functions due to us
-  * using paravirt patching and jump labels patching and having to do
-@@ -275,8 +345,13 @@ void __init xen_init_spinlocks(void)
- 		return;
- 	}
- 
-+#ifdef CONFIG_QUEUE_SPINLOCK
-+	pv_lock_ops.kick_cpu = xen_kick_cpu_type;
-+	pv_lock_ops.hibernate = xen_hibernate;
-+#else
- 	pv_lock_ops.lock_spinning = PV_CALLEE_SAVE(xen_lock_spinning);
- 	pv_lock_ops.unlock_kick = xen_unlock_kick;
-+#endif
- }
- 
- /*
-@@ -318,6 +393,7 @@ static int __init xen_spinlock_debugfs(void)
- 
- 	d_spin_debug = debugfs_create_dir("spinlocks", d_xen);
- 
-+#ifndef CONFIG_QUEUE_SPINLOCK
- 	debugfs_create_u8("zero_stats", 0644, d_spin_debug, &zero_stats);
- 
- 	debugfs_create_u32("taken_slow", 0444, d_spin_debug,
-@@ -337,7 +413,11 @@ static int __init xen_spinlock_debugfs(void)
- 
- 	debugfs_create_u32_array("histo_blocked", 0444, d_spin_debug,
- 				spinlock_stats.histo_spin_blocked, HISTO_BUCKETS + 1);
--
-+#else /* CONFIG_QUEUE_SPINLOCK */
-+	debugfs_create_u32("kick_stats", 0644, d_spin_debug, &kick_stats);
-+	debugfs_create_u32("hibernate_stats",
-+			   0644, d_spin_debug, &hibernate_stats);
-+#endif /* CONFIG_QUEUE_SPINLOCK */
- 	return 0;
- }
- fs_initcall(xen_spinlock_debugfs);
-diff --git a/kernel/Kconfig.locks b/kernel/Kconfig.locks
-index a70fdeb..451e392 100644
---- a/kernel/Kconfig.locks
-+++ b/kernel/Kconfig.locks
-@@ -229,4 +229,4 @@ config ARCH_USE_QUEUE_SPINLOCK
- 
- config QUEUE_SPINLOCK
- 	def_bool y if ARCH_USE_QUEUE_SPINLOCK
--	depends on SMP && (!PARAVIRT_SPINLOCKS || !XEN)
-+	depends on SMP
--- 
-1.7.1
+> 
+> The arch/x86/include/asm/qspinlock.h header file includes some x86
+> specific optimization which will make the queue spinlock code perform
+> better than the generic implementation.
+> 
+> Signed-off-by: Waiman Long <Waiman.Long@hp.com>
+> Acked-by: Rik van Riel <riel@redhat.com>
+> ---
+>  arch/x86/Kconfig                      |    1 +
+>  arch/x86/include/asm/qspinlock.h      |   41 +++++++++++++++++++++++++++++++++
+>  arch/x86/include/asm/spinlock.h       |    5 ++++
+>  arch/x86/include/asm/spinlock_types.h |    4 +++
+>  4 files changed, 51 insertions(+), 0 deletions(-)
+>  create mode 100644 arch/x86/include/asm/qspinlock.h
+> 
+> diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+> index 0af5250..de573f9 100644
+> --- a/arch/x86/Kconfig
+> +++ b/arch/x86/Kconfig
+> @@ -17,6 +17,7 @@ config X86_64
+>  	depends on 64BIT
+>  	select X86_DEV_DMA_OPS
+>  	select ARCH_USE_CMPXCHG_LOCKREF
+> +	select ARCH_USE_QUEUE_SPINLOCK
+>  
+>  ### Arch settings
+>  config X86
+> diff --git a/arch/x86/include/asm/qspinlock.h b/arch/x86/include/asm/qspinlock.h
+> new file mode 100644
+> index 0000000..44cefee
+> --- /dev/null
+> +++ b/arch/x86/include/asm/qspinlock.h
+> @@ -0,0 +1,41 @@
+> +#ifndef _ASM_X86_QSPINLOCK_H
+> +#define _ASM_X86_QSPINLOCK_H
+> +
+> +#include <asm-generic/qspinlock_types.h>
+> +
+> +#if !defined(CONFIG_X86_OOSTORE) && !defined(CONFIG_X86_PPRO_FENCE)
+> +
+> +#define _ARCH_SUPPORTS_ATOMIC_8_16_BITS_OPS
+> +
+> +/*
+> + * x86-64 specific queue spinlock union structure
+> + */
+> +union arch_qspinlock {
+> +	struct qspinlock slock;
+> +	u8		 lock;	/* Lock bit	*/
+> +};
+> +
+> +#define	queue_spin_unlock queue_spin_unlock
+> +/**
+> + * queue_spin_unlock - release a queue spinlock
+> + * @lock : Pointer to queue spinlock structure
+> + *
+> + * No special memory barrier other than a compiler one is needed for the
+> + * x86 architecture. A compiler barrier is added at the end to make sure
+> + * that the clearing the lock bit is done ASAP without artificial delay
+> + * due to compiler optimization.
+> + */
+> +static inline void queue_spin_unlock(struct qspinlock *lock)
+> +{
+> +	union arch_qspinlock *qlock = (union arch_qspinlock *)lock;
+> +
+> +	barrier();
+> +	ACCESS_ONCE(qlock->lock) = 0;
+> +	barrier();
+> +}
+> +
+> +#endif /* !CONFIG_X86_OOSTORE && !CONFIG_X86_PPRO_FENCE */
+> +
+> +#include <asm-generic/qspinlock.h>
+> +
+> +#endif /* _ASM_X86_QSPINLOCK_H */
+> diff --git a/arch/x86/include/asm/spinlock.h b/arch/x86/include/asm/spinlock.h
+> index 0f62f54..958d20f 100644
+> --- a/arch/x86/include/asm/spinlock.h
+> +++ b/arch/x86/include/asm/spinlock.h
+> @@ -42,6 +42,10 @@
+>  extern struct static_key paravirt_ticketlocks_enabled;
+>  static __always_inline bool static_key_false(struct static_key *key);
+>  
+> +#ifdef CONFIG_QUEUE_SPINLOCK
+> +#include <asm/qspinlock.h>
+> +#else
+> +
+>  #ifdef CONFIG_PARAVIRT_SPINLOCKS
+>  
+>  static inline void __ticket_enter_slowpath(arch_spinlock_t *lock)
+> @@ -180,6 +184,7 @@ static __always_inline void arch_spin_lock_flags(arch_spinlock_t *lock,
+>  {
+>  	arch_spin_lock(lock);
+>  }
+> +#endif /* CONFIG_QUEUE_SPINLOCK */
+>  
+>  static inline void arch_spin_unlock_wait(arch_spinlock_t *lock)
+>  {
+> diff --git a/arch/x86/include/asm/spinlock_types.h b/arch/x86/include/asm/spinlock_types.h
+> index 4f1bea1..7960268 100644
+> --- a/arch/x86/include/asm/spinlock_types.h
+> +++ b/arch/x86/include/asm/spinlock_types.h
+> @@ -23,6 +23,9 @@ typedef u32 __ticketpair_t;
+>  
+>  #define TICKET_SHIFT	(sizeof(__ticket_t) * 8)
+>  
+> +#ifdef CONFIG_QUEUE_SPINLOCK
+> +#include <asm-generic/qspinlock_types.h>
+> +#else
+>  typedef struct arch_spinlock {
+>  	union {
+>  		__ticketpair_t head_tail;
+> @@ -33,6 +36,7 @@ typedef struct arch_spinlock {
+>  } arch_spinlock_t;
+>  
+>  #define __ARCH_SPIN_LOCK_UNLOCKED	{ { 0 } }
+> +#endif /* CONFIG_QUEUE_SPINLOCK */
+>  
+>  #include <asm/rwlock.h>
+>  
+> -- 
+> 1.7.1
+> 
