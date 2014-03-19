@@ -1,82 +1,66 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:52970 "EHLO
+Received: from merlin.infradead.org ([205.233.59.134]:52946 "EHLO
 	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756058AbaCSG42 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 19 Mar 2014 02:56:28 -0400
-Message-ID: <20140319065204.255295668@infradead.org>
-Date: Wed, 19 Mar 2014 07:47:38 +0100
+	with ESMTP id S1755870AbaCSG41 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 19 Mar 2014 02:56:27 -0400
+Message-ID: <20140319065204.202765358@infradead.org>
+Date: Wed, 19 Mar 2014 07:47:37 +0100
 From: Peter Zijlstra <peterz@infradead.org>
-Subject: [PATCH 09/31] arch,blackfin: Convert smp_mb__*
+Subject: [PATCH 08/31] arch,avr32: Convert smp_mb__*
 References: <20140319064729.660482086@infradead.org>
-Content-Disposition: inline; filename=peterz-blackfin-smp_mb__atomic.patch
+Content-Disposition: inline; filename=peterz-avr32-smp_mb__atomic.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 Cc: torvalds@linux-foundation.org, akpm@linux-foundation.org, mingo@kernel.org, will.deacon@arm.com, paulmck@linux.vnet.ibm.com, Peter Zijlstra <peterz@infradead.org>
-Message-ID: <20140319064738.iNQXa6XUUji_Q6dxuy3FUdETD6F60gueZj6V2U4QUJ0@z>
+Message-ID: <20140319064737.mp8YqahpMpy413Z2KGHl3V73BVQ8GfzYabWNHpdpYXQ@z>
 
-Blackfin's atomic primitives do not imply a full barrier as whitnessed
-from its SMP smp_mb__{before,after}_clear_bit() implementations.
-
-However since !SMP smp_mb() reduces to barrier() remove everything and
-rely on the asm-generic/barrier.h implentation.
+AVR32's mb() implementation is a compiler barrier(), therefore it all
+doesn't matter, fully rely on whatever asm-generic/barrier.h
+generates.
 
 Signed-off-by: Peter Zijlstra <peterz@infradead.org>
 ---
- arch/blackfin/include/asm/barrier.h |    3 +++
- arch/blackfin/include/asm/bitops.h  |   14 ++------------
- 2 files changed, 5 insertions(+), 12 deletions(-)
+ arch/avr32/include/asm/atomic.h |    5 -----
+ arch/avr32/include/asm/bitops.h |    9 ++-------
+ 2 files changed, 2 insertions(+), 12 deletions(-)
 
---- a/arch/blackfin/include/asm/barrier.h
-+++ b/arch/blackfin/include/asm/barrier.h
-@@ -27,6 +27,9 @@
+--- a/arch/avr32/include/asm/atomic.h
++++ b/arch/avr32/include/asm/atomic.h
+@@ -183,9 +183,4 @@ static inline int atomic_sub_if_positive
  
- #endif /* !CONFIG_SMP */
+ #define atomic_dec_if_positive(v) atomic_sub_if_positive(1, v)
  
-+#define smp_mb__before_atomic()	barrier()
-+#define smp_mb__after_atomic()	barrier()
-+
- #include <asm-generic/barrier.h>
- 
- #endif /* _BLACKFIN_BARRIER_H */
---- a/arch/blackfin/include/asm/bitops.h
-+++ b/arch/blackfin/include/asm/bitops.h
-@@ -27,21 +27,17 @@
- 
- #include <asm-generic/bitops/ext2-atomic.h>
- 
-+#include <asm/barrier.h>
-+
- #ifndef CONFIG_SMP
- #include <linux/irqflags.h>
+-#define smp_mb__before_atomic_dec()	barrier()
+-#define smp_mb__after_atomic_dec()	barrier()
+-#define smp_mb__before_atomic_inc()	barrier()
+-#define smp_mb__after_atomic_inc()	barrier()
 -
- /*
-  * clear_bit may not imply a memory barrier
-  */
--#ifndef smp_mb__before_clear_bit
--#define smp_mb__before_clear_bit()	smp_mb()
--#define smp_mb__after_clear_bit()	smp_mb()
--#endif
- #include <asm-generic/bitops/atomic.h>
- #include <asm-generic/bitops/non-atomic.h>
- #else
+ #endif /*  __ASM_AVR32_ATOMIC_H */
+--- a/arch/avr32/include/asm/bitops.h
++++ b/arch/avr32/include/asm/bitops.h
+@@ -13,12 +13,7 @@
+ #endif
  
--#include <asm/barrier.h>
- #include <asm/byteorder.h>	/* swab32 */
- #include <linux/linkage.h>
- 
-@@ -101,12 +97,6 @@ static inline int test_and_change_bit(in
- 	return __raw_bit_test_toggle_asm(a, nr & 0x1f);
- }
- 
+ #include <asm/byteorder.h>
+-
 -/*
-- * clear_bit() doesn't provide any barrier for the compiler.
+- * clear_bit() doesn't provide any barrier for the compiler
 - */
 -#define smp_mb__before_clear_bit()	barrier()
 -#define smp_mb__after_clear_bit()	barrier()
--
- #define test_bit __skip_test_bit
- #include <asm-generic/bitops/non-atomic.h>
- #undef test_bit
++#include <asm/barrier.h>
+ 
+ /*
+  * set_bit - Atomically set a bit in memory
+@@ -67,7 +62,7 @@ static inline void set_bit(int nr, volat
+  *
+  * clear_bit() is atomic and may not be reordered.  However, it does
+  * not contain a memory barrier, so if it is used for locking purposes,
+- * you should call smp_mb__before_clear_bit() and/or smp_mb__after_clear_bit()
++ * you should call smp_mb__before_atomic() and/or smp_mb__after_atomic()
+  * in order to ensure changes are visible on other processors.
+  */
+ static inline void clear_bit(int nr, volatile void * addr)
 
 
