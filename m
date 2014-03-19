@@ -1,42 +1,43 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:52969 "EHLO
+Received: from merlin.infradead.org ([205.233.59.134]:53008 "EHLO
 	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756023AbaCSG42 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 19 Mar 2014 02:56:28 -0400
-Message-ID: <20140319065204.474701877@infradead.org>
-Date: Wed, 19 Mar 2014 07:47:42 +0100
+	with ESMTP id S1756824AbaCSG4b (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 19 Mar 2014 02:56:31 -0400
+Message-ID: <20140319065204.692998745@infradead.org>
+Date: Wed, 19 Mar 2014 07:47:46 +0100
 From: Peter Zijlstra <peterz@infradead.org>
-Subject: [PATCH 13/31] arch,hexagon: Convert smp_mb__*
+Subject: [PATCH 17/31] arch,metag: Convert smp_mb__*
 References: <20140319064729.660482086@infradead.org>
-Content-Disposition: inline; filename=peterz-hexagon-smp_mb__atomic.patch
+Content-Disposition: inline; filename=peterz-metag-smp_mb__atomic.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 Cc: torvalds@linux-foundation.org, akpm@linux-foundation.org, mingo@kernel.org, will.deacon@arm.com, paulmck@linux.vnet.ibm.com, Peter Zijlstra <peterz@infradead.org>
-Message-ID: <20140319064742.c1Gb4J1dBQPlg_XI1IwgN7N0XoSHmNVMlxFKS-88rKU@z>
+Message-ID: <20140319064746.jpCvP4Kdf3T_9R94MUPy2ILIXf1LqXBKbL22n5Tlxmk@z>
 
-Hexagon uses asm-gemeric/barrier.h and its smp_mb() is barrier().
-Therefore we can use the default implementation that uses smp_mb().
+Implement the new barriers; as per the old versions the metag atomic
+imply a full barrier.
 
 Signed-off-by: Peter Zijlstra <peterz@infradead.org>
 ---
- arch/hexagon/include/asm/atomic.h |    6 +-----
- arch/hexagon/include/asm/bitops.h |    4 +---
- 2 files changed, 2 insertions(+), 8 deletions(-)
+ arch/metag/include/asm/atomic.h  |    6 +-----
+ arch/metag/include/asm/barrier.h |    3 +++
+ arch/metag/include/asm/bitops.h  |    6 ------
+ 3 files changed, 4 insertions(+), 11 deletions(-)
 
---- a/arch/hexagon/include/asm/atomic.h
-+++ b/arch/hexagon/include/asm/atomic.h
-@@ -24,6 +24,7 @@
- 
+--- a/arch/metag/include/asm/atomic.h
++++ b/arch/metag/include/asm/atomic.h
+@@ -4,6 +4,7 @@
+ #include <linux/compiler.h>
  #include <linux/types.h>
  #include <asm/cmpxchg.h>
 +#include <asm/barrier.h>
  
- #define ATOMIC_INIT(i)		{ (i) }
- #define atomic_set(v, i)	((v)->counter = (i))
-@@ -163,9 +164,4 @@ static inline int __atomic_add_unless(at
- #define atomic_inc_return(v) (atomic_add_return(1, v))
- #define atomic_dec_return(v) (atomic_sub_return(1, v))
+ #if defined(CONFIG_METAG_ATOMICITY_IRQSOFF)
+ /* The simple UP case. */
+@@ -39,11 +40,6 @@
+ 
+ #define atomic_inc_not_zero(v) atomic_add_unless((v), 1, 0)
  
 -#define smp_mb__before_atomic_dec()	barrier()
 -#define smp_mb__after_atomic_dec()	barrier()
@@ -44,21 +45,32 @@ Signed-off-by: Peter Zijlstra <peterz@infradead.org>
 -#define smp_mb__after_atomic_inc()	barrier()
 -
  #endif
---- a/arch/hexagon/include/asm/bitops.h
-+++ b/arch/hexagon/include/asm/bitops.h
-@@ -25,12 +25,10 @@
- #include <linux/compiler.h>
- #include <asm/byteorder.h>
- #include <asm/atomic.h>
-+#include <asm/barrier.h>
  
- #ifdef __KERNEL__
+ #define atomic_dec_if_positive(v)       atomic_sub_if_positive(1, v)
+--- a/arch/metag/include/asm/barrier.h
++++ b/arch/metag/include/asm/barrier.h
+@@ -97,4 +97,7 @@ do {									\
+ 	___p1;								\
+ })
  
++#define smp_mb__before_atomic()	barrier()
++#define smp_mb__after_atomic()	barrier()
++
+ #endif /* _ASM_METAG_BARRIER_H */
+--- a/arch/metag/include/asm/bitops.h
++++ b/arch/metag/include/asm/bitops.h
+@@ -5,12 +5,6 @@
+ #include <asm/barrier.h>
+ #include <asm/global_lock.h>
+ 
+-/*
+- * clear_bit() doesn't provide any barrier for the compiler.
+- */
 -#define smp_mb__before_clear_bit()	barrier()
 -#define smp_mb__after_clear_bit()	barrier()
 -
+ #ifdef CONFIG_SMP
  /*
-  * The offset calculations for these are based on BITS_PER_LONG == 32
-  * (i.e. I get to shift by #5-2 (32 bits per long, 4 bytes per access),
+  * These functions are the basis of our bit ops.
 
 
