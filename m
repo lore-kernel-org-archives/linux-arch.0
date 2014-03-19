@@ -1,91 +1,70 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:52971 "EHLO
+Received: from merlin.infradead.org ([205.233.59.134]:52968 "EHLO
 	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756126AbaCSG42 (ORCPT
+	with ESMTP id S1756014AbaCSG42 (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>); Wed, 19 Mar 2014 02:56:28 -0400
-Message-ID: <20140319065204.526383736@infradead.org>
-Date: Wed, 19 Mar 2014 07:47:43 +0100
+Message-ID: <20140319065204.099395624@infradead.org>
+Date: Wed, 19 Mar 2014 07:47:35 +0100
 From: Peter Zijlstra <peterz@infradead.org>
-Subject: [PATCH 14/31] arch,ia64: Convert smp_mb__*
+Subject: [PATCH 06/31] arch,arm: Convert smp_mb__*
 References: <20140319064729.660482086@infradead.org>
-Content-Disposition: inline; filename=peterz-ia64-smp_mb__atomic.patch
+Content-Disposition: inline; filename=peterz-arm-smp_mb__atomic.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 Cc: torvalds@linux-foundation.org, akpm@linux-foundation.org, mingo@kernel.org, will.deacon@arm.com, paulmck@linux.vnet.ibm.com, Peter Zijlstra <peterz@infradead.org>
-Message-ID: <20140319064743.lolf-0iTiy3fYFpReuHmrthKcNoTnZkLvnmus0DES5g@z>
+Message-ID: <20140319064735.lxNnkcHGsjzFbWuCpLRSdqW7hzDotlHy2sitJyOfe_0@z>
 
-ia64 atomic ops are full barriers; implement the new
-smp_mb__{before,after}_atomic().
+ARM uses ll/sc primitives that do not imply barriers for all regular
+atomic ops, therefore smp_mb__{before,after} need be a full barrier.
+
+Since ARM doesn't use asm-generic/barrier.h include the required
+definitions in its asm/barrier.h
 
 Signed-off-by: Peter Zijlstra <peterz@infradead.org>
 ---
- arch/ia64/include/asm/atomic.h  |    7 +------
- arch/ia64/include/asm/barrier.h |    3 +++
- arch/ia64/include/asm/bitops.h  |    6 ++----
- 3 files changed, 6 insertions(+), 10 deletions(-)
+ arch/arm/include/asm/atomic.h  |    5 -----
+ arch/arm/include/asm/barrier.h |    3 +++
+ arch/arm/include/asm/bitops.h  |    4 +---
+ 3 files changed, 4 insertions(+), 8 deletions(-)
 
---- a/arch/ia64/include/asm/atomic.h
-+++ b/arch/ia64/include/asm/atomic.h
-@@ -15,6 +15,7 @@
- #include <linux/types.h>
+--- a/arch/arm/include/asm/atomic.h
++++ b/arch/arm/include/asm/atomic.h
+@@ -211,11 +211,6 @@ static inline int __atomic_add_unless(at
  
- #include <asm/intrinsics.h>
-+#include <asm/barrier.h>
+ #define atomic_add_negative(i,v) (atomic_add_return(i, v) < 0)
  
- 
- #define ATOMIC_INIT(i)		{ (i) }
-@@ -208,10 +209,4 @@ atomic64_add_negative (__s64 i, atomic64
- #define atomic64_inc(v)			atomic64_add(1, (v))
- #define atomic64_dec(v)			atomic64_sub(1, (v))
- 
--/* Atomic operations are already serializing */
--#define smp_mb__before_atomic_dec()	barrier()
--#define smp_mb__after_atomic_dec()	barrier()
--#define smp_mb__before_atomic_inc()	barrier()
--#define smp_mb__after_atomic_inc()	barrier()
+-#define smp_mb__before_atomic_dec()	smp_mb()
+-#define smp_mb__after_atomic_dec()	smp_mb()
+-#define smp_mb__before_atomic_inc()	smp_mb()
+-#define smp_mb__after_atomic_inc()	smp_mb()
 -
- #endif /* _ASM_IA64_ATOMIC_H */
---- a/arch/ia64/include/asm/barrier.h
-+++ b/arch/ia64/include/asm/barrier.h
-@@ -55,6 +55,9 @@
+ #ifndef CONFIG_GENERIC_ATOMIC64
+ typedef struct {
+ 	long long counter;
+--- a/arch/arm/include/asm/barrier.h
++++ b/arch/arm/include/asm/barrier.h
+@@ -79,5 +79,8 @@ do {									\
  
- #endif
+ #define set_mb(var, value)	do { var = value; smp_mb(); } while (0)
  
-+#define smp_mb__before_atomic()	barrier()
-+#define smp_mb__after_atomic()	barrier()
++#define smp_mb__before_atomic()	smp_mb()
++#define smp_mb__after_atomic()	smp_mb()
 +
- /*
-  * IA64 GCC turns volatile stores into st.rel and volatile loads into ld.acq no
-  * need for asm trickery!
---- a/arch/ia64/include/asm/bitops.h
-+++ b/arch/ia64/include/asm/bitops.h
-@@ -16,6 +16,7 @@
+ #endif /* !__ASSEMBLY__ */
+ #endif /* __ASM_BARRIER_H */
+--- a/arch/arm/include/asm/bitops.h
++++ b/arch/arm/include/asm/bitops.h
+@@ -25,9 +25,7 @@
+ 
  #include <linux/compiler.h>
- #include <linux/types.h>
- #include <asm/intrinsics.h>
+ #include <linux/irqflags.h>
+-
+-#define smp_mb__before_clear_bit()	smp_mb()
+-#define smp_mb__after_clear_bit()	smp_mb()
 +#include <asm/barrier.h>
  
- /**
-  * set_bit - Atomically set a bit in memory
-@@ -65,9 +66,6 @@ __set_bit (int nr, volatile void *addr)
- 	*((__u32 *) addr + (nr >> 5)) |= (1 << (nr & 31));
- }
- 
--#define smp_mb__before_clear_bit()	barrier();
--#define smp_mb__after_clear_bit()	barrier();
--
- /**
-  * clear_bit - Clears a bit in memory
-  * @nr: Bit to clear
-@@ -75,7 +73,7 @@ __set_bit (int nr, volatile void *addr)
-  *
-  * clear_bit() is atomic and may not be reordered.  However, it does
-  * not contain a memory barrier, so if it is used for locking purposes,
-- * you should call smp_mb__before_clear_bit() and/or smp_mb__after_clear_bit()
-+ * you should call smp_mb__before_atomic() and/or smp_mb__after_atomic()
-  * in order to ensure changes are visible on other processors.
-  */
- static __inline__ void
+ /*
+  * These functions are the basis of our bit ops.
 
 
