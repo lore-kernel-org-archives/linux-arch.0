@@ -1,70 +1,108 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:52968 "EHLO
+Received: from merlin.infradead.org ([205.233.59.134]:52954 "EHLO
 	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756014AbaCSG42 (ORCPT
+	with ESMTP id S1755920AbaCSG42 (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>); Wed, 19 Mar 2014 02:56:28 -0400
-Message-ID: <20140319065204.099395624@infradead.org>
-Date: Wed, 19 Mar 2014 07:47:35 +0100
+Message-ID: <20140319065203.890725970@infradead.org>
+Date: Wed, 19 Mar 2014 07:47:31 +0100
 From: Peter Zijlstra <peterz@infradead.org>
-Subject: [PATCH 06/31] arch,arm: Convert smp_mb__*
+Subject: [PATCH 02/31] arc,hexagon: Delete asm/barrier.h
 References: <20140319064729.660482086@infradead.org>
-Content-Disposition: inline; filename=peterz-arm-smp_mb__atomic.patch
+Content-Disposition: inline; filename=peterz-kill-arc-hexagon-barrier.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 Cc: torvalds@linux-foundation.org, akpm@linux-foundation.org, mingo@kernel.org, will.deacon@arm.com, paulmck@linux.vnet.ibm.com, Peter Zijlstra <peterz@infradead.org>
-Message-ID: <20140319064735.lxNnkcHGsjzFbWuCpLRSdqW7hzDotlHy2sitJyOfe_0@z>
+Message-ID: <20140319064731.ehZZesA8sGB3lEJU6cSAZdZmnQE2fmUl7-HLEPwo6YM@z>
 
-ARM uses ll/sc primitives that do not imply barriers for all regular
-atomic ops, therefore smp_mb__{before,after} need be a full barrier.
-
-Since ARM doesn't use asm-generic/barrier.h include the required
-definitions in its asm/barrier.h
+Both already use asm-generic/barrier.h as per their
+include/asm/Kbuild. Remove the stale files.
 
 Signed-off-by: Peter Zijlstra <peterz@infradead.org>
 ---
- arch/arm/include/asm/atomic.h  |    5 -----
- arch/arm/include/asm/barrier.h |    3 +++
- arch/arm/include/asm/bitops.h  |    4 +---
- 3 files changed, 4 insertions(+), 8 deletions(-)
+ arch/arc/include/asm/barrier.h     |   37 -------------------------------------
+ arch/hexagon/include/asm/barrier.h |   37 -------------------------------------
+ 2 files changed, 74 deletions(-)
 
---- a/arch/arm/include/asm/atomic.h
-+++ b/arch/arm/include/asm/atomic.h
-@@ -211,11 +211,6 @@ static inline int __atomic_add_unless(at
- 
- #define atomic_add_negative(i,v) (atomic_add_return(i, v) < 0)
- 
--#define smp_mb__before_atomic_dec()	smp_mb()
--#define smp_mb__after_atomic_dec()	smp_mb()
--#define smp_mb__before_atomic_inc()	smp_mb()
--#define smp_mb__after_atomic_inc()	smp_mb()
+--- a/arch/arc/include/asm/barrier.h
++++ /dev/null
+@@ -1,37 +0,0 @@
+-/*
+- * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
+- *
+- * This program is free software; you can redistribute it and/or modify
+- * it under the terms of the GNU General Public License version 2 as
+- * published by the Free Software Foundation.
+- */
 -
- #ifndef CONFIG_GENERIC_ATOMIC64
- typedef struct {
- 	long long counter;
---- a/arch/arm/include/asm/barrier.h
-+++ b/arch/arm/include/asm/barrier.h
-@@ -79,5 +79,8 @@ do {									\
- 
- #define set_mb(var, value)	do { var = value; smp_mb(); } while (0)
- 
-+#define smp_mb__before_atomic()	smp_mb()
-+#define smp_mb__after_atomic()	smp_mb()
-+
- #endif /* !__ASSEMBLY__ */
- #endif /* __ASM_BARRIER_H */
---- a/arch/arm/include/asm/bitops.h
-+++ b/arch/arm/include/asm/bitops.h
-@@ -25,9 +25,7 @@
- 
- #include <linux/compiler.h>
- #include <linux/irqflags.h>
+-#ifndef __ASM_BARRIER_H
+-#define __ASM_BARRIER_H
 -
--#define smp_mb__before_clear_bit()	smp_mb()
--#define smp_mb__after_clear_bit()	smp_mb()
-+#include <asm/barrier.h>
- 
- /*
-  * These functions are the basis of our bit ops.
+-#ifndef __ASSEMBLY__
+-
+-/* TODO-vineetg: Need to see what this does, don't we need sync anywhere */
+-#define mb() __asm__ __volatile__ ("" : : : "memory")
+-#define rmb() mb()
+-#define wmb() mb()
+-#define set_mb(var, value)  do { var = value; mb(); } while (0)
+-#define set_wmb(var, value) do { var = value; wmb(); } while (0)
+-#define read_barrier_depends()  mb()
+-
+-/* TODO-vineetg verify the correctness of macros here */
+-#ifdef CONFIG_SMP
+-#define smp_mb()        mb()
+-#define smp_rmb()       rmb()
+-#define smp_wmb()       wmb()
+-#else
+-#define smp_mb()        barrier()
+-#define smp_rmb()       barrier()
+-#define smp_wmb()       barrier()
+-#endif
+-
+-#define smp_read_barrier_depends()      do { } while (0)
+-
+-#endif
+-
+-#endif
+--- a/arch/hexagon/include/asm/barrier.h
++++ /dev/null
+@@ -1,37 +0,0 @@
+-/*
+- * Memory barrier definitions for the Hexagon architecture
+- *
+- * Copyright (c) 2010-2011, The Linux Foundation. All rights reserved.
+- *
+- * This program is free software; you can redistribute it and/or modify
+- * it under the terms of the GNU General Public License version 2 and
+- * only version 2 as published by the Free Software Foundation.
+- *
+- * This program is distributed in the hope that it will be useful,
+- * but WITHOUT ANY WARRANTY; without even the implied warranty of
+- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+- * GNU General Public License for more details.
+- *
+- * You should have received a copy of the GNU General Public License
+- * along with this program; if not, write to the Free Software
+- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+- * 02110-1301, USA.
+- */
+-
+-#ifndef _ASM_BARRIER_H
+-#define _ASM_BARRIER_H
+-
+-#define rmb()				barrier()
+-#define read_barrier_depends()		barrier()
+-#define wmb()				barrier()
+-#define mb()				barrier()
+-#define smp_rmb()			barrier()
+-#define smp_read_barrier_depends()	barrier()
+-#define smp_wmb()			barrier()
+-#define smp_mb()			barrier()
+-
+-/*  Set a value and use a memory barrier.  Used by the scheduler somewhere.  */
+-#define set_mb(var, value) \
+-	do { var = value; mb(); } while (0)
+-
+-#endif /* _ASM_BARRIER_H */
 
 
