@@ -1,175 +1,70 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:52993 "EHLO
+Received: from merlin.infradead.org ([205.233.59.134]:52992 "EHLO
 	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756531AbaCSG43 (ORCPT
+	with ESMTP id S1756526AbaCSG43 (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>); Wed, 19 Mar 2014 02:56:29 -0400
-Message-ID: <20140319065205.370836264@infradead.org>
-Date: Wed, 19 Mar 2014 07:47:59 +0100
+Message-ID: <20140319065204.904890744@infradead.org>
+Date: Wed, 19 Mar 2014 07:47:50 +0100
 From: Peter Zijlstra <peterz@infradead.org>
-Subject: [PATCH 30/31] arch,doc: Convert smp_mb__*
+Subject: [PATCH 21/31] arch,parisc: Convert smp_mb__*
 References: <20140319064729.660482086@infradead.org>
-Content-Disposition: inline; filename=peterz-doc-smp_mb__atomic.patch
+Content-Disposition: inline; filename=peterz-parisc-smp_mb__atomic.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 Cc: torvalds@linux-foundation.org, akpm@linux-foundation.org, mingo@kernel.org, will.deacon@arm.com, paulmck@linux.vnet.ibm.com, Peter Zijlstra <peterz@infradead.org>
-Message-ID: <20140319064759.4c-Elg2Dy9TvUBVjNXzsVxA81KHyWje_H4TFqiorE3g@z>
+Message-ID: <20140319064750.SM-Qwdp1e69bXt9_5id7smSd3QhIY0mPUt2PIhnVQ0A@z>
 
-Update the documentation to reflect the change of barrier primitives.
+parisc fully relies on asm-generic/barrier.h, therefore its smp_mb()
+is barrier and the default implementation suffices.
 
 Signed-off-by: Peter Zijlstra <peterz@infradead.org>
 ---
- Documentation/atomic_ops.txt      |   31 ++++++++++----------------
- Documentation/memory-barriers.txt |   44 ++++++++++----------------------------
- 2 files changed, 24 insertions(+), 51 deletions(-)
+ arch/parisc/include/asm/atomic.h |    6 +-----
+ arch/parisc/include/asm/bitops.h |    4 +---
+ 2 files changed, 2 insertions(+), 8 deletions(-)
 
---- a/Documentation/atomic_ops.txt
-+++ b/Documentation/atomic_ops.txt
-@@ -285,15 +285,13 @@ If a caller requires memory barrier sema
- operation which does not return a value, a set of interfaces are
- defined which accomplish this:
+--- a/arch/parisc/include/asm/atomic.h
++++ b/arch/parisc/include/asm/atomic.h
+@@ -7,6 +7,7 @@
  
--	void smp_mb__before_atomic_dec(void);
--	void smp_mb__after_atomic_dec(void);
--	void smp_mb__before_atomic_inc(void);
--	void smp_mb__after_atomic_inc(void);
-+	void smp_mb__before_atomic(void);
-+	void smp_mb__after_atomic(void);
+ #include <linux/types.h>
+ #include <asm/cmpxchg.h>
++#include <asm/barrier.h>
  
--For example, smp_mb__before_atomic_dec() can be used like so:
-+For example, smp_mb__before_atomic() can be used like so:
+ /*
+  * Atomic operations that C can't guarantee us.  Useful for
+@@ -143,11 +144,6 @@ static __inline__ int __atomic_add_unles
  
- 	obj->dead = 1;
--	smp_mb__before_atomic_dec();
-+	smp_mb__before_atomic();
- 	atomic_dec(&obj->ref_count);
+ #define ATOMIC_INIT(i)	{ (i) }
  
- It makes sure that all memory operations preceding the atomic_dec()
-@@ -302,15 +300,10 @@ operation.  In the above example, it gua
- "1" to obj->dead will be globally visible to other cpus before the
- atomic counter decrement.
- 
--Without the explicit smp_mb__before_atomic_dec() call, the
-+Without the explicit smp_mb__before_atomic() call, the
- implementation could legally allow the atomic counter update visible
- to other cpus before the "obj->dead = 1;" assignment.
- 
--The other three interfaces listed are used to provide explicit
--ordering with respect to memory operations after an atomic_dec() call
--(smp_mb__after_atomic_dec()) and around atomic_inc() calls
--(smp_mb__{before,after}_atomic_inc()).
+-#define smp_mb__before_atomic_dec()	smp_mb()
+-#define smp_mb__after_atomic_dec()	smp_mb()
+-#define smp_mb__before_atomic_inc()	smp_mb()
+-#define smp_mb__after_atomic_inc()	smp_mb()
 -
- A missing memory barrier in the cases where they are required by the
- atomic_t implementation above can have disastrous results.  Here is
- an example, which follows a pattern occurring frequently in the Linux
-@@ -487,12 +480,12 @@ memory operation done by test_and_set_bi
- Which returns a boolean indicating if bit "nr" is set in the bitmask
- pointed to by "addr".
+ #ifdef CONFIG_64BIT
  
--If explicit memory barriers are required around clear_bit() (which
--does not return a value, and thus does not need to provide memory
--barrier semantics), two interfaces are provided:
-+If explicit memory barriers are required around {set,clear}_bit() (which do
-+not return a value, and thus does not need to provide memory barrier
-+semantics), two interfaces are provided:
+ #define ATOMIC64_INIT(i) { (i) }
+--- a/arch/parisc/include/asm/bitops.h
++++ b/arch/parisc/include/asm/bitops.h
+@@ -8,6 +8,7 @@
+ #include <linux/compiler.h>
+ #include <asm/types.h>		/* for BITS_PER_LONG/SHIFT_PER_LONG */
+ #include <asm/byteorder.h>
++#include <asm/barrier.h>
+ #include <linux/atomic.h>
  
--	void smp_mb__before_clear_bit(void);
--	void smp_mb__after_clear_bit(void);
-+	void smp_mb__before_atomic(void);
-+	void smp_mb__after_atomic(void);
- 
- They are used as follows, and are akin to their atomic_t operation
- brothers:
-@@ -500,13 +493,13 @@ They are used as follows, and are akin t
- 	/* All memory operations before this call will
- 	 * be globally visible before the clear_bit().
- 	 */
--	smp_mb__before_clear_bit();
-+	smp_mb__before_atomic();
- 	clear_bit( ... );
- 
- 	/* The clear_bit() will be visible before all
- 	 * subsequent memory operations.
- 	 */
--	 smp_mb__after_clear_bit();
-+	 smp_mb__after_atomic();
- 
- There are two special bitops with lock barrier semantics (acquire/release,
- same as spinlocks). These operate in the same way as their non-_lock/unlock
---- a/Documentation/memory-barriers.txt
-+++ b/Documentation/memory-barriers.txt
-@@ -1583,20 +1583,21 @@ CPU from reordering them.
-      insert anything more than a compiler barrier in a UP compilation.
+ /*
+@@ -19,9 +20,6 @@
+ #define CHOP_SHIFTCOUNT(x) (((unsigned long) (x)) & (BITS_PER_LONG - 1))
  
  
-- (*) smp_mb__before_atomic_dec();
-- (*) smp_mb__after_atomic_dec();
-- (*) smp_mb__before_atomic_inc();
-- (*) smp_mb__after_atomic_inc();
+-#define smp_mb__before_clear_bit()      smp_mb()
+-#define smp_mb__after_clear_bit()       smp_mb()
 -
--     These are for use with atomic add, subtract, increment and decrement
--     functions that don't return a value, especially when used for reference
--     counting.  These functions do not imply memory barriers.
-+ (*) smp_mb__before_atomic();
-+ (*) smp_mb__after_atomic();
-+
-+     These are for use with atomic (such as add, subtract, increment and
-+     decrement) functions that don't return a value, especially when used for
-+     reference counting.  These functions do not imply memory barriers.
-+
-+     These are also used for atomic bitop functions that do not return a
-+     value (such as set_bit and clear_bit).
- 
-      As an example, consider a piece of code that marks an object as being dead
-      and then decrements the object's reference count:
- 
- 	obj->dead = 1;
--	smp_mb__before_atomic_dec();
-+	smp_mb__before_atomic();
- 	atomic_dec(&obj->ref_count);
- 
-      This makes sure that the death mark on the object is perceived to be set
-@@ -1606,27 +1607,6 @@ CPU from reordering them.
-      operations" subsection for information on where to use these.
- 
- 
-- (*) smp_mb__before_clear_bit(void);
-- (*) smp_mb__after_clear_bit(void);
--
--     These are for use similar to the atomic inc/dec barriers.  These are
--     typically used for bitwise unlocking operations, so care must be taken as
--     there are no implicit memory barriers here either.
--
--     Consider implementing an unlock operation of some nature by clearing a
--     locking bit.  The clear_bit() would then need to be barriered like this:
--
--	smp_mb__before_clear_bit();
--	clear_bit( ... );
--
--     This prevents memory operations before the clear leaking to after it.  See
--     the subsection on "Locking Functions" with reference to RELEASE operation
--     implications.
--
--     See Documentation/atomic_ops.txt for more information.  See the "Atomic
--     operations" subsection for information on where to use these.
--
--
- MMIO WRITE BARRIER
- ------------------
- 
-@@ -2283,11 +2263,11 @@ barriers, but might be used for implemen
- 	change_bit();
- 
- With these the appropriate explicit memory barrier should be used if necessary
--(smp_mb__before_clear_bit() for instance).
-+(smp_mb__before_atomic() for instance).
- 
- 
- The following also do _not_ imply memory barriers, and so may require explicit
--memory barriers under some circumstances (smp_mb__before_atomic_dec() for
-+memory barriers under some circumstances (smp_mb__before_atomic() for
- instance):
- 
- 	atomic_add();
+ /* See http://marc.theaimsgroup.com/?t=108826637900003 for discussion
+  * on use of volatile and __*_bit() (set/clear/change):
+  *	*_bit() want use of volatile.
 
 
