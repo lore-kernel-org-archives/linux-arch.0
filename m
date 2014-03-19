@@ -1,26 +1,37 @@
-From: David Howells <dhowells@redhat.com>
-Subject: Re: [PATCH 00/31] Clean up smp_mb__ barriers
-Date: Wed, 19 Mar 2014 10:07:19 +0000
-Message-ID: <13861.1395223639@warthog.procyon.org.uk>
-References: <20140319095807.GF27632@laptop.programming.kicks-ass.net> <20140319064729.660482086@infradead.org> <13632.1395222905@warthog.procyon.org.uk>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:37401 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1756193AbaCSKIB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 19 Mar 2014 06:08:01 -0400
-In-Reply-To: <20140319095807.GF27632@laptop.programming.kicks-ass.net>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+From: Max Filippov <jcmvbkbc@gmail.com>
+Subject: Re: [PATCH 29/31] arch,xtensa: Convert smp_mb__*
+Date: Wed, 19 Mar 2014 17:11:34 +0400
+Message-ID: <CAMo8BfLLFqYz96LLJy0f+9XgAdQVUVhRg_VGp+yG92Gfk=sfaQ@mail.gmail.com>
+References: <20140319064729.660482086@infradead.org>
+	<20140319065205.319240141@infradead.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20140319065205.319240141@infradead.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: Peter Zijlstra <peterz@infradead.org>
-Cc: dhowells@redhat.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, torvalds@linux-foundation.org, akpm@linux-foundation.org, mingo@kernel.org, will.deacon@arm.com, paulmck@linux.vnet.ibm.com
+Cc: Linux-Arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, will.deacon@arm.com, Paul McKenney <paulmck@linux.vnet.ibm.com>
+List-Id: linux-arch.vger.kernel.org
 
-Peter Zijlstra <peterz@infradead.org> wrote:
+Hi Peter,
 
-> > Shouldn't the mass-conversion patch (patch 31) go first?
-> 
-> You mean; make the kernel use primitives that aren't there yet?
+On Wed, Mar 19, 2014 at 10:47 AM, Peter Zijlstra <peterz@infradead.org> wrote:
+> Xtensa SMP has ll/sc which is fully serializing, therefore its exising
 
-Never mind.  I misread the conditionals in patch 3 adding the deprecated
-versions.
+One minor correction: current xtensa ISA doens't have ll/sc, it only
+has cas (s32c1i instruction), which is fully serializing.
 
-David
+> smp_mb__{before,after}_clear_bit() appear unduly heavy.
+>
+> Implement the new barriers are barrier().
+>
+> Signed-off-by: Peter Zijlstra <peterz@infradead.org>
+> ---
+>  arch/xtensa/include/asm/atomic.h  |    7 +------
+>  arch/xtensa/include/asm/barrier.h |    3 +++
+>  arch/xtensa/include/asm/bitops.h  |    4 +---
+>  3 files changed, 5 insertions(+), 9 deletions(-)
+
+-- 
+Thanks.
+-- Max
