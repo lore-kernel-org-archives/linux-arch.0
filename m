@@ -1,68 +1,63 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pb0-f54.google.com ([209.85.160.54]:37054 "EHLO
-	mail-pb0-f54.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757067AbaCTPUj (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 20 Mar 2014 11:20:39 -0400
+Received: from mail-qg0-f41.google.com ([209.85.192.41]:64108 "EHLO
+	mail-qg0-f41.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1759424AbaCTWCU (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 20 Mar 2014 18:02:20 -0400
+Message-ID: <532B6543.7050707@redhat.com>
+Date: Thu, 20 Mar 2014 23:01:39 +0100
+From: Paolo Bonzini <pbonzini@redhat.com>
 MIME-Version: 1.0
-In-Reply-To: <20140320145128.GE4403@osiris>
-References: <1394121083-2507-1-git-send-email-heiko.carstens@de.ibm.com>
-	<1394121083-2507-2-git-send-email-heiko.carstens@de.ibm.com>
-	<CAMuHMdUqjhcmaRo-2=qr_DgbXoj9bAGfvzuRPDZ+tOMx6Hvr-Q@mail.gmail.com>
-	<20140320113333.GD4403@osiris>
-	<20140320145128.GE4403@osiris>
-Date: Thu, 20 Mar 2014 16:20:38 +0100
-Message-ID: <CAMuHMdU32mPcaKKup1XVw0zDijAMWr-QCFVB=8sf46usnjX+Gw@mail.gmail.com>
-Subject: Re: [PATCH/RFC 01/16] compat: let architectures define __ARCH_WANT_COMPAT_SYS_GETDENTS64
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Content-Type: text/plain; charset=UTF-8
+Subject: Re: [PATCH v7 06/11] pvqspinlock, x86: Allow unfair queue spinlock
+ in a KVM guest
+References: <1395260049-30839-1-git-send-email-Waiman.Long@hp.com> <1395260049-30839-7-git-send-email-Waiman.Long@hp.com>
+In-Reply-To: <1395260049-30839-7-git-send-email-Waiman.Long@hp.com>
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Heiko Carstens <heiko.carstens@de.ibm.com>
-Cc: Al Viro <viro@zeniv.linux.org.uk>, "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, Linux-Arch <linux-arch@vger.kernel.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Linux-Next <linux-next@vger.kernel.org>, Chris Metcalf <cmetcalf@tilera.com>
-Message-ID: <20140320152038.-B92n-KYVoxb5arnUzyhnp0L5iYKW_UGbwpY1yuyC9s@z>
+To: Waiman Long <Waiman.Long@hp.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, Peter Zijlstra <peterz@infradead.org>
+Cc: Jeremy Fitzhardinge <jeremy@goop.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, kvm@vger.kernel.org, virtualization@lists.linux-foundation.org, Andi Kleen <andi@firstfloor.org>, Michel Lespinasse <walken@google.com>, Alok Kataria <akataria@vmware.com>, linux-arch@vger.kernel.org, Gleb Natapov <gleb@redhat.com>, x86@kernel.org, xen-devel@lists.xenproject.org, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Scott J Norton <scott.norton@hp.com>, Rusty Russell <rusty@rustcorp.com.au>, Steven Rostedt <rostedt@goodmis.org>, Chris Wright <chrisw@sous-sol.org>, Oleg Nesterov <oleg@redhat.com>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Aswin Chandramouleeswaran <aswin@hp.com>, Chegu Vinod <chegu_vinod@hp.com>, linux-kernel@vger.kernel.org, David Vrabel <david.vrabel@citrix.com>, Andrew Morton <akpm@linux-foundation.org>
+Message-ID: <20140320220139.1mbYVjUD625cysgI4iuXKvz9AHyImnstTQU0f6pGjks@z>
 
-Hi Heiko,
-
-On Thu, Mar 20, 2014 at 3:51 PM, Heiko Carstens
-<heiko.carstens@de.ibm.com> wrote:
-> I think the simple patch below should fix the compile error.
-
-Thanks!
-
-> Unfortunately I don't have a tile cross compiler.
-
-Unfortunately https://www.kernel.org/pub/tools/crosstool/ doesn't have
-one for s390 hosts, only for ia32 and amd64.
-
-> linux/compat.h does not include linux/unistd.h but the compat.h header
-> file contains various conditional
+Il 19/03/2014 21:14, Waiman Long ha scritto:
+> This patch adds a KVM init function to activate the unfair queue
+> spinlock in a KVM guest when the PARAVIRT_UNFAIR_LOCKS kernel config
+> option is selected.
 >
->  #ifdef __ARCH_WANT_COMPAT_...
->  asmlinkage long compat...()
->  #endif
+> Signed-off-by: Waiman Long <Waiman.Long@hp.com>
+> ---
+>  arch/x86/kernel/kvm.c |   17 +++++++++++++++++
+>  1 files changed, 17 insertions(+), 0 deletions(-)
 >
-> compat system call function declarations.
-> If linux/unistd.h isn't included it depends on previous includes if those
-> __ARCH_WANT_COMPAT_... defines are defined or not. So add an additional
-> linux/unistd.h include.
+> diff --git a/arch/x86/kernel/kvm.c b/arch/x86/kernel/kvm.c
+> index 713f1b3..a489140 100644
+> --- a/arch/x86/kernel/kvm.c
+> +++ b/arch/x86/kernel/kvm.c
+> @@ -826,3 +826,20 @@ static __init int kvm_spinlock_init_jump(void)
+>  early_initcall(kvm_spinlock_init_jump);
 >
-> Should fix this compile error on tile:
+>  #endif	/* CONFIG_PARAVIRT_SPINLOCKS */
+> +
+> +#ifdef CONFIG_PARAVIRT_UNFAIR_LOCKS
+> +/*
+> + * Enable unfair lock if running in a real para-virtualized environment
+> + */
+> +static __init int kvm_unfair_locks_init_jump(void)
+> +{
+> +	if (!kvm_para_available())
+> +		return 0;
+> +
+> +	static_key_slow_inc(&paravirt_unfairlocks_enabled);
+> +	printk(KERN_INFO "KVM setup unfair spinlock\n");
+> +
+> +	return 0;
+> +}
+> +early_initcall(kvm_unfair_locks_init_jump);
+> +#endif
 >
-> include/uapi/asm-generic/unistd.h:195:1: error: 'compat_sys_getdents64' undeclared
-> make[3]: *** [arch/tile/kernel/compat.o] Error 1
->
-> Reported-by: Geert Uytterhoeven <geert@linux-m68k.org>
-> Signed-off-by: Heiko Carstens <heiko.carstens@de.ibm.com>
 
-Acked-by: Geert Uytterhoeven <geert@linux-m68k.org>
+No!  Please do what I asked you to do.  You are not handling Hyper-V or 
+VMWare.  Just use X86_FEATURE_HYPERVISOR and it will cover all 
+hypervisors that actually follow Intel's guidelines.
 
-Gr{oetje,eeting}s,
-
-                        Geert
-
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+Paolo
