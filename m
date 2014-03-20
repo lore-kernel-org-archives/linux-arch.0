@@ -1,236 +1,109 @@
-From: tip-bot for Frederic Weisbecker <tipbot@zytor.com>
-Subject: [tip:timers/nohz] arch: Remove stub cputime.h headers
-Date: Thu, 20 Mar 2014 04:38:21 -0700
-Message-ID: <tip-073d8224d299528778e90773becd1e890953443c@git.kernel.org>
-Reply-To: linux-kernel@vger.kernel.org, mingo@kernel.org, hpa@zytor.com,
-	  peterz@infradead.org, riel@redhat.com, fweisbec@gmail.com,
-	  mtosatti@redhat.com, tglx@linutronix.de,
-	  linux-arch@vger.kernel.org
+From: Heiko Carstens <heiko.carstens@de.ibm.com>
+Subject: Re: [PATCH/RFC 01/16] compat: let architectures define
+ __ARCH_WANT_COMPAT_SYS_GETDENTS64
+Date: Thu, 20 Mar 2014 15:51:28 +0100
+Message-ID: <20140320145128.GE4403@osiris>
+References: <1394121083-2507-1-git-send-email-heiko.carstens@de.ibm.com>
+ <1394121083-2507-2-git-send-email-heiko.carstens@de.ibm.com>
+ <CAMuHMdUqjhcmaRo-2=qr_DgbXoj9bAGfvzuRPDZ+tOMx6Hvr-Q@mail.gmail.com>
+ <20140320113333.GD4403@osiris>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:49061 "EHLO
-	terminus.zytor.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757848AbaCTLi6 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 20 Mar 2014 07:38:58 -0400
+Received: from e06smtp13.uk.ibm.com ([195.75.94.109]:44412 "EHLO
+	e06smtp13.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S933546AbaCTOve (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 20 Mar 2014 10:51:34 -0400
+Received: from /spool/local
+	by e06smtp13.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <heiko.carstens@de.ibm.com>;
+	Thu, 20 Mar 2014 14:51:32 -0000
 Content-Disposition: inline
+In-Reply-To: <20140320113333.GD4403@osiris>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-tip-commits@vger.kernel.org
-Cc: hpa@zytor.com, mingo@kernel.org, peterz@infradead.org, riel@redhat.com, fweisbec@gmail.com, mtosatti@redhat.com, tglx@linutronix.de, linux-arch@vger.kernel.org
+To: Geert Uytterhoeven <geert@linux-m68k.org>, Al Viro <viro@zeniv.linux.org.uk>, "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, Linux-Arch <linux-arch@vger.kernel.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Linux-Next <linux-next@vger.kernel.org>, Chris Metcalf <cmetcalf@tilera.com>
 
-Commit-ID:  073d8224d299528778e90773becd1e890953443c
-Gitweb:     http://git.kernel.org/tip/073d8224d299528778e90773becd1e890953443c
-Author:     Frederic Weisbecker <fweisbec@gmail.com>
-AuthorDate: Wed, 5 Mar 2014 17:24:12 +0100
-Committer:  Frederic Weisbecker <fweisbec@gmail.com>
-CommitDate: Thu, 13 Mar 2014 16:09:30 +0100
+On Thu, Mar 20, 2014 at 12:33:33PM +0100, Heiko Carstens wrote:
+> On Thu, Mar 20, 2014 at 11:03:14AM +0100, Geert Uytterhoeven wrote:
+> > On Thu, Mar 6, 2014 at 4:51 PM, Heiko Carstens
+> > <heiko.carstens@de.ibm.com> wrote:
+> > > For architecture dependent compat syscalls in common code an architecture
+> > > must define something like __ARCH_WANT_<WHATEVER> if it wants to use the
+> > > code.
+> > > This however is not true for compat_sys_getdents64 for which architectures
+> > > must define __ARCH_OMIT_COMPAT_SYS_GETDENTS64 if they do not want the code.
+> > >
+> > > This leads to the situation where all architectures, except mips, get the
+> > > compat code but only x86_64, arm64 and the generic syscall architectures
+> > > actually use it.
+> > >
+> > > So invert the logic, so that architectures actively must do something to
+> > > get the compat code.
+> > >
+> > > This way a couple of architectures get rid of otherwise dead code.
+> > >
+> > > Signed-off-by: Heiko Carstens <heiko.carstens@de.ibm.com>
+> > 
+> > Is this the cause of the tilegx_defconfig failures in -next?
+> > 
+> > include/uapi/asm-generic/unistd.h:195:1: error:
+> > 'compat_sys_getdents64' undeclared here (not in a function)
+> > make[3]: *** [arch/tile/kernel/compat.o] Error 1
+> > 
+> > http://kisskb.ellerman.id.au/kisskb/buildresult/10808012/
+> 
+> Yes. That's unexpected header include order from my side...
+> Looking into it. Thanks!
 
-arch: Remove stub cputime.h headers
+I think the simple patch below should fix the compile error.
+Unfortunately I don't have a tile cross compiler.
 
-Many architectures have a stub cputime.h that only include the default
-cputime.h
+But at least s390, x86_64, sparc64 and mip64 still compile, so it
+looks like I'm not immediatly lost in include order hell.
 
-Lets remove the useless headers, we only need to mention that we want
-the default headers on the Kbuild files.
+(pushed to the s390 compat branch, so the next linux-next release
+ should contain the fix)
 
-Cc: Archs <linux-arch@vger.kernel.org>
-Cc: Ingo Molnar <mingo@kernel.org>
-Cc: Marcelo Tosatti <mtosatti@redhat.com>
-Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Acked-by: Rik van Riel <riel@redhat.com>
-Signed-off-by: Frederic Weisbecker <fweisbec@gmail.com>
+From f80f4cd232c56f491ecbeea3dd0627598b59b61e Mon Sep 17 00:00:00 2001
+From: Heiko Carstens <heiko.carstens@de.ibm.com>
+Date: Thu, 20 Mar 2014 15:30:14 +0100
+Subject: [PATCH] compat: include linux/unistd.h within linux/compat.h
+
+linux/compat.h does not include linux/unistd.h but the compat.h header
+file contains various conditional
+
+ #ifdef __ARCH_WANT_COMPAT_...
+ asmlinkage long compat...()
+ #endif
+
+compat system call function declarations.
+If linux/unistd.h isn't included it depends on previous includes if those
+__ARCH_WANT_COMPAT_... defines are defined or not. So add an additional
+linux/unistd.h include.
+
+Should fix this compile error on tile:
+
+include/uapi/asm-generic/unistd.h:195:1: error: 'compat_sys_getdents64' undeclared
+make[3]: *** [arch/tile/kernel/compat.o] Error 1
+
+Reported-by: Geert Uytterhoeven <geert@linux-m68k.org>
+Signed-off-by: Heiko Carstens <heiko.carstens@de.ibm.com>
 ---
- arch/alpha/include/asm/Kbuild         | 1 +
- arch/alpha/include/asm/cputime.h      | 6 ------
- arch/cris/include/asm/Kbuild          | 1 +
- arch/cris/include/asm/cputime.h       | 6 ------
- arch/frv/include/asm/Kbuild           | 1 +
- arch/frv/include/asm/cputime.h        | 6 ------
- arch/m32r/include/asm/Kbuild          | 1 +
- arch/m32r/include/asm/cputime.h       | 6 ------
- arch/microblaze/include/asm/Kbuild    | 1 +
- arch/microblaze/include/asm/cputime.h | 1 -
- arch/mn10300/include/asm/Kbuild       | 1 +
- arch/mn10300/include/asm/cputime.h    | 1 -
- arch/score/include/asm/Kbuild         | 1 +
- arch/score/include/asm/cputime.h      | 6 ------
- arch/x86/include/asm/Kbuild           | 1 +
- arch/x86/include/asm/cputime.h        | 1 -
- 16 files changed, 8 insertions(+), 33 deletions(-)
+ include/linux/compat.h | 1 +
+ 1 file changed, 1 insertion(+)
 
-diff --git a/arch/alpha/include/asm/Kbuild b/arch/alpha/include/asm/Kbuild
-index 7736f42..96e54be 100644
---- a/arch/alpha/include/asm/Kbuild
-+++ b/arch/alpha/include/asm/Kbuild
-@@ -1,6 +1,7 @@
+diff --git a/include/linux/compat.h b/include/linux/compat.h
+index 7c765624b7ef..01c0aa57ccec 100644
+--- a/include/linux/compat.h
++++ b/include/linux/compat.h
+@@ -14,6 +14,7 @@
+ #include <linux/if.h>
+ #include <linux/fs.h>
+ #include <linux/aio_abi.h>	/* for aio_context_t */
++#include <linux/unistd.h>
  
- 
- generic-y += clkdev.h
-+generic-y += cputime.h
- generic-y += exec.h
- generic-y += hash.h
- generic-y += mcs_spinlock.h
-diff --git a/arch/alpha/include/asm/cputime.h b/arch/alpha/include/asm/cputime.h
-deleted file mode 100644
-index 19577fd..0000000
---- a/arch/alpha/include/asm/cputime.h
-+++ /dev/null
-@@ -1,6 +0,0 @@
--#ifndef __ALPHA_CPUTIME_H
--#define __ALPHA_CPUTIME_H
--
--#include <asm-generic/cputime.h>
--
--#endif /* __ALPHA_CPUTIME_H */
-diff --git a/arch/cris/include/asm/Kbuild b/arch/cris/include/asm/Kbuild
-index 056027f..afff510 100644
---- a/arch/cris/include/asm/Kbuild
-+++ b/arch/cris/include/asm/Kbuild
-@@ -5,6 +5,7 @@ header-y += arch-v32/
- 
- generic-y += barrier.h
- generic-y += clkdev.h
-+generic-y += cputime.h
- generic-y += exec.h
- generic-y += hash.h
- generic-y += kvm_para.h
-diff --git a/arch/cris/include/asm/cputime.h b/arch/cris/include/asm/cputime.h
-deleted file mode 100644
-index 4446a65..0000000
---- a/arch/cris/include/asm/cputime.h
-+++ /dev/null
-@@ -1,6 +0,0 @@
--#ifndef __CRIS_CPUTIME_H
--#define __CRIS_CPUTIME_H
--
--#include <asm-generic/cputime.h>
--
--#endif /* __CRIS_CPUTIME_H */
-diff --git a/arch/frv/include/asm/Kbuild b/arch/frv/include/asm/Kbuild
-index babb933..87b95eb 100644
---- a/arch/frv/include/asm/Kbuild
-+++ b/arch/frv/include/asm/Kbuild
-@@ -1,5 +1,6 @@
- 
- generic-y += clkdev.h
-+generic-y += cputime.h
- generic-y += exec.h
- generic-y += hash.h
- generic-y += mcs_spinlock.h
-diff --git a/arch/frv/include/asm/cputime.h b/arch/frv/include/asm/cputime.h
-deleted file mode 100644
-index f6c373a..0000000
---- a/arch/frv/include/asm/cputime.h
-+++ /dev/null
-@@ -1,6 +0,0 @@
--#ifndef _ASM_CPUTIME_H
--#define _ASM_CPUTIME_H
--
--#include <asm-generic/cputime.h>
--
--#endif /* _ASM_CPUTIME_H */
-diff --git a/arch/m32r/include/asm/Kbuild b/arch/m32r/include/asm/Kbuild
-index 5825a35..67779a7 100644
---- a/arch/m32r/include/asm/Kbuild
-+++ b/arch/m32r/include/asm/Kbuild
-@@ -1,5 +1,6 @@
- 
- generic-y += clkdev.h
-+generic-y += cputime.h
- generic-y += exec.h
- generic-y += hash.h
- generic-y += mcs_spinlock.h
-diff --git a/arch/m32r/include/asm/cputime.h b/arch/m32r/include/asm/cputime.h
-deleted file mode 100644
-index 0a47550..0000000
---- a/arch/m32r/include/asm/cputime.h
-+++ /dev/null
-@@ -1,6 +0,0 @@
--#ifndef __M32R_CPUTIME_H
--#define __M32R_CPUTIME_H
--
--#include <asm-generic/cputime.h>
--
--#endif /* __M32R_CPUTIME_H */
-diff --git a/arch/microblaze/include/asm/Kbuild b/arch/microblaze/include/asm/Kbuild
-index 1f590ab..c98ed95 100644
---- a/arch/microblaze/include/asm/Kbuild
-+++ b/arch/microblaze/include/asm/Kbuild
-@@ -1,6 +1,7 @@
- 
- generic-y += barrier.h
- generic-y += clkdev.h
-+generic-y += cputime.h
- generic-y += exec.h
- generic-y += hash.h
- generic-y += mcs_spinlock.h
-diff --git a/arch/microblaze/include/asm/cputime.h b/arch/microblaze/include/asm/cputime.h
-deleted file mode 100644
-index 6d68ad7..0000000
---- a/arch/microblaze/include/asm/cputime.h
-+++ /dev/null
-@@ -1 +0,0 @@
--#include <asm-generic/cputime.h>
-diff --git a/arch/mn10300/include/asm/Kbuild b/arch/mn10300/include/asm/Kbuild
-index cbc6b9b..654d5ba 100644
---- a/arch/mn10300/include/asm/Kbuild
-+++ b/arch/mn10300/include/asm/Kbuild
-@@ -1,6 +1,7 @@
- 
- generic-y += barrier.h
- generic-y += clkdev.h
-+generic-y += cputime.h
- generic-y += exec.h
- generic-y += hash.h
- generic-y += mcs_spinlock.h
-diff --git a/arch/mn10300/include/asm/cputime.h b/arch/mn10300/include/asm/cputime.h
-deleted file mode 100644
-index 6d68ad7..0000000
---- a/arch/mn10300/include/asm/cputime.h
-+++ /dev/null
-@@ -1 +0,0 @@
--#include <asm-generic/cputime.h>
-diff --git a/arch/score/include/asm/Kbuild b/arch/score/include/asm/Kbuild
-index 4630cf2..2f947ab 100644
---- a/arch/score/include/asm/Kbuild
-+++ b/arch/score/include/asm/Kbuild
-@@ -4,6 +4,7 @@ header-y +=
- 
- generic-y += barrier.h
- generic-y += clkdev.h
-+generic-y += cputime.h
- generic-y += hash.h
- generic-y += mcs_spinlock.h
- generic-y += preempt.h
-diff --git a/arch/score/include/asm/cputime.h b/arch/score/include/asm/cputime.h
-deleted file mode 100644
-index 1fced99..0000000
---- a/arch/score/include/asm/cputime.h
-+++ /dev/null
-@@ -1,6 +0,0 @@
--#ifndef _ASM_SCORE_CPUTIME_H
--#define _ASM_SCORE_CPUTIME_H
--
--#include <asm-generic/cputime.h>
--
--#endif /* _ASM_SCORE_CPUTIME_H */
-diff --git a/arch/x86/include/asm/Kbuild b/arch/x86/include/asm/Kbuild
-index a8fee07..4acddc4 100644
---- a/arch/x86/include/asm/Kbuild
-+++ b/arch/x86/include/asm/Kbuild
-@@ -5,4 +5,5 @@ genhdr-y += unistd_64.h
- genhdr-y += unistd_x32.h
- 
- generic-y += clkdev.h
-+generic-y += cputime.h
- generic-y += mcs_spinlock.h
-diff --git a/arch/x86/include/asm/cputime.h b/arch/x86/include/asm/cputime.h
-deleted file mode 100644
-index 6d68ad7..0000000
---- a/arch/x86/include/asm/cputime.h
-+++ /dev/null
-@@ -1 +0,0 @@
--#include <asm-generic/cputime.h>
+ #include <asm/compat.h>
+ #include <asm/siginfo.h>
+-- 
+1.8.5.5
