@@ -1,60 +1,67 @@
-From: Chris Metcalf <cmetcalf@tilera.com>
-Subject: Re: [PATCH/RFC 01/16] compat: let architectures define __ARCH_WANT_COMPAT_SYS_GETDENTS64
-Date: Thu, 20 Mar 2014 11:29:33 -0400
-Message-ID: <532B095D.9010704@tilera.com>
-References: <1394121083-2507-1-git-send-email-heiko.carstens@de.ibm.com> <1394121083-2507-2-git-send-email-heiko.carstens@de.ibm.com> <CAMuHMdUqjhcmaRo-2=qr_DgbXoj9bAGfvzuRPDZ+tOMx6Hvr-Q@mail.gmail.com> <20140320113333.GD4403@osiris> <20140320145128.GE4403@osiris>
+From: Steven Rostedt <rostedt@goodmis.org>
+Subject: Re: [PATCH] jump label: constify lookup functions
+Date: Thu, 20 Mar 2014 13:13:52 -0400
+Message-ID: <20140320131352.560df1dd@gandalf.local.home>
+References: <1390850839-24346-1-git-send-email-sasha.levin@oracle.com>
+	<52FB7D96.2050100@oracle.com>
+	<53235B15.7070807@oracle.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="ISO-8859-1"
+Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from usmamail.tilera.com ([12.216.194.151]:59783 "EHLO
-	USMAMAIL.TILERA.COM" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932796AbaCTP3f (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 20 Mar 2014 11:29:35 -0400
-In-Reply-To: <20140320145128.GE4403@osiris>
+Received: from cdptpa-outbound-snat.email.rr.com ([107.14.166.230]:21701 "EHLO
+	cdptpa-oedge-vip.email.rr.com" rhost-flags-OK-OK-OK-FAIL)
+	by vger.kernel.org with ESMTP id S1750960AbaCTRNy (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Thu, 20 Mar 2014 13:13:54 -0400
+In-Reply-To: <53235B15.7070807@oracle.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Heiko Carstens <heiko.carstens@de.ibm.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Al Viro <viro@zeniv.linux.org.uk>, "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, Linux-Arch <linux-arch@vger.kernel.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Linux-Next <linux-next@vger.kernel.org>
+To: Sasha Levin <sasha.levin@oracle.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-On 3/20/2014 10:51 AM, Heiko Carstens wrote:
-> I think the simple patch below should fix the compile error.
-> Unfortunately I don't have a tile cross compiler.
->
-> But at least s390, x86_64, sparc64 and mip64 still compile, so it
-> looks like I'm not immediatly lost in include order hell.
->
-> (pushed to the s390 compat branch, so the next linux-next release
->  should contain the fix)
->
-> From f80f4cd232c56f491ecbeea3dd0627598b59b61e Mon Sep 17 00:00:00 2001
-> From: Heiko Carstens <heiko.carstens@de.ibm.com>
-> Date: Thu, 20 Mar 2014 15:30:14 +0100
-> Subject: [PATCH] compat: include linux/unistd.h within linux/compat.h
->
-> linux/compat.h does not include linux/unistd.h but the compat.h header
-> file contains various conditional
->
->  #ifdef __ARCH_WANT_COMPAT_...
->  asmlinkage long compat...()
->  #endif
->
-> compat system call function declarations.
-> If linux/unistd.h isn't included it depends on previous includes if those
-> __ARCH_WANT_COMPAT_... defines are defined or not. So add an additional
-> linux/unistd.h include.
->
-> Should fix this compile error on tile:
->
-> include/uapi/asm-generic/unistd.h:195:1: error: 'compat_sys_getdents64' undeclared
-> make[3]: *** [arch/tile/kernel/compat.o] Error 1
->
-> Reported-by: Geert Uytterhoeven <geert@linux-m68k.org>
-> Signed-off-by: Heiko Carstens <heiko.carstens@de.ibm.com>
+On Fri, 14 Mar 2014 15:40:05 -0400
+Sasha Levin <sasha.levin@oracle.com> wrote:
 
-This does fix the error on tilegx.  Thanks.
+> ping?
+> 
+> On 02/12/2014 08:56 AM, Sasha Levin wrote:
+> > ping?
+> >
+> > On 01/27/2014 02:27 PM, Sasha Levin wrote:
+> >> Modify the parameters of all the lookup and the bookkeeping functions which
+> >> should be const to const.
+> >>
+> >> For example, jump_label_text_reserved() doesn't modify the memory it works on,
+> >> it just checks whether there are any jump labels there.
+> >>
+> >> Signed-off-by: Sasha Levin <sasha.levin@oracle.com>
+> >> ---
+> >>   arch/arm/include/asm/jump_label.h     |  2 +-
+> >>   arch/arm/kernel/jump_label.c          |  6 ++---
+> >>   arch/arm64/include/asm/jump_label.h   |  2 +-
+> >>   arch/arm64/kernel/jump_label.c        |  6 ++---
+> >>   arch/mips/include/asm/jump_label.h    |  2 +-
+> >>   arch/mips/kernel/jump_label.c         |  2 +-
+> >>   arch/powerpc/include/asm/jump_label.h |  2 +-
+> >>   arch/powerpc/kernel/jump_label.c      |  2 +-
+> >>   arch/s390/include/asm/jump_label.h    |  2 +-
+> >>   arch/s390/kernel/jump_label.c         | 12 ++++-----
+> >>   arch/sparc/include/asm/jump_label.h   |  2 +-
+> >>   arch/sparc/kernel/jump_label.c        |  2 +-
+> >>   arch/x86/include/asm/jump_label.h     |  2 +-
+> >>   arch/x86/include/asm/spinlock.h       |  2 +-
+> >>   arch/x86/kernel/jump_label.c          |  6 ++---
 
-Acked-by: Chris Metcalf <cmetcalf@tilera.com>
+The arch changes should be broken up per arch. They are not dependent
+on each other, and they require being either acked by or pulled in by
+the architecture maintainers.
 
--- 
-Chris Metcalf, Tilera Corp.
-http://www.tilera.com
+> >>   include/linux/jump_label.h            | 27 ++++++++++----------
+> >>   kernel/jump_label.c                   | 46 ++++++++++++++++++-----------------
+> >>   17 files changed, 64 insertions(+), 61 deletions(-)
+
+The jump label generic patch should also be by itself, and that I can
+take.
+
+-- Steve
