@@ -1,16 +1,16 @@
 From: Waiman Long <waiman.long@hp.com>
-Subject: Re: [PATCH v7 02/11] qspinlock,
-	x86: Enable x86-64 to use queue spinlock
-Date: Thu, 20 Mar 2014 23:36:29 -0400
-Message-ID: <532BB3BD.80905@hp.com>
+Subject: Re: [PATCH v7 07/11] pvqspinlock, x86: Allow unfair queue spinlock
+	in a XEN guest
+Date: Thu, 20 Mar 2014 23:40:08 -0400
+Message-ID: <532BB498.8040900@hp.com>
 References: <1395260049-30839-1-git-send-email-Waiman.Long@hp.com>
-	<1395260049-30839-3-git-send-email-Waiman.Long@hp.com>
-	<20140319202405.GA11210@phenom.dumpdata.com>
+	<1395260049-30839-8-git-send-email-Waiman.Long@hp.com>
+	<20140319202814.GB11210@phenom.dumpdata.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"; Format="flowed"
 Content-Transfer-Encoding: 7bit
 Return-path: <virtualization-bounces@lists.linux-foundation.org>
-In-Reply-To: <20140319202405.GA11210@phenom.dumpdata.com>
+In-Reply-To: <20140319202814.GB11210@phenom.dumpdata.com>
 List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
 	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
 List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
@@ -24,20 +24,49 @@ To: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
 Cc: Jeremy Fitzhardinge <jeremy@goop.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, kvm@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, virtualization@lists.linux-foundation.org, Andi Kleen <andi@firstfloor.org>, "H. Peter Anvin" <hpa@zytor.com>, Michel Lespinasse <walken@google.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, Gleb Natapov <gleb@redhat.com>, x86@kernel.org, Ingo Molnar <mingo@redhat.com>, xen-devel@lists.xenproject.org, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Rik van Riel <riel@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Scott J Norton <scott.norton@hp.com>, Steven Rostedt <rostedt@goodmis.org>, Chris Wright <chrisw@sous-sol.org>, Oleg Nesterov <oleg@redhat.com>, Alok Kataria <akataria@vmware.com>, Aswin Chandramouleeswaran <aswin@hp.com>, Chegu Vinod <chegu_vinod@hp.com>, Boris Ostrovsky <boris.ostrovsky>
 List-Id: linux-arch.vger.kernel.org
 
-On 03/19/2014 04:24 PM, Konrad Rzeszutek Wilk wrote:
-> On Wed, Mar 19, 2014 at 04:14:00PM -0400, Waiman Long wrote:
->> This patch makes the necessary changes at the x86 architecture
->> specific layer to enable the use of queue spinlock for x86-64. As
->> x86-32 machines are typically not multi-socket. The benefit of queue
->> spinlock may not be apparent. So queue spinlock is not enabled.
+On 03/19/2014 04:28 PM, Konrad Rzeszutek Wilk wrote:
+> On Wed, Mar 19, 2014 at 04:14:05PM -0400, Waiman Long wrote:
+>> This patch adds a XEN init function to activate the unfair queue
+>> spinlock in a XEN guest when the PARAVIRT_UNFAIR_LOCKS kernel config
+>> option is selected.
 >>
->> Currently, there is some incompatibilities between the para-virtualized
->> spinlock code (which hard-codes the use of ticket spinlock) and the
->> queue spinlock. Therefore, the use of queue spinlock is disabled when
->> the para-virtualized spinlock is enabled.
-> And how does this patch do that? I think that comment is obsolete?
+>> Signed-off-by: Waiman Long<Waiman.Long@hp.com>
+>> ---
+>>   arch/x86/xen/setup.c |   19 +++++++++++++++++++
+>>   1 files changed, 19 insertions(+), 0 deletions(-)
+>>
+>> diff --git a/arch/x86/xen/setup.c b/arch/x86/xen/setup.c
+>> index 0982233..66bb6f5 100644
+>> --- a/arch/x86/xen/setup.c
+>> +++ b/arch/x86/xen/setup.c
+>> @@ -625,3 +625,22 @@ void __init xen_arch_setup(void)
+>>   	numa_off = 1;
+>>   #endif
+>>   }
+>> +
+>> +#ifdef CONFIG_PARAVIRT_UNFAIR_LOCKS
+>> +/*
+>> + * Enable unfair lock if running in a Xen guest
+>> + */
+>> +static __init int xen_unfair_locks_init_jump(void)
+>> +{
+>> +	/*
+>> +	 * Disable unfair lock if not running in a PV domain
+>> +	 */
+>> +	if (!xen_pv_domain())
+>> +		return 0;
+> I would just make this 'xen_domain'. Not sure why you need
+> to have it only for PV while the PVHVM guests can also use it?
 
-This comment is true wrt patch 2. As you add more patches on top, the 
-limitation is removed.
+The compilation of the setup.c file should have implied xen_domain 
+already (at least HVM). The check is added to make sure that unfair lock 
+won't be enabled on bare metal. As for PVHVM, is there a way to detect 
+it is running as such which is distinct from HVM?
+
+> Would it also make sense to use the same printk statement
+> that the KVM has?
+>
+
+Yes, I can add a printk statement like KVM.
 
 -Longman
