@@ -1,34 +1,39 @@
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: Re: [PATCH 01/44] arc: Use get_signal() signal_setup_done()
-Date: Sat, 22 Mar 2014 12:33:59 +0530
-Message-ID: <532D35DF.5020203@synopsys.com>
-References: <1393804559-7701-1-git-send-email-richard@nod.at> <1393804559-7701-2-git-send-email-richard@nod.at> <C2D7FE5348E1B147BCA15975FBA2307517FC80@IN01WEMBXA.internal.synopsys.com> <531445A7.1090001@nod.at>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH] LLVMLinux: Remove warning about returning an uninitialized variable
+Date: Sat, 22 Mar 2014 11:01:16 +0100
+Message-ID: <201403221101.16961.arnd@arndb.de>
+References: <1395470329-15065-1-git-send-email-behanw@converseincode.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="ISO-8859-1"
+Content-Type: Text/Plain;
+  charset="iso-8859-15"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtprelay.synopsys.com ([198.182.60.111]:37550 "EHLO
-	smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750706AbaCVHEM (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 22 Mar 2014 03:04:12 -0400
-In-Reply-To: <531445A7.1090001@nod.at>
+Received: from moutng.kundenserver.de ([212.227.126.131]:55503 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750759AbaCVKBV (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 22 Mar 2014 06:01:21 -0400
+In-Reply-To: <1395470329-15065-1-git-send-email-behanw@converseincode.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Richard Weinberger <richard@nod.at>
-Cc: lkml <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+To: behanw@converseincode.com
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, dwmw2@infradead.org, pageexec@freemail.hu, Mark Charlebois <charlebm@gmail.com>
 
-Hi Richard,
+On Saturday 22 March 2014, behanw@converseincode.com wrote:
+> diff --git a/include/asm-generic/cmpxchg-local.h b/include/asm-generic/cmpxchg-local.h
+> index d8d4c89..4c41bb8 100644
+> --- a/include/asm-generic/cmpxchg-local.h
+> +++ b/include/asm-generic/cmpxchg-local.h
+> @@ -41,6 +41,7 @@ static inline unsigned long __cmpxchg_local_generic(volatile void *ptr,
+>                 break;
+>         default:
+>                 wrong_size_cmpxchg(ptr);
+> +               prev = 0;
+>         }
+>         raw_local_irq_restore(flags);
+>         return prev;
 
-On Monday 03 March 2014 02:34 PM, Richard Weinberger wrote:
->> Minor comment below, otherwise 
->> > 
->> > Acked-by: Vineet Gupta <vgupta@synopsys.com>
->> > 
->> > P.S. Since this depends on translate_sig change, I can't possibly take it via ARC
->> > tree.
-> I hope we can merge this via Al's signal.git tree.
 
-I don't see the series in linux-next yet so they will they not likely make it into
-3.15. correct ?
+How about using __unreachable() instead to annotate the fact that you won't
+get here?
 
--Vineet
+	Arnd
