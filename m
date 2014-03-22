@@ -1,38 +1,34 @@
-From: behanw@converseincode.com
-Subject: [PATCH] LLVMLinux: Remove warning about returning an uninitialized variable
-Date: Fri, 21 Mar 2014 23:38:49 -0700
-Message-ID: <1395470329-15065-1-git-send-email-behanw@converseincode.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: arnd@arndb.de
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, dwmw2@infradead.org, pageexec@freemail.hu, Behan Webster <behanw@converseincode.com>, Mark Charlebois <charlebm@gmail.com>
-List-Id: linux-arch.vger.kernel.org
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Subject: Re: [PATCH 01/44] arc: Use get_signal() signal_setup_done()
+Date: Sat, 22 Mar 2014 12:33:59 +0530
+Message-ID: <532D35DF.5020203@synopsys.com>
+References: <1393804559-7701-1-git-send-email-richard@nod.at> <1393804559-7701-2-git-send-email-richard@nod.at> <C2D7FE5348E1B147BCA15975FBA2307517FC80@IN01WEMBXA.internal.synopsys.com> <531445A7.1090001@nod.at>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="ISO-8859-1"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from smtprelay.synopsys.com ([198.182.60.111]:37550 "EHLO
+	smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750706AbaCVHEM (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 22 Mar 2014 03:04:12 -0400
+In-Reply-To: <531445A7.1090001@nod.at>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Richard Weinberger <richard@nod.at>
+Cc: lkml <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
 
-From: Behan Webster <behanw@converseincode.com>
+Hi Richard,
 
-Fix uninitialized return code in default case in cmpxchg-local.h
+On Monday 03 March 2014 02:34 PM, Richard Weinberger wrote:
+>> Minor comment below, otherwise 
+>> > 
+>> > Acked-by: Vineet Gupta <vgupta@synopsys.com>
+>> > 
+>> > P.S. Since this depends on translate_sig change, I can't possibly take it via ARC
+>> > tree.
+> I hope we can merge this via Al's signal.git tree.
 
-This patch fixes the code to prevent an uninitialized return value that is detected
-when compiling with clang. The bug produces numerous warnings when compiling the
-Linux kernel with clang.
+I don't see the series in linux-next yet so they will they not likely make it into
+3.15. correct ?
 
-Signed-off-by: Behan Webster <behanw@converseincode.com>
-Signed-off-by: Mark Charlebois <charlebm@gmail.com>
----
- include/asm-generic/cmpxchg-local.h | 1 +
- 1 file changed, 1 insertion(+)
-
-diff --git a/include/asm-generic/cmpxchg-local.h b/include/asm-generic/cmpxchg-local.h
-index d8d4c89..4c41bb8 100644
---- a/include/asm-generic/cmpxchg-local.h
-+++ b/include/asm-generic/cmpxchg-local.h
-@@ -41,6 +41,7 @@ static inline unsigned long __cmpxchg_local_generic(volatile void *ptr,
- 		break;
- 	default:
- 		wrong_size_cmpxchg(ptr);
-+		prev = 0;
- 	}
- 	raw_local_irq_restore(flags);
- 	return prev;
--- 
-1.8.3.2
+-Vineet
