@@ -1,21 +1,26 @@
-From: Sam Ravnborg <sam@ravnborg.org>
+From: James Bottomley <James.Bottomley@HansenPartnership.com>
 Subject: Re: [PATCH v2] LLVMLinux: Remove warning about returning an
  uninitialized variable
-Date: Sat, 22 Mar 2014 17:21:47 +0100
-Message-ID: <20140322162147.GA9034@ravnborg.org>
+Date: Sat, 22 Mar 2014 09:29:46 -0700
+Message-ID: <1395505786.2143.14.camel@dabdike.int.hansenpartnership.com>
 References: <201403221101.16961.arnd@arndb.de>
- <1395503299-15203-1-git-send-email-behanw@converseincode.com>
+	 <1395503299-15203-1-git-send-email-behanw@converseincode.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
+Content-Type: text/plain; charset="ISO-8859-15"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from bedivere.hansenpartnership.com ([66.63.167.143]:48309 "EHLO
+	bedivere.hansenpartnership.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1750948AbaCVQ3s (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Sat, 22 Mar 2014 12:29:48 -0400
 In-Reply-To: <1395503299-15203-1-git-send-email-behanw@converseincode.com>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: behanw@converseincode.com
 Cc: arnd@arndb.de, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, dwmw2@infradead.org, pageexec@freemail.hu, Mark Charlebois <charlebm@gmail.com>
-List-Id: linux-arch.vger.kernel.org
 
-On Sat, Mar 22, 2014 at 08:48:19AM -0700, behanw@converseincode.com wrote:
+On Sat, 2014-03-22 at 08:48 -0700, behanw@converseincode.com wrote:
 > From: Behan Webster <behanw@converseincode.com>
 > 
 > Fix uninitialized return code in default case in cmpxchg-local.h
@@ -40,6 +45,11 @@ On Sat, Mar 22, 2014 at 08:48:19AM -0700, behanw@converseincode.com wrote:
 >  		wrong_size_cmpxchg(ptr);
 > +		__builtin_unreachable();
 
-It is unreachable() - see compiler.h
+No, that's got to be unreachable() so that it works in all compilers,
+(__builtin_unreachable is a gcc-4 ism).
 
-	Sam
+Got to say this still looks wrong.  If wrong_size_cmpxchg() cannot
+return, the function should be annotated as such with __noreturn (like
+panic()) so the unreachable() should be superfluous.
+
+James
