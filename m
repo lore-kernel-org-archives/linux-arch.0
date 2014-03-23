@@ -1,48 +1,93 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pa0-f42.google.com ([209.85.220.42]:33913 "EHLO
+Received: from mail-pa0-f42.google.com ([209.85.220.42]:54363 "EHLO
 	mail-pa0-f42.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751199AbaCVQfm (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 22 Mar 2014 12:35:42 -0400
-Received: by mail-pa0-f42.google.com with SMTP id fb1so3710136pad.1
-        for <linux-arch@vger.kernel.org>; Sat, 22 Mar 2014 09:35:41 -0700 (PDT)
-From: behanw@converseincode.com
-Subject: [PATCH v3] LLVMLinux: Remove warning about returning an uninitialized variable
-Date: Sat, 22 Mar 2014 09:35:36 -0700
-Message-ID: <1395506136-1621-1-git-send-email-behanw@converseincode.com>
-In-Reply-To: <20140322162147.GA9034@ravnborg.org>
-References: <20140322162147.GA9034@ravnborg.org>
+	with ESMTP id S1750817AbaCWGcZ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 23 Mar 2014 02:32:25 -0400
+Received: by mail-pa0-f42.google.com with SMTP id fb1so4113244pad.15
+        for <linux-arch@vger.kernel.org>; Sat, 22 Mar 2014 23:32:24 -0700 (PDT)
+Message-ID: <532E7FF5.9060806@converseincode.com>
+Date: Sat, 22 Mar 2014 23:32:21 -0700
+From: Behan Webster <behanw@converseincode.com>
+MIME-Version: 1.0
+Subject: Re: [PATCH v2] LLVMLinux: Remove warning about returning an uninitialized
+ variable
+References: <201403221101.16961.arnd@arndb.de>		 <1395503299-15203-1-git-send-email-behanw@converseincode.com>	 <1395505786.2143.14.camel@dabdike.int.hansenpartnership.com>	 <532DBC50.9040505@converseincode.com> <1395506558.2143.18.camel@dabdike.int.hansenpartnership.com>
+In-Reply-To: <1395506558.2143.18.camel@dabdike.int.hansenpartnership.com>
+Content-Type: text/plain; charset=ISO-8859-15; format=flowed
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: arnd@arndb.de
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, dwmw2@infradead.org, pageexec@freemail.hu, Behan Webster <behanw@converseincode.com>, Mark Charlebois <charlebm@gmail.com>
-Message-ID: <20140322163536.Z4fqcZtAbYUD2qDjIvDJaluPVbnGoQNUhqIGcq1OCxE@z>
+To: James Bottomley <James.Bottomley@HansenPartnership.com>
+Cc: arnd@arndb.de, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, dwmw2@infradead.org, pageexec@freemail.hu, Mark Charlebois <charlebm@gmail.com>
+Message-ID: <20140323063221.ymmqcQMSIbEuP8PNfVxQ9YfrgzEB8pD4b4hXPSQbEK0@z>
 
-From: Behan Webster <behanw@converseincode.com>
+On 03/22/14 09:42, James Bottomley wrote:
+> On Sat, 2014-03-22 at 09:37 -0700, Behan Webster wrote:
+>> On 03/22/14 09:29, James Bottomley wrote:
+>>> On Sat, 2014-03-22 at 08:48 -0700, behanw@converseincode.com wrote:
+>>>> From: Behan Webster <behanw@converseincode.com>
+>>>>
+>>>> Fix uninitialized return code in default case in cmpxchg-local.h
+>>>>
+>>>> This patch fixes the code to prevent an uninitialized return value that is detected
+>>>> when compiling with clang. The bug produces numerous warnings when compiling the
+>>>> Linux kernel with clang.
+>>>>
+>>>> Signed-off-by: Behan Webster <behanw@converseincode.com>
+>>>> Signed-off-by: Mark Charlebois <charlebm@gmail.com>
+>>>> ---
+>>>>    include/asm-generic/cmpxchg-local.h | 1 +
+>>>>    1 file changed, 1 insertion(+)
+>>>>
+>>>> diff --git a/include/asm-generic/cmpxchg-local.h b/include/asm-generic/cmpxchg-local.h
+>>>> index d8d4c89..9112111 100644
+>>>> --- a/include/asm-generic/cmpxchg-local.h
+>>>> +++ b/include/asm-generic/cmpxchg-local.h
+>>>> @@ -41,6 +41,7 @@ static inline unsigned long __cmpxchg_local_generic(volatile void *ptr,
+>>>>    		break;
+>>>>    	default:
+>>>>    		wrong_size_cmpxchg(ptr);
+>>>> +		__builtin_unreachable();
+>>> No, that's got to be unreachable() so that it works in all compilers,
+>>> (__builtin_unreachable is a gcc-4 ism).
+>> It is also supported by clang.
+> OK, but it's not supported by gcc-3.  So gcc-3 would crap out seeing the
+> statement, which is why we have to wrapper it.
+Sorry. I wasn't clear. It is not merely a gcc-4 ism; it is also 
+supported by clang.
 
-Fix uninitialized return code in default case in cmpxchg-local.h
+I'm not arguing it should be used. I understand (and agree with) your 
+objection to its use since it isn't supported before gcc-4.
 
-This patch fixes the code to prevent an uninitialized return value that is detected
-when compiling with clang. The bug produces numerous warnings when compiling the
-Linux kernel with clang.
+>>> Got to say this still looks wrong.  If wrong_size_cmpxchg() cannot
+>>> return, the function should be annotated as such with __noreturn (like
+>>> panic()) so the unreachable() should be superfluous.
+>> Okay. I can try that instead.
+> Great; This seems to work for me (but then my compiler doesn't see the
+> unreachable problem).
+>
+> James
+>
+> ---
+> diff --git a/include/asm-generic/cmpxchg-local.h b/include/asm-generic/cmpxchg-local.h
+> index d8d4c89..70bef78 100644
+> --- a/include/asm-generic/cmpxchg-local.h
+> +++ b/include/asm-generic/cmpxchg-local.h
+> @@ -4,7 +4,8 @@
+>   #include <linux/types.h>
+>   #include <linux/irqflags.h>
+>   
+> -extern unsigned long wrong_size_cmpxchg(volatile void *ptr);
+> +extern unsigned long wrong_size_cmpxchg(volatile void *ptr)
+> +	__noreturn;
+>   
+>   /*
+>    * Generic version of __cmpxchg_local (disables interrupts). Takes an unsigned
+Nice. I'll give it a try. It looks like a much better solution.
 
-Signed-off-by: Behan Webster <behanw@converseincode.com>
-Signed-off-by: Mark Charlebois <charlebm@gmail.com>
----
- include/asm-generic/cmpxchg-local.h | 1 +
- 1 file changed, 1 insertion(+)
+Behan
 
-diff --git a/include/asm-generic/cmpxchg-local.h b/include/asm-generic/cmpxchg-local.h
-index d8d4c89..a4f5882 100644
---- a/include/asm-generic/cmpxchg-local.h
-+++ b/include/asm-generic/cmpxchg-local.h
-@@ -41,6 +41,7 @@ static inline unsigned long __cmpxchg_local_generic(volatile void *ptr,
- 		break;
- 	default:
- 		wrong_size_cmpxchg(ptr);
-+		unreachable();
- 	}
- 	raw_local_irq_restore(flags);
- 	return prev;
 -- 
-1.8.3.2
+Behan Webster
+behanw@converseincode.com
 
