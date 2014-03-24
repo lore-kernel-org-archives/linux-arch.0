@@ -1,85 +1,48 @@
-From: Behan Webster <behanw@converseincode.com>
-Subject: Re: [PATCH v2] LLVMLinux: Remove warning about returning an uninitialized
- variable
-Date: Sat, 22 Mar 2014 23:32:21 -0700
-Message-ID: <532E7FF5.9060806@converseincode.com>
-References: <201403221101.16961.arnd@arndb.de>		 <1395503299-15203-1-git-send-email-behanw@converseincode.com>	 <1395505786.2143.14.camel@dabdike.int.hansenpartnership.com>	 <532DBC50.9040505@converseincode.com> <1395506558.2143.18.camel@dabdike.int.hansenpartnership.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-15; format=flowed
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
+From: behanw@converseincode.com
+Subject: [PATCH v4] LLVMLinux: Remove warning about returning an uninitialized variable
+Date: Sun, 23 Mar 2014 22:53:24 -0700
+Message-ID: <1395640404-27958-1-git-send-email-behanw@converseincode.com>
+References: <1395506558.2143.18.camel@dabdike.int.hansenpartnership.com>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-pd0-f178.google.com ([209.85.192.178]:46853 "EHLO
+	mail-pd0-f178.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750993AbaCXFxc (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 24 Mar 2014 01:53:32 -0400
+Received: by mail-pd0-f178.google.com with SMTP id x10so4859809pdj.23
+        for <linux-arch@vger.kernel.org>; Sun, 23 Mar 2014 22:53:31 -0700 (PDT)
 In-Reply-To: <1395506558.2143.18.camel@dabdike.int.hansenpartnership.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: James Bottomley <James.Bottomley@HansenPartnership.com>
-Cc: arnd@arndb.de, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, dwmw2@infradead.org, pageexec@freemail.hu, Mark Charlebois <charlebm@gmail.com>
-List-Id: linux-arch.vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: arnd@arndb.de
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, dwmw2@infradead.org, pageexec@freemail.hu, Behan Webster <behanw@converseincode.com>, Mark Charlebois <charlebm@gmail.com>
 
-On 03/22/14 09:42, James Bottomley wrote:
-> On Sat, 2014-03-22 at 09:37 -0700, Behan Webster wrote:
->> On 03/22/14 09:29, James Bottomley wrote:
->>> On Sat, 2014-03-22 at 08:48 -0700, behanw@converseincode.com wrote:
->>>> From: Behan Webster <behanw@converseincode.com>
->>>>
->>>> Fix uninitialized return code in default case in cmpxchg-local.h
->>>>
->>>> This patch fixes the code to prevent an uninitialized return value that is detected
->>>> when compiling with clang. The bug produces numerous warnings when compiling the
->>>> Linux kernel with clang.
->>>>
->>>> Signed-off-by: Behan Webster <behanw@converseincode.com>
->>>> Signed-off-by: Mark Charlebois <charlebm@gmail.com>
->>>> ---
->>>>    include/asm-generic/cmpxchg-local.h | 1 +
->>>>    1 file changed, 1 insertion(+)
->>>>
->>>> diff --git a/include/asm-generic/cmpxchg-local.h b/include/asm-generic/cmpxchg-local.h
->>>> index d8d4c89..9112111 100644
->>>> --- a/include/asm-generic/cmpxchg-local.h
->>>> +++ b/include/asm-generic/cmpxchg-local.h
->>>> @@ -41,6 +41,7 @@ static inline unsigned long __cmpxchg_local_generic(volatile void *ptr,
->>>>    		break;
->>>>    	default:
->>>>    		wrong_size_cmpxchg(ptr);
->>>> +		__builtin_unreachable();
->>> No, that's got to be unreachable() so that it works in all compilers,
->>> (__builtin_unreachable is a gcc-4 ism).
->> It is also supported by clang.
-> OK, but it's not supported by gcc-3.  So gcc-3 would crap out seeing the
-> statement, which is why we have to wrapper it.
-Sorry. I wasn't clear. It is not merely a gcc-4 ism; it is also 
-supported by clang.
+From: Behan Webster <behanw@converseincode.com>
 
-I'm not arguing it should be used. I understand (and agree with) your 
-objection to its use since it isn't supported before gcc-4.
+Fix uninitialized return code in default case in cmpxchg-local.h
 
->>> Got to say this still looks wrong.  If wrong_size_cmpxchg() cannot
->>> return, the function should be annotated as such with __noreturn (like
->>> panic()) so the unreachable() should be superfluous.
->> Okay. I can try that instead.
-> Great; This seems to work for me (but then my compiler doesn't see the
-> unreachable problem).
->
-> James
->
-> ---
-> diff --git a/include/asm-generic/cmpxchg-local.h b/include/asm-generic/cmpxchg-local.h
-> index d8d4c89..70bef78 100644
-> --- a/include/asm-generic/cmpxchg-local.h
-> +++ b/include/asm-generic/cmpxchg-local.h
-> @@ -4,7 +4,8 @@
->   #include <linux/types.h>
->   #include <linux/irqflags.h>
->   
-> -extern unsigned long wrong_size_cmpxchg(volatile void *ptr);
-> +extern unsigned long wrong_size_cmpxchg(volatile void *ptr)
-> +	__noreturn;
->   
->   /*
->    * Generic version of __cmpxchg_local (disables interrupts). Takes an unsigned
-Nice. I'll give it a try. It looks like a much better solution.
+This patch fixes the code to prevent an uninitialized return value that is detected
+when compiling with clang. The bug produces numerous warnings when compiling the
+Linux kernel with clang.
 
-Behan
+Signed-off-by: Behan Webster <behanw@converseincode.com>
+Signed-off-by: Mark Charlebois <charlebm@gmail.com>
+---
+ include/asm-generic/cmpxchg-local.h | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
 
+diff --git a/include/asm-generic/cmpxchg-local.h b/include/asm-generic/cmpxchg-local.h
+index d8d4c89..70bef78 100644
+--- a/include/asm-generic/cmpxchg-local.h
++++ b/include/asm-generic/cmpxchg-local.h
+@@ -4,7 +4,8 @@
+ #include <linux/types.h>
+ #include <linux/irqflags.h>
+ 
+-extern unsigned long wrong_size_cmpxchg(volatile void *ptr);
++extern unsigned long wrong_size_cmpxchg(volatile void *ptr)
++	__noreturn;
+ 
+ /*
+  * Generic version of __cmpxchg_local (disables interrupts). Takes an unsigned
 -- 
-Behan Webster
-behanw@converseincode.com
+1.8.3.2
