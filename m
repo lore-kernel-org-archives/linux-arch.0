@@ -1,67 +1,34 @@
-From: Ingo Molnar <mingo@kernel.org>
-Subject: Re: [PATCH 0/1] mm: FAULT_AROUND_ORDER patchset performance data for
- powerpc
-Date: Tue, 25 Mar 2014 09:11:07 +0100
-Message-ID: <20140325081107.GA28377@gmail.com>
-References: <1395730215-11604-1-git-send-email-maddy@linux.vnet.ibm.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH v4] LLVMLinux: Remove warning about returning an uninitialized variable
+Date: Tue, 25 Mar 2014 18:16:10 +0100
+Message-ID: <201403251816.10589.arnd@arndb.de>
+References: <1395506558.2143.18.camel@dabdike.int.hansenpartnership.com> <1395640404-27958-1-git-send-email-behanw@converseincode.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <owner-linux-mm@kvack.org>
-Content-Disposition: inline
-In-Reply-To: <1395730215-11604-1-git-send-email-maddy@linux.vnet.ibm.com>
-Sender: owner-linux-mm@kvack.org
-To: Madhavan Srinivasan <maddy@linux.vnet.ibm.com>
-Cc: linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, x86@kernel.org, benh@kernel.crashing.org, paulus@samba.org, kirill.shutemov@linux.intel.com, rusty@rustcorp.com.au, akpm@linux-foundation.org, riel@redhat.com, mgorman@suse.de, ak@linux.intel.com, peterz@infradead.org, Linus Torvalds <torvalds@linux-foundation.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: Text/Plain;
+  charset="iso-8859-15"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from moutng.kundenserver.de ([212.227.126.130]:60979 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754010AbaCYRQr (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 25 Mar 2014 13:16:47 -0400
+In-Reply-To: <1395640404-27958-1-git-send-email-behanw@converseincode.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: behanw@converseincode.com
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, dwmw2@infradead.org, pageexec@freemail.hu, Mark Charlebois <charlebm@gmail.com>
 
-
-* Madhavan Srinivasan <maddy@linux.vnet.ibm.com> wrote:
-
-> Performance data for different FAULT_AROUND_ORDER values from 4 socket
-> Power7 system (128 Threads and 128GB memory) is below.  Fault around order (FAO)
-> value of 3 looks more advantageous.
+On Monday 24 March 2014, behanw@converseincode.com wrote:
 > 
-> FAULT_AROUND_ORDER      Baseline        1               3               4		5               7
+> From: Behan Webster <behanw@converseincode.com>
 > 
-> Linux build (make -j64)
-> minor-faults		7184385		5874015		4567289		4318518		4193815		4159193
-> times in seconds	61.433776136	60.865935292	59.245368038	60.630675011	60.56587624	59.828271924
+> Fix uninitialized return code in default case in cmpxchg-local.h
+> 
+> This patch fixes the code to prevent an uninitialized return value that is detected
+> when compiling with clang. The bug produces numerous warnings when compiling the
+> Linux kernel with clang.
+> 
+> Signed-off-by: Behan Webster <behanw@converseincode.com>
+> Signed-off-by: Mark Charlebois <charlebm@gmail.com>
 
-Hm, I have one general observation: it's hard to tell how 
-(statistically) significant the time differences are, without standard 
-deviation numbers.
-
-You can get stddev very easily via 'perf stat --null --repeat N'.
-
-You can use --pre <script> and --post <script> for pre/post 
-measurement cleanup hooks (such as 'make clean'). So for example:
-
-  perf stat --null --repeat 3 --pre 'make defconfig; make clean >/dev/null 2>&1' make -j64 kernel/
-
-Which run the workload 3 times and it will output something like:
-
-       9.013717158 seconds time elapsed                                          ( +-  0.99% )
-
-Where the +- column shows the stddev in relative percentage units.
-
-The --null option ensures that only time measurement is done with no 
-overhead for the workload, no other performance metrics are taken.
-
-The overhead of the --pre stage is not added to the measured time.
-
-Thus you can also add really expensive steps to the --pre stage, such 
-as a vm_drop_caches clearing of all caches, to measure cache-cold 
-results.
-
-The stddev value shows that the result is significant to about the 
-first fractional digit.
-
-Thanks,
-
-	Ingo
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+Acked-by: Arnd Bergmann <arnd@arndb.de>
