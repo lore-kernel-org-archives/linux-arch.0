@@ -1,109 +1,66 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e28smtp02.in.ibm.com ([122.248.162.2]:59862 "EHLO
-	e28smtp02.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751023AbaCYGua (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 25 Mar 2014 02:50:30 -0400
-Received: from /spool/local
-	by e28smtp02.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <maddy@linux.vnet.ibm.com>;
-	Tue, 25 Mar 2014 12:20:27 +0530
-From: Madhavan Srinivasan <maddy@linux.vnet.ibm.com>
-Subject: [PATCH 1/1] mm: move FAULT_AROUND_ORDER to arch/
-Date: Tue, 25 Mar 2014 12:20:15 +0530
-Message-ID: <1395730215-11604-2-git-send-email-maddy@linux.vnet.ibm.com>
-In-Reply-To: <1395730215-11604-1-git-send-email-maddy@linux.vnet.ibm.com>
+Received: from mail-ee0-f47.google.com ([74.125.83.47]:52782 "EHLO
+	mail-ee0-f47.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751457AbaCYILM (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 25 Mar 2014 04:11:12 -0400
+Date: Tue, 25 Mar 2014 09:11:07 +0100
+From: Ingo Molnar <mingo@kernel.org>
+Subject: Re: [PATCH 0/1] mm: FAULT_AROUND_ORDER patchset performance data for
+ powerpc
+Message-ID: <20140325081107.GA28377@gmail.com>
 References: <1395730215-11604-1-git-send-email-maddy@linux.vnet.ibm.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1395730215-11604-1-git-send-email-maddy@linux.vnet.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, x86@kernel.org
-Cc: benh@kernel.crashing.org, paulus@samba.org, kirill.shutemov@linux.intel.com, rusty@rustcorp.com.au, akpm@linux-foundation.org, riel@redhat.com, mgorman@suse.de, ak@linux.intel.com, peterz@infradead.org, mingo@kernel.org, Madhavan Srinivasan <maddy@linux.vnet.ibm.com>
-Message-ID: <20140325065015.6ORRqvsej-Y50-RlCW34fie__8Se4XLWGNyeC8HdSqI@z>
+To: Madhavan Srinivasan <maddy@linux.vnet.ibm.com>
+Cc: linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, x86@kernel.org, benh@kernel.crashing.org, paulus@samba.org, kirill.shutemov@linux.intel.com, rusty@rustcorp.com.au, akpm@linux-foundation.org, riel@redhat.com, mgorman@suse.de, ak@linux.intel.com, peterz@infradead.org, Linus Torvalds <torvalds@linux-foundation.org>
+Message-ID: <20140325081107.5d3uZcJlBMmVD_Mr8vzdNVP9ejlscx5RbYqj9QZaIJs@z>
 
-Kirill A. Shutemov with the commit 96bacfe542 introduced
-vm_ops->map_pages() for mapping easy accessible pages around
-fault address in hope to reduce number of minor page faults.
-Based on his workload runs, suggested FAULT_AROUND_ORDER
-(knob to control the numbers of pages to map) is 4.
 
-This patch moves the FAULT_AROUND_ORDER macro to arch/ for
-architecture maintainers to decide on suitable FAULT_AROUND_ORDER
-value based on performance data for that architecture.
+* Madhavan Srinivasan <maddy@linux.vnet.ibm.com> wrote:
 
-Signed-off-by: Madhavan Srinivasan <maddy@linux.vnet.ibm.com>
----
- arch/powerpc/include/asm/pgtable.h |    6 ++++++
- arch/x86/include/asm/pgtable.h     |    5 +++++
- include/asm-generic/pgtable.h      |   10 ++++++++++
- mm/memory.c                        |    2 --
- 4 files changed, 21 insertions(+), 2 deletions(-)
+> Performance data for different FAULT_AROUND_ORDER values from 4 socket
+> Power7 system (128 Threads and 128GB memory) is below.  Fault around order (FAO)
+> value of 3 looks more advantageous.
+> 
+> FAULT_AROUND_ORDER      Baseline        1               3               4		5               7
+> 
+> Linux build (make -j64)
+> minor-faults		7184385		5874015		4567289		4318518		4193815		4159193
+> times in seconds	61.433776136	60.865935292	59.245368038	60.630675011	60.56587624	59.828271924
 
-diff --git a/arch/powerpc/include/asm/pgtable.h b/arch/powerpc/include/asm/pgtable.h
-index 3ebb188..9fcbd48 100644
---- a/arch/powerpc/include/asm/pgtable.h
-+++ b/arch/powerpc/include/asm/pgtable.h
-@@ -19,6 +19,12 @@ struct mm_struct;
- #endif
- 
- /*
-+ * With a few real world workloads that were run,
-+ * the performance data showed that a value of 3 is more advantageous.
-+ */
-+#define FAULT_AROUND_ORDER	3
-+
-+/*
-  * We save the slot number & secondary bit in the second half of the
-  * PTE page. We use the 8 bytes per each pte entry.
-  */
-diff --git a/arch/x86/include/asm/pgtable.h b/arch/x86/include/asm/pgtable.h
-index 938ef1d..8387a65 100644
---- a/arch/x86/include/asm/pgtable.h
-+++ b/arch/x86/include/asm/pgtable.h
-@@ -7,6 +7,11 @@
- #include <asm/pgtable_types.h>
- 
- /*
-+ * Based on Kirill's test results, fault around order is set to 4
-+ */
-+#define FAULT_AROUND_ORDER 4
-+
-+/*
-  * Macro to mark a page protection value as UC-
-  */
- #define pgprot_noncached(prot)					\
-diff --git a/include/asm-generic/pgtable.h b/include/asm-generic/pgtable.h
-index 1ec08c1..62f7f07 100644
---- a/include/asm-generic/pgtable.h
-+++ b/include/asm-generic/pgtable.h
-@@ -7,6 +7,16 @@
- #include <linux/mm_types.h>
- #include <linux/bug.h>
- 
-+
-+/*
-+ * Fault around order is a control knob to decide the fault around pages.
-+ * Default value is set to 0UL (disabled), but the arch can override it as
-+ * desired.
-+ */
-+#ifndef FAULT_AROUND_ORDER
-+#define FAULT_AROUND_ORDER	0UL
-+#endif
-+
- /*
-  * On almost all architectures and configurations, 0 can be used as the
-  * upper ceiling to free_pgtables(): on many architectures it has the same
-diff --git a/mm/memory.c b/mm/memory.c
-index b02c584..fd79ffc 100644
---- a/mm/memory.c
-+++ b/mm/memory.c
-@@ -3358,8 +3358,6 @@ void do_set_pte(struct vm_area_struct *vma, unsigned long address,
- 	update_mmu_cache(vma, address, pte);
- }
- 
--#define FAULT_AROUND_ORDER 4
--
- #ifdef CONFIG_DEBUG_FS
- static unsigned int fault_around_order = FAULT_AROUND_ORDER;
- 
--- 
-1.7.10.4
+Hm, I have one general observation: it's hard to tell how 
+(statistically) significant the time differences are, without standard 
+deviation numbers.
 
+You can get stddev very easily via 'perf stat --null --repeat N'.
+
+You can use --pre <script> and --post <script> for pre/post 
+measurement cleanup hooks (such as 'make clean'). So for example:
+
+  perf stat --null --repeat 3 --pre 'make defconfig; make clean >/dev/null 2>&1' make -j64 kernel/
+
+Which run the workload 3 times and it will output something like:
+
+       9.013717158 seconds time elapsed                                          ( +-  0.99% )
+
+Where the +- column shows the stddev in relative percentage units.
+
+The --null option ensures that only time measurement is done with no 
+overhead for the workload, no other performance metrics are taken.
+
+The overhead of the --pre stage is not added to the measured time.
+
+Thus you can also add really expensive steps to the --pre stage, such 
+as a vm_drop_caches clearing of all caches, to measure cache-cold 
+results.
+
+The stddev value shows that the result is significant to about the 
+first fractional digit.
+
+Thanks,
+
+	Ingo
