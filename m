@@ -1,93 +1,105 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pa0-f42.google.com ([209.85.220.42]:54363 "EHLO
-	mail-pa0-f42.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750817AbaCWGcZ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 23 Mar 2014 02:32:25 -0400
-Received: by mail-pa0-f42.google.com with SMTP id fb1so4113244pad.15
-        for <linux-arch@vger.kernel.org>; Sat, 22 Mar 2014 23:32:24 -0700 (PDT)
-Message-ID: <532E7FF5.9060806@converseincode.com>
-Date: Sat, 22 Mar 2014 23:32:21 -0700
-From: Behan Webster <behanw@converseincode.com>
-MIME-Version: 1.0
-Subject: Re: [PATCH v2] LLVMLinux: Remove warning about returning an uninitialized
- variable
-References: <201403221101.16961.arnd@arndb.de>		 <1395503299-15203-1-git-send-email-behanw@converseincode.com>	 <1395505786.2143.14.camel@dabdike.int.hansenpartnership.com>	 <532DBC50.9040505@converseincode.com> <1395506558.2143.18.camel@dabdike.int.hansenpartnership.com>
-In-Reply-To: <1395506558.2143.18.camel@dabdike.int.hansenpartnership.com>
-Content-Type: text/plain; charset=ISO-8859-15; format=flowed
-Content-Transfer-Encoding: 7bit
+Received: from e28smtp01.in.ibm.com ([122.248.162.1]:38138 "EHLO
+	e28smtp01.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751004AbaCYGu3 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 25 Mar 2014 02:50:29 -0400
+Received: from /spool/local
+	by e28smtp01.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <maddy@linux.vnet.ibm.com>;
+	Tue, 25 Mar 2014 12:20:26 +0530
+From: Madhavan Srinivasan <maddy@linux.vnet.ibm.com>
+Subject: [PATCH 0/1] mm: FAULT_AROUND_ORDER patchset performance data for powerpc
+Date: Tue, 25 Mar 2014 12:20:14 +0530
+Message-ID: <1395730215-11604-1-git-send-email-maddy@linux.vnet.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: James Bottomley <James.Bottomley@HansenPartnership.com>
-Cc: arnd@arndb.de, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, dwmw2@infradead.org, pageexec@freemail.hu, Mark Charlebois <charlebm@gmail.com>
-Message-ID: <20140323063221.ymmqcQMSIbEuP8PNfVxQ9YfrgzEB8pD4b4hXPSQbEK0@z>
+To: linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, x86@kernel.org
+Cc: benh@kernel.crashing.org, paulus@samba.org, kirill.shutemov@linux.intel.com, rusty@rustcorp.com.au, akpm@linux-foundation.org, riel@redhat.com, mgorman@suse.de, ak@linux.intel.com, peterz@infradead.org, mingo@kernel.org, Madhavan Srinivasan <maddy@linux.vnet.ibm.com>
+Message-ID: <20140325065014.tyJHpUePcojfaj_dn2swRJh-4DSYu1D5h9A8tftZkCY@z>
 
-On 03/22/14 09:42, James Bottomley wrote:
-> On Sat, 2014-03-22 at 09:37 -0700, Behan Webster wrote:
->> On 03/22/14 09:29, James Bottomley wrote:
->>> On Sat, 2014-03-22 at 08:48 -0700, behanw@converseincode.com wrote:
->>>> From: Behan Webster <behanw@converseincode.com>
->>>>
->>>> Fix uninitialized return code in default case in cmpxchg-local.h
->>>>
->>>> This patch fixes the code to prevent an uninitialized return value that is detected
->>>> when compiling with clang. The bug produces numerous warnings when compiling the
->>>> Linux kernel with clang.
->>>>
->>>> Signed-off-by: Behan Webster <behanw@converseincode.com>
->>>> Signed-off-by: Mark Charlebois <charlebm@gmail.com>
->>>> ---
->>>>    include/asm-generic/cmpxchg-local.h | 1 +
->>>>    1 file changed, 1 insertion(+)
->>>>
->>>> diff --git a/include/asm-generic/cmpxchg-local.h b/include/asm-generic/cmpxchg-local.h
->>>> index d8d4c89..9112111 100644
->>>> --- a/include/asm-generic/cmpxchg-local.h
->>>> +++ b/include/asm-generic/cmpxchg-local.h
->>>> @@ -41,6 +41,7 @@ static inline unsigned long __cmpxchg_local_generic(volatile void *ptr,
->>>>    		break;
->>>>    	default:
->>>>    		wrong_size_cmpxchg(ptr);
->>>> +		__builtin_unreachable();
->>> No, that's got to be unreachable() so that it works in all compilers,
->>> (__builtin_unreachable is a gcc-4 ism).
->> It is also supported by clang.
-> OK, but it's not supported by gcc-3.  So gcc-3 would crap out seeing the
-> statement, which is why we have to wrapper it.
-Sorry. I wasn't clear. It is not merely a gcc-4 ism; it is also 
-supported by clang.
+Performance data for different FAULT_AROUND_ORDER values from 4 socket
+Power7 system (128 Threads and 128GB memory) is below.  Fault around order (FAO)
+value of 3 looks more advantageous.
 
-I'm not arguing it should be used. I understand (and agree with) your 
-objection to its use since it isn't supported before gcc-4.
+FAULT_AROUND_ORDER      Baseline        1               3               4		5               7
 
->>> Got to say this still looks wrong.  If wrong_size_cmpxchg() cannot
->>> return, the function should be annotated as such with __noreturn (like
->>> panic()) so the unreachable() should be superfluous.
->> Okay. I can try that instead.
-> Great; This seems to work for me (but then my compiler doesn't see the
-> unreachable problem).
->
-> James
->
-> ---
-> diff --git a/include/asm-generic/cmpxchg-local.h b/include/asm-generic/cmpxchg-local.h
-> index d8d4c89..70bef78 100644
-> --- a/include/asm-generic/cmpxchg-local.h
-> +++ b/include/asm-generic/cmpxchg-local.h
-> @@ -4,7 +4,8 @@
->   #include <linux/types.h>
->   #include <linux/irqflags.h>
->   
-> -extern unsigned long wrong_size_cmpxchg(volatile void *ptr);
-> +extern unsigned long wrong_size_cmpxchg(volatile void *ptr)
-> +	__noreturn;
->   
->   /*
->    * Generic version of __cmpxchg_local (disables interrupts). Takes an unsigned
-Nice. I'll give it a try. It looks like a much better solution.
+Linux build (make -j64)
+minor-faults		7184385		5874015		4567289		4318518		4193815		4159193
+times in seconds	61.433776136	60.865935292	59.245368038	60.630675011	60.56587624	59.828271924
 
-Behan
+Linux rebuild (make -j64)
+minor-faults		303018		226392		146170		132480		126878		126236
+times in seconds	5.659819172	5.723996942	5.591238319	5.622533357	5.878811995	5.550133096
+
+Two synthetic tests: access every word in file in sequential/random order.
+Marginal Performance gains seen for FAO value of 3 when compared to value
+of 4.
+
+Sequential access 16GiB file
+FAULT_AROUND_ORDER      Baseline        1               3               4		5               7
+1 thread
+       minor-faults	262302		131192		32873		16486		8291		2351
+       times in seconds	53.071497352	52.945826882	52.931417302	52.928577184	52.859285439	53.116800539
+8 threads
+       minor-faults	2097314		1051046		263336		131715		66098		16653
+       times in seconds	54.385698561	54.603652339	54.771282004	54.488565674	54.496701531	54.962142189
+32 threads
+       minor-faults	8389267		4218595		1059961		531319		266463		67271
+       times in seconds	60.61715047	60.827964038	60.46412673	60.266045885	60.492398315	60.24531921
+64 threads
+       minor-faults	16777455	8485998		2178582		1092106		544302		137693
+       times in seconds	86.471334554	84.412415735	85.208303832	84.331473392	85.598793479	84.695469266
+128 threads
+       minor-faults	33555267	17734522	4710107		2380821		1182707		292077
+       times in seconds	117.535385569	114.291359037	112.593908276	113.081807611	114.358686588	114.491043011
+
+Random access 1GiB file
+FAULT_AROUND_ORDER      Baseline        1               3               4		5               7
+1 thread
+       minor-faults	16503		8664		2149		1126		610		437
+       times in seconds	43.843573808	48.042069805	50.580779682	54.282884593	52.641739876	51.803302129
+8 threads
+       minor-faults	131201		70916		17760		8665		4250		1149
+       times in seconds	46.262626804	55.942851041	56.629191584	57.97044714	55.417557594	56.019709166
+32 threads
+       minor-faults	524959		265980		67282		33601		16930		4316
+       times in seconds	67.754175928	69.85012331	71.750338061	71.053074643	68.90728294	71.250103217
+64 threads
+       minor-faults	1048831		528829		133256		66700		33428		8776
+       times in seconds	96.674025305	93.109961822	87.441777715	91.986332028	88.686748472	93.101434306
+128 threads
+       minor-faults	2098043		1053224		266271		133702		66966		17276
+       times in seconds	156.525792044	152.117971403	147.523673243	148.560226602	148.596575663	149.389288429
+
+Worst case scenario: we touch one page every 16M to demonstrate overhead.
+
+Touch only one page in page table in 16GiB file
+FAULT_AROUND_ORDER      Baseline        1               3               4		5               7
+1 thread
+       minor-faults	1077		1064		1051		1048		1046		1045
+       times in seconds	0.00615347	0.008327379	0.019775282	0.034444003	0.05905971	0.220863339
+8 threads
+       minor-faults	8252		8239		8226		8223		8220		8224
+       times in seconds	0.04387392	0.059859294	0.113897648	0.199707764	0.361585762	1.343366843
+32 threads
+       minor-faults	32852		32841		32825		32826		32824		32828
+       times in seconds	0.191404544	0.21907773	0.433207123	0.72430447	1.334983196	4.97727449
+64 threads
+       minor-faults	65652		65642		65629		65622		65623		65634
+       times in seconds	0.402140429	0.510806718	0.854288645	1.412329805	2.556707704	8.711074863
+128 threads
+       minor-faults	131255		131239		131228		131228		131229		131243
+       times in seconds	0.817782148	1.124631348	2.023730928	3.184792382	5.331392072	17.309524609
+
+Madhavan Srinivasan (1):
+  mm: move FAULT_AROUND_ORDER to arch/
+
+ arch/powerpc/include/asm/pgtable.h |    6 ++++++
+ arch/x86/include/asm/pgtable.h     |    5 +++++
+ include/asm-generic/pgtable.h      |   10 ++++++++++
+ mm/memory.c                        |    2 --
+ 4 files changed, 21 insertions(+), 2 deletions(-)
 
 -- 
-Behan Webster
-behanw@converseincode.com
+1.7.10.4
 
