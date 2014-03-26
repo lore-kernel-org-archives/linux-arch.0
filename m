@@ -1,35 +1,32 @@
-From: Dave Hansen <dave.hansen@intel.com>
-Subject: Re: [PATCH 1/1] mm: move FAULT_AROUND_ORDER to arch/
-Date: Tue, 25 Mar 2014 10:50:01 -0700
-Message-ID: <5331C1C9.5020309@intel.com>
-References: <1395730215-11604-1-git-send-email-maddy@linux.vnet.ibm.com> <1395730215-11604-2-git-send-email-maddy@linux.vnet.ibm.com> <20140325173605.GA21411@node.dhcp.inet.fi>
+From: Vidhya Amin <vidhya.amin@bmw-navnitmotors.in>
+Subject: Re: Same Last Name
+Date: Wed, 26 Mar 2014 07:21:54 +0530 (IST)
+Message-ID: <1823888291.519428.1395798714660.JavaMail.root__49118.9820030288$1395801458$gmane$org@bmw-navnitmotors.in>
+References: <601784440.519382.1395798669078.JavaMail.root@bmw-navnitmotors.in>
+Reply-To: "PHILIP GEORGE DUNMORE(QC)" <mrphilipgeorge_euro2014@aol.co.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <20140325173605.GA21411@node.dhcp.inet.fi>
-Sender: owner-linux-mm@kvack.org
-To: "Kirill A. Shutemov" <kirill@shutemov.name>, Madhavan Srinivasan <maddy@linux.vnet.ibm.com>
-Cc: linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, x86@kernel.org, benh@kernel.crashing.org, paulus@samba.org, kirill.shutemov@linux.intel.com, rusty@rustcorp.com.au, akpm@linux-foundation.org, riel@redhat.com, mgorman@suse.de, ak@linux.intel.com, peterz@infradead.org, mingo@kernel.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail1.soft-techinfosystems.com ([182.72.15.162]:52570 "EHLO
+	soft-techinfosystems.com" rhost-flags-OK-OK-OK-FAIL)
+	by vger.kernel.org with ESMTP id S1754449AbaCZChC convert rfc822-to-8bit
+	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 25 Mar 2014 22:37:02 -0400
+In-Reply-To: <601784440.519382.1395798669078.JavaMail.root@bmw-navnitmotors.in>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 
-On 03/25/2014 10:36 AM, Kirill A. Shutemov wrote:
->> > +/*
->> > + * Fault around order is a control knob to decide the fault around pages.
->> > + * Default value is set to 0UL (disabled), but the arch can override it as
->> > + * desired.
->> > + */
->> > +#ifndef FAULT_AROUND_ORDER
->> > +#define FAULT_AROUND_ORDER	0UL
->> > +#endif
-> FAULT_AROUND_ORDER == 0 case should be handled separately in
-> do_read_fault(): no reason to go to do_fault_around() if we are going to
-> fault in only one page.
 
-Isn't this the kind of thing we want to do in Kconfig?
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+Re: Same Last Name
+Dear Friend,
+I am indeed sorry for infringing your privacy, I am aware that this is =
+certainly not a conventional way of approach to communicate with a stra=
+nger but you will understand the need for my action. A deceased custome=
+r of mine that shares the same LAST NAME as yours died without a Next o=
+f Kin & left the sum of $16 Million in my Bank. Please if interested ki=
+ndly call my personal mobile on: +447587913065 or reply with your priva=
+te email to: draymondd@hotmail.com
+Best Regards,
+DR. CH=E2=80=99IEN.
