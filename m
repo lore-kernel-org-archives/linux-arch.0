@@ -1,66 +1,48 @@
-From: Ard Biesheuvel <ard.biesheuvel@linaro.org>
-Subject: [PATCH] asm-generic: allow generic unaligned access if the arch supports it
-Date: Thu, 27 Mar 2014 18:46:27 +0100
-Message-ID: <1395942387-14177-1-git-send-email-ard.biesheuvel@linaro.org>
+From: Rob Herring <robherring2@gmail.com>
+Subject: [RFC PATCH 0/4] vmlinux.lds.h clean-ups
+Date: Thu, 27 Mar 2014 14:41:53 -0500
+Message-ID: <1395949317-8738-1-git-send-email-robherring2@gmail.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wi0-f178.google.com ([209.85.212.178]:60339 "EHLO
-	mail-wi0-f178.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755585AbaC0RqI (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 27 Mar 2014 13:46:08 -0400
-Received: by mail-wi0-f178.google.com with SMTP id bs8so3418993wib.5
-        for <linux-arch@vger.kernel.org>; Thu, 27 Mar 2014 10:46:07 -0700 (PDT)
+Received: from mail-ob0-f179.google.com ([209.85.214.179]:55959 "EHLO
+	mail-ob0-f179.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754761AbaC0TmH (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 27 Mar 2014 15:42:07 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: arnd@arndb.de, linux-arch@vger.kernel.org
-Cc: robherring2@gmail.com, Ard Biesheuvel <ard.biesheuvel@linaro.org>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Russell King <linux@arm.linux.org.uk>, Rob Herring <robh@kernel.org>
 
-Switch the default unaligned access method to 'hardware implemented'
-if HAVE_EFFICIENT_UNALIGNED_ACCESS is set.
+From: Rob Herring <robh@kernel.org>
 
-Signed-off-by: Ard Biesheuvel <ard.biesheuvel@linaro.org>
----
- include/asm-generic/unaligned.h | 21 +++++++++++++--------
- 1 file changed, 13 insertions(+), 8 deletions(-)
+Several DeviceTree related sections have been added recently to enable
+early DT initialization calls. I have the need to add yet another one
+in order to do a DT based earlycon. Since each section follows the same
+pattern, this seemed like a good opportunity for some clean-up. So
+this series creates a common macro to define these sections. with this
+adding any new OF table section is a 2 line change.
 
-diff --git a/include/asm-generic/unaligned.h b/include/asm-generic/unaligned.h
-index 03cf5936bad6..1ac097279db1 100644
---- a/include/asm-generic/unaligned.h
-+++ b/include/asm-generic/unaligned.h
-@@ -4,22 +4,27 @@
- /*
-  * This is the most generic implementation of unaligned accesses
-  * and should work almost anywhere.
-- *
-- * If an architecture can handle unaligned accesses in hardware,
-- * it may want to use the linux/unaligned/access_ok.h implementation
-- * instead.
-  */
- #include <asm/byteorder.h>
- 
-+/* Set by the arch if it can handle unaligned accesses in hardware. */
-+#ifdef CONFIG_HAVE_EFFICIENT_UNALIGNED_ACCESS
-+# include <linux/unaligned/access_ok.h>
-+#endif
-+
- #if defined(__LITTLE_ENDIAN)
--# include <linux/unaligned/le_struct.h>
--# include <linux/unaligned/be_byteshift.h>
-+# ifndef CONFIG_HAVE_EFFICIENT_UNALIGNED_ACCESS
-+#  include <linux/unaligned/le_struct.h>
-+#  include <linux/unaligned/be_byteshift.h>
-+# endif
- # include <linux/unaligned/generic.h>
- # define get_unaligned	__get_unaligned_le
- # define put_unaligned	__put_unaligned_le
- #elif defined(__BIG_ENDIAN)
--# include <linux/unaligned/be_struct.h>
--# include <linux/unaligned/le_byteshift.h>
-+# ifndef CONFIG_HAVE_EFFICIENT_UNALIGNED_ACCESS
-+#  include <linux/unaligned/be_struct.h>
-+#  include <linux/unaligned/le_byteshift.h>
-+# endif
- # include <linux/unaligned/generic.h>
- # define get_unaligned	__get_unaligned_be
- # define put_unaligned	__put_unaligned_be
+Each section ends with a zeroed struct of_device_id (except cpu_method).
+Right now there is an end section and a dummy variable to create the end
+marker. Really, we just need padding here, but I haven't come up with a
+way for the linker script to get the struct size. 
+
+The last patch extends the same concept to another common pattern for
+section definitons. There's still others which could be easily converted
+also, but I'm looking for feedback on this approach before proceeding
+any further.
+
+Rob
+
+Rob Herring (4):
+  irqchip: align irqchip OF match table section naming
+  ARM: align cpu_method_of_table naming
+  vmlinuz.lds: define OF table sections with macros
+  vmlinux.lds: define conditional sections with macros
+
+ arch/arm/kernel/devtree.c         |  11 +--
+ drivers/irqchip/irqchip.c         |   6 +-
+ include/asm-generic/vmlinux.lds.h | 142 +++++++++++---------------------------
+ 3 files changed, 52 insertions(+), 107 deletions(-)
+
 -- 
 1.8.3.2
