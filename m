@@ -1,96 +1,79 @@
 From: Rob Herring <robherring2@gmail.com>
-Subject: [RFC PATCH 3/4] vmlinuz.lds: define OF table sections with macros
-Date: Thu, 27 Mar 2014 14:41:56 -0500
-Message-ID: <1395949317-8738-4-git-send-email-robherring2@gmail.com>
+Subject: [RFC PATCH 2/4] ARM: align cpu_method_of_table naming
+Date: Thu, 27 Mar 2014 14:41:55 -0500
+Message-ID: <1395949317-8738-3-git-send-email-robherring2@gmail.com>
 References: <1395949317-8738-1-git-send-email-robherring2@gmail.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-ob0-f180.google.com ([209.85.214.180]:63491 "EHLO
+	mail-ob0-f180.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756679AbaC0TmK (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 27 Mar 2014 15:42:10 -0400
 In-Reply-To: <1395949317-8738-1-git-send-email-robherring2@gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Arnd Bergmann <arnd@arndb.de>
 Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Russell King <linux@arm.linux.org.uk>, Rob Herring <robh@kernel.org>
-List-Id: linux-arch.vger.kernel.org
 
 From: Rob Herring <robh@kernel.org>
 
-OF table sections all have the same pattern, so create a macro to define
-them and insure consistency.
+The cpu_method_of_table is the oddball of the various OF linker sections.
+In preparation to have common linker section definitions, align the
+cpu_method_of_table with the other definitions for the naming and ending
+with a blank struct.
 
 Signed-off-by: Rob Herring <robh@kernel.org>
+Cc: Russell King <linux@arm.linux.org.uk>
 Cc: Arnd Bergmann <arnd@arndb.de>
 ---
- include/asm-generic/vmlinux.lds.h | 58 ++++++++++-----------------------------
- 1 file changed, 14 insertions(+), 44 deletions(-)
+ arch/arm/kernel/devtree.c         | 11 +++++++----
+ include/asm-generic/vmlinux.lds.h |  4 ++--
+ 2 files changed, 9 insertions(+), 6 deletions(-)
 
+diff --git a/arch/arm/kernel/devtree.c b/arch/arm/kernel/devtree.c
+index c7419a5..bdac7a9 100644
+--- a/arch/arm/kernel/devtree.c
++++ b/arch/arm/kernel/devtree.c
+@@ -65,18 +65,21 @@ void __init arm_dt_memblock_reserve(void)
+ }
+ 
+ #ifdef CONFIG_SMP
+-extern struct of_cpu_method __cpu_method_of_table_begin[];
+-extern struct of_cpu_method __cpu_method_of_table_end[];
++extern struct of_cpu_method __cpu_method_of_table[];
++
++static const struct of_cpu_method __cpu_method_of_table_sentinel
++	__used __section(__cpu_method_of_table_end);
++
+ 
+ static int __init set_smp_ops_by_method(struct device_node *node)
+ {
+ 	const char *method;
+-	struct of_cpu_method *m = __cpu_method_of_table_begin;
++	struct of_cpu_method *m = __cpu_method_of_table;
+ 
+ 	if (of_property_read_string(node, "enable-method", &method))
+ 		return 0;
+ 
+-	for (; m < __cpu_method_of_table_end; m++)
++	for (; m->method; m++)
+ 		if (!strcmp(m->method, method)) {
+ 			smp_set_ops(m->ops);
+ 			return 1;
 diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-index d09e670..000a0f30 100644
+index f8d1783..d09e670 100644
 --- a/include/asm-generic/vmlinux.lds.h
 +++ b/include/asm-generic/vmlinux.lds.h
-@@ -139,52 +139,22 @@
- #define TRACE_SYSCALLS()
+@@ -169,9 +169,9 @@
+ 
+ #ifdef CONFIG_SMP
+ #define CPU_METHOD_OF_TABLES() . = ALIGN(8);				    \
+-			   VMLINUX_SYMBOL(__cpu_method_of_table_begin) = .; \
++			   VMLINUX_SYMBOL(__cpu_method_of_table) = .; \
+ 			   *(__cpu_method_of_table)			    \
+-			   VMLINUX_SYMBOL(__cpu_method_of_table_end) = .;
++			   *(__cpu_method_of_table_end)
+ #else
+ #define CPU_METHOD_OF_TABLES()
  #endif
- 
--#ifdef CONFIG_CLKSRC_OF
--#define CLKSRC_OF_TABLES() . = ALIGN(8);				\
--			   VMLINUX_SYMBOL(__clksrc_of_table) = .;	\
--			   *(__clksrc_of_table)				\
--			   *(__clksrc_of_table_end)
--#else
--#define CLKSRC_OF_TABLES()
--#endif
- 
--#ifdef CONFIG_IRQCHIP
--#define IRQCHIP_OF_MATCH_TABLE()					\
-+#define ___OF_TABLE(cfg, name)	_OF_TABLE_##cfg(name)
-+#define __OF_TABLE(cfg, name)	___OF_TABLE(cfg, name)
-+#define OF_TABLE(cfg, name)	__OF_TABLE(config_enabled(cfg), name)
-+#define _OF_TABLE_0(name)
-+#define _OF_TABLE_1(name)						\
- 	. = ALIGN(8);							\
--	VMLINUX_SYMBOL(__irqchip_of_table) = .;				\
--	*(__irqchip_of_table)		  				\
--	*(__irqchip_of_table_end)
--#else
--#define IRQCHIP_OF_MATCH_TABLE()
--#endif
--
--#ifdef CONFIG_COMMON_CLK
--#define CLK_OF_TABLES() . = ALIGN(8);				\
--			VMLINUX_SYMBOL(__clk_of_table) = .;	\
--			*(__clk_of_table)			\
--			*(__clk_of_table_end)
--#else
--#define CLK_OF_TABLES()
--#endif
--
--#ifdef CONFIG_SMP
--#define CPU_METHOD_OF_TABLES() . = ALIGN(8);				    \
--			   VMLINUX_SYMBOL(__cpu_method_of_table) = .; \
--			   *(__cpu_method_of_table)			    \
--			   *(__cpu_method_of_table_end)
--#else
--#define CPU_METHOD_OF_TABLES()
--#endif
--
--#ifdef CONFIG_OF_RESERVED_MEM
--#define RESERVEDMEM_OF_TABLES()				\
--	. = ALIGN(8);					\
--	VMLINUX_SYMBOL(__reservedmem_of_table) = .;	\
--	*(__reservedmem_of_table)			\
--	*(__reservedmem_of_table_end)
--#else
--#define RESERVEDMEM_OF_TABLES()
--#endif
-+	VMLINUX_SYMBOL(__##name##_of_table) = .;			\
-+	*(__##name##_of_table)						\
-+	*(__##name##_of_table_end)
-+
-+#define CLKSRC_OF_TABLES()	OF_TABLE(CONFIG_CLKSRC_OF, clksrc)
-+#define IRQCHIP_OF_MATCH_TABLE() OF_TABLE(CONFIG_IRQCHIP, irqchip)
-+#define CLK_OF_TABLES()		OF_TABLE(CONFIG_COMMON_CLK, clk)
-+#define CPU_METHOD_OF_TABLES()	OF_TABLE(CONFIG_SMP, cpu_method)
-+#define RESERVEDMEM_OF_TABLES()	OF_TABLE(CONFIG_OF_RESERVED_MEM, reservedmem)
- 
- #define KERNEL_DTB()							\
- 	STRUCT_ALIGN();							\
 -- 
 1.8.3.2
