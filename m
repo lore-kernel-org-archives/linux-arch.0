@@ -1,48 +1,60 @@
 From: Rob Herring <robherring2@gmail.com>
-Subject: [RFC PATCH 0/4] vmlinux.lds.h clean-ups
-Date: Thu, 27 Mar 2014 14:41:53 -0500
-Message-ID: <1395949317-8738-1-git-send-email-robherring2@gmail.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ob0-f179.google.com ([209.85.214.179]:55959 "EHLO
-	mail-ob0-f179.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754761AbaC0TmH (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 27 Mar 2014 15:42:07 -0400
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Subject: [RFC PATCH 1/4] irqchip: align irqchip OF match table section naming
+Date: Thu, 27 Mar 2014 14:41:54 -0500
+Message-ID: <1395949317-8738-2-git-send-email-robherring2@gmail.com>
+References: <1395949317-8738-1-git-send-email-robherring2@gmail.com>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1395949317-8738-1-git-send-email-robherring2@gmail.com>
+Sender: linux-kernel-owner@vger.kernel.org
 To: Arnd Bergmann <arnd@arndb.de>
 Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Russell King <linux@arm.linux.org.uk>, Rob Herring <robh@kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
 From: Rob Herring <robh@kernel.org>
 
-Several DeviceTree related sections have been added recently to enable
-early DT initialization calls. I have the need to add yet another one
-in order to do a DT based earlycon. Since each section follows the same
-pattern, this seemed like a good opportunity for some clean-up. So
-this series creates a common macro to define these sections. with this
-adding any new OF table section is a 2 line change.
+Make the irqchip OF match table section naming aligned with other
+OF match table sections in preparation to have a common definition.
 
-Each section ends with a zeroed struct of_device_id (except cpu_method).
-Right now there is an end section and a dummy variable to create the end
-marker. Really, we just need padding here, but I haven't come up with a
-way for the linker script to get the struct size. 
+Signed-off-by: Rob Herring <robh@kernel.org>
+---
+ drivers/irqchip/irqchip.c         | 6 +++---
+ include/asm-generic/vmlinux.lds.h | 4 ++--
+ 2 files changed, 5 insertions(+), 5 deletions(-)
 
-The last patch extends the same concept to another common pattern for
-section definitons. There's still others which could be easily converted
-also, but I'm looking for feedback on this approach before proceeding
-any further.
-
-Rob
-
-Rob Herring (4):
-  irqchip: align irqchip OF match table section naming
-  ARM: align cpu_method_of_table naming
-  vmlinuz.lds: define OF table sections with macros
-  vmlinux.lds: define conditional sections with macros
-
- arch/arm/kernel/devtree.c         |  11 +--
- drivers/irqchip/irqchip.c         |   6 +-
- include/asm-generic/vmlinux.lds.h | 142 +++++++++++---------------------------
- 3 files changed, 52 insertions(+), 107 deletions(-)
-
+diff --git a/drivers/irqchip/irqchip.c b/drivers/irqchip/irqchip.c
+index cad3e24..0fe2f71 100644
+--- a/drivers/irqchip/irqchip.c
++++ b/drivers/irqchip/irqchip.c
+@@ -19,11 +19,11 @@
+  * special section.
+  */
+ static const struct of_device_id
+-irqchip_of_match_end __used __section(__irqchip_of_end);
++irqchip_of_match_end __used __section(__irqchip_of_table_end);
+ 
+-extern struct of_device_id __irqchip_begin[];
++extern struct of_device_id __irqchip_of_table[];
+ 
+ void __init irqchip_init(void)
+ {
+-	of_irq_init(__irqchip_begin);
++	of_irq_init(__irqchip_of_table);
+ }
+diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+index f7bf870..f8d1783 100644
+--- a/include/asm-generic/vmlinux.lds.h
++++ b/include/asm-generic/vmlinux.lds.h
+@@ -151,9 +151,9 @@
+ #ifdef CONFIG_IRQCHIP
+ #define IRQCHIP_OF_MATCH_TABLE()					\
+ 	. = ALIGN(8);							\
+-	VMLINUX_SYMBOL(__irqchip_begin) = .;				\
++	VMLINUX_SYMBOL(__irqchip_of_table) = .;				\
+ 	*(__irqchip_of_table)		  				\
+-	*(__irqchip_of_end)
++	*(__irqchip_of_table_end)
+ #else
+ #define IRQCHIP_OF_MATCH_TABLE()
+ #endif
 -- 
 1.8.3.2
