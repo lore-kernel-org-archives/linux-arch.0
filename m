@@ -1,102 +1,66 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-oa0-f50.google.com ([209.85.219.50]:54330 "EHLO
-	mail-oa0-f50.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757054AbaC0TmN (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 27 Mar 2014 15:42:13 -0400
+Received: from mail-ob0-f181.google.com ([209.85.214.181]:35642 "EHLO
+	mail-ob0-f181.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755400AbaC0TmJ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 27 Mar 2014 15:42:09 -0400
 From: Rob Herring <robherring2@gmail.com>
-Subject: [RFC PATCH 3/4] vmlinuz.lds: define OF table sections with macros
-Date: Thu, 27 Mar 2014 14:41:56 -0500
-Message-ID: <1395949317-8738-4-git-send-email-robherring2@gmail.com>
+Subject: [RFC PATCH 1/4] irqchip: align irqchip OF match table section naming
+Date: Thu, 27 Mar 2014 14:41:54 -0500
+Message-ID: <1395949317-8738-2-git-send-email-robherring2@gmail.com>
 In-Reply-To: <1395949317-8738-1-git-send-email-robherring2@gmail.com>
 References: <1395949317-8738-1-git-send-email-robherring2@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Arnd Bergmann <arnd@arndb.de>
 Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Russell King <linux@arm.linux.org.uk>, Rob Herring <robh@kernel.org>
-Message-ID: <20140327194156.crfKaXKe5-uRJhwVBeiBk42GC04GVGA_oFxEmGZN4Ok@z>
+Message-ID: <20140327194154.nGF004EaZQFCStsEU_u3TdbgBUut6tqJZdGIe8vlkBs@z>
 
 From: Rob Herring <robh@kernel.org>
 
-OF table sections all have the same pattern, so create a macro to define
-them and insure consistency.
+Make the irqchip OF match table section naming aligned with other
+OF match table sections in preparation to have a common definition.
 
 Signed-off-by: Rob Herring <robh@kernel.org>
-Cc: Arnd Bergmann <arnd@arndb.de>
 ---
- include/asm-generic/vmlinux.lds.h | 58 ++++++++++-----------------------------
- 1 file changed, 14 insertions(+), 44 deletions(-)
+ drivers/irqchip/irqchip.c         | 6 +++---
+ include/asm-generic/vmlinux.lds.h | 4 ++--
+ 2 files changed, 5 insertions(+), 5 deletions(-)
 
+diff --git a/drivers/irqchip/irqchip.c b/drivers/irqchip/irqchip.c
+index cad3e24..0fe2f71 100644
+--- a/drivers/irqchip/irqchip.c
++++ b/drivers/irqchip/irqchip.c
+@@ -19,11 +19,11 @@
+  * special section.
+  */
+ static const struct of_device_id
+-irqchip_of_match_end __used __section(__irqchip_of_end);
++irqchip_of_match_end __used __section(__irqchip_of_table_end);
+ 
+-extern struct of_device_id __irqchip_begin[];
++extern struct of_device_id __irqchip_of_table[];
+ 
+ void __init irqchip_init(void)
+ {
+-	of_irq_init(__irqchip_begin);
++	of_irq_init(__irqchip_of_table);
+ }
 diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-index d09e670..000a0f30 100644
+index f7bf870..f8d1783 100644
 --- a/include/asm-generic/vmlinux.lds.h
 +++ b/include/asm-generic/vmlinux.lds.h
-@@ -139,52 +139,22 @@
- #define TRACE_SYSCALLS()
- #endif
- 
--#ifdef CONFIG_CLKSRC_OF
--#define CLKSRC_OF_TABLES() . = ALIGN(8);				\
--			   VMLINUX_SYMBOL(__clksrc_of_table) = .;	\
--			   *(__clksrc_of_table)				\
--			   *(__clksrc_of_table_end)
--#else
--#define CLKSRC_OF_TABLES()
--#endif
- 
--#ifdef CONFIG_IRQCHIP
--#define IRQCHIP_OF_MATCH_TABLE()					\
-+#define ___OF_TABLE(cfg, name)	_OF_TABLE_##cfg(name)
-+#define __OF_TABLE(cfg, name)	___OF_TABLE(cfg, name)
-+#define OF_TABLE(cfg, name)	__OF_TABLE(config_enabled(cfg), name)
-+#define _OF_TABLE_0(name)
-+#define _OF_TABLE_1(name)						\
+@@ -151,9 +151,9 @@
+ #ifdef CONFIG_IRQCHIP
+ #define IRQCHIP_OF_MATCH_TABLE()					\
  	. = ALIGN(8);							\
--	VMLINUX_SYMBOL(__irqchip_of_table) = .;				\
--	*(__irqchip_of_table)		  				\
--	*(__irqchip_of_table_end)
--#else
--#define IRQCHIP_OF_MATCH_TABLE()
--#endif
--
--#ifdef CONFIG_COMMON_CLK
--#define CLK_OF_TABLES() . = ALIGN(8);				\
--			VMLINUX_SYMBOL(__clk_of_table) = .;	\
--			*(__clk_of_table)			\
--			*(__clk_of_table_end)
--#else
--#define CLK_OF_TABLES()
--#endif
--
--#ifdef CONFIG_SMP
--#define CPU_METHOD_OF_TABLES() . = ALIGN(8);				    \
--			   VMLINUX_SYMBOL(__cpu_method_of_table) = .; \
--			   *(__cpu_method_of_table)			    \
--			   *(__cpu_method_of_table_end)
--#else
--#define CPU_METHOD_OF_TABLES()
--#endif
--
--#ifdef CONFIG_OF_RESERVED_MEM
--#define RESERVEDMEM_OF_TABLES()				\
--	. = ALIGN(8);					\
--	VMLINUX_SYMBOL(__reservedmem_of_table) = .;	\
--	*(__reservedmem_of_table)			\
--	*(__reservedmem_of_table_end)
--#else
--#define RESERVEDMEM_OF_TABLES()
--#endif
-+	VMLINUX_SYMBOL(__##name##_of_table) = .;			\
-+	*(__##name##_of_table)						\
-+	*(__##name##_of_table_end)
-+
-+#define CLKSRC_OF_TABLES()	OF_TABLE(CONFIG_CLKSRC_OF, clksrc)
-+#define IRQCHIP_OF_MATCH_TABLE() OF_TABLE(CONFIG_IRQCHIP, irqchip)
-+#define CLK_OF_TABLES()		OF_TABLE(CONFIG_COMMON_CLK, clk)
-+#define CPU_METHOD_OF_TABLES()	OF_TABLE(CONFIG_SMP, cpu_method)
-+#define RESERVEDMEM_OF_TABLES()	OF_TABLE(CONFIG_OF_RESERVED_MEM, reservedmem)
- 
- #define KERNEL_DTB()							\
- 	STRUCT_ALIGN();							\
+-	VMLINUX_SYMBOL(__irqchip_begin) = .;				\
++	VMLINUX_SYMBOL(__irqchip_of_table) = .;				\
+ 	*(__irqchip_of_table)		  				\
+-	*(__irqchip_of_end)
++	*(__irqchip_of_table_end)
+ #else
+ #define IRQCHIP_OF_MATCH_TABLE()
+ #endif
 -- 
 1.8.3.2
 
