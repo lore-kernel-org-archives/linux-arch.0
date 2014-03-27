@@ -1,151 +1,102 @@
-From: Joe Perches <joe@perches.com>
-Subject: Re: [RFC PATCH] Remove CONFIG_DCACHE_WORD_ACCESS
-Date: Tue, 25 Mar 2014 21:54:00 -0700
-Message-ID: <1395809640.3726.7.camel@joe-AO722>
-References: <1393964591.20435.58.camel@joe-AO722>
-	 <1394570240.4840.48.camel@pasglop>
+From: Madhavan Srinivasan <maddy@linux.vnet.ibm.com>
+Subject: Re: [PATCH 1/1] mm: move FAULT_AROUND_ORDER to arch/
+Date: Thu, 27 Mar 2014 11:50:05 +0530
+Message-ID: <5333C315.3000405@linux.vnet.ibm.com>
+References: <1395730215-11604-1-git-send-email-maddy@linux.vnet.ibm.com> <1395730215-11604-2-git-send-email-maddy@linux.vnet.ibm.com> <20140325173605.GA21411@node.dhcp.inet.fi>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="ISO-8859-1"
+Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtprelay0229.hostedemail.com ([216.40.44.229]:59413 "EHLO
-	smtprelay.hostedemail.com" rhost-flags-OK-OK-OK-FAIL)
-	by vger.kernel.org with ESMTP id S1751156AbaCZEyG (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 26 Mar 2014 00:54:06 -0400
-In-Reply-To: <1394570240.4840.48.camel@pasglop>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Anton Blanchard <anton@au1.ibm.com>
-Cc: linux-arch <linux-arch@vger.kernel.org>, Paul Mackerras <paulus@samba.org>, Russell King <linux@arm.linux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Alexander Viro <viro@zeniv.linux.org.uk>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-fsdevel <linux-fsdevel@vger.kernel.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <20140325173605.GA21411@node.dhcp.inet.fi>
+Sender: owner-linux-mm@kvack.org
+To: "Kirill A. Shutemov" <kirill@shutemov.name>
+Cc: linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, x86@kernel.org, benh@kernel.crashing.org, paulus@samba.org, kirill.shutemov@linux.intel.com, rusty@rustcorp.com.au, akpm@linux-foundation.org, riel@redhat.com, mgorman@suse.de, ak@linux.intel.com, peterz@infradead.org, mingo@kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, 2014-03-12 at 07:37 +1100, Benjamin Herrenschmidt wrote:
-> On Tue, 2014-03-04 at 12:23 -0800, Joe Perches wrote:
-> > It seems to duplicate CONFIG_HAVE_EFFICIENT_UNALIGNED_ACCESS
-> > so use that instead.
-> > 
-> > This changes the !CPU_LITTLE_ENDIAN powerpc arch to use unaligned
-> > accesses in fs/dcache.c and fs/namei.c as
-> > CONFIG_HAVE_EFFICIENT_UNALIGNED_ACCESS is enabled for that arch.
-> > 
-> > Remove the now unused DCACHE_WORD_ACCESS defines & uses.
+On Tuesday 25 March 2014 11:06 PM, Kirill A. Shutemov wrote:
+> On Tue, Mar 25, 2014 at 12:20:15PM +0530, Madhavan Srinivasan wrote:
+>> Kirill A. Shutemov with the commit 96bacfe542 introduced
+>> vm_ops->map_pages() for mapping easy accessible pages around
+>> fault address in hope to reduce number of minor page faults.
+>> Based on his workload runs, suggested FAULT_AROUND_ORDER
+>> (knob to control the numbers of pages to map) is 4.
+>>
+>> This patch moves the FAULT_AROUND_ORDER macro to arch/ for
+>> architecture maintainers to decide on suitable FAULT_AROUND_ORDER
+>> value based on performance data for that architecture.
+>>
+>> Signed-off-by: Madhavan Srinivasan <maddy@linux.vnet.ibm.com>
+>> ---
+>>  arch/powerpc/include/asm/pgtable.h |    6 ++++++
+>>  arch/x86/include/asm/pgtable.h     |    5 +++++
+>>  include/asm-generic/pgtable.h      |   10 ++++++++++
+>>  mm/memory.c                        |    2 --
+>>  4 files changed, 21 insertions(+), 2 deletions(-)
+>>
+>> diff --git a/arch/powerpc/include/asm/pgtable.h b/arch/powerpc/include/asm/pgtable.h
+>> index 3ebb188..9fcbd48 100644
+>> --- a/arch/powerpc/include/asm/pgtable.h
+>> +++ b/arch/powerpc/include/asm/pgtable.h
+>> @@ -19,6 +19,12 @@ struct mm_struct;
+>>  #endif
+>>  
+>>  /*
+>> + * With a few real world workloads that were run,
+>> + * the performance data showed that a value of 3 is more advantageous.
+>> + */
+>> +#define FAULT_AROUND_ORDER	3
+>> +
+>> +/*
+>>   * We save the slot number & secondary bit in the second half of the
+>>   * PTE page. We use the 8 bytes per each pte entry.
+>>   */
+>> diff --git a/arch/x86/include/asm/pgtable.h b/arch/x86/include/asm/pgtable.h
+>> index 938ef1d..8387a65 100644
+>> --- a/arch/x86/include/asm/pgtable.h
+>> +++ b/arch/x86/include/asm/pgtable.h
+>> @@ -7,6 +7,11 @@
+>>  #include <asm/pgtable_types.h>
+>>  
+>>  /*
+>> + * Based on Kirill's test results, fault around order is set to 4
+>> + */
+>> +#define FAULT_AROUND_ORDER 4
+>> +
+>> +/*
+>>   * Macro to mark a page protection value as UC-
+>>   */
+>>  #define pgprot_noncached(prot)					\
+>> diff --git a/include/asm-generic/pgtable.h b/include/asm-generic/pgtable.h
+>> index 1ec08c1..62f7f07 100644
+>> --- a/include/asm-generic/pgtable.h
+>> +++ b/include/asm-generic/pgtable.h
+>> @@ -7,6 +7,16 @@
+>>  #include <linux/mm_types.h>
+>>  #include <linux/bug.h>
+>>  
+>> +
+>> +/*
+>> + * Fault around order is a control knob to decide the fault around pages.
+>> + * Default value is set to 0UL (disabled), but the arch can override it as
+>> + * desired.
+>> + */
+>> +#ifndef FAULT_AROUND_ORDER
+>> +#define FAULT_AROUND_ORDER	0UL
+>> +#endif
 > 
-> Interesting.. we have word-at-a-time but we never enabled
-> DCACHE_WORD_ACCESS, I wonder why that is. In fact, we should
-> probably do it for LE as well for P8 if we can make a P8
-> only config option...
+> FAULT_AROUND_ORDER == 0 case should be handled separately in
+> do_read_fault(): no reason to go to do_fault_around() if we are going to
+> fault in only one page.
 > 
-> Anton, what do you reckon here ?
 
-Anton, do you have an opinion here?
+ok agreed. I am thinking of adding FAULT_AROUND_ORDER check with
+map_pages check in the do_read_fault. Kindly share your thoughts.
 
-> Cheers,
-> Ben.
-> 
-> > Signed-off-by: Joe Perches <joe@perches.com>
-> > ---
-> >  arch/arm/Kconfig                      | 1 -
-> >  arch/arm/include/asm/word-at-a-time.h | 4 ++--
-> >  arch/arm64/Kconfig                    | 1 -
-> >  arch/x86/Kconfig                      | 1 -
-> >  fs/Kconfig                            | 4 ----
-> >  fs/dcache.c                           | 2 +-
-> >  fs/namei.c                            | 2 +-
-> >  7 files changed, 4 insertions(+), 11 deletions(-)
-> > 
-> > diff --git a/arch/arm/Kconfig b/arch/arm/Kconfig
-> > index 623a272..d5a2e60 100644
-> > --- a/arch/arm/Kconfig
-> > +++ b/arch/arm/Kconfig
-> > @@ -12,7 +12,6 @@ config ARM
-> >  	select BUILDTIME_EXTABLE_SORT if MMU
-> >  	select CLONE_BACKWARDS
-> >  	select CPU_PM if (SUSPEND || CPU_IDLE)
-> > -	select DCACHE_WORD_ACCESS if HAVE_EFFICIENT_UNALIGNED_ACCESS
-> >  	select GENERIC_ATOMIC64 if (CPU_V7M || CPU_V6 || !CPU_32v6K || !AEABI)
-> >  	select GENERIC_CLOCKEVENTS_BROADCAST if SMP
-> >  	select GENERIC_IDLE_POLL_SETUP
-> > diff --git a/arch/arm/include/asm/word-at-a-time.h b/arch/arm/include/asm/word-at-a-time.h
-> > index a6d0a29..778b2ad 100644
-> > --- a/arch/arm/include/asm/word-at-a-time.h
-> > +++ b/arch/arm/include/asm/word-at-a-time.h
-> > @@ -54,7 +54,7 @@ static inline unsigned long find_zero(unsigned long mask)
-> >  #include <asm-generic/word-at-a-time.h>
-> >  #endif
-> >  
-> > -#ifdef CONFIG_DCACHE_WORD_ACCESS
-> > +#ifdef CONFIG_HAVE_EFFICIENT_UNALIGNED_ACCESS
-> >  
-> >  /*
-> >   * Load an unaligned word from kernel space.
-> > @@ -94,5 +94,5 @@ static inline unsigned long load_unaligned_zeropad(const void *addr)
-> >  	return ret;
-> >  }
-> >  
-> > -#endif	/* DCACHE_WORD_ACCESS */
-> > +#endif	/* HAVE_EFFICIENT_UNALIGNED_ACCESS */
-> >  #endif /* __ASM_ARM_WORD_AT_A_TIME_H */
-> > diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
-> > index 764d682..2d6978c 100644
-> > --- a/arch/arm64/Kconfig
-> > +++ b/arch/arm64/Kconfig
-> > @@ -13,7 +13,6 @@ config ARM64
-> >  	select CLONE_BACKWARDS
-> >  	select COMMON_CLK
-> >  	select CPU_PM if (SUSPEND || CPU_IDLE)
-> > -	select DCACHE_WORD_ACCESS
-> >  	select GENERIC_CLOCKEVENTS
-> >  	select GENERIC_CLOCKEVENTS_BROADCAST if SMP
-> >  	select GENERIC_IOMAP
-> > diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
-> > index abb261e..60cfa073 100644
-> > --- a/arch/x86/Kconfig
-> > +++ b/arch/x86/Kconfig
-> > @@ -98,7 +98,6 @@ config X86
-> >  	select CLKEVT_I8253
-> >  	select ARCH_HAVE_NMI_SAFE_CMPXCHG
-> >  	select GENERIC_IOMAP
-> > -	select DCACHE_WORD_ACCESS
-> >  	select GENERIC_SMP_IDLE_THREAD
-> >  	select ARCH_WANT_IPC_PARSE_VERSION if X86_32
-> >  	select HAVE_ARCH_SECCOMP_FILTER
-> > diff --git a/fs/Kconfig b/fs/Kconfig
-> > index 312393f..7511271 100644
-> > --- a/fs/Kconfig
-> > +++ b/fs/Kconfig
-> > @@ -4,10 +4,6 @@
-> >  
-> >  menu "File systems"
-> >  
-> > -# Use unaligned word dcache accesses
-> > -config DCACHE_WORD_ACCESS
-> > -       bool
-> > -
-> >  if BLOCK
-> >  
-> >  source "fs/ext2/Kconfig"
-> > diff --git a/fs/dcache.c b/fs/dcache.c
-> > index 265e0ce..4e3c195 100644
-> > --- a/fs/dcache.c
-> > +++ b/fs/dcache.c
-> > @@ -163,7 +163,7 @@ int proc_nr_dentry(ctl_table *table, int write, void __user *buffer,
-> >   * Compare 2 name strings, return 0 if they match, otherwise non-zero.
-> >   * The strings are both count bytes long, and count is non-zero.
-> >   */
-> > -#ifdef CONFIG_DCACHE_WORD_ACCESS
-> > +#ifdef CONFIG_HAVE_EFFICIENT_UNALIGNED_ACCESS
-> >  
-> >  #include <asm/word-at-a-time.h>
-> >  /*
-> > diff --git a/fs/namei.c b/fs/namei.c
-> > index 385f781..1ee33ca 100644
-> > --- a/fs/namei.c
-> > +++ b/fs/namei.c
-> > @@ -1618,7 +1618,7 @@ static inline int nested_symlink(struct path *path, struct nameidata *nd)
-> >   *   the final mask". Again, that could be replaced with a
-> >   *   efficient population count instruction or similar.
-> >   */
-> > -#ifdef CONFIG_DCACHE_WORD_ACCESS
-> > +#ifdef CONFIG_HAVE_EFFICIENT_UNALIGNED_ACCESS
-> >  
-> >  #include <asm/word-at-a-time.h>
+With regards
+Maddy
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
