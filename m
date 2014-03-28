@@ -1,90 +1,66 @@
 From: Steve Capper <steve.capper@linaro.org>
-Subject: [RFC PATCH V4 4/7] arm: mm: Enable RCU fast_gup
-Date: Fri, 28 Mar 2014 15:01:29 +0000
-Message-ID: <1396018892-6773-5-git-send-email-steve.capper@linaro.org>
+Subject: [RFC PATCH V4 6/7] arm64: mm: Enable HAVE_RCU_TABLE_FREE logic
+Date: Fri, 28 Mar 2014 15:01:31 +0000
+Message-ID: <1396018892-6773-7-git-send-email-steve.capper@linaro.org>
 References: <1396018892-6773-1-git-send-email-steve.capper@linaro.org>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wg0-f46.google.com ([74.125.82.46]:47855 "EHLO
-	mail-wg0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751760AbaC1PBr (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 28 Mar 2014 11:01:47 -0400
-Received: by mail-wg0-f46.google.com with SMTP id b13so3705939wgh.5
-        for <linux-arch@vger.kernel.org>; Fri, 28 Mar 2014 08:01:46 -0700 (PDT)
+Received: from mail-wi0-f174.google.com ([209.85.212.174]:47735 "EHLO
+	mail-wi0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751809AbaC1PBv (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 28 Mar 2014 11:01:51 -0400
+Received: by mail-wi0-f174.google.com with SMTP id d1so850966wiv.7
+        for <linux-arch@vger.kernel.org>; Fri, 28 Mar 2014 08:01:50 -0700 (PDT)
 In-Reply-To: <1396018892-6773-1-git-send-email-steve.capper@linaro.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arm-kernel@lists.infradead.org, catalin.marinas@arm.com, linux@arm.linux.org.uk, linux-mm@kvack.org, linux-arch@vger.kernel.org
 Cc: peterz@infradead.org, gary.robertson@linaro.org, anders.roxell@linaro.org, akpm@linux-foundation.org, Steve Capper <steve.capper@linaro.org>
 
-Activate the RCU fast_gup for ARM. We also need to force THP splits to
-broadcast an IPI s.t. we block in the fast_gup page walker. As THP
-splits are comparatively rare, this should not lead to a noticeable
-performance degradation.
+In order to implement fast_get_user_pages we need to ensure that the
+page table walker is protected from page table pages being freed from
+under it.
+
+This patch enables HAVE_RCU_TABLE_FREE, any page table pages belonging
+to address spaces with multiple users will be call_rcu_sched freed.
+Meaning that disabling interrupts will block the free and protect the
+fast gup page walker.
 
 Signed-off-by: Steve Capper <steve.capper@linaro.org>
 ---
- arch/arm/Kconfig                      |  3 +++
- arch/arm/include/asm/pgtable-3level.h |  6 ++++++
- arch/arm/mm/flush.c                   | 19 +++++++++++++++++++
- 3 files changed, 28 insertions(+)
+ arch/arm64/Kconfig           | 1 +
+ arch/arm64/include/asm/tlb.h | 8 ++++++++
+ 2 files changed, 9 insertions(+)
 
-diff --git a/arch/arm/Kconfig b/arch/arm/Kconfig
-index 7d5340d..3cf589e 100644
---- a/arch/arm/Kconfig
-+++ b/arch/arm/Kconfig
-@@ -1788,6 +1788,9 @@ config ARCH_SELECT_MEMORY_MODEL
- config HAVE_ARCH_PFN_VALID
- 	def_bool ARCH_HAS_HOLES_MEMORYMODEL || !SPARSEMEM
+diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
+index 27bbcfc..6185f95 100644
+--- a/arch/arm64/Kconfig
++++ b/arch/arm64/Kconfig
+@@ -38,6 +38,7 @@ config ARM64
+ 	select HAVE_MEMBLOCK
+ 	select HAVE_PATA_PLATFORM
+ 	select HAVE_PERF_EVENTS
++	select HAVE_RCU_TABLE_FREE
+ 	select IRQ_DOMAIN
+ 	select MODULES_USE_ELF_RELA
+ 	select NO_BOOTMEM
+diff --git a/arch/arm64/include/asm/tlb.h b/arch/arm64/include/asm/tlb.h
+index 72cadf5..58a8b78 100644
+--- a/arch/arm64/include/asm/tlb.h
++++ b/arch/arm64/include/asm/tlb.h
+@@ -22,6 +22,14 @@
  
-+config HAVE_RCU_GUP
-+	def_bool y
-+
- config HIGHMEM
- 	bool "High Memory Support"
- 	depends on MMU
-diff --git a/arch/arm/include/asm/pgtable-3level.h b/arch/arm/include/asm/pgtable-3level.h
-index b286ba9..fdc4a4f 100644
---- a/arch/arm/include/asm/pgtable-3level.h
-+++ b/arch/arm/include/asm/pgtable-3level.h
-@@ -226,6 +226,12 @@ static inline pte_t pte_mkspecial(pte_t pte)
- #ifdef CONFIG_TRANSPARENT_HUGEPAGE
- #define pmd_trans_huge(pmd)	(pmd_val(pmd) && !(pmd_val(pmd) & PMD_TABLE_BIT))
- #define pmd_trans_splitting(pmd) (pmd_val(pmd) & PMD_SECT_SPLITTING)
-+
-+#ifdef CONFIG_HAVE_RCU_TABLE_FREE
-+#define __HAVE_ARCH_PMDP_SPLITTING_FLUSH
-+void pmdp_splitting_flush(struct vm_area_struct *vma, unsigned long address,
-+			  pmd_t *pmdp);
-+#endif
- #endif
+ #include <asm-generic/tlb.h>
  
- #define PMD_BIT_FUNC(fn,op) \
-diff --git a/arch/arm/mm/flush.c b/arch/arm/mm/flush.c
-index 3387e60..91a2b59 100644
---- a/arch/arm/mm/flush.c
-+++ b/arch/arm/mm/flush.c
-@@ -377,3 +377,22 @@ void __flush_anon_page(struct vm_area_struct *vma, struct page *page, unsigned l
- 	 */
- 	__cpuc_flush_dcache_area(page_address(page), PAGE_SIZE);
- }
++#include <linux/pagemap.h>
++#include <linux/swap.h>
 +
-+#ifdef CONFIG_TRANSPARENT_HUGEPAGE
-+#ifdef CONFIG_HAVE_RCU_TABLE_FREE
-+static void thp_splitting_flush_sync(void *arg)
++static inline void __tlb_remove_table(void *_table)
 +{
++	free_page_and_swap_cache((struct page *)_table);
 +}
 +
-+void pmdp_splitting_flush(struct vm_area_struct *vma, unsigned long address,
-+			  pmd_t *pmdp)
-+{
-+	pmd_t pmd = pmd_mksplitting(*pmdp);
-+	VM_BUG_ON(address & ~PMD_MASK);
-+	set_pmd_at(vma->vm_mm, address, pmdp, pmd);
-+
-+	/* dummy IPI to serialise against fast_gup */
-+	smp_call_function(thp_splitting_flush_sync, NULL, 1);
-+}
-+#endif /* CONFIG_HAVE_RCU_TABLE_FREE */
-+#endif /* CONFIG_TRANSPARENT_HUGEPAGE */
+ /*
+  * There's three ways the TLB shootdown code is used:
+  *  1. Unmapping a range of vmas.  See zap_page_range(), unmap_region().
 -- 
 1.8.1.4
