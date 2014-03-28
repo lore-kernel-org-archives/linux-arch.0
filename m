@@ -1,79 +1,65 @@
-From: Rob Herring <robherring2@gmail.com>
-Subject: [RFC PATCH 2/4] ARM: align cpu_method_of_table naming
-Date: Thu, 27 Mar 2014 14:41:55 -0500
-Message-ID: <1395949317-8738-3-git-send-email-robherring2@gmail.com>
-References: <1395949317-8738-1-git-send-email-robherring2@gmail.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ob0-f180.google.com ([209.85.214.180]:63491 "EHLO
-	mail-ob0-f180.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756679AbaC0TmK (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 27 Mar 2014 15:42:10 -0400
-In-Reply-To: <1395949317-8738-1-git-send-email-robherring2@gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Russell King <linux@arm.linux.org.uk>, Rob Herring <robh@kernel.org>
+From: Steve Capper <steve.capper@linaro.org>
+Subject: [RFC PATCH V4 0/7] get_user_pages_fast for ARM and ARM64
+Date: Fri, 28 Mar 2014 15:01:25 +0000
+Message-ID: <1396018892-6773-1-git-send-email-steve.capper@linaro.org>
+Return-path: <owner-linux-mm@kvack.org>
+Sender: owner-linux-mm@kvack.org
+To: linux-arm-kernel@lists.infradead.org, catalin.marinas@arm.com, linux@arm.linux.org.uk, linux-mm@kvack.org, linux-arch@vger.kernel.org
+Cc: peterz@infradead.org, gary.robertson@linaro.org, anders.roxell@linaro.org, akpm@linux-foundation.org, Steve Capper <steve.capper@linaro.org>
+List-Id: linux-arch.vger.kernel.org
 
-From: Rob Herring <robh@kernel.org>
+Hello,
+This RFC series implements get_user_pages_fast and __get_user_pages_fast.
+These are required for Transparent HugePages to function correctly, as
+a futex on a THP tail will otherwise result in an infinite loop (due to
+the core implementation of __get_user_pages_fast always returning 0).
+This series may also be beneficial for direct-IO heavy workloads and
+certain KVM workloads.
 
-The cpu_method_of_table is the oddball of the various OF linker sections.
-In preparation to have common linker section definitions, align the
-cpu_method_of_table with the other definitions for the naming and ending
-with a blank struct.
+The main changes since RFC V3 are:
+ * fast_gup now generalised and moved to core code.
+ * pte_special logic now extended to reduce unnecessary icache syncs.
+ * dropped the pte_accessible logic in fast_gup as it is unnecessary.
 
-Signed-off-by: Rob Herring <robh@kernel.org>
-Cc: Russell King <linux@arm.linux.org.uk>
-Cc: Arnd Bergmann <arnd@arndb.de>
----
- arch/arm/kernel/devtree.c         | 11 +++++++----
- include/asm-generic/vmlinux.lds.h |  4 ++--
- 2 files changed, 9 insertions(+), 6 deletions(-)
+I would really appreciate any comments (especially on the validity or
+otherwise of the core fast_gup implementation) and/or testers.
 
-diff --git a/arch/arm/kernel/devtree.c b/arch/arm/kernel/devtree.c
-index c7419a5..bdac7a9 100644
---- a/arch/arm/kernel/devtree.c
-+++ b/arch/arm/kernel/devtree.c
-@@ -65,18 +65,21 @@ void __init arm_dt_memblock_reserve(void)
- }
- 
- #ifdef CONFIG_SMP
--extern struct of_cpu_method __cpu_method_of_table_begin[];
--extern struct of_cpu_method __cpu_method_of_table_end[];
-+extern struct of_cpu_method __cpu_method_of_table[];
-+
-+static const struct of_cpu_method __cpu_method_of_table_sentinel
-+	__used __section(__cpu_method_of_table_end);
-+
- 
- static int __init set_smp_ops_by_method(struct device_node *node)
- {
- 	const char *method;
--	struct of_cpu_method *m = __cpu_method_of_table_begin;
-+	struct of_cpu_method *m = __cpu_method_of_table;
- 
- 	if (of_property_read_string(node, "enable-method", &method))
- 		return 0;
- 
--	for (; m < __cpu_method_of_table_end; m++)
-+	for (; m->method; m++)
- 		if (!strcmp(m->method, method)) {
- 			smp_set_ops(m->ops);
- 			return 1;
-diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-index f8d1783..d09e670 100644
---- a/include/asm-generic/vmlinux.lds.h
-+++ b/include/asm-generic/vmlinux.lds.h
-@@ -169,9 +169,9 @@
- 
- #ifdef CONFIG_SMP
- #define CPU_METHOD_OF_TABLES() . = ALIGN(8);				    \
--			   VMLINUX_SYMBOL(__cpu_method_of_table_begin) = .; \
-+			   VMLINUX_SYMBOL(__cpu_method_of_table) = .; \
- 			   *(__cpu_method_of_table)			    \
--			   VMLINUX_SYMBOL(__cpu_method_of_table_end) = .;
-+			   *(__cpu_method_of_table_end)
- #else
- #define CPU_METHOD_OF_TABLES()
- #endif
+Cheers,
+--
+Steve
+
+Catalin Marinas (1):
+  arm64: Convert asm/tlb.h to generic mmu_gather
+
+Steve Capper (6):
+  mm: Introduce a general RCU get_user_pages_fast.
+  arm: mm: Introduce special ptes for LPAE
+  arm: mm: Enable HAVE_RCU_TABLE_FREE logic
+  arm: mm: Enable RCU fast_gup
+  arm64: mm: Enable HAVE_RCU_TABLE_FREE logic
+  arm64: mm: Enable RCU fast_gup
+
+ arch/arm/Kconfig                      |   4 +
+ arch/arm/include/asm/pgtable-2level.h |   2 +
+ arch/arm/include/asm/pgtable-3level.h |  14 ++
+ arch/arm/include/asm/pgtable.h        |   6 +-
+ arch/arm/include/asm/tlb.h            |  38 ++++-
+ arch/arm/mm/flush.c                   |  19 +++
+ arch/arm64/Kconfig                    |   4 +
+ arch/arm64/include/asm/pgtable.h      |   4 +
+ arch/arm64/include/asm/tlb.h          | 140 +++-------------
+ arch/arm64/mm/flush.c                 |  19 +++
+ mm/Kconfig                            |   3 +
+ mm/Makefile                           |   1 +
+ mm/gup.c                              | 297 ++++++++++++++++++++++++++++++++++
+ 13 files changed, 431 insertions(+), 120 deletions(-)
+ create mode 100644 mm/gup.c
+
 -- 
-1.8.3.2
+1.8.1.4
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
