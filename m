@@ -1,36 +1,53 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH] asm-generic: allow generic unaligned access if the arch supports it
-Date: Fri, 28 Mar 2014 19:14:19 +0100
-Message-ID: <201403281914.20201.arnd@arndb.de>
+From: Ard Biesheuvel <ard.biesheuvel@linaro.org>
+Subject: Re: [PATCH] asm-generic: allow generic unaligned access if the arch
+ supports it
+Date: Fri, 28 Mar 2014 19:24:04 +0100
+Message-ID: <CAKv+Gu_9yD1jWhxkPxSUbwjJk4QxPNXBR=EXfmfCgzD1Pdig2g@mail.gmail.com>
 References: <1395942387-14177-1-git-send-email-ard.biesheuvel@linaro.org>
+	<201403281914.20201.arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: Text/Plain;
-  charset="iso-8859-15"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=ISO-8859-1
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.130]:62036 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751667AbaC1SOZ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 28 Mar 2014 14:14:25 -0400
-In-Reply-To: <1395942387-14177-1-git-send-email-ard.biesheuvel@linaro.org>
+Received: from mail-lb0-f174.google.com ([209.85.217.174]:45017 "EHLO
+	mail-lb0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751602AbaC1SYH (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 28 Mar 2014 14:24:07 -0400
+Received: by mail-lb0-f174.google.com with SMTP id u14so3972647lbd.19
+        for <linux-arch@vger.kernel.org>; Fri, 28 Mar 2014 11:24:04 -0700 (PDT)
+In-Reply-To: <201403281914.20201.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ard Biesheuvel <ard.biesheuvel@linaro.org>
-Cc: linux-arch@vger.kernel.org, robherring2@gmail.com
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch@vger.kernel.org, Rob Herring <robherring2@gmail.com>, Catalin Marinas <catalin.marinas@arm.com>
 
-On Thursday 27 March 2014, Ard Biesheuvel wrote:
-> Switch the default unaligned access method to 'hardware implemented'
-> if HAVE_EFFICIENT_UNALIGNED_ACCESS is set.
-> 
-> Signed-off-by: Ard Biesheuvel <ard.biesheuvel@linaro.org>
+On 28 March 2014 19:14, Arnd Bergmann <arnd@arndb.de> wrote:
+> On Thursday 27 March 2014, Ard Biesheuvel wrote:
+>> Switch the default unaligned access method to 'hardware implemented'
+>> if HAVE_EFFICIENT_UNALIGNED_ACCESS is set.
+>>
+>> Signed-off-by: Ard Biesheuvel <ard.biesheuvel@linaro.org>
+>
+> Acked-by: Arnd Bergmann <arnd@arndb.de>
+>
+> Is this part of a longer series of patches? If so, please keep
+> the patch with the others and merge it through an appropriate
+> tree.
+>
 
-Acked-by: Arnd Bergmann <arnd@arndb.de>
+No, not really. I ran into the alignment issue while working on the
+arm64 crypto stuff, but it is unclear when that will be going in.
 
-Is this part of a longer series of patches? If so, please keep
-the patch with the others and merge it through an appropriate
-tree.
+> If not, I guess I'll have to send it myself, but it will be
+> the only asm-generic patch for the merge window ;-)
+>
 
-If not, I guess I'll have to send it myself, but it will be
-the only asm-generic patch for the merge window ;-)
+Perhaps Catalin is interested in taking it, as arm64 is the only arch
+that defines HAVE_EFFICIENT_UNALIGNED_ACCESS /and/ uses the
+asm-generic version of unaligned.h.
 
-	Arnd
+@Catalin?
+
+http://marc.info/?l=linux-arch&m=139594237116121&w=2
+
+Regards,
+Ard.
