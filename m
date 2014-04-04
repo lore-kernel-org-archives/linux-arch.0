@@ -1,75 +1,47 @@
-From: Waiman Long <waiman.long@hp.com>
-Subject: Re: [PATCH v8 00/10] qspinlock: a 4-byte queue spinlock with PV
-	support
-Date: Thu, 03 Apr 2014 22:57:18 -0400
-Message-ID: <533E1F8E.5040600@hp.com>
-References: <1396445259-27670-1-git-send-email-Waiman.Long@hp.com>
-	<20140402143201.GF12188@phenom.dumpdata.com>
-	<533C7485.3030203@hp.com> <533CC309.3020607@hp.com>
-	<20140403172333.GA3877@localhost.localdomain>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"; Format="flowed"
-Content-Transfer-Encoding: 7bit
-Return-path: <virtualization-bounces@lists.linux-foundation.org>
-In-Reply-To: <20140403172333.GA3877@localhost.localdomain>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
-List-Post: <mailto:virtualization@lists.linux-foundation.org>
-List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
-Sender: virtualization-bounces@lists.linux-foundation.org
-Errors-To: virtualization-bounces@lists.linux-foundation.org
-To: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
-Cc: x86@kernel.org, Gleb Natapov <gleb@redhat.com>, Peter Zijlstra <peterz@infradead.org>, virtualization@lists.linux-foundation.org, Marcos Matsunaga <Marcos.Matsunaga@oracle.com>, "H. Peter Anvin" <hpa@zytor.com>, boris.ostrovsky@oracle.com, linux-arch@vger.kernel.org, kvm@vger.kernel.org, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, Ingo Molnar <mingo@redhat.com>, xen-devel@lists.xenproject.org, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Rik van Riel <riel@redhat.com>, Scott J Norton <scott.norton@hp.com>, Paolo Bonzini <paolo.bonzini@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Aswin Chandramouleeswaran <aswin@hp.com>, Chegu Vinod <chegu_vinod@hp.com>, linux-kernel@vger.kernel.org, David Vrabel <david.vrabel@citrix.com>, Linus Torvalds <torvalds@linux-foundation.org>
-List-Id: linux-arch.vger.kernel.org
+From: Madhavan Srinivasan <maddy@linux.vnet.ibm.com>
+Subject: [PATCH V2 0/2] FAULT_AROUND_ORDER patchset performance data for powerpc
+Date: Fri,  4 Apr 2014 11:57:13 +0530
+Message-ID: <1396592835-24767-1-git-send-email-maddy@linux.vnet.ibm.com>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from e28smtp05.in.ibm.com ([122.248.162.5]:36339 "EHLO
+	e28smtp05.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752037AbaDDG11 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 4 Apr 2014 02:27:27 -0400
+Received: from /spool/local
+	by e28smtp05.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <maddy@linux.vnet.ibm.com>;
+	Fri, 4 Apr 2014 11:57:24 +0530
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, x86@kernel.org
+Cc: benh@kernel.crashing.org, paulus@samba.org, kirill.shutemov@linux.intel.com, rusty@rustcorp.com.au, akpm@linux-foundation.org, riel@redhat.com, mgorman@suse.de, ak@linux.intel.com, peterz@infradead.org, mingo@kernel.org, Madhavan Srinivasan <maddy@linux.vnet.ibm.com>
 
-On 04/03/2014 01:23 PM, Konrad Rzeszutek Wilk wrote:
-> On Wed, Apr 02, 2014 at 10:10:17PM -0400, Waiman Long wrote:
->> On 04/02/2014 04:35 PM, Waiman Long wrote:
->>> On 04/02/2014 10:32 AM, Konrad Rzeszutek Wilk wrote:
->>>> On Wed, Apr 02, 2014 at 09:27:29AM -0400, Waiman Long wrote:
->>>>> N.B. Sorry for the duplicate. This patch series were resent as the
->>>>>       original one was rejected by the vger.kernel.org list server
->>>>>       due to long header. There is no change in content.
->>>>>
->>>>> v7->v8:
->>>>>    - Remove one unneeded atomic operation from the slowpath, thus
->>>>>      improving performance.
->>>>>    - Simplify some of the codes and add more comments.
->>>>>    - Test for X86_FEATURE_HYPERVISOR CPU feature bit to enable/disable
->>>>>      unfair lock.
->>>>>    - Reduce unfair lock slowpath lock stealing frequency depending
->>>>>      on its distance from the queue head.
->>>>>    - Add performance data for IvyBridge-EX CPU.
->>>> FYI, your v7 patch with 32 VCPUs (on a 32 cpu socket machine) on an
->>>> HVM guest under Xen after a while stops working. The workload
->>>> is doing 'make -j32' on the Linux kernel.
->>>>
->>>> Completely unresponsive. Thoughts?
->>>>
->>> Thank for reporting that. I haven't done that much testing on Xen.
->>> My focus was in KVM. I will perform more test on Xen to see if I
->>> can reproduce the problem.
->>>
->> BTW, does the halting and sending IPI mechanism work in HVM? I saw
-> Yes.
->> that in RHEL7, PV spinlock was explicitly disabled when in HVM mode.
->> However, this piece of code isn't in upstream code. So I wonder if
->> there is problem with that.
-> The PV ticketlock fixed it for HVM. It was disabled before because
-> the PV guests were using bytelocks while the HVM were using ticketlocks
-> and you couldnt' swap in PV bytelocks for ticketlocks during startup.
+Kirill A. Shutemov with faultaround patchset introduced
+vm_ops->map_pages() for mapping easy accessible pages around
+fault address in hope to reduce number of minor page faults.
 
-The RHEL7 code has used PV ticketlock already. RHEL7 uses a single 
-kernel for all configurations. So PV ticketlock as well as Xen and KVM 
-support was compiled in. I think booting the kernel on bare metal will 
-cause the Xen code to work in HVM mode thus activating the PV spinlock 
-code which has a negative impact on performance. That may be why it was 
-disabled so that the bare metal performance will not be impacted.
+This patchset creates infrastructure to move the FAULT_AROUND_ORDER
+to arch/ using Kconfig. This will enable architecture maintainers
+to decide on suitable FAULT_AROUND_ORDER value based on
+performance data for that architecture. First patch also adds
+FAULT_AROUND_ORDER Kconfig element for X86. Second patch list
+out the performance numbers for powerpc (platform pseries) and
+adds FAULT_AROUND_ORDER Kconfig element for powerpc.
 
-BTW, could you send me more information about the configuration of the 
-machine, like the .config file that you used?
+V2 Changes:
+  Created Kconfig parameter for FAULT_AROUND_ORDER
+  Added check in do_read_fault to handle FAULT_AROUND_ORDER value of 0
+  Made changes in commit messages.
 
--Longman
+Madhavan Srinivasan (2):
+  mm: move FAULT_AROUND_ORDER to arch/
+  mm: add FAULT_AROUND_ORDER Kconfig paramater for powerpc
+
+ arch/powerpc/platforms/pseries/Kconfig |    5 +++++
+ arch/x86/Kconfig                       |    4 ++++
+ include/linux/mm.h                     |    9 +++++++++
+ mm/memory.c                            |   12 +++++-------
+ 4 files changed, 23 insertions(+), 7 deletions(-)
+
+-- 
+1.7.10.4
