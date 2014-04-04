@@ -1,83 +1,39 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from aserp1040.oracle.com ([141.146.126.69]:41595 "EHLO
+Received: from aserp1040.oracle.com ([141.146.126.69]:42679 "EHLO
 	aserp1040.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753367AbaDDQ4S (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 4 Apr 2014 12:56:18 -0400
-Date: Fri, 4 Apr 2014 12:55:24 -0400
+	with ESMTP id S1752998AbaDDQ6P (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 4 Apr 2014 12:58:15 -0400
+Date: Fri, 4 Apr 2014 12:57:27 -0400
 From: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
-Subject: Re: [PATCH v8 00/10] qspinlock: a 4-byte queue spinlock with PV
- support
-Message-ID: <20140404165523.GP19478@phenom.dumpdata.com>
+Subject: Re: [PATCH v8 01/10] qspinlock: A generic 4-byte queue spinlock
+ implementation
+Message-ID: <20140404165727.GQ19478@phenom.dumpdata.com>
 References: <1396445259-27670-1-git-send-email-Waiman.Long@hp.com>
- <20140402143201.GF12188@phenom.dumpdata.com>
- <533C7485.3030203@hp.com>
- <533CC309.3020607@hp.com>
- <20140403172333.GA3877@localhost.localdomain>
- <533E1F8E.5040600@hp.com>
+ <1396445259-27670-2-git-send-email-Waiman.Long@hp.com>
+ <20140404130012.GE10526@twins.programming.kicks-ass.net>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <533E1F8E.5040600@hp.com>
+In-Reply-To: <20140404130012.GE10526@twins.programming.kicks-ass.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Waiman Long <waiman.long@hp.com>, Marcos Matsunaga <Marcos.Matsunaga@oracle.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Peter Zijlstra <peterz@infradead.org>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Rik van Riel <riel@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, David Vrabel <david.vrabel@citrix.com>, Oleg Nesterov <oleg@redhat.com>, Gleb Natapov <gleb@redhat.com>, Aswin Chandramouleeswaran <aswin@hp.com>, Scott J Norton <scott.norton@hp.com>, Chegu Vinod <chegu_vinod@hp.com>, boris.ostrovsky@oracle.com
-Message-ID: <20140404165524.aYOBnQD3bSVqRoPin-AEEhQbUgs5BD6vdTYhC7st7Ys@z>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Waiman Long <Waiman.Long@hp.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Rik van Riel <riel@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, David Vrabel <david.vrabel@citrix.com>, Oleg Nesterov <oleg@redhat.com>, Gleb Natapov <gleb@redhat.com>, Aswin Chandramouleeswaran <aswin@hp.com>, Scott J Norton <scott.norton@hp.com>, Chegu Vinod <chegu_vinod@hp.com>, Marcos Matsunaga <Marcos.Matsunaga@oracle.com>
+Message-ID: <20140404165727.MEOOlwSJXwqsrGjVfjEiC4n0zyHc8fTW9HzZ455TRbM@z>
 
-On Thu, Apr 03, 2014 at 10:57:18PM -0400, Waiman Long wrote:
-> On 04/03/2014 01:23 PM, Konrad Rzeszutek Wilk wrote:
-> >On Wed, Apr 02, 2014 at 10:10:17PM -0400, Waiman Long wrote:
-> >>On 04/02/2014 04:35 PM, Waiman Long wrote:
-> >>>On 04/02/2014 10:32 AM, Konrad Rzeszutek Wilk wrote:
-> >>>>On Wed, Apr 02, 2014 at 09:27:29AM -0400, Waiman Long wrote:
-> >>>>>N.B. Sorry for the duplicate. This patch series were resent as the
-> >>>>>      original one was rejected by the vger.kernel.org list server
-> >>>>>      due to long header. There is no change in content.
-> >>>>>
-> >>>>>v7->v8:
-> >>>>>   - Remove one unneeded atomic operation from the slowpath, thus
-> >>>>>     improving performance.
-> >>>>>   - Simplify some of the codes and add more comments.
-> >>>>>   - Test for X86_FEATURE_HYPERVISOR CPU feature bit to enable/disable
-> >>>>>     unfair lock.
-> >>>>>   - Reduce unfair lock slowpath lock stealing frequency depending
-> >>>>>     on its distance from the queue head.
-> >>>>>   - Add performance data for IvyBridge-EX CPU.
-> >>>>FYI, your v7 patch with 32 VCPUs (on a 32 cpu socket machine) on an
-> >>>>HVM guest under Xen after a while stops working. The workload
-> >>>>is doing 'make -j32' on the Linux kernel.
-> >>>>
-> >>>>Completely unresponsive. Thoughts?
-> >>>>
-> >>>Thank for reporting that. I haven't done that much testing on Xen.
-> >>>My focus was in KVM. I will perform more test on Xen to see if I
-> >>>can reproduce the problem.
-> >>>
-> >>BTW, does the halting and sending IPI mechanism work in HVM? I saw
-> >Yes.
-> >>that in RHEL7, PV spinlock was explicitly disabled when in HVM mode.
-> >>However, this piece of code isn't in upstream code. So I wonder if
-> >>there is problem with that.
-> >The PV ticketlock fixed it for HVM. It was disabled before because
-> >the PV guests were using bytelocks while the HVM were using ticketlocks
-> >and you couldnt' swap in PV bytelocks for ticketlocks during startup.
+On Fri, Apr 04, 2014 at 03:00:12PM +0200, Peter Zijlstra wrote:
 > 
-> The RHEL7 code has used PV ticketlock already. RHEL7 uses a single
-> kernel for all configurations. So PV ticketlock as well as Xen and
-> KVM support was compiled in. I think booting the kernel on bare
-> metal will cause the Xen code to work in HVM mode thus activating
-> the PV spinlock code which has a negative impact on performance.
-
-Huh? -EPARSE
-
-> That may be why it was disabled so that the bare metal performance
-> will not be impacted.
-
-I am not following you.
+> So I'm just not ever going to pick up this patch; I spend a week trying
+> to reverse engineer this; I posted a 7 patch series creating the
+> equivalent, but in a gradual and readable fashion:
 > 
-> BTW, could you send me more information about the configuration of
-> the machine, like the .config file that you used?
-
-Marcos, could you please send that information to Peter. Thanks!
+>   http://lkml.kernel.org/r/20140310154236.038181843@infradead.org
 > 
-> -Longman
+> You keep on ignoring that; I'll keep on ignoring your patches.
+> 
+> I might at some point rewrite some of your pv stuff on top to get this
+> moving again, but I'm not really motivated to work with you atm.
+
+Uh? Did you CC also xen-devel@lists.xenproject.org on your patches Peter?
+I hadn't had a chance to see or comment on them :-(
+
