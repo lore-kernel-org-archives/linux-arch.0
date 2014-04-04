@@ -1,41 +1,86 @@
-From: Dave Hansen <dave.hansen@intel.com>
-Subject: Re: [PATCH V2 1/2] mm: move FAULT_AROUND_ORDER to arch/
-Date: Fri, 04 Apr 2014 09:18:43 -0700
-Message-ID: <533EDB63.8090909@intel.com>
-References: <1396592835-24767-1-git-send-email-maddy@linux.vnet.ibm.com>
- <1396592835-24767-2-git-send-email-maddy@linux.vnet.ibm.com>
+From: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
+Subject: Re: [PATCH v8 00/10] qspinlock: a 4-byte queue spinlock with PV
+	support
+Date: Fri, 4 Apr 2014 12:55:24 -0400
+Message-ID: <20140404165523.GP19478@phenom.dumpdata.com>
+References: <1396445259-27670-1-git-send-email-Waiman.Long@hp.com>
+	<20140402143201.GF12188@phenom.dumpdata.com>
+	<533C7485.3030203@hp.com> <533CC309.3020607@hp.com>
+	<20140403172333.GA3877@localhost.localdomain>
+	<533E1F8E.5040600@hp.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
-In-Reply-To: <1396592835-24767-2-git-send-email-maddy@linux.vnet.ibm.com>
-List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
-List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
-List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
-List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
-List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
-Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
-Sender: "Linuxppc-dev"
- <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
-To: Madhavan Srinivasan <maddy@linux.vnet.ibm.com>, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, x86@kernel.org
-Cc: riel@redhat.com, ak@linux.intel.com, peterz@infradead.org, rusty@rustcorp.com.au, paulus@samba.org, mgorman@suse.de, akpm@linux-foundation.org, mingo@kernel.org, kirill.shutemov@linux.intel.com
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <virtualization-bounces@lists.linux-foundation.org>
+Content-Disposition: inline
+In-Reply-To: <533E1F8E.5040600@hp.com>
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
+List-Post: <mailto:virtualization@lists.linux-foundation.org>
+List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
+Sender: virtualization-bounces@lists.linux-foundation.org
+Errors-To: virtualization-bounces@lists.linux-foundation.org
+To: Waiman Long <waiman.long@hp.com>
+Cc: x86@kernel.org, Gleb Natapov <gleb@redhat.com>, Peter Zijlstra <peterz@infradead.org>, virtualization@lists.linux-foundation.org, Marcos Matsunaga <Marcos.Matsunaga@oracle.com>, "H. Peter Anvin" <hpa@zytor.com>, boris.ostrovsky@oracle.com, linux-arch@vger.kernel.org, kvm@vger.kernel.org, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, Ingo Molnar <mingo@redhat.com>, xen-devel@lists.xenproject.org, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Rik van Riel <riel@redhat.com>, Scott J Norton <scott.norton@hp.com>, Paolo Bonzini <paolo.bonzini@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Aswin Chandramouleeswaran <aswin@hp.com>, Chegu Vinod <chegu_vinod@hp.com>, linux-kernel@vger.kernel.org, David Vrabel <david.vrabel@citrix.com>, Linus Torvalds <torvalds@linux-foundation.org>
 List-Id: linux-arch.vger.kernel.org
 
-T24gMDQvMDMvMjAxNCAxMToyNyBQTSwgTWFkaGF2YW4gU3Jpbml2YXNhbiB3cm90ZToKPiBUaGlz
-IHBhdGNoIGNyZWF0ZXMgaW5mcmFzdHJ1Y3R1cmUgdG8gbW92ZSB0aGUgRkFVTFRfQVJPVU5EX09S
-REVSCj4gdG8gYXJjaC8gdXNpbmcgS2NvbmZpZy4gVGhpcyB3aWxsIGVuYWJsZSBhcmNoaXRlY3R1
-cmUgbWFpbnRhaW5lcnMKPiB0byBkZWNpZGUgb24gc3VpdGFibGUgRkFVTFRfQVJPVU5EX09SREVS
-IHZhbHVlIGJhc2VkIG9uCj4gcGVyZm9ybWFuY2UgZGF0YSBmb3IgdGhhdCBhcmNoaXRlY3R1cmUu
-IFBhdGNoIGFsc28gYWRkcwo+IEZBVUxUX0FST1VORF9PUkRFUiBLY29uZmlnIGVsZW1lbnQgaW4g
-YXJjaC9YODYuCgpQbGVhc2UgZG9uJ3QgZG8gaXQgdGhpcyB3YXkuCgpJbiBtbS9LY29uZmlnLCBw
-dXQKCgljb25maWcgRkFVTFRfQVJPVU5EX09SREVSCgkJaW50CgkJZGVmYXVsdCAxMjM0IGlmIFBP
-V0VSUEMKCQlkZWZhdWx0IDQKClRoZSB3YXkgeW91IGhhdmUgaXQgbm93LCBldmVyeSBzaW5nbGUg
-YXJjaGl0ZWN0dXJlIHRoYXQgbmVlZHMgdG8gZW5hYmxlCnRoaXMgaGFzIHRvIGdvIHB1dCB0aGF0
-IGluIHRoZWlyIEtjb25maWcuICBUaGF0J3MgbWFkbmVzcy4gIFRoaXMgd2F5LAp5b3Ugb25seSBw
-dXQgaXQgaW4gb25lIHBsYWNlLCBhbmQgZm9sa3Mgb25seSBoYXZlIHRvIGNhcmUgaWYgdGhleSB3
-YW50CnRvIGNoYW5nZSB0aGUgZGVmYXVsdCB0byBiZSBzb21ldGhpbmcgb3RoZXIgdGhhbiA0LgoK
-X19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX18KTGludXhwcGMt
-ZGV2IG1haWxpbmcgbGlzdApMaW51eHBwYy1kZXZAbGlzdHMub3psYWJzLm9yZwpodHRwczovL2xp
-c3RzLm96bGFicy5vcmcvbGlzdGluZm8vbGludXhwcGMtZGV2
+On Thu, Apr 03, 2014 at 10:57:18PM -0400, Waiman Long wrote:
+> On 04/03/2014 01:23 PM, Konrad Rzeszutek Wilk wrote:
+> >On Wed, Apr 02, 2014 at 10:10:17PM -0400, Waiman Long wrote:
+> >>On 04/02/2014 04:35 PM, Waiman Long wrote:
+> >>>On 04/02/2014 10:32 AM, Konrad Rzeszutek Wilk wrote:
+> >>>>On Wed, Apr 02, 2014 at 09:27:29AM -0400, Waiman Long wrote:
+> >>>>>N.B. Sorry for the duplicate. This patch series were resent as the
+> >>>>>      original one was rejected by the vger.kernel.org list server
+> >>>>>      due to long header. There is no change in content.
+> >>>>>
+> >>>>>v7->v8:
+> >>>>>   - Remove one unneeded atomic operation from the slowpath, thus
+> >>>>>     improving performance.
+> >>>>>   - Simplify some of the codes and add more comments.
+> >>>>>   - Test for X86_FEATURE_HYPERVISOR CPU feature bit to enable/disable
+> >>>>>     unfair lock.
+> >>>>>   - Reduce unfair lock slowpath lock stealing frequency depending
+> >>>>>     on its distance from the queue head.
+> >>>>>   - Add performance data for IvyBridge-EX CPU.
+> >>>>FYI, your v7 patch with 32 VCPUs (on a 32 cpu socket machine) on an
+> >>>>HVM guest under Xen after a while stops working. The workload
+> >>>>is doing 'make -j32' on the Linux kernel.
+> >>>>
+> >>>>Completely unresponsive. Thoughts?
+> >>>>
+> >>>Thank for reporting that. I haven't done that much testing on Xen.
+> >>>My focus was in KVM. I will perform more test on Xen to see if I
+> >>>can reproduce the problem.
+> >>>
+> >>BTW, does the halting and sending IPI mechanism work in HVM? I saw
+> >Yes.
+> >>that in RHEL7, PV spinlock was explicitly disabled when in HVM mode.
+> >>However, this piece of code isn't in upstream code. So I wonder if
+> >>there is problem with that.
+> >The PV ticketlock fixed it for HVM. It was disabled before because
+> >the PV guests were using bytelocks while the HVM were using ticketlocks
+> >and you couldnt' swap in PV bytelocks for ticketlocks during startup.
+> 
+> The RHEL7 code has used PV ticketlock already. RHEL7 uses a single
+> kernel for all configurations. So PV ticketlock as well as Xen and
+> KVM support was compiled in. I think booting the kernel on bare
+> metal will cause the Xen code to work in HVM mode thus activating
+> the PV spinlock code which has a negative impact on performance.
+
+Huh? -EPARSE
+
+> That may be why it was disabled so that the bare metal performance
+> will not be impacted.
+
+I am not following you.
+> 
+> BTW, could you send me more information about the configuration of
+> the machine, like the .config file that you used?
+
+Marcos, could you please send that information to Peter. Thanks!
+> 
+> -Longman
