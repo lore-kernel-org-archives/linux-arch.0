@@ -1,81 +1,37 @@
-From: Ingo Molnar <mingo@kernel.org>
-Subject: Re: [PATCH V2 2/2] mm: add FAULT_AROUND_ORDER Kconfig paramater for
- powerpc
-Date: Fri, 4 Apr 2014 09:10:59 +0200
-Message-ID: <20140404071059.GA1397@gmail.com>
-References: <1396592835-24767-1-git-send-email-maddy@linux.vnet.ibm.com>
- <1396592835-24767-3-git-send-email-maddy@linux.vnet.ibm.com>
- <20140404070241.GA984@gmail.com>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH v8 01/10] qspinlock: A generic 4-byte queue spinlock
+	implementation
+Date: Fri, 4 Apr 2014 15:00:12 +0200
+Message-ID: <20140404130012.GE10526@twins.programming.kicks-ass.net>
+References: <1396445259-27670-1-git-send-email-Waiman.Long@hp.com>
+	<1396445259-27670-2-git-send-email-Waiman.Long@hp.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <owner-linux-mm@kvack.org>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <virtualization-bounces@lists.linux-foundation.org>
 Content-Disposition: inline
-In-Reply-To: <20140404070241.GA984@gmail.com>
-Sender: owner-linux-mm@kvack.org
-To: Madhavan Srinivasan <maddy@linux.vnet.ibm.com>
-Cc: linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, x86@kernel.org, benh@kernel.crashing.org, paulus@samba.org, kirill.shutemov@linux.intel.com, rusty@rustcorp.com.au, akpm@linux-foundation.org, riel@redhat.com, mgorman@suse.de, ak@linux.intel.com, peterz@infradead.org, Linus Torvalds <torvalds@linux-foundation.org>, Peter Zijlstra <a.p.zijlstra@chello.nl>
+In-Reply-To: <1396445259-27670-2-git-send-email-Waiman.Long@hp.com>
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
+List-Post: <mailto:virtualization@lists.linux-foundation.org>
+List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
+Sender: virtualization-bounces@lists.linux-foundation.org
+Errors-To: virtualization-bounces@lists.linux-foundation.org
+To: Waiman Long <Waiman.Long@hp.com>
+Cc: linux-arch@vger.kernel.org, Rik van Riel <riel@redhat.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, Gleb Natapov <gleb@redhat.com>, kvm@vger.kernel.org, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Aswin Chandramouleeswaran <aswin@hp.com>, Scott J Norton <scott.norton@hp.com>, x86@kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, Ingo Molnar <mingo@redhat.com>, Chegu Vinod <chegu_vinod@hp.com>, David Vrabel <david.vrabel@citrix.com>, "H. Peter Anvin" <hpa@zytor.com>, xen-devel@lists.xenproject.org, Thomas Gleixner <tglx@linutronix.de>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Oleg Nesterov <oleg@redhat.com>
 List-Id: linux-arch.vger.kernel.org
 
 
-* Ingo Molnar <mingo@kernel.org> wrote:
+So I'm just not ever going to pick up this patch; I spend a week trying
+to reverse engineer this; I posted a 7 patch series creating the
+equivalent, but in a gradual and readable fashion:
 
-> * Madhavan Srinivasan <maddy@linux.vnet.ibm.com> wrote:
-> 
-> > Performance data for different FAULT_AROUND_ORDER values from 4 
-> > socket Power7 system (128 Threads and 128GB memory) is below. perf 
-> > stat with repeat of 5 is used to get the stddev values. This patch 
-> > create FAULT_AROUND_ORDER Kconfig parameter and defaults it to 3 
-> > based on the performance data.
-> > 
-> > FAULT_AROUND_ORDER      Baseline        1               3               4               5               7
-> > 
-> > Linux build (make -j64)
-> > minor-faults            7184385         5874015         4567289         4318518         4193815         4159193
-> > times in seconds        61.433776136    60.865935292    59.245368038    60.630675011    60.56587624     59.828271924
-> >  stddev for time	( +-  1.18% )	( +-  1.78% )	( +-  0.44% )	( +-  2.03% )	( +-  1.66% )	( +-  1.45% )
-> 
-> Ok, this is better, but it is still rather incomplete statistically, 
-> please also calculate the percentage difference to baseline, so that 
-> the stddev becomes meaningful and can be compared to something!
-> 
-> As an example I did this for the first line of measurements (all 
-> errors in the numbers are mine, this was done manually), and it 
-> gives:
-> 
-> >  stddev for time   ( +-  1.18% ) ( +-  1.78% ) ( +-  0.44% ) ( +-  2.03% ) ( +-  1.66% ) ( +-  1.45% )
->                                         +0.9%         +3.5%         +1.3%         +1.4%         +2.6%
-> 
-> This shows that there is probably a statistically significant 
-> (positiv) effect from the change, but from these numbers alone I 
-> would not draw any quantitative (sizing, tuning) conclusions, 
-> because in 3 out of 5 cases the stddev was larger than the effect, 
-> so the resulting percentages are not comparable.
+  http://lkml.kernel.org/r/20140310154236.038181843@infradead.org
 
-Also note that because we calculate the percentage by dividing result 
-with baseline, the stddev of the two values roughly adds up. So for 
-example the second column the true noise is around 1.5%, not 0.4%
+You keep on ignoring that; I'll keep on ignoring your patches.
 
-So for good sizing decisions the stddev must be 'comfortably' below 
-the effect. (or sizing should be done based on the other workloads yu 
-tested, I have not checked them.)
-
-It also makes sense to run more measurements to reduce the stddev of 
-the baseline. So if each measurement is run 3 times then it makes 
-sense to run the baseline 6 times, this gives a ~30% improvement in 
-the confidence of our result, at just a small increase in test time.
-
-[ For such cases it might also make sense to script all of that, 
-  combined with a debug patch that puts the tuned fault-around value 
-  into a dynamic knob in /proc/sys/, so that you can run the full 
-  measurement in a single pass, with no reboot and with no human 
-  intervention. ]
-
-Thanks,
-
-	Ingo
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+I might at some point rewrite some of your pv stuff on top to get this
+moving again, but I'm not really motivated to work with you atm.
