@@ -1,164 +1,68 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ig0-f181.google.com ([209.85.213.181]:48221 "EHLO
-	mail-ig0-f181.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753419AbaDCVzQ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 3 Apr 2014 17:55:16 -0400
-Received: by mail-ig0-f181.google.com with SMTP id h18so160603igc.2
-        for <linux-arch@vger.kernel.org>; Thu, 03 Apr 2014 14:55:15 -0700 (PDT)
-Date: Thu, 3 Apr 2014 15:55:13 -0600
-From: Bjorn Helgaas <bhelgaas@google.com>
-Subject: Re: [PATCH 69/73] drivers/pci: delete non-required instances of
- <linux/init.h>
-Message-ID: <20140403215513.GB21931@google.com>
-References: <1390339396-3479-1-git-send-email-paul.gortmaker@windriver.com>
- <1390339396-3479-70-git-send-email-paul.gortmaker@windriver.com>
+Received: from g5t1626.atlanta.hp.com ([15.192.137.9]:1500 "EHLO
+	g5t1626.atlanta.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751789AbaDDC50 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 3 Apr 2014 22:57:26 -0400
+Message-ID: <533E1F8E.5040600@hp.com>
+Date: Thu, 03 Apr 2014 22:57:18 -0400
+From: Waiman Long <waiman.long@hp.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1390339396-3479-70-git-send-email-paul.gortmaker@windriver.com>
+Subject: Re: [PATCH v8 00/10] qspinlock: a 4-byte queue spinlock with PV support
+References: <1396445259-27670-1-git-send-email-Waiman.Long@hp.com> <20140402143201.GF12188@phenom.dumpdata.com> <533C7485.3030203@hp.com> <533CC309.3020607@hp.com> <20140403172333.GA3877@localhost.localdomain>
+In-Reply-To: <20140403172333.GA3877@localhost.localdomain>
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Paul Gortmaker <paul.gortmaker@windriver.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-pci@vger.kernel.org
-Message-ID: <20140403215513.8ALXn_i8ingHj3iXoQHsjaaSfNbVcuOy2_bNP1mAV_s@z>
+To: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
+Cc: Marcos Matsunaga <Marcos.Matsunaga@oracle.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Peter Zijlstra <peterz@infradead.org>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Rik van Riel <riel@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, David Vrabel <david.vrabel@citrix.com>, Oleg Nesterov <oleg@redhat.com>, Gleb Natapov <gleb@redhat.com>, Aswin Chandramouleeswaran <aswin@hp.com>, Scott J Norton <scott.norton@hp.com>, Chegu Vinod <chegu_vinod@hp.com>, boris.ostrovsky@oracle.com
+Message-ID: <20140404025718.qpryH2WVxSNkBzb15VGSol0u9vTKqzYLkVPAD5oEv04@z>
 
-On Tue, Jan 21, 2014 at 04:23:12PM -0500, Paul Gortmaker wrote:
-> None of these files are actually using any __init type directives
-> and hence don't need to include <linux/init.h>.  Most are just a
-> left over from __devinit and __cpuinit removal, or simply due to
-> code getting copied from one driver to the next.
-> 
-> Cc: Bjorn Helgaas <bhelgaas@google.com>
-> Cc: linux-pci@vger.kernel.org
-> Signed-off-by: Paul Gortmaker <paul.gortmaker@windriver.com>
+On 04/03/2014 01:23 PM, Konrad Rzeszutek Wilk wrote:
+> On Wed, Apr 02, 2014 at 10:10:17PM -0400, Waiman Long wrote:
+>> On 04/02/2014 04:35 PM, Waiman Long wrote:
+>>> On 04/02/2014 10:32 AM, Konrad Rzeszutek Wilk wrote:
+>>>> On Wed, Apr 02, 2014 at 09:27:29AM -0400, Waiman Long wrote:
+>>>>> N.B. Sorry for the duplicate. This patch series were resent as the
+>>>>>       original one was rejected by the vger.kernel.org list server
+>>>>>       due to long header. There is no change in content.
+>>>>>
+>>>>> v7->v8:
+>>>>>    - Remove one unneeded atomic operation from the slowpath, thus
+>>>>>      improving performance.
+>>>>>    - Simplify some of the codes and add more comments.
+>>>>>    - Test for X86_FEATURE_HYPERVISOR CPU feature bit to enable/disable
+>>>>>      unfair lock.
+>>>>>    - Reduce unfair lock slowpath lock stealing frequency depending
+>>>>>      on its distance from the queue head.
+>>>>>    - Add performance data for IvyBridge-EX CPU.
+>>>> FYI, your v7 patch with 32 VCPUs (on a 32 cpu socket machine) on an
+>>>> HVM guest under Xen after a while stops working. The workload
+>>>> is doing 'make -j32' on the Linux kernel.
+>>>>
+>>>> Completely unresponsive. Thoughts?
+>>>>
+>>> Thank for reporting that. I haven't done that much testing on Xen.
+>>> My focus was in KVM. I will perform more test on Xen to see if I
+>>> can reproduce the problem.
+>>>
+>> BTW, does the halting and sending IPI mechanism work in HVM? I saw
+> Yes.
+>> that in RHEL7, PV spinlock was explicitly disabled when in HVM mode.
+>> However, this piece of code isn't in upstream code. So I wonder if
+>> there is problem with that.
+> The PV ticketlock fixed it for HVM. It was disabled before because
+> the PV guests were using bytelocks while the HVM were using ticketlocks
+> and you couldnt' swap in PV bytelocks for ticketlocks during startup.
 
-I applied this to my "pci/pending" branch.  After v3.15-rc1, I will sort
-this into something for inclusion in -next.
+The RHEL7 code has used PV ticketlock already. RHEL7 uses a single 
+kernel for all configurations. So PV ticketlock as well as Xen and KVM 
+support was compiled in. I think booting the kernel on bare metal will 
+cause the Xen code to work in HVM mode thus activating the PV spinlock 
+code which has a negative impact on performance. That may be why it was 
+disabled so that the bare metal performance will not be impacted.
 
-Sorry for the delay; I don't remember why I didn't pick this up before.
+BTW, could you send me more information about the configuration of the 
+machine, like the .config file that you used?
 
-Bjorn
-
-> ---
->  drivers/pci/bus.c                  | 1 -
->  drivers/pci/host-bridge.c          | 1 -
->  drivers/pci/hotplug/acpiphp_glue.c | 1 -
->  drivers/pci/hotplug/cpqphp_nvram.c | 1 -
->  drivers/pci/hotplug/s390_pci_hpc.c | 1 -
->  drivers/pci/msi.c                  | 1 -
->  drivers/pci/search.c               | 1 -
->  drivers/pci/setup-irq.c            | 1 -
->  drivers/pci/setup-res.c            | 1 -
->  9 files changed, 9 deletions(-)
-> 
-> diff --git a/drivers/pci/bus.c b/drivers/pci/bus.c
-> index 00660cc..ad0f20a 100644
-> --- a/drivers/pci/bus.c
-> +++ b/drivers/pci/bus.c
-> @@ -13,7 +13,6 @@
->  #include <linux/errno.h>
->  #include <linux/ioport.h>
->  #include <linux/proc_fs.h>
-> -#include <linux/init.h>
->  #include <linux/slab.h>
->  
->  #include "pci.h"
-> diff --git a/drivers/pci/host-bridge.c b/drivers/pci/host-bridge.c
-> index 06ace62..389e3df 100644
-> --- a/drivers/pci/host-bridge.c
-> +++ b/drivers/pci/host-bridge.c
-> @@ -3,7 +3,6 @@
->   */
->  
->  #include <linux/kernel.h>
-> -#include <linux/init.h>
->  #include <linux/pci.h>
->  #include <linux/module.h>
->  
-> diff --git a/drivers/pci/hotplug/acpiphp_glue.c b/drivers/pci/hotplug/acpiphp_glue.c
-> index cd929ae..1629963 100644
-> --- a/drivers/pci/hotplug/acpiphp_glue.c
-> +++ b/drivers/pci/hotplug/acpiphp_glue.c
-> @@ -41,7 +41,6 @@
->  
->  #define pr_fmt(fmt) "acpiphp_glue: " fmt
->  
-> -#include <linux/init.h>
->  #include <linux/module.h>
->  
->  #include <linux/kernel.h>
-> diff --git a/drivers/pci/hotplug/cpqphp_nvram.c b/drivers/pci/hotplug/cpqphp_nvram.c
-> index 76ba8a1..9600a39 100644
-> --- a/drivers/pci/hotplug/cpqphp_nvram.c
-> +++ b/drivers/pci/hotplug/cpqphp_nvram.c
-> @@ -34,7 +34,6 @@
->  #include <linux/workqueue.h>
->  #include <linux/pci.h>
->  #include <linux/pci_hotplug.h>
-> -#include <linux/init.h>
->  #include <asm/uaccess.h>
->  #include "cpqphp.h"
->  #include "cpqphp_nvram.h"
-> diff --git a/drivers/pci/hotplug/s390_pci_hpc.c b/drivers/pci/hotplug/s390_pci_hpc.c
-> index 8d2ce22..d1332d2 100644
-> --- a/drivers/pci/hotplug/s390_pci_hpc.c
-> +++ b/drivers/pci/hotplug/s390_pci_hpc.c
-> @@ -15,7 +15,6 @@
->  #include <linux/slab.h>
->  #include <linux/pci.h>
->  #include <linux/pci_hotplug.h>
-> -#include <linux/init.h>
->  #include <asm/pci_debug.h>
->  #include <asm/sclp.h>
->  
-> diff --git a/drivers/pci/msi.c b/drivers/pci/msi.c
-> index 7a0fec6..18ca2497 100644
-> --- a/drivers/pci/msi.c
-> +++ b/drivers/pci/msi.c
-> @@ -10,7 +10,6 @@
->  #include <linux/mm.h>
->  #include <linux/irq.h>
->  #include <linux/interrupt.h>
-> -#include <linux/init.h>
->  #include <linux/export.h>
->  #include <linux/ioport.h>
->  #include <linux/pci.h>
-> diff --git a/drivers/pci/search.c b/drivers/pci/search.c
-> index 3ff2ac7..cc6db38 100644
-> --- a/drivers/pci/search.c
-> +++ b/drivers/pci/search.c
-> @@ -7,7 +7,6 @@
->   *	Copyright (C) 2003 -- 2004 Greg Kroah-Hartman <greg@kroah.com>
->   */
->  
-> -#include <linux/init.h>
->  #include <linux/pci.h>
->  #include <linux/slab.h>
->  #include <linux/module.h>
-> diff --git a/drivers/pci/setup-irq.c b/drivers/pci/setup-irq.c
-> index 9bd6864..dbc4ffc 100644
-> --- a/drivers/pci/setup-irq.c
-> +++ b/drivers/pci/setup-irq.c
-> @@ -10,7 +10,6 @@
->   */
->  
->  
-> -#include <linux/init.h>
->  #include <linux/kernel.h>
->  #include <linux/pci.h>
->  #include <linux/errno.h>
-> diff --git a/drivers/pci/setup-res.c b/drivers/pci/setup-res.c
-> index 5c060b1..3e5682c 100644
-> --- a/drivers/pci/setup-res.c
-> +++ b/drivers/pci/setup-res.c
-> @@ -16,7 +16,6 @@
->   *	     Resource sorting
->   */
->  
-> -#include <linux/init.h>
->  #include <linux/kernel.h>
->  #include <linux/export.h>
->  #include <linux/pci.h>
-> -- 
-> 1.8.4.1
-> 
+-Longman
