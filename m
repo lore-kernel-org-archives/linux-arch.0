@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from userp1040.oracle.com ([156.151.31.81]:36733 "EHLO
+Received: from userp1040.oracle.com ([156.151.31.81]:18042 "EHLO
 	userp1040.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753184AbaDDR7J (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 4 Apr 2014 13:59:09 -0400
-Date: Fri, 4 Apr 2014 13:58:15 -0400
+	with ESMTP id S1753809AbaDDSdy (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 4 Apr 2014 14:33:54 -0400
+Date: Fri, 4 Apr 2014 14:33:02 -0400
 From: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
 Subject: Re: [PATCH v8 00/10] qspinlock: a 4-byte queue spinlock with PV
  support
-Message-ID: <20140404175815.GA28449@phenom.dumpdata.com>
+Message-ID: <20140404183302.GB29801@phenom.dumpdata.com>
 References: <1396445259-27670-1-git-send-email-Waiman.Long@hp.com>
  <20140402143201.GF12188@phenom.dumpdata.com>
  <533C7485.3030203@hp.com>
@@ -16,79 +16,85 @@ References: <1396445259-27670-1-git-send-email-Waiman.Long@hp.com>
  <533E1F8E.5040600@hp.com>
  <20140404165523.GP19478@phenom.dumpdata.com>
  <533EE82D.4010303@hp.com>
+ <20140404175815.GA28449@phenom.dumpdata.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <533EE82D.4010303@hp.com>
+In-Reply-To: <20140404175815.GA28449@phenom.dumpdata.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Waiman Long <waiman.long@hp.com>
 Cc: Marcos Matsunaga <Marcos.Matsunaga@oracle.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Peter Zijlstra <peterz@infradead.org>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Rik van Riel <riel@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, David Vrabel <david.vrabel@citrix.com>, Oleg Nesterov <oleg@redhat.com>, Gleb Natapov <gleb@redhat.com>, Aswin Chandramouleeswaran <aswin@hp.com>, Scott J Norton <scott.norton@hp.com>, Chegu Vinod <chegu_vinod@hp.com>, boris.ostrovsky@oracle.com
-Message-ID: <20140404175815.hhDN9I1OCrR3MxNj6hOMw13GS7OnyXOt_driAs1frxE@z>
+Message-ID: <20140404183302.FsDWduo98_R-3s3QxpyZFTdOco_bsrUjTrufnSq78CM@z>
 
-On Fri, Apr 04, 2014 at 01:13:17PM -0400, Waiman Long wrote:
-> On 04/04/2014 12:55 PM, Konrad Rzeszutek Wilk wrote:
-> >On Thu, Apr 03, 2014 at 10:57:18PM -0400, Waiman Long wrote:
-> >>On 04/03/2014 01:23 PM, Konrad Rzeszutek Wilk wrote:
-> >>>On Wed, Apr 02, 2014 at 10:10:17PM -0400, Waiman Long wrote:
-> >>>>On 04/02/2014 04:35 PM, Waiman Long wrote:
-> >>>>>On 04/02/2014 10:32 AM, Konrad Rzeszutek Wilk wrote:
-> >>>>>>On Wed, Apr 02, 2014 at 09:27:29AM -0400, Waiman Long wrote:
-> >>>>>>>N.B. Sorry for the duplicate. This patch series were resent as the
-> >>>>>>>      original one was rejected by the vger.kernel.org list server
-> >>>>>>>      due to long header. There is no change in content.
-> >>>>>>>
-> >>>>>>>v7->v8:
-> >>>>>>>   - Remove one unneeded atomic operation from the slowpath, thus
-> >>>>>>>     improving performance.
-> >>>>>>>   - Simplify some of the codes and add more comments.
-> >>>>>>>   - Test for X86_FEATURE_HYPERVISOR CPU feature bit to enable/disable
-> >>>>>>>     unfair lock.
-> >>>>>>>   - Reduce unfair lock slowpath lock stealing frequency depending
-> >>>>>>>     on its distance from the queue head.
-> >>>>>>>   - Add performance data for IvyBridge-EX CPU.
-> >>>>>>FYI, your v7 patch with 32 VCPUs (on a 32 cpu socket machine) on an
-> >>>>>>HVM guest under Xen after a while stops working. The workload
-> >>>>>>is doing 'make -j32' on the Linux kernel.
-> >>>>>>
-> >>>>>>Completely unresponsive. Thoughts?
-> >>>>>>
-> >>>>>Thank for reporting that. I haven't done that much testing on Xen.
-> >>>>>My focus was in KVM. I will perform more test on Xen to see if I
-> >>>>>can reproduce the problem.
-> >>>>>
-> >>>>BTW, does the halting and sending IPI mechanism work in HVM? I saw
-> >>>Yes.
-> >>>>that in RHEL7, PV spinlock was explicitly disabled when in HVM mode.
-> >>>>However, this piece of code isn't in upstream code. So I wonder if
-> >>>>there is problem with that.
-> >>>The PV ticketlock fixed it for HVM. It was disabled before because
-> >>>the PV guests were using bytelocks while the HVM were using ticketlocks
-> >>>and you couldnt' swap in PV bytelocks for ticketlocks during startup.
-> >>The RHEL7 code has used PV ticketlock already. RHEL7 uses a single
-> >>kernel for all configurations. So PV ticketlock as well as Xen and
-> >>KVM support was compiled in. I think booting the kernel on bare
-> >>metal will cause the Xen code to work in HVM mode thus activating
-> >>the PV spinlock code which has a negative impact on performance.
-> >Huh? -EPARSE
-> >
-> >>That may be why it was disabled so that the bare metal performance
-> >>will not be impacted.
-> >I am not following you.
+On Fri, Apr 04, 2014 at 01:58:15PM -0400, Konrad Rzeszutek Wilk wrote:
+> On Fri, Apr 04, 2014 at 01:13:17PM -0400, Waiman Long wrote:
+> > On 04/04/2014 12:55 PM, Konrad Rzeszutek Wilk wrote:
+> > >On Thu, Apr 03, 2014 at 10:57:18PM -0400, Waiman Long wrote:
+> > >>On 04/03/2014 01:23 PM, Konrad Rzeszutek Wilk wrote:
+> > >>>On Wed, Apr 02, 2014 at 10:10:17PM -0400, Waiman Long wrote:
+> > >>>>On 04/02/2014 04:35 PM, Waiman Long wrote:
+> > >>>>>On 04/02/2014 10:32 AM, Konrad Rzeszutek Wilk wrote:
+> > >>>>>>On Wed, Apr 02, 2014 at 09:27:29AM -0400, Waiman Long wrote:
+> > >>>>>>>N.B. Sorry for the duplicate. This patch series were resent as the
+> > >>>>>>>      original one was rejected by the vger.kernel.org list server
+> > >>>>>>>      due to long header. There is no change in content.
+> > >>>>>>>
+> > >>>>>>>v7->v8:
+> > >>>>>>>   - Remove one unneeded atomic operation from the slowpath, thus
+> > >>>>>>>     improving performance.
+> > >>>>>>>   - Simplify some of the codes and add more comments.
+> > >>>>>>>   - Test for X86_FEATURE_HYPERVISOR CPU feature bit to enable/disable
+> > >>>>>>>     unfair lock.
+> > >>>>>>>   - Reduce unfair lock slowpath lock stealing frequency depending
+> > >>>>>>>     on its distance from the queue head.
+> > >>>>>>>   - Add performance data for IvyBridge-EX CPU.
+> > >>>>>>FYI, your v7 patch with 32 VCPUs (on a 32 cpu socket machine) on an
+> > >>>>>>HVM guest under Xen after a while stops working. The workload
+> > >>>>>>is doing 'make -j32' on the Linux kernel.
+> > >>>>>>
+> > >>>>>>Completely unresponsive. Thoughts?
+> > >>>>>>
+> > >>>>>Thank for reporting that. I haven't done that much testing on Xen.
+> > >>>>>My focus was in KVM. I will perform more test on Xen to see if I
+> > >>>>>can reproduce the problem.
+> > >>>>>
+> > >>>>BTW, does the halting and sending IPI mechanism work in HVM? I saw
+> > >>>Yes.
+> > >>>>that in RHEL7, PV spinlock was explicitly disabled when in HVM mode.
+> > >>>>However, this piece of code isn't in upstream code. So I wonder if
+> > >>>>there is problem with that.
+> > >>>The PV ticketlock fixed it for HVM. It was disabled before because
+> > >>>the PV guests were using bytelocks while the HVM were using ticketlocks
+> > >>>and you couldnt' swap in PV bytelocks for ticketlocks during startup.
+> > >>The RHEL7 code has used PV ticketlock already. RHEL7 uses a single
+> > >>kernel for all configurations. So PV ticketlock as well as Xen and
+> > >>KVM support was compiled in. I think booting the kernel on bare
+> > >>metal will cause the Xen code to work in HVM mode thus activating
+> > >>the PV spinlock code which has a negative impact on performance.
+> > >Huh? -EPARSE
+> > >
+> > >>That may be why it was disabled so that the bare metal performance
+> > >>will not be impacted.
+> > >I am not following you.
+> > 
+> > What I am saying is that when XEN and PV spinlock is compiled into
+> > the current upstream kernel, the PV spinlock jump label is turned on
+> > when booted on bare metal. In other words, the PV spinlock code is
 > 
-> What I am saying is that when XEN and PV spinlock is compiled into
-> the current upstream kernel, the PV spinlock jump label is turned on
-> when booted on bare metal. In other words, the PV spinlock code is
+> How does it turn it on? I see that the jump lables are only turned
+> on when the jump label is enable when it detects that it is running
+> under Xen or KVM. It won't turn it on under baremetal.
 
-How does it turn it on? I see that the jump lables are only turned
-on when the jump label is enable when it detects that it is running
-under Xen or KVM. It won't turn it on under baremetal.
+Well, it seems that it does turn it on baremetal which is an stupid mistake.
 
-> active even when they are not needed and actually slow thing down in
-> that situation. This is a problem and we need to find way to make
-> sure that the PV spinlock code won't be activated on bare metal.
-
-Could you explain to me which piece of code enables the jump labels
-on baremetal please?
+Sending a patch shortly.
 > 
-> -Longman
+> > active even when they are not needed and actually slow thing down in
+> > that situation. This is a problem and we need to find way to make
+> > sure that the PV spinlock code won't be activated on bare metal.
+> 
+> Could you explain to me which piece of code enables the jump labels
+> on baremetal please?
+> > 
+> > -Longman
