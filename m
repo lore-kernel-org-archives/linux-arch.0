@@ -1,77 +1,54 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from g4t3427.houston.hp.com ([15.201.208.55]:17827 "EHLO
-	g4t3427.houston.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753838AbaDDRNp (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 4 Apr 2014 13:13:45 -0400
-Message-ID: <533EE82D.4010303@hp.com>
-Date: Fri, 04 Apr 2014 13:13:17 -0400
-From: Waiman Long <waiman.long@hp.com>
+Received: from mail-wi0-f173.google.com ([209.85.212.173]:53937 "EHLO
+	mail-wi0-f173.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753184AbaDDRxl (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 4 Apr 2014 13:53:41 -0400
+Date: Fri, 4 Apr 2014 19:53:35 +0200
+From: Ingo Molnar <mingo@kernel.org>
+Subject: Re: [PATCH v8 01/10] qspinlock: A generic 4-byte queue spinlock
+ implementation
+Message-ID: <20140404175335.GA25949@gmail.com>
+References: <1396445259-27670-1-git-send-email-Waiman.Long@hp.com>
+ <1396445259-27670-2-git-send-email-Waiman.Long@hp.com>
+ <20140404130012.GE10526@twins.programming.kicks-ass.net>
+ <533EC8BD.8080601@hp.com>
 MIME-Version: 1.0
-Subject: Re: [PATCH v8 00/10] qspinlock: a 4-byte queue spinlock with PV support
-References: <1396445259-27670-1-git-send-email-Waiman.Long@hp.com> <20140402143201.GF12188@phenom.dumpdata.com> <533C7485.3030203@hp.com> <533CC309.3020607@hp.com> <20140403172333.GA3877@localhost.localdomain> <533E1F8E.5040600@hp.com> <20140404165523.GP19478@phenom.dumpdata.com>
-In-Reply-To: <20140404165523.GP19478@phenom.dumpdata.com>
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <533EC8BD.8080601@hp.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
-Cc: Marcos Matsunaga <Marcos.Matsunaga@oracle.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Peter Zijlstra <peterz@infradead.org>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Rik van Riel <riel@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, David Vrabel <david.vrabel@citrix.com>, Oleg Nesterov <oleg@redhat.com>, Gleb Natapov <gleb@redhat.com>, Aswin Chandramouleeswaran <aswin@hp.com>, Scott J Norton <scott.norton@hp.com>, Chegu Vinod <chegu_vinod@hp.com>, boris.ostrovsky@oracle.com
-Message-ID: <20140404171317.8E4tjBkW1NkJUaeeZiOEwd6i7zQ-WRn-31jpMWmUJV8@z>
+To: Waiman Long <waiman.long@hp.com>
+Cc: Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Rik van Riel <riel@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, David Vrabel <david.vrabel@citrix.com>, Oleg Nesterov <oleg@redhat.com>, Gleb Natapov <gleb@redhat.com>, Aswin Chandramouleeswaran <aswin@hp.com>, Scott J Norton <scott.norton@hp.com>, Chegu Vinod <chegu_vinod@hp.com>
+Message-ID: <20140404175335.UOd4HZc92fIkUXc641Pk64A2jnqIFJf-eoIfrrN2yFY@z>
 
-On 04/04/2014 12:55 PM, Konrad Rzeszutek Wilk wrote:
-> On Thu, Apr 03, 2014 at 10:57:18PM -0400, Waiman Long wrote:
->> On 04/03/2014 01:23 PM, Konrad Rzeszutek Wilk wrote:
->>> On Wed, Apr 02, 2014 at 10:10:17PM -0400, Waiman Long wrote:
->>>> On 04/02/2014 04:35 PM, Waiman Long wrote:
->>>>> On 04/02/2014 10:32 AM, Konrad Rzeszutek Wilk wrote:
->>>>>> On Wed, Apr 02, 2014 at 09:27:29AM -0400, Waiman Long wrote:
->>>>>>> N.B. Sorry for the duplicate. This patch series were resent as the
->>>>>>>       original one was rejected by the vger.kernel.org list server
->>>>>>>       due to long header. There is no change in content.
->>>>>>>
->>>>>>> v7->v8:
->>>>>>>    - Remove one unneeded atomic operation from the slowpath, thus
->>>>>>>      improving performance.
->>>>>>>    - Simplify some of the codes and add more comments.
->>>>>>>    - Test for X86_FEATURE_HYPERVISOR CPU feature bit to enable/disable
->>>>>>>      unfair lock.
->>>>>>>    - Reduce unfair lock slowpath lock stealing frequency depending
->>>>>>>      on its distance from the queue head.
->>>>>>>    - Add performance data for IvyBridge-EX CPU.
->>>>>> FYI, your v7 patch with 32 VCPUs (on a 32 cpu socket machine) on an
->>>>>> HVM guest under Xen after a while stops working. The workload
->>>>>> is doing 'make -j32' on the Linux kernel.
->>>>>>
->>>>>> Completely unresponsive. Thoughts?
->>>>>>
->>>>> Thank for reporting that. I haven't done that much testing on Xen.
->>>>> My focus was in KVM. I will perform more test on Xen to see if I
->>>>> can reproduce the problem.
->>>>>
->>>> BTW, does the halting and sending IPI mechanism work in HVM? I saw
->>> Yes.
->>>> that in RHEL7, PV spinlock was explicitly disabled when in HVM mode.
->>>> However, this piece of code isn't in upstream code. So I wonder if
->>>> there is problem with that.
->>> The PV ticketlock fixed it for HVM. It was disabled before because
->>> the PV guests were using bytelocks while the HVM were using ticketlocks
->>> and you couldnt' swap in PV bytelocks for ticketlocks during startup.
->> The RHEL7 code has used PV ticketlock already. RHEL7 uses a single
->> kernel for all configurations. So PV ticketlock as well as Xen and
->> KVM support was compiled in. I think booting the kernel on bare
->> metal will cause the Xen code to work in HVM mode thus activating
->> the PV spinlock code which has a negative impact on performance.
-> Huh? -EPARSE
->
->> That may be why it was disabled so that the bare metal performance
->> will not be impacted.
-> I am not following you.
 
-What I am saying is that when XEN and PV spinlock is compiled into the 
-current upstream kernel, the PV spinlock jump label is turned on when 
-booted on bare metal. In other words, the PV spinlock code is active 
-even when they are not needed and actually slow thing down in that 
-situation. This is a problem and we need to find way to make sure that 
-the PV spinlock code won't be activated on bare metal.
+* Waiman Long <waiman.long@hp.com> wrote:
 
--Longman
+> On 04/04/2014 09:00 AM, Peter Zijlstra wrote:
+> >
+> > So I'm just not ever going to pick up this patch; I spend a week 
+> > trying to reverse engineer this; I posted a 7 patch series 
+> > creating the equivalent, but in a gradual and readable fashion:
+> >
+> >   http://lkml.kernel.org/r/20140310154236.038181843@infradead.org
+> >
+> > You keep on ignoring that; I'll keep on ignoring your patches.
+> >
+> > I might at some point rewrite some of your pv stuff on top to get 
+> > this moving again, but I'm not really motivated to work with you 
+> > atm.
+> 
+> Peter, I am sorry that I have focused recently on making the 
+> qspinlock patch works with virtualization and it is easier for me to 
+> based off on my patch initially. Now the PV part is almost done, I 
+> will apply them on top of your patch. Hopefully, I will get a new 
+> patch out sometime next week.
+
+Note that it's not "a patch" that PeterZ posted, but a series of 7 
+finegrained patches, each properly documented and commented. Please 
+preserve that work, build on top of it, and don't just ignore it!
+
+Thanks,
+
+	Ingo
