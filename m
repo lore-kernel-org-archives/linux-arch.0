@@ -1,52 +1,62 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:42534 "EHLO gate.crashing.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754886AbaDGHGE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 7 Apr 2014 03:06:04 -0400
-Message-ID: <1396849534.3671.35.camel@pasglop>
-Subject: Re: [PATCH V2 1/2] mm: move FAULT_AROUND_ORDER to arch/
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Date: Mon, 07 Apr 2014 15:45:34 +1000
-In-Reply-To: <533EDB63.8090909@intel.com>
-References: <1396592835-24767-1-git-send-email-maddy@linux.vnet.ibm.com>
-	 <1396592835-24767-2-git-send-email-maddy@linux.vnet.ibm.com>
-	 <533EDB63.8090909@intel.com>
-Content-Type: text/plain; charset="UTF-8"
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+Received: from merlin.infradead.org ([205.233.59.134]:46472 "EHLO
+	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754826AbaDGOKU (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 7 Apr 2014 10:10:20 -0400
+Date: Mon, 7 Apr 2014 16:09:53 +0200
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH v8 01/10] qspinlock: A generic 4-byte queue spinlock
+ implementation
+Message-ID: <20140407140953.GK10526@twins.programming.kicks-ass.net>
+References: <1396445259-27670-1-git-send-email-Waiman.Long@hp.com>
+ <1396445259-27670-2-git-send-email-Waiman.Long@hp.com>
+ <20140404130012.GE10526@twins.programming.kicks-ass.net>
+ <20140404165727.GQ19478@phenom.dumpdata.com>
+ <533EE700.4080408@hp.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <533EE700.4080408@hp.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dave Hansen <dave.hansen@intel.com>
-Cc: Madhavan Srinivasan <maddy@linux.vnet.ibm.com>, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, x86@kernel.org, paulus@samba.org, kirill.shutemov@linux.intel.com, rusty@rustcorp.com.au, akpm@linux-foundation.org, riel@redhat.com, mgorman@suse.de, ak@linux.intel.com, peterz@infradead.org, mingo@kernel.org
-Message-ID: <20140407054534.zuqjl45gtEHkPOl9Mt-90yf-dDsCMXrFR18HVtJ5U7w@z>
+To: Waiman Long <waiman.long@hp.com>
+Cc: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Rik van Riel <riel@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, David Vrabel <david.vrabel@citrix.com>, Oleg Nesterov <oleg@redhat.com>, Gleb Natapov <gleb@redhat.com>, Aswin Chandramouleeswaran <aswin@hp.com>, Scott J Norton <scott.norton@hp.com>, Chegu Vinod <chegu_vinod@hp.com>, Marcos Matsunaga <Marcos.Matsunaga@oracle.com>
+Message-ID: <20140407140953.dMilpt6mA59Z8ETn5pAC8lqYoCt13NkaKGSTlxerNvE@z>
 
-On Fri, 2014-04-04 at 09:18 -0700, Dave Hansen wrote:
-> On 04/03/2014 11:27 PM, Madhavan Srinivasan wrote:
-> > This patch creates infrastructure to move the FAULT_AROUND_ORDER
-> > to arch/ using Kconfig. This will enable architecture maintainers
-> > to decide on suitable FAULT_AROUND_ORDER value based on
-> > performance data for that architecture. Patch also adds
-> > FAULT_AROUND_ORDER Kconfig element in arch/X86.
-> 
-> Please don't do it this way.
-> 
-> In mm/Kconfig, put
-> 
-> 	config FAULT_AROUND_ORDER
-> 		int
-> 		default 1234 if POWERPC
-> 		default 4
-> 
-> The way you have it now, every single architecture that needs to enable
-> this has to go put that in their Kconfig.  That's madness.  This way,
-> you only put it in one place, and folks only have to care if they want
-> to change the default to be something other than 4.
+On Fri, Apr 04, 2014 at 01:08:16PM -0400, Waiman Long wrote:
+> Peter's patch is a rewrite of my patches 1-4, there is no PV or unfair lock
+> support in there.
 
-Also does it have to be a constant ? Maddy here tested on our POWER
-servers. The "Sweet spot" value might be VERY different on an embedded
-chip or even on a future generation of server chip.
+Yes, because your patches were unreadable and entirely non obvious.
 
-Cheers,
-Ben.
+And while I appreciate that its not entirely your fault; the subject is
+hard, you didn't even try to make it better and explain things in a
+normal gradual fashion.
 
+So what I did was start with a 'simple' correct implementation (although
+I could have started simpler still I suppose and added 3-4 more patches)
+and then added each optimization on top and explained the what and why
+for them.
 
+The result is similar code, but the path is ever so much easier to
+understand and review.
+
+And no, it doesn't have PV support; I spend the whole week trying to
+reverse engineer your patch 1; whereas if you'd presented it in the form
+I posted I might have agreed in a day or so.
+
+I still have to look at the PV bits; but seeing how you have shown no
+interest in writing coherent and understandable patch sets I'm less
+inclined to go stare at them for another few weeks and rewrite that code
+too.
+
+Also; theres a few subtle but important differences between the patch
+sets. Your series only makes x86_64 use the qspinlocks; the very last we
+want is i386 and x86_64 to use different spinlock implementations; we
+want less differences between them, not more.
+
+You stuff a whole lot of code into arch/x86 for no reason what so ever.
+
+Prior to that; I also rewrote your benchmark thing; using jiffies for
+timing is just vile. Not to mention you require a full kernel build and
+reboot (which is just stupid slow on big machines) to test anything.
