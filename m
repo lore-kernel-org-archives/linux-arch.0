@@ -1,46 +1,35 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:46574 "EHLO
+Received: from merlin.infradead.org ([205.233.59.134]:46677 "EHLO
 	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755125AbaDGONM (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 7 Apr 2014 10:13:12 -0400
-Date: Mon, 7 Apr 2014 16:12:58 +0200
+	with ESMTP id S1754992AbaDGOQ4 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 7 Apr 2014 10:16:56 -0400
+Date: Mon, 7 Apr 2014 16:16:36 +0200
 From: Peter Zijlstra <peterz@infradead.org>
 Subject: Re: [PATCH v8 01/10] qspinlock: A generic 4-byte queue spinlock
  implementation
-Message-ID: <20140407141258.GL10526@twins.programming.kicks-ass.net>
+Message-ID: <20140407141636.GM10526@twins.programming.kicks-ass.net>
 References: <1396445259-27670-1-git-send-email-Waiman.Long@hp.com>
  <1396445259-27670-2-git-send-email-Waiman.Long@hp.com>
  <20140404130012.GE10526@twins.programming.kicks-ass.net>
- <20140404165727.GQ19478@phenom.dumpdata.com>
+ <533EC8BD.8080601@hp.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20140404165727.GQ19478@phenom.dumpdata.com>
+In-Reply-To: <533EC8BD.8080601@hp.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
-Cc: Waiman Long <Waiman.Long@hp.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Rik van Riel <riel@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, David Vrabel <david.vrabel@citrix.com>, Oleg Nesterov <oleg@redhat.com>, Gleb Natapov <gleb@redhat.com>, Aswin Chandramouleeswaran <aswin@hp.com>, Scott J Norton <scott.norton@hp.com>, Chegu Vinod <chegu_vinod@hp.com>, Marcos Matsunaga <Marcos.Matsunaga@oracle.com>
-Message-ID: <20140407141258.6LKvUm_7HDpZuR_WhGzQKuAiW75VSfT_X_xHS4DPBHI@z>
+To: Waiman Long <waiman.long@hp.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Rik van Riel <riel@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, David Vrabel <david.vrabel@citrix.com>, Oleg Nesterov <oleg@redhat.com>, Gleb Natapov <gleb@redhat.com>, Aswin Chandramouleeswaran <aswin@hp.com>, Scott J Norton <scott.norton@hp.com>, Chegu Vinod <chegu_vinod@hp.com>
+Message-ID: <20140407141636.yBc2s6QclgfBWOyGMdIt2pWuFHM5mVv9eqeu5KHnb3M@z>
 
-On Fri, Apr 04, 2014 at 12:57:27PM -0400, Konrad Rzeszutek Wilk wrote:
-> On Fri, Apr 04, 2014 at 03:00:12PM +0200, Peter Zijlstra wrote:
-> > 
-> > So I'm just not ever going to pick up this patch; I spend a week trying
-> > to reverse engineer this; I posted a 7 patch series creating the
-> > equivalent, but in a gradual and readable fashion:
-> > 
-> >   http://lkml.kernel.org/r/20140310154236.038181843@infradead.org
-> > 
-> > You keep on ignoring that; I'll keep on ignoring your patches.
-> > 
-> > I might at some point rewrite some of your pv stuff on top to get this
-> > moving again, but I'm not really motivated to work with you atm.
-> 
-> Uh? Did you CC also xen-devel@lists.xenproject.org on your patches Peter?
-> I hadn't had a chance to see or comment on them :-(
+On Fri, Apr 04, 2014 at 10:59:09AM -0400, Waiman Long wrote:
+> I am really sorry if you have bad feeling about it. I do not mean to
+> discredit you on your effort to make the qspinlock patch better. I really
+> appreciate your input and would like to work with you on this patch as well
+> as other future patches.
 
-No of course not :-)
+OK.. that'd be great. Sorry if I sound somewhat cranky (well I am, of
+course) partly this is because jet-lag and partly because I just get
+grumpy from the Inbox after travel.
 
-Also as noted elsewhere, I didn't actually do any PV muck yet. I spend
-the time trying to get my head around patch 1; all the while Waiman kept
-piling more and more on top.
+
