@@ -1,52 +1,64 @@
-From: Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>
-Subject: Re: [PATCH v8 00/10] qspinlock: a 4-byte queue spinlock with PV
-	support
-Date: Mon, 07 Apr 2014 23:21:46 +0530
-Message-ID: <5342E5B2.1070306@linux.vnet.ibm.com>
-References: <1396445259-27670-1-git-send-email-Waiman.Long@hp.com>
-	<5342425A.7040005@linux.vnet.ibm.com> <5342D475.7060503@hp.com>
+From: Ard Biesheuvel <ard.biesheuvel@linaro.org>
+Subject: Re: [PATCH] asm-generic: allow generic unaligned access if the arch
+ supports it
+Date: Tue, 8 Apr 2014 08:48:44 +0200
+Message-ID: <CAKv+Gu-rx8W05i=xHaoZCktj6YWH56Zn2yNaiEeenm0=NmcwUQ@mail.gmail.com>
+References: <1395942387-14177-1-git-send-email-ard.biesheuvel@linaro.org>
+	<201403281914.20201.arnd@arndb.de>
+	<CAKv+Gu_9yD1jWhxkPxSUbwjJk4QxPNXBR=EXfmfCgzD1Pdig2g@mail.gmail.com>
+	<20140331095941.GA29871@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"; Format="flowed"
-Content-Transfer-Encoding: 7bit
-Return-path: <virtualization-bounces@lists.linux-foundation.org>
-In-Reply-To: <5342D475.7060503@hp.com>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
-List-Post: <mailto:virtualization@lists.linux-foundation.org>
-List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
-Sender: virtualization-bounces@lists.linux-foundation.org
-Errors-To: virtualization-bounces@lists.linux-foundation.org
-To: Waiman Long <waiman.long@hp.com>
-Cc: linux-arch@vger.kernel.org, Rik van Riel <riel@redhat.com>, Gleb Natapov <gleb@redhat.com>, kvm@vger.kernel.org, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Peter Zijlstra <peterz@infradead.org>, Scott J Norton <scott.norton@hp.com>, x86@kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, Ingo Molnar <mingo@redhat.com>, Chegu Vinod <chegu_vinod@hp.com>, David Vrabel <david.vrabel@citrix.com>, "H. Peter Anvin" <hpa@zytor.com>, xen-devel@lists.xenproject.org, Thomas Gleixner <tglx@linutronix.de>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Oleg Nesterov <oleg@redhat.com>, Aswin Chandramouleeswaran <aswin@hp.com>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=ISO-8859-1
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-lb0-f172.google.com ([209.85.217.172]:62824 "EHLO
+	mail-lb0-f172.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750785AbaDHGsp (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 8 Apr 2014 02:48:45 -0400
+Received: by mail-lb0-f172.google.com with SMTP id c11so446545lbj.17
+        for <linux-arch@vger.kernel.org>; Mon, 07 Apr 2014 23:48:44 -0700 (PDT)
+In-Reply-To: <20140331095941.GA29871@arm.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Arnd Bergmann <arnd@arndb.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Rob Herring <robherring2@gmail.com>, Russell King - ARM Linux <linux@arm.linux.org.uk>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
 
-On 04/07/2014 10:08 PM, Waiman Long wrote:
-> On 04/07/2014 02:14 AM, Raghavendra K T wrote:
-[...]
->> But I am seeing hang in overcommit cases. Gdb showed that many vcpus
->> are halted and there was no progress. Suspecting the problem /race with
->> halting, I removed the halt() part of kvm_hibernate().  I am yet to
->> take a closer look at the code on halt() related changes.
->
-> It seems like there may still be race conditions where the current code
-> is not handling correctly. I will look into that to see where the
-> problem is. BTW, what test do you use to produce the hang condition?
-
-Running ebizzy on 2 of the vms simultaneously (for sometime in repeated 
-loop) could reproduce it.
-
->> Patch series with that change gave around 20% improvement for dbench
->> 2x and 30% improvement for ebizzy 2x cases. (1x has no significant
->> loss/gain).
+On 31 March 2014 11:59, Catalin Marinas <catalin.marinas@arm.com> wrote:
+> On Fri, Mar 28, 2014 at 06:24:04PM +0000, Ard Biesheuvel wrote:
+>> On 28 March 2014 19:14, Arnd Bergmann <arnd@arndb.de> wrote:
+>> > On Thursday 27 March 2014, Ard Biesheuvel wrote:
+>> >> Switch the default unaligned access method to 'hardware implemented'
+>> >> if HAVE_EFFICIENT_UNALIGNED_ACCESS is set.
+>> >>
+>> >> Signed-off-by: Ard Biesheuvel <ard.biesheuvel@linaro.org>
+>> >
+>> > Acked-by: Arnd Bergmann <arnd@arndb.de>
+>> >
+>> > Is this part of a longer series of patches? If so, please keep
+>> > the patch with the others and merge it through an appropriate
+>> > tree.
+>> >
 >>
+>> No, not really. I ran into the alignment issue while working on the
+>> arm64 crypto stuff, but it is unclear when that will be going in.
+>>
+>> > If not, I guess I'll have to send it myself, but it will be
+>> > the only asm-generic patch for the merge window ;-)
+>>
+>> Perhaps Catalin is interested in taking it, as arm64 is the only arch
+>> that defines HAVE_EFFICIENT_UNALIGNED_ACCESS /and/ uses the
+>> asm-generic version of unaligned.h.
+>>
+>> @Catalin?
+>>
+>> http://marc.info/?l=linux-arch&m=139594237116121&w=2
+>
+> I can take this, providing it doesn't break anything else. I'll push it
+> to -next but won't send it with the first arm64 pull request.
+>
 
-While at it, Just  a correction it was 30% for  ebizzy1.5x  and around
-80% for ebizzy 2x.
+Are you still interested in taking this? Russell doesn't appear
+particularly unhappy with it, so I guess it should sit in -next for a
+bit before getting it merged.
 
-> What is the baseline for the performance improvement? Is it without the
-> unfair lock and PV qspinlock?
-
-Baseline was 3.14-rc8 without any of the qspin patch series.
+-- 
+Ard.
