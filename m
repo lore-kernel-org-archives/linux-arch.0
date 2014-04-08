@@ -1,81 +1,217 @@
-From: Michal Simek <monstr@monstr.eu>
-Subject: Re: [PATCH] asm-generic/io.h: Add default configuration for readX/writeX_relaxed
-Date: Tue, 08 Apr 2014 20:07:59 +0200
-Message-ID: <53443AFF.8060302@monstr.eu>
-References: <35729b5d2bf080d3029f69af4bc638a268bf1a8f.1396941358.git.michal.simek@xilinx.com> <20140408175005.GA31890@ravnborg.org>
-Reply-To: monstr@monstr.eu
+From: Waiman Long <waiman.long@hp.com>
+Subject: Re: [PATCH v8 00/10] qspinlock: a 4-byte queue spinlock with PV
+	support
+Date: Tue, 08 Apr 2014 15:15:58 -0400
+Message-ID: <53444AEE.9050705@hp.com>
+References: <1396445259-27670-1-git-send-email-Waiman.Long@hp.com>
+	<5342425A.7040005@linux.vnet.ibm.com> <5342D475.7060503@hp.com>
+	<5342E5B2.1070306@linux.vnet.ibm.com>
 Mime-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha1;
- protocol="application/pgp-signature";
- boundary="GLQNIV20oEFXTrxGlJfm65bRoAppdSIm7"
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ee0-f51.google.com ([74.125.83.51]:60789 "EHLO
-	mail-ee0-f51.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932654AbaDHSIH (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 8 Apr 2014 14:08:07 -0400
-Received: by mail-ee0-f51.google.com with SMTP id c13so983118eek.38
-        for <linux-arch@vger.kernel.org>; Tue, 08 Apr 2014 11:08:06 -0700 (PDT)
-In-Reply-To: <20140408175005.GA31890@ravnborg.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Sam Ravnborg <sam@ravnborg.org>
-Cc: Michal Simek <michal.simek@xilinx.com>, linux-kernel@vger.kernel.org, git@xilinx.com, wsa@the-dreams.de, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org
+Content-Type: multipart/mixed; boundary="------------040207070205080604010401"
+Return-path: <virtualization-bounces@lists.linux-foundation.org>
+In-Reply-To: <5342E5B2.1070306@linux.vnet.ibm.com>
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
+List-Post: <mailto:virtualization@lists.linux-foundation.org>
+List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
+Sender: virtualization-bounces@lists.linux-foundation.org
+Errors-To: virtualization-bounces@lists.linux-foundation.org
+To: Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>
+Cc: linux-arch@vger.kernel.org, Rik van Riel <riel@redhat.com>, Gleb Natapov <gleb@redhat.com>, kvm@vger.kernel.org, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Peter Zijlstra <peterz@infradead.org>, Scott J Norton <scott.norton@hp.com>, x86@kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, Ingo Molnar <mingo@redhat.com>, Chegu Vinod <chegu_vinod@hp.com>, David Vrabel <david.vrabel@citrix.com>, "H. Peter Anvin" <hpa@zytor.com>, xen-devel@lists.xenproject.org, Thomas Gleixner <tglx@linutronix.de>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Oleg Nesterov <oleg@redhat.com>, Aswin Chandramouleeswaran <aswin@hp.com>
+List-Id: linux-arch.vger.kernel.org
 
-This is an OpenPGP/MIME signed message (RFC 4880 and 3156)
---GLQNIV20oEFXTrxGlJfm65bRoAppdSIm7
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: quoted-printable
+This is a multi-part message in MIME format.
+--------------040207070205080604010401
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Transfer-Encoding: 7bit
 
-Hi Sam,
-
-On 04/08/2014 07:50 PM, Sam Ravnborg wrote:
-> On Tue, Apr 08, 2014 at 09:16:01AM +0200, Michal Simek wrote:
->> Define default readX/writeX_relaxed IO helper functions
->> for all archs which use asm-generic/io.h.
->> Using COMPILE_TEST, moving drivers out of arch/arm and
->> removing architecture dependencies in Kconfig is causing
->> that more and more drivers is using _relaxed IO helper
->> functions which is causing compilation failures on architectures
->> which don't define them.
+On 04/07/2014 01:51 PM, Raghavendra K T wrote:
+> On 04/07/2014 10:08 PM, Waiman Long wrote:
+>> On 04/07/2014 02:14 AM, Raghavendra K T wrote:
+> [...]
+>>> But I am seeing hang in overcommit cases. Gdb showed that many vcpus
+>>> are halted and there was no progress. Suspecting the problem /race with
+>>> halting, I removed the halt() part of kvm_hibernate().  I am yet to
+>>> take a closer look at the code on halt() related changes.
 >>
->> Signed-off-by: Michal Simek <michal.simek@xilinx.com>
->=20
-> There is a potential cleanup patch for several architectures.
+>> It seems like there may still be race conditions where the current code
+>> is not handling correctly. I will look into that to see where the
+>> problem is. BTW, what test do you use to produce the hang condition?
+>
+> Running ebizzy on 2 of the vms simultaneously (for sometime in 
+> repeated loop) could reproduce it.
+>
 
-definitely yes.
+Yes, I am able to reproduce the hang problem with ebizzy. BTW, could you 
+try to apply the attached patch file on top of the v8 patch series to 
+see if it can fix the hang problem?
 
-> Those that already have similar defines can have them deleted as
-> they are now provided by the generic version.
-> Can you try to look into this too?
+>
+>> What is the baseline for the performance improvement? Is it without the
+>> unfair lock and PV qspinlock?
+>
+> Baseline was 3.14-rc8 without any of the qspin patch series.
+>
 
-Yes. I wanted to send this out just to know opinion from others.
-If this is acceptable, I will look at all archs.
-One patch per arch seems to be the best way how to do it.
+Does the baseline have PV ticketlock or without any PV support?
 
-Thanks,
-Michal
+-Longman
 
---=20
-Michal Simek, Ing. (M.Eng), OpenPGP -> KeyID: FE3D1F91
-w: www.monstr.eu p: +42-0-721842854
-Maintainer of Linux kernel - Microblaze cpu - http://www.monstr.eu/fdt/
-Maintainer of Linux kernel - Xilinx Zynq ARM architecture
-Microblaze U-BOOT custodian and responsible for u-boot arm zynq platform
+--------------040207070205080604010401
+Content-Type: text/plain;
+ name="0011"
+Content-Transfer-Encoding: 7bit
+Content-Disposition: attachment;
+ filename="0011"
 
+diff --git a/arch/x86/include/asm/paravirt.h b/arch/x86/include/asm/paravirt.h
+index a35cd02..825c535 100644
+--- a/arch/x86/include/asm/paravirt.h
++++ b/arch/x86/include/asm/paravirt.h
+@@ -717,9 +717,10 @@ static __always_inline void __queue_kick_cpu(int cpu)
+ 	PVOP_VCALL1(pv_lock_ops.kick_cpu, cpu);
+ }
+ 
+-static __always_inline void __queue_hibernate(enum pv_lock_stats type)
++static __always_inline void
++__queue_hibernate(enum pv_lock_stats type, s8 *state, s8 sval)
+ {
+-	PVOP_VCALL1(pv_lock_ops.hibernate, type);
++	PVOP_VCALL3(pv_lock_ops.hibernate, type, state, sval);
+ }
+ 
+ static __always_inline void __queue_lockstat(enum pv_lock_stats type)
+diff --git a/arch/x86/include/asm/paravirt_types.h b/arch/x86/include/asm/paravirt_types.h
+index a8564b9..0e204dd 100644
+--- a/arch/x86/include/asm/paravirt_types.h
++++ b/arch/x86/include/asm/paravirt_types.h
+@@ -346,7 +346,7 @@ enum pv_lock_stats {
+ struct pv_lock_ops {
+ #ifdef CONFIG_QUEUE_SPINLOCK
+ 	void (*kick_cpu)(int cpu);
+-	void (*hibernate)(enum pv_lock_stats type);
++	void (*hibernate)(enum pv_lock_stats type, s8 *state, s8 sval);
+ 	void (*lockstat)(enum pv_lock_stats type);
+ #else
+ 	struct paravirt_callee_save lock_spinning;
+diff --git a/arch/x86/include/asm/pvqspinlock.h b/arch/x86/include/asm/pvqspinlock.h
+index a632dcb..4b33769 100644
+--- a/arch/x86/include/asm/pvqspinlock.h
++++ b/arch/x86/include/asm/pvqspinlock.h
+@@ -134,7 +134,7 @@ static __always_inline void pv_head_spin_check(struct pv_qvars *pv, int *count,
+ 			*count = 0;
+ 			return;
+ 		}
+-		__queue_hibernate(PV_HALT_QHEAD);
++		__queue_hibernate(PV_HALT_QHEAD, &pv->cpustate, PV_CPU_HALTED);
+ 		__queue_lockstat((pv->cpustate == PV_CPU_KICKED)
+ 				 ? PV_WAKE_KICKED : PV_WAKE_SPURIOUS);
+ 		ACCESS_ONCE(pv->cpustate) = PV_CPU_ACTIVE;
+@@ -169,7 +169,7 @@ static __always_inline void pv_queue_spin_check(struct pv_qvars *pv, int *count)
+ 		 * pv_next_node_check		pv_queue_spin_check
+ 		 * ------------------		-------------------
+ 		 * [1] qhead = true		[3] cpustate = PV_CPU_HALTED
+-		 *     barrier()		    barrier()
++		 *     smp_mb()			    smp_mb()
+ 		 * [2] if (cpustate		[4] if (qhead)
+ 		 *        == PV_CPU_HALTED)
+ 		 *
+@@ -178,9 +178,10 @@ static __always_inline void pv_queue_spin_check(struct pv_qvars *pv, int *count)
+ 		 *	       _QLOCK_LOCKED_SLOWPATH may or may not be set
+ 		 * 3,4,1,2 - the CPU is halt and _QLOCK_LOCKED_SLOWPATH is set
+ 		 */
+-		barrier();
++		smp_mb();
+ 		if (!ACCESS_ONCE(pv->qhead)) {
+-			__queue_hibernate(PV_HALT_QNODE);
++			__queue_hibernate(PV_HALT_QNODE, &pv->cpustate,
++					  PV_CPU_HALTED);
+ 			__queue_lockstat((pv->cpustate == PV_CPU_KICKED)
+ 					 ? PV_WAKE_KICKED : PV_WAKE_SPURIOUS);
+ 		} else {
+@@ -208,7 +209,7 @@ pv_next_node_check(struct pv_qvars *pv, struct qspinlock *lock)
+ 	/*
+ 	 * Make sure qhead flag is visible before checking the cpustate flag
+ 	 */
+-	barrier();
++	smp_mb();
+ 	if (ACCESS_ONCE(pv->cpustate) == PV_CPU_HALTED)
+ 		ACCESS_ONCE(((union arch_qspinlock *)lock)->lock)
+ 			= _QLOCK_LOCKED_SLOWPATH;
+diff --git a/arch/x86/kernel/kvm.c b/arch/x86/kernel/kvm.c
+index 7d97e58..ce4b74b 100644
+--- a/arch/x86/kernel/kvm.c
++++ b/arch/x86/kernel/kvm.c
+@@ -880,23 +880,29 @@ static void kvm_kick_cpu_stats(int cpu)
+ /*
+  * Halt the current CPU & release it back to the host
+  */
+-static void kvm_hibernate(enum pv_lock_stats type)
++static void kvm_hibernate(enum pv_lock_stats type, s8 *state, s8 sval)
+ {
+ 	unsigned long flags;
+ 
+ 	if (in_nmi())
+ 		return;
+ 
+-	kvm_halt_stats(type);
+ 	/*
+ 	 * Make sure an interrupt handler can't upset things in a
+ 	 * partially setup state.
+ 	 */
+ 	local_irq_save(flags);
++	/*
++	 * Don't halt if the CPU state has been changed.
++	 */
++	if (ACCESS_ONCE(*state) != sval)
++		goto out;
++	kvm_halt_stats(type);
+ 	if (arch_irqs_disabled_flags(flags))
+ 		halt();
+ 	else
+ 		safe_halt();
++out:
+ 	local_irq_restore(flags);
+ }
+ #endif /* !CONFIG_QUEUE_SPINLOCK */
+diff --git a/arch/x86/xen/spinlock.c b/arch/x86/xen/spinlock.c
+index 6bbe798..c597bbd 100644
+--- a/arch/x86/xen/spinlock.c
++++ b/arch/x86/xen/spinlock.c
+@@ -271,7 +271,7 @@ static void xen_kick_cpu(int cpu)
+ /*
+  * Halt the current CPU & release it back to the host
+  */
+-static void xen_hibernate(enum pv_lock_stats type)
++static void xen_hibernate(enum pv_lock_stats type, s8 *state, s8 sval)
+ {
+ 	int irq = __this_cpu_read(lock_kicker_irq);
+ 	unsigned long flags;
+@@ -292,7 +292,11 @@ static void xen_hibernate(enum pv_lock_stats type)
+ 
+ 	/* Allow interrupts while blocked */
+ 	local_irq_restore(flags);
+-
++	/*
++	 * Don't halt if the CPU state has been changed.
++	 */
++	if (ACCESS_ONCE(*state) != sval)
++		return;
+ 	/*
+ 	 * If an interrupt happens here, it will leave the wakeup irq
+ 	 * pending, which will cause xen_poll_irq() to return
 
+--------------040207070205080604010401
+Content-Type: text/plain; charset="us-ascii"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7bit
+Content-Disposition: inline
 
---GLQNIV20oEFXTrxGlJfm65bRoAppdSIm7
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: OpenPGP digital signature
-Content-Disposition: attachment; filename="signature.asc"
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.10 (GNU/Linux)
-Comment: Using GnuPG with Thunderbird - http://www.enigmail.net/
-
-iEYEARECAAYFAlNEOv8ACgkQykllyylKDCGN2wCfZldFwXNhoK4CgT2kQgsk3vN5
-zjQAn0B91CG0FmpR5yHoYwDnPniNr/g9
-=bJ3P
------END PGP SIGNATURE-----
-
---GLQNIV20oEFXTrxGlJfm65bRoAppdSIm7--
+_______________________________________________
+Virtualization mailing list
+Virtualization@lists.linux-foundation.org
+https://lists.linuxfoundation.org/mailman/listinfo/virtualization
+--------------040207070205080604010401--
