@@ -1,227 +1,75 @@
-From: Michal Simek <michal.simek@xilinx.com>
-Subject: [PATCH] asm-generic/io.h: Add default configuration for readX/writeX_relaxed
-Date: Tue,  8 Apr 2014 09:16:01 +0200
-Message-ID: <35729b5d2bf080d3029f69af4bc638a268bf1a8f.1396941358.git.michal.simek@xilinx.com>
-Content-Type: multipart/signed;
-    boundary="=_mimegpg-monstr-desktop-26422-1396941361-0001";
-    micalg=pgp-sha1; protocol="application/pgp-signature"
+From: Russell King - ARM Linux <linux@arm.linux.org.uk>
+Subject: Re: [PATCH] asm-generic: allow generic unaligned access if the
+	arch supports it
+Date: Tue, 8 Apr 2014 10:49:42 +0100
+Message-ID: <20140408094942.GC16119@n2100.arm.linux.org.uk>
+References: <1395942387-14177-1-git-send-email-ard.biesheuvel@linaro.org> <201403281914.20201.arnd@arndb.de> <CAKv+Gu_9yD1jWhxkPxSUbwjJk4QxPNXBR=EXfmfCgzD1Pdig2g@mail.gmail.com> <20140331095941.GA29871@arm.com> <CAKv+Gu_05nmZrQxwELXae4tiK=-MpjUjmEKrULdg+6YuC-DW8Q@mail.gmail.com> <20140331172436.GL29871@arm.com> <CAKv+Gu9RATUkhya0zytS8FbSM8=49xwNg0m24Xp1LtCWoarDRQ@mail.gmail.com> <20140331183618.GY7528@n2100.arm.linux.org.uk> <CAKv+Gu9TkLSivLuJH-oWnK0xpFb4jrhYDx6bTZBKUSmSJftCbQ@mail.gmail.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ee0-f46.google.com ([74.125.83.46]:48778 "EHLO
-	mail-ee0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756374AbaDHHQM (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 8 Apr 2014 03:16:12 -0400
-Received: by mail-ee0-f46.google.com with SMTP id t10so302288eei.33
-        for <linux-arch@vger.kernel.org>; Tue, 08 Apr 2014 00:16:10 -0700 (PDT)
+Received: from gw-1.arm.linux.org.uk ([78.32.30.217]:53388 "EHLO
+	pandora.arm.linux.org.uk" rhost-flags-OK-OK-OK-FAIL)
+	by vger.kernel.org with ESMTP id S1755169AbaDHJuU (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 8 Apr 2014 05:50:20 -0400
+Content-Disposition: inline
+In-Reply-To: <CAKv+Gu9TkLSivLuJH-oWnK0xpFb4jrhYDx6bTZBKUSmSJftCbQ@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, monstr@monstr.eu
-Cc: git@xilinx.com, wsa@the-dreams.de, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org
+To: Ard Biesheuvel <ard.biesheuvel@linaro.org>
+Cc: Catalin Marinas <catalin.marinas@arm.com>, Arnd Bergmann <arnd@arndb.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Rob Herring <robherring2@gmail.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
 
-This is a MIME GnuPG-signed message.  If you see this text, it means that
-your E-mail or Usenet software does not support MIME signed messages.
-The Internet standard for MIME PGP messages, RFC 2015, was published in 1996.
-To open this message correctly you will need to install E-mail or Usenet
-software that supports modern Internet standards.
+On Mon, Mar 31, 2014 at 08:51:54PM +0200, Ard Biesheuvel wrote:
+> On 31 March 2014 20:36, Russell King - ARM Linux <linux@arm.linux.org.uk> wrote:
+> > On Mon, Mar 31, 2014 at 08:22:43PM +0200, Ard Biesheuvel wrote:
+> >> On 31 March 2014 19:24, Catalin Marinas <catalin.marinas@arm.com> wrote:
+> >> > It actually affects arch/arm as well which selects
+> >> > HAVE_EFFICIENT_UNALIGNED_ACCESS for v6/v7 and uses the generic
+> >> > unaligned.h
+> >> >
+> >>
+> >> Oops, my bad. I did a quick 'find -name unaligned.h' but misread 'arc'
+> >> for 'arm'.
+> >>
+> >> @Russell: ARM is a user of asm-generic/unaligned.h, and I proposed a
+> >> patch to asm-generic that switches to unaligned accesses if
+> >> HAVE_EFFICIENT_UNALIGNED_ACCESS is set by the arch. This should affect
+> >> a fair amount of code living under net/ and drivers/ that don't test
+> >> for the Kconfig symbol but expect get_unaligned_xx/put_unaligned_xx to
+> >> turn into something suitable depending on the arch. Any objections?
+> >
+> > I'm not sure what you're talking about here, or what change you're
+> > proposing.  Without any kind of frame of reference, I can't comment.
+> > Sorry.
+> >
+> 
+> My apologies. I assumed the mail thread including a link to the patch
+> would be clear enough.
+> 
+> Currently, asm-generic's version of unaligned.h (defining stuff like
+> get_unaligned() and put_unaligned()) unconditionally defaults to the
+> most cautious method of performing unaligned memory accesses, even if
+> the Kconfig symbol HAVE_EFFICIENT_UNALIGNED_ACCESS is defined.
+> However, in that case, it makes sense to use a definition for
+> get_unaligned()/put_unaligned() that lets the hardware perform the
+> unaligned accesses instead.
+> 
+> So that is what I proposed here
+> 
+> http://marc.info/?l=linux-arch&m=139594237116121&w=2
+> 
+> and in the mail exchange that followed, I stated that arm64 should be
+> the only arch affected by this change. However, I didn't look
+> carefully enough and, as Catalin pointed out, ARM will also be
+> affected by it.
+> 
+> So that is why I redirected this thread to you: would you object to
+> changing asm-generic/unaligned.h so that calls to
+> get_aligned()/put_aligned() on ARM v6/v7 will let the CPU perform the
+> unaligned access?
 
---=_mimegpg-monstr-desktop-26422-1396941361-0001
+The change looks fine to me, but given where we are in the cycle, I'd
+rather hold off until after the merge window before queuing this up.
 
-Define default readX/writeX_relaxed IO helper functions
-for all archs which use asm-generic/io.h.
-Using COMPILE_TEST, moving drivers out of arch/arm and
-removing architecture dependencies in Kconfig is causing
-that more and more drivers is using _relaxed IO helper
-functions which is causing compilation failures on architectures
-which don't define them.
-
-Signed-off-by: Michal Simek <michal.simek@xilinx.com>
----
-
-git://git.monstr.eu/linux-2.6-microblaze  xnext/io
-4b9d4a7ed112d0b68b654f09b87ad16ccd644a47  asm-generic/io.h: Add default configuration for readX/writeX_relaxed
-
-elapsed time: 59m
-
-configs tested: 119
-
-sparc                               defconfig
-sparc64                          allmodconfig
-sparc64                           allnoconfig
-sparc64                             defconfig
-avr32                      atngw100_defconfig
-avr32                     atstk1006_defconfig
-frv                                 defconfig
-mn10300                     asb2364_defconfig
-openrisc                    or1ksim_defconfig
-tile                         tilegx_defconfig
-um                             i386_defconfig
-um                           x86_64_defconfig
-alpha                               defconfig
-parisc                            allnoconfig
-parisc                         b180_defconfig
-parisc                        c3000_defconfig
-parisc                              defconfig
-arm                              allmodconfig
-arm                               allnoconfig
-arm                                      arm5
-arm                                     arm67
-arm                         at91_dt_defconfig
-arm                                  at_hdmac
-arm                                    ep93xx
-arm                       imx_v6_v7_defconfig
-arm                                  iop-adma
-arm                          marzen_defconfig
-arm                                       mmp
-arm                       omap2plus_defconfig
-arm                          prima2_defconfig
-arm                         s3c2410_defconfig
-arm                                    sa1100
-arm                                   samsung
-arm                                        sh
-arm                       spear13xx_defconfig
-arm                           tegra_defconfig
-x86_64                            allnoconfig
-sh                                allnoconfig
-sh                          rsk7269_defconfig
-sh                  sh7785lcr_32bit_defconfig
-sh                            titan_defconfig
-x86_64                     randconfig-c0-0407
-x86_64                     randconfig-c1-0407
-x86_64                     randconfig-c2-0407
-x86_64                     randconfig-c3-0407
-ia64                             alldefconfig
-ia64                             allmodconfig
-ia64                              allnoconfig
-ia64                                defconfig
-microblaze                       allyesconfig
-microblaze                      mmu_defconfig
-microblaze                    nommu_defconfig
-mips                             allmodconfig
-mips                              allnoconfig
-mips                      fuloong2e_defconfig
-mips                                   jz4740
-mips                                     txx9
-i386                             allyesconfig
-i386                             alldefconfig
-i386                             allmodconfig
-i386                              allnoconfig
-i386                                defconfig
-m32r                       m32104ut_defconfig
-m32r                     mappi3.smp_defconfig
-m32r                         opsput_defconfig
-m32r                           usrv_defconfig
-xtensa                       common_defconfig
-xtensa                          iss_defconfig
-i386                      randconfig-fd0-0407
-i386                      randconfig-fd1-0407
-i386                      randconfig-fd2-0407
-i386                      randconfig-fd3-0407
-powerpc                      chroma_defconfig
-powerpc               corenet64_smp_defconfig
-powerpc                    gamecube_defconfig
-powerpc                 linkstation_defconfig
-powerpc                         wii_defconfig
-i386                      randconfig-iv0-0407
-i386                      randconfig-iv1-0407
-i386                      randconfig-iv2-0407
-i386                      randconfig-iv3-0407
-x86_64                           allmodconfig
-x86_64                    randconfig-sb0-0407
-x86_64                    randconfig-sb1-0407
-x86_64                    randconfig-sb2-0407
-x86_64                    randconfig-sb3-0407
-m68k                             allmodconfig
-m68k                          amiga_defconfig
-m68k                       m5475evb_defconfig
-m68k                          multi_defconfig
-blackfin                BF526-EZBRD_defconfig
-blackfin                BF533-EZKIT_defconfig
-blackfin            BF561-EZKIT-SMP_defconfig
-blackfin                  TCM-BF537_defconfig
-cris                 etrax-100lx_v2_defconfig
-i386                       randconfig-r0-0407
-i386                       randconfig-r1-0407
-i386                       randconfig-r2-0407
-i386                       randconfig-r3-0407
-s390                             allmodconfig
-s390                              allnoconfig
-s390                                defconfig
-x86_64                 randconfig-s0-03291922
-x86_64                 randconfig-s1-03291922
-x86_64                 randconfig-s2-03291922
-x86_64                 randconfig-s3-03291922
-x86_64                 randconfig-s4-03291922
-x86_64                 randconfig-s5-03291922
-arm                      jornada720_defconfig
-ia64                            sim_defconfig
-x86_64                                    lkp
-x86_64                                   rhel
-powerpc                          allmodconfig
-powerpc                           allnoconfig
-powerpc                             defconfig
-powerpc                       ppc64_defconfig
-x86_64                             acpi-redef
-x86_64                           allyesdebian
-x86_64                                nfsroot
----
- include/asm-generic/io.h | 24 ++++++++++++++++++++++++
- 1 file changed, 24 insertions(+)
-
-diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
-index d5afe96..0b1de87 100644
---- a/include/asm-generic/io.h
-+++ b/include/asm-generic/io.h
-@@ -73,6 +73,18 @@ static inline void __raw_writeb(u8 b, volatile void __iomem *addr)
- }
- #endif
-
-+#ifndef readb_relaxed
-+#define readb_relaxed readb
-+#endif
-+
-+#ifndef readw_relaxed
-+#define readw_relaxed readw
-+#endif
-+
-+#ifndef readl_relaxed
-+#define readl_relaxed readl
-+#endif
-+
- #ifndef __raw_writew
- static inline void __raw_writew(u16 b, volatile void __iomem *addr)
- {
-@@ -91,6 +103,18 @@ static inline void __raw_writel(u32 b, volatile void __iomem *addr)
- #define writew(b,addr) __raw_writew(__cpu_to_le16(b),addr)
- #define writel(b,addr) __raw_writel(__cpu_to_le32(b),addr)
-
-+#ifndef writeb_relaxed
-+#define writeb_relaxed writeb
-+#endif
-+
-+#ifndef writew_relaxed
-+#define writew_relaxed writew
-+#endif
-+
-+#ifndef writel_relaxed
-+#define writel_relaxed writel
-+#endif
-+
- #ifdef CONFIG_64BIT
- #ifndef __raw_readq
- static inline u64 __raw_readq(const volatile void __iomem *addr)
---
-1.8.2.3
-
-
---=_mimegpg-monstr-desktop-26422-1396941361-0001
-Content-Type: application/pgp-signature
-Content-Transfer-Encoding: 7bit
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.10 (GNU/Linux)
-
-iEYEABECAAYFAlNDojEACgkQykllyylKDCEZTwCcCYvfnPJc34F7W6sdZjg1y/Ng
-rFEAn2UAZQBFdEHquyH14qWancN9AZR/
-=VZh1
------END PGP SIGNATURE-----
-
---=_mimegpg-monstr-desktop-26422-1396941361-0001--
+-- 
+FTTC broadband for 0.8mile line: now at 9.7Mbps down 460kbps up... slowly
+improving, and getting towards what was expected from it.
