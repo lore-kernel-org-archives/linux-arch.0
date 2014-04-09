@@ -1,367 +1,475 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from gw-1.arm.linux.org.uk ([78.32.30.217]:55050 "EHLO
-	pandora.arm.linux.org.uk" rhost-flags-OK-OK-OK-FAIL)
-	by vger.kernel.org with ESMTP id S932187AbaDIKCq (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 9 Apr 2014 06:02:46 -0400
-Date: Wed, 9 Apr 2014 11:01:50 +0100
-From: Russell King - ARM Linux <linux@arm.linux.org.uk>
-Subject: [RFC PATCH] Remove flush_icache_user_range()
-Message-ID: <20140409100150.GO16119@n2100.arm.linux.org.uk>
+Received: from adelie.canonical.com ([91.189.90.139]:51015 "EHLO
+	adelie.canonical.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S933057AbaDIPQt (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 9 Apr 2014 11:16:49 -0400
+Subject: [PATCH 2/2] [RFC] reservation: add suppport for read-only access
+ using rcu
+From: Maarten Lankhorst <maarten.lankhorst@canonical.com>
+Date: Wed, 09 Apr 2014 16:49:11 +0200
+Message-ID: <20140409144831.26648.79163.stgit@patser>
+In-Reply-To: <20140409144239.26648.57918.stgit@patser>
+References: <20140409144239.26648.57918.stgit@patser>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Mikael Starvik <starvik@axis.com>, Jesper Nilsson <jesper.nilsson@axis.com>, David Howells <dhowells@redhat.com>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Hirokazu Takata <takata@linux-m32r.org>, Greg Ungerer <gerg@uclinux.org>, Geert Uytterhoeven <geert@linux-m68k.org>, Michal Simek <monstr@monstr.eu>, Koichi Yasutake <yasutake.koichi@jp.panasonic.com>, "David S. Miller" <davem@davemloft.net>, Chris Metcalf <cmetcalf@tilera.com>, Guan Xuetao <gxt@mprc.pku.edu.cn>, Arnd Bergmann <arnd@arndb.de>
-Message-ID: <20140409100150.oIL87UGq3Cp3kx6FqvcYUROghpNKUI0noRBmh_3TUWI@z>
+To: linux-kernel@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, ccross@google.com, linaro-mm-sig@lists.linaro.org, robdclark@gmail.com, dri-devel@lists.freedesktop.org, daniel@ffwll.ch, sumit.semwal@linaro.org, linux-media@vger.kernel.org
+Message-ID: <20140409144911.av6cfrx9EHmVb26n0xnmIJnPDiPM3bPnd-eq3VK8bEI@z>
 
-The subject of flush_icache_user_range() recently came up in a discussion
-about uprobes on ARM - and it was suggested maybe to make use of it as
-the flush_dcache_page() in uprobes doesn't have the desired effect.
+This adds 3 more functions to deal with rcu.
 
-However, uprobes does not track the vma for userspace, which would mean
-it has to pass NULL as the first argument.  As this function is a no-op
-on many architectures, this would not be a problem, but there is one
-which does dereference this argument.
+reservation_object_wait_timeout_rcu() will wait on all fences of the
+reservation_object, without obtaining the ww_mutex.
 
-Moreover, the ARM implementation of flush_icache_user_range() just called
-flush_dcache_page(), so changing to this would not result in any change.
-Modifying it do perform as uprobes wanted is unclear whether that was
-the correct solution.
+reservation_object_test_signaled_rcu() will test if all fences of the
+reservation_object are signaled without using the ww_mutex.
 
-After surveying this function, it appears that not only is it
-undocumented, but it is not used by generic code at all - it is used
-by a few architectures in their copy_to_user_page() function.  Many
-architectures define this and never make any use of it, or define it
-to be empty but still use it in copy_to_user_page().
+reservation_object_get_excl() is added because touching the fence_excl
+member directly will trigger a sparse warning.
 
-There are four which do have some effect:
-	alpha
-	frv
-	m68k
-	powerpc
+Signed-off-by: Maarten Lankhorst <maarten.lankhorst@canonical.com>
+---
+ drivers/base/dma-buf.c      |   46 +++++++++++--
+ drivers/base/reservation.c  |  147 +++++++++++++++++++++++++++++++++++++++++--
+ include/linux/fence.h       |   22 ++++++
+ include/linux/reservation.h |   40 ++++++++----
+ 4 files changed, 224 insertions(+), 31 deletions(-)
 
-Alpha's implementation aliases to flush_icache_page(), so this is
-trivial to change.  The others are not so trivial, and require some
-knowledge of the architecture to change.  However, I doubt it would be
-a difficult job.
-
-The alternative would be to document this function (anyone know what
-it's semantics are supposed to be?) so that we know what should be
-expected from it.
-
-What has been proposed for uprobes is a uprobe specific function -
-flush_uprobe_xol_access() which is used after uprobes writes via the
-kmap_atomic() mapping of the page:
-
-+       xol_page_kaddr = kmap_atomic(area->page);
-+
-+       /* Initialize the slot */
-+       memcpy(xol_page_kaddr + (xol_vaddr & ~PAGE_MASK),
-+              &uprobe->arch.ixol,
-+              sizeof(uprobe->arch.ixol));
-+
-+       arch_uprobe_flush_xol_access(area->page, xol_vaddr,
-+                                    xol_page_kaddr + (xol_vaddr & ~PAGE_MASK),
-+                                    sizeof(uprobe->arch.ixol));
-+
-+       kunmap_atomic(xol_page_kaddr);
-
-Comments?
-
- arch/alpha/include/asm/cacheflush.h      | 13 ++++---------
- arch/alpha/kernel/smp.c                  |  4 +---
- arch/arm/include/asm/cacheflush.h        |  3 ---
- arch/cris/include/asm/cacheflush.h       |  1 -
- arch/frv/include/asm/cacheflush.h        |  2 ++
- arch/ia64/include/asm/cacheflush.h       | 13 +++++--------
- arch/m32r/include/asm/cacheflush.h       |  6 +-----
- arch/m68k/include/asm/cacheflush_no.h    |  1 -
- arch/microblaze/include/asm/cacheflush.h |  1 -
- arch/mn10300/include/asm/cacheflush.h    |  3 ---
- arch/sparc/include/asm/cacheflush_32.h   |  2 --
- arch/sparc/include/asm/cacheflush_64.h   |  1 -
- arch/tile/include/asm/cacheflush.h       |  1 -
- arch/unicore32/include/asm/cacheflush.h  |  3 ---
- include/asm-generic/cacheflush.h         |  6 +-----
- 15 files changed, 14 insertions(+), 46 deletions(-)
-
-diff --git a/arch/alpha/include/asm/cacheflush.h b/arch/alpha/include/asm/cacheflush.h
-index a9cb6aa447aa..97c01e9f6d27 100644
---- a/arch/alpha/include/asm/cacheflush.h
-+++ b/arch/alpha/include/asm/cacheflush.h
-@@ -42,13 +42,13 @@ extern void smp_imb(void);
-    that icache entries are tagged with the ASN and load a new mm context.  */
- /* ??? Ought to use this in arch/alpha/kernel/signal.c too.  */
+diff --git a/drivers/base/dma-buf.c b/drivers/base/dma-buf.c
+index d89a98d2c37b..fc2d7546b8b0 100644
+--- a/drivers/base/dma-buf.c
++++ b/drivers/base/dma-buf.c
+@@ -151,14 +151,22 @@ static unsigned int dma_buf_poll(struct file *file, poll_table *poll)
+ 	if (!events)
+ 		return 0;
  
-+/* This is used only in __do_fault and do_swap_page.  */
- #ifndef CONFIG_SMP
- #include <linux/sched.h>
+-	ww_mutex_lock(&resv->lock, NULL);
++	rcu_read_lock();
  
- extern void __load_new_mm_context(struct mm_struct *);
- static inline void
--flush_icache_user_range(struct vm_area_struct *vma, struct page *page,
--			unsigned long addr, int len)
-+flush_icache_page(struct vm_area_struct *vma, struct page *page)
- {
- 	if (vma->vm_flags & VM_EXEC) {
- 		struct mm_struct *mm = vma->vm_mm;
-@@ -59,17 +59,12 @@ flush_icache_user_range(struct vm_area_struct *vma, struct page *page,
+-	fobj = resv->fence;
+-	if (!fobj)
+-		goto out;
++	fobj = rcu_dereference(resv->fence);
++	if (fobj) {
++		shared_count = ACCESS_ONCE(fobj->shared_count);
++		smp_mb(); /* shared_count needs transitivity wrt fence_excl */
++	} else
++		shared_count = 0;
++	fence_excl = rcu_dereference(resv->fence_excl);
+ 
+-	shared_count = fobj->shared_count;
+-	fence_excl = resv->fence_excl;
++	/*
++	 * This would have needed a smp_read_barrier_depends()
++	 * because shared_count needs to be read before shared[i], but
++	 * spin_lock_irq and spin_unlock_irq provide even stronger
++	 * guarantees.
++	 */
+ 
+ 	if (fence_excl && (!(events & POLLOUT) || shared_count == 0)) {
+ 		struct dma_buf_poll_cb_t *dcb = &dmabuf->cb_excl;
+@@ -176,14 +184,20 @@ static unsigned int dma_buf_poll(struct file *file, poll_table *poll)
+ 		spin_unlock_irq(&dmabuf->poll.lock);
+ 
+ 		if (events & pevents) {
+-			if (!fence_add_callback(fence_excl, &dcb->cb,
++			if (!fence_get_rcu(fence_excl)) {
++				/* force a recheck */
++				events &= ~pevents;
++				dma_buf_poll_cb(NULL, &dcb->cb);
++			} else if (!fence_add_callback(fence_excl, &dcb->cb,
+ 						       dma_buf_poll_cb)) {
+ 				events &= ~pevents;
++				fence_put(fence_excl);
+ 			} else {
+ 				/*
+ 				 * No callback queued, wake up any additional
+ 				 * waiters.
+ 				 */
++				fence_put(fence_excl);
+ 				dma_buf_poll_cb(NULL, &dcb->cb);
+ 			}
+ 		}
+@@ -205,13 +219,25 @@ static unsigned int dma_buf_poll(struct file *file, poll_table *poll)
+ 			goto out;
+ 
+ 		for (i = 0; i < shared_count; ++i) {
+-			struct fence *fence = fobj->shared[i];
+-
++			struct fence *fence = fence_get_rcu(fobj->shared[i]);
++			if (!fence) {
++				/*
++				 * fence refcount dropped to zero, this means
++				 * that fobj has been freed
++				 *
++				 * call dma_buf_poll_cb and force a recheck!
++				 */
++				events &= ~POLLOUT;
++				dma_buf_poll_cb(NULL, &dcb->cb);
++				break;
++			}
+ 			if (!fence_add_callback(fence, &dcb->cb,
+ 						dma_buf_poll_cb)) {
++				fence_put(fence);
+ 				events &= ~POLLOUT;
+ 				break;
+ 			}
++			fence_put(fence);
+ 		}
+ 
+ 		/* No callback queued, wake up any additional waiters. */
+@@ -220,7 +246,7 @@ static unsigned int dma_buf_poll(struct file *file, poll_table *poll)
  	}
- }
- #else
--extern void flush_icache_user_range(struct vm_area_struct *vma,
--		struct page *page, unsigned long addr, int len);
-+extern void flush_icache_page(struct vm_area_struct *vma, struct page *page);
- #endif
  
--/* This is used only in __do_fault and do_swap_page.  */
--#define flush_icache_page(vma, page) \
--  flush_icache_user_range((vma), (page), 0, 0)
--
- #define copy_to_user_page(vma, page, vaddr, dst, src, len) \
- do { memcpy(dst, src, len); \
--     flush_icache_user_range(vma, page, vaddr, len); \
-+     flush_icache_page(vma, page); \
- } while (0)
- #define copy_from_user_page(vma, page, vaddr, dst, src, len) \
- 	memcpy(dst, src, len)
-diff --git a/arch/alpha/kernel/smp.c b/arch/alpha/kernel/smp.c
-index 99ac36d5de4e..fee1c5a5b9bb 100644
---- a/arch/alpha/kernel/smp.c
-+++ b/arch/alpha/kernel/smp.c
-@@ -751,9 +751,7 @@ ipi_flush_icache_page(void *x)
- 		flush_tlb_other(mm);
+ out:
+-	ww_mutex_unlock(&resv->lock);
++	rcu_read_unlock();
+ 	return events;
  }
  
--void
--flush_icache_user_range(struct vm_area_struct *vma, struct page *page,
--			unsigned long addr, int len)
-+void flush_icache_page(struct vm_area_struct *vma, struct page *page)
+diff --git a/drivers/base/reservation.c b/drivers/base/reservation.c
+index b82a5b630a8e..4cdce63140b8 100644
+--- a/drivers/base/reservation.c
++++ b/drivers/base/reservation.c
+@@ -87,9 +87,13 @@ reservation_object_add_shared_inplace(struct reservation_object *obj,
+ 			struct fence *old_fence = fobj->shared[i];
+ 
+ 			fence_get(fence);
++			/* for the fence_get() */
++			smp_mb__after_atomic_inc();
+ 
+ 			fobj->shared[i] = fence;
+ 
++			/* for the fence_put() */
++			smp_mb__before_atomic_dec();
+ 			fence_put(old_fence);
+ 			return;
+ 		}
+@@ -141,8 +145,9 @@ reservation_object_add_shared_replace(struct reservation_object *obj,
+ 		fobj->shared[fobj->shared_count++] = fence;
+ 
+ done:
+-	obj->fence = fobj;
+-	kfree(old);
++	rcu_assign_pointer(obj->fence, fobj);
++	if (old)
++		kfree_rcu(old, rcu);
+ }
+ 
+ /*
+@@ -168,20 +173,25 @@ EXPORT_SYMBOL(reservation_object_add_shared_fence);
+ void reservation_object_add_excl_fence(struct reservation_object *obj,
+ 				       struct fence *fence)
  {
- 	struct mm_struct *mm = vma->vm_mm;
+-	struct fence *old_fence = obj->fence_excl;
++	struct fence *old_fence = reservation_object_get_excl(obj);
+ 	struct reservation_object_list *old;
+ 	u32 i = 0;
  
-diff --git a/arch/arm/include/asm/cacheflush.h b/arch/arm/include/asm/cacheflush.h
-index 8b8b61685a34..0077e596b483 100644
---- a/arch/arm/include/asm/cacheflush.h
-+++ b/arch/arm/include/asm/cacheflush.h
-@@ -327,9 +327,6 @@ extern void flush_kernel_dcache_page(struct page *);
- #define flush_dcache_mmap_unlock(mapping) \
- 	spin_unlock_irq(&(mapping)->tree_lock)
+ 	old = reservation_object_get_list(obj);
+-	if (old) {
++	if (old)
+ 		i = old->shared_count;
+-		old->shared_count = 0;
+-	}
  
--#define flush_icache_user_range(vma,page,addr,len) \
--	flush_dcache_page(page)
--
- /*
-  * We don't appear to need to do anything here.  In fact, if we did, we'd
-  * duplicate cache flushing elsewhere performed by flush_dcache_page().
-diff --git a/arch/cris/include/asm/cacheflush.h b/arch/cris/include/asm/cacheflush.h
-index 36795bca605e..419b98ff05b6 100644
---- a/arch/cris/include/asm/cacheflush.h
-+++ b/arch/cris/include/asm/cacheflush.h
-@@ -18,7 +18,6 @@
- #define flush_dcache_mmap_unlock(mapping)	do { } while (0)
- #define flush_icache_range(start, end)		do { } while (0)
- #define flush_icache_page(vma,pg)		do { } while (0)
--#define flush_icache_user_range(vma,pg,adr,len)	do { } while (0)
- #define flush_cache_vmap(start, end)		do { } while (0)
- #define flush_cache_vunmap(start, end)		do { } while (0)
+ 	if (fence)
+ 		fence_get(fence);
  
-diff --git a/arch/frv/include/asm/cacheflush.h b/arch/frv/include/asm/cacheflush.h
-index edbac54ae015..386022261d34 100644
---- a/arch/frv/include/asm/cacheflush.h
-+++ b/arch/frv/include/asm/cacheflush.h
-@@ -95,7 +95,9 @@ static inline void flush_icache_page(struct vm_area_struct *vma, struct page *pa
-  */
- #define copy_to_user_page(vma, page, vaddr, dst, src, len)	\
- do {								\
-+	unsigned long _vaddr = vaddr;				\
- 	memcpy((dst), (src), (len));				\
-+	frv_cache_wback_inv(_vaddr, _vaddr + (len));		\
- 	flush_icache_user_range((vma), (page), (vaddr), (len));	\
- } while(0)
+-	obj->fence_excl = fence;
++	rcu_assign_pointer(obj->fence_excl, fence);
++
++	if (old) {
++		smp_wmb();
++		old->shared_count = 0;
++	}
++
++	smp_mb__before_atomic_dec();
  
-diff --git a/arch/ia64/include/asm/cacheflush.h b/arch/ia64/include/asm/cacheflush.h
-index 429eefc93ee7..02f20e72ebbd 100644
---- a/arch/ia64/include/asm/cacheflush.h
-+++ b/arch/ia64/include/asm/cacheflush.h
-@@ -38,15 +38,12 @@ extern void flush_icache_range (unsigned long start, unsigned long end);
- extern void clflush_cache_range(void *addr, int size);
+ 	/* inplace update, no shared fences */
+ 	while (i--)
+@@ -191,3 +201,126 @@ void reservation_object_add_excl_fence(struct reservation_object *obj,
+ 		fence_put(old_fence);
+ }
+ EXPORT_SYMBOL(reservation_object_add_excl_fence);
++
++long reservation_object_wait_timeout_rcu(struct reservation_object *obj,
++					 bool wait_all, bool intr,
++					 unsigned long timeout)
++{
++	unsigned shared_count = 0;
++
++	while (1) {
++		struct fence *fence = NULL, *fence_excl;
++		struct reservation_object_list *fobj;
++		long ret;
++
++		rcu_read_lock();
++
++retry:
++		if (wait_all) {
++			unsigned i;
++
++			fobj = rcu_dereference(obj->fence);
++			if (fobj)
++				shared_count = ACCESS_ONCE(fobj->shared_count);
++			else
++				shared_count = 0;
++			smp_mb(); /* shared_count needs transitivity wrt fence_excl */
++
++			for (i = 0; i < shared_count; ++i) {
++				fence = ACCESS_ONCE(fobj->shared[i]);
++
++				if (test_bit(FENCE_FLAG_SIGNALED_BIT, &fence->flags))
++					continue;
++
++				if (!fence_get_rcu(fence))
++					goto retry;
++
++				if (fence_is_signaled(fence))
++					fence_put(fence);
++				else
++					break;
++			}
++			if (i == shared_count)
++				fence = NULL;
++		}
++
++		if (shared_count == 0) {
++			fence_excl = rcu_dereference(obj->fence_excl);
++			if (fence_excl && !fence_get_rcu(fence_excl))
++				goto retry;
++
++			if (fence_excl && fence_is_signaled(fence_excl))
++				fence_put(fence_excl);
++			else
++				fence = fence_excl;
++		}
++
++		rcu_read_unlock();
++
++		if (fence == NULL)
++			return timeout;
++
++		ret = fence_wait_timeout(fence, intr, timeout);
++		fence_put(fence);
++
++		if (ret <= 0)
++			return ret;
++		else
++			timeout = ret;
++	}
++}
++EXPORT_SYMBOL_GPL(reservation_object_wait_timeout_rcu);
++
++bool reservation_object_test_signaled_rcu(struct reservation_object *obj, bool test_all)
++{
++	struct fence *fence, *fence_excl;
++	struct reservation_object_list *fobj;
++	unsigned shared_count = 0;
++	bool ret = true;
++
++	rcu_read_lock();
++
++retry:
++	if (test_all) {
++		unsigned i;
++
++		fobj = rcu_dereference(obj->fence);
++		if (fobj)
++			shared_count = ACCESS_ONCE(fobj->shared_count);
++		else
++			shared_count = 0;
++		smp_mb(); /* shared_count needs transitivity wrt fence_excl */
++
++		for (i = 0; i < shared_count; ++i) {
++			fence = ACCESS_ONCE(fobj->shared[i]);
++
++			if (test_bit(FENCE_FLAG_SIGNALED_BIT, &fence->flags))
++				continue;
++
++			if (!fence_get_rcu(fence))
++				goto retry;
++
++			ret = fence_is_signaled(fence);
++			fence_put(fence);
++			if (!ret)
++				break;
++		}
++	}
++
++	if (shared_count == 0) {
++		fence_excl = rcu_dereference(obj->fence_excl);
++
++		if (fence_excl && !test_bit(FENCE_FLAG_SIGNALED_BIT, &fence_excl->flags)) {
++			fence = fence_get_rcu(fence_excl);
++			if (!fence)
++				goto retry;
++
++			ret = fence_is_signaled(fence);
++			fence_put(fence);
++		}
++	}
++	rcu_read_unlock();
++
++	return ret;
++}
++EXPORT_SYMBOL_GPL(reservation_object_test_signaled_rcu);
+diff --git a/include/linux/fence.h b/include/linux/fence.h
+index d13b5ab61726..8499ace045da 100644
+--- a/include/linux/fence.h
++++ b/include/linux/fence.h
+@@ -31,7 +31,7 @@
+ #include <linux/kref.h>
+ #include <linux/sched.h>
+ #include <linux/printk.h>
+-#include <linux/slab.h>
++#include <linux/rcupdate.h>
  
+ struct fence;
+ struct fence_ops;
+@@ -41,6 +41,7 @@ struct fence_cb;
+  * struct fence - software synchronization primitive
+  * @refcount: refcount for this fence
+  * @ops: fence_ops associated with this fence
++ * @rcu: used for releasing fence with kfree_rcu
+  * @cb_list: list of all callbacks to call
+  * @lock: spin_lock_irqsave used for locking
+  * @context: execution context this fence belongs to, returned by
+@@ -74,6 +75,7 @@ struct fence_cb;
+ struct fence {
+ 	struct kref refcount;
+ 	const struct fence_ops *ops;
++	struct rcu_head rcu;
+ 	struct list_head cb_list;
+ 	spinlock_t *lock;
+ 	unsigned context, seqno;
+@@ -190,11 +192,27 @@ static inline void fence_get(struct fence *fence)
+ 	kref_get(&fence->refcount);
+ }
  
--#define flush_icache_user_range(vma, page, user_addr, len)					\
--do {												\
--	unsigned long _addr = (unsigned long) page_address(page) + ((user_addr) & ~PAGE_MASK);	\
--	flush_icache_range(_addr, _addr + (len));						\
--} while (0)
--
- #define copy_to_user_page(vma, page, vaddr, dst, src, len) \
--do { memcpy(dst, src, len); \
--     flush_icache_user_range(vma, page, vaddr, len); \
-+do {
-+     unsigned long _addr = (unsigned long) page_address(page) + \
-+     			((vaddr) & ~PAGE_MASK); \
-+     memcpy(dst, src, len); \
-+     flush_icache_range(_addr, _addr + (len)); \
- } while (0)
- #define copy_from_user_page(vma, page, vaddr, dst, src, len) \
- 	memcpy(dst, src, len)
-diff --git a/arch/m32r/include/asm/cacheflush.h b/arch/m32r/include/asm/cacheflush.h
-index 8e8e04516c39..6ae48713b026 100644
---- a/arch/m32r/include/asm/cacheflush.h
-+++ b/arch/m32r/include/asm/cacheflush.h
-@@ -19,13 +19,11 @@ extern void _flush_cache_copyback_all(void);
- #ifndef CONFIG_SMP
- #define flush_icache_range(start, end)		_flush_cache_copyback_all()
- #define flush_icache_page(vma,pg)		_flush_cache_copyback_all()
--#define flush_icache_user_range(vma,pg,adr,len)	_flush_cache_copyback_all()
- #define flush_cache_sigtramp(addr)		_flush_cache_copyback_all()
- #else	/* CONFIG_SMP */
- extern void smp_flush_cache_all(void);
- #define flush_icache_range(start, end)		smp_flush_cache_all()
- #define flush_icache_page(vma,pg)		smp_flush_cache_all()
--#define flush_icache_user_range(vma,pg,adr,len)	smp_flush_cache_all()
- #define flush_cache_sigtramp(addr)		_flush_cache_copyback_all()
- #endif	/* CONFIG_SMP */
- #elif defined(CONFIG_CHIP_M32102)
-@@ -40,7 +38,6 @@ extern void smp_flush_cache_all(void);
- #define flush_dcache_mmap_unlock(mapping)	do { } while (0)
- #define flush_icache_range(start, end)		_flush_cache_all()
- #define flush_icache_page(vma,pg)		_flush_cache_all()
--#define flush_icache_user_range(vma,pg,adr,len)	_flush_cache_all()
- #define flush_cache_sigtramp(addr)		_flush_cache_all()
- #else
- #define flush_cache_all()			do { } while (0)
-@@ -54,7 +51,6 @@ extern void smp_flush_cache_all(void);
- #define flush_dcache_mmap_unlock(mapping)	do { } while (0)
- #define flush_icache_range(start, end)		do { } while (0)
- #define flush_icache_page(vma,pg)		do { } while (0)
--#define flush_icache_user_range(vma,pg,adr,len)	do { } while (0)
- #define flush_cache_sigtramp(addr)		do { } while (0)
- #endif	/* CONFIG_CHIP_* */
++/**
++ * fence_get_rcu - get a fence from a reservation_object_list with rcu read lock
++ * @fence:	[in]	fence to increase refcount of
++ *
++ * Function returns NULL if no refcount could be obtained, or the fence.
++ */
++static inline struct fence *fence_get_rcu(struct fence *fence)
++{
++	struct fence *f = ACCESS_ONCE(fence);
++
++	if (kref_get_unless_zero(&f->refcount))
++		return f;
++	else
++		return NULL;
++}
++
+ extern void release_fence(struct kref *kref);
  
-@@ -64,7 +60,7 @@ extern void smp_flush_cache_all(void);
- #define copy_to_user_page(vma, page, vaddr, dst, src, len)	\
- do {								\
- 	memcpy(dst, src, len);					\
--	flush_icache_user_range(vma, page, vaddr, len);		\
-+	flush_icache_page(vma, page);				\
- } while (0)
- #define copy_from_user_page(vma, page, vaddr, dst, src, len)	\
- 	memcpy(dst, src, len)
-diff --git a/arch/m68k/include/asm/cacheflush_no.h b/arch/m68k/include/asm/cacheflush_no.h
-index d2b3935ae147..693e1c108194 100644
---- a/arch/m68k/include/asm/cacheflush_no.h
-+++ b/arch/m68k/include/asm/cacheflush_no.h
-@@ -19,7 +19,6 @@
- #define flush_dcache_mmap_unlock(mapping)	do { } while (0)
- #define flush_icache_range(start, len)		__flush_icache_all()
- #define flush_icache_page(vma,pg)		do { } while (0)
--#define flush_icache_user_range(vma,pg,adr,len)	do { } while (0)
- #define flush_cache_vmap(start, end)		do { } while (0)
- #define flush_cache_vunmap(start, end)		do { } while (0)
+ static inline void free_fence(struct fence *fence)
+ {
+-	kfree(fence);
++	kfree_rcu(fence, rcu);
+ }
  
-diff --git a/arch/microblaze/include/asm/cacheflush.h b/arch/microblaze/include/asm/cacheflush.h
-index ffea82a16d2c..d4b150b8a4de 100644
---- a/arch/microblaze/include/asm/cacheflush.h
-+++ b/arch/microblaze/include/asm/cacheflush.h
-@@ -61,7 +61,6 @@ void microblaze_cache_init(void);
- #define invalidate_icache()				mbc->iin();
- #define invalidate_icache_range(start, end)		mbc->iinr(start, end);
+ /**
+diff --git a/include/linux/reservation.h b/include/linux/reservation.h
+index b602365c87f9..2a53bfbec6a1 100644
+--- a/include/linux/reservation.h
++++ b/include/linux/reservation.h
+@@ -42,10 +42,12 @@
+ #include <linux/ww_mutex.h>
+ #include <linux/fence.h>
+ #include <linux/slab.h>
++#include <linux/rcupdate.h>
  
--#define flush_icache_user_range(vma, pg, adr, len)	flush_icache();
- #define flush_icache_page(vma, pg)			do { } while (0)
+ extern struct ww_class reservation_ww_class;
  
- #define enable_dcache()					mbc->de();
-diff --git a/arch/mn10300/include/asm/cacheflush.h b/arch/mn10300/include/asm/cacheflush.h
-index faed90240ded..360374074a9a 100644
---- a/arch/mn10300/include/asm/cacheflush.h
-+++ b/arch/mn10300/include/asm/cacheflush.h
-@@ -147,9 +147,6 @@ extern void flush_icache_range(unsigned long start, unsigned long end);
- #endif
+ struct reservation_object_list {
++	struct rcu_head rcu;
+ 	u32 shared_count, shared_max;
+ 	struct fence *shared[];
+ };
+@@ -53,21 +55,20 @@ struct reservation_object_list {
+ struct reservation_object {
+ 	struct ww_mutex lock;
  
+-	struct fence *fence_excl;
+-	struct reservation_object_list *fence;
++	struct fence __rcu *fence_excl;
++	struct reservation_object_list __rcu *fence;
+ 	struct reservation_object_list *staged;
+ };
  
--#define flush_icache_user_range(vma, pg, adr, len) \
--	flush_icache_range(adr, adr + len)
--
- #define copy_to_user_page(vma, page, vaddr, dst, src, len) \
- 	do {					\
- 		memcpy(dst, src, len);		\
-diff --git a/arch/sparc/include/asm/cacheflush_32.h b/arch/sparc/include/asm/cacheflush_32.h
-index bb014c24f318..66354e476ad6 100644
---- a/arch/sparc/include/asm/cacheflush_32.h
-+++ b/arch/sparc/include/asm/cacheflush_32.h
-@@ -16,8 +16,6 @@
- #define flush_icache_range(start, end)		do { } while (0)
- #define flush_icache_page(vma, pg)		do { } while (0)
+-#define reservation_object_assert_held(obj) \
+-	lockdep_assert_held(&(obj)->lock.base)
++#define reservation_object_held(obj) (lockdep_is_held(&(obj)->lock.base))
  
--#define flush_icache_user_range(vma,pg,adr,len)	do { } while (0)
--
- #define copy_to_user_page(vma, page, vaddr, dst, src, len) \
- 	do {							\
- 		flush_cache_page(vma, vaddr, page_to_pfn(page));\
-diff --git a/arch/sparc/include/asm/cacheflush_64.h b/arch/sparc/include/asm/cacheflush_64.h
-index 301736d9e7a1..f920ebc8bc12 100644
---- a/arch/sparc/include/asm/cacheflush_64.h
-+++ b/arch/sparc/include/asm/cacheflush_64.h
-@@ -48,7 +48,6 @@ extern void __flush_dcache_range(unsigned long start, unsigned long end);
- extern void flush_dcache_page(struct page *page);
+ static inline void
+ reservation_object_init(struct reservation_object *obj)
+ {
+ 	ww_mutex_init(&obj->lock, &reservation_ww_class);
  
- #define flush_icache_page(vma, pg)	do { } while(0)
--#define flush_icache_user_range(vma,pg,adr,len)	do { } while (0)
+-	obj->fence_excl = NULL;
+-	obj->fence = NULL;
++	RCU_INIT_POINTER(obj->fence, NULL);
++	RCU_INIT_POINTER(obj->fence_excl, NULL);
+ 	obj->staged = NULL;
+ }
  
- extern void flush_ptrace_access(struct vm_area_struct *, struct page *,
- 				unsigned long uaddr, void *kaddr,
-diff --git a/arch/tile/include/asm/cacheflush.h b/arch/tile/include/asm/cacheflush.h
-index 92ee4c8a4f76..8e69495ae132 100644
---- a/arch/tile/include/asm/cacheflush.h
-+++ b/arch/tile/include/asm/cacheflush.h
-@@ -35,7 +35,6 @@
- #define flush_cache_vmap(start, end)		do { } while (0)
- #define flush_cache_vunmap(start, end)		do { } while (0)
- #define flush_icache_page(vma, pg)		do { } while (0)
--#define flush_icache_user_range(vma, pg, adr, len)	do { } while (0)
+@@ -76,15 +77,17 @@ reservation_object_fini(struct reservation_object *obj)
+ {
+ 	int i;
+ 	struct reservation_object_list *fobj;
++	struct fence *excl;
  
- /* Flush the icache just on this cpu */
- extern void __flush_icache_range(unsigned long start, unsigned long end);
-diff --git a/arch/unicore32/include/asm/cacheflush.h b/arch/unicore32/include/asm/cacheflush.h
-index c0301e6c8b81..6886b309ec54 100644
---- a/arch/unicore32/include/asm/cacheflush.h
-+++ b/arch/unicore32/include/asm/cacheflush.h
-@@ -184,9 +184,6 @@ extern void flush_dcache_page(struct page *);
- #define flush_dcache_mmap_unlock(mapping)		\
- 	spin_unlock_irq(&(mapping)->tree_lock)
+ 	/*
+ 	 * This object should be dead and all references must have
+-	 * been released to it.
++	 * been released to it, so no need to be protected with rcu.
+ 	 */
+-	if (obj->fence_excl)
+-		fence_put(obj->fence_excl);
++	excl = rcu_dereference_protected(obj->fence_excl, 1);
++	if (excl)
++		fence_put(excl);
  
--#define flush_icache_user_range(vma, page, addr, len)	\
--	flush_dcache_page(page)
--
- /*
-  * We don't appear to need to do anything here.  In fact, if we did, we'd
-  * duplicate cache flushing elsewhere performed by flush_dcache_page().
-diff --git a/include/asm-generic/cacheflush.h b/include/asm-generic/cacheflush.h
-index 87bc536ccde3..65141f38b072 100644
---- a/include/asm-generic/cacheflush.h
-+++ b/include/asm-generic/cacheflush.h
-@@ -19,15 +19,11 @@
- #define flush_dcache_mmap_unlock(mapping)	do { } while (0)
- #define flush_icache_range(start, end)		do { } while (0)
- #define flush_icache_page(vma,pg)		do { } while (0)
--#define flush_icache_user_range(vma,pg,adr,len)	do { } while (0)
- #define flush_cache_vmap(start, end)		do { } while (0)
- #define flush_cache_vunmap(start, end)		do { } while (0)
+-	fobj = obj->fence;
++	fobj = rcu_dereference_protected(obj->fence, 1);
+ 	if (fobj) {
+ 		for (i = 0; i < fobj->shared_count; ++i)
+ 			fence_put(fobj->shared[i]);
+@@ -99,9 +102,15 @@ reservation_object_fini(struct reservation_object *obj)
+ static inline struct reservation_object_list *
+ reservation_object_get_list(struct reservation_object *obj)
+ {
+-	reservation_object_assert_held(obj);
++	return rcu_dereference_protected(obj->fence,
++					 reservation_object_held(obj));
++}
  
- #define copy_to_user_page(vma, page, vaddr, dst, src, len) \
--	do { \
--		memcpy(dst, src, len); \
--		flush_icache_user_range(vma, page, vaddr, len); \
--	} while (0)
-+	memcpy(dst, src, len)
- #define copy_from_user_page(vma, page, vaddr, dst, src, len) \
- 	memcpy(dst, src, len)
+-	return obj->fence;
++static inline struct fence *
++reservation_object_get_excl(struct reservation_object *obj)
++{
++	return rcu_dereference_protected(obj->fence_excl,
++					 reservation_object_held(obj));
+ }
  
+ int reservation_object_reserve_shared(struct reservation_object *obj);
+@@ -111,4 +120,11 @@ void reservation_object_add_shared_fence(struct reservation_object *obj,
+ void reservation_object_add_excl_fence(struct reservation_object *obj,
+ 				       struct fence *fence);
+ 
++long reservation_object_wait_timeout_rcu(struct reservation_object *obj,
++					 bool wait_all, bool intr,
++					 unsigned long timeout);
++
++bool reservation_object_test_signaled_rcu(struct reservation_object *obj,
++					  bool test_all);
++
+ #endif /* _LINUX_RESERVATION_H */
 
-
--- 
-FTTC broadband for 0.8mile line: now at 9.7Mbps down 460kbps up... slowly
-improving, and getting towards what was expected from it.
