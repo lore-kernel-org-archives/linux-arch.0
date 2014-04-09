@@ -1,217 +1,153 @@
-From: Waiman Long <waiman.long@hp.com>
-Subject: Re: [PATCH v8 00/10] qspinlock: a 4-byte queue spinlock with PV
-	support
-Date: Tue, 08 Apr 2014 15:15:58 -0400
-Message-ID: <53444AEE.9050705@hp.com>
-References: <1396445259-27670-1-git-send-email-Waiman.Long@hp.com>
-	<5342425A.7040005@linux.vnet.ibm.com> <5342D475.7060503@hp.com>
-	<5342E5B2.1070306@linux.vnet.ibm.com>
+From: Madhavan Srinivasan <maddy@linux.vnet.ibm.com>
+Subject: Re: [PATCH V2 1/2] mm: move FAULT_AROUND_ORDER to arch/
+Date: Wed, 09 Apr 2014 06:44:28 +0530
+Message-ID: <53449EF4.10805@linux.vnet.ibm.com>
+References: <1396592835-24767-1-git-send-email-maddy@linux.vnet.ibm.com> <1396592835-24767-2-git-send-email-maddy@linux.vnet.ibm.com> <20140404131747.GA23076@node.dhcp.inet.fi>
 Mime-Version: 1.0
-Content-Type: multipart/mixed; boundary="------------040207070205080604010401"
-Return-path: <virtualization-bounces@lists.linux-foundation.org>
-In-Reply-To: <5342E5B2.1070306@linux.vnet.ibm.com>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
-List-Post: <mailto:virtualization@lists.linux-foundation.org>
-List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
-Sender: virtualization-bounces@lists.linux-foundation.org
-Errors-To: virtualization-bounces@lists.linux-foundation.org
-To: Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>
-Cc: linux-arch@vger.kernel.org, Rik van Riel <riel@redhat.com>, Gleb Natapov <gleb@redhat.com>, kvm@vger.kernel.org, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Peter Zijlstra <peterz@infradead.org>, Scott J Norton <scott.norton@hp.com>, x86@kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, Ingo Molnar <mingo@redhat.com>, Chegu Vinod <chegu_vinod@hp.com>, David Vrabel <david.vrabel@citrix.com>, "H. Peter Anvin" <hpa@zytor.com>, xen-devel@lists.xenproject.org, Thomas Gleixner <tglx@linutronix.de>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Oleg Nesterov <oleg@redhat.com>, Aswin Chandramouleeswaran <aswin@hp.com>
-List-Id: linux-arch.vger.kernel.org
-
-This is a multi-part message in MIME format.
---------------040207070205080604010401
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from e23smtp05.au.ibm.com ([202.81.31.147]:58577 "EHLO
+	e23smtp05.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756235AbaDIBOx (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 8 Apr 2014 21:14:53 -0400
+Received: from /spool/local
+	by e23smtp05.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <maddy@linux.vnet.ibm.com>;
+	Wed, 9 Apr 2014 11:14:50 +1000
+In-Reply-To: <20140404131747.GA23076@node.dhcp.inet.fi>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: "Kirill A. Shutemov" <kirill@shutemov.name>
+Cc: linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, x86@kernel.org, benh@kernel.crashing.org, paulus@samba.org, kirill.shutemov@linux.intel.com, rusty@rustcorp.com.au, akpm@linux-foundation.org, riel@redhat.com, mgorman@suse.de, ak@linux.intel.com, peterz@infradead.org, mingo@kernel.org
 
-On 04/07/2014 01:51 PM, Raghavendra K T wrote:
-> On 04/07/2014 10:08 PM, Waiman Long wrote:
->> On 04/07/2014 02:14 AM, Raghavendra K T wrote:
-> [...]
->>> But I am seeing hang in overcommit cases. Gdb showed that many vcpus
->>> are halted and there was no progress. Suspecting the problem /race with
->>> halting, I removed the halt() part of kvm_hibernate().  I am yet to
->>> take a closer look at the code on halt() related changes.
+On Friday 04 April 2014 06:47 PM, Kirill A. Shutemov wrote:
+> On Fri, Apr 04, 2014 at 11:57:14AM +0530, Madhavan Srinivasan wrote:
+>> Kirill A. Shutemov with faultaround patchset introduced
+>> vm_ops->map_pages() for mapping easy accessible pages around
+>> fault address in hope to reduce number of minor page faults.
 >>
->> It seems like there may still be race conditions where the current code
->> is not handling correctly. I will look into that to see where the
->> problem is. BTW, what test do you use to produce the hang condition?
->
-> Running ebizzy on 2 of the vms simultaneously (for sometime in 
-> repeated loop) could reproduce it.
->
+>> This patch creates infrastructure to move the FAULT_AROUND_ORDER
+>> to arch/ using Kconfig. This will enable architecture maintainers
+>> to decide on suitable FAULT_AROUND_ORDER value based on
+>> performance data for that architecture. Patch also adds
+>> FAULT_AROUND_ORDER Kconfig element in arch/X86.
+>>
+>> Signed-off-by: Madhavan Srinivasan <maddy@linux.vnet.ibm.com>
+>> ---
+>>  arch/x86/Kconfig   |    4 ++++
+>>  include/linux/mm.h |    9 +++++++++
+>>  mm/memory.c        |   12 +++++-------
+>>  3 files changed, 18 insertions(+), 7 deletions(-)
+>>
+>> diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+>> index 9c0a657..5833f22 100644
+>> --- a/arch/x86/Kconfig
+>> +++ b/arch/x86/Kconfig
+>> @@ -1177,6 +1177,10 @@ config DIRECT_GBPAGES
+>>  	  support it. This can improve the kernel's performance a tiny bit by
+>>  	  reducing TLB pressure. If in doubt, say "Y".
+>>  
+>> +config FAULT_AROUND_ORDER
+>> +	int
+>> +	default "4"
+>> +
+>>  # Common NUMA Features
+>>  config NUMA
+>>  	bool "Numa Memory Allocation and Scheduler Support"
+>> diff --git a/include/linux/mm.h b/include/linux/mm.h
+>> index 0bd4359..b93c1c3 100644
+>> --- a/include/linux/mm.h
+>> +++ b/include/linux/mm.h
+>> @@ -26,6 +26,15 @@ struct file_ra_state;
+>>  struct user_struct;
+>>  struct writeback_control;
+>>  
+>> +/*
+>> + * Fault around order is a control knob to decide the fault around pages.
+>> + * Default value is set to 0UL (disabled), but the arch can override it as
+>> + * desired.
+>> + */
+>> +#ifndef CONFIG_FAULT_AROUND_ORDER
+>> +#define CONFIG_FAULT_AROUND_ORDER 0
+>> +#endif
+>> +
+> 
+> I don't think it should be in header file: nobody except mm/memory.c cares.
+> Just put it instead '#define FAULT_AROUND_ORDER'.
+> 
 
-Yes, I am able to reproduce the hang problem with ebizzy. BTW, could you 
-try to apply the attached patch file on top of the v8 patch series to 
-see if it can fix the hang problem?
+Ok. Will do this change.
 
->
->> What is the baseline for the performance improvement? Is it without the
->> unfair lock and PV qspinlock?
->
-> Baseline was 3.14-rc8 without any of the qspin patch series.
->
+>>  #ifndef CONFIG_NEED_MULTIPLE_NODES	/* Don't use mapnrs, do it properly */
+>>  extern unsigned long max_mapnr;
+>>  
+>> diff --git a/mm/memory.c b/mm/memory.c
+>> index b02c584..22a4a89 100644
+>> --- a/mm/memory.c
+>> +++ b/mm/memory.c
+>> @@ -3358,10 +3358,8 @@ void do_set_pte(struct vm_area_struct *vma, unsigned long address,
+>>  	update_mmu_cache(vma, address, pte);
+>>  }
+>>  
+>> -#define FAULT_AROUND_ORDER 4
+>> -
+>>  #ifdef CONFIG_DEBUG_FS
+>> -static unsigned int fault_around_order = FAULT_AROUND_ORDER;
+>> +static unsigned int fault_around_order = CONFIG_FAULT_AROUND_ORDER;
+>>  
+>>  static int fault_around_order_get(void *data, u64 *val)
+>>  {
+>> @@ -3371,7 +3369,7 @@ static int fault_around_order_get(void *data, u64 *val)
+>>  
+>>  static int fault_around_order_set(void *data, u64 val)
+>>  {
+>> -	BUILD_BUG_ON((1UL << FAULT_AROUND_ORDER) > PTRS_PER_PTE);
+>> +	BUILD_BUG_ON((1UL << CONFIG_FAULT_AROUND_ORDER) > PTRS_PER_PTE);
+>>  	if (1UL << val > PTRS_PER_PTE)
+>>  		return -EINVAL;
+>>  	fault_around_order = val;
+>> @@ -3406,14 +3404,14 @@ static inline unsigned long fault_around_pages(void)
+>>  {
+>>  	unsigned long nr_pages;
+>>  
+>> -	nr_pages = 1UL << FAULT_AROUND_ORDER;
+>> +	nr_pages = 1UL << CONFIG_FAULT_AROUND_ORDER;
+>>  	BUILD_BUG_ON(nr_pages > PTRS_PER_PTE);
+>>  	return nr_pages;
+>>  }
+>>  
+>>  static inline unsigned long fault_around_mask(void)
+>>  {
+>> -	return ~((1UL << (PAGE_SHIFT + FAULT_AROUND_ORDER)) - 1);
+>> +	return ~((1UL << (PAGE_SHIFT + CONFIG_FAULT_AROUND_ORDER)) - 1);
+>>  }
+>>  #endif
+>>  
+>> @@ -3471,7 +3469,7 @@ static int do_read_fault(struct mm_struct *mm, struct vm_area_struct *vma,
+>>  	 * if page by the offset is not ready to be mapped (cold cache or
+>>  	 * something).
+>>  	 */
+>> -	if (vma->vm_ops->map_pages) {
+>> +	if ((vma->vm_ops->map_pages) && (fault_around_pages() > 1)) {
+> 
+> 	if (vma->vm_ops->map_pages && fault_around_pages()) {
+> 
+For a fault around value of 0, fault_around_pages() will return 1 and
+that is reason for checking it greater than 1. Also, using debug fs,
+fault around value can be zeroed.
 
-Does the baseline have PV ticketlock or without any PV support?
-
--Longman
-
---------------040207070205080604010401
-Content-Type: text/plain;
- name="0011"
-Content-Transfer-Encoding: 7bit
-Content-Disposition: attachment;
- filename="0011"
-
-diff --git a/arch/x86/include/asm/paravirt.h b/arch/x86/include/asm/paravirt.h
-index a35cd02..825c535 100644
---- a/arch/x86/include/asm/paravirt.h
-+++ b/arch/x86/include/asm/paravirt.h
-@@ -717,9 +717,10 @@ static __always_inline void __queue_kick_cpu(int cpu)
- 	PVOP_VCALL1(pv_lock_ops.kick_cpu, cpu);
- }
- 
--static __always_inline void __queue_hibernate(enum pv_lock_stats type)
-+static __always_inline void
-+__queue_hibernate(enum pv_lock_stats type, s8 *state, s8 sval)
- {
--	PVOP_VCALL1(pv_lock_ops.hibernate, type);
-+	PVOP_VCALL3(pv_lock_ops.hibernate, type, state, sval);
- }
- 
- static __always_inline void __queue_lockstat(enum pv_lock_stats type)
-diff --git a/arch/x86/include/asm/paravirt_types.h b/arch/x86/include/asm/paravirt_types.h
-index a8564b9..0e204dd 100644
---- a/arch/x86/include/asm/paravirt_types.h
-+++ b/arch/x86/include/asm/paravirt_types.h
-@@ -346,7 +346,7 @@ enum pv_lock_stats {
- struct pv_lock_ops {
- #ifdef CONFIG_QUEUE_SPINLOCK
- 	void (*kick_cpu)(int cpu);
--	void (*hibernate)(enum pv_lock_stats type);
-+	void (*hibernate)(enum pv_lock_stats type, s8 *state, s8 sval);
- 	void (*lockstat)(enum pv_lock_stats type);
- #else
- 	struct paravirt_callee_save lock_spinning;
-diff --git a/arch/x86/include/asm/pvqspinlock.h b/arch/x86/include/asm/pvqspinlock.h
-index a632dcb..4b33769 100644
---- a/arch/x86/include/asm/pvqspinlock.h
-+++ b/arch/x86/include/asm/pvqspinlock.h
-@@ -134,7 +134,7 @@ static __always_inline void pv_head_spin_check(struct pv_qvars *pv, int *count,
- 			*count = 0;
- 			return;
- 		}
--		__queue_hibernate(PV_HALT_QHEAD);
-+		__queue_hibernate(PV_HALT_QHEAD, &pv->cpustate, PV_CPU_HALTED);
- 		__queue_lockstat((pv->cpustate == PV_CPU_KICKED)
- 				 ? PV_WAKE_KICKED : PV_WAKE_SPURIOUS);
- 		ACCESS_ONCE(pv->cpustate) = PV_CPU_ACTIVE;
-@@ -169,7 +169,7 @@ static __always_inline void pv_queue_spin_check(struct pv_qvars *pv, int *count)
- 		 * pv_next_node_check		pv_queue_spin_check
- 		 * ------------------		-------------------
- 		 * [1] qhead = true		[3] cpustate = PV_CPU_HALTED
--		 *     barrier()		    barrier()
-+		 *     smp_mb()			    smp_mb()
- 		 * [2] if (cpustate		[4] if (qhead)
- 		 *        == PV_CPU_HALTED)
- 		 *
-@@ -178,9 +178,10 @@ static __always_inline void pv_queue_spin_check(struct pv_qvars *pv, int *count)
- 		 *	       _QLOCK_LOCKED_SLOWPATH may or may not be set
- 		 * 3,4,1,2 - the CPU is halt and _QLOCK_LOCKED_SLOWPATH is set
- 		 */
--		barrier();
-+		smp_mb();
- 		if (!ACCESS_ONCE(pv->qhead)) {
--			__queue_hibernate(PV_HALT_QNODE);
-+			__queue_hibernate(PV_HALT_QNODE, &pv->cpustate,
-+					  PV_CPU_HALTED);
- 			__queue_lockstat((pv->cpustate == PV_CPU_KICKED)
- 					 ? PV_WAKE_KICKED : PV_WAKE_SPURIOUS);
- 		} else {
-@@ -208,7 +209,7 @@ pv_next_node_check(struct pv_qvars *pv, struct qspinlock *lock)
- 	/*
- 	 * Make sure qhead flag is visible before checking the cpustate flag
- 	 */
--	barrier();
-+	smp_mb();
- 	if (ACCESS_ONCE(pv->cpustate) == PV_CPU_HALTED)
- 		ACCESS_ONCE(((union arch_qspinlock *)lock)->lock)
- 			= _QLOCK_LOCKED_SLOWPATH;
-diff --git a/arch/x86/kernel/kvm.c b/arch/x86/kernel/kvm.c
-index 7d97e58..ce4b74b 100644
---- a/arch/x86/kernel/kvm.c
-+++ b/arch/x86/kernel/kvm.c
-@@ -880,23 +880,29 @@ static void kvm_kick_cpu_stats(int cpu)
- /*
-  * Halt the current CPU & release it back to the host
-  */
--static void kvm_hibernate(enum pv_lock_stats type)
-+static void kvm_hibernate(enum pv_lock_stats type, s8 *state, s8 sval)
- {
- 	unsigned long flags;
- 
- 	if (in_nmi())
- 		return;
- 
--	kvm_halt_stats(type);
- 	/*
- 	 * Make sure an interrupt handler can't upset things in a
- 	 * partially setup state.
- 	 */
- 	local_irq_save(flags);
-+	/*
-+	 * Don't halt if the CPU state has been changed.
-+	 */
-+	if (ACCESS_ONCE(*state) != sval)
-+		goto out;
-+	kvm_halt_stats(type);
- 	if (arch_irqs_disabled_flags(flags))
- 		halt();
- 	else
- 		safe_halt();
-+out:
- 	local_irq_restore(flags);
- }
- #endif /* !CONFIG_QUEUE_SPINLOCK */
-diff --git a/arch/x86/xen/spinlock.c b/arch/x86/xen/spinlock.c
-index 6bbe798..c597bbd 100644
---- a/arch/x86/xen/spinlock.c
-+++ b/arch/x86/xen/spinlock.c
-@@ -271,7 +271,7 @@ static void xen_kick_cpu(int cpu)
- /*
-  * Halt the current CPU & release it back to the host
-  */
--static void xen_hibernate(enum pv_lock_stats type)
-+static void xen_hibernate(enum pv_lock_stats type, s8 *state, s8 sval)
- {
- 	int irq = __this_cpu_read(lock_kicker_irq);
- 	unsigned long flags;
-@@ -292,7 +292,11 @@ static void xen_hibernate(enum pv_lock_stats type)
- 
- 	/* Allow interrupts while blocked */
- 	local_irq_restore(flags);
--
-+	/*
-+	 * Don't halt if the CPU state has been changed.
-+	 */
-+	if (ACCESS_ONCE(*state) != sval)
-+		return;
- 	/*
- 	 * If an interrupt happens here, it will leave the wakeup irq
- 	 * pending, which will cause xen_poll_irq() to return
-
---------------040207070205080604010401
-Content-Type: text/plain; charset="us-ascii"
-MIME-Version: 1.0
-Content-Transfer-Encoding: 7bit
-Content-Disposition: inline
-
-_______________________________________________
-Virtualization mailing list
-Virtualization@lists.linux-foundation.org
-https://lists.linuxfoundation.org/mailman/listinfo/virtualization
---------------040207070205080604010401--
+With regards
+Maddy
+>>  		pte = pte_offset_map_lock(mm, pmd, address, &ptl);
+>>  		do_fault_around(vma, address, pte, pgoff, flags);
+>>  		if (!pte_same(*pte, orig_pte))
+>> -- 
+>> 1.7.10.4
+>>
+>> --
+>> To unsubscribe from this list: send the line "unsubscribe linux-kernel" in
+>> the body of a message to majordomo@vger.kernel.org
+>> More majordomo info at  http://vger.kernel.org/majordomo-info.html
+>> Please read the FAQ at  http://www.tux.org/lkml/
+> 
