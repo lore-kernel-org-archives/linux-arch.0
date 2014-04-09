@@ -1,36 +1,25 @@
-From: Maarten Lankhorst <maarten.lankhorst@canonical.com>
-Subject: [PATCH 0/2] Updates to fence api
-Date: Wed, 09 Apr 2014 16:48:13 +0200
-Message-ID: <20140409144239.26648.57918.stgit@patser>
+From: Mark Salter <msalter@redhat.com>
+Subject: Re: [PATCH 10/31] arch,c6x: Convert smp_mb__*
+Date: Wed, 09 Apr 2014 11:35:42 -0400
+Message-ID: <1397057742.31272.30.camel@deneb.redhat.com>
+References: <20140319064729.660482086@infradead.org>
+	 <20140319065204.317916607@infradead.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
+Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: 7bit
-Return-path: <dri-devel-bounces@lists.freedesktop.org>
-List-Unsubscribe: <http://lists.freedesktop.org/mailman/options/dri-devel>,
- <mailto:dri-devel-request@lists.freedesktop.org?subject=unsubscribe>
-List-Archive: <http://lists.freedesktop.org/archives/dri-devel>
-List-Post: <mailto:dri-devel@lists.freedesktop.org>
-List-Help: <mailto:dri-devel-request@lists.freedesktop.org?subject=help>
-List-Subscribe: <http://lists.freedesktop.org/mailman/listinfo/dri-devel>,
- <mailto:dri-devel-request@lists.freedesktop.org?subject=subscribe>
-Errors-To: dri-devel-bounces@lists.freedesktop.org
-Sender: "dri-devel" <dri-devel-bounces@lists.freedesktop.org>
-To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, ccross@google.com, linux-media@vger.kernel.org
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20140319065204.317916607@infradead.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, torvalds@linux-foundation.org, akpm@linux-foundation.org, mingo@kernel.org, will.deacon@arm.com, paulmck@linux.vnet.ibm.com
 List-Id: linux-arch.vger.kernel.org
 
-The following series implements small updates to the fence api.
-I've found them useful when implementing the fence API in ttm and i915.
+On Wed, 2014-03-19 at 07:47 +0100, Peter Zijlstra wrote:
+> c6x doesn't have a barrier.h and completely relies on
+> asm-generic/barrier.h. Therefore its smp_mb() is barrier() and we can
+> use the default versions that are smp_mb().
+> 
+> Signed-off-by: Peter Zijlstra <peterz@infradead.org>
+> ---
 
-The last patch enables RCU on top of the api. I've found this less
-useful, but it was the condition on which Thomas Hellstrom was ok
-with converting TTM to fence, so I had to keep it in.
-
-If nobody objects I'll probably merge that patch through drm, because
-some care is needed in ttm before it can flip the switch on rcu.
-
----
-
-Maarten Lankhorst (2):
-      reservation: update api and add some helpers
-      [RFC] reservation: add suppport for read-only access using rcu
+Acked-by: Mark Salter <msalter@redhat.com>
