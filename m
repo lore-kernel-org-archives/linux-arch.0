@@ -1,34 +1,32 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from adelie.canonical.com ([91.189.90.139]:51250 "EHLO
-	adelie.canonical.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S933121AbaDIPR5 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 9 Apr 2014 11:17:57 -0400
-Subject: [PATCH 0/2] Updates to fence api
-From: Maarten Lankhorst <maarten.lankhorst@canonical.com>
-Date: Wed, 09 Apr 2014 16:48:13 +0200
-Message-ID: <20140409144239.26648.57918.stgit@patser>
-MIME-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
+Received: from mx1.redhat.com ([209.132.183.28]:19130 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S933129AbaDIPgM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 9 Apr 2014 11:36:12 -0400
+Message-ID: <1397057742.31272.30.camel@deneb.redhat.com>
+Subject: Re: [PATCH 10/31] arch,c6x: Convert smp_mb__*
+From: Mark Salter <msalter@redhat.com>
+Date: Wed, 09 Apr 2014 11:35:42 -0400
+In-Reply-To: <20140319065204.317916607@infradead.org>
+References: <20140319064729.660482086@infradead.org>
+	 <20140319065204.317916607@infradead.org>
+Content-Type: text/plain; charset="UTF-8"
+Mime-Version: 1.0
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, ccross@google.com, linaro-mm-sig@lists.linaro.org, robdclark@gmail.com, dri-devel@lists.freedesktop.org, daniel@ffwll.ch, sumit.semwal@linaro.org, linux-media@vger.kernel.org
-Message-ID: <20140409144813.wT9v7zjdK1iPSV4pYXiPdj3nI4_gQrNr6DjJRZ6yXV8@z>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, torvalds@linux-foundation.org, akpm@linux-foundation.org, mingo@kernel.org, will.deacon@arm.com, paulmck@linux.vnet.ibm.com
+Message-ID: <20140409153542.WQ6KNOYNLElaN-gQ3cIz1Nv6kN24Y426y9D2GrxzQis@z>
 
-The following series implements small updates to the fence api.
-I've found them useful when implementing the fence API in ttm and i915.
+On Wed, 2014-03-19 at 07:47 +0100, Peter Zijlstra wrote:
+> c6x doesn't have a barrier.h and completely relies on
+> asm-generic/barrier.h. Therefore its smp_mb() is barrier() and we can
+> use the default versions that are smp_mb().
+> 
+> Signed-off-by: Peter Zijlstra <peterz@infradead.org>
+> ---
 
-The last patch enables RCU on top of the api. I've found this less
-useful, but it was the condition on which Thomas Hellstrom was ok
-with converting TTM to fence, so I had to keep it in.
+Acked-by: Mark Salter <msalter@redhat.com>
 
-If nobody objects I'll probably merge that patch through drm, because
-some care is needed in ttm before it can flip the switch on rcu.
-
----
-
-Maarten Lankhorst (2):
-      reservation: update api and add some helpers
-      [RFC] reservation: add suppport for read-only access using rcu
 
