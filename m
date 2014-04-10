@@ -1,88 +1,115 @@
-From: Maarten Lankhorst <maarten.lankhorst@canonical.com>
+From: Thomas Hellstrom <thellstrom@vmware.com>
 Subject: Re: [PATCH 2/2] [RFC] reservation: add suppport for read-only access
  using rcu
-Date: Thu, 10 Apr 2014 12:07:31 +0200
-Message-ID: <53466D63.8080808@canonical.com>
-References: <20140409144239.26648.57918.stgit@patser>
- <20140409144831.26648.79163.stgit@patser> <53465A53.1090500@vmware.com>
+Date: Thu, 10 Apr 2014 13:08:03 +0200
+Message-ID: <53467B93.3000402@vmware.com>
+References: <20140409144239.26648.57918.stgit@patser> <20140409144831.26648.79163.stgit@patser> <53465A53.1090500@vmware.com> <53466D63.8080808@canonical.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"; Format="flowed"
+Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 7bit
-Return-path: <dri-devel-bounces@lists.freedesktop.org>
-In-Reply-To: <53465A53.1090500@vmware.com>
-List-Unsubscribe: <http://lists.freedesktop.org/mailman/options/dri-devel>,
- <mailto:dri-devel-request@lists.freedesktop.org?subject=unsubscribe>
-List-Archive: <http://lists.freedesktop.org/archives/dri-devel>
-List-Post: <mailto:dri-devel@lists.freedesktop.org>
-List-Help: <mailto:dri-devel-request@lists.freedesktop.org?subject=help>
-List-Subscribe: <http://lists.freedesktop.org/mailman/listinfo/dri-devel>,
- <mailto:dri-devel-request@lists.freedesktop.org?subject=subscribe>
-Errors-To: dri-devel-bounces@lists.freedesktop.org
-Sender: "dri-devel" <dri-devel-bounces@lists.freedesktop.org>
-To: Thomas Hellstrom <thellstrom@vmware.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, ccross@google.com, linux-media@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from smtp-outbound-1.vmware.com ([208.91.2.12]:36335 "EHLO
+	smtp-outbound-1.vmware.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1030226AbaDJLIH (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Thu, 10 Apr 2014 07:08:07 -0400
+In-Reply-To: <53466D63.8080808@canonical.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Maarten Lankhorst <maarten.lankhorst@canonical.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, ccross@google.com, linux-media@vger.kernel.org
 
-Hey,
-
-op 10-04-14 10:46, Thomas Hellstrom schreef:
-> Hi!
+On 04/10/2014 12:07 PM, Maarten Lankhorst wrote:
+> Hey,
 >
-> Ugh. This became more complicated than I thought, but I'm OK with moving
-> TTM over to fence while we sort out
-> how / if we're going to use this.
+> op 10-04-14 10:46, Thomas Hellstrom schreef:
+>> Hi!
+>>
+>> Ugh. This became more complicated than I thought, but I'm OK with moving
+>> TTM over to fence while we sort out
+>> how / if we're going to use this.
+>>
+>> While reviewing, it struck me that this is kind of error-prone, and hard
+>> to follow since we're operating on a structure that may be
+>> continually updated under us, needing a lot of RCU-specific macros and
+>> barriers.
+> Yeah, but with the exception of dma_buf_poll I don't think there is
+> anything else
+> outside drivers/base/reservation.c has to deal with rcu.
 >
-> While reviewing, it struck me that this is kind of error-prone, and hard
-> to follow since we're operating on a structure that may be
-> continually updated under us, needing a lot of RCU-specific macros and
-> barriers.
-Yeah, but with the exception of dma_buf_poll I don't think there is anything else
-outside drivers/base/reservation.c has to deal with rcu.
+>> Also the rcu wait appears to not complete until there are no busy fences
+>> left (new ones can be added while we wait) rather than
+>> waiting on a snapshot of busy fences.
+> This has been by design, because 'wait for bo idle' type of functions
+> only care
+> if the bo is completely idle or not.
 
-> Also the rcu wait appears to not complete until there are no busy fences
-> left (new ones can be added while we wait) rather than
-> waiting on a snapshot of busy fences.
-This has been by design, because 'wait for bo idle' type of functions only care
-if the bo is completely idle or not.
+No, not when using RCU, because the bo may be busy again before the
+function returns :)
+Complete idleness can only be guaranteed if holding the reservation, or
+otherwise making sure
+that no new rendering is submitted to the buffer, so it's an overkill to
+wait for complete idleness here.
 
-It would be easy to make a snapshot even without seqlocks, just copy
-reservation_object_test_signaled_rcu to return a shared list if test_all is set, or return pointer to exclusive otherwise.
-
-> I wonder if these issues can be addressed by having a function that
-> provides a snapshot of all busy fences: This can be accomplished
-> either by including the exclusive fence in the fence_list structure and
-> allocate a new such structure each time it is updated. The RCU reader
-> could then just make a copy of the current fence_list structure pointed
-> to by &obj->fence, but I'm not sure we want to reallocate *each* time we
-> update the fence pointer.
-No, the most common operation is updating fence pointers, which is why
-the current design makes that cheap. It's also why doing rcu reads is more expensive.
-> The other approach uses a seqlock to obtain a consistent snapshot, and
-> I've attached an incomplete outline, and I'm not 100% whether it's OK to
-> combine RCU and seqlocks in this way...
 >
-> Both these approaches have the benefit of hiding the RCU snapshotting in
-> a single function, that can then be used by any waiting
-> or polling function.
+> It would be easy to make a snapshot even without seqlocks, just copy
+> reservation_object_test_signaled_rcu to return a shared list if
+> test_all is set, or return pointer to exclusive otherwise.
 >
+>> I wonder if these issues can be addressed by having a function that
+>> provides a snapshot of all busy fences: This can be accomplished
+>> either by including the exclusive fence in the fence_list structure and
+>> allocate a new such structure each time it is updated. The RCU reader
+>> could then just make a copy of the current fence_list structure pointed
+>> to by &obj->fence, but I'm not sure we want to reallocate *each* time we
+>> update the fence pointer.
+> No, the most common operation is updating fence pointers, which is why
+> the current design makes that cheap. It's also why doing rcu reads is
+> more expensive.
+>> The other approach uses a seqlock to obtain a consistent snapshot, and
+>> I've attached an incomplete outline, and I'm not 100% whether it's OK to
+>> combine RCU and seqlocks in this way...
+>>
+>> Both these approaches have the benefit of hiding the RCU snapshotting in
+>> a single function, that can then be used by any waiting
+>> or polling function.
+>>
+>
+> I think the middle way with using seqlocks to protect the fence_excl
+> pointer and shared list combination,
+> and using RCU to protect the refcounts for fences and the availability
+> of the list could work for our usecase
+> and might remove a bunch of memory barriers. But yeah that depends on
+> layering rcu and seqlocks.
+> No idea if that is allowed. But I suppose it is.
+>
+> Also, you're being overly paranoid with seqlock reading, we would only
+> need something like this:
+>
+> rcu_read_lock()
+>     preempt_disable()
+>     seq = read_seqcount_begin()
+>     read fence_excl, shared_count = ACCESS_ONCE(fence->shared_count)
+>     copy shared to a struct.
+>     if (read_seqcount_retry()) { unlock and retry }
+>   preempt_enable();
+>   use fence_get_rcu() to bump refcount on everything, if that fails
+> unlock, put, and retry
+> rcu_read_unlock()
+>
+> But the shared list would still need to be RCU'd, to make sure we're
+> not reading freed garbage.
 
-I think the middle way with using seqlocks to protect the fence_excl pointer and shared list combination,
-and using RCU to protect the refcounts for fences and the availability of the list could work for our usecase
-and might remove a bunch of memory barriers. But yeah that depends on layering rcu and seqlocks.
-No idea if that is allowed. But I suppose it is.
+Ah. OK,
+But I think we should use rcu inside seqcount, because
+read_seqcount_begin() may spin for a long time if there are
+many writers. Also I don't think the preempt_disable() is needed for
+read_seq critical sections other than they might
+decrease the risc of retries..
 
-Also, you're being overly paranoid with seqlock reading, we would only need something like this:
+Thanks,
+Thomas
 
-rcu_read_lock()
-     preempt_disable()
-     seq = read_seqcount_begin();
-     read fence_excl, shared_count = ACCESS_ONCE(fence->shared_count)
-     copy shared to a struct.
-     if (read_seqcount_retry()) { unlock and retry }
-   preempt_enable();
-   use fence_get_rcu() to bump refcount on everything, if that fails unlock, put, and retry
-rcu_read_unlock()
 
-But the shared list would still need to be RCU'd, to make sure we're not reading freed garbage.
-
-~Maarten
+>
+> ~Maarten
