@@ -1,254 +1,85 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp-outbound-2.vmware.com ([208.91.2.13]:50722 "EHLO
-	smtp-outbound-2.vmware.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S965566AbaDJIqQ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 10 Apr 2014 04:46:16 -0400
-Message-ID: <53465A53.1090500@vmware.com>
-Date: Thu, 10 Apr 2014 10:46:11 +0200
-From: Thomas Hellstrom <thellstrom@vmware.com>
+Received: from youngberry.canonical.com ([91.189.89.112]:42663 "EHLO
+	youngberry.canonical.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S965757AbaDJKHd (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 10 Apr 2014 06:07:33 -0400
+Message-ID: <53466D63.8080808@canonical.com>
+Date: Thu, 10 Apr 2014 12:07:31 +0200
+From: Maarten Lankhorst <maarten.lankhorst@canonical.com>
 MIME-Version: 1.0
 Subject: Re: [PATCH 2/2] [RFC] reservation: add suppport for read-only access
  using rcu
-References: <20140409144239.26648.57918.stgit@patser> <20140409144831.26648.79163.stgit@patser>
-In-Reply-To: <20140409144831.26648.79163.stgit@patser>
-Content-Type: multipart/mixed;
- boundary="------------020400020705060706020403"
+References: <20140409144239.26648.57918.stgit@patser> <20140409144831.26648.79163.stgit@patser> <53465A53.1090500@vmware.com>
+In-Reply-To: <53465A53.1090500@vmware.com>
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Maarten Lankhorst <maarten.lankhorst@canonical.com>
+To: Thomas Hellstrom <thellstrom@vmware.com>
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, ccross@google.com, linux-media@vger.kernel.org
-Message-ID: <20140410084611.WtKm65ZmVNaR6OEh0Toa_DRmz50vUwlWnd9KJm-e7Ng@z>
+Message-ID: <20140410100731.hucoaDQNLC9NnOruLPkim6FQLHVuq6KcHnlLvWChm4k@z>
 
-This is a multi-part message in MIME format.
---------------020400020705060706020403
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
+Hey,
 
-Hi!
-
-Ugh. This became more complicated than I thought, but I'm OK with moving
-TTM over to fence while we sort out
-how / if we're going to use this.
-
-While reviewing, it struck me that this is kind of error-prone, and hard
-to follow since we're operating on a structure that may be
-continually updated under us, needing a lot of RCU-specific macros and
-barriers.
-
-Also the rcu wait appears to not complete until there are no busy fences
-left (new ones can be added while we wait) rather than
-waiting on a snapshot of busy fences.
-
-I wonder if these issues can be addressed by having a function that
-provides a snapshot of all busy fences: This can be accomplished
-either by including the exclusive fence in the fence_list structure and
-allocate a new such structure each time it is updated. The RCU reader
-could then just make a copy of the current fence_list structure pointed
-to by &obj->fence, but I'm not sure we want to reallocate *each* time we
-update the fence pointer.
-
-The other approach uses a seqlock to obtain a consistent snapshot, and
-I've attached an incomplete outline, and I'm not 100% whether it's OK to
-combine RCU and seqlocks in this way...
-
-Both these approaches have the benefit of hiding the RCU snapshotting in
-a single function, that can then be used by any waiting
-or polling function.
-
-/Thomas
-
-
-
-On 04/09/2014 04:49 PM, Maarten Lankhorst wrote:
-> This adds 3 more functions to deal with rcu.
+op 10-04-14 10:46, Thomas Hellstrom schreef:
+> Hi!
 >
-> reservation_object_wait_timeout_rcu() will wait on all fences of the
-> reservation_object, without obtaining the ww_mutex.
+> Ugh. This became more complicated than I thought, but I'm OK with moving
+> TTM over to fence while we sort out
+> how / if we're going to use this.
 >
-> reservation_object_test_signaled_rcu() will test if all fences of the
-> reservation_object are signaled without using the ww_mutex.
+> While reviewing, it struck me that this is kind of error-prone, and hard
+> to follow since we're operating on a structure that may be
+> continually updated under us, needing a lot of RCU-specific macros and
+> barriers.
+Yeah, but with the exception of dma_buf_poll I don't think there is anything else
+outside drivers/base/reservation.c has to deal with rcu.
+
+> Also the rcu wait appears to not complete until there are no busy fences
+> left (new ones can be added while we wait) rather than
+> waiting on a snapshot of busy fences.
+This has been by design, because 'wait for bo idle' type of functions only care
+if the bo is completely idle or not.
+
+It would be easy to make a snapshot even without seqlocks, just copy
+reservation_object_test_signaled_rcu to return a shared list if test_all is set, or return pointer to exclusive otherwise.
+
+> I wonder if these issues can be addressed by having a function that
+> provides a snapshot of all busy fences: This can be accomplished
+> either by including the exclusive fence in the fence_list structure and
+> allocate a new such structure each time it is updated. The RCU reader
+> could then just make a copy of the current fence_list structure pointed
+> to by &obj->fence, but I'm not sure we want to reallocate *each* time we
+> update the fence pointer.
+No, the most common operation is updating fence pointers, which is why
+the current design makes that cheap. It's also why doing rcu reads is more expensive.
+> The other approach uses a seqlock to obtain a consistent snapshot, and
+> I've attached an incomplete outline, and I'm not 100% whether it's OK to
+> combine RCU and seqlocks in this way...
 >
-> reservation_object_get_excl() is added because touching the fence_excl
-> member directly will trigger a sparse warning.
->
-> Signed-off-by: Maarten Lankhorst <maarten.lankhorst@canonical.com>
-> ---
->  drivers/base/dma-buf.c      |   46 +++++++++++--
->  drivers/base/reservation.c  |  147 +++++++++++++++++++++++++++++++++++++++++--
->  include/linux/fence.h       |   22 ++++++
->  include/linux/reservation.h |   40 ++++++++----
->  4 files changed, 224 insertions(+), 31 deletions(-)
+> Both these approaches have the benefit of hiding the RCU snapshotting in
+> a single function, that can then be used by any waiting
+> or polling function.
 >
 
+I think the middle way with using seqlocks to protect the fence_excl pointer and shared list combination,
+and using RCU to protect the refcounts for fences and the availability of the list could work for our usecase
+and might remove a bunch of memory barriers. But yeah that depends on layering rcu and seqlocks.
+No idea if that is allowed. But I suppose it is.
 
---------------020400020705060706020403
-Content-Type: text/x-patch;
- name="rcu_fence.diff"
-Content-Transfer-Encoding: 7bit
-Content-Disposition: attachment;
- filename="rcu_fence.diff"
+Also, you're being overly paranoid with seqlock reading, we would only need something like this:
 
-diff --git a/drivers/base/reservation.c b/drivers/base/reservation.c
-index b82a5b6..c4bcf10 100644
---- a/drivers/base/reservation.c
-+++ b/drivers/base/reservation.c
-@@ -82,6 +82,8 @@ reservation_object_add_shared_inplace(struct reservation_object *obj,
- {
- 	u32 i;
- 
-+	preempt_disable();
-+	write_seqcount_begin(&obj->seq);
- 	for (i = 0; i < fobj->shared_count; ++i) {
- 		if (fobj->shared[i]->context == fence->context) {
- 			struct fence *old_fence = fobj->shared[i];
-@@ -90,6 +92,8 @@ reservation_object_add_shared_inplace(struct reservation_object *obj,
- 
- 			fobj->shared[i] = fence;
- 
-+			write_seqcount_end(&obj->seq);
-+			preempt_enable();
- 			fence_put(old_fence);
- 			return;
- 		}
-@@ -101,8 +105,9 @@ reservation_object_add_shared_inplace(struct reservation_object *obj,
- 	 * make the new fence visible before incrementing
- 	 * fobj->shared_count
- 	 */
--	smp_wmb();
- 	fobj->shared_count++;
-+	write_seqcount_end(&obj->seq);
-+	preempt_enable();
- }
- 
- static void
-@@ -141,7 +146,11 @@ reservation_object_add_shared_replace(struct reservation_object *obj,
- 		fobj->shared[fobj->shared_count++] = fence;
- 
- done:
-+	preempt_disable();
-+	write_seqcount_begin(&obj->seq);
- 	obj->fence = fobj;
-+	write_seqcount_end(&obj->seq);
-+	preempt_enable();
- 	kfree(old);
- }
- 
-@@ -173,6 +182,8 @@ void reservation_object_add_excl_fence(struct reservation_object *obj,
- 	u32 i = 0;
- 
- 	old = reservation_object_get_list(obj);
-+	preempt_disable();
-+	write_seqcount_begin(&obj->seq);
- 	if (old) {
- 		i = old->shared_count;
- 		old->shared_count = 0;
-@@ -182,7 +193,8 @@ void reservation_object_add_excl_fence(struct reservation_object *obj,
- 		fence_get(fence);
- 
- 	obj->fence_excl = fence;
--
-+	write_seqcount_end(&obj->seq);
-+	preempt_enable();
- 	/* inplace update, no shared fences */
- 	while (i--)
- 		fence_put(old->shared[i]);
-@@ -191,3 +203,76 @@ void reservation_object_add_excl_fence(struct reservation_object *obj,
- 		fence_put(old_fence);
- }
- EXPORT_SYMBOL(reservation_object_add_excl_fence);
-+
-+struct unsignaled {
-+	unsigned shared_max;
-+	unsigned shared_count;
-+	struct fence **shared;
-+	struct fence *exclusive;
-+};
-+
-+static int reservation_object_unsignaled_rcu(struct reservation_object *obj,
-+					     struct unsignaled *us)
-+{
-+	unsigned seq;
-+	struct reservation_object_list *fobj, list;
-+	struct fence *fence;
-+
-+retry:
-+	seq = read_seqcount_begin(&obj->seq);
-+	rcu_read_lock();
-+
-+	fobj = obj->fence;
-+	fence = obj->exclusive;
-+
-+	/* Check pointers for validity */
-+	if (read_seqcount_retry(&obj->seq, seq)) {
-+		rcu_read_unlock();
-+		goto retry;
-+	}
-+
-+	list = *fobj;
-+
-+	/* Check list for validity */
-+	if (read_seqcount_retry(&obj->seq, seq)) {
-+		rcu_read_unlock();
-+		goto retry;
-+	}
-+
-+	if (list.shared_count == 0) {
-+		if (fence &&
-+		    !test_bit(FENCE_FLAG_SIGNALED_BIT, &fence->flags) &&
-+		    fence_get_rcu(fence))
-+			us->exclusive = exclusive;
-+		rcu_read_unlock();
-+		return 0;
-+	}
-+	
-+
-+	/* Needs reallocation? Either in this function or outside */
-+	if (us->shared_max < list.shared_count) {
-+		rcu_read_unlock();
-+		return -ENOMEM;
-+	}
-+
-+	memcpy(us->shared, list.shared,
-+	       list.shared_count * sizeof(*list.shared));
-+
-+	/* Check the fence pointer array for validity */
-+	if (read_seqcount_retry(&obj->seq, seq)) {
-+		rcu_read_unlock();
-+		goto retry;
-+	}
-+
-+	for (i = 0; i < list.shared_count; ++i) {
-+		struct fence *fence = us->shared[i];
-+	       
-+		if (fence && !test_bit(FENCE_FLAG_SIGNALED_BIT, &fence->flags)
-+		    && fence_get_rcu(fence));			
-+		us->shared[us->shared_count++] = fence;
-+	}
-+
-+	rcu_read_unlock();
-+	
-+	return 0;
-+}
-diff --git a/include/linux/reservation.h b/include/linux/reservation.h
-index b602365..4bf791a 100644
---- a/include/linux/reservation.h
-+++ b/include/linux/reservation.h
-@@ -52,6 +52,7 @@ struct reservation_object_list {
- 
- struct reservation_object {
- 	struct ww_mutex lock;
-+	struct seqcount seq;
- 
- 	struct fence *fence_excl;
- 	struct reservation_object_list *fence;
-@@ -69,6 +70,7 @@ reservation_object_init(struct reservation_object *obj)
- 	obj->fence_excl = NULL;
- 	obj->fence = NULL;
- 	obj->staged = NULL;
-+	seqcount_init(&obj->seq);
- }
- 
- static inline void
+rcu_read_lock()
+     preempt_disable()
+     seq = read_seqcount_begin();
+     read fence_excl, shared_count = ACCESS_ONCE(fence->shared_count)
+     copy shared to a struct.
+     if (read_seqcount_retry()) { unlock and retry }
+   preempt_enable();
+   use fence_get_rcu() to bump refcount on everything, if that fails unlock, put, and retry
+rcu_read_unlock()
 
---------------020400020705060706020403--
+But the shared list would still need to be RCU'd, to make sure we're not reading freed garbage.
+
+~Maarten
+
