@@ -1,67 +1,39 @@
-From: Russell King - ARM Linux <linux@arm.linux.org.uk>
-Subject: Re: [RFC PATCH] Remove flush_icache_user_range()
-Date: Wed, 9 Apr 2014 17:36:47 +0100
-Message-ID: <20140409163647.GX16119@n2100.arm.linux.org.uk>
-References: <20140409100150.GO16119@n2100.arm.linux.org.uk> <20140409.120926.1586922018370125781.davem@davemloft.net> <20140409161554.GV16119@n2100.arm.linux.org.uk> <20140409.123358.348743774307868735.davem@davemloft.net>
+From: Madhavan Srinivasan <maddy@linux.vnet.ibm.com>
+Subject: Re: [PATCH V2 1/2] mm: move FAULT_AROUND_ORDER to arch/
+Date: Thu, 10 Apr 2014 13:59:29 +0530
+Message-ID: <53465669.80701@linux.vnet.ibm.com>
+References: <1396592835-24767-1-git-send-email-maddy@linux.vnet.ibm.com> <1396592835-24767-2-git-send-email-maddy@linux.vnet.ibm.com> <533EDB63.8090909@intel.com> <5344A312.80802@linux.vnet.ibm.com> <20140409082008.GA10526@twins.programming.kicks-ass.net> <53456BE2.90905@intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from gw-1.arm.linux.org.uk ([78.32.30.217]:55738 "EHLO
-	pandora.arm.linux.org.uk" rhost-flags-OK-OK-OK-FAIL)
-	by vger.kernel.org with ESMTP id S933715AbaDIQhY (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 9 Apr 2014 12:37:24 -0400
-Content-Disposition: inline
-In-Reply-To: <20140409.123358.348743774307868735.davem@davemloft.net>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: David Miller <davem@davemloft.net>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, rth@twiddle.net, ink@jurassic.park.msu.ru, mattst88@gmail.com, starvik@axis.com, jesper.nilsson@axis.com, dhowells@redhat.com, tony.luck@intel.com, fenghua.yu@intel.com, takata@linux-m32r.org, gerg@uclinux.org, geert@linux-m68k.org, monstr@monstr.eu, yasutake.koichi@jp.panasonic.com, cmetcalf@tilera.com, gxt@mprc.pku.edu.cn, arnd@arndb.de
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <53456BE2.90905@intel.com>
+Sender: owner-linux-mm@kvack.org
+To: Dave Hansen <dave.hansen@intel.com>, Peter Zijlstra <peterz@infradead.org>
+Cc: linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, x86@kernel.org, benh@kernel.crashing.org, paulus@samba.org, kirill.shutemov@linux.intel.com, rusty@rustcorp.com.au, akpm@linux-foundation.org, riel@redhat.com, mgorman@suse.de, ak@linux.intel.com, mingo@kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, Apr 09, 2014 at 12:33:58PM -0400, David Miller wrote:
-> From: Russell King - ARM Linux <linux@arm.linux.org.uk>
-> Date: Wed, 9 Apr 2014 17:15:55 +0100
+On Wednesday 09 April 2014 09:18 PM, Dave Hansen wrote:
+> On 04/09/2014 01:20 AM, Peter Zijlstra wrote:
+>> This still misses out on Ben's objection that its impossible to get this
+>> right at compile time for many kernels, since they can boot and run on
+>> many different subarchs.
 > 
-> > On Wed, Apr 09, 2014 at 12:09:26PM -0400, David Miller wrote:
-> >> From: Russell King - ARM Linux <linux@arm.linux.org.uk>
-> >> Date: Wed, 9 Apr 2014 11:01:50 +0100
-> >> 
-> >> > What has been proposed for uprobes is a uprobe specific function -
-> >> > flush_uprobe_xol_access() which is used after uprobes writes via the
-> >> > kmap_atomic() mapping of the page:
-> >> > 
-> >> > +       xol_page_kaddr = kmap_atomic(area->page);
-> >> > +
-> >> > +       /* Initialize the slot */
-> >> > +       memcpy(xol_page_kaddr + (xol_vaddr & ~PAGE_MASK),
-> >> > +              &uprobe->arch.ixol,
-> >> > +              sizeof(uprobe->arch.ixol));
-> >> > +
-> >> > +       arch_uprobe_flush_xol_access(area->page, xol_vaddr,
-> >> > +                                    xol_page_kaddr + (xol_vaddr & ~PAGE_MASK),
-> >> > +                                    sizeof(uprobe->arch.ixol));
-> >> > +
-> >> > +       kunmap_atomic(xol_page_kaddr);
-> >> > 
-> >> > Comments?
-> >> 
-> >> ptrace() accesses (via __access_remote_vm()) already use an existing
-> >> helper function for these sorts of situations, in the form of
-> >> copy_{to,from}_user_page().  I would suggest that uprobes uses that
-> >> as well.
-> > 
-> > Yes, I agree with you.
-> > 
-> > I made that suggestion too (because it's really the same problem)
-> > but uprobes people are concerned that it's too much of an overhead:
+> Completely agree.  The Kconfig-time stuff should probably just be a knob
+> to turn it off completely, if anything.
 > 
-> They should use it at first, then if there is a problem we can identify
-> exactly what can be optimized or needs to be, and expand the interface
-> as needed.
-> 
-> Let's not optimize first.
 
-I have forwarded your comments, thanks.
+ok. Here is my thought. So to address Ben's concern, it would be better
+to have this as a variable with a default value (and the platform can
+override ride it). And a mm/Kconfig to disable it?
+Kindly let me know whether this will work.
 
--- 
-FTTC broadband for 0.8mile line: now at 9.7Mbps down 460kbps up... slowly
-improving, and getting towards what was expected from it.
+Thanks for review comments.
+With regards
+Maddy
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
