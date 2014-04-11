@@ -1,36 +1,109 @@
-From: David Howells <dhowells@redhat.com>
-Subject: Re: [RFC PATCH] Remove flush_icache_user_range()
-Date: Fri, 11 Apr 2014 09:53:08 +0100
-Message-ID: <19350.1397206388@warthog.procyon.org.uk>
-References: <20140409100150.GO16119@n2100.arm.linux.org.uk>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:53818 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754673AbaDKIyW (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 11 Apr 2014 04:54:22 -0400
-In-Reply-To: <20140409100150.GO16119@n2100.arm.linux.org.uk>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Russell King - ARM Linux <linux@arm.linux.org.uk>
-Cc: dhowells@redhat.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Mikael Starvik <starvik@axis.com>, Jesper Nilsson <jesper.nilsson@axis.com>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Hirokazu Takata <takata@linux-m32r.org>, Greg Ungerer <gerg@uclinux.org>, Geert Uytterhoeven <geert@linux-m68k.org>, Michal Simek <monstr@monstr.eu>, Koichi Yasutake <yasutake.koichi@jp.panasonic.com>, "David S. Miller" <davem@davemloft.net>, Chris Metcalf <cmetcalf@tilera.com>, Guan Xuetao <gxt@mprc.pku.edu.cn>, Arnd Bergmann <arnd@arndb.de>
+From: Maarten Lankhorst <maarten.lankhorst@canonical.com>
+Subject: Re: [PATCH 2/2] [RFC v2 with seqcount] reservation: add suppport
+ for read-only access using rcu
+Date: Fri, 11 Apr 2014 11:24:53 +0200
+Message-ID: <5347B4E5.6090901@canonical.com>
+References: <20140409144239.26648.57918.stgit@patser>
+ <20140409144831.26648.79163.stgit@patser> <53465A53.1090500@vmware.com>
+ <53466D63.8080808@canonical.com> <53467B93.3000402@vmware.com>
+ <5346B212.8050202@canonical.com> <5347A9FD.2070706@vmware.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"; Format="flowed"
+Content-Transfer-Encoding: 7bit
+Return-path: <dri-devel-bounces@lists.freedesktop.org>
+In-Reply-To: <5347A9FD.2070706@vmware.com>
+List-Unsubscribe: <http://lists.freedesktop.org/mailman/options/dri-devel>,
+ <mailto:dri-devel-request@lists.freedesktop.org?subject=unsubscribe>
+List-Archive: <http://lists.freedesktop.org/archives/dri-devel>
+List-Post: <mailto:dri-devel@lists.freedesktop.org>
+List-Help: <mailto:dri-devel-request@lists.freedesktop.org?subject=help>
+List-Subscribe: <http://lists.freedesktop.org/mailman/listinfo/dri-devel>,
+ <mailto:dri-devel-request@lists.freedesktop.org?subject=subscribe>
+Errors-To: dri-devel-bounces@lists.freedesktop.org
+Sender: "dri-devel" <dri-devel-bounces@lists.freedesktop.org>
+To: Thomas Hellstrom <thellstrom@vmware.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, ccross@google.com, linux-media@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-Russell King - ARM Linux <linux@arm.linux.org.uk> wrote:
+op 11-04-14 10:38, Thomas Hellstrom schreef:
+> Hi, Maarten.
+>
+> Here I believe we encounter a lot of locking inconsistencies.
+>
+> First, it seems you're use a number of pointers as RCU pointers without
+> annotating them as such and use the correct rcu
+> macros when assigning those pointers.
+>
+> Some pointers (like the pointers in the shared fence list) are both used
+> as RCU pointers (in dma_buf_poll()) for example,
+> or considered protected by the seqlock
+> (reservation_object_get_fences_rcu()), which I believe is OK, but then
+> the pointers must
+> be assigned using the correct rcu macros. In the memcpy in
+> reservation_object_get_fences_rcu() we might get away with an
+> ugly typecast, but with a verbose comment that the pointers are
+> considered protected by the seqlock at that location.
+>
+> So I've updated (attached) the headers with proper __rcu annotation and
+> locking comments according to how they are being used in the various
+> reading functions.
+> I believe if we want to get rid of this we need to validate those
+> pointers using the seqlock as well.
+> This will generate a lot of sparse warnings in those places needing
+> rcu_dereference()
+> rcu_assign_pointer()
+> rcu_dereference_protected()
+>
+> With this I think we can get rid of all ACCESS_ONCE macros: It's not
+> needed when the rcu_x() macros are used, and
+> it's never needed for the members protected by the seqlock, (provided
+> that the seq is tested). The only place where I think that's
+> *not* the case is at the krealloc in reservation_object_get_fences_rcu().
+>
+> Also I have some more comments in the
+> reservation_object_get_fences_rcu() function below:
+I felt that the barriers needed for rcu were already provided by checking the seqcount lock.
+But looking at rcu_dereference makes it seem harmless to add it in more places, it handles
+the ACCESS_ONCE and barrier() for us.
 
-> --- a/arch/frv/include/asm/cacheflush.h
-> +++ b/arch/frv/include/asm/cacheflush.h
-> @@ -95,7 +95,9 @@ static inline void flush_icache_page(struct vm_area_struct *vma, struct page *pa
->   */
->  #define copy_to_user_page(vma, page, vaddr, dst, src, len)	\
->  do {								\
-> +	unsigned long _vaddr = vaddr;				\
->  	memcpy((dst), (src), (len));				\
-> +	frv_cache_wback_inv(_vaddr, _vaddr + (len));		\
->  	flush_icache_user_range((vma), (page), (vaddr), (len));	\
->  } while(0)
+We could probably get away with using RCU_INIT_POINTER on the writer side,
+because the smp_wmb is already done by arranging seqcount updates correctly.
 
-FRV's flush_icache_user_range() does frv_cache_wback_inv().
-
-If we can guarantee that vaddr is always mapped to the page, I should be able
-to get rid of the kmap_atomic bits in flush_icache_user_range().
-
-David
+> diff --git a/drivers/base/dma-buf.c b/drivers/base/dma-buf.c
+> index d89a98d2c37b..ca6ef0c4b358 100644
+> --- a/drivers/base/dma-buf.c
+> +++ b/drivers/base/dma-buf.c
+>
+> +int reservation_object_get_fences_rcu(struct reservation_object *obj,
+> +                      struct fence **pfence_excl,
+> +                      unsigned *pshared_count,
+> +                      struct fence ***pshared)
+> +{
+> +    unsigned shared_count = 0;
+> +    unsigned retry = 1;
+> +    struct fence **shared = NULL, *fence_excl = NULL;
+> +    int ret = 0;
+> +
+> +    while (retry) {
+> +        struct reservation_object_list *fobj;
+> +        unsigned seq, retry;
+> You're shadowing retry?
+Oops.
+>
+>> +
+>> +        seq = read_seqcount_begin(&obj->seq);
+>> +
+>> +        rcu_read_lock();
+>> +
+>> +        fobj = ACCESS_ONCE(obj->fence);
+>> +        if (fobj) {
+>> +            struct fence **nshared;
+>> +
+>> +            shared_count = ACCESS_ONCE(fobj->shared_count);
+>> +            nshared = krealloc(shared, sizeof(*shared) *
+>> shared_count, GFP_KERNEL);
+> krealloc inside rcu_read_lock(). Better to put this first in the loop.
+Except that shared_count isn't known until the rcu_read_lock is taken.
+> Thanks,
+> Thomas
+~Maarten
