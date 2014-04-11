@@ -1,34 +1,61 @@
-From: Russell King - ARM Linux <linux@arm.linux.org.uk>
-Subject: Re: [PATCH 03/15] arm: add renameat2 syscall
-Date: Fri, 11 Apr 2014 11:35:07 +0100
-Message-ID: <20140411103507.GK16119@n2100.arm.linux.org.uk>
-References: <1397211951-20549-1-git-send-email-miklos@szeredi.hu> <1397211951-20549-4-git-send-email-miklos@szeredi.hu>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from gw-1.arm.linux.org.uk ([78.32.30.217]:57995 "EHLO
-	pandora.arm.linux.org.uk" rhost-flags-OK-OK-OK-FAIL)
-	by vger.kernel.org with ESMTP id S1757187AbaDKKfp (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Fri, 11 Apr 2014 06:35:45 -0400
-Content-Disposition: inline
-In-Reply-To: <1397211951-20549-4-git-send-email-miklos@szeredi.hu>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Miklos Szeredi <miklos@szeredi.hu>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Miklos Szeredi <mszeredi@suse.cz>
+From: Miklos Szeredi <miklos@szeredi.hu>
+Subject: [PATCH 03/15] arm: add renameat2 syscall
+Date: Fri, 11 Apr 2014 12:25:39 +0200
+Message-ID: <1397211951-20549-4-git-send-email-miklos@szeredi.hu>
+References: <1397211951-20549-1-git-send-email-miklos@szeredi.hu>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1397211951-20549-1-git-send-email-miklos@szeredi.hu>
+Sender: linux-kernel-owner@vger.kernel.org
+To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Cc: Miklos Szeredi <mszeredi@suse.cz>, Russell King <linux@arm.linux.org.uk>
+List-Id: linux-arch.vger.kernel.org
 
-On Fri, Apr 11, 2014 at 12:25:39PM +0200, Miklos Szeredi wrote:
-> From: Miklos Szeredi <mszeredi@suse.cz>
-> 
-> Signed-off-by: Miklos Szeredi <mszeredi@suse.cz>
-> Cc: Russell King <linux@arm.linux.org.uk>
+From: Miklos Szeredi <mszeredi@suse.cz>
 
-Same comments for the previous patch.  What is/where is the remainder of
-the series, or at least the cover message to explain what the series is
-about (which may also show why the other patches are not relevant to
-everyone.)
+Signed-off-by: Miklos Szeredi <mszeredi@suse.cz>
+Cc: Russell King <linux@arm.linux.org.uk>
+---
+ arch/arm/include/asm/unistd.h      | 2 +-
+ arch/arm/include/uapi/asm/unistd.h | 1 +
+ arch/arm/kernel/calls.S            | 1 +
+ 3 files changed, 3 insertions(+), 1 deletion(-)
 
+diff --git a/arch/arm/include/asm/unistd.h b/arch/arm/include/asm/unistd.h
+index c4cd2060cac2..fbda7a3e5abe 100644
+--- a/arch/arm/include/asm/unistd.h
++++ b/arch/arm/include/asm/unistd.h
+@@ -15,7 +15,7 @@
+ 
+ #include <uapi/asm/unistd.h>
+ 
+-#define __NR_syscalls  (382)
++#define __NR_syscalls  (383)
+ #define __ARM_NR_cmpxchg		(__ARM_NR_BASE+0x00fff0)
+ 
+ #define __ARCH_WANT_STAT64
+diff --git a/arch/arm/include/uapi/asm/unistd.h b/arch/arm/include/uapi/asm/unistd.h
+index fb5584d0cc05..ba94446c72d9 100644
+--- a/arch/arm/include/uapi/asm/unistd.h
++++ b/arch/arm/include/uapi/asm/unistd.h
+@@ -408,6 +408,7 @@
+ #define __NR_finit_module		(__NR_SYSCALL_BASE+379)
+ #define __NR_sched_setattr		(__NR_SYSCALL_BASE+380)
+ #define __NR_sched_getattr		(__NR_SYSCALL_BASE+381)
++#define __NR_renameat2			(__NR_SYSCALL_BASE+382)
+ 
+ /*
+  * This may need to be greater than __NR_last_syscall+1 in order to
+diff --git a/arch/arm/kernel/calls.S b/arch/arm/kernel/calls.S
+index 166e945de832..8f51bdcdacbb 100644
+--- a/arch/arm/kernel/calls.S
++++ b/arch/arm/kernel/calls.S
+@@ -391,6 +391,7 @@
+ 		CALL(sys_finit_module)
+ /* 380 */	CALL(sys_sched_setattr)
+ 		CALL(sys_sched_getattr)
++		CALL(sys_renameat2)
+ #ifndef syscalls_counted
+ .equ syscalls_padding, ((NR_syscalls + 3) & ~3) - NR_syscalls
+ #define syscalls_counted
 -- 
-FTTC broadband for 0.8mile line: now at 9.7Mbps down 460kbps up... slowly
-improving, and getting towards what was expected from it.
+1.8.1.4
