@@ -1,26 +1,24 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp-outbound-2.vmware.com ([208.91.2.13]:41216 "EHLO
+Received: from smtp-outbound-2.vmware.com ([208.91.2.13]:42142 "EHLO
 	smtp-outbound-2.vmware.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1750735AbaDKTa0 (ORCPT
+	by vger.kernel.org with ESMTP id S1752312AbaDKTfK (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Fri, 11 Apr 2014 15:30:26 -0400
-Message-ID: <534842CD.70303@vmware.com>
-Date: Fri, 11 Apr 2014 21:30:21 +0200
+	Fri, 11 Apr 2014 15:35:10 -0400
+Message-ID: <534843EA.6060602@vmware.com>
+Date: Fri, 11 Apr 2014 21:35:06 +0200
 From: Thomas Hellstrom <thellstrom@vmware.com>
 MIME-Version: 1.0
 Subject: Re: [PATCH 2/2] [RFC v2 with seqcount] reservation: add suppport
  for read-only access using rcu
 References: <20140409144239.26648.57918.stgit@patser> <20140409144831.26648.79163.stgit@patser> <53465A53.1090500@vmware.com> <53466D63.8080808@canonical.com> <53467B93.3000402@vmware.com> <5346B212.8050202@canonical.com> <5347A9FD.2070706@vmware.com> <5347B4E5.6090901@canonical.com> <5347BFC9.3020503@vmware.com> <53482FF1.1090406@canonical.com>
 In-Reply-To: <53482FF1.1090406@canonical.com>
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Maarten Lankhorst <maarten.lankhorst@canonical.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, ccross@google.com, linux-media@vger.kernel.org
-Message-ID: <20140411193021.-Nd0E64ZwnDJoLk33yaMdToxpCkv-GcXHgfTW0kc8lY@z>
-
-Hi!
+Cc: Thomas Hellstrom <thellstrom@vmware.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, ccross@google.com, linux-media@vger.kernel.org
+Message-ID: <20140411193506.OrA2Wc7ZLy1dUWciiCipgwxfVDBKcnq-9-1UqpNKKzA@z>
 
 On 04/11/2014 08:09 PM, Maarten Lankhorst wrote:
 > op 11-04-14 12:11, Thomas Hellstrom schreef:
@@ -95,17 +93,19 @@ On 04/11/2014 08:09 PM, Maarten Lankhorst wrote:
 > What could happen though is that the fence at a specific index is
 > updated with another one from the same
 > context, but that's harmless.
+>
 
-Hmm.
-Shouldn't we have a way to clean signaled fences from reservation
-objects? Perhaps when we attach a new fence, or after a wait with
-ww_mutex held? Otherwise we'd have a lot of completely unused fence
-objects hanging around for no reason. I don't think we need to be as
-picky as TTM, but I think we should do something?
+Hmm, doesn't attaching an exclusive fence clear all shared fence
+pointers from under a reader?
 
 /Thomas
 
 
 
->
+
+
 > ~Maarten
+> _______________________________________________
+> dri-devel mailing list
+> dri-devel@lists.freedesktop.org
+> http://lists.freedesktop.org/mailman/listinfo/dri-devel
