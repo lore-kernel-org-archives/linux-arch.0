@@ -1,214 +1,361 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga11.intel.com ([192.55.52.93]:50662 "EHLO mga11.intel.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1422786AbaDKA03 convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 10 Apr 2014 20:26:29 -0400
-From: "Zheng, Lv" <lv.zheng@intel.com>
-Subject: RE: [PATCH] include: replace asm headers to linux
-Date: Fri, 11 Apr 2014 00:26:23 +0000
-Message-ID: <1AE640813FDE7649BE1B193DEA596E88025521F4@SHSMSX101.ccr.corp.intel.com>
-References: <1397172486-13214-1-git-send-email-paulmcquad@gmail.com>
-In-Reply-To: <1397172486-13214-1-git-send-email-paulmcquad@gmail.com>
-Content-Language: en-US
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 8BIT
+Received: from smtp-outbound-1.vmware.com ([208.91.2.12]:37325 "EHLO
+	smtp-outbound-1.vmware.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1753107AbaDKIi0 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Fri, 11 Apr 2014 04:38:26 -0400
+Message-ID: <5347A9FD.2070706@vmware.com>
+Date: Fri, 11 Apr 2014 10:38:21 +0200
+From: Thomas Hellstrom <thellstrom@vmware.com>
 MIME-Version: 1.0
+Subject: Re: [PATCH 2/2] [RFC v2 with seqcount] reservation: add suppport
+ for read-only access using rcu
+References: <20140409144239.26648.57918.stgit@patser> <20140409144831.26648.79163.stgit@patser> <53465A53.1090500@vmware.com> <53466D63.8080808@canonical.com> <53467B93.3000402@vmware.com> <5346B212.8050202@canonical.com>
+In-Reply-To: <5346B212.8050202@canonical.com>
+Content-Type: multipart/mixed;
+ boundary="------------060504020804050705070008"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Paul McQuade <paulmcquad@gmail.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "devel@acpica.org" <devel@acpica.org>, "linux-acpi@vger.kernel.org" <linux-acpi@vger.kernel.org>, "al.stone@linaro.org" <al.stone@linaro.org>, "naresh.bhat@linaro.org" <naresh.bhat@linaro.org>, "arnd@arndb.de" <arnd@arndb.de>, "Wysocki, Rafael J" <rafael.j.wysocki@intel.com>
-Message-ID: <20140411002623.5F6rFiar-T34y7s9VZZSHv61Mz5HrpPau_m4JDGR6_4@z>
+To: Maarten Lankhorst <maarten.lankhorst@canonical.com>
+Cc: Thomas Hellstrom <thellstrom@vmware.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, ccross@google.com, linux-media@vger.kernel.org
+Message-ID: <20140411083821.5Lgy5bB3hsOshH2kcygaH1m09ZNOGdM2q01QzI18ZwE@z>
 
-Hi,
+This is a multi-part message in MIME format.
+--------------060504020804050705070008
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
 
-> From: linux-acpi-owner@vger.kernel.org [mailto:linux-acpi-owner@vger.kernel.org] On Behalf Of Paul McQuade
-> Sent: Friday, April 11, 2014 7:28 AM
-> 
-> Use #include <linux/uaccess.h> instead of <asm/uaccess.h>
-> Use #include <linux/types.h> instead of <asm/types.h>
-> 
-> Signed-off-by: Paul McQuade <paulmcquad@gmail.com>
-> ---
->  include/acpi/platform/aclinux.h           | 2 +-
->  include/asm-generic/bitops/__ffs.h        | 2 +-
->  include/asm-generic/bitops/__fls.h        | 2 +-
->  include/asm-generic/bitops/arch_hweight.h | 2 +-
->  include/asm-generic/bitops/atomic.h       | 6 +++---
->  include/asm-generic/bitops/count_zeros.h  | 2 +-
->  include/asm-generic/bitops/fls64.h        | 2 +-
->  include/asm-generic/bitops/le.h           | 2 +-
->  include/asm-generic/bitops/non-atomic.h   | 2 +-
->  include/asm-generic/bitops/sched.h        | 2 +-
->  10 files changed, 12 insertions(+), 12 deletions(-)
-> 
-> diff --git a/include/acpi/platform/aclinux.h b/include/acpi/platform/aclinux.h
-> index 93c55ed..d52317f 100644
-> --- a/include/acpi/platform/aclinux.h
-> +++ b/include/acpi/platform/aclinux.h
-> @@ -71,7 +71,7 @@
->  #ifdef EXPORT_ACPI_INTERFACES
->  #include <linux/export.h>
->  #endif
-> -#include <asm/acpi.h>
-> +#include <linux/acpi.h>
-> 
->  /* Host-dependent types and defines for in-kernel ACPICA */
-> 
+Hi, Maarten.
 
-This diff block is wrong.
+Here I believe we encounter a lot of locking inconsistencies.
 
-The acpi/platform/aclinux.h is a "platform specific ACPICA environment header".
-The linux/acpi.h is a "Top level header of Linux ACPI".
-The asm/acpi.h is a combination of " architecture specific ACPICA environment header" and "architecture specific Linux ACPI header".
+First, it seems you're use a number of pointers as RCU pointers without
+annotating them as such and use the correct rcu
+macros when assigning those pointers.
 
-The relationship between Linux ACPI and ACPICA is:
-Linux ACPI is using ACPICA.
-So linux ACPI header should __INCLUDE__ ACPICA header, which means linux/acpi.h should include acpi/platform/aclinux.h.
-You patch thus is wrong.
+Some pointers (like the pointers in the shared fence list) are both used
+as RCU pointers (in dma_buf_poll()) for example,
+or considered protected by the seqlock
+(reservation_object_get_fences_rcu()), which I believe is OK, but then
+the pointers must
+be assigned using the correct rcu macros. In the memcpy in
+reservation_object_get_fences_rcu() we might get away with an
+ugly typecast, but with a verbose comment that the pointers are
+considered protected by the seqlock at that location.
 
-In fact, acpi/platform/aclinux.h is included by acpi/acpi.h and acpi/acpi.h is included by linux/acpi.h.
+So I've updated (attached) the headers with proper __rcu annotation and
+locking comments according to how they are being used in the various
+reading functions.
+I believe if we want to get rid of this we need to validate those
+pointers using the seqlock as well.
+This will generate a lot of sparse warnings in those places needing
+rcu_dereference()
+rcu_assign_pointer()
+rcu_dereference_protected()
 
-For asm/acpi.h, there are really things messed up in it.
-I have a series to split its role so that wrong "architecture specific Linux ACPI header" can be sorted out from acpi/platform/aclinux.h.
-Please refer to:
-https://lkml.org/lkml/2014/4/8/57
+With this I think we can get rid of all ACCESS_ONCE macros: It's not
+needed when the rcu_x() macros are used, and
+it's never needed for the members protected by the seqlock, (provided
+that the seq is tested). The only place where I think that's
+*not* the case is at the krealloc in reservation_object_get_fences_rcu().
 
-The correct way to fix the issue you are trying to fix is this patch:
-https://lkml.org/lkml/2014/4/8/60
+Also I have some more comments in the
+reservation_object_get_fences_rcu() function below:
 
-So please drop this diff block and just wait for the above mentioned series to be merged.
 
-Thanks and best regards
--Lv
+On 04/10/2014 05:00 PM, Maarten Lankhorst wrote:
+> op 10-04-14 13:08, Thomas Hellstrom schreef:
+>> On 04/10/2014 12:07 PM, Maarten Lankhorst wrote:
+>>> Hey,
+>>>
+>>> op 10-04-14 10:46, Thomas Hellstrom schreef:
+>>>> Hi!
+>>>>
+>>>> Ugh. This became more complicated than I thought, but I'm OK with
+>>>> moving
+>>>> TTM over to fence while we sort out
+>>>> how / if we're going to use this.
+>>>>
+>>>> While reviewing, it struck me that this is kind of error-prone, and
+>>>> hard
+>>>> to follow since we're operating on a structure that may be
+>>>> continually updated under us, needing a lot of RCU-specific macros and
+>>>> barriers.
+>>> Yeah, but with the exception of dma_buf_poll I don't think there is
+>>> anything else
+>>> outside drivers/base/reservation.c has to deal with rcu.
+>>>
+>>>> Also the rcu wait appears to not complete until there are no busy
+>>>> fences
+>>>> left (new ones can be added while we wait) rather than
+>>>> waiting on a snapshot of busy fences.
+>>> This has been by design, because 'wait for bo idle' type of functions
+>>> only care
+>>> if the bo is completely idle or not.
+>> No, not when using RCU, because the bo may be busy again before the
+>> function returns :)
+>> Complete idleness can only be guaranteed if holding the reservation, or
+>> otherwise making sure
+>> that no new rendering is submitted to the buffer, so it's an overkill to
+>> wait for complete idleness here.
+> You're probably right, but it makes waiting a lot easier if I don't
+> have to deal with memory allocations. :P
+>>> It would be easy to make a snapshot even without seqlocks, just copy
+>>> reservation_object_test_signaled_rcu to return a shared list if
+>>> test_all is set, or return pointer to exclusive otherwise.
+>>>
+>>>> I wonder if these issues can be addressed by having a function that
+>>>> provides a snapshot of all busy fences: This can be accomplished
+>>>> either by including the exclusive fence in the fence_list structure
+>>>> and
+>>>> allocate a new such structure each time it is updated. The RCU reader
+>>>> could then just make a copy of the current fence_list structure
+>>>> pointed
+>>>> to by &obj->fence, but I'm not sure we want to reallocate *each*
+>>>> time we
+>>>> update the fence pointer.
+>>> No, the most common operation is updating fence pointers, which is why
+>>> the current design makes that cheap. It's also why doing rcu reads is
+>>> more expensive.
+>>>> The other approach uses a seqlock to obtain a consistent snapshot, and
+>>>> I've attached an incomplete outline, and I'm not 100% whether it's
+>>>> OK to
+>>>> combine RCU and seqlocks in this way...
+>>>>
+>>>> Both these approaches have the benefit of hiding the RCU
+>>>> snapshotting in
+>>>> a single function, that can then be used by any waiting
+>>>> or polling function.
+>>>>
+>>> I think the middle way with using seqlocks to protect the fence_excl
+>>> pointer and shared list combination,
+>>> and using RCU to protect the refcounts for fences and the availability
+>>> of the list could work for our usecase
+>>> and might remove a bunch of memory barriers. But yeah that depends on
+>>> layering rcu and seqlocks.
+>>> No idea if that is allowed. But I suppose it is.
+>>>
+>>> Also, you're being overly paranoid with seqlock reading, we would only
+>>> need something like this:
+>>>
+>>> rcu_read_lock()
+>>>      preempt_disable()
+>>>      seq = read_seqcount_begin()
+>>>      read fence_excl, shared_count = ACCESS_ONCE(fence->shared_count)
+>>>      copy shared to a struct.
+>>>      if (read_seqcount_retry()) { unlock and retry }
+>>>    preempt_enable();
+>>>    use fence_get_rcu() to bump refcount on everything, if that fails
+>>> unlock, put, and retry
+>>> rcu_read_unlock()
+>>>
+>>> But the shared list would still need to be RCU'd, to make sure we're
+>>> not reading freed garbage.
+>> Ah. OK,
+>> But I think we should use rcu inside seqcount, because
+>> read_seqcount_begin() may spin for a long time if there are
+>> many writers. Also I don't think the preempt_disable() is needed for
+>> read_seq critical sections other than they might
+>> decrease the risc of retries..
+>>
+> Reading the seqlock code makes me suspect that's the case too. The
+> lockdep code calls
+> local_irq_disable, so it's probably safe without preemption disabled.
+>
+> ~Maarten
+>
+> I like the ability of not allocating memory, so I kept
+> reservation_object_wait_timeout_rcu mostly
+> the way it was. This code appears to fail on nouveau when using the
+> shared members,
+> but I'm not completely sure whether the error is in nouveau or this
+> code yet.
+>
+> --8<--------
+> [RFC v2] reservation: add suppport for read-only access using rcu
+>
+> This adds 4 more functions to deal with rcu.
+>
+> reservation_object_get_fences_rcu() will obtain the list of shared
+> and exclusive fences without obtaining the ww_mutex.
+>
+> reservation_object_wait_timeout_rcu() will wait on all fences of the
+> reservation_object, without obtaining the ww_mutex.
+>
+> reservation_object_test_signaled_rcu() will test if all fences of the
+> reservation_object are signaled without using the ww_mutex.
+>
+> reservation_object_get_excl() is added because touching the fence_excl
+> member directly will trigger a sparse warning.
+>
+> Signed-off-by: Maarten Lankhorst <maarten.lankhorst@canonical.com>
+>
+> diff --git a/drivers/base/dma-buf.c b/drivers/base/dma-buf.c
+> index d89a98d2c37b..ca6ef0c4b358 100644
+> --- a/drivers/base/dma-buf.c
+> +++ b/drivers/base/dma-buf.c
+>
+> +int reservation_object_get_fences_rcu(struct reservation_object *obj,
+> +                      struct fence **pfence_excl,
+> +                      unsigned *pshared_count,
+> +                      struct fence ***pshared)
+> +{
+> +    unsigned shared_count = 0;
+> +    unsigned retry = 1;
+> +    struct fence **shared = NULL, *fence_excl = NULL;
+> +    int ret = 0;
+> +
+> +    while (retry) {
+> +        struct reservation_object_list *fobj;
+> +        unsigned seq, retry;
 
-> diff --git a/include/asm-generic/bitops/__ffs.h b/include/asm-generic/bitops/__ffs.h
-> index 937d7c4..8236f91 100644
-> --- a/include/asm-generic/bitops/__ffs.h
-> +++ b/include/asm-generic/bitops/__ffs.h
-> @@ -1,7 +1,7 @@
->  #ifndef _ASM_GENERIC_BITOPS___FFS_H_
->  #define _ASM_GENERIC_BITOPS___FFS_H_
-> 
-> -#include <asm/types.h>
-> +#include <linux/types.h>
-> 
->  /**
->   * __ffs - find first bit in word.
-> diff --git a/include/asm-generic/bitops/__fls.h b/include/asm-generic/bitops/__fls.h
-> index a60a7cc..60e5360 100644
-> --- a/include/asm-generic/bitops/__fls.h
-> +++ b/include/asm-generic/bitops/__fls.h
-> @@ -1,7 +1,7 @@
->  #ifndef _ASM_GENERIC_BITOPS___FLS_H_
->  #define _ASM_GENERIC_BITOPS___FLS_H_
-> 
-> -#include <asm/types.h>
-> +#include <linux/types.h>
-> 
->  /**
->   * __fls - find last (most-significant) set bit in a long word
-> diff --git a/include/asm-generic/bitops/arch_hweight.h b/include/asm-generic/bitops/arch_hweight.h
-> index 6a211f4..a9a48a8 100644
-> --- a/include/asm-generic/bitops/arch_hweight.h
-> +++ b/include/asm-generic/bitops/arch_hweight.h
-> @@ -1,7 +1,7 @@
->  #ifndef _ASM_GENERIC_BITOPS_ARCH_HWEIGHT_H_
->  #define _ASM_GENERIC_BITOPS_ARCH_HWEIGHT_H_
-> 
-> -#include <asm/types.h>
-> +#include <linux/types.h>
-> 
->  static inline unsigned int __arch_hweight32(unsigned int w)
->  {
-> diff --git a/include/asm-generic/bitops/atomic.h b/include/asm-generic/bitops/atomic.h
-> index 9ae6c34..4469696 100644
-> --- a/include/asm-generic/bitops/atomic.h
-> +++ b/include/asm-generic/bitops/atomic.h
-> @@ -1,12 +1,12 @@
->  #ifndef _ASM_GENERIC_BITOPS_ATOMIC_H_
->  #define _ASM_GENERIC_BITOPS_ATOMIC_H_
-> 
-> -#include <asm/types.h>
-> +#include <linux/types.h>
->  #include <linux/irqflags.h>
-> 
->  #ifdef CONFIG_SMP
-> -#include <asm/spinlock.h>
-> -#include <asm/cache.h>		/* we use L1_CACHE_BYTES */
-> +#include <linux/spinlock.h>
-> +#include <linux/cache.h>		/* we use L1_CACHE_BYTES */
-> 
->  /* Use an array of spinlocks for our atomic_ts.
->   * Hash function to index into a different SPINLOCK.
-> diff --git a/include/asm-generic/bitops/count_zeros.h b/include/asm-generic/bitops/count_zeros.h
-> index 97520d2..7f8e1d0 100644
-> --- a/include/asm-generic/bitops/count_zeros.h
-> +++ b/include/asm-generic/bitops/count_zeros.h
-> @@ -12,7 +12,7 @@
->  #ifndef _ASM_GENERIC_BITOPS_COUNT_ZEROS_H_
->  #define _ASM_GENERIC_BITOPS_COUNT_ZEROS_H_
-> 
-> -#include <asm/bitops.h>
-> +#include <linux/bitops.h>
-> 
->  /**
->   * count_leading_zeros - Count the number of zeros from the MSB back
-> diff --git a/include/asm-generic/bitops/fls64.h b/include/asm-generic/bitops/fls64.h
-> index b097cf8..3999f5c 100644
-> --- a/include/asm-generic/bitops/fls64.h
-> +++ b/include/asm-generic/bitops/fls64.h
-> @@ -1,7 +1,7 @@
->  #ifndef _ASM_GENERIC_BITOPS_FLS64_H_
->  #define _ASM_GENERIC_BITOPS_FLS64_H_
-> 
-> -#include <asm/types.h>
-> +#include <linux/types.h>
-> 
->  /**
->   * fls64 - find last set bit in a 64-bit word
-> diff --git a/include/asm-generic/bitops/le.h b/include/asm-generic/bitops/le.h
-> index 6173154..8f4f574 100644
-> --- a/include/asm-generic/bitops/le.h
-> +++ b/include/asm-generic/bitops/le.h
-> @@ -1,7 +1,7 @@
->  #ifndef _ASM_GENERIC_BITOPS_LE_H_
->  #define _ASM_GENERIC_BITOPS_LE_H_
-> 
-> -#include <asm/types.h>
-> +#include <linux/types.h>
->  #include <asm/byteorder.h>
-> 
->  #if defined(__LITTLE_ENDIAN)
-> diff --git a/include/asm-generic/bitops/non-atomic.h b/include/asm-generic/bitops/non-atomic.h
-> index 697cc2b..4b04267 100644
-> --- a/include/asm-generic/bitops/non-atomic.h
-> +++ b/include/asm-generic/bitops/non-atomic.h
-> @@ -1,7 +1,7 @@
->  #ifndef _ASM_GENERIC_BITOPS_NON_ATOMIC_H_
->  #define _ASM_GENERIC_BITOPS_NON_ATOMIC_H_
-> 
-> -#include <asm/types.h>
-> +#include <linux/types.h>
-> 
->  /**
->   * __set_bit - Set a bit in memory
-> diff --git a/include/asm-generic/bitops/sched.h b/include/asm-generic/bitops/sched.h
-> index 604fab7..65ad856 100644
-> --- a/include/asm-generic/bitops/sched.h
-> +++ b/include/asm-generic/bitops/sched.h
-> @@ -2,7 +2,7 @@
->  #define _ASM_GENERIC_BITOPS_SCHED_H_
-> 
->  #include <linux/compiler.h>	/* unlikely() */
-> -#include <asm/types.h>
-> +#include <linux/types.h>
-> 
->  /*
->   * Every architecture must define this function. It's the fastest
-> --
-> 1.8.3.2
-> 
-> --
-> To unsubscribe from this list: send the line "unsubscribe linux-acpi" in
-> the body of a message to majordomo@vger.kernel.org
-> More majordomo info at  http://vger.kernel.org/majordomo-info.html
+You're shadowing retry?
+
+
+> +
+> +        seq = read_seqcount_begin(&obj->seq);
+> +
+> +        rcu_read_lock();
+> +
+> +        fobj = ACCESS_ONCE(obj->fence);
+> +        if (fobj) {
+> +            struct fence **nshared;
+> +
+> +            shared_count = ACCESS_ONCE(fobj->shared_count);
+> +            nshared = krealloc(shared, sizeof(*shared) *
+> shared_count, GFP_KERNEL);
+
+krealloc inside rcu_read_lock(). Better to put this first in the loop.
+
+>
+> +            if (!nshared) {
+> +                ret = -ENOMEM;
+> +                shared_count = retry = 0;
+> +                goto unlock;
+> +            }
+> +            shared = nshared;
+> +            memcpy(shared, fobj->shared, sizeof(*shared) *
+> shared_count);
+> +        } else
+> +            shared_count = 0;
+> +        fence_excl = obj->fence_excl;
+> +
+> +        retry = read_seqcount_retry(&obj->seq, seq);
+> +        if (retry)
+> +            goto unlock;
+> +
+> +        if (!fence_excl || fence_get_rcu(fence_excl)) {
+> +            unsigned i;
+> +
+> +            for (i = 0; i < shared_count; ++i) {
+> +                if (fence_get_rcu(shared[i]))
+> +                    continue;
+> +
+> +                /* uh oh, refcount failed, abort and retry */
+> +                while (i--)
+> +                    fence_put(shared[i]);
+> +
+> +                if (fence_excl) {
+> +                    fence_put(fence_excl);
+> +                    fence_excl = NULL;
+> +                }
+> +
+> +                retry = 1;
+> +                break;
+> +            }
+> +        } else
+> +            retry = 1;
+> +
+> +unlock:
+> +        rcu_read_unlock();
+> +    }
+> +    *pshared_count = shared_count;
+> +    if (shared_count)
+> +        *pshared = shared;
+> +    else {
+> +        *pshared = NULL;
+> +        kfree(shared);
+> +    }
+> +    *pfence_excl = fence_excl;
+> +
+> +    return ret;
+> +}
+> +EXPORT_SYMBOL_GPL(reservation_object_get_fences_rcu);
+> +
+
+Thanks,
+Thomas
+
+
+--------------060504020804050705070008
+Content-Type: text/x-patch;
+ name="wake_up_sparse.diff"
+Content-Transfer-Encoding: 7bit
+Content-Disposition: attachment;
+ filename="wake_up_sparse.diff"
+
+diff --git a/include/linux/fence.h b/include/linux/fence.h
+index 8499ace..33a265d 100644
+--- a/include/linux/fence.h
++++ b/include/linux/fence.h
+@@ -200,10 +200,13 @@ static inline void fence_get(struct fence *fence)
+  */
+ static inline struct fence *fence_get_rcu(struct fence *fence)
+ {
+-	struct fence *f = ACCESS_ONCE(fence);
++	/*
++	 * Either we make the function operate on __rcu pointers
++	 * or remove ACCESS_ONCE
++	 */
+ 
+-	if (kref_get_unless_zero(&f->refcount))
+-		return f;
++	if (kref_get_unless_zero(&fence->refcount))
++		return fence;
+ 	else
+ 		return NULL;
+ }
+diff --git a/include/linux/reservation.h b/include/linux/reservation.h
+index d6e1f62..ab586a6 100644
+--- a/include/linux/reservation.h
++++ b/include/linux/reservation.h
+@@ -50,16 +50,26 @@ extern struct lock_class_key reservation_seqcount_class;
+ 
+ struct reservation_object_list {
+ 	struct rcu_head rcu;
++	/* Protected by reservation_object::seq */
+ 	u32 shared_count, shared_max;
+-	struct fence *shared[];
++	/* 
++	 * Immutable. Individual pointers in the array are protected
++	 * by reservation_object::seq and rcu. Hence while assigning those
++	 * pointers, rcu_assign_pointer is needed. When reading them
++	 * inside the seqlock, you may use rcu_dereference_protected().
++	 */
++	struct fence __rcu *shared[];
+ };
+ 
+ struct reservation_object {
+ 	struct ww_mutex lock;
+ 	seqcount_t seq;
+ 
++	/* protected by @seq */
+ 	struct fence *fence_excl;
+-	struct reservation_object_list *fence;
++	/* rcu protected by @lock */
++	struct reservation_object_list __rcu *fence;
++	/* Protected by @lock */
+ 	struct reservation_object_list *staged;
+ };
+ 
+@@ -109,7 +119,7 @@ reservation_object_get_list(struct reservation_object *obj)
+ {
+ 	reservation_object_assert_held(obj);
+ 
+-	return obj->fence;
++	return rcu_dereference_protected(obj->fence, 1);
+ }
+ 
+ static inline struct fence *
+
+--------------060504020804050705070008--
