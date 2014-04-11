@@ -1,57 +1,52 @@
-From: Miklos Szeredi <miklos@szeredi.hu>
-Subject: Re: [PATCH 11/15] s390: NR_syscalls fix
-Date: Fri, 11 Apr 2014 13:52:08 +0200
-Message-ID: <CAJfpegvqoiZ6ZDF78ptvDLdav4AAcLfYpji6c-_rqu4-BoGXTg@mail.gmail.com>
-References: <1397211951-20549-1-git-send-email-miklos@szeredi.hu>
-	<1397211951-20549-12-git-send-email-miklos@szeredi.hu>
-	<20140411132412.2ef89a3b@mschwide>
+From: Russell King - ARM Linux <linux@arm.linux.org.uk>
+Subject: Re: [PATCH 02/15] arm: __NR_syscalls fix
+Date: Fri, 11 Apr 2014 12:54:21 +0100
+Message-ID: <20140411115421.GL16119@n2100.arm.linux.org.uk>
+References: <1397211951-20549-1-git-send-email-miklos@szeredi.hu> <1397211951-20549-3-git-send-email-miklos@szeredi.hu> <20140411103351.GJ16119@n2100.arm.linux.org.uk> <CAJfpegvZ-n4sT0ojj9iUg_R5gMZHT0caad6TpOdcmF=pdiXkqg@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qg0-f49.google.com ([209.85.192.49]:58909 "EHLO
-	mail-qg0-f49.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755256AbaDKLwT (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 11 Apr 2014 07:52:19 -0400
-Received: by mail-qg0-f49.google.com with SMTP id j107so387307qga.36
-        for <linux-arch@vger.kernel.org>; Fri, 11 Apr 2014 04:52:18 -0700 (PDT)
-In-Reply-To: <20140411132412.2ef89a3b@mschwide>
+Received: from gw-1.arm.linux.org.uk ([78.32.30.217]:58095 "EHLO
+	pandora.arm.linux.org.uk" rhost-flags-OK-OK-OK-FAIL)
+	by vger.kernel.org with ESMTP id S1754278AbaDKLy4 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Fri, 11 Apr 2014 07:54:56 -0400
+Content-Disposition: inline
+In-Reply-To: <CAJfpegvZ-n4sT0ojj9iUg_R5gMZHT0caad6TpOdcmF=pdiXkqg@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Martin Schwidefsky <schwidefsky@de.ibm.com>
+To: Miklos Szeredi <miklos@szeredi.hu>
 Cc: linux-arch <linux-arch@vger.kernel.org>, Kernel Mailing List <linux-kernel@vger.kernel.org>, Miklos Szeredi <mszeredi@suse.cz>
 
-On Fri, Apr 11, 2014 at 1:24 PM, Martin Schwidefsky
-<schwidefsky@de.ibm.com> wrote:
-> On Fri, 11 Apr 2014 12:25:47 +0200
-> Miklos Szeredi <miklos@szeredi.hu> wrote:
->
->> From: Miklos Szeredi <mszeredi@suse.cz>
->>
->> Signed-off-by: Miklos Szeredi <mszeredi@suse.cz>
->> Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>
->> ---
->>  arch/s390/include/uapi/asm/unistd.h | 2 +-
->>  1 file changed, 1 insertion(+), 1 deletion(-)
->>
->> diff --git a/arch/s390/include/uapi/asm/unistd.h b/arch/s390/include/uapi/asm/unistd.h
->> index 5eb5c9ddb120..57194268fe63 100644
->> --- a/arch/s390/include/uapi/asm/unistd.h
->> +++ b/arch/s390/include/uapi/asm/unistd.h
->> @@ -282,7 +282,7 @@
->>  #define __NR_finit_module    344
->>  #define __NR_sched_setattr   345
->>  #define __NR_sched_getattr   346
->> -#define NR_syscalls 345
->> +#define NR_syscalls 347
->>
->>  /*
->>   * There are some system calls that are not present on 64 bit, some
->
-> Is this patch part of a patch series that does upstream directly?
-> I am asking because Heiko already created a patch for this and we have
-> added it to the linux-s390:fixes branch for upstream integration.
+On Fri, Apr 11, 2014 at 01:50:50PM +0200, Miklos Szeredi wrote:
+> On Fri, Apr 11, 2014 at 12:33 PM, Russell King - ARM Linux
+> <linux@arm.linux.org.uk> wrote:
+> > On Fri, Apr 11, 2014 at 12:25:38PM +0200, Miklos Szeredi wrote:
+> >> From: Miklos Szeredi <mszeredi@suse.cz>
+> >>
+> >> Signed-off-by: Miklos Szeredi <mszeredi@suse.cz>
+> >> Cc: Russell King <linux@arm.linux.org.uk>
+> >> ---
+> >
+> > This has me wondering...
+> >
+> > (a) what you think it fixes
+> > (b) whether you tried to build-test this
+> >
+> > The ARM instruction set supports 8-bit immediate constants with an even
+> > power of two shift.  384 fits that (0x180), 382 does not (0x17e), and
+> > in your following patch, 383 definitely doesn't (0x17f).
+> >
+> > Having this constant larger than necessary does not cause any problem
+> > for the syscall table: we explicitly pad it with calls to sys_ni_syscall
+> > to make up the difference.
+> 
+> Yes, and the padding will be of wrong length if NR_syscalls is
+> incorrect (which may be Oopsable?).  At least that is my impression
+> from a casual glance.
 
-No, I don't mean to upstream directly.   So you can just drop my submission...
+Please explain.
 
-Thanks,
-Miklos
+-- 
+FTTC broadband for 0.8mile line: now at 9.7Mbps down 460kbps up... slowly
+improving, and getting towards what was expected from it.
