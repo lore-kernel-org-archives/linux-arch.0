@@ -1,44 +1,43 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from gw-1.arm.linux.org.uk ([78.32.30.217]:57991 "EHLO
-	pandora.arm.linux.org.uk" rhost-flags-OK-OK-OK-FAIL)
-	by vger.kernel.org with ESMTP id S1757379AbaDKKe2 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Fri, 11 Apr 2014 06:34:28 -0400
-Date: Fri, 11 Apr 2014 11:33:51 +0100
-From: Russell King - ARM Linux <linux@arm.linux.org.uk>
-Subject: Re: [PATCH 02/15] arm: __NR_syscalls fix
-Message-ID: <20140411103351.GJ16119@n2100.arm.linux.org.uk>
-References: <1397211951-20549-1-git-send-email-miklos@szeredi.hu> <1397211951-20549-3-git-send-email-miklos@szeredi.hu>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1397211951-20549-3-git-send-email-miklos@szeredi.hu>
+Received: from mail-ee0-f45.google.com ([74.125.83.45]:46470 "EHLO
+	mail-ee0-f45.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932075AbaDKK0L (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 11 Apr 2014 06:26:11 -0400
+Received: by mail-ee0-f45.google.com with SMTP id d17so3985550eek.32
+        for <linux-arch@vger.kernel.org>; Fri, 11 Apr 2014 03:26:10 -0700 (PDT)
+From: Miklos Szeredi <miklos@szeredi.hu>
+Subject: [PATCH 02/15] arm: __NR_syscalls fix
+Date: Fri, 11 Apr 2014 12:25:38 +0200
+Message-ID: <1397211951-20549-3-git-send-email-miklos@szeredi.hu>
+In-Reply-To: <1397211951-20549-1-git-send-email-miklos@szeredi.hu>
+References: <1397211951-20549-1-git-send-email-miklos@szeredi.hu>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Miklos Szeredi <miklos@szeredi.hu>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Miklos Szeredi <mszeredi@suse.cz>
-Message-ID: <20140411103351.LjBOOGxFiE97wRFzN-fuYHq14-_77LqhkErvjbNsEOo@z>
+To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Cc: Miklos Szeredi <mszeredi@suse.cz>, Russell King <linux@arm.linux.org.uk>
+Message-ID: <20140411102538.Pxcl8sVjK8JSqCt5DdG1rGmD1XmtZZcutfRFyz4SnoE@z>
 
-On Fri, Apr 11, 2014 at 12:25:38PM +0200, Miklos Szeredi wrote:
-> From: Miklos Szeredi <mszeredi@suse.cz>
-> 
-> Signed-off-by: Miklos Szeredi <mszeredi@suse.cz>
-> Cc: Russell King <linux@arm.linux.org.uk>
-> ---
+From: Miklos Szeredi <mszeredi@suse.cz>
 
-This has me wondering...
+Signed-off-by: Miklos Szeredi <mszeredi@suse.cz>
+Cc: Russell King <linux@arm.linux.org.uk>
+---
+ arch/arm/include/asm/unistd.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-(a) what you think it fixes
-(b) whether you tried to build-test this
-
-The ARM instruction set supports 8-bit immediate constants with an even
-power of two shift.  384 fits that (0x180), 382 does not (0x17e), and
-in your following patch, 383 definitely doesn't (0x17f).
-
-Having this constant larger than necessary does not cause any problem
-for the syscall table: we explicitly pad it with calls to sys_ni_syscall
-to make up the difference.
-
+diff --git a/arch/arm/include/asm/unistd.h b/arch/arm/include/asm/unistd.h
+index 43876245fc57..c4cd2060cac2 100644
+--- a/arch/arm/include/asm/unistd.h
++++ b/arch/arm/include/asm/unistd.h
+@@ -15,7 +15,7 @@
+ 
+ #include <uapi/asm/unistd.h>
+ 
+-#define __NR_syscalls  (384)
++#define __NR_syscalls  (382)
+ #define __ARM_NR_cmpxchg		(__ARM_NR_BASE+0x00fff0)
+ 
+ #define __ARCH_WANT_STAT64
 -- 
-FTTC broadband for 0.8mile line: now at 9.7Mbps down 460kbps up... slowly
-improving, and getting towards what was expected from it.
+1.8.1.4
+
