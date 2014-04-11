@@ -1,61 +1,23 @@
-From: Miklos Szeredi <miklos@szeredi.hu>
-Subject: [PATCH 03/15] arm: add renameat2 syscall
-Date: Fri, 11 Apr 2014 12:25:39 +0200
-Message-ID: <1397211951-20549-4-git-send-email-miklos@szeredi.hu>
-References: <1397211951-20549-1-git-send-email-miklos@szeredi.hu>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1397211951-20549-1-git-send-email-miklos@szeredi.hu>
-Sender: linux-kernel-owner@vger.kernel.org
-To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: Miklos Szeredi <mszeredi@suse.cz>, Russell King <linux@arm.linux.org.uk>
-List-Id: linux-arch.vger.kernel.org
+From: "Semple, Kylie M" <kms1037@sru.edu>
+Subject: SUSPECT: General web-mail maintenance
+Date: Fri, 11 Apr 2014 06:33:29 -0400
+Message-ID: <9A90E5A3B8A8104DBF80EE8CDD733B5F27A6B2D02F__16254.3594641194$1397212911$gmane$org@MSFEXCH05.srunet.sruad.edu>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7BIT
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from sruedge03.sru.edu ([205.149.70.121]:49073 "EHLO
+	SSFEXCHEDGE03.srunet.sruad.edu" rhost-flags-OK-OK-OK-FAIL)
+	by vger.kernel.org with ESMTP id S1756632AbaDKKjy convert rfc822-to-8bit
+	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 11 Apr 2014 06:39:54 -0400
+Content-Language: en-US
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: "employeedesk@webmaster.org" <employeedesk@webmaster.org>
 
-From: Miklos Szeredi <mszeredi@suse.cz>
-
-Signed-off-by: Miklos Szeredi <mszeredi@suse.cz>
-Cc: Russell King <linux@arm.linux.org.uk>
----
- arch/arm/include/asm/unistd.h      | 2 +-
- arch/arm/include/uapi/asm/unistd.h | 1 +
- arch/arm/kernel/calls.S            | 1 +
- 3 files changed, 3 insertions(+), 1 deletion(-)
-
-diff --git a/arch/arm/include/asm/unistd.h b/arch/arm/include/asm/unistd.h
-index c4cd2060cac2..fbda7a3e5abe 100644
---- a/arch/arm/include/asm/unistd.h
-+++ b/arch/arm/include/asm/unistd.h
-@@ -15,7 +15,7 @@
- 
- #include <uapi/asm/unistd.h>
- 
--#define __NR_syscalls  (382)
-+#define __NR_syscalls  (383)
- #define __ARM_NR_cmpxchg		(__ARM_NR_BASE+0x00fff0)
- 
- #define __ARCH_WANT_STAT64
-diff --git a/arch/arm/include/uapi/asm/unistd.h b/arch/arm/include/uapi/asm/unistd.h
-index fb5584d0cc05..ba94446c72d9 100644
---- a/arch/arm/include/uapi/asm/unistd.h
-+++ b/arch/arm/include/uapi/asm/unistd.h
-@@ -408,6 +408,7 @@
- #define __NR_finit_module		(__NR_SYSCALL_BASE+379)
- #define __NR_sched_setattr		(__NR_SYSCALL_BASE+380)
- #define __NR_sched_getattr		(__NR_SYSCALL_BASE+381)
-+#define __NR_renameat2			(__NR_SYSCALL_BASE+382)
- 
- /*
-  * This may need to be greater than __NR_last_syscall+1 in order to
-diff --git a/arch/arm/kernel/calls.S b/arch/arm/kernel/calls.S
-index 166e945de832..8f51bdcdacbb 100644
---- a/arch/arm/kernel/calls.S
-+++ b/arch/arm/kernel/calls.S
-@@ -391,6 +391,7 @@
- 		CALL(sys_finit_module)
- /* 380 */	CALL(sys_sched_setattr)
- 		CALL(sys_sched_getattr)
-+		CALL(sys_renameat2)
- #ifndef syscalls_counted
- .equ syscalls_padding, ((NR_syscalls + 3) & ~3) - NR_syscalls
- #define syscalls_counted
--- 
-1.8.1.4
+General web-mail maintenance
+Dear Account Owner,
+ THIS MESSAGE IS DIRECTED TO THOSE USING Office Outlook Web Access Web-mail (2007 version). We want to upgrade all Microsoft Exchange email account scheduled for today as part of our duty to strengthen security of your mailbox. CLICK HERE<http://up-refere1.a.nf/> to upgrade your account to Outlook Web Apps 2014. If your settings is not updated today, your account will be inactive and cannot send or receive message any longer.
+Sincerely,
+IT Helpdesk DEPT
