@@ -1,62 +1,57 @@
 From: Miklos Szeredi <miklos@szeredi.hu>
-Subject: [PATCH 12/15] s390: add renameat2 syscall
-Date: Fri, 11 Apr 2014 12:25:48 +0200
-Message-ID: <1397211951-20549-13-git-send-email-miklos@szeredi.hu>
+Subject: [PATCH 10/15] powerpc: add renameat2 syscall
+Date: Fri, 11 Apr 2014 12:25:46 +0200
+Message-ID: <1397211951-20549-11-git-send-email-miklos@szeredi.hu>
 References: <1397211951-20549-1-git-send-email-miklos@szeredi.hu>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ee0-f42.google.com ([74.125.83.42]:63910 "EHLO
-	mail-ee0-f42.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S965171AbaDKK0Z (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 11 Apr 2014 06:26:25 -0400
-Received: by mail-ee0-f42.google.com with SMTP id d17so3993757eek.1
-        for <linux-arch@vger.kernel.org>; Fri, 11 Apr 2014 03:26:24 -0700 (PDT)
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1397211951-20549-1-git-send-email-miklos@szeredi.hu>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: Miklos Szeredi <mszeredi@suse.cz>, Martin Schwidefsky <schwidefsky@de.ibm.com>
+Cc: Miklos Szeredi <mszeredi@suse.cz>, Benjamin Herrenschmidt <benh@kernel.crashing.org>
+List-Id: linux-arch.vger.kernel.org
 
 From: Miklos Szeredi <mszeredi@suse.cz>
 
 Signed-off-by: Miklos Szeredi <mszeredi@suse.cz>
-Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 ---
- arch/s390/include/uapi/asm/unistd.h | 3 ++-
- arch/s390/kernel/compat_wrapper.c   | 1 +
- arch/s390/kernel/syscalls.S         | 1 +
- 3 files changed, 4 insertions(+), 1 deletion(-)
+ arch/powerpc/include/asm/systbl.h      | 1 +
+ arch/powerpc/include/asm/unistd.h      | 2 +-
+ arch/powerpc/include/uapi/asm/unistd.h | 1 +
+ 3 files changed, 3 insertions(+), 1 deletion(-)
 
-diff --git a/arch/s390/include/uapi/asm/unistd.h b/arch/s390/include/uapi/asm/unistd.h
-index 57194268fe63..3802d2d3a18d 100644
---- a/arch/s390/include/uapi/asm/unistd.h
-+++ b/arch/s390/include/uapi/asm/unistd.h
-@@ -282,7 +282,8 @@
- #define __NR_finit_module	344
- #define __NR_sched_setattr	345
- #define __NR_sched_getattr	346
--#define NR_syscalls 347
-+#define __NR_renameat2		347
-+#define NR_syscalls 348
+diff --git a/arch/powerpc/include/asm/systbl.h b/arch/powerpc/include/asm/systbl.h
+index 3ddf70276706..ea4dc3a89c1f 100644
+--- a/arch/powerpc/include/asm/systbl.h
++++ b/arch/powerpc/include/asm/systbl.h
+@@ -361,3 +361,4 @@ SYSCALL(finit_module)
+ SYSCALL(ni_syscall) /* sys_kcmp */
+ SYSCALL_SPU(sched_setattr)
+ SYSCALL_SPU(sched_getattr)
++SYSCALL_SPU(renameat2)
+diff --git a/arch/powerpc/include/asm/unistd.h b/arch/powerpc/include/asm/unistd.h
+index 4494f029b632..9b892bbd9d84 100644
+--- a/arch/powerpc/include/asm/unistd.h
++++ b/arch/powerpc/include/asm/unistd.h
+@@ -12,7 +12,7 @@
+ #include <uapi/asm/unistd.h>
  
- /* 
-  * There are some system calls that are not present on 64 bit, some
-diff --git a/arch/s390/kernel/compat_wrapper.c b/arch/s390/kernel/compat_wrapper.c
-index 824c39dfddfc..030051840ccd 100644
---- a/arch/s390/kernel/compat_wrapper.c
-+++ b/arch/s390/kernel/compat_wrapper.c
-@@ -213,3 +213,4 @@ COMPAT_SYSCALL_WRAP5(kcmp, pid_t, pid1, pid_t, pid2, int, type, unsigned long, i
- COMPAT_SYSCALL_WRAP3(finit_module, int, fd, const char __user *, uargs, int, flags);
- COMPAT_SYSCALL_WRAP3(sched_setattr, pid_t, pid, struct sched_attr __user *, attr, unsigned int, flags);
- COMPAT_SYSCALL_WRAP4(sched_getattr, pid_t, pid, struct sched_attr __user *, attr, unsigned int, size, unsigned int, flags);
-+COMPAT_SYSCALL_WRAP5(renameat2, int, olddfd, const char __user *, oldname, int, newdfd, const char __user *, newname, unsigned int, flags);
-diff --git a/arch/s390/kernel/syscalls.S b/arch/s390/kernel/syscalls.S
-index 542ef488bac1..fe5cdf29a001 100644
---- a/arch/s390/kernel/syscalls.S
-+++ b/arch/s390/kernel/syscalls.S
-@@ -355,3 +355,4 @@ SYSCALL(sys_kcmp,sys_kcmp,compat_sys_kcmp)
- SYSCALL(sys_finit_module,sys_finit_module,compat_sys_finit_module)
- SYSCALL(sys_sched_setattr,sys_sched_setattr,compat_sys_sched_setattr) /* 345 */
- SYSCALL(sys_sched_getattr,sys_sched_getattr,compat_sys_sched_getattr)
-+SYSCALL(sys_renameat2,sys_renameat2,compat_sys_renameat2)
+ 
+-#define __NR_syscalls		357
++#define __NR_syscalls		358
+ 
+ #define __NR__exit __NR_exit
+ #define NR_syscalls	__NR_syscalls
+diff --git a/arch/powerpc/include/uapi/asm/unistd.h b/arch/powerpc/include/uapi/asm/unistd.h
+index 881bf2e2560d..2d526f7b48da 100644
+--- a/arch/powerpc/include/uapi/asm/unistd.h
++++ b/arch/powerpc/include/uapi/asm/unistd.h
+@@ -379,5 +379,6 @@
+ #define __NR_kcmp		354
+ #define __NR_sched_setattr	355
+ #define __NR_sched_getattr	356
++#define __NR_renameat2		357
+ 
+ #endif /* _UAPI_ASM_POWERPC_UNISTD_H_ */
 -- 
 1.8.1.4
