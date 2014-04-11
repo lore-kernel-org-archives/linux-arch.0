@@ -1,37 +1,31 @@
 From: Miklos Szeredi <miklos@szeredi.hu>
-Subject: [PATCH 05/15] arm64: add renameat2 syscall
-Date: Fri, 11 Apr 2014 12:25:41 +0200
-Message-ID: <1397211951-20549-6-git-send-email-miklos@szeredi.hu>
+Subject: [PATCH 01/15] i386: add renameat2 syscall
+Date: Fri, 11 Apr 2014 12:25:37 +0200
+Message-ID: <1397211951-20549-2-git-send-email-miklos@szeredi.hu>
 References: <1397211951-20549-1-git-send-email-miklos@szeredi.hu>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1397211951-20549-1-git-send-email-miklos@szeredi.hu>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: Miklos Szeredi <mszeredi@suse.cz>, Catalin Marinas <catalin.marinas@arm.com>
+Cc: Miklos Szeredi <mszeredi@suse.cz>, "H. Peter Anvin" <hpa@zytor.com>
 List-Id: linux-arch.vger.kernel.org
 
 From: Miklos Szeredi <mszeredi@suse.cz>
 
 Signed-off-by: Miklos Szeredi <mszeredi@suse.cz>
-Cc: Catalin Marinas <catalin.marinas@arm.com>
+Cc: H. Peter Anvin <hpa@zytor.com>
 ---
- arch/arm64/include/asm/unistd32.h | 3 ++-
- 1 file changed, 2 insertions(+), 1 deletion(-)
+ arch/x86/syscalls/syscall_32.tbl | 1 +
+ 1 file changed, 1 insertion(+)
 
-diff --git a/arch/arm64/include/asm/unistd32.h b/arch/arm64/include/asm/unistd32.h
-index faa0e1ce59df..c8d8fc17bd5a 100644
---- a/arch/arm64/include/asm/unistd32.h
-+++ b/arch/arm64/include/asm/unistd32.h
-@@ -403,8 +403,9 @@ __SYSCALL(378, sys_kcmp)
- __SYSCALL(379, sys_finit_module)
- __SYSCALL(380, sys_sched_setattr)
- __SYSCALL(381, sys_sched_getattr)
-+__SYSCALL(382, sys_renameat2)
- 
--#define __NR_compat_syscalls		382
-+#define __NR_compat_syscalls		383
- 
- /*
-  * Compat syscall numbers used by the AArch64 kernel.
+diff --git a/arch/x86/syscalls/syscall_32.tbl b/arch/x86/syscalls/syscall_32.tbl
+index 96bc506ac6de..d6b867921612 100644
+--- a/arch/x86/syscalls/syscall_32.tbl
++++ b/arch/x86/syscalls/syscall_32.tbl
+@@ -359,3 +359,4 @@
+ 350	i386	finit_module		sys_finit_module
+ 351	i386	sched_setattr		sys_sched_setattr
+ 352	i386	sched_getattr		sys_sched_getattr
++353	i386	renameat2		sys_renameat2
 -- 
 1.8.1.4
