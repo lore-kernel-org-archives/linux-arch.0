@@ -1,26 +1,33 @@
 From: Maarten Lankhorst <maarten.lankhorst@canonical.com>
 Subject: Re: [PATCH 2/2] [RFC v2 with seqcount] reservation: add suppport
  for read-only access using rcu
-Date: Mon, 14 Apr 2014 09:04:21 +0200
-Message-ID: <534B8875.9040104@canonical.com>
-References: <20140409144239.26648.57918.stgit@patser> <20140409144831.26648.79163.stgit@patser> <53465A53.1090500@vmware.com> <53466D63.8080808@canonical.com> <53467B93.3000402@vmware.com> <5346B212.8050202@canonical.com> <5347A9FD.2070706@vmware.com> <5347B4E5.6090901@canonical.com> <5347BFC9.3020503@vmware.com> <53482FF1.1090406@canonical.com> <534842CD.70303@vmware.com>
+Date: Mon, 14 Apr 2014 09:42:29 +0200
+Message-ID: <534B9165.4000101@canonical.com>
+References: <20140409144239.26648.57918.stgit@patser>
+ <20140409144831.26648.79163.stgit@patser> <53465A53.1090500@vmware.com>
+ <53466D63.8080808@canonical.com> <53467B93.3000402@vmware.com>
+ <5346B212.8050202@canonical.com> <5347A9FD.2070706@vmware.com>
+ <5347B4E5.6090901@canonical.com> <5347BFC9.3020503@vmware.com>
+ <53482FF1.1090406@canonical.com> <534843EA.6060602@vmware.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8; format=flowed
+Content-Type: text/plain; charset="us-ascii"; Format="flowed"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from youngberry.canonical.com ([91.189.89.112]:37276 "EHLO
-	youngberry.canonical.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751194AbaDNHE2 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 14 Apr 2014 03:04:28 -0400
-In-Reply-To: <534842CD.70303@vmware.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Return-path: <dri-devel-bounces@lists.freedesktop.org>
+In-Reply-To: <534843EA.6060602@vmware.com>
+List-Unsubscribe: <http://lists.freedesktop.org/mailman/options/dri-devel>,
+ <mailto:dri-devel-request@lists.freedesktop.org?subject=unsubscribe>
+List-Archive: <http://lists.freedesktop.org/archives/dri-devel>
+List-Post: <mailto:dri-devel@lists.freedesktop.org>
+List-Help: <mailto:dri-devel-request@lists.freedesktop.org?subject=help>
+List-Subscribe: <http://lists.freedesktop.org/mailman/listinfo/dri-devel>,
+ <mailto:dri-devel-request@lists.freedesktop.org?subject=subscribe>
+Errors-To: dri-devel-bounces@lists.freedesktop.org
+Sender: "dri-devel" <dri-devel-bounces@lists.freedesktop.org>
 To: Thomas Hellstrom <thellstrom@vmware.com>
 Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, ccross@google.com, linux-media@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-op 11-04-14 21:30, Thomas Hellstrom schreef:
-> Hi!
->
+op 11-04-14 21:35, Thomas Hellstrom schreef:
 > On 04/11/2014 08:09 PM, Maarten Lankhorst wrote:
 >> op 11-04-14 12:11, Thomas Hellstrom schreef:
 >>> On 04/11/2014 11:24 AM, Maarten Lankhorst wrote:
@@ -94,14 +101,13 @@ op 11-04-14 21:30, Thomas Hellstrom schreef:
 >> What could happen though is that the fence at a specific index is
 >> updated with another one from the same
 >> context, but that's harmless.
-> Hmm.
-> Shouldn't we have a way to clean signaled fences from reservation
-> objects? Perhaps when we attach a new fence, or after a wait with
-> ww_mutex held? Otherwise we'd have a lot of completely unused fence
-> objects hanging around for no reason. I don't think we need to be as
-> picky as TTM, but I think we should do something?
+>>
+> Hmm, doesn't attaching an exclusive fence clear all shared fence
+> pointers from under a reader?
 >
-Calling reservation_object_add_excl_fence with a NULL fence works, I do this in ttm_bo_wait().
-It requires ww_mutex.
+No, for that reason. It only resets shared_count to 0. This is harmless because the shared fence pointers are
+still valid long enough because of RCU delayed deletion. fence_get_rcu will fail when the refcount has
+dropped to zero. This is enough of a check to prevent errors, so there's no need to explicitly clear the fence
+pointers.
 
 ~Maarten
