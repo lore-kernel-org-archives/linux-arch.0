@@ -1,115 +1,82 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp-outbound-2.vmware.com ([208.91.2.13]:49704 "EHLO
-	smtp-outbound-2.vmware.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1752862AbaDNHpf (ORCPT
+Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:47176 "EHLO
+	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1753240AbaDNQT0 (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Mon, 14 Apr 2014 03:45:35 -0400
-Message-ID: <534B921B.4080504@vmware.com>
-Date: Mon, 14 Apr 2014 09:45:31 +0200
-From: Thomas Hellstrom <thellstrom@vmware.com>
+	Mon, 14 Apr 2014 12:19:26 -0400
+Date: Mon, 14 Apr 2014 17:19:06 +0100
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [PATCH 06/31] arch,arm: Convert smp_mb__*
+Message-ID: <20140414161906.GA12916@arm.com>
+References: <20140319064729.660482086@infradead.org>
+ <20140319065204.099395624@infradead.org>
 MIME-Version: 1.0
-Subject: Re: [PATCH 2/2] [RFC v2 with seqcount] reservation: add suppport
- for read-only access using rcu
-References: <20140409144239.26648.57918.stgit@patser> <20140409144831.26648.79163.stgit@patser> <53465A53.1090500@vmware.com> <53466D63.8080808@canonical.com> <53467B93.3000402@vmware.com> <5346B212.8050202@canonical.com> <5347A9FD.2070706@vmware.com> <5347B4E5.6090901@canonical.com> <5347BFC9.3020503@vmware.com> <53482FF1.1090406@canonical.com> <534843EA.6060602@vmware.com> <534B9165.4000101@canonical.com>
-In-Reply-To: <534B9165.4000101@canonical.com>
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20140319065204.099395624@infradead.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Maarten Lankhorst <maarten.lankhorst@canonical.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, ccross@google.com, linux-media@vger.kernel.org
-Message-ID: <20140414074531.CQ-mHnais9CXKw1079W-wZmwIysDCZ0dd9k37d51K40@z>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "torvalds@linux-foundation.org" <torvalds@linux-foundation.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>
+Message-ID: <20140414161906.zXEyFaASLB4yf9eMgQimo3ATZCZgkqvk6sFfiyhtbVc@z>
 
-On 04/14/2014 09:42 AM, Maarten Lankhorst wrote:
-> op 11-04-14 21:35, Thomas Hellstrom schreef:
->> On 04/11/2014 08:09 PM, Maarten Lankhorst wrote:
->>> op 11-04-14 12:11, Thomas Hellstrom schreef:
->>>> On 04/11/2014 11:24 AM, Maarten Lankhorst wrote:
->>>>> op 11-04-14 10:38, Thomas Hellstrom schreef:
->>>>>> Hi, Maarten.
->>>>>>
->>>>>> Here I believe we encounter a lot of locking inconsistencies.
->>>>>>
->>>>>> First, it seems you're use a number of pointers as RCU pointers
->>>>>> without
->>>>>> annotating them as such and use the correct rcu
->>>>>> macros when assigning those pointers.
->>>>>>
->>>>>> Some pointers (like the pointers in the shared fence list) are both
->>>>>> used
->>>>>> as RCU pointers (in dma_buf_poll()) for example,
->>>>>> or considered protected by the seqlock
->>>>>> (reservation_object_get_fences_rcu()), which I believe is OK, but
->>>>>> then
->>>>>> the pointers must
->>>>>> be assigned using the correct rcu macros. In the memcpy in
->>>>>> reservation_object_get_fences_rcu() we might get away with an
->>>>>> ugly typecast, but with a verbose comment that the pointers are
->>>>>> considered protected by the seqlock at that location.
->>>>>>
->>>>>> So I've updated (attached) the headers with proper __rcu annotation
->>>>>> and
->>>>>> locking comments according to how they are being used in the various
->>>>>> reading functions.
->>>>>> I believe if we want to get rid of this we need to validate those
->>>>>> pointers using the seqlock as well.
->>>>>> This will generate a lot of sparse warnings in those places needing
->>>>>> rcu_dereference()
->>>>>> rcu_assign_pointer()
->>>>>> rcu_dereference_protected()
->>>>>>
->>>>>> With this I think we can get rid of all ACCESS_ONCE macros: It's not
->>>>>> needed when the rcu_x() macros are used, and
->>>>>> it's never needed for the members protected by the seqlock,
->>>>>> (provided
->>>>>> that the seq is tested). The only place where I think that's
->>>>>> *not* the case is at the krealloc in
->>>>>> reservation_object_get_fences_rcu().
->>>>>>
->>>>>> Also I have some more comments in the
->>>>>> reservation_object_get_fences_rcu() function below:
->>>>> I felt that the barriers needed for rcu were already provided by
->>>>> checking the seqcount lock.
->>>>> But looking at rcu_dereference makes it seem harmless to add it in
->>>>> more places, it handles
->>>>> the ACCESS_ONCE and barrier() for us.
->>>> And it makes the code more maintainable, and helps sparse doing a
->>>> lot of
->>>> checking for us. I guess
->>>> we can tolerate a couple of extra barriers for that.
->>>>
->>>>> We could probably get away with using RCU_INIT_POINTER on the writer
->>>>> side,
->>>>> because the smp_wmb is already done by arranging seqcount updates
->>>>> correctly.
->>>> Hmm. yes, probably. At least in the replace function. I think if we do
->>>> it in other places, we should add comments as to where
->>>> the smp_wmb() is located, for future reference.
->>>>
->>>>
->>>> Also  I saw in a couple of places where you're checking the shared
->>>> pointers, you're not checking for NULL pointers, which I guess may
->>>> happen if shared_count and pointers are not in full sync?
->>>>
->>> No, because shared_count is protected with seqcount. I only allow
->>> appending to the array, so when
->>> shared_count is validated by seqcount it means that the
->>> [0...shared_count) indexes are valid and non-null.
->>> What could happen though is that the fence at a specific index is
->>> updated with another one from the same
->>> context, but that's harmless.
->>>
->> Hmm, doesn't attaching an exclusive fence clear all shared fence
->> pointers from under a reader?
->>
-> No, for that reason. It only resets shared_count to 0.
+On Wed, Mar 19, 2014 at 06:47:35AM +0000, Peter Zijlstra wrote:
+> ARM uses ll/sc primitives that do not imply barriers for all regular
+> atomic ops, therefore smp_mb__{before,after} need be a full barrier.
+> 
+> Since ARM doesn't use asm-generic/barrier.h include the required
+> definitions in its asm/barrier.h
+> 
+> Signed-off-by: Peter Zijlstra <peterz@infradead.org>
 
-Ah. OK. I guess I didn't read the code carefully enough.
+  Acked-by: Will Deacon <will.deacon@arm.com>
 
-Thanks,
-Thomas
+Will
 
-
-
->
-> ~Maarten
+> ---
+>  arch/arm/include/asm/atomic.h  |    5 -----
+>  arch/arm/include/asm/barrier.h |    3 +++
+>  arch/arm/include/asm/bitops.h  |    4 +---
+>  3 files changed, 4 insertions(+), 8 deletions(-)
+> 
+> --- a/arch/arm/include/asm/atomic.h
+> +++ b/arch/arm/include/asm/atomic.h
+> @@ -211,11 +211,6 @@ static inline int __atomic_add_unless(at
+>  
+>  #define atomic_add_negative(i,v) (atomic_add_return(i, v) < 0)
+>  
+> -#define smp_mb__before_atomic_dec()	smp_mb()
+> -#define smp_mb__after_atomic_dec()	smp_mb()
+> -#define smp_mb__before_atomic_inc()	smp_mb()
+> -#define smp_mb__after_atomic_inc()	smp_mb()
+> -
+>  #ifndef CONFIG_GENERIC_ATOMIC64
+>  typedef struct {
+>  	long long counter;
+> --- a/arch/arm/include/asm/barrier.h
+> +++ b/arch/arm/include/asm/barrier.h
+> @@ -79,5 +79,8 @@ do {									\
+>  
+>  #define set_mb(var, value)	do { var = value; smp_mb(); } while (0)
+>  
+> +#define smp_mb__before_atomic()	smp_mb()
+> +#define smp_mb__after_atomic()	smp_mb()
+> +
+>  #endif /* !__ASSEMBLY__ */
+>  #endif /* __ASM_BARRIER_H */
+> --- a/arch/arm/include/asm/bitops.h
+> +++ b/arch/arm/include/asm/bitops.h
+> @@ -25,9 +25,7 @@
+>  
+>  #include <linux/compiler.h>
+>  #include <linux/irqflags.h>
+> -
+> -#define smp_mb__before_clear_bit()	smp_mb()
+> -#define smp_mb__after_clear_bit()	smp_mb()
+> +#include <asm/barrier.h>
+>  
+>  /*
+>   * These functions are the basis of our bit ops.
+> 
+> 
+> 
