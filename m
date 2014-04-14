@@ -1,82 +1,42 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:47176 "EHLO
-	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1753240AbaDNQT0 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Mon, 14 Apr 2014 12:19:26 -0400
-Date: Mon, 14 Apr 2014 17:19:06 +0100
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [PATCH 06/31] arch,arm: Convert smp_mb__*
-Message-ID: <20140414161906.GA12916@arm.com>
-References: <20140319064729.660482086@infradead.org>
- <20140319065204.099395624@infradead.org>
+Received: from mail-lb0-f176.google.com ([209.85.217.176]:64146 "EHLO
+	mail-lb0-f176.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754711AbaDNQ3u (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 14 Apr 2014 12:29:50 -0400
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20140319065204.099395624@infradead.org>
+In-Reply-To: <1397211951-20549-7-git-send-email-miklos@szeredi.hu>
+References: <1397211951-20549-1-git-send-email-miklos@szeredi.hu>
+	<1397211951-20549-7-git-send-email-miklos@szeredi.hu>
+Date: Mon, 14 Apr 2014 18:29:48 +0200
+Message-ID: <CAMuHMdXrH8btyjuT3v=PVR16juob3dD03vNvX2j5+tNo2e_uAw@mail.gmail.com>
+Subject: Re: [PATCH 06/15] m68k: add renameat2 syscall
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "torvalds@linux-foundation.org" <torvalds@linux-foundation.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>
-Message-ID: <20140414161906.zXEyFaASLB4yf9eMgQimo3ATZCZgkqvk6sFfiyhtbVc@z>
+To: Miklos Szeredi <miklos@szeredi.hu>
+Cc: Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Miklos Szeredi <mszeredi@suse.cz>
+Message-ID: <20140414162948.o6nbBtb8MDfjXZKJZdk0DsEiaPIsYGplXr9daBx_MtQ@z>
 
-On Wed, Mar 19, 2014 at 06:47:35AM +0000, Peter Zijlstra wrote:
-> ARM uses ll/sc primitives that do not imply barriers for all regular
-> atomic ops, therefore smp_mb__{before,after} need be a full barrier.
-> 
-> Since ARM doesn't use asm-generic/barrier.h include the required
-> definitions in its asm/barrier.h
-> 
-> Signed-off-by: Peter Zijlstra <peterz@infradead.org>
+Hi Miklos,
 
-  Acked-by: Will Deacon <will.deacon@arm.com>
+On Fri, Apr 11, 2014 at 12:25 PM, Miklos Szeredi <miklos@szeredi.hu> wrote:
+> From: Miklos Szeredi <mszeredi@suse.cz>
 
-Will
+Thanks!
 
-> ---
->  arch/arm/include/asm/atomic.h  |    5 -----
->  arch/arm/include/asm/barrier.h |    3 +++
->  arch/arm/include/asm/bitops.h  |    4 +---
->  3 files changed, 4 insertions(+), 8 deletions(-)
-> 
-> --- a/arch/arm/include/asm/atomic.h
-> +++ b/arch/arm/include/asm/atomic.h
-> @@ -211,11 +211,6 @@ static inline int __atomic_add_unless(at
->  
->  #define atomic_add_negative(i,v) (atomic_add_return(i, v) < 0)
->  
-> -#define smp_mb__before_atomic_dec()	smp_mb()
-> -#define smp_mb__after_atomic_dec()	smp_mb()
-> -#define smp_mb__before_atomic_inc()	smp_mb()
-> -#define smp_mb__after_atomic_inc()	smp_mb()
-> -
->  #ifndef CONFIG_GENERIC_ATOMIC64
->  typedef struct {
->  	long long counter;
-> --- a/arch/arm/include/asm/barrier.h
-> +++ b/arch/arm/include/asm/barrier.h
-> @@ -79,5 +79,8 @@ do {									\
->  
->  #define set_mb(var, value)	do { var = value; smp_mb(); } while (0)
->  
-> +#define smp_mb__before_atomic()	smp_mb()
-> +#define smp_mb__after_atomic()	smp_mb()
-> +
->  #endif /* !__ASSEMBLY__ */
->  #endif /* __ASM_BARRIER_H */
-> --- a/arch/arm/include/asm/bitops.h
-> +++ b/arch/arm/include/asm/bitops.h
-> @@ -25,9 +25,7 @@
->  
->  #include <linux/compiler.h>
->  #include <linux/irqflags.h>
-> -
-> -#define smp_mb__before_clear_bit()	smp_mb()
-> -#define smp_mb__after_clear_bit()	smp_mb()
-> +#include <asm/barrier.h>
->  
->  /*
->   * These functions are the basis of our bit ops.
-> 
-> 
-> 
+> Signed-off-by: Miklos Szeredi <mszeredi@suse.cz>
+> Cc: Geert Uytterhoeven <geert@linux-m68k.org>
+
+Acked-by: Geert Uytterhoeven <geert@linux-m68k.org>
+
+Gr{oetje,eeting}s,
+
+                        Geert
+
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
