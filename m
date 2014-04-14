@@ -1,29 +1,38 @@
 From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [PATCH 06/15] m68k: add renameat2 syscall
-Date: Mon, 14 Apr 2014 18:29:48 +0200
-Message-ID: <CAMuHMdXrH8btyjuT3v=PVR16juob3dD03vNvX2j5+tNo2e_uAw@mail.gmail.com>
+Subject: Re: [PATCH 00/15] wire up renameat2 syscall for various archs
+Date: Mon, 14 Apr 2014 18:32:14 +0200
+Message-ID: <CAMuHMdVRUyo+PAQ8XUXuhZn1jk7T645aC=E274OjUOgNktBEJw@mail.gmail.com>
 References: <1397211951-20549-1-git-send-email-miklos@szeredi.hu>
-	<1397211951-20549-7-git-send-email-miklos@szeredi.hu>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1397211951-20549-7-git-send-email-miklos@szeredi.hu>
-Sender: linux-kernel-owner@vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-lb0-f170.google.com ([209.85.217.170]:64072 "EHLO
+	mail-lb0-f170.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754303AbaDNQcP (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 14 Apr 2014 12:32:15 -0400
+In-Reply-To: <1397211951-20549-1-git-send-email-miklos@szeredi.hu>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Miklos Szeredi <miklos@szeredi.hu>
-Cc: Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Miklos Szeredi <mszeredi@suse.cz>
-List-Id: linux-arch.vger.kernel.org
+Cc: Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
 
 Hi Miklos,
 
 On Fri, Apr 11, 2014 at 12:25 PM, Miklos Szeredi <miklos@szeredi.hu> wrote:
-> From: Miklos Szeredi <mszeredi@suse.cz>
+> This series wires up the recently added renameat2 syscall for archs that are
+> up-to-date in the sense that they appear to support the latest syscalls.  I
+> haven't touched the rest of them..
+>
+> Plus three NR_syscalls miscalculation fixes.
+
+Do you plan to collect acks, and ask Linus to pull this series later, or
+do you want each arch maintainer to take the patches for his/her pet
+architecture?
+
+Note that I don't plan to send another pull request for 3.15 for m68k,
+unless Something Really Bad happens.
 
 Thanks!
-
-> Signed-off-by: Miklos Szeredi <mszeredi@suse.cz>
-> Cc: Geert Uytterhoeven <geert@linux-m68k.org>
-
-Acked-by: Geert Uytterhoeven <geert@linux-m68k.org>
 
 Gr{oetje,eeting}s,
 
