@@ -1,53 +1,56 @@
-From: Rob Herring <robherring2@gmail.com>
-Subject: Re: [RFC PATCH 0/4] vmlinux.lds.h clean-ups
-Date: Tue, 15 Apr 2014 15:34:58 -0500
-Message-ID: <CAL_JsqKn_erNnGwdXwg6C08pHHQuQn-4fpmp70agvH5ok=P9-g@mail.gmail.com>
-References: <1395949317-8738-1-git-send-email-robherring2@gmail.com>
+From: isabelle <contact_claude@isabelle.de>
+Subject: spende /Donation
+Date: Tue, 15 Apr 2014 21:47:38 +0200
+Message-ID: <yx4Sef42JyeoopbQKx5pAipXLBt1prSNuXPiRcWu1Nis__26736.8423556492$1397597299$gmane$org@isabelle.de>
+Reply-To: isabelle.claude654@laposte.net
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=iso-8859-1;
+	format=flowed
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-vc0-f182.google.com ([209.85.220.182]:50689 "EHLO
-	mail-vc0-f182.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753367AbaDOUe7 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 15 Apr 2014 16:34:59 -0400
-In-Reply-To: <1395949317-8738-1-git-send-email-robherring2@gmail.com>
+Received: from vps22121.lws-hosting.com ([192.162.68.139]:51018 "EHLO
+	vps22121.lws-hosting.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750885AbaDOVYJ convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 15 Apr 2014 17:24:09 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Russell King <linux@arm.linux.org.uk>, Rob Herring <robh@kernel.org>
 
-On Thu, Mar 27, 2014 at 2:41 PM, Rob Herring <robherring2@gmail.com> wrote:
-> From: Rob Herring <robh@kernel.org>
->
-> Several DeviceTree related sections have been added recently to enable
-> early DT initialization calls. I have the need to add yet another one
-> in order to do a DT based earlycon. Since each section follows the same
-> pattern, this seemed like a good opportunity for some clean-up. So
-> this series creates a common macro to define these sections. with this
-> adding any new OF table section is a 2 line change.
->
-> Each section ends with a zeroed struct of_device_id (except cpu_method).
-> Right now there is an end section and a dummy variable to create the end
-> marker. Really, we just need padding here, but I haven't come up with a
-> way for the linker script to get the struct size.
->
-> The last patch extends the same concept to another common pattern for
-> section definitons. There's still others which could be easily converted
-> also, but I'm looking for feedback on this approach before proceeding
-> any further.
->
-> Rob
->
-> Rob Herring (4):
->   irqchip: align irqchip OF match table section naming
->   ARM: align cpu_method_of_table naming
->   vmlinuz.lds: define OF table sections with macros
->   vmlinux.lds: define conditional sections with macros
->
->  arch/arm/kernel/devtree.c         |  11 +--
->  drivers/irqchip/irqchip.c         |   6 +-
->  include/asm-generic/vmlinux.lds.h | 142 +++++++++++---------------------------
-
-Arnd, Any comments on this series?
-
-Rob
+Hallo
+Wenn ich diese Nachricht zu senden wollte, ist dies nicht einfach Zufal=
+l. Dies ist, weil Ihre e-Mail vom elektronischen Roboter gesichert mein=
+e WX.7AR BW ausgew=E4hlt wurde.
+Zun=E4chst m=F6chte ich mich f=FCr dieses Eindringen in Ihr Leben zu en=
+tschuldigen, obwohl ich zugeben, dass es mir sehr wichtig. Ich bin Isab=
+elle Vasudev. Ich leide an Krebs im Hals seit nun mehr als 3 Jahre und =
+eine halbe und es leider, mein Arzt hat gerade informiert mich, dass ic=
+h bin voller unheilbar und, dass meine Tage, wegen meinen etwas gez=E4h=
+lt sind abgebaut Zustand. Ich bin eine Witwe und ich habe keine Kind, d=
+as ich beginne zu bedauern.
+In der Tat ist der Grund, warum ich Sie kontaktieren bin, m=F6chte ich =
+einen Teil von meinem Grundst=FCck zu spenden, weil ich niemand, wer di=
+e Erben konnte. Ich habe fast mein ganzes Zeug, darunter ein Unternehme=
+n der Export von Holz, Gummi und Stahl-Industrie in Afrika, wo ich wohn=
+e nun mehr 10 Jahren, verkauft. Ein gro=DFer Teil der Gelder gesammelt =
+wurde mit unterschiedlichen Verb=E4nden humanit=E4ren Charakter =FCbera=
+ll in der Welt, aber besonders hier in Afrika bezahlt.
+Im Hinblick auf den Rest der Summe genau in H=F6he von 750.000, 00euros=
+ (sieben hundert und f=FCnfzig tausend Euro) auf eine gesperrte Mitarbe=
+iter-Account, meine letzte w=FCnschen w=FCrde Sie es spenden, so dass S=
+ie in Ihrer Branche und vor allem den humanit=E4ren investieren k=F6nne=
+n. Ich bin ganz bewusst was ich zu tun beabsichtigen, und ich denke, tr=
+otz der Tatsache, die wir nicht wissen, werdet ihr diese Summe gut nutz=
+en. Ich bitte Sie, bitte dieses Erbe zu akzeptieren, ohne jedoch Fragen=
+ Sie alles, was in zur=FCckgeben wenn es nicht immer denken, gutes zu t=
+un, um dich herum, was ich nicht getan habe, in meiner Existenz.
+Das hei=DFt, wird auf einer verantwortlichen Person und besonders gutem=
+ Glauben fallen zu lassen beruhigt, ich m=F6chte bitten, dass Sie bitte=
+ mich bei den meisten schnell kontaktieren, um weitere Erkl=E4rung =FCb=
+er die Gr=FCnde f=FCr meine Geste und den Verlauf der Dinge zu geben. B=
+itte kontaktieren Sie mich so bald wie m=F6glich, wenn Sie mein Angebot=
+ akzeptieren.
+Gott m=F6ge mit dir sein!
+Ich fordere Sie auf, mich =FCber meine pers=F6nliche e-Mail-Adresse zu =
+kontaktieren:
+Isabelle.claude654@laposte.net
+Der Frieden und Barmherzigkeit Gottes m=F6ge mit dir sein.
+Mrs Isabelle
