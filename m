@@ -1,8 +1,8 @@
 From: Waiman Long <Waiman.Long@hp.com>
-Subject: [PATCH v9 12/19] unfair qspinlock: Variable frequency
-	lock stealing mechanism
-Date: Thu, 17 Apr 2014 11:04:04 -0400
-Message-ID: <1397747051-15401-13-git-send-email-Waiman.Long@hp.com>
+Subject: [PATCH v9 06/19] qspinlock: prolong the stay in the
+	pending bit path
+Date: Thu, 17 Apr 2014 11:03:58 -0400
+Message-ID: <1397747051-15401-7-git-send-email-Waiman.Long@hp.com>
 References: <1397747051-15401-1-git-send-email-Waiman.Long@hp.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -21,213 +21,127 @@ To: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Pe
 Cc: linux-arch@vger.kernel.org, Waiman Long <Waiman.Long@hp.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, Gleb Natapov <gleb@redhat.com>, kvm@vger.kernel.org, Scott J Norton <scott.norton@hp.com>, x86@kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, Chegu Vinod <chegu_vinod@hp.com>, David Vrabel <david.vrabel@citrix.com>, Oleg Nesterov <oleg@redhat.com>, xen-devel@lists.xenproject.org, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>
 List-Id: linux-arch.vger.kernel.org
 
-In order to fully resolve the lock waiter preemption problem in virtual
-guests, it is necessary to enable lock stealing in the lock waiters.
-A simple test-and-set lock, however, has 2 main problems:
+There is a problem in the current trylock_pending() function.  When the
+lock is free, but the pending bit holder hasn't grabbed the lock &
+cleared the pending bit yet, the trylock_pending() function will fail.
+As a result, the regular queuing code path will be used most of
+the time even when there is only 2 tasks contending for the lock.
+Assuming that the pending bit holder is going to get the lock and
+clear the pending bit soon, it is actually better to wait than to be
+queued up which has a higher overhead.
 
- 1) The constant spinning on the lock word put a lot of cacheline
-    contention traffic on the affected cacheline, thus slowing tasks
-    that need to access the cacheline.
- 2) Lock starvation is a real possibility especially if the number of
-    virtual CPUs is large.
+This patch modified the trylock_pending() function to wait until the
+pending bit holder gets the lock and clears the pending bit. In case
+both the lock and pending bits are set, the new code will also wait
+a bit to see if either one is cleared. If they are not, it will quit
+and be queued.
 
-To alleviate these problems, this patch implements a variable frequency
-(from 1/8 to 1/1024) lock stealing mechanism for the lock waiters
-in the queue. The node next to the queue head try to steal lock once
-every 8 iterations of the pause loop. The next one in the queue has
-half the lock stealing frequency (once every 16 iterations) and so
-on until it reaches a maximum of once every 1024 iterations.
+The following tables show the before-patch execution time (in ms)
+of a micro-benchmark where 5M iterations of the lock/unlock cycles
+were run on a 10-core Westere-EX x86-64 CPU with 2 different types of
+loads - standalone (lock and protected data in different cachelines)
+and embedded (lock and protected data in the same cacheline).
 
-This mechanism reduces the cacheline contention problem on the lock
-word while trying to maintain as much of a FIFO order as possible.
+		  [Standalone/Embedded - same node]
+  # of tasks	Ticket lock	Queue lock	 %Change
+  ----------	-----------	----------	 -------
+       1	  135/ 111	 135/ 101	   0%/  -9%
+       2	  890/ 779	1885/1990	+112%/+156%
+       3	 1932/1859	2333/2341	 +21%/ +26%
+       4	 2829/2726	2900/2923	  +3%/  +7%
+       5	 3834/3761	3655/3648	  -5%/  -3%
+       6	 4963/4976	4336/4326	 -13%/ -13%
+       7	 6299/6269	5057/5064	 -20%/ -19%
+       8	 7691/7569	5786/5798	 -25%/ -23%
+
+With 1 task per NUMA node, the execution times are:
+
+		[Standalone - different nodes]
+  # of nodes	Ticket lock	Queue lock	%Change
+  ----------	-----------	----------	-------
+       1	   135		  135		  0%
+       2	  4604		 5087		+10%
+       3	 10940		12224		+12%
+       4	 21555		10555		-51%
+
+It can be seen that the queue spinlock is slower than the ticket
+spinlock when there are 2 or 3 contending tasks. In all the other case,
+the queue spinlock is either equal or faster than the ticket spinlock.
+
+With this patch, the performance data for 2 contending tasks are:
+
+		  [Standalone/Embedded]
+  # of tasks	Ticket lock	Queue lock	%Change
+  ----------	-----------	----------	-------
+       2	  890/779	 984/871	+11%/+12%
+
+		[Standalone - different nodes]
+  # of nodes	Ticket lock	Queue lock	%Change
+  ----------	-----------	----------	-------
+       2	  4604		   1364		  -70%
+
+It can be seen that the queue spinlock performance for 2 contending
+tasks is now comparable to ticket spinlock on the same node, but much
+faster when in different nodes. With 3 contending tasks, however,
+the ticket spinlock is still quite a bit faster.
 
 Signed-off-by: Waiman Long <Waiman.Long@hp.com>
 ---
- kernel/locking/qspinlock.c |  147 +++++++++++++++++++++++++++++++++++++++++++-
- 1 files changed, 146 insertions(+), 1 deletions(-)
+ kernel/locking/qspinlock.c |   32 ++++++++++++++++++++++++++++++--
+ 1 files changed, 30 insertions(+), 2 deletions(-)
 
 diff --git a/kernel/locking/qspinlock.c b/kernel/locking/qspinlock.c
-index 954b8b3..c2c79a0 100644
+index 55601b4..497da24 100644
 --- a/kernel/locking/qspinlock.c
 +++ b/kernel/locking/qspinlock.c
-@@ -67,6 +67,11 @@
-  */
- struct qnode {
- 	struct mcs_spinlock mcs;
-+#ifdef CONFIG_PARAVIRT_UNFAIR_LOCKS
-+	int		lsteal_mask;	/* Lock stealing frequency mask	*/
-+	u32		prev_tail;	/* Tail code of previous node	*/
-+	struct qnode   *qprev;		/* Previous queue node addr	*/
-+#endif
- };
- #define qhead	mcs.locked	/* The queue head flag */
+@@ -216,6 +216,7 @@ xchg_tail(struct qspinlock *lock, u32 tail, u32 *pval)
+ static inline int trylock_pending(struct qspinlock *lock, u32 *pval)
+ {
+ 	u32 old, new, val = *pval;
++	int retry = 1;
  
-@@ -219,6 +224,139 @@ xchg_tail(struct qspinlock *lock, u32 tail, u32 *pval)
- }
- #endif /* _Q_PENDING_BITS == 8 */
- 
-+/*
-+ ************************************************************************
-+ * Inline functions for supporting unfair queue lock			*
-+ ************************************************************************
-+ */
-+/*
-+ * Unfair lock support in a virtualized guest
-+ *
-+ * An unfair lock can be implemented using a simple test-and-set lock like
-+ * what is being done in a read-write lock. This simple scheme has 2 major
-+ * problems:
-+ *  1) It needs constant reading and occasionally writing to the lock word
-+ *     thus putting a lot of cacheline contention traffic on the affected
-+ *     cacheline.
-+ *  2) Lock starvation is a real possibility especially if the number of
-+ *     virtual CPUs is large.
-+ *
-+ * To reduce the undesirable side effects of an unfair lock, the queue
-+ * unfair spinlock implements a more elaborate scheme.  Lock stealing is
-+ * allowed in the following places:
-+ *  1) In the spin_lock and spin_trylock fastpaths
-+ *  2) When spinning in the waiter queue before becoming the queue head
-+ *
-+ * A lock acquirer has only one chance of stealing the lock in the spin_lock
-+ * and spin_trylock fastpath. If the attempt fails for spin_lock, the task
-+ * will be queued in the wait queue.
-+ *
-+ * Even in the wait queue, the task can still attempt to steal the lock
-+ * periodically at a frequency about inversely and logarithmically proportional
-+ * to its distance from the queue head. In other word, the closer it is to
-+ * the queue head, the higher a chance it has of stealing the lock. This
-+ * scheme reduces the load on the lock cacheline while trying to maintain
-+ * a somewhat FIFO way of getting the lock so as to reduce the chance of lock
-+ * starvation.
-+ */
-+#ifdef CONFIG_PARAVIRT_UNFAIR_LOCKS
-+#define DEF_LOOP_CNT(c)		int c = 0
-+#define INC_LOOP_CNT(c)		(c)++
-+#define LOOP_CNT(c)		c
-+#define LSTEAL_MIN		(1 << 3)
-+#define LSTEAL_MAX		(1 << 10)
-+#define LSTEAL_MIN_MASK		(LSTEAL_MIN - 1)
-+#define LSTEAL_MAX_MASK		(LSTEAL_MAX - 1)
-+
-+/**
-+ * unfair_init_vars - initialize unfair relevant fields in queue node structure
-+ * @node: Current queue node address
-+ */
-+static inline void unfair_init_vars(struct qnode *node)
-+{
-+	node->qprev	  = NULL;
-+	node->prev_tail   = 0;
-+	node->lsteal_mask = LSTEAL_MIN_MASK;
-+}
-+
-+/**
-+ * unfair_set_vars - set unfair related fields in the queue node structure
-+ * @node     : Current queue node address
-+ * @prev     : Previous queue node address
-+ * @prev_tail: Previous tail code
-+ */
-+static inline void
-+unfair_set_vars(struct qnode *node, struct qnode *prev, u32 prev_tail)
-+{
-+	if (!static_key_false(&paravirt_unfairlocks_enabled))
-+		return;
-+
-+	node->qprev	= prev;
-+	node->prev_tail = prev_tail;
-+	/*
-+	 * This node will spin double the number of time of the previous node
-+	 * before attempting to steal the lock until it reaches a maximum.
-+	 */
-+	node->lsteal_mask = prev->qhead ? LSTEAL_MIN_MASK :
-+			    (prev->lsteal_mask << 1) + 1;
-+	if (node->lsteal_mask > LSTEAL_MAX_MASK)
-+		node->lsteal_mask = LSTEAL_MAX_MASK;
-+	/* Make sure the new fields are visible to others */
-+	smp_wmb();
-+}
-+
-+/**
-+ * unfair_get_lock - try to steal the lock periodically
-+ * @lock : Pointer to queue spinlock structure
-+ * @node : Current queue node address
-+ * @tail : My tail code value
-+ * @count: Loop count
-+ * Return: true if the lock has been stolen, false otherwise
-+ *
-+ * When a true value is returned, the caller will have to notify the next
-+ * node only if the qhead flag is set and the next pointer in the queue
-+ * node is not NULL.
-+ */
-+static noinline int
-+unfair_get_lock(struct qspinlock *lock, struct qnode *node, u32 tail, int count)
-+{
-+	u32	     prev_tail;
-+	int	     isqhead;
-+	struct qnode *next;
-+
-+	if (!static_key_false(&paravirt_unfairlocks_enabled) ||
-+	   ((count & node->lsteal_mask) != node->lsteal_mask))
-+		return false;
-+
-+	if (!queue_spin_trylock_unfair(lock)) {
-+		/*
-+		 * Lock stealing fails, re-adjust the lsteal mask so that
-+		 * it is about double of the previous node.
-+		 */
-+		struct qnode *prev = node->qprev;
-+
-+		node->lsteal_mask = prev->qhead ? LSTEAL_MIN_MASK :
-+				    (prev->lsteal_mask << 1) + 1;
-+		if (node->lsteal_mask > LSTEAL_MAX_MASK)
-+			node->lsteal_mask = LSTEAL_MAX_MASK;
-+		return false;
-+	}
-+	queue_spin_unlock(lock);
-+	return false;
-+}
-+
-+#else /* CONFIG_PARAVIRT_UNFAIR_LOCKS */
-+#define	DEF_LOOP_CNT(c)
-+#define	INC_LOOP_CNT(c)
-+#define	LOOP_CNT(c)	0
-+
-+static void unfair_init_vars(struct qnode *node)	{}
-+static void unfair_set_vars(struct qnode *node, struct qnode *prev,
-+		u32 prev_tail)				{}
-+static int unfair_get_lock(struct qspinlock *lock, struct qnode *node,
-+		u32 tail, int count)			{ return false; }
-+#endif /* CONFIG_PARAVIRT_UNFAIR_LOCKS */
-+
- /**
-  * get_qlock - Set the lock bit and own the lock
-  * @lock : Pointer to queue spinlock structure
-@@ -369,11 +507,17 @@ queue_spin_lock_slowerpath(struct qspinlock *lock, struct qnode *node, u32 tail)
- 	 * if there was a previous node; link it and wait.
+ 	/*
+ 	 * trylock || pending
+@@ -225,11 +226,38 @@ static inline int trylock_pending(struct qspinlock *lock, u32 *pval)
  	 */
- 	if (old & _Q_TAIL_MASK) {
-+		DEF_LOOP_CNT(cnt);
-+
- 		prev = decode_tail(old);
-+		unfair_set_vars(node, prev, old);
- 		ACCESS_ONCE(prev->mcs.next) = (struct mcs_spinlock *)node;
+ 	for (;;) {
+ 		/*
+-		 * If we observe any contention; queue.
++		 * If we observe that the queue is not empty,
++		 * return and be queued.
+ 		 */
+-		if (val & ~_Q_LOCKED_MASK)
++		if (val & _Q_TAIL_MASK)
+ 			return 0;
  
--		while (!smp_load_acquire(&node->qhead))
-+		while (!smp_load_acquire(&node->qhead)) {
-+			INC_LOOP_CNT(cnt);
-+			unfair_get_lock(lock, node, tail, LOOP_CNT(cnt));
- 			arch_mutex_cpu_relax();
++		if ((val & _Q_LOCKED_PENDING_MASK) ==
++		    (_Q_LOCKED_VAL|_Q_PENDING_VAL)) {
++			/*
++			 * If both the lock and pending bits are set, we wait
++			 * a while to see if that either bit will be cleared.
++			 * If that is no change, we return and be queued.
++			 */
++			if (!retry)
++				return 0;
++			retry--;
++			cpu_relax();
++			cpu_relax();
++			*pval = val = atomic_read(&lock->val);
++			continue;
++		} else if ((val & _Q_LOCKED_PENDING_MASK) == _Q_PENDING_VAL) {
++			/*
++			 * Pending bit is set, but not the lock bit.
++			 * Assuming that the pending bit holder is going to
++			 * set the lock bit and clear the pending bit soon,
++			 * it is better to wait than to exit at this point.
++			 */
++			cpu_relax();
++			*pval = val = atomic_read(&lock->val);
++			continue;
 +		}
- 	}
- 
- 	/*
-@@ -469,6 +613,7 @@ void queue_spin_lock_slowpath(struct qspinlock *lock, u32 val)
- 	node += idx;
- 	node->qhead = 0;
- 	node->mcs.next = NULL;
-+	unfair_init_vars(node);
- 
- 	/*
- 	 * We touched a (possibly) cold cacheline; attempt the trylock once
++
+ 		new = _Q_LOCKED_VAL;
+ 		if (val == new)
+ 			new |= _Q_PENDING_VAL;
 -- 
 1.7.1
