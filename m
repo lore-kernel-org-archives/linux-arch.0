@@ -1,57 +1,39 @@
-From: Will Deacon <will.deacon@arm.com>
-Subject: [PATCH 05/18] alpha: io: implement relaxed accessor macros for writes
-Date: Thu, 17 Apr 2014 14:44:08 +0100
-Message-ID: <1397742261-15621-6-git-send-email-will.deacon@arm.com>
-References: <1397742261-15621-1-git-send-email-will.deacon@arm.com>
+From: Chris Metcalf <cmetcalf@tilera.com>
+Subject: Re: [PATCH 15/18] tile: io: implement dummy relaxed accessor macros
+ for writes
+Date: Thu, 17 Apr 2014 10:52:53 -0400
+Message-ID: <534FEAC5.10808@tilera.com>
+References: <1397742261-15621-1-git-send-email-will.deacon@arm.com> <1397742261-15621-16-git-send-email-will.deacon@arm.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="ISO-8859-1"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:51362 "EHLO
-	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1750983AbaDQOp1 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 17 Apr 2014 10:45:27 -0400
-In-Reply-To: <1397742261-15621-1-git-send-email-will.deacon@arm.com>
+Received: from usmamail.tilera.com ([12.216.194.151]:28749 "EHLO
+	USMAMAIL.TILERA.COM" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751113AbaDQOwy (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 17 Apr 2014 10:52:54 -0400
+In-Reply-To: <1397742261-15621-16-git-send-email-will.deacon@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: arnd@arndb.de, monstr@monstr.eu, dhowells@redhat.com, broonie@linaro.org, benh@kernel.crashing.org, peterz@infradead.org, paulmck@linux.vnet.ibm.com, Will Deacon <will.deacon@arm.com>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>
+To: Will Deacon <will.deacon@arm.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Cc: arnd@arndb.de, monstr@monstr.eu, dhowells@redhat.com, broonie@linaro.org, benh@kernel.crashing.org, peterz@infradead.org, paulmck@linux.vnet.ibm.com
 
-write{b,w,l,q}_relaxed are implemented by some architectures in order to
-permit memory-mapped I/O writes with weaker barrier semantics than the
-non-relaxed variants.
+On 4/17/2014 9:44 AM, Will Deacon wrote:
+> write{b,w,l,q}_relaxed are implemented by some architectures in order to
+> permit memory-mapped I/O accesses with weaker barrier semantics than the
+> non-relaxed variants.
+>
+> This patch adds dummy macros for the write accessors to tile, in the
+> same vein as the dummy definitions for the relaxed read accessors.
+>
+> Cc: Chris Metcalf <cmetcalf@tilera.com>
+> Signed-off-by: Will Deacon <will.deacon@arm.com>
+> ---
+>  arch/tile/include/asm/io.h | 4 ++++
+>  1 file changed, 4 insertions(+)
 
-This patch implements these write macros for Alpha, in the same vein as
-the relaxed read macros, which are already implemented.
+Acked-by: Chris Metcalf <cmetcalf@tilera.com>
 
-Cc: Richard Henderson <rth@twiddle.net>
-Cc: Ivan Kokshaysky <ink@jurassic.park.msu.ru>
-Cc: Matt Turner <mattst88@gmail.com>
-Signed-off-by: Will Deacon <will.deacon@arm.com>
----
- arch/alpha/include/asm/io.h | 12 ++++++++----
- 1 file changed, 8 insertions(+), 4 deletions(-)
-
-diff --git a/arch/alpha/include/asm/io.h b/arch/alpha/include/asm/io.h
-index 5ebab5895edb..f05bdb4b1cb9 100644
---- a/arch/alpha/include/asm/io.h
-+++ b/arch/alpha/include/asm/io.h
-@@ -500,10 +500,14 @@ extern inline void writeq(u64 b, volatile void __iomem *addr)
- #define outb_p		outb
- #define outw_p		outw
- #define outl_p		outl
--#define readb_relaxed(addr) __raw_readb(addr)
--#define readw_relaxed(addr) __raw_readw(addr)
--#define readl_relaxed(addr) __raw_readl(addr)
--#define readq_relaxed(addr) __raw_readq(addr)
-+#define readb_relaxed(addr)	__raw_readb(addr)
-+#define readw_relaxed(addr)	__raw_readw(addr)
-+#define readl_relaxed(addr)	__raw_readl(addr)
-+#define readq_relaxed(addr)	__raw_readq(addr)
-+#define writeb_relaxed(b, addr)	__raw_writeb(b, addr)
-+#define writew_relaxed(b, addr)	__raw_writew(b, addr)
-+#define writel_relaxed(b, addr)	__raw_writel(b, addr)
-+#define writeq_relaxed(b, addr)	__raw_writeq(b, addr)
- 
- #define mmiowb()
- 
 -- 
-1.9.1
+Chris Metcalf, Tilera Corp.
+http://www.tilera.com
