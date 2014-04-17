@@ -1,497 +1,331 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from g5t1627.atlanta.hp.com ([15.192.137.10]:43360 "EHLO
+Received: from g5t1627.atlanta.hp.com ([15.192.137.10]:43436 "EHLO
 	g5t1627.atlanta.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751217AbaDQPEm (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 17 Apr 2014 11:04:42 -0400
+	with ESMTP id S1751474AbaDQPE7 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 17 Apr 2014 11:04:59 -0400
 From: Waiman Long <Waiman.Long@hp.com>
-Subject: [PATCH v9 01/19] qspinlock: A simple generic 4-byte queue spinlock
-Date: Thu, 17 Apr 2014 11:03:53 -0400
-Message-ID: <1397747051-15401-2-git-send-email-Waiman.Long@hp.com>
+Subject: [PATCH v9 13/19] unfair qspinlock: Enable lock stealing in lock waiters
+Date: Thu, 17 Apr 2014 11:04:05 -0400
+Message-ID: <1397747051-15401-14-git-send-email-Waiman.Long@hp.com>
 In-Reply-To: <1397747051-15401-1-git-send-email-Waiman.Long@hp.com>
 References: <1397747051-15401-1-git-send-email-Waiman.Long@hp.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Peter Zijlstra <peterz@infradead.org>
 Cc: linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Rik van Riel <riel@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, David Vrabel <david.vrabel@citrix.com>, Oleg Nesterov <oleg@redhat.com>, Gleb Natapov <gleb@redhat.com>, Scott J Norton <scott.norton@hp.com>, Chegu Vinod <chegu_vinod@hp.com>, Waiman Long <Waiman.Long@hp.com>
-Message-ID: <20140417150353.-X_Va0EN_gCSDQ_oKkwn9myaHnygCzHlphoYIjHanjU@z>
+Message-ID: <20140417150405.rZJv9C-J3Gn8L0-sb4gtz9ZQIFNKc2hHf85dzgTheI4@z>
 
-This patch introduces a new generic queue spinlock implementation that
-can serve as an alternative to the default ticket spinlock. Compared
-with the ticket spinlock, this queue spinlock should be almost as fair
-as the ticket spinlock. It has about the same speed in single-thread
-and it can be much faster in high contention situations especially when
-the spinlock is embedded within the data structure to be protected.
+The simple unfair queue lock cannot completely solve the lock waiter
+preemption problem as a preempted CPU at the front of the queue will
+block forward progress in all the other CPUs behind it in the queue.
+To allow those CPUs to move forward, it is necessary to enable lock
+stealing for those lock waiters as well.
 
-Only in light to moderate contention where the average queue depth
-is around 1-3 will this queue spinlock be potentially a bit slower
-due to the higher slowpath overhead.
+Enabling those lock waiters to try to steal the lock increases the
+cacheline pressure on the lock word. As a result, performance can
+suffer on a workload with heavy spinlock contention.
 
-This queue spinlock is especially suit to NUMA machines with a large
-number of cores as the chance of spinlock contention is much higher
-in those machines. The cost of contention is also higher because of
-slower inter-node memory traffic.
+The tables below shows the the performance (jobs/minutes) of other
+kernel flavors of a 3.14-based kernel at 3000 users of the AIM7 disk
+workload on a 4-socket Westmere-EX bare-metal system. The ebizzy test
+was run.
 
-Due to the fact that spinlocks are acquired with preemption disabled,
-the process will not be migrated to another CPU while it is trying
-to get a spinlock. Ignoring interrupt handling, a CPU can only be
-contending in one spinlock at any one time. Counting soft IRQ, hard
-IRQ and NMI, a CPU can only have a maximum of 4 concurrent lock waiting
-activities.  By allocating a set of per-cpu queue nodes and used them
-to form a waiting queue, we can encode the queue node address into a
-much smaller 24-bit size (including CPU number and queue node index)
-leaving one byte for the lock.
+                AIM7 XFS Disk Test
+  kernel                 JPM    Real Time   Sys Time    Usr Time
+  -----                  ---    ---------   --------    --------
+  ticketlock            5678233    3.17       96.61       5.81
+  qspinlock             5750799    3.13       94.83       5.97
+  simple test-and-set	5625000	   3.20	      98.29	  5.93
+  simple unfair		5750799	   3.13	      95.91	  5.98
+    qspinlock
+  complex unfair	5678233	   3.17	      97.40	  5.93
+    qspinlock
 
-Please note that the queue node is only needed when waiting for the
-lock. Once the lock is acquired, the queue node can be released to
-be used later.
+                AIM7 EXT4 Disk Test
+  kernel                 JPM    Real Time   Sys Time    Usr Time
+  -----                  ---    ---------   --------    --------
+  ticketlock            1114551   16.15      509.72       7.11
+  qspinlock             2184466    8.24      232.99       6.01
+  simple test-and-set	 593081	  30.35	     967.55	  9.00
+  simple unfair		2292994	   7.85	     222.84	  5.89
+    qspinlock
+  complex unfair	 972447	  18.51	     589.88	  6.65
+    qspinlock
+
+                Ebizzy -m test
+  kernel               records/s  Real Time   Sys Time    Usr Time
+  -----                ---------  ---------   --------    --------
+  ticketlock             2075       10.00      216.35       3.49
+  qspinlock              3023       10.00      198.20       4.80
+  simple test-and-set	 1667	    10.00      198.93	    2.89
+  simple unfair		 2915	    10.00      165.68	    4.31
+    qspinlock
+  complex unfair	 1965	    10.00      191.96       3.17
+    qspinlock
+
+With heavy spinlock contention, the complex unfair lock is faster
+than the simple test-and-set lock, but it is still slower than the
+baseline ticketlock.
+
+The table below shows the execution times (in ms) of a spinlock
+micro-benchmark on the same 4-socket Westmere-EX system.
+
+  # of    Ticket       Fair	 Unfair simple	Unfair complex
+  tasks    lock     queue lock    queue lock	  queue lock
+  ------  -------   ----------    ----------	  ---------
+    1       135        135	     137	    137
+    2       890       1082	     421	    663
+    3      1932       2248     	     708	   1263
+    4      2829       2819	    1030	   1806
+    5      3834       3522	    1323	   2315
+    6      4963       4173	    1723	   2831
+    7      6299       4875          2067	   2878
+    8      7691       5563          2360	   3256
+
+Executing one task per node, the performance data were:
+
+  # of    Ticket       Fair	 Unfair simple	Unfair complex
+  nodes    lock     queue lock    queue lock	  queue lock
+  ------  -------   ----------    ----------	  ---------
+    1        135        135          137	    137
+    2       4603       1034          670	    888
+    3      10940      12087         1389	   2041
+    4      21555      10507         1869	   4307
 
 Signed-off-by: Waiman Long <Waiman.Long@hp.com>
-Signed-off-by: Peter Zijlstra <peterz@infradead.org>
 ---
- include/asm-generic/qspinlock.h       |  118 ++++++++++++++++++++
- include/asm-generic/qspinlock_types.h |   61 ++++++++++
- kernel/Kconfig.locks                  |    7 +
- kernel/locking/Makefile               |    1 +
- kernel/locking/mcs_spinlock.h         |    1 +
- kernel/locking/qspinlock.c            |  197 +++++++++++++++++++++++++++++++++
- 6 files changed, 385 insertions(+), 0 deletions(-)
- create mode 100644 include/asm-generic/qspinlock.h
- create mode 100644 include/asm-generic/qspinlock_types.h
- create mode 100644 kernel/locking/qspinlock.c
+ kernel/locking/qspinlock.c |  160 ++++++++++++++++++++++++++++++++++++++++++--
+ 1 files changed, 154 insertions(+), 6 deletions(-)
 
-diff --git a/include/asm-generic/qspinlock.h b/include/asm-generic/qspinlock.h
-new file mode 100644
-index 0000000..e8a7ae8
---- /dev/null
-+++ b/include/asm-generic/qspinlock.h
-@@ -0,0 +1,118 @@
+diff --git a/kernel/locking/qspinlock.c b/kernel/locking/qspinlock.c
+index c2c79a0..f9c82f6 100644
+--- a/kernel/locking/qspinlock.c
++++ b/kernel/locking/qspinlock.c
+@@ -170,6 +170,23 @@ xchg_tail(struct qspinlock *lock, u32 tail, u32 *pval)
+ 	return (u32)xchg(&l->tail, tail >> _Q_TAIL_OFFSET) << _Q_TAIL_OFFSET;
+ }
+ 
 +/*
-+ * Queue spinlock
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License as published by
-+ * the Free Software Foundation; either version 2 of the License, or
-+ * (at your option) any later version.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * (C) Copyright 2013-2014 Hewlett-Packard Development Company, L.P.
-+ *
-+ * Authors: Waiman Long <waiman.long@hp.com>
-+ */
-+#ifndef __ASM_GENERIC_QSPINLOCK_H
-+#define __ASM_GENERIC_QSPINLOCK_H
-+
-+#include <asm-generic/qspinlock_types.h>
-+
-+/**
-+ * queue_spin_is_locked - is the spinlock locked?
-+ * @lock: Pointer to queue spinlock structure
-+ * Return: 1 if it is locked, 0 otherwise
-+ */
-+static __always_inline int queue_spin_is_locked(struct qspinlock *lock)
-+{
-+	return atomic_read(&lock->val);
-+}
-+
-+/**
-+ * queue_spin_value_unlocked - is the spinlock structure unlocked?
-+ * @lock: queue spinlock structure
-+ * Return: 1 if it is unlocked, 0 otherwise
-+ *
-+ * N.B. Whenever there are tasks waiting for the lock, it is considered
-+ *      locked wrt the lockref code to avoid lock stealing by the lockref
-+ *      code and change things underneath the lock. This also allows some
-+ *      optimizations to be applied without conflict with lockref.
-+ */
-+static __always_inline int queue_spin_value_unlocked(struct qspinlock lock)
-+{
-+	return !atomic_read(&lock.val);
-+}
-+
-+/**
-+ * queue_spin_is_contended - check if the lock is contended
++ * cmpxchg_tail - Put in the new tail code if it matches the old one
 + * @lock : Pointer to queue spinlock structure
-+ * Return: 1 if lock contended, 0 otherwise
++ * @old  : The old tail code value
++ * @new  : The new tail code value
++ * Return: true if operation succeeds, fail otherwise
 + */
-+static __always_inline int queue_spin_is_contended(struct qspinlock *lock)
++static __always_inline int
++cmpxchg_tail(struct qspinlock *lock, u32 old, u32 new)
 +{
-+	return atomic_read(&lock->val) & ~_Q_LOCKED_MASK;
++	struct __qspinlock *l = (void *)lock;
++
++	old >>= _Q_TAIL_OFFSET;
++	new >>= _Q_TAIL_OFFSET;
++	return cmpxchg(&l->tail, old, new) == old;
 +}
-+/**
-+ * queue_spin_trylock - try to acquire the queue spinlock
++
+ #else /* _Q_PENDING_BITS == 8 */
+ 
+ /**
+@@ -222,6 +239,35 @@ xchg_tail(struct qspinlock *lock, u32 tail, u32 *pval)
+ 	*pval = new;
+ 	return old;
+ }
++
++/*
++ * cmpxchg_tail - Put in the new tail code if it matches the old one
 + * @lock : Pointer to queue spinlock structure
-+ * Return: 1 if lock acquired, 0 if failed
++ * @old  : The old tail code value
++ * @new  : The new tail code value
++ * Return: true if operation succeeds, fail otherwise
++ *
++ * It is assumed that the caller has grabbed the lock before calling it.
 + */
-+static __always_inline int queue_spin_trylock(struct qspinlock *lock)
-+{
-+	if (!atomic_read(&lock->val) &&
-+	   (atomic_cmpxchg(&lock->val, 0, _Q_LOCKED_VAL) == 0))
-+		return 1;
-+	return 0;
-+}
-+
-+extern void queue_spin_lock_slowpath(struct qspinlock *lock, u32 val);
-+
-+/**
-+ * queue_spin_lock - acquire a queue spinlock
-+ * @lock: Pointer to queue spinlock structure
-+ */
-+static __always_inline void queue_spin_lock(struct qspinlock *lock)
++static __always_inline int
++cmpxchg_tail(struct qspinlock *lock, u32 old, u32 new)
 +{
 +	u32 val;
++	u32 lp = _Q_LOCKED_VAL;	/* Lock & pending bits value */
 +
-+	val = atomic_cmpxchg(&lock->val, 0, _Q_LOCKED_VAL);
-+	if (likely(val == 0))
-+		return;
-+	queue_spin_lock_slowpath(lock, val);
-+}
-+
-+#ifndef queue_spin_unlock
-+/**
-+ * queue_spin_unlock - release a queue spinlock
-+ * @lock : Pointer to queue spinlock structure
-+ */
-+static __always_inline void queue_spin_unlock(struct qspinlock *lock)
-+{
-+	/*
-+	 * smp_mb__before_atomic() in order to guarantee release semantics
-+	 */
-+	smp_mb__before_atomic_dec();
-+	atomic_sub(_Q_LOCKED_VAL, &lock->val);
-+}
-+#endif
-+
-+/*
-+ * Initializier
-+ */
-+#define	__ARCH_SPIN_LOCK_UNLOCKED	{ ATOMIC_INIT(0) }
-+
-+/*
-+ * Remapping spinlock architecture specific functions to the corresponding
-+ * queue spinlock functions.
-+ */
-+#define arch_spin_is_locked(l)		queue_spin_is_locked(l)
-+#define arch_spin_is_contended(l)	queue_spin_is_contended(l)
-+#define arch_spin_value_unlocked(l)	queue_spin_value_unlocked(l)
-+#define arch_spin_lock(l)		queue_spin_lock(l)
-+#define arch_spin_trylock(l)		queue_spin_trylock(l)
-+#define arch_spin_unlock(l)		queue_spin_unlock(l)
-+#define arch_spin_lock_flags(l, f)	queue_spin_lock(l)
-+
-+#endif /* __ASM_GENERIC_QSPINLOCK_H */
-diff --git a/include/asm-generic/qspinlock_types.h b/include/asm-generic/qspinlock_types.h
-new file mode 100644
-index 0000000..f66f845
---- /dev/null
-+++ b/include/asm-generic/qspinlock_types.h
-@@ -0,0 +1,61 @@
-+/*
-+ * Queue spinlock
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License as published by
-+ * the Free Software Foundation; either version 2 of the License, or
-+ * (at your option) any later version.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * (C) Copyright 2013-2014 Hewlett-Packard Development Company, L.P.
-+ *
-+ * Authors: Waiman Long <waiman.long@hp.com>
-+ */
-+#ifndef __ASM_GENERIC_QSPINLOCK_TYPES_H
-+#define __ASM_GENERIC_QSPINLOCK_TYPES_H
-+
-+/*
-+ * Including atomic.h with PARAVIRT on will cause compilation errors because
-+ * of recursive header file incluson via paravirt_types.h. A workaround is
-+ * to include paravirt_types.h here.
-+ */
-+#ifdef CONFIG_PARAVIRT
-+#include <asm/paravirt_types.h>
-+#else
-+#include <linux/types.h>
-+#include <linux/atomic.h>
-+#include <linux/bug.h>
-+#endif
-+
-+typedef struct qspinlock {
-+	atomic_t	val;
-+} arch_spinlock_t;
-+
-+/*
-+ * Bitfields in the atomic value:
-+ *
-+ *  0- 7: locked byte
-+ *  8- 9: tail index
-+ * 10-31: tail cpu (+1)
-+ */
-+#define	_Q_SET_MASK(type)	(((1U << _Q_ ## type ## _BITS) - 1)\
-+				      << _Q_ ## type ## _OFFSET)
-+#define _Q_LOCKED_OFFSET	0
-+#define _Q_LOCKED_BITS		8
-+#define _Q_LOCKED_MASK		_Q_SET_MASK(LOCKED)
-+
-+#define _Q_TAIL_IDX_OFFSET	(_Q_LOCKED_OFFSET + _Q_LOCKED_BITS)
-+#define _Q_TAIL_IDX_BITS	2
-+#define _Q_TAIL_IDX_MASK	_Q_SET_MASK(TAIL_IDX)
-+
-+#define _Q_TAIL_CPU_OFFSET	(_Q_TAIL_IDX_OFFSET + _Q_TAIL_IDX_BITS)
-+#define _Q_TAIL_CPU_BITS	(32 - _Q_TAIL_CPU_OFFSET)
-+#define _Q_TAIL_CPU_MASK	_Q_SET_MASK(TAIL_CPU)
-+
-+#define _Q_LOCKED_VAL		(1U << _Q_LOCKED_OFFSET)
-+
-+#endif /* __ASM_GENERIC_QSPINLOCK_TYPES_H */
-diff --git a/kernel/Kconfig.locks b/kernel/Kconfig.locks
-index d2b32ac..f185584 100644
---- a/kernel/Kconfig.locks
-+++ b/kernel/Kconfig.locks
-@@ -223,3 +223,10 @@ endif
- config MUTEX_SPIN_ON_OWNER
- 	def_bool y
- 	depends on SMP && !DEBUG_MUTEXES
-+
-+config ARCH_USE_QUEUE_SPINLOCK
-+	bool
-+
-+config QUEUE_SPINLOCK
-+	def_bool y if ARCH_USE_QUEUE_SPINLOCK
-+	depends on SMP && !PARAVIRT_SPINLOCKS
-diff --git a/kernel/locking/Makefile b/kernel/locking/Makefile
-index 306a76b..877bdd0 100644
---- a/kernel/locking/Makefile
-+++ b/kernel/locking/Makefile
-@@ -15,6 +15,7 @@ obj-$(CONFIG_LOCKDEP) += lockdep_proc.o
- endif
- obj-$(CONFIG_SMP) += spinlock.o
- obj-$(CONFIG_PROVE_LOCKING) += spinlock.o
-+obj-$(CONFIG_QUEUE_SPINLOCK) += qspinlock.o
- obj-$(CONFIG_RT_MUTEXES) += rtmutex.o
- obj-$(CONFIG_DEBUG_RT_MUTEXES) += rtmutex-debug.o
- obj-$(CONFIG_RT_MUTEX_TESTER) += rtmutex-tester.o
-diff --git a/kernel/locking/mcs_spinlock.h b/kernel/locking/mcs_spinlock.h
-index a2dbac4..a59b677 100644
---- a/kernel/locking/mcs_spinlock.h
-+++ b/kernel/locking/mcs_spinlock.h
-@@ -17,6 +17,7 @@
- struct mcs_spinlock {
- 	struct mcs_spinlock *next;
- 	int locked; /* 1 if lock acquired */
-+	int count;
- };
- 
- #ifndef arch_mcs_spin_lock_contended
-diff --git a/kernel/locking/qspinlock.c b/kernel/locking/qspinlock.c
-new file mode 100644
-index 0000000..b97a1ad
---- /dev/null
-+++ b/kernel/locking/qspinlock.c
-@@ -0,0 +1,197 @@
-+/*
-+ * Queue spinlock
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License as published by
-+ * the Free Software Foundation; either version 2 of the License, or
-+ * (at your option) any later version.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * (C) Copyright 2013-2014 Hewlett-Packard Development Company, L.P.
-+ *
-+ * Authors: Waiman Long <waiman.long@hp.com>
-+ *          Peter Zijlstra <pzijlstr@redhat.com>
-+ */
-+#include <linux/smp.h>
-+#include <linux/bug.h>
-+#include <linux/cpumask.h>
-+#include <linux/percpu.h>
-+#include <linux/hardirq.h>
-+#include <linux/mutex.h>
-+#include <asm/qspinlock.h>
-+
-+/*
-+ * The basic principle of a queue-based spinlock can best be understood
-+ * by studying a classic queue-based spinlock implementation called the
-+ * MCS lock. The paper below provides a good description for this kind
-+ * of lock.
-+ *
-+ * http://www.cise.ufl.edu/tr/DOC/REP-1992-71.pdf
-+ *
-+ * This queue spinlock implementation is based on the MCS lock, however to make
-+ * it fit the 4 bytes we assume spinlock_t to be, and preserve its existing
-+ * API, we must modify it some.
-+ *
-+ * In particular; where the traditional MCS lock consists of a tail pointer
-+ * (8 bytes) and needs the next pointer (another 8 bytes) of its own node to
-+ * unlock the next pending (next->locked), we compress both these: {tail,
-+ * next->locked} into a single u32 value.
-+ *
-+ * Since a spinlock disables recursion of its own context and there is a limit
-+ * to the contexts that can nest; namely: task, softirq, hardirq, nmi, we can
-+ * encode the tail as and index indicating this context and a cpu number.
-+ *
-+ * We can further change the first spinner to spin on a bit in the lock word
-+ * instead of its node; whereby avoiding the need to carry a node from lock to
-+ * unlock, and preserving API.
-+ */
-+
-+#include "mcs_spinlock.h"
-+
-+/*
-+ * Per-CPU queue node structures; we can never have more than 4 nested
-+ * contexts: task, softirq, hardirq, nmi.
-+ *
-+ * Exactly fits one cacheline.
-+ */
-+static DEFINE_PER_CPU_ALIGNED(struct mcs_spinlock, mcs_nodes[4]);
-+
-+/*
-+ * We must be able to distinguish between no-tail and the tail at 0:0,
-+ * therefore increment the cpu number by one.
-+ */
-+
-+static inline u32 encode_tail(int cpu, int idx)
-+{
-+	u32 tail;
-+
-+	tail  = (cpu + 1) << _Q_TAIL_CPU_OFFSET;
-+	tail |= idx << _Q_TAIL_IDX_OFFSET; /* assume < 4 */
-+
-+	return tail;
-+}
-+
-+static inline struct mcs_spinlock *decode_tail(u32 tail)
-+{
-+	int cpu = (tail >> _Q_TAIL_CPU_OFFSET) - 1;
-+	int idx = (tail &  _Q_TAIL_IDX_MASK) >> _Q_TAIL_IDX_OFFSET;
-+
-+	return per_cpu_ptr(&mcs_nodes[idx], cpu);
-+}
-+
-+/**
-+ * queue_spin_lock_slowpath - acquire the queue spinlock
-+ * @lock: Pointer to queue spinlock structure
-+ * @val: Current value of the queue spinlock 32-bit word
-+ *
-+ * (queue tail, lock bit)
-+ *
-+ *              fast      :    slow                                  :    unlock
-+ *                        :                                          :
-+ * uncontended  (0,0)   --:--> (0,1) --------------------------------:--> (*,0)
-+ *                        :       | ^--------.                    /  :
-+ *                        :       v           \                   |  :
-+ * uncontended            :    (n,x) --+--> (n,0)                 |  :
-+ *   queue                :       | ^--'                          |  :
-+ *                        :       v                               |  :
-+ * contended              :    (*,x) --+--> (*,0) -----> (*,1) ---'  :
-+ *   queue                :         ^--'                             :
-+ *
-+ */
-+void queue_spin_lock_slowpath(struct qspinlock *lock, u32 val)
-+{
-+	struct mcs_spinlock *prev, *next, *node;
-+	u32 new, old, tail;
-+	int idx;
-+
-+	BUILD_BUG_ON(CONFIG_NR_CPUS >= (1U << _Q_TAIL_CPU_BITS));
-+
-+	node = this_cpu_ptr(&mcs_nodes[0]);
-+	idx = node->count++;
-+	tail = encode_tail(smp_processor_id(), idx);
-+
-+	node += idx;
-+	node->locked = 0;
-+	node->next = NULL;
-+
-+	/*
-+	 * trylock || xchg(lock, node)
-+	 *
-+	 * 0,0 -> 0,1 ; trylock
-+	 * p,x -> n,x ; prev = xchg(lock, node)
-+	 */
 +	for (;;) {
-+		new = _Q_LOCKED_VAL;
-+		if (val)
-+			new = tail | (val & _Q_LOCKED_MASK);
++		u32 val = atomic_cmpxchg(&lock->val, old | lp, new | lp);
 +
-+		old = atomic_cmpxchg(&lock->val, val, new);
-+		if (old == val)
-+			break;
++		/*
++		 * If the lock or pending bits somehow changes, redo it again
++		 */
++		if ((val & _Q_LOCKED_PENDING_MASK) != lp) {
++			lp = val & _Q_LOCKED_PENDING_MASK;
++			continue;
++		}
++		return val == (old | lp);
++	}
++}
+ #endif /* _Q_PENDING_BITS == 8 */
+ 
+ /*
+@@ -306,6 +352,25 @@ unfair_set_vars(struct qnode *node, struct qnode *prev, u32 prev_tail)
+ }
+ 
+ /**
++ * unfair_check_and_clear_tail - check the tail value in lock & clear it if
++ *				 it matches the given tail
++ * @lock : Pointer to queue spinlock structure
++ * @tail : The tail code to be checked against
++ * Return: true if the tail code matches and is cleared, false otherwise
++ */
++static inline int unfair_check_and_clear_tail(struct qspinlock *lock, u32 tail)
++{
++	if (!static_key_false(&paravirt_unfairlocks_enabled))
++		return false;
 +
-+		val = old;
++	/*
++	 * Try to clear the current tail code if it matches the given tail
++	 */
++	return ((atomic_read(&lock->val) & _Q_TAIL_MASK) == tail) &&
++		cmpxchg_tail(lock, tail, 0);
++}
++
++/**
+  * unfair_get_lock - try to steal the lock periodically
+  * @lock : Pointer to queue spinlock structure
+  * @node : Current queue node address
+@@ -317,7 +382,7 @@ unfair_set_vars(struct qnode *node, struct qnode *prev, u32 prev_tail)
+  * node only if the qhead flag is set and the next pointer in the queue
+  * node is not NULL.
+  */
+-static noinline int
++static inline int
+ unfair_get_lock(struct qspinlock *lock, struct qnode *node, u32 tail, int count)
+ {
+ 	u32	     prev_tail;
+@@ -341,8 +406,64 @@ unfair_get_lock(struct qspinlock *lock, struct qnode *node, u32 tail, int count)
+ 			node->lsteal_mask = LSTEAL_MAX_MASK;
+ 		return false;
+ 	}
+-	queue_spin_unlock(lock);
+-	return false;
++
++	/*
++	 * Have stolen the lock, need to remove itself from the wait queue.
++	 * There are 3 steps that need to be done:
++	 * 1) If it is at the end of the queue, change the tail code in the
++	 *    lock to the one before it. If the current node happens to be
++	 *    the queue head, the previous tail code is 0.
++	 * 2) Change the next pointer in the previous queue node to point
++	 *    to the next one in queue or NULL if it is at the end of queue.
++	 * 3) If a next node is present, copy the prev_tail and qprev values
++	 *    to the next node.
++	 */
++	isqhead   = ACCESS_ONCE(node->qhead);
++	prev_tail = isqhead ? 0 : node->prev_tail;
++
++	/* Step 1 */
++	if (((atomic_read(&lock->val) & _Q_TAIL_MASK) == tail) &&
++	     cmpxchg_tail(lock, tail, prev_tail)) {
++		/*
++		 * Successfully change the tail code back to the previous one.
++		 * Now need to clear the next pointer in the previous node
++		 * only if it contains my queue node address and is not
++		 * the queue head. The cmpxchg() call below may fail if
++		 * a new task comes along and put its node address into the
++		 * next pointer. Whether the operation succeeds or fails
++		 * doesn't really matter.
++		 */
++		/* Step 2 */
++		if (!isqhead)
++			(void)cmpxchg(&node->qprev->mcs.next, &node->mcs, NULL);
++		node->mcs.next = NULL;
++		return true;
 +	}
 +
 +	/*
-+	 * we won the trylock; forget about queueing.
++	 * A next node has to be present if the lock has a different tail
++	 * code. So wait until the next pointer is set.
 +	 */
-+	if (new == _Q_LOCKED_VAL)
-+		goto release;
-+
-+	/*
-+	 * if there was a previous node; link it and wait.
-+	 */
-+	if (old & ~_Q_LOCKED_MASK) {
-+		prev = decode_tail(old);
-+		ACCESS_ONCE(prev->next) = node;
-+
-+		arch_mcs_spin_lock_contended(&node->locked);
-+	}
-+
-+	/*
-+	 * we're at the head of the waitqueue, wait for the owner to go away.
-+	 *
-+	 * *,x -> *,0
-+	 */
-+	while ((val = atomic_read(&lock->val)) & _Q_LOCKED_MASK)
++	while (!(next = (struct qnode *)ACCESS_ONCE(node->mcs.next)))
 +		arch_mutex_cpu_relax();
 +
-+	/*
-+	 * claim the lock:
-+	 *
-+	 * n,0 -> 0,1 : lock, uncontended
-+	 * *,0 -> *,1 : lock, contended
-+	 */
-+	for (;;) {
-+		new = _Q_LOCKED_VAL;
-+		if (val != tail)
-+			new |= val;
++	if (!isqhead) {
++		/*
++		 * Change the node data only if it is not the queue head
++		 * Steps 2 & 3
++		 */
++		ACCESS_ONCE(node->qprev->mcs.next) =
++				(struct mcs_spinlock *)next;
++		ACCESS_ONCE(next->qprev)     = node->qprev;
++		ACCESS_ONCE(next->prev_tail) = node->prev_tail;
 +
-+		old = atomic_cmpxchg(&lock->val, val, new);
-+		if (old == val)
-+			break;
-+
-+		val = old;
++		/*
++		 * Make sure all the new node information are visible
++		 * before proceeding.
++		 */
++		smp_wmb();
 +	}
-+
-+	/*
-+	 * contended path; wait for next, release.
-+	 */
-+	if (new != _Q_LOCKED_VAL) {
-+		while (!(next = ACCESS_ONCE(node->next)))
-+			arch_mutex_cpu_relax();
-+
-+		arch_mcs_spin_unlock_contended(&next->locked);
-+	}
-+
-+release:
-+	/*
-+	 * release the node
-+	 */
-+	this_cpu_dec(mcs_nodes[0].count);
-+}
-+EXPORT_SYMBOL(queue_spin_lock_slowpath);
++	return true;
+ }
+ 
+ #else /* CONFIG_PARAVIRT_UNFAIR_LOCKS */
+@@ -355,6 +476,8 @@ static void unfair_set_vars(struct qnode *node, struct qnode *prev,
+ 		u32 prev_tail)				{}
+ static int unfair_get_lock(struct qspinlock *lock, struct qnode *node,
+ 		u32 tail, int count)			{ return false; }
++static int unfair_check_and_clear_tail(struct qspinlock *lock, u32 tail)
++							{ return false; }
+ #endif /* CONFIG_PARAVIRT_UNFAIR_LOCKS */
+ 
+ /**
+@@ -515,7 +638,16 @@ queue_spin_lock_slowerpath(struct qspinlock *lock, struct qnode *node, u32 tail)
+ 
+ 		while (!smp_load_acquire(&node->qhead)) {
+ 			INC_LOOP_CNT(cnt);
+-			unfair_get_lock(lock, node, tail, LOOP_CNT(cnt));
++			if (unfair_get_lock(lock, node, tail, LOOP_CNT(cnt))) {
++				/*
++				 * Need to notify the next node only if both
++				 * the qhead flag and the next pointer in the
++				 * queue node are set.
++				 */
++				if (unlikely(node->qhead && node->mcs.next))
++					goto notify_next;
++				return;
++			}
+ 			arch_mutex_cpu_relax();
+ 		}
+ 	}
+@@ -549,10 +681,25 @@ retry_queue_wait:
+ 			 * The get_qlock function will only failed if the
+ 			 * lock was stolen.
+ 			 */
+-			if (get_qlock(lock))
++			if (get_qlock(lock)) {
++				/*
++				 * It is possible that in between the reading
++				 * of the lock value and the acquisition of
++				 * the lock, the next node may have stolen the
++				 * lock and be removed from the queue. So
++				 * the lock value may contain the tail code
++				 * of the current node. We need to recheck
++				 * the tail value here to be sure. And if
++				 * the tail code was cleared, we don't need
++				 * to notify the next node.
++				 */
++				if (unlikely(unfair_check_and_clear_tail(lock,
++						tail)))
++					return;
+ 				break;
+-			else
++			} else {
+ 				goto retry_queue_wait;
++			}
+ 		}
+ 		old = atomic_cmpxchg(&lock->val, val, _Q_LOCKED_VAL);
+ 		if (old == val)
+@@ -566,6 +713,7 @@ retry_queue_wait:
+ 	/*
+ 	 * contended path; wait for next, return.
+ 	 */
++notify_next:
+ 	while (!(next = (struct qnode *)ACCESS_ONCE(node->mcs.next)))
+ 		arch_mutex_cpu_relax();
+ 
 -- 
 1.7.1
 
