@@ -1,39 +1,91 @@
-From: Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>
-Subject: Re: [PATCH v9 00/19] qspinlock: a 4-byte queue spinlock
-	with PV support
-Date: Thu, 17 Apr 2014 23:10:28 +0530
-Message-ID: <5350120C.40607@linux.vnet.ibm.com>
-References: <1397747051-15401-1-git-send-email-Waiman.Long@hp.com>
-	<20140417172246.GA9849@localhost.localdomain>
+From: Sam Ravnborg <sam@ravnborg.org>
+Subject: Re: [PATCH 00/18] Cross-architecture definitions of relaxed MMIO
+ accessors
+Date: Thu, 17 Apr 2014 21:15:55 +0200
+Message-ID: <20140417191555.GA11970@ravnborg.org>
+References: <1397742261-15621-1-git-send-email-will.deacon@arm.com>
+ <20140417153638.GA7317@ravnborg.org>
+ <20140417154714.GD30553@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"; Format="flowed"
-Content-Transfer-Encoding: 7bit
-Return-path: <xen-devel-bounces@lists.xen.org>
-In-Reply-To: <20140417172246.GA9849@localhost.localdomain>
-List-Unsubscribe: <http://lists.xen.org/cgi-bin/mailman/options/xen-devel>,
-	<mailto:xen-devel-request@lists.xen.org?subject=unsubscribe>
-List-Post: <mailto:xen-devel@lists.xen.org>
-List-Help: <mailto:xen-devel-request@lists.xen.org?subject=help>
-List-Subscribe: <http://lists.xen.org/cgi-bin/mailman/listinfo/xen-devel>,
-	<mailto:xen-devel-request@lists.xen.org?subject=subscribe>
-Sender: xen-devel-bounces@lists.xen.org
-Errors-To: xen-devel-bounces@lists.xen.org
-To: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
-Cc: Waiman Long <Waiman.Long@hp.com>, linux-arch@vger.kernel.org, Gleb Natapov <gleb@redhat.com>, kvm@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Scott J Norton <scott.norton@hp.com>, x86@kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, Ingo Molnar <mingo@redhat.com>, Chegu Vinod <chegu_vinod@hp.com>, David Vrabel <david.vrabel@citrix.com>, "H. Peter Anvin" <hpa@zytor.com>, xen-devel@lists.xenproject.org, Thomas Gleixner <tglx@linutronix.de>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Oleg Nesterov <oleg@redhat.com>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from asavdk4.altibox.net ([109.247.116.15]:36400 "EHLO
+	asavdk4.altibox.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752760AbaDQTQO (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 17 Apr 2014 15:16:14 -0400
+Content-Disposition: inline
+In-Reply-To: <20140417154714.GD30553@arm.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Will Deacon <will.deacon@arm.com>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "arnd@arndb.de" <arnd@arndb.de>, "monstr@monstr.eu" <monstr@monstr.eu>, "dhowells@redhat.com" <dhowells@redhat.com>, "broonie@linaro.org" <broonie@linaro.org>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, "peterz@infradead.org" <peterz@infradead.org>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>
 
-On 04/17/2014 10:53 PM, Konrad Rzeszutek Wilk wrote:
-> On Thu, Apr 17, 2014 at 11:03:52AM -0400, Waiman Long wrote:
->> v8->v9:
->>    - Integrate PeterZ's version of the queue spinlock patch with some
->>      modification:
->>      http://lkml.kernel.org/r/20140310154236.038181843@infradead.org
->>    - Break the more complex patches into smaller ones to ease review effort.
->>    - Fix a racing condition in the PV qspinlock code.
->
-> I am not seeing anything mentioning that the overcommit scenario
-> for KVM and Xen had been fixed. Or was the 'racing condition' said
-> issue?
+On Thu, Apr 17, 2014 at 04:47:15PM +0100, Will Deacon wrote:
+> Hi Sam,
+> 
+> On Thu, Apr 17, 2014 at 04:36:38PM +0100, Sam Ravnborg wrote:
+> > On Thu, Apr 17, 2014 at 02:44:03PM +0100, Will Deacon wrote:
+> > > Hello,
+> > > 
+> > > This RFC series attempts to define a portable (i.e. cross-architecture)
+> > > definition of the {readX,writeX}_relaxed MMIO accessor functions. These
+> > > functions are already in widespread use amongst drivers (mainly those supporting
+> > > devices embedded in ARM SoCs), but lack any well-defined semantics and,
+> > > subsequently, any portable definitions to allow these drivers to be compiled for
+> > > other architectures.
+> > 
+> > Could this be made in such a way that only architectures that need
+> > to provide their own versions actually have to add them?
+> > 
+> > The current patch-set adds the same dummy defines all over,
+> > and will put this burden also on new architectures.
+> 
+> It shouldn't be a burden for new architectures, as they will use
+> asm-generic/io.h and get the definitions from there.
 
-Saw changes in patch 18 that fixes for kvm (19 for xen). 'll
-test the series and confirm.
+Why is it then necesary to do this for sparc:
+diff --git a/arch/sparc/include/asm/io.h b/arch/sparc/include/asm/io.h
+index f6902cf3cbe9..493f22c4684f 100644
+--- a/arch/sparc/include/asm/io.h
++++ b/arch/sparc/include/asm/io.h
+@@ -10,6 +10,15 @@
+  * Defines used for both SPARC32 and SPARC64
+  */
+
++/* Relaxed accessors for MMIO */
++#define readb_relaxed(__addr)          readb(__addr)
++#define readw_relaxed(__addr)          readw(__addr)
++#define readl_relaxed(__addr)          readl(__addr)
++
++#define writeb_relaxed(__b, __addr)    writeb(__b, __addr)
++#define writew_relaxed(__w, __addr)    writew(__w, __addr)
++#define writel_relaxed(__l, __addr)    writel(__l, __addr)
+
+And similar for several other architectures.
+
+For asm-generic/io.h:
++#ifndef readb_relaxed
++#define readb_relaxed  readb
++#endif
+
+This has same effect as the above.
+Only difference is that the implementation in asm-generic lacks the arguments.
+
+The patch also breaks the pattern that the #define foobar foobar is
+on the line just above the static inline that implements the function.
+
+-#define readw readw
++#define readw          readw
+
++#ifndef readw_relaxed
++#define readw_relaxed  readw
++#endif
+Move this blow below the static inline would make this easier to understand.
+
+ static inline u16 readw(const volatile void __iomem *addr)
+ {
+        return __le16_to_cpu(__raw_readw(addr));
+ }
+
+
+	Sam
