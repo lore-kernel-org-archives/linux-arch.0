@@ -1,58 +1,160 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:50424 "EHLO
-	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1751992AbaDQORU (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 17 Apr 2014 10:17:20 -0400
-Date: Thu, 17 Apr 2014 15:15:41 +0100
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [PATCH 00/18] Cross-architecture definitions of relaxed MMIO
- accessors
-Message-ID: <20140417141541.GC30553@arm.com>
-References: <1397742261-15621-1-git-send-email-will.deacon@arm.com>
- <20140417140036.GK11096@twins.programming.kicks-ass.net>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20140417140036.GK11096@twins.programming.kicks-ass.net>
+Received: from g6t1526.atlanta.hp.com ([15.193.200.69]:23421 "EHLO
+	g6t1526.atlanta.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751196AbaDQPEm (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 17 Apr 2014 11:04:42 -0400
+From: Waiman Long <Waiman.Long@hp.com>
+Subject: [PATCH v9 00/19] qspinlock: a 4-byte queue spinlock with PV support
+Date: Thu, 17 Apr 2014 11:03:52 -0400
+Message-ID: <1397747051-15401-1-git-send-email-Waiman.Long@hp.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "arnd@arndb.de" <arnd@arndb.de>, "monstr@monstr.eu" <monstr@monstr.eu>, "dhowells@redhat.com" <dhowells@redhat.com>, "broonie@linaro.org" <broonie@linaro.org>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>
-Message-ID: <20140417141541.kg1nsFAcH6TLn_553dn20oO0iOdC7gpPNzpUEYdWSbE@z>
+To: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Peter Zijlstra <peterz@infradead.org>
+Cc: linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Rik van Riel <riel@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, David Vrabel <david.vrabel@citrix.com>, Oleg Nesterov <oleg@redhat.com>, Gleb Natapov <gleb@redhat.com>, Scott J Norton <scott.norton@hp.com>, Chegu Vinod <chegu_vinod@hp.com>, Waiman Long <Waiman.Long@hp.com>
+Message-ID: <20140417150352.rYJzLCV1wIKFy6FNj1RBs-pD2ojQW7h0dB4HncYdK_8@z>
 
-Hi Peter,
+v8->v9:
+  - Integrate PeterZ's version of the queue spinlock patch with some
+    modification:
+    http://lkml.kernel.org/r/20140310154236.038181843@infradead.org
+  - Break the more complex patches into smaller ones to ease review effort.
+  - Fix a racing condition in the PV qspinlock code.
 
-On Thu, Apr 17, 2014 at 03:00:36PM +0100, Peter Zijlstra wrote:
-> On Thu, Apr 17, 2014 at 02:44:03PM +0100, Will Deacon wrote:
-> > In actual fact, the relaxed accessors *are* ordered with respect to LOCK/UNLOCK
-> > operations on ARM[64], but I have added this constraint for the benefit of
-> > PowerPC, which has expensive I/O barriers in the spin_unlock path for the
-> > non-relaxed accessors.
-> > 
-> > A corollary to this is that mmiowb() probably needs rethinking. As it currently
-> > stands, an mmiowb() is required to order MMIO writes to a device from multiple
-> > CPUs, even if that device is protected by a lock. However, this isn't often used
-> > in practice, leading to PowerPC implementing both mmiowb() *and* synchronising
-> > I/O in spin_unlock.
-> > 
-> > I would propose making the non-relaxed I/O accessors ordered with respect to
-> > LOCK/UNLOCK, leaving mmiowb() to be used with the relaxed accessors, if
-> > required, but would welcome thoughts/suggestions on this topic.
-> 
-> So the non-relaxed ops already imply the expensive I/O barrier (mmiowb?)
-> and therefore, PPC can drop it from spin_unlock()?
+v7->v8:
+  - Remove one unneeded atomic operation from the slowpath, thus
+    improving performance.
+  - Simplify some of the codes and add more comments.
+  - Test for X86_FEATURE_HYPERVISOR CPU feature bit to enable/disable
+    unfair lock.
+  - Reduce unfair lock slowpath lock stealing frequency depending
+    on its distance from the queue head.
+  - Add performance data for IvyBridge-EX CPU.
 
-Ben can probably help out here, but if my proposal went ahead (that is,
-only the non-relaxed ops would imply mmiowb()), then it would actually
-be implemented on PPC by having only those accessors call IO_SET_SYNC_FLAG,
-which is checked during unlock (in SYNC_IO).
+v6->v7:
+  - Remove an atomic operation from the 2-task contending code
+  - Shorten the names of some macros
+  - Make the queue waiter to attempt to steal lock when unfair lock is
+    enabled.
+  - Remove lock holder kick from the PV code and fix a race condition
+  - Run the unfair lock & PV code on overcommitted KVM guests to collect
+    performance data.
 
-> Also, I read mmiowb() as MMIO-write-barrier(), what do we have to
-> order/contain mmio-reads?
+v5->v6:
+ - Change the optimized 2-task contending code to make it fairer at the
+   expense of a bit of performance.
+ - Add a patch to support unfair queue spinlock for Xen.
+ - Modify the PV qspinlock code to follow what was done in the PV
+   ticketlock.
+ - Add performance data for the unfair lock as well as the PV
+   support code.
 
-My understanding is that this is related to posted stores from different
-CPUs being re-ordered on the bus, so I wouldn't expect reads to suffer
-(although, since this isn't permitted on ARM, I'm guessing here).
+v4->v5:
+ - Move the optimized 2-task contending code to the generic file to
+   enable more architectures to use it without code duplication.
+ - Address some of the style-related comments by PeterZ.
+ - Allow the use of unfair queue spinlock in a real para-virtualized
+   execution environment.
+ - Add para-virtualization support to the qspinlock code by ensuring
+   that the lock holder and queue head stay alive as much as possible.
 
-Will
+v3->v4:
+ - Remove debugging code and fix a configuration error
+ - Simplify the qspinlock structure and streamline the code to make it
+   perform a bit better
+ - Add an x86 version of asm/qspinlock.h for holding x86 specific
+   optimization.
+ - Add an optimized x86 code path for 2 contending tasks to improve
+   low contention performance.
+
+v2->v3:
+ - Simplify the code by using numerous mode only without an unfair option.
+ - Use the latest smp_load_acquire()/smp_store_release() barriers.
+ - Move the queue spinlock code to kernel/locking.
+ - Make the use of queue spinlock the default for x86-64 without user
+   configuration.
+ - Additional performance tuning.
+
+v1->v2:
+ - Add some more comments to document what the code does.
+ - Add a numerous CPU mode to support >= 16K CPUs
+ - Add a configuration option to allow lock stealing which can further
+   improve performance in many cases.
+ - Enable wakeup of queue head CPU at unlock time for non-numerous
+   CPU mode.
+
+This patch set has 3 different sections:
+ 1) Patches 1-7: Introduces a queue-based spinlock implementation that
+    can replace the default ticket spinlock without increasing the
+    size of the spinlock data structure. As a result, critical kernel
+    data structures that embed spinlock won't increase in size and
+    break data alignments.
+ 2) Patches 8-13: Enables the use of unfair queue spinlock in a
+    virtual guest. This can resolve some of the locking related
+    performance issues due to the fact that the next CPU to get the
+    lock may have been scheduled out for a period of time.
+ 3) Patches 14-19: Enable qspinlock para-virtualization support
+    by halting the waiting CPUs after spinning for a certain amount of
+    time. The unlock code will detect the a sleeping waiter and wake it
+    up. This is essentially the same logic as the PV ticketlock code.
+
+The queue spinlock has slightly better performance than the ticket
+spinlock in uncontended case. Its performance can be much better
+with moderate to heavy contention.  This patch has the potential of
+improving the performance of all the workloads that have moderate to
+heavy spinlock contention.
+
+The queue spinlock is especially suitable for NUMA machines with at
+least 2 sockets, though noticeable performance benefit probably won't
+show up in machines with less than 4 sockets.
+
+The purpose of this patch set is not to solve any particular spinlock
+contention problems. Those need to be solved by refactoring the code
+to make more efficient use of the lock or finer granularity ones. The
+main purpose is to make the lock contention problems more tolerable
+until someone can spend the time and effort to fix them.
+
+Waiman Long (19):
+  qspinlock: A simple generic 4-byte queue spinlock
+  qspinlock, x86: Enable x86-64 to use queue spinlock
+  qspinlock: Add pending bit
+  qspinlock: Extract out the exchange of tail code word
+  qspinlock: Optimize for smaller NR_CPUS
+  qspinlock: prolong the stay in the pending bit path
+  qspinlock: Use a simple write to grab the lock, if applicable
+  qspinlock: Make a new qnode structure to support virtualization
+  qspinlock: Prepare for unfair lock support
+  qspinlock, x86: Allow unfair spinlock in a virtual guest
+  qspinlock: Split the MCS queuing code into a separate slowerpath
+  unfair qspinlock: Variable frequency lock stealing mechanism
+  unfair qspinlock: Enable lock stealing in lock waiters
+  pvqspinlock, x86: Rename paravirt_ticketlocks_enabled
+  pvqspinlock, x86: Add PV data structure & methods
+  pvqspinlock: Enable coexistence with the unfair lock
+  pvqspinlock: Add qspinlock para-virtualization support
+  pvqspinlock, x86: Enable PV qspinlock PV for KVM
+  pvqspinlock, x86: Enable PV qspinlock for XEN
+
+ arch/x86/Kconfig                      |   12 +
+ arch/x86/include/asm/paravirt.h       |   18 +-
+ arch/x86/include/asm/paravirt_types.h |   17 +
+ arch/x86/include/asm/pvqspinlock.h    |  306 +++++++++++
+ arch/x86/include/asm/qspinlock.h      |  141 +++++
+ arch/x86/include/asm/spinlock.h       |    9 +-
+ arch/x86/include/asm/spinlock_types.h |    4 +
+ arch/x86/kernel/Makefile              |    1 +
+ arch/x86/kernel/kvm.c                 |  137 +++++-
+ arch/x86/kernel/paravirt-spinlocks.c  |   36 ++-
+ arch/x86/xen/spinlock.c               |  148 +++++-
+ include/asm-generic/qspinlock.h       |  118 +++++
+ include/asm-generic/qspinlock_types.h |   82 +++
+ kernel/Kconfig.locks                  |    7 +
+ kernel/locking/Makefile               |    1 +
+ kernel/locking/mcs_spinlock.h         |    1 +
+ kernel/locking/qspinlock.c            |  918 +++++++++++++++++++++++++++++++++
+ 17 files changed, 1944 insertions(+), 12 deletions(-)
+ create mode 100644 arch/x86/include/asm/pvqspinlock.h
+ create mode 100644 arch/x86/include/asm/qspinlock.h
+ create mode 100644 include/asm-generic/qspinlock.h
+ create mode 100644 include/asm-generic/qspinlock_types.h
+ create mode 100644 kernel/locking/qspinlock.c
+
