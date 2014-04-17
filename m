@@ -1,76 +1,52 @@
-From: Peter Zijlstra <peterz@infradead.org>
+From: Will Deacon <will.deacon@arm.com>
 Subject: Re: [PATCH 00/18] Cross-architecture definitions of relaxed MMIO
  accessors
-Date: Thu, 17 Apr 2014 16:00:36 +0200
-Message-ID: <20140417140036.GK11096@twins.programming.kicks-ass.net>
+Date: Thu, 17 Apr 2014 15:15:41 +0100
+Message-ID: <20140417141541.GC30553@arm.com>
 References: <1397742261-15621-1-git-send-email-will.deacon@arm.com>
+ <20140417140036.GK11096@twins.programming.kicks-ass.net>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:57987 "EHLO
-	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752355AbaDQOAy (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 17 Apr 2014 10:00:54 -0400
+Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <1397742261-15621-1-git-send-email-will.deacon@arm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will.deacon@arm.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, arnd@arndb.de, monstr@monstr.eu, dhowells@redhat.com, broonie@linaro.org, benh@kernel.crashing.org, paulmck@linux.vnet.ibm.com
+In-Reply-To: <20140417140036.GK11096@twins.programming.kicks-ass.net>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "arnd@arndb.de" <arnd@arndb.de>, "monstr@monstr.eu" <monstr@monstr.eu>, "dhowells@redhat.com" <dhowells@redhat.com>, "broonie@linaro.org" <broonie@linaro.org>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>
+List-Id: linux-arch.vger.kernel.org
 
-On Thu, Apr 17, 2014 at 02:44:03PM +0100, Will Deacon wrote:
-> Hello,
-> 
-> This RFC series attempts to define a portable (i.e. cross-architecture)
-> definition of the {readX,writeX}_relaxed MMIO accessor functions. These
-> functions are already in widespread use amongst drivers (mainly those supporting
-> devices embedded in ARM SoCs), but lack any well-defined semantics and,
-> subsequently, any portable definitions to allow these drivers to be compiled for
-> other architectures.
-> 
-> The two main motivations for this series are:
-> 
->  (1) To promote use of the _relaxed MMIO accessors on weakly-ordered
->      architectures, where they can bring significant performance improvements
->      over their non-relaxed counterparts.
-> 
->  (2) To allow COMPILE_TEST to build drivers using the relaxed accessors across
->      all architectures.
-> 
-> The proposed semantics largely match exactly those provided by the ARM
-> implementation (i.e. no weaker), with one exception (see below).
-> 
-> Informally:
-> 
->   - Relaxed accesses to the same device are ordered with respect to each other.
-> 
->   - Relaxed accesses are *not* guaranteed to be ordered with respect to normal
->     memory accesses (e.g. DMA buffers -- this is what gives us the performance
->     boost over the non-relaxed versions).
-> 
->   - Relaxed accesses are not guaranteed to be ordered with respect to
->     LOCK/UNLOCK operations.
-> 
-> In actual fact, the relaxed accessors *are* ordered with respect to LOCK/UNLOCK
-> operations on ARM[64], but I have added this constraint for the benefit of
-> PowerPC, which has expensive I/O barriers in the spin_unlock path for the
-> non-relaxed accessors.
-> 
-> A corollary to this is that mmiowb() probably needs rethinking. As it currently
-> stands, an mmiowb() is required to order MMIO writes to a device from multiple
-> CPUs, even if that device is protected by a lock. However, this isn't often used
-> in practice, leading to PowerPC implementing both mmiowb() *and* synchronising
-> I/O in spin_unlock.
-> 
-> I would propose making the non-relaxed I/O accessors ordered with respect to
-> LOCK/UNLOCK, leaving mmiowb() to be used with the relaxed accessors, if
-> required, but would welcome thoughts/suggestions on this topic.
+Hi Peter,
 
-So the non-relaxed ops already imply the expensive I/O barrier (mmiowb?)
-and therefore, PPC can drop it from spin_unlock()?
+On Thu, Apr 17, 2014 at 03:00:36PM +0100, Peter Zijlstra wrote:
+> On Thu, Apr 17, 2014 at 02:44:03PM +0100, Will Deacon wrote:
+> > In actual fact, the relaxed accessors *are* ordered with respect to LOCK/UNLOCK
+> > operations on ARM[64], but I have added this constraint for the benefit of
+> > PowerPC, which has expensive I/O barriers in the spin_unlock path for the
+> > non-relaxed accessors.
+> > 
+> > A corollary to this is that mmiowb() probably needs rethinking. As it currently
+> > stands, an mmiowb() is required to order MMIO writes to a device from multiple
+> > CPUs, even if that device is protected by a lock. However, this isn't often used
+> > in practice, leading to PowerPC implementing both mmiowb() *and* synchronising
+> > I/O in spin_unlock.
+> > 
+> > I would propose making the non-relaxed I/O accessors ordered with respect to
+> > LOCK/UNLOCK, leaving mmiowb() to be used with the relaxed accessors, if
+> > required, but would welcome thoughts/suggestions on this topic.
+> 
+> So the non-relaxed ops already imply the expensive I/O barrier (mmiowb?)
+> and therefore, PPC can drop it from spin_unlock()?
 
-Also, I read mmiowb() as MMIO-write-barrier(), what do we have to
-order/contain mmio-reads?
+Ben can probably help out here, but if my proposal went ahead (that is,
+only the non-relaxed ops would imply mmiowb()), then it would actually
+be implemented on PPC by having only those accessors call IO_SET_SYNC_FLAG,
+which is checked during unlock (in SYNC_IO).
 
-I have _0_ experience with MMIO, so I've no idea if ordering/containing
-reads is silly or not. 
+> Also, I read mmiowb() as MMIO-write-barrier(), what do we have to
+> order/contain mmio-reads?
+
+My understanding is that this is related to posted stores from different
+CPUs being re-ordered on the bus, so I wouldn't expect reads to suffer
+(although, since this isn't permitted on ARM, I'm guessing here).
+
+Will
