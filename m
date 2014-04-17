@@ -1,249 +1,217 @@
 From: Waiman Long <Waiman.Long@hp.com>
-Subject: [PATCH v9 19/19] pvqspinlock,
-	x86: Enable PV qspinlock for XEN
-Date: Thu, 17 Apr 2014 11:04:11 -0400
-Message-ID: <1397747051-15401-20-git-send-email-Waiman.Long@hp.com>
+Subject: [PATCH v9 07/19] qspinlock: Use a simple write to grab the lock,
+	if applicable
+Date: Thu, 17 Apr 2014 11:03:59 -0400
+Message-ID: <1397747051-15401-8-git-send-email-Waiman.Long@hp.com>
 References: <1397747051-15401-1-git-send-email-Waiman.Long@hp.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-Return-path: <xen-devel-bounces@lists.xen.org>
+Return-path: <virtualization-bounces@lists.linux-foundation.org>
 In-Reply-To: <1397747051-15401-1-git-send-email-Waiman.Long@hp.com>
-List-Unsubscribe: <http://lists.xen.org/cgi-bin/mailman/options/xen-devel>,
-	<mailto:xen-devel-request@lists.xen.org?subject=unsubscribe>
-List-Post: <mailto:xen-devel@lists.xen.org>
-List-Help: <mailto:xen-devel-request@lists.xen.org?subject=help>
-List-Subscribe: <http://lists.xen.org/cgi-bin/mailman/listinfo/xen-devel>,
-	<mailto:xen-devel-request@lists.xen.org?subject=subscribe>
-Sender: xen-devel-bounces@lists.xen.org
-Errors-To: xen-devel-bounces@lists.xen.org
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
+List-Post: <mailto:virtualization@lists.linux-foundation.org>
+List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
+Sender: virtualization-bounces@lists.linux-foundation.org
+Errors-To: virtualization-bounces@lists.linux-foundation.org
 To: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Peter Zijlstra <peterz@infradead.org>
-Cc: linux-arch@vger.kernel.org, Waiman Long <Waiman.Long@hp.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, Gleb Natapov <gleb@redhat.com>, kvm@vger.kernel.org, Scott J Norton <scott.norton@hp.com>, x86@kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, Chegu Vinod <chegu_vinod@hp.com>, David Vrabel <david.vrabel@citrix.com>, Oleg Nesterov <oleg@redhat.com>, xen-devel@lists.xenproject.org, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>
+Cc: linux-arch@vger.kernel.org, Waiman Long <Waiman.Long@hp.com>, Rik van Riel <riel@redhat.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, Gleb Natapov <gleb@redhat.com>, kvm@vger.kernel.org, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Scott J Norton <scott.norton@hp.com>, x86@kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, Chegu Vinod <chegu_vinod@hp.com>, David Vrabel <david.vrabel@citrix.com>, Oleg Nesterov <oleg@redhat.com>, xen-devel@lists.xenproject.org, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>
 List-Id: linux-arch.vger.kernel.org
 
-This patch adds the necessary XEN specific code to allow XEN to
-support the CPU halting and kicking operations needed by the queue
-spinlock PV code.
+Currently, atomic_cmpxchg() is used to get the lock. However, this is
+not really necessary if there is more than one task in the queue and
+the queue head don't need to reset the queue code word. For that case,
+a simple write to set the lock bit is enough as the queue head will
+be the only one eligible to get the lock as long as it checks that
+both the lock and pending bits are not set. The current pending bit
+waiting code will ensure that the bit will not be set as soon as the
+queue code word (tail) in the lock is set.
+
+With that change, the are some slight improvement in the performance
+of the queue spinlock in the 5M loop micro-benchmark run on a 4-socket
+Westere-EX machine as shown in the tables below.
+
+		[Standalone/Embedded - same node]
+  # of tasks	Before patch	After patch	%Change
+  ----------	-----------	----------	-------
+       3	 2324/2321	2248/2265	 -3%/-2%
+       4	 2890/2896	2819/2831	 -2%/-2%
+       5	 3611/3595	3522/3512	 -2%/-2%
+       6	 4281/4276	4173/4160	 -3%/-3%
+       7	 5018/5001	4875/4861	 -3%/-3%
+       8	 5759/5750	5563/5568	 -3%/-3%
+
+		[Standalone/Embedded - different nodes]
+  # of tasks	Before patch	After patch	%Change
+  ----------	-----------	----------	-------
+       3	12242/12237	12087/12093	 -1%/-1%
+       4	10688/10696	10507/10521	 -2%/-2%
+
+It was also found that this change produced a much bigger performance
+improvement in the newer IvyBridge-EX chip and was essentially to close
+the performance gap between the ticket spinlock and queue spinlock.
+
+The disk workload of the AIM7 benchmark was run on a 4-socket
+Westmere-EX machine with both ext4 and xfs RAM disks at 3000 users
+on a 3.14 based kernel. The results of the test runs were:
+
+                AIM7 XFS Disk Test
+  kernel                 JPM    Real Time   Sys Time    Usr Time
+  -----                  ---    ---------   --------    --------
+  ticketlock            5678233    3.17       96.61       5.81
+  qspinlock             5750799    3.13       94.83       5.97
+
+                AIM7 EXT4 Disk Test
+  kernel                 JPM    Real Time   Sys Time    Usr Time
+  -----                  ---    ---------   --------    --------
+  ticketlock            1114551   16.15      509.72       7.11
+  qspinlock             2184466    8.24      232.99       6.01
+
+The ext4 filesystem run had a much higher spinlock contention than
+the xfs filesystem run.
+
+The "ebizzy -m" test was also run with the following results:
+
+  kernel               records/s  Real Time   Sys Time    Usr Time
+  -----                ---------  ---------   --------    --------
+  ticketlock             2075       10.00      216.35       3.49
+  qspinlock              3023       10.00      198.20       4.80
 
 Signed-off-by: Waiman Long <Waiman.Long@hp.com>
 ---
- arch/x86/xen/spinlock.c |  146 +++++++++++++++++++++++++++++++++++++++++++++--
- kernel/Kconfig.locks    |    2 +-
- 2 files changed, 142 insertions(+), 6 deletions(-)
+ kernel/locking/qspinlock.c |   61 +++++++++++++++++++++++++++++++------------
+ 1 files changed, 44 insertions(+), 17 deletions(-)
 
-diff --git a/arch/x86/xen/spinlock.c b/arch/x86/xen/spinlock.c
-index 7fef179..e4ee60b 100644
---- a/arch/x86/xen/spinlock.c
-+++ b/arch/x86/xen/spinlock.c
-@@ -17,6 +17,12 @@
- #include "xen-ops.h"
- #include "debugfs.h"
- 
-+static DEFINE_PER_CPU(int, lock_kicker_irq) = -1;
-+static DEFINE_PER_CPU(char *, irq_name);
-+static bool xen_pvspin = true;
-+
-+#ifndef CONFIG_QUEUE_SPINLOCK
-+
- enum xen_contention_stat {
- 	TAKEN_SLOW,
- 	TAKEN_SLOW_PICKUP,
-@@ -100,12 +106,9 @@ struct xen_lock_waiting {
- 	__ticket_t want;
+diff --git a/kernel/locking/qspinlock.c b/kernel/locking/qspinlock.c
+index 497da24..80fe9ee 100644
+--- a/kernel/locking/qspinlock.c
++++ b/kernel/locking/qspinlock.c
+@@ -98,23 +98,29 @@ static inline struct mcs_spinlock *decode_tail(u32 tail)
+  * can allow better optimization of the lock acquisition for the pending
+  * bit holder.
+  */
+-#if _Q_PENDING_BITS == 8
+-
+ struct __qspinlock {
+ 	union {
+ 		atomic_t val;
+-		struct {
+ #ifdef __LITTLE_ENDIAN
++		u8	 locked;
++		struct {
+ 			u16	locked_pending;
+ 			u16	tail;
++		};
+ #else
++		struct {
+ 			u16	tail;
+ 			u16	locked_pending;
+-#endif
+ 		};
++		struct {
++			u8	reserved[3];
++			u8	locked;
++		};
++#endif
+ 	};
  };
  
--static DEFINE_PER_CPU(int, lock_kicker_irq) = -1;
--static DEFINE_PER_CPU(char *, irq_name);
- static DEFINE_PER_CPU(struct xen_lock_waiting, lock_waiting);
- static cpumask_t waiting_cpus;
++#if _Q_PENDING_BITS == 8
+ /**
+  * clear_pending_set_locked - take ownership and clear the pending bit.
+  * @lock: Pointer to queue spinlock structure
+@@ -204,6 +210,22 @@ xchg_tail(struct qspinlock *lock, u32 tail, u32 *pval)
+ #endif /* _Q_PENDING_BITS == 8 */
  
--static bool xen_pvspin = true;
- __visible void xen_lock_spinning(struct arch_spinlock *lock, __ticket_t want)
- {
- 	int irq = __this_cpu_read(lock_kicker_irq);
-@@ -213,6 +216,118 @@ static void xen_unlock_kick(struct arch_spinlock *lock, __ticket_t next)
- 	}
- }
- 
-+#else /* CONFIG_QUEUE_SPINLOCK */
-+
-+#ifdef CONFIG_XEN_DEBUG_FS
-+static u32 kick_nohlt_stats;		/* Kick but not halt count	*/
-+static u32 halt_qhead_stats;		/* Queue head halting count	*/
-+static u32 halt_qnode_stats;		/* Queue node halting count	*/
-+static u32 halt_abort_stats;		/* Halting abort count		*/
-+static u32 wake_kick_stats;		/* Wakeup by kicking count	*/
-+static u32 wake_spur_stats;		/* Spurious wakeup count	*/
-+static u64 time_blocked;		/* Total blocking time		*/
-+
-+static inline void xen_halt_stats(enum pv_lock_stats type)
-+{
-+	if (type == PV_HALT_QHEAD)
-+		add_smp(&halt_qhead_stats, 1);
-+	else if (type == PV_HALT_QNODE)
-+		add_smp(&halt_qnode_stats, 1);
-+	else /* type == PV_HALT_ABORT */
-+		add_smp(&halt_abort_stats, 1);
-+}
-+
-+static inline void xen_lock_stats(enum pv_lock_stats type)
-+{
-+	if (type == PV_WAKE_KICKED)
-+		add_smp(&wake_kick_stats, 1);
-+	else if (type == PV_WAKE_SPURIOUS)
-+		add_smp(&wake_spur_stats, 1);
-+	else /* type == PV_KICK_NOHALT */
-+		add_smp(&kick_nohlt_stats, 1);
-+}
-+
-+static inline u64 spin_time_start(void)
-+{
-+	return sched_clock();
-+}
-+
-+static inline void spin_time_accum_blocked(u64 start)
-+{
-+	u64 delta;
-+
-+	delta = sched_clock() - start;
-+	add_smp(&time_blocked, delta);
-+}
-+#else /* CONFIG_XEN_DEBUG_FS */
-+static inline void xen_halt_stats(enum pv_lock_stats type)
-+{
-+}
-+
-+static inline void xen_lock_stats(enum pv_lock_stats type)
-+{
-+}
-+
-+static inline u64 spin_time_start(void)
-+{
-+	return 0;
-+}
-+
-+static inline void spin_time_accum_blocked(u64 start)
-+{
-+}
-+#endif /* CONFIG_XEN_DEBUG_FS */
-+
-+static void xen_kick_cpu(int cpu)
-+{
-+	xen_send_IPI_one(cpu, XEN_SPIN_UNLOCK_VECTOR);
-+}
-+
-+/*
-+ * Halt the current CPU & release it back to the host
+ /**
++ * get_qlock - Set the lock bit and own the lock
++ * @lock: Pointer to queue spinlock structure
++ *
++ * This routine should only be called when the caller is the only one
++ * entitled to acquire the lock.
 + */
-+static void xen_halt_cpu(enum pv_lock_stats type, s8 *state, s8 sval)
++static __always_inline void get_qlock(struct qspinlock *lock)
 +{
-+	int irq = __this_cpu_read(lock_kicker_irq);
-+	unsigned long flags;
-+	u64 start;
++	struct __qspinlock *l = (void *)lock;
 +
-+	/* If kicker interrupts not initialized yet, just spin */
-+	if (irq == -1)
-+		return;
-+
-+	/*
-+	 * Make sure an interrupt handler can't upset things in a
-+	 * partially setup state.
-+	 */
-+	local_irq_save(flags);
-+	start = spin_time_start();
-+
-+	xen_halt_stats(type);
-+	/* clear pending */
-+	xen_clear_irq_pending(irq);
-+
-+	/* Allow interrupts while blocked */
-+	local_irq_restore(flags);
-+	/*
-+	 * Don't halt if the CPU state has been changed.
-+	 */
-+	if (ACCESS_ONCE(*state) != sval) {
-+		xen_halt_stats(PV_HALT_ABORT);
-+		return;
-+	}
-+	/*
-+	 * If an interrupt happens here, it will leave the wakeup irq
-+	 * pending, which will cause xen_poll_irq() to return
-+	 * immediately.
-+	 */
-+
-+	/* Block until irq becomes pending (or perhaps a spurious wakeup) */
-+	xen_poll_irq(irq);
-+	spin_time_accum_blocked(start);
++	barrier();
++	ACCESS_ONCE(l->locked) = _Q_LOCKED_VAL;
++	barrier();
 +}
-+#endif /* CONFIG_QUEUE_SPINLOCK */
 +
- static irqreturn_t dummy_handler(int irq, void *dev_id)
++/**
+  * trylock_pending - try to acquire queue spinlock using the pending bit
+  * @lock : Pointer to queue spinlock structure
+  * @pval : Pointer to value of the queue spinlock 32-bit word
+@@ -322,7 +344,7 @@ static inline int trylock_pending(struct qspinlock *lock, u32 *pval)
+ void queue_spin_lock_slowpath(struct qspinlock *lock, u32 val)
  {
- 	BUG();
-@@ -258,7 +373,6 @@ void xen_uninit_lock_cpu(int cpu)
- 	per_cpu(irq_name, cpu) = NULL;
- }
+ 	struct mcs_spinlock *prev, *next, *node;
+-	u32 new, old, tail;
++	u32 old, tail;
+ 	int idx;
  
+ 	BUILD_BUG_ON(CONFIG_NR_CPUS >= (1U << _Q_TAIL_CPU_BITS));
+@@ -367,10 +389,13 @@ void queue_spin_lock_slowpath(struct qspinlock *lock, u32 val)
+ 	/*
+ 	 * we're at the head of the waitqueue, wait for the owner & pending to
+ 	 * go away.
++	 * Load-acquired is used here because the get_qlock()
++	 * function below may not be a full memory barrier.
+ 	 *
+ 	 * *,x,y -> *,0,0
+ 	 */
+-	while ((val = atomic_read(&lock->val)) & _Q_LOCKED_PENDING_MASK)
++	while ((val = smp_load_acquire(&lock->val.counter))
++				       & _Q_LOCKED_PENDING_MASK)
+ 		arch_mutex_cpu_relax();
+ 
+ 	/*
+@@ -378,15 +403,19 @@ void queue_spin_lock_slowpath(struct qspinlock *lock, u32 val)
+ 	 *
+ 	 * n,0,0 -> 0,0,1 : lock, uncontended
+ 	 * *,0,0 -> *,0,1 : lock, contended
++	 *
++	 * If the queue head is the only one in the queue (lock value == tail),
++	 * clear the tail code and grab the lock. Otherwise, we only need
++	 * to grab the lock.
+ 	 */
+ 	for (;;) {
+-		new = _Q_LOCKED_VAL;
+-		if (val != tail)
+-			new |= val;
 -
- /*
-  * Our init of PV spinlocks is split in two init functions due to us
-  * using paravirt patching and jump labels patching and having to do
-@@ -275,8 +389,14 @@ void __init xen_init_spinlocks(void)
- 		return;
+-		old = atomic_cmpxchg(&lock->val, val, new);
+-		if (old == val)
++		if (val != tail) {
++			get_qlock(lock);
+ 			break;
++		}
++		old = atomic_cmpxchg(&lock->val, val, _Q_LOCKED_VAL);
++		if (old == val)
++			goto release;	/* No contention */
+ 
+ 		val = old;
  	}
+@@ -394,12 +423,10 @@ void queue_spin_lock_slowpath(struct qspinlock *lock, u32 val)
+ 	/*
+ 	 * contended path; wait for next, release.
+ 	 */
+-	if (new != _Q_LOCKED_VAL) {
+-		while (!(next = ACCESS_ONCE(node->next)))
+-			arch_mutex_cpu_relax();
++	while (!(next = ACCESS_ONCE(node->next)))
++		arch_mutex_cpu_relax();
  
-+#ifdef CONFIG_QUEUE_SPINLOCK
-+	pv_lock_ops.kick_cpu = xen_kick_cpu;
-+	pv_lock_ops.halt_cpu = xen_halt_cpu;
-+	pv_lock_ops.lockstat = xen_lock_stats;
-+#else
- 	pv_lock_ops.lock_spinning = PV_CALLEE_SAVE(xen_lock_spinning);
- 	pv_lock_ops.unlock_kick = xen_unlock_kick;
-+#endif
- }
+-		arch_mcs_spin_unlock_contended(&next->locked);
+-	}
++	arch_mcs_spin_unlock_contended(&next->locked);
  
- /*
-@@ -318,6 +438,7 @@ static int __init xen_spinlock_debugfs(void)
- 
- 	d_spin_debug = debugfs_create_dir("spinlocks", d_xen);
- 
-+#ifndef CONFIG_QUEUE_SPINLOCK
- 	debugfs_create_u8("zero_stats", 0644, d_spin_debug, &zero_stats);
- 
- 	debugfs_create_u32("taken_slow", 0444, d_spin_debug,
-@@ -337,7 +458,22 @@ static int __init xen_spinlock_debugfs(void)
- 
- 	debugfs_create_u32_array("histo_blocked", 0444, d_spin_debug,
- 				spinlock_stats.histo_spin_blocked, HISTO_BUCKETS + 1);
--
-+#else /* CONFIG_QUEUE_SPINLOCK */
-+	debugfs_create_u32("kick_nohlt_stats",
-+			   0644, d_spin_debug, &kick_nohlt_stats);
-+	debugfs_create_u32("halt_qhead_stats",
-+			   0644, d_spin_debug, &halt_qhead_stats);
-+	debugfs_create_u32("halt_qnode_stats",
-+			   0644, d_spin_debug, &halt_qnode_stats);
-+	debugfs_create_u32("halt_abort_stats",
-+			   0644, d_spin_debug, &halt_abort_stats);
-+	debugfs_create_u32("wake_kick_stats",
-+			   0644, d_spin_debug, &wake_kick_stats);
-+	debugfs_create_u32("wake_spur_stats",
-+			   0644, d_spin_debug, &wake_spur_stats);
-+	debugfs_create_u64("time_blocked",
-+			   0644, d_spin_debug, &time_blocked);
-+#endif /* CONFIG_QUEUE_SPINLOCK */
- 	return 0;
- }
- fs_initcall(xen_spinlock_debugfs);
-diff --git a/kernel/Kconfig.locks b/kernel/Kconfig.locks
-index a70fdeb..451e392 100644
---- a/kernel/Kconfig.locks
-+++ b/kernel/Kconfig.locks
-@@ -229,4 +229,4 @@ config ARCH_USE_QUEUE_SPINLOCK
- 
- config QUEUE_SPINLOCK
- 	def_bool y if ARCH_USE_QUEUE_SPINLOCK
--	depends on SMP && (!PARAVIRT_SPINLOCKS || !XEN)
-+	depends on SMP
+ release:
+ 	/*
 -- 
 1.7.1
