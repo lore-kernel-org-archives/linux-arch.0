@@ -1,91 +1,90 @@
-From: Sam Ravnborg <sam@ravnborg.org>
-Subject: Re: [PATCH 00/18] Cross-architecture definitions of relaxed MMIO
- accessors
-Date: Thu, 17 Apr 2014 21:15:55 +0200
-Message-ID: <20140417191555.GA11970@ravnborg.org>
-References: <1397742261-15621-1-git-send-email-will.deacon@arm.com>
- <20140417153638.GA7317@ravnborg.org>
- <20140417154714.GD30553@arm.com>
+From: Waiman Long <waiman.long@hp.com>
+Subject: Re: [PATCH v9 03/19] qspinlock: Add pending bit
+Date: Thu, 17 Apr 2014 17:20:31 -0400
+Message-ID: <5350459F.5010903@hp.com>
+References: <1397747051-15401-1-git-send-email-Waiman.Long@hp.com> <1397747051-15401-4-git-send-email-Waiman.Long@hp.com> <20140417154200.GN11096@twins.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from asavdk4.altibox.net ([109.247.116.15]:36400 "EHLO
-	asavdk4.altibox.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752760AbaDQTQO (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 17 Apr 2014 15:16:14 -0400
-Content-Disposition: inline
-In-Reply-To: <20140417154714.GD30553@arm.com>
+Received: from g4t3426.houston.hp.com ([15.201.208.54]:5241 "EHLO
+	g4t3426.houston.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750983AbaDQVUg (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 17 Apr 2014 17:20:36 -0400
+In-Reply-To: <20140417154200.GN11096@twins.programming.kicks-ass.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will.deacon@arm.com>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "arnd@arndb.de" <arnd@arndb.de>, "monstr@monstr.eu" <monstr@monstr.eu>, "dhowells@redhat.com" <dhowells@redhat.com>, "broonie@linaro.org" <broonie@linaro.org>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, "peterz@infradead.org" <peterz@infradead.org>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Rik van Riel <riel@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, David Vrabel <david.vrabel@citrix.com>, Oleg Nesterov <oleg@redhat.com>, Gleb Natapov <gleb@redhat.com>, Scott J Norton <scott.norton@hp.com>, Chegu Vinod <chegu_vinod@hp.com>
 
-On Thu, Apr 17, 2014 at 04:47:15PM +0100, Will Deacon wrote:
-> Hi Sam,
-> 
-> On Thu, Apr 17, 2014 at 04:36:38PM +0100, Sam Ravnborg wrote:
-> > On Thu, Apr 17, 2014 at 02:44:03PM +0100, Will Deacon wrote:
-> > > Hello,
-> > > 
-> > > This RFC series attempts to define a portable (i.e. cross-architecture)
-> > > definition of the {readX,writeX}_relaxed MMIO accessor functions. These
-> > > functions are already in widespread use amongst drivers (mainly those supporting
-> > > devices embedded in ARM SoCs), but lack any well-defined semantics and,
-> > > subsequently, any portable definitions to allow these drivers to be compiled for
-> > > other architectures.
-> > 
-> > Could this be made in such a way that only architectures that need
-> > to provide their own versions actually have to add them?
-> > 
-> > The current patch-set adds the same dummy defines all over,
-> > and will put this burden also on new architectures.
-> 
-> It shouldn't be a burden for new architectures, as they will use
-> asm-generic/io.h and get the definitions from there.
+On 04/17/2014 11:42 AM, Peter Zijlstra wrote:
+> On Thu, Apr 17, 2014 at 11:03:55AM -0400, Waiman Long wrote:
+>> +/**
+>> + * trylock_pending - try to acquire queue spinlock using the pending bit
+>> + * @lock : Pointer to queue spinlock structure
+>> + * @pval : Pointer to value of the queue spinlock 32-bit word
+>> + * Return: 1 if lock acquired, 0 otherwise
+>> + */
+>> +static inline int trylock_pending(struct qspinlock *lock, u32 *pval)
+>> +{
+>> +	u32 old, new, val = *pval;
+> I'm not thrilled about you breaking this into a separate function; the
+> compiler will put it right back and now you get to have that ugly
+> pointer stuff.
+>
+> It also makes the function control flow not match the state diagram
+> anymore.
 
-Why is it then necesary to do this for sparc:
-diff --git a/arch/sparc/include/asm/io.h b/arch/sparc/include/asm/io.h
-index f6902cf3cbe9..493f22c4684f 100644
---- a/arch/sparc/include/asm/io.h
-+++ b/arch/sparc/include/asm/io.h
-@@ -10,6 +10,15 @@
-  * Defines used for both SPARC32 and SPARC64
-  */
+I separate it out primarily to break the pending bit logic away from the 
+core MCS queuing logic to make each of them easier to understand as they 
+are kind of independent. I fully understand that the compiler will put 
+them back together. As I pile on more code, the slowpath function will 
+grow bigger making it harder to comprehend and find out where are the 
+boundary between them.
 
-+/* Relaxed accessors for MMIO */
-+#define readb_relaxed(__addr)          readb(__addr)
-+#define readw_relaxed(__addr)          readw(__addr)
-+#define readl_relaxed(__addr)          readl(__addr)
-+
-+#define writeb_relaxed(__b, __addr)    writeb(__b, __addr)
-+#define writew_relaxed(__w, __addr)    writew(__w, __addr)
-+#define writel_relaxed(__l, __addr)    writel(__l, __addr)
+I will take a look at the state diagram to see what adjustment will be 
+needed.
 
-And similar for several other architectures.
+>> +
+>> +	/*
+>> +	 * trylock || pending
+>> +	 *
+>> +	 * 0,0,0 ->  0,0,1 ; trylock
+>> +	 * 0,0,1 ->  0,1,1 ; pending
+>> +	 */
+>> +	for (;;) {
+>> +		/*
+>> +		 * If we observe any contention; queue.
+>> +		 */
+>> +		if (val&  ~_Q_LOCKED_MASK)
+>> +			return 0;
+>> +
+>> +		new = _Q_LOCKED_VAL;
+>> +		if (val == new)
+>> +			new |= _Q_PENDING_VAL;
+>> +
+>> +		old = atomic_cmpxchg(&lock->val, val, new);
+>> +		if (old == val)
+>> +			break;
+>> +
+>> +		*pval = val = old;
+>> +	}
+>> +
+>> +	/*
+>> +	 * we won the trylock
+>> +	 */
+>> +	if (new == _Q_LOCKED_VAL)
+>> +		return 1;
+>> +
+>> +	/*
+>> +	 * we're pending, wait for the owner to go away.
+>> +	 *
+>> +	 * *,1,1 ->  *,1,0
+>> +	 */
+>> +	while ((val = atomic_read(&lock->val))&  _Q_LOCKED_MASK)
+>> +		arch_mutex_cpu_relax();
+> That was a cpu_relax().
 
-For asm-generic/io.h:
-+#ifndef readb_relaxed
-+#define readb_relaxed  readb
-+#endif
+Yes, but arch_mutex_cpu_relax() is the same as cpu_relax() for x86.
 
-This has same effect as the above.
-Only difference is that the implementation in asm-generic lacks the arguments.
-
-The patch also breaks the pattern that the #define foobar foobar is
-on the line just above the static inline that implements the function.
-
--#define readw readw
-+#define readw          readw
-
-+#ifndef readw_relaxed
-+#define readw_relaxed  readw
-+#endif
-Move this blow below the static inline would make this easier to understand.
-
- static inline u16 readw(const volatile void __iomem *addr)
- {
-        return __le16_to_cpu(__raw_readw(addr));
- }
-
-
-	Sam
+-Longman
