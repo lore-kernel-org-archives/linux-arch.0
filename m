@@ -1,8 +1,8 @@
 From: Waiman Long <Waiman.Long@hp.com>
-Subject: [PATCH v9 10/19] qspinlock,
-	x86: Allow unfair spinlock in a virtual guest
-Date: Thu, 17 Apr 2014 11:04:02 -0400
-Message-ID: <1397747051-15401-11-git-send-email-Waiman.Long@hp.com>
+Subject: [PATCH v9 18/19] pvqspinlock,
+	x86: Enable PV qspinlock PV for KVM
+Date: Thu, 17 Apr 2014 11:04:10 -0400
+Message-ID: <1397747051-15401-19-git-send-email-Waiman.Long@hp.com>
 References: <1397747051-15401-1-git-send-email-Waiman.Long@hp.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -21,316 +21,284 @@ To: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Pe
 Cc: linux-arch@vger.kernel.org, Waiman Long <Waiman.Long@hp.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, Gleb Natapov <gleb@redhat.com>, kvm@vger.kernel.org, Scott J Norton <scott.norton@hp.com>, x86@kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, Chegu Vinod <chegu_vinod@hp.com>, David Vrabel <david.vrabel@citrix.com>, Oleg Nesterov <oleg@redhat.com>, xen-devel@lists.xenproject.org, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>
 List-Id: linux-arch.vger.kernel.org
 
-Locking is always an issue in a virtualized environment because of 2
-different types of problems:
- 1) Lock holder preemption
- 2) Lock waiter preemption
+This patch adds the necessary KVM specific code to allow KVM to
+support the CPU halting and kicking operations needed by the queue
+spinlock PV code.
 
-One solution to the lock waiter preemption problem is to allow unfair
-lock in a virtualized environment. In this case, a new lock acquirer
-can come and steal the lock if the next-in-line CPU to get the lock
-is scheduled out.
+Two KVM guests of 20 CPU cores (2 nodes) were created for performance
+testing in one of the following three configurations:
+ 1) Only 1 VM is active
+ 2) Both VMs are active and they share the same 20 physical CPUs
+   (200% overcommit)
+ 3) Both VMs are active and they shares 30 physical CPUs (10 delicated
+    and 10 shared - 133% overcommit)
 
-A simple unfair lock is the test-and-set byte lock where an lock
-acquirer constantly spins on the lock word and attempt to grab it
-when the lock is freed. This simple unfair lock has 2 main problems:
- 1) The constant spinning on the lock word put a lot of cacheline
-    contention traffic on the affected cacheline, thus slowing tasks
-    that need to access the cacheline.
- 2) Lock starvation is a real possibility especially if the number of
-    virtual CPUs is large.
+The tests run included the disk workload of the AIM7 benchmark on both
+ext4 and xfs RAM disks at 3000 users on a 3.15-rc1 based kernel. The
+"ebizzy -m" test was was also run and its performance data were
+recorded.  With two VMs running, the "idle=poll" kernel option was
+added to simulate a busy guest. The entry "unfair + PV qspinlock"
+below means that both the unfair lock and PV spinlock configuration
+options were turned on.
 
-A simple unfair queue spinlock can be implemented by allowing lock
-stealing in the fast path. The slowpath will still be the same as
-before and all the pending lock acquirers will have to wait in the
-queue in FIFO order. This cannot completely solve the lock waiter
-preemption problem, but it does help to alleviate the impact of
-this problem.
+  		AIM7 XFS Disk Test (no overcommit)
+  kernel		 JPM	Real Time   Sys Time	Usr Time
+  -----			 ---	---------   --------	--------
+  PV ticketlock		2489626	   7.23	     101.08	  5.30
+  qspinlock		2531646	   7.11	     100.75	  5.43
+  PV qspinlock		2500000	   7.20	     101.94       5.40
+  unfair qspinlock	2549575	   7.06	      99.81	  5.35
+  unfair + PV qspinlock	2486188	   7.24	     101.55	  5.51
 
-To illustrate the performance impact of the various approaches, the
-disk workload of the AIM7 benchmark and the ebizzy test were run on
-a 4-socket 40-core Westmere-EX system (bare metal, HT off, ramdisk)
-on a 3.14 based kernel.  The table below shows the performance
-of the different kernel flavors.
+  		AIM7 XFS Disk Test (133% overcommit)
+  kernel		 JPM	Real Time   Sys Time	Usr Time
+  -----			 ---	---------   --------	--------
+  PV ticketlock		1114551	  16.15	     220.17	 10.75
+  qspinlock		1159047	  15.53      216.60	 10.24
+  PV qspinlock		1170351	  15.38	     216.16      11.03
+  unfair qspinlock	1188119	  15.15	     209.37	 10.82
+  unfair + PV qspinlock	1178782	  15.27	     211.37	 11.25
 
-                AIM7 XFS Disk Test
-  kernel                 JPM    Real Time   Sys Time    Usr Time
-  -----                  ---    ---------   --------    --------
-  ticketlock            5678233    3.17       96.61       5.81
-  qspinlock             5750799    3.13       94.83       5.97
-  simple test-and-set	5625000	   3.20	      98.29	  5.93
-  simple unfair		5750799	   3.13	      95.91	  5.98
-    qspinlock
+  		AIM7 XFS Disk Test (200% overcommit)
+  kernel		 JPM	Real Time   Sys Time	Usr Time
+  -----			 ---	---------   --------	--------
+  PV ticketlock		587467	  30.64	     444.95	 11.92
+  qspinlock		593276	  30.34	     439.39	 14.59
+  PV qspinlock		601403	  29.93	     426.04      14.49
+  unfair qspinlock	654070	  27.52	     400.82	 10.86
+  unfair + PV qspinlock	614334	  29.30	     393.38	 28.56
 
-                AIM7 EXT4 Disk Test
-  kernel                 JPM    Real Time   Sys Time    Usr Time
-  -----                  ---    ---------   --------    --------
-  ticketlock            1114551   16.15      509.72       7.11
-  qspinlock             2184466    8.24      232.99       6.01
-  simple test-and-set	 593081	  30.35	     967.55	  9.00
-  simple unfair		2292994	   7.85	     222.84	  5.89
-    qspinlock
+  		AIM7 EXT4 Disk Test (no overcommit)
+  kernel		 JPM	Real Time   Sys Time	Usr Time
+  -----			 ---	---------   --------	--------
+  PV ticketlock		2002225	   9.07	     105.62	  5.43
+  qspinlock		2006689	   8.97	     105.65	  5.26
+  PV qspinlock		2002225	   8.99	     103.19       5.19
+  unfair qspinlock	1988950	   9.05	     103.81	  5.03
+  unfair + PV qspinlock	1993355	   9.03	     107.99	  5.68
 
-                Ebizzy -m test
-  kernel               records/s  Real Time   Sys Time    Usr Time
-  -----                ---------  ---------   --------    --------
-  ticketlock             2075       10.00      216.35       3.49
-  qspinlock              3023       10.00      198.20       4.80
-  simple test-and-set	 1667	    10.00      198.93	    2.89
-  simple unfair		 2915	    10.00      165.68	    4.31
-    qspinlock
+  		AIM7 EXT4 Disk Test (133% overcommit)
+  kernel		 JPM	Real Time   Sys Time	Usr Time
+  -----			 ---	---------   --------	--------
+  PV ticketlock		 987383	  18.23	     221.63	  8.89
+  qspinlock		1050788	  17.13	     206.87	  8.35
+  PV qspinlock		1058823	  17.00	     205.22       9.18
+  unfair qspinlock	1161290	  15.50	     184.22	  8.84
+  unfair + PV qspinlock	1122894	  16.03	     195.86	  9.34
 
-The disk-xfs workload spent only about 2.88% of CPU time in
-_raw_spin_lock() whereas the disk-ext4 workload spent 57.8% of CPU
-time in _raw_spin_lock(). It can be seen that there wasn't too much
-difference in performance with low spinlock contention in the disk-xfs
-workload. With heavy spinlock contention, the performance of simple
-test-and-set lock can plummet when compared with the ticket and
-queue spinlocks.
+  		AIM7 EXT4 Disk Test (200% overcommit)
+  kernel		 JPM	Real Time   Sys Time	Usr Time
+  -----			 ---	---------   --------	--------
+  PV ticketlock		420757	  42.78	     565.96	  5.84
+  qspinlock		427452	  42.11	     543.08	 11.12
+  PV qspinlock		420659	  42.79	     548.30      10.56
+  unfair qspinlock	504909	  35.65	     466.71	  5.38
+  unfair + PV qspinlock	500974	  35.93	     469.02	  6.77
 
-Unfair lock in a native environment is generally not a good idea as
-there is a possibility of lock starvation for a heavily contended lock.
+		EBIZZY-M Test (no overcommit)
+  kernel		Rec/s	Real Time   Sys Time	Usr Time
+  -----			-----	---------   --------	--------
+  PV ticketlock		1230	  10.00	     88.34	  1.42
+  qspinlock		1212	  10.00	     68.25	  1.47
+  PV qspinlock		1265	  10.00	     91.50	  1.41
+  unfair qspinlock	1304	  10.00	     77.94	  1.49
+  unfair + PV qspinlock	1445	  10.00	     75.45	  1.68
 
-This patch adds a new configuration option for the x86 architecture
-to enable the use of unfair queue spinlock (PARAVIRT_UNFAIR_LOCKS) in
-a para-virtualized guest. A jump label (paravirt_unfairlocks_enabled)
-is used to switch between a fair and an unfair version of the spinlock
-code. This jump label will only be enabled in a virtual guest where
-the X86_FEATURE_HYPERVISOR feature bit is set.
+		EBIZZY-M Test (133% overcommit)
+  kernel		Rec/s	Real Time   Sys Time	Usr Time
+  -----			-----	---------   --------	--------
+  PV ticketlock		 467	  10.00	     88.16	  0.73
+  qspinlock		 463	  10.00	     89.44	  0.78
+  PV qspinlock		 441	  10.00	     95.10	  0.74
+  unfair qspinlock	1233	  10.00	     35.76	  1.76
+  unfair + PV qspinlock	1555	  10.00	     32.12	  1.96
 
-Enabling this configuration feature causes a slight decrease the
-performance of an uncontended lock-unlock operation by about 1-2%
-mainly due to the use of a static key. However, uncontended lock-unlock
-operation are really just a tiny percentage of a real workload. So
-there should no noticeable change in application performance.
-
-With the unfair locking activated on bare metal 4-socket Westmere-EX
-box, the execution times (in ms) of a spinlock micro-benchmark were
-as follows:
-
-  # of    Ticket       Fair	 Unfair simple	  Unfair
-  tasks    lock     queue lock    queue lock	byte lock
-  ------  -------   ----------    ----------	---------
-    1       135        135	     137	  137
-    2       890       1082	     421	  718
-    3      1932       2248     	     708	 1263
-    4      2829       2819	    1030	 1916
-    5      3834       3522	    1323	 2327
-    6      4963       4173	    1723	 2938
-    7      6299       4875          2067	 3292
-    8      7691       5563          2360	 3768
-
-Executing one task per node, the performance data were:
-
-  # of    Ticket       Fair	 Unfair simple	  Unfair
-  nodes    lock     queue lock    queue lock	byte lock
-  ------  -------   ----------    ----------	---------
-    1        135        135          137	  137
-    2       4603       1034          670	  766
-    3      10940      12087         1389	 1934
-    4      21555      10507         1869	 3731
-
-In general, the shorter the critical section, the better the
-performance benefit of an unfair lock. For large critical section,
-however, there may not be much benefit.
+		EBIZZY-M Test (200% overcommit)
+  kernel		Rec/s	Real Time   Sys Time	Usr Time
+  -----			-----	---------   --------	--------
+  PV ticketlock		 263	  10.00	     84.48	  4.27
+  qspinlock		 226	  10.00	     87.74	  2.02
+  PV qspinlock		 253	  10.00	     98.28	  2.63
+  unfair qspinlock	 338	  10.00	     61.15	  1.68
+  unfair + PV qspinlock	 346	  10.00	     60.47	  3.31
 
 Signed-off-by: Waiman Long <Waiman.Long@hp.com>
 ---
- arch/x86/Kconfig                     |   11 +++++
- arch/x86/include/asm/qspinlock.h     |   79 ++++++++++++++++++++++++++++++++++
- arch/x86/kernel/Makefile             |    1 +
- arch/x86/kernel/paravirt-spinlocks.c |   26 +++++++++++
- kernel/locking/qspinlock.c           |    8 +++
- 5 files changed, 125 insertions(+), 0 deletions(-)
+ arch/x86/kernel/kvm.c |  135 +++++++++++++++++++++++++++++++++++++++++++++++++
+ kernel/Kconfig.locks  |    2 +-
+ 2 files changed, 136 insertions(+), 1 deletions(-)
 
-diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
-index dabeed8..59a6f84 100644
---- a/arch/x86/Kconfig
-+++ b/arch/x86/Kconfig
-@@ -583,6 +583,17 @@ config PARAVIRT_SPINLOCKS
+diff --git a/arch/x86/kernel/kvm.c b/arch/x86/kernel/kvm.c
+index 7ab8ab3..eef427b 100644
+--- a/arch/x86/kernel/kvm.c
++++ b/arch/x86/kernel/kvm.c
+@@ -567,6 +567,7 @@ static void kvm_kick_cpu(int cpu)
+ 	kvm_hypercall2(KVM_HC_KICK_CPU, flags, apicid);
+ }
  
- 	  If you are unsure how to answer this question, answer Y.
- 
-+config PARAVIRT_UNFAIR_LOCKS
-+	bool "Enable unfair locks in a para-virtualized guest"
-+	depends on PARAVIRT && SMP && QUEUE_SPINLOCK
-+	depends on !CONFIG_X86_OOSTORE && !CONFIG_X86_PPRO_FENCE
-+	---help---
-+	  This changes the kernel to use unfair locks in a
-+	  para-virtualized guest. This will help performance in most
-+	  cases. However, there is a possibility of lock starvation
-+	  on a heavily contended lock especially in a large guest
-+	  with many virtual CPUs.
++#ifndef CONFIG_QUEUE_SPINLOCK
+ enum kvm_contention_stat {
+ 	TAKEN_SLOW,
+ 	TAKEN_SLOW_PICKUP,
+@@ -794,6 +795,134 @@ static void kvm_unlock_kick(struct arch_spinlock *lock, __ticket_t ticket)
+ 		}
+ 	}
+ }
++#else /* !CONFIG_QUEUE_SPINLOCK */
 +
- source "arch/x86/xen/Kconfig"
- 
- config KVM_GUEST
-diff --git a/arch/x86/include/asm/qspinlock.h b/arch/x86/include/asm/qspinlock.h
-index e4a4f5d..19af937 100644
---- a/arch/x86/include/asm/qspinlock.h
-+++ b/arch/x86/include/asm/qspinlock.h
-@@ -5,6 +5,10 @@
- 
- #if !defined(CONFIG_X86_OOSTORE) && !defined(CONFIG_X86_PPRO_FENCE)
- 
-+#ifdef CONFIG_PARAVIRT_UNFAIR_LOCKS
-+extern struct static_key paravirt_unfairlocks_enabled;
-+#endif
++#ifdef CONFIG_KVM_DEBUG_FS
++static struct dentry *d_spin_debug;
++static struct dentry *d_kvm_debug;
++static u32 kick_nohlt_stats;	/* Kick but not halt count	*/
++static u32 halt_qhead_stats;	/* Queue head halting count	*/
++static u32 halt_qnode_stats;	/* Queue node halting count	*/
++static u32 halt_abort_stats;	/* Halting abort count		*/
++static u32 wake_kick_stats;	/* Wakeup by kicking count	*/
++static u32 wake_spur_stats;	/* Spurious wakeup count	*/
++static u64 time_blocked;	/* Total blocking time		*/
 +
- #define	queue_spin_unlock queue_spin_unlock
- /**
-  * queue_spin_unlock - release a queue spinlock
-@@ -26,4 +30,79 @@ static inline void queue_spin_unlock(struct qspinlock *lock)
- 
- #include <asm-generic/qspinlock.h>
- 
-+union arch_qspinlock {
-+	atomic_t val;
-+	u8	 locked;
-+};
-+
-+#ifdef CONFIG_PARAVIRT_UNFAIR_LOCKS
-+/**
-+ * queue_spin_trylock_unfair - try to acquire the queue spinlock unfairly
-+ * @lock : Pointer to queue spinlock structure
-+ * Return: 1 if lock acquired, 0 if failed
-+ */
-+static __always_inline int queue_spin_trylock_unfair(struct qspinlock *lock)
++static int __init kvm_spinlock_debugfs(void)
 +{
-+	union arch_qspinlock *qlock = (union arch_qspinlock *)lock;
++	d_kvm_debug = debugfs_create_dir("kvm-guest", NULL);
++	if (!d_kvm_debug) {
++		printk(KERN_WARNING
++		       "Could not create 'kvm' debugfs directory\n");
++		return -ENOMEM;
++	}
++	d_spin_debug = debugfs_create_dir("spinlocks", d_kvm_debug);
 +
-+	if (!qlock->locked && (cmpxchg(&qlock->locked, 0, _Q_LOCKED_VAL) == 0))
-+		return 1;
++	debugfs_create_u32("kick_nohlt_stats",
++			   0644, d_spin_debug, &kick_nohlt_stats);
++	debugfs_create_u32("halt_qhead_stats",
++			   0644, d_spin_debug, &halt_qhead_stats);
++	debugfs_create_u32("halt_qnode_stats",
++			   0644, d_spin_debug, &halt_qnode_stats);
++	debugfs_create_u32("halt_abort_stats",
++			   0644, d_spin_debug, &halt_abort_stats);
++	debugfs_create_u32("wake_kick_stats",
++			   0644, d_spin_debug, &wake_kick_stats);
++	debugfs_create_u32("wake_spur_stats",
++			   0644, d_spin_debug, &wake_spur_stats);
++	debugfs_create_u64("time_blocked",
++			   0644, d_spin_debug, &time_blocked);
 +	return 0;
 +}
 +
-+/**
-+ * queue_spin_lock_unfair - acquire a queue spinlock unfairly
-+ * @lock: Pointer to queue spinlock structure
-+ */
-+static __always_inline void queue_spin_lock_unfair(struct qspinlock *lock)
++static inline void kvm_halt_stats(enum pv_lock_stats type)
 +{
-+	union arch_qspinlock *qlock = (union arch_qspinlock *)lock;
++	if (type == PV_HALT_QHEAD)
++		add_smp(&halt_qhead_stats, 1);
++	else if (type == PV_HALT_QNODE)
++		add_smp(&halt_qnode_stats, 1);
++	else /* type == PV_HALT_ABORT */
++		add_smp(&halt_abort_stats, 1);
++}
 +
-+	if (likely(cmpxchg(&qlock->locked, 0, _Q_LOCKED_VAL) == 0))
++static inline void kvm_lock_stats(enum pv_lock_stats type)
++{
++	if (type == PV_WAKE_KICKED)
++		add_smp(&wake_kick_stats, 1);
++	else if (type == PV_WAKE_SPURIOUS)
++		add_smp(&wake_spur_stats, 1);
++	else /* type == PV_KICK_NOHALT */
++		add_smp(&kick_nohlt_stats, 1);
++}
++
++static inline u64 spin_time_start(void)
++{
++	return sched_clock();
++}
++
++static inline void spin_time_accum_blocked(u64 start)
++{
++	u64 delta;
++
++	delta = sched_clock() - start;
++	add_smp(&time_blocked, delta);
++}
++
++fs_initcall(kvm_spinlock_debugfs);
++
++#else /* CONFIG_KVM_DEBUG_FS */
++static inline void kvm_halt_stats(enum pv_lock_stats type)
++{
++}
++
++static inline void kvm_lock_stats(enum pv_lock_stats type)
++{
++}
++
++static inline u64 spin_time_start(void)
++{
++	return 0;
++}
++
++static inline void spin_time_accum_blocked(u64 start)
++{
++}
++#endif /* CONFIG_KVM_DEBUG_FS */
++
++/*
++ * Halt the current CPU & release it back to the host
++ */
++static void kvm_halt_cpu(enum pv_lock_stats type, s8 *state, s8 sval)
++{
++	unsigned long flags;
++	u64 start;
++
++	if (in_nmi())
 +		return;
++
 +	/*
-+	 * Since the lock is now unfair, we should not activate the 2-task
-+	 * pending bit spinning code path which disallows lock stealing.
++	 * Make sure an interrupt handler can't upset things in a
++	 * partially setup state.
 +	 */
-+	queue_spin_lock_slowpath(lock, -1);
-+}
-+
-+/*
-+ * Redefine arch_spin_lock and arch_spin_trylock as inline functions that will
-+ * jump to the unfair versions if the static key paravirt_unfairlocks_enabled
-+ * is true.
-+ */
-+#undef arch_spin_lock
-+#undef arch_spin_trylock
-+#undef arch_spin_lock_flags
-+
-+/**
-+ * arch_spin_lock - acquire a queue spinlock
-+ * @lock: Pointer to queue spinlock structure
-+ */
-+static inline void arch_spin_lock(struct qspinlock *lock)
-+{
-+	if (static_key_false(&paravirt_unfairlocks_enabled))
-+		queue_spin_lock_unfair(lock);
++	local_irq_save(flags);
++	/*
++	 * Don't halt if the CPU state has been changed.
++	 */
++	if (ACCESS_ONCE(*state) != sval) {
++		kvm_halt_stats(PV_HALT_ABORT);
++		goto out;
++	}
++	start = spin_time_start();
++	kvm_halt_stats(type);
++	if (arch_irqs_disabled_flags(flags))
++		halt();
 +	else
-+		queue_spin_lock(lock);
++		safe_halt();
++	spin_time_accum_blocked(start);
++out:
++	local_irq_restore(flags);
 +}
-+
-+/**
-+ * arch_spin_trylock - try to acquire the queue spinlock
-+ * @lock : Pointer to queue spinlock structure
-+ * Return: 1 if lock acquired, 0 if failed
-+ */
-+static inline int arch_spin_trylock(struct qspinlock *lock)
-+{
-+	if (static_key_false(&paravirt_unfairlocks_enabled))
-+		return queue_spin_trylock_unfair(lock);
-+	else
-+		return queue_spin_trylock(lock);
-+}
-+
-+#define arch_spin_lock_flags(l, f)	arch_spin_lock(l)
-+
-+#endif /* CONFIG_PARAVIRT_UNFAIR_LOCKS */
-+
- #endif /* _ASM_X86_QSPINLOCK_H */
-diff --git a/arch/x86/kernel/Makefile b/arch/x86/kernel/Makefile
-index f4d9600..b436419 100644
---- a/arch/x86/kernel/Makefile
-+++ b/arch/x86/kernel/Makefile
-@@ -88,6 +88,7 @@ obj-$(CONFIG_DEBUG_NMI_SELFTEST) += nmi_selftest.o
- obj-$(CONFIG_KVM_GUEST)		+= kvm.o kvmclock.o
- obj-$(CONFIG_PARAVIRT)		+= paravirt.o paravirt_patch_$(BITS).o
- obj-$(CONFIG_PARAVIRT_SPINLOCKS)+= paravirt-spinlocks.o
-+obj-$(CONFIG_PARAVIRT_UNFAIR_LOCKS)+= paravirt-spinlocks.o
- obj-$(CONFIG_PARAVIRT_CLOCK)	+= pvclock.o
++#endif /* !CONFIG_QUEUE_SPINLOCK */
  
- obj-$(CONFIG_PCSPKR_PLATFORM)	+= pcspeaker.o
-diff --git a/arch/x86/kernel/paravirt-spinlocks.c b/arch/x86/kernel/paravirt-spinlocks.c
-index bbb6c73..7dfd02d 100644
---- a/arch/x86/kernel/paravirt-spinlocks.c
-+++ b/arch/x86/kernel/paravirt-spinlocks.c
-@@ -8,6 +8,7 @@
+ /*
+  * Setup pv_lock_ops to exploit KVM_FEATURE_PV_UNHALT if present.
+@@ -806,8 +935,14 @@ void __init kvm_spinlock_init(void)
+ 	if (!kvm_para_has_feature(KVM_FEATURE_PV_UNHALT))
+ 		return;
  
- #include <asm/paravirt.h>
- 
-+#ifdef CONFIG_PARAVIRT_SPINLOCKS
- struct pv_lock_ops pv_lock_ops = {
- #ifdef CONFIG_SMP
- 	.lock_spinning = __PV_IS_CALLEE_SAVE(paravirt_nop),
-@@ -18,3 +19,28 @@ EXPORT_SYMBOL(pv_lock_ops);
- 
- struct static_key paravirt_ticketlocks_enabled = STATIC_KEY_INIT_FALSE;
- EXPORT_SYMBOL(paravirt_ticketlocks_enabled);
++#ifdef CONFIG_QUEUE_SPINLOCK
++	pv_lock_ops.kick_cpu = kvm_kick_cpu;
++	pv_lock_ops.halt_cpu = kvm_halt_cpu;
++	pv_lock_ops.lockstat = kvm_lock_stats;
++#else
+ 	pv_lock_ops.lock_spinning = PV_CALLEE_SAVE(kvm_lock_spinning);
+ 	pv_lock_ops.unlock_kick = kvm_unlock_kick;
 +#endif
-+
-+#ifdef CONFIG_PARAVIRT_UNFAIR_LOCKS
-+struct static_key paravirt_unfairlocks_enabled = STATIC_KEY_INIT_FALSE;
-+EXPORT_SYMBOL(paravirt_unfairlocks_enabled);
-+
-+#include <linux/init.h>
-+#include <asm/cpufeature.h>
-+
-+/*
-+ * Enable unfair lock only if it is running under a hypervisor
-+ */
-+static __init int unfair_locks_init_jump(void)
-+{
-+	if (!boot_cpu_has(X86_FEATURE_HYPERVISOR))
-+		return 0;
-+
-+	static_key_slow_inc(&paravirt_unfairlocks_enabled);
-+	printk(KERN_INFO "Unfair spinlock enabled\n");
-+
-+	return 0;
-+}
-+early_initcall(unfair_locks_init_jump);
-+
-+#endif
-diff --git a/kernel/locking/qspinlock.c b/kernel/locking/qspinlock.c
-index eab005a..20e3fa6 100644
---- a/kernel/locking/qspinlock.c
-+++ b/kernel/locking/qspinlock.c
-@@ -231,6 +231,14 @@ static __always_inline int get_qlock(struct qspinlock *lock)
- {
- 	struct __qspinlock *l = (void *)lock;
+ }
  
-+#ifdef CONFIG_PARAVIRT_UNFAIR_LOCKS
-+	if (static_key_false(&paravirt_unfairlocks_enabled))
-+		/*
-+		 * Need to use atomic operation to get the lock when
-+		 * lock stealing can happen.
-+		 */
-+		return cmpxchg(&l->locked, 0, _Q_LOCKED_VAL) == 0;
-+#endif
- 	barrier();
- 	ACCESS_ONCE(l->locked) = _Q_LOCKED_VAL;
- 	barrier();
+ static __init int kvm_spinlock_init_jump(void)
+diff --git a/kernel/Kconfig.locks b/kernel/Kconfig.locks
+index f185584..a70fdeb 100644
+--- a/kernel/Kconfig.locks
++++ b/kernel/Kconfig.locks
+@@ -229,4 +229,4 @@ config ARCH_USE_QUEUE_SPINLOCK
+ 
+ config QUEUE_SPINLOCK
+ 	def_bool y if ARCH_USE_QUEUE_SPINLOCK
+-	depends on SMP && !PARAVIRT_SPINLOCKS
++	depends on SMP && (!PARAVIRT_SPINLOCKS || !XEN)
 -- 
 1.7.1
