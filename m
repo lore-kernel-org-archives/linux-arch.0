@@ -1,52 +1,57 @@
 From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [PATCH 00/18] Cross-architecture definitions of relaxed MMIO
- accessors
-Date: Thu, 17 Apr 2014 15:15:41 +0100
-Message-ID: <20140417141541.GC30553@arm.com>
+Subject: [PATCH 05/18] alpha: io: implement relaxed accessor macros for writes
+Date: Thu, 17 Apr 2014 14:44:08 +0100
+Message-ID: <1397742261-15621-6-git-send-email-will.deacon@arm.com>
 References: <1397742261-15621-1-git-send-email-will.deacon@arm.com>
- <20140417140036.GK11096@twins.programming.kicks-ass.net>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20140417140036.GK11096@twins.programming.kicks-ass.net>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "arnd@arndb.de" <arnd@arndb.de>, "monstr@monstr.eu" <monstr@monstr.eu>, "dhowells@redhat.com" <dhowells@redhat.com>, "broonie@linaro.org" <broonie@linaro.org>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:51362 "EHLO
+	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1750983AbaDQOp1 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Thu, 17 Apr 2014 10:45:27 -0400
+In-Reply-To: <1397742261-15621-1-git-send-email-will.deacon@arm.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Cc: arnd@arndb.de, monstr@monstr.eu, dhowells@redhat.com, broonie@linaro.org, benh@kernel.crashing.org, peterz@infradead.org, paulmck@linux.vnet.ibm.com, Will Deacon <will.deacon@arm.com>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>
 
-Hi Peter,
+write{b,w,l,q}_relaxed are implemented by some architectures in order to
+permit memory-mapped I/O writes with weaker barrier semantics than the
+non-relaxed variants.
 
-On Thu, Apr 17, 2014 at 03:00:36PM +0100, Peter Zijlstra wrote:
-> On Thu, Apr 17, 2014 at 02:44:03PM +0100, Will Deacon wrote:
-> > In actual fact, the relaxed accessors *are* ordered with respect to LOCK/UNLOCK
-> > operations on ARM[64], but I have added this constraint for the benefit of
-> > PowerPC, which has expensive I/O barriers in the spin_unlock path for the
-> > non-relaxed accessors.
-> > 
-> > A corollary to this is that mmiowb() probably needs rethinking. As it currently
-> > stands, an mmiowb() is required to order MMIO writes to a device from multiple
-> > CPUs, even if that device is protected by a lock. However, this isn't often used
-> > in practice, leading to PowerPC implementing both mmiowb() *and* synchronising
-> > I/O in spin_unlock.
-> > 
-> > I would propose making the non-relaxed I/O accessors ordered with respect to
-> > LOCK/UNLOCK, leaving mmiowb() to be used with the relaxed accessors, if
-> > required, but would welcome thoughts/suggestions on this topic.
-> 
-> So the non-relaxed ops already imply the expensive I/O barrier (mmiowb?)
-> and therefore, PPC can drop it from spin_unlock()?
+This patch implements these write macros for Alpha, in the same vein as
+the relaxed read macros, which are already implemented.
 
-Ben can probably help out here, but if my proposal went ahead (that is,
-only the non-relaxed ops would imply mmiowb()), then it would actually
-be implemented on PPC by having only those accessors call IO_SET_SYNC_FLAG,
-which is checked during unlock (in SYNC_IO).
+Cc: Richard Henderson <rth@twiddle.net>
+Cc: Ivan Kokshaysky <ink@jurassic.park.msu.ru>
+Cc: Matt Turner <mattst88@gmail.com>
+Signed-off-by: Will Deacon <will.deacon@arm.com>
+---
+ arch/alpha/include/asm/io.h | 12 ++++++++----
+ 1 file changed, 8 insertions(+), 4 deletions(-)
 
-> Also, I read mmiowb() as MMIO-write-barrier(), what do we have to
-> order/contain mmio-reads?
-
-My understanding is that this is related to posted stores from different
-CPUs being re-ordered on the bus, so I wouldn't expect reads to suffer
-(although, since this isn't permitted on ARM, I'm guessing here).
-
-Will
+diff --git a/arch/alpha/include/asm/io.h b/arch/alpha/include/asm/io.h
+index 5ebab5895edb..f05bdb4b1cb9 100644
+--- a/arch/alpha/include/asm/io.h
++++ b/arch/alpha/include/asm/io.h
+@@ -500,10 +500,14 @@ extern inline void writeq(u64 b, volatile void __iomem *addr)
+ #define outb_p		outb
+ #define outw_p		outw
+ #define outl_p		outl
+-#define readb_relaxed(addr) __raw_readb(addr)
+-#define readw_relaxed(addr) __raw_readw(addr)
+-#define readl_relaxed(addr) __raw_readl(addr)
+-#define readq_relaxed(addr) __raw_readq(addr)
++#define readb_relaxed(addr)	__raw_readb(addr)
++#define readw_relaxed(addr)	__raw_readw(addr)
++#define readl_relaxed(addr)	__raw_readl(addr)
++#define readq_relaxed(addr)	__raw_readq(addr)
++#define writeb_relaxed(b, addr)	__raw_writeb(b, addr)
++#define writew_relaxed(b, addr)	__raw_writew(b, addr)
++#define writel_relaxed(b, addr)	__raw_writel(b, addr)
++#define writeq_relaxed(b, addr)	__raw_writeq(b, addr)
+ 
+ #define mmiowb()
+ 
+-- 
+1.9.1
