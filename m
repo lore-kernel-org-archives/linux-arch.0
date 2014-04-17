@@ -1,96 +1,47 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:48814 "EHLO
+Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:48809 "EHLO
 	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1752387AbaDQNoz (ORCPT
+	by vger.kernel.org with ESMTP id S1752862AbaDQNoz (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
 	Thu, 17 Apr 2014 09:44:55 -0400
 From: Will Deacon <will.deacon@arm.com>
-Subject: [PATCH 18/18] asm-generic: io: define relaxed accessor macros unconditionally
-Date: Thu, 17 Apr 2014 14:44:21 +0100
-Message-ID: <1397742261-15621-19-git-send-email-will.deacon@arm.com>
+Subject: [PATCH 03/18] s390: io: remove dummy relaxed accessor macros for reads
+Date: Thu, 17 Apr 2014 14:44:06 +0100
+Message-ID: <1397742261-15621-4-git-send-email-will.deacon@arm.com>
 In-Reply-To: <1397742261-15621-1-git-send-email-will.deacon@arm.com>
 References: <1397742261-15621-1-git-send-email-will.deacon@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: arnd@arndb.de, monstr@monstr.eu, dhowells@redhat.com, broonie@linaro.org, benh@kernel.crashing.org, peterz@infradead.org, paulmck@linux.vnet.ibm.com, Will Deacon <will.deacon@arm.com>
-Message-ID: <20140417134421.DvNubn9v4PtJ1fXKRKOSeWV4tnsuVB1my5IFKrnGA1I@z>
+Cc: arnd@arndb.de, monstr@monstr.eu, dhowells@redhat.com, broonie@linaro.org, benh@kernel.crashing.org, peterz@infradead.org, paulmck@linux.vnet.ibm.com, Will Deacon <will.deacon@arm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>
+Message-ID: <20140417134406.aElcSSe-x5RpQHyxP5adlLeoC1Dskkm85w0QUSPjrJw@z>
 
-Now that no architectures using asm-generic/io.h define their own relaxed
-accessors, the dummy definitions can be used unconditionally.
+These are now defined by asm-generic/io.h, so we don't need the private
+definitions anymore.
 
-Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
+Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>
 Signed-off-by: Will Deacon <will.deacon@arm.com>
 ---
- include/asm-generic/io.h | 18 ------------------
- 1 file changed, 18 deletions(-)
+ arch/s390/include/asm/io.h | 5 -----
+ 1 file changed, 5 deletions(-)
 
-diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
-index 6a93889aeb0d..ad80cab2a758 100644
---- a/include/asm-generic/io.h
-+++ b/include/asm-generic/io.h
-@@ -53,23 +53,17 @@ static inline u32 __raw_readl(const volatile void __iomem *addr)
- #endif
+diff --git a/arch/s390/include/asm/io.h b/arch/s390/include/asm/io.h
+index cd6b9ee7b69c..722befdf8332 100644
+--- a/arch/s390/include/asm/io.h
++++ b/arch/s390/include/asm/io.h
+@@ -60,11 +60,6 @@ static inline void iounmap(volatile void __iomem *addr)
+ #define __raw_writel	zpci_write_u32
+ #define __raw_writeq	zpci_write_u64
  
- #define readb		__raw_readb
--#ifndef readb_relaxed
- #define readb_relaxed	readb
--#endif
- 
- #define readw		readw
--#ifndef readw_relaxed
- #define readw_relaxed	readw
--#endif
- static inline u16 readw(const volatile void __iomem *addr)
- {
- 	return __le16_to_cpu(__raw_readw(addr));
- }
- 
- #define readl		readl
--#ifndef readl_relaxed
- #define readl_relaxed	readl
--#endif
- static inline u32 readl(const volatile void __iomem *addr)
- {
- 	return __le32_to_cpu(__raw_readl(addr));
-@@ -100,17 +94,9 @@ static inline void __raw_writel(u32 b, volatile void __iomem *addr)
- #define writew(b,addr)	__raw_writew(__cpu_to_le16(b),addr)
- #define writel(b,addr)	__raw_writel(__cpu_to_le32(b),addr)
- 
--#ifndef writeb_relaxed
- #define writeb_relaxed	writeb
--#endif
+-#define readb_relaxed	readb
+-#define readw_relaxed	readw
+-#define readl_relaxed	readl
+-#define readq_relaxed	readq
 -
--#ifndef writew_relaxed
- #define writew_relaxed	writew
--#endif
--
--#ifndef writel_relaxed
- #define writel_relaxed	writel
--#endif
+ #endif /* CONFIG_PCI */
  
- #ifdef CONFIG_64BIT
- #ifndef __raw_readq
-@@ -121,9 +107,7 @@ static inline u64 __raw_readq(const volatile void __iomem *addr)
- #endif
- 
- #define readq		readq
--#ifndef readq_relaxed
- #define readq_relaxed	readq
--#endif
- static inline u64 readq(const volatile void __iomem *addr)
- {
- 	return __le64_to_cpu(__raw_readq(addr));
-@@ -137,9 +121,7 @@ static inline void __raw_writeq(u64 b, volatile void __iomem *addr)
- #endif
- 
- #define writeq(b, addr) __raw_writeq(__cpu_to_le64(b), addr)
--#ifndef writeq_relaxed
- #define writeq_relaxed	writeq
--#endif
- #endif /* CONFIG_64BIT */
- 
- #ifndef PCI_IOBASE
+ #include <asm-generic/io.h>
 -- 
 1.9.1
 
