@@ -1,114 +1,123 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:58246 "EHLO
+Received: from merlin.infradead.org ([205.233.59.134]:58279 "EHLO
 	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751001AbaDQQhD (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 17 Apr 2014 12:37:03 -0400
-Date: Thu, 17 Apr 2014 18:36:40 +0200
+	with ESMTP id S1751614AbaDQQyb (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 17 Apr 2014 12:54:31 -0400
+Date: Thu, 17 Apr 2014 18:54:08 +0200
 From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v9 06/19] qspinlock: prolong the stay in the pending bit
- path
-Message-ID: <20140417163640.GT11096@twins.programming.kicks-ass.net>
+Subject: Re: [PATCH v9 07/19] qspinlock: Use a simple write to grab the lock,
+ if applicable
+Message-ID: <20140417165408.GU11096@twins.programming.kicks-ass.net>
 References: <1397747051-15401-1-git-send-email-Waiman.Long@hp.com>
- <1397747051-15401-7-git-send-email-Waiman.Long@hp.com>
+ <1397747051-15401-8-git-send-email-Waiman.Long@hp.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <1397747051-15401-7-git-send-email-Waiman.Long@hp.com>
+In-Reply-To: <1397747051-15401-8-git-send-email-Waiman.Long@hp.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Waiman Long <Waiman.Long@hp.com>
 Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Rik van Riel <riel@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, David Vrabel <david.vrabel@citrix.com>, Oleg Nesterov <oleg@redhat.com>, Gleb Natapov <gleb@redhat.com>, Scott J Norton <scott.norton@hp.com>, Chegu Vinod <chegu_vinod@hp.com>
-Message-ID: <20140417163640.1ZJa2CLn26eYaEddfCJKJ8KM5yHmkzaeLnQne8y1yRs@z>
+Message-ID: <20140417165408.Re_7LFlvPAIUazeeDBTnn2mX2YGFNc2i9zwwnu9NMWU@z>
 
-On Thu, Apr 17, 2014 at 11:03:58AM -0400, Waiman Long wrote:
-> There is a problem in the current trylock_pending() function.  When the
-> lock is free, but the pending bit holder hasn't grabbed the lock &
-> cleared the pending bit yet, the trylock_pending() function will fail.
-
-I remember seeing some of this..
-
-> It can be seen that the queue spinlock is slower than the ticket
-> spinlock when there are 2 or 3 contending tasks. In all the other case,
-> the queue spinlock is either equal or faster than the ticket spinlock.
-
-So with my code I get:
-
-        qspinlock	   ticket
-
-local:  2: 8741.853010     2: 8812.042460
-remote: 2: 8549.731795     2: 8709.005695
-
-And that is without this optimization.
-
-Also note that I don't have this cmpxchg loop anymore.
-
->  kernel/locking/qspinlock.c |   32 ++++++++++++++++++++++++++++++--
->  1 files changed, 30 insertions(+), 2 deletions(-)
+On Thu, Apr 17, 2014 at 11:03:59AM -0400, Waiman Long wrote:
+>  kernel/locking/qspinlock.c |   61 +++++++++++++++++++++++++++++++------------
+>  1 files changed, 44 insertions(+), 17 deletions(-)
 > 
 > diff --git a/kernel/locking/qspinlock.c b/kernel/locking/qspinlock.c
-> index 55601b4..497da24 100644
+> index 497da24..80fe9ee 100644
 > --- a/kernel/locking/qspinlock.c
 > +++ b/kernel/locking/qspinlock.c
-> @@ -216,6 +216,7 @@ xchg_tail(struct qspinlock *lock, u32 tail, u32 *pval)
->  static inline int trylock_pending(struct qspinlock *lock, u32 *pval)
->  {
->  	u32 old, new, val = *pval;
-> +	int retry = 1;
+> @@ -98,23 +98,29 @@ static inline struct mcs_spinlock *decode_tail(u32 tail)
+>   * can allow better optimization of the lock acquisition for the pending
+>   * bit holder.
+>   */
+> -#if _Q_PENDING_BITS == 8
+> -
+>  struct __qspinlock {
+>  	union {
+>  		atomic_t val;
+> -		struct {
+>  #ifdef __LITTLE_ENDIAN
+> +		u8	 locked;
+> +		struct {
+>  			u16	locked_pending;
+>  			u16	tail;
+> +		};
+>  #else
+> +		struct {
+>  			u16	tail;
+>  			u16	locked_pending;
+> -#endif
+>  		};
+> +		struct {
+> +			u8	reserved[3];
+> +			u8	locked;
+> +		};
+> +#endif
+
+Ah, yes, that's probably nicer than what I made of it..
+
+>  	};
+>  };
 >  
->  	/*
->  	 * trylock || pending
-> @@ -225,11 +226,38 @@ static inline int trylock_pending(struct qspinlock *lock, u32 *pval)
+> +#if _Q_PENDING_BITS == 8
+>  /**
+>   * clear_pending_set_locked - take ownership and clear the pending bit.
+>   * @lock: Pointer to queue spinlock structure
+> @@ -204,6 +210,22 @@ xchg_tail(struct qspinlock *lock, u32 tail, u32 *pval)
+>  #endif /* _Q_PENDING_BITS == 8 */
+>  
+>  /**
+> + * get_qlock - Set the lock bit and own the lock
+> + * @lock: Pointer to queue spinlock structure
+> + *
+> + * This routine should only be called when the caller is the only one
+> + * entitled to acquire the lock.
+> + */
+> +static __always_inline void get_qlock(struct qspinlock *lock)
+
+Don't like that function name though; what was wrong with set_locked(),
+which is more or less what I called it.
+
+> +{
+> +	struct __qspinlock *l = (void *)lock;
+> +
+> +	barrier();
+> +	ACCESS_ONCE(l->locked) = _Q_LOCKED_VAL;
+> +	barrier();
+> +}
+
+> @@ -378,15 +403,19 @@ void queue_spin_lock_slowpath(struct qspinlock *lock, u32 val)
+>  	 *
+>  	 * n,0,0 -> 0,0,1 : lock, uncontended
+>  	 * *,0,0 -> *,0,1 : lock, contended
+> +	 *
+> +	 * If the queue head is the only one in the queue (lock value == tail),
+> +	 * clear the tail code and grab the lock. Otherwise, we only need
+> +	 * to grab the lock.
 >  	 */
 >  	for (;;) {
->  		/*
-> -		 * If we observe any contention; queue.
-> +		 * If we observe that the queue is not empty,
-> +		 * return and be queued.
->  		 */
-> -		if (val & ~_Q_LOCKED_MASK)
-> +		if (val & _Q_TAIL_MASK)
->  			return 0;
->  
-> +		if ((val & _Q_LOCKED_PENDING_MASK) ==
-> +		    (_Q_LOCKED_VAL|_Q_PENDING_VAL)) {
-> +			/*
-> +			 * If both the lock and pending bits are set, we wait
-> +			 * a while to see if that either bit will be cleared.
-> +			 * If that is no change, we return and be queued.
-> +			 */
-> +			if (!retry)
-> +				return 0;
-> +			retry--;
-> +			cpu_relax();
-> +			cpu_relax();
-> +			*pval = val = atomic_read(&lock->val);
-> +			continue;
-
-Since you gave up optimizing the _Q_PENDING_BITS != 8 case why bother
-with this? The switch from _Q_PENDING_VAL to _Q_LOCKED_VAL is atomic by
-virtue of your (endian challenged) clear_pending_set_locked().
-
-> +		} else if ((val & _Q_LOCKED_PENDING_MASK) == _Q_PENDING_VAL) {
-> +			/*
-> +			 * Pending bit is set, but not the lock bit.
-> +			 * Assuming that the pending bit holder is going to
-> +			 * set the lock bit and clear the pending bit soon,
-> +			 * it is better to wait than to exit at this point.
-> +			 */
-> +			cpu_relax();
-> +			*pval = val = atomic_read(&lock->val);
-> +			continue;
+> -		new = _Q_LOCKED_VAL;
+> -		if (val != tail)
+> -			new |= val;
+> -
+> -		old = atomic_cmpxchg(&lock->val, val, new);
+> -		if (old == val)
+> +		if (val != tail) {
+> +			get_qlock(lock);
+>  			break;
 > +		}
-> +
->  		new = _Q_LOCKED_VAL;
->  		if (val == new)
->  			new |= _Q_PENDING_VAL;
 
-Wouldn't something like:
+Ah, good one. I hadn't done that.
 
-	while (atomic_read(&lock->val) == _Q_PENDING_VAL)
-		cpu_relax();
+> +		old = atomic_cmpxchg(&lock->val, val, _Q_LOCKED_VAL);
+> +		if (old == val)
+> +			goto release;	/* No contention */
+>  
+>  		val = old;
+>  	}
 
-before the cmpxchg loop have gotten you all this?
-
-I just tried this on my code and I cannot see a difference.
+I did have a patch that played tricks with ->next, but I seem to have
+forgotten the details, and I tossed the patch because it didn't show any
+difference on the benchmark.
