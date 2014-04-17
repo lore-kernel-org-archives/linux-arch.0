@@ -1,43 +1,45 @@
-From: Waiman Long <waiman.long@hp.com>
-Subject: Re: [PATCH v9 05/19] qspinlock: Optimize for smaller NR_CPUS
-Date: Thu, 17 Apr 2014 17:33:06 -0400
-Message-ID: <53504892.60404@hp.com>
-References: <1397747051-15401-1-git-send-email-Waiman.Long@hp.com>
-	<1397747051-15401-6-git-send-email-Waiman.Long@hp.com>
-	<20140417155115.GQ11096@twins.programming.kicks-ass.net>
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Subject: Re: [PATCH 00/18] Cross-architecture definitions of relaxed MMIO
+ accessors
+Date: Fri, 18 Apr 2014 07:36:58 +1000
+Message-ID: <1397770618.32730.81.camel@pasglop>
+References: <1397742261-15621-1-git-send-email-will.deacon@arm.com>
+	 <20140417140036.GK11096@twins.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"; Format="flowed"
+Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: 7bit
-Return-path: <virtualization-bounces@lists.linux-foundation.org>
-In-Reply-To: <20140417155115.GQ11096@twins.programming.kicks-ass.net>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
-List-Post: <mailto:virtualization@lists.linux-foundation.org>
-List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
-Sender: virtualization-bounces@lists.linux-foundation.org
-Errors-To: virtualization-bounces@lists.linux-foundation.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from gate.crashing.org ([63.228.1.57]:60313 "EHLO gate.crashing.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1750971AbaDQVh5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 17 Apr 2014 17:37:57 -0400
+In-Reply-To: <20140417140036.GK11096@twins.programming.kicks-ass.net>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Peter Zijlstra <peterz@infradead.org>
-Cc: linux-arch@vger.kernel.org, Rik van Riel <riel@redhat.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, Gleb Natapov <gleb@redhat.com>, kvm@vger.kernel.org, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Scott J Norton <scott.norton@hp.com>, x86@kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, Ingo Molnar <mingo@redhat.com>, Chegu Vinod <chegu_vinod@hp.com>, David Vrabel <david.vrabel@citrix.com>, "H. Peter Anvin" <hpa@zytor.com>, xen-devel@lists.xenproject.org, Thomas Gleixner <tglx@linutronix.de>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Oleg Nesterov <oleg@redhat.com>
-List-Id: linux-arch.vger.kernel.org
+Cc: Will Deacon <will.deacon@arm.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, arnd@arndb.de, monstr@monstr.eu, dhowells@redhat.com, broonie@linaro.org, paulmck@linux.vnet.ibm.com
 
-On 04/17/2014 11:51 AM, Peter Zijlstra wrote:
-> On Thu, Apr 17, 2014 at 11:03:57AM -0400, Waiman Long wrote:
->> @@ -48,6 +53,9 @@
->>    * We can further change the first spinner to spin on a bit in the lock word
->>    * instead of its node; whereby avoiding the need to carry a node from lock to
->>    * unlock, and preserving API.
->> + *
->> + * N.B. The current implementation only supports architectures that allow
->> + *      atomic operations on smaller 8-bit and 16-bit data types.
->>    */
-> Only for the _Q_PENDING_BITS == 8 case, the other case should still be
-> fine.
+On Thu, 2014-04-17 at 16:00 +0200, Peter Zijlstra wrote:
 
-Yes, but _Q_PENDING_BITS is controlled by NR_CPUS which, for almost all 
-the distributions, is less than 16K which means _Q_PENDING_BITS will 
-always be set to 8, especially for non-x86 architectures.
+> So the non-relaxed ops already imply the expensive I/O barrier (mmiowb?)
+> and therefore, PPC can drop it from spin_unlock()?
 
--Longman
+We play a trick. We set a per-cpu flag in writeX and test it in unlock
+before doing the barrier. Still better than having the barrier in every
+MMIO at this stage for us.
+
+Whether we want to change that with then new scheme ... we'll see.
+
+> Also, I read mmiowb() as MMIO-write-barrier(), what do we have to
+> order/contain mmio-reads?
+> 
+> I have _0_ experience with MMIO, so I've no idea if ordering/containing
+> reads is silly or not. 
+
+I will review the rest when I'm back from vacation (or maybe this
+week-end).
+
+Thanks Will for picking that up, it's long overdue :)
+
+Cheers,
+Ben.
