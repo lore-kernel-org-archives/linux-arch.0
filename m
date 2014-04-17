@@ -1,142 +1,182 @@
 From: Waiman Long <Waiman.Long@hp.com>
-Subject: [PATCH v9 08/19] qspinlock: Make a new qnode structure to support
-	virtualization
-Date: Thu, 17 Apr 2014 11:04:00 -0400
-Message-ID: <1397747051-15401-9-git-send-email-Waiman.Long@hp.com>
+Subject: [PATCH v9 16/19] pvqspinlock: Enable coexistence with
+	the unfair lock
+Date: Thu, 17 Apr 2014 11:04:08 -0400
+Message-ID: <1397747051-15401-17-git-send-email-Waiman.Long@hp.com>
 References: <1397747051-15401-1-git-send-email-Waiman.Long@hp.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-Return-path: <virtualization-bounces@lists.linux-foundation.org>
+Return-path: <xen-devel-bounces@lists.xen.org>
 In-Reply-To: <1397747051-15401-1-git-send-email-Waiman.Long@hp.com>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
-List-Post: <mailto:virtualization@lists.linux-foundation.org>
-List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
-Sender: virtualization-bounces@lists.linux-foundation.org
-Errors-To: virtualization-bounces@lists.linux-foundation.org
+List-Unsubscribe: <http://lists.xen.org/cgi-bin/mailman/options/xen-devel>,
+	<mailto:xen-devel-request@lists.xen.org?subject=unsubscribe>
+List-Post: <mailto:xen-devel@lists.xen.org>
+List-Help: <mailto:xen-devel-request@lists.xen.org?subject=help>
+List-Subscribe: <http://lists.xen.org/cgi-bin/mailman/listinfo/xen-devel>,
+	<mailto:xen-devel-request@lists.xen.org?subject=subscribe>
+Sender: xen-devel-bounces@lists.xen.org
+Errors-To: xen-devel-bounces@lists.xen.org
 To: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Peter Zijlstra <peterz@infradead.org>
-Cc: linux-arch@vger.kernel.org, Waiman Long <Waiman.Long@hp.com>, Rik van Riel <riel@redhat.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, Gleb Natapov <gleb@redhat.com>, kvm@vger.kernel.org, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Scott J Norton <scott.norton@hp.com>, x86@kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, Chegu Vinod <chegu_vinod@hp.com>, David Vrabel <david.vrabel@citrix.com>, Oleg Nesterov <oleg@redhat.com>, xen-devel@lists.xenproject.org, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>
+Cc: linux-arch@vger.kernel.org, Waiman Long <Waiman.Long@hp.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, Gleb Natapov <gleb@redhat.com>, kvm@vger.kernel.org, Scott J Norton <scott.norton@hp.com>, x86@kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, Chegu Vinod <chegu_vinod@hp.com>, David Vrabel <david.vrabel@citrix.com>, Oleg Nesterov <oleg@redhat.com>, xen-devel@lists.xenproject.org, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>
 List-Id: linux-arch.vger.kernel.org
 
-In order to support additional virtualization features like unfair lock
-and para-virtualized spinlock, it is necessary to store additional
-CPU specific data into the queue node structure. As a result, a new
-qnode structure is created and the mcs_spinlock structure is now part
-of the new structure.
+This patch enables the coexistence of both the PV qspinlock and
+unfair lock.  When both are enabled, however, only the lock fastpath
+will perform lock stealing whereas the slowpath will have that disabled
+to get the best of both features.
 
-It is also necessary to expand arch_mcs_spin_lock_contended() to the
-underlying while loop as additional code will need to be inserted
-into the loop.
+We also need to transition a CPU spinning too long in the pending
+bit code path back to the regular queuing code path so that it can
+be properly halted by the PV qspinlock code.
 
 Signed-off-by: Waiman Long <Waiman.Long@hp.com>
 ---
- kernel/locking/qspinlock.c |   36 +++++++++++++++++++++++-------------
- 1 files changed, 23 insertions(+), 13 deletions(-)
+ kernel/locking/qspinlock.c |   74 ++++++++++++++++++++++++++++++++++++++------
+ 1 files changed, 64 insertions(+), 10 deletions(-)
 
 diff --git a/kernel/locking/qspinlock.c b/kernel/locking/qspinlock.c
-index 80fe9ee..994358c 100644
+index f9c82f6..21421a6 100644
 --- a/kernel/locking/qspinlock.c
 +++ b/kernel/locking/qspinlock.c
-@@ -61,12 +61,21 @@
- #include "mcs_spinlock.h"
+@@ -76,6 +76,30 @@ struct qnode {
+ #define qhead	mcs.locked	/* The queue head flag */
  
  /*
-+ * To have additional features for better virtualization support, it is
-+ * necessary to store additional data in the queue node structure. So
-+ * a new queue node structure will have to be defined and used here.
++ * Allow spinning loop count only if either PV spinlock or unfair lock is
++ * configured.
 + */
-+struct qnode {
-+	struct mcs_spinlock mcs;
-+};
++#if defined(CONFIG_PARAVIRT_UNFAIR_LOCKS) || defined(CONFIG_PARAVIRT_SPINLOCKS)
++#define	DEF_LOOP_CNT(c)		int c = 0
++#define	INC_LOOP_CNT(c)		(c)++
++#define	LOOP_CNT(c)		c
++#else
++#define	DEF_LOOP_CNT(c)
++#define	INC_LOOP_CNT(c)
++#define	LOOP_CNT(c)		0
++#endif
++
++/*
++ * Check the pending bit spinning threshold only if PV qspinlock is enabled
++ */
++#define PSPIN_THRESHOLD		(1 << 10)
++#ifdef CONFIG_PARAVIRT_SPINLOCKS
++#define pv_qspinlock_enabled()	static_key_false(&paravirt_spinlocks_enabled)
++#else
++#define pv_qspinlock_enabled()	false
++#endif
 +
 +/*
   * Per-CPU queue node structures; we can never have more than 4 nested
   * contexts: task, softirq, hardirq, nmi.
   *
-  * Exactly fits one cacheline.
+@@ -306,9 +330,6 @@ cmpxchg_tail(struct qspinlock *lock, u32 old, u32 new)
+  * starvation.
   */
--static DEFINE_PER_CPU_ALIGNED(struct mcs_spinlock, mcs_nodes[4]);
-+static DEFINE_PER_CPU_ALIGNED(struct qnode, qnodes[4]);
- 
- /*
-  * We must be able to distinguish between no-tail and the tail at 0:0,
-@@ -83,12 +92,12 @@ static inline u32 encode_tail(int cpu, int idx)
- 	return tail;
- }
- 
--static inline struct mcs_spinlock *decode_tail(u32 tail)
-+static inline struct qnode *decode_tail(u32 tail)
+ #ifdef CONFIG_PARAVIRT_UNFAIR_LOCKS
+-#define DEF_LOOP_CNT(c)		int c = 0
+-#define INC_LOOP_CNT(c)		(c)++
+-#define LOOP_CNT(c)		c
+ #define LSTEAL_MIN		(1 << 3)
+ #define LSTEAL_MAX		(1 << 10)
+ #define LSTEAL_MIN_MASK		(LSTEAL_MIN - 1)
+@@ -334,7 +355,11 @@ static inline void unfair_init_vars(struct qnode *node)
+ static inline void
+ unfair_set_vars(struct qnode *node, struct qnode *prev, u32 prev_tail)
  {
- 	int cpu = (tail >> _Q_TAIL_CPU_OFFSET) - 1;
- 	int idx = (tail &  _Q_TAIL_IDX_MASK) >> _Q_TAIL_IDX_OFFSET;
+-	if (!static_key_false(&paravirt_unfairlocks_enabled))
++	/*
++	 * Disable waiter lock stealing if PV spinlock is enabled
++	 */
++	if (pv_qspinlock_enabled() ||
++	   !static_key_false(&paravirt_unfairlocks_enabled))
+ 		return;
  
--	return per_cpu_ptr(&mcs_nodes[idx], cpu);
-+	return per_cpu_ptr(&qnodes[idx], cpu);
- }
- 
- #define _Q_LOCKED_PENDING_MASK	(_Q_LOCKED_MASK | _Q_PENDING_MASK)
-@@ -343,7 +352,7 @@ static inline int trylock_pending(struct qspinlock *lock, u32 *pval)
+ 	node->qprev	= prev;
+@@ -360,7 +385,11 @@ unfair_set_vars(struct qnode *node, struct qnode *prev, u32 prev_tail)
   */
- void queue_spin_lock_slowpath(struct qspinlock *lock, u32 val)
+ static inline int unfair_check_and_clear_tail(struct qspinlock *lock, u32 tail)
  {
--	struct mcs_spinlock *prev, *next, *node;
-+	struct qnode *prev, *next, *node;
- 	u32 old, tail;
- 	int idx;
- 
-@@ -352,13 +361,13 @@ void queue_spin_lock_slowpath(struct qspinlock *lock, u32 val)
- 	if (trylock_pending(lock, &val))
- 		return;	/* Lock acquired */
- 
--	node = this_cpu_ptr(&mcs_nodes[0]);
--	idx = node->count++;
-+	node = this_cpu_ptr(&qnodes[0]);
-+	idx = node->mcs.count++;
- 	tail = encode_tail(smp_processor_id(), idx);
- 
- 	node += idx;
--	node->locked = 0;
--	node->next = NULL;
-+	node->mcs.locked = 0;
-+	node->mcs.next = NULL;
+-	if (!static_key_false(&paravirt_unfairlocks_enabled))
++	/*
++	 * Disable waiter lock stealing if PV spinlock is enabled
++	 */
++	if (pv_qspinlock_enabled() ||
++	   !static_key_false(&paravirt_unfairlocks_enabled))
+ 		return false;
  
  	/*
- 	 * We touched a (possibly) cold cacheline; attempt the trylock once
-@@ -381,9 +390,10 @@ void queue_spin_lock_slowpath(struct qspinlock *lock, u32 val)
- 	 */
- 	if (old & _Q_TAIL_MASK) {
- 		prev = decode_tail(old);
--		ACCESS_ONCE(prev->next) = node;
-+		ACCESS_ONCE(prev->mcs.next) = (struct mcs_spinlock *)node;
+@@ -389,7 +418,11 @@ unfair_get_lock(struct qspinlock *lock, struct qnode *node, u32 tail, int count)
+ 	int	     isqhead;
+ 	struct qnode *next;
  
--		arch_mcs_spin_lock_contended(&node->locked);
-+		while (!smp_load_acquire(&node->mcs.locked))
-+			arch_mutex_cpu_relax();
+-	if (!static_key_false(&paravirt_unfairlocks_enabled) ||
++	/*
++	 * Disable waiter lock stealing if PV spinlock is enabled
++	 */
++	if (pv_qspinlock_enabled() ||
++	   !static_key_false(&paravirt_unfairlocks_enabled) ||
+ 	   ((count & node->lsteal_mask) != node->lsteal_mask))
+ 		return false;
+ 
+@@ -467,9 +500,6 @@ unfair_get_lock(struct qspinlock *lock, struct qnode *node, u32 tail, int count)
+ }
+ 
+ #else /* CONFIG_PARAVIRT_UNFAIR_LOCKS */
+-#define	DEF_LOOP_CNT(c)
+-#define	INC_LOOP_CNT(c)
+-#define	LOOP_CNT(c)	0
+ 
+ static void unfair_init_vars(struct qnode *node)	{}
+ static void unfair_set_vars(struct qnode *node, struct qnode *prev,
+@@ -587,9 +617,28 @@ static inline int trylock_pending(struct qspinlock *lock, u32 *pval)
+ 	 * store-release that clears the locked bit and create lock
+ 	 * sequentiality; this because not all try_clear_pending_set_locked()
+ 	 * implementations imply full barriers.
++	 *
++	 * When PV qspinlock is enabled, exit the pending bit code path and
++	 * go back to the regular queuing path if the lock isn't available
++	 * within a certain threshold.
+ 	 */
+-	while ((val = smp_load_acquire(&lock->val.counter)) & _Q_LOCKED_MASK)
++	if (pv_qspinlock_enabled())
++		retry = PSPIN_THRESHOLD;
++	while ((val = smp_load_acquire(&lock->val.counter)) & _Q_LOCKED_MASK) {
++		if (pv_qspinlock_enabled() && (--retry == 0)) {
++			/*
++			 * Clear the pending bit and exit
++			 */
++			for (;;) {
++				new = val & ~_Q_PENDING_MASK;
++				old = atomic_cmpxchg(&lock->val, val, new);
++				if (old == val)
++					return 0;
++				val = old;
++			}
++		}
+ 		arch_mutex_cpu_relax();
++	}
+ 
+ 	/*
+ 	 * take ownership and clear the pending bit.
+@@ -650,6 +699,8 @@ queue_spin_lock_slowerpath(struct qspinlock *lock, struct qnode *node, u32 tail)
+ 			}
+ 			arch_mutex_cpu_relax();
+ 		}
++	} else {
++		ACCESS_ONCE(node->qhead) = true;
  	}
  
  	/*
-@@ -423,15 +433,15 @@ void queue_spin_lock_slowpath(struct qspinlock *lock, u32 val)
- 	/*
- 	 * contended path; wait for next, release.
- 	 */
--	while (!(next = ACCESS_ONCE(node->next)))
-+	while (!(next = (struct qnode *)ACCESS_ONCE(node->mcs.next)))
+@@ -717,6 +768,9 @@ notify_next:
+ 	while (!(next = (struct qnode *)ACCESS_ONCE(node->mcs.next)))
  		arch_mutex_cpu_relax();
  
--	arch_mcs_spin_unlock_contended(&next->locked);
-+	arch_mcs_spin_unlock_contended(&next->mcs.locked);
- 
- release:
- 	/*
- 	 * release the node
- 	 */
--	this_cpu_dec(mcs_nodes[0].count);
-+	this_cpu_dec(qnodes[0].mcs.count);
++	/*
++	 * The next one in queue is now at the head
++	 */
+ 	arch_mcs_spin_unlock_contended(&next->qhead);
  }
- EXPORT_SYMBOL(queue_spin_lock_slowpath);
+ 
 -- 
 1.7.1
