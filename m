@@ -1,45 +1,118 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [PATCH 10/18] m68k: io: implement dummy relaxed accessor macros
- for writes
-Date: Thu, 17 Apr 2014 18:07:28 +0200
-Message-ID: <CAMuHMdV15kdRincp9EbVhEUDSp4GzP86BLRFV8X_Zbhq+hwX0g@mail.gmail.com>
-References: <1397742261-15621-1-git-send-email-will.deacon@arm.com>
-	<1397742261-15621-11-git-send-email-will.deacon@arm.com>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH v9 06/19] qspinlock: prolong the stay in the pending bit
+	path
+Date: Thu, 17 Apr 2014 18:36:40 +0200
+Message-ID: <20140417163640.GT11096@twins.programming.kicks-ass.net>
+References: <1397747051-15401-1-git-send-email-Waiman.Long@hp.com>
+	<1397747051-15401-7-git-send-email-Waiman.Long@hp.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-la0-f47.google.com ([209.85.215.47]:61720 "EHLO
-	mail-la0-f47.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751006AbaDQQHa (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 17 Apr 2014 12:07:30 -0400
-In-Reply-To: <1397742261-15621-11-git-send-email-will.deacon@arm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will.deacon@arm.com>
-Cc: Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Michal Simek <monstr@monstr.eu>, David Howells <dhowells@redhat.com>, Mark Brown <broonie@linaro.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Peter Zijlstra <peterz@infradead.org>, Paul McKenney <paulmck@linux.vnet.ibm.com>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <virtualization-bounces@lists.linux-foundation.org>
+Content-Disposition: inline
+In-Reply-To: <1397747051-15401-7-git-send-email-Waiman.Long@hp.com>
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
+List-Post: <mailto:virtualization@lists.linux-foundation.org>
+List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
+Sender: virtualization-bounces@lists.linux-foundation.org
+Errors-To: virtualization-bounces@lists.linux-foundation.org
+To: Waiman Long <Waiman.Long@hp.com>
+Cc: linux-arch@vger.kernel.org, Rik van Riel <riel@redhat.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, Gleb Natapov <gleb@redhat.com>, kvm@vger.kernel.org, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Scott J Norton <scott.norton@hp.com>, x86@kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, Ingo Molnar <mingo@redhat.com>, Chegu Vinod <chegu_vinod@hp.com>, David Vrabel <david.vrabel@citrix.com>, "H. Peter Anvin" <hpa@zytor.com>, xen-devel@lists.xenproject.org, Thomas Gleixner <tglx@linutronix.de>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Oleg Nesterov <oleg@redhat.com>
+List-Id: linux-arch.vger.kernel.org
 
-On Thu, Apr 17, 2014 at 3:44 PM, Will Deacon <will.deacon@arm.com> wrote:
-> write{b,w,l}_relaxed are implemented by some architectures in order to
-> permit memory-mapped I/O accesses with weaker barrier semantics than the
-> non-relaxed variants.
->
-> This patch adds dummy macros for the write accessors to m68k, in the
-> same vein as the dummy definitions for the relaxed read accessors.
-> Additionally, the existing relaxed read accessors are moved into
-> asm/io.h, so that they can be used by m68k targets with an MMU.
->
-> Cc: Geert Uytterhoeven <geert@linux-m68k.org>
-> Signed-off-by: Will Deacon <will.deacon@arm.com>
+On Thu, Apr 17, 2014 at 11:03:58AM -0400, Waiman Long wrote:
+> There is a problem in the current trylock_pending() function.  When the
+> lock is free, but the pending bit holder hasn't grabbed the lock &
+> cleared the pending bit yet, the trylock_pending() function will fail.
 
-Acked-by: Geert Uytterhoeven <geert@linux-m68k.org>
+I remember seeing some of this..
 
-Gr{oetje,eeting}s,
+> It can be seen that the queue spinlock is slower than the ticket
+> spinlock when there are 2 or 3 contending tasks. In all the other case,
+> the queue spinlock is either equal or faster than the ticket spinlock.
 
-                        Geert
+So with my code I get:
 
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+        qspinlock	   ticket
 
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+local:  2: 8741.853010     2: 8812.042460
+remote: 2: 8549.731795     2: 8709.005695
+
+And that is without this optimization.
+
+Also note that I don't have this cmpxchg loop anymore.
+
+>  kernel/locking/qspinlock.c |   32 ++++++++++++++++++++++++++++++--
+>  1 files changed, 30 insertions(+), 2 deletions(-)
+> 
+> diff --git a/kernel/locking/qspinlock.c b/kernel/locking/qspinlock.c
+> index 55601b4..497da24 100644
+> --- a/kernel/locking/qspinlock.c
+> +++ b/kernel/locking/qspinlock.c
+> @@ -216,6 +216,7 @@ xchg_tail(struct qspinlock *lock, u32 tail, u32 *pval)
+>  static inline int trylock_pending(struct qspinlock *lock, u32 *pval)
+>  {
+>  	u32 old, new, val = *pval;
+> +	int retry = 1;
+>  
+>  	/*
+>  	 * trylock || pending
+> @@ -225,11 +226,38 @@ static inline int trylock_pending(struct qspinlock *lock, u32 *pval)
+>  	 */
+>  	for (;;) {
+>  		/*
+> -		 * If we observe any contention; queue.
+> +		 * If we observe that the queue is not empty,
+> +		 * return and be queued.
+>  		 */
+> -		if (val & ~_Q_LOCKED_MASK)
+> +		if (val & _Q_TAIL_MASK)
+>  			return 0;
+>  
+> +		if ((val & _Q_LOCKED_PENDING_MASK) ==
+> +		    (_Q_LOCKED_VAL|_Q_PENDING_VAL)) {
+> +			/*
+> +			 * If both the lock and pending bits are set, we wait
+> +			 * a while to see if that either bit will be cleared.
+> +			 * If that is no change, we return and be queued.
+> +			 */
+> +			if (!retry)
+> +				return 0;
+> +			retry--;
+> +			cpu_relax();
+> +			cpu_relax();
+> +			*pval = val = atomic_read(&lock->val);
+> +			continue;
+
+Since you gave up optimizing the _Q_PENDING_BITS != 8 case why bother
+with this? The switch from _Q_PENDING_VAL to _Q_LOCKED_VAL is atomic by
+virtue of your (endian challenged) clear_pending_set_locked().
+
+> +		} else if ((val & _Q_LOCKED_PENDING_MASK) == _Q_PENDING_VAL) {
+> +			/*
+> +			 * Pending bit is set, but not the lock bit.
+> +			 * Assuming that the pending bit holder is going to
+> +			 * set the lock bit and clear the pending bit soon,
+> +			 * it is better to wait than to exit at this point.
+> +			 */
+> +			cpu_relax();
+> +			*pval = val = atomic_read(&lock->val);
+> +			continue;
+> +		}
+> +
+>  		new = _Q_LOCKED_VAL;
+>  		if (val == new)
+>  			new |= _Q_PENDING_VAL;
+
+Wouldn't something like:
+
+	while (atomic_read(&lock->val) == _Q_PENDING_VAL)
+		cpu_relax();
+
+before the cmpxchg loop have gotten you all this?
+
+I just tried this on my code and I cannot see a difference.
