@@ -1,7 +1,7 @@
 From: Will Deacon <will.deacon@arm.com>
-Subject: [PATCH 02/18] microblaze: io: remove dummy relaxed accessor macros
-Date: Thu, 17 Apr 2014 14:44:05 +0100
-Message-ID: <1397742261-15621-3-git-send-email-will.deacon@arm.com>
+Subject: [PATCH 11/18] mn10300: io: implement dummy relaxed accessor macros for writes
+Date: Thu, 17 Apr 2014 14:44:14 +0100
+Message-ID: <1397742261-15621-12-git-send-email-will.deacon@arm.com>
 References: <1397742261-15621-1-git-send-email-will.deacon@arm.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1397742261-15621-1-git-send-email-will.deacon@arm.com>
@@ -10,31 +10,33 @@ To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 Cc: arnd@arndb.de, monstr@monstr.eu, dhowells@redhat.com, broonie@linaro.org, benh@kernel.crashing.org, peterz@infradead.org, paulmck@linux.vnet.ibm.com, Will Deacon <will.deacon@arm.com>
 List-Id: linux-arch.vger.kernel.org
 
-These are now defined by asm-generic/io.h, so we don't need the private
-definitions anymore.
+write{b,w,l}_relaxed are implemented by some architectures in order to
+permit memory-mapped I/O accesses with weaker barrier semantics than the
+non-relaxed variants.
 
-Cc: Michal Simek <monstr@monstr.eu>
+This patch adds dummy macros for the write accessors to mn10300, in the
+same vein as the dummy definitions for the relaxed read accessors.
+
+Cc: David Howells <dhowells@redhat.com>
 Signed-off-by: Will Deacon <will.deacon@arm.com>
 ---
- arch/microblaze/include/asm/io.h | 8 --------
- 1 file changed, 8 deletions(-)
+ arch/mn10300/include/asm/io.h | 4 ++++
+ 1 file changed, 4 insertions(+)
 
-diff --git a/arch/microblaze/include/asm/io.h b/arch/microblaze/include/asm/io.h
-index 1e4c3329f62e..2987fd4c73d6 100644
---- a/arch/microblaze/include/asm/io.h
-+++ b/arch/microblaze/include/asm/io.h
-@@ -72,12 +72,4 @@ extern void __iomem *ioremap(phys_addr_t address, unsigned long size);
+diff --git a/arch/mn10300/include/asm/io.h b/arch/mn10300/include/asm/io.h
+index e6ed0d897ccc..897ba3c12b32 100644
+--- a/arch/mn10300/include/asm/io.h
++++ b/arch/mn10300/include/asm/io.h
+@@ -67,6 +67,10 @@ static inline void writel(u32 b, volatile void __iomem *addr)
+ #define __raw_writew writew
+ #define __raw_writel writel
  
- #include <asm-generic/io.h>
- 
--#define readb_relaxed	readb
--#define readw_relaxed	readw
--#define readl_relaxed	readl
--
--#define writeb_relaxed	writeb
--#define writew_relaxed	writew
--#define writel_relaxed	writel
--
- #endif /* _ASM_MICROBLAZE_IO_H */
++#define writeb_relaxed writeb
++#define writew_relaxed writew
++#define writel_relaxed writel
++
+ /*****************************************************************************/
+ /*
+  * traditional input/output functions
 -- 
 1.9.1
