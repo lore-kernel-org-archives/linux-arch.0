@@ -1,7 +1,7 @@
 From: Peter Zijlstra <peterz@infradead.org>
 Subject: Re: [PATCH v9 05/19] qspinlock: Optimize for smaller NR_CPUS
-Date: Thu, 17 Apr 2014 17:50:02 +0200
-Message-ID: <20140417155002.GP11096@twins.programming.kicks-ass.net>
+Date: Thu, 17 Apr 2014 17:51:15 +0200
+Message-ID: <20140417155115.GQ11096@twins.programming.kicks-ass.net>
 References: <1397747051-15401-1-git-send-email-Waiman.Long@hp.com>
 	<1397747051-15401-6-git-send-email-Waiman.Long@hp.com>
 Mime-Version: 1.0
@@ -24,9 +24,14 @@ Cc: linux-arch@vger.kernel.org, Rik van Riel <riel@redhat.com>, Raghavendra K T 
 List-Id: linux-arch.vger.kernel.org
 
 On Thu, Apr 17, 2014 at 11:03:57AM -0400, Waiman Long wrote:
-> +#if !defined(__LITTLE_ENDIAN) && !defined(__BIG_ENDIAN)
-> +#error "Missing either LITTLE_ENDIAN or BIG_ENDIAN definition."
-> +#endif
+> @@ -48,6 +53,9 @@
+>   * We can further change the first spinner to spin on a bit in the lock word
+>   * instead of its node; whereby avoiding the need to carry a node from lock to
+>   * unlock, and preserving API.
+> + *
+> + * N.B. The current implementation only supports architectures that allow
+> + *      atomic operations on smaller 8-bit and 16-bit data types.
+>   */
 
-This seems entirely superfluous, I don't think a kernel build will go
-anywhere if either is missing.
+Only for the _Q_PENDING_BITS == 8 case, the other case should still be
+fine.
