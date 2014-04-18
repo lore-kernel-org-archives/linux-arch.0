@@ -1,34 +1,47 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:58976 "EHLO
+Received: from merlin.infradead.org ([205.233.59.134]:58992 "EHLO
 	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751111AbaDRIOL (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 18 Apr 2014 04:14:11 -0400
-Date: Fri, 18 Apr 2014 10:13:45 +0200
+	with ESMTP id S1751613AbaDRIPe (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 18 Apr 2014 04:15:34 -0400
+Date: Fri, 18 Apr 2014 10:15:17 +0200
 From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v9 03/19] qspinlock: Add pending bit
-Message-ID: <20140418081345.GX11096@twins.programming.kicks-ass.net>
+Subject: Re: [PATCH v9 04/19] qspinlock: Extract out the exchange of tail
+ code word
+Message-ID: <20140418081517.GY11096@twins.programming.kicks-ass.net>
 References: <1397747051-15401-1-git-send-email-Waiman.Long@hp.com>
- <1397747051-15401-4-git-send-email-Waiman.Long@hp.com>
- <20140417154200.GN11096@twins.programming.kicks-ass.net>
- <5350459F.5010903@hp.com>
+ <1397747051-15401-5-git-send-email-Waiman.Long@hp.com>
+ <20140417154902.GO11096@twins.programming.kicks-ass.net>
+ <53504771.9070102@hp.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <5350459F.5010903@hp.com>
+In-Reply-To: <53504771.9070102@hp.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Waiman Long <waiman.long@hp.com>
 Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Rik van Riel <riel@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, David Vrabel <david.vrabel@citrix.com>, Oleg Nesterov <oleg@redhat.com>, Gleb Natapov <gleb@redhat.com>, Scott J Norton <scott.norton@hp.com>, Chegu Vinod <chegu_vinod@hp.com>
-Message-ID: <20140418081345.vZBxFKjJ1PDcXB8eDNK-aYGHqQR38AUEppLruBR6jRQ@z>
+Message-ID: <20140418081517.1NDcCXJxfvhwd7Y1KJ20WngT8r7nwt0wvNIc3PNF-a8@z>
 
-On Thu, Apr 17, 2014 at 05:20:31PM -0400, Waiman Long wrote:
-> >>+	while ((val = atomic_read(&lock->val))&  _Q_LOCKED_MASK)
-> >>+		arch_mutex_cpu_relax();
-> >That was a cpu_relax().
+On Thu, Apr 17, 2014 at 05:28:17PM -0400, Waiman Long wrote:
+> On 04/17/2014 11:49 AM, Peter Zijlstra wrote:
+> >On Thu, Apr 17, 2014 at 11:03:56AM -0400, Waiman Long wrote:
+> >>@@ -192,36 +220,25 @@ void queue_spin_lock_slowpath(struct qspinlock *lock, u32 val)
+> >>  	node->next = NULL;
+> >>
+> >>  	/*
+> >>+	 * We touched a (possibly) cold cacheline; attempt the trylock once
+> >>+	 * more in the hope someone let go while we weren't watching as long
+> >>+	 * as no one was queuing.
+> >>  	 */
+> >>+	if (!(val&  _Q_TAIL_MASK)&&  queue_spin_trylock(lock))
+> >>+		goto release;
+> >But you just did a potentially very expensive op; @val isn't
+> >representative anymore!
 > 
-> Yes, but arch_mutex_cpu_relax() is the same as cpu_relax() for x86.
+> That is not true. I pass in a pointer to val to trylock_pending() (the
+> pointer thing) so that it will store the latest value that it reads from the
+> lock back into val. I did miss one in the PV qspinlock exit loop. I will add
+> it back when I do the next version.
 
-Yeah, so why bother typing more?
-
-Let the s390 people sort that if/when they try and make this work for
-them.
+But you did that read _before_ you touched a cold cacheline, that's 100s
+of cycles. Whatever value you read back then is now complete nonsense.
