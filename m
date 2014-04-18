@@ -1,15 +1,16 @@
 From: Waiman Long <waiman.long@hp.com>
-Subject: Re: [PATCH v9 03/19] qspinlock: Add pending bit
-Date: Fri, 18 Apr 2014 12:23:29 -0400
-Message-ID: <53515181.8090303@hp.com>
+Subject: Re: [PATCH v9 05/19] qspinlock: Optimize for smaller NR_CPUS
+Date: Fri, 18 Apr 2014 12:26:26 -0400
+Message-ID: <53515232.50905@hp.com>
 References: <1397747051-15401-1-git-send-email-Waiman.Long@hp.com>
-	<1397747051-15401-4-git-send-email-Waiman.Long@hp.com>
-	<20140418074255.GA13517@gmail.com>
+	<1397747051-15401-6-git-send-email-Waiman.Long@hp.com>
+	<20140417155844.GS11096@twins.programming.kicks-ass.net>
+	<53504C4E.8060800@hp.com> <20140418074616.GB13517@gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"; Format="flowed"
 Content-Transfer-Encoding: 7bit
 Return-path: <virtualization-bounces@lists.linux-foundation.org>
-In-Reply-To: <20140418074255.GA13517@gmail.com>
+In-Reply-To: <20140418074616.GB13517@gmail.com>
 List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
 	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
 List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
@@ -23,23 +24,39 @@ To: Ingo Molnar <mingo@kernel.org>
 Cc: linux-arch@vger.kernel.org, Rik van Riel <riel@redhat.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, Gleb Natapov <gleb@redhat.com>, kvm@vger.kernel.org, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Peter Zijlstra <peterz@infradead.org>, Scott J Norton <scott.norton@hp.com>, x86@kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, Ingo Molnar <mingo@redhat.com>, Chegu Vinod <chegu_vinod@hp.com>, David Vrabel <david.vrabel@citrix.com>, "H. Peter Anvin" <hpa@zytor.com>, xen-devel@lists.xenproject.org, Thomas Gleixner <tglx@linutronix.de>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Oleg Nesterov <oleg@redhat.com>
 List-Id: linux-arch.vger.kernel.org
 
-On 04/18/2014 03:42 AM, Ingo Molnar wrote:
-> * Waiman Long<Waiman.Long@hp.com>  wrote:
+On 04/18/2014 03:46 AM, Ingo Molnar wrote:
+> * Waiman Long<waiman.long@hp.com>  wrote:
 >
->> Because the qspinlock needs to touch a second cacheline; add a pending
->> bit and allow a single in-word spinner before we punt to the second
->> cacheline.
->>
->> Signed-off-by: Peter Zijlstra<peterz@infradead.org>
->> Signed-off-by: Waiman Long<Waiman.Long@hp.com>
-> This patch should have a "From: Peter" in it as well, right?
+>> On 04/17/2014 11:58 AM, Peter Zijlstra wrote:
+>>> On Thu, Apr 17, 2014 at 11:03:57AM -0400, Waiman Long wrote:
+>>>> +static __always_inline void
+>>>> +clear_pending_set_locked(struct qspinlock *lock, u32 val)
+>>>> +{
+>>>> +	struct __qspinlock *l = (void *)lock;
+>>>> +
+>>>> +	ACCESS_ONCE(l->locked_pending) = 1;
+>>>> +}
+>>>> @@ -157,8 +251,13 @@ static inline int trylock_pending(struct qspinlock *lock, u32 *pval)
+>>>>   	 * we're pending, wait for the owner to go away.
+>>>>   	 *
+>>>>   	 * *,1,1 ->   *,1,0
+>>>> +	 *
+>>>> +	 * this wait loop must be a load-acquire such that we match the
+>>>> +	 * store-release that clears the locked bit and create lock
+>>>> +	 * sequentiality; this because not all try_clear_pending_set_locked()
+>>>> +	 * implementations imply full barriers.
+>>> You renamed the function referred in the above comment.
+>>>
+>> Sorry, will fix the comments.
+> I suggest not renaming the function instead.
+> try_clear_pending_set_locked() tells the intent in a clearer fashion.
 >
 > Thanks,
 >
 > 	Ingo
 
-Do you mean a "From:" line in the mail header? It will be a bit hard to 
-have different "From:" header in the same patch series. I can certainly 
-do that if there is an easy way to do it.
+I usually use the word "try" if there is a possibility of failure. 
+However, the function will always succeed, albeit by waiting a bit in 
+some cases. That is why I remove "try" from the name.
 
 -Longman
