@@ -1,31 +1,31 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:43151 "EHLO mail.zytor.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754022AbaDRUtH (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 18 Apr 2014 16:49:07 -0400
-Message-ID: <53518FAC.8020504@zytor.com>
-Date: Fri, 18 Apr 2014 13:48:44 -0700
-From: "H. Peter Anvin" <hpa@zytor.com>
+Received: from g4t3426.houston.hp.com ([15.201.208.54]:16710 "EHLO
+	g4t3426.houston.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754684AbaDRVkg (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 18 Apr 2014 17:40:36 -0400
+Message-ID: <53519BBF.7060506@hp.com>
+Date: Fri, 18 Apr 2014 17:40:15 -0400
+From: Waiman Long <waiman.long@hp.com>
 MIME-Version: 1.0
-Subject: Re: [PATCH 00/28] nios2 Linux kernel port
-References: <1397824031-4892-1-git-send-email-lftan@altera.com>
-In-Reply-To: <1397824031-4892-1-git-send-email-lftan@altera.com>
-Content-Type: text/plain; charset=UTF-8
+Subject: Re: [PATCH v9 05/19] qspinlock: Optimize for smaller NR_CPUS
+References: <1397747051-15401-1-git-send-email-Waiman.Long@hp.com> <1397747051-15401-6-git-send-email-Waiman.Long@hp.com> <20140417155649.GR11096@twins.programming.kicks-ass.net> <53504BB3.4010009@hp.com> <20140418082716.GZ11096@twins.programming.kicks-ass.net> <53516672.3010701@hp.com> <20140418190519.GA11182@twins.programming.kicks-ass.net>
+In-Reply-To: <20140418190519.GA11182@twins.programming.kicks-ass.net>
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ley Foon Tan <lftan@altera.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org
-Cc: lftan.linux@gmail.com, cltang@codesourcery.com, Arnd Bergmann <arnd@arndb.de>
-Message-ID: <20140418204844.rQPNrC5Nv4CrSAEpZYlCvY-vKLROsnJ8_mHVMOOttJg@z>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Rik van Riel <riel@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, David Vrabel <david.vrabel@citrix.com>, Oleg Nesterov <oleg@redhat.com>, Gleb Natapov <gleb@redhat.com>, Scott J Norton <scott.norton@hp.com>, Chegu Vinod <chegu_vinod@hp.com>
+Message-ID: <20140418214015.r9txD72wcAHA1kuQtMfU3XOPS3IrQEMyXaWnn20bNRw@z>
 
-On 04/18/2014 05:26 AM, Ley Foon Tan wrote:
-> This patchset adds the Linux kernel port for Nios II processor from Altera.
-> The nios2 Linux port follows the guidance for new architecture ports using
-> generic headers (including unistd.h).
+On 04/18/2014 03:05 PM, Peter Zijlstra wrote:
+> On Fri, Apr 18, 2014 at 01:52:50PM -0400, Waiman Long wrote:
+>> I am confused by your notation.
+> Nah, I think I was confused :-) Make the 1 _Q_LOCKED_VAL though, as
+> that's the proper constant to use.
 
-Did the generic headers ever get updated to match Linus' guidance that
-any new architecture ports should use a 64-bit time_t?
+Everyone gets confused once in a while:-) I have plenty of that myself.
 
-	-hpa
+I will change 1 to _Q_LOCKED_VAL as suggested.
 
-
+-Longman
