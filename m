@@ -1,51 +1,119 @@
-From: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
-Subject: Re: [PATCH v9 00/19] qspinlock: a 4-byte queue spinlock with PV
-	support
-Date: Fri, 18 Apr 2014 09:18:07 -0400
-Message-ID: <20140418131807.GD4010@phenom.dumpdata.com>
-References: <1397747051-15401-1-git-send-email-Waiman.Long@hp.com>
-	<20140417172246.GA9849@localhost.localdomain>
-	<53508474.7010402@hp.com>
+From: Sam Ravnborg <sam@ravnborg.org>
+Subject: Re: [PATCH 01/28] nios2: Build infrastructure
+Date: Fri, 18 Apr 2014 16:35:53 +0200
+Message-ID: <20140418143553.GB8589@ravnborg.org>
+References: <1397824031-4892-1-git-send-email-lftan@altera.com>
+ <1397824031-4892-2-git-send-email-lftan@altera.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <virtualization-bounces@lists.linux-foundation.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from asavdk4.altibox.net ([109.247.116.15]:46320 "EHLO
+	asavdk4.altibox.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752005AbaDROf7 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 18 Apr 2014 10:35:59 -0400
 Content-Disposition: inline
-In-Reply-To: <53508474.7010402@hp.com>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
-List-Post: <mailto:virtualization@lists.linux-foundation.org>
-List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
-Sender: virtualization-bounces@lists.linux-foundation.org
-Errors-To: virtualization-bounces@lists.linux-foundation.org
-To: Waiman Long <waiman.long@hp.com>
-Cc: linux-arch@vger.kernel.org, Rik van Riel <riel@redhat.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, Gleb Natapov <gleb@redhat.com>, kvm@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Scott J Norton <scott.norton@hp.com>, x86@kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, Marcos Matsunaga <Marcos.Matsunaga@oracle.com>, Ingo Molnar <mingo@redhat.com>, Chegu Vinod <chegu_vinod@hp.com>, David Vrabel <david.vrabel@citrix.com>, "H. Peter Anvin" <hpa@zytor.com>, xen-devel@lists.xenproject.org, Thomas Gleixner <tglx@linutronix.de>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Oleg Nesterov <oleg@redhat.com>
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <1397824031-4892-2-git-send-email-lftan@altera.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Ley Foon Tan <lftan@altera.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, lftan.linux@gmail.com, cltang@codesourcery.com
 
-On Thu, Apr 17, 2014 at 09:48:36PM -0400, Waiman Long wrote:
-> On 04/17/2014 01:23 PM, Konrad Rzeszutek Wilk wrote:
-> >On Thu, Apr 17, 2014 at 11:03:52AM -0400, Waiman Long wrote:
-> >>v8->v9:
-> >>   - Integrate PeterZ's version of the queue spinlock patch with some
-> >>     modification:
-> >>     http://lkml.kernel.org/r/20140310154236.038181843@infradead.org
-> >>   - Break the more complex patches into smaller ones to ease review effort.
-> >>   - Fix a racing condition in the PV qspinlock code.
-> >I am not seeing anything mentioning that the overcommit scenario
-> >for KVM and Xen had been fixed. Or was the 'racing condition' said
-> >issue?
-> >
-> >Thanks.
+On Fri, Apr 18, 2014 at 08:26:48PM +0800, Ley Foon Tan wrote:
+> This patch adds Makefile and Kconfig files required for building a
+> nios2 kernel.
+
+It is good practice to add build infrastructure last - so build is not broken.
+But for a new architecture it matters only little.
+
+Some comments in the following.
+
+	Sam
 > 
-> The hanging is caused by a racing condition which should be fixed in
-> the v9 patch. Please let me know if you are still seeing it.
-
-OK, is there a git tree with these patches to easily slurp them up?
-
-
-Thanks!
+> Signed-off-by: Ley Foon Tan <lftan@altera.com>
+> ---
 > 
-> -Longman
+> diff --git a/arch/nios2/Kconfig b/arch/nios2/Kconfig
+> new file mode 100644
+> index 0000000..2bd0d0d7160f31a5c5890cf8a059b9f53378be6e
+> --- /dev/null
+> +++ b/arch/nios2/Kconfig
+> @@ -0,0 +1,213 @@
+> +config NIOS2
+> +	def_bool y
+> +	select OF
+> +	select OF_EARLY_FLATTREE
+> +	select USB_ARCH_HAS_HCD if USB_SUPPORT
+> +	select ARCH_WANT_OPTIONAL_GPIOLIB
+> +	select GENERIC_IRQ_PROBE
+> +	select GENERIC_IRQ_SHOW
+> +	select GENERIC_CPU_DEVICES
+> +	select GENERIC_ATOMIC64
+> +	select MODULES_USE_ELF_RELA
+> +	select IRQ_DOMAIN
+> +	select SOC_BUS
+> +	select CLKSRC_OF
+If you keep this list sorted then merge issues are less likely.
+
+> +menu "Advanced setup"
+> +
+> +config ADVANCED_OPTIONS
+> +	bool "Prompt for advanced kernel configuration options"
+> +	help
+> +
+> +comment "Default settings for advanced configuration options are used"
+> +	depends on !ADVANCED_OPTIONS
+> +
+> +config KERNEL_MMU_REGION_BASE_BOOL
+> +	bool "Set custom kernel MMU region base address"
+> +	depends on ADVANCED_OPTIONS
+> +	help
+> +	  This option allows you to set the virtual address of the kernel MMU region.
+> +
+> +	  Say N here unless you know what you are doing.
+
+All Nios2 specific options should be prefixed with NIOS2_
+This is what is done for all new arch specific symbols.
+
+> diff --git a/arch/nios2/boot/Makefile b/arch/nios2/boot/Makefile
+> new file mode 100644
+> index 0000000..00aef5e266f9cc629f126445535f9aae6ca8962f
+> --- /dev/null
+> +++ b/arch/nios2/boot/Makefile
+> @@ -0,0 +1,51 @@
+> +#
+> +# arch/nios2/boot/Makefile
+> +#
+> +# This file is subject to the terms and conditions of the GNU General Public
+> +# License.  See the file "COPYING" in the main directory of this archive
+> +# for more details.
+> +#
+> +
+> +UIMAGE_LOADADDR = $(shell $(NM) vmlinux | awk '$$NF == "_stext" {print $$1}')
+> +UIMAGE_ENTRYADDR = $(shell $(NM) vmlinux | awk '$$NF == "_start" {print $$1}')
+> +UIMAGE_COMPRESSION = gzip
+> +
+> +OBJCOPYFLAGS_vmlinux.bin := -O binary
+> +$(obj)/vmlinux.bin: vmlinux FORCE
+> +	$(call if_changed,objcopy)
+> +
+> +$(obj)/vmlinux.gz: $(obj)/vmlinux.bin FORCE
+> +	$(call if_changed,gzip)
+> +
+> +$(obj)/vmImage: $(obj)/vmlinux.gz
+> +	$(call if_changed,uimage)
+> +	@$(kecho) 'Kernel: $@ is ready'
+
+Add:
+targets += vmlinux.bin vmlinux.gz vmImage
+to make $(call if_changed ... actually work.
+
+
+> +obj-y += cpuinfo.o insnemu.o irq.o nios2_ksyms.o process.o prom.o ptrace.o \
+> +	 setup.o signal.o sys_nios2.o syscall_table.o time.o traps.o
+
+In new stuff try to avoid using ... \
+to contatenate lines.
+Use:
+obj-y += xxx
+
+This is much more readable.
