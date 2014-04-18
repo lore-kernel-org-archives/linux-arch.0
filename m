@@ -1,53 +1,46 @@
-From: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
-Subject: Re: [PATCH v9 03/19] qspinlock: Add pending bit
-Date: Fri, 18 Apr 2014 12:35:43 -0400
-Message-ID: <20140418163543.GA6208@phenom.dumpdata.com>
-References: <1397747051-15401-1-git-send-email-Waiman.Long@hp.com>
-	<1397747051-15401-4-git-send-email-Waiman.Long@hp.com>
-	<20140418074255.GA13517@gmail.com> <53515181.8090303@hp.com>
+From: Ley Foon Tan <lftan@altera.com>
+Subject: Re: [PATCH 00/28] nios2 Linux kernel port
+Date: Sat, 19 Apr 2014 00:49:01 +0800
+Message-ID: <CAFiDJ5-fuzNVF_OyNs-ZYS_qheLSSt7R75CkK2eQCkfYcF_aOw@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <virtualization-bounces@lists.linux-foundation.org>
-Content-Disposition: inline
-In-Reply-To: <53515181.8090303@hp.com>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
-List-Post: <mailto:virtualization@lists.linux-foundation.org>
-List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
-Sender: virtualization-bounces@lists.linux-foundation.org
-Errors-To: virtualization-bounces@lists.linux-foundation.org
-To: Waiman Long <waiman.long@hp.com>
-Cc: linux-arch@vger.kernel.org, Rik van Riel <riel@redhat.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, Gleb Natapov <gleb@redhat.com>, kvm@vger.kernel.org, Oleg Nesterov <oleg@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Scott J Norton <scott.norton@hp.com>, x86@kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, Ingo Molnar <mingo@redhat.com>, Chegu Vinod <chegu_vinod@hp.com>, David Vrabel <david.vrabel@citrix.com>, "H. Peter Anvin" <hpa@zytor.com>, xen-devel@lists.xenproject.org, Thomas Gleixner <tglx@linutronix.de>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>
+Content-Type: text/plain; charset=UTF-8
+Return-path: <linux-doc-owner@vger.kernel.org>
+Sender: linux-doc-owner@vger.kernel.org
+To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org
+Cc: Ley Foon Tan <lftan@altera.com>, LeyFoon Tan <lftan.linux@gmail.com>, cltang@codesourcery.com
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, Apr 18, 2014 at 12:23:29PM -0400, Waiman Long wrote:
-> On 04/18/2014 03:42 AM, Ingo Molnar wrote:
-> >* Waiman Long<Waiman.Long@hp.com>  wrote:
-> >
-> >>Because the qspinlock needs to touch a second cacheline; add a pending
-> >>bit and allow a single in-word spinner before we punt to the second
-> >>cacheline.
-> >>
-> >>Signed-off-by: Peter Zijlstra<peterz@infradead.org>
-> >>Signed-off-by: Waiman Long<Waiman.Long@hp.com>
-> >This patch should have a "From: Peter" in it as well, right?
-> >
-> >Thanks,
-> >
-> >	Ingo
-> 
-> Do you mean a "From:" line in the mail header? It will be a bit hard
-> to have different "From:" header in the same patch series. I can
-> certainly do that if there is an easy way to do it.
+Hi all
 
-It is pretty easy.
+I just found that 4 patches (03/28, 05/28,07/28 and 14/28) are missing
+here, because the issue in Git v1.8.3.2. But, the cover letter is correct.
+Do I need to resend the whole series (28 patches) or just the missing 4 patches?
+Thanks.
 
-Just do 'git commit --amend --author "The Right Author"' and when
-you send the patches (git send-email) it will include that.
+Regards.
 
-> 
-> -Longman
+On Fri, Apr 18, 2014 at 8:26 PM, Ley Foon Tan <lftan@altera.com> wrote:
+> This patchset adds the Linux kernel port for Nios II processor from Altera.
+> The nios2 Linux port follows the guidance for new architecture ports using
+> generic headers (including unistd.h).
+>
+> About Nios II Cores
+> -------------------
+> Nios II is a 32-bit embedded-processor architecture designed specifically for the
+> Altera family of FPGAs.
+> More information is available  at http://www.altera.com/devices/processor/nios2/ni2-index.html
+>
+> Instruction set and architecture overview documents can be found on the
+> following page:
+> http://www.altera.com/literature/lit-nio2.jsp
+>
+> Nios2 GCC port is in mainline and and will be in the FSF 4.9 release.
+>
+> These patches are also available on this branch:
+> git://git.rocketboards.org/linux-socfpga-next.git  nios2-upstream
+>
+> Regards,
+> Ley Foon
+> --
+> 1.8.3.2
+>
