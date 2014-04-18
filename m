@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bn1on0131.outbound.protection.outlook.com ([157.56.110.131]:33108
+Received: from mail-bn1bn0104.outbound.protection.outlook.com ([157.56.110.104]:16469
 	"EHLO na01-bn1-obe.outbound.protection.outlook.com"
 	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1752165AbaDRMmJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 18 Apr 2014 08:42:09 -0400
+	id S1752222AbaDRMmM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 18 Apr 2014 08:42:12 -0400
 From: Ley Foon Tan <lftan@altera.com>
-Subject: [PATCH 04/28] nios2: Exception handling
-Date: Fri, 18 Apr 2014 20:26:50 +0800
-Message-ID: <1397824031-4892-4-git-send-email-lftan@altera.com>
+Subject: [PATCH 08/28] nios2: MMU Fault handling
+Date: Fri, 18 Apr 2014 20:26:52 +0800
+Message-ID: <1397824031-4892-6-git-send-email-lftan@altera.com>
 In-Reply-To: <1397824031-4892-1-git-send-email-lftan@altera.com>
 References: <1397824031-4892-1-git-send-email-lftan@altera.com>
 MIME-Version: 1.0
@@ -16,900 +16,298 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org
 Cc: Ley Foon Tan <lftan@altera.com>, lftan.linux@gmail.com, cltang@codesourcery.com
-Message-ID: <20140418122650.9qXGXdSjJInEePFKTwYT_xev3V98xGZKa3DNjdlLSqw@z>
+Message-ID: <20140418122652.aPTbkSfaJ-WMmP0AduFXkulc3mEzDqNFE5sBlWgrYw0@z>
 
-This patch contains the exception entry code (kernel/entry.S) and misaligned exception.
+This patch adds support for the handling of the MMU faults (exception
+entry code introduced by a previous patch, kernel/entry.S).
 
 Signed-off-by: Ley Foon Tan <lftan@altera.com>
 ---
- arch/nios2/kernel/entry.S      | 551 +++++++++++++++++++++++++++++++++++++++++
- arch/nios2/kernel/misaligned.c | 319 ++++++++++++++++++++++++
- 2 files changed, 870 insertions(+)
- create mode 100644 arch/nios2/kernel/entry.S
- create mode 100644 arch/nios2/kernel/misaligned.c
+ arch/nios2/mm/extable.c |  25 +++++
+ arch/nios2/mm/fault.c   | 242 ++++++++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 267 insertions(+)
+ create mode 100644 arch/nios2/mm/extable.c
+ create mode 100644 arch/nios2/mm/fault.c
 
-diff --git a/arch/nios2/kernel/entry.S b/arch/nios2/kernel/entry.S
+diff --git a/arch/nios2/mm/extable.c b/arch/nios2/mm/extable.c
 new file mode 100644
-index 0000000..cda0854d1d29450325fa90ab62ced2c215035f3c
+index 0000000..4d2fc5a589d09492630ddff2a52a7a6a96ab6486
 --- /dev/null
-+++ b/arch/nios2/kernel/entry.S
-@@ -0,0 +1,551 @@
++++ b/arch/nios2/mm/extable.c
+@@ -0,0 +1,25 @@
 +/*
-+ * linux/arch/nios2/kernel/entry.S
-+ *
-+ * Copyright (C) 2013  Altera Corporation
++ * Copyright (C) 2010, Tobias Klauser <tklauser@distanz.ch>
 + * Copyright (C) 2009, Wind River Systems Inc
-+ *
-+ * Implemented by fredrik.markstrom@gmail.com and ivarholmqvist@gmail.com
-+ *
-+ * Based on:
-+ *
-+ * linux/arch/nios2/kernel/entry.S
-+ *
-+ *  Copyright (C) 1999-2002, Greg Ungerer (gerg@snapgear.com)
-+ *  Copyright (C) 1998  D. Jeff Dionne <jeff@lineo.ca>,
-+ *                      Kenneth Albanowski <kjahds@kjahds.com>,
-+ *  Copyright (C) 2000  Lineo Inc. (www.lineo.com)
-+ *  Copyright (C) 2004  Microtronix Datacom Ltd.
-+ *
-+ * Based on:
-+ *
-+ *  linux/arch/m68knommu/kernel/entry.S
-+ *
-+ *  Copyright (C) 1991, 1992  Linus Torvalds
++ *   Implemented by fredrik.markstrom@gmail.com and ivarholmqvist@gmail.com
 + *
 + * This file is subject to the terms and conditions of the GNU General Public
 + * License.  See the file "COPYING" in the main directory of this archive
 + * for more details.
-+ *
-+ * Linux/m68k support by Hamish Macdonald
-+ *
-+ * 68060 fixes by Jesper Skov
-+ * ColdFire support by Greg Ungerer (gerg@snapgear.com)
-+ * 5307 fixes by David W. Miller
-+ * linux 2.4 support David McCullough <davidm@snapgear.com>
 + */
 +
-+#include <linux/sys.h>
-+#include <linux/linkage.h>
-+#include <asm/asm-offsets.h>
-+#include <asm/asm-macros.h>
-+#include <asm/thread_info.h>
-+#include <asm/errno.h>
-+#include <asm/setup.h>
-+#include <asm/entry.h>
-+#include <asm/unistd.h>
-+#include <asm/processor.h>
-+
-+.macro GET_THREAD_INFO reg
-+.if THREAD_SIZE & 0xffff0000
-+	andhi	\reg, sp, %hi(~(THREAD_SIZE-1))
-+.else
-+	addi	\reg, r0, %lo(~(THREAD_SIZE-1))
-+	and	\reg, \reg, sp
-+.endif
-+.endm
-+
-+.macro	kuser_cmpxchg_check
-+	/*
-+	 * Make sure our user space atomic helper is restarted if it was
-+	 * interrupted in a critical region.
-+	 * ea-4 = address of interrupted insn (ea must be preserved).
-+	 * sp = saved regs.
-+	 * cmpxchg_ldw = first critical insn, cmpxchg_stw = last critical insn.
-+	 * If ea <= cmpxchg_stw and ea > cmpxchg_ldw then saved EA is set to
-+	 * cmpxchg_ldw + 4.
-+	*/
-+	/* et = cmpxchg_stw + 4 */
-+	movui   et, (KUSER_BASE + 4 + (cmpxchg_stw - __kuser_helper_start))
-+	bgtu	ea, et, 1f
-+
-+	subi	et, et, (cmpxchg_stw - cmpxchg_ldw) /* et = cmpxchg_ldw + 4 */
-+	bltu	ea, et, 1f
-+	stw	et, PT_EA(sp)	/* fix up EA */
-+	mov	ea, et
-+1:
-+.endm
-+
-+.section .rodata
-+.align 4
-+exception_table:
-+	.word unhandled_exception	/* 0 - Reset */
-+	.word unhandled_exception	/* 1 - Processor-only Reset */
-+	.word external_interrupt	/* 2 - Interrupt */
-+	.word handle_trap		/* 3 - Trap Instruction */
-+
-+	.word instruction_trap		/* 4 - Unimplemented instruction */
-+	.word handle_illegal		/* 5 - Illegal instruction */
-+	.word handle_unaligned		/* 6 - Misaligned data access */
-+	.word handle_unaligned		/* 7 - Misaligned destination address */
-+
-+	.word handle_diverror		/* 8 - Division error */
-+	.word protection_exception_ba	/* 9 - Supervisor-only instr. address */
-+	.word protection_exception_instr /* 10 - Supervisor only instruction */
-+	.word protection_exception_ba	/* 11 - Supervisor only data address */
-+
-+	.word unhandled_exception	/* 12 - Double TLB miss (data) */
-+	.word protection_exception_pte	/* 13 - TLB permission violation (x) */
-+	.word protection_exception_pte	/* 14 - TLB permission violation (r) */
-+	.word protection_exception_pte	/* 15 - TLB permission violation (w) */
-+
-+	.word unhandled_exception	/* 16 - MPU region violation */
-+
-+trap_table:
-+	.word	handle_system_call	/* 0  */
-+	.word	instruction_trap	/* 1  */
-+	.word	instruction_trap	/* 2  */
-+	.word	instruction_trap	/* 3  */
-+	.word	instruction_trap	/* 4  */
-+	.word	instruction_trap	/* 5  */
-+	.word	instruction_trap	/* 6  */
-+	.word	instruction_trap	/* 7  */
-+	.word	instruction_trap	/* 8  */
-+	.word	instruction_trap	/* 9  */
-+	.word	instruction_trap	/* 10 */
-+	.word	instruction_trap	/* 11 */
-+	.word	instruction_trap	/* 12 */
-+	.word	instruction_trap	/* 13 */
-+	.word	instruction_trap	/* 14 */
-+	.word	instruction_trap	/* 15 */
-+	.word	instruction_trap	/* 16 */
-+	.word	instruction_trap	/* 17 */
-+	.word	instruction_trap	/* 18 */
-+	.word	instruction_trap	/* 19 */
-+	.word	instruction_trap	/* 20 */
-+	.word	instruction_trap	/* 21 */
-+	.word	instruction_trap	/* 22 */
-+	.word	instruction_trap	/* 23 */
-+	.word	instruction_trap	/* 24 */
-+	.word	instruction_trap	/* 25 */
-+	.word	instruction_trap	/* 26 */
-+	.word	instruction_trap	/* 27 */
-+	.word	instruction_trap	/* 28 */
-+	.word	instruction_trap	/* 29 */
-+	.word	instruction_trap	/* 30 */
-+	.word	handle_breakpoint	/* 31 */
-+
-+.text
-+.set noat
-+.set nobreak
-+
-+ENTRY(inthandler)
-+	SAVE_ALL
-+
-+	kuser_cmpxchg_check
-+
-+	/* Clear EH bit before we get a new excpetion in the kernel
-+	 * and after we have saved it to the exception frame. This is done
-+	 * wheter it's trap, tlb-miss or interrupt. If we don't do this
-+	 * estatus is not updated the next exception.
-+	 */
-+	rdctl	r24, status
-+	movi	r9, %lo(~STATUS_EH)
-+	and	r24, r24, r9
-+	wrctl	status, r24
-+
-+	/* Read cause and vector and branch to the associated handler */
-+	mov	r4, sp
-+	rdctl	r5, exception
-+	movia	r9, exception_table
-+	add	r24, r9, r5
-+	ldw	r24, 0(r24)
-+	jmp	r24
-+
-+
-+/***********************************************************************
-+ * Handle traps
-+ ***********************************************************************
-+ */
-+ENTRY(handle_trap)
-+	ldw	r24, -4(ea)	/* instruction that caused the exception */
-+	srli	r24, r24, 4
-+	andi	r24, r24, 0x7c
-+	movia	r9,trap_table
-+	add	r24, r24, r9
-+	ldw	r24, 0(r24)
-+	jmp	r24
-+
-+
-+/***********************************************************************
-+ * Handle system calls
-+ ***********************************************************************
-+ */
-+ENTRY(handle_system_call)
-+	/* Enable interrupts */
-+	rdctl	r10, status
-+	ori	r10, r10, STATUS_PIE
-+	wrctl	status, r10
-+
-+	/* Reload registers destroyed by common code. */
-+	ldw	r4, PT_R4(sp)
-+	ldw	r5, PT_R5(sp)
-+
-+	/* Check that the requested system call is within limits */
-+	movui	r1, __NR_syscalls
-+	bgeu	r2, r1, ret_invsyscall
-+	slli	r1, r2, 2
-+	movhi	r11, %hiadj(sys_call_table)
-+	add	r1, r1, r11
-+	ldw	r1, %lo(sys_call_table)(r1)
-+	beq	r1, r0, ret_invsyscall
-+
-+	/* Get thread info pointer */
-+	movi	r11, %lo(0xfffff000)
-+	and	r11, sp, r11
-+	ldw	r11, TI_FLAGS(r11)
-+
-+	/* If someone is ptrace:ing us, take the long way. */
-+	BTBNZ	r11, r11, TIF_SYSCALL_TRACE, traced_system_call
-+
-+	/* Execute the system call */
-+	callr	r1
-+
-+	/* If the syscall returns a negative result:
-+	 *   Set r7 to 1 to indicate error,
-+	 *   Negate r2 to get a positive error code
-+	 * If the syscall returns zero or a positive value:
-+	 *   Set r7 to 0.
-+	 * The sigreturn system calls will skip the code below by
-+	 * adding to register ra. To avoid destroying registers
-+	 */
-+translate_rc_and_ret:
-+	movi	r1, 0
-+	bge	r2, zero, 3f
-+	sub	r2, zero, r2
-+	movi	r1, 1
-+3:
-+	stw	r2, PT_R2(sp)
-+	stw	r1, PT_R7(sp)
-+end_translate_rc_and_ret:
-+
-+ret_from_exception:
-+	ldw	r1, PT_ESTATUS(sp)
-+	/* if so, skip resched, signals */
-+	TSTBNZ	r1, r1, ESTATUS_EU, Luser_return
-+
-+restore_all:
-+	rdctl	r10, status			/* disable intrs */
-+	andi	r10, r10, %lo(~STATUS_PIE)
-+	wrctl	status, r10
-+	RESTORE_ALL
-+	eret
-+
-+	/* If the syscall number was invalid return ENOSYS */
-+ret_invsyscall:
-+	movi	r2, -ENOSYS
-+	br	translate_rc_and_ret
-+
-+	/* This implements the same as above, except it calls
-+	 * syscall_trace before and after the syscall in order
-+	 * for utilities like strace and gdb to work.
-+	 */
-+traced_system_call:
-+	SAVE_SWITCH_STACK
-+	call	syscall_trace
-+	RESTORE_SWITCH_STACK
-+
-+	/* Create system call register arguments. The 5th and 6th
-+	   arguments on stack are already in place at the beginning
-+	   of pt_regs. */
-+	ldw	r2, PT_R2(sp)
-+	ldw	r4, PT_R4(sp)
-+	ldw	r5, PT_R5(sp)
-+	ldw	r6, PT_R6(sp)
-+	ldw	r7, PT_R7(sp)
-+
-+	/* Fetch the syscall function, we don't need to check the boundaries
-+	 * since this is already done.
-+	 */
-+	slli	r1, r2, 2
-+	movhi	r11,%hiadj(sys_call_table)
-+	add	r1, r1, r11
-+	ldw	r1, %lo(sys_call_table)(r1)
-+
-+	callr	r1
-+
-+	/* If the syscall returns a negative result:
-+	 *   Set r7 to 1 to indicate error,
-+	 *   Negate r2 to get a positive error code
-+	 * If the syscall returns zero or a positive value:
-+	 *   Set r7 to 0.
-+	 * The sigreturn system calls will skip the code below by
-+	 * adding to register ra. To avoid destroying registers
-+	 */
-+translate_rc_and_ret2:
-+	movi	r1, 0
-+	bge	r2, zero, 4f
-+	sub	r2, zero, r2
-+	movi	r1, 1
-+4:
-+	stw	r2, PT_R2(sp)
-+	stw	r1, PT_R7(sp)
-+end_translate_rc_and_ret2:
-+	SAVE_SWITCH_STACK
-+	call	syscall_trace
-+	RESTORE_SWITCH_STACK
-+	br	ret_from_exception
-+
-+Luser_return:
-+	GET_THREAD_INFO	r11			/* get thread_info pointer */
-+	ldw	r10, TI_FLAGS(r11)		/* get thread_info->flags */
-+	ANDI32	r11, r10, _TIF_WORK_MASK
-+	beq	r11, r0, restore_all		/* Nothing to do */
-+	BTBZ	r1, r10, TIF_NEED_RESCHED, Lsignal_return
-+
-+	/* Reschedule work */
-+	call	schedule
-+	br	ret_from_exception
-+
-+Lsignal_return:
-+	ANDI32	r1, r10, _TIF_SIGPENDING | _TIF_NOTIFY_RESUME
-+	beq	r1, r0, restore_all
-+	mov	r4, sp			/* pt_regs */
-+	SAVE_SWITCH_STACK
-+	mov	r5, r0			/* oldset = 0 */
-+	movi	r6, 1			/* in_syscall = 1 */
-+	call	do_notify_resume
-+	RESTORE_SWITCH_STACK
-+	br	restore_all
-+
-+
-+
-+/***********************************************************************
-+ * Handle external interrupts.
-+ ***********************************************************************
-+ */
-+/*
-+ * This is the generic interrupt handler (for all hardware interrupt
-+ * sources). It figures out the vector number and calls the appropriate
-+ * interrupt service routine directly.
-+ */
-+external_interrupt:
-+	rdctl	r12, ipending
-+	rdctl	r9, ienable
-+	and	r12, r12, r9
-+	/* skip if no interrupt is pending */
-+	beq	r12, r0, ret_from_interrupt
-+
-+	movi	r24, -1
-+	stw	r24, PT_ORIG_R2(sp)
-+
-+	/*
-+	 * Process an external hardware interrupt.
-+	 */
-+
-+	addi	ea, ea, -4	/* re-issue the interrupted instruction */
-+	stw	ea, PT_EA(sp)
-+2:	movi	r4, %lo(-1)	/* Start from bit position 0,
-+					highest priority */
-+				/* This is the IRQ # for handler call */
-+1:	andi	r10, r12, 1	/* Isolate bit we are interested in */
-+	srli	r12, r12, 1	/* shift count is costly without hardware
-+					multiplier */
-+	addi	r4, r4, 1
-+	beq	r10, r0, 1b
-+	mov	r5, sp		/* Setup pt_regs pointer for handler call */
-+	call	do_IRQ
-+	rdctl	r12, ipending	/* check again if irq still pending */
-+	rdctl	r9, ienable	/* Isolate possible interrupts */
-+	and	r12, r12, r9
-+	bne	r12, r0, 2b
-+	/* br	ret_from_interrupt */ /* fall throught to ret_from_interrupt */
-+
-+ENTRY(ret_from_interrupt)
-+	ldw	r1, PT_ESTATUS(sp)	/* check if returning to kernel */
-+	TSTBNZ	r1, r1, ESTATUS_EU, Luser_return
-+
-+#ifdef CONFIG_PREEMPT
-+	GET_THREAD_INFO	r1
-+	ldw	r4, TI_PREEMPT_COUNT(r1)
-+	bne	r4, r0, restore_all
-+
-+need_resched:
-+	ldw	r4, TI_FLAGS(r1)		/* ? Need resched set */
-+	BTBZ	r10, r4, TIF_NEED_RESCHED, restore_all
-+	ldw	r4, PT_ESTATUS(sp)	/* ? Interrupts off */
-+	andi	r10, r4, ESTATUS_EPIE
-+	beq	r10, r0, restore_all
-+	movia	r4, PREEMPT_ACTIVE
-+	stw	r4, TI_PREEMPT_COUNT(r1)
-+	rdctl	r10, status		/* enable intrs again */
-+	ori	r10, r10 ,STATUS_PIE
-+	wrctl	status, r10
-+	PUSH	r1
-+	call	schedule
-+	POP	r1
-+	mov	r4, r0
-+	stw	r4, TI_PREEMPT_COUNT(r1)
-+	rdctl	r10, status		/* disable intrs */
-+	andi	r10, r10, %lo(~STATUS_PIE)
-+	wrctl	status, r10
-+	br	need_resched
-+#else
-+	br	restore_all
-+#endif
-+
-+/***********************************************************************
-+ * A few syscall wrappers
-+ ***********************************************************************
-+ */
-+/*
-+ * int clone(unsigned long clone_flags, unsigned long newsp,
-+ *		int __user * parent_tidptr, int __user * child_tidptr,
-+ *		int tls_val)
-+ */
-+ENTRY(sys_clone)
-+	SAVE_SWITCH_STACK
-+	addi	sp, sp, -4
-+	stw	r7, 0(sp)	/* Pass 5th arg thru stack */
-+	mov	r7, r6		/* 4th arg is 3rd of clone() */
-+	mov	r6, zero	/* 3rd arg always 0 */
-+	call	do_fork
-+	addi	sp, sp, 4
-+	RESTORE_SWITCH_STACK
-+	ret
-+
-+ENTRY(sys_rt_sigreturn)
-+	SAVE_SWITCH_STACK
-+	mov	r4, sp
-+	call	do_rt_sigreturn
-+	RESTORE_SWITCH_STACK
-+	addi	ra, ra, (end_translate_rc_and_ret - translate_rc_and_ret)
-+	ret
-+
-+/***********************************************************************
-+ * A few other wrappers and stubs
-+ ***********************************************************************
-+ */
-+protection_exception_pte:
-+	rdctl	r6, pteaddr
-+	slli	r6, r6, 10
-+	call	do_page_fault
-+	br	ret_from_exception
-+
-+protection_exception_ba:
-+	rdctl	r6, badaddr
-+	call	do_page_fault
-+	br	ret_from_exception
-+
-+protection_exception_instr:
-+	call	handle_supervisor_instr
-+	br	ret_from_exception
-+
-+handle_breakpoint:
-+	call	breakpoint_c
-+	br	ret_from_exception
-+
-+#ifdef CONFIG_ALIGNMENT_TRAP
-+handle_unaligned:
-+	SAVE_SWITCH_STACK
-+	call	handle_unaligned_c
-+	RESTORE_SWITCH_STACK
-+	br	ret_from_exception
-+#else
-+handle_unaligned:
-+	call	handle_unaligned_c
-+	br	ret_from_exception
-+#endif
-+
-+handle_illegal:
-+	call	handle_illegal_c
-+	br	ret_from_exception
-+
-+handle_diverror:
-+	call	handle_diverror_c
-+	br	ret_from_exception
-+
-+/*
-+ * Beware - when entering resume, prev (the current task) is
-+ * in r4, next (the new task) is in r5, don't change these
-+ * registers.
-+ */
-+ENTRY(resume)
-+
-+	rdctl	r7, status			/* save thread status reg */
-+	stw	r7, TASK_THREAD + THREAD_KPSR(r4)
-+
-+	andi	r7, r7, %lo(~STATUS_PIE)	/* disable interrupts */
-+	wrctl	status, r7
-+
-+	SAVE_SWITCH_STACK
-+	stw	sp, TASK_THREAD + THREAD_KSP(r4)/* save kernel stack pointer */
-+	ldw	sp, TASK_THREAD + THREAD_KSP(r5)/* restore new thread stack */
-+	movia	r24, _current_thread		/* save thread */
-+	GET_THREAD_INFO r1
-+	stw	r1, 0(r24)
-+	RESTORE_SWITCH_STACK
-+
-+	ldw	r7, TASK_THREAD + THREAD_KPSR(r5)/* restore thread status reg */
-+	wrctl	status, r7
-+	ret
-+
-+ENTRY(ret_from_fork)
-+	call	schedule_tail
-+	br	ret_from_exception
-+
-+ENTRY(ret_from_kernel_thread)
-+	call	schedule_tail
-+	mov	r4,r17	/* arg */
-+	callr	r16	/* function */
-+	br	ret_from_exception
-+
-+/*
-+ * Kernel user helpers.
-+ *
-+ * Each segment is 64-byte aligned and will be mapped to the <User space>.
-+ * New segments (if ever needed) must be added after the existing ones.
-+ * This mechanism should be used only for things that are really small and
-+ * justified, and not be abused freely.
-+ *
-+ */
-+
-+ /* Filling pads with undefined instructions. */
-+.macro	kuser_pad sym size
-+	.if	((. - \sym) & 3)
-+	.rept	(4 - (. - \sym) & 3)
-+	.byte	0
-+	.endr
-+	.endif
-+	.rept	((\size - (. - \sym)) / 4)
-+	.word	0xdeadbeef
-+	.endr
-+.endm
-+
-+	.align	6
-+	.globl	__kuser_helper_start
-+__kuser_helper_start:
-+
-+__kuser_helper_version:				/* @ 0x1000 */
-+	.word	((__kuser_helper_end - __kuser_helper_start) >> 6)
-+
-+__kuser_cmpxchg:				/* @ 0x1004 */
-+	/*
-+	 * r4 pointer to exchange variable
-+	 * r5 old value
-+	 * r6 new value
-+	 */
-+cmpxchg_ldw:
-+	ldw	r2, 0(r4)			/* load current value */
-+	sub	r2, r2, r5			/* compare with old value */
-+	bne	r2, zero, cmpxchg_ret
-+
-+	/* We had a match, store the new value */
-+cmpxchg_stw:
-+	stw	r6, 0(r4)
-+cmpxchg_ret:
-+	ret
-+
-+	kuser_pad __kuser_cmpxchg, 64
-+
-+	.globl	__kuser_helper_end
-+__kuser_helper_end:
-diff --git a/arch/nios2/kernel/misaligned.c b/arch/nios2/kernel/misaligned.c
++#include <linux/module.h>
++#include <linux/uaccess.h>
++
++int fixup_exception(struct pt_regs *regs)
++{
++	const struct exception_table_entry *fixup;
++
++	fixup = search_exception_tables(regs->ea);
++	if (fixup) {
++		regs->ea = fixup->fixup;
++		return 1;
++	}
++
++	return 0;
++}
+diff --git a/arch/nios2/mm/fault.c b/arch/nios2/mm/fault.c
 new file mode 100644
-index 0000000..f8845ab72af03d946561c84c125fc8ab4f6fce1b
+index 0000000..96258b18fc32204b98a70b2dcadc3cb8661539bc
 --- /dev/null
-+++ b/arch/nios2/kernel/misaligned.c
-@@ -0,0 +1,319 @@
++++ b/arch/nios2/mm/fault.c
+@@ -0,0 +1,242 @@
 +/*
-+ *  linux/arch/nios2/kernel/misaligned.c
++ * Copyright (C) 2009 Wind River Systems Inc
++ *   Implemented by fredrik.markstrom@gmail.com and ivarholmqvist@gmail.com
 + *
-+ *  basic emulation for mis-aligned accesses on the NIOS II cpu
-+ *  modeled after the version for arm in arm/alignment.c
++ * based on arch/mips/mm/fault.c which is:
 + *
-+ *  Brad Parker <brad@heeltoe.com>
-+ *  Copyright (C) 2010 Ambient Corporation
-+ *  Copyright (c) 2010 Altera Corporation, San Jose, California, USA.
-+ *  Copyright (c) 2010 Arrow Electronics, Inc.
++ * Copyright (C) 1995-2000 Ralf Baechle
 + *
-+ * This file is subject to the terms and conditions of the GNU General
-+ * Public License.  See the file COPYING in the main directory of
-+ * this archive for more details.
++ * This file is subject to the terms and conditions of the GNU General Public
++ * License.  See the file "COPYING" in the main directory of this archive
++ * for more details.
 + */
 +
++#include <linux/signal.h>
++#include <linux/sched.h>
++#include <linux/interrupt.h>
++#include <linux/kernel.h>
 +#include <linux/errno.h>
 +#include <linux/string.h>
-+#include <linux/proc_fs.h>
-+#include <linux/init.h>
-+#include <linux/sched.h>
++#include <linux/types.h>
++#include <linux/ptrace.h>
++#include <linux/mman.h>
++#include <linux/mm.h>
 +#include <linux/uaccess.h>
-+#include <linux/seq_file.h>
++#include <linux/ptrace.h>
 +
++#include <asm/mmu_context.h>
 +#include <asm/traps.h>
-+#include <asm/unaligned.h>
 +
-+/* instructions we emulate */
-+#define INST_LDHU	0x0b
-+#define INST_STH	0x0d
-+#define INST_LDH	0x0f
-+#define INST_STW	0x15
-+#define INST_LDW	0x17
-+
-+static unsigned long ma_user, ma_kern, ma_skipped, ma_half, ma_word;
-+
-+static unsigned int ma_usermode;
-+#define UM_WARN		0x01
-+#define UM_FIXUP	0x02
-+#define UM_SIGNAL	0x04
-+#define KM_WARN		0x08
-+
-+/* see arch/nios2/include/asm/ptrace.h */
-+static u8 sys_stack_frame_reg_offset[] = {
-+	/* struct pt_regs */
-+	8, 9, 10, 11, 12, 13, 14, 15, 1, 2, 3, 4, 5, 6, 7, 0,
-+	/* struct switch_stack */
-+	16, 17, 18, 19, 20, 21, 22, 23, 0, 0, 0, 0, 0, 0, 0, 0
-+};
-+
-+static int reg_offsets[32];
-+
-+static inline u32 get_reg_val(struct pt_regs *fp, int reg)
-+{
-+	u8 *p = ((u8 *)fp) + reg_offsets[reg];
-+	return *(u32 *)p;
-+}
-+
-+static inline void put_reg_val(struct pt_regs *fp, int reg, u32 val)
-+{
-+	u8 *p = ((u8 *)fp) + reg_offsets[reg];
-+	*(u32 *)p = val;
-+}
++#define EXC_SUPERV_INSN_ACCESS	9  /* Supervisor only instruction address */
++#define EXC_SUPERV_DATA_ACCESS	11 /* Supervisor only data address */
++#define EXC_X_PROTECTION_FAULT	13 /* TLB permission violation (x) */
++#define EXC_R_PROTECTION_FAULT	14 /* TLB permission violation (r) */
++#define EXC_W_PROTECTION_FAULT	15 /* TLB permission violation (w) */
 +
 +/*
-+ * (mis)alignment handler
++ * This routine handles page faults.  It determines the address,
++ * and the problem, and then passes it off to one of the appropriate
++ * routines.
 + */
-+asmlinkage void handle_unaligned_c(struct pt_regs *fp, int cause)
++asmlinkage void do_page_fault(struct pt_regs *regs, unsigned long cause,
++				unsigned long address)
 +{
-+	u32 isn, addr, val;
-+	int in_kernel;
-+	u8 a, b, d0, d1, d2, d3;
-+	u16 imm16;
-+	unsigned int fault;
++	struct vm_area_struct *vma = NULL;
++	struct task_struct *tsk = current;
++	struct mm_struct *mm = tsk->mm;
++	int code = SEGV_MAPERR;
++	int fault;
++	unsigned int flags = 0;
 +
-+	/* back up one instruction */
-+	fp->ea -= 4;
-+
-+	if (fixup_exception(fp)) {
-+		ma_skipped++;
-+		return;
-+	}
-+
-+	in_kernel = !user_mode(fp);
-+
-+	isn = *(unsigned long *)(fp->ea);
-+
-+	fault = 0;
-+
-+	/* do fixup if in kernel or mode turned on */
-+	if (in_kernel || (ma_usermode & UM_FIXUP)) {
-+		/* decompose instruction */
-+		a = (isn >> 27) & 0x1f;
-+		b = (isn >> 22) & 0x1f;
-+		imm16 = (isn >> 6) & 0xffff;
-+		addr = get_reg_val(fp, a) + imm16;
-+
-+		/* do fixup to saved registers */
-+		switch (isn & 0x3f) {
-+		case INST_LDHU:
-+			fault |= __get_user(d0, (u8 *)(addr+0));
-+			fault |= __get_user(d1, (u8 *)(addr+1));
-+			val = (d1 << 8) | d0;
-+			put_reg_val(fp, b, val);
-+			ma_half++;
-+			break;
-+		case INST_STH:
-+			val = get_reg_val(fp, b);
-+			d1 = val >> 8;
-+			d0 = val >> 0;
-+
-+			pr_debug("sth: ra=%d (%08x) rb=%d (%08x), imm16 %04x addr %08x val %08x\n",
-+				a, get_reg_val(fp, a),
-+				b, get_reg_val(fp, b),
-+				imm16, addr, val);
-+
-+			if (in_kernel) {
-+				*(u8 *)(addr+0) = d0;
-+				*(u8 *)(addr+1) = d1;
-+			} else {
-+				fault |= __put_user(d0, (u8 *)(addr+0));
-+				fault |= __put_user(d1, (u8 *)(addr+1));
-+			}
-+			ma_half++;
-+			break;
-+		case INST_LDH:
-+			fault |= __get_user(d0, (u8 *)(addr+0));
-+			fault |= __get_user(d1, (u8 *)(addr+1));
-+			val = (short)((d1 << 8) | d0);
-+			put_reg_val(fp, b, val);
-+			ma_half++;
-+			break;
-+		case INST_STW:
-+			val = get_reg_val(fp, b);
-+			d3 = val >> 24;
-+			d2 = val >> 16;
-+			d1 = val >> 8;
-+			d0 = val >> 0;
-+			if (in_kernel) {
-+				*(u8 *)(addr+0) = d0;
-+				*(u8 *)(addr+1) = d1;
-+				*(u8 *)(addr+2) = d2;
-+				*(u8 *)(addr+3) = d3;
-+			} else {
-+				fault |= __put_user(d0, (u8 *)(addr+0));
-+				fault |= __put_user(d1, (u8 *)(addr+1));
-+				fault |= __put_user(d2, (u8 *)(addr+2));
-+				fault |= __put_user(d3, (u8 *)(addr+3));
-+			}
-+			ma_word++;
-+			break;
-+		case INST_LDW:
-+			fault |= __get_user(d0, (u8 *)(addr+0));
-+			fault |= __get_user(d1, (u8 *)(addr+1));
-+			fault |= __get_user(d2, (u8 *)(addr+2));
-+			fault |= __get_user(d3, (u8 *)(addr+3));
-+			val = (d3 << 24) | (d2 << 16) | (d1 << 8) | d0;
-+			put_reg_val(fp, b, val);
-+			ma_word++;
-+			break;
-+		}
-+	}
-+
-+	addr = RDCTL(CTL_BADADDR);
 +	cause >>= 2;
 +
-+	if (fault) {
-+		if (in_kernel) {
-+			pr_err("fault during kernel misaligned fixup @ %#lx; addr 0x%08lx; isn=0x%08x\n",
-+				fp->ea, (long unsigned int)addr,
-+				(unsigned int)isn);
-+		} else {
-+			pr_err("fault during user misaligned fixup @ %#lx; isn=%08x addr=0x%08x sp=0x%08lx pid=%d\n",
-+				fp->ea,
-+				(unsigned int)isn, addr, fp->sp,
-+				current->pid);
-+
-+			_exception(SIGSEGV, fp, SEGV_MAPERR, fp->ea);
-+			return;
-+		}
-+	}
++	/* Restart the instruction */
++	regs->ea -= 4;
 +
 +	/*
-+	 * kernel mode -
-+	 *  note exception and skip bad instruction (return)
++	 * We fault-in kernel-space virtual memory on-demand. The
++	 * 'reference' page table is init_mm.pgd.
++	 *
++	 * NOTE! We MUST NOT take any locks for this case. We may
++	 * be in an interrupt or a critical region, and should
++	 * only copy the information from the master page table,
++	 * nothing more.
 +	 */
-+	if (in_kernel) {
-+		ma_kern++;
-+		fp->ea += 4;
++	if (unlikely(address >= VMALLOC_START && address <= VMALLOC_END)) {
++		if (user_mode(regs))
++			goto bad_area_nosemaphore;
++		else
++			goto vmalloc_fault;
++	}
 +
-+		if (ma_usermode & KM_WARN) {
-+			pr_err("kernel unaligned access @ %#lx; BADADDR 0x%08lx; cause=%d, isn=0x%08lx\n",
-+				fp->ea,
-+				(long unsigned int)addr, cause,
-+				(long unsigned int)isn);
-+			/* show_regs(fp); */
-+		}
++	if (unlikely(address >= TASK_SIZE))
++		goto bad_area_nosemaphore;
 +
++	/*
++	 * If we're in an interrupt or have no user
++	 * context, we must not take the fault..
++	 */
++	if (in_atomic() || !mm)
++		goto bad_area_nosemaphore;
++
++	if (user_mode(regs))
++		flags |= FAULT_FLAG_USER;
++
++	down_read(&mm->mmap_sem);
++	vma = find_vma(mm, address);
++	if (!vma)
++		goto bad_area;
++	if (vma->vm_start <= address)
++		goto good_area;
++	if (!(vma->vm_flags & VM_GROWSDOWN))
++		goto bad_area;
++	if (expand_stack(vma, address))
++		goto bad_area;
++/*
++ * Ok, we have a good vm_area for this memory access, so
++ * we can handle it..
++ */
++good_area:
++	code = SEGV_ACCERR;
++
++	switch (cause) {
++	case EXC_SUPERV_INSN_ACCESS:
++		goto bad_area;
++	case EXC_SUPERV_DATA_ACCESS:
++		goto bad_area;
++	case EXC_X_PROTECTION_FAULT:
++		if (!(vma->vm_flags & VM_EXEC))
++			goto bad_area;
++		break;
++	case EXC_R_PROTECTION_FAULT:
++		if (!(vma->vm_flags & VM_READ))
++			goto bad_area;
++		break;
++	case EXC_W_PROTECTION_FAULT:
++		if (!(vma->vm_flags & VM_WRITE))
++			goto bad_area;
++		flags = FAULT_FLAG_WRITE;
++		break;
++	}
++
++survive:
++	/*
++	 * If for any reason at all we couldn't handle the fault,
++	 * make sure we exit gracefully rather than endlessly redo
++	 * the fault.
++	 */
++	fault = handle_mm_fault(mm, vma, address, flags);
++	if (unlikely(fault & VM_FAULT_ERROR)) {
++		if (fault & VM_FAULT_OOM)
++			goto out_of_memory;
++		else if (fault & VM_FAULT_SIGBUS)
++			goto do_sigbus;
++		BUG();
++	}
++	if (fault & VM_FAULT_MAJOR)
++		tsk->maj_flt++;
++	else
++		tsk->min_flt++;
++
++	up_read(&mm->mmap_sem);
++	return;
++
++/*
++ * Something tried to access memory that isn't in our memory map..
++ * Fix it, but check if it's kernel or user first..
++ */
++bad_area:
++	up_read(&mm->mmap_sem);
++
++bad_area_nosemaphore:
++	/* User mode accesses just cause a SIGSEGV */
++	if (user_mode(regs)) {
++		_exception(SIGSEGV, regs, code, address);
 +		return;
 +	}
 +
-+	ma_user++;
++no_context:
++	/* Are we prepared to handle this kernel fault? */
++	if (fixup_exception(regs))
++		return;
 +
 +	/*
-+	 * user mode -
-+	 *  possibly warn,
-+	 *  possibly send SIGBUS signal to process
++	 * Oops. The kernel tried to access some bad page. We'll have to
++	 * terminate things with extreme prejudice.
 +	 */
-+	if (ma_usermode & UM_WARN) {
-+		pr_err("user unaligned access @ %#lx; isn=0x%08lx ea=0x%08lx ra=0x%08lx sp=0x%08lx\n",
-+			(unsigned long)addr, (unsigned long)isn,
-+			fp->ea, fp->ra, fp->sp);
++	bust_spinlocks(1);
++
++	pr_alert("Unable to handle kernel %s at virtual address %08lx",
++		address < PAGE_SIZE ? "NULL pointer dereference" :
++		"paging request", address);
++	pr_alert("ea = %08lx, ra = %08lx, cause = %ld\n", regs->ea, regs->ra,
++		cause);
++	panic("Oops");
++	return;
++
++/*
++ * We ran out of memory, or some other thing happened to us that made
++ * us unable to handle the page fault gracefully.
++ */
++out_of_memory:
++	up_read(&mm->mmap_sem);
++	if (is_global_init(tsk)) {
++		yield();
++		down_read(&mm->mmap_sem);
++		goto survive;
 +	}
++	if (!user_mode(regs))
++		goto no_context;
++	pagefault_out_of_memory();
++	return;
 +
-+	if (ma_usermode & UM_SIGNAL)
-+		_exception(SIGBUS, fp, BUS_ADRALN, fp->ea);
-+	else
-+		fp->ea += 4;	/* else advance */
-+}
++do_sigbus:
++	up_read(&mm->mmap_sem);
 +
-+#ifdef CONFIG_PROC_FS
-+static const char * const usermode_action[] = {
-+	"ignored",	/* 0 */
-+	"warn",		/* 1 */
-+	"fixup",	/* 2 */
-+	"fixup+warn",	/* 3 */
-+	"signal",	/* 4 */
-+	"signal+warn",	/* 5 */
-+	"signal+fixup",
-+	"signal+fixup+warn"
-+};
++	/* Kernel mode? Handle exceptions or die */
++	if (!user_mode(regs))
++		goto no_context;
 +
-+static int misaligned_proc_show(struct seq_file *m, void *v)
-+{
-+	seq_printf(m, "User:\t\t%lu\n", ma_user);
-+	seq_printf(m, "Kernel:\t\t%lu\n", ma_kern);
-+	seq_printf(m, "Skipped:\t%lu\n", ma_skipped);
-+	seq_printf(m, "Half:\t\t%lu\n", ma_half);
-+	seq_printf(m, "Word:\t\t%lu\n", ma_word);
-+	seq_printf(m, "User faults:\t%i (%s)\n", ma_usermode,
-+			usermode_action[ma_usermode & 7]);
++	_exception(SIGBUS, regs, BUS_ADRERR, address);
++	return;
 +
-+	return 0;
-+}
++vmalloc_fault:
++	{
++		/*
++		 * Synchronize this task's top level page-table
++		 * with the 'reference' page table.
++		 *
++		 * Do _not_ use "tsk" here. We might be inside
++		 * an interrupt in the middle of a task switch..
++		 */
++		int offset = pgd_index(address);
++		pgd_t *pgd, *pgd_k;
++		pud_t *pud, *pud_k;
++		pmd_t *pmd, *pmd_k;
++		pte_t *pte_k;
 +
-+static int proc_misaligned_open(struct inode *inode, struct file *file)
-+{
-+	return single_open(file, misaligned_proc_show, NULL);
-+}
++		pgd = pgd_current + offset;
++		pgd_k = init_mm.pgd + offset;
 +
-+static ssize_t proc_misaligned_write(struct file *file,
-+			const char __user *buffer,
-+			size_t count, loff_t *ppos)
-+{
-+	char mode;
++		if (!pgd_present(*pgd_k))
++			goto no_context;
++		set_pgd(pgd, *pgd_k);
 +
-+	if (count > 0) {
-+		if (get_user(mode, buffer))
-+			return -EFAULT;
-+		if (mode >= '0' && mode <= '5')
-+			ma_usermode = mode - '0';
-+	}
++		pud = pud_offset(pgd, address);
++		pud_k = pud_offset(pgd_k, address);
++		if (!pud_present(*pud_k))
++			goto no_context;
++		pmd = pmd_offset(pud, address);
++		pmd_k = pmd_offset(pud_k, address);
++		if (!pmd_present(*pmd_k))
++			goto no_context;
++		set_pmd(pmd, *pmd_k);
 +
-+	return count;
-+}
++		pte_k = pte_offset_kernel(pmd_k, address);
++		if (!pte_present(*pte_k))
++			goto no_context;
 +
-+static const struct file_operations misalign_fops = {
-+	.open		= proc_misaligned_open,
-+	.read		= seq_read,
-+	.llseek		= seq_lseek,
-+	.release	= single_release,
-+	.write		= proc_misaligned_write,
-+};
-+#endif /* CONFIG_PROC_FS */
-+
-+static void __init misaligned_calc_reg_offsets(void)
-+{
-+	int i, r, offset;
-+
-+	/* pre-calc offsets of registers on sys call stack frame */
-+	offset = 0;
-+
-+	/* struct pt_regs */
-+	for (i = 0; i < 16; i++) {
-+		r = sys_stack_frame_reg_offset[i];
-+		reg_offsets[r] = offset;
-+		offset += 4;
-+	}
-+
-+	/* struct switch_stack */
-+	offset = -sizeof(struct switch_stack);
-+	for (i = 16; i < 32; i++) {
-+		r = sys_stack_frame_reg_offset[i];
-+		reg_offsets[r] = offset;
-+		offset += 4;
++		flush_tlb_one(address);
++		return;
 +	}
 +}
-+
-+
-+static int __init misaligned_init(void)
-+{
-+#ifdef CONFIG_PROC_FS
-+
-+	struct proc_dir_entry *res;
-+
-+	res = proc_create("misalign", S_IWUSR | S_IRUGO, NULL, &misalign_fops);
-+	if (!res)
-+		return -ENOMEM;
-+#endif
-+
-+	/* default mode - silent fix */
-+	ma_usermode = UM_FIXUP | KM_WARN;
-+
-+	misaligned_calc_reg_offsets();
-+
-+	return 0;
-+}
-+
-+fs_initcall(misaligned_init);
 -- 
 1.8.3.2
 
