@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-by2on0119.outbound.protection.outlook.com ([207.46.100.119]:34071
-	"EHLO na01-by2-obe.outbound.protection.outlook.com"
+Received: from mail-bn1on0133.outbound.protection.outlook.com ([157.56.110.133]:52775
+	"EHLO na01-bn1-obe.outbound.protection.outlook.com"
 	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1752726AbaDRMob (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 18 Apr 2014 08:44:31 -0400
+	id S1753374AbaDRMoF (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 18 Apr 2014 08:44:05 -0400
 From: Ley Foon Tan <lftan@altera.com>
-Subject: [PATCH 24/28] nios2: Module support
-Date: Fri, 18 Apr 2014 20:27:07 +0800
-Message-ID: <1397824031-4892-21-git-send-email-lftan@altera.com>
+Subject: [PATCH 25/28] nios2: ptrace support
+Date: Fri, 18 Apr 2014 20:27:08 +0800
+Message-ID: <1397824031-4892-22-git-send-email-lftan@altera.com>
 In-Reply-To: <1397824031-4892-1-git-send-email-lftan@altera.com>
 References: <1397824031-4892-1-git-send-email-lftan@altera.com>
 MIME-Version: 1.0
@@ -16,156 +16,398 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org
 Cc: Ley Foon Tan <lftan@altera.com>, lftan.linux@gmail.com, cltang@codesourcery.com
-Message-ID: <20140418122707.iLIparNLsv2UWeK72bRAsozDZdIIcpBQiYOR1NHNi8I@z>
+Message-ID: <20140418122708.tanvFqxdQnKRLgO-VWlr1pCPE1605YZ1QBAeHcpth3E@z>
 
-This patch adds support for loadable modules.
+Add ptrace support for nios2.
 
 Signed-off-by: Ley Foon Tan <lftan@altera.com>
 ---
- arch/nios2/kernel/module.c | 135 +++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 135 insertions(+)
- create mode 100644 arch/nios2/kernel/module.c
+ arch/nios2/include/asm/ptrace.h      |  40 +++++++
+ arch/nios2/include/uapi/asm/ptrace.h | 123 ++++++++++++++++++++++
+ arch/nios2/kernel/ptrace.c           | 198 +++++++++++++++++++++++++++++++++++
+ 3 files changed, 361 insertions(+)
+ create mode 100644 arch/nios2/include/asm/ptrace.h
+ create mode 100644 arch/nios2/include/uapi/asm/ptrace.h
+ create mode 100644 arch/nios2/kernel/ptrace.c
 
-diff --git a/arch/nios2/kernel/module.c b/arch/nios2/kernel/module.c
+diff --git a/arch/nios2/include/asm/ptrace.h b/arch/nios2/include/asm/ptrace.h
 new file mode 100644
-index 0000000..360c53ab29f64f4e44c8cfe27f7176d793578569
+index 0000000..ca8588ed8c32eff5ed081c21c55fc142bb16f151
 --- /dev/null
-+++ b/arch/nios2/kernel/module.c
-@@ -0,0 +1,135 @@
++++ b/arch/nios2/include/asm/ptrace.h
+@@ -0,0 +1,40 @@
 +/*
-+ * Kernel module support for Nios II.
++ * Copyright (C) 2013 Altera Corporation
++ * Copyright (C) 2010 Tobias Klauser <tklauser@distanz.ch>
++ * Copyright (C) 2004 Microtronix Datacom Ltd
 + *
-+ * Copyright (C) 2004 Microtronix Datacom Ltd.
-+ *   Written by Wentao Xu <xuwentao@microtronix.com>
-+ * Copyright (C) 2001, 2003 Rusty Russell
++ * based on m68k asm/processor.h
++ *
++ * This file is subject to the terms and conditions of the GNU General Public
++ * License.  See the file "COPYING" in the main directory of this archive
++ * for more details.
++ */
++
++#ifndef _ASM_NIOS2_PTRACE_H
++#define _ASM_NIOS2_PTRACE_H
++
++#include <uapi/asm/ptrace.h>
++
++#ifndef __ASSEMBLY__
++
++/* Arbitrarily choose the same ptrace numbers as used by the Sparc code. */
++#define PTRACE_GETREGS		12
++#define PTRACE_SETREGS		13
++
++/*
++ * Supervisor mode
++ */
++
++# define user_mode(regs)	(((regs)->estatus & ESTATUS_EU))
++
++
++#define instruction_pointer(regs)	((regs)->ra)
++#define profile_pc(regs)		instruction_pointer(regs)
++#define user_stack_pointer(regs)	((regs)->sp)
++extern void show_regs(struct pt_regs *);
++
++#define current_pt_regs() \
++	((struct pt_regs *)((unsigned long)current_thread_info() + THREAD_SIZE)\
++		- 1)
++#endif /* __ASSEMBLY__ */
++#endif /* _ASM_NIOS2_PTRACE_H */
+diff --git a/arch/nios2/include/uapi/asm/ptrace.h b/arch/nios2/include/uapi/asm/ptrace.h
+new file mode 100644
+index 0000000..e37ca15350ea60e8eb7f73b5dad331886abb5e31
+--- /dev/null
++++ b/arch/nios2/include/uapi/asm/ptrace.h
+@@ -0,0 +1,123 @@
++/*
++ * Copyright (C) 2010 Tobias Klauser <tklauser@distanz.ch>
++ * Copyright (C) 2004 Microtronix Datacom Ltd
++ *
++ * based on m68k asm/processor.h
++ *
++ * This file is subject to the terms and conditions of the GNU General Public
++ * License.  See the file "COPYING" in the main directory of this archive
++ * for more details.
++ */
++
++#ifndef _UAPI_ASM_NIOS2_PTRACE_H
++#define _UAPI_ASM_NIOS2_PTRACE_H
++
++#ifndef __ASSEMBLY__
++
++/*
++ * Register numbers used by 'ptrace' system call interface.
++ */
++
++/* GP registers */
++#define PTR_R0		0
++#define PTR_R1		1
++#define PTR_R2		2
++#define PTR_R3		3
++#define PTR_R4		4
++#define PTR_R5		5
++#define PTR_R6		6
++#define PTR_R7		7
++#define PTR_R8		8
++#define PTR_R9		9
++#define PTR_R10		10
++#define PTR_R11		11
++#define PTR_R12		12
++#define PTR_R13		13
++#define PTR_R14		14
++#define PTR_R15		15
++#define PTR_R16		16
++#define PTR_R17		17
++#define PTR_R18		18
++#define PTR_R19		19
++#define PTR_R20		20
++#define PTR_R21		21
++#define PTR_R22		22
++#define PTR_R23		23
++#define PTR_R24		24
++#define PTR_R25		25
++#define PTR_GP		26
++#define PTR_SP		27
++#define PTR_FP		28
++#define PTR_EA		29
++#define PTR_BA		30
++#define PTR_RA		31
++/* Control registers */
++#define PTR_PC		32
++#define PTR_STATUS	33
++#define PTR_ESTATUS	34
++#define PTR_BSTATUS	35
++#define PTR_IENABLE	36
++#define PTR_IPENDING	37
++#define PTR_CPUID	38
++#define PTR_CTL6	39
++#define PTR_CTL7	40
++#define PTR_PTEADDR	41
++#define PTR_TLBACC	42
++#define PTR_TLBMISC	43
++
++/* Text/data offsets, needed by gdbserver */
++#define PT_TEXT_ADDR		(44*4)
++#define PT_TEXT_END_ADDR	(45*4)
++#define PT_DATA_ADDR		(46*4)
++
++/* this struct defines the way the registers are stored on the
++   stack during a system call.
++
++   There is a fake_regs in setup.c that has to match pt_regs.*/
++
++struct pt_regs {
++	unsigned long  r8;		/* r8-r15 Caller-saved GP registers */
++	unsigned long  r9;
++	unsigned long  r10;
++	unsigned long  r11;
++	unsigned long  r12;
++	unsigned long  r13;
++	unsigned long  r14;
++	unsigned long  r15;
++	unsigned long  r1;		/* Assembler temporary */
++	unsigned long  r2;		/* Retval LS 32bits */
++	unsigned long  r3;		/* Retval MS 32bits */
++	unsigned long  r4;		/* r4-r7 Register arguments */
++	unsigned long  r5;
++	unsigned long  r6;
++	unsigned long  r7;
++	unsigned long  orig_r2;		/* Copy of r2 ?? */
++	unsigned long  ra;		/* Return address */
++	unsigned long  fp;		/* Frame pointer */
++	unsigned long  sp;		/* Stack pointer */
++	unsigned long  gp;		/* Global pointer */
++	unsigned long  estatus;
++	unsigned long  ea;		/* Exception return address (pc) */
++	unsigned long  orig_r7;
++};
++
++/*
++ * This is the extended stack used by signal handlers and the context
++ * switcher: it's pushed after the normal "struct pt_regs".
++ */
++struct switch_stack {
++	unsigned long  r16;		/* r16-r23 Callee-saved GP registers */
++	unsigned long  r17;
++	unsigned long  r18;
++	unsigned long  r19;
++	unsigned long  r20;
++	unsigned long  r21;
++	unsigned long  r22;
++	unsigned long  r23;
++	unsigned long  fp;
++	unsigned long  gp;
++	unsigned long  ra;
++};
++
++#endif /* __ASSEMBLY__ */
++#endif /* _UAPI_ASM_NIOS2_PTRACE_H */
+diff --git a/arch/nios2/kernel/ptrace.c b/arch/nios2/kernel/ptrace.c
+new file mode 100644
+index 0000000..5db61796b2c11532dd6219a972331d9c09f5c30a
+--- /dev/null
++++ b/arch/nios2/kernel/ptrace.c
+@@ -0,0 +1,198 @@
++/*
++ * Copyright (C) 2010 Tobias Klauser <tklauser@distanz.ch>
++ *
++ * based on arch/m68knommu/kernel/ptrace.c
++ *
++ * Copyright (C) 1994 by Hamish Macdonald
 + *
 + * This file is subject to the terms and conditions of the GNU General
 + * Public License.  See the file COPYING in the main directory of this
 + * archive for more details.
 + */
 +
-+#include <linux/moduleloader.h>
-+#include <linux/elf.h>
-+#include <linux/mm.h>
-+#include <linux/vmalloc.h>
-+#include <linux/slab.h>
-+#include <linux/fs.h>
-+#include <linux/string.h>
 +#include <linux/kernel.h>
++#include <linux/sched.h>
++#include <linux/mm.h>
++#include <linux/errno.h>
++#include <linux/ptrace.h>
++#include <linux/user.h>
 +
-+#include <asm/pgtable.h>
-+#include <asm/cacheflush.h>
++#include <linux/uaccess.h>
 +
-+void *module_alloc(unsigned long size)
++/*
++ * does not yet catch signals sent when the child dies.
++ * in exit.c or in signal.c.
++ */
++
++/* determines which bits in the SR the user has access to. */
++/* 1 = access 0 = no access */
++#define SR_MASK 0x00000000
++
++/* Find the stack offset for a register, relative to thread.ksp. */
++#define PT_REG(reg)	((long)&((struct pt_regs *)0)->reg)
++#define SW_REG(reg)	((long)&((struct switch_stack *)0)->reg \
++			 - sizeof(struct switch_stack))
++
++/* Mapping from PT_xxx to the stack offset at which the register is
++ * saved.
++ */
++static int regoff[] = {
++		-1, PT_REG(r1), PT_REG(r2), PT_REG(r3),
++	PT_REG(r4), PT_REG(r5), PT_REG(r6), PT_REG(r7),
++	PT_REG(r8), PT_REG(r9), PT_REG(r10), PT_REG(r11),
++	PT_REG(r12), PT_REG(r13), PT_REG(r14), PT_REG(r15),  /* reg 15 */
++	SW_REG(r16), SW_REG(r17), SW_REG(r18), SW_REG(r19),
++	SW_REG(r20), SW_REG(r21), SW_REG(r22), SW_REG(r23),
++		-1,          -1, PT_REG(gp), PT_REG(sp),
++	PT_REG(fp), PT_REG(ea),          -1, PT_REG(ra),  /* reg 31 */
++	PT_REG(ea),          -1,          -1,          -1,  /* use ea for pc */
++		-1,          -1,          -1,          -1,
++		-1,          -1,          -1,          -1   /* reg 43 */
++};
++
++/*
++ * Get contents of register REGNO in task TASK.
++ */
++static inline long get_reg(struct task_struct *task, int regno)
 +{
-+	if (size == 0)
-+		return NULL;
-+	return kmalloc(size, GFP_KERNEL);
++	unsigned long *addr;
++
++	if (regno >= ARRAY_SIZE(regoff) || regoff[regno] == -1)
++		return 0;
++
++	addr = (unsigned long *)((char *)task->thread.kregs + regoff[regno]);
++	return *addr;
 +}
 +
-+/* Free memory returned from module_alloc */
-+void module_free(struct module *mod, void *module_region)
++/*
++ * Write contents of register REGNO in task TASK.
++ */
++static inline int put_reg(struct task_struct *task, int regno,
++			  unsigned long data)
 +{
-+	kfree(module_region);
++	unsigned long *addr;
++
++	if (regno >= ARRAY_SIZE(regoff) || regoff[regno] == -1)
++		return -1;
++
++	addr = (unsigned long *)((char *)task->thread.kregs + regoff[regno]);
++	*addr = data;
++	return 0;
 +}
 +
-+int apply_relocate_add(Elf32_Shdr *sechdrs, const char *strtab,
-+			unsigned int symindex, unsigned int relsec,
-+			struct module *mod)
++/*
++ * Called by kernel/ptrace.c when detaching..
++ *
++ * Nothing special to do here, no processor debug support.
++ */
++void ptrace_disable(struct task_struct *child)
 +{
++}
++
++long arch_ptrace(struct task_struct *child, long request,
++		 unsigned long addr, unsigned long data)
++{
++	unsigned long tmp;
 +	unsigned int i;
-+	Elf32_Rela *rela = (void *)sechdrs[relsec].sh_addr;
++	int ret;
 +
-+	pr_debug("Applying relocate section %u to %u\n", relsec,
-+		 sechdrs[relsec].sh_info);
-+
-+	for (i = 0; i < sechdrs[relsec].sh_size / sizeof(*rela); i++) {
-+		/* This is where to make the change */
-+		uint32_t word;
-+		uint32_t *loc
-+			= ((void *)sechdrs[sechdrs[relsec].sh_info].sh_addr
-+			   + rela[i].r_offset);
-+		/* This is the symbol it is referring to.  Note that all
-+		   undefined symbols have been resolved.  */
-+		Elf32_Sym *sym
-+			= ((Elf32_Sym *)sechdrs[symindex].sh_addr
-+				+ ELF32_R_SYM(rela[i].r_info));
-+		uint32_t v = sym->st_value + rela[i].r_addend;
-+		pr_debug("reltype %d 0x%x name:<%s>\n",
-+			ELF32_R_TYPE(rela[i].r_info),
-+			rela[i].r_offset, strtab + sym->st_name);
-+
-+		switch (ELF32_R_TYPE(rela[i].r_info)) {
-+		case R_NIOS2_NONE:
-+			break;
-+		case R_NIOS2_BFD_RELOC_32:
-+			*loc += v;
-+			break;
-+		case R_NIOS2_PCREL16:
-+			v -= (uint32_t)loc + 4;
-+			if ((int32_t)v > 0x7fff ||
-+				(int32_t)v < -(int32_t)0x8000) {
-+				pr_err("module %s: relocation overflow\n",
-+					mod->name);
-+				return -ENOEXEC;
-+			}
-+			word = *loc;
-+			*loc = ((((word >> 22) << 16) | (v & 0xffff)) << 6) |
-+				(word & 0x3f);
-+			break;
-+		case R_NIOS2_CALL26:
-+			if (v & 3) {
-+				pr_err("module %s: dangerous relocation\n",
-+					mod->name);
-+				return -ENOEXEC;
-+			}
-+			if ((v >> 28) != ((uint32_t)loc >> 28)) {
-+				pr_err("module %s: relocation overflow\n",
-+					mod->name);
-+				return -ENOEXEC;
-+			}
-+			*loc = (*loc & 0x3f) | ((v >> 2) << 6);
-+			break;
-+		case R_NIOS2_HI16:
-+			word = *loc;
-+			*loc = ((((word >> 22) << 16) |
-+				((v >> 16) & 0xffff)) << 6) | (word & 0x3f);
-+			break;
-+		case R_NIOS2_LO16:
-+			word = *loc;
-+			*loc = ((((word >> 22) << 16) | (v & 0xffff)) << 6) |
-+					(word & 0x3f);
-+			break;
-+		case R_NIOS2_HIADJ16:
-+			{
-+				Elf32_Addr word2;
-+
-+				word = *loc;
-+				word2 = ((v >> 16) + ((v >> 15) & 1)) & 0xffff;
-+				*loc = ((((word >> 22) << 16) | word2) << 6) |
-+						(word & 0x3f);
-+			}
++	switch (request) {
++	/* read the word at location addr in the USER area. */
++	case PTRACE_PEEKUSR:
++		pr_debug("PEEKUSR: addr=0x%08lx\n", addr);
++		ret = -EIO;
++		if (addr & 3)
 +			break;
 +
-+		default:
-+			pr_err("module %s: Unknown reloc: %u\n",
-+				mod->name, ELF32_R_TYPE(rela[i].r_info));
-+			return -ENOEXEC;
++		addr = addr >> 2; /* temporary hack. */
++		ret = -EIO;
++		if (addr < ARRAY_SIZE(regoff))
++			tmp = get_reg(child, addr);
++		else if (addr == PT_TEXT_ADDR / 4)
++			tmp = child->mm->start_code;
++		else if (addr == PT_DATA_ADDR / 4)
++			tmp = child->mm->start_data;
++		else if (addr == PT_TEXT_END_ADDR / 4)
++			tmp = child->mm->end_code;
++		else
++			break;
++		ret = put_user(tmp, (unsigned long *) data);
++		pr_debug("PEEKUSR: rdword=0x%08lx\n", tmp);
++		break;
++	/* write the word at location addr in the USER area */
++	case PTRACE_POKEUSR:
++		pr_debug("POKEUSR: addr=0x%08lx, data=0x%08lx\n", addr, data);
++		ret = -EIO;
++		if (addr & 3)
++			break;
++
++		addr = addr >> 2; /* temporary hack. */
++
++		if (addr == PTR_ESTATUS) {
++			data &= SR_MASK;
++			data |= get_reg(child, PTR_ESTATUS) & ~(SR_MASK);
 +		}
++		if (addr < ARRAY_SIZE(regoff)) {
++			if (put_reg(child, addr, data))
++				break;
++			ret = 0;
++			break;
++		}
++		break;
++	 /* Get all gp regs from the child. */
++	case PTRACE_GETREGS:
++		pr_debug("GETREGS\n");
++		for (i = 0; i < ARRAY_SIZE(regoff); i++) {
++			tmp = get_reg(child, i);
++			if (put_user(tmp, (unsigned long *) data)) {
++				ret = -EFAULT;
++				break;
++			}
++			data += sizeof(long);
++		}
++		ret = 0;
++		break;
++	/* Set all gp regs in the child. */
++	case PTRACE_SETREGS:
++		pr_debug("SETREGS\n");
++		for (i = 0; i < ARRAY_SIZE(regoff); i++) {
++			if (get_user(tmp, (unsigned long *) data)) {
++				ret = -EFAULT;
++				break;
++			}
++			if (i == PTR_ESTATUS) {
++				tmp &= SR_MASK;
++				tmp |= get_reg(child, PTR_ESTATUS) & ~(SR_MASK);
++			}
++			put_reg(child, i, tmp);
++			data += sizeof(long);
++		}
++		ret = 0;
++		break;
++	default:
++		ret = ptrace_request(child, request, addr, data);
 +	}
 +
-+	return 0;
++	return ret;
 +}
 +
-+int module_finalize(const Elf_Ehdr *hdr, const Elf_Shdr *sechdrs,
-+			struct module *me)
++asmlinkage void syscall_trace(void)
 +{
-+	flush_cache_all();
-+	return 0;
-+}
-+
-+void module_arch_cleanup(struct module *mod)
-+{
++	if (!test_thread_flag(TIF_SYSCALL_TRACE))
++		return;
++	if (!(current->ptrace & PT_PTRACED))
++		return;
++	current->exit_code = SIGTRAP;
++	current->state = TASK_STOPPED;
++	ptrace_notify(SIGTRAP | ((current->ptrace & PT_TRACESYSGOOD)
++				 ? 0x80 : 0));
++	/*
++	 * this isn't the same as continuing with a signal, but it will do
++	 * for normal use.  strace only continues with a signal if the
++	 * stopping signal is not SIGTRAP.  -brl
++	 */
++	if (current->exit_code) {
++		send_sig(current->exit_code, current, 1);
++		current->exit_code = 0;
++	}
 +}
 -- 
 1.8.3.2
