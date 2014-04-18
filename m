@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bn1blp0187.outbound.protection.outlook.com ([207.46.163.187]:3012
+Received: from mail-bn1on0136.outbound.protection.outlook.com ([157.56.110.136]:35140
 	"EHLO na01-bn1-obe.outbound.protection.outlook.com"
 	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1751185AbaDRMmc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 18 Apr 2014 08:42:32 -0400
+	id S1753011AbaDRMnE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 18 Apr 2014 08:43:04 -0400
 From: Ley Foon Tan <lftan@altera.com>
-Subject: [PATCH 20/28] nios2: Time keeping
-Date: Fri, 18 Apr 2014 20:27:03 +0800
-Message-ID: <1397824031-4892-17-git-send-email-lftan@altera.com>
+Subject: [PATCH 21/28] nios2: Cpuinfo handling
+Date: Fri, 18 Apr 2014 20:27:04 +0800
+Message-ID: <1397824031-4892-18-git-send-email-lftan@altera.com>
 In-Reply-To: <1397824031-4892-1-git-send-email-lftan@altera.com>
 References: <1397824031-4892-1-git-send-email-lftan@altera.com>
 MIME-Version: 1.0
@@ -16,126 +16,24 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org
 Cc: Ley Foon Tan <lftan@altera.com>, lftan.linux@gmail.com, cltang@codesourcery.com
-Message-ID: <20140418122703.0L0w5xQz8kInsKveqOX-bPnsGT72dmQljw7rNG8AVVs@z>
-
-Add time keeping code for nios2.
+Message-ID: <20140418122704.zxbCkipx_QvjVMNzKlGWo49TbD96EZbr_Ek9jUtmpNE@z>
 
 Signed-off-by: Ley Foon Tan <lftan@altera.com>
 ---
- arch/nios2/include/asm/delay.h |  92 +++++++++++++++++++++++++
- arch/nios2/include/asm/timex.h |  27 ++++++++
- arch/nios2/kernel/time.c       | 150 +++++++++++++++++++++++++++++++++++++++++
- 3 files changed, 269 insertions(+)
- create mode 100644 arch/nios2/include/asm/delay.h
- create mode 100644 arch/nios2/include/asm/timex.h
- create mode 100644 arch/nios2/kernel/time.c
+ arch/nios2/include/asm/cpuinfo.h |  58 +++++++++++
+ arch/nios2/kernel/cpuinfo.c      | 201 +++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 259 insertions(+)
+ create mode 100644 arch/nios2/include/asm/cpuinfo.h
+ create mode 100644 arch/nios2/kernel/cpuinfo.c
 
-diff --git a/arch/nios2/include/asm/delay.h b/arch/nios2/include/asm/delay.h
+diff --git a/arch/nios2/include/asm/cpuinfo.h b/arch/nios2/include/asm/cpuinfo.h
 new file mode 100644
-index 0000000..8070a09
+index 0000000..eafd7267e46b422ff1acc8efb6a771fb383cc5c4
 --- /dev/null
-+++ b/arch/nios2/include/asm/delay.h
-@@ -0,0 +1,92 @@
++++ b/arch/nios2/include/asm/cpuinfo.h
+@@ -0,0 +1,58 @@
 +/*
-+ * Copyright (C) 2004 Microtronix Datacom Ltd
-+ *
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License.  See the file "COPYING" in the main directory of this archive
-+ * for more details.
-+ */
-+
-+#ifndef _ASM_NIOS2_DELAY_H
-+#define _ASM_NIOS2_DELAY_H
-+
-+#include <asm/param.h>
-+
-+static inline void __delay(unsigned long loops)
-+{
-+	int dummy;
-+
-+	__asm__ __volatile__(
-+	"1:\n\t"
-+	"    beq    %0,zero,2f\n\t"
-+	"    addi   %0, %0, -1\n\t"
-+	"    br     1b\n\t"
-+	"2:\n\t"
-+	:  "=r" (dummy)		/* Need output for optimizer */
-+	:  "0" (loops));	/* %0  Input */
-+}
-+
-+/*
-+ * Note that 19 * 226 == 4294 ==~ 2^32 / 10^6, so
-+ * loops = (4294 * usecs * loops_per_jiffy * HZ) / 2^32.
-+ *
-+ * The mul instruction gives us loops = (a * b) / 2^32.
-+ * We choose a = usecs * 19 * HZ and b = loops_per_jiffy * 226
-+ * because this lets us support a wide range of HZ and
-+ * loops_per_jiffy values without either a or b overflowing 2^32.
-+ * Thus we need usecs * HZ <= (2^32 - 1) / 19 = 226050910 and
-+ * loops_per_jiffy <= (2^32 - 1) / 226 = 19004280
-+ * (which corresponds to ~3800 bogomips at HZ = 100).
-+ *  -- paulus
-+ */
-+#define __MAX_UDELAY	(226050910UL/HZ)	/* maximum udelay argument */
-+#define __MAX_NDELAY	(4294967295UL/HZ)	/* maximum ndelay argument */
-+
-+extern unsigned long loops_per_jiffy;
-+
-+static inline void __udelay(unsigned int x)
-+{
-+	unsigned int loops;
-+
-+	/*
-+	 * Note, if this is compiled with -mhw-mulx it will produce a "mulxuu"
-+	 * (at least in toolchain 145) so there is no need for inline
-+	 * assembly here anymore, which might in turn be emulated if unsupported
-+	 * by the design.
-+	 */
-+	loops = (unsigned int)((((unsigned long long)(x) *
-+			(unsigned long long)(loops_per_jiffy * 226))) >> 32);
-+
-+/*
-+	__asm__("mulxuu %0,%1,%2" : "=r" (loops) :
-+		"r" (x), "r" (loops_per_jiffy * 226));
-+*/
-+	__delay(loops);
-+}
-+
-+static inline void __ndelay(unsigned int x)
-+{
-+	unsigned int loops;
-+
-+	/* see comment in __udelay */
-+	loops = (unsigned int)((((unsigned long long)(x) *
-+			(unsigned long long)(loops_per_jiffy * 5))) >> 32);
-+
-+/*
-+	__asm__("mulxuu %0,%1,%2" : "=r" (loops) :
-+		"r" (x), "r" (loops_per_jiffy * 5));
-+*/
-+	__delay(loops);
-+}
-+
-+extern void __bad_udelay(void);		/* deliberately undefined */
-+extern void __bad_ndelay(void);		/* deliberately undefined */
-+
-+#define udelay(n) (__builtin_constant_p(n) ? \
-+	((n) > __MAX_UDELAY ? __bad_udelay() : __udelay((n) * (19 * HZ))) : \
-+	__udelay((n) * (19 * HZ)))
-+
-+#define ndelay(n) (__builtin_constant_p(n) ? \
-+	((n) > __MAX_NDELAY ? __bad_ndelay() : __ndelay((n) * HZ)) : \
-+	__ndelay((n) * HZ))
-+
-+#endif /* _ASM_NIOS2_DELAY_H */
-diff --git a/arch/nios2/include/asm/timex.h b/arch/nios2/include/asm/timex.h
-new file mode 100644
-index 0000000..524b47d79d3dad53b98713f31517e28ac0c99d98
---- /dev/null
-+++ b/arch/nios2/include/asm/timex.h
-@@ -0,0 +1,27 @@
-+/*
-+ * Copyright (C) 2010 Thomas Chou <thomas@wytron.com.tw>
++ * Copyright (C) 2011 Tobias Klauser <tklauser@distanz.ch>
 + *
 + * This program is free software; you can redistribute it and/or modify
 + * it under the terms of the GNU General Public License as published by
@@ -152,171 +50,253 @@ index 0000000..524b47d79d3dad53b98713f31517e28ac0c99d98
 + *
 + */
 +
-+#ifndef _ASM_NIOS2_TIMEX_H
-+#define _ASM_NIOS2_TIMEX_H
++#ifndef _ASM_NIOS2_CPUINFO_H
++#define _ASM_NIOS2_CPUINFO_H
 +
-+/* Supply dummy tick-rate. Real value will be read from devicetree */
-+#define CLOCK_TICK_RATE		(HZ * 100000UL)
++#include <linux/types.h>
++#include <asm/prom.h>
 +
-+#include <asm-generic/timex.h>
++struct cpuinfo {
++	/* Core CPU configuration */
++	char cpu_impl[12];
++	u32 cpu_clock_freq;
++	u32 mmu;
++	u32 has_div;
++	u32 has_mul;
++	u32 has_mulx;
 +
-+#endif
-diff --git a/arch/nios2/kernel/time.c b/arch/nios2/kernel/time.c
++	/* CPU caches */
++	u32 icache_line_size;
++	u32 icache_size;
++	u32 dcache_line_size;
++	u32 dcache_size;
++
++	/* TLB */
++	u32 tlb_pid_num_bits;	/* number of bits used for the PID in TLBMISC */
++	u32 tlb_num_ways;
++	u32 tlb_num_ways_log2;
++	u32 tlb_num_entries;
++	u32 tlb_num_lines;
++	u32 tlb_ptr_sz;
++
++	/* Addresses */
++	u32 reset_addr;
++	u32 exception_addr;
++	u32 fast_tlb_miss_exc_addr;
++};
++
++extern struct cpuinfo cpuinfo;
++
++extern void setup_cpuinfo(void);
++
++#endif /* _ASM_NIOS2_CPUINFO_H */
+diff --git a/arch/nios2/kernel/cpuinfo.c b/arch/nios2/kernel/cpuinfo.c
 new file mode 100644
-index 0000000..0677ebaa1dffd8213f52a704c6a8366d34c05ca2
+index 0000000..c7b677db5c3d6b4ae0404bee0fbc8881dace086d
 --- /dev/null
-+++ b/arch/nios2/kernel/time.c
-@@ -0,0 +1,150 @@
++++ b/arch/nios2/kernel/cpuinfo.c
+@@ -0,0 +1,201 @@
 +/*
 + * Copyright (C) 2013 Altera Corporation
-+ * Copyright (C) 2010 Tobias Klauser <tklauser@distanz.ch>
-+ * Copyright (C) 2004 Microtronix Datacom Ltd.
++ * Copyright (C) 2011 Tobias Klauser <tklauser@distanz.ch>
 + *
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License. See the file "COPYING" in the main directory of this archive
-+ * for more details.
++ * Based on cpuinfo.c from microblaze
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ *
 + */
 +
++#include <linux/kernel.h>
 +#include <linux/init.h>
-+#include <linux/sched.h>
-+#include <linux/interrupt.h>
-+#include <linux/time.h>
-+#include <linux/timex.h>
-+#include <linux/profile.h>
-+#include <linux/clocksource.h>
++#include <linux/delay.h>
++#include <linux/seq_file.h>
++#include <linux/string.h>
 +#include <linux/of.h>
-+#include <linux/of_address.h>
-+#include <linux/of_irq.h>
-+#include <linux/io.h>
++#include <asm/cpuinfo.h>
 +
-+#define	TICK_SIZE		(tick_nsec / 1000)
-+#define NIOS2_TIMER_PERIOD	(timer_freq / HZ)
++struct cpuinfo cpuinfo;
 +
-+#define ALTERA_TIMER_STATUS_REG		0
-+#define ALTERA_TIMER_CONTROL_REG	4
-+#define ALTERA_TIMER_PERIODL_REG	8
-+#define ALTERA_TIMER_PERIODH_REG	12
-+#define ALTERA_TIMER_SNAPL_REG		16
-+#define ALTERA_TIMER_SNAPH_REG		20
++#define err_cpu(x) \
++	pr_err("ERROR: Nios II " x " different for kernel and DTS\n");
 +
-+#define ALTERA_TIMER_CONTROL_ITO_MSK	(0x1)
-+#define ALTERA_TIMER_CONTROL_CONT_MSK	(0x2)
-+#define ALTERA_TIMER_CONTROL_START_MSK	(0x4)
-+#define ALTERA_TIMER_CONTROL_STOP_MSK	(0x8)
-+
-+static u32 nios2_timer_count;
-+static void __iomem *timer_membase;
-+static u32 timer_freq;
-+
-+static inline unsigned long read_timersnapshot(void)
++static inline u32 fcpu(struct device_node *cpu, const char *n)
 +{
-+	unsigned long count;
++	u32 val = 0;
 +
-+	outw(0, timer_membase + ALTERA_TIMER_SNAPL_REG);
-+	count =
-+		inw(timer_membase + ALTERA_TIMER_SNAPH_REG) << 16 |
-+		inw(timer_membase + ALTERA_TIMER_SNAPL_REG);
++	of_property_read_u32(cpu, n, &val);
 +
-+	return count;
++	return val;
 +}
 +
-+static inline void write_timerperiod(unsigned long period)
++static inline u32 fcpu_has(struct device_node *cpu, const char *n)
 +{
-+	outw(period, timer_membase + ALTERA_TIMER_PERIODL_REG);
-+	outw(period >> 16, timer_membase + ALTERA_TIMER_PERIODH_REG);
++	return of_get_property(cpu, n, NULL) ? 1 : 0;
 +}
++
++void __init setup_cpuinfo(void)
++{
++	struct device_node *cpu;
++	const char *str;
++	int len;
++
++	cpu = of_find_node_by_type(NULL, "cpu");
++	if (!cpu)
++		panic("%s: No CPU found in devicetree!\n", __func__);
++
++	if (!fcpu_has(cpu, "ALTR,has-initda"))
++		panic("initda instruction is unimplemented. Please update your "
++			"hardware system to have more than 4-byte line data "
++			"cache\n");
++
++	cpuinfo.cpu_clock_freq = fcpu(cpu, "clock-frequency");
++
++	str = of_get_property(cpu, "ALTR,implementation", &len);
++	if (str)
++		strlcpy(cpuinfo.cpu_impl, str, sizeof(cpuinfo.cpu_impl));
++	else
++		strcpy(cpuinfo.cpu_impl, "<unknown>");
++
++	cpuinfo.has_div = fcpu_has(cpu, "ALTR,has-div");
++	cpuinfo.has_mul = fcpu_has(cpu, "ALTR,has-mul");
++	cpuinfo.has_mulx = fcpu_has(cpu, "ALTR,has-mulx");
++
++#ifdef CONFIG_NIOS2_HW_DIV_SUPPORT
++	if (!cpuinfo.has_div)
++		err_cpu("DIV");
++#endif
++#ifdef CONFIG_NIOS2_HW_MUL_SUPPORT
++	if (!cpuinfo.has_mul)
++		err_cpu("MUL");
++#endif
++#ifdef CONFIG_NIOS2_HW_MULX_SUPPORT
++	if (!cpuinfo.has_mulx)
++		err_cpu("MULX");
++#endif
++
++	cpuinfo.tlb_num_ways = fcpu(cpu, "ALTR,tlb-num-ways");
++	if (!cpuinfo.tlb_num_ways)
++		panic("ALTR,tlb-num-ways can't be 0. Please check your hardware "
++			"system\n");
++	cpuinfo.icache_line_size = fcpu(cpu, "icache-line-size");
++	cpuinfo.icache_size = fcpu(cpu, "icache-size");
++	if (CONFIG_NIOS2_ICACHE_SIZE != cpuinfo.icache_size)
++	pr_warn("Warning: icache size configuration mismatch "
++		"(0x%x vs 0x%x) of CONFIG_NIOS2_ICACHE_SIZE vs "
++		"device tree icache-size\n",
++		CONFIG_NIOS2_ICACHE_SIZE, cpuinfo.icache_size);
++
++	cpuinfo.dcache_line_size = fcpu(cpu, "dcache-line-size");
++	if (CONFIG_NIOS2_DCACHE_LINE_SIZE != cpuinfo.dcache_line_size)
++		pr_warn("Warning: dcache line size configuration mismatch "
++		"(0x%x vs 0x%x) of CONFIG_NIOS2_DCACHE_LINE_SIZE vs "
++		"device tree dcache-line-size\n",
++		CONFIG_NIOS2_DCACHE_LINE_SIZE, cpuinfo.dcache_line_size);
++	cpuinfo.dcache_size = fcpu(cpu, "dcache-size");
++	if (CONFIG_NIOS2_DCACHE_SIZE != cpuinfo.dcache_size)
++		pr_warn("Warning: dcache size configuration mismatch "
++			"(0x%x vs 0x%x) of CONFIG_NIOS2_DCACHE_SIZE vs "
++			"device tree dcache-size\n",
++			CONFIG_NIOS2_DCACHE_SIZE, cpuinfo.dcache_size);
++
++	cpuinfo.tlb_pid_num_bits = fcpu(cpu, "ALTR,pid-num-bits");
++	cpuinfo.tlb_num_ways_log2 = ilog2(cpuinfo.tlb_num_ways);
++	cpuinfo.tlb_num_entries = fcpu(cpu, "ALTR,tlb-num-entries");
++	cpuinfo.tlb_num_lines = cpuinfo.tlb_num_entries / cpuinfo.tlb_num_ways;
++	cpuinfo.tlb_ptr_sz = fcpu(cpu, "ALTR,tlb-ptr-sz");
++
++	cpuinfo.reset_addr = fcpu(cpu, "ALTR,reset-addr");
++	cpuinfo.exception_addr = fcpu(cpu, "ALTR,exception-addr");
++	cpuinfo.fast_tlb_miss_exc_addr = fcpu(cpu, "ALTR,fast-tlb-miss-addr");
++}
++
++#ifdef CONFIG_PROC_FS
 +
 +/*
-+ * timer_interrupt() needs to keep up the real-time clock,
-+ * as well as call the "xtime_update()" routine every clocktick
++ * Get CPU information for use by the procfs.
 + */
-+irqreturn_t timer_interrupt(int irq, void *dummy)
++static int show_cpuinfo(struct seq_file *m, void *v)
 +{
-+	/* Clear the interrupt condition */
-+	outw(0, timer_membase + ALTERA_TIMER_STATUS_REG);
-+	nios2_timer_count += NIOS2_TIMER_PERIOD;
++	int count = 0;
++	const u32 clockfreq = cpuinfo.cpu_clock_freq;
 +
-+	profile_tick(CPU_PROFILING);
++	count = seq_printf(m,
++			"CPU:\t\tNios II/%s\n"
++			"MMU:\t\t%s\n"
++			"FPU:\t\tnone\n"
++			"Clocking:\t%u.%02u MHz\n"
++			"BogoMips:\t%lu.%02lu\n"
++			"Calibration:\t%lu loops\n",
++			cpuinfo.cpu_impl,
++			cpuinfo.mmu ? "present" : "none",
++			clockfreq / 1000000, (clockfreq / 100000) % 10,
++			(loops_per_jiffy * HZ) / 500000,
++			((loops_per_jiffy * HZ) / 5000) % 100,
++			(loops_per_jiffy * HZ));
 +
-+	xtime_update(1);
++	count += seq_printf(m,
++			"HW:\n"
++			" MUL:\t\t%s\n"
++			" MULX:\t\t%s\n"
++			" DIV:\t\t%s\n",
++			cpuinfo.has_mul ? "yes" : "no",
++			cpuinfo.has_mulx ? "yes" : "no",
++			cpuinfo.has_div ? "yes" : "no");
 +
-+	update_process_times(user_mode(get_irq_regs()));
++	count += seq_printf(m,
++			"Icache:\t\t%ukB, line length: %u\n",
++			cpuinfo.icache_size >> 10,
++			cpuinfo.icache_line_size);
 +
-+	return IRQ_HANDLED;
++	count += seq_printf(m,
++			"Dcache:\t\t%ukB, line length: %u\n",
++			cpuinfo.dcache_size >> 10,
++			cpuinfo.dcache_line_size);
++
++	count += seq_printf(m,
++			"TLB:\t\t%u ways, %u entries, %u PID bits\n",
++			cpuinfo.tlb_num_ways,
++			cpuinfo.tlb_num_entries,
++			cpuinfo.tlb_pid_num_bits);
++
++	return 0;
 +}
 +
-+static cycle_t nios2_timer_read(struct clocksource *cs)
++static void *cpuinfo_start(struct seq_file *m, loff_t *pos)
 +{
-+	unsigned long flags;
-+	u32 cycles;
-+	u32 tcn;
++	unsigned long i = *pos;
 +
-+	local_irq_save(flags);
-+	tcn = NIOS2_TIMER_PERIOD - 1 - read_timersnapshot();
-+	cycles = nios2_timer_count;
-+	local_irq_restore(flags);
-+
-+	return cycles + tcn;
++	return i < num_possible_cpus() ? (void *) (i + 1) : NULL;
 +}
 +
-+static struct clocksource nios2_timer = {
-+	.name	= "timer",
-+	.rating	= 250,
-+	.read	= nios2_timer_read,
-+	.shift	= 20,
-+	.mask	= CLOCKSOURCE_MASK(32),
-+	.flags	= CLOCK_SOURCE_IS_CONTINUOUS,
++static void *cpuinfo_next(struct seq_file *m, void *v, loff_t *pos)
++{
++	++*pos;
++	return cpuinfo_start(m, pos);
++}
++
++static void cpuinfo_stop(struct seq_file *m, void *v)
++{
++}
++
++const struct seq_operations cpuinfo_op = {
++	.start	= cpuinfo_start,
++	.next	= cpuinfo_next,
++	.stop	= cpuinfo_stop,
++	.show	= show_cpuinfo
 +};
 +
-+static struct irqaction nios2_timer_irq = {
-+	.name		= "timer",
-+	.flags		= IRQF_TIMER,
-+	.handler	= timer_interrupt,
-+};
-+
-+static void __init nios2_time_init(struct device_node *timer)
-+{
-+	int irq;
-+	unsigned int ctrl;
-+
-+	timer_membase = of_iomap(timer, 0);
-+	if (!timer_membase)
-+		panic("Unable to map timer resource\n");
-+
-+	if (of_property_read_u32(timer, "clock-frequency", &timer_freq))
-+		panic("Unable to get timer clock frequency\n");
-+
-+	irq = irq_of_parse_and_map(timer, 0);
-+	if (irq < 0)
-+		panic("Unable to parse timer irq\n");
-+
-+	if (setup_irq(irq, &nios2_timer_irq))
-+		panic("Unable to setup timer irq\n");
-+
-+	write_timerperiod(NIOS2_TIMER_PERIOD - 1);
-+
-+	/* clocksource initialize */
-+	nios2_timer.mult = clocksource_hz2mult(timer_freq, nios2_timer.shift);
-+	clocksource_register(&nios2_timer);
-+
-+	/* interrupt enable + continuous + start */
-+	ctrl = ALTERA_TIMER_CONTROL_ITO_MSK | ALTERA_TIMER_CONTROL_CONT_MSK |
-+		ALTERA_TIMER_CONTROL_START_MSK;
-+	outw(ctrl, timer_membase + ALTERA_TIMER_CONTROL_REG);
-+}
-+
-+void read_persistent_clock(struct timespec *ts)
-+{
-+	ts->tv_sec = mktime(2007, 1, 1, 0, 0, 0);
-+	ts->tv_nsec = 0;
-+}
-+
-+void __init time_init(void)
-+{
-+	clocksource_of_init();
-+}
-+
-+CLOCKSOURCE_OF_DECLARE(nios2_timer, "ALTR,timer-1.0", nios2_time_init);
++#endif /* CONFIG_PROC_FS */
 -- 
 1.8.3.2
 
