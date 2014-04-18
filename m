@@ -1,39 +1,186 @@
 From: Ley Foon Tan <lftan@altera.com>
-Subject: [PATCH 19/28] nios2: Device tree support
-Date: Fri, 18 Apr 2014 20:27:02 +0800
-Message-ID: <1397824031-4892-16-git-send-email-lftan@altera.com>
+Subject: [PATCH 22/28] nios2: Miscellaneous header files
+Date: Fri, 18 Apr 2014 20:27:05 +0800
+Message-ID: <1397824031-4892-19-git-send-email-lftan@altera.com>
 References: <1397824031-4892-1-git-send-email-lftan@altera.com>
 Mime-Version: 1.0
 Content-Type: text/plain
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-bn1bon0113.outbound.protection.outlook.com ([157.56.111.113]:60316
+	"EHLO na01-bn1-obe.outbound.protection.outlook.com"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1752726AbaDRMog (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 18 Apr 2014 08:44:36 -0400
 In-Reply-To: <1397824031-4892-1-git-send-email-lftan@altera.com>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org
 Cc: Ley Foon Tan <lftan@altera.com>, lftan.linux@gmail.com, cltang@codesourcery.com
-List-Id: linux-arch.vger.kernel.org
 
-Add device tree support to arch/nios2.
+This patch introduces a few nios2-specific header files.
 
 Signed-off-by: Ley Foon Tan <lftan@altera.com>
 ---
- arch/nios2/boot/dts/3c120_devboard.dts | 205 +++++++++++++++++++++++++++++++++
- arch/nios2/boot/linked_dtb.S           |  19 +++
- arch/nios2/include/asm/prom.h          |  26 +++++
- arch/nios2/kernel/prom.c               |  67 +++++++++++
- arch/nios2/platform/platform.c         |  69 +++++++++++
- 5 files changed, 386 insertions(+)
- create mode 100644 arch/nios2/boot/dts/3c120_devboard.dts
- create mode 100644 arch/nios2/boot/linked_dtb.S
- create mode 100644 arch/nios2/include/asm/prom.h
- create mode 100644 arch/nios2/kernel/prom.c
- create mode 100644 arch/nios2/platform/platform.c
+ arch/nios2/include/asm/cmpxchg.h        | 61 +++++++++++++++++++++++++++++++++
+ arch/nios2/include/asm/gpio.h           | 23 +++++++++++++
+ arch/nios2/include/asm/linkage.h        | 25 ++++++++++++++
+ arch/nios2/include/asm/mutex.h          |  1 +
+ arch/nios2/include/asm/pci.h            | 25 ++++++++++++++
+ arch/nios2/include/uapi/asm/byteorder.h | 22 ++++++++++++
+ arch/nios2/include/uapi/asm/stat.h      | 23 +++++++++++++
+ arch/nios2/include/uapi/asm/statfs.h    | 24 +++++++++++++
+ arch/nios2/include/uapi/asm/swab.h      | 37 ++++++++++++++++++++
+ 9 files changed, 241 insertions(+)
+ create mode 100644 arch/nios2/include/asm/cmpxchg.h
+ create mode 100644 arch/nios2/include/asm/gpio.h
+ create mode 100644 arch/nios2/include/asm/linkage.h
+ create mode 100644 arch/nios2/include/asm/mutex.h
+ create mode 100644 arch/nios2/include/asm/pci.h
+ create mode 100644 arch/nios2/include/uapi/asm/byteorder.h
+ create mode 100644 arch/nios2/include/uapi/asm/stat.h
+ create mode 100644 arch/nios2/include/uapi/asm/statfs.h
+ create mode 100644 arch/nios2/include/uapi/asm/swab.h
 
-diff --git a/arch/nios2/boot/dts/3c120_devboard.dts b/arch/nios2/boot/dts/3c120_devboard.dts
+diff --git a/arch/nios2/include/asm/cmpxchg.h b/arch/nios2/include/asm/cmpxchg.h
 new file mode 100644
-index 0000000..cad29a9
+index 0000000..8593871
 --- /dev/null
-+++ b/arch/nios2/boot/dts/3c120_devboard.dts
-@@ -0,0 +1,205 @@
++++ b/arch/nios2/include/asm/cmpxchg.h
+@@ -0,0 +1,61 @@
++/*
++ * Copyright (C) 2004 Microtronix Datacom Ltd.
++ *
++ * This file is subject to the terms and conditions of the GNU General Public
++ * License. See the file "COPYING" in the main directory of this archive
++ * for more details.
++ */
++
++#ifndef _ASM_NIOS2_CMPXCHG_H
++#define _ASM_NIOS2_CMPXCHG_H
++
++#include <linux/irqflags.h>
++
++#define xchg(ptr, x)	\
++	((__typeof__(*(ptr)))__xchg((unsigned long)(x), (ptr), sizeof(*(ptr))))
++
++struct __xchg_dummy { unsigned long a[100]; };
++#define __xg(x)		((volatile struct __xchg_dummy *)(x))
++
++static inline unsigned long __xchg(unsigned long x, volatile void *ptr,
++					int size)
++{
++	unsigned long tmp, flags;
++
++	local_irq_save(flags);
++
++	switch (size) {
++	case 1:
++		__asm__ __volatile__(
++			"ldb	%0, %2\n"
++			"stb	%1, %2\n"
++			: "=&r" (tmp)
++			: "r" (x), "m" (*__xg(ptr))
++			: "memory");
++		break;
++	case 2:
++		__asm__ __volatile__(
++			"ldh	%0, %2\n"
++			"sth	%1, %2\n"
++			: "=&r" (tmp)
++			: "r" (x), "m" (*__xg(ptr))
++			: "memory");
++		break;
++	case 4:
++		__asm__ __volatile__(
++			"ldw	%0, %2\n"
++			"stw	%1, %2\n"
++			: "=&r" (tmp)
++			: "r" (x), "m" (*__xg(ptr))
++			: "memory");
++		break;
++	}
++
++	local_irq_restore(flags);
++	return tmp;
++}
++
++#include <asm-generic/cmpxchg.h>
++#include <asm-generic/cmpxchg-local.h>
++
++#endif /* _ASM_NIOS2_CMPXCHG_H */
+diff --git a/arch/nios2/include/asm/gpio.h b/arch/nios2/include/asm/gpio.h
+new file mode 100644
+index 0000000..e726bfc946d4fcf1b54ce9dd46a59cf507171536
+--- /dev/null
++++ b/arch/nios2/include/asm/gpio.h
+@@ -0,0 +1,23 @@
++/*
++ * Copyright (C) 2013 Altera Corporation
++ *
++ * This program is free software; you can redistribute it and/or modify it
++ * under the terms and conditions of the GNU General Public License,
++ * version 2, as published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope it will be useful, but WITHOUT
++ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
++ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
++ * more details.
++ *
++ * You should have received a copy of the GNU General Public License along with
++ * this program.  If not, see <http://www.gnu.org/licenses/>.
++ *
++ */
++
++#ifndef _ASM_NIOS2_GPIO_H
++#define _ASM_NIOS2_GPIO_H
++
++#include <linux/gpio.h>
++
++#endif /* _ASM_NIOS2_GPIO_H */
+diff --git a/arch/nios2/include/asm/linkage.h b/arch/nios2/include/asm/linkage.h
+new file mode 100644
+index 0000000..e0c6decd7d58db8b37e0f4e060e6394b15eac76c
+--- /dev/null
++++ b/arch/nios2/include/asm/linkage.h
+@@ -0,0 +1,25 @@
++/*
++ * Copyright (C) 2009 Thomas Chou <thomas@wytron.com.tw>
++ *
++ * All rights reserved.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful, but
++ * WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE, GOOD TITLE or
++ * NON INFRINGEMENT.  See the GNU General Public License for more
++ * details.
++ */
++
++#ifndef _ASM_NIOS2_LINKAGE_H
++#define _ASM_NIOS2_LINKAGE_H
++
++/* This file is required by include/linux/linkage.h */
++#define __ALIGN .align 4
++#define __ALIGN_STR ".align 4"
++
++#endif
+diff --git a/arch/nios2/include/asm/mutex.h b/arch/nios2/include/asm/mutex.h
+new file mode 100644
+index 0000000..ff6101a
+--- /dev/null
++++ b/arch/nios2/include/asm/mutex.h
+@@ -0,0 +1 @@
++#include <asm-generic/mutex-dec.h>
+diff --git a/arch/nios2/include/asm/pci.h b/arch/nios2/include/asm/pci.h
+new file mode 100644
+index 0000000..69c86faffe17dfd3ba69db90787f859d88f55ea8
+--- /dev/null
++++ b/arch/nios2/include/asm/pci.h
+@@ -0,0 +1,25 @@
 +/*
 + *  Copyright (C) 2013 Altera Corporation
 + *
@@ -50,203 +197,24 @@ index 0000000..cad29a9
 + * You should have received a copy of the GNU General Public License
 + * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 + *
-+ * This file is generated by sopc2dts.
 + */
 +
-+/dts-v1/;
 +
-+/ {
-+	model = "ALTR,qsys_ghrd_3c120";
-+	compatible = "ALTR,qsys_ghrd_3c120";
-+	#address-cells = < 1 >;
-+	#size-cells = < 1 >;
++#ifndef __ASM_NIOS2_PCI_H__
++#define __ASM_NIOS2_PCI_H__
 +
-+	cpus {
-+		#address-cells = < 1 >;
-+		#size-cells = < 0 >;
++/* We don't support PCI yet, but some drivers require this file anyway */
 +
-+		cpu: cpu@0x0 {
-+			device_type = "cpu";
-+			compatible = "ALTR,nios2-1.0";
-+			reg = < 0x00000000 >;
-+			interrupt-controller;
-+			#interrupt-cells = < 1 >;
-+			clock-frequency = < 125000000 >;
-+			dcache-line-size = < 32 >;
-+			icache-line-size = < 32 >;
-+			dcache-size = < 32768 >;
-+			icache-size = < 32768 >;
-+			ALTR,implementation = "fast";
-+			ALTR,pid-num-bits = < 8 >;
-+			ALTR,tlb-num-ways = < 16 >;
-+			ALTR,tlb-num-entries = < 128 >;
-+			ALTR,tlb-ptr-sz = < 7 >;
-+			ALTR,has-div = < 1 >;
-+			ALTR,has-mul = < 1 >;
-+			ALTR,reset-addr = < 0xc2800000 >;
-+			ALTR,fast-tlb-miss-addr = < 0xc7fff400 >;
-+			ALTR,exception-addr = < 0xd0000020 >;
-+			ALTR,has-initda = < 1 >;
-+			ALTR,has-mmu = < 1 >;
-+		}; //end cpu@0x0 (cpu)
-+	}; //end cpus
-+
-+	memory@0 {
-+		device_type = "memory";
-+		reg = < 0x10000000 0x08000000
-+			0x07FFF400 0x00000400 >;
-+	}; //end memory@0
-+
-+	sopc@0 {
-+		device_type = "soc";
-+		ranges;
-+		#address-cells = < 1 >;
-+		#size-cells = < 1 >;
-+		compatible = "ALTR,avalon", "simple-bus";
-+		bus-frequency = < 125000000 >;
-+
-+		pb_cpu_to_io: bridge@0x8000000 {
-+			compatible = "simple-bus";
-+			reg = < 0x08000000 0x00800000 >;
-+			#address-cells = < 1 >;
-+			#size-cells = < 1 >;
-+			ranges = < 0x00400000 0x08400000 0x00000020
-+				0x00004D40 0x08004D40 0x00000008
-+				0x00004D50 0x08004D50 0x00000008
-+				0x00004000 0x08004000 0x00000400
-+				0x00004400 0x08004400 0x00000040
-+				0x00004800 0x08004800 0x00000040
-+				0x00002000 0x08002000 0x00002000
-+				0x00004C80 0x08004C80 0x00000020
-+				0x00004CC0 0x08004CC0 0x00000010
-+				0x00004CE0 0x08004CE0 0x00000010
-+				0x00004D00 0x08004D00 0x00000010 >;
-+
-+			timer_1ms: timer@0x400000 {
-+				compatible = "ALTR,timer-1.0";
-+				reg = < 0x00400000 0x00000020 >;
-+				interrupt-parent = < &cpu >;
-+				interrupts = < 11 >;
-+				clock-frequency = < 125000000 >;
-+			}; //end timer@0x400000 (timer_1ms)
-+
-+			sysid: sysid@0x4d40 {
-+				compatible = "ALTR,sysid-1.0";
-+				reg = < 0x00004D40 0x00000008 >;
-+				id = < 0 >;
-+				timestamp = < 1364882880 >;
-+			}; //end sysid@0x4d40 (sysid)
-+
-+			jtag_uart: serial@0x4d50 {
-+				compatible = "ALTR,juart-1.0";
-+				reg = < 0x00004D50 0x00000008 >;
-+				interrupt-parent = < &cpu >;
-+				interrupts = < 1 >;
-+			}; //end serial@0x4d50 (jtag_uart)
-+
-+			tse_mac: ethernet@0x4000 {
-+				compatible = "ALTR,tse-1.0";
-+				reg = < 0x00004000 0x00000400
-+					0x00004400 0x00000040
-+					0x00004800 0x00000040
-+					0x00002000 0x00002000 >;
-+                                reg-names = "control_port", "rx_csr", "tx_csr", "s1";
-+				interrupt-parent = < &cpu >;
-+				interrupts = < 2 3 >;
-+				interrupt-names = "rx_irq", "tx_irq";
-+				rx-fifo-depth = < 8192 >;
-+				tx-fifo-depth = < 8192 >;
-+				address-bits = < 48 >;
-+				max-frame-size = < 1518 >;
-+				local-mac-address = [ 02 00 00 00 00 00 ];
-+				phy-mode = "rgmii-id";
-+				ALTR,mii-id = < 0 >;
-+				phy-handle = < &phy0 >;
-+				tse_mac_mdio: mdio {
-+					compatible = "altr,tse-mdio";
-+					#address-cells = < 1 >;
-+					#size-cells = < 0 >;
-+					phy0: ethernet-phy@18 {
-+						reg = < 18 >;
-+						device_type = "ethernet-phy";
-+					};
-+				};
-+			}; //end ethernet@0x4000 (tse_mac)
-+
-+			uart: serial@0x4c80 {
-+				compatible = "ALTR,uart-1.0";
-+				reg = < 0x00004C80 0x00000020 >;
-+				interrupt-parent = < &cpu >;
-+				interrupts = < 10 >;
-+				current-speed = < 115200 >;
-+				clock-frequency = < 62500000 >;
-+			}; //end serial@0x4c80 (uart)
-+
-+			user_led_pio_8out: gpio@0x4cc0 {
-+				compatible = "ALTR,pio-1.0";
-+				reg = < 0x00004CC0 0x00000010 >;
-+				width = < 8 >;
-+				resetvalue = < 255 >;
-+				#gpio-cells = < 2 >;
-+				gpio-controller;
-+			}; //end gpio@0x4cc0 (user_led_pio_8out)
-+
-+			user_dipsw_pio_8in: gpio@0x4ce0 {
-+				compatible = "ALTR,pio-1.0";
-+				reg = < 0x00004CE0 0x00000010 >;
-+				interrupt-parent = < &cpu >;
-+				interrupts = < 8 >;
-+				width = < 8 >;
-+				resetvalue = < 0 >;
-+				edge_type = < 2 >;
-+				level_trigger = < 0 >;
-+				altr,interrupt_type = < 3 >;
-+				#gpio-cells = < 2 >;
-+				gpio-controller;
-+			}; //end gpio@0x4ce0 (user_dipsw_pio_8in)
-+
-+			user_pb_pio_4in: gpio@0x4d00 {
-+				compatible = "ALTR,pio-1.0";
-+				reg = < 0x00004D00 0x00000010 >;
-+				interrupt-parent = < &cpu >;
-+				interrupts = < 9 >;
-+				width = < 4 >;
-+				resetvalue = < 0 >;
-+				edge_type = < 2 >;
-+				level_trigger = < 0 >;
-+				altr,interrupt_type = < 3 >;
-+				#gpio-cells = < 2 >;
-+				gpio-controller;
-+			}; //end gpio@0x4d00 (user_pb_pio_4in)
-+		}; //end bridge@0x8000000 (pb_cpu_to_io)
-+
-+		cfi_flash_64m: flash@0x0 {
-+			compatible = "cfi-flash";
-+			reg = < 0x00000000 0x04000000 >;
-+			bank-width = < 2 >;
-+			device-width = < 1 >;
-+			#address-cells = < 1 >;
-+			#size-cells = < 1 >;
-+
-+			partition@800000 {
-+				reg = < 0x00800000 0x01E00000 >;
-+				label = "JFFS2 Filesystem";
-+			}; //end partition@800000
-+		}; //end flash@0x0 (cfi_flash_64m)
-+	}; //end sopc@0
-+
-+	chosen {
-+		bootargs = "debug console=ttyJ0,115200";
-+	}; //end chosen
-+}; //end /
-diff --git a/arch/nios2/boot/linked_dtb.S b/arch/nios2/boot/linked_dtb.S
++#endif /* __ASM_NIOS2_PCI_H__ */
+diff --git a/arch/nios2/include/uapi/asm/byteorder.h b/arch/nios2/include/uapi/asm/byteorder.h
 new file mode 100644
-index 0000000..071f922db338e2cb4064bc77bf346f50e584d04f
+index 0000000..3ab5dc20d757c3abe89775d0ba585f47d567d055
 --- /dev/null
-+++ b/arch/nios2/boot/linked_dtb.S
-@@ -0,0 +1,19 @@
++++ b/arch/nios2/include/uapi/asm/byteorder.h
+@@ -0,0 +1,22 @@
 +/*
-+ * Copyright (C) 2011 Thomas Chou <thomas@wytron.com.tw>
++ * Copyright (C) 2009   Thomas Chou <thomas@wytron.com.tw>
++ * Copyright (C) 2004   Microtronix Datacom Ltd
 + *
 + * This program is free software; you can redistribute it and/or modify
 + * it under the terms of the GNU General Public License as published by
@@ -258,191 +226,115 @@ index 0000000..071f922db338e2cb4064bc77bf346f50e584d04f
 + * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 + * GNU General Public License for more details.
 + *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
-+ *
-+ */
-+.section .dtb.init.rodata,"a"
-+.incbin "arch/nios2/boot/system.dtb"
-diff --git a/arch/nios2/include/asm/prom.h b/arch/nios2/include/asm/prom.h
-new file mode 100644
-index 0000000..7a71e4c50a42134ffceabd233f83b5d1c48917c1
---- /dev/null
-+++ b/arch/nios2/include/asm/prom.h
-@@ -0,0 +1,26 @@
-+/*
-+ *  Copyright (C) 2010 Thomas Chou <thomas@wytron.com.tw>
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License as published by
-+ * the Free Software Foundation; either version 2 of the License, or
-+ * (at your option) any later version.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
-+ *
 + */
 +
-+#ifndef _ASM_NIOS2_PROM_H
-+#define _ASM_NIOS2_PROM_H
++#ifndef _ASM_NIOS2_BYTEORDER_H
++#define _ASM_NIOS2_BYTEORDER_H
 +
-+extern int __dtb_start;
++#include <linux/byteorder/little_endian.h>
 +
-+extern unsigned long early_altera_uart_or_juart_console(void);
-+
-+#endif /* _ASM_NIOS2_PROM_H */
-diff --git a/arch/nios2/kernel/prom.c b/arch/nios2/kernel/prom.c
-new file mode 100644
-index 0000000..a2d8308b939c33496e1416253b37c018d88c0c7f
---- /dev/null
-+++ b/arch/nios2/kernel/prom.c
-@@ -0,0 +1,67 @@
-+/*
-+ * Device tree support
-+ *
-+ * Copyright (C) 2013 Altera Corporation
-+ * Copyright (C) 2010 Thomas Chou <thomas@wytron.com.tw>
-+ *
-+ * Based on MIPS support for CONFIG_OF device tree support
-+ *
-+ * Copyright (C) 2010 Cisco Systems Inc. <dediao@cisco.com>
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License as published by
-+ * the Free Software Foundation; either version 2 of the License, or
-+ * (at your option) any later version.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
-+ *
-+ */
-+
-+#include <linux/init.h>
-+#include <linux/types.h>
-+#include <linux/bootmem.h>
-+#include <linux/of.h>
-+#include <linux/of_fdt.h>
-+#include <linux/io.h>
-+
-+#include <asm/prom.h>
-+#include <asm/sections.h>
-+
-+void __init early_init_dt_add_memory_arch(u64 base, u64 size)
-+{
-+	u64 kernel_start = (u64)virt_to_phys(_text);
-+
-+	if (!memory_size &&
-+	    (kernel_start >= base) && (kernel_start < (base + size)))
-+		memory_size = size;
-+
-+	return;
-+}
-+
-+void * __init early_init_dt_alloc_memory_arch(u64 size, u64 align)
-+{
-+	return __alloc_bootmem(size, align, __pa(MAX_DMA_ADDRESS));
-+}
-+
-+void __init early_init_devtree(void *params)
-+{
-+	if (params && be32_to_cpup((__be32 *)params) == OF_DT_HEADER)
-+		initial_boot_params = params;
-+#if defined(CONFIG_NIOS2_DTB_AT_PHYS_ADDR)
-+	else if (be32_to_cpup((__be32 *)CONFIG_NIOS2_DTB_PHYS_ADDR) ==
-+		 OF_DT_HEADER)
-+		initial_boot_params = (void *)CONFIG_NIOS2_DTB_PHYS_ADDR;
 +#endif
-+	else if (be32_to_cpu((__be32)__dtb_start) == OF_DT_HEADER)
-+		initial_boot_params = (void *)&__dtb_start;
-+	else
-+		return;
-+
-+	early_init_dt_scan(initial_boot_params);
-+}
-diff --git a/arch/nios2/platform/platform.c b/arch/nios2/platform/platform.c
+diff --git a/arch/nios2/include/uapi/asm/stat.h b/arch/nios2/include/uapi/asm/stat.h
 new file mode 100644
-index 0000000..2e5b8f624f4d593a2d9bf544ea7cc06b076b44b4
+index 0000000..009f505da848ff388d55582984ff83f95ab395ad
 --- /dev/null
-+++ b/arch/nios2/platform/platform.c
-@@ -0,0 +1,69 @@
++++ b/arch/nios2/include/uapi/asm/stat.h
+@@ -0,0 +1,23 @@
 +/*
-+ * Copyright (C) 2013 Altera Corporation
-+ * Copyright (C) 2011 Thomas Chou
-+ * Copyright (C) 2011 Walter Goossens
++ * Copyright Altera Corporation (C) 2014. All rights reserved
++ *
++ * This program is free software; you can redistribute it and/or modify it
++ * under the terms and conditions of the GNU General Public License,
++ * version 2, as published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope it will be useful, but WITHOUT
++ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
++ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
++ * more details.
++ *
++ * You should have received a copy of the GNU General Public License along with
++ * this program.  If not, see <http://www.gnu.org/licenses/>.
++ *
++ */
++
++#ifndef _UAPI_ASM_NIOS2_STAT_H
++#define _UAPI_ASM_NIOS2_STAT_H
++
++#include <asm-generic/stat.h>
++
++#endif
+diff --git a/arch/nios2/include/uapi/asm/statfs.h b/arch/nios2/include/uapi/asm/statfs.h
+new file mode 100644
+index 0000000..625c86418dc807f196553bff2f25f8ac40474303
+--- /dev/null
++++ b/arch/nios2/include/uapi/asm/statfs.h
+@@ -0,0 +1,24 @@
++/*
++ * Copyright Altera Corporation (C) 2014. All rights reserved
++ *
++ * This program is free software; you can redistribute it and/or modify it
++ * under the terms and conditions of the GNU General Public License,
++ * version 2, as published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope it will be useful, but WITHOUT
++ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
++ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
++ * more details.
++ *
++ * You should have received a copy of the GNU General Public License along with
++ * this program.  If not, see <http://www.gnu.org/licenses/>.
++ *
++ */
++
++#ifndef _UAPI_ASM_NIOS2_STATFS_H
++#define _UAPI_ASM_NIOS2_STATFS_H
++
++#define __statfs_word __s32
++#include <asm-generic/statfs.h>
++
++#endif
+diff --git a/arch/nios2/include/uapi/asm/swab.h b/arch/nios2/include/uapi/asm/swab.h
+new file mode 100644
+index 0000000..b4e22ebaeb1792c2a703ebb235c5448f054685aa
+--- /dev/null
++++ b/arch/nios2/include/uapi/asm/swab.h
+@@ -0,0 +1,37 @@
++/*
++ * Copyright (C) 2012 Tobias Klauser <tklauser@distanz.ch>
++ * Copyright (C) 2011 Pyramid Technical Consultants, Inc.
 + *
 + * This file is subject to the terms and conditions of the GNU General
 + * Public License. See the file COPYING in the main directory of this
 + * archive for more details.
 + */
 +
-+#include <linux/init.h>
-+#include <linux/of_platform.h>
-+#include <linux/of_address.h>
-+#include <linux/of_fdt.h>
-+#include <linux/err.h>
-+#include <linux/slab.h>
-+#include <linux/sys_soc.h>
-+#include <linux/io.h>
++#ifndef _ASM_NIOS2_SWAB_H
++#define _ASM_NIOS2_SWAB_H
 +
-+#define NIOS2_ID_DEFAULT		(0x1)
-+#define NIOS2_REVISION_DEFAULT		(0x1)
++#include <linux/types.h>
++#include <asm-generic/swab.h>
 +
-+static struct of_device_id altera_of_bus_ids[] __initdata = {
-+	{ .compatible = "simple-bus", },
-+	{ .compatible = "altr,avalon", },
-+	{}
-+};
++#ifdef CONFIG_NIOS2_CI_SWAB_SUPPORT
++#ifdef __GNUC__
 +
-+static void __init nios2_soc_device_init(void)
++#define __nios2_swab(x)		\
++	__builtin_custom_ini(CONFIG_NIOS2_CI_SWAB_NO, (x))
++
++static inline __attribute__((const)) __u16 __arch_swab16(__u16 x)
 +{
-+	struct soc_device *soc_dev;
-+	struct soc_device_attribute *soc_dev_attr;
-+	const char *machine;
-+
-+	machine = of_flat_dt_get_machine_name();
-+	if (!machine)
-+		return;
-+
-+	soc_dev_attr = kzalloc(sizeof(*soc_dev_attr), GFP_KERNEL);
-+	if (!soc_dev_attr)
-+		return;
-+
-+	soc_dev_attr->soc_id = kasprintf(GFP_KERNEL, "%u", NIOS2_ID_DEFAULT);
-+	soc_dev_attr->revision = kasprintf(GFP_KERNEL, "%d",
-+		NIOS2_REVISION_DEFAULT);
-+	soc_dev_attr->machine = kasprintf(GFP_KERNEL, "%s", machine);
-+	soc_dev_attr->family = "Nios II";
-+
-+	soc_dev = soc_device_register(soc_dev_attr);
-+	if (IS_ERR_OR_NULL(soc_dev)) {
-+		kfree(soc_dev_attr->soc_id);
-+		kfree(soc_dev_attr->machine);
-+		kfree(soc_dev_attr->revision);
-+		kfree(soc_dev_attr);
-+		return;
-+	}
-+
-+	return;
++	return (__u16) __nios2_swab(((__u32) x) << 16);
 +}
++#define __arch_swab16 __arch_swab16
 +
-+static int __init nios2_device_probe(void)
++static inline __attribute__((const)) __u32 __arch_swab32(__u32 x)
 +{
-+	nios2_soc_device_init();
-+
-+	of_platform_bus_probe(NULL, altera_of_bus_ids, NULL);
-+	return 0;
++	return (__u32) __nios2_swab(x);
 +}
++#define __arch_swab32 __arch_swab32
 +
-+device_initcall(nios2_device_probe);
++#endif /* __GNUC__ */
++#endif /* CONFIG_NIOS2_CI_SWAB_SUPPORT */
++
++#endif /* _ASM_NIOS2_SWAB_H */
 -- 
 1.8.3.2
