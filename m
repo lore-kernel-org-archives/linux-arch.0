@@ -1,459 +1,338 @@
 From: Ley Foon Tan <lftan@altera.com>
-Subject: [PATCH 07/28] nios2: I/O Mapping
-Date: Sat, 19 Apr 2014 02:19:08 +0800
-Message-ID: <1397845149-3141-3-git-send-email-lftan@altera.com>
+Subject: [PATCH 14/28] nios2: DMA mapping API
+Date: Sat, 19 Apr 2014 02:19:09 +0800
+Message-ID: <1397845149-3141-4-git-send-email-lftan@altera.com>
 References: <1397824031-4892-1-git-send-email-lftan@altera.com>
  <1397845149-3141-1-git-send-email-lftan@altera.com>
 Mime-Version: 1.0
 Content-Type: text/plain
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from [207.46.100.106] ([207.46.100.106]:52327 "EHLO
-	na01-by2-obe.outbound.protection.outlook.com"
-	rhost-flags-FAIL-FAIL-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1751139AbaDRSVe (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 18 Apr 2014 14:21:34 -0400
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1397845149-3141-1-git-send-email-lftan@altera.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org
 Cc: Ley Foon Tan <lftan@altera.com>, lftan.linux@gmail.com, cltang@codesourcery.com
+List-Id: linux-arch.vger.kernel.org
 
-This patch adds several definitions for I/O accessors and ioremap().
+This patch adds support for the DMA mapping API.
 
 Signed-off-by: Ley Foon Tan <lftan@altera.com>
 ---
- arch/nios2/include/asm/io.h | 227 ++++++++++++++++++++++++++++++++++++++++++++
- arch/nios2/mm/ioremap.c     | 188 ++++++++++++++++++++++++++++++++++++
- 2 files changed, 415 insertions(+)
- create mode 100644 arch/nios2/include/asm/io.h
- create mode 100644 arch/nios2/mm/ioremap.c
+ arch/nios2/include/asm/dma-mapping.h | 113 +++++++++++++++++++++
+ arch/nios2/mm/dma-mapping.c          | 186 +++++++++++++++++++++++++++++++++++
+ 2 files changed, 299 insertions(+)
+ create mode 100644 arch/nios2/include/asm/dma-mapping.h
+ create mode 100644 arch/nios2/mm/dma-mapping.c
 
-diff --git a/arch/nios2/include/asm/io.h b/arch/nios2/include/asm/io.h
+diff --git a/arch/nios2/include/asm/dma-mapping.h b/arch/nios2/include/asm/dma-mapping.h
 new file mode 100644
-index 0000000..46f4a0438870070e50563a06b329e03e552bf83d
+index 0000000..28db1171247453e8c40f439e6752bf2a51937387
 --- /dev/null
-+++ b/arch/nios2/include/asm/io.h
-@@ -0,0 +1,227 @@
++++ b/arch/nios2/include/asm/dma-mapping.h
+@@ -0,0 +1,113 @@
 +/*
-+ * Copyright (C) 2010 Tobias Klauser <tklauser@distanz.ch>
-+ * Copyright (C) 2004 Microtronix Datacom Ltd.
-+ *
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License. See the file "COPYING" in the main directory of this archive
-+ * for more details.
-+ */
-+
-+#ifndef _ASM_NIOS2_IO_H
-+#define _ASM_NIOS2_IO_H
-+
-+#include <asm/pgtable-bits.h>
-+
-+#define IO_SPACE_LIMIT 0xffffffff
-+
-+#ifndef CONFIG_CC_OPTIMIZE_FOR_SIZE
-+# define __IO_USE_DUFFS
-+#endif
-+
-+#ifdef __IO_USE_DUFFS
-+
-+/* Use "Duff's Device" to unroll the loops. */
-+#define __IO_OUT_LOOP(a, b, l)				\
-+	do {						\
-+		if (l > 0) {				\
-+			int _n = (l + 7) / 8;		\
-+			switch (l % 8) {		\
-+			case 0:				\
-+				do {			\
-+					*a = *b++;	\
-+			case 7:				\
-+					*a = *b++;	\
-+			case 6:				\
-+					*a = *b++;	\
-+			case 5:				\
-+					*a = *b++;	\
-+			case 4:				\
-+					*a = *b++;	\
-+			case 3:				\
-+					*a = *b++;	\
-+			case 2:				\
-+					*a = *b++;	\
-+			case 1:				\
-+					*a = *b++;	\
-+				} while (--_n > 0);	\
-+			}				\
-+		}					\
-+	} while (0)
-+
-+#define __IO_IN_LOOP(a, b, l)				\
-+	do {						\
-+		if (l > 0) {				\
-+			int _n = (l + 7) / 8;		\
-+			switch (l % 8) {		\
-+			case 0:				\
-+				do {			\
-+					*b++ = *a;	\
-+			case 7:				\
-+					*b++ = *a;	\
-+			case 6:				\
-+					*b++ = *a;	\
-+			case 5:				\
-+					*b++ = *a;	\
-+			case 4:				\
-+					*b++ = *a;	\
-+			case 3:				\
-+					*b++ = *a;	\
-+			case 2:				\
-+					*b++ = *a;	\
-+			case 1:				\
-+					*b++ = *a;	\
-+				} while (--_n > 0);	\
-+			}				\
-+		}					\
-+	} while (0)
-+
-+#else /* __IO_USE_DUFFS */
-+
-+/* Use simple loops. */
-+#define __IO_OUT_LOOP(a, b, l)				\
-+	do {						\
-+		while (l--)				\
-+			*a = *b++;			\
-+	} while (0)
-+
-+#define __IO_IN_LOOP(a, b, l)				\
-+	do {						\
-+		while (l--)				\
-+			*b++ = *a;			\
-+	} while (0)
-+
-+#endif /* __IO_USE_DUFFS */
-+
-+static inline void io_outsb(unsigned int addr, const void *buf, int len)
-+{
-+	volatile unsigned char *ap = (volatile unsigned char *)addr;
-+	unsigned char *bp = (unsigned char *)buf;
-+	__IO_OUT_LOOP(ap, bp, len);
-+}
-+
-+static inline void io_outsw(unsigned int addr, const void *buf, int len)
-+{
-+	volatile unsigned short *ap = (volatile unsigned short *)addr;
-+	unsigned short *bp = (unsigned short *)buf;
-+	__IO_OUT_LOOP(ap, bp, len);
-+}
-+
-+static inline void io_outsl(unsigned int addr, const void *buf, int len)
-+{
-+	volatile unsigned int *ap = (volatile unsigned int *)addr;
-+	unsigned int *bp = (unsigned int *)buf;
-+	__IO_OUT_LOOP(ap, bp, len);
-+}
-+
-+static inline void io_insb(unsigned int addr, void *buf, int len)
-+{
-+	volatile unsigned char *ap = (volatile unsigned char *)addr;
-+	unsigned char *bp = (unsigned char *)buf;
-+	__IO_IN_LOOP(ap, bp, len);
-+}
-+
-+static inline void io_insw(unsigned int addr, void *buf, int len)
-+{
-+	volatile unsigned short *ap = (volatile unsigned short *)addr;
-+	unsigned short *bp = (unsigned short *)buf;
-+	__IO_IN_LOOP(ap, bp, len);
-+}
-+
-+static inline void io_insl(unsigned int addr, void *buf, int len)
-+{
-+	volatile unsigned int *ap = (volatile unsigned int *)addr;
-+	unsigned int *bp = (unsigned int *)buf;
-+	__IO_IN_LOOP(ap, bp, len);
-+}
-+
-+#undef __IO_OUT_LOOP
-+#undef __IO_IN_LOOP
-+#undef __IO_USE_DUFFS
-+
-+#define readb_relaxed(addr)	readb(addr)
-+#define readw_relaxed(addr)	readw(addr)
-+#define readl_relaxed(addr)	readl(addr)
-+
-+#define writeb_relaxed(x, addr)	writeb(x, addr)
-+#define writew_relaxed(x, addr)	writew(x, addr)
-+#define writel_relaxed(x, addr)	writel(x, addr)
-+
-+#define outsb(a, b, l)		io_outsb(a, b, l)
-+#define outsw(a, b, l)		io_outsw(a, b, l)
-+#define outsl(a, b, l)		io_outsl(a, b, l)
-+
-+#define insb(a, b, l)		io_insb(a, b, l)
-+#define insw(a, b, l)		io_insw(a, b, l)
-+#define insl(a, b, l)		io_insl(a, b, l)
-+
-+#include <asm-generic/io.h>
-+
-+/*
-+ *	make the short names macros so specific devices
-+ *	can override them as required
-+ */
-+#define inb(addr)		readb(addr)
-+#define inw(addr)		readw(addr)
-+#define inl(addr)		readl(addr)
-+#define outb(x, addr)		((void) writeb(x, addr))
-+#define outw(x, addr)		((void) writew(x, addr))
-+#define outl(x, addr)		((void) writel(x, addr))
-+
-+extern void __iomem *__ioremap(unsigned long physaddr, unsigned long size,
-+			unsigned long cacheflag);
-+extern void __iounmap(void __iomem *addr);
-+
-+static inline void __iomem *ioremap(unsigned long physaddr, unsigned long size)
-+{
-+	return __ioremap(physaddr, size, 0);
-+}
-+
-+static inline void __iomem *ioremap_nocache(unsigned long physaddr,
-+						unsigned long size)
-+{
-+	return __ioremap(physaddr, size, 0);
-+}
-+
-+static inline void __iomem *ioremap_writethrough(unsigned long physaddr,
-+						unsigned long size)
-+{
-+	return __ioremap(physaddr, size, 0);
-+}
-+
-+static inline void __iomem *ioremap_fullcache(unsigned long physaddr,
-+						unsigned long size)
-+{
-+	return __ioremap(physaddr, size, _PAGE_CACHED);
-+}
-+
-+static inline void iounmap(void __iomem *addr)
-+{
-+	__iounmap(addr);
-+}
-+
-+/* Pages to physical address... */
-+# define page_to_phys(page)	virt_to_phys(page_to_virt(page))
-+# define page_to_bus(page)	page_to_virt(page)
-+
-+/* Macros used for converting between virtual and physical mappings. */
-+# define phys_to_virt(vaddr)	\
-+	((void *)((unsigned long)(vaddr) | CONFIG_KERNEL_REGION_BASE))
-+/* Clear top 3 bits */
-+# define virt_to_phys(vaddr)	\
-+	((unsigned long)((unsigned long)(vaddr) & ~0xE0000000))
-+
-+#define virt_to_bus virt_to_phys
-+#define bus_to_virt phys_to_virt
-+
-+#define ioport_map(port, nr)	ioremap(port, nr)
-+#define ioport_unmap(port)	iounmap(port)
-+
-+/* Macros used for smc91x.c driver */
-+#define readsb(p, d, l)		insb(p, d, l)
-+#define readsw(p, d, l)		insw(p, d, l)
-+#define readsl(p, d, l)		insl(p, d, l)
-+#define writesb(p, d, l)	outsb(p, d, l)
-+#define writesw(p, d, l)	outsw(p, d, l)
-+#define writesl(p, d, l)	outsl(p, d, l)
-+
-+#endif /* _ASM_NIOS2_IO_H */
-diff --git a/arch/nios2/mm/ioremap.c b/arch/nios2/mm/ioremap.c
-new file mode 100644
-index 0000000..596b0c0
---- /dev/null
-+++ b/arch/nios2/mm/ioremap.c
-@@ -0,0 +1,188 @@
-+/*
-+ * Copyright (C) 2010 Tobias Klauser <tklauser@distanz.ch>
++ * Copyright (C) 2011 Tobias Klauser <tklauser@distanz.ch>
 + * Copyright (C) 2009 Wind River Systems Inc
-+ *   Implemented by fredrik.markstrom@gmail.com and ivarholmqvist@gmail.com
-+ * Copyright (C) 2004 Microtronix Datacom Ltd.
 + *
-+ * based on arch/m68knommu/mm/kmap.c
-+ *
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License. See the file "COPYING" in the main directory of this archive
-+ * for more details.
++ * This file is subject to the terms and conditions of the GNU General
++ * Public License.  See the file COPYING in the main directory of this
++ * archive for more details.
 + */
 +
-+#include <linux/export.h>
-+#include <linux/sched.h>
-+#include <linux/mm.h>
-+#include <linux/slab.h>
-+#include <linux/vmalloc.h>
-+#include <linux/io.h>
++#ifndef _ASM_NIOS2_DMA_MAPPING_H
++#define _ASM_NIOS2_DMA_MAPPING_H
 +
++#include <linux/scatterlist.h>
++#include <linux/cache.h>
 +#include <asm/cacheflush.h>
-+#include <asm/tlbflush.h>
 +
-+static inline void remap_area_pte(pte_t *pte, unsigned long address,
-+				unsigned long size, unsigned long phys_addr,
-+				unsigned long flags)
++static inline void __dma_sync(void *vaddr, size_t size,
++			      enum dma_data_direction direction)
 +{
-+	unsigned long end;
-+	unsigned long pfn;
-+	pgprot_t pgprot = __pgprot(_PAGE_GLOBAL | _PAGE_PRESENT | _PAGE_READ
-+				| _PAGE_WRITE | flags);
-+
-+	address &= ~PMD_MASK;
-+	end = address + size;
-+	if (end > PMD_SIZE)
-+		end = PMD_SIZE;
-+	if (address >= end)
++	switch (direction) {
++	case DMA_FROM_DEVICE:	/* invalidate cache */
++		invalidate_dcache_range((unsigned long)vaddr,
++			(unsigned long)(vaddr + size));
++		break;
++	case DMA_TO_DEVICE:	/* flush and invalidate cache */
++	case DMA_BIDIRECTIONAL:
++		flush_dcache_range((unsigned long)vaddr,
++			(unsigned long)(vaddr + size));
++		break;
++	default:
 +		BUG();
-+	pfn = PFN_DOWN(phys_addr);
-+	do {
-+		if (!pte_none(*pte)) {
-+			pr_err("remap_area_pte: page already exists\n");
-+			BUG();
-+		}
-+		set_pte(pte, pfn_pte(pfn, pgprot));
-+		address += PAGE_SIZE;
-+		pfn++;
-+		pte++;
-+	} while (address && (address < end));
++	}
 +}
 +
-+static inline int remap_area_pmd(pmd_t *pmd, unsigned long address,
-+				unsigned long size, unsigned long phys_addr,
-+				unsigned long flags)
-+{
-+	unsigned long end;
++#define dma_alloc_noncoherent(d, s, h, f) dma_alloc_coherent(d, s, h, f)
++#define dma_free_noncoherent(d, s, v, h) dma_free_coherent(d, s, v, h)
 +
-+	address &= ~PGDIR_MASK;
-+	end = address + size;
-+	if (end > PGDIR_SIZE)
-+		end = PGDIR_SIZE;
-+	phys_addr -= address;
-+	if (address >= end)
-+		BUG();
-+	do {
-+		pte_t *pte = pte_alloc_kernel(pmd, address);
-+		if (!pte)
-+			return -ENOMEM;
-+		remap_area_pte(pte, address, end - address, address + phys_addr,
-+			flags);
-+		address = (address + PMD_SIZE) & PMD_MASK;
-+		pmd++;
-+	} while (address && (address < end));
++void *dma_alloc_coherent(struct device *dev, size_t size,
++			   dma_addr_t *dma_handle, gfp_t flag);
++
++void dma_free_coherent(struct device *dev, size_t size,
++			 void *vaddr, dma_addr_t dma_handle);
++
++static inline dma_addr_t dma_map_single(struct device *dev, void *ptr,
++					size_t size,
++					enum dma_data_direction direction)
++{
++	__dma_sync(ptr, size, direction);
++	return virt_to_phys(ptr);
++}
++
++static inline void dma_unmap_single(struct device *dev, dma_addr_t dma_addr,
++				size_t size, enum dma_data_direction direction)
++{
++}
++
++extern int dma_map_sg(struct device *dev, struct scatterlist *sg, int nents,
++	enum dma_data_direction direction);
++extern dma_addr_t dma_map_page(struct device *dev, struct page *page,
++	unsigned long offset, size_t size, enum dma_data_direction direction);
++extern void dma_unmap_page(struct device *dev, dma_addr_t dma_address,
++	size_t size, enum dma_data_direction direction);
++extern void dma_unmap_sg(struct device *dev, struct scatterlist *sg,
++	int nhwentries, enum dma_data_direction direction);
++extern void dma_sync_single_for_cpu(struct device *dev, dma_addr_t dma_handle,
++	size_t size, enum dma_data_direction direction);
++extern void dma_sync_single_for_device(struct device *dev,
++	dma_addr_t dma_handle, size_t size, enum dma_data_direction direction);
++extern void dma_sync_single_range_for_cpu(struct device *dev,
++	dma_addr_t dma_handle, unsigned long offset, size_t size,
++	enum dma_data_direction direction);
++extern void dma_sync_single_range_for_device(struct device *dev,
++	dma_addr_t dma_handle, unsigned long offset, size_t size,
++	enum dma_data_direction direction);
++extern void dma_sync_sg_for_cpu(struct device *dev, struct scatterlist *sg,
++	int nelems, enum dma_data_direction direction);
++extern void dma_sync_sg_for_device(struct device *dev, struct scatterlist *sg,
++	int nelems, enum dma_data_direction direction);
++
++static inline int dma_supported(struct device *dev, u64 mask)
++{
++	/* we fall back to GFP_DMA when the mask isn't all 1s,
++	 * so we can't guarantee allocations that must be
++	 * within a tighter range than GFP_DMA.
++	 */
++	if (mask < 0x00ffffff)
++		return 0;
++
++	return 1;
++}
++
++static inline int dma_set_mask(struct device *dev, u64 mask)
++{
++	if (!dev->dma_mask || !dma_supported(dev, mask))
++		return -EIO;
++
++	*dev->dma_mask = mask;
++
 +	return 0;
 +}
 +
-+static int remap_area_pages(unsigned long address, unsigned long phys_addr,
-+				unsigned long size, unsigned long flags)
++static inline int dma_mapping_error(struct device *dev, dma_addr_t dma_addr)
 +{
-+	int error;
-+	pgd_t *dir;
-+	unsigned long end = address + size;
-+
-+	phys_addr -= address;
-+	dir = pgd_offset(&init_mm, address);
-+	flush_cache_all();
-+	if (address >= end)
-+		BUG();
-+	do {
-+		pud_t *pud;
-+		pmd_t *pmd;
-+
-+		error = -ENOMEM;
-+		pud = pud_alloc(&init_mm, dir, address);
-+		if (!pud)
-+			break;
-+		pmd = pmd_alloc(&init_mm, pud, address);
-+		if (!pmd)
-+			break;
-+		if (remap_area_pmd(pmd, address, end - address,
-+			phys_addr + address, flags))
-+			break;
-+		error = 0;
-+		address = (address + PGDIR_SIZE) & PGDIR_MASK;
-+		dir++;
-+	} while (address && (address < end));
-+	flush_tlb_all();
-+	return error;
++	return 0;
 +}
 +
-+#define IS_MAPPABLE_UNCACHEABLE(addr) (addr < 0x20000000UL)
-+
-+/*
-+ * Map some physical address range into the kernel address space.
-+ */
-+void __iomem *__ioremap(unsigned long phys_addr, unsigned long size,
-+			unsigned long cacheflag)
++static inline void dma_cache_sync(struct device *dev, void *vaddr, size_t size,
++				  enum dma_data_direction direction)
 +{
-+	struct vm_struct *area;
-+	unsigned long offset;
-+	unsigned long last_addr;
++	__dma_sync(vaddr, size, direction);
++}
++
++#endif /* _ASM_NIOS2_DMA_MAPPING_H */
+diff --git a/arch/nios2/mm/dma-mapping.c b/arch/nios2/mm/dma-mapping.c
+new file mode 100644
+index 0000000..a9bafe9f5b5c65442e5fafa9b043e529cf6b6e54
+--- /dev/null
++++ b/arch/nios2/mm/dma-mapping.c
+@@ -0,0 +1,186 @@
++/*
++ * Copyright (C) 2011 Tobias Klauser <tklauser@distanz.ch>
++ * Copyright (C) 2009 Wind River Systems Inc
++ *  Implemented by fredrik.markstrom@gmail.com and ivarholmqvist@gmail.com
++ *
++ * Based on DMA code from MIPS.
++ *
++ * This file is subject to the terms and conditions of the GNU General Public
++ * License.  See the file "COPYING" in the main directory of this archive
++ * for more details.
++ */
++
++#include <linux/types.h>
++#include <linux/mm.h>
++#include <linux/export.h>
++#include <linux/string.h>
++#include <linux/scatterlist.h>
++#include <linux/dma-mapping.h>
++#include <linux/io.h>
++#include <linux/cache.h>
++#include <asm/cacheflush.h>
++
++
++void *dma_alloc_coherent(struct device *dev, size_t size,
++			    dma_addr_t *dma_handle, gfp_t gfp)
++{
++	void *ret;
++
++	/* ignore region specifiers */
++	gfp &= ~(__GFP_DMA | __GFP_HIGHMEM);
++
++	/* optimized page clearing */
++	gfp |= __GFP_ZERO;
++
++	if (dev == NULL || (dev->coherent_dma_mask < 0xffffffff))
++		gfp |= GFP_DMA;
++
++	ret = (void *) __get_free_pages(gfp, get_order(size));
++	if (ret != NULL) {
++		*dma_handle = virt_to_phys(ret);
++		flush_dcache_range((unsigned long) ret,
++			(unsigned long) ret + size);
++		ret = UNCAC_ADDR(ret);
++	}
++
++	return ret;
++}
++EXPORT_SYMBOL(dma_alloc_coherent);
++
++void dma_free_coherent(struct device *dev, size_t size, void *vaddr,
++			dma_addr_t dma_handle)
++{
++	unsigned long addr = (unsigned long) CAC_ADDR((unsigned long) vaddr);
++	free_pages(addr, get_order(size));
++}
++EXPORT_SYMBOL(dma_free_coherent);
++
++int dma_map_sg(struct device *dev, struct scatterlist *sg, int nents,
++		enum dma_data_direction direction)
++{
++	int i;
++
++	BUG_ON(!valid_dma_direction(direction));
++
++	for_each_sg(sg, sg, nents, i) {
++		void *addr;
++
++		addr = sg_virt(sg);
++		if (addr) {
++			__dma_sync(addr, sg->length, direction);
++			sg->dma_address = sg_phys(sg);
++		}
++	}
++
++	return nents;
++}
++EXPORT_SYMBOL(dma_map_sg);
++
++dma_addr_t dma_map_page(struct device *dev, struct page *page,
++			unsigned long offset, size_t size,
++			enum dma_data_direction direction)
++{
 +	void *addr;
 +
-+	/* Don't allow wraparound or zero size */
-+	last_addr = phys_addr + size - 1;
++	BUG_ON(!valid_dma_direction(direction));
 +
-+	if (!size || last_addr < phys_addr)
-+		return NULL;
++	addr = page_address(page) + offset;
++	__dma_sync(addr, size, direction);
 +
-+	/* Don't allow anybody to remap normal RAM that we're using */
-+	if (phys_addr > PHYS_OFFSET && phys_addr < virt_to_phys(high_memory)) {
-+		char *t_addr, *t_end;
-+		struct page *page;
-+
-+		t_addr = __va(phys_addr);
-+		t_end = t_addr + (size - 1);
-+		for (page = virt_to_page(t_addr);
-+			page <= virt_to_page(t_end); page++)
-+			if (!PageReserved(page))
-+				return NULL;
-+	}
-+
-+	/*
-+	 * Map uncached objects in the low part of address space to
-+	 * CONFIG_IO_REGION_BASE
-+	 */
-+	if (IS_MAPPABLE_UNCACHEABLE(phys_addr) &&
-+	    IS_MAPPABLE_UNCACHEABLE(last_addr) &&
-+	    !(cacheflag & _PAGE_CACHED))
-+		return (void __iomem *)(CONFIG_IO_REGION_BASE + phys_addr);
-+
-+	/* Mappings have to be page-aligned */
-+	offset = phys_addr & ~PAGE_MASK;
-+	phys_addr &= PAGE_MASK;
-+	size = PAGE_ALIGN(last_addr + 1) - phys_addr;
-+
-+	/* Ok, go for it */
-+	area = get_vm_area(size, VM_IOREMAP);
-+	if (!area)
-+		return NULL;
-+	addr = area->addr;
-+	if (remap_area_pages((unsigned long) addr, phys_addr, size,
-+		cacheflag)) {
-+		vunmap(addr);
-+		return NULL;
-+	}
-+	return (void __iomem *) (offset + (char *)addr);
++	return page_to_phys(page) + offset;
 +}
-+EXPORT_SYMBOL(__ioremap);
++EXPORT_SYMBOL(dma_map_page);
 +
-+/*
-+ * __iounmap unmaps nearly everything, so be careful
-+ * it doesn't free currently pointer/page tables anymore but it
-+ * wasn't used anyway and might be added later.
-+ */
-+void __iounmap(void __iomem *addr)
++void dma_unmap_page(struct device *dev, dma_addr_t dma_address, size_t size,
++		    enum dma_data_direction direction)
 +{
-+	struct vm_struct *p;
++	BUG_ON(!valid_dma_direction(direction));
 +
-+	if ((unsigned long) addr > CONFIG_IO_REGION_BASE)
++	if (direction != DMA_TO_DEVICE)
++		__dma_sync(phys_to_virt(dma_address), size, direction);
++}
++EXPORT_SYMBOL(dma_unmap_page);
++
++void dma_unmap_sg(struct device *dev, struct scatterlist *sg, int nhwentries,
++		  enum dma_data_direction direction)
++{
++	void *addr;
++	int i;
++
++	BUG_ON(!valid_dma_direction(direction));
++
++	if (direction == DMA_TO_DEVICE)
 +		return;
 +
-+	p = remove_vm_area((void *) (PAGE_MASK & (unsigned long __force) addr));
-+	if (!p)
-+		pr_err("iounmap: bad address %p\n", addr);
-+	kfree(p);
++	for_each_sg(sg, sg, nhwentries, i) {
++		addr = sg_virt(sg);
++		if (addr)
++			__dma_sync(addr, sg->length, direction);
++	}
 +}
-+EXPORT_SYMBOL(__iounmap);
++EXPORT_SYMBOL(dma_unmap_sg);
++
++void dma_sync_single_for_cpu(struct device *dev, dma_addr_t dma_handle,
++			     size_t size, enum dma_data_direction direction)
++{
++	BUG_ON(!valid_dma_direction(direction));
++
++	__dma_sync(phys_to_virt(dma_handle), size, direction);
++}
++EXPORT_SYMBOL(dma_sync_single_for_cpu);
++
++void dma_sync_single_for_device(struct device *dev, dma_addr_t dma_handle,
++				size_t size, enum dma_data_direction direction)
++{
++	BUG_ON(!valid_dma_direction(direction));
++
++	__dma_sync(phys_to_virt(dma_handle), size, direction);
++}
++EXPORT_SYMBOL(dma_sync_single_for_device);
++
++void dma_sync_single_range_for_cpu(struct device *dev, dma_addr_t dma_handle,
++					unsigned long offset, size_t size,
++					enum dma_data_direction direction)
++{
++	BUG_ON(!valid_dma_direction(direction));
++
++	__dma_sync(phys_to_virt(dma_handle), size, direction);
++}
++EXPORT_SYMBOL(dma_sync_single_range_for_cpu);
++
++void dma_sync_single_range_for_device(struct device *dev, dma_addr_t dma_handle,
++					unsigned long offset, size_t size,
++					enum dma_data_direction direction)
++{
++	BUG_ON(!valid_dma_direction(direction));
++
++	__dma_sync(phys_to_virt(dma_handle), size, direction);
++}
++EXPORT_SYMBOL(dma_sync_single_range_for_device);
++
++void dma_sync_sg_for_cpu(struct device *dev, struct scatterlist *sg, int nelems,
++			 enum dma_data_direction direction)
++{
++	int i;
++
++	BUG_ON(!valid_dma_direction(direction));
++
++	/* Make sure that gcc doesn't leave the empty loop body.  */
++	for_each_sg(sg, sg, nelems, i)
++		__dma_sync(sg_virt(sg), sg->length, direction);
++}
++EXPORT_SYMBOL(dma_sync_sg_for_cpu);
++
++void dma_sync_sg_for_device(struct device *dev, struct scatterlist *sg,
++				int nelems, enum dma_data_direction direction)
++{
++	int i;
++
++	BUG_ON(!valid_dma_direction(direction));
++
++	/* Make sure that gcc doesn't leave the empty loop body.  */
++	for_each_sg(sg, sg, nelems, i)
++		__dma_sync(sg_virt(sg), sg->length, direction);
++
++}
++EXPORT_SYMBOL(dma_sync_sg_for_device);
 -- 
 1.8.3.2
