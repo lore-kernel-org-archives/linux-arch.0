@@ -1,36 +1,46 @@
 From: Ley Foon Tan <lftan@altera.com>
-Subject: [PATCH 11/28] nios2: Cache handling
-Date: Fri, 18 Apr 2014 20:26:55 +0800
-Message-ID: <1397824031-4892-9-git-send-email-lftan@altera.com>
+Subject: [PATCH 02/28] nios2: Assembly macros and definitions
+Date: Fri, 18 Apr 2014 20:26:49 +0800
+Message-ID: <1397824031-4892-3-git-send-email-lftan@altera.com>
 References: <1397824031-4892-1-git-send-email-lftan@altera.com>
 Mime-Version: 1.0
 Content-Type: text/plain
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-by2on0108.outbound.protection.outlook.com ([207.46.100.108]:11132
+	"EHLO na01-by2-obe.outbound.protection.outlook.com"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1752326AbaDRMmf (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 18 Apr 2014 08:42:35 -0400
 In-Reply-To: <1397824031-4892-1-git-send-email-lftan@altera.com>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org
 Cc: Ley Foon Tan <lftan@altera.com>, lftan.linux@gmail.com, cltang@codesourcery.com
-List-Id: linux-arch.vger.kernel.org
 
-This patch adds functionality required for cache maintenance.
+This patch add assembly macros and definitions used in
+the .S files across arch/nios2/ and together with asm-offsets.c.
 
 Signed-off-by: Ley Foon Tan <lftan@altera.com>
 ---
- arch/nios2/include/asm/cache.h      |  36 +++++
- arch/nios2/include/asm/cacheflush.h |  48 +++++++
- arch/nios2/mm/cacheflush.c          | 255 ++++++++++++++++++++++++++++++++++++
- 3 files changed, 339 insertions(+)
- create mode 100644 arch/nios2/include/asm/cache.h
- create mode 100644 arch/nios2/include/asm/cacheflush.h
- create mode 100644 arch/nios2/mm/cacheflush.c
+ arch/nios2/include/asm/asm-macros.h  | 309 +++++++++++++++++++++++++++++++++++
+ arch/nios2/include/asm/asm-offsets.h |  20 +++
+ arch/nios2/kernel/asm-offsets.c      |  88 ++++++++++
+ 3 files changed, 417 insertions(+)
+ create mode 100644 arch/nios2/include/asm/asm-macros.h
+ create mode 100644 arch/nios2/include/asm/asm-offsets.h
+ create mode 100644 arch/nios2/kernel/asm-offsets.c
 
-diff --git a/arch/nios2/include/asm/cache.h b/arch/nios2/include/asm/cache.h
+diff --git a/arch/nios2/include/asm/asm-macros.h b/arch/nios2/include/asm/asm-macros.h
 new file mode 100644
-index 0000000..2293cf57e307a6b84e3972c2d27221dda54af500
+index 0000000..29fa2e4d7b009da93a362731a278bc5296c70f25
 --- /dev/null
-+++ b/arch/nios2/include/asm/cache.h
-@@ -0,0 +1,36 @@
++++ b/arch/nios2/include/asm/asm-macros.h
+@@ -0,0 +1,309 @@
 +/*
++ * Macro used to simplify coding multi-line assembler.
++ * Some of the bit test macro can simplify down to one line
++ * depending on the mask value.
++ *
 + * Copyright (C) 2004 Microtronix Datacom Ltd.
 + *
 + * All rights reserved.
@@ -45,341 +55,415 @@ index 0000000..2293cf57e307a6b84e3972c2d27221dda54af500
 + * MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE, GOOD TITLE or
 + * NON INFRINGEMENT.  See the GNU General Public License for more
 + * details.
++ *
 + */
-+
-+#ifndef _ASM_NIOS2_CACHE_H
-+#define _ASM_NIOS2_CACHE_H
-+
-+#define NIOS2_DCACHE_SIZE	CONFIG_NIOS2_DCACHE_SIZE
-+#define NIOS2_ICACHE_SIZE	CONFIG_NIOS2_ICACHE_SIZE
-+#define NIOS2_DCACHE_LINE_SIZE	CONFIG_NIOS2_DCACHE_LINE_SIZE
-+#define NIOS2_ICACHE_LINE_SHIFT	5
-+#define NIOS2_ICACHE_LINE_SIZE	(1 << NIOS2_ICACHE_LINE_SHIFT)
-+
-+/* bytes per L1 cache line */
-+#define L1_CACHE_SHIFT		NIOS2_ICACHE_LINE_SHIFT
-+#define L1_CACHE_BYTES		NIOS2_ICACHE_LINE_SIZE
-+
-+#define ARCH_DMA_MINALIGN	L1_CACHE_BYTES
-+
-+#define __cacheline_aligned
-+#define ____cacheline_aligned
-+
-+#endif
-diff --git a/arch/nios2/include/asm/cacheflush.h b/arch/nios2/include/asm/cacheflush.h
-new file mode 100644
-index 0000000..ce2605a8c44de7e33686f9021b2b6736e94455a2
---- /dev/null
-+++ b/arch/nios2/include/asm/cacheflush.h
-@@ -0,0 +1,48 @@
++#ifndef _ASM_NIOS2_ASMMACROS_H
++#define _ASM_NIOS2_ASMMACROS_H
 +/*
-+ * Copyright (C) 2003 Microtronix Datacom Ltd.
-+ * Copyright (C) 2000-2002 Greg Ungerer <gerg@snapgear.com>
++ * ANDs reg2 with mask and places the result in reg1.
 + *
-+ * Ported from m68knommu.
-+ *
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License. See the file "COPYING" in the main directory of this archive
-+ * for more details.
++ * You cannnot use the same register for reg1 & reg2.
 + */
 +
-+#ifndef _ASM_NIOS2_CACHEFLUSH_H
-+#define _ASM_NIOS2_CACHEFLUSH_H
++.macro ANDI32	reg1, reg2, mask
++.if \mask & 0xffff
++	.if \mask & 0xffff0000
++		movhi	\reg1, %hi(\mask)
++		movui	\reg1, %lo(\mask)
++		and	\reg1, \reg1, \reg2
++	.else
++		andi	\reg1, \reg2, %lo(\mask)
++	.endif
++.else
++	andhi	\reg1, \reg2, %hi(\mask)
++.endif
++.endm
 +
-+#include <linux/mm_types.h>
-+
-+struct mm_struct;
-+
-+extern void flush_cache_all(void);
-+extern void flush_cache_mm(struct mm_struct *mm);
-+extern void flush_cache_dup_mm(struct mm_struct *mm);
-+extern void flush_cache_range(struct vm_area_struct *vma, unsigned long start,
-+	unsigned long end);
-+extern void flush_cache_page(struct vm_area_struct *vma, unsigned long vmaddr,
-+	unsigned long pfn);
-+#define ARCH_IMPLEMENTS_FLUSH_DCACHE_PAGE 1
-+extern void flush_dcache_page(struct page *page);
-+
-+extern void flush_icache_range(unsigned long start, unsigned long end);
-+extern void flush_icache_page(struct vm_area_struct *vma, struct page *page);
-+
-+#define flush_cache_vmap(start, end)		flush_dcache_range(start, end)
-+#define flush_cache_vunmap(start, end)		flush_dcache_range(start, end)
-+
-+extern void copy_to_user_page(struct vm_area_struct *vma, struct page *page,
-+				unsigned long user_vaddr,
-+				void *dst, void *src, int len);
-+extern void copy_from_user_page(struct vm_area_struct *vma, struct page *page,
-+				unsigned long user_vaddr,
-+				void *dst, void *src, int len);
-+
-+extern void flush_dcache_range(unsigned long start, unsigned long end);
-+extern void invalidate_dcache_range(unsigned long start, unsigned long end);
-+
-+#define flush_dcache_mmap_lock(mapping)		do { } while (0)
-+#define flush_dcache_mmap_unlock(mapping)	do { } while (0)
-+
-+#endif /* _ASM_NIOS2_CACHEFLUSH_H */
-diff --git a/arch/nios2/mm/cacheflush.c b/arch/nios2/mm/cacheflush.c
-new file mode 100644
-index 0000000..0c4d0d416f8f603f92b66017d100d3388f3d04c1
---- /dev/null
-+++ b/arch/nios2/mm/cacheflush.c
-@@ -0,0 +1,255 @@
 +/*
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License.  See the file "COPYING" in the main directory of this archive
-+ * for more details.
++ * ORs reg2 with mask and places the result in reg1.
 + *
-+ * Copyright (C) 2009, Wind River Systems Inc
-+ * Implemented by fredrik.markstrom@gmail.com and ivarholmqvist@gmail.com
++ * It is safe to use the same register for reg1 & reg2.
 + */
 +
-+#include <linux/export.h>
++.macro ORI32	reg1, reg2, mask
++.if \mask & 0xffff
++	.if \mask & 0xffff0000
++		orhi	\reg1, \reg2, %hi(\mask)
++		ori	\reg1, \reg2, %lo(\mask)
++	.else
++		ori	\reg1, \reg2, %lo(\mask)
++	.endif
++.else
++	orhi	\reg1, \reg2, %hi(\mask)
++.endif
++.endm
++
++/*
++ * XORs reg2 with mask and places the result in reg1.
++ *
++ * It is safe to use the same register for reg1 & reg2.
++ */
++
++.macro XORI32	reg1, reg2, mask
++.if \mask & 0xffff
++	.if \mask & 0xffff0000
++		xorhi	\reg1, \reg2, %hi(\mask)
++		xori	\reg1, \reg1, %lo(\mask)
++	.else
++		xori	\reg1, \reg2, %lo(\mask)
++	.endif
++.else
++	xorhi	\reg1, \reg2, %hi(\mask)
++.endif
++.endm
++
++/*
++ * This is a support macro for BTBZ & BTBNZ.  It checks
++ * the bit to make sure it is valid 32 value.
++ *
++ * It is safe to use the same register for reg1 & reg2.
++ */
++
++.macro BT	reg1, reg2, bit
++.if \bit > 31
++	.err
++.else
++	.if \bit < 16
++		andi	\reg1, \reg2, (1 << \bit)
++	.else
++		andhi	\reg1, \reg2, (1 << (\bit - 16))
++	.endif
++.endif
++.endm
++
++/*
++ * Tests the bit in reg2 and branches to label if the
++ * bit is zero.  The result of the bit test is stored in reg1.
++ *
++ * It is safe to use the same register for reg1 & reg2.
++ */
++
++.macro BTBZ	reg1, reg2, bit, label
++	BT	\reg1, \reg2, \bit
++	beq	\reg1, r0, \label
++.endm
++
++/*
++ * Tests the bit in reg2 and branches to label if the
++ * bit is non-zero.  The result of the bit test is stored in reg1.
++ *
++ * It is safe to use the same register for reg1 & reg2.
++ */
++
++.macro BTBNZ	reg1, reg2, bit, label
++	BT	\reg1, \reg2, \bit
++	bne	\reg1, r0, \label
++.endm
++
++/*
++ * Tests the bit in reg2 and then compliments the bit in reg2.
++ * The result of the bit test is stored in reg1.
++ *
++ * It is NOT safe to use the same register for reg1 & reg2.
++ */
++
++.macro BTC	reg1, reg2, bit
++.if \bit > 31
++	.err
++.else
++	.if \bit < 16
++		andi	\reg1, \reg2, (1 << \bit)
++		xori	\reg2, \reg2, (1 << \bit)
++	.else
++		andhi	\reg1, \reg2, (1 << (\bit - 16))
++		xorhi	\reg2, \reg2, (1 << (\bit - 16))
++	.endif
++.endif
++.endm
++
++/*
++ * Tests the bit in reg2 and then sets the bit in reg2.
++ * The result of the bit test is stored in reg1.
++ *
++ * It is NOT safe to use the same register for reg1 & reg2.
++ */
++
++.macro BTS	reg1, reg2, bit
++.if \bit > 31
++	.err
++.else
++	.if \bit < 16
++		andi	\reg1, \reg2, (1 << \bit)
++		ori	\reg2, \reg2, (1 << \bit)
++	.else
++		andhi	\reg1, \reg2, (1 << (\bit - 16))
++		orhi	\reg2, \reg2, (1 << (\bit - 16))
++	.endif
++.endif
++.endm
++
++/*
++ * Tests the bit in reg2 and then resets the bit in reg2.
++ * The result of the bit test is stored in reg1.
++ *
++ * It is NOT safe to use the same register for reg1 & reg2.
++ */
++
++.macro BTR	reg1, reg2, bit
++.if \bit > 31
++	.err
++.else
++	.if \bit < 16
++		andi	\reg1, \reg2, (1 << \bit)
++		andi	\reg2, \reg2, %lo(~(1 << \bit))
++	.else
++		andhi	\reg1, \reg2, (1 << (\bit - 16))
++		andhi	\reg2, \reg2, %lo(~(1 << (\bit - 16)))
++	.endif
++.endif
++.endm
++
++/*
++ * Tests the bit in reg2 and then compliments the bit in reg2.
++ * The result of the bit test is stored in reg1.  If the
++ * original bit was zero it branches to label.
++ *
++ * It is NOT safe to use the same register for reg1 & reg2.
++ */
++
++.macro BTCBZ	reg1, reg2, bit, label
++	BTC	\reg1, \reg2, \bit
++	beq	\reg1, r0, \label
++.endm
++
++/*
++ * Tests the bit in reg2 and then compliments the bit in reg2.
++ * The result of the bit test is stored in reg1.  If the
++ * original bit was non-zero it branches to label.
++ *
++ * It is NOT safe to use the same register for reg1 & reg2.
++ */
++
++.macro BTCBNZ	reg1, reg2, bit, label
++	BTC	\reg1, \reg2, \bit
++	bne	\reg1, r0, \label
++.endm
++
++/*
++ * Tests the bit in reg2 and then sets the bit in reg2.
++ * The result of the bit test is stored in reg1.  If the
++ * original bit was zero it branches to label.
++ *
++ * It is NOT safe to use the same register for reg1 & reg2.
++ */
++
++.macro BTSBZ	reg1, reg2, bit, label
++	BTS	\reg1, \reg2, \bit
++	beq	\reg1, r0, \label
++.endm
++
++/*
++ * Tests the bit in reg2 and then sets the bit in reg2.
++ * The result of the bit test is stored in reg1.  If the
++ * original bit was non-zero it branches to label.
++ *
++ * It is NOT safe to use the same register for reg1 & reg2.
++ */
++
++.macro BTSBNZ	reg1, reg2, bit, label
++	BTS	\reg1, \reg2, \bit
++	bne	\reg1, r0, \label
++.endm
++
++/*
++ * Tests the bit in reg2 and then resets the bit in reg2.
++ * The result of the bit test is stored in reg1.  If the
++ * original bit was zero it branches to label.
++ *
++ * It is NOT safe to use the same register for reg1 & reg2.
++ */
++
++.macro BTRBZ	reg1, reg2, bit, label
++	BTR	\reg1, \reg2, \bit
++	bne	\reg1, r0, \label
++.endm
++
++/*
++ * Tests the bit in reg2 and then resets the bit in reg2.
++ * The result of the bit test is stored in reg1.  If the
++ * original bit was non-zero it branches to label.
++ *
++ * It is NOT safe to use the same register for reg1 & reg2.
++ */
++
++.macro BTRBNZ	reg1, reg2, bit, label
++	BTR	\reg1, \reg2, \bit
++	bne	\reg1, r0, \label
++.endm
++
++/*
++ * Tests the bits in mask against reg2 stores the result in reg1.
++ * If the all the bits in the mask are zero it branches to label.
++ *
++ * It is safe to use the same register for reg1 & reg2.
++ */
++
++.macro TSTBZ	reg1, reg2, mask, label
++	ANDI32	\reg1, \reg2, \mask
++	beq	\reg1, r0, \label
++.endm
++
++/*
++ * Tests the bits in mask against reg2 stores the result in reg1.
++ * If the any of the bits in the mask are 1 it branches to label.
++ *
++ * It is safe to use the same register for reg1 & reg2.
++ */
++
++.macro TSTBNZ	reg1, reg2, mask, label
++	ANDI32	\reg1, \reg2, \mask
++	bne	\reg1, r0, \label
++.endm
++
++/*
++ * Pushes reg onto the stack.
++ */
++
++.macro PUSH	reg
++	addi	sp, sp, -4
++	stw	\reg, 0(sp)
++.endm
++
++/*
++ * Pops the top of the stack into reg.
++ */
++
++.macro POP	reg
++	ldw	\reg, 0(sp)
++	addi	sp, sp, 4
++.endm
++
++
++#endif /* _ASM_NIOS2_ASMMACROS_H */
+diff --git a/arch/nios2/include/asm/asm-offsets.h b/arch/nios2/include/asm/asm-offsets.h
+new file mode 100644
+index 0000000..5b9f5e04a058056e0aedcfe35b1a3512ac74e989
+--- /dev/null
++++ b/arch/nios2/include/asm/asm-offsets.h
+@@ -0,0 +1,20 @@
++/*
++ *  Copyright (C) 2010 Tobias Klauser <tklauser@distanz.ch>
++ *  Copyright (C) 2009 Thomas Chou <thomas@wytron.com.tw>
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ *
++ */
++
++#include <generated/asm-offsets.h>
+diff --git a/arch/nios2/kernel/asm-offsets.c b/arch/nios2/kernel/asm-offsets.c
+new file mode 100644
+index 0000000..3852f5c
+--- /dev/null
++++ b/arch/nios2/kernel/asm-offsets.c
+@@ -0,0 +1,88 @@
++/*
++ * Copyright (C) 2011 Tobias Klauser <tklauser@distanz.ch>
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ *
++ */
++
++#include <linux/stddef.h>
 +#include <linux/sched.h>
-+#include <linux/mm.h>
-+#include <linux/fs.h>
++#include <linux/kernel_stat.h>
++#include <linux/ptrace.h>
++#include <linux/hardirq.h>
++#include <linux/thread_info.h>
++#include <linux/kbuild.h>
 +
-+#include <asm/cacheflush.h>
-+#include <asm/cpuinfo.h>
-+
-+static void __flush_dcache(unsigned long start, unsigned long end)
++int main(void)
 +{
-+	unsigned long addr;
++	/* struct task_struct */
++	OFFSET(TASK_THREAD, task_struct, thread);
++	BLANK();
 +
-+	start &= ~(cpuinfo.dcache_line_size - 1);
-+	end += (cpuinfo.dcache_line_size - 1);
-+	end &= ~(cpuinfo.dcache_line_size - 1);
++	/* struct thread_struct */
++	OFFSET(THREAD_KSP, thread_struct, ksp);
++	OFFSET(THREAD_KPSR, thread_struct, kpsr);
++	BLANK();
 +
-+	if (end > start + cpuinfo.dcache_size)
-+		end = start + cpuinfo.dcache_size;
++	/* struct pt_regs */
++	OFFSET(PT_ORIG_R2, pt_regs, orig_r2);
++	OFFSET(PT_ORIG_R7, pt_regs, orig_r7);
 +
-+	for (addr = start; addr < end; addr += cpuinfo.dcache_line_size) {
-+		__asm__ __volatile__ ("   flushda 0(%0)\n"
-+					: /* Outputs */
-+					: /* Inputs  */ "r"(addr)
-+					/* : No clobber */);
-+	}
-+}
++	OFFSET(PT_R1, pt_regs, r1);
++	OFFSET(PT_R2, pt_regs, r2);
++	OFFSET(PT_R3, pt_regs, r3);
++	OFFSET(PT_R4, pt_regs, r4);
++	OFFSET(PT_R5, pt_regs, r5);
++	OFFSET(PT_R6, pt_regs, r6);
++	OFFSET(PT_R7, pt_regs, r7);
++	OFFSET(PT_R8, pt_regs, r8);
++	OFFSET(PT_R9, pt_regs, r9);
++	OFFSET(PT_R10, pt_regs, r10);
++	OFFSET(PT_R11, pt_regs, r11);
++	OFFSET(PT_R12, pt_regs, r12);
++	OFFSET(PT_R13, pt_regs, r13);
++	OFFSET(PT_R14, pt_regs, r14);
++	OFFSET(PT_R15, pt_regs, r15);
++	OFFSET(PT_EA, pt_regs, ea);
++	OFFSET(PT_RA, pt_regs, ra);
++	OFFSET(PT_FP, pt_regs, fp);
++	OFFSET(PT_SP, pt_regs, sp);
++	OFFSET(PT_GP, pt_regs, gp);
++	OFFSET(PT_ESTATUS, pt_regs, estatus);
++	DEFINE(PT_REGS_SIZE, sizeof(struct pt_regs));
++	BLANK();
 +
-+static void __flush_dcache_all(unsigned long start, unsigned long end)
-+{
-+	unsigned long addr;
++	/* struct switch_stack */
++	OFFSET(SW_R16, switch_stack, r16);
++	OFFSET(SW_R17, switch_stack, r17);
++	OFFSET(SW_R18, switch_stack, r18);
++	OFFSET(SW_R19, switch_stack, r19);
++	OFFSET(SW_R20, switch_stack, r20);
++	OFFSET(SW_R21, switch_stack, r21);
++	OFFSET(SW_R22, switch_stack, r22);
++	OFFSET(SW_R23, switch_stack, r23);
++	OFFSET(SW_FP, switch_stack, fp);
++	OFFSET(SW_GP, switch_stack, gp);
++	OFFSET(SW_RA, switch_stack, ra);
++	DEFINE(SWITCH_STACK_SIZE, sizeof(struct switch_stack));
++	BLANK();
 +
-+	start &= ~(cpuinfo.dcache_line_size - 1);
-+	end += (cpuinfo.dcache_line_size - 1);
-+	end &= ~(cpuinfo.dcache_line_size - 1);
++	/* struct thread_info */
++	OFFSET(TI_TASK, thread_info, task);
++	OFFSET(TI_FLAGS, thread_info, flags);
++	OFFSET(TI_PREEMPT_COUNT, thread_info, preempt_count);
++	BLANK();
 +
-+	if (end > start + cpuinfo.dcache_size)
-+		end = start + cpuinfo.dcache_size;
-+
-+	for (addr = start; addr < end; addr += cpuinfo.dcache_line_size) {
-+		__asm__ __volatile__ ("   flushd 0(%0)\n"
-+					: /* Outputs */
-+					: /* Inputs  */ "r"(addr)
-+					/* : No clobber */);
-+	}
-+}
-+
-+static void __invalidate_dcache(unsigned long start, unsigned long end)
-+{
-+	unsigned long addr;
-+
-+	start &= ~(cpuinfo.dcache_line_size - 1);
-+	end += (cpuinfo.dcache_line_size - 1);
-+	end &= ~(cpuinfo.dcache_line_size - 1);
-+
-+	if (end > start + cpuinfo.dcache_size)
-+		end = start + cpuinfo.dcache_size;
-+
-+	for (addr = start; addr < end; addr += cpuinfo.dcache_line_size) {
-+		__asm__ __volatile__ ("   initda 0(%0)\n"
-+					: /* Outputs */
-+					: /* Inputs  */ "r"(addr)
-+					/* : No clobber */);
-+	}
-+}
-+
-+static void __flush_icache(unsigned long start, unsigned long end)
-+{
-+	unsigned long addr;
-+
-+	start &= ~(cpuinfo.icache_line_size - 1);
-+	end += (cpuinfo.icache_line_size - 1);
-+	end &= ~(cpuinfo.icache_line_size - 1);
-+
-+	if (end > start + cpuinfo.icache_size)
-+		end = start + cpuinfo.icache_size;
-+
-+	for (addr = start; addr < end; addr += cpuinfo.icache_line_size) {
-+		__asm__ __volatile__ ("   flushi %0\n"
-+					: /* Outputs */
-+					: /* Inputs  */ "r"(addr)
-+					/* : No clobber */);
-+	}
-+	__asm__ __volatile(" flushp\n");
-+}
-+
-+static void flush_aliases(struct address_space *mapping, struct page *page)
-+{
-+	struct mm_struct *mm = current->active_mm;
-+	struct vm_area_struct *mpnt;
-+	pgoff_t pgoff;
-+
-+	pgoff = page->index;
-+
-+	flush_dcache_mmap_lock(mapping);
-+	vma_interval_tree_foreach(mpnt, &mapping->i_mmap, pgoff, pgoff) {
-+		unsigned long offset;
-+
-+		if (mpnt->vm_mm != mm)
-+			continue;
-+		if (!(mpnt->vm_flags & VM_MAYSHARE))
-+			continue;
-+
-+		offset = (pgoff - mpnt->vm_pgoff) << PAGE_SHIFT;
-+		flush_cache_page(mpnt, mpnt->vm_start + offset,
-+			page_to_pfn(page));
-+	}
-+	flush_dcache_mmap_unlock(mapping);
-+}
-+
-+void flush_cache_all(void)
-+{
-+	__flush_dcache_all(0, cpuinfo.dcache_size);
-+	__flush_icache(0, cpuinfo.icache_size);
-+}
-+
-+void flush_cache_mm(struct mm_struct *mm)
-+{
-+	flush_cache_all();
-+}
-+
-+void flush_cache_dup_mm(struct mm_struct *mm)
-+{
-+	flush_cache_all();
-+}
-+
-+void flush_icache_range(unsigned long start, unsigned long end)
-+{
-+	__flush_icache(start, end);
-+}
-+
-+void flush_dcache_range(unsigned long start, unsigned long end)
-+{
-+	__flush_dcache(start, end);
-+}
-+EXPORT_SYMBOL(flush_dcache_range);
-+
-+void invalidate_dcache_range(unsigned long start, unsigned long end)
-+{
-+	__invalidate_dcache(start, end);
-+}
-+EXPORT_SYMBOL(invalidate_dcache_range);
-+
-+void flush_cache_range(struct vm_area_struct *vma, unsigned long start,
-+			unsigned long end)
-+{
-+	__flush_dcache(start, end);
-+	if (vma == NULL || (vma->vm_flags & VM_EXEC))
-+		__flush_icache(start, end);
-+}
-+
-+void flush_icache_page(struct vm_area_struct *vma, struct page *page)
-+{
-+	unsigned long start = (unsigned long) page_address(page);
-+	unsigned long end = start + PAGE_SIZE;
-+
-+	__flush_icache(start, end);
-+}
-+
-+void flush_cache_page(struct vm_area_struct *vma, unsigned long vmaddr,
-+			unsigned long pfn)
-+{
-+	unsigned long start = vmaddr;
-+	unsigned long end = start + PAGE_SIZE;
-+
-+	__flush_dcache(start, end);
-+	if (vma->vm_flags & VM_EXEC)
-+		__flush_icache(start, end);
-+}
-+
-+void flush_dcache_page(struct page *page)
-+{
-+	struct address_space *mapping = page_mapping(page);
-+
-+	/* Flush this page if there are aliases. */
-+	if (mapping) {
-+		if (!mapping_mapped(mapping)) {
-+			clear_bit(PG_arch_1, &page->flags);
-+		} else if (mapping) {
-+			unsigned long start = (unsigned long)page_address(page);
-+			__flush_dcache(start, start + PAGE_SIZE);
-+			flush_aliases(mapping,  page);
-+		}
-+	}
-+}
-+EXPORT_SYMBOL(flush_dcache_page);
-+
-+void update_mmu_cache(struct vm_area_struct *vma,
-+		      unsigned long address, pte_t *pte)
-+{
-+	unsigned long pfn = pte_pfn(*pte);
-+	struct page *page;
-+
-+	if (!pfn_valid(pfn))
-+		return;
-+
-+	page = pfn_to_page(pfn);
-+
-+	if (!PageReserved(page) && !test_bit(PG_arch_1, &page->flags)) {
-+		unsigned long start = page_to_virt(page);
-+		struct address_space *mapping;
-+
-+		__flush_dcache(start, start + PAGE_SIZE);
-+
-+		mapping = page_mapping(page);
-+		if (mapping)
-+			flush_aliases(mapping, page);
-+		set_bit(PG_arch_1, &page->flags);
-+	}
-+}
-+
-+void copy_user_page(void *vto, void *vfrom, unsigned long vaddr,
-+		    struct page *to)
-+{
-+	__flush_dcache(vaddr, vaddr + PAGE_SIZE);
-+	copy_page(vto, vfrom);
-+	__flush_dcache((unsigned long)vto, (unsigned long)vto + PAGE_SIZE);
-+}
-+
-+void clear_user_page(void *addr, unsigned long vaddr, struct page *page)
-+{
-+	__flush_dcache(vaddr, vaddr + PAGE_SIZE);
-+	clear_page(addr);
-+	__flush_dcache((unsigned long)addr, (unsigned long)addr + PAGE_SIZE);
-+}
-+
-+void copy_from_user_page(struct vm_area_struct *vma, struct page *page,
-+			unsigned long user_vaddr,
-+			void *dst, void *src, int len)
-+{
-+	flush_cache_page(vma, user_vaddr, page_to_pfn(page));
-+	memcpy(dst, src, len);
-+	__flush_dcache((unsigned long)src, (unsigned long)src + len);
-+	if (vma->vm_flags & VM_EXEC)
-+		__flush_icache((unsigned long)src, (unsigned long)src + len);
-+}
-+
-+void copy_to_user_page(struct vm_area_struct *vma, struct page *page,
-+			unsigned long user_vaddr,
-+			void *dst, void *src, int len)
-+{
-+	flush_cache_page(vma, user_vaddr, page_to_pfn(page));
-+	memcpy(dst, src, len);
-+	__flush_dcache((unsigned long)dst, (unsigned long)dst + len);
-+	if (vma->vm_flags & VM_EXEC)
-+		__flush_icache((unsigned long)dst, (unsigned long)dst + len);
++	return 0;
 +}
 -- 
 1.8.3.2
