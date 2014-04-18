@@ -1,57 +1,30 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qa0-f41.google.com ([209.85.216.41]:44403 "EHLO
-	mail-qa0-f41.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751197AbaDRSiS (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 18 Apr 2014 14:38:18 -0400
+Received: from merlin.infradead.org ([205.233.59.134]:59612 "EHLO
+	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754470AbaDRTFo (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 18 Apr 2014 15:05:44 -0400
+Date: Fri, 18 Apr 2014 21:05:19 +0200
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH v9 05/19] qspinlock: Optimize for smaller NR_CPUS
+Message-ID: <20140418190519.GA11182@twins.programming.kicks-ass.net>
+References: <1397747051-15401-1-git-send-email-Waiman.Long@hp.com>
+ <1397747051-15401-6-git-send-email-Waiman.Long@hp.com>
+ <20140417155649.GR11096@twins.programming.kicks-ass.net>
+ <53504BB3.4010009@hp.com>
+ <20140418082716.GZ11096@twins.programming.kicks-ass.net>
+ <53516672.3010701@hp.com>
 MIME-Version: 1.0
-In-Reply-To: <CAFiDJ5-fuzNVF_OyNs-ZYS_qheLSSt7R75CkK2eQCkfYcF_aOw@mail.gmail.com>
-References: <CAFiDJ5-fuzNVF_OyNs-ZYS_qheLSSt7R75CkK2eQCkfYcF_aOw@mail.gmail.com>
-Date: Sat, 19 Apr 2014 02:38:17 +0800
-Message-ID: <CAFiDJ58bYYkL27TcjynTRQRtLSpWoehgXthD64ZnPna8uMHpWw@mail.gmail.com>
-Subject: Re: [PATCH 00/28] nios2 Linux kernel port
-From: Ley Foon Tan <lftan@altera.com>
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <53516672.3010701@hp.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org
-Cc: Ley Foon Tan <lftan@altera.com>, LeyFoon Tan <lftan.linux@gmail.com>, cltang@codesourcery.com
-Message-ID: <20140418183817.luO3TeQY8yh6NZNqZGwBy394mbJuMMzRROWQSMPMMa4@z>
+To: Waiman Long <waiman.long@hp.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Rik van Riel <riel@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, David Vrabel <david.vrabel@citrix.com>, Oleg Nesterov <oleg@redhat.com>, Gleb Natapov <gleb@redhat.com>, Scott J Norton <scott.norton@hp.com>, Chegu Vinod <chegu_vinod@hp.com>
+Message-ID: <20140418190519.cC0CjuaMS-LRazSuQyLGq4XCNc7tdYbl2G8TEmBWELo@z>
 
-Okay, I already submitted the remaining 4 patches.
-Thanks.
+On Fri, Apr 18, 2014 at 01:52:50PM -0400, Waiman Long wrote:
+> I am confused by your notation.
 
-On Sat, Apr 19, 2014 at 12:49 AM, Ley Foon Tan <lftan@altera.com> wrote:
-> Hi all
->
-> I just found that 4 patches (03/28, 05/28,07/28 and 14/28) are missing
-> here, because the issue in Git v1.8.3.2. But, the cover letter is correct.
-> Do I need to resend the whole series (28 patches) or just the missing 4 patches?
-> Thanks.
->
-> Regards.
->
-> On Fri, Apr 18, 2014 at 8:26 PM, Ley Foon Tan <lftan@altera.com> wrote:
->> This patchset adds the Linux kernel port for Nios II processor from Altera.
->> The nios2 Linux port follows the guidance for new architecture ports using
->> generic headers (including unistd.h).
->>
->> About Nios II Cores
->> -------------------
->> Nios II is a 32-bit embedded-processor architecture designed specifically for the
->> Altera family of FPGAs.
->> More information is available  at http://www.altera.com/devices/processor/nios2/ni2-index.html
->>
->> Instruction set and architecture overview documents can be found on the
->> following page:
->> http://www.altera.com/literature/lit-nio2.jsp
->>
->> Nios2 GCC port is in mainline and and will be in the FSF 4.9 release.
->>
->> These patches are also available on this branch:
->> git://git.rocketboards.org/linux-socfpga-next.git  nios2-upstream
->>
->> Regards,
->> Ley Foon
->> --
->> 1.8.3.2
->>
+Nah, I think I was confused :-) Make the 1 _Q_LOCKED_VAL though, as
+that's the proper constant to use.
