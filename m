@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-by2on0103.outbound.protection.outlook.com ([207.46.100.103]:56236
-	"EHLO na01-by2-obe.outbound.protection.outlook.com"
+Received: from mail-bn1blp0187.outbound.protection.outlook.com ([207.46.163.187]:3012
+	"EHLO na01-bn1-obe.outbound.protection.outlook.com"
 	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1752808AbaDRMm7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 18 Apr 2014 08:42:59 -0400
+	id S1751185AbaDRMmc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 18 Apr 2014 08:42:32 -0400
 From: Ley Foon Tan <lftan@altera.com>
-Subject: [PATCH 11/28] nios2: Cache handling
-Date: Fri, 18 Apr 2014 20:26:55 +0800
-Message-ID: <1397824031-4892-9-git-send-email-lftan@altera.com>
+Subject: [PATCH 20/28] nios2: Time keeping
+Date: Fri, 18 Apr 2014 20:27:03 +0800
+Message-ID: <1397824031-4892-17-git-send-email-lftan@altera.com>
 In-Reply-To: <1397824031-4892-1-git-send-email-lftan@altera.com>
 References: <1397824031-4892-1-git-send-email-lftan@altera.com>
 MIME-Version: 1.0
@@ -16,377 +16,307 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org
 Cc: Ley Foon Tan <lftan@altera.com>, lftan.linux@gmail.com, cltang@codesourcery.com
-Message-ID: <20140418122655.ADN-qv-ykR_4EvobCCWpsTWxipmnlMp9EeJIU8cJDn4@z>
+Message-ID: <20140418122703.0L0w5xQz8kInsKveqOX-bPnsGT72dmQljw7rNG8AVVs@z>
 
-This patch adds functionality required for cache maintenance.
+Add time keeping code for nios2.
 
 Signed-off-by: Ley Foon Tan <lftan@altera.com>
 ---
- arch/nios2/include/asm/cache.h      |  36 +++++
- arch/nios2/include/asm/cacheflush.h |  48 +++++++
- arch/nios2/mm/cacheflush.c          | 255 ++++++++++++++++++++++++++++++++++++
- 3 files changed, 339 insertions(+)
- create mode 100644 arch/nios2/include/asm/cache.h
- create mode 100644 arch/nios2/include/asm/cacheflush.h
- create mode 100644 arch/nios2/mm/cacheflush.c
+ arch/nios2/include/asm/delay.h |  92 +++++++++++++++++++++++++
+ arch/nios2/include/asm/timex.h |  27 ++++++++
+ arch/nios2/kernel/time.c       | 150 +++++++++++++++++++++++++++++++++++++++++
+ 3 files changed, 269 insertions(+)
+ create mode 100644 arch/nios2/include/asm/delay.h
+ create mode 100644 arch/nios2/include/asm/timex.h
+ create mode 100644 arch/nios2/kernel/time.c
 
-diff --git a/arch/nios2/include/asm/cache.h b/arch/nios2/include/asm/cache.h
+diff --git a/arch/nios2/include/asm/delay.h b/arch/nios2/include/asm/delay.h
 new file mode 100644
-index 0000000..2293cf57e307a6b84e3972c2d27221dda54af500
+index 0000000..8070a09
 --- /dev/null
-+++ b/arch/nios2/include/asm/cache.h
-@@ -0,0 +1,36 @@
++++ b/arch/nios2/include/asm/delay.h
+@@ -0,0 +1,92 @@
 +/*
-+ * Copyright (C) 2004 Microtronix Datacom Ltd.
++ * Copyright (C) 2004 Microtronix Datacom Ltd
 + *
-+ * All rights reserved.
++ * This file is subject to the terms and conditions of the GNU General Public
++ * License.  See the file "COPYING" in the main directory of this archive
++ * for more details.
++ */
++
++#ifndef _ASM_NIOS2_DELAY_H
++#define _ASM_NIOS2_DELAY_H
++
++#include <asm/param.h>
++
++static inline void __delay(unsigned long loops)
++{
++	int dummy;
++
++	__asm__ __volatile__(
++	"1:\n\t"
++	"    beq    %0,zero,2f\n\t"
++	"    addi   %0, %0, -1\n\t"
++	"    br     1b\n\t"
++	"2:\n\t"
++	:  "=r" (dummy)		/* Need output for optimizer */
++	:  "0" (loops));	/* %0  Input */
++}
++
++/*
++ * Note that 19 * 226 == 4294 ==~ 2^32 / 10^6, so
++ * loops = (4294 * usecs * loops_per_jiffy * HZ) / 2^32.
++ *
++ * The mul instruction gives us loops = (a * b) / 2^32.
++ * We choose a = usecs * 19 * HZ and b = loops_per_jiffy * 226
++ * because this lets us support a wide range of HZ and
++ * loops_per_jiffy values without either a or b overflowing 2^32.
++ * Thus we need usecs * HZ <= (2^32 - 1) / 19 = 226050910 and
++ * loops_per_jiffy <= (2^32 - 1) / 226 = 19004280
++ * (which corresponds to ~3800 bogomips at HZ = 100).
++ *  -- paulus
++ */
++#define __MAX_UDELAY	(226050910UL/HZ)	/* maximum udelay argument */
++#define __MAX_NDELAY	(4294967295UL/HZ)	/* maximum ndelay argument */
++
++extern unsigned long loops_per_jiffy;
++
++static inline void __udelay(unsigned int x)
++{
++	unsigned int loops;
++
++	/*
++	 * Note, if this is compiled with -mhw-mulx it will produce a "mulxuu"
++	 * (at least in toolchain 145) so there is no need for inline
++	 * assembly here anymore, which might in turn be emulated if unsupported
++	 * by the design.
++	 */
++	loops = (unsigned int)((((unsigned long long)(x) *
++			(unsigned long long)(loops_per_jiffy * 226))) >> 32);
++
++/*
++	__asm__("mulxuu %0,%1,%2" : "=r" (loops) :
++		"r" (x), "r" (loops_per_jiffy * 226));
++*/
++	__delay(loops);
++}
++
++static inline void __ndelay(unsigned int x)
++{
++	unsigned int loops;
++
++	/* see comment in __udelay */
++	loops = (unsigned int)((((unsigned long long)(x) *
++			(unsigned long long)(loops_per_jiffy * 5))) >> 32);
++
++/*
++	__asm__("mulxuu %0,%1,%2" : "=r" (loops) :
++		"r" (x), "r" (loops_per_jiffy * 5));
++*/
++	__delay(loops);
++}
++
++extern void __bad_udelay(void);		/* deliberately undefined */
++extern void __bad_ndelay(void);		/* deliberately undefined */
++
++#define udelay(n) (__builtin_constant_p(n) ? \
++	((n) > __MAX_UDELAY ? __bad_udelay() : __udelay((n) * (19 * HZ))) : \
++	__udelay((n) * (19 * HZ)))
++
++#define ndelay(n) (__builtin_constant_p(n) ? \
++	((n) > __MAX_NDELAY ? __bad_ndelay() : __ndelay((n) * HZ)) : \
++	__ndelay((n) * HZ))
++
++#endif /* _ASM_NIOS2_DELAY_H */
+diff --git a/arch/nios2/include/asm/timex.h b/arch/nios2/include/asm/timex.h
+new file mode 100644
+index 0000000..524b47d79d3dad53b98713f31517e28ac0c99d98
+--- /dev/null
++++ b/arch/nios2/include/asm/timex.h
+@@ -0,0 +1,27 @@
++/*
++ * Copyright (C) 2010 Thomas Chou <thomas@wytron.com.tw>
 + *
 + * This program is free software; you can redistribute it and/or modify
 + * it under the terms of the GNU General Public License as published by
 + * the Free Software Foundation; either version 2 of the License, or
 + * (at your option) any later version.
 + *
-+ * This program is distributed in the hope that it will be useful, but
-+ * WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE, GOOD TITLE or
-+ * NON INFRINGEMENT.  See the GNU General Public License for more
-+ * details.
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ *
 + */
 +
-+#ifndef _ASM_NIOS2_CACHE_H
-+#define _ASM_NIOS2_CACHE_H
++#ifndef _ASM_NIOS2_TIMEX_H
++#define _ASM_NIOS2_TIMEX_H
 +
-+#define NIOS2_DCACHE_SIZE	CONFIG_NIOS2_DCACHE_SIZE
-+#define NIOS2_ICACHE_SIZE	CONFIG_NIOS2_ICACHE_SIZE
-+#define NIOS2_DCACHE_LINE_SIZE	CONFIG_NIOS2_DCACHE_LINE_SIZE
-+#define NIOS2_ICACHE_LINE_SHIFT	5
-+#define NIOS2_ICACHE_LINE_SIZE	(1 << NIOS2_ICACHE_LINE_SHIFT)
++/* Supply dummy tick-rate. Real value will be read from devicetree */
++#define CLOCK_TICK_RATE		(HZ * 100000UL)
 +
-+/* bytes per L1 cache line */
-+#define L1_CACHE_SHIFT		NIOS2_ICACHE_LINE_SHIFT
-+#define L1_CACHE_BYTES		NIOS2_ICACHE_LINE_SIZE
-+
-+#define ARCH_DMA_MINALIGN	L1_CACHE_BYTES
-+
-+#define __cacheline_aligned
-+#define ____cacheline_aligned
++#include <asm-generic/timex.h>
 +
 +#endif
-diff --git a/arch/nios2/include/asm/cacheflush.h b/arch/nios2/include/asm/cacheflush.h
+diff --git a/arch/nios2/kernel/time.c b/arch/nios2/kernel/time.c
 new file mode 100644
-index 0000000..ce2605a8c44de7e33686f9021b2b6736e94455a2
+index 0000000..0677ebaa1dffd8213f52a704c6a8366d34c05ca2
 --- /dev/null
-+++ b/arch/nios2/include/asm/cacheflush.h
-@@ -0,0 +1,48 @@
++++ b/arch/nios2/kernel/time.c
+@@ -0,0 +1,150 @@
 +/*
-+ * Copyright (C) 2003 Microtronix Datacom Ltd.
-+ * Copyright (C) 2000-2002 Greg Ungerer <gerg@snapgear.com>
-+ *
-+ * Ported from m68knommu.
++ * Copyright (C) 2013 Altera Corporation
++ * Copyright (C) 2010 Tobias Klauser <tklauser@distanz.ch>
++ * Copyright (C) 2004 Microtronix Datacom Ltd.
 + *
 + * This file is subject to the terms and conditions of the GNU General Public
 + * License. See the file "COPYING" in the main directory of this archive
 + * for more details.
 + */
 +
-+#ifndef _ASM_NIOS2_CACHEFLUSH_H
-+#define _ASM_NIOS2_CACHEFLUSH_H
-+
-+#include <linux/mm_types.h>
-+
-+struct mm_struct;
-+
-+extern void flush_cache_all(void);
-+extern void flush_cache_mm(struct mm_struct *mm);
-+extern void flush_cache_dup_mm(struct mm_struct *mm);
-+extern void flush_cache_range(struct vm_area_struct *vma, unsigned long start,
-+	unsigned long end);
-+extern void flush_cache_page(struct vm_area_struct *vma, unsigned long vmaddr,
-+	unsigned long pfn);
-+#define ARCH_IMPLEMENTS_FLUSH_DCACHE_PAGE 1
-+extern void flush_dcache_page(struct page *page);
-+
-+extern void flush_icache_range(unsigned long start, unsigned long end);
-+extern void flush_icache_page(struct vm_area_struct *vma, struct page *page);
-+
-+#define flush_cache_vmap(start, end)		flush_dcache_range(start, end)
-+#define flush_cache_vunmap(start, end)		flush_dcache_range(start, end)
-+
-+extern void copy_to_user_page(struct vm_area_struct *vma, struct page *page,
-+				unsigned long user_vaddr,
-+				void *dst, void *src, int len);
-+extern void copy_from_user_page(struct vm_area_struct *vma, struct page *page,
-+				unsigned long user_vaddr,
-+				void *dst, void *src, int len);
-+
-+extern void flush_dcache_range(unsigned long start, unsigned long end);
-+extern void invalidate_dcache_range(unsigned long start, unsigned long end);
-+
-+#define flush_dcache_mmap_lock(mapping)		do { } while (0)
-+#define flush_dcache_mmap_unlock(mapping)	do { } while (0)
-+
-+#endif /* _ASM_NIOS2_CACHEFLUSH_H */
-diff --git a/arch/nios2/mm/cacheflush.c b/arch/nios2/mm/cacheflush.c
-new file mode 100644
-index 0000000..0c4d0d416f8f603f92b66017d100d3388f3d04c1
---- /dev/null
-+++ b/arch/nios2/mm/cacheflush.c
-@@ -0,0 +1,255 @@
-+/*
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License.  See the file "COPYING" in the main directory of this archive
-+ * for more details.
-+ *
-+ * Copyright (C) 2009, Wind River Systems Inc
-+ * Implemented by fredrik.markstrom@gmail.com and ivarholmqvist@gmail.com
-+ */
-+
-+#include <linux/export.h>
++#include <linux/init.h>
 +#include <linux/sched.h>
-+#include <linux/mm.h>
-+#include <linux/fs.h>
++#include <linux/interrupt.h>
++#include <linux/time.h>
++#include <linux/timex.h>
++#include <linux/profile.h>
++#include <linux/clocksource.h>
++#include <linux/of.h>
++#include <linux/of_address.h>
++#include <linux/of_irq.h>
++#include <linux/io.h>
 +
-+#include <asm/cacheflush.h>
-+#include <asm/cpuinfo.h>
++#define	TICK_SIZE		(tick_nsec / 1000)
++#define NIOS2_TIMER_PERIOD	(timer_freq / HZ)
 +
-+static void __flush_dcache(unsigned long start, unsigned long end)
++#define ALTERA_TIMER_STATUS_REG		0
++#define ALTERA_TIMER_CONTROL_REG	4
++#define ALTERA_TIMER_PERIODL_REG	8
++#define ALTERA_TIMER_PERIODH_REG	12
++#define ALTERA_TIMER_SNAPL_REG		16
++#define ALTERA_TIMER_SNAPH_REG		20
++
++#define ALTERA_TIMER_CONTROL_ITO_MSK	(0x1)
++#define ALTERA_TIMER_CONTROL_CONT_MSK	(0x2)
++#define ALTERA_TIMER_CONTROL_START_MSK	(0x4)
++#define ALTERA_TIMER_CONTROL_STOP_MSK	(0x8)
++
++static u32 nios2_timer_count;
++static void __iomem *timer_membase;
++static u32 timer_freq;
++
++static inline unsigned long read_timersnapshot(void)
 +{
-+	unsigned long addr;
++	unsigned long count;
 +
-+	start &= ~(cpuinfo.dcache_line_size - 1);
-+	end += (cpuinfo.dcache_line_size - 1);
-+	end &= ~(cpuinfo.dcache_line_size - 1);
++	outw(0, timer_membase + ALTERA_TIMER_SNAPL_REG);
++	count =
++		inw(timer_membase + ALTERA_TIMER_SNAPH_REG) << 16 |
++		inw(timer_membase + ALTERA_TIMER_SNAPL_REG);
 +
-+	if (end > start + cpuinfo.dcache_size)
-+		end = start + cpuinfo.dcache_size;
-+
-+	for (addr = start; addr < end; addr += cpuinfo.dcache_line_size) {
-+		__asm__ __volatile__ ("   flushda 0(%0)\n"
-+					: /* Outputs */
-+					: /* Inputs  */ "r"(addr)
-+					/* : No clobber */);
-+	}
++	return count;
 +}
 +
-+static void __flush_dcache_all(unsigned long start, unsigned long end)
++static inline void write_timerperiod(unsigned long period)
 +{
-+	unsigned long addr;
-+
-+	start &= ~(cpuinfo.dcache_line_size - 1);
-+	end += (cpuinfo.dcache_line_size - 1);
-+	end &= ~(cpuinfo.dcache_line_size - 1);
-+
-+	if (end > start + cpuinfo.dcache_size)
-+		end = start + cpuinfo.dcache_size;
-+
-+	for (addr = start; addr < end; addr += cpuinfo.dcache_line_size) {
-+		__asm__ __volatile__ ("   flushd 0(%0)\n"
-+					: /* Outputs */
-+					: /* Inputs  */ "r"(addr)
-+					/* : No clobber */);
-+	}
++	outw(period, timer_membase + ALTERA_TIMER_PERIODL_REG);
++	outw(period >> 16, timer_membase + ALTERA_TIMER_PERIODH_REG);
 +}
 +
-+static void __invalidate_dcache(unsigned long start, unsigned long end)
++/*
++ * timer_interrupt() needs to keep up the real-time clock,
++ * as well as call the "xtime_update()" routine every clocktick
++ */
++irqreturn_t timer_interrupt(int irq, void *dummy)
 +{
-+	unsigned long addr;
++	/* Clear the interrupt condition */
++	outw(0, timer_membase + ALTERA_TIMER_STATUS_REG);
++	nios2_timer_count += NIOS2_TIMER_PERIOD;
 +
-+	start &= ~(cpuinfo.dcache_line_size - 1);
-+	end += (cpuinfo.dcache_line_size - 1);
-+	end &= ~(cpuinfo.dcache_line_size - 1);
++	profile_tick(CPU_PROFILING);
 +
-+	if (end > start + cpuinfo.dcache_size)
-+		end = start + cpuinfo.dcache_size;
++	xtime_update(1);
 +
-+	for (addr = start; addr < end; addr += cpuinfo.dcache_line_size) {
-+		__asm__ __volatile__ ("   initda 0(%0)\n"
-+					: /* Outputs */
-+					: /* Inputs  */ "r"(addr)
-+					/* : No clobber */);
-+	}
++	update_process_times(user_mode(get_irq_regs()));
++
++	return IRQ_HANDLED;
 +}
 +
-+static void __flush_icache(unsigned long start, unsigned long end)
++static cycle_t nios2_timer_read(struct clocksource *cs)
 +{
-+	unsigned long addr;
++	unsigned long flags;
++	u32 cycles;
++	u32 tcn;
 +
-+	start &= ~(cpuinfo.icache_line_size - 1);
-+	end += (cpuinfo.icache_line_size - 1);
-+	end &= ~(cpuinfo.icache_line_size - 1);
++	local_irq_save(flags);
++	tcn = NIOS2_TIMER_PERIOD - 1 - read_timersnapshot();
++	cycles = nios2_timer_count;
++	local_irq_restore(flags);
 +
-+	if (end > start + cpuinfo.icache_size)
-+		end = start + cpuinfo.icache_size;
-+
-+	for (addr = start; addr < end; addr += cpuinfo.icache_line_size) {
-+		__asm__ __volatile__ ("   flushi %0\n"
-+					: /* Outputs */
-+					: /* Inputs  */ "r"(addr)
-+					/* : No clobber */);
-+	}
-+	__asm__ __volatile(" flushp\n");
++	return cycles + tcn;
 +}
 +
-+static void flush_aliases(struct address_space *mapping, struct page *page)
++static struct clocksource nios2_timer = {
++	.name	= "timer",
++	.rating	= 250,
++	.read	= nios2_timer_read,
++	.shift	= 20,
++	.mask	= CLOCKSOURCE_MASK(32),
++	.flags	= CLOCK_SOURCE_IS_CONTINUOUS,
++};
++
++static struct irqaction nios2_timer_irq = {
++	.name		= "timer",
++	.flags		= IRQF_TIMER,
++	.handler	= timer_interrupt,
++};
++
++static void __init nios2_time_init(struct device_node *timer)
 +{
-+	struct mm_struct *mm = current->active_mm;
-+	struct vm_area_struct *mpnt;
-+	pgoff_t pgoff;
++	int irq;
++	unsigned int ctrl;
 +
-+	pgoff = page->index;
++	timer_membase = of_iomap(timer, 0);
++	if (!timer_membase)
++		panic("Unable to map timer resource\n");
 +
-+	flush_dcache_mmap_lock(mapping);
-+	vma_interval_tree_foreach(mpnt, &mapping->i_mmap, pgoff, pgoff) {
-+		unsigned long offset;
++	if (of_property_read_u32(timer, "clock-frequency", &timer_freq))
++		panic("Unable to get timer clock frequency\n");
 +
-+		if (mpnt->vm_mm != mm)
-+			continue;
-+		if (!(mpnt->vm_flags & VM_MAYSHARE))
-+			continue;
++	irq = irq_of_parse_and_map(timer, 0);
++	if (irq < 0)
++		panic("Unable to parse timer irq\n");
 +
-+		offset = (pgoff - mpnt->vm_pgoff) << PAGE_SHIFT;
-+		flush_cache_page(mpnt, mpnt->vm_start + offset,
-+			page_to_pfn(page));
-+	}
-+	flush_dcache_mmap_unlock(mapping);
++	if (setup_irq(irq, &nios2_timer_irq))
++		panic("Unable to setup timer irq\n");
++
++	write_timerperiod(NIOS2_TIMER_PERIOD - 1);
++
++	/* clocksource initialize */
++	nios2_timer.mult = clocksource_hz2mult(timer_freq, nios2_timer.shift);
++	clocksource_register(&nios2_timer);
++
++	/* interrupt enable + continuous + start */
++	ctrl = ALTERA_TIMER_CONTROL_ITO_MSK | ALTERA_TIMER_CONTROL_CONT_MSK |
++		ALTERA_TIMER_CONTROL_START_MSK;
++	outw(ctrl, timer_membase + ALTERA_TIMER_CONTROL_REG);
 +}
 +
-+void flush_cache_all(void)
++void read_persistent_clock(struct timespec *ts)
 +{
-+	__flush_dcache_all(0, cpuinfo.dcache_size);
-+	__flush_icache(0, cpuinfo.icache_size);
++	ts->tv_sec = mktime(2007, 1, 1, 0, 0, 0);
++	ts->tv_nsec = 0;
 +}
 +
-+void flush_cache_mm(struct mm_struct *mm)
++void __init time_init(void)
 +{
-+	flush_cache_all();
++	clocksource_of_init();
 +}
 +
-+void flush_cache_dup_mm(struct mm_struct *mm)
-+{
-+	flush_cache_all();
-+}
-+
-+void flush_icache_range(unsigned long start, unsigned long end)
-+{
-+	__flush_icache(start, end);
-+}
-+
-+void flush_dcache_range(unsigned long start, unsigned long end)
-+{
-+	__flush_dcache(start, end);
-+}
-+EXPORT_SYMBOL(flush_dcache_range);
-+
-+void invalidate_dcache_range(unsigned long start, unsigned long end)
-+{
-+	__invalidate_dcache(start, end);
-+}
-+EXPORT_SYMBOL(invalidate_dcache_range);
-+
-+void flush_cache_range(struct vm_area_struct *vma, unsigned long start,
-+			unsigned long end)
-+{
-+	__flush_dcache(start, end);
-+	if (vma == NULL || (vma->vm_flags & VM_EXEC))
-+		__flush_icache(start, end);
-+}
-+
-+void flush_icache_page(struct vm_area_struct *vma, struct page *page)
-+{
-+	unsigned long start = (unsigned long) page_address(page);
-+	unsigned long end = start + PAGE_SIZE;
-+
-+	__flush_icache(start, end);
-+}
-+
-+void flush_cache_page(struct vm_area_struct *vma, unsigned long vmaddr,
-+			unsigned long pfn)
-+{
-+	unsigned long start = vmaddr;
-+	unsigned long end = start + PAGE_SIZE;
-+
-+	__flush_dcache(start, end);
-+	if (vma->vm_flags & VM_EXEC)
-+		__flush_icache(start, end);
-+}
-+
-+void flush_dcache_page(struct page *page)
-+{
-+	struct address_space *mapping = page_mapping(page);
-+
-+	/* Flush this page if there are aliases. */
-+	if (mapping) {
-+		if (!mapping_mapped(mapping)) {
-+			clear_bit(PG_arch_1, &page->flags);
-+		} else if (mapping) {
-+			unsigned long start = (unsigned long)page_address(page);
-+			__flush_dcache(start, start + PAGE_SIZE);
-+			flush_aliases(mapping,  page);
-+		}
-+	}
-+}
-+EXPORT_SYMBOL(flush_dcache_page);
-+
-+void update_mmu_cache(struct vm_area_struct *vma,
-+		      unsigned long address, pte_t *pte)
-+{
-+	unsigned long pfn = pte_pfn(*pte);
-+	struct page *page;
-+
-+	if (!pfn_valid(pfn))
-+		return;
-+
-+	page = pfn_to_page(pfn);
-+
-+	if (!PageReserved(page) && !test_bit(PG_arch_1, &page->flags)) {
-+		unsigned long start = page_to_virt(page);
-+		struct address_space *mapping;
-+
-+		__flush_dcache(start, start + PAGE_SIZE);
-+
-+		mapping = page_mapping(page);
-+		if (mapping)
-+			flush_aliases(mapping, page);
-+		set_bit(PG_arch_1, &page->flags);
-+	}
-+}
-+
-+void copy_user_page(void *vto, void *vfrom, unsigned long vaddr,
-+		    struct page *to)
-+{
-+	__flush_dcache(vaddr, vaddr + PAGE_SIZE);
-+	copy_page(vto, vfrom);
-+	__flush_dcache((unsigned long)vto, (unsigned long)vto + PAGE_SIZE);
-+}
-+
-+void clear_user_page(void *addr, unsigned long vaddr, struct page *page)
-+{
-+	__flush_dcache(vaddr, vaddr + PAGE_SIZE);
-+	clear_page(addr);
-+	__flush_dcache((unsigned long)addr, (unsigned long)addr + PAGE_SIZE);
-+}
-+
-+void copy_from_user_page(struct vm_area_struct *vma, struct page *page,
-+			unsigned long user_vaddr,
-+			void *dst, void *src, int len)
-+{
-+	flush_cache_page(vma, user_vaddr, page_to_pfn(page));
-+	memcpy(dst, src, len);
-+	__flush_dcache((unsigned long)src, (unsigned long)src + len);
-+	if (vma->vm_flags & VM_EXEC)
-+		__flush_icache((unsigned long)src, (unsigned long)src + len);
-+}
-+
-+void copy_to_user_page(struct vm_area_struct *vma, struct page *page,
-+			unsigned long user_vaddr,
-+			void *dst, void *src, int len)
-+{
-+	flush_cache_page(vma, user_vaddr, page_to_pfn(page));
-+	memcpy(dst, src, len);
-+	__flush_dcache((unsigned long)dst, (unsigned long)dst + len);
-+	if (vma->vm_flags & VM_EXEC)
-+		__flush_icache((unsigned long)dst, (unsigned long)dst + len);
-+}
++CLOCKSOURCE_OF_DECLARE(nios2_timer, "ALTR,timer-1.0", nios2_time_init);
 -- 
 1.8.3.2
 
