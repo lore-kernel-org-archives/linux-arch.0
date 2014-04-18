@@ -1,52 +1,34 @@
-From: Ley Foon Tan <lftan@altera.com>
-Subject: Re: [PATCH 00/28] nios2 Linux kernel port
-Date: Sat, 19 Apr 2014 02:38:17 +0800
-Message-ID: <CAFiDJ58bYYkL27TcjynTRQRtLSpWoehgXthD64ZnPna8uMHpWw@mail.gmail.com>
-References: <CAFiDJ5-fuzNVF_OyNs-ZYS_qheLSSt7R75CkK2eQCkfYcF_aOw@mail.gmail.com>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH v9 05/19] qspinlock: Optimize for smaller NR_CPUS
+Date: Fri, 18 Apr 2014 21:05:19 +0200
+Message-ID: <20140418190519.GA11182@twins.programming.kicks-ass.net>
+References: <1397747051-15401-1-git-send-email-Waiman.Long@hp.com>
+	<1397747051-15401-6-git-send-email-Waiman.Long@hp.com>
+	<20140417155649.GR11096@twins.programming.kicks-ass.net>
+	<53504BB3.4010009@hp.com>
+	<20140418082716.GZ11096@twins.programming.kicks-ass.net>
+	<53516672.3010701@hp.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-doc-owner@vger.kernel.org>
-In-Reply-To: <CAFiDJ5-fuzNVF_OyNs-ZYS_qheLSSt7R75CkK2eQCkfYcF_aOw@mail.gmail.com>
-Sender: linux-doc-owner@vger.kernel.org
-To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org
-Cc: Ley Foon Tan <lftan@altera.com>, LeyFoon Tan <lftan.linux@gmail.com>, cltang@codesourcery.com
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <virtualization-bounces@lists.linux-foundation.org>
+Content-Disposition: inline
+In-Reply-To: <53516672.3010701@hp.com>
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
+List-Post: <mailto:virtualization@lists.linux-foundation.org>
+List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
+Sender: virtualization-bounces@lists.linux-foundation.org
+Errors-To: virtualization-bounces@lists.linux-foundation.org
+To: Waiman Long <waiman.long@hp.com>
+Cc: linux-arch@vger.kernel.org, Rik van Riel <riel@redhat.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, Gleb Natapov <gleb@redhat.com>, kvm@vger.kernel.org, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Scott J Norton <scott.norton@hp.com>, x86@kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, Ingo Molnar <mingo@redhat.com>, Chegu Vinod <chegu_vinod@hp.com>, David Vrabel <david.vrabel@citrix.com>, "H. Peter Anvin" <hpa@zytor.com>, xen-devel@lists.xenproject.org, Thomas Gleixner <tglx@linutronix.de>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Oleg Nesterov <oleg@redhat.com>
 List-Id: linux-arch.vger.kernel.org
 
-Okay, I already submitted the remaining 4 patches.
-Thanks.
+On Fri, Apr 18, 2014 at 01:52:50PM -0400, Waiman Long wrote:
+> I am confused by your notation.
 
-On Sat, Apr 19, 2014 at 12:49 AM, Ley Foon Tan <lftan@altera.com> wrote:
-> Hi all
->
-> I just found that 4 patches (03/28, 05/28,07/28 and 14/28) are missing
-> here, because the issue in Git v1.8.3.2. But, the cover letter is correct.
-> Do I need to resend the whole series (28 patches) or just the missing 4 patches?
-> Thanks.
->
-> Regards.
->
-> On Fri, Apr 18, 2014 at 8:26 PM, Ley Foon Tan <lftan@altera.com> wrote:
->> This patchset adds the Linux kernel port for Nios II processor from Altera.
->> The nios2 Linux port follows the guidance for new architecture ports using
->> generic headers (including unistd.h).
->>
->> About Nios II Cores
->> -------------------
->> Nios II is a 32-bit embedded-processor architecture designed specifically for the
->> Altera family of FPGAs.
->> More information is available  at http://www.altera.com/devices/processor/nios2/ni2-index.html
->>
->> Instruction set and architecture overview documents can be found on the
->> following page:
->> http://www.altera.com/literature/lit-nio2.jsp
->>
->> Nios2 GCC port is in mainline and and will be in the FSF 4.9 release.
->>
->> These patches are also available on this branch:
->> git://git.rocketboards.org/linux-socfpga-next.git  nios2-upstream
->>
->> Regards,
->> Ley Foon
->> --
->> 1.8.3.2
->>
+Nah, I think I was confused :-) Make the 1 _Q_LOCKED_VAL though, as
+that's the proper constant to use.
