@@ -1,56 +1,50 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from g4t3426.houston.hp.com ([15.201.208.54]:29285 "EHLO
-	g4t3426.houston.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751205AbaDRQ0n (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 18 Apr 2014 12:26:43 -0400
-Message-ID: <53515232.50905@hp.com>
-Date: Fri, 18 Apr 2014 12:26:26 -0400
-From: Waiman Long <waiman.long@hp.com>
+Received: from aserp1040.oracle.com ([141.146.126.69]:36008 "EHLO
+	aserp1040.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751314AbaDRQgh (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 18 Apr 2014 12:36:37 -0400
+Date: Fri, 18 Apr 2014 12:35:43 -0400
+From: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
+Subject: Re: [PATCH v9 03/19] qspinlock: Add pending bit
+Message-ID: <20140418163543.GA6208@phenom.dumpdata.com>
+References: <1397747051-15401-1-git-send-email-Waiman.Long@hp.com>
+ <1397747051-15401-4-git-send-email-Waiman.Long@hp.com>
+ <20140418074255.GA13517@gmail.com>
+ <53515181.8090303@hp.com>
 MIME-Version: 1.0
-Subject: Re: [PATCH v9 05/19] qspinlock: Optimize for smaller NR_CPUS
-References: <1397747051-15401-1-git-send-email-Waiman.Long@hp.com> <1397747051-15401-6-git-send-email-Waiman.Long@hp.com> <20140417155844.GS11096@twins.programming.kicks-ass.net> <53504C4E.8060800@hp.com> <20140418074616.GB13517@gmail.com>
-In-Reply-To: <20140418074616.GB13517@gmail.com>
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <53515181.8090303@hp.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ingo Molnar <mingo@kernel.org>
-Cc: Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Rik van Riel <riel@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, David Vrabel <david.vrabel@citrix.com>, Oleg Nesterov <oleg@redhat.com>, Gleb Natapov <gleb@redhat.com>, Scott J Norton <scott.norton@hp.com>, Chegu Vinod <chegu_vinod@hp.com>
-Message-ID: <20140418162626.LD3v4tQ-6FLNuTEnJ2v9GETi-vDulMQ1zbwMxp3_2i0@z>
+To: Waiman Long <waiman.long@hp.com>
+Cc: Ingo Molnar <mingo@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Peter Zijlstra <peterz@infradead.org>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Rik van Riel <riel@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, David Vrabel <david.vrabel@citrix.com>, Oleg Nesterov <oleg@redhat.com>, Gleb Natapov <gleb@redhat.com>, Scott J Norton <scott.norton@hp.com>, Chegu Vinod <chegu_vinod@hp.com>
+Message-ID: <20140418163543.a--YsKgApB5Gqtiky0QIG6lRRJx23JTEF6PMgpk2e28@z>
 
-On 04/18/2014 03:46 AM, Ingo Molnar wrote:
-> * Waiman Long<waiman.long@hp.com>  wrote:
->
->> On 04/17/2014 11:58 AM, Peter Zijlstra wrote:
->>> On Thu, Apr 17, 2014 at 11:03:57AM -0400, Waiman Long wrote:
->>>> +static __always_inline void
->>>> +clear_pending_set_locked(struct qspinlock *lock, u32 val)
->>>> +{
->>>> +	struct __qspinlock *l = (void *)lock;
->>>> +
->>>> +	ACCESS_ONCE(l->locked_pending) = 1;
->>>> +}
->>>> @@ -157,8 +251,13 @@ static inline int trylock_pending(struct qspinlock *lock, u32 *pval)
->>>>   	 * we're pending, wait for the owner to go away.
->>>>   	 *
->>>>   	 * *,1,1 ->   *,1,0
->>>> +	 *
->>>> +	 * this wait loop must be a load-acquire such that we match the
->>>> +	 * store-release that clears the locked bit and create lock
->>>> +	 * sequentiality; this because not all try_clear_pending_set_locked()
->>>> +	 * implementations imply full barriers.
->>> You renamed the function referred in the above comment.
->>>
->> Sorry, will fix the comments.
-> I suggest not renaming the function instead.
-> try_clear_pending_set_locked() tells the intent in a clearer fashion.
->
-> Thanks,
->
-> 	Ingo
+On Fri, Apr 18, 2014 at 12:23:29PM -0400, Waiman Long wrote:
+> On 04/18/2014 03:42 AM, Ingo Molnar wrote:
+> >* Waiman Long<Waiman.Long@hp.com>  wrote:
+> >
+> >>Because the qspinlock needs to touch a second cacheline; add a pending
+> >>bit and allow a single in-word spinner before we punt to the second
+> >>cacheline.
+> >>
+> >>Signed-off-by: Peter Zijlstra<peterz@infradead.org>
+> >>Signed-off-by: Waiman Long<Waiman.Long@hp.com>
+> >This patch should have a "From: Peter" in it as well, right?
+> >
+> >Thanks,
+> >
+> >	Ingo
+> 
+> Do you mean a "From:" line in the mail header? It will be a bit hard
+> to have different "From:" header in the same patch series. I can
+> certainly do that if there is an easy way to do it.
 
-I usually use the word "try" if there is a possibility of failure. 
-However, the function will always succeed, albeit by waiting a bit in 
-some cases. That is why I remove "try" from the name.
+It is pretty easy.
 
--Longman
+Just do 'git commit --amend --author "The Right Author"' and when
+you send the patches (git send-email) it will include that.
+
+> 
+> -Longman
