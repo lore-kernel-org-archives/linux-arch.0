@@ -1,313 +1,47 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bn1bn0104.outbound.protection.outlook.com ([157.56.110.104]:16469
-	"EHLO na01-bn1-obe.outbound.protection.outlook.com"
-	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1752222AbaDRMmM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 18 Apr 2014 08:42:12 -0400
-From: Ley Foon Tan <lftan@altera.com>
-Subject: [PATCH 08/28] nios2: MMU Fault handling
-Date: Fri, 18 Apr 2014 20:26:52 +0800
-Message-ID: <1397824031-4892-6-git-send-email-lftan@altera.com>
-In-Reply-To: <1397824031-4892-1-git-send-email-lftan@altera.com>
-References: <1397824031-4892-1-git-send-email-lftan@altera.com>
+Received: from aserp1040.oracle.com ([141.146.126.69]:21676 "EHLO
+	aserp1040.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753827AbaDRNTE (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 18 Apr 2014 09:19:04 -0400
+Date: Fri, 18 Apr 2014 09:18:07 -0400
+From: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
+Subject: Re: [PATCH v9 00/19] qspinlock: a 4-byte queue spinlock with PV
+ support
+Message-ID: <20140418131807.GD4010@phenom.dumpdata.com>
+References: <1397747051-15401-1-git-send-email-Waiman.Long@hp.com>
+ <20140417172246.GA9849@localhost.localdomain>
+ <53508474.7010402@hp.com>
 MIME-Version: 1.0
-Content-Type: text/plain
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <53508474.7010402@hp.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org
-Cc: Ley Foon Tan <lftan@altera.com>, lftan.linux@gmail.com, cltang@codesourcery.com
-Message-ID: <20140418122652.aPTbkSfaJ-WMmP0AduFXkulc3mEzDqNFE5sBlWgrYw0@z>
+To: Waiman Long <waiman.long@hp.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Peter Zijlstra <peterz@infradead.org>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Rik van Riel <riel@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, David Vrabel <david.vrabel@citrix.com>, Oleg Nesterov <oleg@redhat.com>, Gleb Natapov <gleb@redhat.com>, Scott J Norton <scott.norton@hp.com>, Chegu Vinod <chegu_vinod@hp.com>, Marcos Matsunaga <Marcos.Matsunaga@oracle.com>
+Message-ID: <20140418131807.1p7JO1McuWOB1_BVo3ZP0y_uH7mYxrq3A9GmIHhX6Zo@z>
 
-This patch adds support for the handling of the MMU faults (exception
-entry code introduced by a previous patch, kernel/entry.S).
+On Thu, Apr 17, 2014 at 09:48:36PM -0400, Waiman Long wrote:
+> On 04/17/2014 01:23 PM, Konrad Rzeszutek Wilk wrote:
+> >On Thu, Apr 17, 2014 at 11:03:52AM -0400, Waiman Long wrote:
+> >>v8->v9:
+> >>   - Integrate PeterZ's version of the queue spinlock patch with some
+> >>     modification:
+> >>     http://lkml.kernel.org/r/20140310154236.038181843@infradead.org
+> >>   - Break the more complex patches into smaller ones to ease review effort.
+> >>   - Fix a racing condition in the PV qspinlock code.
+> >I am not seeing anything mentioning that the overcommit scenario
+> >for KVM and Xen had been fixed. Or was the 'racing condition' said
+> >issue?
+> >
+> >Thanks.
+> 
+> The hanging is caused by a racing condition which should be fixed in
+> the v9 patch. Please let me know if you are still seeing it.
 
-Signed-off-by: Ley Foon Tan <lftan@altera.com>
----
- arch/nios2/mm/extable.c |  25 +++++
- arch/nios2/mm/fault.c   | 242 ++++++++++++++++++++++++++++++++++++++++++++++++
- 2 files changed, 267 insertions(+)
- create mode 100644 arch/nios2/mm/extable.c
- create mode 100644 arch/nios2/mm/fault.c
+OK, is there a git tree with these patches to easily slurp them up?
 
-diff --git a/arch/nios2/mm/extable.c b/arch/nios2/mm/extable.c
-new file mode 100644
-index 0000000..4d2fc5a589d09492630ddff2a52a7a6a96ab6486
---- /dev/null
-+++ b/arch/nios2/mm/extable.c
-@@ -0,0 +1,25 @@
-+/*
-+ * Copyright (C) 2010, Tobias Klauser <tklauser@distanz.ch>
-+ * Copyright (C) 2009, Wind River Systems Inc
-+ *   Implemented by fredrik.markstrom@gmail.com and ivarholmqvist@gmail.com
-+ *
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License.  See the file "COPYING" in the main directory of this archive
-+ * for more details.
-+ */
-+
-+#include <linux/module.h>
-+#include <linux/uaccess.h>
-+
-+int fixup_exception(struct pt_regs *regs)
-+{
-+	const struct exception_table_entry *fixup;
-+
-+	fixup = search_exception_tables(regs->ea);
-+	if (fixup) {
-+		regs->ea = fixup->fixup;
-+		return 1;
-+	}
-+
-+	return 0;
-+}
-diff --git a/arch/nios2/mm/fault.c b/arch/nios2/mm/fault.c
-new file mode 100644
-index 0000000..96258b18fc32204b98a70b2dcadc3cb8661539bc
---- /dev/null
-+++ b/arch/nios2/mm/fault.c
-@@ -0,0 +1,242 @@
-+/*
-+ * Copyright (C) 2009 Wind River Systems Inc
-+ *   Implemented by fredrik.markstrom@gmail.com and ivarholmqvist@gmail.com
-+ *
-+ * based on arch/mips/mm/fault.c which is:
-+ *
-+ * Copyright (C) 1995-2000 Ralf Baechle
-+ *
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License.  See the file "COPYING" in the main directory of this archive
-+ * for more details.
-+ */
-+
-+#include <linux/signal.h>
-+#include <linux/sched.h>
-+#include <linux/interrupt.h>
-+#include <linux/kernel.h>
-+#include <linux/errno.h>
-+#include <linux/string.h>
-+#include <linux/types.h>
-+#include <linux/ptrace.h>
-+#include <linux/mman.h>
-+#include <linux/mm.h>
-+#include <linux/uaccess.h>
-+#include <linux/ptrace.h>
-+
-+#include <asm/mmu_context.h>
-+#include <asm/traps.h>
-+
-+#define EXC_SUPERV_INSN_ACCESS	9  /* Supervisor only instruction address */
-+#define EXC_SUPERV_DATA_ACCESS	11 /* Supervisor only data address */
-+#define EXC_X_PROTECTION_FAULT	13 /* TLB permission violation (x) */
-+#define EXC_R_PROTECTION_FAULT	14 /* TLB permission violation (r) */
-+#define EXC_W_PROTECTION_FAULT	15 /* TLB permission violation (w) */
-+
-+/*
-+ * This routine handles page faults.  It determines the address,
-+ * and the problem, and then passes it off to one of the appropriate
-+ * routines.
-+ */
-+asmlinkage void do_page_fault(struct pt_regs *regs, unsigned long cause,
-+				unsigned long address)
-+{
-+	struct vm_area_struct *vma = NULL;
-+	struct task_struct *tsk = current;
-+	struct mm_struct *mm = tsk->mm;
-+	int code = SEGV_MAPERR;
-+	int fault;
-+	unsigned int flags = 0;
-+
-+	cause >>= 2;
-+
-+	/* Restart the instruction */
-+	regs->ea -= 4;
-+
-+	/*
-+	 * We fault-in kernel-space virtual memory on-demand. The
-+	 * 'reference' page table is init_mm.pgd.
-+	 *
-+	 * NOTE! We MUST NOT take any locks for this case. We may
-+	 * be in an interrupt or a critical region, and should
-+	 * only copy the information from the master page table,
-+	 * nothing more.
-+	 */
-+	if (unlikely(address >= VMALLOC_START && address <= VMALLOC_END)) {
-+		if (user_mode(regs))
-+			goto bad_area_nosemaphore;
-+		else
-+			goto vmalloc_fault;
-+	}
-+
-+	if (unlikely(address >= TASK_SIZE))
-+		goto bad_area_nosemaphore;
-+
-+	/*
-+	 * If we're in an interrupt or have no user
-+	 * context, we must not take the fault..
-+	 */
-+	if (in_atomic() || !mm)
-+		goto bad_area_nosemaphore;
-+
-+	if (user_mode(regs))
-+		flags |= FAULT_FLAG_USER;
-+
-+	down_read(&mm->mmap_sem);
-+	vma = find_vma(mm, address);
-+	if (!vma)
-+		goto bad_area;
-+	if (vma->vm_start <= address)
-+		goto good_area;
-+	if (!(vma->vm_flags & VM_GROWSDOWN))
-+		goto bad_area;
-+	if (expand_stack(vma, address))
-+		goto bad_area;
-+/*
-+ * Ok, we have a good vm_area for this memory access, so
-+ * we can handle it..
-+ */
-+good_area:
-+	code = SEGV_ACCERR;
-+
-+	switch (cause) {
-+	case EXC_SUPERV_INSN_ACCESS:
-+		goto bad_area;
-+	case EXC_SUPERV_DATA_ACCESS:
-+		goto bad_area;
-+	case EXC_X_PROTECTION_FAULT:
-+		if (!(vma->vm_flags & VM_EXEC))
-+			goto bad_area;
-+		break;
-+	case EXC_R_PROTECTION_FAULT:
-+		if (!(vma->vm_flags & VM_READ))
-+			goto bad_area;
-+		break;
-+	case EXC_W_PROTECTION_FAULT:
-+		if (!(vma->vm_flags & VM_WRITE))
-+			goto bad_area;
-+		flags = FAULT_FLAG_WRITE;
-+		break;
-+	}
-+
-+survive:
-+	/*
-+	 * If for any reason at all we couldn't handle the fault,
-+	 * make sure we exit gracefully rather than endlessly redo
-+	 * the fault.
-+	 */
-+	fault = handle_mm_fault(mm, vma, address, flags);
-+	if (unlikely(fault & VM_FAULT_ERROR)) {
-+		if (fault & VM_FAULT_OOM)
-+			goto out_of_memory;
-+		else if (fault & VM_FAULT_SIGBUS)
-+			goto do_sigbus;
-+		BUG();
-+	}
-+	if (fault & VM_FAULT_MAJOR)
-+		tsk->maj_flt++;
-+	else
-+		tsk->min_flt++;
-+
-+	up_read(&mm->mmap_sem);
-+	return;
-+
-+/*
-+ * Something tried to access memory that isn't in our memory map..
-+ * Fix it, but check if it's kernel or user first..
-+ */
-+bad_area:
-+	up_read(&mm->mmap_sem);
-+
-+bad_area_nosemaphore:
-+	/* User mode accesses just cause a SIGSEGV */
-+	if (user_mode(regs)) {
-+		_exception(SIGSEGV, regs, code, address);
-+		return;
-+	}
-+
-+no_context:
-+	/* Are we prepared to handle this kernel fault? */
-+	if (fixup_exception(regs))
-+		return;
-+
-+	/*
-+	 * Oops. The kernel tried to access some bad page. We'll have to
-+	 * terminate things with extreme prejudice.
-+	 */
-+	bust_spinlocks(1);
-+
-+	pr_alert("Unable to handle kernel %s at virtual address %08lx",
-+		address < PAGE_SIZE ? "NULL pointer dereference" :
-+		"paging request", address);
-+	pr_alert("ea = %08lx, ra = %08lx, cause = %ld\n", regs->ea, regs->ra,
-+		cause);
-+	panic("Oops");
-+	return;
-+
-+/*
-+ * We ran out of memory, or some other thing happened to us that made
-+ * us unable to handle the page fault gracefully.
-+ */
-+out_of_memory:
-+	up_read(&mm->mmap_sem);
-+	if (is_global_init(tsk)) {
-+		yield();
-+		down_read(&mm->mmap_sem);
-+		goto survive;
-+	}
-+	if (!user_mode(regs))
-+		goto no_context;
-+	pagefault_out_of_memory();
-+	return;
-+
-+do_sigbus:
-+	up_read(&mm->mmap_sem);
-+
-+	/* Kernel mode? Handle exceptions or die */
-+	if (!user_mode(regs))
-+		goto no_context;
-+
-+	_exception(SIGBUS, regs, BUS_ADRERR, address);
-+	return;
-+
-+vmalloc_fault:
-+	{
-+		/*
-+		 * Synchronize this task's top level page-table
-+		 * with the 'reference' page table.
-+		 *
-+		 * Do _not_ use "tsk" here. We might be inside
-+		 * an interrupt in the middle of a task switch..
-+		 */
-+		int offset = pgd_index(address);
-+		pgd_t *pgd, *pgd_k;
-+		pud_t *pud, *pud_k;
-+		pmd_t *pmd, *pmd_k;
-+		pte_t *pte_k;
-+
-+		pgd = pgd_current + offset;
-+		pgd_k = init_mm.pgd + offset;
-+
-+		if (!pgd_present(*pgd_k))
-+			goto no_context;
-+		set_pgd(pgd, *pgd_k);
-+
-+		pud = pud_offset(pgd, address);
-+		pud_k = pud_offset(pgd_k, address);
-+		if (!pud_present(*pud_k))
-+			goto no_context;
-+		pmd = pmd_offset(pud, address);
-+		pmd_k = pmd_offset(pud_k, address);
-+		if (!pmd_present(*pmd_k))
-+			goto no_context;
-+		set_pmd(pmd, *pmd_k);
-+
-+		pte_k = pte_offset_kernel(pmd_k, address);
-+		if (!pte_present(*pte_k))
-+			goto no_context;
-+
-+		flush_tlb_one(address);
-+		return;
-+	}
-+}
--- 
-1.8.3.2
 
+Thanks!
+> 
+> -Longman
