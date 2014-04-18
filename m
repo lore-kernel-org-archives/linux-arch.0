@@ -1,47 +1,40 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from aserp1040.oracle.com ([141.146.126.69]:21676 "EHLO
-	aserp1040.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753827AbaDRNTE (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 18 Apr 2014 09:19:04 -0400
-Date: Fri, 18 Apr 2014 09:18:07 -0400
-From: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
-Subject: Re: [PATCH v9 00/19] qspinlock: a 4-byte queue spinlock with PV
- support
-Message-ID: <20140418131807.GD4010@phenom.dumpdata.com>
-References: <1397747051-15401-1-git-send-email-Waiman.Long@hp.com>
- <20140417172246.GA9849@localhost.localdomain>
- <53508474.7010402@hp.com>
+Received: from g4t3427.houston.hp.com ([15.201.208.55]:38207 "EHLO
+	g4t3427.houston.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751459AbaDRQXr (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 18 Apr 2014 12:23:47 -0400
+Message-ID: <53515181.8090303@hp.com>
+Date: Fri, 18 Apr 2014 12:23:29 -0400
+From: Waiman Long <waiman.long@hp.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <53508474.7010402@hp.com>
+Subject: Re: [PATCH v9 03/19] qspinlock: Add pending bit
+References: <1397747051-15401-1-git-send-email-Waiman.Long@hp.com> <1397747051-15401-4-git-send-email-Waiman.Long@hp.com> <20140418074255.GA13517@gmail.com>
+In-Reply-To: <20140418074255.GA13517@gmail.com>
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Waiman Long <waiman.long@hp.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Peter Zijlstra <peterz@infradead.org>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Rik van Riel <riel@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, David Vrabel <david.vrabel@citrix.com>, Oleg Nesterov <oleg@redhat.com>, Gleb Natapov <gleb@redhat.com>, Scott J Norton <scott.norton@hp.com>, Chegu Vinod <chegu_vinod@hp.com>, Marcos Matsunaga <Marcos.Matsunaga@oracle.com>
-Message-ID: <20140418131807.1p7JO1McuWOB1_BVo3ZP0y_uH7mYxrq3A9GmIHhX6Zo@z>
+To: Ingo Molnar <mingo@kernel.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Peter Zijlstra <peterz@infradead.org>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Rik van Riel <riel@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, David Vrabel <david.vrabel@citrix.com>, Oleg Nesterov <oleg@redhat.com>, Gleb Natapov <gleb@redhat.com>, Scott J Norton <scott.norton@hp.com>, Chegu Vinod <chegu_vinod@hp.com>
+Message-ID: <20140418162329.xbGyd4ib5qVV4kRVRAdyGsJl7n2UD5OnXIwNRWQecIA@z>
 
-On Thu, Apr 17, 2014 at 09:48:36PM -0400, Waiman Long wrote:
-> On 04/17/2014 01:23 PM, Konrad Rzeszutek Wilk wrote:
-> >On Thu, Apr 17, 2014 at 11:03:52AM -0400, Waiman Long wrote:
-> >>v8->v9:
-> >>   - Integrate PeterZ's version of the queue spinlock patch with some
-> >>     modification:
-> >>     http://lkml.kernel.org/r/20140310154236.038181843@infradead.org
-> >>   - Break the more complex patches into smaller ones to ease review effort.
-> >>   - Fix a racing condition in the PV qspinlock code.
-> >I am not seeing anything mentioning that the overcommit scenario
-> >for KVM and Xen had been fixed. Or was the 'racing condition' said
-> >issue?
-> >
-> >Thanks.
-> 
-> The hanging is caused by a racing condition which should be fixed in
-> the v9 patch. Please let me know if you are still seeing it.
+On 04/18/2014 03:42 AM, Ingo Molnar wrote:
+> * Waiman Long<Waiman.Long@hp.com>  wrote:
+>
+>> Because the qspinlock needs to touch a second cacheline; add a pending
+>> bit and allow a single in-word spinner before we punt to the second
+>> cacheline.
+>>
+>> Signed-off-by: Peter Zijlstra<peterz@infradead.org>
+>> Signed-off-by: Waiman Long<Waiman.Long@hp.com>
+> This patch should have a "From: Peter" in it as well, right?
+>
+> Thanks,
+>
+> 	Ingo
 
-OK, is there a git tree with these patches to easily slurp them up?
+Do you mean a "From:" line in the mail header? It will be a bit hard to 
+have different "From:" header in the same patch series. I can certainly 
+do that if there is an easy way to do it.
 
-
-Thanks!
-> 
-> -Longman
+-Longman
