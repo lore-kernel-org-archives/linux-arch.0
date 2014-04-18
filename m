@@ -1,27 +1,24 @@
-From: Paul Bolle <pebolle@tiscali.nl>
-Subject: Re: [PATCH 01/28] nios2: Build infrastructure
-Date: Fri, 18 Apr 2014 21:41:44 +0200
-Message-ID: <1397850104.4750.8.camel@x220>
+From: "H. Peter Anvin" <hpa@zytor.com>
+Subject: Re: [PATCH 00/28] nios2 Linux kernel port
+Date: Fri, 18 Apr 2014 13:48:44 -0700
+Message-ID: <53518FAC.8020504@zytor.com>
 References: <1397824031-4892-1-git-send-email-lftan@altera.com>
-	 <1397824031-4892-2-git-send-email-lftan@altera.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-doc-owner@vger.kernel.org>
-In-Reply-To: <1397824031-4892-2-git-send-email-lftan@altera.com>
-Sender: linux-doc-owner@vger.kernel.org
-To: Ley Foon Tan <lftan@altera.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, lftan.linux@gmail.com, cltang@codesourcery.com
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1397824031-4892-1-git-send-email-lftan@altera.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Ley Foon Tan <lftan@altera.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org
+Cc: lftan.linux@gmail.com, cltang@codesourcery.com, Arnd Bergmann <arnd@arndb.de>
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, 2014-04-18 at 20:26 +0800, Ley Foon Tan wrote:
-> diff --git a/arch/nios2/kernel/Makefile b/arch/nios2/kernel/Makefile
-[...]
-> +obj-$(CONFIG_CONSOLE)		+= console.o
+On 04/18/2014 05:26 AM, Ley Foon Tan wrote:
+> This patchset adds the Linux kernel port for Nios II processor from Altera.
+> The nios2 Linux port follows the guidance for new architecture ports using
+> generic headers (including unistd.h).
 
-CONFIG_CONSOLE seems never to be defined. And there appears to be no
-arch/nios2/console.c or .../console.S anyway.
+Did the generic headers ever get updated to match Linus' guidance that
+any new architecture ports should use a 64-bit time_t?
 
-
-Paul Bolle
-
+	-hpa
