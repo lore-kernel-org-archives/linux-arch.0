@@ -1,34 +1,50 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from g2t2352.austin.hp.com ([15.217.128.51]:25892 "EHLO
-	g2t2352.austin.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751646AbaDRRHd (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 18 Apr 2014 13:07:33 -0400
-Message-ID: <53515BC2.6000602@hp.com>
-Date: Fri, 18 Apr 2014 13:07:14 -0400
+Received: from g4t3426.houston.hp.com ([15.201.208.54]:50881 "EHLO
+	g4t3426.houston.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751139AbaDRRdF (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 18 Apr 2014 13:33:05 -0400
+Message-ID: <535161BF.90405@hp.com>
+Date: Fri, 18 Apr 2014 13:32:47 -0400
 From: Waiman Long <waiman.long@hp.com>
 MIME-Version: 1.0
-Subject: Re: [PATCH v9 03/19] qspinlock: Add pending bit
-References: <1397747051-15401-1-git-send-email-Waiman.Long@hp.com> <1397747051-15401-4-git-send-email-Waiman.Long@hp.com> <20140417154200.GN11096@twins.programming.kicks-ass.net> <5350459F.5010903@hp.com> <20140418081345.GX11096@twins.programming.kicks-ass.net>
-In-Reply-To: <20140418081345.GX11096@twins.programming.kicks-ass.net>
+Subject: Re: [PATCH v9 04/19] qspinlock: Extract out the exchange of tail
+ code word
+References: <1397747051-15401-1-git-send-email-Waiman.Long@hp.com> <1397747051-15401-5-git-send-email-Waiman.Long@hp.com> <20140417154902.GO11096@twins.programming.kicks-ass.net> <53504771.9070102@hp.com> <20140418081517.GY11096@twins.programming.kicks-ass.net>
+In-Reply-To: <20140418081517.GY11096@twins.programming.kicks-ass.net>
 Content-Type: text/plain; charset=ISO-8859-1; format=flowed
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Peter Zijlstra <peterz@infradead.org>
 Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Rik van Riel <riel@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, David Vrabel <david.vrabel@citrix.com>, Oleg Nesterov <oleg@redhat.com>, Gleb Natapov <gleb@redhat.com>, Scott J Norton <scott.norton@hp.com>, Chegu Vinod <chegu_vinod@hp.com>
-Message-ID: <20140418170714.-HCRs86_NQ0rdSue_9R9xhSTSqjybbzez2rI1f2d5BM@z>
+Message-ID: <20140418173247.fdPnKxcziXUi2NKS6_ZTsxVlf__0sdoVtx90SvdF_xo@z>
 
-On 04/18/2014 04:13 AM, Peter Zijlstra wrote:
-> On Thu, Apr 17, 2014 at 05:20:31PM -0400, Waiman Long wrote:
->>>> +	while ((val = atomic_read(&lock->val))&   _Q_LOCKED_MASK)
->>>> +		arch_mutex_cpu_relax();
->>> That was a cpu_relax().
->> Yes, but arch_mutex_cpu_relax() is the same as cpu_relax() for x86.
-> Yeah, so why bother typing more?
->
-> Let the s390 people sort that if/when they try and make this work for
-> them.
+On 04/18/2014 04:15 AM, Peter Zijlstra wrote:
+> On Thu, Apr 17, 2014 at 05:28:17PM -0400, Waiman Long wrote:
+>> On 04/17/2014 11:49 AM, Peter Zijlstra wrote:
+>>> On Thu, Apr 17, 2014 at 11:03:56AM -0400, Waiman Long wrote:
+>>>> @@ -192,36 +220,25 @@ void queue_spin_lock_slowpath(struct qspinlock *lock, u32 val)
+>>>>   	node->next = NULL;
+>>>>
+>>>>   	/*
+>>>> +	 * We touched a (possibly) cold cacheline; attempt the trylock once
+>>>> +	 * more in the hope someone let go while we weren't watching as long
+>>>> +	 * as no one was queuing.
+>>>>   	 */
+>>>> +	if (!(val&   _Q_TAIL_MASK)&&   queue_spin_trylock(lock))
+>>>> +		goto release;
+>>> But you just did a potentially very expensive op; @val isn't
+>>> representative anymore!
+>> That is not true. I pass in a pointer to val to trylock_pending() (the
+>> pointer thing) so that it will store the latest value that it reads from the
+>> lock back into val. I did miss one in the PV qspinlock exit loop. I will add
+>> it back when I do the next version.
+> But you did that read _before_ you touched a cold cacheline, that's 100s
+> of cycles. Whatever value you read back then is now complete nonsense.
 
-OK, I can revert the change if you wish. I have no objection for that.
+For spin_lock(), the lock cacheline is touched by a cmpxchg(). It can 
+takes 100s of cycles whether it is hot or cold.
+
+I will take the precheck out, it is not such a big deal anyway.
 
 -Longman
