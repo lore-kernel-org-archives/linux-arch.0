@@ -1,68 +1,35 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ee0-f44.google.com ([74.125.83.44]:33971 "EHLO
-	mail-ee0-f44.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750996AbaDSJYs (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 19 Apr 2014 05:24:48 -0400
-Date: Sat, 19 Apr 2014 11:24:42 +0200
-From: Ingo Molnar <mingo@kernel.org>
-Subject: Re: [PATCH v9 05/19] qspinlock: Optimize for smaller NR_CPUS
-Message-ID: <20140419092442.GB2102@gmail.com>
-References: <1397747051-15401-1-git-send-email-Waiman.Long@hp.com>
- <1397747051-15401-6-git-send-email-Waiman.Long@hp.com>
- <20140417155844.GS11096@twins.programming.kicks-ass.net>
- <53504C4E.8060800@hp.com>
- <20140418074616.GB13517@gmail.com>
- <53515232.50905@hp.com>
+Received: from moutng.kundenserver.de ([212.227.126.131]:53992 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751104AbaDSPcz (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 19 Apr 2014 11:32:55 -0400
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH 00/28] nios2 Linux kernel port
+Date: Sat, 19 Apr 2014 17:30:54 +0200
+References: <1397824031-4892-1-git-send-email-lftan@altera.com> <53518FAC.8020504@zytor.com>
+In-Reply-To: <53518FAC.8020504@zytor.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <53515232.50905@hp.com>
+Content-Type: Text/Plain;
+  charset="utf-8"
+Content-Transfer-Encoding: 7bit
+Message-ID: <201404191730.54400.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Waiman Long <waiman.long@hp.com>
-Cc: Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Rik van Riel <riel@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, David Vrabel <david.vrabel@citrix.com>, Oleg Nesterov <oleg@redhat.com>, Gleb Natapov <gleb@redhat.com>, Scott J Norton <scott.norton@hp.com>, Chegu Vinod <chegu_vinod@hp.com>
-Message-ID: <20140419092442.5laRIEqz8tJPyN36Zd6WbbNlcpIOGwjF_yFrgi5AhKM@z>
+To: "H. Peter Anvin" <hpa@zytor.com>
+Cc: Ley Foon Tan <lftan@altera.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, lftan.linux@gmail.com, cltang@codesourcery.com
+Message-ID: <20140419153054.tyJG8sX6_tgpUBAEbhUxhLZVoejb2wU2s1tLqr1L6jM@z>
 
-
-* Waiman Long <waiman.long@hp.com> wrote:
-
-> On 04/18/2014 03:46 AM, Ingo Molnar wrote:
-> >* Waiman Long<waiman.long@hp.com>  wrote:
-> >
-> >>On 04/17/2014 11:58 AM, Peter Zijlstra wrote:
-> >>>On Thu, Apr 17, 2014 at 11:03:57AM -0400, Waiman Long wrote:
-> >>>>+static __always_inline void
-> >>>>+clear_pending_set_locked(struct qspinlock *lock, u32 val)
-> >>>>+{
-> >>>>+	struct __qspinlock *l = (void *)lock;
-> >>>>+
-> >>>>+	ACCESS_ONCE(l->locked_pending) = 1;
-> >>>>+}
-> >>>>@@ -157,8 +251,13 @@ static inline int trylock_pending(struct qspinlock *lock, u32 *pval)
-> >>>>  	 * we're pending, wait for the owner to go away.
-> >>>>  	 *
-> >>>>  	 * *,1,1 ->   *,1,0
-> >>>>+	 *
-> >>>>+	 * this wait loop must be a load-acquire such that we match the
-> >>>>+	 * store-release that clears the locked bit and create lock
-> >>>>+	 * sequentiality; this because not all try_clear_pending_set_locked()
-> >>>>+	 * implementations imply full barriers.
-> >>>You renamed the function referred in the above comment.
-> >>>
-> >>Sorry, will fix the comments.
-> >I suggest not renaming the function instead.
-> >try_clear_pending_set_locked() tells the intent in a clearer fashion.
-> >
-> >Thanks,
-> >
-> >	Ingo
+On Friday 18 April 2014, H. Peter Anvin wrote:
+> On 04/18/2014 05:26 AM, Ley Foon Tan wrote:
+> > This patchset adds the Linux kernel port for Nios II processor from Altera.
+> > The nios2 Linux port follows the guidance for new architecture ports using
+> > generic headers (including unistd.h).
 > 
-> I usually use the word "try" if there is a possibility of failure. 
-> However, the function will always succeed, albeit by waiting a bit 
-> in some cases. That is why I remove "try" from the name.
+> Did the generic headers ever get updated to match Linus' guidance that
+> any new architecture ports should use a 64-bit time_t?
 
-Fair enough!
+No, unfortunately not. With my rule that every architecture that gets
+added needs to clean up asm-generic some more, to make it easier to add
+the next one, we should probably do for nios2.
 
-Thanks,
-
-	Ingo
+	Arnd
