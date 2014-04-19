@@ -1,52 +1,62 @@
-From: Pavel Machek <pavel@denx.de>
-Subject: Re: [PATCH 16/28] nios2: System calls handling
-Date: Sat, 19 Apr 2014 18:09:47 +0200
-Message-ID: <20140419160947.GA27776@amd.pavel.ucw.cz>
-References: <1397824031-4892-1-git-send-email-lftan@altera.com>
- <1397824031-4892-13-git-send-email-lftan@altera.com>
+From: Helge Deller <deller@gmx.de>
+Subject: Re: [PATCH 09/15] parisc: add renameat2 syscall
+Date: Sat, 19 Apr 2014 20:54:04 +0200
+Message-ID: <5352C64C.1040204@gmx.de>
+References: <1397211951-20549-1-git-send-email-miklos@szeredi.hu> <1397211951-20549-10-git-send-email-miklos@szeredi.hu>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from atrey.karlin.mff.cuni.cz ([195.113.26.193]:56237 "EHLO
-	atrey.karlin.mff.cuni.cz" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751104AbaDSQJt (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 19 Apr 2014 12:09:49 -0400
-Content-Disposition: inline
-In-Reply-To: <1397824031-4892-13-git-send-email-lftan@altera.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Ley Foon Tan <lftan@altera.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, lftan.linux@gmail.com, cltang@codesourcery.com
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1397211951-20549-10-git-send-email-miklos@szeredi.hu>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Miklos Szeredi <miklos@szeredi.hu>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Cc: Miklos Szeredi <mszeredi@suse.cz>
+List-Id: linux-arch.vger.kernel.org
 
-On Fri 2014-04-18 20:26:59, Ley Foon Tan wrote:
-> This patch adds support for system calls from userspaces. It uses the
-> asm-generic/unistd.h definitions with architecture spcific syscall. The sys_call_table
-> is just an array defined in a C file and it contains pointers to the syscall functions.
+On 04/11/2014 12:25 PM, Miklos Szeredi wrote:
+> From: Miklos Szeredi <mszeredi@suse.cz>
+
+Thanks Miklos!
+ 
+> Signed-off-by: Miklos Szeredi <mszeredi@suse.cz>
+> Cc: Helge Deller <deller@gmx.de>
+
+Acked-by: Helge Deller <deller@gmx.de>
+
+Can you please push it with the other arches.
+
+Helge
+
+> ---
+>  arch/parisc/include/uapi/asm/unistd.h | 3 ++-
+>  arch/parisc/kernel/syscall_table.S    | 1 +
+>  2 files changed, 3 insertions(+), 1 deletion(-)
 > 
-> Signed-off-by: Ley Foon Tan <lftan@altera.com>
-
-
-> +/* Additional Nios II specific syscalls. */
-> +#define __NR_cacheflush (__NR_arch_specific_syscall)
-> +__SYSCALL(__NR_cacheflush, sys_cacheflush)
-
-I guess you should Cc: Michael Kerrisk on this one.
-
-Also... explanation why you need this syscall while other
-architectures live happily without it would be nice.
-
-> +/* sys_cacheflush -- flush the processor cache. */
-> +asmlinkage int sys_cacheflush(unsigned long addr, unsigned long len,
-> +				unsigned int op)
-> +{
-> +	struct vm_area_struct *vma;
-> +
-> +	if (len == 0)
-> +		return 0;
-
-op is being ignored? You should remove it... or if (op) return -EINVAL
-if you want future extensions.
-
--- 
-(english) http://www.livejournal.com/~pavelmachek
-(cesky, pictures) http://atrey.karlin.mff.cuni.cz/~pavel/picture/horses/blog.html
+> diff --git a/arch/parisc/include/uapi/asm/unistd.h b/arch/parisc/include/uapi/asm/unistd.h
+> index 265ae5190b0a..47e0e21d2272 100644
+> --- a/arch/parisc/include/uapi/asm/unistd.h
+> +++ b/arch/parisc/include/uapi/asm/unistd.h
+> @@ -829,8 +829,9 @@
+>  #define __NR_sched_setattr	(__NR_Linux + 334)
+>  #define __NR_sched_getattr	(__NR_Linux + 335)
+>  #define __NR_utimes		(__NR_Linux + 336)
+> +#define __NR_renameat2		(__NR_Linux + 337)
+>  
+> -#define __NR_Linux_syscalls	(__NR_utimes + 1)
+> +#define __NR_Linux_syscalls	(__NR_renameat2 + 1)
+>  
+>  
+>  #define __IGNORE_select		/* newselect */
+> diff --git a/arch/parisc/kernel/syscall_table.S b/arch/parisc/kernel/syscall_table.S
+> index 80e5dd248934..a595266fdb4d 100644
+> --- a/arch/parisc/kernel/syscall_table.S
+> +++ b/arch/parisc/kernel/syscall_table.S
+> @@ -432,6 +432,7 @@
+>  	ENTRY_SAME(sched_setattr)
+>  	ENTRY_SAME(sched_getattr)	/* 335 */
+>  	ENTRY_COMP(utimes)
+> +	ENTRY_COMP(renameat2)
+>  
+>  	/* Nothing yet */
+>  
+> 
