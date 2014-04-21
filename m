@@ -1,60 +1,49 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from relay1.mentorg.com ([192.94.38.131]:56078 "EHLO
-	relay1.mentorg.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751028AbaDUIOJ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 21 Apr 2014 04:14:09 -0400
-Message-ID: <5354D34B.4030607@mentor.com>
-Date: Mon, 21 Apr 2014 16:14:03 +0800
-From: Chung-Lin Tang <chunglin_tang@mentor.com>
+Received: from mail-qg0-f48.google.com ([209.85.192.48]:39690 "EHLO
+	mail-qg0-f48.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751658AbaDURXx (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 21 Apr 2014 13:23:53 -0400
 MIME-Version: 1.0
-Subject: Re: [PATCH 00/28] nios2 Linux kernel port
-References: <1397824031-4892-1-git-send-email-lftan@altera.com>	<53518FAC.8020504@zytor.com>	<201404191730.54400.arnd@arndb.de> <CAFiDJ5-PiUWetRMp65VTo4pvZM65r3WBjCZVWmxW0XnqAyO-GA@mail.gmail.com> <5354AD36.5090809@zytor.com>
-In-Reply-To: <5354AD36.5090809@zytor.com>
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
+In-Reply-To: <CAMuHMdXvLLNXQXYRD71Uv7F-Fh_E6EmF7_OvBUYF513cMfy8sw@mail.gmail.com>
+References: <1397824031-4892-1-git-send-email-lftan@altera.com>
+	<1397824031-4892-13-git-send-email-lftan@altera.com>
+	<CAMuHMdXvLLNXQXYRD71Uv7F-Fh_E6EmF7_OvBUYF513cMfy8sw@mail.gmail.com>
+Date: Tue, 22 Apr 2014 01:23:52 +0800
+Message-ID: <CAFiDJ5_ExhQAqMa5WMyug0Gz3KTVQhfZvonyCuErKBU4icu4tw@mail.gmail.com>
+Subject: Re: [PATCH 16/28] nios2: System calls handling
+From: Ley Foon Tan <lftan@altera.com>
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "H. Peter Anvin" <hpa@zytor.com>, Ley Foon Tan <lftan@altera.com>, Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, Chung-Lin Tang <cltang@CODESOURCERY.COM>
-Message-ID: <20140421081403.sKhE9fg76rxF5vPlaaTThlpWlxJ-9uh7cOoEVfBZMPU@z>
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, cltang@codesourcery.com, Pavel Machek <pavel@denx.de>
+Message-ID: <20140421172352.IJXId8JupeHINvRWf-nflF3mbOK7ns8grdejauVF7p8@z>
 
-On 14/4/21 1:31 PM, H. Peter Anvin wrote:
-> On 04/20/2014 10:23 PM, Ley Foon Tan wrote:
->> On Sat, Apr 19, 2014 at 11:30 PM, Arnd Bergmann <arnd@arndb.de> wrote:
->>> On Friday 18 April 2014, H. Peter Anvin wrote:
->>>> Did the generic headers ever get updated to match Linus' guidance that
->>>> any new architecture ports should use a 64-bit time_t?
->>>
->>> No, unfortunately not. With my rule that every architecture that gets
->>> added needs to clean up asm-generic some more, to make it easier to add
->>> the next one, we should probably do for nios2.
->>>
->>>         Arnd
->>
->> Can you give me the documentation on this new guidance and point me
->> any architecture have implemented this?
->> Thanks.
->>
-> 
-> We implemented it in the x32 ABI for x86.  In generic code this is keyed
-> by COMPAT_USE_64BIT_TIME, but in your case it isn't actually a matter of
-> compat, so it should be easier.
-> 
-> See this thread including the discussion about time_t:
-> 
-> https://lkml.org/lkml/2011/8/26/415
-> 
-> 	-hpa
+On Sun, Apr 20, 2014 at 4:12 AM, Geert Uytterhoeven
+<geert@linux-m68k.org> wrote:
+>> +        */
+>> +       vma = find_vma(current->mm, addr);
+>> +       if (vma == NULL || addr < vma->vm_start || addr + len > vma->vm_end)
+>> +               return -EFAULT;
+>> +
+>> +       /* Ignore the scope and cache arguments. */
+>
+> This function doesn't have scope and cache arguments
+> (sys_cacheflush() on m68k does have them ;-)
 
+Missed out the comment after rename the arguments.:) Will update the
+comment above.
 
-I'm not sure why we need CONFIG_USE_64BIT_TIME? We don't have any
-32-on-64 problems.
+> On Sat, Apr 19, 2014 at 6:09 PM, Pavel Machek <pavel@denx.de> wrote:
+>> Also... explanation why you need this syscall while other
+>> architectures live happily without it would be nice.
+>
+> 12 our of 28 architectures provide such a syscall...
+>
+> Is flushing the cache a privileged operation on nios2?
+Yes.
 
-My understanding of what Arnd meant, was to clean up
-asm-generic/posix_types.h such that for example, time_t should be
-defined as a 'long long' type, which should be 64-bit almost everywhere.
-At least AFAIK, that should work for all current asm-generic users.
+Thanks.
 
-Thanks,
-Chung-Lin
-
+Regards
+Ley Foon
