@@ -1,204 +1,229 @@
-From: Linus Torvalds <torvalds@linux-foundation.org>
+From: Dave Hansen <dave.hansen@intel.com>
 Subject: Re: Dirty/Access bits vs. page content
-Date: Mon, 21 Apr 2014 15:29:49 -0700
-Message-ID: <CA+55aFxGm6J6N=4L7exLUFMr1_siNGHpK=wApd9GPCH1=63PPA@mail.gmail.com>
-References: <1398032742.19682.11.camel@pasglop>
-	<CA+55aFz1sK+PF96LYYZY7OB7PBpxZu-uNLWLvPiRz-tJsBqX3w@mail.gmail.com>
-	<1398054064.19682.32.camel@pasglop>
-	<1398057630.19682.38.camel@pasglop>
-	<CA+55aFwWHBtihC3w9E4+j4pz+6w7iTnYhTf4N3ie15BM9thxLQ@mail.gmail.com>
-	<53558507.9050703@zytor.com>
+Date: Mon, 21 Apr 2014 15:44:24 -0700
+Message-ID: <53559F48.8040808@intel.com>
+References: <1398032742.19682.11.camel@pasglop>	<CA+55aFz1sK+PF96LYYZY7OB7PBpxZu-uNLWLvPiRz-tJsBqX3w@mail.gmail.com>	<1398054064.19682.32.camel@pasglop>	<1398057630.19682.38.camel@pasglop>	<CA+55aFwWHBtihC3w9E4+j4pz+6w7iTnYhTf4N3ie15BM9thxLQ@mail.gmail.com>	<53558507.9050703@zytor.com> <CA+55aFxGm6J6N=4L7exLUFMr1_siNGHpK=wApd9GPCH1=63PPA@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: multipart/mixed; boundary=047d7b6700af9979b304f7950995
+Content-Type: multipart/mixed;
+ boundary="------------050208060308010306080202"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-vc0-f171.google.com ([209.85.220.171]:55013 "EHLO
-	mail-vc0-f171.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754027AbaDUW3u (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 21 Apr 2014 18:29:50 -0400
-Received: by mail-vc0-f171.google.com with SMTP id lg15so1680795vcb.30
-        for <linux-arch@vger.kernel.org>; Mon, 21 Apr 2014 15:29:50 -0700 (PDT)
-In-Reply-To: <53558507.9050703@zytor.com>
+Received: from mga09.intel.com ([134.134.136.24]:46184 "EHLO mga09.intel.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1754493AbaDUWo0 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 21 Apr 2014 18:44:26 -0400
+In-Reply-To: <CA+55aFxGm6J6N=4L7exLUFMr1_siNGHpK=wApd9GPCH1=63PPA@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "H. Peter Anvin" <hpa@zytor.com>
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Peter Zijlstra <peterz@infradead.org>, Dave Hansen <dave.hansen@intel.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+To: Linus Torvalds <torvalds@linux-foundation.org>, "H. Peter Anvin" <hpa@zytor.com>
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Peter Zijlstra <peterz@infradead.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
 
---047d7b6700af9979b304f7950995
-Content-Type: text/plain; charset=UTF-8
+This is a multi-part message in MIME format.
+--------------050208060308010306080202
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
 
-[ Added linux-arch, for totally untested patch to prepare for some TLB
-shootdown fixes ]
+On 04/21/2014 03:29 PM, Linus Torvalds wrote:
+> Actually moving the dirty bit information into the batching is
+> somewhat painful, because free_pages_and_swap_cache() really wants an
+> array of 'struct page *', rather than some array of "page and dirty
+> info". And that in turn is mainly because it then passes it down to
+> release_pages(), rather than anything else. But it looks doable.
 
-On Mon, Apr 21, 2014 at 1:52 PM, H. Peter Anvin <hpa@zytor.com> wrote:
->
-> So yes, we need to (re-)mark the page dirty some way or another after
-> the TLB shootdown has completed, or somehow hold the I/O until after
-> that point.
+I came up with something pretty similar to what you've got.  I used some
+local variables for the dirty state rather than using the pte, but
+otherwise looks pretty similar.  It actually boots, runs, and
+superficially looks to be doing the right thing.
 
-So how about this preparatory patch.
+I fixed free_pages_and_swap_cache() but just making a first pass through
+the array and clearing the bits.
 
-NOTE! This doesn't actually fix anything, but it moves the dirty bit
-into the mmu_gather domain, so that eventually things _can_ be fixed.
+We probably need to make sure none of the other architectures have funky
+uses calling tlb_remove_page() where they would need something other
+than dirty=0.
 
-Right now every implementation of __tlb_remove_page() just ends up
-doing that synchronous
+--------------050208060308010306080202
+Content-Type: text/x-patch;
+ name="defer-setting-page-dirty-until-after-tlb-flush.patch"
+Content-Transfer-Encoding: 7bit
+Content-Disposition: attachment;
+ filename*0="defer-setting-page-dirty-until-after-tlb-flush.patch"
 
-       if (dirty)
-               set_page_dirty(page);
 
-without batching it up. But at least it should make it possible to
-start fixing things.
 
-Actually moving the dirty bit information into the batching is
-somewhat painful, because free_pages_and_swap_cache() really wants an
-array of 'struct page *', rather than some array of "page and dirty
-info". And that in turn is mainly because it then passes it down to
-release_pages(), rather than anything else. But it looks doable.
+---
 
-Comments? This compiles on x86, does it compile on other architectures
-(in particular, the ones that don't use asm-generic/tlb.h and thus
-HAVE_GENERIC_MMU_GATHER).
+ b/include/asm-generic/tlb.h |   11 ++++++--
+ b/mm/hugetlb.c              |    5 ++-
+ b/mm/memory.c               |   57 ++++++++++++++++++++++++++++++++++++++++----
+ 3 files changed, 63 insertions(+), 10 deletions(-)
 
-                 Linus
+diff -puN mm/memory.c~defer-setting-page-dirty-until-after-tlb-flush mm/memory.c
+--- a/mm/memory.c~defer-setting-page-dirty-until-after-tlb-flush	2014-04-21 14:28:17.892798969 -0700
++++ b/mm/memory.c	2014-04-21 15:24:17.596775818 -0700
+@@ -232,6 +232,39 @@ void tlb_gather_mmu(struct mmu_gather *t
+ #endif
+ }
+ 
++/*
++ * When we cleared the dirty bit out of the pte, we collected it
++ * in the low bit of the __pages[] pointers.  Here, after we have
++ * cleared the TLB, we can safely set_page_dirty() knowing that
++ * any new writers will have had to re-set the dirty bit in the
++ * new pte.
++ */
++struct page **mmu_batch_shift_dirty(struct mmu_gather_batch *batch)
++{
++	int i;
++	for (i = 0; i < batch->nr; i++) {
++		struct page *page;
++		unsigned long __page = batch->__pages[i];
++		int dirty = __page & 0x1;
++		if (dirty) {
++			/*
++			 * clear the bit in the 'struct page'
++			 * pointer so we can use it again
++			 */
++			batch->__pages[i] = __page;
++			__page &= ~0x1;
++			page = (struct page *)__page;
++			set_page_dirty(page);
++		}
++	}
++	/*
++	 * Now that we have cleared the dirty bits out of the
++	 * pointers, we can act like it is just a normal array
++	 * of 'struct page' pointers.
++	 */
++	return (struct page **)&batch->__pages;
++}
++
+ void tlb_flush_mmu(struct mmu_gather *tlb)
+ {
+ 	struct mmu_gather_batch *batch;
+@@ -245,7 +278,8 @@ void tlb_flush_mmu(struct mmu_gather *tl
+ #endif
+ 
+ 	for (batch = &tlb->local; batch; batch = batch->next) {
+-		free_pages_and_swap_cache(batch->pages, batch->nr);
++		struct page **pages = mmu_batch_shift_dirty(batch);
++		free_pages_and_swap_cache(pages, batch->nr);
+ 		batch->nr = 0;
+ 	}
+ 	tlb->active = &tlb->local;
+@@ -277,14 +311,25 @@ void tlb_finish_mmu(struct mmu_gather *t
+  *	mappings in their TLBs. Returns the number of free page slots left.
+  *	When out of page slots we must call tlb_flush_mmu().
+  */
+-int __tlb_remove_page(struct mmu_gather *tlb, struct page *page)
++int __tlb_remove_page(struct mmu_gather *tlb, struct page *page,
++			int need_mark_page_dirty)
+ {
+ 	struct mmu_gather_batch *batch;
++	unsigned long __page;
+ 
+ 	VM_BUG_ON(!tlb->need_flush);
+ 
+ 	batch = tlb->active;
+-	batch->pages[batch->nr++] = page;
++	__page = (unsigned long)page;
++	VM_BUG_ON(__page & 0x1);
++	/*
++	 * Stash the information about the page's dirty status
++	 * in a low bit and keep it until after we actually
++	 * flush the TLB.
++	 */
++	if (need_mark_page_dirty)
++		__page |= 0x1;
++	batch->__pages[batch->nr++] = __page;
+ 	if (batch->nr == batch->max) {
+ 		if (!tlb_next_batch(tlb))
+ 			return 0;
+@@ -1091,6 +1136,7 @@ again:
+ 
+ 		if (pte_present(ptent)) {
+ 			struct page *page;
++			int need_mark_page_dirty = 0;
+ 
+ 			page = vm_normal_page(vma, addr, ptent);
+ 			if (unlikely(details) && page) {
+@@ -1128,7 +1174,7 @@ again:
+ 				rss[MM_ANONPAGES]--;
+ 			else {
+ 				if (pte_dirty(ptent))
+-					set_page_dirty(page);
++					need_mark_page_dirty = 1;
+ 				if (pte_young(ptent) &&
+ 				    likely(!(vma->vm_flags & VM_SEQ_READ)))
+ 					mark_page_accessed(page);
+@@ -1137,7 +1183,8 @@ again:
+ 			page_remove_rmap(page);
+ 			if (unlikely(page_mapcount(page) < 0))
+ 				print_bad_pte(vma, addr, ptent, page);
+-			force_flush = !__tlb_remove_page(tlb, page);
++			force_flush = !__tlb_remove_page(tlb, page,
++						need_mark_page_dirty);
+ 			if (force_flush)
+ 				break;
+ 			continue;
+diff -puN mm/hugetlb.c~defer-setting-page-dirty-until-after-tlb-flush mm/hugetlb.c
+--- a/mm/hugetlb.c~defer-setting-page-dirty-until-after-tlb-flush	2014-04-21 14:29:50.764012322 -0700
++++ b/mm/hugetlb.c	2014-04-21 15:02:59.666200259 -0700
+@@ -2476,6 +2476,7 @@ void __unmap_hugepage_range(struct mmu_g
+ 	mmu_notifier_invalidate_range_start(mm, mmun_start, mmun_end);
+ again:
+ 	for (address = start; address < end; address += sz) {
++		int pte_was_dirty = 0;
+ 		ptep = huge_pte_offset(mm, address);
+ 		if (!ptep)
+ 			continue;
+@@ -2517,10 +2518,10 @@ again:
+ 		pte = huge_ptep_get_and_clear(mm, address, ptep);
+ 		tlb_remove_tlb_entry(tlb, ptep, address);
+ 		if (huge_pte_dirty(pte))
+-			set_page_dirty(page);
++			pte_was_dirty = 1;
+ 
+ 		page_remove_rmap(page);
+-		force_flush = !__tlb_remove_page(tlb, page);
++		force_flush = !__tlb_remove_page(tlb, page, pte_was_dirty);
+ 		if (force_flush) {
+ 			spin_unlock(ptl);
+ 			break;
+diff -puN include/asm-generic/tlb.h~defer-setting-page-dirty-until-after-tlb-flush include/asm-generic/tlb.h
+--- a/include/asm-generic/tlb.h~defer-setting-page-dirty-until-after-tlb-flush	2014-04-21 14:30:14.423086322 -0700
++++ b/include/asm-generic/tlb.h	2014-04-21 15:00:48.965275609 -0700
+@@ -72,7 +72,11 @@ struct mmu_gather_batch {
+ 	struct mmu_gather_batch	*next;
+ 	unsigned int		nr;
+ 	unsigned int		max;
+-	struct page		*pages[0];
++	/*
++	 * a 'struct page *' array, but with the low bit
++	 * representing the dirty state of the page
++	 */
++	unsigned long		__pages[0];
+ };
+ 
+ #define MAX_GATHER_BATCH	\
+@@ -116,7 +120,8 @@ void tlb_gather_mmu(struct mmu_gather *t
+ void tlb_flush_mmu(struct mmu_gather *tlb);
+ void tlb_finish_mmu(struct mmu_gather *tlb, unsigned long start,
+ 							unsigned long end);
+-int __tlb_remove_page(struct mmu_gather *tlb, struct page *page);
++int __tlb_remove_page(struct mmu_gather *tlb, struct page *page,
++			int need_set_page_dirty);
+ 
+ /* tlb_remove_page
+  *	Similar to __tlb_remove_page but will call tlb_flush_mmu() itself when
+@@ -124,7 +129,7 @@ int __tlb_remove_page(struct mmu_gather
+  */
+ static inline void tlb_remove_page(struct mmu_gather *tlb, struct page *page)
+ {
+-	if (!__tlb_remove_page(tlb, page))
++	if (!__tlb_remove_page(tlb, page, 0))
+ 		tlb_flush_mmu(tlb);
+ }
+ 
+_
 
---047d7b6700af9979b304f7950995
-Content-Type: text/plain; charset=US-ASCII; name="patch.diff"
-Content-Disposition: attachment; filename="patch.diff"
-Content-Transfer-Encoding: base64
-X-Attachment-Id: f_huac5fk80
-
-IGFyY2gvYXJtL2luY2x1ZGUvYXNtL3RsYi5oICB8ICA2ICsrKystLQogYXJjaC9pYTY0L2luY2x1
-ZGUvYXNtL3RsYi5oIHwgIDYgKysrKy0tCiBhcmNoL3MzOTAvaW5jbHVkZS9hc20vdGxiLmggfCAg
-NCArKystCiBhcmNoL3NoL2luY2x1ZGUvYXNtL3RsYi5oICAgfCAgNiArKysrLS0KIGFyY2gvdW0v
-aW5jbHVkZS9hc20vdGxiLmggICB8ICA2ICsrKystLQogaW5jbHVkZS9hc20tZ2VuZXJpYy90bGIu
-aCAgIHwgIDQgKystLQogbW0vaHVnZXRsYi5jICAgICAgICAgICAgICAgIHwgIDQgKy0tLQogbW0v
-bWVtb3J5LmMgICAgICAgICAgICAgICAgIHwgMTUgKysrKysrKysrLS0tLS0tCiA4IGZpbGVzIGNo
-YW5nZWQsIDMxIGluc2VydGlvbnMoKyksIDIwIGRlbGV0aW9ucygtKQoKZGlmZiAtLWdpdCBhL2Fy
-Y2gvYXJtL2luY2x1ZGUvYXNtL3RsYi5oIGIvYXJjaC9hcm0vaW5jbHVkZS9hc20vdGxiLmgKaW5k
-ZXggMGJhZjdmMGQ5Mzk0Li5hYzljMTZhZjhlNjMgMTAwNjQ0Ci0tLSBhL2FyY2gvYXJtL2luY2x1
-ZGUvYXNtL3RsYi5oCisrKyBiL2FyY2gvYXJtL2luY2x1ZGUvYXNtL3RsYi5oCkBAIC0xNjUsOCAr
-MTY1LDEwIEBAIHRsYl9lbmRfdm1hKHN0cnVjdCBtbXVfZ2F0aGVyICp0bGIsIHN0cnVjdCB2bV9h
-cmVhX3N0cnVjdCAqdm1hKQogCQl0bGJfZmx1c2godGxiKTsKIH0KIAotc3RhdGljIGlubGluZSBp
-bnQgX190bGJfcmVtb3ZlX3BhZ2Uoc3RydWN0IG1tdV9nYXRoZXIgKnRsYiwgc3RydWN0IHBhZ2Ug
-KnBhZ2UpCitzdGF0aWMgaW5saW5lIGludCBfX3RsYl9yZW1vdmVfcGFnZShzdHJ1Y3QgbW11X2dh
-dGhlciAqdGxiLCBzdHJ1Y3QgcGFnZSAqcGFnZSwgYm9vbCBkaXJ0eSkKIHsKKwlpZiAoZGlydHkp
-CisJCXNldF9wYWdlX2RpcnR5KHBhZ2UpOwogCXRsYi0+cGFnZXNbdGxiLT5ucisrXSA9IHBhZ2U7
-CiAJVk1fQlVHX09OKHRsYi0+bnIgPiB0bGItPm1heCk7CiAJcmV0dXJuIHRsYi0+bWF4IC0gdGxi
-LT5ucjsKQEAgLTE3NCw3ICsxNzYsNyBAQCBzdGF0aWMgaW5saW5lIGludCBfX3RsYl9yZW1vdmVf
-cGFnZShzdHJ1Y3QgbW11X2dhdGhlciAqdGxiLCBzdHJ1Y3QgcGFnZSAqcGFnZSkKIAogc3RhdGlj
-IGlubGluZSB2b2lkIHRsYl9yZW1vdmVfcGFnZShzdHJ1Y3QgbW11X2dhdGhlciAqdGxiLCBzdHJ1
-Y3QgcGFnZSAqcGFnZSkKIHsKLQlpZiAoIV9fdGxiX3JlbW92ZV9wYWdlKHRsYiwgcGFnZSkpCisJ
-aWYgKCFfX3RsYl9yZW1vdmVfcGFnZSh0bGIsIHBhZ2UsIDApKQogCQl0bGJfZmx1c2hfbW11KHRs
-Yik7CiB9CiAKZGlmZiAtLWdpdCBhL2FyY2gvaWE2NC9pbmNsdWRlL2FzbS90bGIuaCBiL2FyY2gv
-aWE2NC9pbmNsdWRlL2FzbS90bGIuaAppbmRleCBiYzVlZmM3YzNmM2YuLjkwNDlhN2Q2NDI3ZCAx
-MDA2NDQKLS0tIGEvYXJjaC9pYTY0L2luY2x1ZGUvYXNtL3RsYi5oCisrKyBiL2FyY2gvaWE2NC9p
-bmNsdWRlL2FzbS90bGIuaApAQCAtMTkzLDggKzE5MywxMCBAQCB0bGJfZmluaXNoX21tdShzdHJ1
-Y3QgbW11X2dhdGhlciAqdGxiLCB1bnNpZ25lZCBsb25nIHN0YXJ0LCB1bnNpZ25lZCBsb25nIGVu
-ZCkKICAqIG11c3QgYmUgZGVsYXllZCB1bnRpbCBhZnRlciB0aGUgVExCIGhhcyBiZWVuIGZsdXNo
-ZWQgKHNlZSBjb21tZW50cyBhdCB0aGUgYmVnaW5uaW5nIG9mCiAgKiB0aGlzIGZpbGUpLgogICov
-Ci1zdGF0aWMgaW5saW5lIGludCBfX3RsYl9yZW1vdmVfcGFnZShzdHJ1Y3QgbW11X2dhdGhlciAq
-dGxiLCBzdHJ1Y3QgcGFnZSAqcGFnZSkKK3N0YXRpYyBpbmxpbmUgaW50IF9fdGxiX3JlbW92ZV9w
-YWdlKHN0cnVjdCBtbXVfZ2F0aGVyICp0bGIsIHN0cnVjdCBwYWdlICpwYWdlLCBib29sIGRpcnR5
-KQogeworCWlmIChkaXJ0eSkKKwkJc2V0X3BhZ2VfZGlydHkocGFnZSk7CiAJdGxiLT5uZWVkX2Zs
-dXNoID0gMTsKIAogCWlmICghdGxiLT5uciAmJiB0bGItPnBhZ2VzID09IHRsYi0+bG9jYWwpCkBA
-IC0yMTMsNyArMjE1LDcgQEAgc3RhdGljIGlubGluZSB2b2lkIHRsYl9mbHVzaF9tbXUoc3RydWN0
-IG1tdV9nYXRoZXIgKnRsYikKIAogc3RhdGljIGlubGluZSB2b2lkIHRsYl9yZW1vdmVfcGFnZShz
-dHJ1Y3QgbW11X2dhdGhlciAqdGxiLCBzdHJ1Y3QgcGFnZSAqcGFnZSkKIHsKLQlpZiAoIV9fdGxi
-X3JlbW92ZV9wYWdlKHRsYiwgcGFnZSkpCisJaWYgKCFfX3RsYl9yZW1vdmVfcGFnZSh0bGIsIHBh
-Z2UsIDApKQogCQl0bGJfZmx1c2hfbW11KHRsYik7CiB9CiAKZGlmZiAtLWdpdCBhL2FyY2gvczM5
-MC9pbmNsdWRlL2FzbS90bGIuaCBiL2FyY2gvczM5MC9pbmNsdWRlL2FzbS90bGIuaAppbmRleCBj
-NTQ0YjZmMDVkOTUuLjgxMDdhOGM1Mzk4NSAxMDA2NDQKLS0tIGEvYXJjaC9zMzkwL2luY2x1ZGUv
-YXNtL3RsYi5oCisrKyBiL2FyY2gvczM5MC9pbmNsdWRlL2FzbS90bGIuaApAQCAtNzYsOCArNzYs
-MTAgQEAgc3RhdGljIGlubGluZSB2b2lkIHRsYl9maW5pc2hfbW11KHN0cnVjdCBtbXVfZ2F0aGVy
-ICp0bGIsCiAgKiB0bGJfcHRlcF9jbGVhcl9mbHVzaC4gSW4gYm90aCBmbHVzaCBtb2RlcyB0aGUg
-dGxiIGZvciBhIHBhZ2UgY2FjaGUgcGFnZQogICogaGFzIGFscmVhZHkgYmVlbiBmcmVlZCwgc28g
-anVzdCBkbyBmcmVlX3BhZ2VfYW5kX3N3YXBfY2FjaGUuCiAgKi8KLXN0YXRpYyBpbmxpbmUgaW50
-IF9fdGxiX3JlbW92ZV9wYWdlKHN0cnVjdCBtbXVfZ2F0aGVyICp0bGIsIHN0cnVjdCBwYWdlICpw
-YWdlKQorc3RhdGljIGlubGluZSBpbnQgX190bGJfcmVtb3ZlX3BhZ2Uoc3RydWN0IG1tdV9nYXRo
-ZXIgKnRsYiwgc3RydWN0IHBhZ2UgKnBhZ2UsIGJvb2wgZGlydHkpCiB7CisJaWYgKGRpcnR5KQor
-CQlzZXRfcGFnZV9kaXJ0eShwYWdlKTsKIAlmcmVlX3BhZ2VfYW5kX3N3YXBfY2FjaGUocGFnZSk7
-CiAJcmV0dXJuIDE7IC8qIGF2b2lkIGNhbGxpbmcgdGxiX2ZsdXNoX21tdSAqLwogfQpkaWZmIC0t
-Z2l0IGEvYXJjaC9zaC9pbmNsdWRlL2FzbS90bGIuaCBiL2FyY2gvc2gvaW5jbHVkZS9hc20vdGxi
-LmgKaW5kZXggMzYyMTkyZWQxMmZlLi40MjhkZTc4NThkMjcgMTAwNjQ0Ci0tLSBhL2FyY2gvc2gv
-aW5jbHVkZS9hc20vdGxiLmgKKysrIGIvYXJjaC9zaC9pbmNsdWRlL2FzbS90bGIuaApAQCAtOTAs
-MTUgKzkwLDE3IEBAIHN0YXRpYyBpbmxpbmUgdm9pZCB0bGJfZmx1c2hfbW11KHN0cnVjdCBtbXVf
-Z2F0aGVyICp0bGIpCiB7CiB9CiAKLXN0YXRpYyBpbmxpbmUgaW50IF9fdGxiX3JlbW92ZV9wYWdl
-KHN0cnVjdCBtbXVfZ2F0aGVyICp0bGIsIHN0cnVjdCBwYWdlICpwYWdlKQorc3RhdGljIGlubGlu
-ZSBpbnQgX190bGJfcmVtb3ZlX3BhZ2Uoc3RydWN0IG1tdV9nYXRoZXIgKnRsYiwgc3RydWN0IHBh
-Z2UgKnBhZ2UsIGludCBkaXJ0eSkKIHsKKwlpZiAoZGlydHkpCisJCXNldF9wYWdlX2RpcnR5KHBh
-Z2UpOwogCWZyZWVfcGFnZV9hbmRfc3dhcF9jYWNoZShwYWdlKTsKIAlyZXR1cm4gMTsgLyogYXZv
-aWQgY2FsbGluZyB0bGJfZmx1c2hfbW11ICovCiB9CiAKIHN0YXRpYyBpbmxpbmUgdm9pZCB0bGJf
-cmVtb3ZlX3BhZ2Uoc3RydWN0IG1tdV9nYXRoZXIgKnRsYiwgc3RydWN0IHBhZ2UgKnBhZ2UpCiB7
-Ci0JX190bGJfcmVtb3ZlX3BhZ2UodGxiLCBwYWdlKTsKKwlfX3RsYl9yZW1vdmVfcGFnZSh0bGIs
-IHBhZ2UsIDApOwogfQogCiAjZGVmaW5lIHB0ZV9mcmVlX3RsYih0bGIsIHB0ZXAsIGFkZHIpCXB0
-ZV9mcmVlKCh0bGIpLT5tbSwgcHRlcCkKZGlmZiAtLWdpdCBhL2FyY2gvdW0vaW5jbHVkZS9hc20v
-dGxiLmggYi9hcmNoL3VtL2luY2x1ZGUvYXNtL3RsYi5oCmluZGV4IDI5YjAzMDFjMThhYS4uZGY1
-NTdmOTg3ODE5IDEwMDY0NAotLS0gYS9hcmNoL3VtL2luY2x1ZGUvYXNtL3RsYi5oCisrKyBiL2Fy
-Y2gvdW0vaW5jbHVkZS9hc20vdGxiLmgKQEAgLTg2LDggKzg2LDEwIEBAIHRsYl9maW5pc2hfbW11
-KHN0cnVjdCBtbXVfZ2F0aGVyICp0bGIsIHVuc2lnbmVkIGxvbmcgc3RhcnQsIHVuc2lnbmVkIGxv
-bmcgZW5kKQogICoJd2hpbGUgaGFuZGxpbmcgdGhlIGFkZGl0aW9uYWwgcmFjZXMgaW4gU01QIGNh
-dXNlZCBieSBvdGhlciBDUFVzCiAgKgljYWNoaW5nIHZhbGlkIG1hcHBpbmdzIGluIHRoZWlyIFRM
-QnMuCiAgKi8KLXN0YXRpYyBpbmxpbmUgaW50IF9fdGxiX3JlbW92ZV9wYWdlKHN0cnVjdCBtbXVf
-Z2F0aGVyICp0bGIsIHN0cnVjdCBwYWdlICpwYWdlKQorc3RhdGljIGlubGluZSBpbnQgX190bGJf
-cmVtb3ZlX3BhZ2Uoc3RydWN0IG1tdV9nYXRoZXIgKnRsYiwgc3RydWN0IHBhZ2UgKnBhZ2UsIGJv
-b2wgZGlydHkpCiB7CisJaWYgKGRpcnR5KQorCQlzZXRfcGFnZV9kaXJ0eShwYWdlKTsKIAl0bGIt
-Pm5lZWRfZmx1c2ggPSAxOwogCWZyZWVfcGFnZV9hbmRfc3dhcF9jYWNoZShwYWdlKTsKIAlyZXR1
-cm4gMTsgLyogYXZvaWQgY2FsbGluZyB0bGJfZmx1c2hfbW11ICovCkBAIC05NSw3ICs5Nyw3IEBA
-IHN0YXRpYyBpbmxpbmUgaW50IF9fdGxiX3JlbW92ZV9wYWdlKHN0cnVjdCBtbXVfZ2F0aGVyICp0
-bGIsIHN0cnVjdCBwYWdlICpwYWdlKQogCiBzdGF0aWMgaW5saW5lIHZvaWQgdGxiX3JlbW92ZV9w
-YWdlKHN0cnVjdCBtbXVfZ2F0aGVyICp0bGIsIHN0cnVjdCBwYWdlICpwYWdlKQogewotCV9fdGxi
-X3JlbW92ZV9wYWdlKHRsYiwgcGFnZSk7CisJX190bGJfcmVtb3ZlX3BhZ2UodGxiLCBwYWdlLCAw
-KTsKIH0KIAogLyoqCmRpZmYgLS1naXQgYS9pbmNsdWRlL2FzbS1nZW5lcmljL3RsYi5oIGIvaW5j
-bHVkZS9hc20tZ2VuZXJpYy90bGIuaAppbmRleCA1NjcyZDdlYTFmYTAuLjU0MWM1NjNmMGZmOSAx
-MDA2NDQKLS0tIGEvaW5jbHVkZS9hc20tZ2VuZXJpYy90bGIuaAorKysgYi9pbmNsdWRlL2FzbS1n
-ZW5lcmljL3RsYi5oCkBAIC0xMTYsNyArMTE2LDcgQEAgdm9pZCB0bGJfZ2F0aGVyX21tdShzdHJ1
-Y3QgbW11X2dhdGhlciAqdGxiLCBzdHJ1Y3QgbW1fc3RydWN0ICptbSwgdW5zaWduZWQgbG9uZwog
-dm9pZCB0bGJfZmx1c2hfbW11KHN0cnVjdCBtbXVfZ2F0aGVyICp0bGIpOwogdm9pZCB0bGJfZmlu
-aXNoX21tdShzdHJ1Y3QgbW11X2dhdGhlciAqdGxiLCB1bnNpZ25lZCBsb25nIHN0YXJ0LAogCQkJ
-CQkJCXVuc2lnbmVkIGxvbmcgZW5kKTsKLWludCBfX3RsYl9yZW1vdmVfcGFnZShzdHJ1Y3QgbW11
-X2dhdGhlciAqdGxiLCBzdHJ1Y3QgcGFnZSAqcGFnZSk7CitpbnQgX190bGJfcmVtb3ZlX3BhZ2Uo
-c3RydWN0IG1tdV9nYXRoZXIgKnRsYiwgc3RydWN0IHBhZ2UgKnBhZ2UsIGJvb2wgZGlydHkpOwog
-CiAvKiB0bGJfcmVtb3ZlX3BhZ2UKICAqCVNpbWlsYXIgdG8gX190bGJfcmVtb3ZlX3BhZ2UgYnV0
-IHdpbGwgY2FsbCB0bGJfZmx1c2hfbW11KCkgaXRzZWxmIHdoZW4KQEAgLTEyNCw3ICsxMjQsNyBA
-QCBpbnQgX190bGJfcmVtb3ZlX3BhZ2Uoc3RydWN0IG1tdV9nYXRoZXIgKnRsYiwgc3RydWN0IHBh
-Z2UgKnBhZ2UpOwogICovCiBzdGF0aWMgaW5saW5lIHZvaWQgdGxiX3JlbW92ZV9wYWdlKHN0cnVj
-dCBtbXVfZ2F0aGVyICp0bGIsIHN0cnVjdCBwYWdlICpwYWdlKQogewotCWlmICghX190bGJfcmVt
-b3ZlX3BhZ2UodGxiLCBwYWdlKSkKKwlpZiAoIV9fdGxiX3JlbW92ZV9wYWdlKHRsYiwgcGFnZSwg
-MCkpCiAJCXRsYl9mbHVzaF9tbXUodGxiKTsKIH0KIApkaWZmIC0tZ2l0IGEvbW0vaHVnZXRsYi5j
-IGIvbW0vaHVnZXRsYi5jCmluZGV4IDI0NjE5MjkyOWEyZC4uZGZiZTIzYzBjMjAwIDEwMDY0NAot
-LS0gYS9tbS9odWdldGxiLmMKKysrIGIvbW0vaHVnZXRsYi5jCkBAIC0yNTE2LDExICsyNTE2LDkg
-QEAgYWdhaW46CiAKIAkJcHRlID0gaHVnZV9wdGVwX2dldF9hbmRfY2xlYXIobW0sIGFkZHJlc3Ms
-IHB0ZXApOwogCQl0bGJfcmVtb3ZlX3RsYl9lbnRyeSh0bGIsIHB0ZXAsIGFkZHJlc3MpOwotCQlp
-ZiAoaHVnZV9wdGVfZGlydHkocHRlKSkKLQkJCXNldF9wYWdlX2RpcnR5KHBhZ2UpOwogCiAJCXBh
-Z2VfcmVtb3ZlX3JtYXAocGFnZSk7Ci0JCWZvcmNlX2ZsdXNoID0gIV9fdGxiX3JlbW92ZV9wYWdl
-KHRsYiwgcGFnZSk7CisJCWZvcmNlX2ZsdXNoID0gIV9fdGxiX3JlbW92ZV9wYWdlKHRsYiwgcGFn
-ZSwgaHVnZV9wdGVfZGlydHkocHRlKSk7CiAJCWlmIChmb3JjZV9mbHVzaCkgewogCQkJc3Bpbl91
-bmxvY2socHRsKTsKIAkJCWJyZWFrOwpkaWZmIC0tZ2l0IGEvbW0vbWVtb3J5LmMgYi9tbS9tZW1v
-cnkuYwppbmRleCBkMGYwYmVmM2JlNDguLjYyZmRjZDE5OTVmNCAxMDA2NDQKLS0tIGEvbW0vbWVt
-b3J5LmMKKysrIGIvbW0vbWVtb3J5LmMKQEAgLTI3NywxMiArMjc3LDE1IEBAIHZvaWQgdGxiX2Zp
-bmlzaF9tbXUoc3RydWN0IG1tdV9nYXRoZXIgKnRsYiwgdW5zaWduZWQgbG9uZyBzdGFydCwgdW5z
-aWduZWQgbG9uZyBlCiAgKgltYXBwaW5ncyBpbiB0aGVpciBUTEJzLiBSZXR1cm5zIHRoZSBudW1i
-ZXIgb2YgZnJlZSBwYWdlIHNsb3RzIGxlZnQuCiAgKglXaGVuIG91dCBvZiBwYWdlIHNsb3RzIHdl
-IG11c3QgY2FsbCB0bGJfZmx1c2hfbW11KCkuCiAgKi8KLWludCBfX3RsYl9yZW1vdmVfcGFnZShz
-dHJ1Y3QgbW11X2dhdGhlciAqdGxiLCBzdHJ1Y3QgcGFnZSAqcGFnZSkKK2ludCBfX3RsYl9yZW1v
-dmVfcGFnZShzdHJ1Y3QgbW11X2dhdGhlciAqdGxiLCBzdHJ1Y3QgcGFnZSAqcGFnZSwgYm9vbCBk
-aXJ0eSkKIHsKIAlzdHJ1Y3QgbW11X2dhdGhlcl9iYXRjaCAqYmF0Y2g7CiAKIAlWTV9CVUdfT04o
-IXRsYi0+bmVlZF9mbHVzaCk7CiAKKwkvKiBGSVhNRSEgVGhpcyBuZWVkcyB0byBiZSBiYXRjaGVk
-IHRvbyAqLworCWlmIChkaXJ0eSkKKwkJc2V0X3BhZ2VfZGlydHkocGFnZSk7CiAJYmF0Y2ggPSB0
-bGItPmFjdGl2ZTsKIAliYXRjaC0+cGFnZXNbYmF0Y2gtPm5yKytdID0gcGFnZTsKIAlpZiAoYmF0
-Y2gtPm5yID09IGJhdGNoLT5tYXgpIHsKQEAgLTExMjQsMTEgKzExMjcsMTEgQEAgYWdhaW46CiAJ
-CQkJCXB0ZV9maWxlX21rc29mdF9kaXJ0eShwdGZpbGUpOwogCQkJCXNldF9wdGVfYXQobW0sIGFk
-ZHIsIHB0ZSwgcHRmaWxlKTsKIAkJCX0KLQkJCWlmIChQYWdlQW5vbihwYWdlKSkKKwkJCWlmIChQ
-YWdlQW5vbihwYWdlKSkgeworCQkJCS8qIFdlIGRvbid0IGJvdGhlciBzYXZpbmcgZGlydHkgc3Rh
-dGUgZm9yIGFub255bW91cyBwYWdlcyAqLworCQkJCXB0ZW50ID0gcHRlX21rY2xlYW4ocHRlbnQp
-OwogCQkJCXJzc1tNTV9BTk9OUEFHRVNdLS07Ci0JCQllbHNlIHsKLQkJCQlpZiAocHRlX2RpcnR5
-KHB0ZW50KSkKLQkJCQkJc2V0X3BhZ2VfZGlydHkocGFnZSk7CisJCQl9IGVsc2UgewogCQkJCWlm
-IChwdGVfeW91bmcocHRlbnQpICYmCiAJCQkJICAgIGxpa2VseSghKHZtYS0+dm1fZmxhZ3MgJiBW
-TV9TRVFfUkVBRCkpKQogCQkJCQltYXJrX3BhZ2VfYWNjZXNzZWQocGFnZSk7CkBAIC0xMTM3LDcg
-KzExNDAsNyBAQCBhZ2FpbjoKIAkJCXBhZ2VfcmVtb3ZlX3JtYXAocGFnZSk7CiAJCQlpZiAodW5s
-aWtlbHkocGFnZV9tYXBjb3VudChwYWdlKSA8IDApKQogCQkJCXByaW50X2JhZF9wdGUodm1hLCBh
-ZGRyLCBwdGVudCwgcGFnZSk7Ci0JCQlmb3JjZV9mbHVzaCA9ICFfX3RsYl9yZW1vdmVfcGFnZSh0
-bGIsIHBhZ2UpOworCQkJZm9yY2VfZmx1c2ggPSAhX190bGJfcmVtb3ZlX3BhZ2UodGxiLCBwYWdl
-LCBwdGVfZGlydHkocHRlbnQpKTsKIAkJCWlmIChmb3JjZV9mbHVzaCkKIAkJCQlicmVhazsKIAkJ
-CWNvbnRpbnVlOwo=
---047d7b6700af9979b304f7950995--
+--------------050208060308010306080202--
