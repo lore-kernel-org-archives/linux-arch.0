@@ -1,64 +1,91 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [PATCH 16/28] nios2: System calls handling
-Date: Sat, 19 Apr 2014 22:12:28 +0200
-Message-ID: <CAMuHMdXvLLNXQXYRD71Uv7F-Fh_E6EmF7_OvBUYF513cMfy8sw@mail.gmail.com>
+From: Ley Foon Tan <lftan@altera.com>
+Subject: Re: [PATCH 01/28] nios2: Build infrastructure
+Date: Mon, 21 Apr 2014 11:03:08 +0800
+Message-ID: <1398049388.7753.6.camel@leyfoon-vm>
 References: <1397824031-4892-1-git-send-email-lftan@altera.com>
-	<1397824031-4892-13-git-send-email-lftan@altera.com>
+	 <1397824031-4892-2-git-send-email-lftan@altera.com>
+	 <20140418143553.GB8589@ravnborg.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-lb0-f170.google.com ([209.85.217.170]:54010 "EHLO
-	mail-lb0-f170.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751191AbaDSUMa (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 19 Apr 2014 16:12:30 -0400
-In-Reply-To: <1397824031-4892-13-git-send-email-lftan@altera.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Ley Foon Tan <lftan@altera.com>
-Cc: Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, lftan.linux@gmail.com, cltang@codesourcery.com, Pavel Machek <pavel@denx.de>
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 8BIT
+Return-path: <linux-doc-owner@vger.kernel.org>
+In-Reply-To: <20140418143553.GB8589@ravnborg.org>
+Sender: linux-doc-owner@vger.kernel.org
+To: Sam Ravnborg <sam@ravnborg.org>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, lftan.linux@gmail.com, cltang@codesourcery.com
+List-Id: linux-arch.vger.kernel.org
 
-On Fri, Apr 18, 2014 at 2:26 PM, Ley Foon Tan <lftan@altera.com> wrote:
-> +/* sys_cacheflush -- flush the processor cache. */
-> +asmlinkage int sys_cacheflush(unsigned long addr, unsigned long len,
-> +                               unsigned int op)
-> +{
-> +       struct vm_area_struct *vma;
-> +
-> +       if (len == 0)
-> +               return 0;
-> +
-> +       /* Check for overflow */
-> +       if (addr + len < addr)
-> +               return -EFAULT;
-> +
-> +       /*
-> +        * Verify that the specified address region actually belongs
-> +        * to this process.
-> +        */
-> +       vma = find_vma(current->mm, addr);
-> +       if (vma == NULL || addr < vma->vm_start || addr + len > vma->vm_end)
-> +               return -EFAULT;
-> +
-> +       /* Ignore the scope and cache arguments. */
+On Jum, 2014-04-18 at 16:35 +0200, Sam Ravnborg wrote:
+> It is good practice to add build infrastructure last - so build is not broken.
+> But for a new architecture it matters only little.
+> 
+> Some comments in the following.
+> 
+> 	Sam
+Noted. But, I will keep the patch # for this time for consistency.
+Thanks. 
+> > 
+> > Signed-off-by: Ley Foon Tan <lftan@altera.com>
+> > ---
+> > 
+> > diff --git a/arch/nios2/Kconfig b/arch/nios2/Kconfig
+> > new file mode 100644
+> > index 0000000..2bd0d0d7160f31a5c5890cf8a059b9f53378be6e
+> > --- /dev/null
+> > +++ b/arch/nios2/Kconfig
+> > @@ -0,0 +1,213 @@
+> > +config NIOS2
+> > +	def_bool y
+> > +	select OF
+> > +	select OF_EARLY_FLATTREE
+> > +	select USB_ARCH_HAS_HCD if USB_SUPPORT
+> > +	select ARCH_WANT_OPTIONAL_GPIOLIB
+> > +	select GENERIC_IRQ_PROBE
+> > +	select GENERIC_IRQ_SHOW
+> > +	select GENERIC_CPU_DEVICES
+> > +	select GENERIC_ATOMIC64
+> > +	select MODULES_USE_ELF_RELA
+> > +	select IRQ_DOMAIN
+> > +	select SOC_BUS
+> > +	select CLKSRC_OF
+> If you keep this list sorted then merge issues are less likely.
+Noted, will sort this list.
 
-This function doesn't have scope and cache arguments
-(sys_cacheflush() on m68k does have them ;-)
+> > +config KERNEL_MMU_REGION_BASE_BOOL
+> > +	bool "Set custom kernel MMU region base address"
+> > +	depends on ADVANCED_OPTIONS
+> > +	help
+> > +	  This option allows you to set the virtual address of the kernel MMU region.
+> > +
+> > +	  Say N here unless you know what you are doing.
+> 
+> All Nios2 specific options should be prefixed with NIOS2_
+> This is what is done for all new arch specific symbols.
+Noted, will add NIOS2 prefix to these CONFIGs.
+> 
+> > diff --git a/arch/nios2/boot/Makefile b/arch/nios2/boot/Makefile
 
-On Sat, Apr 19, 2014 at 6:09 PM, Pavel Machek <pavel@denx.de> wrote:
-> Also... explanation why you need this syscall while other
-> architectures live happily without it would be nice.
+> > +	$(call if_changed,gzip)
+> > +
+> > +$(obj)/vmImage: $(obj)/vmlinux.gz
+> > +	$(call if_changed,uimage)
+> > +	@$(kecho) 'Kernel: $@ is ready'
+> 
+> Add:
+> targets += vmlinux.bin vmlinux.gz vmImage
+> to make $(call if_changed ... actually work.
+Sure, will change to this way.
 
-12 our of 28 architectures provide such a syscall...
-
-Is flushing the cache a privileged operation on nios2?
-
-Gr{oetje,eeting}s,
-
-                        Geert
-
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+> 
+> 
+> > +obj-y += cpuinfo.o insnemu.o irq.o nios2_ksyms.o process.o prom.o ptrace.o \
+> > +	 setup.o signal.o sys_nios2.o syscall_table.o time.o traps.o
+> 
+> In new stuff try to avoid using ... \
+> to contatenate lines.
+> Use:
+> obj-y += xxx
+> 
+> This is much more readable.
+> 
+Will fix this.
