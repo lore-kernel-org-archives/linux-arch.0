@@ -1,47 +1,52 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qg0-f48.google.com ([209.85.192.48]:39690 "EHLO
-	mail-qg0-f48.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751658AbaDURXx (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 21 Apr 2014 13:23:53 -0400
+Received: from mail-qc0-f181.google.com ([209.85.216.181]:52109 "EHLO
+	mail-qc0-f181.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752443AbaDURcQ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 21 Apr 2014 13:32:16 -0400
 MIME-Version: 1.0
-In-Reply-To: <CAMuHMdXvLLNXQXYRD71Uv7F-Fh_E6EmF7_OvBUYF513cMfy8sw@mail.gmail.com>
+In-Reply-To: <20140419160947.GA27776@amd.pavel.ucw.cz>
 References: <1397824031-4892-1-git-send-email-lftan@altera.com>
 	<1397824031-4892-13-git-send-email-lftan@altera.com>
-	<CAMuHMdXvLLNXQXYRD71Uv7F-Fh_E6EmF7_OvBUYF513cMfy8sw@mail.gmail.com>
-Date: Tue, 22 Apr 2014 01:23:52 +0800
-Message-ID: <CAFiDJ5_ExhQAqMa5WMyug0Gz3KTVQhfZvonyCuErKBU4icu4tw@mail.gmail.com>
+	<20140419160947.GA27776@amd.pavel.ucw.cz>
+Date: Tue, 22 Apr 2014 01:32:15 +0800
+Message-ID: <CAFiDJ5-e=vRLxyKuzSQO0vg4HBHessv3xE9SdCQ9zFOqYOreZg@mail.gmail.com>
 Subject: Re: [PATCH 16/28] nios2: System calls handling
 From: Ley Foon Tan <lftan@altera.com>
 Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, cltang@codesourcery.com, Pavel Machek <pavel@denx.de>
-Message-ID: <20140421172352.IJXId8JupeHINvRWf-nflF3mbOK7ns8grdejauVF7p8@z>
+To: Pavel Machek <pavel@denx.de>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, cltang@codesourcery.com, mtk.manpages@gmail.com
+Message-ID: <20140421173215.Y_Ny_zQJXflhVBRpShtAt5c-YiCG6xxCv0BCZkO6mNo@z>
 
-On Sun, Apr 20, 2014 at 4:12 AM, Geert Uytterhoeven
-<geert@linux-m68k.org> wrote:
->> +        */
->> +       vma = find_vma(current->mm, addr);
->> +       if (vma == NULL || addr < vma->vm_start || addr + len > vma->vm_end)
->> +               return -EFAULT;
+On Sun, Apr 20, 2014 at 12:09 AM, Pavel Machek <pavel@denx.de> wrote:
+>> +/* Additional Nios II specific syscalls. */
+>> +#define __NR_cacheflush (__NR_arch_specific_syscall)
+>> +__SYSCALL(__NR_cacheflush, sys_cacheflush)
+>
+> I guess you should Cc: Michael Kerrisk on this one.
+CC him this email.
+
+>
+> Also... explanation why you need this syscall while other
+> architectures live happily without it would be nice.
+This syscall exist in nios2 port since old days and some users already
+used it for sometimes.
+Like mentioned by Greet, 12 our of 28 architectures provide such a syscall.
+
+>> +/* sys_cacheflush -- flush the processor cache. */
+>> +asmlinkage int sys_cacheflush(unsigned long addr, unsigned long len,
+>> +                             unsigned int op)
+>> +{
+>> +     struct vm_area_struct *vma;
 >> +
->> +       /* Ignore the scope and cache arguments. */
+>> +     if (len == 0)
+>> +             return 0;
 >
-> This function doesn't have scope and cache arguments
-> (sys_cacheflush() on m68k does have them ;-)
-
-Missed out the comment after rename the arguments.:) Will update the
-comment above.
-
-> On Sat, Apr 19, 2014 at 6:09 PM, Pavel Machek <pavel@denx.de> wrote:
->> Also... explanation why you need this syscall while other
->> architectures live happily without it would be nice.
->
-> 12 our of 28 architectures provide such a syscall...
->
-> Is flushing the cache a privileged operation on nios2?
-Yes.
+> op is being ignored? You should remove it... or if (op) return -EINVAL
+> if you want future extensions.
+Yes, op argument is being ignored. Okay, will add the return -EINVAL
+if op is non-zero.
 
 Thanks.
 
