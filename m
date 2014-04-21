@@ -1,42 +1,44 @@
-From: "H. Peter Anvin" <hpa@zytor.com>
-Subject: Re: [PATCH 00/28] nios2 Linux kernel port
-Date: Sun, 20 Apr 2014 22:31:34 -0700
-Message-ID: <5354AD36.5090809@zytor.com>
-References: <1397824031-4892-1-git-send-email-lftan@altera.com>	<53518FAC.8020504@zytor.com>	<201404191730.54400.arnd@arndb.de> <CAFiDJ5-PiUWetRMp65VTo4pvZM65r3WBjCZVWmxW0XnqAyO-GA@mail.gmail.com>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: [PATCH 06/15] m68k: add renameat2 syscall
+Date: Mon, 21 Apr 2014 10:10:29 +0200
+Message-ID: <CAMuHMdUtPucUNXDt=o_avzSCMvL9bwn-A6WH5dY4ZazGPj2QnA@mail.gmail.com>
+References: <1397211951-20549-1-git-send-email-miklos@szeredi.hu>
+	<1397211951-20549-7-git-send-email-miklos@szeredi.hu>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-doc-owner@vger.kernel.org>
-In-Reply-To: <CAFiDJ5-PiUWetRMp65VTo4pvZM65r3WBjCZVWmxW0XnqAyO-GA@mail.gmail.com>
-Sender: linux-doc-owner@vger.kernel.org
-To: Ley Foon Tan <lftan@altera.com>, Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, cltang@codesourcery.com
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-lb0-f179.google.com ([209.85.217.179]:40065 "EHLO
+	mail-lb0-f179.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751286AbaDUIKb (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 21 Apr 2014 04:10:31 -0400
+In-Reply-To: <1397211951-20549-7-git-send-email-miklos@szeredi.hu>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Miklos Szeredi <miklos@szeredi.hu>
+Cc: Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Miklos Szeredi <mszeredi@suse.cz>
 
-On 04/20/2014 10:23 PM, Ley Foon Tan wrote:
-> On Sat, Apr 19, 2014 at 11:30 PM, Arnd Bergmann <arnd@arndb.de> wrote:
->> On Friday 18 April 2014, H. Peter Anvin wrote:
->>> Did the generic headers ever get updated to match Linus' guidance that
->>> any new architecture ports should use a 64-bit time_t?
->>
->> No, unfortunately not. With my rule that every architecture that gets
->> added needs to clean up asm-generic some more, to make it easier to add
->> the next one, we should probably do for nios2.
->>
->>         Arnd
-> 
-> Can you give me the documentation on this new guidance and point me
-> any architecture have implemented this?
-> Thanks.
-> 
+Hi Miklos,
 
-We implemented it in the x32 ABI for x86.  In generic code this is keyed
-by COMPAT_USE_64BIT_TIME, but in your case it isn't actually a matter of
-compat, so it should be easier.
+On Fri, Apr 11, 2014 at 12:25 PM, Miklos Szeredi <miklos@szeredi.hu> wrote:
+> --- a/arch/m68k/kernel/syscalltable.S
+> +++ b/arch/m68k/kernel/syscalltable.S
+> @@ -371,4 +371,5 @@ ENTRY(sys_call_table)
+>         .long sys_finit_module
+>         .long sys_sched_setattr
+>         .long sys_sched_getattr         /* 350 */
+> +       .long sys_sched_renameat2
 
-See this thread including the discussion about time_t:
+"sys_renameat2", please.
 
-https://lkml.org/lkml/2011/8/26/415
+Sorry for not noticing before I threw it at the compiler.
 
-	-hpa
+Gr{oetje,eeting}s,
 
+                        Geert
+
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
