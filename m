@@ -1,45 +1,37 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bn1bn0106.outbound.protection.outlook.com ([157.56.110.106]:25842
-	"EHLO na01-bn1-obe.outbound.protection.outlook.com"
-	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1750744AbaDUFCF convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 21 Apr 2014 01:02:05 -0400
-Message-ID: <1398056520.7753.10.camel@leyfoon-vm>
-Subject: Re: [PATCH 01/28] nios2: Build infrastructure
-From: Ley Foon Tan <lftan@altera.com>
-Date: Mon, 21 Apr 2014 13:02:00 +0800
-In-Reply-To: <1397848572.4750.4.camel@x220>
-References: <1397824031-4892-1-git-send-email-lftan@altera.com>
-	 <1397824031-4892-2-git-send-email-lftan@altera.com>
-	 <1397848572.4750.4.camel@x220>
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 8BIT
+Received: from mail-qc0-f178.google.com ([209.85.216.178]:46624 "EHLO
+	mail-qc0-f178.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751319AbaDUFXU (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 21 Apr 2014 01:23:20 -0400
 MIME-Version: 1.0
+In-Reply-To: <201404191730.54400.arnd@arndb.de>
+References: <1397824031-4892-1-git-send-email-lftan@altera.com>
+	<53518FAC.8020504@zytor.com>
+	<201404191730.54400.arnd@arndb.de>
+Date: Mon, 21 Apr 2014 13:23:19 +0800
+Message-ID: <CAFiDJ5-PiUWetRMp65VTo4pvZM65r3WBjCZVWmxW0XnqAyO-GA@mail.gmail.com>
+Subject: Re: [PATCH 00/28] nios2 Linux kernel port
+From: Ley Foon Tan <lftan@altera.com>
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Paul Bolle <pebolle@tiscali.nl>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, lftan.linux@gmail.com, cltang@codesourcery.com
-Message-ID: <20140421050200.O4el97SlsoBZXJWbd37eHiIKcA0Qpt4tEYuo1Fuhf44@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, cltang@codesourcery.com
+Message-ID: <20140421052319.IQu9doKWnOy-przXkMEpAFxOzNqLbIiKR4abBBdfRwo@z>
 
-On Jum, 2014-04-18 at 21:16 +0200, Paul Bolle wrote:
-> On Fri, 2014-04-18 at 20:26 +0800, Ley Foon Tan wrote:
-> > diff --git a/arch/nios2/Kconfig b/arch/nios2/Kconfig
-> >[...]
-> > +config GENERIC_FIND_NEXT_BIT
-> > +	def_bool y
-> 
-> This one is not needed, see commit 63e424c84429 ("arch: remove
-> CONFIG_GENERIC_FIND_{NEXT_BIT,BIT_LE,LAST_BIT}").
-Okay, will remove this CONFIG.
+On Sat, Apr 19, 2014 at 11:30 PM, Arnd Bergmann <arnd@arndb.de> wrote:
+> On Friday 18 April 2014, H. Peter Anvin wrote:
+>> Did the generic headers ever get updated to match Linus' guidance that
+>> any new architecture ports should use a 64-bit time_t?
+>
+> No, unfortunately not. With my rule that every architecture that gets
+> added needs to clean up asm-generic some more, to make it easier to add
+> the next one, we should probably do for nios2.
+>
+>         Arnd
 
-> 
-> > +config NO_IOPORT
-> > +	def_bool y
-> 
-> Did you mean NO_IOPORT_MAP?
-Yes, will change it to NO_IOPORT_MAP
-
+Can you give me the documentation on this new guidance and point me
+any architecture have implemented this?
 Thanks.
 
-Regards
 Ley Foon
