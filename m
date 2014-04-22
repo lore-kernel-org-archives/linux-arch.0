@@ -1,37 +1,33 @@
 From: Miklos Szeredi <miklos@szeredi.hu>
-Subject: Re: [PATCH 06/15] m68k: add renameat2 syscall
-Date: Tue, 22 Apr 2014 17:32:16 +0200
-Message-ID: <CAJfpeguxmjzW93x-RzT0GahwhkchTMe2OdyfBtnBLCbB6zsc5Q@mail.gmail.com>
+Subject: Re: [PATCH 09/15] parisc: add renameat2 syscall
+Date: Tue, 22 Apr 2014 17:33:16 +0200
+Message-ID: <CAJfpegu0Cv0ZxzbwgZTEGXHLL6Omx4KBbKD9MR5U_1h-U2r0XA@mail.gmail.com>
 References: <1397211951-20549-1-git-send-email-miklos@szeredi.hu>
-	<1397211951-20549-7-git-send-email-miklos@szeredi.hu>
-	<CAMuHMdUtPucUNXDt=o_avzSCMvL9bwn-A6WH5dY4ZazGPj2QnA@mail.gmail.com>
+	<1397211951-20549-10-git-send-email-miklos@szeredi.hu>
+	<5352C64C.1040204@gmx.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CAMuHMdUtPucUNXDt=o_avzSCMvL9bwn-A6WH5dY4ZazGPj2QnA@mail.gmail.com>
+In-Reply-To: <5352C64C.1040204@gmx.de>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Miklos Szeredi <mszeredi@suse.cz>
+To: Helge Deller <deller@gmx.de>
+Cc: linux-arch <linux-arch@vger.kernel.org>, Kernel Mailing List <linux-kernel@vger.kernel.org>, Miklos Szeredi <mszeredi@suse.cz>
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, Apr 21, 2014 at 10:10 AM, Geert Uytterhoeven
-<geert@linux-m68k.org> wrote:
-> Hi Miklos,
+On Sat, Apr 19, 2014 at 8:54 PM, Helge Deller <deller@gmx.de> wrote:
+> On 04/11/2014 12:25 PM, Miklos Szeredi wrote:
+>> From: Miklos Szeredi <mszeredi@suse.cz>
 >
-> On Fri, Apr 11, 2014 at 12:25 PM, Miklos Szeredi <miklos@szeredi.hu> wrote:
->> --- a/arch/m68k/kernel/syscalltable.S
->> +++ b/arch/m68k/kernel/syscalltable.S
->> @@ -371,4 +371,5 @@ ENTRY(sys_call_table)
->>         .long sys_finit_module
->>         .long sys_sched_setattr
->>         .long sys_sched_getattr         /* 350 */
->> +       .long sys_sched_renameat2
+> Thanks Miklos!
 >
-> "sys_renameat2", please.
+>> Signed-off-by: Miklos Szeredi <mszeredi@suse.cz>
+>> Cc: Helge Deller <deller@gmx.de>
 >
-> Sorry for not noticing before I threw it at the compiler.
+> Acked-by: Helge Deller <deller@gmx.de>
+>
+> Can you please push it with the other arches.
 
+Sure.
 
-Fixed.  Thanks!
-
+Thanks,
 Miklos
