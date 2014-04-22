@@ -1,47 +1,66 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from top.free-electrons.com ([176.31.233.9]:49245 "EHLO
-	mail.free-electrons.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1756571AbaDVObF (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 22 Apr 2014 10:31:05 -0400
-Date: Tue, 22 Apr 2014 11:30:37 -0300
-From: Ezequiel Garcia <ezequiel.garcia@free-electrons.com>
-Subject: Re: [PATCH 08/28] nios2: MMU Fault handling
-Message-ID: <20140422143036.GD15745@arch.cereza>
-References: <1397824031-4892-1-git-send-email-lftan@altera.com>
- <1397824031-4892-6-git-send-email-lftan@altera.com>
+Received: from relay1.mentorg.com ([192.94.38.131]:61657 "EHLO
+	relay1.mentorg.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756756AbaDVOs1 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 22 Apr 2014 10:48:27 -0400
+Message-ID: <53568130.7050003@codesourcery.com>
+Date: Tue, 22 Apr 2014 22:48:16 +0800
+From: Chung-Lin Tang <cltang@codesourcery.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
-Content-Disposition: inline
-Content-Transfer-Encoding: 8bit
-In-Reply-To: <1397824031-4892-6-git-send-email-lftan@altera.com>
+Subject: Re: [PATCH 00/28] nios2 Linux kernel port
+References: <1397824031-4892-1-git-send-email-lftan@altera.com>	<5354AD36.5090809@zytor.com>	<CAFiDJ5861HE4AXtio-8uNJppWE2oaPt9_OKyGV=Myb_3vPrOVA@mail.gmail.com>	<16597012.pEkDc99HDN@wuerfel> <CAFiDJ5_dUpVTSeC36AfNKVN7BOa9GQ5vwSEWricm=8Sam9mR2A@mail.gmail.com>
+In-Reply-To: <CAFiDJ5_dUpVTSeC36AfNKVN7BOa9GQ5vwSEWricm=8Sam9mR2A@mail.gmail.com>
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ley Foon Tan <lftan@altera.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, lftan.linux@gmail.com, cltang@codesourcery.com
-Message-ID: <20140422143037.405urmdBTzyws-enWalq_6lDLTJc--kESVwdC-bvmvY@z>
+To: Ley Foon Tan <lftan@altera.com>, Arnd Bergmann <arnd@arndb.de>
+Cc: "H. Peter Anvin" <hpa@zytor.com>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>
+Message-ID: <20140422144816.iK16xAFemu_gQ5U0Bk5O6dT_XbaUNuqvEuvJrUsyxm4@z>
 
-Hello Ley Foon,
+On 2014/4/22 07:20 PM, Ley Foon Tan wrote:
+> On Tue, Apr 22, 2014 at 6:56 PM, Arnd Bergmann <arnd@arndb.de> wrote:
+>> On Tuesday 22 April 2014 18:37:11 Ley Foon Tan wrote:
+>>> Hi Arnd and Peter Anvin,
+>>>
+>>> Other than 64-bit time_t, clock_t and suseconds_t, can you confirm
+>>> that we don't need to have 64 bit off_t? See detail in link below.
+>>> I can submit the patches for 64-bit time changes
+>>> (include/asm-generic/posix_types.h and other archs) if everyone is
+>>> agreed on this.
+>>
+>> Yes.
+> Okay, will doing that.
+> 
+>>
+>>> Excerpt from https://lkml.org/lkml/2012/11/14/358 :
+>>> "Obviously, we want to use 64-bit off_t, but this is achieved already
+>>> through loff_t, which is used in all places in the asm-generic
+>>> ABI anyway (the syscalls using off_t are stripped out). I don't
+>>> think we want to have the other ones set to 64 bit on ARC or Meta,
+>>> although I'm not 100% sure about ino_t and nlink_t. "
+>>
+>> This is all still true. You should have no syscall using 'off_t',
+>> only loff_t.
+>>
+>> I still don't know whether we would want 32 or 64 bit ino_t and nlink_t
+>> for new architectures. It seems it would gain very little, but have
+>> a noticeable overhead.
+> Anyone have comment on this?
+> Chung-Lin (in CC list) is our nios2 toolchain maintainer. Do you have
+> any comment for 32 or 64 bit ino_t and nlink_t?
+> We will update the toolchain to support 64-bit time_t, so we hope that
+> any other toolchain change can happen in one time.
 
-On Apr 18, Ley Foon Tan wrote:
-> +
-> +bad_area_nosemaphore:
-> +	/* User mode accesses just cause a SIGSEGV */
-> +	if (user_mode(regs)) {
+For ino_t, 32-bit users of linux-generic glibc already use struct
+stat64, stat64(), etc. to align with 64-bit targets, so in terms of the
+glibc/kernel interface it doesn't matter much.  The in-kernel usage of
+the ino_t type should be of more concern here.
 
-I found that it's useful to add some printing here, just as ARM
-does. I carry this patch on my kernel:
+nlink_t appears to be always defined as u32 in <linux/types.h>, not sure
+if changing it to arch-overridable is reasonable.
 
-+               printk(KERN_INFO "%s: unhandled page fault (%d) at 0x%08lx, cause %ld\n",
-+                      current->comm, SIGSEGV, address, cause);
-+               show_regs(regs);
+Chung-Lin
 
-Do you think we could do something like it? Maybe with a compile time option?
 
-> +		_exception(SIGSEGV, regs, code, address);
-> +		return;
-> +	}
-> +
--- 
-Ezequiel García, Free Electrons
-Embedded Linux, Kernel and Android Engineering
-http://free-electrons.com
+
