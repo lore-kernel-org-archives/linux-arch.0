@@ -1,99 +1,74 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH 07/28] nios2: I/O Mapping
-Date: Tue, 22 Apr 2014 15:59:37 +0200
-Message-ID: <201404221559.37560.arnd@arndb.de>
-References: <1397824031-4892-1-git-send-email-lftan@altera.com> <1397845149-3141-1-git-send-email-lftan@altera.com> <1397845149-3141-3-git-send-email-lftan@altera.com>
+From: Michal Simek <monstr@monstr.eu>
+Subject: Re: [PATCH 18/18] asm-generic: io: define relaxed accessor macros
+ unconditionally
+Date: Tue, 22 Apr 2014 16:09:46 +0200
+Message-ID: <5356782A.9050809@monstr.eu>
+References: <1397742261-15621-1-git-send-email-will.deacon@arm.com> <1397742261-15621-19-git-send-email-will.deacon@arm.com>
+Reply-To: monstr@monstr.eu
 Mime-Version: 1.0
-Content-Type: Text/Plain;
-  charset="iso-8859-15"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1397845149-3141-3-git-send-email-lftan@altera.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Ley Foon Tan <lftan@altera.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, lftan.linux@gmail.com, cltang@codesourcery.com
-List-Id: linux-arch.vger.kernel.org
+Content-Type: multipart/signed; micalg=pgp-sha1;
+ protocol="application/pgp-signature";
+ boundary="tiDH4Mqrch3wXrvoNuUH4amjGcTWUvO9I"
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-ee0-f46.google.com ([74.125.83.46]:44696 "EHLO
+	mail-ee0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932744AbaDVOJ6 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 22 Apr 2014 10:09:58 -0400
+Received: by mail-ee0-f46.google.com with SMTP id t10so4610586eei.5
+        for <linux-arch@vger.kernel.org>; Tue, 22 Apr 2014 07:09:57 -0700 (PDT)
+In-Reply-To: <1397742261-15621-19-git-send-email-will.deacon@arm.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Will Deacon <will.deacon@arm.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, arnd@arndb.de, dhowells@redhat.com, broonie@linaro.org, benh@kernel.crashing.org, peterz@infradead.org, paulmck@linux.vnet.ibm.com
 
-On Friday 18 April 2014, Ley Foon Tan wrote:
+This is an OpenPGP/MIME signed message (RFC 4880 and 3156)
+--tiDH4Mqrch3wXrvoNuUH4amjGcTWUvO9I
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: quoted-printable
 
-> +
-> +#include <asm/pgtable-bits.h>
-> +
-> +#define IO_SPACE_LIMIT 0xffffffff
+On 04/17/2014 03:44 PM, Will Deacon wrote:
+> Now that no architectures using asm-generic/io.h define their own relax=
+ed
+> accessors, the dummy definitions can be used unconditionally.
+>=20
+> Cc: Arnd Bergmann <arnd@arndb.de>
+> Signed-off-by: Will Deacon <will.deacon@arm.com>
+> ---
+>  include/asm-generic/io.h | 18 ------------------
+>  1 file changed, 18 deletions(-)
 
-Please use 0xffff here, this should work for almost any PCI bus.
+Do we need this? I think there could be a need to overwrite them.
+Currently we are just lucky that architecture which uses asm-generic/io.h=
 
-> +
-> +#ifndef CONFIG_CC_OPTIMIZE_FOR_SIZE
-> +# define __IO_USE_DUFFS
-> +#endif
-> +
-> +#ifdef __IO_USE_DUFFS
-> +
-> +/* Use "Duff's Device" to unroll the loops. */
-> +#define __IO_OUT_LOOP(a, b, l)				\
-> +	do {						\
-> +		if (l > 0) {				\
-> +			int _n = (l + 7) / 8;		\
-> +			switch (l % 8) {		\
-> +			case 0:				\
-> +				do {			\
-> +					*a = *b++;	\
+don't need to overwrite it.
+But I expect that all archs should use asm-generic/io.h to clean
+architecture io.h exactly I have done it for Microblaze.
 
-I would recommend just doing all of this in out-of-line implementations
-rather than macros and inline functions.
+Thanks,
+Michal
 
-> +
-> +/*
-> + *	make the short names macros so specific devices
-> + *	can override them as required
-> + */
-> +#define inb(addr)		readb(addr)
-> +#define inw(addr)		readw(addr)
-> +#define inl(addr)		readl(addr)
-> +#define outb(x, addr)		((void) writeb(x, addr))
-> +#define outw(x, addr)		((void) writew(x, addr))
-> +#define outl(x, addr)		((void) writel(x, addr))
+--=20
+Michal Simek, Ing. (M.Eng), OpenPGP -> KeyID: FE3D1F91
+w: www.monstr.eu p: +42-0-721842854
+Maintainer of Linux kernel - Microblaze cpu - http://www.monstr.eu/fdt/
+Maintainer of Linux kernel - Xilinx Zynq ARM architecture
+Microblaze U-BOOT custodian and responsible for u-boot arm zynq platform
 
-This makes no sense: the legacy PC I/O accessors take a completely
-different argument type: I would recommend to make both inline
-functions so you can ensure that readl() gets passed an __iomem
-pointer, while inl() gets an integer number.
 
-Please see the asm-generic version for an example. You should also
-define a non-NULL PCI_IOBASE to which the PCI I/O space gets mapped.
 
-> +#define virt_to_bus virt_to_phys
-> +#define bus_to_virt phys_to_virt
+--tiDH4Mqrch3wXrvoNuUH4amjGcTWUvO9I
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: OpenPGP digital signature
+Content-Disposition: attachment; filename="signature.asc"
 
-Please drop these, and the CONFIG_VIRT_TO_BUS Kconfig option,
-and fix all drivers that rely on it.
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.10 (GNU/Linux)
+Comment: Using GnuPG with Thunderbird - http://www.enigmail.net/
 
-> +#define ioport_map(port, nr)	ioremap(port, nr)
-> +#define ioport_unmap(port)	iounmap(port)
+iEYEARECAAYFAlNWeCoACgkQykllyylKDCHL7QCfZHY0AEPJpupieO3TTKRh9VXj
+VN4AnRtRl3pIh5H8pVJrJxaX+V08i19U
+=7Mr8
+-----END PGP SIGNATURE-----
 
-Use this one instead:
-
-#ifdef CONFIG_PCI
-static inline void __iomem *ioport_map(unsigned long port, unsigned int nr)
-{
-        return PCI_IOBASE + port;
-}
-
-static inline void __iomem *ioport_unmap(void __iomem *)
-{
-}
-#endif
-
-> +/* Macros used for smc91x.c driver */
-> +#define readsb(p, d, l)		insb(p, d, l)
-> +#define readsw(p, d, l)		insw(p, d, l)
-> +#define readsl(p, d, l)		insl(p, d, l)
-> +#define writesb(p, d, l)	outsb(p, d, l)
-> +#define writesw(p, d, l)	outsw(p, d, l)
-> +#define writesl(p, d, l)	outsl(p, d, l)
-
-These should of course not fall back to the PCI I/O space functions.
-You can do it the other way round.
-
-	Arnd
+--tiDH4Mqrch3wXrvoNuUH4amjGcTWUvO9I--
