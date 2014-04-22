@@ -1,51 +1,161 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from fw-tnat.austin.arm.com ([217.140.110.23]:49142 "EHLO
-	collaborate-mta1.arm.com" rhost-flags-OK-OK-OK-FAIL)
-	by vger.kernel.org with ESMTP id S932504AbaDVQ6v (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 22 Apr 2014 12:58:51 -0400
-Date: Tue, 22 Apr 2014 17:58:15 +0100
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH 04/15] arm64: __NR_compat_syscalls fix
-Message-ID: <20140422165814.GH10224@arm.com>
-References: <1397211951-20549-1-git-send-email-miklos@szeredi.hu>
- <1397211951-20549-5-git-send-email-miklos@szeredi.hu>
+Received: from bombadil.infradead.org ([198.137.202.9]:44344 "EHLO
+	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756639AbaDVT6c (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 22 Apr 2014 15:58:32 -0400
+Date: Tue, 22 Apr 2014 09:54:59 +0200
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: Dirty/Access bits vs. page content
+Message-ID: <20140422075459.GD11182@twins.programming.kicks-ass.net>
+References: <1398032742.19682.11.camel@pasglop>
+ <CA+55aFz1sK+PF96LYYZY7OB7PBpxZu-uNLWLvPiRz-tJsBqX3w@mail.gmail.com>
+ <1398054064.19682.32.camel@pasglop>
+ <1398057630.19682.38.camel@pasglop>
+ <CA+55aFwWHBtihC3w9E4+j4pz+6w7iTnYhTf4N3ie15BM9thxLQ@mail.gmail.com>
+ <53558507.9050703@zytor.com>
+ <CA+55aFxGm6J6N=4L7exLUFMr1_siNGHpK=wApd9GPCH1=63PPA@mail.gmail.com>
+ <53559F48.8040808@intel.com>
+ <CA+55aFwDtjA4Vp0yt0K5x6b6sAMtcn=61SEnOOs_En+3UXNpuA@mail.gmail.com>
+ <CA+55aFzFxBDJ2rWo9DggdNsq-qBCr11OVXnm64jx04KMSVCBAw@mail.gmail.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <1397211951-20549-5-git-send-email-miklos@szeredi.hu>
+In-Reply-To: <CA+55aFzFxBDJ2rWo9DggdNsq-qBCr11OVXnm64jx04KMSVCBAw@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Miklos Szeredi <miklos@szeredi.hu>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Miklos Szeredi <mszeredi@suse.cz>
-Message-ID: <20140422165815.Zh3eGW8gq4y7xiq4oVMYoyPibnJsigBLnfJwOoSfLhY@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Dave Hansen <dave.hansen@intel.com>, "H. Peter Anvin" <hpa@zytor.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, Russell King - ARM Linux <linux@arm.linux.org.uk>, Tony Luck <tony.luck@intel.com>
+Message-ID: <20140422075459.XY2yNogTB0vAjIlKF5yz6Fx3FD4_W70uOo9YU9iXFR8@z>
 
-On Fri, Apr 11, 2014 at 11:25:40AM +0100, Miklos Szeredi wrote:
-> From: Miklos Szeredi <mszeredi@suse.cz>
+On Mon, Apr 21, 2014 at 05:44:45PM -0700, Linus Torvalds wrote:
+> From d26515fe19d5850aa69881ee6ae193e068f22ba1 Mon Sep 17 00:00:00 2001
+> From: Linus Torvalds <torvalds@linux-foundation.org>
+> Date: Mon, 21 Apr 2014 17:35:35 -0700
+> Subject: [PATCH 2/2] mm: make the generic TLB flush batching correctly dirty
+>  the page at the end
 > 
-> Signed-off-by: Miklos Szeredi <mszeredi@suse.cz>
-> Cc: Catalin Marinas <catalin.marinas@arm.com>
+> When unmapping dirty shared mappings, the page should be dirtied after
+> doing the TLB flush.  This does that by hiding the dirty bit in the low
+> bit of the "struct page" pointer in the TLB gather batching array, and
+> teaching free_pages_and_swap_cache() to mark the pages dirty at the end.
+> 
+> Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+> Cc: Peter Anvin <hpa@zytor.com>
+
+Acked-by: Peter Zijlstra <peterz@infradead.org>
+
+> Cc: Dave Hansen <dave.hansen@intel.com>
+> Cc: linux-arch@vger.kernel.org
+> Cc: linux-mm@kvack.org
+> Signed-off-by: Linus Torvalds <torvalds@linux-foundation.org>
 > ---
->  arch/arm64/include/asm/unistd32.h | 2 +-
->  1 file changed, 1 insertion(+), 1 deletion(-)
+>  mm/memory.c     |  5 +----
+>  mm/swap.c       |  8 +++++++-
+>  mm/swap_state.c | 14 ++++++++++++--
+>  3 files changed, 20 insertions(+), 7 deletions(-)
 > 
-> diff --git a/arch/arm64/include/asm/unistd32.h b/arch/arm64/include/asm/unistd32.h
-> index bb8eb8a78e67..faa0e1ce59df 100644
-> --- a/arch/arm64/include/asm/unistd32.h
-> +++ b/arch/arm64/include/asm/unistd32.h
-> @@ -404,7 +404,7 @@ __SYSCALL(379, sys_finit_module)
->  __SYSCALL(380, sys_sched_setattr)
->  __SYSCALL(381, sys_sched_getattr)
+> diff --git a/mm/memory.c b/mm/memory.c
+> index 62fdcd1995f4..174542ab2b90 100644
+> --- a/mm/memory.c
+> +++ b/mm/memory.c
+> @@ -283,11 +283,8 @@ int __tlb_remove_page(struct mmu_gather *tlb, struct page *page, bool dirty)
 >  
-> -#define __NR_compat_syscalls		379
-> +#define __NR_compat_syscalls		382
+>  	VM_BUG_ON(!tlb->need_flush);
+>  
+> -	/* FIXME! This needs to be batched too */
+> -	if (dirty)
+> -		set_page_dirty(page);
+>  	batch = tlb->active;
+> -	batch->pages[batch->nr++] = page;
+> +	batch->pages[batch->nr++] = (void *) (dirty + (unsigned long)page);
 
-I picked up this patch, together with a Cc: stable and longer comment.
+Space between cast and expression.
 
-What's your plan with the other patches? Do you submit them as a series
-or would like the arch maintainers to pick them up?
+>  	if (batch->nr == batch->max) {
+>  		if (!tlb_next_batch(tlb))
+>  			return 0;
+> diff --git a/mm/swap.c b/mm/swap.c
+> index 9ce43ba4498b..1a58c58c7f41 100644
+> --- a/mm/swap.c
+> +++ b/mm/swap.c
+> @@ -821,8 +821,14 @@ void release_pages(struct page **pages, int nr, int cold)
+>  	struct lruvec *lruvec;
+>  	unsigned long uninitialized_var(flags);
+>  
+> +	/*
+> +	 * NOTE! The low bit of the struct page pointer in
+> +	 * the "pages[]" array is used as a dirty bit, so
+> +	 * we ignore it
+> +	 */
+>  	for (i = 0; i < nr; i++) {
+> -		struct page *page = pages[i];
+> +		unsigned long pageval = (unsigned long)pages[i];
+> +		struct page *page = (void *)(~1ul & pageval);
 
-Thanks.
+No space between cast and expression.
 
--- 
-Catalin
+Should we create some pointer bitops helpers? We do this casting all
+over the place, maybe its time to make it pretty?
+
+static inline void *ptr_or(void *ptr, unsigned long val)
+{
+	WARN_ON(val & ~0x03); /* too bad __alignof__ is 'broken' */
+	return (void *)((unsigned long)ptr | val);
+}
+
+static inline void *ptr_mask(void *ptr)
+{
+	return (void *)((unsigned long)ptr & ~0x03);
+}
+
+static inline unsigned long ptr_and(void *ptr, unsigned long val)
+{
+	WARN_ON(val & ~0x03);
+	return (unsigned long)ptr & val;
+}
+
+>  		if (unlikely(PageCompound(page))) {
+>  			if (zone) {
+> diff --git a/mm/swap_state.c b/mm/swap_state.c
+> index e76ace30d436..bb0b2d675a82 100644
+> --- a/mm/swap_state.c
+> +++ b/mm/swap_state.c
+> @@ -258,6 +258,11 @@ void free_page_and_swap_cache(struct page *page)
+>  /*
+>   * Passed an array of pages, drop them all from swapcache and then release
+>   * them.  They are removed from the LRU and freed if this is their last use.
+> + *
+> + * NOTE! The low bit of the "struct page" pointers passed in is a dirty
+> + * indicator, saying that the page needs to be marked dirty before freeing.
+> + *
+> + * release_pages() itself ignores that bit.
+>   */
+>  void free_pages_and_swap_cache(struct page **pages, int nr)
+>  {
+> @@ -268,8 +273,13 @@ void free_pages_and_swap_cache(struct page **pages, int nr)
+>  		int todo = min(nr, PAGEVEC_SIZE);
+>  		int i;
+>  
+> -		for (i = 0; i < todo; i++)
+> -			free_swap_cache(pagep[i]);
+> +		for (i = 0; i < todo; i++) {
+> +			unsigned long pageval = (unsigned long) pagep[i];
+> +			struct page *page = (void *)(~1ul & pageval);
+> +			if (pageval & 1)
+> +				set_page_dirty(page);
+> +			free_swap_cache(page);
+> +		}
+>  		release_pages(pagep, todo, 0);
+>  		pagep += todo;
+>  		nr -= todo;
+
+So PAGE_FLAGS_CHECK_AT_FREE doesn't include PG_dirty, so while we now
+properly mark the page dirty, we could continue and simply free the
+thing?
+
+I suppose the pagecache has a ref on and there's no window where we
+could drop that before doing this free (didn't check).
+
+But my main point was; should we check for the dirty bit when freeing
+the page?
+
