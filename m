@@ -1,43 +1,103 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ve0-f180.google.com ([209.85.128.180]:60125 "EHLO
-	mail-ve0-f180.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750860AbaDVFP2 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 22 Apr 2014 01:15:28 -0400
-Received: by mail-ve0-f180.google.com with SMTP id jz11so8793854veb.39
-        for <linux-arch@vger.kernel.org>; Mon, 21 Apr 2014 22:15:27 -0700 (PDT)
+Received: from ozlabs.org ([103.22.144.67]:57342 "EHLO ozlabs.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752525AbaDVHjL (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 22 Apr 2014 03:39:11 -0400
+From: Rusty Russell <rusty@rustcorp.com.au>
+Subject: Re: [PATCH V2 1/2] mm: move FAULT_AROUND_ORDER to arch/
+In-Reply-To: <53456B61.1040901@intel.com>
+References: <1396592835-24767-1-git-send-email-maddy@linux.vnet.ibm.com> <1396592835-24767-2-git-send-email-maddy@linux.vnet.ibm.com> <533EDB63.8090909@intel.com> <5344A312.80802@linux.vnet.ibm.com> <53456B61.1040901@intel.com>
+Date: Tue, 22 Apr 2014 16:52:17 +0930
+Message-ID: <87vbu1hlqu.fsf@rustcorp.com.au>
 MIME-Version: 1.0
-In-Reply-To: <CA+55aFzFxBDJ2rWo9DggdNsq-qBCr11OVXnm64jx04KMSVCBAw@mail.gmail.com>
-References: <1398032742.19682.11.camel@pasglop>
-	<CA+55aFz1sK+PF96LYYZY7OB7PBpxZu-uNLWLvPiRz-tJsBqX3w@mail.gmail.com>
-	<1398054064.19682.32.camel@pasglop>
-	<1398057630.19682.38.camel@pasglop>
-	<CA+55aFwWHBtihC3w9E4+j4pz+6w7iTnYhTf4N3ie15BM9thxLQ@mail.gmail.com>
-	<53558507.9050703@zytor.com>
-	<CA+55aFxGm6J6N=4L7exLUFMr1_siNGHpK=wApd9GPCH1=63PPA@mail.gmail.com>
-	<53559F48.8040808@intel.com>
-	<CA+55aFwDtjA4Vp0yt0K5x6b6sAMtcn=61SEnOOs_En+3UXNpuA@mail.gmail.com>
-	<CA+55aFzFxBDJ2rWo9DggdNsq-qBCr11OVXnm64jx04KMSVCBAw@mail.gmail.com>
-Date: Mon, 21 Apr 2014 22:15:27 -0700
-Message-ID: <CA+8MBbLvWuSfP+7CFwAmSwNX7Uekob5p52BuwfkW=oz9=202HQ@mail.gmail.com>
-Subject: Re: Dirty/Access bits vs. page content
-From: Tony Luck <tony.luck@gmail.com>
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Dave Hansen <dave.hansen@intel.com>, "H. Peter Anvin" <hpa@zytor.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Peter Zijlstra <peterz@infradead.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, Russell King - ARM Linux <linux@arm.linux.org.uk>
-Message-ID: <20140422051527.DVo7oNuPY9jhFWXr3vYzDGZMIelIr1PvmGDpF6wSvBs@z>
+To: Dave Hansen <dave.hansen@intel.com>, Madhavan Srinivasan <maddy@linux.vnet.ibm.com>, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, x86@kernel.org
+Cc: benh@kernel.crashing.org, paulus@samba.org, kirill.shutemov@linux.intel.com, akpm@linux-foundation.org, riel@redhat.com, mgorman@suse.de, ak@linux.intel.com, peterz@infradead.org, mingo@kernel.org
+Message-ID: <20140422072217.HqXkuLS_monxOYQTtzEL8yNSVSk4YoHwECQLU9b1V7E@z>
 
-On Mon, Apr 21, 2014 at 5:44 PM, Linus Torvalds
-<torvalds@linux-foundation.org> wrote:
-> I think Russell and Tony are both on linux-arch, so they probably saw
-> at least part of this discussion flow past already, but just in case
-> I'm adding them explicitly to the cc, because both ia64 and arm seem
-> to implement their own version of TLB batching rather than use the
-> generic code.
+Dave Hansen <dave.hansen@intel.com> writes:
+> On 04/08/2014 06:32 PM, Madhavan Srinivasan wrote:
+>>> > In mm/Kconfig, put
+>>> > 
+>>> > 	config FAULT_AROUND_ORDER
+>>> > 		int
+>>> > 		default 1234 if POWERPC
+>>> > 		default 4
+>>> > 
+>>> > The way you have it now, every single architecture that needs to enable
+>>> > this has to go put that in their Kconfig.  That's madness.  This way,
+>> I though about it and decided not to do this way because, in future,
+>> sub platforms of the architecture may decide to change the values. Also,
+>> adding an if line for each architecture with different sub platforms
+>> oring to it will look messy.
+>
+> I'm not sure why I'm trying here any more.  You do seem quite content to
+> add as much cruft to ppc and every other architecture as possible.  If
+> your theoretical scenario pops up, you simply do this in ppc:
+>
+> config ARCH_FAULT_AROUND_ORDER
+> 	int
+> 	default 999
+> 	default 888 if OTHER_SILLY_POWERPC_SUBARCH
+>
+> But *ONLY* in the architectures that care about doing that stuff.  You
+> leave every other architecture on the planet alone.  Then, in mm/Kconfig:
+>
+> config FAULT_AROUND_ORDER
+> 	int
+> 	default ARCH_FAULT_AROUND_ORDER if ARCH_FAULT_AROUND_ORDER
+> 	default 4
+>
+> Your way still requires going and individually touching every single
+> architecture's Kconfig that wants to enable fault around.  That's not an
+> acceptable solution.
 
-It builds and boots on ia64 with no new warnings.  I haven't done
-anything more stressful than booting though - so unsure whether
-there are any corners cases that might show up under load.
+Why bother with Kconfig at all?  It seems like a weird indirection.
 
--Tony
+And talking about future tuning seems like a separate issue, if and when
+someone does the work.  For the moment, let's keep it simple (as below).
+
+If you really want Kconfig, then just go straight from
+ARCH_FAULT_AROUND_ORDER, ie:
+
+        #ifdef CONFIG_ARCH_FAULT_AROUND_ORDER
+        #define FAULT_AROUND_ORDER CONFIG_ARCH_FAULT_AROUND_ORDER
+        #else
+        #define FAULT_AROUND_ORDER 4
+        #endif
+
+Then powerpc's Kconfig defines CONFIG_ARCH_FAULT_AROUND_ORDER, and
+we're done.
+
+Cheers,
+Rusty.
+
+diff --git a/arch/powerpc/include/asm/page.h b/arch/powerpc/include/asm/page.h
+index 32e4e212b9c1..b519c5c53cfc 100644
+--- a/arch/powerpc/include/asm/page.h
++++ b/arch/powerpc/include/asm/page.h
+@@ -412,4 +412,7 @@ typedef struct page *pgtable_t;
+ #include <asm-generic/memory_model.h>
+ #endif /* __ASSEMBLY__ */
+ 
++/* Measured on a 4 socket Power7 system (128 Threads and 128GB memory) */
++#define FAULT_AROUND_ORDER 3
++
+ #endif /* _ASM_POWERPC_PAGE_H */
+diff --git a/mm/memory.c b/mm/memory.c
+index d0f0bef3be48..9aa47e9ec7ba 100644
+--- a/mm/memory.c
++++ b/mm/memory.c
+@@ -3382,7 +3382,10 @@ void do_set_pte(struct vm_area_struct *vma, unsigned long address,
+ 	update_mmu_cache(vma, address, pte);
+ }
+ 
++/* Archs can override, but this seems to work for x86. */
++#ifndef FAULT_AROUND_ORDER
+ #define FAULT_AROUND_ORDER 4
++#endif
+ 
+ #ifdef CONFIG_DEBUG_FS
+ static unsigned int fault_around_order = FAULT_AROUND_ORDER;
