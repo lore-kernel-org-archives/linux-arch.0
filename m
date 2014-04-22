@@ -1,40 +1,69 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qg0-f54.google.com ([209.85.192.54]:40280 "EHLO
-	mail-qg0-f54.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756795AbaDVPdR (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 22 Apr 2014 11:33:17 -0400
-Received: by mail-qg0-f54.google.com with SMTP id z60so5439789qgd.41
-        for <linux-arch@vger.kernel.org>; Tue, 22 Apr 2014 08:33:16 -0700 (PDT)
+Received: from top.free-electrons.com ([176.31.233.9]:49848 "EHLO
+	mail.free-electrons.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1756181AbaDVPgC (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 22 Apr 2014 11:36:02 -0400
+Date: Tue, 22 Apr 2014 12:35:22 -0300
+From: Ezequiel Garcia <ezequiel.garcia@free-electrons.com>
+Subject: Re: [PATCH 06/28] nios2: Memory management
+Message-ID: <20140422153522.GF15745@arch.cereza>
+References: <1397824031-4892-1-git-send-email-lftan@altera.com>
+ <1397824031-4892-5-git-send-email-lftan@altera.com>
+ <20140422142443.GB15745@arch.cereza>
+ <20140422151458.GC1053@distanz.ch>
 MIME-Version: 1.0
-In-Reply-To: <5352C64C.1040204@gmx.de>
-References: <1397211951-20549-1-git-send-email-miklos@szeredi.hu>
-	<1397211951-20549-10-git-send-email-miklos@szeredi.hu>
-	<5352C64C.1040204@gmx.de>
-Date: Tue, 22 Apr 2014 17:33:16 +0200
-Message-ID: <CAJfpegu0Cv0ZxzbwgZTEGXHLL6Omx4KBbKD9MR5U_1h-U2r0XA@mail.gmail.com>
-Subject: Re: [PATCH 09/15] parisc: add renameat2 syscall
-From: Miklos Szeredi <miklos@szeredi.hu>
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=iso-8859-1
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <20140422151458.GC1053@distanz.ch>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Helge Deller <deller@gmx.de>
-Cc: linux-arch <linux-arch@vger.kernel.org>, Kernel Mailing List <linux-kernel@vger.kernel.org>, Miklos Szeredi <mszeredi@suse.cz>
-Message-ID: <20140422153316.yld4mjWiO6qPSsvketfZJiEdLKh3U_Xr5m1n3HwmcV4@z>
+To: Tobias Klauser <tklauser@distanz.ch>
+Cc: Ley Foon Tan <lftan@altera.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, lftan.linux@gmail.com, cltang@codesourcery.com
+Message-ID: <20140422153522.Nh1cgnCN91KChHjPeDv4peH1fAOB39f9yZI3HvZQFTw@z>
 
-On Sat, Apr 19, 2014 at 8:54 PM, Helge Deller <deller@gmx.de> wrote:
-> On 04/11/2014 12:25 PM, Miklos Szeredi wrote:
->> From: Miklos Szeredi <mszeredi@suse.cz>
->
-> Thanks Miklos!
->
->> Signed-off-by: Miklos Szeredi <mszeredi@suse.cz>
->> Cc: Helge Deller <deller@gmx.de>
->
-> Acked-by: Helge Deller <deller@gmx.de>
->
-> Can you please push it with the other arches.
+On Apr 22, Tobias Klauser wrote:
+> On 2014-04-22 at 16:24:43 +0200, Ezequiel Garcia <ezequiel.garcia@free-electrons.com> wrote:
+> > Hi Ley Foon,
+> > 
+> > On Apr 18, Ley Foon Tan wrote:
+> > > +/*
+> > > + * PAGE_SHIFT determines the page size
+> > > + */
+> > > +#define PAGE_SHIFT	12
+> > > +#define PAGE_SIZE	4096
+> > > +#define PAGE_MASK	(~(PAGE_SIZE - 1))
+> > > +
+> > 
+> > How about something like this:
+> > 
+> > /* PAGE_SHIFT determines the page size */
+> > #define PAGE_SHIFT              12
+> > #define PAGE_SIZE               (_AC(1,UL) << PAGE_SHIFT)
+> > #define PAGE_MASK               (~((1 << PAGE_SHIFT) - 1))
+> > 
+> > Otherwise, the PAGE_SIZE macro above produces some warnings, IIRC.
+> 
+> AFAIR old nios2 GCC versions (the 4.1 version from Windriver, IIRC)
+> would complain about something like the above, that's the reason I added
+> an explicit value for PAGE_SIZE back then.
+> 
 
-Sure.
+Other than being "pretty" the above fix is to remove a mismatch type
+warning. You can get rid of the warning in different ways:
 
-Thanks,
-Miklos
+ifdef __ASSEMBLY__
+define PAGE_SIZE       4096
+else
+define PAGE_SIZE       4096UL
+endif
+
+> I assume with the new nios2 GCC this should no longer be necessary and
+> Ezequiel's fix should be fine.
+
+Speaking of GCC... is there a libc available to test this kernel port?
+(which I assume uses the generic syscall ABI)
+-- 
+Ezequiel García, Free Electrons
+Embedded Linux, Kernel and Android Engineering
+http://free-electrons.com
