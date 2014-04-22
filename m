@@ -1,54 +1,38 @@
-From: Ley Foon Tan <lftan@altera.com>
-Subject: Re: [PATCH 00/28] nios2 Linux kernel port
-Date: Tue, 22 Apr 2014 19:20:45 +0800
-Message-ID: <CAFiDJ5_dUpVTSeC36AfNKVN7BOa9GQ5vwSEWricm=8Sam9mR2A@mail.gmail.com>
-References: <1397824031-4892-1-git-send-email-lftan@altera.com>
-	<5354AD36.5090809@zytor.com>
-	<CAFiDJ5861HE4AXtio-8uNJppWE2oaPt9_OKyGV=Myb_3vPrOVA@mail.gmail.com>
-	<16597012.pEkDc99HDN@wuerfel>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH 16/28] nios2: System calls handling
+Date: Tue, 22 Apr 2014 14:30:39 +0200
+Message-ID: <201404221430.40237.arnd@arndb.de>
+References: <1397824031-4892-1-git-send-email-lftan@altera.com> <1397824031-4892-13-git-send-email-lftan@altera.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-doc-owner@vger.kernel.org>
-In-Reply-To: <16597012.pEkDc99HDN@wuerfel>
-Sender: linux-doc-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: "H. Peter Anvin" <hpa@zytor.com>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, cltang@codesourcery.com
+Content-Type: Text/Plain;
+  charset="iso-8859-15"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1397824031-4892-13-git-send-email-lftan@altera.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Ley Foon Tan <lftan@altera.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, lftan.linux@gmail.com, cltang@codesourcery.com
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Apr 22, 2014 at 6:56 PM, Arnd Bergmann <arnd@arndb.de> wrote:
-> On Tuesday 22 April 2014 18:37:11 Ley Foon Tan wrote:
->> Hi Arnd and Peter Anvin,
->>
->> Other than 64-bit time_t, clock_t and suseconds_t, can you confirm
->> that we don't need to have 64 bit off_t? See detail in link below.
->> I can submit the patches for 64-bit time changes
->> (include/asm-generic/posix_types.h and other archs) if everyone is
->> agreed on this.
->
-> Yes.
-Okay, will doing that.
+On Friday 18 April 2014, Ley Foon Tan wrote:
 
->
->> Excerpt from https://lkml.org/lkml/2012/11/14/358 :
->> "Obviously, we want to use 64-bit off_t, but this is achieved already
->> through loff_t, which is used in all places in the asm-generic
->> ABI anyway (the syscalls using off_t are stripped out). I don't
->> think we want to have the other ones set to 64 bit on ARC or Meta,
->> although I'm not 100% sure about ino_t and nlink_t. "
->
-> This is all still true. You should have no syscall using 'off_t',
-> only loff_t.
->
-> I still don't know whether we would want 32 or 64 bit ino_t and nlink_t
-> for new architectures. It seems it would gain very little, but have
-> a noticeable overhead.
-Anyone have comment on this?
-Chung-Lin (in CC list) is our nios2 toolchain maintainer. Do you have
-any comment for 32 or 64 bit ino_t and nlink_t?
-We will update the toolchain to support 64-bit time_t, so we hope that
-any other toolchain change can happen in one time.
+> +
+> + #define sys_mmap2 sys_mmap_pgoff
+> +
 
-Thanks
+You use sys_mmap_pgoff here, but
 
-Regards
-Ley Foon
+> +asmlinkage long sys_mmap(unsigned long addr, unsigned long len,
+> +			unsigned long prot, unsigned long flags,
+> +			unsigned long fd, unsigned long offset)
+> +{
+> +	if (offset & ~PAGE_MASK)
+> +		return -EINVAL;
+> +
+> +	return sys_mmap_pgoff(addr, len, prot, flags, fd, offset >> PAGE_SHIFT);
+> +}
+
+define a separate sys_mmap() here. Doing the former should be enough.
+so you can just drop the sys_mmap definition.
+
+	Arnd
