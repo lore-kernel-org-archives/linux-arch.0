@@ -1,42 +1,48 @@
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Subject: Re: Dirty/Access bits vs. page content
-Date: Tue, 22 Apr 2014 07:55:38 -0700
-Message-ID: <CA+55aFye7U7LAewDv=Lpb8V+g0FWiVtuAZdy-b6cAoRQXZZZcw@mail.gmail.com>
-References: <1398032742.19682.11.camel@pasglop>
-	<CA+55aFz1sK+PF96LYYZY7OB7PBpxZu-uNLWLvPiRz-tJsBqX3w@mail.gmail.com>
-	<1398054064.19682.32.camel@pasglop>
-	<1398057630.19682.38.camel@pasglop>
-	<CA+55aFwWHBtihC3w9E4+j4pz+6w7iTnYhTf4N3ie15BM9thxLQ@mail.gmail.com>
-	<53558507.9050703@zytor.com>
-	<CA+55aFxGm6J6N=4L7exLUFMr1_siNGHpK=wApd9GPCH1=63PPA@mail.gmail.com>
-	<53559F48.8040808@intel.com>
-	<CA+55aFwDtjA4Vp0yt0K5x6b6sAMtcn=61SEnOOs_En+3UXNpuA@mail.gmail.com>
-	<CA+55aFzFxBDJ2rWo9DggdNsq-qBCr11OVXnm64jx04KMSVCBAw@mail.gmail.com>
-	<CA+8MBbLvWuSfP+7CFwAmSwNX7Uekob5p52BuwfkW=oz9=202HQ@mail.gmail.com>
+From: Tobias Klauser <tklauser@distanz.ch>
+Subject: Re: [PATCH 06/28] nios2: Memory management
+Date: Tue, 22 Apr 2014 17:14:58 +0200
+Message-ID: <20140422151458.GC1053@distanz.ch>
+References: <1397824031-4892-1-git-send-email-lftan@altera.com>
+ <1397824031-4892-5-git-send-email-lftan@altera.com>
+ <20140422142443.GB15745@arch.cereza>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <CA+8MBbLvWuSfP+7CFwAmSwNX7Uekob5p52BuwfkW=oz9=202HQ@mail.gmail.com>
-Sender: owner-linux-mm@kvack.org
-To: Tony Luck <tony.luck@gmail.com>
-Cc: Dave Hansen <dave.hansen@intel.com>, "H. Peter Anvin" <hpa@zytor.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Peter Zijlstra <peterz@infradead.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, Russell King - ARM Linux <linux@arm.linux.org.uk>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from sym2.noone.org ([178.63.92.236]:43148 "EHLO sym2.noone.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S932893AbaDVPPB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 22 Apr 2014 11:15:01 -0400
+Content-Disposition: inline
+In-Reply-To: <20140422142443.GB15745@arch.cereza>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Ezequiel Garcia <ezequiel.garcia@free-electrons.com>
+Cc: Ley Foon Tan <lftan@altera.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, lftan.linux@gmail.com, cltang@codesourcery.com
 
-On Mon, Apr 21, 2014 at 10:15 PM, Tony Luck <tony.luck@gmail.com> wrote:
->
-> It builds and boots on ia64 with no new warnings.  I haven't done
-> anything more stressful than booting though - so unsure whether
-> there are any corners cases that might show up under load.
+On 2014-04-22 at 16:24:43 +0200, Ezequiel Garcia <ezequiel.garcia@free-electrons.com> wrote:
+> Hi Ley Foon,
+> 
+> On Apr 18, Ley Foon Tan wrote:
+> > +/*
+> > + * PAGE_SHIFT determines the page size
+> > + */
+> > +#define PAGE_SHIFT	12
+> > +#define PAGE_SIZE	4096
+> > +#define PAGE_MASK	(~(PAGE_SIZE - 1))
+> > +
+> 
+> How about something like this:
+> 
+> /* PAGE_SHIFT determines the page size */
+> #define PAGE_SHIFT              12
+> #define PAGE_SIZE               (_AC(1,UL) << PAGE_SHIFT)
+> #define PAGE_MASK               (~((1 << PAGE_SHIFT) - 1))
+> 
+> Otherwise, the PAGE_SIZE macro above produces some warnings, IIRC.
 
-Thanks. It shouldn't actually change any behavior on ia64 (you'd have
-to do any dirty bit batching yourself), I was mainly worried about
-compile warnings due to not having the set_page_dirty() declaration
-due to some odd header file issues.
+AFAIR old nios2 GCC versions (the 4.1 version from Windriver, IIRC)
+would complain about something like the above, that's the reason I added
+an explicit value for PAGE_SIZE back then.
 
-               Linus
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+I assume with the new nios2 GCC this should no longer be necessary and
+Ezequiel's fix should be fine.
