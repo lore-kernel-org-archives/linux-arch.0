@@ -1,79 +1,45 @@
-From: Chung-Lin Tang <cltang@codesourcery.com>
-Subject: Re: [PATCH 06/28] nios2: Memory management
-Date: Wed, 23 Apr 2014 00:36:10 +0800
-Message-ID: <53569A7A.70405@codesourcery.com>
-References: <1397824031-4892-1-git-send-email-lftan@altera.com> <1397824031-4892-5-git-send-email-lftan@altera.com> <20140422142443.GB15745@arch.cereza> <20140422151458.GC1053@distanz.ch> <20140422153522.GF15745@arch.cereza> <5356924E.7020605@codesourcery.com> <20140422162737.GA13859@arch.cereza>
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [PATCH 04/15] arm64: __NR_compat_syscalls fix
+Date: Tue, 22 Apr 2014 17:58:15 +0100
+Message-ID: <20140422165814.GH10224@arm.com>
+References: <1397211951-20549-1-git-send-email-miklos@szeredi.hu>
+ <1397211951-20549-5-git-send-email-miklos@szeredi.hu>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from relay1.mentorg.com ([192.94.38.131]:43346 "EHLO
-	relay1.mentorg.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756642AbaDVQgN (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 22 Apr 2014 12:36:13 -0400
-In-Reply-To: <20140422162737.GA13859@arch.cereza>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Ezequiel Garcia <ezequiel.garcia@free-electrons.com>
-Cc: Tobias Klauser <tklauser@distanz.ch>, Ley Foon Tan <lftan@altera.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, lftan.linux@gmail.com
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <1397211951-20549-5-git-send-email-miklos@szeredi.hu>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Miklos Szeredi <miklos@szeredi.hu>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Miklos Szeredi <mszeredi@suse.cz>
+List-Id: linux-arch.vger.kernel.org
 
-On 2014/4/23 =E4=B8=8A=E5=8D=88 12:27, Ezequiel Garcia wrote:
-> On Apr 23, Chung-Lin Tang wrote:
->> On 2014/4/22 =E4=B8=8B=E5=8D=88 11:35, Ezequiel Garcia wrote:
->>> On Apr 22, Tobias Klauser wrote:
->>>> On 2014-04-22 at 16:24:43 +0200, Ezequiel Garcia <ezequiel.garcia@=
-free-electrons.com> wrote:
->>>>> Hi Ley Foon,
->>>>>
->>>>> On Apr 18, Ley Foon Tan wrote:
->>>>>> +/*
->>>>>> + * PAGE_SHIFT determines the page size
->>>>>> + */
->>>>>> +#define PAGE_SHIFT	12
->>>>>> +#define PAGE_SIZE	4096
->>>>>> +#define PAGE_MASK	(~(PAGE_SIZE - 1))
->>>>>> +
->>>>>
->>>>> How about something like this:
->>>>>
->>>>> /* PAGE_SHIFT determines the page size */
->>>>> #define PAGE_SHIFT              12
->>>>> #define PAGE_SIZE               (_AC(1,UL) << PAGE_SHIFT)
->>>>> #define PAGE_MASK               (~((1 << PAGE_SHIFT) - 1))
->>>>>
->>>>> Otherwise, the PAGE_SIZE macro above produces some warnings, IIRC=
-=2E
->>>>
->>>> AFAIR old nios2 GCC versions (the 4.1 version from Windriver, IIRC=
-)
->>>> would complain about something like the above, that's the reason I=
- added
->>>> an explicit value for PAGE_SIZE back then.
->>>>
->>>
->>> Other than being "pretty" the above fix is to remove a mismatch typ=
-e
->>> warning. You can get rid of the warning in different ways:
->>>
->>> ifdef __ASSEMBLY__
->>> define PAGE_SIZE       4096
->>> else
->>> define PAGE_SIZE       4096UL
->>> endif
->>>
->>>> I assume with the new nios2 GCC this should no longer be necessary=
- and
->>>> Ezequiel's fix should be fine.
->>>
->>> Speaking of GCC... is there a libc available to test this kernel po=
-rt?
->>> (which I assume uses the generic syscall ABI)
->>
->> It's submitted to libc-alpha, also still review in progress.
->>
->=20
-> Do you plan to support uclibc?
+On Fri, Apr 11, 2014 at 11:25:40AM +0100, Miklos Szeredi wrote:
+> From: Miklos Szeredi <mszeredi@suse.cz>
+> 
+> Signed-off-by: Miklos Szeredi <mszeredi@suse.cz>
+> Cc: Catalin Marinas <catalin.marinas@arm.com>
+> ---
+>  arch/arm64/include/asm/unistd32.h | 2 +-
+>  1 file changed, 1 insertion(+), 1 deletion(-)
+> 
+> diff --git a/arch/arm64/include/asm/unistd32.h b/arch/arm64/include/asm/unistd32.h
+> index bb8eb8a78e67..faa0e1ce59df 100644
+> --- a/arch/arm64/include/asm/unistd32.h
+> +++ b/arch/arm64/include/asm/unistd32.h
+> @@ -404,7 +404,7 @@ __SYSCALL(379, sys_finit_module)
+>  __SYSCALL(380, sys_sched_setattr)
+>  __SYSCALL(381, sys_sched_getattr)
+>  
+> -#define __NR_compat_syscalls		379
+> +#define __NR_compat_syscalls		382
 
-No, we (Mentor Graphics) are only doing glibc work at this point.
+I picked up this patch, together with a Cc: stable and longer comment.
 
-Chung-Lin
+What's your plan with the other patches? Do you submit them as a series
+or would like the arch maintainers to pick them up?
+
+Thanks.
+
+-- 
+Catalin
