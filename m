@@ -1,48 +1,42 @@
-From: Tobias Klauser <tklauser@distanz.ch>
-Subject: Re: [PATCH 06/28] nios2: Memory management
-Date: Tue, 22 Apr 2014 17:14:58 +0200
-Message-ID: <20140422151458.GC1053@distanz.ch>
-References: <1397824031-4892-1-git-send-email-lftan@altera.com>
- <1397824031-4892-5-git-send-email-lftan@altera.com>
- <20140422142443.GB15745@arch.cereza>
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [PATCH 18/18] asm-generic: io: define relaxed accessor macros
+ unconditionally
+Date: Tue, 22 Apr 2014 16:18:09 +0100
+Message-ID: <20140422151809.GF9820@arm.com>
+References: <1397742261-15621-1-git-send-email-will.deacon@arm.com>
+ <1397742261-15621-19-git-send-email-will.deacon@arm.com>
+ <5356782A.9050809@monstr.eu>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from sym2.noone.org ([178.63.92.236]:43148 "EHLO sym2.noone.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S932893AbaDVPPB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 22 Apr 2014 11:15:01 -0400
+Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20140422142443.GB15745@arch.cereza>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Ezequiel Garcia <ezequiel.garcia@free-electrons.com>
-Cc: Ley Foon Tan <lftan@altera.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, lftan.linux@gmail.com, cltang@codesourcery.com
+In-Reply-To: <5356782A.9050809@monstr.eu>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Michal Simek <monstr@monstr.eu>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "arnd@arndb.de" <arnd@arndb.de>, "dhowells@redhat.com" <dhowells@redhat.com>, "broonie@linaro.org" <broonie@linaro.org>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, "peterz@infradead.org" <peterz@infradead.org>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>
+List-Id: linux-arch.vger.kernel.org
 
-On 2014-04-22 at 16:24:43 +0200, Ezequiel Garcia <ezequiel.garcia@free-electrons.com> wrote:
-> Hi Ley Foon,
-> 
-> On Apr 18, Ley Foon Tan wrote:
-> > +/*
-> > + * PAGE_SHIFT determines the page size
-> > + */
-> > +#define PAGE_SHIFT	12
-> > +#define PAGE_SIZE	4096
-> > +#define PAGE_MASK	(~(PAGE_SIZE - 1))
-> > +
-> 
-> How about something like this:
-> 
-> /* PAGE_SHIFT determines the page size */
-> #define PAGE_SHIFT              12
-> #define PAGE_SIZE               (_AC(1,UL) << PAGE_SHIFT)
-> #define PAGE_MASK               (~((1 << PAGE_SHIFT) - 1))
-> 
-> Otherwise, the PAGE_SIZE macro above produces some warnings, IIRC.
+Hi Michal,
 
-AFAIR old nios2 GCC versions (the 4.1 version from Windriver, IIRC)
-would complain about something like the above, that's the reason I added
-an explicit value for PAGE_SIZE back then.
+On Tue, Apr 22, 2014 at 03:09:46PM +0100, Michal Simek wrote:
+> On 04/17/2014 03:44 PM, Will Deacon wrote:
+> > Now that no architectures using asm-generic/io.h define their own relaxed
+> > accessors, the dummy definitions can be used unconditionally.
+> > 
+> > Cc: Arnd Bergmann <arnd@arndb.de>
+> > Signed-off-by: Will Deacon <will.deacon@arm.com>
+> > ---
+> >  include/asm-generic/io.h | 18 ------------------
+> >  1 file changed, 18 deletions(-)
+> 
+> Do we need this? I think there could be a need to overwrite them.
+> Currently we are just lucky that architecture which uses asm-generic/io.h
+> don't need to overwrite it.
+> But I expect that all archs should use asm-generic/io.h to clean
+> architecture io.h exactly I have done it for Microblaze.
 
-I assume with the new nios2 GCC this should no longer be necessary and
-Ezequiel's fix should be fine.
+I'm open to keeping the conditional definitions, but it introduces a
+discrepancy with the non-relaxed versions, which are defined unconditionally
+(although the underlying __raw_* accessors can be overridden).
+
+Will
