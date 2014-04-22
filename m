@@ -1,66 +1,43 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from relay1.mentorg.com ([192.94.38.131]:61657 "EHLO
-	relay1.mentorg.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756756AbaDVOs1 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 22 Apr 2014 10:48:27 -0400
-Message-ID: <53568130.7050003@codesourcery.com>
-Date: Tue, 22 Apr 2014 22:48:16 +0800
-From: Chung-Lin Tang <cltang@codesourcery.com>
+Received: from mail-ve0-f176.google.com ([209.85.128.176]:64554 "EHLO
+	mail-ve0-f176.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932890AbaDVOzj (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 22 Apr 2014 10:55:39 -0400
+Received: by mail-ve0-f176.google.com with SMTP id db11so9428206veb.7
+        for <linux-arch@vger.kernel.org>; Tue, 22 Apr 2014 07:55:38 -0700 (PDT)
 MIME-Version: 1.0
-Subject: Re: [PATCH 00/28] nios2 Linux kernel port
-References: <1397824031-4892-1-git-send-email-lftan@altera.com>	<5354AD36.5090809@zytor.com>	<CAFiDJ5861HE4AXtio-8uNJppWE2oaPt9_OKyGV=Myb_3vPrOVA@mail.gmail.com>	<16597012.pEkDc99HDN@wuerfel> <CAFiDJ5_dUpVTSeC36AfNKVN7BOa9GQ5vwSEWricm=8Sam9mR2A@mail.gmail.com>
-In-Reply-To: <CAFiDJ5_dUpVTSeC36AfNKVN7BOa9GQ5vwSEWricm=8Sam9mR2A@mail.gmail.com>
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
+In-Reply-To: <CA+8MBbLvWuSfP+7CFwAmSwNX7Uekob5p52BuwfkW=oz9=202HQ@mail.gmail.com>
+References: <1398032742.19682.11.camel@pasglop>
+	<CA+55aFz1sK+PF96LYYZY7OB7PBpxZu-uNLWLvPiRz-tJsBqX3w@mail.gmail.com>
+	<1398054064.19682.32.camel@pasglop>
+	<1398057630.19682.38.camel@pasglop>
+	<CA+55aFwWHBtihC3w9E4+j4pz+6w7iTnYhTf4N3ie15BM9thxLQ@mail.gmail.com>
+	<53558507.9050703@zytor.com>
+	<CA+55aFxGm6J6N=4L7exLUFMr1_siNGHpK=wApd9GPCH1=63PPA@mail.gmail.com>
+	<53559F48.8040808@intel.com>
+	<CA+55aFwDtjA4Vp0yt0K5x6b6sAMtcn=61SEnOOs_En+3UXNpuA@mail.gmail.com>
+	<CA+55aFzFxBDJ2rWo9DggdNsq-qBCr11OVXnm64jx04KMSVCBAw@mail.gmail.com>
+	<CA+8MBbLvWuSfP+7CFwAmSwNX7Uekob5p52BuwfkW=oz9=202HQ@mail.gmail.com>
+Date: Tue, 22 Apr 2014 07:55:38 -0700
+Message-ID: <CA+55aFye7U7LAewDv=Lpb8V+g0FWiVtuAZdy-b6cAoRQXZZZcw@mail.gmail.com>
+Subject: Re: Dirty/Access bits vs. page content
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ley Foon Tan <lftan@altera.com>, Arnd Bergmann <arnd@arndb.de>
-Cc: "H. Peter Anvin" <hpa@zytor.com>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>
-Message-ID: <20140422144816.iK16xAFemu_gQ5U0Bk5O6dT_XbaUNuqvEuvJrUsyxm4@z>
+To: Tony Luck <tony.luck@gmail.com>
+Cc: Dave Hansen <dave.hansen@intel.com>, "H. Peter Anvin" <hpa@zytor.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Peter Zijlstra <peterz@infradead.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, Russell King - ARM Linux <linux@arm.linux.org.uk>
+Message-ID: <20140422145538.KzuhN_o5AktbxdrS92kmYkqgm-NoLR2E_JglVEZXyOM@z>
 
-On 2014/4/22 07:20 PM, Ley Foon Tan wrote:
-> On Tue, Apr 22, 2014 at 6:56 PM, Arnd Bergmann <arnd@arndb.de> wrote:
->> On Tuesday 22 April 2014 18:37:11 Ley Foon Tan wrote:
->>> Hi Arnd and Peter Anvin,
->>>
->>> Other than 64-bit time_t, clock_t and suseconds_t, can you confirm
->>> that we don't need to have 64 bit off_t? See detail in link below.
->>> I can submit the patches for 64-bit time changes
->>> (include/asm-generic/posix_types.h and other archs) if everyone is
->>> agreed on this.
->>
->> Yes.
-> Okay, will doing that.
-> 
->>
->>> Excerpt from https://lkml.org/lkml/2012/11/14/358 :
->>> "Obviously, we want to use 64-bit off_t, but this is achieved already
->>> through loff_t, which is used in all places in the asm-generic
->>> ABI anyway (the syscalls using off_t are stripped out). I don't
->>> think we want to have the other ones set to 64 bit on ARC or Meta,
->>> although I'm not 100% sure about ino_t and nlink_t. "
->>
->> This is all still true. You should have no syscall using 'off_t',
->> only loff_t.
->>
->> I still don't know whether we would want 32 or 64 bit ino_t and nlink_t
->> for new architectures. It seems it would gain very little, but have
->> a noticeable overhead.
-> Anyone have comment on this?
-> Chung-Lin (in CC list) is our nios2 toolchain maintainer. Do you have
-> any comment for 32 or 64 bit ino_t and nlink_t?
-> We will update the toolchain to support 64-bit time_t, so we hope that
-> any other toolchain change can happen in one time.
+On Mon, Apr 21, 2014 at 10:15 PM, Tony Luck <tony.luck@gmail.com> wrote:
+>
+> It builds and boots on ia64 with no new warnings.  I haven't done
+> anything more stressful than booting though - so unsure whether
+> there are any corners cases that might show up under load.
 
-For ino_t, 32-bit users of linux-generic glibc already use struct
-stat64, stat64(), etc. to align with 64-bit targets, so in terms of the
-glibc/kernel interface it doesn't matter much.  The in-kernel usage of
-the ino_t type should be of more concern here.
+Thanks. It shouldn't actually change any behavior on ia64 (you'd have
+to do any dirty bit batching yourself), I was mainly worried about
+compile warnings due to not having the set_page_dirty() declaration
+due to some odd header file issues.
 
-nlink_t appears to be always defined as u32 in <linux/types.h>, not sure
-if changing it to arch-overridable is reasonable.
-
-Chung-Lin
-
-
-
+               Linus
