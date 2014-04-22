@@ -1,39 +1,55 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bastet.se.axis.com ([195.60.68.11]:54390 "EHLO
-	bastet.se.axis.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751374AbaDVNre (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 22 Apr 2014 09:47:34 -0400
-Date: Tue, 22 Apr 2014 15:47:30 +0200
-From: Jesper Nilsson <jesper.nilsson@axis.com>
-Subject: Re: [PATCH 07/18] cris: io: implement dummy relaxed accessor
- macros for writes
-Message-ID: <20140422134730.GS32241@axis.com>
-References: <1397742261-15621-1-git-send-email-will.deacon@arm.com>
- <1397742261-15621-8-git-send-email-will.deacon@arm.com>
+Received: from moutng.kundenserver.de ([212.227.126.130]:60342 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755531AbaDVNwE (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 22 Apr 2014 09:52:04 -0400
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH 14/28] nios2: DMA mapping API
+Date: Tue, 22 Apr 2014 15:52:00 +0200
+References: <1397824031-4892-1-git-send-email-lftan@altera.com> <1397845149-3141-1-git-send-email-lftan@altera.com> <1397845149-3141-4-git-send-email-lftan@altera.com>
+In-Reply-To: <1397845149-3141-4-git-send-email-lftan@altera.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1397742261-15621-8-git-send-email-will.deacon@arm.com>
+Content-Type: Text/Plain;
+  charset="iso-8859-15"
+Content-Transfer-Encoding: 7bit
+Message-ID: <201404221552.00501.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will.deacon@arm.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, arnd@arndb.de, monstr@monstr.eu, dhowells@redhat.com, broonie@linaro.org, benh@kernel.crashing.org, peterz@infradead.org, paulmck@linux.vnet.ibm.com, Mikael Starvik <starvik@axis.com>, Jesper Nilsson <jespern@axis.com>
-Message-ID: <20140422134730.qsNsNAlpaqrv-ZtSHBkNAIuhN9AWFN1D9jry0PbR54Y@z>
+To: Ley Foon Tan <lftan@altera.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, lftan.linux@gmail.com, cltang@codesourcery.com
+Message-ID: <20140422135200.jWrdVwLernIi8s-DOklZ2XTj_egdE1F1J18Nmln5wQg@z>
 
-On Thu, Apr 17, 2014 at 02:44:10PM +0100, Will Deacon wrote:
-> write{b,w,l}_relaxed are implemented by some architectures in order to
-> permit memory-mapped I/O accesses with weaker barrier semantics than the
-> non-relaxed variants.
-> 
-> This patch adds dummy macros for the write accessors to Cris, in the same
-> vein as the dummy definitions for the relaxed read accessors.
-> 
-> Cc: Mikael Starvik <starvik@axis.com>
+On Friday 18 April 2014, Ley Foon Tan wrote:
 
-Acked-by: Jesper Nilsson <jesper.nilsson@axis.com>
+> +static inline int dma_supported(struct device *dev, u64 mask)
+> +{
+> +	/* we fall back to GFP_DMA when the mask isn't all 1s,
+> +	 * so we can't guarantee allocations that must be
+> +	 * within a tighter range than GFP_DMA.
+> +	 */
+> +	if (mask < 0x00ffffff)
+> +		return 0;
+> +
+> +	return 1;
+> +}
 
-> Signed-off-by: Will Deacon <will.deacon@arm.com>
+> +void *dma_alloc_coherent(struct device *dev, size_t size,
+> +			    dma_addr_t *dma_handle, gfp_t gfp)
+> +{
+> +	void *ret;
+> +
+> +	/* ignore region specifiers */
+> +	gfp &= ~(__GFP_DMA | __GFP_HIGHMEM);
+> +
+> +	/* optimized page clearing */
+> +	gfp |= __GFP_ZERO;
+> +
+> +	if (dev == NULL || (dev->coherent_dma_mask < 0xffffffff))
+> +		gfp |= GFP_DMA;
 
-/^JN - Jesper Nilsson
--- 
-               Jesper Nilsson -- jesper.nilsson@axis.com
+What is the significance of ZONE_DMA on this architecture?
+
+Do you actually have DMA masters with a 0x00ffffff mask?
+
+	Arnd
+
