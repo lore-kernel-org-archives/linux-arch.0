@@ -1,83 +1,48 @@
-From: Linus Torvalds <torvalds@linux-foundation.org>
+From: Dave Hansen <dave.hansen@intel.com>
 Subject: Re: Dirty/Access bits vs. page content
-Date: Tue, 22 Apr 2014 14:36:40 -0700
-Message-ID: <CA+55aFzM+NpE-EzJdDeYX=cqWRzkGv9o-vybDR=oFtDLMRK-mA@mail.gmail.com>
-References: <1398032742.19682.11.camel@pasglop>
-	<CA+55aFz1sK+PF96LYYZY7OB7PBpxZu-uNLWLvPiRz-tJsBqX3w@mail.gmail.com>
-	<1398054064.19682.32.camel@pasglop>
-	<1398057630.19682.38.camel@pasglop>
-	<CA+55aFwWHBtihC3w9E4+j4pz+6w7iTnYhTf4N3ie15BM9thxLQ@mail.gmail.com>
-	<53558507.9050703@zytor.com>
-	<CA+55aFxGm6J6N=4L7exLUFMr1_siNGHpK=wApd9GPCH1=63PPA@mail.gmail.com>
-	<53559F48.8040808@intel.com>
-	<CA+55aFwDtjA4Vp0yt0K5x6b6sAMtcn=61SEnOOs_En+3UXNpuA@mail.gmail.com>
-	<CA+55aFzFxBDJ2rWo9DggdNsq-qBCr11OVXnm64jx04KMSVCBAw@mail.gmail.com>
-	<20140422075459.GD11182@twins.programming.kicks-ass.net>
+Date: Tue, 22 Apr 2014 14:46:39 -0700
+Message-ID: <5356E33F.3000908@intel.com>
+References: <1398032742.19682.11.camel@pasglop>	<CA+55aFz1sK+PF96LYYZY7OB7PBpxZu-uNLWLvPiRz-tJsBqX3w@mail.gmail.com>	<1398054064.19682.32.camel@pasglop>	<1398057630.19682.38.camel@pasglop>	<CA+55aFwWHBtihC3w9E4+j4pz+6w7iTnYhTf4N3ie15BM9thxLQ@mail.gmail.com>	<53558507.9050703@zytor.com>	<CA+55aFxGm6J6N=4L7exLUFMr1_siNGHpK=wApd9GPCH1=63PPA@mail.gmail.com>	<53559F48.8040808@intel.com>	<CA+55aFwDtjA4Vp0yt0K5x6b6sAMtcn=61SEnOOs_En+3UXNpuA@mail.gmail.com>	<CA+55aFzFxBDJ2rWo9DggdNsq-qBCr11OVXnm64jx04KMSVCBAw@mail.gmail.com>	<20140422075459.GD11182@twins.programming.kicks-ass.net> <CA+55aFzM+NpE-EzJdDeYX=cqWRzkGv9o-vybDR=oFtDLMRK-mA@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <20140422075459.GD11182@twins.programming.kicks-ass.net>
-Sender: owner-linux-mm@kvack.org
-To: Peter Zijlstra <peterz@infradead.org>, Hugh Dickins <hughd@google.com>
-Cc: Dave Hansen <dave.hansen@intel.com>, "H. Peter Anvin" <hpa@zytor.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, Russell King - ARM Linux <linux@arm.linux.org.uk>, Tony Luck <tony.luck@intel.com>
-List-Id: linux-arch.vger.kernel.org
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mga02.intel.com ([134.134.136.20]:39985 "EHLO mga02.intel.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752658AbaDVVqk (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 22 Apr 2014 17:46:40 -0400
+In-Reply-To: <CA+55aFzM+NpE-EzJdDeYX=cqWRzkGv9o-vybDR=oFtDLMRK-mA@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Linus Torvalds <torvalds@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Hugh Dickins <hughd@google.com>
+Cc: "H. Peter Anvin" <hpa@zytor.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, Russell King - ARM Linux <linux@arm.linux.org.uk>, Tony Luck <tony.luck@intel.com>
 
-On Tue, Apr 22, 2014 at 12:54 AM, Peter Zijlstra <peterz@infradead.org> wrote:
->
-> So PAGE_FLAGS_CHECK_AT_FREE doesn't include PG_dirty, so while we now
-> properly mark the page dirty, we could continue and simply free the
-> thing?
+On 04/22/2014 02:36 PM, Linus Torvalds wrote:
+> That said, Dave Hansen did report a BUG_ON() in
+> mpage_prepare_extent_to_map(). His line number was odd, but I assume
+> it's this one:
+> 
+>         BUG_ON(PageWriteback(page));
+> 
+> which may be indicative of some oddity here wrt the dirty bit.
 
-Yes. But being free'd while dirty should be fairly normal for
-anonymous pages, no? And while I did a "pte_mkclean()" the the
-PageAnon() case (so that we won't waste time on "set_page_dirty()" on
-pages we don't care about, a concurrent truncate() could have turned
-what *used* to be a file-backed page into just a dirty page with no
-mapping any more.
+I just triggered it a second time.  It only happens with my debugging
+config[1] *and* those two fix patches.  It doesn't happen on the vanilla
+kernel with lost dirty bit.
 
-So I don't think we would necessarily want to check for PG_dirty at
-page freeing time, because freeing dirty pages isn't necessarily
-wrong. For example, tmpfs/shmfs pages are generally always dirty, and
-would get freed when the inode is deleted.
+The line numbers point to the
 
-That said, Dave Hansen did report a BUG_ON() in
-mpage_prepare_extent_to_map(). His line number was odd, but I assume
-it's this one:
+	head = page_buffers(page);
 
-        BUG_ON(PageWriteback(page));
+which is:
 
-which may be indicative of some oddity here wrt the dirty bit.
+#define page_buffers(page)                                      \
+        ({                                                      \
+                BUG_ON(!PagePrivate(page));                     \
+                ((struct buffer_head *)page_private(page));     \
+        })
 
-So I'm a bit worried.  I'm starting to think that we need to do
-"set_page_dirty_lock()". It *used* to be the case that because we held
-the page table lock and the page used to be mapped (even if we then
-unmapped it), page_mapping() could not go away from under us because
-truncate would see it in the rmap list and then get serialized on that
-page table lock. But moving the set_page_dirty() later - and to
-outside the page table lock - means that we probably need to use that
-version that takes the page lock.
-
-Which might kind of suck from a performance angle. But it might
-explain DaveH's BUG_ON() when testing those patches?
-
-I wonder if we could hold on to the page mapping some other way than
-taking that page lock, because taking that page lock sounds
-potentially damn expensive.
-
-Who is the master of the lock_page() semantics? Hugh Dickins again?
-I'm bringing him in for this issue too, since whenever there is some
-vm locking issue, he is always on top of it.
-
-Hugh - I'm assuming you are on linux-mm. If not, holler, and I'll send
-you the two patches I wrote for the TLB dirty shootdown (short
-explanation: dirty bit setting needs to be delayed until after tlb
-flushing, since other CPU's may be busily writing to the page until
-that time).
-
-                    Linus
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+1.
+http://sr71.net/~dave/intel/20140422-lostdirtybit/config-ext4-bugon.20140422
+Config that doesn't trigger it:
+http://sr71.net/~dave/intel/20140422-lostdirtybit/config-ext4-nobug.20140422
