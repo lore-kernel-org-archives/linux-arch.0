@@ -1,64 +1,74 @@
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [PATCH 16/18] x86: io: implement dummy relaxed accessor macros
- for writes
-Date: Tue, 22 Apr 2014 17:08:21 +0100
-Message-ID: <20140422160821.GA31322@arm.com>
-References: <1397742261-15621-1-git-send-email-will.deacon@arm.com>
- <1397742261-15621-17-git-send-email-will.deacon@arm.com>
+From: Sam Ravnborg <sam@ravnborg.org>
+Subject: Re: [PATCH 06/28] nios2: Memory management
+Date: Tue, 22 Apr 2014 18:24:32 +0200
+Message-ID: <20140422162432.GA17674@ravnborg.org>
+References: <1397824031-4892-1-git-send-email-lftan@altera.com>
+ <1397824031-4892-5-git-send-email-lftan@altera.com>
+ <20140422142443.GB15745@arch.cereza>
+ <20140422151458.GC1053@distanz.ch>
+ <20140422153522.GF15745@arch.cereza>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:51446 "EHLO
-	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1757270AbaDVQJF (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 22 Apr 2014 12:09:05 -0400
+Received: from asavdk3.altibox.net ([109.247.116.14]:53065 "EHLO
+	asavdk3.altibox.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1757171AbaDVQYp (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 22 Apr 2014 12:24:45 -0400
 Content-Disposition: inline
-In-Reply-To: <1397742261-15621-17-git-send-email-will.deacon@arm.com>
+In-Reply-To: <20140422153522.GF15745@arch.cereza>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
-Cc: "arnd@arndb.de" <arnd@arndb.de>, "monstr@monstr.eu" <monstr@monstr.eu>, "dhowells@redhat.com" <dhowells@redhat.com>, "broonie@linaro.org" <broonie@linaro.org>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, "peterz@infradead.org" <peterz@infradead.org>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>
+To: Ezequiel Garcia <ezequiel.garcia@free-electrons.com>
+Cc: Tobias Klauser <tklauser@distanz.ch>, Ley Foon Tan <lftan@altera.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, lftan.linux@gmail.com, cltang@codesourcery.com
 
-On Thu, Apr 17, 2014 at 02:44:19PM +0100, Will Deacon wrote:
-> write{b,w,l,q}_relaxed are implemented by some architectures in order to
-> permit memory-mapped I/O accesses with weaker barrier semantics than the
-> non-relaxed variants.
+On Tue, Apr 22, 2014 at 12:35:22PM -0300, Ezequiel Garcia wrote:
+> On Apr 22, Tobias Klauser wrote:
+> > On 2014-04-22 at 16:24:43 +0200, Ezequiel Garcia <ezequiel.garcia@free-electrons.com> wrote:
+> > > Hi Ley Foon,
+> > > 
+> > > On Apr 18, Ley Foon Tan wrote:
+> > > > +/*
+> > > > + * PAGE_SHIFT determines the page size
+> > > > + */
+> > > > +#define PAGE_SHIFT	12
+> > > > +#define PAGE_SIZE	4096
+> > > > +#define PAGE_MASK	(~(PAGE_SIZE - 1))
+> > > > +
+> > > 
+> > > How about something like this:
+> > > 
+> > > /* PAGE_SHIFT determines the page size */
+> > > #define PAGE_SHIFT              12
+> > > #define PAGE_SIZE               (_AC(1,UL) << PAGE_SHIFT)
+> > > #define PAGE_MASK               (~((1 << PAGE_SHIFT) - 1))
+> > > 
+> > > Otherwise, the PAGE_SIZE macro above produces some warnings, IIRC.
+> > 
+> > AFAIR old nios2 GCC versions (the 4.1 version from Windriver, IIRC)
+> > would complain about something like the above, that's the reason I added
+> > an explicit value for PAGE_SIZE back then.
+> > 
 > 
-> This patch adds dummy macros for the write accessors to x86, in the
-> same vein as the dummy definitions for the relaxed read accessors.
+> Other than being "pretty" the above fix is to remove a mismatch type
+> warning. You can get rid of the warning in different ways:
 > 
-> Cc: Thomas Gleixner <tglx@linutronix.de>
-> Cc: Ingo Molnar <mingo@redhat.com>
-> Cc: "H. Peter Anvin" <hpa@zytor.com>
-> Signed-off-by: Will Deacon <will.deacon@arm.com>
-> ---
->  arch/x86/include/asm/io.h | 4 ++++
->  1 file changed, 4 insertions(+)
-> 
-> diff --git a/arch/x86/include/asm/io.h b/arch/x86/include/asm/io.h
-> index b8237d8a1e0c..2ea07f5ec7b7 100644
-> --- a/arch/x86/include/asm/io.h
-> +++ b/arch/x86/include/asm/io.h
-> @@ -74,6 +74,9 @@ build_mmio_write(__writel, "l", unsigned int, "r", )
->  #define __raw_readw __readw
->  #define __raw_readl __readl
->  
-> +#define writeb_relaxed(v, a) __writeb(v, a)
-> +#define writew_relaxed(v, a) __writew(v, a)
-> +#define writel_relaxed(v, a) __writel(v, a)
->  #define __raw_writeb __writeb
->  #define __raw_writew __writew
->  #define __raw_writel __writel
-> @@ -86,6 +89,7 @@ build_mmio_read(readq, "q", unsigned long, "=r", :"memory")
->  build_mmio_write(writeq, "q", unsigned long, "r", :"memory")
->  
->  #define readq_relaxed(a)	readq(a)
-> +#define writeq_relaxed(v, a)	writeq(v, a)
+> ifdef __ASSEMBLY__
+> define PAGE_SIZE       4096
+> else
+> define PAGE_SIZE       4096UL
+> endif
 
-Actually, I should be using the regular (i.e. without the double underscore
-prefix) accessors for the relaxed variants, including the existing read
-flavours here. The proposed semantics are that the accessors are ordered
-with respect to each other, which necessitates a compiler barrier.
+The usual way to do this is as follows:
+#include <linux/const.h>
 
-Will
+#define PAGE_SHIFT   12
+#define PAGE_SIZE    (_AC(1, UL) << PAGE_SHIFT)
+#define PAGE_MASK    (~(PAGE_SIZE-1))
+
+_AC(1, UL) expands to 1 for assembler and 1UL for C code.
+
+This is also what was suggested above.
+
+Please follow this scheme for nios2 too.
+
+	Sam
