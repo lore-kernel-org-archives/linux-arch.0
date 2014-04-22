@@ -1,42 +1,33 @@
-From: Ezequiel Garcia <ezequiel.garcia@free-electrons.com>
-Subject: Re: [PATCH 05/28] nios2: Traps exception handling
-Date: Tue, 22 Apr 2014 11:28:31 -0300
-Message-ID: <20140422142831.GC15745@arch.cereza>
-References: <1397824031-4892-1-git-send-email-lftan@altera.com>
- <1397845149-3141-1-git-send-email-lftan@altera.com>
- <1397845149-3141-2-git-send-email-lftan@altera.com>
+From: Sam Ravnborg <sam@ravnborg.org>
+Subject: Re: [PATCH 00/18] Cross-architecture definitions of relaxed MMIO
+ accessors
+Date: Tue, 22 Apr 2014 16:30:54 +0200
+Message-ID: <20140422143053.GA16898@ravnborg.org>
+References: <1397742261-15621-1-git-send-email-will.deacon@arm.com>
+ <20140417153638.GA7317@ravnborg.org>
+ <20140417154714.GD30553@arm.com>
+ <20140417191555.GA11970@ravnborg.org>
+ <20140422134345.GD9820@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from asavdk3.altibox.net ([109.247.116.14]:51185 "EHLO
+	asavdk3.altibox.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756049AbaDVObC (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 22 Apr 2014 10:31:02 -0400
 Content-Disposition: inline
-In-Reply-To: <1397845149-3141-2-git-send-email-lftan@altera.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Ley Foon Tan <lftan@altera.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, lftan.linux@gmail.com, cltang@codesourcery.com
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <20140422134345.GD9820@arm.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Will Deacon <will.deacon@arm.com>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "arnd@arndb.de" <arnd@arndb.de>, "monstr@monstr.eu" <monstr@monstr.eu>, "dhowells@redhat.com" <dhowells@redhat.com>, "broonie@linaro.org" <broonie@linaro.org>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, "peterz@infradead.org" <peterz@infradead.org>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>
 
-Hello Ley Foon,
+> 
+> This is because Sparc (and the other architectures I had to modify) don't
+> make use of asm-generic/io.h.
+Somehow I missed this.
 
-On Apr 19, Ley Foon Tan wrote:
-> +
-> +#ifndef CONFIG_ALIGNMENT_TRAP
-> +/* Alignment exception handler */
-> +asmlinkage void handle_unaligned_c(struct pt_regs *fp, int cause)
-> +{
-> +	unsigned long addr =3D RDCTL(CTL_BADADDR);
-> +
-> +	cause >>=3D 2;
-> +	fp->ea -=3D 4;
-> +
-> +	if (fixup_exception(fp))
-> +		return;
+Added to my todo list to look into sparc in this respect.
+A quick lokk reveal that sparc32 can use most/all of the generic io.h
 
-This will throw an undeclared error if you build with CONFIG_ALIGNMENT_=
-TRAP=3Dn.
-
-You need to add the uaccess.h header, or implement some similar fix.
---=20
-Ezequiel Garc=EDa, Free Electrons
-Embedded Linux, Kernel and Android Engineering
-http://free-electrons.com
+	Sam
