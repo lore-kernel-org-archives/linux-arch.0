@@ -1,69 +1,51 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from relay1.mentorg.com ([192.94.38.131]:38548 "EHLO
-	relay1.mentorg.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756902AbaDVQBa (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 22 Apr 2014 12:01:30 -0400
-Message-ID: <5356924E.7020605@codesourcery.com>
-Date: Wed, 23 Apr 2014 00:01:18 +0800
-From: Chung-Lin Tang <cltang@codesourcery.com>
+Received: from fw-tnat.austin.arm.com ([217.140.110.23]:49142 "EHLO
+	collaborate-mta1.arm.com" rhost-flags-OK-OK-OK-FAIL)
+	by vger.kernel.org with ESMTP id S932504AbaDVQ6v (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Tue, 22 Apr 2014 12:58:51 -0400
+Date: Tue, 22 Apr 2014 17:58:15 +0100
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [PATCH 04/15] arm64: __NR_compat_syscalls fix
+Message-ID: <20140422165814.GH10224@arm.com>
+References: <1397211951-20549-1-git-send-email-miklos@szeredi.hu>
+ <1397211951-20549-5-git-send-email-miklos@szeredi.hu>
 MIME-Version: 1.0
-Subject: Re: [PATCH 06/28] nios2: Memory management
-References: <1397824031-4892-1-git-send-email-lftan@altera.com> <1397824031-4892-5-git-send-email-lftan@altera.com> <20140422142443.GB15745@arch.cereza> <20140422151458.GC1053@distanz.ch> <20140422153522.GF15745@arch.cereza>
-In-Reply-To: <20140422153522.GF15745@arch.cereza>
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1397211951-20549-5-git-send-email-miklos@szeredi.hu>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ezequiel Garcia <ezequiel.garcia@free-electrons.com>, Tobias Klauser <tklauser@distanz.ch>
-Cc: Ley Foon Tan <lftan@altera.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, lftan.linux@gmail.com
-Message-ID: <20140422160118.N4Wfz1q3ijlifsqWPgTWcj3zBEYa5kA02ufaplZXbeI@z>
+To: Miklos Szeredi <miklos@szeredi.hu>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Miklos Szeredi <mszeredi@suse.cz>
+Message-ID: <20140422165815.Zh3eGW8gq4y7xiq4oVMYoyPibnJsigBLnfJwOoSfLhY@z>
 
-On 2014/4/22 下午 11:35, Ezequiel Garcia wrote:
-> On Apr 22, Tobias Klauser wrote:
->> On 2014-04-22 at 16:24:43 +0200, Ezequiel Garcia <ezequiel.garcia@free-electrons.com> wrote:
->>> Hi Ley Foon,
->>>
->>> On Apr 18, Ley Foon Tan wrote:
->>>> +/*
->>>> + * PAGE_SHIFT determines the page size
->>>> + */
->>>> +#define PAGE_SHIFT	12
->>>> +#define PAGE_SIZE	4096
->>>> +#define PAGE_MASK	(~(PAGE_SIZE - 1))
->>>> +
->>>
->>> How about something like this:
->>>
->>> /* PAGE_SHIFT determines the page size */
->>> #define PAGE_SHIFT              12
->>> #define PAGE_SIZE               (_AC(1,UL) << PAGE_SHIFT)
->>> #define PAGE_MASK               (~((1 << PAGE_SHIFT) - 1))
->>>
->>> Otherwise, the PAGE_SIZE macro above produces some warnings, IIRC.
->>
->> AFAIR old nios2 GCC versions (the 4.1 version from Windriver, IIRC)
->> would complain about something like the above, that's the reason I added
->> an explicit value for PAGE_SIZE back then.
->>
+On Fri, Apr 11, 2014 at 11:25:40AM +0100, Miklos Szeredi wrote:
+> From: Miklos Szeredi <mszeredi@suse.cz>
 > 
-> Other than being "pretty" the above fix is to remove a mismatch type
-> warning. You can get rid of the warning in different ways:
+> Signed-off-by: Miklos Szeredi <mszeredi@suse.cz>
+> Cc: Catalin Marinas <catalin.marinas@arm.com>
+> ---
+>  arch/arm64/include/asm/unistd32.h | 2 +-
+>  1 file changed, 1 insertion(+), 1 deletion(-)
 > 
-> ifdef __ASSEMBLY__
-> define PAGE_SIZE       4096
-> else
-> define PAGE_SIZE       4096UL
-> endif
-> 
->> I assume with the new nios2 GCC this should no longer be necessary and
->> Ezequiel's fix should be fine.
-> 
-> Speaking of GCC... is there a libc available to test this kernel port?
-> (which I assume uses the generic syscall ABI)
+> diff --git a/arch/arm64/include/asm/unistd32.h b/arch/arm64/include/asm/unistd32.h
+> index bb8eb8a78e67..faa0e1ce59df 100644
+> --- a/arch/arm64/include/asm/unistd32.h
+> +++ b/arch/arm64/include/asm/unistd32.h
+> @@ -404,7 +404,7 @@ __SYSCALL(379, sys_finit_module)
+>  __SYSCALL(380, sys_sched_setattr)
+>  __SYSCALL(381, sys_sched_getattr)
+>  
+> -#define __NR_compat_syscalls		379
+> +#define __NR_compat_syscalls		382
 
-It's submitted to libc-alpha, also still review in progress.
+I picked up this patch, together with a Cc: stable and longer comment.
 
-Chung-Lin
+What's your plan with the other patches? Do you submit them as a series
+or would like the arch maintainers to pick them up?
 
+Thanks.
 
-
+-- 
+Catalin
