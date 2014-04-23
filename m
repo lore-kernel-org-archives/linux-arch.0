@@ -1,89 +1,55 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ee0-f54.google.com ([74.125.83.54]:57291 "EHLO
-	mail-ee0-f54.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753858AbaDWHMk (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 23 Apr 2014 03:12:40 -0400
-Received: by mail-ee0-f54.google.com with SMTP id d49so386344eek.41
-        for <linux-arch@vger.kernel.org>; Wed, 23 Apr 2014 00:12:39 -0700 (PDT)
-Message-ID: <535767E4.6020900@monstr.eu>
-Date: Wed, 23 Apr 2014 09:12:36 +0200
-From: Michal Simek <monstr@monstr.eu>
-Reply-To: monstr@monstr.eu
+Received: from mail-la0-f48.google.com ([209.85.215.48]:65470 "EHLO
+	mail-la0-f48.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754069AbaDWHUo (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 23 Apr 2014 03:20:44 -0400
 MIME-Version: 1.0
-Subject: Re: [PATCH 18/18] asm-generic: io: define relaxed accessor macros
- unconditionally
-References: <1397742261-15621-1-git-send-email-will.deacon@arm.com> <1397742261-15621-19-git-send-email-will.deacon@arm.com> <5356782A.9050809@monstr.eu> <20140422151809.GF9820@arm.com>
-In-Reply-To: <20140422151809.GF9820@arm.com>
-Content-Type: multipart/signed; micalg=pgp-sha1;
- protocol="application/pgp-signature";
- boundary="fLllnNn7PTSF7DuVVvuSibNHt1oOdS2HU"
+In-Reply-To: <CAFiDJ58oeUtXR_gqud9pw55wojY6PJRQp8PAyEfpDL_Let7u=Q@mail.gmail.com>
+References: <1397824031-4892-1-git-send-email-lftan@altera.com>
+	<1397824031-4892-4-git-send-email-lftan@altera.com>
+	<201404221433.17861.arnd@arndb.de>
+	<CAFiDJ58oeUtXR_gqud9pw55wojY6PJRQp8PAyEfpDL_Let7u=Q@mail.gmail.com>
+Date: Wed, 23 Apr 2014 09:20:42 +0200
+Message-ID: <CAMuHMdX1xxuWhhBH0TKMtSEek5QDYchNVtC9QKoFQGr454_GVA@mail.gmail.com>
+Subject: Re: [PATCH 04/28] nios2: Exception handling
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will.deacon@arm.com>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "arnd@arndb.de" <arnd@arndb.de>, "dhowells@redhat.com" <dhowells@redhat.com>, "broonie@linaro.org" <broonie@linaro.org>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, "peterz@infradead.org" <peterz@infradead.org>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>
-Message-ID: <20140423071236.04YyckAJafp7jjunXyPgkL4I42UGKNG-ZHwjk9nBOB4@z>
+To: Ley Foon Tan <lftan@altera.com>
+Cc: Arnd Bergmann <arnd@arndb.de>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, cltang@codesourcery.com
+Message-ID: <20140423072042.7XMCpXZOLjtkVKGS7BbyA4DNGcEih_4kY5RsHejK_6I@z>
 
-This is an OpenPGP/MIME signed message (RFC 4880 and 3156)
---fLllnNn7PTSF7DuVVvuSibNHt1oOdS2HU
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: quoted-printable
+Hi Ley,
 
-Hi Will,
-
-On 04/22/2014 05:18 PM, Will Deacon wrote:
-> Hi Michal,
->=20
-> On Tue, Apr 22, 2014 at 03:09:46PM +0100, Michal Simek wrote:
->> On 04/17/2014 03:44 PM, Will Deacon wrote:
->>> Now that no architectures using asm-generic/io.h define their own rel=
-axed
->>> accessors, the dummy definitions can be used unconditionally.
->>>
->>> Cc: Arnd Bergmann <arnd@arndb.de>
->>> Signed-off-by: Will Deacon <will.deacon@arm.com>
->>> ---
->>>  include/asm-generic/io.h | 18 ------------------
->>>  1 file changed, 18 deletions(-)
+On Wed, Apr 23, 2014 at 4:47 AM, Ley Foon Tan <lftan@altera.com> wrote:
+> On Tue, Apr 22, 2014 at 8:33 PM, Arnd Bergmann <arnd@arndb.de> wrote:
+>> On Friday 18 April 2014, Ley Foon Tan wrote:
+>>> +static const struct file_operations misalign_fops = {
+>>> +       .open           = proc_misaligned_open,
+>>> +       .read           = seq_read,
+>>> +       .llseek         = seq_lseek,
+>>> +       .release        = single_release,
+>>> +       .write          = proc_misaligned_write,
+>>> +};
+>>> +#endif /* CONFIG_PROC_FS */
 >>
->> Do we need this? I think there could be a need to overwrite them.
->> Currently we are just lucky that architecture which uses asm-generic/i=
-o.h
->> don't need to overwrite it.
->> But I expect that all archs should use asm-generic/io.h to clean
->> architecture io.h exactly I have done it for Microblaze.
->=20
-> I'm open to keeping the conditional definitions, but it introduces a
-> discrepancy with the non-relaxed versions, which are defined unconditio=
-nally
-> (although the underlying __raw_* accessors can be overridden).
+>> We really shouldn't be doing new architecture specific procfs files
+>> any more. I suggest you drop this one for now, and add back the
+>> functionality using perf or ftrace at a later point.
+>
+> Okay, will remove this.
 
-up to you.
+MIPS and powerpc handle this through debugfs, cfr.
+arch/mips/kernel/unaligned.c and arch/powerpc/kernel/traps.c.
 
-Thanks,
-Michal
+Gr{oetje,eeting}s,
 
+                        Geert
 
---=20
-Michal Simek, Ing. (M.Eng), OpenPGP -> KeyID: FE3D1F91
-w: www.monstr.eu p: +42-0-721842854
-Maintainer of Linux kernel - Microblaze cpu - http://www.monstr.eu/fdt/
-Maintainer of Linux kernel - Xilinx Zynq ARM architecture
-Microblaze U-BOOT custodian and responsible for u-boot arm zynq platform
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
 
-
-
---fLllnNn7PTSF7DuVVvuSibNHt1oOdS2HU
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: OpenPGP digital signature
-Content-Disposition: attachment; filename="signature.asc"
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.10 (GNU/Linux)
-Comment: Using GnuPG with Thunderbird - http://www.enigmail.net/
-
-iEYEARECAAYFAlNXZ+QACgkQykllyylKDCFSJgCgnNdIsl0aqV2eq561vp8vMmeK
-LKMAni1uuUWTcvoV1akrZQyc7LaAQjVQ
-=O4wg
------END PGP SIGNATURE-----
-
---fLllnNn7PTSF7DuVVvuSibNHt1oOdS2HU--
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
