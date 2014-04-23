@@ -1,110 +1,104 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ve0-f169.google.com ([209.85.128.169]:37737 "EHLO
-	mail-ve0-f169.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757793AbaDWTdQ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 23 Apr 2014 15:33:16 -0400
-Received: by mail-ve0-f169.google.com with SMTP id pa12so1779897veb.28
-        for <linux-arch@vger.kernel.org>; Wed, 23 Apr 2014 12:33:16 -0700 (PDT)
-MIME-Version: 1.0
-In-Reply-To: <20140423184145.GH17824@quack.suse.cz>
-References: <1398057630.19682.38.camel@pasglop>
-	<CA+55aFwWHBtihC3w9E4+j4pz+6w7iTnYhTf4N3ie15BM9thxLQ@mail.gmail.com>
-	<53558507.9050703@zytor.com>
-	<CA+55aFxGm6J6N=4L7exLUFMr1_siNGHpK=wApd9GPCH1=63PPA@mail.gmail.com>
-	<53559F48.8040808@intel.com>
-	<CA+55aFwDtjA4Vp0yt0K5x6b6sAMtcn=61SEnOOs_En+3UXNpuA@mail.gmail.com>
-	<CA+55aFzFxBDJ2rWo9DggdNsq-qBCr11OVXnm64jx04KMSVCBAw@mail.gmail.com>
-	<20140422075459.GD11182@twins.programming.kicks-ass.net>
-	<CA+55aFzM+NpE-EzJdDeYX=cqWRzkGv9o-vybDR=oFtDLMRK-mA@mail.gmail.com>
-	<alpine.LSU.2.11.1404221847120.1759@eggly.anvils>
-	<20140423184145.GH17824@quack.suse.cz>
-Date: Wed, 23 Apr 2014 12:33:15 -0700
-Message-ID: <CA+55aFwm9BT4ecXF7dD+OM0-+1Wz5vd4ts44hOkS8JdQ74SLZQ@mail.gmail.com>
+Received: from mail-pa0-f53.google.com ([209.85.220.53]:53190 "EHLO
+	mail-pa0-f53.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1757962AbaDWUNL (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 23 Apr 2014 16:13:11 -0400
+Received: by mail-pa0-f53.google.com with SMTP id ld10so1099023pab.12
+        for <linux-arch@vger.kernel.org>; Wed, 23 Apr 2014 13:13:10 -0700 (PDT)
+Date: Wed, 23 Apr 2014 13:11:20 -0700 (PDT)
+From: Hugh Dickins <hughd@google.com>
 Subject: Re: Dirty/Access bits vs. page content
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Content-Type: multipart/mixed; boundary=e89a8fb2078ed2b06004f7bacd2b
+In-Reply-To: <20140423184145.GH17824@quack.suse.cz>
+Message-ID: <alpine.LSU.2.11.1404231247230.3173@eggly.anvils>
+References: <1398057630.19682.38.camel@pasglop> <CA+55aFwWHBtihC3w9E4+j4pz+6w7iTnYhTf4N3ie15BM9thxLQ@mail.gmail.com> <53558507.9050703@zytor.com> <CA+55aFxGm6J6N=4L7exLUFMr1_siNGHpK=wApd9GPCH1=63PPA@mail.gmail.com> <53559F48.8040808@intel.com>
+ <CA+55aFwDtjA4Vp0yt0K5x6b6sAMtcn=61SEnOOs_En+3UXNpuA@mail.gmail.com> <CA+55aFzFxBDJ2rWo9DggdNsq-qBCr11OVXnm64jx04KMSVCBAw@mail.gmail.com> <20140422075459.GD11182@twins.programming.kicks-ass.net> <CA+55aFzM+NpE-EzJdDeYX=cqWRzkGv9o-vybDR=oFtDLMRK-mA@mail.gmail.com>
+ <alpine.LSU.2.11.1404221847120.1759@eggly.anvils> <20140423184145.GH17824@quack.suse.cz>
+MIME-Version: 1.0
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Jan Kara <jack@suse.cz>
-Cc: Hugh Dickins <hughd@google.com>, Peter Zijlstra <peterz@infradead.org>, Dave Hansen <dave.hansen@intel.com>, "H. Peter Anvin" <hpa@zytor.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, Russell King - ARM Linux <linux@arm.linux.org.uk>, Tony Luck <tony.luck@intel.com>
-Message-ID: <20140423193315.69grGm7kcH-kirIwuhunR386K-IcknQibp0iTnJJBvE@z>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Dave Hansen <dave.hansen@intel.com>, "H. Peter Anvin" <hpa@zytor.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, Russell King - ARM Linux <linux@arm.linux.org.uk>, Tony Luck <tony.luck@intel.com>
+Message-ID: <20140423201120.zfPmBcf2V2ddypy7gFV9AhJebzAMq9TF-lvLhbowC1k@z>
 
---e89a8fb2078ed2b06004f7bacd2b
-Content-Type: text/plain; charset=UTF-8
+On Wed, 23 Apr 2014, Jan Kara wrote:
+> On Tue 22-04-14 20:08:59, Hugh Dickins wrote:
+> > On Tue, 22 Apr 2014, Linus Torvalds wrote:
+> > > On Tue, Apr 22, 2014 at 12:54 AM, Peter Zijlstra <peterz@infradead.org> wrote:
+> > > That said, Dave Hansen did report a BUG_ON() in
+> > > mpage_prepare_extent_to_map(). His line number was odd, but I assume
+> > > it's this one:
+> > > 
+> > >         BUG_ON(PageWriteback(page));
+> > > 
+> > > which may be indicative of some oddity here wrt the dirty bit.
+> > 
+> > Whereas later mail from Dave showed it to be the
+> > 	BUG_ON(!PagePrivate(page));
+> > in page_buffers() from fs/ext4/inode.c mpage_prepare_extent_to_map().
+> > But still presumably some kind of fallout from your patches.
+> > 
+> > Once upon a time there was a page_has_buffers() check in there,
+> > but Honza decided that's nowadays unnecessary in f8bec37037ac
+> > "ext4: dirty page has always buffers attached".  Cc'ed,
+> > he may very well have some good ideas.
+> > 
+> > Reading that commit reminded me of how we actually don't expect that
+> > set_page_dirty() in zap_pte_range() to do anything at all on the usual
+> > mapping_cap_account_dirty()/page_mkwrite() filesystems, do we?  Or do we?
+>   Yes, for shared file mappings we (as in filesystems implementing
+> page_mkwrite() handler) expect a page is writeably mmapped iff the page is
+> dirty. So in particular we don't expect set_page_dirty() in zap_pte_range()
+> to do anything because if the pte has dirty bit set, we are tearing down a
+> writeable mapping of the page and thus the page should be already dirty.
+> 
+> Now the devil is in synchronization of different places where transitions
+> from/to writeably-mapped state happen. In the fault path (do_wp_page())
+> where transition to writeably-mapped happens we hold page lock while
+> calling set_page_dirty(). In the writeout path (clear_page_dirty_for_io())
+> where we transition from writeably-mapped we hold the page lock as well
+> while calling page_mkclean() and possibly set_page_dirty(). So these two
+> places are nicely serialized. However zap_pte_range() doesn't hold page
+> lock so it can race with the previous two places. Before Linus' patches we
+> called set_page_dirty() under pte lock in zap_pte_range() and also before
+> decrementing page->mapcount. So if zap_pte_range() raced with
+> clear_page_dirty_for_io() we were guaranteed that by the time
+> clear_page_dirty_for_io() returns, pte dirty bit is cleared and
+> set_page_dirty() was called (either from clear_page_dirty_for_io() or from
+> zap_pte_range()).
+> 
+> However with Linus' patches set_page_dirty() from zap_pte_range() gets
+> called after decremeting page->mapcount so page_mkclean() won't event try
+> to walk rmap. And even if page_mkclean() did walk the rmap, zap_pte_range()
+> calls set_page_dirty() after dropping pte lock so it can get called long
+> after page_mkclean() (and clear_page_dirty_for_io()) has returned.
 
-On Wed, Apr 23, 2014 at 11:41 AM, Jan Kara <jack@suse.cz> wrote:
->
+Right, thanks a lot for fleshing that out.
+
+> 
 > Now I'm not sure how to fix Linus' patches. For all I care we could just
 > rip out pte dirty bit handling for file mappings. However last time I
 > suggested this you corrected me that tmpfs & ramfs need this. I assume this
 > is still the case - however, given we unconditionally mark the page dirty
 > for write faults, where exactly do we need this?
 
-Honza, you're missing the important part: it does not matter one whit
-that we unconditionally mark the page dirty, when we do it *early*,
-and it can be then be marked clean before it's actually clean!
+Good, Linus has already replied to you on this this: you appear to be
+suggesting that there would be no issue, and Linus's patches would not
+be needed at all, if only tmpfs and ramfs played by the others' rules.
 
-The problem is that page cleaning can clean the page when there are
-still writers dirtying the page. Page table tear-down removes the
-entry from the page tables, but it's still there in the TLB on other
-CPU's. So other CPU's are possibly writing to the page, when
-clear_page_dirty_for_io() has marked it clean (because it didn't see
-the page table entries that got torn down, and it hasn't seen the
-dirty bit in the page yet).
+But (sadly) I don't think that's so: just because zap_pte_range()'s
+current "if (pte_dirty) set_page_dirty" does nothing on most filesystems,
+does not imply that nothing needs to be done on most filesystems, now
+that we're alert to the delayed TLB flushing issue.
 
-I'm including Dave Hansen's "racewrite.c" with his commentary:
+Just to answer your (interesting but irrelevant!) question about tmpfs
+and ramfs: their issue is with read faults which bring in a zeroed page,
+with page and pte not marked dirty.  If userspace modifies that page, the
+pte_dirty needs to be propagated through to PageDirty, to prevent page
+reclaim from simply freeing the apparently clean page.
 
- "This is a will-it-scale test-case which handles all the thread creation
-  and CPU binding for me: https://github.com/antonblanchard/will-it-scale
-  .  Just stick the test case in tests/.  I also loopback-mounted a ramfs
-  file as an ext4 filesystem on /mnt to make sure the writeback could
-  happen fast.
+(To be honest, I haven't checked the ramfs case recently: perhaps its
+pages are marked unevictable, and never even reach the code which might
+free them.)
 
-  This reproduces the bug pretty darn quickly and with as few as 4 threads
-  running like this:  ./racewrite_threads -t 4 -s 999"
-
-and
-
- "It reproduces in about 5 seconds on my 4770 on an unpatched kernel.  It
-  also reproduces on a _normal_ filesystem and doesn't apparently need the
-  loopback-mounted ext4 ramfs file that I was trying before."
-
-so this can actually be triggered.
-
-              Linus
-
---e89a8fb2078ed2b06004f7bacd2b
-Content-Type: text/x-csrc; charset=US-ASCII; name="racewrite.c"
-Content-Disposition: attachment; filename="racewrite.c"
-Content-Transfer-Encoding: base64
-X-Attachment-Id: f_hud0mhpw0
-
-I2RlZmluZSBfR05VX1NPVVJDRQojZGVmaW5lIF9YT1BFTl9TT1VSQ0UgNTAwCiNpbmNsdWRlIDxz
-Y2hlZC5oPgojaW5jbHVkZSA8c3lzL21tYW4uaD4KI2luY2x1ZGUgPGZjbnRsLmg+CiNpbmNsdWRl
-IDxzdGRpby5oPgojaW5jbHVkZSA8c3RkbGliLmg+CiNpbmNsdWRlIDx1bmlzdGQuaD4KI2luY2x1
-ZGUgPHN0cmluZy5oPgojaW5jbHVkZSA8YXNzZXJ0Lmg+CgojZGVmaW5lIEJVRkxFTiA0MDk2Cgpz
-dGF0aWMgY2hhciB3aXN0bXBmaWxlW10gPSAiL21udC93aWxsaXRzY2FsZS5YWFhYWFgiOwoKY2hh
-ciAqdGVzdGNhc2VfZGVzY3JpcHRpb24gPSAiU2FtZSBmaWxlIHB3cml0ZSI7CgpjaGFyICpidWY7
-CiNkZWZpbmUgRklMRV9TSVpFICg0MDk2KjEwMjQpCnZvaWQgdGVzdGNhc2VfcHJlcGFyZSh2b2lk
-KQp7CglpbnQgZmQgPSBta3N0ZW1wKHdpc3RtcGZpbGUpOwoKCWFzc2VydChmZCA+PSAwKTsKCWFz
-c2VydChwd3JpdGUoZmQsICJYIiwgMSwgRklMRV9TSVpFLTEpID09IDEpOwoJYnVmID0gbW1hcChO
-VUxMLCBGSUxFX1NJWkUsIFBST1RfUkVBRHxQUk9UX1dSSVRFLAoJCQkgICAgICAgTUFQX1NIQVJF
-RCwgZmQsIDApOwoJYXNzZXJ0KGJ1ZiAhPSAodm9pZCAqKS0xKTsKCWNsb3NlKGZkKTsKfQoKdm9p
-ZCB0ZXN0Y2FzZSh1bnNpZ25lZCBsb25nIGxvbmcgKml0ZXJhdGlvbnMpCnsKCWludCBjcHUgPSBz
-Y2hlZF9nZXRjcHUoKTsKCWludCBmZCA9IG9wZW4od2lzdG1wZmlsZSwgT19SRFdSKTsKCW9mZl90
-IG9mZnNldCA9IHNjaGVkX2dldGNwdSgpICogQlVGTEVOOwoJbG9uZyBjb3VudGVyID0gMDsKCWxv
-bmcgY291bnRlcnJlYWQgPSAwOwoJbG9uZyAqY291bnRlcmJ1ZiA9ICh2b2lkICopJmJ1ZltvZmZz
-ZXRdOwoKCXByaW50Zigib2Zmc2V0OiAlbGRcbiIsIG9mZnNldCk7CglwcmludGYoIiAgICAgICBi
-dWY6ICVwXG4iLCBidWYpOwoJcHJpbnRmKCJjb3VudGVyYnVmOiAlcFxuIiwgY291bnRlcmJ1Zik7
-Cglhc3NlcnQoZmQgPj0gMCk7CgoJd2hpbGUgKDEpIHsKCQlpbnQgcmV0OwoJCWlmIChjcHUgPT0g
-MSkgewoJCQlyZXQgPSBtYWR2aXNlKGJ1ZiwgRklMRV9TSVpFLCBNQURWX0RPTlRORUVEKTsKCQkJ
-Y29udGludWU7CgkJfQoJCgkJKmNvdW50ZXJidWYgPSBjb3VudGVyOwoJCXBvc2l4X2ZhZHZpc2Uo
-ZmQsIG9mZnNldCwgQlVGTEVOLCBQT1NJWF9GQURWX0RPTlRORUVEKTsKCQlyZXQgPSBwcmVhZChm
-ZCwgJmNvdW50ZXJyZWFkLCBzaXplb2YoY291bnRlcnJlYWQpLCBvZmZzZXQpOwoJCWFzc2VydChy
-ZXQgPT0gc2l6ZW9mKGNvdW50ZXJyZWFkKSk7CgoJCWlmIChjb3VudGVycmVhZCAhPSBjb3VudGVy
-KSB7CgkJCXByaW50ZigiY3B1OiAlZFxuIiwgY3B1KTsKCQkJcHJpbnRmKCIgICAgY291bnRlciAl
-bGRcbiIsIGNvdW50ZXIpOwoJCQlwcmludGYoImNvdW50ZXJyZWFkICVsZFxuIiwgY291bnRlcnJl
-YWQpOwoJCQlwcmludGYoIipjb3VudGVyYnVmICVsZFxuIiwgKmNvdW50ZXJidWYpOwoJCQl3aGls
-ZSgxKTsKCQl9CgkJY291bnRlcisrOwkKCQkoKml0ZXJhdGlvbnMpKys7Cgl9Cn0KCnZvaWQgdGVz
-dGNhc2VfY2xlYW51cCh2b2lkKQp7Cgl1bmxpbmsod2lzdG1wZmlsZSk7Cn0K
---e89a8fb2078ed2b06004f7bacd2b--
+Hugh
