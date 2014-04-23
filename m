@@ -1,104 +1,66 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pa0-f53.google.com ([209.85.220.53]:53190 "EHLO
-	mail-pa0-f53.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757962AbaDWUNL (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 23 Apr 2014 16:13:11 -0400
-Received: by mail-pa0-f53.google.com with SMTP id ld10so1099023pab.12
-        for <linux-arch@vger.kernel.org>; Wed, 23 Apr 2014 13:13:10 -0700 (PDT)
-Date: Wed, 23 Apr 2014 13:11:20 -0700 (PDT)
-From: Hugh Dickins <hughd@google.com>
-Subject: Re: Dirty/Access bits vs. page content
-In-Reply-To: <20140423184145.GH17824@quack.suse.cz>
-Message-ID: <alpine.LSU.2.11.1404231247230.3173@eggly.anvils>
-References: <1398057630.19682.38.camel@pasglop> <CA+55aFwWHBtihC3w9E4+j4pz+6w7iTnYhTf4N3ie15BM9thxLQ@mail.gmail.com> <53558507.9050703@zytor.com> <CA+55aFxGm6J6N=4L7exLUFMr1_siNGHpK=wApd9GPCH1=63PPA@mail.gmail.com> <53559F48.8040808@intel.com>
- <CA+55aFwDtjA4Vp0yt0K5x6b6sAMtcn=61SEnOOs_En+3UXNpuA@mail.gmail.com> <CA+55aFzFxBDJ2rWo9DggdNsq-qBCr11OVXnm64jx04KMSVCBAw@mail.gmail.com> <20140422075459.GD11182@twins.programming.kicks-ass.net> <CA+55aFzM+NpE-EzJdDeYX=cqWRzkGv9o-vybDR=oFtDLMRK-mA@mail.gmail.com>
- <alpine.LSU.2.11.1404221847120.1759@eggly.anvils> <20140423184145.GH17824@quack.suse.cz>
+Received: from g6t1526.atlanta.hp.com ([15.193.200.69]:16569 "EHLO
+	g6t1526.atlanta.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751269AbaDWWZD (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 23 Apr 2014 18:25:03 -0400
+Message-ID: <53583DA8.4030901@hp.com>
+Date: Wed, 23 Apr 2014 18:24:40 -0400
+From: Waiman Long <waiman.long@hp.com>
 MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Subject: Re: [PATCH v9 05/19] qspinlock: Optimize for smaller NR_CPUS
+References: <1397747051-15401-6-git-send-email-Waiman.Long@hp.com> <20140417155649.GR11096@twins.programming.kicks-ass.net> <53504BB3.4010009@hp.com> <20140418082716.GZ11096@twins.programming.kicks-ass.net> <53516672.3010701@hp.com> <20140418190519.GA11182@twins.programming.kicks-ass.net> <53519BBF.7060506@hp.com> <5357CCEF.2000606@hp.com> <20140423145649.GE2777@phenom.dumpdata.com> <5357FBDE.4040400@hp.com> <20140423175535.GB11152@phenom.dumpdata.com>
+In-Reply-To: <20140423175535.GB11152@phenom.dumpdata.com>
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jan Kara <jack@suse.cz>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Dave Hansen <dave.hansen@intel.com>, "H. Peter Anvin" <hpa@zytor.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, Russell King - ARM Linux <linux@arm.linux.org.uk>, Tony Luck <tony.luck@intel.com>
-Message-ID: <20140423201120.zfPmBcf2V2ddypy7gFV9AhJebzAMq9TF-lvLhbowC1k@z>
+To: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
+Cc: Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Rik van Riel <riel@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, David Vrabel <david.vrabel@citrix.com>, Oleg Nesterov <oleg@redhat.com>, Gleb Natapov <gleb@redhat.com>, Scott J Norton <scott.norton@hp.com>, Chegu Vinod <chegu_vinod@hp.com>
+Message-ID: <20140423222440.5zN02yi22ZRUO9Cg86P0h1hoVmV-1d4pd4BUFpnBXMs@z>
 
-On Wed, 23 Apr 2014, Jan Kara wrote:
-> On Tue 22-04-14 20:08:59, Hugh Dickins wrote:
-> > On Tue, 22 Apr 2014, Linus Torvalds wrote:
-> > > On Tue, Apr 22, 2014 at 12:54 AM, Peter Zijlstra <peterz@infradead.org> wrote:
-> > > That said, Dave Hansen did report a BUG_ON() in
-> > > mpage_prepare_extent_to_map(). His line number was odd, but I assume
-> > > it's this one:
-> > > 
-> > >         BUG_ON(PageWriteback(page));
-> > > 
-> > > which may be indicative of some oddity here wrt the dirty bit.
-> > 
-> > Whereas later mail from Dave showed it to be the
-> > 	BUG_ON(!PagePrivate(page));
-> > in page_buffers() from fs/ext4/inode.c mpage_prepare_extent_to_map().
-> > But still presumably some kind of fallout from your patches.
-> > 
-> > Once upon a time there was a page_has_buffers() check in there,
-> > but Honza decided that's nowadays unnecessary in f8bec37037ac
-> > "ext4: dirty page has always buffers attached".  Cc'ed,
-> > he may very well have some good ideas.
-> > 
-> > Reading that commit reminded me of how we actually don't expect that
-> > set_page_dirty() in zap_pte_range() to do anything at all on the usual
-> > mapping_cap_account_dirty()/page_mkwrite() filesystems, do we?  Or do we?
->   Yes, for shared file mappings we (as in filesystems implementing
-> page_mkwrite() handler) expect a page is writeably mmapped iff the page is
-> dirty. So in particular we don't expect set_page_dirty() in zap_pte_range()
-> to do anything because if the pte has dirty bit set, we are tearing down a
-> writeable mapping of the page and thus the page should be already dirty.
-> 
-> Now the devil is in synchronization of different places where transitions
-> from/to writeably-mapped state happen. In the fault path (do_wp_page())
-> where transition to writeably-mapped happens we hold page lock while
-> calling set_page_dirty(). In the writeout path (clear_page_dirty_for_io())
-> where we transition from writeably-mapped we hold the page lock as well
-> while calling page_mkclean() and possibly set_page_dirty(). So these two
-> places are nicely serialized. However zap_pte_range() doesn't hold page
-> lock so it can race with the previous two places. Before Linus' patches we
-> called set_page_dirty() under pte lock in zap_pte_range() and also before
-> decrementing page->mapcount. So if zap_pte_range() raced with
-> clear_page_dirty_for_io() we were guaranteed that by the time
-> clear_page_dirty_for_io() returns, pte dirty bit is cleared and
-> set_page_dirty() was called (either from clear_page_dirty_for_io() or from
-> zap_pte_range()).
-> 
-> However with Linus' patches set_page_dirty() from zap_pte_range() gets
-> called after decremeting page->mapcount so page_mkclean() won't event try
-> to walk rmap. And even if page_mkclean() did walk the rmap, zap_pte_range()
-> calls set_page_dirty() after dropping pte lock so it can get called long
-> after page_mkclean() (and clear_page_dirty_for_io()) has returned.
+On 04/23/2014 01:55 PM, Konrad Rzeszutek Wilk wrote:
+> On Wed, Apr 23, 2014 at 01:43:58PM -0400, Waiman Long wrote:
+>> On 04/23/2014 10:56 AM, Konrad Rzeszutek Wilk wrote:
+>>> On Wed, Apr 23, 2014 at 10:23:43AM -0400, Waiman Long wrote:
+>>>> On 04/18/2014 05:40 PM, Waiman Long wrote:
+>>>>> On 04/18/2014 03:05 PM, Peter Zijlstra wrote:
+>>>>>> On Fri, Apr 18, 2014 at 01:52:50PM -0400, Waiman Long wrote:
+>>>>>>> I am confused by your notation.
+>>>>>> Nah, I think I was confused :-) Make the 1 _Q_LOCKED_VAL though, as
+>>>>>> that's the proper constant to use.
+>>>>> Everyone gets confused once in a while:-) I have plenty of that myself.
+>>>>>
+>>>>> I will change 1 to _Q_LOCKED_VAL as suggested.
+>>>>>
+>>>>> -Longman
+>>>> The attached patch file contains the additional changes that I had
+>>>> made to qspinlock.c file so far. Please let me know if you or others
+>>>> have any additional feedbacks or changes that will need to go to the
+>>>> next version of the patch series.
+>>>>
+>>>> I am going to take vacation starting from tomorrow and will be back
+>>>> on 5/5 (Mon). So I will not be able to respond to emails within this
+>>>> period.
+>>>>
+>>>> BTW, is there any chance that this patch can be merged to 3.16?
+>>> Um, it needs to have Acks from KVM and Xen maintainers who have not
+>>> done so. Also Peter needs to chime in. (BTW, please CC
+>>> xen-devel@lists.xenproject.org next time you post so that David and Boris
+>>> can take a peek at it).
+>> I will cc xen-devel@lists.xenproject.org when I sent out the next patch.
+>>
+>>> I would strongly recommend you put all your patches on github (free git
+>>> service) so that we can test it and poke it at during your vacation
+>>> (and even after).
+>>>
+>> I am not used to setting up a public repo in github. If I create a
+>> repo there, should I put a snapshot of the whole kernel source tree
+>> or just a portion of the relevant files as the base? With the later,
+>> it won't be buildable.
+> You just push your local branch. It should look like a normal
+> Linux tree with your commits on top.
 
-Right, thanks a lot for fleshing that out.
+I will try that with my next version.
 
-> 
-> Now I'm not sure how to fix Linus' patches. For all I care we could just
-> rip out pte dirty bit handling for file mappings. However last time I
-> suggested this you corrected me that tmpfs & ramfs need this. I assume this
-> is still the case - however, given we unconditionally mark the page dirty
-> for write faults, where exactly do we need this?
+-Longman
 
-Good, Linus has already replied to you on this this: you appear to be
-suggesting that there would be no issue, and Linus's patches would not
-be needed at all, if only tmpfs and ramfs played by the others' rules.
-
-But (sadly) I don't think that's so: just because zap_pte_range()'s
-current "if (pte_dirty) set_page_dirty" does nothing on most filesystems,
-does not imply that nothing needs to be done on most filesystems, now
-that we're alert to the delayed TLB flushing issue.
-
-Just to answer your (interesting but irrelevant!) question about tmpfs
-and ramfs: their issue is with read faults which bring in a zeroed page,
-with page and pte not marked dirty.  If userspace modifies that page, the
-pte_dirty needs to be propagated through to PageDirty, to prevent page
-reclaim from simply freeing the apparently clean page.
-
-(To be honest, I haven't checked the ramfs case recently: perhaps its
-pages are marked unevictable, and never even reach the code which might
-free them.)
-
-Hugh
