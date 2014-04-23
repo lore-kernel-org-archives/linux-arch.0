@@ -1,53 +1,89 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:52083 "EHLO gate.crashing.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752310AbaDWGPa (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 23 Apr 2014 02:15:30 -0400
-Message-ID: <1398233655.19682.135.camel@pasglop>
-Subject: Re: Dirty/Access bits vs. page content
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Date: Wed, 23 Apr 2014 16:14:15 +1000
-In-Reply-To: <CA+55aFw7JjEBUJRHXuwc7bGBD5c=J41mt46ovwHKAoMfPowWOw@mail.gmail.com>
-References: <1398032742.19682.11.camel@pasglop>
-	 <CA+55aFz1sK+PF96LYYZY7OB7PBpxZu-uNLWLvPiRz-tJsBqX3w@mail.gmail.com>
-	 <1398054064.19682.32.camel@pasglop> <1398057630.19682.38.camel@pasglop>
-	 <CA+55aFwWHBtihC3w9E4+j4pz+6w7iTnYhTf4N3ie15BM9thxLQ@mail.gmail.com>
-	 <53558507.9050703@zytor.com>
-	 <CA+55aFxGm6J6N=4L7exLUFMr1_siNGHpK=wApd9GPCH1=63PPA@mail.gmail.com>
-	 <53559F48.8040808@intel.com>
-	 <CA+55aFwDtjA4Vp0yt0K5x6b6sAMtcn=61SEnOOs_En+3UXNpuA@mail.gmail.com>
-	 <CA+55aFzFxBDJ2rWo9DggdNsq-qBCr11OVXnm64jx04KMSVCBAw@mail.gmail.com>
-	 <20140422075459.GD11182@twins.programming.kicks-ass.net>
-	 <CA+55aFzM+NpE-EzJdDeYX=cqWRzkGv9o-vybDR=oFtDLMRK-mA@mail.gmail.com>
-	 <alpine.LSU.2.11.1404221847120.1759@eggly.anvils>
-	 <CA+55aFw7JjEBUJRHXuwc7bGBD5c=J41mt46ovwHKAoMfPowWOw@mail.gmail.com>
-Content-Type: text/plain; charset="UTF-8"
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+Received: from mail-ee0-f54.google.com ([74.125.83.54]:57291 "EHLO
+	mail-ee0-f54.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753858AbaDWHMk (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 23 Apr 2014 03:12:40 -0400
+Received: by mail-ee0-f54.google.com with SMTP id d49so386344eek.41
+        for <linux-arch@vger.kernel.org>; Wed, 23 Apr 2014 00:12:39 -0700 (PDT)
+Message-ID: <535767E4.6020900@monstr.eu>
+Date: Wed, 23 Apr 2014 09:12:36 +0200
+From: Michal Simek <monstr@monstr.eu>
+Reply-To: monstr@monstr.eu
+MIME-Version: 1.0
+Subject: Re: [PATCH 18/18] asm-generic: io: define relaxed accessor macros
+ unconditionally
+References: <1397742261-15621-1-git-send-email-will.deacon@arm.com> <1397742261-15621-19-git-send-email-will.deacon@arm.com> <5356782A.9050809@monstr.eu> <20140422151809.GF9820@arm.com>
+In-Reply-To: <20140422151809.GF9820@arm.com>
+Content-Type: multipart/signed; micalg=pgp-sha1;
+ protocol="application/pgp-signature";
+ boundary="fLllnNn7PTSF7DuVVvuSibNHt1oOdS2HU"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Hugh Dickins <hughd@google.com>, Jan Kara <jack@suse.cz>, Peter Zijlstra <peterz@infradead.org>, Dave Hansen <dave.hansen@intel.com>, "H. Peter Anvin" <hpa@zytor.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, Russell King - ARM Linux <linux@arm.linux.org.uk>, Tony Luck <tony.luck@intel.com>
-Message-ID: <20140423061415.uicygKRHEuW7V3dN2Z011diF0UIGbY8eLn4heCR3oXw@z>
+To: Will Deacon <will.deacon@arm.com>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "arnd@arndb.de" <arnd@arndb.de>, "dhowells@redhat.com" <dhowells@redhat.com>, "broonie@linaro.org" <broonie@linaro.org>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, "peterz@infradead.org" <peterz@infradead.org>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>
+Message-ID: <20140423071236.04YyckAJafp7jjunXyPgkL4I42UGKNG-ZHwjk9nBOB4@z>
 
-On Tue, 2014-04-22 at 21:23 -0700, Linus Torvalds wrote:
-> 
-> But I'm starting to consider this whole thing to be a 3.16 issue by
-> now. It wasn't as simple as it looked, and while our old location of
-> set_page_dirty() is clearly wrong, and DaveH even got a test-case for
-> it (which I initially doubted would even be possible), I still
-> seriously doubt that anybody sane who cares about data consistency
-> will do concurrent unmaps (or MADV_DONTNEED) while another writer is
-> actively using that mapping.
+This is an OpenPGP/MIME signed message (RFC 4880 and 3156)
+--fLllnNn7PTSF7DuVVvuSibNHt1oOdS2HU
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: quoted-printable
 
-I'm more worried about users of unmap_mapping_ranges() than concurrent
-munmap(). Things like the DRM playing tricks like swapping a mapping
-from memory to frame buffer and vice-versa.
+Hi Will,
 
-In any case, I agree with delaying that for 3.16, it's still very
-unlikely that we hit this in any case that actually matters.
+On 04/22/2014 05:18 PM, Will Deacon wrote:
+> Hi Michal,
+>=20
+> On Tue, Apr 22, 2014 at 03:09:46PM +0100, Michal Simek wrote:
+>> On 04/17/2014 03:44 PM, Will Deacon wrote:
+>>> Now that no architectures using asm-generic/io.h define their own rel=
+axed
+>>> accessors, the dummy definitions can be used unconditionally.
+>>>
+>>> Cc: Arnd Bergmann <arnd@arndb.de>
+>>> Signed-off-by: Will Deacon <will.deacon@arm.com>
+>>> ---
+>>>  include/asm-generic/io.h | 18 ------------------
+>>>  1 file changed, 18 deletions(-)
+>>
+>> Do we need this? I think there could be a need to overwrite them.
+>> Currently we are just lucky that architecture which uses asm-generic/i=
+o.h
+>> don't need to overwrite it.
+>> But I expect that all archs should use asm-generic/io.h to clean
+>> architecture io.h exactly I have done it for Microblaze.
+>=20
+> I'm open to keeping the conditional definitions, but it introduces a
+> discrepancy with the non-relaxed versions, which are defined unconditio=
+nally
+> (although the underlying __raw_* accessors can be overridden).
 
-Cheers,
-Ben.
+up to you.
+
+Thanks,
+Michal
 
 
+--=20
+Michal Simek, Ing. (M.Eng), OpenPGP -> KeyID: FE3D1F91
+w: www.monstr.eu p: +42-0-721842854
+Maintainer of Linux kernel - Microblaze cpu - http://www.monstr.eu/fdt/
+Maintainer of Linux kernel - Xilinx Zynq ARM architecture
+Microblaze U-BOOT custodian and responsible for u-boot arm zynq platform
+
+
+
+--fLllnNn7PTSF7DuVVvuSibNHt1oOdS2HU
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: OpenPGP digital signature
+Content-Disposition: attachment; filename="signature.asc"
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.10 (GNU/Linux)
+Comment: Using GnuPG with Thunderbird - http://www.enigmail.net/
+
+iEYEARECAAYFAlNXZ+QACgkQykllyylKDCFSJgCgnNdIsl0aqV2eq561vp8vMmeK
+LKMAni1uuUWTcvoV1akrZQyc7LaAQjVQ
+=O4wg
+-----END PGP SIGNATURE-----
+
+--fLllnNn7PTSF7DuVVvuSibNHt1oOdS2HU--
