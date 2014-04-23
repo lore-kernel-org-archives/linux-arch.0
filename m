@@ -1,55 +1,29 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-la0-f48.google.com ([209.85.215.48]:65470 "EHLO
-	mail-la0-f48.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754069AbaDWHUo (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 23 Apr 2014 03:20:44 -0400
+Received: from asavdk4.altibox.net ([109.247.116.15]:51294 "EHLO
+	asavdk4.altibox.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753968AbaDWHXd (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 23 Apr 2014 03:23:33 -0400
+Date: Wed, 23 Apr 2014 09:23:27 +0200
+From: Sam Ravnborg <sam@ravnborg.org>
+Subject: Re: [PATCH 18/18] asm-generic: io: define relaxed accessor macros
+ unconditionally
+Message-ID: <20140423072327.GA1589@ravnborg.org>
+References: <1397742261-15621-1-git-send-email-will.deacon@arm.com>
+ <1397742261-15621-19-git-send-email-will.deacon@arm.com>
+ <5356782A.9050809@monstr.eu>
 MIME-Version: 1.0
-In-Reply-To: <CAFiDJ58oeUtXR_gqud9pw55wojY6PJRQp8PAyEfpDL_Let7u=Q@mail.gmail.com>
-References: <1397824031-4892-1-git-send-email-lftan@altera.com>
-	<1397824031-4892-4-git-send-email-lftan@altera.com>
-	<201404221433.17861.arnd@arndb.de>
-	<CAFiDJ58oeUtXR_gqud9pw55wojY6PJRQp8PAyEfpDL_Let7u=Q@mail.gmail.com>
-Date: Wed, 23 Apr 2014 09:20:42 +0200
-Message-ID: <CAMuHMdX1xxuWhhBH0TKMtSEek5QDYchNVtC9QKoFQGr454_GVA@mail.gmail.com>
-Subject: Re: [PATCH 04/28] nios2: Exception handling
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <5356782A.9050809@monstr.eu>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ley Foon Tan <lftan@altera.com>
-Cc: Arnd Bergmann <arnd@arndb.de>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, cltang@codesourcery.com
-Message-ID: <20140423072042.7XMCpXZOLjtkVKGS7BbyA4DNGcEih_4kY5RsHejK_6I@z>
+To: Michal Simek <monstr@monstr.eu>
+Cc: Will Deacon <will.deacon@arm.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, arnd@arndb.de, dhowells@redhat.com, broonie@linaro.org, benh@kernel.crashing.org, peterz@infradead.org, paulmck@linux.vnet.ibm.com
+Message-ID: <20140423072327.tt11LYufBoTJrcgDF61aT9LPN4FfJ5t5_v0ijSMZ5x8@z>
 
-Hi Ley,
+> But I expect that all archs should use asm-generic/io.h to clean
+> architecture io.h exactly I have done it for Microblaze.
+I took a quick look at sparc32 - doing this is a nice cleanup.
+Thanks for the hint.
 
-On Wed, Apr 23, 2014 at 4:47 AM, Ley Foon Tan <lftan@altera.com> wrote:
-> On Tue, Apr 22, 2014 at 8:33 PM, Arnd Bergmann <arnd@arndb.de> wrote:
->> On Friday 18 April 2014, Ley Foon Tan wrote:
->>> +static const struct file_operations misalign_fops = {
->>> +       .open           = proc_misaligned_open,
->>> +       .read           = seq_read,
->>> +       .llseek         = seq_lseek,
->>> +       .release        = single_release,
->>> +       .write          = proc_misaligned_write,
->>> +};
->>> +#endif /* CONFIG_PROC_FS */
->>
->> We really shouldn't be doing new architecture specific procfs files
->> any more. I suggest you drop this one for now, and add back the
->> functionality using perf or ftrace at a later point.
->
-> Okay, will remove this.
-
-MIPS and powerpc handle this through debugfs, cfr.
-arch/mips/kernel/unaligned.c and arch/powerpc/kernel/traps.c.
-
-Gr{oetje,eeting}s,
-
-                        Geert
-
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+	Sam
