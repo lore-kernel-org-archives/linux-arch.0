@@ -1,29 +1,46 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from asavdk4.altibox.net ([109.247.116.15]:51294 "EHLO
-	asavdk4.altibox.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753968AbaDWHXd (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 23 Apr 2014 03:23:33 -0400
-Date: Wed, 23 Apr 2014 09:23:27 +0200
-From: Sam Ravnborg <sam@ravnborg.org>
-Subject: Re: [PATCH 18/18] asm-generic: io: define relaxed accessor macros
- unconditionally
-Message-ID: <20140423072327.GA1589@ravnborg.org>
-References: <1397742261-15621-1-git-send-email-will.deacon@arm.com>
- <1397742261-15621-19-git-send-email-will.deacon@arm.com>
- <5356782A.9050809@monstr.eu>
+Received: from mail-la0-f49.google.com ([209.85.215.49]:41381 "EHLO
+	mail-la0-f49.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756728AbaDWHYv (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 23 Apr 2014 03:24:51 -0400
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <5356782A.9050809@monstr.eu>
+In-Reply-To: <20140422162432.GA17674@ravnborg.org>
+References: <1397824031-4892-1-git-send-email-lftan@altera.com>
+	<1397824031-4892-5-git-send-email-lftan@altera.com>
+	<20140422142443.GB15745@arch.cereza>
+	<20140422151458.GC1053@distanz.ch>
+	<20140422153522.GF15745@arch.cereza>
+	<20140422162432.GA17674@ravnborg.org>
+Date: Wed, 23 Apr 2014 09:24:49 +0200
+Message-ID: <CAMuHMdU2qmCeFWLGt9G8U0Pm_bP3WwV2qY6aJa0VQ=+aFFKSBg@mail.gmail.com>
+Subject: Re: [PATCH 06/28] nios2: Memory management
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Michal Simek <monstr@monstr.eu>
-Cc: Will Deacon <will.deacon@arm.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, arnd@arndb.de, dhowells@redhat.com, broonie@linaro.org, benh@kernel.crashing.org, peterz@infradead.org, paulmck@linux.vnet.ibm.com
-Message-ID: <20140423072327.tt11LYufBoTJrcgDF61aT9LPN4FfJ5t5_v0ijSMZ5x8@z>
+To: Sam Ravnborg <sam@ravnborg.org>
+Cc: Ezequiel Garcia <ezequiel.garcia@free-electrons.com>, Tobias Klauser <tklauser@distanz.ch>, Ley Foon Tan <lftan@altera.com>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, LeyFoon Tan <lftan.linux@gmail.com>, cltang@codesourcery.com
+Message-ID: <20140423072449.OGZfKF9H8B4xC-bwVTl3rW5hVhwG6JEhrrww_Rk5nKY@z>
 
-> But I expect that all archs should use asm-generic/io.h to clean
-> architecture io.h exactly I have done it for Microblaze.
-I took a quick look at sparc32 - doing this is a nice cleanup.
-Thanks for the hint.
+Hi Sam,
 
-	Sam
+On Tue, Apr 22, 2014 at 6:24 PM, Sam Ravnborg <sam@ravnborg.org> wrote:
+> #define PAGE_SIZE    (_AC(1, UL) << PAGE_SHIFT)
+> #define PAGE_MASK    (~(PAGE_SIZE-1))
+>
+> _AC(1, UL) expands to 1 for assembler and 1UL for C code.
+
+Ideally, PAGE_SIZE should be size_t, not unsigned long, avoiding issues
+like https://lkml.org/lkml/2014/4/13/78. But currently it's unsigned long
+everywhere, so nios2 should be consistent.
+
+Gr{oetje,eeting}s,
+
+                        Geert
+
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
