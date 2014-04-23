@@ -1,89 +1,208 @@
-From: James Hogan <james.hogan@imgtec.com>
-Subject: Re: [RFC 3/3] asm-generic: Drop renameat syscall from
-	default list
-Date: Wed, 23 Apr 2014 13:41:37 +0100
-Message-ID: <CAAG0J9-2=rP3RP08eEjd17R3wEaeiUtGfWD-LeqXV=y9sBamfA@mail.gmail.com>
-References: <1398247687-13453-1-git-send-email-james.hogan@imgtec.com>
-	<1398247687-13453-4-git-send-email-james.hogan@imgtec.com>
-	<201404231418.05174.arnd@arndb.de>
+From: Waiman Long <waiman.long@hp.com>
+Subject: Re: [PATCH v9 05/19] qspinlock: Optimize for smaller NR_CPUS
+Date: Wed, 23 Apr 2014 10:23:43 -0400
+Message-ID: <5357CCEF.2000606@hp.com>
+References: <1397747051-15401-1-git-send-email-Waiman.Long@hp.com>
+	<1397747051-15401-6-git-send-email-Waiman.Long@hp.com>
+	<20140417155649.GR11096@twins.programming.kicks-ass.net>
+	<53504BB3.4010009@hp.com>
+	<20140418082716.GZ11096@twins.programming.kicks-ass.net>
+	<53516672.3010701@hp.com>
+	<20140418190519.GA11182@twins.programming.kicks-ass.net>
+	<53519BBF.7060506@hp.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-bounces@lists.openrisc.net>
-In-Reply-To: <201404231418.05174.arnd@arndb.de>
-List-Unsubscribe: <http://lists.openrisc.net/options/linux>,
-	<mailto:linux-request@lists.openrisc.net?subject=unsubscribe>
-List-Archive: <http://lists.openrisc.net/pipermail/linux>
-List-Post: <mailto:linux@lists.openrisc.net>
-List-Help: <mailto:linux-request@lists.openrisc.net?subject=help>
-List-Subscribe: <http://lists.openrisc.net/listinfo/linux>,
-	<mailto:linux-request@lists.openrisc.net?subject=subscribe>
-Sender: linux-bounces@lists.openrisc.net
-Errors-To: linux-bounces@lists.openrisc.net
-To: Arnd Bergmann <arnd@arndb.de>, Miklos Szeredi <mszeredi@suse.cz>
-Cc: linux-arch@vger.kernel.org, linux-c6x-dev@linux-c6x.org, Aurelien Jacquiot <a-jacquiot@ti.com>, Vineet Gupta <vgupta@synopsys.com>, Mark Salter <msalter@redhat.com>, Will Deacon <will.deacon@arm.com>, LKML <linux-kernel@vger.kernel.org>, Chris Metcalf <cmetcalf@tilera.com>, Richard Kuo <rkuo@codeaurora.org>, linux@lists.openrisc.net, Lennox Wu <lennox.wu@gmail.com>, Catalin Marinas <catalin.marinas@arm.com>, linux-hexagon@vger.kernel.org, Guan Xuetao <gxt@mprc.pku.edu.cn>, Chen Liqin <liqin.linux@gmail.com>, metag <linux-metag@vger.kernel.org>, ARM Kernel List <linux-arm-kernel@lists.infradead.org>
+Content-Type: multipart/mixed; boundary="------------020601050200020304070000"
+Return-path: <virtualization-bounces@lists.linux-foundation.org>
+In-Reply-To: <53519BBF.7060506@hp.com>
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
+List-Post: <mailto:virtualization@lists.linux-foundation.org>
+List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
+Sender: virtualization-bounces@lists.linux-foundation.org
+Errors-To: virtualization-bounces@lists.linux-foundation.org
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: linux-arch@vger.kernel.org, Rik van Riel <riel@redhat.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, Gleb Natapov <gleb@redhat.com>, kvm@vger.kernel.org, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Scott J Norton <scott.norton@hp.com>, x86@kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, Ingo Molnar <mingo@redhat.com>, Chegu Vinod <chegu_vinod@hp.com>, David Vrabel <david.vrabel@citrix.com>, "H. Peter Anvin" <hpa@zytor.com>, xen-devel@lists.xenproject.org, Thomas Gleixner <tglx@linutronix.de>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Oleg Nesterov <oleg@redhat.com>
 List-Id: linux-arch.vger.kernel.org
 
-On 23 April 2014 13:18, Arnd Bergmann <arnd@arndb.de> wrote:
-> On Wednesday 23 April 2014, James Hogan wrote:
->> The new renameat2 syscall provides all the functionality provided by the
->> renameat syscall and adds flags, so future architectures won't need to
->> include renameat.
->>
->> Therefore drop the renameat syscall from the generic syscall list unless
->> __ARCH_WANT_RENAMEAT is defined by the architecture's unistd.h prior to
->> including asm-generic/unistd.h, and adjust all architectures using the
->> generic syscall list to define it so that no in-tree architectures are
->> affected.
->
-> I should have read this one before replying to patch 2 ;-)
->
->> Signed-off-by: James Hogan <james.hogan@imgtec.com>
->> Cc: Arnd Bergmann <arnd@arndb.de>
->> Cc: linux-arch@vger.kernel.org
->> Cc: Vineet Gupta <vgupta@synopsys.com>
->> Cc: Catalin Marinas <catalin.marinas@arm.com>
->> Cc: Will Deacon <will.deacon@arm.com>
->> Cc: linux-arm-kernel@lists.infradead.org
->> Cc: Mark Salter <msalter@redhat.com>
->> Cc: Aurelien Jacquiot <a-jacquiot@ti.com>
->> Cc: linux-c6x-dev@linux-c6x.org
->> Cc: Richard Kuo <rkuo@codeaurora.org>
->> Cc: linux-hexagon@vger.kernel.org
->> Cc: linux-metag@vger.kernel.org
->> Cc: Jonas Bonn <jonas@southpole.se>
->> Cc: linux@lists.openrisc.net
->> Cc: Chen Liqin <liqin.linux@gmail.com>
->> Cc: Lennox Wu <lennox.wu@gmail.com>
->> Cc: Chris Metcalf <cmetcalf@tilera.com>
->> Cc: Guan Xuetao <gxt@mprc.pku.edu.cn>
->> ---
->> Is this the approach we want to take to keep the default syscall list
->> minimal? We could for example have made renameat2 use the renameat
->> syscall number for new arches, but it seemed best to leave a gap for new
->> arches to improve consistency of numbering.
->
-> I think leaving the hole is best.
->
->> This patch is a no-op for arches in tree, so there's no harm for this to
->> wait for the v3.16 merge window.
->
-> Sounds good. I guess I'll have to put this into my asm-generic tree
-> then, unless I can get the nios2 maintainers to pick it up.
+This is a multi-part message in MIME format.
+--------------020601050200020304070000
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Transfer-Encoding: 7bit
 
-Okay, thanks.
+On 04/18/2014 05:40 PM, Waiman Long wrote:
+> On 04/18/2014 03:05 PM, Peter Zijlstra wrote:
+>> On Fri, Apr 18, 2014 at 01:52:50PM -0400, Waiman Long wrote:
+>>> I am confused by your notation.
+>> Nah, I think I was confused :-) Make the 1 _Q_LOCKED_VAL though, as
+>> that's the proper constant to use.
+>
+> Everyone gets confused once in a while:-) I have plenty of that myself.
+>
+> I will change 1 to _Q_LOCKED_VAL as suggested.
+>
+> -Longman
 
-> If you don't mind, can you submit the first two patches to Linus
-> directly?
 
-It appears Miklos Szeredi beat me to it with patch 1 (adding renameat2
-syscall to asm-generic unistd.h), and will be submitting it to Linus
-at some point as part of his renameat2 series.
-Miklos: Do you think it makes sense for you to include my second patch
-in your series too since it's renameat2 related?
-http://marc.info/?l=linux-kernel&m=139824773305016&w=2
+The attached patch file contains the additional changes that I had made 
+to qspinlock.c file so far. Please let me know if you or others have any 
+additional feedbacks or changes that will need to go to the next version 
+of the patch series.
 
-Otherwise I'm happy to take it or both patches for v3.15.
+I am going to take vacation starting from tomorrow and will be back on 
+5/5 (Mon). So I will not be able to respond to emails within this period.
 
-Cheers
-James
+BTW, is there any chance that this patch can be merged to 3.16?
+
+-Longman
+
+--------------020601050200020304070000
+Content-Type: text/plain;
+ name="qspinlock_extra_diff.patch"
+Content-Transfer-Encoding: 7bit
+Content-Disposition: attachment;
+ filename="qspinlock_extra_diff.patch"
+
+diff --git a/kernel/locking/qspinlock.c b/kernel/locking/qspinlock.c
+index be2adca..2e184b8 100644
+--- a/kernel/locking/qspinlock.c
++++ b/kernel/locking/qspinlock.c
+@@ -25,10 +25,6 @@
+ #include <asm/byteorder.h>
+ #include <asm/qspinlock.h>
+ 
+-#if !defined(__LITTLE_ENDIAN) && !defined(__BIG_ENDIAN)
+-#error "Missing either LITTLE_ENDIAN or BIG_ENDIAN definition."
+-#endif
+-
+ /*
+  * The basic principle of a queue-based spinlock can best be understood
+  * by studying a classic queue-based spinlock implementation called the
+@@ -200,7 +196,7 @@ clear_pending_set_locked(struct qspinlock *lock, u32 val)
+ {
+ 	struct __qspinlock *l = (void *)lock;
+ 
+-	ACCESS_ONCE(l->locked_pending) = 1;
++	ACCESS_ONCE(l->locked_pending) = _Q_LOCKED_VAL;
+ }
+ 
+ /*
+@@ -567,16 +563,16 @@ static __always_inline int get_qlock(struct qspinlock *lock)
+ /**
+  * trylock_pending - try to acquire queue spinlock using the pending bit
+  * @lock : Pointer to queue spinlock structure
+- * @pval : Pointer to value of the queue spinlock 32-bit word
++ * @val  : Current value of the queue spinlock 32-bit word
+  * Return: 1 if lock acquired, 0 otherwise
+  *
+  * The pending bit won't be set as soon as one or more tasks queue up.
+  * This function should only be called when lock stealing will not happen.
+  * Otherwise, it has to be disabled.
+  */
+-static inline int trylock_pending(struct qspinlock *lock, u32 *pval)
++static inline int trylock_pending(struct qspinlock *lock, u32 val)
+ {
+-	u32 old, new, val = *pval;
++	u32 old, new;
+ 	int retry = 1;
+ 
+ 	/*
+@@ -593,8 +589,7 @@ static inline int trylock_pending(struct qspinlock *lock, u32 *pval)
+ 		if (val & _Q_TAIL_MASK)
+ 			return 0;
+ 
+-		if ((val & _Q_LOCKED_PENDING_MASK) ==
+-		    (_Q_LOCKED_VAL|_Q_PENDING_VAL)) {
++		if (val == (_Q_LOCKED_VAL|_Q_PENDING_VAL)) {
+ 			/*
+ 			 * If both the lock and pending bits are set, we wait
+ 			 * a while to see if that either bit will be cleared.
+@@ -605,9 +600,9 @@ static inline int trylock_pending(struct qspinlock *lock, u32 *pval)
+ 			retry--;
+ 			cpu_relax();
+ 			cpu_relax();
+-			*pval = val = atomic_read(&lock->val);
++			val = atomic_read(&lock->val);
+ 			continue;
+-		} else if ((val & _Q_LOCKED_PENDING_MASK) == _Q_PENDING_VAL) {
++		} else if (val == _Q_PENDING_VAL) {
+ 			/*
+ 			 * Pending bit is set, but not the lock bit.
+ 			 * Assuming that the pending bit holder is going to
+@@ -615,7 +610,7 @@ static inline int trylock_pending(struct qspinlock *lock, u32 *pval)
+ 			 * it is better to wait than to exit at this point.
+ 			 */
+ 			cpu_relax();
+-			*pval = val = atomic_read(&lock->val);
++			val = atomic_read(&lock->val);
+ 			continue;
+ 		}
+ 
+@@ -627,7 +622,7 @@ static inline int trylock_pending(struct qspinlock *lock, u32 *pval)
+ 		if (old == val)
+ 			break;
+ 
+-		*pval = val = old;
++		val = old;
+ 	}
+ 
+ 	/*
+@@ -643,7 +638,7 @@ static inline int trylock_pending(struct qspinlock *lock, u32 *pval)
+ 	 *
+ 	 * this wait loop must be a load-acquire such that we match the
+ 	 * store-release that clears the locked bit and create lock
+-	 * sequentiality; this because not all try_clear_pending_set_locked()
++	 * sequentiality; this because not all clear_pending_set_locked()
+ 	 * implementations imply full barriers.
+ 	 *
+ 	 * When PV qspinlock is enabled, exit the pending bit code path and
+@@ -835,6 +830,10 @@ notify_next:
+  * contended             :    (*,x,y) +--> (*,0,0) ---> (*,0,1) -'  :
+  *   queue               :         ^--'                             :
+  *
++ * The pending bit processing is in the trylock_pending() function whereas
++ * the uncontended and contended queue processing is in the
++ * queue_spin_lock_slowerpath() function.
++ *
+  * This slowpath only contains the faster pending bit and trylock codes.
+  * The slower queuing code is in the slowerpath function.
+  */
+@@ -845,7 +844,7 @@ void queue_spin_lock_slowpath(struct qspinlock *lock, u32 val)
+ 
+ 	BUILD_BUG_ON(CONFIG_NR_CPUS >= (1U << _Q_TAIL_CPU_BITS));
+ 
+-	if (trylock_pending(lock, &val))
++	if (trylock_pending(lock, val))
+ 		return;	/* Lock acquired */
+ 
+ 	node = this_cpu_ptr(&qnodes[0]);
+@@ -859,11 +858,11 @@ void queue_spin_lock_slowpath(struct qspinlock *lock, u32 val)
+ 	pv_init_vars(&node->pv, cpu_nr);
+ 
+ 	/*
+-	 * We touched a (possibly) cold cacheline; attempt the trylock once
+-	 * more in the hope someone let go while we weren't watching as long
+-	 * as no one was queuing.
++	 * We touched a (possibly) cold cacheline in the per-cpu queue node;
++	 * attempt the trylock once more in the hope someone let go while we
++	 * weren't watching.
+ 	 */
+-	if ((val & _Q_TAIL_MASK) || !queue_spin_trylock(lock))
++	if (!queue_spin_trylock(lock))
+ 		queue_spin_lock_slowerpath(lock, node, tail);
+ 
+ 	/*
+
+--------------020601050200020304070000
+Content-Type: text/plain; charset="us-ascii"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7bit
+Content-Disposition: inline
+
+_______________________________________________
+Virtualization mailing list
+Virtualization@lists.linux-foundation.org
+https://lists.linuxfoundation.org/mailman/listinfo/virtualization
+--------------020601050200020304070000--
