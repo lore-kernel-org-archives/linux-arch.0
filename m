@@ -1,70 +1,110 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:43167 "EHLO mail.zytor.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1756122AbaDWTX4 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 23 Apr 2014 15:23:56 -0400
-In-Reply-To: <E780DB23-B6A3-427B-8F33-71378088A3F5@caviumnetworks.com>
-References: <1397824031-4892-1-git-send-email-lftan@altera.com> <5354AD36.5090809@zytor.com> <CAFiDJ5861HE4AXtio-8uNJppWE2oaPt9_OKyGV=Myb_3vPrOVA@mail.gmail.com> <16597012.pEkDc99HDN@wuerfel> <CAFiDJ5_dUpVTSeC36AfNKVN7BOa9GQ5vwSEWricm=8Sam9mR2A@mail.gmail.com>,<5357FF8E.9010809@codesourcery.com> <E780DB23-B6A3-427B-8F33-71378088A3F5@caviumnetworks.com>
+Received: from mail-ve0-f169.google.com ([209.85.128.169]:37737 "EHLO
+	mail-ve0-f169.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1757793AbaDWTdQ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 23 Apr 2014 15:33:16 -0400
+Received: by mail-ve0-f169.google.com with SMTP id pa12so1779897veb.28
+        for <linux-arch@vger.kernel.org>; Wed, 23 Apr 2014 12:33:16 -0700 (PDT)
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Content-Type: text/plain;
- charset=UTF-8
-Subject: Re: [PATCH 00/28] nios2 Linux kernel port
-From: "H. Peter Anvin" <hpa@zytor.com>
-Date: Wed, 23 Apr 2014 12:21:22 -0700
-Message-ID: <5b7c8d5a-48b0-416f-ae6f-e0f9caa73b0d@email.android.com>
+In-Reply-To: <20140423184145.GH17824@quack.suse.cz>
+References: <1398057630.19682.38.camel@pasglop>
+	<CA+55aFwWHBtihC3w9E4+j4pz+6w7iTnYhTf4N3ie15BM9thxLQ@mail.gmail.com>
+	<53558507.9050703@zytor.com>
+	<CA+55aFxGm6J6N=4L7exLUFMr1_siNGHpK=wApd9GPCH1=63PPA@mail.gmail.com>
+	<53559F48.8040808@intel.com>
+	<CA+55aFwDtjA4Vp0yt0K5x6b6sAMtcn=61SEnOOs_En+3UXNpuA@mail.gmail.com>
+	<CA+55aFzFxBDJ2rWo9DggdNsq-qBCr11OVXnm64jx04KMSVCBAw@mail.gmail.com>
+	<20140422075459.GD11182@twins.programming.kicks-ass.net>
+	<CA+55aFzM+NpE-EzJdDeYX=cqWRzkGv9o-vybDR=oFtDLMRK-mA@mail.gmail.com>
+	<alpine.LSU.2.11.1404221847120.1759@eggly.anvils>
+	<20140423184145.GH17824@quack.suse.cz>
+Date: Wed, 23 Apr 2014 12:33:15 -0700
+Message-ID: <CA+55aFwm9BT4ecXF7dD+OM0-+1Wz5vd4ts44hOkS8JdQ74SLZQ@mail.gmail.com>
+Subject: Re: Dirty/Access bits vs. page content
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Content-Type: multipart/mixed; boundary=e89a8fb2078ed2b06004f7bacd2b
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Pinski, Andrew" <Andrew.Pinski@caviumnetworks.com>, Chung-Lin Tang <cltang@codesourcery.com>
-Cc: Ley Foon Tan <lftan@altera.com>, Arnd Bergmann <arnd@arndb.de>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, "Catalin.Marinas@arm.com" <Catalin.Marinas@arm.com>, Andrew Pinski <apinski@cavium.com>
-Message-ID: <20140423192122.av6ee-WHYWV5_jZoUlOLu92s4_hBROTte-zmIZLrC2M@z>
+To: Jan Kara <jack@suse.cz>
+Cc: Hugh Dickins <hughd@google.com>, Peter Zijlstra <peterz@infradead.org>, Dave Hansen <dave.hansen@intel.com>, "H. Peter Anvin" <hpa@zytor.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, Russell King - ARM Linux <linux@arm.linux.org.uk>, Tony Luck <tony.luck@intel.com>
+Message-ID: <20140423193315.69grGm7kcH-kirIwuhunR386K-IcknQibp0iTnJJBvE@z>
 
-I think Linuxs said we should just fix POSIX on that front.
+--e89a8fb2078ed2b06004f7bacd2b
+Content-Type: text/plain; charset=UTF-8
 
-On April 23, 2014 11:15:34 AM PDT, "Pinski, Andrew" <Andrew.Pinski@caviumnetworks.com> wrote:
+On Wed, Apr 23, 2014 at 11:41 AM, Jan Kara <jack@suse.cz> wrote:
 >
->
->> On Apr 23, 2014, at 10:59 AM, "Chung-Lin Tang"
-><cltang@codesourcery.com> wrote:
->> 
->>> On 2014/4/22 07:20 PM, Ley Foon Tan wrote:
->>> On Tue, Apr 22, 2014 at 6:56 PM, Arnd Bergmann <arnd@arndb.de>
->wrote:
->>>>> On Tuesday 22 April 2014 18:37:11 Ley Foon Tan wrote:
->>>>>>> Hi Arnd and Peter Anvin,
->>>>>>> 
->>>>>>> Other than 64-bit time_t, clock_t and suseconds_t, can you
->confirm
->>>>>>> that we don't need to have 64 bit off_t? See detail in link
->below.
->>>>>>> I can submit the patches for 64-bit time changes
->>>>>>> (include/asm-generic/posix_types.h and other archs) if everyone
->is
->>>>>>> agreed on this.
->>>>> 
->>>>> Yes.
->>> Okay, will doing that.
->> 
->> I believe that arm64 ILP32 will also be affected. What is the status
->of
->> this configuration? Has the glibc/kernel ABI been finalized?
->
->Not yet.  I am still working out the signal handling part. But we
->already agreed on 64bit time_t, clock_t, and suseconds_t.  And we
->agreed to a 64bit offset_t too. 
->
->On a related note suseconds in the timespec in posix is defined to be
->long. So it would nice if the kernel ignores the upper 32bits so we
->(glibc developers) can fix this for new targets including x32 and
->arm64/ilp32. 
->
->Thanks,
->Andrew
->
->> 
->> Thanks,
->> Chung-Lin
->> 
+> Now I'm not sure how to fix Linus' patches. For all I care we could just
+> rip out pte dirty bit handling for file mappings. However last time I
+> suggested this you corrected me that tmpfs & ramfs need this. I assume this
+> is still the case - however, given we unconditionally mark the page dirty
+> for write faults, where exactly do we need this?
 
--- 
-Sent from my mobile phone.  Please pardon brevity and lack of formatting.
+Honza, you're missing the important part: it does not matter one whit
+that we unconditionally mark the page dirty, when we do it *early*,
+and it can be then be marked clean before it's actually clean!
+
+The problem is that page cleaning can clean the page when there are
+still writers dirtying the page. Page table tear-down removes the
+entry from the page tables, but it's still there in the TLB on other
+CPU's. So other CPU's are possibly writing to the page, when
+clear_page_dirty_for_io() has marked it clean (because it didn't see
+the page table entries that got torn down, and it hasn't seen the
+dirty bit in the page yet).
+
+I'm including Dave Hansen's "racewrite.c" with his commentary:
+
+ "This is a will-it-scale test-case which handles all the thread creation
+  and CPU binding for me: https://github.com/antonblanchard/will-it-scale
+  .  Just stick the test case in tests/.  I also loopback-mounted a ramfs
+  file as an ext4 filesystem on /mnt to make sure the writeback could
+  happen fast.
+
+  This reproduces the bug pretty darn quickly and with as few as 4 threads
+  running like this:  ./racewrite_threads -t 4 -s 999"
+
+and
+
+ "It reproduces in about 5 seconds on my 4770 on an unpatched kernel.  It
+  also reproduces on a _normal_ filesystem and doesn't apparently need the
+  loopback-mounted ext4 ramfs file that I was trying before."
+
+so this can actually be triggered.
+
+              Linus
+
+--e89a8fb2078ed2b06004f7bacd2b
+Content-Type: text/x-csrc; charset=US-ASCII; name="racewrite.c"
+Content-Disposition: attachment; filename="racewrite.c"
+Content-Transfer-Encoding: base64
+X-Attachment-Id: f_hud0mhpw0
+
+I2RlZmluZSBfR05VX1NPVVJDRQojZGVmaW5lIF9YT1BFTl9TT1VSQ0UgNTAwCiNpbmNsdWRlIDxz
+Y2hlZC5oPgojaW5jbHVkZSA8c3lzL21tYW4uaD4KI2luY2x1ZGUgPGZjbnRsLmg+CiNpbmNsdWRl
+IDxzdGRpby5oPgojaW5jbHVkZSA8c3RkbGliLmg+CiNpbmNsdWRlIDx1bmlzdGQuaD4KI2luY2x1
+ZGUgPHN0cmluZy5oPgojaW5jbHVkZSA8YXNzZXJ0Lmg+CgojZGVmaW5lIEJVRkxFTiA0MDk2Cgpz
+dGF0aWMgY2hhciB3aXN0bXBmaWxlW10gPSAiL21udC93aWxsaXRzY2FsZS5YWFhYWFgiOwoKY2hh
+ciAqdGVzdGNhc2VfZGVzY3JpcHRpb24gPSAiU2FtZSBmaWxlIHB3cml0ZSI7CgpjaGFyICpidWY7
+CiNkZWZpbmUgRklMRV9TSVpFICg0MDk2KjEwMjQpCnZvaWQgdGVzdGNhc2VfcHJlcGFyZSh2b2lk
+KQp7CglpbnQgZmQgPSBta3N0ZW1wKHdpc3RtcGZpbGUpOwoKCWFzc2VydChmZCA+PSAwKTsKCWFz
+c2VydChwd3JpdGUoZmQsICJYIiwgMSwgRklMRV9TSVpFLTEpID09IDEpOwoJYnVmID0gbW1hcChO
+VUxMLCBGSUxFX1NJWkUsIFBST1RfUkVBRHxQUk9UX1dSSVRFLAoJCQkgICAgICAgTUFQX1NIQVJF
+RCwgZmQsIDApOwoJYXNzZXJ0KGJ1ZiAhPSAodm9pZCAqKS0xKTsKCWNsb3NlKGZkKTsKfQoKdm9p
+ZCB0ZXN0Y2FzZSh1bnNpZ25lZCBsb25nIGxvbmcgKml0ZXJhdGlvbnMpCnsKCWludCBjcHUgPSBz
+Y2hlZF9nZXRjcHUoKTsKCWludCBmZCA9IG9wZW4od2lzdG1wZmlsZSwgT19SRFdSKTsKCW9mZl90
+IG9mZnNldCA9IHNjaGVkX2dldGNwdSgpICogQlVGTEVOOwoJbG9uZyBjb3VudGVyID0gMDsKCWxv
+bmcgY291bnRlcnJlYWQgPSAwOwoJbG9uZyAqY291bnRlcmJ1ZiA9ICh2b2lkICopJmJ1ZltvZmZz
+ZXRdOwoKCXByaW50Zigib2Zmc2V0OiAlbGRcbiIsIG9mZnNldCk7CglwcmludGYoIiAgICAgICBi
+dWY6ICVwXG4iLCBidWYpOwoJcHJpbnRmKCJjb3VudGVyYnVmOiAlcFxuIiwgY291bnRlcmJ1Zik7
+Cglhc3NlcnQoZmQgPj0gMCk7CgoJd2hpbGUgKDEpIHsKCQlpbnQgcmV0OwoJCWlmIChjcHUgPT0g
+MSkgewoJCQlyZXQgPSBtYWR2aXNlKGJ1ZiwgRklMRV9TSVpFLCBNQURWX0RPTlRORUVEKTsKCQkJ
+Y29udGludWU7CgkJfQoJCgkJKmNvdW50ZXJidWYgPSBjb3VudGVyOwoJCXBvc2l4X2ZhZHZpc2Uo
+ZmQsIG9mZnNldCwgQlVGTEVOLCBQT1NJWF9GQURWX0RPTlRORUVEKTsKCQlyZXQgPSBwcmVhZChm
+ZCwgJmNvdW50ZXJyZWFkLCBzaXplb2YoY291bnRlcnJlYWQpLCBvZmZzZXQpOwoJCWFzc2VydChy
+ZXQgPT0gc2l6ZW9mKGNvdW50ZXJyZWFkKSk7CgoJCWlmIChjb3VudGVycmVhZCAhPSBjb3VudGVy
+KSB7CgkJCXByaW50ZigiY3B1OiAlZFxuIiwgY3B1KTsKCQkJcHJpbnRmKCIgICAgY291bnRlciAl
+bGRcbiIsIGNvdW50ZXIpOwoJCQlwcmludGYoImNvdW50ZXJyZWFkICVsZFxuIiwgY291bnRlcnJl
+YWQpOwoJCQlwcmludGYoIipjb3VudGVyYnVmICVsZFxuIiwgKmNvdW50ZXJidWYpOwoJCQl3aGls
+ZSgxKTsKCQl9CgkJY291bnRlcisrOwkKCQkoKml0ZXJhdGlvbnMpKys7Cgl9Cn0KCnZvaWQgdGVz
+dGNhc2VfY2xlYW51cCh2b2lkKQp7Cgl1bmxpbmsod2lzdG1wZmlsZSk7Cn0K
+--e89a8fb2078ed2b06004f7bacd2b--
