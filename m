@@ -1,54 +1,82 @@
-From: Ley Foon Tan <lftan@altera.com>
-Subject: Re: [PATCH 23/28] nios2: Nios2 registers
-Date: Wed, 23 Apr 2014 15:10:26 +0800
-Message-ID: <CAFiDJ5-S8bD7Z+5XcwUK_mZ+ShCMp5nj7km4NSn+Ecck3xnBxQ@mail.gmail.com>
-References: <1397824031-4892-1-git-send-email-lftan@altera.com>
-	<1397824031-4892-20-git-send-email-lftan@altera.com>
-	<20140422123914.GB1053@distanz.ch>
+From: Michal Simek <monstr@monstr.eu>
+Subject: Re: [PATCH 18/18] asm-generic: io: define relaxed accessor macros
+ unconditionally
+Date: Wed, 23 Apr 2014 09:12:36 +0200
+Message-ID: <535767E4.6020900@monstr.eu>
+References: <1397742261-15621-1-git-send-email-will.deacon@arm.com> <1397742261-15621-19-git-send-email-will.deacon@arm.com> <5356782A.9050809@monstr.eu> <20140422151809.GF9820@arm.com>
+Reply-To: monstr@monstr.eu
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ie0-f179.google.com ([209.85.223.179]:51792 "EHLO
-	mail-ie0-f179.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752865AbaDWHK1 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 23 Apr 2014 03:10:27 -0400
-In-Reply-To: <20140422123914.GB1053@distanz.ch>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Tobias Klauser <tklauser@distanz.ch>
-Cc: Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, cltang@codesourcery.com
+Content-Type: multipart/signed; micalg=pgp-sha1;
+ protocol="application/pgp-signature";
+ boundary="fLllnNn7PTSF7DuVVvuSibNHt1oOdS2HU"
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20140422151809.GF9820@arm.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Will Deacon <will.deacon@arm.com>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "arnd@arndb.de" <arnd@arndb.de>, "dhowells@redhat.com" <dhowells@redhat.com>, "broonie@linaro.org" <broonie@linaro.org>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, "peterz@infradead.org" <peterz@infradead.org>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>
+List-Id: linux-arch.vger.kernel.org
 
-Hi Tobias
+This is an OpenPGP/MIME signed message (RFC 4880 and 3156)
+--fLllnNn7PTSF7DuVVvuSibNHt1oOdS2HU
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: quoted-printable
 
+Hi Will,
 
-On Tue, Apr 22, 2014 at 8:39 PM, Tobias Klauser <tklauser@distanz.ch> wrote:
-> On 2014-04-18 at 14:27:06 +0200, Ley Foon Tan <lftan@altera.com> wrote:
-
->> +
->> +/* estatus register bits */
->> +#define ESTATUS_EPIE (1 << 0)        /* processor interrupt enable */
->> +#define ESTATUS_EU   (1 << 1)        /* user mode */
->> +#define ESTATUS_EH   (1 << 2)        /* Exception mode */
->> +
->> +/* tlbmisc register bits */
->> +#define TLBMISC_PID_SHIFT    4
->> +#define TLBMISC_PID_MASK     ((1UL << cpuinfo.tlb_pid_num_bits) - 1)
->
-> You should probably #include <asm/cpuinfo.h> here since struct cpuinfo
-> is used in the definition.
-Okay, but I think we should add #ifndef __ASSEMBLY__ at #include
-<asm/cpuinfo.h> and at line #define TLBMISC_PID_MASK.
-Assembly source file might include this file as well.
-
->
->> +#define TLBMISC_WAY_MASK     0xf
->> +#define TLBMISC_WAY_SHIFT    20
->> +
->> +#define TLBMISC_PID  (TLBMISC_PID_MASK << TLBMISC_PID_SHIFT) /* TLB PID */
->> +#define TLBMISC_WE   (1 << 18)       /* TLB write enable */
->> +#define TLBMISC_RD   (1 << 19)       /* TLB read */
->> +#define TLBMISC_WAY  (TLBMISC_WAY_MASK << TLBMISC_WAY_SHIFT) /* TLB way */
->> +
->> +#endif /* _ASM_NIOS2_REGISTERS_H */
-
+On 04/22/2014 05:18 PM, Will Deacon wrote:
+> Hi Michal,
+>=20
+> On Tue, Apr 22, 2014 at 03:09:46PM +0100, Michal Simek wrote:
+>> On 04/17/2014 03:44 PM, Will Deacon wrote:
+>>> Now that no architectures using asm-generic/io.h define their own rel=
+axed
+>>> accessors, the dummy definitions can be used unconditionally.
+>>>
+>>> Cc: Arnd Bergmann <arnd@arndb.de>
+>>> Signed-off-by: Will Deacon <will.deacon@arm.com>
+>>> ---
+>>>  include/asm-generic/io.h | 18 ------------------
+>>>  1 file changed, 18 deletions(-)
 >>
+>> Do we need this? I think there could be a need to overwrite them.
+>> Currently we are just lucky that architecture which uses asm-generic/i=
+o.h
+>> don't need to overwrite it.
+>> But I expect that all archs should use asm-generic/io.h to clean
+>> architecture io.h exactly I have done it for Microblaze.
+>=20
+> I'm open to keeping the conditional definitions, but it introduces a
+> discrepancy with the non-relaxed versions, which are defined unconditio=
+nally
+> (although the underlying __raw_* accessors can be overridden).
+
+up to you.
+
+Thanks,
+Michal
+
+
+--=20
+Michal Simek, Ing. (M.Eng), OpenPGP -> KeyID: FE3D1F91
+w: www.monstr.eu p: +42-0-721842854
+Maintainer of Linux kernel - Microblaze cpu - http://www.monstr.eu/fdt/
+Maintainer of Linux kernel - Xilinx Zynq ARM architecture
+Microblaze U-BOOT custodian and responsible for u-boot arm zynq platform
+
+
+
+--fLllnNn7PTSF7DuVVvuSibNHt1oOdS2HU
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: OpenPGP digital signature
+Content-Disposition: attachment; filename="signature.asc"
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.10 (GNU/Linux)
+Comment: Using GnuPG with Thunderbird - http://www.enigmail.net/
+
+iEYEARECAAYFAlNXZ+QACgkQykllyylKDCFSJgCgnNdIsl0aqV2eq561vp8vMmeK
+LKMAni1uuUWTcvoV1akrZQyc7LaAQjVQ
+=O4wg
+-----END PGP SIGNATURE-----
+
+--fLllnNn7PTSF7DuVVvuSibNHt1oOdS2HU--
