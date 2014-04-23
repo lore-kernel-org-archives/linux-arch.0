@@ -1,53 +1,63 @@
-From: James Hogan <james.hogan@imgtec.com>
-Subject: [RFC 2/3] scripts/checksyscalls.sh: Make renameat optional
-Date: Wed, 23 Apr 2014 11:08:06 +0100
-Message-ID: <1398247687-13453-3-git-send-email-james.hogan@imgtec.com>
-References: <1398247687-13453-1-git-send-email-james.hogan@imgtec.com>
+From: Russell King - ARM Linux <linux@arm.linux.org.uk>
+Subject: Re: [PATCH 02/15] arm: __NR_syscalls fix
+Date: Wed, 23 Apr 2014 11:27:18 +0100
+Message-ID: <20140423102718.GA6434@n2100.arm.linux.org.uk>
+References: <1397211951-20549-1-git-send-email-miklos@szeredi.hu> <1397211951-20549-3-git-send-email-miklos@szeredi.hu> <20140411103351.GJ16119@n2100.arm.linux.org.uk> <CAJfpegvZ-n4sT0ojj9iUg_R5gMZHT0caad6TpOdcmF=pdiXkqg@mail.gmail.com> <20140411115421.GL16119@n2100.arm.linux.org.uk> <CAJfpegtenNUCEAJ3SZpQ8NYcdbCeS8pVxaT767szkR1PF8YPNA@mail.gmail.com> <20140411124502.GO16119@n2100.arm.linux.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1398247687-13453-1-git-send-email-james.hogan@imgtec.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org
-Cc: linux-kernel@vger.kernel.org, James Hogan <james.hogan@imgtec.com>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from gw-1.arm.linux.org.uk ([78.32.30.217]:45619 "EHLO
+	pandora.arm.linux.org.uk" rhost-flags-OK-OK-OK-FAIL)
+	by vger.kernel.org with ESMTP id S1752905AbaDWK2N (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Wed, 23 Apr 2014 06:28:13 -0400
+Content-Disposition: inline
+In-Reply-To: <20140411124502.GO16119@n2100.arm.linux.org.uk>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Miklos Szeredi <miklos@szeredi.hu>, Wade Farnsworth <wade_farnsworth@mentor.com>, Al Viro <viro@zeniv.linux.org.uk>
+Cc: linux-arch <linux-arch@vger.kernel.org>, Kernel Mailing List <linux-kernel@vger.kernel.org>, Miklos Szeredi <mszeredi@suse.cz>
 
-The new renameat2 syscall provides all the functionality of renameat
-with an additional flags argument, so make renameat optional so that
-future architectures can omit it without getting a warning.
+On Fri, Apr 11, 2014 at 01:45:02PM +0100, Russell King - ARM Linux wrote:
+> On Fri, Apr 11, 2014 at 02:02:32PM +0200, Miklos Szeredi wrote:
+> > On Fri, Apr 11, 2014 at 1:54 PM, Russell King - ARM Linux
+> > <linux@arm.linux.org.uk> wrote:
+> > > On Fri, Apr 11, 2014 at 01:50:50PM +0200, Miklos Szeredi wrote:
+> > >> Yes, and the padding will be of wrong length if NR_syscalls is
+> > >> incorrect (which may be Oopsable?).  At least that is my impression
+> > >> from a casual glance.
+> > >
+> > > Please explain.
+> > 
+> > Look at ending lines of arch/arm/kernel/calls.S: if  NR_syscalls is a
+> > multiple of 4, then syscalls_padding will be zero.  I.e. no padding
+> > despite the fact that there is in fact only 382 system calls in table
+> > and there should be 2 sys_ni_syscall pads.
+> 
+> Hmm, it looks like you're right... this used to work fine until...
+> 
+> commit 1f66e06fb6414732bef7bf4a071ef76a837badec
+> Author: Wade Farnsworth <wade_farnsworth@mentor.com>
+> Date:   Fri Sep 7 18:18:25 2012 +0100
+> 
+>     ARM: 7524/1: support syscall tracing
+> 
+> because the tracing code wanted to know the number of syscalls.  I don't
+> know what the answer is here, because the current solution is IMHO far
+> to fragile.
 
-Signed-off-by: James Hogan <james.hogan@imgtec.com>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch@vger.kernel.org
----
-This patch doesn't affect existing architectures, so there's no harm for
-this to wait for the v3.16 merge window.
----
- scripts/checksyscalls.sh | 5 ++++-
- 1 file changed, 4 insertions(+), 1 deletion(-)
+Actually, no, you're wrong.  Look closely at the definitions. __NR_syscalls
+is not the same as NR_syscalls.
 
-diff --git a/scripts/checksyscalls.sh b/scripts/checksyscalls.sh
-index fd8fa9aa7c4e..5b3add31f9f1 100755
---- a/scripts/checksyscalls.sh
-+++ b/scripts/checksyscalls.sh
-@@ -25,7 +25,7 @@ cat << EOF
- #define __IGNORE_rmdir		/* unlinkat */
- #define __IGNORE_lchown		/* fchownat */
- #define __IGNORE_access		/* faccessat */
--#define __IGNORE_rename		/* renameat */
-+#define __IGNORE_rename		/* renameat2 */
- #define __IGNORE_readlink	/* readlinkat */
- #define __IGNORE_symlink	/* symlinkat */
- #define __IGNORE_utimes		/* futimesat */
-@@ -37,6 +37,9 @@ cat << EOF
- #define __IGNORE_lstat64	/* fstatat64 */
- #endif
- 
-+/* Missing flags argument */
-+#define __IGNORE_renameat	/* renameat2 */
-+
- /* CLOEXEC flag */
- #define __IGNORE_pipe		/* pipe2 */
- #define __IGNORE_dup2		/* dup3 */
+__NR_syscalls is the statically defined size of the syscall table for
+*probes purposes.
+
+NR_syscalls is the assembly-counted number of CALL() macros in
+arch/arm/kernel/calls.S.
+
+So, patch 2 isn't required, and patch 3 needs to be fixed up to take
+this into account...
+
 -- 
-1.8.1.2
+FTTC broadband for 0.8mile line: now at 9.7Mbps down 460kbps up... slowly
+improving, and getting towards what was expected from it.
