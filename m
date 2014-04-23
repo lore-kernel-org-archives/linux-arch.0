@@ -1,62 +1,73 @@
-From: James Hogan <james.hogan@imgtec.com>
-Subject: Re: [PATCH 15/15] asm-generic: add renameat2 syscall
-Date: Wed, 23 Apr 2014 12:46:57 +0100
-Message-ID: <CAAG0J9_4e4S4JOZn4-v=9=vcW976Jq-3aYTNCZzc0KQ5J5-5Mg@mail.gmail.com>
+From: Miklos Szeredi <miklos@szeredi.hu>
+Subject: Re: [PATCH 02/15] arm: __NR_syscalls fix
+Date: Wed, 23 Apr 2014 14:00:51 +0200
+Message-ID: <CAJfpegv0iJtzukJMbWR2n7ANxAQmLnf+ekRfmf8V5RdyK20w6Q@mail.gmail.com>
 References: <1397211951-20549-1-git-send-email-miklos@szeredi.hu>
-	<1397211951-20549-16-git-send-email-miklos@szeredi.hu>
+	<1397211951-20549-3-git-send-email-miklos@szeredi.hu>
+	<20140411103351.GJ16119@n2100.arm.linux.org.uk>
+	<CAJfpegvZ-n4sT0ojj9iUg_R5gMZHT0caad6TpOdcmF=pdiXkqg@mail.gmail.com>
+	<20140411115421.GL16119@n2100.arm.linux.org.uk>
+	<CAJfpegtenNUCEAJ3SZpQ8NYcdbCeS8pVxaT767szkR1PF8YPNA@mail.gmail.com>
+	<20140411124502.GO16119@n2100.arm.linux.org.uk>
+	<20140423102718.GA6434@n2100.arm.linux.org.uk>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ob0-f175.google.com ([209.85.214.175]:43858 "EHLO
-	mail-ob0-f175.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752010AbaDWLq6 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 23 Apr 2014 07:46:58 -0400
-Received: by mail-ob0-f175.google.com with SMTP id wp4so864131obc.20
-        for <linux-arch@vger.kernel.org>; Wed, 23 Apr 2014 04:46:57 -0700 (PDT)
-In-Reply-To: <1397211951-20549-16-git-send-email-miklos@szeredi.hu>
+Received: from mail-qc0-f179.google.com ([209.85.216.179]:43391 "EHLO
+	mail-qc0-f179.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751446AbaDWMAw (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 23 Apr 2014 08:00:52 -0400
+Received: by mail-qc0-f179.google.com with SMTP id m20so786927qcx.24
+        for <linux-arch@vger.kernel.org>; Wed, 23 Apr 2014 05:00:51 -0700 (PDT)
+In-Reply-To: <20140423102718.GA6434@n2100.arm.linux.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Miklos Szeredi <miklos@szeredi.hu>
-Cc: linux-arch@vger.kernel.org, LKML <linux-kernel@vger.kernel.org>, Miklos Szeredi <mszeredi@suse.cz>, Arnd Bergmann <arnd@arndb.de>
+To: Russell King - ARM Linux <linux@arm.linux.org.uk>
+Cc: Wade Farnsworth <wade_farnsworth@mentor.com>, Al Viro <viro@zeniv.linux.org.uk>, linux-arch <linux-arch@vger.kernel.org>, Kernel Mailing List <linux-kernel@vger.kernel.org>, Miklos Szeredi <mszeredi@suse.cz>
 
-Hi Miklos,
+On Wed, Apr 23, 2014 at 12:27 PM, Russell King - ARM Linux
+<linux@arm.linux.org.uk> wrote:
+> On Fri, Apr 11, 2014 at 01:45:02PM +0100, Russell King - ARM Linux wrote:
+>> On Fri, Apr 11, 2014 at 02:02:32PM +0200, Miklos Szeredi wrote:
+>> > On Fri, Apr 11, 2014 at 1:54 PM, Russell King - ARM Linux
+>> > <linux@arm.linux.org.uk> wrote:
+>> > > On Fri, Apr 11, 2014 at 01:50:50PM +0200, Miklos Szeredi wrote:
+>> > >> Yes, and the padding will be of wrong length if NR_syscalls is
+>> > >> incorrect (which may be Oopsable?).  At least that is my impression
+>> > >> from a casual glance.
+>> > >
+>> > > Please explain.
+>> >
+>> > Look at ending lines of arch/arm/kernel/calls.S: if  NR_syscalls is a
+>> > multiple of 4, then syscalls_padding will be zero.  I.e. no padding
+>> > despite the fact that there is in fact only 382 system calls in table
+>> > and there should be 2 sys_ni_syscall pads.
+>>
+>> Hmm, it looks like you're right... this used to work fine until...
+>>
+>> commit 1f66e06fb6414732bef7bf4a071ef76a837badec
+>> Author: Wade Farnsworth <wade_farnsworth@mentor.com>
+>> Date:   Fri Sep 7 18:18:25 2012 +0100
+>>
+>>     ARM: 7524/1: support syscall tracing
+>>
+>> because the tracing code wanted to know the number of syscalls.  I don't
+>> know what the answer is here, because the current solution is IMHO far
+>> to fragile.
+>
+> Actually, no, you're wrong.  Look closely at the definitions. __NR_syscalls
+> is not the same as NR_syscalls.
+>
+> __NR_syscalls is the statically defined size of the syscall table for
+> *probes purposes.
+>
+> NR_syscalls is the assembly-counted number of CALL() macros in
+> arch/arm/kernel/calls.S.
 
-On 11 April 2014 11:25, Miklos Szeredi <miklos@szeredi.hu> wrote:
-> From: Miklos Szeredi <mszeredi@suse.cz>
->
-> Signed-off-by: Miklos Szeredi <mszeredi@suse.cz>
-> Cc: Arnd Bergmann <arnd@arndb.de>
+All I can say is: UGGGGH.
 
-Acked-by: James Hogan <james.hogan@imgtec.com> [metag]
+But I've not had close encounters with arch code, so this may be
+acceptable to you.  Whatever...
 
-Thanks
-James
-
-> ---
->  include/uapi/asm-generic/unistd.h | 4 +++-
->  1 file changed, 3 insertions(+), 1 deletion(-)
->
-> diff --git a/include/uapi/asm-generic/unistd.h b/include/uapi/asm-generic/unistd.h
-> index 6db66783d268..333640608087 100644
-> --- a/include/uapi/asm-generic/unistd.h
-> +++ b/include/uapi/asm-generic/unistd.h
-> @@ -697,9 +697,11 @@ __SYSCALL(__NR_finit_module, sys_finit_module)
->  __SYSCALL(__NR_sched_setattr, sys_sched_setattr)
->  #define __NR_sched_getattr 275
->  __SYSCALL(__NR_sched_getattr, sys_sched_getattr)
-> +#define __NR_renameat2 276
-> +__SYSCALL(__NR_renameat2, sys_renameat2)
->
->  #undef __NR_syscalls
-> -#define __NR_syscalls 276
-> +#define __NR_syscalls 277
->
->  /*
->   * All syscalls below here should go away really,
-> --
-> 1.8.1.4
->
-> --
-> To unsubscribe from this list: send the line "unsubscribe linux-arch" in
-> the body of a message to majordomo@vger.kernel.org
-> More majordomo info at  http://vger.kernel.org/majordomo-info.html
+Thanks,
+Miklos
