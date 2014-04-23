@@ -1,58 +1,90 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bn1blp0184.outbound.protection.outlook.com ([207.46.163.184]:20518
-	"EHLO na01-bn1-obe.outbound.protection.outlook.com"
-	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1753564AbaDWSac convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 23 Apr 2014 14:30:32 -0400
-From: "Pinski, Andrew" <Andrew.Pinski@caviumnetworks.com>
-Subject: Re: [PATCH 00/28] nios2 Linux kernel port
-Date: Wed, 23 Apr 2014 18:15:34 +0000
-Message-ID: <E780DB23-B6A3-427B-8F33-71378088A3F5@caviumnetworks.com>
-References: <1397824031-4892-1-git-send-email-lftan@altera.com>
-	<5354AD36.5090809@zytor.com>
-	<CAFiDJ5861HE4AXtio-8uNJppWE2oaPt9_OKyGV=Myb_3vPrOVA@mail.gmail.com>
-	<16597012.pEkDc99HDN@wuerfel>
- <CAFiDJ5_dUpVTSeC36AfNKVN7BOa9GQ5vwSEWricm=8Sam9mR2A@mail.gmail.com>,<5357FF8E.9010809@codesourcery.com>
-In-Reply-To: <5357FF8E.9010809@codesourcery.com>
-Content-Language: en-US
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 8BIT
+Received: from cantor2.suse.de ([195.135.220.15]:39755 "EHLO mx2.suse.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1753665AbaDWSlu (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 23 Apr 2014 14:41:50 -0400
+Date: Wed, 23 Apr 2014 20:41:45 +0200
+From: Jan Kara <jack@suse.cz>
+Subject: Re: Dirty/Access bits vs. page content
+Message-ID: <20140423184145.GH17824@quack.suse.cz>
+References: <1398057630.19682.38.camel@pasglop>
+ <CA+55aFwWHBtihC3w9E4+j4pz+6w7iTnYhTf4N3ie15BM9thxLQ@mail.gmail.com>
+ <53558507.9050703@zytor.com>
+ <CA+55aFxGm6J6N=4L7exLUFMr1_siNGHpK=wApd9GPCH1=63PPA@mail.gmail.com>
+ <53559F48.8040808@intel.com>
+ <CA+55aFwDtjA4Vp0yt0K5x6b6sAMtcn=61SEnOOs_En+3UXNpuA@mail.gmail.com>
+ <CA+55aFzFxBDJ2rWo9DggdNsq-qBCr11OVXnm64jx04KMSVCBAw@mail.gmail.com>
+ <20140422075459.GD11182@twins.programming.kicks-ass.net>
+ <CA+55aFzM+NpE-EzJdDeYX=cqWRzkGv9o-vybDR=oFtDLMRK-mA@mail.gmail.com>
+ <alpine.LSU.2.11.1404221847120.1759@eggly.anvils>
 MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <alpine.LSU.2.11.1404221847120.1759@eggly.anvils>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Chung-Lin Tang <cltang@codesourcery.com>
-Cc: Ley Foon Tan <lftan@altera.com>, Arnd Bergmann <arnd@arndb.de>, "H. Peter Anvin" <hpa@zytor.com>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, "Catalin.Marinas@arm.com" <Catalin.Marinas@arm.com>, Andrew Pinski <apinski@cavium.com>
-Message-ID: <20140423181534.BHv2RAIJy_joSCwixR-2kbxT7mqtm9UGqV86MjQELX0@z>
+To: Hugh Dickins <hughd@google.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Jan Kara <jack@suse.cz>, Peter Zijlstra <peterz@infradead.org>, Dave Hansen <dave.hansen@intel.com>, "H. Peter Anvin" <hpa@zytor.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, Russell King - ARM Linux <linux@arm.linux.org.uk>, Tony Luck <tony.luck@intel.com>
+Message-ID: <20140423184145.JOPjNX6oxMGxyolrotQsDMZIbw_lQL420FQSihYLS6c@z>
 
-
-
-> On Apr 23, 2014, at 10:59 AM, "Chung-Lin Tang" <cltang@codesourcery.com> wrote:
+On Tue 22-04-14 20:08:59, Hugh Dickins wrote:
+> On Tue, 22 Apr 2014, Linus Torvalds wrote:
+> > On Tue, Apr 22, 2014 at 12:54 AM, Peter Zijlstra <peterz@infradead.org> wrote:
+> > That said, Dave Hansen did report a BUG_ON() in
+> > mpage_prepare_extent_to_map(). His line number was odd, but I assume
+> > it's this one:
+> > 
+> >         BUG_ON(PageWriteback(page));
+> > 
+> > which may be indicative of some oddity here wrt the dirty bit.
 > 
->> On 2014/4/22 07:20 PM, Ley Foon Tan wrote:
->> On Tue, Apr 22, 2014 at 6:56 PM, Arnd Bergmann <arnd@arndb.de> wrote:
->>>> On Tuesday 22 April 2014 18:37:11 Ley Foon Tan wrote:
->>>>>> Hi Arnd and Peter Anvin,
->>>>>> 
->>>>>> Other than 64-bit time_t, clock_t and suseconds_t, can you confirm
->>>>>> that we don't need to have 64 bit off_t? See detail in link below.
->>>>>> I can submit the patches for 64-bit time changes
->>>>>> (include/asm-generic/posix_types.h and other archs) if everyone is
->>>>>> agreed on this.
->>>> 
->>>> Yes.
->> Okay, will doing that.
+> Whereas later mail from Dave showed it to be the
+> 	BUG_ON(!PagePrivate(page));
+> in page_buffers() from fs/ext4/inode.c mpage_prepare_extent_to_map().
+> But still presumably some kind of fallout from your patches.
 > 
-> I believe that arm64 ILP32 will also be affected. What is the status of
-> this configuration? Has the glibc/kernel ABI been finalized?
-
-Not yet.  I am still working out the signal handling part. But we already agreed on 64bit time_t, clock_t, and suseconds_t.  And we agreed to a 64bit offset_t too. 
-
-On a related note suseconds in the timespec in posix is defined to be long. So it would nice if the kernel ignores the upper 32bits so we (glibc developers) can fix this for new targets including x32 and arm64/ilp32. 
-
-Thanks,
-Andrew
-
+> Once upon a time there was a page_has_buffers() check in there,
+> but Honza decided that's nowadays unnecessary in f8bec37037ac
+> "ext4: dirty page has always buffers attached".  Cc'ed,
+> he may very well have some good ideas.
 > 
-> Thanks,
-> Chung-Lin
-> 
+> Reading that commit reminded me of how we actually don't expect that
+> set_page_dirty() in zap_pte_range() to do anything at all on the usual
+> mapping_cap_account_dirty()/page_mkwrite() filesystems, do we?  Or do we?
+  Yes, for shared file mappings we (as in filesystems implementing
+page_mkwrite() handler) expect a page is writeably mmapped iff the page is
+dirty. So in particular we don't expect set_page_dirty() in zap_pte_range()
+to do anything because if the pte has dirty bit set, we are tearing down a
+writeable mapping of the page and thus the page should be already dirty.
+
+Now the devil is in synchronization of different places where transitions
+from/to writeably-mapped state happen. In the fault path (do_wp_page())
+where transition to writeably-mapped happens we hold page lock while
+calling set_page_dirty(). In the writeout path (clear_page_dirty_for_io())
+where we transition from writeably-mapped we hold the page lock as well
+while calling page_mkclean() and possibly set_page_dirty(). So these two
+places are nicely serialized. However zap_pte_range() doesn't hold page
+lock so it can race with the previous two places. Before Linus' patches we
+called set_page_dirty() under pte lock in zap_pte_range() and also before
+decrementing page->mapcount. So if zap_pte_range() raced with
+clear_page_dirty_for_io() we were guaranteed that by the time
+clear_page_dirty_for_io() returns, pte dirty bit is cleared and
+set_page_dirty() was called (either from clear_page_dirty_for_io() or from
+zap_pte_range()).
+
+However with Linus' patches set_page_dirty() from zap_pte_range() gets
+called after decremeting page->mapcount so page_mkclean() won't event try
+to walk rmap. And even if page_mkclean() did walk the rmap, zap_pte_range()
+calls set_page_dirty() after dropping pte lock so it can get called long
+after page_mkclean() (and clear_page_dirty_for_io()) has returned.
+
+Now I'm not sure how to fix Linus' patches. For all I care we could just
+rip out pte dirty bit handling for file mappings. However last time I
+suggested this you corrected me that tmpfs & ramfs need this. I assume this
+is still the case - however, given we unconditionally mark the page dirty
+for write faults, where exactly do we need this?
+
+								Honza
+-- 
+Jan Kara <jack@suse.cz>
+SUSE Labs, CR
