@@ -1,33 +1,56 @@
-From: Ley Foon Tan <lftan@altera.com>
-Subject: Re: [PATCH 28/28] Documentation: Add documentation for Nios2 architecture
-Date: Wed, 23 Apr 2014 15:48:43 +0800
-Message-ID: <CAFiDJ5-nMLN1ad1zRwE2m5i=6i++5k9LtkVpzd=dJsQczKToLg@mail.gmail.com>
+From: Tobias Klauser <tklauser@distanz.ch>
+Subject: Re: [PATCH 23/28] nios2: Nios2 registers
+Date: Wed, 23 Apr 2014 10:00:23 +0200
+Message-ID: <20140423080023.GD1053@distanz.ch>
 References: <1397824031-4892-1-git-send-email-lftan@altera.com>
-	<1397824031-4892-25-git-send-email-lftan@altera.com>
-	<20140422122856.GA1053@distanz.ch>
+ <1397824031-4892-20-git-send-email-lftan@altera.com>
+ <20140422123914.GB1053@distanz.ch>
+ <CAFiDJ5-S8bD7Z+5XcwUK_mZ+ShCMp5nj7km4NSn+Ecck3xnBxQ@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qc0-f170.google.com ([209.85.216.170]:63998 "EHLO
-	mail-qc0-f170.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753938AbaDWHso (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 23 Apr 2014 03:48:44 -0400
-In-Reply-To: <20140422122856.GA1053@distanz.ch>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Tobias Klauser <tklauser@distanz.ch>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-doc-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <CAFiDJ5-S8bD7Z+5XcwUK_mZ+ShCMp5nj7km4NSn+Ecck3xnBxQ@mail.gmail.com>
+Sender: linux-doc-owner@vger.kernel.org
+To: Ley Foon Tan <lftan@altera.com>
 Cc: Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, cltang@codesourcery.com
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, Apr 22, 2014 at 8:28 PM, Tobias Klauser <tklauser@distanz.ch> wrote:
+On 2014-04-23 at 09:10:26 +0200, Ley Foon Tan <lftan@altera.com> wrote:
+> Hi Tobias
+> 
+> 
+> On Tue, Apr 22, 2014 at 8:39 PM, Tobias Klauser <tklauser@distanz.ch> wrote:
+> > On 2014-04-18 at 14:27:06 +0200, Ley Foon Tan <lftan@altera.com> wrote:
+> 
+> >> +
+> >> +/* estatus register bits */
+> >> +#define ESTATUS_EPIE (1 << 0)        /* processor interrupt enable */
+> >> +#define ESTATUS_EU   (1 << 1)        /* user mode */
+> >> +#define ESTATUS_EH   (1 << 2)        /* Exception mode */
+> >> +
+> >> +/* tlbmisc register bits */
+> >> +#define TLBMISC_PID_SHIFT    4
+> >> +#define TLBMISC_PID_MASK     ((1UL << cpuinfo.tlb_pid_num_bits) - 1)
+> >
+> > You should probably #include <asm/cpuinfo.h> here since struct cpuinfo
+> > is used in the definition.
+> Okay, but I think we should add #ifndef __ASSEMBLY__ at #include
+> <asm/cpuinfo.h> and at line #define TLBMISC_PID_MASK.
+> Assembly source file might include this file as well.
 
->> +What is Nios II?
->> +================
->> +Nios II is a 32-bit embedded-processor architecture designed specifically for the
->> +Altera family of FPGAs. In order to support Linux system, Nios II needs to configure
->
-> Minor nit: 'In order to support Linux, Nios II needs to be configured...'
-Noted.
+Yes, makes sense.
 
->
->> +with MMU and hardware multiplier enabled.
->
+> >
+> >> +#define TLBMISC_WAY_MASK     0xf
+> >> +#define TLBMISC_WAY_SHIFT    20
+> >> +
+> >> +#define TLBMISC_PID  (TLBMISC_PID_MASK << TLBMISC_PID_SHIFT) /* TLB PID */
+> >> +#define TLBMISC_WE   (1 << 18)       /* TLB write enable */
+> >> +#define TLBMISC_RD   (1 << 19)       /* TLB read */
+> >> +#define TLBMISC_WAY  (TLBMISC_WAY_MASK << TLBMISC_WAY_SHIFT) /* TLB way */
+> >> +
+> >> +#endif /* _ASM_NIOS2_REGISTERS_H */
+> 
+> >>
+> 
