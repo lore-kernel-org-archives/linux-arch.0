@@ -1,56 +1,56 @@
-From: Tobias Klauser <tklauser@distanz.ch>
-Subject: Re: [PATCH 23/28] nios2: Nios2 registers
-Date: Wed, 23 Apr 2014 10:00:23 +0200
-Message-ID: <20140423080023.GD1053@distanz.ch>
-References: <1397824031-4892-1-git-send-email-lftan@altera.com>
- <1397824031-4892-20-git-send-email-lftan@altera.com>
- <20140422123914.GB1053@distanz.ch>
- <CAFiDJ5-S8bD7Z+5XcwUK_mZ+ShCMp5nj7km4NSn+Ecck3xnBxQ@mail.gmail.com>
+From: Miklos Szeredi <miklos@szeredi.hu>
+Subject: Re: [PATCH 04/15] arm64: __NR_compat_syscalls fix
+Date: Wed, 23 Apr 2014 10:46:40 +0200
+Message-ID: <CAJfpeguLJjxRu_pktaru9tL3WUo_r=cjmRzqt==M9RkH21GYaw@mail.gmail.com>
+References: <1397211951-20549-1-git-send-email-miklos@szeredi.hu>
+	<1397211951-20549-5-git-send-email-miklos@szeredi.hu>
+	<20140422165814.GH10224@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-doc-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <CAFiDJ5-S8bD7Z+5XcwUK_mZ+ShCMp5nj7km4NSn+Ecck3xnBxQ@mail.gmail.com>
-Sender: linux-doc-owner@vger.kernel.org
-To: Ley Foon Tan <lftan@altera.com>
-Cc: Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, cltang@codesourcery.com
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=UTF-8
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-qc0-f179.google.com ([209.85.216.179]:41142 "EHLO
+	mail-qc0-f179.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750891AbaDWIqm (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 23 Apr 2014 04:46:42 -0400
+Received: by mail-qc0-f179.google.com with SMTP id m20so603216qcx.38
+        for <linux-arch@vger.kernel.org>; Wed, 23 Apr 2014 01:46:40 -0700 (PDT)
+In-Reply-To: <20140422165814.GH10224@arm.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Miklos Szeredi <mszeredi@suse.cz>
 
-On 2014-04-23 at 09:10:26 +0200, Ley Foon Tan <lftan@altera.com> wrote:
-> Hi Tobias
-> 
-> 
-> On Tue, Apr 22, 2014 at 8:39 PM, Tobias Klauser <tklauser@distanz.ch> wrote:
-> > On 2014-04-18 at 14:27:06 +0200, Ley Foon Tan <lftan@altera.com> wrote:
-> 
-> >> +
-> >> +/* estatus register bits */
-> >> +#define ESTATUS_EPIE (1 << 0)        /* processor interrupt enable */
-> >> +#define ESTATUS_EU   (1 << 1)        /* user mode */
-> >> +#define ESTATUS_EH   (1 << 2)        /* Exception mode */
-> >> +
-> >> +/* tlbmisc register bits */
-> >> +#define TLBMISC_PID_SHIFT    4
-> >> +#define TLBMISC_PID_MASK     ((1UL << cpuinfo.tlb_pid_num_bits) - 1)
-> >
-> > You should probably #include <asm/cpuinfo.h> here since struct cpuinfo
-> > is used in the definition.
-> Okay, but I think we should add #ifndef __ASSEMBLY__ at #include
-> <asm/cpuinfo.h> and at line #define TLBMISC_PID_MASK.
-> Assembly source file might include this file as well.
+On Tue, Apr 22, 2014 at 6:58 PM, Catalin Marinas
+<catalin.marinas@arm.com> wrote:
+> On Fri, Apr 11, 2014 at 11:25:40AM +0100, Miklos Szeredi wrote:
+>> From: Miklos Szeredi <mszeredi@suse.cz>
+>>
+>> Signed-off-by: Miklos Szeredi <mszeredi@suse.cz>
+>> Cc: Catalin Marinas <catalin.marinas@arm.com>
+>> ---
+>>  arch/arm64/include/asm/unistd32.h | 2 +-
+>>  1 file changed, 1 insertion(+), 1 deletion(-)
+>>
+>> diff --git a/arch/arm64/include/asm/unistd32.h b/arch/arm64/include/asm/unistd32.h
+>> index bb8eb8a78e67..faa0e1ce59df 100644
+>> --- a/arch/arm64/include/asm/unistd32.h
+>> +++ b/arch/arm64/include/asm/unistd32.h
+>> @@ -404,7 +404,7 @@ __SYSCALL(379, sys_finit_module)
+>>  __SYSCALL(380, sys_sched_setattr)
+>>  __SYSCALL(381, sys_sched_getattr)
+>>
+>> -#define __NR_compat_syscalls         379
+>> +#define __NR_compat_syscalls         382
+>
+> I picked up this patch, together with a Cc: stable and longer comment.
+>
+> What's your plan with the other patches? Do you submit them as a series
+> or would like the arch maintainers to pick them up?
 
-Yes, makes sense.
+Either is OK for me.  I'll collect ACKs for those which the maintainer
+doesn't want to submit, and I'll submit them in one batch.
 
-> >
-> >> +#define TLBMISC_WAY_MASK     0xf
-> >> +#define TLBMISC_WAY_SHIFT    20
-> >> +
-> >> +#define TLBMISC_PID  (TLBMISC_PID_MASK << TLBMISC_PID_SHIFT) /* TLB PID */
-> >> +#define TLBMISC_WE   (1 << 18)       /* TLB write enable */
-> >> +#define TLBMISC_RD   (1 << 19)       /* TLB read */
-> >> +#define TLBMISC_WAY  (TLBMISC_WAY_MASK << TLBMISC_WAY_SHIFT) /* TLB way */
-> >> +
-> >> +#endif /* _ASM_NIOS2_REGISTERS_H */
-> 
-> >>
-> 
+But if you have patches anyway, please feel free to pick this up as well.
+
+Thanks,
+Miklois
