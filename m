@@ -1,47 +1,52 @@
-From: Ley Foon Tan <lftan@altera.com>
-Subject: Re: [PATCH 08/28] nios2: MMU Fault handling
-Date: Fri, 25 Apr 2014 00:02:13 +0800
-Message-ID: <CAFiDJ5-r1SW9qbE4Oghg4cTZUA_qu2RfBj0YLafcFVGweBctoQ@mail.gmail.com>
+From: Ezequiel Garcia <ezequiel.garcia@free-electrons.com>
+Subject: Re: [PATCH 19/28] nios2: Device tree support
+Date: Thu, 24 Apr 2014 13:05:45 -0300
+Message-ID: <20140424160545.GE1735@arch.cereza>
 References: <1397824031-4892-1-git-send-email-lftan@altera.com>
-	<1397824031-4892-6-git-send-email-lftan@altera.com>
-	<20140422143036.GD15745@arch.cereza>
-	<CAFiDJ59KHkh549PBezijr-UektFQtQaZ_5fP5qqRvsVC-e2uxw@mail.gmail.com>
-	<20140424152232.GD1735@arch.cereza>
+ <1397824031-4892-16-git-send-email-lftan@altera.com>
+ <201404221542.16481.arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qc0-f171.google.com ([209.85.216.171]:48544 "EHLO
-	mail-qc0-f171.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1758032AbaDXQC1 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 24 Apr 2014 12:02:27 -0400
-In-Reply-To: <20140424152232.GD1735@arch.cereza>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Ezequiel Garcia <ezequiel.garcia@free-electrons.com>
-Cc: Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, cltang@codesourcery.com
+Content-Type: text/plain; charset=iso-8859-1
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <201404221542.16481.arnd@arndb.de>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Arnd Bergmann <arnd@arndb.de>, Ley Foon Tan <lftan@altera.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, lftan.linux@gmail.com, cltang@codesourcery.com
+List-Id: linux-arch.vger.kernel.org
 
-On Thu, Apr 24, 2014 at 11:22 PM, Ezequiel Garcia
-<ezequiel.garcia@free-electrons.com> wrote:
->> > I found that it's useful to add some printing here, just as ARM
->> > does. I carry this patch on my kernel:
->> >
->> > +               printk(KERN_INFO "%s: unhandled page fault (%d) at 0x%08lx, cause %ld\n",
->> > +                      current->comm, SIGSEGV, address, cause);
->> > +               show_regs(regs);
->> >
->> > Do you think we could do something like it? Maybe with a compile time option?
->> Yes, this is useful debug message. I can add this.
->> Prefer not to add new compile time option, I think this shouldn't
->> happen frequently.
->
-> No, it shouldn't happen frequently. You can take a look at what ARM does.
-> They use a DEBUG_USER compile-time option, much more complex than my silly
-> proposal.
-For now, we can print it always if this shouldn't happen frequently.
-Compile time option can be added later if we have more other debug
-stuff to print later.
+On Apr 22, Arnd Bergmann wrote:
+> On Friday 18 April 2014, Ley Foon Tan wrote:
+>=20
+> Are these all synthesized devices, or is there also some hardwired
+> logic? It often makes sense to split out the reusable parts into
+> a separate .dtsi file that gets included by every implementation.
+>=20
 
-Thanks.
+In case you are not aware of this, devicetree files for Nios-II
+SoCs are produced through an automated tool calle sopc2dts:
 
-Regard,
-Ley Foon
+http://www.alterawiki.com/wiki/Sopc2dts
+http://git.rocketboards.org/sopc-tools.git/
+
+You feed it with a sopcinfo file (AFAIK, Altera's specific format) and
+you obtain a full-fledged devicetree source file. Usually it works
+out-of-the-box, although I like to go over it and fix ranges, whitespac=
+es,
+and do some cleaning.
+
+So I'm wondering -given we have such superb tool- why would we want to
+include the devicetree source's in the kernel?=20
+
+=46irst, we'll be only supporting a *specific* configuration. Second, t=
+he
+dts is trivially easy to obtain.
+
+The binding documentation should be enough specification, and there's n=
+o
+need for further reference or examples.
+--=20
+Ezequiel Garc=EDa, Free Electrons
+Embedded Linux, Kernel and Android Engineering
+http://free-electrons.com
