@@ -1,65 +1,51 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.9]:52670 "EHLO
-	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750860AbaDXGvy (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 24 Apr 2014 02:51:54 -0400
-Date: Thu, 24 Apr 2014 08:51:33 +0200
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: Dirty/Access bits vs. page content
-Message-ID: <20140424065133.GX26782@laptop.programming.kicks-ass.net>
-References: <53558507.9050703@zytor.com>
- <CA+55aFxGm6J6N=4L7exLUFMr1_siNGHpK=wApd9GPCH1=63PPA@mail.gmail.com>
- <53559F48.8040808@intel.com>
- <CA+55aFwDtjA4Vp0yt0K5x6b6sAMtcn=61SEnOOs_En+3UXNpuA@mail.gmail.com>
- <CA+55aFzFxBDJ2rWo9DggdNsq-qBCr11OVXnm64jx04KMSVCBAw@mail.gmail.com>
- <20140422075459.GD11182@twins.programming.kicks-ass.net>
- <CA+55aFzM+NpE-EzJdDeYX=cqWRzkGv9o-vybDR=oFtDLMRK-mA@mail.gmail.com>
- <alpine.LSU.2.11.1404221847120.1759@eggly.anvils>
- <20140423184145.GH17824@quack.suse.cz>
- <CA+55aFwm9BT4ecXF7dD+OM0-+1Wz5vd4ts44hOkS8JdQ74SLZQ@mail.gmail.com>
+Received: from mail-pa0-f48.google.com ([209.85.220.48]:37677 "EHLO
+	mail-pa0-f48.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751777AbaDXHS0 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 24 Apr 2014 03:18:26 -0400
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <CA+55aFwm9BT4ecXF7dD+OM0-+1Wz5vd4ts44hOkS8JdQ74SLZQ@mail.gmail.com>
+In-Reply-To: <20140422143036.GD15745@arch.cereza>
+References: <1397824031-4892-1-git-send-email-lftan@altera.com>
+	<1397824031-4892-6-git-send-email-lftan@altera.com>
+	<20140422143036.GD15745@arch.cereza>
+Date: Thu, 24 Apr 2014 09:18:25 +0200
+Message-ID: <CAMuHMdXMbGS6xFyW80Cv1xOSF=e76G16vVrboQUkgC7Q_mgZtw@mail.gmail.com>
+Subject: Re: [PATCH 08/28] nios2: MMU Fault handling
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Jan Kara <jack@suse.cz>, Hugh Dickins <hughd@google.com>, Dave Hansen <dave.hansen@intel.com>, "H. Peter Anvin" <hpa@zytor.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, Russell King - ARM Linux <linux@arm.linux.org.uk>, Tony Luck <tony.luck@intel.com>
-Message-ID: <20140424065133.6PfNeHHGE-ZNXn5cfUPwH1ii0DLu04fRfuSj8Zvk3E4@z>
+To: Ezequiel Garcia <ezequiel.garcia@free-electrons.com>
+Cc: Ley Foon Tan <lftan@altera.com>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, LeyFoon Tan <lftan.linux@gmail.com>, cltang@codesourcery.com, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
+Message-ID: <20140424071825.37PNsLShdsNjXx5qRqqmqRRfnR3WxmnzyOx8M5ev-xE@z>
 
-On Wed, Apr 23, 2014 at 12:33:15PM -0700, Linus Torvalds wrote:
-> On Wed, Apr 23, 2014 at 11:41 AM, Jan Kara <jack@suse.cz> wrote:
-> >
-> > Now I'm not sure how to fix Linus' patches. For all I care we could just
-> > rip out pte dirty bit handling for file mappings. However last time I
-> > suggested this you corrected me that tmpfs & ramfs need this. I assume this
-> > is still the case - however, given we unconditionally mark the page dirty
-> > for write faults, where exactly do we need this?
-> 
-> Honza, you're missing the important part: it does not matter one whit
-> that we unconditionally mark the page dirty, when we do it *early*,
-> and it can be then be marked clean before it's actually clean!
-> 
-> The problem is that page cleaning can clean the page when there are
-> still writers dirtying the page. Page table tear-down removes the
-> entry from the page tables, but it's still there in the TLB on other
-> CPU's. 
+On Tue, Apr 22, 2014 at 4:30 PM, Ezequiel Garcia
+<ezequiel.garcia@free-electrons.com> wrote:
+> On Apr 18, Ley Foon Tan wrote:
+>> +
+>> +bad_area_nosemaphore:
+>> +     /* User mode accesses just cause a SIGSEGV */
+>> +     if (user_mode(regs)) {
+>
+> I found that it's useful to add some printing here, just as ARM
+> does. I carry this patch on my kernel:
+>
+> +               printk(KERN_INFO "%s: unhandled page fault (%d) at 0x%08lx, cause %ld\n",
+> +                      current->comm, SIGSEGV, address, cause);
+> +               show_regs(regs);
+>
+> Do you think we could do something like it? Maybe with a compile time option?
 
-> So other CPU's are possibly writing to the page, when
-> clear_page_dirty_for_io() has marked it clean (because it didn't see
-> the page table entries that got torn down, and it hasn't seen the
-> dirty bit in the page yet).
+Can this easily be triggered from userspace? If yes, please use
+pr_info_ratelimited().
 
-So page_mkclean() does an rmap walk to mark the page RO, it does mm wide
-TLB invalidations while doing so.
+Gr{oetje,eeting}s,
 
-zap_pte_range() only removes the rmap entry after it does the
-ptep_get_and_clear_full(), which doesn't do any TLB invalidates.
+                        Geert
 
-So as Linus says the page_mkclean() can actually miss a page, because
-it's already removed from rmap() but due to zap_pte_range() can still
-have active TLB entries.
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
 
-So in order to fix this we'd have to delay the page_remove_rmap() as
-well, but that's tricky because rmap walkers cannot deal with
-in-progress teardown. Will need to think on this.
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
