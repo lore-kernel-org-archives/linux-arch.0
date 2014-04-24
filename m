@@ -1,54 +1,47 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from top.free-electrons.com ([176.31.233.9]:41450 "EHLO
-	mail.free-electrons.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1758507AbaDXQSh (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 24 Apr 2014 12:18:37 -0400
-Date: Thu, 24 Apr 2014 13:18:04 -0300
-From: Ezequiel Garcia <ezequiel.garcia@free-electrons.com>
-Subject: Re: [PATCH 08/28] nios2: MMU Fault handling
-Message-ID: <20140424161804.GG1735@arch.cereza>
-References: <1397824031-4892-1-git-send-email-lftan@altera.com>
- <1397824031-4892-6-git-send-email-lftan@altera.com>
- <20140422143036.GD15745@arch.cereza>
- <CAFiDJ59KHkh549PBezijr-UektFQtQaZ_5fP5qqRvsVC-e2uxw@mail.gmail.com>
- <20140424152232.GD1735@arch.cereza>
- <CAFiDJ5-r1SW9qbE4Oghg4cTZUA_qu2RfBj0YLafcFVGweBctoQ@mail.gmail.com>
+Received: from mail-qg0-f42.google.com ([209.85.192.42]:45901 "EHLO
+	mail-qg0-f42.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753243AbaDXQXW (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 24 Apr 2014 12:23:22 -0400
 MIME-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
-Content-Disposition: inline
-Content-Transfer-Encoding: 8bit
-In-Reply-To: <CAFiDJ5-r1SW9qbE4Oghg4cTZUA_qu2RfBj0YLafcFVGweBctoQ@mail.gmail.com>
+In-Reply-To: <201404221430.40237.arnd@arndb.de>
+References: <1397824031-4892-1-git-send-email-lftan@altera.com>
+	<1397824031-4892-13-git-send-email-lftan@altera.com>
+	<201404221430.40237.arnd@arndb.de>
+Date: Fri, 25 Apr 2014 00:23:21 +0800
+Message-ID: <CAFiDJ58uhQNzzZfpC8k1V628sFD9+GrAAEnHgHM6k1NtxKNGgw@mail.gmail.com>
+Subject: Re: [PATCH 16/28] nios2: System calls handling
+From: Ley Foon Tan <lftan@altera.com>
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ley Foon Tan <lftan@altera.com>
+To: Arnd Bergmann <arnd@arndb.de>
 Cc: Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, cltang@codesourcery.com
-Message-ID: <20140424161804.31HqKuy4Aru7DMBDhxn6iyvUCX9nTK5GnFVHWR6h3HY@z>
+Message-ID: <20140424162321.v21qdWsJSYY0i74R-0KLSBeNMFJ8pE4MHbCr-bXiTtI@z>
 
-On Apr 25, Ley Foon Tan wrote:
-> On Thu, Apr 24, 2014 at 11:22 PM, Ezequiel Garcia
-> <ezequiel.garcia@free-electrons.com> wrote:
-> >> > I found that it's useful to add some printing here, just as ARM
-> >> > does. I carry this patch on my kernel:
-> >> >
-> >> > +               printk(KERN_INFO "%s: unhandled page fault (%d) at 0x%08lx, cause %ld\n",
-> >> > +                      current->comm, SIGSEGV, address, cause);
-> >> > +               show_regs(regs);
-> >> >
-> >> > Do you think we could do something like it? Maybe with a compile time option?
-> >> Yes, this is useful debug message. I can add this.
-> >> Prefer not to add new compile time option, I think this shouldn't
-> >> happen frequently.
-> >
-> > No, it shouldn't happen frequently. You can take a look at what ARM does.
-> > They use a DEBUG_USER compile-time option, much more complex than my silly
-> > proposal.
-> For now, we can print it always if this shouldn't happen frequently.
-> Compile time option can be added later if we have more other debug
-> stuff to print later.
-> 
+On Tue, Apr 22, 2014 at 8:30 PM, Arnd Bergmann <arnd@arndb.de> wrote:
+> On Friday 18 April 2014, Ley Foon Tan wrote:
+>
+>> +
+>> + #define sys_mmap2 sys_mmap_pgoff
+>> +
+>
+> You use sys_mmap_pgoff here, but
+>
+>> +asmlinkage long sys_mmap(unsigned long addr, unsigned long len,
+>> +                     unsigned long prot, unsigned long flags,
+>> +                     unsigned long fd, unsigned long offset)
+>> +{
+>> +     if (offset & ~PAGE_MASK)
+>> +             return -EINVAL;
+>> +
+>> +     return sys_mmap_pgoff(addr, len, prot, flags, fd, offset >> PAGE_SHIFT);
+>> +}
+>
+> define a separate sys_mmap() here. Doing the former should be enough.
+> so you can just drop the sys_mmap definition.
+Okay, will drop the sys_mmap.
 
-OK, sound sensible.
--- 
-Ezequiel García, Free Electrons
-Embedded Linux, Kernel and Android Engineering
-http://free-electrons.com
+Thanks.
+Regards
+Ley Foon
