@@ -1,84 +1,64 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.17.13]:61349 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752488AbaDXHo1 convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 24 Apr 2014 03:44:27 -0400
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH 07/28] nios2: I/O Mapping
-Date: Thu, 24 Apr 2014 09:43:52 +0200
-Message-ID: <23940551.x13XR6zuRa@wuerfel>
-In-Reply-To: <CAFiDJ5_79UoFS0bbgyd6htRELXpsF4bD091Bg1EVsocXt76NEw@mail.gmail.com>
-References: <1397824031-4892-1-git-send-email-lftan@altera.com> <201404221559.37560.arnd@arndb.de> <CAFiDJ5_79UoFS0bbgyd6htRELXpsF4bD091Bg1EVsocXt76NEw@mail.gmail.com>
+Received: from cantor2.suse.de ([195.135.220.15]:47035 "EHLO mx2.suse.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752793AbaDXItb (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 24 Apr 2014 04:49:31 -0400
+Date: Thu, 24 Apr 2014 10:49:28 +0200
+From: Jan Kara <jack@suse.cz>
+Subject: Re: Dirty/Access bits vs. page content
+Message-ID: <20140424084928.GI17824@quack.suse.cz>
+References: <53558507.9050703@zytor.com>
+ <CA+55aFxGm6J6N=4L7exLUFMr1_siNGHpK=wApd9GPCH1=63PPA@mail.gmail.com>
+ <53559F48.8040808@intel.com>
+ <CA+55aFwDtjA4Vp0yt0K5x6b6sAMtcn=61SEnOOs_En+3UXNpuA@mail.gmail.com>
+ <CA+55aFzFxBDJ2rWo9DggdNsq-qBCr11OVXnm64jx04KMSVCBAw@mail.gmail.com>
+ <20140422075459.GD11182@twins.programming.kicks-ass.net>
+ <CA+55aFzM+NpE-EzJdDeYX=cqWRzkGv9o-vybDR=oFtDLMRK-mA@mail.gmail.com>
+ <alpine.LSU.2.11.1404221847120.1759@eggly.anvils>
+ <20140423184145.GH17824@quack.suse.cz>
+ <alpine.LSU.2.11.1404231247230.3173@eggly.anvils>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8BIT
-Content-Type: text/plain; charset="iso-8859-1"
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <alpine.LSU.2.11.1404231247230.3173@eggly.anvils>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ley Foon Tan <lftan@altera.com>, Uwe =?ISO-8859-1?Q?Kleine=2DK=F6nig?= <u.kleine-koenig@pengutronix.de>
-Cc: Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, cltang@codesourcery.com
-Message-ID: <20140424074352.8asnE9u2UZJnCuIVQGt9k5bykQYZ3qLiAutIidIrZKg@z>
+To: Hugh Dickins <hughd@google.com>
+Cc: Jan Kara <jack@suse.cz>, Linus Torvalds <torvalds@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Dave Hansen <dave.hansen@intel.com>, "H. Peter Anvin" <hpa@zytor.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, Russell King - ARM Linux <linux@arm.linux.org.uk>, Tony Luck <tony.luck@intel.com>
+Message-ID: <20140424084928.Ownw0bidiaoBiNZpOBcDnVY6hzU9mrJm7zTkizDOgCc@z>
 
-On Thursday 24 April 2014 14:02:47 Ley Foon Tan wrote:
-> On Tue, Apr 22, 2014 at 9:59 PM, Arnd Bergmann <arnd@arndb.de> wrote:
-> > On Friday 18 April 2014, Ley Foon Tan wrote:
-> >
-> >> +
-> >> +#include <asm/pgtable-bits.h>
-> >> +
-> >> +#define IO_SPACE_LIMIT 0xffffffff
-> >
-> > Please use 0xffff here, this should work for almost any PCI bus.
-> Ah, CONFIG_PCI is not enable in nios2. So, I think IO_SPACE_LIMIT
-> should set to 0.
+On Wed 23-04-14 13:11:20, Hugh Dickins wrote:
+> On Wed, 23 Apr 2014, Jan Kara wrote:
+> > Now I'm not sure how to fix Linus' patches. For all I care we could just
+> > rip out pte dirty bit handling for file mappings. However last time I
+> > suggested this you corrected me that tmpfs & ramfs need this. I assume this
+> > is still the case - however, given we unconditionally mark the page dirty
+> > for write faults, where exactly do we need this?
+> 
+> Good, Linus has already replied to you on this this: you appear to be
+> suggesting that there would be no issue, and Linus's patches would not
+> be needed at all, if only tmpfs and ramfs played by the others' rules.
+  No, that's not what I wanted to say. I wanted to say - keep Linus'
+patches and additionally rip out pte dirty bit handling for "normal"
+filesystems to not confuse filesystems with dirty pages where they don't
+expect them. But after reading replies and thinking about it even that is
+not enough because then we would again miss writes done by other cpus after
+we tore down rmap but before we flushed TLBs.
 
-Yes, possibly with a comment added regarding PCI.
+> But (sadly) I don't think that's so: just because zap_pte_range()'s
+> current "if (pte_dirty) set_page_dirty" does nothing on most filesystems,
+> does not imply that nothing needs to be done on most filesystems, now
+> that we're alert to the delayed TLB flushing issue.
+> 
+> Just to answer your (interesting but irrelevant!) question about tmpfs
+> and ramfs: their issue is with read faults which bring in a zeroed page,
+> with page and pte not marked dirty.  If userspace modifies that page, the
+> pte_dirty needs to be propagated through to PageDirty, to prevent page
+> reclaim from simply freeing the apparently clean page.
+  Ah, I keep forgetting about that vma_wants_writenotify() thing in mmap
+which changes whether a shared page is mapped RW or RO on read fault.
 
-> >> +/*
-> >> + *   make the short names macros so specific devices
-> >> + *   can override them as required
-> >> + */
-> >> +#define inb(addr)            readb(addr)
-> >> +#define inw(addr)            readw(addr)
-> >> +#define inl(addr)            readl(addr)
-> >> +#define outb(x, addr)                ((void) writeb(x, addr))
-> >> +#define outw(x, addr)                ((void) writew(x, addr))
-> >> +#define outl(x, addr)                ((void) writel(x, addr))
-> >
-> > This makes no sense: the legacy PC I/O accessors take a completely
-> > different argument type: I would recommend to make both inline
-> > functions so you can ensure that readl() gets passed an __iomem
-> > pointer, while inl() gets an integer number.
-> >
-> > Please see the asm-generic version for an example. You should also
-> > define a non-NULL PCI_IOBASE to which the PCI I/O space gets mapped.
-> I think these macros can be removed if PCI is not enabled in Nios2.
-
-We have a bunch of ISA device drivers that use these interfaces but
-are not built conditionally through a Kconfig dependency. If you
-want 'allyesconfig' to build successfully, you have to provide some
-dummy implementation.
-
-> >> +#define ioport_map(port, nr) ioremap(port, nr)
-> >> +#define ioport_unmap(port)   iounmap(port)
-> >
-> > Use this one instead:
-> >
-> > #ifdef CONFIG_PCI
-> > static inline void __iomem *ioport_map(unsigned long port, unsigned int nr)
-> > {
-> >         return PCI_IOBASE + port;
-> > }
-> >
-> > static inline void __iomem *ioport_unmap(void __iomem *)
-> > {
-> > }
-> > #endif
-> These also can be removed.
-
-For this, there is a Kconfig symbol. If you don't provide ioport_map,
-you should set CONFIG_NO_IOPORT_MAP. Uwe Kleine-König has recently
-started some work in this area. Ideally we would also have a CONFIG_HAS_IOPORT
-option that is only set by architectures that actually implement inb/outb.
-Getting there still needs work, but any help is appreciated.
-
-	Arnd
+								Honza
+-- 
+Jan Kara <jack@suse.cz>
+SUSE Labs, CR
