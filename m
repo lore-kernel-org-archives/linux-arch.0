@@ -1,89 +1,89 @@
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH 00/28] nios2 Linux kernel port
-Date: Thu, 24 Apr 2014 16:28:19 +0100
-Message-ID: <20140424152819.GI8521@arm.com>
+From: Ley Foon Tan <lftan@altera.com>
+Subject: Re: [PATCH 07/28] nios2: I/O Mapping
+Date: Thu, 24 Apr 2014 23:51:26 +0800
+Message-ID: <CAFiDJ59ZsPtoMT-P5_h24SCF8SYJhU8kti+M-Y1mfV4o0DP7ow@mail.gmail.com>
 References: <1397824031-4892-1-git-send-email-lftan@altera.com>
- <5354AD36.5090809@zytor.com>
- <CAFiDJ5861HE4AXtio-8uNJppWE2oaPt9_OKyGV=Myb_3vPrOVA@mail.gmail.com>
- <16597012.pEkDc99HDN@wuerfel>
- <CAFiDJ5_dUpVTSeC36AfNKVN7BOa9GQ5vwSEWricm=8Sam9mR2A@mail.gmail.com>
- <5357FF8E.9010809@codesourcery.com>
- <E780DB23-B6A3-427B-8F33-71378088A3F5@caviumnetworks.com>
- <5358AE96.9010006@codesourcery.com>
- <5358D17D.1040609@codesourcery.com>
+	<201404221559.37560.arnd@arndb.de>
+	<CAFiDJ5_79UoFS0bbgyd6htRELXpsF4bD091Bg1EVsocXt76NEw@mail.gmail.com>
+	<23940551.x13XR6zuRa@wuerfel>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from fw-tnat.austin.arm.com ([217.140.110.23]:17931 "EHLO
-	collaborate-mta1.arm.com" rhost-flags-OK-OK-OK-FAIL)
-	by vger.kernel.org with ESMTP id S1757202AbaDXP3C (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 24 Apr 2014 11:29:02 -0400
-Content-Disposition: inline
-In-Reply-To: <5358D17D.1040609@codesourcery.com>
-Content-Language: en-US
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Chung-Lin Tang <cltang@codesourcery.com>
-Cc: "Pinski, Andrew" <Andrew.Pinski@caviumnetworks.com>, Ley Foon Tan <lftan@altera.com>, Arnd Bergmann <arnd@arndb.de>, "H. Peter Anvin" <hpa@zytor.com>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Andrew Pinski <apinski@cavium.com>, "Tang, Chung-Lin" <ChungLin_Tang@mentor.com>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <23940551.x13XR6zuRa@wuerfel>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: =?UTF-8?Q?Uwe_Kleine=2DK=C3=B6nig?= <u.kleine-koenig@pengutronix.de>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, cltang@codesourcery.com
+List-Id: linux-arch.vger.kernel.org
 
-On Thu, Apr 24, 2014 at 09:55:25AM +0100, Chung-Lin Tang wrote:
-> On 2014/4/24 02:26 PM, Chung-Lin Tang wrote:
-> > On 2014/4/24 =E4=B8=8A=E5=8D=88 02:15, Pinski, Andrew wrote:
-> >>
-> >>>> On Apr 23, 2014, at 10:59 AM, "Chung-Lin Tang" <cltang@codesourc=
-ery.com> wrote:
-> >>>>
-> >>>>>> On 2014/4/22 07:20 PM, Ley Foon Tan wrote:
-> >>>>>> On Tue, Apr 22, 2014 at 6:56 PM, Arnd Bergmann <arnd@arndb.de>=
- wrote:
-> >>>>>>>>>> On Tuesday 22 April 2014 18:37:11 Ley Foon Tan wrote:
-> >>>>>>>>>>>>>> Hi Arnd and Peter Anvin,
-> >>>>>>>>>>>>>>
-> >>>>>>>>>>>>>> Other than 64-bit time_t, clock_t and suseconds_t, can=
- you confirm
-> >>>>>>>>>>>>>> that we don't need to have 64 bit off_t? See detail in=
- link below.
-> >>>>>>>>>>>>>> I can submit the patches for 64-bit time changes
-> >>>>>>>>>>>>>> (include/asm-generic/posix_types.h and other archs) if=
- everyone is
-> >>>>>>>>>>>>>> agreed on this.
-> >>>>>>>>>>
-> >>>>>>>>>> Yes.
-> >>>>>> Okay, will doing that.
-> >>>>
-> >>>> I believe that arm64 ILP32 will also be affected. What is the st=
-atus of
-> >>>> this configuration? Has the glibc/kernel ABI been finalized?
-> >> Not yet.  I am still working out the signal handling part. But we
-> >> already agreed on 64bit time_t, clock_t, and suseconds_t.  And we
-> >> agreed to a 64bit offset_t too.=20
-> >>
-> >> On a related note suseconds in the timespec in posix is defined to
-> >> be long. So it would nice if the kernel ignores the upper 32bits s=
-o
-> >> we (glibc developers) can fix this for new targets including x32
-> >> and arm64/ilp32.=20
-> >=20
-> > Hmm, but that means for purely 32-bit architectures like nios2, whi=
-ch
-> > unlike x86_64 or arm64, never has a 64-bit mode, suseconds_t as a 6=
-4-bit
-> > type in the kernel is simply wasted.
->=20
-> The more I think of this, the more I feel that suseconds_t should jsu=
-t
-> be 'long', not strictly 64-bitified. An ILP32 sub-mode in a 64-bit
-> kernel should be using compat_* code paths, something like a
-> COMPAT_USE_32BIT_SUSECONDS case.
+On Thu, Apr 24, 2014 at 3:43 PM, Arnd Bergmann <arnd@arndb.de> wrote:
+> On Thursday 24 April 2014 14:02:47 Ley Foon Tan wrote:
 
-ILP32 mode should use LP64 syscalls as much as possible and that's the
-aim with arm64 as well (of course, we still have a few that wouldn't be
-possible and we route them via compat).
+>> >> +#define IO_SPACE_LIMIT 0xffffffff
+>> >
+>> > Please use 0xffff here, this should work for almost any PCI bus.
+>> Ah, CONFIG_PCI is not enable in nios2. So, I think IO_SPACE_LIMIT
+>> should set to 0.
+>
+> Yes, possibly with a comment added regarding PCI.
+Sure.
 
-But here if time_t is 64-bit while susecconds_t is 32-bit, the compat
-code wouldn't help.
+>
+>> >> +/*
+>> >> + *   make the short names macros so specific devices
+>> >> + *   can override them as required
+>> >> + */
+>> >> +#define inb(addr)            readb(addr)
+>> >> +#define inw(addr)            readw(addr)
+>> >> +#define inl(addr)            readl(addr)
+>> >> +#define outb(x, addr)                ((void) writeb(x, addr))
+>> >> +#define outw(x, addr)                ((void) writew(x, addr))
+>> >> +#define outl(x, addr)                ((void) writel(x, addr))
+>> >
+>> > This makes no sense: the legacy PC I/O accessors take a completely
+>> > different argument type: I would recommend to make both inline
+>> > functions so you can ensure that readl() gets passed an __iomem
+>> > pointer, while inl() gets an integer number.
+>> >
+>> > Please see the asm-generic version for an example. You should also
+>> > define a non-NULL PCI_IOBASE to which the PCI I/O space gets mappe=
+d.
+>> I think these macros can be removed if PCI is not enabled in Nios2.
+>
+> We have a bunch of ISA device drivers that use these interfaces but
+> are not built conditionally through a Kconfig dependency. If you
+> want 'allyesconfig' to build successfully, you have to provide some
+> dummy implementation.
+Okay, will provide empty write and read with return 0 dummy implementat=
+ion here.
 
---=20
-Catalin
+>
+>> >> +#define ioport_map(port, nr) ioremap(port, nr)
+>> >> +#define ioport_unmap(port)   iounmap(port)
+>> >
+>> > Use this one instead:
+>> >
+>> > #ifdef CONFIG_PCI
+>> > static inline void __iomem *ioport_map(unsigned long port, unsigne=
+d int nr)
+>> > {
+>> >         return PCI_IOBASE + port;
+>> > }
+>> >
+>> > static inline void __iomem *ioport_unmap(void __iomem *)
+>> > {
+>> > }
+>> > #endif
+>> These also can be removed.
+>
+> For this, there is a Kconfig symbol. If you don't provide ioport_map,
+> you should set CONFIG_NO_IOPORT_MAP. Uwe Kleine-K=C3=B6nig has recent=
+ly
+> started some work in this area. Ideally we would also have a CONFIG_H=
+AS_IOPORT
+> option that is only set by architectures that actually implement inb/=
+outb.
+> Getting there still needs work, but any help is appreciated.
+Will set CONFIG_NO_IOPORT_MAP. I noticed that there is
+CONFIG_HAS_IOPORT_MAP, is it same as CONFIG_HAS_IOPORT you refer to?
+But, seem only arch/sh is using it.
