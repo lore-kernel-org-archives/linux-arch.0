@@ -1,55 +1,54 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qg0-f54.google.com ([209.85.192.54]:62506 "EHLO
-	mail-qg0-f54.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754359AbaDXKqg (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 24 Apr 2014 06:46:36 -0400
-MIME-Version: 1.0
-In-Reply-To: <5358E9EB.8080307@nod.at>
+Received: from top.free-electrons.com ([176.31.233.9]:39770 "EHLO
+	mail.free-electrons.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1758125AbaDXPXI (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 24 Apr 2014 11:23:08 -0400
+Date: Thu, 24 Apr 2014 12:22:32 -0300
+From: Ezequiel Garcia <ezequiel.garcia@free-electrons.com>
+Subject: Re: [PATCH 08/28] nios2: MMU Fault handling
+Message-ID: <20140424152232.GD1735@arch.cereza>
 References: <1397824031-4892-1-git-send-email-lftan@altera.com>
-	<1397824031-4892-14-git-send-email-lftan@altera.com>
-	<CAFLxGvyPCwo-d92QK9qAR5=gmRS4p24tYs9PiOApBGfrKdxJ5Q@mail.gmail.com>
-	<CAFiDJ5-q5hzR+1BDCmCzwqbuVZOUdjX_-omR4u3rnC8xqdQZLA@mail.gmail.com>
-	<CAFiDJ59g0E+hoREriydqk2uBsDvchPMSQi6NCgnwOd64OGLJ0w@mail.gmail.com>
-	<5358E4B9.1050308@nod.at>
-	<CAFiDJ5_pbcQo7VPj6J9UVhxGQtGn7hX19vkybL3DvM73v8Dc-w@mail.gmail.com>
-	<5358E9EB.8080307@nod.at>
-Date: Thu, 24 Apr 2014 18:46:35 +0800
-Message-ID: <CAFiDJ59hHikNKcY8hCu9M=hOQoL9STED82hEhAggubq3jqt3ig@mail.gmail.com>
-Subject: Re: [PATCH 17/28] nios2: Signal handling support
-From: Ley Foon Tan <lftan@altera.com>
-Content-Type: text/plain; charset=UTF-8
+ <1397824031-4892-6-git-send-email-lftan@altera.com>
+ <20140422143036.GD15745@arch.cereza>
+ <CAFiDJ59KHkh549PBezijr-UektFQtQaZ_5fP5qqRvsVC-e2uxw@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=iso-8859-1
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <CAFiDJ59KHkh549PBezijr-UektFQtQaZ_5fP5qqRvsVC-e2uxw@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Richard Weinberger <richard@nod.at>
-Cc: Linux-Arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, cltang@codesourcery.com
-Message-ID: <20140424104635.cj77Izx-uJKD6z0YYJGZ1d8nYCd-DV8n7fVtRqkQpIs@z>
+To: Ley Foon Tan <lftan@altera.com>
+Cc: Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, cltang@codesourcery.com
+Message-ID: <20140424152232.79Hxo-12tL0iHtb6cm4WyjDPBNxLaciV4aBOnMWVc3I@z>
 
-On Thu, Apr 24, 2014 at 6:39 PM, Richard Weinberger <richard@nod.at> wrote:
-> Am 24.04.2014 12:29, schrieb Ley Foon Tan:
->> On Thu, Apr 24, 2014 at 6:17 PM, Richard Weinberger <richard@nod.at> wrote:
->>
->>>>> Okay.
->>>>>
->>>> I just noticed that sigsp() have struct ksignal argument. We can use
->>>> sigsp() for nios2 because it doesn't have struct ksignal.
->>>>
->>>> unsigned long sigsp(unsigned long sp, struct ksignal *ksig);
->>>
->>> Did you at look at the struct ksignal definition and the clean series I've
->>> pointed you to?
->>>
->>
->> Not yet, this is the full set of patches? I only see partial..
->> https://lkml.org/lkml/2014/3/2/198
->
-> Maybe lkml.org misses a few but this does not matter.
-> All you need to know is that using ksignal is easy.
-> e.g. https://lkml.org/lkml/2014/3/2/162
->
-Thanks. I am looking at your git tree
-https://git.kernel.org/cgit/linux/kernel/git/rw/misc.git/log/?h=signal_v2
-Are these patches already available in v3.15 rc?
-I can update nios2 to use new implementation.
+On Apr 24, Ley Foon Tan wrote:
+> On Tue, Apr 22, 2014 at 10:30 PM, Ezequiel Garcia
+> <ezequiel.garcia@free-electrons.com> wrote:
+> > Hello Ley Foon,
+> >
+> > On Apr 18, Ley Foon Tan wrote:
+> >> +
+> >> +bad_area_nosemaphore:
+> >> +     /* User mode accesses just cause a SIGSEGV */
+> >> +     if (user_mode(regs)) {
+> >
+> > I found that it's useful to add some printing here, just as ARM
+> > does. I carry this patch on my kernel:
+> >
+> > +               printk(KERN_INFO "%s: unhandled page fault (%d) at 0x%08lx, cause %ld\n",
+> > +                      current->comm, SIGSEGV, address, cause);
+> > +               show_regs(regs);
+> >
+> > Do you think we could do something like it? Maybe with a compile time option?
+> Yes, this is useful debug message. I can add this.
+> Prefer not to add new compile time option, I think this shouldn't
+> happen frequently.
 
-Regards
-Ley Foon
+No, it shouldn't happen frequently. You can take a look at what ARM does.
+They use a DEBUG_USER compile-time option, much more complex than my silly
+proposal.
+-- 
+Ezequiel García, Free Electrons
+Embedded Linux, Kernel and Android Engineering
+http://free-electrons.com
