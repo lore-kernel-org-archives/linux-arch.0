@@ -1,35 +1,53 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [RFC PATCH 0/4] vmlinux.lds.h clean-ups
-Date: Thu, 24 Apr 2014 15:23:01 +0200
-Message-ID: <201404241523.01452.arnd@arndb.de>
-References: <1395949317-8738-1-git-send-email-robherring2@gmail.com> <CAL_JsqKn_erNnGwdXwg6C08pHHQuQn-4fpmp70agvH5ok=P9-g@mail.gmail.com>
+From: Ezequiel Garcia <ezequiel.garcia@free-electrons.com>
+Subject: Re: [PATCH 08/28] nios2: MMU Fault handling
+Date: Thu, 24 Apr 2014 12:22:32 -0300
+Message-ID: <20140424152232.GD1735@arch.cereza>
+References: <1397824031-4892-1-git-send-email-lftan@altera.com>
+ <1397824031-4892-6-git-send-email-lftan@altera.com>
+ <20140422143036.GD15745@arch.cereza>
+ <CAFiDJ59KHkh549PBezijr-UektFQtQaZ_5fP5qqRvsVC-e2uxw@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: Text/Plain;
-  charset="utf-8"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.187]:55800 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753681AbaDXNXH (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 24 Apr 2014 09:23:07 -0400
-In-Reply-To: <CAL_JsqKn_erNnGwdXwg6C08pHHQuQn-4fpmp70agvH5ok=P9-g@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Rob Herring <robherring2@gmail.com>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Russell King <linux@arm.linux.org.uk>, Rob Herring <robh@kernel.org>
+Content-Type: text/plain; charset=iso-8859-1
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <CAFiDJ59KHkh549PBezijr-UektFQtQaZ_5fP5qqRvsVC-e2uxw@mail.gmail.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Ley Foon Tan <lftan@altera.com>
+Cc: Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, cltang@codesourcery.com
+List-Id: linux-arch.vger.kernel.org
 
-On Tuesday 15 April 2014, Rob Herring wrote:
+On Apr 24, Ley Foon Tan wrote:
+> On Tue, Apr 22, 2014 at 10:30 PM, Ezequiel Garcia
+> <ezequiel.garcia@free-electrons.com> wrote:
+> > Hello Ley Foon,
 > >
-> >  arch/arm/kernel/devtree.c         |  11 +--
-> >  drivers/irqchip/irqchip.c         |   6 +-
-> >  include/asm-generic/vmlinux.lds.h | 142 +++++++++++---------------------------
-> 
-> Arnd, Any comments on this series?
-> 
+> > On Apr 18, Ley Foon Tan wrote:
+> >> +
+> >> +bad_area_nosemaphore:
+> >> +     /* User mode accesses just cause a SIGSEGV */
+> >> +     if (user_mode(regs)) {
+> >
+> > I found that it's useful to add some printing here, just as ARM
+> > does. I carry this patch on my kernel:
+> >
+> > +               printk(KERN_INFO "%s: unhandled page fault (%d) at =
+0x%08lx, cause %ld\n",
+> > +                      current->comm, SIGSEGV, address, cause);
+> > +               show_regs(regs);
+> >
+> > Do you think we could do something like it? Maybe with a compile ti=
+me option?
+> Yes, this is useful debug message. I can add this.
+> Prefer not to add new compile time option, I think this shouldn't
+> happen frequently.
 
-No qualified comments. The linker script is always magic to me. For all I can
-tell, it's all good and you can add an Acked-by from me if that helps you,
-but I'm not able to judge whether it's correct. Do you want to merge it
-through the DT git?
-
-	Arnd
+No, it shouldn't happen frequently. You can take a look at what ARM doe=
+s.
+They use a DEBUG_USER compile-time option, much more complex than my si=
+lly
+proposal.
+--=20
+Ezequiel Garc=EDa, Free Electrons
+Embedded Linux, Kernel and Android Engineering
+http://free-electrons.com
