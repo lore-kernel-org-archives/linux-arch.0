@@ -1,54 +1,88 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from top.free-electrons.com ([176.31.233.9]:39770 "EHLO
-	mail.free-electrons.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1758125AbaDXPXI (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 24 Apr 2014 11:23:08 -0400
-Date: Thu, 24 Apr 2014 12:22:32 -0300
-From: Ezequiel Garcia <ezequiel.garcia@free-electrons.com>
-Subject: Re: [PATCH 08/28] nios2: MMU Fault handling
-Message-ID: <20140424152232.GD1735@arch.cereza>
-References: <1397824031-4892-1-git-send-email-lftan@altera.com>
- <1397824031-4892-6-git-send-email-lftan@altera.com>
- <20140422143036.GD15745@arch.cereza>
- <CAFiDJ59KHkh549PBezijr-UektFQtQaZ_5fP5qqRvsVC-e2uxw@mail.gmail.com>
+Received: from mail-qc0-f172.google.com ([209.85.216.172]:46680 "EHLO
+	mail-qc0-f172.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932153AbaDXP6r convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 24 Apr 2014 11:58:47 -0400
 MIME-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
-Content-Disposition: inline
-Content-Transfer-Encoding: 8bit
-In-Reply-To: <CAFiDJ59KHkh549PBezijr-UektFQtQaZ_5fP5qqRvsVC-e2uxw@mail.gmail.com>
+In-Reply-To: <23940551.x13XR6zuRa@wuerfel>
+References: <1397824031-4892-1-git-send-email-lftan@altera.com>
+	<201404221559.37560.arnd@arndb.de>
+	<CAFiDJ5_79UoFS0bbgyd6htRELXpsF4bD091Bg1EVsocXt76NEw@mail.gmail.com>
+	<23940551.x13XR6zuRa@wuerfel>
+Date: Thu, 24 Apr 2014 23:51:26 +0800
+Message-ID: <CAFiDJ59ZsPtoMT-P5_h24SCF8SYJhU8kti+M-Y1mfV4o0DP7ow@mail.gmail.com>
+Subject: Re: [PATCH 07/28] nios2: I/O Mapping
+From: Ley Foon Tan <lftan@altera.com>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ley Foon Tan <lftan@altera.com>
-Cc: Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, cltang@codesourcery.com
-Message-ID: <20140424152232.79Hxo-12tL0iHtb6cm4WyjDPBNxLaciV4aBOnMWVc3I@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: =?UTF-8?Q?Uwe_Kleine=2DK=C3=B6nig?= <u.kleine-koenig@pengutronix.de>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, cltang@codesourcery.com
+Message-ID: <20140424155126.7PTN7kJkp0za5h__ZrMHk8sfYKoPOMO62OLNab9mwNU@z>
 
-On Apr 24, Ley Foon Tan wrote:
-> On Tue, Apr 22, 2014 at 10:30 PM, Ezequiel Garcia
-> <ezequiel.garcia@free-electrons.com> wrote:
-> > Hello Ley Foon,
-> >
-> > On Apr 18, Ley Foon Tan wrote:
-> >> +
-> >> +bad_area_nosemaphore:
-> >> +     /* User mode accesses just cause a SIGSEGV */
-> >> +     if (user_mode(regs)) {
-> >
-> > I found that it's useful to add some printing here, just as ARM
-> > does. I carry this patch on my kernel:
-> >
-> > +               printk(KERN_INFO "%s: unhandled page fault (%d) at 0x%08lx, cause %ld\n",
-> > +                      current->comm, SIGSEGV, address, cause);
-> > +               show_regs(regs);
-> >
-> > Do you think we could do something like it? Maybe with a compile time option?
-> Yes, this is useful debug message. I can add this.
-> Prefer not to add new compile time option, I think this shouldn't
-> happen frequently.
+On Thu, Apr 24, 2014 at 3:43 PM, Arnd Bergmann <arnd@arndb.de> wrote:
+> On Thursday 24 April 2014 14:02:47 Ley Foon Tan wrote:
 
-No, it shouldn't happen frequently. You can take a look at what ARM does.
-They use a DEBUG_USER compile-time option, much more complex than my silly
-proposal.
--- 
-Ezequiel García, Free Electrons
-Embedded Linux, Kernel and Android Engineering
-http://free-electrons.com
+>> >> +#define IO_SPACE_LIMIT 0xffffffff
+>> >
+>> > Please use 0xffff here, this should work for almost any PCI bus.
+>> Ah, CONFIG_PCI is not enable in nios2. So, I think IO_SPACE_LIMIT
+>> should set to 0.
+>
+> Yes, possibly with a comment added regarding PCI.
+Sure.
+
+>
+>> >> +/*
+>> >> + *   make the short names macros so specific devices
+>> >> + *   can override them as required
+>> >> + */
+>> >> +#define inb(addr)            readb(addr)
+>> >> +#define inw(addr)            readw(addr)
+>> >> +#define inl(addr)            readl(addr)
+>> >> +#define outb(x, addr)                ((void) writeb(x, addr))
+>> >> +#define outw(x, addr)                ((void) writew(x, addr))
+>> >> +#define outl(x, addr)                ((void) writel(x, addr))
+>> >
+>> > This makes no sense: the legacy PC I/O accessors take a completely
+>> > different argument type: I would recommend to make both inline
+>> > functions so you can ensure that readl() gets passed an __iomem
+>> > pointer, while inl() gets an integer number.
+>> >
+>> > Please see the asm-generic version for an example. You should also
+>> > define a non-NULL PCI_IOBASE to which the PCI I/O space gets mapped.
+>> I think these macros can be removed if PCI is not enabled in Nios2.
+>
+> We have a bunch of ISA device drivers that use these interfaces but
+> are not built conditionally through a Kconfig dependency. If you
+> want 'allyesconfig' to build successfully, you have to provide some
+> dummy implementation.
+Okay, will provide empty write and read with return 0 dummy implementation here.
+
+>
+>> >> +#define ioport_map(port, nr) ioremap(port, nr)
+>> >> +#define ioport_unmap(port)   iounmap(port)
+>> >
+>> > Use this one instead:
+>> >
+>> > #ifdef CONFIG_PCI
+>> > static inline void __iomem *ioport_map(unsigned long port, unsigned int nr)
+>> > {
+>> >         return PCI_IOBASE + port;
+>> > }
+>> >
+>> > static inline void __iomem *ioport_unmap(void __iomem *)
+>> > {
+>> > }
+>> > #endif
+>> These also can be removed.
+>
+> For this, there is a Kconfig symbol. If you don't provide ioport_map,
+> you should set CONFIG_NO_IOPORT_MAP. Uwe Kleine-KÃ¶nig has recently
+> started some work in this area. Ideally we would also have a CONFIG_HAS_IOPORT
+> option that is only set by architectures that actually implement inb/outb.
+> Getting there still needs work, but any help is appreciated.
+Will set CONFIG_NO_IOPORT_MAP. I noticed that there is
+CONFIG_HAS_IOPORT_MAP, is it same as CONFIG_HAS_IOPORT you refer to?
+But, seem only arch/sh is using it.
