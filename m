@@ -1,54 +1,56 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from top.free-electrons.com ([176.31.233.9]:41070 "EHLO
-	mail.free-electrons.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1757450AbaDXQGS (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 24 Apr 2014 12:06:18 -0400
-Date: Thu, 24 Apr 2014 13:05:45 -0300
-From: Ezequiel Garcia <ezequiel.garcia@free-electrons.com>
-Subject: Re: [PATCH 19/28] nios2: Device tree support
-Message-ID: <20140424160545.GE1735@arch.cereza>
-References: <1397824031-4892-1-git-send-email-lftan@altera.com>
- <1397824031-4892-16-git-send-email-lftan@altera.com>
- <201404221542.16481.arnd@arndb.de>
+Received: from b.ns.miles-group.at ([95.130.255.144]:1660 "EHLO radon.swed.at"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1753425AbaDXQRC (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 24 Apr 2014 12:17:02 -0400
+Message-ID: <535938F8.3070300@nod.at>
+Date: Thu, 24 Apr 2014 18:16:56 +0200
+From: Richard Weinberger <richard@nod.at>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
-Content-Disposition: inline
-Content-Transfer-Encoding: 8bit
-In-Reply-To: <201404221542.16481.arnd@arndb.de>
+Subject: Re: [PATCH 17/28] nios2: Signal handling support
+References: <1397824031-4892-1-git-send-email-lftan@altera.com>	<1397824031-4892-14-git-send-email-lftan@altera.com>	<CAFLxGvyPCwo-d92QK9qAR5=gmRS4p24tYs9PiOApBGfrKdxJ5Q@mail.gmail.com>	<CAFiDJ5-q5hzR+1BDCmCzwqbuVZOUdjX_-omR4u3rnC8xqdQZLA@mail.gmail.com>	<CAFiDJ59g0E+hoREriydqk2uBsDvchPMSQi6NCgnwOd64OGLJ0w@mail.gmail.com>	<5358E4B9.1050308@nod.at>	<CAFiDJ5_pbcQo7VPj6J9UVhxGQtGn7hX19vkybL3DvM73v8Dc-w@mail.gmail.com>	<5358E9EB.8080307@nod.at> <CAFiDJ59hHikNKcY8hCu9M=hOQoL9STED82hEhAggubq3jqt3ig@mail.gmail.com>
+In-Reply-To: <CAFiDJ59hHikNKcY8hCu9M=hOQoL9STED82hEhAggubq3jqt3ig@mail.gmail.com>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>, Ley Foon Tan <lftan@altera.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, lftan.linux@gmail.com, cltang@codesourcery.com
-Message-ID: <20140424160545.G1XMmdaOljI9PDBqH3gfCzgMWZVdauTOiy0aSusMyOA@z>
+To: Ley Foon Tan <lftan@altera.com>
+Cc: Linux-Arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, cltang@codesourcery.com
+Message-ID: <20140424161656.wgIy_4AiDqrEeV2XL8C6G8jK1gB9hpe8FDgNAfEhMYI@z>
 
-On Apr 22, Arnd Bergmann wrote:
-> On Friday 18 April 2014, Ley Foon Tan wrote:
-> 
-> Are these all synthesized devices, or is there also some hardwired
-> logic? It often makes sense to split out the reusable parts into
-> a separate .dtsi file that gets included by every implementation.
-> 
+Am 24.04.2014 12:46, schrieb Ley Foon Tan:
+> On Thu, Apr 24, 2014 at 6:39 PM, Richard Weinberger <richard@nod.at> wrote:
+>> Am 24.04.2014 12:29, schrieb Ley Foon Tan:
+>>> On Thu, Apr 24, 2014 at 6:17 PM, Richard Weinberger <richard@nod.at> wrote:
+>>>
+>>>>>> Okay.
+>>>>>>
+>>>>> I just noticed that sigsp() have struct ksignal argument. We can use
+>>>>> sigsp() for nios2 because it doesn't have struct ksignal.
+>>>>>
+>>>>> unsigned long sigsp(unsigned long sp, struct ksignal *ksig);
+>>>>
+>>>> Did you at look at the struct ksignal definition and the clean series I've
+>>>> pointed you to?
+>>>>
+>>>
+>>> Not yet, this is the full set of patches? I only see partial..
+>>> https://lkml.org/lkml/2014/3/2/198
+>>
+>> Maybe lkml.org misses a few but this does not matter.
+>> All you need to know is that using ksignal is easy.
+>> e.g. https://lkml.org/lkml/2014/3/2/162
+>>
+> Thanks. I am looking at your git tree
+> https://git.kernel.org/cgit/linux/kernel/git/rw/misc.git/log/?h=signal_v2
+> Are these patches already available in v3.15 rc?
 
-In case you are not aware of this, devicetree files for Nios-II
-SoCs are produced through an automated tool calle sopc2dts:
+Nope, I have to rebase them again.
+But some archs have picked up the changes already.
 
-http://www.alterawiki.com/wiki/Sopc2dts
-http://git.rocketboards.org/sopc-tools.git/
+> I can update nios2 to use new implementation.
 
-You feed it with a sopcinfo file (AFAIK, Altera's specific format) and
-you obtain a full-fledged devicetree source file. Usually it works
-out-of-the-box, although I like to go over it and fix ranges, whitespaces,
-and do some cleaning.
+Would be great. :)
 
-So I'm wondering -given we have such superb tool- why would we want to
-include the devicetree source's in the kernel? 
-
-First, we'll be only supporting a *specific* configuration. Second, the
-dts is trivially easy to obtain.
-
-The binding documentation should be enough specification, and there's no
-need for further reference or examples.
--- 
-Ezequiel García, Free Electrons
-Embedded Linux, Kernel and Android Engineering
-http://free-electrons.com
+Thanks,
+//richard
