@@ -1,87 +1,72 @@
-From: Chung-Lin Tang <cltang@codesourcery.com>
-Subject: Re: [PATCH 00/28] nios2 Linux kernel port
-Date: Fri, 25 Apr 2014 02:37:19 +0800
-Message-ID: <535959DF.6050009@codesourcery.com>
-References: <1397824031-4892-1-git-send-email-lftan@altera.com> <5354AD36.5090809@zytor.com> <CAFiDJ5861HE4AXtio-8uNJppWE2oaPt9_OKyGV=Myb_3vPrOVA@mail.gmail.com> <16597012.pEkDc99HDN@wuerfel> <CAFiDJ5_dUpVTSeC36AfNKVN7BOa9GQ5vwSEWricm=8Sam9mR2A@mail.gmail.com> <5357FF8E.9010809@codesourcery.com> <E780DB23-B6A3-427B-8F33-71378088A3F5@caviumnetworks.com> <5358AE96.9010006@codesourcery.com> <5358D17D.1040609@codesourcery.com> <20140424152819.GI8521@arm.com>
+From: Hugh Dickins <hughd@google.com>
+Subject: Re: Dirty/Access bits vs. page content
+Date: Thu, 24 Apr 2014 11:40:17 -0700 (PDT)
+Message-ID: <alpine.LSU.2.11.1404241110160.2443@eggly.anvils>
+References: <53558507.9050703@zytor.com> <CA+55aFxGm6J6N=4L7exLUFMr1_siNGHpK=wApd9GPCH1=63PPA@mail.gmail.com> <53559F48.8040808@intel.com> <CA+55aFwDtjA4Vp0yt0K5x6b6sAMtcn=61SEnOOs_En+3UXNpuA@mail.gmail.com> <CA+55aFzFxBDJ2rWo9DggdNsq-qBCr11OVXnm64jx04KMSVCBAw@mail.gmail.com>
+ <20140422075459.GD11182@twins.programming.kicks-ass.net> <CA+55aFzM+NpE-EzJdDeYX=cqWRzkGv9o-vybDR=oFtDLMRK-mA@mail.gmail.com> <alpine.LSU.2.11.1404221847120.1759@eggly.anvils> <20140423184145.GH17824@quack.suse.cz> <CA+55aFwm9BT4ecXF7dD+OM0-+1Wz5vd4ts44hOkS8JdQ74SLZQ@mail.gmail.com>
+ <20140424065133.GX26782@laptop.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-doc-owner@vger.kernel.org>
-In-Reply-To: <20140424152819.GI8521@arm.com>
-Sender: linux-doc-owner@vger.kernel.org
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: "Pinski, Andrew" <Andrew.Pinski@caviumnetworks.com>, Ley Foon Tan <lftan@altera.com>, Arnd Bergmann <arnd@arndb.de>, "H. Peter Anvin" <hpa@zytor.com>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Andrew Pinski <apinski@cavium.com>, "Tang, Chung-Lin" <ChungLin_Tang@mentor.com>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: TEXT/PLAIN; charset=US-ASCII
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-pd0-f177.google.com ([209.85.192.177]:41446 "EHLO
+	mail-pd0-f177.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1758735AbaDXSld (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 24 Apr 2014 14:41:33 -0400
+Received: by mail-pd0-f177.google.com with SMTP id y10so2209518pdj.36
+        for <linux-arch@vger.kernel.org>; Thu, 24 Apr 2014 11:41:32 -0700 (PDT)
+In-Reply-To: <20140424065133.GX26782@laptop.programming.kicks-ass.net>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Jan Kara <jack@suse.cz>, Dave Hansen <dave.hansen@intel.com>, "H. Peter Anvin" <hpa@zytor.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, Russell King - ARM Linux <linux@arm.linux.org.uk>, Tony Luck <tony.luck@intel.com>
 
-On 2014/4/24 11:28 PM, Catalin Marinas wrote:
-> On Thu, Apr 24, 2014 at 09:55:25AM +0100, Chung-Lin Tang wrote:
->> On 2014/4/24 02:26 PM, Chung-Lin Tang wrote:
->>> On 2014/4/24 =E4=B8=8A=E5=8D=88 02:15, Pinski, Andrew wrote:
->>>>
->>>>>> On Apr 23, 2014, at 10:59 AM, "Chung-Lin Tang" <cltang@codesourc=
-ery.com> wrote:
->>>>>>
->>>>>>>> On 2014/4/22 07:20 PM, Ley Foon Tan wrote:
->>>>>>>> On Tue, Apr 22, 2014 at 6:56 PM, Arnd Bergmann <arnd@arndb.de>=
- wrote:
->>>>>>>>>>>> On Tuesday 22 April 2014 18:37:11 Ley Foon Tan wrote:
->>>>>>>>>>>>>>>> Hi Arnd and Peter Anvin,
->>>>>>>>>>>>>>>>
->>>>>>>>>>>>>>>> Other than 64-bit time_t, clock_t and suseconds_t, can=
- you confirm
->>>>>>>>>>>>>>>> that we don't need to have 64 bit off_t? See detail in=
- link below.
->>>>>>>>>>>>>>>> I can submit the patches for 64-bit time changes
->>>>>>>>>>>>>>>> (include/asm-generic/posix_types.h and other archs) if=
- everyone is
->>>>>>>>>>>>>>>> agreed on this.
->>>>>>>>>>>>
->>>>>>>>>>>> Yes.
->>>>>>>> Okay, will doing that.
->>>>>>
->>>>>> I believe that arm64 ILP32 will also be affected. What is the st=
-atus of
->>>>>> this configuration? Has the glibc/kernel ABI been finalized?
->>>> Not yet.  I am still working out the signal handling part. But we
->>>> already agreed on 64bit time_t, clock_t, and suseconds_t.  And we
->>>> agreed to a 64bit offset_t too.=20
->>>>
->>>> On a related note suseconds in the timespec in posix is defined to
->>>> be long. So it would nice if the kernel ignores the upper 32bits s=
-o
->>>> we (glibc developers) can fix this for new targets including x32
->>>> and arm64/ilp32.=20
->>>
->>> Hmm, but that means for purely 32-bit architectures like nios2, whi=
-ch
->>> unlike x86_64 or arm64, never has a 64-bit mode, suseconds_t as a 6=
-4-bit
->>> type in the kernel is simply wasted.
->>
->> The more I think of this, the more I feel that suseconds_t should js=
-ut
->> be 'long', not strictly 64-bitified. An ILP32 sub-mode in a 64-bit
->> kernel should be using compat_* code paths, something like a
->> COMPAT_USE_32BIT_SUSECONDS case.
->=20
-> ILP32 mode should use LP64 syscalls as much as possible and that's th=
-e
-> aim with arm64 as well (of course, we still have a few that wouldn't =
-be
-> possible and we route them via compat).
->=20
-> But here if time_t is 64-bit while susecconds_t is 32-bit, the compat
-> code wouldn't help.
+On Thu, 24 Apr 2014, Peter Zijlstra wrote:
+> On Wed, Apr 23, 2014 at 12:33:15PM -0700, Linus Torvalds wrote:
+> > On Wed, Apr 23, 2014 at 11:41 AM, Jan Kara <jack@suse.cz> wrote:
+> > >
+> > > Now I'm not sure how to fix Linus' patches. For all I care we could just
+> > > rip out pte dirty bit handling for file mappings. However last time I
+> > > suggested this you corrected me that tmpfs & ramfs need this. I assume this
+> > > is still the case - however, given we unconditionally mark the page dirty
+> > > for write faults, where exactly do we need this?
+> > 
+> > Honza, you're missing the important part: it does not matter one whit
+> > that we unconditionally mark the page dirty, when we do it *early*,
+> > and it can be then be marked clean before it's actually clean!
+> > 
+> > The problem is that page cleaning can clean the page when there are
+> > still writers dirtying the page. Page table tear-down removes the
+> > entry from the page tables, but it's still there in the TLB on other
+> > CPU's. 
+> 
+> > So other CPU's are possibly writing to the page, when
+> > clear_page_dirty_for_io() has marked it clean (because it didn't see
+> > the page table entries that got torn down, and it hasn't seen the
+> > dirty bit in the page yet).
+> 
+> So page_mkclean() does an rmap walk to mark the page RO, it does mm wide
+> TLB invalidations while doing so.
+> 
+> zap_pte_range() only removes the rmap entry after it does the
+> ptep_get_and_clear_full(), which doesn't do any TLB invalidates.
+> 
+> So as Linus says the page_mkclean() can actually miss a page, because
+> it's already removed from rmap() but due to zap_pte_range() can still
+> have active TLB entries.
+> 
+> So in order to fix this we'd have to delay the page_remove_rmap() as
+> well, but that's tricky because rmap walkers cannot deal with
+> in-progress teardown. Will need to think on this.
 
-Why not? You can define the arm64 'struct compat_timeval' with
-suseconds_t as s32, and add the 32<-->64 case in the
-compat_get/put_timeval path, triggered when the process is ILP32 (test
-wrapped in the above hypothetical COMPAT_USE_32BIT_SUSECONDS macro).
-Similar to how x32 does COMPAT_USE_64BIT_TIME.
+I've grown sceptical that Linus's approach can be made to work
+safely with page_mkclean(), as it stands at present anyway.
 
-Chung-Lin
+I think that (in the exceptional case when a shared file pte_dirty has
+been encountered, and this mm is active on other cpus) zap_pte_range()
+needs to flush TLB on other cpus of this mm, just before its
+pte_unmap_unlock(): then it respects the usual page_mkclean() protocol.
 
+Or has that already been rejected earlier in the thread,
+as too costly for some common case?
 
-
-
-
+Hugh
