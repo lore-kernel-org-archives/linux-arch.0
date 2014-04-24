@@ -1,82 +1,117 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from g6t1526.atlanta.hp.com ([15.193.200.69]:34863 "EHLO
-	g6t1526.atlanta.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752681AbaDWXsm (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 23 Apr 2014 19:48:42 -0400
-Message-ID: <53585144.4070309@hp.com>
-Date: Wed, 23 Apr 2014 19:48:20 -0400
-From: Waiman Long <waiman.long@hp.com>
+Received: from mail-qa0-f50.google.com ([209.85.216.50]:36616 "EHLO
+	mail-qa0-f50.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751168AbaDXGCs (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 24 Apr 2014 02:02:48 -0400
 MIME-Version: 1.0
-Subject: Re: [PATCH v9 05/19] qspinlock: Optimize for smaller NR_CPUS
-References: <1397747051-15401-6-git-send-email-Waiman.Long@hp.com> <20140417155649.GR11096@twins.programming.kicks-ass.net> <53504BB3.4010009@hp.com> <20140418082716.GZ11096@twins.programming.kicks-ass.net> <53516672.3010701@hp.com> <20140418190519.GA11182@twins.programming.kicks-ass.net> <53519BBF.7060506@hp.com> <5357CCEF.2000606@hp.com> <20140423145649.GE2777@phenom.dumpdata.com> <5357FBDE.4040400@hp.com> <20140423175535.GB11152@phenom.dumpdata.com> <53583DA8.4030901@hp.com>
-In-Reply-To: <53583DA8.4030901@hp.com>
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
-Content-Transfer-Encoding: 7bit
+In-Reply-To: <201404221559.37560.arnd@arndb.de>
+References: <1397824031-4892-1-git-send-email-lftan@altera.com>
+	<1397845149-3141-1-git-send-email-lftan@altera.com>
+	<1397845149-3141-3-git-send-email-lftan@altera.com>
+	<201404221559.37560.arnd@arndb.de>
+Date: Thu, 24 Apr 2014 14:02:47 +0800
+Message-ID: <CAFiDJ5_79UoFS0bbgyd6htRELXpsF4bD091Bg1EVsocXt76NEw@mail.gmail.com>
+Subject: Re: [PATCH 07/28] nios2: I/O Mapping
+From: Ley Foon Tan <lftan@altera.com>
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
-Cc: Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Rik van Riel <riel@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, David Vrabel <david.vrabel@citrix.com>, Oleg Nesterov <oleg@redhat.com>, Gleb Natapov <gleb@redhat.com>, Scott J Norton <scott.norton@hp.com>, Chegu Vinod <chegu_vinod@hp.com>
-Message-ID: <20140423234820.pg59DaLkS98PLpWO48jWBo9tXg7uUB5-RJCwvp9cm_A@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, cltang@codesourcery.com
+Message-ID: <20140424060247.a1nCI5A7kyIu3mewv5LDCT928vjFmQ_d4gXtI_CSd44@z>
 
-On 04/23/2014 06:24 PM, Waiman Long wrote:
-> On 04/23/2014 01:55 PM, Konrad Rzeszutek Wilk wrote:
->> On Wed, Apr 23, 2014 at 01:43:58PM -0400, Waiman Long wrote:
->>> On 04/23/2014 10:56 AM, Konrad Rzeszutek Wilk wrote:
->>>> On Wed, Apr 23, 2014 at 10:23:43AM -0400, Waiman Long wrote:
->>>>> On 04/18/2014 05:40 PM, Waiman Long wrote:
->>>>>> On 04/18/2014 03:05 PM, Peter Zijlstra wrote:
->>>>>>> On Fri, Apr 18, 2014 at 01:52:50PM -0400, Waiman Long wrote:
->>>>>>>> I am confused by your notation.
->>>>>>> Nah, I think I was confused :-) Make the 1 _Q_LOCKED_VAL though, as
->>>>>>> that's the proper constant to use.
->>>>>> Everyone gets confused once in a while:-) I have plenty of that 
->>>>>> myself.
->>>>>>
->>>>>> I will change 1 to _Q_LOCKED_VAL as suggested.
->>>>>>
->>>>>> -Longman
->>>>> The attached patch file contains the additional changes that I had
->>>>> made to qspinlock.c file so far. Please let me know if you or others
->>>>> have any additional feedbacks or changes that will need to go to the
->>>>> next version of the patch series.
->>>>>
->>>>> I am going to take vacation starting from tomorrow and will be back
->>>>> on 5/5 (Mon). So I will not be able to respond to emails within this
->>>>> period.
->>>>>
->>>>> BTW, is there any chance that this patch can be merged to 3.16?
->>>> Um, it needs to have Acks from KVM and Xen maintainers who have not
->>>> done so. Also Peter needs to chime in. (BTW, please CC
->>>> xen-devel@lists.xenproject.org next time you post so that David and 
->>>> Boris
->>>> can take a peek at it).
->>> I will cc xen-devel@lists.xenproject.org when I sent out the next 
->>> patch.
->>>
->>>> I would strongly recommend you put all your patches on github (free 
->>>> git
->>>> service) so that we can test it and poke it at during your vacation
->>>> (and even after).
->>>>
->>> I am not used to setting up a public repo in github. If I create a
->>> repo there, should I put a snapshot of the whole kernel source tree
->>> or just a portion of the relevant files as the base? With the later,
->>> it won't be buildable.
->> You just push your local branch. It should look like a normal
->> Linux tree with your commits on top.
+On Tue, Apr 22, 2014 at 9:59 PM, Arnd Bergmann <arnd@arndb.de> wrote:
+> On Friday 18 April 2014, Ley Foon Tan wrote:
 >
-> I will try that with my next version.
+>> +
+>> +#include <asm/pgtable-bits.h>
+>> +
+>> +#define IO_SPACE_LIMIT 0xffffffff
 >
+> Please use 0xffff here, this should work for almost any PCI bus.
+Ah, CONFIG_PCI is not enable in nios2. So, I think IO_SPACE_LIMIT
+should set to 0.
 
-I have just pushed my git repo out to 
-https://github.com/longman88/kernel-qspinlock.
 
--Longman
-> -Longman
+>> +
+>> +/* Use "Duff's Device" to unroll the loops. */
+>> +#define __IO_OUT_LOOP(a, b, l)                               \
+>> +     do {                                            \
+>> +             if (l > 0) {                            \
+>> +                     int _n = (l + 7) / 8;           \
+>> +                     switch (l % 8) {                \
+>> +                     case 0:                         \
+>> +                             do {                    \
+>> +                                     *a = *b++;      \
 >
-> -- 
-> To unsubscribe from this list: send the line "unsubscribe 
-> linux-kernel" in
-> the body of a message to majordomo@vger.kernel.org
-> More majordomo info at  http://vger.kernel.org/majordomo-info.html
-> Please read the FAQ at  http://www.tux.org/lkml/
+> I would recommend just doing all of this in out-of-line implementations
+> rather than macros and inline functions.
+Okay. Will move the macros to out-of-line function.
+
+
+>
+>> +
+>> +/*
+>> + *   make the short names macros so specific devices
+>> + *   can override them as required
+>> + */
+>> +#define inb(addr)            readb(addr)
+>> +#define inw(addr)            readw(addr)
+>> +#define inl(addr)            readl(addr)
+>> +#define outb(x, addr)                ((void) writeb(x, addr))
+>> +#define outw(x, addr)                ((void) writew(x, addr))
+>> +#define outl(x, addr)                ((void) writel(x, addr))
+>
+> This makes no sense: the legacy PC I/O accessors take a completely
+> different argument type: I would recommend to make both inline
+> functions so you can ensure that readl() gets passed an __iomem
+> pointer, while inl() gets an integer number.
+>
+> Please see the asm-generic version for an example. You should also
+> define a non-NULL PCI_IOBASE to which the PCI I/O space gets mapped.
+I think these macros can be removed if PCI is not enabled in Nios2.
+
+>
+>> +#define virt_to_bus virt_to_phys
+>> +#define bus_to_virt phys_to_virt
+>
+> Please drop these, and the CONFIG_VIRT_TO_BUS Kconfig option,
+> and fix all drivers that rely on it.
+Okay. Will remove these.
+
+>
+>> +#define ioport_map(port, nr) ioremap(port, nr)
+>> +#define ioport_unmap(port)   iounmap(port)
+>
+> Use this one instead:
+>
+> #ifdef CONFIG_PCI
+> static inline void __iomem *ioport_map(unsigned long port, unsigned int nr)
+> {
+>         return PCI_IOBASE + port;
+> }
+>
+> static inline void __iomem *ioport_unmap(void __iomem *)
+> {
+> }
+> #endif
+These also can be removed.
+
+>
+>> +/* Macros used for smc91x.c driver */
+>> +#define readsb(p, d, l)              insb(p, d, l)
+>> +#define readsw(p, d, l)              insw(p, d, l)
+>> +#define readsl(p, d, l)              insl(p, d, l)
+>> +#define writesb(p, d, l)     outsb(p, d, l)
+>> +#define writesw(p, d, l)     outsw(p, d, l)
+>> +#define writesl(p, d, l)     outsl(p, d, l)
+>
+> These should of course not fall back to the PCI I/O space functions.
+> You can do it the other way round.
+Okay, these will change to something like:
+#define readsb(p, d, l)              io_insb(p, d, l)
+#define readsw(p, d, l)              io_insw(p, d, l)
+(etc)
+
+Regards
+Ley Foon
