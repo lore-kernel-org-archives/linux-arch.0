@@ -1,49 +1,91 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pa0-f41.google.com ([209.85.220.41]:40812 "EHLO
-	mail-pa0-f41.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750902AbaDYSnJ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 25 Apr 2014 14:43:09 -0400
-Received: by mail-pa0-f41.google.com with SMTP id kp14so189885pab.14
-        for <linux-arch@vger.kernel.org>; Fri, 25 Apr 2014 11:43:09 -0700 (PDT)
-Date: Fri, 25 Apr 2014 11:41:54 -0700 (PDT)
+Received: from mail-pa0-f50.google.com ([209.85.220.50]:37412 "EHLO
+	mail-pa0-f50.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751680AbaDYTOg (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 25 Apr 2014 15:14:36 -0400
+Received: by mail-pa0-f50.google.com with SMTP id rd3so3501464pab.37
+        for <linux-arch@vger.kernel.org>; Fri, 25 Apr 2014 12:14:35 -0700 (PDT)
+Date: Fri, 25 Apr 2014 12:13:25 -0700 (PDT)
 From: Hugh Dickins <hughd@google.com>
 Subject: Re: Dirty/Access bits vs. page content
-In-Reply-To: <535A9356.8060608@intel.com>
-Message-ID: <alpine.LSU.2.11.1404251138050.5909@eggly.anvils>
+In-Reply-To: <CA+55aFz=fwpGegGXfyWh9bh_iVM7g4q=0ywugS+sR=L+Od7j5g@mail.gmail.com>
+Message-ID: <alpine.LSU.2.11.1404251142110.5909@eggly.anvils>
 References: <53558507.9050703@zytor.com> <20140422075459.GD11182@twins.programming.kicks-ass.net> <CA+55aFzM+NpE-EzJdDeYX=cqWRzkGv9o-vybDR=oFtDLMRK-mA@mail.gmail.com> <alpine.LSU.2.11.1404221847120.1759@eggly.anvils> <20140423184145.GH17824@quack.suse.cz>
  <CA+55aFwm9BT4ecXF7dD+OM0-+1Wz5vd4ts44hOkS8JdQ74SLZQ@mail.gmail.com> <20140424065133.GX26782@laptop.programming.kicks-ass.net> <alpine.LSU.2.11.1404241110160.2443@eggly.anvils> <CA+55aFwVgCshsVHNqr2EA1aFY18A2L17gNj0wtgHB39qLErTrg@mail.gmail.com>
  <alpine.LSU.2.11.1404241252520.3455@eggly.anvils> <CA+55aFyUyD_BASjhig9OPerYcMrUgYJUfRLA9JyB_x7anV1d7Q@mail.gmail.com> <1398389846.8437.6.camel@pasglop> <1398393700.8437.22.camel@pasglop> <CA+55aFyO+-GehPiOAPy7-N0ejFrsNupWHG+j5hAs=R=RuPQtDg@mail.gmail.com>
- <5359CD7C.5020604@zytor.com> <CA+55aFzktDDr5zNh-7gDhXW6-7_BP_MvKHEoLi9=td6XvwzaUA@mail.gmail.com> <alpine.LSU.2.11.1404250414590.5198@eggly.anvils> <535A9356.8060608@intel.com>
+ <5359CD7C.5020604@zytor.com> <CA+55aFzktDDr5zNh-7gDhXW6-7_BP_MvKHEoLi9=td6XvwzaUA@mail.gmail.com> <alpine.LSU.2.11.1404250414590.5198@eggly.anvils> <CA+55aFz=fwpGegGXfyWh9bh_iVM7g4q=0ywugS+sR=L+Od7j5g@mail.gmail.com>
 MIME-Version: 1.0
 Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dave Hansen <dave.hansen@intel.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, "H. Peter Anvin" <hpa@zytor.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Peter Zijlstra <peterz@infradead.org>, Jan Kara <jack@suse.cz>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, Russell King - ARM Linux <linux@arm.linux.org.uk>, Tony Luck <tony.luck@intel.com>
-Message-ID: <20140425184154.c_AUgB4Nmn7iKuJuO9MUhn1b8R2PTAB5dWD8V_tL3J8@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: "H. Peter Anvin" <hpa@zytor.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Peter Zijlstra <peterz@infradead.org>, Jan Kara <jack@suse.cz>, Dave Hansen <dave.hansen@intel.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, Russell King - ARM Linux <linux@arm.linux.org.uk>, Tony Luck <tony.luck@intel.com>
+Message-ID: <20140425191325.Np6RGxcFXNI4S16APJ0ARpneTw4Z-d8oGYY63vAjQBk@z>
 
-On Fri, 25 Apr 2014, Dave Hansen wrote:
-> On 04/25/2014 05:01 AM, Hugh Dickins wrote:
+On Fri, 25 Apr 2014, Linus Torvalds wrote:
+> On Fri, Apr 25, 2014 at 5:01 AM, Hugh Dickins <hughd@google.com> wrote:
+> >
+> > Two, Ben said earlier that he's more worried about users of
+> > unmap_mapping_range() than concurrent munmap(); and you said
+> > earlier that you would almost prefer to have some special lock
+> > to serialize with page_mkclean().
+> >
 > > Er, i_mmap_mutex.
-> > 
+> >
 > > That's what unmap_mapping_range(), and page_mkclean()'s rmap_walk,
 > > take to iterate over the file vmas.  So perhaps there's no race at all
 > > in the unmap_mapping_range() case.  And easy (I imagine) to fix the
 > > race in Dave's racewrite.c use of MADV_DONTNEED: untested patch below.
-> > 
-> > But exit and munmap() don't take i_mmap_mutex: perhaps they should
-> > when encountering a VM_SHARED vma (I believe VM_SHARED should be
-> > peculiar to having vm_file set, but test both below because I don't
-> > want to oops in some odd corner where a special vma is set up).
 > 
-> Hey Hugh,
+> Hmm. unmap_mapping_range() is just abotu the only thing that _does_
+> take i_mmap_mutex. unmap_single_vma() does it for
+> is_vm_hugetlb_page(), which is a bit confusing. And normally we only
+> take it for the actual final vma link/unlink, not for the actual
+> traversal. So we'd have to change that all quite radically (or we'd
+> have to drop and re-take it).
 > 
-> Do you want some testing on this?
+> So I'm not quite convinced. Your simple patch looks simple and should
+> certainly fix DaveH's test-case, but then leaves munmap/exit as a
+> separate thing to fix. And I don't see how to do that cleanly (it
+> really looks like "we'll just have to take that semaphore again
+> separately).
 
-Yes, please do: I just haven't gotten around to cloning the git
-tree and trying it.  It's quite likely that we shall go Linus's
-way rather than this, but still useful to have the information
-as to whether this way really is viable.
+Yes, mine is quite nice for the MADV_DONTNEED case, but needs more
+complication to handle munmap/exit.  I don't want to drop and retake,
+I'm hoping we can decide what to do via the zap_details.
 
-Thanks,
+It would still be messy that sometimes we come in with the mutex
+and sometimes we take it inside; but then it's already messy that
+sometimes we have it and sometimes we don't.
+
+I'll try extending the patch to munmap/exit in a little bit, and
+send out the result for comparison later today. 
+
+> 
+> i_mmap_mutex is likely not contended, but we *do* take it for private
+> mappings too (and for read-only ones), so this lock is actually much
+> more common than the dirty shared mapping.
+
+We only need to take it in the (presumed rare beyond shared memory)
+VM_SHARED case.  I'm not very keen on adding a mutex into the exit
+path, but at least this one used to be a spinlock, and there should
+be nowhere that tries to allocate memory while holding it (I'm wary
+of adding OOM-kill deadlocks) - aside from tlb_next_batch()'s
+GFP_NOWAIT|__GFP_NOWARN attempts.
+
+> 
+> So I think I prefer my patch, even if that may be partly due to just
+> it being mine ;)
+
+Yes, fair enough, I'm not against it: I just felt rather ashamed of
+going on about page_mkclean() protocol and ptlock, while forgetting
+all about i_mmap_mutex.  Let's see how beautiful mine turns out ;)
+
+And it may be worth admitting that here we avoid CONFIG_PREEMPT,
+and have been bitten in the past by free_pages_and_swap_cache()
+latencies, so drastically reduced MAX_GATHER_BATCH_COUNT: so we
+wouldn't expect to see much hit from your more frequent TLB flushes.
+
+I must answer Peter now...
+
 Hugh
