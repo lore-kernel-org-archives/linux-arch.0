@@ -1,43 +1,58 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [PATCH 00/28] nios2 Linux kernel port
-Date: Fri, 25 Apr 2014 10:49:26 +0200
-Message-ID: <CAMuHMdU9=G5fM0QgX5EhuLi3HMU==FDND7O3s8_Q291TNx+L0A@mail.gmail.com>
+From: Ley Foon Tan <lftan@altera.com>
+Subject: Re: [PATCH 14/28] nios2: DMA mapping API
+Date: Fri, 25 Apr 2014 18:13:31 +0800
+Message-ID: <CAFiDJ58__vjDk93crSxGe1us0K7a3kSUwScgk=VaJYy+VqXsWQ@mail.gmail.com>
 References: <1397824031-4892-1-git-send-email-lftan@altera.com>
-	<5354AD36.5090809@zytor.com>
-	<CAFiDJ5861HE4AXtio-8uNJppWE2oaPt9_OKyGV=Myb_3vPrOVA@mail.gmail.com>
-	<16597012.pEkDc99HDN@wuerfel>
-	<CAFiDJ5_dUpVTSeC36AfNKVN7BOa9GQ5vwSEWricm=8Sam9mR2A@mail.gmail.com>
-	<5357FF8E.9010809@codesourcery.com>
-	<E780DB23-B6A3-427B-8F33-71378088A3F5@caviumnetworks.com>
-	<5358AE96.9010006@codesourcery.com>
-	<5358D17D.1040609@codesourcery.com>
-	<20140424152819.GI8521@arm.com>
-	<535959DF.6050009@codesourcery.com>
-	<3AD1421B-E5FC-41F3-AE33-29655052DA4B@caviumnetworks.com>
-	<5359FB48.1020007@codesourcery.com>
+	<1397845149-3141-1-git-send-email-lftan@altera.com>
+	<1397845149-3141-4-git-send-email-lftan@altera.com>
+	<201404221552.00501.arnd@arndb.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <5359FB48.1020007@codesourcery.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Chung-Lin Tang <cltang@codesourcery.com>
-Cc: "Pinski, Andrew" <Andrew.Pinski@caviumnetworks.com>, Catalin Marinas <catalin.marinas@arm.com>, Ley Foon Tan <lftan@altera.com>, Arnd Bergmann <arnd@arndb.de>, "H. Peter Anvin" <hpa@zytor.com>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Andrew Pinski <apinski@cavium.com>, "Tang, Chung-Lin" <ChungLin_Tang@mentor.com>
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-qg0-f46.google.com ([209.85.192.46]:58360 "EHLO
+	mail-qg0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752431AbaDYKNc (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 25 Apr 2014 06:13:32 -0400
+In-Reply-To: <201404221552.00501.arnd@arndb.de>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, cltang@codesourcery.com
 
-On Fri, Apr 25, 2014 at 8:06 AM, Chung-Lin Tang <cltang@codesourcery.com> wrote:
-> I'll try to explain a probable situation for Nios II. I'm not sure about
-> other soft-cores, but nios2 is sort of uncommon in that the maximum
-> alignment is 4-bytes (32-bits), even for doubles/long-longs.
-
-FWIW, that's the same as on m32r. And on m68k it's 2 bytes.
-
-Gr{oetje,eeting}s,
-
-                        Geert
-
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+On Tue, Apr 22, 2014 at 9:52 PM, Arnd Bergmann <arnd@arndb.de> wrote:
+> On Friday 18 April 2014, Ley Foon Tan wrote:
+>
+>> +static inline int dma_supported(struct device *dev, u64 mask)
+>> +{
+>> +     /* we fall back to GFP_DMA when the mask isn't all 1s,
+>> +      * so we can't guarantee allocations that must be
+>> +      * within a tighter range than GFP_DMA.
+>> +      */
+>> +     if (mask < 0x00ffffff)
+>> +             return 0;
+>> +
+>> +     return 1;
+>> +}
+>
+>> +void *dma_alloc_coherent(struct device *dev, size_t size,
+>> +                         dma_addr_t *dma_handle, gfp_t gfp)
+>> +{
+>> +     void *ret;
+>> +
+>> +     /* ignore region specifiers */
+>> +     gfp &= ~(__GFP_DMA | __GFP_HIGHMEM);
+>> +
+>> +     /* optimized page clearing */
+>> +     gfp |= __GFP_ZERO;
+>> +
+>> +     if (dev == NULL || (dev->coherent_dma_mask < 0xffffffff))
+>> +             gfp |= GFP_DMA;
+>
+> What is the significance of ZONE_DMA on this architecture?
+>
+> Do you actually have DMA masters with a 0x00ffffff mask?
+Actually, nios2 doesn't have DMA master with 0x00ffffff mask. I will
+change it to return 1, same as some other architectures
+implementation.
+And the ZONE_DMA stuff will remove as well, it shouldn't have ZONE_DMA
+limitation.
