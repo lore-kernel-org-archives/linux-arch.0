@@ -1,145 +1,69 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from relay1.mentorg.com ([192.94.38.131]:34585 "EHLO
-	relay1.mentorg.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753189AbaDYNUC (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 25 Apr 2014 09:20:02 -0400
-Message-ID: <535A60F2.7000003@mentor.com>
-Date: Fri, 25 Apr 2014 21:19:46 +0800
-From: Chung-Lin Tang <chunglin_tang@mentor.com>
+Received: from bombadil.infradead.org ([198.137.202.9]:49606 "EHLO
+	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752074AbaDYNvM (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 25 Apr 2014 09:51:12 -0400
+Date: Fri, 25 Apr 2014 15:51:01 +0200
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: Dirty/Access bits vs. page content
+Message-ID: <20140425135101.GE11096@twins.programming.kicks-ass.net>
+References: <alpine.LSU.2.11.1404241110160.2443@eggly.anvils>
+ <CA+55aFwVgCshsVHNqr2EA1aFY18A2L17gNj0wtgHB39qLErTrg@mail.gmail.com>
+ <alpine.LSU.2.11.1404241252520.3455@eggly.anvils>
+ <CA+55aFyUyD_BASjhig9OPerYcMrUgYJUfRLA9JyB_x7anV1d7Q@mail.gmail.com>
+ <1398389846.8437.6.camel@pasglop>
+ <1398393700.8437.22.camel@pasglop>
+ <CA+55aFyO+-GehPiOAPy7-N0ejFrsNupWHG+j5hAs=R=RuPQtDg@mail.gmail.com>
+ <5359CD7C.5020604@zytor.com>
+ <CA+55aFzktDDr5zNh-7gDhXW6-7_BP_MvKHEoLi9=td6XvwzaUA@mail.gmail.com>
+ <alpine.LSU.2.11.1404250414590.5198@eggly.anvils>
 MIME-Version: 1.0
-Subject: Re: [PATCH 00/28] nios2 Linux kernel port
-References: <1397824031-4892-1-git-send-email-lftan@altera.com> <5354AD36.5090809@zytor.com> <CAFiDJ5861HE4AXtio-8uNJppWE2oaPt9_OKyGV=Myb_3vPrOVA@mail.gmail.com> <16597012.pEkDc99HDN@wuerfel> <CAFiDJ5_dUpVTSeC36AfNKVN7BOa9GQ5vwSEWricm=8Sam9mR2A@mail.gmail.com> <5357FF8E.9010809@codesourcery.com> <E780DB23-B6A3-427B-8F33-71378088A3F5@caviumnetworks.com> <5358AE96.9010006@codesourcery.com> <5358D17D.1040609@codesourcery.com> <20140424152819.GI8521@arm.com>,<535959DF.6050009@codesourcery.com> <3AD1421B-E5FC-41F3-AE33-29655052DA4B@caviumnetworks.com>,<5359FB48.1020007@codesourcery.com> <9F7B4786-D935-47E3-9AB0-258E2A6EB98F@caviumnetworks.com>
-In-Reply-To: <9F7B4786-D935-47E3-9AB0-258E2A6EB98F@caviumnetworks.com>
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <alpine.LSU.2.11.1404250414590.5198@eggly.anvils>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Pinski, Andrew" <Andrew.Pinski@caviumnetworks.com>, Chung-Lin Tang <cltang@codesourcery.com>
-Cc: Catalin Marinas <catalin.marinas@arm.com>, Ley Foon Tan <lftan@altera.com>, Arnd Bergmann <arnd@arndb.de>, "H. Peter Anvin" <hpa@zytor.com>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Andrew Pinski <apinski@cavium.com>
-Message-ID: <20140425131946._7MTedmMOWjF8C1Ovt-XTzGtLcL2gz1sXR9wTpNKAa4@z>
+To: Hugh Dickins <hughd@google.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, "H. Peter Anvin" <hpa@zytor.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Jan Kara <jack@suse.cz>, Dave Hansen <dave.hansen@intel.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, Russell King - ARM Linux <linux@arm.linux.org.uk>, Tony Luck <tony.luck@intel.com>
+Message-ID: <20140425135101.XWYxl_uvGPvAsA2TWOxpY1wE4TpJD99NHJ7lizpJTSA@z>
 
-On 14/4/25 下午4:37, Pinski, Andrew wrote:
+On Fri, Apr 25, 2014 at 05:01:23AM -0700, Hugh Dickins wrote:
+> One, regarding dirty shared mappings: you're thinking above of
+> mmap()'ing proper filesystem files, but this case also includes
+> shared memory - I expect there are uses of giant amounts of shared
+> memory, for which we really would prefer not to slow the teardown.
 > 
-> 
->> On Apr 24, 2014, at 11:06 PM, "Chung-Lin Tang" <cltang@codesourcery.com> wrote:
->>
->>> On 2014/4/25 02:42 AM, Pinski, Andrew wrote:
->>>
->>>
->>>>> On Apr 24, 2014, at 11:37 AM, "Chung-Lin Tang" <cltang@codesourcery.com> wrote:
->>>>>
->>>>>> On 2014/4/24 11:28 PM, Catalin Marinas wrote:
->>>>>>> On Thu, Apr 24, 2014 at 09:55:25AM +0100, Chung-Lin Tang wrote:
->>>>>>>> On 2014/4/24 02:26 PM, Chung-Lin Tang wrote:
->>>>>>>> On 2014/4/24 上午 02:15, Pinski, Andrew wrote:
->>>>>>>>
->>>>>>>>>> On Apr 23, 2014, at 10:59 AM, "Chung-Lin Tang" <cltang@codesourcery.com> wrote:
->>>>>>>>>>
->>>>>>>>>>>> On 2014/4/22 07:20 PM, Ley Foon Tan wrote:
->>>>>>>>>>>> On Tue, Apr 22, 2014 at 6:56 PM, Arnd Bergmann <arnd@arndb.de> wrote:
->>>>>>>>>>>>>>>> On Tuesday 22 April 2014 18:37:11 Ley Foon Tan wrote:
->>>>>>>>>>>>>>>>>>>> Hi Arnd and Peter Anvin,
->>>>>>>>>>>>>>>>>>>>
->>>>>>>>>>>>>>>>>>>> Other than 64-bit time_t, clock_t and suseconds_t, can you confirm
->>>>>>>>>>>>>>>>>>>> that we don't need to have 64 bit off_t? See detail in link below.
->>>>>>>>>>>>>>>>>>>> I can submit the patches for 64-bit time changes
->>>>>>>>>>>>>>>>>>>> (include/asm-generic/posix_types.h and other archs) if everyone is
->>>>>>>>>>>>>>>>>>>> agreed on this.
->>>>>>>>>>>>>>>>
->>>>>>>>>>>>>>>> Yes.
->>>>>>>>>>>> Okay, will doing that.
->>>>>>>>>>
->>>>>>>>>> I believe that arm64 ILP32 will also be affected. What is the status of
->>>>>>>>>> this configuration? Has the glibc/kernel ABI been finalized?
->>>>>>>> Not yet.  I am still working out the signal handling part. But we
->>>>>>>> already agreed on 64bit time_t, clock_t, and suseconds_t.  And we
->>>>>>>> agreed to a 64bit offset_t too. 
->>>>>>>>
->>>>>>>> On a related note suseconds in the timespec in posix is defined to
->>>>>>>> be long. So it would nice if the kernel ignores the upper 32bits so
->>>>>>>> we (glibc developers) can fix this for new targets including x32
->>>>>>>> and arm64/ilp32.
->>>>>>>
->>>>>>> Hmm, but that means for purely 32-bit architectures like nios2, which
->>>>>>> unlike x86_64 or arm64, never has a 64-bit mode, suseconds_t as a 64-bit
->>>>>>> type in the kernel is simply wasted.
->>>>>>
->>>>>> The more I think of this, the more I feel that suseconds_t should jsut
->>>>>> be 'long', not strictly 64-bitified. An ILP32 sub-mode in a 64-bit
->>>>>> kernel should be using compat_* code paths, something like a
->>>>>> COMPAT_USE_32BIT_SUSECONDS case.
->>>>>
->>>>> ILP32 mode should use LP64 syscalls as much as possible and that's the
->>>>> aim with arm64 as well (of course, we still have a few that wouldn't be
->>>>> possible and we route them via compat).
->>>>>
->>>>> But here if time_t is 64-bit while susecconds_t is 32-bit, the compat
->>>>> code wouldn't help.
->>>>
->>>> Why not? You can define the arm64 'struct compat_timeval' with
->>>> suseconds_t as s32, and add the 32<-->64 case in the
->>>> compat_get/put_timeval path, triggered when the process is ILP32 (test
->>>> wrapped in the above hypothetical COMPAT_USE_32BIT_SUSECONDS macro).
->>>> Similar to how x32 does COMPAT_USE_64BIT_TIME.
->>>
->>> We would three timeval then. One for aarch32, one for lp64 and one for ilp32. We really don't want three. Two is already one too many in my mind after developing the ilp32 syscall abi. 
->>>
->>> Thanks,
->>> Andrew
->>
->> Okay I now see you're already doing that for 32-bit ARM.
->>
->> Still, you would probably just need to have an arm64-ILP32 specific case
->> to be careful about the last padding word upon kernel entry/exit.
->> (accommodating the difference in sizeof(long))  Penalizing all
->> architectures does not seem like the best solution.
-> 
-> Considering the alignment of long long would be 64bits, the struct does not change sizes if suseconds_t is 32bits or 64bits. 
-> 
->>
->> Having suseconds_t as a strictly 64-bit C type in the kernel, while
->> defined as <= long in user-space may cause other problems.
->>
->> I'll try to explain a probable situation for Nios II. I'm not sure about
->> other soft-cores, but nios2 is sort of uncommon in that the maximum
->> alignment is 4-bytes (32-bits), even for doubles/long-longs.
-> 
-> Yes does that include even if users of aligned?  If so that seems broken.  Also yes nios ii is unstandard when it comes to alignment here. 
+> And confusingly, those are not subject to the special page_mkclean()
+> constraints, but still need to be handled in a correct manner: your
+> patch is fine, but might be overkill for them - I'm not yet sure.
 
-You mean using '__attribute__((aligned(8)))'? Sure of course that
-enlarges the alignment as expected, but sprinkling that over glibc, or
-getting it into the main glibc bits/time.h header is probably not going
-to happen...
+I think we could look at mapping_cap_account_dirty(page->mapping) while
+holding the ptelock, the mapping can't go away while we hold that lock.
 
-Thanks,
-Chung-Lin
+And afaict that's the exact differentiator between these two cases.
 
->>
->> So if time_t is 64-bits (which makes sense), then struct timeval, which
->> is time_t+suseconds_t in userspace is 12-bytes/aligned-4 (unlike many
->> archs where a 64-bit time_t will expand the size to 16-bytes, due to
->> align-8)
+> Two, Ben said earlier that he's more worried about users of
+> unmap_mapping_range() than concurrent munmap(); and you said
+> earlier that you would almost prefer to have some special lock
+> to serialize with page_mkclean().
 > 
-> Unlike most other targets where the struct would 16bits no matter what. 
+> Er, i_mmap_mutex.
 > 
-> Thanks,
-> Andrew
-> 
-> 
->>
->> If the kernel suseconds_t is forced to be 64-bits, then nios2 will have
->> a 16-byte kernel timeval vs. 12-byte userspace timeval situation. Just
->> this will require us to do something using compat_*, or weird hacks in
->> glibc, which is unfair. Nios II has no "other-mode". We are just
->> strictly ILP32, everywhere.
->>
->> Of course, we can probably still at the end just use a Nios II specific
->> posix_types.h header to override things, but I'm just stating this as a
->> matter of which are the most reasonable default settings in the generic
->> headers. Making pure ILP32 archs diverge from POSIX standards by default
->> does not seem to be right.
->>
->> Thanks,
->> Chung-Lin
->>
+> That's what unmap_mapping_range(), and page_mkclean()'s rmap_walk,
+> take to iterate over the file vmas.  So perhaps there's no race at all
+> in the unmap_mapping_range() case.  And easy (I imagine) to fix the
+> race in Dave's racewrite.c use of MADV_DONTNEED: untested patch below.
 
+Ooh shiney.. yes that might work! 
+
+> But exit and munmap() don't take i_mmap_mutex: perhaps they should
+> when encountering a VM_SHARED vma 
+
+Well, they will of course take it in order to detach the vma from the
+rmap address_space::i_mmap tree.
+
+> (I believe VM_SHARED should be
+> peculiar to having vm_file seta, but test both below because I don't
+> want to oops in some odd corner where a special vma is set up).
+
+I think you might be on to something there...
