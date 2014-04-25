@@ -1,94 +1,47 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pd0-f175.google.com ([209.85.192.175]:57047 "EHLO
-	mail-pd0-f175.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751231AbaDYTnE (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 25 Apr 2014 15:43:04 -0400
-Received: by mail-pd0-f175.google.com with SMTP id fp1so1324644pdb.20
-        for <linux-arch@vger.kernel.org>; Fri, 25 Apr 2014 12:43:03 -0700 (PDT)
-Date: Fri, 25 Apr 2014 12:41:49 -0700 (PDT)
-From: Hugh Dickins <hughd@google.com>
-Subject: Re: Dirty/Access bits vs. page content
-In-Reply-To: <20140425135101.GE11096@twins.programming.kicks-ass.net>
-Message-ID: <alpine.LSU.2.11.1404251215280.5909@eggly.anvils>
-References: <alpine.LSU.2.11.1404241110160.2443@eggly.anvils> <CA+55aFwVgCshsVHNqr2EA1aFY18A2L17gNj0wtgHB39qLErTrg@mail.gmail.com> <alpine.LSU.2.11.1404241252520.3455@eggly.anvils> <CA+55aFyUyD_BASjhig9OPerYcMrUgYJUfRLA9JyB_x7anV1d7Q@mail.gmail.com>
- <1398389846.8437.6.camel@pasglop> <1398393700.8437.22.camel@pasglop> <CA+55aFyO+-GehPiOAPy7-N0ejFrsNupWHG+j5hAs=R=RuPQtDg@mail.gmail.com> <5359CD7C.5020604@zytor.com> <CA+55aFzktDDr5zNh-7gDhXW6-7_BP_MvKHEoLi9=td6XvwzaUA@mail.gmail.com>
- <alpine.LSU.2.11.1404250414590.5198@eggly.anvils> <20140425135101.GE11096@twins.programming.kicks-ass.net>
+Received: from mga02.intel.com ([134.134.136.20]:2735 "EHLO mga02.intel.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751139AbaDYWAb (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 25 Apr 2014 18:00:31 -0400
+Message-ID: <535ADAFD.9040308@intel.com>
+Date: Fri, 25 Apr 2014 15:00:29 -0700
+From: Dave Hansen <dave.hansen@intel.com>
 MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Subject: Re: Dirty/Access bits vs. page content
+References: <53558507.9050703@zytor.com> <20140422075459.GD11182@twins.programming.kicks-ass.net> <CA+55aFzM+NpE-EzJdDeYX=cqWRzkGv9o-vybDR=oFtDLMRK-mA@mail.gmail.com> <alpine.LSU.2.11.1404221847120.1759@eggly.anvils> <20140423184145.GH17824@quack.suse.cz> <CA+55aFwm9BT4ecXF7dD+OM0-+1Wz5vd4ts44hOkS8JdQ74SLZQ@mail.gmail.com> <20140424065133.GX26782@laptop.programming.kicks-ass.net> <alpine.LSU.2.11.1404241110160.2443@eggly.anvils> <CA+55aFwVgCshsVHNqr2EA1aFY18A2L17gNj0wtgHB39qLErTrg@mail.gmail.com> <alpine.LSU.2.11.1404241252520.3455@eggly.anvils> <CA+55aFyUyD_BASjhig9OPerYcMrUgYJUfRLA9JyB_x7anV1d7Q@mail.gmail.com> <1398389846.8437.6.camel@pasglop> <1398393700.8437.22.camel@pasglop> <CA+55aFyO+-GehPiOAPy7-N0ejFrsNupWHG+j5hAs=R=RuPQtDg@mail.gmail.com> <5359CD7C.5020604@zytor.com> <CA+55aFzktDDr5zNh-7gDhXW6-7_BP_MvKHEoLi9=td6XvwzaUA@mail.gmail.com> <alpine.LSU.2.11.1404250414590.5198@eggly.anvils> <535A9356.8060608@intel.com> <alpine.LSU.2.11.1404251138050.5909@eggly.anvils>
+In-Reply-To: <alpine.LSU.2.11.1404251138050.5909@eggly.anvils>
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, "H. Peter Anvin" <hpa@zytor.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Jan Kara <jack@suse.cz>, Dave Hansen <dave.hansen@intel.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, Russell King - ARM Linux <linux@arm.linux.org.uk>, Tony Luck <tony.luck@intel.com>
-Message-ID: <20140425194149.14DX42u8UQnueDR64pGOHXhloObeOsTDN3SXML7QcZI@z>
+To: Hugh Dickins <hughd@google.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, "H. Peter Anvin" <hpa@zytor.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Peter Zijlstra <peterz@infradead.org>, Jan Kara <jack@suse.cz>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, Russell King - ARM Linux <linux@arm.linux.org.uk>, Tony Luck <tony.luck@intel.com>
+Message-ID: <20140425220029.3Z8Me9X0vHqSDOxkUqxF6ffO9W71YLJF8l2Dzqb2eKo@z>
 
-On Fri, 25 Apr 2014, Peter Zijlstra wrote:
-> On Fri, Apr 25, 2014 at 05:01:23AM -0700, Hugh Dickins wrote:
-> > One, regarding dirty shared mappings: you're thinking above of
-> > mmap()'ing proper filesystem files, but this case also includes
-> > shared memory - I expect there are uses of giant amounts of shared
-> > memory, for which we really would prefer not to slow the teardown.
-> > 
-> > And confusingly, those are not subject to the special page_mkclean()
-> > constraints, but still need to be handled in a correct manner: your
-> > patch is fine, but might be overkill for them - I'm not yet sure.
+On 04/25/2014 11:41 AM, Hugh Dickins wrote:
+> On Fri, 25 Apr 2014, Dave Hansen wrote:
+>> On 04/25/2014 05:01 AM, Hugh Dickins wrote:
+>>> Er, i_mmap_mutex.
+>>>
+>>> That's what unmap_mapping_range(), and page_mkclean()'s rmap_walk,
+>>> take to iterate over the file vmas.  So perhaps there's no race at all
+>>> in the unmap_mapping_range() case.  And easy (I imagine) to fix the
+>>> race in Dave's racewrite.c use of MADV_DONTNEED: untested patch below.
+>>>
+>>> But exit and munmap() don't take i_mmap_mutex: perhaps they should
+>>> when encountering a VM_SHARED vma (I believe VM_SHARED should be
+>>> peculiar to having vm_file set, but test both below because I don't
+>>> want to oops in some odd corner where a special vma is set up).
+>>
+>> Hey Hugh,
+>>
+>> Do you want some testing on this?
 > 
-> I think we could look at mapping_cap_account_dirty(page->mapping) while
-> holding the ptelock, the mapping can't go away while we hold that lock.
-> 
-> And afaict that's the exact differentiator between these two cases.
+> Yes, please do: I just haven't gotten around to cloning the git
+> tree and trying it.  It's quite likely that we shall go Linus's
+> way rather than this, but still useful to have the information
+> as to whether this way really is viable.
 
-Yes, that's easily done, but I wasn't sure whether it was correct to
-skip on shmem or not - just because shmem doesn't participate in the
-page_mkclean() protocol, doesn't imply it's free from similar bugs.
-
-I haven't seen a precise description of the bug we're anxious to fix:
-Dave's MADV_DONTNEED should be easily fixable, that's not a concern;
-Linus's first patch wrote of writing racing with cleaning, but didn't
-give a concrete example.
-
-How about this: a process with one thread repeatedly (but not very often)
-writing timestamp into a shared file mapping, but another thread munmaps
-it at some point; and another process repeatedly (but not very often)
-reads the timestamp file (or peeks at it through mmap); with memory
-pressure forcing page reclaim.
-
-In the page_mkclean() shared file case, the second process might see
-the timestamp move backwards: because a write from the timestamping
-thread went into the pagecache after it had been written, but the
-page not re-marked dirty; so when reclaimed and later read back
-from disk, the older timestamp is seen.
-
-But I think you can remove "page_mkclean() " from that paragraph:
-the same can happen with shmem written out to swap.
-
-It could not happen with ramfs, but I don't think we're desperate
-to special case ramfs these days.
-
-Hugh
-
-> 
-> > Two, Ben said earlier that he's more worried about users of
-> > unmap_mapping_range() than concurrent munmap(); and you said
-> > earlier that you would almost prefer to have some special lock
-> > to serialize with page_mkclean().
-> > 
-> > Er, i_mmap_mutex.
-> > 
-> > That's what unmap_mapping_range(), and page_mkclean()'s rmap_walk,
-> > take to iterate over the file vmas.  So perhaps there's no race at all
-> > in the unmap_mapping_range() case.  And easy (I imagine) to fix the
-> > race in Dave's racewrite.c use of MADV_DONTNEED: untested patch below.
-> 
-> Ooh shiney.. yes that might work! 
-> 
-> > But exit and munmap() don't take i_mmap_mutex: perhaps they should
-> > when encountering a VM_SHARED vma 
-> 
-> Well, they will of course take it in order to detach the vma from the
-> rmap address_space::i_mmap tree.
-> 
-> > (I believe VM_SHARED should be
-> > peculiar to having vm_file seta, but test both below because I don't
-> > want to oops in some odd corner where a special vma is set up).
-> 
-> I think you might be on to something there...
+Your patch works fine for the madvise() case.  The effect appears the
+same as Linus's to my test case at least.  I didn't test any unmaps or
+other creative uses of unmap_mapping_range().
