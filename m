@@ -1,59 +1,74 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ve0-f170.google.com ([209.85.128.170]:39984 "EHLO
-	mail-ve0-f170.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750923AbaDZDsO (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 25 Apr 2014 23:48:14 -0400
-Received: by mail-ve0-f170.google.com with SMTP id pa12so5797573veb.1
-        for <linux-arch@vger.kernel.org>; Fri, 25 Apr 2014 20:48:14 -0700 (PDT)
-MIME-Version: 1.0
-In-Reply-To: <alpine.LSU.2.11.1404251956570.990@eggly.anvils>
-References: <53558507.9050703@zytor.com>
-	<CA+55aFzM+NpE-EzJdDeYX=cqWRzkGv9o-vybDR=oFtDLMRK-mA@mail.gmail.com>
-	<alpine.LSU.2.11.1404221847120.1759@eggly.anvils>
-	<20140423184145.GH17824@quack.suse.cz>
-	<CA+55aFwm9BT4ecXF7dD+OM0-+1Wz5vd4ts44hOkS8JdQ74SLZQ@mail.gmail.com>
-	<20140424065133.GX26782@laptop.programming.kicks-ass.net>
-	<alpine.LSU.2.11.1404241110160.2443@eggly.anvils>
-	<CA+55aFwVgCshsVHNqr2EA1aFY18A2L17gNj0wtgHB39qLErTrg@mail.gmail.com>
-	<alpine.LSU.2.11.1404241252520.3455@eggly.anvils>
-	<CA+55aFyUyD_BASjhig9OPerYcMrUgYJUfRLA9JyB_x7anV1d7Q@mail.gmail.com>
-	<1398389846.8437.6.camel@pasglop>
-	<1398393700.8437.22.camel@pasglop>
-	<CA+55aFyO+-GehPiOAPy7-N0ejFrsNupWHG+j5hAs=R=RuPQtDg@mail.gmail.com>
-	<5359CD7C.5020604@zytor.com>
-	<CA+55aFzktDDr5zNh-7gDhXW6-7_BP_MvKHEoLi9=td6XvwzaUA@mail.gmail.com>
-	<alpine.LSU.2.11.1404250414590.5198@eggly.anvils>
-	<535A9356.8060608@intel.com>
-	<alpine.LSU.2.11.1404251138050.5909@eggly.anvils>
-	<535ADAFD.9040308@intel.com>
-	<alpine.LSU.2.11.1404251956570.990@eggly.anvils>
-Date: Fri, 25 Apr 2014 20:48:13 -0700
-Message-ID: <CA+55aFw_iOw83ntoHJa6pq5ec9JuGjXEt7d9+jDdKGYM2t9V0g@mail.gmail.com>
+Received: from bombadil.infradead.org ([198.137.202.9]:59788 "EHLO
+	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751926AbaDZSHn (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 26 Apr 2014 14:07:43 -0400
+Date: Sat, 26 Apr 2014 20:07:11 +0200
+From: Peter Zijlstra <peterz@infradead.org>
 Subject: Re: Dirty/Access bits vs. page content
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Content-Type: text/plain; charset=UTF-8
+Message-ID: <20140426180711.GM26782@laptop.programming.kicks-ass.net>
+References: <alpine.LSU.2.11.1404241252520.3455@eggly.anvils>
+ <CA+55aFyUyD_BASjhig9OPerYcMrUgYJUfRLA9JyB_x7anV1d7Q@mail.gmail.com>
+ <1398389846.8437.6.camel@pasglop>
+ <1398393700.8437.22.camel@pasglop>
+ <CA+55aFyO+-GehPiOAPy7-N0ejFrsNupWHG+j5hAs=R=RuPQtDg@mail.gmail.com>
+ <5359CD7C.5020604@zytor.com>
+ <CA+55aFzktDDr5zNh-7gDhXW6-7_BP_MvKHEoLi9=td6XvwzaUA@mail.gmail.com>
+ <alpine.LSU.2.11.1404250414590.5198@eggly.anvils>
+ <20140425135101.GE11096@twins.programming.kicks-ass.net>
+ <alpine.LSU.2.11.1404251215280.5909@eggly.anvils>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <alpine.LSU.2.11.1404251215280.5909@eggly.anvils>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Hugh Dickins <hughd@google.com>
-Cc: Dave Hansen <dave.hansen@intel.com>, "H. Peter Anvin" <hpa@zytor.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Peter Zijlstra <peterz@infradead.org>, Jan Kara <jack@suse.cz>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, Russell King - ARM Linux <linux@arm.linux.org.uk>, Tony Luck <tony.luck@intel.com>
-Message-ID: <20140426034813.qB05eFEYv57q3fldTsvStJgAEqD-udsFROW-OFUOZ2U@z>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, "H. Peter Anvin" <hpa@zytor.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Jan Kara <jack@suse.cz>, Dave Hansen <dave.hansen@intel.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, Russell King - ARM Linux <linux@arm.linux.org.uk>, Tony Luck <tony.luck@intel.com>
+Message-ID: <20140426180711.VfbFe965OeHQ1qYva8rz2d9zi1rHgzot7r2XNsfdRdA@z>
 
-On Fri, Apr 25, 2014 at 8:11 PM, Hugh Dickins <hughd@google.com> wrote:
->
-> So here is my alternative to Linus's "split 'tlb_flush_mmu()'" patch.
-> I don't really have a preference between the two approaches, and it
-> looks like Linus is now happy with his, so I don't expect this one to
-> go anywhere; unless someone else can see a significant advantage to it.
+> > I think we could look at mapping_cap_account_dirty(page->mapping) while
+> > holding the ptelock, the mapping can't go away while we hold that lock.
+> > 
+> > And afaict that's the exact differentiator between these two cases.
+> 
+> Yes, that's easily done, but I wasn't sure whether it was correct to
+> skip on shmem or not - just because shmem doesn't participate in the
+> page_mkclean() protocol, doesn't imply it's free from similar bugs.
+> 
+> I haven't seen a precise description of the bug we're anxious to fix:
+> Dave's MADV_DONTNEED should be easily fixable, that's not a concern;
+> Linus's first patch wrote of writing racing with cleaning, but didn't
+> give a concrete example.
 
-Hmm. I like that it's smaller and doesn't need any arch support.
+The way I understand it is that we observe the PTE dirty and set PAGE
+dirty before we make the PTE globally unavailable (through a TLB flush),
+and thereby we can mistakenly loose updates; by thinking a page is in
+fact clean even though we can still get updates.
 
-I really dislike that 'details.mutex_is_held' flag, though. I dislike
-pretty much *all* of details, but that one just bugs me extra much,
-because it's basically static call chain information, and it really
-smells like it should be possible to just do this all in the (few)
-callers instead of having a flag about the one caller that did it.
+But I suspect you got that far..
 
-In general, I hate conditional locking.  And here the conditionals are
-getting pretty odd and complex.
+> How about this: a process with one thread repeatedly (but not very often)
+> writing timestamp into a shared file mapping, but another thread munmaps
+> it at some point; and another process repeatedly (but not very often)
+> reads the timestamp file (or peeks at it through mmap); with memory
+> pressure forcing page reclaim.
+> 
+> In the page_mkclean() shared file case, the second process might see
+> the timestamp move backwards: because a write from the timestamping
+> thread went into the pagecache after it had been written, but the
+> page not re-marked dirty; so when reclaimed and later read back
+> from disk, the older timestamp is seen.
+> 
+> But I think you can remove "page_mkclean() " from that paragraph:
+> the same can happen with shmem written out to swap.
 
-             Linus
+I'm not entirely seeing how this could happen for shmem; the swap path
+goes through try_to_unmap_one(), which removes the PTE and does a full
+TLB flush. Anything after that will get a fault (which will hit either
+the swapcache or actual swap).
+
+The rmap walk of try_to_unmap() is the same as the one for
+page_mkclean().
+
+So if we're good on the one, we're good on the other.
