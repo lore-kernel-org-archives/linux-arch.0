@@ -1,72 +1,83 @@
-From: Hugh Dickins <hughd@google.com>
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 Subject: Re: Dirty/Access bits vs. page content
-Date: Sun, 27 Apr 2014 13:09:54 -0700 (PDT)
-Message-ID: <alpine.LSU.2.11.1404271220100.3724@eggly.anvils>
-References: <CA+55aFyUyD_BASjhig9OPerYcMrUgYJUfRLA9JyB_x7anV1d7Q@mail.gmail.com> <1398389846.8437.6.camel@pasglop> <1398393700.8437.22.camel@pasglop> <CA+55aFyO+-GehPiOAPy7-N0ejFrsNupWHG+j5hAs=R=RuPQtDg@mail.gmail.com> <5359CD7C.5020604@zytor.com>
- <CA+55aFzktDDr5zNh-7gDhXW6-7_BP_MvKHEoLi9=td6XvwzaUA@mail.gmail.com> <alpine.LSU.2.11.1404250414590.5198@eggly.anvils> <20140425135101.GE11096@twins.programming.kicks-ass.net> <alpine.LSU.2.11.1404251215280.5909@eggly.anvils> <20140426180711.GM26782@laptop.programming.kicks-ass.net>
- <20140427072034.GC1429@laptop.programming.kicks-ass.net> <alpine.LSU.2.11.1404270459160.2688@eggly.anvils>
+Date: Mon, 28 Apr 2014 09:13:01 +1000
+Message-ID: <1398640381.8437.82.camel@pasglop>
+References: <CA+55aFyUyD_BASjhig9OPerYcMrUgYJUfRLA9JyB_x7anV1d7Q@mail.gmail.com>
+	 <1398389846.8437.6.camel@pasglop> <1398393700.8437.22.camel@pasglop>
+	 <CA+55aFyO+-GehPiOAPy7-N0ejFrsNupWHG+j5hAs=R=RuPQtDg@mail.gmail.com>
+	 <5359CD7C.5020604@zytor.com>
+	 <CA+55aFzktDDr5zNh-7gDhXW6-7_BP_MvKHEoLi9=td6XvwzaUA@mail.gmail.com>
+	 <alpine.LSU.2.11.1404250414590.5198@eggly.anvils>
+	 <20140425135101.GE11096@twins.programming.kicks-ass.net>
+	 <alpine.LSU.2.11.1404251215280.5909@eggly.anvils>
+	 <20140426180711.GM26782@laptop.programming.kicks-ass.net>
+	 <20140427072034.GC1429@laptop.programming.kicks-ass.net>
+	 <CA+55aFwLumAqA6mYyPKRZYOCr2TRPxUVdCKhHMg0nYN_KbBDbQ@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <alpine.LSU.2.11.1404270459160.2688@eggly.anvils>
-Sender: owner-linux-mm@kvack.org
-To: Linus Torvalds <torvalds@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>
-Cc: "H. Peter Anvin" <hpa@zytor.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Jan Kara <jack@suse.cz>, Dave Hansen <dave.hansen@intel.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, Russell King - ARM Linux <linux@arm.linux.org.uk>, Tony Luck <tony.luck@intel.com>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from gate.crashing.org ([63.228.1.57]:33429 "EHLO gate.crashing.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751313AbaD0XOT (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 27 Apr 2014 19:14:19 -0400
+In-Reply-To: <CA+55aFwLumAqA6mYyPKRZYOCr2TRPxUVdCKhHMg0nYN_KbBDbQ@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Peter Zijlstra <peterz@infradead.org>, Hugh Dickins <hughd@google.com>, "H. Peter Anvin" <hpa@zytor.com>, Jan Kara <jack@suse.cz>, Dave Hansen <dave.hansen@intel.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, Russell King - ARM Linux <linux@arm.linux.org.uk>, Tony Luck <tony.luck@intel.com>
 
-On Sun, 27 Apr 2014, Hugh Dickins wrote:
+On Sun, 2014-04-27 at 09:21 -0700, Linus Torvalds wrote:
+
+> So in theory a CPU could just remember what address it loaded the TLB
+> entry from, and do a blind "set the dirty bit" with just an atomic
+> "or" operation. In fact, for a while I thought that CPU's could do
+> that, and the TLB flushing sequence would be:
 > 
-> But woke with a panic attack that we have overlooked the question
-> of how page reclaim's page_mapped() checks are serialized.
-> Perhaps this concern will evaporate with the morning dew,
-> perhaps it will not...
+>     entry = atomic_xchg(pte, 0);
+>     flush_tlb();
+>     entry |= *pte;
+> 
+> so that we'd catch any races with the A/D bit getting set.
+>
+> It turns out no CPU actually does that, and I'm not sure we ever had
+> that code sequence in the kernel (but some code archaeologist might go
+> look).
 
-It was a real concern, but we happen to be rescued by the innocuous-
-looking is_page_cache_freeable() check at the beginning of pageout():
-which will deserve its own comment, but that can follow later.
+Today hash based powerpc's do the update in the hash table using a byte
+store, not an atomic compare. That's one of the reasons we don't
+currently exploit the HW facility for dirty/accessed. (There are others,
+such as pages being evicted from the hash, we would need a path to
+transfer dirty back to the struct page, etc...)
 
-My concern was with page reclaim's shrink_page_list() racing against
-munmap's or exit's (or madvise's) zap_pte_range() unmapping the page.
+ .../...
 
-Once zap_pte_range() has cleared the pte from a vma, neither
-try_to_unmap() nor page_mkclean() will see that vma as containing
-the page, so neither will do its own flush TLB of the cpus involved,
-before proceeding to writepage.
+> Of course, *If* a CPU were to remember the address it loaded the TLB
+> entry from, then such a CPU might as well make the TLB be part of the
+> cache-coherency domain, and then we wouldn't need to do any TLB
+> flushing at all. I wish.
 
-Linus's patch (serialializing with ptlock) or my patch (serializing
-with i_mmap_mutex) both almost fix that, but it seemed not entirely:
-because try_to_unmap() is only called when page_mapped(), and
-page_mkclean() quits early without taking locks when !page_mapped().
+Hrm... Remembering the address as part of the data is one thing, having
+it in the tag for snoops is another :) I can see CPU designers wanting
+to do the first and not the second.... Though most CPUs I've seen are 4
+or 8 ways set-associative so it's not as bad as adding a big CAM
+thankfully.
 
-So in the interval when zap_pte_range() has brought page_mapcount()
-down to 0, but not yet flushed TLB on all mapping cpus, it looked as
-if we still had a problem - neither try_to_unmap() nor page_mkclean()
-would take the lock either of us rely upon for serialization.
+> > Will the hardware fault when it does a translation and needs to update
+> > the dirty/access bits while the PTE entry is !present?
+> 
+> Yes indeed, see above (but see how broken hardware _could_ work, which
+> would be really painful for us).
+> 
+> What we are fighting is race #3: the TLB happily exists on this or
+> other CPU's, an dis _not_ getting updated (so no re-walk), but _is_
+> getting used.
 
-But pageout()'s preliminary is_page_cache_freeable() check makes
-it safe in the end: although page_mapcount() has gone down to 0,
-page_count() remains raised until the free_pages_and_swap_cache()
-after the TLB flush.
+Right, and it's little brother which is that the update and the access
+that caused it aren't atomic with each other, thus the access can be
+seen some time after the R/C update. (This was my original concern until
+I realized that it was in fact the same race as the dirty TLB entry
+still in the other CPUs).
 
-So I now believe we're safe after all with either patch, and happy
-for Linus to go ahead with his.
-
-Peter, returning at last to your question of whether we could exempt
-shmem from the added overhead of either patch.  Until just now I
-thought not, because of the possibility that the shmem_writepage()
-could occur while one of the mm's cpus remote from zap_pte_range()
-cpu was still modifying the page.  But now that I see the role
-played by is_page_cache_freeable(), and of course the zapping end
-has never dropped its reference on the page before the TLB flush,
-however late that occurred, hmmm, maybe yes, shmem can be exempted.
-
-But I'd prefer to dwell on that a bit longer: we can add that as
-an optimization later if it holds up to scrutiny.
-
-Hugh
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+Cheers,
+Ben.
