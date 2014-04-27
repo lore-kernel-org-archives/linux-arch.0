@@ -1,133 +1,174 @@
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Subject: Re: Dirty/Access bits vs. page content
-Date: Sun, 27 Apr 2014 09:21:45 -0700
-Message-ID: <CA+55aFwLumAqA6mYyPKRZYOCr2TRPxUVdCKhHMg0nYN_KbBDbQ@mail.gmail.com>
-References: <CA+55aFyUyD_BASjhig9OPerYcMrUgYJUfRLA9JyB_x7anV1d7Q@mail.gmail.com>
-	<1398389846.8437.6.camel@pasglop>
-	<1398393700.8437.22.camel@pasglop>
-	<CA+55aFyO+-GehPiOAPy7-N0ejFrsNupWHG+j5hAs=R=RuPQtDg@mail.gmail.com>
-	<5359CD7C.5020604@zytor.com>
-	<CA+55aFzktDDr5zNh-7gDhXW6-7_BP_MvKHEoLi9=td6XvwzaUA@mail.gmail.com>
-	<alpine.LSU.2.11.1404250414590.5198@eggly.anvils>
-	<20140425135101.GE11096@twins.programming.kicks-ass.net>
-	<alpine.LSU.2.11.1404251215280.5909@eggly.anvils>
-	<20140426180711.GM26782@laptop.programming.kicks-ass.net>
-	<20140427072034.GC1429@laptop.programming.kicks-ass.net>
+From: Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>
+Subject: Re: [PATCH v9 00/19] qspinlock: a 4-byte queue spinlock with PV support
+Date: Sun, 27 Apr 2014 23:39:23 +0530
+Message-ID: <535D47D3.20202@linux.vnet.ibm.com>
+References: <1397747051-15401-1-git-send-email-Waiman.Long@hp.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <20140427072034.GC1429@laptop.programming.kicks-ass.net>
-Sender: owner-linux-mm@kvack.org
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Hugh Dickins <hughd@google.com>, "H. Peter Anvin" <hpa@zytor.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Jan Kara <jack@suse.cz>, Dave Hansen <dave.hansen@intel.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, Russell King - ARM Linux <linux@arm.linux.org.uk>, Tony Luck <tony.luck@intel.com>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from e28smtp06.in.ibm.com ([122.248.162.6]:52137 "EHLO
+	e28smtp06.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751326AbaD0SDR (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 27 Apr 2014 14:03:17 -0400
+Received: from /spool/local
+	by e28smtp06.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <raghavendra.kt@linux.vnet.ibm.com>;
+	Sun, 27 Apr 2014 23:33:14 +0530
+In-Reply-To: <1397747051-15401-1-git-send-email-Waiman.Long@hp.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Waiman Long <Waiman.Long@hp.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Peter Zijlstra <peterz@infradead.org>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Rik van Riel <riel@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, David Vrabel <david.vrabel@citrix.com>, Oleg Nesterov <oleg@redhat.com>, Gleb Natapov <gleb@redhat.com>, Scott J Norton <scott.norton@hp.com>, Chegu Vinod <chegu_vinod@hp.com>
 
-On Sun, Apr 27, 2014 at 12:20 AM, Peter Zijlstra <peterz@infradead.org> wrote:
+On 04/17/2014 08:33 PM, Waiman Long wrote:
+> v8->v9:
+>    - Integrate PeterZ's version of the queue spinlock patch with some
+>      modification:
+>      http://lkml.kernel.org/r/20140310154236.038181843@infradead.org
+>    - Break the more complex patches into smaller ones to ease review effort.
+>    - Fix a racing condition in the PV qspinlock code.
 >
-> OK, so I've been thinking and figured I either mis-understand how the
-> hardware works or don't understand how Linus' patch will actually fully
-> fix the issue.
+> v7->v8:
+>    - Remove one unneeded atomic operation from the slowpath, thus
+>      improving performance.
+>    - Simplify some of the codes and add more comments.
+>    - Test for X86_FEATURE_HYPERVISOR CPU feature bit to enable/disable
+>      unfair lock.
+>    - Reduce unfair lock slowpath lock stealing frequency depending
+>      on its distance from the queue head.
+>    - Add performance data for IvyBridge-EX CPU.
 >
-> So what both try_to_unmap_one() and zap_pte_range() end up doing is
-> clearing the PTE entry and then flushing the TLBs.
+> v6->v7:
+>    - Remove an atomic operation from the 2-task contending code
+>    - Shorten the names of some macros
+>    - Make the queue waiter to attempt to steal lock when unfair lock is
+>      enabled.
+>    - Remove lock holder kick from the PV code and fix a race condition
+>    - Run the unfair lock & PV code on overcommitted KVM guests to collect
+>      performance data.
+>
+> v5->v6:
+>   - Change the optimized 2-task contending code to make it fairer at the
+>     expense of a bit of performance.
+>   - Add a patch to support unfair queue spinlock for Xen.
+>   - Modify the PV qspinlock code to follow what was done in the PV
+>     ticketlock.
+>   - Add performance data for the unfair lock as well as the PV
+>     support code.
+>
+> v4->v5:
+>   - Move the optimized 2-task contending code to the generic file to
+>     enable more architectures to use it without code duplication.
+>   - Address some of the style-related comments by PeterZ.
+>   - Allow the use of unfair queue spinlock in a real para-virtualized
+>     execution environment.
+>   - Add para-virtualization support to the qspinlock code by ensuring
+>     that the lock holder and queue head stay alive as much as possible.
+>
+> v3->v4:
+>   - Remove debugging code and fix a configuration error
+>   - Simplify the qspinlock structure and streamline the code to make it
+>     perform a bit better
+>   - Add an x86 version of asm/qspinlock.h for holding x86 specific
+>     optimization.
+>   - Add an optimized x86 code path for 2 contending tasks to improve
+>     low contention performance.
+>
+> v2->v3:
+>   - Simplify the code by using numerous mode only without an unfair option.
+>   - Use the latest smp_load_acquire()/smp_store_release() barriers.
+>   - Move the queue spinlock code to kernel/locking.
+>   - Make the use of queue spinlock the default for x86-64 without user
+>     configuration.
+>   - Additional performance tuning.
+>
+> v1->v2:
+>   - Add some more comments to document what the code does.
+>   - Add a numerous CPU mode to support >= 16K CPUs
+>   - Add a configuration option to allow lock stealing which can further
+>     improve performance in many cases.
+>   - Enable wakeup of queue head CPU at unlock time for non-numerous
+>     CPU mode.
+>
+> This patch set has 3 different sections:
+>   1) Patches 1-7: Introduces a queue-based spinlock implementation that
+>      can replace the default ticket spinlock without increasing the
+>      size of the spinlock data structure. As a result, critical kernel
+>      data structures that embed spinlock won't increase in size and
+>      break data alignments.
+>   2) Patches 8-13: Enables the use of unfair queue spinlock in a
+>      virtual guest. This can resolve some of the locking related
+>      performance issues due to the fact that the next CPU to get the
+>      lock may have been scheduled out for a period of time.
+>   3) Patches 14-19: Enable qspinlock para-virtualization support
+>      by halting the waiting CPUs after spinning for a certain amount of
+>      time. The unlock code will detect the a sleeping waiter and wake it
+>      up. This is essentially the same logic as the PV ticketlock code.
+>
+> The queue spinlock has slightly better performance than the ticket
+> spinlock in uncontended case. Its performance can be much better
+> with moderate to heavy contention.  This patch has the potential of
+> improving the performance of all the workloads that have moderate to
+> heavy spinlock contention.
+>
+> The queue spinlock is especially suitable for NUMA machines with at
+> least 2 sockets, though noticeable performance benefit probably won't
+> show up in machines with less than 4 sockets.
+>
+> The purpose of this patch set is not to solve any particular spinlock
+> contention problems. Those need to be solved by refactoring the code
+> to make more efficient use of the lock or finer granularity ones. The
+> main purpose is to make the lock contention problems more tolerable
+> until someone can spend the time and effort to fix them.
 
-Right. And we can't do it in the other order, since if we flush the
-TLBs first, another cpu (or even this cpu, doing speculative memory
-accesses) could re-fill them between the flush and the clearing of the
-page table.
+For kvm part feel free to add:
+Tested-by: Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>
 
-So that's race #1, easily fixed by ordering the TLB flush after
-clearing the page table entry. We've never done this particular race
-wrong, afaik. It's _so_ obvious that it's the only one we've always
-gotten right.
+V9 testing has shown no hangs.
+I was able to do some performance testing. here are the results:
 
-On to the ones we've historically gotten wrong:
+Overall we are seeing good improvement for pv-unfair version.
 
-> However, that still leaves a window where there are remote TLB entries.
-> What if any of those remote entries cause a write (or have a dirty bit
-> cached) while we've already removed the PTE entry.
+System : 32 cpu sandybridge with HT on. (4 node machine with 32 GB each)
+Guest: 8GB with 16 vcpu/VM.
+Average was taken over 8-10 data points.
 
-So this is race #2: the race between clearing the entry and a TLB miss
-loading it and marking it accessed or dirty.
+Base = 3.15-rc2	with PRAVIRT_SPINLOCK = y
+A = 3.15-rc2 + qspinlock v9 patch with QUEUE_SPINLOCK = y 
+PRAVIRT_SPINLOCK = y PARAVIRT_UNFAIR_LOCKS = y (unfair lock)
+B =  3.15-rc2 + qspinlock v9 patch with QUEUE_SPINLOCK = y 
+PRAVIRT_SPINLOCK = n PARAVIRT_UNFAIR_LOCKS = n (queue spinlock without 
+paravirt)
+C = 3.15-rc2 + qspinlock v9 patch with  QUEUE_SPINLOCK = y 
+PRAVIRT_SPINLOCK = y  PARAVIRT_UNFAIR_LOCKS = n (queue spinlock with 
+paravirt)
 
-That race is handled by the fact that the CPU does the accessed/dirty
-bit update as an atomic read-modify-write operation, and actually
-re-checks the PTE entry as it does so.
 
-So in theory a CPU could just remember what address it loaded the TLB
-entry from, and do a blind "set the dirty bit" with just an atomic
-"or" operation. In fact, for a while I thought that CPU's could do
-that, and the TLB flushing sequence would be:
+Ebizzy % improvements
+========================
+overcommit A		B		C
+0.5x	4.4265    	2.0611    	1.5824
+1.0x	0.9015    	-7.7828   	4.5443
+1.5x	46.1162   	-2.9845   	-3.5046
+2.0x	99.8150   	-2.7116   	4.7461
 
-    entry = atomic_xchg(pte, 0);
-    flush_tlb();
-    entry |= *pte;
+Dbench 	%improvements
+overcommit A		B		C
+0.5x	3.2617    	3.5436    	2.5676
+1.0x	0.6302    	2.2342    	5.2201
+1.5x	5.0027    	4.8275    	3.8375
+2.0x	23.8242   	4.5782    	12.6067
 
-so that we'd catch any races with the A/D bit getting set.
+Absolute values of base results: (overcommit, value, stdev)
+Ebizzy ( records / sec with 120 sec run)
+0.5x 20941.8750 (2%)
+1.0x 17623.8750 (5%)
+1.5x  5874.7778 (15%)
+2.0x  3581.8750 (7%)
 
-It turns out no CPU actually does that, and I'm not sure we ever had
-that code sequence in the kernel (but some code archaeologist might go
-look).
-
-What CPU's actually do is simpler both for them and for us: instead of
-remembering where they loaded the TLB entry from, they re-walk the
-page table when they mark the TLB dirty, and if the page table entry
-is no longer present (or if it's non-writable), the store will fault
-instead of marking the TLB entry dirty.
-
-So race #2 doesn't need the above complex sequence, but it still
-*does* need that TLB entry to be loaded with an atomic exchange with
-zero (or at least with something that clears the present bit, zero
-obviously being the simplest such value). So a simple
-
-    entry = atomic_xchg(pte, 0);
-
-is sufficient for this race (except we call it "ptep_get_and_clear()" ;)
-
-Of course, *If* a CPU were to remember the address it loaded the TLB
-entry from, then such a CPU might as well make the TLB be part of the
-cache-coherency domain, and then we wouldn't need to do any TLB
-flushing at all. I wish.
-
-> Will the hardware fault when it does a translation and needs to update
-> the dirty/access bits while the PTE entry is !present?
-
-Yes indeed, see above (but see how broken hardware _could_ work, which
-would be really painful for us).
-
-What we are fighting is race #3: the TLB happily exists on this or
-other CPU's, an dis _not_ getting updated (so no re-walk), but _is_
-getting used.
-
-And we've actually had a fix for race #3 for a long time: the whole
-"don't free the pages until after the flush" is very much this issue.
-So it's not a new condition by any means (as far as I can tell, the
-mmu_gather infrastructure was introduced in 2.4.9.13, so 2001 - the
-exact commit predates even BK history).
-
-But this new issue is related to race #3, but purely in software: when
-we do the "set_page_dirty()" before doing the TLB flush, we need to
-protect against our cleaning that bit until after the flush.
-
-And we've now had three different ways to fix that race, one
-introducing a new race (my original two-patch series that delayed the
-set_page_dirty() the same way we delay the page freeing), one using a
-new lock entirely (Hugh latest patch - mapping->i_mmap_mutex isn't a
-new lock, but in this context it is), and one that extends the rules
-we already had in place for the single-PTE cases (do the
-set_page_dirty() and TLB flushing atomically wrt the page table lock,
-which makes it atomic wrt mkclean_one).
-
-And the reason I think I'll merge my patch rather than Hugh's (despite
-Hugh's being smaller) is exactly the fact that it doesn't really
-introduce any new locking rules - it just fixes the fact that we
-didn't really realize how important it was, and didn't follow the same
-rules as the single-pte cases did.
-
-                   Linus
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+Dbench (throughput in MB/sec)
+0.5x 10009.6610 (5%)
+1.0x  6583.0538 (1%)
+1.5x  3991.9622 (4%)
+2.0x  2527.0613 (2.5%)
