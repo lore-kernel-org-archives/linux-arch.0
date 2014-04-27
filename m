@@ -1,47 +1,73 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ve0-f171.google.com ([209.85.128.171]:49195 "EHLO
-	mail-ve0-f171.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751584AbaD0TrY (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 27 Apr 2014 15:47:24 -0400
-Received: by mail-ve0-f171.google.com with SMTP id jy13so7031215veb.16
-        for <linux-arch@vger.kernel.org>; Sun, 27 Apr 2014 12:47:24 -0700 (PDT)
-MIME-Version: 1.0
-In-Reply-To: <20140427193355.GA17778@laptop.programming.kicks-ass.net>
-References: <1398393700.8437.22.camel@pasglop>
-	<CA+55aFyO+-GehPiOAPy7-N0ejFrsNupWHG+j5hAs=R=RuPQtDg@mail.gmail.com>
-	<5359CD7C.5020604@zytor.com>
-	<CA+55aFzktDDr5zNh-7gDhXW6-7_BP_MvKHEoLi9=td6XvwzaUA@mail.gmail.com>
-	<alpine.LSU.2.11.1404250414590.5198@eggly.anvils>
-	<20140425135101.GE11096@twins.programming.kicks-ass.net>
-	<alpine.LSU.2.11.1404251215280.5909@eggly.anvils>
-	<20140426180711.GM26782@laptop.programming.kicks-ass.net>
-	<20140427072034.GC1429@laptop.programming.kicks-ass.net>
-	<alpine.LSU.2.11.1404270459160.2688@eggly.anvils>
-	<20140427193355.GA17778@laptop.programming.kicks-ass.net>
-Date: Sun, 27 Apr 2014 12:47:23 -0700
-Message-ID: <CA+55aFys4+G7P+-YtoNn0pUsmGwon+B7RdvFg9qqNbBHz_dg3A@mail.gmail.com>
+Received: from mail-pb0-f53.google.com ([209.85.160.53]:52177 "EHLO
+	mail-pb0-f53.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750993AbaD0ULE (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 27 Apr 2014 16:11:04 -0400
+Received: by mail-pb0-f53.google.com with SMTP id jt11so3286214pbb.26
+        for <linux-arch@vger.kernel.org>; Sun, 27 Apr 2014 13:11:04 -0700 (PDT)
+Date: Sun, 27 Apr 2014 13:09:54 -0700 (PDT)
+From: Hugh Dickins <hughd@google.com>
 Subject: Re: Dirty/Access bits vs. page content
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Content-Type: text/plain; charset=UTF-8
+In-Reply-To: <alpine.LSU.2.11.1404270459160.2688@eggly.anvils>
+Message-ID: <alpine.LSU.2.11.1404271220100.3724@eggly.anvils>
+References: <CA+55aFyUyD_BASjhig9OPerYcMrUgYJUfRLA9JyB_x7anV1d7Q@mail.gmail.com> <1398389846.8437.6.camel@pasglop> <1398393700.8437.22.camel@pasglop> <CA+55aFyO+-GehPiOAPy7-N0ejFrsNupWHG+j5hAs=R=RuPQtDg@mail.gmail.com> <5359CD7C.5020604@zytor.com>
+ <CA+55aFzktDDr5zNh-7gDhXW6-7_BP_MvKHEoLi9=td6XvwzaUA@mail.gmail.com> <alpine.LSU.2.11.1404250414590.5198@eggly.anvils> <20140425135101.GE11096@twins.programming.kicks-ass.net> <alpine.LSU.2.11.1404251215280.5909@eggly.anvils> <20140426180711.GM26782@laptop.programming.kicks-ass.net>
+ <20140427072034.GC1429@laptop.programming.kicks-ass.net> <alpine.LSU.2.11.1404270459160.2688@eggly.anvils>
+MIME-Version: 1.0
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Hugh Dickins <hughd@google.com>, "H. Peter Anvin" <hpa@zytor.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Jan Kara <jack@suse.cz>, Dave Hansen <dave.hansen@intel.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, Russell King - ARM Linux <linux@arm.linux.org.uk>, Tony Luck <tony.luck@intel.com>
-Message-ID: <20140427194723.ncbnWUzLDIGjLrsteLptN4BvlAvx64GGT_3ScMiZgLw@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>
+Cc: "H. Peter Anvin" <hpa@zytor.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Jan Kara <jack@suse.cz>, Dave Hansen <dave.hansen@intel.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, Russell King - ARM Linux <linux@arm.linux.org.uk>, Tony Luck <tony.luck@intel.com>
+Message-ID: <20140427200954.kENb3fIywTmG7Hpxqbpfyt4TE4owj2XDXlzXGtYfTcA@z>
 
-On Sun, Apr 27, 2014 at 12:33 PM, Peter Zijlstra <peterz@infradead.org> wrote:
->
-> Oh, absolutely. I wasn't arguing it didn't need it. I was merely
-> pointing out that if one was to add to Linus' patch such that we'd only
-> do the force_flush for mapping_cap_account_dirty() we wouldn't need
-> extra things to deal with shmem.
+On Sun, 27 Apr 2014, Hugh Dickins wrote:
+> 
+> But woke with a panic attack that we have overlooked the question
+> of how page reclaim's page_mapped() checks are serialized.
+> Perhaps this concern will evaporate with the morning dew,
+> perhaps it will not...
 
-I think we can certainly add that check if we find out that it is
-indeed a performance problem. I *could* imagine loads where people
-mmap/munmap shmem regions at a high rate, but don't actually know of
-any (remember: for this to matter they also have to dirty the pages).
+It was a real concern, but we happen to be rescued by the innocuous-
+looking is_page_cache_freeable() check at the beginning of pageout():
+which will deserve its own comment, but that can follow later.
 
-In the absence of such knowledge, I'd rather not make things more
-complex than they already are.
+My concern was with page reclaim's shrink_page_list() racing against
+munmap's or exit's (or madvise's) zap_pte_range() unmapping the page.
 
-              Linus
+Once zap_pte_range() has cleared the pte from a vma, neither
+try_to_unmap() nor page_mkclean() will see that vma as containing
+the page, so neither will do its own flush TLB of the cpus involved,
+before proceeding to writepage.
+
+Linus's patch (serialializing with ptlock) or my patch (serializing
+with i_mmap_mutex) both almost fix that, but it seemed not entirely:
+because try_to_unmap() is only called when page_mapped(), and
+page_mkclean() quits early without taking locks when !page_mapped().
+
+So in the interval when zap_pte_range() has brought page_mapcount()
+down to 0, but not yet flushed TLB on all mapping cpus, it looked as
+if we still had a problem - neither try_to_unmap() nor page_mkclean()
+would take the lock either of us rely upon for serialization.
+
+But pageout()'s preliminary is_page_cache_freeable() check makes
+it safe in the end: although page_mapcount() has gone down to 0,
+page_count() remains raised until the free_pages_and_swap_cache()
+after the TLB flush.
+
+So I now believe we're safe after all with either patch, and happy
+for Linus to go ahead with his.
+
+Peter, returning at last to your question of whether we could exempt
+shmem from the added overhead of either patch.  Until just now I
+thought not, because of the possibility that the shmem_writepage()
+could occur while one of the mm's cpus remote from zap_pte_range()
+cpu was still modifying the page.  But now that I see the role
+played by is_page_cache_freeable(), and of course the zapping end
+has never dropped its reference on the page before the TLB flush,
+however late that occurred, hmmm, maybe yes, shmem can be exempted.
+
+But I'd prefer to dwell on that a bit longer: we can add that as
+an optimization later if it holds up to scrutiny.
+
+Hugh
