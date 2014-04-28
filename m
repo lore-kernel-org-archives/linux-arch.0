@@ -1,108 +1,32 @@
-From: Madhavan Srinivasan <maddy@linux.vnet.ibm.com>
-Subject: [PATCH V3 1/2] mm: move FAULT_AROUND_ORDER to arch/
-Date: Mon, 28 Apr 2014 14:31:29 +0530
-Message-ID: <1398675690-16186-2-git-send-email-maddy@linux.vnet.ibm.com>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH V3 1/2] mm: move FAULT_AROUND_ORDER to arch/
+Date: Mon, 28 Apr 2014 11:06:49 +0200
+Message-ID: <20140428090649.GD27561@twins.programming.kicks-ass.net>
 References: <1398675690-16186-1-git-send-email-maddy@linux.vnet.ibm.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e23smtp06.au.ibm.com ([202.81.31.148]:59193 "EHLO
-	e23smtp06.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753944AbaD1JEl (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 28 Apr 2014 05:04:41 -0400
-Received: from /spool/local
-	by e23smtp06.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <maddy@linux.vnet.ibm.com>;
-	Mon, 28 Apr 2014 19:01:56 +1000
-In-Reply-To: <1398675690-16186-1-git-send-email-maddy@linux.vnet.ibm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, x86@kernel.org
-Cc: benh@kernel.crashing.org, paulus@samba.org, kirill.shutemov@linux.intel.com, rusty@rustcorp.com.au, akpm@linux-foundation.org, riel@redhat.com, mgorman@suse.de, ak@linux.intel.com, peterz@infradead.org, mingo@kernel.org, dave.hansen@intel.com, Madhavan Srinivasan <maddy@linux.vnet.ibm.com>
+ <1398675690-16186-2-git-send-email-maddy@linux.vnet.ibm.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
+Content-Disposition: inline
+In-Reply-To: <1398675690-16186-2-git-send-email-maddy@linux.vnet.ibm.com>
+List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
+ <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
+List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
+List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
+List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
+List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
+ <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
+Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
+Sender: "Linuxppc-dev"
+ <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
+To: Madhavan Srinivasan <maddy@linux.vnet.ibm.com>
+Cc: linux-arch@vger.kernel.org, riel@redhat.com, rusty@rustcorp.com.au, dave.hansen@intel.com, x86@kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, ak@linux.intel.com, paulus@samba.org, mgorman@suse.de, akpm@linux-foundation.org, linuxppc-dev@lists.ozlabs.org, mingo@kernel.org, kirill.shutemov@linux.intel.com
+List-Id: linux-arch.vger.kernel.org
 
-Kirill A. Shutemov with 8c6e50b029 commit introduced
-vm_ops->map_pages() for mapping easy accessible pages around
-fault address in hope to reduce number of minor page faults.
-
-This patch creates infrastructure to modify the FAULT_AROUND_ORDER
-value using mm/Kconfig. This will enable architecture maintainers
-to decide on suitable FAULT_AROUND_ORDER value based on
-performance data for that architecture. Patch also defaults
-FAULT_AROUND_ORDER Kconfig element to 4.
-
-Signed-off-by: Madhavan Srinivasan <maddy@linux.vnet.ibm.com>
----
- mm/Kconfig  |    8 ++++++++
- mm/memory.c |   11 ++++-------
- 2 files changed, 12 insertions(+), 7 deletions(-)
-
-diff --git a/mm/Kconfig b/mm/Kconfig
-index ebe5880..c7fc4f1 100644
---- a/mm/Kconfig
-+++ b/mm/Kconfig
-@@ -176,6 +176,14 @@ config MOVABLE_NODE
- config HAVE_BOOTMEM_INFO_NODE
- 	def_bool n
- 
-+#
-+# Fault around order is a control knob to decide the fault around pages.
-+# Default value is set to 4 , but the arch can override it as desired.
-+#
-+config FAULT_AROUND_ORDER
-+	int
-+	default	4
-+
- # eventually, we can have this option just 'select SPARSEMEM'
- config MEMORY_HOTPLUG
- 	bool "Allow for memory hot-add"
-diff --git a/mm/memory.c b/mm/memory.c
-index d0f0bef..457436d 100644
---- a/mm/memory.c
-+++ b/mm/memory.c
-@@ -3382,11 +3382,9 @@ void do_set_pte(struct vm_area_struct *vma, unsigned long address,
- 	update_mmu_cache(vma, address, pte);
- }
- 
--#define FAULT_AROUND_ORDER 4
-+unsigned int fault_around_order = CONFIG_FAULT_AROUND_ORDER;
- 
- #ifdef CONFIG_DEBUG_FS
--static unsigned int fault_around_order = FAULT_AROUND_ORDER;
--
- static int fault_around_order_get(void *data, u64 *val)
- {
- 	*val = fault_around_order;
-@@ -3395,7 +3393,6 @@ static int fault_around_order_get(void *data, u64 *val)
- 
- static int fault_around_order_set(void *data, u64 val)
- {
--	BUILD_BUG_ON((1UL << FAULT_AROUND_ORDER) > PTRS_PER_PTE);
- 	if (1UL << val > PTRS_PER_PTE)
- 		return -EINVAL;
- 	fault_around_order = val;
-@@ -3430,14 +3427,14 @@ static inline unsigned long fault_around_pages(void)
- {
- 	unsigned long nr_pages;
- 
--	nr_pages = 1UL << FAULT_AROUND_ORDER;
-+	nr_pages = 1UL << fault_around_order;
- 	BUILD_BUG_ON(nr_pages > PTRS_PER_PTE);
- 	return nr_pages;
- }
- 
- static inline unsigned long fault_around_mask(void)
- {
--	return ~((1UL << (PAGE_SHIFT + FAULT_AROUND_ORDER)) - 1);
-+	return ~((1UL << (PAGE_SHIFT + fault_around_order)) - 1);
- }
- #endif
- 
-@@ -3495,7 +3492,7 @@ static int do_read_fault(struct mm_struct *mm, struct vm_area_struct *vma,
- 	 * if page by the offset is not ready to be mapped (cold cache or
- 	 * something).
- 	 */
--	if (vma->vm_ops->map_pages) {
-+	if ((vma->vm_ops->map_pages) && (fault_around_order)) {
- 		pte = pte_offset_map_lock(mm, pmd, address, &ptl);
- 		do_fault_around(vma, address, pte, pgoff, flags);
- 		if (!pte_same(*pte, orig_pte))
--- 
-1.7.10.4
+T24gTW9uLCBBcHIgMjgsIDIwMTQgYXQgMDI6MzE6MjlQTSArMDUzMCwgTWFkaGF2YW4gU3Jpbml2
+YXNhbiB3cm90ZToKPiArdW5zaWduZWQgaW50IGZhdWx0X2Fyb3VuZF9vcmRlciA9IENPTkZJR19G
+QVVMVF9BUk9VTkRfT1JERVI7CgpfX3JlYWRfbW9zdGx5PwpfX19fX19fX19fX19fX19fX19fX19f
+X19fX19fX19fX19fX19fX19fX19fX19fXwpMaW51eHBwYy1kZXYgbWFpbGluZyBsaXN0CkxpbnV4
+cHBjLWRldkBsaXN0cy5vemxhYnMub3JnCmh0dHBzOi8vbGlzdHMub3psYWJzLm9yZy9saXN0aW5m
+by9saW51eHBwYy1kZXY=
