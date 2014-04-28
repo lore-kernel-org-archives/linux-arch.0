@@ -1,73 +1,36 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pb0-f53.google.com ([209.85.160.53]:52177 "EHLO
-	mail-pb0-f53.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750993AbaD0ULE (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 27 Apr 2014 16:11:04 -0400
-Received: by mail-pb0-f53.google.com with SMTP id jt11so3286214pbb.26
-        for <linux-arch@vger.kernel.org>; Sun, 27 Apr 2014 13:11:04 -0700 (PDT)
-Date: Sun, 27 Apr 2014 13:09:54 -0700 (PDT)
-From: Hugh Dickins <hughd@google.com>
-Subject: Re: Dirty/Access bits vs. page content
-In-Reply-To: <alpine.LSU.2.11.1404270459160.2688@eggly.anvils>
-Message-ID: <alpine.LSU.2.11.1404271220100.3724@eggly.anvils>
-References: <CA+55aFyUyD_BASjhig9OPerYcMrUgYJUfRLA9JyB_x7anV1d7Q@mail.gmail.com> <1398389846.8437.6.camel@pasglop> <1398393700.8437.22.camel@pasglop> <CA+55aFyO+-GehPiOAPy7-N0ejFrsNupWHG+j5hAs=R=RuPQtDg@mail.gmail.com> <5359CD7C.5020604@zytor.com>
- <CA+55aFzktDDr5zNh-7gDhXW6-7_BP_MvKHEoLi9=td6XvwzaUA@mail.gmail.com> <alpine.LSU.2.11.1404250414590.5198@eggly.anvils> <20140425135101.GE11096@twins.programming.kicks-ass.net> <alpine.LSU.2.11.1404251215280.5909@eggly.anvils> <20140426180711.GM26782@laptop.programming.kicks-ass.net>
- <20140427072034.GC1429@laptop.programming.kicks-ass.net> <alpine.LSU.2.11.1404270459160.2688@eggly.anvils>
+Received: from mail-qg0-f48.google.com ([209.85.192.48]:44101 "EHLO
+	mail-qg0-f48.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751252AbaD1GDB (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 28 Apr 2014 02:03:01 -0400
 MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+In-Reply-To: <535AF527.80601@redhat.com>
+References: <1397824031-4892-1-git-send-email-lftan@altera.com>
+	<1397824031-4892-22-git-send-email-lftan@altera.com>
+	<535AF527.80601@redhat.com>
+Date: Mon, 28 Apr 2014 14:03:00 +0800
+Message-ID: <CAFiDJ58W+BkjqYurWTdWhoOJjOMBGzvnRvxjKeyJVKCJHkNMGA@mail.gmail.com>
+Subject: Re: [PATCH 25/28] nios2: ptrace support
+From: Ley Foon Tan <lftan@altera.com>
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>
-Cc: "H. Peter Anvin" <hpa@zytor.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Jan Kara <jack@suse.cz>, Dave Hansen <dave.hansen@intel.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, Russell King - ARM Linux <linux@arm.linux.org.uk>, Tony Luck <tony.luck@intel.com>
-Message-ID: <20140427200954.kENb3fIywTmG7Hpxqbpfyt4TE4owj2XDXlzXGtYfTcA@z>
+To: Pedro Alves <palves@redhat.com>
+Cc: Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, cltang@codesourcery.com
+Message-ID: <20140428060300.QDJzff0vyCxi2R8wuselzmqwh8Aus5gJUo7LCFCeKEs@z>
 
-On Sun, 27 Apr 2014, Hugh Dickins wrote:
-> 
-> But woke with a panic attack that we have overlooked the question
-> of how page reclaim's page_mapped() checks are serialized.
-> Perhaps this concern will evaporate with the morning dew,
-> perhaps it will not...
+On Sat, Apr 26, 2014 at 7:52 AM, Pedro Alves <palves@redhat.com> wrote:
+> Does this support PTRACE_GETREGSET / PTRACE_SETREGSET ?
+>
+> IMO, the kernel shouldn't accept ports without those anymore.
+>
+> And IMHO, we shouldn't even allow new ports having PTRACE_GETREGS.
+>
+> http://sourceware.org/ml/archer/2010-q3/msg00193.html
+>
 
-It was a real concern, but we happen to be rescued by the innocuous-
-looking is_page_cache_freeable() check at the beginning of pageout():
-which will deserve its own comment, but that can follow later.
+It doesn't support PTRACE_GETREGSET / PTRACE_SETREGSET now.
+We will look into this.
 
-My concern was with page reclaim's shrink_page_list() racing against
-munmap's or exit's (or madvise's) zap_pte_range() unmapping the page.
-
-Once zap_pte_range() has cleared the pte from a vma, neither
-try_to_unmap() nor page_mkclean() will see that vma as containing
-the page, so neither will do its own flush TLB of the cpus involved,
-before proceeding to writepage.
-
-Linus's patch (serialializing with ptlock) or my patch (serializing
-with i_mmap_mutex) both almost fix that, but it seemed not entirely:
-because try_to_unmap() is only called when page_mapped(), and
-page_mkclean() quits early without taking locks when !page_mapped().
-
-So in the interval when zap_pte_range() has brought page_mapcount()
-down to 0, but not yet flushed TLB on all mapping cpus, it looked as
-if we still had a problem - neither try_to_unmap() nor page_mkclean()
-would take the lock either of us rely upon for serialization.
-
-But pageout()'s preliminary is_page_cache_freeable() check makes
-it safe in the end: although page_mapcount() has gone down to 0,
-page_count() remains raised until the free_pages_and_swap_cache()
-after the TLB flush.
-
-So I now believe we're safe after all with either patch, and happy
-for Linus to go ahead with his.
-
-Peter, returning at last to your question of whether we could exempt
-shmem from the added overhead of either patch.  Until just now I
-thought not, because of the possibility that the shmem_writepage()
-could occur while one of the mm's cpus remote from zap_pte_range()
-cpu was still modifying the page.  But now that I see the role
-played by is_page_cache_freeable(), and of course the zapping end
-has never dropped its reference on the page before the TLB flush,
-however late that occurred, hmmm, maybe yes, shmem can be exempted.
-
-But I'd prefer to dwell on that a bit longer: we can add that as
-an optimization later if it holds up to scrutiny.
-
-Hugh
+Regards
+Ley Foon
