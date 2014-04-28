@@ -1,31 +1,49 @@
-From: Ley Foon Tan <lftan@altera.com>
-Subject: Re: [PATCH 25/28] nios2: ptrace support
-Date: Mon, 28 Apr 2014 14:03:00 +0800
-Message-ID: <CAFiDJ58W+BkjqYurWTdWhoOJjOMBGzvnRvxjKeyJVKCJHkNMGA@mail.gmail.com>
-References: <1397824031-4892-1-git-send-email-lftan@altera.com>
-	<1397824031-4892-22-git-send-email-lftan@altera.com>
-	<535AF527.80601@redhat.com>
+From: Madhavan Srinivasan <maddy@linux.vnet.ibm.com>
+Subject: [PATCH V3 0/2] mm: FAULT_AROUND_ORDER patchset performance data for
+ powerpc
+Date: Mon, 28 Apr 2014 14:31:28 +0530
+Message-ID: <1398675690-16186-1-git-send-email-maddy@linux.vnet.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-doc-owner@vger.kernel.org>
-In-Reply-To: <535AF527.80601@redhat.com>
-Sender: linux-doc-owner@vger.kernel.org
-To: Pedro Alves <palves@redhat.com>
-Cc: Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, cltang@codesourcery.com
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
+List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
+ <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
+List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
+List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
+List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
+List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
+ <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
+Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
+Sender: "Linuxppc-dev"
+ <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
+To: linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, x86@kernel.org
+Cc: riel@redhat.com, ak@linux.intel.com, peterz@infradead.org, rusty@rustcorp.com.au, dave.hansen@intel.com, Madhavan Srinivasan <maddy@linux.vnet.ibm.com>, paulus@samba.org, mgorman@suse.de, akpm@linux-foundation.org, mingo@kernel.org, kirill.shutemov@linux.intel.com
 List-Id: linux-arch.vger.kernel.org
 
-On Sat, Apr 26, 2014 at 7:52 AM, Pedro Alves <palves@redhat.com> wrote:
-> Does this support PTRACE_GETREGSET / PTRACE_SETREGSET ?
->
-> IMO, the kernel shouldn't accept ports without those anymore.
->
-> And IMHO, we shouldn't even allow new ports having PTRACE_GETREGS.
->
-> http://sourceware.org/ml/archer/2010-q3/msg00193.html
->
-
-It doesn't support PTRACE_GETREGSET / PTRACE_SETREGSET now.
-We will look into this.
-
-Regards
-Ley Foon
+S2lyaWxsIEEuIFNodXRlbW92IHdpdGggOGM2ZTUwYjAyOSBjb21taXQgaW50cm9kdWNlZAp2bV9v
+cHMtPm1hcF9wYWdlcygpIGZvciBtYXBwaW5nIGVhc3kgYWNjZXNzaWJsZSBwYWdlcyBhcm91bmQK
+ZmF1bHQgYWRkcmVzcyBpbiBob3BlIHRvIHJlZHVjZSBudW1iZXIgb2YgbWlub3IgcGFnZSBmYXVs
+dHMuCgpUaGlzIHBhdGNoIGNyZWF0ZXMgaW5mcmFzdHJ1Y3R1cmUgdG8gbW9kaWZ5IHRoZSBGQVVM
+VF9BUk9VTkRfT1JERVIKdmFsdWUgdXNpbmcgbW0vS2NvbmZpZy4gVGhpcyB3aWxsIGVuYWJsZSBh
+cmNoaXRlY3R1cmUgbWFpbnRhaW5lcnMKdG8gZGVjaWRlIG9uIHN1aXRhYmxlIEZBVUxUX0FST1VO
+RF9PUkRFUiB2YWx1ZSBiYXNlZCBvbgpwZXJmb3JtYW5jZSBkYXRhIGZvciB0aGF0IGFyY2hpdGVj
+dHVyZS4gRmlyc3QgcGF0Y2ggYWxzbyBkZWZhdWx0cwpGQVVMVF9BUk9VTkRfT1JERVIgS2NvbmZp
+ZyBlbGVtZW50IHRvIDQuIFNlY29uZCBwYXRjaCBsaXN0Cm91dCB0aGUgcGVyZm9ybWFuY2UgbnVt
+YmVycyBmb3IgcG93ZXJwYyAocGxhdGZvcm0gcHNlcmllcykgYW5kCmluaXRpYWxpemUgdGhlIGZh
+dWx0IGFyb3VuZCBvcmRlciB2YXJpYWJsZSBmb3IgcHNlcmllcyBwbGF0Zm9ybSBvZgpwb3dlcnBj
+LgoKVjMgQ2hhbmdlczoKICBSZXBsYWNlZCBGQVVMVF9BUk9VTkRfT1JERVIgbWFjcm8gdG8gYSB2
+YXJpYWJsZSB0byBzdXBwb3J0IGFyY2gncyB0aGF0CiAgIHN1cHBvcnRzIHN1YiBwbGF0Zm9ybXMu
+CiAgTWFkZSBjaGFuZ2VzIGluIGNvbW1pdCBtZXNzYWdlcy4KClYyIENoYW5nZXM6CiAgQ3JlYXRl
+ZCBLY29uZmlnIHBhcmFtZXRlciBmb3IgRkFVTFRfQVJPVU5EX09SREVSCiAgQWRkZWQgY2hlY2sg
+aW4gZG9fcmVhZF9mYXVsdCB0byBoYW5kbGUgRkFVTFRfQVJPVU5EX09SREVSIHZhbHVlIG9mIDAK
+ICBNYWRlIGNoYW5nZXMgaW4gY29tbWl0IG1lc3NhZ2VzLgoKTWFkaGF2YW4gU3Jpbml2YXNhbiAo
+Mik6CiAgbW06IG1vdmUgRkFVTFRfQVJPVU5EX09SREVSIHRvIGFyY2gvCiAgcG93ZXJwYy9wc2Vy
+aWVzOiBpbml0IGZhdWx0X2Fyb3VuZF9vcmRlciBmb3IgcHNlcmllcwoKIGFyY2gvcG93ZXJwYy9w
+bGF0Zm9ybXMvcHNlcmllcy9zZXR1cC5jIHwgICAgNSArKysrKwogbW0vS2NvbmZpZyAgICAgICAg
+ICAgICAgICAgICAgICAgICAgICAgfCAgICA4ICsrKysrKysrCiBtbS9tZW1vcnkuYyAgICAgICAg
+ICAgICAgICAgICAgICAgICAgICB8ICAgMTEgKysrKy0tLS0tLS0KIDMgZmlsZXMgY2hhbmdlZCwg
+MTcgaW5zZXJ0aW9ucygrKSwgNyBkZWxldGlvbnMoLSkKCi0tIAoxLjcuMTAuNAoKX19fX19fX19f
+X19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX18KTGludXhwcGMtZGV2IG1haWxp
+bmcgbGlzdApMaW51eHBwYy1kZXZAbGlzdHMub3psYWJzLm9yZwpodHRwczovL2xpc3RzLm96bGFi
+cy5vcmcvbGlzdGluZm8vbGludXhwcGMtZGV2
