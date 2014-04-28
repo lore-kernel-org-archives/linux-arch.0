@@ -1,25 +1,54 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.9]:38524 "EHLO
-	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751321AbaD1JH2 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 28 Apr 2014 05:07:28 -0400
-Date: Mon, 28 Apr 2014 11:06:49 +0200
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH V3 1/2] mm: move FAULT_AROUND_ORDER to arch/
-Message-ID: <20140428090649.GD27561@twins.programming.kicks-ass.net>
-References: <1398675690-16186-1-git-send-email-maddy@linux.vnet.ibm.com>
- <1398675690-16186-2-git-send-email-maddy@linux.vnet.ibm.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1398675690-16186-2-git-send-email-maddy@linux.vnet.ibm.com>
+Received: from e23smtp01.au.ibm.com ([202.81.31.143]:57774 "EHLO
+	e23smtp01.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754482AbaD1JNN (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 28 Apr 2014 05:13:13 -0400
+Received: from /spool/local
+	by e23smtp01.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <maddy@linux.vnet.ibm.com>;
+	Mon, 28 Apr 2014 19:01:52 +1000
+From: Madhavan Srinivasan <maddy@linux.vnet.ibm.com>
+Subject: [PATCH V3 0/2] mm: FAULT_AROUND_ORDER patchset performance data for powerpc
+Date: Mon, 28 Apr 2014 14:31:28 +0530
+Message-ID: <1398675690-16186-1-git-send-email-maddy@linux.vnet.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Madhavan Srinivasan <maddy@linux.vnet.ibm.com>
-Cc: linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, x86@kernel.org, benh@kernel.crashing.org, paulus@samba.org, kirill.shutemov@linux.intel.com, rusty@rustcorp.com.au, akpm@linux-foundation.org, riel@redhat.com, mgorman@suse.de, ak@linux.intel.com, mingo@kernel.org, dave.hansen@intel.com
-Message-ID: <20140428090649.8KTh_ZkZoQDJYc2nos8xrHJ_dhsPVs-2F61aZDSzhSE@z>
+To: linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, x86@kernel.org
+Cc: benh@kernel.crashing.org, paulus@samba.org, kirill.shutemov@linux.intel.com, rusty@rustcorp.com.au, akpm@linux-foundation.org, riel@redhat.com, mgorman@suse.de, ak@linux.intel.com, peterz@infradead.org, mingo@kernel.org, dave.hansen@intel.com, Madhavan Srinivasan <maddy@linux.vnet.ibm.com>
+Message-ID: <20140428090128.9q5eYvNgnoF4j_p-Fge62GY0fDckqH8vPGcaFZWbHAY@z>
 
-On Mon, Apr 28, 2014 at 02:31:29PM +0530, Madhavan Srinivasan wrote:
-> +unsigned int fault_around_order = CONFIG_FAULT_AROUND_ORDER;
+Kirill A. Shutemov with 8c6e50b029 commit introduced
+vm_ops->map_pages() for mapping easy accessible pages around
+fault address in hope to reduce number of minor page faults.
 
-__read_mostly?
+This patch creates infrastructure to modify the FAULT_AROUND_ORDER
+value using mm/Kconfig. This will enable architecture maintainers
+to decide on suitable FAULT_AROUND_ORDER value based on
+performance data for that architecture. First patch also defaults
+FAULT_AROUND_ORDER Kconfig element to 4. Second patch list
+out the performance numbers for powerpc (platform pseries) and
+initialize the fault around order variable for pseries platform of
+powerpc.
+
+V3 Changes:
+  Replaced FAULT_AROUND_ORDER macro to a variable to support arch's that
+   supports sub platforms.
+  Made changes in commit messages.
+
+V2 Changes:
+  Created Kconfig parameter for FAULT_AROUND_ORDER
+  Added check in do_read_fault to handle FAULT_AROUND_ORDER value of 0
+  Made changes in commit messages.
+
+Madhavan Srinivasan (2):
+  mm: move FAULT_AROUND_ORDER to arch/
+  powerpc/pseries: init fault_around_order for pseries
+
+ arch/powerpc/platforms/pseries/setup.c |    5 +++++
+ mm/Kconfig                             |    8 ++++++++
+ mm/memory.c                            |   11 ++++-------
+ 3 files changed, 17 insertions(+), 7 deletions(-)
+
+-- 
+1.7.10.4
+
