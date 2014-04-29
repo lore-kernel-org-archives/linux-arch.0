@@ -1,35 +1,47 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ig0-f180.google.com ([209.85.213.180]:38790 "EHLO
-	mail-ig0-f180.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S933876AbaD2LYj (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 29 Apr 2014 07:24:39 -0400
+Received: from youngberry.canonical.com ([91.189.89.112]:50922 "EHLO
+	youngberry.canonical.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1757972AbaD2Ocn (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 29 Apr 2014 10:32:43 -0400
+Message-ID: <535FB808.3060608@canonical.com>
+Date: Tue, 29 Apr 2014 16:32:40 +0200
+From: Maarten Lankhorst <maarten.lankhorst@canonical.com>
 MIME-Version: 1.0
-In-Reply-To: <CAAG0J9-2=rP3RP08eEjd17R3wEaeiUtGfWD-LeqXV=y9sBamfA@mail.gmail.com>
-References: <1398247687-13453-1-git-send-email-james.hogan@imgtec.com>
-	<1398247687-13453-4-git-send-email-james.hogan@imgtec.com>
-	<201404231418.05174.arnd@arndb.de>
-	<CAAG0J9-2=rP3RP08eEjd17R3wEaeiUtGfWD-LeqXV=y9sBamfA@mail.gmail.com>
-Date: Tue, 29 Apr 2014 13:24:36 +0200
-Message-ID: <CAELBmZB=74foyc_b-MTVOXeP6rVAD2x4=um2RVezTb68DifEbA@mail.gmail.com>
-Subject: Re: [RFC 3/3] asm-generic: Drop renameat syscall from default list
-From: Szeredi Miklos <miklos@szeredi.hu>
-Content-Type: text/plain; charset=UTF-8
+Subject: Re: [RFC PATCH 2/2 with seqcount v3] reservation: add suppport for
+ read-only access using rcu
+References: <20140409144239.26648.57918.stgit@patser> <20140409144831.26648.79163.stgit@patser> <53465A53.1090500@vmware.com> <53466D63.8080808@canonical.com> <53467B93.3000402@vmware.com> <5346B212.8050202@canonical.com> <5347A9FD.2070706@vmware.com> <5347B4E5.6090901@canonical.com> <5347BFC9.3020503@vmware.com> <53482FF1.1090406@canonical.com> <534843EA.6060602@vmware.com> <534B9165.4000101@canonical.com> <534B921B.4080504@vmware.com> <5357A0DE.7030305@canonical.com>
+In-Reply-To: <5357A0DE.7030305@canonical.com>
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: James Hogan <james.hogan@imgtec.com>
-Cc: Arnd Bergmann <arnd@arndb.de>, Miklos Szeredi <mszeredi@suse.cz>, linux-arch@vger.kernel.org, LKML <linux-kernel@vger.kernel.org>, Vineet Gupta <vgupta@synopsys.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, ARM Kernel List <linux-arm-kernel@lists.infradead.org>, Mark Salter <msalter@redhat.com>, Aurelien Jacquiot <a-jacquiot@ti.com>, linux-c6x-dev@linux-c6x.org, Richard Kuo <rkuo@codeaurora.org>, linux-hexagon@vger.kernel.org, metag <linux-metag@vger.kernel.org>, Jonas Bonn <jonas@southpole.se>, linux@lists.openrisc.net, Chen Liqin <liqin.linux@gmail.com>, Lennox Wu <lennox.wu@gmail.com>, Chris Metcalf <cmetcalf@tilera.com>, Guan Xuetao <gxt@mprc.pku.edu.cn>
-Message-ID: <20140429112436.6zTsVt9ly8l6qaRmF9oDXqJ3VEqXGu54yOhYQo-up_Q@z>
+To: Thomas Hellstrom <thellstrom@vmware.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, ccross@google.com, linux-media@vger.kernel.org
+Message-ID: <20140429143240.6R7XTrBgibrtr0TlpiAgxBNjf7xRnGEi4S5j4YGHbaw@z>
 
-On Wed, Apr 23, 2014 at 2:41 PM, James Hogan <james.hogan@imgtec.com> wrote:
-
-> It appears Miklos Szeredi beat me to it with patch 1 (adding renameat2
-> syscall to asm-generic unistd.h), and will be submitting it to Linus
-> at some point as part of his renameat2 series.
-> Miklos: Do you think it makes sense for you to include my second patch
-> in your series too since it's renameat2 related?
-> http://marc.info/?l=linux-kernel&m=139824773305016&w=2
-
-I've queued up the first two patches with acks from Arnd.
-
-Thanks,
-Miklos
+op 23-04-14 13:15, Maarten Lankhorst schreef:
+> This adds 4 more functions to deal with rcu.
+>
+> reservation_object_get_fences_rcu() will obtain the list of shared
+> and exclusive fences without obtaining the ww_mutex.
+>
+> reservation_object_wait_timeout_rcu() will wait on all fences of the
+> reservation_object, without obtaining the ww_mutex.
+>
+> reservation_object_test_signaled_rcu() will test if all fences of the
+> reservation_object are signaled without using the ww_mutex.
+>
+> reservation_object_get_excl() is added because touching the fence_excl
+> member directly will trigger a sparse warning.
+>
+> Signed-off-by: Maarten Lankhorst <maarten.lankhorst@canonical.com>
+> ---
+> Using seqcount and fixing some lockdep bugs.
+> Changes since v2:
+> - Fix some crashes, remove some unneeded barriers when provided by seqcount writes
+> - Fix code to work correctly with sparse's RCU annotations.
+> - Create a global string for the seqcount lock to make lockdep happy.
+>
+> Can I get this version reviewed? If it looks correct I'll mail the full series
+> because it's intertwined with the TTM conversion to use this code.
+Ping, can anyone review this?
