@@ -1,34 +1,57 @@
-From: Szeredi Miklos <miklos-sUDqSbJrdHQHWmgEVkV9KA@public.gmane.org>
-Subject: Re: [RFC 3/3] asm-generic: Drop renameat syscall from default list
-Date: Tue, 29 Apr 2014 13:24:36 +0200
-Message-ID: <CAELBmZB=74foyc_b-MTVOXeP6rVAD2x4=um2RVezTb68DifEbA@mail.gmail.com>
-References: <1398247687-13453-1-git-send-email-james.hogan@imgtec.com>
-	<1398247687-13453-4-git-send-email-james.hogan@imgtec.com>
-	<201404231418.05174.arnd@arndb.de>
-	<CAAG0J9-2=rP3RP08eEjd17R3wEaeiUtGfWD-LeqXV=y9sBamfA@mail.gmail.com>
+From: Maarten Lankhorst <maarten.lankhorst@canonical.com>
+Subject: Re: [RFC PATCH 2/2 with seqcount v3] reservation: add suppport for
+ read-only access using rcu
+Date: Tue, 29 Apr 2014 16:32:40 +0200
+Message-ID: <535FB808.3060608@canonical.com>
+References: <20140409144239.26648.57918.stgit@patser>
+ <20140409144831.26648.79163.stgit@patser> <53465A53.1090500@vmware.com>
+ <53466D63.8080808@canonical.com> <53467B93.3000402@vmware.com>
+ <5346B212.8050202@canonical.com> <5347A9FD.2070706@vmware.com>
+ <5347B4E5.6090901@canonical.com> <5347BFC9.3020503@vmware.com>
+ <53482FF1.1090406@canonical.com> <534843EA.6060602@vmware.com>
+ <534B9165.4000101@canonical.com> <534B921B.4080504@vmware.com>
+ <5357A0DE.7030305@canonical.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-metag-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <CAAG0J9-2=rP3RP08eEjd17R3wEaeiUtGfWD-LeqXV=y9sBamfA-JsoAwUIsXosN+BqQ9rBEUg@public.gmane.org>
-Sender: linux-metag-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: James Hogan <james.hogan-1AXoQHu6uovQT0dZR+AlfA@public.gmane.org>
-Cc: Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Miklos Szeredi <mszeredi-AlSwsSmVLrQ@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, LKML <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Vineet Gupta <vgupta-HKixBCOQz3hWk0Htik3J/w@public.gmane.org>, Catalin Marinas <catalin.marinas-5wv7dgnIgG8@public.gmane.org>, Will Deacon <will.deacon-5wv7dgnIgG8@public.gmane.org>, ARM Kernel List <linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org>, Mark Salter <msalter-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Aurelien Jacquiot <a-jacquiot-l0cyMroinI0@public.gmane.org>, linux-c6x-dev-jPsnJVOj+W6hPH1hqNUYSQ@public.gmane.org, Richard Kuo <rkuo-sgV2jX0FEOL9JmXXK+q4OQ@public.gmane.org>, linux-hexagon-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, metag <linux-metag-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Jonas Bonn <jonas-A9uVI2HLR7kOP4wsBPIw7w@public.gmane.org>, linux-ZwoEplunGu2h2975yA52AaxOck334EZe@public.gmane.org, Chen Liqin <liqin.linux-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Lennox Wu <lennox.wu-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Chris Metcalf <cmetcalf-kv+TWInifGbQT0dZR+AlfA@public.gmane.org>, Guan Xuetao <gxt-TG0Ac1+ktVePQbnJrJN+5g@public.gmane.org>
+Content-Type: text/plain; charset="us-ascii"; Format="flowed"
+Content-Transfer-Encoding: 7bit
+Return-path: <dri-devel-bounces@lists.freedesktop.org>
+In-Reply-To: <5357A0DE.7030305@canonical.com>
+List-Unsubscribe: <http://lists.freedesktop.org/mailman/options/dri-devel>,
+ <mailto:dri-devel-request@lists.freedesktop.org?subject=unsubscribe>
+List-Archive: <http://lists.freedesktop.org/archives/dri-devel>
+List-Post: <mailto:dri-devel@lists.freedesktop.org>
+List-Help: <mailto:dri-devel-request@lists.freedesktop.org?subject=help>
+List-Subscribe: <http://lists.freedesktop.org/mailman/listinfo/dri-devel>,
+ <mailto:dri-devel-request@lists.freedesktop.org?subject=subscribe>
+Errors-To: dri-devel-bounces@lists.freedesktop.org
+Sender: "dri-devel" <dri-devel-bounces@lists.freedesktop.org>
+To: Thomas Hellstrom <thellstrom@vmware.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, ccross@google.com, linux-media@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Apr 23, 2014 at 2:41 PM, James Hogan <james.hogan-1AXoQHu6uovQT0dZR+AlfA@public.gmane.org> wrote:
-
-> It appears Miklos Szeredi beat me to it with patch 1 (adding renameat2
-> syscall to asm-generic unistd.h), and will be submitting it to Linus
-> at some point as part of his renameat2 series.
-> Miklos: Do you think it makes sense for you to include my second patch
-> in your series too since it's renameat2 related?
-> http://marc.info/?l=linux-kernel&m=139824773305016&w=2
-
-I've queued up the first two patches with acks from Arnd.
-
-Thanks,
-Miklos
---
-To unsubscribe from this list: send the line "unsubscribe linux-metag" in
-the body of a message to majordomo-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-More majordomo info at  http://vger.kernel.org/majordomo-info.html
+op 23-04-14 13:15, Maarten Lankhorst schreef:
+> This adds 4 more functions to deal with rcu.
+>
+> reservation_object_get_fences_rcu() will obtain the list of shared
+> and exclusive fences without obtaining the ww_mutex.
+>
+> reservation_object_wait_timeout_rcu() will wait on all fences of the
+> reservation_object, without obtaining the ww_mutex.
+>
+> reservation_object_test_signaled_rcu() will test if all fences of the
+> reservation_object are signaled without using the ww_mutex.
+>
+> reservation_object_get_excl() is added because touching the fence_excl
+> member directly will trigger a sparse warning.
+>
+> Signed-off-by: Maarten Lankhorst <maarten.lankhorst@canonical.com>
+> ---
+> Using seqcount and fixing some lockdep bugs.
+> Changes since v2:
+> - Fix some crashes, remove some unneeded barriers when provided by seqcount writes
+> - Fix code to work correctly with sparse's RCU annotations.
+> - Create a global string for the seqcount lock to make lockdep happy.
+>
+> Can I get this version reviewed? If it looks correct I'll mail the full series
+> because it's intertwined with the TTM conversion to use this code.
+Ping, can anyone review this?
