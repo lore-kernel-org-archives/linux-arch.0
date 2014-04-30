@@ -1,56 +1,70 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp-outbound-2.vmware.com ([208.91.2.13]:58200 "EHLO
-	smtp-outbound-2.vmware.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1754482AbaD2TEh (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 29 Apr 2014 15:04:37 -0400
-Message-ID: <535FF597.8040109@vmware.com>
-Date: Tue, 29 Apr 2014 20:55:19 +0200
-From: Thomas Hellstrom <thellstrom@vmware.com>
+Received: from ozlabs.org ([103.22.144.67]:45979 "EHLO ozlabs.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1755888AbaD3HLW (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 30 Apr 2014 03:11:22 -0400
+From: Rusty Russell <rusty@rustcorp.com.au>
+Subject: Re: [PATCH V3 2/2] powerpc/pseries: init fault_around_order for pseries
+In-Reply-To: <20140429070632.GB27951@gmail.com>
+References: <1398675690-16186-1-git-send-email-maddy@linux.vnet.ibm.com> <1398675690-16186-3-git-send-email-maddy@linux.vnet.ibm.com> <20140429070632.GB27951@gmail.com>
+Date: Wed, 30 Apr 2014 16:34:11 +0930
+Message-ID: <87d2fz47tg.fsf@rustcorp.com.au>
 MIME-Version: 1.0
-Subject: Re: [RFC PATCH 2/2 with seqcount v3] reservation: add suppport for
- read-only access using rcu
-References: <20140409144239.26648.57918.stgit@patser> <20140409144831.26648.79163.stgit@patser> <53465A53.1090500@vmware.com> <53466D63.8080808@canonical.com> <53467B93.3000402@vmware.com> <5346B212.8050202@canonical.com> <5347A9FD.2070706@vmware.com> <5347B4E5.6090901@canonical.com> <5347BFC9.3020503@vmware.com> <53482FF1.1090406@canonical.com> <534843EA.6060602@vmware.com> <534B9165.4000101@canonical.com> <534B921B.4080504@vmware.com> <5357A0DE.7030305@canonical.com> <535FB808.3060608@canonical.com>
-In-Reply-To: <535FB808.3060608@canonical.com>
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Maarten Lankhorst <maarten.lankhorst@canonical.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, ccross@google.com, linux-media@vger.kernel.org
-Message-ID: <20140429185519.COs1cw3KALoYYcXpMT0HlPc3Lc3FIuytZ3Zq1jnmYpc@z>
+To: Ingo Molnar <mingo@kernel.org>, Madhavan Srinivasan <maddy@linux.vnet.ibm.com>
+Cc: linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, x86@kernel.org, benh@kernel.crashing.org, paulus@samba.org, kirill.shutemov@linux.intel.com, akpm@linux-foundation.org, riel@redhat.com, mgorman@suse.de, ak@linux.intel.com, peterz@infradead.org, dave.hansen@intel.com, Linus Torvalds <torvalds@linux-foundation.org>
+Message-ID: <20140430070411.ApcZsuIawv1HwH8TKfryIzHROcBLX0j37fLAm3i7mAo@z>
 
-On 04/29/2014 04:32 PM, Maarten Lankhorst wrote:
-> op 23-04-14 13:15, Maarten Lankhorst schreef:
->> This adds 4 more functions to deal with rcu.
->>
->> reservation_object_get_fences_rcu() will obtain the list of shared
->> and exclusive fences without obtaining the ww_mutex.
->>
->> reservation_object_wait_timeout_rcu() will wait on all fences of the
->> reservation_object, without obtaining the ww_mutex.
->>
->> reservation_object_test_signaled_rcu() will test if all fences of the
->> reservation_object are signaled without using the ww_mutex.
->>
->> reservation_object_get_excl() is added because touching the fence_excl
->> member directly will trigger a sparse warning.
->>
->> Signed-off-by: Maarten Lankhorst <maarten.lankhorst@canonical.com>
->> ---
->> Using seqcount and fixing some lockdep bugs.
->> Changes since v2:
->> - Fix some crashes, remove some unneeded barriers when provided by
->> seqcount writes
->> - Fix code to work correctly with sparse's RCU annotations.
->> - Create a global string for the seqcount lock to make lockdep happy.
->>
->> Can I get this version reviewed? If it looks correct I'll mail the
->> full series
->> because it's intertwined with the TTM conversion to use this code.
-> Ping, can anyone review this?
+Ingo Molnar <mingo@kernel.org> writes:
+> * Madhavan Srinivasan <maddy@linux.vnet.ibm.com> wrote:
+>
+>> Performance data for different FAULT_AROUND_ORDER values from 4 socket
+>> Power7 system (128 Threads and 128GB memory). perf stat with repeat of 5
+>> is used to get the stddev values. Test ran in v3.14 kernel (Baseline) and
+>> v3.15-rc1 for different fault around order values.
+>> 
+>> FAULT_AROUND_ORDER      Baseline        1               3               4               5               8
+>> 
+>> Linux build (make -j64)
+>> minor-faults            47,437,359      35,279,286      25,425,347      23,461,275      22,002,189      21,435,836
+>> times in seconds        347.302528420   344.061588460   340.974022391   348.193508116   348.673900158   350.986543618
+>>  stddev for time        ( +-  1.50% )   ( +-  0.73% )   ( +-  1.13% )   ( +-  1.01% )   ( +-  1.89% )   ( +-  1.55% )
+>>  %chg time to baseline                  -0.9%           -1.8%           0.2%            0.39%           1.06%
+>
+> Probably too noisy.
 
-Hi, Maarten.
-It's on my todo-list. Been away from office for a while.
+A little, but 3 still looks like the winner.
 
-/Thomas
+>> Linux rebuild (make -j64)
+>> minor-faults            941,552         718,319         486,625         440,124         410,510         397,416
+>> times in seconds        30.569834718    31.219637539    31.319370649    31.434285472    31.972367174    31.443043580
+>>  stddev for time        ( +-  1.07% )   ( +-  0.13% )   ( +-  0.43% )   ( +-  0.18% )   ( +-  0.95% )   ( +-  0.58% )
+>>  %chg time to baseline                  2.1%            2.4%            2.8%            4.58%           2.85%
+>
+> Here it looks like a speedup. Optimal value: 5+.
+
+No, lower time is better.  Baseline (no faultaround) wins.
+
+
+etc.
+
+It's not a huge surprise that a 64k page arch wants a smaller value than
+a 4k system.  But I agree: I don't see much upside for FAO > 0, but I do
+see downside.
+
+Most extreme results:
+Order 1: 2% loss on recompile.  10% win 4% loss on seq.  9% loss random.
+Order 3: 2% loss on recompile.  6% win 5% loss on seq.  14% loss on random.
+Order 4: 2.8% loss on recompile. 10% win 7% loss on seq.  9% loss on random.
+
+> I'm starting to suspect that maybe workloads ought to be given a 
+> choice in this matter, via madvise() or such.
+
+I really don't think they'll be able to use it; it'll change far too
+much with machine and kernel updates.  I think we should apply patch #1
+(with fixes) to make it a variable, then set it to 0 for PPC.
+
+Cheers,
+Rusty.
