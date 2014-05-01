@@ -1,95 +1,49 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wi0-f170.google.com ([209.85.212.170]:41113 "EHLO
-	mail-wi0-f170.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752162AbaEAHeL (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 1 May 2014 03:34:11 -0400
-Received: by mail-wi0-f170.google.com with SMTP id f8so296956wiw.3
-        for <linux-arch@vger.kernel.org>; Thu, 01 May 2014 00:34:09 -0700 (PDT)
-Date: Thu, 1 May 2014 08:34:03 +0100
-From: Steve Capper <steve.capper@linaro.org>
+Received: from fw-tnat.austin.arm.com ([217.140.110.23]:38316 "EHLO
+	collaborate-mta1.arm.com" rhost-flags-OK-OK-OK-FAIL)
+	by vger.kernel.org with ESMTP id S1754602AbaEAKFE (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 1 May 2014 06:05:04 -0400
+Date: Thu, 1 May 2014 11:04:15 +0100
+From: Catalin Marinas <catalin.marinas@arm.com>
 Subject: Re: [RFC PATCH V4 6/7] arm64: mm: Enable HAVE_RCU_TABLE_FREE logic
-Message-ID: <20140501073402.GA30358@linaro.org>
+Message-ID: <20140501100415.GC22316@arm.com>
 References: <1396018892-6773-1-git-send-email-steve.capper@linaro.org>
  <1396018892-6773-7-git-send-email-steve.capper@linaro.org>
  <20140430152047.GF31220@arm.com>
  <20140430153317.GG31220@arm.com>
  <20140430153824.GA7166@linaro.org>
  <20140430172114.GI31220@arm.com>
+ <20140501073402.GA30358@linaro.org>
+ <20140501095246.GB22316@arm.com>
+ <20140501095739.GO11096@twins.programming.kicks-ass.net>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20140430172114.GI31220@arm.com>
+In-Reply-To: <20140501095739.GO11096@twins.programming.kicks-ass.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux@arm.linux.org.uk" <linux@arm.linux.org.uk>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "peterz@infradead.org" <peterz@infradead.org>, "gary.robertson@linaro.org" <gary.robertson@linaro.org>, "anders.roxell@linaro.org" <anders.roxell@linaro.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>
-Message-ID: <20140501073403.wAmKqv9HdDjt9DPUd8D8mw-MugCGIr6i6M6XGOLc68k@z>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Steve Capper <steve.capper@linaro.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux@arm.linux.org.uk" <linux@arm.linux.org.uk>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "gary.robertson@linaro.org" <gary.robertson@linaro.org>, "anders.roxell@linaro.org" <anders.roxell@linaro.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>
+Message-ID: <20140501100415.SPNZXh7VvGj5A4QrIZexeRe2WXcuVUZD7BiTEghQjnk@z>
 
-On Wed, Apr 30, 2014 at 06:21:14PM +0100, Catalin Marinas wrote:
-> On Wed, Apr 30, 2014 at 04:38:25PM +0100, Steve Capper wrote:
-> > On Wed, Apr 30, 2014 at 04:33:17PM +0100, Catalin Marinas wrote:
-> > > On Wed, Apr 30, 2014 at 04:20:47PM +0100, Catalin Marinas wrote:
-> > > > On Fri, Mar 28, 2014 at 03:01:31PM +0000, Steve Capper wrote:
-> > > > > In order to implement fast_get_user_pages we need to ensure that the
-> > > > > page table walker is protected from page table pages being freed from
-> > > > > under it.
-> > > > > 
-> > > > > This patch enables HAVE_RCU_TABLE_FREE, any page table pages belonging
-> > > > > to address spaces with multiple users will be call_rcu_sched freed.
-> > > > > Meaning that disabling interrupts will block the free and protect the
-> > > > > fast gup page walker.
-> > > > > 
-> > > > > Signed-off-by: Steve Capper <steve.capper@linaro.org>
-> > > > 
-> > > > While this patch is simple, I'd like to better understand the reason for
-> > > > it. Currently HAVE_RCU_TABLE_FREE is enabled for powerpc and sparc while
-> > > > __get_user_pages_fast() is supported by a few other architectures that
-> > > > don't select HAVE_RCU_TABLE_FREE. So why do we need it for fast gup on
-> > > > arm/arm64 while not all the other archs need it?
-> > > 
-> > > OK, replying to myself. I assume the other architectures that don't need
-> > > HAVE_RCU_TABLE_FREE use IPI for TLB shootdown, hence they gup_fast
-> > > synchronisation for free.
-> > 
-> > Yes that is roughly the case.
-> > Essentially we want to RCU free the page table backing pages at a
-> > later time when we aren't walking on them.
-> > 
-> > Other arches use IPI, some others have their own RCU logic. I opted to
-> > activate some existing logic to reduce code duplication.
+On Thu, May 01, 2014 at 10:57:39AM +0100, Peter Zijlstra wrote:
+> On Thu, May 01, 2014 at 10:52:47AM +0100, Catalin Marinas wrote:
+> > Does gup_fast walking increment the mm_users? Or is it a requirement of
+> > the calling code? I can't seem to find where this happens.
 > 
-> Both powerpc and sparc use tlb_remove_table() via their __pte_free_tlb()
-> etc. which implies an IPI for synchronisation if mm_users > 1. For
-> gup_fast we may not need it since we use the RCU for protection. Am I
-> missing anything?
+> No, its not required at all. One should only walk current->mm with
+> gup_fast, any other usage is broken.
 
-So my understanding is:
+OK, I get it now.
 
-tlb_remove_table will just immediately free any pages where there's a
-single user as there's no need to consider a gup walking.
+> And by delaying TLB shootdown, either through disabling IRQs and
+> stalling IPIs or by using RCU freeing, you're guaranteed your own page
+> tables won't disappear underneath your feet.
 
-For the case of multiple users we have an mmu_table_batch structure
-that holds references to pages that should be freed at a later point.
+And for RCU to work, we still need to use the full tlb_remove_table()
+logic (Steve's patches just use tlb_remove_page() for table freeing).
 
-This batch is contained on a page that is allocated on the fly. If, for
-any reason, we can't allocate the batch container we fallback to a slow
-path which is to issue an IPI (via tlb_remove_table_one). This IPI will
-block on the gup walker. We need this fallback behaviour on ARM/ARM64.
+Thanks.
 
-Most of the time we will be able to allocate the batch container, and
-we will populate it with references to page table containing pages that
-are freed via an RCU scheduler delayed callback to tlb_remove_table_rcu.
-
-In the fast_gup walker, we block tlb_remove_table_rcu from running by
-disabling interrupts in the critical path. Technically we could issue
-a call to rcu_read_lock_sched instead to block tlb_remove_table_rcu,
-but that wouldn't be sufficient to block THP splits; so we opt to
-disable interrupts to block both THP and tlb_remove_table_rcu.
-
-Cheers,
 -- 
-Steve
-
-> 
-> -- 
-> Catalin
+Catalin
