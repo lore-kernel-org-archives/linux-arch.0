@@ -1,119 +1,57 @@
-From: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
-Subject: Re: kprobes broken in linux-next (was Re: [tip:perf/kprobes] kprobes:
- Introduce NOKPROBE_SYMBOL()  macro to maintain kprobes blacklist)
-Date: Fri, 02 May 2014 10:13:43 +0900
-Message-ID: <5362F147.6030901@hitachi.com>
-References: <20140417081705.26341.96719.stgit@ltc230.yrl.intra.hitachi.co.jp> <tip-376e242429bf8539ef39a080ac113c8799840b13@git.kernel.org> <5361DB14.7010406@synopsys.com>
+From: Ley Foon Tan <lftan@altera.com>
+Subject: Re: [PATCH 07/28] nios2: I/O Mapping
+Date: Fri, 2 May 2014 18:37:55 +0800
+Message-ID: <CAFiDJ58MT1z-hw6_ZWBc5QcCJoEdNCdaVPfVgXE2BpUr9c9ztA@mail.gmail.com>
+References: <1397824031-4892-1-git-send-email-lftan@altera.com>
+	<1397845149-3141-1-git-send-email-lftan@altera.com>
+	<1397845149-3141-3-git-send-email-lftan@altera.com>
+	<201404221559.37560.arnd@arndb.de>
+	<CAFiDJ5_79UoFS0bbgyd6htRELXpsF4bD091Bg1EVsocXt76NEw@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <5361DB14.7010406@synopsys.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Cc: mingo@kernel.org, torvalds@linux-foundation.org, rusty@rustcorp.com.au, rdunlap@infradead.org, jeremy@goop.org, arnd@arndb.de, dl9pf@gmx.de, akpm@linux-foundation.org, sparse@chrisli.org, tglx@linutronix.de, hpa@zytor.com, linux-kernel@vger.kernel.org, anil.s.keshavamurthy@intel.com, davem@davemloft.net, ananth@in.ibm.com, chrisw@sous-sol.org, akataria@vmware.com, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, anton Kolesov <Anton.Kolesov@synopsys.com>, linux-next <linux-next@vger.kernel.org>
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-qg0-f50.google.com ([209.85.192.50]:56115 "EHLO
+	mail-qg0-f50.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751353AbaEBKh4 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 2 May 2014 06:37:56 -0400
+In-Reply-To: <CAFiDJ5_79UoFS0bbgyd6htRELXpsF4bD091Bg1EVsocXt76NEw@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, cltang@codesourcery.com
 
-(2014/05/01 14:26), Vineet Gupta wrote:
-> On Thursday 24 April 2014 04:28 PM, tip-bot for Masami Hiramatsu wrote:
->> Commit-ID:  376e242429bf8539ef39a080ac113c8799840b13
->> Gitweb:     http://git.kernel.org/tip/376e242429bf8539ef39a080ac113c8799840b13
->> Author:     Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
->> AuthorDate: Thu, 17 Apr 2014 17:17:05 +0900
->> Committer:  Ingo Molnar <mingo@kernel.org>
->> CommitDate: Thu, 24 Apr 2014 10:02:56 +0200
+On Thu, Apr 24, 2014 at 2:02 PM, Ley Foon Tan <lftan@altera.com> wrote:
+> On Tue, Apr 22, 2014 at 9:59 PM, Arnd Bergmann <arnd@arndb.de> wrote:
+>> On Friday 18 April 2014, Ley Foon Tan wrote:
 >>
->> kprobes: Introduce NOKPROBE_SYMBOL() macro to maintain kprobes blacklist
+>>> +
+>>> +#include <asm/pgtable-bits.h>
+>>> +
+>>> +#define IO_SPACE_LIMIT 0xffffffff
 >>
->> Introduce NOKPROBE_SYMBOL() macro which builds a kprobes
->> blacklist at kernel build time.
+>> Please use 0xffff here, this should work for almost any PCI bus.
+> Ah, CONFIG_PCI is not enable in nios2. So, I think IO_SPACE_LIMIT
+> should set to 0.
+>
+>
+>>> +
+>>> +/* Use "Duff's Device" to unroll the loops. */
+>>> +#define __IO_OUT_LOOP(a, b, l)                               \
+>>> +     do {                                            \
+>>> +             if (l > 0) {                            \
+>>> +                     int _n = (l + 7) / 8;           \
+>>> +                     switch (l % 8) {                \
+>>> +                     case 0:                         \
+>>> +                             do {                    \
+>>> +                                     *a = *b++;      \
 >>
-> ....
-> 
->> diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
->> index 146e4ff..40ceb3c 100644
->> --- a/include/asm-generic/vmlinux.lds.h
->> +++ b/include/asm-generic/vmlinux.lds.h
->> @@ -109,6 +109,14 @@
->>  #define BRANCH_PROFILE()
->>  #endif
->>  
->> +#ifdef CONFIG_KPROBES
->> +#define KPROBE_BLACKLIST()	VMLINUX_SYMBOL(__start_kprobe_blacklist) = .; \
->> +				*(_kprobe_blacklist)			      \
->> +				VMLINUX_SYMBOL(__stop_kprobe_blacklist) = .;
->> +#else
->> +#define KPROBE_BLACKLIST()
->> +#endif
->> +
->>  #ifdef CONFIG_EVENT_TRACING
->>  #define FTRACE_EVENTS()	. = ALIGN(8);					\
->>  			VMLINUX_SYMBOL(__start_ftrace_events) = .;	\
->> @@ -507,6 +515,7 @@
->>  	*(.init.rodata)							\
->>  	FTRACE_EVENTS()							\
->>  	TRACE_SYSCALLS()						\
->> +	KPROBE_BLACKLIST()						\
->>  	MEM_DISCARD(init.rodata)					\
->>  	CLK_OF_TABLES()							\
->>  	RESERVEDMEM_OF_TABLES()						\
-> 
-> Linux-next fails to boot on ARC due to misaligned __start_kprobe_blacklist. Patch
-> below fixes it.
-> 
-> ------------------------>
->>From c5afc4ebf9c1c094a260e2aaff6c5b3106063039 Mon Sep 17 00:00:00 2001
-> From: Vineet Gupta <vgupta@synopsys.com>
-> Date: Thu, 1 May 2014 10:47:29 +0530
-> Subject: [PATCH] kprobes: Ensure blacklist data is aligned
-> 
-> ARC Linux (not supporting native unaligned access) was failing to boot
-> because __start_kprobe_blacklist was not aligned.
-> 
-> This was because per generated vmlinux.lds it was emitted right next
-> to .rodata with strings etc hence could be randomly unaligned.
-> 
-> Fix that by ensuring a word alignment. While 4 would suffice for 32bit
-> arches and problem at hand, it is probably better to put 8.
-> 
-> | Path: (null) CPU: 0 PID: 1 Comm: swapper Not tainted
-> | 3.15.0-rc3-next-20140430 #2
-> | task: 8f044000 ti: 8f01e000 task.ti: 8f01e000
-> |
-> | [ECR   ]: 0x00230400 => Misaligned r/w from 0x800fb0d3
-> | [EFA   ]: 0x800fb0d3
-> | [BLINK ]: do_one_initcall+0x86/0x1bc
-> | [ERET  ]: init_kprobes+0x52/0x120
-> 
-> Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
+>> I would recommend just doing all of this in out-of-line implementations
+>> rather than macros and inline functions.
+> Okay. Will move the macros to out-of-line function.
+I'm start working on this and found that it is better to keep it as
+macros. This is because the input arguments "a" and "b" can be
+byte/short/int pointers. Otherwise, we need to have separate function
+calls for byte/short/int.
 
-Acked-by: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
-
-Thanks!
-
-> ---
->  include/asm-generic/vmlinux.lds.h | 3 ++-
->  1 file changed, 2 insertions(+), 1 deletion(-)
-> 
-> diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-> index 40ceb3ceba79..8e0204a68c74 100644
-> --- a/include/asm-generic/vmlinux.lds.h
-> +++ b/include/asm-generic/vmlinux.lds.h
-> @@ -110,7 +110,8 @@
->  #endif
-> 
->  #ifdef CONFIG_KPROBES
-> -#define KPROBE_BLACKLIST()	VMLINUX_SYMBOL(__start_kprobe_blacklist) = .; \
-> +#define KPROBE_BLACKLIST()	. = ALIGN(8);				      \
-> +				VMLINUX_SYMBOL(__start_kprobe_blacklist) = .; \
->  				*(_kprobe_blacklist)			      \
->  				VMLINUX_SYMBOL(__stop_kprobe_blacklist) = .;
->  #else
-> 
-
-
--- 
-Masami HIRAMATSU
-Software Platform Research Dept. Linux Technology Research Center
-Hitachi, Ltd., Yokohama Research Laboratory
-E-mail: masami.hiramatsu.pt@hitachi.com
+Regards
+Ley Foon
