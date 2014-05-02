@@ -1,45 +1,126 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-we0-f182.google.com ([74.125.82.182]:45665 "EHLO
-	mail-we0-f182.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752139AbaEALoY (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 1 May 2014 07:44:24 -0400
-Received: by mail-we0-f182.google.com with SMTP id u57so3033153wes.27
-        for <linux-arch@vger.kernel.org>; Thu, 01 May 2014 04:44:23 -0700 (PDT)
-Date: Thu, 1 May 2014 12:44:08 +0100
-From: Steve Capper <steve.capper@linaro.org>
-Subject: Re: [RFC PATCH V4 3/7] arm: mm: Enable HAVE_RCU_TABLE_FREE logic
-Message-ID: <20140501114408.GA4501@linaro.org>
-References: <1396018892-6773-1-git-send-email-steve.capper@linaro.org>
- <1396018892-6773-4-git-send-email-steve.capper@linaro.org>
- <20140501111120.GF22316@arm.com>
+Received: from fallback.hitachi.co.jp ([133.145.228.50]:34301 "EHLO
+	mailxx.hitachi.co.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751317AbaEBBOD (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 1 May 2014 21:14:03 -0400
+Message-ID: <5362F147.6030901@hitachi.com>
+Date: Fri, 02 May 2014 10:13:43 +0900
+From: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20140501111120.GF22316@arm.com>
+Subject: Re: kprobes broken in linux-next (was Re: [tip:perf/kprobes] kprobes:
+ Introduce NOKPROBE_SYMBOL()  macro to maintain kprobes blacklist)
+References: <20140417081705.26341.96719.stgit@ltc230.yrl.intra.hitachi.co.jp> <tip-376e242429bf8539ef39a080ac113c8799840b13@git.kernel.org> <5361DB14.7010406@synopsys.com>
+In-Reply-To: <5361DB14.7010406@synopsys.com>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux@arm.linux.org.uk" <linux@arm.linux.org.uk>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "peterz@infradead.org" <peterz@infradead.org>, "gary.robertson@linaro.org" <gary.robertson@linaro.org>, "anders.roxell@linaro.org" <anders.roxell@linaro.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>
-Message-ID: <20140501114408.ypHj0MmiVy8QNbvIO_7T7Xgn2Ss-Fh6xp9P4PITh-eg@z>
+To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Cc: mingo@kernel.org, torvalds@linux-foundation.org, rusty@rustcorp.com.au, rdunlap@infradead.org, jeremy@goop.org, arnd@arndb.de, dl9pf@gmx.de, akpm@linux-foundation.org, sparse@chrisli.org, tglx@linutronix.de, hpa@zytor.com, linux-kernel@vger.kernel.org, anil.s.keshavamurthy@intel.com, davem@davemloft.net, ananth@in.ibm.com, chrisw@sous-sol.org, akataria@vmware.com, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, anton Kolesov <Anton.Kolesov@synopsys.com>, linux-next <linux-next@vger.kernel.org>
+Message-ID: <20140502011343.xKfgCxGSG1RK0AeogZliPIRZoKiDyw-qG5PQYhmVQF8@z>
 
-On Thu, May 01, 2014 at 12:11:21PM +0100, Catalin Marinas wrote:
-> On Fri, Mar 28, 2014 at 03:01:28PM +0000, Steve Capper wrote:
-> > diff --git a/arch/arm/Kconfig b/arch/arm/Kconfig
-> > index 1594945..7d5340d 100644
-> > --- a/arch/arm/Kconfig
-> > +++ b/arch/arm/Kconfig
-> > @@ -58,6 +58,7 @@ config ARM
-> >  	select HAVE_PERF_EVENTS
-> >  	select HAVE_PERF_REGS
-> >  	select HAVE_PERF_USER_STACK_DUMP
-> > +	select HAVE_RCU_TABLE_FREE if SMP
+(2014/05/01 14:26), Vineet Gupta wrote:
+> On Thursday 24 April 2014 04:28 PM, tip-bot for Masami Hiramatsu wrote:
+>> Commit-ID:  376e242429bf8539ef39a080ac113c8799840b13
+>> Gitweb:     http://git.kernel.org/tip/376e242429bf8539ef39a080ac113c8799840b13
+>> Author:     Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
+>> AuthorDate: Thu, 17 Apr 2014 17:17:05 +0900
+>> Committer:  Ingo Molnar <mingo@kernel.org>
+>> CommitDate: Thu, 24 Apr 2014 10:02:56 +0200
+>>
+>> kprobes: Introduce NOKPROBE_SYMBOL() macro to maintain kprobes blacklist
+>>
+>> Introduce NOKPROBE_SYMBOL() macro which builds a kprobes
+>> blacklist at kernel build time.
+>>
+> ....
 > 
-> You select this if (SMP && CPU_V7). On ARMv6 SMP systems we use IPI for
-> TLB maintenance already.
+>> diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+>> index 146e4ff..40ceb3c 100644
+>> --- a/include/asm-generic/vmlinux.lds.h
+>> +++ b/include/asm-generic/vmlinux.lds.h
+>> @@ -109,6 +109,14 @@
+>>  #define BRANCH_PROFILE()
+>>  #endif
+>>  
+>> +#ifdef CONFIG_KPROBES
+>> +#define KPROBE_BLACKLIST()	VMLINUX_SYMBOL(__start_kprobe_blacklist) = .; \
+>> +				*(_kprobe_blacklist)			      \
+>> +				VMLINUX_SYMBOL(__stop_kprobe_blacklist) = .;
+>> +#else
+>> +#define KPROBE_BLACKLIST()
+>> +#endif
+>> +
+>>  #ifdef CONFIG_EVENT_TRACING
+>>  #define FTRACE_EVENTS()	. = ALIGN(8);					\
+>>  			VMLINUX_SYMBOL(__start_ftrace_events) = .;	\
+>> @@ -507,6 +515,7 @@
+>>  	*(.init.rodata)							\
+>>  	FTRACE_EVENTS()							\
+>>  	TRACE_SYSCALLS()						\
+>> +	KPROBE_BLACKLIST()						\
+>>  	MEM_DISCARD(init.rodata)					\
+>>  	CLK_OF_TABLES()							\
+>>  	RESERVEDMEM_OF_TABLES()						\
+> 
+> Linux-next fails to boot on ARC due to misaligned __start_kprobe_blacklist. Patch
+> below fixes it.
+> 
+> ------------------------>
+>>From c5afc4ebf9c1c094a260e2aaff6c5b3106063039 Mon Sep 17 00:00:00 2001
+> From: Vineet Gupta <vgupta@synopsys.com>
+> Date: Thu, 1 May 2014 10:47:29 +0530
+> Subject: [PATCH] kprobes: Ensure blacklist data is aligned
+> 
+> ARC Linux (not supporting native unaligned access) was failing to boot
+> because __start_kprobe_blacklist was not aligned.
+> 
+> This was because per generated vmlinux.lds it was emitted right next
+> to .rodata with strings etc hence could be randomly unaligned.
+> 
+> Fix that by ensuring a word alignment. While 4 would suffice for 32bit
+> arches and problem at hand, it is probably better to put 8.
+> 
+> | Path: (null) CPU: 0 PID: 1 Comm: swapper Not tainted
+> | 3.15.0-rc3-next-20140430 #2
+> | task: 8f044000 ti: 8f01e000 task.ti: 8f01e000
+> |
+> | [ECR   ]: 0x00230400 => Misaligned r/w from 0x800fb0d3
+> | [EFA   ]: 0x800fb0d3
+> | [BLINK ]: do_one_initcall+0x86/0x1bc
+> | [ERET  ]: init_kprobes+0x52/0x120
+> 
+> Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
 
-Thanks, I'll add that to the next series.
+Acked-by: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
+
+Thanks!
+
+> ---
+>  include/asm-generic/vmlinux.lds.h | 3 ++-
+>  1 file changed, 2 insertions(+), 1 deletion(-)
+> 
+> diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+> index 40ceb3ceba79..8e0204a68c74 100644
+> --- a/include/asm-generic/vmlinux.lds.h
+> +++ b/include/asm-generic/vmlinux.lds.h
+> @@ -110,7 +110,8 @@
+>  #endif
+> 
+>  #ifdef CONFIG_KPROBES
+> -#define KPROBE_BLACKLIST()	VMLINUX_SYMBOL(__start_kprobe_blacklist) = .; \
+> +#define KPROBE_BLACKLIST()	. = ALIGN(8);				      \
+> +				VMLINUX_SYMBOL(__start_kprobe_blacklist) = .; \
+>  				*(_kprobe_blacklist)			      \
+>  				VMLINUX_SYMBOL(__stop_kprobe_blacklist) = .;
+>  #else
+> 
+
+
 -- 
-Steve
-> 
-> -- 
-> Catalin
+Masami HIRAMATSU
+Software Platform Research Dept. Linux Technology Research Center
+Hitachi, Ltd., Yokohama Research Laboratory
+E-mail: masami.hiramatsu.pt@hitachi.com
+
+
