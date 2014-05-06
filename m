@@ -1,79 +1,90 @@
-From: Ingo Molnar <mingo@kernel.org>
-Subject: Re: [PATCH V3 2/2] powerpc/pseries: init fault_around_order for
- pseries
-Date: Tue, 6 May 2014 13:29:17 +0200
-Message-ID: <20140506112917.GA29525@gmail.com>
-References: <1398675690-16186-1-git-send-email-maddy@linux.vnet.ibm.com>
- <1398675690-16186-3-git-send-email-maddy@linux.vnet.ibm.com>
- <20140429070632.GB27951@gmail.com> <87d2fz47tg.fsf@rustcorp.com.au>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
-Content-Disposition: inline
-In-Reply-To: <87d2fz47tg.fsf@rustcorp.com.au>
-List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
-List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
-List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
-List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
-List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
-Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
-Sender: "Linuxppc-dev"
- <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
-To: Rusty Russell <rusty@rustcorp.com.au>
-Cc: linux-arch@vger.kernel.org, riel@redhat.com, Madhavan Srinivasan <maddy@linux.vnet.ibm.com>, dave.hansen@intel.com, peterz@infradead.org, x86@kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, ak@linux.intel.com, paulus@samba.org, mgorman@suse.de, Linus Torvalds <torvalds@linux-foundation.org>, akpm@linux-foundation.org, linuxppc-dev@lists.ozlabs.org, kirill.shutemov@linux.intel.com
+From: Steve Capper <steve.capper@linaro.org>
+Subject: [RFC PATCH V5 5/6] arm64: mm: Enable HAVE_RCU_TABLE_FREE logic
+Date: Tue,  6 May 2014 16:30:08 +0100
+Message-ID: <1399390209-1756-6-git-send-email-steve.capper@linaro.org>
+References: <1399390209-1756-1-git-send-email-steve.capper@linaro.org>
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <1399390209-1756-1-git-send-email-steve.capper@linaro.org>
+Sender: owner-linux-mm@kvack.org
+To: linux-arm-kernel@lists.infradead.org, catalin.marinas@arm.com, linux@arm.linux.org.uk, linux-arch@vger.kernel.org, linux-mm@kvack.org
+Cc: will.deacon@arm.com, gary.robertson@linaro.org, christoffer.dall@linaro.org, peterz@infradead.org, anders.roxell@linaro.org, akpm@linux-foundation.org, Steve Capper <steve.capper@linaro.org>
 List-Id: linux-arch.vger.kernel.org
 
-CiogUnVzdHkgUnVzc2VsbCA8cnVzdHlAcnVzdGNvcnAuY29tLmF1PiB3cm90ZToKCj4gSW5nbyBN
-b2xuYXIgPG1pbmdvQGtlcm5lbC5vcmc+IHdyaXRlczoKPiA+ICogTWFkaGF2YW4gU3Jpbml2YXNh
-biA8bWFkZHlAbGludXgudm5ldC5pYm0uY29tPiB3cm90ZToKPiA+Cj4gPj4gUGVyZm9ybWFuY2Ug
-ZGF0YSBmb3IgZGlmZmVyZW50IEZBVUxUX0FST1VORF9PUkRFUiB2YWx1ZXMgZnJvbSA0IHNvY2tl
-dAo+ID4+IFBvd2VyNyBzeXN0ZW0gKDEyOCBUaHJlYWRzIGFuZCAxMjhHQiBtZW1vcnkpLiBwZXJm
-IHN0YXQgd2l0aCByZXBlYXQgb2YgNQo+ID4+IGlzIHVzZWQgdG8gZ2V0IHRoZSBzdGRkZXYgdmFs
-dWVzLiBUZXN0IHJhbiBpbiB2My4xNCBrZXJuZWwgKEJhc2VsaW5lKSBhbmQKPiA+PiB2My4xNS1y
-YzEgZm9yIGRpZmZlcmVudCBmYXVsdCBhcm91bmQgb3JkZXIgdmFsdWVzLgo+ID4+IAo+ID4+IEZB
-VUxUX0FST1VORF9PUkRFUiAgICAgIEJhc2VsaW5lICAgICAgICAxICAgICAgICAgICAgICAgMyAg
-ICAgICAgICAgICAgIDQgICAgICAgICAgICAgICA1ICAgICAgICAgICAgICAgOAo+ID4+IAo+ID4+
-IExpbnV4IGJ1aWxkIChtYWtlIC1qNjQpCj4gPj4gbWlub3ItZmF1bHRzICAgICAgICAgICAgNDcs
-NDM3LDM1OSAgICAgIDM1LDI3OSwyODYgICAgICAyNSw0MjUsMzQ3ICAgICAgMjMsNDYxLDI3NSAg
-ICAgIDIyLDAwMiwxODkgICAgICAyMSw0MzUsODM2Cj4gPj4gdGltZXMgaW4gc2Vjb25kcyAgICAg
-ICAgMzQ3LjMwMjUyODQyMCAgIDM0NC4wNjE1ODg0NjAgICAzNDAuOTc0MDIyMzkxICAgMzQ4LjE5
-MzUwODExNiAgIDM0OC42NzM5MDAxNTggICAzNTAuOTg2NTQzNjE4Cj4gPj4gIHN0ZGRldiBmb3Ig
-dGltZSAgICAgICAgKCArLSAgMS41MCUgKSAgICggKy0gIDAuNzMlICkgICAoICstICAxLjEzJSAp
-ICAgKCArLSAgMS4wMSUgKSAgICggKy0gIDEuODklICkgICAoICstICAxLjU1JSApCj4gPj4gICVj
-aGcgdGltZSB0byBiYXNlbGluZSAgICAgICAgICAgICAgICAgIC0wLjklICAgICAgICAgICAtMS44
-JSAgICAgICAgICAgMC4yJSAgICAgICAgICAgIDAuMzklICAgICAgICAgICAxLjA2JQo+ID4KPiA+
-IFByb2JhYmx5IHRvbyBub2lzeS4KPiAKPiBBIGxpdHRsZSwgYnV0IDMgc3RpbGwgbG9va3MgbGlr
-ZSB0aGUgd2lubmVyLgo+IAo+ID4+IExpbnV4IHJlYnVpbGQgKG1ha2UgLWo2NCkKPiA+PiBtaW5v
-ci1mYXVsdHMgICAgICAgICAgICA5NDEsNTUyICAgICAgICAgNzE4LDMxOSAgICAgICAgIDQ4Niw2
-MjUgICAgICAgICA0NDAsMTI0ICAgICAgICAgNDEwLDUxMCAgICAgICAgIDM5Nyw0MTYKPiA+PiB0
-aW1lcyBpbiBzZWNvbmRzICAgICAgICAzMC41Njk4MzQ3MTggICAgMzEuMjE5NjM3NTM5ICAgIDMx
-LjMxOTM3MDY0OSAgICAzMS40MzQyODU0NzIgICAgMzEuOTcyMzY3MTc0ICAgIDMxLjQ0MzA0MzU4
-MAo+ID4+ICBzdGRkZXYgZm9yIHRpbWUgICAgICAgICggKy0gIDEuMDclICkgICAoICstICAwLjEz
-JSApICAgKCArLSAgMC40MyUgKSAgICggKy0gIDAuMTglICkgICAoICstICAwLjk1JSApICAgKCAr
-LSAgMC41OCUgKQo+ID4+ICAlY2hnIHRpbWUgdG8gYmFzZWxpbmUgICAgICAgICAgICAgICAgICAy
-LjElICAgICAgICAgICAgMi40JSAgICAgICAgICAgIDIuOCUgICAgICAgICAgICA0LjU4JSAgICAg
-ICAgICAgMi44NSUKPiA+Cj4gPiBIZXJlIGl0IGxvb2tzIGxpa2UgYSBzcGVlZHVwLiBPcHRpbWFs
-IHZhbHVlOiA1Ky4KPiAKPiBObywgbG93ZXIgdGltZSBpcyBiZXR0ZXIuICBCYXNlbGluZSAobm8g
-ZmF1bHRhcm91bmQpIHdpbnMuCj4gCj4gCj4gZXRjLgoKYWgsIHllYWgsIHlvdSBhcmUgcmlnaHQu
-IEJyYWluZmFydCBvZiB0aGUgd2Vlay4uLgoKPiBJdCdzIG5vdCBhIGh1Z2Ugc3VycHJpc2UgdGhh
-dCBhIDY0ayBwYWdlIGFyY2ggd2FudHMgYSBzbWFsbGVyIHZhbHVlIAo+IHRoYW4gYSA0ayBzeXN0
-ZW0uICBCdXQgSSBhZ3JlZTogSSBkb24ndCBzZWUgbXVjaCB1cHNpZGUgZm9yIEZBTyA+IDAsIAo+
-IGJ1dCBJIGRvIHNlZSBkb3duc2lkZS4KPiAKPiBNb3N0IGV4dHJlbWUgcmVzdWx0czoKPiBPcmRl
-ciAxOiAyJSBsb3NzIG9uIHJlY29tcGlsZS4gIDEwJSB3aW4gNCUgbG9zcyBvbiBzZXEuICA5JSBs
-b3NzIHJhbmRvbS4KPiBPcmRlciAzOiAyJSBsb3NzIG9uIHJlY29tcGlsZS4gIDYlIHdpbiA1JSBs
-b3NzIG9uIHNlcS4gIDE0JSBsb3NzIG9uIHJhbmRvbS4KPiBPcmRlciA0OiAyLjglIGxvc3Mgb24g
-cmVjb21waWxlLiAxMCUgd2luIDclIGxvc3Mgb24gc2VxLiAgOSUgbG9zcyBvbiByYW5kb20uCj4g
-Cj4gPiBJJ20gc3RhcnRpbmcgdG8gc3VzcGVjdCB0aGF0IG1heWJlIHdvcmtsb2FkcyBvdWdodCB0
-byBiZSBnaXZlbiBhIAo+ID4gY2hvaWNlIGluIHRoaXMgbWF0dGVyLCB2aWEgbWFkdmlzZSgpIG9y
-IHN1Y2guCj4gCj4gSSByZWFsbHkgZG9uJ3QgdGhpbmsgdGhleSdsbCBiZSBhYmxlIHRvIHVzZSBp
-dDsgaXQnbGwgY2hhbmdlIGZhciB0b28gCj4gbXVjaCB3aXRoIG1hY2hpbmUgYW5kIGtlcm5lbCB1
-cGRhdGVzLiBbLi4uXQoKRG8gd2Uga25vdyB0aGF0PwoKPiBbLi4uXSBJIHRoaW5rIHdlIHNob3Vs
-ZCBhcHBseSBwYXRjaAo+ICMxICh3aXRoIGZpeGVzKSB0byBtYWtlIGl0IGEgdmFyaWFibGUsIHRo
-ZW4gc2V0IGl0IHRvIDAgZm9yIFBQQy4KCk9rLCBhZ3JlZWQgLSBhdCBsZWFzdCB1bnRpbCBjb250
-cmFyeSBkYXRhIGNvbWVzIGFyb3VuZC4KClRoYW5rcywKCglJbmdvCl9fX19fX19fX19fX19fX19f
-X19fX19fX19fX19fX19fX19fX19fX19fX19fX19fCkxpbnV4cHBjLWRldiBtYWlsaW5nIGxpc3QK
-TGludXhwcGMtZGV2QGxpc3RzLm96bGFicy5vcmcKaHR0cHM6Ly9saXN0cy5vemxhYnMub3JnL2xp
-c3RpbmZvL2xpbnV4cHBjLWRldg==
+In order to implement fast_get_user_pages we need to ensure that the
+page table walker is protected from page table pages being freed from
+under it.
+
+This patch enables HAVE_RCU_TABLE_FREE, any page table pages belonging
+to address spaces with multiple users will be call_rcu_sched freed.
+Meaning that disabling interrupts will block the free and protect the
+fast gup page walker.
+
+Signed-off-by: Steve Capper <steve.capper@linaro.org>
+---
+ arch/arm64/Kconfig           |  1 +
+ arch/arm64/include/asm/tlb.h | 18 ++++++++++++++++--
+ 2 files changed, 17 insertions(+), 2 deletions(-)
+
+diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
+index e759af5..2420390 100644
+--- a/arch/arm64/Kconfig
++++ b/arch/arm64/Kconfig
+@@ -43,6 +43,7 @@ config ARM64
+ 	select HAVE_PERF_EVENTS
+ 	select HAVE_PERF_REGS
+ 	select HAVE_PERF_USER_STACK_DUMP
++	select HAVE_RCU_TABLE_FREE
+ 	select IRQ_DOMAIN
+ 	select MODULES_USE_ELF_RELA
+ 	select NO_BOOTMEM
+diff --git a/arch/arm64/include/asm/tlb.h b/arch/arm64/include/asm/tlb.h
+index 80e2c08..8e4dde5 100644
+--- a/arch/arm64/include/asm/tlb.h
++++ b/arch/arm64/include/asm/tlb.h
+@@ -23,6 +23,20 @@
+ 
+ #include <asm-generic/tlb.h>
+ 
++#include <linux/pagemap.h>
++#include <linux/swap.h>
++
++#ifdef CONFIG_HAVE_RCU_TABLE_FREE
++
++#define tlb_remove_entry(tlb, entry)	tlb_remove_table(tlb, entry)
++static inline void __tlb_remove_table(void *_table)
++{
++	free_page_and_swap_cache((struct page *)_table);
++}
++#else
++#define tlb_remove_entry(tlb, entry)	tlb_remove_page(tlb, entry)
++#endif /* CONFIG_HAVE_RCU_TABLE_FREE */
++
+ /*
+  * There's three ways the TLB shootdown code is used:
+  *  1. Unmapping a range of vmas.  See zap_page_range(), unmap_region().
+@@ -88,7 +102,7 @@ static inline void __pte_free_tlb(struct mmu_gather *tlb, pgtable_t pte,
+ {
+ 	pgtable_page_dtor(pte);
+ 	tlb_add_flush(tlb, addr);
+-	tlb_remove_page(tlb, pte);
++	tlb_remove_entry(tlb, pte);
+ }
+ 
+ #ifndef CONFIG_ARM64_64K_PAGES
+@@ -96,7 +110,7 @@ static inline void __pmd_free_tlb(struct mmu_gather *tlb, pmd_t *pmdp,
+ 				  unsigned long addr)
+ {
+ 	tlb_add_flush(tlb, addr);
+-	tlb_remove_page(tlb, virt_to_page(pmdp));
++	tlb_remove_entry(tlb, virt_to_page(pmdp));
+ }
+ #endif
+ 
+-- 
+1.8.1.4
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
