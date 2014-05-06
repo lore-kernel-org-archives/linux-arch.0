@@ -1,87 +1,69 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ee0-f54.google.com ([74.125.83.54]:46595 "EHLO
-	mail-ee0-f54.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S934600AbaEFL3X (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 6 May 2014 07:29:23 -0400
-Date: Tue, 6 May 2014 13:29:17 +0200
-From: Ingo Molnar <mingo@kernel.org>
-Subject: Re: [PATCH V3 2/2] powerpc/pseries: init fault_around_order for
- pseries
-Message-ID: <20140506112917.GA29525@gmail.com>
-References: <1398675690-16186-1-git-send-email-maddy@linux.vnet.ibm.com>
- <1398675690-16186-3-git-send-email-maddy@linux.vnet.ibm.com>
- <20140429070632.GB27951@gmail.com>
- <87d2fz47tg.fsf@rustcorp.com.au>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <87d2fz47tg.fsf@rustcorp.com.au>
+Received: from mail-wg0-f42.google.com ([74.125.82.42]:41674 "EHLO
+	mail-wg0-f42.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752018AbaEFPaZ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 6 May 2014 11:30:25 -0400
+Received: by mail-wg0-f42.google.com with SMTP id y10so2979607wgg.1
+        for <linux-arch@vger.kernel.org>; Tue, 06 May 2014 08:30:24 -0700 (PDT)
+From: Steve Capper <steve.capper@linaro.org>
+Subject: [RFC PATCH V5 0/6] get_user_pages_fast for ARM and ARM64
+Date: Tue,  6 May 2014 16:30:03 +0100
+Message-ID: <1399390209-1756-1-git-send-email-steve.capper@linaro.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Rusty Russell <rusty@rustcorp.com.au>
-Cc: Madhavan Srinivasan <maddy@linux.vnet.ibm.com>, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, x86@kernel.org, benh@kernel.crashing.org, paulus@samba.org, kirill.shutemov@linux.intel.com, akpm@linux-foundation.org, riel@redhat.com, mgorman@suse.de, ak@linux.intel.com, peterz@infradead.org, dave.hansen@intel.com, Linus Torvalds <torvalds@linux-foundation.org>
-Message-ID: <20140506112917.hcij4dnciMyJeZZvfjRM7KqsB_YWwhKBNxoQvMcomlc@z>
+To: linux-arm-kernel@lists.infradead.org, catalin.marinas@arm.com, linux@arm.linux.org.uk, linux-arch@vger.kernel.org, linux-mm@kvack.org
+Cc: will.deacon@arm.com, gary.robertson@linaro.org, christoffer.dall@linaro.org, peterz@infradead.org, anders.roxell@linaro.org, akpm@linux-foundation.org, Steve Capper <steve.capper@linaro.org>
+Message-ID: <20140506153003.2GCE-6KaxdF_P53s_LCD3mLWRAQAbCJbZSV-LJ5YZJs@z>
+
+Hello,
+This RFC series implements get_user_pages_fast and __get_user_pages_fast.
+These are required for Transparent HugePages to function correctly, as
+a futex on a THP tail will otherwise result in an infinite loop (due to
+the core implementation of __get_user_pages_fast always returning 0).
+This series may also be beneficial for direct-IO heavy workloads and
+certain KVM workloads.
+
+The main changes since RFC V4 are:
+ * corrected the arm64 logic so it now correctly rcu-frees page
+   table backing pages.
+ * rcu free logic relaxed for pre-ARMv7 ARM as we need an IPI to
+   invalidate TLBs anyway.
+ * rebased to 3.15-rc3 (some minor changes were needed to allow it to merge).
+ * dropped Catalin's mmu_gather patch as that's been merged already.
+
+I would really appreciate any comments (especially on the validity or
+otherwise of the core fast_gup implementation) and/or testers.
+
+Cheers,
+--
+Steve
 
 
-* Rusty Russell <rusty@rustcorp.com.au> wrote:
 
-> Ingo Molnar <mingo@kernel.org> writes:
-> > * Madhavan Srinivasan <maddy@linux.vnet.ibm.com> wrote:
-> >
-> >> Performance data for different FAULT_AROUND_ORDER values from 4 socket
-> >> Power7 system (128 Threads and 128GB memory). perf stat with repeat of 5
-> >> is used to get the stddev values. Test ran in v3.14 kernel (Baseline) and
-> >> v3.15-rc1 for different fault around order values.
-> >> 
-> >> FAULT_AROUND_ORDER      Baseline        1               3               4               5               8
-> >> 
-> >> Linux build (make -j64)
-> >> minor-faults            47,437,359      35,279,286      25,425,347      23,461,275      22,002,189      21,435,836
-> >> times in seconds        347.302528420   344.061588460   340.974022391   348.193508116   348.673900158   350.986543618
-> >>  stddev for time        ( +-  1.50% )   ( +-  0.73% )   ( +-  1.13% )   ( +-  1.01% )   ( +-  1.89% )   ( +-  1.55% )
-> >>  %chg time to baseline                  -0.9%           -1.8%           0.2%            0.39%           1.06%
-> >
-> > Probably too noisy.
-> 
-> A little, but 3 still looks like the winner.
-> 
-> >> Linux rebuild (make -j64)
-> >> minor-faults            941,552         718,319         486,625         440,124         410,510         397,416
-> >> times in seconds        30.569834718    31.219637539    31.319370649    31.434285472    31.972367174    31.443043580
-> >>  stddev for time        ( +-  1.07% )   ( +-  0.13% )   ( +-  0.43% )   ( +-  0.18% )   ( +-  0.95% )   ( +-  0.58% )
-> >>  %chg time to baseline                  2.1%            2.4%            2.8%            4.58%           2.85%
-> >
-> > Here it looks like a speedup. Optimal value: 5+.
-> 
-> No, lower time is better.  Baseline (no faultaround) wins.
-> 
-> 
-> etc.
+Steve Capper (6):
+  mm: Introduce a general RCU get_user_pages_fast.
+  arm: mm: Introduce special ptes for LPAE
+  arm: mm: Enable HAVE_RCU_TABLE_FREE logic
+  arm: mm: Enable RCU fast_gup
+  arm64: mm: Enable HAVE_RCU_TABLE_FREE logic
+  arm64: mm: Enable RCU fast_gup
 
-ah, yeah, you are right. Brainfart of the week...
+ arch/arm/Kconfig                      |   4 +
+ arch/arm/include/asm/pgtable-2level.h |   2 +
+ arch/arm/include/asm/pgtable-3level.h |  14 ++
+ arch/arm/include/asm/pgtable.h        |   6 +-
+ arch/arm/include/asm/tlb.h            |  38 ++++-
+ arch/arm/mm/flush.c                   |  19 +++
+ arch/arm64/Kconfig                    |   4 +
+ arch/arm64/include/asm/pgtable.h      |   8 +-
+ arch/arm64/include/asm/tlb.h          |  18 ++-
+ arch/arm64/mm/flush.c                 |  19 +++
+ mm/Kconfig                            |   3 +
+ mm/Makefile                           |   1 +
+ mm/gup.c                              | 297 ++++++++++++++++++++++++++++++++++
+ 13 files changed, 424 insertions(+), 9 deletions(-)
+ create mode 100644 mm/gup.c
 
-> It's not a huge surprise that a 64k page arch wants a smaller value 
-> than a 4k system.  But I agree: I don't see much upside for FAO > 0, 
-> but I do see downside.
-> 
-> Most extreme results:
-> Order 1: 2% loss on recompile.  10% win 4% loss on seq.  9% loss random.
-> Order 3: 2% loss on recompile.  6% win 5% loss on seq.  14% loss on random.
-> Order 4: 2.8% loss on recompile. 10% win 7% loss on seq.  9% loss on random.
-> 
-> > I'm starting to suspect that maybe workloads ought to be given a 
-> > choice in this matter, via madvise() or such.
-> 
-> I really don't think they'll be able to use it; it'll change far too 
-> much with machine and kernel updates. [...]
+-- 
+1.8.1.4
 
-Do we know that?
-
-> [...] I think we should apply patch
-> #1 (with fixes) to make it a variable, then set it to 0 for PPC.
-
-Ok, agreed - at least until contrary data comes around.
-
-Thanks,
-
-	Ingo
