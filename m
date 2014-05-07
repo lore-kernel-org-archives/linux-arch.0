@@ -1,194 +1,123 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from g4t3426.houston.hp.com ([15.201.208.54]:10084 "EHLO
-	g4t3426.houston.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932716AbaEGPCu (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 7 May 2014 11:02:50 -0400
+Received: from g4t3427.houston.hp.com ([15.201.208.55]:16804 "EHLO
+	g4t3427.houston.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932716AbaEGPC5 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 7 May 2014 11:02:57 -0400
 From: Waiman Long <Waiman.Long@hp.com>
-Subject: [PATCH v10 11/19] qspinlock: Split the MCS queuing code into a separate slowerpath
-Date: Wed,  7 May 2014 11:01:39 -0400
-Message-ID: <1399474907-22206-12-git-send-email-Waiman.Long@hp.com>
+Subject: [PATCH v10 15/19] pvqspinlock, x86: Add PV data structure & methods
+Date: Wed,  7 May 2014 11:01:43 -0400
+Message-ID: <1399474907-22206-16-git-send-email-Waiman.Long@hp.com>
 In-Reply-To: <1399474907-22206-1-git-send-email-Waiman.Long@hp.com>
 References: <1399474907-22206-1-git-send-email-Waiman.Long@hp.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Peter Zijlstra <peterz@infradead.org>
 Cc: linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Rik van Riel <riel@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, David Vrabel <david.vrabel@citrix.com>, Oleg Nesterov <oleg@redhat.com>, Gleb Natapov <gleb@redhat.com>, Scott J Norton <scott.norton@hp.com>, Chegu Vinod <chegu_vinod@hp.com>, Waiman Long <Waiman.Long@hp.com>
-Message-ID: <20140507150139.keqLPKw5OgAhvWGg-jiqbsIA0bo80Zy3Fg3kZ9n6zLk@z>
+Message-ID: <20140507150143.511RXjYzO3D20Mb8ghRBws8HSVwPjqGxwAOOl4Q7BCc@z>
 
-With the pending addition of more codes to support unfair lock and
-PV spinlock, the complexity of the slowpath function increases to
-the point that the number of scratch-pad registers in the x86-64
-architecture is not enough and so those additional non-scratch-pad
-registers will need to be used. This has the downside of requiring
-saving and restoring of those registers in the prolog and epilog of
-the slowpath function slowing down the nominally faster pending bit
-and trylock code path at the beginning of the slowpath function.
+This patch modifies the para-virtualization (PV) infrastructure code
+of the x86-64 architecture to support the PV queue spinlock. Three
+new virtual methods are added to support PV qspinlock:
 
-This patch separates out the actual MCS queuing code into a slowerpath
-function. This avoids the slow down of the pending bit and trylock
-code path at the expense of a little bit of additional overhead to
-the MCS queuing code path.
+ 1) kick_cpu - schedule in a virtual CPU
+ 2) halt_cpu - schedule out a virtual CPU
+ 3) lockstat - update statistical data for debugfs
 
 Signed-off-by: Waiman Long <Waiman.Long@hp.com>
 ---
- kernel/locking/qspinlock.c |  120 +++++++++++++++++++++++++------------------
- 1 files changed, 70 insertions(+), 50 deletions(-)
+ arch/x86/include/asm/paravirt.h       |   18 +++++++++++++++++-
+ arch/x86/include/asm/paravirt_types.h |   17 +++++++++++++++++
+ arch/x86/kernel/paravirt-spinlocks.c  |    6 ++++++
+ 3 files changed, 40 insertions(+), 1 deletions(-)
 
-diff --git a/kernel/locking/qspinlock.c b/kernel/locking/qspinlock.c
-index 10e87e1..a14241e 100644
---- a/kernel/locking/qspinlock.c
-+++ b/kernel/locking/qspinlock.c
-@@ -335,57 +335,23 @@ static inline int trylock_pending(struct qspinlock *lock, u32 *pval)
+diff --git a/arch/x86/include/asm/paravirt.h b/arch/x86/include/asm/paravirt.h
+index cd6e161..d71e123 100644
+--- a/arch/x86/include/asm/paravirt.h
++++ b/arch/x86/include/asm/paravirt.h
+@@ -711,7 +711,23 @@ static inline void __set_fixmap(unsigned /* enum fixed_addresses */ idx,
  }
  
- /**
-- * queue_spin_lock_slowpath - acquire the queue spinlock
-+ * queue_spin_lock_slowerpath - a slower path for acquiring queue spinlock
-  * @lock: Pointer to queue spinlock structure
-- * @val: Current value of the queue spinlock 32-bit word
-- *
-- * (queue tail, pending bit, lock bit)
-- *
-- *              fast     :    slow                                  :    unlock
-- *                       :                                          :
-- * uncontended  (0,0,0) -:--> (0,0,1) ------------------------------:--> (*,*,0)
-- *                       :       | ^--------.------.             /  :
-- *                       :       v           \      \            |  :
-- * pending               :    (0,1,1) +--> (0,1,0)   \           |  :
-- *                       :       | ^--'              |           |  :
-- *                       :       v                   |           |  :
-- * uncontended           :    (n,x,y) +--> (n,0,0) --'           |  :
-- *   queue               :       | ^--'                          |  :
-- *                       :       v                               |  :
-- * contended             :    (*,x,y) +--> (*,0,0) ---> (*,0,1) -'  :
-- *   queue               :         ^--'                             :
-- *
-- * The pending bit processing is in the trylock_pending() function
-- * whereas the uncontended and contended queue processing is in the
-- * queue_spin_lock_slowpath() function.
-+ * @val : Current value of the queue spinlock 32-bit word
-+ * @node: Pointer to the queue node
-+ * @tail: The tail code
-  *
-+ * The reason for splitting a slowerpath from slowpath is to avoid the
-+ * unnecessary overhead of non-scratch pad register pushing and popping
-+ * due to increased complexity with unfair and PV spinlock from slowing
-+ * down the nominally faster pending bit and trylock code path. So this
-+ * function is not inlined.
-  */
--void queue_spin_lock_slowpath(struct qspinlock *lock, u32 val)
-+static noinline void queue_spin_lock_slowerpath(struct qspinlock *lock,
-+			u32 val, struct qnode *node, u32 tail)
- {
--	struct qnode *prev, *next, *node;
--	u32 old, tail;
--	int idx;
--
--	BUILD_BUG_ON(CONFIG_NR_CPUS >= (1U << _Q_TAIL_CPU_BITS));
--
--	if (trylock_pending(lock, &val))
--		return;	/* Lock acquired */
--
--	node = this_cpu_ptr(&qnodes[0]);
--	idx = node->mcs.count++;
--	tail = encode_tail(smp_processor_id(), idx);
--
--	node += idx;
--	node->qhead = 0;
--	node->mcs.next = NULL;
--
--	/*
--	 * We touched a (possibly) cold cacheline in the per-cpu queue node;
--	 * attempt the trylock once more in the hope someone let go while we
--	 * weren't watching.
--	 */
--	if (queue_spin_trylock(lock))
--		goto release;
-+	struct qnode *prev, *next;
-+	u32 old;
- 
- 	/*
- 	 * we already touched the queueing cacheline; don't bother with pending
-@@ -442,7 +408,7 @@ retry_queue_wait:
- 		}
- 		old = atomic_cmpxchg(&lock->val, val, _Q_LOCKED_VAL);
- 		if (old == val)
--			goto release;	/* No contention */
-+			return;	/* No contention */
- 		else if (old & _Q_LOCKED_MASK)
- 			goto retry_queue_wait;
- 
-@@ -450,14 +416,68 @@ retry_queue_wait:
- 	}
- 
- 	/*
--	 * contended path; wait for next, release.
-+	 * contended path; wait for next, return.
- 	 */
- 	while (!(next = (struct qnode *)ACCESS_ONCE(node->mcs.next)))
- 		arch_mutex_cpu_relax();
- 
- 	arch_mcs_spin_unlock_contended(&next->qhead);
+ #if defined(CONFIG_SMP) && defined(CONFIG_PARAVIRT_SPINLOCKS)
++#ifdef CONFIG_QUEUE_SPINLOCK
++static __always_inline void __queue_kick_cpu(int cpu)
++{
++	PVOP_VCALL1(pv_lock_ops.kick_cpu, cpu);
 +}
 +
-+/**
-+ * queue_spin_lock_slowpath - acquire the queue spinlock
-+ * @lock: Pointer to queue spinlock structure
-+ * @val: Current value of the queue spinlock 32-bit word
-+ *
-+ * (queue tail, pending bit, lock bit)
-+ *
-+ *              fast     :    slow                                  :    unlock
-+ *                       :                                          :
-+ * uncontended  (0,0,0) -:--> (0,0,1) ------------------------------:--> (*,*,0)
-+ *                       :       | ^--------.------.             /  :
-+ *                       :       v           \      \            |  :
-+ * pending               :    (0,1,1) +--> (0,1,0)   \           |  :
-+ *                       :       | ^--'              |           |  :
-+ *                       :       v                   |           |  :
-+ * uncontended           :    (n,x,y) +--> (n,0,0) --'           |  :
-+ *   queue               :       | ^--'                          |  :
-+ *                       :       v                               |  :
-+ * contended             :    (*,x,y) +--> (*,0,0) ---> (*,0,1) -'  :
-+ *   queue               :         ^--'                             :
-+ *
-+ * This slowpath only contains the faster pending bit and trylock codes.
-+ * The slower queuing code is in the slowerpath function.
-+ *
-+ * The pending bit processing is in the trylock_pending() function
-+ * whereas the uncontended and contended queue processing is in the
-+ * queue_spin_lock_slowerpath() function.
-+ */
-+void queue_spin_lock_slowpath(struct qspinlock *lock, u32 val)
++static __always_inline void
++__queue_halt_cpu(enum pv_lock_stats type, s8 *state, s8 sval)
 +{
-+	struct qnode *node;
-+	u32 tail, idx;
-+
-+	BUILD_BUG_ON(CONFIG_NR_CPUS >= (1U << _Q_TAIL_CPU_BITS));
-+
-+	if (trylock_pending(lock, &val))
-+		return;	/* Lock acquired */
-+
-+	node = this_cpu_ptr(&qnodes[0]);
-+	idx = node->mcs.count++;
-+	tail = encode_tail(smp_processor_id(), idx);
-+
-+	node += idx;
-+	node->qhead = 0;
-+	node->mcs.next = NULL;
-+
-+	/*
-+	 * We touched a (possibly) cold cacheline in the per-cpu queue node;
-+	 * attempt the trylock once more in the hope someone let go while we
-+	 * weren't watching.
-+	 */
-+	if (!queue_spin_trylock(lock))
-+		queue_spin_lock_slowerpath(lock, val, node, tail);
++	PVOP_VCALL3(pv_lock_ops.halt_cpu, type, state, sval);
++}
  
--release:
- 	/*
- 	 * release the node
- 	 */
++static __always_inline void __queue_lockstat(enum pv_lock_stats type)
++{
++	PVOP_VCALL1(pv_lock_ops.lockstat, type);
++}
++#else
+ static __always_inline void __ticket_lock_spinning(struct arch_spinlock *lock,
+ 							__ticket_t ticket)
+ {
+@@ -723,7 +739,7 @@ static __always_inline void __ticket_unlock_kick(struct arch_spinlock *lock,
+ {
+ 	PVOP_VCALL2(pv_lock_ops.unlock_kick, lock, ticket);
+ }
+-
++#endif
+ #endif
+ 
+ #ifdef CONFIG_X86_32
+diff --git a/arch/x86/include/asm/paravirt_types.h b/arch/x86/include/asm/paravirt_types.h
+index 7549b8b..549b3a0 100644
+--- a/arch/x86/include/asm/paravirt_types.h
++++ b/arch/x86/include/asm/paravirt_types.h
+@@ -333,9 +333,26 @@ struct arch_spinlock;
+ typedef u16 __ticket_t;
+ #endif
+ 
++#ifdef CONFIG_QUEUE_SPINLOCK
++enum pv_lock_stats {
++	PV_HALT_QHEAD,		/* Queue head halting	    */
++	PV_HALT_QNODE,		/* Other queue node halting */
++	PV_HALT_ABORT,		/* Halting aborted	    */
++	PV_WAKE_KICKED,		/* Wakeup by kicking	    */
++	PV_WAKE_SPURIOUS,	/* Spurious wakeup	    */
++	PV_KICK_NOHALT		/* Kick but CPU not halted  */
++};
++#endif
++
+ struct pv_lock_ops {
++#ifdef CONFIG_QUEUE_SPINLOCK
++	void (*kick_cpu)(int cpu);
++	void (*halt_cpu)(enum pv_lock_stats type, s8 *state, s8 sval);
++	void (*lockstat)(enum pv_lock_stats type);
++#else
+ 	struct paravirt_callee_save lock_spinning;
+ 	void (*unlock_kick)(struct arch_spinlock *lock, __ticket_t ticket);
++#endif
+ };
+ 
+ /* This contains all the paravirt structures: we get a convenient
+diff --git a/arch/x86/kernel/paravirt-spinlocks.c b/arch/x86/kernel/paravirt-spinlocks.c
+index 6d36731..8d15bea 100644
+--- a/arch/x86/kernel/paravirt-spinlocks.c
++++ b/arch/x86/kernel/paravirt-spinlocks.c
+@@ -11,9 +11,15 @@
+ #ifdef CONFIG_PARAVIRT_SPINLOCKS
+ struct pv_lock_ops pv_lock_ops = {
+ #ifdef CONFIG_SMP
++#ifdef CONFIG_QUEUE_SPINLOCK
++	.kick_cpu = paravirt_nop,
++	.halt_cpu = paravirt_nop,
++	.lockstat = paravirt_nop,
++#else
+ 	.lock_spinning = __PV_IS_CALLEE_SAVE(paravirt_nop),
+ 	.unlock_kick = paravirt_nop,
+ #endif
++#endif
+ };
+ EXPORT_SYMBOL(pv_lock_ops);
+ 
 -- 
 1.7.1
 
