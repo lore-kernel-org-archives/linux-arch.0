@@ -1,8 +1,8 @@
 From: Waiman Long <Waiman.Long@hp.com>
-Subject: [PATCH v10 12/19] unfair qspinlock: Variable frequency
-	lock stealing mechanism
-Date: Wed,  7 May 2014 11:01:40 -0400
-Message-ID: <1399474907-22206-13-git-send-email-Waiman.Long@hp.com>
+Subject: [PATCH v10 19/19] pvqspinlock,
+	x86: Enable PV qspinlock for XEN
+Date: Wed,  7 May 2014 11:01:47 -0400
+Message-ID: <1399474907-22206-20-git-send-email-Waiman.Long@hp.com>
 References: <1399474907-22206-1-git-send-email-Waiman.Long@hp.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -21,213 +21,230 @@ To: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Pe
 Cc: linux-arch@vger.kernel.org, Waiman Long <Waiman.Long@hp.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, Gleb Natapov <gleb@redhat.com>, kvm@vger.kernel.org, Scott J Norton <scott.norton@hp.com>, x86@kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, Chegu Vinod <chegu_vinod@hp.com>, David Vrabel <david.vrabel@citrix.com>, Oleg Nesterov <oleg@redhat.com>, xen-devel@lists.xenproject.org, Boris Ostrovsky <boris.ostrovsky@oracle.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>
 List-Id: linux-arch.vger.kernel.org
 
-In order to fully resolve the lock waiter preemption problem in virtual
-guests, it is necessary to enable lock stealing in the lock waiters.
-A simple test-and-set lock, however, has 2 main problems:
-
- 1) The constant spinning on the lock word put a lot of cacheline
-    contention traffic on the affected cacheline, thus slowing tasks
-    that need to access the cacheline.
- 2) Lock starvation is a real possibility especially if the number of
-    virtual CPUs is large.
-
-To alleviate these problems, this patch implements a variable frequency
-(from 1/8 to 1/1024) lock stealing mechanism for the lock waiters
-in the queue. The node next to the queue head try to steal lock once
-every 8 iterations of the pause loop. The next one in the queue has
-half the lock stealing frequency (once every 16 iterations) and so
-on until it reaches a maximum of once every 1024 iterations.
-
-This mechanism reduces the cacheline contention problem on the lock
-word while trying to maintain as much of a FIFO order as possible.
+This patch adds the necessary XEN specific code to allow XEN to
+support the CPU halting and kicking operations needed by the queue
+spinlock PV code.
 
 Signed-off-by: Waiman Long <Waiman.Long@hp.com>
 ---
- kernel/locking/qspinlock.c |  147 +++++++++++++++++++++++++++++++++++++++++++-
- 1 files changed, 146 insertions(+), 1 deletions(-)
+ arch/x86/xen/spinlock.c |  147 +++++++++++++++++++++++++++++++++++++++++++++--
+ kernel/Kconfig.locks    |    2 +-
+ 2 files changed, 143 insertions(+), 6 deletions(-)
 
-diff --git a/kernel/locking/qspinlock.c b/kernel/locking/qspinlock.c
-index a14241e..06dd486 100644
---- a/kernel/locking/qspinlock.c
-+++ b/kernel/locking/qspinlock.c
-@@ -63,6 +63,11 @@
-  */
- struct qnode {
- 	struct mcs_spinlock mcs;
-+#ifdef CONFIG_PARAVIRT_UNFAIR_LOCKS
-+	int		lsteal_mask;	/* Lock stealing frequency mask	*/
-+	u32		prev_tail;	/* Tail code of previous node	*/
-+	struct qnode   *qprev;		/* Previous queue node addr	*/
-+#endif
- };
- #define qhead	mcs.locked	/* The queue head flag */
+diff --git a/arch/x86/xen/spinlock.c b/arch/x86/xen/spinlock.c
+index d1b6a32..2a259bb 100644
+--- a/arch/x86/xen/spinlock.c
++++ b/arch/x86/xen/spinlock.c
+@@ -17,6 +17,12 @@
+ #include "xen-ops.h"
+ #include "debugfs.h"
  
-@@ -215,6 +220,139 @@ xchg_tail(struct qspinlock *lock, u32 tail, u32 *pval)
- }
- #endif /* _Q_PENDING_BITS == 8 */
- 
-+/*
-+ ************************************************************************
-+ * Inline functions for supporting unfair queue lock			*
-+ ************************************************************************
-+ */
-+/*
-+ * Unfair lock support in a virtualized guest
-+ *
-+ * An unfair lock can be implemented using a simple test-and-set lock like
-+ * what is being done in a read-write lock. This simple scheme has 2 major
-+ * problems:
-+ *  1) It needs constant reading and occasionally writing to the lock word
-+ *     thus putting a lot of cacheline contention traffic on the affected
-+ *     cacheline.
-+ *  2) Lock starvation is a real possibility especially if the number of
-+ *     virtual CPUs is large.
-+ *
-+ * To reduce the undesirable side effects of an unfair lock, the queue
-+ * unfair spinlock implements a more elaborate scheme.  Lock stealing is
-+ * allowed in the following places:
-+ *  1) In the spin_lock and spin_trylock fastpaths
-+ *  2) When spinning in the waiter queue before becoming the queue head
-+ *
-+ * A lock acquirer has only one chance of stealing the lock in the spin_lock
-+ * and spin_trylock fastpath. If the attempt fails for spin_lock, the task
-+ * will be queued in the wait queue.
-+ *
-+ * Even in the wait queue, the task can still attempt to steal the lock
-+ * periodically at a frequency about inversely and logarithmically proportional
-+ * to its distance from the queue head. In other word, the closer it is to
-+ * the queue head, the higher a chance it has of stealing the lock. This
-+ * scheme reduces the load on the lock cacheline while trying to maintain
-+ * a somewhat FIFO way of getting the lock so as to reduce the chance of lock
-+ * starvation.
-+ */
-+#ifdef CONFIG_PARAVIRT_UNFAIR_LOCKS
-+#define DEF_LOOP_CNT(c)		int c = 0
-+#define INC_LOOP_CNT(c)		(c)++
-+#define LOOP_CNT(c)		c
-+#define LSTEAL_MIN		(1 << 3)
-+#define LSTEAL_MAX		(1 << 10)
-+#define LSTEAL_MIN_MASK		(LSTEAL_MIN - 1)
-+#define LSTEAL_MAX_MASK		(LSTEAL_MAX - 1)
++static DEFINE_PER_CPU(int, lock_kicker_irq) = -1;
++static DEFINE_PER_CPU(char *, irq_name);
++static bool xen_pvspin = true;
 +
-+/**
-+ * unfair_init_vars - initialize unfair relevant fields in queue node structure
-+ * @node: Current queue node address
-+ */
-+static inline void unfair_init_vars(struct qnode *node)
++#ifndef CONFIG_QUEUE_SPINLOCK
++
+ enum xen_contention_stat {
+ 	TAKEN_SLOW,
+ 	TAKEN_SLOW_PICKUP,
+@@ -100,12 +106,9 @@ struct xen_lock_waiting {
+ 	__ticket_t want;
+ };
+ 
+-static DEFINE_PER_CPU(int, lock_kicker_irq) = -1;
+-static DEFINE_PER_CPU(char *, irq_name);
+ static DEFINE_PER_CPU(struct xen_lock_waiting, lock_waiting);
+ static cpumask_t waiting_cpus;
+ 
+-static bool xen_pvspin = true;
+ __visible void xen_lock_spinning(struct arch_spinlock *lock, __ticket_t want)
+ {
+ 	int irq = __this_cpu_read(lock_kicker_irq);
+@@ -213,6 +216,118 @@ static void xen_unlock_kick(struct arch_spinlock *lock, __ticket_t next)
+ 	}
+ }
+ 
++#else /* CONFIG_QUEUE_SPINLOCK */
++
++#ifdef CONFIG_XEN_DEBUG_FS
++static u32 kick_nohlt_stats;		/* Kick but not halt count	*/
++static u32 halt_qhead_stats;		/* Queue head halting count	*/
++static u32 halt_qnode_stats;		/* Queue node halting count	*/
++static u32 halt_abort_stats;		/* Halting abort count		*/
++static u32 wake_kick_stats;		/* Wakeup by kicking count	*/
++static u32 wake_spur_stats;		/* Spurious wakeup count	*/
++static u64 time_blocked;		/* Total blocking time		*/
++
++static inline void xen_halt_stats(enum pv_lock_stats type)
 +{
-+	node->qprev	  = NULL;
-+	node->prev_tail   = 0;
-+	node->lsteal_mask = LSTEAL_MIN_MASK;
++	if (type == PV_HALT_QHEAD)
++		add_smp(&halt_qhead_stats, 1);
++	else if (type == PV_HALT_QNODE)
++		add_smp(&halt_qnode_stats, 1);
++	else /* type == PV_HALT_ABORT */
++		add_smp(&halt_abort_stats, 1);
 +}
 +
-+/**
-+ * unfair_set_vars - set unfair related fields in the queue node structure
-+ * @node     : Current queue node address
-+ * @prev     : Previous queue node address
-+ * @prev_tail: Previous tail code
-+ */
-+static inline void
-+unfair_set_vars(struct qnode *node, struct qnode *prev, u32 prev_tail)
++static inline void xen_lock_stats(enum pv_lock_stats type)
 +{
-+	if (!static_key_false(&paravirt_unfairlocks_enabled))
++	if (type == PV_WAKE_KICKED)
++		add_smp(&wake_kick_stats, 1);
++	else if (type == PV_WAKE_SPURIOUS)
++		add_smp(&wake_spur_stats, 1);
++	else /* type == PV_KICK_NOHALT */
++		add_smp(&kick_nohlt_stats, 1);
++}
++
++static inline u64 spin_time_start(void)
++{
++	return sched_clock();
++}
++
++static inline void spin_time_accum_blocked(u64 start)
++{
++	u64 delta;
++
++	delta = sched_clock() - start;
++	add_smp(&time_blocked, delta);
++}
++#else /* CONFIG_XEN_DEBUG_FS */
++static inline void xen_halt_stats(enum pv_lock_stats type)
++{
++}
++
++static inline void xen_lock_stats(enum pv_lock_stats type)
++{
++}
++
++static inline u64 spin_time_start(void)
++{
++	return 0;
++}
++
++static inline void spin_time_accum_blocked(u64 start)
++{
++}
++#endif /* CONFIG_XEN_DEBUG_FS */
++
++static void xen_kick_cpu(int cpu)
++{
++	xen_send_IPI_one(cpu, XEN_SPIN_UNLOCK_VECTOR);
++}
++
++/*
++ * Halt the current CPU & release it back to the host
++ */
++static void xen_halt_cpu(enum pv_lock_stats type, s8 *state, s8 sval)
++{
++	int irq = __this_cpu_read(lock_kicker_irq);
++	unsigned long flags;
++	u64 start;
++
++	/* If kicker interrupts not initialized yet, just spin */
++	if (irq == -1)
 +		return;
 +
-+	node->qprev	= prev;
-+	node->prev_tail = prev_tail;
 +	/*
-+	 * This node will spin double the number of time of the previous node
-+	 * before attempting to steal the lock until it reaches a maximum.
++	 * Make sure an interrupt handler can't upset things in a
++	 * partially setup state.
 +	 */
-+	node->lsteal_mask = prev->qhead ? LSTEAL_MIN_MASK :
-+			    (prev->lsteal_mask << 1) + 1;
-+	if (node->lsteal_mask > LSTEAL_MAX_MASK)
-+		node->lsteal_mask = LSTEAL_MAX_MASK;
-+	/* Make sure the new fields are visible to others */
-+	smp_wmb();
-+}
++	local_irq_save(flags);
++	start = spin_time_start();
 +
-+/**
-+ * unfair_get_lock - try to steal the lock periodically
-+ * @lock : Pointer to queue spinlock structure
-+ * @node : Current queue node address
-+ * @tail : My tail code value
-+ * @count: Loop count
-+ * Return: true if the lock has been stolen, false otherwise
-+ *
-+ * When a true value is returned, the caller will have to notify the next
-+ * node only if the qhead flag is set and the next pointer in the queue
-+ * node is not NULL.
-+ */
-+static noinline int
-+unfair_get_lock(struct qspinlock *lock, struct qnode *node, u32 tail, int count)
-+{
-+	u32	     prev_tail;
-+	int	     isqhead;
-+	struct qnode *next;
++	xen_halt_stats(type);
++	/* clear pending */
++	xen_clear_irq_pending(irq);
 +
-+	if (!static_key_false(&paravirt_unfairlocks_enabled) ||
-+	   ((count & node->lsteal_mask) != node->lsteal_mask))
-+		return false;
-+
-+	if (!queue_spin_trylock_unfair(lock)) {
-+		/*
-+		 * Lock stealing fails, re-adjust the lsteal mask so that
-+		 * it is about double of the previous node.
-+		 */
-+		struct qnode *prev = node->qprev;
-+
-+		node->lsteal_mask = prev->qhead ? LSTEAL_MIN_MASK :
-+				    (prev->lsteal_mask << 1) + 1;
-+		if (node->lsteal_mask > LSTEAL_MAX_MASK)
-+			node->lsteal_mask = LSTEAL_MAX_MASK;
-+		return false;
++	/* Allow interrupts while blocked */
++	local_irq_restore(flags);
++	/*
++	 * Don't halt if the CPU state has been changed.
++	 */
++	if (ACCESS_ONCE(*state) != sval) {
++		xen_halt_stats(PV_HALT_ABORT);
++		return;
 +	}
-+	queue_spin_unlock(lock);
-+	return false;
++	/*
++	 * If an interrupt happens here, it will leave the wakeup irq
++	 * pending, which will cause xen_poll_irq() to return
++	 * immediately.
++	 */
++
++	/* Block until irq becomes pending (or perhaps a spurious wakeup) */
++	xen_poll_irq(irq);
++	spin_time_accum_blocked(start);
 +}
++#endif /* CONFIG_QUEUE_SPINLOCK */
 +
-+#else /* CONFIG_PARAVIRT_UNFAIR_LOCKS */
-+#define	DEF_LOOP_CNT(c)
-+#define	INC_LOOP_CNT(c)
-+#define	LOOP_CNT(c)	0
-+
-+static void unfair_init_vars(struct qnode *node)	{}
-+static void unfair_set_vars(struct qnode *node, struct qnode *prev,
-+		u32 prev_tail)				{}
-+static int unfair_get_lock(struct qspinlock *lock, struct qnode *node,
-+		u32 tail, int count)			{ return false; }
-+#endif /* CONFIG_PARAVIRT_UNFAIR_LOCKS */
-+
- /**
-  * get_qlock - Set the lock bit and own the lock
-  * @lock : Pointer to queue spinlock structure
-@@ -365,11 +503,17 @@ static noinline void queue_spin_lock_slowerpath(struct qspinlock *lock,
- 	 * if there was a previous node; link it and wait.
- 	 */
- 	if (old & _Q_TAIL_MASK) {
-+		DEF_LOOP_CNT(cnt);
-+
- 		prev = decode_tail(old);
-+		unfair_set_vars(node, prev, old);
- 		ACCESS_ONCE(prev->mcs.next) = (struct mcs_spinlock *)node;
+ static irqreturn_t dummy_handler(int irq, void *dev_id)
+ {
+ 	BUG();
+@@ -258,7 +373,6 @@ void xen_uninit_lock_cpu(int cpu)
+ 	per_cpu(irq_name, cpu) = NULL;
+ }
  
--		while (!smp_load_acquire(&node->qhead))
-+		while (!smp_load_acquire(&node->qhead)) {
-+			INC_LOOP_CNT(cnt);
-+			unfair_get_lock(lock, node, tail, LOOP_CNT(cnt));
- 			arch_mutex_cpu_relax();
-+		}
+-
+ /*
+  * Our init of PV spinlocks is split in two init functions due to us
+  * using paravirt patching and jump labels patching and having to do
+@@ -275,8 +389,15 @@ void __init xen_init_spinlocks(void)
+ 		return;
  	}
+ 	printk(KERN_DEBUG "xen: PV spinlocks enabled\n");
++
++#ifdef CONFIG_QUEUE_SPINLOCK
++	pv_lock_ops.kick_cpu = xen_kick_cpu;
++	pv_lock_ops.halt_cpu = xen_halt_cpu;
++	pv_lock_ops.lockstat = xen_lock_stats;
++#else
+ 	pv_lock_ops.lock_spinning = PV_CALLEE_SAVE(xen_lock_spinning);
+ 	pv_lock_ops.unlock_kick = xen_unlock_kick;
++#endif
+ }
  
- 	/*
-@@ -469,6 +613,7 @@ void queue_spin_lock_slowpath(struct qspinlock *lock, u32 val)
- 	node += idx;
- 	node->qhead = 0;
- 	node->mcs.next = NULL;
-+	unfair_init_vars(node);
+ /*
+@@ -321,6 +442,7 @@ static int __init xen_spinlock_debugfs(void)
  
- 	/*
- 	 * We touched a (possibly) cold cacheline in the per-cpu queue node;
+ 	d_spin_debug = debugfs_create_dir("spinlocks", d_xen);
+ 
++#ifndef CONFIG_QUEUE_SPINLOCK
+ 	debugfs_create_u8("zero_stats", 0644, d_spin_debug, &zero_stats);
+ 
+ 	debugfs_create_u32("taken_slow", 0444, d_spin_debug,
+@@ -340,7 +462,22 @@ static int __init xen_spinlock_debugfs(void)
+ 
+ 	debugfs_create_u32_array("histo_blocked", 0444, d_spin_debug,
+ 				spinlock_stats.histo_spin_blocked, HISTO_BUCKETS + 1);
+-
++#else /* CONFIG_QUEUE_SPINLOCK */
++	debugfs_create_u32("kick_nohlt_stats",
++			   0644, d_spin_debug, &kick_nohlt_stats);
++	debugfs_create_u32("halt_qhead_stats",
++			   0644, d_spin_debug, &halt_qhead_stats);
++	debugfs_create_u32("halt_qnode_stats",
++			   0644, d_spin_debug, &halt_qnode_stats);
++	debugfs_create_u32("halt_abort_stats",
++			   0644, d_spin_debug, &halt_abort_stats);
++	debugfs_create_u32("wake_kick_stats",
++			   0644, d_spin_debug, &wake_kick_stats);
++	debugfs_create_u32("wake_spur_stats",
++			   0644, d_spin_debug, &wake_spur_stats);
++	debugfs_create_u64("time_blocked",
++			   0644, d_spin_debug, &time_blocked);
++#endif /* CONFIG_QUEUE_SPINLOCK */
+ 	return 0;
+ }
+ fs_initcall(xen_spinlock_debugfs);
+diff --git a/kernel/Kconfig.locks b/kernel/Kconfig.locks
+index a70fdeb..451e392 100644
+--- a/kernel/Kconfig.locks
++++ b/kernel/Kconfig.locks
+@@ -229,4 +229,4 @@ config ARCH_USE_QUEUE_SPINLOCK
+ 
+ config QUEUE_SPINLOCK
+ 	def_bool y if ARCH_USE_QUEUE_SPINLOCK
+-	depends on SMP && (!PARAVIRT_SPINLOCKS || !XEN)
++	depends on SMP
 -- 
 1.7.1
