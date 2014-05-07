@@ -1,174 +1,138 @@
 From: Waiman Long <Waiman.Long@hp.com>
-Subject: [PATCH v10 05/19] qspinlock: Optimize for smaller NR_CPUS
-Date: Wed,  7 May 2014 11:01:33 -0400
-Message-ID: <1399474907-22206-6-git-send-email-Waiman.Long@hp.com>
+Subject: [PATCH v10 03/19] qspinlock: Add pending bit
+Date: Wed,  7 May 2014 11:01:31 -0400
+Message-ID: <1399474907-22206-4-git-send-email-Waiman.Long@hp.com>
 References: <1399474907-22206-1-git-send-email-Waiman.Long@hp.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <virtualization-bounces@lists.linux-foundation.org>
 In-Reply-To: <1399474907-22206-1-git-send-email-Waiman.Long@hp.com>
-Sender: linux-kernel-owner@vger.kernel.org
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
+List-Post: <mailto:virtualization@lists.linux-foundation.org>
+List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
+Sender: virtualization-bounces@lists.linux-foundation.org
+Errors-To: virtualization-bounces@lists.linux-foundation.org
 To: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>
-Cc: linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Rik van Riel <riel@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, David Vrabel <david.vrabel@citrix.com>, Oleg Nesterov <oleg@redhat.com>, Gleb Natapov <gleb@redhat.com>, Scott J Norton <scott.norton@hp.com>, Chegu Vinod <chegu_vinod@hp.com>, Peter Zijlstra <peterz@infradead.org>, Waiman Long <Waiman.Long@hp.com>
+Cc: linux-arch@vger.kernel.org, Waiman Long <Waiman.Long@hp.com>, Rik van Riel <riel@redhat.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, Gleb Natapov <gleb@redhat.com>, kvm@vger.kernel.org, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Peter Zijlstra <peterz@infradead.org>, Scott J Norton <scott.norton@hp.com>, x86@kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, Chegu Vinod <chegu_vinod@hp.com>, David Vrabel <david.vrabel@citrix.com>, Oleg Nesterov <oleg@redhat.com>, xen-devel@lists.xenproject.org, Boris Ostrovsky <boris.ostrovsky@oracle.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>
 List-Id: linux-arch.vger.kernel.org
 
 From: Peter Zijlstra <peterz@infradead.org>
 
-When we allow for a max NR_CPUS < 2^14 we can optimize the pending
-wait-acquire and the xchg_tail() operations.
-
-By growing the pending bit to a byte, we reduce the tail to 16bit.
-This means we can use xchg16 for the tail part and do away with all
-the repeated compxchg() operations.
-
-This in turn allows us to unconditionally acquire; the locked state
-as observed by the wait loops cannot change. And because both locked
-and pending are now a full byte we can use simple stores for the
-state transition, obviating one atomic operation entirely.
-
-All this is horribly broken on Alpha pre EV56 (and any other arch that
-cannot do single-copy atomic byte stores).
+Because the qspinlock needs to touch a second cacheline; add a pending
+bit and allow a single in-word spinner before we punt to the second
+cacheline.
 
 Signed-off-by: Peter Zijlstra <peterz@infradead.org>
 Signed-off-by: Waiman Long <Waiman.Long@hp.com>
 ---
- include/asm-generic/qspinlock_types.h |   13 ++++
- kernel/locking/qspinlock.c            |  107 +++++++++++++++++++++++++++++---
- 2 files changed, 110 insertions(+), 10 deletions(-)
+ include/asm-generic/qspinlock_types.h |   12 +++-
+ kernel/locking/qspinlock.c            |  121 +++++++++++++++++++++++++++------
+ 2 files changed, 110 insertions(+), 23 deletions(-)
 
 diff --git a/include/asm-generic/qspinlock_types.h b/include/asm-generic/qspinlock_types.h
-index ed5d89a..4914abe 100644
+index f66f845..bd25081 100644
 --- a/include/asm-generic/qspinlock_types.h
 +++ b/include/asm-generic/qspinlock_types.h
-@@ -38,6 +38,14 @@ typedef struct qspinlock {
- /*
+@@ -39,8 +39,9 @@ typedef struct qspinlock {
   * Bitfields in the atomic value:
   *
-+ * When NR_CPUS < 16K
-+ *  0- 7: locked byte
-+ *     8: pending
-+ *  9-15: not used
-+ * 16-17: tail index
-+ * 18-31: tail cpu (+1)
-+ *
-+ * When NR_CPUS >= 16K
   *  0- 7: locked byte
-  *     8: pending
-  *  9-10: tail index
-@@ -50,7 +58,11 @@ typedef struct qspinlock {
+- *  8- 9: tail index
+- * 10-31: tail cpu (+1)
++ *     8: pending
++ *  9-10: tail index
++ * 11-31: tail cpu (+1)
+  */
+ #define	_Q_SET_MASK(type)	(((1U << _Q_ ## type ## _BITS) - 1)\
+ 				      << _Q_ ## type ## _OFFSET)
+@@ -48,7 +49,11 @@ typedef struct qspinlock {
+ #define _Q_LOCKED_BITS		8
  #define _Q_LOCKED_MASK		_Q_SET_MASK(LOCKED)
  
- #define _Q_PENDING_OFFSET	(_Q_LOCKED_OFFSET + _Q_LOCKED_BITS)
-+#if CONFIG_NR_CPUS < (1U << 14)
-+#define _Q_PENDING_BITS		8
-+#else
- #define _Q_PENDING_BITS		1
-+#endif
- #define _Q_PENDING_MASK		_Q_SET_MASK(PENDING)
+-#define _Q_TAIL_IDX_OFFSET	(_Q_LOCKED_OFFSET + _Q_LOCKED_BITS)
++#define _Q_PENDING_OFFSET	(_Q_LOCKED_OFFSET + _Q_LOCKED_BITS)
++#define _Q_PENDING_BITS		1
++#define _Q_PENDING_MASK		_Q_SET_MASK(PENDING)
++
++#define _Q_TAIL_IDX_OFFSET	(_Q_PENDING_OFFSET + _Q_PENDING_BITS)
+ #define _Q_TAIL_IDX_BITS	2
+ #define _Q_TAIL_IDX_MASK	_Q_SET_MASK(TAIL_IDX)
  
- #define _Q_TAIL_IDX_OFFSET	(_Q_PENDING_OFFSET + _Q_PENDING_BITS)
-@@ -61,6 +73,7 @@ typedef struct qspinlock {
- #define _Q_TAIL_CPU_BITS	(32 - _Q_TAIL_CPU_OFFSET)
+@@ -57,5 +62,6 @@ typedef struct qspinlock {
  #define _Q_TAIL_CPU_MASK	_Q_SET_MASK(TAIL_CPU)
  
-+#define _Q_TAIL_OFFSET		_Q_TAIL_IDX_OFFSET
- #define _Q_TAIL_MASK		(_Q_TAIL_IDX_MASK | _Q_TAIL_CPU_MASK)
- 
  #define _Q_LOCKED_VAL		(1U << _Q_LOCKED_OFFSET)
++#define _Q_PENDING_VAL		(1U << _Q_PENDING_OFFSET)
+ 
+ #endif /* __ASM_GENERIC_QSPINLOCK_TYPES_H */
 diff --git a/kernel/locking/qspinlock.c b/kernel/locking/qspinlock.c
-index a49b82b..3e908f7 100644
+index b97a1ad..6467bfc 100644
 --- a/kernel/locking/qspinlock.c
 +++ b/kernel/locking/qspinlock.c
-@@ -22,6 +22,7 @@
- #include <linux/percpu.h>
- #include <linux/hardirq.h>
- #include <linux/mutex.h>
-+#include <asm/byteorder.h>
- #include <asm/qspinlock.h>
+@@ -83,23 +83,97 @@ static inline struct mcs_spinlock *decode_tail(u32 tail)
+ 	return per_cpu_ptr(&mcs_nodes[idx], cpu);
+ }
  
- /*
-@@ -48,6 +49,9 @@
-  * We can further change the first spinner to spin on a bit in the lock word
-  * instead of its node; whereby avoiding the need to carry a node from lock to
-  * unlock, and preserving API.
-+ *
-+ * N.B. The current implementation only supports architectures that allow
-+ *      atomic operations on smaller 8-bit and 16-bit data types.
-  */
- 
- #include "mcs_spinlock.h"
-@@ -85,6 +89,87 @@ static inline struct mcs_spinlock *decode_tail(u32 tail)
- 
- #define _Q_LOCKED_PENDING_MASK	(_Q_LOCKED_MASK | _Q_PENDING_MASK)
- 
-+/*
-+ * By using the whole 2nd least significant byte for the pending bit, we
-+ * can allow better optimization of the lock acquisition for the pending
-+ * bit holder.
-+ */
-+#if _Q_PENDING_BITS == 8
-+
-+struct __qspinlock {
-+	union {
-+		atomic_t val;
-+		struct {
-+#ifdef __LITTLE_ENDIAN
-+			u16	locked_pending;
-+			u16	tail;
-+#else
-+			u16	tail;
-+			u16	locked_pending;
-+#endif
-+		};
-+	};
-+};
++#define _Q_LOCKED_PENDING_MASK	(_Q_LOCKED_MASK | _Q_PENDING_MASK)
 +
 +/**
-+ * clear_pending_set_locked - take ownership and clear the pending bit.
-+ * @lock: Pointer to queue spinlock structure
-+ * @val : Current value of the queue spinlock 32-bit word
-+ *
-+ * *,1,0 -> *,0,1
-+ */
-+static __always_inline void
-+clear_pending_set_locked(struct qspinlock *lock, u32 val)
-+{
-+	struct __qspinlock *l = (void *)lock;
-+
-+	ACCESS_ONCE(l->locked_pending) = _Q_LOCKED_VAL;
-+}
-+
-+/*
-+ * xchg_tail - Put in the new queue tail code word & retrieve previous one
++ * trylock_pending - try to acquire queue spinlock using the pending bit
 + * @lock : Pointer to queue spinlock structure
-+ * @tail : The new queue tail code word
-+ * @pval : Pointer to current value of the queue spinlock 32-bit word
-+ * Return: The previous queue tail code word
-+ *
-+ * xchg(lock, tail)
-+ *
-+ * p,*,* -> n,*,* ; prev = xchg(lock, node)
++ * @pval : Pointer to value of the queue spinlock 32-bit word
++ * Return: 1 if lock acquired, 0 otherwise
 + */
-+static __always_inline u32
-+xchg_tail(struct qspinlock *lock, u32 tail, u32 *pval)
++static inline int trylock_pending(struct qspinlock *lock, u32 *pval)
 +{
-+	struct __qspinlock *l = (void *)lock;
++	u32 old, new, val = *pval;
 +
-+	return (u32)xchg(&l->tail, tail >> _Q_TAIL_OFFSET) << _Q_TAIL_OFFSET;
-+}
++	/*
++	 * trylock || pending
++	 *
++	 * 0,0,0 -> 0,0,1 ; trylock
++	 * 0,0,1 -> 0,1,1 ; pending
++	 */
++	for (;;) {
++		/*
++		 * If we observe any contention; queue.
++		 */
++		if (val & ~_Q_LOCKED_MASK)
++			return 0;
 +
-+#else /* _Q_PENDING_BITS == 8 */
++		new = _Q_LOCKED_VAL;
++		if (val == new)
++			new |= _Q_PENDING_VAL;
 +
-+/**
-+ * clear_pending_set_locked - take ownership and clear the pending bit.
-+ * @lock: Pointer to queue spinlock structure
-+ * @val : Current value of the queue spinlock 32-bit word
-+ *
-+ * *,1,0 -> *,0,1
-+ */
-+static __always_inline void
-+clear_pending_set_locked(struct qspinlock *lock, u32 val)
-+{
-+	u32 new, old;
++		old = atomic_cmpxchg(&lock->val, val, new);
++		if (old == val)
++			break;
 +
++		*pval = val = old;
++	}
++
++	/*
++	 * we won the trylock
++	 */
++	if (new == _Q_LOCKED_VAL)
++		return 1;
++
++	/*
++	 * we're pending, wait for the owner to go away.
++	 *
++	 * *,1,1 -> *,1,0
++	 */
++	while ((val = atomic_read(&lock->val)) & _Q_LOCKED_MASK)
++		arch_mutex_cpu_relax();
++
++	/*
++	 * take ownership and clear the pending bit.
++	 *
++	 * *,1,0 -> *,0,1
++	 */
 +	for (;;) {
 +		new = (val & ~_Q_PENDING_MASK) | _Q_LOCKED_VAL;
 +
@@ -178,60 +142,112 @@ index a49b82b..3e908f7 100644
 +
 +		val = old;
 +	}
++	return 1;
 +}
 +
  /**
-  * xchg_tail - Put in the new queue tail code word & retrieve previous one
-  * @lock : Pointer to queue spinlock structure
-@@ -112,12 +197,17 @@ xchg_tail(struct qspinlock *lock, u32 tail, u32 *pval)
- 	*pval = new;
- 	return old;
- }
-+#endif /* _Q_PENDING_BITS == 8 */
- 
- /**
-  * trylock_pending - try to acquire queue spinlock using the pending bit
-  * @lock : Pointer to queue spinlock structure
-  * @pval : Pointer to value of the queue spinlock 32-bit word
-  * Return: 1 if lock acquired, 0 otherwise
+  * queue_spin_lock_slowpath - acquire the queue spinlock
+  * @lock: Pointer to queue spinlock structure
+  * @val: Current value of the queue spinlock 32-bit word
+  *
+- * (queue tail, lock bit)
++ * (queue tail, pending bit, lock bit)
 + *
-+ * The pending bit won't be set as soon as one or more tasks queue up.
-+ * This function should only be called when lock stealing will not happen.
-+ * Otherwise, it has to be disabled.
++ *              fast     :    slow                                  :    unlock
++ *                       :                                          :
++ * uncontended  (0,0,0) -:--> (0,0,1) ------------------------------:--> (*,*,0)
++ *                       :       | ^--------.------.             /  :
++ *                       :       v           \      \            |  :
++ * pending               :    (0,1,1) +--> (0,1,0)   \           |  :
++ *                       :       | ^--'              |           |  :
++ *                       :       v                   |           |  :
++ * uncontended           :    (n,x,y) +--> (n,0,0) --'           |  :
++ *   queue               :       | ^--'                          |  :
++ *                       :       v                               |  :
++ * contended             :    (*,x,y) +--> (*,0,0) ---> (*,0,1) -'  :
++ *   queue               :         ^--'                             :
+  *
+- *              fast      :    slow                                  :    unlock
+- *                        :                                          :
+- * uncontended  (0,0)   --:--> (0,1) --------------------------------:--> (*,0)
+- *                        :       | ^--------.                    /  :
+- *                        :       v           \                   |  :
+- * uncontended            :    (n,x) --+--> (n,0)                 |  :
+- *   queue                :       | ^--'                          |  :
+- *                        :       v                               |  :
+- * contended              :    (*,x) --+--> (*,0) -----> (*,1) ---'  :
+- *   queue                :         ^--'                             :
++ * The pending bit processing is in the trylock_pending() function
++ * whereas the uncontended and contended queue processing is in the
++ * queue_spin_lock_slowpath() function.
+  *
   */
- static inline int trylock_pending(struct qspinlock *lock, u32 *pval)
- {
-@@ -157,8 +247,13 @@ static inline int trylock_pending(struct qspinlock *lock, u32 *pval)
- 	 * we're pending, wait for the owner to go away.
- 	 *
- 	 * *,1,1 -> *,1,0
+ void queue_spin_lock_slowpath(struct qspinlock *lock, u32 val)
+@@ -110,6 +184,9 @@ void queue_spin_lock_slowpath(struct qspinlock *lock, u32 val)
+ 
+ 	BUILD_BUG_ON(CONFIG_NR_CPUS >= (1U << _Q_TAIL_CPU_BITS));
+ 
++	if (trylock_pending(lock, &val))
++		return;	/* Lock acquired */
++
+ 	node = this_cpu_ptr(&mcs_nodes[0]);
+ 	idx = node->count++;
+ 	tail = encode_tail(smp_processor_id(), idx);
+@@ -119,15 +196,18 @@ void queue_spin_lock_slowpath(struct qspinlock *lock, u32 val)
+ 	node->next = NULL;
+ 
+ 	/*
++	 * we already touched the queueing cacheline; don't bother with pending
++	 * stuff.
 +	 *
-+	 * this wait loop must be a load-acquire such that we match the
-+	 * store-release that clears the locked bit and create lock
-+	 * sequentiality; this because not all clear_pending_set_locked()
-+	 * implementations imply full barriers.
+ 	 * trylock || xchg(lock, node)
+ 	 *
+-	 * 0,0 -> 0,1 ; trylock
+-	 * p,x -> n,x ; prev = xchg(lock, node)
++	 * 0,0,0 -> 0,0,1 ; trylock
++	 * p,y,x -> n,y,x ; prev = xchg(lock, node)
+ 	 */
+ 	for (;;) {
+ 		new = _Q_LOCKED_VAL;
+ 		if (val)
+-			new = tail | (val & _Q_LOCKED_MASK);
++			new = tail | (val & _Q_LOCKED_PENDING_MASK);
+ 
+ 		old = atomic_cmpxchg(&lock->val, val, new);
+ 		if (old == val)
+@@ -145,7 +225,7 @@ void queue_spin_lock_slowpath(struct qspinlock *lock, u32 val)
+ 	/*
+ 	 * if there was a previous node; link it and wait.
+ 	 */
+-	if (old & ~_Q_LOCKED_MASK) {
++	if (old & ~_Q_LOCKED_PENDING_MASK) {
+ 		prev = decode_tail(old);
+ 		ACCESS_ONCE(prev->next) = node;
+ 
+@@ -153,18 +233,19 @@ void queue_spin_lock_slowpath(struct qspinlock *lock, u32 val)
+ 	}
+ 
+ 	/*
+-	 * we're at the head of the waitqueue, wait for the owner to go away.
++	 * we're at the head of the waitqueue, wait for the owner & pending to
++	 * go away.
+ 	 *
+-	 * *,x -> *,0
++	 * *,x,y -> *,0,0
  	 */
 -	while ((val = atomic_read(&lock->val)) & _Q_LOCKED_MASK)
-+	while ((val = smp_load_acquire(&lock->val.counter)) & _Q_LOCKED_MASK)
++	while ((val = atomic_read(&lock->val)) & _Q_LOCKED_PENDING_MASK)
  		arch_mutex_cpu_relax();
  
  	/*
-@@ -166,15 +261,7 @@ static inline int trylock_pending(struct qspinlock *lock, u32 *pval)
+ 	 * claim the lock:
  	 *
- 	 * *,1,0 -> *,0,1
+-	 * n,0 -> 0,1 : lock, uncontended
+-	 * *,0 -> *,1 : lock, contended
++	 * n,0,0 -> 0,0,1 : lock, uncontended
++	 * *,0,0 -> *,0,1 : lock, contended
  	 */
--	for (;;) {
--		new = (val & ~_Q_PENDING_MASK) | _Q_LOCKED_VAL;
--
--		old = atomic_cmpxchg(&lock->val, val, new);
--		if (old == val)
--			break;
--
--		val = old;
--	}
-+	clear_pending_set_locked(lock, val);
- 	return 1;
- }
- 
+ 	for (;;) {
+ 		new = _Q_LOCKED_VAL;
 -- 
 1.7.1
