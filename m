@@ -1,8 +1,8 @@
 From: Waiman Long <Waiman.Long@hp.com>
-Subject: [PATCH v10 07/19] qspinlock: Use a simple write to grab
-	the lock, if applicable
-Date: Wed,  7 May 2014 11:01:35 -0400
-Message-ID: <1399474907-22206-8-git-send-email-Waiman.Long@hp.com>
+Subject: [PATCH v10 11/19] qspinlock: Split the MCS queuing code
+	into a separate slowerpath
+Date: Wed,  7 May 2014 11:01:39 -0400
+Message-ID: <1399474907-22206-12-git-send-email-Waiman.Long@hp.com>
 References: <1399474907-22206-1-git-send-email-Waiman.Long@hp.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -21,196 +21,179 @@ To: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Pe
 Cc: linux-arch@vger.kernel.org, Waiman Long <Waiman.Long@hp.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, Gleb Natapov <gleb@redhat.com>, kvm@vger.kernel.org, Scott J Norton <scott.norton@hp.com>, x86@kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, Chegu Vinod <chegu_vinod@hp.com>, David Vrabel <david.vrabel@citrix.com>, Oleg Nesterov <oleg@redhat.com>, xen-devel@lists.xenproject.org, Boris Ostrovsky <boris.ostrovsky@oracle.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>
 List-Id: linux-arch.vger.kernel.org
 
-Currently, atomic_cmpxchg() is used to get the lock. However, this is
-not really necessary if there is more than one task in the queue and
-the queue head don't need to reset the queue code word. For that case,
-a simple write to set the lock bit is enough as the queue head will
-be the only one eligible to get the lock as long as it checks that
-both the lock and pending bits are not set. The current pending bit
-waiting code will ensure that the bit will not be set as soon as the
-queue code word (tail) in the lock is set.
+With the pending addition of more codes to support unfair lock and
+PV spinlock, the complexity of the slowpath function increases to
+the point that the number of scratch-pad registers in the x86-64
+architecture is not enough and so those additional non-scratch-pad
+registers will need to be used. This has the downside of requiring
+saving and restoring of those registers in the prolog and epilog of
+the slowpath function slowing down the nominally faster pending bit
+and trylock code path at the beginning of the slowpath function.
 
-With that change, the are some slight improvement in the performance
-of the queue spinlock in the 5M loop micro-benchmark run on a 4-socket
-Westere-EX machine as shown in the tables below.
-
-		[Standalone/Embedded - same node]
-  # of tasks	Before patch	After patch	%Change
-  ----------	-----------	----------	-------
-       3	 2324/2321	2248/2265	 -3%/-2%
-       4	 2890/2896	2819/2831	 -2%/-2%
-       5	 3611/3595	3522/3512	 -2%/-2%
-       6	 4281/4276	4173/4160	 -3%/-3%
-       7	 5018/5001	4875/4861	 -3%/-3%
-       8	 5759/5750	5563/5568	 -3%/-3%
-
-		[Standalone/Embedded - different nodes]
-  # of tasks	Before patch	After patch	%Change
-  ----------	-----------	----------	-------
-       3	12242/12237	12087/12093	 -1%/-1%
-       4	10688/10696	10507/10521	 -2%/-2%
-
-It was also found that this change produced a much bigger performance
-improvement in the newer IvyBridge-EX chip and was essentially to close
-the performance gap between the ticket spinlock and queue spinlock.
-
-The disk workload of the AIM7 benchmark was run on a 4-socket
-Westmere-EX machine with both ext4 and xfs RAM disks at 3000 users
-on a 3.14 based kernel. The results of the test runs were:
-
-                AIM7 XFS Disk Test
-  kernel                 JPM    Real Time   Sys Time    Usr Time
-  -----                  ---    ---------   --------    --------
-  ticketlock            5678233    3.17       96.61       5.81
-  qspinlock             5750799    3.13       94.83       5.97
-
-                AIM7 EXT4 Disk Test
-  kernel                 JPM    Real Time   Sys Time    Usr Time
-  -----                  ---    ---------   --------    --------
-  ticketlock            1114551   16.15      509.72       7.11
-  qspinlock             2184466    8.24      232.99       6.01
-
-The ext4 filesystem run had a much higher spinlock contention than
-the xfs filesystem run.
-
-The "ebizzy -m" test was also run with the following results:
-
-  kernel               records/s  Real Time   Sys Time    Usr Time
-  -----                ---------  ---------   --------    --------
-  ticketlock             2075       10.00      216.35       3.49
-  qspinlock              3023       10.00      198.20       4.80
+This patch separates out the actual MCS queuing code into a slowerpath
+function. This avoids the slow down of the pending bit and trylock
+code path at the expense of a little bit of additional overhead to
+the MCS queuing code path.
 
 Signed-off-by: Waiman Long <Waiman.Long@hp.com>
 ---
- kernel/locking/qspinlock.c |   61 +++++++++++++++++++++++++++++++------------
- 1 files changed, 44 insertions(+), 17 deletions(-)
+ kernel/locking/qspinlock.c |  120 +++++++++++++++++++++++++------------------
+ 1 files changed, 70 insertions(+), 50 deletions(-)
 
 diff --git a/kernel/locking/qspinlock.c b/kernel/locking/qspinlock.c
-index e734acb..0ee1a23 100644
+index 10e87e1..a14241e 100644
 --- a/kernel/locking/qspinlock.c
 +++ b/kernel/locking/qspinlock.c
-@@ -94,23 +94,29 @@ static inline struct mcs_spinlock *decode_tail(u32 tail)
-  * can allow better optimization of the lock acquisition for the pending
-  * bit holder.
-  */
--#if _Q_PENDING_BITS == 8
--
- struct __qspinlock {
- 	union {
- 		atomic_t val;
--		struct {
- #ifdef __LITTLE_ENDIAN
-+		u8	 locked;
-+		struct {
- 			u16	locked_pending;
- 			u16	tail;
-+		};
- #else
-+		struct {
- 			u16	tail;
- 			u16	locked_pending;
--#endif
- 		};
-+		struct {
-+			u8	reserved[3];
-+			u8	locked;
-+		};
-+#endif
- 	};
- };
+@@ -335,57 +335,23 @@ static inline int trylock_pending(struct qspinlock *lock, u32 *pval)
+ }
  
-+#if _Q_PENDING_BITS == 8
  /**
-  * clear_pending_set_locked - take ownership and clear the pending bit.
+- * queue_spin_lock_slowpath - acquire the queue spinlock
++ * queue_spin_lock_slowerpath - a slower path for acquiring queue spinlock
   * @lock: Pointer to queue spinlock structure
-@@ -200,6 +206,22 @@ xchg_tail(struct qspinlock *lock, u32 tail, u32 *pval)
- #endif /* _Q_PENDING_BITS == 8 */
+- * @val: Current value of the queue spinlock 32-bit word
+- *
+- * (queue tail, pending bit, lock bit)
+- *
+- *              fast     :    slow                                  :    unlock
+- *                       :                                          :
+- * uncontended  (0,0,0) -:--> (0,0,1) ------------------------------:--> (*,*,0)
+- *                       :       | ^--------.------.             /  :
+- *                       :       v           \      \            |  :
+- * pending               :    (0,1,1) +--> (0,1,0)   \           |  :
+- *                       :       | ^--'              |           |  :
+- *                       :       v                   |           |  :
+- * uncontended           :    (n,x,y) +--> (n,0,0) --'           |  :
+- *   queue               :       | ^--'                          |  :
+- *                       :       v                               |  :
+- * contended             :    (*,x,y) +--> (*,0,0) ---> (*,0,1) -'  :
+- *   queue               :         ^--'                             :
+- *
+- * The pending bit processing is in the trylock_pending() function
+- * whereas the uncontended and contended queue processing is in the
+- * queue_spin_lock_slowpath() function.
++ * @val : Current value of the queue spinlock 32-bit word
++ * @node: Pointer to the queue node
++ * @tail: The tail code
+  *
++ * The reason for splitting a slowerpath from slowpath is to avoid the
++ * unnecessary overhead of non-scratch pad register pushing and popping
++ * due to increased complexity with unfair and PV spinlock from slowing
++ * down the nominally faster pending bit and trylock code path. So this
++ * function is not inlined.
+  */
+-void queue_spin_lock_slowpath(struct qspinlock *lock, u32 val)
++static noinline void queue_spin_lock_slowerpath(struct qspinlock *lock,
++			u32 val, struct qnode *node, u32 tail)
+ {
+-	struct qnode *prev, *next, *node;
+-	u32 old, tail;
+-	int idx;
+-
+-	BUILD_BUG_ON(CONFIG_NR_CPUS >= (1U << _Q_TAIL_CPU_BITS));
+-
+-	if (trylock_pending(lock, &val))
+-		return;	/* Lock acquired */
+-
+-	node = this_cpu_ptr(&qnodes[0]);
+-	idx = node->mcs.count++;
+-	tail = encode_tail(smp_processor_id(), idx);
+-
+-	node += idx;
+-	node->qhead = 0;
+-	node->mcs.next = NULL;
+-
+-	/*
+-	 * We touched a (possibly) cold cacheline in the per-cpu queue node;
+-	 * attempt the trylock once more in the hope someone let go while we
+-	 * weren't watching.
+-	 */
+-	if (queue_spin_trylock(lock))
+-		goto release;
++	struct qnode *prev, *next;
++	u32 old;
  
- /**
-+ * get_qlock - Set the lock bit and own the lock
-+ * @lock: Pointer to queue spinlock structure
-+ *
-+ * This routine should only be called when the caller is the only one
-+ * entitled to acquire the lock.
-+ */
-+static __always_inline void get_qlock(struct qspinlock *lock)
-+{
-+	struct __qspinlock *l = (void *)lock;
-+
-+	barrier();
-+	ACCESS_ONCE(l->locked) = _Q_LOCKED_VAL;
-+	barrier();
+ 	/*
+ 	 * we already touched the queueing cacheline; don't bother with pending
+@@ -442,7 +408,7 @@ retry_queue_wait:
+ 		}
+ 		old = atomic_cmpxchg(&lock->val, val, _Q_LOCKED_VAL);
+ 		if (old == val)
+-			goto release;	/* No contention */
++			return;	/* No contention */
+ 		else if (old & _Q_LOCKED_MASK)
+ 			goto retry_queue_wait;
+ 
+@@ -450,14 +416,68 @@ retry_queue_wait:
+ 	}
+ 
+ 	/*
+-	 * contended path; wait for next, release.
++	 * contended path; wait for next, return.
+ 	 */
+ 	while (!(next = (struct qnode *)ACCESS_ONCE(node->mcs.next)))
+ 		arch_mutex_cpu_relax();
+ 
+ 	arch_mcs_spin_unlock_contended(&next->qhead);
 +}
 +
 +/**
-  * trylock_pending - try to acquire queue spinlock using the pending bit
-  * @lock : Pointer to queue spinlock structure
-  * @pval : Pointer to value of the queue spinlock 32-bit word
-@@ -321,7 +343,7 @@ static inline int trylock_pending(struct qspinlock *lock, u32 *pval)
- void queue_spin_lock_slowpath(struct qspinlock *lock, u32 val)
- {
- 	struct mcs_spinlock *prev, *next, *node;
--	u32 new, old, tail;
-+	u32 old, tail;
- 	int idx;
++ * queue_spin_lock_slowpath - acquire the queue spinlock
++ * @lock: Pointer to queue spinlock structure
++ * @val: Current value of the queue spinlock 32-bit word
++ *
++ * (queue tail, pending bit, lock bit)
++ *
++ *              fast     :    slow                                  :    unlock
++ *                       :                                          :
++ * uncontended  (0,0,0) -:--> (0,0,1) ------------------------------:--> (*,*,0)
++ *                       :       | ^--------.------.             /  :
++ *                       :       v           \      \            |  :
++ * pending               :    (0,1,1) +--> (0,1,0)   \           |  :
++ *                       :       | ^--'              |           |  :
++ *                       :       v                   |           |  :
++ * uncontended           :    (n,x,y) +--> (n,0,0) --'           |  :
++ *   queue               :       | ^--'                          |  :
++ *                       :       v                               |  :
++ * contended             :    (*,x,y) +--> (*,0,0) ---> (*,0,1) -'  :
++ *   queue               :         ^--'                             :
++ *
++ * This slowpath only contains the faster pending bit and trylock codes.
++ * The slower queuing code is in the slowerpath function.
++ *
++ * The pending bit processing is in the trylock_pending() function
++ * whereas the uncontended and contended queue processing is in the
++ * queue_spin_lock_slowerpath() function.
++ */
++void queue_spin_lock_slowpath(struct qspinlock *lock, u32 val)
++{
++	struct qnode *node;
++	u32 tail, idx;
++
++	BUILD_BUG_ON(CONFIG_NR_CPUS >= (1U << _Q_TAIL_CPU_BITS));
++
++	if (trylock_pending(lock, &val))
++		return;	/* Lock acquired */
++
++	node = this_cpu_ptr(&qnodes[0]);
++	idx = node->mcs.count++;
++	tail = encode_tail(smp_processor_id(), idx);
++
++	node += idx;
++	node->qhead = 0;
++	node->mcs.next = NULL;
++
++	/*
++	 * We touched a (possibly) cold cacheline in the per-cpu queue node;
++	 * attempt the trylock once more in the hope someone let go while we
++	 * weren't watching.
++	 */
++	if (!queue_spin_trylock(lock))
++		queue_spin_lock_slowerpath(lock, val, node, tail);
  
- 	BUILD_BUG_ON(CONFIG_NR_CPUS >= (1U << _Q_TAIL_CPU_BITS));
-@@ -366,10 +388,13 @@ void queue_spin_lock_slowpath(struct qspinlock *lock, u32 val)
+-release:
  	/*
- 	 * we're at the head of the waitqueue, wait for the owner & pending to
- 	 * go away.
-+	 * Load-acquired is used here because the get_qlock()
-+	 * function below may not be a full memory barrier.
- 	 *
- 	 * *,x,y -> *,0,0
+ 	 * release the node
  	 */
--	while ((val = atomic_read(&lock->val)) & _Q_LOCKED_PENDING_MASK)
-+	while ((val = smp_load_acquire(&lock->val.counter))
-+				       & _Q_LOCKED_PENDING_MASK)
- 		arch_mutex_cpu_relax();
- 
- 	/*
-@@ -377,15 +402,19 @@ void queue_spin_lock_slowpath(struct qspinlock *lock, u32 val)
- 	 *
- 	 * n,0,0 -> 0,0,1 : lock, uncontended
- 	 * *,0,0 -> *,0,1 : lock, contended
-+	 *
-+	 * If the queue head is the only one in the queue (lock value == tail),
-+	 * clear the tail code and grab the lock. Otherwise, we only need
-+	 * to grab the lock.
- 	 */
- 	for (;;) {
--		new = _Q_LOCKED_VAL;
--		if (val != tail)
--			new |= val;
--
--		old = atomic_cmpxchg(&lock->val, val, new);
--		if (old == val)
-+		if (val != tail) {
-+			get_qlock(lock);
- 			break;
-+		}
-+		old = atomic_cmpxchg(&lock->val, val, _Q_LOCKED_VAL);
-+		if (old == val)
-+			goto release;	/* No contention */
- 
- 		val = old;
- 	}
-@@ -393,12 +422,10 @@ void queue_spin_lock_slowpath(struct qspinlock *lock, u32 val)
- 	/*
- 	 * contended path; wait for next, release.
- 	 */
--	if (new != _Q_LOCKED_VAL) {
--		while (!(next = ACCESS_ONCE(node->next)))
--			arch_mutex_cpu_relax();
-+	while (!(next = ACCESS_ONCE(node->next)))
-+		arch_mutex_cpu_relax();
- 
--		arch_mcs_spin_unlock_contended(&next->locked);
--	}
-+	arch_mcs_spin_unlock_contended(&next->locked);
- 
- release:
- 	/*
 -- 
 1.7.1
