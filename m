@@ -1,101 +1,76 @@
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: Re: kprobes broken in linux-next (was Re: [tip:perf/kprobes] kprobes:
- Introduce NOKPROBE_SYMBOL()  macro to maintain kprobes blacklist)
-Date: Wed, 7 May 2014 10:26:38 +0530
-Message-ID: <5369BD06.5020503@synopsys.com>
-References: <20140417081705.26341.96719.stgit@ltc230.yrl.intra.hitachi.co.jp> <tip-376e242429bf8539ef39a080ac113c8799840b13@git.kernel.org> <5361DB14.7010406@synopsys.com> <5362F147.6030901@hitachi.com>
+From: Waiman Long <waiman.long@hp.com>
+Subject: Re: [PATCH v9 00/19] qspinlock: a 4-byte queue spinlock with PV support
+Date: Wed, 07 May 2014 11:00:10 -0400
+Message-ID: <536A4A7A.3050001@hp.com>
+References: <1397747051-15401-1-git-send-email-Waiman.Long@hp.com> <535D47D3.20202@linux.vnet.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-next-owner@vger.kernel.org>
-In-Reply-To: <5362F147.6030901@hitachi.com>
-Sender: linux-next-owner@vger.kernel.org
-To: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>, mingo@kernel.org, akpm@linux-foundation.org
-Cc: linux-kernel@vger.kernel.org, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, anton Kolesov <Anton.Kolesov@synopsys.com>, linux-next <linux-next@vger.kernel.org>
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from g2t2352.austin.hp.com ([15.217.128.51]:26796 "EHLO
+	g2t2352.austin.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754371AbaEGPAd (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 7 May 2014 11:00:33 -0400
+In-Reply-To: <535D47D3.20202@linux.vnet.ibm.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Peter Zijlstra <peterz@infradead.org>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Rik van Riel <riel@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, David Vrabel <david.vrabel@citrix.com>, Oleg Nesterov <oleg@redhat.com>, Gleb Natapov <gleb@redhat.com>, Scott J Norton <scott.norton@hp.com>, Chegu Vinod <chegu_vinod@hp.com>
 
+On 04/27/2014 02:09 PM, Raghavendra K T wrote:
+>
+> For kvm part feel free to add:
+> Tested-by: Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>
+>
+> V9 testing has shown no hangs.
+> I was able to do some performance testing. here are the results:
+>
+> Overall we are seeing good improvement for pv-unfair version.
+>
+> System : 32 cpu sandybridge with HT on. (4 node machine with 32 GB each)
+> Guest: 8GB with 16 vcpu/VM.
+> Average was taken over 8-10 data points.
+>
+> Base = 3.15-rc2    with PRAVIRT_SPINLOCK = y
+> A = 3.15-rc2 + qspinlock v9 patch with QUEUE_SPINLOCK = y 
+> PRAVIRT_SPINLOCK = y PARAVIRT_UNFAIR_LOCKS = y (unfair lock)
+> B =  3.15-rc2 + qspinlock v9 patch with QUEUE_SPINLOCK = y 
+> PRAVIRT_SPINLOCK = n PARAVIRT_UNFAIR_LOCKS = n (queue spinlock without 
+> paravirt)
+> C = 3.15-rc2 + qspinlock v9 patch with  QUEUE_SPINLOCK = y 
+> PRAVIRT_SPINLOCK = y  PARAVIRT_UNFAIR_LOCKS = n (queue spinlock with 
+> paravirt)
+>
+>
+> Ebizzy % improvements
+> ========================
+> overcommit A        B        C
+> 0.5x    4.4265        2.0611        1.5824
+> 1.0x    0.9015        -7.7828       4.5443
+> 1.5x    46.1162       -2.9845       -3.5046
+> 2.0x    99.8150       -2.7116       4.7461
+>
+> Dbench     %improvements
+> overcommit A        B        C
+> 0.5x    3.2617        3.5436        2.5676
+> 1.0x    0.6302        2.2342        5.2201
+> 1.5x    5.0027        4.8275        3.8375
+> 2.0x    23.8242       4.5782        12.6067
+>
+> Absolute values of base results: (overcommit, value, stdev)
+> Ebizzy ( records / sec with 120 sec run)
+> 0.5x 20941.8750 (2%)
+> 1.0x 17623.8750 (5%)
+> 1.5x  5874.7778 (15%)
+> 2.0x  3581.8750 (7%)
+>
+> Dbench (throughput in MB/sec)
+> 0.5x 10009.6610 (5%)
+> 1.0x  6583.0538 (1%)
+> 1.5x  3991.9622 (4%)
+> 2.0x  2527.0613 (2.5%)
+>
 
-On Friday 02 May 2014 06:43 AM, Masami Hiramatsu wrote:
-> (2014/05/01 14:26), Vineet Gupta wrote:
->> On Thursday 24 April 2014 04:28 PM, tip-bot for Masami Hiramatsu wrote:
->>> Commit-ID:  376e242429bf8539ef39a080ac113c8799840b13
->>> Gitweb:     http://git.kernel.org/tip/376e242429bf8539ef39a080ac113c8799840b13
->>> Author:     Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
->>> AuthorDate: Thu, 17 Apr 2014 17:17:05 +0900
->>> Committer:  Ingo Molnar <mingo@kernel.org>
->>> CommitDate: Thu, 24 Apr 2014 10:02:56 +0200
->>>
->>> kprobes: Introduce NOKPROBE_SYMBOL() macro to maintain kprobes blacklist
->>>
->>> Introduce NOKPROBE_SYMBOL() macro which builds a kprobes
->>> blacklist at kernel build time.
->>>
->> ....
->>
->>> diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
->>> index 146e4ff..40ceb3c 100644
->>> --- a/include/asm-generic/vmlinux.lds.h
->>> +++ b/include/asm-generic/vmlinux.lds.h
->>> @@ -109,6 +109,14 @@
->>>  #define BRANCH_PROFILE()
->>>  #endif
->>>  
->>> +#ifdef CONFIG_KPROBES
->>> +#define KPROBE_BLACKLIST()	VMLINUX_SYMBOL(__start_kprobe_blacklist) = .; \
->>> +				*(_kprobe_blacklist)			      \
->>> +				VMLINUX_SYMBOL(__stop_kprobe_blacklist) = .;
->>> +#else
->>> +#define KPROBE_BLACKLIST()
->>> +#endif
->>> +
->>>  #ifdef CONFIG_EVENT_TRACING
->>>  #define FTRACE_EVENTS()	. = ALIGN(8);					\
->>>  			VMLINUX_SYMBOL(__start_ftrace_events) = .;	\
->>> @@ -507,6 +515,7 @@
->>>  	*(.init.rodata)							\
->>>  	FTRACE_EVENTS()							\
->>>  	TRACE_SYSCALLS()						\
->>> +	KPROBE_BLACKLIST()						\
->>>  	MEM_DISCARD(init.rodata)					\
->>>  	CLK_OF_TABLES()							\
->>>  	RESERVEDMEM_OF_TABLES()						\
->>
->> Linux-next fails to boot on ARC due to misaligned __start_kprobe_blacklist. Patch
->> below fixes it.
->>
->> ------------------------>
->> >From c5afc4ebf9c1c094a260e2aaff6c5b3106063039 Mon Sep 17 00:00:00 2001
->> From: Vineet Gupta <vgupta@synopsys.com>
->> Date: Thu, 1 May 2014 10:47:29 +0530
->> Subject: [PATCH] kprobes: Ensure blacklist data is aligned
->>
->> ARC Linux (not supporting native unaligned access) was failing to boot
->> because __start_kprobe_blacklist was not aligned.
->>
->> This was because per generated vmlinux.lds it was emitted right next
->> to .rodata with strings etc hence could be randomly unaligned.
->>
->> Fix that by ensuring a word alignment. While 4 would suffice for 32bit
->> arches and problem at hand, it is probably better to put 8.
->>
->> | Path: (null) CPU: 0 PID: 1 Comm: swapper Not tainted
->> | 3.15.0-rc3-next-20140430 #2
->> | task: 8f044000 ti: 8f01e000 task.ti: 8f01e000
->> |
->> | [ECR   ]: 0x00230400 => Misaligned r/w from 0x800fb0d3
->> | [EFA   ]: 0x800fb0d3
->> | [BLINK ]: do_one_initcall+0x86/0x1bc
->> | [ERET  ]: init_kprobes+0x52/0x120
->>
->> Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
-> 
-> Acked-by: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
-> 
-> Thanks!
+Thank for the testing. I will include your Test-by tag in the next version.
 
-Hi Ingo/Andrew,
-
-Can one of you please pick this up - it doesn't show up in linux-next yet.
-
-Thx,
--Vineet
+-Longman
