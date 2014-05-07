@@ -1,92 +1,108 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wi0-f179.google.com ([209.85.212.179]:50179 "EHLO
-	mail-wi0-f179.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752018AbaEFPae (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 6 May 2014 11:30:34 -0400
-Received: by mail-wi0-f179.google.com with SMTP id bs8so1168029wib.0
-        for <linux-arch@vger.kernel.org>; Tue, 06 May 2014 08:30:33 -0700 (PDT)
-From: Steve Capper <steve.capper@linaro.org>
-Subject: [RFC PATCH V5 5/6] arm64: mm: Enable HAVE_RCU_TABLE_FREE logic
-Date: Tue,  6 May 2014 16:30:08 +0100
-Message-ID: <1399390209-1756-6-git-send-email-steve.capper@linaro.org>
-In-Reply-To: <1399390209-1756-1-git-send-email-steve.capper@linaro.org>
-References: <1399390209-1756-1-git-send-email-steve.capper@linaro.org>
+Received: from smtprelay2.synopsys.com ([198.182.60.111]:35507 "EHLO
+	smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750818AbaEGE46 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 7 May 2014 00:56:58 -0400
+Message-ID: <5369BD06.5020503@synopsys.com>
+Date: Wed, 7 May 2014 10:26:38 +0530
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+MIME-Version: 1.0
+Subject: Re: kprobes broken in linux-next (was Re: [tip:perf/kprobes] kprobes:
+ Introduce NOKPROBE_SYMBOL()  macro to maintain kprobes blacklist)
+References: <20140417081705.26341.96719.stgit@ltc230.yrl.intra.hitachi.co.jp> <tip-376e242429bf8539ef39a080ac113c8799840b13@git.kernel.org> <5361DB14.7010406@synopsys.com> <5362F147.6030901@hitachi.com>
+In-Reply-To: <5362F147.6030901@hitachi.com>
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arm-kernel@lists.infradead.org, catalin.marinas@arm.com, linux@arm.linux.org.uk, linux-arch@vger.kernel.org, linux-mm@kvack.org
-Cc: will.deacon@arm.com, gary.robertson@linaro.org, christoffer.dall@linaro.org, peterz@infradead.org, anders.roxell@linaro.org, akpm@linux-foundation.org, Steve Capper <steve.capper@linaro.org>
-Message-ID: <20140506153008.5RaLJmFIm6BqRpIcoweRk1l5WqElbvq4OKF-2K5DAsU@z>
+To: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>, mingo@kernel.org, akpm@linux-foundation.org
+Cc: linux-kernel@vger.kernel.org, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, anton Kolesov <Anton.Kolesov@synopsys.com>, linux-next <linux-next@vger.kernel.org>
+Message-ID: <20140507045638.JiOBiPyoskZh3eZJHpB2oMWa8VtX-pRqqBxgEs4YNCQ@z>
 
-In order to implement fast_get_user_pages we need to ensure that the
-page table walker is protected from page table pages being freed from
-under it.
 
-This patch enables HAVE_RCU_TABLE_FREE, any page table pages belonging
-to address spaces with multiple users will be call_rcu_sched freed.
-Meaning that disabling interrupts will block the free and protect the
-fast gup page walker.
+On Friday 02 May 2014 06:43 AM, Masami Hiramatsu wrote:
+> (2014/05/01 14:26), Vineet Gupta wrote:
+>> On Thursday 24 April 2014 04:28 PM, tip-bot for Masami Hiramatsu wrote:
+>>> Commit-ID:  376e242429bf8539ef39a080ac113c8799840b13
+>>> Gitweb:     http://git.kernel.org/tip/376e242429bf8539ef39a080ac113c8799840b13
+>>> Author:     Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
+>>> AuthorDate: Thu, 17 Apr 2014 17:17:05 +0900
+>>> Committer:  Ingo Molnar <mingo@kernel.org>
+>>> CommitDate: Thu, 24 Apr 2014 10:02:56 +0200
+>>>
+>>> kprobes: Introduce NOKPROBE_SYMBOL() macro to maintain kprobes blacklist
+>>>
+>>> Introduce NOKPROBE_SYMBOL() macro which builds a kprobes
+>>> blacklist at kernel build time.
+>>>
+>> ....
+>>
+>>> diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+>>> index 146e4ff..40ceb3c 100644
+>>> --- a/include/asm-generic/vmlinux.lds.h
+>>> +++ b/include/asm-generic/vmlinux.lds.h
+>>> @@ -109,6 +109,14 @@
+>>>  #define BRANCH_PROFILE()
+>>>  #endif
+>>>  
+>>> +#ifdef CONFIG_KPROBES
+>>> +#define KPROBE_BLACKLIST()	VMLINUX_SYMBOL(__start_kprobe_blacklist) = .; \
+>>> +				*(_kprobe_blacklist)			      \
+>>> +				VMLINUX_SYMBOL(__stop_kprobe_blacklist) = .;
+>>> +#else
+>>> +#define KPROBE_BLACKLIST()
+>>> +#endif
+>>> +
+>>>  #ifdef CONFIG_EVENT_TRACING
+>>>  #define FTRACE_EVENTS()	. = ALIGN(8);					\
+>>>  			VMLINUX_SYMBOL(__start_ftrace_events) = .;	\
+>>> @@ -507,6 +515,7 @@
+>>>  	*(.init.rodata)							\
+>>>  	FTRACE_EVENTS()							\
+>>>  	TRACE_SYSCALLS()						\
+>>> +	KPROBE_BLACKLIST()						\
+>>>  	MEM_DISCARD(init.rodata)					\
+>>>  	CLK_OF_TABLES()							\
+>>>  	RESERVEDMEM_OF_TABLES()						\
+>>
+>> Linux-next fails to boot on ARC due to misaligned __start_kprobe_blacklist. Patch
+>> below fixes it.
+>>
+>> ------------------------>
+>> >From c5afc4ebf9c1c094a260e2aaff6c5b3106063039 Mon Sep 17 00:00:00 2001
+>> From: Vineet Gupta <vgupta@synopsys.com>
+>> Date: Thu, 1 May 2014 10:47:29 +0530
+>> Subject: [PATCH] kprobes: Ensure blacklist data is aligned
+>>
+>> ARC Linux (not supporting native unaligned access) was failing to boot
+>> because __start_kprobe_blacklist was not aligned.
+>>
+>> This was because per generated vmlinux.lds it was emitted right next
+>> to .rodata with strings etc hence could be randomly unaligned.
+>>
+>> Fix that by ensuring a word alignment. While 4 would suffice for 32bit
+>> arches and problem at hand, it is probably better to put 8.
+>>
+>> | Path: (null) CPU: 0 PID: 1 Comm: swapper Not tainted
+>> | 3.15.0-rc3-next-20140430 #2
+>> | task: 8f044000 ti: 8f01e000 task.ti: 8f01e000
+>> |
+>> | [ECR   ]: 0x00230400 => Misaligned r/w from 0x800fb0d3
+>> | [EFA   ]: 0x800fb0d3
+>> | [BLINK ]: do_one_initcall+0x86/0x1bc
+>> | [ERET  ]: init_kprobes+0x52/0x120
+>>
+>> Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
+> 
+> Acked-by: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
+> 
+> Thanks!
 
-Signed-off-by: Steve Capper <steve.capper@linaro.org>
----
- arch/arm64/Kconfig           |  1 +
- arch/arm64/include/asm/tlb.h | 18 ++++++++++++++++--
- 2 files changed, 17 insertions(+), 2 deletions(-)
+Hi Ingo/Andrew,
 
-diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
-index e759af5..2420390 100644
---- a/arch/arm64/Kconfig
-+++ b/arch/arm64/Kconfig
-@@ -43,6 +43,7 @@ config ARM64
- 	select HAVE_PERF_EVENTS
- 	select HAVE_PERF_REGS
- 	select HAVE_PERF_USER_STACK_DUMP
-+	select HAVE_RCU_TABLE_FREE
- 	select IRQ_DOMAIN
- 	select MODULES_USE_ELF_RELA
- 	select NO_BOOTMEM
-diff --git a/arch/arm64/include/asm/tlb.h b/arch/arm64/include/asm/tlb.h
-index 80e2c08..8e4dde5 100644
---- a/arch/arm64/include/asm/tlb.h
-+++ b/arch/arm64/include/asm/tlb.h
-@@ -23,6 +23,20 @@
- 
- #include <asm-generic/tlb.h>
- 
-+#include <linux/pagemap.h>
-+#include <linux/swap.h>
-+
-+#ifdef CONFIG_HAVE_RCU_TABLE_FREE
-+
-+#define tlb_remove_entry(tlb, entry)	tlb_remove_table(tlb, entry)
-+static inline void __tlb_remove_table(void *_table)
-+{
-+	free_page_and_swap_cache((struct page *)_table);
-+}
-+#else
-+#define tlb_remove_entry(tlb, entry)	tlb_remove_page(tlb, entry)
-+#endif /* CONFIG_HAVE_RCU_TABLE_FREE */
-+
- /*
-  * There's three ways the TLB shootdown code is used:
-  *  1. Unmapping a range of vmas.  See zap_page_range(), unmap_region().
-@@ -88,7 +102,7 @@ static inline void __pte_free_tlb(struct mmu_gather *tlb, pgtable_t pte,
- {
- 	pgtable_page_dtor(pte);
- 	tlb_add_flush(tlb, addr);
--	tlb_remove_page(tlb, pte);
-+	tlb_remove_entry(tlb, pte);
- }
- 
- #ifndef CONFIG_ARM64_64K_PAGES
-@@ -96,7 +110,7 @@ static inline void __pmd_free_tlb(struct mmu_gather *tlb, pmd_t *pmdp,
- 				  unsigned long addr)
- {
- 	tlb_add_flush(tlb, addr);
--	tlb_remove_page(tlb, virt_to_page(pmdp));
-+	tlb_remove_entry(tlb, virt_to_page(pmdp));
- }
- #endif
- 
--- 
-1.8.1.4
+Can one of you please pick this up - it doesn't show up in linux-next yet.
+
+Thx,
+-Vineet
+
 
