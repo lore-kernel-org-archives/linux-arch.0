@@ -1,182 +1,146 @@
 From: Waiman Long <Waiman.Long@hp.com>
-Subject: [PATCH v10 16/19] pvqspinlock: Enable coexistence with
-	the unfair lock
-Date: Wed,  7 May 2014 11:01:44 -0400
-Message-ID: <1399474907-22206-17-git-send-email-Waiman.Long@hp.com>
+Subject: [PATCH v10 06/19] qspinlock: prolong the stay in the pending bit path
+Date: Wed,  7 May 2014 11:01:34 -0400
+Message-ID: <1399474907-22206-7-git-send-email-Waiman.Long@hp.com>
 References: <1399474907-22206-1-git-send-email-Waiman.Long@hp.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-Return-path: <xen-devel-bounces@lists.xen.org>
+Return-path: <virtualization-bounces@lists.linux-foundation.org>
 In-Reply-To: <1399474907-22206-1-git-send-email-Waiman.Long@hp.com>
-List-Unsubscribe: <http://lists.xen.org/cgi-bin/mailman/options/xen-devel>,
-	<mailto:xen-devel-request@lists.xen.org?subject=unsubscribe>
-List-Post: <mailto:xen-devel@lists.xen.org>
-List-Help: <mailto:xen-devel-request@lists.xen.org?subject=help>
-List-Subscribe: <http://lists.xen.org/cgi-bin/mailman/listinfo/xen-devel>,
-	<mailto:xen-devel-request@lists.xen.org?subject=subscribe>
-Sender: xen-devel-bounces@lists.xen.org
-Errors-To: xen-devel-bounces@lists.xen.org
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
+List-Post: <mailto:virtualization@lists.linux-foundation.org>
+List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
+Sender: virtualization-bounces@lists.linux-foundation.org
+Errors-To: virtualization-bounces@lists.linux-foundation.org
 To: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Peter Zijlstra <peterz@infradead.org>
-Cc: linux-arch@vger.kernel.org, Waiman Long <Waiman.Long@hp.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, Gleb Natapov <gleb@redhat.com>, kvm@vger.kernel.org, Scott J Norton <scott.norton@hp.com>, x86@kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, Chegu Vinod <chegu_vinod@hp.com>, David Vrabel <david.vrabel@citrix.com>, Oleg Nesterov <oleg@redhat.com>, xen-devel@lists.xenproject.org, Boris Ostrovsky <boris.ostrovsky@oracle.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>
+Cc: linux-arch@vger.kernel.org, Waiman Long <Waiman.Long@hp.com>, Rik van Riel <riel@redhat.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, Gleb Natapov <gleb@redhat.com>, kvm@vger.kernel.org, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Scott J Norton <scott.norton@hp.com>, x86@kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, Chegu Vinod <chegu_vinod@hp.com>, David Vrabel <david.vrabel@citrix.com>, Oleg Nesterov <oleg@redhat.com>, xen-devel@lists.xenproject.org, Boris Ostrovsky <boris.ostrovsky@oracle.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>
 List-Id: linux-arch.vger.kernel.org
 
-This patch enables the coexistence of both the PV qspinlock and
-unfair lock.  When both are enabled, however, only the lock fastpath
-will perform lock stealing whereas the slowpath will have that disabled
-to get the best of both features.
+There is a problem in the current trylock_pending() function.  When the
+lock is free, but the pending bit holder hasn't grabbed the lock &
+cleared the pending bit yet, the trylock_pending() function will fail.
+As a result, the regular queuing code path will be used most of
+the time even when there is only 2 tasks contending for the lock.
+Assuming that the pending bit holder is going to get the lock and
+clear the pending bit soon, it is actually better to wait than to be
+queued up which has a higher overhead.
 
-We also need to transition a CPU spinning too long in the pending
-bit code path back to the regular queuing code path so that it can
-be properly halted by the PV qspinlock code.
+This patch modified the trylock_pending() function to wait until the
+pending bit holder gets the lock and clears the pending bit. In case
+both the lock and pending bits are set, the new code will also wait
+a bit to see if either one is cleared. If they are not, it will quit
+and be queued.
+
+The following tables show the before-patch execution time (in ms)
+of a micro-benchmark where 5M iterations of the lock/unlock cycles
+were run on a 10-core Westere-EX x86-64 CPU with 2 different types of
+loads - standalone (lock and protected data in different cachelines)
+and embedded (lock and protected data in the same cacheline).
+
+		  [Standalone/Embedded - same node]
+  # of tasks	Ticket lock	Queue lock	 %Change
+  ----------	-----------	----------	 -------
+       1	  135/ 111	 135/ 101	   0%/  -9%
+       2	  890/ 779	1885/1990	+112%/+156%
+       3	 1932/1859	2333/2341	 +21%/ +26%
+       4	 2829/2726	2900/2923	  +3%/  +7%
+       5	 3834/3761	3655/3648	  -5%/  -3%
+       6	 4963/4976	4336/4326	 -13%/ -13%
+       7	 6299/6269	5057/5064	 -20%/ -19%
+       8	 7691/7569	5786/5798	 -25%/ -23%
+
+With 1 task per NUMA node, the execution times are:
+
+		[Standalone - different nodes]
+  # of nodes	Ticket lock	Queue lock	%Change
+  ----------	-----------	----------	-------
+       1	   135		  135		  0%
+       2	  4604		 5087		+10%
+       3	 10940		12224		+12%
+       4	 21555		10555		-51%
+
+It can be seen that the queue spinlock is slower than the ticket
+spinlock when there are 2 or 3 contending tasks. In all the other case,
+the queue spinlock is either equal or faster than the ticket spinlock.
+
+With this patch, the performance data for 2 contending tasks are:
+
+		  [Standalone/Embedded]
+  # of tasks	Ticket lock	Queue lock	%Change
+  ----------	-----------	----------	-------
+       2	  890/779	 984/871	+11%/+12%
+
+		[Standalone - different nodes]
+  # of nodes	Ticket lock	Queue lock	%Change
+  ----------	-----------	----------	-------
+       2	  4604		   1364		  -70%
+
+It can be seen that the queue spinlock performance for 2 contending
+tasks is now comparable to ticket spinlock on the same node, but much
+faster when in different nodes. With 3 contending tasks, however,
+the ticket spinlock is still quite a bit faster.
 
 Signed-off-by: Waiman Long <Waiman.Long@hp.com>
 ---
- kernel/locking/qspinlock.c |   74 ++++++++++++++++++++++++++++++++++++++------
- 1 files changed, 64 insertions(+), 10 deletions(-)
+ kernel/locking/qspinlock.c |   31 +++++++++++++++++++++++++++++--
+ 1 files changed, 29 insertions(+), 2 deletions(-)
 
 diff --git a/kernel/locking/qspinlock.c b/kernel/locking/qspinlock.c
-index 0c86a6f..fb05e64 100644
+index 3e908f7..e734acb 100644
 --- a/kernel/locking/qspinlock.c
 +++ b/kernel/locking/qspinlock.c
-@@ -72,6 +72,30 @@ struct qnode {
- #define qhead	mcs.locked	/* The queue head flag */
- 
- /*
-+ * Allow spinning loop count only if either PV spinlock or unfair lock is
-+ * configured.
-+ */
-+#if defined(CONFIG_PARAVIRT_UNFAIR_LOCKS) || defined(CONFIG_PARAVIRT_SPINLOCKS)
-+#define	DEF_LOOP_CNT(c)		int c = 0
-+#define	INC_LOOP_CNT(c)		(c)++
-+#define	LOOP_CNT(c)		c
-+#else
-+#define	DEF_LOOP_CNT(c)
-+#define	INC_LOOP_CNT(c)
-+#define	LOOP_CNT(c)		0
-+#endif
-+
-+/*
-+ * Check the pending bit spinning threshold only if PV qspinlock is enabled
-+ */
-+#define PSPIN_THRESHOLD		(1 << 10)
-+#ifdef CONFIG_PARAVIRT_SPINLOCKS
-+#define pv_qspinlock_enabled()	static_key_false(&paravirt_spinlocks_enabled)
-+#else
-+#define pv_qspinlock_enabled()	false
-+#endif
-+
-+/*
-  * Per-CPU queue node structures; we can never have more than 4 nested
-  * contexts: task, softirq, hardirq, nmi.
-  *
-@@ -302,9 +326,6 @@ cmpxchg_tail(struct qspinlock *lock, u32 old, u32 new)
-  * starvation.
-  */
- #ifdef CONFIG_PARAVIRT_UNFAIR_LOCKS
--#define DEF_LOOP_CNT(c)		int c = 0
--#define INC_LOOP_CNT(c)		(c)++
--#define LOOP_CNT(c)		c
- #define LSTEAL_MIN		(1 << 3)
- #define LSTEAL_MAX		(1 << 10)
- #define LSTEAL_MIN_MASK		(LSTEAL_MIN - 1)
-@@ -330,7 +351,11 @@ static inline void unfair_init_vars(struct qnode *node)
- static inline void
- unfair_set_vars(struct qnode *node, struct qnode *prev, u32 prev_tail)
+@@ -212,6 +212,7 @@ xchg_tail(struct qspinlock *lock, u32 tail, u32 *pval)
+ static inline int trylock_pending(struct qspinlock *lock, u32 *pval)
  {
--	if (!static_key_false(&paravirt_unfairlocks_enabled))
-+	/*
-+	 * Disable waiter lock stealing if PV spinlock is enabled
-+	 */
-+	if (pv_qspinlock_enabled() ||
-+	   !static_key_false(&paravirt_unfairlocks_enabled))
- 		return;
- 
- 	node->qprev	= prev;
-@@ -356,7 +381,11 @@ unfair_set_vars(struct qnode *node, struct qnode *prev, u32 prev_tail)
-  */
- static inline int unfair_check_and_clear_tail(struct qspinlock *lock, u32 tail)
- {
--	if (!static_key_false(&paravirt_unfairlocks_enabled))
-+	/*
-+	 * Disable waiter lock stealing if PV spinlock is enabled
-+	 */
-+	if (pv_qspinlock_enabled() ||
-+	   !static_key_false(&paravirt_unfairlocks_enabled))
- 		return false;
+ 	u32 old, new, val = *pval;
++	int retry = 1;
  
  	/*
-@@ -385,7 +414,11 @@ unfair_get_lock(struct qspinlock *lock, struct qnode *node, u32 tail, int count)
- 	int	     isqhead;
- 	struct qnode *next;
- 
--	if (!static_key_false(&paravirt_unfairlocks_enabled) ||
-+	/*
-+	 * Disable waiter lock stealing if PV spinlock is enabled
-+	 */
-+	if (pv_qspinlock_enabled() ||
-+	   !static_key_false(&paravirt_unfairlocks_enabled) ||
- 	   ((count & node->lsteal_mask) != node->lsteal_mask))
- 		return false;
- 
-@@ -463,9 +496,6 @@ unfair_get_lock(struct qspinlock *lock, struct qnode *node, u32 tail, int count)
- }
- 
- #else /* CONFIG_PARAVIRT_UNFAIR_LOCKS */
--#define	DEF_LOOP_CNT(c)
--#define	INC_LOOP_CNT(c)
--#define	LOOP_CNT(c)	0
- 
- static void unfair_init_vars(struct qnode *node)	{}
- static void unfair_set_vars(struct qnode *node, struct qnode *prev,
-@@ -582,9 +612,28 @@ static inline int trylock_pending(struct qspinlock *lock, u32 *pval)
- 	 * store-release that clears the locked bit and create lock
- 	 * sequentiality; this because not all clear_pending_set_locked()
- 	 * implementations imply full barriers.
-+	 *
-+	 * When PV qspinlock is enabled, exit the pending bit code path and
-+	 * go back to the regular queuing path if the lock isn't available
-+	 * within a certain threshold.
+ 	 * trylock || pending
+@@ -221,11 +222,37 @@ static inline int trylock_pending(struct qspinlock *lock, u32 *pval)
  	 */
--	while ((val = smp_load_acquire(&lock->val.counter)) & _Q_LOCKED_MASK)
-+	if (pv_qspinlock_enabled())
-+		retry = PSPIN_THRESHOLD;
-+	while ((val = smp_load_acquire(&lock->val.counter)) & _Q_LOCKED_MASK) {
-+		if (pv_qspinlock_enabled() && (--retry == 0)) {
+ 	for (;;) {
+ 		/*
+-		 * If we observe any contention; queue.
++		 * If we observe that the queue is not empty,
++		 * return and be queued.
+ 		 */
+-		if (val & ~_Q_LOCKED_MASK)
++		if (val & _Q_TAIL_MASK)
+ 			return 0;
+ 
++		if (val == (_Q_LOCKED_VAL|_Q_PENDING_VAL)) {
 +			/*
-+			 * Clear the pending bit and exit
++			 * If both the lock and pending bits are set, we wait
++			 * a while to see if that either bit will be cleared.
++			 * If that is no change, we return and be queued.
 +			 */
-+			for (;;) {
-+				new = val & ~_Q_PENDING_MASK;
-+				old = atomic_cmpxchg(&lock->val, val, new);
-+				if (old == val)
-+					return 0;
-+				val = old;
-+			}
++			if (!retry)
++				return 0;
++			retry--;
++			cpu_relax();
++			cpu_relax();
++			*pval = val = atomic_read(&lock->val);
++			continue;
++		} else if (val == _Q_PENDING_VAL) {
++			/*
++			 * Pending bit is set, but not the lock bit.
++			 * Assuming that the pending bit holder is going to
++			 * set the lock bit and clear the pending bit soon,
++			 * it is better to wait than to exit at this point.
++			 */
++			cpu_relax();
++			*pval = val = atomic_read(&lock->val);
++			continue;
 +		}
- 		arch_mutex_cpu_relax();
-+	}
- 
- 	/*
- 	 * take ownership and clear the pending bit.
-@@ -646,6 +695,8 @@ static noinline void queue_spin_lock_slowerpath(struct qspinlock *lock,
- 			}
- 			arch_mutex_cpu_relax();
- 		}
-+	} else {
-+		ACCESS_ONCE(node->qhead) = true;
- 	}
- 
- 	/*
-@@ -713,6 +764,9 @@ notify_next:
- 	while (!(next = (struct qnode *)ACCESS_ONCE(node->mcs.next)))
- 		arch_mutex_cpu_relax();
- 
-+	/*
-+	 * The next one in queue is now at the head
-+	 */
- 	arch_mcs_spin_unlock_contended(&next->qhead);
- }
- 
++
+ 		new = _Q_LOCKED_VAL;
+ 		if (val == new)
+ 			new |= _Q_PENDING_VAL;
 -- 
 1.7.1
