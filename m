@@ -1,108 +1,194 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtprelay2.synopsys.com ([198.182.60.111]:35507 "EHLO
-	smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750818AbaEGE46 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 7 May 2014 00:56:58 -0400
-Message-ID: <5369BD06.5020503@synopsys.com>
-Date: Wed, 7 May 2014 10:26:38 +0530
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-MIME-Version: 1.0
-Subject: Re: kprobes broken in linux-next (was Re: [tip:perf/kprobes] kprobes:
- Introduce NOKPROBE_SYMBOL()  macro to maintain kprobes blacklist)
-References: <20140417081705.26341.96719.stgit@ltc230.yrl.intra.hitachi.co.jp> <tip-376e242429bf8539ef39a080ac113c8799840b13@git.kernel.org> <5361DB14.7010406@synopsys.com> <5362F147.6030901@hitachi.com>
-In-Reply-To: <5362F147.6030901@hitachi.com>
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
+Received: from g4t3426.houston.hp.com ([15.201.208.54]:10084 "EHLO
+	g4t3426.houston.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932716AbaEGPCu (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 7 May 2014 11:02:50 -0400
+From: Waiman Long <Waiman.Long@hp.com>
+Subject: [PATCH v10 11/19] qspinlock: Split the MCS queuing code into a separate slowerpath
+Date: Wed,  7 May 2014 11:01:39 -0400
+Message-ID: <1399474907-22206-12-git-send-email-Waiman.Long@hp.com>
+In-Reply-To: <1399474907-22206-1-git-send-email-Waiman.Long@hp.com>
+References: <1399474907-22206-1-git-send-email-Waiman.Long@hp.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>, mingo@kernel.org, akpm@linux-foundation.org
-Cc: linux-kernel@vger.kernel.org, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, anton Kolesov <Anton.Kolesov@synopsys.com>, linux-next <linux-next@vger.kernel.org>
-Message-ID: <20140507045638.JiOBiPyoskZh3eZJHpB2oMWa8VtX-pRqqBxgEs4YNCQ@z>
+To: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Peter Zijlstra <peterz@infradead.org>
+Cc: linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Rik van Riel <riel@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, David Vrabel <david.vrabel@citrix.com>, Oleg Nesterov <oleg@redhat.com>, Gleb Natapov <gleb@redhat.com>, Scott J Norton <scott.norton@hp.com>, Chegu Vinod <chegu_vinod@hp.com>, Waiman Long <Waiman.Long@hp.com>
+Message-ID: <20140507150139.keqLPKw5OgAhvWGg-jiqbsIA0bo80Zy3Fg3kZ9n6zLk@z>
 
+With the pending addition of more codes to support unfair lock and
+PV spinlock, the complexity of the slowpath function increases to
+the point that the number of scratch-pad registers in the x86-64
+architecture is not enough and so those additional non-scratch-pad
+registers will need to be used. This has the downside of requiring
+saving and restoring of those registers in the prolog and epilog of
+the slowpath function slowing down the nominally faster pending bit
+and trylock code path at the beginning of the slowpath function.
 
-On Friday 02 May 2014 06:43 AM, Masami Hiramatsu wrote:
-> (2014/05/01 14:26), Vineet Gupta wrote:
->> On Thursday 24 April 2014 04:28 PM, tip-bot for Masami Hiramatsu wrote:
->>> Commit-ID:  376e242429bf8539ef39a080ac113c8799840b13
->>> Gitweb:     http://git.kernel.org/tip/376e242429bf8539ef39a080ac113c8799840b13
->>> Author:     Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
->>> AuthorDate: Thu, 17 Apr 2014 17:17:05 +0900
->>> Committer:  Ingo Molnar <mingo@kernel.org>
->>> CommitDate: Thu, 24 Apr 2014 10:02:56 +0200
->>>
->>> kprobes: Introduce NOKPROBE_SYMBOL() macro to maintain kprobes blacklist
->>>
->>> Introduce NOKPROBE_SYMBOL() macro which builds a kprobes
->>> blacklist at kernel build time.
->>>
->> ....
->>
->>> diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
->>> index 146e4ff..40ceb3c 100644
->>> --- a/include/asm-generic/vmlinux.lds.h
->>> +++ b/include/asm-generic/vmlinux.lds.h
->>> @@ -109,6 +109,14 @@
->>>  #define BRANCH_PROFILE()
->>>  #endif
->>>  
->>> +#ifdef CONFIG_KPROBES
->>> +#define KPROBE_BLACKLIST()	VMLINUX_SYMBOL(__start_kprobe_blacklist) = .; \
->>> +				*(_kprobe_blacklist)			      \
->>> +				VMLINUX_SYMBOL(__stop_kprobe_blacklist) = .;
->>> +#else
->>> +#define KPROBE_BLACKLIST()
->>> +#endif
->>> +
->>>  #ifdef CONFIG_EVENT_TRACING
->>>  #define FTRACE_EVENTS()	. = ALIGN(8);					\
->>>  			VMLINUX_SYMBOL(__start_ftrace_events) = .;	\
->>> @@ -507,6 +515,7 @@
->>>  	*(.init.rodata)							\
->>>  	FTRACE_EVENTS()							\
->>>  	TRACE_SYSCALLS()						\
->>> +	KPROBE_BLACKLIST()						\
->>>  	MEM_DISCARD(init.rodata)					\
->>>  	CLK_OF_TABLES()							\
->>>  	RESERVEDMEM_OF_TABLES()						\
->>
->> Linux-next fails to boot on ARC due to misaligned __start_kprobe_blacklist. Patch
->> below fixes it.
->>
->> ------------------------>
->> >From c5afc4ebf9c1c094a260e2aaff6c5b3106063039 Mon Sep 17 00:00:00 2001
->> From: Vineet Gupta <vgupta@synopsys.com>
->> Date: Thu, 1 May 2014 10:47:29 +0530
->> Subject: [PATCH] kprobes: Ensure blacklist data is aligned
->>
->> ARC Linux (not supporting native unaligned access) was failing to boot
->> because __start_kprobe_blacklist was not aligned.
->>
->> This was because per generated vmlinux.lds it was emitted right next
->> to .rodata with strings etc hence could be randomly unaligned.
->>
->> Fix that by ensuring a word alignment. While 4 would suffice for 32bit
->> arches and problem at hand, it is probably better to put 8.
->>
->> | Path: (null) CPU: 0 PID: 1 Comm: swapper Not tainted
->> | 3.15.0-rc3-next-20140430 #2
->> | task: 8f044000 ti: 8f01e000 task.ti: 8f01e000
->> |
->> | [ECR   ]: 0x00230400 => Misaligned r/w from 0x800fb0d3
->> | [EFA   ]: 0x800fb0d3
->> | [BLINK ]: do_one_initcall+0x86/0x1bc
->> | [ERET  ]: init_kprobes+0x52/0x120
->>
->> Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
-> 
-> Acked-by: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
-> 
-> Thanks!
+This patch separates out the actual MCS queuing code into a slowerpath
+function. This avoids the slow down of the pending bit and trylock
+code path at the expense of a little bit of additional overhead to
+the MCS queuing code path.
 
-Hi Ingo/Andrew,
+Signed-off-by: Waiman Long <Waiman.Long@hp.com>
+---
+ kernel/locking/qspinlock.c |  120 +++++++++++++++++++++++++------------------
+ 1 files changed, 70 insertions(+), 50 deletions(-)
 
-Can one of you please pick this up - it doesn't show up in linux-next yet.
-
-Thx,
--Vineet
-
+diff --git a/kernel/locking/qspinlock.c b/kernel/locking/qspinlock.c
+index 10e87e1..a14241e 100644
+--- a/kernel/locking/qspinlock.c
++++ b/kernel/locking/qspinlock.c
+@@ -335,57 +335,23 @@ static inline int trylock_pending(struct qspinlock *lock, u32 *pval)
+ }
+ 
+ /**
+- * queue_spin_lock_slowpath - acquire the queue spinlock
++ * queue_spin_lock_slowerpath - a slower path for acquiring queue spinlock
+  * @lock: Pointer to queue spinlock structure
+- * @val: Current value of the queue spinlock 32-bit word
+- *
+- * (queue tail, pending bit, lock bit)
+- *
+- *              fast     :    slow                                  :    unlock
+- *                       :                                          :
+- * uncontended  (0,0,0) -:--> (0,0,1) ------------------------------:--> (*,*,0)
+- *                       :       | ^--------.------.             /  :
+- *                       :       v           \      \            |  :
+- * pending               :    (0,1,1) +--> (0,1,0)   \           |  :
+- *                       :       | ^--'              |           |  :
+- *                       :       v                   |           |  :
+- * uncontended           :    (n,x,y) +--> (n,0,0) --'           |  :
+- *   queue               :       | ^--'                          |  :
+- *                       :       v                               |  :
+- * contended             :    (*,x,y) +--> (*,0,0) ---> (*,0,1) -'  :
+- *   queue               :         ^--'                             :
+- *
+- * The pending bit processing is in the trylock_pending() function
+- * whereas the uncontended and contended queue processing is in the
+- * queue_spin_lock_slowpath() function.
++ * @val : Current value of the queue spinlock 32-bit word
++ * @node: Pointer to the queue node
++ * @tail: The tail code
+  *
++ * The reason for splitting a slowerpath from slowpath is to avoid the
++ * unnecessary overhead of non-scratch pad register pushing and popping
++ * due to increased complexity with unfair and PV spinlock from slowing
++ * down the nominally faster pending bit and trylock code path. So this
++ * function is not inlined.
+  */
+-void queue_spin_lock_slowpath(struct qspinlock *lock, u32 val)
++static noinline void queue_spin_lock_slowerpath(struct qspinlock *lock,
++			u32 val, struct qnode *node, u32 tail)
+ {
+-	struct qnode *prev, *next, *node;
+-	u32 old, tail;
+-	int idx;
+-
+-	BUILD_BUG_ON(CONFIG_NR_CPUS >= (1U << _Q_TAIL_CPU_BITS));
+-
+-	if (trylock_pending(lock, &val))
+-		return;	/* Lock acquired */
+-
+-	node = this_cpu_ptr(&qnodes[0]);
+-	idx = node->mcs.count++;
+-	tail = encode_tail(smp_processor_id(), idx);
+-
+-	node += idx;
+-	node->qhead = 0;
+-	node->mcs.next = NULL;
+-
+-	/*
+-	 * We touched a (possibly) cold cacheline in the per-cpu queue node;
+-	 * attempt the trylock once more in the hope someone let go while we
+-	 * weren't watching.
+-	 */
+-	if (queue_spin_trylock(lock))
+-		goto release;
++	struct qnode *prev, *next;
++	u32 old;
+ 
+ 	/*
+ 	 * we already touched the queueing cacheline; don't bother with pending
+@@ -442,7 +408,7 @@ retry_queue_wait:
+ 		}
+ 		old = atomic_cmpxchg(&lock->val, val, _Q_LOCKED_VAL);
+ 		if (old == val)
+-			goto release;	/* No contention */
++			return;	/* No contention */
+ 		else if (old & _Q_LOCKED_MASK)
+ 			goto retry_queue_wait;
+ 
+@@ -450,14 +416,68 @@ retry_queue_wait:
+ 	}
+ 
+ 	/*
+-	 * contended path; wait for next, release.
++	 * contended path; wait for next, return.
+ 	 */
+ 	while (!(next = (struct qnode *)ACCESS_ONCE(node->mcs.next)))
+ 		arch_mutex_cpu_relax();
+ 
+ 	arch_mcs_spin_unlock_contended(&next->qhead);
++}
++
++/**
++ * queue_spin_lock_slowpath - acquire the queue spinlock
++ * @lock: Pointer to queue spinlock structure
++ * @val: Current value of the queue spinlock 32-bit word
++ *
++ * (queue tail, pending bit, lock bit)
++ *
++ *              fast     :    slow                                  :    unlock
++ *                       :                                          :
++ * uncontended  (0,0,0) -:--> (0,0,1) ------------------------------:--> (*,*,0)
++ *                       :       | ^--------.------.             /  :
++ *                       :       v           \      \            |  :
++ * pending               :    (0,1,1) +--> (0,1,0)   \           |  :
++ *                       :       | ^--'              |           |  :
++ *                       :       v                   |           |  :
++ * uncontended           :    (n,x,y) +--> (n,0,0) --'           |  :
++ *   queue               :       | ^--'                          |  :
++ *                       :       v                               |  :
++ * contended             :    (*,x,y) +--> (*,0,0) ---> (*,0,1) -'  :
++ *   queue               :         ^--'                             :
++ *
++ * This slowpath only contains the faster pending bit and trylock codes.
++ * The slower queuing code is in the slowerpath function.
++ *
++ * The pending bit processing is in the trylock_pending() function
++ * whereas the uncontended and contended queue processing is in the
++ * queue_spin_lock_slowerpath() function.
++ */
++void queue_spin_lock_slowpath(struct qspinlock *lock, u32 val)
++{
++	struct qnode *node;
++	u32 tail, idx;
++
++	BUILD_BUG_ON(CONFIG_NR_CPUS >= (1U << _Q_TAIL_CPU_BITS));
++
++	if (trylock_pending(lock, &val))
++		return;	/* Lock acquired */
++
++	node = this_cpu_ptr(&qnodes[0]);
++	idx = node->mcs.count++;
++	tail = encode_tail(smp_processor_id(), idx);
++
++	node += idx;
++	node->qhead = 0;
++	node->mcs.next = NULL;
++
++	/*
++	 * We touched a (possibly) cold cacheline in the per-cpu queue node;
++	 * attempt the trylock once more in the hope someone let go while we
++	 * weren't watching.
++	 */
++	if (!queue_spin_trylock(lock))
++		queue_spin_lock_slowerpath(lock, val, node, tail);
+ 
+-release:
+ 	/*
+ 	 * release the node
+ 	 */
+-- 
+1.7.1
 
