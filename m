@@ -1,97 +1,101 @@
-From: Steve Capper <steve.capper@linaro.org>
-Subject: [RFC PATCH V5 6/6] arm64: mm: Enable RCU fast_gup
-Date: Tue,  6 May 2014 16:30:09 +0100
-Message-ID: <1399390209-1756-7-git-send-email-steve.capper@linaro.org>
-References: <1399390209-1756-1-git-send-email-steve.capper@linaro.org>
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Subject: Re: kprobes broken in linux-next (was Re: [tip:perf/kprobes] kprobes:
+ Introduce NOKPROBE_SYMBOL()  macro to maintain kprobes blacklist)
+Date: Wed, 7 May 2014 10:26:38 +0530
+Message-ID: <5369BD06.5020503@synopsys.com>
+References: <20140417081705.26341.96719.stgit@ltc230.yrl.intra.hitachi.co.jp> <tip-376e242429bf8539ef39a080ac113c8799840b13@git.kernel.org> <5361DB14.7010406@synopsys.com> <5362F147.6030901@hitachi.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
+Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-In-Reply-To: <1399390209-1756-1-git-send-email-steve.capper@linaro.org>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: linux-arm-kernel@lists.infradead.org, catalin.marinas@arm.com, linux@arm.linux.org.uk, linux-arch@vger.kernel.org, linux-mm@kvack.org
-Cc: anders.roxell@linaro.org, peterz@infradead.org, gary.robertson@linaro.org, will.deacon@arm.com, Steve Capper <steve.capper@linaro.org>, akpm@linux-foundation.org, christoffer.dall@linaro.org
+Return-path: <linux-next-owner@vger.kernel.org>
+In-Reply-To: <5362F147.6030901@hitachi.com>
+Sender: linux-next-owner@vger.kernel.org
+To: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>, mingo@kernel.org, akpm@linux-foundation.org
+Cc: linux-kernel@vger.kernel.org, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, anton Kolesov <Anton.Kolesov@synopsys.com>, linux-next <linux-next@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-Activate the RCU fast_gup for ARM64. We also need to force THP splits
-to broadcast an IPI s.t. we block in the fast_gup page walker. As THP
-splits are comparatively rare, this should not lead to a noticeable
-performance degradation.
 
-Signed-off-by: Steve Capper <steve.capper@linaro.org>
----
- arch/arm64/Kconfig               |  3 +++
- arch/arm64/include/asm/pgtable.h |  8 +++++++-
- arch/arm64/mm/flush.c            | 19 +++++++++++++++++++
- 3 files changed, 29 insertions(+), 1 deletion(-)
+On Friday 02 May 2014 06:43 AM, Masami Hiramatsu wrote:
+> (2014/05/01 14:26), Vineet Gupta wrote:
+>> On Thursday 24 April 2014 04:28 PM, tip-bot for Masami Hiramatsu wrote:
+>>> Commit-ID:  376e242429bf8539ef39a080ac113c8799840b13
+>>> Gitweb:     http://git.kernel.org/tip/376e242429bf8539ef39a080ac113c8799840b13
+>>> Author:     Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
+>>> AuthorDate: Thu, 17 Apr 2014 17:17:05 +0900
+>>> Committer:  Ingo Molnar <mingo@kernel.org>
+>>> CommitDate: Thu, 24 Apr 2014 10:02:56 +0200
+>>>
+>>> kprobes: Introduce NOKPROBE_SYMBOL() macro to maintain kprobes blacklist
+>>>
+>>> Introduce NOKPROBE_SYMBOL() macro which builds a kprobes
+>>> blacklist at kernel build time.
+>>>
+>> ....
+>>
+>>> diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+>>> index 146e4ff..40ceb3c 100644
+>>> --- a/include/asm-generic/vmlinux.lds.h
+>>> +++ b/include/asm-generic/vmlinux.lds.h
+>>> @@ -109,6 +109,14 @@
+>>>  #define BRANCH_PROFILE()
+>>>  #endif
+>>>  
+>>> +#ifdef CONFIG_KPROBES
+>>> +#define KPROBE_BLACKLIST()	VMLINUX_SYMBOL(__start_kprobe_blacklist) = .; \
+>>> +				*(_kprobe_blacklist)			      \
+>>> +				VMLINUX_SYMBOL(__stop_kprobe_blacklist) = .;
+>>> +#else
+>>> +#define KPROBE_BLACKLIST()
+>>> +#endif
+>>> +
+>>>  #ifdef CONFIG_EVENT_TRACING
+>>>  #define FTRACE_EVENTS()	. = ALIGN(8);					\
+>>>  			VMLINUX_SYMBOL(__start_ftrace_events) = .;	\
+>>> @@ -507,6 +515,7 @@
+>>>  	*(.init.rodata)							\
+>>>  	FTRACE_EVENTS()							\
+>>>  	TRACE_SYSCALLS()						\
+>>> +	KPROBE_BLACKLIST()						\
+>>>  	MEM_DISCARD(init.rodata)					\
+>>>  	CLK_OF_TABLES()							\
+>>>  	RESERVEDMEM_OF_TABLES()						\
+>>
+>> Linux-next fails to boot on ARC due to misaligned __start_kprobe_blacklist. Patch
+>> below fixes it.
+>>
+>> ------------------------>
+>> >From c5afc4ebf9c1c094a260e2aaff6c5b3106063039 Mon Sep 17 00:00:00 2001
+>> From: Vineet Gupta <vgupta@synopsys.com>
+>> Date: Thu, 1 May 2014 10:47:29 +0530
+>> Subject: [PATCH] kprobes: Ensure blacklist data is aligned
+>>
+>> ARC Linux (not supporting native unaligned access) was failing to boot
+>> because __start_kprobe_blacklist was not aligned.
+>>
+>> This was because per generated vmlinux.lds it was emitted right next
+>> to .rodata with strings etc hence could be randomly unaligned.
+>>
+>> Fix that by ensuring a word alignment. While 4 would suffice for 32bit
+>> arches and problem at hand, it is probably better to put 8.
+>>
+>> | Path: (null) CPU: 0 PID: 1 Comm: swapper Not tainted
+>> | 3.15.0-rc3-next-20140430 #2
+>> | task: 8f044000 ti: 8f01e000 task.ti: 8f01e000
+>> |
+>> | [ECR   ]: 0x00230400 => Misaligned r/w from 0x800fb0d3
+>> | [EFA   ]: 0x800fb0d3
+>> | [BLINK ]: do_one_initcall+0x86/0x1bc
+>> | [ERET  ]: init_kprobes+0x52/0x120
+>>
+>> Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
+> 
+> Acked-by: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
+> 
+> Thanks!
 
-diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
-index 2420390..5168949 100644
---- a/arch/arm64/Kconfig
-+++ b/arch/arm64/Kconfig
-@@ -95,6 +95,9 @@ config GENERIC_CALIBRATE_DELAY
- config ZONE_DMA
- 	def_bool y
- 
-+config HAVE_RCU_GUP
-+	def_bool y
-+
- config ARCH_DMA_ADDR_T_64BIT
- 	def_bool y
- 
-diff --git a/arch/arm64/include/asm/pgtable.h b/arch/arm64/include/asm/pgtable.h
-index 90c811f..126ed77e 100644
---- a/arch/arm64/include/asm/pgtable.h
-+++ b/arch/arm64/include/asm/pgtable.h
-@@ -244,7 +244,13 @@ static inline pmd_t pte_pmd(pte_t pte)
- #ifdef CONFIG_TRANSPARENT_HUGEPAGE
- #define pmd_trans_huge(pmd)	(pmd_val(pmd) && !(pmd_val(pmd) & PMD_TABLE_BIT))
- #define pmd_trans_splitting(pmd)	pte_special(pmd_pte(pmd))
--#endif
-+#ifdef CONFIG_HAVE_RCU_TABLE_FREE
-+#define __HAVE_ARCH_PMDP_SPLITTING_FLUSH
-+struct vm_area_struct;
-+void pmdp_splitting_flush(struct vm_area_struct *vma, unsigned long address,
-+			  pmd_t *pmdp);
-+#endif /* CONFIG_HAVE_RCU_TABLE_FREE */
-+#endif /* CONFIG_TRANSPARENT_HUGEPAGE */
- 
- #define pmd_young(pmd)		pte_young(pmd_pte(pmd))
- #define pmd_wrprotect(pmd)	pte_pmd(pte_wrprotect(pmd_pte(pmd)))
-diff --git a/arch/arm64/mm/flush.c b/arch/arm64/mm/flush.c
-index e4193e3..ddf96c1 100644
---- a/arch/arm64/mm/flush.c
-+++ b/arch/arm64/mm/flush.c
-@@ -103,3 +103,22 @@ EXPORT_SYMBOL(flush_dcache_page);
-  */
- EXPORT_SYMBOL(flush_cache_all);
- EXPORT_SYMBOL(flush_icache_range);
-+
-+#ifdef CONFIG_TRANSPARENT_HUGEPAGE
-+#ifdef CONFIG_HAVE_RCU_TABLE_FREE
-+static void thp_splitting_flush_sync(void *arg)
-+{
-+}
-+
-+void pmdp_splitting_flush(struct vm_area_struct *vma, unsigned long address,
-+			  pmd_t *pmdp)
-+{
-+	pmd_t pmd = pmd_mksplitting(*pmdp);
-+	VM_BUG_ON(address & ~PMD_MASK);
-+	set_pmd_at(vma->vm_mm, address, pmdp, pmd);
-+
-+	/* dummy IPI to serialise against fast_gup */
-+	smp_call_function(thp_splitting_flush_sync, NULL, 1);
-+}
-+#endif /* CONFIG_HAVE_RCU_TABLE_FREE */
-+#endif /* CONFIG_TRANSPARENT_HUGEPAGE */
--- 
-1.8.1.4
+Hi Ingo/Andrew,
+
+Can one of you please pick this up - it doesn't show up in linux-next yet.
+
+Thx,
+-Vineet
