@@ -1,8 +1,8 @@
 From: Peter Zijlstra <peterz@infradead.org>
 Subject: Re: [PATCH v10 07/19] qspinlock: Use a simple write to grab the
 	lock, if applicable
-Date: Thu, 8 May 2014 21:00:04 +0200
-Message-ID: <20140508190004.GO2844@laptop.programming.kicks-ass.net>
+Date: Thu, 8 May 2014 21:02:03 +0200
+Message-ID: <20140508190203.GP2844@laptop.programming.kicks-ass.net>
 References: <1399474907-22206-1-git-send-email-Waiman.Long@hp.com>
 	<1399474907-22206-8-git-send-email-Waiman.Long@hp.com>
 Mime-Version: 1.0
@@ -25,37 +25,24 @@ Cc: linux-arch@vger.kernel.org, Rik van Riel <riel@redhat.com>, Raghavendra K T 
 List-Id: linux-arch.vger.kernel.org
 
 On Wed, May 07, 2014 at 11:01:35AM -0400, Waiman Long wrote:
-> @@ -94,23 +94,29 @@ static inline struct mcs_spinlock *decode_tail(u32 tail)
->   * can allow better optimization of the lock acquisition for the pending
->   * bit holder.
->   */
-> -#if _Q_PENDING_BITS == 8
-> -
->  struct __qspinlock {
->  	union {
->  		atomic_t val;
-> -		struct {
->  #ifdef __LITTLE_ENDIAN
-> +		u8	 locked;
-> +		struct {
->  			u16	locked_pending;
->  			u16	tail;
-> +		};
->  #else
-> +		struct {
->  			u16	tail;
->  			u16	locked_pending;
-> -#endif
->  		};
-> +		struct {
-> +			u8	reserved[3];
-> +			u8	locked;
-> +		};
-> +#endif
->  	};
->  };
->  
-> +#if _Q_PENDING_BITS == 8
+>  /**
+> + * get_qlock - Set the lock bit and own the lock
+> + * @lock: Pointer to queue spinlock structure
+> + *
+> + * This routine should only be called when the caller is the only one
+> + * entitled to acquire the lock.
+> + */
+> +static __always_inline void get_qlock(struct qspinlock *lock)
 
-That doesn't make sense, that struct __qspinlock only makes sense when
-_Q_PENDING_BITS == 8.
+set_locked()
+
+> +{
+> +	struct __qspinlock *l = (void *)lock;
+> +
+> +	barrier();
+> +	ACCESS_ONCE(l->locked) = _Q_LOCKED_VAL;
+> +	barrier();
+> +}
+
+get_qlock() is just horrible. The function doesn't actually _get_
+anything, and qlock is not in line with the rest of the naming.
