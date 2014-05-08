@@ -1,61 +1,66 @@
-From: David Miller <davem@davemloft.net>
-Subject: Re: [PATCH 07/20] arch,cris: Fold atomic_ops
-Date: Thu, 08 May 2014 13:34:51 -0400 (EDT)
-Message-ID: <20140508.133451.1383193780216133211.davem@davemloft.net>
-References: <20140508135852.104572724@infradead.org>
-	<CAMuHMdV7FUC+p5XqwLZmqJRLYv1qhu5hf0M_e5pASBRHgFAhCA@mail.gmail.com>
-	<20140508160606.GD30445@twins.programming.kicks-ass.net>
+From: Waiman Long <waiman.long@hp.com>
+Subject: Re: [PATCH v10 18/19] pvqspinlock, x86: Enable PV qspinlock PV for KVM
+Date: Thu, 08 May 2014 13:54:07 -0400
+Message-ID: <536BC4BF.9030603@hp.com>
+References: <1399474907-22206-1-git-send-email-Waiman.Long@hp.com>
+	<1399474907-22206-19-git-send-email-Waiman.Long@hp.com>
+	<20140507190706.GA16333@phenom.dumpdata.com>
 Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
+Content-Type: text/plain; charset="us-ascii"; Format="flowed"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from shards.monkeyblade.net ([149.20.54.216]:57866 "EHLO
-	shards.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754907AbaEHRex (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 8 May 2014 13:34:53 -0400
-In-Reply-To: <20140508160606.GD30445@twins.programming.kicks-ass.net>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: peterz@infradead.org
-Cc: geert@linux-m68k.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, torvalds@linux-foundation.org, akpm@linux-foundation.org, mingo@kernel.org, will.deacon@arm.com, paulmck@linux.vnet.ibm.com, jesper.nilsson@axis.com, starvik@axis.com
+Return-path: <virtualization-bounces@lists.linux-foundation.org>
+In-Reply-To: <20140507190706.GA16333@phenom.dumpdata.com>
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
+List-Post: <mailto:virtualization@lists.linux-foundation.org>
+List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
+Sender: virtualization-bounces@lists.linux-foundation.org
+Errors-To: virtualization-bounces@lists.linux-foundation.org
+To: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
+Cc: linux-arch@vger.kernel.org, Rik van Riel <riel@redhat.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, Gleb Natapov <gleb@redhat.com>, kvm@vger.kernel.org, Oleg Nesterov <oleg@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Scott J Norton <scott.norton@hp.com>, x86@kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, Ingo Molnar <mingo@redhat.com>, Chegu Vinod <chegu_vinod@hp.com>, David Vrabel <david.vrabel@citrix.com>, "H. Peter Anvin" <hpa@zytor.com>, xen-devel@lists.xenproject.org, Thomas Gleixner <tglx@linutronix.de>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Boris Ostrovsky <boris.ostrovsky@oracle.com>
+List-Id: linux-arch.vger.kernel.org
 
-From: Peter Zijlstra <peterz@infradead.org>
-Date: Thu, 8 May 2014 18:06:06 +0200
+On 05/07/2014 03:07 PM, Konrad Rzeszutek Wilk wrote:
+>> Raghavendra KT had done some performance testing on this patch with
+>> the following results:
+>>
+>> Overall we are seeing good improvement for pv-unfair version.
+>>
+>> System: 32 cpu sandybridge with HT on (4 node with 32 GB each)
+>> Guest : 8GB with 16 vcpu/VM.
+>> Average was taken over 8-10 data points.
+>>
+>> Base = 3.15-rc2  with PRAVIRT_SPINLOCK = y
+>>
+>> A = 3.15-rc2 + qspinlock v9 patch with QUEUE_SPINLOCK = y
+>> PRAVIRT_SPINLOCK = y PARAVIRT_UNFAIR_LOCKS = y (unfair lock)
+>>
+>> B =  3.15-rc2 + qspinlock v9 patch with QUEUE_SPINLOCK = y
+>> PRAVIRT_SPINLOCK = n PARAVIRT_UNFAIR_LOCKS = n
+>> (queue spinlock without paravirt)
+>>
+>> C = 3.15-rc2 + qspinlock v9 patch with  QUEUE_SPINLOCK = y
+>> PRAVIRT_SPINLOCK = y  PARAVIRT_UNFAIR_LOCKS = n
+>> (queue spinlock with paravirt)
+> Could you do s/PRAVIRT/PARAVIRT/ please?
+>
 
-> On Thu, May 08, 2014 at 05:12:31PM +0200, Geert Uytterhoeven wrote:
->> Hi Peter,
->> 
->> On Thu, May 8, 2014 at 3:58 PM, Peter Zijlstra <peterz@infradead.org> wrote:
->> > Many of the atomic op implementations are the same except for one
->> > instruction; fold the lot into a few CPP macros and reduce LoC.
->> >
->> > This also prepares for easy addition of new ops.
->> >
->> > Cc: Geert Uytterhoeven <geert@linux-m68k.org>
->> > Cc: Jesper Nilsson <jesper.nilsson@axis.com>
->> > Cc: Linus Torvalds <torvalds@linux-foundation.org>
->> > Cc: Mikael Starvik <starvik@axis.com>
->> > Signed-off-by: Peter Zijlstra <peterz@infradead.org>
->> > ---
->> >  arch/cris/include/arch-v10/arch/system.h |    2 -
->> >  arch/cris/include/asm/atomic.h           |   57 +++++++++++++------------------
->> >  2 files changed, 25 insertions(+), 34 deletions(-)
->> >
->> > Index: linux-2.6/arch/cris/include/arch-v10/arch/system.h
->> > ===================================================================
->> > --- linux-2.6.orig/arch/cris/include/arch-v10/arch/system.h
->> > +++ linux-2.6/arch/cris/include/arch-v10/arch/system.h
->> > @@ -36,8 +36,6 @@ static inline unsigned long _get_base(ch
->> >    return 0;
->> >  }
->> >
->> > -#define nop() __asm__ __volatile__ ("nop");
->> > -
->> 
->> Is this change supposed to be part of this series?
-> 
-> Uhm, lemme double check that. Good spotting.
-> 
-> Nope, it builds just fine without that hunk, *poof* gone.
+Sorry for the typo, I didn't check the text carefully enough when I 
+cut-and-paste it from Raghavendra's email.
 
-You did this for sparc too.
+>> Ebizzy %improvements
+>> ====================
+>> overcommit  A            B            C
+>> 0.5x     4.4265        2.0611       1.5824
+>> 1.0x     0.9015       -7.7828       4.5443
+>> 1.5x    46.1162       -2.9845      -3.5046
+>> 2.0x    99.8150       -2.7116       4.7461
+> Considering B sucks
+
+Yes, I don't expect the plain qspinlock code will perform well in a 
+guest without either unfair or pvspinlock support.
+
+-Longman
