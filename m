@@ -1,37 +1,46 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v10 12/19] unfair qspinlock: Variable frequency lock
-	stealing mechanism
-Date: Thu, 8 May 2014 21:19:44 +0200
-Message-ID: <20140508191944.GT2844@laptop.programming.kicks-ass.net>
-References: <1399474907-22206-1-git-send-email-Waiman.Long@hp.com>
-	<1399474907-22206-13-git-send-email-Waiman.Long@hp.com>
+From: David Miller <davem@davemloft.net>
+Subject: Re: [PATCH 07/20] arch,cris: Fold atomic_ops
+Date: Thu, 08 May 2014 16:27:27 -0400 (EDT)
+Message-ID: <20140508.162727.659734236303332635.davem@davemloft.net>
+References: <20140508160606.GD30445@twins.programming.kicks-ass.net>
+	<20140508.133451.1383193780216133211.davem@davemloft.net>
+	<20140508181734.GK2844@laptop.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
+Content-Type: Text/Plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
-Return-path: <virtualization-bounces@lists.linux-foundation.org>
-Content-Disposition: inline
-In-Reply-To: <1399474907-22206-13-git-send-email-Waiman.Long@hp.com>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
-List-Post: <mailto:virtualization@lists.linux-foundation.org>
-List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
-Sender: virtualization-bounces@lists.linux-foundation.org
-Errors-To: virtualization-bounces@lists.linux-foundation.org
-To: Waiman Long <Waiman.Long@hp.com>
-Cc: linux-arch@vger.kernel.org, Rik van Riel <riel@redhat.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, Oleg Nesterov <oleg@redhat.com>, Gleb Natapov <gleb@redhat.com>, kvm@vger.kernel.org, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Scott J Norton <scott.norton@hp.com>, x86@kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, Ingo Molnar <mingo@redhat.com>, Chegu Vinod <chegu_vinod@hp.com>, David Vrabel <david.vrabel@citrix.com>, "H. Peter Anvin" <hpa@zytor.com>, xen-devel@lists.xenproject.org, Thomas Gleixner <tglx@linutronix.de>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Boris Ostrovsky <boris.ostrovsky@oracle.com>
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from shards.monkeyblade.net ([149.20.54.216]:58896 "EHLO
+	shards.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754079AbaEHU1d (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 8 May 2014 16:27:33 -0400
+In-Reply-To: <20140508181734.GK2844@laptop.programming.kicks-ass.net>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: peterz@infradead.org
+Cc: geert@linux-m68k.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, torvalds@linux-foundation.org, akpm@linux-foundation.org, mingo@kernel.org, will.deacon@arm.com, paulmck@linux.vnet.ibm.com, jesper.nilsson@axis.com, starvik@axis.com
 
-On Wed, May 07, 2014 at 11:01:40AM -0400, Waiman Long wrote:
-> +#define DEF_LOOP_CNT(c)		int c = 0
-> +#define INC_LOOP_CNT(c)		(c)++
-> +#define LOOP_CNT(c)		c
-> +#define LSTEAL_MIN		(1 << 3)
-> +#define LSTEAL_MAX		(1 << 10)
-> +#define LSTEAL_MIN_MASK		(LSTEAL_MIN - 1)
-> +#define LSTEAL_MAX_MASK		(LSTEAL_MAX - 1)
+From: Peter Zijlstra <peterz@infradead.org>
+Date: Thu, 8 May 2014 20:17:34 +0200
 
-*groan*.. why do you have to write the most obfuscated code ever? We're
-not ioccc.org.
+> On Thu, May 08, 2014 at 01:34:51PM -0400, David Miller wrote:
+>> You did this for sparc too.
+> 
+> I did indeed.
+> 
+> And sparc32 and sparc64 compile file without these spurious hunks.
+> 
+> I'm sure I needed that to make it compile at one point, but I suspect
+> they're remnants from the smp_mb__ shuffle which needed include file
+> changes.
+> 
+> But since then I've redone those and solved the compile issues
+> differently, but these hunks stuck around...
+> 
+> I've gone over the other patches, cris and sparc appear to be the only
+> ones so affected.
+> 
+> Just to make sure; these two hunks just went into the bit-bucket:
+
+Thanks, with those changes:
+
+Acked-by: David S. Miller <davem@davemloft.net>
