@@ -1,274 +1,69 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from casper.infradead.org ([85.118.1.10]:43880 "EHLO
-	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753280AbaEHOAr (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 8 May 2014 10:00:47 -0400
-Message-ID: <20140508135852.713980957@infradead.org>
-Date: Thu, 08 May 2014 15:58:56 +0200
+Received: from bombadil.infradead.org ([198.137.202.9]:47436 "EHLO
+	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753393AbaEHOAs (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 8 May 2014 10:00:48 -0400
+Message-ID: <20140508135840.956784204@infradead.org>
+Date: Thu, 08 May 2014 15:58:40 +0200
 From: Peter Zijlstra <peterz@infradead.org>
-Subject: [PATCH 16/20] arch,powerpc: Fold atomic_ops
-References: <20140508135840.956784204@infradead.org>
-Content-Disposition: inline; filename=peterz-powerpc-atomic_cleanup.patch
+Subject: [PATCH 00/20] arch atomic 'cleanup'
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: torvalds@linux-foundation.org, akpm@linux-foundation.org, mingo@kernel.org, will.deacon@arm.com, paulmck@linux.vnet.ibm.com, Peter Zijlstra <peterz@infradead.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Mahesh Salgaonkar <mahesh@linux.vnet.ibm.com>, Paul Gortmaker <paul.gortmaker@windriver.com>, Paul Mackerras <paulus@samba.org>
-Message-ID: <20140508135856.xbgkYr9kmJgL3iD_nY7ft_lbxayzOCALKjMYovhVIqM@z>
+Cc: torvalds@linux-foundation.org, akpm@linux-foundation.org, mingo@kernel.org, will.deacon@arm.com, paulmck@linux.vnet.ibm.com, Peter Zijlstra <peterz@infradead.org>
+Message-ID: <20140508135840.LDwKadSYy2rqwbHsXHL1l3hvdVNb39VCptwsYGbAqrU@z>
 
-Many of the atomic op implementations are the same except for one
-instruction; fold the lot into a few CPP macros and reduce LoC.
+This series continues the arch atomic rework started with the smp_mb__
+interface cleanup.
 
-Requires asm_op because PPC asm is weird :-)
+In this series we (mostly) reduce the atomic implementations by eliminating
+repetition through use of CPP macros.
 
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Mahesh Salgaonkar <mahesh@linux.vnet.ibm.com>
-Cc: Paul Gortmaker <paul.gortmaker@windriver.com>
-Cc: Paul Mackerras <paulus@samba.org>
-Signed-off-by: Peter Zijlstra <peterz@infradead.org>
+A future series will use these macros to implement more atomic ops. With these
+macros we can end up with more atomic ops while the total LoC still shrinks.
+
+Furthermore, rewrite the asm-generic/atomic implementations to require less and
+provide more.
+
+This series is compile tested on a number of archs, but only boot tested on
+x86_64.
+
+XXX: someone should try and unify all the hash locked atomic implementations,
+there's about 4 of them in the tree.
+
 ---
- arch/powerpc/include/asm/atomic.h |  216 +++++++++++++++-----------------------
- 1 file changed, 86 insertions(+), 130 deletions(-)
-
-Index: linux-2.6/arch/powerpc/include/asm/atomic.h
-===================================================================
---- linux-2.6.orig/arch/powerpc/include/asm/atomic.h
-+++ linux-2.6/arch/powerpc/include/asm/atomic.h
-@@ -26,76 +26,53 @@ static __inline__ void atomic_set(atomic
- 	__asm__ __volatile__("stw%U0%X0 %1,%0" : "=m"(v->counter) : "r"(i));
- }
- 
--static __inline__ void atomic_add(int a, atomic_t *v)
--{
--	int t;
--
--	__asm__ __volatile__(
--"1:	lwarx	%0,0,%3		# atomic_add\n\
--	add	%0,%2,%0\n"
--	PPC405_ERR77(0,%3)
--"	stwcx.	%0,0,%3 \n\
--	bne-	1b"
--	: "=&r" (t), "+m" (v->counter)
--	: "r" (a), "r" (&v->counter)
--	: "cc");
--}
--
--static __inline__ int atomic_add_return(int a, atomic_t *v)
--{
--	int t;
--
--	__asm__ __volatile__(
--	PPC_ATOMIC_ENTRY_BARRIER
--"1:	lwarx	%0,0,%2		# atomic_add_return\n\
--	add	%0,%1,%0\n"
--	PPC405_ERR77(0,%2)
--"	stwcx.	%0,0,%2 \n\
--	bne-	1b"
--	PPC_ATOMIC_EXIT_BARRIER
--	: "=&r" (t)
--	: "r" (a), "r" (&v->counter)
--	: "cc", "memory");
--
--	return t;
--}
-+#define ATOMIC_OP(op, asm_op)						\
-+static __inline__ void atomic_##op(int a, atomic_t *v)			\
-+{									\
-+	int t;								\
-+									\
-+	__asm__ __volatile__(						\
-+"1:	lwarx	%0,0,%3		# atomic_" #op "\n"			\
-+	#asm_op " %0,%2,%0\n"						\
-+	PPC405_ERR77(0,%3)						\
-+"	stwcx.	%0,0,%3 \n"						\
-+"	bne-	1b\n"							\
-+	: "=&r" (t), "+m" (v->counter)					\
-+	: "r" (a), "r" (&v->counter)					\
-+	: "cc");							\
-+}									\
-+
-+#define ATOMIC_OP_RETURN(op, asm_op)					\
-+static __inline__ int atomic_##op##_return(int a, atomic_t *v)		\
-+{									\
-+	int t;								\
-+									\
-+	__asm__ __volatile__(						\
-+	PPC_ATOMIC_ENTRY_BARRIER					\
-+"1:	lwarx	%0,0,%2		# atomic_" #op "_return\n"		\
-+	#asm_op " %0,%1,%0\n"						\
-+	PPC405_ERR77(0,%2)						\
-+"	stwcx.	%0,0,%2 \n"						\
-+"	bne-	1b\n"							\
-+	PPC_ATOMIC_EXIT_BARRIER						\
-+	: "=&r" (t)							\
-+	: "r" (a), "r" (&v->counter)					\
-+	: "cc", "memory");						\
-+									\
-+	return t;							\
-+}
-+
-+#define ATOMIC_OPS(op, asm_op) ATOMIC_OP(op, asm_op) ATOMIC_OP_RETURN(op, asm_op)
-+
-+ATOMIC_OPS(add, add)
-+ATOMIC_OPS(sub, subf)
-+
-+#undef ATOMIC_OPS
-+#undef ATOMIC_OP_RETURN
-+#undef ATOMIC_OP
- 
- #define atomic_add_negative(a, v)	(atomic_add_return((a), (v)) < 0)
- 
--static __inline__ void atomic_sub(int a, atomic_t *v)
--{
--	int t;
--
--	__asm__ __volatile__(
--"1:	lwarx	%0,0,%3		# atomic_sub\n\
--	subf	%0,%2,%0\n"
--	PPC405_ERR77(0,%3)
--"	stwcx.	%0,0,%3 \n\
--	bne-	1b"
--	: "=&r" (t), "+m" (v->counter)
--	: "r" (a), "r" (&v->counter)
--	: "cc");
--}
--
--static __inline__ int atomic_sub_return(int a, atomic_t *v)
--{
--	int t;
--
--	__asm__ __volatile__(
--	PPC_ATOMIC_ENTRY_BARRIER
--"1:	lwarx	%0,0,%2		# atomic_sub_return\n\
--	subf	%0,%1,%0\n"
--	PPC405_ERR77(0,%2)
--"	stwcx.	%0,0,%2 \n\
--	bne-	1b"
--	PPC_ATOMIC_EXIT_BARRIER
--	: "=&r" (t)
--	: "r" (a), "r" (&v->counter)
--	: "cc", "memory");
--
--	return t;
--}
--
- static __inline__ void atomic_inc(atomic_t *v)
- {
- 	int t;
-@@ -289,72 +266,51 @@ static __inline__ void atomic64_set(atom
- 	__asm__ __volatile__("std%U0%X0 %1,%0" : "=m"(v->counter) : "r"(i));
- }
- 
--static __inline__ void atomic64_add(long a, atomic64_t *v)
--{
--	long t;
--
--	__asm__ __volatile__(
--"1:	ldarx	%0,0,%3		# atomic64_add\n\
--	add	%0,%2,%0\n\
--	stdcx.	%0,0,%3 \n\
--	bne-	1b"
--	: "=&r" (t), "+m" (v->counter)
--	: "r" (a), "r" (&v->counter)
--	: "cc");
--}
--
--static __inline__ long atomic64_add_return(long a, atomic64_t *v)
--{
--	long t;
--
--	__asm__ __volatile__(
--	PPC_ATOMIC_ENTRY_BARRIER
--"1:	ldarx	%0,0,%2		# atomic64_add_return\n\
--	add	%0,%1,%0\n\
--	stdcx.	%0,0,%2 \n\
--	bne-	1b"
--	PPC_ATOMIC_EXIT_BARRIER
--	: "=&r" (t)
--	: "r" (a), "r" (&v->counter)
--	: "cc", "memory");
--
--	return t;
--}
-+#define ATOMIC64_OP(op, asm_op)						\
-+static __inline__ void atomic64_##op(long a, atomic64_t *v)		\
-+{									\
-+	long t;								\
-+									\
-+	__asm__ __volatile__(						\
-+"1:	ldarx	%0,0,%3		# atomic64_" #op "\n"			\
-+	#asm_op " %0,%2,%0\n"						\
-+"	stdcx.	%0,0,%3 \n"						\
-+"	bne-	1b\n"							\
-+	: "=&r" (t), "+m" (v->counter)					\
-+	: "r" (a), "r" (&v->counter)					\
-+	: "cc");							\
-+}									\
-+
-+#define ATOMIC64_OP_RETURN(op, asm_op)					\
-+static __inline__ long atomic64_##op##_return(long a, atomic64_t *v)	\
-+{									\
-+	long t;								\
-+									\
-+	__asm__ __volatile__(						\
-+	PPC_ATOMIC_ENTRY_BARRIER					\
-+"1:	ldarx	%0,0,%2		# atomic64_" #op "_return\n"		\
-+	#asm_op " %0,%1,%0\n"						\
-+"	stdcx.	%0,0,%2 \n"						\
-+"	bne-	1b\n"							\
-+	PPC_ATOMIC_EXIT_BARRIER						\
-+	: "=&r" (t)							\
-+	: "r" (a), "r" (&v->counter)					\
-+	: "cc", "memory");						\
-+									\
-+	return t;							\
-+}
-+
-+#define ATOMIC64_OPS(op, asm_op) ATOMIC64_OP(op, asm_op) ATOMIC64_OP_RETURN(op, asm_op)
-+
-+ATOMIC64_OPS(add, add)
-+ATOMIC64_OPS(add, subf)
-+
-+#undef ATOMIC64_OPS
-+#undef ATOMIC64_OP_RETURN
-+#undef ATOMIC64_OP
- 
- #define atomic64_add_negative(a, v)	(atomic64_add_return((a), (v)) < 0)
- 
--static __inline__ void atomic64_sub(long a, atomic64_t *v)
--{
--	long t;
--
--	__asm__ __volatile__(
--"1:	ldarx	%0,0,%3		# atomic64_sub\n\
--	subf	%0,%2,%0\n\
--	stdcx.	%0,0,%3 \n\
--	bne-	1b"
--	: "=&r" (t), "+m" (v->counter)
--	: "r" (a), "r" (&v->counter)
--	: "cc");
--}
--
--static __inline__ long atomic64_sub_return(long a, atomic64_t *v)
--{
--	long t;
--
--	__asm__ __volatile__(
--	PPC_ATOMIC_ENTRY_BARRIER
--"1:	ldarx	%0,0,%2		# atomic64_sub_return\n\
--	subf	%0,%1,%0\n\
--	stdcx.	%0,0,%2 \n\
--	bne-	1b"
--	PPC_ATOMIC_EXIT_BARRIER
--	: "=&r" (t)
--	: "r" (a), "r" (&v->counter)
--	: "cc", "memory");
--
--	return t;
--}
--
- static __inline__ void atomic64_inc(atomic64_t *v)
- {
- 	long t;
-
+ arch/alpha/include/asm/atomic.h          |  225 ++++--------
+ arch/arc/include/asm/atomic.h            |  194 +++-------
+ arch/arm/include/asm/atomic.h            |  313 ++++++-----------
+ arch/arm64/include/asm/atomic.h          |  213 ++++-------
+ arch/avr32/include/asm/atomic.h          |   96 ++---
+ arch/cris/include/arch-v10/arch/system.h |    2 
+ arch/cris/include/asm/atomic.h           |   57 +--
+ arch/hexagon/include/asm/atomic.h        |   68 ++-
+ arch/ia64/include/asm/atomic.h           |  182 ++++-----
+ arch/m32r/include/asm/atomic.h           |  151 +++-----
+ arch/m68k/include/asm/atomic.h           |  119 +++---
+ arch/metag/include/asm/atomic_lnkget.h   |  121 ++----
+ arch/metag/include/asm/atomic_lock1.h    |   76 +---
+ arch/mips/include/asm/atomic.h           |  565 ++++++++++---------------------
+ arch/mn10300/include/asm/atomic.h        |  129 ++-----
+ arch/parisc/include/asm/atomic.h         |  121 ++++--
+ arch/powerpc/include/asm/atomic.h        |  216 ++++-------
+ arch/sh/include/asm/atomic-grb.h         |  121 ++----
+ arch/sh/include/asm/atomic-irq.h         |   62 +--
+ arch/sh/include/asm/atomic-llsc.h        |  101 ++---
+ arch/sparc/include/asm/atomic_32.h       |   19 -
+ arch/sparc/include/asm/atomic_64.h       |   49 +-
+ arch/sparc/include/asm/barrier_32.h      |    1 
+ arch/sparc/include/asm/processor.h       |    2 
+ arch/sparc/kernel/smp_64.c               |    2 
+ arch/sparc/lib/atomic32.c                |   25 -
+ arch/sparc/lib/atomic_64.S               |  175 ++++-----
+ arch/sparc/lib/ksyms.c                   |   25 -
+ arch/x86/include/asm/atomic.h            |   15 
+ arch/xtensa/include/asm/atomic.h         |  231 ++++--------
+ include/asm-generic/atomic.h             |  174 ++++-----
+ include/asm-generic/atomic64.h           |   20 -
+ lib/atomic64.c                           |   83 +---
+ 33 files changed, 1609 insertions(+), 2344 deletions(-)
 
