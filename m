@@ -1,41 +1,74 @@
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [PATCH 05/20] arch,arm64: Fold atomic_ops
-Date: Thu, 8 May 2014 19:31:42 +0100
-Message-ID: <20140508183142.GK8981@arm.com>
-References: <20140508135840.956784204@infradead.org>
- <20140508135851.995123148@infradead.org>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH v10 03/19] qspinlock: Add pending bit
+Date: Thu, 8 May 2014 20:57:12 +0200
+Message-ID: <20140508185712.GM2844@laptop.programming.kicks-ass.net>
+References: <1399474907-22206-1-git-send-email-Waiman.Long@hp.com>
+ <1399474907-22206-4-git-send-email-Waiman.Long@hp.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
+Content-Transfer-Encoding: 8BIT
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:49475 "EHLO
-	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1752840AbaEHScW (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 8 May 2014 14:32:22 -0400
+Received: from bombadil.infradead.org ([198.137.202.9]:33809 "EHLO
+	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752485AbaEHS5Y convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 8 May 2014 14:57:24 -0400
 Content-Disposition: inline
-In-Reply-To: <20140508135851.995123148@infradead.org>
+In-Reply-To: <1399474907-22206-4-git-send-email-Waiman.Long@hp.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "torvalds@linux-foundation.org" <torvalds@linux-foundation.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>, Catalin Marinas <Catalin.Marinas@arm.com>, Chen Gang <gang.chen@asianux.com>, Russell King <rmk+kernel@arm.linux.org.uk>
+To: Waiman Long <Waiman.Long@hp.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Rik van Riel <riel@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, David Vrabel <david.vrabel@citrix.com>, Oleg Nesterov <oleg@redhat.com>, Gleb Natapov <gleb@redhat.com>, Scott J Norton <scott.norton@hp.com>, Chegu Vinod <chegu_vinod@hp.com>
 
-On Thu, May 08, 2014 at 02:58:45PM +0100, Peter Zijlstra wrote:
-> Many of the atomic op implementations are the same except for one
-> instruction; fold the lot into a few CPP macros and reduce LoC.
-> 
-> This also prepares for easy addition of new ops.
-> 
-> Requires the asm_op due to eor.
-> 
-> Cc: Catalin Marinas <catalin.marinas@arm.com>
-> Cc: Chen Gang <gang.chen@asianux.com>
-> Cc: Linus Torvalds <torvalds@linux-foundation.org>
-> Cc: Russell King <rmk+kernel@arm.linux.org.uk>
-> Cc: Will Deacon <will.deacon@arm.com>
-> Signed-off-by: Peter Zijlstra <peterz@infradead.org>
-> ---
->  arch/arm64/include/asm/atomic.h |  213 ++++++++++++++++------------------------
->  1 file changed, 88 insertions(+), 125 deletions(-)
+On Wed, May 07, 2014 at 11:01:31AM -0400, Waiman Long wrote:
+> +/**
+> + * trylock_pending - try to acquire queue spinlock using the pending bit
+> + * @lock : Pointer to queue spinlock structure
+> + * @pval : Pointer to value of the queue spinlock 32-bit word
+> + * Return: 1 if lock acquired, 0 otherwise
+> + */
+> +static inline int trylock_pending(struct qspinlock *lock, u32 *pval)
 
-Acked-by: Will Deacon <will.deacon@arm.com>
+Still don't like you put it in a separate function, but you don't need
+the pointer thing. Note how after you fail the trylock_pending() you
+touch the second (node) cacheline.
 
-Will
+> @@ -110,6 +184,9 @@ void queue_spin_lock_slowpath(struct qspinlock *lock, u32 val)
+>  
+>  	BUILD_BUG_ON(CONFIG_NR_CPUS >= (1U << _Q_TAIL_CPU_BITS));
+>  
+> +	if (trylock_pending(lock, &val))
+> +		return;	/* Lock acquired */
+> +
+>  	node = this_cpu_ptr(&mcs_nodes[0]);
+>  	idx = node->count++;
+>  	tail = encode_tail(smp_processor_id(), idx);
+> @@ -119,15 +196,18 @@ void queue_spin_lock_slowpath(struct qspinlock *lock, u32 val)
+>  	node->next = NULL;
+>  
+>  	/*
+> +	 * we already touched the queueing cacheline; don't bother with pending
+> +	 * stuff.
+> +	 *
+>  	 * trylock || xchg(lock, node)
+>  	 *
+> -	 * 0,0 -> 0,1 ; trylock
+> -	 * p,x -> n,x ; prev = xchg(lock, node)
+> +	 * 0,0,0 -> 0,0,1 ; trylock
+> +	 * p,y,x -> n,y,x ; prev = xchg(lock, node)
+>  	 */
+
+And any value of @val we might have had here is completely out-dated.
+The only thing that makes sense it to set:
+
+	val = 0;
+
+Which makes us start with a trylock, alternatively we can re-read val.
+
+>  	for (;;) {
+>  		new = _Q_LOCKED_VAL;
+>  		if (val)
+> -			new = tail | (val & _Q_LOCKED_MASK);
+> +			new = tail | (val & _Q_LOCKED_PENDING_MASK);
+>  
+>  		old = atomic_cmpxchg(&lock->val, val, new);
+>  		if (old == val)
