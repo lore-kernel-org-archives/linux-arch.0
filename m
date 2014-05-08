@@ -1,145 +1,173 @@
 From: Peter Zijlstra <peterz@infradead.org>
-Subject: [PATCH 06/20] arch,avr32: Fold atomic_ops
-Date: Thu, 08 May 2014 15:58:46 +0200
-Message-ID: <20140508135852.049922584@infradead.org>
+Subject: [PATCH 11/20] arch,m68k: Fold atomic_ops
+Date: Thu, 08 May 2014 15:58:51 +0200
+Message-ID: <20140508135852.387473090@infradead.org>
 References: <20140508135840.956784204@infradead.org>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from casper.infradead.org ([85.118.1.10]:43812 "EHLO
+Received: from casper.infradead.org ([85.118.1.10]:43825 "EHLO
 	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751348AbaEHOAo (ORCPT
+	with ESMTP id S1751776AbaEHOAo (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>); Thu, 8 May 2014 10:00:44 -0400
-Content-Disposition: inline; filename=peterz-avr32-atomic_cleanup.patch
+Content-Disposition: inline; filename=peterz-m68k-atomic_cleanup.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: torvalds@linux-foundation.org, akpm@linux-foundation.org, mingo@kernel.org, will.deacon@arm.com, paulmck@linux.vnet.ibm.com, Peter Zijlstra <peterz@infradead.org>, Haavard Skinnemoen <hskinnemoen@gmail.com>, Hans-Christian Egtvedt <egtvedt@samfundet.no>
+Cc: torvalds@linux-foundation.org, akpm@linux-foundation.org, mingo@kernel.org, will.deacon@arm.com, paulmck@linux.vnet.ibm.com, Peter Zijlstra <peterz@infradead.org>, Geert Uytterhoeven <geert@linux-m68k.org>
 
 Many of the atomic op implementations are the same except for one
 instruction; fold the lot into a few CPP macros and reduce LoC.
 
 This also prepares for easy addition of new ops.
 
-Requires the asm_op because of eor.
+Requires asm_op due to eor.
 
-Cc: Haavard Skinnemoen <hskinnemoen@gmail.com>
-Cc: Hans-Christian Egtvedt <egtvedt@samfundet.no>
+Cc: Geert Uytterhoeven <geert@linux-m68k.org>
 Cc: Linus Torvalds <torvalds@linux-foundation.org>
 Signed-off-by: Peter Zijlstra <peterz@infradead.org>
 ---
- arch/avr32/include/asm/atomic.h |   96 ++++++++++++++++++----------------------
- 1 file changed, 44 insertions(+), 52 deletions(-)
+ arch/m68k/include/asm/atomic.h |  119 ++++++++++++++++++-----------------------
+ 1 file changed, 55 insertions(+), 64 deletions(-)
 
---- a/arch/avr32/include/asm/atomic.h
-+++ b/arch/avr32/include/asm/atomic.h
-@@ -22,58 +22,52 @@
- #define atomic_read(v)		(*(volatile int *)&(v)->counter)
- #define atomic_set(v, i)	(((v)->counter) = i)
+Index: linux-2.6/arch/m68k/include/asm/atomic.h
+===================================================================
+--- linux-2.6.orig/arch/m68k/include/asm/atomic.h
++++ linux-2.6/arch/m68k/include/asm/atomic.h
+@@ -30,15 +30,62 @@
+ #define	ASM_DI	"di"
+ #endif
  
--/*
-- * atomic_sub_return - subtract the atomic variable
-- * @i: integer value to subtract
-- * @v: pointer of type atomic_t
-- *
-- * Atomically subtracts @i from @v. Returns the resulting value.
-- */
--static inline int atomic_sub_return(int i, atomic_t *v)
+-static inline void atomic_add(int i, atomic_t *v)
 -{
--	int result;
--
--	asm volatile(
--		"/* atomic_sub_return */\n"
--		"1:	ssrf	5\n"
--		"	ld.w	%0, %2\n"
--		"	sub	%0, %3\n"
--		"	stcond	%1, %0\n"
--		"	brne	1b"
--		: "=&r"(result), "=o"(v->counter)
--		: "m"(v->counter), "rKs21"(i)
--		: "cc");
--
--	return result;
-+#define ATOMIC_OP(op, asm_op)						\
+-	__asm__ __volatile__("addl %1,%0" : "+m" (*v) : ASM_DI (i));
+-}
++#ifdef CONFIG_RMW_INSNS
+ 
+-static inline void atomic_sub(int i, atomic_t *v)
+-{
+-	__asm__ __volatile__("subl %1,%0" : "+m" (*v) : ASM_DI (i));
+-}
++#define ATOMIC_OP(op, c_op, asm_op)					\
 +static inline void atomic_##op(int i, atomic_t *v)			\
 +{									\
-+	int result;							\
-+									\
-+	asm volatile(							\
-+		"/* atomic_" #op " */\n"				\
-+		"1:	ssrf	5\n"					\
-+		"	ld.w	%0, %2\n"				\
-+		"	" #asm_op "	%0, %3\n"			\
-+		"	stcond	%1, %0\n"				\
-+		"	brne	1b"					\
-+		: "=&r"(result), "=o"(v->counter)			\
-+		: "m"(v->counter), "rKs21"(i)				\
-+		: "cc");						\
++	__asm__ __volatile__(#asm_op "l %1,%0" : "+m" (*v) : ASM_DI (i));\
 +}									\
 +
-+#define ATOMIC_OP_RETURN(op, asm_op)					\
++#define ATOMIC_OP_RETURN(op, c_op, asm_op)				\
 +static inline int atomic_##op##_return(int i, atomic_t *v)		\
 +{									\
-+	int result;							\
++	int t, tmp;							\
 +									\
-+	asm volatile(							\
-+		"/* atomic_" #op "_return */\n"				\
-+		"1:	ssrf	5\n"					\
-+		"	ld.w	%0, %2\n"				\
-+		"	" #asm_op "	%0, %3\n"			\
-+		"	stcond	%1, %0\n"				\
-+		"	brne	1b"					\
-+		: "=&r"(result), "=o"(v->counter)			\
-+		: "m"(v->counter), "rKs21"(i)				\
-+		: "cc");						\
-+									\
-+	return result;							\
- }
- 
--/*
-- * atomic_add_return - add integer to atomic variable
-- * @i: integer value to add
-- * @v: pointer of type atomic_t
-- *
-- * Atomically adds @i to @v. Returns the resulting value.
-- */
--static inline int atomic_add_return(int i, atomic_t *v)
--{
--	int result;
--
--	if (__builtin_constant_p(i) && (i >= -1048575) && (i <= 1048576))
--		result = atomic_sub_return(-i, v);
--	else
--		asm volatile(
--			"/* atomic_add_return */\n"
--			"1:	ssrf	5\n"
--			"	ld.w	%0, %1\n"
--			"	add	%0, %3\n"
--			"	stcond	%2, %0\n"
--			"	brne	1b"
--			: "=&r"(result), "=o"(v->counter)
--			: "m"(v->counter), "r"(i)
--			: "cc", "memory");
--
--	return result;
--}
-+#define ATOMIC_OPS(op, asm_op)						\
-+	ATOMIC_OP(op, asm_op)						\
-+	ATOMIC_OP_RETURN(op, asm_op)
++	__asm__ __volatile__(						\
++			"1:	movel %2,%1\n"				\
++			"	" #asm_op "l %3,%1\n"			\
++			"	casl %2,%1,%0\n"			\
++			"	jne 1b"					\
++			: "+m" (*v), "=&d" (t), "=&d" (tmp)		\
++			: "g" (i), "2" (atomic_read(v)));		\
++	return t;							\
++}
 +
-+ATOMIC_OPS(add, add)
-+ATOMIC_OPS(sub, sub)
++#else
++
++#define ATOMIC_OP(op, c_op, asm_op)					\
++static inline void atomic_##op(int i, atomic_t *v)			\
++{									\
++	__asm__ __volatile__(#asm_op "l %1,%0" : "+m" (*v) : ASM_DI (i));\
++}									\
++
++#define ATOMIC_OP_RETURN(op, c_op, asm_op)				\
++static inline int atomic_##op##_return(int i, atomic_t * v)		\
++{									\
++	unsigned long flags;						\
++	int t;								\
++									\
++	local_irq_save(flags);						\
++	t = (v->counter c_op i);					\
++	local_irq_restore(flags);					\
++									\
++	return t;							\
++}
++
++#endif /* CONFIG_RMW_INSNS */
++
++#define ATOMIC_OPS(op, c_op, asm_op)					\
++	ATOMIC_OP(op, c_op, asm_op)					\
++	ATOMIC_OP_RETURN(op, c_op, asm_op)
++
++ATOMIC_OPS(add, +=, add)
++ATOMIC_OPS(sub, -=, sub)
 +
 +#undef ATOMIC_OPS
 +#undef ATOMIC_OP_RETURN
 +#undef ATOMIC_OP
  
- /*
-  * atomic_sub_unless - sub unless the number is a given value
-@@ -168,8 +162,6 @@ static inline int atomic_sub_if_positive
- #define atomic_xchg(v, new)	(xchg(&((v)->counter), new))
- #define atomic_cmpxchg(v, o, n)	(cmpxchg(&((v)->counter), (o), (n)))
+ static inline void atomic_inc(atomic_t *v)
+ {
+@@ -76,67 +123,11 @@ static inline int atomic_inc_and_test(at
  
--#define atomic_sub(i, v)	(void)atomic_sub_return(i, v)
--#define atomic_add(i, v)	(void)atomic_add_return(i, v)
- #define atomic_dec(v)		atomic_sub(1, (v))
- #define atomic_inc(v)		atomic_add(1, (v))
+ #ifdef CONFIG_RMW_INSNS
  
+-static inline int atomic_add_return(int i, atomic_t *v)
+-{
+-	int t, tmp;
+-
+-	__asm__ __volatile__(
+-			"1:	movel %2,%1\n"
+-			"	addl %3,%1\n"
+-			"	casl %2,%1,%0\n"
+-			"	jne 1b"
+-			: "+m" (*v), "=&d" (t), "=&d" (tmp)
+-			: "g" (i), "2" (atomic_read(v)));
+-	return t;
+-}
+-
+-static inline int atomic_sub_return(int i, atomic_t *v)
+-{
+-	int t, tmp;
+-
+-	__asm__ __volatile__(
+-			"1:	movel %2,%1\n"
+-			"	subl %3,%1\n"
+-			"	casl %2,%1,%0\n"
+-			"	jne 1b"
+-			: "+m" (*v), "=&d" (t), "=&d" (tmp)
+-			: "g" (i), "2" (atomic_read(v)));
+-	return t;
+-}
+-
+ #define atomic_cmpxchg(v, o, n) ((int)cmpxchg(&((v)->counter), (o), (n)))
+ #define atomic_xchg(v, new) (xchg(&((v)->counter), new))
+ 
+ #else /* !CONFIG_RMW_INSNS */
+ 
+-static inline int atomic_add_return(int i, atomic_t * v)
+-{
+-	unsigned long flags;
+-	int t;
+-
+-	local_irq_save(flags);
+-	t = atomic_read(v);
+-	t += i;
+-	atomic_set(v, t);
+-	local_irq_restore(flags);
+-
+-	return t;
+-}
+-
+-static inline int atomic_sub_return(int i, atomic_t * v)
+-{
+-	unsigned long flags;
+-	int t;
+-
+-	local_irq_save(flags);
+-	t = atomic_read(v);
+-	t -= i;
+-	atomic_set(v, t);
+-	local_irq_restore(flags);
+-
+-	return t;
+-}
+-
+ static inline int atomic_cmpxchg(atomic_t *v, int old, int new)
+ {
+ 	unsigned long flags;
