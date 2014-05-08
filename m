@@ -1,28 +1,60 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from aserp1040.oracle.com ([141.146.126.69]:39036 "EHLO
-	aserp1040.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752372AbaEGTIW (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 7 May 2014 15:08:22 -0400
-Date: Wed, 7 May 2014 15:07:23 -0400
-From: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
-Subject: Re: [PATCH v10 00/19] qspinlock: a 4-byte queue spinlock with PV
- support
-Message-ID: <20140507190723.GB16333@phenom.dumpdata.com>
-References: <1399474907-22206-1-git-send-email-Waiman.Long@hp.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1399474907-22206-1-git-send-email-Waiman.Long@hp.com>
+Received: from e28smtp06.in.ibm.com ([122.248.162.6]:43298 "EHLO
+	e28smtp06.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753088AbaEHJ2b (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 8 May 2014 05:28:31 -0400
+Received: from /spool/local
+	by e28smtp06.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <maddy@linux.vnet.ibm.com>;
+	Thu, 8 May 2014 14:58:27 +0530
+From: Madhavan Srinivasan <maddy@linux.vnet.ibm.com>
+Subject: [PATCH V4 0/2] mm: FAULT_AROUND_ORDER patchset performance data for powerpc
+Date: Thu,  8 May 2014 14:58:14 +0530
+Message-ID: <1399541296-18810-1-git-send-email-maddy@linux.vnet.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Waiman Long <Waiman.Long@hp.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Peter Zijlstra <peterz@infradead.org>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Rik van Riel <riel@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, David Vrabel <david.vrabel@citrix.com>, Oleg Nesterov <oleg@redhat.com>, Gleb Natapov <gleb@redhat.com>, Scott J Norton <scott.norton@hp.com>, Chegu Vinod <chegu_vinod@hp.com>
-Message-ID: <20140507190723.oCLEpZzfh7w4N7sEViJnojM5nR2I5XGMiRpjoJgfDhk@z>
+To: linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, x86@kernel.org
+Cc: benh@kernel.crashing.org, paulus@samba.org, kirill.shutemov@linux.intel.com, rusty@rustcorp.com.au, akpm@linux-foundation.org, riel@redhat.com, mgorman@suse.de, ak@linux.intel.com, peterz@infradead.org, mingo@kernel.org, dave.hansen@intel.com, Madhavan Srinivasan <maddy@linux.vnet.ibm.com>
+Message-ID: <20140508092814.EXMv7dz3KcoD_cHOERjTT3R6Mx4DHLpLeC7CJb6MV6A@z>
 
-On Wed, May 07, 2014 at 11:01:28AM -0400, Waiman Long wrote:
-> v9->v10:
->   - Make some minor changes to qspinlock.c to accommodate review feedback.
->   - Change author to PeterZ for 2 of the patches.
->   - Include Raghavendra KT's test results in patch 18.
+Kirill A. Shutemov with 8c6e50b029 commit introduced
+vm_ops->map_pages() for mapping easy accessible pages around
+fault address in hope to reduce number of minor page faults.
 
-Any chance you can post these on a git tree? Thanks.
+This patch creates infrastructure to modify the FAULT_AROUND_ORDER
+value using mm/Kconfig. This will enable architecture maintainers
+to decide on suitable FAULT_AROUND_ORDER value based on
+performance data for that architecture. First patch also defaults
+FAULT_AROUND_ORDER Kconfig element to 4. Second patch list
+out the performance numbers for powerpc (platform pseries) and
+initialize the fault around order variable for pseries platform of
+powerpc.
+
+V4 Changes:
+  Replaced the BUILD_BUG_ON with VM_BUG_ON.
+  Moved fault_around_pages() and fault_around_mask() functions outside of
+   #ifdef CONFIG_DEBUG_FS.
+
+V3 Changes:
+  Replaced FAULT_AROUND_ORDER macro to a variable to support arch's that
+   supports sub platforms.
+  Made changes in commit messages.
+
+V2 Changes:
+  Created Kconfig parameter for FAULT_AROUND_ORDER
+  Added check in do_read_fault to handle FAULT_AROUND_ORDER value of 0
+  Made changes in commit messages.
+
+Madhavan Srinivasan (2):
+  mm: move FAULT_AROUND_ORDER to arch/
+  powerpc/pseries: init fault_around_order for pseries
+
+ arch/powerpc/platforms/pseries/pseries.h |    2 ++
+ arch/powerpc/platforms/pseries/setup.c   |    5 +++++
+ mm/Kconfig                               |    8 ++++++++
+ mm/memory.c                              |   25 ++++++-------------------
+ 4 files changed, 21 insertions(+), 19 deletions(-)
+
+-- 
+1.7.10.4
+
