@@ -1,31 +1,65 @@
-From: Waiman Long <waiman.long@hp.com>
-Subject: Re: [PATCH v10 00/19] qspinlock: a 4-byte queue spinlock with PV
- support
-Date: Thu, 08 May 2014 13:54:55 -0400
-Message-ID: <536BC4EF.9040208@hp.com>
-References: <1399474907-22206-1-git-send-email-Waiman.Long@hp.com> <20140507190723.GB16333@phenom.dumpdata.com>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH 07/20] arch,cris: Fold atomic_ops
+Date: Thu, 8 May 2014 20:17:34 +0200
+Message-ID: <20140508181734.GK2844@laptop.programming.kicks-ass.net>
+References: <20140508135852.104572724@infradead.org>
+ <CAMuHMdV7FUC+p5XqwLZmqJRLYv1qhu5hf0M_e5pASBRHgFAhCA@mail.gmail.com>
+ <20140508160606.GD30445@twins.programming.kicks-ass.net>
+ <20140508.133451.1383193780216133211.davem@davemloft.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Transfer-Encoding: 8BIT
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from g2t2352.austin.hp.com ([15.217.128.51]:51481 "EHLO
-	g2t2352.austin.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752329AbaEHRzT (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 8 May 2014 13:55:19 -0400
-In-Reply-To: <20140507190723.GB16333@phenom.dumpdata.com>
+Received: from casper.infradead.org ([85.118.1.10]:45138 "EHLO
+	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752485AbaEHSRm convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 8 May 2014 14:17:42 -0400
+Content-Disposition: inline
+In-Reply-To: <20140508.133451.1383193780216133211.davem@davemloft.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Peter Zijlstra <peterz@infradead.org>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Rik van Riel <riel@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, David Vrabel <david.vrabel@citrix.com>, Oleg Nesterov <oleg@redhat.com>, Gleb Natapov <gleb@redhat.com>, Scott J Norton <scott.norton@hp.com>, Chegu Vinod <chegu_vinod@hp.com>
+To: David Miller <davem@davemloft.net>
+Cc: geert@linux-m68k.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, torvalds@linux-foundation.org, akpm@linux-foundation.org, mingo@kernel.org, will.deacon@arm.com, paulmck@linux.vnet.ibm.com, jesper.nilsson@axis.com, starvik@axis.com
 
-On 05/07/2014 03:07 PM, Konrad Rzeszutek Wilk wrote:
-> On Wed, May 07, 2014 at 11:01:28AM -0400, Waiman Long wrote:
->> v9->v10:
->>    - Make some minor changes to qspinlock.c to accommodate review feedback.
->>    - Change author to PeterZ for 2 of the patches.
->>    - Include Raghavendra KT's test results in patch 18.
-> Any chance you can post these on a git tree? Thanks.
+On Thu, May 08, 2014 at 01:34:51PM -0400, David Miller wrote:
+> You did this for sparc too.
 
-I have pushed the bit to https://github.com/longman88/kernel-qspinlock-v10 .
+I did indeed.
 
--Longman
+And sparc32 and sparc64 compile file without these spurious hunks.
+
+I'm sure I needed that to make it compile at one point, but I suspect
+they're remnants from the smp_mb__ shuffle which needed include file
+changes.
+
+But since then I've redone those and solved the compile issues
+differently, but these hunks stuck around...
+
+I've gone over the other patches, cris and sparc appear to be the only
+ones so affected.
+
+Just to make sure; these two hunks just went into the bit-bucket:
+
+Index: linux-2.6/arch/sparc/include/asm/barrier_32.h
+===================================================================
+--- linux-2.6.orig/arch/sparc/include/asm/barrier_32.h
++++ linux-2.6/arch/sparc/include/asm/barrier_32.h
+@@ -1,7 +1,6 @@
+ #ifndef __SPARC_BARRIER_H
+ #define __SPARC_BARRIER_H
+ 
+-#include <asm/processor.h> /* for nop() */
+ #include <asm-generic/barrier.h>
+ 
+ #endif /* !(__SPARC_BARRIER_H) */
+Index: linux-2.6/arch/sparc/include/asm/processor.h
+===================================================================
+--- linux-2.6.orig/arch/sparc/include/asm/processor.h
++++ linux-2.6/arch/sparc/include/asm/processor.h
+@@ -6,6 +6,4 @@
+ #include <asm/processor_32.h>
+ #endif
+ 
+-#define nop() 		__asm__ __volatile__ ("nop")
+-
+ #endif
