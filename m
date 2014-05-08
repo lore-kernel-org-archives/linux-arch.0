@@ -1,16 +1,16 @@
 From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v10 06/19] qspinlock: prolong the stay in the pending bit
-	path
-Date: Thu, 8 May 2014 20:58:54 +0200
-Message-ID: <20140508185854.GN2844@laptop.programming.kicks-ass.net>
+Subject: Re: [PATCH v10 07/19] qspinlock: Use a simple write to grab the
+	lock, if applicable
+Date: Thu, 8 May 2014 21:00:04 +0200
+Message-ID: <20140508190004.GO2844@laptop.programming.kicks-ass.net>
 References: <1399474907-22206-1-git-send-email-Waiman.Long@hp.com>
-	<1399474907-22206-7-git-send-email-Waiman.Long@hp.com>
+	<1399474907-22206-8-git-send-email-Waiman.Long@hp.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 Return-path: <virtualization-bounces@lists.linux-foundation.org>
 Content-Disposition: inline
-In-Reply-To: <1399474907-22206-7-git-send-email-Waiman.Long@hp.com>
+In-Reply-To: <1399474907-22206-8-git-send-email-Waiman.Long@hp.com>
 List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
 	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
 List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
@@ -24,42 +24,38 @@ To: Waiman Long <Waiman.Long@hp.com>
 Cc: linux-arch@vger.kernel.org, Rik van Riel <riel@redhat.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, Oleg Nesterov <oleg@redhat.com>, Gleb Natapov <gleb@redhat.com>, kvm@vger.kernel.org, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Scott J Norton <scott.norton@hp.com>, x86@kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, Ingo Molnar <mingo@redhat.com>, Chegu Vinod <chegu_vinod@hp.com>, David Vrabel <david.vrabel@citrix.com>, "H. Peter Anvin" <hpa@zytor.com>, xen-devel@lists.xenproject.org, Thomas Gleixner <tglx@linutronix.de>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Boris Ostrovsky <boris.ostrovsky@oracle.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, May 07, 2014 at 11:01:34AM -0400, Waiman Long wrote:
-> @@ -221,11 +222,37 @@ static inline int trylock_pending(struct qspinlock *lock, u32 *pval)
->  	 */
->  	for (;;) {
->  		/*
-> -		 * If we observe any contention; queue.
-> +		 * If we observe that the queue is not empty,
-> +		 * return and be queued.
->  		 */
-> -		if (val & ~_Q_LOCKED_MASK)
-> +		if (val & _Q_TAIL_MASK)
->  			return 0;
+On Wed, May 07, 2014 at 11:01:35AM -0400, Waiman Long wrote:
+> @@ -94,23 +94,29 @@ static inline struct mcs_spinlock *decode_tail(u32 tail)
+>   * can allow better optimization of the lock acquisition for the pending
+>   * bit holder.
+>   */
+> -#if _Q_PENDING_BITS == 8
+> -
+>  struct __qspinlock {
+>  	union {
+>  		atomic_t val;
+> -		struct {
+>  #ifdef __LITTLE_ENDIAN
+> +		u8	 locked;
+> +		struct {
+>  			u16	locked_pending;
+>  			u16	tail;
+> +		};
+>  #else
+> +		struct {
+>  			u16	tail;
+>  			u16	locked_pending;
+> -#endif
+>  		};
+> +		struct {
+> +			u8	reserved[3];
+> +			u8	locked;
+> +		};
+> +#endif
+>  	};
+>  };
 >  
-> +		if (val == (_Q_LOCKED_VAL|_Q_PENDING_VAL)) {
-> +			/*
-> +			 * If both the lock and pending bits are set, we wait
-> +			 * a while to see if that either bit will be cleared.
-> +			 * If that is no change, we return and be queued.
-> +			 */
-> +			if (!retry)
-> +				return 0;
-> +			retry--;
-> +			cpu_relax();
-> +			cpu_relax();
-> +			*pval = val = atomic_read(&lock->val);
-> +			continue;
-> +		} else if (val == _Q_PENDING_VAL) {
-> +			/*
-> +			 * Pending bit is set, but not the lock bit.
-> +			 * Assuming that the pending bit holder is going to
-> +			 * set the lock bit and clear the pending bit soon,
-> +			 * it is better to wait than to exit at this point.
-> +			 */
-> +			cpu_relax();
-> +			*pval = val = atomic_read(&lock->val);
-> +			continue;
-> +		}
+> +#if _Q_PENDING_BITS == 8
 
-Didn't I give a much saner alternative to this mess last time?
+That doesn't make sense, that struct __qspinlock only makes sense when
+_Q_PENDING_BITS == 8.
