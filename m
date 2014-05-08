@@ -1,129 +1,259 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e28smtp09.in.ibm.com ([122.248.162.9]:49348 "EHLO
-	e28smtp09.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753321AbaEHJ2c (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 8 May 2014 05:28:32 -0400
-Received: from /spool/local
-	by e28smtp09.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <maddy@linux.vnet.ibm.com>;
-	Thu, 8 May 2014 14:58:28 +0530
-From: Madhavan Srinivasan <maddy@linux.vnet.ibm.com>
-Subject: [PATCH V4 1/2] mm: move FAULT_AROUND_ORDER to arch/
-Date: Thu,  8 May 2014 14:58:15 +0530
-Message-ID: <1399541296-18810-2-git-send-email-maddy@linux.vnet.ibm.com>
-In-Reply-To: <1399541296-18810-1-git-send-email-maddy@linux.vnet.ibm.com>
-References: <1399541296-18810-1-git-send-email-maddy@linux.vnet.ibm.com>
+Received: from bombadil.infradead.org ([198.137.202.9]:47610 "EHLO
+	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754498AbaEHOA7 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 8 May 2014 10:00:59 -0400
+Message-ID: <20140508135852.453864110@infradead.org>
+Date: Thu, 08 May 2014 15:58:52 +0200
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: [PATCH 12/20] arch,metag: Fold atomic_ops
+References: <20140508135840.956784204@infradead.org>
+Content-Disposition: inline; filename=peterz-metag-atomic_cleanup.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, x86@kernel.org
-Cc: benh@kernel.crashing.org, paulus@samba.org, kirill.shutemov@linux.intel.com, rusty@rustcorp.com.au, akpm@linux-foundation.org, riel@redhat.com, mgorman@suse.de, ak@linux.intel.com, peterz@infradead.org, mingo@kernel.org, dave.hansen@intel.com, Madhavan Srinivasan <maddy@linux.vnet.ibm.com>
-Message-ID: <20140508092815.ajT-Ox-PCnY27tl7RMn0T1EbhthURTGd8tgCDN__0xE@z>
+To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Cc: torvalds@linux-foundation.org, akpm@linux-foundation.org, mingo@kernel.org, will.deacon@arm.com, paulmck@linux.vnet.ibm.com, Peter Zijlstra <peterz@infradead.org>, James Hogan <james.hogan@imgtec.com>
+Message-ID: <20140508135852.CSoXb1OnPW0iKGy10zTNjjsWCVj0lFhDNlwObCrBcvI@z>
 
-Kirill A. Shutemov with 8c6e50b029 commit introduced
-vm_ops->map_pages() for mapping easy accessible pages around
-fault address in hope to reduce number of minor page faults.
+Many of the atomic op implementations are the same except for one
+instruction; fold the lot into a few CPP macros and reduce LoC.
 
-This patch creates infrastructure to modify the FAULT_AROUND_ORDER
-value using mm/Kconfig. This will enable architecture maintainers
-to decide on suitable FAULT_AROUND_ORDER value based on
-performance data for that architecture. Patch also defaults
-FAULT_AROUND_ORDER Kconfig element to 4.
+This also prepares for easy addition of new ops.
 
-Signed-off-by: Madhavan Srinivasan <maddy@linux.vnet.ibm.com>
+Cc: James Hogan <james.hogan@imgtec.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>
+Signed-off-by: Peter Zijlstra <peterz@infradead.org>
 ---
- mm/Kconfig  |    8 ++++++++
- mm/memory.c |   25 ++++++-------------------
- 2 files changed, 14 insertions(+), 19 deletions(-)
+ arch/metag/include/asm/atomic_lnkget.h |  121 ++++++++++++---------------------
+ arch/metag/include/asm/atomic_lock1.h  |   76 ++++++++------------
+ 2 files changed, 77 insertions(+), 120 deletions(-)
 
-diff --git a/mm/Kconfig b/mm/Kconfig
-index ebe5880..c7fc4f1 100644
---- a/mm/Kconfig
-+++ b/mm/Kconfig
-@@ -176,6 +176,14 @@ config MOVABLE_NODE
- config HAVE_BOOTMEM_INFO_NODE
- 	def_bool n
+Index: linux-2.6/arch/metag/include/asm/atomic_lnkget.h
+===================================================================
+--- linux-2.6.orig/arch/metag/include/asm/atomic_lnkget.h
++++ linux-2.6/arch/metag/include/asm/atomic_lnkget.h
+@@ -27,85 +27,56 @@ static inline int atomic_read(const atom
+ 	return temp;
+ }
  
-+#
-+# Fault around order is a control knob to decide the fault around pages.
-+# Default value is set to 4 , but the arch can override it as desired.
-+#
-+config FAULT_AROUND_ORDER
-+	int
-+	default	4
+-static inline void atomic_add(int i, atomic_t *v)
+-{
+-	int temp;
+-
+-	asm volatile (
+-		"1:	LNKGETD %0, [%1]\n"
+-		"	ADD	%0, %0, %2\n"
+-		"	LNKSETD [%1], %0\n"
+-		"	DEFR	%0, TXSTAT\n"
+-		"	ANDT	%0, %0, #HI(0x3f000000)\n"
+-		"	CMPT	%0, #HI(0x02000000)\n"
+-		"	BNZ	1b\n"
+-		: "=&d" (temp)
+-		: "da" (&v->counter), "bd" (i)
+-		: "cc");
++#define ATOMIC_OP(op)							\
++static inline void atomic_##op(int i, atomic_t *v)			\
++{									\
++	int temp;							\
++									\
++	asm volatile (							\
++		"1:	LNKGETD %0, [%1]\n"				\
++		"	" #op "	%0, %0, %2\n"				\
++		"	LNKSETD [%1], %0\n"				\
++		"	DEFR	%0, TXSTAT\n"				\
++		"	ANDT	%0, %0, #HI(0x3f000000)\n"		\
++		"	CMPT	%0, #HI(0x02000000)\n"			\
++		"	BNZ	1b\n"					\
++		: "=&d" (temp)						\
++		: "da" (&v->counter), "bd" (i)				\
++		: "cc");						\
++}									\
 +
- # eventually, we can have this option just 'select SPARSEMEM'
- config MEMORY_HOTPLUG
- 	bool "Allow for memory hot-add"
-diff --git a/mm/memory.c b/mm/memory.c
-index 037b812..e3931ef 100644
---- a/mm/memory.c
-+++ b/mm/memory.c
-@@ -3402,11 +3402,9 @@ void do_set_pte(struct vm_area_struct *vma, unsigned long address,
- 	update_mmu_cache(vma, address, pte);
++#define ATOMIC_OP_RETURN(op)						\
++static inline int atomic_##op##_return(int i, atomic_t *v)		\
++{									\
++	int result, temp;						\
++									\
++	smp_mb();							\
++									\
++	asm volatile (							\
++		"1:	LNKGETD %1, [%2]\n"				\
++		"	" #op "	%1, %1, %3\n"				\
++		"	LNKSETD [%2], %1\n"				\
++		"	DEFR	%0, TXSTAT\n"				\
++		"	ANDT	%0, %0, #HI(0x3f000000)\n"		\
++		"	CMPT	%0, #HI(0x02000000)\n"			\
++		"	BNZ 1b\n"					\
++		: "=&d" (temp), "=&da" (result)				\
++		: "da" (&v->counter), "bd" (i)				\
++		: "cc");						\
++									\
++	smp_mb();							\
++									\
++	return result;							\
  }
  
--#define FAULT_AROUND_ORDER 4
-+unsigned int fault_around_order __read_mostly = CONFIG_FAULT_AROUND_ORDER;
- 
- #ifdef CONFIG_DEBUG_FS
--static unsigned int fault_around_order = FAULT_AROUND_ORDER;
+-static inline void atomic_sub(int i, atomic_t *v)
+-{
+-	int temp;
 -
- static int fault_around_order_get(void *data, u64 *val)
- {
- 	*val = fault_around_order;
-@@ -3415,7 +3413,6 @@ static int fault_around_order_get(void *data, u64 *val)
- 
- static int fault_around_order_set(void *data, u64 val)
- {
--	BUILD_BUG_ON((1UL << FAULT_AROUND_ORDER) > PTRS_PER_PTE);
- 	if (1UL << val > PTRS_PER_PTE)
- 		return -EINVAL;
- 	fault_around_order = val;
-@@ -3435,31 +3432,21 @@ static int __init fault_around_debugfs(void)
- 	return 0;
- }
- late_initcall(fault_around_debugfs);
-+#endif
- 
- static inline unsigned long fault_around_pages(void)
- {
--	return 1UL << fault_around_order;
+-	asm volatile (
+-		"1:	LNKGETD %0, [%1]\n"
+-		"	SUB	%0, %0, %2\n"
+-		"	LNKSETD [%1], %0\n"
+-		"	DEFR	%0, TXSTAT\n"
+-		"	ANDT	%0, %0, #HI(0x3f000000)\n"
+-		"	CMPT	%0, #HI(0x02000000)\n"
+-		"	BNZ 1b\n"
+-		: "=&d" (temp)
+-		: "da" (&v->counter), "bd" (i)
+-		: "cc");
 -}
 -
--static inline unsigned long fault_around_mask(void)
+-static inline int atomic_add_return(int i, atomic_t *v)
 -{
--	return ~((1UL << (PAGE_SHIFT + fault_around_order)) - 1);
+-	int result, temp;
+-
+-	smp_mb();
+-
+-	asm volatile (
+-		"1:	LNKGETD %1, [%2]\n"
+-		"	ADD	%1, %1, %3\n"
+-		"	LNKSETD [%2], %1\n"
+-		"	DEFR	%0, TXSTAT\n"
+-		"	ANDT	%0, %0, #HI(0x3f000000)\n"
+-		"	CMPT	%0, #HI(0x02000000)\n"
+-		"	BNZ 1b\n"
+-		: "=&d" (temp), "=&da" (result)
+-		: "da" (&v->counter), "bd" (i)
+-		: "cc");
++#define ATOMIC_OPS(op) ATOMIC_OP(op) ATOMIC_OP_RETURN(op)
+ 
+-	smp_mb();
++ATOMIC_OPS(add)
++ATOMIC_OPS(sub)
+ 
+-	return result;
 -}
--#else
--static inline unsigned long fault_around_pages(void)
+-
+-static inline int atomic_sub_return(int i, atomic_t *v)
 -{
- 	unsigned long nr_pages;
+-	int result, temp;
+-
+-	smp_mb();
+-
+-	asm volatile (
+-		"1:	LNKGETD %1, [%2]\n"
+-		"	SUB	%1, %1, %3\n"
+-		"	LNKSETD [%2], %1\n"
+-		"	DEFR	%0, TXSTAT\n"
+-		"	ANDT	%0, %0, #HI(0x3f000000)\n"
+-		"	CMPT	%0, #HI(0x02000000)\n"
+-		"	BNZ	1b\n"
+-		: "=&d" (temp), "=&da" (result)
+-		: "da" (&v->counter), "bd" (i)
+-		: "cc");
+-
+-	smp_mb();
+-
+-	return result;
+-}
++#undef ATOMIC_OPS
++#undef ATOMIC_OP_RETURN
++#undef ATOMIC_OP
  
--	nr_pages = 1UL << FAULT_AROUND_ORDER;
--	BUILD_BUG_ON(nr_pages > PTRS_PER_PTE);
-+	nr_pages = 1UL << fault_around_order;
-+	VM_BUG_ON(nr_pages > PTRS_PER_PTE);
- 	return nr_pages;
- }
- 
- static inline unsigned long fault_around_mask(void)
+ static inline void atomic_clear_mask(unsigned int mask, atomic_t *v)
  {
--	return ~((1UL << (PAGE_SHIFT + FAULT_AROUND_ORDER)) - 1);
-+	return ~((1UL << (PAGE_SHIFT + fault_around_order)) - 1);
+Index: linux-2.6/arch/metag/include/asm/atomic_lock1.h
+===================================================================
+--- linux-2.6.orig/arch/metag/include/asm/atomic_lock1.h
++++ linux-2.6/arch/metag/include/asm/atomic_lock1.h
+@@ -37,55 +37,41 @@ static inline int atomic_set(atomic_t *v
+ 	return i;
  }
--#endif
  
- static void do_fault_around(struct vm_area_struct *vma, unsigned long address,
- 		pte_t *pte, pgoff_t pgoff, unsigned int flags)
-@@ -3515,7 +3502,7 @@ static int do_read_fault(struct mm_struct *mm, struct vm_area_struct *vma,
- 	 * if page by the offset is not ready to be mapped (cold cache or
- 	 * something).
- 	 */
--	if (vma->vm_ops->map_pages) {
-+	if ((vma->vm_ops->map_pages) && fault_around_order) {
- 		pte = pte_offset_map_lock(mm, pmd, address, &ptl);
- 		do_fault_around(vma, address, pte, pgoff, flags);
- 		if (!pte_same(*pte, orig_pte))
--- 
-1.7.10.4
+-static inline void atomic_add(int i, atomic_t *v)
+-{
+-	unsigned long flags;
+-
+-	__global_lock1(flags);
+-	fence();
+-	v->counter += i;
+-	__global_unlock1(flags);
++#define ATOMIC_OP(op, c_op)						\
++static inline void atomic_##op(int i, atomic_t *v)			\
++{									\
++	unsigned long flags;						\
++									\
++	__global_lock1(flags);						\
++	fence();							\
++	v->counter c_op i;						\
++	__global_unlock1(flags);					\
++}									\
++
++#define ATOMIC_OP_RETURN(op, c_op)					\
++static inline int atomic_##op##_return(int i, atomic_t *v)		\
++{									\
++	unsigned long result;						\
++	unsigned long flags;						\
++									\
++	__global_lock1(flags);						\
++	result = v->counter;						\
++	result c_op i;							\
++	fence();							\
++	v->counter = result;						\
++	__global_unlock1(flags);					\
++									\
++	return result;							\
+ }
+ 
+-static inline void atomic_sub(int i, atomic_t *v)
+-{
+-	unsigned long flags;
+-
+-	__global_lock1(flags);
+-	fence();
+-	v->counter -= i;
+-	__global_unlock1(flags);
+-}
+-
+-static inline int atomic_add_return(int i, atomic_t *v)
+-{
+-	unsigned long result;
+-	unsigned long flags;
++#define ATOMIC_OPS(op, c_op) ATOMIC_OP(op, c_op) ATOMIC_OP_RETURN(op, c_op)
+ 
+-	__global_lock1(flags);
+-	result = v->counter;
+-	result += i;
+-	fence();
+-	v->counter = result;
+-	__global_unlock1(flags);
++ATOMIC_OPS(add, +=)
++ATOMIC_OPS(sub, -=)
+ 
+-	return result;
+-}
+-
+-static inline int atomic_sub_return(int i, atomic_t *v)
+-{
+-	unsigned long result;
+-	unsigned long flags;
+-
+-	__global_lock1(flags);
+-	result = v->counter;
+-	result -= i;
+-	fence();
+-	v->counter = result;
+-	__global_unlock1(flags);
+-
+-	return result;
+-}
++#undef ATOMIC_OPS
++#undef ATOMIC_OP_RETURN
++#undef ATOMIC_OP
+ 
+ static inline void atomic_clear_mask(unsigned int mask, atomic_t *v)
+ {
+
 
