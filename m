@@ -1,15 +1,16 @@
 From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v10 09/19] qspinlock: Prepare for unfair lock support
-Date: Thu, 8 May 2014 21:06:49 +0200
-Message-ID: <20140508190649.GR2844@laptop.programming.kicks-ass.net>
+Subject: Re: [PATCH v10 10/19] qspinlock, x86: Allow unfair spinlock in a
+	virtual guest
+Date: Thu, 8 May 2014 21:12:28 +0200
+Message-ID: <20140508191228.GS2844@laptop.programming.kicks-ass.net>
 References: <1399474907-22206-1-git-send-email-Waiman.Long@hp.com>
-	<1399474907-22206-10-git-send-email-Waiman.Long@hp.com>
+	<1399474907-22206-11-git-send-email-Waiman.Long@hp.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 Return-path: <virtualization-bounces@lists.linux-foundation.org>
 Content-Disposition: inline
-In-Reply-To: <1399474907-22206-10-git-send-email-Waiman.Long@hp.com>
+In-Reply-To: <1399474907-22206-11-git-send-email-Waiman.Long@hp.com>
 List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
 	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
 List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
@@ -23,34 +24,58 @@ To: Waiman Long <Waiman.Long@hp.com>
 Cc: linux-arch@vger.kernel.org, Rik van Riel <riel@redhat.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, Oleg Nesterov <oleg@redhat.com>, Gleb Natapov <gleb@redhat.com>, kvm@vger.kernel.org, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Scott J Norton <scott.norton@hp.com>, x86@kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, Ingo Molnar <mingo@redhat.com>, Chegu Vinod <chegu_vinod@hp.com>, David Vrabel <david.vrabel@citrix.com>, "H. Peter Anvin" <hpa@zytor.com>, xen-devel@lists.xenproject.org, Thomas Gleixner <tglx@linutronix.de>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Boris Ostrovsky <boris.ostrovsky@oracle.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, May 07, 2014 at 11:01:37AM -0400, Waiman Long wrote:
-> If unfair lock is supported, the lock acquisition loop at the end of
-> the queue_spin_lock_slowpath() function may need to detect the fact
-> the lock can be stolen. Code are added for the stolen lock detection.
-> 
-> A new qhead macro is also defined as a shorthand for mcs.locked.
+On Wed, May 07, 2014 at 11:01:38AM -0400, Waiman Long wrote:
 
-NAK, unfair should be a pure test-and-set lock.
 
->  /**
->   * get_qlock - Set the lock bit and own the lock
-> - * @lock: Pointer to queue spinlock structure
-> + * @lock : Pointer to queue spinlock structure
-> + * Return: 1 if lock acquired, 0 otherwise
->   *
->   * This routine should only be called when the caller is the only one
->   * entitled to acquire the lock.
->   */
-> -static __always_inline void get_qlock(struct qspinlock *lock)
-> +static __always_inline int get_qlock(struct qspinlock *lock)
+No, we want the unfair thing for VIRT, not PARAVIRT.
+
+
+> diff --git a/kernel/locking/qspinlock.c b/kernel/locking/qspinlock.c
+> index 9e7659e..10e87e1 100644
+> --- a/kernel/locking/qspinlock.c
+> +++ b/kernel/locking/qspinlock.c
+> @@ -227,6 +227,14 @@ static __always_inline int get_qlock(struct qspinlock *lock)
 >  {
 >  	struct __qspinlock *l = (void *)lock;
 >  
+> +#ifdef CONFIG_PARAVIRT_UNFAIR_LOCKS
+> +	if (static_key_false(&paravirt_unfairlocks_enabled))
+> +		/*
+> +		 * Need to use atomic operation to get the lock when
+> +		 * lock stealing can happen.
+> +		 */
+> +		return cmpxchg(&l->locked, 0, _Q_LOCKED_VAL) == 0;
+
+That's missing {}.
+
+> +#endif
+
+
 >  	barrier();
 >  	ACCESS_ONCE(l->locked) = _Q_LOCKED_VAL;
 >  	barrier();
-> +	return 1;
->  }
 
-and here you make a horribly named function more horrible;
-try_set_locked() is that its now.
+
+But no, what you want is:
+
+static __always_inline bool virt_lock(struct qspinlock *lock)
+{
+#ifdef CONFIG_VIRT_MUCK
+	if (static_key_false(&virt_unfairlocks_enabled)) {
+		while (!queue_spin_trylock(lock))
+			cpu_relax();
+
+		return true;
+	}
+#else
+	return false;
+}
+
+
+void queue_spin_lock_slowpath(struct qspinlock *lock, u32 val)
+{
+	if (virt_lock(lock))
+		return;
+
+	...
+}
