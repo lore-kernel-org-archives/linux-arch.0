@@ -1,367 +1,62 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from casper.infradead.org ([85.118.1.10]:43869 "EHLO
-	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752756AbaEHOAp (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 8 May 2014 10:00:45 -0400
-Message-ID: <20140508135852.770036493@infradead.org>
-Date: Thu, 08 May 2014 15:58:57 +0200
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: [PATCH 17/20] arch,sh: Fold atomic_ops
-References: <20140508135840.956784204@infradead.org>
-Content-Disposition: inline; filename=peterz-sh-atomic_cleanup.patch
+Received: from g2t2352.austin.hp.com ([15.217.128.51]:51305 "EHLO
+	g2t2352.austin.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754658AbaEHRyd (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 8 May 2014 13:54:33 -0400
+Message-ID: <536BC4BF.9030603@hp.com>
+Date: Thu, 08 May 2014 13:54:07 -0400
+From: Waiman Long <waiman.long@hp.com>
+MIME-Version: 1.0
+Subject: Re: [PATCH v10 18/19] pvqspinlock, x86: Enable PV qspinlock PV for
+ KVM
+References: <1399474907-22206-1-git-send-email-Waiman.Long@hp.com> <1399474907-22206-19-git-send-email-Waiman.Long@hp.com> <20140507190706.GA16333@phenom.dumpdata.com>
+In-Reply-To: <20140507190706.GA16333@phenom.dumpdata.com>
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: torvalds@linux-foundation.org, akpm@linux-foundation.org, mingo@kernel.org, will.deacon@arm.com, paulmck@linux.vnet.ibm.com, Peter Zijlstra <peterz@infradead.org>
-Message-ID: <20140508135857.p7bc49lWlta_pkurSs10ouc7Im4tFbJrY3-CVgqG9pQ@z>
+To: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Peter Zijlstra <peterz@infradead.org>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Rik van Riel <riel@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, David Vrabel <david.vrabel@citrix.com>, Oleg Nesterov <oleg@redhat.com>, Gleb Natapov <gleb@redhat.com>, Scott J Norton <scott.norton@hp.com>, Chegu Vinod <chegu_vinod@hp.com>
+Message-ID: <20140508175407.gI5PFITEcnGd-di27DESAS5GP05pou-zeYvUT4tvntU@z>
 
-Many of the atomic op implementations are the same except for one
-instruction; fold the lot into a few CPP macros and reduce LoC.
+On 05/07/2014 03:07 PM, Konrad Rzeszutek Wilk wrote:
+>> Raghavendra KT had done some performance testing on this patch with
+>> the following results:
+>>
+>> Overall we are seeing good improvement for pv-unfair version.
+>>
+>> System: 32 cpu sandybridge with HT on (4 node with 32 GB each)
+>> Guest : 8GB with 16 vcpu/VM.
+>> Average was taken over 8-10 data points.
+>>
+>> Base = 3.15-rc2  with PRAVIRT_SPINLOCK = y
+>>
+>> A = 3.15-rc2 + qspinlock v9 patch with QUEUE_SPINLOCK = y
+>> PRAVIRT_SPINLOCK = y PARAVIRT_UNFAIR_LOCKS = y (unfair lock)
+>>
+>> B =  3.15-rc2 + qspinlock v9 patch with QUEUE_SPINLOCK = y
+>> PRAVIRT_SPINLOCK = n PARAVIRT_UNFAIR_LOCKS = n
+>> (queue spinlock without paravirt)
+>>
+>> C = 3.15-rc2 + qspinlock v9 patch with  QUEUE_SPINLOCK = y
+>> PRAVIRT_SPINLOCK = y  PARAVIRT_UNFAIR_LOCKS = n
+>> (queue spinlock with paravirt)
+> Could you do s/PRAVIRT/PARAVIRT/ please?
+>
 
-This also prepares for easy addition of new ops.
+Sorry for the typo, I didn't check the text carefully enough when I 
+cut-and-paste it from Raghavendra's email.
 
-Cc: Linus Torvalds <torvalds@linux-foundation.org>
-Signed-off-by: Peter Zijlstra <peterz@infradead.org>
----
- arch/sh/include/asm/atomic-grb.h  |  121 ++++++++++++++------------------------
- arch/sh/include/asm/atomic-irq.h  |   62 ++++++++-----------
- arch/sh/include/asm/atomic-llsc.h |  101 ++++++++++++-------------------
- 3 files changed, 113 insertions(+), 171 deletions(-)
+>> Ebizzy %improvements
+>> ====================
+>> overcommit  A            B            C
+>> 0.5x     4.4265        2.0611       1.5824
+>> 1.0x     0.9015       -7.7828       4.5443
+>> 1.5x    46.1162       -2.9845      -3.5046
+>> 2.0x    99.8150       -2.7116       4.7461
+> Considering B sucks
 
---- a/arch/sh/include/asm/atomic-grb.h
-+++ b/arch/sh/include/asm/atomic-grb.h
-@@ -1,85 +1,56 @@
- #ifndef __ASM_SH_ATOMIC_GRB_H
- #define __ASM_SH_ATOMIC_GRB_H
- 
--static inline void atomic_add(int i, atomic_t *v)
--{
--	int tmp;
--
--	__asm__ __volatile__ (
--		"   .align 2              \n\t"
--		"   mova    1f,   r0      \n\t" /* r0 = end point */
--		"   mov    r15,   r1      \n\t" /* r1 = saved sp */
--		"   mov    #-6,   r15     \n\t" /* LOGIN: r15 = size */
--		"   mov.l  @%1,   %0      \n\t" /* load  old value */
--		"   add     %2,   %0      \n\t" /* add */
--		"   mov.l   %0,   @%1     \n\t" /* store new value */
--		"1: mov     r1,   r15     \n\t" /* LOGOUT */
--		: "=&r" (tmp),
--		  "+r"  (v)
--		: "r"   (i)
--		: "memory" , "r0", "r1");
-+#define ATOMIC_OP(op)							\
-+static inline void atomic_##op(int i, atomic_t *v)			\
-+{									\
-+	int tmp;							\
-+									\
-+	__asm__ __volatile__ (						\
-+		"   .align 2              \n\t"				\
-+		"   mova    1f,   r0      \n\t" /* r0 = end point */	\
-+		"   mov    r15,   r1      \n\t" /* r1 = saved sp */	\
-+		"   mov    #-6,   r15     \n\t" /* LOGIN: r15 = size */	\
-+		"   mov.l  @%1,   %0      \n\t" /* load  old value */	\
-+		" " #op "   %2,   %0      \n\t" /* $op */		\
-+		"   mov.l   %0,   @%1     \n\t" /* store new value */	\
-+		"1: mov     r1,   r15     \n\t" /* LOGOUT */		\
-+		: "=&r" (tmp),						\
-+		  "+r"  (v)						\
-+		: "r"   (i)						\
-+		: "memory" , "r0", "r1");				\
-+}									\
-+
-+#define ATOMIC_OP_RETURN(op)						\
-+static inline int atomic_##op##_return(int i, atomic_t *v)		\
-+{									\
-+	int tmp;							\
-+									\
-+	__asm__ __volatile__ (						\
-+		"   .align 2              \n\t"				\
-+		"   mova    1f,   r0      \n\t" /* r0 = end point */	\
-+		"   mov    r15,   r1      \n\t" /* r1 = saved sp */	\
-+		"   mov    #-6,   r15     \n\t" /* LOGIN: r15 = size */	\
-+		"   mov.l  @%1,   %0      \n\t" /* load  old value */	\
-+		" " #op "   %2,   %0      \n\t" /* $op */		\
-+		"   mov.l   %0,   @%1     \n\t" /* store new value */	\
-+		"1: mov     r1,   r15     \n\t" /* LOGOUT */		\
-+		: "=&r" (tmp),						\
-+		  "+r"  (v)						\
-+		: "r"   (i)						\
-+		: "memory" , "r0", "r1");				\
-+									\
-+	return tmp;							\
- }
- 
--static inline void atomic_sub(int i, atomic_t *v)
--{
--	int tmp;
--
--	__asm__ __volatile__ (
--		"   .align 2              \n\t"
--		"   mova    1f,   r0      \n\t" /* r0 = end point */
--		"   mov     r15,  r1      \n\t" /* r1 = saved sp */
--		"   mov    #-6,   r15     \n\t" /* LOGIN: r15 = size */
--		"   mov.l  @%1,   %0      \n\t" /* load  old value */
--		"   sub     %2,   %0      \n\t" /* sub */
--		"   mov.l   %0,   @%1     \n\t" /* store new value */
--		"1: mov     r1,   r15     \n\t" /* LOGOUT */
--		: "=&r" (tmp),
--		  "+r"  (v)
--		: "r"   (i)
--		: "memory" , "r0", "r1");
--}
--
--static inline int atomic_add_return(int i, atomic_t *v)
--{
--	int tmp;
-+#define ATOMIC_OPS(op) ATOMIC_OP(op) ATOMIC_OP_RETURN(op)
- 
--	__asm__ __volatile__ (
--		"   .align 2              \n\t"
--		"   mova    1f,   r0      \n\t" /* r0 = end point */
--		"   mov    r15,   r1      \n\t" /* r1 = saved sp */
--		"   mov    #-6,   r15     \n\t" /* LOGIN: r15 = size */
--		"   mov.l  @%1,   %0      \n\t" /* load  old value */
--		"   add     %2,   %0      \n\t" /* add */
--		"   mov.l   %0,   @%1     \n\t" /* store new value */
--		"1: mov     r1,   r15     \n\t" /* LOGOUT */
--		: "=&r" (tmp),
--		  "+r"  (v)
--		: "r"   (i)
--		: "memory" , "r0", "r1");
-+ATOMIC_OPS(add)
-+ATOMIC_OPS(sub)
- 
--	return tmp;
--}
--
--static inline int atomic_sub_return(int i, atomic_t *v)
--{
--	int tmp;
--
--	__asm__ __volatile__ (
--		"   .align 2              \n\t"
--		"   mova    1f,   r0      \n\t" /* r0 = end point */
--		"   mov    r15,   r1      \n\t" /* r1 = saved sp */
--		"   mov    #-6,   r15     \n\t" /* LOGIN: r15 = size */
--		"   mov.l  @%1,   %0      \n\t" /* load  old value */
--		"   sub     %2,   %0      \n\t" /* sub */
--		"   mov.l   %0,   @%1     \n\t" /* store new value */
--		"1: mov     r1,   r15     \n\t" /* LOGOUT */
--		: "=&r" (tmp),
--		  "+r"  (v)
--		: "r"   (i)
--		: "memory", "r0", "r1");
--
--	return tmp;
--}
-+#undef ATOMIC_OPS
-+#undef ATOMIC_OP_RETURN
-+#undef ATOMIC_OP
- 
- static inline void atomic_clear_mask(unsigned int mask, atomic_t *v)
- {
---- a/arch/sh/include/asm/atomic-irq.h
-+++ b/arch/sh/include/asm/atomic-irq.h
-@@ -8,49 +8,39 @@
-  * forward to code at the end of this object's .text section, then
-  * branch back to restart the operation.
-  */
--static inline void atomic_add(int i, atomic_t *v)
--{
--	unsigned long flags;
--
--	raw_local_irq_save(flags);
--	v->counter += i;
--	raw_local_irq_restore(flags);
--}
--
--static inline void atomic_sub(int i, atomic_t *v)
--{
--	unsigned long flags;
- 
--	raw_local_irq_save(flags);
--	v->counter -= i;
--	raw_local_irq_restore(flags);
-+#define ATOMIC_OP(op, c_op)						\
-+static inline void atomic_##op(int i, atomic_t *v)			\
-+{									\
-+	unsigned long flags;						\
-+									\
-+	raw_local_irq_save(flags);					\
-+	v->counter c_op i;						\
-+	raw_local_irq_restore(flags);					\
- }
- 
--static inline int atomic_add_return(int i, atomic_t *v)
--{
--	unsigned long temp, flags;
--
--	raw_local_irq_save(flags);
--	temp = v->counter;
--	temp += i;
--	v->counter = temp;
--	raw_local_irq_restore(flags);
--
--	return temp;
-+#define ATOMIC_OP_RETURN(op, c_op)					\
-+static inline int atomic_##op##_return(int i, atomic_t *v)		\
-+{									\
-+	unsigned long temp, flags;					\
-+									\
-+	raw_local_irq_save(flags);					\
-+	temp = v->counter;						\
-+	temp c_op i;							\
-+	v->counter = temp;						\
-+	raw_local_irq_restore(flags);					\
-+									\
-+	return temp;							\
- }
- 
--static inline int atomic_sub_return(int i, atomic_t *v)
--{
--	unsigned long temp, flags;
-+#define ATOMIC_OPS(op, c_op) ATOMIC_OP(op, c_op) ATOMIC_OP_RETURN(op, c_op)
- 
--	raw_local_irq_save(flags);
--	temp = v->counter;
--	temp -= i;
--	v->counter = temp;
--	raw_local_irq_restore(flags);
-+ATOMIC_OPS(add, +=)
-+ATOMIC_OPS(sub, -=)
- 
--	return temp;
--}
-+#undef ATOMIC_OPS
-+#undef ATOMIC_OP_RETURN
-+#undef ATOMIC_OP
- 
- static inline void atomic_clear_mask(unsigned int mask, atomic_t *v)
- {
---- a/arch/sh/include/asm/atomic-llsc.h
-+++ b/arch/sh/include/asm/atomic-llsc.h
-@@ -2,39 +2,6 @@
- #define __ASM_SH_ATOMIC_LLSC_H
- 
- /*
-- * To get proper branch prediction for the main line, we must branch
-- * forward to code at the end of this object's .text section, then
-- * branch back to restart the operation.
-- */
--static inline void atomic_add(int i, atomic_t *v)
--{
--	unsigned long tmp;
--
--	__asm__ __volatile__ (
--"1:	movli.l @%2, %0		! atomic_add	\n"
--"	add	%1, %0				\n"
--"	movco.l	%0, @%2				\n"
--"	bf	1b				\n"
--	: "=&z" (tmp)
--	: "r" (i), "r" (&v->counter)
--	: "t");
--}
--
--static inline void atomic_sub(int i, atomic_t *v)
--{
--	unsigned long tmp;
--
--	__asm__ __volatile__ (
--"1:	movli.l @%2, %0		! atomic_sub	\n"
--"	sub	%1, %0				\n"
--"	movco.l	%0, @%2				\n"
--"	bf	1b				\n"
--	: "=&z" (tmp)
--	: "r" (i), "r" (&v->counter)
--	: "t");
--}
--
--/*
-  * SH-4A note:
-  *
-  * We basically get atomic_xxx_return() for free compared with
-@@ -42,39 +9,53 @@ static inline void atomic_sub(int i, ato
-  * encoding, so the retval is automatically set without having to
-  * do any special work.
-  */
--static inline int atomic_add_return(int i, atomic_t *v)
--{
--	unsigned long temp;
-+/*
-+ * To get proper branch prediction for the main line, we must branch
-+ * forward to code at the end of this object's .text section, then
-+ * branch back to restart the operation.
-+ */
- 
--	__asm__ __volatile__ (
--"1:	movli.l @%2, %0		! atomic_add_return	\n"
--"	add	%1, %0					\n"
--"	movco.l	%0, @%2					\n"
--"	bf	1b					\n"
--"	synco						\n"
--	: "=&z" (temp)
--	: "r" (i), "r" (&v->counter)
--	: "t");
-+#define ATOMIC_OP(op)							\
-+static inline void atomic_##op(int i, atomic_t *v)			\
-+{									\
-+	unsigned long tmp;						\
-+									\
-+	__asm__ __volatile__ (						\
-+"1:	movli.l @%2, %0		! atomic_" #op "\n"			\
-+"	" #op "	%1, %0				\n"			\
-+"	movco.l	%0, @%2				\n"			\
-+"	bf	1b				\n"			\
-+	: "=&z" (tmp)							\
-+	: "r" (i), "r" (&v->counter)					\
-+	: "t");								\
-+}
- 
--	return temp;
-+#define ATOMIC_OP_RETURN(op)						\
-+static inline int atomic_##op##_return(int i, atomic_t *v)		\
-+{									\
-+	unsigned long temp;						\
-+									\
-+	__asm__ __volatile__ (						\
-+"1:	movli.l @%2, %0		! atomic_" #op "_return	\n"		\
-+"	" #op "	%1, %0					\n"		\
-+"	movco.l	%0, @%2					\n"		\
-+"	bf	1b					\n"		\
-+"	synco						\n"		\
-+	: "=&z" (temp)							\
-+	: "r" (i), "r" (&v->counter)					\
-+	: "t");								\
-+									\
-+	return temp;							\
- }
- 
--static inline int atomic_sub_return(int i, atomic_t *v)
--{
--	unsigned long temp;
-+#define ATOMIC_OPS(op) ATOMIC_OP(op) ATOMIC_OP_RETURN(op)
- 
--	__asm__ __volatile__ (
--"1:	movli.l @%2, %0		! atomic_sub_return	\n"
--"	sub	%1, %0					\n"
--"	movco.l	%0, @%2					\n"
--"	bf	1b					\n"
--"	synco						\n"
--	: "=&z" (temp)
--	: "r" (i), "r" (&v->counter)
--	: "t");
-+ATOMIC_OPS(add)
-+ATOMIC_OPS(sub)
- 
--	return temp;
--}
-+#undef ATOMIC_OPS
-+#undef ATOMIC_OP_RETURN
-+#undef ATOMIC_OP
- 
- static inline void atomic_clear_mask(unsigned int mask, atomic_t *v)
- {
+Yes, I don't expect the plain qspinlock code will perform well in a 
+guest without either unfair or pvspinlock support.
 
-
+-Longman
