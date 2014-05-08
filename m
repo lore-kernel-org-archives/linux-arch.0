@@ -1,74 +1,65 @@
 From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v10 03/19] qspinlock: Add pending bit
-Date: Thu, 8 May 2014 20:57:12 +0200
-Message-ID: <20140508185712.GM2844@laptop.programming.kicks-ass.net>
+Subject: Re: [PATCH v10 06/19] qspinlock: prolong the stay in the pending bit
+	path
+Date: Thu, 8 May 2014 20:58:54 +0200
+Message-ID: <20140508185854.GN2844@laptop.programming.kicks-ass.net>
 References: <1399474907-22206-1-git-send-email-Waiman.Long@hp.com>
- <1399474907-22206-4-git-send-email-Waiman.Long@hp.com>
+	<1399474907-22206-7-git-send-email-Waiman.Long@hp.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Transfer-Encoding: 8BIT
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.9]:33809 "EHLO
-	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752485AbaEHS5Y convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 8 May 2014 14:57:24 -0400
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <virtualization-bounces@lists.linux-foundation.org>
 Content-Disposition: inline
-In-Reply-To: <1399474907-22206-4-git-send-email-Waiman.Long@hp.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+In-Reply-To: <1399474907-22206-7-git-send-email-Waiman.Long@hp.com>
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
+List-Post: <mailto:virtualization@lists.linux-foundation.org>
+List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
+Sender: virtualization-bounces@lists.linux-foundation.org
+Errors-To: virtualization-bounces@lists.linux-foundation.org
 To: Waiman Long <Waiman.Long@hp.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Rik van Riel <riel@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, David Vrabel <david.vrabel@citrix.com>, Oleg Nesterov <oleg@redhat.com>, Gleb Natapov <gleb@redhat.com>, Scott J Norton <scott.norton@hp.com>, Chegu Vinod <chegu_vinod@hp.com>
+Cc: linux-arch@vger.kernel.org, Rik van Riel <riel@redhat.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, Oleg Nesterov <oleg@redhat.com>, Gleb Natapov <gleb@redhat.com>, kvm@vger.kernel.org, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Scott J Norton <scott.norton@hp.com>, x86@kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, Ingo Molnar <mingo@redhat.com>, Chegu Vinod <chegu_vinod@hp.com>, David Vrabel <david.vrabel@citrix.com>, "H. Peter Anvin" <hpa@zytor.com>, xen-devel@lists.xenproject.org, Thomas Gleixner <tglx@linutronix.de>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Boris Ostrovsky <boris.ostrovsky@oracle.com>
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, May 07, 2014 at 11:01:31AM -0400, Waiman Long wrote:
-> +/**
-> + * trylock_pending - try to acquire queue spinlock using the pending bit
-> + * @lock : Pointer to queue spinlock structure
-> + * @pval : Pointer to value of the queue spinlock 32-bit word
-> + * Return: 1 if lock acquired, 0 otherwise
-> + */
-> +static inline int trylock_pending(struct qspinlock *lock, u32 *pval)
-
-Still don't like you put it in a separate function, but you don't need
-the pointer thing. Note how after you fail the trylock_pending() you
-touch the second (node) cacheline.
-
-> @@ -110,6 +184,9 @@ void queue_spin_lock_slowpath(struct qspinlock *lock, u32 val)
->  
->  	BUILD_BUG_ON(CONFIG_NR_CPUS >= (1U << _Q_TAIL_CPU_BITS));
->  
-> +	if (trylock_pending(lock, &val))
-> +		return;	/* Lock acquired */
-> +
->  	node = this_cpu_ptr(&mcs_nodes[0]);
->  	idx = node->count++;
->  	tail = encode_tail(smp_processor_id(), idx);
-> @@ -119,15 +196,18 @@ void queue_spin_lock_slowpath(struct qspinlock *lock, u32 val)
->  	node->next = NULL;
->  
->  	/*
-> +	 * we already touched the queueing cacheline; don't bother with pending
-> +	 * stuff.
-> +	 *
->  	 * trylock || xchg(lock, node)
->  	 *
-> -	 * 0,0 -> 0,1 ; trylock
-> -	 * p,x -> n,x ; prev = xchg(lock, node)
-> +	 * 0,0,0 -> 0,0,1 ; trylock
-> +	 * p,y,x -> n,y,x ; prev = xchg(lock, node)
+On Wed, May 07, 2014 at 11:01:34AM -0400, Waiman Long wrote:
+> @@ -221,11 +222,37 @@ static inline int trylock_pending(struct qspinlock *lock, u32 *pval)
 >  	 */
-
-And any value of @val we might have had here is completely out-dated.
-The only thing that makes sense it to set:
-
-	val = 0;
-
-Which makes us start with a trylock, alternatively we can re-read val.
-
 >  	for (;;) {
->  		new = _Q_LOCKED_VAL;
->  		if (val)
-> -			new = tail | (val & _Q_LOCKED_MASK);
-> +			new = tail | (val & _Q_LOCKED_PENDING_MASK);
+>  		/*
+> -		 * If we observe any contention; queue.
+> +		 * If we observe that the queue is not empty,
+> +		 * return and be queued.
+>  		 */
+> -		if (val & ~_Q_LOCKED_MASK)
+> +		if (val & _Q_TAIL_MASK)
+>  			return 0;
 >  
->  		old = atomic_cmpxchg(&lock->val, val, new);
->  		if (old == val)
+> +		if (val == (_Q_LOCKED_VAL|_Q_PENDING_VAL)) {
+> +			/*
+> +			 * If both the lock and pending bits are set, we wait
+> +			 * a while to see if that either bit will be cleared.
+> +			 * If that is no change, we return and be queued.
+> +			 */
+> +			if (!retry)
+> +				return 0;
+> +			retry--;
+> +			cpu_relax();
+> +			cpu_relax();
+> +			*pval = val = atomic_read(&lock->val);
+> +			continue;
+> +		} else if (val == _Q_PENDING_VAL) {
+> +			/*
+> +			 * Pending bit is set, but not the lock bit.
+> +			 * Assuming that the pending bit holder is going to
+> +			 * set the lock bit and clear the pending bit soon,
+> +			 * it is better to wait than to exit at this point.
+> +			 */
+> +			cpu_relax();
+> +			*pval = val = atomic_read(&lock->val);
+> +			continue;
+> +		}
+
+Didn't I give a much saner alternative to this mess last time?
