@@ -1,62 +1,61 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from g2t2352.austin.hp.com ([15.217.128.51]:51305 "EHLO
-	g2t2352.austin.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754658AbaEHRyd (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 8 May 2014 13:54:33 -0400
-Message-ID: <536BC4BF.9030603@hp.com>
-Date: Thu, 08 May 2014 13:54:07 -0400
-From: Waiman Long <waiman.long@hp.com>
+Received: from bombadil.infradead.org ([198.137.202.9]:34379 "EHLO
+	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751856AbaEHS7D (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 8 May 2014 14:59:03 -0400
+Date: Thu, 8 May 2014 20:58:54 +0200
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH v10 06/19] qspinlock: prolong the stay in the pending bit
+ path
+Message-ID: <20140508185854.GN2844@laptop.programming.kicks-ass.net>
+References: <1399474907-22206-1-git-send-email-Waiman.Long@hp.com>
+ <1399474907-22206-7-git-send-email-Waiman.Long@hp.com>
 MIME-Version: 1.0
-Subject: Re: [PATCH v10 18/19] pvqspinlock, x86: Enable PV qspinlock PV for
- KVM
-References: <1399474907-22206-1-git-send-email-Waiman.Long@hp.com> <1399474907-22206-19-git-send-email-Waiman.Long@hp.com> <20140507190706.GA16333@phenom.dumpdata.com>
-In-Reply-To: <20140507190706.GA16333@phenom.dumpdata.com>
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1399474907-22206-7-git-send-email-Waiman.Long@hp.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Peter Zijlstra <peterz@infradead.org>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Rik van Riel <riel@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, David Vrabel <david.vrabel@citrix.com>, Oleg Nesterov <oleg@redhat.com>, Gleb Natapov <gleb@redhat.com>, Scott J Norton <scott.norton@hp.com>, Chegu Vinod <chegu_vinod@hp.com>
-Message-ID: <20140508175407.gI5PFITEcnGd-di27DESAS5GP05pou-zeYvUT4tvntU@z>
+To: Waiman Long <Waiman.Long@hp.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Rik van Riel <riel@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, David Vrabel <david.vrabel@citrix.com>, Oleg Nesterov <oleg@redhat.com>, Gleb Natapov <gleb@redhat.com>, Scott J Norton <scott.norton@hp.com>, Chegu Vinod <chegu_vinod@hp.com>
+Message-ID: <20140508185854.9LUFycvmb4Unx6jOppzxc2bCm9sr-5mI4XNQfxGidEs@z>
 
-On 05/07/2014 03:07 PM, Konrad Rzeszutek Wilk wrote:
->> Raghavendra KT had done some performance testing on this patch with
->> the following results:
->>
->> Overall we are seeing good improvement for pv-unfair version.
->>
->> System: 32 cpu sandybridge with HT on (4 node with 32 GB each)
->> Guest : 8GB with 16 vcpu/VM.
->> Average was taken over 8-10 data points.
->>
->> Base = 3.15-rc2  with PRAVIRT_SPINLOCK = y
->>
->> A = 3.15-rc2 + qspinlock v9 patch with QUEUE_SPINLOCK = y
->> PRAVIRT_SPINLOCK = y PARAVIRT_UNFAIR_LOCKS = y (unfair lock)
->>
->> B =  3.15-rc2 + qspinlock v9 patch with QUEUE_SPINLOCK = y
->> PRAVIRT_SPINLOCK = n PARAVIRT_UNFAIR_LOCKS = n
->> (queue spinlock without paravirt)
->>
->> C = 3.15-rc2 + qspinlock v9 patch with  QUEUE_SPINLOCK = y
->> PRAVIRT_SPINLOCK = y  PARAVIRT_UNFAIR_LOCKS = n
->> (queue spinlock with paravirt)
-> Could you do s/PRAVIRT/PARAVIRT/ please?
->
+On Wed, May 07, 2014 at 11:01:34AM -0400, Waiman Long wrote:
+> @@ -221,11 +222,37 @@ static inline int trylock_pending(struct qspinlock *lock, u32 *pval)
+>  	 */
+>  	for (;;) {
+>  		/*
+> -		 * If we observe any contention; queue.
+> +		 * If we observe that the queue is not empty,
+> +		 * return and be queued.
+>  		 */
+> -		if (val & ~_Q_LOCKED_MASK)
+> +		if (val & _Q_TAIL_MASK)
+>  			return 0;
+>  
+> +		if (val == (_Q_LOCKED_VAL|_Q_PENDING_VAL)) {
+> +			/*
+> +			 * If both the lock and pending bits are set, we wait
+> +			 * a while to see if that either bit will be cleared.
+> +			 * If that is no change, we return and be queued.
+> +			 */
+> +			if (!retry)
+> +				return 0;
+> +			retry--;
+> +			cpu_relax();
+> +			cpu_relax();
+> +			*pval = val = atomic_read(&lock->val);
+> +			continue;
+> +		} else if (val == _Q_PENDING_VAL) {
+> +			/*
+> +			 * Pending bit is set, but not the lock bit.
+> +			 * Assuming that the pending bit holder is going to
+> +			 * set the lock bit and clear the pending bit soon,
+> +			 * it is better to wait than to exit at this point.
+> +			 */
+> +			cpu_relax();
+> +			*pval = val = atomic_read(&lock->val);
+> +			continue;
+> +		}
 
-Sorry for the typo, I didn't check the text carefully enough when I 
-cut-and-paste it from Raghavendra's email.
-
->> Ebizzy %improvements
->> ====================
->> overcommit  A            B            C
->> 0.5x     4.4265        2.0611       1.5824
->> 1.0x     0.9015       -7.7828       4.5443
->> 1.5x    46.1162       -2.9845      -3.5046
->> 2.0x    99.8150       -2.7116       4.7461
-> Considering B sucks
-
-Yes, I don't expect the plain qspinlock code will perform well in a 
-guest without either unfair or pvspinlock support.
-
--Longman
+Didn't I give a much saner alternative to this mess last time?
