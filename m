@@ -1,65 +1,64 @@
 From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH 07/20] arch,cris: Fold atomic_ops
-Date: Thu, 8 May 2014 20:17:34 +0200
-Message-ID: <20140508181734.GK2844@laptop.programming.kicks-ass.net>
-References: <20140508135852.104572724@infradead.org>
- <CAMuHMdV7FUC+p5XqwLZmqJRLYv1qhu5hf0M_e5pASBRHgFAhCA@mail.gmail.com>
- <20140508160606.GD30445@twins.programming.kicks-ass.net>
- <20140508.133451.1383193780216133211.davem@davemloft.net>
+Subject: Re: [PATCH 20/20] arch: Rewrite generic atomic support
+Date: Thu, 8 May 2014 20:26:42 +0200
+Message-ID: <20140508182642.GL2844@laptop.programming.kicks-ass.net>
+References: <20140508135840.956784204@infradead.org>
+ <20140508135852.940119622@infradead.org>
+ <20140508152401.GA5177@ravnborg.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Transfer-Encoding: 8BIT
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from casper.infradead.org ([85.118.1.10]:45138 "EHLO
+Received: from casper.infradead.org ([85.118.1.10]:45201 "EHLO
 	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752485AbaEHSRm convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 8 May 2014 14:17:42 -0400
+	with ESMTP id S1752840AbaEHS0p convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 8 May 2014 14:26:45 -0400
 Content-Disposition: inline
-In-Reply-To: <20140508.133451.1383193780216133211.davem@davemloft.net>
+In-Reply-To: <20140508152401.GA5177@ravnborg.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Miller <davem@davemloft.net>
-Cc: geert@linux-m68k.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, torvalds@linux-foundation.org, akpm@linux-foundation.org, mingo@kernel.org, will.deacon@arm.com, paulmck@linux.vnet.ibm.com, jesper.nilsson@axis.com, starvik@axis.com
+To: Sam Ravnborg <sam@ravnborg.org>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, torvalds@linux-foundation.org, akpm@linux-foundation.org, mingo@kernel.org, will.deacon@arm.com, paulmck@linux.vnet.ibm.com, Arnd Bergmann <arnd@arndb.de>, David Howells <dhowells@redhat.com>
 
-On Thu, May 08, 2014 at 01:34:51PM -0400, David Miller wrote:
-> You did this for sparc too.
+On Thu, May 08, 2014 at 05:24:01PM +0200, Sam Ravnborg wrote:
+> >  
+> > -/**
+> > - * atomic_add_return - add integer to atomic variable
+> > - * @i: integer value to add
+> > - * @v: pointer of type atomic_t
+> > - *
+> > - * Atomically adds @i to @v and returns the result
+> > - */
+> For people not starign at kernel code every days these sparse comments
+> is a help. If anything they should be improved rather than deleted.
 
-I did indeed.
+Does something like this help? Its a bit tedious to have to repeat the
+comment while we just collapsed all the implementations.
 
-And sparc32 and sparc64 compile file without these spurious hunks.
 
-I'm sure I needed that to make it compile at one point, but I suspect
-they're remnants from the smp_mb__ shuffle which needed include file
-changes.
-
-But since then I've redone those and solved the compile issues
-differently, but these hunks stuck around...
-
-I've gone over the other patches, cris and sparc appear to be the only
-ones so affected.
-
-Just to make sure; these two hunks just went into the bit-bucket:
-
-Index: linux-2.6/arch/sparc/include/asm/barrier_32.h
-===================================================================
---- linux-2.6.orig/arch/sparc/include/asm/barrier_32.h
-+++ linux-2.6/arch/sparc/include/asm/barrier_32.h
-@@ -1,7 +1,6 @@
- #ifndef __SPARC_BARRIER_H
- #define __SPARC_BARRIER_H
+--- a/include/asm-generic/atomic.h
++++ b/include/asm-generic/atomic.h
+@@ -18,6 +18,23 @@
+ #include <asm/cmpxchg.h>
+ #include <asm/barrier.h>
  
--#include <asm/processor.h> /* for nop() */
- #include <asm-generic/barrier.h>
++/*
++ * atomic_$op() - $op integer to atomic variable
++ * @i: integer value to $op
++ * @v: pointer to the atomic variable
++ *
++ * Atomically $ops @i to @v. Does not strictly guarantee a memory-barrier, use
++ * smp_mb__{before,after}_atomic().
++ */
++
++/*
++ * atomic_$op_return() - $op interer to atomic variable and returns the result
++ * @i: integer value to $op
++ * @v: pointer to the atomic variable
++ *
++ * Atomically $ops @i to @v. Does imply a full memory barrier.
++ */
++
+ #ifdef CONFIG_SMP
  
- #endif /* !(__SPARC_BARRIER_H) */
-Index: linux-2.6/arch/sparc/include/asm/processor.h
-===================================================================
---- linux-2.6.orig/arch/sparc/include/asm/processor.h
-+++ linux-2.6/arch/sparc/include/asm/processor.h
-@@ -6,6 +6,4 @@
- #include <asm/processor_32.h>
- #endif
- 
--#define nop() 		__asm__ __volatile__ ("nop")
--
- #endif
+ /* we can build all atomic primitives from cmpxchg */
