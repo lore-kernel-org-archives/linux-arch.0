@@ -1,29 +1,29 @@
-From: David Miller <davem@davemloft.net>
+From: Jesper Nilsson <jesper.nilsson@axis.com>
 Subject: Re: [PATCH 07/20] arch,cris: Fold atomic_ops
-Date: Thu, 08 May 2014 16:27:27 -0400 (EDT)
-Message-ID: <20140508.162727.659734236303332635.davem@davemloft.net>
-References: <20140508160606.GD30445@twins.programming.kicks-ass.net>
-	<20140508.133451.1383193780216133211.davem@davemloft.net>
-	<20140508181734.GK2844@laptop.programming.kicks-ass.net>
+Date: Fri, 9 May 2014 10:14:40 +0200
+Message-ID: <20140509081440.GP9831@axis.com>
+References: <20140508135852.104572724@infradead.org>
+ <CAMuHMdV7FUC+p5XqwLZmqJRLYv1qhu5hf0M_e5pASBRHgFAhCA@mail.gmail.com>
+ <20140508160606.GD30445@twins.programming.kicks-ass.net>
+ <20140508.133451.1383193780216133211.davem@davemloft.net>
+ <20140508181734.GK2844@laptop.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from shards.monkeyblade.net ([149.20.54.216]:58896 "EHLO
-	shards.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754079AbaEHU1d (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 8 May 2014 16:27:33 -0400
+Received: from bastet.se.axis.com ([195.60.68.11]:34841 "EHLO
+	bastet.se.axis.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752270AbaEIIOs (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 9 May 2014 04:14:48 -0400
+Content-Disposition: inline
 In-Reply-To: <20140508181734.GK2844@laptop.programming.kicks-ass.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: peterz@infradead.org
-Cc: geert@linux-m68k.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, torvalds@linux-foundation.org, akpm@linux-foundation.org, mingo@kernel.org, will.deacon@arm.com, paulmck@linux.vnet.ibm.com, jesper.nilsson@axis.com, starvik@axis.com
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: David Miller <davem@davemloft.net>, "geert@linux-m68k.org" <geert@linux-m68k.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "torvalds@linux-foundation.org" <torvalds@linux-foundation.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "will.deacon@arm.com" <will.deacon@arm.com>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>, Jesper Nilsson <jespern@axis.com>, Mikael Starvik <starvik@axis.com>
 
-From: Peter Zijlstra <peterz@infradead.org>
-Date: Thu, 8 May 2014 20:17:34 +0200
-
+On Thu, May 08, 2014 at 08:17:34PM +0200, Peter Zijlstra wrote:
 > On Thu, May 08, 2014 at 01:34:51PM -0400, David Miller wrote:
->> You did this for sparc too.
+> > You did this for sparc too.
 > 
 > I did indeed.
 > 
@@ -38,9 +38,12 @@ Date: Thu, 8 May 2014 20:17:34 +0200
 > 
 > I've gone over the other patches, cris and sparc appear to be the only
 > ones so affected.
-> 
-> Just to make sure; these two hunks just went into the bit-bucket:
 
-Thanks, with those changes:
+With those changes, here's my
 
-Acked-by: David S. Miller <davem@davemloft.net>
+Acked-by: Jesper Nilsson <jesper.nilsson@axis.com>
+
+
+/^JN - Jesper Nilsson
+-- 
+               Jesper Nilsson -- jesper.nilsson@axis.com
