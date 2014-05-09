@@ -1,207 +1,270 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH 11/20] arch,m68k: Fold atomic_ops
-Date: Fri, 9 May 2014 11:16:46 +0200
-Message-ID: <20140509091646.GO30445@twins.programming.kicks-ass.net>
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Subject: Re: [PATCH 03/20] arch,arc: Fold atomic_ops
+Date: Fri, 9 May 2014 09:34:51 +0000
+Message-ID: <C2D7FE5348E1B147BCA15975FBA230751A6AB58E@IN01WEMBXA.internal.synopsys.com>
 References: <20140508135840.956784204@infradead.org>
- <20140508135852.387473090@infradead.org>
- <CAMuHMdUrG6pR0_6VhL8P_=HDmVBQxa9kinRm=AFxddyHQFBNeQ@mail.gmail.com>
+ <20140508135851.886055622@infradead.org>
 Mime-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha1;
-	protocol="application/pgp-signature"; boundary="ht9V8wKec6a3w1Ef"
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <CAMuHMdUrG6pR0_6VhL8P_=HDmVBQxa9kinRm=AFxddyHQFBNeQ@mail.gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Will Deacon <will.deacon@arm.com>, Paul McKenney <paulmck@linux.vnet.ibm.com>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 8BIT
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from smtprelay.synopsys.com ([198.182.60.111]:41838 "EHLO
+	smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752537AbaEIJfE convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 9 May 2014 05:35:04 -0400
+Content-Language: en-US
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Peter Zijlstra <peterz@infradead.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
+Cc: "torvalds@linux-foundation.org" <torvalds@linux-foundation.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "will.deacon@arm.com" <will.deacon@arm.com>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>
 
+Hi Peter,
 
---ht9V8wKec6a3w1Ef
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+Minor point below, otherwise looks good.
 
-On Fri, May 09, 2014 at 11:08:37AM +0200, Geert Uytterhoeven wrote:
-> These two chunks are identical, so please move them out of the #ifdef.
+On Thursday 08 May 2014 07:30 PM, Peter Zijlstra wrote:
+> Many of the atomic op implementations are the same except for one
+> instruction; fold the lot into a few CPP macros and reduce LoC.
+>
+> This also prepares for easy addition of new ops.
+>
+> Cc: Linus Torvalds <torvalds@linux-foundation.org>
+> Cc: Vineet Gupta <vgupta@synopsys.com>
+> Signed-off-by: Peter Zijlstra <peterz@infradead.org>
+> ---
+>  arch/arc/include/asm/atomic.h |  194 ++++++++++++++----------------------------
+>  1 file changed, 68 insertions(+), 126 deletions(-)
+>
+> --- a/arch/arc/include/asm/atomic.h
+> +++ b/arch/arc/include/asm/atomic.h
+> @@ -25,79 +25,36 @@
+>  
+>  #define atomic_set(v, i) (((v)->counter) = (i))
+>  
+> -static inline void atomic_add(int i, atomic_t *v)
+> -{
+> -	unsigned int temp;
+> -
+> -	__asm__ __volatile__(
+> -	"1:	llock   %0, [%1]	\n"
+> -	"	add     %0, %0, %2	\n"
+> -	"	scond   %0, [%1]	\n"
+> -	"	bnz     1b		\n"
+> -	: "=&r"(temp)	/* Early clobber, to prevent reg reuse */
+> -	: "r"(&v->counter), "ir"(i)
+> -	: "cc");
+> -}
+> -
+> -static inline void atomic_sub(int i, atomic_t *v)
+> -{
+> -	unsigned int temp;
+> -
+> -	__asm__ __volatile__(
+> -	"1:	llock   %0, [%1]	\n"
+> -	"	sub     %0, %0, %2	\n"
+> -	"	scond   %0, [%1]	\n"
+> -	"	bnz     1b		\n"
+> -	: "=&r"(temp)
+> -	: "r"(&v->counter), "ir"(i)
+> -	: "cc");
+> -}
+> -
+> -/* add and also return the new value */
+> -static inline int atomic_add_return(int i, atomic_t *v)
+> -{
+> -	unsigned int temp;
+> -
+> -	__asm__ __volatile__(
+> -	"1:	llock   %0, [%1]	\n"
+> -	"	add     %0, %0, %2	\n"
+> -	"	scond   %0, [%1]	\n"
+> -	"	bnz     1b		\n"
+> -	: "=&r"(temp)
+> -	: "r"(&v->counter), "ir"(i)
+> -	: "cc");
+> -
+> -	return temp;
+> -}
+> -
+> -static inline int atomic_sub_return(int i, atomic_t *v)
+> -{
+> -	unsigned int temp;
+> -
+> -	__asm__ __volatile__(
+> -	"1:	llock   %0, [%1]	\n"
+> -	"	sub     %0, %0, %2	\n"
+> -	"	scond   %0, [%1]	\n"
+> -	"	bnz     1b		\n"
+> -	: "=&r"(temp)
+> -	: "r"(&v->counter), "ir"(i)
+> -	: "cc");
+> -
+> -	return temp;
+> -}
+> -
+> -static inline void atomic_clear_mask(unsigned long mask, unsigned long *addr)
+> -{
+> -	unsigned int temp;
+> -
+> -	__asm__ __volatile__(
+> -	"1:	llock   %0, [%1]	\n"
+> -	"	bic     %0, %0, %2	\n"
+> -	"	scond   %0, [%1]	\n"
+> -	"	bnz     1b		\n"
+> -	: "=&r"(temp)
+> -	: "r"(addr), "ir"(mask)
+> -	: "cc");
+> +#define ATOMIC_OP(op, c_op, asm_op)					\
+> +static inline void atomic_##op(int i, atomic_t *v)			\
+> +{									\
+> +	unsigned int temp;						\
+> +									\
+> +	__asm__ __volatile__(						\
+> +	"1:	llock   %0, [%1]	\n"				\
+> +	"	" #asm_op " %0, %0, %2	\n"				\
+> +	"	scond   %0, [%1]	\n"				\
+> +	"	bnz     1b		\n"				\
+> +	: "=&r"(temp)	/* Early clobber, to prevent reg reuse */	\
+> +	: "r"(&v->counter), "ir"(i)					\
+> +	: "cc");							\
+> +}									\
+> +
+> +#define ATOMIC_OP_RETURN(op, c_op, asm_op)				\
+> +static inline int atomic_##op##_return(int i, atomic_t *v)		\
+> +{									\
+> +	unsigned int temp;						\
+> +									\
+> +	__asm__ __volatile__(						\
+> +	"1:	llock   %0, [%1]	\n"				\
+> +	"	" #asm_op " %0, %0, %2	\n"				\
+> +	"	scond   %0, [%1]	\n"				\
+> +	"	bnz     1b		\n"				\
+> +	: "=&r"(temp)							\
+> +	: "r"(&v->counter), "ir"(i)					\
+> +	: "cc");							\
+> +									\
+> +	return temp;							\
+>  }
+>  
+>  #else	/* !CONFIG_ARC_HAS_LLSC */
+> @@ -126,6 +83,7 @@ static inline void atomic_set(atomic_t *
+>  	v->counter = i;
+>  	atomic_ops_unlock(flags);
+>  }
+> +
+>  #endif
+>  
+>  /*
+> @@ -133,63 +91,47 @@ static inline void atomic_set(atomic_t *
+>   * Locking would change to irq-disabling only (UP) and spinlocks (SMP)
+>   */
+>  
+> -static inline void atomic_add(int i, atomic_t *v)
+> -{
+> -	unsigned long flags;
+> -
+> -	atomic_ops_lock(flags);
+> -	v->counter += i;
+> -	atomic_ops_unlock(flags);
+> -}
+> -
+> -static inline void atomic_sub(int i, atomic_t *v)
+> -{
+> -	unsigned long flags;
+> -
+> -	atomic_ops_lock(flags);
+> -	v->counter -= i;
+> -	atomic_ops_unlock(flags);
+> -}
+> -
+> -static inline int atomic_add_return(int i, atomic_t *v)
+> -{
+> -	unsigned long flags;
+> -	unsigned long temp;
+> -
+> -	atomic_ops_lock(flags);
+> -	temp = v->counter;
+> -	temp += i;
+> -	v->counter = temp;
+> -	atomic_ops_unlock(flags);
+> -
+> -	return temp;
+> -}
+> -
+> -static inline int atomic_sub_return(int i, atomic_t *v)
+> -{
+> -	unsigned long flags;
+> -	unsigned long temp;
+> -
+> -	atomic_ops_lock(flags);
+> -	temp = v->counter;
+> -	temp -= i;
+> -	v->counter = temp;
+> -	atomic_ops_unlock(flags);
+> -
+> -	return temp;
+> -}
+> -
+> -static inline void atomic_clear_mask(unsigned long mask, unsigned long *addr)
+> -{
+> -	unsigned long flags;
+> -
+> -	atomic_ops_lock(flags);
+> -	*addr &= ~mask;
+> -	atomic_ops_unlock(flags);
+> +#define ATOMIC_OP(op, c_op, asm_op)					\
+> +static inline void atomic_##op(int i, atomic_t *v)			\
+> +{									\
+> +	unsigned long flags;						\
+> +									\
+> +	atomic_ops_lock(flags);						\
+> +	v->counter c_op i;						\
+> +	atomic_ops_unlock(flags);					\
+> +}
+> +
+> +#define ATOMIC_OP_RETURN(op, c_op)					\
+> +static inline int atomic_##op##_return(int i, atomic_t *v)		\
+> +{									\
+> +	unsigned long flags;						\
+> +	unsigned long temp;						\
+> +									\
+> +	atomic_ops_lock(flags);						\
+> +	temp = v->counter;						\
+> +	temp c_op i;							\
+> +	v->counter = temp;						\
+> +	atomic_ops_unlock(flags);					\
+> +									\
+> +	return temp;							\
+>  }
+>  
+>  #endif /* !CONFIG_ARC_HAS_LLSC */
+>  
+> +#define ATOMIC_OPS(op, c_op, asm_op)					\
+> +	ATOMIC_OP(op, c_op, asm_op)					\
+> +	ATOMIC_OP_RETURN(op, c_op, asm_op)
+> +
+> +ATOMIC_OPS(add, +=, add)
+> +ATOMIC_OPS(sub, -=, sub)
+> +ATOMIC_OP(and, &=, and)
+> +
+> +#define atomic_clear_mask(mask, v) atomic_and(~(mask), (v))
 
-More lines saved!
+Given that ARC has instruction to do just that, can we keep below instead.
 
----
-Subject: arch,m68k: Fold atomic_ops
-=46rom: Peter Zijlstra <peterz@infradead.org>
-Date: Sun Mar 23 19:06:34 CET 2014
+ATOMIC_OP(clear_mask, ~=, bic)
 
-Many of the atomic op implementations are the same except for one
-instruction; fold the lot into a few CPP macros and reduce LoC.
+(see asm version of atomic_clear_mask)
 
-This also prepares for easy addition of new ops.
+-Vineet
 
-Requires asm_op due to eor.
-
-Cc: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>
-Signed-off-by: Peter Zijlstra <peterz@infradead.org>
----
- arch/m68k/include/asm/atomic.h |  113 +++++++++++++++++-------------------=
------
- 1 file changed, 49 insertions(+), 64 deletions(-)
-
---- a/arch/m68k/include/asm/atomic.h
-+++ b/arch/m68k/include/asm/atomic.h
-@@ -30,15 +30,56 @@
- #define	ASM_DI	"di"
- #endif
-=20
--static inline void atomic_add(int i, atomic_t *v)
--{
--	__asm__ __volatile__("addl %1,%0" : "+m" (*v) : ASM_DI (i));
--}
-+#define ATOMIC_OP(op, c_op, asm_op)					\
-+static inline void atomic_##op(int i, atomic_t *v)			\
-+{									\
-+	__asm__ __volatile__(#asm_op "l %1,%0" : "+m" (*v) : ASM_DI (i));\
-+}									\
-=20
--static inline void atomic_sub(int i, atomic_t *v)
--{
--	__asm__ __volatile__("subl %1,%0" : "+m" (*v) : ASM_DI (i));
--}
-+#ifdef CONFIG_RMW_INSNS
-+
-+#define ATOMIC_OP_RETURN(op, c_op, asm_op)				\
-+static inline int atomic_##op##_return(int i, atomic_t *v)		\
-+{									\
-+	int t, tmp;							\
-+									\
-+	__asm__ __volatile__(						\
-+			"1:	movel %2,%1\n"				\
-+			"	" #asm_op "l %3,%1\n"			\
-+			"	casl %2,%1,%0\n"			\
-+			"	jne 1b"					\
-+			: "+m" (*v), "=3D&d" (t), "=3D&d" (tmp)		\
-+			: "g" (i), "2" (atomic_read(v)));		\
-+	return t;							\
-+}
-+
-+#else
-+
-+#define ATOMIC_OP_RETURN(op, c_op, asm_op)				\
-+static inline int atomic_##op##_return(int i, atomic_t * v)		\
-+{									\
-+	unsigned long flags;						\
-+	int t;								\
-+									\
-+	local_irq_save(flags);						\
-+	t =3D (v->counter c_op i);					\
-+	local_irq_restore(flags);					\
-+									\
-+	return t;							\
-+}
-+
-+#endif /* CONFIG_RMW_INSNS */
-+
-+#define ATOMIC_OPS(op, c_op, asm_op)					\
-+	ATOMIC_OP(op, c_op, asm_op)					\
-+	ATOMIC_OP_RETURN(op, c_op, asm_op)
-+
-+ATOMIC_OPS(add, +=3D, add)
-+ATOMIC_OPS(sub, -=3D, sub)
-+
-+#undef ATOMIC_OPS
-+#undef ATOMIC_OP_RETURN
-+#undef ATOMIC_OP
-=20
- static inline void atomic_inc(atomic_t *v)
- {
-@@ -76,67 +117,11 @@ static inline int atomic_inc_and_test(at
-=20
- #ifdef CONFIG_RMW_INSNS
-=20
--static inline int atomic_add_return(int i, atomic_t *v)
--{
--	int t, tmp;
--
--	__asm__ __volatile__(
--			"1:	movel %2,%1\n"
--			"	addl %3,%1\n"
--			"	casl %2,%1,%0\n"
--			"	jne 1b"
--			: "+m" (*v), "=3D&d" (t), "=3D&d" (tmp)
--			: "g" (i), "2" (atomic_read(v)));
--	return t;
--}
--
--static inline int atomic_sub_return(int i, atomic_t *v)
--{
--	int t, tmp;
--
--	__asm__ __volatile__(
--			"1:	movel %2,%1\n"
--			"	subl %3,%1\n"
--			"	casl %2,%1,%0\n"
--			"	jne 1b"
--			: "+m" (*v), "=3D&d" (t), "=3D&d" (tmp)
--			: "g" (i), "2" (atomic_read(v)));
--	return t;
--}
--
- #define atomic_cmpxchg(v, o, n) ((int)cmpxchg(&((v)->counter), (o), (n)))
- #define atomic_xchg(v, new) (xchg(&((v)->counter), new))
-=20
- #else /* !CONFIG_RMW_INSNS */
-=20
--static inline int atomic_add_return(int i, atomic_t * v)
--{
--	unsigned long flags;
--	int t;
--
--	local_irq_save(flags);
--	t =3D atomic_read(v);
--	t +=3D i;
--	atomic_set(v, t);
--	local_irq_restore(flags);
--
--	return t;
--}
--
--static inline int atomic_sub_return(int i, atomic_t * v)
--{
--	unsigned long flags;
--	int t;
--
--	local_irq_save(flags);
--	t =3D atomic_read(v);
--	t -=3D i;
--	atomic_set(v, t);
--	local_irq_restore(flags);
--
--	return t;
--}
--
- static inline int atomic_cmpxchg(atomic_t *v, int old, int new)
- {
- 	unsigned long flags;
-
---ht9V8wKec6a3w1Ef
-Content-Type: application/pgp-signature
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.12 (GNU/Linux)
-
-iQIcBAEBAgAGBQJTbJz+AAoJEHZH4aRLwOS6EgYP/iXrKiEGA/TC/z3hGkOtMceI
-hLRsNXBhrBYwiXzO6UDe8JHgXtyvU/Od/Lz1jeWzQu53bBMh0Z8n2nhhPUJqnjvN
-QLNO4CBL114JY1NKs7kSxB0LjiLEO/cSOJH6+sYi67VVDXAo0uxaaUdXlCTfDwRe
-xbcgy/KceuRu1AIRMhBl17B+5ieOqfWF+dQ0ES7OsoXZYQJ9yE0x7XADOVMbIdiH
-I+c5n2N83GUitgPW5iT4HHNLLXZmg8skYac3rVQNwm3hXn0YbOR9cjzSA+Pp+5l/
-XoKHtd2QEYJGwNLSuyWAqPwZdXeiQP7s0IOaJlyTz9fEGwL+OCzMWEcuW2G7iQwM
-maB+W0+MzGZ8CPMI4ipMgthtA8ZQr3xCcxxmOlmP6t1l6CpLgHz24jNuJvr2r2Vt
-Gr6ad4RcaP4HH/QJmmSNK9oDnVaXeH0IKHwZcinO71NM3mLWWqG/vc4FmuNH4fhG
-sBTm8OTIh+fEnsUnTVqdLEi1+/EOB4qvQtrLAg5sQPsxn7W59UF0Pc4tyESvwbcQ
-oRkZSavMdptd6Jz/AIEYbRj8YFxw68tNLHzU0K1tLXaF4/d+GfnRI4zG9Ay5Ipnx
-Y2v4Nru59FPIF4Z6BLZQtcv5Yj/fIRu6g7CjfuGb3rLoqQ3Do68gcJLGDhllKaC1
-g3Sl0kruXUQUNJ84QSlW
-=/DB2
------END PGP SIGNATURE-----
-
---ht9V8wKec6a3w1Ef--
+> +
+> +#undef ATOMIC_OPS
+> +#undef ATOMIC_OP_RETURN
+> +#undef ATOMIC_OP
+> +
+>  /**
+>   * __atomic_add_unless - add unless the number is a given value
+>   * @v: pointer of type atomic_t
+>
+>
+>
