@@ -1,49 +1,54 @@
-From: Jesper Nilsson <jesper.nilsson@axis.com>
-Subject: Re: [PATCH 07/20] arch,cris: Fold atomic_ops
-Date: Fri, 9 May 2014 10:14:40 +0200
-Message-ID: <20140509081440.GP9831@axis.com>
-References: <20140508135852.104572724@infradead.org>
- <CAMuHMdV7FUC+p5XqwLZmqJRLYv1qhu5hf0M_e5pASBRHgFAhCA@mail.gmail.com>
- <20140508160606.GD30445@twins.programming.kicks-ass.net>
- <20140508.133451.1383193780216133211.davem@davemloft.net>
- <20140508181734.GK2844@laptop.programming.kicks-ass.net>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: [PATCH 11/20] arch,m68k: Fold atomic_ops
+Date: Fri, 9 May 2014 11:08:37 +0200
+Message-ID: <CAMuHMdUrG6pR0_6VhL8P_=HDmVBQxa9kinRm=AFxddyHQFBNeQ@mail.gmail.com>
+References: <20140508135840.956784204@infradead.org>
+	<20140508135852.387473090@infradead.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from bastet.se.axis.com ([195.60.68.11]:34841 "EHLO
-	bastet.se.axis.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752270AbaEIIOs (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 9 May 2014 04:14:48 -0400
-Content-Disposition: inline
-In-Reply-To: <20140508181734.GK2844@laptop.programming.kicks-ass.net>
+Received: from mail-ie0-f172.google.com ([209.85.223.172]:46758 "EHLO
+	mail-ie0-f172.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752005AbaEIJIi (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 9 May 2014 05:08:38 -0400
+In-Reply-To: <20140508135852.387473090@infradead.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Peter Zijlstra <peterz@infradead.org>
-Cc: David Miller <davem@davemloft.net>, "geert@linux-m68k.org" <geert@linux-m68k.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "torvalds@linux-foundation.org" <torvalds@linux-foundation.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "will.deacon@arm.com" <will.deacon@arm.com>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>, Jesper Nilsson <jespern@axis.com>, Mikael Starvik <starvik@axis.com>
+Cc: Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Will Deacon <will.deacon@arm.com>, Paul McKenney <paulmck@linux.vnet.ibm.com>
 
-On Thu, May 08, 2014 at 08:17:34PM +0200, Peter Zijlstra wrote:
-> On Thu, May 08, 2014 at 01:34:51PM -0400, David Miller wrote:
-> > You did this for sparc too.
-> 
-> I did indeed.
-> 
-> And sparc32 and sparc64 compile file without these spurious hunks.
-> 
-> I'm sure I needed that to make it compile at one point, but I suspect
-> they're remnants from the smp_mb__ shuffle which needed include file
-> changes.
-> 
-> But since then I've redone those and solved the compile issues
-> differently, but these hunks stuck around...
-> 
-> I've gone over the other patches, cris and sparc appear to be the only
-> ones so affected.
+Hi Peter,
 
-With those changes, here's my
+On Thu, May 8, 2014 at 3:58 PM, Peter Zijlstra <peterz@infradead.org> wrote:
+> +#ifdef CONFIG_RMW_INSNS
+>
+> -static inline void atomic_sub(int i, atomic_t *v)
+> -{
+> -       __asm__ __volatile__("subl %1,%0" : "+m" (*v) : ASM_DI (i));
+> -}
+> +#define ATOMIC_OP(op, c_op, asm_op)                                    \
+> +static inline void atomic_##op(int i, atomic_t *v)                     \
+> +{                                                                      \
+> +       __asm__ __volatile__(#asm_op "l %1,%0" : "+m" (*v) : ASM_DI (i));\
+> +}                                                                      \
 
-Acked-by: Jesper Nilsson <jesper.nilsson@axis.com>
+> +#else
+> +
+> +#define ATOMIC_OP(op, c_op, asm_op)                                    \
+> +static inline void atomic_##op(int i, atomic_t *v)                     \
+> +{                                                                      \
+> +       __asm__ __volatile__(#asm_op "l %1,%0" : "+m" (*v) : ASM_DI (i));\
+> +}                                                                      \
 
+These two chunks are identical, so please move them out of the #ifdef.
 
-/^JN - Jesper Nilsson
--- 
-               Jesper Nilsson -- jesper.nilsson@axis.com
+Gr{oetje,eeting}s,
+
+                        Geert
+
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
