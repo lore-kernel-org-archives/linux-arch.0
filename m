@@ -1,77 +1,177 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH 03/20] arch,arc: Fold atomic_ops
-Date: Fri, 9 May 2014 12:22:19 +0200
-Message-ID: <20140509102219.GW30445@twins.programming.kicks-ass.net>
+From: Hans-Christian Egtvedt <egtvedt@samfundet.no>
+Subject: Re: [PATCH 06/20] arch,avr32: Fold atomic_ops
+Date: Fri, 9 May 2014 20:32:41 +0200
+Message-ID: <20140509183241.GA4491@samfundet.no>
 References: <20140508135840.956784204@infradead.org>
- <20140508135851.886055622@infradead.org>
- <C2D7FE5348E1B147BCA15975FBA230751A6AB58E@IN01WEMBXA.internal.synopsys.com>
+ <20140508135852.049922584@infradead.org>
 Mime-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha1;
-	protocol="application/pgp-signature"; boundary="3TQuZyvpu40ebvIM"
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.9]:56714 "EHLO
-	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752062AbaEIKW3 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 9 May 2014 06:22:29 -0400
+Received: from cassarossa.samfundet.no ([193.35.52.29]:60725 "EHLO
+	cassarossa.samfundet.no" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1757374AbaEIScu (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 9 May 2014 14:32:50 -0400
 Content-Disposition: inline
-In-Reply-To: <C2D7FE5348E1B147BCA15975FBA230751A6AB58E@IN01WEMBXA.internal.synopsys.com>
+In-Reply-To: <20140508135852.049922584@infradead.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "torvalds@linux-foundation.org" <torvalds@linux-foundation.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "will.deacon@arm.com" <will.deacon@arm.com>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, torvalds@linux-foundation.org, akpm@linux-foundation.org, mingo@kernel.org, will.deacon@arm.com, paulmck@linux.vnet.ibm.com, Haavard Skinnemoen <hskinnemoen@gmail.com>
 
+Around Thu 08 May 2014 15:58:46 +0200 or thereabout, Peter Zijlstra wrote:
+> Many of the atomic op implementations are the same except for one
+> instruction; fold the lot into a few CPP macros and reduce LoC.
 
---3TQuZyvpu40ebvIM
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+The add and sub atomic operations are not 100% the same. Sub has more
+constraints on the integer size than add. Sub only takes a signed 21-bit
+integer, while add can do 32-bit additions IIRC correctly the instructions
+for AVR32.
 
-On Fri, May 09, 2014 at 09:34:51AM +0000, Vineet Gupta wrote:
-> Hi Peter,
->=20
-> Minor point below, otherwise looks good.
->=20
-> > +#define atomic_clear_mask(mask, v) atomic_and(~(mask), (v))
->=20
-> Given that ARC has instruction to do just that, can we keep below instead.
->=20
-> ATOMIC_OP(clear_mask, ~=3D, bic)
->=20
-> (see asm version of atomic_clear_mask)
+This is why you see in atomic_sub_return() that i is typed as "rKs21", while
+in atomic_add_return, i is typed "r".
 
-Ah, yes I did notices that.
+Your change limits both atomic operations to work only on signed 21-bit
+integers.
 
-The thing is, I was going to kill clear_mask in the next set.
+> This also prepares for easy addition of new ops.
+> 
+> Requires the asm_op because of eor.
+> 
+> Cc: Haavard Skinnemoen <hskinnemoen@gmail.com>
+> Cc: Hans-Christian Egtvedt <egtvedt@samfundet.no>
+> Cc: Linus Torvalds <torvalds@linux-foundation.org>
+> Signed-off-by: Peter Zijlstra <peterz@infradead.org>
+> ---
+>  arch/avr32/include/asm/atomic.h |   96 ++++++++++++++++++----------------------
+>  1 file changed, 44 insertions(+), 52 deletions(-)
+> 
+> --- a/arch/avr32/include/asm/atomic.h
+> +++ b/arch/avr32/include/asm/atomic.h
+> @@ -22,58 +22,52 @@
+>  #define atomic_read(v)		(*(volatile int *)&(v)->counter)
+>  #define atomic_set(v, i)	(((v)->counter) = i)
+>  
+> -/*
+> - * atomic_sub_return - subtract the atomic variable
+> - * @i: integer value to subtract
+> - * @v: pointer of type atomic_t
+> - *
+> - * Atomically subtracts @i from @v. Returns the resulting value.
+> - */
+> -static inline int atomic_sub_return(int i, atomic_t *v)
+> -{
+> -	int result;
+> -
+> -	asm volatile(
+> -		"/* atomic_sub_return */\n"
+> -		"1:	ssrf	5\n"
+> -		"	ld.w	%0, %2\n"
+> -		"	sub	%0, %3\n"
+> -		"	stcond	%1, %0\n"
+> -		"	brne	1b"
+> -		: "=&r"(result), "=o"(v->counter)
+> -		: "m"(v->counter), "rKs21"(i)
+> -		: "cc");
+> -
+> -	return result;
+> +#define ATOMIC_OP(op, asm_op)						\
+> +static inline void atomic_##op(int i, atomic_t *v)			\
+> +{									\
+> +	int result;							\
+> +									\
+> +	asm volatile(							\
+> +		"/* atomic_" #op " */\n"				\
+> +		"1:	ssrf	5\n"					\
+> +		"	ld.w	%0, %2\n"				\
+> +		"	" #asm_op "	%0, %3\n"			\
+> +		"	stcond	%1, %0\n"				\
+> +		"	brne	1b"					\
+> +		: "=&r"(result), "=o"(v->counter)			\
+> +		: "m"(v->counter), "rKs21"(i)				\
 
-I'm going to introduce: atomic_{or,and,xor}() and replace all
-atomic_set_mask() with atomic_or() and atomic_clear_mask() with
-atomic_and(~(mask)).
+All variable i integers are limited to signed 21-bit here.
 
-One of the 'problems' is that atomic_{set,clear}_mask() are not
-available on all archs and its a 'weird' interface in so far as that
-most our other primitives are or/and based, I don't think we have nand.
+> +		: "cc");						\
+> +}									\
+> +
+> +#define ATOMIC_OP_RETURN(op, asm_op)					\
+> +static inline int atomic_##op##_return(int i, atomic_t *v)		\
+> +{									\
+> +	int result;							\
+> +									\
+> +	asm volatile(							\
+> +		"/* atomic_" #op "_return */\n"				\
+> +		"1:	ssrf	5\n"					\
+> +		"	ld.w	%0, %2\n"				\
+> +		"	" #asm_op "	%0, %3\n"			\
+> +		"	stcond	%1, %0\n"				\
+> +		"	brne	1b"					\
+> +		: "=&r"(result), "=o"(v->counter)			\
+> +		: "m"(v->counter), "rKs21"(i)				\
 
-But if people really want I suppose I could also add atomic_nand().
+Same here.
 
---3TQuZyvpu40ebvIM
-Content-Type: application/pgp-signature
+> +		: "cc");						\
+> +									\
+> +	return result;							\
+>  }
+>  
+> -/*
+> - * atomic_add_return - add integer to atomic variable
+> - * @i: integer value to add
+> - * @v: pointer of type atomic_t
+> - *
+> - * Atomically adds @i to @v. Returns the resulting value.
+> - */
+> -static inline int atomic_add_return(int i, atomic_t *v)
+> -{
+> -	int result;
+> -
+> -	if (__builtin_constant_p(i) && (i >= -1048575) && (i <= 1048576))
+> -		result = atomic_sub_return(-i, v);
 
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.12 (GNU/Linux)
+I do not recall why we did it like this any more, I would assume both sub and
+add to be single cycle instructions.
 
-iQIcBAEBAgAGBQJTbKxbAAoJEHZH4aRLwOS6WeoQAIrz4mWlo5WQmtdUsrfgbiIC
-CmEsKdfPB6j1wMZd96dtg8klfXkUER/ZUYX8+c681mtw8d5uCw22fbMNyME+PmfD
-E/XLy6HDRPP7d6HUEg02Jz1wyGj+MZ2ZyZfThk/xjTGt7Wl7LRLAycAbmDGgnWZO
-RDU+RH24KiOV+HJDegMIA5LoNL2IeJ7+eCuzwxfo/yKaYqJdKC84pmMvcrTBFfls
-FImQDOllQY2rj626oP05CRW3ASEqNrNmoCKcxRZAO/OIbjAbAf4eYZbg2qYLMjTP
-Top944UfyEsRqIw66G0lDYVcJl9Bk2YM74vSjk9AVUpCDPjI9TNYOQxDZvHYvdLx
-MwzQ857KZxyD0Sj85CXxAEItfdq3BxH1En2ZtcT8MbWaEhL5z/cQ+1asJJ6biZdH
-lYRlsOL0lp+MDYxyFk22qCypXN3JoAQPCjQ6qX85IekRMGGvxb0B3ooncPI0vYOB
-f1A/AAh/2lSU4oXa08lsX6Wa/mpe6ePjX+9JcNaIdeSueU0rl/FaXvQ6+pwvOxYT
-vobq7Tof2MIJEcX3W1AoUkIZxkyExTXVfROHelnHk0q+2TKn5e0krLJCnbN4VcmB
-7cBouPPzen+3h6t518CPCJ6CmFVpe/hyR4H+FQ/0b4SjHLv/Xi3oPpcryNgGYfJT
-XLwOOrHE/ALzFQYutxuL
-=sb+Y
------END PGP SIGNATURE-----
+> -	else
+> -		asm volatile(
+> -			"/* atomic_add_return */\n"
+> -			"1:	ssrf	5\n"
+> -			"	ld.w	%0, %1\n"
+> -			"	add	%0, %3\n"
+> -			"	stcond	%2, %0\n"
+> -			"	brne	1b"
+> -			: "=&r"(result), "=o"(v->counter)
+> -			: "m"(v->counter), "r"(i)
+> -			: "cc", "memory");
+> -
+> -	return result;
+> -}
+> +#define ATOMIC_OPS(op, asm_op)						\
+> +	ATOMIC_OP(op, asm_op)						\
+> +	ATOMIC_OP_RETURN(op, asm_op)
+> +
+> +ATOMIC_OPS(add, add)
+> +ATOMIC_OPS(sub, sub)
+> +
+> +#undef ATOMIC_OPS
+> +#undef ATOMIC_OP_RETURN
+> +#undef ATOMIC_OP
+>  
+>  /*
+>   * atomic_sub_unless - sub unless the number is a given value
+> @@ -168,8 +162,6 @@ static inline int atomic_sub_if_positive
+>  #define atomic_xchg(v, new)	(xchg(&((v)->counter), new))
+>  #define atomic_cmpxchg(v, o, n)	(cmpxchg(&((v)->counter), (o), (n)))
+>  
+> -#define atomic_sub(i, v)	(void)atomic_sub_return(i, v)
+> -#define atomic_add(i, v)	(void)atomic_add_return(i, v)
+>  #define atomic_dec(v)		atomic_sub(1, (v))
+>  #define atomic_inc(v)		atomic_add(1, (v))
 
---3TQuZyvpu40ebvIM--
+I like the simplification, do you manage to preprocessor both instruction and
+instruction argument limit?
+
+-- 
+Best regards,
+Hans-Christian Egtvedt
