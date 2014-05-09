@@ -1,55 +1,77 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [PATCH 11/20] arch,m68k: Fold atomic_ops
-Date: Fri, 9 May 2014 11:44:15 +0200
-Message-ID: <CAMuHMdUs2OyY9jrhjXLwu9Y6u9_6HVo2R5fofp93SaZH40Uf-w@mail.gmail.com>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH 03/20] arch,arc: Fold atomic_ops
+Date: Fri, 9 May 2014 12:22:19 +0200
+Message-ID: <20140509102219.GW30445@twins.programming.kicks-ass.net>
 References: <20140508135840.956784204@infradead.org>
-	<20140508135852.387473090@infradead.org>
-	<CAMuHMdUrG6pR0_6VhL8P_=HDmVBQxa9kinRm=AFxddyHQFBNeQ@mail.gmail.com>
-	<20140509091646.GO30445@twins.programming.kicks-ass.net>
+ <20140508135851.886055622@infradead.org>
+ <C2D7FE5348E1B147BCA15975FBA230751A6AB58E@IN01WEMBXA.internal.synopsys.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: multipart/signed; micalg=pgp-sha1;
+	protocol="application/pgp-signature"; boundary="3TQuZyvpu40ebvIM"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ig0-f179.google.com ([209.85.213.179]:52562 "EHLO
-	mail-ig0-f179.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752005AbaEIJoQ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 9 May 2014 05:44:16 -0400
-In-Reply-To: <20140509091646.GO30445@twins.programming.kicks-ass.net>
+Received: from bombadil.infradead.org ([198.137.202.9]:56714 "EHLO
+	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752062AbaEIKW3 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 9 May 2014 06:22:29 -0400
+Content-Disposition: inline
+In-Reply-To: <C2D7FE5348E1B147BCA15975FBA230751A6AB58E@IN01WEMBXA.internal.synopsys.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Will Deacon <will.deacon@arm.com>, Paul McKenney <paulmck@linux.vnet.ibm.com>
+To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "torvalds@linux-foundation.org" <torvalds@linux-foundation.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "will.deacon@arm.com" <will.deacon@arm.com>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>
 
-On Fri, May 9, 2014 at 11:16 AM, Peter Zijlstra <peterz@infradead.org> wrote:
-> On Fri, May 09, 2014 at 11:08:37AM +0200, Geert Uytterhoeven wrote:
->> These two chunks are identical, so please move them out of the #ifdef.
->
-> More lines saved!
->
-> ---
-> Subject: arch,m68k: Fold atomic_ops
-> From: Peter Zijlstra <peterz@infradead.org>
-> Date: Sun Mar 23 19:06:34 CET 2014
->
-> Many of the atomic op implementations are the same except for one
-> instruction; fold the lot into a few CPP macros and reduce LoC.
->
-> This also prepares for easy addition of new ops.
->
-> Requires asm_op due to eor.
->
-> Cc: Geert Uytterhoeven <geert@linux-m68k.org>
-> Cc: Linus Torvalds <torvalds@linux-foundation.org>
-> Signed-off-by: Peter Zijlstra <peterz@infradead.org>
 
-Acked-by: Geert Uytterhoeven <geert@linux-m68k.org>
+--3TQuZyvpu40ebvIM
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
 
-Gr{oetje,eeting}s,
+On Fri, May 09, 2014 at 09:34:51AM +0000, Vineet Gupta wrote:
+> Hi Peter,
+>=20
+> Minor point below, otherwise looks good.
+>=20
+> > +#define atomic_clear_mask(mask, v) atomic_and(~(mask), (v))
+>=20
+> Given that ARC has instruction to do just that, can we keep below instead.
+>=20
+> ATOMIC_OP(clear_mask, ~=3D, bic)
+>=20
+> (see asm version of atomic_clear_mask)
 
-                        Geert
+Ah, yes I did notices that.
 
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+The thing is, I was going to kill clear_mask in the next set.
 
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+I'm going to introduce: atomic_{or,and,xor}() and replace all
+atomic_set_mask() with atomic_or() and atomic_clear_mask() with
+atomic_and(~(mask)).
+
+One of the 'problems' is that atomic_{set,clear}_mask() are not
+available on all archs and its a 'weird' interface in so far as that
+most our other primitives are or/and based, I don't think we have nand.
+
+But if people really want I suppose I could also add atomic_nand().
+
+--3TQuZyvpu40ebvIM
+Content-Type: application/pgp-signature
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.12 (GNU/Linux)
+
+iQIcBAEBAgAGBQJTbKxbAAoJEHZH4aRLwOS6WeoQAIrz4mWlo5WQmtdUsrfgbiIC
+CmEsKdfPB6j1wMZd96dtg8klfXkUER/ZUYX8+c681mtw8d5uCw22fbMNyME+PmfD
+E/XLy6HDRPP7d6HUEg02Jz1wyGj+MZ2ZyZfThk/xjTGt7Wl7LRLAycAbmDGgnWZO
+RDU+RH24KiOV+HJDegMIA5LoNL2IeJ7+eCuzwxfo/yKaYqJdKC84pmMvcrTBFfls
+FImQDOllQY2rj626oP05CRW3ASEqNrNmoCKcxRZAO/OIbjAbAf4eYZbg2qYLMjTP
+Top944UfyEsRqIw66G0lDYVcJl9Bk2YM74vSjk9AVUpCDPjI9TNYOQxDZvHYvdLx
+MwzQ857KZxyD0Sj85CXxAEItfdq3BxH1En2ZtcT8MbWaEhL5z/cQ+1asJJ6biZdH
+lYRlsOL0lp+MDYxyFk22qCypXN3JoAQPCjQ6qX85IekRMGGvxb0B3ooncPI0vYOB
+f1A/AAh/2lSU4oXa08lsX6Wa/mpe6ePjX+9JcNaIdeSueU0rl/FaXvQ6+pwvOxYT
+vobq7Tof2MIJEcX3W1AoUkIZxkyExTXVfROHelnHk0q+2TKn5e0krLJCnbN4VcmB
+7cBouPPzen+3h6t518CPCJ6CmFVpe/hyR4H+FQ/0b4SjHLv/Xi3oPpcryNgGYfJT
+XLwOOrHE/ALzFQYutxuL
+=sb+Y
+-----END PGP SIGNATURE-----
+
+--3TQuZyvpu40ebvIM--
