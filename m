@@ -1,106 +1,84 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from casper.infradead.org ([85.118.1.10]:53070 "EHLO
+Received: from casper.infradead.org ([85.118.1.10]:53141 "EHLO
 	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754037AbaEJNij (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 10 May 2014 09:38:39 -0400
-Date: Sat, 10 May 2014 15:38:29 +0200
+	with ESMTP id S1752845AbaEJONG (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 10 May 2014 10:13:06 -0400
+Date: Sat, 10 May 2014 16:13:00 +0200
 From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v10 06/19] qspinlock: prolong the stay in the pending bit
- path
-Message-ID: <20140510133829.GD30445@twins.programming.kicks-ass.net>
+Subject: Re: [PATCH v10 09/19] qspinlock: Prepare for unfair lock support
+Message-ID: <20140510141300.GE30445@twins.programming.kicks-ass.net>
 References: <1399474907-22206-1-git-send-email-Waiman.Long@hp.com>
- <1399474907-22206-7-git-send-email-Waiman.Long@hp.com>
- <20140508185854.GN2844@laptop.programming.kicks-ass.net>
- <536D79C7.2000701@hp.com>
+ <1399474907-22206-10-git-send-email-Waiman.Long@hp.com>
+ <20140508190649.GR2844@laptop.programming.kicks-ass.net>
+ <536D7EA4.4060301@hp.com>
 MIME-Version: 1.0
 Content-Type: multipart/signed; micalg=pgp-sha1;
-	protocol="application/pgp-signature"; boundary="EIrXVFSPgsocVIgL"
+	protocol="application/pgp-signature"; boundary="gb4bweTRjl1pQhan"
 Content-Disposition: inline
-In-Reply-To: <536D79C7.2000701@hp.com>
+In-Reply-To: <536D7EA4.4060301@hp.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Waiman Long <waiman.long@hp.com>
 Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Rik van Riel <riel@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, David Vrabel <david.vrabel@citrix.com>, Oleg Nesterov <oleg@redhat.com>, Gleb Natapov <gleb@redhat.com>, Scott J Norton <scott.norton@hp.com>, Chegu Vinod <chegu_vinod@hp.com>
-Message-ID: <20140510133829.gjkKDA4wm3TN9YW7amMbEc2J7HR2fZNduLLXkM27wec@z>
+Message-ID: <20140510141300.v5GVG5382dursjKut5XqGNLgHWG9iLfmoAl92KBtLWw@z>
 
 
---EIrXVFSPgsocVIgL
+--gb4bweTRjl1pQhan
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
 Content-Transfer-Encoding: quoted-printable
 
-On Fri, May 09, 2014 at 08:58:47PM -0400, Waiman Long wrote:
-> On 05/08/2014 02:58 PM, Peter Zijlstra wrote:
-> >On Wed, May 07, 2014 at 11:01:34AM -0400, Waiman Long wrote:
-> >>@@ -221,11 +222,37 @@ static inline int trylock_pending(struct qspinloc=
-k *lock, u32 *pval)
-> >>  	 */
-> >>  	for (;;) {
-> >>  		/*
-> >>-		 * If we observe any contention; queue.
-> >>+		 * If we observe that the queue is not empty,
-> >>+		 * return and be queued.
-> >>  		 */
-> >>-		if (val&  ~_Q_LOCKED_MASK)
-> >>+		if (val&  _Q_TAIL_MASK)
-> >>  			return 0;
+On Fri, May 09, 2014 at 09:19:32PM -0400, Waiman Long wrote:
+> On 05/08/2014 03:06 PM, Peter Zijlstra wrote:
+> >On Wed, May 07, 2014 at 11:01:37AM -0400, Waiman Long wrote:
+> >>If unfair lock is supported, the lock acquisition loop at the end of
+> >>the queue_spin_lock_slowpath() function may need to detect the fact
+> >>the lock can be stolen. Code are added for the stolen lock detection.
 > >>
-> >>+		if (val =3D=3D (_Q_LOCKED_VAL|_Q_PENDING_VAL)) {
-> >>+			/*
-> >>+			 * If both the lock and pending bits are set, we wait
-> >>+			 * a while to see if that either bit will be cleared.
-> >>+			 * If that is no change, we return and be queued.
-> >>+			 */
-> >>+			if (!retry)
-> >>+				return 0;
-> >>+			retry--;
-> >>+			cpu_relax();
-> >>+			cpu_relax();
-> >>+			*pval =3D val =3D atomic_read(&lock->val);
-> >>+			continue;
-> >>+		} else if (val =3D=3D _Q_PENDING_VAL) {
-> >>+			/*
-> >>+			 * Pending bit is set, but not the lock bit.
-> >>+			 * Assuming that the pending bit holder is going to
-> >>+			 * set the lock bit and clear the pending bit soon,
-> >>+			 * it is better to wait than to exit at this point.
-> >>+			 */
-> >>+			cpu_relax();
-> >>+			*pval =3D val =3D atomic_read(&lock->val);
-> >>+			continue;
-> >>+		}
-> >Didn't I give a much saner alternative to this mess last time?
+> >>A new qhead macro is also defined as a shorthand for mcs.locked.
+> >NAK, unfair should be a pure test-and-set lock.
 >=20
-> I don't recall you have any suggestion last time. Anyway, if you think the
-> code is too messy, I think I can give up the first if statement which is
-> more an optimistic spinning kind of code for short critical section. The =
-2nd
-> if statement is still need to improve chance of using this code path due =
-to
-> timing reason. I will rerun my performance test to make sure it won't have
-> too much performance impact.
+> I have performance data showing that a simple test-and-set lock does not
+> scale well. That is the primary reason of ditching the test-and-set lock =
+and
+> use a more complicated scheme which scales better.
 
-lkml.kernel.org/r/20140417163640.GT11096@twins.programming.kicks-ass.net
+Nobody should give a fuck about scalability in this case anyway.
 
---EIrXVFSPgsocVIgL
+Also, as I explained/asked earlier:
+
+  lkml.kernel.org/r/20140314083001.GN27965@twins.programming.kicks-ass.net
+
+Lock holder preemption is _way_ worse with any kind of queueing. You've
+not explained how the simple 3 cpu example in that email gets better
+performance than a test-and-set lock.
+
+> Also, it will be hard to
+> make the unfair test-and-set lock code to coexist nicely with PV spinlock
+> code.
+
+That's just complete crap as the test-and-set lock is like 3 lines of
+code.
+
+--gb4bweTRjl1pQhan
 Content-Type: application/pgp-signature
 
 -----BEGIN PGP SIGNATURE-----
 Version: GnuPG v1.4.12 (GNU/Linux)
 
-iQIcBAEBAgAGBQJTbivVAAoJEHZH4aRLwOS6GCUP/0mR3CvV3nBeKaGb2km8GwV2
-wQRx1OVYmoC4+8ikFGSXUbm3++1JLokQfTKPB5fMrIqP8kKnEdMSMmjE9cq3E/ZZ
-UTcp75PI0x3b/ABfQx9nXrmAOeGiXvX5DULDpg7t2JJMsQXiMKI9nk6FTLioh6eZ
-Vngn1rst/uJ5O99IaiDo2AMLtG80cc5NFkfkKFIw624ANPupkC/pVNqP+JKv8AuS
-ppiNp6yzKwTh/7y1+okBvRszTRzrWVVEjBWK1M5OwfYsAuvkBfA7oKNKpEmgBs3+
-KC+fzmihlkC/feN5Fx9X+Gb9VohMlRaf6rd9IaLX7NQ0hkR2yTn/dJGFsJ3mKunR
-FYw+YAYqfr05T+aJQ6zq7CbQDzaSE5Gqqb2d4ur/b1o9IFREH44WZ6z/HvYMlwnx
-77JCkTcM2jADakiz0GLG62uNAE+ulfKz4JdQYbWyDjLWiEMUh/8+pO0Efji1OIEA
-lhkc7eTTochtORbLOSYh1AzVuqPGxTWfxdIekmrYeg5qQq/ZiI2O44ys0ohqZUAt
-oJLr91TMJgHPQXtigftADjCHI7piysa1PG7+FwzoZQ3HC2DbTj6oUV8ZmW/sH0nw
-Gxb77wGgz1MvXrBuIO7fXbjkGuvBTdTojkoHsuTsiNzAgdIYjxJKOfowyVZiMq6A
-VGFdDNWijZSRTUXwPzWK
-=p8dI
+iQIcBAEBAgAGBQJTbjPsAAoJEHZH4aRLwOS6DHoQAI8k9IXmkcWjHX8w+HY70xEC
+5r+6ofM4q2UqO92eoq7fCDKxRIHw8N0IL1HwmXL80IayZgm5l9KEm6b8eMzRAGUo
+dhKqnAU1Fx2T0Qq+AES5PBHscwz7cbWA6wkxzkW4BqHuzI0oa6KpVo1sXsFdurpp
+zgbGY+CwfvCHc9EYiG5zrxGyqerICuSoh+JnLx/upwsI7qwtepNzH0BmJuY30kr6
+HZQ5tH4gFC6IT9Lb7zRCi8PYU+KWfQxEFB5gKwKpqr+Tl+QrZQf/hNyuA8tbGrZo
+4JdguKqshFxqCpQ5KER+Is6vgryVxGzxWfBWskICYsORxX59RGHzWfUN56a+tgNG
+lHa+mQDn9OT1jcLxZvadBecMGhEP+yIrXN90/laPSXS5UZlla7WWLcDR+qi65EWY
+dJuaCsmvRqD5qqnUfa9ScWlQO9pC1jZ/QJKPPwS/dh7MpiHkWkmbY7+quBq64xof
+Kjy6qxGkm+4FpgoUlOw4cvLnmgbsWc8Z8sHPI/E0og/47ZGzpg0Uprbo/GZ2tSLQ
+eJni0kbQnulnlSoCQLvdhGWLhV5ZxGSBs3nlqKzqBDI8r2/p4Bd7D7eRd3jwTVWu
+l57WRcuAPduyBK/2LWY6epnQW3IiC+ShpcX2qBeCWFeoZyZAGMP43aZFcuD3aDXR
+TcUPJ51KjXE+eyEQpsNp
+=fEVE
 -----END PGP SIGNATURE-----
 
---EIrXVFSPgsocVIgL--
+--gb4bweTRjl1pQhan--
