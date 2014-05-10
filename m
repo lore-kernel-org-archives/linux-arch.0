@@ -1,246 +1,78 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH 06/20] arch,avr32: Fold atomic_ops
-Date: Fri, 9 May 2014 23:17:28 +0200
-Message-ID: <20140509211728.GI1429@laptop.programming.kicks-ass.net>
-References: <20140508135840.956784204@infradead.org>
- <20140508135852.049922584@infradead.org>
- <20140509183241.GA4491@samfundet.no>
- <20140509204309.GA13467@laptop.programming.kicks-ass.net>
- <20140509205155.GH1429@laptop.programming.kicks-ass.net>
+From: Waiman Long <waiman.long@hp.com>
+Subject: Re: [PATCH v10 03/19] qspinlock: Add pending bit
+Date: Fri, 09 May 2014 20:49:50 -0400
+Message-ID: <536D77AE.40306@hp.com>
+References: <1399474907-22206-1-git-send-email-Waiman.Long@hp.com>
+	<1399474907-22206-4-git-send-email-Waiman.Long@hp.com>
+	<20140508185712.GM2844@laptop.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Transfer-Encoding: 8BIT
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.9]:58412 "EHLO
-	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932341AbaEIVRh convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 9 May 2014 17:17:37 -0400
-Content-Disposition: inline
-In-Reply-To: <20140509205155.GH1429@laptop.programming.kicks-ass.net>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Hans-Christian Egtvedt <egtvedt@samfundet.no>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, torvalds@linux-foundation.org, akpm@linux-foundation.org, mingo@kernel.org, will.deacon@arm.com, paulmck@linux.vnet.ibm.com, Haavard Skinnemoen <hskinnemoen@gmail.com>
+Content-Type: text/plain; charset="us-ascii"; Format="flowed"
+Content-Transfer-Encoding: 7bit
+Return-path: <virtualization-bounces@lists.linux-foundation.org>
+In-Reply-To: <20140508185712.GM2844@laptop.programming.kicks-ass.net>
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
+List-Post: <mailto:virtualization@lists.linux-foundation.org>
+List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
+Sender: virtualization-bounces@lists.linux-foundation.org
+Errors-To: virtualization-bounces@lists.linux-foundation.org
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: linux-arch@vger.kernel.org, Rik van Riel <riel@redhat.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, Oleg Nesterov <oleg@redhat.com>, Gleb Natapov <gleb@redhat.com>, kvm@vger.kernel.org, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Scott J Norton <scott.norton@hp.com>, x86@kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, Ingo Molnar <mingo@redhat.com>, Chegu Vinod <chegu_vinod@hp.com>, David Vrabel <david.vrabel@citrix.com>, "H. Peter Anvin" <hpa@zytor.com>, xen-devel@lists.xenproject.org, Thomas Gleixner <tglx@linutronix.de>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Boris Ostrovsky <boris.ostrovsky@oracle.com>
+List-Id: linux-arch.vger.kernel.org
 
-On Fri, May 09, 2014 at 10:51:55PM +0200, Peter Zijlstra wrote:
-> On Fri, May 09, 2014 at 10:43:09PM +0200, Peter Zijlstra wrote:
-> > On Fri, May 09, 2014 at 08:32:41PM +0200, Hans-Christian Egtvedt wrote:
-> 
-> > > > -	if (__builtin_constant_p(i) && (i >= -1048575) && (i <= 1048576))
-> > > > -		result = atomic_sub_return(-i, v);
-> > > 
-> > > I do not recall why we did it like this any more, I would assume both sub and
-> > > add to be single cycle instructions.
-> 
-> Similarly, can I rip out atomic_sub_unless() ?
+On 05/08/2014 02:57 PM, Peter Zijlstra wrote:
+> On Wed, May 07, 2014 at 11:01:31AM -0400, Waiman Long wrote:
+>> +/**
+>> + * trylock_pending - try to acquire queue spinlock using the pending bit
+>> + * @lock : Pointer to queue spinlock structure
+>> + * @pval : Pointer to value of the queue spinlock 32-bit word
+>> + * Return: 1 if lock acquired, 0 otherwise
+>> + */
+>> +static inline int trylock_pending(struct qspinlock *lock, u32 *pval)
+> Still don't like you put it in a separate function, but you don't need
+> the pointer thing. Note how after you fail the trylock_pending() you
+> touch the second (node) cacheline.
+>
+>> @@ -110,6 +184,9 @@ void queue_spin_lock_slowpath(struct qspinlock *lock, u32 val)
+>>
+>>   	BUILD_BUG_ON(CONFIG_NR_CPUS>= (1U<<  _Q_TAIL_CPU_BITS));
+>>
+>> +	if (trylock_pending(lock,&val))
+>> +		return;	/* Lock acquired */
+>> +
+>>   	node = this_cpu_ptr(&mcs_nodes[0]);
+>>   	idx = node->count++;
+>>   	tail = encode_tail(smp_processor_id(), idx);
+>> @@ -119,15 +196,18 @@ void queue_spin_lock_slowpath(struct qspinlock *lock, u32 val)
+>>   	node->next = NULL;
+>>
+>>   	/*
+>> +	 * we already touched the queueing cacheline; don't bother with pending
+>> +	 * stuff.
+>> +	 *
+>>   	 * trylock || xchg(lock, node)
+>>   	 *
+>> -	 * 0,0 ->  0,1 ; trylock
+>> -	 * p,x ->  n,x ; prev = xchg(lock, node)
+>> +	 * 0,0,0 ->  0,0,1 ; trylock
+>> +	 * p,y,x ->  n,y,x ; prev = xchg(lock, node)
+>>   	 */
+> And any value of @val we might have had here is completely out-dated.
+> The only thing that makes sense it to set:
+>
+> 	val = 0;
+>
+> Which makes us start with a trylock, alternatively we can re-read val.
 
-Something like so?
+That is true. I will make the change to get rid of the pointer thing.
 
----
-Subject: arch,avr32: Fold atomic_ops
-From: Peter Zijlstra <peterz@infradead.org>
-Date: Wed Apr 9 21:51:29 CEST 2014
+As for the separate trylock_pending function, my original goal was to 
+have a better delineation of different portions of the code.  Given the 
+fact that I broke up the slowpath function into 2 in a later patch, I 
+may not really need to separate it out. I will pull it back in the next 
+version.
 
-Many of the atomic op implementations are the same except for one
-instruction; fold the lot into a few CPP macros and reduce LoC.
-
-This also prepares for easy addition of new ops.
-
-Requires the asm_op because of eor.
-
-The avr32 sub instruction is limited to 21 bits, Hans-Christian cannot
-recall the reason for the weird __builtin_constant_p() tests so take all
-that out and use a straight fwd negate add instead of subtract.
-
-Cc: Hans-Christian Egtvedt <egtvedt@samfundet.no>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Haavard Skinnemoen <hskinnemoen@gmail.com>
-Signed-off-by: Peter Zijlstra <peterz@infradead.org>
----
- arch/avr32/include/asm/atomic.h |  145 +++++++++++++++-------------------------
- 1 file changed, 55 insertions(+), 90 deletions(-)
-
---- a/arch/avr32/include/asm/atomic.h
-+++ b/arch/avr32/include/asm/atomic.h
-@@ -22,117 +22,84 @@
- #define atomic_read(v)		(*(volatile int *)&(v)->counter)
- #define atomic_set(v, i)	(((v)->counter) = i)
- 
--/*
-- * atomic_sub_return - subtract the atomic variable
-- * @i: integer value to subtract
-- * @v: pointer of type atomic_t
-- *
-- * Atomically subtracts @i from @v. Returns the resulting value.
-- */
--static inline int atomic_sub_return(int i, atomic_t *v)
--{
--	int result;
--
--	asm volatile(
--		"/* atomic_sub_return */\n"
--		"1:	ssrf	5\n"
--		"	ld.w	%0, %2\n"
--		"	sub	%0, %3\n"
--		"	stcond	%1, %0\n"
--		"	brne	1b"
--		: "=&r"(result), "=o"(v->counter)
--		: "m"(v->counter), "rKs21"(i)
--		: "cc");
--
--	return result;
-+#define ATOMIC_OP(op, asm_op)						\
-+static inline void atomic_##op(int i, atomic_t *v)			\
-+{									\
-+	int result;							\
-+									\
-+	asm volatile(							\
-+		"/* atomic_" #op " */\n"				\
-+		"1:	ssrf	5\n"					\
-+		"	ld.w	%0, %2\n"				\
-+		"	" #asm_op "	%0, %3\n"			\
-+		"	stcond	%1, %0\n"				\
-+		"	brne	1b"					\
-+		: "=&r"(result), "=o"(v->counter)			\
-+		: "m"(v->counter), "r"(i)				\
-+		: "cc");						\
-+}									\
-+
-+#define ATOMIC_OP_RETURN(op, asm_op)					\
-+static inline int atomic_##op##_return(int i, atomic_t *v)		\
-+{									\
-+	int result;							\
-+									\
-+	asm volatile(							\
-+		"/* atomic_" #op "_return */\n"				\
-+		"1:	ssrf	5\n"					\
-+		"	ld.w	%0, %2\n"				\
-+		"	" #asm_op "	%0, %3\n"			\
-+		"	stcond	%1, %0\n"				\
-+		"	brne	1b"					\
-+		: "=&r"(result), "=o"(v->counter)			\
-+		: "m"(v->counter), "r"(i)				\
-+		: "cc");						\
-+									\
-+	return result;							\
- }
- 
-+#define ATOMIC_OPS(op, asm_op)						\
-+	ATOMIC_OP(op, asm_op)						\
-+	ATOMIC_OP_RETURN(op, asm_op)
-+
-+ATOMIC_OPS(add, add)
-+
-+#undef ATOMIC_OPS
-+#undef ATOMIC_OP_RETURN
-+#undef ATOMIC_OP
-+
- /*
-- * atomic_add_return - add integer to atomic variable
-- * @i: integer value to add
-- * @v: pointer of type atomic_t
-- *
-- * Atomically adds @i to @v. Returns the resulting value.
-+ * The 'sub' instruction is limited to 21 bits, use negate add instead.
-  */
--static inline int atomic_add_return(int i, atomic_t *v)
--{
--	int result;
--
--	if (__builtin_constant_p(i) && (i >= -1048575) && (i <= 1048576))
--		result = atomic_sub_return(-i, v);
--	else
--		asm volatile(
--			"/* atomic_add_return */\n"
--			"1:	ssrf	5\n"
--			"	ld.w	%0, %1\n"
--			"	add	%0, %3\n"
--			"	stcond	%2, %0\n"
--			"	brne	1b"
--			: "=&r"(result), "=o"(v->counter)
--			: "m"(v->counter), "r"(i)
--			: "cc", "memory");
--
--	return result;
--}
-+#define atomic_sub(i, v)	atomic_add(-(i), (v))
-+#define atomic_sub_return(i, v)	atomic_add_return(-(i), (v))
- 
- /*
-- * atomic_sub_unless - sub unless the number is a given value
-+ * __atomic_add_unless - add unless the number is a given value
-  * @v: pointer of type atomic_t
-- * @a: the amount to subtract from v...
-+ * @a: the amount to add to v...
-  * @u: ...unless v is equal to u.
-  *
-- * Atomically subtract @a from @v, so long as it was not @u.
-+ * Atomically adds @a to @v, so long as it was not @u.
-  * Returns the old value of @v.
- */
--static inline void atomic_sub_unless(atomic_t *v, int a, int u)
-+static inline int __atomic_add_unless(atomic_t *v, int a, int u)
- {
--	int tmp;
-+	int tmp, old = atomic_read(v);
- 
- 	asm volatile(
--		"/* atomic_sub_unless */\n"
-+		"/* __atomic_add_unless */\n"
- 		"1:	ssrf	5\n"
- 		"	ld.w	%0, %2\n"
- 		"	cp.w	%0, %4\n"
- 		"	breq	1f\n"
--		"	sub	%0, %3\n"
-+		"	add	%0, %3\n"
- 		"	stcond	%1, %0\n"
- 		"	brne	1b\n"
- 		"1:"
- 		: "=&r"(tmp), "=o"(v->counter)
--		: "m"(v->counter), "rKs21"(a), "rKs21"(u)
-+		: "m"(v->counter), "r"(a), "ir"(u)
- 		: "cc", "memory");
--}
--
--/*
-- * __atomic_add_unless - add unless the number is a given value
-- * @v: pointer of type atomic_t
-- * @a: the amount to add to v...
-- * @u: ...unless v is equal to u.
-- *
-- * Atomically adds @a to @v, so long as it was not @u.
-- * Returns the old value of @v.
--*/
--static inline int __atomic_add_unless(atomic_t *v, int a, int u)
--{
--	int tmp, old = atomic_read(v);
--
--	if (__builtin_constant_p(a) && (a >= -1048575) && (a <= 1048576))
--		atomic_sub_unless(v, -a, u);
--	else {
--		asm volatile(
--			"/* __atomic_add_unless */\n"
--			"1:	ssrf	5\n"
--			"	ld.w	%0, %2\n"
--			"	cp.w	%0, %4\n"
--			"	breq	1f\n"
--			"	add	%0, %3\n"
--			"	stcond	%1, %0\n"
--			"	brne	1b\n"
--			"1:"
--			: "=&r"(tmp), "=o"(v->counter)
--			: "m"(v->counter), "r"(a), "ir"(u)
--			: "cc", "memory");
--	}
- 
- 	return old;
- }
-@@ -168,8 +135,6 @@ static inline int atomic_sub_if_positive
- #define atomic_xchg(v, new)	(xchg(&((v)->counter), new))
- #define atomic_cmpxchg(v, o, n)	(cmpxchg(&((v)->counter), (o), (n)))
- 
--#define atomic_sub(i, v)	(void)atomic_sub_return(i, v)
--#define atomic_add(i, v)	(void)atomic_add_return(i, v)
- #define atomic_dec(v)		atomic_sub(1, (v))
- #define atomic_inc(v)		atomic_add(1, (v))
- 
+-Longman
