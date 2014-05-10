@@ -1,73 +1,69 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from g2t2352.austin.hp.com ([15.217.128.51]:59552 "EHLO
-	g2t2352.austin.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755881AbaEJAuP (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 9 May 2014 20:50:15 -0400
-Message-ID: <536D77AE.40306@hp.com>
-Date: Fri, 09 May 2014 20:49:50 -0400
+Received: from g4t3425.houston.hp.com ([15.201.208.53]:49630 "EHLO
+	g4t3425.houston.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932328AbaEJA7M (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 9 May 2014 20:59:12 -0400
+Message-ID: <536D79C7.2000701@hp.com>
+Date: Fri, 09 May 2014 20:58:47 -0400
 From: Waiman Long <waiman.long@hp.com>
 MIME-Version: 1.0
-Subject: Re: [PATCH v10 03/19] qspinlock: Add pending bit
-References: <1399474907-22206-1-git-send-email-Waiman.Long@hp.com> <1399474907-22206-4-git-send-email-Waiman.Long@hp.com> <20140508185712.GM2844@laptop.programming.kicks-ass.net>
-In-Reply-To: <20140508185712.GM2844@laptop.programming.kicks-ass.net>
+Subject: Re: [PATCH v10 06/19] qspinlock: prolong the stay in the pending
+ bit path
+References: <1399474907-22206-1-git-send-email-Waiman.Long@hp.com> <1399474907-22206-7-git-send-email-Waiman.Long@hp.com> <20140508185854.GN2844@laptop.programming.kicks-ass.net>
+In-Reply-To: <20140508185854.GN2844@laptop.programming.kicks-ass.net>
 Content-Type: text/plain; charset=ISO-8859-1; format=flowed
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Peter Zijlstra <peterz@infradead.org>
 Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Rik van Riel <riel@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, David Vrabel <david.vrabel@citrix.com>, Oleg Nesterov <oleg@redhat.com>, Gleb Natapov <gleb@redhat.com>, Scott J Norton <scott.norton@hp.com>, Chegu Vinod <chegu_vinod@hp.com>
-Message-ID: <20140510004950.PwbLawGvG1B5vWsohrPCwTCY1ylfrLxgdLWuG_ZgM0I@z>
+Message-ID: <20140510005847.z3_Xg2Hgo1FHMxI94b5UFDVs_cyjJeVbAu1s4TpXuxM@z>
 
-On 05/08/2014 02:57 PM, Peter Zijlstra wrote:
-> On Wed, May 07, 2014 at 11:01:31AM -0400, Waiman Long wrote:
->> +/**
->> + * trylock_pending - try to acquire queue spinlock using the pending bit
->> + * @lock : Pointer to queue spinlock structure
->> + * @pval : Pointer to value of the queue spinlock 32-bit word
->> + * Return: 1 if lock acquired, 0 otherwise
->> + */
->> +static inline int trylock_pending(struct qspinlock *lock, u32 *pval)
-> Still don't like you put it in a separate function, but you don't need
-> the pointer thing. Note how after you fail the trylock_pending() you
-> touch the second (node) cacheline.
->
->> @@ -110,6 +184,9 @@ void queue_spin_lock_slowpath(struct qspinlock *lock, u32 val)
->>
->>   	BUILD_BUG_ON(CONFIG_NR_CPUS>= (1U<<  _Q_TAIL_CPU_BITS));
->>
->> +	if (trylock_pending(lock,&val))
->> +		return;	/* Lock acquired */
->> +
->>   	node = this_cpu_ptr(&mcs_nodes[0]);
->>   	idx = node->count++;
->>   	tail = encode_tail(smp_processor_id(), idx);
->> @@ -119,15 +196,18 @@ void queue_spin_lock_slowpath(struct qspinlock *lock, u32 val)
->>   	node->next = NULL;
->>
->>   	/*
->> +	 * we already touched the queueing cacheline; don't bother with pending
->> +	 * stuff.
->> +	 *
->>   	 * trylock || xchg(lock, node)
->>   	 *
->> -	 * 0,0 ->  0,1 ; trylock
->> -	 * p,x ->  n,x ; prev = xchg(lock, node)
->> +	 * 0,0,0 ->  0,0,1 ; trylock
->> +	 * p,y,x ->  n,y,x ; prev = xchg(lock, node)
+On 05/08/2014 02:58 PM, Peter Zijlstra wrote:
+> On Wed, May 07, 2014 at 11:01:34AM -0400, Waiman Long wrote:
+>> @@ -221,11 +222,37 @@ static inline int trylock_pending(struct qspinlock *lock, u32 *pval)
 >>   	 */
-> And any value of @val we might have had here is completely out-dated.
-> The only thing that makes sense it to set:
->
-> 	val = 0;
->
-> Which makes us start with a trylock, alternatively we can re-read val.
+>>   	for (;;) {
+>>   		/*
+>> -		 * If we observe any contention; queue.
+>> +		 * If we observe that the queue is not empty,
+>> +		 * return and be queued.
+>>   		 */
+>> -		if (val&  ~_Q_LOCKED_MASK)
+>> +		if (val&  _Q_TAIL_MASK)
+>>   			return 0;
+>>
+>> +		if (val == (_Q_LOCKED_VAL|_Q_PENDING_VAL)) {
+>> +			/*
+>> +			 * If both the lock and pending bits are set, we wait
+>> +			 * a while to see if that either bit will be cleared.
+>> +			 * If that is no change, we return and be queued.
+>> +			 */
+>> +			if (!retry)
+>> +				return 0;
+>> +			retry--;
+>> +			cpu_relax();
+>> +			cpu_relax();
+>> +			*pval = val = atomic_read(&lock->val);
+>> +			continue;
+>> +		} else if (val == _Q_PENDING_VAL) {
+>> +			/*
+>> +			 * Pending bit is set, but not the lock bit.
+>> +			 * Assuming that the pending bit holder is going to
+>> +			 * set the lock bit and clear the pending bit soon,
+>> +			 * it is better to wait than to exit at this point.
+>> +			 */
+>> +			cpu_relax();
+>> +			*pval = val = atomic_read(&lock->val);
+>> +			continue;
+>> +		}
+> Didn't I give a much saner alternative to this mess last time?
 
-That is true. I will make the change to get rid of the pointer thing.
-
-As for the separate trylock_pending function, my original goal was to 
-have a better delineation of different portions of the code.  Given the 
-fact that I broke up the slowpath function into 2 in a later patch, I 
-may not really need to separate it out. I will pull it back in the next 
-version.
+I don't recall you have any suggestion last time. Anyway, if you think 
+the code is too messy, I think I can give up the first if statement 
+which is more an optimistic spinning kind of code for short critical 
+section. The 2nd if statement is still need to improve chance of using 
+this code path due to timing reason. I will rerun my performance test to 
+make sure it won't have too much performance impact.
 
 -Longman
