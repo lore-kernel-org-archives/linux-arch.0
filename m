@@ -1,123 +1,47 @@
-From: Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>
-Subject: Re: [PATCH v10 03/19] qspinlock: Add pending bit
-Date: Mon, 12 May 2014 17:22:08 +0200
-Message-ID: <20140512152208.GA12309@potion.brq.redhat.com>
-References: <1399474907-22206-1-git-send-email-Waiman.Long@hp.com>
- <1399474907-22206-4-git-send-email-Waiman.Long@hp.com>
+From: United Nations <maj@junin.gob.ar>
+Subject: =?utf-8?Q?Felicit=C4=83ri?=
+Date: Mon, 12 May 2014 12:22:58 -0300 (ART)
+Message-ID: <132381478.422760.1399908178095.JavaMail.zimbra__2057.85079529068$1399908977$gmane$org@junin.gob.ar>
+Reply-To: United Nations <unitednationsgrants@admin.in.th>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:25287 "EHLO mx1.redhat.com"
+Received: from junin.gov.ar ([201.234.19.13]:52720 "EHLO mail.junin.gob.ar"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1758554AbaELPW4 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 12 May 2014 11:22:56 -0400
-Content-Disposition: inline
-In-Reply-To: <1399474907-22206-4-git-send-email-Waiman.Long@hp.com>
+	id S1751692AbaELPfe convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 12 May 2014 11:35:34 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Waiman Long <Waiman.Long@hp.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Peter Zijlstra <peterz@infradead.org>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Rik van Riel <riel@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, David Vrabel <david.vrabel@citrix.com>, Oleg Nesterov <oleg@redhat.com>, Gleb Natapov <gleb@redhat.com>, Scott J Norton <scott.norton@hp.com>, Chegu Vinod <chegu_vinod@hp.com>
-
-2014-05-07 11:01-0400, Waiman Long:
-> From: Peter Zijlstra <peterz@infradead.org>
-> 
-> Because the qspinlock needs to touch a second cacheline; add a pending
-> bit and allow a single in-word spinner before we punt to the second
-> cacheline.
-
-I think there is an unwanted scenario on virtual machines:
-1) VCPU sets the pending bit and start spinning.
-2) Pending VCPU gets descheduled.
-    - we have PLE and lock holder isn't running [1]
-    - the hypervisor randomly preempts us
-3) Lock holder unlocks while pending VCPU is waiting in queue.
-4) Subsequent lockers will see free lock with set pending bit and will
-   loop in trylock's 'for (;;)'
-    - the worst-case is lock starving [2]
-    - PLE can save us from wasting whole timeslice
-
-Retry threshold is the easiest solution, regardless of its ugliness [4].
-
-Another minor design flaw is that formerly first VCPU gets appended to
-the tail when it decides to queue;
-is the performance gain worth it?
-
-Thanks.
 
 
----
-1: Pause Loop Exiting is almost certain to vmexit in that case: we
-   default to 4096 TSC cycles on KVM, and pending loop is longer than 4
-   (4096/PSPIN_THRESHOLD).
-   We would also vmexit if critical section was longer than 4k.
 
-2: In this example, vpus 1 and 2 use the lock while 3 never gets there.
-   VCPU:  1      2      3
-        lock()                   // we are the holder
-              pend()             // we have pending bit
-              vmexit             // while in PSPIN_THRESHOLD loop
-        unlock()
-                     vmentry
-                     SPINNING    // for {;;} loop
-                     vmexit
-              vmentry
-              lock()
-        pend()
-        vmexit
-             unlock()
-                     vmentry
-                     SPINNING
-                     vmexit
-        vmentry
-        --- loop ---
+=46elicit=C4=83ri=20
 
-   The window is (should be) too small to happen in bare-metal.
+Sunte=C8=9Bi unul dintre beneficiarii de pe ordinea de zi a Na=C8=9Biun=
+ilor Unite 2014/2015 Grant Award. Informa=C8=9Biile dvs. au fost verifi=
+cate =C8=99i suma de =C8=99ase milioane de euro (6.000.000,00) a fost a=
+cordat pentru a v=C4=83 =C3=AEn programul de granturi al Na=C8=9Biunilo=
+r Unite ca Date tale au fost listate pe lista c=C3=A2=C8=99tig=C4=83toa=
+re.=20
 
-3: Pending VCPU was first in line, but when it decides to queue, it must
-   go to the tail.
+Aceast=C4=83 sum=C4=83 urmeaz=C4=83 a fi utilizate de dumneavoastr=C4=83=
+ pentru orice scop, de care vor beneficia foloseste comunitatea ta.=20
 
-4:
-The idea is to prevent unfairness by queueing after a while of useless
-looping.  Magic value should be set a bit above the time it takes an
-active pending bit holder to go through the loop.  4 looks enough.
-We can use either pv_qspinlock_enabled() or cpu_has_hypervisor.
-I presume that we never want this to happen in a VM and that we won't
-have pv_qspinlock_enabled() without cpu_has_hypervisor.
+Informa=C8=9Biile de care avem nevoie pentru verificare sunt:=20
 
-diff --git a/kernel/locking/qspinlock.c b/kernel/locking/qspinlock.c
-index 37b5c7f..cd45c27 100644
---- a/kernel/locking/qspinlock.c
-+++ b/kernel/locking/qspinlock.c
-@@ -573,7 +573,7 @@ static __always_inline int get_qlock(struct qspinlock *lock)
- static inline int trylock_pending(struct qspinlock *lock, u32 *pval)
- {
- 	u32 old, new, val = *pval;
--	int retry = 1;
-+	int retry = 0;
- 
- 	/*
- 	 * trylock || pending
-@@ -595,9 +595,9 @@ static inline int trylock_pending(struct qspinlock *lock, u32 *pval)
- 			 * a while to see if that either bit will be cleared.
- 			 * If that is no change, we return and be queued.
- 			 */
--			if (!retry)
-+			if (retry)
- 				return 0;
--			retry--;
-+			retry++;
- 			cpu_relax();
- 			cpu_relax();
- 			*pval = val = atomic_read(&lock->val);
-@@ -608,7 +608,11 @@ static inline int trylock_pending(struct qspinlock *lock, u32 *pval)
- 			 * Assuming that the pending bit holder is going to
- 			 * set the lock bit and clear the pending bit soon,
- 			 * it is better to wait than to exit at this point.
-+			 * Our assumption does not hold on hypervisors, where
-+			 * the pending bit holder doesn't have to be running.
- 			 */
-+			if (cpu_has_hypervisor && ++retry > MAGIC)
-+					return 0;
- 			cpu_relax();
- 			*pval = val = atomic_read(&lock->val);
- 			continue;
+Numele complet:=20
+adresa:=20
+Urm=C4=83tor de Kin:=20
+
+Va oferi, de asemenea, un cont bancar care premiile de finan=C8=9Bare a=
+r trebui s=C4=83 fie depus =C3=AEn. Ve=C8=9Bi avea nevoie, de asemenea,=
+ s=C4=83 pl=C4=83teasc=C4=83 doar o tax=C4=83 administrativ=C4=83 de 72=
+1 de euro (=C8=99apte sute dou=C4=83zeci =C8=99i unu de euro).=20
+
+Ajunge =C3=AEnapoi la noi c=C3=A2t mai cur=C3=A2nd posibil, astfel =C3=AE=
+nc=C3=A2t s=C4=83 pute=C8=9Bi trimite certificatul c=C3=A2=C8=99tig=C4=83=
+toare.=20
+
+Biroul Organiza=C8=9Biei Na=C8=9Biunilor Unite.=20
+2014/2015
