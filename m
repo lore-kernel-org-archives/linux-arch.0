@@ -1,56 +1,263 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [PATCH 00/25] Change time_t and clock_t to 64 bit
-Date: Tue, 13 May 2014 22:35:08 +0200
-Message-ID: <CAMuHMdW5HSVyXpz9HFcrDDYq=zOFrBr6d8jOd8i_FMkXsEpr2Q@mail.gmail.com>
-References: <1399971456-3941-1-git-send-email-lftan@altera.com>
-	<6202090.0OtAjefIFT@wuerfel>
-	<CAMuHMdVxc3XRanpboWPumvQKbg-qdRBHQvYXwjTKX4CrxXPeAw@mail.gmail.com>
-	<8399002.IIyBoyEHox@wuerfel>
+From: Hans-Christian Egtvedt <egtvedt@samfundet.no>
+Subject: Re: [PATCH 06/20] arch,avr32: Fold atomic_ops
+Date: Tue, 13 May 2014 22:40:32 +0200
+Message-ID: <20140513204032.GB14023@samfundet.no>
+References: <20140508135840.956784204@infradead.org>
+ <20140508135852.049922584@infradead.org>
+ <20140509183241.GA4491@samfundet.no>
+ <20140509204309.GA13467@laptop.programming.kicks-ass.net>
+ <20140509205155.GH1429@laptop.programming.kicks-ass.net>
+ <20140509211728.GI1429@laptop.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ig0-f173.google.com ([209.85.213.173]:45033 "EHLO
-	mail-ig0-f173.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753823AbaEMUfJ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 13 May 2014 16:35:09 -0400
-In-Reply-To: <8399002.IIyBoyEHox@wuerfel>
+Received: from cassarossa.samfundet.no ([193.35.52.29]:45315 "EHLO
+	cassarossa.samfundet.no" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752089AbaEMUkk (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 13 May 2014 16:40:40 -0400
+Content-Disposition: inline
+In-Reply-To: <20140509211728.GI1429@laptop.programming.kicks-ass.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Christoph Hellwig <hch@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Ley Foon Tan <lftan@altera.com>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, LeyFoon Tan <lftan.linux@gmail.com>, Chung-Lin Tang <cltang@codesourcery.com>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, torvalds@linux-foundation.org, akpm@linux-foundation.org, mingo@kernel.org, will.deacon@arm.com, paulmck@linux.vnet.ibm.com, Haavard Skinnemoen <hskinnemoen@gmail.com>
 
-Hi Arnd,
+Around Fri 09 May 2014 23:17:28 +0200 or thereabout, Peter Zijlstra wrote:
+> On Fri, May 09, 2014 at 10:51:55PM +0200, Peter Zijlstra wrote:
+>> On Fri, May 09, 2014 at 10:43:09PM +0200, Peter Zijlstra wrote:
+>> > On Fri, May 09, 2014 at 08:32:41PM +0200, Hans-Christian Egtvedt wrote:
+>> > > > -	if (__builtin_constant_p(i) && (i >= -1048575) && (i <= 1048576))
+>> > > > -		result = atomic_sub_return(-i, v);
+>> > > 
+>> > > I do not recall why we did it like this any more, I would assume both sub and
+>> > > add to be single cycle instructions.
+>> 
+>> Similarly, can I rip out atomic_sub_unless() ?
+> 
+> Something like so?
+> 
+> ---
+> Subject: arch,avr32: Fold atomic_ops
+> From: Peter Zijlstra <peterz@infradead.org>
+> Date: Wed Apr 9 21:51:29 CEST 2014
+> 
+> Many of the atomic op implementations are the same except for one
+> instruction; fold the lot into a few CPP macros and reduce LoC.
+> 
+> This also prepares for easy addition of new ops.
+> 
+> Requires the asm_op because of eor.
+> 
+> The avr32 sub instruction is limited to 21 bits, Hans-Christian cannot
+> recall the reason for the weird __builtin_constant_p() tests so take all
+> that out and use a straight fwd negate add instead of subtract.
 
-On Tue, May 13, 2014 at 9:32 PM, Arnd Bergmann <arnd@arndb.de> wrote:
-> I think we have three categories:
+Probably found the reason why we want to use sub with the signed 21-bit
+limit, it uses one less register than the add instruction that can add up to
+32-bit values.
 
-Thanks for the list!
+Both instructions are 32-bit, to use a 16-bit instruction the immediate is
+very small; 4 bit.
 
-> a) interfaces that uses relative time_t/timespec/timeval:
-> b) interfaces that don't make sense for times in the past:
+sub 32-bit, type IV, takes a register and subtracts a 21-bit immediate.
+add 32-bit, type II, adds two register values together.
 
-> c) interfaces that require absolute times:
->    - stat/lstat/fstatat/
->    - utime/utimes/futimesat
->
-> These absolutely have to use something better than time_t
-> both in user space and in the kernel so we can deal with
-> old files. A lot of file systems need to be fixed as well so
-> we can actually store the times, regardless of whether we
-> are running a 32 or 64 bit kernel.
+So by simplifying you loose this optimization.
 
-So these are the ones we have to worry about.
-It looks like they all involve I/O? Apart from the case of using block data
-from the buffer cache, the 64-bit operations should disappear in the
-actual I/O noise, right?
+> Cc: Hans-Christian Egtvedt <egtvedt@samfundet.no>
+> Cc: Linus Torvalds <torvalds@linux-foundation.org>
+> Cc: Haavard Skinnemoen <hskinnemoen@gmail.com>
+> Signed-off-by: Peter Zijlstra <peterz@infradead.org>
+> ---
+>  arch/avr32/include/asm/atomic.h |  145 +++++++++++++++-------------------------
+>  1 file changed, 55 insertions(+), 90 deletions(-)
+> 
+> --- a/arch/avr32/include/asm/atomic.h
+> +++ b/arch/avr32/include/asm/atomic.h
+> @@ -22,117 +22,84 @@
+>  #define atomic_read(v)		(*(volatile int *)&(v)->counter)
+>  #define atomic_set(v, i)	(((v)->counter) = i)
+>  
+> -/*
+> - * atomic_sub_return - subtract the atomic variable
+> - * @i: integer value to subtract
+> - * @v: pointer of type atomic_t
+> - *
+> - * Atomically subtracts @i from @v. Returns the resulting value.
+> - */
+> -static inline int atomic_sub_return(int i, atomic_t *v)
+> -{
+> -	int result;
+> -
+> -	asm volatile(
+> -		"/* atomic_sub_return */\n"
+> -		"1:	ssrf	5\n"
+> -		"	ld.w	%0, %2\n"
+> -		"	sub	%0, %3\n"
+> -		"	stcond	%1, %0\n"
+> -		"	brne	1b"
+> -		: "=&r"(result), "=o"(v->counter)
+> -		: "m"(v->counter), "rKs21"(i)
+> -		: "cc");
+> -
+> -	return result;
+> +#define ATOMIC_OP(op, asm_op)						\
+> +static inline void atomic_##op(int i, atomic_t *v)			\
+> +{									\
+> +	int result;							\
+> +									\
+> +	asm volatile(							\
+> +		"/* atomic_" #op " */\n"				\
+> +		"1:	ssrf	5\n"					\
+> +		"	ld.w	%0, %2\n"				\
+> +		"	" #asm_op "	%0, %3\n"			\
+> +		"	stcond	%1, %0\n"				\
+> +		"	brne	1b"					\
+> +		: "=&r"(result), "=o"(v->counter)			\
+> +		: "m"(v->counter), "r"(i)				\
+> +		: "cc");						\
+> +}									\
+> +
+> +#define ATOMIC_OP_RETURN(op, asm_op)					\
+> +static inline int atomic_##op##_return(int i, atomic_t *v)		\
+> +{									\
+> +	int result;							\
+> +									\
+> +	asm volatile(							\
+> +		"/* atomic_" #op "_return */\n"				\
+> +		"1:	ssrf	5\n"					\
+> +		"	ld.w	%0, %2\n"				\
+> +		"	" #asm_op "	%0, %3\n"			\
+> +		"	stcond	%1, %0\n"				\
+> +		"	brne	1b"					\
+> +		: "=&r"(result), "=o"(v->counter)			\
+> +		: "m"(v->counter), "r"(i)				\
+> +		: "cc");						\
+> +									\
+> +	return result;							\
+>  }
+>  
+> +#define ATOMIC_OPS(op, asm_op)						\
+> +	ATOMIC_OP(op, asm_op)						\
+> +	ATOMIC_OP_RETURN(op, asm_op)
+> +
+> +ATOMIC_OPS(add, add)
+> +
+> +#undef ATOMIC_OPS
+> +#undef ATOMIC_OP_RETURN
+> +#undef ATOMIC_OP
+> +
+>  /*
+> - * atomic_add_return - add integer to atomic variable
+> - * @i: integer value to add
+> - * @v: pointer of type atomic_t
+> - *
+> - * Atomically adds @i to @v. Returns the resulting value.
+> + * The 'sub' instruction is limited to 21 bits, use negate add instead.
+>   */
+> -static inline int atomic_add_return(int i, atomic_t *v)
+> -{
+> -	int result;
+> -
+> -	if (__builtin_constant_p(i) && (i >= -1048575) && (i <= 1048576))
+> -		result = atomic_sub_return(-i, v);
+> -	else
+> -		asm volatile(
+> -			"/* atomic_add_return */\n"
+> -			"1:	ssrf	5\n"
+> -			"	ld.w	%0, %1\n"
+> -			"	add	%0, %3\n"
+> -			"	stcond	%2, %0\n"
+> -			"	brne	1b"
+> -			: "=&r"(result), "=o"(v->counter)
+> -			: "m"(v->counter), "r"(i)
+> -			: "cc", "memory");
+> -
+> -	return result;
+> -}
+> +#define atomic_sub(i, v)	atomic_add(-(i), (v))
+> +#define atomic_sub_return(i, v)	atomic_add_return(-(i), (v))
+>  
+>  /*
+> - * atomic_sub_unless - sub unless the number is a given value
+> + * __atomic_add_unless - add unless the number is a given value
+>   * @v: pointer of type atomic_t
+> - * @a: the amount to subtract from v...
+> + * @a: the amount to add to v...
+>   * @u: ...unless v is equal to u.
+>   *
+> - * Atomically subtract @a from @v, so long as it was not @u.
+> + * Atomically adds @a to @v, so long as it was not @u.
+>   * Returns the old value of @v.
+>  */
+> -static inline void atomic_sub_unless(atomic_t *v, int a, int u)
+> +static inline int __atomic_add_unless(atomic_t *v, int a, int u)
+>  {
+> -	int tmp;
+> +	int tmp, old = atomic_read(v);
+>  
+>  	asm volatile(
+> -		"/* atomic_sub_unless */\n"
+> +		"/* __atomic_add_unless */\n"
+>  		"1:	ssrf	5\n"
+>  		"	ld.w	%0, %2\n"
+>  		"	cp.w	%0, %4\n"
+>  		"	breq	1f\n"
+> -		"	sub	%0, %3\n"
+> +		"	add	%0, %3\n"
+>  		"	stcond	%1, %0\n"
+>  		"	brne	1b\n"
+>  		"1:"
+>  		: "=&r"(tmp), "=o"(v->counter)
+> -		: "m"(v->counter), "rKs21"(a), "rKs21"(u)
+> +		: "m"(v->counter), "r"(a), "ir"(u)
+>  		: "cc", "memory");
+> -}
+> -
+> -/*
+> - * __atomic_add_unless - add unless the number is a given value
+> - * @v: pointer of type atomic_t
+> - * @a: the amount to add to v...
+> - * @u: ...unless v is equal to u.
+> - *
+> - * Atomically adds @a to @v, so long as it was not @u.
+> - * Returns the old value of @v.
+> -*/
+> -static inline int __atomic_add_unless(atomic_t *v, int a, int u)
+> -{
+> -	int tmp, old = atomic_read(v);
+> -
+> -	if (__builtin_constant_p(a) && (a >= -1048575) && (a <= 1048576))
+> -		atomic_sub_unless(v, -a, u);
+> -	else {
+> -		asm volatile(
+> -			"/* __atomic_add_unless */\n"
+> -			"1:	ssrf	5\n"
+> -			"	ld.w	%0, %2\n"
+> -			"	cp.w	%0, %4\n"
+> -			"	breq	1f\n"
+> -			"	add	%0, %3\n"
+> -			"	stcond	%1, %0\n"
+> -			"	brne	1b\n"
+> -			"1:"
+> -			: "=&r"(tmp), "=o"(v->counter)
+> -			: "m"(v->counter), "r"(a), "ir"(u)
+> -			: "cc", "memory");
+> -	}
+>  
+>  	return old;
+>  }
+> @@ -168,8 +135,6 @@ static inline int atomic_sub_if_positive
+>  #define atomic_xchg(v, new)	(xchg(&((v)->counter), new))
+>  #define atomic_cmpxchg(v, o, n)	(cmpxchg(&((v)->counter), (o), (n)))
+>  
+> -#define atomic_sub(i, v)	(void)atomic_sub_return(i, v)
+> -#define atomic_add(i, v)	(void)atomic_add_return(i, v)
+>  #define atomic_dec(v)		atomic_sub(1, (v))
+>  #define atomic_inc(v)		atomic_add(1, (v))
+>  
+> 
 
-Gr{oetje,eeting}s,
-
-                        Geert
-
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+-- 
+mvh
+Hans-Christian Egtvedt
