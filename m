@@ -1,39 +1,64 @@
 From: Ley Foon Tan <lftan@altera.com>
-Subject: Re: [PATCH 00/25] Change time_t and clock_t to 64 bit
-Date: Tue, 13 May 2014 17:23:48 +0800
-Message-ID: <CAFiDJ58r_X1m4NoyRBu2EGqrY22Q2VuJmqBFY7m49ECR+aQk7Q@mail.gmail.com>
+Subject: Re: [PATCH 12/25] metag: Add 32 bit time_t and clock_t
+Date: Tue, 13 May 2014 17:28:07 +0800
+Message-ID: <CAFiDJ59yCxcL+g7K05AWoaDiR_hmLdW6R8Dz3sOUwTGmug4YoQ@mail.gmail.com>
 References: <1399971456-3941-1-git-send-email-lftan@altera.com>
-	<CAMuHMdVyCXXZgmEVkbo+cZfQfYspZO4SH+iV-zCLq-6G4m47QQ@mail.gmail.com>
+	<1399971885-4413-1-git-send-email-lftan@altera.com>
+	<5371E44E.20509@imgtec.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qa0-f42.google.com ([209.85.216.42]:49933 "EHLO
-	mail-qa0-f42.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754706AbaEMJXt (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 13 May 2014 05:23:49 -0400
-In-Reply-To: <CAMuHMdVyCXXZgmEVkbo+cZfQfYspZO4SH+iV-zCLq-6G4m47QQ@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Chung-Lin Tang <cltang@codesourcery.com>, Arnd Bergmann <arnd@arndb.de>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <5371E44E.20509@imgtec.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: James Hogan <james.hogan@imgtec.com>
+Cc: Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Chung-Lin Tang <cltang@codesourcery.com>, linux-metag@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, May 13, 2014 at 5:10 PM, Geert Uytterhoeven
-<geert@linux-m68k.org> wrote:
+On Tue, May 13, 2014 at 5:22 PM, James Hogan <james.hogan@imgtec.com> wrote:
 > Hi,
 >
-> On Tue, May 13, 2014 at 10:57 AM, Ley Foon Tan <lftan@altera.com> wrote:
->> This patchset change default time_t and clock_t to 64 bit in
->> include/uapi/asm-generic/posix_types.h. The existing 32 bit architectures override
->> these define to 32 bit in arch posix_types.h.
+> On 13/05/14 10:04, Ley Foon Tan wrote:
+>> Override time_t and clock_t in include/uapi/asm-generic.
+>>
+>> Signed-off-by: Ley Foon Tan <lftan@altera.com>
+>> ---
+>>  arch/metag/include/asm/Kbuild             |  1 -
+>>  arch/metag/include/uapi/asm/Kbuild        |  1 +
+>>  arch/metag/include/uapi/asm/posix_types.h | 17 +++++++++++++++++
+>>  3 files changed, 18 insertions(+), 1 deletion(-)
+>>  create mode 100644 arch/metag/include/uapi/asm/posix_types.h
+>>
+>> diff --git a/arch/metag/include/asm/Kbuild b/arch/metag/include/asm/Kbuild
+>> index c29ead8..5a97e0d6 100644
+>> --- a/arch/metag/include/asm/Kbuild
+>> +++ b/arch/metag/include/asm/Kbuild
+>> @@ -31,7 +31,6 @@ generic-y += param.h
+>>  generic-y += pci.h
+>>  generic-y += percpu.h
+>>  generic-y += poll.h
+>> -generic-y += posix_types.h
+>>  generic-y += preempt.h
+>>  generic-y += scatterlist.h
+>>  generic-y += sections.h
+>> diff --git a/arch/metag/include/uapi/asm/Kbuild b/arch/metag/include/uapi/asm/Kbuild
+>> index 84e09fe..1542689 100644
+>> --- a/arch/metag/include/uapi/asm/Kbuild
+>> +++ b/arch/metag/include/uapi/asm/Kbuild
+>> @@ -3,6 +3,7 @@ include include/uapi/asm-generic/Kbuild.asm
+>>
+>>  header-y += byteorder.h
+>>  header-y += ech.h
+>> +header-y += posix_types.h
 >
-> Thanks for your series!
+> I don't think you need this. The file
+> include/uapi/asm-generic/Kbuild.asm which is included at the top of each
+> arches uapi/asm/Kbuild already has it.
+> (Admittedly there's already a lot of duplication of these that should
+> probably be fixed at some point).
 >
->> Ley Foon Tan (25):
->>   asm-generic: Change time_t and clock_t to 64 bit
->
-> For bisectability, this should be the last change, not the first.
-Noted, will put this as last patch in next revision.
-Thanks.
+> Other than that it looks okay to me.
+Okay, will remove this.
 
+Thanks.
 Regards
 Ley Foon
