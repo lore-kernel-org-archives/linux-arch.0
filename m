@@ -1,7 +1,7 @@
 From: Ley Foon Tan <lftan@altera.com>
-Subject: [PATCH 02/25] arc: Add 32 bit time_t and clock_t
-Date: Tue, 13 May 2014 17:02:36 +0800
-Message-ID: <1399971756-4042-1-git-send-email-lftan@altera.com>
+Subject: [PATCH 03/25] arm: Add 32 bit time_t and clock_t
+Date: Tue, 13 May 2014 17:02:43 +0800
+Message-ID: <1399971763-4079-1-git-send-email-lftan@altera.com>
 References: <1399971456-3941-1-git-send-email-lftan@altera.com>
 Mime-Version: 1.0
 Content-Type: text/plain
@@ -9,65 +9,32 @@ Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1399971456-3941-1-git-send-email-lftan@altera.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: Ley Foon Tan <lftan@altera.com>, lftan.linux@gmail.com, cltang@codesourcery.com, Vineet Gupta <vgupta@synopsys.com>
+Cc: Ley Foon Tan <lftan@altera.com>, lftan.linux@gmail.com, cltang@codesourcery.com, Russell King <linux@arm.linux.org.uk>, linux-arm-kernel@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
 Override time_t and clock_t in include/uapi/asm-generic.
 
 Signed-off-by: Ley Foon Tan <lftan@altera.com>
 ---
- arch/arc/include/asm/Kbuild             |  1 -
- arch/arc/include/uapi/asm/Kbuild        |  1 +
- arch/arc/include/uapi/asm/posix_types.h | 17 +++++++++++++++++
- 3 files changed, 18 insertions(+), 1 deletion(-)
- create mode 100644 arch/arc/include/uapi/asm/posix_types.h
+ arch/arm/include/uapi/asm/posix_types.h | 6 ++++++
+ 1 file changed, 6 insertions(+)
 
-diff --git a/arch/arc/include/asm/Kbuild b/arch/arc/include/asm/Kbuild
-index e76fd79..2186afc 100644
---- a/arch/arc/include/asm/Kbuild
-+++ b/arch/arc/include/asm/Kbuild
-@@ -30,7 +30,6 @@ generic-y += parport.h
- generic-y += pci.h
- generic-y += percpu.h
- generic-y += poll.h
--generic-y += posix_types.h
- generic-y += preempt.h
- generic-y += resource.h
- generic-y += scatterlist.h
-diff --git a/arch/arc/include/uapi/asm/Kbuild b/arch/arc/include/uapi/asm/Kbuild
-index 18fefae..1d6ffba 100644
---- a/arch/arc/include/uapi/asm/Kbuild
-+++ b/arch/arc/include/uapi/asm/Kbuild
-@@ -5,6 +5,7 @@ header-y += page.h
- header-y += setup.h
- header-y += byteorder.h
- header-y += cachectl.h
-+header-y += posix_types.h
- header-y += ptrace.h
- header-y += sigcontext.h
- header-y += signal.h
-diff --git a/arch/arc/include/uapi/asm/posix_types.h b/arch/arc/include/uapi/asm/posix_types.h
-new file mode 100644
-index 0000000..ac69105
---- /dev/null
-+++ b/arch/arc/include/uapi/asm/posix_types.h
-@@ -0,0 +1,17 @@
-+#ifndef __ARCH_ARC_POSIX_TYPES_H
-+#define __ARCH_ARC_POSIX_TYPES_H
-+
-+/*
-+ * This file is generally used by user-level software, so you need to
-+ * be a little careful about namespace pollution etc. Also, we cannot
-+ * assume GCC is being used.
-+ */
-+typedef long	__kernel_time_t;
+diff --git a/arch/arm/include/uapi/asm/posix_types.h b/arch/arm/include/uapi/asm/posix_types.h
+index d2de9cb..2f8e30f 100644
+--- a/arch/arm/include/uapi/asm/posix_types.h
++++ b/arch/arm/include/uapi/asm/posix_types.h
+@@ -32,6 +32,12 @@ typedef unsigned short		__kernel_gid_t;
+ typedef unsigned short		__kernel_old_dev_t;
+ #define __kernel_old_dev_t __kernel_old_dev_t
+ 
++typedef long			__kernel_time_t;
 +#define __kernel_time_t __kernel_time_t
 +
-+typedef long	__kernel_clock_t;
++typedef long			__kernel_clock_t;
 +#define __kernel_clock_t __kernel_clock_t
 +
-+#include <asm-generic/posix_types.h>
-+
-+#endif
+ #include <asm-generic/posix_types.h>
+ 
+ #endif
 -- 
 1.8.2.1
