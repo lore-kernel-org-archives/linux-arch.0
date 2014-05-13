@@ -1,57 +1,47 @@
-From: Arnd Bergmann <arnd@arndb.de>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
 Subject: Re: [PATCH 00/25] Change time_t and clock_t to 64 bit
-Date: Tue, 13 May 2014 20:10:31 +0200
-Message-ID: <6202090.0OtAjefIFT@wuerfel>
-References: <1399971456-3941-1-git-send-email-lftan@altera.com> <alpine.DEB.2.02.1405131727480.6261@ionos.tec.linutronix.de> <20140513174640.GA20961@infradead.org>
+Date: Tue, 13 May 2014 20:15:24 +0200
+Message-ID: <CAMuHMdUqWO1HzU4mqx6RJCYSrxE2DKuxMeqYjDqQ_Xqm6=ktCg@mail.gmail.com>
+References: <1399971456-3941-1-git-send-email-lftan@altera.com>
+	<20140513152429.GA15679@infradead.org>
+	<alpine.DEB.2.02.1405131727480.6261@ionos.tec.linutronix.de>
+	<20140513174640.GA20961@infradead.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7Bit
+Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.17.13]:62684 "EHLO
-	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753201AbaEMSLR (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 13 May 2014 14:11:17 -0400
+Received: from mail-ie0-f181.google.com ([209.85.223.181]:63640 "EHLO
+	mail-ie0-f181.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751511AbaEMSPZ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 13 May 2014 14:15:25 -0400
 In-Reply-To: <20140513174640.GA20961@infradead.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Christoph Hellwig <hch@infradead.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Ley Foon Tan <lftan@altera.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, lftan.linux@gmail.com, cltang@codesourcery.com
+Cc: Thomas Gleixner <tglx@linutronix.de>, Ley Foon Tan <lftan@altera.com>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, LeyFoon Tan <lftan.linux@gmail.com>, Chung-Lin Tang <cltang@codesourcery.com>, Arnd Bergmann <arnd@arndb.de>
 
-On Tuesday 13 May 2014 10:46:40 Christoph Hellwig wrote:
-> On Tue, May 13, 2014 at 05:33:01PM +0200, Thomas Gleixner wrote:
-> > and it
-> > would be dumb as hell to have new archs use time_t 32bit when we are
-> > currently twisting our brain around how to solve the y2038
-> > problem. Simply because we can not do the BSD flag day approach and
-> > change it.
-> 
+On Tue, May 13, 2014 at 7:46 PM, Christoph Hellwig <hch@infradead.org> wrote:
+>> and it
+>> would be dumb as hell to have new archs use time_t 32bit when we are
+>> currently twisting our brain around how to solve the y2038
+>> problem. Simply because we can not do the BSD flag day approach and
+>> change it.
+>
 > I don't think it's a good idea to have minor new architectures
 > pointlessly different than the major ones.  Especially given that we'll
 > absolutely have to fir the y2038 problem for 32-bit arm and probably
 > x86 anyway.
 
-I've just spent two days looking at stuff that uses time_t inside
-of the kernel, to get a better idea of what we actually need to
-do to get provide new user interfaces for the existing architectures.
+Considering someone just told me he plans to keep on using PPC
+based MVME boards for 8 more years, you can expect some of today's
+32-bit hardware to be around in 24 years...
 
-My impression so far is that we're better off fixing it for the
-existing architectures first and then using the new interfaces
-exclusively on new ones, rather than changing over the ABI for
-all new architectures at this point, which would likely create
-yet another variant to maintain in the long run.
+Gr{oetje,eeting}s,
 
-Using 64-bit time_t on x32 is fine, because it's fast to operate
-in user space with 64-bit registers, and the kernel is 64-bit
-anyway. Inside of the kernel, we may get into trouble using
-a 64-bit time_t on 32-bit architectures because of the overhead
-in 64-bit math, e.g. all the timekeeping code that is based on
-timespec or some code paths in file systems and network code where
-we actually require division of time_t values.
-We clearly have to change that code in some for to deal with y2038,
-but 64-bit time_t may not be the best option. A lot of the
-in-kernel code can probably use ktime_t, which we can change
-to a different representation (e.g. 34 bit seconds) if needed,
-and all the code that is only interested in relative time
-(e.g. nanosleep) doesn't have to change at all.
+                        Geert
 
-	Arnd
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
