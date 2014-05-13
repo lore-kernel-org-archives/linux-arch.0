@@ -1,42 +1,45 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [PATCH 00/25] Change time_t and clock_t to 64 bit
-Date: Tue, 13 May 2014 11:10:53 +0200
-Message-ID: <CAMuHMdVyCXXZgmEVkbo+cZfQfYspZO4SH+iV-zCLq-6G4m47QQ@mail.gmail.com>
+From: Ley Foon Tan <lftan@altera.com>
+Subject: [PATCH 07/25] cris: Add 32 bit time_t and clock_t
+Date: Tue, 13 May 2014 17:10:46 +0800
+Message-ID: <1399972246-5031-1-git-send-email-lftan@altera.com>
 References: <1399971456-3941-1-git-send-email-lftan@altera.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ie0-f169.google.com ([209.85.223.169]:65441 "EHLO
-	mail-ie0-f169.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1759765AbaEMJKx (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 13 May 2014 05:10:53 -0400
+Received: from mail-bn1bon0136.outbound.protection.outlook.com ([157.56.111.136]:21706
+	"EHLO na01-bn1-obe.outbound.protection.outlook.com"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1759857AbaEMJK5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 13 May 2014 05:10:57 -0400
 In-Reply-To: <1399971456-3941-1-git-send-email-lftan@altera.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ley Foon Tan <lftan@altera.com>
-Cc: Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, LeyFoon Tan <lftan.linux@gmail.com>, Chung-Lin Tang <cltang@codesourcery.com>, Arnd Bergmann <arnd@arndb.de>
+To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Cc: Ley Foon Tan <lftan@altera.com>, lftan.linux@gmail.com, cltang@codesourcery.com, Mikael Starvik <starvik@axis.com>, Jesper Nilsson <jesper.nilsson@axis.com>, linux-cris-kernel@axis.com
 
-Hi,
+Override time_t and clock_t in include/uapi/asm-generic.
 
-On Tue, May 13, 2014 at 10:57 AM, Ley Foon Tan <lftan@altera.com> wrote:
-> This patchset change default time_t and clock_t to 64 bit in
-> include/uapi/asm-generic/posix_types.h. The existing 32 bit architectures override
-> these define to 32 bit in arch posix_types.h.
+Signed-off-by: Ley Foon Tan <lftan@altera.com>
+---
+ arch/cris/include/uapi/asm/posix_types.h | 6 ++++++
+ 1 file changed, 6 insertions(+)
 
-Thanks for your series!
-
-> Ley Foon Tan (25):
->   asm-generic: Change time_t and clock_t to 64 bit
-
-For bisectability, this should be the last change, not the first.
-
-Gr{oetje,eeting}s,
-
-                        Geert
-
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+diff --git a/arch/cris/include/uapi/asm/posix_types.h b/arch/cris/include/uapi/asm/posix_types.h
+index 0f22e6a..334499a 100644
+--- a/arch/cris/include/uapi/asm/posix_types.h
++++ b/arch/cris/include/uapi/asm/posix_types.h
+@@ -25,6 +25,12 @@ typedef unsigned short	__kernel_gid_t;
+ typedef unsigned short	__kernel_old_dev_t;
+ #define __kernel_old_dev_t __kernel_old_dev_t
+ 
++typedef long	__kernel_time_t;
++#define __kernel_time_t __kernel_time_t
++
++typedef long	__kernel_clock_t;
++#define __kernel_clock_t __kernel_clock_t
++
+ #include <asm-generic/posix_types.h>
+ 
+ #endif /* __ARCH_CRIS_POSIX_TYPES_H */
+-- 
+1.8.2.1
