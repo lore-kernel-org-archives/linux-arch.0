@@ -1,57 +1,56 @@
-From: Helge Deller <deller@gmx.de>
-Subject: Re: [PATCH 17/25] parisc: Add 32 bit time_t and clock_t
-Date: Tue, 13 May 2014 22:17:44 +0200
-Message-ID: <53727DE8.7000105@gmx.de>
-References: <1399971456-3941-1-git-send-email-lftan@altera.com> <1399971966-4598-1-git-send-email-lftan@altera.com>
+From: Hans-Christian Egtvedt <egtvedt@samfundet.no>
+Subject: Re: [PATCH 04/25] avr32: Add 32 bit time_t and clock_t
+Date: Tue, 13 May 2014 22:19:44 +0200
+Message-ID: <20140513201944.GA14023@samfundet.no>
+References: <1399971456-3941-1-git-send-email-lftan@altera.com>
+ <1399971769-4116-1-git-send-email-lftan@altera.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.gmx.net ([212.227.17.21]:58859 "EHLO mout.gmx.net"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751145AbaEMUSH (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 13 May 2014 16:18:07 -0400
-In-Reply-To: <1399971966-4598-1-git-send-email-lftan@altera.com>
+Received: from cassarossa.samfundet.no ([193.35.52.29]:40711 "EHLO
+	cassarossa.samfundet.no" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751667AbaEMUTt (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 13 May 2014 16:19:49 -0400
+Content-Disposition: inline
+In-Reply-To: <1399971769-4116-1-git-send-email-lftan@altera.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ley Foon Tan <lftan@altera.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: lftan.linux@gmail.com, cltang@codesourcery.com, "James E.J. Bottomley" <jejb@parisc-linux.org>, linux-parisc@vger.kernel.org
+To: Ley Foon Tan <lftan@altera.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, lftan.linux@gmail.com, cltang@codesourcery.com, Haavard Skinnemoen <hskinnemoen@gmail.com>
 
-Hi Ley,
-
-On 05/13/2014 11:06 AM, Ley Foon Tan wrote:
+Around Tue 13 May 2014 17:02:49 +0800 or thereabout, Ley Foon Tan wrote:
 > Override time_t and clock_t in include/uapi/asm-generic.
 > 
 > Signed-off-by: Ley Foon Tan <lftan@altera.com>
+
+Acked-by: Hans-Christian Egtvedt <egtvedt@samfundet.no>
+
 > ---
->  arch/parisc/include/uapi/asm/posix_types.h | 8 ++++++++
->  1 file changed, 8 insertions(+)
+>  arch/avr32/include/uapi/asm/posix_types.h | 6 ++++++
+>  1 file changed, 6 insertions(+)
 > 
-> diff --git a/arch/parisc/include/uapi/asm/posix_types.h b/arch/parisc/include/uapi/asm/posix_types.h
-> index b934425..21fcf1c 100644
-> --- a/arch/parisc/include/uapi/asm/posix_types.h
-> +++ b/arch/parisc/include/uapi/asm/posix_types.h
-> @@ -19,6 +19,14 @@ typedef int			__kernel_suseconds_t;
->  typedef long long		__kernel_off64_t;
->  typedef unsigned long long	__kernel_ino64_t;
+> diff --git a/arch/avr32/include/uapi/asm/posix_types.h b/arch/avr32/include/uapi/asm/posix_types.h
+> index 5b813a8..47d5146 100644
+> --- a/arch/avr32/include/uapi/asm/posix_types.h
+> +++ b/arch/avr32/include/uapi/asm/posix_types.h
+> @@ -32,6 +32,12 @@ typedef unsigned short  __kernel_old_gid_t;
+>  typedef unsigned short  __kernel_old_dev_t;
+>  #define __kernel_old_dev_t __kernel_old_dev_t
 >  
-> +#ifndef CONFIG_64BIT
-
-We can't use CONFIG_64BIT for a userspace header file. Please use 
-#if !defined(__LP64__)
-instead.
-But even then I'm not sure if it's all correct...
-
-Helge 
-
-> +typedef long	__kernel_time_t;
+> +typedef long __kernel_time_t;
 > +#define __kernel_time_t __kernel_time_t
 > +
-> +typedef long	__kernel_clock_t;
+> +typedef long __kernel_clock_t;
 > +#define __kernel_clock_t __kernel_clock_t
-> +#endif
 > +
 >  #include <asm-generic/posix_types.h>
 >  
->  #endif
-> 
+>  #endif /* _UAPI__ASM_AVR32_POSIX_TYPES_H */
+
+Quickly looked over some of the other patches in the series, and they all
+seem to add the same. Could this be generic, with the possibility for arch to
+override?
+
+-- 
+mvh
+Hans-Christian Egtvedt
