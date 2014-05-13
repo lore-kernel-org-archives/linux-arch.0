@@ -1,49 +1,57 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.codeaurora.org ([198.145.11.231]:54584 "EHLO
-	smtp.codeaurora.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754440AbaEMPb2 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 13 May 2014 11:31:28 -0400
-Message-ID: <53723ACC.7020500@codeaurora.org>
-Date: Tue, 13 May 2014 11:31:24 -0400
-From: Christopher Covington <cov@codeaurora.org>
+Received: from g2t2354.austin.hp.com ([15.217.128.53]:56407 "EHLO
+	g2t2354.austin.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753245AbaEMTrI (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 13 May 2014 15:47:08 -0400
+Message-ID: <537276B4.10209@hp.com>
+Date: Tue, 13 May 2014 15:47:00 -0400
+From: Waiman Long <waiman.long@hp.com>
 MIME-Version: 1.0
-Subject: Re: [RFC PATCH V5 4/6] arm: mm: Enable RCU fast_gup
-References: <1399390209-1756-1-git-send-email-steve.capper@linaro.org> <1399390209-1756-5-git-send-email-steve.capper@linaro.org>
-In-Reply-To: <1399390209-1756-5-git-send-email-steve.capper@linaro.org>
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
+Subject: Re: [PATCH v10 03/19] qspinlock: Add pending bit
+References: <1399474907-22206-1-git-send-email-Waiman.Long@hp.com> <1399474907-22206-4-git-send-email-Waiman.Long@hp.com> <20140512152208.GA12309@potion.brq.redhat.com>
+In-Reply-To: <20140512152208.GA12309@potion.brq.redhat.com>
+Content-Type: text/plain; charset=UTF-8; format=flowed
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Steve Capper <steve.capper@linaro.org>
-Cc: linux-arm-kernel@lists.infradead.org, catalin.marinas@arm.com, linux@arm.linux.org.uk, linux-arch@vger.kernel.org, linux-mm@kvack.org, anders.roxell@linaro.org, peterz@infradead.org, gary.robertson@linaro.org, will.deacon@arm.com, akpm@linux-foundation.org, christoffer.dall@linaro.org
-Message-ID: <20140513153124.mL3GQ_cTAWHc2_X88OHtv3cXNOqw7pqa4Eq3d0vTo8g@z>
+To: =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Peter Zijlstra <peterz@infradead.org>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Rik van Riel <riel@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, David Vrabel <david.vrabel@citrix.com>, Oleg Nesterov <oleg@redhat.com>, Gleb Natapov <gleb@redhat.com>, Scott J Norton <scott.norton@hp.com>, Chegu Vinod <chegu_vinod@hp.com>
+Message-ID: <20140513194700.R9rWNb9R5Kcfns1Hc4LQFHKXaEANISy7CFGp_nu95co@z>
 
-Hi Steve,
+On 05/12/2014 11:22 AM, Radim Krčmář wrote:
+> 2014-05-07 11:01-0400, Waiman Long:
+>> From: Peter Zijlstra<peterz@infradead.org>
+>>
+>> Because the qspinlock needs to touch a second cacheline; add a pending
+>> bit and allow a single in-word spinner before we punt to the second
+>> cacheline.
+> I think there is an unwanted scenario on virtual machines:
+> 1) VCPU sets the pending bit and start spinning.
+> 2) Pending VCPU gets descheduled.
+>      - we have PLE and lock holder isn't running [1]
+>      - the hypervisor randomly preempts us
+> 3) Lock holder unlocks while pending VCPU is waiting in queue.
+> 4) Subsequent lockers will see free lock with set pending bit and will
+>     loop in trylock's 'for (;;)'
+>      - the worst-case is lock starving [2]
+>      - PLE can save us from wasting whole timeslice
+>
+> Retry threshold is the easiest solution, regardless of its ugliness [4].
 
-On 05/06/2014 11:30 AM, Steve Capper wrote:
-> Activate the RCU fast_gup for ARM. We also need to force THP splits to
-> broadcast an IPI s.t. we block in the fast_gup page walker. As THP
-> splits are comparatively rare, this should not lead to a noticeable
-> performance degradation.
+Yes, that can be a real issue. Some sort of retry threshold, as you 
+said, should be able to handle it.
 
-> diff --git a/arch/arm/mm/flush.c b/arch/arm/mm/flush.c
-> index 3387e60..91a2b59 100644
-> --- a/arch/arm/mm/flush.c
-> +++ b/arch/arm/mm/flush.c
-> @@ -377,3 +377,22 @@ void __flush_anon_page(struct vm_area_struct *vma, struct page *page, unsigned l
->  	 */
->  	__cpuc_flush_dcache_area(page_address(page), PAGE_SIZE);
->  }
-> +
-> +#ifdef CONFIG_TRANSPARENT_HUGEPAGE
-> +#ifdef CONFIG_HAVE_RCU_TABLE_FREE
+BTW, the relevant patch should be 16/19 where the PV spinlock stuff 
+should be discussed. This patch is perfectly fine.
 
-This is trivia, but I for one find the form #if defined(a) && defined(b)
-easier to read. (Applies to the A64 version as well).
+> Another minor design flaw is that formerly first VCPU gets appended to
+> the tail when it decides to queue;
+> is the performance gain worth it?
+>
+> Thanks.
 
-Christopher
+Yes, the performance gain is worth it. The primary goal is to be not 
+worse than ticket spinlock in light load situation which is the most 
+common case. This feature is need to achieve that.
 
--- 
-Employee of Qualcomm Innovation Center, Inc.
-Qualcomm Innovation Center, Inc. is a member of Code Aurora Forum,
-hosted by the Linux Foundation.
+-Longman
