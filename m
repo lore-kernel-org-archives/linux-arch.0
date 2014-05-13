@@ -1,50 +1,64 @@
-From: Ley Foon Tan <lftan@altera.com>
-Subject: Re: [PATCH 16/25] openrisc: Add 32 bit time_t and clock_t
-Date: Tue, 13 May 2014 17:41:41 +0800
-Message-ID: <CAFiDJ58FJwTj5r0gEsbJgZL0HigpX0TEAxE_ARrsHV=BfWsnbw@mail.gmail.com>
-References: <1399971456-3941-1-git-send-email-lftan@altera.com>
-	<1399971958-4561-1-git-send-email-lftan@altera.com>
-	<5371E62F.9090203@southpole.se>
+From: James Hogan <james.hogan@imgtec.com>
+Subject: Re: [PATCH 01/25] asm-generic: Change time_t and clock_t to 64 bit
+Date: Tue, 13 May 2014 10:50:35 +0100
+Message-ID: <5371EAEB.5030100@imgtec.com>
+References: <1399971456-3941-1-git-send-email-lftan@altera.com>	<1399971749-4004-1-git-send-email-lftan@altera.com>	<CAAG0J9-ieBNfyRa6kf22TNd_3mg57GYuGHagQ-pPLY41iM3Zyg@mail.gmail.com> <CAFiDJ5-ez-Brqr8q3=XbODzLtFFU=e4qS12bCPo=5FE1JTNr+A@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <5371E62F.9090203@southpole.se>
+In-Reply-To: <CAFiDJ5-ez-Brqr8q3=XbODzLtFFU=e4qS12bCPo=5FE1JTNr+A@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Jonas Bonn <jonas@southpole.se>
-Cc: Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Chung-Lin Tang <cltang@codesourcery.com>, linux@lists.openrisc.net
+To: Ley Foon Tan <lftan@altera.com>
+Cc: Linux-Arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Chung-Lin Tang <cltang@codesourcery.com>, Arnd Bergmann <arnd@arndb.de>, Thomas Gleixner <tglx@linutronix.de>
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, May 13, 2014 at 5:30 PM, Jonas Bonn <jonas@southpole.se> wrote:
-> On 05/13/2014 11:05 AM, Ley Foon Tan wrote:
->> Override time_t and clock_t in include/uapi/asm-generic.
->>
->> diff --git a/arch/openrisc/include/uapi/asm/posix_types.h b/arch/openrisc/include/uapi/asm/posix_types.h
->> new file mode 100644
->> index 0000000..5ccf37d
->> --- /dev/null
->> +++ b/arch/openrisc/include/uapi/asm/posix_types.h
->> @@ -0,0 +1,17 @@
->> +#ifndef __ARCH_OPENRISC_POSIX_TYPES_H
->> +#define __ARCH_OPENRISC_POSIX_TYPES_H
->> +
->> +/*
->> + * This file is generally used by user-level software, so you need to
->> + * be a little careful about namespace pollution etc. Also, we cannot
->> + * assume GCC is being used.
->> + */
->
-> I don't think the above comment needs to be copied to this file... given
-> that the file is in the uapi/ directory, we know the file is exported to
-> userspace, and the GCC comment isn't relevant given the rest of the
-> files contents.
->
-> But that's really just a nit!  Nice work, otherwise.
->
-> Acked-by: Jonas Bonn <jonas@southpole.se>
-I noticed most of the posix_types.h files in other archiectures have
-this comment.
-I can remove this comment if you think we don't need to add this.
-Thanks.
+Hi,
 
-Regards
-Ley Foon
+On 13/05/14 10:32, Ley Foon Tan wrote:
+> On Tue, May 13, 2014 at 5:15 PM, James Hogan <james.hogan@imgtec.com> wrote:
+>> On 13 May 2014 10:02, Ley Foon Tan <lftan@altera.com> wrote:
+>>>  /*
+>>> + * Use 64 bit time_t and clock_t as default. 32 bit users can provide an override to
+>>> + * define these as "long" if needed.
+>>> + */
+>>> +#ifndef __kernel_time_t
+>>> +typedef long long      __kernel_time_t;
+>>> +#endif
+>>> +
+>>> +#ifndef __kernel_clock_t
+>>> +typedef long long      __kernel_clock_t;
+>>> +#endif
+>>
+>> I think having this as the first patch in the series will break
+>> bisection for existing 32-bit arches. This needs to be done in such a
+>> way that at no intermediate commit are __kernel_time_t or
+>> __kernel_clock_t the wrong size for existing arches, e.g. by having a
+>> first patch which makes the typedefs conditional but leaves them as
+>> __kernel_long_t, and a final patch that changes the default after all
+>> the arches have got their overrides in place.
+> 
+> Your suggestion is something as below?
+
+Yeh, although I like Thomas' idea better, then each existing 32-bit arch
+can just select the Kconfig symbol to get the smaller type.
+
+IIRC Kconfig won't even complain if you select a symbol which doesn't
+exist yet.
+
+Cheers
+James
+
+> 
+> First patch:
+> #ifndef __kernel_time_t
+> typedef __kernel_long_t      __kernel_time_t;
+> #endif
+> 
+> Last patch:
+> #ifndef __kernel_time_t
+> typedef long long      __kernel_time_t;
+> #endif
+> 
+> Ley Foon
+> 
