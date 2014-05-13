@@ -1,69 +1,62 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qc0-f178.google.com ([209.85.216.178]:54521 "EHLO
-	mail-qc0-f178.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1759378AbaEMJ2I (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 13 May 2014 05:28:08 -0400
+Received: from www.linutronix.de ([62.245.132.108]:60422 "EHLO
+	Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1760253AbaEMJa2 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 13 May 2014 05:30:28 -0400
+Date: Tue, 13 May 2014 11:30:38 +0200 (CEST)
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: Re: [PATCH 01/25] asm-generic: Change time_t and clock_t to 64 bit
+In-Reply-To: <CAAG0J9-ieBNfyRa6kf22TNd_3mg57GYuGHagQ-pPLY41iM3Zyg@mail.gmail.com>
+Message-ID: <alpine.DEB.2.02.1405131128010.6261@ionos.tec.linutronix.de>
+References: <1399971456-3941-1-git-send-email-lftan@altera.com> <1399971749-4004-1-git-send-email-lftan@altera.com> <CAAG0J9-ieBNfyRa6kf22TNd_3mg57GYuGHagQ-pPLY41iM3Zyg@mail.gmail.com>
 MIME-Version: 1.0
-In-Reply-To: <5371E44E.20509@imgtec.com>
-References: <1399971456-3941-1-git-send-email-lftan@altera.com>
-	<1399971885-4413-1-git-send-email-lftan@altera.com>
-	<5371E44E.20509@imgtec.com>
-Date: Tue, 13 May 2014 17:28:07 +0800
-Message-ID: <CAFiDJ59yCxcL+g7K05AWoaDiR_hmLdW6R8Dz3sOUwTGmug4YoQ@mail.gmail.com>
-Subject: Re: [PATCH 12/25] metag: Add 32 bit time_t and clock_t
-From: Ley Foon Tan <lftan@altera.com>
-Content-Type: text/plain; charset=UTF-8
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: James Hogan <james.hogan@imgtec.com>
-Cc: Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Chung-Lin Tang <cltang@codesourcery.com>, linux-metag@vger.kernel.org
-Message-ID: <20140513092807.VB8iOiAWu4HyZxaGzZWNXW2vEXGngP8cxmtrxnrKth0@z>
+Cc: Ley Foon Tan <lftan@altera.com>, linux-arch@vger.kernel.org, LKML <linux-kernel@vger.kernel.org>, lftan.linux@gmail.com, cltang@codesourcery.com, Arnd Bergmann <arnd@arndb.de>
+Message-ID: <20140513093038.xkJgBGH7fN3nPs77K7JS5EDx3AnDOqsolDMnmRvDl8o@z>
 
-On Tue, May 13, 2014 at 5:22 PM, James Hogan <james.hogan@imgtec.com> wrote:
-> Hi,
->
-> On 13/05/14 10:04, Ley Foon Tan wrote:
->> Override time_t and clock_t in include/uapi/asm-generic.
->>
->> Signed-off-by: Ley Foon Tan <lftan@altera.com>
->> ---
->>  arch/metag/include/asm/Kbuild             |  1 -
->>  arch/metag/include/uapi/asm/Kbuild        |  1 +
->>  arch/metag/include/uapi/asm/posix_types.h | 17 +++++++++++++++++
->>  3 files changed, 18 insertions(+), 1 deletion(-)
->>  create mode 100644 arch/metag/include/uapi/asm/posix_types.h
->>
->> diff --git a/arch/metag/include/asm/Kbuild b/arch/metag/include/asm/Kbuild
->> index c29ead8..5a97e0d6 100644
->> --- a/arch/metag/include/asm/Kbuild
->> +++ b/arch/metag/include/asm/Kbuild
->> @@ -31,7 +31,6 @@ generic-y += param.h
->>  generic-y += pci.h
->>  generic-y += percpu.h
->>  generic-y += poll.h
->> -generic-y += posix_types.h
->>  generic-y += preempt.h
->>  generic-y += scatterlist.h
->>  generic-y += sections.h
->> diff --git a/arch/metag/include/uapi/asm/Kbuild b/arch/metag/include/uapi/asm/Kbuild
->> index 84e09fe..1542689 100644
->> --- a/arch/metag/include/uapi/asm/Kbuild
->> +++ b/arch/metag/include/uapi/asm/Kbuild
->> @@ -3,6 +3,7 @@ include include/uapi/asm-generic/Kbuild.asm
->>
->>  header-y += byteorder.h
->>  header-y += ech.h
->> +header-y += posix_types.h
->
-> I don't think you need this. The file
-> include/uapi/asm-generic/Kbuild.asm which is included at the top of each
-> arches uapi/asm/Kbuild already has it.
-> (Admittedly there's already a lot of duplication of these that should
-> probably be fixed at some point).
->
-> Other than that it looks okay to me.
-Okay, will remove this.
+On Tue, 13 May 2014, James Hogan wrote:
+> On 13 May 2014 10:02, Ley Foon Tan <lftan@altera.com> wrote:
+> > Use 64 bit time_t and clock_t as default. 32 bit users can provide
+> > an override to define these as "long" if needed.
+> >
+> > Signed-off-by: Ley Foon Tan <lftan@altera.com>
+> > ---
+> >  include/uapi/asm-generic/posix_types.h | 14 ++++++++++++--
+> >  1 file changed, 12 insertions(+), 2 deletions(-)
+> >
+> > diff --git a/include/uapi/asm-generic/posix_types.h b/include/uapi/asm-generic/posix_types.h
+> > index fe74fcc..3f0e613 100644
+> > --- a/include/uapi/asm-generic/posix_types.h
+> > +++ b/include/uapi/asm-generic/posix_types.h
+> > @@ -81,12 +81,22 @@ typedef struct {
+> >  #endif
+> >
+> >  /*
+> > + * Use 64 bit time_t and clock_t as default. 32 bit users can provide an override to
+> > + * define these as "long" if needed.
+> > + */
+> > +#ifndef __kernel_time_t
+> > +typedef long long      __kernel_time_t;
+> > +#endif
+> > +
+> > +#ifndef __kernel_clock_t
+> > +typedef long long      __kernel_clock_t;
+> > +#endif
+> 
+> I think having this as the first patch in the series will break
+> bisection for existing 32-bit arches. This needs to be done in such a
+> way that at no intermediate commit are __kernel_time_t or
+> __kernel_clock_t the wrong size for existing arches, e.g. by having a
+> first patch which makes the typedefs conditional but leaves them as
+> __kernel_long_t, and a final patch that changes the default after all
+> the arches have got their overrides in place.
 
-Thanks.
-Regards
-Ley Foon
+And instead of having a gazillion of pointless include file changes
+which all do the same thing, this should simply use a config switch.
+
+Thanks,
+
+	tglx
