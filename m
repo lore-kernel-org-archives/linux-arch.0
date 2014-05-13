@@ -1,46 +1,50 @@
-From: Thomas Gleixner <tglx@linutronix.de>
+From: Ley Foon Tan <lftan@altera.com>
 Subject: Re: [PATCH 01/25] asm-generic: Change time_t and clock_t to 64 bit
-Date: Tue, 13 May 2014 11:30:38 +0200 (CEST)
-Message-ID: <alpine.DEB.2.02.1405131128010.6261@ionos.tec.linutronix.de>
-References: <1399971456-3941-1-git-send-email-lftan@altera.com> <1399971749-4004-1-git-send-email-lftan@altera.com> <CAAG0J9-ieBNfyRa6kf22TNd_3mg57GYuGHagQ-pPLY41iM3Zyg@mail.gmail.com>
+Date: Tue, 13 May 2014 17:32:52 +0800
+Message-ID: <CAFiDJ5-ez-Brqr8q3=XbODzLtFFU=e4qS12bCPo=5FE1JTNr+A@mail.gmail.com>
+References: <1399971456-3941-1-git-send-email-lftan@altera.com>
+	<1399971749-4004-1-git-send-email-lftan@altera.com>
+	<CAAG0J9-ieBNfyRa6kf22TNd_3mg57GYuGHagQ-pPLY41iM3Zyg@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <CAAG0J9-ieBNfyRa6kf22TNd_3mg57GYuGHagQ-pPLY41iM3Zyg@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: James Hogan <james.hogan@imgtec.com>
-Cc: Ley Foon Tan <lftan@altera.com>, linux-arch@vger.kernel.org, LKML <linux-kernel@vger.kernel.org>, lftan.linux@gmail.com, cltang@codesourcery.com, Arnd Bergmann <arnd@arndb.de>
+Cc: Linux-Arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Chung-Lin Tang <cltang@codesourcery.com>, Arnd Bergmann <arnd@arndb.de>
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, 13 May 2014, James Hogan wrote:
+On Tue, May 13, 2014 at 5:15 PM, James Hogan <james.hogan@imgtec.com> wrote:
+> Hi,
+>
 > On 13 May 2014 10:02, Ley Foon Tan <lftan@altera.com> wrote:
-> > Use 64 bit time_t and clock_t as default. 32 bit users can provide
-> > an override to define these as "long" if needed.
-> >
-> > Signed-off-by: Ley Foon Tan <lftan@altera.com>
-> > ---
-> >  include/uapi/asm-generic/posix_types.h | 14 ++++++++++++--
-> >  1 file changed, 12 insertions(+), 2 deletions(-)
-> >
-> > diff --git a/include/uapi/asm-generic/posix_types.h b/include/uapi/asm-generic/posix_types.h
-> > index fe74fcc..3f0e613 100644
-> > --- a/include/uapi/asm-generic/posix_types.h
-> > +++ b/include/uapi/asm-generic/posix_types.h
-> > @@ -81,12 +81,22 @@ typedef struct {
-> >  #endif
-> >
-> >  /*
-> > + * Use 64 bit time_t and clock_t as default. 32 bit users can provide an override to
-> > + * define these as "long" if needed.
-> > + */
-> > +#ifndef __kernel_time_t
-> > +typedef long long      __kernel_time_t;
-> > +#endif
-> > +
-> > +#ifndef __kernel_clock_t
-> > +typedef long long      __kernel_clock_t;
-> > +#endif
-> 
+>> Use 64 bit time_t and clock_t as default. 32 bit users can provide
+>> an override to define these as "long" if needed.
+>>
+>> Signed-off-by: Ley Foon Tan <lftan@altera.com>
+>> ---
+>>  include/uapi/asm-generic/posix_types.h | 14 ++++++++++++--
+>>  1 file changed, 12 insertions(+), 2 deletions(-)
+>>
+>> diff --git a/include/uapi/asm-generic/posix_types.h b/include/uapi/asm-generic/posix_types.h
+>> index fe74fcc..3f0e613 100644
+>> --- a/include/uapi/asm-generic/posix_types.h
+>> +++ b/include/uapi/asm-generic/posix_types.h
+>> @@ -81,12 +81,22 @@ typedef struct {
+>>  #endif
+>>
+>>  /*
+>> + * Use 64 bit time_t and clock_t as default. 32 bit users can provide an override to
+>> + * define these as "long" if needed.
+>> + */
+>> +#ifndef __kernel_time_t
+>> +typedef long long      __kernel_time_t;
+>> +#endif
+>> +
+>> +#ifndef __kernel_clock_t
+>> +typedef long long      __kernel_clock_t;
+>> +#endif
+>
 > I think having this as the first patch in the series will break
 > bisection for existing 32-bit arches. This needs to be done in such a
 > way that at no intermediate commit are __kernel_time_t or
@@ -49,9 +53,16 @@ On Tue, 13 May 2014, James Hogan wrote:
 > __kernel_long_t, and a final patch that changes the default after all
 > the arches have got their overrides in place.
 
-And instead of having a gazillion of pointless include file changes
-which all do the same thing, this should simply use a config switch.
+Your suggestion is something as below?
 
-Thanks,
+First patch:
+#ifndef __kernel_time_t
+typedef __kernel_long_t      __kernel_time_t;
+#endif
 
-	tglx
+Last patch:
+#ifndef __kernel_time_t
+typedef long long      __kernel_time_t;
+#endif
+
+Ley Foon
