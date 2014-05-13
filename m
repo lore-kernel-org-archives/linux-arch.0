@@ -1,80 +1,88 @@
 From: James Hogan <james.hogan@imgtec.com>
-Subject: Re: [PATCH 01/25] asm-generic: Change time_t and clock_t to 64 bit
-Date: Tue, 13 May 2014 10:15:47 +0100
-Message-ID: <CAAG0J9-ieBNfyRa6kf22TNd_3mg57GYuGHagQ-pPLY41iM3Zyg@mail.gmail.com>
-References: <1399971456-3941-1-git-send-email-lftan@altera.com>
-	<1399971749-4004-1-git-send-email-lftan@altera.com>
+Subject: Re: [PATCH 12/25] metag: Add 32 bit time_t and clock_t
+Date: Tue, 13 May 2014 10:22:22 +0100
+Message-ID: <5371E44E.20509@imgtec.com>
+References: <1399971456-3941-1-git-send-email-lftan@altera.com> <1399971885-4413-1-git-send-email-lftan@altera.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-oa0-f45.google.com ([209.85.219.45]:35204 "EHLO
-	mail-oa0-f45.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1759954AbaEMJPs (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 13 May 2014 05:15:48 -0400
-Received: by mail-oa0-f45.google.com with SMTP id l6so57773oag.32
-        for <linux-arch@vger.kernel.org>; Tue, 13 May 2014 02:15:47 -0700 (PDT)
-In-Reply-To: <1399971749-4004-1-git-send-email-lftan@altera.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Ley Foon Tan <lftan@altera.com>
-Cc: linux-arch@vger.kernel.org, LKML <linux-kernel@vger.kernel.org>, lftan.linux@gmail.com, cltang@codesourcery.com, Arnd Bergmann <arnd@arndb.de>
+Content-Type: text/plain; charset="ISO-8859-1"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1399971885-4413-1-git-send-email-lftan@altera.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Ley Foon Tan <lftan@altera.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Cc: lftan.linux@gmail.com, cltang@codesourcery.com, linux-metag@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
 Hi,
 
-On 13 May 2014 10:02, Ley Foon Tan <lftan@altera.com> wrote:
-> Use 64 bit time_t and clock_t as default. 32 bit users can provide
-> an override to define these as "long" if needed.
->
+On 13/05/14 10:04, Ley Foon Tan wrote:
+> Override time_t and clock_t in include/uapi/asm-generic.
+> 
 > Signed-off-by: Ley Foon Tan <lftan@altera.com>
 > ---
->  include/uapi/asm-generic/posix_types.h | 14 ++++++++++++--
->  1 file changed, 12 insertions(+), 2 deletions(-)
->
-> diff --git a/include/uapi/asm-generic/posix_types.h b/include/uapi/asm-generic/posix_types.h
-> index fe74fcc..3f0e613 100644
-> --- a/include/uapi/asm-generic/posix_types.h
-> +++ b/include/uapi/asm-generic/posix_types.h
-> @@ -81,12 +81,22 @@ typedef struct {
->  #endif
->
->  /*
-> + * Use 64 bit time_t and clock_t as default. 32 bit users can provide an override to
-> + * define these as "long" if needed.
-> + */
-> +#ifndef __kernel_time_t
-> +typedef long long      __kernel_time_t;
-> +#endif
-> +
-> +#ifndef __kernel_clock_t
-> +typedef long long      __kernel_clock_t;
-> +#endif
+>  arch/metag/include/asm/Kbuild             |  1 -
+>  arch/metag/include/uapi/asm/Kbuild        |  1 +
+>  arch/metag/include/uapi/asm/posix_types.h | 17 +++++++++++++++++
+>  3 files changed, 18 insertions(+), 1 deletion(-)
+>  create mode 100644 arch/metag/include/uapi/asm/posix_types.h
+> 
+> diff --git a/arch/metag/include/asm/Kbuild b/arch/metag/include/asm/Kbuild
+> index c29ead8..5a97e0d6 100644
+> --- a/arch/metag/include/asm/Kbuild
+> +++ b/arch/metag/include/asm/Kbuild
+> @@ -31,7 +31,6 @@ generic-y += param.h
+>  generic-y += pci.h
+>  generic-y += percpu.h
+>  generic-y += poll.h
+> -generic-y += posix_types.h
+>  generic-y += preempt.h
+>  generic-y += scatterlist.h
+>  generic-y += sections.h
+> diff --git a/arch/metag/include/uapi/asm/Kbuild b/arch/metag/include/uapi/asm/Kbuild
+> index 84e09fe..1542689 100644
+> --- a/arch/metag/include/uapi/asm/Kbuild
+> +++ b/arch/metag/include/uapi/asm/Kbuild
+> @@ -3,6 +3,7 @@ include include/uapi/asm-generic/Kbuild.asm
+>  
+>  header-y += byteorder.h
+>  header-y += ech.h
+> +header-y += posix_types.h
 
-I think having this as the first patch in the series will break
-bisection for existing 32-bit arches. This needs to be done in such a
-way that at no intermediate commit are __kernel_time_t or
-__kernel_clock_t the wrong size for existing arches, e.g. by having a
-first patch which makes the typedefs conditional but leaves them as
-__kernel_long_t, and a final patch that changes the default after all
-the arches have got their overrides in place.
+I don't think you need this. The file
+include/uapi/asm-generic/Kbuild.asm which is included at the top of each
+arches uapi/asm/Kbuild already has it.
+(Admittedly there's already a lot of duplication of these that should
+probably be fixed at some point).
+
+Other than that it looks okay to me.
 
 Cheers
 James
 
+>  header-y += ptrace.h
+>  header-y += resource.h
+>  header-y += sigcontext.h
+> diff --git a/arch/metag/include/uapi/asm/posix_types.h b/arch/metag/include/uapi/asm/posix_types.h
+> new file mode 100644
+> index 0000000..d643b22
+> --- /dev/null
+> +++ b/arch/metag/include/uapi/asm/posix_types.h
+> @@ -0,0 +1,17 @@
+> +#ifndef __ARCH_METAG_POSIX_TYPES_H
+> +#define __ARCH_METAG_POSIX_TYPES_H
 > +
 > +/*
->   * anything below here should be completely generic
->   */
->  typedef __kernel_long_t        __kernel_off_t;
->  typedef long long      __kernel_loff_t;
-> -typedef __kernel_long_t        __kernel_time_t;
-> -typedef __kernel_long_t        __kernel_clock_t;
->  typedef int            __kernel_timer_t;
->  typedef int            __kernel_clockid_t;
->  typedef char *         __kernel_caddr_t;
-> --
-> 1.8.2.1
->
-> --
-> To unsubscribe from this list: send the line "unsubscribe linux-arch" in
-> the body of a message to majordomo@vger.kernel.org
-> More majordomo info at  http://vger.kernel.org/majordomo-info.html
+> + * This file is generally used by user-level software, so you need to
+> + * be a little careful about namespace pollution etc. Also, we cannot
+> + * assume GCC is being used.
+> + */
+> +typedef long	__kernel_time_t;
+> +#define __kernel_time_t __kernel_time_t
+> +
+> +typedef long	__kernel_clock_t;
+> +#define __kernel_clock_t __kernel_clock_t
+> +
+> +#include <asm-generic/posix_types.h>
+> +
+> +#endif
+> 
