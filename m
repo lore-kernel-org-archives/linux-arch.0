@@ -1,97 +1,55 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH 00/25] Change time_t and clock_t to 64 bit
-Date: Tue, 13 May 2014 21:32:53 +0200
-Message-ID: <8399002.IIyBoyEHox@wuerfel>
-References: <1399971456-3941-1-git-send-email-lftan@altera.com> <6202090.0OtAjefIFT@wuerfel> <CAMuHMdVxc3XRanpboWPumvQKbg-qdRBHQvYXwjTKX4CrxXPeAw@mail.gmail.com>
+From: Waiman Long <waiman.long@hp.com>
+Subject: Re: [PATCH v10 03/19] qspinlock: Add pending bit
+Date: Tue, 13 May 2014 15:47:00 -0400
+Message-ID: <537276B4.10209@hp.com>
+References: <1399474907-22206-1-git-send-email-Waiman.Long@hp.com>
+	<1399474907-22206-4-git-send-email-Waiman.Long@hp.com>
+	<20140512152208.GA12309@potion.brq.redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7Bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.126.131]:52193 "EHLO
-	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754485AbaEMTdl (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 13 May 2014 15:33:41 -0400
-In-Reply-To: <CAMuHMdVxc3XRanpboWPumvQKbg-qdRBHQvYXwjTKX4CrxXPeAw@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Christoph Hellwig <hch@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Ley Foon Tan <lftan@altera.com>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, LeyFoon Tan <lftan.linux@gmail.com>, Chung-Lin Tang <cltang@codesourcery.com>
+Content-Type: text/plain; charset="utf-8"; Format="flowed"
+Content-Transfer-Encoding: base64
+Return-path: <virtualization-bounces@lists.linux-foundation.org>
+In-Reply-To: <20140512152208.GA12309@potion.brq.redhat.com>
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
+List-Post: <mailto:virtualization@lists.linux-foundation.org>
+List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
+Sender: virtualization-bounces@lists.linux-foundation.org
+Errors-To: virtualization-bounces@lists.linux-foundation.org
+To: =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>
+Cc: x86@kernel.org, Gleb Natapov <gleb@redhat.com>, Peter Zijlstra <peterz@infradead.org>, linux-kernel@vger.kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, linux-arch@vger.kernel.org, kvm@vger.kernel.org, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, Ingo Molnar <mingo@redhat.com>, xen-devel@lists.xenproject.org, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Rik van Riel <riel@redhat.com>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Scott J Norton <scott.norton@hp.com>, Paolo Bonzini <paolo.bonzini@gmail.com>, Thomas Gleixner <tglx@linutronix.de>, virtualization@lists.linux-foundation.org, Chegu Vinod <chegu_vinod@hp.com>, Oleg Nesterov <oleg@redhat.com>, David Vrabel <david.vrabel@citrix.com>, Linus Torvalds <torvalds@linux-foundation.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Tuesday 13 May 2014 20:24:59 Geert Uytterhoeven wrote:
-> On Tue, May 13, 2014 at 8:10 PM, Arnd Bergmann <arnd@arndb.de> wrote:
-> > Using 64-bit time_t on x32 is fine, because it's fast to operate
-> > in user space with 64-bit registers, and the kernel is 64-bit
-> > anyway. Inside of the kernel, we may get into trouble using
-> > a 64-bit time_t on 32-bit architectures because of the overhead
-> > in 64-bit math, e.g. all the timekeeping code that is based on
-> > timespec or some code paths in file systems and network code where
-> > we actually require division of time_t values.
-> 
-> While going over time_t uses, have you found a pattern for use cases
-> involving division of time_t values in filesystem and networking code?
-
-In ipv4, we have multiple places doing this:
-
-        icmp_param.data.times[1] = htonl((tv.tv_sec % 86400) * MSEC_PER_SEC +
-                                         tv.tv_nsec / NSEC_PER_MSEC);
-
-to calculate the miliseconds since midnight. For file systems, I
-found that FAT uses seconds/minutes/hours/days/month/year representation,
-which is a lot of divides, but that can probably be optimized and
-we need to handle years beyond 2038 anyway.
-
-> > We clearly have to change that code in some for to deal with y2038,
-> > but 64-bit time_t may not be the best option. A lot of the
-> > in-kernel code can probably use ktime_t, which we can change
-> > to a different representation (e.g. 34 bit seconds) if needed,
-> > and all the code that is only interested in relative time
-> > (e.g. nanosleep) doesn't have to change at all.
-> 
-> Yeah. 32-bit uptimes should be good enough for everyone (don't quote
-> me on that), so adding a 64-bit offset when there's a need for absolute
-> time should be OK.
-
-I think we have three categories:
-
-a) interfaces that uses relative time_t/timespec/timeval:
-   - nanosleep
-   - select/pselect/poll/ppoll/epoll
-   - getrusage
-   - sched_rr_get_interval
-   - sigtimedwait
-   - clock_nanosleep
-   - alarm
-   - siginfo (rusage)
-
-  These can stay compatible, but we'd have to use a different
-  type if we change time_t.
-
-b) interfaces that don't make sense for times in the past:
-   - getitimer/setitimer
-   - timer_settime/timer_gettime
-   - gettimeofday/settimeofday
-   - adjtimex
-   - clock_gettime/clock_settime/clock_adjtime
-   - time/stime
-   - socket time stamps
-   - audio time stamps
-   - v4l time stamps
-   - input event time stamps
-   - sysv ipc (msg, sem, shm)
-
-   Here, we are relatively free to change the start of the
-   epoch in the kernel but convert to something else on the
-   user space boundary. One possibility is to scale them to
-   boot time and use ktime_t in the kernel.
-
-c) interfaces that require absolute times:
-   - stat/lstat/fstatat/
-   - utime/utimes/futimesat
-
-These absolutely have to use something better than time_t
-both in user space and in the kernel so we can deal with
-old files. A lot of file systems need to be fixed as well so
-we can actually store the times, regardless of whether we
-are running a 32 or 64 bit kernel.
-
-	Arnd 
+T24gMDUvMTIvMjAxNCAxMToyMiBBTSwgUmFkaW0gS3LEjW3DocWZIHdyb3RlOgo+IDIwMTQtMDUt
+MDcgMTE6MDEtMDQwMCwgV2FpbWFuIExvbmc6Cj4+IEZyb206IFBldGVyIFppamxzdHJhPHBldGVy
+ekBpbmZyYWRlYWQub3JnPgo+Pgo+PiBCZWNhdXNlIHRoZSBxc3BpbmxvY2sgbmVlZHMgdG8gdG91
+Y2ggYSBzZWNvbmQgY2FjaGVsaW5lOyBhZGQgYSBwZW5kaW5nCj4+IGJpdCBhbmQgYWxsb3cgYSBz
+aW5nbGUgaW4td29yZCBzcGlubmVyIGJlZm9yZSB3ZSBwdW50IHRvIHRoZSBzZWNvbmQKPj4gY2Fj
+aGVsaW5lLgo+IEkgdGhpbmsgdGhlcmUgaXMgYW4gdW53YW50ZWQgc2NlbmFyaW8gb24gdmlydHVh
+bCBtYWNoaW5lczoKPiAxKSBWQ1BVIHNldHMgdGhlIHBlbmRpbmcgYml0IGFuZCBzdGFydCBzcGlu
+bmluZy4KPiAyKSBQZW5kaW5nIFZDUFUgZ2V0cyBkZXNjaGVkdWxlZC4KPiAgICAgIC0gd2UgaGF2
+ZSBQTEUgYW5kIGxvY2sgaG9sZGVyIGlzbid0IHJ1bm5pbmcgWzFdCj4gICAgICAtIHRoZSBoeXBl
+cnZpc29yIHJhbmRvbWx5IHByZWVtcHRzIHVzCj4gMykgTG9jayBob2xkZXIgdW5sb2NrcyB3aGls
+ZSBwZW5kaW5nIFZDUFUgaXMgd2FpdGluZyBpbiBxdWV1ZS4KPiA0KSBTdWJzZXF1ZW50IGxvY2tl
+cnMgd2lsbCBzZWUgZnJlZSBsb2NrIHdpdGggc2V0IHBlbmRpbmcgYml0IGFuZCB3aWxsCj4gICAg
+IGxvb3AgaW4gdHJ5bG9jaydzICdmb3IgKDs7KScKPiAgICAgIC0gdGhlIHdvcnN0LWNhc2UgaXMg
+bG9jayBzdGFydmluZyBbMl0KPiAgICAgIC0gUExFIGNhbiBzYXZlIHVzIGZyb20gd2FzdGluZyB3
+aG9sZSB0aW1lc2xpY2UKPgo+IFJldHJ5IHRocmVzaG9sZCBpcyB0aGUgZWFzaWVzdCBzb2x1dGlv
+biwgcmVnYXJkbGVzcyBvZiBpdHMgdWdsaW5lc3MgWzRdLgoKWWVzLCB0aGF0IGNhbiBiZSBhIHJl
+YWwgaXNzdWUuIFNvbWUgc29ydCBvZiByZXRyeSB0aHJlc2hvbGQsIGFzIHlvdSAKc2FpZCwgc2hv
+dWxkIGJlIGFibGUgdG8gaGFuZGxlIGl0LgoKQlRXLCB0aGUgcmVsZXZhbnQgcGF0Y2ggc2hvdWxk
+IGJlIDE2LzE5IHdoZXJlIHRoZSBQViBzcGlubG9jayBzdHVmZiAKc2hvdWxkIGJlIGRpc2N1c3Nl
+ZC4gVGhpcyBwYXRjaCBpcyBwZXJmZWN0bHkgZmluZS4KCj4gQW5vdGhlciBtaW5vciBkZXNpZ24g
+ZmxhdyBpcyB0aGF0IGZvcm1lcmx5IGZpcnN0IFZDUFUgZ2V0cyBhcHBlbmRlZCB0bwo+IHRoZSB0
+YWlsIHdoZW4gaXQgZGVjaWRlcyB0byBxdWV1ZTsKPiBpcyB0aGUgcGVyZm9ybWFuY2UgZ2FpbiB3
+b3J0aCBpdD8KPgo+IFRoYW5rcy4KClllcywgdGhlIHBlcmZvcm1hbmNlIGdhaW4gaXMgd29ydGgg
+aXQuIFRoZSBwcmltYXJ5IGdvYWwgaXMgdG8gYmUgbm90IAp3b3JzZSB0aGFuIHRpY2tldCBzcGlu
+bG9jayBpbiBsaWdodCBsb2FkIHNpdHVhdGlvbiB3aGljaCBpcyB0aGUgbW9zdCAKY29tbW9uIGNh
+c2UuIFRoaXMgZmVhdHVyZSBpcyBuZWVkIHRvIGFjaGlldmUgdGhhdC4KCi1Mb25nbWFuCl9fX19f
+X19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fClZpcnR1YWxpemF0aW9u
+IG1haWxpbmcgbGlzdApWaXJ0dWFsaXphdGlvbkBsaXN0cy5saW51eC1mb3VuZGF0aW9uLm9yZwpo
+dHRwczovL2xpc3RzLmxpbnV4Zm91bmRhdGlvbi5vcmcvbWFpbG1hbi9saXN0aW5mby92aXJ0dWFs
+aXphdGlvbg==
