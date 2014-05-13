@@ -1,43 +1,63 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH 06/20] arch,avr32: Fold atomic_ops
-Date: Tue, 13 May 2014 22:50:45 +0200
-Message-ID: <20140513205045.GK2485@laptop.programming.kicks-ass.net>
-References: <20140508135840.956784204@infradead.org>
- <20140508135852.049922584@infradead.org>
- <20140509183241.GA4491@samfundet.no>
- <20140509204309.GA13467@laptop.programming.kicks-ass.net>
- <20140509205155.GH1429@laptop.programming.kicks-ass.net>
- <20140509211728.GI1429@laptop.programming.kicks-ass.net>
- <20140513204032.GB14023@samfundet.no>
+From: Dave Hansen <dave@sr71.net>
+Subject: Re: [PATCH] x86, hugetlb: add missing TLB page invalidation for hugetlb_cow()
+Date: Tue, 13 May 2014 15:44:55 -0700
+Message-ID: <5372A067.9010808@sr71.net>
+References: <20140514092948.GA17391@server-36.huawei.corp>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Transfer-Encoding: 8BIT
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.9]:40097 "EHLO
-	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754929AbaEMUu7 convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 13 May 2014 16:50:59 -0400
-Content-Disposition: inline
-In-Reply-To: <20140513204032.GB14023@samfundet.no>
+Received: from www.sr71.net ([198.145.64.142]:48555 "EHLO blackbird.sr71.net"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752687AbaEMWo6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 13 May 2014 18:44:58 -0400
+In-Reply-To: <20140514092948.GA17391@server-36.huawei.corp>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Hans-Christian Egtvedt <egtvedt@samfundet.no>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, torvalds@linux-foundation.org, akpm@linux-foundation.org, mingo@kernel.org, will.deacon@arm.com, paulmck@linux.vnet.ibm.com, Haavard Skinnemoen <hskinnemoen@gmail.com>
+To: Anthony Iliopoulos <anthony.iliopoulos@huawei.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>
+Cc: x86@kernel.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Shay Goikhman <shay.goikhman@huawei.com>, Paul Mundt <paul.mundt@huawei.com>, Carlos Villavieja <villavieja@hps.utexas.edu>, Nacho Navarro <nacho.navarro@bsc.es>, Avi Mendelson <avi.mendelson@tce.technion.ac.il>, Yoav Etsion <yetsion@tce.technion.ac.il>, Gerald Schaefer <gerald.schaefer@de.ibm.com>, David Gibson <david@gibson.dropbear.id.au>, linux-arch <linux-arch@vger.kernel.org>
 
-On Tue, May 13, 2014 at 10:40:32PM +0200, Hans-Christian Egtvedt wrote:
-> Probably found the reason why we want to use sub with the signed 21-bit
-> limit, it uses one less register than the add instruction that can add up to
-> 32-bit values.
+On 05/14/2014 02:29 AM, Anthony Iliopoulos wrote:
+> The invalidation is required in order to maintain proper semantics
+> under CoW conditions. In scenarios where a process clones several
+> threads, a thread operating on a core whose DTLB entry for a
+> particular hugepage has not been invalidated, will be reading from
+> the hugepage that belongs to the forked child process, even after
+> hugetlb_cow().
 > 
-> Both instructions are 32-bit, to use a 16-bit instruction the immediate is
-> very small; 4 bit.
-> 
-> sub 32-bit, type IV, takes a register and subtracts a 21-bit immediate.
-> add 32-bit, type II, adds two register values together.
-> 
-> So by simplifying you loose this optimization.
+> The thread will not see the updated page as long as the stale DTLB
+> entry remains cached, the thread attempts to write into the page,
+> the child process exits, or the thread gets migrated to a different
+> processor.
 
-OK, let me try if I can come up with anything sane for this.
+No to be too nitpicky, but this applies to ITLB too, right?
 
-Re, adding atomic_{or,and,xor}() those should all use the same bits as
-add, right, except for the special case using sub.
+I believe this bug came all the way back from:
+
+> commit 1e8f889b10d8d2223105719e36ce45688fedbd59
+> Author: David Gibson <david@gibson.dropbear.id.au>
+> Date:   Fri Jan 6 00:10:44 2006 -0800
+> 
+>     [PATCH] Hugetlb: Copy on Write support
+
+It was probably the first time that we ever changed an _existing_
+hugetlbfs pte, and that patch probably just missed the TLB flush because
+none of the other pte-setting hugetlb.c code needed TLB flushes.
+
+The bogus x86 version of huge_ptep_clear_flush() came from the s390
+guys, so double-shame on IBM! :P
+
+> commit 8fe627ec5b7c47b1654dff50536d9709863295a3
+> Author: Gerald Schaefer <gerald.schaefer@de.ibm.com>
+> Date:   Mon Apr 28 02:13:28 2008 -0700
+> 
+>     hugetlbfs: add missing TLB flush to hugetlb_cow()
+
+This is probably an opportunity for all the other architecture
+maintainers to make sure that they have proper copies of
+huge_ptep_clear_flush().
+
+I went through the hugetlb code on x86 and couldn't find another TLB
+flush that fixes this issue, and I believe this is correct, so:
+
+Acked-by: Dave Hansen <dave.hansen@intel.com>
