@@ -1,71 +1,34 @@
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [PATCH 01/25] asm-generic: Change time_t and clock_t to 64 bit
-Date: Tue, 13 May 2014 16:37:04 +0200 (CEST)
-Message-ID: <alpine.DEB.2.02.1405131625520.6261@ionos.tec.linutronix.de>
-References: <1399971456-3941-1-git-send-email-lftan@altera.com> <alpine.DEB.2.02.1405131405590.6261@ionos.tec.linutronix.de> <CAMuHMdV2NPwacZwP=QRP+d+eFT85jDq9V0F+Q+Hdch3xukpbkw@mail.gmail.com> <6047893.vbvIgNOHCV@wuerfel>
+From: Christoph Hellwig <hch@infradead.org>
+Subject: Re: [PATCH 00/25] Change time_t and clock_t to 64 bit
+Date: Tue, 13 May 2014 08:24:29 -0700
+Message-ID: <20140513152429.GA15679@infradead.org>
+References: <1399971456-3941-1-git-send-email-lftan@altera.com>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from www.linutronix.de ([62.245.132.108]:35061 "EHLO
-	Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1760213AbaEMOgz (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 13 May 2014 10:36:55 -0400
-In-Reply-To: <6047893.vbvIgNOHCV@wuerfel>
+Received: from bombadil.infradead.org ([198.137.202.9]:49732 "EHLO
+	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751145AbaEMPYa (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 13 May 2014 11:24:30 -0400
+Content-Disposition: inline
+In-Reply-To: <1399971456-3941-1-git-send-email-lftan@altera.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Ley Foon Tan <lftan@altera.com>, James Hogan <james.hogan@imgtec.com>, Linux-Arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Chung-Lin Tang <cltang@codesourcery.com>
+To: Ley Foon Tan <lftan@altera.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, lftan.linux@gmail.com, cltang@codesourcery.com, Arnd Bergmann <arnd@arndb.de>
 
-On Tue, 13 May 2014, Arnd Bergmann wrote:
-> On Tuesday 13 May 2014 15:11:33 Geert Uytterhoeven wrote:
-> > On Tue, May 13, 2014 at 2:07 PM, Thomas Gleixner <tglx@linutronix.de> wrote:
-> > > On Tue, 13 May 2014, Arnd Bergmann wrote:
-> > >> On Tuesday 13 May 2014 18:17:40 Ley Foon Tan wrote:
-> > >> > When we export this posix_types.h file for user software, they need to
-> > >> > define this config, eg: CONFIG_32BIT_TIME to use 32 bit time. Is this
-> > >> > what we want to do?
-> > >>
-> > >> No, this doesn't really work: You can't use CONFIG_* symbols in
-> > >> user-visible header files.
-> > >
-> > > Then make the config symbol generate the header from a template.
-> > 
-> > Indeed. I think it's worthwhile to add CONFIG_* expansion for such "hard"
-> > CONFIG symbols to make headers_install, cfr. the existing unifdef support.
-> > 
-> > We do such a hard work to improve asm-generic, so new architectures can
-> > just use that, only to see early adaptors now having to migrate away from it
-> > (e.g. OpenRISC suddenly gaining uapi/asm/posix_types.h).
+On Tue, May 13, 2014 at 04:57:36PM +0800, Ley Foon Tan wrote:
+> This patchset change default time_t and clock_t to 64 bit in
+> include/uapi/asm-generic/posix_types.h. The existing 32 bit architectures override
+> these define to 32 bit in arch posix_types.h.
 > 
-> This was always the idea: New architectures should use the default ABI
-> as it is defined at the time when they get added. When we later change
-> the ABI, everything that is already there is no longer using the default,
-> so they now have to change.
->  
-> > Or is there another solution?
-> 
-> We could in theory have a versioned ABI, and define for instance that
-> openrisc uses the 3.1 version while nios2 uses the 3.16 version.
-> 
-> Doing that would introduce other problems I guess, but it would
-> avoid the use of changing lots of architectures when the default
-> ABI changes.
+> There is request to support 64 bit time_t for new architecture [1]. According to the
 
-The most simple solution is to use the existing unifdef machinery for
-the export version and make the #ifdef maze use CONFIG_ARCH_XXX. For
-the simple architectures you just need the CONFIG_ARCH_NAME, for such
-which support 32 and 64 or some more ABI versions you need to look for
-a matching one or a combination of several config options.
+I think this is an utterly wrong, and very dangerous approach.  A 64-bit
+time_t is something that will need non-trivial porting effort in
+userland, and introducing it only for new fringe architectures is a
+guaranteed way to create silent breakage.
 
-You even can combine that with versioning:
-
-#ifdef CONFIG_ARCH_OPENRISC
-# include <asm-generic/hdr-v31.h>
-#endif
-
-That gives you a nice history in a single place and avoids updating
-the world and some when you change stuff.
-
-Hmm?
-
-	tglx
+If you do care about it make sure the architectures that are heavily
+used support it and userland can properly deal with it first, and only
+then default new architectures to it.
