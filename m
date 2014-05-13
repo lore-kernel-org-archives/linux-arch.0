@@ -1,50 +1,57 @@
-From: Christoph Hellwig <hch@infradead.org>
+From: Arnd Bergmann <arnd@arndb.de>
 Subject: Re: [PATCH 00/25] Change time_t and clock_t to 64 bit
-Date: Tue, 13 May 2014 10:46:40 -0700
-Message-ID: <20140513174640.GA20961@infradead.org>
-References: <1399971456-3941-1-git-send-email-lftan@altera.com>
- <20140513152429.GA15679@infradead.org>
- <alpine.DEB.2.02.1405131727480.6261@ionos.tec.linutronix.de>
+Date: Tue, 13 May 2014 20:10:31 +0200
+Message-ID: <6202090.0OtAjefIFT@wuerfel>
+References: <1399971456-3941-1-git-send-email-lftan@altera.com> <alpine.DEB.2.02.1405131727480.6261@ionos.tec.linutronix.de> <20140513174640.GA20961@infradead.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7Bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.9]:57286 "EHLO
-	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751511AbaEMRqm (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 13 May 2014 13:46:42 -0400
-Content-Disposition: inline
-In-Reply-To: <alpine.DEB.2.02.1405131727480.6261@ionos.tec.linutronix.de>
+Received: from mout.kundenserver.de ([212.227.17.13]:62684 "EHLO
+	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753201AbaEMSLR (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 13 May 2014 14:11:17 -0400
+In-Reply-To: <20140513174640.GA20961@infradead.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: Ley Foon Tan <lftan@altera.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, lftan.linux@gmail.com, cltang@codesourcery.com, Arnd Bergmann <arnd@arndb.de>
+To: Christoph Hellwig <hch@infradead.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Ley Foon Tan <lftan@altera.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, lftan.linux@gmail.com, cltang@codesourcery.com
 
-On Tue, May 13, 2014 at 05:33:01PM +0200, Thomas Gleixner wrote:
-> Err, we CANNOT do that. We cannot move ANY 32 bit architecture to
-> 64bit time_t without breaking the world and some more.
+On Tuesday 13 May 2014 10:46:40 Christoph Hellwig wrote:
+> On Tue, May 13, 2014 at 05:33:01PM +0200, Thomas Gleixner wrote:
+> > and it
+> > would be dumb as hell to have new archs use time_t 32bit when we are
+> > currently twisting our brain around how to solve the y2038
+> > problem. Simply because we can not do the BSD flag day approach and
+> > change it.
+> 
+> I don't think it's a good idea to have minor new architectures
+> pointlessly different than the major ones.  Especially given that we'll
+> absolutely have to fir the y2038 problem for 32-bit arm and probably
+> x86 anyway.
 
-Of course we can, we just need to still provide the existing 32-bit
-time_t ABIs for backwards compatiblity.  That's how we handled
-extensions of other types like off_t in the past.
+I've just spent two days looking at stuff that uses time_t inside
+of the kernel, to get a better idea of what we actually need to
+do to get provide new user interfaces for the existing architectures.
 
-> All 64bit architectures use 64bit time_t already plus the x32 ABI of x86.
+My impression so far is that we're better off fixing it for the
+existing architectures first and then using the new interfaces
+exclusively on new ones, rather than changing over the ABI for
+all new architectures at this point, which would likely create
+yet another variant to maintain in the long run.
 
-64-bit is not relevant for the pain as there time_t is simply a long,
-while for 32-bit types we move to a longer than pointer sized type,
-in direct contradiction to older standards the explicitly prohibit this.
+Using 64-bit time_t on x32 is fine, because it's fast to operate
+in user space with 64-bit registers, and the kernel is 64-bit
+anyway. Inside of the kernel, we may get into trouble using
+a 64-bit time_t on 32-bit architectures because of the overhead
+in 64-bit math, e.g. all the timekeeping code that is based on
+timespec or some code paths in file systems and network code where
+we actually require division of time_t values.
+We clearly have to change that code in some for to deal with y2038,
+but 64-bit time_t may not be the best option. A lot of the
+in-kernel code can probably use ktime_t, which we can change
+to a different representation (e.g. 34 bit seconds) if needed,
+and all the code that is only interested in relative time
+(e.g. nanosleep) doesn't have to change at all.
 
-> So why would user space explode? It did not explode with x32
-
-Who knows?  It's not like x32 actually has any significant user base.
-In fact just weeks ago we fixed fundamental type system bugs for it.
-
-> and it
-> would be dumb as hell to have new archs use time_t 32bit when we are
-> currently twisting our brain around how to solve the y2038
-> problem. Simply because we can not do the BSD flag day approach and
-> change it.
-
-I don't think it's a good idea to have minor new architectures
-pointlessly different than the major ones.  Especially given that we'll
-absolutely have to fir the y2038 problem for 32-bit arm and probably
-x86 anyway.
+	Arnd
