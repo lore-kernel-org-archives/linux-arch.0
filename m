@@ -1,57 +1,69 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.southpole.se ([37.247.8.11]:55793 "EHLO mail.southpole.se"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1760100AbaEMJtQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 13 May 2014 05:49:16 -0400
-Message-ID: <5371E62F.9090203@southpole.se>
-Date: Tue, 13 May 2014 11:30:23 +0200
-From: Jonas Bonn <jonas@southpole.se>
+Received: from mailapp01.imgtec.com ([195.59.15.196]:25590 "EHLO
+	mailapp01.imgtec.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1760626AbaEMJuj (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 13 May 2014 05:50:39 -0400
+Message-ID: <5371EAEB.5030100@imgtec.com>
+Date: Tue, 13 May 2014 10:50:35 +0100
+From: James Hogan <james.hogan@imgtec.com>
 MIME-Version: 1.0
-Subject: Re: [PATCH 16/25] openrisc: Add 32 bit time_t and clock_t
-References: <1399971456-3941-1-git-send-email-lftan@altera.com> <1399971958-4561-1-git-send-email-lftan@altera.com>
-In-Reply-To: <1399971958-4561-1-git-send-email-lftan@altera.com>
-Content-Type: text/plain; charset=ISO-8859-1
+Subject: Re: [PATCH 01/25] asm-generic: Change time_t and clock_t to 64 bit
+References: <1399971456-3941-1-git-send-email-lftan@altera.com>	<1399971749-4004-1-git-send-email-lftan@altera.com>	<CAAG0J9-ieBNfyRa6kf22TNd_3mg57GYuGHagQ-pPLY41iM3Zyg@mail.gmail.com> <CAFiDJ5-ez-Brqr8q3=XbODzLtFFU=e4qS12bCPo=5FE1JTNr+A@mail.gmail.com>
+In-Reply-To: <CAFiDJ5-ez-Brqr8q3=XbODzLtFFU=e4qS12bCPo=5FE1JTNr+A@mail.gmail.com>
+Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ley Foon Tan <lftan@altera.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: lftan.linux@gmail.com, cltang@codesourcery.com, linux@lists.openrisc.net
-Message-ID: <20140513093023.0Pzmml7uhDtzz06k3IR3z3L6Hw090vs1rTNuUH2QxAA@z>
+To: Ley Foon Tan <lftan@altera.com>
+Cc: Linux-Arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Chung-Lin Tang <cltang@codesourcery.com>, Arnd Bergmann <arnd@arndb.de>, Thomas Gleixner <tglx@linutronix.de>
+Message-ID: <20140513095035.G235c7tT7H23qRRgxDx0AzZDlRC_vylBASMc9Pde998@z>
 
-On 05/13/2014 11:05 AM, Ley Foon Tan wrote:
-> Override time_t and clock_t in include/uapi/asm-generic.
+Hi,
+
+On 13/05/14 10:32, Ley Foon Tan wrote:
+> On Tue, May 13, 2014 at 5:15 PM, James Hogan <james.hogan@imgtec.com> wrote:
+>> On 13 May 2014 10:02, Ley Foon Tan <lftan@altera.com> wrote:
+>>>  /*
+>>> + * Use 64 bit time_t and clock_t as default. 32 bit users can provide an override to
+>>> + * define these as "long" if needed.
+>>> + */
+>>> +#ifndef __kernel_time_t
+>>> +typedef long long      __kernel_time_t;
+>>> +#endif
+>>> +
+>>> +#ifndef __kernel_clock_t
+>>> +typedef long long      __kernel_clock_t;
+>>> +#endif
+>>
+>> I think having this as the first patch in the series will break
+>> bisection for existing 32-bit arches. This needs to be done in such a
+>> way that at no intermediate commit are __kernel_time_t or
+>> __kernel_clock_t the wrong size for existing arches, e.g. by having a
+>> first patch which makes the typedefs conditional but leaves them as
+>> __kernel_long_t, and a final patch that changes the default after all
+>> the arches have got their overrides in place.
 > 
-> diff --git a/arch/openrisc/include/uapi/asm/posix_types.h b/arch/openrisc/include/uapi/asm/posix_types.h
-> new file mode 100644
-> index 0000000..5ccf37d
-> --- /dev/null
-> +++ b/arch/openrisc/include/uapi/asm/posix_types.h
-> @@ -0,0 +1,17 @@
-> +#ifndef __ARCH_OPENRISC_POSIX_TYPES_H
-> +#define __ARCH_OPENRISC_POSIX_TYPES_H
-> +
-> +/*
-> + * This file is generally used by user-level software, so you need to
-> + * be a little careful about namespace pollution etc. Also, we cannot
-> + * assume GCC is being used.
-> + */
+> Your suggestion is something as below?
 
-I don't think the above comment needs to be copied to this file... given
-that the file is in the uapi/ directory, we know the file is exported to
-userspace, and the GCC comment isn't relevant given the rest of the
-files contents.
+Yeh, although I like Thomas' idea better, then each existing 32-bit arch
+can just select the Kconfig symbol to get the smaller type.
 
-But that's really just a nit!  Nice work, otherwise.
+IIRC Kconfig won't even complain if you select a symbol which doesn't
+exist yet.
 
-Acked-by: Jonas Bonn <jonas@southpole.se>
+Cheers
+James
 
-> +typedef long	__kernel_time_t;
-> +#define __kernel_time_t __kernel_time_t
-> +
-> +typedef long	__kernel_clock_t;
-> +#define __kernel_clock_t __kernel_clock_t
-> +
-> +#include <asm-generic/posix_types.h>
-> +
-> +#endif
+> 
+> First patch:
+> #ifndef __kernel_time_t
+> typedef __kernel_long_t      __kernel_time_t;
+> #endif
+> 
+> Last patch:
+> #ifndef __kernel_time_t
+> typedef long long      __kernel_time_t;
+> #endif
+> 
+> Ley Foon
 > 
