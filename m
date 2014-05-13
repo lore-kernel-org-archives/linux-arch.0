@@ -1,69 +1,273 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mailapp01.imgtec.com ([195.59.15.196]:25590 "EHLO
+Received: from mailapp01.imgtec.com ([195.59.15.196]:36403 "EHLO
 	mailapp01.imgtec.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1760626AbaEMJuj (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 13 May 2014 05:50:39 -0400
-Message-ID: <5371EAEB.5030100@imgtec.com>
-Date: Tue, 13 May 2014 10:50:35 +0100
+	with ESMTP id S1760459AbaEMKGw (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 13 May 2014 06:06:52 -0400
+Message-ID: <5371EEB7.4090604@imgtec.com>
+Date: Tue, 13 May 2014 11:06:47 +0100
 From: James Hogan <james.hogan@imgtec.com>
 MIME-Version: 1.0
-Subject: Re: [PATCH 01/25] asm-generic: Change time_t and clock_t to 64 bit
-References: <1399971456-3941-1-git-send-email-lftan@altera.com>	<1399971749-4004-1-git-send-email-lftan@altera.com>	<CAAG0J9-ieBNfyRa6kf22TNd_3mg57GYuGHagQ-pPLY41iM3Zyg@mail.gmail.com> <CAFiDJ5-ez-Brqr8q3=XbODzLtFFU=e4qS12bCPo=5FE1JTNr+A@mail.gmail.com>
-In-Reply-To: <CAFiDJ5-ez-Brqr8q3=XbODzLtFFU=e4qS12bCPo=5FE1JTNr+A@mail.gmail.com>
-Content-Type: text/plain; charset="UTF-8"
+Subject: Re: [PATCH 12/20] arch,metag: Fold atomic_ops
+References: <20140508135840.956784204@infradead.org> <20140508135852.453864110@infradead.org>
+In-Reply-To: <20140508135852.453864110@infradead.org>
+Content-Type: text/plain; charset="ISO-8859-1"
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ley Foon Tan <lftan@altera.com>
-Cc: Linux-Arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Chung-Lin Tang <cltang@codesourcery.com>, Arnd Bergmann <arnd@arndb.de>, Thomas Gleixner <tglx@linutronix.de>
-Message-ID: <20140513095035.G235c7tT7H23qRRgxDx0AzZDlRC_vylBASMc9Pde998@z>
+To: Peter Zijlstra <peterz@infradead.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Cc: torvalds@linux-foundation.org, akpm@linux-foundation.org, mingo@kernel.org, will.deacon@arm.com, paulmck@linux.vnet.ibm.com
+Message-ID: <20140513100647.r4nKJ2v09nvqv2QBPymzDwqr3Eu54it7mce_4LwMCjc@z>
 
-Hi,
-
-On 13/05/14 10:32, Ley Foon Tan wrote:
-> On Tue, May 13, 2014 at 5:15 PM, James Hogan <james.hogan@imgtec.com> wrote:
->> On 13 May 2014 10:02, Ley Foon Tan <lftan@altera.com> wrote:
->>>  /*
->>> + * Use 64 bit time_t and clock_t as default. 32 bit users can provide an override to
->>> + * define these as "long" if needed.
->>> + */
->>> +#ifndef __kernel_time_t
->>> +typedef long long      __kernel_time_t;
->>> +#endif
->>> +
->>> +#ifndef __kernel_clock_t
->>> +typedef long long      __kernel_clock_t;
->>> +#endif
->>
->> I think having this as the first patch in the series will break
->> bisection for existing 32-bit arches. This needs to be done in such a
->> way that at no intermediate commit are __kernel_time_t or
->> __kernel_clock_t the wrong size for existing arches, e.g. by having a
->> first patch which makes the typedefs conditional but leaves them as
->> __kernel_long_t, and a final patch that changes the default after all
->> the arches have got their overrides in place.
+On 08/05/14 14:58, Peter Zijlstra wrote:
+> Many of the atomic op implementations are the same except for one
+> instruction; fold the lot into a few CPP macros and reduce LoC.
 > 
-> Your suggestion is something as below?
+> This also prepares for easy addition of new ops.
+> 
+> Cc: James Hogan <james.hogan@imgtec.com>
+> Cc: Linus Torvalds <torvalds@linux-foundation.org>
+> Signed-off-by: Peter Zijlstra <peterz@infradead.org>
 
-Yeh, although I like Thomas' idea better, then each existing 32-bit arch
-can just select the Kconfig symbol to get the smaller type.
+Looks good and disassembly is unchanged for both lnkget/lnkset and lock1.
 
-IIRC Kconfig won't even complain if you select a symbol which doesn't
-exist yet.
+Acked-by: James Hogan <james.hogan@imgtec.com>
 
-Cheers
+Let me know if you want this patch taken separately through the metag tree.
+
+Thanks
 James
 
+> ---
+>  arch/metag/include/asm/atomic_lnkget.h |  121 ++++++++++++---------------------
+>  arch/metag/include/asm/atomic_lock1.h  |   76 ++++++++------------
+>  2 files changed, 77 insertions(+), 120 deletions(-)
 > 
-> First patch:
-> #ifndef __kernel_time_t
-> typedef __kernel_long_t      __kernel_time_t;
-> #endif
+> Index: linux-2.6/arch/metag/include/asm/atomic_lnkget.h
+> ===================================================================
+> --- linux-2.6.orig/arch/metag/include/asm/atomic_lnkget.h
+> +++ linux-2.6/arch/metag/include/asm/atomic_lnkget.h
+> @@ -27,85 +27,56 @@ static inline int atomic_read(const atom
+>  	return temp;
+>  }
+>  
+> -static inline void atomic_add(int i, atomic_t *v)
+> -{
+> -	int temp;
+> -
+> -	asm volatile (
+> -		"1:	LNKGETD %0, [%1]\n"
+> -		"	ADD	%0, %0, %2\n"
+> -		"	LNKSETD [%1], %0\n"
+> -		"	DEFR	%0, TXSTAT\n"
+> -		"	ANDT	%0, %0, #HI(0x3f000000)\n"
+> -		"	CMPT	%0, #HI(0x02000000)\n"
+> -		"	BNZ	1b\n"
+> -		: "=&d" (temp)
+> -		: "da" (&v->counter), "bd" (i)
+> -		: "cc");
+> +#define ATOMIC_OP(op)							\
+> +static inline void atomic_##op(int i, atomic_t *v)			\
+> +{									\
+> +	int temp;							\
+> +									\
+> +	asm volatile (							\
+> +		"1:	LNKGETD %0, [%1]\n"				\
+> +		"	" #op "	%0, %0, %2\n"				\
+> +		"	LNKSETD [%1], %0\n"				\
+> +		"	DEFR	%0, TXSTAT\n"				\
+> +		"	ANDT	%0, %0, #HI(0x3f000000)\n"		\
+> +		"	CMPT	%0, #HI(0x02000000)\n"			\
+> +		"	BNZ	1b\n"					\
+> +		: "=&d" (temp)						\
+> +		: "da" (&v->counter), "bd" (i)				\
+> +		: "cc");						\
+> +}									\
+> +
+> +#define ATOMIC_OP_RETURN(op)						\
+> +static inline int atomic_##op##_return(int i, atomic_t *v)		\
+> +{									\
+> +	int result, temp;						\
+> +									\
+> +	smp_mb();							\
+> +									\
+> +	asm volatile (							\
+> +		"1:	LNKGETD %1, [%2]\n"				\
+> +		"	" #op "	%1, %1, %3\n"				\
+> +		"	LNKSETD [%2], %1\n"				\
+> +		"	DEFR	%0, TXSTAT\n"				\
+> +		"	ANDT	%0, %0, #HI(0x3f000000)\n"		\
+> +		"	CMPT	%0, #HI(0x02000000)\n"			\
+> +		"	BNZ 1b\n"					\
+> +		: "=&d" (temp), "=&da" (result)				\
+> +		: "da" (&v->counter), "bd" (i)				\
+> +		: "cc");						\
+> +									\
+> +	smp_mb();							\
+> +									\
+> +	return result;							\
+>  }
+>  
+> -static inline void atomic_sub(int i, atomic_t *v)
+> -{
+> -	int temp;
+> -
+> -	asm volatile (
+> -		"1:	LNKGETD %0, [%1]\n"
+> -		"	SUB	%0, %0, %2\n"
+> -		"	LNKSETD [%1], %0\n"
+> -		"	DEFR	%0, TXSTAT\n"
+> -		"	ANDT	%0, %0, #HI(0x3f000000)\n"
+> -		"	CMPT	%0, #HI(0x02000000)\n"
+> -		"	BNZ 1b\n"
+> -		: "=&d" (temp)
+> -		: "da" (&v->counter), "bd" (i)
+> -		: "cc");
+> -}
+> -
+> -static inline int atomic_add_return(int i, atomic_t *v)
+> -{
+> -	int result, temp;
+> -
+> -	smp_mb();
+> -
+> -	asm volatile (
+> -		"1:	LNKGETD %1, [%2]\n"
+> -		"	ADD	%1, %1, %3\n"
+> -		"	LNKSETD [%2], %1\n"
+> -		"	DEFR	%0, TXSTAT\n"
+> -		"	ANDT	%0, %0, #HI(0x3f000000)\n"
+> -		"	CMPT	%0, #HI(0x02000000)\n"
+> -		"	BNZ 1b\n"
+> -		: "=&d" (temp), "=&da" (result)
+> -		: "da" (&v->counter), "bd" (i)
+> -		: "cc");
+> +#define ATOMIC_OPS(op) ATOMIC_OP(op) ATOMIC_OP_RETURN(op)
+>  
+> -	smp_mb();
+> +ATOMIC_OPS(add)
+> +ATOMIC_OPS(sub)
+>  
+> -	return result;
+> -}
+> -
+> -static inline int atomic_sub_return(int i, atomic_t *v)
+> -{
+> -	int result, temp;
+> -
+> -	smp_mb();
+> -
+> -	asm volatile (
+> -		"1:	LNKGETD %1, [%2]\n"
+> -		"	SUB	%1, %1, %3\n"
+> -		"	LNKSETD [%2], %1\n"
+> -		"	DEFR	%0, TXSTAT\n"
+> -		"	ANDT	%0, %0, #HI(0x3f000000)\n"
+> -		"	CMPT	%0, #HI(0x02000000)\n"
+> -		"	BNZ	1b\n"
+> -		: "=&d" (temp), "=&da" (result)
+> -		: "da" (&v->counter), "bd" (i)
+> -		: "cc");
+> -
+> -	smp_mb();
+> -
+> -	return result;
+> -}
+> +#undef ATOMIC_OPS
+> +#undef ATOMIC_OP_RETURN
+> +#undef ATOMIC_OP
+>  
+>  static inline void atomic_clear_mask(unsigned int mask, atomic_t *v)
+>  {
+> Index: linux-2.6/arch/metag/include/asm/atomic_lock1.h
+> ===================================================================
+> --- linux-2.6.orig/arch/metag/include/asm/atomic_lock1.h
+> +++ linux-2.6/arch/metag/include/asm/atomic_lock1.h
+> @@ -37,55 +37,41 @@ static inline int atomic_set(atomic_t *v
+>  	return i;
+>  }
+>  
+> -static inline void atomic_add(int i, atomic_t *v)
+> -{
+> -	unsigned long flags;
+> -
+> -	__global_lock1(flags);
+> -	fence();
+> -	v->counter += i;
+> -	__global_unlock1(flags);
+> +#define ATOMIC_OP(op, c_op)						\
+> +static inline void atomic_##op(int i, atomic_t *v)			\
+> +{									\
+> +	unsigned long flags;						\
+> +									\
+> +	__global_lock1(flags);						\
+> +	fence();							\
+> +	v->counter c_op i;						\
+> +	__global_unlock1(flags);					\
+> +}									\
+> +
+> +#define ATOMIC_OP_RETURN(op, c_op)					\
+> +static inline int atomic_##op##_return(int i, atomic_t *v)		\
+> +{									\
+> +	unsigned long result;						\
+> +	unsigned long flags;						\
+> +									\
+> +	__global_lock1(flags);						\
+> +	result = v->counter;						\
+> +	result c_op i;							\
+> +	fence();							\
+> +	v->counter = result;						\
+> +	__global_unlock1(flags);					\
+> +									\
+> +	return result;							\
+>  }
+>  
+> -static inline void atomic_sub(int i, atomic_t *v)
+> -{
+> -	unsigned long flags;
+> -
+> -	__global_lock1(flags);
+> -	fence();
+> -	v->counter -= i;
+> -	__global_unlock1(flags);
+> -}
+> -
+> -static inline int atomic_add_return(int i, atomic_t *v)
+> -{
+> -	unsigned long result;
+> -	unsigned long flags;
+> +#define ATOMIC_OPS(op, c_op) ATOMIC_OP(op, c_op) ATOMIC_OP_RETURN(op, c_op)
+>  
+> -	__global_lock1(flags);
+> -	result = v->counter;
+> -	result += i;
+> -	fence();
+> -	v->counter = result;
+> -	__global_unlock1(flags);
+> +ATOMIC_OPS(add, +=)
+> +ATOMIC_OPS(sub, -=)
+>  
+> -	return result;
+> -}
+> -
+> -static inline int atomic_sub_return(int i, atomic_t *v)
+> -{
+> -	unsigned long result;
+> -	unsigned long flags;
+> -
+> -	__global_lock1(flags);
+> -	result = v->counter;
+> -	result -= i;
+> -	fence();
+> -	v->counter = result;
+> -	__global_unlock1(flags);
+> -
+> -	return result;
+> -}
+> +#undef ATOMIC_OPS
+> +#undef ATOMIC_OP_RETURN
+> +#undef ATOMIC_OP
+>  
+>  static inline void atomic_clear_mask(unsigned int mask, atomic_t *v)
+>  {
 > 
-> Last patch:
-> #ifndef __kernel_time_t
-> typedef long long      __kernel_time_t;
-> #endif
-> 
-> Ley Foon
 > 
