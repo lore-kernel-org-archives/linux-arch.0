@@ -1,55 +1,96 @@
 From: Richard Weinberger <richard@nod.at>
-Subject: [PATCH 02/27] powerpc: Override defaults from generic/tlb.h
-Date: Wed, 14 May 2014 20:59:34 +0200
-Message-ID: <1400093999-18703-3-git-send-email-richard@nod.at>
+Subject: [PATCH 18/27] openrisc: Use generic tlb.h
+Date: Wed, 14 May 2014 20:59:50 +0200
+Message-ID: <1400093999-18703-19-git-send-email-richard@nod.at>
 References: <1400093999-18703-1-git-send-email-richard@nod.at>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-bounces@lists.openrisc.net>
 In-Reply-To: <1400093999-18703-1-git-send-email-richard@nod.at>
-Sender: linux-kernel-owner@vger.kernel.org
+List-Unsubscribe: <http://lists.openrisc.net/options/linux>,
+	<mailto:linux-request@lists.openrisc.net?subject=unsubscribe>
+List-Archive: <http://lists.openrisc.net/pipermail/linux>
+List-Post: <mailto:linux@lists.openrisc.net>
+List-Help: <mailto:linux-request@lists.openrisc.net?subject=help>
+List-Subscribe: <http://lists.openrisc.net/listinfo/linux>,
+	<mailto:linux-request@lists.openrisc.net?subject=subscribe>
+Sender: linux-bounces@lists.openrisc.net
+Errors-To: linux-bounces@lists.openrisc.net
 To: linux-arch@vger.kernel.org, arnd@arndb.de, linux-kernel@vger.kernel.org
-Cc: Richard Weinberger <richard@nod.at>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, linuxppc-dev@lists.ozlabs.org
+Cc: Peter Zijlstra <peterz@infradead.org>, Richard Weinberger <richard@nod.at>, "David S. Miller" <davem@davemloft.net>, linux@lists.openrisc.net, Tim Chen <tim.c.chen@linux.intel.com>, Ingo Molnar <mingo@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-Make sure to not conflict with the defaults provided
-by generic/tlb.h.
+As everything we need is now in generic tlb.h
+we can drop our own one.
 
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: Paul Mackerras <paulus@samba.org>
+Cc: Jonas Bonn <jonas@southpole.se>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: Ingo Molnar <mingo@kernel.org>
+Cc: Tim Chen <tim.c.chen@linux.intel.com>
 Cc: Richard Weinberger <richard@nod.at>
-Cc: linuxppc-dev@lists.ozlabs.org
+Cc: "David S. Miller" <davem@davemloft.net>
+Cc: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: linux@lists.openrisc.net
 Cc: linux-kernel@vger.kernel.org
 Signed-off-by: Richard Weinberger <richard@nod.at>
 ---
- arch/powerpc/include/asm/pgalloc.h | 1 -
- arch/powerpc/include/asm/tlb.h     | 4 ++++
- 2 files changed, 4 insertions(+), 1 deletion(-)
+ arch/openrisc/include/asm/Kbuild |  1 +
+ arch/openrisc/include/asm/tlb.h  | 34 ----------------------------------
+ 2 files changed, 1 insertion(+), 34 deletions(-)
+ delete mode 100644 arch/openrisc/include/asm/tlb.h
 
-diff --git a/arch/powerpc/include/asm/pgalloc.h b/arch/powerpc/include/asm/pgalloc.h
-index e9a9f60..5fddba7 100644
---- a/arch/powerpc/include/asm/pgalloc.h
-+++ b/arch/powerpc/include/asm/pgalloc.h
-@@ -3,7 +3,6 @@
- #ifdef __KERNEL__
- 
- #include <linux/mm.h>
+diff --git a/arch/openrisc/include/asm/Kbuild b/arch/openrisc/include/asm/Kbuild
+index 480af0d..abe411f 100644
+--- a/arch/openrisc/include/asm/Kbuild
++++ b/arch/openrisc/include/asm/Kbuild
+@@ -63,6 +63,7 @@ generic-y += swab.h
+ generic-y += switch_to.h
+ generic-y += termbits.h
+ generic-y += termios.h
++generic-y += tlb.h
+ generic-y += topology.h
+ generic-y += trace_clock.h
+ generic-y += types.h
+diff --git a/arch/openrisc/include/asm/tlb.h b/arch/openrisc/include/asm/tlb.h
+deleted file mode 100644
+index fa4376a..0000000
+--- a/arch/openrisc/include/asm/tlb.h
++++ /dev/null
+@@ -1,34 +0,0 @@
+-/*
+- * OpenRISC Linux
+- *
+- * Linux architectural port borrowing liberally from similar works of
+- * others.  All original copyrights apply as per the original source
+- * declaration.
+- *
+- * OpenRISC implementation:
+- * Copyright (C) 2003 Matjaz Breskvar <phoenix@bsemi.com>
+- * Copyright (C) 2010-2011 Jonas Bonn <jonas@southpole.se>
+- * et al.
+- *
+- * This program is free software; you can redistribute it and/or modify
+- * it under the terms of the GNU General Public License as published by
+- * the Free Software Foundation; either version 2 of the License, or
+- * (at your option) any later version.
+- */
+-
+-#ifndef __ASM_OPENRISC_TLB_H__
+-#define __ASM_OPENRISC_TLB_H__
+-
+-/*
+- * or32 doesn't need any special per-pte or
+- * per-vma handling..
+- */
+-#define tlb_start_vma(tlb, vma) do { } while (0)
+-#define tlb_end_vma(tlb, vma) do { } while (0)
+-#define __tlb_remove_tlb_entry(tlb, ptep, address) do { } while (0)
+-
+-#define tlb_flush(tlb) flush_tlb_mm((tlb)->mm)
+-#include <linux/pagemap.h>
 -#include <asm-generic/tlb.h>
- 
- #ifdef CONFIG_PPC_BOOK3E
- extern void tlb_flush_pgtable(struct mmu_gather *tlb, unsigned long address);
-diff --git a/arch/powerpc/include/asm/tlb.h b/arch/powerpc/include/asm/tlb.h
-index e2b428b..392e5ef 100644
---- a/arch/powerpc/include/asm/tlb.h
-+++ b/arch/powerpc/include/asm/tlb.h
-@@ -30,6 +30,10 @@
- 
- extern void tlb_flush(struct mmu_gather *tlb);
- 
-+/* These defines are needed to override the defaults from asm-generic/tlb.h */
-+#define tlb_flush tlb_flush
-+#define __tlb_remove_tlb_entry __tlb_remove_tlb_entry
-+
- /* Get the generic bits... */
- #include <asm-generic/tlb.h>
- 
+-
+-#endif /* __ASM_OPENRISC_TLB_H__ */
 -- 
 1.8.4.2
