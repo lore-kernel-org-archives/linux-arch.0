@@ -1,53 +1,37 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [PATCH 13/27] m68k: Use common bits from generic tlb.h
-Date: Wed, 14 May 2014 21:34:34 +0200
-Message-ID: <CAMuHMdVWp8-aByVf+7M=8HEXXJRJBbZLdfj1v0rgDU-UEQM=8Q@mail.gmail.com>
+From: Mark Salter <msalter@redhat.com>
+Subject: Re: [PATCH 08/27] c6x: Use generic tlb.h
+Date: Wed, 14 May 2014 15:35:38 -0400
+Message-ID: <1400096138.21547.117.camel@deneb.redhat.com>
 References: <1400093999-18703-1-git-send-email-richard@nod.at>
-	<1400093999-18703-14-git-send-email-richard@nod.at>
-	<CAMuHMdUddNc3Suq25JU7UC+YdWQHmk0nCRzCEbqmKg1+a+=FXw@mail.gmail.com>
-	<5373C36E.3020900@nod.at>
+	 <1400093999-18703-9-git-send-email-richard@nod.at>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-m68k-owner@vger.kernel.org>
-In-Reply-To: <5373C36E.3020900@nod.at>
-Sender: linux-m68k-owner@vger.kernel.org
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mx1.redhat.com ([209.132.183.28]:12894 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752393AbaENTg0 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 14 May 2014 15:36:26 -0400
+In-Reply-To: <1400093999-18703-9-git-send-email-richard@nod.at>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Richard Weinberger <richard@nod.at>
-Cc: Linux-Arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-m68k <linux-m68k@lists.linux-m68k.org>
-List-Id: linux-arch.vger.kernel.org
+Cc: linux-arch@vger.kernel.org, arnd@arndb.de, linux-kernel@vger.kernel.org, Aurelien Jacquiot <a-jacquiot@ti.com>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@kernel.org>, Tim Chen <tim.c.chen@linux.intel.com>, "David S. Miller" <davem@davemloft.net>, Geert Uytterhoeven <geert@linux-m68k.org>, linux-c6x-dev@linux-c6x.org
 
-Hi Richard,
+On Wed, 2014-05-14 at 20:59 +0200, Richard Weinberger wrote:
+> As everything we need is now in generic tlb.h
+> we can drop our own one.
+> 
+> Cc: Mark Salter <msalter@redhat.com>
+> Cc: Aurelien Jacquiot <a-jacquiot@ti.com>
+> Cc: Peter Zijlstra <peterz@infradead.org>
+> Cc: Ingo Molnar <mingo@kernel.org>
+> Cc: Tim Chen <tim.c.chen@linux.intel.com>
+> Cc: "David S. Miller" <davem@davemloft.net>
+> Cc: Richard Weinberger <richard@nod.at>
+> Cc: Geert Uytterhoeven <geert@linux-m68k.org>
+> Cc: linux-c6x-dev@linux-c6x.org
+> Cc: linux-kernel@vger.kernel.org
+> Signed-off-by: Richard Weinberger <richard@nod.at>
 
-On Wed, May 14, 2014 at 9:26 PM, Richard Weinberger <richard@nod.at> wrote:
->> But why this sudden #ifdef checks?
->
-> They are needed because in pgalloc.h you have:
-> #ifdef CONFIG_MMU
-> #include <asm/virtconvert.h>
-> #if defined(CONFIG_COLDFIRE)
-> #include <asm/mcf_pgalloc.h>
-> #elif defined(CONFIG_SUN3)
-> #include <asm/sun3_pgalloc.h>
-> #else
-> #include <asm/motorola_pgalloc.h>
-> #endif
->
-> And only asm/motorola_pgalloc.h have __pte/pmd_free_tlb as static inline functions.
-> Therefore we need to define them such that the generic tlb.h versions will not clash
-> with yours.
-
-Thanks for the clarification!
-
-Perhaps this deserves a comment:
-
-/* Applies to Classic m68k MMU only */
-
-Gr{oetje,eeting}s,
-
-                        Geert
-
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+Acked-by: Mark Salter <msalter@redhat.com>
