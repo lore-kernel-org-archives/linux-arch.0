@@ -1,42 +1,59 @@
-From: Hans-Christian Egtvedt <egtvedt@samfundet.no>
-Subject: Re: [PATCH 04/25] avr32: Add 32 bit time_t and clock_t
-Date: Wed, 14 May 2014 09:44:57 +0200
-Message-ID: <20140514074456.GB17409@samfundet.no>
-References: <1399971456-3941-1-git-send-email-lftan@altera.com>
- <1399971769-4116-1-git-send-email-lftan@altera.com>
- <20140513201944.GA14023@samfundet.no>
- <CAFiDJ5_5ret2H-OynLMhBStzyDDBLpF6Tsy4bbEUX+mKu2V4uA@mail.gmail.com>
+From: Steve Capper <steve.capper@linaro.org>
+Subject: Re: [RFC PATCH V5 4/6] arm: mm: Enable RCU fast_gup
+Date: Wed, 14 May 2014 09:34:16 +0100
+Message-ID: <CAPvkgC1ORGyfKf5AEUfHeHrvZtNt5bWT1B5XvrBFbZmSNtBFWg@mail.gmail.com>
+References: <1399390209-1756-1-git-send-email-steve.capper@linaro.org>
+	<1399390209-1756-5-git-send-email-steve.capper@linaro.org>
+	<53723ACC.7020500@codeaurora.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from cassarossa.samfundet.no ([193.35.52.29]:39610 "EHLO
-	cassarossa.samfundet.no" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751145AbaENHpA (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 14 May 2014 03:45:00 -0400
-Content-Disposition: inline
-In-Reply-To: <CAFiDJ5_5ret2H-OynLMhBStzyDDBLpF6Tsy4bbEUX+mKu2V4uA@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Ley Foon Tan <lftan@altera.com>
-Cc: Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Chung-Lin Tang <cltang@codesourcery.com>, Haavard Skinnemoen <hskinnemoen@gmail.com>
+Content-Type: text/plain; charset=UTF-8
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <53723ACC.7020500@codeaurora.org>
+Sender: owner-linux-mm@kvack.org
+To: Christopher Covington <cov@codeaurora.org>
+Cc: "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Catalin Marinas <catalin.marinas@arm.com>, "linux@arm.linux.org.uk" <linux@arm.linux.org.uk>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, Anders Roxell <anders.roxell@linaro.org>, Peter Zijlstra <peterz@infradead.org>, Gary Robertson <gary.robertson@linaro.org>, Will Deacon <will.deacon@arm.com>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, Christoffer Dall <christoffer.dall@linaro.org>
+List-Id: linux-arch.vger.kernel.org
 
-Around Wed 14 May 2014 09:54:25 +0800 or thereabout, Ley Foon Tan wrote:
-> On Wed, May 14, 2014 at 4:19 AM, Hans-Christian Egtvedt <egtvedt@samfundet.no> wrote:
->> Around Tue 13 May 2014 17:02:49 +0800 or thereabout, Ley Foon Tan wrote:
->>> Override time_t and clock_t in include/uapi/asm-generic.
->>>
->>> Signed-off-by: Ley Foon Tan <lftan@altera.com>
->>
->> Acked-by: Hans-Christian Egtvedt <egtvedt@samfundet.no>
->>
->> Quickly looked over some of the other patches in the series, and they all
->> seem to add the same. Could this be generic, with the possibility for arch to
->> override?
-> In this patchset, the generic one will be 64 bit (long long). So, the
-> existing 32 bit users need to override this.
+On 13 May 2014 16:31, Christopher Covington <cov@codeaurora.org> wrote:
+> Hi Steve,
+>
+> On 05/06/2014 11:30 AM, Steve Capper wrote:
+>> Activate the RCU fast_gup for ARM. We also need to force THP splits to
+>> broadcast an IPI s.t. we block in the fast_gup page walker. As THP
+>> splits are comparatively rare, this should not lead to a noticeable
+>> performance degradation.
+>
+>> diff --git a/arch/arm/mm/flush.c b/arch/arm/mm/flush.c
+>> index 3387e60..91a2b59 100644
+>> --- a/arch/arm/mm/flush.c
+>> +++ b/arch/arm/mm/flush.c
+>> @@ -377,3 +377,22 @@ void __flush_anon_page(struct vm_area_struct *vma, struct page *page, unsigned l
+>>        */
+>>       __cpuc_flush_dcache_area(page_address(page), PAGE_SIZE);
+>>  }
+>> +
+>> +#ifdef CONFIG_TRANSPARENT_HUGEPAGE
+>> +#ifdef CONFIG_HAVE_RCU_TABLE_FREE
+>
+> This is trivia, but I for one find the form #if defined(a) && defined(b)
+> easier to read. (Applies to the A64 version as well).
+>
 
-Would it be wrong to use the architecture defined size, or does some 32-bit
-architectures use 64-bit time types?
+Thank you Christopher, I agree that looks nicer.
 
+Cheers,
 -- 
-Hans-Christian Egtvedt
+Steve
+
+> Christopher
+>
+> --
+> Employee of Qualcomm Innovation Center, Inc.
+> Qualcomm Innovation Center, Inc. is a member of Code Aurora Forum,
+> hosted by the Linux Foundation.
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
