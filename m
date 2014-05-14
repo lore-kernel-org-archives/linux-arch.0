@@ -1,63 +1,39 @@
-From: Dave Hansen <dave@sr71.net>
-Subject: Re: [PATCH] x86, hugetlb: add missing TLB page invalidation for hugetlb_cow()
-Date: Tue, 13 May 2014 15:44:55 -0700
-Message-ID: <5372A067.9010808@sr71.net>
-References: <20140514092948.GA17391@server-36.huawei.corp>
+From: Ley Foon Tan <lftan@altera.com>
+Subject: Re: [PATCH 04/25] avr32: Add 32 bit time_t and clock_t
+Date: Wed, 14 May 2014 09:54:25 +0800
+Message-ID: <CAFiDJ5_5ret2H-OynLMhBStzyDDBLpF6Tsy4bbEUX+mKu2V4uA@mail.gmail.com>
+References: <1399971456-3941-1-git-send-email-lftan@altera.com>
+	<1399971769-4116-1-git-send-email-lftan@altera.com>
+	<20140513201944.GA14023@samfundet.no>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from www.sr71.net ([198.145.64.142]:48555 "EHLO blackbird.sr71.net"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752687AbaEMWo6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 13 May 2014 18:44:58 -0400
-In-Reply-To: <20140514092948.GA17391@server-36.huawei.corp>
+Received: from mail-qg0-f47.google.com ([209.85.192.47]:64231 "EHLO
+	mail-qg0-f47.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751110AbaENByb (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 13 May 2014 21:54:31 -0400
+In-Reply-To: <20140513201944.GA14023@samfundet.no>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Anthony Iliopoulos <anthony.iliopoulos@huawei.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>
-Cc: x86@kernel.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Shay Goikhman <shay.goikhman@huawei.com>, Paul Mundt <paul.mundt@huawei.com>, Carlos Villavieja <villavieja@hps.utexas.edu>, Nacho Navarro <nacho.navarro@bsc.es>, Avi Mendelson <avi.mendelson@tce.technion.ac.il>, Yoav Etsion <yetsion@tce.technion.ac.il>, Gerald Schaefer <gerald.schaefer@de.ibm.com>, David Gibson <david@gibson.dropbear.id.au>, linux-arch <linux-arch@vger.kernel.org>
+To: Hans-Christian Egtvedt <egtvedt@samfundet.no>
+Cc: Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Chung-Lin Tang <cltang@codesourcery.com>, Haavard Skinnemoen <hskinnemoen@gmail.com>
 
-On 05/14/2014 02:29 AM, Anthony Iliopoulos wrote:
-> The invalidation is required in order to maintain proper semantics
-> under CoW conditions. In scenarios where a process clones several
-> threads, a thread operating on a core whose DTLB entry for a
-> particular hugepage has not been invalidated, will be reading from
-> the hugepage that belongs to the forked child process, even after
-> hugetlb_cow().
-> 
-> The thread will not see the updated page as long as the stale DTLB
-> entry remains cached, the thread attempts to write into the page,
-> the child process exits, or the thread gets migrated to a different
-> processor.
+On Wed, May 14, 2014 at 4:19 AM, Hans-Christian Egtvedt
+<egtvedt@samfundet.no> wrote:
+> Around Tue 13 May 2014 17:02:49 +0800 or thereabout, Ley Foon Tan wrote:
+>> Override time_t and clock_t in include/uapi/asm-generic.
+>>
+>> Signed-off-by: Ley Foon Tan <lftan@altera.com>
+>
+> Acked-by: Hans-Christian Egtvedt <egtvedt@samfundet.no>
+>
 
-No to be too nitpicky, but this applies to ITLB too, right?
+>
+> Quickly looked over some of the other patches in the series, and they all
+> seem to add the same. Could this be generic, with the possibility for arch to
+> override?
+In this patchset, the generic one will be 64 bit (long long). So, the
+existing 32 bit users need to override this.
 
-I believe this bug came all the way back from:
-
-> commit 1e8f889b10d8d2223105719e36ce45688fedbd59
-> Author: David Gibson <david@gibson.dropbear.id.au>
-> Date:   Fri Jan 6 00:10:44 2006 -0800
-> 
->     [PATCH] Hugetlb: Copy on Write support
-
-It was probably the first time that we ever changed an _existing_
-hugetlbfs pte, and that patch probably just missed the TLB flush because
-none of the other pte-setting hugetlb.c code needed TLB flushes.
-
-The bogus x86 version of huge_ptep_clear_flush() came from the s390
-guys, so double-shame on IBM! :P
-
-> commit 8fe627ec5b7c47b1654dff50536d9709863295a3
-> Author: Gerald Schaefer <gerald.schaefer@de.ibm.com>
-> Date:   Mon Apr 28 02:13:28 2008 -0700
-> 
->     hugetlbfs: add missing TLB flush to hugetlb_cow()
-
-This is probably an opportunity for all the other architecture
-maintainers to make sure that they have proper copies of
-huge_ptep_clear_flush().
-
-I went through the hugetlb code on x86 and couldn't find another TLB
-flush that fixes this issue, and I believe this is correct, so:
-
-Acked-by: Dave Hansen <dave.hansen@intel.com>
+Regards
+Ley Foon
