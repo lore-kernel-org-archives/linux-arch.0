@@ -1,56 +1,59 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [PATCH 01/25] asm-generic: Change time_t and clock_t to 64 bit
-Date: Wed, 14 May 2014 12:44:28 +0200
-Message-ID: <CAMuHMdUpy=xpQ3wJ0RahYJ+Bkwf3EL5KPWvmOqs_vQG5cXGwGg@mail.gmail.com>
-References: <1399971456-3941-1-git-send-email-lftan@altera.com>
-	<1399971749-4004-1-git-send-email-lftan@altera.com>
-	<CAAG0J9-ieBNfyRa6kf22TNd_3mg57GYuGHagQ-pPLY41iM3Zyg@mail.gmail.com>
-	<CAFiDJ5-ez-Brqr8q3=XbODzLtFFU=e4qS12bCPo=5FE1JTNr+A@mail.gmail.com>
-	<5371EAEB.5030100@imgtec.com>
-	<CAFiDJ58w31gm_z3Y1Q6ZREQPW4F6uVB+vy3X1r_3kLgaEE3O1w@mail.gmail.com>
-	<5371F25E.6020805@imgtec.com>
-	<5372E76C.8050908@zytor.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH 00/25] Change time_t and clock_t to 64 bit
+Date: Wed, 14 May 2014 13:00:21 +0200
+Message-ID: <8468354.y2kUZdOz9e@wuerfel>
+References: <1399971456-3941-1-git-send-email-lftan@altera.com> <8399002.IIyBoyEHox@wuerfel> <CAMuHMdW5HSVyXpz9HFcrDDYq=zOFrBr6d8jOd8i_FMkXsEpr2Q@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7Bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ie0-f181.google.com ([209.85.223.181]:51848 "EHLO
-	mail-ie0-f181.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752925AbaENKo3 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 14 May 2014 06:44:29 -0400
-In-Reply-To: <5372E76C.8050908@zytor.com>
+Received: from mout.kundenserver.de ([212.227.17.13]:54193 "EHLO
+	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754315AbaENLA3 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 14 May 2014 07:00:29 -0400
+In-Reply-To: <CAMuHMdW5HSVyXpz9HFcrDDYq=zOFrBr6d8jOd8i_FMkXsEpr2Q@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "H. Peter Anvin" <hpa@zytor.com>
-Cc: James Hogan <james.hogan@imgtec.com>, Ley Foon Tan <lftan@altera.com>, Linux-Arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Chung-Lin Tang <cltang@codesourcery.com>, Arnd Bergmann <arnd@arndb.de>, Thomas Gleixner <tglx@linutronix.de>
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Christoph Hellwig <hch@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Ley Foon Tan <lftan@altera.com>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, LeyFoon Tan <lftan.linux@gmail.com>, Chung-Lin Tang <cltang@codesourcery.com>
 
-On Wed, May 14, 2014 at 5:47 AM, H. Peter Anvin <hpa@zytor.com> wrote:
-> On 05/13/2014 03:22 AM, James Hogan wrote:
->>> When we export this posix_types.h file for user software, they need to
->>> define this config, eg: CONFIG_32BIT_TIME to use 32 bit time. Is this
->>> what we want to do?
->>
->> Yeh, good point, that won't work.
->
-> How about:
->
-> #include <asm-generic/types/time32.h>
->
-> The asm-generic/types/ directory can be used for all kinds of type
-> templates, like int-ll64.h and the (now removed) former int-l64.h.
+On Tuesday 13 May 2014 22:35:08 Geert Uytterhoeven wrote:
+> 
+> On Tue, May 13, 2014 at 9:32 PM, Arnd Bergmann <arnd@arndb.de> wrote:
+> > I think we have three categories:
+> 
+> Thanks for the list!
+> 
+> > a) interfaces that uses relative time_t/timespec/timeval:
+> > b) interfaces that don't make sense for times in the past:
+> 
+> > c) interfaces that require absolute times:
+> >    - stat/lstat/fstatat/
+> >    - utime/utimes/futimesat
+> >
+> > These absolutely have to use something better than time_t
+> > both in user space and in the kernel so we can deal with
+> > old files. A lot of file systems need to be fixed as well so
+> > we can actually store the times, regardless of whether we
+> > are running a 32 or 64 bit kernel.
+> 
+> So these are the ones we have to worry about.
+> It looks like they all involve I/O? Apart from the case of using block data
+> from the buffer cache, the 64-bit operations should disappear in the
+> actual I/O noise, right?
 
-That should more or less work. But better call it time-l.h, as time_t
-should be 64-bit on 64-bit architectures. Else 32/64-bit architectures
-still need an #ifdef.
+Right. Also there have been proposals for a better 'stat' replacement
+for years, which would solve half of the interface problem for the
+file system interfaces.
 
-Will time_t stay "long" (and not become "long long") on 64-bit?
+However, we also need to find a solution for category b), I only put
+them into a different category above because we can treat them
+differently in the kernel. For instance, we could use ktime_t for
+the kernel code in category b) and a new struct timespec64 for
+the times in struct inode.
+On the user interface side, using timespec64 would be a reasonable
+choice for both categories, because we already have two implementations
+of all those syscalls in order to handle 32-on-64 compat tasks,
+and we could use the same set of syscall implementations for time64-on-32.
 
-Gr{oetje,eeting}s,
-
-                        Geert
-
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+	Arnd
