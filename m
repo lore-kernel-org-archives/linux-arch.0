@@ -1,61 +1,49 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.sigma-star.at ([95.130.255.111]:62428 "EHLO
+Received: from mail.sigma-star.at ([95.130.255.111]:62426 "EHLO
 	mail.sigma-star.at" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753282AbaENTIL (ORCPT
+	with ESMTP id S1753265AbaENTIL (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>); Wed, 14 May 2014 15:08:11 -0400
 From: Richard Weinberger <richard@nod.at>
-Subject: [PATCH 02/27] powerpc: Override defaults from generic/tlb.h
-Date: Wed, 14 May 2014 20:59:34 +0200
-Message-ID: <1400093999-18703-3-git-send-email-richard@nod.at>
+Subject: [PATCH 19/27] parisc: Use common bits from generic tlb.h
+Date: Wed, 14 May 2014 20:59:51 +0200
+Message-ID: <1400093999-18703-20-git-send-email-richard@nod.at>
 In-Reply-To: <1400093999-18703-1-git-send-email-richard@nod.at>
 References: <1400093999-18703-1-git-send-email-richard@nod.at>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, arnd@arndb.de, linux-kernel@vger.kernel.org
-Cc: Richard Weinberger <richard@nod.at>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, linuxppc-dev@lists.ozlabs.org
-Message-ID: <20140514185934.oq-oYr47oNoakOn9hI_Of_6EzXo6FMuPiNOhtVzWsbA@z>
+Cc: Richard Weinberger <richard@nod.at>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, linux-parisc@vger.kernel.org
+Message-ID: <20140514185951.eYSHxBlzvjguZWIl6cOMayuCLNeUJJVzd0PpSy4vJpc@z>
 
-Make sure to not conflict with the defaults provided
-by generic/tlb.h.
+It is no longer needed to define them on our own.
 
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: Paul Mackerras <paulus@samba.org>
+Cc: "James E.J. Bottomley" <jejb@parisc-linux.org>
+Cc: Helge Deller <deller@gmx.de>
 Cc: Richard Weinberger <richard@nod.at>
-Cc: linuxppc-dev@lists.ozlabs.org
+Cc: linux-parisc@vger.kernel.org
 Cc: linux-kernel@vger.kernel.org
 Signed-off-by: Richard Weinberger <richard@nod.at>
 ---
- arch/powerpc/include/asm/pgalloc.h | 1 -
- arch/powerpc/include/asm/tlb.h     | 4 ++++
- 2 files changed, 4 insertions(+), 1 deletion(-)
+ arch/parisc/include/asm/tlb.h | 6 ------
+ 1 file changed, 6 deletions(-)
 
-diff --git a/arch/powerpc/include/asm/pgalloc.h b/arch/powerpc/include/asm/pgalloc.h
-index e9a9f60..5fddba7 100644
---- a/arch/powerpc/include/asm/pgalloc.h
-+++ b/arch/powerpc/include/asm/pgalloc.h
-@@ -3,7 +3,6 @@
- #ifdef __KERNEL__
+diff --git a/arch/parisc/include/asm/tlb.h b/arch/parisc/include/asm/tlb.h
+index 0792490..4e231b1 100644
+--- a/arch/parisc/include/asm/tlb.h
++++ b/arch/parisc/include/asm/tlb.h
+@@ -16,12 +16,6 @@ do {	if (!(tlb)->fullmm)	\
+ 		flush_tlb_range(vma, vma->vm_start, vma->vm_end); \
+ } while (0)
  
- #include <linux/mm.h>
--#include <asm-generic/tlb.h>
- 
- #ifdef CONFIG_PPC_BOOK3E
- extern void tlb_flush_pgtable(struct mmu_gather *tlb, unsigned long address);
-diff --git a/arch/powerpc/include/asm/tlb.h b/arch/powerpc/include/asm/tlb.h
-index e2b428b..392e5ef 100644
---- a/arch/powerpc/include/asm/tlb.h
-+++ b/arch/powerpc/include/asm/tlb.h
-@@ -30,6 +30,10 @@
- 
- extern void tlb_flush(struct mmu_gather *tlb);
- 
-+/* These defines are needed to override the defaults from asm-generic/tlb.h */
-+#define tlb_flush tlb_flush
-+#define __tlb_remove_tlb_entry __tlb_remove_tlb_entry
-+
- /* Get the generic bits... */
+-#define __tlb_remove_tlb_entry(tlb, pte, address) \
+-	do { } while (0)
+-
  #include <asm-generic/tlb.h>
  
+-#define __pmd_free_tlb(tlb, pmd, addr)	pmd_free((tlb)->mm, pmd)
+-#define __pte_free_tlb(tlb, pte, addr)	pte_free((tlb)->mm, pte)
+-
+ #endif
 -- 
 1.8.4.2
 
