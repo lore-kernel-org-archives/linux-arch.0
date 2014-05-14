@@ -1,58 +1,78 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ie0-f173.google.com ([209.85.223.173]:36372 "EHLO
-	mail-ie0-f173.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751068AbaENTef (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 14 May 2014 15:34:35 -0400
-MIME-Version: 1.0
-In-Reply-To: <5373C36E.3020900@nod.at>
+Received: from asavdk4.altibox.net ([109.247.116.15]:60658 "EHLO
+	asavdk4.altibox.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750834AbaENT4B (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 14 May 2014 15:56:01 -0400
+Date: Wed, 14 May 2014 21:55:55 +0200
+From: Sam Ravnborg <sam@ravnborg.org>
+Subject: Re: [PATCH 23/27] sparc: Use common bits from generic tlb.h
+Message-ID: <20140514195555.GA2801@ravnborg.org>
 References: <1400093999-18703-1-git-send-email-richard@nod.at>
-	<1400093999-18703-14-git-send-email-richard@nod.at>
-	<CAMuHMdUddNc3Suq25JU7UC+YdWQHmk0nCRzCEbqmKg1+a+=FXw@mail.gmail.com>
-	<5373C36E.3020900@nod.at>
-Date: Wed, 14 May 2014 21:34:34 +0200
-Message-ID: <CAMuHMdVWp8-aByVf+7M=8HEXXJRJBbZLdfj1v0rgDU-UEQM=8Q@mail.gmail.com>
-Subject: Re: [PATCH 13/27] m68k: Use common bits from generic tlb.h
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Content-Type: text/plain; charset=UTF-8
+ <1400093999-18703-24-git-send-email-richard@nod.at>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1400093999-18703-24-git-send-email-richard@nod.at>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Richard Weinberger <richard@nod.at>
-Cc: Linux-Arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-m68k <linux-m68k@lists.linux-m68k.org>
-Message-ID: <20140514193434.xecbR-6W9ThGoMJ41fKMSFllNTz33vjOtHzvxIU62SA@z>
+Cc: linux-arch@vger.kernel.org, arnd@arndb.de, linux-kernel@vger.kernel.org, "David S. Miller" <davem@davemloft.net>, sparclinux@vger.kernel.org
+Message-ID: <20140514195555.KwuC-gKeDoLRSjHqM_gcZcOeTgx7Qo37cQL7CmZlh2M@z>
 
-Hi Richard,
+On Wed, May 14, 2014 at 08:59:55PM +0200, Richard Weinberger wrote:
+> It is no longer needed to define them on our own.
+> 
+> Cc: "David S. Miller" <davem@davemloft.net>
+> Cc: Richard Weinberger <richard@nod.at>
+> Cc: sparclinux@vger.kernel.org
+> Cc: linux-kernel@vger.kernel.org
+> Signed-off-by: Richard Weinberger <richard@nod.at>
+> ---
+>  arch/sparc/include/asm/tlb_32.h | 8 --------
+>  arch/sparc/include/asm/tlb_64.h | 3 ---
+>  2 files changed, 11 deletions(-)
+> 
+> diff --git a/arch/sparc/include/asm/tlb_32.h b/arch/sparc/include/asm/tlb_32.h
+> index 6d02d1c..60641a1 100644
+> --- a/arch/sparc/include/asm/tlb_32.h
+> +++ b/arch/sparc/include/asm/tlb_32.h
+> @@ -11,14 +11,6 @@ do {								\
+>  	flush_tlb_range(vma, vma->vm_start, vma->vm_end);	\
+>  } while (0)
+>  
+> -#define __tlb_remove_tlb_entry(tlb, pte, address) \
+> -	do { } while (0)
+> -
+> -#define tlb_flush(tlb) \
+> -do {								\
+> -	flush_tlb_mm((tlb)->mm);				\
+> -} while (0)
+> -
+>  #include <asm-generic/tlb.h>
+>  
+>  #endif /* _SPARC_TLB_H */
 
-On Wed, May 14, 2014 at 9:26 PM, Richard Weinberger <richard@nod.at> wrote:
->> But why this sudden #ifdef checks?
->
-> They are needed because in pgalloc.h you have:
-> #ifdef CONFIG_MMU
-> #include <asm/virtconvert.h>
-> #if defined(CONFIG_COLDFIRE)
-> #include <asm/mcf_pgalloc.h>
-> #elif defined(CONFIG_SUN3)
-> #include <asm/sun3_pgalloc.h>
-> #else
-> #include <asm/motorola_pgalloc.h>
-> #endif
->
-> And only asm/motorola_pgalloc.h have __pte/pmd_free_tlb as static inline functions.
-> Therefore we need to define them such that the generic tlb.h versions will not clash
-> with yours.
+This part looks OK.
 
-Thanks for the clarification!
+> diff --git a/arch/sparc/include/asm/tlb_64.h b/arch/sparc/include/asm/tlb_64.h
+> index 190e189..36fdcec 100644
+> --- a/arch/sparc/include/asm/tlb_64.h
+> +++ b/arch/sparc/include/asm/tlb_64.h
+> @@ -22,9 +22,6 @@ extern void smp_flush_tlb_mm(struct mm_struct *mm);
+>  extern void __flush_tlb_pending(unsigned long, unsigned long, unsigned long *);
+>  extern void flush_tlb_pending(void);
+>  
+> -#define tlb_start_vma(tlb, vma) do { } while (0)
+> -#define tlb_end_vma(tlb, vma)	do { } while (0)
+> -#define __tlb_remove_tlb_entry(tlb, ptep, address) do { } while (0)
+>  #define tlb_flush(tlb)	flush_tlb_pending()
+>  
+>  #include <asm-generic/tlb.h>
 
-Perhaps this deserves a comment:
+This does not fly for sparc64.
+__pte_free_tlb is a static inline in pgalloc_64.h so no
+define exist to teach tlb.h that an arch override exist.
 
-/* Applies to Classic m68k MMU only */
+Likewise for __pmd_free_tlb
 
-Gr{oetje,eeting}s,
-
-                        Geert
-
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+	Sam
