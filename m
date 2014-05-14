@@ -1,63 +1,85 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mailapp01.imgtec.com ([195.59.15.196]:36297 "EHLO
-	mailapp01.imgtec.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754593AbaENMw7 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 14 May 2014 08:52:59 -0400
-From: James Hogan <james.hogan@imgtec.com>
-Subject: [PATCH v4 0/4] metag,parisc: Stack limit patches
-Date: Wed, 14 May 2014 13:52:44 +0100
-Message-ID: <1400071968-21581-1-git-send-email-james.hogan@imgtec.com>
+Received: from mout.kundenserver.de ([212.227.126.187]:65253 "EHLO
+	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755920AbaENOBM (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 14 May 2014 10:01:12 -0400
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH 00/25] Change time_t and clock_t to 64 bit
+Date: Wed, 14 May 2014 16:01:05 +0200
+Message-ID: <6811994.pqkAjrM8xH@wuerfel>
+In-Reply-To: <alpine.DEB.2.02.1405141359460.6261@ionos.tec.linutronix.de>
+References: <1399971456-3941-1-git-send-email-lftan@altera.com> <8468354.y2kUZdOz9e@wuerfel> <alpine.DEB.2.02.1405141359460.6261@ionos.tec.linutronix.de>
 MIME-Version: 1.0
-Content-Type: text/plain
+Content-Transfer-Encoding: 7Bit
+Content-Type: text/plain; charset="us-ascii"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Helge Deller <deller@gmx.de>
-Cc: James Hogan <james.hogan@imgtec.com>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Arnd Bergmann <arnd@arndb.de>, John David Anglin <dave.anglin@bell.net>, linux-arch@vger.kernel.org, linux-metag@vger.kernel.org, linux-parisc@vger.kernel.org
-Message-ID: <20140514125244.ZEnTJIgCYNnDF6IxFjZHIolnBo4YDUvV7DzpCmajTbU@z>
+To: Thomas Gleixner <tglx@linutronix.de>
+Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Christoph Hellwig <hch@infradead.org>, Ley Foon Tan <lftan@altera.com>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, LeyFoon Tan <lftan.linux@gmail.com>, Chung-Lin Tang <cltang@codesourcery.com>
+Message-ID: <20140514140105.JlFQUZpGOO9DH63glygVnPLwnm9VmRbcKcmw4b97kks@z>
 
-Patch 1 is a metag bug fix for v3.15 & stable.
+On Wednesday 14 May 2014 14:21:48 Thomas Gleixner wrote:
+> 
+> So in the 32-on-64 case we'll have two compat variants:
+> 
+> SYSCALL_DEFINE6(futex, u32 __user *, uaddr, int, op, u32, val,
+>                 struct timespec __user *, utime, u32 __user *, uaddr2,
+>                 u32, val3)
+> 
+> COMPAT_SYSCALL_DEFINE6(futex, u32 __user *, uaddr, int, op, u32, val,
+>                 struct compat_timespec __user *, utime, u32 __user *, uaddr2,
+>                 u32, val3)
+> 
+> COMPAT_SYSCALL_DEFINE6(futex64, u32 __user *, uaddr, int, op, u32, val,
+>                 struct timespec64 __user *, utime, u32 __user *, uaddr2,
+>                 u32, val3)
+> 
+> The native 64bit futex64 syscall is mapped to futex.
 
-Patch 2 depends on patch 1, and makes the stack limit configurable.
-Helge: I don't object if you want to take this patch yourself since it
-was originally yours, so long as it goes after patch 1 (which I'll try
-and get into v3.15-rc6).
+I was actually hoping that we could map the compat futex64 to futex
+as well here, since 64-bit timespec and compat timespec64 would be
+the same structure.
 
-Patch 3 depends on patch 1, and removes the RLIMIT_STACK default value
-for metag. I'll take this through metag tree for v3.16.
+> And for a 32bit kernel you have two
+> 
+> SYSCALL_DEFINE6(futex, u32 __user *, uaddr, int, op, u32, val,
+>                 struct timespec __user *, utime, u32 __user *, uaddr2,
+>                 u32, val3)
+> 
+> SYSCALL_DEFINE6(futex64, u32 __user *, uaddr, int, op, u32, val,
+>                 struct timespec64 __user *, utime, u32 __user *, uaddr2,
+>                 u32, val3)
 
-Patch 4 depends on patch 3 and the corresponding parisc patch and
-removes the ability to override the default hard RLIMIT_STACK. Depending
-on when the parisc patch reaches mainline I'll try and get this in for
-v3.16.
+And here, we could think about renaming the kernel internal symbols
+so that we use the same two definitions as well, one for compat_timespec
+and one for timespec64. Those are details we don't need to debate now.
 
-Helge Deller (1):
-  parisc,metag: Do not hardcode maximum userspace stack size
+> Fine with me, but we really need to discuss the timespec64 with user
+> space folks.
 
-James Hogan (3):
-  metag: Reduce maximum stack size to 256MB
-  metag: Remove _STK_LIM_MAX override
-  asm-generic: remove _STK_LIM_MAX
+Definitely.
 
- arch/metag/include/asm/processor.h     |  2 ++
- arch/metag/include/uapi/asm/Kbuild     |  2 +-
- arch/metag/include/uapi/asm/resource.h |  7 -------
- arch/parisc/include/asm/processor.h    |  5 +++++
- arch/parisc/kernel/sys_parisc.c        |  6 +++---
- fs/exec.c                              |  6 +++---
- include/asm-generic/resource.h         |  2 +-
- include/uapi/asm-generic/resource.h    |  7 -------
- mm/Kconfig                             | 15 +++++++++++++++
- 9 files changed, 30 insertions(+), 22 deletions(-)
- delete mode 100644 arch/metag/include/uapi/asm/resource.h
+> I'm curious, whether quite some code, like high frequency timestamps
+> wouldn't be better of with a strict 64 bit nanosecond granular time
+> represenation.
 
-Cc: Helge Deller <deller@gmx.de>
-Cc: "James E.J. Bottomley" <jejb@parisc-linux.org>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: John David Anglin <dave.anglin@bell.net>
-Cc: linux-arch@vger.kernel.org
-Cc: linux-metag@vger.kernel.org
-Cc: linux-parisc@vger.kernel.org
+At least in the kernel, I think ktime_t is already the right type
+to use on both 64-bit and 32-bit architectures as it can be slow to
+extract the seconds portion of 64-bit nanoseconds on a 32-bit machine.
+FWIW, 64-bit ns gives us 584 years worth of nanoseconds, which
+means none of us or the people we know will be around before this
+becomes a problem ;-)
 
--- 
-1.9.3
+For the user interface, we can decide which representation to use
+for each syscall individually depending on the needs. We should just
+not have to many different variants. I was going for timespec64
+just because that would allow us to keep the 64-bit kernel ABI
+unchanged.
 
+> I often enough cursed timespec for clock_nanosleep on an absolute
+> timeline. I need to go through all that normalizing stuff instead of
+> just doing next_event += 500000;
+
+And all user space needs to do it too.
+
+	Arnd
