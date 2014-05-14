@@ -1,57 +1,47 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from g2t2354.austin.hp.com ([15.217.128.53]:56407 "EHLO
-	g2t2354.austin.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753245AbaEMTrI (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 13 May 2014 15:47:08 -0400
-Message-ID: <537276B4.10209@hp.com>
-Date: Tue, 13 May 2014 15:47:00 -0400
-From: Waiman Long <waiman.long@hp.com>
+Received: from mail-by2on0147.outbound.protection.outlook.com ([207.46.100.147]:37062
+	"EHLO na01-by2-obe.outbound.protection.outlook.com"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1752983AbaENDgZ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 13 May 2014 23:36:25 -0400
+From: Ley Foon Tan <lftan@altera.com>
+Subject: [PATCH 24/25] x86: Add 32 bit time_t and clock_t
+Date: Wed, 14 May 2014 11:36:16 +0800
+Message-ID: <1400038576-6027-1-git-send-email-lftan@altera.com>
+In-Reply-To: <1399971456-3941-1-git-send-email-lftan@altera.com>
+References: <1399971456-3941-1-git-send-email-lftan@altera.com>
 MIME-Version: 1.0
-Subject: Re: [PATCH v10 03/19] qspinlock: Add pending bit
-References: <1399474907-22206-1-git-send-email-Waiman.Long@hp.com> <1399474907-22206-4-git-send-email-Waiman.Long@hp.com> <20140512152208.GA12309@potion.brq.redhat.com>
-In-Reply-To: <20140512152208.GA12309@potion.brq.redhat.com>
-Content-Type: text/plain; charset=UTF-8; format=flowed
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Peter Zijlstra <peterz@infradead.org>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Rik van Riel <riel@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, David Vrabel <david.vrabel@citrix.com>, Oleg Nesterov <oleg@redhat.com>, Gleb Natapov <gleb@redhat.com>, Scott J Norton <scott.norton@hp.com>, Chegu Vinod <chegu_vinod@hp.com>
-Message-ID: <20140513194700.R9rWNb9R5Kcfns1Hc4LQFHKXaEANISy7CFGp_nu95co@z>
+To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Cc: Ley Foon Tan <lftan@altera.com>, lftan.linux@gmail.com, cltang@codesourcery.com, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org
+Message-ID: <20140514033616.o96TUNZrpYgD19-9jk2vK37gxBk9r6FOgWyOtptVHl8@z>
 
-On 05/12/2014 11:22 AM, Radim Krčmář wrote:
-> 2014-05-07 11:01-0400, Waiman Long:
->> From: Peter Zijlstra<peterz@infradead.org>
->>
->> Because the qspinlock needs to touch a second cacheline; add a pending
->> bit and allow a single in-word spinner before we punt to the second
->> cacheline.
-> I think there is an unwanted scenario on virtual machines:
-> 1) VCPU sets the pending bit and start spinning.
-> 2) Pending VCPU gets descheduled.
->      - we have PLE and lock holder isn't running [1]
->      - the hypervisor randomly preempts us
-> 3) Lock holder unlocks while pending VCPU is waiting in queue.
-> 4) Subsequent lockers will see free lock with set pending bit and will
->     loop in trylock's 'for (;;)'
->      - the worst-case is lock starving [2]
->      - PLE can save us from wasting whole timeslice
->
-> Retry threshold is the easiest solution, regardless of its ugliness [4].
+Override time_t and clock_t in include/uapi/asm-generic.
 
-Yes, that can be a real issue. Some sort of retry threshold, as you 
-said, should be able to handle it.
+Signed-off-by: Ley Foon Tan <lftan@altera.com>
+---
+ arch/x86/include/uapi/asm/posix_types_32.h | 6 ++++++
+ 1 file changed, 6 insertions(+)
 
-BTW, the relevant patch should be 16/19 where the PV spinlock stuff 
-should be discussed. This patch is perfectly fine.
+diff --git a/arch/x86/include/uapi/asm/posix_types_32.h b/arch/x86/include/uapi/asm/posix_types_32.h
+index 8e52505..b6b7e3b 100644
+--- a/arch/x86/include/uapi/asm/posix_types_32.h
++++ b/arch/x86/include/uapi/asm/posix_types_32.h
+@@ -20,6 +20,12 @@ typedef unsigned short	__kernel_gid_t;
+ typedef unsigned short	__kernel_old_dev_t;
+ #define __kernel_old_dev_t __kernel_old_dev_t
+ 
++typedef long	__kernel_time_t;
++#define __kernel_time_t __kernel_time_t
++
++typedef long	__kernel_clock_t;
++#define __kernel_clock_t __kernel_clock_t
++
+ #include <asm-generic/posix_types.h>
+ 
+ #endif /* _ASM_X86_POSIX_TYPES_32_H */
+-- 
+1.8.2.1
 
-> Another minor design flaw is that formerly first VCPU gets appended to
-> the tail when it decides to queue;
-> is the performance gain worth it?
->
-> Thanks.
-
-Yes, the performance gain is worth it. The primary goal is to be not 
-worse than ticket spinlock in light load situation which is the most 
-common case. This feature is need to achieve that.
-
--Longman
