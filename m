@@ -1,40 +1,34 @@
-From: Ley Foon Tan <lftan@altera.com>
-Subject: [PATCH 24/25] x86: Add 32 bit time_t and clock_t
-Date: Wed, 14 May 2014 11:36:16 +0800
-Message-ID: <1400038576-6027-1-git-send-email-lftan@altera.com>
-References: <1399971456-3941-1-git-send-email-lftan@altera.com>
+From: "H. Peter Anvin" <hpa@zytor.com>
+Subject: Re: [PATCH 01/25] asm-generic: Change time_t and clock_t to 64 bit
+Date: Tue, 13 May 2014 20:47:56 -0700
+Message-ID: <5372E76C.8050908@zytor.com>
+References: <1399971456-3941-1-git-send-email-lftan@altera.com>	<1399971749-4004-1-git-send-email-lftan@altera.com>	<CAAG0J9-ieBNfyRa6kf22TNd_3mg57GYuGHagQ-pPLY41iM3Zyg@mail.gmail.com>	<CAFiDJ5-ez-Brqr8q3=XbODzLtFFU=e4qS12bCPo=5FE1JTNr+A@mail.gmail.com>	<5371EAEB.5030100@imgtec.com> <CAFiDJ58w31gm_z3Y1Q6ZREQPW4F6uVB+vy3X1r_3kLgaEE3O1w@mail.gmail.com> <5371F25E.6020805@imgtec.com>
 Mime-Version: 1.0
-Content-Type: text/plain
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1399971456-3941-1-git-send-email-lftan@altera.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: Ley Foon Tan <lftan@altera.com>, lftan.linux@gmail.com, cltang@codesourcery.com, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from terminus.zytor.com ([198.137.202.10]:49718 "EHLO mail.zytor.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1753487AbaENDsf (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 13 May 2014 23:48:35 -0400
+In-Reply-To: <5371F25E.6020805@imgtec.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: James Hogan <james.hogan@imgtec.com>, Ley Foon Tan <lftan@altera.com>
+Cc: Linux-Arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Chung-Lin Tang <cltang@codesourcery.com>, Arnd Bergmann <arnd@arndb.de>, Thomas Gleixner <tglx@linutronix.de>
 
-Override time_t and clock_t in include/uapi/asm-generic.
+On 05/13/2014 03:22 AM, James Hogan wrote:
+>> When we export this posix_types.h file for user software, they need to
+>> define this config, eg: CONFIG_32BIT_TIME to use 32 bit time. Is this
+>> what we want to do?
+> 
+> Yeh, good point, that won't work.
 
-Signed-off-by: Ley Foon Tan <lftan@altera.com>
----
- arch/x86/include/uapi/asm/posix_types_32.h | 6 ++++++
- 1 file changed, 6 insertions(+)
+How about:
 
-diff --git a/arch/x86/include/uapi/asm/posix_types_32.h b/arch/x86/include/uapi/asm/posix_types_32.h
-index 8e52505..b6b7e3b 100644
---- a/arch/x86/include/uapi/asm/posix_types_32.h
-+++ b/arch/x86/include/uapi/asm/posix_types_32.h
-@@ -20,6 +20,12 @@ typedef unsigned short	__kernel_gid_t;
- typedef unsigned short	__kernel_old_dev_t;
- #define __kernel_old_dev_t __kernel_old_dev_t
- 
-+typedef long	__kernel_time_t;
-+#define __kernel_time_t __kernel_time_t
-+
-+typedef long	__kernel_clock_t;
-+#define __kernel_clock_t __kernel_clock_t
-+
- #include <asm-generic/posix_types.h>
- 
- #endif /* _ASM_X86_POSIX_TYPES_32_H */
--- 
-1.8.2.1
+#include <asm-generic/types/time32.h>
+
+The asm-generic/types/ directory can be used for all kinds of type
+templates, like int-ll64.h and the (now removed) former int-l64.h.
+
+	-hpa
