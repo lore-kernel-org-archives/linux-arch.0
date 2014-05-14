@@ -1,43 +1,47 @@
 From: Richard Weinberger <richard@nod.at>
-Subject: [PATCH 19/27] parisc: Use common bits from generic tlb.h
-Date: Wed, 14 May 2014 20:59:51 +0200
-Message-ID: <1400093999-18703-20-git-send-email-richard@nod.at>
+Subject: [PATCH 10/27] frv: Use common bits from generic tlb.h
+Date: Wed, 14 May 2014 20:59:42 +0200
+Message-ID: <1400093999-18703-11-git-send-email-richard@nod.at>
 References: <1400093999-18703-1-git-send-email-richard@nod.at>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1400093999-18703-1-git-send-email-richard@nod.at>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org, arnd@arndb.de, linux-kernel@vger.kernel.org
-Cc: Richard Weinberger <richard@nod.at>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, linux-parisc@vger.kernel.org
+Cc: Richard Weinberger <richard@nod.at>, David Howells <dhowells@redhat.com>
 List-Id: linux-arch.vger.kernel.org
 
 It is no longer needed to define them on our own.
 
-Cc: "James E.J. Bottomley" <jejb@parisc-linux.org>
-Cc: Helge Deller <deller@gmx.de>
+Cc: David Howells <dhowells@redhat.com>
 Cc: Richard Weinberger <richard@nod.at>
-Cc: linux-parisc@vger.kernel.org
 Cc: linux-kernel@vger.kernel.org
 Signed-off-by: Richard Weinberger <richard@nod.at>
 ---
- arch/parisc/include/asm/tlb.h | 6 ------
- 1 file changed, 6 deletions(-)
+ arch/frv/include/asm/tlb.h | 12 ------------
+ 1 file changed, 12 deletions(-)
 
-diff --git a/arch/parisc/include/asm/tlb.h b/arch/parisc/include/asm/tlb.h
-index 0792490..4e231b1 100644
---- a/arch/parisc/include/asm/tlb.h
-+++ b/arch/parisc/include/asm/tlb.h
-@@ -16,12 +16,6 @@ do {	if (!(tlb)->fullmm)	\
- 		flush_tlb_range(vma, vma->vm_start, vma->vm_end); \
- } while (0)
+diff --git a/arch/frv/include/asm/tlb.h b/arch/frv/include/asm/tlb.h
+index cd458eb..ba690cc 100644
+--- a/arch/frv/include/asm/tlb.h
++++ b/arch/frv/include/asm/tlb.h
+@@ -9,18 +9,6 @@ extern void check_pgt_cache(void);
+ #define check_pgt_cache() do {} while(0)
+ #endif
  
--#define __tlb_remove_tlb_entry(tlb, pte, address) \
--	do { } while (0)
+-/*
+- * we don't need any special per-pte or per-vma handling...
+- */
+-#define tlb_start_vma(tlb, vma)				do { } while (0)
+-#define tlb_end_vma(tlb, vma)				do { } while (0)
+-#define __tlb_remove_tlb_entry(tlb, ptep, address)	do { } while (0)
+-
+-/*
+- * .. because we flush the whole mm when it fills up
+- */
+-#define tlb_flush(tlb)		flush_tlb_mm((tlb)->mm)
 -
  #include <asm-generic/tlb.h>
  
--#define __pmd_free_tlb(tlb, pmd, addr)	pmd_free((tlb)->mm, pmd)
--#define __pte_free_tlb(tlb, pte, addr)	pte_free((tlb)->mm, pte)
--
- #endif
+ #endif /* _ASM_TLB_H */
 -- 
 1.8.4.2
