@@ -1,64 +1,92 @@
 From: Richard Weinberger <richard@nod.at>
-Subject: [PATCH 03/27] generic/tlb.h: Move common defines into generic tlb.h
-Date: Wed, 14 May 2014 20:59:35 +0200
-Message-ID: <1400093999-18703-4-git-send-email-richard@nod.at>
-References: <1400093999-18703-1-git-send-email-richard@nod.at>
+Subject: Consolidate tlb.h
+Date: Wed, 14 May 2014 20:59:32 +0200
+Message-ID: <1400093999-18703-1-git-send-email-richard@nod.at>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.sigma-star.at ([95.130.255.111]:62412 "EHLO
+Received: from mail.sigma-star.at ([95.130.255.111]:62418 "EHLO
 	mail.sigma-star.at" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753232AbaENTIG (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 14 May 2014 15:08:06 -0400
-In-Reply-To: <1400093999-18703-1-git-send-email-richard@nod.at>
+	with ESMTP id S1753239AbaENTII (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 14 May 2014 15:08:08 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, arnd@arndb.de, linux-kernel@vger.kernel.org
-Cc: Richard Weinberger <richard@nod.at>
 
-Move most common defines into the generic tlb.h to avoid
-duplicate code.
+While staring at an UML TLB bug I've noticed that most archs
+copy and pasted stuff from each others tlb.h.
+This patch series combines common stuff into the generic tlb.h.
 
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch@vger.kernel.org
-Cc: linux-kernel@vger.kernel.org
-Signed-off-by: Richard Weinberger <richard@nod.at>
----
- include/asm-generic/tlb.h | 24 ++++++++++++++++++++++++
- 1 file changed, 24 insertions(+)
+[PATCH 01/27] arm64: Override defaults from generic/tlb.h
+[PATCH 02/27] powerpc: Override defaults from generic/tlb.h
+[PATCH 03/27] generic/tlb.h: Move common defines into generic tlb.h
+[PATCH 04/27] alpha: Use generic tlb.h
+[PATCH 05/27] arc: Use common bits from generic tlb.h
+[PATCH 06/27] avr32: Use common bits from generic tlb.h
+[PATCH 07/27] blackfin: Use generic tlb.h
+[PATCH 08/27] c6x: Use generic tlb.h
+[PATCH 09/27] cris: Use common bits from generic tlb.h
+[PATCH 10/27] frv: Use common bits from generic tlb.h
+[PATCH 11/27] hexagon: Use common bits from generic tlb.h
+[PATCH 12/27] m32r: Use generic tlb.h
+[PATCH 13/27] m68k: Use common bits from generic tlb.h
+[PATCH 14/27] metag: Use common bits from generic tlb.h
+[PATCH 15/27] microblaze: Use generic tlb.h
+[PATCH 16/27] mips: Use common bits from generic tlb.h
+[PATCH 17/27] mn10300: Use generic tlb.h
+[PATCH 18/27] openrisc: Use generic tlb.h
+[PATCH 19/27] parisc: Use common bits from generic tlb.h
+[PATCH 20/27] powerpc: Use common bits from generic tlb.h
+[PATCH 21/27] score: Use generic tlb.h
+[PATCH 22/27] sh: Use common bits from generic tlb.h
+[PATCH 23/27] sparc: Use common bits from generic tlb.h
+[PATCH 24/27] tile: Use generic tlb.h
+[PATCH 25/27] unicore32: Use common bits from generic tlb.h
+[PATCH 26/27] x86: Use common bits from generic tlb.h
+[PATCH 27/27] xtensa: Use common bits from generic tlb.h
 
-diff --git a/include/asm-generic/tlb.h b/include/asm-generic/tlb.h
-index 5672d7e..6e15413 100644
---- a/include/asm-generic/tlb.h
-+++ b/include/asm-generic/tlb.h
-@@ -149,6 +149,30 @@ static inline void tlb_remove_page(struct mmu_gather *tlb, struct page *page)
- #define __tlb_remove_pmd_tlb_entry(tlb, pmdp, address) do {} while (0)
- #endif
- 
-+#ifndef tlb_start_vma
-+#define tlb_start_vma(tlb, vma) do {} while (0)
-+#endif
-+
-+#ifndef tlb_end_vma
-+#define tlb_end_vma(tlb, vma) do {} while (0)
-+#endif
-+
-+#ifndef __tlb_remove_tlb_entry
-+#define __tlb_remove_tlb_entry(tlb, ptep, address) do {} while (0)
-+#endif
-+
-+#ifndef tlb_flush
-+#define tlb_flush(tlb) flush_tlb_mm((tlb)->mm)
-+#endif
-+
-+#ifndef __pte_free_tlb
-+#define __pte_free_tlb(tlb, pte, address) pte_free((tlb)->mm, pte)
-+#endif
-+
-+#ifndef __pmd_free_tlb
-+#define __pmd_free_tlb(tlb, pmd, address) pmd_free((tlb)->mm, pmd)
-+#endif
-+
- #define tlb_remove_pmd_tlb_entry(tlb, pmdp, address)		\
- 	do {							\
- 		tlb->need_flush = 1;				\
--- 
-1.8.4.2
+ arch/alpha/include/asm/Kbuild      |  1 +
+ arch/alpha/include/asm/tlb.h       | 15 ---------------
+ arch/arc/include/asm/tlb.h         |  6 +-----
+ arch/arm64/include/asm/tlb.h       |  7 +++++++
+ arch/avr32/include/asm/tlb.h       |  7 -------
+ arch/blackfin/include/asm/Kbuild   |  1 +
+ arch/blackfin/include/asm/tlb.h    | 22 ---------------------
+ arch/c6x/include/asm/Kbuild        |  1 +
+ arch/c6x/include/asm/tlb.h         |  8 --------
+ arch/cris/include/asm/tlb.h        | 11 -----------
+ arch/frv/include/asm/tlb.h         | 12 ------------
+ arch/hexagon/include/asm/Kbuild    |  1 +
+ arch/hexagon/include/asm/tlb.h     | 39 --------------------------------------
+ arch/m32r/include/asm/Kbuild       |  1 +
+ arch/m32r/include/asm/tlb.h        | 20 -------------------
+ arch/m68k/include/asm/tlb.h        | 18 +++++-------------
+ arch/metag/include/asm/tlb.h       | 10 ----------
+ arch/microblaze/include/asm/Kbuild |  1 +
+ arch/microblaze/include/asm/tlb.h  | 25 ------------------------
+ arch/mips/include/asm/tlb.h        |  7 -------
+ arch/mn10300/include/asm/Kbuild    |  1 +
+ arch/mn10300/include/asm/pgalloc.h |  2 ++
+ arch/mn10300/include/asm/tlb.h     | 34 ---------------------------------
+ arch/openrisc/include/asm/Kbuild   |  1 +
+ arch/openrisc/include/asm/tlb.h    | 34 ---------------------------------
+ arch/parisc/include/asm/tlb.h      |  6 ------
+ arch/powerpc/include/asm/pgalloc.h |  1 -
+ arch/powerpc/include/asm/tlb.h     |  7 ++++---
+ arch/score/include/asm/Kbuild      |  1 +
+ arch/score/include/asm/irq.h       |  1 +
+ arch/score/include/asm/tlb.h       | 17 -----------------
+ arch/sh/include/asm/tlb.h          |  5 -----
+ arch/sparc/include/asm/tlb_32.h    |  8 --------
+ arch/sparc/include/asm/tlb_64.h    |  3 ---
+ arch/tile/include/asm/Kbuild       |  1 +
+ arch/tile/include/asm/tlb.h        | 25 ------------------------
+ arch/unicore32/include/asm/tlb.h   |  5 -----
+ arch/x86/include/asm/tlb.h         |  4 ----
+ arch/xtensa/include/asm/tlb.h      | 16 +---------------
+ include/asm-generic/tlb.h          | 24 +++++++++++++++++++++++
+ 40 files changed, 55 insertions(+), 354 deletions(-)
+
+All patches are also available at:
+git://git.kernel.org/pub/scm/linux/kernel/git/rw/misc.git tlb-generic-cleanup
+
+Thanks,
+//richard
