@@ -1,75 +1,42 @@
 From: Richard Weinberger <richard@nod.at>
-Subject: [PATCH 24/27] tile: Use generic tlb.h
-Date: Wed, 14 May 2014 20:59:56 +0200
-Message-ID: <1400093999-18703-25-git-send-email-richard@nod.at>
+Subject: [PATCH 22/27] sh: Use common bits from generic tlb.h
+Date: Wed, 14 May 2014 20:59:54 +0200
+Message-ID: <1400093999-18703-23-git-send-email-richard@nod.at>
 References: <1400093999-18703-1-git-send-email-richard@nod.at>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1400093999-18703-1-git-send-email-richard@nod.at>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org, arnd@arndb.de, linux-kernel@vger.kernel.org
-Cc: Richard Weinberger <richard@nod.at>, Chris Metcalf <cmetcalf@tilera.com>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@kernel.org>, Tim Chen <tim.c.chen@linux.intel.com>, "David S. Miller" <davem@davemloft.net>, Tony Lu <zlu@tilera.com>
+Cc: Richard Weinberger <richard@nod.at>, Peter Zijlstra <peterz@infradead.org>, Michal Hocko <mhocko@suse.cz>, Hugh Dickins <hughd@google.com>, linux-sh@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-As everything we need is now in generic tlb.h
-we can drop our own one.
+It is no longer needed to define them on our own.
 
-Cc: Chris Metcalf <cmetcalf@tilera.com>
 Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Ingo Molnar <mingo@kernel.org>
-Cc: Tim Chen <tim.c.chen@linux.intel.com>
-Cc: Richard Weinberger <richard@nod.at>
-Cc: "David S. Miller" <davem@davemloft.net>
-Cc: Tony Lu <zlu@tilera.com>
+Cc: Michal Hocko <mhocko@suse.cz>
+Cc: Hugh Dickins <hughd@google.com>
+Cc: linux-sh@vger.kernel.org
 Cc: linux-kernel@vger.kernel.org
 Signed-off-by: Richard Weinberger <richard@nod.at>
 ---
- arch/tile/include/asm/Kbuild |  1 +
- arch/tile/include/asm/tlb.h  | 25 -------------------------
- 2 files changed, 1 insertion(+), 25 deletions(-)
- delete mode 100644 arch/tile/include/asm/tlb.h
+ arch/sh/include/asm/tlb.h | 5 -----
+ 1 file changed, 5 deletions(-)
 
-diff --git a/arch/tile/include/asm/Kbuild b/arch/tile/include/asm/Kbuild
-index 0aa5675..a4fabe4 100644
---- a/arch/tile/include/asm/Kbuild
-+++ b/arch/tile/include/asm/Kbuild
-@@ -38,6 +38,7 @@ generic-y += sockios.h
- generic-y += statfs.h
- generic-y += termbits.h
- generic-y += termios.h
-+generic-y += tlb.h
- generic-y += trace_clock.h
- generic-y += types.h
- generic-y += xor.h
-diff --git a/arch/tile/include/asm/tlb.h b/arch/tile/include/asm/tlb.h
-deleted file mode 100644
-index 4a891a1..0000000
---- a/arch/tile/include/asm/tlb.h
-+++ /dev/null
-@@ -1,25 +0,0 @@
--/*
-- * Copyright 2010 Tilera Corporation. All Rights Reserved.
-- *
-- *   This program is free software; you can redistribute it and/or
-- *   modify it under the terms of the GNU General Public License
-- *   as published by the Free Software Foundation, version 2.
-- *
-- *   This program is distributed in the hope that it will be useful, but
-- *   WITHOUT ANY WARRANTY; without even the implied warranty of
-- *   MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE, GOOD TITLE or
-- *   NON INFRINGEMENT.  See the GNU General Public License for
-- *   more details.
-- */
+diff --git a/arch/sh/include/asm/tlb.h b/arch/sh/include/asm/tlb.h
+index 62f80d2..7d3f816 100644
+--- a/arch/sh/include/asm/tlb.h
++++ b/arch/sh/include/asm/tlb.h
+@@ -133,11 +133,6 @@ static inline void tlb_unwire_entry(void)
+ 
+ #else /* CONFIG_MMU */
+ 
+-#define tlb_start_vma(tlb, vma)				do { } while (0)
+-#define tlb_end_vma(tlb, vma)				do { } while (0)
+-#define __tlb_remove_tlb_entry(tlb, pte, address)	do { } while (0)
+-#define tlb_flush(tlb)					do { } while (0)
 -
--#ifndef _ASM_TILE_TLB_H
--#define _ASM_TILE_TLB_H
--
--#define tlb_start_vma(tlb, vma) do { } while (0)
--#define tlb_end_vma(tlb, vma) do { } while (0)
--#define __tlb_remove_tlb_entry(tlb, ptep, address) do { } while (0)
--#define tlb_flush(tlb) flush_tlb_mm((tlb)->mm)
--
--#include <asm-generic/tlb.h>
--
--#endif /* _ASM_TILE_TLB_H */
+ #include <asm-generic/tlb.h>
+ 
+ #endif /* CONFIG_MMU */
 -- 
 1.8.4.2
