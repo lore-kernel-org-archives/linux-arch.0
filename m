@@ -1,34 +1,53 @@
-From: "H. Peter Anvin" <hpa@zytor.com>
-Subject: Re: [PATCH 01/25] asm-generic: Change time_t and clock_t to 64 bit
-Date: Tue, 13 May 2014 20:47:56 -0700
-Message-ID: <5372E76C.8050908@zytor.com>
-References: <1399971456-3941-1-git-send-email-lftan@altera.com>	<1399971749-4004-1-git-send-email-lftan@altera.com>	<CAAG0J9-ieBNfyRa6kf22TNd_3mg57GYuGHagQ-pPLY41iM3Zyg@mail.gmail.com>	<CAFiDJ5-ez-Brqr8q3=XbODzLtFFU=e4qS12bCPo=5FE1JTNr+A@mail.gmail.com>	<5371EAEB.5030100@imgtec.com> <CAFiDJ58w31gm_z3Y1Q6ZREQPW4F6uVB+vy3X1r_3kLgaEE3O1w@mail.gmail.com> <5371F25E.6020805@imgtec.com>
+From: Hans-Christian Egtvedt <egtvedt@samfundet.no>
+Subject: Re: [PATCH 06/20] arch,avr32: Fold atomic_ops
+Date: Wed, 14 May 2014 09:43:00 +0200
+Message-ID: <20140514074300.GA17409@samfundet.no>
+References: <20140508135840.956784204@infradead.org>
+ <20140508135852.049922584@infradead.org>
+ <20140509183241.GA4491@samfundet.no>
+ <20140509204309.GA13467@laptop.programming.kicks-ass.net>
+ <20140509205155.GH1429@laptop.programming.kicks-ass.net>
+ <20140509211728.GI1429@laptop.programming.kicks-ass.net>
+ <20140513204032.GB14023@samfundet.no>
+ <20140513205045.GK2485@laptop.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:49718 "EHLO mail.zytor.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753487AbaENDsf (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 13 May 2014 23:48:35 -0400
-In-Reply-To: <5371F25E.6020805@imgtec.com>
+Received: from cassarossa.samfundet.no ([193.35.52.29]:48047 "EHLO
+	cassarossa.samfundet.no" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751253AbaENHnI (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 14 May 2014 03:43:08 -0400
+Content-Disposition: inline
+In-Reply-To: <20140513205045.GK2485@laptop.programming.kicks-ass.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: James Hogan <james.hogan@imgtec.com>, Ley Foon Tan <lftan@altera.com>
-Cc: Linux-Arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Chung-Lin Tang <cltang@codesourcery.com>, Arnd Bergmann <arnd@arndb.de>, Thomas Gleixner <tglx@linutronix.de>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, torvalds@linux-foundation.org, akpm@linux-foundation.org, mingo@kernel.org, will.deacon@arm.com, paulmck@linux.vnet.ibm.com, Haavard Skinnemoen <hskinnemoen@gmail.com>
 
-On 05/13/2014 03:22 AM, James Hogan wrote:
->> When we export this posix_types.h file for user software, they need to
->> define this config, eg: CONFIG_32BIT_TIME to use 32 bit time. Is this
->> what we want to do?
+Around Tue 13 May 2014 22:50:45 +0200 or thereabout, Peter Zijlstra wrote:
+> On Tue, May 13, 2014 at 10:40:32PM +0200, Hans-Christian Egtvedt wrote:
+>> Probably found the reason why we want to use sub with the signed 21-bit
+>> limit, it uses one less register than the add instruction that can add up to
+>> 32-bit values.
+>> 
+>> Both instructions are 32-bit, to use a 16-bit instruction the immediate is
+>> very small; 4 bit.
+>> 
+>> sub 32-bit, type IV, takes a register and subtracts a 21-bit immediate.
+>> add 32-bit, type II, adds two register values together.
+>> 
+>> So by simplifying you loose this optimization.
 > 
-> Yeh, good point, that won't work.
+> OK, let me try if I can come up with anything sane for this.
+> 
+> Re, adding atomic_{or,and,xor}() those should all use the same bits as
+> add, right, except for the special case using sub.
 
-How about:
+OR and XOR (EOR in the manual) instruction will fall into type II or III,
+both 32-bit, and (x)ors two registers together, difference is which way they
+can do a shift on one of the registers.
 
-#include <asm-generic/types/time32.h>
+So yes, identical as add.
 
-The asm-generic/types/ directory can be used for all kinds of type
-templates, like int-ll64.h and the (now removed) former int-l64.h.
-
-	-hpa
+-- 
+Hans-Christian Egtvedt
