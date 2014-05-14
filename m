@@ -1,60 +1,63 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-yh0-f42.google.com ([209.85.213.42]:48300 "EHLO
-	mail-yh0-f42.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752065AbaENIeR (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 14 May 2014 04:34:17 -0400
-Received: by mail-yh0-f42.google.com with SMTP id t59so1392459yho.29
-        for <linux-arch@vger.kernel.org>; Wed, 14 May 2014 01:34:16 -0700 (PDT)
+Received: from mailapp01.imgtec.com ([195.59.15.196]:36297 "EHLO
+	mailapp01.imgtec.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754593AbaENMw7 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 14 May 2014 08:52:59 -0400
+From: James Hogan <james.hogan@imgtec.com>
+Subject: [PATCH v4 0/4] metag,parisc: Stack limit patches
+Date: Wed, 14 May 2014 13:52:44 +0100
+Message-ID: <1400071968-21581-1-git-send-email-james.hogan@imgtec.com>
 MIME-Version: 1.0
-In-Reply-To: <53723ACC.7020500@codeaurora.org>
-References: <1399390209-1756-1-git-send-email-steve.capper@linaro.org>
-	<1399390209-1756-5-git-send-email-steve.capper@linaro.org>
-	<53723ACC.7020500@codeaurora.org>
-Date: Wed, 14 May 2014 09:34:16 +0100
-Message-ID: <CAPvkgC1ORGyfKf5AEUfHeHrvZtNt5bWT1B5XvrBFbZmSNtBFWg@mail.gmail.com>
-Subject: Re: [RFC PATCH V5 4/6] arm: mm: Enable RCU fast_gup
-From: Steve Capper <steve.capper@linaro.org>
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christopher Covington <cov@codeaurora.org>
-Cc: "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Catalin Marinas <catalin.marinas@arm.com>, "linux@arm.linux.org.uk" <linux@arm.linux.org.uk>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, Anders Roxell <anders.roxell@linaro.org>, Peter Zijlstra <peterz@infradead.org>, Gary Robertson <gary.robertson@linaro.org>, Will Deacon <will.deacon@arm.com>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, Christoffer Dall <christoffer.dall@linaro.org>
-Message-ID: <20140514083416.WSizXrh07tJBgROaaevcS0AvTzj3B2kLuW5CThrZ4lw@z>
+To: Helge Deller <deller@gmx.de>
+Cc: James Hogan <james.hogan@imgtec.com>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Arnd Bergmann <arnd@arndb.de>, John David Anglin <dave.anglin@bell.net>, linux-arch@vger.kernel.org, linux-metag@vger.kernel.org, linux-parisc@vger.kernel.org
+Message-ID: <20140514125244.ZEnTJIgCYNnDF6IxFjZHIolnBo4YDUvV7DzpCmajTbU@z>
 
-On 13 May 2014 16:31, Christopher Covington <cov@codeaurora.org> wrote:
-> Hi Steve,
->
-> On 05/06/2014 11:30 AM, Steve Capper wrote:
->> Activate the RCU fast_gup for ARM. We also need to force THP splits to
->> broadcast an IPI s.t. we block in the fast_gup page walker. As THP
->> splits are comparatively rare, this should not lead to a noticeable
->> performance degradation.
->
->> diff --git a/arch/arm/mm/flush.c b/arch/arm/mm/flush.c
->> index 3387e60..91a2b59 100644
->> --- a/arch/arm/mm/flush.c
->> +++ b/arch/arm/mm/flush.c
->> @@ -377,3 +377,22 @@ void __flush_anon_page(struct vm_area_struct *vma, struct page *page, unsigned l
->>        */
->>       __cpuc_flush_dcache_area(page_address(page), PAGE_SIZE);
->>  }
->> +
->> +#ifdef CONFIG_TRANSPARENT_HUGEPAGE
->> +#ifdef CONFIG_HAVE_RCU_TABLE_FREE
->
-> This is trivia, but I for one find the form #if defined(a) && defined(b)
-> easier to read. (Applies to the A64 version as well).
->
+Patch 1 is a metag bug fix for v3.15 & stable.
 
-Thank you Christopher, I agree that looks nicer.
+Patch 2 depends on patch 1, and makes the stack limit configurable.
+Helge: I don't object if you want to take this patch yourself since it
+was originally yours, so long as it goes after patch 1 (which I'll try
+and get into v3.15-rc6).
 
-Cheers,
+Patch 3 depends on patch 1, and removes the RLIMIT_STACK default value
+for metag. I'll take this through metag tree for v3.16.
+
+Patch 4 depends on patch 3 and the corresponding parisc patch and
+removes the ability to override the default hard RLIMIT_STACK. Depending
+on when the parisc patch reaches mainline I'll try and get this in for
+v3.16.
+
+Helge Deller (1):
+  parisc,metag: Do not hardcode maximum userspace stack size
+
+James Hogan (3):
+  metag: Reduce maximum stack size to 256MB
+  metag: Remove _STK_LIM_MAX override
+  asm-generic: remove _STK_LIM_MAX
+
+ arch/metag/include/asm/processor.h     |  2 ++
+ arch/metag/include/uapi/asm/Kbuild     |  2 +-
+ arch/metag/include/uapi/asm/resource.h |  7 -------
+ arch/parisc/include/asm/processor.h    |  5 +++++
+ arch/parisc/kernel/sys_parisc.c        |  6 +++---
+ fs/exec.c                              |  6 +++---
+ include/asm-generic/resource.h         |  2 +-
+ include/uapi/asm-generic/resource.h    |  7 -------
+ mm/Kconfig                             | 15 +++++++++++++++
+ 9 files changed, 30 insertions(+), 22 deletions(-)
+ delete mode 100644 arch/metag/include/uapi/asm/resource.h
+
+Cc: Helge Deller <deller@gmx.de>
+Cc: "James E.J. Bottomley" <jejb@parisc-linux.org>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: John David Anglin <dave.anglin@bell.net>
+Cc: linux-arch@vger.kernel.org
+Cc: linux-metag@vger.kernel.org
+Cc: linux-parisc@vger.kernel.org
+
 -- 
-Steve
+1.9.3
 
-> Christopher
->
-> --
-> Employee of Qualcomm Innovation Center, Inc.
-> Qualcomm Innovation Center, Inc. is a member of Code Aurora Forum,
-> hosted by the Linux Foundation.
