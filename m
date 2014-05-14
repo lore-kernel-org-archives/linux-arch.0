@@ -1,59 +1,52 @@
-From: Steve Capper <steve.capper@linaro.org>
-Subject: Re: [RFC PATCH V5 4/6] arm: mm: Enable RCU fast_gup
-Date: Wed, 14 May 2014 09:34:16 +0100
-Message-ID: <CAPvkgC1ORGyfKf5AEUfHeHrvZtNt5bWT1B5XvrBFbZmSNtBFWg@mail.gmail.com>
-References: <1399390209-1756-1-git-send-email-steve.capper@linaro.org>
-	<1399390209-1756-5-git-send-email-steve.capper@linaro.org>
-	<53723ACC.7020500@codeaurora.org>
+From: Ley Foon Tan <lftan@altera.com>
+Subject: Re: [PATCH 00/25] Change time_t and clock_t to 64 bit
+Date: Wed, 14 May 2014 18:13:41 +0800
+Message-ID: <CAFiDJ5-No1Uw6gxSDXvsv60iyxH=dZKaVTckyZLVEWYUpR504w@mail.gmail.com>
+References: <1399971456-3941-1-git-send-email-lftan@altera.com>
+	<alpine.DEB.2.02.1405131727480.6261@ionos.tec.linutronix.de>
+	<20140513174640.GA20961@infradead.org>
+	<6202090.0OtAjefIFT@wuerfel>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <53723ACC.7020500@codeaurora.org>
-Sender: owner-linux-mm@kvack.org
-To: Christopher Covington <cov@codeaurora.org>
-Cc: "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Catalin Marinas <catalin.marinas@arm.com>, "linux@arm.linux.org.uk" <linux@arm.linux.org.uk>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, Anders Roxell <anders.roxell@linaro.org>, Peter Zijlstra <peterz@infradead.org>, Gary Robertson <gary.robertson@linaro.org>, Will Deacon <will.deacon@arm.com>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, Christoffer Dall <christoffer.dall@linaro.org>
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-qg0-f52.google.com ([209.85.192.52]:34311 "EHLO
+	mail-qg0-f52.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754179AbaENKNm (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 14 May 2014 06:13:42 -0400
+In-Reply-To: <6202090.0OtAjefIFT@wuerfel>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Christoph Hellwig <hch@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Chung-Lin Tang <cltang@codesourcery.com>
 
-On 13 May 2014 16:31, Christopher Covington <cov@codeaurora.org> wrote:
-> Hi Steve,
+On Wed, May 14, 2014 at 2:10 AM, Arnd Bergmann <arnd@arndb.de> wrote:
+> I've just spent two days looking at stuff that uses time_t inside
+> of the kernel, to get a better idea of what we actually need to
+> do to get provide new user interfaces for the existing architectures.
 >
-> On 05/06/2014 11:30 AM, Steve Capper wrote:
->> Activate the RCU fast_gup for ARM. We also need to force THP splits to
->> broadcast an IPI s.t. we block in the fast_gup page walker. As THP
->> splits are comparatively rare, this should not lead to a noticeable
->> performance degradation.
+> My impression so far is that we're better off fixing it for the
+> existing architectures first and then using the new interfaces
+> exclusively on new ones, rather than changing over the ABI for
+> all new architectures at this point, which would likely create
+> yet another variant to maintain in the long run.
 >
->> diff --git a/arch/arm/mm/flush.c b/arch/arm/mm/flush.c
->> index 3387e60..91a2b59 100644
->> --- a/arch/arm/mm/flush.c
->> +++ b/arch/arm/mm/flush.c
->> @@ -377,3 +377,22 @@ void __flush_anon_page(struct vm_area_struct *vma, struct page *page, unsigned l
->>        */
->>       __cpuc_flush_dcache_area(page_address(page), PAGE_SIZE);
->>  }
->> +
->> +#ifdef CONFIG_TRANSPARENT_HUGEPAGE
->> +#ifdef CONFIG_HAVE_RCU_TABLE_FREE
->
-> This is trivia, but I for one find the form #if defined(a) && defined(b)
-> easier to read. (Applies to the A64 version as well).
->
+> Using 64-bit time_t on x32 is fine, because it's fast to operate
+> in user space with 64-bit registers, and the kernel is 64-bit
+> anyway. Inside of the kernel, we may get into trouble using
+> a 64-bit time_t on 32-bit architectures because of the overhead
+> in 64-bit math, e.g. all the timekeeping code that is based on
+> timespec or some code paths in file systems and network code where
+> we actually require division of time_t values.
+> We clearly have to change that code in some for to deal with y2038,
+> but 64-bit time_t may not be the best option. A lot of the
+> in-kernel code can probably use ktime_t, which we can change
+> to a different representation (e.g. 34 bit seconds) if needed,
+> and all the code that is only interested in relative time
+> (e.g. nanosleep) doesn't have to change at all.
 
-Thank you Christopher, I agree that looks nicer.
+Hi Arnd,
 
-Cheers,
--- 
-Steve
+From your comment above, can I assume we don't need this patchset any more?
 
-> Christopher
->
-> --
-> Employee of Qualcomm Innovation Center, Inc.
-> Qualcomm Innovation Center, Inc. is a member of Code Aurora Forum,
-> hosted by the Linux Foundation.
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+Regards
+Ley Foon
