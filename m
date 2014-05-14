@@ -1,79 +1,62 @@
 From: Richard Weinberger <richard@nod.at>
-Subject: [PATCH 21/27] score: Use generic tlb.h
-Date: Wed, 14 May 2014 20:59:53 +0200
-Message-ID: <1400093999-18703-22-git-send-email-richard@nod.at>
+Subject: [PATCH 27/27] xtensa: Use common bits from generic tlb.h
+Date: Wed, 14 May 2014 20:59:59 +0200
+Message-ID: <1400093999-18703-28-git-send-email-richard@nod.at>
 References: <1400093999-18703-1-git-send-email-richard@nod.at>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1400093999-18703-1-git-send-email-richard@nod.at>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org, arnd@arndb.de, linux-kernel@vger.kernel.org
-Cc: Richard Weinberger <richard@nod.at>, Chen Liqin <liqin.linux@gmail.com>, Lennox Wu <lennox.wu@gmail.com>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@kernel.org>, Tim Chen <tim.c.chen@linux.intel.com>, Stephen Rothwell <sfr@canb.auug.org.au>, "David S. Miller" <davem@davemloft.net>
+Cc: Richard Weinberger <richard@nod.at>, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, linux-xtensa@linux-xtensa.org
 List-Id: linux-arch.vger.kernel.org
 
-As everything we need is now in generic tlb.h
-we can drop our own one.
+It is no longer needed to define them on our own.
 
-Cc: Chen Liqin <liqin.linux@gmail.com>
-Cc: Lennox Wu <lennox.wu@gmail.com>
-Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Ingo Molnar <mingo@kernel.org>
-Cc: Tim Chen <tim.c.chen@linux.intel.com>
-Cc: Stephen Rothwell <sfr@canb.auug.org.au>
-Cc: "David S. Miller" <davem@davemloft.net>
+Cc: Chris Zankel <chris@zankel.net>
+Cc: Max Filippov <jcmvbkbc@gmail.com>
 Cc: Richard Weinberger <richard@nod.at>
+Cc: linux-xtensa@linux-xtensa.org
 Cc: linux-kernel@vger.kernel.org
 Signed-off-by: Richard Weinberger <richard@nod.at>
 ---
- arch/score/include/asm/Kbuild |  1 +
- arch/score/include/asm/irq.h  |  1 +
- arch/score/include/asm/tlb.h  | 17 -----------------
- 3 files changed, 2 insertions(+), 17 deletions(-)
- delete mode 100644 arch/score/include/asm/tlb.h
+ arch/xtensa/include/asm/tlb.h | 16 +---------------
+ 1 file changed, 1 insertion(+), 15 deletions(-)
 
-diff --git a/arch/score/include/asm/Kbuild b/arch/score/include/asm/Kbuild
-index 2f947ab..fee1a34 100644
---- a/arch/score/include/asm/Kbuild
-+++ b/arch/score/include/asm/Kbuild
-@@ -8,5 +8,6 @@ generic-y += cputime.h
- generic-y += hash.h
- generic-y += mcs_spinlock.h
- generic-y += preempt.h
-+generic-y += tlb.h
- generic-y += trace_clock.h
- generic-y += xor.h
-diff --git a/arch/score/include/asm/irq.h b/arch/score/include/asm/irq.h
-index c883f3d..c5ea32a 100644
---- a/arch/score/include/asm/irq.h
-+++ b/arch/score/include/asm/irq.h
-@@ -21,5 +21,6 @@
- #define IRQ_TIMER (7)		/* Timer IRQ number of SPCT6600 */
+diff --git a/arch/xtensa/include/asm/tlb.h b/arch/xtensa/include/asm/tlb.h
+index 0d766f9..09ed867 100644
+--- a/arch/xtensa/include/asm/tlb.h
++++ b/arch/xtensa/include/asm/tlb.h
+@@ -14,15 +14,7 @@
+ #include <asm/cache.h>
+ #include <asm/page.h>
  
- extern void interrupt_exception_vector(void);
-+extern void score7_FTLB_refill_Handler(void);
+-#if (DCACHE_WAY_SIZE <= PAGE_SIZE)
+-
+-/* Note, read http://lkml.org/lkml/2004/1/15/6 */
+-
+-# define tlb_start_vma(tlb,vma)			do { } while (0)
+-# define tlb_end_vma(tlb,vma)			do { } while (0)
+-
+-#else
+-
++#if (DCACHE_WAY_SIZE > PAGE_SIZE)
+ # define tlb_start_vma(tlb, vma)					      \
+ 	do {								      \
+ 		if (!tlb->fullmm)					      \
+@@ -34,14 +26,8 @@
+ 		if (!tlb->fullmm)					      \
+ 			flush_tlb_range(vma, vma->vm_start, vma->vm_end);     \
+ 	} while(0)
+-
+ #endif
  
- #endif /* _ASM_SCORE_IRQ_H */
-diff --git a/arch/score/include/asm/tlb.h b/arch/score/include/asm/tlb.h
-deleted file mode 100644
-index 46882ed..0000000
---- a/arch/score/include/asm/tlb.h
-+++ /dev/null
-@@ -1,17 +0,0 @@
--#ifndef _ASM_SCORE_TLB_H
--#define _ASM_SCORE_TLB_H
+-#define __tlb_remove_tlb_entry(tlb,pte,addr)	do { } while (0)
+-#define tlb_flush(tlb)				flush_tlb_mm((tlb)->mm)
 -
--/*
-- * SCORE doesn't need any special per-pte or per-vma handling, except
-- * we need to flush cache for area to be unmapped.
-- */
--#define tlb_start_vma(tlb, vma)		do {} while (0)
--#define tlb_end_vma(tlb, vma)		do {} while (0)
--#define __tlb_remove_tlb_entry(tlb, ptep, address) do {} while (0)
--#define tlb_flush(tlb)			flush_tlb_mm((tlb)->mm)
+ #include <asm-generic/tlb.h>
+ 
+-#define __pte_free_tlb(tlb, pte, address)	pte_free((tlb)->mm, pte)
 -
--extern void score7_FTLB_refill_Handler(void);
--
--#include <asm-generic/tlb.h>
--
--#endif /* _ASM_SCORE_TLB_H */
+ #endif	/* _XTENSA_TLB_H */
 -- 
 1.8.4.2
