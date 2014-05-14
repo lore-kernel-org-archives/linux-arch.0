@@ -1,98 +1,62 @@
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [PATCH 00/25] Change time_t and clock_t to 64 bit
-Date: Wed, 14 May 2014 14:21:48 +0200 (CEST)
-Message-ID: <alpine.DEB.2.02.1405141359460.6261@ionos.tec.linutronix.de>
-References: <1399971456-3941-1-git-send-email-lftan@altera.com> <8399002.IIyBoyEHox@wuerfel> <CAMuHMdW5HSVyXpz9HFcrDDYq=zOFrBr6d8jOd8i_FMkXsEpr2Q@mail.gmail.com> <8468354.y2kUZdOz9e@wuerfel>
+From: James Hogan <james.hogan-1AXoQHu6uovQT0dZR+AlfA@public.gmane.org>
+Subject: [PATCH v4 0/4] metag,parisc: Stack limit patches
+Date: Wed, 14 May 2014 13:52:44 +0100
+Message-ID: <1400071968-21581-1-git-send-email-james.hogan@imgtec.com>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from www.linutronix.de ([62.245.132.108]:43064 "EHLO
-	Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754941AbaENMVj (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 14 May 2014 08:21:39 -0400
-In-Reply-To: <8468354.y2kUZdOz9e@wuerfel>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Christoph Hellwig <hch@infradead.org>, Ley Foon Tan <lftan@altera.com>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, LeyFoon Tan <lftan.linux@gmail.com>, Chung-Lin Tang <cltang@codesourcery.com>
+Content-Type: text/plain
+Return-path: <linux-metag-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+Sender: linux-metag-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: Helge Deller <deller-Mmb7MZpHnFY@public.gmane.org>
+Cc: James Hogan <james.hogan-1AXoQHu6uovQT0dZR+AlfA@public.gmane.org>, "James E.J. Bottomley" <jejb-6jwH94ZQLHl74goWV3ctuw@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, John David Anglin <dave.anglin-CzeTG9NwML0@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-metag-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-parisc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, 14 May 2014, Arnd Bergmann wrote:
-> On Tuesday 13 May 2014 22:35:08 Geert Uytterhoeven wrote:
-> > 
-> > On Tue, May 13, 2014 at 9:32 PM, Arnd Bergmann <arnd@arndb.de> wrote:
-> > > I think we have three categories:
-> > 
-> > Thanks for the list!
-> > 
-> > > a) interfaces that uses relative time_t/timespec/timeval:
-> > > b) interfaces that don't make sense for times in the past:
-> > 
-> > > c) interfaces that require absolute times:
-> > >    - stat/lstat/fstatat/
-> > >    - utime/utimes/futimesat
-> > >
-> > > These absolutely have to use something better than time_t
-> > > both in user space and in the kernel so we can deal with
-> > > old files. A lot of file systems need to be fixed as well so
-> > > we can actually store the times, regardless of whether we
-> > > are running a 32 or 64 bit kernel.
-> > 
-> > So these are the ones we have to worry about.
-> > It looks like they all involve I/O? Apart from the case of using block data
-> > from the buffer cache, the 64-bit operations should disappear in the
-> > actual I/O noise, right?
-> 
-> Right. Also there have been proposals for a better 'stat' replacement
-> for years, which would solve half of the interface problem for the
-> file system interfaces.
-> 
-> However, we also need to find a solution for category b), I only put
-> them into a different category above because we can treat them
-> differently in the kernel. For instance, we could use ktime_t for
-> the kernel code in category b) and a new struct timespec64 for
-> the times in struct inode.
-> On the user interface side, using timespec64 would be a reasonable
-> choice for both categories, because we already have two implementations
-> of all those syscalls in order to handle 32-on-64 compat tasks,
-> and we could use the same set of syscall implementations for time64-on-32.
+Patch 1 is a metag bug fix for v3.15 & stable.
 
-So in the 32-on-64 case we'll have two compat variants:
+Patch 2 depends on patch 1, and makes the stack limit configurable.
+Helge: I don't object if you want to take this patch yourself since it
+was originally yours, so long as it goes after patch 1 (which I'll try
+and get into v3.15-rc6).
 
-SYSCALL_DEFINE6(futex, u32 __user *, uaddr, int, op, u32, val,
-       	   	struct timespec __user *, utime, u32 __user *, uaddr2,
-                u32, val3)
+Patch 3 depends on patch 1, and removes the RLIMIT_STACK default value
+for metag. I'll take this through metag tree for v3.16.
 
-COMPAT_SYSCALL_DEFINE6(futex, u32 __user *, uaddr, int, op, u32, val,
-		struct compat_timespec __user *, utime, u32 __user *, uaddr2,
-                u32, val3)
+Patch 4 depends on patch 3 and the corresponding parisc patch and
+removes the ability to override the default hard RLIMIT_STACK. Depending
+on when the parisc patch reaches mainline I'll try and get this in for
+v3.16.
 
-COMPAT_SYSCALL_DEFINE6(futex64, u32 __user *, uaddr, int, op, u32, val,
-		struct timespec64 __user *, utime, u32 __user *, uaddr2,
-                u32, val3)
+Helge Deller (1):
+  parisc,metag: Do not hardcode maximum userspace stack size
 
-The native 64bit futex64 syscall is mapped to futex.
+James Hogan (3):
+  metag: Reduce maximum stack size to 256MB
+  metag: Remove _STK_LIM_MAX override
+  asm-generic: remove _STK_LIM_MAX
 
-And for a 32bit kernel you have two
+ arch/metag/include/asm/processor.h     |  2 ++
+ arch/metag/include/uapi/asm/Kbuild     |  2 +-
+ arch/metag/include/uapi/asm/resource.h |  7 -------
+ arch/parisc/include/asm/processor.h    |  5 +++++
+ arch/parisc/kernel/sys_parisc.c        |  6 +++---
+ fs/exec.c                              |  6 +++---
+ include/asm-generic/resource.h         |  2 +-
+ include/uapi/asm-generic/resource.h    |  7 -------
+ mm/Kconfig                             | 15 +++++++++++++++
+ 9 files changed, 30 insertions(+), 22 deletions(-)
+ delete mode 100644 arch/metag/include/uapi/asm/resource.h
 
-SYSCALL_DEFINE6(futex, u32 __user *, uaddr, int, op, u32, val,
-       	   	struct timespec __user *, utime, u32 __user *, uaddr2,
-                u32, val3)
+Cc: Helge Deller <deller-Mmb7MZpHnFY@public.gmane.org>
+Cc: "James E.J. Bottomley" <jejb-6jwH94ZQLHl74goWV3ctuw@public.gmane.org>
+Cc: Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>
+Cc: John David Anglin <dave.anglin-CzeTG9NwML0@public.gmane.org>
+Cc: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+Cc: linux-metag-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+Cc: linux-parisc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
 
-SYSCALL_DEFINE6(futex64, u32 __user *, uaddr, int, op, u32, val,
-		struct timespec64 __user *, utime, u32 __user *, uaddr2,
-                u32, val3)
+-- 
+1.9.3
 
-Fine with me, but we really need to discuss the timespec64 with user
-space folks.
-
-I'm curious, whether quite some code, like high frequency timestamps
-wouldn't be better of with a strict 64 bit nanosecond granular time
-represenation.
-
-I often enough cursed timespec for clock_nanosleep on an absolute
-timeline. I need to go through all that normalizing stuff instead of
-just doing next_event += 500000;
-
-Thanks,
-
-	tglx
+--
+To unsubscribe from this list: send the line "unsubscribe linux-metag" in
+the body of a message to majordomo-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+More majordomo info at  http://vger.kernel.org/majordomo-info.html
