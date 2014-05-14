@@ -1,83 +1,44 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH 00/25] Change time_t and clock_t to 64 bit
-Date: Wed, 14 May 2014 17:48:33 +0200
-Message-ID: <6143833.A3bOpIVfCF@wuerfel>
-References: <1399971456-3941-1-git-send-email-lftan@altera.com> <6811994.pqkAjrM8xH@wuerfel> <alpine.DEB.2.02.1405141628130.6261@ionos.tec.linutronix.de>
+From: James Hogan <james.hogan@imgtec.com>
+Subject: Re: [RFC 3/3] asm-generic: Drop renameat syscall from
+	default list
+Date: Wed, 14 May 2014 17:16:57 +0100
+Message-ID: <537396F9.3090704@imgtec.com>
+References: <1398247687-13453-1-git-send-email-james.hogan@imgtec.com>	<1398247687-13453-4-git-send-email-james.hogan@imgtec.com>	<201404231418.05174.arnd@arndb.de>	<CAAG0J9-2=rP3RP08eEjd17R3wEaeiUtGfWD-LeqXV=y9sBamfA@mail.gmail.com>
+	<CAELBmZB=74foyc_b-MTVOXeP6rVAD2x4=um2RVezTb68DifEbA@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7Bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.126.131]:50655 "EHLO
-	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753724AbaENPs5 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 14 May 2014 11:48:57 -0400
-In-Reply-To: <alpine.DEB.2.02.1405141628130.6261@ionos.tec.linutronix.de>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Christoph Hellwig <hch@infradead.org>, Ley Foon Tan <lftan@altera.com>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, LeyFoon Tan <lftan.linux@gmail.com>, Chung-Lin Tang <cltang@codesourcery.com>
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-bounces@lists.openrisc.net>
+In-Reply-To: <CAELBmZB=74foyc_b-MTVOXeP6rVAD2x4=um2RVezTb68DifEbA@mail.gmail.com>
+List-Unsubscribe: <http://lists.openrisc.net/options/linux>,
+	<mailto:linux-request@lists.openrisc.net?subject=unsubscribe>
+List-Archive: <http://lists.openrisc.net/pipermail/linux>
+List-Post: <mailto:linux@lists.openrisc.net>
+List-Help: <mailto:linux-request@lists.openrisc.net?subject=help>
+List-Subscribe: <http://lists.openrisc.net/listinfo/linux>,
+	<mailto:linux-request@lists.openrisc.net?subject=subscribe>
+Sender: linux-bounces@lists.openrisc.net
+Errors-To: linux-bounces@lists.openrisc.net
+To: Szeredi Miklos <miklos@szeredi.hu>
+Cc: linux-arch@vger.kernel.org, Miklos Szeredi <mszeredi@suse.cz>, linux-c6x-dev@linux-c6x.org, Arnd Bergmann <arnd@arndb.de>, Aurelien Jacquiot <a-jacquiot@ti.com>, Vineet Gupta <vgupta@synopsys.com>, linux@openrisc.net, Mark Salter <msalter@redhat.com>, Will Deacon <will.deacon@arm.com>, LKML <linux-kernel@vger.kernel.org>, Chris Metcalf <cmetcalf@tilera.com>, Richard Kuo <rkuo@codeaurora.org>, Lennox Wu <lennox.wu@gmail.com>, Catalin Marinas <catalin.marinas@arm.com>, linux-hexagon@vger.kernel.org, Guan Xuetao <gxt@mprc.pku.edu.cn>, Chen Liqin <liqin.linux@gmail.com>, metag <linux-metag@vger.kernel.org>, ARM Kernel List <linux-arm-kernel@lists.infradead.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Wednesday 14 May 2014 16:46:29 Thomas Gleixner wrote:
-> On Wed, 14 May 2014, Arnd Bergmann wrote:
+Hi Miklos,
+
+On 29/04/14 12:24, Szeredi Miklos wrote:
+> On Wed, Apr 23, 2014 at 2:41 PM, James Hogan <james.hogan@imgtec.com> wrote:
 > 
-> > On Wednesday 14 May 2014 14:21:48 Thomas Gleixner wrote:
-> > > 
-> > > So in the 32-on-64 case we'll have two compat variants:
-> > > 
-> > > SYSCALL_DEFINE6(futex, u32 __user *, uaddr, int, op, u32, val,
-> > >                 struct timespec __user *, utime, u32 __user *, uaddr2,
-> > >                 u32, val3)
-> > > 
-> > > COMPAT_SYSCALL_DEFINE6(futex, u32 __user *, uaddr, int, op, u32, val,
-> > >                 struct compat_timespec __user *, utime, u32 __user *, uaddr2,
-> > >                 u32, val3)
-> > > 
-> > > COMPAT_SYSCALL_DEFINE6(futex64, u32 __user *, uaddr, int, op, u32, val,
-> > >                 struct timespec64 __user *, utime, u32 __user *, uaddr2,
-> > >                 u32, val3)
-> > > 
-> > > The native 64bit futex64 syscall is mapped to futex.
-> > 
-> > I was actually hoping that we could map the compat futex64 to futex
-> > as well here, since 64-bit timespec and compat timespec64 would be
-> > the same structure.
+>> It appears Miklos Szeredi beat me to it with patch 1 (adding renameat2
+>> syscall to asm-generic unistd.h), and will be submitting it to Linus
+>> at some point as part of his renameat2 series.
+>> Miklos: Do you think it makes sense for you to include my second patch
+>> in your series too since it's renameat2 related?
+>> http://marc.info/?l=linux-kernel&m=139824773305016&w=2
 > 
-> Right, that might work with this one, but not for anything which has a
-> pointer to a timespec and some other argument based on long.
+> I've queued up the first two patches with acks from Arnd.
 
-We'd have to look at each one individually of course, but out of this
-list, I think it will work for most:
+Were you planning to send a pull request for your renameat2 patches for
+v3.15?
 
-   - getitimer/setitimer
-   - timer_settime/timer_gettime
-   - gettimeofday/settimeofday
-   - adjtimex
-   - clock_gettime/clock_settime/clock_adjtime
-   - time/stime
-   - sysv ipc (msg, sem, shm)
-   - fstatat (or the statx replacement once we get to that)
-   - futimesat
-
-but not these ioctls:
-
-   - socket time stamps
-   - audio time stamps
-   - v4l time stamps
-   - input event time stamps
-
-> > > I'm curious, whether quite some code, like high frequency timestamps
-> > > wouldn't be better of with a strict 64 bit nanosecond granular time
-> > > represenation.
-> > 
-> > At least in the kernel, I think ktime_t is already the right type
-> > to use on both 64-bit and 32-bit architectures as it can be slow to
-> > extract the seconds portion of 64-bit nanoseconds on a 32-bit machine.
-> 
-> On some of them yes. On i386 the u64 nsec ktime_t variant is way more
-> efficient.
-
-Ah, interesting. Do we have actual data for other architectures? If
-it's much better on x86 and never much worse anywhere else, that
-alone may be a reason to migrate the timestamp interfaces.
-
-	Arnd
+Cheers
+James
