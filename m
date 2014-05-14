@@ -1,69 +1,80 @@
-From: James Hogan <james.hogan@imgtec.com>
-Subject: [PATCH v4 4/4] asm-generic: remove _STK_LIM_MAX
-Date: Wed, 14 May 2014 13:52:48 +0100
-Message-ID: <1400071968-21581-5-git-send-email-james.hogan@imgtec.com>
-References: <1400071968-21581-1-git-send-email-james.hogan@imgtec.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH 00/25] Change time_t and clock_t to 64 bit
+Date: Wed, 14 May 2014 16:01:05 +0200
+Message-ID: <6811994.pqkAjrM8xH@wuerfel>
+References: <1399971456-3941-1-git-send-email-lftan@altera.com> <8468354.y2kUZdOz9e@wuerfel> <alpine.DEB.2.02.1405141359460.6261@ionos.tec.linutronix.de>
 Mime-Version: 1.0
-Content-Type: text/plain
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mailapp01.imgtec.com ([195.59.15.196]:60878 "EHLO
-	mailapp01.imgtec.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755560AbaENMxC (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 14 May 2014 08:53:02 -0400
-In-Reply-To: <1400071968-21581-1-git-send-email-james.hogan@imgtec.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Helge Deller <deller@gmx.de>
-Cc: James Hogan <james.hogan@imgtec.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, John David Anglin <dave.anglin@bell.net>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7Bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <alpine.DEB.2.02.1405141359460.6261@ionos.tec.linutronix.de>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Thomas Gleixner <tglx@linutronix.de>
+Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Christoph Hellwig <hch@infradead.org>, Ley Foon Tan <lftan@altera.com>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, LeyFoon Tan <lftan.linux@gmail.com>, Chung-Lin Tang <cltang@codesourcery.com>
+List-Id: linux-arch.vger.kernel.org
 
-_STK_LIM_MAX could be used to override the RLIMIT_STACK hard limit from
-an arch's include/uapi/asm-generic/resource.h file, but is no longer
-used since both parisc and metag removed the override. Therefore remove
-it entirely, setting the hard RLIMIT_STACK limit to RLIM_INFINITY
-directly in include/asm-generic/resource.h.
+On Wednesday 14 May 2014 14:21:48 Thomas Gleixner wrote:
+> 
+> So in the 32-on-64 case we'll have two compat variants:
+> 
+> SYSCALL_DEFINE6(futex, u32 __user *, uaddr, int, op, u32, val,
+>                 struct timespec __user *, utime, u32 __user *, uaddr2,
+>                 u32, val3)
+> 
+> COMPAT_SYSCALL_DEFINE6(futex, u32 __user *, uaddr, int, op, u32, val,
+>                 struct compat_timespec __user *, utime, u32 __user *, uaddr2,
+>                 u32, val3)
+> 
+> COMPAT_SYSCALL_DEFINE6(futex64, u32 __user *, uaddr, int, op, u32, val,
+>                 struct timespec64 __user *, utime, u32 __user *, uaddr2,
+>                 u32, val3)
+> 
+> The native 64bit futex64 syscall is mapped to futex.
 
-Signed-off-by: James Hogan <james.hogan@imgtec.com>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch@vger.kernel.org
-Cc: Helge Deller <deller@gmx.de>
-Cc: John David Anglin <dave.anglin@bell.net>
----
-This one will need to be applied after both the metag and parisc patches
-which remove the overrides.
----
- include/asm-generic/resource.h      | 2 +-
- include/uapi/asm-generic/resource.h | 7 -------
- 2 files changed, 1 insertion(+), 8 deletions(-)
+I was actually hoping that we could map the compat futex64 to futex
+as well here, since 64-bit timespec and compat timespec64 would be
+the same structure.
 
-diff --git a/include/asm-generic/resource.h b/include/asm-generic/resource.h
-index b4ea8f50fc65..5e752b959054 100644
---- a/include/asm-generic/resource.h
-+++ b/include/asm-generic/resource.h
-@@ -12,7 +12,7 @@
- 	[RLIMIT_CPU]		= {  RLIM_INFINITY,  RLIM_INFINITY },	\
- 	[RLIMIT_FSIZE]		= {  RLIM_INFINITY,  RLIM_INFINITY },	\
- 	[RLIMIT_DATA]		= {  RLIM_INFINITY,  RLIM_INFINITY },	\
--	[RLIMIT_STACK]		= {       _STK_LIM,   _STK_LIM_MAX },	\
-+	[RLIMIT_STACK]		= {       _STK_LIM,  RLIM_INFINITY },	\
- 	[RLIMIT_CORE]		= {              0,  RLIM_INFINITY },	\
- 	[RLIMIT_RSS]		= {  RLIM_INFINITY,  RLIM_INFINITY },	\
- 	[RLIMIT_NPROC]		= {              0,              0 },	\
-diff --git a/include/uapi/asm-generic/resource.h b/include/uapi/asm-generic/resource.h
-index f863428796d5..c6d10af50123 100644
---- a/include/uapi/asm-generic/resource.h
-+++ b/include/uapi/asm-generic/resource.h
-@@ -57,12 +57,5 @@
- # define RLIM_INFINITY		(~0UL)
- #endif
- 
--/*
-- * RLIMIT_STACK default maximum - some architectures override it:
-- */
--#ifndef _STK_LIM_MAX
--# define _STK_LIM_MAX		RLIM_INFINITY
--#endif
--
- 
- #endif /* _UAPI_ASM_GENERIC_RESOURCE_H */
--- 
-1.9.3
+> And for a 32bit kernel you have two
+> 
+> SYSCALL_DEFINE6(futex, u32 __user *, uaddr, int, op, u32, val,
+>                 struct timespec __user *, utime, u32 __user *, uaddr2,
+>                 u32, val3)
+> 
+> SYSCALL_DEFINE6(futex64, u32 __user *, uaddr, int, op, u32, val,
+>                 struct timespec64 __user *, utime, u32 __user *, uaddr2,
+>                 u32, val3)
+
+And here, we could think about renaming the kernel internal symbols
+so that we use the same two definitions as well, one for compat_timespec
+and one for timespec64. Those are details we don't need to debate now.
+
+> Fine with me, but we really need to discuss the timespec64 with user
+> space folks.
+
+Definitely.
+
+> I'm curious, whether quite some code, like high frequency timestamps
+> wouldn't be better of with a strict 64 bit nanosecond granular time
+> represenation.
+
+At least in the kernel, I think ktime_t is already the right type
+to use on both 64-bit and 32-bit architectures as it can be slow to
+extract the seconds portion of 64-bit nanoseconds on a 32-bit machine.
+FWIW, 64-bit ns gives us 584 years worth of nanoseconds, which
+means none of us or the people we know will be around before this
+becomes a problem ;-)
+
+For the user interface, we can decide which representation to use
+for each syscall individually depending on the needs. We should just
+not have to many different variants. I was going for timespec64
+just because that would allow us to keep the 64-bit kernel ABI
+unchanged.
+
+> I often enough cursed timespec for clock_nanosleep on an absolute
+> timeline. I need to go through all that normalizing stuff instead of
+> just doing next_event += 500000;
+
+And all user space needs to do it too.
+
+	Arnd
