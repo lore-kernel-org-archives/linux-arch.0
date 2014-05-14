@@ -1,52 +1,46 @@
-From: Richard Weinberger <richard@nod.at>
-Subject: Re: [PATCH 13/27] m68k: Use common bits from generic tlb.h
-Date: Wed, 14 May 2014 22:57:50 +0200
-Message-ID: <5373D8CE.6090003@nod.at>
-References: <1400093999-18703-1-git-send-email-richard@nod.at>	<1400093999-18703-14-git-send-email-richard@nod.at>	<CAMuHMdUddNc3Suq25JU7UC+YdWQHmk0nCRzCEbqmKg1+a+=FXw@mail.gmail.com>	<5373C36E.3020900@nod.at> <CAMuHMdVWp8-aByVf+7M=8HEXXJRJBbZLdfj1v0rgDU-UEQM=8Q@mail.gmail.com>
+From: "H. Peter Anvin" <hpa@zytor.com>
+Subject: Re: [PATCH 00/25] Change time_t and clock_t to 64 bit
+Date: Wed, 14 May 2014 14:04:03 -0700
+Message-ID: <5373DA43.8070704@zytor.com>
+References: <1399971456-3941-1-git-send-email-lftan@altera.com> <6202090.0OtAjefIFT@wuerfel> <CAFiDJ5-No1Uw6gxSDXvsv60iyxH=dZKaVTckyZLVEWYUpR504w@mail.gmail.com> <4803676.5b3DxkdLDT@wuerfel>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-m68k-owner@vger.kernel.org>
-In-Reply-To: <CAMuHMdVWp8-aByVf+7M=8HEXXJRJBbZLdfj1v0rgDU-UEQM=8Q@mail.gmail.com>
-Sender: linux-m68k-owner@vger.kernel.org
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Linux-Arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-m68k <linux-m68k@lists.linux-m68k.org>
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from terminus.zytor.com ([198.137.202.10]:60240 "EHLO mail.zytor.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751180AbaENVEo (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 14 May 2014 17:04:44 -0400
+In-Reply-To: <4803676.5b3DxkdLDT@wuerfel>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Arnd Bergmann <arnd@arndb.de>, Ley Foon Tan <lftan@altera.com>
+Cc: Christoph Hellwig <hch@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Chung-Lin Tang <cltang@codesourcery.com>
 
-Am 14.05.2014 21:34, schrieb Geert Uytterhoeven:
-> Hi Richard,
-> 
-> On Wed, May 14, 2014 at 9:26 PM, Richard Weinberger <richard@nod.at> wrote:
->>> But why this sudden #ifdef checks?
+On 05/14/2014 03:33 AM, Arnd Bergmann wrote:
 >>
->> They are needed because in pgalloc.h you have:
->> #ifdef CONFIG_MMU
->> #include <asm/virtconvert.h>
->> #if defined(CONFIG_COLDFIRE)
->> #include <asm/mcf_pgalloc.h>
->> #elif defined(CONFIG_SUN3)
->> #include <asm/sun3_pgalloc.h>
->> #else
->> #include <asm/motorola_pgalloc.h>
->> #endif
+>> Hi Arnd,
 >>
->> And only asm/motorola_pgalloc.h have __pte/pmd_free_tlb as static inline functions.
->> Therefore we need to define them such that the generic tlb.h versions will not clash
->> with yours.
+>> From your comment above, can I assume we don't need this patchset any more?
 > 
-> Thanks for the clarification!
-
-One problem which arises here is that me need to make sure that pgalloc.h is included before
-tlb.h. Which kind of sucks.
-I'll move __pte/pmd_free_tlb from *_pgalloc.h into tlb.h to prevent this issue.
-
-Are you fine with that?
-
-> Perhaps this deserves a comment:
+> I won't require it, but it's not just my decision to make.
 > 
-> /* Applies to Classic m68k MMU only */
 
-Will add.
+Linus has pushed extremely hard for it, and it *is* his decision to
+make.  If you want an authoritative answer I guess we need to wait until
+Linus comes back.
 
-Thanks,
-//richard
+> Let's see what Peter Anvin and Thomas Gleixner think about it, as they
+> have argued strongly in favor of using 64-bit time_t for new architectures
+> in the past.
+
+I think it is downright looney to introduce a new ABI without a 64-bit
+time_t at this point.
+
+You are talking about a ktime_t; that is a kernel internal
+implementation detail which can be changed later once the appropriate
+kernel infrastructure is there, but we should make the change now to get
+the external ABIs right, then we can microoptimize the kernel internal
+implementation later.
+
+	-hpa
