@@ -1,76 +1,105 @@
-From: Richard Weinberger <richard@nod.at>
-Subject: [PATCH 07/27] blackfin: Use generic tlb.h
-Date: Wed, 14 May 2014 20:59:39 +0200
-Message-ID: <1400093999-18703-8-git-send-email-richard@nod.at>
-References: <1400093999-18703-1-git-send-email-richard@nod.at>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.sigma-star.at ([95.130.255.111]:62410 "EHLO
-	mail.sigma-star.at" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753226AbaENTIG (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 14 May 2014 15:08:06 -0400
-In-Reply-To: <1400093999-18703-1-git-send-email-richard@nod.at>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org, arnd@arndb.de, linux-kernel@vger.kernel.org
-Cc: Richard Weinberger <richard@nod.at>, Steven Miao <realmz6@gmail.com>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@kernel.org>, Tim Chen <tim.c.chen@linux.intel.com>, "David S. Miller" <davem@davemloft.net>, adi-buildroot-devel@lists.sourceforge.net
+From: Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>
+Subject: Re: [PATCH v10 03/19] qspinlock: Add pending bit
+Date: Wed, 14 May 2014 21:13:40 +0200
+Message-ID: <20140514191339.GA22813@potion.brq.redhat.com>
+References: <1399474907-22206-1-git-send-email-Waiman.Long@hp.com>
+ <1399474907-22206-4-git-send-email-Waiman.Long@hp.com>
+ <20140512152208.GA12309@potion.brq.redhat.com>
+ <537276B4.10209@hp.com>
+ <20140514165121.GA21370@potion.redhat.com>
+ <20140514170016.GW30445@twins.programming.kicks-ass.net>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <20140514170016.GW30445@twins.programming.kicks-ass.net>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Waiman Long <waiman.long@hp.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Rik van Riel <riel@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, David Vrabel <david.vrabel@citrix.com>, Oleg Nesterov <oleg@redhat.com>, Gleb Natapov <gleb@redhat.com>, Scott J Norton <scott.norton@hp.com>, Chegu Vinod <chegu_vinod@hp.com>
+List-Id: linux-arch.vger.kernel.org
 
-As everything we need is now in generic tlb.h
-we can drop our own one.
+2014-05-14 19:00+0200, Peter Zijlstra:
+> On Wed, May 14, 2014 at 06:51:24PM +0200, Radim Kr=C4=8Dm=C3=A1=C5=99=
+ wrote:
+> > Ok.
+> > I've seen merit in pvqspinlock even with slightly slower first-wait=
+er,
+> > so I would have happily sacrificed those horrible branches.
+> > (I prefer elegant to optimized code, but I can see why we want to b=
+e
+> >  strictly better than ticketlock.)
+> > Peter mentioned that we are focusing on bare-metal patches, so I'll
+> > withold my other paravirt rants until they are polished.
 
-Cc: Steven Miao <realmz6@gmail.com>
-Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Ingo Molnar <mingo@kernel.org>
-Cc: Tim Chen <tim.c.chen@linux.intel.com>
-Cc: "David S. Miller" <davem@davemloft.net>
-Cc: Richard Weinberger <richard@nod.at>
-Cc: adi-buildroot-devel@lists.sourceforge.net
-Cc: linux-kernel@vger.kernel.org
-Signed-off-by: Richard Weinberger <richard@nod.at>
----
- arch/blackfin/include/asm/Kbuild |  1 +
- arch/blackfin/include/asm/tlb.h  | 22 ----------------------
- 2 files changed, 1 insertion(+), 22 deletions(-)
- delete mode 100644 arch/blackfin/include/asm/tlb.h
+(It was an ambiguous sentence, I have comments for later patches.)
 
-diff --git a/arch/blackfin/include/asm/Kbuild b/arch/blackfin/include/asm/Kbuild
-index 0d93b9a..d4fdbc0 100644
---- a/arch/blackfin/include/asm/Kbuild
-+++ b/arch/blackfin/include/asm/Kbuild
-@@ -40,6 +40,7 @@ generic-y += sockios.h
- generic-y += statfs.h
- generic-y += termbits.h
- generic-y += termios.h
-+generic-y += tlb.h
- generic-y += topology.h
- generic-y += trace_clock.h
- generic-y += types.h
-diff --git a/arch/blackfin/include/asm/tlb.h b/arch/blackfin/include/asm/tlb.h
-deleted file mode 100644
-index a74ae08..0000000
---- a/arch/blackfin/include/asm/tlb.h
-+++ /dev/null
-@@ -1,22 +0,0 @@
--/*
-- * Copyright 2004-2008 Analog Devices Inc.
-- *
-- * Licensed under the GPL-2 or later.
-- */
--
--#ifndef _BLACKFIN_TLB_H
--#define _BLACKFIN_TLB_H
--
--#define tlb_start_vma(tlb, vma)	do { } while (0)
--#define tlb_end_vma(tlb, vma)	do { } while (0)
--#define __tlb_remove_tlb_entry(tlb, ptep, address)	do { } while (0)
--
--/*
-- * .. because we flush the whole mm when it
-- * fills up.
-- */
--#define tlb_flush(tlb)		flush_tlb_mm((tlb)->mm)
--
--#include <asm-generic/tlb.h>
--
--#endif				/* _BLACKFIN_TLB_H */
--- 
-1.8.4.2
+> Well, paravirt must happen too, but comes later in this series, patch=
+ 3
+> which we're replying to is still very much in the bare metal part of =
+the
+> series.
+
+(I think that bare metal spans the first 7 patches.)
+
+> I've not had time yet to decode all that Waiman has done to make
+> paravirt work.
+>=20
+> But as a general rule I like patches that start with something simple
+> and working and then optimize it, this series doesn't seem to quite
+> grasp that.
+>=20
+> > And to forcefully bring this thread a little bit on-topic:
+> >=20
+> > Pending-bit is effectively a lock in a lock, so I was wondering why
+> > don't we use more pending bits; advantages are the same, just dimin=
+ished
+> > by the probability of having an ideally contended lock:
+> >  - waiter won't be blocked on RAM access if critical section (or mo=
+re)
+> >    ends sooner
+> >  - some unlucky cacheline is not forgotten
+> >  - faster unlock (no need for tail operations)
+> > (- ?)
+> > disadvantages are magnified:
+> >  - increased complexity
+> >  - intense cacheline sharing
+> >    (I thought that this is the main disadvantage of ticketlock.)
+> > (- ?)
+> >=20
+> > One bit still improved performance, is it the best we got?
+>=20
+> So, the advantage of one bit is that if we use a whole byte for 1 bit=
+ we
+> can avoid some atomic ops.
+>=20
+> The entire reason for this in-word spinner is to amortize the cost of
+> hitting the external node cacheline.
+
+Every pending CPU removes one length of the critical section from the
+delay caused by cacheline propagation and really cold cache is
+hundreds(?) of cycles, so we could burn some to ensure correctness and
+still be waiting when the first pending CPU unlocks.
+
+> So traditional locks like test-and-test and the ticket lock only ever
+> access the spinlock word itsef, this MCS style queueing lock has a
+> second (and, see my other rants in this thread, when done wrong more
+> than 2) cacheline to touch.
+>=20
+> That said, all our benchmarking is pretty much for the cache-hot case=
+,
+> so I'm not entirely convinced yet that the one pending bit makes up f=
+or
+> it, it does in the cache-hot case.
+
+Yeah, we probably use the faster pre-lock quite a lot.
+Cover letter states that queue depth 1-3 is a bit slower than ticket
+spinlock, so we might not be losing if we implemented a faster
+in-word-lock of this capacity.  (Not that I'm a fan of the hybrid lock.=
+)
+
+> But... writing cache-cold benchmarks is _hard_ :/
+
+Wouldn't clflush of the second cacheline before trying for the lock giv=
+e
+us a rough estimate?
