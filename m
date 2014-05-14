@@ -1,60 +1,98 @@
 From: Richard Weinberger <richard@nod.at>
-Subject: [PATCH 01/27] arm64: Override defaults from generic/tlb.h
-Date: Wed, 14 May 2014 20:59:33 +0200
-Message-ID: <1400093999-18703-2-git-send-email-richard@nod.at>
+Subject: [PATCH 17/27] mn10300: Use generic tlb.h
+Date: Wed, 14 May 2014 20:59:49 +0200
+Message-ID: <1400093999-18703-18-git-send-email-richard@nod.at>
 References: <1400093999-18703-1-git-send-email-richard@nod.at>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1400093999-18703-1-git-send-email-richard@nod.at>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+Sender: linux-kernel-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org, arnd@arndb.de, linux-kernel@vger.kernel.org
-Cc: Steve Capper <steve.capper@linaro.org>, Peter Zijlstra <peterz@infradead.org>, Richard Weinberger <richard@nod.at>, Will Deacon <will.deacon@arm.com>, Michal Hocko <mhocko@suse.cz>, Catalin Marinas <catalin.marinas@arm.com>, linux-arm-kernel@lists.infradead.org
+Cc: Richard Weinberger <richard@nod.at>, David Howells <dhowells@redhat.com>, Koichi Yasutake <yasutake.koichi@jp.panasonic.com>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@kernel.org>, Tim Chen <tim.c.chen@linux.intel.com>, Stephen Rothwell <sfr@canb.auug.org.au>, "David S. Miller" <davem@davemloft.net>, Andrew Morton <akpm@linux-foundation.org>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, linux-am33-list@redhat.com
 List-Id: linux-arch.vger.kernel.org
 
-Make sure to not conflict with the defaults provided
-by generic/tlb.h.
+As everything we need is now in generic tlb.h
+we can drop our own one.
 
-Cc: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Will Deacon <will.deacon@arm.com>
-Cc: Steve Capper <steve.capper@linaro.org>
+Cc: David Howells <dhowells@redhat.com>
+Cc: Koichi Yasutake <yasutake.koichi@jp.panasonic.com>
 Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: Ingo Molnar <mingo@kernel.org>
+Cc: Tim Chen <tim.c.chen@linux.intel.com>
+Cc: Stephen Rothwell <sfr@canb.auug.org.au>
+Cc: "David S. Miller" <davem@davemloft.net>
 Cc: Richard Weinberger <richard@nod.at>
-Cc: Michal Hocko <mhocko@suse.cz>
-Cc: linux-arm-kernel@lists.infradead.org
+Cc: Andrew Morton <akpm@linux-foundation.org>
+Cc: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+Cc: linux-am33-list@redhat.com
 Cc: linux-kernel@vger.kernel.org
 Signed-off-by: Richard Weinberger <richard@nod.at>
 ---
- arch/arm64/include/asm/tlb.h | 7 +++++++
- 1 file changed, 7 insertions(+)
+ arch/mn10300/include/asm/Kbuild    |  1 +
+ arch/mn10300/include/asm/pgalloc.h |  2 ++
+ arch/mn10300/include/asm/tlb.h     | 34 ----------------------------------
+ 3 files changed, 3 insertions(+), 34 deletions(-)
+ delete mode 100644 arch/mn10300/include/asm/tlb.h
 
-diff --git a/arch/arm64/include/asm/tlb.h b/arch/arm64/include/asm/tlb.h
-index 80e2c08..65a474d 100644
---- a/arch/arm64/include/asm/tlb.h
-+++ b/arch/arm64/include/asm/tlb.h
-@@ -19,7 +19,14 @@
- #ifndef __ASM_TLB_H
- #define __ASM_TLB_H
+diff --git a/arch/mn10300/include/asm/Kbuild b/arch/mn10300/include/asm/Kbuild
+index 654d5ba..ecfaa34 100644
+--- a/arch/mn10300/include/asm/Kbuild
++++ b/arch/mn10300/include/asm/Kbuild
+@@ -6,4 +6,5 @@ generic-y += exec.h
+ generic-y += hash.h
+ generic-y += mcs_spinlock.h
+ generic-y += preempt.h
++generic-y += tlb.h
+ generic-y += trace_clock.h
+diff --git a/arch/mn10300/include/asm/pgalloc.h b/arch/mn10300/include/asm/pgalloc.h
+index 0f25d5f..0027581 100644
+--- a/arch/mn10300/include/asm/pgalloc.h
++++ b/arch/mn10300/include/asm/pgalloc.h
+@@ -53,4 +53,6 @@ static inline void pte_free(struct mm_struct *mm, struct page *pte)
  
-+/* These defines are needed to override the defaults from asm-generic/tlb.h */
- #define  __tlb_remove_pmd_tlb_entry __tlb_remove_pmd_tlb_entry
-+#define tlb_start_vma tlb_start_vma
-+#define tlb_end_vma tlb_end_vma
-+#define __tlb_remove_tlb_entry __tlb_remove_tlb_entry
-+#define tlb_flush tlb_flush
-+#define __pte_free_tlb __pte_free_tlb
-+#define __pmd_free_tlb __pmd_free_tlb
+ #define __pte_free_tlb(tlb, pte, addr) tlb_remove_page((tlb), (pte))
  
- #include <asm-generic/tlb.h>
- 
++extern void check_pgt_cache(void);
++
+ #endif /* _ASM_PGALLOC_H */
+diff --git a/arch/mn10300/include/asm/tlb.h b/arch/mn10300/include/asm/tlb.h
+deleted file mode 100644
+index 65d232b..0000000
+--- a/arch/mn10300/include/asm/tlb.h
++++ /dev/null
+@@ -1,34 +0,0 @@
+-/* MN10300 TLB definitions
+- *
+- * Copyright (C) 2007 Red Hat, Inc. All Rights Reserved.
+- * Written by David Howells (dhowells@redhat.com)
+- *
+- * This program is free software; you can redistribute it and/or
+- * modify it under the terms of the GNU General Public Licence
+- * as published by the Free Software Foundation; either version
+- * 2 of the Licence, or (at your option) any later version.
+- */
+-
+-#ifndef _ASM_TLB_H
+-#define _ASM_TLB_H
+-
+-#include <asm/tlbflush.h>
+-
+-extern void check_pgt_cache(void);
+-
+-/*
+- * we don't need any special per-pte or per-vma handling...
+- */
+-#define tlb_start_vma(tlb, vma)				do { } while (0)
+-#define tlb_end_vma(tlb, vma)				do { } while (0)
+-#define __tlb_remove_tlb_entry(tlb, ptep, address)	do { } while (0)
+-
+-/*
+- * .. because we flush the whole mm when it fills up
+- */
+-#define tlb_flush(tlb)	flush_tlb_mm((tlb)->mm)
+-
+-/* for now, just use the generic stuff */
+-#include <asm-generic/tlb.h>
+-
+-#endif /* _ASM_TLB_H */
 -- 
 1.8.4.2
