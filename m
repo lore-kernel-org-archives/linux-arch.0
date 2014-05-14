@@ -1,47 +1,71 @@
 From: Richard Weinberger <richard@nod.at>
-Subject: [PATCH 10/27] frv: Use common bits from generic tlb.h
-Date: Wed, 14 May 2014 20:59:42 +0200
-Message-ID: <1400093999-18703-11-git-send-email-richard@nod.at>
+Subject: [PATCH 12/27] m32r: Use generic tlb.h
+Date: Wed, 14 May 2014 20:59:44 +0200
+Message-ID: <1400093999-18703-13-git-send-email-richard@nod.at>
 References: <1400093999-18703-1-git-send-email-richard@nod.at>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1400093999-18703-1-git-send-email-richard@nod.at>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org, arnd@arndb.de, linux-kernel@vger.kernel.org
-Cc: Richard Weinberger <richard@nod.at>, David Howells <dhowells@redhat.com>
+Cc: Richard Weinberger <richard@nod.at>, Hirokazu Takata <takata@linux-m32r.org>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@kernel.org>, Tim Chen <tim.c.chen@linux.intel.com>, "David S. Miller" <davem@davemloft.net>, Rik van Riel <riel@redhat.com>, Frederic Weisbecker <fweisbec@gmail.com>, linux-m32r@ml.linux-m32r.org, linux-m32r-ja@ml.linux-m32r.org
 List-Id: linux-arch.vger.kernel.org
 
-It is no longer needed to define them on our own.
+As everything we need is now in generic tlb.h
+we can drop our own one.
 
-Cc: David Howells <dhowells@redhat.com>
+Cc: Hirokazu Takata <takata@linux-m32r.org>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: Ingo Molnar <mingo@kernel.org>
+Cc: Tim Chen <tim.c.chen@linux.intel.com>
+Cc: "David S. Miller" <davem@davemloft.net>
+Cc: Rik van Riel <riel@redhat.com>
+Cc: Frederic Weisbecker <fweisbec@gmail.com>
 Cc: Richard Weinberger <richard@nod.at>
+Cc: linux-m32r@ml.linux-m32r.org
+Cc: linux-m32r-ja@ml.linux-m32r.org
 Cc: linux-kernel@vger.kernel.org
 Signed-off-by: Richard Weinberger <richard@nod.at>
 ---
- arch/frv/include/asm/tlb.h | 12 ------------
- 1 file changed, 12 deletions(-)
+ arch/m32r/include/asm/Kbuild |  1 +
+ arch/m32r/include/asm/tlb.h  | 20 --------------------
+ 2 files changed, 1 insertion(+), 20 deletions(-)
+ delete mode 100644 arch/m32r/include/asm/tlb.h
 
-diff --git a/arch/frv/include/asm/tlb.h b/arch/frv/include/asm/tlb.h
-index cd458eb..ba690cc 100644
---- a/arch/frv/include/asm/tlb.h
-+++ b/arch/frv/include/asm/tlb.h
-@@ -9,18 +9,6 @@ extern void check_pgt_cache(void);
- #define check_pgt_cache() do {} while(0)
- #endif
- 
--/*
-- * we don't need any special per-pte or per-vma handling...
-- */
--#define tlb_start_vma(tlb, vma)				do { } while (0)
--#define tlb_end_vma(tlb, vma)				do { } while (0)
--#define __tlb_remove_tlb_entry(tlb, ptep, address)	do { } while (0)
+diff --git a/arch/m32r/include/asm/Kbuild b/arch/m32r/include/asm/Kbuild
+index 67779a7..2cc845b 100644
+--- a/arch/m32r/include/asm/Kbuild
++++ b/arch/m32r/include/asm/Kbuild
+@@ -6,4 +6,5 @@ generic-y += hash.h
+ generic-y += mcs_spinlock.h
+ generic-y += module.h
+ generic-y += preempt.h
++generic-y += tlb.h
+ generic-y += trace_clock.h
+diff --git a/arch/m32r/include/asm/tlb.h b/arch/m32r/include/asm/tlb.h
+deleted file mode 100644
+index c7ebd8d..0000000
+--- a/arch/m32r/include/asm/tlb.h
++++ /dev/null
+@@ -1,20 +0,0 @@
+-#ifndef _M32R_TLB_H
+-#define _M32R_TLB_H
 -
 -/*
-- * .. because we flush the whole mm when it fills up
+- * x86 doesn't need any special per-pte or
+- * per-vma handling..
 - */
--#define tlb_flush(tlb)		flush_tlb_mm((tlb)->mm)
+-#define tlb_start_vma(tlb, vma) do { } while (0)
+-#define tlb_end_vma(tlb, vma) do { } while (0)
+-#define __tlb_remove_tlb_entry(tlb, pte, address) do { } while (0)
 -
- #include <asm-generic/tlb.h>
- 
- #endif /* _ASM_TLB_H */
+-/*
+- * .. because we flush the whole mm when it
+- * fills up.
+- */
+-#define tlb_flush(tlb) flush_tlb_mm((tlb)->mm)
+-
+-#include <asm-generic/tlb.h>
+-
+-#endif /* _M32R_TLB_H */
 -- 
 1.8.4.2
