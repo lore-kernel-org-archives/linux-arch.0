@@ -1,60 +1,89 @@
 From: Richard Weinberger <richard@nod.at>
-Subject: [PATCH 08/27] c6x: Use generic tlb.h
-Date: Wed, 14 May 2014 20:59:40 +0200
-Message-ID: <1400093999-18703-9-git-send-email-richard@nod.at>
+Subject: [PATCH 11/27] hexagon: Use common bits from generic tlb.h
+Date: Wed, 14 May 2014 20:59:43 +0200
+Message-ID: <1400093999-18703-12-git-send-email-richard@nod.at>
 References: <1400093999-18703-1-git-send-email-richard@nod.at>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1400093999-18703-1-git-send-email-richard@nod.at>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org, arnd@arndb.de, linux-kernel@vger.kernel.org
-Cc: Richard Weinberger <richard@nod.at>, Mark Salter <msalter@redhat.com>, Aurelien Jacquiot <a-jacquiot@ti.com>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@kernel.org>, Tim Chen <tim.c.chen@linux.intel.com>, "David S. Miller" <davem@davemloft.net>, Geert Uytterhoeven <geert@linux-m68k.org>, linux-c6x-dev@linux-c6x.org
+Cc: Richard Weinberger <richard@nod.at>, Richard Kuo <rkuo@codeaurora.org>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@kernel.org>, Tim Chen <tim.c.chen@linux.intel.com>, Stephen Rothwell <sfr@canb.auug.org.au>, Chen Gang <gang.chen.5i5j@gmail.com>, linux-hexagon@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-As everything we need is now in generic tlb.h
-we can drop our own one.
+It is no longer needed to define them on our own.
 
-Cc: Mark Salter <msalter@redhat.com>
-Cc: Aurelien Jacquiot <a-jacquiot@ti.com>
+Cc: Richard Kuo <rkuo@codeaurora.org>
 Cc: Peter Zijlstra <peterz@infradead.org>
 Cc: Ingo Molnar <mingo@kernel.org>
 Cc: Tim Chen <tim.c.chen@linux.intel.com>
-Cc: "David S. Miller" <davem@davemloft.net>
+Cc: Stephen Rothwell <sfr@canb.auug.org.au>
+Cc: Chen Gang <gang.chen.5i5j@gmail.com>
 Cc: Richard Weinberger <richard@nod.at>
-Cc: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: linux-c6x-dev@linux-c6x.org
+Cc: linux-hexagon@vger.kernel.org
 Cc: linux-kernel@vger.kernel.org
 Signed-off-by: Richard Weinberger <richard@nod.at>
 ---
- arch/c6x/include/asm/Kbuild | 1 +
- arch/c6x/include/asm/tlb.h  | 8 --------
- 2 files changed, 1 insertion(+), 8 deletions(-)
- delete mode 100644 arch/c6x/include/asm/tlb.h
+ arch/hexagon/include/asm/Kbuild |  1 +
+ arch/hexagon/include/asm/tlb.h  | 39 ---------------------------------------
+ 2 files changed, 1 insertion(+), 39 deletions(-)
+ delete mode 100644 arch/hexagon/include/asm/tlb.h
 
-diff --git a/arch/c6x/include/asm/Kbuild b/arch/c6x/include/asm/Kbuild
-index 8dbdce8..3a41af2 100644
---- a/arch/c6x/include/asm/Kbuild
-+++ b/arch/c6x/include/asm/Kbuild
-@@ -51,6 +51,7 @@ generic-y += stat.h
+diff --git a/arch/hexagon/include/asm/Kbuild b/arch/hexagon/include/asm/Kbuild
+index 0e69796..7397e1a 100644
+--- a/arch/hexagon/include/asm/Kbuild
++++ b/arch/hexagon/include/asm/Kbuild
+@@ -52,6 +52,7 @@ generic-y += stat.h
  generic-y += statfs.h
  generic-y += termbits.h
  generic-y += termios.h
 +generic-y += tlb.h
- generic-y += tlbflush.h
  generic-y += topology.h
  generic-y += trace_clock.h
-diff --git a/arch/c6x/include/asm/tlb.h b/arch/c6x/include/asm/tlb.h
+ generic-y += types.h
+diff --git a/arch/hexagon/include/asm/tlb.h b/arch/hexagon/include/asm/tlb.h
 deleted file mode 100644
-index 8709e5e..0000000
---- a/arch/c6x/include/asm/tlb.h
+index 2f00772..0000000
+--- a/arch/hexagon/include/asm/tlb.h
 +++ /dev/null
-@@ -1,8 +0,0 @@
--#ifndef _ASM_C6X_TLB_H
--#define _ASM_C6X_TLB_H
+@@ -1,39 +0,0 @@
+-/*
+- * Copyright (c) 2010-2011, The Linux Foundation. All rights reserved.
+- *
+- * This program is free software; you can redistribute it and/or modify
+- * it under the terms of the GNU General Public License version 2 and
+- * only version 2 as published by the Free Software Foundation.
+- *
+- * This program is distributed in the hope that it will be useful,
+- * but WITHOUT ANY WARRANTY; without even the implied warranty of
+- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+- * GNU General Public License for more details.
+- *
+- * You should have received a copy of the GNU General Public License
+- * along with this program; if not, write to the Free Software
+- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+- * 02110-1301, USA.
+- */
 -
--#define tlb_flush(tlb) flush_tlb_mm((tlb)->mm)
+-#ifndef _ASM_TLB_H
+-#define _ASM_TLB_H
+-
+-#include <linux/pagemap.h>
+-#include <asm/tlbflush.h>
+-
+-/*
+- * We don't need any special per-pte or per-vma handling...
+- */
+-#define tlb_start_vma(tlb, vma)				do { } while (0)
+-#define tlb_end_vma(tlb, vma)				do { } while (0)
+-#define __tlb_remove_tlb_entry(tlb, ptep, address)	do { } while (0)
+-
+-/*
+- * .. because we flush the whole mm when it fills up
+- */
+-#define tlb_flush(tlb)		flush_tlb_mm((tlb)->mm)
 -
 -#include <asm-generic/tlb.h>
 -
--#endif /* _ASM_C6X_TLB_H */
+-#endif
 -- 
 1.8.4.2
