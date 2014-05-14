@@ -1,62 +1,69 @@
-From: James Hogan <james.hogan-1AXoQHu6uovQT0dZR+AlfA@public.gmane.org>
-Subject: [PATCH v4 0/4] metag,parisc: Stack limit patches
-Date: Wed, 14 May 2014 13:52:44 +0100
-Message-ID: <1400071968-21581-1-git-send-email-james.hogan@imgtec.com>
+From: James Hogan <james.hogan@imgtec.com>
+Subject: [PATCH v4 4/4] asm-generic: remove _STK_LIM_MAX
+Date: Wed, 14 May 2014 13:52:48 +0100
+Message-ID: <1400071968-21581-5-git-send-email-james.hogan@imgtec.com>
+References: <1400071968-21581-1-git-send-email-james.hogan@imgtec.com>
 Mime-Version: 1.0
 Content-Type: text/plain
-Return-path: <linux-metag-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-Sender: linux-metag-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: Helge Deller <deller-Mmb7MZpHnFY@public.gmane.org>
-Cc: James Hogan <james.hogan-1AXoQHu6uovQT0dZR+AlfA@public.gmane.org>, "James E.J. Bottomley" <jejb-6jwH94ZQLHl74goWV3ctuw@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, John David Anglin <dave.anglin-CzeTG9NwML0@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-metag-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-parisc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mailapp01.imgtec.com ([195.59.15.196]:60878 "EHLO
+	mailapp01.imgtec.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755560AbaENMxC (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 14 May 2014 08:53:02 -0400
+In-Reply-To: <1400071968-21581-1-git-send-email-james.hogan@imgtec.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Helge Deller <deller@gmx.de>
+Cc: James Hogan <james.hogan@imgtec.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, John David Anglin <dave.anglin@bell.net>
 
-Patch 1 is a metag bug fix for v3.15 & stable.
+_STK_LIM_MAX could be used to override the RLIMIT_STACK hard limit from
+an arch's include/uapi/asm-generic/resource.h file, but is no longer
+used since both parisc and metag removed the override. Therefore remove
+it entirely, setting the hard RLIMIT_STACK limit to RLIM_INFINITY
+directly in include/asm-generic/resource.h.
 
-Patch 2 depends on patch 1, and makes the stack limit configurable.
-Helge: I don't object if you want to take this patch yourself since it
-was originally yours, so long as it goes after patch 1 (which I'll try
-and get into v3.15-rc6).
+Signed-off-by: James Hogan <james.hogan@imgtec.com>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch@vger.kernel.org
+Cc: Helge Deller <deller@gmx.de>
+Cc: John David Anglin <dave.anglin@bell.net>
+---
+This one will need to be applied after both the metag and parisc patches
+which remove the overrides.
+---
+ include/asm-generic/resource.h      | 2 +-
+ include/uapi/asm-generic/resource.h | 7 -------
+ 2 files changed, 1 insertion(+), 8 deletions(-)
 
-Patch 3 depends on patch 1, and removes the RLIMIT_STACK default value
-for metag. I'll take this through metag tree for v3.16.
-
-Patch 4 depends on patch 3 and the corresponding parisc patch and
-removes the ability to override the default hard RLIMIT_STACK. Depending
-on when the parisc patch reaches mainline I'll try and get this in for
-v3.16.
-
-Helge Deller (1):
-  parisc,metag: Do not hardcode maximum userspace stack size
-
-James Hogan (3):
-  metag: Reduce maximum stack size to 256MB
-  metag: Remove _STK_LIM_MAX override
-  asm-generic: remove _STK_LIM_MAX
-
- arch/metag/include/asm/processor.h     |  2 ++
- arch/metag/include/uapi/asm/Kbuild     |  2 +-
- arch/metag/include/uapi/asm/resource.h |  7 -------
- arch/parisc/include/asm/processor.h    |  5 +++++
- arch/parisc/kernel/sys_parisc.c        |  6 +++---
- fs/exec.c                              |  6 +++---
- include/asm-generic/resource.h         |  2 +-
- include/uapi/asm-generic/resource.h    |  7 -------
- mm/Kconfig                             | 15 +++++++++++++++
- 9 files changed, 30 insertions(+), 22 deletions(-)
- delete mode 100644 arch/metag/include/uapi/asm/resource.h
-
-Cc: Helge Deller <deller-Mmb7MZpHnFY@public.gmane.org>
-Cc: "James E.J. Bottomley" <jejb-6jwH94ZQLHl74goWV3ctuw@public.gmane.org>
-Cc: Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>
-Cc: John David Anglin <dave.anglin-CzeTG9NwML0@public.gmane.org>
-Cc: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-Cc: linux-metag-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-Cc: linux-parisc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-
+diff --git a/include/asm-generic/resource.h b/include/asm-generic/resource.h
+index b4ea8f50fc65..5e752b959054 100644
+--- a/include/asm-generic/resource.h
++++ b/include/asm-generic/resource.h
+@@ -12,7 +12,7 @@
+ 	[RLIMIT_CPU]		= {  RLIM_INFINITY,  RLIM_INFINITY },	\
+ 	[RLIMIT_FSIZE]		= {  RLIM_INFINITY,  RLIM_INFINITY },	\
+ 	[RLIMIT_DATA]		= {  RLIM_INFINITY,  RLIM_INFINITY },	\
+-	[RLIMIT_STACK]		= {       _STK_LIM,   _STK_LIM_MAX },	\
++	[RLIMIT_STACK]		= {       _STK_LIM,  RLIM_INFINITY },	\
+ 	[RLIMIT_CORE]		= {              0,  RLIM_INFINITY },	\
+ 	[RLIMIT_RSS]		= {  RLIM_INFINITY,  RLIM_INFINITY },	\
+ 	[RLIMIT_NPROC]		= {              0,              0 },	\
+diff --git a/include/uapi/asm-generic/resource.h b/include/uapi/asm-generic/resource.h
+index f863428796d5..c6d10af50123 100644
+--- a/include/uapi/asm-generic/resource.h
++++ b/include/uapi/asm-generic/resource.h
+@@ -57,12 +57,5 @@
+ # define RLIM_INFINITY		(~0UL)
+ #endif
+ 
+-/*
+- * RLIMIT_STACK default maximum - some architectures override it:
+- */
+-#ifndef _STK_LIM_MAX
+-# define _STK_LIM_MAX		RLIM_INFINITY
+-#endif
+-
+ 
+ #endif /* _UAPI_ASM_GENERIC_RESOURCE_H */
 -- 
 1.9.3
-
---
-To unsubscribe from this list: send the line "unsubscribe linux-metag" in
-the body of a message to majordomo-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-More majordomo info at  http://vger.kernel.org/majordomo-info.html
