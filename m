@@ -1,98 +1,63 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:37757 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750755AbaENTOc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 14 May 2014 15:14:32 -0400
-Date: Wed, 14 May 2014 21:13:40 +0200
-From: Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>
-Subject: Re: [PATCH v10 03/19] qspinlock: Add pending bit
-Message-ID: <20140514191339.GA22813@potion.brq.redhat.com>
-References: <1399474907-22206-1-git-send-email-Waiman.Long@hp.com>
- <1399474907-22206-4-git-send-email-Waiman.Long@hp.com>
- <20140512152208.GA12309@potion.brq.redhat.com>
- <537276B4.10209@hp.com>
- <20140514165121.GA21370@potion.redhat.com>
- <20140514170016.GW30445@twins.programming.kicks-ass.net>
+Received: from mail-ig0-f169.google.com ([209.85.213.169]:45057 "EHLO
+	mail-ig0-f169.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752044AbaENTTk (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 14 May 2014 15:19:40 -0400
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-Content-Transfer-Encoding: 8bit
-In-Reply-To: <20140514170016.GW30445@twins.programming.kicks-ass.net>
+In-Reply-To: <1400093999-18703-14-git-send-email-richard@nod.at>
+References: <1400093999-18703-1-git-send-email-richard@nod.at>
+	<1400093999-18703-14-git-send-email-richard@nod.at>
+Date: Wed, 14 May 2014 21:19:39 +0200
+Message-ID: <CAMuHMdUddNc3Suq25JU7UC+YdWQHmk0nCRzCEbqmKg1+a+=FXw@mail.gmail.com>
+Subject: Re: [PATCH 13/27] m68k: Use common bits from generic tlb.h
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Waiman Long <waiman.long@hp.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Rik van Riel <riel@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, David Vrabel <david.vrabel@citrix.com>, Oleg Nesterov <oleg@redhat.com>, Gleb Natapov <gleb@redhat.com>, Scott J Norton <scott.norton@hp.com>, Chegu Vinod <chegu_vinod@hp.com>
-Message-ID: <20140514191340.uzAlBn98GqrD3kR1tGRGu6ULqhAZx6FbS1-QFCe3lfE@z>
+To: Richard Weinberger <richard@nod.at>
+Cc: Linux-Arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-m68k <linux-m68k@lists.linux-m68k.org>
+Message-ID: <20140514191939.M2MekKFkHVLdDuSE5sEUkecPT-E-7YLnVzmRqoCsbsY@z>
 
-2014-05-14 19:00+0200, Peter Zijlstra:
-> On Wed, May 14, 2014 at 06:51:24PM +0200, Radim Krčmář wrote:
-> > Ok.
-> > I've seen merit in pvqspinlock even with slightly slower first-waiter,
-> > so I would have happily sacrificed those horrible branches.
-> > (I prefer elegant to optimized code, but I can see why we want to be
-> >  strictly better than ticketlock.)
-> > Peter mentioned that we are focusing on bare-metal patches, so I'll
-> > withold my other paravirt rants until they are polished.
+On Wed, May 14, 2014 at 8:59 PM, Richard Weinberger <richard@nod.at> wrote:
+> --- a/arch/m68k/include/asm/tlb.h
+> +++ b/arch/m68k/include/asm/tlb.h
+> @@ -1,19 +1,11 @@
+>  #ifndef _M68K_TLB_H
+>  #define _M68K_TLB_H
+>
+> -/*
+> - * m68k doesn't need any special per-pte or
+> - * per-vma handling..
+> - */
+> -#define tlb_start_vma(tlb, vma)        do { } while (0)
+> -#define tlb_end_vma(tlb, vma)  do { } while (0)
+> -#define __tlb_remove_tlb_entry(tlb, ptep, address)     do { } while (0)
+> -
+> -/*
+> - * .. because we flush the whole mm when it
+> - * fills up.
+> - */
+> -#define tlb_flush(tlb)         flush_tlb_mm((tlb)->mm)
+> +#ifdef CONFIG_MMU && !defined(CONFIG_COLDFIRE) && !defined(CONFIG_SUN3)
 
-(It was an ambiguous sentence, I have comments for later patches.)
+Syntax error:
 
-> Well, paravirt must happen too, but comes later in this series, patch 3
-> which we're replying to is still very much in the bare metal part of the
-> series.
+#if defined(CONFIG_MMU) && ...
 
-(I think that bare metal spans the first 7 patches.)
+But why this sudden #ifdef checks?
 
-> I've not had time yet to decode all that Waiman has done to make
-> paravirt work.
-> 
-> But as a general rule I like patches that start with something simple
-> and working and then optimize it, this series doesn't seem to quite
-> grasp that.
-> 
-> > And to forcefully bring this thread a little bit on-topic:
-> > 
-> > Pending-bit is effectively a lock in a lock, so I was wondering why
-> > don't we use more pending bits; advantages are the same, just diminished
-> > by the probability of having an ideally contended lock:
-> >  - waiter won't be blocked on RAM access if critical section (or more)
-> >    ends sooner
-> >  - some unlucky cacheline is not forgotten
-> >  - faster unlock (no need for tail operations)
-> > (- ?)
-> > disadvantages are magnified:
-> >  - increased complexity
-> >  - intense cacheline sharing
-> >    (I thought that this is the main disadvantage of ticketlock.)
-> > (- ?)
-> > 
-> > One bit still improved performance, is it the best we got?
-> 
-> So, the advantage of one bit is that if we use a whole byte for 1 bit we
-> can avoid some atomic ops.
-> 
-> The entire reason for this in-word spinner is to amortize the cost of
-> hitting the external node cacheline.
+> +/* These defines are needed to override the defaults from asm-generic/tlb.h */
+> +#define __pte_free_tlb __pte_free_tlb
+> +#define __pmd_free_tlb __pmd_free_tlb
+> +#endif
 
-Every pending CPU removes one length of the critical section from the
-delay caused by cacheline propagation and really cold cache is
-hundreds(?) of cycles, so we could burn some to ensure correctness and
-still be waiting when the first pending CPU unlocks.
+Gr{oetje,eeting}s,
 
-> So traditional locks like test-and-test and the ticket lock only ever
-> access the spinlock word itsef, this MCS style queueing lock has a
-> second (and, see my other rants in this thread, when done wrong more
-> than 2) cacheline to touch.
-> 
-> That said, all our benchmarking is pretty much for the cache-hot case,
-> so I'm not entirely convinced yet that the one pending bit makes up for
-> it, it does in the cache-hot case.
+                        Geert
 
-Yeah, we probably use the faster pre-lock quite a lot.
-Cover letter states that queue depth 1-3 is a bit slower than ticket
-spinlock, so we might not be losing if we implemented a faster
-in-word-lock of this capacity.  (Not that I'm a fan of the hybrid lock.)
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
 
-> But... writing cache-cold benchmarks is _hard_ :/
-
-Wouldn't clflush of the second cacheline before trying for the lock give
-us a rough estimate?
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
