@@ -1,95 +1,55 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.sigma-star.at ([95.130.255.111]:62413 "EHLO
+Received: from mail.sigma-star.at ([95.130.255.111]:62415 "EHLO
 	mail.sigma-star.at" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753235AbaENTIG (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 14 May 2014 15:08:06 -0400
+	with ESMTP id S1753263AbaENTIK (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 14 May 2014 15:08:10 -0400
 From: Richard Weinberger <richard@nod.at>
-Subject: [PATCH 11/27] hexagon: Use common bits from generic tlb.h
-Date: Wed, 14 May 2014 20:59:43 +0200
-Message-ID: <1400093999-18703-12-git-send-email-richard@nod.at>
+Subject: [PATCH 01/27] arm64: Override defaults from generic/tlb.h
+Date: Wed, 14 May 2014 20:59:33 +0200
+Message-ID: <1400093999-18703-2-git-send-email-richard@nod.at>
 In-Reply-To: <1400093999-18703-1-git-send-email-richard@nod.at>
 References: <1400093999-18703-1-git-send-email-richard@nod.at>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, arnd@arndb.de, linux-kernel@vger.kernel.org
-Cc: Richard Weinberger <richard@nod.at>, Richard Kuo <rkuo@codeaurora.org>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@kernel.org>, Tim Chen <tim.c.chen@linux.intel.com>, Stephen Rothwell <sfr@canb.auug.org.au>, Chen Gang <gang.chen.5i5j@gmail.com>, linux-hexagon@vger.kernel.org
-Message-ID: <20140514185943._wY0xaST3ENDG-b7h0O1lyEpaZkcFVDa-q4RwNewsaA@z>
+Cc: Richard Weinberger <richard@nod.at>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Steve Capper <steve.capper@linaro.org>, Peter Zijlstra <peterz@infradead.org>, Michal Hocko <mhocko@suse.cz>, linux-arm-kernel@lists.infradead.org
+Message-ID: <20140514185933.QxnX9txibe6Gi2Lk62rI9hVFrLkZZh2qwaumgZqrbL8@z>
 
-It is no longer needed to define them on our own.
+Make sure to not conflict with the defaults provided
+by generic/tlb.h.
 
-Cc: Richard Kuo <rkuo@codeaurora.org>
+Cc: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Will Deacon <will.deacon@arm.com>
+Cc: Steve Capper <steve.capper@linaro.org>
 Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Ingo Molnar <mingo@kernel.org>
-Cc: Tim Chen <tim.c.chen@linux.intel.com>
-Cc: Stephen Rothwell <sfr@canb.auug.org.au>
-Cc: Chen Gang <gang.chen.5i5j@gmail.com>
 Cc: Richard Weinberger <richard@nod.at>
-Cc: linux-hexagon@vger.kernel.org
+Cc: Michal Hocko <mhocko@suse.cz>
+Cc: linux-arm-kernel@lists.infradead.org
 Cc: linux-kernel@vger.kernel.org
 Signed-off-by: Richard Weinberger <richard@nod.at>
 ---
- arch/hexagon/include/asm/Kbuild |  1 +
- arch/hexagon/include/asm/tlb.h  | 39 ---------------------------------------
- 2 files changed, 1 insertion(+), 39 deletions(-)
- delete mode 100644 arch/hexagon/include/asm/tlb.h
+ arch/arm64/include/asm/tlb.h | 7 +++++++
+ 1 file changed, 7 insertions(+)
 
-diff --git a/arch/hexagon/include/asm/Kbuild b/arch/hexagon/include/asm/Kbuild
-index 0e69796..7397e1a 100644
---- a/arch/hexagon/include/asm/Kbuild
-+++ b/arch/hexagon/include/asm/Kbuild
-@@ -52,6 +52,7 @@ generic-y += stat.h
- generic-y += statfs.h
- generic-y += termbits.h
- generic-y += termios.h
-+generic-y += tlb.h
- generic-y += topology.h
- generic-y += trace_clock.h
- generic-y += types.h
-diff --git a/arch/hexagon/include/asm/tlb.h b/arch/hexagon/include/asm/tlb.h
-deleted file mode 100644
-index 2f00772..0000000
---- a/arch/hexagon/include/asm/tlb.h
-+++ /dev/null
-@@ -1,39 +0,0 @@
--/*
-- * Copyright (c) 2010-2011, The Linux Foundation. All rights reserved.
-- *
-- * This program is free software; you can redistribute it and/or modify
-- * it under the terms of the GNU General Public License version 2 and
-- * only version 2 as published by the Free Software Foundation.
-- *
-- * This program is distributed in the hope that it will be useful,
-- * but WITHOUT ANY WARRANTY; without even the implied warranty of
-- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-- * GNU General Public License for more details.
-- *
-- * You should have received a copy of the GNU General Public License
-- * along with this program; if not, write to the Free Software
-- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
-- * 02110-1301, USA.
-- */
--
--#ifndef _ASM_TLB_H
--#define _ASM_TLB_H
--
--#include <linux/pagemap.h>
--#include <asm/tlbflush.h>
--
--/*
-- * We don't need any special per-pte or per-vma handling...
-- */
--#define tlb_start_vma(tlb, vma)				do { } while (0)
--#define tlb_end_vma(tlb, vma)				do { } while (0)
--#define __tlb_remove_tlb_entry(tlb, ptep, address)	do { } while (0)
--
--/*
-- * .. because we flush the whole mm when it fills up
-- */
--#define tlb_flush(tlb)		flush_tlb_mm((tlb)->mm)
--
--#include <asm-generic/tlb.h>
--
--#endif
+diff --git a/arch/arm64/include/asm/tlb.h b/arch/arm64/include/asm/tlb.h
+index 80e2c08..65a474d 100644
+--- a/arch/arm64/include/asm/tlb.h
++++ b/arch/arm64/include/asm/tlb.h
+@@ -19,7 +19,14 @@
+ #ifndef __ASM_TLB_H
+ #define __ASM_TLB_H
+ 
++/* These defines are needed to override the defaults from asm-generic/tlb.h */
+ #define  __tlb_remove_pmd_tlb_entry __tlb_remove_pmd_tlb_entry
++#define tlb_start_vma tlb_start_vma
++#define tlb_end_vma tlb_end_vma
++#define __tlb_remove_tlb_entry __tlb_remove_tlb_entry
++#define tlb_flush tlb_flush
++#define __pte_free_tlb __pte_free_tlb
++#define __pmd_free_tlb __pmd_free_tlb
+ 
+ #include <asm-generic/tlb.h>
+ 
 -- 
 1.8.4.2
 
