@@ -1,39 +1,88 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mailapp01.imgtec.com ([195.59.15.196]:58465 "EHLO
-	mailapp01.imgtec.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753279AbaENQe2 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 14 May 2014 12:34:28 -0400
-Message-ID: <537396F9.3090704@imgtec.com>
-Date: Wed, 14 May 2014 17:16:57 +0100
-From: James Hogan <james.hogan@imgtec.com>
+Received: from mx1.redhat.com ([209.132.183.28]:39440 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1754352AbaENQwK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 14 May 2014 12:52:10 -0400
+Date: Wed, 14 May 2014 18:51:24 +0200
+From: Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>
+Subject: Re: [PATCH v10 03/19] qspinlock: Add pending bit
+Message-ID: <20140514165121.GA21370@potion.redhat.com>
+References: <1399474907-22206-1-git-send-email-Waiman.Long@hp.com>
+ <1399474907-22206-4-git-send-email-Waiman.Long@hp.com>
+ <20140512152208.GA12309@potion.brq.redhat.com>
+ <537276B4.10209@hp.com>
 MIME-Version: 1.0
-Subject: Re: [RFC 3/3] asm-generic: Drop renameat syscall from default list
-References: <1398247687-13453-1-git-send-email-james.hogan@imgtec.com>	<1398247687-13453-4-git-send-email-james.hogan@imgtec.com>	<201404231418.05174.arnd@arndb.de>	<CAAG0J9-2=rP3RP08eEjd17R3wEaeiUtGfWD-LeqXV=y9sBamfA@mail.gmail.com> <CAELBmZB=74foyc_b-MTVOXeP6rVAD2x4=um2RVezTb68DifEbA@mail.gmail.com>
-In-Reply-To: <CAELBmZB=74foyc_b-MTVOXeP6rVAD2x4=um2RVezTb68DifEbA@mail.gmail.com>
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <537276B4.10209@hp.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Szeredi Miklos <miklos@szeredi.hu>
-Cc: Arnd Bergmann <arnd@arndb.de>, Miklos Szeredi <mszeredi@suse.cz>, linux-arch@vger.kernel.org, LKML <linux-kernel@vger.kernel.org>, Vineet Gupta <vgupta@synopsys.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, ARM Kernel List <linux-arm-kernel@lists.infradead.org>, Mark Salter <msalter@redhat.com>, Aurelien Jacquiot <a-jacquiot@ti.com>, linux-c6x-dev@linux-c6x.org, Richard Kuo <rkuo@codeaurora.org>, linux-hexagon@vger.kernel.org, metag <linux-metag@vger.kernel.org>, Jonas Bonn <jonas@southpole.se>, linux@openrisc.net, Chen Liqin <liqin.linux@gmail.com>, Lennox Wu <lennox.wu@gmail.com>, Chris Metcalf <cmetcalf@tilera.com>, Guan Xuetao <gxt@mprc.pku.edu.cn>
-Message-ID: <20140514161657.8nWf8AD_onWE-ifdNA_mlR949wqdDv-vXAGMoKTCSFc@z>
+To: Waiman Long <waiman.long@hp.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Peter Zijlstra <peterz@infradead.org>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Rik van Riel <riel@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, David Vrabel <david.vrabel@citrix.com>, Oleg Nesterov <oleg@redhat.com>, Gleb Natapov <gleb@redhat.com>, Scott J Norton <scott.norton@hp.com>, Chegu Vinod <chegu_vinod@hp.com>
+Message-ID: <20140514165124.UsVpkjzQlWxQit6B9g8bxici0JOa8h1yLozhi1TevNs@z>
 
-Hi Miklos,
-
-On 29/04/14 12:24, Szeredi Miklos wrote:
-> On Wed, Apr 23, 2014 at 2:41 PM, James Hogan <james.hogan@imgtec.com> wrote:
+2014-05-13 15:47-0400, Waiman Long:
+> On 05/12/2014 11:22 AM, Radim Krčmář wrote:
+> >I think there is an unwanted scenario on virtual machines:
+> >1) VCPU sets the pending bit and start spinning.
+> >2) Pending VCPU gets descheduled.
+> >     - we have PLE and lock holder isn't running [1]
+> >     - the hypervisor randomly preempts us
+> >3) Lock holder unlocks while pending VCPU is waiting in queue.
+> >4) Subsequent lockers will see free lock with set pending bit and will
+> >    loop in trylock's 'for (;;)'
+> >     - the worst-case is lock starving [2]
+> >     - PLE can save us from wasting whole timeslice
+> >
+> >Retry threshold is the easiest solution, regardless of its ugliness [4].
 > 
->> It appears Miklos Szeredi beat me to it with patch 1 (adding renameat2
->> syscall to asm-generic unistd.h), and will be submitting it to Linus
->> at some point as part of his renameat2 series.
->> Miklos: Do you think it makes sense for you to include my second patch
->> in your series too since it's renameat2 related?
->> http://marc.info/?l=linux-kernel&m=139824773305016&w=2
+> Yes, that can be a real issue. Some sort of retry threshold, as you said,
+> should be able to handle it.
 > 
-> I've queued up the first two patches with acks from Arnd.
+> BTW, the relevant patch should be 16/19 where the PV spinlock stuff should
+> be discussed. This patch is perfectly fine.
 
-Were you planning to send a pull request for your renameat2 patches for
-v3.15?
+Ouch, my apology to Peter didn't make it ... Agreed, I should have split
+the comment under patches
+ [06/19] (part quoted above; does not depend on PV),
+ [16/19] (part quoted below) and
+ [17/19] (general doubts).
 
-Cheers
-James
+> >Another minor design flaw is that formerly first VCPU gets appended to
+> >the tail when it decides to queue;
+> >is the performance gain worth it?
+> >
+> >Thanks.
+> 
+> Yes, the performance gain is worth it. The primary goal is to be not worse
+> than ticket spinlock in light load situation which is the most common case.
+> This feature is need to achieve that.
+
+Ok.
+I've seen merit in pvqspinlock even with slightly slower first-waiter,
+so I would have happily sacrificed those horrible branches.
+(I prefer elegant to optimized code, but I can see why we want to be
+ strictly better than ticketlock.)
+Peter mentioned that we are focusing on bare-metal patches, so I'll
+withold my other paravirt rants until they are polished.
+
+And to forcefully bring this thread a little bit on-topic:
+
+Pending-bit is effectively a lock in a lock, so I was wondering why
+don't we use more pending bits; advantages are the same, just diminished
+by the probability of having an ideally contended lock:
+ - waiter won't be blocked on RAM access if critical section (or more)
+   ends sooner
+ - some unlucky cacheline is not forgotten
+ - faster unlock (no need for tail operations)
+(- ?)
+disadvantages are magnified:
+ - increased complexity
+ - intense cacheline sharing
+   (I thought that this is the main disadvantage of ticketlock.)
+(- ?)
+
+One bit still improved performance, is it the best we got?
+
+Thanks.
