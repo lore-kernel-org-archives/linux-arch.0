@@ -1,50 +1,71 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from b.ns.miles-group.at ([95.130.255.144]:1660 "EHLO radon.swed.at"
-	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1754399AbaEOJhN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 15 May 2014 05:37:13 -0400
-Message-ID: <53748AC3.9080709@nod.at>
-Date: Thu, 15 May 2014 11:37:07 +0200
-From: Richard Weinberger <richard@nod.at>
+Received: from mail-ig0-f171.google.com ([209.85.213.171]:52658 "EHLO
+	mail-ig0-f171.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753951AbaEOJtd (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 15 May 2014 05:49:33 -0400
 MIME-Version: 1.0
-Subject: Re: [PATCH 01/27] arm64: Override defaults from generic/tlb.h
-References: <1400093999-18703-1-git-send-email-richard@nod.at> <1400093999-18703-2-git-send-email-richard@nod.at> <20140515093430.GE11117@localhost>
-In-Reply-To: <20140515093430.GE11117@localhost>
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
+In-Reply-To: <5373D8CE.6090003@nod.at>
+References: <1400093999-18703-1-git-send-email-richard@nod.at>
+	<1400093999-18703-14-git-send-email-richard@nod.at>
+	<CAMuHMdUddNc3Suq25JU7UC+YdWQHmk0nCRzCEbqmKg1+a+=FXw@mail.gmail.com>
+	<5373C36E.3020900@nod.at>
+	<CAMuHMdVWp8-aByVf+7M=8HEXXJRJBbZLdfj1v0rgDU-UEQM=8Q@mail.gmail.com>
+	<5373D8CE.6090003@nod.at>
+Date: Thu, 15 May 2014 11:49:32 +0200
+Message-ID: <CAMuHMdUQfa1E1aJWKU-UN+5WyVZ7LTcQDu+cTr4crjnH69+JMg@mail.gmail.com>
+Subject: Re: [PATCH 13/27] m68k: Use common bits from generic tlb.h
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "arnd@arndb.de" <arnd@arndb.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Will Deacon <Will.Deacon@arm.com>, Steve Capper <steve.capper@linaro.org>, Peter Zijlstra <peterz@infradead.org>, Michal Hocko <mhocko@suse.cz>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
-Message-ID: <20140515093707.YUr1dYGSJyi5y7NrDTSO5ZdF9IaTITpmZD5mPoegc8g@z>
+To: Richard Weinberger <richard@nod.at>
+Cc: Linux-Arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-m68k <linux-m68k@lists.linux-m68k.org>
+Message-ID: <20140515094932.X-eOFHIE-mhgTvO2MBquY97WIVGChCQx3FOrt_WFPJ4@z>
 
-Am 15.05.2014 11:34, schrieb Catalin Marinas:
-> On Wed, May 14, 2014 at 07:59:33PM +0100, Richard Weinberger wrote:
->> --- a/arch/arm64/include/asm/tlb.h
->> +++ b/arch/arm64/include/asm/tlb.h
->> @@ -19,7 +19,14 @@
->>  #ifndef __ASM_TLB_H
->>  #define __ASM_TLB_H
->>  
->> +/* These defines are needed to override the defaults from asm-generic/tlb.h */
->>  #define  __tlb_remove_pmd_tlb_entry __tlb_remove_pmd_tlb_entry
->> +#define tlb_start_vma tlb_start_vma
->> +#define tlb_end_vma tlb_end_vma
->> +#define __tlb_remove_tlb_entry __tlb_remove_tlb_entry
->> +#define tlb_flush tlb_flush
->> +#define __pte_free_tlb __pte_free_tlb
->> +#define __pmd_free_tlb __pmd_free_tlb
->>  
->>  #include <asm-generic/tlb.h>
-> 
-> Acked-by: Catalin Marinas <catalin.marinas@arm.com>
-> 
-> I hope subsequent series would consolidate some more of the above (for
-> example tlb_start_vma() is not really arm64 specific.
+Hi Richard,
 
-Yes, peterz pointed me to a not jet merged series which consolidates
-much more.
-I'll revive it.
+On Wed, May 14, 2014 at 10:57 PM, Richard Weinberger <richard@nod.at> wrote:
+>> On Wed, May 14, 2014 at 9:26 PM, Richard Weinberger <richard@nod.at> wrote:
+>>>> But why this sudden #ifdef checks?
+>>>
+>>> They are needed because in pgalloc.h you have:
+>>> #ifdef CONFIG_MMU
+>>> #include <asm/virtconvert.h>
+>>> #if defined(CONFIG_COLDFIRE)
+>>> #include <asm/mcf_pgalloc.h>
+>>> #elif defined(CONFIG_SUN3)
+>>> #include <asm/sun3_pgalloc.h>
+>>> #else
+>>> #include <asm/motorola_pgalloc.h>
+>>> #endif
+>>>
+>>> And only asm/motorola_pgalloc.h have __pte/pmd_free_tlb as static inline functions.
+>>> Therefore we need to define them such that the generic tlb.h versions will not clash
+>>> with yours.
+>>
+>> Thanks for the clarification!
+>
+> One problem which arises here is that me need to make sure that pgalloc.h is included before
+> tlb.h. Which kind of sucks.
 
-Thanks,
-//richard
+Indeed.
+
+arch/m68k/include/asm/mmu_context.h includes pgalloc.h, but not tlb.h.
+Didn't check whether it gets it indirectly.
+
+> I'll move __pte/pmd_free_tlb from *_pgalloc.h into tlb.h to prevent this issue.
+>
+> Are you fine with that?
+
+As long as it compiles, I'm happy ;-)
+
+Gr{oetje,eeting}s,
+
+                        Geert
+
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
