@@ -1,71 +1,62 @@
-From: Jesper Nilsson <jesper.nilsson@axis.com>
-Subject: Re: [PATCH 09/27] cris: Use common bits from generic tlb.h
-Date: Thu, 15 May 2014 09:51:37 +0200
-Message-ID: <20140515075137.GR23150@axis.com>
-References: <1400093999-18703-1-git-send-email-richard@nod.at>
- <1400093999-18703-10-git-send-email-richard@nod.at>
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Subject: Re: [PATCH 05/27] arc: Use common bits from generic tlb.h
+Date: Thu, 15 May 2014 13:52:54 +0530
+Message-ID: <5374795E.5080305@synopsys.com>
+References: <1400093999-18703-1-git-send-email-richard@nod.at> <1400093999-18703-6-git-send-email-richard@nod.at>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="ISO-8859-1"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from bastet.se.axis.com ([195.60.68.11]:52967 "EHLO
-	bastet.se.axis.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751770AbaEOHvo (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 15 May 2014 03:51:44 -0400
-Content-Disposition: inline
-In-Reply-To: <1400093999-18703-10-git-send-email-richard@nod.at>
+Received: from smtprelay2.synopsys.com ([198.182.60.111]:53683 "EHLO
+	smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750724AbaEOIXM (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 15 May 2014 04:23:12 -0400
+In-Reply-To: <1400093999-18703-6-git-send-email-richard@nod.at>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Richard Weinberger <richard@nod.at>
-Cc: linux-arch@vger.kernel.org, arnd@arndb.de, linux-kernel@vger.kernel.org, Mikael Starvik <starvik@axis.com>, Jesper Nilsson <jespern@axis.com>, linux-cris-kernel@axis.com
+To: Richard Weinberger <richard@nod.at>, linux-arch@vger.kernel.org, arnd@arndb.de, linux-kernel@vger.kernel.org
 
-On Wed, May 14, 2014 at 08:59:41PM +0200, Richard Weinberger wrote:
+Hi Richard,
+
+On Thursday 15 May 2014 12:29 AM, Richard Weinberger wrote:
 > It is no longer needed to define them on our own.
-
-Looks good!
-
-Acked-by: Jesper Nilsson <jesper.nilsson@axis.com>
-
-> Cc: Mikael Starvik <starvik@axis.com>
+> 
+> Cc: Vineet Gupta <vgupta@synopsys.com>
 > Cc: Richard Weinberger <richard@nod.at>
-> Cc: linux-cris-kernel@axis.com
 > Cc: linux-kernel@vger.kernel.org
 > Signed-off-by: Richard Weinberger <richard@nod.at>
+
+Thx for the series.
+
+Acked-by: Vineet Gupta <vgupta@synopsys.com>
+
+
 > ---
->  arch/cris/include/asm/tlb.h | 11 -----------
->  1 file changed, 11 deletions(-)
+>  arch/arc/include/asm/tlb.h | 6 +-----
+>  1 file changed, 1 insertion(+), 5 deletions(-)
 > 
-> diff --git a/arch/cris/include/asm/tlb.h b/arch/cris/include/asm/tlb.h
-> index 77384ea..4cc840f 100644
-> --- a/arch/cris/include/asm/tlb.h
-> +++ b/arch/cris/include/asm/tlb.h
-> @@ -2,18 +2,7 @@
->  #define _CRIS_TLB_H
+> diff --git a/arch/arc/include/asm/tlb.h b/arch/arc/include/asm/tlb.h
+> index a9db5f6..a0fa06d 100644
+> --- a/arch/arc/include/asm/tlb.h
+> +++ b/arch/arc/include/asm/tlb.h
+> @@ -23,9 +23,7 @@ do {						\
+>   *
+>   * Note, read http://lkml.org/lkml/2004/1/15/6
+>   */
+> -#ifndef CONFIG_ARC_CACHE_VIPT_ALIASING
+> -#define tlb_start_vma(tlb, vma)
+> -#else
+> +#ifdef CONFIG_ARC_CACHE_VIPT_ALIASING
+>  #define tlb_start_vma(tlb, vma)						\
+>  do {									\
+>  	if (!tlb->fullmm)						\
+> @@ -39,8 +37,6 @@ do {									\
+>  		flush_tlb_range(vma, vma->vm_start, vma->vm_end);	\
+>  } while (0)
 >  
+> -#define __tlb_remove_tlb_entry(tlb, ptep, address)
+> -
 >  #include <linux/pagemap.h>
-> -
->  #include <arch/tlb.h>
-> -
-> -/*
-> - * cris doesn't need any special per-pte or
-> - * per-vma handling..
-> - */
-> -#define tlb_start_vma(tlb, vma) do { } while (0)
-> -#define tlb_end_vma(tlb, vma) do { } while (0)
-> -#define __tlb_remove_tlb_entry(tlb, ptep, address) do { } while (0)
-> -
-> -#define tlb_flush(tlb) flush_tlb_mm((tlb)->mm)
 >  #include <asm-generic/tlb.h>
 >  
->  #endif
-> -- 
-> 1.8.4.2
 > 
-> --
-> To unsubscribe from this list: send the line "unsubscribe linux-kernel" in
-> the body of a message to majordomo@vger.kernel.org
-> More majordomo info at  http://vger.kernel.org/majordomo-info.html
-> Please read the FAQ at  http://www.tux.org/lkml/
-
-/^JN - Jesper Nilsson
--- 
-               Jesper Nilsson -- jesper.nilsson@axis.com
