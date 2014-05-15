@@ -1,93 +1,56 @@
-From: James Hogan <james.hogan-1AXoQHu6uovQT0dZR+AlfA@public.gmane.org>
-Subject: Re: [PATCH 14/27] metag: Use common bits from generic tlb.h
-Date: Thu, 15 May 2014 09:59:36 +0100
-Message-ID: <537481F8.50809@imgtec.com>
-References: <1400093999-18703-1-git-send-email-richard@nod.at> <1400093999-18703-15-git-send-email-richard@nod.at>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: Consolidate tlb.h
+Date: Thu, 15 May 2014 11:08:39 +0200
+Message-ID: <20140515090839.GJ30445@twins.programming.kicks-ass.net>
+References: <1400093999-18703-1-git-send-email-richard@nod.at>
+ <20140515083258.GD30445@twins.programming.kicks-ass.net>
+ <53747F65.4090203@nod.at>
 Mime-Version: 1.0
 Content-Type: multipart/signed; micalg=pgp-sha1;
-	protocol="application/pgp-signature";
-	boundary="6c7aqJUCE21fWNhW84WX85CBuO0gjtfEp"
-Return-path: <linux-metag-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <1400093999-18703-15-git-send-email-richard-/L3Ra7n9ekc@public.gmane.org>
-Sender: linux-metag-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: Richard Weinberger <richard-/L3Ra7n9ekc@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, arnd-r2nGTMty4D4@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-Cc: linux-metag-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-List-Id: linux-arch.vger.kernel.org
-
---6c7aqJUCE21fWNhW84WX85CBuO0gjtfEp
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: quoted-printable
-
-On 14/05/14 19:59, Richard Weinberger wrote:
-> It is no longer needed to define them on our own.
->=20
-> Cc: James Hogan <james.hogan-1AXoQHu6uovQT0dZR+AlfA@public.gmane.org>
-> Cc: Richard Weinberger <richard-/L3Ra7n9ekc@public.gmane.org>
-> Cc: linux-metag-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-> Cc: linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-> Signed-off-by: Richard Weinberger <richard-/L3Ra7n9ekc@public.gmane.org>
-
-Acked-by: James Hogan <james.hogan-1AXoQHu6uovQT0dZR+AlfA@public.gmane.org>
-
-Thanks
-James
-
-> ---
->  arch/metag/include/asm/tlb.h | 10 ----------
->  1 file changed, 10 deletions(-)
->=20
-> diff --git a/arch/metag/include/asm/tlb.h b/arch/metag/include/asm/tlb.=
-h
-> index 048282f1..0fb0b46 100644
-> --- a/arch/metag/include/asm/tlb.h
-> +++ b/arch/metag/include/asm/tlb.h
-> @@ -19,18 +19,8 @@
->  		if (!tlb->fullmm)					      \
->  			flush_tlb_range(vma, vma->vm_start, vma->vm_end);     \
->  	} while (0)
-> -
-> -
-> -#else
-> -
-> -#define tlb_start_vma(tlb, vma)			do { } while (0)
-> -#define tlb_end_vma(tlb, vma)			do { } while (0)
-> -
->  #endif
-> =20
-> -#define __tlb_remove_tlb_entry(tlb, pte, addr)	do { } while (0)
-> -#define tlb_flush(tlb)				flush_tlb_mm((tlb)->mm)
-> -
->  #include <asm-generic/tlb.h>
-> =20
->  #endif
->=20
+	protocol="application/pgp-signature"; boundary="Sao9idefCFjK9Dt3"
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from casper.infradead.org ([85.118.1.10]:56959 "EHLO
+	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750916AbaEOJIn (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 15 May 2014 05:08:43 -0400
+Content-Disposition: inline
+In-Reply-To: <53747F65.4090203@nod.at>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Richard Weinberger <richard@nod.at>
+Cc: linux-arch@vger.kernel.org, arnd@arndb.de, linux-kernel@vger.kernel.org
 
 
---6c7aqJUCE21fWNhW84WX85CBuO0gjtfEp
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: OpenPGP digital signature
-Content-Disposition: attachment; filename="signature.asc"
+--Sao9idefCFjK9Dt3
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+
+On Thu, May 15, 2014 at 10:48:37AM +0200, Richard Weinberger wrote:
+
+> If it helps I can pickup your series and finalize it.
+> Actually I was abound to consolidate TLB gather implementations too.
+
+If you have the cycles, please do. I'll try and help where I can.
+
+--Sao9idefCFjK9Dt3
+Content-Type: application/pgp-signature
 
 -----BEGIN PGP SIGNATURE-----
-Version: GnuPG v2.0.22 (GNU/Linux)
+Version: GnuPG v1.4.12 (GNU/Linux)
 
-iQIcBAEBAgAGBQJTdIH4AAoJEGwLaZPeOHZ6y4wP/jgyrDKgmMPz4A5QH7SRG471
-bKGXA23n0aMZrXEecJN0b6Vi941PVvb8J6Z7zazEsrNGDuVCHXacOoLc3/Yv/FvZ
-u/m+GXMwA0rB8sms3M+7Lf+HSdTwnuqAiLLLymMKSEycR1d6hlqS6kC7iNqxCc2f
-32zuLADp2YeV5W3nuieOzijUih+r8Rim6nakfgQplZ84oZhTFTDDycErYGYSDRXE
-JA9/F4r7y9pGNCdeRIdrPEBkOqGUM0zT4diwrmZVF4RoBAh6l3SvAuWlHAj3IKd4
-ELji3I0ECu535nEd0ney94d9nQ/aila5lNYis4TR9zdmAFWjDDBnF9L3x9+m5fRn
-BTAzsexr3ObT+17n4xRY13cFDf4bm7VfEmYBofhWSpAYSh8PfraZ31d5G9nnretp
-4w0lJl20jgk+FnMjFRA5K+vtyngNSkebkWEZL+m89uJtfZUyIaOiLaK6kcMrCq0V
-qVISyj+RP57G217K08oI/PcOHidaC7Ql02+o42qVy3K/dK6rgU2oJFQifG9hRoKt
-fI7i+6US4qA+QF9gApbkFnse89YBbWvP3X0XRlt/S1D9NJJ2XscSNSABh/krimaI
-woYuYmC0HIAvhcgHYukM1/UuuFAz6i0xq0ZKKemRu2g11uLOcCm5R2zHMeuABqC8
-b1f604UBj/10z3jb6QaF
-=iYPb
+iQIcBAEBAgAGBQJTdIQXAAoJEHZH4aRLwOS6o10P/2tfN37Q2qlB7IF9gaPaJb4w
+Np8aJiFPvcZ/mQu5SiPhHq/Qkx9HH+jlRP05kGaxCNqRtjIWVaYBdufkMB54s8jb
+9LdMyuynjYkKFk0is+D0upAtRaEbbhJ4EVPmozvP+3kOORxI1SBgJ9bJwtzTEoxN
+KSbxOxsIG4gpdEVW17kPtHAL9rAss2ca1jghhA6FHLQkBKq9+aTHa2RX3ZdQ88Ld
+VRoobPbWzhkNEJuZeXnamw+GvGMpz3LXjXqukDzIONoqdip1ALwt6iGTW3QZEm6F
+YEzZfkmZE4VXPzJmIxjMyBbclpWGvEIi8vKVFDTRja7d2som3/RI8GyZVuI+mLJ3
+hlc3/7SICSIGye3JwD6Ff8A9twefuEWWBZ6IveXRSdFKXpib1O2lPwwEDGpTEpPe
+Vsu5C0JgM6+CrA5QExGQ4Dlh+USftSsYnppDW3IFtJUzVJr3P9J0VAjtIFr2vLVE
+X04I15DoWnx4ItTzV/8uPGiG93+43ysU959Mrn2F6mqOCD9Ftp3ykn4au4aZDXMj
+nEyQ0rVKQyEQ6yoUcwAzqT1KTvw3Cp7CWgnF+4uwSPZY8HQSndEDxGmpWFdD/9K7
+xsjZkTeo0pNJi/92LWZ6nfbVTllPpTeYvdAhTTY/7y8UtmmAWzHGQMGGdyLyHjGR
+K//GHWMp3aQDvs17Jf9X
+=gJQ9
 -----END PGP SIGNATURE-----
 
---6c7aqJUCE21fWNhW84WX85CBuO0gjtfEp--
---
-To unsubscribe from this list: send the line "unsubscribe linux-metag" in
-the body of a message to majordomo-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-More majordomo info at  http://vger.kernel.org/majordomo-info.html
+--Sao9idefCFjK9Dt3--
