@@ -1,64 +1,57 @@
-From: Peter Zijlstra <peterz@infradead.org>
+From: Richard Weinberger <richard@nod.at>
 Subject: Re: Consolidate tlb.h
-Date: Thu, 15 May 2014 10:32:58 +0200
-Message-ID: <20140515083258.GD30445@twins.programming.kicks-ass.net>
-References: <1400093999-18703-1-git-send-email-richard@nod.at>
+Date: Thu, 15 May 2014 10:48:37 +0200
+Message-ID: <53747F65.4090203@nod.at>
+References: <1400093999-18703-1-git-send-email-richard@nod.at> <20140515083258.GD30445@twins.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha1;
-	protocol="application/pgp-signature"; boundary="y9n12KajPNdV/7DP"
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.9]:54178 "EHLO
-	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750750AbaEOIdJ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 15 May 2014 04:33:09 -0400
-Content-Disposition: inline
-In-Reply-To: <1400093999-18703-1-git-send-email-richard@nod.at>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Richard Weinberger <richard@nod.at>
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20140515083258.GD30445@twins.programming.kicks-ass.net>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Peter Zijlstra <peterz@infradead.org>
 Cc: linux-arch@vger.kernel.org, arnd@arndb.de, linux-kernel@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA1
 
---y9n12KajPNdV/7DP
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+Am 15.05.2014 10:32, schrieb Peter Zijlstra:
+> On Wed, May 14, 2014 at 08:59:32PM +0200, Richard Weinberger wrote:
+>> While staring at an UML TLB bug I've noticed that most archs copy and pasted stuff from each others tlb.h. This patch series combines common stuff into the generic tlb.h.
+>> 
+> 
+> Were you aware of this series:
+> 
+> http://www.spinics.net/lists/linux-mm/msg37369.html
 
-On Wed, May 14, 2014 at 08:59:32PM +0200, Richard Weinberger wrote:
-> While staring at an UML TLB bug I've noticed that most archs
-> copy and pasted stuff from each others tlb.h.
-> This patch series combines common stuff into the generic tlb.h.
->=20
+Nope.
 
-Were you aware of this series:
+> I've been meaning to refresh and continue with it, but somehow I never get time to actually do it :/
+> 
+> At the time only s390 still have a relatively trivial problem but all archs were using generic code.
+> 
 
-  http://www.spinics.net/lists/linux-mm/msg37369.html
+If it helps I can pickup your series and finalize it.
+Actually I was abound to consolidate TLB gather implementations too.
 
-I've been meaning to refresh and continue with it, but somehow I never
-get time to actually do it :/
-
-At the time only s390 still have a relatively trivial problem but all
-archs were using generic code.
-
---y9n12KajPNdV/7DP
-Content-Type: application/pgp-signature
-
+Thanks,
+//richard
 -----BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.12 (GNU/Linux)
+Version: GnuPG v2.0.19 (GNU/Linux)
+Comment: Using GnuPG with Thunderbird - http://www.enigmail.net/
 
-iQIcBAEBAgAGBQJTdHu6AAoJEHZH4aRLwOS66GoP/ixqHc6y/0XqrvVNlTcitRRK
-VTvtygj8V3xdjso0/z6FeE5Zbg/Ri1FsgL+mIa+5c83vsxFe5oWMlZAGIrEj1Zxq
-N9s9Jdy5qR2vwqwTmWGJiEpIW2lGhIvGTyvW+OE9j5UAcvipIMy/ArmPHM3yR6CS
-Oa7R8ICRyUvz78dBOgqHiEy0K0+EDuedmhs2kWAo+6efhrqhp0ZVflE3DhH8W2nt
-VFqDs60w5LmWoRXkNj0/sYQcv0SP5DeAR3h5WrLUknM45/Pa4TernIvUFoqfTH5U
-8FGCl2qlSHGxWie/EdT6puCukE+F1koBd+PBu4qY3YEkpjOjkC+e/hVzBJrZ7R2S
-LLg1HXHTetUQ2ei3Y/be2RGEK2lgcH3e7/dVQncWFt+36BVg7IR4u2Q113tFq47/
-mqdOcqgcouOOkp+WSJbqe+oifLYTQHXd5YYvbpAIYWQ2xAIjj9Fg8Se6iET7cNAP
-vDCm5EudD+0gmhjIg6HHw4NjKZ3C+djHYTmyTudJwHcqjW/3/nRWLoBbUk9fwiZv
-bqD5Mf7k0vmGUketMI2yE9MvnYn+k9edjlyn9l29Kmf1GpZPeuy4WgLlacxqDMIj
-2NYorI07R90MFoa/F64exYk7U3twDQrsxTw8uul7SuJx7PrzFQVKZzuv18FGd11+
-mIElMXQ6ryEqrScnka/m
-=KC9j
+iQIcBAEBAgAGBQJTdH9lAAoJEPmeIjfg4UaaqowP/0I8COjZRvk1X39E1KibWxIK
+epRiDWYgQenfc186ncwZA2wAU4rr1y+e5d7hoF0p6/WvN1svSgbX6A95tDa3/rLY
+zu9/zX8TRT5QXU6xsUDzI3zD2t7N44jxX0ysDOHV6ZLOpMnoe8fR8j8Mn54qPd8T
+LLmhgxhkp7NvYjv7VFEMP0DXtlPDskRFzzY7NwGks0uu36FPVMHyJIhz+koW7+hL
+rzjZs57yO/t3EaGF4UGVRPwt8FyBzgxib3JfFHpr3D35La5lbhVRTu5FHfXeDhgu
+Mv9iacyrMMOC0IlMVreC/O9Og2GmMKcC+ICFlvW4sCGKPcN/95rvUapvFKsAAAnw
+EQicc86XnPJ8TJATKE9kg0YXB9GDu4hK0kzK09PsQBBO+L0SZstbwCXMfwHyGuoO
+LRmsO+mRMtzeZYXEjO7oRvxPBeSm31i3f4wyoN49maLqlcJfrIeh4Bkdi3b3Zgz5
+TB0+jaYR0FJVL9KawoB3T/c5XEB3Wu2U5bJ8dtANnfBWMKRo8WfEniIXmOUziYiU
+lmP7cewmpc2AiJPG2Cm7g+huenP+j9Y+CzlwOYFIMBy+xrlT31SRp2/cVIclDHmL
+A1CU3JFvcbwwLz59okMPdZQbbXsB3sMh4qsmbE/jXFCBUJr4iQUcOaB56weC9x84
+lTYhoeqQDIM2h2q/2SnO
+=Hk5i
 -----END PGP SIGNATURE-----
-
---y9n12KajPNdV/7DP--
