@@ -1,125 +1,70 @@
-From: James Hogan <james.hogan-1AXoQHu6uovQT0dZR+AlfA@public.gmane.org>
-Subject: Re: [PATCH v4 0/4] metag,parisc: Stack limit patches
-Date: Thu, 15 May 2014 00:25:06 +0100
-Message-ID: <5373FB52.5030404@imgtec.com>
-References: <1400071968-21581-1-git-send-email-james.hogan@imgtec.com> <5373C28C.3040106@gmx.de>
+From: "H. Peter Anvin" <hpa@zytor.com>
+Subject: Re: [PATCH 00/25] Change time_t and clock_t to 64 bit
+Date: Wed, 14 May 2014 17:14:50 -0700
+Message-ID: <537406FA.2040906@zytor.com>
+References: <1399971456-3941-1-git-send-email-lftan@altera.com>	<6202090.0OtAjefIFT@wuerfel>	<CAMuHMdVxc3XRanpboWPumvQKbg-qdRBHQvYXwjTKX4CrxXPeAw@mail.gmail.com>	<8399002.IIyBoyEHox@wuerfel> <CANcMJZAOi9ctWkpEgynj6wxCrvW4oS5ZHj3Chv04D=VQDogEvw@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha1;
-	protocol="application/pgp-signature";
-	boundary="FmsEtE3KekkjGM54OudD0OkHRBhhpevf7"
-Return-path: <linux-metag-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <5373C28C.3040106-Mmb7MZpHnFY@public.gmane.org>
-Sender: linux-metag-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: Helge Deller <deller-Mmb7MZpHnFY@public.gmane.org>
-Cc: "James E.J. Bottomley" <jejb-6jwH94ZQLHl74goWV3ctuw@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, John David Anglin <dave.anglin-CzeTG9NwML0@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-metag-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-parisc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from terminus.zytor.com ([198.137.202.10]:34600 "EHLO mail.zytor.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751201AbaEOAPn (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 14 May 2014 20:15:43 -0400
+In-Reply-To: <CANcMJZAOi9ctWkpEgynj6wxCrvW4oS5ZHj3Chv04D=VQDogEvw@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: John Stultz <john.stultz@linaro.org>, Arnd Bergmann <arnd@arndb.de>
+Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Christoph Hellwig <hch@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Ley Foon Tan <lftan@altera.com>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, LeyFoon Tan <lftan.linux@gmail.com>, Chung-Lin Tang <cltang@codesourcery.com>
 
---FmsEtE3KekkjGM54OudD0OkHRBhhpevf7
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: quoted-printable
+On 05/14/2014 02:33 PM, John Stultz wrote:
+> 
+> We can do some tricks for internal optimizations here if these are
+> critical.  I'd be more concerned about userland divisions where moving
+> to a 64bit time_t would cause performance issues that we cannot help
+> optimize.
+> 
 
-Hi Helge,
+Honestly, the cost of not addressing the Y2038 problem in plenty of time
+is going to be way, way, way, way more expensive than some additional
+arithmetic.
 
-On 14/05/14 20:22, Helge Deller wrote:
-> On 05/14/2014 02:52 PM, James Hogan wrote:
->> Patch 1 is a metag bug fix for v3.15 & stable.
->>
->> Patch 2 depends on patch 1, and makes the stack limit configurable.
->> Helge: I don't object if you want to take this patch yourself since it=
+As far as converting to calendar notation (e.g. the Gregorian calendar),
+only the first division needs to be done with full time_t width.
+Furthermore, since the divisor is known a priori, the compiler *should*
+be able to do it as an inverse multiply.[1]
 
->> was originally yours, so long as it goes after patch 1 (which I'll try=
+The remaining divisions are bounded, and a smart compiler should even
+know that.
 
->> and get into v3.15-rc6).
->=20
-> Thanks for cleaning it up!
-> I'd really prefer if you could push the whole series through your tree.=
+> I'm not sure I'm totally following this... Are you suggesting we keep
+> 32bit time internally w/ some different offset but then pass to
+> userland a 64bit time_t?  Or are you suggesting we change the abi to
+> move the epoch?
 
-> That way you can easily ensure the correct sequence.
+I think this makes sense as a way of emergency rescue of legacy ABIs --
+similar to the windowing solution used to Y2K-rescue legacy systems.
+Nonlegacy ABIs should just be designed correctly from the start.
 
-Okay, no problem, and I see the parisc patch is already in mainline.
+> I think I'm with hpa in his recent mail in that the internal
+> representation is an optimization detail, and the bigger question is146
+> do we use a  64bit time_t for future systems (possibly w/ a major ABI
+> break - with compat interface for existing 32bit applications), or do
+> we try to rev interfaces function by function to provide 2038 safe
+> versions which applications will have to be modified to use?
+> 
+> Me, I'm a fan of moving time_t to 64bits, since it makes "porting"
+> applications to a 2038 safe ABI easier.
 
-> IMHO, it would be nice if all four patches would still go into 3.15, es=
-p.
-> since it affects our platforms (parisc & metag) only.
+I obviously couldn't agree more.
 
-Right. That doesn't sound unreasonable since patch 2 restores default
-80MB stacks for parisc, patch 3 may prevent confusing userland, and
-patch 4 is just an obvious cleanup as a result of earlier patches.
-
-Cheers
-James
-
->=20
-> Helge
->=20
->>
->> Patch 3 depends on patch 1, and removes the RLIMIT_STACK default value=
-
->> for metag. I'll take this through metag tree for v3.16.
->>
->> Patch 4 depends on patch 3 and the corresponding parisc patch and
->> removes the ability to override the default hard RLIMIT_STACK. Dependi=
-ng
->> on when the parisc patch reaches mainline I'll try and get this in for=
-
->> v3.16.
->>
->> Helge Deller (1):
->>   parisc,metag: Do not hardcode maximum userspace stack size
->>
->> James Hogan (3):
->>   metag: Reduce maximum stack size to 256MB
->>   metag: Remove _STK_LIM_MAX override
->>   asm-generic: remove _STK_LIM_MAX
->>
->>  arch/metag/include/asm/processor.h     |  2 ++
->>  arch/metag/include/uapi/asm/Kbuild     |  2 +-
->>  arch/metag/include/uapi/asm/resource.h |  7 -------
->>  arch/parisc/include/asm/processor.h    |  5 +++++
->>  arch/parisc/kernel/sys_parisc.c        |  6 +++---
->>  fs/exec.c                              |  6 +++---
->>  include/asm-generic/resource.h         |  2 +-
->>  include/uapi/asm-generic/resource.h    |  7 -------
->>  mm/Kconfig                             | 15 +++++++++++++++
->>  9 files changed, 30 insertions(+), 22 deletions(-)
->>  delete mode 100644 arch/metag/include/uapi/asm/resource.h
->>
->> Cc: Helge Deller <deller-Mmb7MZpHnFY@public.gmane.org>
->> Cc: "James E.J. Bottomley" <jejb-6jwH94ZQLHl74goWV3ctuw@public.gmane.org>
->> Cc: Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>
->> Cc: John David Anglin <dave.anglin-CzeTG9NwML0@public.gmane.org>
->> Cc: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
->> Cc: linux-metag-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
->> Cc: linux-parisc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
->>
->=20
+	-hpa
 
 
---FmsEtE3KekkjGM54OudD0OkHRBhhpevf7
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: OpenPGP digital signature
-Content-Disposition: attachment; filename="signature.asc"
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v2.0.22 (GNU/Linux)
-
-iQIcBAEBAgAGBQJTc/tfAAoJEGwLaZPeOHZ6DhUP/2TlOvuMrdpijyMeLu6mzd6D
-tqNwZCw35jqG9SZHKzytGc3H7XCvS/WePh6X189R9ToOneAK8FSKnp/hF6dLjywL
-eOlE6ygYcMosTRVjNgGD06NxKSB0v+drqgbjXHEZI2rXnjddaoT0qy/6qYp9t95n
-VK2cZ2R7mI6hPPY1OrGkty4FdcWLTdDN4QQrPpXat0V125S9u57f3Ptdp9CXk6bR
-aAm85bb0ZEOKzlBttcQwBfJ+eAUPNnAExuXZzrCrY9FqPBOM2A0fyKaXB/uJpNOQ
-UTr0qXVAYPiynJf1Kr84cP0wEMpgqxD7rf4HnCW3BMk77t6xoIJxVqeTbRCCMmyN
-KeyDNu7UgnMm/iPjy2U+LtAVVdhrVBt2+X8EFI1uX3rgWmOTG65yqky6VU6hK/FT
-q0fOkKoe+HXn8Ds81ktgh7Yq0sESex1EEVJKCsx3YEsiA8yausTWPJOCx6gyc/+3
-aUOnmqFo+zD8umtVbmZZRswZ+ES92ASiLp6CcYyp9ZUFqb5jR8yDveBzy1aRCCRX
-9J4kV4S6b6tx8tT6HUGJ1hWJC4iu/Td8Wh60GgjNRU3wf2JrdVzb2BU3R57RUAG9
-RPtWsGJRmqv//xO6OgR+3MdJ9msr8AQP4wAjbGao050ttKaXGQO8ORGJUb8X+Gum
-86sij8b/3b4mgzsf49ea
-=NzJq
------END PGP SIGNATURE-----
-
---FmsEtE3KekkjGM54OudD0OkHRBhhpevf7--
---
-To unsubscribe from this list: send the line "unsubscribe linux-metag" in
-the body of a message to majordomo-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-More majordomo info at  http://vger.kernel.org/majordomo-info.html
+[1] Not entirely true: the highest possible divisor necessary when doing
+Gregorian calendar calculations is 12_622_780_800 (0x2_f060_5980), the
+number of seconds in each Gregorian 400-year cycle.  Similarly, dividing
+with 86400 first to separate time and date requires the date part of the
+result to remain 64 bits until the next division.  Thus, depending on
+exactly how the calculations are partitioned it may be necessary to do
+two 64-bit wide divisions; this can, however, be avoided with some care.
