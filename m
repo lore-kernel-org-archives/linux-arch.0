@@ -1,116 +1,96 @@
-From: Arnd Bergmann <arnd@arndb.de>
+From: "Joseph S. Myers" <joseph@codesourcery.com>
 Subject: Re: [PATCH 00/25] Change time_t and clock_t to 64 bit
-Date: Thu, 15 May 2014 22:38:29 +0200
-Message-ID: <9236147.lyD24Zv5SZ@wuerfel>
-References: <1399971456-3941-1-git-send-email-lftan@altera.com> <4706636.rTYoqSXXOR@wuerfel> <Pine.LNX.4.64.1405151949160.911@digraph.polyomino.org.uk>
+Date: Thu, 15 May 2014 21:05:03 +0000
+Message-ID: <Pine.LNX.4.64.1405152050230.911@digraph.polyomino.org.uk>
+References: <1399971456-3941-1-git-send-email-lftan@altera.com>
+ <4706636.rTYoqSXXOR@wuerfel> <Pine.LNX.4.64.1405151949160.911@digraph.polyomino.org.uk>
+ <9236147.lyD24Zv5SZ@wuerfel>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7Bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <Pine.LNX.4.64.1405151949160.911@digraph.polyomino.org.uk>
-Sender: linux-kernel-owner@vger.kernel.org
-To: "Joseph S. Myers" <joseph@codesourcery.com>
+Content-Type: text/plain; charset="US-ASCII"
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from relay1.mentorg.com ([192.94.38.131]:63151 "EHLO
+	relay1.mentorg.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752693AbaEOVFI (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 15 May 2014 17:05:08 -0400
+In-Reply-To: <9236147.lyD24Zv5SZ@wuerfel>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Arnd Bergmann <arnd@arndb.de>
 Cc: Chung-Lin Tang <cltang@codesourcery.com>, John Stultz <john.stultz@linaro.org>, Geert Uytterhoeven <geert@linux-m68k.org>, Christoph Hellwig <hch@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Ley Foon Tan <lftan@altera.com>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, LeyFoon Tan <lftan.linux@gmail.com>
-List-Id: linux-arch.vger.kernel.org
 
-On Thursday 15 May 2014 20:10:05 Joseph S. Myers wrote:
-> On Thu, 15 May 2014, Arnd Bergmann wrote:
+On Thu, 15 May 2014, Arnd Bergmann wrote:
+
+> > The distribution side of the change for _FILE_OFFSET_BITS (i.e., moving to 
+> > building libraries that way so a glibc change to the default wouldn't 
+> > cause issues for other libraries' ABIs) has gradually been done.  The 
+> > discussion in March on libc-alpha about changing the default tailed off.  
+> > This is something that needs someone to take the lead with a *careful and 
+> > detailed analysis of the information from the previous discussion* in 
+> > order to present a properly reasoned proposal for a change to the default 
+> > - not scattergun patches, not patches with brief or no analysis of the 
+> > environment in which glibc is used, not dismissing concerns, but a 
+> > properly reasoned argument for why the change should be made, along with 
+> > details of how distributions can determine whether ABI issues would arise 
+> > from rebuilding a particular library against newer glibc.
 > 
-> > Earlier in the thread there seemed to be a rough consensus that
-> > _TIME_BITS=64 wouldn't be a good idea because we wouldn't get everything
-> > changed to use it. For _FILE_OFFSET_BITS=64 that's ok because most
-> > user space doesn't ever want to deal with large files.
+> Ok, I see. I wasn't aware that distributions actually set _FILE_OFFSET_BITS
+> globally for building packages. I guess the effect (from the distro point
+> of view) of that is similar to having a configure option when building glibc
+> as I expected to be the normal way to do it.
+
+I'm not sure they set it globally (modulo the suggestion in that recent 
+thread that Gentoo might try changing the default and seeing what breaks) 
+- but it at least seems to be set for most libraries for which it affects 
+the ABI (whether upstream or by the distributions), based on the sample 
+Paul Eggert looked at 
+<https://sourceware.org/ml/libc-alpha/2014-03/msg00351.html> (which is an 
+important piece of evidence that a change to the default in glibc wouldn't 
+be dumping a large problem on distributors regarding the ABIs of many 
+widely-used libraries).
+
+> I don't know why timespec on x32 uses 'long tv_nsec', it does seem
+> problematic.
+
+Yes, we have a glibc bug 
+<https://sourceware.org/bugzilla/show_bug.cgi?id=16437> about the glibc 
+definition (64-bit tv_nsec in x32 userspace to match the kernel's 64-bit 
+"long") being nonconforming, but without the kernel treating upper bits as 
+padding, fixing glibc requires wrappers that copy the value and clear the 
+upper bits.
+
+> What could work is a type that has explicit padding:
 > 
-> Well, I'm coming into this in the middle since it isn't on linux-api and 
-> noone has tried to work out on libc-alpha what things should look like 
-> from the glibc side.  _TIME_BITS seemed to make sense when I thought about 
-> this previously, however.
-> 
-> > Can you elaborate on how the switch to the new default would work?
-> 
-> At some appropriate release (probably after _TIME_BITS=64 is widely used 
-> in distributions), the glibc headers would change so that _TIME_BITS=64 is 
-> the default and _TIME_BITS=32 can be set to get the old interfaces.  At 
-> some later point _TIME_BITS=32 API support might be removed, leaving the 
-> old symbols as compat symbols for existing binaries.
+> struct timespec {
+> 	__s64 tv_sec;
+> #ifdef BIG_ENDIAN_32BIT
+> 	u32 __pad;
+> #endif
+> 	long tv_nsec;
+> #ifdef LITTLE_ENDIAN_32BIT
+> 	u32 __pad;
+> #endif
+> };
 
-Ok.
+Yes.  That's fine for POSIX (and I think x32 should move to such a 
+definition, though for glibc there would still be the issue of 
+compatibility with existing kernels).
 
-> > If it's easy, why hasn't it been done for _FILE_OFFSET_BITS already
-> > and what's stopping us from changing the default as soon as the interfaces
-> > are there? If it's hard, what would need to happen before the default
-> > time_t can be set?
-> 
-> The distribution side of the change for _FILE_OFFSET_BITS (i.e., moving to 
-> building libraries that way so a glibc change to the default wouldn't 
-> cause issues for other libraries' ABIs) has gradually been done.  The 
-> discussion in March on libc-alpha about changing the default tailed off.  
-> This is something that needs someone to take the lead with a *careful and 
-> detailed analysis of the information from the previous discussion* in 
-> order to present a properly reasoned proposal for a change to the default 
-> - not scattergun patches, not patches with brief or no analysis of the 
-> environment in which glibc is used, not dismissing concerns, but a 
-> properly reasoned argument for why the change should be made, along with 
-> details of how distributions can determine whether ABI issues would arise 
-> from rebuilding a particular library against newer glibc.
+> For timeval, I think we don't care about the padding, because we wouldn't
+> use it on new interfaces when the kernel uses nanosecond resolution
+> internally.
 
-Ok, I see. I wasn't aware that distributions actually set _FILE_OFFSET_BITS
-globally for building packages. I guess the effect (from the distro point
-of view) of that is similar to having a configure option when building glibc
-as I expected to be the normal way to do it.
+Indeed - I haven't checked, but hopefully none of the asm-generic 
+interfaces use timeval (and I was suggesting that only the interfaces 
+present in asm-generic should be duplicated for 64-bit time_t).
 
-> > > Obviously 64-bit time_t syscalls would be an appropriately narrow set of 
-> > > syscalls like those in the generic ABI (so glibc would implement stat for 
-> > > _TIME_BITS=64 using fstatat64_time64 or whatever the syscall is called, 
-> > > just as the stat functions for generic ABI architectures are implemented 
-> > > with newfstatat / fstatat64 rather than lots of separate syscalls.
-> > 
-> > This assumes that we'd leave the kernel time_t/timespec/timeval using 'long'
-> > and introduce a new timespec64 using a signed 64-bit type, rather than
-> > changing the kernel headers to the new syscalls and data structures with
-> > new names for the existing ones, right?
-> 
-> Yes.  I consider it simply common sense that new kernel headers should 
-> continue to work with much older glibc, meaning that the API (syscall 
-> names etc.) presented by the headers from headers_install should not 
-> change incompatibly.
+(You also mentioned ioctls.  All affected ioctls would need new variants 
+unless you have a new variant of the ioctl syscall itself.  Logically I 
+suppose _TIME_BITS=64 should then map the generic version of an ioctl to 
+the 64-bit time_t version so applications don't need to change beyond 
+defining _TIME_BITS=64, though I don't know if there's any precedent for 
+doing that sort of thing for definitions in kernel headers rather than 
+glibc's headers.)
 
-Right. we have done it both ways in the past, but it seems that renaming
-syscalls hasn't been done in some time. I can only find definitions for
-oldfstat, oldlstat, oldolduname, olduname, oldumount, vm86old and oldwait4.
-It's possible they all predate libc6.
-
-> (64-bit type only for time_t, of course.  There's no need for a 64-bit 
-> type for nanoseconds and tv_nsec is explicitly "long" in POSIX, meaning 
-> that if the kernel uses a 64-bit type for nanoseconds on systems where 
-> "long" is 32-bit in userspace, either it needs to treat the high word as 
-> padding or glibc needs to wrap all interfaces passing a struct timespec 
-> into the kernel so they clear the padding field.  There's even less need 
-> for a 64-bit type for microseconds.)
-
-For practical purposes in the kernel, we may still want to use 64-bit
-nanoseconds: if we use a 96 bit struct timespec, that would be incompatible
-with the native type on 64-bit kernels, thus complicating the syscall
-emulation layer.
-
-I don't know why timespec on x32 uses 'long tv_nsec', it does seem
-problematic.
-
-What could work is a type that has explicit padding:
-
-struct timespec {
-	__s64 tv_sec;
-#ifdef BIG_ENDIAN_32BIT
-	u32 __pad;
-#endif
-	long tv_nsec;
-#ifdef LITTLE_ENDIAN_32BIT
-	u32 __pad;
-#endif
-};
-
-For timeval, I think we don't care about the padding, because we wouldn't
-use it on new interfaces when the kernel uses nanosecond resolution
-internally.
-
-	Arnd
+-- 
+Joseph S. Myers
+joseph@codesourcery.com
