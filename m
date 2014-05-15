@@ -1,62 +1,70 @@
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: Re: [PATCH 05/27] arc: Use common bits from generic tlb.h
-Date: Thu, 15 May 2014 13:52:54 +0530
-Message-ID: <5374795E.5080305@synopsys.com>
-References: <1400093999-18703-1-git-send-email-richard@nod.at> <1400093999-18703-6-git-send-email-richard@nod.at>
+From: Madhavan Srinivasan <maddy@linux.vnet.ibm.com>
+Subject: Re: [PATCH V4 0/2] mm: FAULT_AROUND_ORDER patchset performance data
+ for powerpc
+Date: Thu, 15 May 2014 13:55:11 +0530
+Message-ID: <537479E7.90806@linux.vnet.ibm.com>
+References: <1399541296-18810-1-git-send-email-maddy@linux.vnet.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="ISO-8859-1"
+Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtprelay2.synopsys.com ([198.182.60.111]:53683 "EHLO
-	smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750724AbaEOIXM (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 15 May 2014 04:23:12 -0400
-In-Reply-To: <1400093999-18703-6-git-send-email-richard@nod.at>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Richard Weinberger <richard@nod.at>, linux-arch@vger.kernel.org, arnd@arndb.de, linux-kernel@vger.kernel.org
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <1399541296-18810-1-git-send-email-maddy@linux.vnet.ibm.com>
+Sender: owner-linux-mm@kvack.org
+To: linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, x86@kernel.org
+Cc: benh@kernel.crashing.org, paulus@samba.org, kirill.shutemov@linux.intel.com, rusty@rustcorp.com.au, akpm@linux-foundation.org, riel@redhat.com, mgorman@suse.de, ak@linux.intel.com, peterz@infradead.org, mingo@kernel.org, dave.hansen@intel.com
+List-Id: linux-arch.vger.kernel.org
 
-Hi Richard,
 
-On Thursday 15 May 2014 12:29 AM, Richard Weinberger wrote:
-> It is no longer needed to define them on our own.
+Hi Ingo,
+
+	Do you have any comments for the latest version of the patchset. If
+not, kindly can you pick it up as is.
+
+
+With regards
+Maddy
+
+> Kirill A. Shutemov with 8c6e50b029 commit introduced
+> vm_ops->map_pages() for mapping easy accessible pages around
+> fault address in hope to reduce number of minor page faults.
 > 
-> Cc: Vineet Gupta <vgupta@synopsys.com>
-> Cc: Richard Weinberger <richard@nod.at>
-> Cc: linux-kernel@vger.kernel.org
-> Signed-off-by: Richard Weinberger <richard@nod.at>
-
-Thx for the series.
-
-Acked-by: Vineet Gupta <vgupta@synopsys.com>
-
-
-> ---
->  arch/arc/include/asm/tlb.h | 6 +-----
->  1 file changed, 1 insertion(+), 5 deletions(-)
+> This patch creates infrastructure to modify the FAULT_AROUND_ORDER
+> value using mm/Kconfig. This will enable architecture maintainers
+> to decide on suitable FAULT_AROUND_ORDER value based on
+> performance data for that architecture. First patch also defaults
+> FAULT_AROUND_ORDER Kconfig element to 4. Second patch list
+> out the performance numbers for powerpc (platform pseries) and
+> initialize the fault around order variable for pseries platform of
+> powerpc.
 > 
-> diff --git a/arch/arc/include/asm/tlb.h b/arch/arc/include/asm/tlb.h
-> index a9db5f6..a0fa06d 100644
-> --- a/arch/arc/include/asm/tlb.h
-> +++ b/arch/arc/include/asm/tlb.h
-> @@ -23,9 +23,7 @@ do {						\
->   *
->   * Note, read http://lkml.org/lkml/2004/1/15/6
->   */
-> -#ifndef CONFIG_ARC_CACHE_VIPT_ALIASING
-> -#define tlb_start_vma(tlb, vma)
-> -#else
-> +#ifdef CONFIG_ARC_CACHE_VIPT_ALIASING
->  #define tlb_start_vma(tlb, vma)						\
->  do {									\
->  	if (!tlb->fullmm)						\
-> @@ -39,8 +37,6 @@ do {									\
->  		flush_tlb_range(vma, vma->vm_start, vma->vm_end);	\
->  } while (0)
->  
-> -#define __tlb_remove_tlb_entry(tlb, ptep, address)
-> -
->  #include <linux/pagemap.h>
->  #include <asm-generic/tlb.h>
->  
+> V4 Changes:
+>   Replaced the BUILD_BUG_ON with VM_BUG_ON.
+>   Moved fault_around_pages() and fault_around_mask() functions outside of
+>    #ifdef CONFIG_DEBUG_FS.
 > 
+> V3 Changes:
+>   Replaced FAULT_AROUND_ORDER macro to a variable to support arch's that
+>    supports sub platforms.
+>   Made changes in commit messages.
+> 
+> V2 Changes:
+>   Created Kconfig parameter for FAULT_AROUND_ORDER
+>   Added check in do_read_fault to handle FAULT_AROUND_ORDER value of 0
+>   Made changes in commit messages.
+> 
+> Madhavan Srinivasan (2):
+>   mm: move FAULT_AROUND_ORDER to arch/
+>   powerpc/pseries: init fault_around_order for pseries
+> 
+>  arch/powerpc/platforms/pseries/pseries.h |    2 ++
+>  arch/powerpc/platforms/pseries/setup.c   |    5 +++++
+>  mm/Kconfig                               |    8 ++++++++
+>  mm/memory.c                              |   25 ++++++-------------------
+>  4 files changed, 21 insertions(+), 19 deletions(-)
+> 
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
