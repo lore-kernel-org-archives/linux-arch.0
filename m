@@ -1,77 +1,85 @@
-From: Arnd Bergmann <arnd@arndb.de>
+From: "Joseph S. Myers" <joseph@codesourcery.com>
 Subject: Re: [PATCH 00/25] Change time_t and clock_t to 64 bit
-Date: Thu, 15 May 2014 21:18:29 +0200
-Message-ID: <4706636.rTYoqSXXOR@wuerfel>
-References: <1399971456-3941-1-git-send-email-lftan@altera.com> <5374F56A.3090406@codesourcery.com> <Pine.LNX.4.64.1405151748430.3155@digraph.polyomino.org.uk>
+Date: Thu, 15 May 2014 20:10:05 +0000
+Message-ID: <Pine.LNX.4.64.1405151949160.911@digraph.polyomino.org.uk>
+References: <1399971456-3941-1-git-send-email-lftan@altera.com>
+ <5374F56A.3090406@codesourcery.com> <Pine.LNX.4.64.1405151748430.3155@digraph.polyomino.org.uk>
+ <4706636.rTYoqSXXOR@wuerfel>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7Bit
+Content-Type: text/plain; charset="US-ASCII"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.126.187]:55272 "EHLO
-	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754549AbaEOTSi (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 15 May 2014 15:18:38 -0400
-In-Reply-To: <Pine.LNX.4.64.1405151748430.3155@digraph.polyomino.org.uk>
+Received: from relay1.mentorg.com ([192.94.38.131]:58831 "EHLO
+	relay1.mentorg.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751591AbaEOUKO (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 15 May 2014 16:10:14 -0400
+In-Reply-To: <4706636.rTYoqSXXOR@wuerfel>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Joseph S. Myers" <joseph@codesourcery.com>
+To: Arnd Bergmann <arnd@arndb.de>
 Cc: Chung-Lin Tang <cltang@codesourcery.com>, John Stultz <john.stultz@linaro.org>, Geert Uytterhoeven <geert@linux-m68k.org>, Christoph Hellwig <hch@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Ley Foon Tan <lftan@altera.com>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, LeyFoon Tan <lftan.linux@gmail.com>
 
-On Thursday 15 May 2014 18:01:37 Joseph S. Myers wrote:
-> On Thu, 15 May 2014, Chung-Lin Tang wrote:
+On Thu, 15 May 2014, Arnd Bergmann wrote:
+
+> Earlier in the thread there seemed to be a rough consensus that
+> _TIME_BITS=64 wouldn't be a good idea because we wouldn't get everything
+> changed to use it. For _FILE_OFFSET_BITS=64 that's ok because most
+> user space doesn't ever want to deal with large files.
+
+Well, I'm coming into this in the middle since it isn't on linux-api and 
+noone has tried to work out on libc-alpha what things should look like 
+from the glibc side.  _TIME_BITS seemed to make sense when I thought about 
+this previously, however.
+
+> Can you elaborate on how the switch to the new default would work?
+
+At some appropriate release (probably after _TIME_BITS=64 is widely used 
+in distributions), the glibc headers would change so that _TIME_BITS=64 is 
+the default and _TIME_BITS=32 can be set to get the old interfaces.  At 
+some later point _TIME_BITS=32 API support might be removed, leaving the 
+old symbols as compat symbols for existing binaries.
+
+> If it's easy, why hasn't it been done for _FILE_OFFSET_BITS already
+> and what's stopping us from changing the default as soon as the interfaces
+> are there? If it's hard, what would need to happen before the default
+> time_t can be set?
+
+The distribution side of the change for _FILE_OFFSET_BITS (i.e., moving to 
+building libraries that way so a glibc change to the default wouldn't 
+cause issues for other libraries' ABIs) has gradually been done.  The 
+discussion in March on libc-alpha about changing the default tailed off.  
+This is something that needs someone to take the lead with a *careful and 
+detailed analysis of the information from the previous discussion* in 
+order to present a properly reasoned proposal for a change to the default 
+- not scattergun patches, not patches with brief or no analysis of the 
+environment in which glibc is used, not dismissing concerns, but a 
+properly reasoned argument for why the change should be made, along with 
+details of how distributions can determine whether ABI issues would arise 
+from rebuilding a particular library against newer glibc.
+
+> > Obviously 64-bit time_t syscalls would be an appropriately narrow set of 
+> > syscalls like those in the generic ABI (so glibc would implement stat for 
+> > _TIME_BITS=64 using fstatat64_time64 or whatever the syscall is called, 
+> > just as the stat functions for generic ABI architectures are implemented 
+> > with newfstatat / fstatat64 rather than lots of separate syscalls.
 > 
-> > > c) glibc may or may not provide a way for applications to use
-> > >    the extended interfaces without a user space ABI break. My
-> > >    impression so far is that this is going to be too hard and
-> > >    it won't be done, but this is for the glibc developers to
-> > >    determine.
-> > 
-> > glibc does version its exported symbols, so provided new/old syscalls
-> > are both provided, haveing a new version of a routine (using 64-bit
-> > time_t and new syscall interfaces) and the old compat routine co-exist
-> > should be possible. Of course, old binaries may still not be saved when
-> > 2038 arrives.
+> This assumes that we'd leave the kernel time_t/timespec/timeval using 'long'
+> and introduce a new timespec64 using a signed 64-bit type, rather than
+> changing the kernel headers to the new syscalls and data structures with
+> new names for the existing ones, right?
 
-How would that work for ioctl? There are a lot of device drivers that
-have data structure with time_t or struct timespec in them.
+Yes.  I consider it simply common sense that new kernel headers should 
+continue to work with much older glibc, meaning that the API (syscall 
+names etc.) presented by the headers from headers_install should not 
+change incompatibly.
 
-> You could do it with symbol versioning, though my guess would be that it 
-> would be natural to provide _TIME_BITS like _FILE_OFFSET_BITS (with the 
-> combination _TIME_BITS=64, _FILE_OFFSET_BITS=32 not being supported at 
-> all) and then later transition the default.  (Discussion of the 
-> possibility of moving the default to _FILE_OFFSET_BITS=64 suggested that 
-> in practice most libraries in distributions where this affects the ABI are 
-> already built that way, though noone has followed up on that discussion to 
-> try to reach a consensus that we have enough evidence to change the 
-> default now.  There are a couple of issues with the way 
-> _FILE_OFFSET_BITS=64 is implemented that should be avoided in any 
-> implementation of _TIME_BITS=64: (a) _FILE_OFFSET_BITS=64 maps functions 
-> to corresponding *64 functions in the user's namespace, when it should use 
-> reserved-namespace names; (b) it's not a no-op for 64-bit platforms - it 
-> still remaps function names and types.  So _TIME_BITS=64 should only map 
-> to reserved-namespace names, and not do any remapping at all on platforms 
-> where time_t is already 64-bit.)
+(64-bit type only for time_t, of course.  There's no need for a 64-bit 
+type for nanoseconds and tv_nsec is explicitly "long" in POSIX, meaning 
+that if the kernel uses a 64-bit type for nanoseconds on systems where 
+"long" is 32-bit in userspace, either it needs to treat the high word as 
+padding or glibc needs to wrap all interfaces passing a struct timespec 
+into the kernel so they clear the padding field.  There's even less need 
+for a 64-bit type for microseconds.)
 
-Earlier in the thread there seemed to be a rough consensus that
-_TIME_BITS=64 wouldn't be a good idea because we wouldn't get everything
-changed to use it. For _FILE_OFFSET_BITS=64 that's ok because most
-user space doesn't ever want to deal with large files.
-
-Can you elaborate on how the switch to the new default would work?
-If it's easy, why hasn't it been done for _FILE_OFFSET_BITS already
-and what's stopping us from changing the default as soon as the interfaces
-are there? If it's hard, what would need to happen before the default
-time_t can be set?
-
-> Obviously 64-bit time_t syscalls would be an appropriately narrow set of 
-> syscalls like those in the generic ABI (so glibc would implement stat for 
-> _TIME_BITS=64 using fstatat64_time64 or whatever the syscall is called, 
-> just as the stat functions for generic ABI architectures are implemented 
-> with newfstatat / fstatat64 rather than lots of separate syscalls.
-
-This assumes that we'd leave the kernel time_t/timespec/timeval using 'long'
-and introduce a new timespec64 using a signed 64-bit type, rather than
-changing the kernel headers to the new syscalls and data structures with
-new names for the existing ones, right?
-
-	Arnd
+-- 
+Joseph S. Myers
+joseph@codesourcery.com
