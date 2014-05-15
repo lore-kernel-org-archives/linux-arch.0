@@ -1,88 +1,281 @@
-From: Arnd Bergmann <arnd@arndb.de>
+From: Chung-Lin Tang <cltang@codesourcery.com>
 Subject: Re: [PATCH 00/25] Change time_t and clock_t to 64 bit
-Date: Thu, 15 May 2014 18:36:54 +0200
-Message-ID: <9176609.NChAu49t7f@wuerfel>
-References: <1399971456-3941-1-git-send-email-lftan@altera.com> <8468354.y2kUZdOz9e@wuerfel> <1400168823.7862.9.camel@dabdike>
+Date: Fri, 16 May 2014 01:11:58 +0800
+Message-ID: <5374F55E.4030004@codesourcery.com>
+References: <1399971456-3941-1-git-send-email-lftan@altera.com> <8399002.IIyBoyEHox@wuerfel> <CANcMJZAOi9ctWkpEgynj6wxCrvW4oS5ZHj3Chv04D=VQDogEvw@mail.gmail.com> <4160991.69XaTMjMrC@wuerfel>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7Bit
+Content-Type: text/plain; charset="ISO-8859-1"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.126.131]:59752 "EHLO
-	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752183AbaEOQh0 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 15 May 2014 12:37:26 -0400
-In-Reply-To: <1400168823.7862.9.camel@dabdike>
+Received: from relay1.mentorg.com ([192.94.38.131]:40631 "EHLO
+	relay1.mentorg.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751829AbaEORL7 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 15 May 2014 13:11:59 -0400
+In-Reply-To: <4160991.69XaTMjMrC@wuerfel>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: James Bottomley <James.Bottomley@hansenpartnership.com>
-Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Christoph Hellwig <hch@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Ley Foon Tan <lftan@altera.com>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, LeyFoon Tan <lftan.linux@gmail.com>, Chung-Lin Tang <cltang@codesourcery.com>
+To: Arnd Bergmann <arnd@arndb.de>, John Stultz <john.stultz@linaro.org>
+Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Christoph Hellwig <hch@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Ley Foon Tan <lftan@altera.com>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, LeyFoon Tan <lftan.linux@gmail.com>
 
-On Thursday 15 May 2014 11:47:03 James Bottomley wrote:
-> On Wed, 2014-05-14 at 13:00 +0200, Arnd Bergmann wrote:
-> > On Tuesday 13 May 2014 22:35:08 Geert Uytterhoeven wrote:
-> > > 
-> > > On Tue, May 13, 2014 at 9:32 PM, Arnd Bergmann <arnd@arndb.de> wrote:
-> > > > I think we have three categories:
-> > > 
-> > > Thanks for the list!
-> > > 
-> > > > a) interfaces that uses relative time_t/timespec/timeval:
-> > > > b) interfaces that don't make sense for times in the past:
-> > > 
-> > > > c) interfaces that require absolute times:
-> > > >    - stat/lstat/fstatat/
-> > > >    - utime/utimes/futimesat
-> > > >
-> > > > These absolutely have to use something better than time_t
-> > > > both in user space and in the kernel so we can deal with
-> > > > old files. A lot of file systems need to be fixed as well so
-> > > > we can actually store the times, regardless of whether we
-> > > > are running a 32 or 64 bit kernel.
-> > > 
-> > > So these are the ones we have to worry about.
-> > > It looks like they all involve I/O? Apart from the case of using block data
-> > > from the buffer cache, the 64-bit operations should disappear in the
-> > > actual I/O noise, right?
-> > 
-> > Right. Also there have been proposals for a better 'stat' replacement
-> > for years, which would solve half of the interface problem for the
-> > file system interfaces.
-> > 
-> > However, we also need to find a solution for category b), I only put
-> > them into a different category above because we can treat them
-> > differently in the kernel. For instance, we could use ktime_t for
-> > the kernel code in category b) and a new struct timespec64 for
-> > the times in struct inode.
-> > On the user interface side, using timespec64 would be a reasonable
-> > choice for both categories, because we already have two implementations
-> > of all those syscalls in order to handle 32-on-64 compat tasks,
-> > and we could use the same set of syscall implementations for time64-on-32.
+On 2014/5/15 07:08 PM, Arnd Bergmann wrote:
+> On Wednesday 14 May 2014 14:33:18 John Stultz wrote:
+>> On Tue, May 13, 2014 at 12:32 PM, Arnd Bergmann <arnd@arndb.de> wrote:
+>>> On Tuesday 13 May 2014 20:24:59 Geert Uytterhoeven wrote:
+>>>> On Tue, May 13, 2014 at 8:10 PM, Arnd Bergmann <arnd@arndb.de> wrote:
+>>>>> Using 64-bit time_t on x32 is fine, because it's fast to operate
+>>>>> in user space with 64-bit registers, and the kernel is 64-bit
+>>>>> anyway. Inside of the kernel, we may get into trouble using
+>>>>> a 64-bit time_t on 32-bit architectures because of the overhead
+>>>>> in 64-bit math, e.g. all the timekeeping code that is based on
+>>>>> timespec or some code paths in file systems and network code where
+>>>>> we actually require division of time_t values.
+>>>>
+>>>> While going over time_t uses, have you found a pattern for use cases
+>>>> involving division of time_t values in filesystem and networking code?
+>>>
+>>> In ipv4, we have multiple places doing this:
+>>>
+>>>         icmp_param.data.times[1] = htonl((tv.tv_sec % 86400) * MSEC_PER_SEC +
+>>>                                          tv.tv_nsec / NSEC_PER_MSEC);
+>>>
+>>> to calculate the miliseconds since midnight. For file systems, I
+>>> found that FAT uses seconds/minutes/hours/days/month/year representation,
+>>> which is a lot of divides, but that can probably be optimized and
+>>> we need to handle years beyond 2038 anyway.
+>>
+>> We can do some tricks for internal optimizations here if these are
+>> critical.  I'd be more concerned about userland divisions where moving
+>> to a 64bit time_t would cause performance issues that we cannot help
+>> optimize.
 > 
-> To step back a bit, is a 64 bit time_t actually a good solution on 32
-> bits?  Paying a 64 bit penalty on every time operation does seem a bit
-> overkill.  Most eventual uses are either monotonic counting or relative
-> addition/subtraction.  If we added an additional 32 bit quantity called
-> epoch, this would increase once every 68 years.  Within the kernel, we
-> could do intelligent interpolation about what the epoch is, so in 2039
-> if we get a low 32 bit time_t value, we assume epoch == 1, conversely if
-> we see a high one, we assume epoch == 0.  We could add epoch on the end
-> of the syscalls and detect if it's not present and fill in an
-> interpolated value.  Interfaces which truly want 64 bit time_t would get
-> it from epoch + 32 bit time_t.
+> Good point.
+> 
+>>>>> We clearly have to change that code in some for to deal with y2038,
+>>>>> but 64-bit time_t may not be the best option. A lot of the
+>>>>> in-kernel code can probably use ktime_t, which we can change
+>>>>> to a different representation (e.g. 34 bit seconds) if needed,
+>>>>> and all the code that is only interested in relative time
+>>>>> (e.g. nanosleep) doesn't have to change at all.
+>>>>
+>>>> Yeah. 32-bit uptimes should be good enough for everyone (don't quote
+>>>> me on that), so adding a 64-bit offset when there's a need for absolute
+>>>> time should be OK.
+>>>
+>>> I think we have three categories:
+>>>
+>>> a) interfaces that uses relative time_t/timespec/timeval:
+>>>    - nanosleep
+>>>    - select/pselect/poll/ppoll/epoll
+>>>    - getrusage
+>>>    - sched_rr_get_interval
+>>>    - sigtimedwait
+>>>    - clock_nanosleep
+>>>    - alarm
+>>>    - siginfo (rusage)
+>>>
+>>>   These can stay compatible, but we'd have to use a different
+>>>   type if we change time_t.
+>>
+>>
+>> So as a correction, at least clock_nanosleep can specify sleep times
+>> using absolute time.
+> 
+> Thanks.
+> 
+>>> b) interfaces that don't make sense for times in the past:
+>>>    - getitimer/setitimer
+>>>    - timer_settime/timer_gettime
+>>>    - gettimeofday/settimeofday
+>>>    - adjtimex
+>>>    - clock_gettime/clock_settime/clock_adjtime
+>>>    - time/stime
+>>>    - socket time stamps
+>>>    - audio time stamps
+>>>    - v4l time stamps
+>>>    - input event time stamps
+>>>    - sysv ipc (msg, sem, shm)
+>>>
+>>>    Here, we are relatively free to change the start of the
+>>>    epoch in the kernel but convert to something else on the
+>>>    user space boundary. One possibility is to scale them to
+>>>    boot time and use ktime_t in the kernel.
+>>
+>> I'm not sure I'm totally following this... Are you suggesting we keep
+>> 32bit time internally w/ some different offset but then pass to
+>> userland a 64bit time_t?  Or are you suggesting we change the abi to
+>> move the epoch?
+> 
+> What I meant is that regardless of what we decide for the ABI,
+> we can change the in-kernel representation in any way we like as
+> long as we can represent all dates that can occur during the runtime
+> of the kernel, i.e. we don't have to represent times between 1970 and
+> 2014. This could mean one of many representations:
+> 
+> - time_t scaled forward by 44 years and/or made unsigned
+> - ktime_t scaled to boot time
+> - 64-bit nanoseconds starting at the epoch
+> - timespec64
+> 
+>> I think I'm with hpa in his recent mail in that the internal
+>> representation is an optimization detail, and the bigger question is
+>> do we use a  64bit time_t for future systems (possibly w/ a major ABI
+>> break - with compat interface for existing 32bit applications), or do
+>> we try to rev interfaces function by function to provide 2038 safe
+>> versions which applications will have to be modified to use?
+>>
+>> Me, I'm a fan of moving time_t to 64bits, since it makes "porting"
+>> applications to a 2038 safe ABI easier.
+> 
+> I think there are two or three distinct problems:
+> 
+> a) We absolutely have to find a way to build a user space that
+>    can survive 2038. This probably involves moving at least
+>    time_t, timeval and timespec to use 64-bit representation.
+> b) We have to keep compatibility with existing user space running
+>    on future kernels, which means at least x86, arm and a few
+>    other 32-bit architectures (we can ignore some of the obsolete
+>    ones if that helps us) need to provide syscall ABIs for both
+>    32-bit time_t and whatever we use for the new syscalls and
+>    ioctls. As Thomas said, for some interfaces this could mean
+>    64-bit nanoseconds and for others it could be timespec64.
+> c) glibc may or may not provide a way for applications to use
+>    the extended interfaces without a user space ABI break. My
+>    impression so far is that this is going to be too hard and
+>    it won't be done, but this is for the glibc developers to
+>    determine.
 
-The main advantage that I see with 64-bit time_t is that a lot of user
-space already works with it, because NetBSD and OpenBSD use this, and
-all 64-bit Linux systems already work with this without changing the ABI.
-If we want a POSIX extension to cover a new ABI, this would be the most
-likely candidate.
+glibc does version its exported symbols, so provided new/old syscalls
+are both provided, haveing a new version of a routine (using 64-bit
+time_t and new syscall interfaces) and the old compat routine co-exist
+should be possible. Of course, old binaries may still not be saved when
+2038 arrives.
 
-For Linux-only interfaces, the 64-bit nanosecond timestamps seem like
-a good alternative, and they would also speed up the 64-bit architectures
-because we can skip the normalization.
+(Adding Joseph to the CC, for more definitive comments)
 
-As mentioned earlier, between kernel and user space it's probably best
-to avoid time_t and timeval completely and just use timespec64 or some
-other safe type, but there has to be a way to port user space that relies
-on time_t or timespec.
+Thanks,
+Chung-Lin
 
-	Arnd
+
+> The important distinction here is between user space time_t
+> (timeval, timespec) and __kernel_time_t. We probably need
+> to make the user space time_t a build-time conditional,
+> at least for the foreseeable future. New architectures or
+> new C libraries can start out using 64-bit time_t unconditionally.
+> 
+> For the kernel interface, I think we should deprecate any interfaces
+> using plain time_t and timeval, i.e. keep them around for existing
+> architectures (possibly with a kernel compile time option to disable
+> them so we are sure they don't leak out to new user space) and
+> provide kernel interfaces based on 64-bit timespec (or other 
+> appropriate data structures for timestamps) for new architectures.
+> 
+> I see multiple ways of doing this, and I don't like any of them ;-)
+> 
+> 1) rename all *time* types to *old_time*, and provide new ones
+>    based on 64-bit time_t. We'd have to change them all at once,
+>    and there would likely still be some build breakage with glibc.
+>    The idea is that a libc built against old headers still works
+>    fine on old and new kernels, and a libc built against new kernels
+>    would automatically get 64-bit time but stop working on old
+>    kernels. Also, any binaries built against old glibc wouldn't
+>    work on new glibc, which is probably a killer.
+> 
+>    Example:
+> 
+>    -typedef long __kernel_time_t;
+>    +typedef long __kernel_oldtime_t;
+>    +typedef __s64 __kernel_time_t;
+>    -struct timespec { __kernel_oldtime_t tv_sec; long   tv_nsec; };
+>    +struct oldtimespec { __kernel_oldtime_t tv_sec; long   tv_nsec; };
+>    +struct timespec { __s64 tv_sec; __s64 tv_nsec; };
+> 
+>    -long sys_utime(char __user *filename, struct utimbuf __user *times);
+>    -long sys_utimes(char __user *filename, struct timeval __user *utimes);
+>    -long sys_futimesat(int dfd, const char __user *filename, struct timeval __user *utimes);
+>    -long sys_utimensat(int dfd, const char __user *filename, struct timespec __user *utimes, int flags);
+>    +long sys_oldutime(char __user *filename, struct oldutimbuf __user *times);
+>    +long sys_oldutimes(char __user *filename, struct oldtimeval __user *utimes);
+>    +long sys_oldfutimesat(int dfd, const char __user *filename, struct oldtimeval __user *utimes);
+>    +long sys_oldutimensat(int dfd, const char __user *filename, struct oldtimespec __user *utimes, int flags);
+> 
+>    +long sys_utimensat(int dfd, const char __user *filename, struct timespec __user *utimes, int flags);
+> 
+>    -#define __NR_utimensat 88
+>    -#define __NR_utimes 1037
+>    -#define __NR_futimesat 1066
+>    -#define __NR_utime 1063
+>    +#define __NR_oldutimensat 88
+>    +#define __NR_oldutimes 1037
+>    +#define __NR_oldfutimesat 1066
+>    +#define __NR_oldutime 1063
+> 
+>    +#define __NR_utimensat 277  /* next free number for asm-generic/unistd.h */
+>  
+> 2) leave the kernel time_t as 'long' and only introduce a new
+>    struct timespec64,defined to be compatible with struct timespec on
+>    64-bit architectures. For each syscall or ioctl that we need, come up
+>    with a new one. Make the libc define its own time_t as 64-bit and use
+>    the new syscalls instead of the old ones. This will allow a smooth
+>    transition, but we might not be done with it before 2038.
+> 
+>    Example:
+> 
+>     typedef long __kernel_time_t;
+>     struct timespec { __kernel_time_t tv_sec; long   tv_nsec; };
+>    +struct timespec64 { __s64 tv_sec; __s64 tv_nsec; };
+> 
+>    +#ifdef __ARCH_WANT_32BIT_TIME
+>     long sys_utime(char __user *filename, struct utimbuf __user *times);
+>     long sys_utimes(char __user *filename, struct timeval __user *utimes);
+>     long sys_futimesat(int dfd, const char __user *filename, struct timeval __user *utimes);
+>     long sys_utimensat(int dfd, const char __user *filename, struct timespec __user *utimes, int flags);
+>    +#endif
+>    +long sys_futimens64at(int dfd, const char __user *filename, struct timespec64 __user *utimes, int flags);
+> 
+> 
+>    +#ifdef __ARCH_WANT_32BIT_TIME
+>     #define __NR_utimensat 88
+>     #define __NR_utimes 1037
+>     #define __NR_futimesat 1066
+>     #define __NR_utime 1063
+>    +#endif
+> 
+>    +#define __NR_futimens64at 277  /* next free number for asm-generic/unistd.h */
+> 
+> 3) Make time_t 64-bit for new 32-bit architectures right away, and worry
+>    about existing architectures separately. This will mean avoiding intentional
+>    ABI changes for the new architectures later, at the cost of having fringe
+>    architecture use an ABI that nobody else uses, likely more broken.
+> 
+>    Example (as in the patch series under review):
+> 
+>    #ifndef __kernel_time_t
+>    #typedef __s64 __kernel_time_t
+>    #endif
+> 
+> 4) Allow combinations of the above approaches using #ifdef in the uabi
+>    headers to let the libc decide at compile time which of the first two
+>    it wants. At the binary level they are compatible. This is most flexible
+>    but means we have to worry more about getting the corner cases right,
+>    with code that is even harder to maintain.
+> 
+>    Example:
+> 
+>    #ifdef __libc_want_64bit_time
+>    typedef long __kernel_oldtime_t;
+>    typedef __s64 __kernel_time_t;
+>    #else
+>    typedef long __kernel_time_t;
+>    typedef __s64 __kernel_time64_t;
+>    #endif
+> 
+>    #ifdef __libc_want_64bit_time
+>    #define __NR_oldutimensat	88
+>    #define __NR_futimensat	277
+>    #else
+>    #define __NR_utimensat	88
+>    #define __NR_futimens64at	277
+>    #endif
+> 
+> 	Arnd
+> 
