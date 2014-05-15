@@ -1,49 +1,30 @@
-From: Nicolas Pitre <nicolas.pitre@linaro.org>
-Subject: Re: [PATCH 00/25] Change time_t and clock_t to 64 bit
-Date: Wed, 14 May 2014 23:32:29 -0400 (EDT)
-Message-ID: <alpine.LFD.2.11.1405142319140.17310@knanqh.ubzr>
-References: <1399971456-3941-1-git-send-email-lftan@altera.com> <6202090.0OtAjefIFT@wuerfel> <CAMuHMdVxc3XRanpboWPumvQKbg-qdRBHQvYXwjTKX4CrxXPeAw@mail.gmail.com> <8399002.IIyBoyEHox@wuerfel> <CANcMJZAOi9ctWkpEgynj6wxCrvW4oS5ZHj3Chv04D=VQDogEvw@mail.gmail.com>
- <537406FA.2040906@zytor.com>
+From: Oren Twaig <oren@scalemp.com>
+Subject: Re: [PATCH] x86, hugetlb: add missing TLB page invalidation for hugetlb_cow()
+Date: Thu, 15 May 2014 10:05:05 +0300
+Message-ID: <53746721.6060408@scalemp.com>
+References: <20140514092948.GA17391@server-36.huawei.corp> <5372A067.9010808@sr71.net> <20140515170035.GA15779@server-36.huawei.corp>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qg0-f51.google.com ([209.85.192.51]:59064 "EHLO
-	mail-qg0-f51.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751435AbaEODcc (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 14 May 2014 23:32:32 -0400
-Received: by mail-qg0-f51.google.com with SMTP id q107so811965qgd.10
-        for <linux-arch@vger.kernel.org>; Wed, 14 May 2014 20:32:31 -0700 (PDT)
-In-Reply-To: <537406FA.2040906@zytor.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: "H. Peter Anvin" <hpa@zytor.com>
-Cc: John Stultz <john.stultz@linaro.org>, Arnd Bergmann <arnd@arndb.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Christoph Hellwig <hch@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Ley Foon Tan <lftan@altera.com>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, LeyFoon Tan <lftan.linux@gmail.com>, Chung-Lin Tang <cltang@codesourcery.com>
-
-On Wed, 14 May 2014, H. Peter Anvin wrote:
-
-> On 05/14/2014 02:33 PM, John Stultz wrote:
-> > 
-> > We can do some tricks for internal optimizations here if these are
-> > critical.  I'd be more concerned about userland divisions where moving
-> > to a 64bit time_t would cause performance issues that we cannot help
-> > optimize.
-> > 
-> 
-> Honestly, the cost of not addressing the Y2038 problem in plenty of time
-> is going to be way, way, way, way more expensive than some additional
-> arithmetic.
-> 
-> As far as converting to calendar notation (e.g. the Gregorian calendar),
-> only the first division needs to be done with full time_t width.
-> Furthermore, since the divisor is known a priori, the compiler *should*
-> be able to do it as an inverse multiply.[1]
-
-The compiler is apparently not that smart.  It does it already for 32 by 
-32 bit divisions, but not for 64 by 32 divisions. Fortunately, with 
-gcc-4 at least, constant propagation on long longs works well enough to 
-do it by hand.  That's how I implemented do_div() for ARM years ago.  
-See arch/arm/include/asm/div64.h from line 65.  The same could be 
-implemented for x86 and others.
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20140515170035.GA15779@server-36.huawei.corp>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Anthony Iliopoulos <anthony.iliopoulos@huawei.com>, Dave Hansen <dave@sr71.net>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Shay Goikhman <shay.goikhman@huawei.com>, Paul Mundt <paul.mundt@huawei.com>, Carlos Villavieja <villavieja@hps.utexas.edu>, Nacho Navarro <nacho.navarro@bsc.es>, Avi Mendelson <avi.mendelson@tce.technion.ac.il>, Yoav Etsion <yetsion@tce.technion.ac.il>, Gerald Schaefer <gerald.schaefer@de.ibm.com>, David Gibson <david@gibson.dropbear.id.au>, linux-arch <linux-arch@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
 
-Nicolas
+On 05/15/2014 08:00 PM, Anthony Iliopoulos wrote:
+> I have dismissed this case, since I assume that there are many more
+> cycles spent in servicing the TLB invalidation IPI, walking the pgtable
+> plus other related overhead (e.g. sched) than in updating the pte/pmd
+> so I am not sure how possible it would be to hit this condition.
+
+Hi Anthony,
+
+I have a question about the above statement. What will happen with multi
+cpu VMs ? won't the race described above can happen ? I.e one virtual CPU
+can will visit the host and the other will continue to encounter your race ?
+
+Thanks,
+Oren.
