@@ -1,62 +1,95 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from b.ns.miles-group.at ([95.130.255.144]:1660 "EHLO radon.swed.at"
-	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1751455AbaEOItA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 15 May 2014 04:49:00 -0400
-Message-ID: <53747F65.4090203@nod.at>
-Date: Thu, 15 May 2014 10:48:37 +0200
-From: Richard Weinberger <richard@nod.at>
+Received: from [217.156.133.130] ([217.156.133.130]:15757 "EHLO
+	imgpgp01.kl.imgtec.org" rhost-flags-FAIL-FAIL-OK-FAIL)
+	by vger.kernel.org with ESMTP id S1751052AbaEOI7j (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Thu, 15 May 2014 04:59:39 -0400
+Message-ID: <537481F8.50809@imgtec.com>
+Date: Thu, 15 May 2014 09:59:36 +0100
+From: James Hogan <james.hogan@imgtec.com>
 MIME-Version: 1.0
-Subject: Re: Consolidate tlb.h
-References: <1400093999-18703-1-git-send-email-richard@nod.at> <20140515083258.GD30445@twins.programming.kicks-ass.net>
-In-Reply-To: <20140515083258.GD30445@twins.programming.kicks-ass.net>
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
+Subject: Re: [PATCH 14/27] metag: Use common bits from generic tlb.h
+References: <1400093999-18703-1-git-send-email-richard@nod.at> <1400093999-18703-15-git-send-email-richard@nod.at>
+In-Reply-To: <1400093999-18703-15-git-send-email-richard@nod.at>
+Content-Type: multipart/signed; micalg=pgp-sha1;
+	protocol="application/pgp-signature";
+	boundary="6c7aqJUCE21fWNhW84WX85CBuO0gjtfEp"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: linux-arch@vger.kernel.org, arnd@arndb.de, linux-kernel@vger.kernel.org
-Message-ID: <20140515084837.YkU3M1_IM-SYsE3BDR4uomemAqDyxk7D_6wNVFY2CAE@z>
+To: Richard Weinberger <richard@nod.at>, linux-arch@vger.kernel.org, arnd@arndb.de, linux-kernel@vger.kernel.org
+Cc: linux-metag@vger.kernel.org
+Message-ID: <20140515085936.iGysWqWSxj3RXAtL1XXBR8BQPnqsG0aW2fwOPi2mZB8@z>
 
------BEGIN PGP SIGNED MESSAGE-----
-Hash: SHA1
+--6c7aqJUCE21fWNhW84WX85CBuO0gjtfEp
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: quoted-printable
 
-Am 15.05.2014 10:32, schrieb Peter Zijlstra:
-> On Wed, May 14, 2014 at 08:59:32PM +0200, Richard Weinberger wrote:
->> While staring at an UML TLB bug I've noticed that most archs copy and pasted stuff from each others tlb.h. This patch series combines common stuff into the generic tlb.h.
->> 
-> 
-> Were you aware of this series:
-> 
-> http://www.spinics.net/lists/linux-mm/msg37369.html
+On 14/05/14 19:59, Richard Weinberger wrote:
+> It is no longer needed to define them on our own.
+>=20
+> Cc: James Hogan <james.hogan@imgtec.com>
+> Cc: Richard Weinberger <richard@nod.at>
+> Cc: linux-metag@vger.kernel.org
+> Cc: linux-kernel@vger.kernel.org
+> Signed-off-by: Richard Weinberger <richard@nod.at>
 
-Nope.
+Acked-by: James Hogan <james.hogan@imgtec.com>
 
-> I've been meaning to refresh and continue with it, but somehow I never get time to actually do it :/
-> 
-> At the time only s390 still have a relatively trivial problem but all archs were using generic code.
-> 
+Thanks
+James
 
-If it helps I can pickup your series and finalize it.
-Actually I was abound to consolidate TLB gather implementations too.
+> ---
+>  arch/metag/include/asm/tlb.h | 10 ----------
+>  1 file changed, 10 deletions(-)
+>=20
+> diff --git a/arch/metag/include/asm/tlb.h b/arch/metag/include/asm/tlb.=
+h
+> index 048282f1..0fb0b46 100644
+> --- a/arch/metag/include/asm/tlb.h
+> +++ b/arch/metag/include/asm/tlb.h
+> @@ -19,18 +19,8 @@
+>  		if (!tlb->fullmm)					      \
+>  			flush_tlb_range(vma, vma->vm_start, vma->vm_end);     \
+>  	} while (0)
+> -
+> -
+> -#else
+> -
+> -#define tlb_start_vma(tlb, vma)			do { } while (0)
+> -#define tlb_end_vma(tlb, vma)			do { } while (0)
+> -
+>  #endif
+> =20
+> -#define __tlb_remove_tlb_entry(tlb, pte, addr)	do { } while (0)
+> -#define tlb_flush(tlb)				flush_tlb_mm((tlb)->mm)
+> -
+>  #include <asm-generic/tlb.h>
+> =20
+>  #endif
+>=20
 
-Thanks,
-//richard
+
+--6c7aqJUCE21fWNhW84WX85CBuO0gjtfEp
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: OpenPGP digital signature
+Content-Disposition: attachment; filename="signature.asc"
+
 -----BEGIN PGP SIGNATURE-----
-Version: GnuPG v2.0.19 (GNU/Linux)
-Comment: Using GnuPG with Thunderbird - http://www.enigmail.net/
+Version: GnuPG v2.0.22 (GNU/Linux)
 
-iQIcBAEBAgAGBQJTdH9lAAoJEPmeIjfg4UaaqowP/0I8COjZRvk1X39E1KibWxIK
-epRiDWYgQenfc186ncwZA2wAU4rr1y+e5d7hoF0p6/WvN1svSgbX6A95tDa3/rLY
-zu9/zX8TRT5QXU6xsUDzI3zD2t7N44jxX0ysDOHV6ZLOpMnoe8fR8j8Mn54qPd8T
-LLmhgxhkp7NvYjv7VFEMP0DXtlPDskRFzzY7NwGks0uu36FPVMHyJIhz+koW7+hL
-rzjZs57yO/t3EaGF4UGVRPwt8FyBzgxib3JfFHpr3D35La5lbhVRTu5FHfXeDhgu
-Mv9iacyrMMOC0IlMVreC/O9Og2GmMKcC+ICFlvW4sCGKPcN/95rvUapvFKsAAAnw
-EQicc86XnPJ8TJATKE9kg0YXB9GDu4hK0kzK09PsQBBO+L0SZstbwCXMfwHyGuoO
-LRmsO+mRMtzeZYXEjO7oRvxPBeSm31i3f4wyoN49maLqlcJfrIeh4Bkdi3b3Zgz5
-TB0+jaYR0FJVL9KawoB3T/c5XEB3Wu2U5bJ8dtANnfBWMKRo8WfEniIXmOUziYiU
-lmP7cewmpc2AiJPG2Cm7g+huenP+j9Y+CzlwOYFIMBy+xrlT31SRp2/cVIclDHmL
-A1CU3JFvcbwwLz59okMPdZQbbXsB3sMh4qsmbE/jXFCBUJr4iQUcOaB56weC9x84
-lTYhoeqQDIM2h2q/2SnO
-=Hk5i
+iQIcBAEBAgAGBQJTdIH4AAoJEGwLaZPeOHZ6y4wP/jgyrDKgmMPz4A5QH7SRG471
+bKGXA23n0aMZrXEecJN0b6Vi941PVvb8J6Z7zazEsrNGDuVCHXacOoLc3/Yv/FvZ
+u/m+GXMwA0rB8sms3M+7Lf+HSdTwnuqAiLLLymMKSEycR1d6hlqS6kC7iNqxCc2f
+32zuLADp2YeV5W3nuieOzijUih+r8Rim6nakfgQplZ84oZhTFTDDycErYGYSDRXE
+JA9/F4r7y9pGNCdeRIdrPEBkOqGUM0zT4diwrmZVF4RoBAh6l3SvAuWlHAj3IKd4
+ELji3I0ECu535nEd0ney94d9nQ/aila5lNYis4TR9zdmAFWjDDBnF9L3x9+m5fRn
+BTAzsexr3ObT+17n4xRY13cFDf4bm7VfEmYBofhWSpAYSh8PfraZ31d5G9nnretp
+4w0lJl20jgk+FnMjFRA5K+vtyngNSkebkWEZL+m89uJtfZUyIaOiLaK6kcMrCq0V
+qVISyj+RP57G217K08oI/PcOHidaC7Ql02+o42qVy3K/dK6rgU2oJFQifG9hRoKt
+fI7i+6US4qA+QF9gApbkFnse89YBbWvP3X0XRlt/S1D9NJJ2XscSNSABh/krimaI
+woYuYmC0HIAvhcgHYukM1/UuuFAz6i0xq0ZKKemRu2g11uLOcCm5R2zHMeuABqC8
+b1f604UBj/10z3jb6QaF
+=iYPb
 -----END PGP SIGNATURE-----
+
+--6c7aqJUCE21fWNhW84WX85CBuO0gjtfEp--
