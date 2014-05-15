@@ -1,37 +1,74 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ar-005-i191.relay.mailchannels.net ([162.253.144.73]:58298 "EHLO
-	relay.mailchannels.net" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1752751AbaEOHSU (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 15 May 2014 03:18:20 -0400
-Message-ID: <53746721.6060408@scalemp.com>
-Date: Thu, 15 May 2014 10:05:05 +0300
-From: Oren Twaig <oren@scalemp.com>
+Received: from e28smtp03.in.ibm.com ([122.248.162.3]:53656 "EHLO
+	e28smtp03.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754843AbaEOIZU (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 15 May 2014 04:25:20 -0400
+Received: from /spool/local
+	by e28smtp03.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <maddy@linux.vnet.ibm.com>;
+	Thu, 15 May 2014 13:55:18 +0530
+Message-ID: <537479E7.90806@linux.vnet.ibm.com>
+Date: Thu, 15 May 2014 13:55:11 +0530
+From: Madhavan Srinivasan <maddy@linux.vnet.ibm.com>
 MIME-Version: 1.0
-Subject: Re: [PATCH] x86, hugetlb: add missing TLB page invalidation for hugetlb_cow()
-References: <20140514092948.GA17391@server-36.huawei.corp> <5372A067.9010808@sr71.net> <20140515170035.GA15779@server-36.huawei.corp>
-In-Reply-To: <20140515170035.GA15779@server-36.huawei.corp>
+Subject: Re: [PATCH V4 0/2] mm: FAULT_AROUND_ORDER patchset performance data
+ for powerpc
+References: <1399541296-18810-1-git-send-email-maddy@linux.vnet.ibm.com>
+In-Reply-To: <1399541296-18810-1-git-send-email-maddy@linux.vnet.ibm.com>
 Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Anthony Iliopoulos <anthony.iliopoulos@huawei.com>, Dave Hansen <dave@sr71.net>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Shay Goikhman <shay.goikhman@huawei.com>, Paul Mundt <paul.mundt@huawei.com>, Carlos Villavieja <villavieja@hps.utexas.edu>, Nacho Navarro <nacho.navarro@bsc.es>, Avi Mendelson <avi.mendelson@tce.technion.ac.il>, Yoav Etsion <yetsion@tce.technion.ac.il>, Gerald Schaefer <gerald.schaefer@de.ibm.com>, David Gibson <david@gibson.dropbear.id.au>, linux-arch <linux-arch@vger.kernel.org>
-Message-ID: <20140515070505.KKEiG-qcc0wJi0KMWliRjAkVNDwimX_gVK3sPAFlRq8@z>
+To: linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, x86@kernel.org
+Cc: benh@kernel.crashing.org, paulus@samba.org, kirill.shutemov@linux.intel.com, rusty@rustcorp.com.au, akpm@linux-foundation.org, riel@redhat.com, mgorman@suse.de, ak@linux.intel.com, peterz@infradead.org, mingo@kernel.org, dave.hansen@intel.com
+Message-ID: <20140515082511.19H8biK8_OLyU5XOt0Ie5B2lxaT8jZKyrXhx08MxFto@z>
 
 
-On 05/15/2014 08:00 PM, Anthony Iliopoulos wrote:
-> I have dismissed this case, since I assume that there are many more
-> cycles spent in servicing the TLB invalidation IPI, walking the pgtable
-> plus other related overhead (e.g. sched) than in updating the pte/pmd
-> so I am not sure how possible it would be to hit this condition.
+Hi Ingo,
 
-Hi Anthony,
+	Do you have any comments for the latest version of the patchset. If
+not, kindly can you pick it up as is.
 
-I have a question about the above statement. What will happen with multi
-cpu VMs ? won't the race described above can happen ? I.e one virtual CPU
-can will visit the host and the other will continue to encounter your race ?
 
-Thanks,
-Oren.
+With regards
+Maddy
 
+> Kirill A. Shutemov with 8c6e50b029 commit introduced
+> vm_ops->map_pages() for mapping easy accessible pages around
+> fault address in hope to reduce number of minor page faults.
+> 
+> This patch creates infrastructure to modify the FAULT_AROUND_ORDER
+> value using mm/Kconfig. This will enable architecture maintainers
+> to decide on suitable FAULT_AROUND_ORDER value based on
+> performance data for that architecture. First patch also defaults
+> FAULT_AROUND_ORDER Kconfig element to 4. Second patch list
+> out the performance numbers for powerpc (platform pseries) and
+> initialize the fault around order variable for pseries platform of
+> powerpc.
+> 
+> V4 Changes:
+>   Replaced the BUILD_BUG_ON with VM_BUG_ON.
+>   Moved fault_around_pages() and fault_around_mask() functions outside of
+>    #ifdef CONFIG_DEBUG_FS.
+> 
+> V3 Changes:
+>   Replaced FAULT_AROUND_ORDER macro to a variable to support arch's that
+>    supports sub platforms.
+>   Made changes in commit messages.
+> 
+> V2 Changes:
+>   Created Kconfig parameter for FAULT_AROUND_ORDER
+>   Added check in do_read_fault to handle FAULT_AROUND_ORDER value of 0
+>   Made changes in commit messages.
+> 
+> Madhavan Srinivasan (2):
+>   mm: move FAULT_AROUND_ORDER to arch/
+>   powerpc/pseries: init fault_around_order for pseries
+> 
+>  arch/powerpc/platforms/pseries/pseries.h |    2 ++
+>  arch/powerpc/platforms/pseries/setup.c   |    5 +++++
+>  mm/Kconfig                               |    8 ++++++++
+>  mm/memory.c                              |   25 ++++++-------------------
+>  4 files changed, 21 insertions(+), 19 deletions(-)
+> 
 
