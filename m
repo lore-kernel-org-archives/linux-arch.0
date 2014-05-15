@@ -1,150 +1,76 @@
-From: Miklos Szeredi <miklos@szeredi.hu>
-Subject: Re: [PATCH 07/15] mips: add renameat2 syscall
-Date: Thu, 15 May 2014 14:04:26 +0200
-Message-ID: <CAJfpegvKAKA-s6WP4Mbr104YvVREgzR_KPC=OA-h6K=oTTsKWw@mail.gmail.com>
-References: <1397211951-20549-1-git-send-email-miklos@szeredi.hu>
-	<1397211951-20549-8-git-send-email-miklos@szeredi.hu>
+From: James Bottomley <James.Bottomley@HansenPartnership.com>
+Subject: Re: [PATCH 00/25] Change time_t and clock_t to 64 bit
+Date: Thu, 15 May 2014 11:47:03 -0400
+Message-ID: <1400168823.7862.9.camel@dabdike>
+References: <1399971456-3941-1-git-send-email-lftan@altera.com>
+	 <8399002.IIyBoyEHox@wuerfel>
+	 <CAMuHMdW5HSVyXpz9HFcrDDYq=zOFrBr6d8jOd8i_FMkXsEpr2Q@mail.gmail.com>
+	 <8468354.y2kUZdOz9e@wuerfel>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset="ISO-8859-15"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qc0-f175.google.com ([209.85.216.175]:37143 "EHLO
-	mail-qc0-f175.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751255AbaEOME1 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 15 May 2014 08:04:27 -0400
-Received: by mail-qc0-f175.google.com with SMTP id w7so1549165qcr.6
-        for <linux-arch@vger.kernel.org>; Thu, 15 May 2014 05:04:26 -0700 (PDT)
-In-Reply-To: <1397211951-20549-8-git-send-email-miklos@szeredi.hu>
+Received: from bedivere.hansenpartnership.com ([66.63.167.143]:40800 "EHLO
+	bedivere.hansenpartnership.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1753670AbaEOPrI (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Thu, 15 May 2014 11:47:08 -0400
+In-Reply-To: <8468354.y2kUZdOz9e@wuerfel>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch <linux-arch@vger.kernel.org>, Kernel Mailing List <linux-kernel@vger.kernel.org>
-Cc: Miklos Szeredi <mszeredi@suse.cz>, Ralf Baechle <ralf@linux-mips.org>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Christoph Hellwig <hch@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Ley Foon Tan <lftan@altera.com>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, LeyFoon Tan <lftan.linux@gmail.com>, Chung-Lin Tang <cltang@codesourcery.com>
 
-On Fri, Apr 11, 2014 at 12:25 PM, Miklos Szeredi <miklos@szeredi.hu> wrote:
-> From: Miklos Szeredi <mszeredi@suse.cz>
->
-> Signed-off-by: Miklos Szeredi <mszeredi@suse.cz>
-> Cc: Ralf Baechle <ralf@linux-mips.org>
+On Wed, 2014-05-14 at 13:00 +0200, Arnd Bergmann wrote:
+> On Tuesday 13 May 2014 22:35:08 Geert Uytterhoeven wrote:
+> > 
+> > On Tue, May 13, 2014 at 9:32 PM, Arnd Bergmann <arnd@arndb.de> wrote:
+> > > I think we have three categories:
+> > 
+> > Thanks for the list!
+> > 
+> > > a) interfaces that uses relative time_t/timespec/timeval:
+> > > b) interfaces that don't make sense for times in the past:
+> > 
+> > > c) interfaces that require absolute times:
+> > >    - stat/lstat/fstatat/
+> > >    - utime/utimes/futimesat
+> > >
+> > > These absolutely have to use something better than time_t
+> > > both in user space and in the kernel so we can deal with
+> > > old files. A lot of file systems need to be fixed as well so
+> > > we can actually store the times, regardless of whether we
+> > > are running a 32 or 64 bit kernel.
+> > 
+> > So these are the ones we have to worry about.
+> > It looks like they all involve I/O? Apart from the case of using block data
+> > from the buffer cache, the 64-bit operations should disappear in the
+> > actual I/O noise, right?
+> 
+> Right. Also there have been proposals for a better 'stat' replacement
+> for years, which would solve half of the interface problem for the
+> file system interfaces.
+> 
+> However, we also need to find a solution for category b), I only put
+> them into a different category above because we can treat them
+> differently in the kernel. For instance, we could use ktime_t for
+> the kernel code in category b) and a new struct timespec64 for
+> the times in struct inode.
+> On the user interface side, using timespec64 would be a reasonable
+> choice for both categories, because we already have two implementations
+> of all those syscalls in order to handle 32-on-64 compat tasks,
+> and we could use the same set of syscall implementations for time64-on-32.
 
-Ralf,
+To step back a bit, is a 64 bit time_t actually a good solution on 32
+bits?  Paying a 64 bit penalty on every time operation does seem a bit
+overkill.  Most eventual uses are either monotonic counting or relative
+addition/subtraction.  If we added an additional 32 bit quantity called
+epoch, this would increase once every 68 years.  Within the kernel, we
+could do intelligent interpolation about what the epoch is, so in 2039
+if we get a low 32 bit time_t value, we assume epoch == 1, conversely if
+we see a high one, we assume epoch == 0.  We could add epoch on the end
+of the syscalls and detect if it's not present and fill in an
+interpolated value.  Interfaces which truly want 64 bit time_t would get
+it from epoch + 32 bit time_t.
 
-I'll be sending a batch of patches with arch support for the renameat2
-syscall to Linus next week.  If you'd like me to send this as well,
-could you please ACK it?
-
-Thanks,
-Miklos
-
-
-> ---
->  arch/mips/include/uapi/asm/unistd.h | 15 +++++++++------
->  arch/mips/kernel/scall32-o32.S      |  1 +
->  arch/mips/kernel/scall64-64.S       |  1 +
->  arch/mips/kernel/scall64-n32.S      |  1 +
->  arch/mips/kernel/scall64-o32.S      |  1 +
->  5 files changed, 13 insertions(+), 6 deletions(-)
->
-> diff --git a/arch/mips/include/uapi/asm/unistd.h b/arch/mips/include/uapi/asm/unistd.h
-> index d6e154a9e6a5..5805414777e0 100644
-> --- a/arch/mips/include/uapi/asm/unistd.h
-> +++ b/arch/mips/include/uapi/asm/unistd.h
-> @@ -371,16 +371,17 @@
->  #define __NR_finit_module              (__NR_Linux + 348)
->  #define __NR_sched_setattr             (__NR_Linux + 349)
->  #define __NR_sched_getattr             (__NR_Linux + 350)
-> +#define __NR_renameat2                 (__NR_Linux + 351)
->
->  /*
->   * Offset of the last Linux o32 flavoured syscall
->   */
-> -#define __NR_Linux_syscalls            350
-> +#define __NR_Linux_syscalls            351
->
->  #endif /* _MIPS_SIM == _MIPS_SIM_ABI32 */
->
->  #define __NR_O32_Linux                 4000
-> -#define __NR_O32_Linux_syscalls                350
-> +#define __NR_O32_Linux_syscalls                351
->
->  #if _MIPS_SIM == _MIPS_SIM_ABI64
->
-> @@ -699,16 +700,17 @@
->  #define __NR_getdents64                        (__NR_Linux + 308)
->  #define __NR_sched_setattr             (__NR_Linux + 309)
->  #define __NR_sched_getattr             (__NR_Linux + 310)
-> +#define __NR_renameat2                 (__NR_Linux + 311)
->
->  /*
->   * Offset of the last Linux 64-bit flavoured syscall
->   */
-> -#define __NR_Linux_syscalls            310
-> +#define __NR_Linux_syscalls            311
->
->  #endif /* _MIPS_SIM == _MIPS_SIM_ABI64 */
->
->  #define __NR_64_Linux                  5000
-> -#define __NR_64_Linux_syscalls         310
-> +#define __NR_64_Linux_syscalls         311
->
->  #if _MIPS_SIM == _MIPS_SIM_NABI32
->
-> @@ -1031,15 +1033,16 @@
->  #define __NR_finit_module              (__NR_Linux + 312)
->  #define __NR_sched_setattr             (__NR_Linux + 313)
->  #define __NR_sched_getattr             (__NR_Linux + 314)
-> +#define __NR_renameat2                 (__NR_Linux + 315)
->
->  /*
->   * Offset of the last N32 flavoured syscall
->   */
-> -#define __NR_Linux_syscalls            314
-> +#define __NR_Linux_syscalls            315
->
->  #endif /* _MIPS_SIM == _MIPS_SIM_NABI32 */
->
->  #define __NR_N32_Linux                 6000
-> -#define __NR_N32_Linux_syscalls                314
-> +#define __NR_N32_Linux_syscalls                315
->
->  #endif /* _UAPI_ASM_UNISTD_H */
-> diff --git a/arch/mips/kernel/scall32-o32.S b/arch/mips/kernel/scall32-o32.S
-> index fdc70b400442..3245474f19d5 100644
-> --- a/arch/mips/kernel/scall32-o32.S
-> +++ b/arch/mips/kernel/scall32-o32.S
-> @@ -577,3 +577,4 @@ EXPORT(sys_call_table)
->         PTR     sys_finit_module
->         PTR     sys_sched_setattr
->         PTR     sys_sched_getattr               /* 4350 */
-> +       PTR     sys_renameat2
-> diff --git a/arch/mips/kernel/scall64-64.S b/arch/mips/kernel/scall64-64.S
-> index dd99c3285aea..be2fedd4ae33 100644
-> --- a/arch/mips/kernel/scall64-64.S
-> +++ b/arch/mips/kernel/scall64-64.S
-> @@ -430,4 +430,5 @@ EXPORT(sys_call_table)
->         PTR     sys_getdents64
->         PTR     sys_sched_setattr
->         PTR     sys_sched_getattr               /* 5310 */
-> +       PTR     sys_renameat2
->         .size   sys_call_table,.-sys_call_table
-> diff --git a/arch/mips/kernel/scall64-n32.S b/arch/mips/kernel/scall64-n32.S
-> index f68d2f4f0090..c1dbcda4b816 100644
-> --- a/arch/mips/kernel/scall64-n32.S
-> +++ b/arch/mips/kernel/scall64-n32.S
-> @@ -423,4 +423,5 @@ EXPORT(sysn32_call_table)
->         PTR     sys_finit_module
->         PTR     sys_sched_setattr
->         PTR     sys_sched_getattr
-> +       PTR     sys_renameat2                   /* 6315 */
->         .size   sysn32_call_table,.-sysn32_call_table
-> diff --git a/arch/mips/kernel/scall64-o32.S b/arch/mips/kernel/scall64-o32.S
-> index 70f6acecd928..f1343ccd7ed7 100644
-> --- a/arch/mips/kernel/scall64-o32.S
-> +++ b/arch/mips/kernel/scall64-o32.S
-> @@ -556,4 +556,5 @@ EXPORT(sys32_call_table)
->         PTR     sys_finit_module
->         PTR     sys_sched_setattr
->         PTR     sys_sched_getattr               /* 4350 */
-> +       PTR     sys_renameat2
->         .size   sys32_call_table,.-sys32_call_table
-> --
-> 1.8.1.4
->
+James
