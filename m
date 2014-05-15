@@ -1,126 +1,105 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v10 03/19] qspinlock: Add pending bit
-Date: Wed, 14 May 2014 19:00:16 +0200
-Message-ID: <20140514170016.GW30445@twins.programming.kicks-ass.net>
-References: <1399474907-22206-1-git-send-email-Waiman.Long@hp.com>
-	<1399474907-22206-4-git-send-email-Waiman.Long@hp.com>
-	<20140512152208.GA12309@potion.brq.redhat.com>
-	<537276B4.10209@hp.com> <20140514165121.GA21370@potion.redhat.com>
+From: Anthony Iliopoulos <anthony.iliopoulos@huawei.com>
+Subject: Re: [PATCH] x86, hugetlb: add missing TLB page invalidation for
+ hugetlb_cow()
+Date: Thu, 15 May 2014 19:00:35 +0200
+Message-ID: <20140515170035.GA15779@server-36.huawei.corp>
+References: <20140514092948.GA17391@server-36.huawei.corp>
+ <5372A067.9010808@sr71.net>
 Mime-Version: 1.0
-Content-Type: multipart/mixed; boundary="===============0088900872614279570=="
-Return-path: <virtualization-bounces@lists.linux-foundation.org>
-In-Reply-To: <20140514165121.GA21370@potion.redhat.com>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
-List-Post: <mailto:virtualization@lists.linux-foundation.org>
-List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
-Sender: virtualization-bounces@lists.linux-foundation.org
-Errors-To: virtualization-bounces@lists.linux-foundation.org
-To: Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>
-Cc: x86@kernel.org, Gleb Natapov <gleb@redhat.com>, linux-kernel@vger.kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, linux-arch@vger.kernel.org, kvm@vger.kernel.org, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, Ingo Molnar <mingo@redhat.com>, xen-devel@lists.xenproject.org, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Rik van Riel <riel@redhat.com>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Scott J Norton <scott.norton@hp.com>, Paolo Bonzini <paolo.bonzini@gmail.com>, Thomas Gleixner <tglx@linutronix.de>, virtualization@lists.linux-foundation.org, Chegu Vinod <chegu_vinod@hp.com>, Waiman Long <waiman.long@hp.com>, Oleg Nesterov <oleg@redhat.com>, David Vrabel <david.vrabel@citrix.com>, Linus Torvalds <torvalds@linux-foundation.org>
-List-Id: linux-arch.vger.kernel.org
-
-
---===============0088900872614279570==
-Content-Type: multipart/signed; micalg=pgp-sha1;
-	protocol="application/pgp-signature"; boundary="EnT6sQnqsTJq4oDy"
-Content-Disposition: inline
-
-
---EnT6sQnqsTJq4oDy
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
-
-On Wed, May 14, 2014 at 06:51:24PM +0200, Radim Kr=C4=8Dm=C3=A1=C5=99 wrote:
-> Ok.
-> I've seen merit in pvqspinlock even with slightly slower first-waiter,
-> so I would have happily sacrificed those horrible branches.
-> (I prefer elegant to optimized code, but I can see why we want to be
->  strictly better than ticketlock.)
-> Peter mentioned that we are focusing on bare-metal patches, so I'll
-> withold my other paravirt rants until they are polished.
-
-Well, paravirt must happen too, but comes later in this series, patch 3
-which we're replying to is still very much in the bare metal part of the
-series.
-
-I've not had time yet to decode all that Waiman has done to make
-paravirt work.
-
-But as a general rule I like patches that start with something simple
-and working and then optimize it, this series doesn't seem to quite
-grasp that.
-
-> And to forcefully bring this thread a little bit on-topic:
->=20
-> Pending-bit is effectively a lock in a lock, so I was wondering why
-> don't we use more pending bits; advantages are the same, just diminished
-> by the probability of having an ideally contended lock:
->  - waiter won't be blocked on RAM access if critical section (or more)
->    ends sooner
->  - some unlucky cacheline is not forgotten
->  - faster unlock (no need for tail operations)
-> (- ?)
-> disadvantages are magnified:
->  - increased complexity
->  - intense cacheline sharing
->    (I thought that this is the main disadvantage of ticketlock.)
-> (- ?)
->=20
-> One bit still improved performance, is it the best we got?
-
-So, the advantage of one bit is that if we use a whole byte for 1 bit we
-can avoid some atomic ops.
-
-The entire reason for this in-word spinner is to amortize the cost of
-hitting the external node cacheline.
-
-So traditional locks like test-and-test and the ticket lock only ever
-access the spinlock word itsef, this MCS style queueing lock has a
-second (and, see my other rants in this thread, when done wrong more
-than 2) cacheline to touch.
-
-That said, all our benchmarking is pretty much for the cache-hot case,
-so I'm not entirely convinced yet that the one pending bit makes up for
-it, it does in the cache-hot case.
-
-But... writing cache-cold benchmarks is _hard_ :/
-
---EnT6sQnqsTJq4oDy
-Content-Type: application/pgp-signature
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.12 (GNU/Linux)
-
-iQIcBAEBAgAGBQJTc6EgAAoJEHZH4aRLwOS6YbQQAKinRXw0QntsvwaHuZgv+lW5
-tWDt5Yal7nlRalCmtFPgpuvbryv0YW+JXtqe8dDraLlhVEfOMzdxLstlp4gTnMF6
-W+taUUOOnK5EWFlYLCH2pTl2jPET+2eE3VS2i86VWx+yTIpci2avAqyh5rr1U5xp
-xXnrlcYnAJwgfGL30DNpeT9RY7CvrBJPdgRxiMkyKztesgsKnszM7vp/TOJLAES/
-N1P4PSDNT6Nq+xfNgww4mqUeh4VVDEAamxwrTgciNn293BrZkGpMfnWNZLFtcjpK
-8b97heHhgGryhFjjZi5AqCb6tn2lidmB8FfSYHJa8KLrQ2ZhjYqvH94lL3rhsNFa
-ow8zhqBqNqNJCoavWv33WYICuC5X4+StAPjKfBzv8czucMkemElirsjVtfPmB81L
-WAvLrqgiMLrQpzT/CspIjH96UnkdDGbc+znOaBBHZVvBceiqeHVbuJEEe1Y4H70W
-psNfoOpZJg5HxEdGsBA3QRPTkYRC37/5rF2DhMZLx4QJkEvN2pRSdqm7j0xQxNBY
-Ufwf7h5s6wJRVGCtqI1VcDZNJFBVv633EF1Y/h8sTAA3+HITwqcT5B+gpOUR0Y/Z
-CtLXP28NU2WWB7p403VoFkwzJozhjdmXBK0W2fdqoZcuAVESpPhdiikj4cu0zr83
-Vn3uwO+kYODw5+MUt+dB
-=JLaw
------END PGP SIGNATURE-----
-
---EnT6sQnqsTJq4oDy--
-
---===============0088900872614279570==
 Content-Type: text/plain; charset="us-ascii"
-MIME-Version: 1.0
-Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from szxga03-in.huawei.com ([119.145.14.66]:31443 "EHLO
+	szxga03-in.huawei.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756019AbaENRJt (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 14 May 2014 13:09:49 -0400
 Content-Disposition: inline
+In-Reply-To: <5372A067.9010808@sr71.net>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Dave Hansen <dave@sr71.net>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Shay Goikhman <shay.goikhman@huawei.com>, Paul Mundt <paul.mundt@huawei.com>, Carlos Villavieja <villavieja@hps.utexas.edu>, Nacho Navarro <nacho.navarro@bsc.es>, Avi Mendelson <avi.mendelson@tce.technion.ac.il>, Yoav Etsion <yetsion@tce.technion.ac.il>, Gerald Schaefer <gerald.schaefer@de.ibm.com>, David Gibson <david@gibson.dropbear.id.au>, linux-arch <linux-arch@vger.kernel.org>
 
-_______________________________________________
-Virtualization mailing list
-Virtualization@lists.linux-foundation.org
-https://lists.linuxfoundation.org/mailman/listinfo/virtualization
---===============0088900872614279570==--
+On Tue, May 13, 2014 at 03:44:55PM -0700, Dave Hansen wrote:
+> On 05/14/2014 02:29 AM, Anthony Iliopoulos wrote:
+> > The invalidation is required in order to maintain proper semantics
+> > under CoW conditions. In scenarios where a process clones several
+> > threads, a thread operating on a core whose DTLB entry for a
+> > particular hugepage has not been invalidated, will be reading from
+> > the hugepage that belongs to the forked child process, even after
+> > hugetlb_cow().
+> > 
+> > The thread will not see the updated page as long as the stale DTLB
+> > entry remains cached, the thread attempts to write into the page,
+> > the child process exits, or the thread gets migrated to a different
+> > processor.
+> 
+> No to be too nitpicky, but this applies to ITLB too, right?
+
+Quite true, this does apply to ITLB too. I suppose there might be cases
+like self-modifying code that touches the private text pages, or some
+JIT compiler writing on mmap-ed executable regions that would observe
+the same behavior under similar conditions.
+
+> I believe this bug came all the way back from:
+> 
+> > commit 1e8f889b10d8d2223105719e36ce45688fedbd59
+> > Author: David Gibson <david@gibson.dropbear.id.au>
+> > Date:   Fri Jan 6 00:10:44 2006 -0800
+> > 
+> >     [PATCH] Hugetlb: Copy on Write support
+> 
+> It was probably the first time that we ever changed an _existing_
+> hugetlbfs pte, and that patch probably just missed the TLB flush because
+> none of the other pte-setting hugetlb.c code needed TLB flushes.
+
+This seems to be the case, I assume that our internal use case was
+also probably the first that needed to rely on proper semantics under
+a multithreaded CoW scenario with hugetlb pages, so this came into
+the surface.
+
+I have actually also wondered about another related thing:
+even when we actually do invalidate the page, there may still be a
+race between a thread on a core that reads the page in some tight
+loop (e.g. on a spinlock), and the page fault handler running on
+a different core, at the point where the pte is set. Since we
+invalidate the page via the TLB shootdowns *before* we update
+the pte (this is true for all do_wp_page(), do_huge_pmd_wp_page()
+as well as hugetlb_cow()), there may be some tiny window where the
+thread might re-read the page before the pte is set.
+
+I have dismissed this case, since I assume that there are many more
+cycles spent in servicing the TLB invalidation IPI, walking the pgtable
+plus other related overhead (e.g. sched) than in updating the pte/pmd
+so I am not sure how possible it would be to hit this condition.
+
+I am also hesitant to simply submit a patch that reverses the order
+of flushing and setting the pte, due to the following commit:
+
+    commit 4ce072f1faf29d24df4600f53db8cdd62d400a8f
+    Author: Siddha, Suresh B <suresh.b.siddha@intel.com>
+    Date:   Fri Sep 29 01:58:42 2006 -0700
+
+    [PATCH] mm: fix a race condition under SMC + COW
+
+> The bogus x86 version of huge_ptep_clear_flush() came from the s390
+> guys, so double-shame on IBM! :P
+> 
+> > commit 8fe627ec5b7c47b1654dff50536d9709863295a3
+> > Author: Gerald Schaefer <gerald.schaefer@de.ibm.com>
+> > Date:   Mon Apr 28 02:13:28 2008 -0700
+> > 
+> >     hugetlbfs: add missing TLB flush to hugetlb_cow()
+> 
+> This is probably an opportunity for all the other architecture
+> maintainers to make sure that they have proper copies of
+> huge_ptep_clear_flush().
+> 
+> I went through the hugetlb code on x86 and couldn't find another TLB
+> flush that fixes this issue, and I believe this is correct, so:
+> 
+> Acked-by: Dave Hansen <dave.hansen@intel.com>
+
+Many thanks for confirming, and for your prompt response.
+
+Regards,
+Anthony
