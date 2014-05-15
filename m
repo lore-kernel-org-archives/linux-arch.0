@@ -1,58 +1,60 @@
-From: Hugh Dickins <hughd@google.com>
-Subject: Re: [PATCH V4 0/2] mm: FAULT_AROUND_ORDER patchset performance data
- for powerpc
-Date: Thu, 15 May 2014 10:28:17 -0700 (PDT)
-Message-ID: <alpine.LSU.2.11.1405151026540.4664@eggly.anvils>
-References: <1399541296-18810-1-git-send-email-maddy@linux.vnet.ibm.com> <537479E7.90806@linux.vnet.ibm.com>
+From: "Joseph S. Myers" <joseph@codesourcery.com>
+Subject: Re: [PATCH 00/25] Change time_t and clock_t to 64 bit
+Date: Thu, 15 May 2014 18:01:37 +0000
+Message-ID: <Pine.LNX.4.64.1405151748430.3155@digraph.polyomino.org.uk>
+References: <1399971456-3941-1-git-send-email-lftan@altera.com>
+ <8399002.IIyBoyEHox@wuerfel> <CANcMJZAOi9ctWkpEgynj6wxCrvW4oS5ZHj3Chv04D=VQDogEvw@mail.gmail.com>
+ <4160991.69XaTMjMrC@wuerfel> <5374F56A.3090406@codesourcery.com>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <537479E7.90806@linux.vnet.ibm.com>
-Sender: owner-linux-mm@kvack.org
-To: Madhavan Srinivasan <maddy@linux.vnet.ibm.com>
-Cc: linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, x86@kernel.org, benh@kernel.crashing.org, paulus@samba.org, kirill.shutemov@linux.intel.com, rusty@rustcorp.com.au, akpm@linux-foundation.org, riel@redhat.com, mgorman@suse.de, ak@linux.intel.com, peterz@infradead.org, mingo@kernel.org, dave.hansen@intel.com
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="US-ASCII"
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from relay1.mentorg.com ([192.94.38.131]:46040 "EHLO
+	relay1.mentorg.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753216AbaEOSBm (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 15 May 2014 14:01:42 -0400
+In-Reply-To: <5374F56A.3090406@codesourcery.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Chung-Lin Tang <cltang@codesourcery.com>
+Cc: Arnd Bergmann <arnd@arndb.de>, John Stultz <john.stultz@linaro.org>, Geert Uytterhoeven <geert@linux-m68k.org>, Christoph Hellwig <hch@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Ley Foon Tan <lftan@altera.com>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, LeyFoon Tan <lftan.linux@gmail.com>
 
-On Thu, 15 May 2014, Madhavan Srinivasan wrote:
+On Thu, 15 May 2014, Chung-Lin Tang wrote:
+
+> > c) glibc may or may not provide a way for applications to use
+> >    the extended interfaces without a user space ABI break. My
+> >    impression so far is that this is going to be too hard and
+> >    it won't be done, but this is for the glibc developers to
+> >    determine.
 > 
-> Hi Ingo,
-> 
-> 	Do you have any comments for the latest version of the patchset. If
-> not, kindly can you pick it up as is.
-> 
-> 
-> With regards
-> Maddy
-> 
-> > Kirill A. Shutemov with 8c6e50b029 commit introduced
-> > vm_ops->map_pages() for mapping easy accessible pages around
-> > fault address in hope to reduce number of minor page faults.
-> > 
-> > This patch creates infrastructure to modify the FAULT_AROUND_ORDER
-> > value using mm/Kconfig. This will enable architecture maintainers
-> > to decide on suitable FAULT_AROUND_ORDER value based on
-> > performance data for that architecture. First patch also defaults
-> > FAULT_AROUND_ORDER Kconfig element to 4. Second patch list
-> > out the performance numbers for powerpc (platform pseries) and
-> > initialize the fault around order variable for pseries platform of
-> > powerpc.
+> glibc does version its exported symbols, so provided new/old syscalls
+> are both provided, haveing a new version of a routine (using 64-bit
+> time_t and new syscall interfaces) and the old compat routine co-exist
+> should be possible. Of course, old binaries may still not be saved when
+> 2038 arrives.
 
-Sorry for not commenting earlier - just reminded by this ping to Ingo.
+You could do it with symbol versioning, though my guess would be that it 
+would be natural to provide _TIME_BITS like _FILE_OFFSET_BITS (with the 
+combination _TIME_BITS=64, _FILE_OFFSET_BITS=32 not being supported at 
+all) and then later transition the default.  (Discussion of the 
+possibility of moving the default to _FILE_OFFSET_BITS=64 suggested that 
+in practice most libraries in distributions where this affects the ABI are 
+already built that way, though noone has followed up on that discussion to 
+try to reach a consensus that we have enough evidence to change the 
+default now.  There are a couple of issues with the way 
+_FILE_OFFSET_BITS=64 is implemented that should be avoided in any 
+implementation of _TIME_BITS=64: (a) _FILE_OFFSET_BITS=64 maps functions 
+to corresponding *64 functions in the user's namespace, when it should use 
+reserved-namespace names; (b) it's not a no-op for 64-bit platforms - it 
+still remaps function names and types.  So _TIME_BITS=64 should only map 
+to reserved-namespace names, and not do any remapping at all on platforms 
+where time_t is already 64-bit.)
 
-I didn't study your numbers, but nowhere did I see what PAGE_SIZE you use.
+Obviously 64-bit time_t syscalls would be an appropriately narrow set of 
+syscalls like those in the generic ABI (so glibc would implement stat for 
+_TIME_BITS=64 using fstatat64_time64 or whatever the syscall is called, 
+just as the stat functions for generic ABI architectures are implemented 
+with newfstatat / fstatat64 rather than lots of separate syscalls.
 
-arch/powerpc/Kconfig suggests that Power supports base page size of
-4k, 16k, 64k or 256k.
-
-I would expect your optimal fault_around_order to depend very much on
-the base page size.
-
-Perhaps fault_around_size would provide a more useful default?
-
-Hugh
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+-- 
+Joseph S. Myers
+joseph@codesourcery.com
