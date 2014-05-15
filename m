@@ -1,21 +1,17 @@
 From: Chung-Lin Tang <cltang@codesourcery.com>
 Subject: Re: [PATCH 00/25] Change time_t and clock_t to 64 bit
-Date: Fri, 16 May 2014 01:11:58 +0800
-Message-ID: <5374F55E.4030004@codesourcery.com>
+Date: Fri, 16 May 2014 01:12:10 +0800
+Message-ID: <5374F56A.3090406@codesourcery.com>
 References: <1399971456-3941-1-git-send-email-lftan@altera.com> <8399002.IIyBoyEHox@wuerfel> <CANcMJZAOi9ctWkpEgynj6wxCrvW4oS5ZHj3Chv04D=VQDogEvw@mail.gmail.com> <4160991.69XaTMjMrC@wuerfel>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="ISO-8859-1"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from relay1.mentorg.com ([192.94.38.131]:40631 "EHLO
-	relay1.mentorg.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751829AbaEORL7 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 15 May 2014 13:11:59 -0400
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <4160991.69XaTMjMrC@wuerfel>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: Arnd Bergmann <arnd@arndb.de>, John Stultz <john.stultz@linaro.org>
-Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Christoph Hellwig <hch@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Ley Foon Tan <lftan@altera.com>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, LeyFoon Tan <lftan.linux@gmail.com>
+Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Christoph Hellwig <hch@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Ley Foon Tan <lftan@altera.com>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, LeyFoon Tan <lftan.linux@gmail.com>, "Joseph S. Myers" <joseph@codesourcery.com>
+List-Id: linux-arch.vger.kernel.org
 
 On 2014/5/15 07:08 PM, Arnd Bergmann wrote:
 > On Wednesday 14 May 2014 14:33:18 John Stultz wrote:
