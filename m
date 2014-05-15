@@ -1,70 +1,64 @@
-From: Madhavan Srinivasan <maddy@linux.vnet.ibm.com>
-Subject: Re: [PATCH V4 0/2] mm: FAULT_AROUND_ORDER patchset performance data
- for powerpc
-Date: Thu, 15 May 2014 13:55:11 +0530
-Message-ID: <537479E7.90806@linux.vnet.ibm.com>
-References: <1399541296-18810-1-git-send-email-maddy@linux.vnet.ibm.com>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: Consolidate tlb.h
+Date: Thu, 15 May 2014 10:32:58 +0200
+Message-ID: <20140515083258.GD30445@twins.programming.kicks-ass.net>
+References: <1400093999-18703-1-git-send-email-richard@nod.at>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <1399541296-18810-1-git-send-email-maddy@linux.vnet.ibm.com>
-Sender: owner-linux-mm@kvack.org
-To: linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, x86@kernel.org
-Cc: benh@kernel.crashing.org, paulus@samba.org, kirill.shutemov@linux.intel.com, rusty@rustcorp.com.au, akpm@linux-foundation.org, riel@redhat.com, mgorman@suse.de, ak@linux.intel.com, peterz@infradead.org, mingo@kernel.org, dave.hansen@intel.com
-List-Id: linux-arch.vger.kernel.org
+Content-Type: multipart/signed; micalg=pgp-sha1;
+	protocol="application/pgp-signature"; boundary="y9n12KajPNdV/7DP"
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from bombadil.infradead.org ([198.137.202.9]:54178 "EHLO
+	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750750AbaEOIdJ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 15 May 2014 04:33:09 -0400
+Content-Disposition: inline
+In-Reply-To: <1400093999-18703-1-git-send-email-richard@nod.at>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Richard Weinberger <richard@nod.at>
+Cc: linux-arch@vger.kernel.org, arnd@arndb.de, linux-kernel@vger.kernel.org
 
 
-Hi Ingo,
+--y9n12KajPNdV/7DP
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
 
-	Do you have any comments for the latest version of the patchset. If
-not, kindly can you pick it up as is.
+On Wed, May 14, 2014 at 08:59:32PM +0200, Richard Weinberger wrote:
+> While staring at an UML TLB bug I've noticed that most archs
+> copy and pasted stuff from each others tlb.h.
+> This patch series combines common stuff into the generic tlb.h.
+>=20
 
+Were you aware of this series:
 
-With regards
-Maddy
+  http://www.spinics.net/lists/linux-mm/msg37369.html
 
-> Kirill A. Shutemov with 8c6e50b029 commit introduced
-> vm_ops->map_pages() for mapping easy accessible pages around
-> fault address in hope to reduce number of minor page faults.
-> 
-> This patch creates infrastructure to modify the FAULT_AROUND_ORDER
-> value using mm/Kconfig. This will enable architecture maintainers
-> to decide on suitable FAULT_AROUND_ORDER value based on
-> performance data for that architecture. First patch also defaults
-> FAULT_AROUND_ORDER Kconfig element to 4. Second patch list
-> out the performance numbers for powerpc (platform pseries) and
-> initialize the fault around order variable for pseries platform of
-> powerpc.
-> 
-> V4 Changes:
->   Replaced the BUILD_BUG_ON with VM_BUG_ON.
->   Moved fault_around_pages() and fault_around_mask() functions outside of
->    #ifdef CONFIG_DEBUG_FS.
-> 
-> V3 Changes:
->   Replaced FAULT_AROUND_ORDER macro to a variable to support arch's that
->    supports sub platforms.
->   Made changes in commit messages.
-> 
-> V2 Changes:
->   Created Kconfig parameter for FAULT_AROUND_ORDER
->   Added check in do_read_fault to handle FAULT_AROUND_ORDER value of 0
->   Made changes in commit messages.
-> 
-> Madhavan Srinivasan (2):
->   mm: move FAULT_AROUND_ORDER to arch/
->   powerpc/pseries: init fault_around_order for pseries
-> 
->  arch/powerpc/platforms/pseries/pseries.h |    2 ++
->  arch/powerpc/platforms/pseries/setup.c   |    5 +++++
->  mm/Kconfig                               |    8 ++++++++
->  mm/memory.c                              |   25 ++++++-------------------
->  4 files changed, 21 insertions(+), 19 deletions(-)
-> 
+I've been meaning to refresh and continue with it, but somehow I never
+get time to actually do it :/
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+At the time only s390 still have a relatively trivial problem but all
+archs were using generic code.
+
+--y9n12KajPNdV/7DP
+Content-Type: application/pgp-signature
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.12 (GNU/Linux)
+
+iQIcBAEBAgAGBQJTdHu6AAoJEHZH4aRLwOS66GoP/ixqHc6y/0XqrvVNlTcitRRK
+VTvtygj8V3xdjso0/z6FeE5Zbg/Ri1FsgL+mIa+5c83vsxFe5oWMlZAGIrEj1Zxq
+N9s9Jdy5qR2vwqwTmWGJiEpIW2lGhIvGTyvW+OE9j5UAcvipIMy/ArmPHM3yR6CS
+Oa7R8ICRyUvz78dBOgqHiEy0K0+EDuedmhs2kWAo+6efhrqhp0ZVflE3DhH8W2nt
+VFqDs60w5LmWoRXkNj0/sYQcv0SP5DeAR3h5WrLUknM45/Pa4TernIvUFoqfTH5U
+8FGCl2qlSHGxWie/EdT6puCukE+F1koBd+PBu4qY3YEkpjOjkC+e/hVzBJrZ7R2S
+LLg1HXHTetUQ2ei3Y/be2RGEK2lgcH3e7/dVQncWFt+36BVg7IR4u2Q113tFq47/
+mqdOcqgcouOOkp+WSJbqe+oifLYTQHXd5YYvbpAIYWQ2xAIjj9Fg8Se6iET7cNAP
+vDCm5EudD+0gmhjIg6HHw4NjKZ3C+djHYTmyTudJwHcqjW/3/nRWLoBbUk9fwiZv
+bqD5Mf7k0vmGUketMI2yE9MvnYn+k9edjlyn9l29Kmf1GpZPeuy4WgLlacxqDMIj
+2NYorI07R90MFoa/F64exYk7U3twDQrsxTw8uul7SuJx7PrzFQVKZzuv18FGd11+
+mIElMXQ6ryEqrScnka/m
+=KC9j
+-----END PGP SIGNATURE-----
+
+--y9n12KajPNdV/7DP--
