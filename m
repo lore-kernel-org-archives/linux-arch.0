@@ -1,47 +1,34 @@
-From: Andy Lutomirski <luto@amacapital.net>
-Subject: Unifying vdso implementations across architectures?
-Date: Fri, 16 May 2014 14:59:49 -0700
-Message-ID: <CALCETrU6wEoBAESp68NrBMack3jd0ofgw9PM+uNFnCnFEvVnNg@mail.gmail.com>
+From: "H. Peter Anvin" <hpa@zytor.com>
+Subject: Re: [PATCH 00/25] Change time_t and clock_t to 64 bit
+Date: Fri, 16 May 2014 16:06:15 -0700
+Message-ID: <537699E7.9050005@zytor.com>
+References: <1399971456-3941-1-git-send-email-lftan@altera.com> <8468354.y2kUZdOz9e@wuerfel> <1400168823.7862.9.camel@dabdike> <9176609.NChAu49t7f@wuerfel> <20140515220717.1ced0f1a@alan.etchedpixels.co.uk> <20140516074826.GB8555@infradead.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ve0-f171.google.com ([209.85.128.171]:36656 "EHLO
-	mail-ve0-f171.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751766AbaEPWAK (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 16 May 2014 18:00:10 -0400
-Received: by mail-ve0-f171.google.com with SMTP id oz11so3881890veb.30
-        for <linux-arch@vger.kernel.org>; Fri, 16 May 2014 15:00:09 -0700 (PDT)
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch <linux-arch@vger.kernel.org>, X86 ML <x86@kernel.org>
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20140516074826.GB8555@infradead.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Christoph Hellwig <hch@infradead.org>, One Thousand Gnomes <gnomes@lxorguk.ukuu.org.uk>
+Cc: Arnd Bergmann <arnd@arndb.de>, James Bottomley <James.Bottomley@hansenpartnership.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Thomas Gleixner <tglx@linutronix.de>, Ley Foon Tan <lftan@altera.com>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, LeyFoon Tan <lftan.linux@gmail.com>, Chung-Lin Tang <cltang@codesourcery.com>
+List-Id: linux-arch.vger.kernel.org
 
-Hi all-
+On 05/16/2014 12:48 AM, Christoph Hellwig wrote:
+> 
+> The stat(64) syscall already has stopped time_t for a long time:
+> 
+> struct stat64 {
+> 	...
+> 	int             st_atime;       /* Time of last access.  */
+> 	unsigned int    st_atime_nsec;
+> 	int             st_mtime;       /* Time of last modification.  */
+> 	unsigned int    st_mtime_nsec;
+> 	int             st_ctime;	/* Time of last status change. */
+> 	unsigned int	st_ctime_nsec;
+> };
+> 
 
-I've spent a bunch of time cleaning up the x86 vdso implementation.
-In linux-next (via tip/x86/vdso), there is a build-time helper vdso2c
-that takes a .so.dbg file and generates a .c file that describes the
-vdso image.  That helper can extract symbols, find the alternative
-patching instructions, check for undefined symbols, fully strip the
-image, and set up a nice data structure that contains pretty much all
-of the information needed to map the vdso.  The helper and the linker
-script know how to set up any number of pages immediately after the
-vdso mapping that can be referenced (in a pc-relative manner) from the
-vdso to do useful things like timing.
+... except that that is really a struct timespec just written weirdly,
+and userspace uses it as a struct timespec.
 
-I'm currently working on further improvements to remove the need for
-arch_vma_name and such.
-
-Would there be interest in trying to unify this stuff across
-architectures?  AFAICT a lot of architectures contain copies of pretty
-much the same code.
-
-Note that I'm talking about real vdsos, not magic pages that are
-mapped in kernel address space.  The latter is awful and should be
-eliminated whenever possible.  I still don't understand why ARM has
-one of these.
-
---Andy
-
--- 
-Andy Lutomirski
-AMA Capital Management, LLC
+	-hpa
