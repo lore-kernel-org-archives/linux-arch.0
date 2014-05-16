@@ -1,34 +1,37 @@
 From: "H. Peter Anvin" <hpa@zytor.com>
 Subject: Re: [PATCH 00/25] Change time_t and clock_t to 64 bit
-Date: Fri, 16 May 2014 16:06:15 -0700
-Message-ID: <537699E7.9050005@zytor.com>
-References: <1399971456-3941-1-git-send-email-lftan@altera.com> <8468354.y2kUZdOz9e@wuerfel> <1400168823.7862.9.camel@dabdike> <9176609.NChAu49t7f@wuerfel> <20140515220717.1ced0f1a@alan.etchedpixels.co.uk> <20140516074826.GB8555@infradead.org>
+Date: Fri, 16 May 2014 16:11:35 -0700
+Message-ID: <53769B27.2090407@zytor.com>
+References: <1399971456-3941-1-git-send-email-lftan@altera.com> <4706636.rTYoqSXXOR@wuerfel> <Pine.LNX.4.64.1405151949160.911@digraph.polyomino.org.uk> <9236147.lyD24Zv5SZ@wuerfel>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20140516074826.GB8555@infradead.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Christoph Hellwig <hch@infradead.org>, One Thousand Gnomes <gnomes@lxorguk.ukuu.org.uk>
-Cc: Arnd Bergmann <arnd@arndb.de>, James Bottomley <James.Bottomley@hansenpartnership.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Thomas Gleixner <tglx@linutronix.de>, Ley Foon Tan <lftan@altera.com>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, LeyFoon Tan <lftan.linux@gmail.com>, Chung-Lin Tang <cltang@codesourcery.com>
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from terminus.zytor.com ([198.137.202.10]:60797 "EHLO mail.zytor.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1753935AbaEPXMV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 16 May 2014 19:12:21 -0400
+In-Reply-To: <9236147.lyD24Zv5SZ@wuerfel>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Arnd Bergmann <arnd@arndb.de>, "Joseph S. Myers" <joseph@codesourcery.com>
+Cc: Chung-Lin Tang <cltang@codesourcery.com>, John Stultz <john.stultz@linaro.org>, Geert Uytterhoeven <geert@linux-m68k.org>, Christoph Hellwig <hch@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Ley Foon Tan <lftan@altera.com>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, LeyFoon Tan <lftan.linux@gmail.com>
 
-On 05/16/2014 12:48 AM, Christoph Hellwig wrote:
+On 05/15/2014 01:38 PM, Arnd Bergmann wrote:
 > 
-> The stat(64) syscall already has stopped time_t for a long time:
+> For practical purposes in the kernel, we may still want to use 64-bit
+> nanoseconds: if we use a 96 bit struct timespec, that would be incompatible
+> with the native type on 64-bit kernels, thus complicating the syscall
+> emulation layer.
 > 
-> struct stat64 {
-> 	...
-> 	int             st_atime;       /* Time of last access.  */
-> 	unsigned int    st_atime_nsec;
-> 	int             st_mtime;       /* Time of last modification.  */
-> 	unsigned int    st_mtime_nsec;
-> 	int             st_ctime;	/* Time of last status change. */
-> 	unsigned int	st_ctime_nsec;
-> };
-> 
+> I don't know why timespec on x32 uses 'long tv_nsec', it does seem
+> problematic.
 
-... except that that is really a struct timespec just written weirdly,
-and userspace uses it as a struct timespec.
+struct timespec is specified in POSIX as having type "long" for tv_nsec.
+ This, as Linus pointed out, is totally braindamaged.
+
+x32 does not follow POSIX (Linus pretty much dictated that), and instead
+does the __kernel_suseconds_t to match the native kernel type.  The
+proposal at some point was to try to push a snseconds_t into POSIX.
 
 	-hpa
