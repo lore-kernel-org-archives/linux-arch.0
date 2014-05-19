@@ -1,40 +1,52 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH 00/25] Change time_t and clock_t to 64 bit
-Date: Mon, 19 May 2014 20:20:30 +0200
-Message-ID: <9148888.HqBb0YIpx4@wuerfel>
-References: <1399971456-3941-1-git-send-email-lftan@altera.com> <5228220.XfC7baN05k@wuerfel> <Pine.LNX.4.64.1405191806230.25418@digraph.polyomino.org.uk>
+From: John Stultz <john.stultz@linaro.org>
+Subject: Re: [PATCH 4/6] android: convert sync to fence api, v5
+Date: Mon, 19 May 2014 11:49:08 -0700
+Message-ID: <CALAqxLWZvt3yF8kAQz1AnQMOv66qqN8jP_zQiPDpiDcVngAa0g@mail.gmail.com>
+References: <20140224162607.20485.70967.stgit@patser>
+ <20140224162951.20485.57579.stgit@patser>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7Bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.126.187]:60803 "EHLO
-	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751072AbaESSUq (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 19 May 2014 14:20:46 -0400
-In-Reply-To: <Pine.LNX.4.64.1405191806230.25418@digraph.polyomino.org.uk>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: "Joseph S. Myers" <joseph@codesourcery.com>
-Cc: Chung-Lin Tang <cltang@codesourcery.com>, John Stultz <john.stultz@linaro.org>, Geert Uytterhoeven <geert@linux-m68k.org>, Christoph Hellwig <hch@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Ley Foon Tan <lftan@altera.com>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, LeyFoon Tan <lftan.linux@gmail.com>
+Content-Transfer-Encoding: 7bit
+Return-path: <dri-devel-bounces@lists.freedesktop.org>
+In-Reply-To: <20140224162951.20485.57579.stgit@patser>
+List-Unsubscribe: <http://lists.freedesktop.org/mailman/options/dri-devel>,
+ <mailto:dri-devel-request@lists.freedesktop.org?subject=unsubscribe>
+List-Archive: <http://lists.freedesktop.org/archives/dri-devel>
+List-Post: <mailto:dri-devel@lists.freedesktop.org>
+List-Help: <mailto:dri-devel-request@lists.freedesktop.org?subject=help>
+List-Subscribe: <http://lists.freedesktop.org/mailman/listinfo/dri-devel>,
+ <mailto:dri-devel-request@lists.freedesktop.org?subject=subscribe>
+Errors-To: dri-devel-bounces@lists.freedesktop.org
+Sender: "dri-devel" <dri-devel-bounces@lists.freedesktop.org>
+To: Maarten Lankhorst <maarten.lankhorst@canonical.com>
+Cc: linux-arch@vger.kernel.org, lkml <linux-kernel@vger.kernel.org>, "dri-devel@lists.freedesktop.org" <dri-devel@lists.freedesktop.org>, "linaro-mm-sig@lists.linaro.org" <linaro-mm-sig@lists.linaro.org>, Colin Cross <ccross@google.com>, linux-media@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Monday 19 May 2014 18:12:18 Joseph S. Myers wrote:
-> On Mon, 19 May 2014, Arnd Bergmann wrote:
-> 
-> > A related question would be how you plan to support future CPU architectures
-> > that never had the 32-bit time_t in the kernel ABI. Would you also want
-> > to provide both 32 and 64 bit time_t to user space on those?
-> 
-> I'd expect those just to have 64-bit time_t in userspace (like x32) - 
-> choosing a different type for time_t from the start is a lot simpler than 
-> setting up a second set of interfaces with associated symbol versioning 
-> for an existing architecture.  This whole discussion started with the 
-> question of whether Nios II should be such an architecture....
+On Mon, Feb 24, 2014 at 8:29 AM, Maarten Lankhorst
+<maarten.lankhorst@canonical.com> wrote:
+> Just to show it's easy.
+>
+> Android syncpoints can be mapped to a timeline. This removes the need
+> to maintain a separate api for synchronization. I've left the android
+> trace events in place, but the core fence events should already be
+> sufficient for debugging.
+>
+> v2:
+> - Call fence_remove_callback in sync_fence_free if not all fences have fired.
+> v3:
+> - Merge Colin Cross' bugfixes, and the android fence merge optimization.
+> v4:
+> - Merge with the upstream fixes.
+> v5:
+> - Fix small style issues pointed out by Thomas Hellstrom.
+>
+> Signed-off-by: Maarten Lankhorst <maarten.lankhorst@canonical.com>
 
-Ok
- 
-> (Other variants may arise as well, e.g. architectures with existing kernel 
-> support that only get glibc support later.)
+I ran this through a fairly simple unit test for the Android sw_sync
+interface and it ran fine.  Also since Colin, Rom and Greg didn't seem
+to have major objections last I spoke with them:
 
-Good point.
+Acked-by: John Stultz <john.stultz@linaro.org>
 
-	Arnd
+thanks
+-john
