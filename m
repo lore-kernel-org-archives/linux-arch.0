@@ -1,130 +1,790 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.17.24]:53642 "EHLO
-	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753047AbaESIIl (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 19 May 2014 04:08:41 -0400
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH 00/25] Change time_t and clock_t to 64 bit
-Date: Mon, 19 May 2014 10:08:18 +0200
-Message-ID: <4254860.84WuxPQ4j9@wuerfel>
-In-Reply-To: <Pine.LNX.4.64.1405152050230.911@digraph.polyomino.org.uk>
-References: <1399971456-3941-1-git-send-email-lftan@altera.com> <9236147.lyD24Zv5SZ@wuerfel> <Pine.LNX.4.64.1405152050230.911@digraph.polyomino.org.uk>
+Received: from smtp-outbound-1.vmware.com ([208.91.2.12]:50442 "EHLO
+	smtp-outbound-1.vmware.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1753056AbaESNnc (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Mon, 19 May 2014 09:43:32 -0400
+Message-ID: <537A0A5D.6090909@vmware.com>
+Date: Mon, 19 May 2014 14:42:53 +0100
+From: Thomas Hellstrom <thellstrom@vmware.com>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 7Bit
-Content-Type: text/plain; charset="us-ascii"
+Subject: Re: [RFC PATCH 2/2 with seqcount v3] reservation: add suppport for
+ read-only access using rcu
+References: <20140409144239.26648.57918.stgit@patser> <20140409144831.26648.79163.stgit@patser> <53465A53.1090500@vmware.com> <53466D63.8080808@canonical.com> <53467B93.3000402@vmware.com> <5346B212.8050202@canonical.com> <5347A9FD.2070706@vmware.com> <5347B4E5.6090901@canonical.com> <5347BFC9.3020503@vmware.com> <53482FF1.1090406@canonical.com> <534843EA.6060602@vmware.com> <534B9165.4000101@canonical.com> <534B921B.4080504@vmware.com> <5357A0DE.7030305@canonical.com>
+In-Reply-To: <5357A0DE.7030305@canonical.com>
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Joseph S. Myers" <joseph@codesourcery.com>
-Cc: Chung-Lin Tang <cltang@codesourcery.com>, John Stultz <john.stultz@linaro.org>, Geert Uytterhoeven <geert@linux-m68k.org>, Christoph Hellwig <hch@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Ley Foon Tan <lftan@altera.com>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, LeyFoon Tan <lftan.linux@gmail.com>
-Message-ID: <20140519080818.-Vm8RL7UFM3450m1ydwZYr7V2Il_uf8oUX5t8yvW0G8@z>
+To: Maarten Lankhorst <maarten.lankhorst@canonical.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, ccross@google.com, linux-media@vger.kernel.org
+Message-ID: <20140519134253.qruJ0OvXq67s9oilUMTsmrISiZprbvkT1KU6UAOOBWg@z>
 
-On Thursday 15 May 2014 21:05:03 Joseph S. Myers wrote:
-> On Thu, 15 May 2014, Arnd Bergmann wrote:
-> 
-> > > The distribution side of the change for _FILE_OFFSET_BITS (i.e., moving to 
-> > > building libraries that way so a glibc change to the default wouldn't 
-> > > cause issues for other libraries' ABIs) has gradually been done.  The 
-> > > discussion in March on libc-alpha about changing the default tailed off.  
-> > > This is something that needs someone to take the lead with a *careful and 
-> > > detailed analysis of the information from the previous discussion* in 
-> > > order to present a properly reasoned proposal for a change to the default 
-> > > - not scattergun patches, not patches with brief or no analysis of the 
-> > > environment in which glibc is used, not dismissing concerns, but a 
-> > > properly reasoned argument for why the change should be made, along with 
-> > > details of how distributions can determine whether ABI issues would arise 
-> > > from rebuilding a particular library against newer glibc.
-> > 
-> > Ok, I see. I wasn't aware that distributions actually set _FILE_OFFSET_BITS
-> > globally for building packages. I guess the effect (from the distro point
-> > of view) of that is similar to having a configure option when building glibc
-> > as I expected to be the normal way to do it.
-> 
-> I'm not sure they set it globally (modulo the suggestion in that recent 
-> thread that Gentoo might try changing the default and seeing what breaks) 
-> - but it at least seems to be set for most libraries for which it affects 
-> the ABI (whether upstream or by the distributions), based on the sample 
-> Paul Eggert looked at 
-> <https://sourceware.org/ml/libc-alpha/2014-03/msg00351.html> (which is an 
-> important piece of evidence that a change to the default in glibc wouldn't 
-> be dumping a large problem on distributors regarding the ABIs of many 
-> widely-used libraries).
+Hi, Maarten!
 
-I'm mostly worried about the embedded use case, which at least for time_t
-would have to build everything the new way as soon as possible. For
-desktop and server systems, doing a slow migration to catch the bugs
-and never introduce regressions in the field makes a lot of sense,
-but when someone today wants to build an embedded system, they already
-build everything from source, and it's more important to find all
-the bugs now (ideally at compile time) than to have a chance of hitting
-a subtle issue 24 years ago on today's build.
+Some nitpicks, and that krealloc within rcu lock still worries me.
+Otherwise looks good.
 
-For that, it would be nice to even build a glibc that has no backwards
-compatibility interfaces for 32-bit time_t at all.
+/Thomas
 
-> > I don't know why timespec on x32 uses 'long tv_nsec', it does seem
-> > problematic.
-> 
-> Yes, we have a glibc bug 
-> <https://sourceware.org/bugzilla/show_bug.cgi?id=16437> about the glibc 
-> definition (64-bit tv_nsec in x32 userspace to match the kernel's 64-bit 
-> "long") being nonconforming, but without the kernel treating upper bits as 
-> padding, fixing glibc requires wrappers that copy the value and clear the 
-> upper bits.
 
-Ok. There is also work going on to have an x32-like ABI for ARM64, and
-that will likely have to support big-endian as well, so then it's not
-just about clearing the padding bits, but also having them in the right
-place.
 
-I don't know what happens with powerpc64le, but I assume they will also
-at some point want to support 32-bit user space if they don't already.
+On 04/23/2014 12:15 PM, Maarten Lankhorst wrote:
+> This adds 4 more functions to deal with rcu.
+>
+> reservation_object_get_fences_rcu() will obtain the list of shared
+> and exclusive fences without obtaining the ww_mutex.
+>
+> reservation_object_wait_timeout_rcu() will wait on all fences of the
+> reservation_object, without obtaining the ww_mutex.
+>
+> reservation_object_test_signaled_rcu() will test if all fences of the
+> reservation_object are signaled without using the ww_mutex.
+>
+> reservation_object_get_excl() is added because touching the fence_excl
+> member directly will trigger a sparse warning.
+>
+> Signed-off-by: Maarten Lankhorst <maarten.lankhorst@canonical.com>
+> ---
+> Using seqcount and fixing some lockdep bugs.
+> Changes since v2:
+> - Fix some crashes, remove some unneeded barriers when provided by
+> seqcount writes
+> - Fix code to work correctly with sparse's RCU annotations.
+> - Create a global string for the seqcount lock to make lockdep happy.
+>
+> Can I get this version reviewed? If it looks correct I'll mail the
+> full series
+> because it's intertwined with the TTM conversion to use this code.
+>
+> See
+> https://urldefense.proofpoint.com/v1/url?u=http://cgit.freedesktop.org/~mlankhorst/linux/log/?h%3Dvmwgfx_wip&k=oIvRg1%2BdGAgOoM1BIlLLqw%3D%3D%0A&r=l5Ago9ekmVFZ3c4M6eauqrJWGwjf6fTb%2BP3CxbBFkVM%3D%0A&m=SvhtRcVv7pxLHaMBAL4xy2Rr2XDJ%2B95q18FDS13r8FQ%3D%0A&s=07fbe960788dca202856a797e8c915c44f05746a04d899c76459653042ea0112
+> ---
+> diff --git a/drivers/base/dma-buf.c b/drivers/base/dma-buf.c
+> index d89a98d2c37b..0df673f812eb 100644
+> --- a/drivers/base/dma-buf.c
+> +++ b/drivers/base/dma-buf.c
+> @@ -137,7 +137,7 @@ static unsigned int dma_buf_poll(struct file
+> *file, poll_table *poll)
+>      struct reservation_object_list *fobj;
+>      struct fence *fence_excl;
+>      unsigned long events;
+> -    unsigned shared_count;
+> +    unsigned shared_count, seq;
+>  
+>      dmabuf = file->private_data;
+>      if (!dmabuf || !dmabuf->resv)
+> @@ -151,14 +151,20 @@ static unsigned int dma_buf_poll(struct file
+> *file, poll_table *poll)
+>      if (!events)
+>          return 0;
+>  
+> -    ww_mutex_lock(&resv->lock, NULL);
+> +retry:
+> +    seq = read_seqcount_begin(&resv->seq);
+> +    rcu_read_lock();
+>  
+> -    fobj = resv->fence;
+> -    if (!fobj)
+> -        goto out;
+> -
+> -    shared_count = fobj->shared_count;
+> -    fence_excl = resv->fence_excl;
+> +    fobj = rcu_dereference(resv->fence);
+> +    if (fobj)
+> +        shared_count = fobj->shared_count;
+> +    else
+> +        shared_count = 0;
+> +    fence_excl = rcu_dereference(resv->fence_excl);
+> +    if (read_seqcount_retry(&resv->seq, seq)) {
+> +        rcu_read_unlock();
+> +        goto retry;
+> +    }
+>  
+>      if (fence_excl && (!(events & POLLOUT) || shared_count == 0)) {
+>          struct dma_buf_poll_cb_t *dcb = &dmabuf->cb_excl;
+> @@ -176,14 +182,20 @@ static unsigned int dma_buf_poll(struct file
+> *file, poll_table *poll)
+>          spin_unlock_irq(&dmabuf->poll.lock);
+>  
+>          if (events & pevents) {
+> -            if (!fence_add_callback(fence_excl, &dcb->cb,
+> +            if (!fence_get_rcu(fence_excl)) {
+> +                /* force a recheck */
+> +                events &= ~pevents;
+> +                dma_buf_poll_cb(NULL, &dcb->cb);
+> +            } else if (!fence_add_callback(fence_excl, &dcb->cb,
+>                                 dma_buf_poll_cb)) {
+>                  events &= ~pevents;
+> +                fence_put(fence_excl);
+>              } else {
+>                  /*
+>                   * No callback queued, wake up any additional
+>                   * waiters.
+>                   */
+> +                fence_put(fence_excl);
+>                  dma_buf_poll_cb(NULL, &dcb->cb);
+>              }
+>          }
+> @@ -205,13 +217,26 @@ static unsigned int dma_buf_poll(struct file
+> *file, poll_table *poll)
+>              goto out;
+>  
+>          for (i = 0; i < shared_count; ++i) {
+> -            struct fence *fence = fobj->shared[i];
+> +            struct fence *fence = rcu_dereference(fobj->shared[i]);
+>  
+> +            if (!fence_get_rcu(fence)) {
+> +                /*
+> +                 * fence refcount dropped to zero, this means
+> +                 * that fobj has been freed
+> +                 *
+> +                 * call dma_buf_poll_cb and force a recheck!
+> +                 */
+> +                events &= ~POLLOUT;
+> +                dma_buf_poll_cb(NULL, &dcb->cb);
+> +                break;
+> +            }
+>              if (!fence_add_callback(fence, &dcb->cb,
+>                          dma_buf_poll_cb)) {
+> +                fence_put(fence);
+>                  events &= ~POLLOUT;
+>                  break;
+>              }
+> +            fence_put(fence);
+>          }
+>  
+>          /* No callback queued, wake up any additional waiters. */
+> @@ -220,7 +245,7 @@ static unsigned int dma_buf_poll(struct file
+> *file, poll_table *poll)
+>      }
+>  
+>  out:
+> -    ww_mutex_unlock(&resv->lock);
+> +    rcu_read_unlock();
+>      return events;
+>  }
+>  
+> diff --git a/drivers/base/reservation.c b/drivers/base/reservation.c
+> index b82a5b630a8e..901bbf19c868 100644
+> --- a/drivers/base/reservation.c
+> +++ b/drivers/base/reservation.c
+> @@ -38,6 +38,11 @@
+>  DEFINE_WW_CLASS(reservation_ww_class);
+>  EXPORT_SYMBOL(reservation_ww_class);
+>  
+> +struct lock_class_key reservation_seqcount_class;
+> +EXPORT_SYMBOL(reservation_seqcount_class);
+> +
+> +const char reservation_seqcount_string[] = "reservation_seqcount";
+> +EXPORT_SYMBOL(reservation_seqcount_string);
+>  /*
+>   * Reserve space to add a shared fence to a reservation_object,
+>   * must be called with obj->lock held.
+> @@ -55,8 +60,8 @@ int reservation_object_reserve_shared(struct
+> reservation_object *obj)
+>              kfree(obj->staged);
+>              obj->staged = NULL;
+>              return 0;
+> -        }
+> -        max = old->shared_max * 2;
+> +        } else
+> +            max = old->shared_max * 2;
 
-> > For timeval, I think we don't care about the padding, because we wouldn't
-> > use it on new interfaces when the kernel uses nanosecond resolution
-> > internally.
-> 
-> Indeed - I haven't checked, but hopefully none of the asm-generic 
-> interfaces use timeval (and I was suggesting that only the interfaces 
-> present in asm-generic should be duplicated for 64-bit time_t).
-> 
-> (You also mentioned ioctls.  All affected ioctls would need new variants 
-> unless you have a new variant of the ioctl syscall itself.  Logically I 
-> suppose _TIME_BITS=64 should then map the generic version of an ioctl to 
-> the 64-bit time_t version so applications don't need to change beyond 
-> defining _TIME_BITS=64, though I don't know if there's any precedent for 
-> doing that sort of thing for definitions in kernel headers rather than 
-> glibc's headers.)
+Perhaps as a separate reformatting patch?
 
-For ioctls, it's not that uncommon to change the definition in the kernel
-headers to fix bugs, implying we break compatibility between a user space
-tool built against new kernel headers but running on older kernels. That
-is already the case for any user space relying on newly introduced ioctls,
-so we can e.g. introduce a new ioctl command using a
-struct __kernel_timespec64 in one of its structs.
+>      } else
+>          max = 4;
+>  
+> @@ -82,27 +87,37 @@ reservation_object_add_shared_inplace(struct
+> reservation_object *obj,
+>  {
+>      u32 i;
+>  
+> +    fence_get(fence);
+> +
+> +    preempt_disable();
+> +    write_seqcount_begin(&obj->seq);
+> +
+>      for (i = 0; i < fobj->shared_count; ++i) {
+> -        if (fobj->shared[i]->context == fence->context) {
+> -            struct fence *old_fence = fobj->shared[i];
+> +        struct fence *old_fence;
+>  
+> -            fence_get(fence);
+> +        old_fence = rcu_dereference_protected(fobj->shared[i],
+> +                        reservation_object_held(obj));
+>  
+> -            fobj->shared[i] = fence;
+> +        if (old_fence->context == fence->context) {
+> +            /* memory barrier is added by write_seqcount_begin */
+> +            RCU_INIT_POINTER(fobj->shared[i], fence);
+> +            write_seqcount_end(&obj->seq);
+> +            preempt_enable();
+>  
+>              fence_put(old_fence);
+>              return;
+>          }
+>      }
+>  
+> -    fence_get(fence);
+> -    fobj->shared[fobj->shared_count] = fence;
+>      /*
+> -     * make the new fence visible before incrementing
+> -     * fobj->shared_count
+> +     * memory barrier is added by write_seqcount_begin,
+> +     * fobj->shared_count is protected by this lock too
+>       */
+> -    smp_wmb();
+> +    RCU_INIT_POINTER(fobj->shared[fobj->shared_count], fence);
+>      fobj->shared_count++;
+> +
+> +    write_seqcount_end(&obj->seq);
+> +    preempt_enable();
+>  }
+>  
+>  static void
+> @@ -112,11 +127,12 @@ reservation_object_add_shared_replace(struct
+> reservation_object *obj,
+>                        struct fence *fence)
+>  {
+>      unsigned i;
+> +    struct fence *old_fence = NULL;
+>  
+>      fence_get(fence);
+>  
+>      if (!old) {
+> -        fobj->shared[0] = fence;
+> +        RCU_INIT_POINTER(fobj->shared[0], fence);
+>          fobj->shared_count = 1;
+>          goto done;
+>      }
+> @@ -130,19 +146,38 @@ reservation_object_add_shared_replace(struct
+> reservation_object *obj,
+>      fobj->shared_count = old->shared_count;
+>  
+>      for (i = 0; i < old->shared_count; ++i) {
+> -        if (fence && old->shared[i]->context == fence->context) {
+> -            fence_put(old->shared[i]);
+> -            fobj->shared[i] = fence;
+> -            fence = NULL;
+> +        struct fence *check;
+> +
+> +        check = rcu_dereference_protected(old->shared[i],
+> +                        reservation_object_held(obj));
+> +
+> +        if (!old_fence && check->context == fence->context) {
+> +            old_fence = check;
+> +            RCU_INIT_POINTER(fobj->shared[i], fence);
+>          } else
+> -            fobj->shared[i] = old->shared[i];
+> +            RCU_INIT_POINTER(fobj->shared[i], check);
+> +    }
+> +    if (!old_fence) {
+> +        RCU_INIT_POINTER(fobj->shared[fobj->shared_count], fence);
+> +        fobj->shared_count++;
+>      }
+> -    if (fence)
+> -        fobj->shared[fobj->shared_count++] = fence;
+>  
+>  done:
+> -    obj->fence = fobj;
+> -    kfree(old);
+> +    preempt_disable();
+> +    write_seqcount_begin(&obj->seq);
+> +    /*
+> +     * RCU_INIT_POINTER can be used here,
+> +     * seqcount provides the necessary barriers
+> +     */
+> +    RCU_INIT_POINTER(obj->fence, fobj);
+> +    write_seqcount_end(&obj->seq);
+> +    preempt_enable();
+> +
+> +    if (old)
+> +        kfree_rcu(old, rcu);
+> +
+> +    if (old_fence)
+> +        fence_put(old_fence);
+>  }
+>  
+>  /*
+> @@ -158,7 +193,7 @@ void reservation_object_add_shared_fence(struct
+> reservation_object *obj,
+>      obj->staged = NULL;
+>  
+>      if (!fobj) {
+> -        BUG_ON(old->shared_count == old->shared_max);
+> +        BUG_ON(old->shared_count >= old->shared_max);
+>          reservation_object_add_shared_inplace(obj, old, fence);
+>      } else
+>          reservation_object_add_shared_replace(obj, old, fobj, fence);
+> @@ -168,26 +203,266 @@
+> EXPORT_SYMBOL(reservation_object_add_shared_fence);
+>  void reservation_object_add_excl_fence(struct reservation_object *obj,
+>                         struct fence *fence)
+>  {
+> -    struct fence *old_fence = obj->fence_excl;
+> +    struct fence *old_fence = reservation_object_get_excl(obj);
+>      struct reservation_object_list *old;
+>      u32 i = 0;
+>  
+>      old = reservation_object_get_list(obj);
+> -    if (old) {
+> +    if (old)
+>          i = old->shared_count;
+> -        old->shared_count = 0;
+> -    }
+>  
+>      if (fence)
+>          fence_get(fence);
+>  
+> -    obj->fence_excl = fence;
+> +    preempt_disable();
+> +    write_seqcount_begin(&obj->seq);
+> +    /* write_seqcount_begin provides the necessary memory barrier */
+> +    RCU_INIT_POINTER(obj->fence_excl, fence);
+> +    if (old)
+> +        old->shared_count = 0;
+> +    write_seqcount_end(&obj->seq);
+> +    preempt_enable();
+>  
+>      /* inplace update, no shared fences */
+>      while (i--)
+> -        fence_put(old->shared[i]);
+> +        fence_put(rcu_dereference_protected(old->shared[i],
+> +                        reservation_object_held(obj)));
+>  
+>      if (old_fence)
+>          fence_put(old_fence);
+>  }
+>  EXPORT_SYMBOL(reservation_object_add_excl_fence);
+> +
+> +int reservation_object_get_fences_rcu(struct reservation_object *obj,
+> +                      struct fence **pfence_excl,
+> +                      unsigned *pshared_count,
+> +                      struct fence ***pshared)
+> +{
+> +    unsigned shared_count = 0;
+> +    unsigned retry = 1;
+> +    struct fence **shared = NULL, *fence_excl = NULL;
+> +    int ret = 0;
+> +
+> +    while (retry) {
+> +        struct reservation_object_list *fobj;
+> +        unsigned seq;
+> +
+> +        seq = read_seqcount_begin(&obj->seq);
+> +
+> +        rcu_read_lock();
+> +
+> +        fobj = rcu_dereference(obj->fence);
+> +        if (fobj) {
+> +            struct fence **nshared;
+> +
+> +            shared_count = ACCESS_ONCE(fobj->shared_count);
 
-Unfortunately, not every driver installs the header files into the user
-visible location, some of them have a copy in their (only) user space
-tool. This is still fine if we can catch it and if the driver uses
-the correct macro to create the ioctl number, which changes the command
-code because of the new argument size. The same would be true if we get
-a glibc with 64-bit time_t and old kernel headers that use a 'struct
-timespec' or 'time_t' in an ioctl data structure and expect that to
-use  a 32-bit type. There are probably a small number of those that
-also use a malformed command code definition (one that does not take
-the structure size into account), and those will cause us problems no
-matter what we do.
+ACCESS_ONCE() shouldn't be needed inside the seqlock?
 
-Another incompatibility is clearly things like include/sound/asound.h
-if we decide to change all the structs to use u64 nanosecond timestamps
-instead of timespec as we discussed earlier. This means we don't just
-have to introduced new command codes but also change all user space
-code working with the structs.
+>
+> +            nshared = krealloc(shared, sizeof(*shared) *
+> shared_count, GFP_KERNEL);
 
-The worst case I've found so far is include/linux/if_packet.h, which
-uses a memory mapped data structure with 'unsigned int ts_sec'
-embedded. It's not possible to translate this at all, and it's also
-broken on all 64-bit architectures today. There are already three
-versions of that ABI defined though, and I guess there will have to
-be another one.
+Again, krealloc should be a sleeping function, and not suitable within a
+RCU read lock? I still think this krealloc should be moved to the start
+of the retry loop, and we should start with a suitable guess of
+shared_count (perhaps 0?) It's not like we're going to waste a lot of
+memory....
 
-	Arnd
+> +            if (!nshared) {
+> +                ret = -ENOMEM;
+> +                shared_count = retry = 0;
+> +                goto unlock;
+> +            }
+> +            shared = nshared;
+> +            memcpy(shared, fobj->shared, sizeof(*shared) *
+> shared_count);
+> +        } else
+> +            shared_count = 0;
+> +        fence_excl = rcu_dereference(obj->fence_excl);
+> +
+> +        retry = read_seqcount_retry(&obj->seq, seq);
+> +        if (retry)
+> +            goto unlock;
+> +
+> +        if (!fence_excl || fence_get_rcu(fence_excl)) {
+> +            unsigned i;
+> +
+> +            for (i = 0; i < shared_count; ++i) {
+> +                if (fence_get_rcu(shared[i]))
+> +                    continue;
+> +
+> +                /* uh oh, refcount failed, abort and retry */
+> +                while (i--)
+> +                    fence_put(shared[i]);
+> +
+> +                if (fence_excl) {
+> +                    fence_put(fence_excl);
+> +                    fence_excl = NULL;
+> +                }
+> +
+> +                retry = 1;
+> +                break;
+> +            }
+> +        } else
+> +            retry = 1;
+> +
+> +unlock:
+> +        rcu_read_unlock();
+> +    }
+> +    *pshared_count = shared_count;
+> +    if (shared_count)
+> +        *pshared = shared;
+> +    else {
+> +        *pshared = NULL;
+> +        kfree(shared);
+> +    }
+> +    *pfence_excl = fence_excl;
+> +
+> +    return ret;
+> +}
+> +EXPORT_SYMBOL_GPL(reservation_object_get_fences_rcu);
+> +
+> +long reservation_object_wait_timeout_rcu(struct reservation_object *obj,
+> +                     bool wait_all, bool intr,
+> +                     unsigned long timeout)
+> +{
+> +    struct fence *fence;
+> +    unsigned seq, shared_count, i = 0;
+> +    long ret = timeout;
+> +
+> +retry:
+> +    fence = NULL;
+> +    shared_count = 0;
+> +    seq = read_seqcount_begin(&obj->seq);
+> +    rcu_read_lock();
+> +
+> +    if (wait_all) {
+> +        struct reservation_object_list *fobj =
+> rcu_dereference(obj->fence);
+> +
+> +        if (fobj)
+> +            shared_count = fobj->shared_count;
+> +
+> +        if (read_seqcount_retry(&obj->seq, seq))
+> +            goto unlock_retry;
+> +
+> +        for (i = 0; i < shared_count; ++i) {
+> +            struct fence *lfence = rcu_dereference(fobj->shared[i]);
+> +
+> +            if (test_bit(FENCE_FLAG_SIGNALED_BIT, &lfence->flags))
+> +                continue;
+> +
+> +            if (!fence_get_rcu(lfence))
+> +                goto unlock_retry;
+> +
+> +            if (fence_is_signaled(lfence)) {
+> +                fence_put(lfence);
+> +                continue;
+> +            }
+> +
+> +            fence = lfence;
+> +            break;
+> +        }
+> +    }
+> +
+> +    if (!shared_count) {
+> +        struct fence *fence_excl = rcu_dereference(obj->fence_excl);
+> +
+> +        if (read_seqcount_retry(&obj->seq, seq))
+> +            goto unlock_retry;
+> +
+> +        if (fence_excl &&
+> +            !test_bit(FENCE_FLAG_SIGNALED_BIT, &fence_excl->flags)) {
+> +            if (!fence_get_rcu(fence_excl))
+> +                goto unlock_retry;
+> +
+> +            if (fence_is_signaled(fence_excl))
+> +                fence_put(fence_excl);
+> +            else
+> +                fence = fence_excl;
+> +        }
+> +    }
+> +
+> +    rcu_read_unlock();
+> +    if (fence) {
+> +        ret = fence_wait_timeout(fence, intr, ret);
+> +        fence_put(fence);
+> +        if (ret > 0 && wait_all && (i + 1 < shared_count))
+> +            goto retry;
+> +    }
+> +    return ret;
+> +
+> +unlock_retry:
+> +    rcu_read_unlock();
+> +    goto retry;
+> +}
+> +EXPORT_SYMBOL_GPL(reservation_object_wait_timeout_rcu);
+> +
+> +
+> +static inline int
+> +reservation_object_test_signaled_single(struct fence *passed_fence)
+> +{
+> +    struct fence *fence, *lfence = passed_fence;
+> +    int ret = 1;
+> +
+> +    if (!test_bit(FENCE_FLAG_SIGNALED_BIT, &lfence->flags)) {
+> +        int ret;
+> +
+> +        fence = fence_get_rcu(lfence);
+> +        if (!fence)
+> +            return -1;
+> +
+> +        ret = !!fence_is_signaled(fence);
+> +        fence_put(fence);
+> +    }
+> +    return ret;
+> +}
+> +
+> +bool reservation_object_test_signaled_rcu(struct reservation_object
+> *obj,
+> +                      bool test_all)
+> +{
+> +    unsigned seq, shared_count;
+> +    int ret = true;
+> +
+> +retry:
+> +    shared_count = 0;
+> +    seq = read_seqcount_begin(&obj->seq);
+> +    rcu_read_lock();
+> +
+> +    if (test_all) {
+> +        unsigned i;
+> +
+> +        struct reservation_object_list *fobj =
+> rcu_dereference(obj->fence);
+> +
+> +        if (fobj)
+> +            shared_count = fobj->shared_count;
+> +
+> +        if (read_seqcount_retry(&obj->seq, seq))
+> +            goto unlock_retry;
+> +
+> +        for (i = 0; i < shared_count; ++i) {
+> +            struct fence *fence = rcu_dereference(fobj->shared[i]);
+> +
+> +            ret = reservation_object_test_signaled_single(fence);
+> +            if (ret < 0)
+> +                goto unlock_retry;
+> +            else if (!ret)
+> +                break;
+> +        }
+> +
+> +        /*
+> +         * There could be a read_seqcount_retry here, but nothing cares
+> +         * about whether it's the old or newer fence pointers that are
+> +         * signale. That race could still have happened after checking
+
+Typo.
+
+>
+> +         * read_seqcount_retry. If you care, use ww_mutex_lock.
+> +         */
+> +    }
+> +
+> +    if (!shared_count) {
+> +        struct fence *fence_excl = rcu_dereference(obj->fence_excl);
+> +
+> +        if (read_seqcount_retry(&obj->seq, seq))
+> +            goto unlock_retry;
+> +
+> +        if (fence_excl) {
+> +            ret = reservation_object_test_signaled_single(fence_excl);
+> +            if (ret < 0)
+> +                goto unlock_retry;
+> +        }
+> +    }
+> +
+> +    rcu_read_unlock();
+> +    return ret;
+> +
+> +unlock_retry:
+> +    rcu_read_unlock();
+> +    goto retry;
+> +}
+> +EXPORT_SYMBOL_GPL(reservation_object_test_signaled_rcu);
+> diff --git a/include/linux/fence.h b/include/linux/fence.h
+> index d13b5ab61726..4b7002457af0 100644
+> --- a/include/linux/fence.h
+> +++ b/include/linux/fence.h
+> @@ -31,7 +31,7 @@
+>  #include <linux/kref.h>
+>  #include <linux/sched.h>
+>  #include <linux/printk.h>
+> -#include <linux/slab.h>
+> +#include <linux/rcupdate.h>
+>  
+>  struct fence;
+>  struct fence_ops;
+> @@ -41,6 +41,7 @@ struct fence_cb;
+>   * struct fence - software synchronization primitive
+>   * @refcount: refcount for this fence
+>   * @ops: fence_ops associated with this fence
+> + * @rcu: used for releasing fence with kfree_rcu
+>   * @cb_list: list of all callbacks to call
+>   * @lock: spin_lock_irqsave used for locking
+>   * @context: execution context this fence belongs to, returned by
+> @@ -74,6 +75,7 @@ struct fence_cb;
+>  struct fence {
+>      struct kref refcount;
+>      const struct fence_ops *ops;
+> +    struct rcu_head rcu;
+>      struct list_head cb_list;
+>      spinlock_t *lock;
+>      unsigned context, seqno;
+> @@ -190,11 +192,25 @@ static inline void fence_get(struct fence *fence)
+>      kref_get(&fence->refcount);
+>  }
+>  
+> +/**
+> + * fence_get_rcu - get a fence from a reservation_object_list with
+> rcu read lock
+> + * @fence:    [in]    fence to increase refcount of
+> + *
+> + * Function returns NULL if no refcount could be obtained, or the fence.
+> + */
+> +static inline struct fence *fence_get_rcu(struct fence *fence)
+> +{
+> +    if (kref_get_unless_zero(&fence->refcount))
+> +        return fence;
+> +    else
+> +        return NULL;
+> +}
+> +
+>  extern void release_fence(struct kref *kref);
+>  
+>  static inline void free_fence(struct fence *fence)
+>  {
+> -    kfree(fence);
+> +    kfree_rcu(fence, rcu);
+>  }
+>  
+>  /**
+> diff --git a/include/linux/reservation.h b/include/linux/reservation.h
+> index 2affe67dea6e..b73d3df5a8e8 100644
+> --- a/include/linux/reservation.h
+> +++ b/include/linux/reservation.h
+> @@ -42,22 +42,29 @@
+>  #include <linux/ww_mutex.h>
+>  #include <linux/fence.h>
+>  #include <linux/slab.h>
+> +#include <linux/seqlock.h>
+> +#include <linux/rcupdate.h>
+>  
+>  extern struct ww_class reservation_ww_class;
+> +extern struct lock_class_key reservation_seqcount_class;
+> +extern const char reservation_seqcount_string[];
+>  
+>  struct reservation_object_list {
+> +    struct rcu_head rcu;
+>      u32 shared_count, shared_max;
+> -    struct fence *shared[];
+> +    struct fence __rcu *shared[];
+>  };
+>  
+>  struct reservation_object {
+>      struct ww_mutex lock;
+> +    seqcount_t seq;
+>  
+> -    struct fence *fence_excl;
+> -    struct reservation_object_list *fence;
+> +    struct fence __rcu *fence_excl;
+> +    struct reservation_object_list __rcu *fence;
+>      struct reservation_object_list *staged;
+>  };
+>  
+> +#define reservation_object_held(obj) lockdep_is_held(&(obj)->lock.base)
+>  #define reservation_object_assert_held(obj) \
+>      lockdep_assert_held(&(obj)->lock.base)
+>  
+> @@ -66,8 +73,9 @@ reservation_object_init(struct reservation_object *obj)
+>  {
+>      ww_mutex_init(&obj->lock, &reservation_ww_class);
+>  
+> -    obj->fence_excl = NULL;
+> -    obj->fence = NULL;
+> +    __seqcount_init(&obj->seq, reservation_seqcount_string,
+> &reservation_seqcount_class);
+> +    RCU_INIT_POINTER(obj->fence, NULL);
+> +    RCU_INIT_POINTER(obj->fence_excl, NULL);
+>      obj->staged = NULL;
+>  }
+>  
+> @@ -76,18 +84,20 @@ reservation_object_fini(struct reservation_object
+> *obj)
+>  {
+>      int i;
+>      struct reservation_object_list *fobj;
+> +    struct fence *excl;
+>  
+>      /*
+>       * This object should be dead and all references must have
+> -     * been released to it.
+> +     * been released to it, so no need to be protected with rcu.
+>       */
+> -    if (obj->fence_excl)
+> -        fence_put(obj->fence_excl);
+> +    excl = rcu_dereference_protected(obj->fence_excl, 1);
+> +    if (excl)
+> +        fence_put(excl);
+>  
+> -    fobj = obj->fence;
+> +    fobj = rcu_dereference_protected(obj->fence, 1);
+>      if (fobj) {
+>          for (i = 0; i < fobj->shared_count; ++i)
+> -            fence_put(fobj->shared[i]);
+> +            fence_put(rcu_dereference_protected(fobj->shared[i], 1));
+>  
+>          kfree(fobj);
+>      }
+> @@ -99,17 +109,15 @@ reservation_object_fini(struct reservation_object
+> *obj)
+>  static inline struct reservation_object_list *
+>  reservation_object_get_list(struct reservation_object *obj)
+>  {
+> -    reservation_object_assert_held(obj);
+> -
+> -    return obj->fence;
+> +    return rcu_dereference_check(obj->fence,
+> +                     reservation_object_held(obj));
+>  }
+>  
+>  static inline struct fence *
+>  reservation_object_get_excl(struct reservation_object *obj)
+>  {
+> -    reservation_object_assert_held(obj);
+> -
+> -    return obj->fence_excl;
+> +    return rcu_dereference_check(obj->fence_excl,
+> +                     reservation_object_held(obj));
+>  }
+>  
+>  int reservation_object_reserve_shared(struct reservation_object *obj);
+> @@ -119,4 +127,16 @@ void reservation_object_add_shared_fence(struct
+> reservation_object *obj,
+>  void reservation_object_add_excl_fence(struct reservation_object *obj,
+>                         struct fence *fence);
+>  
+> +int reservation_object_get_fences_rcu(struct reservation_object *obj,
+> +                      struct fence **pfence_excl,
+> +                      unsigned *pshared_count,
+> +                      struct fence ***pshared);
+> +
+> +long reservation_object_wait_timeout_rcu(struct reservation_object *obj,
+> +                     bool wait_all, bool intr,
+> +                     unsigned long timeout);
+> +
+> +bool reservation_object_test_signaled_rcu(struct reservation_object
+> *obj,
+> +                      bool test_all);
+> +
+>  #endif /* _LINUX_RESERVATION_H */
