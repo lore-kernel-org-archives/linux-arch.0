@@ -1,90 +1,113 @@
-From: Waiman Long <waiman.long@hp.com>
-Subject: Re: [PATCH v10 10/19] qspinlock, x86: Allow unfair spinlock in a
-	virtual guest
-Date: Mon, 19 May 2014 16:30:22 -0400
-Message-ID: <537A69DE.5080000@hp.com>
-References: <1399474907-22206-1-git-send-email-Waiman.Long@hp.com>
-	<1399474907-22206-11-git-send-email-Waiman.Long@hp.com>
-	<20140508191228.GS2844@laptop.programming.kicks-ass.net>
+From: Hugh Dickins <hughd@google.com>
+Subject: Re: [PATCH V4 0/2] mm: FAULT_AROUND_ORDER patchset performance data
+ for powerpc
+Date: Mon, 19 May 2014 16:23:07 -0700 (PDT)
+Message-ID: <alpine.LSU.2.11.1405191531150.1317@eggly.anvils>
+References: <1399541296-18810-1-git-send-email-maddy@linux.vnet.ibm.com> <537479E7.90806@linux.vnet.ibm.com> <alpine.LSU.2.11.1405151026540.4664@eggly.anvils> <87wqdik4n5.fsf@rustcorp.com.au> <53797511.1050409@linux.vnet.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"; Format="flowed"
-Content-Transfer-Encoding: 7bit
-Return-path: <virtualization-bounces@lists.linux-foundation.org>
-In-Reply-To: <20140508191228.GS2844@laptop.programming.kicks-ass.net>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
-List-Post: <mailto:virtualization@lists.linux-foundation.org>
-List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
-Sender: virtualization-bounces@lists.linux-foundation.org
-Errors-To: virtualization-bounces@lists.linux-foundation.org
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: linux-arch@vger.kernel.org, Rik van Riel <riel@redhat.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, Oleg Nesterov <oleg@redhat.com>, Gleb Natapov <gleb@redhat.com>, kvm@vger.kernel.org, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Scott J Norton <scott.norton@hp.com>, x86@kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, Ingo Molnar <mingo@redhat.com>, Chegu Vinod <chegu_vinod@hp.com>, David Vrabel <david.vrabel@citrix.com>, "H. Peter Anvin" <hpa@zytor.com>, xen-devel@lists.xenproject.org, Thomas Gleixner <tglx@linutronix.de>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Boris Ostrovsky <boris.ostrovsky@oracle.com>
+Content-Type: TEXT/PLAIN; charset=US-ASCII
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <53797511.1050409@linux.vnet.ibm.com>
+Sender: owner-linux-mm@kvack.org
+To: Madhavan Srinivasan <maddy@linux.vnet.ibm.com>
+Cc: Rusty Russell <rusty@rustcorp.com.au>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, x86@kernel.org, benh@kernel.crashing.org, paulus@samba.org, akpm@linux-foundation.org, riel@redhat.com, mgorman@suse.de, ak@linux.intel.com, peterz@infradead.org, mingo@kernel.org, dave.hansen@intel.com
 List-Id: linux-arch.vger.kernel.org
 
-On 05/08/2014 03:12 PM, Peter Zijlstra wrote:
-> On Wed, May 07, 2014 at 11:01:38AM -0400, Waiman Long wrote:
->
->
-> No, we want the unfair thing for VIRT, not PARAVIRT.
->
+On Mon, 19 May 2014, Madhavan Srinivasan wrote:
+> On Monday 19 May 2014 05:42 AM, Rusty Russell wrote:
+> > Hugh Dickins <hughd@google.com> writes:
+> >> On Thu, 15 May 2014, Madhavan Srinivasan wrote:
+> >>>
+> >>> Hi Ingo,
+> >>>
+> >>> 	Do you have any comments for the latest version of the patchset. If
+> >>> not, kindly can you pick it up as is.
+> >>>
+> >>>
+> >>> With regards
+> >>> Maddy
+> >>>
+> >>>> Kirill A. Shutemov with 8c6e50b029 commit introduced
+> >>>> vm_ops->map_pages() for mapping easy accessible pages around
+> >>>> fault address in hope to reduce number of minor page faults.
+> >>>>
+> >>>> This patch creates infrastructure to modify the FAULT_AROUND_ORDER
+> >>>> value using mm/Kconfig. This will enable architecture maintainers
+> >>>> to decide on suitable FAULT_AROUND_ORDER value based on
+> >>>> performance data for that architecture. First patch also defaults
+> >>>> FAULT_AROUND_ORDER Kconfig element to 4. Second patch list
+> >>>> out the performance numbers for powerpc (platform pseries) and
+> >>>> initialize the fault around order variable for pseries platform of
+> >>>> powerpc.
+> >>
+> >> Sorry for not commenting earlier - just reminded by this ping to Ingo.
+> >>
+> >> I didn't study your numbers, but nowhere did I see what PAGE_SIZE you use.
+> >>
+> >> arch/powerpc/Kconfig suggests that Power supports base page size of
+> >> 4k, 16k, 64k or 256k.
+> >>
+> >> I would expect your optimal fault_around_order to depend very much on
+> >> the base page size.
+> > 
+> > It was 64k, which is what PPC64 uses on all the major distributions.
+> > You really only get a choice of 4k and 64k with 64 bit power.
+> > 
+> This is true. PPC64 support multiple pagesize and yes the default page
+> size of 64k, is taken as base pagesize for the tests.
+> 
+> >> Perhaps fault_around_size would provide a more useful default?
+> > 
+> > That seems to fit.  With 4k pages and order 4, you're asking for 64k.
+> > Maddy's result shows 64k is also reasonable for 64k pages.
+> > 
+> > Perhaps we try to generalize from two data points (a slight improvement
+> > over doing it from 1!), eg:
+> > 
+> > /* 4 seems good for 4k-page x86, 0 seems good for 64k page ppc64, so: */
+> > unsigned int fault_around_order __read_mostly =
+> >         (16 - PAGE_SHIFT < 0 ? 0 : 16 - PAGE_SHIFT);
 
-Yes, you are right. I will change that to VIRT.
+Rusty's bimodal answer doesn't seem the right starting point to me.
 
->> diff --git a/kernel/locking/qspinlock.c b/kernel/locking/qspinlock.c
->> index 9e7659e..10e87e1 100644
->> --- a/kernel/locking/qspinlock.c
->> +++ b/kernel/locking/qspinlock.c
->> @@ -227,6 +227,14 @@ static __always_inline int get_qlock(struct qspinlock *lock)
->>   {
->>   	struct __qspinlock *l = (void *)lock;
->>
->> +#ifdef CONFIG_PARAVIRT_UNFAIR_LOCKS
->> +	if (static_key_false(&paravirt_unfairlocks_enabled))
->> +		/*
->> +		 * Need to use atomic operation to get the lock when
->> +		 * lock stealing can happen.
->> +		 */
->> +		return cmpxchg(&l->locked, 0, _Q_LOCKED_VAL) == 0;
-> That's missing {}.
+Shouldn't FAULT_AROUND_ORDER and fault_around_order be changed to be
+the order of the fault-around size in bytes, and fault_around_pages()
+use 1UL << (fault_around_order - PAGE_SHIFT)
+- when that doesn't wrap, of course!
 
-It is a single statement which doesn't need braces according to kernel 
-coding style. I could move the comments up a bit to make it easier to read.
+That would at least have a better chance of being appropriate for
+architectures with 8k and 16k pages (Itanium springs to mind).
 
->> +#endif
->
->>   	barrier();
->>   	ACCESS_ONCE(l->locked) = _Q_LOCKED_VAL;
->>   	barrier();
->
-> But no, what you want is:
->
-> static __always_inline bool virt_lock(struct qspinlock *lock)
-> {
-> #ifdef CONFIG_VIRT_MUCK
-> 	if (static_key_false(&virt_unfairlocks_enabled)) {
-> 		while (!queue_spin_trylock(lock))
-> 			cpu_relax();
->
-> 		return true;
-> 	}
-> #else
-> 	return false;
-> }
->
->
-> void queue_spin_lock_slowpath(struct qspinlock *lock, u32 val)
-> {
-> 	if (virt_lock(lock))
-> 		return;
->
-> 	...
-> }
+Not necessarily right for them, since each architecture may have
+different faulting overheads; but a better chance of being right
+than blindly assuming 4k or 64k pages for everyone.
 
-This is a possible way of doing it. I can do that in the patch series to 
-simplify it. Hopefully that will speed up the review process and get it 
-done quicker.
+I'd be glad to see that change go into v3.15: what do you think,
+Kirill, are we too late to make such a change now?
+Or do you see some objection to it?
 
--Longman
+> This may be right. But these are the concerns, will not this make other
+> arch to pick default without any tuning
+
+Wasn't FAULT_AROUND_ORDER 4 chosen solely on the basis of x86 4k pages?
+Did other architectures, with other page sizes, back that default?
+Clearly not powerpc.
+
+> and also this will remove the
+> compile time option to disable the feature?
+
+Compile time option meaning your FAULT_AROUND_ORDER in mm/Kconfig
+for v3.16?
+
+I'm not sure whether Rusty was arguing against that or not.  I think
+we are all three concerned to have a more sensible default than what's
+there at present.  I don't feel very strongly about your Kconfig
+option: I've no objection, if it were to default to byte order 16.
+
+Hugh
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
