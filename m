@@ -1,18 +1,16 @@
 From: Waiman Long <waiman.long@hp.com>
-Subject: Re: [PATCH v10 03/19] qspinlock: Add pending bit
-Date: Mon, 19 May 2014 16:17:23 -0400
-Message-ID: <537A66D3.8070607@hp.com>
+Subject: Re: [PATCH v10 10/19] qspinlock, x86: Allow unfair spinlock in a
+	virtual guest
+Date: Mon, 19 May 2014 16:30:22 -0400
+Message-ID: <537A69DE.5080000@hp.com>
 References: <1399474907-22206-1-git-send-email-Waiman.Long@hp.com>
-	<1399474907-22206-4-git-send-email-Waiman.Long@hp.com>
-	<20140512152208.GA12309@potion.brq.redhat.com>
-	<537276B4.10209@hp.com> <20140514165121.GA21370@potion.redhat.com>
-	<20140514170016.GW30445@twins.programming.kicks-ass.net>
-	<20140514191339.GA22813@potion.brq.redhat.com>
+	<1399474907-22206-11-git-send-email-Waiman.Long@hp.com>
+	<20140508191228.GS2844@laptop.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"; Format="flowed"
-Content-Transfer-Encoding: base64
+Content-Type: text/plain; charset="us-ascii"; Format="flowed"
+Content-Transfer-Encoding: 7bit
 Return-path: <virtualization-bounces@lists.linux-foundation.org>
-In-Reply-To: <20140514191339.GA22813@potion.brq.redhat.com>
+In-Reply-To: <20140508191228.GS2844@laptop.programming.kicks-ass.net>
 List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
 	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
 List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
@@ -22,81 +20,71 @@ List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualizati
 	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
 Sender: virtualization-bounces@lists.linux-foundation.org
 Errors-To: virtualization-bounces@lists.linux-foundation.org
-To: =?UTF-8?B?UmFkaW0gS3LEjW3DocWZ?= <rkrcmar@redhat.com>
-Cc: x86@kernel.org, Gleb Natapov <gleb@redhat.com>, Peter Zijlstra <peterz@infradead.org>, linux-kernel@vger.kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, linux-arch@vger.kernel.org, kvm@vger.kernel.org, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, Ingo Molnar <mingo@redhat.com>, xen-devel@lists.xenproject.org, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Rik van Riel <riel@redhat.com>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Scott J Norton <scott.norton@hp.com>, Paolo Bonzini <paolo.bonzini@gmail.com>, Thomas Gleixner <tglx@linutronix.de>, virtualization@lists.linux-foundation.org, Chegu Vinod <chegu_vinod@hp.com>, Oleg Nesterov <oleg@redhat.com>, David Vrabel <david.vrabel@citrix.com>, Linus Torvalds <torvalds@linux-foundation.org>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: linux-arch@vger.kernel.org, Rik van Riel <riel@redhat.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, Oleg Nesterov <oleg@redhat.com>, Gleb Natapov <gleb@redhat.com>, kvm@vger.kernel.org, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Scott J Norton <scott.norton@hp.com>, x86@kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, Ingo Molnar <mingo@redhat.com>, Chegu Vinod <chegu_vinod@hp.com>, David Vrabel <david.vrabel@citrix.com>, "H. Peter Anvin" <hpa@zytor.com>, xen-devel@lists.xenproject.org, Thomas Gleixner <tglx@linutronix.de>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Boris Ostrovsky <boris.ostrovsky@oracle.com>
 List-Id: linux-arch.vger.kernel.org
 
-T24gMDUvMTQvMjAxNCAwMzoxMyBQTSwgUmFkaW0gS3LEjW3DocWZIHdyb3RlOgo+IDIwMTQtMDUt
-MTQgMTk6MDArMDIwMCwgUGV0ZXIgWmlqbHN0cmE6Cj4+IE9uIFdlZCwgTWF5IDE0LCAyMDE0IGF0
-IDA2OjUxOjI0UE0gKzAyMDAsIFJhZGltIEtyxI1tw6HFmSB3cm90ZToKPj4+IE9rLgo+Pj4gSSd2
-ZSBzZWVuIG1lcml0IGluIHB2cXNwaW5sb2NrIGV2ZW4gd2l0aCBzbGlnaHRseSBzbG93ZXIgZmly
-c3Qtd2FpdGVyLAo+Pj4gc28gSSB3b3VsZCBoYXZlIGhhcHBpbHkgc2FjcmlmaWNlZCB0aG9zZSBo
-b3JyaWJsZSBicmFuY2hlcy4KPj4+IChJIHByZWZlciBlbGVnYW50IHRvIG9wdGltaXplZCBjb2Rl
-LCBidXQgSSBjYW4gc2VlIHdoeSB3ZSB3YW50IHRvIGJlCj4+PiAgIHN0cmljdGx5IGJldHRlciB0
-aGFuIHRpY2tldGxvY2suKQo+Pj4gUGV0ZXIgbWVudGlvbmVkIHRoYXQgd2UgYXJlIGZvY3VzaW5n
-IG9uIGJhcmUtbWV0YWwgcGF0Y2hlcywgc28gSSdsbAo+Pj4gd2l0aG9sZCBteSBvdGhlciBwYXJh
-dmlydCByYW50cyB1bnRpbCB0aGV5IGFyZSBwb2xpc2hlZC4KPiAoSXQgd2FzIGFuIGFtYmlndW91
-cyBzZW50ZW5jZSwgSSBoYXZlIGNvbW1lbnRzIGZvciBsYXRlciBwYXRjaGVzLikKPgo+PiBXZWxs
-LCBwYXJhdmlydCBtdXN0IGhhcHBlbiB0b28sIGJ1dCBjb21lcyBsYXRlciBpbiB0aGlzIHNlcmll
-cywgcGF0Y2ggMwo+PiB3aGljaCB3ZSdyZSByZXBseWluZyB0byBpcyBzdGlsbCB2ZXJ5IG11Y2gg
-aW4gdGhlIGJhcmUgbWV0YWwgcGFydCBvZiB0aGUKPj4gc2VyaWVzLgo+IChJIHRoaW5rIHRoYXQg
-YmFyZSBtZXRhbCBzcGFucyB0aGUgZmlyc3QgNyBwYXRjaGVzLikKPgo+PiBJJ3ZlIG5vdCBoYWQg
-dGltZSB5ZXQgdG8gZGVjb2RlIGFsbCB0aGF0IFdhaW1hbiBoYXMgZG9uZSB0byBtYWtlCj4+IHBh
-cmF2aXJ0IHdvcmsuCj4+Cj4+IEJ1dCBhcyBhIGdlbmVyYWwgcnVsZSBJIGxpa2UgcGF0Y2hlcyB0
-aGF0IHN0YXJ0IHdpdGggc29tZXRoaW5nIHNpbXBsZQo+PiBhbmQgd29ya2luZyBhbmQgdGhlbiBv
-cHRpbWl6ZSBpdCwgdGhpcyBzZXJpZXMgZG9lc24ndCBzZWVtIHRvIHF1aXRlCj4+IGdyYXNwIHRo
-YXQuCj4+Cj4+PiBBbmQgdG8gZm9yY2VmdWxseSBicmluZyB0aGlzIHRocmVhZCBhIGxpdHRsZSBi
-aXQgb24tdG9waWM6Cj4+Pgo+Pj4gUGVuZGluZy1iaXQgaXMgZWZmZWN0aXZlbHkgYSBsb2NrIGlu
-IGEgbG9jaywgc28gSSB3YXMgd29uZGVyaW5nIHdoeQo+Pj4gZG9uJ3Qgd2UgdXNlIG1vcmUgcGVu
-ZGluZyBiaXRzOyBhZHZhbnRhZ2VzIGFyZSB0aGUgc2FtZSwganVzdCBkaW1pbmlzaGVkCj4+PiBi
-eSB0aGUgcHJvYmFiaWxpdHkgb2YgaGF2aW5nIGFuIGlkZWFsbHkgY29udGVuZGVkIGxvY2s6Cj4+
-PiAgIC0gd2FpdGVyIHdvbid0IGJlIGJsb2NrZWQgb24gUkFNIGFjY2VzcyBpZiBjcml0aWNhbCBz
-ZWN0aW9uIChvciBtb3JlKQo+Pj4gICAgIGVuZHMgc29vbmVyCj4+PiAgIC0gc29tZSB1bmx1Y2t5
-IGNhY2hlbGluZSBpcyBub3QgZm9yZ290dGVuCj4+PiAgIC0gZmFzdGVyIHVubG9jayAobm8gbmVl
-ZCBmb3IgdGFpbCBvcGVyYXRpb25zKQo+Pj4gKC0gPykKPj4+IGRpc2FkdmFudGFnZXMgYXJlIG1h
-Z25pZmllZDoKPj4+ICAgLSBpbmNyZWFzZWQgY29tcGxleGl0eQo+Pj4gICAtIGludGVuc2UgY2Fj
-aGVsaW5lIHNoYXJpbmcKPj4+ICAgICAoSSB0aG91Z2h0IHRoYXQgdGhpcyBpcyB0aGUgbWFpbiBk
-aXNhZHZhbnRhZ2Ugb2YgdGlja2V0bG9jay4pCj4+PiAoLSA/KQo+Pj4KPj4+IE9uZSBiaXQgc3Rp
-bGwgaW1wcm92ZWQgcGVyZm9ybWFuY2UsIGlzIGl0IHRoZSBiZXN0IHdlIGdvdD8KPj4gU28sIHRo
-ZSBhZHZhbnRhZ2Ugb2Ygb25lIGJpdCBpcyB0aGF0IGlmIHdlIHVzZSBhIHdob2xlIGJ5dGUgZm9y
-IDEgYml0IHdlCj4+IGNhbiBhdm9pZCBzb21lIGF0b21pYyBvcHMuCj4+Cj4+IFRoZSBlbnRpcmUg
-cmVhc29uIGZvciB0aGlzIGluLXdvcmQgc3Bpbm5lciBpcyB0byBhbW9ydGl6ZSB0aGUgY29zdCBv
-Zgo+PiBoaXR0aW5nIHRoZSBleHRlcm5hbCBub2RlIGNhY2hlbGluZS4KPiBFdmVyeSBwZW5kaW5n
-IENQVSByZW1vdmVzIG9uZSBsZW5ndGggb2YgdGhlIGNyaXRpY2FsIHNlY3Rpb24gZnJvbSB0aGUK
-PiBkZWxheSBjYXVzZWQgYnkgY2FjaGVsaW5lIHByb3BhZ2F0aW9uIGFuZCByZWFsbHkgY29sZCBj
-YWNoZSBpcwo+IGh1bmRyZWRzKD8pIG9mIGN5Y2xlcywgc28gd2UgY291bGQgYnVybiBzb21lIHRv
-IGVuc3VyZSBjb3JyZWN0bmVzcyBhbmQKPiBzdGlsbCBiZSB3YWl0aW5nIHdoZW4gdGhlIGZpcnN0
-IHBlbmRpbmcgQ1BVIHVubG9ja3MuCgpBc3N1bWluZyB0aGF0IHRha2luZyBhIHNwaW5sb2NrIGlz
-IGZhaXJseSBmcmVxdWVudCBpbiB0aGUga2VybmVsLCB0aGUgCm5vZGUgc3RydWN0dXJlIGNhY2hl
-bGluZSB3b24ndCBiZSBzbyBjb2xkIGFmdGVyIGFsbC4KCj4+IFNvIHRyYWRpdGlvbmFsIGxvY2tz
-IGxpa2UgdGVzdC1hbmQtdGVzdCBhbmQgdGhlIHRpY2tldCBsb2NrIG9ubHkgZXZlcgo+PiBhY2Nl
-c3MgdGhlIHNwaW5sb2NrIHdvcmQgaXRzZWYsIHRoaXMgTUNTIHN0eWxlIHF1ZXVlaW5nIGxvY2sg
-aGFzIGEKPj4gc2Vjb25kIChhbmQsIHNlZSBteSBvdGhlciByYW50cyBpbiB0aGlzIHRocmVhZCwg
-d2hlbiBkb25lIHdyb25nIG1vcmUKPj4gdGhhbiAyKSBjYWNoZWxpbmUgdG8gdG91Y2guCj4+Cj4+
-IFRoYXQgc2FpZCwgYWxsIG91ciBiZW5jaG1hcmtpbmcgaXMgcHJldHR5IG11Y2ggZm9yIHRoZSBj
-YWNoZS1ob3QgY2FzZSwKPj4gc28gSSdtIG5vdCBlbnRpcmVseSBjb252aW5jZWQgeWV0IHRoYXQg
-dGhlIG9uZSBwZW5kaW5nIGJpdCBtYWtlcyB1cCBmb3IKPj4gaXQsIGl0IGRvZXMgaW4gdGhlIGNh
-Y2hlLWhvdCBjYXNlLgo+IFllYWgsIHdlIHByb2JhYmx5IHVzZSB0aGUgZmFzdGVyIHByZS1sb2Nr
-IHF1aXRlIGEgbG90Lgo+IENvdmVyIGxldHRlciBzdGF0ZXMgdGhhdCBxdWV1ZSBkZXB0aCAxLTMg
-aXMgYSBiaXQgc2xvd2VyIHRoYW4gdGlja2V0Cj4gc3BpbmxvY2ssIHNvIHdlIG1pZ2h0IG5vdCBi
-ZSBsb3NpbmcgaWYgd2UgaW1wbGVtZW50ZWQgYSBmYXN0ZXIKPiBpbi13b3JkLWxvY2sgb2YgdGhp
-cyBjYXBhY2l0eS4gIChOb3QgdGhhdCBJJ20gYSBmYW4gb2YgdGhlIGh5YnJpZCBsb2NrLikKCkkg
-aGFkIHRyaWVkIGFuIGV4cGVyaW1lbnRhbCBwYXRjaCB3aXRoIDIgcGVuZGluZyBiaXRzLiBIb3dl
-dmVyLCB0aGUgCmJlbmNobWFyayB0ZXN0IHRoYXQgSSB1c2VkIHNob3cgdGhlIHBlcmZvcm1hbmNl
-IGlzIGV2ZW4gd29yc2UgdGhhbiAKd2l0aG91dCBhbnkgcGVuZGluZyBiaXQuIEkgcHJvYmFibHkg
-bmVlZCB0byByZXZpc2l0IHRoYXQgbGF0ZXIgYXMgdG8gd2h5IAp0aGlzIGlzIHRoZSBjYXNlLiBB
-cyBmb3Igbm93LCBJIHdpbGwgZm9jdXMgb24ganVzdCBoYXZpbmcgb25lIHBlbmRpbmcgCmJpdC4g
-SWYgd2UgY291bGQgZmluZCBhIHdheSB0byBnZXQgYmV0dGVyIHBlcmZvcm1hbmNlIG91dCBvZiBt
-b3JlIHRoYW4gMSAKcGVuZGluZyBiaXQgbGF0ZXIgb24sIHdlIGNvdWxkIGFsd2F5cyBzdWJtaXQg
-YW5vdGhlciBwYXRjaCB0byBkbyB0aGF0LgoKPj4gQnV0Li4uIHdyaXRpbmcgY2FjaGUtY29sZCBi
-ZW5jaG1hcmtzIGlzIF9oYXJkXyA6Lwo+IFdvdWxkbid0IGNsZmx1c2ggb2YgdGhlIHNlY29uZCBj
-YWNoZWxpbmUgYmVmb3JlIHRyeWluZyBmb3IgdGhlIGxvY2sgZ2l2ZQo+IHVzIGEgcm91Z2ggZXN0
-aW1hdGU/CgpjbGZsdXNoIGlzIGEgdmVyeSBleHBlbnNpdmUgb3BlcmF0aW9uIGFuZCBJIGRvdWJ0
-IHRoYXQgaXQgd2lsbCBiZSAKaW5kaWNhdGl2ZSBvZiByZWFsIGxpZmUgcGVyZm9ybWFuY2UgYXQg
-YWxsLiBCVFcsIHRoZXJlIGlzIG5vIHdheSB0byAKd3JpdGUgYSBjYWNoZS1jb2xkIGJlbmNobWFy
-ayBmb3IgdGhhdCAybmQgY2FjaGVsaW5lIGFzIGFueSBjYWxsIHRvIApzcGluX2xvY2sgd2lsbCBs
-aWtlbHkgdG8gYWNjZXNzIGl0IGlmIHRoZXJlIGlzIGVub3VnaCBjb250ZW50aW9uLgoKLUxvbmdt
-YW4KCl9fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fClZpcnR1
-YWxpemF0aW9uIG1haWxpbmcgbGlzdApWaXJ0dWFsaXphdGlvbkBsaXN0cy5saW51eC1mb3VuZGF0
-aW9uLm9yZwpodHRwczovL2xpc3RzLmxpbnV4Zm91bmRhdGlvbi5vcmcvbWFpbG1hbi9saXN0aW5m
-by92aXJ0dWFsaXphdGlvbg==
+On 05/08/2014 03:12 PM, Peter Zijlstra wrote:
+> On Wed, May 07, 2014 at 11:01:38AM -0400, Waiman Long wrote:
+>
+>
+> No, we want the unfair thing for VIRT, not PARAVIRT.
+>
+
+Yes, you are right. I will change that to VIRT.
+
+>> diff --git a/kernel/locking/qspinlock.c b/kernel/locking/qspinlock.c
+>> index 9e7659e..10e87e1 100644
+>> --- a/kernel/locking/qspinlock.c
+>> +++ b/kernel/locking/qspinlock.c
+>> @@ -227,6 +227,14 @@ static __always_inline int get_qlock(struct qspinlock *lock)
+>>   {
+>>   	struct __qspinlock *l = (void *)lock;
+>>
+>> +#ifdef CONFIG_PARAVIRT_UNFAIR_LOCKS
+>> +	if (static_key_false(&paravirt_unfairlocks_enabled))
+>> +		/*
+>> +		 * Need to use atomic operation to get the lock when
+>> +		 * lock stealing can happen.
+>> +		 */
+>> +		return cmpxchg(&l->locked, 0, _Q_LOCKED_VAL) == 0;
+> That's missing {}.
+
+It is a single statement which doesn't need braces according to kernel 
+coding style. I could move the comments up a bit to make it easier to read.
+
+>> +#endif
+>
+>>   	barrier();
+>>   	ACCESS_ONCE(l->locked) = _Q_LOCKED_VAL;
+>>   	barrier();
+>
+> But no, what you want is:
+>
+> static __always_inline bool virt_lock(struct qspinlock *lock)
+> {
+> #ifdef CONFIG_VIRT_MUCK
+> 	if (static_key_false(&virt_unfairlocks_enabled)) {
+> 		while (!queue_spin_trylock(lock))
+> 			cpu_relax();
+>
+> 		return true;
+> 	}
+> #else
+> 	return false;
+> }
+>
+>
+> void queue_spin_lock_slowpath(struct qspinlock *lock, u32 val)
+> {
+> 	if (virt_lock(lock))
+> 		return;
+>
+> 	...
+> }
+
+This is a possible way of doing it. I can do that in the patch series to 
+simplify it. Hopefully that will speed up the review process and get it 
+done quicker.
+
+-Longman
