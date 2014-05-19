@@ -1,55 +1,72 @@
-From: "Joseph S. Myers" <joseph@codesourcery.com>
-Subject: Re: [PATCH 00/25] Change time_t and clock_t to 64 bit
-Date: Sun, 18 May 2014 18:18:16 +0000
-Message-ID: <Pine.LNX.4.64.1405181801130.4608@digraph.polyomino.org.uk>
-References: <1399971456-3941-1-git-send-email-lftan@altera.com>
- <4706636.rTYoqSXXOR@wuerfel> <Pine.LNX.4.64.1405151949160.911@digraph.polyomino.org.uk>
- <9236147.lyD24Zv5SZ@wuerfel> <53769B27.2090407@zytor.com>
- <Pine.LNX.4.64.1405162336150.24114@digraph.polyomino.org.uk> <5376AE23.10905@zytor.com>
- <Pine.LNX.4.64.1405181325520.4608@digraph.polyomino.org.uk> <5378DB83.1000406@zytor.com>
+From: Rusty Russell <rusty@rustcorp.com.au>
+Subject: Re: [PATCH V4 0/2] mm: FAULT_AROUND_ORDER patchset performance data for powerpc
+Date: Mon, 19 May 2014 09:42:46 +0930
+Message-ID: <87wqdik4n5.fsf@rustcorp.com.au>
+References: <1399541296-18810-1-git-send-email-maddy@linux.vnet.ibm.com> <537479E7.90806@linux.vnet.ibm.com> <alpine.LSU.2.11.1405151026540.4664@eggly.anvils>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="US-ASCII"
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from relay1.mentorg.com ([192.94.38.131]:45884 "EHLO
-	relay1.mentorg.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750743AbaERSSY (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 18 May 2014 14:18:24 -0400
-In-Reply-To: <5378DB83.1000406@zytor.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: "H. Peter Anvin" <hpa@zytor.com>
-Cc: Arnd Bergmann <arnd@arndb.de>, Chung-Lin Tang <cltang@codesourcery.com>, John Stultz <john.stultz@linaro.org>, Geert Uytterhoeven <geert@linux-m68k.org>, Christoph Hellwig <hch@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Ley Foon Tan <lftan@altera.com>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, LeyFoon Tan <lftan.linux@gmail.com>
+Content-Type: text/plain
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <alpine.LSU.2.11.1405151026540.4664@eggly.anvils>
+Sender: owner-linux-mm@kvack.org
+To: Hugh Dickins <hughd@google.com>, Madhavan Srinivasan <maddy@linux.vnet.ibm.com>
+Cc: linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, x86@kernel.org, benh@kernel.crashing.org, paulus@samba.org, kirill.shutemov@linux.intel.com, akpm@linux-foundation.org, riel@redhat.com, mgorman@suse.de, ak@linux.intel.com, peterz@infradead.org, mingo@kernel.org, dave.hansen@intel.com
+List-Id: linux-arch.vger.kernel.org
 
-On Sun, 18 May 2014, H. Peter Anvin wrote:
+Hugh Dickins <hughd@google.com> writes:
+> On Thu, 15 May 2014, Madhavan Srinivasan wrote:
+>> 
+>> Hi Ingo,
+>> 
+>> 	Do you have any comments for the latest version of the patchset. If
+>> not, kindly can you pick it up as is.
+>> 
+>> 
+>> With regards
+>> Maddy
+>> 
+>> > Kirill A. Shutemov with 8c6e50b029 commit introduced
+>> > vm_ops->map_pages() for mapping easy accessible pages around
+>> > fault address in hope to reduce number of minor page faults.
+>> > 
+>> > This patch creates infrastructure to modify the FAULT_AROUND_ORDER
+>> > value using mm/Kconfig. This will enable architecture maintainers
+>> > to decide on suitable FAULT_AROUND_ORDER value based on
+>> > performance data for that architecture. First patch also defaults
+>> > FAULT_AROUND_ORDER Kconfig element to 4. Second patch list
+>> > out the performance numbers for powerpc (platform pseries) and
+>> > initialize the fault around order variable for pseries platform of
+>> > powerpc.
+>
+> Sorry for not commenting earlier - just reminded by this ping to Ingo.
+>
+> I didn't study your numbers, but nowhere did I see what PAGE_SIZE you use.
+>
+> arch/powerpc/Kconfig suggests that Power supports base page size of
+> 4k, 16k, 64k or 256k.
+>
+> I would expect your optimal fault_around_order to depend very much on
+> the base page size.
 
-> This potentially requires the kernel to maintain three separate ABIs if
-> there is a legacy 32-bit ABI, which is quite frankly idiotic.  You seem
+It was 64k, which is what PPC64 uses on all the major distributions.
+You really only get a choice of 4k and 64k with 64 bit power.
 
-Three ABIs seems reasonable enough to me where appropriate.
+> Perhaps fault_around_size would provide a more useful default?
 
-> to be thinking of POSIX as something handed down by gods, which it
-> isn't... quite frankly they did something stupid here and should fix
-> their own mess.
+That seems to fit.  With 4k pages and order 4, you're asking for 64k.
+Maddy's result shows 64k is also reasonable for 64k pages.
 
-In the real world it's useful to support lots of different standard 
-versions, not just some hypothetical future version (I see no evidence of 
-anyone thinking there is a POSIX defect actually having raised the issue 
-with the Austin Group to see if anyone there agrees a change would be 
-useful).  We've only just removed support for _BSD_SOURCE / _SVID_SOURCE 
-as defined API levels from glibc; I'd guess it will be about 20 years 
-before removing support for POSIX.1-2008/2013 is appropriate (even if the 
-next major edition relaxes this requirement).
+Perhaps we try to generalize from two data points (a slight improvement
+over doing it from 1!), eg:
 
-> As far as glibc is concerned, this would require glibc to intercept each
-> ioctl, which is completely infeasible... struct timespec/timeval is
-> embedded far too deep everywhere.
+/* 4 seems good for 4k-page x86, 0 seems good for 64k page ppc64, so: */
+unsigned int fault_around_order __read_mostly =
+        (16 - PAGE_SHIFT < 0 ? 0 : 16 - PAGE_SHIFT);
 
-Well, maybe the subset of applications passing timespec to ioctls should 
-carry the cost of converting from the userspace timespec to the kernel 
-timespec, rather than POSIX applications carrying the cost of unnecessary 
-incompatibility.  (But an enumeration of the relevant ioctls is needed 
-anyway simply to provide new versions of them all for 64-bit time_t.)
+Cheers,
+Rusty.
 
--- 
-Joseph S. Myers
-joseph@codesourcery.com
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
