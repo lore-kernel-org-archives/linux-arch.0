@@ -1,98 +1,55 @@
-From: Rusty Russell <rusty@rustcorp.com.au>
+From: Andrew Morton <akpm@linux-foundation.org>
 Subject: Re: [PATCH V4 0/2] mm: FAULT_AROUND_ORDER patchset performance data
  for powerpc
-Date: Tue, 20 May 2014 10:44:06 +0930
-Message-ID: <87d2f9jlpd.fsf@rustcorp.com.au>
+Date: Tue, 20 May 2014 00:32:01 -0700
+Message-ID: <20140520003201.a2360d5d.akpm@linux-foundation.org>
 References: <1399541296-18810-1-git-send-email-maddy@linux.vnet.ibm.com>
- <537479E7.90806@linux.vnet.ibm.com>
- <alpine.LSU.2.11.1405151026540.4664@eggly.anvils>
- <87wqdik4n5.fsf@rustcorp.com.au> <53797511.1050409@linux.vnet.ibm.com>
- <alpine.LSU.2.11.1405191531150.1317@eggly.anvils>
+	<537479E7.90806@linux.vnet.ibm.com>
+	<alpine.LSU.2.11.1405151026540.4664@eggly.anvils>
+	<87wqdik4n5.fsf@rustcorp.com.au>
+	<53797511.1050409@linux.vnet.ibm.com>
+	<alpine.LSU.2.11.1405191531150.1317@eggly.anvils>
+	<20140519164301.eafd3dd288ccb88361ddcfc7@linux-foundation.org>
+	<20140520004429.E660AE009B@blue.fi.intel.com>
+	<87oaythsvk.fsf@rustcorp.com.au>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <linuxppc-dev-bounces+glppd-linuxppc64-dev=m.gmane.org@lists.ozlabs.org>
-In-Reply-To: <alpine.LSU.2.11.1405191531150.1317@eggly.anvils>
-List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
-List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
-List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
-List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
-List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
-Errors-To: linuxppc-dev-bounces+glppd-linuxppc64-dev=m.gmane.org@lists.ozlabs.org
-Sender: "Linuxppc-dev"
- <linuxppc-dev-bounces+glppd-linuxppc64-dev=m.gmane.org@lists.ozlabs.org>
-To: Hugh Dickins <hughd@google.com>, Madhavan Srinivasan <maddy@linux.vnet.ibm.com>
-Cc: linux-arch@vger.kernel.org, riel@redhat.com, ak@linux.intel.com, dave.hansen@intel.com, peterz@infradead.org, x86@kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, paulus@samba.org, mgorman@suse.de, akpm@linux-foundation.org, linuxppc-dev@lists.ozlabs.org, mingo@kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <87oaythsvk.fsf@rustcorp.com.au>
+Sender: owner-linux-mm@kvack.org
+To: Rusty Russell <rusty@rustcorp.com.au>
+Cc: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Hugh Dickins <hughd@google.com>, Madhavan Srinivasan <maddy@linux.vnet.ibm.com>, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, x86@kernel.org, benh@kernel.crashing.org, paulus@samba.org, riel@redhat.com, mgorman@suse.de, ak@linux.intel.com, peterz@infradead.org, mingo@kernel.org, dave.hansen@intel.com
 List-Id: linux-arch.vger.kernel.org
 
-SHVnaCBEaWNraW5zIDxodWdoZEBnb29nbGUuY29tPiB3cml0ZXM6Cj4gT24gTW9uLCAxOSBNYXkg
-MjAxNCwgTWFkaGF2YW4gU3Jpbml2YXNhbiB3cm90ZToKPj4gT24gTW9uZGF5IDE5IE1heSAyMDE0
-IDA1OjQyIEFNLCBSdXN0eSBSdXNzZWxsIHdyb3RlOgo+PiA+IEh1Z2ggRGlja2lucyA8aHVnaGRA
-Z29vZ2xlLmNvbT4gd3JpdGVzOgo+PiA+PiBPbiBUaHUsIDE1IE1heSAyMDE0LCBNYWRoYXZhbiBT
-cmluaXZhc2FuIHdyb3RlOgo+PiA+Pj4KPj4gPj4+IEhpIEluZ28sCj4+ID4+Pgo+PiA+Pj4gCURv
-IHlvdSBoYXZlIGFueSBjb21tZW50cyBmb3IgdGhlIGxhdGVzdCB2ZXJzaW9uIG9mIHRoZSBwYXRj
-aHNldC4gSWYKPj4gPj4+IG5vdCwga2luZGx5IGNhbiB5b3UgcGljayBpdCB1cCBhcyBpcy4KPj4g
-Pj4+Cj4+ID4+Pgo+PiA+Pj4gV2l0aCByZWdhcmRzCj4+ID4+PiBNYWRkeQo+PiA+Pj4KPj4gPj4+
-PiBLaXJpbGwgQS4gU2h1dGVtb3Ygd2l0aCA4YzZlNTBiMDI5IGNvbW1pdCBpbnRyb2R1Y2VkCj4+
-ID4+Pj4gdm1fb3BzLT5tYXBfcGFnZXMoKSBmb3IgbWFwcGluZyBlYXN5IGFjY2Vzc2libGUgcGFn
-ZXMgYXJvdW5kCj4+ID4+Pj4gZmF1bHQgYWRkcmVzcyBpbiBob3BlIHRvIHJlZHVjZSBudW1iZXIg
-b2YgbWlub3IgcGFnZSBmYXVsdHMuCj4+ID4+Pj4KPj4gPj4+PiBUaGlzIHBhdGNoIGNyZWF0ZXMg
-aW5mcmFzdHJ1Y3R1cmUgdG8gbW9kaWZ5IHRoZSBGQVVMVF9BUk9VTkRfT1JERVIKPj4gPj4+PiB2
-YWx1ZSB1c2luZyBtbS9LY29uZmlnLiBUaGlzIHdpbGwgZW5hYmxlIGFyY2hpdGVjdHVyZSBtYWlu
-dGFpbmVycwo+PiA+Pj4+IHRvIGRlY2lkZSBvbiBzdWl0YWJsZSBGQVVMVF9BUk9VTkRfT1JERVIg
-dmFsdWUgYmFzZWQgb24KPj4gPj4+PiBwZXJmb3JtYW5jZSBkYXRhIGZvciB0aGF0IGFyY2hpdGVj
-dHVyZS4gRmlyc3QgcGF0Y2ggYWxzbyBkZWZhdWx0cwo+PiA+Pj4+IEZBVUxUX0FST1VORF9PUkRF
-UiBLY29uZmlnIGVsZW1lbnQgdG8gNC4gU2Vjb25kIHBhdGNoIGxpc3QKPj4gPj4+PiBvdXQgdGhl
-IHBlcmZvcm1hbmNlIG51bWJlcnMgZm9yIHBvd2VycGMgKHBsYXRmb3JtIHBzZXJpZXMpIGFuZAo+
-PiA+Pj4+IGluaXRpYWxpemUgdGhlIGZhdWx0IGFyb3VuZCBvcmRlciB2YXJpYWJsZSBmb3IgcHNl
-cmllcyBwbGF0Zm9ybSBvZgo+PiA+Pj4+IHBvd2VycGMuCj4+ID4+Cj4+ID4+IFNvcnJ5IGZvciBu
-b3QgY29tbWVudGluZyBlYXJsaWVyIC0ganVzdCByZW1pbmRlZCBieSB0aGlzIHBpbmcgdG8gSW5n
-by4KPj4gPj4KPj4gPj4gSSBkaWRuJ3Qgc3R1ZHkgeW91ciBudW1iZXJzLCBidXQgbm93aGVyZSBk
-aWQgSSBzZWUgd2hhdCBQQUdFX1NJWkUgeW91IHVzZS4KPj4gPj4KPj4gPj4gYXJjaC9wb3dlcnBj
-L0tjb25maWcgc3VnZ2VzdHMgdGhhdCBQb3dlciBzdXBwb3J0cyBiYXNlIHBhZ2Ugc2l6ZSBvZgo+
-PiA+PiA0aywgMTZrLCA2NGsgb3IgMjU2ay4KPj4gPj4KPj4gPj4gSSB3b3VsZCBleHBlY3QgeW91
-ciBvcHRpbWFsIGZhdWx0X2Fyb3VuZF9vcmRlciB0byBkZXBlbmQgdmVyeSBtdWNoIG9uCj4+ID4+
-IHRoZSBiYXNlIHBhZ2Ugc2l6ZS4KPj4gPiAKPj4gPiBJdCB3YXMgNjRrLCB3aGljaCBpcyB3aGF0
-IFBQQzY0IHVzZXMgb24gYWxsIHRoZSBtYWpvciBkaXN0cmlidXRpb25zLgo+PiA+IFlvdSByZWFs
-bHkgb25seSBnZXQgYSBjaG9pY2Ugb2YgNGsgYW5kIDY0ayB3aXRoIDY0IGJpdCBwb3dlci4KPj4g
-PiAKPj4gVGhpcyBpcyB0cnVlLiBQUEM2NCBzdXBwb3J0IG11bHRpcGxlIHBhZ2VzaXplIGFuZCB5
-ZXMgdGhlIGRlZmF1bHQgcGFnZQo+PiBzaXplIG9mIDY0aywgaXMgdGFrZW4gYXMgYmFzZSBwYWdl
-c2l6ZSBmb3IgdGhlIHRlc3RzLgo+PiAKPj4gPj4gUGVyaGFwcyBmYXVsdF9hcm91bmRfc2l6ZSB3
-b3VsZCBwcm92aWRlIGEgbW9yZSB1c2VmdWwgZGVmYXVsdD8KPj4gPiAKPj4gPiBUaGF0IHNlZW1z
-IHRvIGZpdC4gIFdpdGggNGsgcGFnZXMgYW5kIG9yZGVyIDQsIHlvdSdyZSBhc2tpbmcgZm9yIDY0
-ay4KPj4gPiBNYWRkeSdzIHJlc3VsdCBzaG93cyA2NGsgaXMgYWxzbyByZWFzb25hYmxlIGZvciA2
-NGsgcGFnZXMuCj4+ID4gCj4+ID4gUGVyaGFwcyB3ZSB0cnkgdG8gZ2VuZXJhbGl6ZSBmcm9tIHR3
-byBkYXRhIHBvaW50cyAoYSBzbGlnaHQgaW1wcm92ZW1lbnQKPj4gPiBvdmVyIGRvaW5nIGl0IGZy
-b20gMSEpLCBlZzoKPj4gPiAKPj4gPiAvKiA0IHNlZW1zIGdvb2QgZm9yIDRrLXBhZ2UgeDg2LCAw
-IHNlZW1zIGdvb2QgZm9yIDY0ayBwYWdlIHBwYzY0LCBzbzogKi8KPj4gPiB1bnNpZ25lZCBpbnQg
-ZmF1bHRfYXJvdW5kX29yZGVyIF9fcmVhZF9tb3N0bHkgPQo+PiA+ICAgICAgICAgKDE2IC0gUEFH
-RV9TSElGVCA8IDAgPyAwIDogMTYgLSBQQUdFX1NISUZUKTsKPgo+IFJ1c3R5J3MgYmltb2RhbCBh
-bnN3ZXIgZG9lc24ndCBzZWVtIHRoZSByaWdodCBzdGFydGluZyBwb2ludCB0byBtZS4KCj8gIEl0
-J3Mgbm90IGJpbW9kYWwsIGl0J3MgZ3JhZGVkLiAgSSB0aGluayB5b3UgbWlzcmVhZD8KCj4gU2hv
-dWxkbid0IEZBVUxUX0FST1VORF9PUkRFUiBhbmQgZmF1bHRfYXJvdW5kX29yZGVyIGJlIGNoYW5n
-ZWQgdG8gYmUKPiB0aGUgb3JkZXIgb2YgdGhlIGZhdWx0LWFyb3VuZCBzaXplIGluIGJ5dGVzLCBh
-bmQgZmF1bHRfYXJvdW5kX3BhZ2VzKCkKPiB1c2UgMVVMIDw8IChmYXVsdF9hcm91bmRfb3JkZXIg
-LSBQQUdFX1NISUZUKQo+IC0gd2hlbiB0aGF0IGRvZXNuJ3Qgd3JhcCwgb2YgY291cnNlIQo+Cj4g
-VGhhdCB3b3VsZCBhdCBsZWFzdCBoYXZlIGEgYmV0dGVyIGNoYW5jZSBvZiBiZWluZyBhcHByb3By
-aWF0ZSBmb3IKPiBhcmNoaXRlY3R1cmVzIHdpdGggOGsgYW5kIDE2ayBwYWdlcyAoSXRhbml1bSBz
-cHJpbmdzIHRvIG1pbmQpLgoKV2VsbCwgZnJvbSBvdXIgdHdvIGRhdGEgcG9pbnRzIGl0IHNlZW1z
-IHRoYXQgd2Ugd2FudCB0byBmYXVsdCBpbgo2NGsgYXQgYSB0aW1lIHdoYXRldmVyIG91ciBwYWdl
-IHNpemUuICBQZXJoYXBzIGl0J3MgY2xlYXJlciBpZiB0aGUKY29kZSBleHByZXNzZXMgaXRzZWxm
-IHRoYXQgd2F5LgoKPiBXYXNuJ3QgRkFVTFRfQVJPVU5EX09SREVSIDQgY2hvc2VuIHNvbGVseSBv
-biB0aGUgYmFzaXMgb2YgeDg2IDRrIHBhZ2VzPwo+IERpZCBvdGhlciBhcmNoaXRlY3R1cmVzLCB3
-aXRoIG90aGVyIHBhZ2Ugc2l6ZXMsIGJhY2sgdGhhdCBkZWZhdWx0Pwo+IENsZWFybHkgbm90IHBv
-d2VycGMuCgpZZWFoLCBCZW5IIGZsYWdnZWQgaXQgYXMgIndlIHNob3VsZCB0ZXN0IHRoaXMiIGZv
-ciBwb3dlcnBjLCB3aGljaCBpcwp3aGF0IE1hZGR5IHRoZW4gZGlkLgoKPj4gYW5kIGFsc28gdGhp
-cyB3aWxsIHJlbW92ZSB0aGUKPj4gY29tcGlsZSB0aW1lIG9wdGlvbiB0byBkaXNhYmxlIHRoZSBm
-ZWF0dXJlPwo+Cj4gQ29tcGlsZSB0aW1lIG9wdGlvbiBtZWFuaW5nIHlvdXIgRkFVTFRfQVJPVU5E
-X09SREVSIGluIG1tL0tjb25maWcKPiBmb3IgdjMuMTY/Cj4KPiBJJ20gbm90IHN1cmUgd2hldGhl
-ciBSdXN0eSB3YXMgYXJndWluZyBhZ2FpbnN0IHRoYXQgb3Igbm90LiAgSSB0aGluawo+IHdlIGFy
-ZSBhbGwgdGhyZWUgY29uY2VybmVkIHRvIGhhdmUgYSBtb3JlIHNlbnNpYmxlIGRlZmF1bHQgdGhh
-biB3aGF0J3MKPiB0aGVyZSBhdCBwcmVzZW50LiAgSSBkb24ndCBmZWVsIHZlcnkgc3Ryb25nbHkg
-YWJvdXQgeW91ciBLY29uZmlnCj4gb3B0aW9uOiBJJ3ZlIG5vIG9iamVjdGlvbiwgaWYgaXQgd2Vy
-ZSB0byBkZWZhdWx0IHRvIGJ5dGUgb3JkZXIgMTYuCgpJIGRvbid0IG1pbmQgZWl0aGVyLgoKQ2hl
-ZXJzLApSdXN0eS4KX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19f
-X18KTGludXhwcGMtZGV2IG1haWxpbmcgbGlzdApMaW51eHBwYy1kZXZAbGlzdHMub3psYWJzLm9y
-ZwpodHRwczovL2xpc3RzLm96bGFicy5vcmcvbGlzdGluZm8vbGludXhwcGMtZGV2
+On Tue, 20 May 2014 15:52:07 +0930 Rusty Russell <rusty@rustcorp.com.au> wrote:
+
+> "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com> writes:
+> > Andrew Morton wrote:
+> >> On Mon, 19 May 2014 16:23:07 -0700 (PDT) Hugh Dickins <hughd@google.com> wrote:
+> >> 
+> >> > Shouldn't FAULT_AROUND_ORDER and fault_around_order be changed to be
+> >> > the order of the fault-around size in bytes, and fault_around_pages()
+> >> > use 1UL << (fault_around_order - PAGE_SHIFT)
+> >> 
+> >> Yes.  And shame on me for missing it (this time!) at review.
+> >> 
+> >> There's still time to fix this.  Patches, please.
+> >
+> > Here it is. Made at 3.30 AM, build tested only.
+> 
+> Prefer on top of Maddy's patch which makes it always a variable, rather
+> than CONFIG_DEBUG_FS.  It's got enough hair as it is.
+> 
+
+We're at 3.15-rc5 and this interface should be finalised for 3.16.  So
+Kirrill's patch is pretty urgent and should come first.
+
+Well.  It's only a debugfs interface at this stage so we are allowed to
+change it later, but it's better not to.
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
