@@ -1,41 +1,38 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pb0-f44.google.com ([209.85.160.44]:47666 "EHLO
-	mail-pb0-f44.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751515AbaETCfo (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 19 May 2014 22:35:44 -0400
-Received: by mail-pb0-f44.google.com with SMTP id rq2so6590115pbb.31
-        for <linux-arch@vger.kernel.org>; Mon, 19 May 2014 19:35:44 -0700 (PDT)
-Date: Mon, 19 May 2014 19:34:27 -0700 (PDT)
-From: Hugh Dickins <hughd@google.com>
-Subject: Re: [PATCH V4 0/2] mm: FAULT_AROUND_ORDER patchset performance data
- for powerpc
-In-Reply-To: <87d2f9jlpd.fsf@rustcorp.com.au>
-Message-ID: <alpine.LSU.2.11.1405191930130.3574@eggly.anvils>
-References: <1399541296-18810-1-git-send-email-maddy@linux.vnet.ibm.com> <537479E7.90806@linux.vnet.ibm.com> <alpine.LSU.2.11.1405151026540.4664@eggly.anvils> <87wqdik4n5.fsf@rustcorp.com.au> <53797511.1050409@linux.vnet.ibm.com> <alpine.LSU.2.11.1405191531150.1317@eggly.anvils>
- <87d2f9jlpd.fsf@rustcorp.com.au>
+Received: from ozlabs.org ([103.22.144.67]:42378 "EHLO ozlabs.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1750969AbaETHRJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 20 May 2014 03:17:09 -0400
+From: Rusty Russell <rusty@rustcorp.com.au>
+Subject: Re: [PATCH V4 0/2] mm: FAULT_AROUND_ORDER patchset performance data for powerpc
+In-Reply-To: <20140520004429.E660AE009B@blue.fi.intel.com>
+References: <1399541296-18810-1-git-send-email-maddy@linux.vnet.ibm.com> <537479E7.90806@linux.vnet.ibm.com> <alpine.LSU.2.11.1405151026540.4664@eggly.anvils> <87wqdik4n5.fsf@rustcorp.com.au> <53797511.1050409@linux.vnet.ibm.com> <alpine.LSU.2.11.1405191531150.1317@eggly.anvils> <20140519164301.eafd3dd288ccb88361ddcfc7@linux-foundation.org> <20140520004429.E660AE009B@blue.fi.intel.com>
+Date: Tue, 20 May 2014 15:52:07 +0930
+Message-ID: <87oaythsvk.fsf@rustcorp.com.au>
 MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Rusty Russell <rusty@rustcorp.com.au>
-Cc: Madhavan Srinivasan <maddy@linux.vnet.ibm.com>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, x86@kernel.org, benh@kernel.crashing.org, paulus@samba.org, akpm@linux-foundation.org, riel@redhat.com, mgorman@suse.de, ak@linux.intel.com, peterz@infradead.org, mingo@kernel.org, dave.hansen@intel.com
-Message-ID: <20140520023427.HTLw4DCHhvW2IPLw-HE4kcxMbh1uKvOQ5BXpndg3CXM@z>
+To: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Andrew Morton <akpm@linux-foundation.org>
+Cc: Hugh Dickins <hughd@google.com>, Madhavan Srinivasan <maddy@linux.vnet.ibm.com>, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, x86@kernel.org, benh@kernel.crashing.org, paulus@samba.org, riel@redhat.com, mgorman@suse.de, ak@linux.intel.com, peterz@infradead.org, mingo@kernel.org, dave.hansen@intel.com
+Message-ID: <20140520062207.LHP3agVeEtnBlt0CDfHO1RxC7ZdCXbs3RiiJWGyrYr0@z>
 
-On Tue, 20 May 2014, Rusty Russell wrote:
-> Hugh Dickins <hughd@google.com> writes:
-> >> On Monday 19 May 2014 05:42 AM, Rusty Russell wrote:
-> >> > 
-> >> > Perhaps we try to generalize from two data points (a slight improvement
-> >> > over doing it from 1!), eg:
-> >> > 
-> >> > /* 4 seems good for 4k-page x86, 0 seems good for 64k page ppc64, so: */
-> >> > unsigned int fault_around_order __read_mostly =
-> >> >         (16 - PAGE_SHIFT < 0 ? 0 : 16 - PAGE_SHIFT);
-> >
-> > Rusty's bimodal answer doesn't seem the right starting point to me.
-> 
-> ?  It's not bimodal, it's graded.  I think you misread?
+"Kirill A. Shutemov" <kirill.shutemov@linux.intel.com> writes:
+> Andrew Morton wrote:
+>> On Mon, 19 May 2014 16:23:07 -0700 (PDT) Hugh Dickins <hughd@google.com> wrote:
+>> 
+>> > Shouldn't FAULT_AROUND_ORDER and fault_around_order be changed to be
+>> > the order of the fault-around size in bytes, and fault_around_pages()
+>> > use 1UL << (fault_around_order - PAGE_SHIFT)
+>> 
+>> Yes.  And shame on me for missing it (this time!) at review.
+>> 
+>> There's still time to fix this.  Patches, please.
+>
+> Here it is. Made at 3.30 AM, build tested only.
 
-Yikes, worse than misread, more like I was too rude even to read: sorry!
+Prefer on top of Maddy's patch which makes it always a variable, rather
+than CONFIG_DEBUG_FS.  It's got enough hair as it is.
 
-Hugh
+Cheers,
+Rusty.
