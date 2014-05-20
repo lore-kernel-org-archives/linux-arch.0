@@ -1,65 +1,81 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from casper.infradead.org ([85.118.1.10]:33899 "EHLO
-	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753742AbaETNRA (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 20 May 2014 09:17:00 -0400
-Date: Tue, 20 May 2014 15:16:48 +0200
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH 14/20] arch,mn10300: Fold atomic_ops
-Message-ID: <20140520131648.GF11096@twins.programming.kicks-ass.net>
-References: <20140508135852.605324173@infradead.org>
- <20140508135840.956784204@infradead.org>
- <26031.1400591132@warthog.procyon.org.uk>
+Received: from smtp-outbound-1.vmware.com ([208.91.2.12]:40230 "EHLO
+	smtp-outbound-1.vmware.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1753125AbaETPNm (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Tue, 20 May 2014 11:13:42 -0400
+Message-ID: <537B7122.3000508@vmware.com>
+Date: Tue, 20 May 2014 16:13:38 +0100
+From: Thomas Hellstrom <thellstrom@vmware.com>
 MIME-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha1;
-	protocol="application/pgp-signature"; boundary="dRZtNaFcRiL7vj6v"
-Content-Disposition: inline
-In-Reply-To: <26031.1400591132@warthog.procyon.org.uk>
+Subject: Re: [RFC PATCH 2/2 with seqcount v3] reservation: add suppport for
+ read-only access using rcu
+References: <20140409144239.26648.57918.stgit@patser> <20140409144831.26648.79163.stgit@patser> <53465A53.1090500@vmware.com> <53466D63.8080808@canonical.com> <53467B93.3000402@vmware.com> <5346B212.8050202@canonical.com> <5347A9FD.2070706@vmware.com> <5347B4E5.6090901@canonical.com> <5347BFC9.3020503@vmware.com> <53482FF1.1090406@canonical.com> <534843EA.6060602@vmware.com> <534B9165.4000101@canonical.com> <534B921B.4080504@vmware.com> <5357A0DE.7030305@canonical.com> <537A0A5D.6090909@vmware.com> <537A1180.2010109@canonical.com>
+In-Reply-To: <537A1180.2010109@canonical.com>
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Howells <dhowells@redhat.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, torvalds@linux-foundation.org, akpm@linux-foundation.org, mingo@kernel.org, will.deacon@arm.com, paulmck@linux.vnet.ibm.com, Koichi Yasutake <yasutake.koichi@jp.panasonic.com>
-Message-ID: <20140520131648.STIVynV1-sybLFM_RQQzY-lJzTZHu97AnKS1O308qTE@z>
+To: Maarten Lankhorst <maarten.lankhorst@canonical.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, ccross@google.com, linux-media@vger.kernel.org
+Message-ID: <20140520151338.UGU7JarL5W40QYduPhJGOXtMmRuxG9EshE1Gosa2mVM@z>
 
+On 05/19/2014 03:13 PM, Maarten Lankhorst wrote:
+> op 19-05-14 15:42, Thomas Hellstrom schreef:
+>> Hi, Maarten!
+>>
+>> Some nitpicks, and that krealloc within rcu lock still worries me.
+>> Otherwise looks good.
+>>
+>> /Thomas
+>>
+>>
+>>
+>> On 04/23/2014 12:15 PM, Maarten Lankhorst wrote:
+>>> @@ -55,8 +60,8 @@ int reservation_object_reserve_shared(struct
+>>> reservation_object *obj)
+>>>               kfree(obj->staged);
+>>>               obj->staged = NULL;
+>>>               return 0;
+>>> -        }
+>>> -        max = old->shared_max * 2;
+>>> +        } else
+>>> +            max = old->shared_max * 2;
+>> Perhaps as a separate reformatting patch?
+> I'll fold it in to the patch that added
+> reservation_object_reserve_shared.
+>>> +
+>>> +int reservation_object_get_fences_rcu(struct reservation_object *obj,
+>>> +                      struct fence **pfence_excl,
+>>> +                      unsigned *pshared_count,
+>>> +                      struct fence ***pshared)
+>>> +{
+>>> +    unsigned shared_count = 0;
+>>> +    unsigned retry = 1;
+>>> +    struct fence **shared = NULL, *fence_excl = NULL;
+>>> +    int ret = 0;
+>>> +
+>>> +    while (retry) {
+>>> +        struct reservation_object_list *fobj;
+>>> +        unsigned seq;
+>>> +
+>>> +        seq = read_seqcount_begin(&obj->seq);
+>>> +
+>>> +        rcu_read_lock();
+>>> +
+>>> +        fobj = rcu_dereference(obj->fence);
+>>> +        if (fobj) {
+>>> +            struct fence **nshared;
+>>> +
+>>> +            shared_count = ACCESS_ONCE(fobj->shared_count);
+>> ACCESS_ONCE() shouldn't be needed inside the seqlock?
+> Yes it is, shared_count may be increased, leading to potential
+> different sizes for krealloc and memcpy
+> if the ACCESS_ONCE is removed. I could use shared_max here instead,
+> which stays the same,
+> but it would waste more memory.
 
---dRZtNaFcRiL7vj6v
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+Maarten, Another perhaps ignorant question WRT this,
+Does ACCESS_ONCE() guarantee that the value accessed is read atomically?
 
-On Tue, May 20, 2014 at 02:05:32PM +0100, David Howells wrote:
-> Peter Zijlstra <peterz@infradead.org> wrote:
->=20
-> > +#define ATOMIC_OPS(op) ATOMIC_OP(op) ATOMIC_OP_RETURN(op)
->=20
-> Can ATOMIC_OP() just be an alias for ATOMIC_OP_RETURN() where that is
-> appropriate?  I suspect several arches (MN10300 included) are going to re=
-turn
-> the value *anyway*.
-
-I was going to introduce a few new atomic ops that will not have
-_return() equivalents. So relying on whatever code is generated by
-ATOMIC_OP_RETURN() is going to be painful.
-
---dRZtNaFcRiL7vj6v
-Content-Type: application/pgp-signature
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.12 (GNU/Linux)
-
-iQIcBAEBAgAGBQJTe1XAAAoJEHZH4aRLwOS6R+4P/iFmLo46aXg3Jh3S1BjrTs0u
-Cq6HQZ1yia8RIDeTIllQsbh8iy6XdFSdbUfx2MT58kPCo4IBpuZYsPoezyHpvmPY
-sR8z/VqHRv0zvqc1iQkjIY5YFwlo5PF3cYl/X4DtgQPcc11FFC2Kbs5lUeerHOgh
-JLjgi9zJuhnintknUlvkT4Fdl435gutARVfNwVLRD5/9m5X4tu26DU/LH7Z/PLLw
-oZwVnhmZO9xqmUPyqSXJjr8v78n3+AIocnfyM2WsSgSYmDNRa8kivWzDEVKsigUa
-nlr48vCFd85ammQldnJkhac2e48gQGQQx8heS0t6nagtrKDphHpTp34BwRT8zdzX
-btmqoclgNSOnSS1dyFo3Ufd1qKKn+bXLaIZBGVsEYwB0WEhf1ydm16K1P/kTgy/b
-aYN2TVdvPQ0/weP0QPPRoMQKm3jmVDYgZtpTKzaUaj+36djtt0wN/9TGTFu564Ew
-Sr5fuU4bvY/QjVH1d9jBk4/NVFL3/2XoO3lBPg5t08AjVvxRGbgpKAGW5IPF8/LI
-qet1s0Z45X4ZgdfCMIffr8aCj1JHB78rk8wG+tljb0iKATivb47J/PetvWQYXM9E
-6CE118N59IwY6Hukj/X7WtWMQ4c4Dc9VKxQ0nyTMc70OoYE1n2kMdvBCMRN6jxTD
-WMuQdedASfNJI4TnObSu
-=j187
------END PGP SIGNATURE-----
-
---dRZtNaFcRiL7vj6v--
+/Thomas
