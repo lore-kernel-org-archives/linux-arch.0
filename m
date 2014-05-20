@@ -1,135 +1,134 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga09.intel.com ([134.134.136.24]:38274 "EHLO mga09.intel.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750758AbaETAoh (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 19 May 2014 20:44:37 -0400
-From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-In-Reply-To: <20140519164301.eafd3dd288ccb88361ddcfc7@linux-foundation.org>
-References: <1399541296-18810-1-git-send-email-maddy@linux.vnet.ibm.com>
- <537479E7.90806@linux.vnet.ibm.com>
- <alpine.LSU.2.11.1405151026540.4664@eggly.anvils>
- <87wqdik4n5.fsf@rustcorp.com.au>
- <53797511.1050409@linux.vnet.ibm.com>
- <alpine.LSU.2.11.1405191531150.1317@eggly.anvils>
- <20140519164301.eafd3dd288ccb88361ddcfc7@linux-foundation.org>
+Received: from e23smtp06.au.ibm.com ([202.81.31.148]:32894 "EHLO
+	e23smtp06.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752500AbaETCHD (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 19 May 2014 22:07:03 -0400
+Received: from /spool/local
+	by e23smtp06.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <maddy@linux.vnet.ibm.com>;
+	Tue, 20 May 2014 12:07:00 +1000
+Message-ID: <537AB8B2.3040000@linux.vnet.ibm.com>
+Date: Tue, 20 May 2014 07:36:42 +0530
+From: Madhavan Srinivasan <maddy@linux.vnet.ibm.com>
+MIME-Version: 1.0
 Subject: Re: [PATCH V4 0/2] mm: FAULT_AROUND_ORDER patchset performance data
  for powerpc
+References: <1399541296-18810-1-git-send-email-maddy@linux.vnet.ibm.com> <537479E7.90806@linux.vnet.ibm.com> <alpine.LSU.2.11.1405151026540.4664@eggly.anvils> <87wqdik4n5.fsf@rustcorp.com.au> <53797511.1050409@linux.vnet.ibm.com> <alpine.LSU.2.11.1405191531150.1317@eggly.anvils>
+In-Reply-To: <alpine.LSU.2.11.1405191531150.1317@eggly.anvils>
+Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 7bit
-Message-ID: <20140520004429.E660AE009B@blue.fi.intel.com>
-Date: Tue, 20 May 2014 03:44:29 +0300 (EEST)
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Hugh Dickins <hughd@google.com>, Madhavan Srinivasan <maddy@linux.vnet.ibm.com>, Rusty Russell <rusty@rustcorp.com.au>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, x86@kernel.org, benh@kernel.crashing.org, paulus@samba.org, riel@redhat.com, mgorman@suse.de, ak@linux.intel.com, peterz@infradead.org, mingo@kernel.org, dave.hansen@intel.com
-Message-ID: <20140520004429.lAyFfSp7jcMplfdiMuR73y8ZHZxXwXniwIwRYRyNKjQ@z>
+To: Hugh Dickins <hughd@google.com>
+Cc: Rusty Russell <rusty@rustcorp.com.au>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, x86@kernel.org, benh@kernel.crashing.org, paulus@samba.org, akpm@linux-foundation.org, riel@redhat.com, mgorman@suse.de, ak@linux.intel.com, peterz@infradead.org, mingo@kernel.org, dave.hansen@intel.com
+Message-ID: <20140520020642.4sTPpIZmtzUjfnNBe6X9aKWxofLKliFR66Qc10xpWuk@z>
 
-Andrew Morton wrote:
-> On Mon, 19 May 2014 16:23:07 -0700 (PDT) Hugh Dickins <hughd@google.com> wrote:
+On Tuesday 20 May 2014 04:53 AM, Hugh Dickins wrote:
+> On Mon, 19 May 2014, Madhavan Srinivasan wrote:
+>> On Monday 19 May 2014 05:42 AM, Rusty Russell wrote:
+>>> Hugh Dickins <hughd@google.com> writes:
+>>>> On Thu, 15 May 2014, Madhavan Srinivasan wrote:
+>>>>>
+>>>>> Hi Ingo,
+>>>>>
+>>>>> 	Do you have any comments for the latest version of the patchset. If
+>>>>> not, kindly can you pick it up as is.
+>>>>>
+>>>>>
+>>>>> With regards
+>>>>> Maddy
+>>>>>
+>>>>>> Kirill A. Shutemov with 8c6e50b029 commit introduced
+>>>>>> vm_ops->map_pages() for mapping easy accessible pages around
+>>>>>> fault address in hope to reduce number of minor page faults.
+>>>>>>
+>>>>>> This patch creates infrastructure to modify the FAULT_AROUND_ORDER
+>>>>>> value using mm/Kconfig. This will enable architecture maintainers
+>>>>>> to decide on suitable FAULT_AROUND_ORDER value based on
+>>>>>> performance data for that architecture. First patch also defaults
+>>>>>> FAULT_AROUND_ORDER Kconfig element to 4. Second patch list
+>>>>>> out the performance numbers for powerpc (platform pseries) and
+>>>>>> initialize the fault around order variable for pseries platform of
+>>>>>> powerpc.
+>>>>
+>>>> Sorry for not commenting earlier - just reminded by this ping to Ingo.
+>>>>
+>>>> I didn't study your numbers, but nowhere did I see what PAGE_SIZE you use.
+>>>>
+>>>> arch/powerpc/Kconfig suggests that Power supports base page size of
+>>>> 4k, 16k, 64k or 256k.
+>>>>
+>>>> I would expect your optimal fault_around_order to depend very much on
+>>>> the base page size.
+>>>
+>>> It was 64k, which is what PPC64 uses on all the major distributions.
+>>> You really only get a choice of 4k and 64k with 64 bit power.
+>>>
+>> This is true. PPC64 support multiple pagesize and yes the default page
+>> size of 64k, is taken as base pagesize for the tests.
+>>
+>>>> Perhaps fault_around_size would provide a more useful default?
+>>>
+>>> That seems to fit.  With 4k pages and order 4, you're asking for 64k.
+>>> Maddy's result shows 64k is also reasonable for 64k pages.
+>>>
+>>> Perhaps we try to generalize from two data points (a slight improvement
+>>> over doing it from 1!), eg:
+>>>
+>>> /* 4 seems good for 4k-page x86, 0 seems good for 64k page ppc64, so: */
+>>> unsigned int fault_around_order __read_mostly =
+>>>         (16 - PAGE_SHIFT < 0 ? 0 : 16 - PAGE_SHIFT);
 > 
-> > Shouldn't FAULT_AROUND_ORDER and fault_around_order be changed to be
-> > the order of the fault-around size in bytes, and fault_around_pages()
-> > use 1UL << (fault_around_order - PAGE_SHIFT)
+> Rusty's bimodal answer doesn't seem the right starting point to me.
 > 
-> Yes.  And shame on me for missing it (this time!) at review.
+> Shouldn't FAULT_AROUND_ORDER and fault_around_order be changed to be
+> the order of the fault-around size in bytes, and fault_around_pages()
+> use 1UL << (fault_around_order - PAGE_SHIFT)
+> - when that doesn't wrap, of course!
 > 
-> There's still time to fix this.  Patches, please.
+> That would at least have a better chance of being appropriate for
+> architectures with 8k and 16k pages (Itanium springs to mind).
+> 
+> Not necessarily right for them, since each architecture may have
+> different faulting overheads; but a better chance of being right
+> than blindly assuming 4k or 64k pages for everyone.
+> 
+> I'd be glad to see that change go into v3.15: what do you think,
+> Kirill, are we too late to make such a change now?
+> Or do you see some objection to it?
+> 
+>> This may be right. But these are the concerns, will not this make other
+>> arch to pick default without any tuning
+> 
+> Wasn't FAULT_AROUND_ORDER 4 chosen solely on the basis of x86 4k pages?
+> Did other architectures, with other page sizes, back that default?
+> Clearly not powerpc.
 
-Here it is. Made at 3.30 AM, build tested only.
+Ok.
 
-I'll sign it off tomorrow after testing.
+> 
+>> and also this will remove the
+>> compile time option to disable the feature?
+> 
+> Compile time option meaning your FAULT_AROUND_ORDER in mm/Kconfig
+> for v3.16?
+> 
+> I'm not sure whether Rusty was arguing against that or not I think
 
-diff --git a/mm/memory.c b/mm/memory.c
-index 037b812a9531..9d6941c9a9e4 100644
---- a/mm/memory.c
-+++ b/mm/memory.c
-@@ -3402,62 +3402,62 @@ void do_set_pte(struct vm_area_struct *vma, unsigned long address,
- 	update_mmu_cache(vma, address, pte);
- }
- 
--#define FAULT_AROUND_ORDER 4
-+#define FAULT_AROUND_BYTES 65536
- 
- #ifdef CONFIG_DEBUG_FS
--static unsigned int fault_around_order = FAULT_AROUND_ORDER;
-+static unsigned int fault_around_bytes = FAULT_AROUND_BYTES;
- 
--static int fault_around_order_get(void *data, u64 *val)
-+static int fault_around_bytes_get(void *data, u64 *val)
- {
--	*val = fault_around_order;
-+	*val = fault_around_bytes;
- 	return 0;
- }
- 
--static int fault_around_order_set(void *data, u64 val)
-+static int fault_around_bytes_set(void *data, u64 val)
- {
--	BUILD_BUG_ON((1UL << FAULT_AROUND_ORDER) > PTRS_PER_PTE);
--	if (1UL << val > PTRS_PER_PTE)
-+	BUILD_BUG_ON(FAULT_AROUND_BYTES / PAGE_SIZE > PTRS_PER_PTE);
-+	if (val / PAGE_SIZE > PTRS_PER_PTE)
- 		return -EINVAL;
--	fault_around_order = val;
-+	fault_around_bytes = val;
- 	return 0;
- }
--DEFINE_SIMPLE_ATTRIBUTE(fault_around_order_fops,
--		fault_around_order_get, fault_around_order_set, "%llu\n");
-+DEFINE_SIMPLE_ATTRIBUTE(fault_around_bytes_fops,
-+		fault_around_bytes_get, fault_around_bytes_set, "%llu\n");
- 
- static int __init fault_around_debugfs(void)
- {
- 	void *ret;
- 
--	ret = debugfs_create_file("fault_around_order",	0644, NULL, NULL,
--			&fault_around_order_fops);
-+	ret = debugfs_create_file("fault_around_bytes", 0644, NULL, NULL,
-+			&fault_around_bytes_fops);
- 	if (!ret)
--		pr_warn("Failed to create fault_around_order in debugfs");
-+		pr_warn("Failed to create fault_around_bytes in debugfs");
- 	return 0;
- }
- late_initcall(fault_around_debugfs);
- 
- static inline unsigned long fault_around_pages(void)
- {
--	return 1UL << fault_around_order;
-+	return fault_around_bytes / PAGE_SIZE;
- }
- 
- static inline unsigned long fault_around_mask(void)
- {
--	return ~((1UL << (PAGE_SHIFT + fault_around_order)) - 1);
-+	return ~(round_down(fault_around_bytes, PAGE_SIZE) - 1);
- }
- #else
- static inline unsigned long fault_around_pages(void)
- {
- 	unsigned long nr_pages;
- 
--	nr_pages = 1UL << FAULT_AROUND_ORDER;
-+	nr_pages = FAULT_AROUND_BYTES / PAGE_SIZE;
- 	BUILD_BUG_ON(nr_pages > PTRS_PER_PTE);
- 	return nr_pages;
- }
- 
- static inline unsigned long fault_around_mask(void)
- {
--	return ~((1UL << (PAGE_SHIFT + FAULT_AROUND_ORDER)) - 1);
-+	return ~(round_down(FAULT_AROUND_BYTES, PAGE_SIZE) - 1);
- }
- #endif
- 
-@@ -3515,7 +3515,7 @@ static int do_read_fault(struct mm_struct *mm, struct vm_area_struct *vma,
- 	 * if page by the offset is not ready to be mapped (cold cache or
- 	 * something).
- 	 */
--	if (vma->vm_ops->map_pages) {
-+	if (vma->vm_ops->map_pages && fault_around_pages() > 1) {
- 		pte = pte_offset_map_lock(mm, pmd, address, &ptl);
- 		do_fault_around(vma, address, pte, pgoff, flags);
- 		if (!pte_same(*pte, orig_pte))
--- 
- Kirill A. Shutemov
+> we are all three concerned to have a more sensible default than what's
+> there at present.  I don't feel very strongly about your Kconfig
+
+Added it as one way to reset or disable the default value. But then I
+guess we decided on having FAULT_AROUND_ORDER as a variable which is
+more important than Kconfig option.
+
+> option: I've no objection, if it were to default to byte order 16.
+> 
+
+Thanks for review
+With regards
+Maddy
+
+> Hugh
+> 
+
