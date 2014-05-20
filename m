@@ -1,113 +1,98 @@
-From: Hugh Dickins <hughd@google.com>
+From: Rusty Russell <rusty@rustcorp.com.au>
 Subject: Re: [PATCH V4 0/2] mm: FAULT_AROUND_ORDER patchset performance data
  for powerpc
-Date: Mon, 19 May 2014 16:23:07 -0700 (PDT)
-Message-ID: <alpine.LSU.2.11.1405191531150.1317@eggly.anvils>
-References: <1399541296-18810-1-git-send-email-maddy@linux.vnet.ibm.com> <537479E7.90806@linux.vnet.ibm.com> <alpine.LSU.2.11.1405151026540.4664@eggly.anvils> <87wqdik4n5.fsf@rustcorp.com.au> <53797511.1050409@linux.vnet.ibm.com>
+Date: Tue, 20 May 2014 10:44:06 +0930
+Message-ID: <87d2f9jlpd.fsf@rustcorp.com.au>
+References: <1399541296-18810-1-git-send-email-maddy@linux.vnet.ibm.com>
+ <537479E7.90806@linux.vnet.ibm.com>
+ <alpine.LSU.2.11.1405151026540.4664@eggly.anvils>
+ <87wqdik4n5.fsf@rustcorp.com.au> <53797511.1050409@linux.vnet.ibm.com>
+ <alpine.LSU.2.11.1405191531150.1317@eggly.anvils>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <53797511.1050409@linux.vnet.ibm.com>
-Sender: owner-linux-mm@kvack.org
-To: Madhavan Srinivasan <maddy@linux.vnet.ibm.com>
-Cc: Rusty Russell <rusty@rustcorp.com.au>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, x86@kernel.org, benh@kernel.crashing.org, paulus@samba.org, akpm@linux-foundation.org, riel@redhat.com, mgorman@suse.de, ak@linux.intel.com, peterz@infradead.org, mingo@kernel.org, dave.hansen@intel.com
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+Return-path: <linuxppc-dev-bounces+glppd-linuxppc64-dev=m.gmane.org@lists.ozlabs.org>
+In-Reply-To: <alpine.LSU.2.11.1405191531150.1317@eggly.anvils>
+List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
+ <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
+List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
+List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
+List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
+List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
+ <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
+Errors-To: linuxppc-dev-bounces+glppd-linuxppc64-dev=m.gmane.org@lists.ozlabs.org
+Sender: "Linuxppc-dev"
+ <linuxppc-dev-bounces+glppd-linuxppc64-dev=m.gmane.org@lists.ozlabs.org>
+To: Hugh Dickins <hughd@google.com>, Madhavan Srinivasan <maddy@linux.vnet.ibm.com>
+Cc: linux-arch@vger.kernel.org, riel@redhat.com, ak@linux.intel.com, dave.hansen@intel.com, peterz@infradead.org, x86@kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, paulus@samba.org, mgorman@suse.de, akpm@linux-foundation.org, linuxppc-dev@lists.ozlabs.org, mingo@kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, 19 May 2014, Madhavan Srinivasan wrote:
-> On Monday 19 May 2014 05:42 AM, Rusty Russell wrote:
-> > Hugh Dickins <hughd@google.com> writes:
-> >> On Thu, 15 May 2014, Madhavan Srinivasan wrote:
-> >>>
-> >>> Hi Ingo,
-> >>>
-> >>> 	Do you have any comments for the latest version of the patchset. If
-> >>> not, kindly can you pick it up as is.
-> >>>
-> >>>
-> >>> With regards
-> >>> Maddy
-> >>>
-> >>>> Kirill A. Shutemov with 8c6e50b029 commit introduced
-> >>>> vm_ops->map_pages() for mapping easy accessible pages around
-> >>>> fault address in hope to reduce number of minor page faults.
-> >>>>
-> >>>> This patch creates infrastructure to modify the FAULT_AROUND_ORDER
-> >>>> value using mm/Kconfig. This will enable architecture maintainers
-> >>>> to decide on suitable FAULT_AROUND_ORDER value based on
-> >>>> performance data for that architecture. First patch also defaults
-> >>>> FAULT_AROUND_ORDER Kconfig element to 4. Second patch list
-> >>>> out the performance numbers for powerpc (platform pseries) and
-> >>>> initialize the fault around order variable for pseries platform of
-> >>>> powerpc.
-> >>
-> >> Sorry for not commenting earlier - just reminded by this ping to Ingo.
-> >>
-> >> I didn't study your numbers, but nowhere did I see what PAGE_SIZE you use.
-> >>
-> >> arch/powerpc/Kconfig suggests that Power supports base page size of
-> >> 4k, 16k, 64k or 256k.
-> >>
-> >> I would expect your optimal fault_around_order to depend very much on
-> >> the base page size.
-> > 
-> > It was 64k, which is what PPC64 uses on all the major distributions.
-> > You really only get a choice of 4k and 64k with 64 bit power.
-> > 
-> This is true. PPC64 support multiple pagesize and yes the default page
-> size of 64k, is taken as base pagesize for the tests.
-> 
-> >> Perhaps fault_around_size would provide a more useful default?
-> > 
-> > That seems to fit.  With 4k pages and order 4, you're asking for 64k.
-> > Maddy's result shows 64k is also reasonable for 64k pages.
-> > 
-> > Perhaps we try to generalize from two data points (a slight improvement
-> > over doing it from 1!), eg:
-> > 
-> > /* 4 seems good for 4k-page x86, 0 seems good for 64k page ppc64, so: */
-> > unsigned int fault_around_order __read_mostly =
-> >         (16 - PAGE_SHIFT < 0 ? 0 : 16 - PAGE_SHIFT);
-
-Rusty's bimodal answer doesn't seem the right starting point to me.
-
-Shouldn't FAULT_AROUND_ORDER and fault_around_order be changed to be
-the order of the fault-around size in bytes, and fault_around_pages()
-use 1UL << (fault_around_order - PAGE_SHIFT)
-- when that doesn't wrap, of course!
-
-That would at least have a better chance of being appropriate for
-architectures with 8k and 16k pages (Itanium springs to mind).
-
-Not necessarily right for them, since each architecture may have
-different faulting overheads; but a better chance of being right
-than blindly assuming 4k or 64k pages for everyone.
-
-I'd be glad to see that change go into v3.15: what do you think,
-Kirill, are we too late to make such a change now?
-Or do you see some objection to it?
-
-> This may be right. But these are the concerns, will not this make other
-> arch to pick default without any tuning
-
-Wasn't FAULT_AROUND_ORDER 4 chosen solely on the basis of x86 4k pages?
-Did other architectures, with other page sizes, back that default?
-Clearly not powerpc.
-
-> and also this will remove the
-> compile time option to disable the feature?
-
-Compile time option meaning your FAULT_AROUND_ORDER in mm/Kconfig
-for v3.16?
-
-I'm not sure whether Rusty was arguing against that or not.  I think
-we are all three concerned to have a more sensible default than what's
-there at present.  I don't feel very strongly about your Kconfig
-option: I've no objection, if it were to default to byte order 16.
-
-Hugh
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+SHVnaCBEaWNraW5zIDxodWdoZEBnb29nbGUuY29tPiB3cml0ZXM6Cj4gT24gTW9uLCAxOSBNYXkg
+MjAxNCwgTWFkaGF2YW4gU3Jpbml2YXNhbiB3cm90ZToKPj4gT24gTW9uZGF5IDE5IE1heSAyMDE0
+IDA1OjQyIEFNLCBSdXN0eSBSdXNzZWxsIHdyb3RlOgo+PiA+IEh1Z2ggRGlja2lucyA8aHVnaGRA
+Z29vZ2xlLmNvbT4gd3JpdGVzOgo+PiA+PiBPbiBUaHUsIDE1IE1heSAyMDE0LCBNYWRoYXZhbiBT
+cmluaXZhc2FuIHdyb3RlOgo+PiA+Pj4KPj4gPj4+IEhpIEluZ28sCj4+ID4+Pgo+PiA+Pj4gCURv
+IHlvdSBoYXZlIGFueSBjb21tZW50cyBmb3IgdGhlIGxhdGVzdCB2ZXJzaW9uIG9mIHRoZSBwYXRj
+aHNldC4gSWYKPj4gPj4+IG5vdCwga2luZGx5IGNhbiB5b3UgcGljayBpdCB1cCBhcyBpcy4KPj4g
+Pj4+Cj4+ID4+Pgo+PiA+Pj4gV2l0aCByZWdhcmRzCj4+ID4+PiBNYWRkeQo+PiA+Pj4KPj4gPj4+
+PiBLaXJpbGwgQS4gU2h1dGVtb3Ygd2l0aCA4YzZlNTBiMDI5IGNvbW1pdCBpbnRyb2R1Y2VkCj4+
+ID4+Pj4gdm1fb3BzLT5tYXBfcGFnZXMoKSBmb3IgbWFwcGluZyBlYXN5IGFjY2Vzc2libGUgcGFn
+ZXMgYXJvdW5kCj4+ID4+Pj4gZmF1bHQgYWRkcmVzcyBpbiBob3BlIHRvIHJlZHVjZSBudW1iZXIg
+b2YgbWlub3IgcGFnZSBmYXVsdHMuCj4+ID4+Pj4KPj4gPj4+PiBUaGlzIHBhdGNoIGNyZWF0ZXMg
+aW5mcmFzdHJ1Y3R1cmUgdG8gbW9kaWZ5IHRoZSBGQVVMVF9BUk9VTkRfT1JERVIKPj4gPj4+PiB2
+YWx1ZSB1c2luZyBtbS9LY29uZmlnLiBUaGlzIHdpbGwgZW5hYmxlIGFyY2hpdGVjdHVyZSBtYWlu
+dGFpbmVycwo+PiA+Pj4+IHRvIGRlY2lkZSBvbiBzdWl0YWJsZSBGQVVMVF9BUk9VTkRfT1JERVIg
+dmFsdWUgYmFzZWQgb24KPj4gPj4+PiBwZXJmb3JtYW5jZSBkYXRhIGZvciB0aGF0IGFyY2hpdGVj
+dHVyZS4gRmlyc3QgcGF0Y2ggYWxzbyBkZWZhdWx0cwo+PiA+Pj4+IEZBVUxUX0FST1VORF9PUkRF
+UiBLY29uZmlnIGVsZW1lbnQgdG8gNC4gU2Vjb25kIHBhdGNoIGxpc3QKPj4gPj4+PiBvdXQgdGhl
+IHBlcmZvcm1hbmNlIG51bWJlcnMgZm9yIHBvd2VycGMgKHBsYXRmb3JtIHBzZXJpZXMpIGFuZAo+
+PiA+Pj4+IGluaXRpYWxpemUgdGhlIGZhdWx0IGFyb3VuZCBvcmRlciB2YXJpYWJsZSBmb3IgcHNl
+cmllcyBwbGF0Zm9ybSBvZgo+PiA+Pj4+IHBvd2VycGMuCj4+ID4+Cj4+ID4+IFNvcnJ5IGZvciBu
+b3QgY29tbWVudGluZyBlYXJsaWVyIC0ganVzdCByZW1pbmRlZCBieSB0aGlzIHBpbmcgdG8gSW5n
+by4KPj4gPj4KPj4gPj4gSSBkaWRuJ3Qgc3R1ZHkgeW91ciBudW1iZXJzLCBidXQgbm93aGVyZSBk
+aWQgSSBzZWUgd2hhdCBQQUdFX1NJWkUgeW91IHVzZS4KPj4gPj4KPj4gPj4gYXJjaC9wb3dlcnBj
+L0tjb25maWcgc3VnZ2VzdHMgdGhhdCBQb3dlciBzdXBwb3J0cyBiYXNlIHBhZ2Ugc2l6ZSBvZgo+
+PiA+PiA0aywgMTZrLCA2NGsgb3IgMjU2ay4KPj4gPj4KPj4gPj4gSSB3b3VsZCBleHBlY3QgeW91
+ciBvcHRpbWFsIGZhdWx0X2Fyb3VuZF9vcmRlciB0byBkZXBlbmQgdmVyeSBtdWNoIG9uCj4+ID4+
+IHRoZSBiYXNlIHBhZ2Ugc2l6ZS4KPj4gPiAKPj4gPiBJdCB3YXMgNjRrLCB3aGljaCBpcyB3aGF0
+IFBQQzY0IHVzZXMgb24gYWxsIHRoZSBtYWpvciBkaXN0cmlidXRpb25zLgo+PiA+IFlvdSByZWFs
+bHkgb25seSBnZXQgYSBjaG9pY2Ugb2YgNGsgYW5kIDY0ayB3aXRoIDY0IGJpdCBwb3dlci4KPj4g
+PiAKPj4gVGhpcyBpcyB0cnVlLiBQUEM2NCBzdXBwb3J0IG11bHRpcGxlIHBhZ2VzaXplIGFuZCB5
+ZXMgdGhlIGRlZmF1bHQgcGFnZQo+PiBzaXplIG9mIDY0aywgaXMgdGFrZW4gYXMgYmFzZSBwYWdl
+c2l6ZSBmb3IgdGhlIHRlc3RzLgo+PiAKPj4gPj4gUGVyaGFwcyBmYXVsdF9hcm91bmRfc2l6ZSB3
+b3VsZCBwcm92aWRlIGEgbW9yZSB1c2VmdWwgZGVmYXVsdD8KPj4gPiAKPj4gPiBUaGF0IHNlZW1z
+IHRvIGZpdC4gIFdpdGggNGsgcGFnZXMgYW5kIG9yZGVyIDQsIHlvdSdyZSBhc2tpbmcgZm9yIDY0
+ay4KPj4gPiBNYWRkeSdzIHJlc3VsdCBzaG93cyA2NGsgaXMgYWxzbyByZWFzb25hYmxlIGZvciA2
+NGsgcGFnZXMuCj4+ID4gCj4+ID4gUGVyaGFwcyB3ZSB0cnkgdG8gZ2VuZXJhbGl6ZSBmcm9tIHR3
+byBkYXRhIHBvaW50cyAoYSBzbGlnaHQgaW1wcm92ZW1lbnQKPj4gPiBvdmVyIGRvaW5nIGl0IGZy
+b20gMSEpLCBlZzoKPj4gPiAKPj4gPiAvKiA0IHNlZW1zIGdvb2QgZm9yIDRrLXBhZ2UgeDg2LCAw
+IHNlZW1zIGdvb2QgZm9yIDY0ayBwYWdlIHBwYzY0LCBzbzogKi8KPj4gPiB1bnNpZ25lZCBpbnQg
+ZmF1bHRfYXJvdW5kX29yZGVyIF9fcmVhZF9tb3N0bHkgPQo+PiA+ICAgICAgICAgKDE2IC0gUEFH
+RV9TSElGVCA8IDAgPyAwIDogMTYgLSBQQUdFX1NISUZUKTsKPgo+IFJ1c3R5J3MgYmltb2RhbCBh
+bnN3ZXIgZG9lc24ndCBzZWVtIHRoZSByaWdodCBzdGFydGluZyBwb2ludCB0byBtZS4KCj8gIEl0
+J3Mgbm90IGJpbW9kYWwsIGl0J3MgZ3JhZGVkLiAgSSB0aGluayB5b3UgbWlzcmVhZD8KCj4gU2hv
+dWxkbid0IEZBVUxUX0FST1VORF9PUkRFUiBhbmQgZmF1bHRfYXJvdW5kX29yZGVyIGJlIGNoYW5n
+ZWQgdG8gYmUKPiB0aGUgb3JkZXIgb2YgdGhlIGZhdWx0LWFyb3VuZCBzaXplIGluIGJ5dGVzLCBh
+bmQgZmF1bHRfYXJvdW5kX3BhZ2VzKCkKPiB1c2UgMVVMIDw8IChmYXVsdF9hcm91bmRfb3JkZXIg
+LSBQQUdFX1NISUZUKQo+IC0gd2hlbiB0aGF0IGRvZXNuJ3Qgd3JhcCwgb2YgY291cnNlIQo+Cj4g
+VGhhdCB3b3VsZCBhdCBsZWFzdCBoYXZlIGEgYmV0dGVyIGNoYW5jZSBvZiBiZWluZyBhcHByb3By
+aWF0ZSBmb3IKPiBhcmNoaXRlY3R1cmVzIHdpdGggOGsgYW5kIDE2ayBwYWdlcyAoSXRhbml1bSBz
+cHJpbmdzIHRvIG1pbmQpLgoKV2VsbCwgZnJvbSBvdXIgdHdvIGRhdGEgcG9pbnRzIGl0IHNlZW1z
+IHRoYXQgd2Ugd2FudCB0byBmYXVsdCBpbgo2NGsgYXQgYSB0aW1lIHdoYXRldmVyIG91ciBwYWdl
+IHNpemUuICBQZXJoYXBzIGl0J3MgY2xlYXJlciBpZiB0aGUKY29kZSBleHByZXNzZXMgaXRzZWxm
+IHRoYXQgd2F5LgoKPiBXYXNuJ3QgRkFVTFRfQVJPVU5EX09SREVSIDQgY2hvc2VuIHNvbGVseSBv
+biB0aGUgYmFzaXMgb2YgeDg2IDRrIHBhZ2VzPwo+IERpZCBvdGhlciBhcmNoaXRlY3R1cmVzLCB3
+aXRoIG90aGVyIHBhZ2Ugc2l6ZXMsIGJhY2sgdGhhdCBkZWZhdWx0Pwo+IENsZWFybHkgbm90IHBv
+d2VycGMuCgpZZWFoLCBCZW5IIGZsYWdnZWQgaXQgYXMgIndlIHNob3VsZCB0ZXN0IHRoaXMiIGZv
+ciBwb3dlcnBjLCB3aGljaCBpcwp3aGF0IE1hZGR5IHRoZW4gZGlkLgoKPj4gYW5kIGFsc28gdGhp
+cyB3aWxsIHJlbW92ZSB0aGUKPj4gY29tcGlsZSB0aW1lIG9wdGlvbiB0byBkaXNhYmxlIHRoZSBm
+ZWF0dXJlPwo+Cj4gQ29tcGlsZSB0aW1lIG9wdGlvbiBtZWFuaW5nIHlvdXIgRkFVTFRfQVJPVU5E
+X09SREVSIGluIG1tL0tjb25maWcKPiBmb3IgdjMuMTY/Cj4KPiBJJ20gbm90IHN1cmUgd2hldGhl
+ciBSdXN0eSB3YXMgYXJndWluZyBhZ2FpbnN0IHRoYXQgb3Igbm90LiAgSSB0aGluawo+IHdlIGFy
+ZSBhbGwgdGhyZWUgY29uY2VybmVkIHRvIGhhdmUgYSBtb3JlIHNlbnNpYmxlIGRlZmF1bHQgdGhh
+biB3aGF0J3MKPiB0aGVyZSBhdCBwcmVzZW50LiAgSSBkb24ndCBmZWVsIHZlcnkgc3Ryb25nbHkg
+YWJvdXQgeW91ciBLY29uZmlnCj4gb3B0aW9uOiBJJ3ZlIG5vIG9iamVjdGlvbiwgaWYgaXQgd2Vy
+ZSB0byBkZWZhdWx0IHRvIGJ5dGUgb3JkZXIgMTYuCgpJIGRvbid0IG1pbmQgZWl0aGVyLgoKQ2hl
+ZXJzLApSdXN0eS4KX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19f
+X18KTGludXhwcGMtZGV2IG1haWxpbmcgbGlzdApMaW51eHBwYy1kZXZAbGlzdHMub3psYWJzLm9y
+ZwpodHRwczovL2xpc3RzLm96bGFicy5vcmcvbGlzdGluZm8vbGludXhwcGMtZGV2
