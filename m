@@ -1,55 +1,104 @@
-From: Andrew Morton <akpm@linux-foundation.org>
+From: Madhavan Srinivasan <maddy@linux.vnet.ibm.com>
 Subject: Re: [PATCH V4 0/2] mm: FAULT_AROUND_ORDER patchset performance data
  for powerpc
-Date: Tue, 20 May 2014 00:32:01 -0700
-Message-ID: <20140520003201.a2360d5d.akpm@linux-foundation.org>
+Date: Tue, 20 May 2014 07:36:42 +0530
+Message-ID: <537AB8B2.3040000@linux.vnet.ibm.com>
 References: <1399541296-18810-1-git-send-email-maddy@linux.vnet.ibm.com>
-	<537479E7.90806@linux.vnet.ibm.com>
-	<alpine.LSU.2.11.1405151026540.4664@eggly.anvils>
-	<87wqdik4n5.fsf@rustcorp.com.au>
-	<53797511.1050409@linux.vnet.ibm.com>
-	<alpine.LSU.2.11.1405191531150.1317@eggly.anvils>
-	<20140519164301.eafd3dd288ccb88361ddcfc7@linux-foundation.org>
-	<20140520004429.E660AE009B@blue.fi.intel.com>
-	<87oaythsvk.fsf@rustcorp.com.au>
+ <537479E7.90806@linux.vnet.ibm.com>
+ <alpine.LSU.2.11.1405151026540.4664@eggly.anvils>
+ <87wqdik4n5.fsf@rustcorp.com.au> <53797511.1050409@linux.vnet.ibm.com>
+ <alpine.LSU.2.11.1405191531150.1317@eggly.anvils>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <87oaythsvk.fsf@rustcorp.com.au>
-Sender: owner-linux-mm@kvack.org
-To: Rusty Russell <rusty@rustcorp.com.au>
-Cc: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Hugh Dickins <hughd@google.com>, Madhavan Srinivasan <maddy@linux.vnet.ibm.com>, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, x86@kernel.org, benh@kernel.crashing.org, paulus@samba.org, riel@redhat.com, mgorman@suse.de, ak@linux.intel.com, peterz@infradead.org, mingo@kernel.org, dave.hansen@intel.com
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+Return-path: <linuxppc-dev-bounces+glppd-linuxppc64-dev=m.gmane.org@lists.ozlabs.org>
+In-Reply-To: <alpine.LSU.2.11.1405191531150.1317@eggly.anvils>
+List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
+ <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
+List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
+List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
+List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
+List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
+ <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
+Errors-To: linuxppc-dev-bounces+glppd-linuxppc64-dev=m.gmane.org@lists.ozlabs.org
+Sender: "Linuxppc-dev"
+ <linuxppc-dev-bounces+glppd-linuxppc64-dev=m.gmane.org@lists.ozlabs.org>
+To: Hugh Dickins <hughd@google.com>
+Cc: linux-arch@vger.kernel.org, riel@redhat.com, x86@kernel.org, dave.hansen@intel.com, peterz@infradead.org, Rusty Russell <rusty@rustcorp.com.au>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, ak@linux.intel.com, paulus@samba.org, mgorman@suse.de, akpm@linux-foundation.org, linuxppc-dev@lists.ozlabs.org, mingo@kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, 20 May 2014 15:52:07 +0930 Rusty Russell <rusty@rustcorp.com.au> wrote:
-
-> "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com> writes:
-> > Andrew Morton wrote:
-> >> On Mon, 19 May 2014 16:23:07 -0700 (PDT) Hugh Dickins <hughd@google.com> wrote:
-> >> 
-> >> > Shouldn't FAULT_AROUND_ORDER and fault_around_order be changed to be
-> >> > the order of the fault-around size in bytes, and fault_around_pages()
-> >> > use 1UL << (fault_around_order - PAGE_SHIFT)
-> >> 
-> >> Yes.  And shame on me for missing it (this time!) at review.
-> >> 
-> >> There's still time to fix this.  Patches, please.
-> >
-> > Here it is. Made at 3.30 AM, build tested only.
-> 
-> Prefer on top of Maddy's patch which makes it always a variable, rather
-> than CONFIG_DEBUG_FS.  It's got enough hair as it is.
-> 
-
-We're at 3.15-rc5 and this interface should be finalised for 3.16.  So
-Kirrill's patch is pretty urgent and should come first.
-
-Well.  It's only a debugfs interface at this stage so we are allowed to
-change it later, but it's better not to.
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+T24gVHVlc2RheSAyMCBNYXkgMjAxNCAwNDo1MyBBTSwgSHVnaCBEaWNraW5zIHdyb3RlOgo+IE9u
+IE1vbiwgMTkgTWF5IDIwMTQsIE1hZGhhdmFuIFNyaW5pdmFzYW4gd3JvdGU6Cj4+IE9uIE1vbmRh
+eSAxOSBNYXkgMjAxNCAwNTo0MiBBTSwgUnVzdHkgUnVzc2VsbCB3cm90ZToKPj4+IEh1Z2ggRGlj
+a2lucyA8aHVnaGRAZ29vZ2xlLmNvbT4gd3JpdGVzOgo+Pj4+IE9uIFRodSwgMTUgTWF5IDIwMTQs
+IE1hZGhhdmFuIFNyaW5pdmFzYW4gd3JvdGU6Cj4+Pj4+Cj4+Pj4+IEhpIEluZ28sCj4+Pj4+Cj4+
+Pj4+IAlEbyB5b3UgaGF2ZSBhbnkgY29tbWVudHMgZm9yIHRoZSBsYXRlc3QgdmVyc2lvbiBvZiB0
+aGUgcGF0Y2hzZXQuIElmCj4+Pj4+IG5vdCwga2luZGx5IGNhbiB5b3UgcGljayBpdCB1cCBhcyBp
+cy4KPj4+Pj4KPj4+Pj4KPj4+Pj4gV2l0aCByZWdhcmRzCj4+Pj4+IE1hZGR5Cj4+Pj4+Cj4+Pj4+
+PiBLaXJpbGwgQS4gU2h1dGVtb3Ygd2l0aCA4YzZlNTBiMDI5IGNvbW1pdCBpbnRyb2R1Y2VkCj4+
+Pj4+PiB2bV9vcHMtPm1hcF9wYWdlcygpIGZvciBtYXBwaW5nIGVhc3kgYWNjZXNzaWJsZSBwYWdl
+cyBhcm91bmQKPj4+Pj4+IGZhdWx0IGFkZHJlc3MgaW4gaG9wZSB0byByZWR1Y2UgbnVtYmVyIG9m
+IG1pbm9yIHBhZ2UgZmF1bHRzLgo+Pj4+Pj4KPj4+Pj4+IFRoaXMgcGF0Y2ggY3JlYXRlcyBpbmZy
+YXN0cnVjdHVyZSB0byBtb2RpZnkgdGhlIEZBVUxUX0FST1VORF9PUkRFUgo+Pj4+Pj4gdmFsdWUg
+dXNpbmcgbW0vS2NvbmZpZy4gVGhpcyB3aWxsIGVuYWJsZSBhcmNoaXRlY3R1cmUgbWFpbnRhaW5l
+cnMKPj4+Pj4+IHRvIGRlY2lkZSBvbiBzdWl0YWJsZSBGQVVMVF9BUk9VTkRfT1JERVIgdmFsdWUg
+YmFzZWQgb24KPj4+Pj4+IHBlcmZvcm1hbmNlIGRhdGEgZm9yIHRoYXQgYXJjaGl0ZWN0dXJlLiBG
+aXJzdCBwYXRjaCBhbHNvIGRlZmF1bHRzCj4+Pj4+PiBGQVVMVF9BUk9VTkRfT1JERVIgS2NvbmZp
+ZyBlbGVtZW50IHRvIDQuIFNlY29uZCBwYXRjaCBsaXN0Cj4+Pj4+PiBvdXQgdGhlIHBlcmZvcm1h
+bmNlIG51bWJlcnMgZm9yIHBvd2VycGMgKHBsYXRmb3JtIHBzZXJpZXMpIGFuZAo+Pj4+Pj4gaW5p
+dGlhbGl6ZSB0aGUgZmF1bHQgYXJvdW5kIG9yZGVyIHZhcmlhYmxlIGZvciBwc2VyaWVzIHBsYXRm
+b3JtIG9mCj4+Pj4+PiBwb3dlcnBjLgo+Pj4+Cj4+Pj4gU29ycnkgZm9yIG5vdCBjb21tZW50aW5n
+IGVhcmxpZXIgLSBqdXN0IHJlbWluZGVkIGJ5IHRoaXMgcGluZyB0byBJbmdvLgo+Pj4+Cj4+Pj4g
+SSBkaWRuJ3Qgc3R1ZHkgeW91ciBudW1iZXJzLCBidXQgbm93aGVyZSBkaWQgSSBzZWUgd2hhdCBQ
+QUdFX1NJWkUgeW91IHVzZS4KPj4+Pgo+Pj4+IGFyY2gvcG93ZXJwYy9LY29uZmlnIHN1Z2dlc3Rz
+IHRoYXQgUG93ZXIgc3VwcG9ydHMgYmFzZSBwYWdlIHNpemUgb2YKPj4+PiA0aywgMTZrLCA2NGsg
+b3IgMjU2ay4KPj4+Pgo+Pj4+IEkgd291bGQgZXhwZWN0IHlvdXIgb3B0aW1hbCBmYXVsdF9hcm91
+bmRfb3JkZXIgdG8gZGVwZW5kIHZlcnkgbXVjaCBvbgo+Pj4+IHRoZSBiYXNlIHBhZ2Ugc2l6ZS4K
+Pj4+Cj4+PiBJdCB3YXMgNjRrLCB3aGljaCBpcyB3aGF0IFBQQzY0IHVzZXMgb24gYWxsIHRoZSBt
+YWpvciBkaXN0cmlidXRpb25zLgo+Pj4gWW91IHJlYWxseSBvbmx5IGdldCBhIGNob2ljZSBvZiA0
+ayBhbmQgNjRrIHdpdGggNjQgYml0IHBvd2VyLgo+Pj4KPj4gVGhpcyBpcyB0cnVlLiBQUEM2NCBz
+dXBwb3J0IG11bHRpcGxlIHBhZ2VzaXplIGFuZCB5ZXMgdGhlIGRlZmF1bHQgcGFnZQo+PiBzaXpl
+IG9mIDY0aywgaXMgdGFrZW4gYXMgYmFzZSBwYWdlc2l6ZSBmb3IgdGhlIHRlc3RzLgo+Pgo+Pj4+
+IFBlcmhhcHMgZmF1bHRfYXJvdW5kX3NpemUgd291bGQgcHJvdmlkZSBhIG1vcmUgdXNlZnVsIGRl
+ZmF1bHQ/Cj4+Pgo+Pj4gVGhhdCBzZWVtcyB0byBmaXQuICBXaXRoIDRrIHBhZ2VzIGFuZCBvcmRl
+ciA0LCB5b3UncmUgYXNraW5nIGZvciA2NGsuCj4+PiBNYWRkeSdzIHJlc3VsdCBzaG93cyA2NGsg
+aXMgYWxzbyByZWFzb25hYmxlIGZvciA2NGsgcGFnZXMuCj4+Pgo+Pj4gUGVyaGFwcyB3ZSB0cnkg
+dG8gZ2VuZXJhbGl6ZSBmcm9tIHR3byBkYXRhIHBvaW50cyAoYSBzbGlnaHQgaW1wcm92ZW1lbnQK
+Pj4+IG92ZXIgZG9pbmcgaXQgZnJvbSAxISksIGVnOgo+Pj4KPj4+IC8qIDQgc2VlbXMgZ29vZCBm
+b3IgNGstcGFnZSB4ODYsIDAgc2VlbXMgZ29vZCBmb3IgNjRrIHBhZ2UgcHBjNjQsIHNvOiAqLwo+
+Pj4gdW5zaWduZWQgaW50IGZhdWx0X2Fyb3VuZF9vcmRlciBfX3JlYWRfbW9zdGx5ID0KPj4+ICAg
+ICAgICAgKDE2IC0gUEFHRV9TSElGVCA8IDAgPyAwIDogMTYgLSBQQUdFX1NISUZUKTsKPiAKPiBS
+dXN0eSdzIGJpbW9kYWwgYW5zd2VyIGRvZXNuJ3Qgc2VlbSB0aGUgcmlnaHQgc3RhcnRpbmcgcG9p
+bnQgdG8gbWUuCj4gCj4gU2hvdWxkbid0IEZBVUxUX0FST1VORF9PUkRFUiBhbmQgZmF1bHRfYXJv
+dW5kX29yZGVyIGJlIGNoYW5nZWQgdG8gYmUKPiB0aGUgb3JkZXIgb2YgdGhlIGZhdWx0LWFyb3Vu
+ZCBzaXplIGluIGJ5dGVzLCBhbmQgZmF1bHRfYXJvdW5kX3BhZ2VzKCkKPiB1c2UgMVVMIDw8IChm
+YXVsdF9hcm91bmRfb3JkZXIgLSBQQUdFX1NISUZUKQo+IC0gd2hlbiB0aGF0IGRvZXNuJ3Qgd3Jh
+cCwgb2YgY291cnNlIQo+IAo+IFRoYXQgd291bGQgYXQgbGVhc3QgaGF2ZSBhIGJldHRlciBjaGFu
+Y2Ugb2YgYmVpbmcgYXBwcm9wcmlhdGUgZm9yCj4gYXJjaGl0ZWN0dXJlcyB3aXRoIDhrIGFuZCAx
+NmsgcGFnZXMgKEl0YW5pdW0gc3ByaW5ncyB0byBtaW5kKS4KPiAKPiBOb3QgbmVjZXNzYXJpbHkg
+cmlnaHQgZm9yIHRoZW0sIHNpbmNlIGVhY2ggYXJjaGl0ZWN0dXJlIG1heSBoYXZlCj4gZGlmZmVy
+ZW50IGZhdWx0aW5nIG92ZXJoZWFkczsgYnV0IGEgYmV0dGVyIGNoYW5jZSBvZiBiZWluZyByaWdo
+dAo+IHRoYW4gYmxpbmRseSBhc3N1bWluZyA0ayBvciA2NGsgcGFnZXMgZm9yIGV2ZXJ5b25lLgo+
+IAo+IEknZCBiZSBnbGFkIHRvIHNlZSB0aGF0IGNoYW5nZSBnbyBpbnRvIHYzLjE1OiB3aGF0IGRv
+IHlvdSB0aGluaywKPiBLaXJpbGwsIGFyZSB3ZSB0b28gbGF0ZSB0byBtYWtlIHN1Y2ggYSBjaGFu
+Z2Ugbm93Pwo+IE9yIGRvIHlvdSBzZWUgc29tZSBvYmplY3Rpb24gdG8gaXQ/Cj4gCj4+IFRoaXMg
+bWF5IGJlIHJpZ2h0LiBCdXQgdGhlc2UgYXJlIHRoZSBjb25jZXJucywgd2lsbCBub3QgdGhpcyBt
+YWtlIG90aGVyCj4+IGFyY2ggdG8gcGljayBkZWZhdWx0IHdpdGhvdXQgYW55IHR1bmluZwo+IAo+
+IFdhc24ndCBGQVVMVF9BUk9VTkRfT1JERVIgNCBjaG9zZW4gc29sZWx5IG9uIHRoZSBiYXNpcyBv
+ZiB4ODYgNGsgcGFnZXM/Cj4gRGlkIG90aGVyIGFyY2hpdGVjdHVyZXMsIHdpdGggb3RoZXIgcGFn
+ZSBzaXplcywgYmFjayB0aGF0IGRlZmF1bHQ/Cj4gQ2xlYXJseSBub3QgcG93ZXJwYy4KCk9rLgoK
+PiAKPj4gYW5kIGFsc28gdGhpcyB3aWxsIHJlbW92ZSB0aGUKPj4gY29tcGlsZSB0aW1lIG9wdGlv
+biB0byBkaXNhYmxlIHRoZSBmZWF0dXJlPwo+IAo+IENvbXBpbGUgdGltZSBvcHRpb24gbWVhbmlu
+ZyB5b3VyIEZBVUxUX0FST1VORF9PUkRFUiBpbiBtbS9LY29uZmlnCj4gZm9yIHYzLjE2Pwo+IAo+
+IEknbSBub3Qgc3VyZSB3aGV0aGVyIFJ1c3R5IHdhcyBhcmd1aW5nIGFnYWluc3QgdGhhdCBvciBu
+b3QgSSB0aGluawoKPiB3ZSBhcmUgYWxsIHRocmVlIGNvbmNlcm5lZCB0byBoYXZlIGEgbW9yZSBz
+ZW5zaWJsZSBkZWZhdWx0IHRoYW4gd2hhdCdzCj4gdGhlcmUgYXQgcHJlc2VudC4gIEkgZG9uJ3Qg
+ZmVlbCB2ZXJ5IHN0cm9uZ2x5IGFib3V0IHlvdXIgS2NvbmZpZwoKQWRkZWQgaXQgYXMgb25lIHdh
+eSB0byByZXNldCBvciBkaXNhYmxlIHRoZSBkZWZhdWx0IHZhbHVlLiBCdXQgdGhlbiBJCmd1ZXNz
+IHdlIGRlY2lkZWQgb24gaGF2aW5nIEZBVUxUX0FST1VORF9PUkRFUiBhcyBhIHZhcmlhYmxlIHdo
+aWNoIGlzCm1vcmUgaW1wb3J0YW50IHRoYW4gS2NvbmZpZyBvcHRpb24uCgo+IG9wdGlvbjogSSd2
+ZSBubyBvYmplY3Rpb24sIGlmIGl0IHdlcmUgdG8gZGVmYXVsdCB0byBieXRlIG9yZGVyIDE2Lgo+
+IAoKVGhhbmtzIGZvciByZXZpZXcKV2l0aCByZWdhcmRzCk1hZGR5Cgo+IEh1Z2gKPiAKCl9fX19f
+X19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fCkxpbnV4cHBjLWRldiBt
+YWlsaW5nIGxpc3QKTGludXhwcGMtZGV2QGxpc3RzLm96bGFicy5vcmcKaHR0cHM6Ly9saXN0cy5v
+emxhYnMub3JnL2xpc3RpbmZvL2xpbnV4cHBjLWRldg==
