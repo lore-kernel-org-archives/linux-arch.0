@@ -1,177 +1,335 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga09.intel.com ([134.134.136.24]:4927 "EHLO mga09.intel.com"
+Received: from mx1.redhat.com ([209.132.183.28]:57531 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751033AbaEUNkk (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 21 May 2014 09:40:40 -0400
-From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-In-Reply-To: <20140520125956.aa61a3bfd84d4d6190740ce2@linux-foundation.org>
-References: <1399541296-18810-1-git-send-email-maddy@linux.vnet.ibm.com>
- <537479E7.90806@linux.vnet.ibm.com>
- <alpine.LSU.2.11.1405151026540.4664@eggly.anvils>
- <87wqdik4n5.fsf@rustcorp.com.au>
- <53797511.1050409@linux.vnet.ibm.com>
- <alpine.LSU.2.11.1405191531150.1317@eggly.anvils>
- <20140519164301.eafd3dd288ccb88361ddcfc7@linux-foundation.org>
- <20140520004429.E660AE009B@blue.fi.intel.com>
- <87oaythsvk.fsf@rustcorp.com.au>
- <20140520102738.7F096E009B@blue.fi.intel.com>
- <20140520125956.aa61a3bfd84d4d6190740ce2@linux-foundation.org>
-Subject: Re: [PATCH V4 0/2] mm: FAULT_AROUND_ORDER patchset performance data
- for powerpc
-Content-Transfer-Encoding: 7bit
-Message-ID: <20140521134027.263DDE009B@blue.fi.intel.com>
-Date: Wed, 21 May 2014 16:40:27 +0300 (EEST)
+	id S1751801AbaEURDS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 21 May 2014 13:03:18 -0400
+Date: Wed, 21 May 2014 19:02:27 +0200
+From: Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>
+Subject: Re: [RFC 08/07] qspinlock: integrate pending bit into queue
+Message-ID: <20140521170226.GA9241@potion.brq.redhat.com>
+References: <1399474907-22206-1-git-send-email-Waiman.Long@hp.com>
+ <1399474907-22206-4-git-send-email-Waiman.Long@hp.com>
+ <20140512152208.GA12309@potion.brq.redhat.com>
+ <537276B4.10209@hp.com>
+ <20140514165121.GA21370@potion.redhat.com>
+ <20140514170016.GW30445@twins.programming.kicks-ass.net>
+ <20140514191339.GA22813@potion.brq.redhat.com>
+ <537A66D3.8070607@hp.com>
+ <20140521164930.GA26199@potion.brq.redhat.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <20140521164930.GA26199@potion.brq.redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Rusty Russell <rusty@rustcorp.com.au>, Hugh Dickins <hughd@google.com>, Madhavan Srinivasan <maddy@linux.vnet.ibm.com>, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, x86@kernel.org, benh@kernel.crashing.org, paulus@samba.org, riel@redhat.com, mgorman@suse.de, ak@linux.intel.com, peterz@infradead.org, mingo@kernel.org, dave.hansen@intel.com
-Message-ID: <20140521134027.C-G8D1xQtm-IOiVMcpO_Rlk0UoDzv82zd46LTzAU9wM@z>
+To: Waiman Long <waiman.long@hp.com>
+Cc: Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Rik van Riel <riel@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, David Vrabel <david.vrabel@citrix.com>, Oleg Nesterov <oleg@redhat.com>, Gleb Natapov <gleb@redhat.com>, Scott J Norton <scott.norton@hp.com>, Chegu Vinod <chegu_vinod@hp.com>
+Message-ID: <20140521170227.xsLuaAMS4mkxQGzvnzgLoQrysipSf7tnMi_NerS3nng@z>
 
-Andrew Morton wrote:
-> On Tue, 20 May 2014 13:27:38 +0300 (EEST) "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com> wrote:
+2014-05-21 18:49+0200, Radim Krčmář:
+> 2014-05-19 16:17-0400, Waiman Long:
+> >       As for now, I will focus on just having one pending bit.
 > 
-> > Rusty Russell wrote:
-> > > "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com> writes:
-> > > > Andrew Morton wrote:
-> > > >> On Mon, 19 May 2014 16:23:07 -0700 (PDT) Hugh Dickins <hughd@google.com> wrote:
-> > > >> 
-> > > >> > Shouldn't FAULT_AROUND_ORDER and fault_around_order be changed to be
-> > > >> > the order of the fault-around size in bytes, and fault_around_pages()
-> > > >> > use 1UL << (fault_around_order - PAGE_SHIFT)
-> > > >> 
-> > > >> Yes.  And shame on me for missing it (this time!) at review.
-> > > >> 
-> > > >> There's still time to fix this.  Patches, please.
-> > > >
-> > > > Here it is. Made at 3.30 AM, build tested only.
-> > > 
-> > > Prefer on top of Maddy's patch which makes it always a variable, rather
-> > > than CONFIG_DEBUG_FS.  It's got enough hair as it is.
-> > 
-> > Something like this?
-> 
-> This appears to be against mainline, not against Madhavan's patch.  As
-> mentioned previously, I'd prefer it that way but confused.
-> 
-> 
-> > From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-> > Date: Tue, 20 May 2014 13:02:03 +0300
-> > Subject: [PATCH] mm: nominate faultaround area in bytes rather then page order
-> > 
-> > There are evidences that faultaround feature is less relevant on
-> > architectures with page size bigger then 4k. Which makes sense since
-> > page fault overhead per byte of mapped area should be less there.
-> > 
-> > Let's rework the feature to specify faultaround area in bytes instead of
-> > page order. It's 64 kilobytes for now.
-> > 
-> > The patch effectively disables faultaround on architectures with
-> > page size >= 64k (like ppc64).
-> > 
-> > It's possible that some other size of faultaround area is relevant for a
-> > platform. We can expose `fault_around_bytes' variable to arch-specific
-> > code once such platforms will be found.
-> > 
-> > Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
-> > ---
-> >  mm/memory.c | 62 +++++++++++++++++++++++--------------------------------------
-> >  1 file changed, 23 insertions(+), 39 deletions(-)
-> > 
-> > diff --git a/mm/memory.c b/mm/memory.c
-> > index 037b812a9531..252b319e8cdf 100644
-> > --- a/mm/memory.c
-> > +++ b/mm/memory.c
-> > @@ -3402,63 +3402,47 @@ void do_set_pte(struct vm_area_struct *vma, unsigned long address,
-> >  	update_mmu_cache(vma, address, pte);
-> >  }
-> >  
-> > -#define FAULT_AROUND_ORDER 4
-> > +static unsigned long fault_around_bytes = 65536;
-> > +
-> > +static inline unsigned long fault_around_pages(void)
-> > +{
-> > +	return rounddown_pow_of_two(fault_around_bytes) / PAGE_SIZE;
-> > +}
-> 
-> I think we should round up, not down.  So if the user asks for 1kb,
-> they get one page.
-> 
-> So this becomes
-> 
-> 	return PAGE_ALIGN(fault_around_bytes) / PAGE_SIZE;
+> I'll throw some ideas at it,
 
-See below.
+One of the ideas follows; it seems sound, but I haven't benchmarked it
+thoroughly. (Wasted a lot of time by writing/playing with various tools
+and loads.)
 
-> > +static inline unsigned long fault_around_mask(void)
-> > +{
-> > +	return ~(rounddown_pow_of_two(fault_around_bytes) - 1) & PAGE_MASK;
-> > +}
-> 
-> And this has me a bit stumped.  It's not helpful that do_fault_around()
-> is undocumented.  Does it fault in N/2 pages ahead and N/2 pages
-> behind?  Or does it align the address down to the highest multiple of
-> fault_around_bytes?  It appears to be the latter, so the location of
-> the faultaround window around the fault address is basically random,
-> depending on what address userspace happened to pick.  I don't know why
-> we did this :(
+Dbench on ext4 ramdisk, hackbench and ebizzy have shown a small
+improvement in performance, but my main drive was the weird design of
+Pending Bit.
+Does your setup yield improvements too?
+(A minor code swap noted in the patch might help things.)
 
-When we call ->map_pages() we need to make sure that we stay within VMA
-and the page table. We don't want to cross page table boundary, because
-page table is what ptlock covers in split ptlock case.
+It is meant to be aplied on top of first 7 patches, because the virt
+stuff would just get in the way.
+I have preserved a lot of dead code and made some questionable decisions
+just to keep the diff short and in one patch, sorry about that.
 
-I've designed the feature with fault area nominated in page order in mind
-and I found it's easier to make sure we don't cross boundaries, if we
-would align virtual address of fault around area to PAGE_SIZE <<
-FAULT_AROUND_ORDER.
+(It is work in progress, double slashed lines mark points of interest.)
 
-And yes fault address may be anywhere within the area. You can think about
-this as a virtual page with size PAGE_SIZE << FAULT_AROUND_ORDER: no matter
-what is fault address, we handle area naturally aligned to page size which
-fault address belong to.
+---8<---
+Pending Bit wasn't used if we already had a node queue with one cpu,
+which meant that we suffered from these drawbacks again:
+ - unlock path was more complicated
+   (last queued CPU had to clear the tail)
+ - cold node cacheline was just one critical section away
 
-I've used rounddown_pow_of_two() in the patch to align to nearest page
-order, not to page size, because that's what current do_fault_around()
-expect to see. And roundup is not an option: nobody expects fault around
-area to be 128k if fault_around_bytes set to 64k + 1 bytes.
+With this patch, Pending Bit is used as an additional step in the queue.
+Waiting for lock is the same: we try Pending Bit and if it is taken, we
+append to Node Queue.
+Unlock is different: pending CPU moves into critical section and first
+CPU from Node Queue takes Pending Bit and notifies next in line or
+clears the tail.
 
-If you think we need this I can rework do_fault_around() to handle
-non-pow-of-two fault_around_pages(), but I don't think it's good idea to
-do this for v3.15. Anyway, patch I've proposed allows change
-fault_around_bytes only from DEBUG_FS and roundown should be good
-enough there.
-
-> Or something.  Can we please get some code commentary over
-> do_fault_around() describing this design decision and explaining the
-> reasoning behind it?
-
-I'll do this. But if do_fault_around() rework is needed, I want to do that
-first.
-
-> Also, "neast" is not a word.
-
-:facepalm:
-
-From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Date: Wed, 21 May 2014 16:36:42 +0300
-Subject: [PATCH] mm: fix typo in comment in do_fault_around()
-
-Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
+This allows the pending CPU to take the lock as fast as possible,
+because all bookkeeping was done when entering Pending Queue.
+Node Queue operations can also be slower without affecting the
+performance, because we have an additional buffer of one critical
+section.
 ---
- mm/memory.c | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ kernel/locking/qspinlock.c | 180 +++++++++++++++++++++++++++++++++------------
+ 1 file changed, 135 insertions(+), 45 deletions(-)
 
-diff --git a/mm/memory.c b/mm/memory.c
-index 252b319e8cdf..f76663c31da6 100644
---- a/mm/memory.c
-+++ b/mm/memory.c
-@@ -3460,7 +3460,7 @@ static void do_fault_around(struct vm_area_struct *vma, unsigned long address,
+diff --git a/kernel/locking/qspinlock.c b/kernel/locking/qspinlock.c
+index 0ee1a23..76cafb0 100644
+--- a/kernel/locking/qspinlock.c
++++ b/kernel/locking/qspinlock.c
+@@ -98,7 +98,10 @@ struct __qspinlock {
+ 	union {
+ 		atomic_t val;
+ #ifdef __LITTLE_ENDIAN
+-		u8	 locked;
++		struct {
++			u8	locked;
++			u8	pending;
++		};
+ 		struct {
+ 			u16	locked_pending;
+ 			u16	tail;
+@@ -109,7 +112,8 @@ struct __qspinlock {
+ 			u16	locked_pending;
+ 		};
+ 		struct {
+-			u8	reserved[3];
++			u8	reserved[2];
++			u8	pending;
+ 			u8	locked;
+ 		};
+ #endif
+@@ -314,6 +318,59 @@ static inline int trylock_pending(struct qspinlock *lock, u32 *pval)
+ 	return 1;
+ }
+ 
++// nice comment here
++static inline bool trylock(struct qspinlock *lock, u32 *val) {
++	if (!(*val = atomic_read(&lock->val)) &&
++	   (atomic_cmpxchg(&lock->val, 0, _Q_LOCKED_VAL) == 0)) {
++		*val = _Q_LOCKED_VAL;
++		return 1;
++	}
++	return 0;
++}
++
++// here
++static inline bool trypending(struct qspinlock *lock, u32 *pval) {
++	u32 old, val = *pval;
++	// optimizer might produce the same code if we use *pval directly
++
++	// we could use 'if' and a xchg that touches only the pending bit to
++	// save some cycles at the price of a longer line cutting window
++	// (and I think it would bug without changing the rest)
++	while (!(val & (_Q_PENDING_MASK | _Q_TAIL_MASK))) {
++		old = atomic_cmpxchg(&lock->val, val, val | _Q_PENDING_MASK);
++		if (old == val) {
++			*pval = val | _Q_PENDING_MASK;
++			return 1;
++		}
++		val = old;
++	}
++	*pval = val;
++	return 0;
++}
++
++// here
++static inline void set_pending(struct qspinlock *lock, u8 pending)
++{
++	struct __qspinlock *l = (void *)lock;
++
++	// take a look if this is necessary, and if we don't have an
++	// abstraction already
++	barrier();
++	ACCESS_ONCE(l->pending) = pending;
++	barrier();
++}
++
++// and here
++static inline u32 cmpxchg_tail(struct qspinlock *lock, u32 tail, u32 newtail)
++// API-incompatible with set_pending and the shifting is ugly, so I'd rather
++// refactor this one, xchg_tail() and encode_tail() ... another day
++{
++	struct __qspinlock *l = (void *)lock;
++
++	return (u32)cmpxchg(&l->tail, tail >> _Q_TAIL_OFFSET,
++	                    newtail >> _Q_TAIL_OFFSET) << _Q_TAIL_OFFSET;
++}
++
+ /**
+  * queue_spin_lock_slowpath - acquire the queue spinlock
+  * @lock: Pointer to queue spinlock structure
+@@ -324,21 +381,21 @@ static inline int trylock_pending(struct qspinlock *lock, u32 *pval)
+  *              fast     :    slow                                  :    unlock
+  *                       :                                          :
+  * uncontended  (0,0,0) -:--> (0,0,1) ------------------------------:--> (*,*,0)
+- *                       :       | ^--------.------.             /  :
+- *                       :       v           \      \            |  :
+- * pending               :    (0,1,1) +--> (0,1,0)   \           |  :
+- *                       :       | ^--'              |           |  :
+- *                       :       v                   |           |  :
+- * uncontended           :    (n,x,y) +--> (n,0,0) --'           |  :
++ *                       :       | ^--------.                    /  :
++ *                       :       v           \                   |  :
++ * pending               :    (0,1,1) +--> (0,1,0)               |  :
++ *                       :       | ^--'         ^----------.     |  :
++ *                       :       v                         |     |  :
++ * uncontended           :    (n,x,y) +--> (n,0,y) ---> (0,1,y)  |  :
+  *   queue               :       | ^--'                          |  :
+  *                       :       v                               |  :
+- * contended             :    (*,x,y) +--> (*,0,0) ---> (*,0,1) -'  :
+- *   queue               :         ^--'                             :
+- *
+- * The pending bit processing is in the trylock_pending() function
+- * whereas the uncontended and contended queue processing is in the
+- * queue_spin_lock_slowpath() function.
++ * contended             :    (*,x,y) +--> (*,0,y)      (*,0,1) -'  :
++ *   queue               :         ^--'       |            ^        :
++ *                       :                    v            |        :
++ *                       :                 (*,1,y) ---> (*,1,0)     :
++ * // diagram might be wrong (and definitely isn't obvious)
+  *
++ * // give some insight about the hybrid locking
+  */
+ void queue_spin_lock_slowpath(struct qspinlock *lock, u32 val)
+ {
+@@ -348,8 +405,20 @@ void queue_spin_lock_slowpath(struct qspinlock *lock, u32 val)
+ 
+ 	BUILD_BUG_ON(CONFIG_NR_CPUS >= (1U << _Q_TAIL_CPU_BITS));
+ 
+-	if (trylock_pending(lock, &val))
+-		return;	/* Lock acquired */
++	/*
++	 * Check if nothing changed while we were calling this function.
++	 * (Cold code cacheline could have delayed us.)
++	 */
++	// this should go into a separate patch with micro-optimizations
++	if (trylock(lock, &val))
++		return;
++	/*
++	 * The lock is still held, wait without touching the node unless there
++	 * is at least one cpu waiting before us.
++	 */
++	// create structured code out of this mess
++	if (trypending(lock, &val))
++		goto pending;
+ 
+ 	node = this_cpu_ptr(&mcs_nodes[0]);
+ 	idx = node->count++;
+@@ -364,15 +433,18 @@ void queue_spin_lock_slowpath(struct qspinlock *lock, u32 val)
+ 	 * attempt the trylock once more in the hope someone let go while we
+ 	 * weren't watching.
+ 	 */
+-	if (queue_spin_trylock(lock))
++	// is some of the re-checking counterproductive?
++	if (trylock(lock, &val)) {
++		this_cpu_dec(mcs_nodes[0].count); // ugly
++		return;
++	}
++	if (trypending(lock, &val))
+ 		goto release;
  
  	/*
- 	 *  max_pgoff is either end of page table or end of vma
--	 *  or fault_around_pages() from pgoff, depending what is neast.
-+	 *  or fault_around_pages() from pgoff, depending what is nearest.
+-	 * we already touched the queueing cacheline; don't bother with pending
+-	 * stuff.
+-	 *
+ 	 * p,*,* -> n,*,*
  	 */
- 	max_pgoff = pgoff - ((start_addr >> PAGE_SHIFT) & (PTRS_PER_PTE - 1)) +
- 		PTRS_PER_PTE - 1;
++	// racing for pending/queue till here; safe
+ 	old = xchg_tail(lock, tail, &val);
+ 
+ 	/*
+@@ -386,41 +458,45 @@ void queue_spin_lock_slowpath(struct qspinlock *lock, u32 val)
+ 	}
+ 
+ 	/*
+-	 * we're at the head of the waitqueue, wait for the owner & pending to
+-	 * go away.
+-	 * Load-acquired is used here because the get_qlock()
+-	 * function below may not be a full memory barrier.
+-	 *
+-	 * *,x,y -> *,0,0
++	 * We are now waiting for the pending bit to get cleared.
+ 	 */
+-	while ((val = smp_load_acquire(&lock->val.counter))
+-				       & _Q_LOCKED_PENDING_MASK)
++	// make a get_pending(lock, &val) helper
++	while ((val = smp_load_acquire(&lock->val.counter)) & _Q_PENDING_MASK)
++		// would longer body ease cacheline contention?
++		// would it be better to use monitor/mwait instead?
++		// (we can tolerate some delay because we aren't pending ...)
+ 		arch_mutex_cpu_relax();
+ 
+ 	/*
+-	 * claim the lock:
++	 * The pending bit is free, take it.
+ 	 *
+-	 * n,0,0 -> 0,0,1 : lock, uncontended
+-	 * *,0,0 -> *,0,1 : lock, contended
++	 * *,0,* -> *,1,*
++	 */
++	// might add &val param and do |= _Q_PENDING_VAL when refactoring ...
++	set_pending(lock, 1);
++
++	/*
++	 * Clear the tail if noone queued after us.
+ 	 *
+-	 * If the queue head is the only one in the queue (lock value == tail),
+-	 * clear the tail code and grab the lock. Otherwise, we only need
+-	 * to grab the lock.
++	 * n,1,y -> 0,1,y
+ 	 */
+-	for (;;) {
+-		if (val != tail) {
+-			get_qlock(lock);
+-			break;
+-		}
+-		old = atomic_cmpxchg(&lock->val, val, _Q_LOCKED_VAL);
+-		if (old == val)
+-			goto release;	/* No contention */
++	if ((val & _Q_TAIL_MASK) == tail &&
++	    cmpxchg_tail(lock, tail, 0) == tail)
++		goto release;
++	// negate the condition and obliterate the goto with braces
+ 
+-		val = old;
+-	}
++	// fun fact:
++	//  if ((val & _Q_TAIL_MASK) == tail) {
++	//  	val = cmpxchg_tail(&lock, tail, 0);
++	//  	if ((val & _Q_TAIL_MASK) == tail)
++	//  		goto release;
++	// produced significantly faster code in my benchmarks ...
++	// (I haven't looked why, seems like a fluke.)
++	// swap the code if you want performance at any cost
+ 
+ 	/*
+-	 * contended path; wait for next, release.
++	 * Tell the next node that we are pending, so it can start spinning to
++	 * replace us in the future.
+ 	 */
+ 	while (!(next = ACCESS_ONCE(node->next)))
+ 		arch_mutex_cpu_relax();
+@@ -432,5 +508,19 @@ release:
+ 	 * release the node
+ 	 */
+ 	this_cpu_dec(mcs_nodes[0].count);
++pending:
++	/*
++	 * we're at the head of the waitqueue, wait for the owner to go away.
++	 * Flip pending and locked bit then.
++	 *
++	 * *,1,0 -> *,0,1
++	 */
++	while ((val = smp_load_acquire(&lock->val.counter)) & _Q_LOCKED_MASK)
++		arch_mutex_cpu_relax();
++	clear_pending_set_locked(lock, val);
++
++	/*
++	 * We have the lock.
++	 */
+ }
+ EXPORT_SYMBOL(queue_spin_lock_slowpath);
 -- 
- Kirill A. Shutemov
+1.9.0
+
