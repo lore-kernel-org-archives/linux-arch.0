@@ -1,50 +1,57 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.codeaurora.org ([198.145.11.231]:37688 "EHLO
-	smtp.codeaurora.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751182AbaETX6O (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 20 May 2014 19:58:14 -0400
-Date: Tue, 20 May 2014 18:58:07 -0500
-From: rkuo <rkuo@codeaurora.org>
-Subject: Re: [PATCH 11/27] hexagon: Use common bits from generic tlb.h
-Message-ID: <20140520235807.GE12698@codeaurora.org>
-References: <1400093999-18703-1-git-send-email-richard@nod.at>
- <1400093999-18703-12-git-send-email-richard@nod.at>
+Received: from mx10.pku.edu.cn ([162.105.129.173]:46422 "EHLO mail.pku.edu.cn"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1751145AbaEUJfy convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 21 May 2014 05:35:54 -0400
+Date: Wed, 21 May 2014 17:27:44 +0800 (CST)
+From: =?utf-8?B?566h6Zuq5rab?= <gxt@pku.edu.cn>
+Message-ID: <81003682.42191.1400664464528.JavaMail.root@bj-mail03.pku.edu.cn>
+In-Reply-To: <1400093999-18703-26-git-send-email-richard@nod.at>
+Subject: =?utf-8?Q?=E5=9B=9E=E5=A4=8D=EF=BC=9A_[PATCH_25/27]_unicore32:_Us?=
+ =?utf-8?Q?e_common_bits_from_generic_tlb.h?=
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1400093999-18703-12-git-send-email-richard@nod.at>
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Richard Weinberger <richard@nod.at>
-Cc: linux-arch@vger.kernel.org, arnd@arndb.de, linux-kernel@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@kernel.org>, Tim Chen <tim.c.chen@linux.intel.com>, Stephen Rothwell <sfr@canb.auug.org.au>, Chen Gang <gang.chen.5i5j@gmail.com>, linux-hexagon@vger.kernel.org
-Message-ID: <20140520235807.43bfbS5H0WieKYJ8NslVrychPgzl84Rsmqn8hpryY6M@z>
+Cc: linux-arch@vger.kernel.org, arnd@arndb.de, linux-kernel@vger.kernel.org, Guan Xuetao <gxt@mprc.pku.edu.cn>
+Message-ID: <20140521092744.lul71aPzzrSXrQK_KkqJS6tCVKPdCDIPZ6nzfnsRHt8@z>
 
-On Wed, May 14, 2014 at 08:59:43PM +0200, Richard Weinberger wrote:
+Great.
+
+Btw, please cc first email in this patch series to everyone.
+
+Acked-by: Xuetao Guan <gxt@mprc.pku.edu.cn>
+
+----- Richard Weinberger <richard@nod.at> 写道：
 > It is no longer needed to define them on our own.
 > 
-> Cc: Richard Kuo <rkuo@codeaurora.org>
-> Cc: Peter Zijlstra <peterz@infradead.org>
-> Cc: Ingo Molnar <mingo@kernel.org>
-> Cc: Tim Chen <tim.c.chen@linux.intel.com>
-> Cc: Stephen Rothwell <sfr@canb.auug.org.au>
-> Cc: Chen Gang <gang.chen.5i5j@gmail.com>
+> Cc: Guan Xuetao <gxt@mprc.pku.edu.cn>
 > Cc: Richard Weinberger <richard@nod.at>
-> Cc: linux-hexagon@vger.kernel.org
 > Cc: linux-kernel@vger.kernel.org
 > Signed-off-by: Richard Weinberger <richard@nod.at>
 > ---
->  arch/hexagon/include/asm/Kbuild |  1 +
->  arch/hexagon/include/asm/tlb.h  | 39 ---------------------------------------
->  2 files changed, 1 insertion(+), 39 deletions(-)
->  delete mode 100644 arch/hexagon/include/asm/tlb.h
+>  arch/unicore32/include/asm/tlb.h | 5 -----
+>  1 file changed, 5 deletions(-)
+> 
+> diff --git a/arch/unicore32/include/asm/tlb.h b/arch/unicore32/include/asm/tlb.h
+> index 9cca15c..e6ba38a 100644
+> --- a/arch/unicore32/include/asm/tlb.h
+> +++ b/arch/unicore32/include/asm/tlb.h
+> @@ -12,11 +12,6 @@
+>  #ifndef __UNICORE_TLB_H__
+>  #define __UNICORE_TLB_H__
+>  
+> -#define tlb_start_vma(tlb, vma)				do { } while (0)
+> -#define tlb_end_vma(tlb, vma)				do { } while (0)
+> -#define __tlb_remove_tlb_entry(tlb, ptep, address)	do { } while (0)
+> -#define tlb_flush(tlb) flush_tlb_mm((tlb)->mm)
+> -
+>  #define __pte_free_tlb(tlb, pte, addr)				\
+>  	do {							\
+>  		pgtable_page_dtor(pte);				\
+> -- 
+> 1.8.4.2
 > 
 
-Worked for Hexagon, thanks.
-
-Acked-by: Richard Kuo <rkuo@codeaurora.org>
-
--- 
-
-Sent by an employee of the Qualcomm Innovation Center, Inc.
-The Qualcomm Innovation Center, Inc. is a member of the Code Aurora Forum,
-hosted by The Linux Foundation
