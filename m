@@ -1,69 +1,53 @@
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [PATCH 16/18] x86: io: implement dummy relaxed accessor macros
- for writes
-Date: Wed, 21 May 2014 10:22:40 +0100
-Message-ID: <20140521092240.GD11932@arm.com>
-References: <1397742261-15621-1-git-send-email-will.deacon@arm.com>
- <1397742261-15621-17-git-send-email-will.deacon@arm.com>
- <20140422160821.GA31322@arm.com>
- <20140521015327.GF22233@ld-irv-0074>
+From: =?utf-8?B?566h6Zuq5rab?= <gxt@pku.edu.cn>
+Subject: =?utf-8?Q?=E5=9B=9E=E5=A4=8D=EF=BC=9A_[PATCH_25/27]_unicore32:_Us?=
+ =?utf-8?Q?e_common_bits_from_generic_tlb.h?=
+Date: Wed, 21 May 2014 17:27:44 +0800 (CST)
+Message-ID: <81003682.42191.1400664464528.JavaMail.root@bj-mail03.pku.edu.cn>
+References: <1400093999-18703-26-git-send-email-richard@nod.at>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:49559 "EHLO
-	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1750761AbaEUJWn (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 21 May 2014 05:22:43 -0400
-Content-Disposition: inline
-In-Reply-To: <20140521015327.GF22233@ld-irv-0074>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Brian Norris <computersforpeace@gmail.com>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1400093999-18703-26-git-send-email-richard@nod.at>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Richard Weinberger <richard@nod.at>
+Cc: linux-arch@vger.kernel.org, arnd@arndb.de, linux-kernel@vger.kernel.org, Guan Xuetao <gxt@mprc.pku.edu.cn>
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, May 21, 2014 at 02:53:27AM +0100, Brian Norris wrote:
-> Hi Will,
+Great.
 
-Hello,
+Btw, please cc first email in this patch series to everyone.
 
-> On Tue, Apr 22, 2014 at 05:08:21PM +0100, Will Deacon wrote:
-> > On Thu, Apr 17, 2014 at 02:44:19PM +0100, Will Deacon wrote:
-> > > write{b,w,l,q}_relaxed are implemented by some architectures in order to
-> > > permit memory-mapped I/O accesses with weaker barrier semantics than the
-> > > non-relaxed variants.
-> > > 
-> > > This patch adds dummy macros for the write accessors to x86, in the
-> > > same vein as the dummy definitions for the relaxed read accessors.
-> [...]
-> > > --- a/arch/x86/include/asm/io.h
-> > > +++ b/arch/x86/include/asm/io.h
-> > > @@ -74,6 +74,9 @@ build_mmio_write(__writel, "l", unsigned int, "r", )
-> > >  #define __raw_readw __readw
-> > >  #define __raw_readl __readl
-> > >  
-> > > +#define writeb_relaxed(v, a) __writeb(v, a)
-> > > +#define writew_relaxed(v, a) __writew(v, a)
-> > > +#define writel_relaxed(v, a) __writel(v, a)
-> > >  #define __raw_writeb __writeb
-> > >  #define __raw_writew __writew
-> > >  #define __raw_writel __writel
-> [...]
-> > 
-> > Actually, I should be using the regular (i.e. without the double underscore
-> > prefix) accessors for the relaxed variants, including the existing read
-> > flavours here. The proposed semantics are that the accessors are ordered
-> > with respect to each other, which necessitates a compiler barrier.
-> 
-> Are you planning on resubmitting this series? I've run into several
-> situations in which I can't compile-test a driver on a different ARCH
-> just because of this issue.
+Acked-by: Xuetao Guan <gxt@mprc.pku.edu.cn>
 
-Yeah, I was just hoping for some input from Ben on the semantics I proposed.
-
-I have a fix for the x86 patch, so I guess that justifies a v2. I'll post
-something later on.
-
-Cheers,
-
-Will
+----- Richard Weinberger <richard@nod.at> =E5=86=99=E9=81=93=EF=BC=9A
+> It is no longer needed to define them on our own.
+>=20
+> Cc: Guan Xuetao <gxt@mprc.pku.edu.cn>
+> Cc: Richard Weinberger <richard@nod.at>
+> Cc: linux-kernel@vger.kernel.org
+> Signed-off-by: Richard Weinberger <richard@nod.at>
+> ---
+>  arch/unicore32/include/asm/tlb.h | 5 -----
+>  1 file changed, 5 deletions(-)
+>=20
+> diff --git a/arch/unicore32/include/asm/tlb.h b/arch/unicore32/includ=
+e/asm/tlb.h
+> index 9cca15c..e6ba38a 100644
+> --- a/arch/unicore32/include/asm/tlb.h
+> +++ b/arch/unicore32/include/asm/tlb.h
+> @@ -12,11 +12,6 @@
+>  #ifndef __UNICORE_TLB_H__
+>  #define __UNICORE_TLB_H__
+> =20
+> -#define tlb_start_vma(tlb, vma)				do { } while (0)
+> -#define tlb_end_vma(tlb, vma)				do { } while (0)
+> -#define __tlb_remove_tlb_entry(tlb, ptep, address)	do { } while (0)
+> -#define tlb_flush(tlb) flush_tlb_mm((tlb)->mm)
+> -
+>  #define __pte_free_tlb(tlb, pte, addr)				\
+>  	do {							\
+>  		pgtable_page_dtor(pte);				\
+> --=20
+> 1.8.4.2
+>=20
