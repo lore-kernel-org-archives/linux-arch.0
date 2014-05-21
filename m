@@ -1,52 +1,53 @@
-From: Andrew Morton <akpm@linux-foundation.org>
-Subject: Re: [PATCH V4 0/2] mm: FAULT_AROUND_ORDER patchset performance data
- for powerpc
-Date: Wed, 21 May 2014 13:34:08 -0700
-Message-ID: <20140521133408.4d2f1a551e9652fb0e12265f@linux-foundation.org>
-References: <1399541296-18810-1-git-send-email-maddy@linux.vnet.ibm.com>
-	<537479E7.90806@linux.vnet.ibm.com>
-	<alpine.LSU.2.11.1405151026540.4664@eggly.anvils>
-	<87wqdik4n5.fsf@rustcorp.com.au>
-	<53797511.1050409@linux.vnet.ibm.com>
-	<alpine.LSU.2.11.1405191531150.1317@eggly.anvils>
-	<20140519164301.eafd3dd288ccb88361ddcfc7@linux-foundation.org>
-	<20140520004429.E660AE009B@blue.fi.intel.com>
-	<87oaythsvk.fsf@rustcorp.com.au>
-	<20140520102738.7F096E009B@blue.fi.intel.com>
-	<20140520125956.aa61a3bfd84d4d6190740ce2@linux-foundation.org>
-	<20140521134027.263DDE009B@blue.fi.intel.com>
+From: "H. Peter Anvin" <hpa@zytor.com>
+Subject: Re: [PATCH 26/27] x86: Use common bits from generic tlb.h
+Date: Wed, 21 May 2014 13:57:30 -0700
+Message-ID: <537D133A.8020005@zytor.com>
+References: <1400093999-18703-1-git-send-email-richard@nod.at> <1400093999-18703-27-git-send-email-richard@nod.at>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.linuxfoundation.org ([140.211.169.12]:49123 "EHLO
-	mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751786AbaEUUeK (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 21 May 2014 16:34:10 -0400
-In-Reply-To: <20140521134027.263DDE009B@blue.fi.intel.com>
+Received: from terminus.zytor.com ([198.137.202.10]:41885 "EHLO mail.zytor.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751801AbaEUU6B (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 21 May 2014 16:58:01 -0400
+In-Reply-To: <1400093999-18703-27-git-send-email-richard@nod.at>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Cc: Rusty Russell <rusty@rustcorp.com.au>, Hugh Dickins <hughd@google.com>, Madhavan Srinivasan <maddy@linux.vnet.ibm.com>, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, x86@kernel.org, benh@kernel.crashing.org, paulus@samba.org, riel@redhat.com, mgorman@suse.de, ak@linux.intel.com, peterz@infradead.org, mingo@kernel.org, dave.hansen@intel.com
+To: Richard Weinberger <richard@nod.at>, linux-arch@vger.kernel.org, arnd@arndb.de, linux-kernel@vger.kernel.org
+Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, x86@kernel.org
 
-On Wed, 21 May 2014 16:40:27 +0300 (EEST) "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com> wrote:
-
-> > Or something.  Can we please get some code commentary over
-> > do_fault_around() describing this design decision and explaining the
-> > reasoning behind it?
+On 05/14/2014 11:59 AM, Richard Weinberger wrote:
+> It is no longer needed to define them on our own.
 > 
-> I'll do this. But if do_fault_around() rework is needed, I want to do that
-> first.
+> Cc: Thomas Gleixner <tglx@linutronix.de>
+> Cc: Ingo Molnar <mingo@redhat.com>
+> Cc: "H. Peter Anvin" <hpa@zytor.com>
+> Cc: x86@kernel.org
+> Cc: Richard Weinberger <richard@nod.at>
+> Cc: linux-kernel@vger.kernel.org
+> Signed-off-by: Richard Weinberger <richard@nod.at>
+> ---
+>  arch/x86/include/asm/tlb.h | 4 ----
+>  1 file changed, 4 deletions(-)
+> 
+> diff --git a/arch/x86/include/asm/tlb.h b/arch/x86/include/asm/tlb.h
+> index c779730..f4c76d6 100644
+> --- a/arch/x86/include/asm/tlb.h
+> +++ b/arch/x86/include/asm/tlb.h
+> @@ -1,10 +1,6 @@
+>  #ifndef _ASM_X86_TLB_H
+>  #define _ASM_X86_TLB_H
+>  
+> -#define tlb_start_vma(tlb, vma) do { } while (0)
+> -#define tlb_end_vma(tlb, vma) do { } while (0)
+> -#define __tlb_remove_tlb_entry(tlb, ptep, address) do { } while (0)
+> -
+>  #define tlb_flush(tlb)							\
+>  {									\
+>  	if (!tlb->fullmm && !tlb->need_flush_all) 			\
+> 
 
-This sort of thing should be at least partially driven by observation
-and I don't have the data for that.  My seat of the pants feel is that
-after the first fault, accesses at higher addresses are more
-common/probable than accesses at lower addresses.  In which case we
-should see improvements by centering the window at some higher address
-than the fault.  Much instrumentation and downstream analysis is needed
-and the returns will be pretty small!
+Quite trivial, obviously.
 
-But we don't need to do all that right now.  Let's get the current
-implementation wrapped up for 3.15: get the interface finalized (bytes,
-not pages!) and get the current design decisions appropriately
-documented.
+Acked-by: H. Peter Anvin <hpa@linux.intel.com>
