@@ -1,178 +1,217 @@
-From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: Re: [PATCH V4 0/2] mm: FAULT_AROUND_ORDER patchset performance data
- for powerpc
-Date: Wed, 21 May 2014 16:40:27 +0300 (EEST)
-Message-ID: <20140521134027.263DDE009B@blue.fi.intel.com>
-References: <1399541296-18810-1-git-send-email-maddy@linux.vnet.ibm.com>
- <537479E7.90806@linux.vnet.ibm.com>
- <alpine.LSU.2.11.1405151026540.4664@eggly.anvils>
- <87wqdik4n5.fsf@rustcorp.com.au>
- <53797511.1050409@linux.vnet.ibm.com>
- <alpine.LSU.2.11.1405191531150.1317@eggly.anvils>
- <20140519164301.eafd3dd288ccb88361ddcfc7@linux-foundation.org>
- <20140520004429.E660AE009B@blue.fi.intel.com>
- <87oaythsvk.fsf@rustcorp.com.au>
- <20140520102738.7F096E009B@blue.fi.intel.com>
- <20140520125956.aa61a3bfd84d4d6190740ce2@linux-foundation.org>
-Content-Transfer-Encoding: 7bit
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <20140520125956.aa61a3bfd84d4d6190740ce2@linux-foundation.org>
-Sender: owner-linux-mm@kvack.org
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Rusty Russell <rusty@rustcorp.com.au>, Hugh Dickins <hughd@google.com>, Madhavan Srinivasan <maddy@linux.vnet.ibm.com>, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, x86@kernel.org, benh@kernel.crashing.org, paulus@samba.org, riel@redhat.com, mgorman@suse.de, ak@linux.intel.com, peterz@infradead.org, mingo@kernel.org, dave.hansen@intel.com
+From: Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@redhat.com>
+Subject: Re: [RFC 08/07] qspinlock: integrate pending bit into queue
+Date: Wed, 21 May 2014 19:02:27 +0200
+Message-ID: <20140521170226.GA9241@potion.brq.redhat.com>
+References: <1399474907-22206-1-git-send-email-Waiman.Long@hp.com>
+	<1399474907-22206-4-git-send-email-Waiman.Long@hp.com>
+	<20140512152208.GA12309@potion.brq.redhat.com>
+	<537276B4.10209@hp.com> <20140514165121.GA21370@potion.redhat.com>
+	<20140514170016.GW30445@twins.programming.kicks-ass.net>
+	<20140514191339.GA22813@potion.brq.redhat.com>
+	<537A66D3.8070607@hp.com>
+	<20140521164930.GA26199@potion.brq.redhat.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+Return-path: <virtualization-bounces@lists.linux-foundation.org>
+Content-Disposition: inline
+In-Reply-To: <20140521164930.GA26199@potion.brq.redhat.com>
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
+List-Post: <mailto:virtualization@lists.linux-foundation.org>
+List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
+Sender: virtualization-bounces@lists.linux-foundation.org
+Errors-To: virtualization-bounces@lists.linux-foundation.org
+To: Waiman Long <waiman.long@hp.com>
+Cc: x86@kernel.org, Gleb Natapov <gleb@redhat.com>, Peter Zijlstra <peterz@infradead.org>, linux-kernel@vger.kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, linux-arch@vger.kernel.org, kvm@vger.kernel.org, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, Ingo Molnar <mingo@redhat.com>, xen-devel@lists.xenproject.org, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Rik van Riel <riel@redhat.com>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Scott J Norton <scott.norton@hp.com>, Paolo Bonzini <paolo.bonzini@gmail.com>, Thomas Gleixner <tglx@linutronix.de>, virtualization@lists.linux-foundation.org, Chegu Vinod <chegu_vinod@hp.com>, Oleg Nesterov <oleg@redhat.com>, David Vrabel <david.vrabel@citrix.com>, Linus Torvalds <torvalds@linux-foundation.org>
 List-Id: linux-arch.vger.kernel.org
 
-Andrew Morton wrote:
-> On Tue, 20 May 2014 13:27:38 +0300 (EEST) "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com> wrote:
-> 
-> > Rusty Russell wrote:
-> > > "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com> writes:
-> > > > Andrew Morton wrote:
-> > > >> On Mon, 19 May 2014 16:23:07 -0700 (PDT) Hugh Dickins <hughd@google.com> wrote:
-> > > >> 
-> > > >> > Shouldn't FAULT_AROUND_ORDER and fault_around_order be changed to be
-> > > >> > the order of the fault-around size in bytes, and fault_around_pages()
-> > > >> > use 1UL << (fault_around_order - PAGE_SHIFT)
-> > > >> 
-> > > >> Yes.  And shame on me for missing it (this time!) at review.
-> > > >> 
-> > > >> There's still time to fix this.  Patches, please.
-> > > >
-> > > > Here it is. Made at 3.30 AM, build tested only.
-> > > 
-> > > Prefer on top of Maddy's patch which makes it always a variable, rather
-> > > than CONFIG_DEBUG_FS.  It's got enough hair as it is.
-> > 
-> > Something like this?
-> 
-> This appears to be against mainline, not against Madhavan's patch.  As
-> mentioned previously, I'd prefer it that way but confused.
-> 
-> 
-> > From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-> > Date: Tue, 20 May 2014 13:02:03 +0300
-> > Subject: [PATCH] mm: nominate faultaround area in bytes rather then page order
-> > 
-> > There are evidences that faultaround feature is less relevant on
-> > architectures with page size bigger then 4k. Which makes sense since
-> > page fault overhead per byte of mapped area should be less there.
-> > 
-> > Let's rework the feature to specify faultaround area in bytes instead of
-> > page order. It's 64 kilobytes for now.
-> > 
-> > The patch effectively disables faultaround on architectures with
-> > page size >= 64k (like ppc64).
-> > 
-> > It's possible that some other size of faultaround area is relevant for a
-> > platform. We can expose `fault_around_bytes' variable to arch-specific
-> > code once such platforms will be found.
-> > 
-> > Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
-> > ---
-> >  mm/memory.c | 62 +++++++++++++++++++++++--------------------------------------
-> >  1 file changed, 23 insertions(+), 39 deletions(-)
-> > 
-> > diff --git a/mm/memory.c b/mm/memory.c
-> > index 037b812a9531..252b319e8cdf 100644
-> > --- a/mm/memory.c
-> > +++ b/mm/memory.c
-> > @@ -3402,63 +3402,47 @@ void do_set_pte(struct vm_area_struct *vma, unsigned long address,
-> >  	update_mmu_cache(vma, address, pte);
-> >  }
-> >  
-> > -#define FAULT_AROUND_ORDER 4
-> > +static unsigned long fault_around_bytes = 65536;
-> > +
-> > +static inline unsigned long fault_around_pages(void)
-> > +{
-> > +	return rounddown_pow_of_two(fault_around_bytes) / PAGE_SIZE;
-> > +}
-> 
-> I think we should round up, not down.  So if the user asks for 1kb,
-> they get one page.
-> 
-> So this becomes
-> 
-> 	return PAGE_ALIGN(fault_around_bytes) / PAGE_SIZE;
-
-See below.
-
-> > +static inline unsigned long fault_around_mask(void)
-> > +{
-> > +	return ~(rounddown_pow_of_two(fault_around_bytes) - 1) & PAGE_MASK;
-> > +}
-> 
-> And this has me a bit stumped.  It's not helpful that do_fault_around()
-> is undocumented.  Does it fault in N/2 pages ahead and N/2 pages
-> behind?  Or does it align the address down to the highest multiple of
-> fault_around_bytes?  It appears to be the latter, so the location of
-> the faultaround window around the fault address is basically random,
-> depending on what address userspace happened to pick.  I don't know why
-> we did this :(
-
-When we call ->map_pages() we need to make sure that we stay within VMA
-and the page table. We don't want to cross page table boundary, because
-page table is what ptlock covers in split ptlock case.
-
-I've designed the feature with fault area nominated in page order in mind
-and I found it's easier to make sure we don't cross boundaries, if we
-would align virtual address of fault around area to PAGE_SIZE <<
-FAULT_AROUND_ORDER.
-
-And yes fault address may be anywhere within the area. You can think about
-this as a virtual page with size PAGE_SIZE << FAULT_AROUND_ORDER: no matter
-what is fault address, we handle area naturally aligned to page size which
-fault address belong to.
-
-I've used rounddown_pow_of_two() in the patch to align to nearest page
-order, not to page size, because that's what current do_fault_around()
-expect to see. And roundup is not an option: nobody expects fault around
-area to be 128k if fault_around_bytes set to 64k + 1 bytes.
-
-If you think we need this I can rework do_fault_around() to handle
-non-pow-of-two fault_around_pages(), but I don't think it's good idea to
-do this for v3.15. Anyway, patch I've proposed allows change
-fault_around_bytes only from DEBUG_FS and roundown should be good
-enough there.
-
-> Or something.  Can we please get some code commentary over
-> do_fault_around() describing this design decision and explaining the
-> reasoning behind it?
-
-I'll do this. But if do_fault_around() rework is needed, I want to do that
-first.
-
-> Also, "neast" is not a word.
-
-:facepalm:
-
-From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Date: Wed, 21 May 2014 16:36:42 +0300
-Subject: [PATCH] mm: fix typo in comment in do_fault_around()
-
-Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
----
- mm/memory.c | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
-
-diff --git a/mm/memory.c b/mm/memory.c
-index 252b319e8cdf..f76663c31da6 100644
---- a/mm/memory.c
-+++ b/mm/memory.c
-@@ -3460,7 +3460,7 @@ static void do_fault_around(struct vm_area_struct *vma, unsigned long address,
- 
- 	/*
- 	 *  max_pgoff is either end of page table or end of vma
--	 *  or fault_around_pages() from pgoff, depending what is neast.
-+	 *  or fault_around_pages() from pgoff, depending what is nearest.
- 	 */
- 	max_pgoff = pgoff - ((start_addr >> PAGE_SHIFT) & (PTRS_PER_PTE - 1)) +
- 		PTRS_PER_PTE - 1;
--- 
- Kirill A. Shutemov
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+MjAxNC0wNS0yMSAxODo0OSswMjAwLCBSYWRpbSBLcsSNbcOhxZk6Cj4gMjAxNC0wNS0xOSAxNjox
+Ny0wNDAwLCBXYWltYW4gTG9uZzoKPiA+ICAgICAgIEFzIGZvciBub3csIEkgd2lsbCBmb2N1cyBv
+biBqdXN0IGhhdmluZyBvbmUgcGVuZGluZyBiaXQuCj4gCj4gSSdsbCB0aHJvdyBzb21lIGlkZWFz
+IGF0IGl0LAoKT25lIG9mIHRoZSBpZGVhcyBmb2xsb3dzOyBpdCBzZWVtcyBzb3VuZCwgYnV0IEkg
+aGF2ZW4ndCBiZW5jaG1hcmtlZCBpdAp0aG9yb3VnaGx5LiAoV2FzdGVkIGEgbG90IG9mIHRpbWUg
+Ynkgd3JpdGluZy9wbGF5aW5nIHdpdGggdmFyaW91cyB0b29scwphbmQgbG9hZHMuKQoKRGJlbmNo
+IG9uIGV4dDQgcmFtZGlzaywgaGFja2JlbmNoIGFuZCBlYml6enkgaGF2ZSBzaG93biBhIHNtYWxs
+CmltcHJvdmVtZW50IGluIHBlcmZvcm1hbmNlLCBidXQgbXkgbWFpbiBkcml2ZSB3YXMgdGhlIHdl
+aXJkIGRlc2lnbiBvZgpQZW5kaW5nIEJpdC4KRG9lcyB5b3VyIHNldHVwIHlpZWxkIGltcHJvdmVt
+ZW50cyB0b28/CihBIG1pbm9yIGNvZGUgc3dhcCBub3RlZCBpbiB0aGUgcGF0Y2ggbWlnaHQgaGVs
+cCB0aGluZ3MuKQoKSXQgaXMgbWVhbnQgdG8gYmUgYXBsaWVkIG9uIHRvcCBvZiBmaXJzdCA3IHBh
+dGNoZXMsIGJlY2F1c2UgdGhlIHZpcnQKc3R1ZmYgd291bGQganVzdCBnZXQgaW4gdGhlIHdheS4K
+SSBoYXZlIHByZXNlcnZlZCBhIGxvdCBvZiBkZWFkIGNvZGUgYW5kIG1hZGUgc29tZSBxdWVzdGlv
+bmFibGUgZGVjaXNpb25zCmp1c3QgdG8ga2VlcCB0aGUgZGlmZiBzaG9ydCBhbmQgaW4gb25lIHBh
+dGNoLCBzb3JyeSBhYm91dCB0aGF0LgoKKEl0IGlzIHdvcmsgaW4gcHJvZ3Jlc3MsIGRvdWJsZSBz
+bGFzaGVkIGxpbmVzIG1hcmsgcG9pbnRzIG9mIGludGVyZXN0LikKCi0tLTg8LS0tClBlbmRpbmcg
+Qml0IHdhc24ndCB1c2VkIGlmIHdlIGFscmVhZHkgaGFkIGEgbm9kZSBxdWV1ZSB3aXRoIG9uZSBj
+cHUsCndoaWNoIG1lYW50IHRoYXQgd2Ugc3VmZmVyZWQgZnJvbSB0aGVzZSBkcmF3YmFja3MgYWdh
+aW46CiAtIHVubG9jayBwYXRoIHdhcyBtb3JlIGNvbXBsaWNhdGVkCiAgIChsYXN0IHF1ZXVlZCBD
+UFUgaGFkIHRvIGNsZWFyIHRoZSB0YWlsKQogLSBjb2xkIG5vZGUgY2FjaGVsaW5lIHdhcyBqdXN0
+IG9uZSBjcml0aWNhbCBzZWN0aW9uIGF3YXkKCldpdGggdGhpcyBwYXRjaCwgUGVuZGluZyBCaXQg
+aXMgdXNlZCBhcyBhbiBhZGRpdGlvbmFsIHN0ZXAgaW4gdGhlIHF1ZXVlLgpXYWl0aW5nIGZvciBs
+b2NrIGlzIHRoZSBzYW1lOiB3ZSB0cnkgUGVuZGluZyBCaXQgYW5kIGlmIGl0IGlzIHRha2VuLCB3
+ZQphcHBlbmQgdG8gTm9kZSBRdWV1ZS4KVW5sb2NrIGlzIGRpZmZlcmVudDogcGVuZGluZyBDUFUg
+bW92ZXMgaW50byBjcml0aWNhbCBzZWN0aW9uIGFuZCBmaXJzdApDUFUgZnJvbSBOb2RlIFF1ZXVl
+IHRha2VzIFBlbmRpbmcgQml0IGFuZCBub3RpZmllcyBuZXh0IGluIGxpbmUgb3IKY2xlYXJzIHRo
+ZSB0YWlsLgoKVGhpcyBhbGxvd3MgdGhlIHBlbmRpbmcgQ1BVIHRvIHRha2UgdGhlIGxvY2sgYXMg
+ZmFzdCBhcyBwb3NzaWJsZSwKYmVjYXVzZSBhbGwgYm9va2tlZXBpbmcgd2FzIGRvbmUgd2hlbiBl
+bnRlcmluZyBQZW5kaW5nIFF1ZXVlLgpOb2RlIFF1ZXVlIG9wZXJhdGlvbnMgY2FuIGFsc28gYmUg
+c2xvd2VyIHdpdGhvdXQgYWZmZWN0aW5nIHRoZQpwZXJmb3JtYW5jZSwgYmVjYXVzZSB3ZSBoYXZl
+IGFuIGFkZGl0aW9uYWwgYnVmZmVyIG9mIG9uZSBjcml0aWNhbApzZWN0aW9uLgotLS0KIGtlcm5l
+bC9sb2NraW5nL3FzcGlubG9jay5jIHwgMTgwICsrKysrKysrKysrKysrKysrKysrKysrKysrKysr
+KysrKy0tLS0tLS0tLS0tLQogMSBmaWxlIGNoYW5nZWQsIDEzNSBpbnNlcnRpb25zKCspLCA0NSBk
+ZWxldGlvbnMoLSkKCmRpZmYgLS1naXQgYS9rZXJuZWwvbG9ja2luZy9xc3BpbmxvY2suYyBiL2tl
+cm5lbC9sb2NraW5nL3FzcGlubG9jay5jCmluZGV4IDBlZTFhMjMuLjc2Y2FmYjAgMTAwNjQ0Ci0t
+LSBhL2tlcm5lbC9sb2NraW5nL3FzcGlubG9jay5jCisrKyBiL2tlcm5lbC9sb2NraW5nL3FzcGlu
+bG9jay5jCkBAIC05OCw3ICs5OCwxMCBAQCBzdHJ1Y3QgX19xc3BpbmxvY2sgewogCXVuaW9uIHsK
+IAkJYXRvbWljX3QgdmFsOwogI2lmZGVmIF9fTElUVExFX0VORElBTgotCQl1OAkgbG9ja2VkOwor
+CQlzdHJ1Y3QgeworCQkJdTgJbG9ja2VkOworCQkJdTgJcGVuZGluZzsKKwkJfTsKIAkJc3RydWN0
+IHsKIAkJCXUxNglsb2NrZWRfcGVuZGluZzsKIAkJCXUxNgl0YWlsOwpAQCAtMTA5LDcgKzExMiw4
+IEBAIHN0cnVjdCBfX3FzcGlubG9jayB7CiAJCQl1MTYJbG9ja2VkX3BlbmRpbmc7CiAJCX07CiAJ
+CXN0cnVjdCB7Ci0JCQl1OAlyZXNlcnZlZFszXTsKKwkJCXU4CXJlc2VydmVkWzJdOworCQkJdTgJ
+cGVuZGluZzsKIAkJCXU4CWxvY2tlZDsKIAkJfTsKICNlbmRpZgpAQCAtMzE0LDYgKzMxOCw1OSBA
+QCBzdGF0aWMgaW5saW5lIGludCB0cnlsb2NrX3BlbmRpbmcoc3RydWN0IHFzcGlubG9jayAqbG9j
+aywgdTMyICpwdmFsKQogCXJldHVybiAxOwogfQogCisvLyBuaWNlIGNvbW1lbnQgaGVyZQorc3Rh
+dGljIGlubGluZSBib29sIHRyeWxvY2soc3RydWN0IHFzcGlubG9jayAqbG9jaywgdTMyICp2YWwp
+IHsKKwlpZiAoISgqdmFsID0gYXRvbWljX3JlYWQoJmxvY2stPnZhbCkpICYmCisJICAgKGF0b21p
+Y19jbXB4Y2hnKCZsb2NrLT52YWwsIDAsIF9RX0xPQ0tFRF9WQUwpID09IDApKSB7CisJCSp2YWwg
+PSBfUV9MT0NLRURfVkFMOworCQlyZXR1cm4gMTsKKwl9CisJcmV0dXJuIDA7Cit9CisKKy8vIGhl
+cmUKK3N0YXRpYyBpbmxpbmUgYm9vbCB0cnlwZW5kaW5nKHN0cnVjdCBxc3BpbmxvY2sgKmxvY2ss
+IHUzMiAqcHZhbCkgeworCXUzMiBvbGQsIHZhbCA9ICpwdmFsOworCS8vIG9wdGltaXplciBtaWdo
+dCBwcm9kdWNlIHRoZSBzYW1lIGNvZGUgaWYgd2UgdXNlICpwdmFsIGRpcmVjdGx5CisKKwkvLyB3
+ZSBjb3VsZCB1c2UgJ2lmJyBhbmQgYSB4Y2hnIHRoYXQgdG91Y2hlcyBvbmx5IHRoZSBwZW5kaW5n
+IGJpdCB0bworCS8vIHNhdmUgc29tZSBjeWNsZXMgYXQgdGhlIHByaWNlIG9mIGEgbG9uZ2VyIGxp
+bmUgY3V0dGluZyB3aW5kb3cKKwkvLyAoYW5kIEkgdGhpbmsgaXQgd291bGQgYnVnIHdpdGhvdXQg
+Y2hhbmdpbmcgdGhlIHJlc3QpCisJd2hpbGUgKCEodmFsICYgKF9RX1BFTkRJTkdfTUFTSyB8IF9R
+X1RBSUxfTUFTSykpKSB7CisJCW9sZCA9IGF0b21pY19jbXB4Y2hnKCZsb2NrLT52YWwsIHZhbCwg
+dmFsIHwgX1FfUEVORElOR19NQVNLKTsKKwkJaWYgKG9sZCA9PSB2YWwpIHsKKwkJCSpwdmFsID0g
+dmFsIHwgX1FfUEVORElOR19NQVNLOworCQkJcmV0dXJuIDE7CisJCX0KKwkJdmFsID0gb2xkOwor
+CX0KKwkqcHZhbCA9IHZhbDsKKwlyZXR1cm4gMDsKK30KKworLy8gaGVyZQorc3RhdGljIGlubGlu
+ZSB2b2lkIHNldF9wZW5kaW5nKHN0cnVjdCBxc3BpbmxvY2sgKmxvY2ssIHU4IHBlbmRpbmcpCit7
+CisJc3RydWN0IF9fcXNwaW5sb2NrICpsID0gKHZvaWQgKilsb2NrOworCisJLy8gdGFrZSBhIGxv
+b2sgaWYgdGhpcyBpcyBuZWNlc3NhcnksIGFuZCBpZiB3ZSBkb24ndCBoYXZlIGFuCisJLy8gYWJz
+dHJhY3Rpb24gYWxyZWFkeQorCWJhcnJpZXIoKTsKKwlBQ0NFU1NfT05DRShsLT5wZW5kaW5nKSA9
+IHBlbmRpbmc7CisJYmFycmllcigpOworfQorCisvLyBhbmQgaGVyZQorc3RhdGljIGlubGluZSB1
+MzIgY21weGNoZ190YWlsKHN0cnVjdCBxc3BpbmxvY2sgKmxvY2ssIHUzMiB0YWlsLCB1MzIgbmV3
+dGFpbCkKKy8vIEFQSS1pbmNvbXBhdGlibGUgd2l0aCBzZXRfcGVuZGluZyBhbmQgdGhlIHNoaWZ0
+aW5nIGlzIHVnbHksIHNvIEknZCByYXRoZXIKKy8vIHJlZmFjdG9yIHRoaXMgb25lLCB4Y2hnX3Rh
+aWwoKSBhbmQgZW5jb2RlX3RhaWwoKSAuLi4gYW5vdGhlciBkYXkKK3sKKwlzdHJ1Y3QgX19xc3Bp
+bmxvY2sgKmwgPSAodm9pZCAqKWxvY2s7CisKKwlyZXR1cm4gKHUzMiljbXB4Y2hnKCZsLT50YWls
+LCB0YWlsID4+IF9RX1RBSUxfT0ZGU0VULAorCSAgICAgICAgICAgICAgICAgICAgbmV3dGFpbCA+
+PiBfUV9UQUlMX09GRlNFVCkgPDwgX1FfVEFJTF9PRkZTRVQ7Cit9CisKIC8qKgogICogcXVldWVf
+c3Bpbl9sb2NrX3Nsb3dwYXRoIC0gYWNxdWlyZSB0aGUgcXVldWUgc3BpbmxvY2sKICAqIEBsb2Nr
+OiBQb2ludGVyIHRvIHF1ZXVlIHNwaW5sb2NrIHN0cnVjdHVyZQpAQCAtMzI0LDIxICszODEsMjEg
+QEAgc3RhdGljIGlubGluZSBpbnQgdHJ5bG9ja19wZW5kaW5nKHN0cnVjdCBxc3BpbmxvY2sgKmxv
+Y2ssIHUzMiAqcHZhbCkKICAqICAgICAgICAgICAgICBmYXN0ICAgICA6ICAgIHNsb3cgICAgICAg
+ICAgICAgICAgICAgICAgICAgICAgICAgICAgOiAgICB1bmxvY2sKICAqICAgICAgICAgICAgICAg
+ICAgICAgICA6ICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgOgogICog
+dW5jb250ZW5kZWQgICgwLDAsMCkgLTotLT4gKDAsMCwxKSAtLS0tLS0tLS0tLS0tLS0tLS0tLS0t
+LS0tLS0tLS06LS0+ICgqLCosMCkKLSAqICAgICAgICAgICAgICAgICAgICAgICA6ICAgICAgIHwg
+Xi0tLS0tLS0tLi0tLS0tLS4gICAgICAgICAgICAgLyAgOgotICogICAgICAgICAgICAgICAgICAg
+ICAgIDogICAgICAgdiAgICAgICAgICAgXCAgICAgIFwgICAgICAgICAgICB8ICA6Ci0gKiBwZW5k
+aW5nICAgICAgICAgICAgICAgOiAgICAoMCwxLDEpICstLT4gKDAsMSwwKSAgIFwgICAgICAgICAg
+IHwgIDoKLSAqICAgICAgICAgICAgICAgICAgICAgICA6ICAgICAgIHwgXi0tJyAgICAgICAgICAg
+ICAgfCAgICAgICAgICAgfCAgOgotICogICAgICAgICAgICAgICAgICAgICAgIDogICAgICAgdiAg
+ICAgICAgICAgICAgICAgICB8ICAgICAgICAgICB8ICA6Ci0gKiB1bmNvbnRlbmRlZCAgICAgICAg
+ICAgOiAgICAobix4LHkpICstLT4gKG4sMCwwKSAtLScgICAgICAgICAgIHwgIDoKKyAqICAgICAg
+ICAgICAgICAgICAgICAgICA6ICAgICAgIHwgXi0tLS0tLS0tLiAgICAgICAgICAgICAgICAgICAg
+LyAgOgorICogICAgICAgICAgICAgICAgICAgICAgIDogICAgICAgdiAgICAgICAgICAgXCAgICAg
+ICAgICAgICAgICAgICB8ICA6CisgKiBwZW5kaW5nICAgICAgICAgICAgICAgOiAgICAoMCwxLDEp
+ICstLT4gKDAsMSwwKSAgICAgICAgICAgICAgIHwgIDoKKyAqICAgICAgICAgICAgICAgICAgICAg
+ICA6ICAgICAgIHwgXi0tJyAgICAgICAgIF4tLS0tLS0tLS0tLiAgICAgfCAgOgorICogICAgICAg
+ICAgICAgICAgICAgICAgIDogICAgICAgdiAgICAgICAgICAgICAgICAgICAgICAgICB8ICAgICB8
+ICA6CisgKiB1bmNvbnRlbmRlZCAgICAgICAgICAgOiAgICAobix4LHkpICstLT4gKG4sMCx5KSAt
+LS0+ICgwLDEseSkgIHwgIDoKICAqICAgcXVldWUgICAgICAgICAgICAgICA6ICAgICAgIHwgXi0t
+JyAgICAgICAgICAgICAgICAgICAgICAgICAgfCAgOgogICogICAgICAgICAgICAgICAgICAgICAg
+IDogICAgICAgdiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICB8ICA6Ci0gKiBjb250ZW5k
+ZWQgICAgICAgICAgICAgOiAgICAoKix4LHkpICstLT4gKCosMCwwKSAtLS0+ICgqLDAsMSkgLScg
+IDoKLSAqICAgcXVldWUgICAgICAgICAgICAgICA6ICAgICAgICAgXi0tJyAgICAgICAgICAgICAg
+ICAgICAgICAgICAgICAgOgotICoKLSAqIFRoZSBwZW5kaW5nIGJpdCBwcm9jZXNzaW5nIGlzIGlu
+IHRoZSB0cnlsb2NrX3BlbmRpbmcoKSBmdW5jdGlvbgotICogd2hlcmVhcyB0aGUgdW5jb250ZW5k
+ZWQgYW5kIGNvbnRlbmRlZCBxdWV1ZSBwcm9jZXNzaW5nIGlzIGluIHRoZQotICogcXVldWVfc3Bp
+bl9sb2NrX3Nsb3dwYXRoKCkgZnVuY3Rpb24uCisgKiBjb250ZW5kZWQgICAgICAgICAgICAgOiAg
+ICAoKix4LHkpICstLT4gKCosMCx5KSAgICAgICgqLDAsMSkgLScgIDoKKyAqICAgcXVldWUgICAg
+ICAgICAgICAgICA6ICAgICAgICAgXi0tJyAgICAgICB8ICAgICAgICAgICAgXiAgICAgICAgOgor
+ICogICAgICAgICAgICAgICAgICAgICAgIDogICAgICAgICAgICAgICAgICAgIHYgICAgICAgICAg
+ICB8ICAgICAgICA6CisgKiAgICAgICAgICAgICAgICAgICAgICAgOiAgICAgICAgICAgICAgICAg
+KCosMSx5KSAtLS0+ICgqLDEsMCkgICAgIDoKKyAqIC8vIGRpYWdyYW0gbWlnaHQgYmUgd3Jvbmcg
+KGFuZCBkZWZpbml0ZWx5IGlzbid0IG9idmlvdXMpCiAgKgorICogLy8gZ2l2ZSBzb21lIGluc2ln
+aHQgYWJvdXQgdGhlIGh5YnJpZCBsb2NraW5nCiAgKi8KIHZvaWQgcXVldWVfc3Bpbl9sb2NrX3Ns
+b3dwYXRoKHN0cnVjdCBxc3BpbmxvY2sgKmxvY2ssIHUzMiB2YWwpCiB7CkBAIC0zNDgsOCArNDA1
+LDIwIEBAIHZvaWQgcXVldWVfc3Bpbl9sb2NrX3Nsb3dwYXRoKHN0cnVjdCBxc3BpbmxvY2sgKmxv
+Y2ssIHUzMiB2YWwpCiAKIAlCVUlMRF9CVUdfT04oQ09ORklHX05SX0NQVVMgPj0gKDFVIDw8IF9R
+X1RBSUxfQ1BVX0JJVFMpKTsKIAotCWlmICh0cnlsb2NrX3BlbmRpbmcobG9jaywgJnZhbCkpCi0J
+CXJldHVybjsJLyogTG9jayBhY3F1aXJlZCAqLworCS8qCisJICogQ2hlY2sgaWYgbm90aGluZyBj
+aGFuZ2VkIHdoaWxlIHdlIHdlcmUgY2FsbGluZyB0aGlzIGZ1bmN0aW9uLgorCSAqIChDb2xkIGNv
+ZGUgY2FjaGVsaW5lIGNvdWxkIGhhdmUgZGVsYXllZCB1cy4pCisJICovCisJLy8gdGhpcyBzaG91
+bGQgZ28gaW50byBhIHNlcGFyYXRlIHBhdGNoIHdpdGggbWljcm8tb3B0aW1pemF0aW9ucworCWlm
+ICh0cnlsb2NrKGxvY2ssICZ2YWwpKQorCQlyZXR1cm47CisJLyoKKwkgKiBUaGUgbG9jayBpcyBz
+dGlsbCBoZWxkLCB3YWl0IHdpdGhvdXQgdG91Y2hpbmcgdGhlIG5vZGUgdW5sZXNzIHRoZXJlCisJ
+ICogaXMgYXQgbGVhc3Qgb25lIGNwdSB3YWl0aW5nIGJlZm9yZSB1cy4KKwkgKi8KKwkvLyBjcmVh
+dGUgc3RydWN0dXJlZCBjb2RlIG91dCBvZiB0aGlzIG1lc3MKKwlpZiAodHJ5cGVuZGluZyhsb2Nr
+LCAmdmFsKSkKKwkJZ290byBwZW5kaW5nOwogCiAJbm9kZSA9IHRoaXNfY3B1X3B0cigmbWNzX25v
+ZGVzWzBdKTsKIAlpZHggPSBub2RlLT5jb3VudCsrOwpAQCAtMzY0LDE1ICs0MzMsMTggQEAgdm9p
+ZCBxdWV1ZV9zcGluX2xvY2tfc2xvd3BhdGgoc3RydWN0IHFzcGlubG9jayAqbG9jaywgdTMyIHZh
+bCkKIAkgKiBhdHRlbXB0IHRoZSB0cnlsb2NrIG9uY2UgbW9yZSBpbiB0aGUgaG9wZSBzb21lb25l
+IGxldCBnbyB3aGlsZSB3ZQogCSAqIHdlcmVuJ3Qgd2F0Y2hpbmcuCiAJICovCi0JaWYgKHF1ZXVl
+X3NwaW5fdHJ5bG9jayhsb2NrKSkKKwkvLyBpcyBzb21lIG9mIHRoZSByZS1jaGVja2luZyBjb3Vu
+dGVycHJvZHVjdGl2ZT8KKwlpZiAodHJ5bG9jayhsb2NrLCAmdmFsKSkgeworCQl0aGlzX2NwdV9k
+ZWMobWNzX25vZGVzWzBdLmNvdW50KTsgLy8gdWdseQorCQlyZXR1cm47CisJfQorCWlmICh0cnlw
+ZW5kaW5nKGxvY2ssICZ2YWwpKQogCQlnb3RvIHJlbGVhc2U7CiAKIAkvKgotCSAqIHdlIGFscmVh
+ZHkgdG91Y2hlZCB0aGUgcXVldWVpbmcgY2FjaGVsaW5lOyBkb24ndCBib3RoZXIgd2l0aCBwZW5k
+aW5nCi0JICogc3R1ZmYuCi0JICoKIAkgKiBwLCosKiAtPiBuLCosKgogCSAqLworCS8vIHJhY2lu
+ZyBmb3IgcGVuZGluZy9xdWV1ZSB0aWxsIGhlcmU7IHNhZmUKIAlvbGQgPSB4Y2hnX3RhaWwobG9j
+aywgdGFpbCwgJnZhbCk7CiAKIAkvKgpAQCAtMzg2LDQxICs0NTgsNDUgQEAgdm9pZCBxdWV1ZV9z
+cGluX2xvY2tfc2xvd3BhdGgoc3RydWN0IHFzcGlubG9jayAqbG9jaywgdTMyIHZhbCkKIAl9CiAK
+IAkvKgotCSAqIHdlJ3JlIGF0IHRoZSBoZWFkIG9mIHRoZSB3YWl0cXVldWUsIHdhaXQgZm9yIHRo
+ZSBvd25lciAmIHBlbmRpbmcgdG8KLQkgKiBnbyBhd2F5LgotCSAqIExvYWQtYWNxdWlyZWQgaXMg
+dXNlZCBoZXJlIGJlY2F1c2UgdGhlIGdldF9xbG9jaygpCi0JICogZnVuY3Rpb24gYmVsb3cgbWF5
+IG5vdCBiZSBhIGZ1bGwgbWVtb3J5IGJhcnJpZXIuCi0JICoKLQkgKiAqLHgseSAtPiAqLDAsMAor
+CSAqIFdlIGFyZSBub3cgd2FpdGluZyBmb3IgdGhlIHBlbmRpbmcgYml0IHRvIGdldCBjbGVhcmVk
+LgogCSAqLwotCXdoaWxlICgodmFsID0gc21wX2xvYWRfYWNxdWlyZSgmbG9jay0+dmFsLmNvdW50
+ZXIpKQotCQkJCSAgICAgICAmIF9RX0xPQ0tFRF9QRU5ESU5HX01BU0spCisJLy8gbWFrZSBhIGdl
+dF9wZW5kaW5nKGxvY2ssICZ2YWwpIGhlbHBlcgorCXdoaWxlICgodmFsID0gc21wX2xvYWRfYWNx
+dWlyZSgmbG9jay0+dmFsLmNvdW50ZXIpKSAmIF9RX1BFTkRJTkdfTUFTSykKKwkJLy8gd291bGQg
+bG9uZ2VyIGJvZHkgZWFzZSBjYWNoZWxpbmUgY29udGVudGlvbj8KKwkJLy8gd291bGQgaXQgYmUg
+YmV0dGVyIHRvIHVzZSBtb25pdG9yL213YWl0IGluc3RlYWQ/CisJCS8vICh3ZSBjYW4gdG9sZXJh
+dGUgc29tZSBkZWxheSBiZWNhdXNlIHdlIGFyZW4ndCBwZW5kaW5nIC4uLikKIAkJYXJjaF9tdXRl
+eF9jcHVfcmVsYXgoKTsKIAogCS8qCi0JICogY2xhaW0gdGhlIGxvY2s6CisJICogVGhlIHBlbmRp
+bmcgYml0IGlzIGZyZWUsIHRha2UgaXQuCiAJICoKLQkgKiBuLDAsMCAtPiAwLDAsMSA6IGxvY2ss
+IHVuY29udGVuZGVkCi0JICogKiwwLDAgLT4gKiwwLDEgOiBsb2NrLCBjb250ZW5kZWQKKwkgKiAq
+LDAsKiAtPiAqLDEsKgorCSAqLworCS8vIG1pZ2h0IGFkZCAmdmFsIHBhcmFtIGFuZCBkbyB8PSBf
+UV9QRU5ESU5HX1ZBTCB3aGVuIHJlZmFjdG9yaW5nIC4uLgorCXNldF9wZW5kaW5nKGxvY2ssIDEp
+OworCisJLyoKKwkgKiBDbGVhciB0aGUgdGFpbCBpZiBub29uZSBxdWV1ZWQgYWZ0ZXIgdXMuCiAJ
+ICoKLQkgKiBJZiB0aGUgcXVldWUgaGVhZCBpcyB0aGUgb25seSBvbmUgaW4gdGhlIHF1ZXVlIChs
+b2NrIHZhbHVlID09IHRhaWwpLAotCSAqIGNsZWFyIHRoZSB0YWlsIGNvZGUgYW5kIGdyYWIgdGhl
+IGxvY2suIE90aGVyd2lzZSwgd2Ugb25seSBuZWVkCi0JICogdG8gZ3JhYiB0aGUgbG9jay4KKwkg
+KiBuLDEseSAtPiAwLDEseQogCSAqLwotCWZvciAoOzspIHsKLQkJaWYgKHZhbCAhPSB0YWlsKSB7
+Ci0JCQlnZXRfcWxvY2sobG9jayk7Ci0JCQlicmVhazsKLQkJfQotCQlvbGQgPSBhdG9taWNfY21w
+eGNoZygmbG9jay0+dmFsLCB2YWwsIF9RX0xPQ0tFRF9WQUwpOwotCQlpZiAob2xkID09IHZhbCkK
+LQkJCWdvdG8gcmVsZWFzZTsJLyogTm8gY29udGVudGlvbiAqLworCWlmICgodmFsICYgX1FfVEFJ
+TF9NQVNLKSA9PSB0YWlsICYmCisJICAgIGNtcHhjaGdfdGFpbChsb2NrLCB0YWlsLCAwKSA9PSB0
+YWlsKQorCQlnb3RvIHJlbGVhc2U7CisJLy8gbmVnYXRlIHRoZSBjb25kaXRpb24gYW5kIG9ibGl0
+ZXJhdGUgdGhlIGdvdG8gd2l0aCBicmFjZXMKIAotCQl2YWwgPSBvbGQ7Ci0JfQorCS8vIGZ1biBm
+YWN0OgorCS8vICBpZiAoKHZhbCAmIF9RX1RBSUxfTUFTSykgPT0gdGFpbCkgeworCS8vICAJdmFs
+ID0gY21weGNoZ190YWlsKCZsb2NrLCB0YWlsLCAwKTsKKwkvLyAgCWlmICgodmFsICYgX1FfVEFJ
+TF9NQVNLKSA9PSB0YWlsKQorCS8vICAJCWdvdG8gcmVsZWFzZTsKKwkvLyBwcm9kdWNlZCBzaWdu
+aWZpY2FudGx5IGZhc3RlciBjb2RlIGluIG15IGJlbmNobWFya3MgLi4uCisJLy8gKEkgaGF2ZW4n
+dCBsb29rZWQgd2h5LCBzZWVtcyBsaWtlIGEgZmx1a2UuKQorCS8vIHN3YXAgdGhlIGNvZGUgaWYg
+eW91IHdhbnQgcGVyZm9ybWFuY2UgYXQgYW55IGNvc3QKIAogCS8qCi0JICogY29udGVuZGVkIHBh
+dGg7IHdhaXQgZm9yIG5leHQsIHJlbGVhc2UuCisJICogVGVsbCB0aGUgbmV4dCBub2RlIHRoYXQg
+d2UgYXJlIHBlbmRpbmcsIHNvIGl0IGNhbiBzdGFydCBzcGlubmluZyB0bworCSAqIHJlcGxhY2Ug
+dXMgaW4gdGhlIGZ1dHVyZS4KIAkgKi8KIAl3aGlsZSAoIShuZXh0ID0gQUNDRVNTX09OQ0Uobm9k
+ZS0+bmV4dCkpKQogCQlhcmNoX211dGV4X2NwdV9yZWxheCgpOwpAQCAtNDMyLDUgKzUwOCwxOSBA
+QCByZWxlYXNlOgogCSAqIHJlbGVhc2UgdGhlIG5vZGUKIAkgKi8KIAl0aGlzX2NwdV9kZWMobWNz
+X25vZGVzWzBdLmNvdW50KTsKK3BlbmRpbmc6CisJLyoKKwkgKiB3ZSdyZSBhdCB0aGUgaGVhZCBv
+ZiB0aGUgd2FpdHF1ZXVlLCB3YWl0IGZvciB0aGUgb3duZXIgdG8gZ28gYXdheS4KKwkgKiBGbGlw
+IHBlbmRpbmcgYW5kIGxvY2tlZCBiaXQgdGhlbi4KKwkgKgorCSAqICosMSwwIC0+ICosMCwxCisJ
+ICovCisJd2hpbGUgKCh2YWwgPSBzbXBfbG9hZF9hY3F1aXJlKCZsb2NrLT52YWwuY291bnRlcikp
+ICYgX1FfTE9DS0VEX01BU0spCisJCWFyY2hfbXV0ZXhfY3B1X3JlbGF4KCk7CisJY2xlYXJfcGVu
+ZGluZ19zZXRfbG9ja2VkKGxvY2ssIHZhbCk7CisKKwkvKgorCSAqIFdlIGhhdmUgdGhlIGxvY2su
+CisJICovCiB9CiBFWFBPUlRfU1lNQk9MKHF1ZXVlX3NwaW5fbG9ja19zbG93cGF0aCk7Ci0tIAox
+LjkuMAoKX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX18KVmly
+dHVhbGl6YXRpb24gbWFpbGluZyBsaXN0ClZpcnR1YWxpemF0aW9uQGxpc3RzLmxpbnV4LWZvdW5k
+YXRpb24ub3JnCmh0dHBzOi8vbGlzdHMubGludXhmb3VuZGF0aW9uLm9yZy9tYWlsbWFuL2xpc3Rp
+bmZvL3ZpcnR1YWxpemF0aW9u
