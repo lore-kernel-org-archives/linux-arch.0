@@ -1,102 +1,68 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:48897 "EHLO
+Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:48895 "EHLO
 	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1752983AbaEVQs1 (ORCPT
+	by vger.kernel.org with ESMTP id S1751825AbaEVQsY (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 22 May 2014 12:48:27 -0400
+	Thu, 22 May 2014 12:48:24 -0400
 From: Will Deacon <will.deacon@arm.com>
-Subject: [PATCH v2 18/18] asm-generic: io: define relaxed accessor macros unconditionally
-Date: Thu, 22 May 2014 17:47:30 +0100
-Message-ID: <1400777250-17335-19-git-send-email-will.deacon@arm.com>
+Subject: [PATCH v2 10/18] m68k: io: implement dummy relaxed accessor macros for writes
+Date: Thu, 22 May 2014 17:47:22 +0100
+Message-ID: <1400777250-17335-11-git-send-email-will.deacon@arm.com>
 In-Reply-To: <1400777250-17335-1-git-send-email-will.deacon@arm.com>
 References: <1400777250-17335-1-git-send-email-will.deacon@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 Cc: arnd@arndb.de, monstr@monstr.eu, dhowells@redhat.com, broonie@linaro.org, benh@kernel.crashing.org, peterz@infradead.org, paulmck@linux.vnet.ibm.com, Will Deacon <will.deacon@arm.com>
-Message-ID: <20140522164730.DdAZKpoVGe772AUuLg88_ophySsXIJxT9uOz9amP6hs@z>
+Message-ID: <20140522164722.9QdP5peBr8i5LmffJtHO--BZ-9_ZJr_HmphEDMSB9lI@z>
 
-Now that no architectures using asm-generic/io.h define their own relaxed
-accessors, the dummy definitions can be used unconditionally.
+write{b,w,l}_relaxed are implemented by some architectures in order to
+permit memory-mapped I/O accesses with weaker barrier semantics than the
+non-relaxed variants.
 
-Cc: Arnd Bergmann <arnd@arndb.de>
+This patch adds dummy macros for the write accessors to m68k, in the
+same vein as the dummy definitions for the relaxed read accessors.
+Additionally, the existing relaxed read accessors are moved into
+asm/io.h, so that they can be used by m68k targets with an MMU.
+
+Acked-by: Geert Uytterhoeven <geert@linux-m68k.org>
 Signed-off-by: Will Deacon <will.deacon@arm.com>
 ---
- include/asm-generic/io.h | 16 ----------------
- 1 file changed, 16 deletions(-)
+ arch/m68k/include/asm/io.h    | 8 ++++++++
+ arch/m68k/include/asm/io_no.h | 4 ----
+ 2 files changed, 8 insertions(+), 4 deletions(-)
 
-diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
-index 9ccedeb06522..f5611abb82ed 100644
---- a/include/asm-generic/io.h
-+++ b/include/asm-generic/io.h
-@@ -53,27 +53,21 @@ static inline u32 __raw_readl(const volatile void __iomem *addr)
+diff --git a/arch/m68k/include/asm/io.h b/arch/m68k/include/asm/io.h
+index c70cc9155003..bccd5a914eb6 100644
+--- a/arch/m68k/include/asm/io.h
++++ b/arch/m68k/include/asm/io.h
+@@ -3,3 +3,11 @@
+ #else
+ #include <asm/io_mm.h>
  #endif
++
++#define readb_relaxed(addr)	readb(addr)
++#define readw_relaxed(addr)	readw(addr)
++#define readl_relaxed(addr)	readl(addr)
++
++#define writeb_relaxed(b, addr)	writeb(b, addr)
++#define writew_relaxed(b, addr)	writew(b, addr)
++#define writel_relaxed(b, addr)	writel(b, addr)
+diff --git a/arch/m68k/include/asm/io_no.h b/arch/m68k/include/asm/io_no.h
+index 52f7e8499172..19c237c63dc2 100644
+--- a/arch/m68k/include/asm/io_no.h
++++ b/arch/m68k/include/asm/io_no.h
+@@ -40,10 +40,6 @@ static inline unsigned int _swapl(volatile unsigned long v)
+ #define readl(addr) \
+     ({ unsigned int __v = (*(volatile unsigned int *) (addr)); __v; })
  
- #define readb __raw_readb
--#ifndef readb_relaxed
- #define readb_relaxed readb
--#endif
- 
- #define readw readw
- static inline u16 readw(const volatile void __iomem *addr)
- {
- 	return __le16_to_cpu(__raw_readw(addr));
- }
--#ifndef readw_relaxed
- #define readw_relaxed readw
--#endif
- 
- #define readl readl
- static inline u32 readl(const volatile void __iomem *addr)
- {
- 	return __le32_to_cpu(__raw_readl(addr));
- }
--#ifndef readl_relaxed
- #define readl_relaxed readl
--#endif
- 
- #ifndef __raw_writeb
- static inline void __raw_writeb(u8 b, volatile void __iomem *addr)
-@@ -97,19 +91,13 @@ static inline void __raw_writel(u32 b, volatile void __iomem *addr)
- #endif
- 
- #define writeb __raw_writeb
--#ifndef writeb_relaxed
- #define writeb_relaxed writeb
--#endif
- 
- #define writew(b,addr) __raw_writew(__cpu_to_le16(b),addr)
--#ifndef writew_relaxed
- #define writew_relaxed writew
--#endif
- 
- #define writel(b,addr) __raw_writel(__cpu_to_le32(b),addr)
--#ifndef writel_relaxed
- #define writel_relaxed writel
--#endif
- 
- #ifdef CONFIG_64BIT
- #ifndef __raw_readq
-@@ -124,9 +112,7 @@ static inline u64 readq(const volatile void __iomem *addr)
- {
- 	return __le64_to_cpu(__raw_readq(addr));
- }
--#ifndef readq_relaxed
- #define readq_relaxed readq
--#endif
- 
- #ifndef __raw_writeq
- static inline void __raw_writeq(u64 b, volatile void __iomem *addr)
-@@ -136,9 +122,7 @@ static inline void __raw_writeq(u64 b, volatile void __iomem *addr)
- #endif
- 
- #define writeq(b, addr) __raw_writeq(__cpu_to_le64(b), addr)
--#ifndef writeq_relaxed
- #define writeq_relaxed writeq
--#endif
- #endif /* CONFIG_64BIT */
- 
- #ifndef PCI_IOBASE
+-#define readb_relaxed(addr) readb(addr)
+-#define readw_relaxed(addr) readw(addr)
+-#define readl_relaxed(addr) readl(addr)
+-
+ #define writeb(b,addr) (void)((*(volatile unsigned char *) (addr)) = (b))
+ #define writew(b,addr) (void)((*(volatile unsigned short *) (addr)) = (b))
+ #define writel(b,addr) (void)((*(volatile unsigned int *) (addr)) = (b))
 -- 
 1.9.2
 
