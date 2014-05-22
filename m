@@ -1,57 +1,130 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:48892 "EHLO
+Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:48862 "EHLO
 	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1752913AbaEVQsX (ORCPT
+	by vger.kernel.org with ESMTP id S1752751AbaEVQsP (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 22 May 2014 12:48:23 -0400
+	Thu, 22 May 2014 12:48:15 -0400
 From: Will Deacon <will.deacon@arm.com>
-Subject: [PATCH v2 13/18] powerpc: io: implement dummy relaxed accessor macros for writes
-Date: Thu, 22 May 2014 17:47:25 +0100
-Message-ID: <1400777250-17335-14-git-send-email-will.deacon@arm.com>
-In-Reply-To: <1400777250-17335-1-git-send-email-will.deacon@arm.com>
-References: <1400777250-17335-1-git-send-email-will.deacon@arm.com>
+Subject: [PATCH v2 00/18] Cross-architecture definitions of relaxed MMIO accessors
+Date: Thu, 22 May 2014 17:47:12 +0100
+Message-ID: <1400777250-17335-1-git-send-email-will.deacon@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 Cc: arnd@arndb.de, monstr@monstr.eu, dhowells@redhat.com, broonie@linaro.org, benh@kernel.crashing.org, peterz@infradead.org, paulmck@linux.vnet.ibm.com, Will Deacon <will.deacon@arm.com>
-Message-ID: <20140522164725.1xBFKstDIaYlww5oQL5Q8VQgrRGypLftOMgIQYrVj14@z>
+Message-ID: <20140522164712.YLjgVXmPIftg1z3J7Bt9-_jXCtdCqJjdly5DqBFbz7g@z>
 
-write{b,w,l,q}_relaxed are implemented by some architectures in order to
-permit memory-mapped I/O accesses with weaker barrier semantics than the
-non-relaxed variants.
+Hi all,
 
-This patch adds dummy macros for the write accessors to powerpc, in the
-same vein as the dummy definitions for the relaxed read accessors.
+This is version 2 of the series I originally posted here:
 
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Signed-off-by: Will Deacon <will.deacon@arm.com>
----
- arch/powerpc/include/asm/io.h | 12 ++++++++----
- 1 file changed, 8 insertions(+), 4 deletions(-)
+  https://lkml.org/lkml/2014/4/17/269
 
-diff --git a/arch/powerpc/include/asm/io.h b/arch/powerpc/include/asm/io.h
-index 97d3869991ca..9eaf301ac952 100644
---- a/arch/powerpc/include/asm/io.h
-+++ b/arch/powerpc/include/asm/io.h
-@@ -617,10 +617,14 @@ static inline void name at					\
- /*
-  * We don't do relaxed operations yet, at least not with this semantic
-  */
--#define readb_relaxed(addr) readb(addr)
--#define readw_relaxed(addr) readw(addr)
--#define readl_relaxed(addr) readl(addr)
--#define readq_relaxed(addr) readq(addr)
-+#define readb_relaxed(addr)	readb(addr)
-+#define readw_relaxed(addr)	readw(addr)
-+#define readl_relaxed(addr)	readl(addr)
-+#define readq_relaxed(addr)	readq(addr)
-+#define writeb_relaxed(v, addr)	writeb(v, addr)
-+#define writew_relaxed(v, addr)	writew(v, addr)
-+#define writel_relaxed(v, addr)	writel(v, addr)
-+#define writeq_relaxed(v, addr)	writeq(v, addr)
- 
- #ifdef CONFIG_PPC32
- #define mmiowb()
+Changes since v1 include:
+
+ - Added relevant acks from arch maintainers
+ - Fixed potential compiler re-ordering issue for x86 definitions
+
+I'd *really* appreciate some feedback on the proposed semantics here, but
+acks are still good :)
+
+The original cover letter is duplicated below.
+
+Cheers,
+
+Will
+
+--->8
+
+This RFC series attempts to define a portable (i.e. cross-architecture)
+definition of the {readX,writeX}_relaxed MMIO accessor functions. These
+functions are already in widespread use amongst drivers (mainly those supporting
+devices embedded in ARM SoCs), but lack any well-defined semantics and,
+subsequently, any portable definitions to allow these drivers to be compiled for
+other architectures.
+
+The two main motivations for this series are:
+
+ (1) To promote use of the _relaxed MMIO accessors on weakly-ordered
+     architectures, where they can bring significant performance improvements
+     over their non-relaxed counterparts.
+
+ (2) To allow COMPILE_TEST to build drivers using the relaxed accessors across
+     all architectures.
+
+The proposed semantics largely match exactly those provided by the ARM
+implementation (i.e. no weaker), with one exception (see below).
+
+Informally:
+
+  - Relaxed accesses to the same device are ordered with respect to each other.
+
+  - Relaxed accesses are *not* guaranteed to be ordered with respect to normal
+    memory accesses (e.g. DMA buffers -- this is what gives us the performance
+    boost over the non-relaxed versions).
+
+  - Relaxed accesses are not guaranteed to be ordered with respect to
+    LOCK/UNLOCK operations.
+
+In actual fact, the relaxed accessors *are* ordered with respect to LOCK/UNLOCK
+operations on ARM[64], but I have added this constraint for the benefit of
+PowerPC, which has expensive I/O barriers in the spin_unlock path for the
+non-relaxed accessors.
+
+A corollary to this is that mmiowb() probably needs rethinking. As it currently
+stands, an mmiowb() is required to order MMIO writes to a device from multiple
+CPUs, even if that device is protected by a lock. However, this isn't often used
+in practice, leading to PowerPC implementing both mmiowb() *and* synchronising
+I/O in spin_unlock.
+
+I would propose making the non-relaxed I/O accessors ordered with respect to
+LOCK/UNLOCK, leaving mmiowb() to be used with the relaxed accessors, if
+required, but would welcome thoughts/suggestions on this topic.
+
+
+Will Deacon (18):
+  asm-generic: io: implement relaxed accessor macros as conditional
+    wrappers
+  microblaze: io: remove dummy relaxed accessor macros
+  s390: io: remove dummy relaxed accessor macros for reads
+  xtensa: io: remove dummy relaxed accessor macros for reads
+  alpha: io: implement relaxed accessor macros for writes
+  frv: io: implement dummy relaxed accessor macros for writes
+  cris: io: implement dummy relaxed accessor macros for writes
+  ia64: io: implement dummy relaxed accessor macros for writes
+  m32r: io: implement dummy relaxed accessor macros for writes
+  m68k: io: implement dummy relaxed accessor macros for writes
+  mn10300: io: implement dummy relaxed accessor macros for writes
+  parisc: io: implement dummy relaxed accessor macros for writes
+  powerpc: io: implement dummy relaxed accessor macros for writes
+  sparc: io: implement dummy relaxed accessor macros for writes
+  tile: io: implement dummy relaxed accessor macros for writes
+  x86: io: implement dummy relaxed accessor macros for writes
+  documentation: memory-barriers: clarify relaxed io accessor semantics
+  asm-generic: io: define relaxed accessor macros unconditionally
+
+ Documentation/memory-barriers.txt | 13 +++++++++----
+ arch/alpha/include/asm/io.h       | 12 ++++++++----
+ arch/cris/include/asm/io.h        |  3 +++
+ arch/frv/include/asm/io.h         |  3 +++
+ arch/ia64/include/asm/io.h        |  4 ++++
+ arch/m32r/include/asm/io.h        |  3 +++
+ arch/m68k/include/asm/io.h        |  8 ++++++++
+ arch/m68k/include/asm/io_no.h     |  4 ----
+ arch/microblaze/include/asm/io.h  |  8 --------
+ arch/mn10300/include/asm/io.h     |  4 ++++
+ arch/parisc/include/asm/io.h      | 12 ++++++++----
+ arch/powerpc/include/asm/io.h     | 12 ++++++++----
+ arch/s390/include/asm/io.h        |  5 -----
+ arch/sparc/include/asm/io.h       |  9 +++++++++
+ arch/sparc/include/asm/io_32.h    |  3 ---
+ arch/sparc/include/asm/io_64.h    | 22 ++++++++++------------
+ arch/tile/include/asm/io.h        |  4 ++++
+ arch/x86/include/asm/io.h         | 10 +++++++---
+ arch/xtensa/include/asm/io.h      |  7 -------
+ include/asm-generic/io.h          | 10 ++++++++++
+ 20 files changed, 98 insertions(+), 58 deletions(-)
+
 -- 
 1.9.2
 
