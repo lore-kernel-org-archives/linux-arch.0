@@ -1,42 +1,60 @@
 From: Will Deacon <will.deacon@arm.com>
-Subject: [PATCH v2 04/18] xtensa: io: remove dummy relaxed accessor macros for reads
-Date: Thu, 22 May 2014 17:47:16 +0100
-Message-ID: <1400777250-17335-5-git-send-email-will.deacon@arm.com>
+Subject: [PATCH v2 17/18] documentation: memory-barriers: clarify relaxed io accessor semantics
+Date: Thu, 22 May 2014 17:47:29 +0100
+Message-ID: <1400777250-17335-18-git-send-email-will.deacon@arm.com>
 References: <1400777250-17335-1-git-send-email-will.deacon@arm.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1400777250-17335-1-git-send-email-will.deacon@arm.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: arnd@arndb.de, monstr@monstr.eu, dhowells@redhat.com, broonie@linaro.org, benh@kernel.crashing.org, peterz@infradead.org, paulmck@linux.vnet.ibm.com, Will Deacon <will.deacon@arm.com>, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>
+Cc: arnd@arndb.de, monstr@monstr.eu, dhowells@redhat.com, broonie@linaro.org, benh@kernel.crashing.org, peterz@infradead.org, paulmck@linux.vnet.ibm.com, Will Deacon <will.deacon@arm.com>, Randy Dunlap <rdunlap@infradead.org>
 List-Id: linux-arch.vger.kernel.org
 
-These are now defined by asm-generic/io.h, so we don't need the private
-definitions anymore.
+This patch extends the paragraph describing the relaxed read io accessors
+so that the relaxed accessors are defined to be:
 
-Cc: Chris Zankel <chris@zankel.net>
-Cc: Max Filippov <jcmvbkbc@gmail.com>
+ - Ordered with respect to each other if accessing the same peripheral
+
+ - Unordered with respect to normal memory accesses
+
+ - Unordered with respect to LOCK/UNLOCK operations
+
+Whilst many architectures will provide stricter semantics, ARM, Alpha and
+PPC can achieve significant performance gains by taking advantage of some
+or all of the above relaxations.
+
+Cc: Randy Dunlap <rdunlap@infradead.org>
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
+Cc: David Howells <dhowells@redhat.com>
 Signed-off-by: Will Deacon <will.deacon@arm.com>
 ---
- arch/xtensa/include/asm/io.h | 7 -------
- 1 file changed, 7 deletions(-)
+ Documentation/memory-barriers.txt | 13 +++++++++----
+ 1 file changed, 9 insertions(+), 4 deletions(-)
 
-diff --git a/arch/xtensa/include/asm/io.h b/arch/xtensa/include/asm/io.h
-index 74944207167e..fe1600a09438 100644
---- a/arch/xtensa/include/asm/io.h
-+++ b/arch/xtensa/include/asm/io.h
-@@ -74,13 +74,6 @@ static inline void iounmap(volatile void __iomem *addr)
+diff --git a/Documentation/memory-barriers.txt b/Documentation/memory-barriers.txt
+index 556f951f8626..f31c88691ee9 100644
+--- a/Documentation/memory-barriers.txt
++++ b/Documentation/memory-barriers.txt
+@@ -2462,10 +2462,15 @@ functions:
+      Please refer to the PCI specification for more information on interactions
+      between PCI transactions.
  
- #endif /* CONFIG_MMU */
- 
--/*
-- * Generic I/O
-- */
--#define readb_relaxed readb
--#define readw_relaxed readw
--#define readl_relaxed readl
+- (*) readX_relaxed()
 -
- #endif	/* __KERNEL__ */
+-     These are similar to readX(), but are not guaranteed to be ordered in any
+-     way. Be aware that there is no I/O read barrier available.
++ (*) readX_relaxed(), writeX_relaxed()
++
++     These are similar to readX() and writeX(), but provide weaker memory
++     ordering guarantees. Specifically, they do not guarantee ordering with
++     respect to normal memory accesses (e.g. DMA buffers) nor do they guarantee
++     ordering with respect to LOCK or UNLOCK operations. If the latter is
++     required, an mmiowb() barrier can be used. Note that relaxed accesses to
++     the same peripheral are guaranteed to be ordered with respect to each
++     other.
  
- #include <asm-generic/io.h>
+  (*) ioreadX(), iowriteX()
+ 
 -- 
 1.9.2
