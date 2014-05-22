@@ -1,57 +1,42 @@
 From: Will Deacon <will.deacon@arm.com>
-Subject: [PATCH v2 05/18] alpha: io: implement relaxed accessor macros for writes
-Date: Thu, 22 May 2014 17:47:17 +0100
-Message-ID: <1400777250-17335-6-git-send-email-will.deacon@arm.com>
+Subject: [PATCH v2 07/18] cris: io: implement dummy relaxed accessor macros for writes
+Date: Thu, 22 May 2014 17:47:19 +0100
+Message-ID: <1400777250-17335-8-git-send-email-will.deacon@arm.com>
 References: <1400777250-17335-1-git-send-email-will.deacon@arm.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:48916 "EHLO
-	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1751081AbaEVQtE (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 22 May 2014 12:49:04 -0400
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1400777250-17335-1-git-send-email-will.deacon@arm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: arnd@arndb.de, monstr@monstr.eu, dhowells@redhat.com, broonie@linaro.org, benh@kernel.crashing.org, peterz@infradead.org, paulmck@linux.vnet.ibm.com, Will Deacon <will.deacon@arm.com>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>
+Cc: arnd@arndb.de, monstr@monstr.eu, dhowells@redhat.com, broonie@linaro.org, benh@kernel.crashing.org, peterz@infradead.org, paulmck@linux.vnet.ibm.com, Will Deacon <will.deacon@arm.com>, Mikael Starvik <starvik@axis.com>
+List-Id: linux-arch.vger.kernel.org
 
-write{b,w,l,q}_relaxed are implemented by some architectures in order to
-permit memory-mapped I/O writes with weaker barrier semantics than the
+write{b,w,l}_relaxed are implemented by some architectures in order to
+permit memory-mapped I/O accesses with weaker barrier semantics than the
 non-relaxed variants.
 
-This patch implements these write macros for Alpha, in the same vein as
-the relaxed read macros, which are already implemented.
+This patch adds dummy macros for the write accessors to Cris, in the same
+vein as the dummy definitions for the relaxed read accessors.
 
-Cc: Richard Henderson <rth@twiddle.net>
-Cc: Ivan Kokshaysky <ink@jurassic.park.msu.ru>
-Cc: Matt Turner <mattst88@gmail.com>
+Cc: Mikael Starvik <starvik@axis.com>
+Acked-by: Jesper Nilsson <jesper.nilsson@axis.com>
 Signed-off-by: Will Deacon <will.deacon@arm.com>
 ---
- arch/alpha/include/asm/io.h | 12 ++++++++----
- 1 file changed, 8 insertions(+), 4 deletions(-)
+ arch/cris/include/asm/io.h | 3 +++
+ 1 file changed, 3 insertions(+)
 
-diff --git a/arch/alpha/include/asm/io.h b/arch/alpha/include/asm/io.h
-index 5ebab5895edb..f05bdb4b1cb9 100644
---- a/arch/alpha/include/asm/io.h
-+++ b/arch/alpha/include/asm/io.h
-@@ -500,10 +500,14 @@ extern inline void writeq(u64 b, volatile void __iomem *addr)
- #define outb_p		outb
- #define outw_p		outw
- #define outl_p		outl
--#define readb_relaxed(addr) __raw_readb(addr)
--#define readw_relaxed(addr) __raw_readw(addr)
--#define readl_relaxed(addr) __raw_readl(addr)
--#define readq_relaxed(addr) __raw_readq(addr)
-+#define readb_relaxed(addr)	__raw_readb(addr)
-+#define readw_relaxed(addr)	__raw_readw(addr)
-+#define readl_relaxed(addr)	__raw_readl(addr)
-+#define readq_relaxed(addr)	__raw_readq(addr)
-+#define writeb_relaxed(b, addr)	__raw_writeb(b, addr)
-+#define writew_relaxed(b, addr)	__raw_writew(b, addr)
-+#define writel_relaxed(b, addr)	__raw_writel(b, addr)
-+#define writeq_relaxed(b, addr)	__raw_writeq(b, addr)
- 
- #define mmiowb()
- 
+diff --git a/arch/cris/include/asm/io.h b/arch/cris/include/asm/io.h
+index e59dba12ce94..752a3f45df60 100644
+--- a/arch/cris/include/asm/io.h
++++ b/arch/cris/include/asm/io.h
+@@ -112,6 +112,9 @@ static inline void writel(unsigned int b, volatile void __iomem *addr)
+ 	else
+ 		*(volatile unsigned int __force *) addr = b;
+ }
++#define writeb_relaxed(b, addr) writeb(b, addr)
++#define writew_relaxed(b, addr) writew(b, addr)
++#define writel_relaxed(b, addr) writel(b, addr)
+ #define __raw_writeb writeb
+ #define __raw_writew writew
+ #define __raw_writel writel
 -- 
 1.9.2
