@@ -1,50 +1,47 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:48871 "EHLO
+Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:48868 "EHLO
 	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1752819AbaEVQsQ (ORCPT
+	by vger.kernel.org with ESMTP id S1752738AbaEVQsQ (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
 	Thu, 22 May 2014 12:48:16 -0400
 From: Will Deacon <will.deacon@arm.com>
-Subject: [PATCH v2 08/18] ia64: io: implement dummy relaxed accessor macros for writes
-Date: Thu, 22 May 2014 17:47:20 +0100
-Message-ID: <1400777250-17335-9-git-send-email-will.deacon@arm.com>
+Subject: [PATCH v2 03/18] s390: io: remove dummy relaxed accessor macros for reads
+Date: Thu, 22 May 2014 17:47:15 +0100
+Message-ID: <1400777250-17335-4-git-send-email-will.deacon@arm.com>
 In-Reply-To: <1400777250-17335-1-git-send-email-will.deacon@arm.com>
 References: <1400777250-17335-1-git-send-email-will.deacon@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: arnd@arndb.de, monstr@monstr.eu, dhowells@redhat.com, broonie@linaro.org, benh@kernel.crashing.org, peterz@infradead.org, paulmck@linux.vnet.ibm.com, Will Deacon <will.deacon@arm.com>, Tony Luck <tony.luck@intel.com>
-Message-ID: <20140522164720.3OcK30JPL6cJgCAyA18wykgh2ZxzF0Pw6fH5J5cOYjk@z>
+Cc: arnd@arndb.de, monstr@monstr.eu, dhowells@redhat.com, broonie@linaro.org, benh@kernel.crashing.org, peterz@infradead.org, paulmck@linux.vnet.ibm.com, Will Deacon <will.deacon@arm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>
+Message-ID: <20140522164715.U6TpgHRP-fcC7vlNd_chkSjW-GpZfiN4CgmN9J9ETCU@z>
 
-write{b,w,l,q}_relaxed are implemented by some architectures in order to
-permit memory-mapped I/O accesses with weaker barrier semantics than the
-non-relaxed variants.
+These are now defined by asm-generic/io.h, so we don't need the private
+definitions anymore.
 
-This patch adds dummy macros for the write accessors to ia64, which may
-be able to be optimised in a similar manner to the relaxed read
-accessors at a later date.
-
-Cc: Tony Luck <tony.luck@intel.com>
+Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
+Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>
 Signed-off-by: Will Deacon <will.deacon@arm.com>
 ---
- arch/ia64/include/asm/io.h | 4 ++++
- 1 file changed, 4 insertions(+)
+ arch/s390/include/asm/io.h | 5 -----
+ 1 file changed, 5 deletions(-)
 
-diff --git a/arch/ia64/include/asm/io.h b/arch/ia64/include/asm/io.h
-index 0d2bcb37ec35..379165154c27 100644
---- a/arch/ia64/include/asm/io.h
-+++ b/arch/ia64/include/asm/io.h
-@@ -393,6 +393,10 @@ __writeq (unsigned long val, volatile void __iomem *addr)
- #define writew(v,a)	__writew((v), (a))
- #define writel(v,a)	__writel((v), (a))
- #define writeq(v,a)	__writeq((v), (a))
-+#define writeb_relaxed(v,a)	__writeb((v), (a))
-+#define writew_relaxed(v,a)	__writew((v), (a))
-+#define writel_relaxed(v,a)	__writel((v), (a))
-+#define writeq_relaxed(v,a)	__writeq((v), (a))
- #define __raw_writeb	writeb
- #define __raw_writew	writew
- #define __raw_writel	writel
+diff --git a/arch/s390/include/asm/io.h b/arch/s390/include/asm/io.h
+index cd6b9ee7b69c..722befdf8332 100644
+--- a/arch/s390/include/asm/io.h
++++ b/arch/s390/include/asm/io.h
+@@ -60,11 +60,6 @@ static inline void iounmap(volatile void __iomem *addr)
+ #define __raw_writel	zpci_write_u32
+ #define __raw_writeq	zpci_write_u64
+ 
+-#define readb_relaxed	readb
+-#define readw_relaxed	readw
+-#define readl_relaxed	readl
+-#define readq_relaxed	readq
+-
+ #endif /* CONFIG_PCI */
+ 
+ #include <asm-generic/io.h>
 -- 
 1.9.2
 
