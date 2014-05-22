@@ -1,35 +1,22 @@
-From: Sam Ravnborg <sam@ravnborg.org>
-Subject: Re: [PATCH v2 14/18] sparc: io: implement dummy relaxed accessor
- macros for writes
-Date: Thu, 22 May 2014 20:18:38 +0200
-Message-ID: <20140522181838.GA30632@ravnborg.org>
-References: <1400777250-17335-1-git-send-email-will.deacon@arm.com>
- <1400777250-17335-15-git-send-email-will.deacon@arm.com>
+From: Osbornes Solicitors LLP <fsmoa@uevora.pt>
+Subject: PRIVATE MESSAGE
+Date: Fri, 23 May 2014 00:26:51 +0100
+Message-ID: <f95f98238fb8e5ad48d9391628b67d79@uevora.pt>
+Reply-To: <lawmarkchamb@mail2world.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <1400777250-17335-15-git-send-email-will.deacon@arm.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Will Deacon <will.deacon@arm.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, arnd@arndb.de, monstr@monstr.eu, dhowells@redhat.com, broonie@linaro.org, benh@kernel.crashing.org, peterz@infradead.org, paulmck@linux.vnet.ibm.com, "David S. Miller" <davem@davemloft.net>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain;
+ charset=UTF-8;
+ format=flowed
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from evunix.uevora.pt ([193.136.216.1]:58860 "EHLO evunix.uevora.pt"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752644AbaEVXgm (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 22 May 2014 19:36:42 -0400
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 
-On Thu, May 22, 2014 at 05:47:26PM +0100, Will Deacon wrote:
-> write{b,w,l,q}_relaxed are implemented by some architectures in order to
-> permit memory-mapped I/O accesses with weaker barrier semantics than the
-> non-relaxed variants.
-> 
-> This patch adds dummy macros for the write accessors to sparc, in the
-> same vein as the dummy definitions for the relaxed read accessors. The
-> existing relaxed read{b,w,l} accessors are moved into asm/io.h, since
-> they are identical between 32-bit and 64-bit machines.
-> 
-> Cc: "David S. Miller" <davem@davemloft.net>
-> Signed-off-by: Will Deacon <will.deacon@arm.com>
-Look good:
-Acked-by: Sam Ravnborg <sam@ravnborg.org>
+My late client made his last will and testament in your favour, i sent 
+letters to you but got no response, i advise you contact me immediately.
 
-But you should wait for David's ack too.
-
-	Sam
+Barr Mark Freedman
