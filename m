@@ -1,68 +1,48 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:48895 "EHLO
+Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:48890 "EHLO
 	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1751825AbaEVQsY (ORCPT
+	by vger.kernel.org with ESMTP id S1752912AbaEVQsV (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 22 May 2014 12:48:24 -0400
+	Thu, 22 May 2014 12:48:21 -0400
 From: Will Deacon <will.deacon@arm.com>
-Subject: [PATCH v2 10/18] m68k: io: implement dummy relaxed accessor macros for writes
-Date: Thu, 22 May 2014 17:47:22 +0100
-Message-ID: <1400777250-17335-11-git-send-email-will.deacon@arm.com>
+Subject: [PATCH v2 09/18] m32r: io: implement dummy relaxed accessor macros for writes
+Date: Thu, 22 May 2014 17:47:21 +0100
+Message-ID: <1400777250-17335-10-git-send-email-will.deacon@arm.com>
 In-Reply-To: <1400777250-17335-1-git-send-email-will.deacon@arm.com>
 References: <1400777250-17335-1-git-send-email-will.deacon@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: arnd@arndb.de, monstr@monstr.eu, dhowells@redhat.com, broonie@linaro.org, benh@kernel.crashing.org, peterz@infradead.org, paulmck@linux.vnet.ibm.com, Will Deacon <will.deacon@arm.com>
-Message-ID: <20140522164722.9QdP5peBr8i5LmffJtHO--BZ-9_ZJr_HmphEDMSB9lI@z>
+Cc: arnd@arndb.de, monstr@monstr.eu, dhowells@redhat.com, broonie@linaro.org, benh@kernel.crashing.org, peterz@infradead.org, paulmck@linux.vnet.ibm.com, Will Deacon <will.deacon@arm.com>, Hirokazu Takata <takata@linux-m32r.org>
+Message-ID: <20140522164721.CiG0QprGV-7EbSUvJwFMuJf8cAJ9rxEF-gZ7_z3uBKM@z>
 
 write{b,w,l}_relaxed are implemented by some architectures in order to
 permit memory-mapped I/O accesses with weaker barrier semantics than the
 non-relaxed variants.
 
-This patch adds dummy macros for the write accessors to m68k, in the
+This patch adds dummy macros for the write accessors to m32r, in the
 same vein as the dummy definitions for the relaxed read accessors.
-Additionally, the existing relaxed read accessors are moved into
-asm/io.h, so that they can be used by m68k targets with an MMU.
 
-Acked-by: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Hirokazu Takata <takata@linux-m32r.org>
 Signed-off-by: Will Deacon <will.deacon@arm.com>
 ---
- arch/m68k/include/asm/io.h    | 8 ++++++++
- arch/m68k/include/asm/io_no.h | 4 ----
- 2 files changed, 8 insertions(+), 4 deletions(-)
+ arch/m32r/include/asm/io.h | 3 +++
+ 1 file changed, 3 insertions(+)
 
-diff --git a/arch/m68k/include/asm/io.h b/arch/m68k/include/asm/io.h
-index c70cc9155003..bccd5a914eb6 100644
---- a/arch/m68k/include/asm/io.h
-+++ b/arch/m68k/include/asm/io.h
-@@ -3,3 +3,11 @@
- #else
- #include <asm/io_mm.h>
- #endif
-+
-+#define readb_relaxed(addr)	readb(addr)
-+#define readw_relaxed(addr)	readw(addr)
-+#define readl_relaxed(addr)	readl(addr)
-+
-+#define writeb_relaxed(b, addr)	writeb(b, addr)
-+#define writew_relaxed(b, addr)	writew(b, addr)
-+#define writel_relaxed(b, addr)	writel(b, addr)
-diff --git a/arch/m68k/include/asm/io_no.h b/arch/m68k/include/asm/io_no.h
-index 52f7e8499172..19c237c63dc2 100644
---- a/arch/m68k/include/asm/io_no.h
-+++ b/arch/m68k/include/asm/io_no.h
-@@ -40,10 +40,6 @@ static inline unsigned int _swapl(volatile unsigned long v)
- #define readl(addr) \
-     ({ unsigned int __v = (*(volatile unsigned int *) (addr)); __v; })
+diff --git a/arch/m32r/include/asm/io.h b/arch/m32r/include/asm/io.h
+index 4010f1fc5b65..6e7787f3dac7 100644
+--- a/arch/m32r/include/asm/io.h
++++ b/arch/m32r/include/asm/io.h
+@@ -161,6 +161,9 @@ static inline void _writel(unsigned long l, unsigned long addr)
+ #define __raw_writeb writeb
+ #define __raw_writew writew
+ #define __raw_writel writel
++#define writeb_relaxed writeb
++#define writew_relaxed writew
++#define writel_relaxed writel
  
--#define readb_relaxed(addr) readb(addr)
--#define readw_relaxed(addr) readw(addr)
--#define readl_relaxed(addr) readl(addr)
--
- #define writeb(b,addr) (void)((*(volatile unsigned char *) (addr)) = (b))
- #define writew(b,addr) (void)((*(volatile unsigned short *) (addr)) = (b))
- #define writel(b,addr) (void)((*(volatile unsigned int *) (addr)) = (b))
+ #define ioread8 read
+ #define ioread16 readw
 -- 
 1.9.2
 
