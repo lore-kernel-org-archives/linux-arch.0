@@ -1,49 +1,57 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:48886 "EHLO
+Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:48892 "EHLO
 	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1752872AbaEVQsU (ORCPT
+	by vger.kernel.org with ESMTP id S1752913AbaEVQsX (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 22 May 2014 12:48:20 -0400
+	Thu, 22 May 2014 12:48:23 -0400
 From: Will Deacon <will.deacon@arm.com>
-Subject: [PATCH v2 04/18] xtensa: io: remove dummy relaxed accessor macros for reads
-Date: Thu, 22 May 2014 17:47:16 +0100
-Message-ID: <1400777250-17335-5-git-send-email-will.deacon@arm.com>
+Subject: [PATCH v2 13/18] powerpc: io: implement dummy relaxed accessor macros for writes
+Date: Thu, 22 May 2014 17:47:25 +0100
+Message-ID: <1400777250-17335-14-git-send-email-will.deacon@arm.com>
 In-Reply-To: <1400777250-17335-1-git-send-email-will.deacon@arm.com>
 References: <1400777250-17335-1-git-send-email-will.deacon@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: arnd@arndb.de, monstr@monstr.eu, dhowells@redhat.com, broonie@linaro.org, benh@kernel.crashing.org, peterz@infradead.org, paulmck@linux.vnet.ibm.com, Will Deacon <will.deacon@arm.com>, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>
-Message-ID: <20140522164716.3qGrJ9MEBuHCH9_UOmtGfHtiNh_2HU-O6I4XPCIJVrI@z>
+Cc: arnd@arndb.de, monstr@monstr.eu, dhowells@redhat.com, broonie@linaro.org, benh@kernel.crashing.org, peterz@infradead.org, paulmck@linux.vnet.ibm.com, Will Deacon <will.deacon@arm.com>
+Message-ID: <20140522164725.1xBFKstDIaYlww5oQL5Q8VQgrRGypLftOMgIQYrVj14@z>
 
-These are now defined by asm-generic/io.h, so we don't need the private
-definitions anymore.
+write{b,w,l,q}_relaxed are implemented by some architectures in order to
+permit memory-mapped I/O accesses with weaker barrier semantics than the
+non-relaxed variants.
 
-Cc: Chris Zankel <chris@zankel.net>
-Cc: Max Filippov <jcmvbkbc@gmail.com>
+This patch adds dummy macros for the write accessors to powerpc, in the
+same vein as the dummy definitions for the relaxed read accessors.
+
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 Signed-off-by: Will Deacon <will.deacon@arm.com>
 ---
- arch/xtensa/include/asm/io.h | 7 -------
- 1 file changed, 7 deletions(-)
+ arch/powerpc/include/asm/io.h | 12 ++++++++----
+ 1 file changed, 8 insertions(+), 4 deletions(-)
 
-diff --git a/arch/xtensa/include/asm/io.h b/arch/xtensa/include/asm/io.h
-index 74944207167e..fe1600a09438 100644
---- a/arch/xtensa/include/asm/io.h
-+++ b/arch/xtensa/include/asm/io.h
-@@ -74,13 +74,6 @@ static inline void iounmap(volatile void __iomem *addr)
+diff --git a/arch/powerpc/include/asm/io.h b/arch/powerpc/include/asm/io.h
+index 97d3869991ca..9eaf301ac952 100644
+--- a/arch/powerpc/include/asm/io.h
++++ b/arch/powerpc/include/asm/io.h
+@@ -617,10 +617,14 @@ static inline void name at					\
+ /*
+  * We don't do relaxed operations yet, at least not with this semantic
+  */
+-#define readb_relaxed(addr) readb(addr)
+-#define readw_relaxed(addr) readw(addr)
+-#define readl_relaxed(addr) readl(addr)
+-#define readq_relaxed(addr) readq(addr)
++#define readb_relaxed(addr)	readb(addr)
++#define readw_relaxed(addr)	readw(addr)
++#define readl_relaxed(addr)	readl(addr)
++#define readq_relaxed(addr)	readq(addr)
++#define writeb_relaxed(v, addr)	writeb(v, addr)
++#define writew_relaxed(v, addr)	writew(v, addr)
++#define writel_relaxed(v, addr)	writel(v, addr)
++#define writeq_relaxed(v, addr)	writeq(v, addr)
  
- #endif /* CONFIG_MMU */
- 
--/*
-- * Generic I/O
-- */
--#define readb_relaxed readb
--#define readw_relaxed readw
--#define readl_relaxed readl
--
- #endif	/* __KERNEL__ */
- 
- #include <asm-generic/io.h>
+ #ifdef CONFIG_PPC32
+ #define mmiowb()
 -- 
 1.9.2
 
