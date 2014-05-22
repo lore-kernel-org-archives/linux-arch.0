@@ -1,67 +1,42 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:48882 "EHLO
-	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1752751AbaEVQsT (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 22 May 2014 12:48:19 -0400
-From: Will Deacon <will.deacon@arm.com>
-Subject: [PATCH v2 17/18] documentation: memory-barriers: clarify relaxed io accessor semantics
-Date: Thu, 22 May 2014 17:47:29 +0100
-Message-ID: <1400777250-17335-18-git-send-email-will.deacon@arm.com>
-In-Reply-To: <1400777250-17335-1-git-send-email-will.deacon@arm.com>
+Received: from asavdk4.altibox.net ([109.247.116.15]:49989 "EHLO
+	asavdk4.altibox.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751429AbaEVSS4 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 22 May 2014 14:18:56 -0400
+Date: Thu, 22 May 2014 20:18:38 +0200
+From: Sam Ravnborg <sam@ravnborg.org>
+Subject: Re: [PATCH v2 14/18] sparc: io: implement dummy relaxed accessor
+ macros for writes
+Message-ID: <20140522181838.GA30632@ravnborg.org>
 References: <1400777250-17335-1-git-send-email-will.deacon@arm.com>
+ <1400777250-17335-15-git-send-email-will.deacon@arm.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1400777250-17335-15-git-send-email-will.deacon@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: arnd@arndb.de, monstr@monstr.eu, dhowells@redhat.com, broonie@linaro.org, benh@kernel.crashing.org, peterz@infradead.org, paulmck@linux.vnet.ibm.com, Will Deacon <will.deacon@arm.com>, Randy Dunlap <rdunlap@infradead.org>
-Message-ID: <20140522164729.brjSJcIco_Lq6QgF0g-daOFBpHuqnruWR8f8hpOeAew@z>
+To: Will Deacon <will.deacon@arm.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, arnd@arndb.de, monstr@monstr.eu, dhowells@redhat.com, broonie@linaro.org, benh@kernel.crashing.org, peterz@infradead.org, paulmck@linux.vnet.ibm.com, "David S. Miller" <davem@davemloft.net>
+Message-ID: <20140522181838.dtzAwyvFxWB9B6VWKfKyRc-RzgwWBEDKMPlxHvrqh-I@z>
 
-This patch extends the paragraph describing the relaxed read io accessors
-so that the relaxed accessors are defined to be:
+On Thu, May 22, 2014 at 05:47:26PM +0100, Will Deacon wrote:
+> write{b,w,l,q}_relaxed are implemented by some architectures in order to
+> permit memory-mapped I/O accesses with weaker barrier semantics than the
+> non-relaxed variants.
+> 
+> This patch adds dummy macros for the write accessors to sparc, in the
+> same vein as the dummy definitions for the relaxed read accessors. The
+> existing relaxed read{b,w,l} accessors are moved into asm/io.h, since
+> they are identical between 32-bit and 64-bit machines.
+> 
+> Cc: "David S. Miller" <davem@davemloft.net>
+> Signed-off-by: Will Deacon <will.deacon@arm.com>
+Look good:
+Acked-by: Sam Ravnborg <sam@ravnborg.org>
 
- - Ordered with respect to each other if accessing the same peripheral
+But you should wait for David's ack too.
 
- - Unordered with respect to normal memory accesses
+	Sam
 
- - Unordered with respect to LOCK/UNLOCK operations
-
-Whilst many architectures will provide stricter semantics, ARM, Alpha and
-PPC can achieve significant performance gains by taking advantage of some
-or all of the above relaxations.
-
-Cc: Randy Dunlap <rdunlap@infradead.org>
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
-Cc: David Howells <dhowells@redhat.com>
-Signed-off-by: Will Deacon <will.deacon@arm.com>
----
- Documentation/memory-barriers.txt | 13 +++++++++----
- 1 file changed, 9 insertions(+), 4 deletions(-)
-
-diff --git a/Documentation/memory-barriers.txt b/Documentation/memory-barriers.txt
-index 556f951f8626..f31c88691ee9 100644
---- a/Documentation/memory-barriers.txt
-+++ b/Documentation/memory-barriers.txt
-@@ -2462,10 +2462,15 @@ functions:
-      Please refer to the PCI specification for more information on interactions
-      between PCI transactions.
- 
-- (*) readX_relaxed()
--
--     These are similar to readX(), but are not guaranteed to be ordered in any
--     way. Be aware that there is no I/O read barrier available.
-+ (*) readX_relaxed(), writeX_relaxed()
-+
-+     These are similar to readX() and writeX(), but provide weaker memory
-+     ordering guarantees. Specifically, they do not guarantee ordering with
-+     respect to normal memory accesses (e.g. DMA buffers) nor do they guarantee
-+     ordering with respect to LOCK or UNLOCK operations. If the latter is
-+     required, an mmiowb() barrier can be used. Note that relaxed accesses to
-+     the same peripheral are guaranteed to be ordered with respect to each
-+     other.
- 
-  (*) ioreadX(), iowriteX()
- 
--- 
-1.9.2
 
