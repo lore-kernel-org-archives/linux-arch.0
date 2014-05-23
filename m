@@ -1,56 +1,36 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:47388 "EHLO
-	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1752141AbaEWOtn (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Fri, 23 May 2014 10:49:43 -0400
-Date: Fri, 23 May 2014 15:46:04 +0100
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [PATCH v2 16/18] x86: io: implement dummy relaxed accessor
- macros for writes
-Message-ID: <20140523144604.GF21319@arm.com>
-References: <1400777250-17335-1-git-send-email-will.deacon@arm.com>
- <1400777250-17335-17-git-send-email-will.deacon@arm.com>
- <537E30AF.4070501@zytor.com>
+Received: from terminus.zytor.com ([198.137.202.10]:38623 "EHLO mail.zytor.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752997AbaEWOyT (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 23 May 2014 10:54:19 -0400
+Message-ID: <537F60E0.1060307@zytor.com>
+Date: Fri, 23 May 2014 07:53:20 -0700
+From: "H. Peter Anvin" <hpa@zytor.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <537E30AF.4070501@zytor.com>
+Subject: Re: [PATCH v2 16/18] x86: io: implement dummy relaxed accessor macros
+ for writes
+References: <1400777250-17335-1-git-send-email-will.deacon@arm.com> <1400777250-17335-17-git-send-email-will.deacon@arm.com> <537E30AF.4070501@zytor.com> <20140523144604.GF21319@arm.com>
+In-Reply-To: <20140523144604.GF21319@arm.com>
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "H. Peter Anvin" <hpa@zytor.com>
+To: Will Deacon <will.deacon@arm.com>
 Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "arnd@arndb.de" <arnd@arndb.de>, "monstr@monstr.eu" <monstr@monstr.eu>, "dhowells@redhat.com" <dhowells@redhat.com>, "broonie@linaro.org" <broonie@linaro.org>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, "peterz@infradead.org" <peterz@infradead.org>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>
-Message-ID: <20140523144604.y4EO0PHSiBgvWQVd1Dr27IcjGIqN4-wO7qW9sZqmTmo@z>
+Message-ID: <20140523145320.8HOC9el1IKh0qvrUZ5UKycY96djSAgtePHLNB1z4mJ0@z>
 
-Hi Peter,
-
-On Thu, May 22, 2014 at 06:15:27PM +0100, H. Peter Anvin wrote:
-> On 05/22/2014 09:47 AM, Will Deacon wrote:
-> > write{b,w,l,q}_relaxed are implemented by some architectures in order to
-> > permit memory-mapped I/O accesses with weaker barrier semantics than the
-> > non-relaxed variants.
-> > 
-> > This patch adds dummy macros for the read and write accessors to x86,
-> > which simply expand to the non-relaxed variants. Note that this
-> > strengthens the relaxed read accessors, since they are now ordered with
-> > respect to each other by way of a compiler barrier.
+On 05/23/2014 07:46 AM, Will Deacon wrote:
 > 
-> OK, do we want/need that compiler barrier?  And you say "strengthens" -
-> strengthens with respect to what if we didn't have them before?
+> I would like the relaxed accessors to be ordered with respect to each other...
+> 
+> What do you think?
+> 
 
-Actually, x86 does already implement the relaxed read accessors:
+I think "I would like" isn't a very good motivation.  What are the
+semantics of these things supposed to be?  It seems more than a bit odd
+to require them to be ordered with respect to each other and everything
+else (which is what a memory clobber does) and then call them "relaxed".
 
-	#define readb_relaxed(a) __readb(a)
-	#define readw_relaxed(a) __readw(a)
-	#define readl_relaxed(a) __readl(a)
+	-hpa
 
-where __read* don't have "memory" clobbers, unlike the read* implementations.
 
-I would like the relaxed accessors to be ordered with respect to each other
-but, looking again, that is already achieved through the use of volatile asm
-so I've come full circle and decided that we don't need the clobbers after
-all.
-
-What do you think?
-
-Will
