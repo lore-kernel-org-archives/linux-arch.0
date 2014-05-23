@@ -1,14 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:48544 "EHLO
-	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1752059AbaEWPe5 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Fri, 23 May 2014 11:34:57 -0400
-Date: Fri, 23 May 2014 16:34:09 +0100
-From: Will Deacon <will.deacon@arm.com>
+Received: from bombadil.infradead.org ([198.137.202.9]:35624 "EHLO
+	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752532AbaEWP4o (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 23 May 2014 11:56:44 -0400
+Date: Fri, 23 May 2014 17:56:26 +0200
+From: Peter Zijlstra <peterz@infradead.org>
 Subject: Re: [PATCH v2 16/18] x86: io: implement dummy relaxed accessor
  macros for writes
-Message-ID: <20140523153409.GI21319@arm.com>
+Message-ID: <20140523155626.GI30445@twins.programming.kicks-ass.net>
 References: <1400777250-17335-1-git-send-email-will.deacon@arm.com>
  <1400777250-17335-17-git-send-email-will.deacon@arm.com>
  <537E30AF.4070501@zytor.com>
@@ -16,68 +15,73 @@ References: <1400777250-17335-1-git-send-email-will.deacon@arm.com>
  <537F60E0.1060307@zytor.com>
  <20140523145758.GG21319@arm.com>
  <537F6728.3090600@zytor.com>
+ <20140523153409.GI21319@arm.com>
+ <537F6C85.107@zytor.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: multipart/signed; micalg=pgp-sha1;
+	protocol="application/pgp-signature"; boundary="SIhMtSQSYpXpqifs"
 Content-Disposition: inline
-In-Reply-To: <537F6728.3090600@zytor.com>
+In-Reply-To: <537F6C85.107@zytor.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: "H. Peter Anvin" <hpa@zytor.com>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "arnd@arndb.de" <arnd@arndb.de>, "monstr@monstr.eu" <monstr@monstr.eu>, "dhowells@redhat.com" <dhowells@redhat.com>, "broonie@linaro.org" <broonie@linaro.org>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, "peterz@infradead.org" <peterz@infradead.org>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>
-Message-ID: <20140523153409.kJlTkQX4HkdGn84bG74265xqQNk75vjf5RYT249XAMI@z>
+Cc: Will Deacon <will.deacon@arm.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "arnd@arndb.de" <arnd@arndb.de>, "monstr@monstr.eu" <monstr@monstr.eu>, "dhowells@redhat.com" <dhowells@redhat.com>, "broonie@linaro.org" <broonie@linaro.org>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>
+Message-ID: <20140523155626.-jkkxo_J9OKRbMhVw0jlXGDN7e4AuM27o2O85d5v9Is@z>
 
-On Fri, May 23, 2014 at 04:20:08PM +0100, H. Peter Anvin wrote:
-> On 05/23/2014 07:57 AM, Will Deacon wrote:
-> > On Fri, May 23, 2014 at 03:53:20PM +0100, H. Peter Anvin wrote:
-> >> On 05/23/2014 07:46 AM, Will Deacon wrote:
-> >>> I would like the relaxed accessors to be ordered with respect to each other...
-> >>>
-> >>> What do you think?
-> >>>
-> >>
-> >> I think "I would like" isn't a very good motivation.  What are the
-> >> semantics of these things supposed to be?  It seems more than a bit odd
-> >> to require them to be ordered with respect to each other and everything
-> >> else (which is what a memory clobber does) and then call them "relaxed".
-> > 
-> > I suggested some informal semantics in the cover letter:
-> > 
-> >   https://lkml.org/lkml/2014/4/17/269
-> > 
-> > Basically, if we define relaxed accesses not to be ordered against anything
-> > apart from other accesses (relaxed or otherwise) to the same device, then
-> > they become a tonne cheaper on arm/arm64/powerpc. Currently we have to
-> > include expensive memory barriers in order to synchronise with accesses to
-> > DMA buffers which is rarely needed.
-> > 
-> > For those requirements, I don't think we need the "memory" clobber for x86,
-> > but would appreciate your views on this.
-> > 
-> 
-> OK... first of all you didn't send the cover letter to the union of all
-> the people you sent patches to, but second, documenting semantics in the
-> one piece of the patchset that wouldn't make it into git is just about
-> the worst possible place to put it.
-> 
-> This documentation is absolutely critical if we expect people to be able
-> to use these correctly, including when additional barriers may be required.
 
-There is also a documentation patch [1] in this series but, again, I didn't
-CC everybody on it. Sorry, but the level of interest this sort of stuff
-generates amongst kernel developers is close to zero so I only included
-people I thought cared on CC for the entire series. I'm stuck between a rock
-and a hard place trying to CC interested people whilst at the same time
-trying to avoid spamming all the arch maintainers.
+--SIhMtSQSYpXpqifs
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
 
-I'll add you to CC if/when I post a third version. In the meantime, it's
-all archived on lkml and linux-arch.
+On Fri, May 23, 2014 at 08:43:01AM -0700, H. Peter Anvin wrote:
+> On 05/23/2014 08:34 AM, Will Deacon wrote:
+> >=20
+> > There is also a documentation patch [1] in this series but, again, I di=
+dn't
+> > CC everybody on it. Sorry, but the level of interest this sort of stuff
+> > generates amongst kernel developers is close to zero so I only included
+> > people I thought cared on CC for the entire series. I'm stuck between a=
+ rock
+> > and a hard place trying to CC interested people whilst at the same time
+> > trying to avoid spamming all the arch maintainers.
+> >=20
+>=20
+> If you are sending me a patch, please include me on the cover letter for
+> the patch series.  You don't have to send me the entire patch series
+> (although for something like a Documentation patch which affects x86 I
+> would consider including the union list as well.)
+>=20
+> I think regardless of level of interest, the definition of
+> cross-architectural operations is exactly the arch maintainers job, so
+> it isn't really out of place to "spam" us...
 
-> As far as x86 is concerned, in gcc volatiles are ordered with respect to
-> each other, so as you say I don't think we need a memory clobber here.
+So the one issue I had with that, is that if one tries to send an email
+to all arch maintainers + linux-arch + linux-kernel, the header gets too
+big and vger chokes and davem slaps you.
 
-Thanks for the confirmation, I'll put that patch back like it was
-originally.
+So while its possibly desirable to do big unions with 0/xx and the like,
+its practically infeasible.
 
-Will
+--SIhMtSQSYpXpqifs
+Content-Type: application/pgp-signature
 
-[1] https://lkml.org/lkml/2014/5/22/464
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.12 (GNU/Linux)
+
+iQIcBAEBAgAGBQJTf2+qAAoJEHZH4aRLwOS61y8P/R31PO3PdXkwzC+dChd1vVwF
+7vC9OX2ibOAj9GdYUPwfU6mromo9192lBMT7cfKLtd+Bvf59AFnkA2udQBJ3wvZe
+Y11fJ7WkXqzukgO+FfDFVzPbmj1poKn/ZGt6snm8PJIkqOhL9kwPz0ZnuVaunpC4
+UiF7vWKrkyDCCnFvPrMS6Y+/GiN79tJFrhlbGian5s9QmacDE4RsnCEDyniWjt7k
+dDY6Y49pxW6OPRUzuuqrE+mQZucPpA4CENYvSMk2akJADbvlhlHDKv6GkhkwSUwD
+l5NSeCPRkHvK9PLsMysbCWdEWl7Fr3M3quxGIJeioUFYlxzM3TglGv4A1WFxY2dj
+FjDqoV7fcVCZ1nVogIQ/Cr/wjIV3eu1AmKHGsFwqVh0ErvdZeSmE2FQp6kvRjXGJ
+oGioGkPkGtFHK6SbWrkvAKzrmAAkkq5vI6vS/6u154D8ywV31O54kD2GpuIkfWfj
+4yTJL+v0W75jPoOQXcqFJmknE7gJkVuqnZp/+xk0caWNeuzgJnCjtpu+Z6TYynON
+yIURM5UVhzOfJUg/UtFfykgBOEfnUc6Tn2bvXtgesrgeidJc0VOjM4vVreF7Y23D
+ZyLCB6SFXxPeZ4bbl40l8Foi4mqp3cNRgDxjGA0ssz2mUPzcRP+qU99nWwgYVtc4
+OH1DzyZCHqrCkDnhb85O
+=hxID
+-----END PGP SIGNATURE-----
+
+--SIhMtSQSYpXpqifs--
