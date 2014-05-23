@@ -1,59 +1,79 @@
-From: "H. Peter Anvin" <hpa@zytor.com>
-Subject: Re: [PATCH v2 16/18] x86: io: implement dummy relaxed accessor macros
- for writes
-Date: Fri, 23 May 2014 09:12:31 -0700
-Message-ID: <537F736F.4070002@zytor.com>
-References: <1400777250-17335-1-git-send-email-will.deacon@arm.com> <1400777250-17335-17-git-send-email-will.deacon@arm.com> <537E30AF.4070501@zytor.com> <20140523144604.GF21319@arm.com> <537F60E0.1060307@zytor.com> <20140523145758.GG21319@arm.com> <537F6728.3090600@zytor.com> <20140523153409.GI21319@arm.com> <537F6C85.107@zytor.com> <20140523155626.GI30445@twins.programming.kicks-ass.net>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH v2 16/18] x86: io: implement dummy relaxed accessor
+ macros for writes
+Date: Fri, 23 May 2014 18:21:15 +0200
+Message-ID: <20140523162115.GJ30445@twins.programming.kicks-ass.net>
+References: <1400777250-17335-17-git-send-email-will.deacon@arm.com>
+ <537E30AF.4070501@zytor.com>
+ <20140523144604.GF21319@arm.com>
+ <537F60E0.1060307@zytor.com>
+ <20140523145758.GG21319@arm.com>
+ <537F6728.3090600@zytor.com>
+ <20140523153409.GI21319@arm.com>
+ <537F6C85.107@zytor.com>
+ <20140523155626.GI30445@twins.programming.kicks-ass.net>
+ <537F736F.4070002@zytor.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
+Content-Type: multipart/signed; micalg=pgp-sha1;
+	protocol="application/pgp-signature"; boundary="4zpRouf6TsWqWFjU"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:39750 "EHLO mail.zytor.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752750AbaEWQNa (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 23 May 2014 12:13:30 -0400
-In-Reply-To: <20140523155626.GI30445@twins.programming.kicks-ass.net>
+Received: from bombadil.infradead.org ([198.137.202.9]:36377 "EHLO
+	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752373AbaEWQVa (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 23 May 2014 12:21:30 -0400
+Content-Disposition: inline
+In-Reply-To: <537F736F.4070002@zytor.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Will Deacon <will.deacon@arm.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "arnd@arndb.de" <arnd@arndb.de>, "monstr@monstr.eu" <monstr@monstr.eu>, "dhowells@redhat.com" <dhowells@redhat.com>, "broonie@linaro.org" <broonie@linaro.org>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>
+To: "H. Peter Anvin" <hpa@zytor.com>
+Cc: Will Deacon <will.deacon@arm.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "arnd@arndb.de" <arnd@arndb.de>, "monstr@monstr.eu" <monstr@monstr.eu>, "dhowells@redhat.com" <dhowells@redhat.com>, "broonie@linaro.org" <broonie@linaro.org>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, davem@davemloft.net
 
-On 05/23/2014 08:56 AM, Peter Zijlstra wrote:
-> On Fri, May 23, 2014 at 08:43:01AM -0700, H. Peter Anvin wrote:
->> On 05/23/2014 08:34 AM, Will Deacon wrote:
->>> 
->>> There is also a documentation patch [1] in this series but,
->>> again, I didn't CC everybody on it. Sorry, but the level of
->>> interest this sort of stuff generates amongst kernel developers
->>> is close to zero so I only included people I thought cared on
->>> CC for the entire series. I'm stuck between a rock and a hard
->>> place trying to CC interested people whilst at the same time 
->>> trying to avoid spamming all the arch maintainers.
->>> 
->> 
->> If you are sending me a patch, please include me on the cover
->> letter for the patch series.  You don't have to send me the
->> entire patch series (although for something like a Documentation
->> patch which affects x86 I would consider including the union list
->> as well.)
->> 
->> I think regardless of level of interest, the definition of 
->> cross-architectural operations is exactly the arch maintainers
->> job, so it isn't really out of place to "spam" us...
-> 
-> So the one issue I had with that, is that if one tries to send an
-> email to all arch maintainers + linux-arch + linux-kernel, the
-> header gets too big and vger chokes and davem slaps you.
-> 
-> So while its possibly desirable to do big unions with 0/xx and the
-> like, its practically infeasible.
-> 
 
-... or at least requires the use of a particular advanced technology
-called Bcc:.  Not that I like Bcc:s, mind you, but it is probably
-better in this case.
+--4zpRouf6TsWqWFjU
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
 
-I have no idea how smart vger is, but it would be interesting if it
-could ignore addresses from the MAINTAINERS list...
+On Fri, May 23, 2014 at 09:12:31AM -0700, H. Peter Anvin wrote:
+> > So the one issue I had with that, is that if one tries to send an
+> > email to all arch maintainers + linux-arch + linux-kernel, the
+> > header gets too big and vger chokes and davem slaps you.
+> >=20
+> > So while its possibly desirable to do big unions with 0/xx and the
+> > like, its practically infeasible.
+> >=20
+>=20
+> ... or at least requires the use of a particular advanced technology
+> called Bcc:.  Not that I like Bcc:s, mind you, but it is probably
+> better in this case.
 
-	-hpa
+That's actually a good idea, I'll use Bcc next time.
+
+> I have no idea how smart vger is, but it would be interesting if it
+> could ignore addresses from the MAINTAINERS list...
+
+I suppose we should ask davem, although if such a particular loop hole
+were known it might get abused and we'd all end up with more email :/
+
+--4zpRouf6TsWqWFjU
+Content-Type: application/pgp-signature
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.12 (GNU/Linux)
+
+iQIcBAEBAgAGBQJTf3V7AAoJEHZH4aRLwOS6OSsP/09cbytBwxUUP3FTGWtxDoE2
+J+cYI9RJR3w/H0eESPMEw2gmNiFA6YV4xCzioz7uv7B0RipeTRyhxfGM9dsT0nIr
+MKYY3QpMc7u8LJcmcQCZ2Fx37LiEu5XWV/p446lRxihgMAVWYYiP8KzzF0wrNpvr
+2gMvtdLfXLSkhIJN99CzOaNCwkWaHmfG+gqTg++p2owcU/9ax5hQwrdyvJpLKkVN
+sBeYqbxeNn7XOB08yZ61EUmpJlWAdVBBlq4GugQZto6MhyvMyNQkuWwCzegwxKAM
+9IiznNoa3jWDbonBOyeNtq1fG6O56bZm9MblBvvmPk0BAA8CVl2dglpR2gt81cnQ
+RtE1i+EmeOQv89uZ/JxKcBGmVxmpT+TlevoSiJtuexr99uVELlLTtP5rOHUCY+FT
+RgGkdcJSWl+eoL0NDV8RtxdQxjCxsyo4AbvNHl9gfV/0bOsusUDaGKNstJyF86/j
+mTWbctcm8KIOTySGaiL2JkoPu7dCnsmE5npJzTrLZmo1gzOKoane1/BQYvc3Sr4d
+cr25D0Af2syYwNOGZNBzJbaZcNDDBe1SUQOu4pBPoapFvbV74xPUKF+F1O8LhGQf
+6X+Tu767OoSA+fpRqfRy1fuvtjNt0aqtwMYkuuSGgjjcWPdKGGvTDDae415vqig3
+QmkwIYEPKVbdiHs/kQak
+=OBIj
+-----END PGP SIGNATURE-----
+
+--4zpRouf6TsWqWFjU--
