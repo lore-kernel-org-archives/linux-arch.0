@@ -1,138 +1,53 @@
 From: Andrew Pinski <apinski@cavium.com>
-Subject: [PATCH 06/24] Allow for some signal structures to be the same between a 32bit ABI and the 64bit ABI.
-Date: Sat, 24 May 2014 00:02:01 -0700
-Message-ID: <1400914939-9708-7-git-send-email-apinski__15140.2009687901$1400915080$gmane$org@cavium.com>
+Subject: [PATCH 08/24] Allow a 32bit ABI to use the naming of the 64bit ABI
+ syscalls to avoid confusion of not splitting the registers.
+Date: Sat, 24 May 2014 00:02:03 -0700
+Message-ID: <1400914939-9708-9-git-send-email-apinski@cavium.com>
 References: <1400914939-9708-1-git-send-email-apinski@cavium.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
 In-Reply-To: <1400914939-9708-1-git-send-email-apinski@cavium.com>
-Sender: linux-kernel-owner@vger.kernel.org
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
 To: linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.orglinux-arm-kernel@lists.infradead.orglinux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 Cc: Andrew Pinski <apinski@cavium.com>
 List-Id: linux-arch.vger.kernel.org
 
-In ARM64, we want to allow the signal related structures to be same between the 32bit (ILP32) and the 64bit ABIs (LP64).  We still want to use the generic include files so we need some new defines that are used in UAPI; they default to the same as it is before.
+In the ARM64 ILP32 case, we want to say the syscalls that normally would pass 64bit as two arguments are now passing as one so want to use the 64bit naming scheme.
 
 Thanks,
 Andrew Pinski
 
 Signed-off-by: Andrew Pinski <apinski@cavium.com>
 ---
- include/uapi/asm-generic/siginfo.h |   17 +++++++++++++----
- include/uapi/asm-generic/signal.h  |   27 +++++++++++++++++++++++----
- 2 files changed, 36 insertions(+), 8 deletions(-)
+ include/uapi/asm-generic/unistd.h |    5 ++++-
+ 1 files changed, 4 insertions(+), 1 deletions(-)
 
-diff --git a/include/uapi/asm-generic/siginfo.h b/include/uapi/asm-generic/siginfo.h
-index ba5be7f..553aca9 100644
---- a/include/uapi/asm-generic/siginfo.h
-+++ b/include/uapi/asm-generic/siginfo.h
-@@ -4,9 +4,17 @@
- #include <linux/compiler.h>
- #include <linux/types.h>
- 
-+#ifndef __SIGINFO_VOIDPOINTER
-+#define __SIGINFO_VOIDPOINTER(field) void __user *field
-+#endif
-+
-+#ifndef __SIGINFO_BAND
-+#define __SIGINFO_BAND(field) __ARCH_SI_BAND_T field
-+#endif
-+
- typedef union sigval {
- 	int sival_int;
--	void __user *sival_ptr;
-+	__SIGINFO_VOIDPOINTER(sival_ptr);
- } sigval_t;
- 
- /*
-@@ -86,7 +94,7 @@ typedef struct siginfo {
- 
- 		/* SIGILL, SIGFPE, SIGSEGV, SIGBUS */
- 		struct {
--			void __user *_addr; /* faulting insn/memory ref. */
-+			__SIGINFO_VOIDPOINTER(_addr); /* faulting insn/memory ref. */
- #ifdef __ARCH_SI_TRAPNO
- 			int _trapno;	/* TRAP # which caused the signal */
- #endif
-@@ -95,13 +103,13 @@ typedef struct siginfo {
- 
- 		/* SIGPOLL */
- 		struct {
--			__ARCH_SI_BAND_T _band;	/* POLL_IN, POLL_OUT, POLL_MSG */
-+			__SIGINFO_BAND(_band);	/* POLL_IN, POLL_OUT, POLL_MSG */
- 			int _fd;
- 		} _sigpoll;
- 
- 		/* SIGSYS */
- 		struct {
--			void __user *_call_addr; /* calling user insn */
-+			__SIGINFO_VOIDPOINTER(_call_addr); /* calling user insn */
- 			int _syscall;	/* triggering system call number */
- 			unsigned int _arch;	/* AUDIT_ARCH_* of syscall */
- 		} _sigsys;
-@@ -283,6 +291,7 @@ typedef struct sigevent {
- 		int _pad[SIGEV_PAD_SIZE];
- 		 int _tid;
- 
-+		/* Note these two are handled only in userspace */
- 		struct {
- 			void (*_function)(sigval_t);
- 			void *_attribute;	/* really pthread_attr_t */
-diff --git a/include/uapi/asm-generic/signal.h b/include/uapi/asm-generic/signal.h
-index 9df61f1..c4ce238 100644
---- a/include/uapi/asm-generic/signal.h
-+++ b/include/uapi/asm-generic/signal.h
-@@ -4,7 +4,9 @@
- #include <linux/types.h>
- 
- #define _NSIG		64
-+#ifndef _NSIG_BPW
- #define _NSIG_BPW	__BITS_PER_LONG
-+#endif
- #define _NSIG_WORDS	(_NSIG / _NSIG_BPW)
- 
- #define SIGHUP		 1
-@@ -83,9 +85,13 @@
- #define MINSIGSTKSZ	2048
- #define SIGSTKSZ	8192
- 
-+#ifndef __SIGSET_INNER_TYPE
-+#define __SIGSET_INNER_TYPE unsigned long
-+#endif
-+
- #ifndef __ASSEMBLY__
- typedef struct {
--	unsigned long sig[_NSIG_WORDS];
-+	__SIGSET_INNER_TYPE sig[_NSIG_WORDS];
- } sigset_t;
- 
- /* not actually used, but required for linux/syscalls.h */
-@@ -98,11 +104,24 @@ typedef unsigned long old_sigset_t;
- #endif
- 
- #ifndef __KERNEL__
-+
-+#ifndef __SIGACTION_HANDLER
-+#define __SIGACTION_HANDLER(field)	__sighandler_t field
-+#endif
-+
-+#ifndef __SIGACTION_FLAGS
-+#define __SIGACTION_FLAGS(field)	unsigned long field
-+#endif
-+
-+#ifndef __SIGACTION_RESTORER
-+#define __SIGACTION_RESTORER(field)	__sigrestore_t field
-+#endif
-+
- struct sigaction {
--	__sighandler_t sa_handler;
--	unsigned long sa_flags;
-+	__SIGACTION_HANDLER(sa_handler);
-+	__SIGACTION_FLAGS(sa_flags);
- #ifdef SA_RESTORER
--	__sigrestore_t sa_restorer;
-+	__SIGACTION_RESTORER(sa_restorer);
- #endif
- 	sigset_t sa_mask;		/* mask last for extensibility */
- };
+diff --git a/include/uapi/asm-generic/unistd.h b/include/uapi/asm-generic/unistd.h
+index 3336406..0648659 100644
+--- a/include/uapi/asm-generic/unistd.h
++++ b/include/uapi/asm-generic/unistd.h
+@@ -875,8 +875,11 @@ __SYSCALL(__NR_fork, sys_ni_syscall)
+  * they take different names.
+  * Here we map the numbers so that both versions
+  * use the same syscall table layout.
++ * For 32bit abis where 64bit can be passed via one
++ * register, use the same naming as the 64bit ones
++ * as they will only have a 64 bit off_t.
+  */
+-#if __BITS_PER_LONG == 64 && !defined(__SYSCALL_COMPAT)
++#if (__BITS_PER_LONG == 64 && !defined(__SYSCALL_COMPAT)) || defined(__SYSCALL_NONCOMPAT)
+ #define __NR_fcntl __NR3264_fcntl
+ #define __NR_statfs __NR3264_statfs
+ #define __NR_fstatfs __NR3264_fstatfs
 -- 
 1.7.2.5
