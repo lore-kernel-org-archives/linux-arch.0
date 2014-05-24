@@ -1,33 +1,150 @@
-From: "H. Peter Anvin" <hpa@zytor.com>
-Subject: Re: [PATCH v2 16/18] x86: io: implement dummy relaxed accessor macros
- for writes
-Date: Fri, 23 May 2014 09:35:54 -0700
-Message-ID: <537F78EA.3070508@zytor.com>
-References: <1400777250-17335-1-git-send-email-will.deacon@arm.com>	<1400777250-17335-17-git-send-email-will.deacon@arm.com>	<537E30AF.4070501@zytor.com>	<20140523144604.GF21319@arm.com>	<537F60E0.1060307@zytor.com>	<20140523145758.GG21319@arm.com>	<537F6728.3090600@zytor.com>	<20140523153409.GI21319@arm.com>	<537F6C85.107@zytor.com>	<20140523155626.GI30445@twins.programming.kicks-ass.net> <CAMuHMdW2rVvcORs6tbChxKVoVUnq0j8cfJa+GY6XH_=Tfr+Xcw@mail.gmail.com>
+From: Andrew Pinski <apinski@cavium.com>
+Subject: [PATCH 06/24] Allow for some signal structures to be the same between
+ a 32bit ABI and the 64bit ABI.
+Date: Sat, 24 May 2014 00:02:01 -0700
+Message-ID: <1400914939-9708-7-git-send-email-apinski@cavium.com>
+References: <1400914939-9708-1-git-send-email-apinski@cavium.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:39987 "EHLO mail.zytor.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753155AbaEWQiV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 23 May 2014 12:38:21 -0400
-In-Reply-To: <CAMuHMdW2rVvcORs6tbChxKVoVUnq0j8cfJa+GY6XH_=Tfr+Xcw@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>, Peter Zijlstra <peterz@infradead.org>
-Cc: Will Deacon <will.deacon@arm.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "arnd@arndb.de" <arnd@arndb.de>, "monstr@monstr.eu" <monstr@monstr.eu>, "dhowells@redhat.com" <dhowells@redhat.com>, "broonie@linaro.org" <broonie@linaro.org>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+In-Reply-To: <1400914939-9708-1-git-send-email-apinski@cavium.com>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+To: linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.orglinux-arm-kernel@lists.infradead.orglinux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: Andrew Pinski <apinski@cavium.com>
+List-Id: linux-arch.vger.kernel.org
 
-On 05/23/2014 09:31 AM, Geert Uytterhoeven wrote:
-> On Fri, May 23, 2014 at 5:56 PM, Peter Zijlstra <peterz@infradead.org> wrote:
->> So the one issue I had with that, is that if one tries to send an email
->> to all arch maintainers + linux-arch + linux-kernel, the header gets too
->> big and vger chokes and davem slaps you.
-> 
-> The arch maintainers are (supposed to be) on linux-arch.
-> 
+In ARM64, we want to allow the signal related structures to be same between the 32bit (ILP32) and the 64bit ABIs (LP64).  We still want to use the generic include files so we need some new defines that are used in UAPI; they default to the same as it is before.
 
-That doesn't mean we read it in real time like something that comes into
-our main inbox.  The messed-up context is annoying.
+Thanks,
+Andrew Pinski
 
-	-hpa
+Signed-off-by: Andrew Pinski <apinski@cavium.com>
+---
+ include/uapi/asm-generic/siginfo.h |   17 +++++++++++++----
+ include/uapi/asm-generic/signal.h  |   27 +++++++++++++++++++++++----
+ 2 files changed, 36 insertions(+), 8 deletions(-)
+
+diff --git a/include/uapi/asm-generic/siginfo.h b/include/uapi/asm-generic/siginfo.h
+index ba5be7f..553aca9 100644
+--- a/include/uapi/asm-generic/siginfo.h
++++ b/include/uapi/asm-generic/siginfo.h
+@@ -4,9 +4,17 @@
+ #include <linux/compiler.h>
+ #include <linux/types.h>
+ 
++#ifndef __SIGINFO_VOIDPOINTER
++#define __SIGINFO_VOIDPOINTER(field) void __user *field
++#endif
++
++#ifndef __SIGINFO_BAND
++#define __SIGINFO_BAND(field) __ARCH_SI_BAND_T field
++#endif
++
+ typedef union sigval {
+ 	int sival_int;
+-	void __user *sival_ptr;
++	__SIGINFO_VOIDPOINTER(sival_ptr);
+ } sigval_t;
+ 
+ /*
+@@ -86,7 +94,7 @@ typedef struct siginfo {
+ 
+ 		/* SIGILL, SIGFPE, SIGSEGV, SIGBUS */
+ 		struct {
+-			void __user *_addr; /* faulting insn/memory ref. */
++			__SIGINFO_VOIDPOINTER(_addr); /* faulting insn/memory ref. */
+ #ifdef __ARCH_SI_TRAPNO
+ 			int _trapno;	/* TRAP # which caused the signal */
+ #endif
+@@ -95,13 +103,13 @@ typedef struct siginfo {
+ 
+ 		/* SIGPOLL */
+ 		struct {
+-			__ARCH_SI_BAND_T _band;	/* POLL_IN, POLL_OUT, POLL_MSG */
++			__SIGINFO_BAND(_band);	/* POLL_IN, POLL_OUT, POLL_MSG */
+ 			int _fd;
+ 		} _sigpoll;
+ 
+ 		/* SIGSYS */
+ 		struct {
+-			void __user *_call_addr; /* calling user insn */
++			__SIGINFO_VOIDPOINTER(_call_addr); /* calling user insn */
+ 			int _syscall;	/* triggering system call number */
+ 			unsigned int _arch;	/* AUDIT_ARCH_* of syscall */
+ 		} _sigsys;
+@@ -283,6 +291,7 @@ typedef struct sigevent {
+ 		int _pad[SIGEV_PAD_SIZE];
+ 		 int _tid;
+ 
++		/* Note these two are handled only in userspace */
+ 		struct {
+ 			void (*_function)(sigval_t);
+ 			void *_attribute;	/* really pthread_attr_t */
+diff --git a/include/uapi/asm-generic/signal.h b/include/uapi/asm-generic/signal.h
+index 9df61f1..c4ce238 100644
+--- a/include/uapi/asm-generic/signal.h
++++ b/include/uapi/asm-generic/signal.h
+@@ -4,7 +4,9 @@
+ #include <linux/types.h>
+ 
+ #define _NSIG		64
++#ifndef _NSIG_BPW
+ #define _NSIG_BPW	__BITS_PER_LONG
++#endif
+ #define _NSIG_WORDS	(_NSIG / _NSIG_BPW)
+ 
+ #define SIGHUP		 1
+@@ -83,9 +85,13 @@
+ #define MINSIGSTKSZ	2048
+ #define SIGSTKSZ	8192
+ 
++#ifndef __SIGSET_INNER_TYPE
++#define __SIGSET_INNER_TYPE unsigned long
++#endif
++
+ #ifndef __ASSEMBLY__
+ typedef struct {
+-	unsigned long sig[_NSIG_WORDS];
++	__SIGSET_INNER_TYPE sig[_NSIG_WORDS];
+ } sigset_t;
+ 
+ /* not actually used, but required for linux/syscalls.h */
+@@ -98,11 +104,24 @@ typedef unsigned long old_sigset_t;
+ #endif
+ 
+ #ifndef __KERNEL__
++
++#ifndef __SIGACTION_HANDLER
++#define __SIGACTION_HANDLER(field)	__sighandler_t field
++#endif
++
++#ifndef __SIGACTION_FLAGS
++#define __SIGACTION_FLAGS(field)	unsigned long field
++#endif
++
++#ifndef __SIGACTION_RESTORER
++#define __SIGACTION_RESTORER(field)	__sigrestore_t field
++#endif
++
+ struct sigaction {
+-	__sighandler_t sa_handler;
+-	unsigned long sa_flags;
++	__SIGACTION_HANDLER(sa_handler);
++	__SIGACTION_FLAGS(sa_flags);
+ #ifdef SA_RESTORER
+-	__sigrestore_t sa_restorer;
++	__SIGACTION_RESTORER(sa_restorer);
+ #endif
+ 	sigset_t sa_mask;		/* mask last for extensibility */
+ };
+-- 
+1.7.2.5
