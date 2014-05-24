@@ -1,23 +1,11 @@
 From: Andrew Pinski <apinski@cavium.com>
-Subject: [PATCH 08/24] Allow a 32bit ABI to use the naming of the 64bit ABI
- syscalls to avoid confusion of not splitting the registers.
+Subject: [PATCH 08/24] Allow a 32bit ABI to use the naming of the 64bit ABI syscalls to avoid confusion of not splitting the registers.
 Date: Sat, 24 May 2014 00:02:03 -0700
-Message-ID: <1400914939-9708-9-git-send-email-apinski@cavium.com>
+Message-ID: <1400914939-9708-9-git-send-email-apinski__24683.2244135023$1400915158$gmane$org@cavium.com>
 References: <1400914939-9708-1-git-send-email-apinski@cavium.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1400914939-9708-1-git-send-email-apinski@cavium.com>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+Sender: linux-kernel-owner@vger.kernel.org
 To: linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.orglinux-arm-kernel@lists.infradead.orglinux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 Cc: Andrew Pinski <apinski@cavium.com>
 List-Id: linux-arch.vger.kernel.org
