@@ -1,17 +1,17 @@
 From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 Subject: Re: [PATCH v2 00/18] Cross-architecture definitions of relaxed MMIO
  accessors
-Date: Mon, 26 May 2014 07:46:03 +1000
-Message-ID: <1401054363.3958.28.camel@pasglop>
+Date: Mon, 26 May 2014 07:47:50 +1000
+Message-ID: <1401054470.3958.30.camel@pasglop>
 References: <1400777250-17335-1-git-send-email-will.deacon@arm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:59849 "EHLO gate.crashing.org"
+Received: from gate.crashing.org ([63.228.1.57]:59754 "EHLO gate.crashing.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750811AbaEYVrV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 25 May 2014 17:47:21 -0400
+	id S1751027AbaEYX2k (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 25 May 2014 19:28:40 -0400
 In-Reply-To: <1400777250-17335-1-git-send-email-will.deacon@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
@@ -19,6 +19,69 @@ To: Will Deacon <will.deacon@arm.com>
 Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, arnd@arndb.de, monstr@monstr.eu, dhowells@redhat.com, broonie@linaro.org, peterz@infradead.org, paulmck@linux.vnet.ibm.com
 
 On Thu, 2014-05-22 at 17:47 +0100, Will Deacon wrote:
+> Hi all,
+> 
+> This is version 2 of the series I originally posted here:
+> 
+>   https://lkml.org/lkml/2014/4/17/269
+> 
+> Changes since v1 include:
+> 
+>  - Added relevant acks from arch maintainers
+>  - Fixed potential compiler re-ordering issue for x86 definitions
+> 
+> I'd *really* appreciate some feedback on the proposed semantics here, but
+> acks are still good :)
+> 
+> The original cover letter is duplicated below.
+
+Question (sorry if I missed an existing explanation...), do we have an
+equivalent bunch for iomap ?
+
+Cheers,
+Ben.
+
+> Cheers,
+> 
+> Will
+> 
+> --->8
+> 
+> This RFC series attempts to define a portable (i.e. cross-architecture)
+> definition of the {readX,writeX}_relaxed MMIO accessor functions. These
+> functions are already in widespread use amongst drivers (mainly those supporting
+> devices embedded in ARM SoCs), but lack any well-defined semantics and,
+> subsequently, any portable definitions to allow these drivers to be compiled for
+> other architectures.
+> 
+> The two main motivations for this series are:
+> 
+>  (1) To promote use of the _relaxed MMIO accessors on weakly-ordered
+>      architectures, where they can bring significant performance improvements
+>      over their non-relaxed counterparts.
+> 
+>  (2) To allow COMPILE_TEST to build drivers using the relaxed accessors across
+>      all architectures.
+> 
+> The proposed semantics largely match exactly those provided by the ARM
+> implementation (i.e. no weaker), with one exception (see below).
+> 
+> Informally:
+> 
+>   - Relaxed accesses to the same device are ordered with respect to each other.
+> 
+>   - Relaxed accesses are *not* guaranteed to be ordered with respect to normal
+>     memory accesses (e.g. DMA buffers -- this is what gives us the performance
+>     boost over the non-relaxed versions).
+> 
+>   - Relaxed accesses are not guaranteed to be ordered with respect to
+>     LOCK/UNLOCK operations.
+> 
+> In actual fact, the relaxed accessors *are* ordered with respect to LOCK/UNLOCK
+> operations on ARM[64], but I have added this constraint for the benefit of
+> PowerPC, which has expensive I/O barriers in the spin_unlock path for the
+> non-relaxed accessors.
+> 
 > A corollary to this is that mmiowb() probably needs rethinking. As it currently
 > stands, an mmiowb() is required to order MMIO writes to a device from multiple
 > CPUs, even if that device is protected by a lock. However, this isn't often used
@@ -28,11 +91,48 @@ On Thu, 2014-05-22 at 17:47 +0100, Will Deacon wrote:
 > I would propose making the non-relaxed I/O accessors ordered with respect to
 > LOCK/UNLOCK, leaving mmiowb() to be used with the relaxed accessors, if
 > required, but would welcome thoughts/suggestions on this topic.
-
-I agree on the proposed semantics, though for us that does mean we still need
-that per-cpu flag tracking non-relaxed MMIO stores and corresponding added barrier
-in unlock. Eventually, if the use of the relaxed accessors becomes pervasive
-enough I suppose I can just make the ordered ones unconditionally do 2 barriers.
-
-Cheers,
-Ben.
+> 
+> 
+> Will Deacon (18):
+>   asm-generic: io: implement relaxed accessor macros as conditional
+>     wrappers
+>   microblaze: io: remove dummy relaxed accessor macros
+>   s390: io: remove dummy relaxed accessor macros for reads
+>   xtensa: io: remove dummy relaxed accessor macros for reads
+>   alpha: io: implement relaxed accessor macros for writes
+>   frv: io: implement dummy relaxed accessor macros for writes
+>   cris: io: implement dummy relaxed accessor macros for writes
+>   ia64: io: implement dummy relaxed accessor macros for writes
+>   m32r: io: implement dummy relaxed accessor macros for writes
+>   m68k: io: implement dummy relaxed accessor macros for writes
+>   mn10300: io: implement dummy relaxed accessor macros for writes
+>   parisc: io: implement dummy relaxed accessor macros for writes
+>   powerpc: io: implement dummy relaxed accessor macros for writes
+>   sparc: io: implement dummy relaxed accessor macros for writes
+>   tile: io: implement dummy relaxed accessor macros for writes
+>   x86: io: implement dummy relaxed accessor macros for writes
+>   documentation: memory-barriers: clarify relaxed io accessor semantics
+>   asm-generic: io: define relaxed accessor macros unconditionally
+> 
+>  Documentation/memory-barriers.txt | 13 +++++++++----
+>  arch/alpha/include/asm/io.h       | 12 ++++++++----
+>  arch/cris/include/asm/io.h        |  3 +++
+>  arch/frv/include/asm/io.h         |  3 +++
+>  arch/ia64/include/asm/io.h        |  4 ++++
+>  arch/m32r/include/asm/io.h        |  3 +++
+>  arch/m68k/include/asm/io.h        |  8 ++++++++
+>  arch/m68k/include/asm/io_no.h     |  4 ----
+>  arch/microblaze/include/asm/io.h  |  8 --------
+>  arch/mn10300/include/asm/io.h     |  4 ++++
+>  arch/parisc/include/asm/io.h      | 12 ++++++++----
+>  arch/powerpc/include/asm/io.h     | 12 ++++++++----
+>  arch/s390/include/asm/io.h        |  5 -----
+>  arch/sparc/include/asm/io.h       |  9 +++++++++
+>  arch/sparc/include/asm/io_32.h    |  3 ---
+>  arch/sparc/include/asm/io_64.h    | 22 ++++++++++------------
+>  arch/tile/include/asm/io.h        |  4 ++++
+>  arch/x86/include/asm/io.h         | 10 +++++++---
+>  arch/xtensa/include/asm/io.h      |  7 -------
+>  include/asm-generic/io.h          | 10 ++++++++++
+>  20 files changed, 98 insertions(+), 58 deletions(-)
+> 
