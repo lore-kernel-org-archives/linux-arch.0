@@ -1,59 +1,50 @@
 From: Will Deacon <will.deacon@arm.com>
 Subject: Re: [PATCH v2 00/18] Cross-architecture definitions of relaxed MMIO
  accessors
-Date: Tue, 27 May 2014 20:32:19 +0100
-Message-ID: <20140527193219.GB30751@arm.com>
+Date: Tue, 27 May 2014 20:34:26 +0100
+Message-ID: <20140527193425.GC30751@arm.com>
 References: <1400777250-17335-1-git-send-email-will.deacon@arm.com>
- <1401054363.3958.28.camel@pasglop>
+ <1401054470.3958.30.camel@pasglop>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:57415 "EHLO
+Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:57461 "EHLO
 	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1752142AbaE0Tc5 (ORCPT
+	by vger.kernel.org with ESMTP id S1753275AbaE0TfE (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 27 May 2014 15:32:57 -0400
+	Tue, 27 May 2014 15:35:04 -0400
 Content-Disposition: inline
-In-Reply-To: <1401054363.3958.28.camel@pasglop>
+In-Reply-To: <1401054470.3958.30.camel@pasglop>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "arnd@arndb.de" <arnd@arndb.de>, "monstr@monstr.eu" <monstr@monstr.eu>, "dhowells@redhat.com" <dhowells@redhat.com>, "broonie@linaro.org" <broonie@linaro.org>, "peterz@infradead.org" <peterz@infradead.org>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>
 
-Hi Ben,
-
-On Sun, May 25, 2014 at 10:46:03PM +0100, Benjamin Herrenschmidt wrote:
+On Sun, May 25, 2014 at 10:47:50PM +0100, Benjamin Herrenschmidt wrote:
 > On Thu, 2014-05-22 at 17:47 +0100, Will Deacon wrote:
-> > A corollary to this is that mmiowb() probably needs rethinking. As it currently
-> > stands, an mmiowb() is required to order MMIO writes to a device from multiple
-> > CPUs, even if that device is protected by a lock. However, this isn't often used
-> > in practice, leading to PowerPC implementing both mmiowb() *and* synchronising
-> > I/O in spin_unlock.
+> > Hi all,
 > > 
-> > I would propose making the non-relaxed I/O accessors ordered with respect to
-> > LOCK/UNLOCK, leaving mmiowb() to be used with the relaxed accessors, if
-> > required, but would welcome thoughts/suggestions on this topic.
+> > This is version 2 of the series I originally posted here:
+> > 
+> >   https://lkml.org/lkml/2014/4/17/269
+> > 
+> > Changes since v1 include:
+> > 
+> >  - Added relevant acks from arch maintainers
+> >  - Fixed potential compiler re-ordering issue for x86 definitions
+> > 
+> > I'd *really* appreciate some feedback on the proposed semantics here, but
+> > acks are still good :)
+> > 
+> > The original cover letter is duplicated below.
 > 
-> I agree on the proposed semantics, though for us that does mean we still need
-> that per-cpu flag tracking non-relaxed MMIO stores and corresponding added barrier
-> in unlock. Eventually, if the use of the relaxed accessors becomes pervasive
-> enough I suppose I can just make the ordered ones unconditionally do 2 barriers.
+> Question (sorry if I missed an existing explanation...), do we have an
+> equivalent bunch for iomap ?
 
-Why would you need two barriers? I would have though an mmiowb() inlined
-into writel after the store operation would be sufficient. Or is this to
-ensure a non-relaxed write is ordered with respect to a relaxed write?
+Do you mean the io{read,write} functions? Funnily enough, they're already
+relaxed on ARM if you go by the semantics I've proposed. That implies we at
+least need some Documentation to that effect...
 
-Anyway, we may need something similar for other architectures with mmiowb
-implementations:
-
-  blackfin
-  frv
-  ia64
-  mips
-  sh
-
-so I'm anticipating some more discussion when I try to push that patch :)
-
-Cheers,
+What do you do on ppc?
 
 Will
