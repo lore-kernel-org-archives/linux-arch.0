@@ -1,40 +1,59 @@
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+From: Will Deacon <will.deacon@arm.com>
 Subject: Re: [PATCH v2 00/18] Cross-architecture definitions of relaxed MMIO
  accessors
-Date: Wed, 28 May 2014 06:23:30 +1000
-Message-ID: <1401222210.20915.79.camel@pasglop>
+Date: Tue, 27 May 2014 21:32:49 +0100
+Message-ID: <20140527203249.GB31850@arm.com>
 References: <1400777250-17335-1-git-send-email-will.deacon@arm.com>
-	 <1401054470.3958.30.camel@pasglop> <20140527193425.GC30751@arm.com>
+ <1401054363.3958.28.camel@pasglop>
+ <20140527193219.GB30751@arm.com>
+ <1401222098.20915.77.camel@pasglop>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:53938 "EHLO gate.crashing.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751186AbaE0U31 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 27 May 2014 16:29:27 -0400
-In-Reply-To: <20140527193425.GC30751@arm.com>
+Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:58389 "EHLO
+	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1751710AbaE0UdX (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Tue, 27 May 2014 16:33:23 -0400
+Content-Disposition: inline
+In-Reply-To: <1401222098.20915.77.camel@pasglop>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will.deacon@arm.com>
+To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "arnd@arndb.de" <arnd@arndb.de>, "monstr@monstr.eu" <monstr@monstr.eu>, "dhowells@redhat.com" <dhowells@redhat.com>, "broonie@linaro.org" <broonie@linaro.org>, "peterz@infradead.org" <peterz@infradead.org>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>
 
-On Tue, 2014-05-27 at 20:34 +0100, Will Deacon wrote:
-
-> Do you mean the io{read,write} functions? Funnily enough, they're already
-> relaxed on ARM if you go by the semantics I've proposed. That implies we at
-> least need some Documentation to that effect...
+On Tue, May 27, 2014 at 09:21:38PM +0100, Benjamin Herrenschmidt wrote:
+> On Tue, 2014-05-27 at 20:32 +0100, Will Deacon wrote:
 > 
-> What do you do on ppc?
+> > Why would you need two barriers? I would have though an mmiowb() inlined
+> > into writel after the store operation would be sufficient. Or is this to
+> > ensure a non-relaxed write is ordered with respect to a relaxed write?
+> 
+> Well, so the non-relaxed writel would have to do:
+> 
+> 	sync
+> 	store
+> 	sync
+> 
+> The first sync is to synchronize with DMAs, so that a sequence of
+> 
+> 	store to mem
+> 	writel
+> 
+> Remains ordered vs. the device (ie, when the writel causes the device
+> to do a DMA, it will see the previous store to mem).
+> 
+> The second sync is needed as mmiowb, to order with unlocks.
 
-They are not supposed to be relaxed. If they are, you probably have a
-whole lot of busted drivers :-)
+Ah yeah, thanks. I was so hung up on the ordering against locks that I
+completely forgot about DMA!
 
-They have the same semantics as readl/writel for memory and as inb/outb
-for IO space, they just allow to hide the "type" (memory vs. IO) from
-most of the driver code.
+> At this point, I'm keen on keeping my per-cpu trick to avoid that
+> second one in most cases.
 
-We probably need to create a set of _relaxed variants.
+Makes sense. The alternative is dropping that requirement and instead
+relying on drivers to use mmiowb() even with the non-relaxed accessors,
+but I think that's going to be fairly painful (and hence why you have the
+trick to start with).
 
-Cheers,
-Ben.
+Will
