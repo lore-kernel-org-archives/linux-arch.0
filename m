@@ -1,352 +1,119 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-la0-f74.google.com ([209.85.215.74]:48844 "EHLO
-	mail-la0-f74.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751684AbaE0J3b (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 27 May 2014 05:29:31 -0400
-Received: by mail-la0-f74.google.com with SMTP id el20so778291lab.1
-        for <linux-arch@vger.kernel.org>; Tue, 27 May 2014 02:29:29 -0700 (PDT)
-From: David Drysdale <drysdale@google.com>
-Subject: [PATCHv4 2/3] syscalls,x86: add selftest for execveat(2)
-Date: Tue, 27 May 2014 10:02:09 +0100
-Message-ID: <1401181330-11997-3-git-send-email-drysdale@google.com>
-In-Reply-To: <1401181330-11997-1-git-send-email-drysdale@google.com>
-References: <1401181330-11997-1-git-send-email-drysdale@google.com>
+Received: from mga09.intel.com ([134.134.136.24]:37902 "EHLO mga09.intel.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752015AbaE0KWH (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 27 May 2014 06:22:07 -0400
+From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+In-Reply-To: <53842FB1.7090909@linux.vnet.ibm.com>
+References: <1399541296-18810-1-git-send-email-maddy@linux.vnet.ibm.com>
+ <537479E7.90806@linux.vnet.ibm.com>
+ <alpine.LSU.2.11.1405151026540.4664@eggly.anvils>
+ <87wqdik4n5.fsf@rustcorp.com.au>
+ <53797511.1050409@linux.vnet.ibm.com>
+ <alpine.LSU.2.11.1405191531150.1317@eggly.anvils>
+ <20140519164301.eafd3dd288ccb88361ddcfc7@linux-foundation.org>
+ <20140520004429.E660AE009B@blue.fi.intel.com>
+ <87oaythsvk.fsf@rustcorp.com.au>
+ <20140520102738.7F096E009B@blue.fi.intel.com>
+ <53842FB1.7090909@linux.vnet.ibm.com>
+Subject: Re: [PATCH V4 0/2] mm: FAULT_AROUND_ORDER patchset performance data
+ for powerpc
+Content-Transfer-Encoding: 7bit
+Message-ID: <20140527102200.012BBE009B@blue.fi.intel.com>
+Date: Tue, 27 May 2014 13:21:59 +0300 (EEST)
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Alexander Viro <viro@zeniv.linux.org.uk>, Meredydd Luff <meredydd@senatehouse.org>, linux-kernel@vger.kernel.org
-Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, x86@kernel.org, linux-arch@vger.kernel.org, David Drysdale <drysdale@google.com>
-Message-ID: <20140527090209.G-BKNnJg0FUDq-IkQTJ_d5oy-ZorN2OSKgkPnPadgCg@z>
+To: Madhavan Srinivasan <maddy@linux.vnet.ibm.com>
+Cc: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Rusty Russell <rusty@rustcorp.com.au>, Andrew Morton <akpm@linux-foundation.org>, Hugh Dickins <hughd@google.com>, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, x86@kernel.org, benh@kernel.crashing.org, paulus@samba.org, riel@redhat.com, mgorman@suse.de, ak@linux.intel.com, peterz@infradead.org, mingo@kernel.org, dave.hansen@intel.com
+Message-ID: <20140527102159.HHfsvkr6l90c8n2-fFVaeFww9Xw4hccVSpQ6C8TscaI@z>
 
-Signed-off-by: David Drysdale <drysdale@google.com>
----
- tools/testing/selftests/Makefile        |   1 +
- tools/testing/selftests/exec/.gitignore |   6 +
- tools/testing/selftests/exec/Makefile   |  32 ++++
- tools/testing/selftests/exec/execveat.c | 251 ++++++++++++++++++++++++++++++++
- 4 files changed, 290 insertions(+)
- create mode 100644 tools/testing/selftests/exec/.gitignore
- create mode 100644 tools/testing/selftests/exec/Makefile
- create mode 100644 tools/testing/selftests/exec/execveat.c
+Madhavan Srinivasan wrote:
+> On Tuesday 20 May 2014 03:57 PM, Kirill A. Shutemov wrote:
+> > Rusty Russell wrote:
+> >> "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com> writes:
+> >>> Andrew Morton wrote:
+> >>>> On Mon, 19 May 2014 16:23:07 -0700 (PDT) Hugh Dickins <hughd@google.com> wrote:
+> >>>>
+> >>>>> Shouldn't FAULT_AROUND_ORDER and fault_around_order be changed to be
+> >>>>> the order of the fault-around size in bytes, and fault_around_pages()
+> >>>>> use 1UL << (fault_around_order - PAGE_SHIFT)
+> >>>>
+> >>>> Yes.  And shame on me for missing it (this time!) at review.
+> >>>>
+> >>>> There's still time to fix this.  Patches, please.
+> >>>
+> >>> Here it is. Made at 3.30 AM, build tested only.
+> >>
+> >> Prefer on top of Maddy's patch which makes it always a variable, rather
+> >> than CONFIG_DEBUG_FS.  It's got enough hair as it is.
+> > 
+> > Something like this?
+> > 
+> > From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+> > Date: Tue, 20 May 2014 13:02:03 +0300
+> > Subject: [PATCH] mm: nominate faultaround area in bytes rather then page order
+> > 
+> > There are evidences that faultaround feature is less relevant on
+> > architectures with page size bigger then 4k. Which makes sense since
+> > page fault overhead per byte of mapped area should be less there.
+> > 
+> > Let's rework the feature to specify faultaround area in bytes instead of
+> > page order. It's 64 kilobytes for now.
+> > 
+> > The patch effectively disables faultaround on architectures with
+> > page size >= 64k (like ppc64).
+> > 
+> > It's possible that some other size of faultaround area is relevant for a
+> > platform. We can expose `fault_around_bytes' variable to arch-specific
+> > code once such platforms will be found.
+> > 
+> > Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
+> > ---
+> >  mm/memory.c | 62 +++++++++++++++++++++++--------------------------------------
+> >  1 file changed, 23 insertions(+), 39 deletions(-)
+> > 
+> > diff --git a/mm/memory.c b/mm/memory.c
+> > index 037b812a9531..252b319e8cdf 100644
+> > --- a/mm/memory.c
+> > +++ b/mm/memory.c
+> > @@ -3402,63 +3402,47 @@ void do_set_pte(struct vm_area_struct *vma, unsigned long address,
+> >  	update_mmu_cache(vma, address, pte);
+> >  }
+> > 
+> > -#define FAULT_AROUND_ORDER 4
+> > +static unsigned long fault_around_bytes = 65536;
+> > +
+> > +static inline unsigned long fault_around_pages(void)
+> > +{
+> > +	return rounddown_pow_of_two(fault_around_bytes) / PAGE_SIZE;
+> > +}
+> > +
+> > +static inline unsigned long fault_around_mask(void)
+> > +{
+> > +	return ~(rounddown_pow_of_two(fault_around_bytes) - 1) & PAGE_MASK;
+> > +}
+> > 
+> > -#ifdef CONFIG_DEBUG_FS
+> > -static unsigned int fault_around_order = FAULT_AROUND_ORDER;
+> > 
+> > -static int fault_around_order_get(void *data, u64 *val)
+> > +#ifdef CONFIG_DEBUG_FS
+> > +static int fault_around_bytes_get(void *data, u64 *val)
+> >  {
+> > -	*val = fault_around_order;
+> > +	*val = fault_around_bytes;
+> >  	return 0;
+> >  }
+> > 
+> > -static int fault_around_order_set(void *data, u64 val)
+> > +static int fault_around_bytes_set(void *data, u64 val)
+> >  {
+> 
+> Kindly ignore the question if not relevant. Even though we need root
+> access to alter the value, will we be fine with
+> negative value?.
 
-diff --git a/tools/testing/selftests/Makefile b/tools/testing/selftests/Makefile
-index 32487ed18354..26b7e6410fcd 100644
---- a/tools/testing/selftests/Makefile
-+++ b/tools/testing/selftests/Makefile
-@@ -10,6 +10,7 @@ TARGETS += timers
- TARGETS += vm
- TARGETS += powerpc
- TARGETS += user
-+TARGETS += exec
+val is u64. or I miss something?
 
- all:
- 	for TARGET in $(TARGETS); do \
-diff --git a/tools/testing/selftests/exec/.gitignore b/tools/testing/selftests/exec/.gitignore
-new file mode 100644
-index 000000000000..349a786899a7
---- /dev/null
-+++ b/tools/testing/selftests/exec/.gitignore
-@@ -0,0 +1,6 @@
-+subdir*
-+script*
-+execveat
-+execveat.symlink
-+execveat.moved
-+execveat.ephemeral
-diff --git a/tools/testing/selftests/exec/Makefile b/tools/testing/selftests/exec/Makefile
-new file mode 100644
-index 000000000000..55771ed05dda
---- /dev/null
-+++ b/tools/testing/selftests/exec/Makefile
-@@ -0,0 +1,32 @@
-+CC = $(CROSS_COMPILE)gcc
-+CFLAGS = -Wall
-+BINARIES = execveat
-+DEPS = execveat.symlink script execveat.ephemeral script.ephemeral subdir subdir.ephemeral subdir.ephemeral/script
-+all: $(BINARIES) $(DEPS)
-+
-+subdir:
-+	mkdir -p $@
-+subdir.ephemeral:
-+	mkdir -p $@
-+subdir.ephemeral/script: | subdir.ephemeral
-+	echo '#!/bin/sh' > $@
-+	echo 'exit $$*' >> $@
-+	chmod +x $@
-+script:
-+	echo '#!/bin/sh' > $@
-+	echo 'exit $$*' >> $@
-+	chmod +x $@
-+script.ephemeral: script
-+	cp $< $@
-+execveat.symlink: execveat
-+	ln -s -f $< $@
-+execveat.ephemeral: execveat
-+	cp $< $@
-+%: %.c
-+	$(CC) $(CFLAGS) -o $@ $^
-+
-+run_tests: all
-+	./execveat
-+
-+clean:
-+	rm -rf $(BINARIES) $(DEPS) subdir.moved execveat.moved
-diff --git a/tools/testing/selftests/exec/execveat.c b/tools/testing/selftests/exec/execveat.c
-new file mode 100644
-index 000000000000..f67862fa3f38
---- /dev/null
-+++ b/tools/testing/selftests/exec/execveat.c
-@@ -0,0 +1,251 @@
-+/*
-+ * Copyright (c) 2014 Google, Inc.
-+ *
-+ * Licensed under the terms of the GNU GPL License version 2
-+ *
-+ * Selftests for execveat(2).
-+ */
-+
-+#define _GNU_SOURCE  /* to get O_PATH */
-+#include <sys/types.h>
-+#include <sys/wait.h>
-+#include <sys/syscall.h>
-+#include <sys/stat.h>
-+#include <stdio.h>
-+#include <errno.h>
-+#include <string.h>
-+#include <fcntl.h>
-+#include <unistd.h>
-+#include <limits.h>
-+#include <stdlib.h>
-+
-+static char *envp[] = { "IN_TEST=yes", NULL };
-+static char *argv[] = { "execveat", "99", NULL };
-+
-+static int execveat_(int fd, const char *path, char **argv, char **envp,
-+		     int flags)
-+{
-+#ifdef __NR_execveat
-+	return syscall(__NR_execveat, fd, path, argv, envp, flags);
-+#else
-+	errno = -ENOSYS;
-+	return -1;
-+#endif
-+}
-+
-+#define check_execveat_fail(fd, path, flags, errno)	\
-+	_check_execveat_fail(fd, path, flags, errno, #errno)
-+static int _check_execveat_fail(int fd, const char *path, int flags,
-+				int expected_errno, const char *errno_str)
-+{
-+	errno = 0;
-+	printf("Check failure of execveat(%d, '%s', %d) with %s... ",
-+		fd, path?:"(null)", flags, errno_str);
-+	int rc = execveat_(fd, path, argv, envp, flags);
-+	if (rc > 0) {
-+		printf("[FAIL] (unexpected success from execveat(2))\n");
-+		return 1;
-+	}
-+	if (errno != expected_errno) {
-+		printf("[FAIL] (expected errno %d (%s) not %d (%s)\n",
-+			expected_errno, strerror(expected_errno),
-+			errno, strerror(errno));
-+		return 1;
-+	}
-+	printf("[OK]\n");
-+	return 0;
-+}
-+
-+static int check_execveat_invoked_rc(int fd, const char *path, int flags,
-+				     int expected_rc)
-+{
-+	int status;
-+	int rc;
-+	pid_t child;
-+	printf("Check success of execveat(%d, '%s', %d)... ",
-+		fd, path?:"(null)", flags);
-+	child = fork();
-+	if (child < 0) {
-+		printf("[FAIL] (fork() failed)\n");
-+		return 1;
-+	}
-+	if (child == 0) {
-+		/* Child: do execveat(). */
-+		rc = execveat_(fd, path, argv, envp, flags);
-+		printf("[FAIL]: execveat() failed, rc=%d errno=%d (%s)\n",
-+			rc, errno, strerror(errno));
-+		exit(1);  /* should not reach here */
-+	}
-+	/* Parent: wait for & check child's exit status. */
-+	rc = waitpid(child, &status, 0);
-+	if (rc != child) {
-+		printf("[FAIL] (waitpid(%d,...) returned %d)\n", child, rc);
-+		return 1;
-+	}
-+	if (!WIFEXITED(status)) {
-+		printf("[FAIL] (child %d did not exit cleanly, status=%08x)\n",
-+			child, status);
-+		return 1;
-+	}
-+	if (WEXITSTATUS(status) != expected_rc) {
-+		printf("[FAIL] (child %d exited with %d not %d)\n",
-+			child, WEXITSTATUS(status), expected_rc);
-+		return 1;
-+	}
-+	printf("[OK]\n");
-+	return 0;
-+}
-+
-+static int check_execveat(int fd, const char *path, int flags)
-+{
-+	return check_execveat_invoked_rc(fd, path, flags, 99);
-+}
-+
-+static char *concat(const char *left, const char *right)
-+{
-+	char *result = malloc(strlen(left) + strlen(right) + 1);
-+	strcpy(result, left);
-+	strcat(result, right);
-+	return result;
-+}
-+
-+static int open_or_die(const char *filename, int flags)
-+{
-+	int fd = open(filename, flags);
-+	if (fd < 0) {
-+		printf("Failed to open '%s'; "
-+			"check prerequisites are available\n", filename);
-+		exit(1);
-+	}
-+	return fd;
-+}
-+
-+static int run_tests(void)
-+{
-+	int fail = 0;
-+	char *fullname = realpath("execveat", NULL);
-+	char *fullname_script = realpath("script", NULL);
-+	char *fullname_symlink = concat(fullname, ".symlink");
-+	int subdir_dfd = open_or_die("subdir", O_DIRECTORY|O_RDONLY);
-+	int subdir_dfd_ephemeral = open_or_die("subdir.ephemeral",
-+					       O_DIRECTORY|O_RDONLY);
-+	int dot_dfd = open_or_die(".", O_DIRECTORY|O_RDONLY);
-+	int dot_dfd_path = open_or_die(".", O_DIRECTORY|O_RDONLY|O_PATH);
-+	int fd = open_or_die("execveat", O_RDONLY);
-+	int fd_path = open_or_die("execveat", O_RDONLY|O_PATH);
-+	int fd_symlink = open_or_die("execveat.symlink", O_RDONLY);
-+	int fd_script = open_or_die("script", O_RDONLY);
-+	int fd_ephemeral = open_or_die("execveat.ephemeral", O_RDONLY);
-+	int fd_script_ephemeral = open_or_die("script.ephemeral", O_RDONLY);
-+
-+	/* Normal executable file: */
-+	/*   dfd + path */
-+	fail |= check_execveat(subdir_dfd, "../execveat", 0);
-+	fail |= check_execveat(dot_dfd, "execveat", 0);
-+	fail |= check_execveat(dot_dfd_path, "execveat", 0);
-+	/*   absolute path */
-+	fail |= check_execveat(AT_FDCWD, fullname, 0);
-+	/*   absolute path with nonsense dfd */
-+	fail |= check_execveat(99, fullname, 0);
-+	/*   fd + no path */
-+	fail |= check_execveat(fd, NULL, 0);
-+
-+	/* Mess with executable file that's already open: */
-+	/*   fd + no path to a file that's been renamed */
-+	rename("execveat.ephemeral", "execveat.moved");
-+	fail |= check_execveat(fd_ephemeral, NULL, 0);
-+	/*   fd + no path to a file that's been deleted */
-+	unlink("execveat.moved"); /* remove the file now fd open */
-+	fail |= check_execveat(fd_ephemeral, NULL, 0);
-+
-+	/* Symlink to executable file: */
-+	/*   dfd + path */
-+	fail |= check_execveat(dot_dfd, "execveat.symlink", 0);
-+	fail |= check_execveat(dot_dfd_path, "execveat.symlink", 0);
-+	/*   absolute path */
-+	fail |= check_execveat(AT_FDCWD, fullname_symlink, 0);
-+	/*   fd + no path, even with AT_SYMLINK_NOFOLLOW (already followed) */
-+	fail |= check_execveat(fd_symlink, NULL, 0);
-+	fail |= check_execveat(fd_symlink, NULL, AT_SYMLINK_NOFOLLOW);
-+
-+	/* Symlink fails when AT_SYMLINK_NOFOLLOW set: */
-+	/*   dfd + path */
-+	fail |= check_execveat_fail(dot_dfd, "execveat.symlink",
-+				    AT_SYMLINK_NOFOLLOW, ELOOP);
-+	fail |= check_execveat_fail(dot_dfd_path, "execveat.symlink",
-+				    AT_SYMLINK_NOFOLLOW, ELOOP);
-+	/*   absolute path */
-+	fail |= check_execveat_fail(AT_FDCWD, fullname_symlink,
-+				    AT_SYMLINK_NOFOLLOW, ELOOP);
-+
-+	/* Shell script wrapping executable file: */
-+	/*   dfd + path */
-+	fail |= check_execveat(subdir_dfd, "../script", 0);
-+	fail |= check_execveat(dot_dfd, "script", 0);
-+	fail |= check_execveat(dot_dfd_path, "script", 0);
-+	/*   absolute path */
-+	fail |= check_execveat(AT_FDCWD, fullname_script, 0);
-+	/*   fd + no path */
-+	fail |= check_execveat(fd_script, NULL, 0);
-+	fail |= check_execveat(fd_script, NULL, AT_SYMLINK_NOFOLLOW);
-+
-+	/* Mess with script file that's already open: */
-+	/*   fd + no path to a file that's been renamed */
-+	rename("script.ephemeral", "script.moved");
-+	fail |= check_execveat(fd_script_ephemeral, NULL, 0);
-+	/*   fd + no path to a file that's been deleted */
-+	unlink("script.moved"); /* remove the file while fd open */
-+	/* Shell attempts to load the deleted file but fails => rc=127 */
-+	fail |= check_execveat_invoked_rc(fd_script_ephemeral, NULL, 0, 127);
-+
-+	/* Rename a subdirectory in the path: */
-+	rename("subdir.ephemeral", "subdir.moved");
-+	fail |= check_execveat(subdir_dfd_ephemeral, "../script", 0);
-+	fail |= check_execveat(subdir_dfd_ephemeral, "script", 0);
-+	/* Remove the subdir and its contents */
-+	unlink("subdir.moved/script");
-+	unlink("subdir.moved");
-+	/* Shell loads via deleted subdir OK because name starts with .. */
-+	fail |= check_execveat(subdir_dfd_ephemeral, "../script", 0);
-+	fail |= check_execveat_fail(subdir_dfd_ephemeral, "script", 0, ENOENT);
-+
-+	/* Flag values other than AT_SYMLINK_NOFOLLOW => EINVAL */
-+	fail |= check_execveat_fail(dot_dfd, "execveat", 0xFFFF, EINVAL);
-+	/* Invalid path => ENOENT */
-+	fail |= check_execveat_fail(dot_dfd, "no-such-file", 0, ENOENT);
-+	fail |= check_execveat_fail(dot_dfd_path, "no-such-file", 0, ENOENT);
-+	fail |= check_execveat_fail(AT_FDCWD, "no-such-file", 0, ENOENT);
-+	/* Attempt to execute directory => EACCES */
-+	fail |= check_execveat_fail(dot_dfd, NULL, 0, EACCES);
-+	/* Attempt to execute non-executable => EACCES */
-+	fail |= check_execveat_fail(dot_dfd, "Makefile", 0, EACCES);
-+	/* Attempt to execute file opened with O_PATH => EBADF */
-+	fail |= check_execveat_fail(dot_dfd_path, NULL, 0, EBADF);
-+	fail |= check_execveat_fail(fd_path, NULL, 0, EBADF);
-+	/* Attempt to execute nonsense FD => EBADF */
-+	fail |= check_execveat_fail(99, NULL, 0, EBADF);
-+	fail |= check_execveat_fail(99, "execveat", 0, EBADF);
-+	/* Attempt to execute relative to non-directory => ENOTDIR */
-+	fail |= check_execveat_fail(fd, "execveat", 0, ENOTDIR);
-+
-+	return fail ? -1 : 0;
-+}
-+
-+int main(int argc, char **argv)
-+{
-+	if (argc >= 2) {
-+		/* If we are invoked with an argument, exit immediately. */
-+		/* Check expected environment transferred. */
-+		if (strcmp(getenv("IN_TEST"), "yes") != 0) {
-+			printf("[FAIL] (no IN_TEST=yes in env)\n");
-+			return 1;
-+		}
-+
-+		/* Use the argument as an exit code. */
-+		int rc = atoi(argv[1]);
-+		fflush(stdout);
-+		return rc;
-+	} else {
-+		return run_tests();
-+	}
-+}
---
-1.9.1.423.g4596e3a
-
+-- 
+ Kirill A. Shutemov
