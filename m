@@ -1,119 +1,59 @@
-From: Madhavan Srinivasan <maddy@linux.vnet.ibm.com>
-Subject: Re: [PATCH V4 0/2] mm: FAULT_AROUND_ORDER patchset performance data
- for powerpc
-Date: Tue, 27 May 2014 16:14:05 +0530
-Message-ID: <53846C75.10507@linux.vnet.ibm.com>
-References: <1399541296-18810-1-git-send-email-maddy@linux.vnet.ibm.com> <537479E7.90806@linux.vnet.ibm.com> <alpine.LSU.2.11.1405151026540.4664@eggly.anvils> <87wqdik4n5.fsf@rustcorp.com.au> <53797511.1050409@linux.vnet.ibm.com> <alpine.LSU.2.11.1405191531150.1317@eggly.anvils> <20140519164301.eafd3dd288ccb88361ddcfc7@linux-foundation.org> <20140520004429.E660AE009B@blue.fi.intel.com> <87oaythsvk.fsf@rustcorp.com.au> <20140520102738.7F096E009B@blue.fi.intel.com> <53842FB1.7090909@linux.vnet.ibm.com> <20140527102200.012BBE009B@blue.fi.intel.com>
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [PATCH v2 00/18] Cross-architecture definitions of relaxed MMIO
+ accessors
+Date: Tue, 27 May 2014 20:32:19 +0100
+Message-ID: <20140527193219.GB30751@arm.com>
+References: <1400777250-17335-1-git-send-email-will.deacon@arm.com>
+ <1401054363.3958.28.camel@pasglop>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e28smtp01.in.ibm.com ([122.248.162.1]:49381 "EHLO
-	e28smtp01.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752193AbaE0KoV (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 27 May 2014 06:44:21 -0400
-Received: from /spool/local
-	by e28smtp01.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <maddy@linux.vnet.ibm.com>;
-	Tue, 27 May 2014 16:14:17 +0530
-In-Reply-To: <20140527102200.012BBE009B@blue.fi.intel.com>
+Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:57415 "EHLO
+	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1752142AbaE0Tc5 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Tue, 27 May 2014 15:32:57 -0400
+Content-Disposition: inline
+In-Reply-To: <1401054363.3958.28.camel@pasglop>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Cc: Rusty Russell <rusty@rustcorp.com.au>, Andrew Morton <akpm@linux-foundation.org>, Hugh Dickins <hughd@google.com>, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, x86@kernel.org, benh@kernel.crashing.org, paulus@samba.org, riel@redhat.com, mgorman@suse.de, ak@linux.intel.com, peterz@infradead.org, mingo@kernel.org, dave.hansen@intel.com
+To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "arnd@arndb.de" <arnd@arndb.de>, "monstr@monstr.eu" <monstr@monstr.eu>, "dhowells@redhat.com" <dhowells@redhat.com>, "broonie@linaro.org" <broonie@linaro.org>, "peterz@infradead.org" <peterz@infradead.org>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>
 
-On Tuesday 27 May 2014 03:51 PM, Kirill A. Shutemov wrote:
-> Madhavan Srinivasan wrote:
->> On Tuesday 20 May 2014 03:57 PM, Kirill A. Shutemov wrote:
->>> Rusty Russell wrote:
->>>> "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com> writes:
->>>>> Andrew Morton wrote:
->>>>>> On Mon, 19 May 2014 16:23:07 -0700 (PDT) Hugh Dickins <hughd@google.com> wrote:
->>>>>>
->>>>>>> Shouldn't FAULT_AROUND_ORDER and fault_around_order be changed to be
->>>>>>> the order of the fault-around size in bytes, and fault_around_pages()
->>>>>>> use 1UL << (fault_around_order - PAGE_SHIFT)
->>>>>>
->>>>>> Yes.  And shame on me for missing it (this time!) at review.
->>>>>>
->>>>>> There's still time to fix this.  Patches, please.
->>>>>
->>>>> Here it is. Made at 3.30 AM, build tested only.
->>>>
->>>> Prefer on top of Maddy's patch which makes it always a variable, rather
->>>> than CONFIG_DEBUG_FS.  It's got enough hair as it is.
->>>
->>> Something like this?
->>>
->>> From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
->>> Date: Tue, 20 May 2014 13:02:03 +0300
->>> Subject: [PATCH] mm: nominate faultaround area in bytes rather then page order
->>>
->>> There are evidences that faultaround feature is less relevant on
->>> architectures with page size bigger then 4k. Which makes sense since
->>> page fault overhead per byte of mapped area should be less there.
->>>
->>> Let's rework the feature to specify faultaround area in bytes instead of
->>> page order. It's 64 kilobytes for now.
->>>
->>> The patch effectively disables faultaround on architectures with
->>> page size >= 64k (like ppc64).
->>>
->>> It's possible that some other size of faultaround area is relevant for a
->>> platform. We can expose `fault_around_bytes' variable to arch-specific
->>> code once such platforms will be found.
->>>
->>> Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
->>> ---
->>>  mm/memory.c | 62 +++++++++++++++++++++++--------------------------------------
->>>  1 file changed, 23 insertions(+), 39 deletions(-)
->>>
->>> diff --git a/mm/memory.c b/mm/memory.c
->>> index 037b812a9531..252b319e8cdf 100644
->>> --- a/mm/memory.c
->>> +++ b/mm/memory.c
->>> @@ -3402,63 +3402,47 @@ void do_set_pte(struct vm_area_struct *vma, unsigned long address,
->>>  	update_mmu_cache(vma, address, pte);
->>>  }
->>>
->>> -#define FAULT_AROUND_ORDER 4
->>> +static unsigned long fault_around_bytes = 65536;
->>> +
->>> +static inline unsigned long fault_around_pages(void)
->>> +{
->>> +	return rounddown_pow_of_two(fault_around_bytes) / PAGE_SIZE;
->>> +}
->>> +
->>> +static inline unsigned long fault_around_mask(void)
->>> +{
->>> +	return ~(rounddown_pow_of_two(fault_around_bytes) - 1) & PAGE_MASK;
->>> +}
->>>
->>> -#ifdef CONFIG_DEBUG_FS
->>> -static unsigned int fault_around_order = FAULT_AROUND_ORDER;
->>>
->>> -static int fault_around_order_get(void *data, u64 *val)
->>> +#ifdef CONFIG_DEBUG_FS
->>> +static int fault_around_bytes_get(void *data, u64 *val)
->>>  {
->>> -	*val = fault_around_order;
->>> +	*val = fault_around_bytes;
->>>  	return 0;
->>>  }
->>>
->>> -static int fault_around_order_set(void *data, u64 val)
->>> +static int fault_around_bytes_set(void *data, u64 val)
->>>  {
->>
->> Kindly ignore the question if not relevant. Even though we need root
->> access to alter the value, will we be fine with
->> negative value?.
-> ppc
-> val is u64. or I miss something?
+Hi Ben,
+
+On Sun, May 25, 2014 at 10:46:03PM +0100, Benjamin Herrenschmidt wrote:
+> On Thu, 2014-05-22 at 17:47 +0100, Will Deacon wrote:
+> > A corollary to this is that mmiowb() probably needs rethinking. As it currently
+> > stands, an mmiowb() is required to order MMIO writes to a device from multiple
+> > CPUs, even if that device is protected by a lock. However, this isn't often used
+> > in practice, leading to PowerPC implementing both mmiowb() *and* synchronising
+> > I/O in spin_unlock.
+> > 
+> > I would propose making the non-relaxed I/O accessors ordered with respect to
+> > LOCK/UNLOCK, leaving mmiowb() to be used with the relaxed accessors, if
+> > required, but would welcome thoughts/suggestions on this topic.
 > 
+> I agree on the proposed semantics, though for us that does mean we still need
+> that per-cpu flag tracking non-relaxed MMIO stores and corresponding added barrier
+> in unlock. Eventually, if the use of the relaxed accessors becomes pervasive
+> enough I suppose I can just make the ordered ones unconditionally do 2 barriers.
 
-My Bad. What I wanted to check was for all 0xf input and guess we are
-fine. Sorry about that.
+Why would you need two barriers? I would have though an mmiowb() inlined
+into writel after the store operation would be sufficient. Or is this to
+ensure a non-relaxed write is ordered with respect to a relaxed write?
 
-Regards
-Maddy
+Anyway, we may need something similar for other architectures with mmiowb
+implementations:
+
+  blackfin
+  frv
+  ia64
+  mips
+  sh
+
+so I'm anticipating some more discussion when I try to push that patch :)
+
+Cheers,
+
+Will
