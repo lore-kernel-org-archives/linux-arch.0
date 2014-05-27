@@ -1,87 +1,178 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.9]:35624 "EHLO
-	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752532AbaEWP4o (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 23 May 2014 11:56:44 -0400
-Date: Fri, 23 May 2014 17:56:26 +0200
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v2 16/18] x86: io: implement dummy relaxed accessor
- macros for writes
-Message-ID: <20140523155626.GI30445@twins.programming.kicks-ass.net>
-References: <1400777250-17335-1-git-send-email-will.deacon@arm.com>
- <1400777250-17335-17-git-send-email-will.deacon@arm.com>
- <537E30AF.4070501@zytor.com>
- <20140523144604.GF21319@arm.com>
- <537F60E0.1060307@zytor.com>
- <20140523145758.GG21319@arm.com>
- <537F6728.3090600@zytor.com>
- <20140523153409.GI21319@arm.com>
- <537F6C85.107@zytor.com>
+Received: from e28smtp09.in.ibm.com ([122.248.162.9]:51266 "EHLO
+	e28smtp09.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751977AbaE0GZD (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 27 May 2014 02:25:03 -0400
+Received: from /spool/local
+	by e28smtp09.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <maddy@linux.vnet.ibm.com>;
+	Tue, 27 May 2014 11:54:58 +0530
+Message-ID: <53842FB1.7090909@linux.vnet.ibm.com>
+Date: Tue, 27 May 2014 11:54:49 +0530
+From: Madhavan Srinivasan <maddy@linux.vnet.ibm.com>
 MIME-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha1;
-	protocol="application/pgp-signature"; boundary="SIhMtSQSYpXpqifs"
-Content-Disposition: inline
-In-Reply-To: <537F6C85.107@zytor.com>
+Subject: Re: [PATCH V4 0/2] mm: FAULT_AROUND_ORDER patchset performance data
+ for powerpc
+References: <1399541296-18810-1-git-send-email-maddy@linux.vnet.ibm.com> <537479E7.90806@linux.vnet.ibm.com> <alpine.LSU.2.11.1405151026540.4664@eggly.anvils> <87wqdik4n5.fsf@rustcorp.com.au> <53797511.1050409@linux.vnet.ibm.com> <alpine.LSU.2.11.1405191531150.1317@eggly.anvils> <20140519164301.eafd3dd288ccb88361ddcfc7@linux-foundation.org> <20140520004429.E660AE009B@blue.fi.intel.com> <87oaythsvk.fsf@rustcorp.com.au> <20140520102738.7F096E009B@blue.fi.intel.com>
+In-Reply-To: <20140520102738.7F096E009B@blue.fi.intel.com>
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "H. Peter Anvin" <hpa@zytor.com>
-Cc: Will Deacon <will.deacon@arm.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "arnd@arndb.de" <arnd@arndb.de>, "monstr@monstr.eu" <monstr@monstr.eu>, "dhowells@redhat.com" <dhowells@redhat.com>, "broonie@linaro.org" <broonie@linaro.org>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>
-Message-ID: <20140523155626.-jkkxo_J9OKRbMhVw0jlXGDN7e4AuM27o2O85d5v9Is@z>
+To: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Rusty Russell <rusty@rustcorp.com.au>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Hugh Dickins <hughd@google.com>, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, x86@kernel.org, benh@kernel.crashing.org, paulus@samba.org, riel@redhat.com, mgorman@suse.de, ak@linux.intel.com, peterz@infradead.org, mingo@kernel.org, dave.hansen@intel.com
+Message-ID: <20140527062449.WnyFEgYU0VOVV5aRkQE4EV5p6FxIaT70cdd3FuOu2zM@z>
 
+On Tuesday 20 May 2014 03:57 PM, Kirill A. Shutemov wrote:
+> Rusty Russell wrote:
+>> "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com> writes:
+>>> Andrew Morton wrote:
+>>>> On Mon, 19 May 2014 16:23:07 -0700 (PDT) Hugh Dickins <hughd@google.com> wrote:
+>>>>
+>>>>> Shouldn't FAULT_AROUND_ORDER and fault_around_order be changed to be
+>>>>> the order of the fault-around size in bytes, and fault_around_pages()
+>>>>> use 1UL << (fault_around_order - PAGE_SHIFT)
+>>>>
+>>>> Yes.  And shame on me for missing it (this time!) at review.
+>>>>
+>>>> There's still time to fix this.  Patches, please.
+>>>
+>>> Here it is. Made at 3.30 AM, build tested only.
+>>
+>> Prefer on top of Maddy's patch which makes it always a variable, rather
+>> than CONFIG_DEBUG_FS.  It's got enough hair as it is.
+> 
+> Something like this?
+> 
+> From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+> Date: Tue, 20 May 2014 13:02:03 +0300
+> Subject: [PATCH] mm: nominate faultaround area in bytes rather then page order
+> 
+> There are evidences that faultaround feature is less relevant on
+> architectures with page size bigger then 4k. Which makes sense since
+> page fault overhead per byte of mapped area should be less there.
+> 
+> Let's rework the feature to specify faultaround area in bytes instead of
+> page order. It's 64 kilobytes for now.
+> 
+> The patch effectively disables faultaround on architectures with
+> page size >= 64k (like ppc64).
+> 
+> It's possible that some other size of faultaround area is relevant for a
+> platform. We can expose `fault_around_bytes' variable to arch-specific
+> code once such platforms will be found.
+> 
+> Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
+> ---
+>  mm/memory.c | 62 +++++++++++++++++++++++--------------------------------------
+>  1 file changed, 23 insertions(+), 39 deletions(-)
+> 
+> diff --git a/mm/memory.c b/mm/memory.c
+> index 037b812a9531..252b319e8cdf 100644
+> --- a/mm/memory.c
+> +++ b/mm/memory.c
+> @@ -3402,63 +3402,47 @@ void do_set_pte(struct vm_area_struct *vma, unsigned long address,
+>  	update_mmu_cache(vma, address, pte);
+>  }
+> 
+> -#define FAULT_AROUND_ORDER 4
+> +static unsigned long fault_around_bytes = 65536;
+> +
+> +static inline unsigned long fault_around_pages(void)
+> +{
+> +	return rounddown_pow_of_two(fault_around_bytes) / PAGE_SIZE;
+> +}
+> +
+> +static inline unsigned long fault_around_mask(void)
+> +{
+> +	return ~(rounddown_pow_of_two(fault_around_bytes) - 1) & PAGE_MASK;
+> +}
+> 
+> -#ifdef CONFIG_DEBUG_FS
+> -static unsigned int fault_around_order = FAULT_AROUND_ORDER;
+> 
+> -static int fault_around_order_get(void *data, u64 *val)
+> +#ifdef CONFIG_DEBUG_FS
+> +static int fault_around_bytes_get(void *data, u64 *val)
+>  {
+> -	*val = fault_around_order;
+> +	*val = fault_around_bytes;
+>  	return 0;
+>  }
+> 
+> -static int fault_around_order_set(void *data, u64 val)
+> +static int fault_around_bytes_set(void *data, u64 val)
+>  {
 
---SIhMtSQSYpXpqifs
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+Kindly ignore the question if not relevant. Even though we need root
+access to alter the value, will we be fine with
+negative value?.
 
-On Fri, May 23, 2014 at 08:43:01AM -0700, H. Peter Anvin wrote:
-> On 05/23/2014 08:34 AM, Will Deacon wrote:
-> >=20
-> > There is also a documentation patch [1] in this series but, again, I di=
-dn't
-> > CC everybody on it. Sorry, but the level of interest this sort of stuff
-> > generates amongst kernel developers is close to zero so I only included
-> > people I thought cared on CC for the entire series. I'm stuck between a=
- rock
-> > and a hard place trying to CC interested people whilst at the same time
-> > trying to avoid spamming all the arch maintainers.
-> >=20
->=20
-> If you are sending me a patch, please include me on the cover letter for
-> the patch series.  You don't have to send me the entire patch series
-> (although for something like a Documentation patch which affects x86 I
-> would consider including the union list as well.)
->=20
-> I think regardless of level of interest, the definition of
-> cross-architectural operations is exactly the arch maintainers job, so
-> it isn't really out of place to "spam" us...
+Regards
+Maddy
 
-So the one issue I had with that, is that if one tries to send an email
-to all arch maintainers + linux-arch + linux-kernel, the header gets too
-big and vger chokes and davem slaps you.
+> -	BUILD_BUG_ON((1UL << FAULT_AROUND_ORDER) > PTRS_PER_PTE);
+> -	if (1UL << val > PTRS_PER_PTE)
+> +	if (val / PAGE_SIZE > PTRS_PER_PTE)
+>  		return -EINVAL;
+> -	fault_around_order = val;
+> +	fault_around_bytes = val;
+>  	return 0;
+>  }
+> -DEFINE_SIMPLE_ATTRIBUTE(fault_around_order_fops,
+> -		fault_around_order_get, fault_around_order_set, "%llu\n");
+> +DEFINE_SIMPLE_ATTRIBUTE(fault_around_bytes_fops,
+> +		fault_around_bytes_get, fault_around_bytes_set, "%llu\n");
+> 
+>  static int __init fault_around_debugfs(void)
+>  {
+>  	void *ret;
+> 
+> -	ret = debugfs_create_file("fault_around_order",	0644, NULL, NULL,
+> -			&fault_around_order_fops);
+> +	ret = debugfs_create_file("fault_around_bytes", 0644, NULL, NULL,
+> +			&fault_around_bytes_fops);
+>  	if (!ret)
+> -		pr_warn("Failed to create fault_around_order in debugfs");
+> +		pr_warn("Failed to create fault_around_bytes in debugfs");
+>  	return 0;
+>  }
+>  late_initcall(fault_around_debugfs);
+> -
+> -static inline unsigned long fault_around_pages(void)
+> -{
+> -	return 1UL << fault_around_order;
+> -}
+> -
+> -static inline unsigned long fault_around_mask(void)
+> -{
+> -	return ~((1UL << (PAGE_SHIFT + fault_around_order)) - 1);
+> -}
+> -#else
+> -static inline unsigned long fault_around_pages(void)
+> -{
+> -	unsigned long nr_pages;
+> -
+> -	nr_pages = 1UL << FAULT_AROUND_ORDER;
+> -	BUILD_BUG_ON(nr_pages > PTRS_PER_PTE);
+> -	return nr_pages;
+> -}
+> -
+> -static inline unsigned long fault_around_mask(void)
+> -{
+> -	return ~((1UL << (PAGE_SHIFT + FAULT_AROUND_ORDER)) - 1);
+> -}
+>  #endif
+> 
+>  static void do_fault_around(struct vm_area_struct *vma, unsigned long address,
+> @@ -3515,7 +3499,7 @@ static int do_read_fault(struct mm_struct *mm, struct vm_area_struct *vma,
+>  	 * if page by the offset is not ready to be mapped (cold cache or
+>  	 * something).
+>  	 */
+> -	if (vma->vm_ops->map_pages) {
+> +	if (vma->vm_ops->map_pages && fault_around_pages() > 1) {
+>  		pte = pte_offset_map_lock(mm, pmd, address, &ptl);
+>  		do_fault_around(vma, address, pte, pgoff, flags);
+>  		if (!pte_same(*pte, orig_pte))
+> 
 
-So while its possibly desirable to do big unions with 0/xx and the like,
-its practically infeasible.
-
---SIhMtSQSYpXpqifs
-Content-Type: application/pgp-signature
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.12 (GNU/Linux)
-
-iQIcBAEBAgAGBQJTf2+qAAoJEHZH4aRLwOS61y8P/R31PO3PdXkwzC+dChd1vVwF
-7vC9OX2ibOAj9GdYUPwfU6mromo9192lBMT7cfKLtd+Bvf59AFnkA2udQBJ3wvZe
-Y11fJ7WkXqzukgO+FfDFVzPbmj1poKn/ZGt6snm8PJIkqOhL9kwPz0ZnuVaunpC4
-UiF7vWKrkyDCCnFvPrMS6Y+/GiN79tJFrhlbGian5s9QmacDE4RsnCEDyniWjt7k
-dDY6Y49pxW6OPRUzuuqrE+mQZucPpA4CENYvSMk2akJADbvlhlHDKv6GkhkwSUwD
-l5NSeCPRkHvK9PLsMysbCWdEWl7Fr3M3quxGIJeioUFYlxzM3TglGv4A1WFxY2dj
-FjDqoV7fcVCZ1nVogIQ/Cr/wjIV3eu1AmKHGsFwqVh0ErvdZeSmE2FQp6kvRjXGJ
-oGioGkPkGtFHK6SbWrkvAKzrmAAkkq5vI6vS/6u154D8ywV31O54kD2GpuIkfWfj
-4yTJL+v0W75jPoOQXcqFJmknE7gJkVuqnZp/+xk0caWNeuzgJnCjtpu+Z6TYynON
-yIURM5UVhzOfJUg/UtFfykgBOEfnUc6Tn2bvXtgesrgeidJc0VOjM4vVreF7Y23D
-ZyLCB6SFXxPeZ4bbl40l8Foi4mqp3cNRgDxjGA0ssz2mUPzcRP+qU99nWwgYVtc4
-OH1DzyZCHqrCkDnhb85O
-=hxID
------END PGP SIGNATURE-----
-
---SIhMtSQSYpXpqifs--
