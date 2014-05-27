@@ -1,119 +1,63 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga09.intel.com ([134.134.136.24]:37902 "EHLO mga09.intel.com"
+Received: from gate.crashing.org ([63.228.1.57]:45454 "EHLO gate.crashing.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752015AbaE0KWH (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 27 May 2014 06:22:07 -0400
-From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-In-Reply-To: <53842FB1.7090909@linux.vnet.ibm.com>
-References: <1399541296-18810-1-git-send-email-maddy@linux.vnet.ibm.com>
- <537479E7.90806@linux.vnet.ibm.com>
- <alpine.LSU.2.11.1405151026540.4664@eggly.anvils>
- <87wqdik4n5.fsf@rustcorp.com.au>
- <53797511.1050409@linux.vnet.ibm.com>
- <alpine.LSU.2.11.1405191531150.1317@eggly.anvils>
- <20140519164301.eafd3dd288ccb88361ddcfc7@linux-foundation.org>
- <20140520004429.E660AE009B@blue.fi.intel.com>
- <87oaythsvk.fsf@rustcorp.com.au>
- <20140520102738.7F096E009B@blue.fi.intel.com>
- <53842FB1.7090909@linux.vnet.ibm.com>
-Subject: Re: [PATCH V4 0/2] mm: FAULT_AROUND_ORDER patchset performance data
- for powerpc
+	id S1752656AbaE0UWr (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 27 May 2014 16:22:47 -0400
+Message-ID: <1401222098.20915.77.camel@pasglop>
+Subject: Re: [PATCH v2 00/18] Cross-architecture definitions of relaxed MMIO
+ accessors
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Date: Wed, 28 May 2014 06:21:38 +1000
+In-Reply-To: <20140527193219.GB30751@arm.com>
+References: <1400777250-17335-1-git-send-email-will.deacon@arm.com>
+	 <1401054363.3958.28.camel@pasglop> <20140527193219.GB30751@arm.com>
+Content-Type: text/plain; charset="UTF-8"
+Mime-Version: 1.0
 Content-Transfer-Encoding: 7bit
-Message-ID: <20140527102200.012BBE009B@blue.fi.intel.com>
-Date: Tue, 27 May 2014 13:21:59 +0300 (EEST)
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Madhavan Srinivasan <maddy@linux.vnet.ibm.com>
-Cc: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Rusty Russell <rusty@rustcorp.com.au>, Andrew Morton <akpm@linux-foundation.org>, Hugh Dickins <hughd@google.com>, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, x86@kernel.org, benh@kernel.crashing.org, paulus@samba.org, riel@redhat.com, mgorman@suse.de, ak@linux.intel.com, peterz@infradead.org, mingo@kernel.org, dave.hansen@intel.com
-Message-ID: <20140527102159.HHfsvkr6l90c8n2-fFVaeFww9Xw4hccVSpQ6C8TscaI@z>
+To: Will Deacon <will.deacon@arm.com>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "arnd@arndb.de" <arnd@arndb.de>, "monstr@monstr.eu" <monstr@monstr.eu>, "dhowells@redhat.com" <dhowells@redhat.com>, "broonie@linaro.org" <broonie@linaro.org>, "peterz@infradead.org" <peterz@infradead.org>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>
+Message-ID: <20140527202138.4QW76zvmjkDDSJupLS3kVAp5-vIFnxchPvEcH6IUBMk@z>
 
-Madhavan Srinivasan wrote:
-> On Tuesday 20 May 2014 03:57 PM, Kirill A. Shutemov wrote:
-> > Rusty Russell wrote:
-> >> "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com> writes:
-> >>> Andrew Morton wrote:
-> >>>> On Mon, 19 May 2014 16:23:07 -0700 (PDT) Hugh Dickins <hughd@google.com> wrote:
-> >>>>
-> >>>>> Shouldn't FAULT_AROUND_ORDER and fault_around_order be changed to be
-> >>>>> the order of the fault-around size in bytes, and fault_around_pages()
-> >>>>> use 1UL << (fault_around_order - PAGE_SHIFT)
-> >>>>
-> >>>> Yes.  And shame on me for missing it (this time!) at review.
-> >>>>
-> >>>> There's still time to fix this.  Patches, please.
-> >>>
-> >>> Here it is. Made at 3.30 AM, build tested only.
-> >>
-> >> Prefer on top of Maddy's patch which makes it always a variable, rather
-> >> than CONFIG_DEBUG_FS.  It's got enough hair as it is.
-> > 
-> > Something like this?
-> > 
-> > From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-> > Date: Tue, 20 May 2014 13:02:03 +0300
-> > Subject: [PATCH] mm: nominate faultaround area in bytes rather then page order
-> > 
-> > There are evidences that faultaround feature is less relevant on
-> > architectures with page size bigger then 4k. Which makes sense since
-> > page fault overhead per byte of mapped area should be less there.
-> > 
-> > Let's rework the feature to specify faultaround area in bytes instead of
-> > page order. It's 64 kilobytes for now.
-> > 
-> > The patch effectively disables faultaround on architectures with
-> > page size >= 64k (like ppc64).
-> > 
-> > It's possible that some other size of faultaround area is relevant for a
-> > platform. We can expose `fault_around_bytes' variable to arch-specific
-> > code once such platforms will be found.
-> > 
-> > Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
-> > ---
-> >  mm/memory.c | 62 +++++++++++++++++++++++--------------------------------------
-> >  1 file changed, 23 insertions(+), 39 deletions(-)
-> > 
-> > diff --git a/mm/memory.c b/mm/memory.c
-> > index 037b812a9531..252b319e8cdf 100644
-> > --- a/mm/memory.c
-> > +++ b/mm/memory.c
-> > @@ -3402,63 +3402,47 @@ void do_set_pte(struct vm_area_struct *vma, unsigned long address,
-> >  	update_mmu_cache(vma, address, pte);
-> >  }
-> > 
-> > -#define FAULT_AROUND_ORDER 4
-> > +static unsigned long fault_around_bytes = 65536;
-> > +
-> > +static inline unsigned long fault_around_pages(void)
-> > +{
-> > +	return rounddown_pow_of_two(fault_around_bytes) / PAGE_SIZE;
-> > +}
-> > +
-> > +static inline unsigned long fault_around_mask(void)
-> > +{
-> > +	return ~(rounddown_pow_of_two(fault_around_bytes) - 1) & PAGE_MASK;
-> > +}
-> > 
-> > -#ifdef CONFIG_DEBUG_FS
-> > -static unsigned int fault_around_order = FAULT_AROUND_ORDER;
-> > 
-> > -static int fault_around_order_get(void *data, u64 *val)
-> > +#ifdef CONFIG_DEBUG_FS
-> > +static int fault_around_bytes_get(void *data, u64 *val)
-> >  {
-> > -	*val = fault_around_order;
-> > +	*val = fault_around_bytes;
-> >  	return 0;
-> >  }
-> > 
-> > -static int fault_around_order_set(void *data, u64 val)
-> > +static int fault_around_bytes_set(void *data, u64 val)
-> >  {
+On Tue, 2014-05-27 at 20:32 +0100, Will Deacon wrote:
+
+> Why would you need two barriers? I would have though an mmiowb() inlined
+> into writel after the store operation would be sufficient. Or is this to
+> ensure a non-relaxed write is ordered with respect to a relaxed write?
+
+Well, so the non-relaxed writel would have to do:
+
+	sync
+	store
+	sync
+
+The first sync is to synchronize with DMAs, so that a sequence of
+
+	store to mem
+	writel
+
+Remains ordered vs. the device (ie, when the writel causes the device
+to do a DMA, it will see the previous store to mem).
+
+The second sync is needed as mmiowb, to order with unlocks.
+ 
+At this point, I'm keen on keeping my per-cpu trick to avoid that
+second one in most cases.
+
+> Anyway, we may need something similar for other architectures with mmiowb
+> implementations:
 > 
-> Kindly ignore the question if not relevant. Even though we need root
-> access to alter the value, will we be fine with
-> negative value?.
+>   blackfin
+>   frv
+>   ia64
+>   mips
+>   sh
+> 
+> so I'm anticipating some more discussion when I try to push that patch :)
+> 
+> Cheers,
+> 
+> Will
 
-val is u64. or I miss something?
 
--- 
- Kirill A. Shutemov
