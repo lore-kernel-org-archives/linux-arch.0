@@ -1,34 +1,56 @@
-From: Support <jobt@agroolive.com>
-Subject: Work.Begins.Today-linux-arch@vger.kernel.org
-Date: 28 May 2014 20:52:57 +0200
-Message-ID: <20140528205257.5275B86DC0DB5368@agroolive.com>
-Reply-To: elenfraks142@gmail.com
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH] asm-generic: uaccess: avoid name conflicts for strncpy and str(n)len
+Date: Wed, 28 May 2014 21:44:12 +0200
+Message-ID: <9795542.Hus6bU8DVG@wuerfel>
+References: <1401290511-10211-1-git-send-email-joel@porquet.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7BIT
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7Bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from u15320412.onlinehome-server.com ([74.208.148.190]:60921 "EHLO
-	u15320412.onlinehome-server.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1751487AbaE1S70 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 28 May 2014 14:59:26 -0400
-Received: from agroolive.com (unknown [185.7.214.34])
-	by u15320412.onlinehome-server.com (Postfix) with ESMTPA id 397A4E374E0
-	for <linux-arch@vger.kernel.org>; Wed, 28 May 2014 14:52:51 -0400 (EDT)
+Received: from mout.kundenserver.de ([212.227.126.130]:50830 "EHLO
+	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751902AbaE1ToQ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 28 May 2014 15:44:16 -0400
+In-Reply-To: <1401290511-10211-1-git-send-email-joel@porquet.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org
+To: Joel Porquet <joel@porquet.org>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-Dear linux-arch,
+On Wednesday 28 May 2014 17:21:51 Joel Porquet wrote:
+> asm-generic/uaccess.h defines 'strncpy_from_user', 'strnlen_user' and
+> 'strlen_user' as static inline functions. It makes it impossible for an
+> arch to include asm-generic/uaccess.h and benefits from its content, in
+> addition to defining GENERIC_STRNCPY_FROM_USER and GENERIC_STRNLEN_USER.
+> 
+> Both configuration tokens respectively enable lib/strncpy_from_user.c
+> and lib/strnlen_user.c which redefine the same symbols, causing
+> redefinition errors at compilation.
+> 
+> This patch modifies asm-generic/uaccess.h so that strncpy_from_user is
+> not defined when GENERIC_STRNCPY_FROM_USER is, and strnlen_user and
+> strlen_user are not defined when GENERIC_STRNLEN_USER is, thus avoiding
+> any name conflict.
+> 
+> At the moment, numerous archs, which make use of
+> GENERIC_STRNCPY_FROM_USER and GENERIC_STRNLEN_USER, are forced to
+> rewrite an entire asm/uaccess.h header because of this issue.
+> 
+> To the best of my knowledge, the following list of archs could benefit
+> from this patch: x86, sh, openrisc, powerpc, arm64, arm, alpha, parisc,
+> sparc, m68k.
+> 
+> Signed-off-by: Joel Porquet <joel@porquet.org>
+> 
 
-The  position we currently have available is the Financial-Agent-
-position, a job that
+Acked-by: Arnd Bergmann <arnd@arndb.de>
 
-you can do from home, no previous experience need, low working 
-hours and you can work full or part time.
-You will receive a salary around $8,000/ month plus bonuses.
+It makes sense to do this for any architecture that want's to use
+this file, so feel free to add your patch the tree of whatever architecture
+you want to convert.
 
-Please reply if you are interested in hearing more.
+Note however that asm/uaccess.h can't be implemented correctly in
+generic code: you always need inline assembly to add the correct fixup
+section magic.
 
-Agrotek.Olives
-5/28/2014 20:52:57
+	Arnd
