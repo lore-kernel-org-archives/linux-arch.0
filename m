@@ -1,66 +1,93 @@
-From: "H. Peter Anvin" <hpa@zytor.com>
-Subject: Re: [RFC 02/32] uapi: add struct __kernel_timespec{32,64}
-Date: Fri, 30 May 2014 13:18:45 -0700
-Message-ID: <5388E7A5.90308@zytor.com>
-References: <1401480116-1973111-1-git-send-email-arnd@arndb.de> <1401480116-1973111-3-git-send-email-arnd@arndb.de>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1401480116-1973111-3-git-send-email-arnd@arndb.de>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>, linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, joseph@codesourcery.com, john.stultz@linaro.org, hch@infradead.org, tglx@linutronix.de, geert@linux-m68k.org, lftan@altera.com, linux-fsdevel@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: [RFC 22/32] fs: convert simple fs to inode_time
+Date: Fri, 30 May 2014 22:01:46 +0200
+Message-ID: <1401480116-1973111-23-git-send-email-arnd@arndb.de>
+References: <1401480116-1973111-1-git-send-email-arnd@arndb.de>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mout.kundenserver.de ([212.227.17.13]:61283 "EHLO
+	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751776AbaE3UkK (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 30 May 2014 16:40:10 -0400
+In-Reply-To: <1401480116-1973111-1-git-send-email-arnd@arndb.de>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linux-kernel@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, joseph@codesourcery.com, john.stultz@linaro.org, hch@infradead.org, tglx@linutronix.de, geert@linux-m68k.org, lftan@altera.com, hpa@zytor.com, linux-fsdevel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Joel Becker <jlbec@evilplan.org>
 
-On 05/30/2014 01:01 PM, Arnd Bergmann wrote:
-> We cannot use time_t or any derived structures beyond the year
-> 2038 in interfaces between kernel and user space, on 32-bit
-> machines.
-> 
-> This is my suggestion for how to migrate syscall and ioctl
-> interfaces: We completely phase out time_t, timeval and timespec
-> from the uapi header files and replace them with types that are
-> either explicitly safe (__kernel_timespec64), or explicitly
-> unsafe (e.g. __kernel_timespec32). For each unsafe interface,
-> there needs to be a safe replacement interface.
-> 
+tty, usbgadgetfs, configfs and cramfs do not store inode timestamps
+permanently, but they use code that interacts with the VFS inode
+times. In order to change over VFS to a struct inode_time, we
+have to make trivial changes to these file systems as well.
 
-This gets really messy for structures where this is ABI-dependent.  I'm
-not sure this is a net win.
+Signed-off-by: Arnd Bergmann <arnd@arndb.de>
+Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Cc: Joel Becker <jlbec@evilplan.org>
+---
+ drivers/tty/tty_io.c      | 2 +-
+ drivers/usb/gadget/f_fs.c | 2 +-
+ fs/configfs/inode.c       | 6 +++---
+ fs/cramfs/inode.c         | 2 +-
+ 4 files changed, 6 insertions(+), 6 deletions(-)
 
-> +/*
-> + * __kernel_timespec64 is the general type to be used for
-> + * new user space interfaces passing a time argument.
-> + * 64-bit nanoseconds is a bit silly, but the advantage is
-> + * that it is compatible with the native 'struct timespec'
-> + * on 64-bit user space. This simplifies the compat code.
-> + */
-> +struct __kernel_timespec64 {
-> +	long long tv_sec;
-> +	long long tv_nsec;
-> +};
-
-So it seems that it is not just POSIX that is drain bramaged with this,
-but the "long" type for tv_nsec idiocy has made it into the C11
-standard.  This unfortunately means that now there are two standards
-bodies involved, at least one of which moves very slowly.
-
-This makes me wonder if we don't need to deal with the problem in the
-case of 32-bit ABIs with 64-bit time_t.  The logical thing seems to be
-to EITHER:
-
-a. ALWAYS ignore the upper 32 bits of tv_nsec when read from user space,
-   but always set them to zero, or
-b. Only ignore the upper 32 bits of tv_nsec when we are known to come
-   from a 32-bit ABI context, but still always return zero.  These bits
-   are already only used for validity checking.
-
-   This most likely introduces a whole lot of new tests in deep paths,
-   although we probably can centralize this in a single function, which
-   otherwise ends up looking a lot like compat_get_timespec().
-
-Getting rid of struct timespec on the kernel/user boundary is probably
-not really feasible.
-
-	-hpa
+diff --git a/drivers/tty/tty_io.c b/drivers/tty/tty_io.c
+index 3411071..c2c63e5 100644
+--- a/drivers/tty/tty_io.c
++++ b/drivers/tty/tty_io.c
+@@ -994,7 +994,7 @@ void start_tty(struct tty_struct *tty)
+ EXPORT_SYMBOL(start_tty);
+ 
+ /* We limit tty time update visibility to every 8 seconds or so. */
+-static void tty_update_time(struct timespec *time)
++static void tty_update_time(struct inode_time *time)
+ {
+ 	unsigned long sec = get_seconds() & ~7;
+ 	if ((long)(sec - time->tv_sec) > 0)
+diff --git a/drivers/usb/gadget/f_fs.c b/drivers/usb/gadget/f_fs.c
+index 74202d6..3947655 100644
+--- a/drivers/usb/gadget/f_fs.c
++++ b/drivers/usb/gadget/f_fs.c
+@@ -1069,7 +1069,7 @@ ffs_sb_make_inode(struct super_block *sb, void *data,
+ 	inode = new_inode(sb);
+ 
+ 	if (likely(inode)) {
+-		struct timespec current_time = CURRENT_TIME;
++		struct inode_time current_time = CURRENT_TIME;
+ 
+ 		inode->i_ino	 = get_next_ino();
+ 		inode->i_mode    = perms->mode;
+diff --git a/fs/configfs/inode.c b/fs/configfs/inode.c
+index 5946ad9..62f10c0 100644
+--- a/fs/configfs/inode.c
++++ b/fs/configfs/inode.c
+@@ -95,13 +95,13 @@ int configfs_setattr(struct dentry * dentry, struct iattr * iattr)
+ 	if (ia_valid & ATTR_GID)
+ 		sd_iattr->ia_gid = iattr->ia_gid;
+ 	if (ia_valid & ATTR_ATIME)
+-		sd_iattr->ia_atime = timespec_trunc(iattr->ia_atime,
++		sd_iattr->ia_atime = inode_time_trunc(iattr->ia_atime,
+ 						inode->i_sb->s_time_gran);
+ 	if (ia_valid & ATTR_MTIME)
+-		sd_iattr->ia_mtime = timespec_trunc(iattr->ia_mtime,
++		sd_iattr->ia_mtime = inode_time_trunc(iattr->ia_mtime,
+ 						inode->i_sb->s_time_gran);
+ 	if (ia_valid & ATTR_CTIME)
+-		sd_iattr->ia_ctime = timespec_trunc(iattr->ia_ctime,
++		sd_iattr->ia_ctime = inode_time_trunc(iattr->ia_ctime,
+ 						inode->i_sb->s_time_gran);
+ 	if (ia_valid & ATTR_MODE) {
+ 		umode_t mode = iattr->ia_mode;
+diff --git a/fs/cramfs/inode.c b/fs/cramfs/inode.c
+index ddcfe59..1b9ed3b 100644
+--- a/fs/cramfs/inode.c
++++ b/fs/cramfs/inode.c
+@@ -79,7 +79,7 @@ static struct inode *get_cramfs_inode(struct super_block *sb,
+ 	const struct cramfs_inode *cramfs_inode, unsigned int offset)
+ {
+ 	struct inode *inode;
+-	static struct timespec zerotime;
++	static struct inode_time zerotime;
+ 
+ 	inode = iget_locked(sb, cramino(cramfs_inode, offset));
+ 	if (!inode)
+-- 
+1.8.3.2
