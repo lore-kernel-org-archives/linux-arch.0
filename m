@@ -1,54 +1,83 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.17.13]:54338 "EHLO
+Received: from mout.kundenserver.de ([212.227.17.13]:61424 "EHLO
 	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932699AbaE3UKX (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 30 May 2014 16:10:23 -0400
+	with ESMTP id S932699AbaE3UKR (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 30 May 2014 16:10:17 -0400
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: [RFC 28/32] adfs: convert to struct inode_time
-Date: Fri, 30 May 2014 22:01:52 +0200
-Message-ID: <1401480116-1973111-29-git-send-email-arnd@arndb.de>
+Subject: [RFC 32/32] fs: use new inode_time definition unconditionally
+Date: Fri, 30 May 2014 22:01:56 +0200
+Message-ID: <1401480116-1973111-33-git-send-email-arnd@arndb.de>
 In-Reply-To: <1401480116-1973111-1-git-send-email-arnd@arndb.de>
 References: <1401480116-1973111-1-git-send-email-arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
 Cc: linux-arch@vger.kernel.org, joseph@codesourcery.com, john.stultz@linaro.org, hch@infradead.org, tglx@linutronix.de, geert@linux-m68k.org, lftan@altera.com, hpa@zytor.com, linux-fsdevel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>
-Message-ID: <20140530200152.y43ZtdwfSffurzvDFacWUcdMEe4PqUjx9Hj4tx7pjzM@z>
+Message-ID: <20140530200156.qizYzZJiwmBcax-IzGtMF8SEBQZPiMe2tIajZidhbwU@z>
 
-adfs uses unsigned 40-bit seconds for inode timestamps, which will work
-for the next 234 years, but the VFS uses struct timespec for timestamps,
-which is only good until 2038 on 32-bit CPUs.
+After all file systems have been converted to use 'struct inode_time'
+for timestamps, we can remove the compatibility definition for this
+structure.
 
-This gets us one small step closer to lifting the VFS limit by using
-struct inode_time in adfs.
+This patch picks the first of the three variants I defined, but we
+could pick one of the others as well.
 
 Signed-off-by: Arnd Bergmann <arnd@arndb.de>
 ---
- fs/adfs/inode.c | 4 ++--
- 1 file changed, 2 insertions(+), 2 deletions(-)
+ include/linux/time.h | 31 ++-----------------------------
+ 1 file changed, 2 insertions(+), 29 deletions(-)
 
-diff --git a/fs/adfs/inode.c b/fs/adfs/inode.c
-index b9acada..5698b9e 100644
---- a/fs/adfs/inode.c
-+++ b/fs/adfs/inode.c
-@@ -167,7 +167,7 @@ adfs_mode2atts(struct super_block *sb, struct inode *inode)
-  * of time to convert from RISC OS epoch to Unix epoch.
+diff --git a/include/linux/time.h b/include/linux/time.h
+index f431263..00d2f14 100644
+--- a/include/linux/time.h
++++ b/include/linux/time.h
+@@ -6,44 +6,17 @@
+ # include <linux/math64.h>
+ #include <uapi/linux/time.h>
+ 
+-#ifdef CONFIG_NEW_INODE_TIME
+ /*
+  * This is the type we use internally in the kernel to represent
+- * absolute times in file system metadata.
++ * absolute times in file system metadata using unsigned seconds
++ * lets us extend the life span for another 69 years beyond 2038.
+  * This structure must not leak out to user space, and new interfaces
+  * should be using 64-bit types right away.
   */
- static void
--adfs_adfs2unix_time(struct timespec *tv, struct inode *inode)
-+adfs_adfs2unix_time(struct inode_time *tv, struct inode *inode)
- {
- 	unsigned int high, low;
- 	/* 01 Jan 1970 00:00:00 (Unix epoch) as nanoseconds since
-@@ -195,7 +195,7 @@ adfs_adfs2unix_time(struct timespec *tv, struct inode *inode)
- 	/* convert from RISC OS to Unix epoch */
- 	nsec -= nsec_unix_epoch_diff_risc_os_epoch;
+-
+-/*
+- * Variant a) using unsigned seconds lets us extend the life span
+- * for another 69 years beyond 2038.
+- */
+ struct inode_time {
+ 	unsigned long	tv_sec;
+ 	long		tv_nsec;
+ };
+-#elif 0
+-/*
+- * This variant can represent the widest range of times, but also
+- * bloats 'struct inode' a little more.
+- */
+-struct inode_time {
+-	long long	tv_sec __attribute__((packed));
+-	int		tv_nsec;
+-};
+-#elif 0
+-/*
+- * The variant using bit fields is less efficient to access, but
+- * small and has a wider range as the 32-bit one, plus it keeps
+- * the signedness of the original timespec.
+- */
+-struct inode_time {
+-	long long	tv_sec	: 34;
+-	int		tv_nsec : 30;
+-};
+-#else
+-#define inode_time timespec
+-#endif
  
--	*tv = ns_to_timespec(nsec);
-+	*tv = ns_to_inode_time(nsec);
- 	return;
+ extern struct timezone sys_tz;
  
-  cur_time:
 -- 
 1.8.3.2
 
