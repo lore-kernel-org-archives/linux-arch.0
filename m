@@ -1,106 +1,108 @@
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: [RFC 04/32] fs: introduce sys_newfstat64/sys_newfstatat64
-Date: Fri, 30 May 2014 22:01:28 +0200
-Message-ID: <1401480116-1973111-5-git-send-email-arnd@arndb.de>
+Subject: [RFC 21/32] udf: convert to struct inode_time
+Date: Fri, 30 May 2014 22:01:45 +0200
+Message-ID: <1401480116-1973111-22-git-send-email-arnd@arndb.de>
 References: <1401480116-1973111-1-git-send-email-arnd@arndb.de>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1401480116-1973111-1-git-send-email-arnd@arndb.de>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, joseph@codesourcery.com, john.stultz@linaro.org, hch@infradead.org, tglx@linutronix.de, geert@linux-m68k.org, lftan@altera.com, hpa@zytor.com, linux-fsdevel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch@vger.kernel.org, joseph@codesourcery.com, john.stultz@linaro.org, hch@infradead.org, tglx@linutronix.de, geert@linux-m68k.org, lftan@altera.com, hpa@zytor.com, linux-fsdevel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Jan Kara <jack@suse.cz>
 List-Id: linux-arch.vger.kernel.org
 
-We want to be able to read file system timestamps beyond year 2038,
-which is currently impossibly on 32-bit systems, since none of the
-various stat syscall interfaces (oldstat, stat, stat64) handles
-correctly.
+udf uses 16-bit year numbers for inode timestamps, which will work
+for the 15000 years, but the VFS uses struct timespec for timestamps,
+and the Linux udf implementation internally uses a time_t, both of
+which are only good until 2038 on 32-bit CPUs.
 
-This introduces a fourth version of the syscalls, called newfstat64
-and newfstatat64, which operate on struct newstat64. Each 32-bit
-architecture needs to define a version of this structure.
-Architectures that have a 64-bit CPU should use the native 64-bit
-'struct stat' if possible, so we can avoid adding a compat_newfstatat64
-syscall. Note that there is no sys_newlstat64 or sys_newstat64,
-as both can be trivially emulated from libc using newfstatat64.
-
-This approach might not be the best solution, as there have been
-proposals in the past to add a new 'struct xstat' interface that
-would not only solve the y2038 problem but provide a number of
-other extensions as well. I have chickened out and avoided reviving
-that discussion for now. This new set of syscalls is a much simpler
-addition and is hopefully less controversial.
-If we end up merging xstat first, we won't need this patch.
+This gets us one small step closer to lifting the VFS limit by using
+struct inode_time in udf, but the implementation still depends on
+the 'year_seconds' array that needs to be extended or replaced by
+an algorithm that calculates the correct time for every year.
 
 Signed-off-by: Arnd Bergmann <arnd@arndb.de>
+Cc: Jan Kara <jack@suse.cz>
 ---
- fs/stat.c | 55 +++++++++++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 55 insertions(+)
+ fs/udf/udf_i.h   | 2 +-
+ fs/udf/udf_sb.h  | 2 +-
+ fs/udf/udfdecl.h | 7 ++++---
+ fs/udf/udftime.c | 7 ++++---
+ 4 files changed, 10 insertions(+), 8 deletions(-)
 
-diff --git a/fs/stat.c b/fs/stat.c
-index ae0c3ce..77fd219 100644
---- a/fs/stat.c
-+++ b/fs/stat.c
-@@ -445,6 +445,61 @@ SYSCALL_DEFINE4(fstatat64, int, dfd, const char __user *, filename,
- }
- #endif /* __ARCH_WANT_STAT64 || __ARCH_WANT_COMPAT_STAT64 */
+diff --git a/fs/udf/udf_i.h b/fs/udf/udf_i.h
+index b5cd8ed..ba12313 100644
+--- a/fs/udf/udf_i.h
++++ b/fs/udf/udf_i.h
+@@ -27,7 +27,7 @@ struct udf_ext_cache {
+  */
  
-+#ifdef __ARCH_HAS_NEWSTAT64
-+/*
-+ * we only need this for the native 32-bit path, all architectures should
-+ * define the 32-bit newstat64 as compatible with the 64-bit stat or
-+ * stat64.
-+ */
-+static long cp_new_newstat64(struct kstat *stat, struct newstat64 __user *statbuf)
-+{
-+	struct newstat64 tmp;
-+
-+	memset(&tmp, 0, sizeof(tmp));
-+	tmp.st_dev = huge_encode_dev(stat->dev);
-+	tmp.st_rdev = huge_encode_dev(stat->rdev);
-+	tmp.st_ino = stat->ino;
-+	tmp.st_mode = stat->mode;
-+	tmp.st_nlink = stat->nlink;
-+	tmp.st_uid = from_kuid_munged(current_user_ns(), stat->uid);
-+	tmp.st_gid = from_kgid_munged(current_user_ns(), stat->gid);
-+	tmp.st_atime = stat->atime.tv_sec;
-+	tmp.st_atime_nsec = stat->atime.tv_nsec;
-+	tmp.st_mtime = stat->mtime.tv_sec;
-+	tmp.st_mtime_nsec = stat->mtime.tv_nsec;
-+	tmp.st_ctime = stat->ctime.tv_sec;
-+	tmp.st_ctime_nsec = stat->ctime.tv_nsec;
-+	tmp.st_size = stat->size;
-+	tmp.st_blocks = stat->blocks;
-+	tmp.st_blksize = stat->blksize;
-+	return copy_to_user(statbuf,&tmp,sizeof(tmp)) ? -EFAULT : 0;
-+}
-+
-+SYSCALL_DEFINE2(newfstat64, unsigned long, fd, struct newstat64 __user *, statbuf)
-+{
-+	struct kstat stat;
-+	int error;
-+
-+	error = vfs_fstat(fd, &stat);
-+	if (error)
-+		return error;
-+
-+	return cp_new_newstat64(&stat, statbuf);
-+}
-+
-+SYSCALL_DEFINE4(newfstatat64, int, dfd, const char __user *, filename,
-+		struct newstat64 __user *, statbuf, int, flag)
-+{
-+	struct kstat stat;
-+	int error;
-+
-+	error = vfs_fstatat(dfd, filename, &stat, flag);
-+	if (error)
-+		return error;
-+	return cp_new_newstat64(&stat, statbuf);
-+}
-+#endif
-+
- /* Caller is here responsible for sufficient locking (ie. inode->i_lock) */
- void __inode_add_bytes(struct inode *inode, loff_t bytes)
+ struct udf_inode_info {
+-	struct timespec		i_crtime;
++	struct inode_time	i_crtime;
+ 	/* Physical address of inode */
+ 	struct kernel_lb_addr		i_location;
+ 	__u64			i_unique;
+diff --git a/fs/udf/udf_sb.h b/fs/udf/udf_sb.h
+index 1f32c7b..20ab0ca 100644
+--- a/fs/udf/udf_sb.h
++++ b/fs/udf/udf_sb.h
+@@ -135,7 +135,7 @@ struct udf_sb_info {
+ 	rwlock_t		s_cred_lock;
+ 
+ 	/* Root Info */
+-	struct timespec		s_record_time;
++	struct inode_time	s_record_time;
+ 
+ 	/* Fileset Info */
+ 	__u16			s_serial_number;
+diff --git a/fs/udf/udfdecl.h b/fs/udf/udfdecl.h
+index be7dabb..88320da 100644
+--- a/fs/udf/udfdecl.h
++++ b/fs/udf/udfdecl.h
+@@ -237,8 +237,9 @@ extern struct long_ad *udf_get_filelongad(uint8_t *, int, uint32_t *, int);
+ extern struct short_ad *udf_get_fileshortad(uint8_t *, int, uint32_t *, int);
+ 
+ /* udftime.c */
+-extern struct timespec *udf_disk_stamp_to_time(struct timespec *dest,
+-						struct timestamp src);
+-extern struct timestamp *udf_time_to_disk_stamp(struct timestamp *dest, struct timespec src);
++extern struct inode_time *udf_disk_stamp_to_time(struct inode_time *dest,
++						 struct timestamp src);
++extern struct timestamp *udf_time_to_disk_stamp(struct timestamp *dest,
++						struct inode_time src);
+ 
+ #endif				/* __UDF_DECL_H */
+diff --git a/fs/udf/udftime.c b/fs/udf/udftime.c
+index 1f11483..1ab6fe7 100644
+--- a/fs/udf/udftime.c
++++ b/fs/udf/udftime.c
+@@ -60,6 +60,7 @@ static const unsigned short int __mon_yday[2][13] = {
+ #define SPD			0x15180	/*3600*24 */
+ #define SPY(y, l, s)		(SPD * (365 * y + l) + s)
+ 
++/* FIXME: convert this to a 64-bit type */
+ static time_t year_seconds[MAX_YEAR_SECONDS] = {
+ /*1970*/ SPY(0,   0, 0), SPY(1,   0, 0), SPY(2,   0, 0), SPY(3,   1, 0),
+ /*1974*/ SPY(4,   1, 0), SPY(5,   1, 0), SPY(6,   1, 0), SPY(7,   2, 0),
+@@ -86,8 +87,8 @@ extern struct timezone sys_tz;
+ #define SECS_PER_HOUR	(60 * 60)
+ #define SECS_PER_DAY	(SECS_PER_HOUR * 24)
+ 
+-struct timespec *
+-udf_disk_stamp_to_time(struct timespec *dest, struct timestamp src)
++struct inode_time *
++udf_disk_stamp_to_time(struct inode_time *dest, struct timestamp src)
  {
+ 	int yday;
+ 	u16 typeAndTimezone = le16_to_cpu(src.typeAndTimezone);
+@@ -119,7 +120,7 @@ udf_disk_stamp_to_time(struct timespec *dest, struct timestamp src)
+ }
+ 
+ struct timestamp *
+-udf_time_to_disk_stamp(struct timestamp *dest, struct timespec ts)
++udf_time_to_disk_stamp(struct timestamp *dest, struct inode_time ts)
+ {
+ 	long int days, rem, y;
+ 	const unsigned short int *ip;
 -- 
 1.8.3.2
