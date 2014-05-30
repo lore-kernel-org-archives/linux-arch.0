@@ -1,56 +1,68 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH] asm-generic: uaccess: avoid name conflicts for strncpy and str(n)len
-Date: Wed, 28 May 2014 21:44:12 +0200
-Message-ID: <9795542.Hus6bU8DVG@wuerfel>
-References: <1401290511-10211-1-git-send-email-joel@porquet.org>
+From: David Miller <davem@davemloft.net>
+Subject: Re: [PATCH v2 14/18] sparc: io: implement dummy relaxed accessor
+ macros for writes
+Date: Thu, 29 May 2014 17:10:30 -0700 (PDT)
+Message-ID: <20140529.171030.2160766520049624641.davem@davemloft.net>
+References: <1400777250-17335-15-git-send-email-will.deacon@arm.com>
+	<20140522181838.GA30632@ravnborg.org>
+	<20140523143810.GE21319@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7Bit
+Content-Type: Text/Plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.126.130]:50830 "EHLO
-	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751902AbaE1ToQ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 28 May 2014 15:44:16 -0400
-In-Reply-To: <1401290511-10211-1-git-send-email-joel@porquet.org>
+Received: from shards.monkeyblade.net ([149.20.54.216]:47685 "EHLO
+	shards.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753405AbaE3AKe (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 29 May 2014 20:10:34 -0400
+In-Reply-To: <20140523143810.GE21319@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Joel Porquet <joel@porquet.org>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: will.deacon@arm.com
+Cc: sam@ravnborg.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, arnd@arndb.de, monstr@monstr.eu, dhowells@redhat.com, broonie@linaro.org, benh@kernel.crashing.org, peterz@infradead.org, paulmck@linux.vnet.ibm.com
 
-On Wednesday 28 May 2014 17:21:51 Joel Porquet wrote:
-> asm-generic/uaccess.h defines 'strncpy_from_user', 'strnlen_user' and
-> 'strlen_user' as static inline functions. It makes it impossible for an
-> arch to include asm-generic/uaccess.h and benefits from its content, in
-> addition to defining GENERIC_STRNCPY_FROM_USER and GENERIC_STRNLEN_USER.
-> 
-> Both configuration tokens respectively enable lib/strncpy_from_user.c
-> and lib/strnlen_user.c which redefine the same symbols, causing
-> redefinition errors at compilation.
-> 
-> This patch modifies asm-generic/uaccess.h so that strncpy_from_user is
-> not defined when GENERIC_STRNCPY_FROM_USER is, and strnlen_user and
-> strlen_user are not defined when GENERIC_STRNLEN_USER is, thus avoiding
-> any name conflict.
-> 
-> At the moment, numerous archs, which make use of
-> GENERIC_STRNCPY_FROM_USER and GENERIC_STRNLEN_USER, are forced to
-> rewrite an entire asm/uaccess.h header because of this issue.
-> 
-> To the best of my knowledge, the following list of archs could benefit
-> from this patch: x86, sh, openrisc, powerpc, arm64, arm, alpha, parisc,
-> sparc, m68k.
-> 
-> Signed-off-by: Joel Porquet <joel@porquet.org>
-> 
+From: Will Deacon <will.deacon@arm.com>
+Date: Fri, 23 May 2014 15:38:10 +0100
 
-Acked-by: Arnd Bergmann <arnd@arndb.de>
+> On Thu, May 22, 2014 at 07:18:38PM +0100, Sam Ravnborg wrote:
+>> On Thu, May 22, 2014 at 05:47:26PM +0100, Will Deacon wrote:
+>> > write{b,w,l,q}_relaxed are implemented by some architectures in order to
+>> > permit memory-mapped I/O accesses with weaker barrier semantics than the
+>> > non-relaxed variants.
+>> > 
+>> > This patch adds dummy macros for the write accessors to sparc, in the
+>> > same vein as the dummy definitions for the relaxed read accessors. The
+>> > existing relaxed read{b,w,l} accessors are moved into asm/io.h, since
+>> > they are identical between 32-bit and 64-bit machines.
+>> > 
+>> > Cc: "David S. Miller" <davem@davemloft.net>
+>> > Signed-off-by: Will Deacon <will.deacon@arm.com>
+>> Look good:
+>> Acked-by: Sam Ravnborg <sam@ravnborg.org>
+> 
+> Thanks, Sam.
+> 
+>> But you should wait for David's ack too.
+> 
+> Yeah, I still need to get buy-in on the semantics from the PPC folks
+> anyway.
 
-It makes sense to do this for any architecture that want's to use
-this file, so feel free to add your patch the tree of whatever architecture
-you want to convert.
+I'm fine with these changes so:
 
-Note however that asm/uaccess.h can't be implemented correctly in
-generic code: you always need inline assembly to add the correct fixup
-section magic.
+Acked-by: David S. Miller <davem@davemloft.net>
 
-	Arnd
+Unfortunately, whilst sparc64 could support the relaxed variants, there is
+no easy way to implement this.
+
+I/O addrs are simply physical addresses on sparc64, and we therefore do
+loads and stores via the ASY_PHYS_BYPASS_EC_E* address spaces.  What
+this address space means is "physical address", "bypass caches", "side
+effect".
+
+To do a relaxed variant we'd need something without the "side effect"
+part, but no such ASI exists.
+
+These are all page protection bits, so we could move to using virtual
+mappings on I/O things, but that's so much overkill just for this I
+think.
+
+Besides there are bigger fish to fry on sparc64 :-)
