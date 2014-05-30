@@ -1,99 +1,83 @@
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: [RFC 16/32] ntfs: convert to struct inode_time
-Date: Fri, 30 May 2014 22:01:40 +0200
-Message-ID: <1401480116-1973111-17-git-send-email-arnd@arndb.de>
+Subject: [RFC 10/32] fs/coda: convert to struct inode_time
+Date: Fri, 30 May 2014 22:01:34 +0200
+Message-ID: <1401480116-1973111-11-git-send-email-arnd@arndb.de>
 References: <1401480116-1973111-1-git-send-email-arnd@arndb.de>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1401480116-1973111-1-git-send-email-arnd@arndb.de>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, joseph@codesourcery.com, john.stultz@linaro.org, hch@infradead.org, tglx@linutronix.de, geert@linux-m68k.org, lftan@altera.com, hpa@zytor.com, linux-fsdevel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Anton Altaparmakov <anton@tuxera.com>, linux-ntfs-dev@lists.sourceforge.net
+Cc: linux-arch@vger.kernel.org, joseph@codesourcery.com, john.stultz@linaro.org, hch@infradead.org, tglx@linutronix.de, geert@linux-m68k.org, lftan@altera.com, hpa@zytor.com, linux-fsdevel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Jan Harkes <jaharkes@cs.cmu.edu>, coda@cs.cmu.edu, codalist@coda.cs.cmu.edu
 List-Id: linux-arch.vger.kernel.org
 
-ntfs uses 64-bit integers for inode timestamps, which will work
-thousands of years, but the VFS uses struct timespec for timestamps,
-which is only good until 2038 on 32-bit CPUs.
-
-This gets us one small step closer to lifting the VFS limit by using
-struct inode_time in ntfs.
+This converts the coda file system to use inode_time, which we will
+need to fix the y2038 limit. However, inode time stamps in coda
+are communicated to user space through coda_pioctl() as a 'struct
+timespec', so this cannot be fixed for coda without changing the
+user space interface.
 
 Signed-off-by: Arnd Bergmann <arnd@arndb.de>
-Cc: Anton Altaparmakov <anton@tuxera.com>
-Cc: linux-ntfs-dev@lists.sourceforge.net
+Cc: Jan Harkes <jaharkes@cs.cmu.edu>
+Cc: coda@cs.cmu.edu
+Cc: codalist@coda.cs.cmu.edu
 ---
- fs/ntfs/inode.c | 12 ++++++------
- fs/ntfs/time.h  |  8 ++++----
- 2 files changed, 10 insertions(+), 10 deletions(-)
+ fs/coda/coda_linux.c      | 18 ++++++++++++------
+ include/uapi/linux/coda.h |  1 +
+ 2 files changed, 13 insertions(+), 6 deletions(-)
 
-diff --git a/fs/ntfs/inode.c b/fs/ntfs/inode.c
-index f47af5e..8f7cba5 100644
---- a/fs/ntfs/inode.c
-+++ b/fs/ntfs/inode.c
-@@ -2811,11 +2811,11 @@ done:
- 	 * for real.
- 	 */
- 	if (!IS_NOCMTIME(VFS_I(base_ni)) && !IS_RDONLY(VFS_I(base_ni))) {
--		struct timespec now = current_fs_time(VFS_I(base_ni)->i_sb);
-+		struct inode_time now = current_fs_time(VFS_I(base_ni)->i_sb);
- 		int sync_it = 0;
- 
--		if (!timespec_equal(&VFS_I(base_ni)->i_mtime, &now) ||
--		    !timespec_equal(&VFS_I(base_ni)->i_ctime, &now))
-+		if (!inode_time_equal(&VFS_I(base_ni)->i_mtime, &now) ||
-+		    !inode_time_equal(&VFS_I(base_ni)->i_ctime, &now))
- 			sync_it = 1;
- 		VFS_I(base_ni)->i_mtime = now;
- 		VFS_I(base_ni)->i_ctime = now;
-@@ -2930,13 +2930,13 @@ int ntfs_setattr(struct dentry *dentry, struct iattr *attr)
- 		}
- 	}
- 	if (ia_valid & ATTR_ATIME)
--		vi->i_atime = timespec_trunc(attr->ia_atime,
-+		vi->i_atime = inode_time_trunc(attr->ia_atime,
- 				vi->i_sb->s_time_gran);
- 	if (ia_valid & ATTR_MTIME)
--		vi->i_mtime = timespec_trunc(attr->ia_mtime,
-+		vi->i_mtime = inode_time_trunc(attr->ia_mtime,
- 				vi->i_sb->s_time_gran);
- 	if (ia_valid & ATTR_CTIME)
--		vi->i_ctime = timespec_trunc(attr->ia_ctime,
-+		vi->i_ctime = inode_time_trunc(attr->ia_ctime,
- 				vi->i_sb->s_time_gran);
- 	mark_inode_dirty(vi);
- out:
-diff --git a/fs/ntfs/time.h b/fs/ntfs/time.h
-index 0123398..2c8d325 100644
---- a/fs/ntfs/time.h
-+++ b/fs/ntfs/time.h
-@@ -45,7 +45,7 @@
-  * measured as the number of 100-nano-second intervals since 1st January 1601,
-  * 00:00:00 UTC.
-  */
--static inline sle64 utc2ntfs(const struct timespec ts)
-+static inline sle64 utc2ntfs(const struct inode_time ts)
- {
- 	/*
- 	 * Convert the seconds to 100ns intervals, add the nano-seconds
-@@ -63,7 +63,7 @@ static inline sle64 utc2ntfs(const struct timespec ts)
-  */
- static inline sle64 get_current_ntfs_time(void)
- {
--	return utc2ntfs(current_kernel_time());
-+	return utc2ntfs(CURRENT_TIME);
+diff --git a/fs/coda/coda_linux.c b/fs/coda/coda_linux.c
+index 2849f41..f2fcec5 100644
+--- a/fs/coda/coda_linux.c
++++ b/fs/coda/coda_linux.c
+@@ -110,11 +110,14 @@ void coda_vattr_to_iattr(struct inode *inode, struct coda_vattr *attr)
+ 	if (attr->va_size != -1)
+ 		inode->i_blocks = (attr->va_size + 511) >> 9;
+ 	if (attr->va_atime.tv_sec != -1) 
+-	        inode->i_atime = attr->va_atime;
++	        inode->i_atime = (struct inode_time)
++			{ attr->va_atime.tv_sec, attr->va_atime.tv_nsec };
+ 	if (attr->va_mtime.tv_sec != -1)
+-	        inode->i_mtime = attr->va_mtime;
++	        inode->i_mtime = (struct inode_time)
++			{ attr->va_mtime.tv_sec, attr->va_mtime.tv_nsec };
+         if (attr->va_ctime.tv_sec != -1)
+-	        inode->i_ctime = attr->va_ctime;
++	        inode->i_ctime = (struct inode_time)
++			{ attr->va_ctime.tv_sec, attr->va_ctime.tv_nsec };
  }
  
- /**
-@@ -82,9 +82,9 @@ static inline sle64 get_current_ntfs_time(void)
-  * measured as the number of 100 nano-second intervals since 1st January 1601,
-  * 00:00:00 UTC.
-  */
--static inline struct timespec ntfs2utc(const sle64 time)
-+static inline struct inode_time ntfs2utc(const sle64 time)
- {
--	struct timespec ts;
-+	struct inode_time ts;
  
- 	/* Subtract the NTFS time offset. */
- 	u64 t = (u64)(sle64_to_cpu(time) - NTFS_TIME_OFFSET);
+@@ -180,13 +183,16 @@ void coda_iattr_to_vattr(struct iattr *iattr, struct coda_vattr *vattr)
+                 vattr->va_size = iattr->ia_size;
+ 	}
+         if ( valid & ATTR_ATIME ) {
+-                vattr->va_atime = iattr->ia_atime;
++                vattr->va_atime = (struct timespec)
++			{ iattr->ia_atime.tv_sec, iattr->ia_atime.tv_nsec };
+ 	}
+         if ( valid & ATTR_MTIME ) {
+-                vattr->va_mtime = iattr->ia_mtime;
++                vattr->va_mtime = (struct timespec)
++			{ iattr->ia_mtime.tv_sec, iattr->ia_mtime.tv_nsec };
+ 	}
+         if ( valid & ATTR_CTIME ) {
+-                vattr->va_ctime = iattr->ia_ctime;
++                vattr->va_ctime = (struct timespec)
++			{ iattr->ia_ctime.tv_sec, iattr->ia_ctime.tv_nsec };
+ 	}
+ }
+ 
+diff --git a/include/uapi/linux/coda.h b/include/uapi/linux/coda.h
+index 695fade..e7258f7 100644
+--- a/include/uapi/linux/coda.h
++++ b/include/uapi/linux/coda.h
+@@ -220,6 +220,7 @@ struct coda_vattr {
+ 	long		va_fileid;	/* file id */
+ 	u_quad_t	va_size;	/* file size in bytes */
+ 	long		va_blocksize;	/* blocksize preferred for i/o */
++	/* FIXME: timespec in user API */
+ 	struct timespec	va_atime;	/* time of last access */
+ 	struct timespec	va_mtime;	/* time of last modification */
+ 	struct timespec	va_ctime;	/* time file changed */
 -- 
 1.8.3.2
