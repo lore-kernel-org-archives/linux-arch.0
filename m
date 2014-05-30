@@ -1,77 +1,59 @@
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: [RFC 32/32] fs: use new inode_time definition unconditionally
-Date: Fri, 30 May 2014 22:01:56 +0200
-Message-ID: <1401480116-1973111-33-git-send-email-arnd@arndb.de>
+Subject: [RFC 30/32] fuse: convert to struct inode_time
+Date: Fri, 30 May 2014 22:01:54 +0200
+Message-ID: <1401480116-1973111-31-git-send-email-arnd@arndb.de>
 References: <1401480116-1973111-1-git-send-email-arnd@arndb.de>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1401480116-1973111-1-git-send-email-arnd@arndb.de>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, joseph@codesourcery.com, john.stultz@linaro.org, hch@infradead.org, tglx@linutronix.de, geert@linux-m68k.org, lftan@altera.com, hpa@zytor.com, linux-fsdevel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch@vger.kernel.org, joseph@codesourcery.com, john.stultz@linaro.org, hch@infradead.org, tglx@linutronix.de, geert@linux-m68k.org, lftan@altera.com, hpa@zytor.com, linux-fsdevel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Miklos Szeredi <miklos@szeredi.hu>, fuse-devel@lists.sourceforge.net
 List-Id: linux-arch.vger.kernel.org
 
-After all file systems have been converted to use 'struct inode_time'
-for timestamps, we can remove the compatibility definition for this
-structure.
+fuse uses 64-bit seconds for inode timestamps in the user interface,
+which will work basically forever, but the VFS uses struct timespec
+for timestamps, which is only good until 2038 on 32-bit CPUs.
 
-This patch picks the first of the three variants I defined, but we
-could pick one of the others as well.
+This gets us one small step closer to lifting the VFS limit by using
+struct inode_time in fuse.
 
 Signed-off-by: Arnd Bergmann <arnd@arndb.de>
+Cc: Miklos Szeredi <miklos@szeredi.hu>
+Cc: fuse-devel@lists.sourceforge.net
 ---
- include/linux/time.h | 31 ++-----------------------------
- 1 file changed, 2 insertions(+), 29 deletions(-)
+ fs/fuse/inode.c | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
 
-diff --git a/include/linux/time.h b/include/linux/time.h
-index f431263..00d2f14 100644
---- a/include/linux/time.h
-+++ b/include/linux/time.h
-@@ -6,44 +6,17 @@
- # include <linux/math64.h>
- #include <uapi/linux/time.h>
+diff --git a/fs/fuse/inode.c b/fs/fuse/inode.c
+index 754dcf2..58f138e 100644
+--- a/fs/fuse/inode.c
++++ b/fs/fuse/inode.c
+@@ -203,7 +203,7 @@ void fuse_change_attributes(struct inode *inode, struct fuse_attr *attr,
+ 	struct fuse_inode *fi = get_fuse_inode(inode);
+ 	bool is_wb = fc->writeback_cache;
+ 	loff_t oldsize;
+-	struct timespec old_mtime;
++	struct inode_time old_mtime;
  
--#ifdef CONFIG_NEW_INODE_TIME
- /*
-  * This is the type we use internally in the kernel to represent
-- * absolute times in file system metadata.
-+ * absolute times in file system metadata using unsigned seconds
-+ * lets us extend the life span for another 69 years beyond 2038.
-  * This structure must not leak out to user space, and new interfaces
-  * should be using 64-bit types right away.
-  */
--
--/*
-- * Variant a) using unsigned seconds lets us extend the life span
-- * for another 69 years beyond 2038.
-- */
- struct inode_time {
- 	unsigned long	tv_sec;
- 	long		tv_nsec;
- };
--#elif 0
--/*
-- * This variant can represent the widest range of times, but also
-- * bloats 'struct inode' a little more.
-- */
--struct inode_time {
--	long long	tv_sec __attribute__((packed));
--	int		tv_nsec;
--};
--#elif 0
--/*
-- * The variant using bit fields is less efficient to access, but
-- * small and has a wider range as the 32-bit one, plus it keeps
-- * the signedness of the original timespec.
-- */
--struct inode_time {
--	long long	tv_sec	: 34;
--	int		tv_nsec : 30;
--};
--#else
--#define inode_time timespec
--#endif
- 
- extern struct timezone sys_tz;
+ 	spin_lock(&fc->lock);
+ 	if ((attr_version != 0 && fi->attr_version > attr_version) ||
+@@ -232,7 +232,7 @@ void fuse_change_attributes(struct inode *inode, struct fuse_attr *attr,
+ 			truncate_pagecache(inode, attr->size);
+ 			inval = true;
+ 		} else if (fc->auto_inval_data) {
+-			struct timespec new_mtime = {
++			struct inode_time new_mtime = {
+ 				.tv_sec = attr->mtime,
+ 				.tv_nsec = attr->mtimensec,
+ 			};
+@@ -241,7 +241,7 @@ void fuse_change_attributes(struct inode *inode, struct fuse_attr *attr,
+ 			 * Auto inval mode also checks and invalidates if mtime
+ 			 * has changed.
+ 			 */
+-			if (!timespec_equal(&old_mtime, &new_mtime))
++			if (!inode_time_equal(&old_mtime, &new_mtime))
+ 				inval = true;
+ 		}
  
 -- 
 1.8.3.2
