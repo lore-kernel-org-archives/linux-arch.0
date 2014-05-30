@@ -1,186 +1,116 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.17.24]:61316 "EHLO
+Received: from mout.kundenserver.de ([212.227.17.24]:53461 "EHLO
 	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S934246AbaE3UH0 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 30 May 2014 16:07:26 -0400
+	with ESMTP id S934246AbaE3UHT (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 30 May 2014 16:07:19 -0400
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: [RFC 19/32] fs/fat: convert to struct inode_time
-Date: Fri, 30 May 2014 22:01:43 +0200
-Message-ID: <1401480116-1973111-20-git-send-email-arnd@arndb.de>
+Subject: [RFC 17/32] ubifs: convert to struct inode_time
+Date: Fri, 30 May 2014 22:01:41 +0200
+Message-ID: <1401480116-1973111-18-git-send-email-arnd@arndb.de>
 In-Reply-To: <1401480116-1973111-1-git-send-email-arnd@arndb.de>
 References: <1401480116-1973111-1-git-send-email-arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, joseph@codesourcery.com, john.stultz@linaro.org, hch@infradead.org, tglx@linutronix.de, geert@linux-m68k.org, lftan@altera.com, hpa@zytor.com, linux-fsdevel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, OGAWA Hirofumi <hirofumi@mail.parknet.co.jp>
-Message-ID: <20140530200143.YueUoQBoJGx-eFfamzIHHOPjOgj99lH7sInMJUd6QYs@z>
+Cc: linux-arch@vger.kernel.org, joseph@codesourcery.com, john.stultz@linaro.org, hch@infradead.org, tglx@linutronix.de, geert@linux-m68k.org, lftan@altera.com, hpa@zytor.com, linux-fsdevel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Artem Bityutskiy <dedekind1@gmail.com>, Adrian Hunter <adrian.hunter@intel.com>, linux-mtd@lists.infradead.org
+Message-ID: <20140530200141.Lv07IXQ9msMXffFJwqHH8RINtEYzPVTHmbYjnmo_H68@z>
 
-fat uses 7-bit year numbers for inode timestamps, which will work
-for the next 93 years, but the VFS uses struct timespec for timestamps,
+ubifs uses 64-bit integers for inode timestamps, which will work
+practicall forever, but the VFS uses struct timespec for timestamps,
 which is only good until 2038 on 32-bit CPUs.
 
 This gets us one small step closer to lifting the VFS limit by using
-struct inode_time in fat.
+struct inode_time in ubifs.
 
 Signed-off-by: Arnd Bergmann <arnd@arndb.de>
-Cc: OGAWA Hirofumi <hirofumi@mail.parknet.co.jp>
+Cc: Artem Bityutskiy <dedekind1@gmail.com>
+Cc: Adrian Hunter <adrian.hunter@intel.com>
+Cc: linux-mtd@lists.infradead.org
 ---
- fs/fat/dir.c         |  2 +-
- fs/fat/fat.h         |  6 +++---
- fs/fat/misc.c        |  4 ++--
- fs/fat/namei_msdos.c |  8 ++++----
- fs/fat/namei_vfat.c  | 10 +++++-----
- 5 files changed, 15 insertions(+), 15 deletions(-)
+ fs/ubifs/dir.c  |  2 +-
+ fs/ubifs/file.c | 16 ++++++++--------
+ fs/ubifs/misc.h |  2 +-
+ 3 files changed, 10 insertions(+), 10 deletions(-)
 
-diff --git a/fs/fat/dir.c b/fs/fat/dir.c
-index 3963ede..9a9a12d 100644
---- a/fs/fat/dir.c
-+++ b/fs/fat/dir.c
-@@ -1127,7 +1127,7 @@ error:
- 	return err;
+diff --git a/fs/ubifs/dir.c b/fs/ubifs/dir.c
+index ea41649..a551ecc 100644
+--- a/fs/ubifs/dir.c
++++ b/fs/ubifs/dir.c
+@@ -965,7 +965,7 @@ static int ubifs_rename(struct inode *old_dir, struct dentry *old_dentry,
+ 					.dirtied_ino = 3 };
+ 	struct ubifs_budget_req ino_req = { .dirtied_ino = 1,
+ 			.dirtied_ino_d = ALIGN(old_inode_ui->data_len, 8) };
+-	struct timespec time;
++	struct inode_time time;
+ 	unsigned int uninitialized_var(saved_nlink);
+ 
+ 	/*
+diff --git a/fs/ubifs/file.c b/fs/ubifs/file.c
+index ebcf15f..55cd034 100644
+--- a/fs/ubifs/file.c
++++ b/fs/ubifs/file.c
+@@ -1073,13 +1073,13 @@ static void do_attr_changes(struct inode *inode, const struct iattr *attr)
+ 	if (attr->ia_valid & ATTR_GID)
+ 		inode->i_gid = attr->ia_gid;
+ 	if (attr->ia_valid & ATTR_ATIME)
+-		inode->i_atime = timespec_trunc(attr->ia_atime,
++		inode->i_atime = inode_time_trunc(attr->ia_atime,
+ 						inode->i_sb->s_time_gran);
+ 	if (attr->ia_valid & ATTR_MTIME)
+-		inode->i_mtime = timespec_trunc(attr->ia_mtime,
++		inode->i_mtime = inode_time_trunc(attr->ia_mtime,
+ 						inode->i_sb->s_time_gran);
+ 	if (attr->ia_valid & ATTR_CTIME)
+-		inode->i_ctime = timespec_trunc(attr->ia_ctime,
++		inode->i_ctime = inode_time_trunc(attr->ia_ctime,
+ 						inode->i_sb->s_time_gran);
+ 	if (attr->ia_valid & ATTR_MODE) {
+ 		umode_t mode = attr->ia_mode;
+@@ -1353,10 +1353,10 @@ out:
+  * granularity, they are not updated. This is an optimization.
+  */
+ static inline int mctime_update_needed(const struct inode *inode,
+-				       const struct timespec *now)
++				       const struct inode_time *now)
+ {
+-	if (!timespec_equal(&inode->i_mtime, now) ||
+-	    !timespec_equal(&inode->i_ctime, now))
++	if (!inode_time_equal(&inode->i_mtime, now) ||
++	    !inode_time_equal(&inode->i_ctime, now))
+ 		return 1;
+ 	return 0;
  }
- 
--int fat_alloc_new_dir(struct inode *dir, struct timespec *ts)
-+int fat_alloc_new_dir(struct inode *dir, struct inode_time *ts)
+@@ -1371,7 +1371,7 @@ static inline int mctime_update_needed(const struct inode *inode,
+  */
+ static int update_mctime(struct inode *inode)
  {
- 	struct super_block *sb = dir->i_sb;
- 	struct msdos_sb_info *sbi = MSDOS_SB(sb);
-diff --git a/fs/fat/fat.h b/fs/fat/fat.h
-index 13b7202..70a32b4 100644
---- a/fs/fat/fat.h
-+++ b/fs/fat/fat.h
-@@ -307,7 +307,7 @@ extern int fat_scan_logstart(struct inode *dir, int i_logstart,
- 			     struct fat_slot_info *sinfo);
- extern int fat_get_dotdot_entry(struct inode *dir, struct buffer_head **bh,
- 				struct msdos_dir_entry **de);
--extern int fat_alloc_new_dir(struct inode *dir, struct timespec *ts);
-+extern int fat_alloc_new_dir(struct inode *dir, struct inode_time *ts);
- extern int fat_add_entries(struct inode *dir, void *slots, int nr_slots,
- 			   struct fat_slot_info *sinfo);
- extern int fat_remove_entries(struct inode *dir, struct fat_slot_info *sinfo);
-@@ -407,9 +407,9 @@ void fat_msg(struct super_block *sb, const char *level, const char *fmt, ...);
- 	 } while (0)
- extern int fat_clusters_flush(struct super_block *sb);
- extern int fat_chain_add(struct inode *inode, int new_dclus, int nr_cluster);
--extern void fat_time_fat2unix(struct msdos_sb_info *sbi, struct timespec *ts,
-+extern void fat_time_fat2unix(struct msdos_sb_info *sbi, struct inode_time *ts,
- 			      __le16 __time, __le16 __date, u8 time_cs);
--extern void fat_time_unix2fat(struct msdos_sb_info *sbi, struct timespec *ts,
-+extern void fat_time_unix2fat(struct msdos_sb_info *sbi, struct inode_time *ts,
- 			      __le16 *time, __le16 *date, u8 *time_cs);
- extern int fat_sync_bhs(struct buffer_head **bhs, int nr_bhs);
+-	struct timespec now = ubifs_current_time(inode);
++	struct inode_time now = ubifs_current_time(inode);
+ 	struct ubifs_inode *ui = ubifs_inode(inode);
+ 	struct ubifs_info *c = inode->i_sb->s_fs_info;
  
-diff --git a/fs/fat/misc.c b/fs/fat/misc.c
-index 628e22a..8710e24 100644
---- a/fs/fat/misc.c
-+++ b/fs/fat/misc.c
-@@ -192,7 +192,7 @@ static time_t days_in_year[] = {
- };
+@@ -1443,7 +1443,7 @@ static int ubifs_vm_page_mkwrite(struct vm_area_struct *vma,
+ 	struct page *page = vmf->page;
+ 	struct inode *inode = file_inode(vma->vm_file);
+ 	struct ubifs_info *c = inode->i_sb->s_fs_info;
+-	struct timespec now = ubifs_current_time(inode);
++	struct inode_time now = ubifs_current_time(inode);
+ 	struct ubifs_budget_req req = { .new_page = 1 };
+ 	int err, update_time;
  
- /* Convert a FAT time/date pair to a UNIX date (seconds since 1 1 70). */
--void fat_time_fat2unix(struct msdos_sb_info *sbi, struct timespec *ts,
-+void fat_time_fat2unix(struct msdos_sb_info *sbi, struct inode_time *ts,
- 		       __le16 __time, __le16 __date, u8 time_cs)
+diff --git a/fs/ubifs/misc.h b/fs/ubifs/misc.h
+index ee7cb5e..ca0fcac 100644
+--- a/fs/ubifs/misc.h
++++ b/fs/ubifs/misc.h
+@@ -233,7 +233,7 @@ static inline void *ubifs_idx_key(const struct ubifs_info *c,
+  * ubifs_current_time - round current time to time granularity.
+  * @inode: inode
+  */
+-static inline struct timespec ubifs_current_time(struct inode *inode)
++static inline struct inode_time ubifs_current_time(struct inode *inode)
  {
- 	u16 time = le16_to_cpu(__time), date = le16_to_cpu(__date);
-@@ -230,7 +230,7 @@ void fat_time_fat2unix(struct msdos_sb_info *sbi, struct timespec *ts,
- }
- 
- /* Convert linear UNIX date to a FAT time/date pair. */
--void fat_time_unix2fat(struct msdos_sb_info *sbi, struct timespec *ts,
-+void fat_time_unix2fat(struct msdos_sb_info *sbi, struct inode_time *ts,
- 		       __le16 *time, __le16 *date, u8 *time_cs)
- {
- 	struct tm tm;
-diff --git a/fs/fat/namei_msdos.c b/fs/fat/namei_msdos.c
-index a783b0e..699aa3e 100644
---- a/fs/fat/namei_msdos.c
-+++ b/fs/fat/namei_msdos.c
-@@ -226,7 +226,7 @@ static struct dentry *msdos_lookup(struct inode *dir, struct dentry *dentry,
- /***** Creates a directory entry (name is already formatted). */
- static int msdos_add_entry(struct inode *dir, const unsigned char *name,
- 			   int is_dir, int is_hid, int cluster,
--			   struct timespec *ts, struct fat_slot_info *sinfo)
-+			   struct inode_time *ts, struct fat_slot_info *sinfo)
- {
- 	struct msdos_sb_info *sbi = MSDOS_SB(dir->i_sb);
- 	struct msdos_dir_entry de;
-@@ -267,7 +267,7 @@ static int msdos_create(struct inode *dir, struct dentry *dentry, umode_t mode,
- 	struct super_block *sb = dir->i_sb;
- 	struct inode *inode = NULL;
- 	struct fat_slot_info sinfo;
--	struct timespec ts;
-+	struct inode_time ts;
- 	unsigned char msdos_name[MSDOS_NAME];
- 	int err, is_hid;
- 
-@@ -349,7 +349,7 @@ static int msdos_mkdir(struct inode *dir, struct dentry *dentry, umode_t mode)
- 	struct fat_slot_info sinfo;
- 	struct inode *inode;
- 	unsigned char msdos_name[MSDOS_NAME];
--	struct timespec ts;
-+	struct inode_time ts;
- 	int err, is_hid, cluster;
- 
- 	mutex_lock(&MSDOS_SB(sb)->s_lock);
-@@ -437,7 +437,7 @@ static int do_msdos_rename(struct inode *old_dir, unsigned char *old_name,
- 	struct msdos_dir_entry *dotdot_de;
- 	struct inode *old_inode, *new_inode;
- 	struct fat_slot_info old_sinfo, sinfo;
--	struct timespec ts;
-+	struct inode_time ts;
- 	loff_t new_i_pos;
- 	int err, old_attrs, is_dir, update_dotdot, corrupt = 0;
- 
-diff --git a/fs/fat/namei_vfat.c b/fs/fat/namei_vfat.c
-index 6df8d3d..f31b0af 100644
---- a/fs/fat/namei_vfat.c
-+++ b/fs/fat/namei_vfat.c
-@@ -579,7 +579,7 @@ xlate_to_uni(const unsigned char *name, int len, unsigned char *outname,
- 
- static int vfat_build_slots(struct inode *dir, const unsigned char *name,
- 			    int len, int is_dir, int cluster,
--			    struct timespec *ts,
-+			    struct inode_time *ts,
- 			    struct msdos_dir_slot *slots, int *nr_slots)
- {
- 	struct msdos_sb_info *sbi = MSDOS_SB(dir->i_sb);
-@@ -655,7 +655,7 @@ out_free:
- }
- 
- static int vfat_add_entry(struct inode *dir, struct qstr *qname, int is_dir,
--			  int cluster, struct timespec *ts,
-+			  int cluster, struct inode_time *ts,
- 			  struct fat_slot_info *sinfo)
- {
- 	struct msdos_dir_slot *slots;
-@@ -772,7 +772,7 @@ static int vfat_create(struct inode *dir, struct dentry *dentry, umode_t mode,
- 	struct super_block *sb = dir->i_sb;
- 	struct inode *inode;
- 	struct fat_slot_info sinfo;
--	struct timespec ts;
-+	struct inode_time ts;
- 	int err;
- 
- 	mutex_lock(&MSDOS_SB(sb)->s_lock);
-@@ -860,7 +860,7 @@ static int vfat_mkdir(struct inode *dir, struct dentry *dentry, umode_t mode)
- 	struct super_block *sb = dir->i_sb;
- 	struct inode *inode;
- 	struct fat_slot_info sinfo;
--	struct timespec ts;
-+	struct inode_time ts;
- 	int err, cluster;
- 
- 	mutex_lock(&MSDOS_SB(sb)->s_lock);
-@@ -909,7 +909,7 @@ static int vfat_rename(struct inode *old_dir, struct dentry *old_dentry,
- 	struct msdos_dir_entry *dotdot_de;
- 	struct inode *old_inode, *new_inode;
- 	struct fat_slot_info old_sinfo, sinfo;
--	struct timespec ts;
-+	struct inode_time ts;
- 	loff_t new_i_pos;
- 	int err, is_dir, update_dotdot, corrupt = 0;
- 	struct super_block *sb = old_dir->i_sb;
+ 	return (inode->i_sb->s_time_gran < NSEC_PER_SEC) ?
+ 		current_fs_time(inode->i_sb) : CURRENT_TIME_SEC;
 -- 
 1.8.3.2
 
