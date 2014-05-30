@@ -1,7 +1,7 @@
 From: Waiman Long <Waiman.Long@hp.com>
-Subject: [PATCH v11 04/16] qspinlock: Extract out the exchange of tail code word
-Date: Fri, 30 May 2014 11:43:50 -0400
-Message-ID: <1401464642-33890-5-git-send-email-Waiman.Long@hp.com>
+Subject: [PATCH v11 06/16] qspinlock: prolong the stay in the pending bit path
+Date: Fri, 30 May 2014 11:43:52 -0400
+Message-ID: <1401464642-33890-7-git-send-email-Waiman.Long@hp.com>
 References: <1401464642-33890-1-git-send-email-Waiman.Long@hp.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1401464642-33890-1-git-send-email-Waiman.Long@hp.com>
@@ -10,112 +10,103 @@ To: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Pe
 Cc: linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Rik van Riel <riel@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, David Vrabel <david.vrabel@citrix.com>, Oleg Nesterov <oleg@redhat.com>, Gleb Natapov <gleb@redhat.com>, Scott J Norton <scott.norton@hp.com>, Chegu Vinod <chegu_vinod@hp.com>, Waiman Long <Waiman.Long@hp.com>
 List-Id: linux-arch.vger.kernel.org
 
-This patch extracts the logic for the exchange of new and previous tail
-code words into a new xchg_tail() function which can be optimized in a
-later patch.
+There is a problem in the current pending bit spinning code.  When the
+lock is free, but the pending bit holder hasn't grabbed the lock &
+cleared the pending bit yet, the spinning code will not be run.
+As a result, the regular queuing code path might be used most of
+the time even when there is only 2 tasks contending for the lock.
+Assuming that the pending bit holder is going to get the lock and
+clear the pending bit soon, it is actually better to wait than to be
+queued up which has a higher overhead.
+
+The following tables show the before-patch execution time (in ms)
+of a micro-benchmark where 5M iterations of the lock/unlock cycles
+were run on a 10-core Westere-EX x86-64 CPU with 2 different types of
+loads - standalone (lock and protected data in different cachelines)
+and embedded (lock and protected data in the same cacheline).
+
+		  [Standalone/Embedded - same node]
+  # of tasks	Ticket lock	Queue lock	 %Change
+  ----------	-----------	----------	 -------
+       1	  135/ 111	 135/ 101	   0%/  -9%
+       2	  890/ 779	1885/1990	+112%/+156%
+       3	 1932/1859	2333/2341	 +21%/ +26%
+       4	 2829/2726	2900/2923	  +3%/  +7%
+       5	 3834/3761	3655/3648	  -5%/  -3%
+       6	 4963/4976	4336/4326	 -13%/ -13%
+       7	 6299/6269	5057/5064	 -20%/ -19%
+       8	 7691/7569	5786/5798	 -25%/ -23%
+
+Of course, the results will varies depending on what kind of test
+machine is used.
+
+With 1 task per NUMA node, the execution times are:
+
+		[Standalone - different nodes]
+  # of nodes	Ticket lock	Queue lock	%Change
+  ----------	-----------	----------	-------
+       1	   135		  135		  0%
+       2	  4604		 5087		+10%
+       3	 10940		12224		+12%
+       4	 21555		10555		-51%
+
+It can be seen that the queue spinlock is slower than the ticket
+spinlock when there are 2 or 3 contending tasks. In all the other case,
+the queue spinlock is either equal or faster than the ticket spinlock.
+
+With this patch, the performance data for 2 contending tasks are:
+
+		  [Standalone/Embedded]
+  # of tasks	Ticket lock	Queue lock	%Change
+  ----------	-----------	----------	-------
+       2	  890/779	 984/871	+11%/+12%
+
+		[Standalone - different nodes]
+  # of nodes	Ticket lock	Queue lock	%Change
+  ----------	-----------	----------	-------
+       2	  4604		   1364		  -70%
+
+It can be seen that the queue spinlock performance for 2 contending
+tasks is now comparable to ticket spinlock on the same node, but much
+faster when in different nodes. With 3 contending tasks, however,
+the ticket spinlock is still quite a bit faster.
 
 Signed-off-by: Waiman Long <Waiman.Long@hp.com>
 ---
- include/asm-generic/qspinlock_types.h |    2 +
- kernel/locking/qspinlock.c            |   58 ++++++++++++++++++++------------
- 2 files changed, 38 insertions(+), 22 deletions(-)
+ kernel/locking/qspinlock.c |   18 ++++++++++++++++--
+ 1 files changed, 16 insertions(+), 2 deletions(-)
 
-diff --git a/include/asm-generic/qspinlock_types.h b/include/asm-generic/qspinlock_types.h
-index bd25081..ed5d89a 100644
---- a/include/asm-generic/qspinlock_types.h
-+++ b/include/asm-generic/qspinlock_types.h
-@@ -61,6 +61,8 @@ typedef struct qspinlock {
- #define _Q_TAIL_CPU_BITS	(32 - _Q_TAIL_CPU_OFFSET)
- #define _Q_TAIL_CPU_MASK	_Q_SET_MASK(TAIL_CPU)
- 
-+#define _Q_TAIL_MASK		(_Q_TAIL_IDX_MASK | _Q_TAIL_CPU_MASK)
-+
- #define _Q_LOCKED_VAL		(1U << _Q_LOCKED_OFFSET)
- #define _Q_PENDING_VAL		(1U << _Q_PENDING_OFFSET)
- 
 diff --git a/kernel/locking/qspinlock.c b/kernel/locking/qspinlock.c
-index 1e93c6a..41594a1 100644
+index fc7fd8c..7f10758 100644
 --- a/kernel/locking/qspinlock.c
 +++ b/kernel/locking/qspinlock.c
-@@ -86,6 +86,31 @@ static inline struct mcs_spinlock *decode_tail(u32 tail)
- #define _Q_LOCKED_PENDING_MASK	(_Q_LOCKED_MASK | _Q_PENDING_MASK)
- 
- /**
-+ * xchg_tail - Put in the new queue tail code word & retrieve previous one
-+ * @lock : Pointer to queue spinlock structure
-+ * @tail : The new queue tail code word
-+ * Return: The previous queue tail code word
-+ *
-+ * xchg(lock, tail)
-+ *
-+ * p,*,* -> n,*,* ; prev = xchg(lock, node)
-+ */
-+static __always_inline u32 xchg_tail(struct qspinlock *lock, u32 tail)
-+{
-+	u32 old, new, val = atomic_read(&lock->val);
-+
-+	for (;;) {
-+		new = (val & _Q_LOCKED_PENDING_MASK) | tail;
-+		old = atomic_cmpxchg(&lock->val, val, new);
-+		if (old == val)
-+			break;
-+
-+		val = old;
-+	}
-+	return old;
-+}
-+
-+/**
-  * queue_spin_lock_slowpath - acquire the queue spinlock
-  * @lock: Pointer to queue spinlock structure
-  * @val: Current value of the queue spinlock 32-bit word
-@@ -182,36 +207,25 @@ queue:
- 	node->next = NULL;
- 
- 	/*
--	 * we already touched the queueing cacheline; don't bother with pending
--	 * stuff.
--	 *
--	 * trylock || xchg(lock, node)
--	 *
--	 * 0,0,0 -> 0,0,1 ; trylock
--	 * p,y,x -> n,y,x ; prev = xchg(lock, node)
-+	 * We touched a (possibly) cold cacheline in the per-cpu queue node;
-+	 * attempt the trylock once more in the hope someone let go while we
-+	 * weren't watching.
+@@ -233,11 +233,25 @@ void queue_spin_lock_slowpath(struct qspinlock *lock, u32 val)
  	 */
--	for (;;) {
--		new = _Q_LOCKED_VAL;
--		if (val)
--			new = tail | (val & _Q_LOCKED_PENDING_MASK);
--
--		old = atomic_cmpxchg(&lock->val, val, new);
--		if (old == val)
--			break;
--
--		val = old;
--	}
-+	if (queue_spin_trylock(lock))
-+		goto release;
+ 	for (;;) {
+ 		/*
+-		 * If we observe any contention; queue.
++		 * If we observe that the queue is not empty or both
++		 * the pending and lock bits are set, queue
+ 		 */
+-		if (val & ~_Q_LOCKED_MASK)
++		if ((val & _Q_TAIL_MASK) ||
++		    (val == (_Q_LOCKED_VAL|_Q_PENDING_VAL)))
+ 			goto queue;
  
- 	/*
--	 * we won the trylock; forget about queueing.
-+	 * we already touched the queueing cacheline; don't bother with pending
-+	 * stuff.
-+	 *
-+	 * p,*,* -> n,*,*
- 	 */
--	if (new == _Q_LOCKED_VAL)
--		goto release;
-+	old = xchg_tail(lock, tail);
- 
- 	/*
- 	 * if there was a previous node; link it and wait.
- 	 */
--	if (old & ~_Q_LOCKED_PENDING_MASK) {
-+	if (old & _Q_TAIL_MASK) {
- 		prev = decode_tail(old);
- 		ACCESS_ONCE(prev->next) = node;
- 
++		if (val == _Q_PENDING_VAL) {
++			/*
++			 * Pending bit is set, but not the lock bit.
++			 * Assuming that the pending bit holder is going to
++			 * set the lock bit and clear the pending bit soon,
++			 * it is better to wait than to exit at this point.
++			 */
++			cpu_relax();
++			val = atomic_read(&lock->val);
++			continue;
++		}
++
+ 		new = _Q_LOCKED_VAL;
+ 		if (val == new)
+ 			new |= _Q_PENDING_VAL;
 -- 
 1.7.1
