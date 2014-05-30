@@ -1,236 +1,110 @@
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: [RFC 05/32] arch: hook up new stat and utimes syscalls
-Date: Fri, 30 May 2014 22:01:29 +0200
-Message-ID: <1401480116-1973111-6-git-send-email-arnd@arndb.de>
+Subject: [RFC 17/32] ubifs: convert to struct inode_time
+Date: Fri, 30 May 2014 22:01:41 +0200
+Message-ID: <1401480116-1973111-18-git-send-email-arnd@arndb.de>
 References: <1401480116-1973111-1-git-send-email-arnd@arndb.de>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1401480116-1973111-1-git-send-email-arnd@arndb.de>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, joseph@codesourcery.com, john.stultz@linaro.org, hch@infradead.org, tglx@linutronix.de, geert@linux-m68k.org, lftan@altera.com, hpa@zytor.com, linux-fsdevel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch@vger.kernel.org, joseph@codesourcery.com, john.stultz@linaro.org, hch@infradead.org, tglx@linutronix.de, geert@linux-m68k.org, lftan@altera.com, hpa@zytor.com, linux-fsdevel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Artem Bityutskiy <dedekind1@gmail.com>, Adrian Hunter <adrian.hunter@intel.com>, linux-mtd@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-This adds the newly added system calls for newfstat64, newfstatat64
-and utimens64at to x86, arm and all architectures using the generic
-syscall ABI.
+ubifs uses 64-bit integers for inode timestamps, which will work
+practicall forever, but the VFS uses struct timespec for timestamps,
+which is only good until 2038 on 32-bit CPUs.
+
+This gets us one small step closer to lifting the VFS limit by using
+struct inode_time in ubifs.
 
 Signed-off-by: Arnd Bergmann <arnd@arndb.de>
+Cc: Artem Bityutskiy <dedekind1@gmail.com>
+Cc: Adrian Hunter <adrian.hunter@intel.com>
+Cc: linux-mtd@lists.infradead.org
 ---
- arch/arm/include/asm/unistd.h      |  2 +-
- arch/arm/include/uapi/asm/stat.h   | 25 +++++++++++++++++++++++++
- arch/arm/include/uapi/asm/unistd.h |  3 +++
- arch/arm/kernel/calls.S            |  3 +++
- arch/arm64/include/asm/unistd32.h  |  5 ++++-
- arch/x86/include/uapi/asm/stat.h   | 28 ++++++++++++++++++++++++++++
- arch/x86/syscalls/syscall_32.tbl   |  3 +++
- include/uapi/asm-generic/stat.h    | 29 +++++++++++++++++++++++++++--
- include/uapi/asm-generic/unistd.h  |  8 +++++++-
- 9 files changed, 101 insertions(+), 5 deletions(-)
+ fs/ubifs/dir.c  |  2 +-
+ fs/ubifs/file.c | 16 ++++++++--------
+ fs/ubifs/misc.h |  2 +-
+ 3 files changed, 10 insertions(+), 10 deletions(-)
 
-diff --git a/arch/arm/include/asm/unistd.h b/arch/arm/include/asm/unistd.h
-index 4387624..2ed963a 100644
---- a/arch/arm/include/asm/unistd.h
-+++ b/arch/arm/include/asm/unistd.h
-@@ -15,7 +15,7 @@
+diff --git a/fs/ubifs/dir.c b/fs/ubifs/dir.c
+index ea41649..a551ecc 100644
+--- a/fs/ubifs/dir.c
++++ b/fs/ubifs/dir.c
+@@ -965,7 +965,7 @@ static int ubifs_rename(struct inode *old_dir, struct dentry *old_dentry,
+ 					.dirtied_ino = 3 };
+ 	struct ubifs_budget_req ino_req = { .dirtied_ino = 1,
+ 			.dirtied_ino_d = ALIGN(old_inode_ui->data_len, 8) };
+-	struct timespec time;
++	struct inode_time time;
+ 	unsigned int uninitialized_var(saved_nlink);
  
- #include <uapi/asm/unistd.h>
+ 	/*
+diff --git a/fs/ubifs/file.c b/fs/ubifs/file.c
+index ebcf15f..55cd034 100644
+--- a/fs/ubifs/file.c
++++ b/fs/ubifs/file.c
+@@ -1073,13 +1073,13 @@ static void do_attr_changes(struct inode *inode, const struct iattr *attr)
+ 	if (attr->ia_valid & ATTR_GID)
+ 		inode->i_gid = attr->ia_gid;
+ 	if (attr->ia_valid & ATTR_ATIME)
+-		inode->i_atime = timespec_trunc(attr->ia_atime,
++		inode->i_atime = inode_time_trunc(attr->ia_atime,
+ 						inode->i_sb->s_time_gran);
+ 	if (attr->ia_valid & ATTR_MTIME)
+-		inode->i_mtime = timespec_trunc(attr->ia_mtime,
++		inode->i_mtime = inode_time_trunc(attr->ia_mtime,
+ 						inode->i_sb->s_time_gran);
+ 	if (attr->ia_valid & ATTR_CTIME)
+-		inode->i_ctime = timespec_trunc(attr->ia_ctime,
++		inode->i_ctime = inode_time_trunc(attr->ia_ctime,
+ 						inode->i_sb->s_time_gran);
+ 	if (attr->ia_valid & ATTR_MODE) {
+ 		umode_t mode = attr->ia_mode;
+@@ -1353,10 +1353,10 @@ out:
+  * granularity, they are not updated. This is an optimization.
+  */
+ static inline int mctime_update_needed(const struct inode *inode,
+-				       const struct timespec *now)
++				       const struct inode_time *now)
+ {
+-	if (!timespec_equal(&inode->i_mtime, now) ||
+-	    !timespec_equal(&inode->i_ctime, now))
++	if (!inode_time_equal(&inode->i_mtime, now) ||
++	    !inode_time_equal(&inode->i_ctime, now))
+ 		return 1;
+ 	return 0;
+ }
+@@ -1371,7 +1371,7 @@ static inline int mctime_update_needed(const struct inode *inode,
+  */
+ static int update_mctime(struct inode *inode)
+ {
+-	struct timespec now = ubifs_current_time(inode);
++	struct inode_time now = ubifs_current_time(inode);
+ 	struct ubifs_inode *ui = ubifs_inode(inode);
+ 	struct ubifs_info *c = inode->i_sb->s_fs_info;
  
--#define __NR_syscalls  (384)
-+#define __NR_syscalls  (388)
- #define __ARM_NR_cmpxchg		(__ARM_NR_BASE+0x00fff0)
+@@ -1443,7 +1443,7 @@ static int ubifs_vm_page_mkwrite(struct vm_area_struct *vma,
+ 	struct page *page = vmf->page;
+ 	struct inode *inode = file_inode(vma->vm_file);
+ 	struct ubifs_info *c = inode->i_sb->s_fs_info;
+-	struct timespec now = ubifs_current_time(inode);
++	struct inode_time now = ubifs_current_time(inode);
+ 	struct ubifs_budget_req req = { .new_page = 1 };
+ 	int err, update_time;
  
- #define __ARCH_WANT_STAT64
-diff --git a/arch/arm/include/uapi/asm/stat.h b/arch/arm/include/uapi/asm/stat.h
-index 42c0c13..ee2ba23 100644
---- a/arch/arm/include/uapi/asm/stat.h
-+++ b/arch/arm/include/uapi/asm/stat.h
-@@ -48,6 +48,31 @@ struct stat {
- 	unsigned long  __unused5;
- };
- 
-+/* this matches the arm64 'struct stat' to allow a simpler compat ABI */
-+#define __ARCH_HAS_NEWSTAT64
-+struct newstat64 {
-+	unsigned long long	st_dev;		/* Device.  */
-+	unsigned long long	st_ino;		/* File serial number.  */
-+	unsigned int		st_mode;	/* File mode.  */
-+	unsigned int		st_nlink;	/* Link count.  */
-+	unsigned int		st_uid;		/* User ID of the file's owner.  */
-+	unsigned int		st_gid;		/* Group ID of the file's group. */
-+	unsigned long long	st_rdev;	/* Device number, if device.  */
-+	unsigned long long	__pad1;
-+	long long		st_size;	/* Size of file, in bytes.  */
-+	int			st_blksize;	/* Optimal block size for I/O.  */
-+	int			__pad2;
-+	long long		st_blocks;	/* Number 512-byte blocks allocated. */
-+	long long		st_atime;	/* Time of last access.  */
-+	unsigned long long	st_atime_nsec;
-+	long long		st_mtime;	/* Time of last modification.  */
-+	unsigned long long	st_mtime_nsec;
-+	long long		st_ctime;	/* Time of last status change.  */
-+	unsigned long long	st_ctime_nsec;
-+	unsigned int		__unused4;
-+	unsigned int		__unused5;
-+};
-+
- /* This matches struct stat64 in glibc2.1, hence the absolutely
-  * insane amounts of padding around dev_t's.
-  * Note: The kernel zero's the padded region because glibc might read them
-diff --git a/arch/arm/include/uapi/asm/unistd.h b/arch/arm/include/uapi/asm/unistd.h
-index ba94446..371f8d6 100644
---- a/arch/arm/include/uapi/asm/unistd.h
-+++ b/arch/arm/include/uapi/asm/unistd.h
-@@ -409,6 +409,9 @@
- #define __NR_sched_setattr		(__NR_SYSCALL_BASE+380)
- #define __NR_sched_getattr		(__NR_SYSCALL_BASE+381)
- #define __NR_renameat2			(__NR_SYSCALL_BASE+382)
-+#define __NR_newfstat64			(__NR_SYSCALL_BASE+383)
-+#define __NR_newfstatat64		(__NR_SYSCALL_BASE+384)
-+#define __NR_utimens64at		(__NR_SYSCALL_BASE+385)
- 
- /*
-  * This may need to be greater than __NR_last_syscall+1 in order to
-diff --git a/arch/arm/kernel/calls.S b/arch/arm/kernel/calls.S
-index 8f51bdc..a51a418 100644
---- a/arch/arm/kernel/calls.S
-+++ b/arch/arm/kernel/calls.S
-@@ -392,6 +392,9 @@
- /* 380 */	CALL(sys_sched_setattr)
- 		CALL(sys_sched_getattr)
- 		CALL(sys_renameat2)
-+		CALL(sys_newfstat64)
-+		CALL(sys_newfstatat64)
-+/* 385 */	CALL(sys_utimens64at)
- #ifndef syscalls_counted
- .equ syscalls_padding, ((NR_syscalls + 3) & ~3) - NR_syscalls
- #define syscalls_counted
-diff --git a/arch/arm64/include/asm/unistd32.h b/arch/arm64/include/asm/unistd32.h
-index c8d8fc1..348c009 100644
---- a/arch/arm64/include/asm/unistd32.h
-+++ b/arch/arm64/include/asm/unistd32.h
-@@ -404,8 +404,11 @@ __SYSCALL(379, sys_finit_module)
- __SYSCALL(380, sys_sched_setattr)
- __SYSCALL(381, sys_sched_getattr)
- __SYSCALL(382, sys_renameat2)
-+__SYSCALL(383, sys_newfstat)
-+__SYSCALL(384, sys_newfstatat)
-+__SYSCALL(385, sys_utimensat)
- 
--#define __NR_compat_syscalls		383
-+#define __NR_compat_syscalls		386
- 
- /*
-  * Compat syscall numbers used by the AArch64 kernel.
-diff --git a/arch/x86/include/uapi/asm/stat.h b/arch/x86/include/uapi/asm/stat.h
-index bc03eb5..43f7c4a 100644
---- a/arch/x86/include/uapi/asm/stat.h
-+++ b/arch/x86/include/uapi/asm/stat.h
-@@ -71,6 +71,34 @@ struct stat64 {
- 	unsigned long long	st_ino;
- };
- 
-+/*
-+ * This matches the native 'struct stat' on x86-64 and
-+ * provides 64-bit timestamps on __i386__
-+ */
-+#define __ARCH_HAS_NEWSTAT64
-+struct newstat64 {
-+	unsigned long long	st_dev;
-+	unsigned long long	st_ino;
-+	unsigned long long	st_nlink;
-+
-+	unsigned int		st_mode;
-+	unsigned int		st_uid;
-+	unsigned int		st_gid;
-+	unsigned int		__pad0;
-+	unsigned long long	st_rdev;
-+	long long		st_size;
-+	long long		st_blksize;
-+	long long		st_blocks;	/* Number 512-byte blocks allocated. */
-+
-+	unsigned long long	st_atime;
-+	unsigned long long	st_atime_nsec;
-+	unsigned long long	st_mtime;
-+	unsigned long long	st_mtime_nsec;
-+	unsigned long long	st_ctime;
-+	unsigned long long	st_ctime_nsec;
-+	long long		__unused[3];
-+};
-+
- /* We don't need to memset the whole thing just to initialize the padding */
- #define INIT_STRUCT_STAT64_PADDING(st) do {		\
- 	memset(&st.__pad0, 0, sizeof(st.__pad0));	\
-diff --git a/arch/x86/syscalls/syscall_32.tbl b/arch/x86/syscalls/syscall_32.tbl
-index d6b8679..91b6a41 100644
---- a/arch/x86/syscalls/syscall_32.tbl
-+++ b/arch/x86/syscalls/syscall_32.tbl
-@@ -360,3 +360,6 @@
- 351	i386	sched_setattr		sys_sched_setattr
- 352	i386	sched_getattr		sys_sched_getattr
- 353	i386	renameat2		sys_renameat2
-+354	i386	newfstat64		sys_newfstat64			sys_newfstat
-+355	i386	newfstatat64		sys_newfstatat64		sys_newfstatat
-+356	i386	utimens64at		sys_utimens64at			sys_utimensat
-diff --git a/include/uapi/asm-generic/stat.h b/include/uapi/asm-generic/stat.h
-index bd8cad2..904e5dc 100644
---- a/include/uapi/asm-generic/stat.h
-+++ b/include/uapi/asm-generic/stat.h
-@@ -43,8 +43,33 @@ struct stat {
- 	unsigned int	__unused5;
- };
- 
--/* This matches struct stat64 in glibc2.1. Only used for 32 bit. */
--#if __BITS_PER_LONG != 64 || defined(__ARCH_WANT_STAT64)
-+#if __BITS_PER_LONG != 64
-+#define __ARCH_HAVE_NEWSTAT64
-+struct newstat64 {
-+	unsigned long long	st_dev;		/* Device.  */
-+	unsigned long long	st_ino;		/* File serial number.  */
-+	unsigned int		st_mode;	/* File mode.  */
-+	unsigned int		st_nlink;	/* Link count.  */
-+	unsigned int		st_uid;		/* User ID of the file's owner.  */
-+	unsigned int		st_gid;		/* Group ID of the file's group. */
-+	unsigned long long	st_rdev;	/* Device number, if device.  */
-+	unsigned long long	__pad1;
-+	long long		st_size;	/* Size of file, in bytes.  */
-+	int			st_blksize;	/* Optimal block size for I/O.  */
-+	int			__pad2;
-+	long long		st_blocks;	/* Number 512-byte blocks allocated. */
-+	long long		st_atime;	/* Time of last access.  */
-+	unsigned long long	st_atime_nsec;
-+	long long		st_mtime;	/* Time of last modification.  */
-+	unsigned long long	st_mtime_nsec;
-+	long long		st_ctime;	/* Time of last status change.  */
-+	unsigned long long	st_ctime_nsec;
-+	unsigned int		__unused4;
-+	unsigned int		__unused5;
-+};
-+#endif
-+
-+#if __BITS_PER_LONG != 64 ||  defined(__ARCH_WANT_STAT64)
- struct stat64 {
- 	unsigned long long st_dev;	/* Device.  */
- 	unsigned long long st_ino;	/* File serial number.  */
-diff --git a/include/uapi/asm-generic/unistd.h b/include/uapi/asm-generic/unistd.h
-index 3336406..ddcbd42 100644
---- a/include/uapi/asm-generic/unistd.h
-+++ b/include/uapi/asm-generic/unistd.h
-@@ -699,9 +699,15 @@ __SYSCALL(__NR_sched_setattr, sys_sched_setattr)
- __SYSCALL(__NR_sched_getattr, sys_sched_getattr)
- #define __NR_renameat2 276
- __SYSCALL(__NR_renameat2, sys_renameat2)
-+#define __NR_newfstat64 277
-+__SC_COMP_3264(__NR_newfstat64, sys_newfstat64, sys_newfstat, sys_newfstat)
-+#define __NR_newfstatat64 278
-+__SC_COMP_3264(__NR_newfstatat64, sys_newfstatat64, sys_newfstatat, sys_newfstatat)
-+#define __NR_utimensat64 279
-+__SC_COMP_3264(__NR_utimens64at, sys_utimensat, sys_utimensat)
- 
- #undef __NR_syscalls
--#define __NR_syscalls 277
-+#define __NR_syscalls 280
- 
- /*
-  * All syscalls below here should go away really,
+diff --git a/fs/ubifs/misc.h b/fs/ubifs/misc.h
+index ee7cb5e..ca0fcac 100644
+--- a/fs/ubifs/misc.h
++++ b/fs/ubifs/misc.h
+@@ -233,7 +233,7 @@ static inline void *ubifs_idx_key(const struct ubifs_info *c,
+  * ubifs_current_time - round current time to time granularity.
+  * @inode: inode
+  */
+-static inline struct timespec ubifs_current_time(struct inode *inode)
++static inline struct inode_time ubifs_current_time(struct inode *inode)
+ {
+ 	return (inode->i_sb->s_time_gran < NSEC_PER_SEC) ?
+ 		current_fs_time(inode->i_sb) : CURRENT_TIME_SEC;
 -- 
 1.8.3.2
