@@ -1,116 +1,55 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.17.24]:53461 "EHLO
+Received: from mout.kundenserver.de ([212.227.17.13]:58881 "EHLO
 	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S934246AbaE3UHT (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 30 May 2014 16:07:19 -0400
+	with ESMTP id S934432AbaE3UKy (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 30 May 2014 16:10:54 -0400
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: [RFC 17/32] ubifs: convert to struct inode_time
-Date: Fri, 30 May 2014 22:01:41 +0200
-Message-ID: <1401480116-1973111-18-git-send-email-arnd@arndb.de>
+Subject: [RFC 29/32] f2fs: convert to struct inode_time
+Date: Fri, 30 May 2014 22:01:53 +0200
+Message-ID: <1401480116-1973111-30-git-send-email-arnd@arndb.de>
 In-Reply-To: <1401480116-1973111-1-git-send-email-arnd@arndb.de>
 References: <1401480116-1973111-1-git-send-email-arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, joseph@codesourcery.com, john.stultz@linaro.org, hch@infradead.org, tglx@linutronix.de, geert@linux-m68k.org, lftan@altera.com, hpa@zytor.com, linux-fsdevel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Artem Bityutskiy <dedekind1@gmail.com>, Adrian Hunter <adrian.hunter@intel.com>, linux-mtd@lists.infradead.org
-Message-ID: <20140530200141.Lv07IXQ9msMXffFJwqHH8RINtEYzPVTHmbYjnmo_H68@z>
+Cc: linux-arch@vger.kernel.org, joseph@codesourcery.com, john.stultz@linaro.org, hch@infradead.org, tglx@linutronix.de, geert@linux-m68k.org, lftan@altera.com, hpa@zytor.com, linux-fsdevel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Jaegeuk Kim <jaegeuk.kim@samsung.com>, linux-f2fs-devel@lists.sourceforge.net
+Message-ID: <20140530200153.hFoJR8Bus9XJziUhuM8zpWnmlxBGmydr8UcOshVAkYQ@z>
 
-ubifs uses 64-bit integers for inode timestamps, which will work
-practicall forever, but the VFS uses struct timespec for timestamps,
+f2fs uses unsigned 40-bit seconds for inode timestamps, which will work
+basically forever, but the VFS uses struct timespec for timestamps,
 which is only good until 2038 on 32-bit CPUs.
 
 This gets us one small step closer to lifting the VFS limit by using
-struct inode_time in ubifs.
+struct inode_time in f2fs.
 
 Signed-off-by: Arnd Bergmann <arnd@arndb.de>
-Cc: Artem Bityutskiy <dedekind1@gmail.com>
-Cc: Adrian Hunter <adrian.hunter@intel.com>
-Cc: linux-mtd@lists.infradead.org
+Cc: Jaegeuk Kim <jaegeuk.kim@samsung.com>
+Cc: linux-f2fs-devel@lists.sourceforge.net
 ---
- fs/ubifs/dir.c  |  2 +-
- fs/ubifs/file.c | 16 ++++++++--------
- fs/ubifs/misc.h |  2 +-
- 3 files changed, 10 insertions(+), 10 deletions(-)
+ fs/f2fs/file.c | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
 
-diff --git a/fs/ubifs/dir.c b/fs/ubifs/dir.c
-index ea41649..a551ecc 100644
---- a/fs/ubifs/dir.c
-+++ b/fs/ubifs/dir.c
-@@ -965,7 +965,7 @@ static int ubifs_rename(struct inode *old_dir, struct dentry *old_dentry,
- 					.dirtied_ino = 3 };
- 	struct ubifs_budget_req ino_req = { .dirtied_ino = 1,
- 			.dirtied_ino_d = ALIGN(old_inode_ui->data_len, 8) };
--	struct timespec time;
-+	struct inode_time time;
- 	unsigned int uninitialized_var(saved_nlink);
- 
- 	/*
-diff --git a/fs/ubifs/file.c b/fs/ubifs/file.c
-index ebcf15f..55cd034 100644
---- a/fs/ubifs/file.c
-+++ b/fs/ubifs/file.c
-@@ -1073,13 +1073,13 @@ static void do_attr_changes(struct inode *inode, const struct iattr *attr)
- 	if (attr->ia_valid & ATTR_GID)
+diff --git a/fs/f2fs/file.c b/fs/f2fs/file.c
+index 37d0e1f..6ff6e5b 100644
+--- a/fs/f2fs/file.c
++++ b/fs/f2fs/file.c
+@@ -474,13 +474,13 @@ static void __setattr_copy(struct inode *inode, const struct iattr *attr)
+ 	if (ia_valid & ATTR_GID)
  		inode->i_gid = attr->ia_gid;
- 	if (attr->ia_valid & ATTR_ATIME)
+ 	if (ia_valid & ATTR_ATIME)
 -		inode->i_atime = timespec_trunc(attr->ia_atime,
 +		inode->i_atime = inode_time_trunc(attr->ia_atime,
  						inode->i_sb->s_time_gran);
- 	if (attr->ia_valid & ATTR_MTIME)
+ 	if (ia_valid & ATTR_MTIME)
 -		inode->i_mtime = timespec_trunc(attr->ia_mtime,
 +		inode->i_mtime = inode_time_trunc(attr->ia_mtime,
  						inode->i_sb->s_time_gran);
- 	if (attr->ia_valid & ATTR_CTIME)
+ 	if (ia_valid & ATTR_CTIME)
 -		inode->i_ctime = timespec_trunc(attr->ia_ctime,
 +		inode->i_ctime = inode_time_trunc(attr->ia_ctime,
  						inode->i_sb->s_time_gran);
- 	if (attr->ia_valid & ATTR_MODE) {
+ 	if (ia_valid & ATTR_MODE) {
  		umode_t mode = attr->ia_mode;
-@@ -1353,10 +1353,10 @@ out:
-  * granularity, they are not updated. This is an optimization.
-  */
- static inline int mctime_update_needed(const struct inode *inode,
--				       const struct timespec *now)
-+				       const struct inode_time *now)
- {
--	if (!timespec_equal(&inode->i_mtime, now) ||
--	    !timespec_equal(&inode->i_ctime, now))
-+	if (!inode_time_equal(&inode->i_mtime, now) ||
-+	    !inode_time_equal(&inode->i_ctime, now))
- 		return 1;
- 	return 0;
- }
-@@ -1371,7 +1371,7 @@ static inline int mctime_update_needed(const struct inode *inode,
-  */
- static int update_mctime(struct inode *inode)
- {
--	struct timespec now = ubifs_current_time(inode);
-+	struct inode_time now = ubifs_current_time(inode);
- 	struct ubifs_inode *ui = ubifs_inode(inode);
- 	struct ubifs_info *c = inode->i_sb->s_fs_info;
- 
-@@ -1443,7 +1443,7 @@ static int ubifs_vm_page_mkwrite(struct vm_area_struct *vma,
- 	struct page *page = vmf->page;
- 	struct inode *inode = file_inode(vma->vm_file);
- 	struct ubifs_info *c = inode->i_sb->s_fs_info;
--	struct timespec now = ubifs_current_time(inode);
-+	struct inode_time now = ubifs_current_time(inode);
- 	struct ubifs_budget_req req = { .new_page = 1 };
- 	int err, update_time;
- 
-diff --git a/fs/ubifs/misc.h b/fs/ubifs/misc.h
-index ee7cb5e..ca0fcac 100644
---- a/fs/ubifs/misc.h
-+++ b/fs/ubifs/misc.h
-@@ -233,7 +233,7 @@ static inline void *ubifs_idx_key(const struct ubifs_info *c,
-  * ubifs_current_time - round current time to time granularity.
-  * @inode: inode
-  */
--static inline struct timespec ubifs_current_time(struct inode *inode)
-+static inline struct inode_time ubifs_current_time(struct inode *inode)
- {
- 	return (inode->i_sb->s_time_gran < NSEC_PER_SEC) ?
- 		current_fs_time(inode->i_sb) : CURRENT_TIME_SEC;
 -- 
 1.8.3.2
 
