@@ -1,114 +1,105 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.17.13]:58250 "EHLO
+Received: from mout.kundenserver.de ([212.227.17.13]:62422 "EHLO
 	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1030248AbaE3UF0 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 30 May 2014 16:05:26 -0400
+	with ESMTP id S933271AbaE3UFp (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 30 May 2014 16:05:45 -0400
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: [RFC 21/32] udf: convert to struct inode_time
-Date: Fri, 30 May 2014 22:01:45 +0200
-Message-ID: <1401480116-1973111-22-git-send-email-arnd@arndb.de>
+Subject: [RFC 16/32] ntfs: convert to struct inode_time
+Date: Fri, 30 May 2014 22:01:40 +0200
+Message-ID: <1401480116-1973111-17-git-send-email-arnd@arndb.de>
 In-Reply-To: <1401480116-1973111-1-git-send-email-arnd@arndb.de>
 References: <1401480116-1973111-1-git-send-email-arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, joseph@codesourcery.com, john.stultz@linaro.org, hch@infradead.org, tglx@linutronix.de, geert@linux-m68k.org, lftan@altera.com, hpa@zytor.com, linux-fsdevel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Jan Kara <jack@suse.cz>
-Message-ID: <20140530200145.BSghGhrk7MeN6QYe1cdD2kC0IezlY7TdxEoiXgzK8U4@z>
+Cc: linux-arch@vger.kernel.org, joseph@codesourcery.com, john.stultz@linaro.org, hch@infradead.org, tglx@linutronix.de, geert@linux-m68k.org, lftan@altera.com, hpa@zytor.com, linux-fsdevel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Anton Altaparmakov <anton@tuxera.com>, linux-ntfs-dev@lists.sourceforge.net
+Message-ID: <20140530200140.ZC9f8bzDbccztAF7YVcOysxShrIukLmPdc3gAnVpQx4@z>
 
-udf uses 16-bit year numbers for inode timestamps, which will work
-for the 15000 years, but the VFS uses struct timespec for timestamps,
-and the Linux udf implementation internally uses a time_t, both of
-which are only good until 2038 on 32-bit CPUs.
+ntfs uses 64-bit integers for inode timestamps, which will work
+thousands of years, but the VFS uses struct timespec for timestamps,
+which is only good until 2038 on 32-bit CPUs.
 
 This gets us one small step closer to lifting the VFS limit by using
-struct inode_time in udf, but the implementation still depends on
-the 'year_seconds' array that needs to be extended or replaced by
-an algorithm that calculates the correct time for every year.
+struct inode_time in ntfs.
 
 Signed-off-by: Arnd Bergmann <arnd@arndb.de>
-Cc: Jan Kara <jack@suse.cz>
+Cc: Anton Altaparmakov <anton@tuxera.com>
+Cc: linux-ntfs-dev@lists.sourceforge.net
 ---
- fs/udf/udf_i.h   | 2 +-
- fs/udf/udf_sb.h  | 2 +-
- fs/udf/udfdecl.h | 7 ++++---
- fs/udf/udftime.c | 7 ++++---
- 4 files changed, 10 insertions(+), 8 deletions(-)
+ fs/ntfs/inode.c | 12 ++++++------
+ fs/ntfs/time.h  |  8 ++++----
+ 2 files changed, 10 insertions(+), 10 deletions(-)
 
-diff --git a/fs/udf/udf_i.h b/fs/udf/udf_i.h
-index b5cd8ed..ba12313 100644
---- a/fs/udf/udf_i.h
-+++ b/fs/udf/udf_i.h
-@@ -27,7 +27,7 @@ struct udf_ext_cache {
+diff --git a/fs/ntfs/inode.c b/fs/ntfs/inode.c
+index f47af5e..8f7cba5 100644
+--- a/fs/ntfs/inode.c
++++ b/fs/ntfs/inode.c
+@@ -2811,11 +2811,11 @@ done:
+ 	 * for real.
+ 	 */
+ 	if (!IS_NOCMTIME(VFS_I(base_ni)) && !IS_RDONLY(VFS_I(base_ni))) {
+-		struct timespec now = current_fs_time(VFS_I(base_ni)->i_sb);
++		struct inode_time now = current_fs_time(VFS_I(base_ni)->i_sb);
+ 		int sync_it = 0;
+ 
+-		if (!timespec_equal(&VFS_I(base_ni)->i_mtime, &now) ||
+-		    !timespec_equal(&VFS_I(base_ni)->i_ctime, &now))
++		if (!inode_time_equal(&VFS_I(base_ni)->i_mtime, &now) ||
++		    !inode_time_equal(&VFS_I(base_ni)->i_ctime, &now))
+ 			sync_it = 1;
+ 		VFS_I(base_ni)->i_mtime = now;
+ 		VFS_I(base_ni)->i_ctime = now;
+@@ -2930,13 +2930,13 @@ int ntfs_setattr(struct dentry *dentry, struct iattr *attr)
+ 		}
+ 	}
+ 	if (ia_valid & ATTR_ATIME)
+-		vi->i_atime = timespec_trunc(attr->ia_atime,
++		vi->i_atime = inode_time_trunc(attr->ia_atime,
+ 				vi->i_sb->s_time_gran);
+ 	if (ia_valid & ATTR_MTIME)
+-		vi->i_mtime = timespec_trunc(attr->ia_mtime,
++		vi->i_mtime = inode_time_trunc(attr->ia_mtime,
+ 				vi->i_sb->s_time_gran);
+ 	if (ia_valid & ATTR_CTIME)
+-		vi->i_ctime = timespec_trunc(attr->ia_ctime,
++		vi->i_ctime = inode_time_trunc(attr->ia_ctime,
+ 				vi->i_sb->s_time_gran);
+ 	mark_inode_dirty(vi);
+ out:
+diff --git a/fs/ntfs/time.h b/fs/ntfs/time.h
+index 0123398..2c8d325 100644
+--- a/fs/ntfs/time.h
++++ b/fs/ntfs/time.h
+@@ -45,7 +45,7 @@
+  * measured as the number of 100-nano-second intervals since 1st January 1601,
+  * 00:00:00 UTC.
   */
- 
- struct udf_inode_info {
--	struct timespec		i_crtime;
-+	struct inode_time	i_crtime;
- 	/* Physical address of inode */
- 	struct kernel_lb_addr		i_location;
- 	__u64			i_unique;
-diff --git a/fs/udf/udf_sb.h b/fs/udf/udf_sb.h
-index 1f32c7b..20ab0ca 100644
---- a/fs/udf/udf_sb.h
-+++ b/fs/udf/udf_sb.h
-@@ -135,7 +135,7 @@ struct udf_sb_info {
- 	rwlock_t		s_cred_lock;
- 
- 	/* Root Info */
--	struct timespec		s_record_time;
-+	struct inode_time	s_record_time;
- 
- 	/* Fileset Info */
- 	__u16			s_serial_number;
-diff --git a/fs/udf/udfdecl.h b/fs/udf/udfdecl.h
-index be7dabb..88320da 100644
---- a/fs/udf/udfdecl.h
-+++ b/fs/udf/udfdecl.h
-@@ -237,8 +237,9 @@ extern struct long_ad *udf_get_filelongad(uint8_t *, int, uint32_t *, int);
- extern struct short_ad *udf_get_fileshortad(uint8_t *, int, uint32_t *, int);
- 
- /* udftime.c */
--extern struct timespec *udf_disk_stamp_to_time(struct timespec *dest,
--						struct timestamp src);
--extern struct timestamp *udf_time_to_disk_stamp(struct timestamp *dest, struct timespec src);
-+extern struct inode_time *udf_disk_stamp_to_time(struct inode_time *dest,
-+						 struct timestamp src);
-+extern struct timestamp *udf_time_to_disk_stamp(struct timestamp *dest,
-+						struct inode_time src);
- 
- #endif				/* __UDF_DECL_H */
-diff --git a/fs/udf/udftime.c b/fs/udf/udftime.c
-index 1f11483..1ab6fe7 100644
---- a/fs/udf/udftime.c
-+++ b/fs/udf/udftime.c
-@@ -60,6 +60,7 @@ static const unsigned short int __mon_yday[2][13] = {
- #define SPD			0x15180	/*3600*24 */
- #define SPY(y, l, s)		(SPD * (365 * y + l) + s)
- 
-+/* FIXME: convert this to a 64-bit type */
- static time_t year_seconds[MAX_YEAR_SECONDS] = {
- /*1970*/ SPY(0,   0, 0), SPY(1,   0, 0), SPY(2,   0, 0), SPY(3,   1, 0),
- /*1974*/ SPY(4,   1, 0), SPY(5,   1, 0), SPY(6,   1, 0), SPY(7,   2, 0),
-@@ -86,8 +87,8 @@ extern struct timezone sys_tz;
- #define SECS_PER_HOUR	(60 * 60)
- #define SECS_PER_DAY	(SECS_PER_HOUR * 24)
- 
--struct timespec *
--udf_disk_stamp_to_time(struct timespec *dest, struct timestamp src)
-+struct inode_time *
-+udf_disk_stamp_to_time(struct inode_time *dest, struct timestamp src)
+-static inline sle64 utc2ntfs(const struct timespec ts)
++static inline sle64 utc2ntfs(const struct inode_time ts)
  {
- 	int yday;
- 	u16 typeAndTimezone = le16_to_cpu(src.typeAndTimezone);
-@@ -119,7 +120,7 @@ udf_disk_stamp_to_time(struct timespec *dest, struct timestamp src)
+ 	/*
+ 	 * Convert the seconds to 100ns intervals, add the nano-seconds
+@@ -63,7 +63,7 @@ static inline sle64 utc2ntfs(const struct timespec ts)
+  */
+ static inline sle64 get_current_ntfs_time(void)
+ {
+-	return utc2ntfs(current_kernel_time());
++	return utc2ntfs(CURRENT_TIME);
  }
  
- struct timestamp *
--udf_time_to_disk_stamp(struct timestamp *dest, struct timespec ts)
-+udf_time_to_disk_stamp(struct timestamp *dest, struct inode_time ts)
+ /**
+@@ -82,9 +82,9 @@ static inline sle64 get_current_ntfs_time(void)
+  * measured as the number of 100 nano-second intervals since 1st January 1601,
+  * 00:00:00 UTC.
+  */
+-static inline struct timespec ntfs2utc(const sle64 time)
++static inline struct inode_time ntfs2utc(const sle64 time)
  {
- 	long int days, rem, y;
- 	const unsigned short int *ip;
+-	struct timespec ts;
++	struct inode_time ts;
+ 
+ 	/* Subtract the NTFS time offset. */
+ 	u64 t = (u64)(sle64_to_cpu(time) - NTFS_TIME_OFFSET);
 -- 
 1.8.3.2
 
