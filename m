@@ -1,94 +1,89 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.17.24]:55103 "EHLO
+Received: from mout.kundenserver.de ([212.227.17.13]:51254 "EHLO
 	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S933857AbaE3UG7 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 30 May 2014 16:06:59 -0400
+	with ESMTP id S1030303AbaE3UF4 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 30 May 2014 16:05:56 -0400
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: [RFC 02/32] uapi: add struct __kernel_timespec{32,64}
-Date: Fri, 30 May 2014 22:01:26 +0200
-Message-ID: <1401480116-1973111-3-git-send-email-arnd@arndb.de>
+Subject: [RFC 10/32] fs/coda: convert to struct inode_time
+Date: Fri, 30 May 2014 22:01:34 +0200
+Message-ID: <1401480116-1973111-11-git-send-email-arnd@arndb.de>
 In-Reply-To: <1401480116-1973111-1-git-send-email-arnd@arndb.de>
 References: <1401480116-1973111-1-git-send-email-arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, joseph@codesourcery.com, john.stultz@linaro.org, hch@infradead.org, tglx@linutronix.de, geert@linux-m68k.org, lftan@altera.com, hpa@zytor.com, linux-fsdevel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>
-Message-ID: <20140530200126.PJin0xcXQFNH4W6tD7Gb1uxGnR8QJf8omxXTSjrK6PA@z>
+Cc: linux-arch@vger.kernel.org, joseph@codesourcery.com, john.stultz@linaro.org, hch@infradead.org, tglx@linutronix.de, geert@linux-m68k.org, lftan@altera.com, hpa@zytor.com, linux-fsdevel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Jan Harkes <jaharkes@cs.cmu.edu>, coda@cs.cmu.edu, codalist@coda.cs.cmu.edu
+Message-ID: <20140530200134.We2jzEFiNj4i2ShA_I_VcLuf74CUUeB4ThyG68DTQ4I@z>
 
-We cannot use time_t or any derived structures beyond the year
-2038 in interfaces between kernel and user space, on 32-bit
-machines.
-
-This is my suggestion for how to migrate syscall and ioctl
-interfaces: We completely phase out time_t, timeval and timespec
-from the uapi header files and replace them with types that are
-either explicitly safe (__kernel_timespec64), or explicitly
-unsafe (e.g. __kernel_timespec32). For each unsafe interface,
-there needs to be a safe replacement interface.
+This converts the coda file system to use inode_time, which we will
+need to fix the y2038 limit. However, inode time stamps in coda
+are communicated to user space through coda_pioctl() as a 'struct
+timespec', so this cannot be fixed for coda without changing the
+user space interface.
 
 Signed-off-by: Arnd Bergmann <arnd@arndb.de>
+Cc: Jan Harkes <jaharkes@cs.cmu.edu>
+Cc: coda@cs.cmu.edu
+Cc: codalist@coda.cs.cmu.edu
 ---
- include/uapi/linux/time.h | 40 +++++++++++++++++++++++++++++++++++++++-
- 1 file changed, 39 insertions(+), 1 deletion(-)
+ fs/coda/coda_linux.c      | 18 ++++++++++++------
+ include/uapi/linux/coda.h |  1 +
+ 2 files changed, 13 insertions(+), 6 deletions(-)
 
-diff --git a/include/uapi/linux/time.h b/include/uapi/linux/time.h
-index e75e1b6..e2b56a3 100644
---- a/include/uapi/linux/time.h
-+++ b/include/uapi/linux/time.h
-@@ -3,7 +3,18 @@
+diff --git a/fs/coda/coda_linux.c b/fs/coda/coda_linux.c
+index 2849f41..f2fcec5 100644
+--- a/fs/coda/coda_linux.c
++++ b/fs/coda/coda_linux.c
+@@ -110,11 +110,14 @@ void coda_vattr_to_iattr(struct inode *inode, struct coda_vattr *attr)
+ 	if (attr->va_size != -1)
+ 		inode->i_blocks = (attr->va_size + 511) >> 9;
+ 	if (attr->va_atime.tv_sec != -1) 
+-	        inode->i_atime = attr->va_atime;
++	        inode->i_atime = (struct inode_time)
++			{ attr->va_atime.tv_sec, attr->va_atime.tv_nsec };
+ 	if (attr->va_mtime.tv_sec != -1)
+-	        inode->i_mtime = attr->va_mtime;
++	        inode->i_mtime = (struct inode_time)
++			{ attr->va_mtime.tv_sec, attr->va_mtime.tv_nsec };
+         if (attr->va_ctime.tv_sec != -1)
+-	        inode->i_ctime = attr->va_ctime;
++	        inode->i_ctime = (struct inode_time)
++			{ attr->va_ctime.tv_sec, attr->va_ctime.tv_nsec };
+ }
  
- #include <linux/types.h>
  
--
-+/*
-+ * time_t, timespec and timeval are not safe to use beyond
-+ * 2038 on 32-bit systems, and should be phased out for
-+ * in-kernel uses as well as interfaces to user space.
-+ *
-+ * Inside of the kernel, we can use e.g. inode_time,
-+ * ktime_t or timespec64, as appropriate.
-+ *
-+ * In the long run, we have to stop making these definitions
-+ * visibile to user headers, so libc can define its own
-+ * 64-bit types.
-+ */
- #ifndef _STRUCT_TIMESPEC
- #define _STRUCT_TIMESPEC
- struct timespec {
-@@ -17,6 +28,33 @@ struct timeval {
- 	__kernel_suseconds_t	tv_usec;	/* microseconds */
- };
+@@ -180,13 +183,16 @@ void coda_iattr_to_vattr(struct iattr *iattr, struct coda_vattr *vattr)
+                 vattr->va_size = iattr->ia_size;
+ 	}
+         if ( valid & ATTR_ATIME ) {
+-                vattr->va_atime = iattr->ia_atime;
++                vattr->va_atime = (struct timespec)
++			{ iattr->ia_atime.tv_sec, iattr->ia_atime.tv_nsec };
+ 	}
+         if ( valid & ATTR_MTIME ) {
+-                vattr->va_mtime = iattr->ia_mtime;
++                vattr->va_mtime = (struct timespec)
++			{ iattr->ia_mtime.tv_sec, iattr->ia_mtime.tv_nsec };
+ 	}
+         if ( valid & ATTR_CTIME ) {
+-                vattr->va_ctime = iattr->ia_ctime;
++                vattr->va_ctime = (struct timespec)
++			{ iattr->ia_ctime.tv_sec, iattr->ia_ctime.tv_nsec };
+ 	}
+ }
  
-+/*
-+ * __kernel_timespec64 is the general type to be used for
-+ * new user space interfaces passing a time argument.
-+ * 64-bit nanoseconds is a bit silly, but the advantage is
-+ * that it is compatible with the native 'struct timespec'
-+ * on 64-bit user space. This simplifies the compat code.
-+ */
-+struct __kernel_timespec64 {
-+	long long tv_sec;
-+	long long tv_nsec;
-+};
-+
-+/*
-+ * As interfaces get moved over from time_t, timeval and timespec
-+ * to __kernel_timespec64, we have to provide backwards compatibility
-+ * interfaces. These can use __kernel_timespec32. Other types will
-+ * be needed as required.
-+ * The compat syscalls and ioctls can also migrate from compat_timespec
-+ * to __kernel_timespec32 in order to share the implementation with
-+ * the native 32-bit legacy handlers.
-+ */
-+struct __kernel_timespec32 {
-+	int	tv_sec;
-+	int	tv_nsec;
-+};
-+
-+/* timezone is safe for use beyond 2038 */
- struct timezone {
- 	int	tz_minuteswest;	/* minutes west of Greenwich */
- 	int	tz_dsttime;	/* type of dst correction */
+diff --git a/include/uapi/linux/coda.h b/include/uapi/linux/coda.h
+index 695fade..e7258f7 100644
+--- a/include/uapi/linux/coda.h
++++ b/include/uapi/linux/coda.h
+@@ -220,6 +220,7 @@ struct coda_vattr {
+ 	long		va_fileid;	/* file id */
+ 	u_quad_t	va_size;	/* file size in bytes */
+ 	long		va_blocksize;	/* blocksize preferred for i/o */
++	/* FIXME: timespec in user API */
+ 	struct timespec	va_atime;	/* time of last access */
+ 	struct timespec	va_mtime;	/* time of last modification */
+ 	struct timespec	va_ctime;	/* time file changed */
 -- 
 1.8.3.2
 
