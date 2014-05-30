@@ -1,86 +1,49 @@
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: [RFC 25/32] gfs2: convert to struct inode_time
-Date: Fri, 30 May 2014 22:01:49 +0200
-Message-ID: <1401480116-1973111-26-git-send-email-arnd@arndb.de>
+Subject: [RFC 29/32] f2fs: convert to struct inode_time
+Date: Fri, 30 May 2014 22:01:53 +0200
+Message-ID: <1401480116-1973111-30-git-send-email-arnd@arndb.de>
 References: <1401480116-1973111-1-git-send-email-arnd@arndb.de>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.17.24]:54640 "EHLO
-	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S934650AbaE3UKy (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 30 May 2014 16:10:54 -0400
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1401480116-1973111-1-git-send-email-arnd@arndb.de>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, joseph@codesourcery.com, john.stultz@linaro.org, hch@infradead.org, tglx@linutronix.de, geert@linux-m68k.org, lftan@altera.com, hpa@zytor.com, linux-fsdevel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Steven Whitehouse <swhiteho@redhat.com>, cluster-devel@redhat.com
+Cc: linux-arch@vger.kernel.org, joseph@codesourcery.com, john.stultz@linaro.org, hch@infradead.org, tglx@linutronix.de, geert@linux-m68k.org, lftan@altera.com, hpa@zytor.com, linux-fsdevel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Jaegeuk Kim <jaegeuk.kim@samsung.com>, linux-f2fs-devel@lists.sourceforge.net
+List-Id: linux-arch.vger.kernel.org
 
-gfs2 uses 64-bit integers for inode timestamps, which will work
+f2fs uses unsigned 40-bit seconds for inode timestamps, which will work
 basically forever, but the VFS uses struct timespec for timestamps,
 which is only good until 2038 on 32-bit CPUs.
 
 This gets us one small step closer to lifting the VFS limit by using
-struct inode_time in gfs2.
+struct inode_time in f2fs.
 
 Signed-off-by: Arnd Bergmann <arnd@arndb.de>
-Cc: Steven Whitehouse <swhiteho@redhat.com>
-Cc: cluster-devel@redhat.com
+Cc: Jaegeuk Kim <jaegeuk.kim@samsung.com>
+Cc: linux-f2fs-devel@lists.sourceforge.net
 ---
- fs/gfs2/dir.c   | 6 +++---
- fs/gfs2/glops.c | 4 ++--
- 2 files changed, 5 insertions(+), 5 deletions(-)
+ fs/f2fs/file.c | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
 
-diff --git a/fs/gfs2/dir.c b/fs/gfs2/dir.c
-index 1a349f9..ec57538 100644
---- a/fs/gfs2/dir.c
-+++ b/fs/gfs2/dir.c
-@@ -835,7 +835,7 @@ static struct gfs2_leaf *new_leaf(struct inode *inode, struct buffer_head **pbh,
- 	struct gfs2_leaf *leaf;
- 	struct gfs2_dirent *dent;
- 	struct qstr name = { .name = "" };
--	struct timespec tv = CURRENT_TIME;
-+	struct inode_time tv = CURRENT_TIME;
- 
- 	error = gfs2_alloc_blocks(ip, &bn, &n, 0, NULL);
- 	if (error)
-@@ -1716,7 +1716,7 @@ int gfs2_dir_add(struct inode *inode, const struct qstr *name,
- 	struct gfs2_inode *ip = GFS2_I(inode);
- 	struct buffer_head *bh = da->bh;
- 	struct gfs2_dirent *dent = da->dent;
--	struct timespec tv;
-+	struct inode_time tv;
- 	struct gfs2_leaf *leaf;
- 	int error;
- 
-@@ -1794,7 +1794,7 @@ int gfs2_dir_del(struct gfs2_inode *dip, const struct dentry *dentry)
- 	const struct qstr *name = &dentry->d_name;
- 	struct gfs2_dirent *dent, *prev = NULL;
- 	struct buffer_head *bh;
--	struct timespec tv = CURRENT_TIME;
-+	struct inode_time tv = CURRENT_TIME;
- 
- 	/* Returns _either_ the entry (if its first in block) or the
- 	   previous entry otherwise */
-diff --git a/fs/gfs2/glops.c b/fs/gfs2/glops.c
-index fc11007..b55308f 100644
---- a/fs/gfs2/glops.c
-+++ b/fs/gfs2/glops.c
-@@ -318,7 +318,7 @@ static void gfs2_set_nlink(struct inode *inode, u32 nlink)
- static int gfs2_dinode_in(struct gfs2_inode *ip, const void *buf)
- {
- 	const struct gfs2_dinode *str = buf;
--	struct timespec atime;
-+	struct inode_time atime;
- 	u16 height, depth;
- 
- 	if (unlikely(ip->i_no_addr != be64_to_cpu(str->di_num.no_addr)))
-@@ -341,7 +341,7 @@ static int gfs2_dinode_in(struct gfs2_inode *ip, const void *buf)
- 	gfs2_set_inode_blocks(&ip->i_inode, be64_to_cpu(str->di_blocks));
- 	atime.tv_sec = be64_to_cpu(str->di_atime);
- 	atime.tv_nsec = be32_to_cpu(str->di_atime_nsec);
--	if (timespec_compare(&ip->i_inode.i_atime, &atime) < 0)
-+	if (inode_time_compare(&ip->i_inode.i_atime, &atime) < 0)
- 		ip->i_inode.i_atime = atime;
- 	ip->i_inode.i_mtime.tv_sec = be64_to_cpu(str->di_mtime);
- 	ip->i_inode.i_mtime.tv_nsec = be32_to_cpu(str->di_mtime_nsec);
+diff --git a/fs/f2fs/file.c b/fs/f2fs/file.c
+index 37d0e1f..6ff6e5b 100644
+--- a/fs/f2fs/file.c
++++ b/fs/f2fs/file.c
+@@ -474,13 +474,13 @@ static void __setattr_copy(struct inode *inode, const struct iattr *attr)
+ 	if (ia_valid & ATTR_GID)
+ 		inode->i_gid = attr->ia_gid;
+ 	if (ia_valid & ATTR_ATIME)
+-		inode->i_atime = timespec_trunc(attr->ia_atime,
++		inode->i_atime = inode_time_trunc(attr->ia_atime,
+ 						inode->i_sb->s_time_gran);
+ 	if (ia_valid & ATTR_MTIME)
+-		inode->i_mtime = timespec_trunc(attr->ia_mtime,
++		inode->i_mtime = inode_time_trunc(attr->ia_mtime,
+ 						inode->i_sb->s_time_gran);
+ 	if (ia_valid & ATTR_CTIME)
+-		inode->i_ctime = timespec_trunc(attr->ia_ctime,
++		inode->i_ctime = inode_time_trunc(attr->ia_ctime,
+ 						inode->i_sb->s_time_gran);
+ 	if (ia_valid & ATTR_MODE) {
+ 		umode_t mode = attr->ia_mode;
 -- 
 1.8.3.2
