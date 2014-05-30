@@ -1,85 +1,106 @@
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: [RFC 14/32] ext4: convert to struct inode_time
-Date: Fri, 30 May 2014 22:01:38 +0200
-Message-ID: <1401480116-1973111-15-git-send-email-arnd@arndb.de>
+Subject: [RFC 04/32] fs: introduce sys_newfstat64/sys_newfstatat64
+Date: Fri, 30 May 2014 22:01:28 +0200
+Message-ID: <1401480116-1973111-5-git-send-email-arnd@arndb.de>
 References: <1401480116-1973111-1-git-send-email-arnd@arndb.de>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1401480116-1973111-1-git-send-email-arnd@arndb.de>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, joseph@codesourcery.com, john.stultz@linaro.org, hch@infradead.org, tglx@linutronix.de, geert@linux-m68k.org, lftan@altera.com, hpa@zytor.com, linux-fsdevel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Theodore Ts'o <tytso@mit.edu>, Andreas Dilger <adilger.kernel@dilger.ca>, linux-ext4@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, joseph@codesourcery.com, john.stultz@linaro.org, hch@infradead.org, tglx@linutronix.de, geert@linux-m68k.org, lftan@altera.com, hpa@zytor.com, linux-fsdevel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>
 List-Id: linux-arch.vger.kernel.org
 
-ext4fs uses unsigned 34-bit seconds for inode timestamps, which will work
-for the next 500 years, but the VFS uses struct timespec for timestamps,
-which is only good until 2038 on 32-bit CPUs.
+We want to be able to read file system timestamps beyond year 2038,
+which is currently impossibly on 32-bit systems, since none of the
+various stat syscall interfaces (oldstat, stat, stat64) handles
+correctly.
 
-This gets us one small step closer to lifting the VFS limit by using
-struct inode_time in ext4.
+This introduces a fourth version of the syscalls, called newfstat64
+and newfstatat64, which operate on struct newstat64. Each 32-bit
+architecture needs to define a version of this structure.
+Architectures that have a 64-bit CPU should use the native 64-bit
+'struct stat' if possible, so we can avoid adding a compat_newfstatat64
+syscall. Note that there is no sys_newlstat64 or sys_newstat64,
+as both can be trivially emulated from libc using newfstatat64.
+
+This approach might not be the best solution, as there have been
+proposals in the past to add a new 'struct xstat' interface that
+would not only solve the y2038 problem but provide a number of
+other extensions as well. I have chickened out and avoided reviving
+that discussion for now. This new set of syscalls is a much simpler
+addition and is hopefully less controversial.
+If we end up merging xstat first, we won't need this patch.
 
 Signed-off-by: Arnd Bergmann <arnd@arndb.de>
-Cc: "Theodore Ts'o" <tytso@mit.edu>
-Cc: Andreas Dilger <adilger.kernel@dilger.ca>
-Cc: linux-ext4@vger.kernel.org
 ---
- fs/ext4/ext4.h    | 10 +++++-----
- fs/ext4/extents.c |  2 +-
- 2 files changed, 6 insertions(+), 6 deletions(-)
+ fs/stat.c | 55 +++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 55 insertions(+)
 
-diff --git a/fs/ext4/ext4.h b/fs/ext4/ext4.h
-index 92d9f1a..b60adc9 100644
---- a/fs/ext4/ext4.h
-+++ b/fs/ext4/ext4.h
-@@ -726,14 +726,14 @@ struct move_extent {
- 	<= (EXT4_GOOD_OLD_INODE_SIZE +			\
- 	    (einode)->i_extra_isize))			\
- 
--static inline __le32 ext4_encode_extra_time(struct timespec *time)
-+static inline __le32 ext4_encode_extra_time(struct inode_time *time)
- {
-        return cpu_to_le32((sizeof(time->tv_sec) > 4 ?
- 			   (time->tv_sec >> 32) & EXT4_EPOCH_MASK : 0) |
-                           ((time->tv_nsec << EXT4_EPOCH_BITS) & EXT4_NSEC_MASK));
+diff --git a/fs/stat.c b/fs/stat.c
+index ae0c3ce..77fd219 100644
+--- a/fs/stat.c
++++ b/fs/stat.c
+@@ -445,6 +445,61 @@ SYSCALL_DEFINE4(fstatat64, int, dfd, const char __user *, filename,
  }
+ #endif /* __ARCH_WANT_STAT64 || __ARCH_WANT_COMPAT_STAT64 */
  
--static inline void ext4_decode_extra_time(struct timespec *time, __le32 extra)
-+static inline void ext4_decode_extra_time(struct inode_time *time, __le32 extra)
++#ifdef __ARCH_HAS_NEWSTAT64
++/*
++ * we only need this for the native 32-bit path, all architectures should
++ * define the 32-bit newstat64 as compatible with the 64-bit stat or
++ * stat64.
++ */
++static long cp_new_newstat64(struct kstat *stat, struct newstat64 __user *statbuf)
++{
++	struct newstat64 tmp;
++
++	memset(&tmp, 0, sizeof(tmp));
++	tmp.st_dev = huge_encode_dev(stat->dev);
++	tmp.st_rdev = huge_encode_dev(stat->rdev);
++	tmp.st_ino = stat->ino;
++	tmp.st_mode = stat->mode;
++	tmp.st_nlink = stat->nlink;
++	tmp.st_uid = from_kuid_munged(current_user_ns(), stat->uid);
++	tmp.st_gid = from_kgid_munged(current_user_ns(), stat->gid);
++	tmp.st_atime = stat->atime.tv_sec;
++	tmp.st_atime_nsec = stat->atime.tv_nsec;
++	tmp.st_mtime = stat->mtime.tv_sec;
++	tmp.st_mtime_nsec = stat->mtime.tv_nsec;
++	tmp.st_ctime = stat->ctime.tv_sec;
++	tmp.st_ctime_nsec = stat->ctime.tv_nsec;
++	tmp.st_size = stat->size;
++	tmp.st_blocks = stat->blocks;
++	tmp.st_blksize = stat->blksize;
++	return copy_to_user(statbuf,&tmp,sizeof(tmp)) ? -EFAULT : 0;
++}
++
++SYSCALL_DEFINE2(newfstat64, unsigned long, fd, struct newstat64 __user *, statbuf)
++{
++	struct kstat stat;
++	int error;
++
++	error = vfs_fstat(fd, &stat);
++	if (error)
++		return error;
++
++	return cp_new_newstat64(&stat, statbuf);
++}
++
++SYSCALL_DEFINE4(newfstatat64, int, dfd, const char __user *, filename,
++		struct newstat64 __user *, statbuf, int, flag)
++{
++	struct kstat stat;
++	int error;
++
++	error = vfs_fstatat(dfd, filename, &stat, flag);
++	if (error)
++		return error;
++	return cp_new_newstat64(&stat, statbuf);
++}
++#endif
++
+ /* Caller is here responsible for sufficient locking (ie. inode->i_lock) */
+ void __inode_add_bytes(struct inode *inode, loff_t bytes)
  {
-        if (sizeof(time->tv_sec) > 4)
- 	       time->tv_sec |= (__u64)(le32_to_cpu(extra) & EXT4_EPOCH_MASK)
-@@ -879,9 +879,9 @@ struct ext4_inode_info {
- 
- 	/*
- 	 * File creation time. Its function is same as that of
--	 * struct timespec i_{a,c,m}time in the generic inode.
-+	 * struct inode_time i_{a,c,m}time in the generic inode.
- 	 */
--	struct timespec i_crtime;
-+	struct inode_time i_crtime;
- 
- 	/* mballoc */
- 	struct list_head i_prealloc_list;
-@@ -1354,7 +1354,7 @@ static inline struct ext4_inode_info *EXT4_I(struct inode *inode)
- 	return container_of(inode, struct ext4_inode_info, vfs_inode);
- }
- 
--static inline struct timespec ext4_current_time(struct inode *inode)
-+static inline struct inode_time ext4_current_time(struct inode *inode)
- {
- 	return (inode->i_sb->s_time_gran < NSEC_PER_SEC) ?
- 		current_fs_time(inode->i_sb) : CURRENT_TIME_SEC;
-diff --git a/fs/ext4/extents.c b/fs/ext4/extents.c
-index ee14768..ed11d79 100644
---- a/fs/ext4/extents.c
-+++ b/fs/ext4/extents.c
-@@ -4894,7 +4894,7 @@ long ext4_fallocate(struct file *file, int mode, loff_t offset, loff_t len)
- 	int ret = 0;
- 	int flags;
- 	ext4_lblk_t lblk;
--	struct timespec tv;
-+	struct inode_time tv;
- 	unsigned int blkbits = inode->i_blkbits;
- 
- 	/* Return error if mode is not supported */
 -- 
 1.8.3.2
