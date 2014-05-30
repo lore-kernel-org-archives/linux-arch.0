@@ -1,140 +1,127 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from g4t3425.houston.hp.com ([15.201.208.53]:39357 "EHLO
-	g4t3425.houston.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S965026AbaE3Pqm (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 30 May 2014 11:46:42 -0400
+Received: from g4t3426.houston.hp.com ([15.201.208.54]:2793 "EHLO
+	g4t3426.houston.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S964920AbaE3Pp0 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 30 May 2014 11:45:26 -0400
 From: Waiman Long <Waiman.Long@hp.com>
-Subject: [PATCH v11 13/16] pvqspinlock: Enable coexistence with the unfair lock
-Date: Fri, 30 May 2014 11:43:59 -0400
-Message-ID: <1401464642-33890-14-git-send-email-Waiman.Long@hp.com>
+Subject: [PATCH v11 04/16] qspinlock: Extract out the exchange of tail code word
+Date: Fri, 30 May 2014 11:43:50 -0400
+Message-ID: <1401464642-33890-5-git-send-email-Waiman.Long@hp.com>
 In-Reply-To: <1401464642-33890-1-git-send-email-Waiman.Long@hp.com>
 References: <1401464642-33890-1-git-send-email-Waiman.Long@hp.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Peter Zijlstra <peterz@infradead.org>
 Cc: linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Rik van Riel <riel@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, David Vrabel <david.vrabel@citrix.com>, Oleg Nesterov <oleg@redhat.com>, Gleb Natapov <gleb@redhat.com>, Scott J Norton <scott.norton@hp.com>, Chegu Vinod <chegu_vinod@hp.com>, Waiman Long <Waiman.Long@hp.com>
-Message-ID: <20140530154359.9HsDLwe9iqgnv-vyb2YdPZosUiYbh8kDfuHOBp1SEx4@z>
+Message-ID: <20140530154350.cw7WiKoIO9u2oErmGXFpcnX1_oIkWzALJo27dE0GCmc@z>
 
-This patch enables the coexistence of both the PV qspinlock and
-unfair lock.  When both are enabled, however, only the lock fastpath
-will perform lock stealing whereas the slowpath will have that disabled
-to get the best of both features.
-
-We also need to transition a CPU spinning too long in the pending
-bit code path back to the regular queuing code path so that it can
-be properly halted by the PV qspinlock code.
+This patch extracts the logic for the exchange of new and previous tail
+code words into a new xchg_tail() function which can be optimized in a
+later patch.
 
 Signed-off-by: Waiman Long <Waiman.Long@hp.com>
 ---
- kernel/locking/qspinlock.c |   47 ++++++++++++++++++++++++++++++++++++++++---
- 1 files changed, 43 insertions(+), 4 deletions(-)
+ include/asm-generic/qspinlock_types.h |    2 +
+ kernel/locking/qspinlock.c            |   58 ++++++++++++++++++++------------
+ 2 files changed, 38 insertions(+), 22 deletions(-)
 
+diff --git a/include/asm-generic/qspinlock_types.h b/include/asm-generic/qspinlock_types.h
+index bd25081..ed5d89a 100644
+--- a/include/asm-generic/qspinlock_types.h
++++ b/include/asm-generic/qspinlock_types.h
+@@ -61,6 +61,8 @@ typedef struct qspinlock {
+ #define _Q_TAIL_CPU_BITS	(32 - _Q_TAIL_CPU_OFFSET)
+ #define _Q_TAIL_CPU_MASK	_Q_SET_MASK(TAIL_CPU)
+ 
++#define _Q_TAIL_MASK		(_Q_TAIL_IDX_MASK | _Q_TAIL_CPU_MASK)
++
+ #define _Q_LOCKED_VAL		(1U << _Q_LOCKED_OFFSET)
+ #define _Q_PENDING_VAL		(1U << _Q_PENDING_OFFSET)
+ 
 diff --git a/kernel/locking/qspinlock.c b/kernel/locking/qspinlock.c
-index 93c663a..8deedcf 100644
+index 1e93c6a..41594a1 100644
 --- a/kernel/locking/qspinlock.c
 +++ b/kernel/locking/qspinlock.c
-@@ -57,12 +57,24 @@
- #include "mcs_spinlock.h"
+@@ -86,6 +86,31 @@ static inline struct mcs_spinlock *decode_tail(u32 tail)
+ #define _Q_LOCKED_PENDING_MASK	(_Q_LOCKED_MASK | _Q_PENDING_MASK)
  
- /*
-+ * Check the pending bit spinning threshold only if PV qspinlock is enabled
+ /**
++ * xchg_tail - Put in the new queue tail code word & retrieve previous one
++ * @lock : Pointer to queue spinlock structure
++ * @tail : The new queue tail code word
++ * Return: The previous queue tail code word
++ *
++ * xchg(lock, tail)
++ *
++ * p,*,* -> n,*,* ; prev = xchg(lock, node)
 + */
-+#define PSPIN_THRESHOLD		(1 << 10)
-+#define MAX_NODES		4
++static __always_inline u32 xchg_tail(struct qspinlock *lock, u32 tail)
++{
++	u32 old, new, val = atomic_read(&lock->val);
 +
-+#ifdef CONFIG_PARAVIRT_SPINLOCKS
-+#define pv_qspinlock_enabled()	static_key_false(&paravirt_spinlocks_enabled)
-+#else
-+#define pv_qspinlock_enabled()	false
-+#endif
++	for (;;) {
++		new = (val & _Q_LOCKED_PENDING_MASK) | tail;
++		old = atomic_cmpxchg(&lock->val, val, new);
++		if (old == val)
++			break;
 +
-+/*
-  * Per-CPU queue node structures; we can never have more than 4 nested
-  * contexts: task, softirq, hardirq, nmi.
-  *
-  * Exactly fits one cacheline.
-  */
--static DEFINE_PER_CPU_ALIGNED(struct mcs_spinlock, mcs_nodes[4]);
-+static DEFINE_PER_CPU_ALIGNED(struct mcs_spinlock, mcs_nodes[MAX_NODES]);
++		val = old;
++	}
++	return old;
++}
++
++/**
+  * queue_spin_lock_slowpath - acquire the queue spinlock
+  * @lock: Pointer to queue spinlock structure
+  * @val: Current value of the queue spinlock 32-bit word
+@@ -182,36 +207,25 @@ queue:
+ 	node->next = NULL;
  
- /*
-  * We must be able to distinguish between no-tail and the tail at 0:0,
-@@ -265,6 +277,9 @@ static noinline void queue_spin_lock_slowerpath(struct qspinlock *lock,
+ 	/*
+-	 * we already touched the queueing cacheline; don't bother with pending
+-	 * stuff.
+-	 *
+-	 * trylock || xchg(lock, node)
+-	 *
+-	 * 0,0,0 -> 0,0,1 ; trylock
+-	 * p,y,x -> n,y,x ; prev = xchg(lock, node)
++	 * We touched a (possibly) cold cacheline in the per-cpu queue node;
++	 * attempt the trylock once more in the hope someone let go while we
++	 * weren't watching.
+ 	 */
+-	for (;;) {
+-		new = _Q_LOCKED_VAL;
+-		if (val)
+-			new = tail | (val & _Q_LOCKED_PENDING_MASK);
+-
+-		old = atomic_cmpxchg(&lock->val, val, new);
+-		if (old == val)
+-			break;
+-
+-		val = old;
+-	}
++	if (queue_spin_trylock(lock))
++		goto release;
+ 
+ 	/*
+-	 * we won the trylock; forget about queueing.
++	 * we already touched the queueing cacheline; don't bother with pending
++	 * stuff.
++	 *
++	 * p,*,* -> n,*,*
+ 	 */
+-	if (new == _Q_LOCKED_VAL)
+-		goto release;
++	old = xchg_tail(lock, tail);
+ 
+ 	/*
+ 	 * if there was a previous node; link it and wait.
+ 	 */
+-	if (old & ~_Q_LOCKED_PENDING_MASK) {
++	if (old & _Q_TAIL_MASK) {
+ 		prev = decode_tail(old);
  		ACCESS_ONCE(prev->next) = node;
  
- 		arch_mcs_spin_lock_contended(&node->locked);
-+	} else {
-+		/* Mark it as the queue head */
-+		ACCESS_ONCE(node->locked) = true;
- 	}
- 
- 	/*
-@@ -344,14 +359,17 @@ void queue_spin_lock_slowpath(struct qspinlock *lock, u32 val)
- 	struct mcs_spinlock *node;
- 	u32 new, old, tail;
- 	int idx;
-+	int retry = INT_MAX;	/* Retry count, queue if <= 0 */
- 
- 	BUILD_BUG_ON(CONFIG_NR_CPUS >= (1U << _Q_TAIL_CPU_BITS));
- 
- #ifdef CONFIG_VIRT_UNFAIR_LOCKS
- 	/*
- 	 * A simple test and set unfair lock
-+	 * Disable waiter lock stealing if PV spinlock is enabled
- 	 */
--	if (static_key_false(&virt_unfairlocks_enabled)) {
-+	if (!pv_qspinlock_enabled() &&
-+	    static_key_false(&virt_unfairlocks_enabled)) {
- 		cpu_relax();	/* Relax after a failed lock attempt */
- 		while (!queue_spin_trylock(lock))
- 			cpu_relax();
-@@ -360,6 +378,14 @@ void queue_spin_lock_slowpath(struct qspinlock *lock, u32 val)
- #endif /* CONFIG_VIRT_UNFAIR_LOCKS */
- 
- 	/*
-+	 * When PV qspinlock is enabled, exit the pending bit code path and
-+	 * go back to the regular queuing path if the lock isn't available
-+	 * within a certain threshold.
-+	 */
-+	if (pv_qspinlock_enabled())
-+		retry = PSPIN_THRESHOLD;
-+
-+	/*
- 	 * trylock || pending
- 	 *
- 	 * 0,0,0 -> 0,0,1 ; trylock
-@@ -370,7 +396,7 @@ void queue_spin_lock_slowpath(struct qspinlock *lock, u32 val)
- 		 * If we observe that the queue is not empty or both
- 		 * the pending and lock bits are set, queue
- 		 */
--		if ((val & _Q_TAIL_MASK) ||
-+		if ((val & _Q_TAIL_MASK) || (retry-- <= 0) ||
- 		    (val == (_Q_LOCKED_VAL|_Q_PENDING_VAL)))
- 			goto queue;
- 
-@@ -413,8 +439,21 @@ void queue_spin_lock_slowpath(struct qspinlock *lock, u32 val)
- 	 * sequentiality; this because not all clear_pending_set_locked()
- 	 * implementations imply full barriers.
- 	 */
--	while ((val = smp_load_acquire(&lock->val.counter)) & _Q_LOCKED_MASK)
-+	while ((val = smp_load_acquire(&lock->val.counter)) & _Q_LOCKED_MASK) {
-+		if (pv_qspinlock_enabled() && (retry-- <= 0)) {
-+			/*
-+			 * Clear the pending bit and queue
-+			 */
-+			for (;;) {
-+				new = val & ~_Q_PENDING_MASK;
-+				old = atomic_cmpxchg(&lock->val, val, new);
-+				if (old == val)
-+					goto queue;
-+				val = old;
-+			}
-+		}
- 		arch_mutex_cpu_relax();
-+	}
- 
- 	/*
- 	 * take ownership and clear the pending bit.
 -- 
 1.7.1
 
