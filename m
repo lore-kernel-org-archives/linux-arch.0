@@ -1,239 +1,527 @@
-From: Waiman Long <Waiman.Long@hp.com>
-Subject: [PATCH v11 16/16] pvqspinlock, x86: Enable PV qspinlock for XEN
-Date: Fri, 30 May 2014 11:44:02 -0400
-Message-ID: <1401464642-33890-17-git-send-email-Waiman.Long@hp.com>
-References: <1401464642-33890-1-git-send-email-Waiman.Long@hp.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1401464642-33890-1-git-send-email-Waiman.Long@hp.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Peter Zijlstra <peterz@infradead.org>
-Cc: linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Rik van Riel <riel@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, David Vrabel <david.vrabel@citrix.com>, Oleg Nesterov <oleg@redhat.com>, Gleb Natapov <gleb@redhat.com>, Scott J Norton <scott.norton@hp.com>, Chegu Vinod <chegu_vinod@hp.com>, Waiman Long <Waiman.Long@hp.com>
-List-Id: linux-arch.vger.kernel.org
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: [RFC 01/32] fs: introduce new 'struct inode_time'
+Date: Fri, 30 May 2014 22:01:25 +0200
+Message-ID: <1401480116-1973111-2-git-send-email-arnd@arndb.de>
+References: <1401480116-1973111-1-git-send-email-arnd@arndb.de>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mout.kundenserver.de ([212.227.17.13]:55948 "EHLO
+	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751811AbaE3UFJ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 30 May 2014 16:05:09 -0400
+In-Reply-To: <1401480116-1973111-1-git-send-email-arnd@arndb.de>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linux-kernel@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, joseph@codesourcery.com, john.stultz@linaro.org, hch@infradead.org, tglx@linutronix.de, geert@linux-m68k.org, lftan@altera.com, hpa@zytor.com, linux-fsdevel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>
 
-This patch adds the necessary XEN specific code to allow XEN to
-support the CPU halting and kicking operations needed by the queue
-spinlock PV code.
+As one part of the puzzle to solve the y2038 problem, this introduces
+a new time type to be used for keeping inode timestamps (atime, ctime,
+mtime) inside of the kernel.
 
-Signed-off-by: Waiman Long <Waiman.Long@hp.com>
+Initially, this type is defined to 'struct timespec' to allow migrating
+all file systems one by one, but the intention is to change the definition
+to use either 64-bit signed seconds or 'unsigned long' seconds, which
+would allow timestamps between 1970 and 2106.
+
+Signed-off-by: Arnd Bergmann <arnd@arndb.de>
 ---
- arch/x86/xen/spinlock.c |  147 +++++++++++++++++++++++++++++++++++++++++++++--
- kernel/Kconfig.locks    |    2 +-
- 2 files changed, 143 insertions(+), 6 deletions(-)
+ fs/attr.c                 |  8 +++---
+ fs/inode.c                | 18 ++++++-------
+ fs/locks.c                |  4 +--
+ include/linux/fs.h        | 32 +++++++++++-----------
+ include/linux/stat.h      |  6 ++---
+ include/linux/time.h      | 69 ++++++++++++++++++++++++++++++++++++++++++++---
+ kernel/audit.c            |  2 +-
+ kernel/auditsc.c          |  2 +-
+ kernel/time.c             | 44 +++++++++++++++++++++++++-----
+ kernel/time/timekeeping.c | 16 +++++++++++
+ 10 files changed, 155 insertions(+), 46 deletions(-)
 
-diff --git a/arch/x86/xen/spinlock.c b/arch/x86/xen/spinlock.c
-index d1b6a32..2a259bb 100644
---- a/arch/x86/xen/spinlock.c
-+++ b/arch/x86/xen/spinlock.c
-@@ -17,6 +17,12 @@
- #include "xen-ops.h"
- #include "debugfs.h"
+diff --git a/fs/attr.c b/fs/attr.c
+index 5d4e59d..62a9d28 100644
+--- a/fs/attr.c
++++ b/fs/attr.c
+@@ -148,13 +148,13 @@ void setattr_copy(struct inode *inode, const struct iattr *attr)
+ 	if (ia_valid & ATTR_GID)
+ 		inode->i_gid = attr->ia_gid;
+ 	if (ia_valid & ATTR_ATIME)
+-		inode->i_atime = timespec_trunc(attr->ia_atime,
++		inode->i_atime = inode_time_trunc(attr->ia_atime,
+ 						inode->i_sb->s_time_gran);
+ 	if (ia_valid & ATTR_MTIME)
+-		inode->i_mtime = timespec_trunc(attr->ia_mtime,
++		inode->i_mtime = inode_time_trunc(attr->ia_mtime,
+ 						inode->i_sb->s_time_gran);
+ 	if (ia_valid & ATTR_CTIME)
+-		inode->i_ctime = timespec_trunc(attr->ia_ctime,
++		inode->i_ctime = inode_time_trunc(attr->ia_ctime,
+ 						inode->i_sb->s_time_gran);
+ 	if (ia_valid & ATTR_MODE) {
+ 		umode_t mode = attr->ia_mode;
+@@ -192,7 +192,7 @@ int notify_change(struct dentry * dentry, struct iattr * attr, struct inode **de
+ 	struct inode *inode = dentry->d_inode;
+ 	umode_t mode = inode->i_mode;
+ 	int error;
+-	struct timespec now;
++	struct inode_time now;
+ 	unsigned int ia_valid = attr->ia_valid;
  
-+static DEFINE_PER_CPU(int, lock_kicker_irq) = -1;
-+static DEFINE_PER_CPU(char *, irq_name);
-+static bool xen_pvspin = true;
-+
-+#ifndef CONFIG_QUEUE_SPINLOCK
-+
- enum xen_contention_stat {
- 	TAKEN_SLOW,
- 	TAKEN_SLOW_PICKUP,
-@@ -100,12 +106,9 @@ struct xen_lock_waiting {
- 	__ticket_t want;
+ 	WARN_ON_ONCE(!mutex_is_locked(&inode->i_mutex));
+diff --git a/fs/inode.c b/fs/inode.c
+index 2feb9b6..e123f4c 100644
+--- a/fs/inode.c
++++ b/fs/inode.c
+@@ -1464,7 +1464,7 @@ EXPORT_SYMBOL(bmap);
+  * passed since the last atime update.
+  */
+ static int relatime_need_update(struct vfsmount *mnt, struct inode *inode,
+-			     struct timespec now)
++				struct inode_time now)
+ {
+ 
+ 	if (!(mnt->mnt_flags & MNT_RELATIME))
+@@ -1472,12 +1472,12 @@ static int relatime_need_update(struct vfsmount *mnt, struct inode *inode,
+ 	/*
+ 	 * Is mtime younger than atime? If yes, update atime:
+ 	 */
+-	if (timespec_compare(&inode->i_mtime, &inode->i_atime) >= 0)
++	if (inode_time_compare(&inode->i_mtime, &inode->i_atime) >= 0)
+ 		return 1;
+ 	/*
+ 	 * Is ctime younger than atime? If yes, update atime:
+ 	 */
+-	if (timespec_compare(&inode->i_ctime, &inode->i_atime) >= 0)
++	if (inode_time_compare(&inode->i_ctime, &inode->i_atime) >= 0)
+ 		return 1;
+ 
+ 	/*
+@@ -1496,7 +1496,7 @@ static int relatime_need_update(struct vfsmount *mnt, struct inode *inode,
+  * This does the actual work of updating an inodes time or version.  Must have
+  * had called mnt_want_write() before calling this.
+  */
+-static int update_time(struct inode *inode, struct timespec *time, int flags)
++static int update_time(struct inode *inode, struct inode_time *time, int flags)
+ {
+ 	if (inode->i_op->update_time)
+ 		return inode->i_op->update_time(inode, time, flags);
+@@ -1525,7 +1525,7 @@ void touch_atime(const struct path *path)
+ {
+ 	struct vfsmount *mnt = path->mnt;
+ 	struct inode *inode = path->dentry->d_inode;
+-	struct timespec now;
++	struct inode_time now;
+ 
+ 	if (inode->i_flags & S_NOATIME)
+ 		return;
+@@ -1544,7 +1544,7 @@ void touch_atime(const struct path *path)
+ 	if (!relatime_need_update(mnt, inode, now))
+ 		return;
+ 
+-	if (timespec_equal(&inode->i_atime, &now))
++	if (inode_time_equal(&inode->i_atime, &now))
+ 		return;
+ 
+ 	if (!sb_start_write_trylock(inode->i_sb))
+@@ -1653,7 +1653,7 @@ EXPORT_SYMBOL(file_remove_suid);
+ int file_update_time(struct file *file)
+ {
+ 	struct inode *inode = file_inode(file);
+-	struct timespec now;
++	struct inode_time now;
+ 	int sync_it = 0;
+ 	int ret;
+ 
+@@ -1662,10 +1662,10 @@ int file_update_time(struct file *file)
+ 		return 0;
+ 
+ 	now = current_fs_time(inode->i_sb);
+-	if (!timespec_equal(&inode->i_mtime, &now))
++	if (!inode_time_equal(&inode->i_mtime, &now))
+ 		sync_it = S_MTIME;
+ 
+-	if (!timespec_equal(&inode->i_ctime, &now))
++	if (!inode_time_equal(&inode->i_ctime, &now))
+ 		sync_it |= S_CTIME;
+ 
+ 	if (IS_I_VERSION(inode))
+diff --git a/fs/locks.c b/fs/locks.c
+index da57c9b..1d9bb23 100644
+--- a/fs/locks.c
++++ b/fs/locks.c
+@@ -1423,13 +1423,13 @@ EXPORT_SYMBOL(__break_lease);
+ /**
+  *	lease_get_mtime - get the last modified time of an inode
+  *	@inode: the inode
+- *      @time:  pointer to a timespec which will contain the last modified time
++ *      @time:  pointer to a inode time which will contain the last modified time
+  *
+  * This is to force NFS clients to flush their caches for files with
+  * exclusive leases.  The justification is that if someone has an
+  * exclusive lease, then they could be modifying it.
+  */
+-void lease_get_mtime(struct inode *inode, struct timespec *time)
++void lease_get_mtime(struct inode *inode, struct inode_time *time)
+ {
+ 	struct file_lock *flock = inode->i_flock;
+ 	if (flock && IS_LEASE(flock) && (flock->fl_type == F_WRLCK))
+diff --git a/include/linux/fs.h b/include/linux/fs.h
+index 1cab2f8..5ee58bf 100644
+--- a/include/linux/fs.h
++++ b/include/linux/fs.h
+@@ -234,21 +234,21 @@ typedef void (dio_iodone_t)(struct kiocb *iocb, loff_t offset,
+  * Derek Atkins <warlord@MIT.EDU> 94-10-20
+  */
+ struct iattr {
+-	unsigned int	ia_valid;
+-	umode_t		ia_mode;
+-	kuid_t		ia_uid;
+-	kgid_t		ia_gid;
+-	loff_t		ia_size;
+-	struct timespec	ia_atime;
+-	struct timespec	ia_mtime;
+-	struct timespec	ia_ctime;
++	unsigned int		ia_valid;
++	umode_t			ia_mode;
++	kuid_t			ia_uid;
++	kgid_t			ia_gid;
++	loff_t			ia_size;
++	struct inode_time	ia_atime;
++	struct inode_time	ia_mtime;
++	struct inode_time	ia_ctime;
+ 
+ 	/*
+ 	 * Not an attribute, but an auxiliary info for filesystems wanting to
+ 	 * implement an ftruncate() like method.  NOTE: filesystem should
+ 	 * check for (ia_valid & ATTR_FILE), and not for (ia_file != NULL).
+ 	 */
+-	struct file	*ia_file;
++	struct file		*ia_file;
  };
  
--static DEFINE_PER_CPU(int, lock_kicker_irq) = -1;
--static DEFINE_PER_CPU(char *, irq_name);
- static DEFINE_PER_CPU(struct xen_lock_waiting, lock_waiting);
- static cpumask_t waiting_cpus;
- 
--static bool xen_pvspin = true;
- __visible void xen_lock_spinning(struct arch_spinlock *lock, __ticket_t want)
- {
- 	int irq = __this_cpu_read(lock_kicker_irq);
-@@ -213,6 +216,118 @@ static void xen_unlock_kick(struct arch_spinlock *lock, __ticket_t next)
- 	}
- }
- 
-+#else /* CONFIG_QUEUE_SPINLOCK */
-+
-+#ifdef CONFIG_XEN_DEBUG_FS
-+static u32 kick_nohlt_stats;		/* Kick but not halt count	*/
-+static u32 halt_qhead_stats;		/* Queue head halting count	*/
-+static u32 halt_qnode_stats;		/* Queue node halting count	*/
-+static u32 halt_abort_stats;		/* Halting abort count		*/
-+static u32 wake_kick_stats;		/* Wakeup by kicking count	*/
-+static u32 wake_spur_stats;		/* Spurious wakeup count	*/
-+static u64 time_blocked;		/* Total blocking time		*/
-+
-+static inline void xen_halt_stats(enum pv_lock_stats type)
-+{
-+	if (type == PV_HALT_QHEAD)
-+		add_smp(&halt_qhead_stats, 1);
-+	else if (type == PV_HALT_QNODE)
-+		add_smp(&halt_qnode_stats, 1);
-+	else /* type == PV_HALT_ABORT */
-+		add_smp(&halt_abort_stats, 1);
-+}
-+
-+static inline void xen_lock_stats(enum pv_lock_stats type)
-+{
-+	if (type == PV_WAKE_KICKED)
-+		add_smp(&wake_kick_stats, 1);
-+	else if (type == PV_WAKE_SPURIOUS)
-+		add_smp(&wake_spur_stats, 1);
-+	else /* type == PV_KICK_NOHALT */
-+		add_smp(&kick_nohlt_stats, 1);
-+}
-+
-+static inline u64 spin_time_start(void)
-+{
-+	return sched_clock();
-+}
-+
-+static inline void spin_time_accum_blocked(u64 start)
-+{
-+	u64 delta;
-+
-+	delta = sched_clock() - start;
-+	add_smp(&time_blocked, delta);
-+}
-+#else /* CONFIG_XEN_DEBUG_FS */
-+static inline void xen_halt_stats(enum pv_lock_stats type)
-+{
-+}
-+
-+static inline void xen_lock_stats(enum pv_lock_stats type)
-+{
-+}
-+
-+static inline u64 spin_time_start(void)
-+{
-+	return 0;
-+}
-+
-+static inline void spin_time_accum_blocked(u64 start)
-+{
-+}
-+#endif /* CONFIG_XEN_DEBUG_FS */
-+
-+static void xen_kick_cpu(int cpu)
-+{
-+	xen_send_IPI_one(cpu, XEN_SPIN_UNLOCK_VECTOR);
-+}
-+
-+/*
-+ * Halt the current CPU & release it back to the host
-+ */
-+static void xen_halt_cpu(enum pv_lock_stats type, s8 *state, s8 sval)
-+{
-+	int irq = __this_cpu_read(lock_kicker_irq);
-+	unsigned long flags;
-+	u64 start;
-+
-+	/* If kicker interrupts not initialized yet, just spin */
-+	if (irq == -1)
-+		return;
-+
-+	/*
-+	 * Make sure an interrupt handler can't upset things in a
-+	 * partially setup state.
-+	 */
-+	local_irq_save(flags);
-+	start = spin_time_start();
-+
-+	xen_halt_stats(type);
-+	/* clear pending */
-+	xen_clear_irq_pending(irq);
-+
-+	/* Allow interrupts while blocked */
-+	local_irq_restore(flags);
-+	/*
-+	 * Don't halt if the CPU state has been changed.
-+	 */
-+	if (ACCESS_ONCE(*state) != sval) {
-+		xen_halt_stats(PV_HALT_ABORT);
-+		return;
-+	}
-+	/*
-+	 * If an interrupt happens here, it will leave the wakeup irq
-+	 * pending, which will cause xen_poll_irq() to return
-+	 * immediately.
-+	 */
-+
-+	/* Block until irq becomes pending (or perhaps a spurious wakeup) */
-+	xen_poll_irq(irq);
-+	spin_time_accum_blocked(start);
-+}
-+#endif /* CONFIG_QUEUE_SPINLOCK */
-+
- static irqreturn_t dummy_handler(int irq, void *dev_id)
- {
- 	BUG();
-@@ -258,7 +373,6 @@ void xen_uninit_lock_cpu(int cpu)
- 	per_cpu(irq_name, cpu) = NULL;
- }
- 
--
  /*
-  * Our init of PV spinlocks is split in two init functions due to us
-  * using paravirt patching and jump labels patching and having to do
-@@ -275,8 +389,15 @@ void __init xen_init_spinlocks(void)
- 		return;
- 	}
- 	printk(KERN_DEBUG "xen: PV spinlocks enabled\n");
-+
-+#ifdef CONFIG_QUEUE_SPINLOCK
-+	pv_lock_ops.kick_cpu = xen_kick_cpu;
-+	pv_lock_ops.halt_cpu = xen_halt_cpu;
-+	pv_lock_ops.lockstat = xen_lock_stats;
-+#else
- 	pv_lock_ops.lock_spinning = PV_CALLEE_SAVE(xen_lock_spinning);
- 	pv_lock_ops.unlock_kick = xen_unlock_kick;
-+#endif
- }
- 
- /*
-@@ -321,6 +442,7 @@ static int __init xen_spinlock_debugfs(void)
- 
- 	d_spin_debug = debugfs_create_dir("spinlocks", d_xen);
- 
-+#ifndef CONFIG_QUEUE_SPINLOCK
- 	debugfs_create_u8("zero_stats", 0644, d_spin_debug, &zero_stats);
- 
- 	debugfs_create_u32("taken_slow", 0444, d_spin_debug,
-@@ -340,7 +462,22 @@ static int __init xen_spinlock_debugfs(void)
- 
- 	debugfs_create_u32_array("histo_blocked", 0444, d_spin_debug,
- 				spinlock_stats.histo_spin_blocked, HISTO_BUCKETS + 1);
--
-+#else /* CONFIG_QUEUE_SPINLOCK */
-+	debugfs_create_u32("kick_nohlt_stats",
-+			   0644, d_spin_debug, &kick_nohlt_stats);
-+	debugfs_create_u32("halt_qhead_stats",
-+			   0644, d_spin_debug, &halt_qhead_stats);
-+	debugfs_create_u32("halt_qnode_stats",
-+			   0644, d_spin_debug, &halt_qnode_stats);
-+	debugfs_create_u32("halt_abort_stats",
-+			   0644, d_spin_debug, &halt_abort_stats);
-+	debugfs_create_u32("wake_kick_stats",
-+			   0644, d_spin_debug, &wake_kick_stats);
-+	debugfs_create_u32("wake_spur_stats",
-+			   0644, d_spin_debug, &wake_spur_stats);
-+	debugfs_create_u64("time_blocked",
-+			   0644, d_spin_debug, &time_blocked);
-+#endif /* CONFIG_QUEUE_SPINLOCK */
+@@ -534,9 +534,9 @@ struct inode {
+ 	};
+ 	dev_t			i_rdev;
+ 	loff_t			i_size;
+-	struct timespec		i_atime;
+-	struct timespec		i_mtime;
+-	struct timespec		i_ctime;
++	struct inode_time	i_atime;
++	struct inode_time	i_mtime;
++	struct inode_time	i_ctime;
+ 	spinlock_t		i_lock;	/* i_blocks, i_bytes, maybe i_size */
+ 	unsigned short          i_bytes;
+ 	unsigned int		i_blkbits;
+@@ -954,7 +954,7 @@ extern int vfs_lock_file(struct file *, unsigned int, struct file_lock *, struct
+ extern int vfs_cancel_lock(struct file *filp, struct file_lock *fl);
+ extern int flock_lock_file_wait(struct file *filp, struct file_lock *fl);
+ extern int __break_lease(struct inode *inode, unsigned int flags, unsigned int type);
+-extern void lease_get_mtime(struct inode *, struct timespec *time);
++extern void lease_get_mtime(struct inode *, struct inode_time *time);
+ extern int generic_setlease(struct file *, long, struct file_lock **);
+ extern int vfs_setlease(struct file *, long, struct file_lock **);
+ extern int lease_modify(struct file_lock **, int);
+@@ -1069,7 +1069,7 @@ static inline int __break_lease(struct inode *inode, unsigned int mode, unsigned
  	return 0;
  }
- fs_initcall(xen_spinlock_debugfs);
-diff --git a/kernel/Kconfig.locks b/kernel/Kconfig.locks
-index a70fdeb..451e392 100644
---- a/kernel/Kconfig.locks
-+++ b/kernel/Kconfig.locks
-@@ -229,4 +229,4 @@ config ARCH_USE_QUEUE_SPINLOCK
  
- config QUEUE_SPINLOCK
- 	def_bool y if ARCH_USE_QUEUE_SPINLOCK
--	depends on SMP && (!PARAVIRT_SPINLOCKS || !XEN)
-+	depends on SMP
+-static inline void lease_get_mtime(struct inode *inode, struct timespec *time)
++static inline void lease_get_mtime(struct inode *inode, struct inode_time *time)
+ {
+ 	return;
+ }
+@@ -1260,7 +1260,7 @@ struct super_block {
+ 	struct rcu_head		rcu;
+ };
+ 
+-extern struct timespec current_fs_time(struct super_block *sb);
++extern struct inode_time current_fs_time(struct super_block *sb);
+ 
+ /*
+  * Snapshotting support.
+@@ -1514,7 +1514,7 @@ struct inode_operations {
+ 	int (*removexattr) (struct dentry *, const char *);
+ 	int (*fiemap)(struct inode *, struct fiemap_extent_info *, u64 start,
+ 		      u64 len);
+-	int (*update_time)(struct inode *, struct timespec *, int);
++	int (*update_time)(struct inode *, struct inode_time *, int);
+ 	int (*atomic_open)(struct inode *, struct dentry *,
+ 			   struct file *, unsigned open_flag,
+ 			   umode_t create_mode, int *opened);
+diff --git a/include/linux/stat.h b/include/linux/stat.h
+index 075cb0c..c867e29 100644
+--- a/include/linux/stat.h
++++ b/include/linux/stat.h
+@@ -27,9 +27,9 @@ struct kstat {
+ 	kgid_t		gid;
+ 	dev_t		rdev;
+ 	loff_t		size;
+-	struct timespec  atime;
+-	struct timespec	mtime;
+-	struct timespec	ctime;
++	struct inode_time atime;
++	struct inode_time mtime;
++	struct inode_time ctime;
+ 	unsigned long	blksize;
+ 	unsigned long long	blocks;
+ };
+diff --git a/include/linux/time.h b/include/linux/time.h
+index d5d229b..e2d5aa2 100644
+--- a/include/linux/time.h
++++ b/include/linux/time.h
+@@ -6,6 +6,45 @@
+ # include <linux/math64.h>
+ #include <uapi/linux/time.h>
+ 
++#ifdef CONFIG_NEW_INODE_TIME
++/*
++ * This is the type we use internally in the kernel to represent
++ * absolute times in file system metadata.
++ * This structure must not leak out to user space, and new interfaces
++ * should be using 64-bit types right away.
++ */
++
++/*
++ * Variant a) using unsigned seconds lets us extend the life span
++ * for another 69 years beyond 2038.
++ */
++struct inode_time {
++	unsigned long	tv_sec;
++	long		tv_nsec;
++};
++#elif 0
++/*
++ * This variant can represent the widest range of times, but also
++ * bloats 'struct inode' a little more.
++ */
++struct inode_time {
++	long long	tv_sec __attribute__((packed));
++	int		tv_nsec;
++};
++#elif 0
++/*
++ * The variant using bit fields is less efficient to access, but
++ * small and has a wider range as the 32-bit one, plus it keeps
++ * the signedness of the original timespec.
++ */
++struct inode_time {
++	long long	tv_sec	: 34;
++	int		tv_nsec : 30;
++};
++#else
++#define inode_time timespec
++#endif
++
+ extern struct timezone sys_tz;
+ 
+ /* Parameters used to convert the timespec values: */
+@@ -25,6 +64,12 @@ static inline int timespec_equal(const struct timespec *a,
+ 	return (a->tv_sec == b->tv_sec) && (a->tv_nsec == b->tv_nsec);
+ }
+ 
++static inline int inode_time_equal(const struct inode_time *a,
++                                 const struct inode_time *b)
++{
++	return (a->tv_sec == b->tv_sec) && (a->tv_nsec == b->tv_nsec);
++}
++
+ /*
+  * lhs < rhs:  return <0
+  * lhs == rhs: return 0
+@@ -39,6 +84,15 @@ static inline int timespec_compare(const struct timespec *lhs, const struct time
+ 	return lhs->tv_nsec - rhs->tv_nsec;
+ }
+ 
++static inline int inode_time_compare(const struct inode_time *lhs, const struct inode_time *rhs)
++{
++	if (lhs->tv_sec < rhs->tv_sec)
++		return -1;
++	if (lhs->tv_sec > rhs->tv_sec)
++		return 1;
++	return lhs->tv_nsec - rhs->tv_nsec;
++}
++
+ static inline int timeval_compare(const struct timeval *lhs, const struct timeval *rhs)
+ {
+ 	if (lhs->tv_sec < rhs->tv_sec)
+@@ -131,14 +185,15 @@ extern int timekeeping_suspended;
+ 
+ unsigned long get_seconds(void);
+ struct timespec current_kernel_time(void);
++struct inode_time current_inode_time(void);
+ struct timespec __current_kernel_time(void); /* does not take xtime_lock */
+ struct timespec get_monotonic_coarse(void);
+ void get_xtime_and_monotonic_and_sleep_offset(struct timespec *xtim,
+ 				struct timespec *wtom, struct timespec *sleep);
+ void timekeeping_inject_sleeptime(struct timespec *delta);
+ 
+-#define CURRENT_TIME		(current_kernel_time())
+-#define CURRENT_TIME_SEC	((struct timespec) { get_seconds(), 0 })
++#define CURRENT_TIME		(current_inode_time())
++#define CURRENT_TIME_SEC	((struct inode_time) { get_seconds(), 0 })
+ 
+ /* Some architectures do not supply their own clocksource.
+  * This is mainly the case in architectures that get their
+@@ -173,7 +228,7 @@ extern void getboottime(struct timespec *ts);
+ extern void monotonic_to_bootbased(struct timespec *ts);
+ extern void get_monotonic_boottime(struct timespec *ts);
+ 
+-extern struct timespec timespec_trunc(struct timespec t, unsigned gran);
++extern struct inode_time inode_time_trunc(struct inode_time t, unsigned gran);
+ extern int timekeeping_valid_for_hres(void);
+ extern u64 timekeeping_max_deferment(void);
+ extern int timekeeping_inject_offset(struct timespec *ts);
+@@ -246,6 +301,14 @@ static inline s64 timeval_to_ns(const struct timeval *tv)
+ extern struct timespec ns_to_timespec(const s64 nsec);
+ 
+ /**
++ * ns_to_inode_time - Convert nanoseconds to inode_time
++ * @nsec:	the nanoseconds value to be converted
++ *
++ * Returns the inode_time representation of the nsec parameter.
++ */
++extern struct inode_time ns_to_inode_time(const s64 nsec);
++
++/**
+  * ns_to_timeval - Convert nanoseconds to timeval
+  * @nsec:	the nanoseconds value to be converted
+  *
+diff --git a/kernel/audit.c b/kernel/audit.c
+index 3ef2e0e..2440add 100644
+--- a/kernel/audit.c
++++ b/kernel/audit.c
+@@ -1320,7 +1320,7 @@ static inline void audit_get_stamp(struct audit_context *ctx,
+ 				   struct timespec *t, unsigned int *serial)
+ {
+ 	if (!ctx || !auditsc_get_stamp(ctx, t, serial)) {
+-		*t = CURRENT_TIME;
++		*t = current_kernel_time();
+ 		*serial = audit_serial();
+ 	}
+ }
+diff --git a/kernel/auditsc.c b/kernel/auditsc.c
+index b12a712..041ec4e 100644
+--- a/kernel/auditsc.c
++++ b/kernel/auditsc.c
+@@ -1543,7 +1543,7 @@ void __audit_syscall_entry(int major, unsigned long a1, unsigned long a2,
+ 		return;
+ 
+ 	context->serial     = 0;
+-	context->ctime      = CURRENT_TIME;
++	context->ctime      = current_kernel_time();
+ 	context->in_syscall = 1;
+ 	context->current_state  = state;
+ 	context->ppid       = 0;
+diff --git a/kernel/time.c b/kernel/time.c
+index 7c7964c..40a25a7 100644
+--- a/kernel/time.c
++++ b/kernel/time.c
+@@ -228,10 +228,15 @@ SYSCALL_DEFINE1(adjtimex, struct timex __user *, txc_p)
+  * Return the current time truncated to the time granularity supported by
+  * the fs.
+  */
+-struct timespec current_fs_time(struct super_block *sb)
++struct inode_time current_fs_time(struct super_block *sb)
+ {
+-	struct timespec now = current_kernel_time();
+-	return timespec_trunc(now, sb->s_time_gran);
++	/* FIXME: current_kernel_time may be 32-bit */
++	struct timespec ts = current_kernel_time();
++	struct inode_time now = (struct inode_time) {
++		.tv_sec = ts.tv_sec,
++		.tv_nsec = ts.tv_nsec,
++	};
++	return inode_time_trunc(now, sb->s_time_gran);
+ }
+ EXPORT_SYMBOL(current_fs_time);
+ 
+@@ -274,8 +279,8 @@ unsigned int jiffies_to_usecs(const unsigned long j)
+ EXPORT_SYMBOL(jiffies_to_usecs);
+ 
+ /**
+- * timespec_trunc - Truncate timespec to a granularity
+- * @t: Timespec
++ * inode_time_trunc - Truncate timespec to a granularity
++ * @t: inode time
+  * @gran: Granularity in ns.
+  *
+  * Truncate a timespec to a granularity. gran must be smaller than a second.
+@@ -285,7 +290,7 @@ EXPORT_SYMBOL(jiffies_to_usecs);
+  * current_kernel_time() or CURRENT_TIME, not with do_gettimeofday() because
+  * it doesn't handle the better resolution of the latter.
+  */
+-struct timespec timespec_trunc(struct timespec t, unsigned gran)
++struct inode_time inode_time_trunc(struct inode_time t, unsigned gran)
+ {
+ 	/*
+ 	 * Division is pretty slow so avoid it for common cases.
+@@ -301,7 +306,7 @@ struct timespec timespec_trunc(struct timespec t, unsigned gran)
+ 	}
+ 	return t;
+ }
+-EXPORT_SYMBOL(timespec_trunc);
++EXPORT_SYMBOL(inode_time_trunc);
+ 
+ /* Converts Gregorian date to seconds since 1970-01-01 00:00:00.
+  * Assumes input in normal date format, i.e. 1980-12-31 23:59:59
+@@ -403,6 +408,31 @@ struct timespec ns_to_timespec(const s64 nsec)
+ EXPORT_SYMBOL(ns_to_timespec);
+ 
+ /**
++ * ns_to_inode_time - Convert nanoseconds to inode_time
++ * @nsec:       the nanoseconds value to be converted
++ *
++ * Returns the inode_time representation of the nsec parameter.
++ */
++struct inode_time ns_to_inode_time(const s64 nsec)
++{
++	struct inode_time ts;
++	s32 rem;
++
++	if (!nsec)
++		return (struct inode_time) {0, 0};
++
++	ts.tv_sec = div_s64_rem(nsec, NSEC_PER_SEC, &rem);
++	if (unlikely(rem < 0)) {
++		ts.tv_sec--;
++		rem += NSEC_PER_SEC;
++	}
++	ts.tv_nsec = rem;
++
++	return ts;
++}
++EXPORT_SYMBOL(ns_to_inode_time);
++
++/**
+  * ns_to_timeval - Convert nanoseconds to timeval
+  * @nsec:       the nanoseconds value to be converted
+  *
+diff --git a/kernel/time/timekeeping.c b/kernel/time/timekeeping.c
+index 32d8d6a..c0c4a18 100644
+--- a/kernel/time/timekeeping.c
++++ b/kernel/time/timekeeping.c
+@@ -1559,6 +1559,22 @@ struct timespec current_kernel_time(void)
+ }
+ EXPORT_SYMBOL(current_kernel_time);
+ 
++struct inode_time current_inode_time(void)
++{
++	struct timekeeper *tk = &timekeeper;
++	struct timespec now;
++	unsigned long seq;
++
++	do {
++		seq = read_seqcount_begin(&timekeeper_seq);
++
++		now = tk_xtime(tk);
++	} while (read_seqcount_retry(&timekeeper_seq, seq));
++
++	return (struct inode_time) { now.tv_sec, now.tv_nsec };
++}
++EXPORT_SYMBOL(current_inode_time);
++
+ struct timespec get_monotonic_coarse(void)
+ {
+ 	struct timekeeper *tk = &timekeeper;
 -- 
-1.7.1
+1.8.3.2
