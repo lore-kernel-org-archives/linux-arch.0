@@ -1,57 +1,45 @@
 From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [RFC 01/32] fs: introduce new 'struct inode_time'
-Date: Sat, 31 May 2014 18:15:30 +0200
-Message-ID: <CAMuHMdVQJfaghsVqJJnsFahu6FGhXm2-DtOQbJTEDd7f=TO_NQ@mail.gmail.com>
+Subject: Re: [RFC 00/32] making inode time stamps y2038 ready
+Date: Sat, 31 May 2014 18:20:43 +0200
+Message-ID: <CAMuHMdU9qEJ=k-Jq7VJZUbM82u0ViqaSLsRBf45EMrQJBLTPxA@mail.gmail.com>
 References: <1401480116-1973111-1-git-send-email-arnd@arndb.de>
-	<CAMuHMdVgch4REGcYWFZXVToX2b8iCinFVV10Bz3VoeiZy_yBtg@mail.gmail.com>
-	<m2tx86l4ux.fsf@linux-m68k.org>
-	<5507335.AOOTyGEum3@wuerfel>
+	<20140531145114.GA3721@localhost.localdomain>
+	<6347520.8jMPlVsFjM@wuerfel>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ie0-f170.google.com ([209.85.223.170]:39079 "EHLO
-	mail-ie0-f170.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752661AbaEaQPb (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 31 May 2014 12:15:31 -0400
-In-Reply-To: <5507335.AOOTyGEum3@wuerfel>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Return-path: <cluster-devel-bounces@redhat.com>
+In-Reply-To: <6347520.8jMPlVsFjM@wuerfel>
+List-Unsubscribe: <https://www.redhat.com/mailman/options/cluster-devel>,
+	<mailto:cluster-devel-request@redhat.com?subject=unsubscribe>
+List-Archive: <https://www.redhat.com/archives/cluster-devel>
+List-Post: <mailto:cluster-devel@redhat.com>
+List-Help: <mailto:cluster-devel-request@redhat.com?subject=help>
+List-Subscribe: <https://www.redhat.com/mailman/listinfo/cluster-devel>,
+	<mailto:cluster-devel-request@redhat.com?subject=subscribe>
+Sender: cluster-devel-bounces@redhat.com
+Errors-To: cluster-devel-bounces@redhat.com
 To: Arnd Bergmann <arnd@arndb.de>
-Cc: Andreas Schwab <schwab@linux-m68k.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, "Joseph S. Myers" <joseph@codesourcery.com>, John Stultz <john.stultz@linaro.org>, Christoph Hellwig <hch@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Ley Foon Tan <lftan@altera.com>, "H. Peter Anvin" <hpa@zytor.com>, Linux FS Devel <linux-fsdevel@vger.kernel.org>
+Cc: MTD Maling List <linux-mtd@lists.infradead.org>, "H. Peter Anvin" <hpa@zytor.com>, linux-f2fs-devel@lists.sourceforge.net, ceph-devel@vger.kernel.org, "Joseph S. Myers" <joseph@codesourcery.com>, Linux-Arch <linux-arch@vger.kernel.org>, linux-cifs@vger.kernel.org, scsi <linux-scsi@vger.kernel.org>, linux-afs@lists.infradead.org, cluster-devel@redhat.com, coda@cs.cmu.edu, "linux-ext4@vger.kernel.org" <linux-ext4@vger.kernel.org>, codalist@TELEMANN.coda.cs.cmu.edu, fuse-devel@lists.sourceforge.net, Richard Cochran <richardcochran@gmail.com>, reiserfs-devel@vger.kernel.org, xfs@oss.sgi.com, John Stultz <john.stultz@linaro.org>, Thomas Gleixner <tglx@linutronix.de>, "open list:NFS, SUNRPC,
+	AND..." <linux-nfs@vger.kernel.org>, linux-ntfs-dev@lists.sourceforge.net, samba-technic
+List-Id: linux-arch.vger.kernel.org
 
-On Sat, May 31, 2014 at 4:54 PM, Arnd Bergmann <arnd@arndb.de> wrote:
-> On Saturday 31 May 2014 10:39:02 Andreas Schwab wrote:
->> Geert Uytterhoeven <geert@linux-m68k.org> writes:
+On Sat, May 31, 2014 at 5:23 PM, Arnd Bergmann <arnd@arndb.de> wrote:
+> On Saturday 31 May 2014 16:51:15 Richard Cochran wrote:
+>> On Fri, May 30, 2014 at 10:01:24PM +0200, Arnd Bergmann wrote:
+>> > I picked this because it is a fairly isolated problem, as the
+>> > inode time stamps are rarely assigned to any other time values.
+>> > As a byproduct of this work, I documented for each of the file
+>> > systems we support how long the on-disk format can work[1].
 >>
->> > Hi Arnd,
->> >
->> > On Fri, May 30, 2014 at 10:01 PM, Arnd Bergmann <arnd@arndb.de> wrote:
->> >> + * The variant using bit fields is less efficient to access, but
->> >> + * small and has a wider range as the 32-bit one, plus it keeps
->> >> + * the signedness of the original timespec.
->> >> + */
->> >> +struct inode_time {
->> >> +       long long       tv_sec  : 34;
->> >> +       int             tv_nsec : 30;
->> >> +};
->> >
->> > Don't you need 31 bits for tv_nsec, to accommodate for the sign bit?
->> > I know you won't really store negative numbers there, but storing a large
->> > positive number will become negative on read out, won't it?
->>
->> Only if the int bitfield is signed.  Bitfields are weird, aren't they?
+>> Why are some of the time stamp expiration dates marked as "never"?
+>
+> It's an approximation:
+> with 64-bit timestamps, you can represent close to 300 billion
+> years, which is way past the time that our planet can sustain
+> life of any form[1].
 
-According to 6.7.2#5 (thanks for the reference), this is implementation defined.
-
-> It was a mistake on my side, as I didn't know about that rule and
-> meant write 'unsigned int' really. Also, I always have a bad feeling
-
-IC, but the comment said "plus it keeps the signedness".
-So it doesn't keep the signedness for the tv_nsec field.
-
-> about using bitfields in general.
-
-Hehe...
+FWIW, the 48-bit second limit of befs marked never happens sooner
+than the 32-bit day limit of affs marked as Y11760870.
 
 Gr{oetje,eeting}s,
 
