@@ -1,36 +1,34 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:53318 "EHLO mail.zytor.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751789AbaEaJLo (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sat, 31 May 2014 05:11:44 -0400
-Message-ID: <53899C95.80806@zytor.com>
-Date: Sat, 31 May 2014 02:10:45 -0700
-From: "H. Peter Anvin" <hpa@zytor.com>
+Received: from mail-out.m-online.net ([212.18.0.9]:44093 "EHLO
+	mail-out.m-online.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753026AbaEaJWn (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 31 May 2014 05:22:43 -0400
+From: Andreas Schwab <schwab@linux-m68k.org>
+Subject: Re: [RFC 03/32] fs: introduce sys_utimens64at
+References: <1401480116-1973111-1-git-send-email-arnd@arndb.de>
+	<1401480116-1973111-4-git-send-email-arnd@arndb.de>
+Date: Sat, 31 May 2014 11:22:38 +0200
+In-Reply-To: <1401480116-1973111-4-git-send-email-arnd@arndb.de> (Arnd
+	Bergmann's message of "Fri, 30 May 2014 22:01:27 +0200")
+Message-ID: <m2ppiul2u9.fsf@linux-m68k.org>
 MIME-Version: 1.0
-Subject: Re: [RFC 13/32] ext3: convert to struct inode_time
-References: <1401480116-1973111-1-git-send-email-arnd@arndb.de> <1401480116-1973111-14-git-send-email-arnd@arndb.de>
-In-Reply-To: <1401480116-1973111-14-git-send-email-arnd@arndb.de>
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>, linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, joseph@codesourcery.com, john.stultz@linaro.org, hch@infradead.org, tglx@linutronix.de, geert@linux-m68k.org, lftan@altera.com, linux-fsdevel@vger.kernel.org, Jan Kara <jack@suse.cz>, Andrew Morton <akpm@linux-foundation.org>, Andreas Dilger <adilger.kernel@dilger.ca>, linux-ext4@vger.kernel.org
-Message-ID: <20140531091045.A8Rrd9z4SxZniNduFbYYeqe7lmIiqflnwQL9zg2ZqJA@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, joseph@codesourcery.com, john.stultz@linaro.org, hch@infradead.org, tglx@linutronix.de, geert@linux-m68k.org, lftan@altera.com, hpa@zytor.com, linux-fsdevel@vger.kernel.org
+Message-ID: <20140531092238.7ohAxvKja-Rw7HBwpnZnf7PXva8Z_f1gy1w7xEs7hic@z>
 
-On 05/30/2014 01:01 PM, Arnd Bergmann wrote:
-> ext3fs uses unsigned 32-bit seconds for inode timestamps, which will work
-> for the next 92 years, but the VFS uses struct timespec for timestamps,
-> which is only good until 2038 on 32-bit CPUs.
-> 
-> This gets us one small step closer to lifting the VFS limit by using
-> struct inode_time in ext3. The on-disk format limit is lifted in ext4,
-> which will work until 2514.
-> 
+Arnd Bergmann <arnd@arndb.de> writes:
 
-This may be what the spec says, but when I experimented with this just
-now it does seem that both ext2 and ext3 actually interpret timestamps
-as *signed* 32-bit seconds.
+> +asmlinkage long sys_utimens64at(int dfd, const char __user *filename,
 
-	-hpa
+All existing syscall names have the 64 suffix last, including the *at
+variants, so sys_utimensat64 would be more in line.
 
+Andreas.
+
+-- 
+Andreas Schwab, schwab@linux-m68k.org
+GPG Key fingerprint = 58CA 54C7 6D53 942B 1756  01D3 44D5 214B 8276 4ED5
+"And now for something completely different."
