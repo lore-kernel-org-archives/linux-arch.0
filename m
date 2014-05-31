@@ -1,34 +1,69 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-out.m-online.net ([212.18.0.9]:44093 "EHLO
-	mail-out.m-online.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753026AbaEaJWn (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 31 May 2014 05:22:43 -0400
-From: Andreas Schwab <schwab@linux-m68k.org>
-Subject: Re: [RFC 03/32] fs: introduce sys_utimens64at
+Received: from gproxy4-pub.mail.unifiedlayer.com ([69.89.23.142]:53561 "HELO
+	gproxy4-pub.mail.unifiedlayer.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with SMTP id S1756749AbaEaObO (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Sat, 31 May 2014 10:31:14 -0400
+Message-ID: <1401546649.2413.6.camel@slavad-CELSIUS-H720>
+Subject: Re: [RFC 00/32] making inode time stamps y2038 ready
+From: Vyacheslav Dubeyko <slava@dubeyko.com>
+Date: Sat, 31 May 2014 18:30:49 +0400
+In-Reply-To: <1401480116-1973111-1-git-send-email-arnd@arndb.de>
 References: <1401480116-1973111-1-git-send-email-arnd@arndb.de>
-	<1401480116-1973111-4-git-send-email-arnd@arndb.de>
-Date: Sat, 31 May 2014 11:22:38 +0200
-In-Reply-To: <1401480116-1973111-4-git-send-email-arnd@arndb.de> (Arnd
-	Bergmann's message of "Fri, 30 May 2014 22:01:27 +0200")
-Message-ID: <m2ppiul2u9.fsf@linux-m68k.org>
-MIME-Version: 1.0
-Content-Type: text/plain
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
+Mime-Version: 1.0
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, joseph@codesourcery.com, john.stultz@linaro.org, hch@infradead.org, tglx@linutronix.de, geert@linux-m68k.org, lftan@altera.com, hpa@zytor.com, linux-fsdevel@vger.kernel.org
-Message-ID: <20140531092238.7ohAxvKja-Rw7HBwpnZnf7PXva8Z_f1gy1w7xEs7hic@z>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, joseph@codesourcery.com, john.stultz@linaro.org, hch@infradead.org, tglx@linutronix.de, geert@linux-m68k.org, lftan@altera.com, hpa@zytor.com, linux-fsdevel@vger.kernel.org, ceph-devel@vger.kernel.org, cluster-devel@redhat.com, coda@cs.cmu.edu, codalist@coda.cs.cmu.edu, fuse-devel@lists.sourceforge.net, linux-afs@lists.infradead.org, linux-btrfs@vger.kernel.org, linux-cifs@vger.kernel.org, linux-ext4@vger.kernel.org, linux-f2fs-devel@lists.sourceforge.net, linux-mtd@lists.infradead.org, linux-nfs@vger.kernel.org, linux-ntfs-dev@lists.sourceforge.net, linux-scsi@vger.kernel.org, logfs@logfs.org, ocfs2-devel@oss.oracle.com, reiserfs-devel@vger.kernel.org, samba-technical@lists.samba.org, xfs@oss.sgi.com
+Message-ID: <20140531143049.auCQagqn6pPuHDnG7i5D-Hvz1s64_xh0aSvVI3hsgUk@z>
 
-Arnd Bergmann <arnd@arndb.de> writes:
+Hi Arnd,
 
-> +asmlinkage long sys_utimens64at(int dfd, const char __user *filename,
+On Fri, 2014-05-30 at 22:01 +0200, Arnd Bergmann wrote:
 
-All existing syscall names have the 64 suffix last, including the *at
-variants, so sys_utimensat64 would be more in line.
+[snip]
+> 
+> Arnd Bergmann (32):
+>   fs: introduce new 'struct inode_time'
+>   uapi: add struct __kernel_timespec{32,64}
+>   fs: introduce sys_utimens64at
+>   fs: introduce sys_newfstat64/sys_newfstatat64
+>   arch: hook up new stat and utimes syscalls
+>   isofs: fix timestamps beyond 2027
+>   fs/nfs: convert to struct inode_time
+>   fs/ceph: convert to 'struct inode_time'
+>   fs/pstore: convert to struct inode_time
+>   fs/coda: convert to struct inode_time
+>   xfs: convert to struct inode_time
+>   btrfs: convert to struct inode_time
+>   ext3: convert to struct inode_time
+>   ext4: convert to struct inode_time
+>   cifs: convert to struct inode_time
+>   ntfs: convert to struct inode_time
+>   ubifs: convert to struct inode_time
+>   ocfs2: convert to struct inode_time
+>   fs/fat: convert to struct inode_time
+>   afs: convert to struct inode_time
+>   udf: convert to struct inode_time
+>   fs: convert simple fs to inode_time
+>   logfs: convert to struct inode_time
+>   hfs, hfsplus: convert to struct inode_time
+>   gfs2: convert to struct inode_time
+>   reiserfs: convert to struct inode_time
+>   jffs2: convert to struct inode_time
+>   adfs: convert to struct inode_time
+>   f2fs: convert to struct inode_time
+>   fuse: convert to struct inode_time
+>   scsi: fnic: use current_kernel_time() for timestamp
+>   fs: use new inode_time definition unconditionally
+> 
 
-Andreas.
+By the way, what about NILFS2? Is NILFS2 ready for suggested approach
+without any changes?
 
--- 
-Andreas Schwab, schwab@linux-m68k.org
-GPG Key fingerprint = 58CA 54C7 6D53 942B 1756  01D3 44D5 214B 8276 4ED5
-"And now for something completely different."
+Thanks,
+Vyacheslav Dubeyko.
+
+
