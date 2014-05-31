@@ -1,47 +1,81 @@
-From: Andreas Schwab <schwab@linux-m68k.org>
-Subject: Re: [RFC 01/32] fs: introduce new 'struct inode_time'
-Date: Sat, 31 May 2014 10:39:02 +0200
-Message-ID: <m2tx86l4ux.fsf@linux-m68k.org>
+From: "H. Peter Anvin" <hpa@zytor.com>
+Subject: Re: [RFC 11/32] xfs: convert to struct inode_time
+Date: Sat, 31 May 2014 01:41:56 -0700
+Message-ID: <538995D4.9050702@zytor.com>
 References: <1401480116-1973111-1-git-send-email-arnd@arndb.de>
-	<1401480116-1973111-2-git-send-email-arnd@arndb.de>
-	<CAMuHMdVgch4REGcYWFZXVToX2b8iCinFVV10Bz3VoeiZy_yBtg@mail.gmail.com>
+	<1401480116-1973111-12-git-send-email-arnd@arndb.de>
+	<20140531003712.GH14410@dastard> <5389252A.5050503@zytor.com>
+	<20140531011450.GJ14410@dastard>
+	<c7770275-61de-4e94-9586-5ee118f77ba5@email.android.com>
+	<20140531055457.GK14410@dastard>
 Mime-Version: 1.0
-Content-Type: text/plain
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-out.m-online.net ([212.18.0.9]:58105 "EHLO
-	mail-out.m-online.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751801AbaEaIjI (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 31 May 2014 04:39:08 -0400
-In-Reply-To: <CAMuHMdVgch4REGcYWFZXVToX2b8iCinFVV10Bz3VoeiZy_yBtg@mail.gmail.com>
-	(Geert Uytterhoeven's message of "Sat, 31 May 2014 09:56:29 +0200")
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Arnd Bergmann <arnd@arndb.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, "Joseph S. Myers" <joseph@codesourcery.com>, John Stultz <john.stultz@linaro.org>, Christoph Hellwig <hch@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Ley Foon Tan <lftan@altera.com>, "H. Peter Anvin" <hpa@zytor.com>, Linux FS Devel <linux-fsdevel@vger.kernel.org>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <xfs-bounces@oss.sgi.com>
+In-Reply-To: <20140531055457.GK14410@dastard>
+List-Unsubscribe: <http://oss.sgi.com/mailman/options/xfs>,
+	<mailto:xfs-request@oss.sgi.com?subject=unsubscribe>
+List-Archive: <http://oss.sgi.com/pipermail/xfs>
+List-Post: <mailto:xfs@oss.sgi.com>
+List-Help: <mailto:xfs-request@oss.sgi.com?subject=help>
+List-Subscribe: <http://oss.sgi.com/mailman/listinfo/xfs>,
+	<mailto:xfs-request@oss.sgi.com?subject=subscribe>
+Errors-To: xfs-bounces@oss.sgi.com
+Sender: xfs-bounces@oss.sgi.com
+To: Dave Chinner <david@fromorbit.com>
+Cc: linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-kernel@vger.kernel.org, xfs@oss.sgi.com, hch@infradead.org, john.stultz@linaro.org, lftan@altera.com, linux-fsdevel@vger.kernel.org, geert@linux-m68k.org, tglx@linutronix.de, joseph@codesourcery.com
+List-Id: linux-arch.vger.kernel.org
 
-Geert Uytterhoeven <geert@linux-m68k.org> writes:
+On 05/30/2014 10:54 PM, Dave Chinner wrote:
+> 
+> If we are changing the in-kernel timestamp to have a greater dynamic
+> range that anything we current support on disk, then we need support
+> for all filesystems for similar translation and constraint. The
+> filesystems need to be able to tell the kernel what they timestamp
+> range they support, and then the kernel needs to follow those
+> guidelines. And if the filesystem is mounted on a kernel that
+> doesn't support the current filesystem's timestamp format, then at
+> minimum that filesystem cannot do anything that writes a
+> timestamp....
+> 
+> Put simply: the filesystem defines the timestamp range that can be
+> used safely, not the userspace API. If the filesystem can't support
+> the date it is handed then that is an out-of-range error. Since
+> when have we accepted that it's OK to handle out-of-range data with
+> silent overflows or corruption of the data that we are attempting to
+> store? We're defining a new API to support a wider date range -
+> there is nothing that prevents us from saying ERANGE can be returned
+> to a timestamp that the file cannot store correctly....
+> 
 
-> Hi Arnd,
->
-> On Fri, May 30, 2014 at 10:01 PM, Arnd Bergmann <arnd@arndb.de> wrote:
->> + * The variant using bit fields is less efficient to access, but
->> + * small and has a wider range as the 32-bit one, plus it keeps
->> + * the signedness of the original timespec.
->> + */
->> +struct inode_time {
->> +       long long       tv_sec  : 34;
->> +       int             tv_nsec : 30;
->> +};
->
-> Don't you need 31 bits for tv_nsec, to accommodate for the sign bit?
-> I know you won't really store negative numbers there, but storing a large
-> positive number will become negative on read out, won't it?
+I'm still puzzled.
 
-Only if the int bitfield is signed.  Bitfields are weird, aren't they? :-)
+Are you saying that you want a program that does:
 
-Andreas.
+	/* Deliberately simplified */
+	gettimeofdayns(&now ...);
+	utimensat(... now);
 
--- 
-Andreas Schwab, schwab@linux-m68k.org
-GPG Key fingerprint = 58CA 54C7 6D53 942B 1756  01D3 44D5 214B 8276 4ED5
-"And now for something completely different."
+... to suddenly start failing on Jan 19, 2038 (for a filesystem with
+32-bit timestamps), or would you propose some ways for the filesystems
+in question to extend the range of the timestamps?
+
+What you seem to propose also seems to imply that on Jan 19, 2038
+anything that writes a timestamp with the current date (which logically
+ends up being almost every write operation) would be dead and frozen on
+such a filesystem -- pretty much meaning the filesystem would become
+readonly if not in reality than in practice.
+
+I strongly suspect that that would be a more catastrophic failure than
+incorrect timestamps, as you suddenly have all kinds of machines
+embedded in $DEITY knows what places just stop and refuse to run.
+
+If that is not what you mean I genuinely like to understand the
+situation better.
+
+	-hpa
+
+_______________________________________________
+xfs mailing list
+xfs@oss.sgi.com
+http://oss.sgi.com/mailman/listinfo/xfs
