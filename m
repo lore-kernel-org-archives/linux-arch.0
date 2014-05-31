@@ -1,81 +1,144 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.17.24]:51131 "EHLO
-	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S934289AbaE3UkS (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 30 May 2014 16:40:18 -0400
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: [RFC 23/32] logfs: convert to struct inode_time
-Date: Fri, 30 May 2014 22:01:47 +0200
-Message-ID: <1401480116-1973111-24-git-send-email-arnd@arndb.de>
-In-Reply-To: <1401480116-1973111-1-git-send-email-arnd@arndb.de>
+Received: from ipmail06.adl2.internode.on.net ([150.101.137.129]:62019 "EHLO
+	ipmail06.adl2.internode.on.net" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S932699AbaEaAhS (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Fri, 30 May 2014 20:37:18 -0400
+Date: Sat, 31 May 2014 10:37:12 +1000
+From: Dave Chinner <david@fromorbit.com>
+Subject: Re: [RFC 11/32] xfs: convert to struct inode_time
+Message-ID: <20140531003712.GH14410@dastard>
 References: <1401480116-1973111-1-git-send-email-arnd@arndb.de>
+ <1401480116-1973111-12-git-send-email-arnd@arndb.de>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1401480116-1973111-12-git-send-email-arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, joseph@codesourcery.com, john.stultz@linaro.org, hch@infradead.org, tglx@linutronix.de, geert@linux-m68k.org, lftan@altera.com, hpa@zytor.com, linux-fsdevel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Joern Engel <joern@logfs.org>, Prasad Joshi <prasadjoshi.linux@gmail.com>, logfs@logfs.org
-Message-ID: <20140530200147.uUA10Y16NekzJfyRDvBCAcCsQH2VT9LlKJhkPsmI0O4@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, joseph@codesourcery.com, john.stultz@linaro.org, hch@infradead.org, tglx@linutronix.de, geert@linux-m68k.org, lftan@altera.com, hpa@zytor.com, linux-fsdevel@vger.kernel.org, xfs@oss.sgi.com
+Message-ID: <20140531003712.gzqq7XzFASlqi_lnur9hnbKl29C-VX7z9kFaUQRbUhY@z>
 
-logfs uses 64-bit integers for inode timestamps, which will work
-for the next 550 years, but the VFS uses struct timespec for timestamps,
-which is only good until 2038 on 32-bit CPUs.
+On Fri, May 30, 2014 at 10:01:35PM +0200, Arnd Bergmann wrote:
+> xfs uses unsigned 32-bit seconds for inode timestamps, which will work
+> for the next 92 years, but the VFS uses struct timespec for timestamps,
+> which is only good until 2038 on 32-bit CPUs.
+> 
+> This gets us one small step closer to lifting the VFS limit by using
+> struct inode_time in XFS.
+> 
+> Signed-off-by: Arnd Bergmann <arnd@arndb.de>
+> Cc: Dave Chinner <david@fromorbit.com>
+> Cc: xfs@oss.sgi.com
+> ---
+>  fs/xfs/time.h            | 4 ++--
+>  fs/xfs/xfs_inode.c       | 2 +-
+>  fs/xfs/xfs_iops.c        | 2 +-
+>  fs/xfs/xfs_trans_inode.c | 6 +++---
+>  4 files changed, 7 insertions(+), 7 deletions(-)
+> 
+> diff --git a/fs/xfs/time.h b/fs/xfs/time.h
+> index 387e695..a490f1b 100644
+> --- a/fs/xfs/time.h
+> +++ b/fs/xfs/time.h
+> @@ -21,14 +21,14 @@
+>  #include <linux/sched.h>
+>  #include <linux/time.h>
+>  
+> -typedef struct timespec timespec_t;
+> +typedef struct inode_time timespec_t;
+>  
+>  static inline void delay(long ticks)
+>  {
+>  	schedule_timeout_uninterruptible(ticks);
+>  }
+>  
+> -static inline void nanotime(struct timespec *tvp)
+> +static inline void nanotime(struct inode_time *tvp)
+>  {
+>  	*tvp = CURRENT_TIME;
+>  }
+> diff --git a/fs/xfs/xfs_inode.c b/fs/xfs/xfs_inode.c
+> index a6115fe..16d5392 100644
+> --- a/fs/xfs/xfs_inode.c
+> +++ b/fs/xfs/xfs_inode.c
+> @@ -654,7 +654,7 @@ xfs_ialloc(
+>  	xfs_inode_t	*ip;
+>  	uint		flags;
+>  	int		error;
+> -	timespec_t	tv;
+> +	struct inode_time tv;
+>  
+>  	/*
+>  	 * Call the space management code to pick
+> diff --git a/fs/xfs/xfs_iops.c b/fs/xfs/xfs_iops.c
+> index 205613a..092ee7c 100644
+> --- a/fs/xfs/xfs_iops.c
+> +++ b/fs/xfs/xfs_iops.c
+> @@ -956,7 +956,7 @@ xfs_vn_setattr(
+>  STATIC int
+>  xfs_vn_update_time(
+>  	struct inode		*inode,
+> -	struct timespec		*now,
+> +	struct inode_time	*now,
+>  	int			flags)
+>  {
+>  	struct xfs_inode	*ip = XFS_I(inode);
+> diff --git a/fs/xfs/xfs_trans_inode.c b/fs/xfs/xfs_trans_inode.c
+> index 50c3f56..bae2520 100644
+> --- a/fs/xfs/xfs_trans_inode.c
+> +++ b/fs/xfs/xfs_trans_inode.c
+> @@ -70,7 +70,7 @@ xfs_trans_ichgtime(
+>  	int			flags)
+>  {
+>  	struct inode		*inode = VFS_I(ip);
+> -	timespec_t		tv;
+> +	struct inode_time	tv;
+>  
+>  	ASSERT(tp);
+>  	ASSERT(xfs_isilocked(ip, XFS_ILOCK_EXCL));
+> @@ -78,13 +78,13 @@ xfs_trans_ichgtime(
+>  	tv = current_fs_time(inode->i_sb);
+>  
+>  	if ((flags & XFS_ICHGTIME_MOD) &&
+> -	    !timespec_equal(&inode->i_mtime, &tv)) {
+> +	    !inode_time_equal(&inode->i_mtime, &tv)) {
+>  		inode->i_mtime = tv;
+>  		ip->i_d.di_mtime.t_sec = tv.tv_sec;
+>  		ip->i_d.di_mtime.t_nsec = tv.tv_nsec;
+>  	}
 
-This gets us one small step closer to lifting the VFS limit by using
-struct inode_time in logfs.
+The problem I see here is that the code is now potentially stuffing
+a variable that is larger than 32 bits into on on-disk structure
+that is only 32 bits in size.  You can't just change the in-memory
+representation of inode timestamps and expect the problem to be
+fixed - this just pushes the problem down a layer without any
+intrastructure allowing filesystems to handle storage of the new
+timestamp format sanely.
 
-Signed-off-by: Arnd Bergmann <arnd@arndb.de>
-Cc: Joern Engel <joern@logfs.org>
-Cc: Prasad Joshi <prasadjoshi.linux@gmail.com>
-Cc: logfs@logfs.org
----
- fs/logfs/readwrite.c | 18 +++++++++---------
- 1 file changed, 9 insertions(+), 9 deletions(-)
+IOWs, the filesystem has to be able to reject any attempt to set a
+timestamp that is can't represent on disk otherwise Bad Stuff will
+happen, and filesystems have to be able to specify in their on
+disk format what timestamp encoding is being used. The solution will
+be different for every filesystem that needs to support time beyond
+2038.
 
-diff --git a/fs/logfs/readwrite.c b/fs/logfs/readwrite.c
-index 4814031..df44698 100644
---- a/fs/logfs/readwrite.c
-+++ b/fs/logfs/readwrite.c
-@@ -101,12 +101,12 @@ void logfs_unpack_index(pgoff_t index, u64 *bix, level_t *level)
- /*
-  * Time is stored as nanoseconds since the epoch.
-  */
--static struct timespec be64_to_timespec(__be64 betime)
-+static struct inode_time be64_to_inode_time(__be64 betime)
- {
--	return ns_to_timespec(be64_to_cpu(betime));
-+	return ns_to_inode_time(be64_to_cpu(betime));
- }
- 
--static __be64 timespec_to_be64(struct timespec tsp)
-+static __be64 inode_time_to_be64(struct inode_time tsp)
- {
- 	return cpu_to_be64((u64)tsp.tv_sec * NSEC_PER_SEC + tsp.tv_nsec);
- }
-@@ -123,9 +123,9 @@ static void logfs_disk_to_inode(struct logfs_disk_inode *di, struct inode*inode)
- 	i_gid_write(inode, be32_to_cpu(di->di_gid));
- 	inode->i_size	= be64_to_cpu(di->di_size);
- 	logfs_set_blocks(inode, be64_to_cpu(di->di_used_bytes));
--	inode->i_atime	= be64_to_timespec(di->di_atime);
--	inode->i_ctime	= be64_to_timespec(di->di_ctime);
--	inode->i_mtime	= be64_to_timespec(di->di_mtime);
-+	inode->i_atime	= be64_to_inode_time(di->di_atime);
-+	inode->i_ctime	= be64_to_inode_time(di->di_ctime);
-+	inode->i_mtime	= be64_to_inode_time(di->di_mtime);
- 	set_nlink(inode, be32_to_cpu(di->di_refcount));
- 	inode->i_generation = be32_to_cpu(di->di_generation);
- 
-@@ -160,9 +160,9 @@ static void logfs_inode_to_disk(struct inode *inode, struct logfs_disk_inode*di)
- 	di->di_gid	= cpu_to_be32(i_gid_read(inode));
- 	di->di_size	= cpu_to_be64(i_size_read(inode));
- 	di->di_used_bytes = cpu_to_be64(li->li_used_bytes);
--	di->di_atime	= timespec_to_be64(inode->i_atime);
--	di->di_ctime	= timespec_to_be64(inode->i_ctime);
--	di->di_mtime	= timespec_to_be64(inode->i_mtime);
-+	di->di_atime	= inode_time_to_be64(inode->i_atime);
-+	di->di_ctime	= inode_time_to_be64(inode->i_ctime);
-+	di->di_mtime	= inode_time_to_be64(inode->i_mtime);
- 	di->di_refcount	= cpu_to_be32(inode->i_nlink);
- 	di->di_generation = cpu_to_be32(inode->i_generation);
- 
+Hence I think you are going to need superblock flags and/or
+variables to indicate the epoch range the fielsystem can support.
+Then the fileystems need conversion functions from whatever the
+internal VFS timestamp representation is to whatever their on-disk
+format is, and only then can we switch the VFS to using a new
+timestamp format.
+
+At that point, filesystem developers can make the changes they need
+to the on-disk format to support timestamps beyond 2038, and all
+they need to do at the VFS layer is set the "supported range" fields
+appropriately in the VFS superblock...
+
+Cheers,
+
+Dave.
 -- 
-1.8.3.2
-
+Dave Chinner
+david@fromorbit.com
