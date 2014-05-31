@@ -1,80 +1,91 @@
-From: "H. Peter Anvin" <hpa@zytor.com>
-Subject: Re: [RFC 01/32] fs: introduce new 'struct inode_time'
-Date: Sat, 31 May 2014 07:55:33 -0700
-Message-ID: <62af18d5-6a59-4f5e-95af-1607d2249f33@email.android.com>
-References: <1401480116-1973111-1-git-send-email-arnd@arndb.de> <1401480116-1973111-2-git-send-email-arnd@arndb.de> <53899AEA.1010909@zytor.com> <6491264.Vk0CYaEpvf@wuerfel>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [RFC 02/32] uapi: add struct __kernel_timespec{32,64}
+Date: Sat, 31 May 2014 17:09:25 +0200
+Message-ID: <5129309.tUSSHZWN3t@wuerfel>
+References: <1401480116-1973111-1-git-send-email-arnd@arndb.de> <1401480116-1973111-3-git-send-email-arnd@arndb.de> <5388E7A5.90308@zytor.com>
 Mime-Version: 1.0
-Content-Type: text/plain;
- charset=UTF-8
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7Bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:56113 "EHLO mail.zytor.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751916AbaEaO4x (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sat, 31 May 2014 10:56:53 -0400
-In-Reply-To: <6491264.Vk0CYaEpvf@wuerfel>
+Received: from mout.kundenserver.de ([212.227.17.10]:54438 "EHLO
+	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750752AbaEaPLI (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 31 May 2014 11:11:08 -0400
+In-Reply-To: <5388E7A5.90308@zytor.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
+To: "H. Peter Anvin" <hpa@zytor.com>
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, joseph@codesourcery.com, john.stultz@linaro.org, hch@infradead.org, tglx@linutronix.de, geert@linux-m68k.org, lftan@altera.com, linux-fsdevel@vger.kernel.org
 
-Yes, s64/u32 or s64/s32.
+On Friday 30 May 2014 13:18:45 H. Peter Anvin wrote:
+> On 05/30/2014 01:01 PM, Arnd Bergmann wrote:
+> > We cannot use time_t or any derived structures beyond the year
+> > 2038 in interfaces between kernel and user space, on 32-bit
+> > machines.
+> > 
+> > This is my suggestion for how to migrate syscall and ioctl
+> > interfaces: We completely phase out time_t, timeval and timespec
+> > from the uapi header files and replace them with types that are
+> > either explicitly safe (__kernel_timespec64), or explicitly
+> > unsafe (e.g. __kernel_timespec32). For each unsafe interface,
+> > there needs to be a safe replacement interface.
+> > 
+> 
+> This gets really messy for structures where this is ABI-dependent.  I'm
+> not sure this is a net win.
 
-On May 31, 2014 7:53:01 AM PDT, Arnd Bergmann <arnd@arndb.de> wrote:
->On Saturday 31 May 2014 02:03:38 H. Peter Anvin wrote:
->> On 05/30/2014 01:01 PM, Arnd Bergmann wrote:
->> > +#ifdef CONFIG_NEW_INODE_TIME
->> > +/*
->> > + * This is the type we use internally in the kernel to represent
->> > + * absolute times in file system metadata.
->> > + * This structure must not leak out to user space, and new
->interfaces
->> > + * should be using 64-bit types right away.
->> > + */
->> > +
->> > +/*
->> > + * Variant a) using unsigned seconds lets us extend the life span
->> > + * for another 69 years beyond 2038.
->> > + */
->> > +struct inode_time {
->> > +     unsigned long   tv_sec;
->> > +     long            tv_nsec;
->> > +};
->> 
->> This now differs between 32- and 64-bit systems, and on 32-bit
->systems
->> some timestamps well within the range of representation of current
->> systems just became unrepresentable, which is something that I
->thought
->> people were objecting very strongly to.
->
->It really depends on the file system. As you pointed out, I was reading
->the ext2/ext3 and xfs code incorrectly, so my assumption when I wrote
->this
->was that they already used the same type, with a 1970-2106 window,
->rather
->than the regular signed Unix epoch.
->
->> > +#elif 0
->> > +/*
->> > + * This variant can represent the widest range of times, but also
->> > + * bloats 'struct inode' a little more.
->> > + */
->> > +struct inode_time {
->> > +     long long       tv_sec __attribute__((packed));
->> > +     int             tv_nsec;
->> > +};
->> 
->> Seriously, though, can we really impose constraints stricter than
->what
->> the filesystems themselves do?  It seems we ought to be able to
->> represent whatever time the filesystem can represent... (modulo some
->> kind of window control as Y2038 or any other break point approaches.)
->
->Just to make sure, do you say we should be using the 'long long/int'
->struct, or something else?
->
->	Arnd
+We could have an extra '__kernel_oldtimespec' type that we can
+use for all ABIs that are today defined in terms of timespec.
 
--- 
-Sent from my mobile phone.  Please pardon brevity and lack of formatting.
+What I was mostly trying to avoid here is leaving any 'struct timespec'
+in header files, because glibc may define that type differently
+depending on a __TIME_BITS macro. This is more of a problem for
+ioctls than for system calls.
+
+> > +/*
+> > + * __kernel_timespec64 is the general type to be used for
+> > + * new user space interfaces passing a time argument.
+> > + * 64-bit nanoseconds is a bit silly, but the advantage is
+> > + * that it is compatible with the native 'struct timespec'
+> > + * on 64-bit user space. This simplifies the compat code.
+> > + */
+> > +struct __kernel_timespec64 {
+> > +	long long tv_sec;
+> > +	long long tv_nsec;
+> > +};
+> 
+> So it seems that it is not just POSIX that is drain bramaged with this,
+> but the "long" type for tv_nsec idiocy has made it into the C11
+> standard.  This unfortunately means that now there are two standards
+> bodies involved, at least one of which moves very slowly.
+
+My feeling is that our best hope is to completely isolate the kernel
+interfaces from what user space wants to have as time_t. glibc for
+instance may have a different idea about standards compliance than
+android or klibc.
+
+> This makes me wonder if we don't need to deal with the problem in the
+> case of 32-bit ABIs with 64-bit time_t.  The logical thing seems to be
+> to EITHER:
+> 
+> a. ALWAYS ignore the upper 32 bits of tv_nsec when read from user space,
+>    but always set them to zero, or
+> b. Only ignore the upper 32 bits of tv_nsec when we are known to come
+>    from a 32-bit ABI context, but still always return zero.  These bits
+>    are already only used for validity checking.
+> 
+>    This most likely introduces a whole lot of new tests in deep paths,
+>    although we probably can centralize this in a single function, which
+>    otherwise ends up looking a lot like compat_get_timespec().
+> 
+> Getting rid of struct timespec on the kernel/user boundary is probably
+> not really feasible.
+
+My approach was based on the discussion with Joseph, who would like glibc
+to support both 32 and 64 bit time_t using the same libc binary and 
+versioned symbols. I don't see how that could work when you build a
+user space program that sees a timespec in kernel headers and tries
+to pass that into a non-translated kernel interface (e.g. ioctl) but
+use the same timespec for a glibc-provided function like gettimeofday().
+
+	Arnd
