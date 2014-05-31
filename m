@@ -1,29 +1,57 @@
-From: Andreas Schwab <schwab@linux-m68k.org>
-Subject: Re: [RFC 03/32] fs: introduce sys_utimens64at
-Date: Sat, 31 May 2014 11:22:38 +0200
-Message-ID: <m2ppiul2u9.fsf@linux-m68k.org>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: [RFC 01/32] fs: introduce new 'struct inode_time'
+Date: Sat, 31 May 2014 15:19:48 +0200
+Message-ID: <CAMuHMdXPQQpu_6k+Y6o=1u-u9EkkanKdGYp6-=BavyYHUH3AuA@mail.gmail.com>
 References: <1401480116-1973111-1-git-send-email-arnd@arndb.de>
-	<1401480116-1973111-4-git-send-email-arnd@arndb.de>
+	<1401480116-1973111-2-git-send-email-arnd@arndb.de>
+	<CAMuHMdVgch4REGcYWFZXVToX2b8iCinFVV10Bz3VoeiZy_yBtg@mail.gmail.com>
+	<m2tx86l4ux.fsf@linux-m68k.org>
 Mime-Version: 1.0
-Content-Type: text/plain
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1401480116-1973111-4-git-send-email-arnd@arndb.de> (Arnd
-	Bergmann's message of "Fri, 30 May 2014 22:01:27 +0200")
-Sender: linux-kernel-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, joseph@codesourcery.com, john.stultz@linaro.org, hch@infradead.org, tglx@linutronix.de, geert@linux-m68k.org, lftan@altera.com, hpa@zytor.com, linux-fsdevel@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=UTF-8
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-ie0-f179.google.com ([209.85.223.179]:45195 "EHLO
+	mail-ie0-f179.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756382AbaEaNTt (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 31 May 2014 09:19:49 -0400
+In-Reply-To: <m2tx86l4ux.fsf@linux-m68k.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Andreas Schwab <schwab@linux-m68k.org>
+Cc: Arnd Bergmann <arnd@arndb.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, "Joseph S. Myers" <joseph@codesourcery.com>, John Stultz <john.stultz@linaro.org>, Christoph Hellwig <hch@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Ley Foon Tan <lftan@altera.com>, "H. Peter Anvin" <hpa@zytor.com>, Linux FS Devel <linux-fsdevel@vger.kernel.org>
 
-Arnd Bergmann <arnd@arndb.de> writes:
+Hi Andreas,
 
-> +asmlinkage long sys_utimens64at(int dfd, const char __user *filename,
+On Sat, May 31, 2014 at 10:39 AM, Andreas Schwab <schwab@linux-m68k.org> wrote:
+> Geert Uytterhoeven <geert@linux-m68k.org> writes:
+>
+>> Hi Arnd,
+>>
+>> On Fri, May 30, 2014 at 10:01 PM, Arnd Bergmann <arnd@arndb.de> wrote:
+>>> + * The variant using bit fields is less efficient to access, but
+>>> + * small and has a wider range as the 32-bit one, plus it keeps
+>>> + * the signedness of the original timespec.
+>>> + */
+>>> +struct inode_time {
+>>> +       long long       tv_sec  : 34;
+>>> +       int             tv_nsec : 30;
+>>> +};
+>>
+>> Don't you need 31 bits for tv_nsec, to accommodate for the sign bit?
+>> I know you won't really store negative numbers there, but storing a large
+>> positive number will become negative on read out, won't it?
+>
+> Only if the int bitfield is signed.  Bitfields are weird, aren't they? :-)
 
-All existing syscall names have the 64 suffix last, including the *at
-variants, so sys_utimensat64 would be more in line.
+"int" is signed, right? Or do you mean a bitfield needs an explicit "signed"
+keyword to be signed?
 
-Andreas.
+Gr{oetje,eeting}s,
 
--- 
-Andreas Schwab, schwab@linux-m68k.org
-GPG Key fingerprint = 58CA 54C7 6D53 942B 1756  01D3 44D5 214B 8276 4ED5
-"And now for something completely different."
+                        Geert
+
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
