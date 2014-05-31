@@ -1,273 +1,152 @@
-From: Kees Cook <keescook@chromium.org>
-Subject: Re: [RFC 09/32] fs/pstore: convert to struct inode_time
-Date: Fri, 30 May 2014 14:14:39 -0700
-Message-ID: <CAGXu5jLwmhLEqBDToE886=9c70AH7J6_aVqKTcH-KUX2ywzRbQ@mail.gmail.com>
+From: Dave Chinner <david@fromorbit.com>
+Subject: Re: [RFC 11/32] xfs: convert to struct inode_time
+Date: Sat, 31 May 2014 10:37:12 +1000
+Message-ID: <20140531003712.GH14410@dastard>
 References: <1401480116-1973111-1-git-send-email-arnd@arndb.de>
-	<1401480116-1973111-10-git-send-email-arnd@arndb.de>
+	<1401480116-1973111-12-git-send-email-arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ob0-f177.google.com ([209.85.214.177]:65208 "EHLO
-	mail-ob0-f177.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S933058AbaE3VOk (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 30 May 2014 17:14:40 -0400
-Received: by mail-ob0-f177.google.com with SMTP id wp4so2268354obc.8
-        for <linux-arch@vger.kernel.org>; Fri, 30 May 2014 14:14:39 -0700 (PDT)
-In-Reply-To: <1401480116-1973111-10-git-send-email-arnd@arndb.de>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <xfs-bounces@oss.sgi.com>
+Content-Disposition: inline
+In-Reply-To: <1401480116-1973111-12-git-send-email-arnd@arndb.de>
+List-Unsubscribe: <http://oss.sgi.com/mailman/options/xfs>,
+	<mailto:xfs-request@oss.sgi.com?subject=unsubscribe>
+List-Archive: <http://oss.sgi.com/pipermail/xfs>
+List-Post: <mailto:xfs@oss.sgi.com>
+List-Help: <mailto:xfs-request@oss.sgi.com?subject=help>
+List-Subscribe: <http://oss.sgi.com/mailman/listinfo/xfs>,
+	<mailto:xfs-request@oss.sgi.com?subject=subscribe>
+Errors-To: xfs-bounces@oss.sgi.com
+Sender: xfs-bounces@oss.sgi.com
 To: Arnd Bergmann <arnd@arndb.de>
-Cc: LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, "Joseph S. Myers" <joseph@codesourcery.com>, John Stultz <john.stultz@linaro.org>, Christoph Hellwig <hch@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Geert Uytterhoeven <geert@linux-m68k.org>, lftan@altera.com, "H. Peter Anvin" <hpa@zytor.com>, "linux-fsdevel@vger.kernel.org" <linux-fsdevel@vger.kernel.org>, Anton Vorontsov <anton@enomsg.org>, Colin Cross <ccross@android.com>, Tony Luck <tony.luck@intel.com>
+Cc: linux-arch@vger.kernel.org, hpa@zytor.com, linux-kernel@vger.kernel.org, xfs@oss.sgi.com, hch@infradead.org, john.stultz@linaro.org, lftan@altera.com, linux-fsdevel@vger.kernel.org, geert@linux-m68k.org, tglx@linutronix.de, joseph@codesourcery.com
+List-Id: linux-arch.vger.kernel.org
 
-On Fri, May 30, 2014 at 1:01 PM, Arnd Bergmann <arnd@arndb.de> wrote:
-> pstore uses timestamps encoded in a string as seconds, but on 32-bit systems
-> cannot go beyond year 2038 because of the limits of struct timespec.
->
-> This converts the pstore code to use the new struct inode_time for timestamps.
->
+On Fri, May 30, 2014 at 10:01:35PM +0200, Arnd Bergmann wrote:
+> xfs uses unsigned 32-bit seconds for inode timestamps, which will work
+> for the next 92 years, but the VFS uses struct timespec for timestamps,
+> which is only good until 2038 on 32-bit CPUs.
+> 
+> This gets us one small step closer to lifting the VFS limit by using
+> struct inode_time in XFS.
+> 
 > Signed-off-by: Arnd Bergmann <arnd@arndb.de>
-> Cc: Anton Vorontsov <anton@enomsg.org>
-> Cc: Colin Cross <ccross@android.com>
-> Cc: Kees Cook <keescook@chromium.org>
-> Cc: Tony Luck <tony.luck@intel.com>
-
-I don't see why you don't want to support making Linux work as a time
-machine to visit the 70s! ;)
-
-Acked-by: Kees Cook <keescook@chromium.org>
-
--Kees
-
+> Cc: Dave Chinner <david@fromorbit.com>
+> Cc: xfs@oss.sgi.com
 > ---
->  drivers/firmware/efi/efi-pstore.c | 28 ++++++++++++++--------------
->  fs/pstore/inode.c                 |  2 +-
->  fs/pstore/internal.h              |  2 +-
->  fs/pstore/platform.c              |  2 +-
->  fs/pstore/ram.c                   | 18 ++++++++++--------
->  include/linux/pstore.h            |  4 ++--
->  6 files changed, 29 insertions(+), 27 deletions(-)
->
-> diff --git a/drivers/firmware/efi/efi-pstore.c b/drivers/firmware/efi/efi-pstore.c
-> index 4b9dc83..a1e4153 100644
-> --- a/drivers/firmware/efi/efi-pstore.c
-> +++ b/drivers/firmware/efi/efi-pstore.c
-> @@ -32,7 +32,7 @@ struct pstore_read_data {
->         u64 *id;
->         enum pstore_type_id *type;
->         int *count;
-> -       struct timespec *timespec;
-> +       struct inode_time *inode_time;
->         bool *compressed;
->         char **buf;
->  };
-> @@ -63,8 +63,8 @@ static int efi_pstore_read_func(struct efivar_entry *entry, void *data)
->                    cb_data->type, &part, &cnt, &time, &data_type) == 5) {
->                 *cb_data->id = generic_id(time, part, cnt);
->                 *cb_data->count = cnt;
-> -               cb_data->timespec->tv_sec = time;
-> -               cb_data->timespec->tv_nsec = 0;
-> +               cb_data->inode_time->tv_sec = time;
-> +               cb_data->inode_time->tv_nsec = 0;
->                 if (data_type == 'C')
->                         *cb_data->compressed = true;
->                 else
-> @@ -73,8 +73,8 @@ static int efi_pstore_read_func(struct efivar_entry *entry, void *data)
->                    cb_data->type, &part, &cnt, &time) == 4) {
->                 *cb_data->id = generic_id(time, part, cnt);
->                 *cb_data->count = cnt;
-> -               cb_data->timespec->tv_sec = time;
-> -               cb_data->timespec->tv_nsec = 0;
-> +               cb_data->inode_time->tv_sec = time;
-> +               cb_data->inode_time->tv_nsec = 0;
->                 *cb_data->compressed = false;
->         } else if (sscanf(name, "dump-type%u-%u-%lu",
->                           cb_data->type, &part, &time) == 3) {
-> @@ -85,8 +85,8 @@ static int efi_pstore_read_func(struct efivar_entry *entry, void *data)
->                  */
->                 *cb_data->id = generic_id(time, part, 0);
->                 *cb_data->count = 0;
-> -               cb_data->timespec->tv_sec = time;
-> -               cb_data->timespec->tv_nsec = 0;
-> +               cb_data->inode_time->tv_sec = time;
-> +               cb_data->inode_time->tv_nsec = 0;
->                 *cb_data->compressed = false;
->         } else
->                 return 0;
-> @@ -208,7 +208,7 @@ static int efi_pstore_sysfs_entry_iter(void *data, struct efivar_entry **pos)
->   *           and pstore will stop reading entry.
->   */
->  static ssize_t efi_pstore_read(u64 *id, enum pstore_type_id *type,
-> -                              int *count, struct timespec *timespec,
-> +                              int *count, struct inode_time *inode_time,
->                                char **buf, bool *compressed,
->                                struct pstore_info *psi)
+>  fs/xfs/time.h            | 4 ++--
+>  fs/xfs/xfs_inode.c       | 2 +-
+>  fs/xfs/xfs_iops.c        | 2 +-
+>  fs/xfs/xfs_trans_inode.c | 6 +++---
+>  4 files changed, 7 insertions(+), 7 deletions(-)
+> 
+> diff --git a/fs/xfs/time.h b/fs/xfs/time.h
+> index 387e695..a490f1b 100644
+> --- a/fs/xfs/time.h
+> +++ b/fs/xfs/time.h
+> @@ -21,14 +21,14 @@
+>  #include <linux/sched.h>
+>  #include <linux/time.h>
+>  
+> -typedef struct timespec timespec_t;
+> +typedef struct inode_time timespec_t;
+>  
+>  static inline void delay(long ticks)
 >  {
-> @@ -218,7 +218,7 @@ static ssize_t efi_pstore_read(u64 *id, enum pstore_type_id *type,
->         data.id = id;
->         data.type = type;
->         data.count = count;
-> -       data.timespec = timespec;
-> +       data.inode_time = inode_time;
->         data.compressed = compressed;
->         data.buf = buf;
->
-> @@ -266,7 +266,7 @@ struct pstore_erase_data {
->         u64 id;
->         enum pstore_type_id type;
->         int count;
-> -       struct timespec time;
-> +       struct inode_time time;
->         efi_char16_t *name;
->  };
->
-> @@ -292,8 +292,8 @@ static int efi_pstore_erase_func(struct efivar_entry *entry, void *data)
->                  * Check if an old format, which doesn't support
->                  * holding multiple logs, remains.
->                  */
-> -               sprintf(name_old, "dump-type%u-%u-%lu", ed->type,
-> -                       (unsigned int)ed->id, ed->time.tv_sec);
-> +               sprintf(name_old, "dump-type%u-%u-%llu", ed->type,
-> +                       (unsigned int)ed->id, (u64)ed->time.tv_sec);
->
->                 for (i = 0; i < DUMP_NAME_LEN; i++)
->                         efi_name_old[i] = name_old[i];
-> @@ -319,7 +319,7 @@ static int efi_pstore_erase_func(struct efivar_entry *entry, void *data)
+>  	schedule_timeout_uninterruptible(ticks);
 >  }
->
->  static int efi_pstore_erase(enum pstore_type_id type, u64 id, int count,
-> -                           struct timespec time, struct pstore_info *psi)
-> +                           struct inode_time time, struct pstore_info *psi)
+>  
+> -static inline void nanotime(struct timespec *tvp)
+> +static inline void nanotime(struct inode_time *tvp)
 >  {
->         struct pstore_erase_data edata;
->         struct efivar_entry *entry = NULL;
-> @@ -330,7 +330,7 @@ static int efi_pstore_erase(enum pstore_type_id type, u64 id, int count,
->
->         do_div(id, 1000);
->         part = do_div(id, 100);
-> -       sprintf(name, "dump-type%u-%u-%d-%lu", type, part, count, time.tv_sec);
-> +       sprintf(name, "dump-type%u-%u-%d-%llu", type, part, count, (u64)time.tv_sec);
->
->         for (i = 0; i < DUMP_NAME_LEN; i++)
->                 efi_name[i] = name[i];
-> diff --git a/fs/pstore/inode.c b/fs/pstore/inode.c
-> index 192297b..6f3925f 100644
-> --- a/fs/pstore/inode.c
-> +++ b/fs/pstore/inode.c
-> @@ -277,7 +277,7 @@ int pstore_is_mounted(void)
->   */
->  int pstore_mkfile(enum pstore_type_id type, char *psname, u64 id, int count,
->                   char *data, bool compressed, size_t size,
-> -                 struct timespec time, struct pstore_info *psi)
-> +                 struct inode_time time, struct pstore_info *psi)
->  {
->         struct dentry           *root = pstore_sb->s_root;
->         struct dentry           *dentry;
-> diff --git a/fs/pstore/internal.h b/fs/pstore/internal.h
-> index 3b3d305..eb9c4eb 100644
-> --- a/fs/pstore/internal.h
-> +++ b/fs/pstore/internal.h
-> @@ -51,7 +51,7 @@ extern void   pstore_set_kmsg_bytes(int);
->  extern void    pstore_get_records(int);
->  extern int     pstore_mkfile(enum pstore_type_id, char *psname, u64 id,
->                               int count, char *data, bool compressed,
-> -                             size_t size, struct timespec time,
-> +                             size_t size, struct inode_time time,
->                               struct pstore_info *psi);
->  extern int     pstore_is_mounted(void);
->
-> diff --git a/fs/pstore/platform.c b/fs/pstore/platform.c
-> index 0a9b72c..06f2628 100644
-> --- a/fs/pstore/platform.c
-> +++ b/fs/pstore/platform.c
-> @@ -475,7 +475,7 @@ void pstore_get_records(int quiet)
->         u64                     id;
->         int                     count;
->         enum pstore_type_id     type;
-> -       struct timespec         time;
-> +       struct inode_time       time;
->         int                     failed = 0, rc;
->         bool                    compressed;
->         int                     unzipped_len = -1;
-> diff --git a/fs/pstore/ram.c b/fs/pstore/ram.c
-> index 3b57443..50d7298 100644
-> --- a/fs/pstore/ram.c
-> +++ b/fs/pstore/ram.c
-> @@ -135,29 +135,31 @@ ramoops_get_next_prz(struct persistent_ram_zone *przs[], uint *c, uint max,
->         return prz;
+>  	*tvp = CURRENT_TIME;
 >  }
->
-> -static void ramoops_read_kmsg_hdr(char *buffer, struct timespec *time,
-> +static void ramoops_read_kmsg_hdr(char *buffer, struct inode_time *time,
->                                   bool *compressed)
+> diff --git a/fs/xfs/xfs_inode.c b/fs/xfs/xfs_inode.c
+> index a6115fe..16d5392 100644
+> --- a/fs/xfs/xfs_inode.c
+> +++ b/fs/xfs/xfs_inode.c
+> @@ -654,7 +654,7 @@ xfs_ialloc(
+>  	xfs_inode_t	*ip;
+>  	uint		flags;
+>  	int		error;
+> -	timespec_t	tv;
+> +	struct inode_time tv;
+>  
+>  	/*
+>  	 * Call the space management code to pick
+> diff --git a/fs/xfs/xfs_iops.c b/fs/xfs/xfs_iops.c
+> index 205613a..092ee7c 100644
+> --- a/fs/xfs/xfs_iops.c
+> +++ b/fs/xfs/xfs_iops.c
+> @@ -956,7 +956,7 @@ xfs_vn_setattr(
+>  STATIC int
+>  xfs_vn_update_time(
+>  	struct inode		*inode,
+> -	struct timespec		*now,
+> +	struct inode_time	*now,
+>  	int			flags)
 >  {
->         char data_type;
-> +       u64 seconds;
->
-> -       if (sscanf(buffer, RAMOOPS_KERNMSG_HDR "%lu.%lu-%c\n",
-> -                       &time->tv_sec, &time->tv_nsec, &data_type) == 3) {
-> +       if (sscanf(buffer, RAMOOPS_KERNMSG_HDR "%llu.%lu-%c\n",
-> +                       &seconds, &time->tv_nsec, &data_type) == 3) {
->                 if (data_type == 'C')
->                         *compressed = true;
->                 else
->                         *compressed = false;
-> -       } else if (sscanf(buffer, RAMOOPS_KERNMSG_HDR "%lu.%lu\n",
-> -                       &time->tv_sec, &time->tv_nsec) == 2) {
-> +       } else if (sscanf(buffer, RAMOOPS_KERNMSG_HDR "%llu.%lu\n",
-> +                       &seconds, &time->tv_nsec) == 2) {
->                         *compressed = false;
->         } else {
-> -               time->tv_sec = 0;
-> +               seconds = 0;
->                 time->tv_nsec = 0;
->                 *compressed = false;
->         }
-> +       time->tv_sec = seconds;
->  }
->
->  static ssize_t ramoops_pstore_read(u64 *id, enum pstore_type_id *type,
-> -                                  int *count, struct timespec *time,
-> +                                  int *count, struct inode_time *time,
->                                    char **buf, bool *compressed,
->                                    struct pstore_info *psi)
+>  	struct xfs_inode	*ip = XFS_I(inode);
+> diff --git a/fs/xfs/xfs_trans_inode.c b/fs/xfs/xfs_trans_inode.c
+> index 50c3f56..bae2520 100644
+> --- a/fs/xfs/xfs_trans_inode.c
+> +++ b/fs/xfs/xfs_trans_inode.c
+> @@ -70,7 +70,7 @@ xfs_trans_ichgtime(
+>  	int			flags)
 >  {
-> @@ -278,7 +280,7 @@ static int notrace ramoops_pstore_write_buf(enum pstore_type_id type,
->  }
->
->  static int ramoops_pstore_erase(enum pstore_type_id type, u64 id, int count,
-> -                               struct timespec time, struct pstore_info *psi)
-> +                               struct inode_time time, struct pstore_info *psi)
->  {
->         struct ramoops_context *cxt = psi->data;
->         struct persistent_ram_zone *prz;
-> diff --git a/include/linux/pstore.h b/include/linux/pstore.h
-> index ece0c6b..f293905 100644
-> --- a/include/linux/pstore.h
-> +++ b/include/linux/pstore.h
-> @@ -55,7 +55,7 @@ struct pstore_info {
->         int             (*open)(struct pstore_info *psi);
->         int             (*close)(struct pstore_info *psi);
->         ssize_t         (*read)(u64 *id, enum pstore_type_id *type,
-> -                       int *count, struct timespec *time, char **buf,
-> +                       int *count, struct inode_time *time, char **buf,
->                         bool *compressed, struct pstore_info *psi);
->         int             (*write)(enum pstore_type_id type,
->                         enum kmsg_dump_reason reason, u64 *id,
-> @@ -66,7 +66,7 @@ struct pstore_info {
->                         unsigned int part, const char *buf, bool compressed,
->                         size_t size, struct pstore_info *psi);
->         int             (*erase)(enum pstore_type_id type, u64 id,
-> -                       int count, struct timespec time,
-> +                       int count, struct inode_time time,
->                         struct pstore_info *psi);
->         void            *data;
->  };
-> --
-> 1.8.3.2
->
+>  	struct inode		*inode = VFS_I(ip);
+> -	timespec_t		tv;
+> +	struct inode_time	tv;
+>  
+>  	ASSERT(tp);
+>  	ASSERT(xfs_isilocked(ip, XFS_ILOCK_EXCL));
+> @@ -78,13 +78,13 @@ xfs_trans_ichgtime(
+>  	tv = current_fs_time(inode->i_sb);
+>  
+>  	if ((flags & XFS_ICHGTIME_MOD) &&
+> -	    !timespec_equal(&inode->i_mtime, &tv)) {
+> +	    !inode_time_equal(&inode->i_mtime, &tv)) {
+>  		inode->i_mtime = tv;
+>  		ip->i_d.di_mtime.t_sec = tv.tv_sec;
+>  		ip->i_d.di_mtime.t_nsec = tv.tv_nsec;
+>  	}
 
+The problem I see here is that the code is now potentially stuffing
+a variable that is larger than 32 bits into on on-disk structure
+that is only 32 bits in size.  You can't just change the in-memory
+representation of inode timestamps and expect the problem to be
+fixed - this just pushes the problem down a layer without any
+intrastructure allowing filesystems to handle storage of the new
+timestamp format sanely.
 
+IOWs, the filesystem has to be able to reject any attempt to set a
+timestamp that is can't represent on disk otherwise Bad Stuff will
+happen, and filesystems have to be able to specify in their on
+disk format what timestamp encoding is being used. The solution will
+be different for every filesystem that needs to support time beyond
+2038.
 
+Hence I think you are going to need superblock flags and/or
+variables to indicate the epoch range the fielsystem can support.
+Then the fileystems need conversion functions from whatever the
+internal VFS timestamp representation is to whatever their on-disk
+format is, and only then can we switch the VFS to using a new
+timestamp format.
+
+At that point, filesystem developers can make the changes they need
+to the on-disk format to support timestamps beyond 2038, and all
+they need to do at the VFS layer is set the "supported range" fields
+appropriately in the VFS superblock...
+
+Cheers,
+
+Dave.
 -- 
-Kees Cook
-Chrome OS Security
+Dave Chinner
+david@fromorbit.com
+
+_______________________________________________
+xfs mailing list
+xfs@oss.sgi.com
+http://oss.sgi.com/mailman/listinfo/xfs
