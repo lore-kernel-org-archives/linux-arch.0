@@ -1,45 +1,36 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:53117 "EHLO mail.zytor.com"
+Received: from terminus.zytor.com ([198.137.202.10]:53318 "EHLO mail.zytor.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753026AbaEaIsC (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sat, 31 May 2014 04:48:02 -0400
-Message-ID: <53899717.1050109@zytor.com>
-Date: Sat, 31 May 2014 01:47:19 -0700
+	id S1751789AbaEaJLo (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sat, 31 May 2014 05:11:44 -0400
+Message-ID: <53899C95.80806@zytor.com>
+Date: Sat, 31 May 2014 02:10:45 -0700
 From: "H. Peter Anvin" <hpa@zytor.com>
 MIME-Version: 1.0
-Subject: Re: [RFC 06/32] isofs: fix timestamps beyond 2027
-References: <1401480116-1973111-1-git-send-email-arnd@arndb.de>	<1401480116-1973111-7-git-send-email-arnd@arndb.de> <CAMuHMdXn2wzhU6f-qVsFAoVZQOciRbi8ZBdjQpHQf96qRC2kww@mail.gmail.com>
-In-Reply-To: <CAMuHMdXn2wzhU6f-qVsFAoVZQOciRbi8ZBdjQpHQf96qRC2kww@mail.gmail.com>
-Content-Type: text/plain; charset=UTF-8
+Subject: Re: [RFC 13/32] ext3: convert to struct inode_time
+References: <1401480116-1973111-1-git-send-email-arnd@arndb.de> <1401480116-1973111-14-git-send-email-arnd@arndb.de>
+In-Reply-To: <1401480116-1973111-14-git-send-email-arnd@arndb.de>
+Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>, Arnd Bergmann <arnd@arndb.de>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, "Joseph S. Myers" <joseph@codesourcery.com>, John Stultz <john.stultz@linaro.org>, Christoph Hellwig <hch@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Ley Foon Tan <lftan@altera.com>, Linux FS Devel <linux-fsdevel@vger.kernel.org>
-Message-ID: <20140531084719.ZXCKBgYpP2j9XJnAdbGebvN_S-laaNy1rfhS_86hg2A@z>
+To: Arnd Bergmann <arnd@arndb.de>, linux-kernel@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, joseph@codesourcery.com, john.stultz@linaro.org, hch@infradead.org, tglx@linutronix.de, geert@linux-m68k.org, lftan@altera.com, linux-fsdevel@vger.kernel.org, Jan Kara <jack@suse.cz>, Andrew Morton <akpm@linux-foundation.org>, Andreas Dilger <adilger.kernel@dilger.ca>, linux-ext4@vger.kernel.org
+Message-ID: <20140531091045.A8Rrd9z4SxZniNduFbYYeqe7lmIiqflnwQL9zg2ZqJA@z>
 
-On 05/31/2014 12:59 AM, Geert Uytterhoeven wrote:
-> On Fri, May 30, 2014 at 10:01 PM, Arnd Bergmann <arnd@arndb.de> wrote:
->> isofs uses a 'char' variable to load the number of years since
->> 1900 for an inode timestamp. On architectures that use a signed
->> char type by default, this results in an invalid date for
->> anything beyond 2027.
->>
->> This adds a cast to 'u8' for the year number, which should extend
->> the shelf life of the file system until 2155.
+On 05/30/2014 01:01 PM, Arnd Bergmann wrote:
+> ext3fs uses unsigned 32-bit seconds for inode timestamps, which will work
+> for the next 92 years, but the VFS uses struct timespec for timestamps,
+> which is only good until 2038 on 32-bit CPUs.
 > 
-> Oops, the CD archive of my scanned Napoleon manuscripts no longer has the
-> right file date? ;-)
-> 
-> Are there any practical uses of representating dates between 1772 and 1900
-> on CD/DVD?
+> This gets us one small step closer to lifting the VFS limit by using
+> struct inode_time in ext3. The on-disk format limit is lifted in ext4,
+> which will work until 2514.
 > 
 
-Unlikely, furthermore, the spec explicitly states that the number is
-unsigned (ref: ECMA-119, 2nd ed, 9.1.5 which specifies that the numbers
-are "recorded according to 7.1.1"; 7.1.1 specifies "8-bit unsigned
-numerical values").
+This may be what the spec says, but when I experimented with this just
+now it does seem that both ext2 and ext3 actually interpret timestamps
+as *signed* 32-bit seconds.
 
 	-hpa
-
 
