@@ -1,110 +1,65 @@
-From: Nicolas Pitre <nicolas.pitre@linaro.org>
-Subject: Re: [RFC 11/32] xfs: convert to struct inode_time
-Date: Sat, 31 May 2014 11:46:16 -0400 (EDT)
-Message-ID: <alpine.LFD.2.11.1405311055410.17310@knanqh.ubzr>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: [RFC 01/32] fs: introduce new 'struct inode_time'
+Date: Sat, 31 May 2014 18:15:30 +0200
+Message-ID: <CAMuHMdVQJfaghsVqJJnsFahu6FGhXm2-DtOQbJTEDd7f=TO_NQ@mail.gmail.com>
 References: <1401480116-1973111-1-git-send-email-arnd@arndb.de>
-	<1401480116-1973111-12-git-send-email-arnd@arndb.de>
-	<20140531003712.GH14410@dastard> <5389252A.5050503@zytor.com>
-	<20140531011450.GJ14410@dastard>
-	<c7770275-61de-4e94-9586-5ee118f77ba5@email.android.com>
-	<20140531055457.GK14410@dastard> <538995D4.9050702@zytor.com>
+	<CAMuHMdVgch4REGcYWFZXVToX2b8iCinFVV10Bz3VoeiZy_yBtg@mail.gmail.com>
+	<m2tx86l4ux.fsf@linux-m68k.org>
+	<5507335.AOOTyGEum3@wuerfel>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <xfs-bounces@oss.sgi.com>
-In-Reply-To: <538995D4.9050702@zytor.com>
-List-Unsubscribe: <http://oss.sgi.com/mailman/options/xfs>,
-	<mailto:xfs-request@oss.sgi.com?subject=unsubscribe>
-List-Archive: <http://oss.sgi.com/pipermail/xfs>
-List-Post: <mailto:xfs@oss.sgi.com>
-List-Help: <mailto:xfs-request@oss.sgi.com?subject=help>
-List-Subscribe: <http://oss.sgi.com/mailman/listinfo/xfs>,
-	<mailto:xfs-request@oss.sgi.com?subject=subscribe>
-Errors-To: xfs-bounces@oss.sgi.com
-Sender: xfs-bounces@oss.sgi.com
-To: "H. Peter Anvin" <hpa@zytor.com>
-Cc: linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-kernel@vger.kernel.org, xfs@oss.sgi.com, hch@infradead.org, john.stultz@linaro.org, lftan@altera.com, linux-fsdevel@vger.kernel.org, geert@linux-m68k.org, tglx@linutronix.de, joseph@codesourcery.com
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=UTF-8
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-ie0-f170.google.com ([209.85.223.170]:39079 "EHLO
+	mail-ie0-f170.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752661AbaEaQPb (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 31 May 2014 12:15:31 -0400
+In-Reply-To: <5507335.AOOTyGEum3@wuerfel>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Andreas Schwab <schwab@linux-m68k.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, "Joseph S. Myers" <joseph@codesourcery.com>, John Stultz <john.stultz@linaro.org>, Christoph Hellwig <hch@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Ley Foon Tan <lftan@altera.com>, "H. Peter Anvin" <hpa@zytor.com>, Linux FS Devel <linux-fsdevel@vger.kernel.org>
 
-On Sat, 31 May 2014, H. Peter Anvin wrote:
+On Sat, May 31, 2014 at 4:54 PM, Arnd Bergmann <arnd@arndb.de> wrote:
+> On Saturday 31 May 2014 10:39:02 Andreas Schwab wrote:
+>> Geert Uytterhoeven <geert@linux-m68k.org> writes:
+>>
+>> > Hi Arnd,
+>> >
+>> > On Fri, May 30, 2014 at 10:01 PM, Arnd Bergmann <arnd@arndb.de> wrote:
+>> >> + * The variant using bit fields is less efficient to access, but
+>> >> + * small and has a wider range as the 32-bit one, plus it keeps
+>> >> + * the signedness of the original timespec.
+>> >> + */
+>> >> +struct inode_time {
+>> >> +       long long       tv_sec  : 34;
+>> >> +       int             tv_nsec : 30;
+>> >> +};
+>> >
+>> > Don't you need 31 bits for tv_nsec, to accommodate for the sign bit?
+>> > I know you won't really store negative numbers there, but storing a large
+>> > positive number will become negative on read out, won't it?
+>>
+>> Only if the int bitfield is signed.  Bitfields are weird, aren't they?
 
-> On 05/30/2014 10:54 PM, Dave Chinner wrote:
-> > 
-> > If we are changing the in-kernel timestamp to have a greater dynamic
-> > range that anything we current support on disk, then we need support
-> > for all filesystems for similar translation and constraint. The
-> > filesystems need to be able to tell the kernel what they timestamp
-> > range they support, and then the kernel needs to follow those
-> > guidelines. And if the filesystem is mounted on a kernel that
-> > doesn't support the current filesystem's timestamp format, then at
-> > minimum that filesystem cannot do anything that writes a
-> > timestamp....
-> > 
-> > Put simply: the filesystem defines the timestamp range that can be
-> > used safely, not the userspace API. If the filesystem can't support
-> > the date it is handed then that is an out-of-range error. Since
-> > when have we accepted that it's OK to handle out-of-range data with
-> > silent overflows or corruption of the data that we are attempting to
-> > store? We're defining a new API to support a wider date range -
-> > there is nothing that prevents us from saying ERANGE can be returned
-> > to a timestamp that the file cannot store correctly....
-> > 
-> 
-> I'm still puzzled.
-> 
-> Are you saying that you want a program that does:
-> 
-> 	/* Deliberately simplified */
-> 	gettimeofdayns(&now ...);
-> 	utimensat(... now);
-> 
-> ... to suddenly start failing on Jan 19, 2038 (for a filesystem with
-> 32-bit timestamps), or would you propose some ways for the filesystems
-> in question to extend the range of the timestamps?
-> 
-> What you seem to propose also seems to imply that on Jan 19, 2038
-> anything that writes a timestamp with the current date (which logically
-> ends up being almost every write operation) would be dead and frozen on
-> such a filesystem -- pretty much meaning the filesystem would become
-> readonly if not in reality than in practice.
+According to 6.7.2#5 (thanks for the reference), this is implementation defined.
 
-For those (legacy) filesystems with a signed 32-bit timestamps, any 
-attempt to create a timestamp past Jan 19 03:14:06 2038 UTC should be 
-(silently) clamped to 0x7fffffff and that value (the last representable 
-time) used as an overflow indicator.  The filesystem driver should 
-convert that value into a corresponding overflow value for whatever 
-kernel internal time representation being used when read back, and this 
-should be propagated up to user space.  It should not be a hard error 
-otherwise, as you rightfully stated, everything non read-only would come 
-to a halt on that day.
+> It was a mistake on my side, as I didn't know about that rule and
+> meant write 'unsigned int' really. Also, I always have a bad feeling
 
-Inside the kernel, the overflow indicator could be as simple as 
-dedicating one of the top bit in a 64-bit time_t value in order to still 
-transmit the overflow limit.  For example, in the above case, we could 
-use 0x40000000-7fffffff to indicate the actual time is unavailable due 
-to the filesystem's time representation being overflowed from 
-0x7fffffff.
+IC, but the comment said "plus it keeps the signedness".
+So it doesn't keep the signedness for the tv_nsec field.
 
-If for example a filesystem cannot represent timestamps from Jan  1 
-00:00:00 2100 UTC then the overflow representation for this particular 
-filesystem would be 0x40000000-f48656ff.
+> about using bitfields in general.
 
-Those syscalls with a 32-bit time_t would be returned 0x7fffffff 
-whenever there is an overflow being signaled.  Whether 64-bit 
-overflow-marked time_t values, when passed to user space, should clear 
-the overflow bit, or use a unique time_t overflow value, could be 
-decided and even changed later after discussion with glibc people for 
-example.
+Hehe...
 
-Hard errors should be signaled to user space, and the actual operation 
-aborted, only with the presence of a new flag passed to the kernel.  
-However, by default, things should "just work" albeit with the "wrong" 
-i.e clamped time being saved on disk as much as possible otherwise.
+Gr{oetje,eeting}s,
 
+                        Geert
 
-Nicolas
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
 
-_______________________________________________
-xfs mailing list
-xfs@oss.sgi.com
-http://oss.sgi.com/mailman/listinfo/xfs
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
