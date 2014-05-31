@@ -1,91 +1,37 @@
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [RFC 02/32] uapi: add struct __kernel_timespec{32,64}
-Date: Sat, 31 May 2014 17:09:25 +0200
-Message-ID: <5129309.tUSSHZWN3t@wuerfel>
-References: <1401480116-1973111-1-git-send-email-arnd@arndb.de> <1401480116-1973111-3-git-send-email-arnd@arndb.de> <5388E7A5.90308@zytor.com>
+Subject: Re: [RFC 00/32] making inode time stamps y2038 ready
+Date: Sat, 31 May 2014 17:23:02 +0200
+Message-ID: <6347520.8jMPlVsFjM@wuerfel>
+References: <1401480116-1973111-1-git-send-email-arnd@arndb.de> <20140531145114.GA3721@localhost.localdomain>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7Bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.17.10]:54438 "EHLO
+Received: from mout.kundenserver.de ([212.227.126.187]:57148 "EHLO
 	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750752AbaEaPLI (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 31 May 2014 11:11:08 -0400
-In-Reply-To: <5388E7A5.90308@zytor.com>
+	with ESMTP id S1750752AbaEaPXx (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 31 May 2014 11:23:53 -0400
+In-Reply-To: <20140531145114.GA3721@localhost.localdomain>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "H. Peter Anvin" <hpa@zytor.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, joseph@codesourcery.com, john.stultz@linaro.org, hch@infradead.org, tglx@linutronix.de, geert@linux-m68k.org, lftan@altera.com, linux-fsdevel@vger.kernel.org
+To: Richard Cochran <richardcochran@gmail.com>
+Cc: linux-kernel@vger.kernel.org, hch@infradead.org, linux-mtd@lists.infradead.org, hpa@zytor.com, logfs@logfs.org, linux-afs@lists.infradead.org, joseph@codesourcery.com, linux-arch@vger.kernel.org, linux-cifs@vger.kernel.org, linux-scsi@vger.kernel.org, ceph-devel@vger.kernel.org, codalist@coda.cs.cmu.edu, cluster-devel@redhat.com, coda@cs.cmu.edu, geert@linux-m68k.org, linux-ext4@vger.kernel.org, fuse-devel@lists.sourceforge.net, reiserfs-devel@vger.kernel.org, xfs@oss.sgi.com, john.stultz@linaro.org, tglx@linutronix.de, linux-nfs@vger.kernel.org, linux-ntfs-dev@lists.sourceforge.net, samba-technical@lists.samba.org, linux-f2fs-devel@lists.sourceforge.net, ocfs2-devel@oss.oracle.com, linux-fsdevel@vger.kernel.org, lftan@altera.com, linux-btrfs@vger.kernel.org
 
-On Friday 30 May 2014 13:18:45 H. Peter Anvin wrote:
-> On 05/30/2014 01:01 PM, Arnd Bergmann wrote:
-> > We cannot use time_t or any derived structures beyond the year
-> > 2038 in interfaces between kernel and user space, on 32-bit
-> > machines.
+On Saturday 31 May 2014 16:51:15 Richard Cochran wrote:
+> On Fri, May 30, 2014 at 10:01:24PM +0200, Arnd Bergmann wrote:
 > > 
-> > This is my suggestion for how to migrate syscall and ioctl
-> > interfaces: We completely phase out time_t, timeval and timespec
-> > from the uapi header files and replace them with types that are
-> > either explicitly safe (__kernel_timespec64), or explicitly
-> > unsafe (e.g. __kernel_timespec32). For each unsafe interface,
-> > there needs to be a safe replacement interface.
-> > 
+> > I picked this because it is a fairly isolated problem, as the
+> > inode time stamps are rarely assigned to any other time values.
+> > As a byproduct of this work, I documented for each of the file
+> > systems we support how long the on-disk format can work[1].
 > 
-> This gets really messy for structures where this is ABI-dependent.  I'm
-> not sure this is a net win.
+> Why are some of the time stamp expiration dates marked as "never"?
 
-We could have an extra '__kernel_oldtimespec' type that we can
-use for all ABIs that are today defined in terms of timespec.
-
-What I was mostly trying to avoid here is leaving any 'struct timespec'
-in header files, because glibc may define that type differently
-depending on a __TIME_BITS macro. This is more of a problem for
-ioctls than for system calls.
-
-> > +/*
-> > + * __kernel_timespec64 is the general type to be used for
-> > + * new user space interfaces passing a time argument.
-> > + * 64-bit nanoseconds is a bit silly, but the advantage is
-> > + * that it is compatible with the native 'struct timespec'
-> > + * on 64-bit user space. This simplifies the compat code.
-> > + */
-> > +struct __kernel_timespec64 {
-> > +	long long tv_sec;
-> > +	long long tv_nsec;
-> > +};
-> 
-> So it seems that it is not just POSIX that is drain bramaged with this,
-> but the "long" type for tv_nsec idiocy has made it into the C11
-> standard.  This unfortunately means that now there are two standards
-> bodies involved, at least one of which moves very slowly.
-
-My feeling is that our best hope is to completely isolate the kernel
-interfaces from what user space wants to have as time_t. glibc for
-instance may have a different idea about standards compliance than
-android or klibc.
-
-> This makes me wonder if we don't need to deal with the problem in the
-> case of 32-bit ABIs with 64-bit time_t.  The logical thing seems to be
-> to EITHER:
-> 
-> a. ALWAYS ignore the upper 32 bits of tv_nsec when read from user space,
->    but always set them to zero, or
-> b. Only ignore the upper 32 bits of tv_nsec when we are known to come
->    from a 32-bit ABI context, but still always return zero.  These bits
->    are already only used for validity checking.
-> 
->    This most likely introduces a whole lot of new tests in deep paths,
->    although we probably can centralize this in a single function, which
->    otherwise ends up looking a lot like compat_get_timespec().
-> 
-> Getting rid of struct timespec on the kernel/user boundary is probably
-> not really feasible.
-
-My approach was based on the discussion with Joseph, who would like glibc
-to support both 32 and 64 bit time_t using the same libc binary and 
-versioned symbols. I don't see how that could work when you build a
-user space program that sees a timespec in kernel headers and tries
-to pass that into a non-translated kernel interface (e.g. ioctl) but
-use the same timespec for a glibc-provided function like gettimeofday().
+It's an approximation:
+with 64-bit timestamps, you can represent close to 300 billion
+years, which is way past the time that our planet can sustain
+life of any form[1].
 
 	Arnd
+
+[1] http://en.wikipedia.org/wiki/Timeline_of_the_far_future
