@@ -1,112 +1,34 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ipmail07.adl2.internode.on.net ([150.101.137.131]:30516 "EHLO
-	ipmail07.adl2.internode.on.net" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1751659AbaFAAk2 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Sat, 31 May 2014 20:40:28 -0400
-Date: Sun, 1 Jun 2014 10:39:54 +1000
-From: Dave Chinner <david@fromorbit.com>
-Subject: Re: [RFC 11/32] xfs: convert to struct inode_time
-Message-ID: <20140601003954.GM14410@dastard>
+Received: from mail-wi0-f169.google.com ([209.85.212.169]:36029 "EHLO
+	mail-wi0-f169.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750708AbaFAEpO (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 1 Jun 2014 00:45:14 -0400
+Date: Sun, 1 Jun 2014 06:44:36 +0200
+From: Richard Cochran <richardcochran@gmail.com>
+Subject: Re: [RFC 00/32] making inode time stamps y2038 ready
+Message-ID: <20140601044436.GC3722@localhost.localdomain>
 References: <1401480116-1973111-1-git-send-email-arnd@arndb.de>
- <1401480116-1973111-12-git-send-email-arnd@arndb.de>
- <20140531003712.GH14410@dastard>
- <5389252A.5050503@zytor.com>
- <20140531011450.GJ14410@dastard>
- <c7770275-61de-4e94-9586-5ee118f77ba5@email.android.com>
- <20140531055457.GK14410@dastard>
- <538995D4.9050702@zytor.com>
+ <20140531145114.GA3721@localhost.localdomain>
+ <6347520.8jMPlVsFjM@wuerfel>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <538995D4.9050702@zytor.com>
+In-Reply-To: <6347520.8jMPlVsFjM@wuerfel>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "H. Peter Anvin" <hpa@zytor.com>
-Cc: Arnd Bergmann <arnd@arndb.de>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, joseph@codesourcery.com, john.stultz@linaro.org, hch@infradead.org, tglx@linutronix.de, geert@linux-m68k.org, lftan@altera.com, linux-fsdevel@vger.kernel.org, xfs@oss.sgi.com
-Message-ID: <20140601003954.wDsmmfYYeeu79NQSC7TyjYC1jfP_wfGuhjHBPGa9Xw8@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-kernel@vger.kernel.org, hch@infradead.org, linux-mtd@lists.infradead.org, hpa@zytor.com, logfs@logfs.org, linux-afs@lists.infradead.org, joseph@codesourcery.com, linux-arch@vger.kernel.org, linux-cifs@vger.kernel.org, linux-scsi@vger.kernel.org, ceph-devel@vger.kernel.org, codalist@coda.cs.cmu.edu, cluster-devel@redhat.com, coda@cs.cmu.edu, geert@linux-m68k.org, linux-ext4@vger.kernel.org, fuse-devel@lists.sourceforge.net, reiserfs-devel@vger.kernel.org, xfs@oss.sgi.com, john.stultz@linaro.org, tglx@linutronix.de, linux-nfs@vger.kernel.org, linux-ntfs-dev@lists.sourceforge.net, samba-technical@lists.samba.org, linux-f2fs-devel@lists.sourceforge.net, ocfs2-devel@oss.oracle.com, linux-fsdevel@vger.kernel.org, lftan@altera.com, linux-btrfs@vger.kernel.org
+Message-ID: <20140601044436.jAqUyM-LJ2ExbpKq3-yjUNuN5sSZ_NuHBan67Thff1s@z>
 
-On Sat, May 31, 2014 at 01:41:56AM -0700, H. Peter Anvin wrote:
-> On 05/30/2014 10:54 PM, Dave Chinner wrote:
+On Sat, May 31, 2014 at 05:23:02PM +0200, Arnd Bergmann wrote:
+> On Saturday 31 May 2014 16:51:15 Richard Cochran wrote:
 > > 
-> > If we are changing the in-kernel timestamp to have a greater dynamic
-> > range that anything we current support on disk, then we need support
-> > for all filesystems for similar translation and constraint. The
-> > filesystems need to be able to tell the kernel what they timestamp
-> > range they support, and then the kernel needs to follow those
-> > guidelines. And if the filesystem is mounted on a kernel that
-> > doesn't support the current filesystem's timestamp format, then at
-> > minimum that filesystem cannot do anything that writes a
-> > timestamp....
-> > 
-> > Put simply: the filesystem defines the timestamp range that can be
-> > used safely, not the userspace API. If the filesystem can't support
-> > the date it is handed then that is an out-of-range error. Since
-> > when have we accepted that it's OK to handle out-of-range data with
-> > silent overflows or corruption of the data that we are attempting to
-> > store? We're defining a new API to support a wider date range -
-> > there is nothing that prevents us from saying ERANGE can be returned
-> > to a timestamp that the file cannot store correctly....
-> > 
+> > Why are some of the time stamp expiration dates marked as "never"?
 > 
-> I'm still puzzled.
-> 
-> Are you saying that you want a program that does:
-> 
-> 	/* Deliberately simplified */
-> 	gettimeofdayns(&now ...);
-> 	utimensat(... now);
-> 
-> ... to suddenly start failing on Jan 19, 2038 (for a filesystem with
-> 32-bit timestamps),
+> It's an approximation:
 
-Yes. Hard fail so overflows are in your face and we know exactly
-what is going to cause silent timestamp screwups when the epoch
+Also, the term "never" might mean using arbitrarily long integers
+as in ASN.1.
 
-> or would you propose some ways for the filesystems
-> in question to extend the range of the timestamps?
-
-Filesystems are going to have to change their on-disk formats, so
-we'd do that just like we do every other on-disk format change. With
-feature bits and translation layers, new ioctl structures, etc.
-Depending on the amount of work necessary, some filesystems could do
-this in 3.16, others it might be 3.20 before everything is sorted
-out across the kernel and userspace code...
-
-Either way, the hard fail problem goes away as each filesystem is
-converted. Further, if we have regression tests then new filesystems
-are guaranteed to be designed to handle 2038 epoch rollover, and so
-in a year of two this "hard fail" is effectively a non-problem. If
-someone breaks something in future, then we'll know about it pretty
-quickly.
-
-> What you seem to propose also seems to imply that on Jan 19, 2038
-> anything that writes a timestamp with the current date (which logically
-> ends up being almost every write operation) would be dead and frozen on
-> such a filesystem -- pretty much meaning the filesystem would become
-> readonly if not in reality than in practice.
-
-Yup. If we can't do what the user wants without the user thinking
-corruption has occurred, then the only thing we are left with is
-"shut down the filesystem" error handling. Kind of like using BUG()
-rather than returning an error. That's why we need to be able to
-hard fail and return an error.
-
-However, we've got 20+ years to fix our current filesystems and all
-their support code to ensure this doesn't happen. In the mean time,
-having stuff hard fail is a great way to ensure that filesystems get
-fixed sooner rather than later...
-
-> I strongly suspect that that would be a more catastrophic failure than
-> incorrect timestamps, as you suddenly have all kinds of machines
-> embedded in $DEITY knows what places just stop and refuse to run.
-
-Yup, that's a great way of flushing out problems 20 years before
-they really matter.
-
-Cheers,
-
-Dave.
--- 
-Dave Chinner
-david@fromorbit.com
+Thanks,
+Richard
