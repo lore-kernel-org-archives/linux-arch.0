@@ -1,34 +1,80 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wi0-f169.google.com ([209.85.212.169]:36029 "EHLO
-	mail-wi0-f169.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750708AbaFAEpO (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 1 Jun 2014 00:45:14 -0400
-Date: Sun, 1 Jun 2014 06:44:36 +0200
-From: Richard Cochran <richardcochran@gmail.com>
-Subject: Re: [RFC 00/32] making inode time stamps y2038 ready
-Message-ID: <20140601044436.GC3722@localhost.localdomain>
-References: <1401480116-1973111-1-git-send-email-arnd@arndb.de>
- <20140531145114.GA3721@localhost.localdomain>
- <6347520.8jMPlVsFjM@wuerfel>
+Received: from terminus.zytor.com ([198.137.202.10]:42487 "EHLO mail.zytor.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751650AbaFAU3i (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 1 Jun 2014 16:29:38 -0400
+In-Reply-To: <8618458.1EVJCoVbkH@wuerfel>
+References: <1401480116-1973111-1-git-send-email-arnd@arndb.de> <538995D4.9050702@zytor.com> <alpine.LFD.2.11.1405311055410.17310@knanqh.ubzr> <8618458.1EVJCoVbkH@wuerfel>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <6347520.8jMPlVsFjM@wuerfel>
+Content-Transfer-Encoding: 8bit
+Content-Type: text/plain;
+ charset=UTF-8
+Subject: Re: [RFC 11/32] xfs: convert to struct inode_time
+From: "H. Peter Anvin" <hpa@zytor.com>
+Date: Sun, 01 Jun 2014 13:26:03 -0700
+Message-ID: <0ab4392c-d89d-4277-914d-1696f455daab@email.android.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-kernel@vger.kernel.org, hch@infradead.org, linux-mtd@lists.infradead.org, hpa@zytor.com, logfs@logfs.org, linux-afs@lists.infradead.org, joseph@codesourcery.com, linux-arch@vger.kernel.org, linux-cifs@vger.kernel.org, linux-scsi@vger.kernel.org, ceph-devel@vger.kernel.org, codalist@coda.cs.cmu.edu, cluster-devel@redhat.com, coda@cs.cmu.edu, geert@linux-m68k.org, linux-ext4@vger.kernel.org, fuse-devel@lists.sourceforge.net, reiserfs-devel@vger.kernel.org, xfs@oss.sgi.com, john.stultz@linaro.org, tglx@linutronix.de, linux-nfs@vger.kernel.org, linux-ntfs-dev@lists.sourceforge.net, samba-technical@lists.samba.org, linux-f2fs-devel@lists.sourceforge.net, ocfs2-devel@oss.oracle.com, linux-fsdevel@vger.kernel.org, lftan@altera.com, linux-btrfs@vger.kernel.org
-Message-ID: <20140601044436.jAqUyM-LJ2ExbpKq3-yjUNuN5sSZ_NuHBan67Thff1s@z>
+To: Arnd Bergmann <arnd@arndb.de>, Nicolas Pitre <nicolas.pitre@linaro.org>
+Cc: Dave Chinner <david@fromorbit.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, joseph@codesourcery.com, john.stultz@linaro.org, hch@infradead.org, tglx@linutronix.de, geert@linux-m68k.org, lftan@altera.com, linux-fsdevel@vger.kernel.org, xfs@oss.sgi.com
+Message-ID: <20140601202603.-P3TlhH36Q7RGgYFGnX58azDJ9EcAXyURaZRh9A_nTU@z>
 
-On Sat, May 31, 2014 at 05:23:02PM +0200, Arnd Bergmann wrote:
-> On Saturday 31 May 2014 16:51:15 Richard Cochran wrote:
-> > 
-> > Why are some of the time stamp expiration dates marked as "never"?
-> 
-> It's an approximation:
+Perhaps we should make this a kernel command line option instead, with the settings: error out on outside the standard window, or a date indicating the earliest date that should be recognized and do windowing (0 for no windowing, 1970 for retconning the Unix epoch as unsigned...)
 
-Also, the term "never" might mean using arbitrarily long integers
-as in ASN.1.
+But again, the kernel is probably the least problem here...
 
-Thanks,
-Richard
+On June 1, 2014 12:56:52 PM PDT, Arnd Bergmann <arnd@arndb.de> wrote:
+>On Saturday 31 May 2014 11:46:16 Nicolas Pitre wrote:
+>> > readonly if not in reality than in practice.
+>> 
+>> For those (legacy) filesystems with a signed 32-bit timestamps, any 
+>> attempt to create a timestamp past Jan 19 03:14:06 2038 UTC should be
+>
+>> (silently) clamped to 0x7fffffff and that value (the last
+>representable 
+>> time) used as an overflow indicator.  The filesystem driver should 
+>> convert that value into a corresponding overflow value for whatever 
+>> kernel internal time representation being used when read back, and
+>this 
+>> should be propagated up to user space.  It should not be a hard error
+>
+>> otherwise, as you rightfully stated, everything non read-only would
+>come 
+>> to a halt on that day.
+>
+>I don't think there is much of a difference between not being able to
+>write at all and all newly written files having the same timestamp,
+>causing random things to break differently.
+>
+>The clamp to the maximum supported time stamp sounds like a reasonable
+>choice for 'utimens' and related syscalls for the case of someone
+>setting an arbitrary future date beyond what the file system can
+>represent. Then again, I don't see a reason why that shouldn't just
+>cause an error to be returned.
+>
+>For actually running kernels beyond 2038, the best idea I've seen so
+>far is to disallow all broken code at compile time. I don't see
+>a choice but to audit the entire kernel for invalid uses on both
+>32 and 64 bit in the next few years. A lot of code will get changed
+>in the process so we can actually keep running 32-bit kernels and
+>file systems, but other code will likely go away:
+>
+>* any system calls that pass a time_t, timeval or timespec on
+>  32-bit systems return -ENOSYS, to ensure all user land uses
+>  the replacements we will put into place
+>* The definition of 'time_t', 'timval' and 'timespec' can be hidden
+>  from the kernel, and all code using it left out.
+>* ext2 and ext3 file system code will have to be disabled, but that's
+>  file since ext4 can mount old file systems.
+>* until xfs gets extended, we can also disiable it at build time.
+>
+>For most users, we probably want to leave all that enabled by
+>default until we get much closer to 2038, but a compile time
+>option should allow us to test what works or doesn't, and it
+>can be set by embedded developers that want to ensure their
+>code keeps running for the next few decades.
+>
+>	Arnd
+
+-- 
+Sent from my mobile phone.  Please pardon brevity and lack of formatting.
