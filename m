@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.126.131]:59125 "EHLO
+Received: from mout.kundenserver.de ([212.227.17.10]:60636 "EHLO
 	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752682AbaFBMkL (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 2 Jun 2014 08:40:11 -0400
+	with ESMTP id S1752267AbaFBMwr (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 2 Jun 2014 08:52:47 -0400
 From: Arnd Bergmann <arnd@arndb.de>
 Subject: Re: [RFC 11/32] xfs: convert to struct inode_time
-Date: Mon, 02 Jun 2014 14:38:09 +0200
-Message-ID: <4910284.a72lauVLNV@wuerfel>
+Date: Mon, 02 Jun 2014 14:52:13 +0200
+Message-ID: <15496653.1vSv1RUCC0@wuerfel>
 In-Reply-To: <20140602115737.GB14276@thunk.org>
 References: <1401480116-1973111-1-git-send-email-arnd@arndb.de> <4178301.j9kWdGCRLC@wuerfel> <20140602115737.GB14276@thunk.org>
 MIME-Version: 1.0
@@ -16,7 +16,7 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Theodore Ts'o <tytso@mit.edu>
 Cc: Nicolas Pitre <nicolas.pitre@linaro.org>, "H. Peter Anvin" <hpa@zytor.com>, Dave Chinner <david@fromorbit.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, joseph@codesourcery.com, john.stultz@linaro.org, hch@infradead.org, tglx@linutronix.de, geert@linux-m68k.org, lftan@altera.com, linux-fsdevel@vger.kernel.org, xfs@oss.sgi.com
-Message-ID: <20140602123809.SL1Sm_lmTsUEm2-U0OZLTUaAb6kCaz5nuw0sPIZ5wwc@z>
+Message-ID: <20140602125213.t8cL3cu4MtX6LuvAug-ra05cJr4hKmKddWldrCzIAkU@z>
 
 On Monday 02 June 2014 07:57:37 Theodore Ts'o wrote:
 > On Mon, Jun 02, 2014 at 12:56:42PM +0200, Arnd Bergmann wrote:
@@ -40,16 +40,32 @@ On Monday 02 June 2014 07:57:37 Theodore Ts'o wrote:
 > cycles are order 5-6 years tops, so I'm not that concerned, but it
 > just goes to show this is a very complicated problem.
 
-Ok, I see.
+One stupid question about the current code:
 
-I also now noticed this comment above EXT4_FITS_IN_INODE():
+static inline void ext4_decode_extra_time(struct inode_time *time, __le32 extra)
+{                               
+       if (sizeof(time->tv_sec) > 4)
+               time->tv_sec |= (__u64)(le32_to_cpu(extra) & EXT4_EPOCH_MASK)
+                               << 32;
+       time->tv_nsec = (le32_to_cpu(extra) & EXT4_NSEC_MASK) >> EXT4_EPOCH_BITS;
+}       
 
-"For new inodes we always reserve enough space for the kernel's known
-extended fields, but for inodes created with an old kernel this might
-not have been the case. None of the extended inode fields is critical
-for correct filesystem operation."
+#define EXT4_EINODE_GET_XTIME(xtime, einode, raw_inode)                        \
+do {                                                                           \
+        if (EXT4_FITS_IN_INODE(raw_inode, einode, xtime))                      \
+                (einode)->xtime.tv_sec =                                       \
+                        (signed)le32_to_cpu((raw_inode)->xtime);               \
+        else                                                                   \
+                (einode)->xtime.tv_sec = 0;                                    \
+        if (EXT4_FITS_IN_INODE(raw_inode, einode, xtime ## _extra))            \
+                ext4_decode_extra_time(&(einode)->xtime,                       \
+                                       raw_inode->xtime ## _extra);            \
+        else                                                                   \
+                (einode)->xtime.tv_nsec = 0;                                   \
+} while (0)
 
-Do we have to worry about this for inodes that contain extended
-attributes and that get updated after 2038?
+For a time between 2038 and 2106, this looks like xtime.tv_sec is
+negative when ext4_decode_extra_time gets called, so the '|=' operator
+doesn't actually do anything. Shouldn't that be '+='?
 
 	Arnd
