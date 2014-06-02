@@ -1,68 +1,101 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.17.24]:49310 "EHLO
-	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755631AbaFBPDS (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 2 Jun 2014 11:03:18 -0400
-From: Arnd Bergmann <arnd@arndb.de>
+Received: from userp1040.oracle.com ([156.151.31.81]:38411 "EHLO
+	userp1040.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755508AbaFBPFY convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 2 Jun 2014 11:05:24 -0400
+Content-Type: text/plain; charset=windows-1252
+Mime-Version: 1.0 (Mac OS X Mail 7.3 \(1878.2\))
 Subject: Re: [RFC 11/32] xfs: convert to struct inode_time
-Date: Mon, 02 Jun 2014 17:01:20 +0200
-Message-ID: <5896675.3VErDJM7s2@wuerfel>
-In-Reply-To: <20140602130700.GC14276@thunk.org>
-References: <1401480116-1973111-1-git-send-email-arnd@arndb.de> <15496653.1vSv1RUCC0@wuerfel> <20140602130700.GC14276@thunk.org>
-MIME-Version: 1.0
-Content-Transfer-Encoding: 7Bit
-Content-Type: text/plain; charset="us-ascii"
+From: Chuck Lever <chuck.lever@oracle.com>
+In-Reply-To: <4178301.j9kWdGCRLC@wuerfel>
+Date: Mon, 2 Jun 2014 11:04:23 -0400
+Content-Transfer-Encoding: 8BIT
+Message-ID: <6868F108-F0B2-423F-AE31-90DF86A5B7DD@oracle.com>
+References: <1401480116-1973111-1-git-send-email-arnd@arndb.de> <8618458.1EVJCoVbkH@wuerfel> <alpine.LFD.2.11.1406012121430.17310@knanqh.ubzr> <4178301.j9kWdGCRLC@wuerfel>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Theodore Ts'o <tytso@mit.edu>
-Cc: Nicolas Pitre <nicolas.pitre@linaro.org>, "H. Peter Anvin" <hpa@zytor.com>, Dave Chinner <david@fromorbit.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, joseph@codesourcery.com, john.stultz@linaro.org, hch@infradead.org, tglx@linutronix.de, geert@linux-m68k.org, lftan@altera.com, linux-fsdevel@vger.kernel.org, xfs@oss.sgi.com
-Message-ID: <20140602150120.1uUMGYc88yPGPUdeIMMfDNgQC-XehojdHATldw-ua6Y@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Nicolas Pitre <nicolas.pitre@linaro.org>, "H. Peter Anvin" <hpa@zytor.com>, Dave Chinner <david@fromorbit.com>, LKML Kernel <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, joseph@codesourcery.com, john.stultz@linaro.org, Christoph Hellwig <hch@infradead.org>, tglx@linutronix.de, geert@linux-m68k.org, lftan@altera.com, linux-fsdevel <linux-fsdevel@vger.kernel.org>, xfs@oss.sgi.com, Linux NFS Mailing List <linux-nfs@vger.kernel.org>
+Message-ID: <20140602150423.v68rIHXOgXugmzcK-a81m1v03IHlryG0EKjwxv4XuIo@z>
 
-On Monday 02 June 2014 09:07:00 Theodore Ts'o wrote:
-> Yes, there are some ongoing dicussions about changing the post-2038
-> encoding of the timestamp in ext4, which is why this hasn't been fixed
-> yet.  The main thing that's been missing is time for me to review the
-> patches, and a good way of writing regression tests that will work (or
-> at least not fail) on build environments with a 32-bit time_t and
-> 32-bit-only capable versions of functions such as gmtime(3).
+
+On Jun 2, 2014, at 6:56 AM, Arnd Bergmann <arnd@arndb.de> wrote:
+
+> On Sunday 01 June 2014 21:36:26 Nicolas Pitre wrote:
+>> 
+>>> For actually running kernels beyond 2038, the best idea I've seen so
+>>> far is to disallow all broken code at compile time. I don't see
+>>> a choice but to audit the entire kernel for invalid uses on both
+>>> 32 and 64 bit in the next few years. A lot of code will get changed
+>>> in the process so we can actually keep running 32-bit kernels and
+>>> file systems, but other code will likely go away:
+>>> 
+>>> * any system calls that pass a time_t, timeval or timespec on
+>>>  32-bit systems return -ENOSYS, to ensure all user land uses
+>>>  the replacements we will put into place
+>>> * The definition of 'time_t', 'timval' and 'timespec' can be hidden
+>>>  from the kernel, and all code using it left out.
+>>> * ext2 and ext3 file system code will have to be disabled, but that's
+>>>  file since ext4 can mount old file systems.
+>> 
+>> Syscalls and libs can be "fixed".  Existing filesystem content might 
+>> not.  So if you need to mount some old media in read-write mode after 
+>> 2038 and that happens to content an ext2 or similarly limited filesystem 
+>> then it'd better just "work".  Having the kernel refuse to modify the 
+>> filesystem would be unacceptable.
 > 
-> And given current discussions, I may want to think about some kind of
-> superblock flag to allow the use of a 32-bit unsigned encoding for
-> file systems using a 128-byte inode, with a way of setting that flag
-> after scanning the file system to make sure there are no times that
-> are previous to January 1, 1970.  (Or more generally, allow any epoch
-> to be defined using a 64-bit time_t offset stored in the superblock...)
+> I think you misunderstood what I suggested: the intent is to avoid
+> seeing things break in 2038 by making them break much earlier. We have
+> a solution for ext2 file systems, it's called ext4, and we just need
+> to ensure that everybody knows they have to migrate eventually.
+> 
+> At some point before the mid 2030ies, you should no longer be able to
+> build a kernel that has support for ext2 or any other module that will
+> run into bugs later. Until then (rather sooner than later), I'd like
+> to get to the point where you can choose whether to include those
+> modules at build time or not, and then get everybody to turn off that
+> option and fix the bugs they run into. You wouldn't need that for a
+> 2014-generation long-term support disto (rhel 7, sles 12, debian 7,
+> ubuntu 14.04, ...), but perhaps for the next generation, or the
+> one after that.
 
-FWIW, I've gone through the other file system implementations once
-more. The most common pattern I've encountered is to have a read_inode
-function with
+I’m wondering what should be done about NFS. A solution for NFS should
+match any scheme that is considered for local file systems, IMO.
 
-	inode->i_mtime = le32_to_cpu(raw_inode->mtime);
+NFSv2/3 timestamps are a pair of unsigned 32-bit values: one value for
+seconds since midnight GMT Jan 1, 1970, and one value for nanoseconds.
+(See the definition of nfstime3 in RFC 1813).
 
-which results in interpreting the time as 'signed' on 32-bit
-kernels, but as 'unsigned' on 64-bit kernels. This could have been
-done intentionally to extend the valid time range to 2106 on 64-bit
-kernels, but it seems more likely that the code was written with
-no thought given to 64-bit time_t at all. I see this pattern on
-p9fs (old protocol only), afs, bfs, ceph, efs, freevxfs, hpfs, jffs2,
-jfs, minix, nfsv2/v3 (this was clearly intentional and is
-spelled out in the RFC), qnx4, qnx6, reiserfs, squashfs, sysv,
-and ufs (protocol version 1 only).
+NFSv4 uses a signed 64-bit value where zero represents midnight UTC
+on January 1, 1970, and an unsigned 32-bit value for nanoseconds. (See
+the definition of nfstime4 in RFC 5661).
 
-The other behavior I see is to treat the on-disk 32-bit value
-as signed on both 32-bit and 64-bit kernels:
+The NFSv4 protocol is probably not problematic, and NFSv3 should be out
+of the picture by 2038. But if changes are planned for dealing _now_
+with timestamp issues, compatibility with NFSv3 is a consideration.
 
-	inode->i_mtime = (signed)le32_to_cpu(raw_inode->mtime);
+It is already the case that, via NFSv3, the Linux NFS client transmits
+timestamps earlier than 1970 as large positive numbers. Try this with
+xfstests generic/258.
 
-this seems to be done intentionally in all cases, to maintain
-compatibility between 32-bit and 64-bit kernels, but it's
-relatively rare: exofs, ext2/3/4 (good old inodes) and xfs
-are the only ones doing this.
+Maybe nfs3_proc_setattr() should recognize pre-epoch timestamps and
+timestamps larger than can be represented in an unsigned 32-bit field
+and return an immediate error to the requesting application (like EINVAL).
 
-In case of ext2/3/4, the sign handlign was introduced here:
-http://www.spinics.net/lists/linux-ext4/msg01758.html
+If the Linux NFS server encounters a local file with a timestamp that
+cannot be represented via a u32, should it also return NFS3ERR_INVAL?
 
-exofs and xfs seem to have done it like this for all of git
-history.
+RFC 1813 does not provide guidance on the behavior nor does it suggest
+a particular error status code. The Solaris 11 server appears to return
+NFS3ERR_INVAL in this case.
 
-	Arnd
+An alternative would be to “cap” the timestamps transmitted via NFSv3 by
+Linux, so that a pre-epoch timestamp is transmitted as zero, and a large
+timestamp is transmitted as UINT_MAX.
+
+--
+Chuck Lever
+chuck[dot]lever[at]oracle[dot]com
+
+
+
