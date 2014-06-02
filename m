@@ -1,51 +1,55 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from b.mx.filmlight.ltd.uk ([77.107.81.251]:42879 "HELO
-	b.mx.filmlight.ltd.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with SMTP id S1753910AbaFBLmY (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 2 Jun 2014 07:42:24 -0400
+Received: from mout.kundenserver.de ([212.227.126.131]:59125 "EHLO
+	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752682AbaFBMkL (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 2 Jun 2014 08:40:11 -0400
+From: Arnd Bergmann <arnd@arndb.de>
 Subject: Re: [RFC 11/32] xfs: convert to struct inode_time
-From: Roger Willcocks <roger@filmlight.ltd.uk>
-In-Reply-To: <20140602002822.GQ14410@dastard>
-References: <1401480116-1973111-1-git-send-email-arnd@arndb.de>
-	 <5389252A.5050503@zytor.com> <20140531011450.GJ14410@dastard>
-	 <5507340.nVBP5LFtqn@wuerfel> <20140601002437.GL14410@dastard>
-	 <20140602002822.GQ14410@dastard>
-Content-Type: text/plain
-Date: Mon, 02 Jun 2014 12:35:41 +0100
-Message-ID: <1401708941.6065.51.camel@montana.filmlight.ltd.uk>
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+Date: Mon, 02 Jun 2014 14:38:09 +0200
+Message-ID: <4910284.a72lauVLNV@wuerfel>
+In-Reply-To: <20140602115737.GB14276@thunk.org>
+References: <1401480116-1973111-1-git-send-email-arnd@arndb.de> <4178301.j9kWdGCRLC@wuerfel> <20140602115737.GB14276@thunk.org>
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7Bit
+Content-Type: text/plain; charset="us-ascii"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dave Chinner <david@fromorbit.com>
-Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, lftan@altera.com, hch@infradead.org, john.stultz@linaro.org, "H. Peter Anvin" <hpa@zytor.com>, linux-fsdevel@vger.kernel.org, geert@linux-m68k.org, tglx@linutronix.de, xfs@oss.sgi.com, joseph@codesourcery.com
-Message-ID: <20140602113541.OqFJLz1H_KN0kpRxShiKqnM4LQgXsbTBzMa745u4c7M@z>
+To: Theodore Ts'o <tytso@mit.edu>
+Cc: Nicolas Pitre <nicolas.pitre@linaro.org>, "H. Peter Anvin" <hpa@zytor.com>, Dave Chinner <david@fromorbit.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, joseph@codesourcery.com, john.stultz@linaro.org, hch@infradead.org, tglx@linutronix.de, geert@linux-m68k.org, lftan@altera.com, linux-fsdevel@vger.kernel.org, xfs@oss.sgi.com
+Message-ID: <20140602123809.SL1Sm_lmTsUEm2-U0OZLTUaAb6kCaz5nuw0sPIZ5wwc@z>
 
-
-On Mon, 2014-06-02 at 10:28 +1000, Dave Chinner wrote:
-
+On Monday 02 June 2014 07:57:37 Theodore Ts'o wrote:
+> On Mon, Jun 02, 2014 at 12:56:42PM +0200, Arnd Bergmann wrote:
+> > 
+> > I think you misunderstood what I suggested: the intent is to avoid
+> > seeing things break in 2038 by making them break much earlier. We have
+> > a solution for ext2 file systems, it's called ext4, and we just need
+> > to ensure that everybody knows they have to migrate eventually.
+> > 
+> > At some point before the mid 2030ies, you should no longer be able to
+> > build a kernel that has support for ext2 or any other module that will
+> > run into bugs later....
 > 
-> The 32 bit second counters in timestamps are too small to represent
-> time beyond the unix epoch (jan 2038) correctly. Extend the on-disk
-> format for a timestamp to include an 8-bit epoch counter so that we
-> can extend time for up to 255 Unix epochs. This should be good for
-> representing timestamps from 1970 to somewhere around 19,000 A.D....
+> Even for ext4, it's not quite so simple as that.  You only have
+> support for times post 2038 if you are using an inode size > 128
+> bytes.  There are a very, very large number of machines which even
+> today, are using 128 byte inodes with ext4 for performance reasons.
 > 
+> The vast majority of those machines which I know of can probably move
+> to 256 byte inodes relatively easily, since hard drive replacement
+> cycles are order 5-6 years tops, so I'm not that concerned, but it
+> just goes to show this is a very complicated problem.
 
-I assume you're using an 'epoch' variable and not simply using the
-padding byte as an eight-bit prefix to the existing 32-bit counter
-because the existing counter is signed ?
+Ok, I see.
 
-For long term sanity it might make more sense for the eight-bit value to
-be a simple (sign-extended) prefix from 1970.
+I also now noticed this comment above EXT4_FITS_IN_INODE():
 
-So if the feature bit is set it's a 40-bit signed time, which is good
-for 1970 +/- 17400 years or so.
+"For new inodes we always reserve enough space for the kernel's known
+extended fields, but for inodes created with an old kernel this might
+not have been the case. None of the extended inode fields is critical
+for correct filesystem operation."
 
---
-Roger
+Do we have to worry about this for inodes that contain extended
+attributes and that get updated after 2038?
 
-
-
-
-
+	Arnd
