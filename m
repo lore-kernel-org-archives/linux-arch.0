@@ -1,74 +1,51 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qa0-f49.google.com ([209.85.216.49]:41691 "EHLO
-	mail-qa0-f49.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752715AbaFBBg3 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 1 Jun 2014 21:36:29 -0400
-Received: by mail-qa0-f49.google.com with SMTP id cm18so1809037qab.36
-        for <linux-arch@vger.kernel.org>; Sun, 01 Jun 2014 18:36:28 -0700 (PDT)
-Date: Sun, 1 Jun 2014 21:36:26 -0400 (EDT)
-From: Nicolas Pitre <nicolas.pitre@linaro.org>
+Received: from b.mx.filmlight.ltd.uk ([77.107.81.251]:42879 "HELO
+	b.mx.filmlight.ltd.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with SMTP id S1753910AbaFBLmY (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 2 Jun 2014 07:42:24 -0400
 Subject: Re: [RFC 11/32] xfs: convert to struct inode_time
-In-Reply-To: <8618458.1EVJCoVbkH@wuerfel>
-Message-ID: <alpine.LFD.2.11.1406012121430.17310@knanqh.ubzr>
-References: <1401480116-1973111-1-git-send-email-arnd@arndb.de> <538995D4.9050702@zytor.com> <alpine.LFD.2.11.1405311055410.17310@knanqh.ubzr> <8618458.1EVJCoVbkH@wuerfel>
-MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+From: Roger Willcocks <roger@filmlight.ltd.uk>
+In-Reply-To: <20140602002822.GQ14410@dastard>
+References: <1401480116-1973111-1-git-send-email-arnd@arndb.de>
+	 <5389252A.5050503@zytor.com> <20140531011450.GJ14410@dastard>
+	 <5507340.nVBP5LFtqn@wuerfel> <20140601002437.GL14410@dastard>
+	 <20140602002822.GQ14410@dastard>
+Content-Type: text/plain
+Date: Mon, 02 Jun 2014 12:35:41 +0100
+Message-ID: <1401708941.6065.51.camel@montana.filmlight.ltd.uk>
+Mime-Version: 1.0
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: "H. Peter Anvin" <hpa@zytor.com>, Dave Chinner <david@fromorbit.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, joseph@codesourcery.com, john.stultz@linaro.org, hch@infradead.org, tglx@linutronix.de, geert@linux-m68k.org, lftan@altera.com, linux-fsdevel@vger.kernel.org, xfs@oss.sgi.com
-Message-ID: <20140602013626.VDIMnBrSNQN7b48r-yP3FPbmSuQo_G-qKAwI8lHxiBA@z>
+To: Dave Chinner <david@fromorbit.com>
+Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, lftan@altera.com, hch@infradead.org, john.stultz@linaro.org, "H. Peter Anvin" <hpa@zytor.com>, linux-fsdevel@vger.kernel.org, geert@linux-m68k.org, tglx@linutronix.de, xfs@oss.sgi.com, joseph@codesourcery.com
+Message-ID: <20140602113541.OqFJLz1H_KN0kpRxShiKqnM4LQgXsbTBzMa745u4c7M@z>
 
-On Sun, 1 Jun 2014, Arnd Bergmann wrote:
 
-> On Saturday 31 May 2014 11:46:16 Nicolas Pitre wrote:
-> > > readonly if not in reality than in practice.
-> > 
-> > For those (legacy) filesystems with a signed 32-bit timestamps, any 
-> > attempt to create a timestamp past Jan 19 03:14:06 2038 UTC should be 
-> > (silently) clamped to 0x7fffffff and that value (the last representable 
-> > time) used as an overflow indicator.  The filesystem driver should 
-> > convert that value into a corresponding overflow value for whatever 
-> > kernel internal time representation being used when read back, and this 
-> > should be propagated up to user space.  It should not be a hard error 
-> > otherwise, as you rightfully stated, everything non read-only would come 
-> > to a halt on that day.
+On Mon, 2014-06-02 at 10:28 +1000, Dave Chinner wrote:
+
 > 
-> I don't think there is much of a difference between not being able to
-> write at all and all newly written files having the same timestamp,
-> causing random things to break differently.
-
-Well, in one case you have a crash certitude. In the other case you have 
-some probability that your system might still be usable.
-
-> The clamp to the maximum supported time stamp sounds like a reasonable
-> choice for 'utimens' and related syscalls for the case of someone
-> setting an arbitrary future date beyond what the file system can
-> represent. Then again, I don't see a reason why that shouldn't just
-> cause an error to be returned.
-
-Resiliance is better than outright failure.
-
-> For actually running kernels beyond 2038, the best idea I've seen so
-> far is to disallow all broken code at compile time. I don't see
-> a choice but to audit the entire kernel for invalid uses on both
-> 32 and 64 bit in the next few years. A lot of code will get changed
-> in the process so we can actually keep running 32-bit kernels and
-> file systems, but other code will likely go away:
+> The 32 bit second counters in timestamps are too small to represent
+> time beyond the unix epoch (jan 2038) correctly. Extend the on-disk
+> format for a timestamp to include an 8-bit epoch counter so that we
+> can extend time for up to 255 Unix epochs. This should be good for
+> representing timestamps from 1970 to somewhere around 19,000 A.D....
 > 
-> * any system calls that pass a time_t, timeval or timespec on
->   32-bit systems return -ENOSYS, to ensure all user land uses
->   the replacements we will put into place
-> * The definition of 'time_t', 'timval' and 'timespec' can be hidden
->   from the kernel, and all code using it left out.
-> * ext2 and ext3 file system code will have to be disabled, but that's
->   file since ext4 can mount old file systems.
 
-Syscalls and libs can be "fixed".  Existing filesystem content might 
-not.  So if you need to mount some old media in read-write mode after 
-2038 and that happens to content an ext2 or similarly limited filesystem 
-then it'd better just "work".  Having the kernel refuse to modify the 
-filesystem would be unacceptable.
+I assume you're using an 'epoch' variable and not simply using the
+padding byte as an eight-bit prefix to the existing 32-bit counter
+because the existing counter is signed ?
+
+For long term sanity it might make more sense for the eight-bit value to
+be a simple (sign-extended) prefix from 1970.
+
+So if the feature bit is set it's a 40-bit signed time, which is good
+for 1970 +/- 17400 years or so.
+
+--
+Roger
 
 
-Nicolas
+
+
+
