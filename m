@@ -1,105 +1,48 @@
-From: "Chanho Min" <chanho.min@lge.com>
-Subject: RE: [PATCH] arm: dma-mapping: fix potential build error under !CMA
-Date: Mon, 2 Jun 2014 11:45:25 +0900
-Message-ID: <33752.1200337962$1401677191@news.gmane.org>
-References: <1401673528-19077-1-git-send-email-chanho.min@lge.com>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: [RFC 11/32] xfs: convert to struct inode_time
+Date: Mon, 2 Jun 2014 09:09:23 +0200
+Message-ID: <CAMuHMdX=5WEpySgtd5xvt=4ZVNesonJc7k3=GJmuVS9KEiwrMA@mail.gmail.com>
+References: <1401480116-1973111-1-git-send-email-arnd@arndb.de>
+	<538995D4.9050702@zytor.com>
+	<alpine.LFD.2.11.1405311055410.17310@knanqh.ubzr>
+	<8618458.1EVJCoVbkH@wuerfel>
+	<alpine.LFD.2.11.1406012121430.17310@knanqh.ubzr>
+	<20140602022211.GN6677@dastard>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-In-Reply-To: <1401673528-19077-1-git-send-email-chanho.min@lge.com>
-Content-Language: ko
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: 'Russell King' <linux@arm.linux.org.uk>, 'Michal Nazarewicz' <mina86@mina86.com>, 'Marek Szyprowski' <m.szyprowski@samsung.com>
-Cc: linux-arch@vger.kernel.org, 'HyoJun Im' <hyojun.im@lge.com>, linux-kernel@vger.kernel.org, 'Gioh Kim' <gioh.kim@lge.com>, 'Joonsoo Kim' <iamjoonsoo.kim@lge.com>, linux-arm-kernel@lists.infradead.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=UTF-8
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-ig0-f172.google.com ([209.85.213.172]:52686 "EHLO
+	mail-ig0-f172.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751431AbaFBHJY (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 2 Jun 2014 03:09:24 -0400
+In-Reply-To: <20140602022211.GN6677@dastard>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Dave Chinner <david@fromorbit.com>
+Cc: Nicolas Pitre <nicolas.pitre@linaro.org>, Arnd Bergmann <arnd@arndb.de>, "H. Peter Anvin" <hpa@zytor.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, "Joseph S. Myers" <joseph@codesourcery.com>, John Stultz <john.stultz@linaro.org>, Christoph Hellwig <hch@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Ley Foon Tan <lftan@altera.com>, Linux FS Devel <linux-fsdevel@vger.kernel.org>, xfs@oss.sgi.com
 
-Please ignore this patch. It was fixed on v3.15.
-Sorry for the noise.
+On Mon, Jun 2, 2014 at 4:22 AM, Dave Chinner <david@fromorbit.com> wrote:
+> Filesystems place all sorts of userspace visible limits on storage -
+> ever tried to create a file >16TB on ext4? The on-disk format
+> doesn't support it, so it returns an out of range error (E2BIG, I
+> think) if you try. XFS, OTOH, handles this just fine and so it
+> continues to work. It's exactly the same with timestamps - there's a
+> physical limit to what can sanely be stored in any given filesystem
+> and it's an *error condition* to go beyond that limit....
 
-Chanho
-> From: Chanho Min [mailto:chanho.min@lge.com]
-> Sent: Monday, June 02, 2014 10:45 AM
-> To: Russell King; Michal Nazarewicz; Marek Szyprowski
-> Cc: Gioh Kim; Joonsoo Kim; HyoJun Im; linux-arm-kernel@lists.infradead.org; linux-
-> kernel@vger.kernel.org; linux-arch@vger.kernel.org; Chanho Min
-> Subject: [PATCH] arm: dma-mapping: fix potential build error under !CMA
-> 
-> This patch fixes build error under !CONFIG_CMA. dev_get_cma_area can be used
-> when CMA is disabled when the bellow patch is appied.
-> 
-> "arm: dma-mapping: add checking cma area initialized"
-> https://lkml.org/lkml/2014/5/22/35
-> 
-> arch/arm/mm/dma-mapping.c: In function 'atomic_pool_init':
-> arch/arm/mm/dma-mapping.c:361:2: error: implicit declaration of function
->  'dev_get_cma_area' [-Werror=implicit-function-declaration]
-> 
-> Signed-off-by: Chanho Min <chanho.min@lge.com>
-> ---
->  arch/arm/include/asm/dma-contiguous.h |    2 +-
->  include/asm-generic/dma-contiguous.h  |   13 +++++++++++--
->  2 files changed, 12 insertions(+), 3 deletions(-)
-> 
-> diff --git a/arch/arm/include/asm/dma-contiguous.h b/arch/arm/include/asm/dma-contiguous.h
-> index 3ed37b4..56c17bc 100644
-> --- a/arch/arm/include/asm/dma-contiguous.h
-> +++ b/arch/arm/include/asm/dma-contiguous.h
-> @@ -2,11 +2,11 @@
->  #define ASMARM_DMA_CONTIGUOUS_H
-> 
->  #ifdef __KERNEL__
-> -#ifdef CONFIG_CMA
-> 
->  #include <linux/types.h>
->  #include <asm-generic/dma-contiguous.h>
-> 
-> +#ifdef CONFIG_CMA
->  void dma_contiguous_early_fixup(phys_addr_t base, unsigned long size);
-> 
->  #endif
-> diff --git a/include/asm-generic/dma-contiguous.h b/include/asm-generic/dma-contiguous.h
-> index 294b1e7..3d48460 100644
-> --- a/include/asm-generic/dma-contiguous.h
-> +++ b/include/asm-generic/dma-contiguous.h
-> @@ -2,11 +2,11 @@
->  #define ASM_DMA_CONTIGUOUS_H
-> 
->  #ifdef __KERNEL__
-> -#ifdef CONFIG_CMA
-> 
->  #include <linux/device.h>
->  #include <linux/dma-contiguous.h>
-> 
-> +#ifdef CONFIG_CMA
->  static inline struct cma *dev_get_cma_area(struct device *dev)
->  {
->  	if (dev && dev->cma_area)
-> @@ -22,7 +22,16 @@ static inline void dev_set_cma_area(struct device *dev, struct cma *cma)
->  		dma_contiguous_default_area = cma;
->  }
-> 
-> -#endif
-> +#else
-> +static inline struct cma *dev_get_cma_area(struct device *dev)
-> +{
-> +	return NULL;
-> +}
-> +
-> +static inline void dev_set_cma_area(struct device *dev, struct cma *cma)
-> +{
-> +}
->  #endif
-> 
->  #endif
-> +#endif
-> --
-> 1.7.9.5
+This comparison doesn't fly.
+File sizes do not depend on the current time (except for the increase of
+megapixels in your new camera ;-).
+Writing a 15 GiB file to ext4 is not something that magically stops working
+tomorrow.
+
+Gr{oetje,eeting}s,
+
+                        Geert
+
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
