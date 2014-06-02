@@ -1,84 +1,76 @@
-From: Chanho Min <chanho.min@lge.com>
-Subject: [PATCH] arm: dma-mapping: fix potential build error under !CMA
-Date: Mon,  2 Jun 2014 10:45:28 +0900
-Message-ID: <1401673528-19077-1-git-send-email-chanho.min@lge.com>
+From: Dave Chinner <david@fromorbit.com>
+Subject: Re: [RFC 11/32] xfs: convert to struct inode_time
+Date: Mon, 2 Jun 2014 12:22:11 +1000
+Message-ID: <20140602022211.GN6677@dastard>
+References: <1401480116-1973111-1-git-send-email-arnd@arndb.de>
+ <538995D4.9050702@zytor.com>
+ <alpine.LFD.2.11.1405311055410.17310@knanqh.ubzr>
+ <8618458.1EVJCoVbkH@wuerfel>
+ <alpine.LFD.2.11.1406012121430.17310@knanqh.ubzr>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from LGEMRELSE7Q.lge.com ([156.147.1.151]:57470 "EHLO
-	lgemrelse7q.lge.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753145AbaFBBpq (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 1 Jun 2014 21:45:46 -0400
+Received: from ipmail06.adl6.internode.on.net ([150.101.137.145]:30567 "EHLO
+	ipmail06.adl6.internode.on.net" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1753691AbaFBCWf (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 1 Jun 2014 22:22:35 -0400
+Content-Disposition: inline
+In-Reply-To: <alpine.LFD.2.11.1406012121430.17310@knanqh.ubzr>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Russell King <linux@arm.linux.org.uk>, Michal Nazarewicz <mina86@mina86.com>, Marek Szyprowski <m.szyprowski@samsung.com>
-Cc: Gioh Kim <gioh.kim@lge.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, HyoJun Im <hyojun.im@lge.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Chanho Min <chanho.min@lge.com>
+To: Nicolas Pitre <nicolas.pitre@linaro.org>
+Cc: Arnd Bergmann <arnd@arndb.de>, "H. Peter Anvin" <hpa@zytor.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, joseph@codesourcery.com, john.stultz@linaro.org, hch@infradead.org, tglx@linutronix.de, geert@linux-m68k.org, lftan@altera.com, linux-fsdevel@vger.kernel.org, xfs@oss.sgi.com
 
-This patch fixes build error under !CONFIG_CMA. dev_get_cma_area can be used
-when CMA is disabled when the bellow patch is appied.
+On Sun, Jun 01, 2014 at 09:36:26PM -0400, Nicolas Pitre wrote:
+> On Sun, 1 Jun 2014, Arnd Bergmann wrote:
+> > On Saturday 31 May 2014 11:46:16 Nicolas Pitre wrote:
+> > For actually running kernels beyond 2038, the best idea I've seen so
+> > far is to disallow all broken code at compile time. I don't see
+> > a choice but to audit the entire kernel for invalid uses on both
+> > 32 and 64 bit in the next few years. A lot of code will get changed
+> > in the process so we can actually keep running 32-bit kernels and
+> > file systems, but other code will likely go away:
+> > 
+> > * any system calls that pass a time_t, timeval or timespec on
+> >   32-bit systems return -ENOSYS, to ensure all user land uses
+> >   the replacements we will put into place
+> > * The definition of 'time_t', 'timval' and 'timespec' can be hidden
+> >   from the kernel, and all code using it left out.
+> > * ext2 and ext3 file system code will have to be disabled, but that's
+> >   file since ext4 can mount old file systems.
+> 
+> Syscalls and libs can be "fixed".  Existing filesystem content might 
+> not.  So if you need to mount some old media in read-write mode after 
+> 2038 and that happens to content an ext2 or similarly limited filesystem 
+> then it'd better just "work".  Having the kernel refuse to modify the 
+> filesystem would be unacceptable.
 
-"arm: dma-mapping: add checking cma area initialized"
-https://lkml.org/lkml/2014/5/22/35
+We can already tell the VFS/filesystems not to update timestamps:
 
-arch/arm/mm/dma-mapping.c: In function 'atomic_pool_init':
-arch/arm/mm/dma-mapping.c:361:2: error: implicit declaration of function
- 'dev_get_cma_area' [-Werror=implicit-function-declaration]
+	inode->i_flags |= S_NOATIME | S_NOCMTIME;
 
-Signed-off-by: Chanho Min <chanho.min@lge.com>
----
- arch/arm/include/asm/dma-contiguous.h |    2 +-
- include/asm-generic/dma-contiguous.h  |   13 +++++++++++--
- 2 files changed, 12 insertions(+), 3 deletions(-)
+Just enforce that everywhere (i.e. notify_change()) rather than just
+on the IO path and the "legacy filesystem timestamp" problem is
+"solved".
 
-diff --git a/arch/arm/include/asm/dma-contiguous.h b/arch/arm/include/asm/dma-contiguous.h
-index 3ed37b4..56c17bc 100644
---- a/arch/arm/include/asm/dma-contiguous.h
-+++ b/arch/arm/include/asm/dma-contiguous.h
-@@ -2,11 +2,11 @@
- #define ASMARM_DMA_CONTIGUOUS_H
- 
- #ifdef __KERNEL__
--#ifdef CONFIG_CMA
- 
- #include <linux/types.h>
- #include <asm-generic/dma-contiguous.h>
- 
-+#ifdef CONFIG_CMA
- void dma_contiguous_early_fixup(phys_addr_t base, unsigned long size);
- 
- #endif
-diff --git a/include/asm-generic/dma-contiguous.h b/include/asm-generic/dma-contiguous.h
-index 294b1e7..3d48460 100644
---- a/include/asm-generic/dma-contiguous.h
-+++ b/include/asm-generic/dma-contiguous.h
-@@ -2,11 +2,11 @@
- #define ASM_DMA_CONTIGUOUS_H
- 
- #ifdef __KERNEL__
--#ifdef CONFIG_CMA
- 
- #include <linux/device.h>
- #include <linux/dma-contiguous.h>
- 
-+#ifdef CONFIG_CMA
- static inline struct cma *dev_get_cma_area(struct device *dev)
- {
- 	if (dev && dev->cma_area)
-@@ -22,7 +22,16 @@ static inline void dev_set_cma_area(struct device *dev, struct cma *cma)
- 		dma_contiguous_default_area = cma;
- }
- 
--#endif
-+#else
-+static inline struct cma *dev_get_cma_area(struct device *dev)
-+{
-+	return NULL;
-+}
-+
-+static inline void dev_set_cma_area(struct device *dev, struct cma *cma)
-+{
-+}
- #endif
- 
- #endif
-+#endif
+New interfaces need to return errors when an out-of-range parameter
+is set. And right now, >epoch dates are out of range for most
+filesystems, and so we need to handle that condition appropriately.
+Silent date overflow == filesystem corruption, and as such I'm going
+to error out such conditions in the filesystem regardless of what
+the userspace API says.
+
+Filesystems place all sorts of userspace visible limits on storage -
+ever tried to create a file >16TB on ext4? The on-disk format
+doesn't support it, so it returns an out of range error (E2BIG, I
+think) if you try. XFS, OTOH, handles this just fine and so it
+continues to work. It's exactly the same with timestamps - there's a
+physical limit to what can sanely be stored in any given filesystem
+and it's an *error condition* to go beyond that limit....
+
+Cheers,
+
+Dave.
 -- 
-1.7.9.5
+Dave Chinner
+david@fromorbit.com
