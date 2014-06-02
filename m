@@ -1,115 +1,55 @@
-From: "Jan Beulich" <JBeulich@suse.com>
-Subject: [PATCH, resend] allow putting the exception table into .rodata
- (and do so on x86)
-Date: Mon, 02 Jun 2014 15:54:27 +0100
-Message-ID: <538CAC430200007800016ED3@mail.emea.novell.com>
+From: Theodore Ts'o <tytso@mit.edu>
+Subject: Re: [RFC 11/32] xfs: convert to struct inode_time
+Date: Mon, 2 Jun 2014 11:31:24 -0400
+Message-ID: <20140602153124.GH30598@thunk.org>
+References: <1401480116-1973111-1-git-send-email-arnd@arndb.de>
+	<8618458.1EVJCoVbkH@wuerfel>
+	<alpine.LFD.2.11.1406012121430.17310@knanqh.ubzr>
+	<4178301.j9kWdGCRLC@wuerfel>
+	<6868F108-F0B2-423F-AE31-90DF86A5B7DD@oracle.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 8BIT
-Return-path: <linux-kbuild-owner@vger.kernel.org>
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+Return-path: <xfs-bounces@oss.sgi.com>
 Content-Disposition: inline
-Sender: linux-kbuild-owner@vger.kernel.org
-To: mingo@elte.hu, tglx@linutronix.de, hpa@zytor.com
-Cc: x86@kernel.org, linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org
+In-Reply-To: <6868F108-F0B2-423F-AE31-90DF86A5B7DD@oracle.com>
+List-Unsubscribe: <http://oss.sgi.com/mailman/options/xfs>,
+	<mailto:xfs-request@oss.sgi.com?subject=unsubscribe>
+List-Archive: <http://oss.sgi.com/pipermail/xfs>
+List-Post: <mailto:xfs@oss.sgi.com>
+List-Help: <mailto:xfs-request@oss.sgi.com?subject=help>
+List-Subscribe: <http://oss.sgi.com/mailman/listinfo/xfs>,
+	<mailto:xfs-request@oss.sgi.com?subject=subscribe>
+Errors-To: xfs-bounces@oss.sgi.com
+Sender: xfs-bounces@oss.sgi.com
+To: Chuck Lever <chuck.lever@oracle.com>
+Cc: Nicolas Pitre <nicolas.pitre@linaro.org>, linux-arch@vger.kernel.org, Linux NFS Mailing List <linux-nfs@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, LKML Kernel <linux-kernel@vger.kernel.org>, lftan@altera.com, Christoph Hellwig <hch@infradead.org>, john.stultz@linaro.org, "H. Peter Anvin" <hpa@zytor.com>, linux-fsdevel <linux-fsdevel@vger.kernel.org>, geert@linux-m68k.org, tglx@linutronix.de, xfs@oss.sgi.com, joseph@codesourcery.com
 List-Id: linux-arch.vger.kernel.org
 
-This is since the table is really a set of pointers, i.e. misplaced in
-.text. There are no runtime writes to this table (and if an arch needs
-to do boot time writes but the table is already r/o - on x86 it isn't -
-it simply shouldn't make use of the new construct).
-
-Quite likely other architectures would want to follow.
-
-Signed-off-by: Jan Beulich <jbeulich@suse.com>
----
- arch/x86/include/asm/sections.h   |    2 +-
- arch/x86/kernel/vmlinux.lds.S     |    5 +++--
- arch/x86/mm/init_64.c             |    6 +++---
- include/asm-generic/vmlinux.lds.h |    5 +++++
- 4 files changed, 12 insertions(+), 6 deletions(-)
-
---- 3.15-rc8/arch/x86/include/asm/sections.h
-+++ 3.15-rc8-extable-in-rodata/arch/x86/include/asm/sections.h
-@@ -5,7 +5,7 @@
- #include <asm/uaccess.h>
- 
- extern char __brk_base[], __brk_limit[];
--extern struct exception_table_entry __stop___ex_table[];
-+extern const void __stop_notes;
- 
- #if defined(CONFIG_X86_64) && defined(CONFIG_DEBUG_RODATA)
- extern char __end_rodata_hpage_align[];
---- 3.15-rc8/arch/x86/kernel/vmlinux.lds.S
-+++ 3.15-rc8-extable-in-rodata/arch/x86/kernel/vmlinux.lds.S
-@@ -20,6 +20,8 @@
- #define LOAD_OFFSET __START_KERNEL_map
- #endif
- 
-+#define EXCEPTION_TABLE_RO EXCEPTION_TABLE(16)
-+
- #include <asm-generic/vmlinux.lds.h>
- #include <asm/asm-offsets.h>
- #include <asm/thread_info.h>
-@@ -109,8 +111,7 @@ SECTIONS
- 	} :text = 0x9090
- 
- 	NOTES :text :note
--
--	EXCEPTION_TABLE(16) :text = 0x9090
-+	text_continues : {} :text /* switch back to regular text... */
- 
- #if defined(CONFIG_DEBUG_RODATA)
- 	/* .text should occupy whole number of pages */
---- 3.15-rc8/arch/x86/mm/init_64.c
-+++ 3.15-rc8-extable-in-rodata/arch/x86/mm/init_64.c
-@@ -1070,7 +1070,7 @@ int kernel_set_to_readonly;
- void set_kernel_text_rw(void)
- {
- 	unsigned long start = PFN_ALIGN(_text);
--	unsigned long end = PFN_ALIGN(__stop___ex_table);
-+	unsigned long end = PFN_ALIGN(_etext);
- 
- 	if (!kernel_set_to_readonly)
- 		return;
-@@ -1089,7 +1089,7 @@ void set_kernel_text_rw(void)
- void set_kernel_text_ro(void)
- {
- 	unsigned long start = PFN_ALIGN(_text);
--	unsigned long end = PFN_ALIGN(__stop___ex_table);
-+	unsigned long end = PFN_ALIGN(_etext);
- 
- 	if (!kernel_set_to_readonly)
- 		return;
-@@ -1108,7 +1108,7 @@ void mark_rodata_ro(void)
- 	unsigned long start = PFN_ALIGN(_text);
- 	unsigned long rodata_start = PFN_ALIGN(__start_rodata);
- 	unsigned long end = (unsigned long) &__end_rodata_hpage_align;
--	unsigned long text_end = PFN_ALIGN(&__stop___ex_table);
-+	unsigned long text_end = PFN_ALIGN(&__stop_notes);
- 	unsigned long rodata_end = PFN_ALIGN(&__end_rodata);
- 	unsigned long all_end = PFN_ALIGN(&_end);
- 
---- 3.15-rc8/include/asm-generic/vmlinux.lds.h
-+++ 3.15-rc8-extable-in-rodata/include/asm-generic/vmlinux.lds.h
-@@ -263,6 +263,7 @@
- 		*(.rodata1)						\
- 	}								\
- 									\
-+	EXCEPTION_TABLE_RO						\
- 	BUG_TABLE							\
- 									\
- 	/* PCI quirks */						\
-@@ -479,6 +480,10 @@
- 		VMLINUX_SYMBOL(__stop___ex_table) = .;			\
- 	}
- 
-+#ifndef EXCEPTION_TABLE_RO
-+#define EXCEPTION_TABLE_RO
-+#endif
-+
- /*
-  * Init task
-  */
-
-
-
+T24gTW9uLCBKdW4gMDIsIDIwMTQgYXQgMTE6MDQ6MjNBTSAtMDQwMCwgQ2h1Y2sgTGV2ZXIgd3Jv
+dGU6Cj4gSeKAmW0gd29uZGVyaW5nIHdoYXQgc2hvdWxkIGJlIGRvbmUgYWJvdXQgTkZTLiBBIHNv
+bHV0aW9uIGZvciBORlMgc2hvdWxkCj4gbWF0Y2ggYW55IHNjaGVtZSB0aGF0IGlzIGNvbnNpZGVy
+ZWQgZm9yIGxvY2FsIGZpbGUgc3lzdGVtcywgSU1PLgo+IAo+IEFuIGFsdGVybmF0aXZlIHdvdWxk
+IGJlIHRvIOKAnGNhcOKAnSB0aGUgdGltZXN0YW1wcyB0cmFuc21pdHRlZCB2aWEgTkZTdjMgYnkK
+PiBMaW51eCwgc28gdGhhdCBhIHByZS1lcG9jaCB0aW1lc3RhbXAgaXMgdHJhbnNtaXR0ZWQgYXMg
+emVybywgYW5kIGEgbGFyZ2UKPiB0aW1lc3RhbXAgaXMgdHJhbnNtaXR0ZWQgYXMgVUlOVF9NQVgu
+CgoKSSB3b25kZXIgaWYgaXQgd291bGQgbWFrZSBzZW5zZSB0byB0cnkgdG8gcHJvbXVsZ2F0ZSB2
+aWEgdGhlIEF1c3Rpbgpncm91cCwgYW5kIHBvc3NpYmx5IHRoZSBDIHN0YW5kYXJkcyBjb21taXR0
+ZWUgdGhlIGNvbmNlcHQgb2YgYSBiaXQKcGF0dGVybiAodGhhdCBtaWdodCBjb21tb25seSBiZSBJ
+TlRfTUFYIG9yIFVJTlRfTUFYKSB0aGF0IG1lYW5zICJ0aW1lCnVua25vd24iLCBvciAidGltZSBp
+bmRlZmluaXRlIiBvciAid2UgY291bGRuJ3QgZW5jb2RlIHRoZSB0aW1lIi4KCldlIHdvdWxkIHRo
+ZW4gdGVhY2ggZ210aW1lKDMpIGFuZCBhc2N0aW1lKDMpIHRvIHByaW50IHNvbWUgYXBwcm9wcmlh
+dGUKbWVzc2FnZSwgYW5kIHdlIGNvdWxkIHRlYWNoIHByb2dyYW1zIGxpa2UgZmluZCAod2l0aCB0
+aGUgLW10aW1lKQpvcHRpb24sIG1ha2UsIHRtcHdhdGNoLCBldC4gYWwuLCB0aGF0IHRoZXkgY2Fu
+J3QgbWFrZSBhbnkgcHJlc3VtcHRpb24KYWJvdXQgdGhlIGNvbXBhcmliaWxpdHkgb2YgYW55IHRp
+bWVzdGFtcCB3aGljaCBoYXMgYSB2YWx1ZSBvZgpUSU1FX1VOREVGSU5JRUQuCgpJdCB3b3VsZCBi
+ZSBwcm9ibGVtYXRpYyBmb3IgdGltZSgyKSBvciBnZXR0aW1lb2ZkYXkoMikgdG8gcmV0dXJuClRJ
+TUVfVU5ERUZJTkVELCBzaW5jZSB0aGVyZSBhcmUgcHJvZ3JhbXMgdGhhdCBjYXJlIGFib3V0IHRp
+bWUgdGlja2luZwpmb3J3YXJkLCBidXQgSSBjb3VsZCBpbWFnaW5lIGEgbmV3IGludGVyZmFjZSB3
+aGljaCB3b3VsZCBiZSBwZXJtaXR0ZWQKdG8gcmV0dXJuIGEgZmxhZyBpbmRpY2F0aW5nIHRoYXQg
+d2UgZG9uJ3Qga25vdyB0aGUgY3VycmVudCB0aW1lCihiZWNhdXNlIHRoZSBDTU9TIGJhdHRlcnkg
+aGFkIHJ1biBkb3duLCBldGMuKSBzbyBpbnN0ZWFkIHdlJ3JlIGdvaW5nCnRvIGJlIGNvdW50aW5n
+IHRoZSBudW1iZXIgb2Ygc2Vjb25kcyBzaW5jZSB0aGUgc3lzdGVtIHdhcyBib290ZWQuCgogICAg
+CSAgICAgIAkgICAgICAJICAgIAkgICAgICAgLSBUZWQKCl9fX19fX19fX19fX19fX19fX19fX19f
+X19fX19fX19fX19fX19fX19fX19fX19fCnhmcyBtYWlsaW5nIGxpc3QKeGZzQG9zcy5zZ2kuY29t
+Cmh0dHA6Ly9vc3Muc2dpLmNvbS9tYWlsbWFuL2xpc3RpbmZvL3hmcwo=
