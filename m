@@ -1,48 +1,39 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [RFC 11/32] xfs: convert to struct inode_time
-Date: Mon, 2 Jun 2014 09:09:23 +0200
-Message-ID: <CAMuHMdX=5WEpySgtd5xvt=4ZVNesonJc7k3=GJmuVS9KEiwrMA@mail.gmail.com>
+From: Artem Bityutskiy <dedekind1@gmail.com>
+Subject: Re: [RFC 17/32] ubifs: convert to struct inode_time
+Date: Mon, 02 Jun 2014 10:54:42 +0300
+Message-ID: <1401695682.11182.108.camel@sauron.fi.intel.com>
 References: <1401480116-1973111-1-git-send-email-arnd@arndb.de>
-	<538995D4.9050702@zytor.com>
-	<alpine.LFD.2.11.1405311055410.17310@knanqh.ubzr>
-	<8618458.1EVJCoVbkH@wuerfel>
-	<alpine.LFD.2.11.1406012121430.17310@knanqh.ubzr>
-	<20140602022211.GN6677@dastard>
+	 <1401480116-1973111-18-git-send-email-arnd@arndb.de>
+Reply-To: dedekind1@gmail.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ig0-f172.google.com ([209.85.213.172]:52686 "EHLO
-	mail-ig0-f172.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751431AbaFBHJY (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 2 Jun 2014 03:09:24 -0400
-In-Reply-To: <20140602022211.GN6677@dastard>
+Received: from mga11.intel.com ([192.55.52.93]:65082 "EHLO mga11.intel.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751796AbaFBHys (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 2 Jun 2014 03:54:48 -0400
+In-Reply-To: <1401480116-1973111-18-git-send-email-arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dave Chinner <david@fromorbit.com>
-Cc: Nicolas Pitre <nicolas.pitre@linaro.org>, Arnd Bergmann <arnd@arndb.de>, "H. Peter Anvin" <hpa@zytor.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, "Joseph S. Myers" <joseph@codesourcery.com>, John Stultz <john.stultz@linaro.org>, Christoph Hellwig <hch@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Ley Foon Tan <lftan@altera.com>, Linux FS Devel <linux-fsdevel@vger.kernel.org>, xfs@oss.sgi.com
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, joseph@codesourcery.com, john.stultz@linaro.org, hch@infradead.org, tglx@linutronix.de, geert@linux-m68k.org, lftan@altera.com, hpa@zytor.com, linux-fsdevel@vger.kernel.org, Adrian Hunter <adrian.hunter@intel.com>, linux-mtd@lists.infradead.org
 
-On Mon, Jun 2, 2014 at 4:22 AM, Dave Chinner <david@fromorbit.com> wrote:
-> Filesystems place all sorts of userspace visible limits on storage -
-> ever tried to create a file >16TB on ext4? The on-disk format
-> doesn't support it, so it returns an out of range error (E2BIG, I
-> think) if you try. XFS, OTOH, handles this just fine and so it
-> continues to work. It's exactly the same with timestamps - there's a
-> physical limit to what can sanely be stored in any given filesystem
-> and it's an *error condition* to go beyond that limit....
+On Fri, 2014-05-30 at 22:01 +0200, Arnd Bergmann wrote:
+> ubifs uses 64-bit integers for inode timestamps, which will work
+> practicall forever, but the VFS uses struct timespec for timestamps,
+> which is only good until 2038 on 32-bit CPUs.
+> 
+> This gets us one small step closer to lifting the VFS limit by using
+> struct inode_time in ubifs.
+> 
+> Signed-off-by: Arnd Bergmann <arnd@arndb.de>
+> Cc: Artem Bityutskiy <dedekind1@gmail.com>
+> Cc: Adrian Hunter <adrian.hunter@intel.com>
+> Cc: linux-mtd@lists.infradead.org
 
-This comparison doesn't fly.
-File sizes do not depend on the current time (except for the increase of
-megapixels in your new camera ;-).
-Writing a 15 GiB file to ext4 is not something that magically stops working
-tomorrow.
+Looks fine from UBIFS POW, thanks!
 
-Gr{oetje,eeting}s,
-
-                        Geert
-
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+-- 
+Best Regards,
+Artem Bityutskiy
