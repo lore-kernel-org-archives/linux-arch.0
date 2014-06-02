@@ -1,53 +1,69 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.17.24]:55760 "EHLO
-	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751189AbaFBSwv convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 2 Jun 2014 14:52:51 -0400
-From: Arnd Bergmann <arnd@arndb.de>
+Received: from userp1040.oracle.com ([156.151.31.81]:45866 "EHLO
+	userp1040.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753022AbaFBTFg convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 2 Jun 2014 15:05:36 -0400
+Content-Type: text/plain; charset=windows-1252
+Mime-Version: 1.0 (Mac OS X Mail 7.3 \(1878.2\))
 Subject: Re: [RFC 11/32] xfs: convert to struct inode_time
-Date: Mon, 02 Jun 2014 20:52:43 +0200
-Message-ID: <5109660.teHoOW5tSd@wuerfel>
-In-Reply-To: <6868F108-F0B2-423F-AE31-90DF86A5B7DD@oracle.com>
-References: <1401480116-1973111-1-git-send-email-arnd@arndb.de> <4178301.j9kWdGCRLC@wuerfel> <6868F108-F0B2-423F-AE31-90DF86A5B7DD@oracle.com>
-MIME-Version: 1.0
+From: Chuck Lever <chuck.lever@oracle.com>
+In-Reply-To: <1401735504.6065.227.camel@montana.filmlight.ltd.uk>
+Date: Mon, 2 Jun 2014 15:04:27 -0400
 Content-Transfer-Encoding: 8BIT
-Content-Type: text/plain; charset="utf-8"
+Message-ID: <C57EA6CA-236A-4C93-95F8-21F46A3622DA@oracle.com>
+References: <1401480116-1973111-1-git-send-email-arnd@arndb.de> <8618458.1EVJCoVbkH@wuerfel> <alpine.LFD.2.11.1406012121430.17310@knanqh.ubzr> <4178301.j9kWdGCRLC@wuerfel> <6868F108-F0B2-423F-AE31-90DF86A5B7DD@oracle.com> <1401735504.6065.227.camel@montana.filmlight.ltd.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Chuck Lever <chuck.lever@oracle.com>
-Cc: Nicolas Pitre <nicolas.pitre@linaro.org>, "H. Peter Anvin" <hpa@zytor.com>, Dave Chinner <david@fromorbit.com>, LKML Kernel <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, joseph@codesourcery.com, john.stultz@linaro.org, Christoph Hellwig <hch@infradead.org>, tglx@linutronix.de, geert@linux-m68k.org, lftan@altera.com, linux-fsdevel <linux-fsdevel@vger.kernel.org>, xfs@oss.sgi.com, Linux NFS Mailing List <linux-nfs@vger.kernel.org>
-Message-ID: <20140602185243.VZVC30IjQhagY_cxhki6oUKlRl6abGKFQXuOrFoJjXg@z>
+To: Roger Willcocks <roger@filmlight.ltd.uk>
+Cc: Arnd Bergmann <arnd@arndb.de>, Nicolas Pitre <nicolas.pitre@linaro.org>, linux-arch@vger.kernel.org, Linux NFS Mailing List <linux-nfs@vger.kernel.org>, LKML Kernel <linux-kernel@vger.kernel.org>, lftan@altera.com, Christoph Hellwig <hch@infradead.org>, john.stultz@linaro.org, "H. Peter Anvin" <hpa@zytor.com>, linux-fsdevel <linux-fsdevel@vger.kernel.org>, geert@linux-m68k.org, tglx@linutronix.de, xfs@oss.sgi.com, joseph@codesourcery.com
+Message-ID: <20140602190427.R4fg8h111HOqd4uruMyIuQ6WjerqeNb3X8aMXCdSbqg@z>
 
-On Monday 02 June 2014 11:04:23 Chuck Lever wrote:
-> Iâ€™m wondering what should be done about NFS. A solution for NFS should
-> match any scheme that is considered for local file systems, IMO.
-> 
-> NFSv2/3 timestamps are a pair of unsigned 32-bit values: one value for
-> seconds since midnight GMT Jan 1, 1970, and one value for nanoseconds.
-> (See the definition of nfstime3 in RFC 1813).
-> 
-> NFSv4 uses a signed 64-bit value where zero represents midnight UTC
-> on January 1, 1970, and an unsigned 32-bit value for nanoseconds. (See
-> the definition of nfstime4 in RFC 5661).
-> 
-> The NFSv4 protocol is probably not problematic, and NFSv3 should be out
-> of the picture by 2038. But if changes are planned for dealing _now_
-> with timestamp issues, compatibility with NFSv3 is a consideration.
-> 
-> It is already the case that, via NFSv3, the Linux NFS client transmits
-> timestamps earlier than 1970 as large positive numbers. Try this with
-> xfstests generic/258.
 
-If I read the code correctly, a pre-1970 timestamp will be sent as
-a large unsigned integer, but received as a post-2038 timestamp on
-64-bit kernels, both in the nfs client and server code.
+On Jun 2, 2014, at 2:58 PM, Roger Willcocks <roger@filmlight.ltd.uk> wrote:
 
-This behavior is clearly wrong, but it's the same bug that we have
-in lots of other file systems, and it makes sense to have the
-same fix everywhere, at lease the cases where we know what interpretation
-we actually want. NFS has the luxury of having an actual specification
-saying that the value is unsigned. For most of the legacy file systems,
-we can only make a guess at how other OSs would interpret the same
-numbers.
+> 
+> On Mon, 2014-06-02 at 11:04 -0400, Chuck Lever wrote:
+> 
+>> NFSv2/3 timestamps are a pair of unsigned 32-bit values: one value for
+>> seconds since midnight GMT Jan 1, 1970, and one value for nanoseconds.
+>> (See the definition of nfstime3 in RFC 1813).
+>> 
+> 
+> nfstime3 could be extended by redefining the otherwise unused
+> nanoseconds bits{31,30} as seconds{33,32}, to give a (signed) 34-bit
+> seconds field and an unsigned 30-bit nanoseconds field.
+> 
+> This could represent 1970 +/- 272 years.
+> 
+> Servers could indicate they can understand the extended time format by
+> adding a new FSINFO capability - FSF3_CANSETTIME_EX.
+> 
+> Clients would use a new SET_TO_CLIENT_TIME_EX time_how enum when sending
+> timestamps so old servers would be protected from new clients.
 
-	Arnd
+You would have to get the IETF’s NFSv4 working group to sign off on
+this change. Otherwise, Linux would be the only NFSv3 implementation
+that supports the extension.
+
+But I suspect the answer you’d get is “Use NFSv4.”
+
+> Old clients don't need to be protected from new servers because the
+> on-the-wire bit pattern for dates between 1970 and 2106 stays the same,
+> so they're no worse off than they were before.
+> 
+> Arguably the new server ought to clamp out-of-range timestamps before
+> sending them to old clients but that would need per-client state (and
+> nfs3 is stateless.)
+
+There’s no reliable way in NFSv3 for clients and servers to identify
+the software running on the peer.
+
+Practically speaking, you should assume that the NFSv3 protocol is never
+going to change.
+
+--
+Chuck Lever
+chuck[dot]lever[at]oracle[dot]com
+
+
+
