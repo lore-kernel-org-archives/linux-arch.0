@@ -1,53 +1,68 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:51693 "EHLO mail.zytor.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754640AbaFBO4C convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 2 Jun 2014 10:56:02 -0400
-Content-Type: text/plain;
-	charset=us-ascii
-Mime-Version: 1.0 (1.0)
+Received: from mout.kundenserver.de ([212.227.17.24]:49310 "EHLO
+	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755631AbaFBPDS (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 2 Jun 2014 11:03:18 -0400
+From: Arnd Bergmann <arnd@arndb.de>
 Subject: Re: [RFC 11/32] xfs: convert to struct inode_time
-From: "H. Peter Anvin" <hpa@zytor.com>
-In-Reply-To: <20140602115737.GB14276@thunk.org>
-Date: Mon, 2 Jun 2014 07:52:47 -0700
-Content-Transfer-Encoding: 8BIT
-Message-ID: <A37F9FD2-DD07-4EB0-A94B-C22141715911@zytor.com>
-References: <1401480116-1973111-1-git-send-email-arnd@arndb.de> <8618458.1EVJCoVbkH@wuerfel> <alpine.LFD.2.11.1406012121430.17310@knanqh.ubzr> <4178301.j9kWdGCRLC@wuerfel> <20140602115737.GB14276@thunk.org>
+Date: Mon, 02 Jun 2014 17:01:20 +0200
+Message-ID: <5896675.3VErDJM7s2@wuerfel>
+In-Reply-To: <20140602130700.GC14276@thunk.org>
+References: <1401480116-1973111-1-git-send-email-arnd@arndb.de> <15496653.1vSv1RUCC0@wuerfel> <20140602130700.GC14276@thunk.org>
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7Bit
+Content-Type: text/plain; charset="us-ascii"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Theodore Ts'o <tytso@mit.edu>
-Cc: Arnd Bergmann <arnd@arndb.de>, Nicolas Pitre <nicolas.pitre@linaro.org>, Dave Chinner <david@fromorbit.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "joseph@codesourcery.com" <joseph@codesourcery.com>, "john.stultz@linaro.org" <john.stultz@linaro.org>, "hch@infradead.org" <hch@infradead.org>, "tglx@linutronix.de" <tglx@linutronix.de>, "geert@linux-m68k.org" <geert@linux-m68k.org>, "lftan@altera.com" <lftan@altera.com>, "linux-fsdevel@vger.kernel.org" <linux-fsdevel@vger.kernel.org>, "xfs@oss.sgi.com" <xfs@oss.sgi.com>
-Message-ID: <20140602145247.CpLD8FZexP4ONLi3DbUMy92DtKwRXf5_cMRh5QtfA1I@z>
+Cc: Nicolas Pitre <nicolas.pitre@linaro.org>, "H. Peter Anvin" <hpa@zytor.com>, Dave Chinner <david@fromorbit.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, joseph@codesourcery.com, john.stultz@linaro.org, hch@infradead.org, tglx@linutronix.de, geert@linux-m68k.org, lftan@altera.com, linux-fsdevel@vger.kernel.org, xfs@oss.sgi.com
+Message-ID: <20140602150120.1uUMGYc88yPGPUdeIMMfDNgQC-XehojdHATldw-ua6Y@z>
 
+On Monday 02 June 2014 09:07:00 Theodore Ts'o wrote:
+> Yes, there are some ongoing dicussions about changing the post-2038
+> encoding of the timestamp in ext4, which is why this hasn't been fixed
+> yet.  The main thing that's been missing is time for me to review the
+> patches, and a good way of writing regression tests that will work (or
+> at least not fail) on build environments with a 32-bit time_t and
+> 32-bit-only capable versions of functions such as gmtime(3).
+> 
+> And given current discussions, I may want to think about some kind of
+> superblock flag to allow the use of a 32-bit unsigned encoding for
+> file systems using a 128-byte inode, with a way of setting that flag
+> after scanning the file system to make sure there are no times that
+> are previous to January 1, 1970.  (Or more generally, allow any epoch
+> to be defined using a 64-bit time_t offset stored in the superblock...)
 
-> On Jun 2, 2014, at 4:57, "Theodore Ts'o" <tytso@mit.edu> wrote:
-> 
->> On Mon, Jun 02, 2014 at 12:56:42PM +0200, Arnd Bergmann wrote:
->> 
->> I think you misunderstood what I suggested: the intent is to avoid
->> seeing things break in 2038 by making them break much earlier. We have
->> a solution for ext2 file systems, it's called ext4, and we just need
->> to ensure that everybody knows they have to migrate eventually.
->> 
->> At some point before the mid 2030ies, you should no longer be able to
->> build a kernel that has support for ext2 or any other module that will
->> run into bugs later....
-> 
-> Even for ext4, it's not quite so simple as that.  You only have
-> support for times post 2038 if you are using an inode size > 128
-> bytes.  There are a very, very large number of machines which even
-> today, are using 128 byte inodes with ext4 for performance reasons.
-> 
-> The vast majority of those machines which I know of can probably move
-> to 256 byte inodes relatively easily, since hard drive replacement
-> cycles are order 5-6 years tops, so I'm not that concerned, but it
-> just goes to show this is a very complicated problem.
-> 
-> And even if we're talking about flash and embedded devices, the good
-> news is if you assume that 10 years is enough time for people to
-> update their embedded OS builds, and that the vast majority of
-> deployed devices will probably only be in service for 10-15 years, we
-> do have enough time to make file system format changes, although
-> admittedly we can't afford to dilly-dally.
+FWIW, I've gone through the other file system implementations once
+more. The most common pattern I've encountered is to have a read_inode
+function with
 
-I have a number of file systems older than any device they are sitting on.  RAID allows individual disks to be swapped out, and when all disks have been swapped out, extend the file system online.  The system doesn't even have to be taken offline in the process if it is possible to physically get to the drives with the system powered (e.g. hot plug bays), which is really damned nice.
+	inode->i_mtime = le32_to_cpu(raw_inode->mtime);
+
+which results in interpreting the time as 'signed' on 32-bit
+kernels, but as 'unsigned' on 64-bit kernels. This could have been
+done intentionally to extend the valid time range to 2106 on 64-bit
+kernels, but it seems more likely that the code was written with
+no thought given to 64-bit time_t at all. I see this pattern on
+p9fs (old protocol only), afs, bfs, ceph, efs, freevxfs, hpfs, jffs2,
+jfs, minix, nfsv2/v3 (this was clearly intentional and is
+spelled out in the RFC), qnx4, qnx6, reiserfs, squashfs, sysv,
+and ufs (protocol version 1 only).
+
+The other behavior I see is to treat the on-disk 32-bit value
+as signed on both 32-bit and 64-bit kernels:
+
+	inode->i_mtime = (signed)le32_to_cpu(raw_inode->mtime);
+
+this seems to be done intentionally in all cases, to maintain
+compatibility between 32-bit and 64-bit kernels, but it's
+relatively rare: exofs, ext2/3/4 (good old inodes) and xfs
+are the only ones doing this.
+
+In case of ext2/3/4, the sign handlign was introduced here:
+http://www.spinics.net/lists/linux-ext4/msg01758.html
+
+exofs and xfs seem to have done it like this for all of git
+history.
+
+	Arnd
