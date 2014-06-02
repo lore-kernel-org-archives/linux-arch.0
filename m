@@ -1,54 +1,46 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [RFC 11/32] xfs: convert to struct inode_time
-Date: Mon, 02 Jun 2014 21:10:47 +0200
-Message-ID: <5585593.Xe5bNQZW47@wuerfel>
-References: <1401480116-1973111-1-git-send-email-arnd@arndb.de>
-	<1401735504.6065.227.camel@montana.filmlight.ltd.uk>
-	<C57EA6CA-236A-4C93-95F8-21F46A3622DA@oracle.com>
+From: Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>
+Subject: Re: [RFC 00/32] making inode time stamps y2038 ready
+Date: Mon, 02 Jun 2014 21:19:55 +0200
+Message-ID: <4233989.Saca0ocOUr@wuerfel>
+References: <1401480116-1973111-1-git-send-email-arnd@arndb.de> <Pine.LNX.4.64.1406021350030.19591@digraph.polyomino.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <xfs-bounces@oss.sgi.com>
-In-Reply-To: <C57EA6CA-236A-4C93-95F8-21F46A3622DA@oracle.com>
-List-Unsubscribe: <http://oss.sgi.com/mailman/options/xfs>,
-	<mailto:xfs-request@oss.sgi.com?subject=unsubscribe>
-List-Archive: <http://oss.sgi.com/pipermail/xfs>
-List-Post: <mailto:xfs@oss.sgi.com>
-List-Help: <mailto:xfs-request@oss.sgi.com?subject=help>
-List-Subscribe: <http://oss.sgi.com/mailman/listinfo/xfs>,
-	<mailto:xfs-request@oss.sgi.com?subject=subscribe>
-Errors-To: xfs-bounces@oss.sgi.com
-Sender: xfs-bounces@oss.sgi.com
-To: Chuck Lever <chuck.lever@oracle.com>
-Cc: Nicolas Pitre <nicolas.pitre@linaro.org>, linux-arch@vger.kernel.org, Linux NFS Mailing List <linux-nfs@vger.kernel.org>, xfs@oss.sgi.com, LKML Kernel <linux-kernel@vger.kernel.org>, geert@linux-m68k.org, Christoph Hellwig <hch@infradead.org>, john.stultz@linaro.org, "H. Peter Anvin" <hpa@zytor.com>, linux-fsdevel <linux-fsdevel@vger.kernel.org>, lftan@altera.com, tglx@linutronix.de, Roger Willcocks <roger@filmlight.ltd.uk>, joseph@codesourcery.com
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7Bit
+Return-path: <linux-cifs-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+In-Reply-To: <Pine.LNX.4.64.1406021350030.19591-9YEB1lltEqivcGRMvF24k2I39yigxGEX@public.gmane.org>
+Sender: linux-cifs-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: "Joseph S. Myers" <joseph-qD8j1LwMmJjtCj0u4l0SBw@public.gmane.org>
+Cc: linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, john.stultz-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org, hch-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org, tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org, geert-Td1EMuHUCqxL1ZNQvxDV9g@public.gmane.org, lftan-EIB2kfCEclfQT0dZR+AlfA@public.gmane.org, hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org, linux-fsdevel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, ceph-devel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, cluster-devel-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org, coda-ETDLCGt7PQU3uPMLIKxrzw@public.gmane.org, codalist-/uMB558Y47wP4a1z8dhFYw@public.gmane.org, fuse-devel-5NWGOfrQmneRv+LV9MX5uipxlwaOVQ5f@public.gmane.org, linux-afs-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, linux-btrfs-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-cifs-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-ext4-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-f2fs-devel-5NWGOfrQmneRv+LV9MX5uipxlwaOVQ5f@public.gmane.org, linux-mtd-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, linux-nfs-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-ntfs-dev-5NWGOfrQmneRv+LV9MX5uipxlwaOVQ5f@public.gmane.org, linux-scsi-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, logfs-PCqxUs/MD9bYtjvyW6yDsg@public.gmane.org, ocfs2-devel-N0ozoZBvEnrZJqsBc5GL+g@public.gmane.org, reiserfs-devel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, samba-technical-w/Ol4Ecudpl8XjKLYN78aQ@public.gmane.org, xfs-VZNHf3L845pBDgjK7y7TUQ@public.gmane.org
 List-Id: linux-arch.vger.kernel.org
 
-T24gTW9uZGF5IDAyIEp1bmUgMjAxNCAxNTowNDoyNyBDaHVjayBMZXZlciB3cm90ZToKPiBPbiBK
-dW4gMiwgMjAxNCwgYXQgMjo1OCBQTSwgUm9nZXIgV2lsbGNvY2tzIDxyb2dlckBmaWxtbGlnaHQu
-bHRkLnVrPiB3cm90ZToKPiAKPiA+IAo+ID4gT24gTW9uLCAyMDE0LTA2LTAyIGF0IDExOjA0IC0w
-NDAwLCBDaHVjayBMZXZlciB3cm90ZToKPiA+IAo+ID4+IE5GU3YyLzMgdGltZXN0YW1wcyBhcmUg
-YSBwYWlyIG9mIHVuc2lnbmVkIDMyLWJpdCB2YWx1ZXM6IG9uZSB2YWx1ZSBmb3IKPiA+PiBzZWNv
-bmRzIHNpbmNlIG1pZG5pZ2h0IEdNVCBKYW4gMSwgMTk3MCwgYW5kIG9uZSB2YWx1ZSBmb3IgbmFu
-b3NlY29uZHMuCj4gPj4gKFNlZSB0aGUgZGVmaW5pdGlvbiBvZiBuZnN0aW1lMyBpbiBSRkMgMTgx
-MykuCj4gPj4gCj4gPiAKPiA+IG5mc3RpbWUzIGNvdWxkIGJlIGV4dGVuZGVkIGJ5IHJlZGVmaW5p
-bmcgdGhlIG90aGVyd2lzZSB1bnVzZWQKPiA+IG5hbm9zZWNvbmRzIGJpdHN7MzEsMzB9IGFzIHNl
-Y29uZHN7MzMsMzJ9LCB0byBnaXZlIGEgKHNpZ25lZCkgMzQtYml0Cj4gPiBzZWNvbmRzIGZpZWxk
-IGFuZCBhbiB1bnNpZ25lZCAzMC1iaXQgbmFub3NlY29uZHMgZmllbGQuCj4gPiAKPiA+IFRoaXMg
-Y291bGQgcmVwcmVzZW50IDE5NzAgKy8tIDI3MiB5ZWFycy4KPiA+IAo+ID4gU2VydmVycyBjb3Vs
-ZCBpbmRpY2F0ZSB0aGV5IGNhbiB1bmRlcnN0YW5kIHRoZSBleHRlbmRlZCB0aW1lIGZvcm1hdCBi
-eQo+ID4gYWRkaW5nIGEgbmV3IEZTSU5GTyBjYXBhYmlsaXR5IC0gRlNGM19DQU5TRVRUSU1FX0VY
-Lgo+ID4gCj4gPiBDbGllbnRzIHdvdWxkIHVzZSBhIG5ldyBTRVRfVE9fQ0xJRU5UX1RJTUVfRVgg
-dGltZV9ob3cgZW51bSB3aGVuIHNlbmRpbmcKPiA+IHRpbWVzdGFtcHMgc28gb2xkIHNlcnZlcnMg
-d291bGQgYmUgcHJvdGVjdGVkIGZyb20gbmV3IGNsaWVudHMuCj4gCj4gWW91IHdvdWxkIGhhdmUg
-dG8gZ2V0IHRoZSBJRVRG4oCZcyBORlN2NCB3b3JraW5nIGdyb3VwIHRvIHNpZ24gb2ZmIG9uCj4g
-dGhpcyBjaGFuZ2UuIE90aGVyd2lzZSwgTGludXggd291bGQgYmUgdGhlIG9ubHkgTkZTdjMgaW1w
-bGVtZW50YXRpb24KPiB0aGF0IHN1cHBvcnRzIHRoZSBleHRlbnNpb24uCj4gCj4gQnV0IEkgc3Vz
-cGVjdCB0aGUgYW5zd2VyIHlvdeKAmWQgZ2V0IGlzIOKAnFVzZSBORlN2NC7igJ0KCldoaWxlIEkn
-dmUgbmV2ZXIgZGVhbHQgd2l0aCBhbiBORlMgc3RhbmRhcmRpemF0aW9uLCBJJ2QgYXNzdW1lIHRo
-aXMgaXMKYSB3b3JrYWJsZSBhbnN3ZXIuIFRoZSBORlN2MiBhbmQgTkZTdjMgZGVmaW5pdGlvbiBj
-bGVhcmx5IGRlZmluZXMgYSB2YWxpZApyYW5nZSBvZiB0aW1lcyB1bnRpbCAyMTA2IHVzaW5nIHVu
-c2lnbmVkIHNlY29uZHMsIGFuZCB0aGF0IHNob3VsZCByZWFsbHkKZ2l2ZSBlbm91Z2ggdGltZSB0
-byBtaWdyYXRlIHRvIHNvbWV0aGluZyBiZXR0ZXIgKG5vdCBuZWNlc3NhcmlseSBORlN2NCkuCgoJ
-QXJuZAoKX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX18KeGZz
-IG1haWxpbmcgbGlzdAp4ZnNAb3NzLnNnaS5jb20KaHR0cDovL29zcy5zZ2kuY29tL21haWxtYW4v
-bGlzdGluZm8veGZzCg==
+On Monday 02 June 2014 13:52:19 Joseph S. Myers wrote:
+> On Fri, 30 May 2014, Arnd Bergmann wrote:
+> 
+> > a) is this the right approach in general? The previous discussion
+> >    pointed this way, but there may be other opinions.
+> 
+> The syscall changes seem like the sort of thing I'd expect, although 
+> patches adding new syscalls or otherwise affecting the kernel/userspace 
+> interface (as opposed to those relating to an individual filesystem) 
+> should go to linux-api as well as other relevant lists.
+
+Ok. Sorry about missing linux-api, I confused it with linux-arch, which
+may not be as relevant here, except for the one question whether we
+actually want to have the new ABI on all 32-bit architectures or only
+as an opt-in for those that expect to stay around for another 24 years.
+
+Two more questions for you:
+
+- are you (and others) happy with adding this type of stat syscall
+  (fstatat64/fstat64) as opposed to the more generic xstat that has
+  been discussed in the past and that never made it through the bike-
+  shedding discussion?
+
+- once we have enough buy-in from reviewers to merge this initial
+  series, should we proceed to define rest of the syscall ABI
+  (minus driver ioctls) so glibc and kernel can do the conversion
+  on top of that, or should we better try to do things one syscall
+  family at a time and actually get the kernel to handle them
+  correctly internally?
+
+	Arnd
