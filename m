@@ -1,44 +1,61 @@
-From: "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>
-Subject: Re: [RFC 00/32] making inode time stamps y2038 ready
-Date: Mon, 02 Jun 2014 14:57:26 -0700
-Message-ID: <538CF346.2070504@zytor.com>
-References: <1401480116-1973111-1-git-send-email-arnd@arndb.de> <4233989.Saca0ocOUr@wuerfel> <538CCFDE.2010107@zytor.com> <7175692.dpgYFMbTaP@wuerfel>
+From: Theodore Ts'o <tytso@mit.edu>
+Subject: Re: [RFC 11/32] xfs: convert to struct inode_time
+Date: Mon, 2 Jun 2014 18:29:54 -0400
+Message-ID: <20140602222954.GA29690@thunk.org>
+References: <1401480116-1973111-1-git-send-email-arnd@arndb.de>
+ <8618458.1EVJCoVbkH@wuerfel>
+ <alpine.LFD.2.11.1406012121430.17310@knanqh.ubzr>
+ <4178301.j9kWdGCRLC@wuerfel>
+ <6868F108-F0B2-423F-AE31-90DF86A5B7DD@oracle.com>
+ <20140602153124.GH30598@thunk.org>
+ <538CB085.5000502@zytor.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-cifs-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <7175692.dpgYFMbTaP@wuerfel>
-Sender: linux-cifs-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>
-Cc: "Joseph S. Myers" <joseph-qD8j1LwMmJjtCj0u4l0SBw@public.gmane.org>, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, john.stultz-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org, hch-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org, tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org, geert-Td1EMuHUCqxL1ZNQvxDV9g@public.gmane.org, lftan-EIB2kfCEclfQT0dZR+AlfA@public.gmane.org, linux-fsdevel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, ceph-devel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, cluster-devel-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org, coda-ETDLCGt7PQU3uPMLIKxrzw@public.gmane.org, codalist-ySnCqBnJi5yMVn35/9/JlcWGCVk0P7UB@public.gmane.org, fuse-devel-5NWGOfrQmneRv+LV9MX5uipxlwaOVQ5f@public.gmane.org, linux-afs-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, linux-btrfs-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-cifs-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-ext4-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-f2fs-devel-5NWGOfrQmneRv+LV9MX5uipxlwaOVQ5f@public.gmane.org, linux-mtd-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, linux-nfs-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-ntfs-dev-5NWGOfrQmneRv+LV9MX5uipxlwaOVQ5f@public.gmane.org, linux-scsi-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, logfs-PCqxUs/MD9bYtjvyW6yDsg@public.gmane.org, ocfs2-devel-N0ozoZBvEnrZJqsBc5GL+g@public.gmane.org, reiserfs-devel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, samba-technical-w/Ol4Ecudpl8XjKLYN78aQ@public.gmane.org, xfs-VZNHf3L845pBDgjK7y7TUQ@public.gmane.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from imap.thunk.org ([74.207.234.97]:46579 "EHLO imap.thunk.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751036AbaFBWak (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 2 Jun 2014 18:30:40 -0400
+Content-Disposition: inline
+In-Reply-To: <538CB085.5000502@zytor.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: "H. Peter Anvin" <hpa@zytor.com>
+Cc: Chuck Lever <chuck.lever@oracle.com>, Arnd Bergmann <arnd@arndb.de>, Nicolas Pitre <nicolas.pitre@linaro.org>, Dave Chinner <david@fromorbit.com>, LKML Kernel <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, joseph@codesourcery.com, john.stultz@linaro.org, Christoph Hellwig <hch@infradead.org>, tglx@linutronix.de, geert@linux-m68k.org, lftan@altera.com, linux-fsdevel <linux-fsdevel@vger.kernel.org>, xfs@oss.sgi.com, Linux NFS Mailing List <linux-nfs@vger.kernel.org>
 
-On 06/02/2014 12:55 PM, Arnd Bergmann wrote:
->>
->> The bit that is really going to hurt is every single ioctl that uses a
->> timespec.
->>
->> Honestly, though, I really don't understand the point with "struct
->> inode_time".  It seems like the zeroeth-order thing is to change the
->> kernel internal version of struct timespec to have a 64-bit time... it
->> isn't just about inodes.  We then should be explicit about the external
->> uses of time, and use accessors.
+On Mon, Jun 02, 2014 at 10:12:37AM -0700, H. Peter Anvin wrote:
+> > It would be problematic for time(2) or gettimeofday(2) to return
+> > TIME_UNDEFINED, since there are programs that care about time ticking
+> > forward, but I could imagine a new interface which would be permitted
+> > to return a flag indicating that we don't know the current time
+> > (because the CMOS battery had run down, etc.) so instead we're going
+> > to be counting the number of seconds since the system was booted.
 > 
-> I picked these because they are fairly isolated from all other uses,
-> in particular since inode times are the only things where we really
-> care about times in the distant past or future (decades away as opposed
-> to things that happened between boot and shutdown).
-> 
+> This assumes that we actually know that that is the case, which may be
+> an aggressive assumption.
 
-If nothing else, I would expect to be able to set the system time to
-weird values for testing.  So I'm not so sure I agree with that...
+We won't know if the RTC clock is wrong, true --- but the kernel will
+know if (a) the hardware doesn't have RTC clock at all, or if (b) the
+RTC clock is ticking some time that can't be encoded using the current
+time_t type.  So in that case, the fallback would be to be for the
+kernel to tick starting with time_t == 0 when the system is initially
+booted, and the "time indefinite flag" would be set.
 
-> For other kernel-internal uses, we may be better off migrating to
-> a completely different representation, such as nanoseconds since
-> boot or the architecture specific ktime_t, but this is really something
-> to decide for each subsystem.
+Now assume that we have a new system call, gettimestampofday(2), which
+returns a new timestamp structure which has a 64-bit ts_sec field, the
+ts_nsec field (ala struct timespec), and a ts_flags field, where the
+kernel could signal things like "time invalid", or "time can't be
+encoded in the legacy time_t type", or "I'm not sure if the time is
+correct" --- i.e., because the RTC battery isn't working.
 
-Having a bunch of different time representations in the kernel seems
-like a real headache...
+Not all hardware might be able to support the last, of course, but if
+the battery is low, or the system has been exposed to very low
+temperatures (or large amounts of cosmic radiation, etc.)  the RTC
+time may just be plain wrong.  No system is going to be perfect, but
+it should be possible to make htings better, at for certain classes of
+hardware.
 
-	-hpa
+And since we are already returning (time_t) -1 in some cases, we might
+as well try to make things a bit more formal.
+
+					- Ted
