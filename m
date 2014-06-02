@@ -1,45 +1,31 @@
-From: Theodore Ts'o <tytso@mit.edu>
-Subject: Re: [RFC 11/32] xfs: convert to struct inode_time
-Date: Mon, 2 Jun 2014 09:15:55 -0400
-Message-ID: <20140602131555.GD14276@thunk.org>
+From: "Joseph S. Myers" <joseph@codesourcery.com>
+Subject: Re: [RFC 00/32] making inode time stamps y2038 ready
+Date: Mon, 2 Jun 2014 13:52:19 +0000
+Message-ID: <Pine.LNX.4.64.1406021350030.19591@digraph.polyomino.org.uk>
 References: <1401480116-1973111-1-git-send-email-arnd@arndb.de>
- <4178301.j9kWdGCRLC@wuerfel>
- <20140602115737.GB14276@thunk.org>
- <4910284.a72lauVLNV@wuerfel>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-fsdevel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <4910284.a72lauVLNV@wuerfel>
-Sender: linux-fsdevel-owner@vger.kernel.org
+Content-Type: text/plain; charset="US-ASCII"
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from relay1.mentorg.com ([192.94.38.131]:37627 "EHLO
+	relay1.mentorg.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754438AbaFBNwf (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 2 Jun 2014 09:52:35 -0400
+In-Reply-To: <1401480116-1973111-1-git-send-email-arnd@arndb.de>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Arnd Bergmann <arnd@arndb.de>
-Cc: Nicolas Pitre <nicolas.pitre@linaro.org>, "H. Peter Anvin" <hpa@zytor.com>, Dave Chinner <david@fromorbit.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, joseph@codesourcery.com, john.stultz@linaro.org, hch@infradead.org, tglx@linutronix.de, geert@linux-m68k.org, lftan@altera.com, linux-fsdevel@vger.kernel.org, xfs@oss.sgi.com
-List-Id: linux-arch.vger.kernel.org
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, john.stultz@linaro.org, hch@infradead.org, tglx@linutronix.de, geert@linux-m68k.org, lftan@altera.com, hpa@zytor.com, linux-fsdevel@vger.kernel.org, ceph-devel@vger.kernel.org, cluster-devel@redhat.com, coda@cs.cmu.edu, codalist@coda.cs.cmu.edu, fuse-devel@lists.sourceforge.net, linux-afs@lists.infradead.org, linux-btrfs@vger.kernel.org, linux-cifs@vger.kernel.org, linux-ext4@vger.kernel.org, linux-f2fs-devel@lists.sourceforge.net, linux-mtd@lists.infradead.org, linux-nfs@vger.kernel.org, linux-ntfs-dev@lists.sourceforge.net, linux-scsi@vger.kernel.org, logfs@logfs.org, ocfs2-devel@oss.oracle.com, reiserfs-devel@vger.kernel.org, samba-technical@lists.samba.org, xfs@oss.sgi.com
 
-On Mon, Jun 02, 2014 at 02:38:09PM +0200, Arnd Bergmann wrote:
-> 
-> "For new inodes we always reserve enough space for the kernel's known
-> extended fields, but for inodes created with an old kernel this might
-> not have been the case. None of the extended inode fields is critical
-> for correct filesystem operation."
-> 
-> Do we have to worry about this for inodes that contain extended
-> attributes and that get updated after 2038?
+On Fri, 30 May 2014, Arnd Bergmann wrote:
 
-In practice, the extended timestamps was one of the first things added
-to ext4, so the vast majority of ext4 file systems with inode sizes >
-128 bytes will have room for the extended timestamps.  There are some
-legacy ext3 file systems with 256-byte inodes (enabled for fast
-sotrage of SELinux xattrs) that in theory, could have been converted
-to ext4 and had enough xattrs so that the extended timestamps couldn't
-be added.  That would be a vanishingly small use case, and in
-practice, it's not likely to be the case for the embedded market.
+> a) is this the right approach in general? The previous discussion
+>    pointed this way, but there may be other opinions.
 
-I could imagine someone worrying about file systems originally
-formatted using RHEL 4 post-2038 (perhaps running in a VM), but I
-don't work for IBM any more, and hopefully even IBM would just tell
-such customers that they need to suck it up, and do a
-backup/reformat/restore pass.
+The syscall changes seem like the sort of thing I'd expect, although 
+patches adding new syscalls or otherwise affecting the kernel/userspace 
+interface (as opposed to those relating to an individual filesystem) 
+should go to linux-api as well as other relevant lists.
 
-Cheers,
-						- Ted
+-- 
+Joseph S. Myers
+joseph@codesourcery.com
