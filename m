@@ -1,25 +1,16 @@
 From: Arnd Bergmann <arnd@arndb.de>
 Subject: Re: [RFC 11/32] xfs: convert to struct inode_time
-Date: Mon, 02 Jun 2014 14:38:09 +0200
-Message-ID: <4910284.a72lauVLNV@wuerfel>
-References: <1401480116-1973111-1-git-send-email-arnd@arndb.de>
-	<4178301.j9kWdGCRLC@wuerfel> <20140602115737.GB14276@thunk.org>
+Date: Mon, 02 Jun 2014 14:52:13 +0200
+Message-ID: <15496653.1vSv1RUCC0@wuerfel>
+References: <1401480116-1973111-1-git-send-email-arnd@arndb.de> <4178301.j9kWdGCRLC@wuerfel> <20140602115737.GB14276@thunk.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <xfs-bounces@oss.sgi.com>
+Content-Transfer-Encoding: 7Bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20140602115737.GB14276@thunk.org>
-List-Unsubscribe: <http://oss.sgi.com/mailman/options/xfs>,
-	<mailto:xfs-request@oss.sgi.com?subject=unsubscribe>
-List-Archive: <http://oss.sgi.com/pipermail/xfs>
-List-Post: <mailto:xfs@oss.sgi.com>
-List-Help: <mailto:xfs-request@oss.sgi.com?subject=help>
-List-Subscribe: <http://oss.sgi.com/mailman/listinfo/xfs>,
-	<mailto:xfs-request@oss.sgi.com?subject=subscribe>
-Errors-To: xfs-bounces@oss.sgi.com
-Sender: xfs-bounces@oss.sgi.com
+Sender: linux-kernel-owner@vger.kernel.org
 To: Theodore Ts'o <tytso@mit.edu>
-Cc: Nicolas Pitre <nicolas.pitre@linaro.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, lftan@altera.com, hch@infradead.org, john.stultz@linaro.org, "H. Peter Anvin" <hpa@zytor.com>, linux-fsdevel@vger.kernel.org, geert@linux-m68k.org, tglx@linutronix.de, xfs@oss.sgi.com, joseph@codesourcery.com
+Cc: Nicolas Pitre <nicolas.pitre@linaro.org>, "H. Peter Anvin" <hpa@zytor.com>, Dave Chinner <david@fromorbit.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, joseph@codesourcery.com, john.stultz@linaro.org, hch@infradead.org, tglx@linutronix.de, geert@linux-m68k.org, lftan@altera.com, linux-fsdevel@vger.kernel.org, xfs@oss.sgi.com
 List-Id: linux-arch.vger.kernel.org
 
 On Monday 02 June 2014 07:57:37 Theodore Ts'o wrote:
@@ -44,21 +35,32 @@ On Monday 02 June 2014 07:57:37 Theodore Ts'o wrote:
 > cycles are order 5-6 years tops, so I'm not that concerned, but it
 > just goes to show this is a very complicated problem.
 
-Ok, I see.
+One stupid question about the current code:
 
-I also now noticed this comment above EXT4_FITS_IN_INODE():
+static inline void ext4_decode_extra_time(struct inode_time *time, __le32 extra)
+{                               
+       if (sizeof(time->tv_sec) > 4)
+               time->tv_sec |= (__u64)(le32_to_cpu(extra) & EXT4_EPOCH_MASK)
+                               << 32;
+       time->tv_nsec = (le32_to_cpu(extra) & EXT4_NSEC_MASK) >> EXT4_EPOCH_BITS;
+}       
 
-"For new inodes we always reserve enough space for the kernel's known
-extended fields, but for inodes created with an old kernel this might
-not have been the case. None of the extended inode fields is critical
-for correct filesystem operation."
+#define EXT4_EINODE_GET_XTIME(xtime, einode, raw_inode)                        \
+do {                                                                           \
+        if (EXT4_FITS_IN_INODE(raw_inode, einode, xtime))                      \
+                (einode)->xtime.tv_sec =                                       \
+                        (signed)le32_to_cpu((raw_inode)->xtime);               \
+        else                                                                   \
+                (einode)->xtime.tv_sec = 0;                                    \
+        if (EXT4_FITS_IN_INODE(raw_inode, einode, xtime ## _extra))            \
+                ext4_decode_extra_time(&(einode)->xtime,                       \
+                                       raw_inode->xtime ## _extra);            \
+        else                                                                   \
+                (einode)->xtime.tv_nsec = 0;                                   \
+} while (0)
 
-Do we have to worry about this for inodes that contain extended
-attributes and that get updated after 2038?
+For a time between 2038 and 2106, this looks like xtime.tv_sec is
+negative when ext4_decode_extra_time gets called, so the '|=' operator
+doesn't actually do anything. Shouldn't that be '+='?
 
 	Arnd
-
-_______________________________________________
-xfs mailing list
-xfs@oss.sgi.com
-http://oss.sgi.com/mailman/listinfo/xfs
