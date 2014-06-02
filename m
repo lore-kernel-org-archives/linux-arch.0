@@ -1,50 +1,55 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from imap.thunk.org ([74.207.234.97]:45381 "EHLO imap.thunk.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S932221AbaFBNQG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 2 Jun 2014 09:16:06 -0400
-Date: Mon, 2 Jun 2014 09:15:55 -0400
-From: Theodore Ts'o <tytso@mit.edu>
+Received: from relay1.mentorg.com ([192.94.38.131]:38421 "EHLO
+	relay1.mentorg.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754640AbaFBOAP (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 2 Jun 2014 10:00:15 -0400
+Date: Mon, 2 Jun 2014 14:00:11 +0000
+From: "Joseph S. Myers" <joseph@codesourcery.com>
 Subject: Re: [RFC 11/32] xfs: convert to struct inode_time
-Message-ID: <20140602131555.GD14276@thunk.org>
+In-Reply-To: <20140531055457.GK14410@dastard>
+Message-ID: <Pine.LNX.4.64.1406021355230.19591@digraph.polyomino.org.uk>
 References: <1401480116-1973111-1-git-send-email-arnd@arndb.de>
- <4178301.j9kWdGCRLC@wuerfel>
- <20140602115737.GB14276@thunk.org>
- <4910284.a72lauVLNV@wuerfel>
+ <1401480116-1973111-12-git-send-email-arnd@arndb.de> <20140531003712.GH14410@dastard>
+ <5389252A.5050503@zytor.com> <20140531011450.GJ14410@dastard>
+ <c7770275-61de-4e94-9586-5ee118f77ba5@email.android.com> <20140531055457.GK14410@dastard>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <4910284.a72lauVLNV@wuerfel>
+Content-Type: text/plain; charset="US-ASCII"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Nicolas Pitre <nicolas.pitre@linaro.org>, "H. Peter Anvin" <hpa@zytor.com>, Dave Chinner <david@fromorbit.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, joseph@codesourcery.com, john.stultz@linaro.org, hch@infradead.org, tglx@linutronix.de, geert@linux-m68k.org, lftan@altera.com, linux-fsdevel@vger.kernel.org, xfs@oss.sgi.com
-Message-ID: <20140602131555.mMbK91Y8GKCUWOzThq-9m1QRXx_ybUPZaFynhA7amcE@z>
+To: Dave Chinner <david@fromorbit.com>
+Cc: "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, john.stultz@linaro.org, hch@infradead.org, tglx@linutronix.de, geert@linux-m68k.org, lftan@altera.com, linux-fsdevel@vger.kernel.org, xfs@oss.sgi.com
+Message-ID: <20140602140011.2kw57dgMmta6M2MfEEH9AI6PB9HWKVeAdmD5mUneY2s@z>
 
-On Mon, Jun 02, 2014 at 02:38:09PM +0200, Arnd Bergmann wrote:
+On Sat, 31 May 2014, Dave Chinner wrote:
+
+> If we are changing the in-kernel timestamp to have a greater dynamic
+> range that anything we current support on disk, then we need support
+> for all filesystems for similar translation and constraint. The
+> filesystems need to be able to tell the kernel what they timestamp
+> range they support, and then the kernel needs to follow those
+> guidelines. And if the filesystem is mounted on a kernel that
+> doesn't support the current filesystem's timestamp format, then at
+> minimum that filesystem cannot do anything that writes a
+> timestamp....
 > 
-> "For new inodes we always reserve enough space for the kernel's known
-> extended fields, but for inodes created with an old kernel this might
-> not have been the case. None of the extended inode fields is critical
-> for correct filesystem operation."
-> 
-> Do we have to worry about this for inodes that contain extended
-> attributes and that get updated after 2038?
+> Put simply: the filesystem defines the timestamp range that can be
+> used safely, not the userspace API. If the filesystem can't support
+> the date it is handed then that is an out-of-range error. Since
+> when have we accepted that it's OK to handle out-of-range data with
+> silent overflows or corruption of the data that we are attempting to
+> store? We're defining a new API to support a wider date range -
+> there is nothing that prevents us from saying ERANGE can be returned
+> to a timestamp that the file cannot store correctly....
 
-In practice, the extended timestamps was one of the first things added
-to ext4, so the vast majority of ext4 file systems with inode sizes >
-128 bytes will have room for the extended timestamps.  There are some
-legacy ext3 file systems with 256-byte inodes (enabled for fast
-sotrage of SELinux xattrs) that in theory, could have been converted
-to ext4 and had enough xattrs so that the extended timestamps couldn't
-be added.  That would be a vanishingly small use case, and in
-practice, it's not likely to be the case for the embedded market.
+I don't see anything new about this issue.  All problems that could arise 
+from the kernel being able to represent a timestamp some filesystems can't 
+are problems that already apply with 64-bit kernels using 64-bit time_t 
+internally.  So while as part of Y2038-preparedness we do need a clear 
+understanding of which filesystems have what timestamp limits and what 
+happens with timestamps beyond those limits, I think this is a separate 
+strand of the problem - one that applies to both 32-bit and 64-bit systems 
+- from the more general issue for 32-bit systems.
 
-I could imagine someone worrying about file systems originally
-formatted using RHEL 4 post-2038 (perhaps running in a VM), but I
-don't work for IBM any more, and hopefully even IBM would just tell
-such customers that they need to suck it up, and do a
-backup/reformat/restore pass.
-
-Cheers,
-						- Ted
+-- 
+Joseph S. Myers
+joseph@codesourcery.com
