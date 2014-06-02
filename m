@@ -1,84 +1,84 @@
-From: Nicolas Pitre <nicolas.pitre@linaro.org>
-Subject: Re: [RFC 11/32] xfs: convert to struct inode_time
-Date: Sun, 1 Jun 2014 21:36:26 -0400 (EDT)
-Message-ID: <alpine.LFD.2.11.1406012121430.17310@knanqh.ubzr>
-References: <1401480116-1973111-1-git-send-email-arnd@arndb.de>
-	<538995D4.9050702@zytor.com>
-	<alpine.LFD.2.11.1405311055410.17310@knanqh.ubzr>
-	<8618458.1EVJCoVbkH@wuerfel>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <xfs-bounces@oss.sgi.com>
-In-Reply-To: <8618458.1EVJCoVbkH@wuerfel>
-List-Unsubscribe: <http://oss.sgi.com/mailman/options/xfs>,
-	<mailto:xfs-request@oss.sgi.com?subject=unsubscribe>
-List-Archive: <http://oss.sgi.com/pipermail/xfs>
-List-Post: <mailto:xfs@oss.sgi.com>
-List-Help: <mailto:xfs-request@oss.sgi.com?subject=help>
-List-Subscribe: <http://oss.sgi.com/mailman/listinfo/xfs>,
-	<mailto:xfs-request@oss.sgi.com?subject=subscribe>
-Errors-To: xfs-bounces@oss.sgi.com
-Sender: xfs-bounces@oss.sgi.com
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, lftan@altera.com, hch@infradead.org, john.stultz@linaro.org, "H. Peter Anvin" <hpa@zytor.com>, linux-fsdevel@vger.kernel.org, geert@linux-m68k.org, tglx@linutronix.de, xfs@oss.sgi.com, joseph@codesourcery.com
-List-Id: linux-arch.vger.kernel.org
+From: Chanho Min <chanho.min@lge.com>
+Subject: [PATCH] arm: dma-mapping: fix potential build error under !CMA
+Date: Mon,  2 Jun 2014 10:45:28 +0900
+Message-ID: <1401673528-19077-1-git-send-email-chanho.min@lge.com>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from LGEMRELSE7Q.lge.com ([156.147.1.151]:57470 "EHLO
+	lgemrelse7q.lge.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753145AbaFBBpq (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 1 Jun 2014 21:45:46 -0400
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Russell King <linux@arm.linux.org.uk>, Michal Nazarewicz <mina86@mina86.com>, Marek Szyprowski <m.szyprowski@samsung.com>
+Cc: Gioh Kim <gioh.kim@lge.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, HyoJun Im <hyojun.im@lge.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Chanho Min <chanho.min@lge.com>
 
-On Sun, 1 Jun 2014, Arnd Bergmann wrote:
+This patch fixes build error under !CONFIG_CMA. dev_get_cma_area can be used
+when CMA is disabled when the bellow patch is appied.
 
-> On Saturday 31 May 2014 11:46:16 Nicolas Pitre wrote:
-> > > readonly if not in reality than in practice.
-> > 
-> > For those (legacy) filesystems with a signed 32-bit timestamps, any 
-> > attempt to create a timestamp past Jan 19 03:14:06 2038 UTC should be 
-> > (silently) clamped to 0x7fffffff and that value (the last representable 
-> > time) used as an overflow indicator.  The filesystem driver should 
-> > convert that value into a corresponding overflow value for whatever 
-> > kernel internal time representation being used when read back, and this 
-> > should be propagated up to user space.  It should not be a hard error 
-> > otherwise, as you rightfully stated, everything non read-only would come 
-> > to a halt on that day.
-> 
-> I don't think there is much of a difference between not being able to
-> write at all and all newly written files having the same timestamp,
-> causing random things to break differently.
+"arm: dma-mapping: add checking cma area initialized"
+https://lkml.org/lkml/2014/5/22/35
 
-Well, in one case you have a crash certitude. In the other case you have 
-some probability that your system might still be usable.
+arch/arm/mm/dma-mapping.c: In function 'atomic_pool_init':
+arch/arm/mm/dma-mapping.c:361:2: error: implicit declaration of function
+ 'dev_get_cma_area' [-Werror=implicit-function-declaration]
 
-> The clamp to the maximum supported time stamp sounds like a reasonable
-> choice for 'utimens' and related syscalls for the case of someone
-> setting an arbitrary future date beyond what the file system can
-> represent. Then again, I don't see a reason why that shouldn't just
-> cause an error to be returned.
+Signed-off-by: Chanho Min <chanho.min@lge.com>
+---
+ arch/arm/include/asm/dma-contiguous.h |    2 +-
+ include/asm-generic/dma-contiguous.h  |   13 +++++++++++--
+ 2 files changed, 12 insertions(+), 3 deletions(-)
 
-Resiliance is better than outright failure.
-
-> For actually running kernels beyond 2038, the best idea I've seen so
-> far is to disallow all broken code at compile time. I don't see
-> a choice but to audit the entire kernel for invalid uses on both
-> 32 and 64 bit in the next few years. A lot of code will get changed
-> in the process so we can actually keep running 32-bit kernels and
-> file systems, but other code will likely go away:
-> 
-> * any system calls that pass a time_t, timeval or timespec on
->   32-bit systems return -ENOSYS, to ensure all user land uses
->   the replacements we will put into place
-> * The definition of 'time_t', 'timval' and 'timespec' can be hidden
->   from the kernel, and all code using it left out.
-> * ext2 and ext3 file system code will have to be disabled, but that's
->   file since ext4 can mount old file systems.
-
-Syscalls and libs can be "fixed".  Existing filesystem content might 
-not.  So if you need to mount some old media in read-write mode after 
-2038 and that happens to content an ext2 or similarly limited filesystem 
-then it'd better just "work".  Having the kernel refuse to modify the 
-filesystem would be unacceptable.
-
-
-Nicolas
-
-_______________________________________________
-xfs mailing list
-xfs@oss.sgi.com
-http://oss.sgi.com/mailman/listinfo/xfs
+diff --git a/arch/arm/include/asm/dma-contiguous.h b/arch/arm/include/asm/dma-contiguous.h
+index 3ed37b4..56c17bc 100644
+--- a/arch/arm/include/asm/dma-contiguous.h
++++ b/arch/arm/include/asm/dma-contiguous.h
+@@ -2,11 +2,11 @@
+ #define ASMARM_DMA_CONTIGUOUS_H
+ 
+ #ifdef __KERNEL__
+-#ifdef CONFIG_CMA
+ 
+ #include <linux/types.h>
+ #include <asm-generic/dma-contiguous.h>
+ 
++#ifdef CONFIG_CMA
+ void dma_contiguous_early_fixup(phys_addr_t base, unsigned long size);
+ 
+ #endif
+diff --git a/include/asm-generic/dma-contiguous.h b/include/asm-generic/dma-contiguous.h
+index 294b1e7..3d48460 100644
+--- a/include/asm-generic/dma-contiguous.h
++++ b/include/asm-generic/dma-contiguous.h
+@@ -2,11 +2,11 @@
+ #define ASM_DMA_CONTIGUOUS_H
+ 
+ #ifdef __KERNEL__
+-#ifdef CONFIG_CMA
+ 
+ #include <linux/device.h>
+ #include <linux/dma-contiguous.h>
+ 
++#ifdef CONFIG_CMA
+ static inline struct cma *dev_get_cma_area(struct device *dev)
+ {
+ 	if (dev && dev->cma_area)
+@@ -22,7 +22,16 @@ static inline void dev_set_cma_area(struct device *dev, struct cma *cma)
+ 		dma_contiguous_default_area = cma;
+ }
+ 
+-#endif
++#else
++static inline struct cma *dev_get_cma_area(struct device *dev)
++{
++	return NULL;
++}
++
++static inline void dev_set_cma_area(struct device *dev, struct cma *cma)
++{
++}
+ #endif
+ 
+ #endif
++#endif
+-- 
+1.7.9.5
