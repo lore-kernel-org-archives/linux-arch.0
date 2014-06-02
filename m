@@ -1,121 +1,53 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.emea.novell.com ([130.57.118.101]:33126 "EHLO
-	mail.emea.novell.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752510AbaFBPPL convert rfc822-to-8bit (ORCPT
-	<rfc822;groupwise-linux-arch@vger.kernel.org:4:1>);
-	Mon, 2 Jun 2014 11:15:11 -0400
-Message-ID: <538CAC430200007800016ED3@mail.emea.novell.com>
-Date: Mon, 02 Jun 2014 15:54:27 +0100
-From: "Jan Beulich" <JBeulich@suse.com>
-Subject: [PATCH, resend] allow putting the exception table into .rodata
- (and do so on x86)
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 8BIT
+Received: from imap.thunk.org ([74.207.234.97]:45729 "EHLO imap.thunk.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752132AbaFBPbn (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 2 Jun 2014 11:31:43 -0400
+Date: Mon, 2 Jun 2014 11:31:24 -0400
+From: Theodore Ts'o <tytso@mit.edu>
+Subject: Re: [RFC 11/32] xfs: convert to struct inode_time
+Message-ID: <20140602153124.GH30598@thunk.org>
+References: <1401480116-1973111-1-git-send-email-arnd@arndb.de>
+ <8618458.1EVJCoVbkH@wuerfel>
+ <alpine.LFD.2.11.1406012121430.17310@knanqh.ubzr>
+ <4178301.j9kWdGCRLC@wuerfel>
+ <6868F108-F0B2-423F-AE31-90DF86A5B7DD@oracle.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
 Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <6868F108-F0B2-423F-AE31-90DF86A5B7DD@oracle.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: mingo@elte.hu, tglx@linutronix.de, hpa@zytor.com
-Cc: x86@kernel.org, linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org
-Message-ID: <20140602145427.jb_qx5U4TVLcd9tfwBueJkwBWNO2PGQ79laUat0bGBs@z>
+To: Chuck Lever <chuck.lever@oracle.com>
+Cc: Arnd Bergmann <arnd@arndb.de>, Nicolas Pitre <nicolas.pitre@linaro.org>, "H. Peter Anvin" <hpa@zytor.com>, Dave Chinner <david@fromorbit.com>, LKML Kernel <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, joseph@codesourcery.com, john.stultz@linaro.org, Christoph Hellwig <hch@infradead.org>, tglx@linutronix.de, geert@linux-m68k.org, lftan@altera.com, linux-fsdevel <linux-fsdevel@vger.kernel.org>, xfs@oss.sgi.com, Linux NFS Mailing List <linux-nfs@vger.kernel.org>
+Message-ID: <20140602153124.gVqUqib06anM0ElTTtjK9ku2UcBikCncRbzZYYWlET4@z>
 
-This is since the table is really a set of pointers, i.e. misplaced in
-.text. There are no runtime writes to this table (and if an arch needs
-to do boot time writes but the table is already r/o - on x86 it isn't -
-it simply shouldn't make use of the new construct).
-
-Quite likely other architectures would want to follow.
-
-Signed-off-by: Jan Beulich <jbeulich@suse.com>
----
- arch/x86/include/asm/sections.h   |    2 +-
- arch/x86/kernel/vmlinux.lds.S     |    5 +++--
- arch/x86/mm/init_64.c             |    6 +++---
- include/asm-generic/vmlinux.lds.h |    5 +++++
- 4 files changed, 12 insertions(+), 6 deletions(-)
-
---- 3.15-rc8/arch/x86/include/asm/sections.h
-+++ 3.15-rc8-extable-in-rodata/arch/x86/include/asm/sections.h
-@@ -5,7 +5,7 @@
- #include <asm/uaccess.h>
- 
- extern char __brk_base[], __brk_limit[];
--extern struct exception_table_entry __stop___ex_table[];
-+extern const void __stop_notes;
- 
- #if defined(CONFIG_X86_64) && defined(CONFIG_DEBUG_RODATA)
- extern char __end_rodata_hpage_align[];
---- 3.15-rc8/arch/x86/kernel/vmlinux.lds.S
-+++ 3.15-rc8-extable-in-rodata/arch/x86/kernel/vmlinux.lds.S
-@@ -20,6 +20,8 @@
- #define LOAD_OFFSET __START_KERNEL_map
- #endif
- 
-+#define EXCEPTION_TABLE_RO EXCEPTION_TABLE(16)
-+
- #include <asm-generic/vmlinux.lds.h>
- #include <asm/asm-offsets.h>
- #include <asm/thread_info.h>
-@@ -109,8 +111,7 @@ SECTIONS
- 	} :text = 0x9090
- 
- 	NOTES :text :note
--
--	EXCEPTION_TABLE(16) :text = 0x9090
-+	text_continues : {} :text /* switch back to regular text... */
- 
- #if defined(CONFIG_DEBUG_RODATA)
- 	/* .text should occupy whole number of pages */
---- 3.15-rc8/arch/x86/mm/init_64.c
-+++ 3.15-rc8-extable-in-rodata/arch/x86/mm/init_64.c
-@@ -1070,7 +1070,7 @@ int kernel_set_to_readonly;
- void set_kernel_text_rw(void)
- {
- 	unsigned long start = PFN_ALIGN(_text);
--	unsigned long end = PFN_ALIGN(__stop___ex_table);
-+	unsigned long end = PFN_ALIGN(_etext);
- 
- 	if (!kernel_set_to_readonly)
- 		return;
-@@ -1089,7 +1089,7 @@ void set_kernel_text_rw(void)
- void set_kernel_text_ro(void)
- {
- 	unsigned long start = PFN_ALIGN(_text);
--	unsigned long end = PFN_ALIGN(__stop___ex_table);
-+	unsigned long end = PFN_ALIGN(_etext);
- 
- 	if (!kernel_set_to_readonly)
- 		return;
-@@ -1108,7 +1108,7 @@ void mark_rodata_ro(void)
- 	unsigned long start = PFN_ALIGN(_text);
- 	unsigned long rodata_start = PFN_ALIGN(__start_rodata);
- 	unsigned long end = (unsigned long) &__end_rodata_hpage_align;
--	unsigned long text_end = PFN_ALIGN(&__stop___ex_table);
-+	unsigned long text_end = PFN_ALIGN(&__stop_notes);
- 	unsigned long rodata_end = PFN_ALIGN(&__end_rodata);
- 	unsigned long all_end = PFN_ALIGN(&_end);
- 
---- 3.15-rc8/include/asm-generic/vmlinux.lds.h
-+++ 3.15-rc8-extable-in-rodata/include/asm-generic/vmlinux.lds.h
-@@ -263,6 +263,7 @@
- 		*(.rodata1)						\
- 	}								\
- 									\
-+	EXCEPTION_TABLE_RO						\
- 	BUG_TABLE							\
- 									\
- 	/* PCI quirks */						\
-@@ -479,6 +480,10 @@
- 		VMLINUX_SYMBOL(__stop___ex_table) = .;			\
- 	}
- 
-+#ifndef EXCEPTION_TABLE_RO
-+#define EXCEPTION_TABLE_RO
-+#endif
-+
- /*
-  * Init task
-  */
+On Mon, Jun 02, 2014 at 11:04:23AM -0400, Chuck Lever wrote:
+> I’m wondering what should be done about NFS. A solution for NFS should
+> match any scheme that is considered for local file systems, IMO.
+> 
+> An alternative would be to “cap” the timestamps transmitted via NFSv3 by
+> Linux, so that a pre-epoch timestamp is transmitted as zero, and a large
+> timestamp is transmitted as UINT_MAX.
 
 
+I wonder if it would make sense to try to promulgate via the Austin
+group, and possibly the C standards committee the concept of a bit
+pattern (that might commonly be INT_MAX or UINT_MAX) that means "time
+unknown", or "time indefinite" or "we couldn't encode the time".
 
+We would then teach gmtime(3) and asctime(3) to print some appropriate
+message, and we could teach programs like find (with the -mtime)
+option, make, tmpwatch, et. al., that they can't make any presumption
+about the comparibility of any timestamp which has a value of
+TIME_UNDEFINIED.
+
+It would be problematic for time(2) or gettimeofday(2) to return
+TIME_UNDEFINED, since there are programs that care about time ticking
+forward, but I could imagine a new interface which would be permitted
+to return a flag indicating that we don't know the current time
+(because the CMOS battery had run down, etc.) so instead we're going
+to be counting the number of seconds since the system was booted.
+
+    	      	      	    	       - Ted
