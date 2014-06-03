@@ -1,37 +1,52 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.17.13]:55621 "EHLO
-	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753707AbaFCOtb (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 3 Jun 2014 10:49:31 -0400
-From: Arnd Bergmann <arnd@arndb.de>
+Received: from ipmail07.adl2.internode.on.net ([150.101.137.131]:18434 "EHLO
+	ipmail07.adl2.internode.on.net" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S934040AbaFCViU (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 3 Jun 2014 17:38:20 -0400
+Date: Wed, 4 Jun 2014 07:38:02 +1000
+From: Dave Chinner <david@fromorbit.com>
 Subject: Re: [RFC 00/32] making inode time stamps y2038 ready
-Date: Tue, 03 Jun 2014 16:37:46 +0200
-Message-ID: <18158267.ZX0ZMPkVDT@wuerfel>
-In-Reply-To: <Pine.LNX.4.64.1406031427130.12421@digraph.polyomino.org.uk>
-References: <1401480116-1973111-1-git-send-email-arnd@arndb.de> <5011138.W0gbOc20Qp@wuerfel> <Pine.LNX.4.64.1406031427130.12421@digraph.polyomino.org.uk>
+Message-ID: <20140603213802.GH14410@dastard>
+References: <1401480116-1973111-1-git-send-email-arnd@arndb.de>
+ <7175692.dpgYFMbTaP@wuerfel>
+ <538CF346.2070504@zytor.com>
+ <5011138.W0gbOc20Qp@wuerfel>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 7Bit
-Content-Type: text/plain; charset="us-ascii"
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <5011138.W0gbOc20Qp@wuerfel>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Joseph S. Myers" <joseph@codesourcery.com>
-Cc: "H. Peter Anvin" <hpa@zytor.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, john.stultz@linaro.org, hch@infradead.org, tglx@linutronix.de, geert@linux-m68k.org, lftan@altera.com, linux-fsdevel@vger.kernel.org, ceph-devel@vger.kernel.org, cluster-devel@redhat.com, coda@cs.cmu.edu, codalist@telemann.coda.cs.cmu.edu, fuse-devel@lists.sourceforge.net, linux-afs@lists.infradead.org, linux-btrfs@vger.kernel.org, linux-cifs@vger.kernel.org, linux-ext4@vger.kernel.org, linux-f2fs-devel@lists.sourceforge.net, linux-mtd@lists.infradead.org, linux-nfs@vger.kernel.org, linux-ntfs-dev@lists.sourceforge.net, linux-scsi@vger.kernel.org, logfs@logfs.org, ocfs2-devel@oss.oracle.com, reiserfs-devel@vger.kernel.org, samba-technical@lists.samba.org, xfs@oss.sgi.com
-Message-ID: <20140603143746.LJ4JELh7dEL1LO1FscZkZGfVkyU_dWofFbKOgoxv35M@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: "H. Peter Anvin" <hpa@zytor.com>, "Joseph S. Myers" <joseph@codesourcery.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, john.stultz@linaro.org, hch@infradead.org, tglx@linutronix.de, geert@linux-m68k.org, lftan@altera.com, linux-fsdevel@vger.kernel.org, ceph-devel@vger.kernel.org, cluster-devel@redhat.com, coda@cs.cmu.edu, codalist@telemann.coda.cs.cmu.edu, fuse-devel@lists.sourceforge.net, linux-afs@lists.infradead.org, linux-btrfs@vger.kernel.org, linux-cifs@vger.kernel.org, linux-ext4@vger.kernel.org, linux-f2fs-devel@lists.sourceforge.net, linux-mtd@lists.infradead.org, linux-nfs@vger.kernel.org, linux-ntfs-dev@lists.sourceforge.net, linux-scsi@vger.kernel.org, logfs@logfs.org, ocfs2-devel@oss.oracle.com, reiserfs-devel@vger.kernel.org, samba-technical@lists.samba.org, xfs@oss.sgi.com
+Message-ID: <20140603213802.7muRsCaR2k03gXXlhI_4vFyx_oUy-TPvMQpk8U_SEmI@z>
 
-On Tuesday 03 June 2014 14:33:10 Joseph S. Myers wrote:
-> On Tue, 3 Jun 2014, Arnd Bergmann wrote:
-> 
-> > I think John Stultz and Thomas Gleixner have already started looking
-> > at how the timekeeping code can be updated. Once that is done, we should
-> > be able to add a functional 64-bit gettimeofday/settimeofday syscall
-> > pair. While I definitely agree this is one of the most basic things to
-> > have, it's also not an area of the kernel that is easy to change.
-> 
-> 64-bit clock_gettime / clock_settime instead of gettimeofday / 
-> settimeofday should avoid the need for the kernel to have a 64-bit version 
-> of struct timeval.  (Userspace 64-bit gettimeofday / settimeofday would 
-> need to use a combination of the syscalls if the tz pointer is non-NULL.)
+On Tue, Jun 03, 2014 at 04:22:19PM +0200, Arnd Bergmann wrote:
+> On Monday 02 June 2014 14:57:26 H. Peter Anvin wrote:
+> > On 06/02/2014 12:55 PM, Arnd Bergmann wrote:
+> The possible uses I can see for non-ktime_t types in the kernel are:
+> * inodes need 96 bit timestamps to represent the full range of values
+>   that can be stored in a file system, you made a convincing argument
+>   for that. Almost everything else can fit into 64 bit on a 32-bit
+>   kernel, in theory also on a 64-bit kernel if we want that.
 
-Yes, that's what I meant.
+Just ot be pedantic, inodes don't *need* 96 bit timestamps - some
+filesystems can *support up to* 96 bit timestamps. If the kernel
+only supports 64 bit timestamps and that's all the kernel can
+represent, then the upper bits of the 96 bit on-disk inode
+timestamps simply remain zero.
 
-	Arnd
+If you move the filesystem between kernels with different time
+ranges, then the filesystem needs to be able to tell the kernel what
+it's supported range is.  This is where having the VFS limit the
+range of supported timestamps is important: the limit is the
+min(kernel range, filesystem range). This allows the filesystems
+to be indepenent of the kernel time representation, and the kernel
+to be independent of the physical filesystem time encoding....
+
+Cheers,
+
+Dave.
+-- 
+Dave Chinner
+david@fromorbit.com
