@@ -1,68 +1,42 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [RFC 11/32] xfs: convert to struct inode_time
-Date: Tue, 03 Jun 2014 11:16:50 +0200
-Message-ID: <5502404.8z4rGLMfhs@wuerfel>
-References: <1401480116-1973111-1-git-send-email-arnd@arndb.de> <5082342.alZgfaU1Q0@wuerfel> <20140603084130.GF14410@dastard>
+From: Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>
+Subject: Re: [RFC 00/32] making inode time stamps y2038 ready
+Date: Tue, 03 Jun 2014 14:21:29 +0200
+Message-ID: <7080340.W1OdttOEiZ@wuerfel>
+References: <1401480116-1973111-1-git-send-email-arnd@arndb.de>
+	<1401546649.2413.6.camel@slavad-CELSIUS-H720>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7Bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.126.187]:50073 "EHLO
-	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751132AbaFCJSR (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 3 Jun 2014 05:18:17 -0400
-In-Reply-To: <20140603084130.GF14410@dastard>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Dave Chinner <david@fromorbit.com>
-Cc: "H. Peter Anvin" <hpa@zytor.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, joseph@codesourcery.com, john.stultz@linaro.org, hch@infradead.org, tglx@linutronix.de, geert@linux-m68k.org, lftan@altera.com, linux-fsdevel@vger.kernel.org, xfs@oss.sgi.com
+Content-Transfer-Encoding: 7bit
+Return-path: <fuse-devel-bounces-5NWGOfrQmneRv+LV9MX5uipxlwaOVQ5f@public.gmane.org>
+In-Reply-To: <1401546649.2413.6.camel@slavad-CELSIUS-H720>
+List-Unsubscribe: <https://lists.sourceforge.net/lists/listinfo/fuse-devel>,
+	<mailto:fuse-devel-request-5NWGOfrQmneRv+LV9MX5uipxlwaOVQ5f@public.gmane.org?subject=unsubscribe>
+List-Archive: <http://sourceforge.net/mailarchive/forum.php?forum_name=fuse-devel>
+List-Post: <mailto:fuse-devel-5NWGOfrQmneRv+LV9MX5uipxlwaOVQ5f@public.gmane.org>
+List-Help: <mailto:fuse-devel-request-5NWGOfrQmneRv+LV9MX5uipxlwaOVQ5f@public.gmane.org?subject=help>
+List-Subscribe: <https://lists.sourceforge.net/lists/listinfo/fuse-devel>,
+	<mailto:fuse-devel-request-5NWGOfrQmneRv+LV9MX5uipxlwaOVQ5f@public.gmane.org?subject=subscribe>
+Errors-To: fuse-devel-bounces-5NWGOfrQmneRv+LV9MX5uipxlwaOVQ5f@public.gmane.org
+To: Vyacheslav Dubeyko <slava-yeENwD64cLxBDgjK7y7TUQ@public.gmane.org>
+Cc: hch-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org, linux-mtd-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org, logfs-PCqxUs/MD9bYtjvyW6yDsg@public.gmane.org, linux-afs-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, joseph-qD8j1LwMmJjtCj0u4l0SBw@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-cifs-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-scsi-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, ceph-devel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, codalist-/uMB558Y47wP4a1z8dhFYw@public.gmane.org, cluster-devel-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org, coda-ETDLCGt7PQU3uPMLIKxrzw@public.gmane.org, geert-Td1EMuHUCqxL1ZNQvxDV9g@public.gmane.org, linux-ext4-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, fuse-devel-5NWGOfrQmneRv+LV9MX5uipxlwaOVQ5f@public.gmane.org, reiserfs-devel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, xfs-VZNHf3L845pBDgjK7y7TUQ@public.gmane.org, john.stultz-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org, tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org, linux-nfs-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-ntfs-dev-5NWGOfrQmneRv+LV9MX5uipxlwaOVQ5f@public.gmane.org, samba-technical-w/Ol4Ecudpl8XjKLYN78aQ@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-f2fs-devel-5NWGOfrQmneRv+LV9MX5uipxlwaOVQ5f@public.gmane.org, ocfs2-devel-N0ozoZBvEnrZJqsBc5GL+g@public.gmane.org, linux-fsdevel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, lftan-EIB2kfCEclfQT0dZR+AlfA@public.gmane.org, linux-btrfs-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+List-Id: linux-arch.vger.kernel.org
 
-On Tuesday 03 June 2014 18:41:30 Dave Chinner wrote:
-> On Tue, Jun 03, 2014 at 09:33:36AM +0200, Arnd Bergmann wrote:
-> > On Tuesday 03 June 2014 10:32:27 Dave Chinner wrote:
-> > > On Mon, Jun 02, 2014 at 01:43:44PM +0200, Arnd Bergmann wrote:
-> > > > On Monday 02 June 2014 10:28:22 Dave Chinner wrote:
-> > > > > On Sun, Jun 01, 2014 at 10:24:37AM +1000, Dave Chinner wrote:
-> > > > > > On Sat, May 31, 2014 at 05:37:52PM +0200, Arnd Bergmann wrote:
-> > > > My patch set
-> > > > (at least with the 64-bit tv_sec) just gets 32-bit kernels to behave
-> > > > more like 64-bit kernels regarding inode time stamps, which does
-> > > > impact all the file systems that the a 64-bit time or the NFS
-> > > > unsigned epoch (1970-2106), while your patch extends the file
-> > > > system internal epoch (1901-2038 for XFS) so it can be used by
-> > > > anything that knows how to handle larger than 32-bit second values
-> > > > (either 64-bit kernel or 32-bit with inode_time patch).
-> > > 
-> > > Right, but the issue is that 64 bit second counters are broken right
-> > > now because most filesystems can't support more than 32 bit values.
-> > > So it doesn't matter whether it's 32 bit or 64 bit machines, just
-> > > adding explicit support for >32 bit second counters without doing
-> > > anything else just extends that brokenness into the indefinite
-> > > future.
-> > 
-> > Of course, "most filesystems" are obsolete, and most of the modern
-> > file systems already support >32 bit timestamps: ext4, btrfs, cifs,
-> > f2fs, 9p, nfsv4, ntfs, gfs2, ocfs2, fuse, ufs2. Everything else
-> > except xfs, ext2/3 and exofs uses the nfsv3 interpretation on
-> > 64-bit systems, which interprets time stamps with the high bit
-> > set as years 2038-2106 rather than 1903-1969.
-> 
-> I'm not sure that's an entirely correct representation - the
-> remainder of the 32 bit-only timestamp filesystems don't actively
-> interpret the time stamp at all - it's just an opaque 32 bit value.
-> hence the interpretation of the value is dependent on whether the
-> kernel treats it as signed or unsigned....
+On Saturday 31 May 2014 18:30:49 Vyacheslav Dubeyko wrote:
+> By the way, what about NILFS2? Is NILFS2 ready for suggested approach
+> without any changes?
 
-As I mentioned elsewhere in the thread, I don't the way it's handled
-is intentional, but it's definitely the file system code that does
-the assignment to the timeval and decides on the interpretation, doing
-either
+nilfs2 and a lot of other file systems don't need any changes for
+this, because they don't assign the inode time stamp fields to
+a 'struct timespec'.
 
-	inode->i_mtime.tv_sec = (signed)le32_to_cpu(raw_inode.mtime);
-
-or
-
-	inode->i_mtime.tv_sec = le32_to_cpu(raw_inode.mtime);
-
+FWIW, nilfs2 uses a 64-bit seconds value, which is always safe and
+can represent the full range of user space timespec on all machines.
 
 	Arnd
+
+------------------------------------------------------------------------------
+Learn Graph Databases - Download FREE O'Reilly Book
+"Graph Databases" is the definitive new guide to graph databases and their 
+applications. Written by three acclaimed leaders in the field, 
+this first edition is now available. Download your free book today!
+http://p.sf.net/sfu/NeoTech
