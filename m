@@ -1,166 +1,48 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wi0-f202.google.com ([209.85.212.202]:55976 "EHLO
-	mail-wi0-f202.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751140AbaFENsb (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 5 Jun 2014 09:48:31 -0400
-Received: by mail-wi0-f202.google.com with SMTP id hi2so268367wib.5
-        for <linux-arch@vger.kernel.org>; Thu, 05 Jun 2014 06:48:30 -0700 (PDT)
-From: David Drysdale <drysdale@google.com>
-Subject: [PATCHv4 RESEND man-pages 3/3] execveat.2: initial man page for execveat(2)
-Date: Thu,  5 Jun 2014 14:40:35 +0100
-Message-ID: <1401975635-6162-4-git-send-email-drysdale@google.com>
-In-Reply-To: <1401975635-6162-1-git-send-email-drysdale@google.com>
-References: <1401975635-6162-1-git-send-email-drysdale@google.com>
+Received: from mxip6-inbound.gatech.edu ([130.207.182.15]:48145 "EHLO
+	mxip6-inbound.gatech.edu" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752521AbaFEWTM (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 5 Jun 2014 18:19:12 -0400
+Message-ID: <5390EAAC.5070601@gatech.edu>
+Date: Thu, 05 Jun 2014 18:09:48 -0400
+From: Pranith Kumar <pranith@gatech.edu>
+MIME-Version: 1.0
+Subject: [PATCH 1/1] define generic version of cmpxchg{64} only if not, previously
+ defined
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Alexander Viro <viro@zeniv.linux.org.uk>, Meredydd Luff <meredydd@senatehouse.org>, linux-kernel@vger.kernel.org
-Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, x86@kernel.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, David Drysdale <drysdale@google.com>
-Message-ID: <20140605134035.41GR5UyNvhM9c3y5jcR1Q6x_iZwydOmuWeh2DUFE3UQ@z>
+To: arnd@arndb.de
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20140605220948.W0loNs9FriAIdS8L9LlgTxs_2bJBn5cpE8w3W6lTQ7s@z>
 
-Signed-off-by: David Drysdale <drysdale@google.com>
+define generic versions of cmpxchg{64} only if not previously defined.
+
+This makes these definition in-line to other definitions of generic versions
+
+
+Signed-off-by: Pranith Kumar <bobby.prani@gmail.com>
 ---
- man2/execveat.2 | 132 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 132 insertions(+)
- create mode 100644 man2/execveat.2
+ include/asm-generic/cmpxchg.h |    5 +++++
+ 1 file changed, 5 insertions(+)
 
-diff --git a/man2/execveat.2 b/man2/execveat.2
-new file mode 100644
-index 000000000000..fbbb9f824290
---- /dev/null
-+++ b/man2/execveat.2
-@@ -0,0 +1,132 @@
-+.\" Copyright (c) 2014 Google, Inc.
-+.\"
-+.\" %%%LICENSE_START(VERBATIM)
-+.\" Permission is granted to make and distribute verbatim copies of this
-+.\" manual provided the copyright notice and this permission notice are
-+.\" preserved on all copies.
-+.\"
-+.\" Permission is granted to copy and distribute modified versions of this
-+.\" manual under the conditions for verbatim copying, provided that the
-+.\" entire resulting derived work is distributed under the terms of a
-+.\" permission notice identical to this one.
-+.\"
-+.\" Since the Linux kernel and libraries are constantly changing, this
-+.\" manual page may be incorrect or out-of-date.  The author(s) assume no
-+.\" responsibility for errors or omissions, or for damages resulting from
-+.\" the use of the information contained herein.  The author(s) may not
-+.\" have taken the same level of care in the production of this manual,
-+.\" which is licensed free of charge, as they might when working
-+.\" professionally.
-+.\"
-+.\" Formatted or processed versions of this manual, if unaccompanied by
-+.\" the source, must acknowledge the copyright and authors of this work.
-+.\" %%%LICENSE_END
-+.\"
-+.TH EXECVEAT 2 2014-04-02 "Linux" "Linux Programmer's Manual"
-+.SH NAME
-+execveat \- execute program relative to a directory file descriptor
-+.SH SYNOPSIS
-+.B #include <unistd.h>
-+.sp
-+.BI "int execve(int " fd ", const char *" pathname ","
-+.br
-+.BI "           char *const " argv "[],  char *const " envp "[],"
-+.br
-+.BI "           int " flags);
-+.SH DESCRIPTION
-+The
-+.BR execveat ()
-+system call executes the program pointed to by the combination of \fIfd\fP and \fIpathname\fP.
-+The
-+.BR execveat ()
-+system call operates in exactly the same way as
-+.BR execve (2),
-+except for the differences described in this manual page.
+diff --git a/include/asm-generic/cmpxchg.h b/include/asm-generic/cmpxchg.h
+index 811fb1e..7154b79 100644
+--- a/include/asm-generic/cmpxchg.h
++++ b/include/asm-generic/cmpxchg.h
+@@ -102,7 +102,12 @@ unsigned long __xchg(unsigned long x, volatile void *ptr, int size)
+ #define cmpxchg64_local(ptr, o, n) __cmpxchg64_local_generic((ptr), (o), (n))
+ #endif
+ 
++#ifndef cmpxchg
+ #define cmpxchg(ptr, o, n)	cmpxchg_local((ptr), (o), (n))
++#endif
 +
-+If the pathname given in
-+.I pathname
-+is relative, then it is interpreted relative to the directory
-+referred to by the file descriptor
-+.I fd
-+(rather than relative to the current working directory of
-+the calling process, as is done by
-+.BR execve (2)
-+for a relative pathname).
-+
-+If
-+.I pathname
-+is relative and
-+.I fd
-+is the special value
-+.BR AT_FDCWD ,
-+then
-+.I pathname
-+is interpreted relative to the current working
-+directory of the calling process (like
-+.BR execve (2)).
-+
-+If
-+.I pathname
-+is absolute, then
-+.I fd
-+is ignored.
-+
-+If
-+.I pathname
-+is NULL, then the file descriptor
-+.I fd
-+specifies the file to be executed.
-+
-+.I flags
-+can either be 0, or include the following flag:
-+.TP
-+.B AT_SYMLINK_NOFOLLOW
-+If the file identified by
-+.I fd
-+and a non-NULL
-+.I pathname
-+is a symbolic link, then the call fails with the error
-+.BR EINVAL .
-+.SH "RETURN VALUE"
-+On success,
-+.BR execveat ()
-+does not return. On error \-1 is returned, and
-+.I errno
-+is set appropriately.
-+.SH ERRORS
-+The same errors that occur for
-+.BR execve (2)
-+can also occur for
-+.BR execveat ().
-+The following additional errors can occur for
-+.BR execveat ():
-+.TP
-+.B EBADF
-+.I fd
-+is not a valid file descriptor.
-+.TP
-+.B EINVAL
-+Invalid flag specified in
-+.IR flags .
-+.TP
-+.B ENOTDIR
-+.I pathname
-+is relative and
-+.I fd
-+is a file descriptor referring to a file other than a directory.
-+.SH VERSIONS
-+.BR execveat ()
-+was added to Linux in kernel 3.???.
-+.SH NOTES
-+In addition to the reasons explained in
-+.BR openat (2),
-+the
-+.BR execveat ()
-+system call is also needed to allow
-+.BR fexecve (3)
-+to be implemented on systems that do not have the
-+.I /proc
-+filesystem mounted.
-+.SH SEE ALSO
-+.BR execve (2),
-+.BR fexecve (3)
---
-1.9.1.423.g4596e3a
-
++#ifndef cmpxchg64
+ #define cmpxchg64(ptr, o, n)	cmpxchg64_local((ptr), (o), (n))
++#endif
+ 
+ #endif /* __ASM_GENERIC_CMPXCHG_H */
+-- 
+1.7.9.5
