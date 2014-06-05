@@ -1,48 +1,43 @@
-From: Kees Cook <keescook@chromium.org>
-Subject: Re: [PATCHv4 RESEND 0/3] syscalls,x86: Add execveat() system call
-Date: Thu, 5 Jun 2014 10:14:52 -0700
-Message-ID: <CAGXu5jLjneRP=eF67k86cZNNGczZ=9-D4x9GQ-TaSKheCoG-Tg@mail.gmail.com>
-References: <1401975635-6162-1-git-send-email-drysdale@google.com>
+From: Pranith Kumar <pranith@gatech.edu>
+Subject: [PATCH 1/1] define generic version of cmpxchg{64} only if not, previously
+ defined
+Date: Thu, 05 Jun 2014 18:09:48 -0400
+Message-ID: <5390EAAC.5070601@gatech.edu>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ob0-f176.google.com ([209.85.214.176]:36913 "EHLO
-	mail-ob0-f176.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751677AbaFEROx (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 5 Jun 2014 13:14:53 -0400
-Received: by mail-ob0-f176.google.com with SMTP id wo20so1455516obc.7
-        for <linux-arch@vger.kernel.org>; Thu, 05 Jun 2014 10:14:53 -0700 (PDT)
-In-Reply-To: <1401975635-6162-1-git-send-email-drysdale@google.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: David Drysdale <drysdale@google.com>
-Cc: Alexander Viro <viro@zeniv.linux.org.uk>, Meredydd Luff <meredydd@senatehouse.org>, LKML <linux-kernel@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, "x86@kernel.org" <x86@kernel.org>, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: arnd@arndb.de
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Thu, Jun 5, 2014 at 6:40 AM, David Drysdale <drysdale@google.com> wrote:
-> Resending, adding cc:linux-api.
->
-> Also, it may help to add a little more background -- this patch is
-> needed as a (small) part of implementing Capsicum in the Linux kernel.
->
-> Capsicum is a security framework that has been present in FreeBSD since
-> version 9.0 (Jan 2012), and is based on concepts from object-capability
-> security [1].
->
-> One of the features of Capsicum is capability mode, which locks down
-> access to global namespaces such as the filesystem hierarchy.  In
-> capability mode, /proc is thus inaccessible and so fexecve(3) doesn't
-> work -- hence the need for a kernel-space alternative.
->
-> [1] http://www.cl.cam.ac.uk/research/security/capsicum/papers/2010usenix-security-capsicum-website.pdf
+define generic versions of cmpxchg{64} only if not previously defined.
 
-Thanks for reposting!
+This makes these definition in-line to other definitions of generic versions
 
-I think it'd be quite helpful to have this available for very tightly
-confined sandboxes. And in a larger sense, Capsicum itself is an
-interesting way to do programmatic isolation.
 
--Kees
+Signed-off-by: Pranith Kumar <bobby.prani@gmail.com>
+---
+ include/asm-generic/cmpxchg.h |    5 +++++
+ 1 file changed, 5 insertions(+)
 
+diff --git a/include/asm-generic/cmpxchg.h b/include/asm-generic/cmpxchg.h
+index 811fb1e..7154b79 100644
+--- a/include/asm-generic/cmpxchg.h
++++ b/include/asm-generic/cmpxchg.h
+@@ -102,7 +102,12 @@ unsigned long __xchg(unsigned long x, volatile void *ptr, int size)
+ #define cmpxchg64_local(ptr, o, n) __cmpxchg64_local_generic((ptr), (o), (n))
+ #endif
+ 
++#ifndef cmpxchg
+ #define cmpxchg(ptr, o, n)	cmpxchg_local((ptr), (o), (n))
++#endif
++
++#ifndef cmpxchg64
+ #define cmpxchg64(ptr, o, n)	cmpxchg64_local((ptr), (o), (n))
++#endif
+ 
+ #endif /* __ASM_GENERIC_CMPXCHG_H */
 -- 
-Kees Cook
-Chrome OS Security
+1.7.9.5
