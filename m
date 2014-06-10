@@ -1,48 +1,58 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mxip6-inbound.gatech.edu ([130.207.182.15]:48145 "EHLO
-	mxip6-inbound.gatech.edu" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752521AbaFEWTM (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 5 Jun 2014 18:19:12 -0400
-Message-ID: <5390EAAC.5070601@gatech.edu>
-Date: Thu, 05 Jun 2014 18:09:48 -0400
-From: Pranith Kumar <pranith@gatech.edu>
+Received: from mout.kundenserver.de ([212.227.126.187]:50740 "EHLO
+	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750788AbaFJJ4p (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 10 Jun 2014 05:56:45 -0400
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [RFC 00/32] making inode time stamps y2038 ready
+Date: Tue, 10 Jun 2014 11:54:14 +0200
+Message-ID: <10173877.4plnjUiyX8@wuerfel>
+In-Reply-To: <538FB570.8000502@zytor.com>
+References: <1401480116-1973111-1-git-send-email-arnd@arndb.de> <8770583.6XeZxCxOY8@wuerfel> <538FB570.8000502@zytor.com>
 MIME-Version: 1.0
-Subject: [PATCH 1/1] define generic version of cmpxchg{64} only if not, previously
- defined
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
+Content-Transfer-Encoding: 7Bit
+Content-Type: text/plain; charset="us-ascii"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: arnd@arndb.de
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20140605220948.W0loNs9FriAIdS8L9LlgTxs_2bJBn5cpE8w3W6lTQ7s@z>
+To: "H. Peter Anvin" <hpa@zytor.com>
+Cc: Nicolas Pitre <nicolas.pitre@linaro.org>, Dave Chinner <david@fromorbit.com>, hch@infradead.org, linux-mtd@lists.infradead.org, logfs@logfs.org, linux-afs@lists.infradead.org, "Joseph S. Myers" <joseph@codesourcery.com>, linux-arch@vger.kernel.org, linux-cifs@vger.kernel.org, linux-scsi@vger.kernel.org, ceph-devel@vger.kernel.org, cluster-devel@redhat.com, coda@cs.cmu.edu, geert@linux-m68k.org, linux-ext4@vger.kernel.org, codalist@telemann.coda.cs.cmu.edu, fuse-devel@lists.sourceforge.net, reiserfs-devel@vger.kernel.org, xfs@oss.sgi.com, john.stultz@linaro.org, tglx@linutronix.de, linux-nfs@vger.kernel.org, linux-ntfs-dev@lists.sourceforge.net, samba-technical@lists.samba.org, linux-kernel@vger.kernel.org, linux-f2fs-devel@lists.sourceforge.net, ocfs2-devel@oss.oracle.com, linux-fsdevel@vger.kernel.org, lftan@altera.com, linux-btrfs@vger.kernel.org
+Message-ID: <20140610095414.T_bA8i3FHwwppQiJc-UjuVc_bsDONLH1OVcZ6gecuvU@z>
 
-define generic versions of cmpxchg{64} only if not previously defined.
+On Wednesday 04 June 2014 17:10:24 H. Peter Anvin wrote:
+> On 06/04/2014 12:24 PM, Arnd Bergmann wrote:
+> > 
+> > For other timekeeping stuff in the kernel, I agree that using some
+> > 64-bit representation (nanoseconds, 32/32 unsigned seconds/nanoseconds,
+> > ...) has advantages, that's exactly the point I was making earlier
+> > against simply extending the internal time_t/timespec to 64-bit
+> > seconds for everything.
+> > 
+> 
+> How much of a performance issue is it to make time_t 64 bits, and for
+> the bits there are, how hard are they to fix?
 
-This makes these definition in-line to other definitions of generic versions
+Probably very little overhead for most uses, it's more the regression
+potential in the less common parts of the kernel I'm worried about.
 
+There is a significant but not overwhelming number of uses of the
+main problematic types in the kernel:
 
-Signed-off-by: Pranith Kumar <bobby.prani@gmail.com>
----
- include/asm-generic/cmpxchg.h |    5 +++++
- 1 file changed, 5 insertions(+)
+arnd@wuerfel:~/arm-soc$ git grep -wl time_t | wc
+    188     188    5566
+arnd@wuerfel:~/arm-soc$ git grep -wl timeval | wc
+    320     320   10353
+arnd@wuerfel:~/arm-soc$ git grep -wl timespec | wc
+    406     406   10886
 
-diff --git a/include/asm-generic/cmpxchg.h b/include/asm-generic/cmpxchg.h
-index 811fb1e..7154b79 100644
---- a/include/asm-generic/cmpxchg.h
-+++ b/include/asm-generic/cmpxchg.h
-@@ -102,7 +102,12 @@ unsigned long __xchg(unsigned long x, volatile void *ptr, int size)
- #define cmpxchg64_local(ptr, o, n) __cmpxchg64_local_generic((ptr), (o), (n))
- #endif
- 
-+#ifndef cmpxchg
- #define cmpxchg(ptr, o, n)	cmpxchg_local((ptr), (o), (n))
-+#endif
-+
-+#ifndef cmpxchg64
- #define cmpxchg64(ptr, o, n)	cmpxchg64_local((ptr), (o), (n))
-+#endif
- 
- #endif /* __ASM_GENERIC_CMPXCHG_H */
--- 
-1.7.9.5
+I believe we have to audit all of them anyway if we want to change
+the kernel to less problematic types and introduce new user
+interfaces.
+
+IMHO this work is helped if we change the uses to a new type
+as we find the problems. This lets us do the work one subsystem
+at a time and avoid accidental ABI changes. I don't care much what
+type that will be, and having a 96-bit type will certainly work
+well in a lot of cases, but I don't see a strong reason to use
+that over other types, especially when they can be more efficient.
+
+	Arnd
