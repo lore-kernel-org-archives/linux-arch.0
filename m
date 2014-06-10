@@ -1,72 +1,115 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:38714 "EHLO mail.zytor.com"
+Received: from terminus.zytor.com ([198.137.202.10]:38717 "EHLO mail.zytor.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753219AbaFJXNz (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	id S1753222AbaFJXNz (ORCPT <rfc822;linux-arch@vger.kernel.org>);
 	Tue, 10 Jun 2014 19:13:55 -0400
 From: "H. Peter Anvin" <hpa@zytor.com>
-Subject: [PATCH RFC 09/10] tools: Add common infrastructure for byte swapping
-Date: Tue, 10 Jun 2014 16:13:13 -0700
-Message-ID: <1402441994-16780-10-git-send-email-hpa@zytor.com>
+Subject: [PATCH RFC 06/10] tools: Add gcc __builtin_bswap*() support for unaligned references
+Date: Tue, 10 Jun 2014 16:13:10 -0700
+Message-ID: <1402441994-16780-7-git-send-email-hpa@zytor.com>
 In-Reply-To: <1402441994-16780-1-git-send-email-hpa@zytor.com>
 References: <1402441994-16780-1-git-send-email-hpa@zytor.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Sam Ravnborg <sam@ravnborg.org>, linux-kernel@vger.kernel.org, linux-kbuild@vger.kernel.org, linux-arch@vger.kernel.org
 Cc: Andy Lutomirski <luto@amacapital.net>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>
-Message-ID: <20140610231313.qPCm2pxm3D4USuXr_IBo0euYCMZYk7wSJ29Ee7sVLw4@z>
+Message-ID: <20140610231310.H3TqIE-wEYdgEnkX--vxGhMLxWb7PsjrosU6DImeokY@z>
 
-Common selection infrastructure for picking the best byte swap method.
+Add support for gcc __builtin_bswap*() for byteswapping unaligned
+references.
 
 Signed-off-by: H. Peter Anvin <hpa@zytor.com>
 ---
- tools/include/tools/unaligned/be_swap.h | 15 +++++++++++++++
- tools/include/tools/unaligned/le_swap.h | 15 +++++++++++++++
- 2 files changed, 30 insertions(+)
- create mode 100644 tools/include/tools/unaligned/be_swap.h
- create mode 100644 tools/include/tools/unaligned/le_swap.h
+ tools/include/tools/unaligned/be_bswap.h | 36 ++++++++++++++++++++++++++++++++
+ tools/include/tools/unaligned/le_bswap.h | 36 ++++++++++++++++++++++++++++++++
+ 2 files changed, 72 insertions(+)
+ create mode 100644 tools/include/tools/unaligned/be_bswap.h
+ create mode 100644 tools/include/tools/unaligned/le_bswap.h
 
-diff --git a/tools/include/tools/unaligned/be_swap.h b/tools/include/tools/unaligned/be_swap.h
+diff --git a/tools/include/tools/unaligned/be_bswap.h b/tools/include/tools/unaligned/be_bswap.h
 new file mode 100644
-index 000000000000..f0effb8fc6ca
+index 000000000000..9e8d1e91fe0e
 --- /dev/null
-+++ b/tools/include/tools/unaligned/be_swap.h
-@@ -0,0 +1,15 @@
-+#ifndef TOOLS_BE_SWAP_H
-+#define TOOLS_BE_SWAP_H
++++ b/tools/include/tools/unaligned/be_bswap.h
+@@ -0,0 +1,36 @@
++#ifndef _TOOLS_BE_BSWAP_H
++#define _TOOLS_BE_BSWAP_H
 +
-+#ifdef htole64
-+/* Prefer the <endian.h> infrastructure if it exists */
-+# include <tools/unaligned/be_endian.h>
-+#elif TOOLS_UNALIGNED_GCC >= 0x040800
-+/* This version of gcc is new enough to have __builtin_bswap*() */
-+# include <tools/unaligned/be_bswap.h>
-+#else
-+/* This always works */
-+# include <tools/unaligned/be_byteshift.h>
-+#endif
++#include <stdint.h>
 +
-+#endif /* TOOLS_BE_SWAP_H */
-diff --git a/tools/include/tools/unaligned/le_swap.h b/tools/include/tools/unaligned/le_swap.h
++static inline uint16_t get_unaligned_be16(const void *_p)
++{
++	return __builtin_bswap16(get_unaligned_le16(_p));
++}
++
++static inline uint32_t get_unaligned_be32(const void *_p)
++{
++	return __builtin_bswap32(get_unaligned_le32(_p));
++}
++
++static inline uint64_t get_unaligned_be64(const void *_p)
++{
++	return __builtin_bswap64(get_unaligned_le64(_p));
++}
++
++static inline void put_unaligned_be16(uint16_t val, void *_p)
++{
++	put_unaligned_le16(__builtin_bswap16(val), _p);
++}
++
++static inline void put_unaligned_be32(uint32_t val, void *_p)
++{
++	put_unaligned_le32(__builtin_bswap32(val), _p);
++}
++
++static inline void put_unaligned_be64(uint64_t val, void *_p)
++{
++	put_unaligned_le64(__builtin_bswap64(val), _p);
++}
++
++#endif /* _TOOLS_BE_BSWAP_H */
+diff --git a/tools/include/tools/unaligned/le_bswap.h b/tools/include/tools/unaligned/le_bswap.h
 new file mode 100644
-index 000000000000..8952723c1dff
+index 000000000000..9c70415fa782
 --- /dev/null
-+++ b/tools/include/tools/unaligned/le_swap.h
-@@ -0,0 +1,15 @@
-+#ifndef TOOLS_LE_SWAP_H
-+#define TOOLS_LE_SWAP_H
++++ b/tools/include/tools/unaligned/le_bswap.h
+@@ -0,0 +1,36 @@
++#ifndef _TOOLS_LE_BSWAP_H
++#define _TOOLS_LE_BSWAP_H
 +
-+#ifdef htobe64
-+/* Prefer the <endian.h> infrastructure if it exists */
-+# include <tools/unaligned/le_endian.h>
-+#elif TOOLS_UNALIGNED_GCC >= 0x040800
-+/* This version of gcc is new enough to have __builtin_bswap*() */
-+# include <tools/unaligned/le_bswap.h>
-+#else
-+/* This always works */
-+# include <tools/unaligned/le_byteshift.h>
-+#endif
++#include <stdint.h>
 +
-+#endif /* TOOLS_LE_SWAP_H */
++static inline uint16_t get_unaligned_le16(const void *_p)
++{
++	return __builtin_bswap16(get_unaligned_be16(_p));
++}
++
++static inline uint32_t get_unaligned_le32(const void *_p)
++{
++	return __builtin_bswap32(get_unaligned_be32(_p));
++}
++
++static inline uint64_t get_unaligned_le64(const void *_p)
++{
++	return __builtin_bswap64(get_unaligned_be64(_p));
++}
++
++static inline void put_unaligned_le16(uint16_t val, void *_p)
++{
++	put_unaligned_be16(__builtin_bswap16(val), _p);
++}
++
++static inline void put_unaligned_le32(uint32_t val, void *_p)
++{
++	put_unaligned_be32(__builtin_bswap32(val), _p);
++}
++
++static inline void put_unaligned_le64(uint64_t val, void *_p)
++{
++	put_unaligned_be64(__builtin_bswap64(val), _p);
++}
++
++#endif /* _TOOLS_LE_BSWAP_H */
 -- 
 1.9.3
 
