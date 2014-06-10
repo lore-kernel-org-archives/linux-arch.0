@@ -1,33 +1,52 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:38881 "EHLO mail.zytor.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752087AbaFJXbN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 10 Jun 2014 19:31:13 -0400
-Message-ID: <5397952E.9040008@zytor.com>
-Date: Tue, 10 Jun 2014 16:30:54 -0700
-From: "H. Peter Anvin" <hpa@zytor.com>
+Received: from mail-ve0-f170.google.com ([209.85.128.170]:52319 "EHLO
+	mail-ve0-f170.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753761AbaFJXd6 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 10 Jun 2014 19:33:58 -0400
+Received: by mail-ve0-f170.google.com with SMTP id oz11so4712608veb.29
+        for <linux-arch@vger.kernel.org>; Tue, 10 Jun 2014 16:33:57 -0700 (PDT)
 MIME-Version: 1.0
+In-Reply-To: <5397952E.9040008@zytor.com>
+References: <1402441994-16780-1-git-send-email-hpa@zytor.com>
+ <1402441994-16780-4-git-send-email-hpa@zytor.com> <CALCETrUrdvvTc+qt61nQ1iRW4qpyDfMSzqnLKFMUsx7P=XvAfA@mail.gmail.com>
+ <5397952E.9040008@zytor.com>
+From: Andy Lutomirski <luto@amacapital.net>
+Date: Tue, 10 Jun 2014 16:33:37 -0700
+Message-ID: <CALCETrUvN1kYB=Z+wmPfbJawWSHb-r5NhmYLV1ZTxOWmHkanHw@mail.gmail.com>
 Subject: Re: [PATCH RFC 03/10] tools: Add le_direct/be_direct methods for
  unaligned access
-References: <1402441994-16780-1-git-send-email-hpa@zytor.com> <1402441994-16780-4-git-send-email-hpa@zytor.com> <CALCETrUrdvvTc+qt61nQ1iRW4qpyDfMSzqnLKFMUsx7P=XvAfA@mail.gmail.com>
-In-Reply-To: <CALCETrUrdvvTc+qt61nQ1iRW4qpyDfMSzqnLKFMUsx7P=XvAfA@mail.gmail.com>
 Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andy Lutomirski <luto@amacapital.net>
+To: "H. Peter Anvin" <hpa@zytor.com>
 Cc: Sam Ravnborg <sam@ravnborg.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-kbuild@vger.kernel.org" <linux-kbuild@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Thomas Gleixner <tglx@linutronix.de>
-Message-ID: <20140610233054.VggVRQfRpyLZB-UOkCSgDjVY2sRrmC44NKGytjhD--w@z>
+Message-ID: <20140610233337.oTzQwyNWqT5qT9kL_UbPaIf-Of1x2g0s9XbNxy-1wpg@z>
 
-On 06/10/2014 04:25 PM, Andy Lutomirski wrote:
-> On Tue, Jun 10, 2014 at 4:13 PM, H. Peter Anvin <hpa@zytor.com> wrote:
->> For architectures which handle unaligned references transparently.
-> 
-> Shouldn't these depend on host endianness?
-> 
+On Tue, Jun 10, 2014 at 4:30 PM, H. Peter Anvin <hpa@zytor.com> wrote:
+> On 06/10/2014 04:25 PM, Andy Lutomirski wrote:
+>> On Tue, Jun 10, 2014 at 4:13 PM, H. Peter Anvin <hpa@zytor.com> wrote:
+>>> For architectures which handle unaligned references transparently.
+>>
+>> Shouldn't these depend on host endianness?
+>>
+>
+> See further down the series for how these end up being invoked.
+>
 
-See further down the series for how these end up being invoked.
+Ah, sneaky.
 
-	-hpa
+Would it make sense to put a comment in this file (and similar files)
+indicating that they must only be included on architectures of the
+appropriate endianness?
+
+--Andy
+
+>         -hpa
+>
+>
 
 
+
+-- 
+Andy Lutomirski
+AMA Capital Management, LLC
