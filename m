@@ -1,58 +1,123 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.126.187]:50740 "EHLO
-	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750788AbaFJJ4p (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 10 Jun 2014 05:56:45 -0400
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [RFC 00/32] making inode time stamps y2038 ready
-Date: Tue, 10 Jun 2014 11:54:14 +0200
-Message-ID: <10173877.4plnjUiyX8@wuerfel>
-In-Reply-To: <538FB570.8000502@zytor.com>
-References: <1401480116-1973111-1-git-send-email-arnd@arndb.de> <8770583.6XeZxCxOY8@wuerfel> <538FB570.8000502@zytor.com>
-MIME-Version: 1.0
-Content-Transfer-Encoding: 7Bit
-Content-Type: text/plain; charset="us-ascii"
+Received: from terminus.zytor.com ([198.137.202.10]:38708 "EHLO mail.zytor.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752030AbaFJXNt (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 10 Jun 2014 19:13:49 -0400
+From: "H. Peter Anvin" <hpa@zytor.com>
+Subject: [PATCH RFC 05/10] tools: Add <endian.h> libc support for unaligned references
+Date: Tue, 10 Jun 2014 16:13:09 -0700
+Message-ID: <1402441994-16780-6-git-send-email-hpa@zytor.com>
+In-Reply-To: <1402441994-16780-1-git-send-email-hpa@zytor.com>
+References: <1402441994-16780-1-git-send-email-hpa@zytor.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "H. Peter Anvin" <hpa@zytor.com>
-Cc: Nicolas Pitre <nicolas.pitre@linaro.org>, Dave Chinner <david@fromorbit.com>, hch@infradead.org, linux-mtd@lists.infradead.org, logfs@logfs.org, linux-afs@lists.infradead.org, "Joseph S. Myers" <joseph@codesourcery.com>, linux-arch@vger.kernel.org, linux-cifs@vger.kernel.org, linux-scsi@vger.kernel.org, ceph-devel@vger.kernel.org, cluster-devel@redhat.com, coda@cs.cmu.edu, geert@linux-m68k.org, linux-ext4@vger.kernel.org, codalist@telemann.coda.cs.cmu.edu, fuse-devel@lists.sourceforge.net, reiserfs-devel@vger.kernel.org, xfs@oss.sgi.com, john.stultz@linaro.org, tglx@linutronix.de, linux-nfs@vger.kernel.org, linux-ntfs-dev@lists.sourceforge.net, samba-technical@lists.samba.org, linux-kernel@vger.kernel.org, linux-f2fs-devel@lists.sourceforge.net, ocfs2-devel@oss.oracle.com, linux-fsdevel@vger.kernel.org, lftan@altera.com, linux-btrfs@vger.kernel.org
-Message-ID: <20140610095414.T_bA8i3FHwwppQiJc-UjuVc_bsDONLH1OVcZ6gecuvU@z>
+To: Sam Ravnborg <sam@ravnborg.org>, linux-kernel@vger.kernel.org, linux-kbuild@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: Andy Lutomirski <luto@amacapital.net>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>
+Message-ID: <20140610231309.2K9ubaQKthSAROJTLnEjQd6uOaU-RgbfEW53hoa1868@z>
 
-On Wednesday 04 June 2014 17:10:24 H. Peter Anvin wrote:
-> On 06/04/2014 12:24 PM, Arnd Bergmann wrote:
-> > 
-> > For other timekeeping stuff in the kernel, I agree that using some
-> > 64-bit representation (nanoseconds, 32/32 unsigned seconds/nanoseconds,
-> > ...) has advantages, that's exactly the point I was making earlier
-> > against simply extending the internal time_t/timespec to 64-bit
-> > seconds for everything.
-> > 
-> 
-> How much of a performance issue is it to make time_t 64 bits, and for
-> the bits there are, how hard are they to fix?
+Add support for the <endian.h> byteswap macros for unaligned
+references.
 
-Probably very little overhead for most uses, it's more the regression
-potential in the less common parts of the kernel I'm worried about.
+Signed-off-by: H. Peter Anvin <hpa@zytor.com>
+---
+ tools/include/tools/unaligned/be_endian.h | 40 +++++++++++++++++++++++++++++++
+ tools/include/tools/unaligned/le_endian.h | 40 +++++++++++++++++++++++++++++++
+ 2 files changed, 80 insertions(+)
+ create mode 100644 tools/include/tools/unaligned/be_endian.h
+ create mode 100644 tools/include/tools/unaligned/le_endian.h
 
-There is a significant but not overwhelming number of uses of the
-main problematic types in the kernel:
+diff --git a/tools/include/tools/unaligned/be_endian.h b/tools/include/tools/unaligned/be_endian.h
+new file mode 100644
+index 000000000000..4106c082855e
+--- /dev/null
++++ b/tools/include/tools/unaligned/be_endian.h
+@@ -0,0 +1,40 @@
++#ifndef _TOOLS_BE_ENDIAN_H
++#define _TOOLS_BE_ENDIAN_H
++
++#ifndef _BSD_SOURCE
++# define _BSD_SOURCE 1
++#endif
++#include <endian.h>
++#include <stdint.h>
++
++static inline uint16_t get_unaligned_be16(const void *_p)
++{
++	return be16toh(get_unaligned_le16(_p));
++}
++
++static inline uint32_t get_unaligned_be32(const void *_p)
++{
++	return be32toh(get_unaligned_le32(_p));
++}
++
++static inline uint64_t get_unaligned_be64(const void *_p)
++{
++	return be64toh(get_unaligned_le64(_p));
++}
++
++static inline void put_unaligned_be16(uint16_t val, void *_p)
++{
++	put_unaligned_le16(htobe16(val), _p);
++}
++
++static inline void put_unaligned_be32(uint32_t val, void *_p)
++{
++	put_unaligned_le32(htobe32(val), _p);
++}
++
++static inline void put_unaligned_be64(uint64_t val, void *_p)
++{
++	put_unaligned_le64(htobe64(val), _p);
++}
++
++#endif /* _TOOLS_BE_ENDIAN_H */
+diff --git a/tools/include/tools/unaligned/le_endian.h b/tools/include/tools/unaligned/le_endian.h
+new file mode 100644
+index 000000000000..0429f1b29250
+--- /dev/null
++++ b/tools/include/tools/unaligned/le_endian.h
+@@ -0,0 +1,40 @@
++#ifndef _TOOLS_LE_ENDIAN_H
++#define _TOOLS_LE_ENDIAN_H
++
++#ifndef _BSD_SOURCE
++# define _BSD_SOURCE 1
++#endif
++#include <endian.h>
++#include <stdint.h>
++
++static inline uint16_t get_unaligned_le16(const void *_p)
++{
++	return le16toh(get_unaligned_be16(_p));
++}
++
++static inline uint32_t get_unaligned_le32(const void *_p)
++{
++	return le32toh(get_unaligned_be32(_p));
++}
++
++static inline uint64_t get_unaligned_le64(const void *_p)
++{
++	return le64toh(get_unaligned_be64(_p));
++}
++
++static inline void put_unaligned_le16(uint16_t val, void *_p)
++{
++	put_unaligned_be16(htole16(val), _p);
++}
++
++static inline void put_unaligned_le32(uint32_t val, void *_p)
++{
++	put_unaligned_be32(htole32(val), _p);
++}
++
++static inline void put_unaligned_le64(uint64_t val, void *_p)
++{
++	put_unaligned_be64(htole64(val), _p);
++}
++
++#endif /* _TOOLS_LE_ENDIAN_H */
+-- 
+1.9.3
 
-arnd@wuerfel:~/arm-soc$ git grep -wl time_t | wc
-    188     188    5566
-arnd@wuerfel:~/arm-soc$ git grep -wl timeval | wc
-    320     320   10353
-arnd@wuerfel:~/arm-soc$ git grep -wl timespec | wc
-    406     406   10886
-
-I believe we have to audit all of them anyway if we want to change
-the kernel to less problematic types and introduce new user
-interfaces.
-
-IMHO this work is helped if we change the uses to a new type
-as we find the problems. This lets us do the work one subsystem
-at a time and avoid accidental ABI changes. I don't care much what
-type that will be, and having a 96-bit type will certainly work
-well in a lot of cases, but I don't see a strong reason to use
-that over other types, especially when they can be more efficient.
-
-	Arnd
