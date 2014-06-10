@@ -1,7 +1,7 @@
 From: "H. Peter Anvin" <hpa@zytor.com>
-Subject: [PATCH RFC 03/10] tools: Add le_direct/be_direct methods for unaligned access
-Date: Tue, 10 Jun 2014 16:13:07 -0700
-Message-ID: <1402441994-16780-4-git-send-email-hpa@zytor.com>
+Subject: [PATCH RFC 10/10] tools: Use reasonable defaults for the default access
+Date: Tue, 10 Jun 2014 16:13:14 -0700
+Message-ID: <1402441994-16780-11-git-send-email-hpa@zytor.com>
 References: <1402441994-16780-1-git-send-email-hpa@zytor.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1402441994-16780-1-git-send-email-hpa@zytor.com>
@@ -10,123 +10,48 @@ To: Sam Ravnborg <sam@ravnborg.org>, linux-kernel@vger.kernel.org, linux-kbuild@
 Cc: Andy Lutomirski <luto@amacapital.net>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>
 List-Id: linux-arch.vger.kernel.org
 
-For architectures which handle unaligned references transparently.
+By default, as long as we are using gcc, use struct access for the
+native byte order and byte swap it for the reverse byte order.  This
+works well on most gcc targets.  If we are not compiling with gcc,
+then we cannot assume that struct access is safe, and so fall back to
+the most generic portable form ([bl]e_byteshift.h).
+
+However, there are some architectures on which this generates poor
+code even with gcc, and so some architectures may want to implement
+specific overrides in this header file.
 
 Signed-off-by: H. Peter Anvin <hpa@zytor.com>
 ---
- tools/include/tools/unaligned/be_direct.h | 48 +++++++++++++++++++++++++++++++
- tools/include/tools/unaligned/le_direct.h | 48 +++++++++++++++++++++++++++++++
- 2 files changed, 96 insertions(+)
- create mode 100644 tools/include/tools/unaligned/be_direct.h
- create mode 100644 tools/include/tools/unaligned/le_direct.h
+ tools/include/tools/unaligned.h | 18 ++++++++++++++++--
+ 1 file changed, 16 insertions(+), 2 deletions(-)
 
-diff --git a/tools/include/tools/unaligned/be_direct.h b/tools/include/tools/unaligned/be_direct.h
-new file mode 100644
-index 000000000000..10a9b8229003
---- /dev/null
-+++ b/tools/include/tools/unaligned/be_direct.h
-@@ -0,0 +1,48 @@
-+#ifndef _TOOLS_BE_DIRECT_H
-+#define _TOOLS_BE_DIRECT_H
+diff --git a/tools/include/tools/unaligned.h b/tools/include/tools/unaligned.h
+index a3d43989bd25..1ef19a1ca9b4 100644
+--- a/tools/include/tools/unaligned.h
++++ b/tools/include/tools/unaligned.h
+@@ -30,7 +30,21 @@ struct _packed_u64_struct {
+ 
+ #endif /* __GNUC__ */
+ 
+-#include <tools/unaligned/le_byteshift.h>
+-#include <tools/unaligned/be_byteshift.h>
++#if defined(__GNUC__) && (__BYTE_ORDER == __LITTLE_ENDIAN)
 +
-+#include <stdint.h>
++# include <tools/unaligned/le_struct.h>
++# include <tools/unaligned/be_swap.h>
 +
-+static inline uint16_t get_unaligned_be16(const void *_p)
-+{
-+	const uint16_t *p = _p;
++#elif defined(__GNUC__) && (__BYTE_ORDER == __BIG_ENDIAN)
 +
-+	return *p;
-+}
++# include <tools/unaligned/be_struct.h>
++# include <tools/unaligned/le_swap.h>
 +
-+static inline uint32_t get_unaligned_be32(const void *_p)
-+{
-+	const uint32_t *p = _p;
++#else /* No idea what we actually are dealing with */
 +
-+	return *p;
-+}
++# include <tools/unaligned/be_byteshift.h>
++# include <tools/unaligned/le_byteshift.h>
 +
-+static inline uint64_t get_unaligned_be64(const void *_p)
-+{
-+	const uint64_t *p = _p;
-+
-+	return *p;
-+}
-+
-+static inline void put_unaligned_be16(uint16_t val, void *_p)
-+{
-+	uint16_t *p = _p;
-+
-+	*p = val;
-+}
-+
-+static inline void put_unaligned_be32(uint32_t val, void *_p)
-+{
-+	uint32_t *p = _p;
-+
-+	*p = val;
-+}
-+
-+static inline void put_unaligned_be64(uint64_t val, void *_p)
-+{
-+	uint64_t *p = _p;
-+
-+	*p = val;
-+}
-+
-+#endif /* _TOOLS_BE_DIRECT_H */
-diff --git a/tools/include/tools/unaligned/le_direct.h b/tools/include/tools/unaligned/le_direct.h
-new file mode 100644
-index 000000000000..6353dfd04fd7
---- /dev/null
-+++ b/tools/include/tools/unaligned/le_direct.h
-@@ -0,0 +1,48 @@
-+#ifndef _TOOLS_LE_DIRECT_H
-+#define _TOOLS_LE_DIRECT_H
-+
-+#include <stdint.h>
-+
-+static inline uint16_t get_unaligned_le16(const void *_p)
-+{
-+	const uint16_t *p = _p;
-+
-+	return *p;
-+}
-+
-+static inline uint32_t get_unaligned_le32(const void *_p)
-+{
-+	const uint32_t *p = _p;
-+
-+	return *p;
-+}
-+
-+static inline uint64_t get_unaligned_le64(const void *_p)
-+{
-+	const uint64_t *p = _p;
-+
-+	return *p;
-+}
-+
-+static inline void put_unaligned_le16(uint16_t val, void *_p)
-+{
-+	uint16_t *p = _p;
-+
-+	*p = val;
-+}
-+
-+static inline void put_unaligned_le32(uint32_t val, void *_p)
-+{
-+	uint32_t *p = _p;
-+
-+	*p = val;
-+}
-+
-+static inline void put_unaligned_le64(uint64_t val, void *_p)
-+{
-+	uint64_t *p = _p;
-+
-+	*p = val;
-+}
-+
-+#endif /* _TOOLS_LE_DIRECT_H */
++#endif
+ 
+ #endif /* TOOLS_UNALIGNED_H */
 -- 
 1.9.3
