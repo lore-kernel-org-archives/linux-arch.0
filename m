@@ -1,220 +1,118 @@
-From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH v6 2/9] seccomp: split filter prep from check and apply
-Date: Tue, 10 Jun 2014 20:25:14 -0700
-Message-ID: <1402457121-8410-3-git-send-email-keescook@chromium.org>
-References: <1402457121-8410-1-git-send-email-keescook@chromium.org>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH v11 06/16] qspinlock: prolong the stay in the pending bit
+	path
+Date: Wed, 11 Jun 2014 12:26:06 +0200
+Message-ID: <20140611102606.GK3213@twins.programming.kicks-ass.net>
+References: <1401464642-33890-1-git-send-email-Waiman.Long@hp.com>
+	<1401464642-33890-7-git-send-email-Waiman.Long@hp.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-In-Reply-To: <1402457121-8410-1-git-send-email-keescook@chromium.org>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, linux-mips@linux-mips.org, John Johansen <john.johansen@canonical.com>, Will Drewry <wad@chromium.org>, Kees Cook <keescook@chromium.org>, linux-api@vger.kernel.org, x86@kernel.org, Oleg Nesterov <oleg@redhat.com>, Andy Lutomirski <luto@amacapital.net>, linux-security-module@vger.kernel.org, Julien Tinnes <jln@chromium.org>, Andrew Morton <akpm@linux-foundation.org>, David Drysdale <drysdale@google.com>, linux-arm-kernel@lists.infradead.org, Alexei Starovoitov <ast@plumgrid.com>
+Content-Type: multipart/mixed; boundary="===============6890728413425355712=="
+Return-path: <virtualization-bounces@lists.linux-foundation.org>
+In-Reply-To: <1401464642-33890-7-git-send-email-Waiman.Long@hp.com>
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
+List-Post: <mailto:virtualization@lists.linux-foundation.org>
+List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
+Sender: virtualization-bounces@lists.linux-foundation.org
+Errors-To: virtualization-bounces@lists.linux-foundation.org
+To: Waiman Long <Waiman.Long@hp.com>
+Cc: linux-arch@vger.kernel.org, Rik van Riel <riel@redhat.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, Oleg Nesterov <oleg@redhat.com>, Gleb Natapov <gleb@redhat.com>, kvm@vger.kernel.org, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Scott J Norton <scott.norton@hp.com>, x86@kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, Ingo Molnar <mingo@redhat.com>, Chegu Vinod <chegu_vinod@hp.com>, David Vrabel <david.vrabel@citrix.com>, "H. Peter Anvin" <hpa@zytor.com>, xen-devel@lists.xenproject.org, Thomas Gleixner <tglx@linutronix.de>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Boris Ostrovsky <boris.ostrovsky@oracle.com>
 List-Id: linux-arch.vger.kernel.org
 
-In preparation for adding seccomp locking, move filter creation away
-from where it is checked and applied. This will allow for locking where
-no memory allocation is happening. The validation, filter attachment,
-and seccomp mode setting can all happen under the future locks.
 
-Signed-off-by: Kees Cook <keescook@chromium.org>
----
- kernel/seccomp.c |   86 ++++++++++++++++++++++++++++++++++++------------------
- 1 file changed, 58 insertions(+), 28 deletions(-)
+--===============6890728413425355712==
+Content-Type: multipart/signed; micalg=pgp-sha1;
+	protocol="application/pgp-signature"; boundary="IB2Qao3B4XdnqHmg"
+Content-Disposition: inline
 
-diff --git a/kernel/seccomp.c b/kernel/seccomp.c
-index 552b972b8f83..7a9257ddd69c 100644
---- a/kernel/seccomp.c
-+++ b/kernel/seccomp.c
-@@ -18,6 +18,7 @@
- #include <linux/compat.h>
- #include <linux/sched.h>
- #include <linux/seccomp.h>
-+#include <linux/slab.h>
- 
- /* #define SECCOMP_DEBUG 1 */
- 
-@@ -26,7 +27,6 @@
- #include <linux/filter.h>
- #include <linux/ptrace.h>
- #include <linux/security.h>
--#include <linux/slab.h>
- #include <linux/tracehook.h>
- #include <linux/uaccess.h>
- 
-@@ -197,27 +197,21 @@ static u32 seccomp_run_filters(int syscall)
- }
- 
- /**
-- * seccomp_attach_filter: Attaches a seccomp filter to current.
-+ * seccomp_prepare_filter: Prepares a seccomp filter for use.
-  * @fprog: BPF program to install
-  *
-- * Returns 0 on success or an errno on failure.
-+ * Returns filter on success or an ERR_PTR on failure.
-  */
--static long seccomp_attach_filter(struct sock_fprog *fprog)
-+static struct seccomp_filter *seccomp_prepare_filter(struct sock_fprog *fprog)
- {
- 	struct seccomp_filter *filter;
- 	unsigned long fp_size = fprog->len * sizeof(struct sock_filter);
--	unsigned long total_insns = fprog->len;
- 	struct sock_filter *fp;
- 	int new_len;
- 	long ret;
- 
- 	if (fprog->len == 0 || fprog->len > BPF_MAXINSNS)
--		return -EINVAL;
--
--	for (filter = current->seccomp.filter; filter; filter = filter->prev)
--		total_insns += filter->len + 4;  /* include a 4 instr penalty */
--	if (total_insns > MAX_INSNS_PER_PATH)
--		return -ENOMEM;
-+		return ERR_PTR(-EINVAL);
- 
- 	/*
- 	 * Installing a seccomp filter requires that the task has
-@@ -228,11 +222,11 @@ static long seccomp_attach_filter(struct sock_fprog *fprog)
- 	if (!current->no_new_privs &&
- 	    security_capable_noaudit(current_cred(), current_user_ns(),
- 				     CAP_SYS_ADMIN) != 0)
--		return -EACCES;
-+		return ERR_PTR(-EACCES);
- 
- 	fp = kzalloc(fp_size, GFP_KERNEL|__GFP_NOWARN);
- 	if (!fp)
--		return -ENOMEM;
-+		return ERR_PTR(-ENOMEM);
- 
- 	/* Copy the instructions from fprog. */
- 	ret = -EFAULT;
-@@ -270,31 +264,26 @@ static long seccomp_attach_filter(struct sock_fprog *fprog)
- 	atomic_set(&filter->usage, 1);
- 	filter->len = new_len;
- 
--	/*
--	 * If there is an existing filter, make it the prev and don't drop its
--	 * task reference.
--	 */
--	filter->prev = current->seccomp.filter;
--	current->seccomp.filter = filter;
--	return 0;
-+	return filter;
- 
- free_filter:
- 	kfree(filter);
- free_prog:
- 	kfree(fp);
--	return ret;
-+	return ERR_PTR(ret);
- }
- 
- /**
-- * seccomp_attach_user_filter - attaches a user-supplied sock_fprog
-+ * seccomp_prepare_user_filter - prepares a user-supplied sock_fprog
-  * @user_filter: pointer to the user data containing a sock_fprog.
-  *
-- * Returns 0 on success and non-zero otherwise.
-+ * Returns filter on success and ERR_PTR otherwise.
-  */
--static long seccomp_attach_user_filter(char __user *user_filter)
-+static
-+struct seccomp_filter *seccomp_prepare_user_filter(char __user *user_filter)
- {
- 	struct sock_fprog fprog;
--	long ret = -EFAULT;
-+	struct seccomp_filter *filter = ERR_PTR(-EFAULT);
- 
- #ifdef CONFIG_COMPAT
- 	if (is_compat_task()) {
-@@ -307,9 +296,37 @@ static long seccomp_attach_user_filter(char __user *user_filter)
- #endif
- 	if (copy_from_user(&fprog, user_filter, sizeof(fprog)))
- 		goto out;
--	ret = seccomp_attach_filter(&fprog);
-+	filter = seccomp_prepare_filter(&fprog);
- out:
--	return ret;
-+	return filter;
-+}
-+
-+/**
-+ * seccomp_attach_filter: validate and attach filter
-+ * @filter: seccomp filter to add to the current process
-+ *
-+ * Returns 0 on success, -ve on error.
-+ */
-+static long seccomp_attach_filter(struct seccomp_filter *filter)
-+{
-+	unsigned long total_insns;
-+	struct seccomp_filter *walker;
-+
-+	/* Validate resulting filter length. */
-+	total_insns = filter->len;
-+	for (walker = current->seccomp.filter; walker; walker = filter->prev)
-+		total_insns += walker->len + 4;  /* include a 4 instr penalty */
-+	if (total_insns > MAX_INSNS_PER_PATH)
-+		return -ENOMEM;
-+
-+	/*
-+	 * If there is an existing filter, make it the prev and don't drop its
-+	 * task reference.
-+	 */
-+	filter->prev = current->seccomp.filter;
-+	current->seccomp.filter = filter;
-+
-+	return 0;
- }
- 
- /* get_seccomp_filter - increments the reference count of the filter on @tsk */
-@@ -480,8 +497,18 @@ long prctl_get_seccomp(void)
-  */
- static long seccomp_set_mode(unsigned long seccomp_mode, char __user *filter)
- {
-+	struct seccomp_filter *prepared = NULL;
- 	long ret = -EINVAL;
- 
-+#ifdef CONFIG_SECCOMP_FILTER
-+	/* Prepare the new filter outside of the seccomp lock. */
-+	if (seccomp_mode == SECCOMP_MODE_FILTER) {
-+		prepared = seccomp_prepare_user_filter(filter);
-+		if (IS_ERR(prepared))
-+			return PTR_ERR(prepared);
-+	}
-+#endif
-+
- 	if (current->seccomp.mode &&
- 	    current->seccomp.mode != seccomp_mode)
- 		goto out;
-@@ -495,9 +522,11 @@ static long seccomp_set_mode(unsigned long seccomp_mode, char __user *filter)
- 		break;
- #ifdef CONFIG_SECCOMP_FILTER
- 	case SECCOMP_MODE_FILTER:
--		ret = seccomp_attach_user_filter(filter);
-+		ret = seccomp_attach_filter(prepared);
- 		if (ret)
- 			goto out;
-+		/* Do not free the successfully attached filter. */
-+		prepared = NULL;
- 		break;
- #endif
- 	default:
-@@ -507,6 +536,7 @@ static long seccomp_set_mode(unsigned long seccomp_mode, char __user *filter)
- 	current->seccomp.mode = seccomp_mode;
- 	set_thread_flag(TIF_SECCOMP);
- out:
-+	kfree(prepared);
- 	return ret;
- }
- 
--- 
-1.7.9.5
+
+--IB2Qao3B4XdnqHmg
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
+
+On Fri, May 30, 2014 at 11:43:52AM -0400, Waiman Long wrote:
+> ---
+>  kernel/locking/qspinlock.c |   18 ++++++++++++++++--
+>  1 files changed, 16 insertions(+), 2 deletions(-)
+>=20
+> diff --git a/kernel/locking/qspinlock.c b/kernel/locking/qspinlock.c
+> index fc7fd8c..7f10758 100644
+> --- a/kernel/locking/qspinlock.c
+> +++ b/kernel/locking/qspinlock.c
+> @@ -233,11 +233,25 @@ void queue_spin_lock_slowpath(struct qspinlock *loc=
+k, u32 val)
+>  	 */
+>  	for (;;) {
+>  		/*
+> -		 * If we observe any contention; queue.
+> +		 * If we observe that the queue is not empty or both
+> +		 * the pending and lock bits are set, queue
+>  		 */
+> -		if (val & ~_Q_LOCKED_MASK)
+> +		if ((val & _Q_TAIL_MASK) ||
+> +		    (val =3D=3D (_Q_LOCKED_VAL|_Q_PENDING_VAL)))
+>  			goto queue;
+> =20
+> +		if (val =3D=3D _Q_PENDING_VAL) {
+> +			/*
+> +			 * Pending bit is set, but not the lock bit.
+> +			 * Assuming that the pending bit holder is going to
+> +			 * set the lock bit and clear the pending bit soon,
+> +			 * it is better to wait than to exit at this point.
+> +			 */
+> +			cpu_relax();
+> +			val =3D atomic_read(&lock->val);
+> +			continue;
+> +		}
+> +
+>  		new =3D _Q_LOCKED_VAL;
+>  		if (val =3D=3D new)
+>  			new |=3D _Q_PENDING_VAL;
+
+
+So, again, you just posted a new version without replying to the
+previous discussion; so let me try again, what's wrong with the proposal
+here:
+
+  lkml.kernel.org/r/20140417163640.GT11096@twins.programming.kicks-ass.net
+
+
+
+--IB2Qao3B4XdnqHmg
+Content-Type: application/pgp-signature
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.12 (GNU/Linux)
+
+iQIcBAEBAgAGBQJTmC69AAoJEHZH4aRLwOS6bBUP/1db3Nz0FLv1UoCAI1jBUNnx
+Dw3uq3On9bx5aa6qOMaLmJynH9gU0jALn9PvOXtFTs+EgzdAxLtVaCFAZvH8vx2+
+Ic8q+t+NPgBdNNHUmF7dfInDUSovrvy7CEeuIIGfBWRnecnMepcSsguwtaf/OwO+
+ifDuDOXXN/gr0BwXbGd4rlnZkWz9XI0ztQa+eRrdxjL+H2J3nUjxBW5PuceQIxBQ
+48yHUOHsreEN99jvZuWtT/36wK5PQ+vohlQUCT4ci7pjNmmGqKevqEn8kF0fVAjA
+x3PEvbh6rk/pnkX7A/dAeIfoe+FEXKBkceyXlq6th2dPAHS7iYYEQ+ZG5INYF56U
+8RenG1D7/pv+oXdq1O+jbHfefcwoIfkCbpqFNf9zAzCYlsj58kdyOSu5m8lZ8jYk
+Mp2+hcveYKLQ+7BSeEY5XWMLzbR89TRCd2Ub94LPbRWzkXOtjgVSEdT5iNTr6qGh
+kSgN0S8EmPQGCPYc56Akw/RFp3W2N3NA3YtoYauRbcv6Pf+Ejzgt0Vf7ptDxwaCS
+eb3uXS/xC1fwF1Z5e+vDA1wZMlIDWOUCLKEyBjF57U0fdKH+eu6cO/SIgh2jiddw
+7CP5NdBiEWA12Rl86aLNwY3B8HScCoPLorecMj1k5EipJrZi2ASsDMhnIXfMB8um
+ykQUSeNaoC6wfNSOydk4
+=5Cal
+-----END PGP SIGNATURE-----
+
+--IB2Qao3B4XdnqHmg--
+
+--===============6890728413425355712==
+Content-Type: text/plain; charset="us-ascii"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7bit
+Content-Disposition: inline
+
+_______________________________________________
+Virtualization mailing list
+Virtualization@lists.linux-foundation.org
+https://lists.linuxfoundation.org/mailman/listinfo/virtualization
+--===============6890728413425355712==--
