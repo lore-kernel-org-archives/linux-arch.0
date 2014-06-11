@@ -1,58 +1,118 @@
-From: "H. Peter Anvin" <hpa@zytor.com>
-Subject: Re: [PATCH RFC 00/10] tools: Revamp the unaligned endian access functions
-Date: Wed, 11 Jun 2014 14:52:36 -0700
-Message-ID: <5398CFA4.60202@zytor.com>
-References: <1402441994-16780-1-git-send-email-hpa@zytor.com> <20140611192111.GB16069@ravnborg.org>
+From: Andy Lutomirski <luto@amacapital.net>
+Subject: Re: [RFC 5/5] x86,seccomp: Add a seccomp fastpath
+Date: Wed, 11 Jun 2014 14:56:58 -0700
+Message-ID: <CALCETrXoqqKC=T5Wvj+CDYQFte1s_=npDvQ2UYW0j=AanEgR1g@mail.gmail.com>
+References: <cover.1402517933.git.luto@amacapital.net> <9e11cd988a0f120606e37b5e275019754e2774da.1402517933.git.luto@amacapital.net>
+ <CAADnVQKt5FnShkZeQewbfnU1kHM-gLs3hCZMf5xcgFzyRDLX7A@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20140611192111.GB16069@ravnborg.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Sam Ravnborg <sam@ravnborg.org>
-Cc: linux-kernel@vger.kernel.org, linux-kbuild@vger.kernel.org, linux-arch@vger.kernel.org, Andy Lutomirski <luto@amacapital.net>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Thomas Gleixner <tglx@linutronix.de>
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-ve0-f172.google.com ([209.85.128.172]:54537 "EHLO
+	mail-ve0-f172.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752954AbaFKV5U (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 11 Jun 2014 17:57:20 -0400
+Received: by mail-ve0-f172.google.com with SMTP id jz11so856551veb.17
+        for <linux-arch@vger.kernel.org>; Wed, 11 Jun 2014 14:57:19 -0700 (PDT)
+In-Reply-To: <CAADnVQKt5FnShkZeQewbfnU1kHM-gLs3hCZMf5xcgFzyRDLX7A@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Alexei Starovoitov <alexei.starovoitov@gmail.com>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Kees Cook <keescook@chromium.org>, Will Drewry <wad@chromium.org>, Oleg Nesterov <oleg@redhat.com>, X86 ML <x86@kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, linux-mips@linux-mips.org, linux-arch <linux-arch@vger.kernel.org>, LSM List <linux-security-module@vger.kernel.org>
 
-On 06/11/2014 12:21 PM, Sam Ravnborg wrote:
-> On Tue, Jun 10, 2014 at 04:13:04PM -0700, H. Peter Anvin wrote:
->> After a recent problem in the x86 tree, which seems to be the heaviest
->> but not the only user of these functions, I went through and did a
->> patchset to revamp the *user space* unaligned/endian accessor
->> functions.  As much as I think it is downright pathetic that this
->> functionality still isn't part of the C standard, that is life and we
->> have to deal with it.  Furthermore, although glibc has a pretty nice
->> set of functions for byte swapping in <endian.h>, taken from FreeBSD I
->> believe, some older systems don't support them.
+On Wed, Jun 11, 2014 at 2:29 PM, Alexei Starovoitov
+<alexei.starovoitov@gmail.com> wrote:
+> On Wed, Jun 11, 2014 at 1:23 PM, Andy Lutomirski <luto@amacapital.net> wrote:
+>> On my VM, getpid takes about 70ns.  Before this patch, adding a
+>> single-instruction always-accept seccomp filter added about 134ns of
+>> overhead to getpid.  With this patch, the overhead is down to about
+>> 13ns.
+>
+> interesting.
+> Is this the gain from patch 4 into patch 5 or from patch 0 to patch 5?
+> 13ns is still with seccomp enabled, but without filters?
+
+13ns is with the simplest nonempty filter.  I hope that empty filters
+don't work.
+
+>
+>> I'm not really thrilled by this patch.  It has two main issues:
 >>
->> This variant tries to fill in all the holes.  It assumes that
->> <endian.h> define the functions as macros if they exist, as I don't
->> know any other way of probing for them without reaching for autoconf,
->> but that should be valid enough of an assumption in this case.
+>> 1. Calling into code in kernel/seccomp.c from assembly feels ugly.
 >>
->> The hope is that this should give reasonable, if not optimal, code
->> generation on most processors, and give a hook where arch maintainers
->> can add their own changes if needed.
-> 
-> This looks like a very complex solution to a simple problem.
-> We want a shared implementation of the *user space*
-> unaligned/endian accessor functions.
-> But do we really want *fast* versions for our use?
-> 
-> This is not a new libc that should generate optimal code,
-> but only something were we want to provide e working
-> implmentation for use in our user-space tools.
-> 
-> A much simpler approach without any fallback to arch specific
-> version etc. is everything we need.
+>> 2. The x86 64-bit syscall entry now has four separate code paths:
+>> fast, seccomp only, audit only, and slow.  This kind of sucks.
+>> Would it be worth trying to rewrite the whole thing in C with a
+>> two-phase slow path approach like I'm using here for seccomp?
+>>
+>> Signed-off-by: Andy Lutomirski <luto@amacapital.net>
+>> ---
+>>  arch/x86/kernel/entry_64.S | 45 +++++++++++++++++++++++++++++++++++++++++++++
+>>  include/linux/seccomp.h    |  4 ++--
+>>  2 files changed, 47 insertions(+), 2 deletions(-)
+>>
+>> diff --git a/arch/x86/kernel/entry_64.S b/arch/x86/kernel/entry_64.S
+>> index f9e713a..feb32b2 100644
+>> --- a/arch/x86/kernel/entry_64.S
+>> +++ b/arch/x86/kernel/entry_64.S
+>> @@ -683,6 +683,45 @@ sysret_signal:
+>>         FIXUP_TOP_OF_STACK %r11, -ARGOFFSET
+>>         jmp int_check_syscall_exit_work
+>>
+>> +#ifdef CONFIG_SECCOMP
+>> +       /*
+>> +        * Fast path for seccomp without any other slow path triggers.
+>> +        */
+>> +seccomp_fastpath:
+>> +       /* Build seccomp_data */
+>> +       pushq %r9                               /* args[5] */
+>> +       pushq %r8                               /* args[4] */
+>> +       pushq %r10                              /* args[3] */
+>> +       pushq %rdx                              /* args[2] */
+>> +       pushq %rsi                              /* args[1] */
+>> +       pushq %rdi                              /* args[0] */
+>> +       pushq RIP-ARGOFFSET+6*8(%rsp)           /* rip */
 
-It doesn't matter so much for things that are just done for the kernel
-compile, no, but there are some tools that are built to be used as
-standalone things, and it could matter there.
+>> +       pushq %rax                              /* nr and junk */
+>> +       movl $AUDIT_ARCH_X86_64, 4(%rsp)        /* arch */
 
-Please note that the code currently doesn't have any arch-specific bits
-at all... the code is somewhat complex in part because it is very
-generic and handles several levels of fallback.  It *can* get
-arch-specific overrides if it matters, but the intent is that it
-shouldn't be necessary in the vast majority of the cases.
+It wouldn't shock me if this pair of instructions were
+microarchitecturally bad.  Maybe I can save a few more cycles by using
+bitwise arithmetic or a pair of movls and explicit rsp manipulation
+here.  I haven't tried.
 
-	-hpa
+>> +       movq %rsp, %rdi
+>> +       call seccomp_phase1
+>
+> the assembler code is pretty much repeating what C does in
+> populate_seccomp_data(). Assuming the whole gain came from
+> patch 5 why asm version is so much faster than C?
+>
+> it skips SAVE/RESTORE_REST... what else?
+> If the most of the gain is from all patches combined (mainly from
+> 2 phase approach) then why bother with asm?
+
+The whole gain should be patch 5, but there are three things going on here.
+
+The biggest win is skipping int_ret_from_sys_call.  IRET sucks.
+There's some extra win from skipping SAVE/RESTORE_REST, but I haven't
+benchmarked that.  I would guess it's on the order of 5ns.  In theory
+a one-pass implementation could skip int_ret_from_sys_call, but that
+will be awkward to implement correctly.
+
+The other benefit is generating seccomp_data in assembly.  It saves
+about 7ns.  This is likely due to avoiding all the indirection in
+syscall_xyz and to avoiding prodding at flags to figure out the arch
+token.
+
+Fiddling with branch prediction made no difference that I could measure.
+
+>
+> Somehow it feels that the gain is due to better branch prediction
+> in asm version. If you change few 'unlikely' in C to 'likely', it may
+> get to the same performance...
+>
+> btw patches #1-3 look good to me. especially #1 is nice.
+
+Thanks :)
+
+--Andy
