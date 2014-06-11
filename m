@@ -1,215 +1,133 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.outflux.net ([198.145.64.163]:41687 "EHLO smtp.outflux.net"
+Received: from smtp.outflux.net ([198.145.64.163]:48418 "EHLO smtp.outflux.net"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755343AbaFKD0L (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 10 Jun 2014 23:26:11 -0400
+	id S1755323AbaFKD0K (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 10 Jun 2014 23:26:10 -0400
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH v6 2/9] seccomp: split filter prep from check and apply
-Date: Tue, 10 Jun 2014 20:25:14 -0700
-Message-ID: <1402457121-8410-3-git-send-email-keescook@chromium.org>
+Subject: [PATCH v6 9/9] MIPS: add seccomp syscall
+Date: Tue, 10 Jun 2014 20:25:21 -0700
+Message-ID: <1402457121-8410-10-git-send-email-keescook@chromium.org>
 In-Reply-To: <1402457121-8410-1-git-send-email-keescook@chromium.org>
 References: <1402457121-8410-1-git-send-email-keescook@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
 Cc: Kees Cook <keescook@chromium.org>, Andy Lutomirski <luto@amacapital.net>, Oleg Nesterov <oleg@redhat.com>, Will Drewry <wad@chromium.org>, Julien Tinnes <jln@chromium.org>, David Drysdale <drysdale@google.com>, Alexei Starovoitov <ast@plumgrid.com>, John Johansen <john.johansen@canonical.com>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-mips@linux-mips.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-security-module@vger.kernel.org
-Message-ID: <20140611032514._vBHGQFWHcCv6bC332FWiitbl-rqr1Yge_BTqO2WCjI@z>
+Message-ID: <20140611032521.xxyDOopMNVDs6G3oxdafO_Xtlj7nEthWP8YPEVDxg40@z>
 
-In preparation for adding seccomp locking, move filter creation away
-from where it is checked and applied. This will allow for locking where
-no memory allocation is happening. The validation, filter attachment,
-and seccomp mode setting can all happen under the future locks.
+Wires up the new seccomp syscall.
 
 Signed-off-by: Kees Cook <keescook@chromium.org>
 ---
- kernel/seccomp.c |   86 ++++++++++++++++++++++++++++++++++++------------------
- 1 file changed, 58 insertions(+), 28 deletions(-)
+ arch/mips/include/uapi/asm/unistd.h |   15 +++++++++------
+ arch/mips/kernel/scall32-o32.S      |    1 +
+ arch/mips/kernel/scall64-64.S       |    1 +
+ arch/mips/kernel/scall64-n32.S      |    1 +
+ arch/mips/kernel/scall64-o32.S      |    1 +
+ 5 files changed, 13 insertions(+), 6 deletions(-)
 
-diff --git a/kernel/seccomp.c b/kernel/seccomp.c
-index 552b972b8f83..7a9257ddd69c 100644
---- a/kernel/seccomp.c
-+++ b/kernel/seccomp.c
-@@ -18,6 +18,7 @@
- #include <linux/compat.h>
- #include <linux/sched.h>
- #include <linux/seccomp.h>
-+#include <linux/slab.h>
+diff --git a/arch/mips/include/uapi/asm/unistd.h b/arch/mips/include/uapi/asm/unistd.h
+index 5805414777e0..9bc13eaf9d67 100644
+--- a/arch/mips/include/uapi/asm/unistd.h
++++ b/arch/mips/include/uapi/asm/unistd.h
+@@ -372,16 +372,17 @@
+ #define __NR_sched_setattr		(__NR_Linux + 349)
+ #define __NR_sched_getattr		(__NR_Linux + 350)
+ #define __NR_renameat2			(__NR_Linux + 351)
++#define __NR_seccomp			(__NR_Linux + 352)
  
- /* #define SECCOMP_DEBUG 1 */
- 
-@@ -26,7 +27,6 @@
- #include <linux/filter.h>
- #include <linux/ptrace.h>
- #include <linux/security.h>
--#include <linux/slab.h>
- #include <linux/tracehook.h>
- #include <linux/uaccess.h>
- 
-@@ -197,27 +197,21 @@ static u32 seccomp_run_filters(int syscall)
- }
- 
- /**
-- * seccomp_attach_filter: Attaches a seccomp filter to current.
-+ * seccomp_prepare_filter: Prepares a seccomp filter for use.
-  * @fprog: BPF program to install
-  *
-- * Returns 0 on success or an errno on failure.
-+ * Returns filter on success or an ERR_PTR on failure.
+ /*
+  * Offset of the last Linux o32 flavoured syscall
   */
--static long seccomp_attach_filter(struct sock_fprog *fprog)
-+static struct seccomp_filter *seccomp_prepare_filter(struct sock_fprog *fprog)
- {
- 	struct seccomp_filter *filter;
- 	unsigned long fp_size = fprog->len * sizeof(struct sock_filter);
--	unsigned long total_insns = fprog->len;
- 	struct sock_filter *fp;
- 	int new_len;
- 	long ret;
+-#define __NR_Linux_syscalls		351
++#define __NR_Linux_syscalls		352
  
- 	if (fprog->len == 0 || fprog->len > BPF_MAXINSNS)
--		return -EINVAL;
--
--	for (filter = current->seccomp.filter; filter; filter = filter->prev)
--		total_insns += filter->len + 4;  /* include a 4 instr penalty */
--	if (total_insns > MAX_INSNS_PER_PATH)
--		return -ENOMEM;
-+		return ERR_PTR(-EINVAL);
+ #endif /* _MIPS_SIM == _MIPS_SIM_ABI32 */
  
- 	/*
- 	 * Installing a seccomp filter requires that the task has
-@@ -228,11 +222,11 @@ static long seccomp_attach_filter(struct sock_fprog *fprog)
- 	if (!current->no_new_privs &&
- 	    security_capable_noaudit(current_cred(), current_user_ns(),
- 				     CAP_SYS_ADMIN) != 0)
--		return -EACCES;
-+		return ERR_PTR(-EACCES);
+ #define __NR_O32_Linux			4000
+-#define __NR_O32_Linux_syscalls		351
++#define __NR_O32_Linux_syscalls		352
  
- 	fp = kzalloc(fp_size, GFP_KERNEL|__GFP_NOWARN);
- 	if (!fp)
--		return -ENOMEM;
-+		return ERR_PTR(-ENOMEM);
+ #if _MIPS_SIM == _MIPS_SIM_ABI64
  
- 	/* Copy the instructions from fprog. */
- 	ret = -EFAULT;
-@@ -270,31 +264,26 @@ static long seccomp_attach_filter(struct sock_fprog *fprog)
- 	atomic_set(&filter->usage, 1);
- 	filter->len = new_len;
+@@ -701,16 +702,17 @@
+ #define __NR_sched_setattr		(__NR_Linux + 309)
+ #define __NR_sched_getattr		(__NR_Linux + 310)
+ #define __NR_renameat2			(__NR_Linux + 311)
++#define __NR_seccomp			(__NR_Linux + 312)
  
--	/*
--	 * If there is an existing filter, make it the prev and don't drop its
--	 * task reference.
--	 */
--	filter->prev = current->seccomp.filter;
--	current->seccomp.filter = filter;
--	return 0;
-+	return filter;
- 
- free_filter:
- 	kfree(filter);
- free_prog:
- 	kfree(fp);
--	return ret;
-+	return ERR_PTR(ret);
- }
- 
- /**
-- * seccomp_attach_user_filter - attaches a user-supplied sock_fprog
-+ * seccomp_prepare_user_filter - prepares a user-supplied sock_fprog
-  * @user_filter: pointer to the user data containing a sock_fprog.
-  *
-- * Returns 0 on success and non-zero otherwise.
-+ * Returns filter on success and ERR_PTR otherwise.
+ /*
+  * Offset of the last Linux 64-bit flavoured syscall
   */
--static long seccomp_attach_user_filter(char __user *user_filter)
-+static
-+struct seccomp_filter *seccomp_prepare_user_filter(char __user *user_filter)
- {
- 	struct sock_fprog fprog;
--	long ret = -EFAULT;
-+	struct seccomp_filter *filter = ERR_PTR(-EFAULT);
+-#define __NR_Linux_syscalls		311
++#define __NR_Linux_syscalls		312
  
- #ifdef CONFIG_COMPAT
- 	if (is_compat_task()) {
-@@ -307,9 +296,37 @@ static long seccomp_attach_user_filter(char __user *user_filter)
- #endif
- 	if (copy_from_user(&fprog, user_filter, sizeof(fprog)))
- 		goto out;
--	ret = seccomp_attach_filter(&fprog);
-+	filter = seccomp_prepare_filter(&fprog);
- out:
--	return ret;
-+	return filter;
-+}
-+
-+/**
-+ * seccomp_attach_filter: validate and attach filter
-+ * @filter: seccomp filter to add to the current process
-+ *
-+ * Returns 0 on success, -ve on error.
-+ */
-+static long seccomp_attach_filter(struct seccomp_filter *filter)
-+{
-+	unsigned long total_insns;
-+	struct seccomp_filter *walker;
-+
-+	/* Validate resulting filter length. */
-+	total_insns = filter->len;
-+	for (walker = current->seccomp.filter; walker; walker = filter->prev)
-+		total_insns += walker->len + 4;  /* include a 4 instr penalty */
-+	if (total_insns > MAX_INSNS_PER_PATH)
-+		return -ENOMEM;
-+
-+	/*
-+	 * If there is an existing filter, make it the prev and don't drop its
-+	 * task reference.
-+	 */
-+	filter->prev = current->seccomp.filter;
-+	current->seccomp.filter = filter;
-+
-+	return 0;
- }
+ #endif /* _MIPS_SIM == _MIPS_SIM_ABI64 */
  
- /* get_seccomp_filter - increments the reference count of the filter on @tsk */
-@@ -480,8 +497,18 @@ long prctl_get_seccomp(void)
+ #define __NR_64_Linux			5000
+-#define __NR_64_Linux_syscalls		311
++#define __NR_64_Linux_syscalls		312
+ 
+ #if _MIPS_SIM == _MIPS_SIM_NABI32
+ 
+@@ -1034,15 +1036,16 @@
+ #define __NR_sched_setattr		(__NR_Linux + 313)
+ #define __NR_sched_getattr		(__NR_Linux + 314)
+ #define __NR_renameat2			(__NR_Linux + 315)
++#define __NR_seccomp			(__NR_Linux + 316)
+ 
+ /*
+  * Offset of the last N32 flavoured syscall
   */
- static long seccomp_set_mode(unsigned long seccomp_mode, char __user *filter)
- {
-+	struct seccomp_filter *prepared = NULL;
- 	long ret = -EINVAL;
+-#define __NR_Linux_syscalls		315
++#define __NR_Linux_syscalls		316
  
-+#ifdef CONFIG_SECCOMP_FILTER
-+	/* Prepare the new filter outside of the seccomp lock. */
-+	if (seccomp_mode == SECCOMP_MODE_FILTER) {
-+		prepared = seccomp_prepare_user_filter(filter);
-+		if (IS_ERR(prepared))
-+			return PTR_ERR(prepared);
-+	}
-+#endif
-+
- 	if (current->seccomp.mode &&
- 	    current->seccomp.mode != seccomp_mode)
- 		goto out;
-@@ -495,9 +522,11 @@ static long seccomp_set_mode(unsigned long seccomp_mode, char __user *filter)
- 		break;
- #ifdef CONFIG_SECCOMP_FILTER
- 	case SECCOMP_MODE_FILTER:
--		ret = seccomp_attach_user_filter(filter);
-+		ret = seccomp_attach_filter(prepared);
- 		if (ret)
- 			goto out;
-+		/* Do not free the successfully attached filter. */
-+		prepared = NULL;
- 		break;
- #endif
- 	default:
-@@ -507,6 +536,7 @@ static long seccomp_set_mode(unsigned long seccomp_mode, char __user *filter)
- 	current->seccomp.mode = seccomp_mode;
- 	set_thread_flag(TIF_SECCOMP);
- out:
-+	kfree(prepared);
- 	return ret;
- }
+ #endif /* _MIPS_SIM == _MIPS_SIM_NABI32 */
  
+ #define __NR_N32_Linux			6000
+-#define __NR_N32_Linux_syscalls		315
++#define __NR_N32_Linux_syscalls		316
+ 
+ #endif /* _UAPI_ASM_UNISTD_H */
+diff --git a/arch/mips/kernel/scall32-o32.S b/arch/mips/kernel/scall32-o32.S
+index 3245474f19d5..ab02d14f1b5c 100644
+--- a/arch/mips/kernel/scall32-o32.S
++++ b/arch/mips/kernel/scall32-o32.S
+@@ -578,3 +578,4 @@ EXPORT(sys_call_table)
+ 	PTR	sys_sched_setattr
+ 	PTR	sys_sched_getattr		/* 4350 */
+ 	PTR	sys_renameat2
++	PTR	sys_seccomp
+diff --git a/arch/mips/kernel/scall64-64.S b/arch/mips/kernel/scall64-64.S
+index be2fedd4ae33..010dccf128ec 100644
+--- a/arch/mips/kernel/scall64-64.S
++++ b/arch/mips/kernel/scall64-64.S
+@@ -431,4 +431,5 @@ EXPORT(sys_call_table)
+ 	PTR	sys_sched_setattr
+ 	PTR	sys_sched_getattr		/* 5310 */
+ 	PTR	sys_renameat2
++	PTR	sys_seccomp
+ 	.size	sys_call_table,.-sys_call_table
+diff --git a/arch/mips/kernel/scall64-n32.S b/arch/mips/kernel/scall64-n32.S
+index c1dbcda4b816..c3b3b6525df5 100644
+--- a/arch/mips/kernel/scall64-n32.S
++++ b/arch/mips/kernel/scall64-n32.S
+@@ -424,4 +424,5 @@ EXPORT(sysn32_call_table)
+ 	PTR	sys_sched_setattr
+ 	PTR	sys_sched_getattr
+ 	PTR	sys_renameat2			/* 6315 */
++	PTR	sys_seccomp
+ 	.size	sysn32_call_table,.-sysn32_call_table
+diff --git a/arch/mips/kernel/scall64-o32.S b/arch/mips/kernel/scall64-o32.S
+index f1343ccd7ed7..bb1550b1f501 100644
+--- a/arch/mips/kernel/scall64-o32.S
++++ b/arch/mips/kernel/scall64-o32.S
+@@ -557,4 +557,5 @@ EXPORT(sys32_call_table)
+ 	PTR	sys_sched_setattr
+ 	PTR	sys_sched_getattr		/* 4350 */
+ 	PTR	sys_renameat2
++	PTR	sys_seccomp
+ 	.size	sys32_call_table,.-sys32_call_table
 -- 
 1.7.9.5
 
