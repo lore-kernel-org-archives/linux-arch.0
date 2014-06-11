@@ -1,49 +1,48 @@
-From: Sam Ravnborg <sam@ravnborg.org>
-Subject: Re: [PATCH RFC 00/10] tools: Revamp the unaligned endian access
- functions
-Date: Wed, 11 Jun 2014 21:21:11 +0200
-Message-ID: <20140611192111.GB16069@ravnborg.org>
-References: <1402441994-16780-1-git-send-email-hpa@zytor.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kbuild-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <1402441994-16780-1-git-send-email-hpa@zytor.com>
-Sender: linux-kbuild-owner@vger.kernel.org
-To: "H. Peter Anvin" <hpa@zytor.com>
-Cc: linux-kernel@vger.kernel.org, linux-kbuild@vger.kernel.org, linux-arch@vger.kernel.org, Andy Lutomirski <luto@amacapital.net>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Thomas Gleixner <tglx@linutronix.de>
-List-Id: linux-arch.vger.kernel.org
+From: Andy Lutomirski <luto@amacapital.net>
+Subject: [RFC 0/5] Two-phase seccomp and an x86_64 fast path
+Date: Wed, 11 Jun 2014 13:22:57 -0700
+Message-ID: <cover.1402517933.git.luto@amacapital.net>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-pb0-f42.google.com ([209.85.160.42]:60210 "EHLO
+	mail-pb0-f42.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750963AbaFKUXJ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 11 Jun 2014 16:23:09 -0400
+Received: by mail-pb0-f42.google.com with SMTP id md12so180092pbc.29
+        for <linux-arch@vger.kernel.org>; Wed, 11 Jun 2014 13:23:08 -0700 (PDT)
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linux-kernel@vger.kernel.org, Kees Cook <keescook@chromium.org>, Will Drewry <wad@chromium.org>
+Cc: Oleg Nesterov <oleg@redhat.com>, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-mips@linux-mips.org, linux-arch@vger.kernel.org, linux-security-module@vger.kernel.org, Andy Lutomirski <luto@amacapital.net>
 
-On Tue, Jun 10, 2014 at 04:13:04PM -0700, H. Peter Anvin wrote:
-> After a recent problem in the x86 tree, which seems to be the heaviest
-> but not the only user of these functions, I went through and did a
-> patchset to revamp the *user space* unaligned/endian accessor
-> functions.  As much as I think it is downright pathetic that this
-> functionality still isn't part of the C standard, that is life and we
-> have to deal with it.  Furthermore, although glibc has a pretty nice
-> set of functions for byte swapping in <endian.h>, taken from FreeBSD I
-> believe, some older systems don't support them.
-> 
-> This variant tries to fill in all the holes.  It assumes that
-> <endian.h> define the functions as macros if they exist, as I don't
-> know any other way of probing for them without reaching for autoconf,
-> but that should be valid enough of an assumption in this case.
-> 
-> The hope is that this should give reasonable, if not optimal, code
-> generation on most processors, and give a hook where arch maintainers
-> can add their own changes if needed.
+On my VM, getpid takes about 70ns.  Before this patchset, adding a
+single-instruction always-accept seccomp filter added about 134ns of
+overhead to getpid.  With this patchset, the overhead is down to about
+13ns.
 
-This looks like a very complex solution to a simple problem.
-We want a shared implementation of the *user space*
-unaligned/endian accessor functions.
-But do we really want *fast* versions for our use?
+I'd really appreciate careful review from all relevant arch
+maintainers for patch 1.
 
-This is not a new libc that should generate optimal code,
-but only something were we want to provide e working
-implmentation for use in our user-space tools.
+This is an RFC for now.  I'll submit a non-RFC version after the merge
+window ends.
 
-A much simpler approach without any fallback to arch specific
-version etc. is everything we need.
+Andy Lutomirski (5):
+  seccomp,x86,arm,mips,s390: Remove nr parameter from secure_computing
+  x86_64,entry: Treat regs->ax the same in fastpath and slowpath
+    syscalls
+  seccomp: Refactor the filter callback and the API
+  seccomp: Allow arch code to provide seccomp_data
+  x86,seccomp: Add a seccomp fastpath
 
-	Sam
+ arch/arm/kernel/ptrace.c       |   7 +-
+ arch/mips/kernel/ptrace.c      |   2 +-
+ arch/s390/kernel/ptrace.c      |   2 +-
+ arch/x86/include/asm/calling.h |   6 +-
+ arch/x86/kernel/entry_64.S     |  52 ++++++++-
+ arch/x86/kernel/ptrace.c       |   2 +-
+ arch/x86/kernel/vsyscall_64.c  |   2 +-
+ include/linux/seccomp.h        |  25 +++--
+ kernel/seccomp.c               | 244 +++++++++++++++++++++++++++--------------
+ 9 files changed, 241 insertions(+), 101 deletions(-)
 
+-- 
+1.9.3
