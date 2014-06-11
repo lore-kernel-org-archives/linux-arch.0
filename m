@@ -1,269 +1,102 @@
-From: Andy Lutomirski <luto@amacapital.net>
-Subject: [RFC 3/5] seccomp: Refactor the filter callback and the API
-Date: Wed, 11 Jun 2014 13:23:00 -0700
-Message-ID: <6054804a3aa09f7214761996da8e1694dba6f6f6.1402517933.git.luto@amacapital.net>
-References: <cover.1402517933.git.luto@amacapital.net>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pa0-f49.google.com ([209.85.220.49]:53479 "EHLO
-	mail-pa0-f49.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752777AbaFKUXP (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 11 Jun 2014 16:23:15 -0400
-Received: by mail-pa0-f49.google.com with SMTP id lj1so182054pab.8
-        for <linux-arch@vger.kernel.org>; Wed, 11 Jun 2014 13:23:14 -0700 (PDT)
-In-Reply-To: <cover.1402517933.git.luto@amacapital.net>
-In-Reply-To: <cover.1402517933.git.luto@amacapital.net>
-References: <cover.1402517933.git.luto@amacapital.net>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, Kees Cook <keescook@chromium.org>, Will Drewry <wad@chromium.org>
-Cc: Oleg Nesterov <oleg@redhat.com>, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-mips@linux-mips.org, linux-arch@vger.kernel.org, linux-security-module@vger.kernel.org, Andy Lutomirski <luto@amacapital.net>
+From: "Long, Wai Man" <waiman.long@hp.com>
+Subject: Re: [PATCH v11 06/16] qspinlock: prolong the stay in the pending
+	bit path
+Date: Wed, 11 Jun 2014 17:22:28 -0400
+Message-ID: <5398C894.6040808@hp.com>
+References: <1401464642-33890-1-git-send-email-Waiman.Long@hp.com>
+	<1401464642-33890-7-git-send-email-Waiman.Long@hp.com>
+	<20140611102606.GK3213@twins.programming.kicks-ass.net>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"; Format="flowed"
+Content-Transfer-Encoding: 7bit
+Return-path: <virtualization-bounces@lists.linux-foundation.org>
+In-Reply-To: <20140611102606.GK3213@twins.programming.kicks-ass.net>
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
+List-Post: <mailto:virtualization@lists.linux-foundation.org>
+List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
+Sender: virtualization-bounces@lists.linux-foundation.org
+Errors-To: virtualization-bounces@lists.linux-foundation.org
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: linux-arch@vger.kernel.org, Rik van Riel <riel@redhat.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, Oleg Nesterov <oleg@redhat.com>, Gleb Natapov <gleb@redhat.com>, kvm@vger.kernel.org, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Scott J Norton <scott.norton@hp.com>, x86@kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, Ingo Molnar <mingo@redhat.com>, Chegu Vinod <chegu_vinod@hp.com>, David Vrabel <david.vrabel@citrix.com>, "H. Peter Anvin" <hpa@zytor.com>, xen-devel@lists.xenproject.org, Thomas Gleixner <tglx@linutronix.de>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Boris Ostrovsky <boris.ostrovsky@oracle.com>
+List-Id: linux-arch.vger.kernel.org
 
-The reason I did this is to add a seccomp API that will be usable
-for an x86 fast path.  The x86 entry code needs to use a rather
-expensive slow path for a syscall that might be visible to things
-like ptrace.  By splitting seccomp into two phases, we can check
-whether we need the slow path and then use the fast path in if the
-filter allows the syscall or just returns some errno.
 
-As a side effect, I think the new code is much easier to understand
-than the old code.
+On 6/11/2014 6:26 AM, Peter Zijlstra wrote:
+> On Fri, May 30, 2014 at 11:43:52AM -0400, Waiman Long wrote:
+>> ---
+>>   kernel/locking/qspinlock.c |   18 ++++++++++++++++--
+>>   1 files changed, 16 insertions(+), 2 deletions(-)
+>>
+>> diff --git a/kernel/locking/qspinlock.c b/kernel/locking/qspinlock.c
+>> index fc7fd8c..7f10758 100644
+>> --- a/kernel/locking/qspinlock.c
+>> +++ b/kernel/locking/qspinlock.c
+>> @@ -233,11 +233,25 @@ void queue_spin_lock_slowpath(struct qspinlock *lock, u32 val)
+>>   	 */
+>>   	for (;;) {
+>>   		/*
+>> -		 * If we observe any contention; queue.
+>> +		 * If we observe that the queue is not empty or both
+>> +		 * the pending and lock bits are set, queue
+>>   		 */
+>> -		if (val & ~_Q_LOCKED_MASK)
+>> +		if ((val & _Q_TAIL_MASK) ||
+>> +		    (val == (_Q_LOCKED_VAL|_Q_PENDING_VAL)))
+>>   			goto queue;
+>>   
+>> +		if (val == _Q_PENDING_VAL) {
+>> +			/*
+>> +			 * Pending bit is set, but not the lock bit.
+>> +			 * Assuming that the pending bit holder is going to
+>> +			 * set the lock bit and clear the pending bit soon,
+>> +			 * it is better to wait than to exit at this point.
+>> +			 */
+>> +			cpu_relax();
+>> +			val = atomic_read(&lock->val);
+>> +			continue;
+>> +		}
+>> +
+>>   		new = _Q_LOCKED_VAL;
+>>   		if (val == new)
+>>   			new |= _Q_PENDING_VAL;
+>
+> So, again, you just posted a new version without replying to the
+> previous discussion; so let me try again, what's wrong with the proposal
+> here:
+>
+>    lkml.kernel.org/r/20140417163640.GT11096@twins.programming.kicks-ass.net
+>
+>
 
-This has one user-visible effect: the audit record written for
-SECCOMP_RET_TRACE is now a simple indication that SECCOMP_RET_TRACE
-happened.  It used to depend in a complicated way on what the tracer
-did.  I couldn't make much sense of it.
+I thought I had answered you before, maybe the message was lost or the 
+answer was not complete. Anyway, I will try to response to your question 
+again here.
 
-Signed-off-by: Andy Lutomirski <luto@amacapital.net>
----
- include/linux/seccomp.h |   6 ++
- kernel/seccomp.c        | 179 +++++++++++++++++++++++++++++++-----------------
- 2 files changed, 122 insertions(+), 63 deletions(-)
+> Wouldn't something like:
+>
+>	while (atomic_read(&lock->val) == _Q_PENDING_VAL)
+>		cpu_relax();
+>
+> before the cmpxchg loop have gotten you all this?
 
-diff --git a/include/linux/seccomp.h b/include/linux/seccomp.h
-index 6e655a6..8345fdc 100644
---- a/include/linux/seccomp.h
-+++ b/include/linux/seccomp.h
-@@ -33,6 +33,12 @@ static inline int secure_computing(void)
- 		return  __secure_computing();
- 	return 0;
- }
-+
-+#define SECCOMP_PHASE1_OK	0
-+#define SECCOMP_PHASE1_SKIP	1
-+
-+extern u32 seccomp_phase1(void);
-+int seccomp_phase2(u32 phase1_result);
- #else
- extern void secure_computing_strict(int this_syscall);
- #endif
-diff --git a/kernel/seccomp.c b/kernel/seccomp.c
-index 4af399a..dfdb38a 100644
---- a/kernel/seccomp.c
-+++ b/kernel/seccomp.c
-@@ -19,8 +19,6 @@
- #include <linux/sched.h>
- #include <linux/seccomp.h>
- 
--/* #define SECCOMP_DEBUG 1 */
--
- #ifdef CONFIG_HAVE_ARCH_SECCOMP_FILTER
- #include <asm/syscall.h>
- #endif
-@@ -408,79 +406,134 @@ void secure_computing_strict(int this_syscall)
- #else
- int __secure_computing(void)
- {
-+	u32 phase1_result = seccomp_phase1();
-+	if (likely(phase1_result == SECCOMP_PHASE1_OK))
-+		return 0;
-+	else if (likely(phase1_result == SECCOMP_PHASE1_SKIP))
-+		return -1;
-+	else
-+		return seccomp_phase2(phase1_result);
-+}
-+
-+#ifdef CONFIG_SECCOMP_FILTER
-+static u32 __seccomp_phase1_filter(int this_syscall, struct pt_regs *regs)
-+{
-+	u32 filter_ret = seccomp_run_filters();
-+	int data = filter_ret & SECCOMP_RET_DATA;
-+	u32 action = filter_ret & SECCOMP_RET_ACTION;
-+
-+	switch (action) {
-+	case SECCOMP_RET_ERRNO:
-+		/* Set the low-order 16-bits as a errno. */
-+		syscall_set_return_value(current, regs,
-+					 -data, 0);
-+		goto skip;
-+
-+	case SECCOMP_RET_TRAP:
-+		/* Show the handler the original registers. */
-+		syscall_rollback(current, regs);
-+		/* Let the filter pass back 16 bits of data. */
-+		seccomp_send_sigsys(this_syscall, data);
-+		goto skip;
-+
-+	case SECCOMP_RET_TRACE:
-+		return filter_ret;  /* Save the rest for phase 2. */
-+
-+	case SECCOMP_RET_ALLOW:
-+		return SECCOMP_PHASE1_OK;
-+
-+	case SECCOMP_RET_KILL:
-+	default:
-+		audit_seccomp(this_syscall, SIGSYS, action);
-+		do_exit(SIGSYS);
-+	}
-+
-+	unreachable();
-+
-+skip:
-+	audit_seccomp(this_syscall, 0, action);
-+	return SECCOMP_PHASE1_SKIP;
-+}
-+#endif
-+
-+/**
-+ * seccomp_phase1() - run fast path seccomp checks on the current syscall
-+ *
-+ * This only reads pt_regs via the syscall_xyz helpers.  The only change
-+ * it will make to pt_regs is via syscall_set_return_value, and it will
-+ * only do that if it returns SECCOMP_PHASE1_SKIP.
-+ *
-+ * It may also call do_exit or force a signal; these actions must be
-+ * safe.
-+ *
-+ * If it returns SECCOMP_PHASE1_OK, the syscall passes checks and should
-+ * be processed normally.
-+ *
-+ * If it returns SECCOMP_PHASE1_SKIP, then the syscall should not be
-+ * invoked.  In this case, seccomp_phase1 will have set the return value
-+ * using syscall_set_return_value.
-+ *
-+ * If it returns anything else, then the return value should be passed
-+ * to seccomp_phase2 from a context in which ptrace hooks are safe.
-+ */
-+u32 seccomp_phase1(void)
-+{
- 	int mode = current->seccomp.mode;
- 	struct pt_regs *regs = task_pt_regs(current);
- 	int this_syscall = syscall_get_nr(current, regs);
--	int exit_sig = 0;
--	u32 ret;
- 
- 	switch (mode) {
- 	case SECCOMP_MODE_STRICT:
--		__secure_computing_strict(this_syscall);
--		return 0;
-+		__secure_computing_strict(this_syscall);  /* may call do_exit */
-+		return SECCOMP_PHASE1_OK;
- #ifdef CONFIG_SECCOMP_FILTER
--	case SECCOMP_MODE_FILTER: {
--		int data;
--		ret = seccomp_run_filters();
--		data = ret & SECCOMP_RET_DATA;
--		ret &= SECCOMP_RET_ACTION;
--		switch (ret) {
--		case SECCOMP_RET_ERRNO:
--			/* Set the low-order 16-bits as a errno. */
--			syscall_set_return_value(current, regs,
--						 -data, 0);
--			goto skip;
--		case SECCOMP_RET_TRAP:
--			/* Show the handler the original registers. */
--			syscall_rollback(current, regs);
--			/* Let the filter pass back 16 bits of data. */
--			seccomp_send_sigsys(this_syscall, data);
--			goto skip;
--		case SECCOMP_RET_TRACE:
--			/* Skip these calls if there is no tracer. */
--			if (!ptrace_event_enabled(current, PTRACE_EVENT_SECCOMP)) {
--				syscall_set_return_value(current, regs,
--							 -ENOSYS, 0);
--				goto skip;
--			}
--			/* Allow the BPF to provide the event message */
--			ptrace_event(PTRACE_EVENT_SECCOMP, data);
--			/*
--			 * The delivery of a fatal signal during event
--			 * notification may silently skip tracer notification.
--			 * Terminating the task now avoids executing a system
--			 * call that may not be intended.
--			 */
--			if (fatal_signal_pending(current))
--				break;
--			if (syscall_get_nr(current, regs) < 0)
--				goto skip;  /* Explicit request to skip. */
--
--			return 0;
--		case SECCOMP_RET_ALLOW:
--			return 0;
--		case SECCOMP_RET_KILL:
--		default:
--			break;
--		}
--		exit_sig = SIGSYS;
--		break;
--	}
-+	case SECCOMP_MODE_FILTER:
-+		return __seccomp_phase1_filter(this_syscall, regs);
- #endif
- 	default:
- 		BUG();
- 	}
-+}
- 
--#ifdef SECCOMP_DEBUG
--	dump_stack();
--#endif
--	audit_seccomp(this_syscall, exit_sig, ret);
--	do_exit(exit_sig);
--#ifdef CONFIG_SECCOMP_FILTER
--skip:
--	audit_seccomp(this_syscall, exit_sig, ret);
--	return -1;
--#endif
-+/**
-+ * seccomp_phase2() - finish slow path seccomp work for the current syscall
-+ * @phase1_result: The return value from seccomp_phase1()
-+ *
-+ * This must be called from a context in which ptrace hooks can be used.
-+ *
-+ * Returns 0 if the syscall should be processed or -1 to skip the syscall.
-+ */
-+int seccomp_phase2(u32 phase1_result)
-+{
-+	struct pt_regs *regs = task_pt_regs(current);
-+	u32 action = phase1_result & SECCOMP_RET_ACTION;
-+	int data = phase1_result & SECCOMP_RET_DATA;
-+
-+	BUG_ON(action != SECCOMP_RET_TRACE);
-+
-+	audit_seccomp(syscall_get_nr(current, regs), 0, action);
-+
-+	/* Skip these calls if there is no tracer. */
-+	if (!ptrace_event_enabled(current, PTRACE_EVENT_SECCOMP)) {
-+		syscall_set_return_value(current, regs,
-+					 -ENOSYS, 0);
-+		return -1;
-+	}
-+
-+	/* Allow the BPF to provide the event message */
-+	ptrace_event(PTRACE_EVENT_SECCOMP, data);
-+	/*
-+	 * The delivery of a fatal signal during event
-+	 * notification may silently skip tracer notification.
-+	 * Terminating the task now avoids executing a system
-+	 * call that may not be intended.
-+	 */
-+	if (fatal_signal_pending(current))
-+		do_exit(SIGSYS);
-+	if (syscall_get_nr(current, regs) < 0)
-+		return -1;  /* Explicit request to skip. */
-+
-+	return 0;
- }
- #endif /* CONFIG_HAVE_ARCH_SECCOMP_FILTER */
- 
--- 
-1.9.3
+That is not exactly the same. The loop will exit if other bits are set or the pending
+bit cleared. In the case, we will need to do the same check at the beginning of the
+for loop in order to avoid doing an extra cmpxchg that is not necessary.
+
+
+> I just tried this on my code and I cannot see a difference.
+
+As I said before, I did see a difference with that change. I think it 
+depends on the CPU chip that we used for testing. I ran my test on a 
+10-core Westmere-EX chip. I run my microbench on different pairs of core 
+within the same chip. It produces different results that varies from 
+779.5ms to up to 1192ms. Without that patch, the lowest value I can get 
+is still close to 800ms, but the highest can be up to 1800ms or so. So I 
+believe it is just a matter of timing that you did not observed in your 
+test machine.
+
+-Longman
