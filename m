@@ -1,64 +1,31 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:53095 "EHLO mail.zytor.com"
+Received: from terminus.zytor.com ([198.137.202.10]:53292 "EHLO mail.zytor.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750958AbaFKVxJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 11 Jun 2014 17:53:09 -0400
-Message-ID: <5398CFA4.60202@zytor.com>
-Date: Wed, 11 Jun 2014 14:52:36 -0700
+	id S1752001AbaFKWSn (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 11 Jun 2014 18:18:43 -0400
+Message-ID: <5398D59A.3030900@zytor.com>
+Date: Wed, 11 Jun 2014 15:18:02 -0700
 From: "H. Peter Anvin" <hpa@zytor.com>
 MIME-Version: 1.0
-Subject: Re: [PATCH RFC 00/10] tools: Revamp the unaligned endian access functions
-References: <1402441994-16780-1-git-send-email-hpa@zytor.com> <20140611192111.GB16069@ravnborg.org>
-In-Reply-To: <20140611192111.GB16069@ravnborg.org>
+Subject: Re: [RFC 5/5] x86,seccomp: Add a seccomp fastpath
+References: <cover.1402517933.git.luto@amacapital.net> <9e11cd988a0f120606e37b5e275019754e2774da.1402517933.git.luto@amacapital.net> <CAADnVQKt5FnShkZeQewbfnU1kHM-gLs3hCZMf5xcgFzyRDLX7A@mail.gmail.com> <CALCETrXoqqKC=T5Wvj+CDYQFte1s_=npDvQ2UYW0j=AanEgR1g@mail.gmail.com>
+In-Reply-To: <CALCETrXoqqKC=T5Wvj+CDYQFte1s_=npDvQ2UYW0j=AanEgR1g@mail.gmail.com>
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Sam Ravnborg <sam@ravnborg.org>
-Cc: linux-kernel@vger.kernel.org, linux-kbuild@vger.kernel.org, linux-arch@vger.kernel.org, Andy Lutomirski <luto@amacapital.net>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Thomas Gleixner <tglx@linutronix.de>
-Message-ID: <20140611215236.h46hlrTjXGBCwuINt4bvLSwgdaq_e8UBmqZt6o3Tr-I@z>
+To: Andy Lutomirski <luto@amacapital.net>, Alexei Starovoitov <alexei.starovoitov@gmail.com>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Kees Cook <keescook@chromium.org>, Will Drewry <wad@chromium.org>, Oleg Nesterov <oleg@redhat.com>, X86 ML <x86@kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, linux-mips@linux-mips.org, linux-arch <linux-arch@vger.kernel.org>, LSM List <linux-security-module@vger.kernel.org>
+Message-ID: <20140611221802.k6kpprrNj89RVlTXz9m5fh8_D6ZMd6YcSbc5IzBYbqw@z>
 
-On 06/11/2014 12:21 PM, Sam Ravnborg wrote:
-> On Tue, Jun 10, 2014 at 04:13:04PM -0700, H. Peter Anvin wrote:
->> After a recent problem in the x86 tree, which seems to be the heaviest
->> but not the only user of these functions, I went through and did a
->> patchset to revamp the *user space* unaligned/endian accessor
->> functions.  As much as I think it is downright pathetic that this
->> functionality still isn't part of the C standard, that is life and we
->> have to deal with it.  Furthermore, although glibc has a pretty nice
->> set of functions for byte swapping in <endian.h>, taken from FreeBSD I
->> believe, some older systems don't support them.
->>
->> This variant tries to fill in all the holes.  It assumes that
->> <endian.h> define the functions as macros if they exist, as I don't
->> know any other way of probing for them without reaching for autoconf,
->> but that should be valid enough of an assumption in this case.
->>
->> The hope is that this should give reasonable, if not optimal, code
->> generation on most processors, and give a hook where arch maintainers
->> can add their own changes if needed.
+On 06/11/2014 02:56 PM, Andy Lutomirski wrote:
 > 
-> This looks like a very complex solution to a simple problem.
-> We want a shared implementation of the *user space*
-> unaligned/endian accessor functions.
-> But do we really want *fast* versions for our use?
+> 13ns is with the simplest nonempty filter.  I hope that empty filters
+> don't work.
 > 
-> This is not a new libc that should generate optimal code,
-> but only something were we want to provide e working
-> implmentation for use in our user-space tools.
-> 
-> A much simpler approach without any fallback to arch specific
-> version etc. is everything we need.
 
-It doesn't matter so much for things that are just done for the kernel
-compile, no, but there are some tools that are built to be used as
-standalone things, and it could matter there.
-
-Please note that the code currently doesn't have any arch-specific bits
-at all... the code is somewhat complex in part because it is very
-generic and handles several levels of fallback.  It *can* get
-arch-specific overrides if it matters, but the intent is that it
-shouldn't be necessary in the vast majority of the cases.
+Why wouldn't they?
 
 	-hpa
+
 
