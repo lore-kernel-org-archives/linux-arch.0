@@ -1,113 +1,54 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wg0-f43.google.com ([74.125.82.43]:37959 "EHLO
-	mail-wg0-f43.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752426AbaFKLtg (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 11 Jun 2014 07:49:36 -0400
-From: Thierry Reding <thierry.reding@gmail.com>
-Subject: [PATCH] dma-mapping: Provide write-combine allocations
-Date: Wed, 11 Jun 2014 13:46:36 +0200
-Message-ID: <1402487196-5433-1-git-send-email-thierry.reding@gmail.com>
+Received: from asavdk3.altibox.net ([109.247.116.14]:41206 "EHLO
+	asavdk3.altibox.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750963AbaFKTVQ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 11 Jun 2014 15:21:16 -0400
+Date: Wed, 11 Jun 2014 21:21:11 +0200
+From: Sam Ravnborg <sam@ravnborg.org>
+Subject: Re: [PATCH RFC 00/10] tools: Revamp the unaligned endian access
+ functions
+Message-ID: <20140611192111.GB16069@ravnborg.org>
+References: <1402441994-16780-1-git-send-email-hpa@zytor.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1402441994-16780-1-git-send-email-hpa@zytor.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Russell King <linux@arm.linux.org.uk>, Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20140611114636.h0j_opTqMiFg2PgiaLsLTcbhAENGVmknI7JFpSnkk-Y@z>
+To: "H. Peter Anvin" <hpa@zytor.com>
+Cc: linux-kernel@vger.kernel.org, linux-kbuild@vger.kernel.org, linux-arch@vger.kernel.org, Andy Lutomirski <luto@amacapital.net>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Thomas Gleixner <tglx@linutronix.de>
+Message-ID: <20140611192111.aEbzJPOtsTcSvUc6x6FXEcExyqEMiLn7j1TaiI7Mc6o@z>
 
-From: Thierry Reding <treding@nvidia.com>
+On Tue, Jun 10, 2014 at 04:13:04PM -0700, H. Peter Anvin wrote:
+> After a recent problem in the x86 tree, which seems to be the heaviest
+> but not the only user of these functions, I went through and did a
+> patchset to revamp the *user space* unaligned/endian accessor
+> functions.  As much as I think it is downright pathetic that this
+> functionality still isn't part of the C standard, that is life and we
+> have to deal with it.  Furthermore, although glibc has a pretty nice
+> set of functions for byte swapping in <endian.h>, taken from FreeBSD I
+> believe, some older systems don't support them.
+> 
+> This variant tries to fill in all the holes.  It assumes that
+> <endian.h> define the functions as macros if they exist, as I don't
+> know any other way of probing for them without reaching for autoconf,
+> but that should be valid enough of an assumption in this case.
+> 
+> The hope is that this should give reasonable, if not optimal, code
+> generation on most processors, and give a hook where arch maintainers
+> can add their own changes if needed.
 
-Provide an implementation for dma_{alloc,free,mmap}_writecombine() when
-the architecture supports DMA attributes.
+This looks like a very complex solution to a simple problem.
+We want a shared implementation of the *user space*
+unaligned/endian accessor functions.
+But do we really want *fast* versions for our use?
 
-Signed-off-by: Thierry Reding <treding@nvidia.com>
----
- arch/arm/include/asm/dma-mapping.h       | 16 ----------------
- include/asm-generic/dma-mapping-common.h |  8 --------
- include/linux/dma-mapping.h              | 26 ++++++++++++++++++++++++++
- 3 files changed, 26 insertions(+), 24 deletions(-)
+This is not a new libc that should generate optimal code,
+but only something were we want to provide e working
+implmentation for use in our user-space tools.
 
-diff --git a/arch/arm/include/asm/dma-mapping.h b/arch/arm/include/asm/dma-mapping.h
-index c45b61a4b4a5..85738b200023 100644
---- a/arch/arm/include/asm/dma-mapping.h
-+++ b/arch/arm/include/asm/dma-mapping.h
-@@ -265,22 +265,6 @@ extern int arm_dma_mmap(struct device *dev, struct vm_area_struct *vma,
- 			void *cpu_addr, dma_addr_t dma_addr, size_t size,
- 			struct dma_attrs *attrs);
- 
--static inline void *dma_alloc_writecombine(struct device *dev, size_t size,
--				       dma_addr_t *dma_handle, gfp_t flag)
--{
--	DEFINE_DMA_ATTRS(attrs);
--	dma_set_attr(DMA_ATTR_WRITE_COMBINE, &attrs);
--	return dma_alloc_attrs(dev, size, dma_handle, flag, &attrs);
--}
--
--static inline void dma_free_writecombine(struct device *dev, size_t size,
--				     void *cpu_addr, dma_addr_t dma_handle)
--{
--	DEFINE_DMA_ATTRS(attrs);
--	dma_set_attr(DMA_ATTR_WRITE_COMBINE, &attrs);
--	return dma_free_attrs(dev, size, cpu_addr, dma_handle, &attrs);
--}
--
- /*
-  * This can be called during early boot to increase the size of the atomic
-  * coherent DMA pool above the default value of 256KiB. It must be called
-diff --git a/include/asm-generic/dma-mapping-common.h b/include/asm-generic/dma-mapping-common.h
-index de8bf89940f8..d137431bf26f 100644
---- a/include/asm-generic/dma-mapping-common.h
-+++ b/include/asm-generic/dma-mapping-common.h
-@@ -205,14 +205,6 @@ dma_mmap_attrs(struct device *dev, struct vm_area_struct *vma, void *cpu_addr,
- 
- #define dma_mmap_coherent(d, v, c, h, s) dma_mmap_attrs(d, v, c, h, s, NULL)
- 
--static inline int dma_mmap_writecombine(struct device *dev, struct vm_area_struct *vma,
--		      void *cpu_addr, dma_addr_t dma_addr, size_t size)
--{
--	DEFINE_DMA_ATTRS(attrs);
--	dma_set_attr(DMA_ATTR_WRITE_COMBINE, &attrs);
--	return dma_mmap_attrs(dev, vma, cpu_addr, dma_addr, size, &attrs);
--}
--
- int
- dma_common_get_sgtable(struct device *dev, struct sg_table *sgt,
- 		       void *cpu_addr, dma_addr_t dma_addr, size_t size);
-diff --git a/include/linux/dma-mapping.h b/include/linux/dma-mapping.h
-index 931b70986272..d5d388160f42 100644
---- a/include/linux/dma-mapping.h
-+++ b/include/linux/dma-mapping.h
-@@ -263,6 +263,32 @@ struct dma_attrs;
- #define dma_unmap_sg_attrs(dev, sgl, nents, dir, attrs) \
- 	dma_unmap_sg(dev, sgl, nents, dir)
- 
-+#else
-+static inline void *dma_alloc_writecombine(struct device *dev, size_t size,
-+					   dma_addr_t *dma_addr, gfp_t gfp)
-+{
-+	DEFINE_DMA_ATTRS(attrs);
-+	dma_set_attr(DMA_ATTR_WRITE_COMBINE, &attrs);
-+	return dma_alloc_attrs(dev, size, dma_addr, gfp, &attrs);
-+}
-+
-+static inline void dma_free_writecombine(struct device *dev, size_t size,
-+					 void *cpu_addr, dma_addr_t dma_addr)
-+{
-+	DEFINE_DMA_ATTRS(attrs);
-+	dma_set_attr(DMA_ATTR_WRITE_COMBINE, &attrs);
-+	return dma_free_attrs(dev, size, cpu_addr, dma_addr, &attrs);
-+}
-+
-+static inline int dma_mmap_writecombine(struct device *dev,
-+					struct vm_area_struct *vma,
-+					void *cpu_addr, dma_addr_t dma_addr,
-+					size_t size)
-+{
-+	DEFINE_DMA_ATTRS(attrs);
-+	dma_set_attr(DMA_ATTR_WRITE_COMBINE, &attrs);
-+	return dma_mmap_attrs(dev, vma, cpu_addr, dma_addr, size, &attrs);
-+}
- #endif /* CONFIG_HAVE_DMA_ATTRS */
- 
- #ifdef CONFIG_NEED_DMA_MAP_STATE
--- 
-1.9.2
+A much simpler approach without any fallback to arch specific
+version etc. is everything we need.
+
+	Sam
 
