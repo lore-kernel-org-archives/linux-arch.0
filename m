@@ -1,80 +1,107 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v11 09/16] qspinlock, x86: Allow unfair spinlock in a
- virtual guest
-Date: Wed, 11 Jun 2014 13:38:41 +0200
-Message-ID: <20140611113841.GD3588@twins.programming.kicks-ass.net>
-References: <1401464642-33890-1-git-send-email-Waiman.Long@hp.com>
- <1401464642-33890-10-git-send-email-Waiman.Long@hp.com>
- <20140611105402.GL3213@twins.programming.kicks-ass.net>
-Mime-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha1;
-	protocol="application/pgp-signature"; boundary="C+ts3FVlLX8+P6JN"
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from casper.infradead.org ([85.118.1.10]:54166 "EHLO
-	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752718AbaFKLit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 11 Jun 2014 07:38:49 -0400
-Content-Disposition: inline
-In-Reply-To: <20140611105402.GL3213@twins.programming.kicks-ass.net>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Waiman Long <Waiman.Long@hp.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Rik van Riel <riel@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, David Vrabel <david.vrabel@citrix.com>, Oleg Nesterov <oleg@redhat.com>, Gleb Natapov <gleb@redhat.com>, Scott J Norton <scott.norton@hp.com>, Chegu Vinod <chegu_vinod@hp.com>
+From: Thierry Reding <thierry.reding@gmail.com>
+Subject: [PATCH] dma-mapping: Provide write-combine allocations
+Date: Wed, 11 Jun 2014 13:46:36 +0200
+Message-ID: <1402487196-5433-1-git-send-email-thierry.reding@gmail.com>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Russell King <linux@arm.linux.org.uk>, Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
+From: Thierry Reding <treding@nvidia.com>
 
---C+ts3FVlLX8+P6JN
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+Provide an implementation for dma_{alloc,free,mmap}_writecombine() when
+the architecture supports DMA attributes.
 
-On Wed, Jun 11, 2014 at 12:54:02PM +0200, Peter Zijlstra wrote:
-> > @@ -252,6 +260,18 @@ void queue_spin_lock_slowpath(struct qspinlock *lo=
-ck, u32 val)
-> > =20
-> >  	BUILD_BUG_ON(CONFIG_NR_CPUS >=3D (1U << _Q_TAIL_CPU_BITS));
-> > =20
-> > +#ifdef CONFIG_VIRT_UNFAIR_LOCKS
-> > +	/*
-> > +	 * A simple test and set unfair lock
-> > +	 */
-> > +	if (static_key_false(&virt_unfairlocks_enabled)) {
-> > +		cpu_relax();	/* Relax after a failed lock attempt */
->=20
-> Meh, I don't think anybody can tell the difference if you put that in or
-> not, therefore don't.
->=20
-> > +		while (!queue_spin_trylock(lock))
-> > +			cpu_relax();
-> > +		return;
-> > +	}
-> > +#endif /* CONFIG_VIRT_UNFAIR_LOCKS */
->=20
-> If you're really worried about those upper 24bits, you can always clear
-> them when you get here.
+Signed-off-by: Thierry Reding <treding@nvidia.com>
+---
+ arch/arm/include/asm/dma-mapping.h       | 16 ----------------
+ include/asm-generic/dma-mapping-common.h |  8 --------
+ include/linux/dma-mapping.h              | 26 ++++++++++++++++++++++++++
+ 3 files changed, 26 insertions(+), 24 deletions(-)
 
-I don't think its a problem at all; flipping the static_key requires
-stop_machine, which guarantees us that there are no spinlocks held. So I
-think you can actually BUG_ON() the upper 24bits.
-
---C+ts3FVlLX8+P6JN
-Content-Type: application/pgp-signature
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.12 (GNU/Linux)
-
-iQIcBAEBAgAGBQJTmD/BAAoJEHZH4aRLwOS6CcQQALBCdTzxj+zytpwsKX0IPCTW
-Ng1BKqkzdBryfbh/vpcKmcyO8q2L6tSEls6ZPYutjVRi4foN1eef9dVWc0KUQZ9g
-yA/UOPi4nGXkHREUQIXfFluWyff/tpJ0MyGLM3ZzXrxdnYb1ULo+tg7YwuDna4uv
-sD6/Wf1aJetEHckWChxZY2C9Eg0JUbnvsSSj9OOP8J9UMqwjXHWAmy2UTppzKZS1
-ySNOyN86ekeYvWWGazpQB4CDhaeCBf3DlaFoe/PEsV+Q5BrvhHOuIrmmF77RfAC2
-O/h85QwEPceLVEPG4N+DOLKjj83S29ye2XMlb2h/+t2bjUei9ZABOSp32tDTKx4y
-x8D4idRs8nedqcbHw+FF4XgxommrnX7UQh0a7eJ+hT19jybkk9m2DfMk4hTPlIk/
-y4wbQ7NQNOVDPbC40E+Lax4xQBeQLtoFLnJiXnvI2g8XhJJVtvusV1xw6YnlBmXd
-8RmWzUI7M/hyqkCLGtIlYSBL6YEtxHYHaINpAVA3rPMDDDPGkWKtFyx8iD1mmJA8
-xMvU87CSJIV7EVFC+PXVgNj6xGdtgjWEa9ZY/LqWFzF7vYNFwptXXwmPZTaNNR/w
-B0SCWI4rUOQ3SxhuZIDfj/1IK18W1xRPob01nb20PNn7R4oPEHYoQbZ+MnEkAYmh
-s1/ZFeFTGneNQ6sEu0oO
-=Zf+L
------END PGP SIGNATURE-----
-
---C+ts3FVlLX8+P6JN--
+diff --git a/arch/arm/include/asm/dma-mapping.h b/arch/arm/include/asm/dma-mapping.h
+index c45b61a4b4a5..85738b200023 100644
+--- a/arch/arm/include/asm/dma-mapping.h
++++ b/arch/arm/include/asm/dma-mapping.h
+@@ -265,22 +265,6 @@ extern int arm_dma_mmap(struct device *dev, struct vm_area_struct *vma,
+ 			void *cpu_addr, dma_addr_t dma_addr, size_t size,
+ 			struct dma_attrs *attrs);
+ 
+-static inline void *dma_alloc_writecombine(struct device *dev, size_t size,
+-				       dma_addr_t *dma_handle, gfp_t flag)
+-{
+-	DEFINE_DMA_ATTRS(attrs);
+-	dma_set_attr(DMA_ATTR_WRITE_COMBINE, &attrs);
+-	return dma_alloc_attrs(dev, size, dma_handle, flag, &attrs);
+-}
+-
+-static inline void dma_free_writecombine(struct device *dev, size_t size,
+-				     void *cpu_addr, dma_addr_t dma_handle)
+-{
+-	DEFINE_DMA_ATTRS(attrs);
+-	dma_set_attr(DMA_ATTR_WRITE_COMBINE, &attrs);
+-	return dma_free_attrs(dev, size, cpu_addr, dma_handle, &attrs);
+-}
+-
+ /*
+  * This can be called during early boot to increase the size of the atomic
+  * coherent DMA pool above the default value of 256KiB. It must be called
+diff --git a/include/asm-generic/dma-mapping-common.h b/include/asm-generic/dma-mapping-common.h
+index de8bf89940f8..d137431bf26f 100644
+--- a/include/asm-generic/dma-mapping-common.h
++++ b/include/asm-generic/dma-mapping-common.h
+@@ -205,14 +205,6 @@ dma_mmap_attrs(struct device *dev, struct vm_area_struct *vma, void *cpu_addr,
+ 
+ #define dma_mmap_coherent(d, v, c, h, s) dma_mmap_attrs(d, v, c, h, s, NULL)
+ 
+-static inline int dma_mmap_writecombine(struct device *dev, struct vm_area_struct *vma,
+-		      void *cpu_addr, dma_addr_t dma_addr, size_t size)
+-{
+-	DEFINE_DMA_ATTRS(attrs);
+-	dma_set_attr(DMA_ATTR_WRITE_COMBINE, &attrs);
+-	return dma_mmap_attrs(dev, vma, cpu_addr, dma_addr, size, &attrs);
+-}
+-
+ int
+ dma_common_get_sgtable(struct device *dev, struct sg_table *sgt,
+ 		       void *cpu_addr, dma_addr_t dma_addr, size_t size);
+diff --git a/include/linux/dma-mapping.h b/include/linux/dma-mapping.h
+index 931b70986272..d5d388160f42 100644
+--- a/include/linux/dma-mapping.h
++++ b/include/linux/dma-mapping.h
+@@ -263,6 +263,32 @@ struct dma_attrs;
+ #define dma_unmap_sg_attrs(dev, sgl, nents, dir, attrs) \
+ 	dma_unmap_sg(dev, sgl, nents, dir)
+ 
++#else
++static inline void *dma_alloc_writecombine(struct device *dev, size_t size,
++					   dma_addr_t *dma_addr, gfp_t gfp)
++{
++	DEFINE_DMA_ATTRS(attrs);
++	dma_set_attr(DMA_ATTR_WRITE_COMBINE, &attrs);
++	return dma_alloc_attrs(dev, size, dma_addr, gfp, &attrs);
++}
++
++static inline void dma_free_writecombine(struct device *dev, size_t size,
++					 void *cpu_addr, dma_addr_t dma_addr)
++{
++	DEFINE_DMA_ATTRS(attrs);
++	dma_set_attr(DMA_ATTR_WRITE_COMBINE, &attrs);
++	return dma_free_attrs(dev, size, cpu_addr, dma_addr, &attrs);
++}
++
++static inline int dma_mmap_writecombine(struct device *dev,
++					struct vm_area_struct *vma,
++					void *cpu_addr, dma_addr_t dma_addr,
++					size_t size)
++{
++	DEFINE_DMA_ATTRS(attrs);
++	dma_set_attr(DMA_ATTR_WRITE_COMBINE, &attrs);
++	return dma_mmap_attrs(dev, vma, cpu_addr, dma_addr, size, &attrs);
++}
+ #endif /* CONFIG_HAVE_DMA_ATTRS */
+ 
+ #ifdef CONFIG_NEED_DMA_MAP_STATE
+-- 
+1.9.2
