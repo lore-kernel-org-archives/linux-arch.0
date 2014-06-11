@@ -1,33 +1,51 @@
-From: "H. Peter Anvin" <hpa@zytor.com>
-Subject: Re: [PATCH RFC 03/10] tools: Add le_direct/be_direct methods for
- unaligned access
-Date: Tue, 10 Jun 2014 16:41:10 -0700
-Message-ID: <53979796.40205@zytor.com>
-References: <1402441994-16780-1-git-send-email-hpa@zytor.com> <1402441994-16780-4-git-send-email-hpa@zytor.com> <CALCETrUrdvvTc+qt61nQ1iRW4qpyDfMSzqnLKFMUsx7P=XvAfA@mail.gmail.com> <5397952E.9040008@zytor.com> <CALCETrUvN1kYB=Z+wmPfbJawWSHb-r5NhmYLV1ZTxOWmHkanHw@mail.gmail.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:38971 "EHLO mail.zytor.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752290AbaFJXlf (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 10 Jun 2014 19:41:35 -0400
-In-Reply-To: <CALCETrUvN1kYB=Z+wmPfbJawWSHb-r5NhmYLV1ZTxOWmHkanHw@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Andy Lutomirski <luto@amacapital.net>
-Cc: Sam Ravnborg <sam@ravnborg.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-kbuild@vger.kernel.org" <linux-kbuild@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Thomas Gleixner <tglx@linutronix.de>
+From: Kees Cook <keescook@chromium.org>
+Subject: [PATCH v6 0/9] seccomp: add thread sync ability
+Date: Tue, 10 Jun 2014 20:25:12 -0700
+Message-ID: <1402457121-8410-1-git-send-email-keescook@chromium.org>
+Return-path: <linux-mips-bounce@linux-mips.org>
+Sender: linux-mips-bounce@linux-mips.org
+Errors-to: linux-mips-bounce@linux-mips.org
+List-help: <mailto:ecartis@linux-mips.org?Subject=help>
+List-unsubscribe: <mailto:ecartis@linux-mips.org?subject=unsubscribe%20linux-mips>
+List-software: Ecartis version 1.0.0
+List-subscribe: <mailto:ecartis@linux-mips.org?subject=subscribe%20linux-mips>
+List-owner: <mailto:ralf@linux-mips.org>
+List-post: <mailto:linux-mips@linux-mips.org>
+List-archive: <http://www.linux-mips.org/archives/linux-mips/>
+To: linux-kernel@vger.kernel.org
+Cc: Kees Cook <keescook@chromium.org>, Andy Lutomirski <luto@amacapital.net>, Oleg Nesterov <oleg@redhat.com>, Will Drewry <wad@chromium.org>, Julien Tinnes <jln@chromium.org>, David Drysdale <drysdale@google.com>, Alexei Starovoitov <ast@plumgrid.com>, John Johansen <john.johansen@canonical.com>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-mips@linux-mips.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-security-module@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On 06/10/2014 04:33 PM, Andy Lutomirski wrote:
-> 
-> Ah, sneaky.
-> 
-> Would it make sense to put a comment in this file (and similar files)
-> indicating that they must only be included on architectures of the
-> appropriate endianness?
-> 
+[re-send with smaller CC list]
 
-That might make sense, yes, although I don't think we do that for the
-kernel variants.
+This adds the ability for threads to request seccomp filter
+synchronization across their thread group (at filter attach time).
+For example, for Chrome to make sure graphic driver threads are fully
+confined after seccomp filters have been attached.
 
-	-hpa
+To support this, locking on seccomp changes is introduced, along with
+refactoring of no_new_privs. Races with thread creation/death are handled
+via tasklist_lock.
+
+This includes a new syscall (instead of adding a new prctl option),
+as suggested by Andy Lutomirski and Michael Kerrisk.
+
+Thanks!
+
+-Kees
+
+v6:
+ - switch from seccomp-specific lock to thread-group lock to gain atomicity
+ - implement seccomp syscall across all architectures with seccomp filter
+ - clean up sparse warnings around locking
+v5:
+ - move includes around (drysdale)
+ - drop set_nnp return value (luto)
+ - use smp_load_acquire/store_release (luto)
+ - merge nnp changes to seccomp always, fewer ifdef (luto)
+v4:
+ - cleaned up locking further, as noticed by David Drysdale
+v3:
+ - added SECCOMP_EXT_ACT_FILTER for new filter install options
+v2:
+ - reworked to avoid clone races
