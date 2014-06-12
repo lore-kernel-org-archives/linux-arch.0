@@ -1,159 +1,107 @@
 From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v11 09/16] qspinlock, x86: Allow unfair spinlock in a
-	virtual guest
-Date: Thu, 12 Jun 2014 07:50:16 +0200
-Message-ID: <20140612055016.GP6758@twins.programming.kicks-ass.net>
+Subject: Re: [PATCH v11 06/16] qspinlock: prolong the stay in the pending bit
+ path
+Date: Thu, 12 Jun 2014 08:00:32 +0200
+Message-ID: <20140612060032.GQ6758@twins.programming.kicks-ass.net>
 References: <1401464642-33890-1-git-send-email-Waiman.Long@hp.com>
-	<1401464642-33890-10-git-send-email-Waiman.Long@hp.com>
-	<20140611105402.GL3213@twins.programming.kicks-ass.net>
-	<53990473.7020802@hp.com>
+ <1401464642-33890-7-git-send-email-Waiman.Long@hp.com>
+ <20140611102606.GK3213@twins.programming.kicks-ass.net>
+ <5398C894.6040808@hp.com>
 Mime-Version: 1.0
-Content-Type: multipart/mixed; boundary="===============0166136813213849976=="
-Return-path: <virtualization-bounces@lists.linux-foundation.org>
-In-Reply-To: <53990473.7020802@hp.com>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
-List-Post: <mailto:virtualization@lists.linux-foundation.org>
-List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
-Sender: virtualization-bounces@lists.linux-foundation.org
-Errors-To: virtualization-bounces@lists.linux-foundation.org
-To: "Long, Wai Man" <waiman.long@hp.com>
-Cc: linux-arch@vger.kernel.org, Rik van Riel <riel@redhat.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, Oleg Nesterov <oleg@redhat.com>, Gleb Natapov <gleb@redhat.com>, kvm@vger.kernel.org, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Scott J Norton <scott.norton@hp.com>, x86@kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, Ingo Molnar <mingo@redhat.com>, Chegu Vinod <chegu_vinod@hp.com>, David Vrabel <david.vrabel@citrix.com>, "H. Peter Anvin" <hpa@zytor.com>, xen-devel@lists.xenproject.org, Thomas Gleixner <tglx@linutronix.de>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Boris Ostrovsky <boris.ostrovsky@oracle.com>
-List-Id: linux-arch.vger.kernel.org
-
-
---===============0166136813213849976==
 Content-Type: multipart/signed; micalg=pgp-sha1;
-	protocol="application/pgp-signature"; boundary="BfIB/hDtUWEgpOfz"
+	protocol="application/pgp-signature"; boundary="yhCE4sTDB5mqd9YJ"
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from casper.infradead.org ([85.118.1.10]:57722 "EHLO
+	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751134AbaFLGAl (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 12 Jun 2014 02:00:41 -0400
 Content-Disposition: inline
+In-Reply-To: <5398C894.6040808@hp.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: "Long, Wai Man" <waiman.long@hp.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Rik van Riel <riel@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, David Vrabel <david.vrabel@citrix.com>, Oleg Nesterov <oleg@redhat.com>, Gleb Natapov <gleb@redhat.com>, Scott J Norton <scott.norton@hp.com>, Chegu Vinod <chegu_vinod@hp.com>
 
 
---BfIB/hDtUWEgpOfz
+--yhCE4sTDB5mqd9YJ
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
 Content-Transfer-Encoding: quoted-printable
 
-On Wed, Jun 11, 2014 at 09:37:55PM -0400, Long, Wai Man wrote:
->=20
-> On 6/11/2014 6:54 AM, Peter Zijlstra wrote:
-> >On Fri, May 30, 2014 at 11:43:55AM -0400, Waiman Long wrote:
-> >>Enabling this configuration feature causes a slight decrease the
-> >>performance of an uncontended lock-unlock operation by about 1-2%
-> >>mainly due to the use of a static key. However, uncontended lock-unlock
-> >>operation are really just a tiny percentage of a real workload. So
-> >>there should no noticeable change in application performance.
-> >No, entirely unacceptable.
+On Wed, Jun 11, 2014 at 05:22:28PM -0400, Long, Wai Man wrote:
+
+> >>@@ -233,11 +233,25 @@ void queue_spin_lock_slowpath(struct qspinlock *l=
+ock, u32 val)
+> >>  	 */
+> >>  	for (;;) {
+> >>  		/*
+> >>-		 * If we observe any contention; queue.
+> >>+		 * If we observe that the queue is not empty or both
+> >>+		 * the pending and lock bits are set, queue
+> >>  		 */
+> >>-		if (val & ~_Q_LOCKED_MASK)
+> >>+		if ((val & _Q_TAIL_MASK) ||
+> >>+		    (val =3D=3D (_Q_LOCKED_VAL|_Q_PENDING_VAL)))
+> >>  			goto queue;
+> >>+		if (val =3D=3D _Q_PENDING_VAL) {
+> >>+			/*
+> >>+			 * Pending bit is set, but not the lock bit.
+> >>+			 * Assuming that the pending bit holder is going to
+> >>+			 * set the lock bit and clear the pending bit soon,
+> >>+			 * it is better to wait than to exit at this point.
+> >>+			 */
+> >>+			cpu_relax();
+> >>+			val =3D atomic_read(&lock->val);
+> >>+			continue;
+> >>+		}
+> >>+
+> >>  		new =3D _Q_LOCKED_VAL;
+> >>  		if (val =3D=3D new)
+> >>  			new |=3D _Q_PENDING_VAL;
+
+> >Wouldn't something like:
 > >
-> >>+#ifdef CONFIG_VIRT_UNFAIR_LOCKS
-> >>+/**
-> >>+ * queue_spin_trylock_unfair - try to acquire the queue spinlock unfai=
-rly
-> >>+ * @lock : Pointer to queue spinlock structure
-> >>+ * Return: 1 if lock acquired, 0 if failed
-> >>+ */
-> >>+static __always_inline int queue_spin_trylock_unfair(struct qspinlock =
-*lock)
-> >>+{
-> >>+	union arch_qspinlock *qlock =3D (union arch_qspinlock *)lock;
-> >>+
-> >>+	if (!qlock->locked && (cmpxchg(&qlock->locked, 0, _Q_LOCKED_VAL) =3D=
-=3D 0))
-> >>+		return 1;
-> >>+	return 0;
-> >>+}
-> >>+
-> >>+/**
-> >>+ * queue_spin_lock_unfair - acquire a queue spinlock unfairly
-> >>+ * @lock: Pointer to queue spinlock structure
-> >>+ */
-> >>+static __always_inline void queue_spin_lock_unfair(struct qspinlock *l=
-ock)
-> >>+{
-> >>+	union arch_qspinlock *qlock =3D (union arch_qspinlock *)lock;
-> >>+
-> >>+	if (likely(cmpxchg(&qlock->locked, 0, _Q_LOCKED_VAL) =3D=3D 0))
-> >>+		return;
-> >>+	/*
-> >>+	 * Since the lock is now unfair, we should not activate the 2-task
-> >>+	 * pending bit spinning code path which disallows lock stealing.
-> >>+	 */
-> >>+	queue_spin_lock_slowpath(lock, -1);
-> >>+}
-> >Why is this needed?
+> >	while (atomic_read(&lock->val) =3D=3D _Q_PENDING_VAL)
+> >		cpu_relax();
+> >
+> >before the cmpxchg loop have gotten you all this?
 >=20
-> I added the unfair version of lock and trylock as my original version isn=
-'t
-> a simple test-and-set lock. Now I changed the core part to use the simple
-> test-and-set lock. However, I still think that an unfair version in the f=
-ast
-> path can be helpful to performance when both the unfair lock and paravirt
-> spinlock are enabled. In this case, paravirt spinlock code will disable t=
-he
-> unfair lock code in the slowpath, but still allow the unfair version in t=
-he
-> fast path to get the best possible performance in a virtual guest.
->=20
-> Yes, I could take that out to allow either unfair or paravirt spinlock, b=
-ut
-> not both. I do think that a little bit of unfairness will help in the
-> virtual environment.
+> That is not exactly the same. The loop will exit if other bits are set or=
+ the pending
+> bit cleared. In the case, we will need to do the same check at the beginn=
+ing of the
+> for loop in order to avoid doing an extra cmpxchg that is not necessary.
 
-When will you learn to like simplicity and stop this massive over
-engineering effort?
+If other bits get set we should stop poking at the pending bit and get
+queued. The only transition we want to wait for is: 0,1,0 -> 0,0,1.
 
-There's no sane reason to have the test-and-set virt and paravirt locks
-enabled at the same bloody time.
+What extra unneeded cmpxchg() is there? If we have two cpus waiting in
+this loop for the pending bit to go away then both will attempt to grab
+the now free pending bit, one will loose and get queued?
 
-There's 3 distinct cases:
+There's no avoiding that contention.
 
- - native
- - virt
- - paravirt
 
-And they do not overlap. Furthermore, if there is any possibility at all
-of not polluting the native code, grab it with both hands.
 
-Native performance is king, try your very utmost bestest to preserve
-that, paravirt is a distant second and nobody sane should care about the
-virt case at all.
-
-If you want extra lock stealing in the paravirt case, put it in the
-slowpath code before you start queueing.
-
---BfIB/hDtUWEgpOfz
+--yhCE4sTDB5mqd9YJ
 Content-Type: application/pgp-signature
 
 -----BEGIN PGP SIGNATURE-----
 Version: GnuPG v1.4.12 (GNU/Linux)
 
-iQIcBAEBAgAGBQJTmT+TAAoJEHZH4aRLwOS6QbAP/jTgckl8+R57scPEya5Br+oo
-YZlzzWJQR5aRyk7a+keU2qisA12SwpmhO+2Kftd16OMENdezV6k7G/jqLrrLO2ac
-aE42tT9ZGBMKdkLDT1d8VDlMYCFoOQw7qNEivi933qkGqtIE2xUMCM+7JPbw61uz
-BTlQWI7gLTaCjQrfaRF0Ko7ozkL3/kibUoU0hbiI/yqNRoXVIgdDEEqEhO4NGPAs
-VdyWZlyELJ0R/0ArnOvoTthkpbgCs+JZBYTXwXDIsmC3Y0M4DGdN1GCjJhsm3Kgd
-7OFXbbdRALPGlirdugX6J9WDsEnyOWuP3t5BiG50TnPi84+F3z0+ZqaD7qnbxeeM
-nKS5zPRDk23Dq8NlIXRS/tVHV0KtlVZFKc7YFJ1tC1fFqORMtdHC/NAWv+bmzkgW
-K+qmBY4H4GzGHT0EgSRA9G4qPmoRD/y/PYcVqogUomWMIuORFR513Th6bqxXMsF6
-HeepJ1ZCazj0w4fYouf55PbUSR4/miTPXkOc9ZDE+l2lkD8da+TjuTiCNZuYrlSq
-yMAnLqh9Fh5hjil/445g56uFOePhKr+OdZ206jyglz987zENXlOxHB0CRlVpOPE7
-TFnoj+TGJrMix/PQU6/0GB5k63fHjMCqhkqEYYH/i4FSgWED+yZ9cXtDLn4eEWZL
-n6fVRs4JSiUixHyZTxjV
-=e/Tf
+iQIcBAEBAgAGBQJTmUIAAAoJEHZH4aRLwOS6d1kP+wZX1ZPRaWS1nRcTCcUmc+D0
+eSXmxC3CGBNkShcRc/4dSvFfjAtozeDQCoDbwhUCzADGbMNph4UuvUrYSXLizHM3
+M46Tn/ibZ0a5r2kZDVaBqi1RUUDgOEVc2a2OtJtzb3TrU2rPKjeBiLm8sWThFfAe
+OCsJXO2T0SxNRNbQKJbNNfr99tDC0AVG8JOEPdJXL2A8Jf5T88mw4gFmyIHTOpcV
+idh26oKRkxP0/iGFAdgheFdHY+dOd5jlMsdqsCGO7ee4Ol7YFDCRctwyZWTBDVJq
+wNC8GgqJHnA0y9LOtwO+XMlUaN6afKcojxfeZraCtPTCv3gekKuXj+9fLXFwXJ/H
+NpjiyDAuN3OjdHh3NeKR1mMviTBrVdYa471aVADKMjSfvvzHEjEEMMDGj+EeTJUk
+pj0aV/v2gC1yW0YDGzD+IYKCTJRAD7sz+sWkIT7rK6lpGGfZN5A4gHSvscjkpMqT
+XxR2Lv0nU1ogkMenaPT/Z3Txd96dLD4ogwkT4tIJ0UbCAZaEHDpLS4Mc9HhUQdA4
+tsM7amb3Knln4Pq30UBs8r9lHSaEvZFt/QRdPOJPE14Egn4mtDpD+lFY+L9XS0qj
+L1xx5J+qH309+yqT2j1hg4bbBHcJTv2Q4SX+UYGgtyaPZugBZ9urYygObiSveN9c
+Qf2DeTxSSFU+AztfMQQY
+=fnbJ
 -----END PGP SIGNATURE-----
 
---BfIB/hDtUWEgpOfz--
-
---===============0166136813213849976==
-Content-Type: text/plain; charset="us-ascii"
-MIME-Version: 1.0
-Content-Transfer-Encoding: 7bit
-Content-Disposition: inline
-
-_______________________________________________
-Virtualization mailing list
-Virtualization@lists.linux-foundation.org
-https://lists.linuxfoundation.org/mailman/listinfo/virtualization
---===============0166136813213849976==--
+--yhCE4sTDB5mqd9YJ--
