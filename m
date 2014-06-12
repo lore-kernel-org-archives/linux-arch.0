@@ -1,140 +1,109 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.9]:57947 "EHLO
-	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932119AbaFLFud (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 12 Jun 2014 01:50:33 -0400
-Date: Thu, 12 Jun 2014 07:50:16 +0200
+Received: from casper.infradead.org ([85.118.1.10]:58188 "EHLO
+	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755235AbaFLIRi (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 12 Jun 2014 04:17:38 -0400
+Date: Thu, 12 Jun 2014 10:17:31 +0200
 From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v11 09/16] qspinlock, x86: Allow unfair spinlock in a
- virtual guest
-Message-ID: <20140612055016.GP6758@twins.programming.kicks-ass.net>
+Subject: Re: [PATCH v11 14/16] pvqspinlock: Add qspinlock para-virtualization
+ support
+Message-ID: <20140612081731.GM3213@twins.programming.kicks-ass.net>
 References: <1401464642-33890-1-git-send-email-Waiman.Long@hp.com>
- <1401464642-33890-10-git-send-email-Waiman.Long@hp.com>
- <20140611105402.GL3213@twins.programming.kicks-ass.net>
- <53990473.7020802@hp.com>
+ <1401464642-33890-15-git-send-email-Waiman.Long@hp.com>
 MIME-Version: 1.0
 Content-Type: multipart/signed; micalg=pgp-sha1;
-	protocol="application/pgp-signature"; boundary="BfIB/hDtUWEgpOfz"
+	protocol="application/pgp-signature"; boundary="/hP/389S7qb5BOej"
 Content-Disposition: inline
-In-Reply-To: <53990473.7020802@hp.com>
+In-Reply-To: <1401464642-33890-15-git-send-email-Waiman.Long@hp.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Long, Wai Man" <waiman.long@hp.com>
+To: Waiman Long <Waiman.Long@hp.com>
 Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Rik van Riel <riel@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, David Vrabel <david.vrabel@citrix.com>, Oleg Nesterov <oleg@redhat.com>, Gleb Natapov <gleb@redhat.com>, Scott J Norton <scott.norton@hp.com>, Chegu Vinod <chegu_vinod@hp.com>
-Message-ID: <20140612055016.sNtvKodHh0QVtVfOWh9FVlAIXkHayYaQcD4G2UG0gfo@z>
+Message-ID: <20140612081731.doq63aFoOtKsIUWmQVIOmlzXhjWhTVc8nJBY6lSGhNQ@z>
 
 
---BfIB/hDtUWEgpOfz
+--/hP/389S7qb5BOej
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
 Content-Transfer-Encoding: quoted-printable
 
-On Wed, Jun 11, 2014 at 09:37:55PM -0400, Long, Wai Man wrote:
->=20
-> On 6/11/2014 6:54 AM, Peter Zijlstra wrote:
-> >On Fri, May 30, 2014 at 11:43:55AM -0400, Waiman Long wrote:
-> >>Enabling this configuration feature causes a slight decrease the
-> >>performance of an uncontended lock-unlock operation by about 1-2%
-> >>mainly due to the use of a static key. However, uncontended lock-unlock
-> >>operation are really just a tiny percentage of a real workload. So
-> >>there should no noticeable change in application performance.
-> >No, entirely unacceptable.
-> >
-> >>+#ifdef CONFIG_VIRT_UNFAIR_LOCKS
-> >>+/**
-> >>+ * queue_spin_trylock_unfair - try to acquire the queue spinlock unfai=
-rly
-> >>+ * @lock : Pointer to queue spinlock structure
-> >>+ * Return: 1 if lock acquired, 0 if failed
-> >>+ */
-> >>+static __always_inline int queue_spin_trylock_unfair(struct qspinlock =
-*lock)
-> >>+{
-> >>+	union arch_qspinlock *qlock =3D (union arch_qspinlock *)lock;
-> >>+
-> >>+	if (!qlock->locked && (cmpxchg(&qlock->locked, 0, _Q_LOCKED_VAL) =3D=
-=3D 0))
-> >>+		return 1;
-> >>+	return 0;
-> >>+}
-> >>+
-> >>+/**
-> >>+ * queue_spin_lock_unfair - acquire a queue spinlock unfairly
-> >>+ * @lock: Pointer to queue spinlock structure
-> >>+ */
-> >>+static __always_inline void queue_spin_lock_unfair(struct qspinlock *l=
-ock)
-> >>+{
-> >>+	union arch_qspinlock *qlock =3D (union arch_qspinlock *)lock;
-> >>+
-> >>+	if (likely(cmpxchg(&qlock->locked, 0, _Q_LOCKED_VAL) =3D=3D 0))
-> >>+		return;
-> >>+	/*
-> >>+	 * Since the lock is now unfair, we should not activate the 2-task
-> >>+	 * pending bit spinning code path which disallows lock stealing.
-> >>+	 */
-> >>+	queue_spin_lock_slowpath(lock, -1);
-> >>+}
-> >Why is this needed?
->=20
-> I added the unfair version of lock and trylock as my original version isn=
-'t
-> a simple test-and-set lock. Now I changed the core part to use the simple
-> test-and-set lock. However, I still think that an unfair version in the f=
-ast
-> path can be helpful to performance when both the unfair lock and paravirt
-> spinlock are enabled. In this case, paravirt spinlock code will disable t=
-he
-> unfair lock code in the slowpath, but still allow the unfair version in t=
-he
-> fast path to get the best possible performance in a virtual guest.
->=20
-> Yes, I could take that out to allow either unfair or paravirt spinlock, b=
-ut
-> not both. I do think that a little bit of unfairness will help in the
-> virtual environment.
+On Fri, May 30, 2014 at 11:44:00AM -0400, Waiman Long wrote:
+> @@ -19,13 +19,46 @@ extern struct static_key virt_unfairlocks_enabled;
+>   * that the clearing the lock bit is done ASAP without artificial delay
+>   * due to compiler optimization.
+>   */
+> +#ifdef CONFIG_PARAVIRT_SPINLOCKS
+> +static __always_inline void __queue_spin_unlock(struct qspinlock *lock)
+> +#else
+>  static inline void queue_spin_unlock(struct qspinlock *lock)
+> +#endif
+>  {
+>  	barrier();
+>  	ACCESS_ONCE(*(u8 *)lock) =3D 0;
+>  	barrier();
+>  }
+> =20
+> +#ifdef CONFIG_PARAVIRT_SPINLOCKS
+> +/*
+> + * The lock byte can have a value of _Q_LOCKED_SLOWPATH to indicate
+> + * that it needs to go through the slowpath to do the unlocking.
+> + */
+> +#define _Q_LOCKED_SLOWPATH	(_Q_LOCKED_VAL | 2)
+> +
+> +extern void queue_spin_unlock_slowpath(struct qspinlock *lock);
+> +
+> +static inline void queue_spin_unlock(struct qspinlock *lock)
+> +{
+> +	barrier();
+> +	if (static_key_false(&paravirt_spinlocks_enabled)) {
+> +		/*
+> +		 * Need to atomically clear the lock byte to avoid racing with
+> +		 * queue head waiter trying to set _QLOCK_LOCKED_SLOWPATH.
+> +		 */
+> +		if (likely(cmpxchg((u8 *)lock, _Q_LOCKED_VAL, 0)
+> +				=3D=3D _Q_LOCKED_VAL))
+> +			return;
+> +		else
+> +			queue_spin_unlock_slowpath(lock);
+> +
+> +	} else {
+> +		__queue_spin_unlock(lock);
+> +	}
+> +	barrier();
+> +}
+> +#endif /* CONFIG_PARAVIRT_SPINLOCKS */
 
-When will you learn to like simplicity and stop this massive over
-engineering effort?
+Ideally we'd make all this use alternatives or so, such that the actual
+function remains short enough to actually inline;
 
-There's no sane reason to have the test-and-set virt and paravirt locks
-enabled at the same bloody time.
+static inline void queue_spin_unlock(struct qspinlock *lock)
+{
+	pv_spinlock_alternative(
+		ACCESS_ONCE(*(u8 *)lock) =3D 0,
+		pv_queue_spin_unlock(lock));
+}
 
-There's 3 distinct cases:
+Or however that trickery works.
 
- - native
- - virt
- - paravirt
-
-And they do not overlap. Furthermore, if there is any possibility at all
-of not polluting the native code, grab it with both hands.
-
-Native performance is king, try your very utmost bestest to preserve
-that, paravirt is a distant second and nobody sane should care about the
-virt case at all.
-
-If you want extra lock stealing in the paravirt case, put it in the
-slowpath code before you start queueing.
-
---BfIB/hDtUWEgpOfz
+--/hP/389S7qb5BOej
 Content-Type: application/pgp-signature
 
 -----BEGIN PGP SIGNATURE-----
 Version: GnuPG v1.4.12 (GNU/Linux)
 
-iQIcBAEBAgAGBQJTmT+TAAoJEHZH4aRLwOS6QbAP/jTgckl8+R57scPEya5Br+oo
-YZlzzWJQR5aRyk7a+keU2qisA12SwpmhO+2Kftd16OMENdezV6k7G/jqLrrLO2ac
-aE42tT9ZGBMKdkLDT1d8VDlMYCFoOQw7qNEivi933qkGqtIE2xUMCM+7JPbw61uz
-BTlQWI7gLTaCjQrfaRF0Ko7ozkL3/kibUoU0hbiI/yqNRoXVIgdDEEqEhO4NGPAs
-VdyWZlyELJ0R/0ArnOvoTthkpbgCs+JZBYTXwXDIsmC3Y0M4DGdN1GCjJhsm3Kgd
-7OFXbbdRALPGlirdugX6J9WDsEnyOWuP3t5BiG50TnPi84+F3z0+ZqaD7qnbxeeM
-nKS5zPRDk23Dq8NlIXRS/tVHV0KtlVZFKc7YFJ1tC1fFqORMtdHC/NAWv+bmzkgW
-K+qmBY4H4GzGHT0EgSRA9G4qPmoRD/y/PYcVqogUomWMIuORFR513Th6bqxXMsF6
-HeepJ1ZCazj0w4fYouf55PbUSR4/miTPXkOc9ZDE+l2lkD8da+TjuTiCNZuYrlSq
-yMAnLqh9Fh5hjil/445g56uFOePhKr+OdZ206jyglz987zENXlOxHB0CRlVpOPE7
-TFnoj+TGJrMix/PQU6/0GB5k63fHjMCqhkqEYYH/i4FSgWED+yZ9cXtDLn4eEWZL
-n6fVRs4JSiUixHyZTxjV
-=e/Tf
+iQIcBAEBAgAGBQJTmWIbAAoJEHZH4aRLwOS6bxkP/346Ge/eWpSRcj4J1OoVeI77
+Fv20cB/j7mOQ1iAzhi7KaqElqTQhdosjcsvpnMYWWz2K4nfVxqVN2J4Kz77RBDDl
+w0ZLrGi3R1I4FLFDVZY28iHd1rxYgAn69HixI48EPIRYr1LKGL0aLghMXxNHXJXa
+Tt3s72iT2fQnroNH0JsJDwnAsMzCQxztvkGdSo8KA/B7Bv2b2GOx4k/VfnNP7toD
+tV5z8Aci6SJAKqn+MOlUFcOL3pW1rqNcY31DVKXzAotlBfgKb32y3aLxdArWghra
+fyKrGsXmv+staGqR0uPfiKK+nXfaMTIkXDugxu4mJG/xvIAWDvtHB7jrDEWX5Bc7
+0ugzKrVigNg0jA23WSwJJrVCxm+rIsUnd36YrQIo+99G/WM/cmzlS0zVNtTfmsj4
+E329JrX4mC0+fDTYntZPgeFJUKIdPAHlXObcIHaYSusRKNpCXbaQLfAZ+PddcxpT
+pEVhuk45zebkQj/CSXYzuaK8Fwp5oMU/1fwZVrxVCpBbMbHmrRekigjs2WKQE7c2
+hQ8ZFM+81gbBPlkiAS2yL/s5jher3vjtOxMTKm41Oz7lOEr2Gi6V/lcy970P48tb
+AATXyjgajz0nOvmkFScXPwc1xp+2iEhWCMtJV744/R9QhtwRSlvkl8fg4+gNQKEz
+aN/q/TDwcHlwbkzkFGlK
+=l3Vj
 -----END PGP SIGNATURE-----
 
---BfIB/hDtUWEgpOfz--
+--/hP/389S7qb5BOej--
