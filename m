@@ -1,65 +1,162 @@
-From: Kees Cook <keescook@chromium.org>
-Subject: Re: [RFC 5/5] x86,seccomp: Add a seccomp fastpath
-Date: Wed, 11 Jun 2014 15:32:49 -0700
-Message-ID: <CAGXu5jL86C1yvWynBrp20CxT9COorc5++nT6OhwYCwqc7UJyHg@mail.gmail.com>
-References: <cover.1402517933.git.luto@amacapital.net>
-	<9e11cd988a0f120606e37b5e275019754e2774da.1402517933.git.luto@amacapital.net>
-	<CAADnVQKt5FnShkZeQewbfnU1kHM-gLs3hCZMf5xcgFzyRDLX7A@mail.gmail.com>
-	<CALCETrXoqqKC=T5Wvj+CDYQFte1s_=npDvQ2UYW0j=AanEgR1g@mail.gmail.com>
-	<5398D59A.3030900@zytor.com>
-	<CALCETrVMxkHcPXsEGtEc0Pr=Z80CzC0zWaQ9OdVdxi1CGuB4kQ@mail.gmail.com>
-	<5398D7B4.5000303@zytor.com>
-	<CALCETrWaQZc124=6r4h+fTAY4H4LzWGFw=MB7KY5TBtB0jx9hA@mail.gmail.com>
+From: "Long, Wai Man" <waiman.long@hp.com>
+Subject: Re: [PATCH v11 09/16] qspinlock, x86: Allow unfair spinlock in a
+	virtual guest
+Date: Wed, 11 Jun 2014 21:37:55 -0400
+Message-ID: <53990473.7020802@hp.com>
+References: <1401464642-33890-1-git-send-email-Waiman.Long@hp.com>
+	<1401464642-33890-10-git-send-email-Waiman.Long@hp.com>
+	<20140611105402.GL3213@twins.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ob0-f169.google.com ([209.85.214.169]:63758 "EHLO
-	mail-ob0-f169.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754263AbaFKWcu (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 11 Jun 2014 18:32:50 -0400
-Received: by mail-ob0-f169.google.com with SMTP id wp18so463757obc.14
-        for <linux-arch@vger.kernel.org>; Wed, 11 Jun 2014 15:32:50 -0700 (PDT)
-In-Reply-To: <CALCETrWaQZc124=6r4h+fTAY4H4LzWGFw=MB7KY5TBtB0jx9hA@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Andy Lutomirski <luto@amacapital.net>
-Cc: "H. Peter Anvin" <hpa@zytor.com>, Alexei Starovoitov <alexei.starovoitov@gmail.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Will Drewry <wad@chromium.org>, Oleg Nesterov <oleg@redhat.com>, X86 ML <x86@kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, linux-mips@linux-mips.org, linux-arch <linux-arch@vger.kernel.org>, LSM List <linux-security-module@vger.kernel.org>
+Content-Type: text/plain; charset="us-ascii"; Format="flowed"
+Content-Transfer-Encoding: 7bit
+Return-path: <virtualization-bounces@lists.linux-foundation.org>
+In-Reply-To: <20140611105402.GL3213@twins.programming.kicks-ass.net>
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
+List-Post: <mailto:virtualization@lists.linux-foundation.org>
+List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
+Sender: virtualization-bounces@lists.linux-foundation.org
+Errors-To: virtualization-bounces@lists.linux-foundation.org
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: linux-arch@vger.kernel.org, Rik van Riel <riel@redhat.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, Oleg Nesterov <oleg@redhat.com>, Gleb Natapov <gleb@redhat.com>, kvm@vger.kernel.org, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Scott J Norton <scott.norton@hp.com>, x86@kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, Ingo Molnar <mingo@redhat.com>, Chegu Vinod <chegu_vinod@hp.com>, David Vrabel <david.vrabel@citrix.com>, "H. Peter Anvin" <hpa@zytor.com>, xen-devel@lists.xenproject.org, Thomas Gleixner <tglx@linutronix.de>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Boris Ostrovsky <boris.ostrovsky@oracle.com>
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, Jun 11, 2014 at 3:28 PM, Andy Lutomirski <luto@amacapital.net> wrote:
-> On Wed, Jun 11, 2014 at 3:27 PM, H. Peter Anvin <hpa@zytor.com> wrote:
->> On 06/11/2014 03:22 PM, Andy Lutomirski wrote:
->>> On Wed, Jun 11, 2014 at 3:18 PM, H. Peter Anvin <hpa@zytor.com> wrote:
->>>> On 06/11/2014 02:56 PM, Andy Lutomirski wrote:
->>>>>
->>>>> 13ns is with the simplest nonempty filter.  I hope that empty filters
->>>>> don't work.
->>>>>
->>>>
->>>> Why wouldn't they?
->>>
->>> Is it permissible to fall off the end of a BPF program?  I'm getting
->>> EINVAL trying to install an actual empty filter.  The filter I tested
->>> with was:
->>>
->>
->> What I meant was that there has to be a well-defined behavior for the
->> program falling off the end anyway, and that that should be preserved.
->>
->> I guess it is possible to require that all code paths must provably
->> reach a termination point.
->>
+
+On 6/11/2014 6:54 AM, Peter Zijlstra wrote:
+> On Fri, May 30, 2014 at 11:43:55AM -0400, Waiman Long wrote:
+>> Enabling this configuration feature causes a slight decrease the
+>> performance of an uncontended lock-unlock operation by about 1-2%
+>> mainly due to the use of a static key. However, uncontended lock-unlock
+>> operation are really just a tiny percentage of a real workload. So
+>> there should no noticeable change in application performance.
+> No, entirely unacceptable.
 >
-> Dunno.  I haven't ever touched any of the actual BPF code.  This whole
-> patchset only changes the code that invokes the BPF evaluator.
+>> +#ifdef CONFIG_VIRT_UNFAIR_LOCKS
+>> +/**
+>> + * queue_spin_trylock_unfair - try to acquire the queue spinlock unfairly
+>> + * @lock : Pointer to queue spinlock structure
+>> + * Return: 1 if lock acquired, 0 if failed
+>> + */
+>> +static __always_inline int queue_spin_trylock_unfair(struct qspinlock *lock)
+>> +{
+>> +	union arch_qspinlock *qlock = (union arch_qspinlock *)lock;
+>> +
+>> +	if (!qlock->locked && (cmpxchg(&qlock->locked, 0, _Q_LOCKED_VAL) == 0))
+>> +		return 1;
+>> +	return 0;
+>> +}
+>> +
+>> +/**
+>> + * queue_spin_lock_unfair - acquire a queue spinlock unfairly
+>> + * @lock: Pointer to queue spinlock structure
+>> + */
+>> +static __always_inline void queue_spin_lock_unfair(struct qspinlock *lock)
+>> +{
+>> +	union arch_qspinlock *qlock = (union arch_qspinlock *)lock;
+>> +
+>> +	if (likely(cmpxchg(&qlock->locked, 0, _Q_LOCKED_VAL) == 0))
+>> +		return;
+>> +	/*
+>> +	 * Since the lock is now unfair, we should not activate the 2-task
+>> +	 * pending bit spinning code path which disallows lock stealing.
+>> +	 */
+>> +	queue_spin_lock_slowpath(lock, -1);
+>> +}
+> Why is this needed?
 
-Yes, this is how BPF works: runs to the end or exit early. With
-seccomp BPF specifically, the return value defaults to kill the
-process. If a filter was missing (NULL), or empty, or didn't
-explicitly return with a new value, the default (kill) should be
-taken.
+I added the unfair version of lock and trylock as my original version 
+isn't a simple test-and-set lock. Now I changed the core part to use the 
+simple test-and-set lock. However, I still think that an unfair version 
+in the fast path can be helpful to performance when both the unfair lock 
+and paravirt spinlock are enabled. In this case, paravirt spinlock code 
+will disable the unfair lock code in the slowpath, but still allow the 
+unfair version in the fast path to get the best possible performance in 
+a virtual guest.
 
--Kees
+Yes, I could take that out to allow either unfair or paravirt spinlock, 
+but not both. I do think that a little bit of unfairness will help in 
+the virtual environment.
 
--- 
-Kees Cook
-Chrome OS Security
+>> +/*
+>> + * Redefine arch_spin_lock and arch_spin_trylock as inline functions that will
+>> + * jump to the unfair versions if the static key virt_unfairlocks_enabled
+>> + * is true.
+>> + */
+>> +#undef arch_spin_lock
+>> +#undef arch_spin_trylock
+>> +#undef arch_spin_lock_flags
+>> +
+>> +/**
+>> + * arch_spin_lock - acquire a queue spinlock
+>> + * @lock: Pointer to queue spinlock structure
+>> + */
+>> +static inline void arch_spin_lock(struct qspinlock *lock)
+>> +{
+>> +	if (static_key_false(&virt_unfairlocks_enabled))
+>> +		queue_spin_lock_unfair(lock);
+>> +	else
+>> +		queue_spin_lock(lock);
+>> +}
+>> +
+>> +/**
+>> + * arch_spin_trylock - try to acquire the queue spinlock
+>> + * @lock : Pointer to queue spinlock structure
+>> + * Return: 1 if lock acquired, 0 if failed
+>> + */
+>> +static inline int arch_spin_trylock(struct qspinlock *lock)
+>> +{
+>> +	if (static_key_false(&virt_unfairlocks_enabled))
+>> +		return queue_spin_trylock_unfair(lock);
+>> +	else
+>> +		return queue_spin_trylock(lock);
+>> +}
+> So I really don't see the point of all this? Why do you need special
+> {try,}lock paths for this case? Are you worried about the upper 24bits?
+
+No, as I said above. I was planning for the coexistence of unfair lock 
+in the fast path and paravirt spinlock in the slowpath.
+
+>> diff --git a/kernel/locking/qspinlock.c b/kernel/locking/qspinlock.c
+>> index ae1b19d..3723c83 100644
+>> --- a/kernel/locking/qspinlock.c
+>> +++ b/kernel/locking/qspinlock.c
+>> @@ -217,6 +217,14 @@ static __always_inline int try_set_locked(struct qspinlock *lock)
+>>   {
+>>   	struct __qspinlock *l = (void *)lock;
+>>   
+>> +#ifdef CONFIG_VIRT_UNFAIR_LOCKS
+>> +	/*
+>> +	 * Need to use atomic operation to grab the lock when lock stealing
+>> +	 * can happen.
+>> +	 */
+>> +	if (static_key_false(&virt_unfairlocks_enabled))
+>> +		return cmpxchg(&l->locked, 0, _Q_LOCKED_VAL) == 0;
+>> +#endif
+>>   	barrier();
+>>   	ACCESS_ONCE(l->locked) = _Q_LOCKED_VAL;
+>>   	barrier();
+> Why? If we have a simple test-and-set lock like below, we'll never get
+> here at all.
+
+Again, it is due the coexistence of unfair lock in fast path and 
+paravirt spinlock in the slowpath.
+
+>> @@ -252,6 +260,18 @@ void queue_spin_lock_slowpath(struct qspinlock *lock, u32 val)
+>>   
+>>   	BUILD_BUG_ON(CONFIG_NR_CPUS >= (1U << _Q_TAIL_CPU_BITS));
+>>   
+>> +#ifdef CONFIG_VIRT_UNFAIR_LOCKS
+>> +	/*
+>> +	 * A simple test and set unfair lock
+>> +	 */
+>> +	if (static_key_false(&virt_unfairlocks_enabled)) {
+>> +		cpu_relax();	/* Relax after a failed lock attempt */
+> Meh, I don't think anybody can tell the difference if you put that in or
+> not, therefore don't.
+
+Yes, I can take out the cpu_relax() here.
+
+-Longman
