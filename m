@@ -1,42 +1,27 @@
-From: Sam Ravnborg <sam@ravnborg.org>
-Subject: Re: [PATCH RFC 00/10] tools: Revamp the unaligned endian access
- functions
-Date: Fri, 13 Jun 2014 22:04:05 +0200
-Message-ID: <20140613200405.GA12362@ravnborg.org>
-References: <1402441994-16780-1-git-send-email-hpa@zytor.com>
- <20140611192111.GB16069@ravnborg.org>
- <5398CFA4.60202@zytor.com>
+From: Andy Lutomirski <luto-kltTT9wpgjJwATOyAt5JVQ@public.gmane.org>
+Subject: Re: [PATCH v6 6/9] seccomp: add "seccomp" syscall
+Date: Fri, 13 Jun 2014 13:41:02 -0700
+Message-ID: <CALCETrVYVB0pMj61T9ZCAhgL6WYHAdDjiDe81O0e4tTQLtjDiQ@mail.gmail.com>
+References: <1402457121-8410-1-git-send-email-keescook@chromium.org> <1402457121-8410-7-git-send-email-keescook@chromium.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <5398CFA4.60202@zytor.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: "H. Peter Anvin" <hpa@zytor.com>
-Cc: linux-kernel@vger.kernel.org, linux-kbuild@vger.kernel.org, linux-arch@vger.kernel.org, Andy Lutomirski <luto@amacapital.net>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Thomas Gleixner <tglx@linutronix.de>
+Content-Type: text/plain; charset=UTF-8
+Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+In-Reply-To: <1402457121-8410-7-git-send-email-keescook-F7+t8E8rja9g9hUCZPvPmw@public.gmane.org>
+Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: Kees Cook <keescook-F7+t8E8rja9g9hUCZPvPmw@public.gmane.org>
+Cc: "linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Linux API <linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Oleg Nesterov <oleg-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Will Drewry <wad-F7+t8E8rja9g9hUCZPvPmw@public.gmane.org>, Julien Tinnes <jln-F7+t8E8rja9g9hUCZPvPmw@public.gmane.org>, David Drysdale <drysdale-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, Alexei Starovoitov <ast-uqk4Ao+rVK5Wk0Htik3J/w@public.gmane.org>, John Johansen <john.johansen-Z7WLFzj8eWMS+FvcfC7Uqw@public.gmane.org>, Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, X86 ML <x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, "linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org" <linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org>, linux-mips-6z/3iImG2C8G8FEW9MqTrA@public.gmane.org, linux-arch <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, LSM List <linux-security-module-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
 List-Id: linux-arch.vger.kernel.org
 
-> >=20
-> > A much simpler approach without any fallback to arch specific
-> > version etc. is everything we need.
->=20
-> It doesn't matter so much for things that are just done for the kerne=
-l
-> compile, no, but there are some tools that are built to be used as
-> standalone things, and it could matter there.
-Which tools require 452 lines of codes for a simple set of
-le/be wrappers?
-In other words - which tool will benefit from the addition speedup
-this amount of code gives?
+On Tue, Jun 10, 2014 at 8:25 PM, Kees Cook <keescook-F7+t8E8rja9g9hUCZPvPmw@public.gmane.org> wrote:
+> This adds the new "seccomp" syscall with both an "operation" and "flags"
+> parameter for future expansion. The third argument is a pointer value,
+> used with the SECCOMP_SET_MODE_FILTER operation. Currently, flags must
+> be 0. This is functionally equivalent to prctl(PR_SET_SECCOMP, ...).
 
-If I as a naive user look in unaligned.h I do not even see
-a prototype of the available methods. I am thrown to a directory
-with no less than 12 files.
+Question for the linux-abi people:
 
-The le_direct.h=B4+ be_direct.h files seems unused.
+What's the preferred way to do this these days?  This syscall is a
+general purpose "adjust the seccomp state" thing.  The alternative
+would be a specific new syscall to add a filter with a flags argument.
 
-So again - why is it not enaough to provide only le_byteshift.h
-+ the be counterpart?
-
-	Sam
+--Andy
