@@ -1,46 +1,34 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from asavdk4.altibox.net ([109.247.116.15]:51827 "EHLO
-	asavdk4.altibox.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752101AbaFMUEd (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 13 Jun 2014 16:04:33 -0400
-Date: Fri, 13 Jun 2014 22:04:05 +0200
-From: Sam Ravnborg <sam@ravnborg.org>
-Subject: Re: [PATCH RFC 00/10] tools: Revamp the unaligned endian access
- functions
-Message-ID: <20140613200405.GA12362@ravnborg.org>
-References: <1402441994-16780-1-git-send-email-hpa@zytor.com>
- <20140611192111.GB16069@ravnborg.org>
- <5398CFA4.60202@zytor.com>
+Received: from mail-vc0-f170.google.com ([209.85.220.170]:64022 "EHLO
+	mail-vc0-f170.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753882AbaFMUlX (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 13 Jun 2014 16:41:23 -0400
+Received: by mail-vc0-f170.google.com with SMTP id hy10so2858238vcb.29
+        for <linux-arch@vger.kernel.org>; Fri, 13 Jun 2014 13:41:22 -0700 (PDT)
 MIME-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
-Content-Disposition: inline
-Content-Transfer-Encoding: 8bit
-In-Reply-To: <5398CFA4.60202@zytor.com>
+In-Reply-To: <1402457121-8410-7-git-send-email-keescook@chromium.org>
+References: <1402457121-8410-1-git-send-email-keescook@chromium.org> <1402457121-8410-7-git-send-email-keescook@chromium.org>
+From: Andy Lutomirski <luto@amacapital.net>
+Date: Fri, 13 Jun 2014 13:41:02 -0700
+Message-ID: <CALCETrVYVB0pMj61T9ZCAhgL6WYHAdDjiDe81O0e4tTQLtjDiQ@mail.gmail.com>
+Subject: Re: [PATCH v6 6/9] seccomp: add "seccomp" syscall
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "H. Peter Anvin" <hpa@zytor.com>
-Cc: linux-kernel@vger.kernel.org, linux-kbuild@vger.kernel.org, linux-arch@vger.kernel.org, Andy Lutomirski <luto@amacapital.net>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, Thomas Gleixner <tglx@linutronix.de>
-Message-ID: <20140613200405.8kxDGCJK4SDM0g2nT8UZnFp9KvrQAnzFaNOwlf9F8P0@z>
+To: Kees Cook <keescook@chromium.org>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, Oleg Nesterov <oleg@redhat.com>, Will Drewry <wad@chromium.org>, Julien Tinnes <jln@chromium.org>, David Drysdale <drysdale@google.com>, Alexei Starovoitov <ast@plumgrid.com>, John Johansen <john.johansen@canonical.com>, Andrew Morton <akpm@linux-foundation.org>, X86 ML <x86@kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, linux-mips@linux-mips.org, linux-arch <linux-arch@vger.kernel.org>, LSM List <linux-security-module@vger.kernel.org>
+Message-ID: <20140613204102.toLPt9sx-wVCUWTYnnXY2aAbw5mCMIT1A6kMWexgu1M@z>
 
-> > 
-> > A much simpler approach without any fallback to arch specific
-> > version etc. is everything we need.
-> 
-> It doesn't matter so much for things that are just done for the kernel
-> compile, no, but there are some tools that are built to be used as
-> standalone things, and it could matter there.
-Which tools require 452 lines of codes for a simple set of
-le/be wrappers?
-In other words - which tool will benefit from the addition speedup
-this amount of code gives?
+On Tue, Jun 10, 2014 at 8:25 PM, Kees Cook <keescook@chromium.org> wrote:
+> This adds the new "seccomp" syscall with both an "operation" and "flags"
+> parameter for future expansion. The third argument is a pointer value,
+> used with the SECCOMP_SET_MODE_FILTER operation. Currently, flags must
+> be 0. This is functionally equivalent to prctl(PR_SET_SECCOMP, ...).
 
-If I as a naive user look in unaligned.h I do not even see
-a prototype of the available methods. I am thrown to a directory
-with no less than 12 files.
+Question for the linux-abi people:
 
-The le_direct.h´+ be_direct.h files seems unused.
+What's the preferred way to do this these days?  This syscall is a
+general purpose "adjust the seccomp state" thing.  The alternative
+would be a specific new syscall to add a filter with a flags argument.
 
-So again - why is it not enaough to provide only le_byteshift.h
-+ the be counterpart?
-
-	Sam
+--Andy
