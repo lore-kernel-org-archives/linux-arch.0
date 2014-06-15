@@ -1,35 +1,89 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.9]:32878 "EHLO
+Received: from bombadil.infradead.org ([198.137.202.9]:60395 "EHLO
 	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751919AbaFONRK (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 15 Jun 2014 09:17:10 -0400
-Date: Sun, 15 Jun 2014 15:16:54 +0200
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v11 14/16] pvqspinlock: Add qspinlock para-virtualization
- support
-Message-ID: <20140615131654.GJ11371@laptop.programming.kicks-ass.net>
-References: <1401464642-33890-1-git-send-email-Waiman.Long@hp.com>
- <1401464642-33890-15-git-send-email-Waiman.Long@hp.com>
- <20140612081731.GM3213@twins.programming.kicks-ass.net>
- <539A1229.1050309@hp.com>
+	with ESMTP id S1751682AbaFONMD (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 15 Jun 2014 09:12:03 -0400
+Message-ID: <20140615130153.940699466@chello.nl>
+Date: Sun, 15 Jun 2014 14:47:05 +0200
+From: Peter Zijlstra <a.p.zijlstra@chello.nl>
+Subject: [PATCH 08/11] qspinlock: Revert to test-and-set on hypervisors
+References: <20140615124657.264658593@chello.nl>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <539A1229.1050309@hp.com>
+Content-Type: text/plain; charset=UTF-8
+Content-Disposition: inline; filename=peterz-qspinlock-test-and-set.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Waiman Long <waiman.long@hp.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Rik van Riel <riel@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, David Vrabel <david.vrabel@citrix.com>, Oleg Nesterov <oleg@redhat.com>, Gleb Natapov <gleb@redhat.com>, Scott J Norton <scott.norton@hp.com>, Chegu Vinod <chegu_vinod@hp.com>
-Message-ID: <20140615131654.I-_qOG78Hj3_GuBB3FJ_wDlIAhJFTS7OIE8oOKrrEcA@z>
+To: Waiman.Long@hp.com, tglx@linutronix.de, mingo@kernel.org
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, paolo.bonzini@gmail.com, konrad.wilk@oracle.com, boris.ostrovsky@oracle.com, paulmck@linux.vnet.ibm.com, riel@redhat.com, torvalds@linux-foundation.org, raghavendra.kt@linux.vnet.ibm.com, david.vrabel@citrix.com, oleg@redhat.com, gleb@redhat.com, scott.norton@hp.com, chegu_vinod@hp.com, Peter Zijlstra <peterz@infradead.org>
+Message-ID: <20140615124705.vBWueiwQTeZ-1FGA1kJBAmhLlVk8kxvXSEIBpngRQk4@z>
 
-On Thu, Jun 12, 2014 at 04:48:41PM -0400, Waiman Long wrote:
-> I don't have a good understanding of the kernel alternatives mechanism.
+When we detect a hypervisor (!paravirt, see later patches), revert to
+a simple test-and-set lock to avoid the horrors of queue preemption.
 
-I didn't either; I do now, cost me a whole day reading up on
-alternative/paravirt code patching.
+Signed-off-by: Peter Zijlstra <peterz@infradead.org>
+---
+ arch/x86/include/asm/qspinlock.h |   14 ++++++++++++++
+ include/asm-generic/qspinlock.h  |    7 +++++++
+ kernel/locking/qspinlock.c       |    3 +++
+ 3 files changed, 24 insertions(+)
 
-See the patches I just send out; I got the 'native' case with paravirt
-enabled to be one NOP worse than the native case without paravirt -- for
-queue_spin_unlock.
+--- a/arch/x86/include/asm/qspinlock.h
++++ b/arch/x86/include/asm/qspinlock.h
+@@ -1,6 +1,7 @@
+ #ifndef _ASM_X86_QSPINLOCK_H
+ #define _ASM_X86_QSPINLOCK_H
+ 
++#include <asm/cpufeature.h>
+ #include <asm-generic/qspinlock_types.h>
+ 
+ #if !defined(CONFIG_X86_OOSTORE) && !defined(CONFIG_X86_PPRO_FENCE)
+@@ -20,6 +21,19 @@ static inline void queue_spin_unlock(str
+ 
+ #endif /* !CONFIG_X86_OOSTORE && !CONFIG_X86_PPRO_FENCE */
+ 
++#define virt_queue_spin_lock virt_queue_spin_lock
++
++static inline bool virt_queue_spin_lock(struct qspinlock *lock)
++{
++	if (!static_cpu_has(X86_FEATURE_HYPERVISOR))
++		return false;
++
++	while (atomic_cmpxchg(&lock->val, 0, _Q_LOCKED_VAL) != 0)
++		cpu_relax();
++
++	return true;
++}
++
+ #include <asm-generic/qspinlock.h>
+ 
+ #endif /* _ASM_X86_QSPINLOCK_H */
+--- a/include/asm-generic/qspinlock.h
++++ b/include/asm-generic/qspinlock.h
+@@ -98,6 +98,13 @@ static __always_inline void queue_spin_u
+ }
+ #endif
+ 
++#ifndef virt_queue_spin_lock
++static __always_inline bool virt_queue_spin_lock(struct qspinlock *lock)
++{
++	return false;
++}
++#endif
++
+ /*
+  * Initializier
+  */
+--- a/kernel/locking/qspinlock.c
++++ b/kernel/locking/qspinlock.c
+@@ -247,6 +247,9 @@ void queue_spin_lock_slowpath(struct qsp
+ 
+ 	BUILD_BUG_ON(CONFIG_NR_CPUS >= (1U << _Q_TAIL_CPU_BITS));
+ 
++	if (virt_queue_spin_lock(lock))
++		return;
++
+ 	/*
+ 	 * wait for in-progress pending->locked hand-overs
+ 	 *
 
-The lock slowpath is several nops and some pointless movs more expensive.
+
