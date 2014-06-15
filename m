@@ -1,87 +1,41 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.9]:60396 "EHLO
-	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751684AbaFONMD (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 15 Jun 2014 09:12:03 -0400
-Message-ID: <20140615130154.068615764@chello.nl>
-Date: Sun, 15 Jun 2014 14:47:06 +0200
-From: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Subject: [PATCH 09/11] pvqspinlock, x86: Rename paravirt_ticketlocks_enabled
-References: <20140615124657.264658593@chello.nl>
+Received: from casper.infradead.org ([85.118.1.10]:41617 "EHLO
+	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752169AbaFONOT (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 15 Jun 2014 09:14:19 -0400
+Date: Sun, 15 Jun 2014 15:14:16 +0200
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH v11 09/16] qspinlock, x86: Allow unfair spinlock in a
+ virtual guest
+Message-ID: <20140615131416.GI11371@laptop.programming.kicks-ass.net>
+References: <1401464642-33890-1-git-send-email-Waiman.Long@hp.com>
+ <1401464642-33890-10-git-send-email-Waiman.Long@hp.com>
+ <20140611105402.GL3213@twins.programming.kicks-ass.net>
+ <53990473.7020802@hp.com>
+ <20140612055016.GP6758@twins.programming.kicks-ass.net>
+ <539A16CC.6040104@hp.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Disposition: inline; filename=waiman_long-pvqspinlock_x86-rename_paravirt_ticketlocks_enabled.patch
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <539A16CC.6040104@hp.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Waiman.Long@hp.com, tglx@linutronix.de, mingo@kernel.org
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, paolo.bonzini@gmail.com, konrad.wilk@oracle.com, boris.ostrovsky@oracle.com, paulmck@linux.vnet.ibm.com, riel@redhat.com, torvalds@linux-foundation.org, raghavendra.kt@linux.vnet.ibm.com, david.vrabel@citrix.com, oleg@redhat.com, gleb@redhat.com, scott.norton@hp.com, chegu_vinod@hp.com, Peter Zijlstra <peterz@infradead.org>
-Message-ID: <20140615124706.2DCAJXLRRCLuIRHZMz8UnADR5mR4CNj0Y4NuVaQWrPk@z>
+To: Waiman Long <waiman.long@hp.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Rik van Riel <riel@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, David Vrabel <david.vrabel@citrix.com>, Oleg Nesterov <oleg@redhat.com>, Gleb Natapov <gleb@redhat.com>, Scott J Norton <scott.norton@hp.com>, Chegu Vinod <chegu_vinod@hp.com>
+Message-ID: <20140615131416.YuJxcMQbWVpq93tTaDAkhmDCI_yR-q-gE_l1rCShB3U@z>
 
-From: Waiman Long <Waiman.Long@hp.com>
+On Thu, Jun 12, 2014 at 05:08:28PM -0400, Waiman Long wrote:
+> >Native performance is king, try your very utmost bestest to preserve
+> >that, paravirt is a distant second and nobody sane should care about the
+> >virt case at all.
+> 
+> The patch won't affect native performance unless the kernel is built with
+> VIRT_UNFAIR_LOCKS selected. The same is also true when PARAVIRT_SPINLOCKS is
+> selected. There is no way around that.
 
-This patch renames the paravirt_ticketlocks_enabled static key to a
-more generic paravirt_spinlocks_enabled name.
+VIRT_UNFAIR_LOCKS is an impossible switch to have; a distro cannot make
+the right choice.
 
-Signed-off-by: Waiman Long <Waiman.Long@hp.com>
-Signed-off-by: Peter Zijlstra <peterz@infradead.org>
----
- arch/x86/include/asm/spinlock.h      |    4 ++--
- arch/x86/kernel/kvm.c                |    2 +-
- arch/x86/kernel/paravirt-spinlocks.c |    4 ++--
- arch/x86/xen/spinlock.c              |    2 +-
- 4 files changed, 6 insertions(+), 6 deletions(-)
+> I do agree that I may over-engineer on this patch,
 
---- a/arch/x86/include/asm/spinlock.h
-+++ b/arch/x86/include/asm/spinlock.h
-@@ -39,7 +39,7 @@
- /* How long a lock should spin before we consider blocking */
- #define SPIN_THRESHOLD	(1 << 15)
- 
--extern struct static_key paravirt_ticketlocks_enabled;
-+extern struct static_key paravirt_spinlocks_enabled;
- static __always_inline bool static_key_false(struct static_key *key);
- 
- #ifdef CONFIG_QUEUE_SPINLOCK
-@@ -150,7 +150,7 @@ static inline void __ticket_unlock_slowp
- static __always_inline void arch_spin_unlock(arch_spinlock_t *lock)
- {
- 	if (TICKET_SLOWPATH_FLAG &&
--	    static_key_false(&paravirt_ticketlocks_enabled)) {
-+	    static_key_false(&paravirt_spinlocks_enabled)) {
- 		arch_spinlock_t prev;
- 
- 		prev = *lock;
---- a/arch/x86/kernel/kvm.c
-+++ b/arch/x86/kernel/kvm.c
-@@ -819,7 +819,7 @@ static __init int kvm_spinlock_init_jump
- 	if (!kvm_para_has_feature(KVM_FEATURE_PV_UNHALT))
- 		return 0;
- 
--	static_key_slow_inc(&paravirt_ticketlocks_enabled);
-+	static_key_slow_inc(&paravirt_spinlocks_enabled);
- 	printk(KERN_INFO "KVM setup paravirtual spinlock\n");
- 
- 	return 0;
---- a/arch/x86/kernel/paravirt-spinlocks.c
-+++ b/arch/x86/kernel/paravirt-spinlocks.c
-@@ -16,5 +16,5 @@ struct pv_lock_ops pv_lock_ops = {
- };
- EXPORT_SYMBOL(pv_lock_ops);
- 
--struct static_key paravirt_ticketlocks_enabled = STATIC_KEY_INIT_FALSE;
--EXPORT_SYMBOL(paravirt_ticketlocks_enabled);
-+struct static_key paravirt_spinlocks_enabled = STATIC_KEY_INIT_FALSE;
-+EXPORT_SYMBOL(paravirt_spinlocks_enabled);
---- a/arch/x86/xen/spinlock.c
-+++ b/arch/x86/xen/spinlock.c
-@@ -293,7 +293,7 @@ static __init int xen_init_spinlocks_jum
- 	if (!xen_domain())
- 		return 0;
- 
--	static_key_slow_inc(&paravirt_ticketlocks_enabled);
-+	static_key_slow_inc(&paravirt_spinlocks_enabled);
- 	return 0;
- }
- early_initcall(xen_init_spinlocks_jump);
-
-
+Simple things first, then add complexity.
