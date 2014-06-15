@@ -1,126 +1,57 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.9]:60394 "EHLO
+Received: from bombadil.infradead.org ([198.137.202.9]:60392 "EHLO
 	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751686AbaFONME (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 15 Jun 2014 09:12:04 -0400
-Message-ID: <20140615130153.057188696@chello.nl>
-Date: Sun, 15 Jun 2014 14:46:59 +0200
+	with ESMTP id S1751679AbaFONMD (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 15 Jun 2014 09:12:03 -0400
+Message-ID: <20140615130153.638054585@chello.nl>
+Date: Sun, 15 Jun 2014 14:47:03 +0200
 From: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Subject: [PATCH 02/11] qspinlock, x86: Enable x86-64 to use queue spinlock
+Subject: [PATCH 06/11] qspinlock: Optimize pending bit
 References: <20140615124657.264658593@chello.nl>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
-Content-Disposition: inline; filename=waiman_long-qspinlock_x86-enable_x86-64_to_use_queue_spinlock.patch
+Content-Disposition: inline; filename=peterz-prolong-pending.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Waiman.Long@hp.com, tglx@linutronix.de, mingo@kernel.org
 Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, paolo.bonzini@gmail.com, konrad.wilk@oracle.com, boris.ostrovsky@oracle.com, paulmck@linux.vnet.ibm.com, riel@redhat.com, torvalds@linux-foundation.org, raghavendra.kt@linux.vnet.ibm.com, david.vrabel@citrix.com, oleg@redhat.com, gleb@redhat.com, scott.norton@hp.com, chegu_vinod@hp.com, Peter Zijlstra <peterz@infradead.org>
-Message-ID: <20140615124659.qaZ_Amjy_YwzzKXxejbqzW9cch6Uo2uCYXHXkovyO2w@z>
+Message-ID: <20140615124703.Lm-L3Mea_M1X4j41l8lP7RCQiaoXk6SvGuJ8r99eUr0@z>
 
-From: Waiman Long <Waiman.Long@hp.com>
+XXX: merge into the pending bit patch..
 
-This patch makes the necessary changes at the x86 architecture
-specific layer to enable the use of queue spinlock for x86-64. As
-x86-32 machines are typically not multi-socket. The benefit of queue
-spinlock may not be apparent. So queue spinlock is not enabled.
+It is possible so observe the pending bit without the locked bit when
+the last owner has just released but the pending owner has not yet
+taken ownership.
 
-Currently, there is some incompatibilities between the para-virtualized
-spinlock code (which hard-codes the use of ticket spinlock) and the
-queue spinlock. Therefore, the use of queue spinlock is disabled when
-the para-virtualized spinlock is enabled.
+In this case we would normally queue -- because the pending bit is
+already taken. However, in this case the pending bit is guaranteed to
+be released 'soon', therefore wait for it and avoid queueing.
 
-The arch/x86/include/asm/qspinlock.h header file includes some x86
-specific optimization which will make the queue spinlock code perform
-better than the generic implementation.
-
-Signed-off-by: Waiman Long <Waiman.Long@hp.com>
 Signed-off-by: Peter Zijlstra <peterz@infradead.org>
 ---
- arch/x86/Kconfig                      |    1 +
- arch/x86/include/asm/qspinlock.h      |   25 +++++++++++++++++++++++++
- arch/x86/include/asm/spinlock.h       |    5 +++++
- arch/x86/include/asm/spinlock_types.h |    4 ++++
- 4 files changed, 35 insertions(+)
- create mode 100644 arch/x86/include/asm/qspinlock.h
+ kernel/locking/qspinlock.c |   10 ++++++++++
+ 1 file changed, 10 insertions(+)
 
---- a/arch/x86/Kconfig
-+++ b/arch/x86/Kconfig
-@@ -29,6 +29,7 @@ config X86
- 	select ARCH_SUPPORTS_NUMA_BALANCING if X86_64
- 	select ARCH_SUPPORTS_INT128 if X86_64
- 	select ARCH_WANTS_PROT_NUMA_PROT_NONE
-+	select ARCH_USE_QUEUE_SPINLOCK
- 	select HAVE_IDE
- 	select HAVE_OPROFILE
- 	select HAVE_PCSPKR_PLATFORM
---- /dev/null
-+++ b/arch/x86/include/asm/qspinlock.h
-@@ -0,0 +1,25 @@
-+#ifndef _ASM_X86_QSPINLOCK_H
-+#define _ASM_X86_QSPINLOCK_H
-+
-+#include <asm-generic/qspinlock_types.h>
-+
-+#if !defined(CONFIG_X86_OOSTORE) && !defined(CONFIG_X86_PPRO_FENCE)
-+
-+#define	queue_spin_unlock queue_spin_unlock
-+/**
-+ * queue_spin_unlock - release a queue spinlock
-+ * @lock : Pointer to queue spinlock structure
-+ *
-+ * An effective smp_store_release() on the least-significant byte.
-+ */
-+static inline void queue_spin_unlock(struct qspinlock *lock)
-+{
-+	barrier();
-+	ACCESS_ONCE(*(u8 *)lock) = 0;
-+}
-+
-+#endif /* !CONFIG_X86_OOSTORE && !CONFIG_X86_PPRO_FENCE */
-+
-+#include <asm-generic/qspinlock.h>
-+
-+#endif /* _ASM_X86_QSPINLOCK_H */
---- a/arch/x86/include/asm/spinlock.h
-+++ b/arch/x86/include/asm/spinlock.h
-@@ -42,6 +42,10 @@
- extern struct static_key paravirt_ticketlocks_enabled;
- static __always_inline bool static_key_false(struct static_key *key);
+Index: linux-2.6/kernel/locking/qspinlock.c
+===================================================================
+--- linux-2.6.orig/kernel/locking/qspinlock.c
++++ linux-2.6/kernel/locking/qspinlock.c
+@@ -226,6 +226,16 @@ void queue_spin_lock_slowpath(struct qsp
+ 	BUILD_BUG_ON(CONFIG_NR_CPUS >= (1U << _Q_TAIL_CPU_BITS));
  
-+#ifdef CONFIG_QUEUE_SPINLOCK
-+#include <asm/qspinlock.h>
-+#else
+ 	/*
++	 * wait for in-progress pending->locked hand-overs
++	 *
++	 * 0,1,0 -> 0,0,1
++	 */
++	if (val == _Q_PENDING_VAL) {
++		while ((val = atomic_read(&lock->val)) == _Q_PENDING_VAL)
++			cpu_relax();
++	}
 +
- #ifdef CONFIG_PARAVIRT_SPINLOCKS
- 
- static inline void __ticket_enter_slowpath(arch_spinlock_t *lock)
-@@ -180,6 +184,7 @@ static __always_inline void arch_spin_lo
- {
- 	arch_spin_lock(lock);
- }
-+#endif /* CONFIG_QUEUE_SPINLOCK */
- 
- static inline void arch_spin_unlock_wait(arch_spinlock_t *lock)
- {
---- a/arch/x86/include/asm/spinlock_types.h
-+++ b/arch/x86/include/asm/spinlock_types.h
-@@ -23,6 +23,9 @@ typedef u32 __ticketpair_t;
- 
- #define TICKET_SHIFT	(sizeof(__ticket_t) * 8)
- 
-+#ifdef CONFIG_QUEUE_SPINLOCK
-+#include <asm-generic/qspinlock_types.h>
-+#else
- typedef struct arch_spinlock {
- 	union {
- 		__ticketpair_t head_tail;
-@@ -33,6 +36,7 @@ typedef struct arch_spinlock {
- } arch_spinlock_t;
- 
- #define __ARCH_SPIN_LOCK_UNLOCKED	{ { 0 } }
-+#endif /* CONFIG_QUEUE_SPINLOCK */
- 
- #ifdef CONFIG_QUEUE_RWLOCK
- #include <asm-generic/qrwlock_types.h>
++	/*
+ 	 * trylock || pending
+ 	 *
+ 	 * 0,0,0 -> 0,0,1 ; trylock
 
 
