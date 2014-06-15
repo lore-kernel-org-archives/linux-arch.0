@@ -1,124 +1,209 @@
 From: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Subject: [PATCH 04/11] qspinlock: Extract out the exchange of tail code word
-Date: Sun, 15 Jun 2014 14:47:01 +0200
-Message-ID: <20140615130153.376621956@chello.nl>
+Subject: [PATCH 07/11] qspinlock: Use a simple write to grab the lock,
+	if applicable
+Date: Sun, 15 Jun 2014 14:47:04 +0200
+Message-ID: <20140615130153.786898559@chello.nl>
 References: <20140615124657.264658593@chello.nl>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from casper.infradead.org ([85.118.1.10]:41522 "EHLO
-	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751376AbaFONLo (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 15 Jun 2014 09:11:44 -0400
-Content-Disposition: inline; filename=waiman_long-qspinlock-extract_out_the_exchange_of_tail_code_word.patch
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <virtualization-bounces@lists.linux-foundation.org>
+Content-Disposition: inline;
+	filename=waiman_long-qspinlock-use_a_simple_write_to_grab_the_lock_if_applicable.patch
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
+List-Post: <mailto:virtualization@lists.linux-foundation.org>
+List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
+Sender: virtualization-bounces@lists.linux-foundation.org
+Errors-To: virtualization-bounces@lists.linux-foundation.org
 To: Waiman.Long@hp.com, tglx@linutronix.de, mingo@kernel.org
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, paolo.bonzini@gmail.com, konrad.wilk@oracle.com, boris.ostrovsky@oracle.com, paulmck@linux.vnet.ibm.com, riel@redhat.com, torvalds@linux-foundation.org, raghavendra.kt@linux.vnet.ibm.com, david.vrabel@citrix.com, oleg@redhat.com, gleb@redhat.com, scott.norton@hp.com, chegu_vinod@hp.com, Peter Zijlstra <peterz@infradead.org>
+Cc: linux-arch@vger.kernel.org, riel@redhat.com, gleb@redhat.com, kvm@vger.kernel.org, konrad.wilk@oracle.com, Peter Zijlstra <peterz@infradead.org>, scott.norton@hp.com, raghavendra.kt@linux.vnet.ibm.com, paolo.bonzini@gmail.com, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, chegu_vinod@hp.com, david.vrabel@citrix.com, oleg@redhat.com, xen-devel@lists.xenproject.org, boris.ostrovsky@oracle.com, paulmck@linux.vnet.ibm.com, torvalds@linux-foundation.org
+List-Id: linux-arch.vger.kernel.org
 
 From: Waiman Long <Waiman.Long@hp.com>
 
-This patch extracts the logic for the exchange of new and previous tail
-code words into a new xchg_tail() function which can be optimized in a
-later patch.
+Currently, atomic_cmpxchg() is used to get the lock. However, this is
+not really necessary if there is more than one task in the queue and
+the queue head don't need to reset the queue code word. For that case,
+a simple write to set the lock bit is enough as the queue head will
+be the only one eligible to get the lock as long as it checks that
+both the lock and pending bits are not set. The current pending bit
+waiting code will ensure that the bit will not be set as soon as the
+queue code word (tail) in the lock is set.
+
+With that change, the are some slight improvement in the performance
+of the queue spinlock in the 5M loop micro-benchmark run on a 4-socket
+Westere-EX machine as shown in the tables below.
+
+		[Standalone/Embedded - same node]
+  # of tasks	Before patch	After patch	%Change
+  ----------	-----------	----------	-------
+       3	 2324/2321	2248/2265	 -3%/-2%
+       4	 2890/2896	2819/2831	 -2%/-2%
+       5	 3611/3595	3522/3512	 -2%/-2%
+       6	 4281/4276	4173/4160	 -3%/-3%
+       7	 5018/5001	4875/4861	 -3%/-3%
+       8	 5759/5750	5563/5568	 -3%/-3%
+
+		[Standalone/Embedded - different nodes]
+  # of tasks	Before patch	After patch	%Change
+  ----------	-----------	----------	-------
+       3	12242/12237	12087/12093	 -1%/-1%
+       4	10688/10696	10507/10521	 -2%/-2%
+
+It was also found that this change produced a much bigger performance
+improvement in the newer IvyBridge-EX chip and was essentially to close
+the performance gap between the ticket spinlock and queue spinlock.
+
+The disk workload of the AIM7 benchmark was run on a 4-socket
+Westmere-EX machine with both ext4 and xfs RAM disks at 3000 users
+on a 3.14 based kernel. The results of the test runs were:
+
+                AIM7 XFS Disk Test
+  kernel                 JPM    Real Time   Sys Time    Usr Time
+  -----                  ---    ---------   --------    --------
+  ticketlock            5678233    3.17       96.61       5.81
+  qspinlock             5750799    3.13       94.83       5.97
+
+                AIM7 EXT4 Disk Test
+  kernel                 JPM    Real Time   Sys Time    Usr Time
+  -----                  ---    ---------   --------    --------
+  ticketlock            1114551   16.15      509.72       7.11
+  qspinlock             2184466    8.24      232.99       6.01
+
+The ext4 filesystem run had a much higher spinlock contention than
+the xfs filesystem run.
+
+The "ebizzy -m" test was also run with the following results:
+
+  kernel               records/s  Real Time   Sys Time    Usr Time
+  -----                ---------  ---------   --------    --------
+  ticketlock             2075       10.00      216.35       3.49
+  qspinlock              3023       10.00      198.20       4.80
 
 Signed-off-by: Waiman Long <Waiman.Long@hp.com>
 Signed-off-by: Peter Zijlstra <peterz@infradead.org>
 ---
- include/asm-generic/qspinlock_types.h |    2 +
- kernel/locking/qspinlock.c            |   58 +++++++++++++++++++++-------------
- 2 files changed, 38 insertions(+), 22 deletions(-)
+ kernel/locking/qspinlock.c |   59 ++++++++++++++++++++++++++++++++-------------
+ 1 file changed, 43 insertions(+), 16 deletions(-)
 
---- a/include/asm-generic/qspinlock_types.h
-+++ b/include/asm-generic/qspinlock_types.h
-@@ -61,6 +61,8 @@ typedef struct qspinlock {
- #define _Q_TAIL_CPU_BITS	(32 - _Q_TAIL_CPU_OFFSET)
- #define _Q_TAIL_CPU_MASK	_Q_SET_MASK(TAIL_CPU)
- 
-+#define _Q_TAIL_MASK		(_Q_TAIL_IDX_MASK | _Q_TAIL_CPU_MASK)
-+
- #define _Q_LOCKED_VAL		(1U << _Q_LOCKED_OFFSET)
- #define _Q_PENDING_VAL		(1U << _Q_PENDING_OFFSET)
- 
 --- a/kernel/locking/qspinlock.c
 +++ b/kernel/locking/qspinlock.c
-@@ -86,6 +86,31 @@ static inline struct mcs_spinlock *decod
- #define _Q_LOCKED_PENDING_MASK	(_Q_LOCKED_MASK | _Q_PENDING_MASK)
+@@ -93,24 +93,33 @@ static inline struct mcs_spinlock *decod
+  * By using the whole 2nd least significant byte for the pending bit, we
+  * can allow better optimization of the lock acquisition for the pending
+  * bit holder.
++ *
++ * This internal structure is also used by the set_locked function which
++ * is not restricted to _Q_PENDING_BITS == 8.
+  */
+-#if _Q_PENDING_BITS == 8
+-
+ struct __qspinlock {
+ 	union {
+ 		atomic_t val;
+-		struct {
+ #ifdef __LITTLE_ENDIAN
++		u8	 locked;
++		struct {
+ 			u16	locked_pending;
+ 			u16	tail;
++		};
+ #else
++		struct {
+ 			u16	tail;
+ 			u16	locked_pending;
+-#endif
+ 		};
++		struct {
++			u8	reserved[3];
++			u8	locked;
++		};
++#endif
+ 	};
+ };
+ 
++#if _Q_PENDING_BITS == 8
+ /**
+  * clear_pending_set_locked - take ownership and clear the pending bit.
+  * @lock: Pointer to queue spinlock structure
+@@ -197,6 +206,19 @@ static __always_inline u32 xchg_tail(str
+ #endif /* _Q_PENDING_BITS == 8 */
  
  /**
-+ * xchg_tail - Put in the new queue tail code word & retrieve previous one
-+ * @lock : Pointer to queue spinlock structure
-+ * @tail : The new queue tail code word
-+ * Return: The previous queue tail code word
++ * set_locked - Set the lock bit and own the lock
++ * @lock: Pointer to queue spinlock structure
 + *
-+ * xchg(lock, tail)
-+ *
-+ * p,*,* -> n,*,* ; prev = xchg(lock, node)
++ * *,*,0 -> *,0,1
 + */
-+static __always_inline u32 xchg_tail(struct qspinlock *lock, u32 tail)
++static __always_inline void set_locked(struct qspinlock *lock)
 +{
-+	u32 old, new, val = atomic_read(&lock->val);
++	struct __qspinlock *l = (void *)lock;
 +
-+	for (;;) {
-+		new = (val & _Q_LOCKED_PENDING_MASK) | tail;
-+		old = atomic_cmpxchg(&lock->val, val, new);
-+		if (old == val)
-+			break;
-+
-+		val = old;
-+	}
-+	return old;
++	ACCESS_ONCE(l->locked) = _Q_LOCKED_VAL;
 +}
 +
 +/**
   * queue_spin_lock_slowpath - acquire the queue spinlock
   * @lock: Pointer to queue spinlock structure
   * @val: Current value of the queue spinlock 32-bit word
-@@ -182,36 +207,25 @@ void queue_spin_lock_slowpath(struct qsp
- 	node->next = NULL;
+@@ -328,10 +350,13 @@ void queue_spin_lock_slowpath(struct qsp
+ 	/*
+ 	 * we're at the head of the waitqueue, wait for the owner & pending to
+ 	 * go away.
++	 * Load-acquired is used here because the set_locked()
++	 * function below may not be a full memory barrier.
+ 	 *
+ 	 * *,x,y -> *,0,0
+ 	 */
+-	while ((val = atomic_read(&lock->val)) & _Q_LOCKED_PENDING_MASK)
++	while ((val = smp_load_acquire(&lock->val.counter)) &
++			_Q_LOCKED_PENDING_MASK)
+ 		cpu_relax();
  
  	/*
--	 * we already touched the queueing cacheline; don't bother with pending
--	 * stuff.
--	 *
--	 * trylock || xchg(lock, node)
--	 *
--	 * 0,0,0 -> 0,0,1 ; trylock
--	 * p,y,x -> n,y,x ; prev = xchg(lock, node)
-+	 * We touched a (possibly) cold cacheline in the per-cpu queue node;
-+	 * attempt the trylock once more in the hope someone let go while we
-+	 * weren't watching.
+@@ -339,15 +364,19 @@ void queue_spin_lock_slowpath(struct qsp
+ 	 *
+ 	 * n,0,0 -> 0,0,1 : lock, uncontended
+ 	 * *,0,0 -> *,0,1 : lock, contended
++	 *
++	 * If the queue head is the only one in the queue (lock value == tail),
++	 * clear the tail code and grab the lock. Otherwise, we only need
++	 * to grab the lock.
  	 */
--	for (;;) {
+ 	for (;;) {
 -		new = _Q_LOCKED_VAL;
--		if (val)
--			new = tail | (val & _Q_LOCKED_PENDING_MASK);
+-		if (val != tail)
+-			new |= val;
 -
 -		old = atomic_cmpxchg(&lock->val, val, new);
 -		if (old == val)
--			break;
--
--		val = old;
++		if (val != tail) {
++			set_locked(lock);
+ 			break;
++		}
++		old = atomic_cmpxchg(&lock->val, val, _Q_LOCKED_VAL);
++		if (old == val)
++			goto release;	/* No contention */
+ 
+ 		val = old;
+ 	}
+@@ -355,12 +384,10 @@ void queue_spin_lock_slowpath(struct qsp
+ 	/*
+ 	 * contended path; wait for next, release.
+ 	 */
+-	if (new != _Q_LOCKED_VAL) {
+-		while (!(next = ACCESS_ONCE(node->next)))
+-			cpu_relax();
++	while (!(next = ACCESS_ONCE(node->next)))
++		cpu_relax();
+ 
+-		arch_mcs_spin_unlock_contended(&next->locked);
 -	}
-+	if (queue_spin_trylock(lock))
-+		goto release;
++	arch_mcs_spin_unlock_contended(&next->locked);
  
+ release:
  	/*
--	 * we won the trylock; forget about queueing.
-+	 * we already touched the queueing cacheline; don't bother with pending
-+	 * stuff.
-+	 *
-+	 * p,*,* -> n,*,*
- 	 */
--	if (new == _Q_LOCKED_VAL)
--		goto release;
-+	old = xchg_tail(lock, tail);
- 
- 	/*
- 	 * if there was a previous node; link it and wait.
- 	 */
--	if (old & ~_Q_LOCKED_PENDING_MASK) {
-+	if (old & _Q_TAIL_MASK) {
- 		prev = decode_tail(old);
- 		ACCESS_ONCE(prev->next) = node;
- 
