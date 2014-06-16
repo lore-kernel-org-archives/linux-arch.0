@@ -1,59 +1,94 @@
-From: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
-Subject: Re: [PATCH 00/11] qspinlock with paravirt support
-Date: Mon, 16 Jun 2014 16:52:21 -0400
-Message-ID: <20140616205221.GB26140@laptop.dumpdata.com>
-References: <20140615124657.264658593@chello.nl>
+From: Waiman Long <waiman.long@hp.com>
+Subject: Re: [PATCH 08/11] qspinlock: Revert to test-and-set on hypervisors
+Date: Mon, 16 Jun 2014 17:57:14 -0400
+Message-ID: <539F683A.2070103@hp.com>
+References: <20140615124657.264658593@chello.nl> <20140615130153.940699466@chello.nl>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
+Content-Type: text/plain; charset=UTF-8; format=flowed
 Content-Transfer-Encoding: 7bit
-Return-path: <virtualization-bounces@lists.linux-foundation.org>
-Content-Disposition: inline
-In-Reply-To: <20140615124657.264658593@chello.nl>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
-List-Post: <mailto:virtualization@lists.linux-foundation.org>
-List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
-Sender: virtualization-bounces@lists.linux-foundation.org
-Errors-To: virtualization-bounces@lists.linux-foundation.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from g4t3425.houston.hp.com ([15.201.208.53]:6317 "EHLO
+	g4t3425.houston.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754764AbaFPV5U (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 16 Jun 2014 17:57:20 -0400
+In-Reply-To: <20140615130153.940699466@chello.nl>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Cc: Waiman.Long@hp.com, linux-arch@vger.kernel.org, riel@redhat.com, gleb@redhat.com, kvm@vger.kernel.org, boris.ostrovsky@oracle.com, scott.norton@hp.com, raghavendra.kt@linux.vnet.ibm.com, paolo.bonzini@gmail.com, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, Peter Zijlstra <peterz@infradead.org>, chegu_vinod@hp.com, david.vrabel@citrix.com, oleg@redhat.com, xen-devel@lists.xenproject.org, tglx@linutronix.de, paulmck@linux.vnet.ibm.com, torvalds@linux-foundation.org, mingo@kernel.org
-List-Id: linux-arch.vger.kernel.org
+Cc: tglx@linutronix.de, mingo@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, paolo.bonzini@gmail.com, konrad.wilk@oracle.com, boris.ostrovsky@oracle.com, paulmck@linux.vnet.ibm.com, riel@redhat.com, torvalds@linux-foundation.org, raghavendra.kt@linux.vnet.ibm.com, david.vrabel@citrix.com, oleg@redhat.com, gleb@redhat.com, scott.norton@hp.com, chegu_vinod@hp.com, Peter Zijlstra <peterz@infradead.org>
 
-On Sun, Jun 15, 2014 at 02:46:57PM +0200, Peter Zijlstra wrote:
-> Since Waiman seems incapable of doing simple things; here's my take on the
-> paravirt crap.
-> 
-> The first few patches are taken from Waiman's latest series, but the virt
-> support is completely new. Its primary aim is to not mess up the native code.
+On 06/15/2014 08:47 AM, Peter Zijlstra wrote:
+> When we detect a hypervisor (!paravirt, see later patches), revert to
+> a simple test-and-set lock to avoid the horrors of queue preemption.
+>
+> Signed-off-by: Peter Zijlstra<peterz@infradead.org>
+> ---
+>   arch/x86/include/asm/qspinlock.h |   14 ++++++++++++++
+>   include/asm-generic/qspinlock.h  |    7 +++++++
+>   kernel/locking/qspinlock.c       |    3 +++
+>   3 files changed, 24 insertions(+)
+>
+> --- a/arch/x86/include/asm/qspinlock.h
+> +++ b/arch/x86/include/asm/qspinlock.h
+> @@ -1,6 +1,7 @@
+>   #ifndef _ASM_X86_QSPINLOCK_H
+>   #define _ASM_X86_QSPINLOCK_H
+>
+> +#include<asm/cpufeature.h>
+>   #include<asm-generic/qspinlock_types.h>
+>
+>   #if !defined(CONFIG_X86_OOSTORE)&&  !defined(CONFIG_X86_PPRO_FENCE)
+> @@ -20,6 +21,19 @@ static inline void queue_spin_unlock(str
+>
+>   #endif /* !CONFIG_X86_OOSTORE&&  !CONFIG_X86_PPRO_FENCE */
+>
+> +#define virt_queue_spin_lock virt_queue_spin_lock
+> +
+> +static inline bool virt_queue_spin_lock(struct qspinlock *lock)
+> +{
+> +	if (!static_cpu_has(X86_FEATURE_HYPERVISOR))
+> +		return false;
+> +
+> +	while (atomic_cmpxchg(&lock->val, 0, _Q_LOCKED_VAL) != 0)
+> +		cpu_relax();
+> +
+> +	return true;
+> +}
+> +
+>   #include<asm-generic/qspinlock.h>
+>
+>   #endif /* _ASM_X86_QSPINLOCK_H */
+> --- a/include/asm-generic/qspinlock.h
+> +++ b/include/asm-generic/qspinlock.h
+> @@ -98,6 +98,13 @@ static __always_inline void queue_spin_u
+>   }
+>   #endif
+>
+> +#ifndef virt_queue_spin_lock
+> +static __always_inline bool virt_queue_spin_lock(struct qspinlock *lock)
+> +{
+> +	return false;
+> +}
+> +#endif
+> +
+>   /*
+>    * Initializier
+>    */
+> --- a/kernel/locking/qspinlock.c
+> +++ b/kernel/locking/qspinlock.c
+> @@ -247,6 +247,9 @@ void queue_spin_lock_slowpath(struct qsp
+>
+>   	BUILD_BUG_ON(CONFIG_NR_CPUS>= (1U<<  _Q_TAIL_CPU_BITS));
+>
+> +	if (virt_queue_spin_lock(lock))
+> +		return;
+> +
+>   	/*
+>   	 * wait for in-progress pending->locked hand-overs
+>   	 *
 
-OK. I finally cleared some time to look over this and are reading the code
-in details to make sure I have it clear in mind. I will most likely ask
-some questions that are naive - hopefully they will lead to the code being
-self-explanatory for anybody else taking a stab at understanding them when
-bugs appear.
-> 
-> I've not stress tested it, but the virt and paravirt (kvm) cases boot on simple
-> smp guests. I've not done Xen, but the patch should be simple and similar.
+I just wonder if it is better to allow the kernel distributors to decide 
+if unfair lock should be the default for virtual guest. Anyway, I have 
+no objection to that myself.
 
-Looking forward to seeing it. Glancing over the KVM one and comparing it
-to the original version that Waiman posted it should be fairly simple. Perhaps
-even some of the code could be shared?
-
-> 
-> I ripped out all the unfair nonsense as its not at all required for paravirt
-> and optimizations that make paravirt better at the cost of code clarity and/or
-> native performance are just not worth it.
-> 
-> Also; if we were to ever add some of that unfair nonsense you do so _after_ you
-> got the simple things working.
-> 
-> The thing I'm least sure about is the head tracking, I chose to do something
-> different from what Waiman did, because his is O(nr_cpus) and had the
-> assumption that guests have small nr_cpus. AFAIK this is not at all true. The
-> biggest problem I have with what I did is that it contains wait loops itself.
-> 
-> 
-> 
+-Longman
