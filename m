@@ -1,100 +1,96 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from g4t3426.houston.hp.com ([15.201.208.54]:49098 "EHLO
-	g4t3426.houston.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S965344AbaFQWZi (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 17 Jun 2014 18:25:38 -0400
-Message-ID: <53A0C05C.7010604@hp.com>
-Date: Tue, 17 Jun 2014 18:25:32 -0400
-From: Waiman Long <waiman.long@hp.com>
-MIME-Version: 1.0
+Received: from userp1040.oracle.com ([156.151.31.81]:28420 "EHLO
+	userp1040.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753771AbaFQXY6 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 17 Jun 2014 19:24:58 -0400
+Message-ID: <201406172323.s5HNNveT018439@userz7022.oracle.com>
+Date: Tue, 17 Jun 2014 19:23:44 -0400
 Subject: Re: [PATCH 03/11] qspinlock: Add pending bit
-References: <20140615124657.264658593@chello.nl> <20140615130153.196728583@chello.nl> <20140617203615.GA29634@laptop.dumpdata.com> <53A0AA6D.1070708@hp.com> <20140617210729.GB31817@laptop.dumpdata.com> <20140617211057.GD29634@laptop.dumpdata.com>
-In-Reply-To: <20140617211057.GD29634@laptop.dumpdata.com>
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
-Content-Transfer-Encoding: 7bit
+From: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: base64
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
-Cc: Peter Zijlstra <a.p.zijlstra@chello.nl>, tglx@linutronix.de, mingo@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, paolo.bonzini@gmail.com, boris.ostrovsky@oracle.com, paulmck@linux.vnet.ibm.com, riel@redhat.com, torvalds@linux-foundation.org, raghavendra.kt@linux.vnet.ibm.com, david.vrabel@citrix.com, oleg@redhat.com, gleb@redhat.com, scott.norton@hp.com, chegu_vinod@hp.com, Peter Zijlstra <peterz@infradead.org>
-Message-ID: <20140617222532.QCXZh4EDCw5tX1PIgBt6jlcGTl5ZLejrE5OpRqbyiQ4@z>
+To: Waiman Long <waiman.long@hp.com>
+Cc: raghavendra.kt@linux.vnet.ibm.com, mingo@kernel.org, riel@redhat.com, oleg@redhat.com, gleb@redhat.com, virtualization@lists.linux-foundation.org, tglx@linutronix.de, chegu_vinod@hp.com, boris.ostrovsky@oracle.com, david.vrabel@citrix.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, paolo.bonzini@gmail.com, Peter Zijlstra <peterz@infradead.org>, scott.norton@hp.com, torvalds@linux-foundation.org, kvm@vger.kernel.org, paulmck@linux.vnet.ibm.com, xen-devel@lists.xenproject.org, Peter Zijlstra <a.p.zijlstra@chello.nl>
+Message-ID: <20140617232344.gNTanZNhkkI8M4b-mPx0EPRyIDVMS3jz_uNhSxWuUSQ@z>
 
-On 06/17/2014 05:10 PM, Konrad Rzeszutek Wilk wrote:
-> On Tue, Jun 17, 2014 at 05:07:29PM -0400, Konrad Rzeszutek Wilk wrote:
->> On Tue, Jun 17, 2014 at 04:51:57PM -0400, Waiman Long wrote:
->>> On 06/17/2014 04:36 PM, Konrad Rzeszutek Wilk wrote:
->>>> On Sun, Jun 15, 2014 at 02:47:00PM +0200, Peter Zijlstra wrote:
->>>>> Because the qspinlock needs to touch a second cacheline; add a pending
->>>>> bit and allow a single in-word spinner before we punt to the second
->>>>> cacheline.
->>>> Could you add this in the description please:
->>>>
->>>> And by second cacheline we mean the local 'node'. That is the:
->>>> mcs_nodes[0] and mcs_nodes[idx]
->>>>
->>>> Perhaps it might be better then to split this in the header file
->>>> as this is trying to not be a slowpath code - but rather - a
->>>> pre-slow-path-lets-try-if-we can do another cmpxchg in case
->>>> the unlocker has just unlocked itself.
->>>>
->>>> So something like:
->>>>
->>>> diff --git a/include/asm-generic/qspinlock.h b/include/asm-generic/qspinlock.h
->>>> index e8a7ae8..29cc9c7 100644
->>>> --- a/include/asm-generic/qspinlock.h
->>>> +++ b/include/asm-generic/qspinlock.h
->>>> @@ -75,11 +75,21 @@ extern void queue_spin_lock_slowpath(struct qspinlock *lock, u32 val);
->>>>    */
->>>>   static __always_inline void queue_spin_lock(struct qspinlock *lock)
->>>>   {
->>>> -	u32 val;
->>>> +	u32 val, new;
->>>>
->>>>   	val = atomic_cmpxchg(&lock->val, 0, _Q_LOCKED_VAL);
->>>>   	if (likely(val == 0))
->>>>   		return;
->>>> +
->>>> +	/* One more attempt - but if we fail mark it as pending. */
->>>> +	if (val == _Q_LOCKED_VAL) {
->>>> +		new = Q_LOCKED_VAL |_Q_PENDING_VAL;
->>>> +
->>>> +		old = atomic_cmpxchg(&lock->val, val, new);
->>>> +		if (old == _Q_LOCKED_VAL) /* YEEY! */
->>>> +			return;
->>> No, it can leave like that. The unlock path will not clear the pending bit.
->> Err, you are right. It needs to go back in the slowpath.
-> What I should have wrote is:
->
-> if (old == 0) /* YEEY */
->    return;
+Ck9uIEp1biAxNywgMjAxNCA2OjI1IFBNLCBXYWltYW4gTG9uZyA8d2FpbWFuLmxvbmdAaHAuY29t
+PiB3cm90ZToKPgo+IE9uIDA2LzE3LzIwMTQgMDU6MTAgUE0sIEtvbnJhZCBSemVzenV0ZWsgV2ls
+ayB3cm90ZTogCj4gPiBPbiBUdWUsIEp1biAxNywgMjAxNCBhdCAwNTowNzoyOVBNIC0wNDAwLCBL
+b25yYWQgUnplc3p1dGVrIFdpbGsgd3JvdGU6IAo+ID4+IE9uIFR1ZSwgSnVuIDE3LCAyMDE0IGF0
+IDA0OjUxOjU3UE0gLTA0MDAsIFdhaW1hbiBMb25nIHdyb3RlOiAKPiA+Pj4gT24gMDYvMTcvMjAx
+NCAwNDozNiBQTSwgS29ucmFkIFJ6ZXN6dXRlayBXaWxrIHdyb3RlOiAKPiA+Pj4+IE9uIFN1biwg
+SnVuIDE1LCAyMDE0IGF0IDAyOjQ3OjAwUE0gKzAyMDAsIFBldGVyIFppamxzdHJhIHdyb3RlOiAK
+PiA+Pj4+PiBCZWNhdXNlIHRoZSBxc3BpbmxvY2sgbmVlZHMgdG8gdG91Y2ggYSBzZWNvbmQgY2Fj
+aGVsaW5lOyBhZGQgYSBwZW5kaW5nIAo+ID4+Pj4+IGJpdCBhbmQgYWxsb3cgYSBzaW5nbGUgaW4t
+d29yZCBzcGlubmVyIGJlZm9yZSB3ZSBwdW50IHRvIHRoZSBzZWNvbmQgCj4gPj4+Pj4gY2FjaGVs
+aW5lLiAKPiA+Pj4+IENvdWxkIHlvdSBhZGQgdGhpcyBpbiB0aGUgZGVzY3JpcHRpb24gcGxlYXNl
+OiAKPiA+Pj4+IAo+ID4+Pj4gQW5kIGJ5IHNlY29uZCBjYWNoZWxpbmUgd2UgbWVhbiB0aGUgbG9j
+YWwgJ25vZGUnLiBUaGF0IGlzIHRoZTogCj4gPj4+PiBtY3Nfbm9kZXNbMF0gYW5kIG1jc19ub2Rl
+c1tpZHhdIAo+ID4+Pj4gCj4gPj4+PiBQZXJoYXBzIGl0IG1pZ2h0IGJlIGJldHRlciB0aGVuIHRv
+IHNwbGl0IHRoaXMgaW4gdGhlIGhlYWRlciBmaWxlIAo+ID4+Pj4gYXMgdGhpcyBpcyB0cnlpbmcg
+dG8gbm90IGJlIGEgc2xvd3BhdGggY29kZSAtIGJ1dCByYXRoZXIgLSBhIAo+ID4+Pj4gcHJlLXNs
+b3ctcGF0aC1sZXRzLXRyeS1pZi13ZSBjYW4gZG8gYW5vdGhlciBjbXB4Y2hnIGluIGNhc2UgCj4g
+Pj4+PiB0aGUgdW5sb2NrZXIgaGFzIGp1c3QgdW5sb2NrZWQgaXRzZWxmLiAKPiA+Pj4+IAo+ID4+
+Pj4gU28gc29tZXRoaW5nIGxpa2U6IAo+ID4+Pj4gCj4gPj4+PiBkaWZmIC0tZ2l0IGEvaW5jbHVk
+ZS9hc20tZ2VuZXJpYy9xc3BpbmxvY2suaCBiL2luY2x1ZGUvYXNtLWdlbmVyaWMvcXNwaW5sb2Nr
+LmggCj4gPj4+PiBpbmRleCBlOGE3YWU4Li4yOWNjOWM3IDEwMDY0NCAKPiA+Pj4+IC0tLSBhL2lu
+Y2x1ZGUvYXNtLWdlbmVyaWMvcXNwaW5sb2NrLmggCj4gPj4+PiArKysgYi9pbmNsdWRlL2FzbS1n
+ZW5lcmljL3FzcGlubG9jay5oIAo+ID4+Pj4gQEAgLTc1LDExICs3NSwyMSBAQCBleHRlcm4gdm9p
+ZCBxdWV1ZV9zcGluX2xvY2tfc2xvd3BhdGgoc3RydWN0IHFzcGlubG9jayAqbG9jaywgdTMyIHZh
+bCk7IAo+ID4+Pj7CoMKgwqAgKi8gCj4gPj4+PsKgwqAgc3RhdGljIF9fYWx3YXlzX2lubGluZSB2
+b2lkIHF1ZXVlX3NwaW5fbG9jayhzdHJ1Y3QgcXNwaW5sb2NrICpsb2NrKSAKPiA+Pj4+wqDCoCB7
+IAo+ID4+Pj4gLSB1MzIgdmFsOyAKPiA+Pj4+ICsgdTMyIHZhbCwgbmV3OyAKPiA+Pj4+IAo+ID4+
+Pj7CoMKgIHZhbCA9IGF0b21pY19jbXB4Y2hnKCZsb2NrLT52YWwsIDAsIF9RX0xPQ0tFRF9WQUwp
+OyAKPiA+Pj4+wqDCoCBpZiAobGlrZWx5KHZhbCA9PSAwKSkgCj4gPj4+PsKgwqAgcmV0dXJuOyAK
+PiA+Pj4+ICsgCj4gPj4+PiArIC8qIE9uZSBtb3JlIGF0dGVtcHQgLSBidXQgaWYgd2UgZmFpbCBt
+YXJrIGl0IGFzIHBlbmRpbmcuICovIAo+ID4+Pj4gKyBpZiAodmFsID09IF9RX0xPQ0tFRF9WQUwp
+IHsgCj4gPj4+PiArIG5ldyA9IFFfTE9DS0VEX1ZBTCB8X1FfUEVORElOR19WQUw7IAo+ID4+Pj4g
+KyAKPiA+Pj4+ICsgb2xkID0gYXRvbWljX2NtcHhjaGcoJmxvY2stPnZhbCwgdmFsLCBuZXcpOyAK
+PiA+Pj4+ICsgaWYgKG9sZCA9PSBfUV9MT0NLRURfVkFMKSAvKiBZRUVZISAqLyAKPiA+Pj4+ICsg
+cmV0dXJuOyAKPiA+Pj4gTm8sIGl0IGNhbiBsZWF2ZSBsaWtlIHRoYXQuIFRoZSB1bmxvY2sgcGF0
+aCB3aWxsIG5vdCBjbGVhciB0aGUgcGVuZGluZyBiaXQuIAo+ID4+IEVyciwgeW91IGFyZSByaWdo
+dC4gSXQgbmVlZHMgdG8gZ28gYmFjayBpbiB0aGUgc2xvd3BhdGguIAo+ID4gV2hhdCBJIHNob3Vs
+ZCBoYXZlIHdyb3RlIGlzOiAKPiA+IAo+ID4gaWYgKG9sZCA9PSAwKSAvKiBZRUVZICovIAo+ID7C
+oMKgwqAgcmV0dXJuOyAKPgo+IFVuZm9ydHVuYXRlbHksIHRoYXQgc3RpbGwgZG9lc24ndCB3b3Jr
+LiBJZiBvbGQgaXMgMCwgaXQganVzdCBtZWFudCB0aGUgCj4gY21weGNoZyBmYWlsZWQuIEl0IHN0
+aWxsIGhhdmVuJ3QgZ290IHRoZSBsb2NrLiAKPiA+IEFzIHRoYXQgd291bGQgdGhlIHNhbWUgdGhp
+bmcgYXMgdGhpcyBwYXRjaCBkb2VzIG9uIHRoZSBwZW5kaW5nIGJpdCAtIHRoYXQgCj4gPiBpcyBp
+ZiB3ZSBjYW4gb24gdGhlIHNlY29uZCBjb21wYXJlIGFuZCBleGNoYW5nZSBzZXQgdGhlIHBlbmRp
+bmcgYml0IChhbmQgdGhlIAo+ID4gbG9jaykgYW5kIHRoZSBsb2NrIGhhcyBiZWVuIHJlbGVhc2Vk
+IC0gd2UgYXJlIGdvb2QuIAo+Cj4gVGhhdCBpcyBub3QgdHJ1ZS4gV2hlbiB0aGUgbG9jayBpcyBm
+cmVlZCwgdGhlIHBlbmRpbmcgYml0IGhvbGRlciB3aWxsIAo+IHN0aWxsIGhhdmUgdG8gY2xlYXIg
+dGhlIHBlbmRpbmcgYml0IGFuZCBzZXQgdGhlIGxvY2sgYml0IGFzIGlzIGRvbmUgaW4gCj4gdGhl
+IHNsb3dwYXRoLiBXZSBjYW5ub3Qgc2tpcCB0aGUgc3RlcCBoZXJlLiBUaGUgcHJvYmxlbSBvZiBt
+b3ZpbmcgdGhlIAo+IHBlbmRpbmcgY29kZSBoZXJlIGlzIHRoYXQgaXQgaW5jbHVkZXMgYSB3YWl0
+IGxvb3Agd2hpY2ggd2UgZG9uJ3Qgd2FudCB0byAKPiBwdXQgaW4gdGhlIGZhc3RwYXRoLiAKPiA+
+IAo+ID4gQW5kIGl0IGlzIGEgcXVpY2sgcGF0aC4gCj4gPiAKPiA+Pj4gV2UgYXJlIHRyeWluZyB0
+byBtYWtlIHRoZSBmYXN0cGF0aCBhcyBzaW1wbGUgYXMgcG9zc2libGUgYXMgaXQgbWF5IGJlIAo+
+ID4+PiBpbmxpbmVkLiBUaGUgY29tcGxleGl0eSBvZiB0aGUgcXVldWUgc3BpbmxvY2sgaXMgaW4g
+dGhlIHNsb3dwYXRoLiAKPiA+PiBTdXJlLCBidXQgdGhlbiBpdCBzaG91bGRuJ3QgYmUgY2FsbGVk
+IHNsb3dwYXRoIGFueW1vcmUgYXMgaXQgaXMgbm90IAo+ID4+IHNsb3cuIEl0IGlzIGEgY29tYmlu
+YXRpb24gb2YgZmFzdCBwYXRoICh0aGUgcG90ZW50aWFsIGNoYW5jZSBvZiAKPiA+PiBncmFiYmlu
+ZyB0aGUgbG9jayBhbmQgc2V0dGluZyB0aGUgcGVuZGluZyBsb2NrKSBhbmQgdGhlIHJlYWwgc2xv
+dyAKPiA+PiBwYXRoICh0aGUgcXVldWluZykuIFBlcmhhcHMgaXQgc2hvdWxkIGJlIGNhbGxlZCAn
+cXVldWVfc3BpbmxvY2tfY29tcGxleCcgPyAKPiA+PiAKPiA+IEkgZm9yZ290IHRvIG1lbnRpb24g
+LSB0aGF0IHdhcyB0aGUgY3J1eCBvZiBteSBjb21tZW50cyAtIGp1c3QgY2hhbmdlIAo+ID4gdGhl
+IHNsb3dwYXRoIHRvIGNvbXBsZXggbmFtZSBhdCB0aGF0IHBvaW50IHRvIGJldHRlciByZWZsZWN0
+IHdoYXQgCj4gPiBpdCBkb2VzLiAKPgo+IEFjdHVhbGx5IGluIG15IHYxMSBwYXRjaCwgSSBzdWJk
+aXZpZGVkIHRoZSBzbG93cGF0aCBpbnRvIGEgc2xvd3BhdGggZm9yIAo+IHRoZSBwZW5kaW5nIGNv
+ZGUgYW5kIHNsb3dlcnBhdGggZm9yIGFjdHVhbCBxdWV1aW5nLiBQZXJoYXBzLCB3ZSBjb3VsZCAK
+PiB1c2UgcXVpY2twYXRoIGFuZCBzbG93cGF0aCBpbnN0ZWFkLiBBbnl3YXksIGl0IGlzIGEgbWlu
+b3IgZGV0YWlsIHRoYXQgd2UgCj4gY2FuIGRpc2N1c3MgYWZ0ZXIgdGhlIGNvcmUgY29kZSBnZXQg
+bWVyZ2VkLgo+Cj4gLUxvbmdtYW4KCldoeSBub3QgZG8gaXQgdGhlIHJpZ2h0IHdheSB0aGUgZmly
+c3QgdGltZSBhcm91bmQ/CgpUaGF0IGFzaWRlIC0gdGhlc2Ugb3B0aW1pemF0aW9uIC0gc2VlbSB0
+byBtYWtlIHRoZSBjb2RlIGhhcmRlciB0byByZWFkLiBBbmQgdGhleSBkbyByZW1pbmQgbWUgb2Yg
+dGhlIHNjaGVkdWxlciBjb2RlIGluIDIuNi54IHdoaWNoIHdhcyBiYXNlZCBvbiBoZXVyaXN0aWNz
+IC0gYW5kIGV2ZW50dWFsbHkgcmlwcGVkIG91dC4KClNvIGFyZSB0aGVzZSBvcHRpbWl6YXRpb25z
+IGJhc2VkIG9uIHR1cm5pbmcgb2ZmIGNlcnRhaW4gaGFyZHdhcmUgZmVhdHVyZXM/IFNheSBoYXJk
+d2FyZSBwcmVmZXRjaGluZz8KCldoYXQgSSBhbSBnZXR0aW5nIGF0IC0gY2FuIHRoZSBoYXJkd2Fy
+ZSBkbyB0aGlzIGF0IHNvbWUgcG9pbnQgKG9yIHBlcmhhcHMgYWxyZWFkeSBkb2VzIG9uIEl2eUJy
+aWRnZS1FWD8pIC0gdGhhdCBpcyBwcmVmZXRjaCB0aGUgcGVyLWNwdSBhcmVhcyBzbyB0aGV5IGFy
+ZSBhbHdheXMgaG90PyBBbmQgcmVuZGVyaW5nIHRoaXMgb3B0aW1pemF0aW9uIG5vdCBuZWVkZWQ/
+CgpUaGFua3MhCg==
 
-Unfortunately, that still doesn't work. If old is 0, it just meant the 
-cmpxchg failed. It still haven't got the lock.
-> As that would the same thing as this patch does on the pending bit - that
-> is if we can on the second compare and exchange set the pending bit (and the
-> lock) and the lock has been released - we are good.
-
-That is not true. When the lock is freed, the pending bit holder will 
-still have to clear the pending bit and set the lock bit as is done in 
-the slowpath. We cannot skip the step here. The problem of moving the 
-pending code here is that it includes a wait loop which we don't want to 
-put in the fastpath.
->
-> And it is a quick path.
->
->>> We are trying to make the fastpath as simple as possible as it may be
->>> inlined. The complexity of the queue spinlock is in the slowpath.
->> Sure, but then it shouldn't be called slowpath anymore as it is not
->> slow. It is a combination of fast path (the potential chance of
->> grabbing the lock and setting the pending lock) and the real slow
->> path (the queuing). Perhaps it should be called 'queue_spinlock_complex' ?
->>
-> I forgot to mention - that was the crux of my comments - just change
-> the slowpath to complex name at that point to better reflect what
-> it does.
-
-Actually in my v11 patch, I subdivided the slowpath into a slowpath for 
-the pending code and slowerpath for actual queuing. Perhaps, we could 
-use quickpath and slowpath instead. Anyway, it is a minor detail that we 
-can discuss after the core code get merged.
-
--Longman
