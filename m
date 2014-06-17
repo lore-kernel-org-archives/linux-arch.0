@@ -1,43 +1,91 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from userp1040.oracle.com ([156.151.31.81]:43624 "EHLO
+Received: from userp1040.oracle.com ([156.151.31.81]:47381 "EHLO
 	userp1040.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S933905AbaFQVAM (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 17 Jun 2014 17:00:12 -0400
-Date: Tue, 17 Jun 2014 16:59:15 -0400
+	with ESMTP id S964883AbaFQVIf (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 17 Jun 2014 17:08:35 -0400
+Date: Tue, 17 Jun 2014 17:07:29 -0400
 From: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
-Subject: Re: [PATCH v11 14/16] pvqspinlock: Add qspinlock para-virtualization
- support
-Message-ID: <20140617205915.GC29634@laptop.dumpdata.com>
-References: <1401464642-33890-1-git-send-email-Waiman.Long@hp.com>
- <1401464642-33890-15-git-send-email-Waiman.Long@hp.com>
- <20140612081731.GM3213@twins.programming.kicks-ass.net>
- <539A1229.1050309@hp.com>
- <20140615131654.GJ11371@laptop.programming.kicks-ass.net>
+Subject: Re: [PATCH 03/11] qspinlock: Add pending bit
+Message-ID: <20140617210729.GB31817@laptop.dumpdata.com>
+References: <20140615124657.264658593@chello.nl>
+ <20140615130153.196728583@chello.nl>
+ <20140617203615.GA29634@laptop.dumpdata.com>
+ <53A0AA6D.1070708@hp.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20140615131654.GJ11371@laptop.programming.kicks-ass.net>
+In-Reply-To: <53A0AA6D.1070708@hp.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Waiman Long <waiman.long@hp.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Rik van Riel <riel@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, David Vrabel <david.vrabel@citrix.com>, Oleg Nesterov <oleg@redhat.com>, Gleb Natapov <gleb@redhat.com>, Scott J Norton <scott.norton@hp.com>, Chegu Vinod <chegu_vinod@hp.com>
-Message-ID: <20140617205915.Am_ANG8tL6Abpv5_V1JvVoPnFvcIqL99SFOUl5FPII0@z>
+To: Waiman Long <waiman.long@hp.com>
+Cc: Peter Zijlstra <a.p.zijlstra@chello.nl>, tglx@linutronix.de, mingo@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, paolo.bonzini@gmail.com, boris.ostrovsky@oracle.com, paulmck@linux.vnet.ibm.com, riel@redhat.com, torvalds@linux-foundation.org, raghavendra.kt@linux.vnet.ibm.com, david.vrabel@citrix.com, oleg@redhat.com, gleb@redhat.com, scott.norton@hp.com, chegu_vinod@hp.com, Peter Zijlstra <peterz@infradead.org>
+Message-ID: <20140617210729.rEMfCV_nq2DWN9UNNTENe8VzBfnRCi6Lm26Iw3hdoc4@z>
 
-On Sun, Jun 15, 2014 at 03:16:54PM +0200, Peter Zijlstra wrote:
-> On Thu, Jun 12, 2014 at 04:48:41PM -0400, Waiman Long wrote:
-> > I don't have a good understanding of the kernel alternatives mechanism.
+On Tue, Jun 17, 2014 at 04:51:57PM -0400, Waiman Long wrote:
+> On 06/17/2014 04:36 PM, Konrad Rzeszutek Wilk wrote:
+> >On Sun, Jun 15, 2014 at 02:47:00PM +0200, Peter Zijlstra wrote:
+> >>Because the qspinlock needs to touch a second cacheline; add a pending
+> >>bit and allow a single in-word spinner before we punt to the second
+> >>cacheline.
+> >Could you add this in the description please:
+> >
+> >And by second cacheline we mean the local 'node'. That is the:
+> >mcs_nodes[0] and mcs_nodes[idx]
+> >
+> >Perhaps it might be better then to split this in the header file
+> >as this is trying to not be a slowpath code - but rather - a
+> >pre-slow-path-lets-try-if-we can do another cmpxchg in case
+> >the unlocker has just unlocked itself.
+> >
+> >So something like:
+> >
+> >diff --git a/include/asm-generic/qspinlock.h b/include/asm-generic/qspinlock.h
+> >index e8a7ae8..29cc9c7 100644
+> >--- a/include/asm-generic/qspinlock.h
+> >+++ b/include/asm-generic/qspinlock.h
+> >@@ -75,11 +75,21 @@ extern void queue_spin_lock_slowpath(struct qspinlock *lock, u32 val);
+> >   */
+> >  static __always_inline void queue_spin_lock(struct qspinlock *lock)
+> >  {
+> >-	u32 val;
+> >+	u32 val, new;
+> >
+> >  	val = atomic_cmpxchg(&lock->val, 0, _Q_LOCKED_VAL);
+> >  	if (likely(val == 0))
+> >  		return;
+> >+
+> >+	/* One more attempt - but if we fail mark it as pending. */
+> >+	if (val == _Q_LOCKED_VAL) {
+> >+		new = Q_LOCKED_VAL |_Q_PENDING_VAL;
+> >+
+> >+		old = atomic_cmpxchg(&lock->val, val, new);
+> >+		if (old == _Q_LOCKED_VAL) /* YEEY! */
+> >+			return;
 > 
-> I didn't either; I do now, cost me a whole day reading up on
-> alternative/paravirt code patching.
-> 
-> See the patches I just send out; I got the 'native' case with paravirt
-> enabled to be one NOP worse than the native case without paravirt -- for
-> queue_spin_unlock.
-> 
-> The lock slowpath is several nops and some pointless movs more expensive.
+> No, it can leave like that. The unlock path will not clear the pending bit.
 
-You could use the asm goto which would optimize the fast path to be the
-'native' case. That way you wouldn't have the the nops and movs in the
-path.
+Err, you are right. It needs to go back in the slowpath.
 
-(And asm goto also uses the alternative_asm macros).
+> We are trying to make the fastpath as simple as possible as it may be
+> inlined. The complexity of the queue spinlock is in the slowpath.
+
+Sure, but then it shouldn't be called slowpath anymore as it is not
+slow. It is a combination of fast path (the potential chance of
+grabbing the lock and setting the pending lock) and the real slow
+path (the queuing). Perhaps it should be called 'queue_spinlock_complex' ?
+
+> 
+> Moreover, an cmpxchg followed immediately followed by another cmpxchg will
+> just increase the level of memory contention when a lock is fairly
+> contended. The chance of second cmpxchg() succeeding will be pretty low.
+
+Then why even do the pending bit - which is what the slowpath does
+for the first time. And if it grabs it (And sets the pending bit) it
+immediately exits. Why not perculate that piece of code in-to this header.
+
+And the leave all that slow code (queing, mcs_lock access, etc) in the slowpath.
+
+> 
+> -Longman
+> 
+> 
