@@ -1,160 +1,100 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from userp1040.oracle.com ([156.151.31.81]:41562 "EHLO
-	userp1040.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S933275AbaFQU4a (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 17 Jun 2014 16:56:30 -0400
-Date: Tue, 17 Jun 2014 16:55:25 -0400
-From: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
-Subject: Re: [PATCH 04/11] qspinlock: Extract out the exchange of tail code
- word
-Message-ID: <20140617205525.GB29634@laptop.dumpdata.com>
-References: <20140615124657.264658593@chello.nl>
- <20140615130153.376621956@chello.nl>
+Received: from g4t3426.houston.hp.com ([15.201.208.54]:49098 "EHLO
+	g4t3426.houston.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S965344AbaFQWZi (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 17 Jun 2014 18:25:38 -0400
+Message-ID: <53A0C05C.7010604@hp.com>
+Date: Tue, 17 Jun 2014 18:25:32 -0400
+From: Waiman Long <waiman.long@hp.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20140615130153.376621956@chello.nl>
+Subject: Re: [PATCH 03/11] qspinlock: Add pending bit
+References: <20140615124657.264658593@chello.nl> <20140615130153.196728583@chello.nl> <20140617203615.GA29634@laptop.dumpdata.com> <53A0AA6D.1070708@hp.com> <20140617210729.GB31817@laptop.dumpdata.com> <20140617211057.GD29634@laptop.dumpdata.com>
+In-Reply-To: <20140617211057.GD29634@laptop.dumpdata.com>
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Cc: Waiman.Long@hp.com, tglx@linutronix.de, mingo@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, paolo.bonzini@gmail.com, boris.ostrovsky@oracle.com, paulmck@linux.vnet.ibm.com, riel@redhat.com, torvalds@linux-foundation.org, raghavendra.kt@linux.vnet.ibm.com, david.vrabel@citrix.com, oleg@redhat.com, gleb@redhat.com, scott.norton@hp.com, chegu_vinod@hp.com, Peter Zijlstra <peterz@infradead.org>
-Message-ID: <20140617205525.ndOPlnVMZ2pNg6UcNGwIEb5wN73b44PKbX0O928Hn1o@z>
+To: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
+Cc: Peter Zijlstra <a.p.zijlstra@chello.nl>, tglx@linutronix.de, mingo@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, paolo.bonzini@gmail.com, boris.ostrovsky@oracle.com, paulmck@linux.vnet.ibm.com, riel@redhat.com, torvalds@linux-foundation.org, raghavendra.kt@linux.vnet.ibm.com, david.vrabel@citrix.com, oleg@redhat.com, gleb@redhat.com, scott.norton@hp.com, chegu_vinod@hp.com, Peter Zijlstra <peterz@infradead.org>
+Message-ID: <20140617222532.QCXZh4EDCw5tX1PIgBt6jlcGTl5ZLejrE5OpRqbyiQ4@z>
 
-On Sun, Jun 15, 2014 at 02:47:01PM +0200, Peter Zijlstra wrote:
-> From: Waiman Long <Waiman.Long@hp.com>
-> 
-> This patch extracts the logic for the exchange of new and previous tail
-> code words into a new xchg_tail() function which can be optimized in a
-> later patch.
+On 06/17/2014 05:10 PM, Konrad Rzeszutek Wilk wrote:
+> On Tue, Jun 17, 2014 at 05:07:29PM -0400, Konrad Rzeszutek Wilk wrote:
+>> On Tue, Jun 17, 2014 at 04:51:57PM -0400, Waiman Long wrote:
+>>> On 06/17/2014 04:36 PM, Konrad Rzeszutek Wilk wrote:
+>>>> On Sun, Jun 15, 2014 at 02:47:00PM +0200, Peter Zijlstra wrote:
+>>>>> Because the qspinlock needs to touch a second cacheline; add a pending
+>>>>> bit and allow a single in-word spinner before we punt to the second
+>>>>> cacheline.
+>>>> Could you add this in the description please:
+>>>>
+>>>> And by second cacheline we mean the local 'node'. That is the:
+>>>> mcs_nodes[0] and mcs_nodes[idx]
+>>>>
+>>>> Perhaps it might be better then to split this in the header file
+>>>> as this is trying to not be a slowpath code - but rather - a
+>>>> pre-slow-path-lets-try-if-we can do another cmpxchg in case
+>>>> the unlocker has just unlocked itself.
+>>>>
+>>>> So something like:
+>>>>
+>>>> diff --git a/include/asm-generic/qspinlock.h b/include/asm-generic/qspinlock.h
+>>>> index e8a7ae8..29cc9c7 100644
+>>>> --- a/include/asm-generic/qspinlock.h
+>>>> +++ b/include/asm-generic/qspinlock.h
+>>>> @@ -75,11 +75,21 @@ extern void queue_spin_lock_slowpath(struct qspinlock *lock, u32 val);
+>>>>    */
+>>>>   static __always_inline void queue_spin_lock(struct qspinlock *lock)
+>>>>   {
+>>>> -	u32 val;
+>>>> +	u32 val, new;
+>>>>
+>>>>   	val = atomic_cmpxchg(&lock->val, 0, _Q_LOCKED_VAL);
+>>>>   	if (likely(val == 0))
+>>>>   		return;
+>>>> +
+>>>> +	/* One more attempt - but if we fail mark it as pending. */
+>>>> +	if (val == _Q_LOCKED_VAL) {
+>>>> +		new = Q_LOCKED_VAL |_Q_PENDING_VAL;
+>>>> +
+>>>> +		old = atomic_cmpxchg(&lock->val, val, new);
+>>>> +		if (old == _Q_LOCKED_VAL) /* YEEY! */
+>>>> +			return;
+>>> No, it can leave like that. The unlock path will not clear the pending bit.
+>> Err, you are right. It needs to go back in the slowpath.
+> What I should have wrote is:
+>
+> if (old == 0) /* YEEY */
+>    return;
 
-And also adds a third try on acquiring the lock. That I think should
-be a seperate patch.
+Unfortunately, that still doesn't work. If old is 0, it just meant the 
+cmpxchg failed. It still haven't got the lock.
+> As that would the same thing as this patch does on the pending bit - that
+> is if we can on the second compare and exchange set the pending bit (and the
+> lock) and the lock has been released - we are good.
 
-And instead of saying 'later patch' you should spell out the name
-of the patch. Especially as this might not be obvious from somebody
-doing git bisection.
+That is not true. When the lock is freed, the pending bit holder will 
+still have to clear the pending bit and set the lock bit as is done in 
+the slowpath. We cannot skip the step here. The problem of moving the 
+pending code here is that it includes a wait loop which we don't want to 
+put in the fastpath.
+>
+> And it is a quick path.
+>
+>>> We are trying to make the fastpath as simple as possible as it may be
+>>> inlined. The complexity of the queue spinlock is in the slowpath.
+>> Sure, but then it shouldn't be called slowpath anymore as it is not
+>> slow. It is a combination of fast path (the potential chance of
+>> grabbing the lock and setting the pending lock) and the real slow
+>> path (the queuing). Perhaps it should be called 'queue_spinlock_complex' ?
+>>
+> I forgot to mention - that was the crux of my comments - just change
+> the slowpath to complex name at that point to better reflect what
+> it does.
 
-> 
-> Signed-off-by: Waiman Long <Waiman.Long@hp.com>
-> Signed-off-by: Peter Zijlstra <peterz@infradead.org>
-> ---
->  include/asm-generic/qspinlock_types.h |    2 +
->  kernel/locking/qspinlock.c            |   58 +++++++++++++++++++++-------------
->  2 files changed, 38 insertions(+), 22 deletions(-)
-> 
-> --- a/include/asm-generic/qspinlock_types.h
-> +++ b/include/asm-generic/qspinlock_types.h
-> @@ -61,6 +61,8 @@ typedef struct qspinlock {
->  #define _Q_TAIL_CPU_BITS	(32 - _Q_TAIL_CPU_OFFSET)
->  #define _Q_TAIL_CPU_MASK	_Q_SET_MASK(TAIL_CPU)
->  
-> +#define _Q_TAIL_MASK		(_Q_TAIL_IDX_MASK | _Q_TAIL_CPU_MASK)
-> +
->  #define _Q_LOCKED_VAL		(1U << _Q_LOCKED_OFFSET)
->  #define _Q_PENDING_VAL		(1U << _Q_PENDING_OFFSET)
->  
-> --- a/kernel/locking/qspinlock.c
-> +++ b/kernel/locking/qspinlock.c
-> @@ -86,6 +86,31 @@ static inline struct mcs_spinlock *decod
->  #define _Q_LOCKED_PENDING_MASK	(_Q_LOCKED_MASK | _Q_PENDING_MASK)
->  
->  /**
-> + * xchg_tail - Put in the new queue tail code word & retrieve previous one
-> + * @lock : Pointer to queue spinlock structure
-> + * @tail : The new queue tail code word
-> + * Return: The previous queue tail code word
-> + *
-> + * xchg(lock, tail)
-> + *
-> + * p,*,* -> n,*,* ; prev = xchg(lock, node)
-> + */
-> +static __always_inline u32 xchg_tail(struct qspinlock *lock, u32 tail)
-> +{
-> +	u32 old, new, val = atomic_read(&lock->val);
-> +
-> +	for (;;) {
-> +		new = (val & _Q_LOCKED_PENDING_MASK) | tail;
-> +		old = atomic_cmpxchg(&lock->val, val, new);
-> +		if (old == val)
-> +			break;
-> +
-> +		val = old;
-> +	}
-> +	return old;
-> +}
-> +
-> +/**
->   * queue_spin_lock_slowpath - acquire the queue spinlock
->   * @lock: Pointer to queue spinlock structure
->   * @val: Current value of the queue spinlock 32-bit word
-> @@ -182,36 +207,25 @@ void queue_spin_lock_slowpath(struct qsp
->  	node->next = NULL;
->  
->  	/*
-> -	 * we already touched the queueing cacheline; don't bother with pending
-> -	 * stuff.
-> -	 *
-> -	 * trylock || xchg(lock, node)
-> -	 *
-> -	 * 0,0,0 -> 0,0,1 ; trylock
-> -	 * p,y,x -> n,y,x ; prev = xchg(lock, node)
-> +	 * We touched a (possibly) cold cacheline in the per-cpu queue node;
-> +	 * attempt the trylock once more in the hope someone let go while we
-> +	 * weren't watching.
->  	 */
-> -	for (;;) {
-> -		new = _Q_LOCKED_VAL;
-> -		if (val)
-> -			new = tail | (val & _Q_LOCKED_PENDING_MASK);
-> -
-> -		old = atomic_cmpxchg(&lock->val, val, new);
-> -		if (old == val)
-> -			break;
-> -
-> -		val = old;
-> -	}
-> +	if (queue_spin_trylock(lock))
-> +		goto release;
+Actually in my v11 patch, I subdivided the slowpath into a slowpath for 
+the pending code and slowerpath for actual queuing. Perhaps, we could 
+use quickpath and slowpath instead. Anyway, it is a minor detail that we 
+can discuss after the core code get merged.
 
-So now are three of them? One in queue_spin_lock, then at the start
-of this function when checking for the pending bit, and the once more
-here. And that is because the local cache line might be cold for the
-'mcs_index' struct?
-
-That all seems to be a bit of experimental. But then we are already
-in the slowpath so we could as well do:
-
-for (i = 0; i < 10; i++)
-	if (queue_spin_trylock(lock))
-		goto release;
-
-And would have the same effect.
-
-
->  
->  	/*
-> -	 * we won the trylock; forget about queueing.
-> +	 * we already touched the queueing cacheline; don't bother with pending
-> +	 * stuff.
-
-I guess we could also just erase the pending bit if we wanted too. The
-optimistic spinning will still hit go to the queue label as lock->val will
-have the tail value.
-
-> +	 *
-> +	 * p,*,* -> n,*,*
->  	 */
-> -	if (new == _Q_LOCKED_VAL)
-> -		goto release;
-> +	old = xchg_tail(lock, tail);
->  
->  	/*
->  	 * if there was a previous node; link it and wait.
->  	 */
-> -	if (old & ~_Q_LOCKED_PENDING_MASK) {
-> +	if (old & _Q_TAIL_MASK) {
->  		prev = decode_tail(old);
->  		ACCESS_ONCE(prev->next) = node;
->  
-> 
-> 
+-Longman
