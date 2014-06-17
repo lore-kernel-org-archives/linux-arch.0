@@ -1,34 +1,157 @@
-From: "Mr. Takuya Suzuki Yuki" <nike.idawati@bpjs-kesehatan.go.id>
-Subject: Business Opportunity!!
-Date: Tue, 17 Jun 2014 07:27:03 +0100
-Message-ID: <20140617062811.D83452FF2F4__31118.7288178646$1402987045$gmane$org@mtasvr1.telkomsigma.com>
-Reply-To: suzukiyuki4577@yahoo.co.jp
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [PATCH 06/24] Allow for some signal structures to be the same
+ between a 32bit ABI and the 64bit ABI.
+Date: Tue, 17 Jun 2014 16:43:10 +0100
+Message-ID: <20140617154310.GD21752@arm.com>
+References: <1400914939-9708-1-git-send-email-apinski@cavium.com>
+ <1400914939-9708-7-git-send-email-apinski@cavium.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7BIT
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from [118.97.213.144] ([118.97.213.144]:37880 "EHLO
-	MTARelay-AS-001.localdomain" rhost-flags-FAIL-FAIL-OK-FAIL)
-	by vger.kernel.org with ESMTP id S1751280AbaFQGhI convert rfc822-to-8bit
-	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 17 Jun 2014 02:37:08 -0400
-Content-Description: Mail message body
+Received: from fw-tnat.austin.arm.com ([217.140.110.23]:25146 "EHLO
+	collaborate-mta1.arm.com" rhost-flags-OK-OK-OK-FAIL)
+	by vger.kernel.org with ESMTP id S932989AbaFQPnY (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Tue, 17 Jun 2014 11:43:24 -0400
+Content-Disposition: inline
+In-Reply-To: <1400914939-9708-7-git-send-email-apinski@cavium.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Recipients <nike.idawati@bpjs-kesehatan.go.id>
+To: Andrew Pinski <apinski@cavium.com>
+Cc: linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-Hello,
+On Sat, May 24, 2014 at 12:02:01AM -0700, Andrew Pinski wrote:
+> diff --git a/include/uapi/asm-generic/siginfo.h b/include/uapi/asm-generic/siginfo.h
+> index ba5be7f..553aca9 100644
+> --- a/include/uapi/asm-generic/siginfo.h
+> +++ b/include/uapi/asm-generic/siginfo.h
+> @@ -4,9 +4,17 @@
+>  #include <linux/compiler.h>
+>  #include <linux/types.h>
+>  
+> +#ifndef __SIGINFO_VOIDPOINTER
+> +#define __SIGINFO_VOIDPOINTER(field) void __user *field
+> +#endif
 
-I have a Business Proposal for you worth the sum of $40,000,000.00 USD
-Please reply for more info. Email: suzukiyuki4577@yahoo.co.jp
+Nitpick: maybe a shorter name like __SIGINFO_VOIDPTR (or VOID_PTR).
 
-Regards,
-Mr. Takuya Suzuki Yuki
-____________________________________________________________________________________
+> +
+> +#ifndef __SIGINFO_BAND
+> +#define __SIGINFO_BAND(field) __ARCH_SI_BAND_T field
+> +#endif
+> +
+>  typedef union sigval {
+>  	int sival_int;
+> -	void __user *sival_ptr;
+> +	__SIGINFO_VOIDPOINTER(sival_ptr);
+>  } sigval_t;
 
-"Zero Problem 2014, Cakupan Semesta 2019"
+I'll discuss this further in a subsequent patch. I assume here you'll
+enforce the alignment via the __SIGINFO_VOIDPOINTER definition. The
+alternative would be another macro for structure attributes.
 
-Mari kita bergotong royong sukseskan Sistem Jaminan Sosial Kesehatan, demi tercapainya Jaminan Kesehatan untuk Semesta Bagi Seluruh Rakyat Indonesia Tahun 
-2019
+>  /*
+> @@ -86,7 +94,7 @@ typedef struct siginfo {
+>  
+>  		/* SIGILL, SIGFPE, SIGSEGV, SIGBUS */
+>  		struct {
+> -			void __user *_addr; /* faulting insn/memory ref. */
+> +			__SIGINFO_VOIDPOINTER(_addr); /* faulting insn/memory ref. */
+>  #ifdef __ARCH_SI_TRAPNO
+>  			int _trapno;	/* TRAP # which caused the signal */
+>  #endif
+> @@ -95,13 +103,13 @@ typedef struct siginfo {
+>  
+>  		/* SIGPOLL */
+>  		struct {
+> -			__ARCH_SI_BAND_T _band;	/* POLL_IN, POLL_OUT, POLL_MSG */
+> +			__SIGINFO_BAND(_band);	/* POLL_IN, POLL_OUT, POLL_MSG */
+>  			int _fd;
+>  		} _sigpoll;
+>  
+>  		/* SIGSYS */
+>  		struct {
+> -			void __user *_call_addr; /* calling user insn */
+> +			__SIGINFO_VOIDPOINTER(_call_addr); /* calling user insn */
+>  			int _syscall;	/* triggering system call number */
+>  			unsigned int _arch;	/* AUDIT_ARCH_* of syscall */
+>  		} _sigsys;
+> @@ -283,6 +291,7 @@ typedef struct sigevent {
+>  		int _pad[SIGEV_PAD_SIZE];
+>  		 int _tid;
+>  
+> +		/* Note these two are handled only in userspace */
+>  		struct {
+>  			void (*_function)(sigval_t);
+>  			void *_attribute;	/* really pthread_attr_t */
 
-HALLO BPJS KESEHATAN 500-400
+SIGEV_PAD_SIZE would be the same with ILP32 because sizeof(sigval_t)
+would not change. So I think that's fine.
+
+> diff --git a/include/uapi/asm-generic/signal.h b/include/uapi/asm-generic/signal.h
+> index 9df61f1..c4ce238 100644
+> --- a/include/uapi/asm-generic/signal.h
+> +++ b/include/uapi/asm-generic/signal.h
+> @@ -4,7 +4,9 @@
+>  #include <linux/types.h>
+>  
+>  #define _NSIG		64
+> +#ifndef _NSIG_BPW
+>  #define _NSIG_BPW	__BITS_PER_LONG
+> +#endif
+>  #define _NSIG_WORDS	(_NSIG / _NSIG_BPW)
+>  
+>  #define SIGHUP		 1
+> @@ -83,9 +85,13 @@
+>  #define MINSIGSTKSZ	2048
+>  #define SIGSTKSZ	8192
+>  
+> +#ifndef __SIGSET_INNER_TYPE
+> +#define __SIGSET_INNER_TYPE unsigned long
+> +#endif
+> +
+>  #ifndef __ASSEMBLY__
+>  typedef struct {
+> -	unsigned long sig[_NSIG_WORDS];
+> +	__SIGSET_INNER_TYPE sig[_NSIG_WORDS];
+>  } sigset_t;
+
+Would the default not work? The sigset_t structure ends up with the same
+number of bits between LP64 and ILP32, whether you patch it or not.
+
+>  
+>  /* not actually used, but required for linux/syscalls.h */
+> @@ -98,11 +104,24 @@ typedef unsigned long old_sigset_t;
+>  #endif
+>  
+>  #ifndef __KERNEL__
+> +
+> +#ifndef __SIGACTION_HANDLER
+> +#define __SIGACTION_HANDLER(field)	__sighandler_t field
+> +#endif
+> +
+> +#ifndef __SIGACTION_FLAGS
+> +#define __SIGACTION_FLAGS(field)	unsigned long field
+> +#endif
+> +
+> +#ifndef __SIGACTION_RESTORER
+> +#define __SIGACTION_RESTORER(field)	__sigrestore_t field
+> +#endif
+> +
+>  struct sigaction {
+> -	__sighandler_t sa_handler;
+> -	unsigned long sa_flags;
+> +	__SIGACTION_HANDLER(sa_handler);
+> +	__SIGACTION_FLAGS(sa_flags);
+>  #ifdef SA_RESTORER
+> -	__sigrestore_t sa_restorer;
+> +	__SIGACTION_RESTORER(sa_restorer);
+>  #endif
+>  	sigset_t sa_mask;		/* mask last for extensibility */
+>  };
+
+Same comment here about the need for attributes (to clarify in
+subsequent patch).
+
+-- 
+Catalin
