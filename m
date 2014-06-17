@@ -1,64 +1,100 @@
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH 08/24] Allow a 32bit ABI to use the naming of the 64bit
- ABI syscalls to avoid confusion of not splitting the registers.
-Date: Tue, 17 Jun 2014 17:22:15 +0100
-Message-ID: <20140617162215.GF21752@arm.com>
-References: <1400914939-9708-1-git-send-email-apinski@cavium.com>
- <1400914939-9708-9-git-send-email-apinski@cavium.com>
+From: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
+Subject: Re: [PATCH 01/11] qspinlock: A simple generic 4-byte queue spinlock
+Date: Tue, 17 Jun 2014 16:03:29 -0400
+Message-ID: <20140617200329.GA27400@laptop.dumpdata.com>
+References: <20140615124657.264658593@chello.nl>
+	<20140615130152.912524881@chello.nl>
+	<20140616204918.GA26140@laptop.dumpdata.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+Return-path: <virtualization-bounces@lists.linux-foundation.org>
 Content-Disposition: inline
-In-Reply-To: <1400914939-9708-9-git-send-email-apinski@cavium.com>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: Andrew Pinski <apinski@cavium.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org
+In-Reply-To: <20140616204918.GA26140@laptop.dumpdata.com>
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
+List-Post: <mailto:virtualization@lists.linux-foundation.org>
+List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
+Sender: virtualization-bounces@lists.linux-foundation.org
+Errors-To: virtualization-bounces@lists.linux-foundation.org
+To: Peter Zijlstra <a.p.zijlstra@chello.nl>
+Cc: Waiman.Long@hp.com, linux-arch@vger.kernel.org, riel@redhat.com, gleb@redhat.com, kvm@vger.kernel.org, boris.ostrovsky@oracle.com, scott.norton@hp.com, raghavendra.kt@linux.vnet.ibm.com, paolo.bonzini@gmail.com, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, Peter Zijlstra <peterz@infradead.org>, chegu_vinod@hp.com, david.vrabel@citrix.com, oleg@redhat.com, xen-devel@lists.xenproject.org, tglx@linutronix.de, paulmck@linux.vnet.ibm.com, torvalds@linux-foundation.org, mingo@kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Sat, May 24, 2014 at 12:02:03AM -0700, Andrew Pinski wrote:
-> In the ARM64 ILP32 case, we want to say the syscalls that normally
-> would pass 64bit as two arguments are now passing as one so want to
-> use the 64bit naming scheme.
-> 
-> Signed-off-by: Andrew Pinski <apinski@cavium.com>
-> ---
->  include/uapi/asm-generic/unistd.h |    5 ++++-
->  1 files changed, 4 insertions(+), 1 deletions(-)
-> 
-> diff --git a/include/uapi/asm-generic/unistd.h b/include/uapi/asm-generic/unistd.h
-> index 3336406..0648659 100644
-> --- a/include/uapi/asm-generic/unistd.h
-> +++ b/include/uapi/asm-generic/unistd.h
-> @@ -875,8 +875,11 @@ __SYSCALL(__NR_fork, sys_ni_syscall)
->   * they take different names.
->   * Here we map the numbers so that both versions
->   * use the same syscall table layout.
-> + * For 32bit abis where 64bit can be passed via one
-> + * register, use the same naming as the 64bit ones
-> + * as they will only have a 64 bit off_t.
->   */
-> -#if __BITS_PER_LONG == 64 && !defined(__SYSCALL_COMPAT)
-> +#if (__BITS_PER_LONG == 64 && !defined(__SYSCALL_COMPAT)) || defined(__SYSCALL_NONCOMPAT)
->  #define __NR_fcntl __NR3264_fcntl
->  #define __NR_statfs __NR3264_statfs
->  #define __NR_fstatfs __NR3264_fstatfs
+> > +			new = tail | (val & _Q_LOCKED_MASK);
+> > +
+> > +		old = atomic_cmpxchg(&lock->val, val, new);
+> > +		if (old == val)
+> > +			break;
+> > +
+> > +		val = old;
+> > +	}
+> > +
+> > +	/*
+> > +	 * we won the trylock; forget about queueing.
+> > +	 */
+> > +	if (new == _Q_LOCKED_VAL)
+> > +		goto release;
+> > +
+> > +	/*
+> > +	 * if there was a previous node; link it and wait.
+> > +	 */
+> > +	if (old & ~_Q_LOCKED_MASK) {
+> > +		prev = decode_tail(old);
+> > +		ACCESS_ONCE(prev->next) = node;
+> > +
+> > +		arch_mcs_spin_lock_contended(&node->locked);
 
-I can see why you are defining this. For compat, we don't expose
-__SYSCALL_COMPAT to user. But this to work with ILP32 UAPI headers we
-would have to define __SYSCALL_NONCOMPAT in the arm64 uapi unistd.h if
-!__LP64__. I think we should use some naming closer to what we expose
-via UAPI already (on other architectures) like
-__ARCH_WANT_64BIT_SYSCALLS (or maybe we could reuse
-__ARCH_WANT_SYSCALL_OFF_T).
+Could you add a comment here:
 
--- 
-Catalin
+/* We are spinning forever until the previous node updates locked - which
+it does once the it has updated lock->val with our tail number. */
+
+> > +	}
+> > +
+> > +	/*
+> > +	 * we're at the head of the waitqueue, wait for the owner to go away.
+> > +	 *
+> > +	 * *,x -> *,0
+> > +	 */
+> > +	while ((val = atomic_read(&lock->val)) & _Q_LOCKED_MASK)
+> > +		cpu_relax();
+> > +
+> > +	/*
+> > +	 * claim the lock:
+> > +	 *
+> > +	 * n,0 -> 0,1 : lock, uncontended
+> > +	 * *,0 -> *,1 : lock, contended
+> > +	 */
+> > +	for (;;) {
+> > +		new = _Q_LOCKED_VAL;
+> > +		if (val != tail)
+> > +			new |= val;
+> 
+..snip..
+> 
+> Could you help a bit in explaining it in English please?
+
+After looking at the assembler code I finally figured out how
+we can get here. And the 'contended' part threw me off. Somehow
+I imagined there are two more more CPUs stampeding here and 
+trying to update the lock->val. But in reality the other CPUs
+are stuck in the arch_mcs_spin_lock_contended spinning on their
+local value.
+
+Perhaps you could add this comment.
+
+/* Once queue_spin_unlock is called (which _subtracts_ _Q_LOCKED_VAL from
+the lock->val and still preserving the tail data), the winner gets to
+claim the ticket. Since we still need the other CPUs to continue and
+preserve the strict ordering in which they setup node->next, we:
+ 1) update lock->val to the tail value (so tail CPU and its index) with
+    _Q_LOCKED_VAL.
+ 2). Once we are done, we poke the other CPU (the one that linked to
+    us) by writting to node->locked (below) so they can make progress and
+    loop on lock->val changing from _Q_LOCKED_MASK to zero).
+
+*/
