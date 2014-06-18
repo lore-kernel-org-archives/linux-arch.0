@@ -1,62 +1,82 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:51298 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S966020AbaFRMFU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 18 Jun 2014 08:05:20 -0400
-Message-ID: <53A1804C.4070304@redhat.com>
-Date: Wed, 18 Jun 2014 14:04:28 +0200
-From: Paolo Bonzini <pbonzini@redhat.com>
+Received: from userp1040.oracle.com ([156.151.31.81]:47137 "EHLO
+	userp1040.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S966349AbaFRNiG (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 18 Jun 2014 09:38:06 -0400
+Date: Wed, 18 Jun 2014 09:36:56 -0400
+From: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
+Subject: Re: [PATCH 03/11] qspinlock: Add pending bit
+Message-ID: <20140618133656.GA4729@laptop.dumpdata.com>
+References: <20140615124657.264658593@chello.nl>
+ <20140615130153.196728583@chello.nl>
+ <20140617203615.GA29634@laptop.dumpdata.com>
+ <53A1782C.7040400@redhat.com>
 MIME-Version: 1.0
-Subject: Re: [PATCH 10/11] qspinlock: Paravirt support
-References: <20140615124657.264658593@chello.nl> <20140615130154.213923590@chello.nl>
-In-Reply-To: <20140615130154.213923590@chello.nl>
-Content-Type: text/plain; charset=UTF-8; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <53A1782C.7040400@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <a.p.zijlstra@chello.nl>, Waiman.Long@hp.com, tglx@linutronix.de, mingo@kernel.org
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, paolo.bonzini@gmail.com, konrad.wilk@oracle.com, boris.ostrovsky@oracle.com, paulmck@linux.vnet.ibm.com, riel@redhat.com, torvalds@linux-foundation.org, raghavendra.kt@linux.vnet.ibm.com, david.vrabel@citrix.com, oleg@redhat.com, gleb@redhat.com, scott.norton@hp.com, chegu_vinod@hp.com, Peter Zijlstra <peterz@infradead.org>
-Message-ID: <20140618120428.Dk9bVCApbwKCNZxezpTVuj5wOZ2qaWFuP28l89hqXDM@z>
+To: Paolo Bonzini <pbonzini@redhat.com>
+Cc: Peter Zijlstra <a.p.zijlstra@chello.nl>, Waiman.Long@hp.com, tglx@linutronix.de, mingo@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, paolo.bonzini@gmail.com, boris.ostrovsky@oracle.com, paulmck@linux.vnet.ibm.com, riel@redhat.com, torvalds@linux-foundation.org, raghavendra.kt@linux.vnet.ibm.com, david.vrabel@citrix.com, oleg@redhat.com, gleb@redhat.com, scott.norton@hp.com, chegu_vinod@hp.com, Peter Zijlstra <peterz@infradead.org>
+Message-ID: <20140618133656.vg29F8tBtLEqX-Am_mF77G2abLNScvJ1cxZQlwqJynY@z>
 
-Il 15/06/2014 14:47, Peter Zijlstra ha scritto:
->
->
->  #if !defined(CONFIG_X86_OOSTORE) && !defined(CONFIG_X86_PPRO_FENCE)
->
-> -#define	queue_spin_unlock queue_spin_unlock
->  /**
->   * queue_spin_unlock - release a queue spinlock
->   * @lock : Pointer to queue spinlock structure
->   *
->   * An effective smp_store_release() on the least-significant byte.
->   */
-> -static inline void queue_spin_unlock(struct qspinlock *lock)
-> +static inline void native_queue_unlock(struct qspinlock *lock)
->  {
->  	barrier();
->  	ACCESS_ONCE(*(u8 *)lock) = 0;
->  }
->
-> +#else
+On Wed, Jun 18, 2014 at 01:29:48PM +0200, Paolo Bonzini wrote:
+> Il 17/06/2014 22:36, Konrad Rzeszutek Wilk ha scritto:
+> >+	/* One more attempt - but if we fail mark it as pending. */
+> >+	if (val == _Q_LOCKED_VAL) {
+> >+		new = Q_LOCKED_VAL |_Q_PENDING_VAL;
+> >+
+> >+		old = atomic_cmpxchg(&lock->val, val, new);
+> >+		if (old == _Q_LOCKED_VAL) /* YEEY! */
+> >+			return;
+> >+		val = old;
+> >+	}
+> 
+> Note that Peter's code is in a for(;;) loop:
+> 
+> 
+> +	for (;;) {
+> +		/*
+> +		 * If we observe any contention; queue.
+> +		 */
+> +		if (val & ~_Q_LOCKED_MASK)
+> +			goto queue;
 > +
-> +static inline void native_queue_unlock(struct qspinlock *lock)
-> +{
-> +	atomic_dec(&lock->val);
-> +}
+> +		new = _Q_LOCKED_VAL;
+> +		if (val == new)
+> +			new |= _Q_PENDING_VAL;
 > +
->  #endif /* !CONFIG_X86_OOSTORE && !CONFIG_X86_PPRO_FENCE */
-
-
-Should be (part of) an earlier patch?  Also, does it get wrong if 
-(CONFIG_X86_OOSTORE || CONFIG_X86_PPRO_FENCE) && paravirt patches the 
-unlock to a single movb?  Of course the paravirt spinlocks could simply 
-depend on !CONFIG_X86_OOSTORE && !CONFIG_X86_PPRO_FENCE.
-
+> +		old = atomic_cmpxchg(&lock->val, val, new);
+> +		if (old == val)
+> +			break;
 > +
-> +#define INVALID_HEAD	-1
-> +#define NO_HEAD		nr_cpu_ids
+> +		val = old;
+> +	}
 > +
+> +	/*
+> +	 * we won the trylock
+> +	 */
+> +	if (new == _Q_LOCKED_VAL)
+> +		return;
+> 
+> So what you'd have is basically:
+> 
+> 	/*
+> 	 * One more attempt if no one is already in queue.  Perhaps
+> 	 * they have unlocked the spinlock already.
+> 	 */
+> 	if (val == _Q_LOCKED_VAL && atomic_read(&lock->val) == 0) {
+> 		old = atomic_cmpxchg(&lock->val, 0, _Q_LOCKED_VAL);
+> 		if (old == 0) /* YEEY! */
+> 			return;
+> 		val = old;
+> 	}
+> 
+> But I agree with Waiman that this is unlikely to trigger often enough. It
+> does have to be handled in the slowpath for correctness, but the most likely
+> path is (0,0,1)->(0,1,1).
 
--2, like Waiman said.
-
-Paolo
+<nods>
+> 
+> Paolo
