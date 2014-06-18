@@ -1,11 +1,11 @@
 From: Maarten Lankhorst <maarten.lankhorst@canonical.com>
-Subject: [REPOST PATCH 3/8] dma-buf: use reservation objects
-Date: Wed, 18 Jun 2014 12:37:05 +0200
-Message-ID: <20140618103705.15728.70914.stgit@patser>
+Subject: [REPOST PATCH 4/8] android: convert sync to fence api, v5
+Date: Wed, 18 Jun 2014 12:37:11 +0200
+Message-ID: <20140618103711.15728.97842.stgit@patser>
 References: <20140618102957.15728.43525.stgit@patser>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
 Return-path: <dri-devel-bounces@lists.freedesktop.org>
 In-Reply-To: <20140618102957.15728.43525.stgit@patser>
 List-Unsubscribe: <http://lists.freedesktop.org/mailman/options/dri-devel>,
@@ -21,264 +21,1726 @@ To: gregkh@linuxfoundation.org
 Cc: linux-arch@vger.kernel.org, thellstrom@vmware.com, linux-kernel@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, ccross@google.com, linux-media@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-VGhpcyBhbGxvd3MgcmVzZXJ2YXRpb24gb2JqZWN0cyB0byBiZSB1c2VkIGluIGRtYS1idWYuIGl0
-J3MgcmVxdWlyZWQKZm9yIGltcGxlbWVudGluZyBwb2xsaW5nIHN1cHBvcnQgb24gdGhlIGZlbmNl
-cyB0aGF0IGJlbG9uZyB0byBhIGRtYS1idWYuCgpTaWduZWQtb2ZmLWJ5OiBNYWFydGVuIExhbmto
-b3JzdCA8bWFhcnRlbi5sYW5raG9yc3RAY2Fub25pY2FsLmNvbT4KQWNrZWQtYnk6IE1hdXJvIENh
-cnZhbGhvIENoZWhhYiA8bS5jaGVoYWJAc2Ftc3VuZy5jb20+ICNkcml2ZXJzL21lZGlhL3Y0bDIt
-Y29yZS8KQWNrZWQtYnk6IFRob21hcyBIZWxsc3Ryb20gPHRoZWxsc3Ryb21Adm13YXJlLmNvbT4g
-I2RyaXZlcnMvZ3B1L2RybS90dG0KU2lnbmVkLW9mZi1ieTogVmluY2VudCBTdGVobMOpIDx2aW5j
-ZW50LnN0ZWhsZUBsYXBvc3RlLm5ldD4gI2RyaXZlcnMvZ3B1L2RybS9hcm1hZGEvCi0tLQogZHJp
-dmVycy9iYXNlL2RtYS1idWYuYyAgICAgICAgICAgICAgICAgICAgICAgICB8ICAgMjIgKysrKysr
-KysrKysrKysrKysrKystLQogZHJpdmVycy9ncHUvZHJtL2FybWFkYS9hcm1hZGFfZ2VtLmMgICAg
-ICAgICAgICB8ICAgIDIgKy0KIGRyaXZlcnMvZ3B1L2RybS9kcm1fcHJpbWUuYyAgICAgICAgICAg
-ICAgICAgICAgfCAgICA4ICsrKysrKystCiBkcml2ZXJzL2dwdS9kcm0vZXh5bm9zL2V4eW5vc19k
-cm1fZG1hYnVmLmMgICAgIHwgICAgMiArLQogZHJpdmVycy9ncHUvZHJtL2k5MTUvaTkxNV9nZW1f
-ZG1hYnVmLmMgICAgICAgICB8ICAgIDMgKystCiBkcml2ZXJzL2dwdS9kcm0vbm91dmVhdS9ub3V2
-ZWF1X2RybS5jICAgICAgICAgIHwgICAgMSArCiBkcml2ZXJzL2dwdS9kcm0vbm91dmVhdS9ub3V2
-ZWF1X2dlbS5oICAgICAgICAgIHwgICAgMSArCiBkcml2ZXJzL2dwdS9kcm0vbm91dmVhdS9ub3V2
-ZWF1X3ByaW1lLmMgICAgICAgIHwgICAgNyArKysrKysrCiBkcml2ZXJzL2dwdS9kcm0vb21hcGRy
-bS9vbWFwX2dlbV9kbWFidWYuYyAgICAgIHwgICAgMiArLQogZHJpdmVycy9ncHUvZHJtL3JhZGVv
-bi9yYWRlb25fZHJ2LmMgICAgICAgICAgICB8ICAgIDIgKysKIGRyaXZlcnMvZ3B1L2RybS9yYWRl
-b24vcmFkZW9uX3ByaW1lLmMgICAgICAgICAgfCAgICA4ICsrKysrKysrCiBkcml2ZXJzL2dwdS9k
-cm0vdGVncmEvZ2VtLmMgICAgICAgICAgICAgICAgICAgIHwgICAgMiArLQogZHJpdmVycy9ncHUv
-ZHJtL3R0bS90dG1fb2JqZWN0LmMgICAgICAgICAgICAgICB8ICAgIDIgKy0KIGRyaXZlcnMvbWVk
-aWEvdjRsMi1jb3JlL3ZpZGVvYnVmMi1kbWEtY29udGlnLmMgfCAgICAyICstCiBkcml2ZXJzL3N0
-YWdpbmcvYW5kcm9pZC9pb24vaW9uLmMgICAgICAgICAgICAgIHwgICAgMyArKy0KIGluY2x1ZGUv
-ZHJtL2RybVAuaCAgICAgICAgICAgICAgICAgICAgICAgICAgICAgfCAgICAzICsrKwogaW5jbHVk
-ZS9saW51eC9kbWEtYnVmLmggICAgICAgICAgICAgICAgICAgICAgICB8ICAgIDkgKysrKysrLS0t
-CiAxNyBmaWxlcyBjaGFuZ2VkLCA2NSBpbnNlcnRpb25zKCspLCAxNCBkZWxldGlvbnMoLSkKCmRp
-ZmYgLS1naXQgYS9kcml2ZXJzL2Jhc2UvZG1hLWJ1Zi5jIGIvZHJpdmVycy9iYXNlL2RtYS1idWYu
-YwppbmRleCA4NDBjN2ZhODA5ODMuLmNkNDBjYTIyOTExZiAxMDA2NDQKLS0tIGEvZHJpdmVycy9i
-YXNlL2RtYS1idWYuYworKysgYi9kcml2ZXJzL2Jhc2UvZG1hLWJ1Zi5jCkBAIC0yNSwxMCArMjUs
-MTIgQEAKICNpbmNsdWRlIDxsaW51eC9mcy5oPgogI2luY2x1ZGUgPGxpbnV4L3NsYWIuaD4KICNp
-bmNsdWRlIDxsaW51eC9kbWEtYnVmLmg+CisjaW5jbHVkZSA8bGludXgvZmVuY2UuaD4KICNpbmNs
-dWRlIDxsaW51eC9hbm9uX2lub2Rlcy5oPgogI2luY2x1ZGUgPGxpbnV4L2V4cG9ydC5oPgogI2lu
-Y2x1ZGUgPGxpbnV4L2RlYnVnZnMuaD4KICNpbmNsdWRlIDxsaW51eC9zZXFfZmlsZS5oPgorI2lu
-Y2x1ZGUgPGxpbnV4L3Jlc2VydmF0aW9uLmg+CiAKIHN0YXRpYyBpbmxpbmUgaW50IGlzX2RtYV9i
-dWZfZmlsZShzdHJ1Y3QgZmlsZSAqKTsKIApAQCAtNTYsNiArNTgsOSBAQCBzdGF0aWMgaW50IGRt
-YV9idWZfcmVsZWFzZShzdHJ1Y3QgaW5vZGUgKmlub2RlLCBzdHJ1Y3QgZmlsZSAqZmlsZSkKIAls
-aXN0X2RlbCgmZG1hYnVmLT5saXN0X25vZGUpOwogCW11dGV4X3VubG9jaygmZGJfbGlzdC5sb2Nr
-KTsKIAorCWlmIChkbWFidWYtPnJlc3YgPT0gKHN0cnVjdCByZXNlcnZhdGlvbl9vYmplY3QgKikm
-ZG1hYnVmWzFdKQorCQlyZXNlcnZhdGlvbl9vYmplY3RfZmluaShkbWFidWYtPnJlc3YpOworCiAJ
-a2ZyZWUoZG1hYnVmKTsKIAlyZXR1cm4gMDsKIH0KQEAgLTEyOCw2ICsxMzMsNyBAQCBzdGF0aWMg
-aW5saW5lIGludCBpc19kbWFfYnVmX2ZpbGUoc3RydWN0IGZpbGUgKmZpbGUpCiAgKiBAc2l6ZToJ
-W2luXQlTaXplIG9mIHRoZSBidWZmZXIKICAqIEBmbGFnczoJW2luXQltb2RlIGZsYWdzIGZvciB0
-aGUgZmlsZS4KICAqIEBleHBfbmFtZToJW2luXQluYW1lIG9mIHRoZSBleHBvcnRpbmcgbW9kdWxl
-IC0gdXNlZnVsIGZvciBkZWJ1Z2dpbmcuCisgKiBAcmVzdjoJW2luXQlyZXNlcnZhdGlvbi1vYmpl
-Y3QsIE5VTEwgdG8gYWxsb2NhdGUgZGVmYXVsdCBvbmUuCiAgKgogICogUmV0dXJucywgb24gc3Vj
-Y2VzcywgYSBuZXdseSBjcmVhdGVkIGRtYV9idWYgb2JqZWN0LCB3aGljaCB3cmFwcyB0aGUKICAq
-IHN1cHBsaWVkIHByaXZhdGUgZGF0YSBhbmQgb3BlcmF0aW9ucyBmb3IgZG1hX2J1Zl9vcHMuIE9u
-IGVpdGhlciBtaXNzaW5nCkBAIC0xMzUsMTAgKzE0MSwxNyBAQCBzdGF0aWMgaW5saW5lIGludCBp
-c19kbWFfYnVmX2ZpbGUoc3RydWN0IGZpbGUgKmZpbGUpCiAgKgogICovCiBzdHJ1Y3QgZG1hX2J1
-ZiAqZG1hX2J1Zl9leHBvcnRfbmFtZWQodm9pZCAqcHJpdiwgY29uc3Qgc3RydWN0IGRtYV9idWZf
-b3BzICpvcHMsCi0JCQkJc2l6ZV90IHNpemUsIGludCBmbGFncywgY29uc3QgY2hhciAqZXhwX25h
-bWUpCisJCQkJc2l6ZV90IHNpemUsIGludCBmbGFncywgY29uc3QgY2hhciAqZXhwX25hbWUsCisJ
-CQkJc3RydWN0IHJlc2VydmF0aW9uX29iamVjdCAqcmVzdikKIHsKIAlzdHJ1Y3QgZG1hX2J1ZiAq
-ZG1hYnVmOwogCXN0cnVjdCBmaWxlICpmaWxlOworCXNpemVfdCBhbGxvY19zaXplID0gc2l6ZW9m
-KHN0cnVjdCBkbWFfYnVmKTsKKwlpZiAoIXJlc3YpCisJCWFsbG9jX3NpemUgKz0gc2l6ZW9mKHN0
-cnVjdCByZXNlcnZhdGlvbl9vYmplY3QpOworCWVsc2UKKwkJLyogcHJldmVudCAmZG1hX2J1Zlsx
-XSA9PSBkbWFfYnVmLT5yZXN2ICovCisJCWFsbG9jX3NpemUgKz0gMTsKIAogCWlmIChXQVJOX09O
-KCFwcml2IHx8ICFvcHMKIAkJCSAgfHwgIW9wcy0+bWFwX2RtYV9idWYKQEAgLTE1MCw3ICsxNjMs
-NyBAQCBzdHJ1Y3QgZG1hX2J1ZiAqZG1hX2J1Zl9leHBvcnRfbmFtZWQodm9pZCAqcHJpdiwgY29u
-c3Qgc3RydWN0IGRtYV9idWZfb3BzICpvcHMsCiAJCXJldHVybiBFUlJfUFRSKC1FSU5WQUwpOwog
-CX0KIAotCWRtYWJ1ZiA9IGt6YWxsb2Moc2l6ZW9mKHN0cnVjdCBkbWFfYnVmKSwgR0ZQX0tFUk5F
-TCk7CisJZG1hYnVmID0ga3phbGxvYyhhbGxvY19zaXplLCBHRlBfS0VSTkVMKTsKIAlpZiAoZG1h
-YnVmID09IE5VTEwpCiAJCXJldHVybiBFUlJfUFRSKC1FTk9NRU0pOwogCkBAIC0xNTgsNiArMTcx
-LDExIEBAIHN0cnVjdCBkbWFfYnVmICpkbWFfYnVmX2V4cG9ydF9uYW1lZCh2b2lkICpwcml2LCBj
-b25zdCBzdHJ1Y3QgZG1hX2J1Zl9vcHMgKm9wcywKIAlkbWFidWYtPm9wcyA9IG9wczsKIAlkbWFi
-dWYtPnNpemUgPSBzaXplOwogCWRtYWJ1Zi0+ZXhwX25hbWUgPSBleHBfbmFtZTsKKwlpZiAoIXJl
-c3YpIHsKKwkJcmVzdiA9IChzdHJ1Y3QgcmVzZXJ2YXRpb25fb2JqZWN0ICopJmRtYWJ1ZlsxXTsK
-KwkJcmVzZXJ2YXRpb25fb2JqZWN0X2luaXQocmVzdik7CisJfQorCWRtYWJ1Zi0+cmVzdiA9IHJl
-c3Y7CiAKIAlmaWxlID0gYW5vbl9pbm9kZV9nZXRmaWxlKCJkbWFidWYiLCAmZG1hX2J1Zl9mb3Bz
-LCBkbWFidWYsIGZsYWdzKTsKIAlpZiAoSVNfRVJSKGZpbGUpKSB7CmRpZmYgLS1naXQgYS9kcml2
-ZXJzL2dwdS9kcm0vYXJtYWRhL2FybWFkYV9nZW0uYyBiL2RyaXZlcnMvZ3B1L2RybS9hcm1hZGEv
-YXJtYWRhX2dlbS5jCmluZGV4IGJiOWI2NDJkODQ4NS4uNzQ5NmY1NTYxMWE1IDEwMDY0NAotLS0g
-YS9kcml2ZXJzL2dwdS9kcm0vYXJtYWRhL2FybWFkYV9nZW0uYworKysgYi9kcml2ZXJzL2dwdS9k
-cm0vYXJtYWRhL2FybWFkYV9nZW0uYwpAQCAtNTM5LDcgKzUzOSw3IEBAIGFybWFkYV9nZW1fcHJp
-bWVfZXhwb3J0KHN0cnVjdCBkcm1fZGV2aWNlICpkZXYsIHN0cnVjdCBkcm1fZ2VtX29iamVjdCAq
-b2JqLAogCWludCBmbGFncykKIHsKIAlyZXR1cm4gZG1hX2J1Zl9leHBvcnQob2JqLCAmYXJtYWRh
-X2dlbV9wcmltZV9kbWFidWZfb3BzLCBvYmotPnNpemUsCi0JCQkgICAgICBPX1JEV1IpOworCQkJ
-ICAgICAgT19SRFdSLCBOVUxMKTsKIH0KIAogc3RydWN0IGRybV9nZW1fb2JqZWN0ICoKZGlmZiAt
-LWdpdCBhL2RyaXZlcnMvZ3B1L2RybS9kcm1fcHJpbWUuYyBiL2RyaXZlcnMvZ3B1L2RybS9kcm1f
-cHJpbWUuYwppbmRleCAzMDRjYThjYWNiYzQuLjk5ZDU3OGJhZDE3ZSAxMDA2NDQKLS0tIGEvZHJp
-dmVycy9ncHUvZHJtL2RybV9wcmltZS5jCisrKyBiL2RyaXZlcnMvZ3B1L2RybS9kcm1fcHJpbWUu
-YwpAQCAtMzM2LDcgKzMzNiwxMyBAQCBzdGF0aWMgY29uc3Qgc3RydWN0IGRtYV9idWZfb3BzIGRy
-bV9nZW1fcHJpbWVfZG1hYnVmX29wcyA9ICB7CiBzdHJ1Y3QgZG1hX2J1ZiAqZHJtX2dlbV9wcmlt
-ZV9leHBvcnQoc3RydWN0IGRybV9kZXZpY2UgKmRldiwKIAkJCQkgICAgIHN0cnVjdCBkcm1fZ2Vt
-X29iamVjdCAqb2JqLCBpbnQgZmxhZ3MpCiB7Ci0JcmV0dXJuIGRtYV9idWZfZXhwb3J0KG9iaiwg
-JmRybV9nZW1fcHJpbWVfZG1hYnVmX29wcywgb2JqLT5zaXplLCBmbGFncyk7CisJc3RydWN0IHJl
-c2VydmF0aW9uX29iamVjdCAqcm9iaiA9IE5VTEw7CisKKwlpZiAoZGV2LT5kcml2ZXItPmdlbV9w
-cmltZV9yZXNfb2JqKQorCQlyb2JqID0gZGV2LT5kcml2ZXItPmdlbV9wcmltZV9yZXNfb2JqKG9i
-aik7CisKKwlyZXR1cm4gZG1hX2J1Zl9leHBvcnQob2JqLCAmZHJtX2dlbV9wcmltZV9kbWFidWZf
-b3BzLCBvYmotPnNpemUsCisJCQkgICAgICBmbGFncywgcm9iaik7CiB9CiBFWFBPUlRfU1lNQk9M
-KGRybV9nZW1fcHJpbWVfZXhwb3J0KTsKIApkaWZmIC0tZ2l0IGEvZHJpdmVycy9ncHUvZHJtL2V4
-eW5vcy9leHlub3NfZHJtX2RtYWJ1Zi5jIGIvZHJpdmVycy9ncHUvZHJtL2V4eW5vcy9leHlub3Nf
-ZHJtX2RtYWJ1Zi5jCmluZGV4IDJhM2FkMjQyNzZmOC4uNjAxOTJlZDU0NGYwIDEwMDY0NAotLS0g
-YS9kcml2ZXJzL2dwdS9kcm0vZXh5bm9zL2V4eW5vc19kcm1fZG1hYnVmLmMKKysrIGIvZHJpdmVy
-cy9ncHUvZHJtL2V4eW5vcy9leHlub3NfZHJtX2RtYWJ1Zi5jCkBAIC0xODcsNyArMTg3LDcgQEAg
-c3RydWN0IGRtYV9idWYgKmV4eW5vc19kbWFidWZfcHJpbWVfZXhwb3J0KHN0cnVjdCBkcm1fZGV2
-aWNlICpkcm1fZGV2LAogCXN0cnVjdCBleHlub3NfZHJtX2dlbV9vYmogKmV4eW5vc19nZW1fb2Jq
-ID0gdG9fZXh5bm9zX2dlbV9vYmoob2JqKTsKIAogCXJldHVybiBkbWFfYnVmX2V4cG9ydChvYmos
-ICZleHlub3NfZG1hYnVmX29wcywKLQkJCQlleHlub3NfZ2VtX29iai0+YmFzZS5zaXplLCBmbGFn
-cyk7CisJCQkJZXh5bm9zX2dlbV9vYmotPmJhc2Uuc2l6ZSwgZmxhZ3MsIE5VTEwpOwogfQogCiBz
-dHJ1Y3QgZHJtX2dlbV9vYmplY3QgKmV4eW5vc19kbWFidWZfcHJpbWVfaW1wb3J0KHN0cnVjdCBk
-cm1fZGV2aWNlICpkcm1fZGV2LApkaWZmIC0tZ2l0IGEvZHJpdmVycy9ncHUvZHJtL2k5MTUvaTkx
-NV9nZW1fZG1hYnVmLmMgYi9kcml2ZXJzL2dwdS9kcm0vaTkxNS9pOTE1X2dlbV9kbWFidWYuYwpp
-bmRleCA1ODBhYTQyNDQzZWQuLjgyYTFmNGI1Nzc3OCAxMDA2NDQKLS0tIGEvZHJpdmVycy9ncHUv
-ZHJtL2k5MTUvaTkxNV9nZW1fZG1hYnVmLmMKKysrIGIvZHJpdmVycy9ncHUvZHJtL2k5MTUvaTkx
-NV9nZW1fZG1hYnVmLmMKQEAgLTIzNyw3ICsyMzcsOCBAQCBzdHJ1Y3QgZG1hX2J1ZiAqaTkxNV9n
-ZW1fcHJpbWVfZXhwb3J0KHN0cnVjdCBkcm1fZGV2aWNlICpkZXYsCiAJCQlyZXR1cm4gRVJSX1BU
-UihyZXQpOwogCX0KIAotCXJldHVybiBkbWFfYnVmX2V4cG9ydChnZW1fb2JqLCAmaTkxNV9kbWFi
-dWZfb3BzLCBnZW1fb2JqLT5zaXplLCBmbGFncyk7CisJcmV0dXJuIGRtYV9idWZfZXhwb3J0KGdl
-bV9vYmosICZpOTE1X2RtYWJ1Zl9vcHMsIGdlbV9vYmotPnNpemUsIGZsYWdzLAorCQkJICAgICAg
-TlVMTCk7CiB9CiAKIHN0YXRpYyBpbnQgaTkxNV9nZW1fb2JqZWN0X2dldF9wYWdlc19kbWFidWYo
-c3RydWN0IGRybV9pOTE1X2dlbV9vYmplY3QgKm9iaikKZGlmZiAtLWdpdCBhL2RyaXZlcnMvZ3B1
-L2RybS9ub3V2ZWF1L25vdXZlYXVfZHJtLmMgYi9kcml2ZXJzL2dwdS9kcm0vbm91dmVhdS9ub3V2
-ZWF1X2RybS5jCmluZGV4IGRkZDgzNzU2YjlhMi4uZThhZTY4YTlhYWYxIDEwMDY0NAotLS0gYS9k
-cml2ZXJzL2dwdS9kcm0vbm91dmVhdS9ub3V2ZWF1X2RybS5jCisrKyBiL2RyaXZlcnMvZ3B1L2Ry
-bS9ub3V2ZWF1L25vdXZlYXVfZHJtLmMKQEAgLTg0NCw2ICs4NDQsNyBAQCBkcml2ZXIgPSB7CiAJ
-LmdlbV9wcmltZV9leHBvcnQgPSBkcm1fZ2VtX3ByaW1lX2V4cG9ydCwKIAkuZ2VtX3ByaW1lX2lt
-cG9ydCA9IGRybV9nZW1fcHJpbWVfaW1wb3J0LAogCS5nZW1fcHJpbWVfcGluID0gbm91dmVhdV9n
-ZW1fcHJpbWVfcGluLAorCS5nZW1fcHJpbWVfcmVzX29iaiA9IG5vdXZlYXVfZ2VtX3ByaW1lX3Jl
-c19vYmosCiAJLmdlbV9wcmltZV91bnBpbiA9IG5vdXZlYXVfZ2VtX3ByaW1lX3VucGluLAogCS5n
-ZW1fcHJpbWVfZ2V0X3NnX3RhYmxlID0gbm91dmVhdV9nZW1fcHJpbWVfZ2V0X3NnX3RhYmxlLAog
-CS5nZW1fcHJpbWVfaW1wb3J0X3NnX3RhYmxlID0gbm91dmVhdV9nZW1fcHJpbWVfaW1wb3J0X3Nn
-X3RhYmxlLApkaWZmIC0tZ2l0IGEvZHJpdmVycy9ncHUvZHJtL25vdXZlYXUvbm91dmVhdV9nZW0u
-aCBiL2RyaXZlcnMvZ3B1L2RybS9ub3V2ZWF1L25vdXZlYXVfZ2VtLmgKaW5kZXggN2NhY2EwNTdi
-YzM4Li5kZGFiNzYyZDgxZmUgMTAwNjQ0Ci0tLSBhL2RyaXZlcnMvZ3B1L2RybS9ub3V2ZWF1L25v
-dXZlYXVfZ2VtLmgKKysrIGIvZHJpdmVycy9ncHUvZHJtL25vdXZlYXUvbm91dmVhdV9nZW0uaApA
-QCAtMzUsNiArMzUsNyBAQCBleHRlcm4gaW50IG5vdXZlYXVfZ2VtX2lvY3RsX2luZm8oc3RydWN0
-IGRybV9kZXZpY2UgKiwgdm9pZCAqLAogCQkJCSAgc3RydWN0IGRybV9maWxlICopOwogCiBleHRl
-cm4gaW50IG5vdXZlYXVfZ2VtX3ByaW1lX3BpbihzdHJ1Y3QgZHJtX2dlbV9vYmplY3QgKik7Citz
-dHJ1Y3QgcmVzZXJ2YXRpb25fb2JqZWN0ICpub3V2ZWF1X2dlbV9wcmltZV9yZXNfb2JqKHN0cnVj
-dCBkcm1fZ2VtX29iamVjdCAqKTsKIGV4dGVybiB2b2lkIG5vdXZlYXVfZ2VtX3ByaW1lX3VucGlu
-KHN0cnVjdCBkcm1fZ2VtX29iamVjdCAqKTsKIGV4dGVybiBzdHJ1Y3Qgc2dfdGFibGUgKm5vdXZl
-YXVfZ2VtX3ByaW1lX2dldF9zZ190YWJsZShzdHJ1Y3QgZHJtX2dlbV9vYmplY3QgKik7CiBleHRl
-cm4gc3RydWN0IGRybV9nZW1fb2JqZWN0ICpub3V2ZWF1X2dlbV9wcmltZV9pbXBvcnRfc2dfdGFi
-bGUoCmRpZmYgLS1naXQgYS9kcml2ZXJzL2dwdS9kcm0vbm91dmVhdS9ub3V2ZWF1X3ByaW1lLmMg
-Yi9kcml2ZXJzL2dwdS9kcm0vbm91dmVhdS9ub3V2ZWF1X3ByaW1lLmMKaW5kZXggNTFhMmNiMTAy
-YjQ0Li4xZjUxMDA4ZTRkMjYgMTAwNjQ0Ci0tLSBhL2RyaXZlcnMvZ3B1L2RybS9ub3V2ZWF1L25v
-dXZlYXVfcHJpbWUuYworKysgYi9kcml2ZXJzL2dwdS9kcm0vbm91dmVhdS9ub3V2ZWF1X3ByaW1l
-LmMKQEAgLTEwMiwzICsxMDIsMTAgQEAgdm9pZCBub3V2ZWF1X2dlbV9wcmltZV91bnBpbihzdHJ1
-Y3QgZHJtX2dlbV9vYmplY3QgKm9iaikKIAogCW5vdXZlYXVfYm9fdW5waW4obnZibyk7CiB9CisK
-K3N0cnVjdCByZXNlcnZhdGlvbl9vYmplY3QgKm5vdXZlYXVfZ2VtX3ByaW1lX3Jlc19vYmooc3Ry
-dWN0IGRybV9nZW1fb2JqZWN0ICpvYmopCit7CisJc3RydWN0IG5vdXZlYXVfYm8gKm52Ym8gPSBu
-b3V2ZWF1X2dlbV9vYmplY3Qob2JqKTsKKworCXJldHVybiBudmJvLT5iby5yZXN2OworfQpkaWZm
-IC0tZ2l0IGEvZHJpdmVycy9ncHUvZHJtL29tYXBkcm0vb21hcF9nZW1fZG1hYnVmLmMgYi9kcml2
-ZXJzL2dwdS9kcm0vb21hcGRybS9vbWFwX2dlbV9kbWFidWYuYwppbmRleCA0ZmNjYThkNDI3OTYu
-LmEyZGJmYjE3MzdiNCAxMDA2NDQKLS0tIGEvZHJpdmVycy9ncHUvZHJtL29tYXBkcm0vb21hcF9n
-ZW1fZG1hYnVmLmMKKysrIGIvZHJpdmVycy9ncHUvZHJtL29tYXBkcm0vb21hcF9nZW1fZG1hYnVm
-LmMKQEAgLTE3MSw3ICsxNzEsNyBAQCBzdGF0aWMgc3RydWN0IGRtYV9idWZfb3BzIG9tYXBfZG1h
-YnVmX29wcyA9IHsKIHN0cnVjdCBkbWFfYnVmICpvbWFwX2dlbV9wcmltZV9leHBvcnQoc3RydWN0
-IGRybV9kZXZpY2UgKmRldiwKIAkJc3RydWN0IGRybV9nZW1fb2JqZWN0ICpvYmosIGludCBmbGFn
-cykKIHsKLQlyZXR1cm4gZG1hX2J1Zl9leHBvcnQob2JqLCAmb21hcF9kbWFidWZfb3BzLCBvYmot
-PnNpemUsIGZsYWdzKTsKKwlyZXR1cm4gZG1hX2J1Zl9leHBvcnQob2JqLCAmb21hcF9kbWFidWZf
-b3BzLCBvYmotPnNpemUsIGZsYWdzLCBOVUxMKTsKIH0KIAogc3RydWN0IGRybV9nZW1fb2JqZWN0
-ICpvbWFwX2dlbV9wcmltZV9pbXBvcnQoc3RydWN0IGRybV9kZXZpY2UgKmRldiwKZGlmZiAtLWdp
-dCBhL2RyaXZlcnMvZ3B1L2RybS9yYWRlb24vcmFkZW9uX2Rydi5jIGIvZHJpdmVycy9ncHUvZHJt
-L3JhZGVvbi9yYWRlb25fZHJ2LmMKaW5kZXggNmUzMDE3NDEzMzg2Li45YjMwZTBjZThhNGQgMTAw
-NjQ0Ci0tLSBhL2RyaXZlcnMvZ3B1L2RybS9yYWRlb24vcmFkZW9uX2Rydi5jCisrKyBiL2RyaXZl
-cnMvZ3B1L2RybS9yYWRlb24vcmFkZW9uX2Rydi5jCkBAIC0xMzIsNiArMTMyLDcgQEAgc3RydWN0
-IGRybV9nZW1fb2JqZWN0ICpyYWRlb25fZ2VtX3ByaW1lX2ltcG9ydF9zZ190YWJsZShzdHJ1Y3Qg
-ZHJtX2RldmljZSAqZGV2LAogCQkJCQkJCXN0cnVjdCBzZ190YWJsZSAqc2cpOwogaW50IHJhZGVv
-bl9nZW1fcHJpbWVfcGluKHN0cnVjdCBkcm1fZ2VtX29iamVjdCAqb2JqKTsKIHZvaWQgcmFkZW9u
-X2dlbV9wcmltZV91bnBpbihzdHJ1Y3QgZHJtX2dlbV9vYmplY3QgKm9iaik7CitzdHJ1Y3QgcmVz
-ZXJ2YXRpb25fb2JqZWN0ICpyYWRlb25fZ2VtX3ByaW1lX3Jlc19vYmooc3RydWN0IGRybV9nZW1f
-b2JqZWN0ICopOwogdm9pZCAqcmFkZW9uX2dlbV9wcmltZV92bWFwKHN0cnVjdCBkcm1fZ2VtX29i
-amVjdCAqb2JqKTsKIHZvaWQgcmFkZW9uX2dlbV9wcmltZV92dW5tYXAoc3RydWN0IGRybV9nZW1f
-b2JqZWN0ICpvYmosIHZvaWQgKnZhZGRyKTsKIGV4dGVybiBsb25nIHJhZGVvbl9rbXNfY29tcGF0
-X2lvY3RsKHN0cnVjdCBmaWxlICpmaWxwLCB1bnNpZ25lZCBpbnQgY21kLApAQCAtNTYyLDYgKzU2
-Myw3IEBAIHN0YXRpYyBzdHJ1Y3QgZHJtX2RyaXZlciBrbXNfZHJpdmVyID0gewogCS5nZW1fcHJp
-bWVfaW1wb3J0ID0gZHJtX2dlbV9wcmltZV9pbXBvcnQsCiAJLmdlbV9wcmltZV9waW4gPSByYWRl
-b25fZ2VtX3ByaW1lX3BpbiwKIAkuZ2VtX3ByaW1lX3VucGluID0gcmFkZW9uX2dlbV9wcmltZV91
-bnBpbiwKKwkuZ2VtX3ByaW1lX3Jlc19vYmogPSByYWRlb25fZ2VtX3ByaW1lX3Jlc19vYmosCiAJ
-LmdlbV9wcmltZV9nZXRfc2dfdGFibGUgPSByYWRlb25fZ2VtX3ByaW1lX2dldF9zZ190YWJsZSwK
-IAkuZ2VtX3ByaW1lX2ltcG9ydF9zZ190YWJsZSA9IHJhZGVvbl9nZW1fcHJpbWVfaW1wb3J0X3Nn
-X3RhYmxlLAogCS5nZW1fcHJpbWVfdm1hcCA9IHJhZGVvbl9nZW1fcHJpbWVfdm1hcCwKZGlmZiAt
-LWdpdCBhL2RyaXZlcnMvZ3B1L2RybS9yYWRlb24vcmFkZW9uX3ByaW1lLmMgYi9kcml2ZXJzL2dw
-dS9kcm0vcmFkZW9uL3JhZGVvbl9wcmltZS5jCmluZGV4IDIwMDc0NTYwZmMyNS4uMjhkNzEwNzBj
-Mzg5IDEwMDY0NAotLS0gYS9kcml2ZXJzL2dwdS9kcm0vcmFkZW9uL3JhZGVvbl9wcmltZS5jCisr
-KyBiL2RyaXZlcnMvZ3B1L2RybS9yYWRlb24vcmFkZW9uX3ByaW1lLmMKQEAgLTEwMywzICsxMDMs
-MTEgQEAgdm9pZCByYWRlb25fZ2VtX3ByaW1lX3VucGluKHN0cnVjdCBkcm1fZ2VtX29iamVjdCAq
-b2JqKQogCXJhZGVvbl9ib191bnBpbihibyk7CiAJcmFkZW9uX2JvX3VucmVzZXJ2ZShibyk7CiB9
-CisKKworc3RydWN0IHJlc2VydmF0aW9uX29iamVjdCAqcmFkZW9uX2dlbV9wcmltZV9yZXNfb2Jq
-KHN0cnVjdCBkcm1fZ2VtX29iamVjdCAqb2JqKQoreworCXN0cnVjdCByYWRlb25fYm8gKmJvID0g
-Z2VtX3RvX3JhZGVvbl9ibyhvYmopOworCisJcmV0dXJuIGJvLT50Ym8ucmVzdjsKK30KZGlmZiAt
-LWdpdCBhL2RyaXZlcnMvZ3B1L2RybS90ZWdyYS9nZW0uYyBiL2RyaXZlcnMvZ3B1L2RybS90ZWdy
-YS9nZW0uYwppbmRleCBhYTg1YjdiMjZmMTAuLjc4Y2M4MTQzNzYwYSAxMDA2NDQKLS0tIGEvZHJp
-dmVycy9ncHUvZHJtL3RlZ3JhL2dlbS5jCisrKyBiL2RyaXZlcnMvZ3B1L2RybS90ZWdyYS9nZW0u
-YwpAQCAtNDIwLDcgKzQyMCw3IEBAIHN0cnVjdCBkbWFfYnVmICp0ZWdyYV9nZW1fcHJpbWVfZXhw
-b3J0KHN0cnVjdCBkcm1fZGV2aWNlICpkcm0sCiAJCQkJICAgICAgIGludCBmbGFncykKIHsKIAly
-ZXR1cm4gZG1hX2J1Zl9leHBvcnQoZ2VtLCAmdGVncmFfZ2VtX3ByaW1lX2RtYWJ1Zl9vcHMsIGdl
-bS0+c2l6ZSwKLQkJCSAgICAgIGZsYWdzKTsKKwkJCSAgICAgIGZsYWdzLCBOVUxMKTsKIH0KIAog
-c3RydWN0IGRybV9nZW1fb2JqZWN0ICp0ZWdyYV9nZW1fcHJpbWVfaW1wb3J0KHN0cnVjdCBkcm1f
-ZGV2aWNlICpkcm0sCmRpZmYgLS1naXQgYS9kcml2ZXJzL2dwdS9kcm0vdHRtL3R0bV9vYmplY3Qu
-YyBiL2RyaXZlcnMvZ3B1L2RybS90dG0vdHRtX29iamVjdC5jCmluZGV4IGQyYTA1MzM1Mjc4OS4u
-MTJjODcxMTBkYjNhIDEwMDY0NAotLS0gYS9kcml2ZXJzL2dwdS9kcm0vdHRtL3R0bV9vYmplY3Qu
-YworKysgYi9kcml2ZXJzL2dwdS9kcm0vdHRtL3R0bV9vYmplY3QuYwpAQCAtNjk1LDcgKzY5NSw3
-IEBAIGludCB0dG1fcHJpbWVfaGFuZGxlX3RvX2ZkKHN0cnVjdCB0dG1fb2JqZWN0X2ZpbGUgKnRm
-aWxlLAogCQl9CiAKIAkJZG1hX2J1ZiA9IGRtYV9idWZfZXhwb3J0KHByaW1lLCAmdGRldi0+b3Bz
-LAotCQkJCQkgcHJpbWUtPnNpemUsIGZsYWdzKTsKKwkJCQkJIHByaW1lLT5zaXplLCBmbGFncywg
-TlVMTCk7CiAJCWlmIChJU19FUlIoZG1hX2J1ZikpIHsKIAkJCXJldCA9IFBUUl9FUlIoZG1hX2J1
-Zik7CiAJCQl0dG1fbWVtX2dsb2JhbF9mcmVlKHRkZXYtPm1lbV9nbG9iLApkaWZmIC0tZ2l0IGEv
-ZHJpdmVycy9tZWRpYS92NGwyLWNvcmUvdmlkZW9idWYyLWRtYS1jb250aWcuYyBiL2RyaXZlcnMv
-bWVkaWEvdjRsMi1jb3JlL3ZpZGVvYnVmMi1kbWEtY29udGlnLmMKaW5kZXggODgwYmUwNzgyZGQ5
-Li5jNGU0ZGZhODEyM2EgMTAwNjQ0Ci0tLSBhL2RyaXZlcnMvbWVkaWEvdjRsMi1jb3JlL3ZpZGVv
-YnVmMi1kbWEtY29udGlnLmMKKysrIGIvZHJpdmVycy9tZWRpYS92NGwyLWNvcmUvdmlkZW9idWYy
-LWRtYS1jb250aWcuYwpAQCAtNDA0LDcgKzQwNCw3IEBAIHN0YXRpYyBzdHJ1Y3QgZG1hX2J1ZiAq
-dmIyX2RjX2dldF9kbWFidWYodm9pZCAqYnVmX3ByaXYsIHVuc2lnbmVkIGxvbmcgZmxhZ3MpCiAJ
-aWYgKFdBUk5fT04oIWJ1Zi0+c2d0X2Jhc2UpKQogCQlyZXR1cm4gTlVMTDsKIAotCWRidWYgPSBk
-bWFfYnVmX2V4cG9ydChidWYsICZ2YjJfZGNfZG1hYnVmX29wcywgYnVmLT5zaXplLCBmbGFncyk7
-CisJZGJ1ZiA9IGRtYV9idWZfZXhwb3J0KGJ1ZiwgJnZiMl9kY19kbWFidWZfb3BzLCBidWYtPnNp
-emUsIGZsYWdzLCBOVUxMKTsKIAlpZiAoSVNfRVJSKGRidWYpKQogCQlyZXR1cm4gTlVMTDsKIApk
-aWZmIC0tZ2l0IGEvZHJpdmVycy9zdGFnaW5nL2FuZHJvaWQvaW9uL2lvbi5jIGIvZHJpdmVycy9z
-dGFnaW5nL2FuZHJvaWQvaW9uL2lvbi5jCmluZGV4IDM4OWI4ZjY3YTJlYy4uMjcwMzYwOTEyYjJj
-IDEwMDY0NAotLS0gYS9kcml2ZXJzL3N0YWdpbmcvYW5kcm9pZC9pb24vaW9uLmMKKysrIGIvZHJp
-dmVycy9zdGFnaW5nL2FuZHJvaWQvaW9uL2lvbi5jCkBAIC0xMTIwLDcgKzExMjAsOCBAQCBzdHJ1
-Y3QgZG1hX2J1ZiAqaW9uX3NoYXJlX2RtYV9idWYoc3RydWN0IGlvbl9jbGllbnQgKmNsaWVudCwK
-IAlpb25fYnVmZmVyX2dldChidWZmZXIpOwogCW11dGV4X3VubG9jaygmY2xpZW50LT5sb2NrKTsK
-IAotCWRtYWJ1ZiA9IGRtYV9idWZfZXhwb3J0KGJ1ZmZlciwgJmRtYV9idWZfb3BzLCBidWZmZXIt
-PnNpemUsIE9fUkRXUik7CisJZG1hYnVmID0gZG1hX2J1Zl9leHBvcnQoYnVmZmVyLCAmZG1hX2J1
-Zl9vcHMsIGJ1ZmZlci0+c2l6ZSwgT19SRFdSLAorCQkJCU5VTEwpOwogCWlmIChJU19FUlIoZG1h
-YnVmKSkgewogCQlpb25fYnVmZmVyX3B1dChidWZmZXIpOwogCQlyZXR1cm4gZG1hYnVmOwpkaWZm
-IC0tZ2l0IGEvaW5jbHVkZS9kcm0vZHJtUC5oIGIvaW5jbHVkZS9kcm0vZHJtUC5oCmluZGV4IDhh
-ZjcxYThlMmMwMC4uZTQxZjE3ZWExZjEzIDEwMDY0NAotLS0gYS9pbmNsdWRlL2RybS9kcm1QLmgK
-KysrIGIvaW5jbHVkZS9kcm0vZHJtUC5oCkBAIC04Myw2ICs4Myw3IEBAIHN0cnVjdCBkcm1fZGV2
-aWNlOwogCiBzdHJ1Y3QgZGV2aWNlX25vZGU7CiBzdHJ1Y3QgdmlkZW9tb2RlOworc3RydWN0IHJl
-c2VydmF0aW9uX29iamVjdDsKIAogI2luY2x1ZGUgPGRybS9kcm1fb3NfbGludXguaD4KICNpbmNs
-dWRlIDxkcm0vZHJtX2hhc2h0YWIuaD4KQEAgLTkyMyw2ICs5MjQsOCBAQCBzdHJ1Y3QgZHJtX2Ry
-aXZlciB7CiAJLyogbG93LWxldmVsIGludGVyZmFjZSB1c2VkIGJ5IGRybV9nZW1fcHJpbWVfe2lt
-cG9ydCxleHBvcnR9ICovCiAJaW50ICgqZ2VtX3ByaW1lX3Bpbikoc3RydWN0IGRybV9nZW1fb2Jq
-ZWN0ICpvYmopOwogCXZvaWQgKCpnZW1fcHJpbWVfdW5waW4pKHN0cnVjdCBkcm1fZ2VtX29iamVj
-dCAqb2JqKTsKKwlzdHJ1Y3QgcmVzZXJ2YXRpb25fb2JqZWN0ICogKCpnZW1fcHJpbWVfcmVzX29i
-aikoCisJCQkJc3RydWN0IGRybV9nZW1fb2JqZWN0ICpvYmopOwogCXN0cnVjdCBzZ190YWJsZSAq
-KCpnZW1fcHJpbWVfZ2V0X3NnX3RhYmxlKShzdHJ1Y3QgZHJtX2dlbV9vYmplY3QgKm9iaik7CiAJ
-c3RydWN0IGRybV9nZW1fb2JqZWN0ICooKmdlbV9wcmltZV9pbXBvcnRfc2dfdGFibGUpKAogCQkJ
-CXN0cnVjdCBkcm1fZGV2aWNlICpkZXYsIHNpemVfdCBzaXplLApkaWZmIC0tZ2l0IGEvaW5jbHVk
-ZS9saW51eC9kbWEtYnVmLmggYi9pbmNsdWRlL2xpbnV4L2RtYS1idWYuaAppbmRleCBmODg2OTg1
-YTI4YjIuLmZkN2RlZjJlMGFlMiAxMDA2NDQKLS0tIGEvaW5jbHVkZS9saW51eC9kbWEtYnVmLmgK
-KysrIGIvaW5jbHVkZS9saW51eC9kbWEtYnVmLmgKQEAgLTExNSw2ICsxMTUsNyBAQCBzdHJ1Y3Qg
-ZG1hX2J1Zl9vcHMgewogICogQGV4cF9uYW1lOiBuYW1lIG9mIHRoZSBleHBvcnRlcjsgdXNlZnVs
-IGZvciBkZWJ1Z2dpbmcuCiAgKiBAbGlzdF9ub2RlOiBub2RlIGZvciBkbWFfYnVmIGFjY291bnRp
-bmcgYW5kIGRlYnVnZ2luZy4KICAqIEBwcml2OiBleHBvcnRlciBzcGVjaWZpYyBwcml2YXRlIGRh
-dGEgZm9yIHRoaXMgYnVmZmVyIG9iamVjdC4KKyAqIEByZXN2OiByZXNlcnZhdGlvbiBvYmplY3Qg
-bGlua2VkIHRvIHRoaXMgZG1hLWJ1ZgogICovCiBzdHJ1Y3QgZG1hX2J1ZiB7CiAJc2l6ZV90IHNp
-emU7CkBAIC0xMjgsNiArMTI5LDcgQEAgc3RydWN0IGRtYV9idWYgewogCWNvbnN0IGNoYXIgKmV4
-cF9uYW1lOwogCXN0cnVjdCBsaXN0X2hlYWQgbGlzdF9ub2RlOwogCXZvaWQgKnByaXY7CisJc3Ry
-dWN0IHJlc2VydmF0aW9uX29iamVjdCAqcmVzdjsKIH07CiAKIC8qKgpAQCAtMTY4LDEwICsxNzAs
-MTEgQEAgdm9pZCBkbWFfYnVmX2RldGFjaChzdHJ1Y3QgZG1hX2J1ZiAqZG1hYnVmLAogCQkJCXN0
-cnVjdCBkbWFfYnVmX2F0dGFjaG1lbnQgKmRtYWJ1Zl9hdHRhY2gpOwogCiBzdHJ1Y3QgZG1hX2J1
-ZiAqZG1hX2J1Zl9leHBvcnRfbmFtZWQodm9pZCAqcHJpdiwgY29uc3Qgc3RydWN0IGRtYV9idWZf
-b3BzICpvcHMsCi0JCQkgICAgICAgc2l6ZV90IHNpemUsIGludCBmbGFncywgY29uc3QgY2hhciAq
-KTsKKwkJCSAgICAgICBzaXplX3Qgc2l6ZSwgaW50IGZsYWdzLCBjb25zdCBjaGFyICosCisJCQkg
-ICAgICAgc3RydWN0IHJlc2VydmF0aW9uX29iamVjdCAqKTsKIAotI2RlZmluZSBkbWFfYnVmX2V4
-cG9ydChwcml2LCBvcHMsIHNpemUsIGZsYWdzKQlcCi0JZG1hX2J1Zl9leHBvcnRfbmFtZWQocHJp
-diwgb3BzLCBzaXplLCBmbGFncywgS0JVSUxEX01PRE5BTUUpCisjZGVmaW5lIGRtYV9idWZfZXhw
-b3J0KHByaXYsIG9wcywgc2l6ZSwgZmxhZ3MsIHJlc3YpCVwKKwlkbWFfYnVmX2V4cG9ydF9uYW1l
-ZChwcml2LCBvcHMsIHNpemUsIGZsYWdzLCBLQlVJTERfTU9ETkFNRSwgcmVzdikKIAogaW50IGRt
-YV9idWZfZmQoc3RydWN0IGRtYV9idWYgKmRtYWJ1ZiwgaW50IGZsYWdzKTsKIHN0cnVjdCBkbWFf
-YnVmICpkbWFfYnVmX2dldChpbnQgZmQpOwoKX19fX19fX19fX19fX19fX19fX19fX19fX19fX19f
-X19fX19fX19fX19fX19fX18KZHJpLWRldmVsIG1haWxpbmcgbGlzdApkcmktZGV2ZWxAbGlzdHMu
-ZnJlZWRlc2t0b3Aub3JnCmh0dHA6Ly9saXN0cy5mcmVlZGVza3RvcC5vcmcvbWFpbG1hbi9saXN0
-aW5mby9kcmktZGV2ZWwK
+Just to show it's easy.
+
+Android syncpoints can be mapped to a timeline. This removes the need
+to maintain a separate api for synchronization. I've left the android
+trace events in place, but the core fence events should already be
+sufficient for debugging.
+
+v2:
+- Call fence_remove_callback in sync_fence_free if not all fences have fired.
+v3:
+- Merge Colin Cross' bugfixes, and the android fence merge optimization.
+v4:
+- Merge with the upstream fixes.
+v5:
+- Fix small style issues pointed out by Thomas Hellstrom.
+
+Signed-off-by: Maarten Lankhorst <maarten.lankhorst@canonical.com>
+Acked-by: John Stultz <john.stultz@linaro.org>
+---
+ drivers/staging/android/Kconfig      |    1 
+ drivers/staging/android/Makefile     |    2 
+ drivers/staging/android/sw_sync.c    |    6 
+ drivers/staging/android/sync.c       |  913 +++++++++++-----------------------
+ drivers/staging/android/sync.h       |   79 ++-
+ drivers/staging/android/sync_debug.c |  247 +++++++++
+ drivers/staging/android/trace/sync.h |   12 
+ 7 files changed, 609 insertions(+), 651 deletions(-)
+ create mode 100644 drivers/staging/android/sync_debug.c
+
+diff --git a/drivers/staging/android/Kconfig b/drivers/staging/android/Kconfig
+index 99e484f845f2..51607e9aa049 100644
+--- a/drivers/staging/android/Kconfig
++++ b/drivers/staging/android/Kconfig
+@@ -88,6 +88,7 @@ config SYNC
+ 	bool "Synchronization framework"
+ 	default n
+ 	select ANON_INODES
++	select DMA_SHARED_BUFFER
+ 	---help---
+ 	  This option enables the framework for synchronization between multiple
+ 	  drivers.  Sync implementations can take advantage of hardware
+diff --git a/drivers/staging/android/Makefile b/drivers/staging/android/Makefile
+index 0a01e1914905..517ad5ffa429 100644
+--- a/drivers/staging/android/Makefile
++++ b/drivers/staging/android/Makefile
+@@ -9,5 +9,5 @@ obj-$(CONFIG_ANDROID_TIMED_OUTPUT)	+= timed_output.o
+ obj-$(CONFIG_ANDROID_TIMED_GPIO)	+= timed_gpio.o
+ obj-$(CONFIG_ANDROID_LOW_MEMORY_KILLER)	+= lowmemorykiller.o
+ obj-$(CONFIG_ANDROID_INTF_ALARM_DEV)	+= alarm-dev.o
+-obj-$(CONFIG_SYNC)			+= sync.o
++obj-$(CONFIG_SYNC)			+= sync.o sync_debug.o
+ obj-$(CONFIG_SW_SYNC)			+= sw_sync.o
+diff --git a/drivers/staging/android/sw_sync.c b/drivers/staging/android/sw_sync.c
+index 12a136ec1cec..a76db3ff87cb 100644
+--- a/drivers/staging/android/sw_sync.c
++++ b/drivers/staging/android/sw_sync.c
+@@ -50,7 +50,7 @@ static struct sync_pt *sw_sync_pt_dup(struct sync_pt *sync_pt)
+ {
+ 	struct sw_sync_pt *pt = (struct sw_sync_pt *) sync_pt;
+ 	struct sw_sync_timeline *obj =
+-		(struct sw_sync_timeline *)sync_pt->parent;
++		(struct sw_sync_timeline *)sync_pt_parent(sync_pt);
+ 
+ 	return (struct sync_pt *) sw_sync_pt_create(obj, pt->value);
+ }
+@@ -59,7 +59,7 @@ static int sw_sync_pt_has_signaled(struct sync_pt *sync_pt)
+ {
+ 	struct sw_sync_pt *pt = (struct sw_sync_pt *)sync_pt;
+ 	struct sw_sync_timeline *obj =
+-		(struct sw_sync_timeline *)sync_pt->parent;
++		(struct sw_sync_timeline *)sync_pt_parent(sync_pt);
+ 
+ 	return sw_sync_cmp(obj->value, pt->value) >= 0;
+ }
+@@ -97,7 +97,6 @@ static void sw_sync_pt_value_str(struct sync_pt *sync_pt,
+ 				       char *str, int size)
+ {
+ 	struct sw_sync_pt *pt = (struct sw_sync_pt *)sync_pt;
+-
+ 	snprintf(str, size, "%d", pt->value);
+ }
+ 
+@@ -157,7 +156,6 @@ static int sw_sync_open(struct inode *inode, struct file *file)
+ static int sw_sync_release(struct inode *inode, struct file *file)
+ {
+ 	struct sw_sync_timeline *obj = file->private_data;
+-
+ 	sync_timeline_destroy(&obj->obj);
+ 	return 0;
+ }
+diff --git a/drivers/staging/android/sync.c b/drivers/staging/android/sync.c
+index 18174f7c871c..70b09b5001ba 100644
+--- a/drivers/staging/android/sync.c
++++ b/drivers/staging/android/sync.c
+@@ -31,22 +31,13 @@
+ #define CREATE_TRACE_POINTS
+ #include "trace/sync.h"
+ 
+-static void sync_fence_signal_pt(struct sync_pt *pt);
+-static int _sync_pt_has_signaled(struct sync_pt *pt);
+-static void sync_fence_free(struct kref *kref);
+-static void sync_dump(void);
+-
+-static LIST_HEAD(sync_timeline_list_head);
+-static DEFINE_SPINLOCK(sync_timeline_list_lock);
+-
+-static LIST_HEAD(sync_fence_list_head);
+-static DEFINE_SPINLOCK(sync_fence_list_lock);
++static const struct fence_ops android_fence_ops;
++static const struct file_operations sync_fence_fops;
+ 
+ struct sync_timeline *sync_timeline_create(const struct sync_timeline_ops *ops,
+ 					   int size, const char *name)
+ {
+ 	struct sync_timeline *obj;
+-	unsigned long flags;
+ 
+ 	if (size < sizeof(struct sync_timeline))
+ 		return NULL;
+@@ -57,17 +48,14 @@ struct sync_timeline *sync_timeline_create(const struct sync_timeline_ops *ops,
+ 
+ 	kref_init(&obj->kref);
+ 	obj->ops = ops;
++	obj->context = fence_context_alloc(1);
+ 	strlcpy(obj->name, name, sizeof(obj->name));
+ 
+ 	INIT_LIST_HEAD(&obj->child_list_head);
+-	spin_lock_init(&obj->child_list_lock);
+-
+ 	INIT_LIST_HEAD(&obj->active_list_head);
+-	spin_lock_init(&obj->active_list_lock);
++	spin_lock_init(&obj->child_list_lock);
+ 
+-	spin_lock_irqsave(&sync_timeline_list_lock, flags);
+-	list_add_tail(&obj->sync_timeline_list, &sync_timeline_list_head);
+-	spin_unlock_irqrestore(&sync_timeline_list_lock, flags);
++	sync_timeline_debug_add(obj);
+ 
+ 	return obj;
+ }
+@@ -77,11 +65,8 @@ static void sync_timeline_free(struct kref *kref)
+ {
+ 	struct sync_timeline *obj =
+ 		container_of(kref, struct sync_timeline, kref);
+-	unsigned long flags;
+ 
+-	spin_lock_irqsave(&sync_timeline_list_lock, flags);
+-	list_del(&obj->sync_timeline_list);
+-	spin_unlock_irqrestore(&sync_timeline_list_lock, flags);
++	sync_timeline_debug_remove(obj);
+ 
+ 	if (obj->ops->release_obj)
+ 		obj->ops->release_obj(obj);
+@@ -89,6 +74,16 @@ static void sync_timeline_free(struct kref *kref)
+ 	kfree(obj);
+ }
+ 
++static void sync_timeline_get(struct sync_timeline *obj)
++{
++	kref_get(&obj->kref);
++}
++
++static void sync_timeline_put(struct sync_timeline *obj)
++{
++	kref_put(&obj->kref, sync_timeline_free);
++}
++
+ void sync_timeline_destroy(struct sync_timeline *obj)
+ {
+ 	obj->destroyed = true;
+@@ -102,75 +97,33 @@ void sync_timeline_destroy(struct sync_timeline *obj)
+ 	 * signal any children that their parent is going away.
+ 	 */
+ 	sync_timeline_signal(obj);
+-
+-	kref_put(&obj->kref, sync_timeline_free);
++	sync_timeline_put(obj);
+ }
+ EXPORT_SYMBOL(sync_timeline_destroy);
+ 
+-static void sync_timeline_add_pt(struct sync_timeline *obj, struct sync_pt *pt)
+-{
+-	unsigned long flags;
+-
+-	pt->parent = obj;
+-
+-	spin_lock_irqsave(&obj->child_list_lock, flags);
+-	list_add_tail(&pt->child_list, &obj->child_list_head);
+-	spin_unlock_irqrestore(&obj->child_list_lock, flags);
+-}
+-
+-static void sync_timeline_remove_pt(struct sync_pt *pt)
+-{
+-	struct sync_timeline *obj = pt->parent;
+-	unsigned long flags;
+-
+-	spin_lock_irqsave(&obj->active_list_lock, flags);
+-	if (!list_empty(&pt->active_list))
+-		list_del_init(&pt->active_list);
+-	spin_unlock_irqrestore(&obj->active_list_lock, flags);
+-
+-	spin_lock_irqsave(&obj->child_list_lock, flags);
+-	if (!list_empty(&pt->child_list))
+-		list_del_init(&pt->child_list);
+-
+-	spin_unlock_irqrestore(&obj->child_list_lock, flags);
+-}
+-
+ void sync_timeline_signal(struct sync_timeline *obj)
+ {
+ 	unsigned long flags;
+ 	LIST_HEAD(signaled_pts);
+-	struct list_head *pos, *n;
++	struct sync_pt *pt, *next;
+ 
+ 	trace_sync_timeline(obj);
+ 
+-	spin_lock_irqsave(&obj->active_list_lock, flags);
+-
+-	list_for_each_safe(pos, n, &obj->active_list_head) {
+-		struct sync_pt *pt =
+-			container_of(pos, struct sync_pt, active_list);
++	spin_lock_irqsave(&obj->child_list_lock, flags);
+ 
+-		if (_sync_pt_has_signaled(pt)) {
+-			list_del_init(pos);
+-			list_add(&pt->signaled_list, &signaled_pts);
+-			kref_get(&pt->fence->kref);
+-		}
++	list_for_each_entry_safe(pt, next, &obj->active_list_head,
++				 active_list) {
++		if (__fence_is_signaled(&pt->base))
++			list_del(&pt->active_list);
+ 	}
+ 
+-	spin_unlock_irqrestore(&obj->active_list_lock, flags);
+-
+-	list_for_each_safe(pos, n, &signaled_pts) {
+-		struct sync_pt *pt =
+-			container_of(pos, struct sync_pt, signaled_list);
+-
+-		list_del_init(pos);
+-		sync_fence_signal_pt(pt);
+-		kref_put(&pt->fence->kref, sync_fence_free);
+-	}
++	spin_unlock_irqrestore(&obj->child_list_lock, flags);
+ }
+ EXPORT_SYMBOL(sync_timeline_signal);
+ 
+-struct sync_pt *sync_pt_create(struct sync_timeline *parent, int size)
++struct sync_pt *sync_pt_create(struct sync_timeline *obj, int size)
+ {
++	unsigned long flags;
+ 	struct sync_pt *pt;
+ 
+ 	if (size < sizeof(struct sync_pt))
+@@ -180,87 +133,28 @@ struct sync_pt *sync_pt_create(struct sync_timeline *parent, int size)
+ 	if (pt == NULL)
+ 		return NULL;
+ 
++	spin_lock_irqsave(&obj->child_list_lock, flags);
++	sync_timeline_get(obj);
++	__fence_init(&pt->base, &android_fence_ops, &obj->child_list_lock,
++		     obj->context, ++obj->value);
++	list_add_tail(&pt->child_list, &obj->child_list_head);
+ 	INIT_LIST_HEAD(&pt->active_list);
+-	kref_get(&parent->kref);
+-	sync_timeline_add_pt(parent, pt);
+-
++	spin_unlock_irqrestore(&obj->child_list_lock, flags);
+ 	return pt;
+ }
+ EXPORT_SYMBOL(sync_pt_create);
+ 
+ void sync_pt_free(struct sync_pt *pt)
+ {
+-	if (pt->parent->ops->free_pt)
+-		pt->parent->ops->free_pt(pt);
+-
+-	sync_timeline_remove_pt(pt);
+-
+-	kref_put(&pt->parent->kref, sync_timeline_free);
+-
+-	kfree(pt);
++	fence_put(&pt->base);
+ }
+ EXPORT_SYMBOL(sync_pt_free);
+ 
+-/* call with pt->parent->active_list_lock held */
+-static int _sync_pt_has_signaled(struct sync_pt *pt)
+-{
+-	int old_status = pt->status;
+-
+-	if (!pt->status)
+-		pt->status = pt->parent->ops->has_signaled(pt);
+-
+-	if (!pt->status && pt->parent->destroyed)
+-		pt->status = -ENOENT;
+-
+-	if (pt->status != old_status)
+-		pt->timestamp = ktime_get();
+-
+-	return pt->status;
+-}
+-
+-static struct sync_pt *sync_pt_dup(struct sync_pt *pt)
+-{
+-	return pt->parent->ops->dup(pt);
+-}
+-
+-/* Adds a sync pt to the active queue.  Called when added to a fence */
+-static void sync_pt_activate(struct sync_pt *pt)
+-{
+-	struct sync_timeline *obj = pt->parent;
+-	unsigned long flags;
+-	int err;
+-
+-	spin_lock_irqsave(&obj->active_list_lock, flags);
+-
+-	err = _sync_pt_has_signaled(pt);
+-	if (err != 0)
+-		goto out;
+-
+-	list_add_tail(&pt->active_list, &obj->active_list_head);
+-
+-out:
+-	spin_unlock_irqrestore(&obj->active_list_lock, flags);
+-}
+-
+-static int sync_fence_release(struct inode *inode, struct file *file);
+-static unsigned int sync_fence_poll(struct file *file, poll_table *wait);
+-static long sync_fence_ioctl(struct file *file, unsigned int cmd,
+-			     unsigned long arg);
+-
+-
+-static const struct file_operations sync_fence_fops = {
+-	.release = sync_fence_release,
+-	.poll = sync_fence_poll,
+-	.unlocked_ioctl = sync_fence_ioctl,
+-	.compat_ioctl = sync_fence_ioctl,
+-};
+-
+-static struct sync_fence *sync_fence_alloc(const char *name)
++static struct sync_fence *sync_fence_alloc(int size, const char *name)
+ {
+ 	struct sync_fence *fence;
+-	unsigned long flags;
+ 
+-	fence = kzalloc(sizeof(struct sync_fence), GFP_KERNEL);
++	fence = kzalloc(size, GFP_KERNEL);
+ 	if (fence == NULL)
+ 		return NULL;
+ 
+@@ -272,16 +166,8 @@ static struct sync_fence *sync_fence_alloc(const char *name)
+ 	kref_init(&fence->kref);
+ 	strlcpy(fence->name, name, sizeof(fence->name));
+ 
+-	INIT_LIST_HEAD(&fence->pt_list_head);
+-	INIT_LIST_HEAD(&fence->waiter_list_head);
+-	spin_lock_init(&fence->waiter_list_lock);
+-
+ 	init_waitqueue_head(&fence->wq);
+ 
+-	spin_lock_irqsave(&sync_fence_list_lock, flags);
+-	list_add_tail(&fence->sync_fence_list, &sync_fence_list_head);
+-	spin_unlock_irqrestore(&sync_fence_list_lock, flags);
+-
+ 	return fence;
+ 
+ err:
+@@ -289,120 +175,42 @@ err:
+ 	return NULL;
+ }
+ 
+-/* TODO: implement a create which takes more that one sync_pt */
+-struct sync_fence *sync_fence_create(const char *name, struct sync_pt *pt)
++static void fence_check_cb_func(struct fence *f, struct fence_cb *cb)
+ {
++	struct sync_fence_cb *check;
+ 	struct sync_fence *fence;
+ 
+-	if (pt->fence)
+-		return NULL;
+-
+-	fence = sync_fence_alloc(name);
+-	if (fence == NULL)
+-		return NULL;
+-
+-	pt->fence = fence;
+-	list_add(&pt->pt_list, &fence->pt_list_head);
+-	sync_pt_activate(pt);
+-
+-	/*
+-	 * signal the fence in case pt was activated before
+-	 * sync_pt_activate(pt) was called
+-	 */
+-	sync_fence_signal_pt(pt);
++	check = container_of(cb, struct sync_fence_cb, cb);
++	fence = check->fence;
+ 
+-	return fence;
++	if (atomic_dec_and_test(&fence->status))
++		wake_up_all(&fence->wq);
+ }
+-EXPORT_SYMBOL(sync_fence_create);
+-
+-static int sync_fence_copy_pts(struct sync_fence *dst, struct sync_fence *src)
+-{
+-	struct list_head *pos;
+-
+-	list_for_each(pos, &src->pt_list_head) {
+-		struct sync_pt *orig_pt =
+-			container_of(pos, struct sync_pt, pt_list);
+-		struct sync_pt *new_pt = sync_pt_dup(orig_pt);
+ 
+-		if (new_pt == NULL)
+-			return -ENOMEM;
+-
+-		new_pt->fence = dst;
+-		list_add(&new_pt->pt_list, &dst->pt_list_head);
+-	}
+-
+-	return 0;
+-}
+-
+-static int sync_fence_merge_pts(struct sync_fence *dst, struct sync_fence *src)
+-{
+-	struct list_head *src_pos, *dst_pos, *n;
+-
+-	list_for_each(src_pos, &src->pt_list_head) {
+-		struct sync_pt *src_pt =
+-			container_of(src_pos, struct sync_pt, pt_list);
+-		bool collapsed = false;
+-
+-		list_for_each_safe(dst_pos, n, &dst->pt_list_head) {
+-			struct sync_pt *dst_pt =
+-				container_of(dst_pos, struct sync_pt, pt_list);
+-			/* collapse two sync_pts on the same timeline
+-			 * to a single sync_pt that will signal at
+-			 * the later of the two
+-			 */
+-			if (dst_pt->parent == src_pt->parent) {
+-				if (dst_pt->parent->ops->compare(dst_pt, src_pt)
+-						 == -1) {
+-					struct sync_pt *new_pt =
+-						sync_pt_dup(src_pt);
+-					if (new_pt == NULL)
+-						return -ENOMEM;
+-
+-					new_pt->fence = dst;
+-					list_replace(&dst_pt->pt_list,
+-						     &new_pt->pt_list);
+-					sync_pt_free(dst_pt);
+-				}
+-				collapsed = true;
+-				break;
+-			}
+-		}
+-
+-		if (!collapsed) {
+-			struct sync_pt *new_pt = sync_pt_dup(src_pt);
+-
+-			if (new_pt == NULL)
+-				return -ENOMEM;
+-
+-			new_pt->fence = dst;
+-			list_add(&new_pt->pt_list, &dst->pt_list_head);
+-		}
+-	}
+-
+-	return 0;
+-}
+-
+-static void sync_fence_detach_pts(struct sync_fence *fence)
++/* TODO: implement a create which takes more that one sync_pt */
++struct sync_fence *sync_fence_create(const char *name, struct sync_pt *pt)
+ {
+-	struct list_head *pos, *n;
++	struct sync_fence *fence;
+ 
+-	list_for_each_safe(pos, n, &fence->pt_list_head) {
+-		struct sync_pt *pt = container_of(pos, struct sync_pt, pt_list);
++	fence = sync_fence_alloc(offsetof(struct sync_fence, cbs[1]), name);
++	if (fence == NULL)
++		return NULL;
+ 
+-		sync_timeline_remove_pt(pt);
+-	}
+-}
++	fence->num_fences = 1;
++	atomic_set(&fence->status, 1);
+ 
+-static void sync_fence_free_pts(struct sync_fence *fence)
+-{
+-	struct list_head *pos, *n;
++	fence_get(&pt->base);
++	fence->cbs[0].sync_pt = &pt->base;
++	fence->cbs[0].fence = fence;
++	if (fence_add_callback(&pt->base, &fence->cbs[0].cb,
++			       fence_check_cb_func))
++		atomic_dec(&fence->status);
+ 
+-	list_for_each_safe(pos, n, &fence->pt_list_head) {
+-		struct sync_pt *pt = container_of(pos, struct sync_pt, pt_list);
++	sync_fence_debug_add(fence);
+ 
+-		sync_pt_free(pt);
+-	}
++	return fence;
+ }
++EXPORT_SYMBOL(sync_fence_create);
+ 
+ struct sync_fence *sync_fence_fdget(int fd)
+ {
+@@ -434,197 +242,155 @@ void sync_fence_install(struct sync_fence *fence, int fd)
+ }
+ EXPORT_SYMBOL(sync_fence_install);
+ 
+-static int sync_fence_get_status(struct sync_fence *fence)
++static void sync_fence_add_pt(struct sync_fence *fence,
++			      int *i, struct fence *pt)
+ {
+-	struct list_head *pos;
+-	int status = 1;
+-
+-	list_for_each(pos, &fence->pt_list_head) {
+-		struct sync_pt *pt = container_of(pos, struct sync_pt, pt_list);
+-		int pt_status = pt->status;
+-
+-		if (pt_status < 0) {
+-			status = pt_status;
+-			break;
+-		} else if (status == 1) {
+-			status = pt_status;
+-		}
+-	}
++	fence->cbs[*i].sync_pt = pt;
++	fence->cbs[*i].fence = fence;
+ 
+-	return status;
++	if (!fence_add_callback(pt, &fence->cbs[*i].cb, fence_check_cb_func)) {
++		fence_get(pt);
++		(*i)++;
++	}
+ }
+ 
+ struct sync_fence *sync_fence_merge(const char *name,
+ 				    struct sync_fence *a, struct sync_fence *b)
+ {
++	int num_fences = a->num_fences + b->num_fences;
+ 	struct sync_fence *fence;
+-	struct list_head *pos;
+-	int err;
++	int i, i_a, i_b;
++	unsigned long size = offsetof(struct sync_fence, cbs[num_fences]);
+ 
+-	fence = sync_fence_alloc(name);
++	fence = sync_fence_alloc(size, name);
+ 	if (fence == NULL)
+ 		return NULL;
+ 
+-	err = sync_fence_copy_pts(fence, a);
+-	if (err < 0)
+-		goto err;
++	atomic_set(&fence->status, num_fences);
+ 
+-	err = sync_fence_merge_pts(fence, b);
+-	if (err < 0)
+-		goto err;
++	/*
++	 * Assume sync_fence a and b are both ordered and have no
++	 * duplicates with the same context.
++	 *
++	 * If a sync_fence can only be created with sync_fence_merge
++	 * and sync_fence_create, this is a reasonable assumption.
++	 */
++	for (i = i_a = i_b = 0; i_a < a->num_fences && i_b < b->num_fences; ) {
++		struct fence *pt_a = a->cbs[i_a].sync_pt;
++		struct fence *pt_b = b->cbs[i_b].sync_pt;
++
++		if (pt_a->context < pt_b->context) {
++			sync_fence_add_pt(fence, &i, pt_a);
++
++			i_a++;
++		} else if (pt_a->context > pt_b->context) {
++			sync_fence_add_pt(fence, &i, pt_b);
+ 
+-	list_for_each(pos, &fence->pt_list_head) {
+-		struct sync_pt *pt =
+-			container_of(pos, struct sync_pt, pt_list);
+-		sync_pt_activate(pt);
++			i_b++;
++		} else {
++			if (pt_a->seqno - pt_b->seqno <= INT_MAX)
++				sync_fence_add_pt(fence, &i, pt_a);
++			else
++				sync_fence_add_pt(fence, &i, pt_b);
++
++			i_a++;
++			i_b++;
++		}
+ 	}
+ 
+-	/*
+-	 * signal the fence in case one of it's pts were activated before
+-	 * they were activated
+-	 */
+-	sync_fence_signal_pt(list_first_entry(&fence->pt_list_head,
+-					      struct sync_pt,
+-					      pt_list));
++	for (; i_a < a->num_fences; i_a++)
++		sync_fence_add_pt(fence, &i, a->cbs[i_a].sync_pt);
+ 
++	for (; i_b < b->num_fences; i_b++)
++		sync_fence_add_pt(fence, &i, b->cbs[i_b].sync_pt);
++
++	if (num_fences > i)
++		atomic_sub(num_fences - i, &fence->status);
++	fence->num_fences = i;
++
++	sync_fence_debug_add(fence);
+ 	return fence;
+-err:
+-	sync_fence_free_pts(fence);
+-	kfree(fence);
+-	return NULL;
+ }
+ EXPORT_SYMBOL(sync_fence_merge);
+ 
+-static void sync_fence_signal_pt(struct sync_pt *pt)
++int sync_fence_wake_up_wq(wait_queue_t *curr, unsigned mode,
++				 int wake_flags, void *key)
+ {
+-	LIST_HEAD(signaled_waiters);
+-	struct sync_fence *fence = pt->fence;
+-	struct list_head *pos;
+-	struct list_head *n;
+-	unsigned long flags;
+-	int status;
+-
+-	status = sync_fence_get_status(fence);
+-
+-	spin_lock_irqsave(&fence->waiter_list_lock, flags);
+-	/*
+-	 * this should protect against two threads racing on the signaled
+-	 * false -> true transition
+-	 */
+-	if (status && !fence->status) {
+-		list_for_each_safe(pos, n, &fence->waiter_list_head)
+-			list_move(pos, &signaled_waiters);
+-
+-		fence->status = status;
+-	} else {
+-		status = 0;
+-	}
+-	spin_unlock_irqrestore(&fence->waiter_list_lock, flags);
++	struct sync_fence_waiter *wait;
+ 
+-	if (status) {
+-		list_for_each_safe(pos, n, &signaled_waiters) {
+-			struct sync_fence_waiter *waiter =
+-				container_of(pos, struct sync_fence_waiter,
+-					     waiter_list);
++	wait = container_of(curr, struct sync_fence_waiter, work);
++	list_del_init(&wait->work.task_list);
+ 
+-			list_del(pos);
+-			waiter->callback(fence, waiter);
+-		}
+-		wake_up(&fence->wq);
+-	}
++	wait->callback(wait->work.private, wait);
++	return 1;
+ }
+ 
+ int sync_fence_wait_async(struct sync_fence *fence,
+ 			  struct sync_fence_waiter *waiter)
+ {
++	int err = atomic_read(&fence->status);
+ 	unsigned long flags;
+-	int err = 0;
+ 
+-	spin_lock_irqsave(&fence->waiter_list_lock, flags);
++	if (err < 0)
++		return err;
+ 
+-	if (fence->status) {
+-		err = fence->status;
+-		goto out;
+-	}
++	if (!err)
++		return 1;
+ 
+-	list_add_tail(&waiter->waiter_list, &fence->waiter_list_head);
+-out:
+-	spin_unlock_irqrestore(&fence->waiter_list_lock, flags);
++	init_waitqueue_func_entry(&waiter->work, sync_fence_wake_up_wq);
++	waiter->work.private = fence;
+ 
+-	return err;
++	spin_lock_irqsave(&fence->wq.lock, flags);
++	err = atomic_read(&fence->status);
++	if (err > 0)
++		__add_wait_queue_tail(&fence->wq, &waiter->work);
++	spin_unlock_irqrestore(&fence->wq.lock, flags);
++
++	if (err < 0)
++		return err;
++
++	return !err;
+ }
+ EXPORT_SYMBOL(sync_fence_wait_async);
+ 
+ int sync_fence_cancel_async(struct sync_fence *fence,
+ 			     struct sync_fence_waiter *waiter)
+ {
+-	struct list_head *pos;
+-	struct list_head *n;
+ 	unsigned long flags;
+-	int ret = -ENOENT;
++	int ret = 0;
+ 
+-	spin_lock_irqsave(&fence->waiter_list_lock, flags);
+-	/*
+-	 * Make sure waiter is still in waiter_list because it is possible for
+-	 * the waiter to be removed from the list while the callback is still
+-	 * pending.
+-	 */
+-	list_for_each_safe(pos, n, &fence->waiter_list_head) {
+-		struct sync_fence_waiter *list_waiter =
+-			container_of(pos, struct sync_fence_waiter,
+-				     waiter_list);
+-		if (list_waiter == waiter) {
+-			list_del(pos);
+-			ret = 0;
+-			break;
+-		}
+-	}
+-	spin_unlock_irqrestore(&fence->waiter_list_lock, flags);
++	spin_lock_irqsave(&fence->wq.lock, flags);
++	if (!list_empty(&waiter->work.task_list))
++		list_del_init(&waiter->work.task_list);
++	else
++		ret = -ENOENT;
++	spin_unlock_irqrestore(&fence->wq.lock, flags);
+ 	return ret;
+ }
+ EXPORT_SYMBOL(sync_fence_cancel_async);
+ 
+-static bool sync_fence_check(struct sync_fence *fence)
+-{
+-	/*
+-	 * Make sure that reads to fence->status are ordered with the
+-	 * wait queue event triggering
+-	 */
+-	smp_rmb();
+-	return fence->status != 0;
+-}
+-
+ int sync_fence_wait(struct sync_fence *fence, long timeout)
+ {
+-	int err = 0;
+-	struct sync_pt *pt;
+-
+-	trace_sync_wait(fence, 1);
+-	list_for_each_entry(pt, &fence->pt_list_head, pt_list)
+-		trace_sync_pt(pt);
++	long ret;
++	int i;
+ 
+-	if (timeout > 0) {
++	if (timeout < 0)
++		timeout = MAX_SCHEDULE_TIMEOUT;
++	else
+ 		timeout = msecs_to_jiffies(timeout);
+-		err = wait_event_interruptible_timeout(fence->wq,
+-						       sync_fence_check(fence),
+-						       timeout);
+-	} else if (timeout < 0) {
+-		err = wait_event_interruptible(fence->wq,
+-					       sync_fence_check(fence));
+-	}
+-	trace_sync_wait(fence, 0);
+ 
+-	if (err < 0)
+-		return err;
+-
+-	if (fence->status < 0) {
+-		pr_info("fence error %d on [%p]\n", fence->status, fence);
+-		sync_dump();
+-		return fence->status;
+-	}
++	trace_sync_wait(fence, 1);
++	for (i = 0; i < fence->num_fences; ++i)
++		trace_sync_pt(fence->cbs[i].sync_pt);
++	ret = wait_event_interruptible_timeout(fence->wq,
++					       atomic_read(&fence->status) <= 0,
++					       timeout);
++	trace_sync_wait(fence, 0);
+ 
+-	if (fence->status == 0) {
+-		if (timeout > 0) {
++	if (ret < 0)
++		return ret;
++	else if (ret == 0) {
++		if (timeout) {
+ 			pr_info("fence timeout on [%p] after %dms\n", fence,
+ 				jiffies_to_msecs(timeout));
+ 			sync_dump();
+@@ -632,15 +398,136 @@ int sync_fence_wait(struct sync_fence *fence, long timeout)
+ 		return -ETIME;
+ 	}
+ 
+-	return 0;
++	ret = atomic_read(&fence->status);
++	if (ret) {
++		pr_info("fence error %ld on [%p]\n", ret, fence);
++		sync_dump();
++	}
++	return ret;
+ }
+ EXPORT_SYMBOL(sync_fence_wait);
+ 
++static const char *android_fence_get_driver_name(struct fence *fence)
++{
++	struct sync_pt *pt = container_of(fence, struct sync_pt, base);
++	struct sync_timeline *parent = sync_pt_parent(pt);
++
++	return parent->ops->driver_name;
++}
++
++static const char *android_fence_get_timeline_name(struct fence *fence)
++{
++	struct sync_pt *pt = container_of(fence, struct sync_pt, base);
++	struct sync_timeline *parent = sync_pt_parent(pt);
++
++	return parent->name;
++}
++
++static void android_fence_release(struct fence *fence)
++{
++	struct sync_pt *pt = container_of(fence, struct sync_pt, base);
++	struct sync_timeline *parent = sync_pt_parent(pt);
++	unsigned long flags;
++
++	spin_lock_irqsave(fence->lock, flags);
++	list_del(&pt->child_list);
++	if (WARN_ON_ONCE(!list_empty(&pt->active_list)))
++		list_del(&pt->active_list);
++	spin_unlock_irqrestore(fence->lock, flags);
++
++	if (parent->ops->free_pt)
++		parent->ops->free_pt(pt);
++
++	sync_timeline_put(parent);
++	kfree(pt);
++}
++
++static bool android_fence_signaled(struct fence *fence)
++{
++	struct sync_pt *pt = container_of(fence, struct sync_pt, base);
++	struct sync_timeline *parent = sync_pt_parent(pt);
++	int ret;
++
++	ret = parent->ops->has_signaled(pt);
++	if (ret < 0)
++		fence->status = ret;
++	return ret;
++}
++
++static bool android_fence_enable_signaling(struct fence *fence)
++{
++	struct sync_pt *pt = container_of(fence, struct sync_pt, base);
++	struct sync_timeline *parent = sync_pt_parent(pt);
++
++	if (android_fence_signaled(fence))
++		return false;
++
++	list_add_tail(&pt->active_list, &parent->active_list_head);
++	return true;
++}
++
++static int android_fence_fill_driver_data(struct fence *fence,
++					  void *data, int size)
++{
++	struct sync_pt *pt = container_of(fence, struct sync_pt, base);
++	struct sync_timeline *parent = sync_pt_parent(pt);
++
++	if (!parent->ops->fill_driver_data)
++		return 0;
++	return parent->ops->fill_driver_data(pt, data, size);
++}
++
++static void android_fence_value_str(struct fence *fence,
++				    char *str, int size)
++{
++	struct sync_pt *pt = container_of(fence, struct sync_pt, base);
++	struct sync_timeline *parent = sync_pt_parent(pt);
++
++	if (!parent->ops->pt_value_str) {
++		if (size)
++			*str = 0;
++		return;
++	}
++	parent->ops->pt_value_str(pt, str, size);
++}
++
++static void android_fence_timeline_value_str(struct fence *fence,
++					     char *str, int size)
++{
++	struct sync_pt *pt = container_of(fence, struct sync_pt, base);
++	struct sync_timeline *parent = sync_pt_parent(pt);
++
++	if (!parent->ops->timeline_value_str) {
++		if (size)
++			*str = 0;
++		return;
++	}
++	parent->ops->timeline_value_str(parent, str, size);
++}
++
++static const struct fence_ops android_fence_ops = {
++	.get_driver_name = android_fence_get_driver_name,
++	.get_timeline_name = android_fence_get_timeline_name,
++	.enable_signaling = android_fence_enable_signaling,
++	.signaled = android_fence_signaled,
++	.wait = fence_default_wait,
++	.release = android_fence_release,
++	.fill_driver_data = android_fence_fill_driver_data,
++	.fence_value_str = android_fence_value_str,
++	.timeline_value_str = android_fence_timeline_value_str,
++};
++
+ static void sync_fence_free(struct kref *kref)
+ {
+ 	struct sync_fence *fence = container_of(kref, struct sync_fence, kref);
++	int i, status = atomic_read(&fence->status);
+ 
+-	sync_fence_free_pts(fence);
++	for (i = 0; i < fence->num_fences; ++i) {
++		if (status)
++			fence_remove_callback(fence->cbs[i].sync_pt,
++					      &fence->cbs[i].cb);
++		fence_put(fence->cbs[i].sync_pt);
++	}
+ 
+ 	kfree(fence);
+ }
+@@ -648,44 +535,25 @@ static void sync_fence_free(struct kref *kref)
+ static int sync_fence_release(struct inode *inode, struct file *file)
+ {
+ 	struct sync_fence *fence = file->private_data;
+-	unsigned long flags;
+-
+-	/*
+-	 * We need to remove all ways to access this fence before droping
+-	 * our ref.
+-	 *
+-	 * start with its membership in the global fence list
+-	 */
+-	spin_lock_irqsave(&sync_fence_list_lock, flags);
+-	list_del(&fence->sync_fence_list);
+-	spin_unlock_irqrestore(&sync_fence_list_lock, flags);
+ 
+-	/*
+-	 * remove its pts from their parents so that sync_timeline_signal()
+-	 * can't reference the fence.
+-	 */
+-	sync_fence_detach_pts(fence);
++	sync_fence_debug_remove(fence);
+ 
+ 	kref_put(&fence->kref, sync_fence_free);
+-
+ 	return 0;
+ }
+ 
+ static unsigned int sync_fence_poll(struct file *file, poll_table *wait)
+ {
+ 	struct sync_fence *fence = file->private_data;
++	int status;
+ 
+ 	poll_wait(file, &fence->wq, wait);
+ 
+-	/*
+-	 * Make sure that reads to fence->status are ordered with the
+-	 * wait queue event triggering
+-	 */
+-	smp_rmb();
++	status = atomic_read(&fence->status);
+ 
+-	if (fence->status == 1)
++	if (!status)
+ 		return POLLIN;
+-	else if (fence->status < 0)
++	else if (status < 0)
+ 		return POLLERR;
+ 	else
+ 		return 0;
+@@ -750,7 +618,7 @@ err_put_fd:
+ 	return err;
+ }
+ 
+-static int sync_fill_pt_info(struct sync_pt *pt, void *data, int size)
++static int sync_fill_pt_info(struct fence *fence, void *data, int size)
+ {
+ 	struct sync_pt_info *info = data;
+ 	int ret;
+@@ -760,20 +628,24 @@ static int sync_fill_pt_info(struct sync_pt *pt, void *data, int size)
+ 
+ 	info->len = sizeof(struct sync_pt_info);
+ 
+-	if (pt->parent->ops->fill_driver_data) {
+-		ret = pt->parent->ops->fill_driver_data(pt, info->driver_data,
+-							size - sizeof(*info));
++	if (fence->ops->fill_driver_data) {
++		ret = fence->ops->fill_driver_data(fence, info->driver_data,
++						   size - sizeof(*info));
+ 		if (ret < 0)
+ 			return ret;
+ 
+ 		info->len += ret;
+ 	}
+ 
+-	strlcpy(info->obj_name, pt->parent->name, sizeof(info->obj_name));
+-	strlcpy(info->driver_name, pt->parent->ops->driver_name,
++	strlcpy(info->obj_name, fence->ops->get_timeline_name(fence),
++		sizeof(info->obj_name));
++	strlcpy(info->driver_name, fence->ops->get_driver_name(fence),
+ 		sizeof(info->driver_name));
+-	info->status = pt->status;
+-	info->timestamp_ns = ktime_to_ns(pt->timestamp);
++	if (fence_is_signaled(fence))
++		info->status = fence->status >= 0 ? 1 : fence->status;
++	else
++		info->status = 0;
++	info->timestamp_ns = ktime_to_ns(fence->timestamp);
+ 
+ 	return info->len;
+ }
+@@ -782,10 +654,9 @@ static long sync_fence_ioctl_fence_info(struct sync_fence *fence,
+ 					unsigned long arg)
+ {
+ 	struct sync_fence_info_data *data;
+-	struct list_head *pos;
+ 	__u32 size;
+ 	__u32 len = 0;
+-	int ret;
++	int ret, i;
+ 
+ 	if (copy_from_user(&size, (void __user *)arg, sizeof(size)))
+ 		return -EFAULT;
+@@ -801,12 +672,14 @@ static long sync_fence_ioctl_fence_info(struct sync_fence *fence,
+ 		return -ENOMEM;
+ 
+ 	strlcpy(data->name, fence->name, sizeof(data->name));
+-	data->status = fence->status;
++	data->status = atomic_read(&fence->status);
++	if (data->status >= 0)
++		data->status = !data->status;
++
+ 	len = sizeof(struct sync_fence_info_data);
+ 
+-	list_for_each(pos, &fence->pt_list_head) {
+-		struct sync_pt *pt =
+-			container_of(pos, struct sync_pt, pt_list);
++	for (i = 0; i < fence->num_fences; ++i) {
++		struct fence *pt = fence->cbs[i].sync_pt;
+ 
+ 		ret = sync_fill_pt_info(pt, (u8 *)data + len, size - len);
+ 
+@@ -833,7 +706,6 @@ static long sync_fence_ioctl(struct file *file, unsigned int cmd,
+ 			     unsigned long arg)
+ {
+ 	struct sync_fence *fence = file->private_data;
+-
+ 	switch (cmd) {
+ 	case SYNC_IOC_WAIT:
+ 		return sync_fence_ioctl_wait(fence, arg);
+@@ -849,181 +721,10 @@ static long sync_fence_ioctl(struct file *file, unsigned int cmd,
+ 	}
+ }
+ 
+-#ifdef CONFIG_DEBUG_FS
+-static const char *sync_status_str(int status)
+-{
+-	if (status > 0)
+-		return "signaled";
+-	else if (status == 0)
+-		return "active";
+-	else
+-		return "error";
+-}
+-
+-static void sync_print_pt(struct seq_file *s, struct sync_pt *pt, bool fence)
+-{
+-	int status = pt->status;
+-
+-	seq_printf(s, "  %s%spt %s",
+-		   fence ? pt->parent->name : "",
+-		   fence ? "_" : "",
+-		   sync_status_str(status));
+-	if (pt->status) {
+-		struct timeval tv = ktime_to_timeval(pt->timestamp);
+-
+-		seq_printf(s, "@%ld.%06ld", tv.tv_sec, tv.tv_usec);
+-	}
+-
+-	if (pt->parent->ops->timeline_value_str &&
+-	    pt->parent->ops->pt_value_str) {
+-		char value[64];
+-
+-		pt->parent->ops->pt_value_str(pt, value, sizeof(value));
+-		seq_printf(s, ": %s", value);
+-		if (fence) {
+-			pt->parent->ops->timeline_value_str(pt->parent, value,
+-						    sizeof(value));
+-			seq_printf(s, " / %s", value);
+-		}
+-	} else if (pt->parent->ops->print_pt) {
+-		seq_puts(s, ": ");
+-		pt->parent->ops->print_pt(s, pt);
+-	}
+-
+-	seq_puts(s, "\n");
+-}
+-
+-static void sync_print_obj(struct seq_file *s, struct sync_timeline *obj)
+-{
+-	struct list_head *pos;
+-	unsigned long flags;
+-
+-	seq_printf(s, "%s %s", obj->name, obj->ops->driver_name);
+-
+-	if (obj->ops->timeline_value_str) {
+-		char value[64];
+-
+-		obj->ops->timeline_value_str(obj, value, sizeof(value));
+-		seq_printf(s, ": %s", value);
+-	} else if (obj->ops->print_obj) {
+-		seq_puts(s, ": ");
+-		obj->ops->print_obj(s, obj);
+-	}
+-
+-	seq_puts(s, "\n");
+-
+-	spin_lock_irqsave(&obj->child_list_lock, flags);
+-	list_for_each(pos, &obj->child_list_head) {
+-		struct sync_pt *pt =
+-			container_of(pos, struct sync_pt, child_list);
+-		sync_print_pt(s, pt, false);
+-	}
+-	spin_unlock_irqrestore(&obj->child_list_lock, flags);
+-}
+-
+-static void sync_print_fence(struct seq_file *s, struct sync_fence *fence)
+-{
+-	struct list_head *pos;
+-	unsigned long flags;
+-
+-	seq_printf(s, "[%p] %s: %s\n", fence, fence->name,
+-		   sync_status_str(fence->status));
+-
+-	list_for_each(pos, &fence->pt_list_head) {
+-		struct sync_pt *pt =
+-			container_of(pos, struct sync_pt, pt_list);
+-		sync_print_pt(s, pt, true);
+-	}
+-
+-	spin_lock_irqsave(&fence->waiter_list_lock, flags);
+-	list_for_each(pos, &fence->waiter_list_head) {
+-		struct sync_fence_waiter *waiter =
+-			container_of(pos, struct sync_fence_waiter,
+-				     waiter_list);
+-
+-		seq_printf(s, "waiter %pF\n", waiter->callback);
+-	}
+-	spin_unlock_irqrestore(&fence->waiter_list_lock, flags);
+-}
+-
+-static int sync_debugfs_show(struct seq_file *s, void *unused)
+-{
+-	unsigned long flags;
+-	struct list_head *pos;
+-
+-	seq_puts(s, "objs:\n--------------\n");
+-
+-	spin_lock_irqsave(&sync_timeline_list_lock, flags);
+-	list_for_each(pos, &sync_timeline_list_head) {
+-		struct sync_timeline *obj =
+-			container_of(pos, struct sync_timeline,
+-				     sync_timeline_list);
+-
+-		sync_print_obj(s, obj);
+-		seq_puts(s, "\n");
+-	}
+-	spin_unlock_irqrestore(&sync_timeline_list_lock, flags);
+-
+-	seq_puts(s, "fences:\n--------------\n");
+-
+-	spin_lock_irqsave(&sync_fence_list_lock, flags);
+-	list_for_each(pos, &sync_fence_list_head) {
+-		struct sync_fence *fence =
+-			container_of(pos, struct sync_fence, sync_fence_list);
+-
+-		sync_print_fence(s, fence);
+-		seq_puts(s, "\n");
+-	}
+-	spin_unlock_irqrestore(&sync_fence_list_lock, flags);
+-	return 0;
+-}
+-
+-static int sync_debugfs_open(struct inode *inode, struct file *file)
+-{
+-	return single_open(file, sync_debugfs_show, inode->i_private);
+-}
+-
+-static const struct file_operations sync_debugfs_fops = {
+-	.open           = sync_debugfs_open,
+-	.read           = seq_read,
+-	.llseek         = seq_lseek,
+-	.release        = single_release,
++static const struct file_operations sync_fence_fops = {
++	.release = sync_fence_release,
++	.poll = sync_fence_poll,
++	.unlocked_ioctl = sync_fence_ioctl,
++	.compat_ioctl = sync_fence_ioctl,
+ };
+ 
+-static __init int sync_debugfs_init(void)
+-{
+-	debugfs_create_file("sync", S_IRUGO, NULL, NULL, &sync_debugfs_fops);
+-	return 0;
+-}
+-late_initcall(sync_debugfs_init);
+-
+-#define DUMP_CHUNK 256
+-static char sync_dump_buf[64 * 1024];
+-static void sync_dump(void)
+-{
+-	struct seq_file s = {
+-		.buf = sync_dump_buf,
+-		.size = sizeof(sync_dump_buf) - 1,
+-	};
+-	int i;
+-
+-	sync_debugfs_show(&s, NULL);
+-
+-	for (i = 0; i < s.count; i += DUMP_CHUNK) {
+-		if ((s.count - i) > DUMP_CHUNK) {
+-			char c = s.buf[i + DUMP_CHUNK];
+-
+-			s.buf[i + DUMP_CHUNK] = 0;
+-			pr_cont("%s", s.buf + i);
+-			s.buf[i + DUMP_CHUNK] = c;
+-		} else {
+-			s.buf[s.count] = 0;
+-			pr_cont("%s", s.buf + i);
+-		}
+-	}
+-}
+-#else
+-static void sync_dump(void)
+-{
+-}
+-#endif
+diff --git a/drivers/staging/android/sync.h b/drivers/staging/android/sync.h
+index eaf57cccf626..66b0f431f63e 100644
+--- a/drivers/staging/android/sync.h
++++ b/drivers/staging/android/sync.h
+@@ -19,6 +19,7 @@
+ #include <linux/list.h>
+ #include <linux/spinlock.h>
+ #include <linux/wait.h>
++#include <linux/fence.h>
+ 
+ #include "uapi/sync.h"
+ 
+@@ -40,8 +41,6 @@ struct sync_fence;
+  *			 -1 if a will signal before b
+  * @free_pt:		called before sync_pt is freed
+  * @release_obj:	called before sync_timeline is freed
+- * @print_obj:		deprecated
+- * @print_pt:		deprecated
+  * @fill_driver_data:	write implementation specific driver data to data.
+  *			  should return an error if there is not enough room
+  *			  as specified by size.  This information is returned
+@@ -67,13 +66,6 @@ struct sync_timeline_ops {
+ 	/* optional */
+ 	void (*release_obj)(struct sync_timeline *sync_timeline);
+ 
+-	/* deprecated */
+-	void (*print_obj)(struct seq_file *s,
+-			  struct sync_timeline *sync_timeline);
+-
+-	/* deprecated */
+-	void (*print_pt)(struct seq_file *s, struct sync_pt *sync_pt);
+-
+ 	/* optional */
+ 	int (*fill_driver_data)(struct sync_pt *syncpt, void *data, int size);
+ 
+@@ -104,19 +96,21 @@ struct sync_timeline {
+ 
+ 	/* protected by child_list_lock */
+ 	bool			destroyed;
++	int			context, value;
+ 
+ 	struct list_head	child_list_head;
+ 	spinlock_t		child_list_lock;
+ 
+ 	struct list_head	active_list_head;
+-	spinlock_t		active_list_lock;
+ 
++#ifdef CONFIG_DEBUG_FS
+ 	struct list_head	sync_timeline_list;
++#endif
+ };
+ 
+ /**
+  * struct sync_pt - sync point
+- * @parent:		sync_timeline to which this sync_pt belongs
++ * @fence:		base fence class
+  * @child_list:		membership in sync_timeline.child_list_head
+  * @active_list:	membership in sync_timeline.active_list_head
+  * @signaled_list:	membership in temporary signaled_list on stack
+@@ -127,19 +121,22 @@ struct sync_timeline {
+  *			  signaled or error.
+  */
+ struct sync_pt {
+-	struct sync_timeline		*parent;
+-	struct list_head	child_list;
++	struct fence base;
+ 
++	struct list_head	child_list;
+ 	struct list_head	active_list;
+-	struct list_head	signaled_list;
+-
+-	struct sync_fence	*fence;
+-	struct list_head	pt_list;
++};
+ 
+-	/* protected by parent->active_list_lock */
+-	int			status;
++static inline struct sync_timeline *sync_pt_parent(struct sync_pt *pt)
++{
++	return container_of(pt->base.lock, struct sync_timeline,
++			    child_list_lock);
++}
+ 
+-	ktime_t			timestamp;
++struct sync_fence_cb {
++	struct fence_cb cb;
++	struct fence *sync_pt;
++	struct sync_fence *fence;
+ };
+ 
+ /**
+@@ -149,9 +146,7 @@ struct sync_pt {
+  * @name:		name of sync_fence.  Useful for debugging
+  * @pt_list_head:	list of sync_pts in the fence.  immutable once fence
+  *			  is created
+- * @waiter_list_head:	list of asynchronous waiters on this fence
+- * @waiter_list_lock:	lock protecting @waiter_list_head and @status
+- * @status:		1: signaled, 0:active, <0: error
++ * @status:		0: signaled, >0:active, <0: error
+  *
+  * @wq:			wait queue for fence signaling
+  * @sync_fence_list:	membership in global fence list
+@@ -160,17 +155,15 @@ struct sync_fence {
+ 	struct file		*file;
+ 	struct kref		kref;
+ 	char			name[32];
+-
+-	/* this list is immutable once the fence is created */
+-	struct list_head	pt_list_head;
+-
+-	struct list_head	waiter_list_head;
+-	spinlock_t		waiter_list_lock; /* also protects status */
+-	int			status;
++#ifdef CONFIG_DEBUG_FS
++	struct list_head	sync_fence_list;
++#endif
++	int num_fences;
+ 
+ 	wait_queue_head_t	wq;
++	atomic_t		status;
+ 
+-	struct list_head	sync_fence_list;
++	struct sync_fence_cb	cbs[];
+ };
+ 
+ struct sync_fence_waiter;
+@@ -184,14 +177,14 @@ typedef void (*sync_callback_t)(struct sync_fence *fence,
+  * @callback_data:	pointer to pass to @callback
+  */
+ struct sync_fence_waiter {
+-	struct list_head	waiter_list;
+-
+-	sync_callback_t		callback;
++	wait_queue_t work;
++	sync_callback_t callback;
+ };
+ 
+ static inline void sync_fence_waiter_init(struct sync_fence_waiter *waiter,
+ 					  sync_callback_t callback)
+ {
++	INIT_LIST_HEAD(&waiter->work.task_list);
+ 	waiter->callback = callback;
+ }
+ 
+@@ -341,4 +334,22 @@ int sync_fence_cancel_async(struct sync_fence *fence,
+  */
+ int sync_fence_wait(struct sync_fence *fence, long timeout);
+ 
++#ifdef CONFIG_DEBUG_FS
++
++extern void sync_timeline_debug_add(struct sync_timeline *obj);
++extern void sync_timeline_debug_remove(struct sync_timeline *obj);
++extern void sync_fence_debug_add(struct sync_fence *fence);
++extern void sync_fence_debug_remove(struct sync_fence *fence);
++extern void sync_dump(void);
++
++#else
++# define sync_timeline_debug_add(obj)
++# define sync_timeline_debug_remove(obj)
++# define sync_fence_debug_add(fence)
++# define sync_fence_debug_remove(fence)
++# define sync_dump()
++#endif
++int sync_fence_wake_up_wq(wait_queue_t *curr, unsigned mode,
++				 int wake_flags, void *key);
++
+ #endif /* _LINUX_SYNC_H */
+diff --git a/drivers/staging/android/sync_debug.c b/drivers/staging/android/sync_debug.c
+new file mode 100644
+index 000000000000..00efaf9d8aa2
+--- /dev/null
++++ b/drivers/staging/android/sync_debug.c
+@@ -0,0 +1,247 @@
++/*
++ * drivers/base/sync.c
++ *
++ * Copyright (C) 2012 Google, Inc.
++ *
++ * This software is licensed under the terms of the GNU General Public
++ * License version 2, as published by the Free Software Foundation, and
++ * may be copied, distributed, and modified under those terms.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ */
++
++#include <linux/debugfs.h>
++#include <linux/export.h>
++#include <linux/file.h>
++#include <linux/fs.h>
++#include <linux/kernel.h>
++#include <linux/poll.h>
++#include <linux/sched.h>
++#include <linux/seq_file.h>
++#include <linux/slab.h>
++#include <linux/uaccess.h>
++#include <linux/anon_inodes.h>
++#include "sync.h"
++
++#ifdef CONFIG_DEBUG_FS
++
++static LIST_HEAD(sync_timeline_list_head);
++static DEFINE_SPINLOCK(sync_timeline_list_lock);
++static LIST_HEAD(sync_fence_list_head);
++static DEFINE_SPINLOCK(sync_fence_list_lock);
++
++void sync_timeline_debug_add(struct sync_timeline *obj)
++{
++	unsigned long flags;
++
++	spin_lock_irqsave(&sync_timeline_list_lock, flags);
++	list_add_tail(&obj->sync_timeline_list, &sync_timeline_list_head);
++	spin_unlock_irqrestore(&sync_timeline_list_lock, flags);
++}
++
++void sync_timeline_debug_remove(struct sync_timeline *obj)
++{
++	unsigned long flags;
++
++	spin_lock_irqsave(&sync_timeline_list_lock, flags);
++	list_del(&obj->sync_timeline_list);
++	spin_unlock_irqrestore(&sync_timeline_list_lock, flags);
++}
++
++void sync_fence_debug_add(struct sync_fence *fence)
++{
++	unsigned long flags;
++
++	spin_lock_irqsave(&sync_fence_list_lock, flags);
++	list_add_tail(&fence->sync_fence_list, &sync_fence_list_head);
++	spin_unlock_irqrestore(&sync_fence_list_lock, flags);
++}
++
++void sync_fence_debug_remove(struct sync_fence *fence)
++{
++	unsigned long flags;
++
++	spin_lock_irqsave(&sync_fence_list_lock, flags);
++	list_del(&fence->sync_fence_list);
++	spin_unlock_irqrestore(&sync_fence_list_lock, flags);
++}
++
++static const char *sync_status_str(int status)
++{
++	if (status == 0)
++		return "signaled";
++	else if (status > 0)
++		return "active";
++	else
++		return "error";
++}
++
++static void sync_print_pt(struct seq_file *s, struct sync_pt *pt, bool fence)
++{
++	int status = 1;
++	struct sync_timeline *parent = sync_pt_parent(pt);
++
++	if (__fence_is_signaled(&pt->base))
++		status = pt->base.status;
++
++	seq_printf(s, "  %s%spt %s",
++		   fence ? parent->name : "",
++		   fence ? "_" : "",
++		   sync_status_str(status));
++
++	if (status <= 0) {
++		struct timeval tv = ktime_to_timeval(pt->base.timestamp);
++		seq_printf(s, "@%ld.%06ld", tv.tv_sec, tv.tv_usec);
++	}
++
++	if (parent->ops->timeline_value_str &&
++	    parent->ops->pt_value_str) {
++		char value[64];
++		parent->ops->pt_value_str(pt, value, sizeof(value));
++		seq_printf(s, ": %s", value);
++		if (fence) {
++			parent->ops->timeline_value_str(parent, value,
++						    sizeof(value));
++			seq_printf(s, " / %s", value);
++		}
++	}
++
++	seq_puts(s, "\n");
++}
++
++static void sync_print_obj(struct seq_file *s, struct sync_timeline *obj)
++{
++	struct list_head *pos;
++	unsigned long flags;
++
++	seq_printf(s, "%s %s", obj->name, obj->ops->driver_name);
++
++	if (obj->ops->timeline_value_str) {
++		char value[64];
++		obj->ops->timeline_value_str(obj, value, sizeof(value));
++		seq_printf(s, ": %s", value);
++	}
++
++	seq_puts(s, "\n");
++
++	spin_lock_irqsave(&obj->child_list_lock, flags);
++	list_for_each(pos, &obj->child_list_head) {
++		struct sync_pt *pt =
++			container_of(pos, struct sync_pt, child_list);
++		sync_print_pt(s, pt, false);
++	}
++	spin_unlock_irqrestore(&obj->child_list_lock, flags);
++}
++
++static void sync_print_fence(struct seq_file *s, struct sync_fence *fence)
++{
++	wait_queue_t *pos;
++	unsigned long flags;
++	int i;
++
++	seq_printf(s, "[%p] %s: %s\n", fence, fence->name,
++		   sync_status_str(atomic_read(&fence->status)));
++
++	for (i = 0; i < fence->num_fences; ++i) {
++		struct sync_pt *pt =
++			container_of(fence->cbs[i].sync_pt,
++				     struct sync_pt, base);
++
++		sync_print_pt(s, pt, true);
++	}
++
++	spin_lock_irqsave(&fence->wq.lock, flags);
++	list_for_each_entry(pos, &fence->wq.task_list, task_list) {
++		struct sync_fence_waiter *waiter;
++
++		if (pos->func != &sync_fence_wake_up_wq)
++			continue;
++
++		waiter = container_of(pos, struct sync_fence_waiter, work);
++
++		seq_printf(s, "waiter %pF\n", waiter->callback);
++	}
++	spin_unlock_irqrestore(&fence->wq.lock, flags);
++}
++
++static int sync_debugfs_show(struct seq_file *s, void *unused)
++{
++	unsigned long flags;
++	struct list_head *pos;
++
++	seq_puts(s, "objs:\n--------------\n");
++
++	spin_lock_irqsave(&sync_timeline_list_lock, flags);
++	list_for_each(pos, &sync_timeline_list_head) {
++		struct sync_timeline *obj =
++			container_of(pos, struct sync_timeline,
++				     sync_timeline_list);
++
++		sync_print_obj(s, obj);
++		seq_puts(s, "\n");
++	}
++	spin_unlock_irqrestore(&sync_timeline_list_lock, flags);
++
++	seq_puts(s, "fences:\n--------------\n");
++
++	spin_lock_irqsave(&sync_fence_list_lock, flags);
++	list_for_each(pos, &sync_fence_list_head) {
++		struct sync_fence *fence =
++			container_of(pos, struct sync_fence, sync_fence_list);
++
++		sync_print_fence(s, fence);
++		seq_puts(s, "\n");
++	}
++	spin_unlock_irqrestore(&sync_fence_list_lock, flags);
++	return 0;
++}
++
++static int sync_debugfs_open(struct inode *inode, struct file *file)
++{
++	return single_open(file, sync_debugfs_show, inode->i_private);
++}
++
++static const struct file_operations sync_debugfs_fops = {
++	.open           = sync_debugfs_open,
++	.read           = seq_read,
++	.llseek         = seq_lseek,
++	.release        = single_release,
++};
++
++static __init int sync_debugfs_init(void)
++{
++	debugfs_create_file("sync", S_IRUGO, NULL, NULL, &sync_debugfs_fops);
++	return 0;
++}
++late_initcall(sync_debugfs_init);
++
++#define DUMP_CHUNK 256
++static char sync_dump_buf[64 * 1024];
++void sync_dump(void)
++{
++	struct seq_file s = {
++		.buf = sync_dump_buf,
++		.size = sizeof(sync_dump_buf) - 1,
++	};
++	int i;
++
++	sync_debugfs_show(&s, NULL);
++
++	for (i = 0; i < s.count; i += DUMP_CHUNK) {
++		if ((s.count - i) > DUMP_CHUNK) {
++			char c = s.buf[i + DUMP_CHUNK];
++			s.buf[i + DUMP_CHUNK] = 0;
++			pr_cont("%s", s.buf + i);
++			s.buf[i + DUMP_CHUNK] = c;
++		} else {
++			s.buf[s.count] = 0;
++			pr_cont("%s", s.buf + i);
++		}
++	}
++}
++
++#endif
+diff --git a/drivers/staging/android/trace/sync.h b/drivers/staging/android/trace/sync.h
+index 95462359ba57..77edb977a7bf 100644
+--- a/drivers/staging/android/trace/sync.h
++++ b/drivers/staging/android/trace/sync.h
+@@ -45,7 +45,7 @@ TRACE_EVENT(sync_wait,
+ 
+ 	TP_fast_assign(
+ 			__assign_str(name, fence->name);
+-			__entry->status = fence->status;
++			__entry->status = atomic_read(&fence->status);
+ 			__entry->begin = begin;
+ 	),
+ 
+@@ -54,19 +54,19 @@ TRACE_EVENT(sync_wait,
+ );
+ 
+ TRACE_EVENT(sync_pt,
+-	TP_PROTO(struct sync_pt *pt),
++	TP_PROTO(struct fence *pt),
+ 
+ 	TP_ARGS(pt),
+ 
+ 	TP_STRUCT__entry(
+-		__string(timeline, pt->parent->name)
++		__string(timeline, pt->ops->get_timeline_name(pt))
+ 		__array(char, value, 32)
+ 	),
+ 
+ 	TP_fast_assign(
+-		__assign_str(timeline, pt->parent->name);
+-		if (pt->parent->ops->pt_value_str) {
+-			pt->parent->ops->pt_value_str(pt, __entry->value,
++		__assign_str(timeline, pt->ops->get_timeline_name(pt));
++		if (pt->ops->fence_value_str) {
++			pt->ops->fence_value_str(pt, __entry->value,
+ 							sizeof(__entry->value));
+ 		} else {
+ 			__entry->value[0] = '\0';
