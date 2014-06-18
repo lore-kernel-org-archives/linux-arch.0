@@ -1,96 +1,208 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from userp1040.oracle.com ([156.151.31.81]:28420 "EHLO
-	userp1040.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753771AbaFQXY6 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 17 Jun 2014 19:24:58 -0400
-Message-ID: <201406172323.s5HNNveT018439@userz7022.oracle.com>
-Date: Tue, 17 Jun 2014 19:23:44 -0400
-Subject: Re: [PATCH 03/11] qspinlock: Add pending bit
-From: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
+Received: from adelie.canonical.com ([91.189.90.139]:41578 "EHLO
+	adelie.canonical.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S965546AbaFRLHV (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 18 Jun 2014 07:07:21 -0400
+Subject: [REPOST PATCH 6/8] dma-buf: add poll support, v3
+From: Maarten Lankhorst <maarten.lankhorst@canonical.com>
+Date: Wed, 18 Jun 2014 12:37:23 +0200
+Message-ID: <20140618103723.15728.65924.stgit@patser>
+In-Reply-To: <20140618102957.15728.43525.stgit@patser>
+References: <20140618102957.15728.43525.stgit@patser>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: base64
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Waiman Long <waiman.long@hp.com>
-Cc: raghavendra.kt@linux.vnet.ibm.com, mingo@kernel.org, riel@redhat.com, oleg@redhat.com, gleb@redhat.com, virtualization@lists.linux-foundation.org, tglx@linutronix.de, chegu_vinod@hp.com, boris.ostrovsky@oracle.com, david.vrabel@citrix.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, paolo.bonzini@gmail.com, Peter Zijlstra <peterz@infradead.org>, scott.norton@hp.com, torvalds@linux-foundation.org, kvm@vger.kernel.org, paulmck@linux.vnet.ibm.com, xen-devel@lists.xenproject.org, Peter Zijlstra <a.p.zijlstra@chello.nl>
-Message-ID: <20140617232344.gNTanZNhkkI8M4b-mPx0EPRyIDVMS3jz_uNhSxWuUSQ@z>
+To: gregkh@linuxfoundation.org
+Cc: linux-arch@vger.kernel.org, thellstrom@vmware.com, linux-kernel@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, robdclark@gmail.com, thierry.reding@gmail.com, ccross@google.com, daniel@ffwll.ch, sumit.semwal@linaro.org, linux-media@vger.kernel.org
+Message-ID: <20140618103723.9Pww1aiPDY_pqtYPWEXL09t_-cwrZtrzLl6dwTFxZKY@z>
 
-Ck9uIEp1biAxNywgMjAxNCA2OjI1IFBNLCBXYWltYW4gTG9uZyA8d2FpbWFuLmxvbmdAaHAuY29t
-PiB3cm90ZToKPgo+IE9uIDA2LzE3LzIwMTQgMDU6MTAgUE0sIEtvbnJhZCBSemVzenV0ZWsgV2ls
-ayB3cm90ZTogCj4gPiBPbiBUdWUsIEp1biAxNywgMjAxNCBhdCAwNTowNzoyOVBNIC0wNDAwLCBL
-b25yYWQgUnplc3p1dGVrIFdpbGsgd3JvdGU6IAo+ID4+IE9uIFR1ZSwgSnVuIDE3LCAyMDE0IGF0
-IDA0OjUxOjU3UE0gLTA0MDAsIFdhaW1hbiBMb25nIHdyb3RlOiAKPiA+Pj4gT24gMDYvMTcvMjAx
-NCAwNDozNiBQTSwgS29ucmFkIFJ6ZXN6dXRlayBXaWxrIHdyb3RlOiAKPiA+Pj4+IE9uIFN1biwg
-SnVuIDE1LCAyMDE0IGF0IDAyOjQ3OjAwUE0gKzAyMDAsIFBldGVyIFppamxzdHJhIHdyb3RlOiAK
-PiA+Pj4+PiBCZWNhdXNlIHRoZSBxc3BpbmxvY2sgbmVlZHMgdG8gdG91Y2ggYSBzZWNvbmQgY2Fj
-aGVsaW5lOyBhZGQgYSBwZW5kaW5nIAo+ID4+Pj4+IGJpdCBhbmQgYWxsb3cgYSBzaW5nbGUgaW4t
-d29yZCBzcGlubmVyIGJlZm9yZSB3ZSBwdW50IHRvIHRoZSBzZWNvbmQgCj4gPj4+Pj4gY2FjaGVs
-aW5lLiAKPiA+Pj4+IENvdWxkIHlvdSBhZGQgdGhpcyBpbiB0aGUgZGVzY3JpcHRpb24gcGxlYXNl
-OiAKPiA+Pj4+IAo+ID4+Pj4gQW5kIGJ5IHNlY29uZCBjYWNoZWxpbmUgd2UgbWVhbiB0aGUgbG9j
-YWwgJ25vZGUnLiBUaGF0IGlzIHRoZTogCj4gPj4+PiBtY3Nfbm9kZXNbMF0gYW5kIG1jc19ub2Rl
-c1tpZHhdIAo+ID4+Pj4gCj4gPj4+PiBQZXJoYXBzIGl0IG1pZ2h0IGJlIGJldHRlciB0aGVuIHRv
-IHNwbGl0IHRoaXMgaW4gdGhlIGhlYWRlciBmaWxlIAo+ID4+Pj4gYXMgdGhpcyBpcyB0cnlpbmcg
-dG8gbm90IGJlIGEgc2xvd3BhdGggY29kZSAtIGJ1dCByYXRoZXIgLSBhIAo+ID4+Pj4gcHJlLXNs
-b3ctcGF0aC1sZXRzLXRyeS1pZi13ZSBjYW4gZG8gYW5vdGhlciBjbXB4Y2hnIGluIGNhc2UgCj4g
-Pj4+PiB0aGUgdW5sb2NrZXIgaGFzIGp1c3QgdW5sb2NrZWQgaXRzZWxmLiAKPiA+Pj4+IAo+ID4+
-Pj4gU28gc29tZXRoaW5nIGxpa2U6IAo+ID4+Pj4gCj4gPj4+PiBkaWZmIC0tZ2l0IGEvaW5jbHVk
-ZS9hc20tZ2VuZXJpYy9xc3BpbmxvY2suaCBiL2luY2x1ZGUvYXNtLWdlbmVyaWMvcXNwaW5sb2Nr
-LmggCj4gPj4+PiBpbmRleCBlOGE3YWU4Li4yOWNjOWM3IDEwMDY0NCAKPiA+Pj4+IC0tLSBhL2lu
-Y2x1ZGUvYXNtLWdlbmVyaWMvcXNwaW5sb2NrLmggCj4gPj4+PiArKysgYi9pbmNsdWRlL2FzbS1n
-ZW5lcmljL3FzcGlubG9jay5oIAo+ID4+Pj4gQEAgLTc1LDExICs3NSwyMSBAQCBleHRlcm4gdm9p
-ZCBxdWV1ZV9zcGluX2xvY2tfc2xvd3BhdGgoc3RydWN0IHFzcGlubG9jayAqbG9jaywgdTMyIHZh
-bCk7IAo+ID4+Pj7CoMKgwqAgKi8gCj4gPj4+PsKgwqAgc3RhdGljIF9fYWx3YXlzX2lubGluZSB2
-b2lkIHF1ZXVlX3NwaW5fbG9jayhzdHJ1Y3QgcXNwaW5sb2NrICpsb2NrKSAKPiA+Pj4+wqDCoCB7
-IAo+ID4+Pj4gLSB1MzIgdmFsOyAKPiA+Pj4+ICsgdTMyIHZhbCwgbmV3OyAKPiA+Pj4+IAo+ID4+
-Pj7CoMKgIHZhbCA9IGF0b21pY19jbXB4Y2hnKCZsb2NrLT52YWwsIDAsIF9RX0xPQ0tFRF9WQUwp
-OyAKPiA+Pj4+wqDCoCBpZiAobGlrZWx5KHZhbCA9PSAwKSkgCj4gPj4+PsKgwqAgcmV0dXJuOyAK
-PiA+Pj4+ICsgCj4gPj4+PiArIC8qIE9uZSBtb3JlIGF0dGVtcHQgLSBidXQgaWYgd2UgZmFpbCBt
-YXJrIGl0IGFzIHBlbmRpbmcuICovIAo+ID4+Pj4gKyBpZiAodmFsID09IF9RX0xPQ0tFRF9WQUwp
-IHsgCj4gPj4+PiArIG5ldyA9IFFfTE9DS0VEX1ZBTCB8X1FfUEVORElOR19WQUw7IAo+ID4+Pj4g
-KyAKPiA+Pj4+ICsgb2xkID0gYXRvbWljX2NtcHhjaGcoJmxvY2stPnZhbCwgdmFsLCBuZXcpOyAK
-PiA+Pj4+ICsgaWYgKG9sZCA9PSBfUV9MT0NLRURfVkFMKSAvKiBZRUVZISAqLyAKPiA+Pj4+ICsg
-cmV0dXJuOyAKPiA+Pj4gTm8sIGl0IGNhbiBsZWF2ZSBsaWtlIHRoYXQuIFRoZSB1bmxvY2sgcGF0
-aCB3aWxsIG5vdCBjbGVhciB0aGUgcGVuZGluZyBiaXQuIAo+ID4+IEVyciwgeW91IGFyZSByaWdo
-dC4gSXQgbmVlZHMgdG8gZ28gYmFjayBpbiB0aGUgc2xvd3BhdGguIAo+ID4gV2hhdCBJIHNob3Vs
-ZCBoYXZlIHdyb3RlIGlzOiAKPiA+IAo+ID4gaWYgKG9sZCA9PSAwKSAvKiBZRUVZICovIAo+ID7C
-oMKgwqAgcmV0dXJuOyAKPgo+IFVuZm9ydHVuYXRlbHksIHRoYXQgc3RpbGwgZG9lc24ndCB3b3Jr
-LiBJZiBvbGQgaXMgMCwgaXQganVzdCBtZWFudCB0aGUgCj4gY21weGNoZyBmYWlsZWQuIEl0IHN0
-aWxsIGhhdmVuJ3QgZ290IHRoZSBsb2NrLiAKPiA+IEFzIHRoYXQgd291bGQgdGhlIHNhbWUgdGhp
-bmcgYXMgdGhpcyBwYXRjaCBkb2VzIG9uIHRoZSBwZW5kaW5nIGJpdCAtIHRoYXQgCj4gPiBpcyBp
-ZiB3ZSBjYW4gb24gdGhlIHNlY29uZCBjb21wYXJlIGFuZCBleGNoYW5nZSBzZXQgdGhlIHBlbmRp
-bmcgYml0IChhbmQgdGhlIAo+ID4gbG9jaykgYW5kIHRoZSBsb2NrIGhhcyBiZWVuIHJlbGVhc2Vk
-IC0gd2UgYXJlIGdvb2QuIAo+Cj4gVGhhdCBpcyBub3QgdHJ1ZS4gV2hlbiB0aGUgbG9jayBpcyBm
-cmVlZCwgdGhlIHBlbmRpbmcgYml0IGhvbGRlciB3aWxsIAo+IHN0aWxsIGhhdmUgdG8gY2xlYXIg
-dGhlIHBlbmRpbmcgYml0IGFuZCBzZXQgdGhlIGxvY2sgYml0IGFzIGlzIGRvbmUgaW4gCj4gdGhl
-IHNsb3dwYXRoLiBXZSBjYW5ub3Qgc2tpcCB0aGUgc3RlcCBoZXJlLiBUaGUgcHJvYmxlbSBvZiBt
-b3ZpbmcgdGhlIAo+IHBlbmRpbmcgY29kZSBoZXJlIGlzIHRoYXQgaXQgaW5jbHVkZXMgYSB3YWl0
-IGxvb3Agd2hpY2ggd2UgZG9uJ3Qgd2FudCB0byAKPiBwdXQgaW4gdGhlIGZhc3RwYXRoLiAKPiA+
-IAo+ID4gQW5kIGl0IGlzIGEgcXVpY2sgcGF0aC4gCj4gPiAKPiA+Pj4gV2UgYXJlIHRyeWluZyB0
-byBtYWtlIHRoZSBmYXN0cGF0aCBhcyBzaW1wbGUgYXMgcG9zc2libGUgYXMgaXQgbWF5IGJlIAo+
-ID4+PiBpbmxpbmVkLiBUaGUgY29tcGxleGl0eSBvZiB0aGUgcXVldWUgc3BpbmxvY2sgaXMgaW4g
-dGhlIHNsb3dwYXRoLiAKPiA+PiBTdXJlLCBidXQgdGhlbiBpdCBzaG91bGRuJ3QgYmUgY2FsbGVk
-IHNsb3dwYXRoIGFueW1vcmUgYXMgaXQgaXMgbm90IAo+ID4+IHNsb3cuIEl0IGlzIGEgY29tYmlu
-YXRpb24gb2YgZmFzdCBwYXRoICh0aGUgcG90ZW50aWFsIGNoYW5jZSBvZiAKPiA+PiBncmFiYmlu
-ZyB0aGUgbG9jayBhbmQgc2V0dGluZyB0aGUgcGVuZGluZyBsb2NrKSBhbmQgdGhlIHJlYWwgc2xv
-dyAKPiA+PiBwYXRoICh0aGUgcXVldWluZykuIFBlcmhhcHMgaXQgc2hvdWxkIGJlIGNhbGxlZCAn
-cXVldWVfc3BpbmxvY2tfY29tcGxleCcgPyAKPiA+PiAKPiA+IEkgZm9yZ290IHRvIG1lbnRpb24g
-LSB0aGF0IHdhcyB0aGUgY3J1eCBvZiBteSBjb21tZW50cyAtIGp1c3QgY2hhbmdlIAo+ID4gdGhl
-IHNsb3dwYXRoIHRvIGNvbXBsZXggbmFtZSBhdCB0aGF0IHBvaW50IHRvIGJldHRlciByZWZsZWN0
-IHdoYXQgCj4gPiBpdCBkb2VzLiAKPgo+IEFjdHVhbGx5IGluIG15IHYxMSBwYXRjaCwgSSBzdWJk
-aXZpZGVkIHRoZSBzbG93cGF0aCBpbnRvIGEgc2xvd3BhdGggZm9yIAo+IHRoZSBwZW5kaW5nIGNv
-ZGUgYW5kIHNsb3dlcnBhdGggZm9yIGFjdHVhbCBxdWV1aW5nLiBQZXJoYXBzLCB3ZSBjb3VsZCAK
-PiB1c2UgcXVpY2twYXRoIGFuZCBzbG93cGF0aCBpbnN0ZWFkLiBBbnl3YXksIGl0IGlzIGEgbWlu
-b3IgZGV0YWlsIHRoYXQgd2UgCj4gY2FuIGRpc2N1c3MgYWZ0ZXIgdGhlIGNvcmUgY29kZSBnZXQg
-bWVyZ2VkLgo+Cj4gLUxvbmdtYW4KCldoeSBub3QgZG8gaXQgdGhlIHJpZ2h0IHdheSB0aGUgZmly
-c3QgdGltZSBhcm91bmQ/CgpUaGF0IGFzaWRlIC0gdGhlc2Ugb3B0aW1pemF0aW9uIC0gc2VlbSB0
-byBtYWtlIHRoZSBjb2RlIGhhcmRlciB0byByZWFkLiBBbmQgdGhleSBkbyByZW1pbmQgbWUgb2Yg
-dGhlIHNjaGVkdWxlciBjb2RlIGluIDIuNi54IHdoaWNoIHdhcyBiYXNlZCBvbiBoZXVyaXN0aWNz
-IC0gYW5kIGV2ZW50dWFsbHkgcmlwcGVkIG91dC4KClNvIGFyZSB0aGVzZSBvcHRpbWl6YXRpb25z
-IGJhc2VkIG9uIHR1cm5pbmcgb2ZmIGNlcnRhaW4gaGFyZHdhcmUgZmVhdHVyZXM/IFNheSBoYXJk
-d2FyZSBwcmVmZXRjaGluZz8KCldoYXQgSSBhbSBnZXR0aW5nIGF0IC0gY2FuIHRoZSBoYXJkd2Fy
-ZSBkbyB0aGlzIGF0IHNvbWUgcG9pbnQgKG9yIHBlcmhhcHMgYWxyZWFkeSBkb2VzIG9uIEl2eUJy
-aWRnZS1FWD8pIC0gdGhhdCBpcyBwcmVmZXRjaCB0aGUgcGVyLWNwdSBhcmVhcyBzbyB0aGV5IGFy
-ZSBhbHdheXMgaG90PyBBbmQgcmVuZGVyaW5nIHRoaXMgb3B0aW1pemF0aW9uIG5vdCBuZWVkZWQ/
-CgpUaGFua3MhCg==
+Thanks to Fengguang Wu for spotting a missing static cast.
+
+v2:
+- Kill unused variable need_shared.
+v3:
+- Clarify the BUG() in dma_buf_release some more. (Rob Clark)
+
+Signed-off-by: Maarten Lankhorst <maarten.lankhorst@canonical.com>
+---
+ drivers/base/dma-buf.c  |  108 +++++++++++++++++++++++++++++++++++++++++++++++
+ include/linux/dma-buf.h |   12 +++++
+ 2 files changed, 120 insertions(+)
+
+diff --git a/drivers/base/dma-buf.c b/drivers/base/dma-buf.c
+index cd40ca22911f..25e8c4165936 100644
+--- a/drivers/base/dma-buf.c
++++ b/drivers/base/dma-buf.c
+@@ -30,6 +30,7 @@
+ #include <linux/export.h>
+ #include <linux/debugfs.h>
+ #include <linux/seq_file.h>
++#include <linux/poll.h>
+ #include <linux/reservation.h>
+ 
+ static inline int is_dma_buf_file(struct file *);
+@@ -52,6 +53,16 @@ static int dma_buf_release(struct inode *inode, struct file *file)
+ 
+ 	BUG_ON(dmabuf->vmapping_counter);
+ 
++	/*
++	 * Any fences that a dma-buf poll can wait on should be signaled
++	 * before releasing dma-buf. This is the responsibility of each
++	 * driver that uses the reservation objects.
++	 *
++	 * If you hit this BUG() it means someone dropped their ref to the
++	 * dma-buf while still having pending operation to the buffer.
++	 */
++	BUG_ON(dmabuf->cb_shared.active || dmabuf->cb_excl.active);
++
+ 	dmabuf->ops->release(dmabuf);
+ 
+ 	mutex_lock(&db_list.lock);
+@@ -108,10 +119,103 @@ static loff_t dma_buf_llseek(struct file *file, loff_t offset, int whence)
+ 	return base + offset;
+ }
+ 
++static void dma_buf_poll_cb(struct fence *fence, struct fence_cb *cb)
++{
++	struct dma_buf_poll_cb_t *dcb = (struct dma_buf_poll_cb_t *)cb;
++	unsigned long flags;
++
++	spin_lock_irqsave(&dcb->poll->lock, flags);
++	wake_up_locked_poll(dcb->poll, dcb->active);
++	dcb->active = 0;
++	spin_unlock_irqrestore(&dcb->poll->lock, flags);
++}
++
++static unsigned int dma_buf_poll(struct file *file, poll_table *poll)
++{
++	struct dma_buf *dmabuf;
++	struct reservation_object *resv;
++	unsigned long events;
++
++	dmabuf = file->private_data;
++	if (!dmabuf || !dmabuf->resv)
++		return POLLERR;
++
++	resv = dmabuf->resv;
++
++	poll_wait(file, &dmabuf->poll, poll);
++
++	events = poll_requested_events(poll) & (POLLIN | POLLOUT);
++	if (!events)
++		return 0;
++
++	ww_mutex_lock(&resv->lock, NULL);
++
++	if (resv->fence_excl && (!(events & POLLOUT) ||
++				 resv->fence_shared_count == 0)) {
++		struct dma_buf_poll_cb_t *dcb = &dmabuf->cb_excl;
++		unsigned long pevents = POLLIN;
++
++		if (resv->fence_shared_count == 0)
++			pevents |= POLLOUT;
++
++		spin_lock_irq(&dmabuf->poll.lock);
++		if (dcb->active) {
++			dcb->active |= pevents;
++			events &= ~pevents;
++		} else
++			dcb->active = pevents;
++		spin_unlock_irq(&dmabuf->poll.lock);
++
++		if (events & pevents) {
++			if (!fence_add_callback(resv->fence_excl,
++						&dcb->cb, dma_buf_poll_cb))
++				events &= ~pevents;
++			else
++				/*
++				 * No callback queued, wake up any additional
++				 * waiters.
++				 */
++				dma_buf_poll_cb(NULL, &dcb->cb);
++		}
++	}
++
++	if ((events & POLLOUT) && resv->fence_shared_count > 0) {
++		struct dma_buf_poll_cb_t *dcb = &dmabuf->cb_shared;
++		int i;
++
++		/* Only queue a new callback if no event has fired yet */
++		spin_lock_irq(&dmabuf->poll.lock);
++		if (dcb->active)
++			events &= ~POLLOUT;
++		else
++			dcb->active = POLLOUT;
++		spin_unlock_irq(&dmabuf->poll.lock);
++
++		if (!(events & POLLOUT))
++			goto out;
++
++		for (i = 0; i < resv->fence_shared_count; ++i)
++			if (!fence_add_callback(resv->fence_shared[i],
++						&dcb->cb, dma_buf_poll_cb)) {
++				events &= ~POLLOUT;
++				break;
++			}
++
++		/* No callback queued, wake up any additional waiters. */
++		if (i == resv->fence_shared_count)
++			dma_buf_poll_cb(NULL, &dcb->cb);
++	}
++
++out:
++	ww_mutex_unlock(&resv->lock);
++	return events;
++}
++
+ static const struct file_operations dma_buf_fops = {
+ 	.release	= dma_buf_release,
+ 	.mmap		= dma_buf_mmap_internal,
+ 	.llseek		= dma_buf_llseek,
++	.poll		= dma_buf_poll,
+ };
+ 
+ /*
+@@ -171,6 +275,10 @@ struct dma_buf *dma_buf_export_named(void *priv, const struct dma_buf_ops *ops,
+ 	dmabuf->ops = ops;
+ 	dmabuf->size = size;
+ 	dmabuf->exp_name = exp_name;
++	init_waitqueue_head(&dmabuf->poll);
++	dmabuf->cb_excl.poll = dmabuf->cb_shared.poll = &dmabuf->poll;
++	dmabuf->cb_excl.active = dmabuf->cb_shared.active = 0;
++
+ 	if (!resv) {
+ 		resv = (struct reservation_object *)&dmabuf[1];
+ 		reservation_object_init(resv);
+diff --git a/include/linux/dma-buf.h b/include/linux/dma-buf.h
+index fd7def2e0ae2..694e1fe1c4b4 100644
+--- a/include/linux/dma-buf.h
++++ b/include/linux/dma-buf.h
+@@ -30,6 +30,8 @@
+ #include <linux/list.h>
+ #include <linux/dma-mapping.h>
+ #include <linux/fs.h>
++#include <linux/fence.h>
++#include <linux/wait.h>
+ 
+ struct device;
+ struct dma_buf;
+@@ -130,6 +132,16 @@ struct dma_buf {
+ 	struct list_head list_node;
+ 	void *priv;
+ 	struct reservation_object *resv;
++
++	/* poll support */
++	wait_queue_head_t poll;
++
++	struct dma_buf_poll_cb_t {
++		struct fence_cb cb;
++		wait_queue_head_t *poll;
++
++		unsigned long active;
++	} cb_excl, cb_shared;
+ };
+ 
+ /**
 
