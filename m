@@ -1,14 +1,14 @@
 From: Paolo Bonzini <pbonzini@redhat.com>
-Subject: Re: [PATCH 05/11] qspinlock: Optimize for smaller NR_CPUS
-Date: Wed, 18 Jun 2014 13:39:52 +0200
-Message-ID: <53A17A88.7090705@redhat.com>
+Subject: Re: [PATCH 06/11] qspinlock: Optimize pending bit
+Date: Wed, 18 Jun 2014 13:42:13 +0200
+Message-ID: <53A17B15.3080904@redhat.com>
 References: <20140615124657.264658593@chello.nl>
-	<20140615130153.483502389@chello.nl>
+	<20140615130153.638054585@chello.nl>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"; Format="flowed"
 Content-Transfer-Encoding: 7bit
 Return-path: <virtualization-bounces@lists.linux-foundation.org>
-In-Reply-To: <20140615130153.483502389@chello.nl>
+In-Reply-To: <20140615130153.638054585@chello.nl>
 List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
 	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
 List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
@@ -23,20 +23,19 @@ Cc: linux-arch@vger.kernel.org, riel@redhat.com, gleb@redhat.com, kvm@vger.kerne
 List-Id: linux-arch.vger.kernel.org
 
 Il 15/06/2014 14:47, Peter Zijlstra ha scritto:
->
-> -	for (;;) {
-> -		new = (val & ~_Q_PENDING_MASK) | _Q_LOCKED_VAL;
-> -
-> -		old = atomic_cmpxchg(&lock->val, val, new);
-> -		if (old == val)
-> -			break;
-> -
-> -		val = old;
-> -	}
-> +	clear_pending_set_locked(lock, val);
->  	return;
+> XXX: merge into the pending bit patch..
 
-
-Might as well add clear_pending_set_locked already in patch 3.
+Agree, or if not move it right after the pending bit patch, before the 
+NR_CPUS optimization.
 
 Paolo
+
+> It is possible so observe the pending bit without the locked bit when
+> the last owner has just released but the pending owner has not yet
+> taken ownership.
+>
+> In this case we would normally queue -- because the pending bit is
+> already taken. However, in this case the pending bit is guaranteed to
+> be released 'soon', therefore wait for it and avoid queueing.
+>
+> Signed-off-by: Peter Zijlstra <peterz@infradead.org>
