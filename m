@@ -1,101 +1,86 @@
-From: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
-Subject: Re: [PATCH 03/11] qspinlock: Add pending bit
-Date: Tue, 17 Jun 2014 19:23:44 -0400
-Message-ID: <201406172323.s5HNNveT018439@userz7022.oracle.com>
+From: Maarten Lankhorst <maarten.lankhorst@canonical.com>
+Subject: [REPOST PATCH 0/8] fence synchronization patches
+Date: Wed, 18 Jun 2014 12:36:46 +0200
+Message-ID: <20140618102957.15728.43525.stgit@patser>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <virtualization-bounces@lists.linux-foundation.org>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
-List-Post: <mailto:virtualization@lists.linux-foundation.org>
-List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
-Sender: virtualization-bounces@lists.linux-foundation.org
-Errors-To: virtualization-bounces@lists.linux-foundation.org
-To: Waiman Long <waiman.long@hp.com>
-Cc: linux-arch@vger.kernel.org, riel@redhat.com, kvm@vger.kernel.org, gleb@redhat.com, boris.ostrovsky@oracle.com, linux-kernel@vger.kernel.org, raghavendra.kt@linux.vnet.ibm.com, paolo.bonzini@gmail.com, oleg@redhat.com, virtualization@lists.linux-foundation.org, Peter Zijlstra <peterz@infradead.org>, torvalds@linux-foundation.org, david.vrabel@citrix.com, scott.norton@hp.com, xen-devel@lists.xenproject.org, tglx@linutronix.de, paulmck@linux.vnet.ibm.com, chegu_vinod@hp.com, mingo@kernel.org, Peter Zijlstra <a.p.zijlstra@chello.nl>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <dri-devel-bounces@lists.freedesktop.org>
+List-Unsubscribe: <http://lists.freedesktop.org/mailman/options/dri-devel>,
+ <mailto:dri-devel-request@lists.freedesktop.org?subject=unsubscribe>
+List-Archive: <http://lists.freedesktop.org/archives/dri-devel>
+List-Post: <mailto:dri-devel@lists.freedesktop.org>
+List-Help: <mailto:dri-devel-request@lists.freedesktop.org?subject=help>
+List-Subscribe: <http://lists.freedesktop.org/mailman/listinfo/dri-devel>,
+ <mailto:dri-devel-request@lists.freedesktop.org?subject=subscribe>
+Errors-To: dri-devel-bounces@lists.freedesktop.org
+Sender: "dri-devel" <dri-devel-bounces@lists.freedesktop.org>
+To: gregkh@linuxfoundation.org
+Cc: linux-arch@vger.kernel.org, thellstrom@vmware.com, linux-kernel@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, ccross@google.com, linux-media@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Ck9uIEp1biAxNywgMjAxNCA2OjI1IFBNLCBXYWltYW4gTG9uZyA8d2FpbWFuLmxvbmdAaHAuY29t
-PiB3cm90ZToKPgo+IE9uIDA2LzE3LzIwMTQgMDU6MTAgUE0sIEtvbnJhZCBSemVzenV0ZWsgV2ls
-ayB3cm90ZTogCj4gPiBPbiBUdWUsIEp1biAxNywgMjAxNCBhdCAwNTowNzoyOVBNIC0wNDAwLCBL
-b25yYWQgUnplc3p1dGVrIFdpbGsgd3JvdGU6IAo+ID4+IE9uIFR1ZSwgSnVuIDE3LCAyMDE0IGF0
-IDA0OjUxOjU3UE0gLTA0MDAsIFdhaW1hbiBMb25nIHdyb3RlOiAKPiA+Pj4gT24gMDYvMTcvMjAx
-NCAwNDozNiBQTSwgS29ucmFkIFJ6ZXN6dXRlayBXaWxrIHdyb3RlOiAKPiA+Pj4+IE9uIFN1biwg
-SnVuIDE1LCAyMDE0IGF0IDAyOjQ3OjAwUE0gKzAyMDAsIFBldGVyIFppamxzdHJhIHdyb3RlOiAK
-PiA+Pj4+PiBCZWNhdXNlIHRoZSBxc3BpbmxvY2sgbmVlZHMgdG8gdG91Y2ggYSBzZWNvbmQgY2Fj
-aGVsaW5lOyBhZGQgYSBwZW5kaW5nIAo+ID4+Pj4+IGJpdCBhbmQgYWxsb3cgYSBzaW5nbGUgaW4t
-d29yZCBzcGlubmVyIGJlZm9yZSB3ZSBwdW50IHRvIHRoZSBzZWNvbmQgCj4gPj4+Pj4gY2FjaGVs
-aW5lLiAKPiA+Pj4+IENvdWxkIHlvdSBhZGQgdGhpcyBpbiB0aGUgZGVzY3JpcHRpb24gcGxlYXNl
-OiAKPiA+Pj4+IAo+ID4+Pj4gQW5kIGJ5IHNlY29uZCBjYWNoZWxpbmUgd2UgbWVhbiB0aGUgbG9j
-YWwgJ25vZGUnLiBUaGF0IGlzIHRoZTogCj4gPj4+PiBtY3Nfbm9kZXNbMF0gYW5kIG1jc19ub2Rl
-c1tpZHhdIAo+ID4+Pj4gCj4gPj4+PiBQZXJoYXBzIGl0IG1pZ2h0IGJlIGJldHRlciB0aGVuIHRv
-IHNwbGl0IHRoaXMgaW4gdGhlIGhlYWRlciBmaWxlIAo+ID4+Pj4gYXMgdGhpcyBpcyB0cnlpbmcg
-dG8gbm90IGJlIGEgc2xvd3BhdGggY29kZSAtIGJ1dCByYXRoZXIgLSBhIAo+ID4+Pj4gcHJlLXNs
-b3ctcGF0aC1sZXRzLXRyeS1pZi13ZSBjYW4gZG8gYW5vdGhlciBjbXB4Y2hnIGluIGNhc2UgCj4g
-Pj4+PiB0aGUgdW5sb2NrZXIgaGFzIGp1c3QgdW5sb2NrZWQgaXRzZWxmLiAKPiA+Pj4+IAo+ID4+
-Pj4gU28gc29tZXRoaW5nIGxpa2U6IAo+ID4+Pj4gCj4gPj4+PiBkaWZmIC0tZ2l0IGEvaW5jbHVk
-ZS9hc20tZ2VuZXJpYy9xc3BpbmxvY2suaCBiL2luY2x1ZGUvYXNtLWdlbmVyaWMvcXNwaW5sb2Nr
-LmggCj4gPj4+PiBpbmRleCBlOGE3YWU4Li4yOWNjOWM3IDEwMDY0NCAKPiA+Pj4+IC0tLSBhL2lu
-Y2x1ZGUvYXNtLWdlbmVyaWMvcXNwaW5sb2NrLmggCj4gPj4+PiArKysgYi9pbmNsdWRlL2FzbS1n
-ZW5lcmljL3FzcGlubG9jay5oIAo+ID4+Pj4gQEAgLTc1LDExICs3NSwyMSBAQCBleHRlcm4gdm9p
-ZCBxdWV1ZV9zcGluX2xvY2tfc2xvd3BhdGgoc3RydWN0IHFzcGlubG9jayAqbG9jaywgdTMyIHZh
-bCk7IAo+ID4+Pj7CoMKgwqAgKi8gCj4gPj4+PsKgwqAgc3RhdGljIF9fYWx3YXlzX2lubGluZSB2
-b2lkIHF1ZXVlX3NwaW5fbG9jayhzdHJ1Y3QgcXNwaW5sb2NrICpsb2NrKSAKPiA+Pj4+wqDCoCB7
-IAo+ID4+Pj4gLSB1MzIgdmFsOyAKPiA+Pj4+ICsgdTMyIHZhbCwgbmV3OyAKPiA+Pj4+IAo+ID4+
-Pj7CoMKgIHZhbCA9IGF0b21pY19jbXB4Y2hnKCZsb2NrLT52YWwsIDAsIF9RX0xPQ0tFRF9WQUwp
-OyAKPiA+Pj4+wqDCoCBpZiAobGlrZWx5KHZhbCA9PSAwKSkgCj4gPj4+PsKgwqAgcmV0dXJuOyAK
-PiA+Pj4+ICsgCj4gPj4+PiArIC8qIE9uZSBtb3JlIGF0dGVtcHQgLSBidXQgaWYgd2UgZmFpbCBt
-YXJrIGl0IGFzIHBlbmRpbmcuICovIAo+ID4+Pj4gKyBpZiAodmFsID09IF9RX0xPQ0tFRF9WQUwp
-IHsgCj4gPj4+PiArIG5ldyA9IFFfTE9DS0VEX1ZBTCB8X1FfUEVORElOR19WQUw7IAo+ID4+Pj4g
-KyAKPiA+Pj4+ICsgb2xkID0gYXRvbWljX2NtcHhjaGcoJmxvY2stPnZhbCwgdmFsLCBuZXcpOyAK
-PiA+Pj4+ICsgaWYgKG9sZCA9PSBfUV9MT0NLRURfVkFMKSAvKiBZRUVZISAqLyAKPiA+Pj4+ICsg
-cmV0dXJuOyAKPiA+Pj4gTm8sIGl0IGNhbiBsZWF2ZSBsaWtlIHRoYXQuIFRoZSB1bmxvY2sgcGF0
-aCB3aWxsIG5vdCBjbGVhciB0aGUgcGVuZGluZyBiaXQuIAo+ID4+IEVyciwgeW91IGFyZSByaWdo
-dC4gSXQgbmVlZHMgdG8gZ28gYmFjayBpbiB0aGUgc2xvd3BhdGguIAo+ID4gV2hhdCBJIHNob3Vs
-ZCBoYXZlIHdyb3RlIGlzOiAKPiA+IAo+ID4gaWYgKG9sZCA9PSAwKSAvKiBZRUVZICovIAo+ID7C
-oMKgwqAgcmV0dXJuOyAKPgo+IFVuZm9ydHVuYXRlbHksIHRoYXQgc3RpbGwgZG9lc24ndCB3b3Jr
-LiBJZiBvbGQgaXMgMCwgaXQganVzdCBtZWFudCB0aGUgCj4gY21weGNoZyBmYWlsZWQuIEl0IHN0
-aWxsIGhhdmVuJ3QgZ290IHRoZSBsb2NrLiAKPiA+IEFzIHRoYXQgd291bGQgdGhlIHNhbWUgdGhp
-bmcgYXMgdGhpcyBwYXRjaCBkb2VzIG9uIHRoZSBwZW5kaW5nIGJpdCAtIHRoYXQgCj4gPiBpcyBp
-ZiB3ZSBjYW4gb24gdGhlIHNlY29uZCBjb21wYXJlIGFuZCBleGNoYW5nZSBzZXQgdGhlIHBlbmRp
-bmcgYml0IChhbmQgdGhlIAo+ID4gbG9jaykgYW5kIHRoZSBsb2NrIGhhcyBiZWVuIHJlbGVhc2Vk
-IC0gd2UgYXJlIGdvb2QuIAo+Cj4gVGhhdCBpcyBub3QgdHJ1ZS4gV2hlbiB0aGUgbG9jayBpcyBm
-cmVlZCwgdGhlIHBlbmRpbmcgYml0IGhvbGRlciB3aWxsIAo+IHN0aWxsIGhhdmUgdG8gY2xlYXIg
-dGhlIHBlbmRpbmcgYml0IGFuZCBzZXQgdGhlIGxvY2sgYml0IGFzIGlzIGRvbmUgaW4gCj4gdGhl
-IHNsb3dwYXRoLiBXZSBjYW5ub3Qgc2tpcCB0aGUgc3RlcCBoZXJlLiBUaGUgcHJvYmxlbSBvZiBt
-b3ZpbmcgdGhlIAo+IHBlbmRpbmcgY29kZSBoZXJlIGlzIHRoYXQgaXQgaW5jbHVkZXMgYSB3YWl0
-IGxvb3Agd2hpY2ggd2UgZG9uJ3Qgd2FudCB0byAKPiBwdXQgaW4gdGhlIGZhc3RwYXRoLiAKPiA+
-IAo+ID4gQW5kIGl0IGlzIGEgcXVpY2sgcGF0aC4gCj4gPiAKPiA+Pj4gV2UgYXJlIHRyeWluZyB0
-byBtYWtlIHRoZSBmYXN0cGF0aCBhcyBzaW1wbGUgYXMgcG9zc2libGUgYXMgaXQgbWF5IGJlIAo+
-ID4+PiBpbmxpbmVkLiBUaGUgY29tcGxleGl0eSBvZiB0aGUgcXVldWUgc3BpbmxvY2sgaXMgaW4g
-dGhlIHNsb3dwYXRoLiAKPiA+PiBTdXJlLCBidXQgdGhlbiBpdCBzaG91bGRuJ3QgYmUgY2FsbGVk
-IHNsb3dwYXRoIGFueW1vcmUgYXMgaXQgaXMgbm90IAo+ID4+IHNsb3cuIEl0IGlzIGEgY29tYmlu
-YXRpb24gb2YgZmFzdCBwYXRoICh0aGUgcG90ZW50aWFsIGNoYW5jZSBvZiAKPiA+PiBncmFiYmlu
-ZyB0aGUgbG9jayBhbmQgc2V0dGluZyB0aGUgcGVuZGluZyBsb2NrKSBhbmQgdGhlIHJlYWwgc2xv
-dyAKPiA+PiBwYXRoICh0aGUgcXVldWluZykuIFBlcmhhcHMgaXQgc2hvdWxkIGJlIGNhbGxlZCAn
-cXVldWVfc3BpbmxvY2tfY29tcGxleCcgPyAKPiA+PiAKPiA+IEkgZm9yZ290IHRvIG1lbnRpb24g
-LSB0aGF0IHdhcyB0aGUgY3J1eCBvZiBteSBjb21tZW50cyAtIGp1c3QgY2hhbmdlIAo+ID4gdGhl
-IHNsb3dwYXRoIHRvIGNvbXBsZXggbmFtZSBhdCB0aGF0IHBvaW50IHRvIGJldHRlciByZWZsZWN0
-IHdoYXQgCj4gPiBpdCBkb2VzLiAKPgo+IEFjdHVhbGx5IGluIG15IHYxMSBwYXRjaCwgSSBzdWJk
-aXZpZGVkIHRoZSBzbG93cGF0aCBpbnRvIGEgc2xvd3BhdGggZm9yIAo+IHRoZSBwZW5kaW5nIGNv
-ZGUgYW5kIHNsb3dlcnBhdGggZm9yIGFjdHVhbCBxdWV1aW5nLiBQZXJoYXBzLCB3ZSBjb3VsZCAK
-PiB1c2UgcXVpY2twYXRoIGFuZCBzbG93cGF0aCBpbnN0ZWFkLiBBbnl3YXksIGl0IGlzIGEgbWlu
-b3IgZGV0YWlsIHRoYXQgd2UgCj4gY2FuIGRpc2N1c3MgYWZ0ZXIgdGhlIGNvcmUgY29kZSBnZXQg
-bWVyZ2VkLgo+Cj4gLUxvbmdtYW4KCldoeSBub3QgZG8gaXQgdGhlIHJpZ2h0IHdheSB0aGUgZmly
-c3QgdGltZSBhcm91bmQ/CgpUaGF0IGFzaWRlIC0gdGhlc2Ugb3B0aW1pemF0aW9uIC0gc2VlbSB0
-byBtYWtlIHRoZSBjb2RlIGhhcmRlciB0byByZWFkLiBBbmQgdGhleSBkbyByZW1pbmQgbWUgb2Yg
-dGhlIHNjaGVkdWxlciBjb2RlIGluIDIuNi54IHdoaWNoIHdhcyBiYXNlZCBvbiBoZXVyaXN0aWNz
-IC0gYW5kIGV2ZW50dWFsbHkgcmlwcGVkIG91dC4KClNvIGFyZSB0aGVzZSBvcHRpbWl6YXRpb25z
-IGJhc2VkIG9uIHR1cm5pbmcgb2ZmIGNlcnRhaW4gaGFyZHdhcmUgZmVhdHVyZXM/IFNheSBoYXJk
-d2FyZSBwcmVmZXRjaGluZz8KCldoYXQgSSBhbSBnZXR0aW5nIGF0IC0gY2FuIHRoZSBoYXJkd2Fy
-ZSBkbyB0aGlzIGF0IHNvbWUgcG9pbnQgKG9yIHBlcmhhcHMgYWxyZWFkeSBkb2VzIG9uIEl2eUJy
-aWRnZS1FWD8pIC0gdGhhdCBpcyBwcmVmZXRjaCB0aGUgcGVyLWNwdSBhcmVhcyBzbyB0aGV5IGFy
-ZSBhbHdheXMgaG90PyBBbmQgcmVuZGVyaW5nIHRoaXMgb3B0aW1pemF0aW9uIG5vdCBuZWVkZWQ/
-CgpUaGFua3MhCl9fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19f
-ClZpcnR1YWxpemF0aW9uIG1haWxpbmcgbGlzdApWaXJ0dWFsaXphdGlvbkBsaXN0cy5saW51eC1m
-b3VuZGF0aW9uLm9yZwpodHRwczovL2xpc3RzLmxpbnV4Zm91bmRhdGlvbi5vcmcvbWFpbG1hbi9s
-aXN0aW5mby92aXJ0dWFsaXphdGlvbg==
+The following series implements fence and converts dma-buf and
+android sync to use it. Patch 5 and 6 add support for polling
+to dma-buf, blocking until all fences are signaled.
+Patch 7 and 8 provide some helpers, and allow use of RCU in the
+reservation api. The helpers make it easier to convert ttm, and
+make dealing with rcu less painful.
+
+Patches slightly updated to fix compilation with armada and
+new atomic primitives, but otherwise identical.
+
+---
+
+Maarten Lankhorst (8):
+      fence: dma-buf cross-device synchronization (v17)
+      seqno-fence: Hardware dma-buf implementation of fencing (v5)
+      dma-buf: use reservation objects
+      android: convert sync to fence api, v5
+      reservation: add support for fences to enable cross-device synchronisation
+      dma-buf: add poll support, v3
+      reservation: update api and add some helpers
+      reservation: add suppport for read-only access using rcu
+
+
+ Documentation/DocBook/device-drivers.tmpl      |    3 
+ drivers/base/Kconfig                           |    9 
+ drivers/base/Makefile                          |    2 
+ drivers/base/dma-buf.c                         |  168 ++++
+ drivers/base/fence.c                           |  468 ++++++++++++
+ drivers/base/reservation.c                     |  440 ++++++++++++
+ drivers/gpu/drm/armada/armada_gem.c            |    2 
+ drivers/gpu/drm/drm_prime.c                    |    8 
+ drivers/gpu/drm/exynos/exynos_drm_dmabuf.c     |    2 
+ drivers/gpu/drm/i915/i915_gem_dmabuf.c         |    3 
+ drivers/gpu/drm/nouveau/nouveau_drm.c          |    1 
+ drivers/gpu/drm/nouveau/nouveau_gem.h          |    1 
+ drivers/gpu/drm/nouveau/nouveau_prime.c        |    7 
+ drivers/gpu/drm/omapdrm/omap_gem_dmabuf.c      |    2 
+ drivers/gpu/drm/radeon/radeon_drv.c            |    2 
+ drivers/gpu/drm/radeon/radeon_prime.c          |    8 
+ drivers/gpu/drm/tegra/gem.c                    |    2 
+ drivers/gpu/drm/ttm/ttm_object.c               |    2 
+ drivers/media/v4l2-core/videobuf2-dma-contig.c |    2 
+ drivers/staging/android/Kconfig                |    1 
+ drivers/staging/android/Makefile               |    2 
+ drivers/staging/android/ion/ion.c              |    3 
+ drivers/staging/android/sw_sync.c              |    6 
+ drivers/staging/android/sync.c                 |  913 ++++++++----------------
+ drivers/staging/android/sync.h                 |   79 +-
+ drivers/staging/android/sync_debug.c           |  247 ++++++
+ drivers/staging/android/trace/sync.h           |   12 
+ include/drm/drmP.h                             |    3 
+ include/linux/dma-buf.h                        |   21 -
+ include/linux/fence.h                          |  355 +++++++++
+ include/linux/reservation.h                    |   82 ++
+ include/linux/seqno-fence.h                    |  119 +++
+ include/trace/events/fence.h                   |  128 +++
+ 33 files changed, 2435 insertions(+), 668 deletions(-)
+ create mode 100644 drivers/base/fence.c
+ create mode 100644 drivers/staging/android/sync_debug.c
+ create mode 100644 include/linux/fence.h
+ create mode 100644 include/linux/seqno-fence.h
+ create mode 100644 include/trace/events/fence.h
+
+-- 
+Signature
