@@ -1,11 +1,11 @@
 From: Maarten Lankhorst <maarten.lankhorst@canonical.com>
-Subject: [REPOST PATCH 1/8] fence: dma-buf cross-device synchronization (v17)
-Date: Wed, 18 Jun 2014 12:36:54 +0200
-Message-ID: <20140618103653.15728.4942.stgit@patser>
+Subject: [REPOST PATCH 3/8] dma-buf: use reservation objects
+Date: Wed, 18 Jun 2014 12:37:05 +0200
+Message-ID: <20140618103705.15728.70914.stgit@patser>
 References: <20140618102957.15728.43525.stgit@patser>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
 Return-path: <dri-devel-bounces@lists.freedesktop.org>
 In-Reply-To: <20140618102957.15728.43525.stgit@patser>
 List-Unsubscribe: <http://lists.freedesktop.org/mailman/options/dri-devel>,
@@ -21,1104 +21,264 @@ To: gregkh@linuxfoundation.org
 Cc: linux-arch@vger.kernel.org, thellstrom@vmware.com, linux-kernel@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, ccross@google.com, linux-media@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-A fence can be attached to a buffer which is being filled or consumed
-by hw, to allow userspace to pass the buffer without waiting to another
-device.  For example, userspace can call page_flip ioctl to display the
-next frame of graphics after kicking the GPU but while the GPU is still
-rendering.  The display device sharing the buffer with the GPU would
-attach a callback to get notified when the GPU's rendering-complete IRQ
-fires, to update the scan-out address of the display, without having to
-wake up userspace.
-
-A driver must allocate a fence context for each execution ring that can
-run in parallel. The function for this takes an argument with how many
-contexts to allocate:
-  + fence_context_alloc()
-
-A fence is transient, one-shot deal.  It is allocated and attached
-to one or more dma-buf's.  When the one that attached it is done, with
-the pending operation, it can signal the fence:
-  + fence_signal()
-
-To have a rough approximation whether a fence is fired, call:
-  + fence_is_signaled()
-
-The dma-buf-mgr handles tracking, and waiting on, the fences associated
-with a dma-buf.
-
-The one pending on the fence can add an async callback:
-  + fence_add_callback()
-
-The callback can optionally be cancelled with:
-  + fence_remove_callback()
-
-To wait synchronously, optionally with a timeout:
-  + fence_wait()
-  + fence_wait_timeout()
-
-When emitting a fence, call:
-  + trace_fence_emit()
-
-To annotate that a fence is blocking on another fence, call:
-  + trace_fence_annotate_wait_on(fence, on_fence)
-
-A default software-only implementation is provided, which can be used
-by drivers attaching a fence to a buffer when they have no other means
-for hw sync.  But a memory backed fence is also envisioned, because it
-is common that GPU's can write to, or poll on some memory location for
-synchronization.  For example:
-
-  fence = custom_get_fence(...);
-  if ((seqno_fence = to_seqno_fence(fence)) != NULL) {
-    dma_buf *fence_buf = seqno_fence->sync_buf;
-    get_dma_buf(fence_buf);
-
-    ... tell the hw the memory location to wait ...
-    custom_wait_on(fence_buf, seqno_fence->seqno_ofs, fence->seqno);
-  } else {
-    /* fall-back to sw sync * /
-    fence_add_callback(fence, my_cb);
-  }
-
-On SoC platforms, if some other hw mechanism is provided for synchronizing
-between IP blocks, it could be supported as an alternate implementation
-with it's own fence ops in a similar way.
-
-enable_signaling callback is used to provide sw signaling in case a cpu
-waiter is requested or no compatible hardware signaling could be used.
-
-The intention is to provide a userspace interface (presumably via eventfd)
-later, to be used in conjunction with dma-buf's mmap support for sw access
-to buffers (or for userspace apps that would prefer to do their own
-synchronization).
-
-v1: Original
-v2: After discussion w/ danvet and mlankhorst on #dri-devel, we decided
-    that dma-fence didn't need to care about the sw->hw signaling path
-    (it can be handled same as sw->sw case), and therefore the fence->ops
-    can be simplified and more handled in the core.  So remove the signal,
-    add_callback, cancel_callback, and wait ops, and replace with a simple
-    enable_signaling() op which can be used to inform a fence supporting
-    hw->hw signaling that one or more devices which do not support hw
-    signaling are waiting (and therefore it should enable an irq or do
-    whatever is necessary in order that the CPU is notified when the
-    fence is passed).
-v3: Fix locking fail in attach_fence() and get_fence()
-v4: Remove tie-in w/ dma-buf..  after discussion w/ danvet and mlankorst
-    we decided that we need to be able to attach one fence to N dma-buf's,
-    so using the list_head in dma-fence struct would be problematic.
-v5: [ Maarten Lankhorst ] Updated for dma-bikeshed-fence and dma-buf-manager.
-v6: [ Maarten Lankhorst ] I removed dma_fence_cancel_callback and some comments
-    about checking if fence fired or not. This is broken by design.
-    waitqueue_active during destruction is now fatal, since the signaller
-    should be holding a reference in enable_signalling until it signalled
-    the fence. Pass the original dma_fence_cb along, and call __remove_wait
-    in the dma_fence_callback handler, so that no cleanup needs to be
-    performed.
-v7: [ Maarten Lankhorst ] Set cb->func and only enable sw signaling if
-    fence wasn't signaled yet, for example for hardware fences that may
-    choose to signal blindly.
-v8: [ Maarten Lankhorst ] Tons of tiny fixes, moved __dma_fence_init to
-    header and fixed include mess. dma-fence.h now includes dma-buf.h
-    All members are now initialized, so kmalloc can be used for
-    allocating a dma-fence. More documentation added.
-v9: Change compiler bitfields to flags, change return type of
-    enable_signaling to bool. Rework dma_fence_wait. Added
-    dma_fence_is_signaled and dma_fence_wait_timeout.
-    s/dma// and change exports to non GPL. Added fence_is_signaled and
-    fence_enable_sw_signaling calls, add ability to override default
-    wait operation.
-v10: remove event_queue, use a custom list, export try_to_wake_up from
-    scheduler. Remove fence lock and use a global spinlock instead,
-    this should hopefully remove all the locking headaches I was having
-    on trying to implement this. enable_signaling is called with this
-    lock held.
-v11:
-    Use atomic ops for flags, lifting the need for some spin_lock_irqsaves.
-    However I kept the guarantee that after fence_signal returns, it is
-    guaranteed that enable_signaling has either been called to completion,
-    or will not be called any more.
-
-    Add contexts and seqno to base fence implementation. This allows you
-    to wait for less fences, by testing for seqno + signaled, and then only
-    wait on the later fence.
-
-    Add FENCE_TRACE, FENCE_WARN, and FENCE_ERR. This makes debugging easier.
-    An CONFIG_DEBUG_FENCE will be added to turn off the FENCE_TRACE
-    spam, and another runtime option can turn it off at runtime.
-v12:
-    Add CONFIG_FENCE_TRACE. Add missing documentation for the fence->context
-    and fence->seqno members.
-v13:
-    Fixup CONFIG_FENCE_TRACE kconfig description.
-    Move fence_context_alloc to fence.
-    Simplify fence_later.
-    Kill priv member to fence_cb.
-v14:
-    Remove priv argument from fence_add_callback, oops!
-v15:
-    Remove priv from documentation.
-    Explicitly include linux/atomic.h.
-v16:
-    Add trace events.
-    Import changes required by android syncpoints.
-v17:
-    Use wake_up_state instead of try_to_wake_up. (Colin Cross)
-    Fix up commit description for seqno_fence. (Rob Clark)
-
-Signed-off-by: Maarten Lankhorst <maarten.lankhorst@canonical.com>
-Signed-off-by: Thierry Reding <thierry.reding@gmail.com> #use smp_mb__before_atomic()
-Reviewed-by: Rob Clark <robdclark@gmail.com>
----
- Documentation/DocBook/device-drivers.tmpl |    2 
- drivers/base/Kconfig                      |    9 +
- drivers/base/Makefile                     |    2 
- drivers/base/fence.c                      |  416 +++++++++++++++++++++++++++++
- include/linux/fence.h                     |  333 +++++++++++++++++++++++
- include/trace/events/fence.h              |  128 +++++++++
- 6 files changed, 889 insertions(+), 1 deletion(-)
- create mode 100644 drivers/base/fence.c
- create mode 100644 include/linux/fence.h
- create mode 100644 include/trace/events/fence.h
-
-diff --git a/Documentation/DocBook/device-drivers.tmpl b/Documentation/DocBook/device-drivers.tmpl
-index cc63f30de166..7eef81069d1b 100644
---- a/Documentation/DocBook/device-drivers.tmpl
-+++ b/Documentation/DocBook/device-drivers.tmpl
-@@ -129,6 +129,8 @@ X!Edrivers/base/interface.c
-      </sect1>
-      <sect1><title>Device Drivers DMA Management</title>
- !Edrivers/base/dma-buf.c
-+!Edrivers/base/fence.c
-+!Iinclude/linux/fence.h
- !Edrivers/base/reservation.c
- !Iinclude/linux/reservation.h
- !Edrivers/base/dma-coherent.c
-diff --git a/drivers/base/Kconfig b/drivers/base/Kconfig
-index 23b8726962af..00e13ce5cbbd 100644
---- a/drivers/base/Kconfig
-+++ b/drivers/base/Kconfig
-@@ -208,6 +208,15 @@ config DMA_SHARED_BUFFER
- 	  APIs extension; the file's descriptor can then be passed on to other
- 	  driver.
- 
-+config FENCE_TRACE
-+	bool "Enable verbose FENCE_TRACE messages"
-+	depends on DMA_SHARED_BUFFER
-+	help
-+	  Enable the FENCE_TRACE printks. This will add extra
-+	  spam to the console log, but will make it easier to diagnose
-+	  lockup related problems for dma-buffers shared across multiple
-+	  devices.
-+
- config DMA_CMA
- 	bool "DMA Contiguous Memory Allocator"
- 	depends on HAVE_DMA_CONTIGUOUS && CMA
-diff --git a/drivers/base/Makefile b/drivers/base/Makefile
-index 04b314e0fa51..eb4864aee073 100644
---- a/drivers/base/Makefile
-+++ b/drivers/base/Makefile
-@@ -10,7 +10,7 @@ obj-$(CONFIG_DMA_CMA) += dma-contiguous.o
- obj-y			+= power/
- obj-$(CONFIG_HAS_DMA)	+= dma-mapping.o
- obj-$(CONFIG_HAVE_GENERIC_DMA_COHERENT) += dma-coherent.o
--obj-$(CONFIG_DMA_SHARED_BUFFER) += dma-buf.o reservation.o
-+obj-$(CONFIG_DMA_SHARED_BUFFER) += dma-buf.o fence.o reservation.o
- obj-$(CONFIG_ISA)	+= isa.o
- obj-$(CONFIG_FW_LOADER)	+= firmware_class.o
- obj-$(CONFIG_NUMA)	+= node.o
-diff --git a/drivers/base/fence.c b/drivers/base/fence.c
-new file mode 100644
-index 000000000000..1da7f4d6542a
---- /dev/null
-+++ b/drivers/base/fence.c
-@@ -0,0 +1,416 @@
-+/*
-+ * Fence mechanism for dma-buf and to allow for asynchronous dma access
-+ *
-+ * Copyright (C) 2012 Canonical Ltd
-+ * Copyright (C) 2012 Texas Instruments
-+ *
-+ * Authors:
-+ * Rob Clark <robdclark@gmail.com>
-+ * Maarten Lankhorst <maarten.lankhorst@canonical.com>
-+ *
-+ * This program is free software; you can redistribute it and/or modify it
-+ * under the terms of the GNU General Public License version 2 as published by
-+ * the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful, but WITHOUT
-+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
-+ * more details.
-+ *
-+ * You should have received a copy of the GNU General Public License along with
-+ * this program.  If not, see <http://www.gnu.org/licenses/>.
-+ */
-+
-+#include <linux/slab.h>
-+#include <linux/export.h>
-+#include <linux/atomic.h>
-+#include <linux/fence.h>
-+
-+#define CREATE_TRACE_POINTS
-+#include <trace/events/fence.h>
-+
-+EXPORT_TRACEPOINT_SYMBOL(fence_annotate_wait_on);
-+EXPORT_TRACEPOINT_SYMBOL(fence_emit);
-+
-+/**
-+ * fence context counter: each execution context should have its own
-+ * fence context, this allows checking if fences belong to the same
-+ * context or not. One device can have multiple separate contexts,
-+ * and they're used if some engine can run independently of another.
-+ */
-+static atomic_t fence_context_counter = ATOMIC_INIT(0);
-+
-+/**
-+ * fence_context_alloc - allocate an array of fence contexts
-+ * @num:	[in]	amount of contexts to allocate
-+ *
-+ * This function will return the first index of the number of fences allocated.
-+ * The fence context is used for setting fence->context to a unique number.
-+ */
-+unsigned fence_context_alloc(unsigned num)
-+{
-+	BUG_ON(!num);
-+	return atomic_add_return(num, &fence_context_counter) - num;
-+}
-+EXPORT_SYMBOL(fence_context_alloc);
-+
-+int __fence_signal(struct fence *fence)
-+{
-+	struct fence_cb *cur, *tmp;
-+	int ret = 0;
-+
-+	if (WARN_ON(!fence))
-+		return -EINVAL;
-+
-+	if (!ktime_to_ns(fence->timestamp)) {
-+		fence->timestamp = ktime_get();
-+		smp_mb__before_atomic();
-+	}
-+
-+	if (test_and_set_bit(FENCE_FLAG_SIGNALED_BIT, &fence->flags)) {
-+		ret = -EINVAL;
-+
-+		/*
-+		 * we might have raced with the unlocked fence_signal,
-+		 * still run through all callbacks
-+		 */
-+	} else
-+		trace_fence_signaled(fence);
-+
-+	list_for_each_entry_safe(cur, tmp, &fence->cb_list, node) {
-+		list_del_init(&cur->node);
-+		cur->func(fence, cur);
-+	}
-+	return ret;
-+}
-+EXPORT_SYMBOL(__fence_signal);
-+
-+/**
-+ * fence_signal - signal completion of a fence
-+ * @fence: the fence to signal
-+ *
-+ * Signal completion for software callbacks on a fence, this will unblock
-+ * fence_wait() calls and run all the callbacks added with
-+ * fence_add_callback(). Can be called multiple times, but since a fence
-+ * can only go from unsignaled to signaled state, it will only be effective
-+ * the first time.
-+ */
-+int fence_signal(struct fence *fence)
-+{
-+	unsigned long flags;
-+
-+	if (!fence)
-+		return -EINVAL;
-+
-+	if (!ktime_to_ns(fence->timestamp)) {
-+		fence->timestamp = ktime_get();
-+		smp_mb__before_atomic();
-+	}
-+
-+	if (test_and_set_bit(FENCE_FLAG_SIGNALED_BIT, &fence->flags))
-+		return -EINVAL;
-+
-+	trace_fence_signaled(fence);
-+
-+	if (test_bit(FENCE_FLAG_ENABLE_SIGNAL_BIT, &fence->flags)) {
-+		struct fence_cb *cur, *tmp;
-+
-+		spin_lock_irqsave(fence->lock, flags);
-+		list_for_each_entry_safe(cur, tmp, &fence->cb_list, node) {
-+			list_del_init(&cur->node);
-+			cur->func(fence, cur);
-+		}
-+		spin_unlock_irqrestore(fence->lock, flags);
-+	}
-+	return 0;
-+}
-+EXPORT_SYMBOL(fence_signal);
-+
-+/**
-+ * fence_wait_timeout - sleep until the fence gets signaled
-+ * or until timeout elapses
-+ * @fence:	[in]	the fence to wait on
-+ * @intr:	[in]	if true, do an interruptible wait
-+ * @timeout:	[in]	timeout value in jiffies, or MAX_SCHEDULE_TIMEOUT
-+ *
-+ * Returns -ERESTARTSYS if interrupted, 0 if the wait timed out, or the
-+ * remaining timeout in jiffies on success. Other error values may be
-+ * returned on custom implementations.
-+ *
-+ * Performs a synchronous wait on this fence. It is assumed the caller
-+ * directly or indirectly (buf-mgr between reservation and committing)
-+ * holds a reference to the fence, otherwise the fence might be
-+ * freed before return, resulting in undefined behavior.
-+ */
-+long
-+fence_wait_timeout(struct fence *fence, bool intr, signed long timeout)
-+{
-+	unsigned long ret;
-+
-+	if (WARN_ON(timeout < 0))
-+		return -EINVAL;
-+
-+	trace_fence_wait_start(fence);
-+	ret = fence->ops->wait(fence, intr, timeout);
-+	trace_fence_wait_end(fence);
-+	return ret;
-+}
-+EXPORT_SYMBOL(fence_wait_timeout);
-+
-+void release_fence(struct kref *kref)
-+{
-+	struct fence *fence =
-+			container_of(kref, struct fence, refcount);
-+
-+	trace_fence_destroy(fence);
-+
-+	BUG_ON(!list_empty(&fence->cb_list));
-+
-+	if (fence->ops->release)
-+		fence->ops->release(fence);
-+	else
-+		kfree(fence);
-+}
-+EXPORT_SYMBOL(release_fence);
-+
-+/**
-+ * fence_enable_sw_signaling - enable signaling on fence
-+ * @fence:	[in]	the fence to enable
-+ *
-+ * this will request for sw signaling to be enabled, to make the fence
-+ * complete as soon as possible
-+ */
-+void fence_enable_sw_signaling(struct fence *fence)
-+{
-+	unsigned long flags;
-+
-+	if (!test_and_set_bit(FENCE_FLAG_ENABLE_SIGNAL_BIT, &fence->flags) &&
-+	    !test_bit(FENCE_FLAG_SIGNALED_BIT, &fence->flags)) {
-+		trace_fence_enable_signal(fence);
-+
-+		spin_lock_irqsave(fence->lock, flags);
-+
-+		if (!fence->ops->enable_signaling(fence))
-+			__fence_signal(fence);
-+
-+		spin_unlock_irqrestore(fence->lock, flags);
-+	}
-+}
-+EXPORT_SYMBOL(fence_enable_sw_signaling);
-+
-+/**
-+ * fence_add_callback - add a callback to be called when the fence
-+ * is signaled
-+ * @fence:	[in]	the fence to wait on
-+ * @cb:		[in]	the callback to register
-+ * @func:	[in]	the function to call
-+ *
-+ * cb will be initialized by fence_add_callback, no initialization
-+ * by the caller is required. Any number of callbacks can be registered
-+ * to a fence, but a callback can only be registered to one fence at a time.
-+ *
-+ * Note that the callback can be called from an atomic context.  If
-+ * fence is already signaled, this function will return -ENOENT (and
-+ * *not* call the callback)
-+ *
-+ * Add a software callback to the fence. Same restrictions apply to
-+ * refcount as it does to fence_wait, however the caller doesn't need to
-+ * keep a refcount to fence afterwards: when software access is enabled,
-+ * the creator of the fence is required to keep the fence alive until
-+ * after it signals with fence_signal. The callback itself can be called
-+ * from irq context.
-+ *
-+ */
-+int fence_add_callback(struct fence *fence, struct fence_cb *cb,
-+		       fence_func_t func)
-+{
-+	unsigned long flags;
-+	int ret = 0;
-+	bool was_set;
-+
-+	if (WARN_ON(!fence || !func))
-+		return -EINVAL;
-+
-+	if (test_bit(FENCE_FLAG_SIGNALED_BIT, &fence->flags)) {
-+		INIT_LIST_HEAD(&cb->node);
-+		return -ENOENT;
-+	}
-+
-+	spin_lock_irqsave(fence->lock, flags);
-+
-+	was_set = test_and_set_bit(FENCE_FLAG_ENABLE_SIGNAL_BIT, &fence->flags);
-+
-+	if (test_bit(FENCE_FLAG_SIGNALED_BIT, &fence->flags))
-+		ret = -ENOENT;
-+	else if (!was_set) {
-+		trace_fence_enable_signal(fence);
-+
-+		if (!fence->ops->enable_signaling(fence)) {
-+			__fence_signal(fence);
-+			ret = -ENOENT;
-+		}
-+	}
-+
-+	if (!ret) {
-+		cb->func = func;
-+		list_add_tail(&cb->node, &fence->cb_list);
-+	} else
-+		INIT_LIST_HEAD(&cb->node);
-+	spin_unlock_irqrestore(fence->lock, flags);
-+
-+	return ret;
-+}
-+EXPORT_SYMBOL(fence_add_callback);
-+
-+/**
-+ * fence_remove_callback - remove a callback from the signaling list
-+ * @fence:	[in]	the fence to wait on
-+ * @cb:		[in]	the callback to remove
-+ *
-+ * Remove a previously queued callback from the fence. This function returns
-+ * true if the callback is succesfully removed, or false if the fence has
-+ * already been signaled.
-+ *
-+ * *WARNING*:
-+ * Cancelling a callback should only be done if you really know what you're
-+ * doing, since deadlocks and race conditions could occur all too easily. For
-+ * this reason, it should only ever be done on hardware lockup recovery,
-+ * with a reference held to the fence.
-+ */
-+bool
-+fence_remove_callback(struct fence *fence, struct fence_cb *cb)
-+{
-+	unsigned long flags;
-+	bool ret;
-+
-+	spin_lock_irqsave(fence->lock, flags);
-+
-+	ret = !list_empty(&cb->node);
-+	if (ret)
-+		list_del_init(&cb->node);
-+
-+	spin_unlock_irqrestore(fence->lock, flags);
-+
-+	return ret;
-+}
-+EXPORT_SYMBOL(fence_remove_callback);
-+
-+struct default_wait_cb {
-+	struct fence_cb base;
-+	struct task_struct *task;
-+};
-+
-+static void
-+fence_default_wait_cb(struct fence *fence, struct fence_cb *cb)
-+{
-+	struct default_wait_cb *wait =
-+		container_of(cb, struct default_wait_cb, base);
-+
-+	wake_up_state(wait->task, TASK_NORMAL);
-+}
-+
-+/**
-+ * fence_default_wait - default sleep until the fence gets signaled
-+ * or until timeout elapses
-+ * @fence:	[in]	the fence to wait on
-+ * @intr:	[in]	if true, do an interruptible wait
-+ * @timeout:	[in]	timeout value in jiffies, or MAX_SCHEDULE_TIMEOUT
-+ *
-+ * Returns -ERESTARTSYS if interrupted, 0 if the wait timed out, or the
-+ * remaining timeout in jiffies on success.
-+ */
-+long
-+fence_default_wait(struct fence *fence, bool intr, signed long timeout)
-+{
-+	struct default_wait_cb cb;
-+	unsigned long flags;
-+	long ret = timeout;
-+	bool was_set;
-+
-+	if (test_bit(FENCE_FLAG_SIGNALED_BIT, &fence->flags))
-+		return timeout;
-+
-+	spin_lock_irqsave(fence->lock, flags);
-+
-+	if (intr && signal_pending(current)) {
-+		ret = -ERESTARTSYS;
-+		goto out;
-+	}
-+
-+	was_set = test_and_set_bit(FENCE_FLAG_ENABLE_SIGNAL_BIT, &fence->flags);
-+
-+	if (test_bit(FENCE_FLAG_SIGNALED_BIT, &fence->flags))
-+		goto out;
-+
-+	if (!was_set) {
-+		trace_fence_enable_signal(fence);
-+
-+		if (!fence->ops->enable_signaling(fence)) {
-+			__fence_signal(fence);
-+			goto out;
-+		}
-+	}
-+
-+	cb.base.func = fence_default_wait_cb;
-+	cb.task = current;
-+	list_add(&cb.base.node, &fence->cb_list);
-+
-+	while (!test_bit(FENCE_FLAG_SIGNALED_BIT, &fence->flags) && ret > 0) {
-+		if (intr)
-+			__set_current_state(TASK_INTERRUPTIBLE);
-+		else
-+			__set_current_state(TASK_UNINTERRUPTIBLE);
-+		spin_unlock_irqrestore(fence->lock, flags);
-+
-+		ret = schedule_timeout(ret);
-+
-+		spin_lock_irqsave(fence->lock, flags);
-+		if (ret > 0 && intr && signal_pending(current))
-+			ret = -ERESTARTSYS;
-+	}
-+
-+	if (!list_empty(&cb.base.node))
-+		list_del(&cb.base.node);
-+	__set_current_state(TASK_RUNNING);
-+
-+out:
-+	spin_unlock_irqrestore(fence->lock, flags);
-+	return ret;
-+}
-+EXPORT_SYMBOL(fence_default_wait);
-+
-+/**
-+ * __fence_init - Initialize a custom fence.
-+ * @fence:	[in]	the fence to initialize
-+ * @ops:	[in]	the fence_ops for operations on this fence
-+ * @lock:	[in]	the irqsafe spinlock to use for locking this fence
-+ * @context:	[in]	the execution context this fence is run on
-+ * @seqno:	[in]	a linear increasing sequence number for this context
-+ *
-+ * Initializes an allocated fence, the caller doesn't have to keep its
-+ * refcount after committing with this fence, but it will need to hold a
-+ * refcount again if fence_ops.enable_signaling gets called. This can
-+ * be used for other implementing other types of fence.
-+ *
-+ * context and seqno are used for easy comparison between fences, allowing
-+ * to check which fence is later by simply using fence_later.
-+ */
-+void
-+__fence_init(struct fence *fence, const struct fence_ops *ops,
-+	     spinlock_t *lock, unsigned context, unsigned seqno)
-+{
-+	BUG_ON(!lock);
-+	BUG_ON(!ops || !ops->wait || !ops->enable_signaling ||
-+	       !ops->get_driver_name || !ops->get_timeline_name);
-+
-+	kref_init(&fence->refcount);
-+	fence->ops = ops;
-+	INIT_LIST_HEAD(&fence->cb_list);
-+	fence->lock = lock;
-+	fence->context = context;
-+	fence->seqno = seqno;
-+	fence->flags = 0UL;
-+
-+	trace_fence_init(fence);
-+}
-+EXPORT_SYMBOL(__fence_init);
-diff --git a/include/linux/fence.h b/include/linux/fence.h
-new file mode 100644
-index 000000000000..65f2a01ee7e4
---- /dev/null
-+++ b/include/linux/fence.h
-@@ -0,0 +1,333 @@
-+/*
-+ * Fence mechanism for dma-buf to allow for asynchronous dma access
-+ *
-+ * Copyright (C) 2012 Canonical Ltd
-+ * Copyright (C) 2012 Texas Instruments
-+ *
-+ * Authors:
-+ * Rob Clark <robdclark@gmail.com>
-+ * Maarten Lankhorst <maarten.lankhorst@canonical.com>
-+ *
-+ * This program is free software; you can redistribute it and/or modify it
-+ * under the terms of the GNU General Public License version 2 as published by
-+ * the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful, but WITHOUT
-+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
-+ * more details.
-+ *
-+ * You should have received a copy of the GNU General Public License along with
-+ * this program.  If not, see <http://www.gnu.org/licenses/>.
-+ */
-+
-+#ifndef __LINUX_FENCE_H
-+#define __LINUX_FENCE_H
-+
-+#include <linux/err.h>
-+#include <linux/wait.h>
-+#include <linux/list.h>
-+#include <linux/bitops.h>
-+#include <linux/kref.h>
-+#include <linux/sched.h>
-+#include <linux/printk.h>
-+
-+struct fence;
-+struct fence_ops;
-+struct fence_cb;
-+
-+/**
-+ * struct fence - software synchronization primitive
-+ * @refcount: refcount for this fence
-+ * @ops: fence_ops associated with this fence
-+ * @cb_list: list of all callbacks to call
-+ * @lock: spin_lock_irqsave used for locking
-+ * @context: execution context this fence belongs to, returned by
-+ *           fence_context_alloc()
-+ * @seqno: the sequence number of this fence inside the execution context,
-+ * can be compared to decide which fence would be signaled later.
-+ * @flags: A mask of FENCE_FLAG_* defined below
-+ * @timestamp: Timestamp when the fence was signaled.
-+ * @status: Optional, only valid if < 0, must be set before calling
-+ * fence_signal, indicates that the fence has completed with an error.
-+ *
-+ * the flags member must be manipulated and read using the appropriate
-+ * atomic ops (bit_*), so taking the spinlock will not be needed most
-+ * of the time.
-+ *
-+ * FENCE_FLAG_SIGNALED_BIT - fence is already signaled
-+ * FENCE_FLAG_ENABLE_SIGNAL_BIT - enable_signaling might have been called*
-+ * FENCE_FLAG_USER_BITS - start of the unused bits, can be used by the
-+ * implementer of the fence for its own purposes. Can be used in different
-+ * ways by different fence implementers, so do not rely on this.
-+ *
-+ * *) Since atomic bitops are used, this is not guaranteed to be the case.
-+ * Particularly, if the bit was set, but fence_signal was called right
-+ * before this bit was set, it would have been able to set the
-+ * FENCE_FLAG_SIGNALED_BIT, before enable_signaling was called.
-+ * Adding a check for FENCE_FLAG_SIGNALED_BIT after setting
-+ * FENCE_FLAG_ENABLE_SIGNAL_BIT closes this race, and makes sure that
-+ * after fence_signal was called, any enable_signaling call will have either
-+ * been completed, or never called at all.
-+ */
-+struct fence {
-+	struct kref refcount;
-+	const struct fence_ops *ops;
-+	struct list_head cb_list;
-+	spinlock_t *lock;
-+	unsigned context, seqno;
-+	unsigned long flags;
-+	ktime_t timestamp;
-+	int status;
-+};
-+
-+enum fence_flag_bits {
-+	FENCE_FLAG_SIGNALED_BIT,
-+	FENCE_FLAG_ENABLE_SIGNAL_BIT,
-+	FENCE_FLAG_USER_BITS, /* must always be last member */
-+};
-+
-+typedef void (*fence_func_t)(struct fence *fence, struct fence_cb *cb);
-+
-+/**
-+ * struct fence_cb - callback for fence_add_callback
-+ * @node: used by fence_add_callback to append this struct to fence::cb_list
-+ * @func: fence_func_t to call
-+ *
-+ * This struct will be initialized by fence_add_callback, additional
-+ * data can be passed along by embedding fence_cb in another struct.
-+ */
-+struct fence_cb {
-+	struct list_head node;
-+	fence_func_t func;
-+};
-+
-+/**
-+ * struct fence_ops - operations implemented for fence
-+ * @get_driver_name: returns the driver name.
-+ * @get_timeline_name: return the name of the context this fence belongs to.
-+ * @enable_signaling: enable software signaling of fence.
-+ * @signaled: [optional] peek whether the fence is signaled, can be null.
-+ * @wait: custom wait implementation, or fence_default_wait.
-+ * @release: [optional] called on destruction of fence, can be null
-+ * @fill_driver_data: [optional] callback to fill in free-form debug info
-+ * Returns amount of bytes filled, or -errno.
-+ * @fence_value_str: [optional] fills in the value of the fence as a string
-+ * @timeline_value_str: [optional] fills in the current value of the timeline
-+ * as a string
-+ *
-+ * Notes on enable_signaling:
-+ * For fence implementations that have the capability for hw->hw
-+ * signaling, they can implement this op to enable the necessary
-+ * irqs, or insert commands into cmdstream, etc.  This is called
-+ * in the first wait() or add_callback() path to let the fence
-+ * implementation know that there is another driver waiting on
-+ * the signal (ie. hw->sw case).
-+ *
-+ * This function can be called called from atomic context, but not
-+ * from irq context, so normal spinlocks can be used.
-+ *
-+ * A return value of false indicates the fence already passed,
-+ * or some failure occured that made it impossible to enable
-+ * signaling. True indicates succesful enabling.
-+ *
-+ * fence->status may be set in enable_signaling, but only when false is
-+ * returned.
-+ *
-+ * Calling fence_signal before enable_signaling is called allows
-+ * for a tiny race window in which enable_signaling is called during,
-+ * before, or after fence_signal. To fight this, it is recommended
-+ * that before enable_signaling returns true an extra reference is
-+ * taken on the fence, to be released when the fence is signaled.
-+ * This will mean fence_signal will still be called twice, but
-+ * the second time will be a noop since it was already signaled.
-+ *
-+ * Notes on signaled:
-+ * May set fence->status if returning true.
-+ *
-+ * Notes on wait:
-+ * Must not be NULL, set to fence_default_wait for default implementation.
-+ * the fence_default_wait implementation should work for any fence, as long
-+ * as enable_signaling works correctly.
-+ *
-+ * Must return -ERESTARTSYS if the wait is intr = true and the wait was
-+ * interrupted, and remaining jiffies if fence has signaled, or 0 if wait
-+ * timed out. Can also return other error values on custom implementations,
-+ * which should be treated as if the fence is signaled. For example a hardware
-+ * lockup could be reported like that.
-+ *
-+ * Notes on release:
-+ * Can be NULL, this function allows additional commands to run on
-+ * destruction of the fence. Can be called from irq context.
-+ * If pointer is set to NULL, kfree will get called instead.
-+ */
-+
-+struct fence_ops {
-+	const char * (*get_driver_name)(struct fence *fence);
-+	const char * (*get_timeline_name)(struct fence *fence);
-+	bool (*enable_signaling)(struct fence *fence);
-+	bool (*signaled)(struct fence *fence);
-+	long (*wait)(struct fence *fence, bool intr, signed long timeout);
-+	void (*release)(struct fence *fence);
-+
-+	int (*fill_driver_data)(struct fence *fence, void *data, int size);
-+	void (*fence_value_str)(struct fence *fence, char *str, int size);
-+	void (*timeline_value_str)(struct fence *fence, char *str, int size);
-+};
-+
-+void __fence_init(struct fence *fence, const struct fence_ops *ops,
-+		  spinlock_t *lock, unsigned context, unsigned seqno);
-+
-+/**
-+ * fence_get - increases refcount of the fence
-+ * @fence:	[in]	fence to increase refcount of
-+ */
-+static inline void fence_get(struct fence *fence)
-+{
-+	if (WARN_ON(!fence))
-+		return;
-+	kref_get(&fence->refcount);
-+}
-+
-+extern void release_fence(struct kref *kref);
-+
-+/**
-+ * fence_put - decreases refcount of the fence
-+ * @fence:	[in]	fence to reduce refcount of
-+ */
-+static inline void fence_put(struct fence *fence)
-+{
-+	if (WARN_ON(!fence))
-+		return;
-+	kref_put(&fence->refcount, release_fence);
-+}
-+
-+int fence_signal(struct fence *fence);
-+int __fence_signal(struct fence *fence);
-+long fence_default_wait(struct fence *fence, bool intr, signed long timeout);
-+int fence_add_callback(struct fence *fence, struct fence_cb *cb,
-+		       fence_func_t func);
-+bool fence_remove_callback(struct fence *fence, struct fence_cb *cb);
-+void fence_enable_sw_signaling(struct fence *fence);
-+
-+static inline bool
-+__fence_is_signaled(struct fence *fence)
-+{
-+	if (test_bit(FENCE_FLAG_SIGNALED_BIT, &fence->flags))
-+		return true;
-+
-+	if (fence->ops->signaled && fence->ops->signaled(fence)) {
-+		__fence_signal(fence);
-+		return true;
-+	}
-+
-+	return false;
-+}
-+
-+/**
-+ * fence_is_signaled - Return an indication if the fence is signaled yet.
-+ * @fence:	[in]	the fence to check
-+ *
-+ * Returns true if the fence was already signaled, false if not. Since this
-+ * function doesn't enable signaling, it is not guaranteed to ever return true
-+ * If fence_add_callback, fence_wait or fence_enable_sw_signaling
-+ * haven't been called before.
-+ *
-+ * It's recommended for seqno fences to call fence_signal when the
-+ * operation is complete, it makes it possible to prevent issues from
-+ * wraparound between time of issue and time of use by checking the return
-+ * value of this function before calling hardware-specific wait instructions.
-+ */
-+static inline bool
-+fence_is_signaled(struct fence *fence)
-+{
-+	if (test_bit(FENCE_FLAG_SIGNALED_BIT, &fence->flags))
-+		return true;
-+
-+	if (fence->ops->signaled && fence->ops->signaled(fence)) {
-+		fence_signal(fence);
-+		return true;
-+	}
-+
-+	return false;
-+}
-+
-+/**
-+ * fence_later - return the chronologically later fence
-+ * @f1:	[in]	the first fence from the same context
-+ * @f2:	[in]	the second fence from the same context
-+ *
-+ * Returns NULL if both fences are signaled, otherwise the fence that would be
-+ * signaled last. Both fences must be from the same context, since a seqno is
-+ * not re-used across contexts.
-+ */
-+static inline struct fence *fence_later(struct fence *f1, struct fence *f2)
-+{
-+	BUG_ON(f1->context != f2->context);
-+
-+	/*
-+	 * can't check just FENCE_FLAG_SIGNALED_BIT here, it may never have been
-+	 * set called if enable_signaling wasn't, and enabling that here is
-+	 * overkill.
-+	 */
-+	if (f2->seqno - f1->seqno <= INT_MAX)
-+		return fence_is_signaled(f2) ? NULL : f2;
-+	else
-+		return fence_is_signaled(f1) ? NULL : f1;
-+}
-+
-+long fence_wait_timeout(struct fence *fence, bool intr, signed long timeout);
-+
-+
-+/**
-+ * fence_wait - sleep until the fence gets signaled
-+ * @fence:	[in]	the fence to wait on
-+ * @intr:	[in]	if true, do an interruptible wait
-+ *
-+ * This function will return -ERESTARTSYS if interrupted by a signal,
-+ * or 0 if the fence was signaled. Other error values may be
-+ * returned on custom implementations.
-+ *
-+ * Performs a synchronous wait on this fence. It is assumed the caller
-+ * directly or indirectly (buf-mgr between reservation and committing)
-+ * holds a reference to the fence, otherwise the fence might be
-+ * freed before return, resulting in undefined behavior.
-+ */
-+static inline long fence_wait(struct fence *fence, bool intr)
-+{
-+	long ret;
-+
-+	/* Since fence_wait_timeout cannot timeout with
-+	 * MAX_SCHEDULE_TIMEOUT, only valid return values are
-+	 * -ERESTARTSYS and MAX_SCHEDULE_TIMEOUT.
-+	 */
-+	ret = fence_wait_timeout(fence, intr, MAX_SCHEDULE_TIMEOUT);
-+
-+	return ret < 0 ? ret : 0;
-+}
-+
-+unsigned fence_context_alloc(unsigned num);
-+
-+#define FENCE_TRACE(f, fmt, args...) \
-+	do {								\
-+		struct fence *__ff = (f);				\
-+		if (config_enabled(CONFIG_FENCE_TRACE))			\
-+			pr_info("f %u#%u: " fmt,			\
-+				__ff->context, __ff->seqno, ##args);	\
-+	} while (0)
-+
-+#define FENCE_WARN(f, fmt, args...) \
-+	do {								\
-+		struct fence *__ff = (f);				\
-+		pr_warn("f %u#%u: " fmt, __ff->context, __ff->seqno,	\
-+			 ##args);					\
-+	} while (0)
-+
-+#define FENCE_ERR(f, fmt, args...) \
-+	do {								\
-+		struct fence *__ff = (f);				\
-+		pr_err("f %u#%u: " fmt, __ff->context, __ff->seqno,	\
-+			##args);					\
-+	} while (0)
-+
-+#endif /* __LINUX_FENCE_H */
-diff --git a/include/trace/events/fence.h b/include/trace/events/fence.h
-new file mode 100644
-index 000000000000..98feb1b82896
---- /dev/null
-+++ b/include/trace/events/fence.h
-@@ -0,0 +1,128 @@
-+#undef TRACE_SYSTEM
-+#define TRACE_SYSTEM fence
-+
-+#if !defined(_TRACE_FENCE_H) || defined(TRACE_HEADER_MULTI_READ)
-+#define _TRACE_FENCE_H
-+
-+#include <linux/tracepoint.h>
-+
-+struct fence;
-+
-+TRACE_EVENT(fence_annotate_wait_on,
-+
-+	/* fence: the fence waiting on f1, f1: the fence to be waited on. */
-+	TP_PROTO(struct fence *fence, struct fence *f1),
-+
-+	TP_ARGS(fence, f1),
-+
-+	TP_STRUCT__entry(
-+		__string(driver, fence->ops->get_driver_name(fence))
-+		__string(timeline, fence->ops->get_driver_name(fence))
-+		__field(unsigned int, context)
-+		__field(unsigned int, seqno)
-+
-+		__string(waiting_driver, f1->ops->get_driver_name(f1))
-+		__string(waiting_timeline, f1->ops->get_timeline_name(f1))
-+		__field(unsigned int, waiting_context)
-+		__field(unsigned int, waiting_seqno)
-+	),
-+
-+	TP_fast_assign(
-+		__assign_str(driver, fence->ops->get_driver_name(fence))
-+		__assign_str(timeline, fence->ops->get_timeline_name(fence))
-+		__entry->context = fence->context;
-+		__entry->seqno = fence->seqno;
-+
-+		__assign_str(waiting_driver, f1->ops->get_driver_name(f1))
-+		__assign_str(waiting_timeline, f1->ops->get_timeline_name(f1))
-+		__entry->waiting_context = f1->context;
-+		__entry->waiting_seqno = f1->seqno;
-+
-+	),
-+
-+	TP_printk("driver=%s timeline=%s context=%u seqno=%u "	\
-+		  "waits on driver=%s timeline=%s context=%u seqno=%u",
-+		  __get_str(driver), __get_str(timeline), __entry->context,
-+		  __entry->seqno,
-+		  __get_str(waiting_driver), __get_str(waiting_timeline),
-+		  __entry->waiting_context, __entry->waiting_seqno)
-+);
-+
-+DECLARE_EVENT_CLASS(fence,
-+
-+	TP_PROTO(struct fence *fence),
-+
-+	TP_ARGS(fence),
-+
-+	TP_STRUCT__entry(
-+		__string(driver, fence->ops->get_driver_name(fence))
-+		__string(timeline, fence->ops->get_timeline_name(fence))
-+		__field(unsigned int, context)
-+		__field(unsigned int, seqno)
-+	),
-+
-+	TP_fast_assign(
-+		__assign_str(driver, fence->ops->get_driver_name(fence))
-+		__assign_str(timeline, fence->ops->get_timeline_name(fence))
-+		__entry->context = fence->context;
-+		__entry->seqno = fence->seqno;
-+	),
-+
-+	TP_printk("driver=%s timeline=%s context=%u seqno=%u",
-+		  __get_str(driver), __get_str(timeline), __entry->context,
-+		  __entry->seqno)
-+);
-+
-+DEFINE_EVENT(fence, fence_emit,
-+
-+	TP_PROTO(struct fence *fence),
-+
-+	TP_ARGS(fence)
-+);
-+
-+DEFINE_EVENT(fence, fence_init,
-+
-+	TP_PROTO(struct fence *fence),
-+
-+	TP_ARGS(fence)
-+);
-+
-+DEFINE_EVENT(fence, fence_destroy,
-+
-+	TP_PROTO(struct fence *fence),
-+
-+	TP_ARGS(fence)
-+);
-+
-+DEFINE_EVENT(fence, fence_enable_signal,
-+
-+	TP_PROTO(struct fence *fence),
-+
-+	TP_ARGS(fence)
-+);
-+
-+DEFINE_EVENT(fence, fence_signaled,
-+
-+	TP_PROTO(struct fence *fence),
-+
-+	TP_ARGS(fence)
-+);
-+
-+DEFINE_EVENT(fence, fence_wait_start,
-+
-+	TP_PROTO(struct fence *fence),
-+
-+	TP_ARGS(fence)
-+);
-+
-+DEFINE_EVENT(fence, fence_wait_end,
-+
-+	TP_PROTO(struct fence *fence),
-+
-+	TP_ARGS(fence)
-+);
-+
-+#endif /*  _TRACE_FENCE_H */
-+
-+/* This part must be outside protection */
-+#include <trace/define_trace.h>
+VGhpcyBhbGxvd3MgcmVzZXJ2YXRpb24gb2JqZWN0cyB0byBiZSB1c2VkIGluIGRtYS1idWYuIGl0
+J3MgcmVxdWlyZWQKZm9yIGltcGxlbWVudGluZyBwb2xsaW5nIHN1cHBvcnQgb24gdGhlIGZlbmNl
+cyB0aGF0IGJlbG9uZyB0byBhIGRtYS1idWYuCgpTaWduZWQtb2ZmLWJ5OiBNYWFydGVuIExhbmto
+b3JzdCA8bWFhcnRlbi5sYW5raG9yc3RAY2Fub25pY2FsLmNvbT4KQWNrZWQtYnk6IE1hdXJvIENh
+cnZhbGhvIENoZWhhYiA8bS5jaGVoYWJAc2Ftc3VuZy5jb20+ICNkcml2ZXJzL21lZGlhL3Y0bDIt
+Y29yZS8KQWNrZWQtYnk6IFRob21hcyBIZWxsc3Ryb20gPHRoZWxsc3Ryb21Adm13YXJlLmNvbT4g
+I2RyaXZlcnMvZ3B1L2RybS90dG0KU2lnbmVkLW9mZi1ieTogVmluY2VudCBTdGVobMOpIDx2aW5j
+ZW50LnN0ZWhsZUBsYXBvc3RlLm5ldD4gI2RyaXZlcnMvZ3B1L2RybS9hcm1hZGEvCi0tLQogZHJp
+dmVycy9iYXNlL2RtYS1idWYuYyAgICAgICAgICAgICAgICAgICAgICAgICB8ICAgMjIgKysrKysr
+KysrKysrKysrKysrKystLQogZHJpdmVycy9ncHUvZHJtL2FybWFkYS9hcm1hZGFfZ2VtLmMgICAg
+ICAgICAgICB8ICAgIDIgKy0KIGRyaXZlcnMvZ3B1L2RybS9kcm1fcHJpbWUuYyAgICAgICAgICAg
+ICAgICAgICAgfCAgICA4ICsrKysrKystCiBkcml2ZXJzL2dwdS9kcm0vZXh5bm9zL2V4eW5vc19k
+cm1fZG1hYnVmLmMgICAgIHwgICAgMiArLQogZHJpdmVycy9ncHUvZHJtL2k5MTUvaTkxNV9nZW1f
+ZG1hYnVmLmMgICAgICAgICB8ICAgIDMgKystCiBkcml2ZXJzL2dwdS9kcm0vbm91dmVhdS9ub3V2
+ZWF1X2RybS5jICAgICAgICAgIHwgICAgMSArCiBkcml2ZXJzL2dwdS9kcm0vbm91dmVhdS9ub3V2
+ZWF1X2dlbS5oICAgICAgICAgIHwgICAgMSArCiBkcml2ZXJzL2dwdS9kcm0vbm91dmVhdS9ub3V2
+ZWF1X3ByaW1lLmMgICAgICAgIHwgICAgNyArKysrKysrCiBkcml2ZXJzL2dwdS9kcm0vb21hcGRy
+bS9vbWFwX2dlbV9kbWFidWYuYyAgICAgIHwgICAgMiArLQogZHJpdmVycy9ncHUvZHJtL3JhZGVv
+bi9yYWRlb25fZHJ2LmMgICAgICAgICAgICB8ICAgIDIgKysKIGRyaXZlcnMvZ3B1L2RybS9yYWRl
+b24vcmFkZW9uX3ByaW1lLmMgICAgICAgICAgfCAgICA4ICsrKysrKysrCiBkcml2ZXJzL2dwdS9k
+cm0vdGVncmEvZ2VtLmMgICAgICAgICAgICAgICAgICAgIHwgICAgMiArLQogZHJpdmVycy9ncHUv
+ZHJtL3R0bS90dG1fb2JqZWN0LmMgICAgICAgICAgICAgICB8ICAgIDIgKy0KIGRyaXZlcnMvbWVk
+aWEvdjRsMi1jb3JlL3ZpZGVvYnVmMi1kbWEtY29udGlnLmMgfCAgICAyICstCiBkcml2ZXJzL3N0
+YWdpbmcvYW5kcm9pZC9pb24vaW9uLmMgICAgICAgICAgICAgIHwgICAgMyArKy0KIGluY2x1ZGUv
+ZHJtL2RybVAuaCAgICAgICAgICAgICAgICAgICAgICAgICAgICAgfCAgICAzICsrKwogaW5jbHVk
+ZS9saW51eC9kbWEtYnVmLmggICAgICAgICAgICAgICAgICAgICAgICB8ICAgIDkgKysrKysrLS0t
+CiAxNyBmaWxlcyBjaGFuZ2VkLCA2NSBpbnNlcnRpb25zKCspLCAxNCBkZWxldGlvbnMoLSkKCmRp
+ZmYgLS1naXQgYS9kcml2ZXJzL2Jhc2UvZG1hLWJ1Zi5jIGIvZHJpdmVycy9iYXNlL2RtYS1idWYu
+YwppbmRleCA4NDBjN2ZhODA5ODMuLmNkNDBjYTIyOTExZiAxMDA2NDQKLS0tIGEvZHJpdmVycy9i
+YXNlL2RtYS1idWYuYworKysgYi9kcml2ZXJzL2Jhc2UvZG1hLWJ1Zi5jCkBAIC0yNSwxMCArMjUs
+MTIgQEAKICNpbmNsdWRlIDxsaW51eC9mcy5oPgogI2luY2x1ZGUgPGxpbnV4L3NsYWIuaD4KICNp
+bmNsdWRlIDxsaW51eC9kbWEtYnVmLmg+CisjaW5jbHVkZSA8bGludXgvZmVuY2UuaD4KICNpbmNs
+dWRlIDxsaW51eC9hbm9uX2lub2Rlcy5oPgogI2luY2x1ZGUgPGxpbnV4L2V4cG9ydC5oPgogI2lu
+Y2x1ZGUgPGxpbnV4L2RlYnVnZnMuaD4KICNpbmNsdWRlIDxsaW51eC9zZXFfZmlsZS5oPgorI2lu
+Y2x1ZGUgPGxpbnV4L3Jlc2VydmF0aW9uLmg+CiAKIHN0YXRpYyBpbmxpbmUgaW50IGlzX2RtYV9i
+dWZfZmlsZShzdHJ1Y3QgZmlsZSAqKTsKIApAQCAtNTYsNiArNTgsOSBAQCBzdGF0aWMgaW50IGRt
+YV9idWZfcmVsZWFzZShzdHJ1Y3QgaW5vZGUgKmlub2RlLCBzdHJ1Y3QgZmlsZSAqZmlsZSkKIAls
+aXN0X2RlbCgmZG1hYnVmLT5saXN0X25vZGUpOwogCW11dGV4X3VubG9jaygmZGJfbGlzdC5sb2Nr
+KTsKIAorCWlmIChkbWFidWYtPnJlc3YgPT0gKHN0cnVjdCByZXNlcnZhdGlvbl9vYmplY3QgKikm
+ZG1hYnVmWzFdKQorCQlyZXNlcnZhdGlvbl9vYmplY3RfZmluaShkbWFidWYtPnJlc3YpOworCiAJ
+a2ZyZWUoZG1hYnVmKTsKIAlyZXR1cm4gMDsKIH0KQEAgLTEyOCw2ICsxMzMsNyBAQCBzdGF0aWMg
+aW5saW5lIGludCBpc19kbWFfYnVmX2ZpbGUoc3RydWN0IGZpbGUgKmZpbGUpCiAgKiBAc2l6ZToJ
+W2luXQlTaXplIG9mIHRoZSBidWZmZXIKICAqIEBmbGFnczoJW2luXQltb2RlIGZsYWdzIGZvciB0
+aGUgZmlsZS4KICAqIEBleHBfbmFtZToJW2luXQluYW1lIG9mIHRoZSBleHBvcnRpbmcgbW9kdWxl
+IC0gdXNlZnVsIGZvciBkZWJ1Z2dpbmcuCisgKiBAcmVzdjoJW2luXQlyZXNlcnZhdGlvbi1vYmpl
+Y3QsIE5VTEwgdG8gYWxsb2NhdGUgZGVmYXVsdCBvbmUuCiAgKgogICogUmV0dXJucywgb24gc3Vj
+Y2VzcywgYSBuZXdseSBjcmVhdGVkIGRtYV9idWYgb2JqZWN0LCB3aGljaCB3cmFwcyB0aGUKICAq
+IHN1cHBsaWVkIHByaXZhdGUgZGF0YSBhbmQgb3BlcmF0aW9ucyBmb3IgZG1hX2J1Zl9vcHMuIE9u
+IGVpdGhlciBtaXNzaW5nCkBAIC0xMzUsMTAgKzE0MSwxNyBAQCBzdGF0aWMgaW5saW5lIGludCBp
+c19kbWFfYnVmX2ZpbGUoc3RydWN0IGZpbGUgKmZpbGUpCiAgKgogICovCiBzdHJ1Y3QgZG1hX2J1
+ZiAqZG1hX2J1Zl9leHBvcnRfbmFtZWQodm9pZCAqcHJpdiwgY29uc3Qgc3RydWN0IGRtYV9idWZf
+b3BzICpvcHMsCi0JCQkJc2l6ZV90IHNpemUsIGludCBmbGFncywgY29uc3QgY2hhciAqZXhwX25h
+bWUpCisJCQkJc2l6ZV90IHNpemUsIGludCBmbGFncywgY29uc3QgY2hhciAqZXhwX25hbWUsCisJ
+CQkJc3RydWN0IHJlc2VydmF0aW9uX29iamVjdCAqcmVzdikKIHsKIAlzdHJ1Y3QgZG1hX2J1ZiAq
+ZG1hYnVmOwogCXN0cnVjdCBmaWxlICpmaWxlOworCXNpemVfdCBhbGxvY19zaXplID0gc2l6ZW9m
+KHN0cnVjdCBkbWFfYnVmKTsKKwlpZiAoIXJlc3YpCisJCWFsbG9jX3NpemUgKz0gc2l6ZW9mKHN0
+cnVjdCByZXNlcnZhdGlvbl9vYmplY3QpOworCWVsc2UKKwkJLyogcHJldmVudCAmZG1hX2J1Zlsx
+XSA9PSBkbWFfYnVmLT5yZXN2ICovCisJCWFsbG9jX3NpemUgKz0gMTsKIAogCWlmIChXQVJOX09O
+KCFwcml2IHx8ICFvcHMKIAkJCSAgfHwgIW9wcy0+bWFwX2RtYV9idWYKQEAgLTE1MCw3ICsxNjMs
+NyBAQCBzdHJ1Y3QgZG1hX2J1ZiAqZG1hX2J1Zl9leHBvcnRfbmFtZWQodm9pZCAqcHJpdiwgY29u
+c3Qgc3RydWN0IGRtYV9idWZfb3BzICpvcHMsCiAJCXJldHVybiBFUlJfUFRSKC1FSU5WQUwpOwog
+CX0KIAotCWRtYWJ1ZiA9IGt6YWxsb2Moc2l6ZW9mKHN0cnVjdCBkbWFfYnVmKSwgR0ZQX0tFUk5F
+TCk7CisJZG1hYnVmID0ga3phbGxvYyhhbGxvY19zaXplLCBHRlBfS0VSTkVMKTsKIAlpZiAoZG1h
+YnVmID09IE5VTEwpCiAJCXJldHVybiBFUlJfUFRSKC1FTk9NRU0pOwogCkBAIC0xNTgsNiArMTcx
+LDExIEBAIHN0cnVjdCBkbWFfYnVmICpkbWFfYnVmX2V4cG9ydF9uYW1lZCh2b2lkICpwcml2LCBj
+b25zdCBzdHJ1Y3QgZG1hX2J1Zl9vcHMgKm9wcywKIAlkbWFidWYtPm9wcyA9IG9wczsKIAlkbWFi
+dWYtPnNpemUgPSBzaXplOwogCWRtYWJ1Zi0+ZXhwX25hbWUgPSBleHBfbmFtZTsKKwlpZiAoIXJl
+c3YpIHsKKwkJcmVzdiA9IChzdHJ1Y3QgcmVzZXJ2YXRpb25fb2JqZWN0ICopJmRtYWJ1ZlsxXTsK
+KwkJcmVzZXJ2YXRpb25fb2JqZWN0X2luaXQocmVzdik7CisJfQorCWRtYWJ1Zi0+cmVzdiA9IHJl
+c3Y7CiAKIAlmaWxlID0gYW5vbl9pbm9kZV9nZXRmaWxlKCJkbWFidWYiLCAmZG1hX2J1Zl9mb3Bz
+LCBkbWFidWYsIGZsYWdzKTsKIAlpZiAoSVNfRVJSKGZpbGUpKSB7CmRpZmYgLS1naXQgYS9kcml2
+ZXJzL2dwdS9kcm0vYXJtYWRhL2FybWFkYV9nZW0uYyBiL2RyaXZlcnMvZ3B1L2RybS9hcm1hZGEv
+YXJtYWRhX2dlbS5jCmluZGV4IGJiOWI2NDJkODQ4NS4uNzQ5NmY1NTYxMWE1IDEwMDY0NAotLS0g
+YS9kcml2ZXJzL2dwdS9kcm0vYXJtYWRhL2FybWFkYV9nZW0uYworKysgYi9kcml2ZXJzL2dwdS9k
+cm0vYXJtYWRhL2FybWFkYV9nZW0uYwpAQCAtNTM5LDcgKzUzOSw3IEBAIGFybWFkYV9nZW1fcHJp
+bWVfZXhwb3J0KHN0cnVjdCBkcm1fZGV2aWNlICpkZXYsIHN0cnVjdCBkcm1fZ2VtX29iamVjdCAq
+b2JqLAogCWludCBmbGFncykKIHsKIAlyZXR1cm4gZG1hX2J1Zl9leHBvcnQob2JqLCAmYXJtYWRh
+X2dlbV9wcmltZV9kbWFidWZfb3BzLCBvYmotPnNpemUsCi0JCQkgICAgICBPX1JEV1IpOworCQkJ
+ICAgICAgT19SRFdSLCBOVUxMKTsKIH0KIAogc3RydWN0IGRybV9nZW1fb2JqZWN0ICoKZGlmZiAt
+LWdpdCBhL2RyaXZlcnMvZ3B1L2RybS9kcm1fcHJpbWUuYyBiL2RyaXZlcnMvZ3B1L2RybS9kcm1f
+cHJpbWUuYwppbmRleCAzMDRjYThjYWNiYzQuLjk5ZDU3OGJhZDE3ZSAxMDA2NDQKLS0tIGEvZHJp
+dmVycy9ncHUvZHJtL2RybV9wcmltZS5jCisrKyBiL2RyaXZlcnMvZ3B1L2RybS9kcm1fcHJpbWUu
+YwpAQCAtMzM2LDcgKzMzNiwxMyBAQCBzdGF0aWMgY29uc3Qgc3RydWN0IGRtYV9idWZfb3BzIGRy
+bV9nZW1fcHJpbWVfZG1hYnVmX29wcyA9ICB7CiBzdHJ1Y3QgZG1hX2J1ZiAqZHJtX2dlbV9wcmlt
+ZV9leHBvcnQoc3RydWN0IGRybV9kZXZpY2UgKmRldiwKIAkJCQkgICAgIHN0cnVjdCBkcm1fZ2Vt
+X29iamVjdCAqb2JqLCBpbnQgZmxhZ3MpCiB7Ci0JcmV0dXJuIGRtYV9idWZfZXhwb3J0KG9iaiwg
+JmRybV9nZW1fcHJpbWVfZG1hYnVmX29wcywgb2JqLT5zaXplLCBmbGFncyk7CisJc3RydWN0IHJl
+c2VydmF0aW9uX29iamVjdCAqcm9iaiA9IE5VTEw7CisKKwlpZiAoZGV2LT5kcml2ZXItPmdlbV9w
+cmltZV9yZXNfb2JqKQorCQlyb2JqID0gZGV2LT5kcml2ZXItPmdlbV9wcmltZV9yZXNfb2JqKG9i
+aik7CisKKwlyZXR1cm4gZG1hX2J1Zl9leHBvcnQob2JqLCAmZHJtX2dlbV9wcmltZV9kbWFidWZf
+b3BzLCBvYmotPnNpemUsCisJCQkgICAgICBmbGFncywgcm9iaik7CiB9CiBFWFBPUlRfU1lNQk9M
+KGRybV9nZW1fcHJpbWVfZXhwb3J0KTsKIApkaWZmIC0tZ2l0IGEvZHJpdmVycy9ncHUvZHJtL2V4
+eW5vcy9leHlub3NfZHJtX2RtYWJ1Zi5jIGIvZHJpdmVycy9ncHUvZHJtL2V4eW5vcy9leHlub3Nf
+ZHJtX2RtYWJ1Zi5jCmluZGV4IDJhM2FkMjQyNzZmOC4uNjAxOTJlZDU0NGYwIDEwMDY0NAotLS0g
+YS9kcml2ZXJzL2dwdS9kcm0vZXh5bm9zL2V4eW5vc19kcm1fZG1hYnVmLmMKKysrIGIvZHJpdmVy
+cy9ncHUvZHJtL2V4eW5vcy9leHlub3NfZHJtX2RtYWJ1Zi5jCkBAIC0xODcsNyArMTg3LDcgQEAg
+c3RydWN0IGRtYV9idWYgKmV4eW5vc19kbWFidWZfcHJpbWVfZXhwb3J0KHN0cnVjdCBkcm1fZGV2
+aWNlICpkcm1fZGV2LAogCXN0cnVjdCBleHlub3NfZHJtX2dlbV9vYmogKmV4eW5vc19nZW1fb2Jq
+ID0gdG9fZXh5bm9zX2dlbV9vYmoob2JqKTsKIAogCXJldHVybiBkbWFfYnVmX2V4cG9ydChvYmos
+ICZleHlub3NfZG1hYnVmX29wcywKLQkJCQlleHlub3NfZ2VtX29iai0+YmFzZS5zaXplLCBmbGFn
+cyk7CisJCQkJZXh5bm9zX2dlbV9vYmotPmJhc2Uuc2l6ZSwgZmxhZ3MsIE5VTEwpOwogfQogCiBz
+dHJ1Y3QgZHJtX2dlbV9vYmplY3QgKmV4eW5vc19kbWFidWZfcHJpbWVfaW1wb3J0KHN0cnVjdCBk
+cm1fZGV2aWNlICpkcm1fZGV2LApkaWZmIC0tZ2l0IGEvZHJpdmVycy9ncHUvZHJtL2k5MTUvaTkx
+NV9nZW1fZG1hYnVmLmMgYi9kcml2ZXJzL2dwdS9kcm0vaTkxNS9pOTE1X2dlbV9kbWFidWYuYwpp
+bmRleCA1ODBhYTQyNDQzZWQuLjgyYTFmNGI1Nzc3OCAxMDA2NDQKLS0tIGEvZHJpdmVycy9ncHUv
+ZHJtL2k5MTUvaTkxNV9nZW1fZG1hYnVmLmMKKysrIGIvZHJpdmVycy9ncHUvZHJtL2k5MTUvaTkx
+NV9nZW1fZG1hYnVmLmMKQEAgLTIzNyw3ICsyMzcsOCBAQCBzdHJ1Y3QgZG1hX2J1ZiAqaTkxNV9n
+ZW1fcHJpbWVfZXhwb3J0KHN0cnVjdCBkcm1fZGV2aWNlICpkZXYsCiAJCQlyZXR1cm4gRVJSX1BU
+UihyZXQpOwogCX0KIAotCXJldHVybiBkbWFfYnVmX2V4cG9ydChnZW1fb2JqLCAmaTkxNV9kbWFi
+dWZfb3BzLCBnZW1fb2JqLT5zaXplLCBmbGFncyk7CisJcmV0dXJuIGRtYV9idWZfZXhwb3J0KGdl
+bV9vYmosICZpOTE1X2RtYWJ1Zl9vcHMsIGdlbV9vYmotPnNpemUsIGZsYWdzLAorCQkJICAgICAg
+TlVMTCk7CiB9CiAKIHN0YXRpYyBpbnQgaTkxNV9nZW1fb2JqZWN0X2dldF9wYWdlc19kbWFidWYo
+c3RydWN0IGRybV9pOTE1X2dlbV9vYmplY3QgKm9iaikKZGlmZiAtLWdpdCBhL2RyaXZlcnMvZ3B1
+L2RybS9ub3V2ZWF1L25vdXZlYXVfZHJtLmMgYi9kcml2ZXJzL2dwdS9kcm0vbm91dmVhdS9ub3V2
+ZWF1X2RybS5jCmluZGV4IGRkZDgzNzU2YjlhMi4uZThhZTY4YTlhYWYxIDEwMDY0NAotLS0gYS9k
+cml2ZXJzL2dwdS9kcm0vbm91dmVhdS9ub3V2ZWF1X2RybS5jCisrKyBiL2RyaXZlcnMvZ3B1L2Ry
+bS9ub3V2ZWF1L25vdXZlYXVfZHJtLmMKQEAgLTg0NCw2ICs4NDQsNyBAQCBkcml2ZXIgPSB7CiAJ
+LmdlbV9wcmltZV9leHBvcnQgPSBkcm1fZ2VtX3ByaW1lX2V4cG9ydCwKIAkuZ2VtX3ByaW1lX2lt
+cG9ydCA9IGRybV9nZW1fcHJpbWVfaW1wb3J0LAogCS5nZW1fcHJpbWVfcGluID0gbm91dmVhdV9n
+ZW1fcHJpbWVfcGluLAorCS5nZW1fcHJpbWVfcmVzX29iaiA9IG5vdXZlYXVfZ2VtX3ByaW1lX3Jl
+c19vYmosCiAJLmdlbV9wcmltZV91bnBpbiA9IG5vdXZlYXVfZ2VtX3ByaW1lX3VucGluLAogCS5n
+ZW1fcHJpbWVfZ2V0X3NnX3RhYmxlID0gbm91dmVhdV9nZW1fcHJpbWVfZ2V0X3NnX3RhYmxlLAog
+CS5nZW1fcHJpbWVfaW1wb3J0X3NnX3RhYmxlID0gbm91dmVhdV9nZW1fcHJpbWVfaW1wb3J0X3Nn
+X3RhYmxlLApkaWZmIC0tZ2l0IGEvZHJpdmVycy9ncHUvZHJtL25vdXZlYXUvbm91dmVhdV9nZW0u
+aCBiL2RyaXZlcnMvZ3B1L2RybS9ub3V2ZWF1L25vdXZlYXVfZ2VtLmgKaW5kZXggN2NhY2EwNTdi
+YzM4Li5kZGFiNzYyZDgxZmUgMTAwNjQ0Ci0tLSBhL2RyaXZlcnMvZ3B1L2RybS9ub3V2ZWF1L25v
+dXZlYXVfZ2VtLmgKKysrIGIvZHJpdmVycy9ncHUvZHJtL25vdXZlYXUvbm91dmVhdV9nZW0uaApA
+QCAtMzUsNiArMzUsNyBAQCBleHRlcm4gaW50IG5vdXZlYXVfZ2VtX2lvY3RsX2luZm8oc3RydWN0
+IGRybV9kZXZpY2UgKiwgdm9pZCAqLAogCQkJCSAgc3RydWN0IGRybV9maWxlICopOwogCiBleHRl
+cm4gaW50IG5vdXZlYXVfZ2VtX3ByaW1lX3BpbihzdHJ1Y3QgZHJtX2dlbV9vYmplY3QgKik7Citz
+dHJ1Y3QgcmVzZXJ2YXRpb25fb2JqZWN0ICpub3V2ZWF1X2dlbV9wcmltZV9yZXNfb2JqKHN0cnVj
+dCBkcm1fZ2VtX29iamVjdCAqKTsKIGV4dGVybiB2b2lkIG5vdXZlYXVfZ2VtX3ByaW1lX3VucGlu
+KHN0cnVjdCBkcm1fZ2VtX29iamVjdCAqKTsKIGV4dGVybiBzdHJ1Y3Qgc2dfdGFibGUgKm5vdXZl
+YXVfZ2VtX3ByaW1lX2dldF9zZ190YWJsZShzdHJ1Y3QgZHJtX2dlbV9vYmplY3QgKik7CiBleHRl
+cm4gc3RydWN0IGRybV9nZW1fb2JqZWN0ICpub3V2ZWF1X2dlbV9wcmltZV9pbXBvcnRfc2dfdGFi
+bGUoCmRpZmYgLS1naXQgYS9kcml2ZXJzL2dwdS9kcm0vbm91dmVhdS9ub3V2ZWF1X3ByaW1lLmMg
+Yi9kcml2ZXJzL2dwdS9kcm0vbm91dmVhdS9ub3V2ZWF1X3ByaW1lLmMKaW5kZXggNTFhMmNiMTAy
+YjQ0Li4xZjUxMDA4ZTRkMjYgMTAwNjQ0Ci0tLSBhL2RyaXZlcnMvZ3B1L2RybS9ub3V2ZWF1L25v
+dXZlYXVfcHJpbWUuYworKysgYi9kcml2ZXJzL2dwdS9kcm0vbm91dmVhdS9ub3V2ZWF1X3ByaW1l
+LmMKQEAgLTEwMiwzICsxMDIsMTAgQEAgdm9pZCBub3V2ZWF1X2dlbV9wcmltZV91bnBpbihzdHJ1
+Y3QgZHJtX2dlbV9vYmplY3QgKm9iaikKIAogCW5vdXZlYXVfYm9fdW5waW4obnZibyk7CiB9CisK
+K3N0cnVjdCByZXNlcnZhdGlvbl9vYmplY3QgKm5vdXZlYXVfZ2VtX3ByaW1lX3Jlc19vYmooc3Ry
+dWN0IGRybV9nZW1fb2JqZWN0ICpvYmopCit7CisJc3RydWN0IG5vdXZlYXVfYm8gKm52Ym8gPSBu
+b3V2ZWF1X2dlbV9vYmplY3Qob2JqKTsKKworCXJldHVybiBudmJvLT5iby5yZXN2OworfQpkaWZm
+IC0tZ2l0IGEvZHJpdmVycy9ncHUvZHJtL29tYXBkcm0vb21hcF9nZW1fZG1hYnVmLmMgYi9kcml2
+ZXJzL2dwdS9kcm0vb21hcGRybS9vbWFwX2dlbV9kbWFidWYuYwppbmRleCA0ZmNjYThkNDI3OTYu
+LmEyZGJmYjE3MzdiNCAxMDA2NDQKLS0tIGEvZHJpdmVycy9ncHUvZHJtL29tYXBkcm0vb21hcF9n
+ZW1fZG1hYnVmLmMKKysrIGIvZHJpdmVycy9ncHUvZHJtL29tYXBkcm0vb21hcF9nZW1fZG1hYnVm
+LmMKQEAgLTE3MSw3ICsxNzEsNyBAQCBzdGF0aWMgc3RydWN0IGRtYV9idWZfb3BzIG9tYXBfZG1h
+YnVmX29wcyA9IHsKIHN0cnVjdCBkbWFfYnVmICpvbWFwX2dlbV9wcmltZV9leHBvcnQoc3RydWN0
+IGRybV9kZXZpY2UgKmRldiwKIAkJc3RydWN0IGRybV9nZW1fb2JqZWN0ICpvYmosIGludCBmbGFn
+cykKIHsKLQlyZXR1cm4gZG1hX2J1Zl9leHBvcnQob2JqLCAmb21hcF9kbWFidWZfb3BzLCBvYmot
+PnNpemUsIGZsYWdzKTsKKwlyZXR1cm4gZG1hX2J1Zl9leHBvcnQob2JqLCAmb21hcF9kbWFidWZf
+b3BzLCBvYmotPnNpemUsIGZsYWdzLCBOVUxMKTsKIH0KIAogc3RydWN0IGRybV9nZW1fb2JqZWN0
+ICpvbWFwX2dlbV9wcmltZV9pbXBvcnQoc3RydWN0IGRybV9kZXZpY2UgKmRldiwKZGlmZiAtLWdp
+dCBhL2RyaXZlcnMvZ3B1L2RybS9yYWRlb24vcmFkZW9uX2Rydi5jIGIvZHJpdmVycy9ncHUvZHJt
+L3JhZGVvbi9yYWRlb25fZHJ2LmMKaW5kZXggNmUzMDE3NDEzMzg2Li45YjMwZTBjZThhNGQgMTAw
+NjQ0Ci0tLSBhL2RyaXZlcnMvZ3B1L2RybS9yYWRlb24vcmFkZW9uX2Rydi5jCisrKyBiL2RyaXZl
+cnMvZ3B1L2RybS9yYWRlb24vcmFkZW9uX2Rydi5jCkBAIC0xMzIsNiArMTMyLDcgQEAgc3RydWN0
+IGRybV9nZW1fb2JqZWN0ICpyYWRlb25fZ2VtX3ByaW1lX2ltcG9ydF9zZ190YWJsZShzdHJ1Y3Qg
+ZHJtX2RldmljZSAqZGV2LAogCQkJCQkJCXN0cnVjdCBzZ190YWJsZSAqc2cpOwogaW50IHJhZGVv
+bl9nZW1fcHJpbWVfcGluKHN0cnVjdCBkcm1fZ2VtX29iamVjdCAqb2JqKTsKIHZvaWQgcmFkZW9u
+X2dlbV9wcmltZV91bnBpbihzdHJ1Y3QgZHJtX2dlbV9vYmplY3QgKm9iaik7CitzdHJ1Y3QgcmVz
+ZXJ2YXRpb25fb2JqZWN0ICpyYWRlb25fZ2VtX3ByaW1lX3Jlc19vYmooc3RydWN0IGRybV9nZW1f
+b2JqZWN0ICopOwogdm9pZCAqcmFkZW9uX2dlbV9wcmltZV92bWFwKHN0cnVjdCBkcm1fZ2VtX29i
+amVjdCAqb2JqKTsKIHZvaWQgcmFkZW9uX2dlbV9wcmltZV92dW5tYXAoc3RydWN0IGRybV9nZW1f
+b2JqZWN0ICpvYmosIHZvaWQgKnZhZGRyKTsKIGV4dGVybiBsb25nIHJhZGVvbl9rbXNfY29tcGF0
+X2lvY3RsKHN0cnVjdCBmaWxlICpmaWxwLCB1bnNpZ25lZCBpbnQgY21kLApAQCAtNTYyLDYgKzU2
+Myw3IEBAIHN0YXRpYyBzdHJ1Y3QgZHJtX2RyaXZlciBrbXNfZHJpdmVyID0gewogCS5nZW1fcHJp
+bWVfaW1wb3J0ID0gZHJtX2dlbV9wcmltZV9pbXBvcnQsCiAJLmdlbV9wcmltZV9waW4gPSByYWRl
+b25fZ2VtX3ByaW1lX3BpbiwKIAkuZ2VtX3ByaW1lX3VucGluID0gcmFkZW9uX2dlbV9wcmltZV91
+bnBpbiwKKwkuZ2VtX3ByaW1lX3Jlc19vYmogPSByYWRlb25fZ2VtX3ByaW1lX3Jlc19vYmosCiAJ
+LmdlbV9wcmltZV9nZXRfc2dfdGFibGUgPSByYWRlb25fZ2VtX3ByaW1lX2dldF9zZ190YWJsZSwK
+IAkuZ2VtX3ByaW1lX2ltcG9ydF9zZ190YWJsZSA9IHJhZGVvbl9nZW1fcHJpbWVfaW1wb3J0X3Nn
+X3RhYmxlLAogCS5nZW1fcHJpbWVfdm1hcCA9IHJhZGVvbl9nZW1fcHJpbWVfdm1hcCwKZGlmZiAt
+LWdpdCBhL2RyaXZlcnMvZ3B1L2RybS9yYWRlb24vcmFkZW9uX3ByaW1lLmMgYi9kcml2ZXJzL2dw
+dS9kcm0vcmFkZW9uL3JhZGVvbl9wcmltZS5jCmluZGV4IDIwMDc0NTYwZmMyNS4uMjhkNzEwNzBj
+Mzg5IDEwMDY0NAotLS0gYS9kcml2ZXJzL2dwdS9kcm0vcmFkZW9uL3JhZGVvbl9wcmltZS5jCisr
+KyBiL2RyaXZlcnMvZ3B1L2RybS9yYWRlb24vcmFkZW9uX3ByaW1lLmMKQEAgLTEwMywzICsxMDMs
+MTEgQEAgdm9pZCByYWRlb25fZ2VtX3ByaW1lX3VucGluKHN0cnVjdCBkcm1fZ2VtX29iamVjdCAq
+b2JqKQogCXJhZGVvbl9ib191bnBpbihibyk7CiAJcmFkZW9uX2JvX3VucmVzZXJ2ZShibyk7CiB9
+CisKKworc3RydWN0IHJlc2VydmF0aW9uX29iamVjdCAqcmFkZW9uX2dlbV9wcmltZV9yZXNfb2Jq
+KHN0cnVjdCBkcm1fZ2VtX29iamVjdCAqb2JqKQoreworCXN0cnVjdCByYWRlb25fYm8gKmJvID0g
+Z2VtX3RvX3JhZGVvbl9ibyhvYmopOworCisJcmV0dXJuIGJvLT50Ym8ucmVzdjsKK30KZGlmZiAt
+LWdpdCBhL2RyaXZlcnMvZ3B1L2RybS90ZWdyYS9nZW0uYyBiL2RyaXZlcnMvZ3B1L2RybS90ZWdy
+YS9nZW0uYwppbmRleCBhYTg1YjdiMjZmMTAuLjc4Y2M4MTQzNzYwYSAxMDA2NDQKLS0tIGEvZHJp
+dmVycy9ncHUvZHJtL3RlZ3JhL2dlbS5jCisrKyBiL2RyaXZlcnMvZ3B1L2RybS90ZWdyYS9nZW0u
+YwpAQCAtNDIwLDcgKzQyMCw3IEBAIHN0cnVjdCBkbWFfYnVmICp0ZWdyYV9nZW1fcHJpbWVfZXhw
+b3J0KHN0cnVjdCBkcm1fZGV2aWNlICpkcm0sCiAJCQkJICAgICAgIGludCBmbGFncykKIHsKIAly
+ZXR1cm4gZG1hX2J1Zl9leHBvcnQoZ2VtLCAmdGVncmFfZ2VtX3ByaW1lX2RtYWJ1Zl9vcHMsIGdl
+bS0+c2l6ZSwKLQkJCSAgICAgIGZsYWdzKTsKKwkJCSAgICAgIGZsYWdzLCBOVUxMKTsKIH0KIAog
+c3RydWN0IGRybV9nZW1fb2JqZWN0ICp0ZWdyYV9nZW1fcHJpbWVfaW1wb3J0KHN0cnVjdCBkcm1f
+ZGV2aWNlICpkcm0sCmRpZmYgLS1naXQgYS9kcml2ZXJzL2dwdS9kcm0vdHRtL3R0bV9vYmplY3Qu
+YyBiL2RyaXZlcnMvZ3B1L2RybS90dG0vdHRtX29iamVjdC5jCmluZGV4IGQyYTA1MzM1Mjc4OS4u
+MTJjODcxMTBkYjNhIDEwMDY0NAotLS0gYS9kcml2ZXJzL2dwdS9kcm0vdHRtL3R0bV9vYmplY3Qu
+YworKysgYi9kcml2ZXJzL2dwdS9kcm0vdHRtL3R0bV9vYmplY3QuYwpAQCAtNjk1LDcgKzY5NSw3
+IEBAIGludCB0dG1fcHJpbWVfaGFuZGxlX3RvX2ZkKHN0cnVjdCB0dG1fb2JqZWN0X2ZpbGUgKnRm
+aWxlLAogCQl9CiAKIAkJZG1hX2J1ZiA9IGRtYV9idWZfZXhwb3J0KHByaW1lLCAmdGRldi0+b3Bz
+LAotCQkJCQkgcHJpbWUtPnNpemUsIGZsYWdzKTsKKwkJCQkJIHByaW1lLT5zaXplLCBmbGFncywg
+TlVMTCk7CiAJCWlmIChJU19FUlIoZG1hX2J1ZikpIHsKIAkJCXJldCA9IFBUUl9FUlIoZG1hX2J1
+Zik7CiAJCQl0dG1fbWVtX2dsb2JhbF9mcmVlKHRkZXYtPm1lbV9nbG9iLApkaWZmIC0tZ2l0IGEv
+ZHJpdmVycy9tZWRpYS92NGwyLWNvcmUvdmlkZW9idWYyLWRtYS1jb250aWcuYyBiL2RyaXZlcnMv
+bWVkaWEvdjRsMi1jb3JlL3ZpZGVvYnVmMi1kbWEtY29udGlnLmMKaW5kZXggODgwYmUwNzgyZGQ5
+Li5jNGU0ZGZhODEyM2EgMTAwNjQ0Ci0tLSBhL2RyaXZlcnMvbWVkaWEvdjRsMi1jb3JlL3ZpZGVv
+YnVmMi1kbWEtY29udGlnLmMKKysrIGIvZHJpdmVycy9tZWRpYS92NGwyLWNvcmUvdmlkZW9idWYy
+LWRtYS1jb250aWcuYwpAQCAtNDA0LDcgKzQwNCw3IEBAIHN0YXRpYyBzdHJ1Y3QgZG1hX2J1ZiAq
+dmIyX2RjX2dldF9kbWFidWYodm9pZCAqYnVmX3ByaXYsIHVuc2lnbmVkIGxvbmcgZmxhZ3MpCiAJ
+aWYgKFdBUk5fT04oIWJ1Zi0+c2d0X2Jhc2UpKQogCQlyZXR1cm4gTlVMTDsKIAotCWRidWYgPSBk
+bWFfYnVmX2V4cG9ydChidWYsICZ2YjJfZGNfZG1hYnVmX29wcywgYnVmLT5zaXplLCBmbGFncyk7
+CisJZGJ1ZiA9IGRtYV9idWZfZXhwb3J0KGJ1ZiwgJnZiMl9kY19kbWFidWZfb3BzLCBidWYtPnNp
+emUsIGZsYWdzLCBOVUxMKTsKIAlpZiAoSVNfRVJSKGRidWYpKQogCQlyZXR1cm4gTlVMTDsKIApk
+aWZmIC0tZ2l0IGEvZHJpdmVycy9zdGFnaW5nL2FuZHJvaWQvaW9uL2lvbi5jIGIvZHJpdmVycy9z
+dGFnaW5nL2FuZHJvaWQvaW9uL2lvbi5jCmluZGV4IDM4OWI4ZjY3YTJlYy4uMjcwMzYwOTEyYjJj
+IDEwMDY0NAotLS0gYS9kcml2ZXJzL3N0YWdpbmcvYW5kcm9pZC9pb24vaW9uLmMKKysrIGIvZHJp
+dmVycy9zdGFnaW5nL2FuZHJvaWQvaW9uL2lvbi5jCkBAIC0xMTIwLDcgKzExMjAsOCBAQCBzdHJ1
+Y3QgZG1hX2J1ZiAqaW9uX3NoYXJlX2RtYV9idWYoc3RydWN0IGlvbl9jbGllbnQgKmNsaWVudCwK
+IAlpb25fYnVmZmVyX2dldChidWZmZXIpOwogCW11dGV4X3VubG9jaygmY2xpZW50LT5sb2NrKTsK
+IAotCWRtYWJ1ZiA9IGRtYV9idWZfZXhwb3J0KGJ1ZmZlciwgJmRtYV9idWZfb3BzLCBidWZmZXIt
+PnNpemUsIE9fUkRXUik7CisJZG1hYnVmID0gZG1hX2J1Zl9leHBvcnQoYnVmZmVyLCAmZG1hX2J1
+Zl9vcHMsIGJ1ZmZlci0+c2l6ZSwgT19SRFdSLAorCQkJCU5VTEwpOwogCWlmIChJU19FUlIoZG1h
+YnVmKSkgewogCQlpb25fYnVmZmVyX3B1dChidWZmZXIpOwogCQlyZXR1cm4gZG1hYnVmOwpkaWZm
+IC0tZ2l0IGEvaW5jbHVkZS9kcm0vZHJtUC5oIGIvaW5jbHVkZS9kcm0vZHJtUC5oCmluZGV4IDhh
+ZjcxYThlMmMwMC4uZTQxZjE3ZWExZjEzIDEwMDY0NAotLS0gYS9pbmNsdWRlL2RybS9kcm1QLmgK
+KysrIGIvaW5jbHVkZS9kcm0vZHJtUC5oCkBAIC04Myw2ICs4Myw3IEBAIHN0cnVjdCBkcm1fZGV2
+aWNlOwogCiBzdHJ1Y3QgZGV2aWNlX25vZGU7CiBzdHJ1Y3QgdmlkZW9tb2RlOworc3RydWN0IHJl
+c2VydmF0aW9uX29iamVjdDsKIAogI2luY2x1ZGUgPGRybS9kcm1fb3NfbGludXguaD4KICNpbmNs
+dWRlIDxkcm0vZHJtX2hhc2h0YWIuaD4KQEAgLTkyMyw2ICs5MjQsOCBAQCBzdHJ1Y3QgZHJtX2Ry
+aXZlciB7CiAJLyogbG93LWxldmVsIGludGVyZmFjZSB1c2VkIGJ5IGRybV9nZW1fcHJpbWVfe2lt
+cG9ydCxleHBvcnR9ICovCiAJaW50ICgqZ2VtX3ByaW1lX3Bpbikoc3RydWN0IGRybV9nZW1fb2Jq
+ZWN0ICpvYmopOwogCXZvaWQgKCpnZW1fcHJpbWVfdW5waW4pKHN0cnVjdCBkcm1fZ2VtX29iamVj
+dCAqb2JqKTsKKwlzdHJ1Y3QgcmVzZXJ2YXRpb25fb2JqZWN0ICogKCpnZW1fcHJpbWVfcmVzX29i
+aikoCisJCQkJc3RydWN0IGRybV9nZW1fb2JqZWN0ICpvYmopOwogCXN0cnVjdCBzZ190YWJsZSAq
+KCpnZW1fcHJpbWVfZ2V0X3NnX3RhYmxlKShzdHJ1Y3QgZHJtX2dlbV9vYmplY3QgKm9iaik7CiAJ
+c3RydWN0IGRybV9nZW1fb2JqZWN0ICooKmdlbV9wcmltZV9pbXBvcnRfc2dfdGFibGUpKAogCQkJ
+CXN0cnVjdCBkcm1fZGV2aWNlICpkZXYsIHNpemVfdCBzaXplLApkaWZmIC0tZ2l0IGEvaW5jbHVk
+ZS9saW51eC9kbWEtYnVmLmggYi9pbmNsdWRlL2xpbnV4L2RtYS1idWYuaAppbmRleCBmODg2OTg1
+YTI4YjIuLmZkN2RlZjJlMGFlMiAxMDA2NDQKLS0tIGEvaW5jbHVkZS9saW51eC9kbWEtYnVmLmgK
+KysrIGIvaW5jbHVkZS9saW51eC9kbWEtYnVmLmgKQEAgLTExNSw2ICsxMTUsNyBAQCBzdHJ1Y3Qg
+ZG1hX2J1Zl9vcHMgewogICogQGV4cF9uYW1lOiBuYW1lIG9mIHRoZSBleHBvcnRlcjsgdXNlZnVs
+IGZvciBkZWJ1Z2dpbmcuCiAgKiBAbGlzdF9ub2RlOiBub2RlIGZvciBkbWFfYnVmIGFjY291bnRp
+bmcgYW5kIGRlYnVnZ2luZy4KICAqIEBwcml2OiBleHBvcnRlciBzcGVjaWZpYyBwcml2YXRlIGRh
+dGEgZm9yIHRoaXMgYnVmZmVyIG9iamVjdC4KKyAqIEByZXN2OiByZXNlcnZhdGlvbiBvYmplY3Qg
+bGlua2VkIHRvIHRoaXMgZG1hLWJ1ZgogICovCiBzdHJ1Y3QgZG1hX2J1ZiB7CiAJc2l6ZV90IHNp
+emU7CkBAIC0xMjgsNiArMTI5LDcgQEAgc3RydWN0IGRtYV9idWYgewogCWNvbnN0IGNoYXIgKmV4
+cF9uYW1lOwogCXN0cnVjdCBsaXN0X2hlYWQgbGlzdF9ub2RlOwogCXZvaWQgKnByaXY7CisJc3Ry
+dWN0IHJlc2VydmF0aW9uX29iamVjdCAqcmVzdjsKIH07CiAKIC8qKgpAQCAtMTY4LDEwICsxNzAs
+MTEgQEAgdm9pZCBkbWFfYnVmX2RldGFjaChzdHJ1Y3QgZG1hX2J1ZiAqZG1hYnVmLAogCQkJCXN0
+cnVjdCBkbWFfYnVmX2F0dGFjaG1lbnQgKmRtYWJ1Zl9hdHRhY2gpOwogCiBzdHJ1Y3QgZG1hX2J1
+ZiAqZG1hX2J1Zl9leHBvcnRfbmFtZWQodm9pZCAqcHJpdiwgY29uc3Qgc3RydWN0IGRtYV9idWZf
+b3BzICpvcHMsCi0JCQkgICAgICAgc2l6ZV90IHNpemUsIGludCBmbGFncywgY29uc3QgY2hhciAq
+KTsKKwkJCSAgICAgICBzaXplX3Qgc2l6ZSwgaW50IGZsYWdzLCBjb25zdCBjaGFyICosCisJCQkg
+ICAgICAgc3RydWN0IHJlc2VydmF0aW9uX29iamVjdCAqKTsKIAotI2RlZmluZSBkbWFfYnVmX2V4
+cG9ydChwcml2LCBvcHMsIHNpemUsIGZsYWdzKQlcCi0JZG1hX2J1Zl9leHBvcnRfbmFtZWQocHJp
+diwgb3BzLCBzaXplLCBmbGFncywgS0JVSUxEX01PRE5BTUUpCisjZGVmaW5lIGRtYV9idWZfZXhw
+b3J0KHByaXYsIG9wcywgc2l6ZSwgZmxhZ3MsIHJlc3YpCVwKKwlkbWFfYnVmX2V4cG9ydF9uYW1l
+ZChwcml2LCBvcHMsIHNpemUsIGZsYWdzLCBLQlVJTERfTU9ETkFNRSwgcmVzdikKIAogaW50IGRt
+YV9idWZfZmQoc3RydWN0IGRtYV9idWYgKmRtYWJ1ZiwgaW50IGZsYWdzKTsKIHN0cnVjdCBkbWFf
+YnVmICpkbWFfYnVmX2dldChpbnQgZmQpOwoKX19fX19fX19fX19fX19fX19fX19fX19fX19fX19f
+X19fX19fX19fX19fX19fX18KZHJpLWRldmVsIG1haWxpbmcgbGlzdApkcmktZGV2ZWxAbGlzdHMu
+ZnJlZWRlc2t0b3Aub3JnCmh0dHA6Ly9saXN0cy5mcmVlZGVza3RvcC5vcmcvbWFpbG1hbi9saXN0
+aW5mby9kcmktZGV2ZWwK
