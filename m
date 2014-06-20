@@ -1,63 +1,57 @@
 From: Daniel Vetter <daniel@ffwll.ch>
-Subject: Re: [REPOST PATCH 1/8] fence: dma-buf cross-device synchronization
- (v17)
-Date: Fri, 20 Jun 2014 10:24:15 +0200
-Message-ID: <CAKMK7uGXHoUfWOGMH9EzbuZHKxLdLznUXLfq=USs6T=jkryYgg@mail.gmail.com>
+Subject: Re: [REPOST PATCH 1/8] fence: dma-buf cross-device synchronization (v17)
+Date: Fri, 20 Jun 2014 10:30:37 +0200
+Message-ID: <CAKMK7uEdv81HRWA2ON+tgutut2KiQsaT_NjELko9NXk88JsGrg@mail.gmail.com>
 References: <20140618102957.15728.43525.stgit@patser>
- <20140618103653.15728.4942.stgit@patser>
- <20140619011327.GC10921@kroah.com>
- <CAF6AEGv4Ms+zsrEtpA10bGq04LnRjzVb925co49eVxh4ugkd=A@mail.gmail.com>
- <20140619170059.GA1224@kroah.com>
- <CAKMK7uFa57YjeJCFQhWFr_5cRTTpWxBdJ1qtb5Ojnu-KZpe-Lw@mail.gmail.com>
- <20140619200159.GA27883@kroah.com> <53A366B3.8020808@zytor.com>
+	<20140618103653.15728.4942.stgit@patser>
+	<20140619011327.GC10921@kroah.com>
+	<CAF6AEGv4Ms+zsrEtpA10bGq04LnRjzVb925co49eVxh4ugkd=A@mail.gmail.com>
+	<20140619170059.GA1224@kroah.com>
+	<CAKMK7uFa57YjeJCFQhWFr_5cRTTpWxBdJ1qtb5Ojnu-KZpe-Lw@mail.gmail.com>
+	<20140619200159.GA27883@kroah.com>
+	<53A366B3.8020808@zytor.com>
+	<20140619234243.GA8952@kroah.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <dri-devel-bounces@lists.freedesktop.org>
-In-Reply-To: <53A366B3.8020808@zytor.com>
-List-Unsubscribe: <http://lists.freedesktop.org/mailman/options/dri-devel>,
- <mailto:dri-devel-request@lists.freedesktop.org?subject=unsubscribe>
-List-Archive: <http://lists.freedesktop.org/archives/dri-devel>
-List-Post: <mailto:dri-devel@lists.freedesktop.org>
-List-Help: <mailto:dri-devel-request@lists.freedesktop.org?subject=help>
-List-Subscribe: <http://lists.freedesktop.org/mailman/listinfo/dri-devel>,
- <mailto:dri-devel-request@lists.freedesktop.org?subject=subscribe>
-Errors-To: dri-devel-bounces@lists.freedesktop.org
-Sender: "dri-devel" <dri-devel-bounces@lists.freedesktop.org>
-To: "H. Peter Anvin" <hpa@zytor.com>
-Cc: "open list:GENERIC INCLUDE/A..." <linux-arch@vger.kernel.org>, Thomas Hellstrom <thellstrom@vmware.com>, Greg KH <gregkh@linuxfoundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "dri-devel@lists.freedesktop.org" <dri-devel@lists.freedesktop.org>, "linaro-mm-sig@lists.linaro.org" <linaro-mm-sig@lists.linaro.org>, Colin Cross <ccross@google.com>, "linux-media@vger.kernel.org" <linux-media@vger.kernel.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=UTF-8
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-ig0-f176.google.com ([209.85.213.176]:57387 "EHLO
+	mail-ig0-f176.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932189AbaFTIah (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 20 Jun 2014 04:30:37 -0400
+Received: by mail-ig0-f176.google.com with SMTP id c1so272511igq.9
+        for <linux-arch@vger.kernel.org>; Fri, 20 Jun 2014 01:30:37 -0700 (PDT)
+In-Reply-To: <20140619234243.GA8952@kroah.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Greg KH <gregkh@linuxfoundation.org>
+Cc: "H. Peter Anvin" <hpa@zytor.com>, Rob Clark <robdclark@gmail.com>, Maarten Lankhorst <maarten.lankhorst@canonical.com>, "open list:GENERIC INCLUDE/A..." <linux-arch@vger.kernel.org>, Thomas Hellstrom <thellstrom@vmware.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "dri-devel@lists.freedesktop.org" <dri-devel@lists.freedesktop.org>, "linaro-mm-sig@lists.linaro.org" <linaro-mm-sig@lists.linaro.org>, Thierry Reding <thierry.reding@gmail.com>, Colin Cross <ccross@google.com>, Sumit Semwal <sumit.semwal@linaro.org>, "linux-media@vger.kernel.org" <linux-media@vger.kernel.org>
 
-On Fri, Jun 20, 2014 at 12:39 AM, H. Peter Anvin <hpa@zytor.com> wrote:
->>> Aside: This is a pet peeve of mine and recently I've switched to
->>> rejecting all patch that have a BUG_ON, period.
->>
->> Please do, I have been for a few years now as well for the same reasons
->> you cite.
->>
+On Fri, Jun 20, 2014 at 1:42 AM, Greg KH <gregkh@linuxfoundation.org> wrote:
+>> I'm actually concerned about this trend.  Downgrading things to WARN_ON
+>> can allow a security bug in the kernel to continue to exist, for
+>> example, or make the error message disappear.
 >
-> I'm actually concerned about this trend.  Downgrading things to WARN_ON
-> can allow a security bug in the kernel to continue to exist, for
-> example, or make the error message disappear.
+> A BUG_ON makes any error message disappear pretty quickly :)
 >
-> I am wondering if the right thing here isn't to have a user (command
-> line?) settable policy as to how to proceed on an assert violation,
-> instead of hardcoding it at compile time.
+> I'm talking about foolish "ASSERT-like" BUG_ON that driver authors like
+> to add to their code when writing it to catch things they are messing
+> up.  After the code is working, they should be removed, like this one.
 
-I should clarify: If it smells like the issue is a failure of our
-ioctl/syscall validation code to catch crap, BUG_ON is the right
-choice. And fundamentally I've had this rule since 1-2 years now, the
-only recent change I've done is switch my scripts from warning by
-default if there's a new BUG_ON to rejecting by default. Mostly
-because I'm lazy and let too many BUG_ONs pass through by default.
+Well except for cases where it's super performance critical I like to
+retain these WARN_ON asserts (not BUG_ON). "Is the logic sufficient
+locked down with WARN_ONs?" is actually one of the main review
+criteria I have for i915 patches, especially on the modeset side.
+They're a bit an annoyance for distro's since they result in a
+constant (but ever shifting) stream of backtraces, but for me they
+serve as an excellent early warning sign when our driver has yet again
+lost its marbles (or at least some) way before something user-visibly
+bad happens.
 
-Also if you add a new interface to i915 I'll make damn sure you supply
-a full set of nasty testcases to abuse the ioctl hard. In the end it's
-a tradeoff and overall I don't think I'm compromising security with my
-current set of rules.
-
-Also, people don't (yet) terribly care about data integrity as soon as
-their data has passed once through a gpu.
+And for those screaming that these checks should be hidden behind a
+config option and only enabled for validation: Nope, there's too many
+combinations of display hardware out there and I simply need our
+entire user base to serve as guinea pigs. There's really no other way
+to validate this mess called drm/i915.
 -Daniel
 -- 
 Daniel Vetter
