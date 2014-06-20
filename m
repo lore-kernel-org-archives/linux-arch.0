@@ -1,63 +1,68 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ig0-f176.google.com ([209.85.213.176]:44569 "EHLO
-	mail-ig0-f176.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S965528AbaFTIYQ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 20 Jun 2014 04:24:16 -0400
-Received: by mail-ig0-f176.google.com with SMTP id c1so265951igq.15
-        for <linux-arch@vger.kernel.org>; Fri, 20 Jun 2014 01:24:15 -0700 (PDT)
+Received: from userp1040.oracle.com ([156.151.31.81]:19149 "EHLO
+	userp1040.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S965330AbaFTNrT (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 20 Jun 2014 09:47:19 -0400
+Date: Fri, 20 Jun 2014 09:46:08 -0400
+From: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
+Subject: Re: [PATCH 10/11] qspinlock: Paravirt support
+Message-ID: <20140620134608.GA11545@laptop.dumpdata.com>
+References: <20140615124657.264658593@chello.nl>
+ <20140615130154.213923590@chello.nl>
 MIME-Version: 1.0
-In-Reply-To: <53A366B3.8020808@zytor.com>
-References: <20140618102957.15728.43525.stgit@patser>
-	<20140618103653.15728.4942.stgit@patser>
-	<20140619011327.GC10921@kroah.com>
-	<CAF6AEGv4Ms+zsrEtpA10bGq04LnRjzVb925co49eVxh4ugkd=A@mail.gmail.com>
-	<20140619170059.GA1224@kroah.com>
-	<CAKMK7uFa57YjeJCFQhWFr_5cRTTpWxBdJ1qtb5Ojnu-KZpe-Lw@mail.gmail.com>
-	<20140619200159.GA27883@kroah.com>
-	<53A366B3.8020808@zytor.com>
-Date: Fri, 20 Jun 2014 10:24:15 +0200
-Message-ID: <CAKMK7uGXHoUfWOGMH9EzbuZHKxLdLznUXLfq=USs6T=jkryYgg@mail.gmail.com>
-Subject: Re: [REPOST PATCH 1/8] fence: dma-buf cross-device synchronization (v17)
-From: Daniel Vetter <daniel@ffwll.ch>
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20140615130154.213923590@chello.nl>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "H. Peter Anvin" <hpa@zytor.com>
-Cc: Greg KH <gregkh@linuxfoundation.org>, Rob Clark <robdclark@gmail.com>, Maarten Lankhorst <maarten.lankhorst@canonical.com>, "open list:GENERIC INCLUDE/A..." <linux-arch@vger.kernel.org>, Thomas Hellstrom <thellstrom@vmware.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "dri-devel@lists.freedesktop.org" <dri-devel@lists.freedesktop.org>, "linaro-mm-sig@lists.linaro.org" <linaro-mm-sig@lists.linaro.org>, Thierry Reding <thierry.reding@gmail.com>, Colin Cross <ccross@google.com>, Sumit Semwal <sumit.semwal@linaro.org>, "linux-media@vger.kernel.org" <linux-media@vger.kernel.org>
-Message-ID: <20140620082415.DhvUqepmrorlj_b7EJULosZ6aa7UaKhCTfdmhwpZ-7A@z>
+To: Peter Zijlstra <a.p.zijlstra@chello.nl>
+Cc: Waiman.Long@hp.com, tglx@linutronix.de, mingo@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, paolo.bonzini@gmail.com, boris.ostrovsky@oracle.com, paulmck@linux.vnet.ibm.com, riel@redhat.com, torvalds@linux-foundation.org, raghavendra.kt@linux.vnet.ibm.com, david.vrabel@citrix.com, oleg@redhat.com, gleb@redhat.com, scott.norton@hp.com, chegu_vinod@hp.com, Peter Zijlstra <peterz@infradead.org>
+Message-ID: <20140620134608.4rL0irEz7LhmmWKItc0RVQS7yFnWS3PBk1n1anGkubs@z>
 
-On Fri, Jun 20, 2014 at 12:39 AM, H. Peter Anvin <hpa@zytor.com> wrote:
->>> Aside: This is a pet peeve of mine and recently I've switched to
->>> rejecting all patch that have a BUG_ON, period.
->>
->> Please do, I have been for a few years now as well for the same reasons
->> you cite.
->>
->
-> I'm actually concerned about this trend.  Downgrading things to WARN_ON
-> can allow a security bug in the kernel to continue to exist, for
-> example, or make the error message disappear.
->
-> I am wondering if the right thing here isn't to have a user (command
-> line?) settable policy as to how to proceed on an assert violation,
-> instead of hardcoding it at compile time.
+On Sun, Jun 15, 2014 at 02:47:07PM +0200, Peter Zijlstra wrote:
+> Add minimal paravirt support.
+> 
+> The code aims for minimal impact on the native case.
 
-I should clarify: If it smells like the issue is a failure of our
-ioctl/syscall validation code to catch crap, BUG_ON is the right
-choice. And fundamentally I've had this rule since 1-2 years now, the
-only recent change I've done is switch my scripts from warning by
-default if there's a new BUG_ON to rejecting by default. Mostly
-because I'm lazy and let too many BUG_ONs pass through by default.
+Woot!
+> 
+> On the lock side we add one jump label (asm_goto) and 4 paravirt
+> callee saved calls that default to NOPs. The only effects are the
+> extra NOPs and some pointless MOVs to accomodate the calling
+> convention. No register spills happen because of this (x86_64).
+> 
+> On the unlock side we have one paravirt callee saved call, which
+> defaults to the actual unlock sequence: "movb $0, (%rdi)" and a NOP.
+> 
+> The actual paravirt code comes in 3 parts;
+> 
+>  - init_node; this initializes the extra data members required for PV
+>    state. PV state data is kept 1 cacheline ahead of the regular data.
+> 
+>  - link_and_wait_node/kick_node; these are paired with the regular MCS
+>    queueing and are placed resp. before/after the paired MCS ops.
+> 
+>  - wait_head/queue_unlock; the interesting part here is finding the
+>    head node to kick.
+> 
+> Tracking the head is done in two parts, firstly the pv_wait_head will
+> store its cpu number in whichever node is pointed to by the tail part
+> of the lock word. Secondly, pv_link_and_wait_node() will propagate the
+> existing head from the old to the new tail node.
 
-Also if you add a new interface to i915 I'll make damn sure you supply
-a full set of nasty testcases to abuse the ioctl hard. In the end it's
-a tradeoff and overall I don't think I'm compromising security with my
-current set of rules.
+I dug in the code and I have some comments about it, but before
+I post them I was wondering if you have any plans to run any performance
+tests against the PV ticketlock with normal and over-committed scenarios?
 
-Also, people don't (yet) terribly care about data integrity as soon as
-their data has passed once through a gpu.
--Daniel
--- 
-Daniel Vetter
-Software Engineer, Intel Corporation
-+41 (0) 79 365 57 48 - http://blog.ffwll.ch
+Looking at this with a pen and paper I see that compared to
+PV ticketlock for the CPUs that are contending on the queue (so they
+go to pv_wait_head_and_link, then progress to pv_wait_head), they
+go sleep twice and get woken up twice. In PV ticketlock the
+contending CPUs would only go to sleep once and woken up once it
+was their turn.
+
+That of course is the worst case scenario - where the CPU
+that has the lock is taking forever to do its job and the
+host is quite overcommitted.
+
+Thanks!
