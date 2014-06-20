@@ -1,124 +1,63 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ig0-f169.google.com ([209.85.213.169]:55096 "EHLO
-	mail-ig0-f169.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S965467AbaFSXVd (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 19 Jun 2014 19:21:33 -0400
+Received: from mail-ig0-f176.google.com ([209.85.213.176]:44569 "EHLO
+	mail-ig0-f176.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S965528AbaFTIYQ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 20 Jun 2014 04:24:16 -0400
+Received: by mail-ig0-f176.google.com with SMTP id c1so265951igq.15
+        for <linux-arch@vger.kernel.org>; Fri, 20 Jun 2014 01:24:15 -0700 (PDT)
 MIME-Version: 1.0
-In-Reply-To: <CAPM=9tzsT+nah2P-qZ8iKW=aTZJzYgm18mMWyy2-RVkoOSwyjg@mail.gmail.com>
+In-Reply-To: <53A366B3.8020808@zytor.com>
 References: <20140618102957.15728.43525.stgit@patser>
 	<20140618103653.15728.4942.stgit@patser>
 	<20140619011327.GC10921@kroah.com>
 	<CAF6AEGv4Ms+zsrEtpA10bGq04LnRjzVb925co49eVxh4ugkd=A@mail.gmail.com>
 	<20140619170059.GA1224@kroah.com>
-	<CAF6AEGuXKw1w=outX+QgFE2XZxV8c6pyhORL+mRp4uZR8Jnq7g@mail.gmail.com>
-	<20140619181918.GA24155@kroah.com>
-	<CAPM=9tzsT+nah2P-qZ8iKW=aTZJzYgm18mMWyy2-RVkoOSwyjg@mail.gmail.com>
-Date: Thu, 19 Jun 2014 19:21:32 -0400
-Message-ID: <CAF6AEGsEGwzU3HoqZ_ELbQLqoKZm+FeeDUmSwqVFPLg_U0X9BQ@mail.gmail.com>
+	<CAKMK7uFa57YjeJCFQhWFr_5cRTTpWxBdJ1qtb5Ojnu-KZpe-Lw@mail.gmail.com>
+	<20140619200159.GA27883@kroah.com>
+	<53A366B3.8020808@zytor.com>
+Date: Fri, 20 Jun 2014 10:24:15 +0200
+Message-ID: <CAKMK7uGXHoUfWOGMH9EzbuZHKxLdLznUXLfq=USs6T=jkryYgg@mail.gmail.com>
 Subject: Re: [REPOST PATCH 1/8] fence: dma-buf cross-device synchronization (v17)
-From: Rob Clark <robdclark@gmail.com>
+From: Daniel Vetter <daniel@ffwll.ch>
 Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dave Airlie <airlied@gmail.com>
-Cc: Greg KH <gregkh@linuxfoundation.org>, linux-arch@vger.kernel.org, Thomas Hellstrom <thellstrom@vmware.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "dri-devel@lists.freedesktop.org" <dri-devel@lists.freedesktop.org>, "linaro-mm-sig@lists.linaro.org" <linaro-mm-sig@lists.linaro.org>, Colin Cross <ccross@google.com>, "linux-media@vger.kernel.org" <linux-media@vger.kernel.org>
-Message-ID: <20140619232132.9-MxebFqEbL56cqG3YT7BPPa8qLdNaZjTSl1w6K2LPA@z>
+To: "H. Peter Anvin" <hpa@zytor.com>
+Cc: Greg KH <gregkh@linuxfoundation.org>, Rob Clark <robdclark@gmail.com>, Maarten Lankhorst <maarten.lankhorst@canonical.com>, "open list:GENERIC INCLUDE/A..." <linux-arch@vger.kernel.org>, Thomas Hellstrom <thellstrom@vmware.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "dri-devel@lists.freedesktop.org" <dri-devel@lists.freedesktop.org>, "linaro-mm-sig@lists.linaro.org" <linaro-mm-sig@lists.linaro.org>, Thierry Reding <thierry.reding@gmail.com>, Colin Cross <ccross@google.com>, Sumit Semwal <sumit.semwal@linaro.org>, "linux-media@vger.kernel.org" <linux-media@vger.kernel.org>
+Message-ID: <20140620082415.DhvUqepmrorlj_b7EJULosZ6aa7UaKhCTfdmhwpZ-7A@z>
 
-On Thu, Jun 19, 2014 at 5:50 PM, Dave Airlie <airlied@gmail.com> wrote:
-> On 20 June 2014 04:19, Greg KH <gregkh@linuxfoundation.org> wrote:
->> On Thu, Jun 19, 2014 at 01:45:30PM -0400, Rob Clark wrote:
->>> On Thu, Jun 19, 2014 at 1:00 PM, Greg KH <gregkh@linuxfoundation.org> wrote:
->>> > On Thu, Jun 19, 2014 at 10:00:18AM -0400, Rob Clark wrote:
->>> >> On Wed, Jun 18, 2014 at 9:13 PM, Greg KH <gregkh@linuxfoundation.org> wrote:
->>> >> > On Wed, Jun 18, 2014 at 12:36:54PM +0200, Maarten Lankhorst wrote:
->>> >> >> +#define CREATE_TRACE_POINTS
->>> >> >> +#include <trace/events/fence.h>
->>> >> >> +
->>> >> >> +EXPORT_TRACEPOINT_SYMBOL(fence_annotate_wait_on);
->>> >> >> +EXPORT_TRACEPOINT_SYMBOL(fence_emit);
->>> >> >
->>> >> > Are you really willing to live with these as tracepoints for forever?
->>> >> > What is the use of them in debugging?  Was it just for debugging the
->>> >> > fence code, or for something else?
->>> >> >
->>> >> >> +/**
->>> >> >> + * fence_context_alloc - allocate an array of fence contexts
->>> >> >> + * @num:     [in]    amount of contexts to allocate
->>> >> >> + *
->>> >> >> + * This function will return the first index of the number of fences allocated.
->>> >> >> + * The fence context is used for setting fence->context to a unique number.
->>> >> >> + */
->>> >> >> +unsigned fence_context_alloc(unsigned num)
->>> >> >> +{
->>> >> >> +     BUG_ON(!num);
->>> >> >> +     return atomic_add_return(num, &fence_context_counter) - num;
->>> >> >> +}
->>> >> >> +EXPORT_SYMBOL(fence_context_alloc);
->>> >> >
->>> >> > EXPORT_SYMBOL_GPL()?  Same goes for all of the exports in here.
->>> >> > Traditionally all of the driver core exports have been with this
->>> >> > marking, any objection to making that change here as well?
->>> >>
->>> >> tbh, I prefer EXPORT_SYMBOL()..  well, I'd prefer even more if there
->>> >> wasn't even a need for EXPORT_SYMBOL_GPL(), but sadly it is a fact of
->>> >> life.  We already went through this debate once with dma-buf.  We
->>> >> aren't going to change $evil_vendor's mind about non-gpl modules.  The
->>> >> only result will be a more flugly convoluted solution (ie. use syncpt
->>> >> EXPORT_SYMBOL() on top of fence EXPORT_SYMBOL_GPL()) just as a
->>> >> workaround, with the result that no-one benefits.
->>> >
->>> > It has been proven that using _GPL() exports have caused companies to
->>> > release their code "properly" over the years, so as these really are
->>> > Linux-only apis, please change them to be marked this way, it helps
->>> > everyone out in the end.
->>>
->>> Well, maybe that is the true in some cases.  But it certainly didn't
->>> work out that way for dma-buf.  And I think the end result is worse.
->>>
->>> I don't really like coming down on the side of EXPORT_SYMBOL() instead
->>> of EXPORT_SYMBOL_GPL(), but if we do use EXPORT_SYMBOL_GPL() then the
->>> result will only be creative workarounds using the _GPL symbols
->>> indirectly by whatever is available via EXPORT_SYMBOL().  I don't
->>> really see how that will be better.
+On Fri, Jun 20, 2014 at 12:39 AM, H. Peter Anvin <hpa@zytor.com> wrote:
+>>> Aside: This is a pet peeve of mine and recently I've switched to
+>>> rejecting all patch that have a BUG_ON, period.
 >>
->> You are saying that you _know_ companies will violate our license, so
->> you should just "give up"?  And how do you know people aren't working on
->> preventing those "indirect" usages as well?  :)
+>> Please do, I have been for a few years now as well for the same reasons
+>> you cite.
 >>
->> Sorry, I'm not going to give up here, again, it has proven to work in
->> the past in changing the ways of _very_ large companies, why stop now?
 >
-> I've found large companies shipping lots of hw putting pressure on
-> other large/small companies seems to be only way this has ever
-> happened, we'd like to cover that up and say its some great GPL
-> enforcement thing.
+> I'm actually concerned about this trend.  Downgrading things to WARN_ON
+> can allow a security bug in the kernel to continue to exist, for
+> example, or make the error message disappear.
 >
-> To be honest, author's choice is how I'd treat this.
->
-> Personally I think _GPL is broken by design, and that Linus's initial
-> point for them has been so diluted by random lobby groups asking for
-> every symbol to be _GPL that they are becoming effectively pointless
-> now. I also dislike the fact that the lobby groups don't just bring
-> violators to court. I'm also sure someone like the LF could have a
-> nice income stream if Linus gave them permission to enforce his
-> copyrights.
->
-> But anyways, has someone checked that iOS or Windows don't have a
-> fence interface? so we know that this is a Linux only interface and
-> any works using it are derived? Say the nvidia driver isn't a derived
-> work now, will using this interface magically translate it into a
-> derived work, so we can go sue them? I don't think so.
+> I am wondering if the right thing here isn't to have a user (command
+> line?) settable policy as to how to proceed on an assert violation,
+> instead of hardcoding it at compile time.
 
-I've no ideas about what the APIs are in windows, but windows has had
-multi-gpu support for a *long* time, which implies some mechanism like
-dmabuf and fence.. this isn't exactly an area where we are
-trailblazing here.
+I should clarify: If it smells like the issue is a failure of our
+ioctl/syscall validation code to catch crap, BUG_ON is the right
+choice. And fundamentally I've had this rule since 1-2 years now, the
+only recent change I've done is switch my scripts from warning by
+default if there's a new BUG_ON to rejecting by default. Mostly
+because I'm lazy and let too many BUG_ONs pass through by default.
 
-BR,
--R
+Also if you add a new interface to i915 I'll make damn sure you supply
+a full set of nasty testcases to abuse the ioctl hard. In the end it's
+a tradeoff and overall I don't think I'm compromising security with my
+current set of rules.
 
-
-> But its up to Maarten and Rob, and if they say no _GPL then I don't
-> think we should be overriding authors intents.
->
-> Dave.
+Also, people don't (yet) terribly care about data integrity as soon as
+their data has passed once through a gpu.
+-Daniel
+-- 
+Daniel Vetter
+Software Engineer, Intel Corporation
++41 (0) 79 365 57 48 - http://blog.ffwll.ch
