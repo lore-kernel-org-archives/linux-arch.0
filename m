@@ -1,34 +1,202 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from shards.monkeyblade.net ([149.20.54.216]:35383 "EHLO
-	shards.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754328AbaFWVtc (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 23 Jun 2014 17:49:32 -0400
-Date: Mon, 23 Jun 2014 14:49:30 -0700 (PDT)
-Message-ID: <20140623.144930.2077608308662590493.davem@davemloft.net>
-Subject: Re: [PATCH 00/22] Add and use pci_zalloc_consistent
-From: David Miller <davem@davemloft.net>
-In-Reply-To: <cover.1403530604.git.joe@perches.com>
-References: <cover.1403530604.git.joe@perches.com>
-Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
+Received: from smtp.outflux.net ([198.145.64.163]:37681 "EHLO smtp.outflux.net"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1754092AbaFWV7C (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 23 Jun 2014 17:59:02 -0400
+From: Kees Cook <keescook@chromium.org>
+Subject: [PATCH v7 5/9] seccomp: split mode set routines
+Date: Mon, 23 Jun 2014 14:58:09 -0700
+Message-ID: <1403560693-21809-6-git-send-email-keescook@chromium.org>
+In-Reply-To: <1403560693-21809-1-git-send-email-keescook@chromium.org>
+References: <1403560693-21809-1-git-send-email-keescook@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: joe@perches.com
-Cc: linux-kernel@vger.kernel.org, linux-atm-general@lists.sourceforge.net, netdev@vger.kernel.org, iss_storagedev@hp.com, linux-crypto@vger.kernel.org, dri-devel@lists.freedesktop.org, linux-rdma@vger.kernel.org, linux-media@vger.kernel.org, linux-wireless@vger.kernel.org, linux-scsi@vger.kernel.org, linux-eata@i-connect.net, devel@driverdev.osuosl.org, linux-arch@vger.kernel.org
-Message-ID: <20140623214930.RbLUrwFJgOSOlnMhzwZpq5okp77ESfmeyPwIjbEIK9k@z>
+To: linux-kernel@vger.kernel.org
+Cc: Kees Cook <keescook@chromium.org>, Andy Lutomirski <luto@amacapital.net>, Alexei Starovoitov <ast@plumgrid.com>, "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, Daniel Borkmann <dborkman@redhat.com>, Oleg Nesterov <oleg@redhat.com>, Will Drewry <wad@chromium.org>, Julien Tinnes <jln@chromium.org>, David Drysdale <drysdale@google.com>, linux-api@vger.kernel.org, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-mips@linux-mips.org, linux-arch@vger.kernel.org, linux-security-module@vger.kernel.org
+Message-ID: <20140623215809.xYAskrfndeG5BEqtF17wVm1GiD8yHDJdRNZcrcISJpc@z>
 
-From: Joe Perches <joe@perches.com>
-Date: Mon, 23 Jun 2014 06:41:28 -0700
+Extracts the common check/assign logic, and separates the two mode
+setting paths to make things more readable with fewer #ifdefs within
+function bodies.
 
-> Adding the helper reduces object code size as well as overall
-> source size line count.
-> 
-> It's also consistent with all the various zalloc mechanisms
-> in the kernel.
-> 
-> Done with a simple cocci script and some typing.
+Signed-off-by: Kees Cook <keescook@chromium.org>
+---
+ kernel/seccomp.c |  124 +++++++++++++++++++++++++++++++++++++-----------------
+ 1 file changed, 85 insertions(+), 39 deletions(-)
 
-For networking bits:
+diff --git a/kernel/seccomp.c b/kernel/seccomp.c
+index 8ab0b7116ed8..1fb162e8b032 100644
+--- a/kernel/seccomp.c
++++ b/kernel/seccomp.c
+@@ -193,7 +193,29 @@ static u32 seccomp_run_filters(int syscall)
+ 	}
+ 	return ret;
+ }
++#endif /* CONFIG_SECCOMP_FILTER */
+ 
++static inline bool seccomp_check_mode(struct task_struct *task,
++				      unsigned long seccomp_mode)
++{
++	BUG_ON(!spin_is_locked(&task->sighand->siglock));
++
++	if (task->seccomp.mode && task->seccomp.mode != seccomp_mode)
++		return false;
++
++	return true;
++}
++
++static inline void seccomp_assign_mode(struct task_struct *task,
++				       unsigned long seccomp_mode)
++{
++	BUG_ON(!spin_is_locked(&task->sighand->siglock));
++
++	task->seccomp.mode = seccomp_mode;
++	set_tsk_thread_flag(task, TIF_SECCOMP);
++}
++
++#ifdef CONFIG_SECCOMP_FILTER
+ /**
+  * seccomp_prepare_filter: Prepares a seccomp filter for use.
+  * @fprog: BPF program to install
+@@ -500,69 +522,86 @@ long prctl_get_seccomp(void)
+ }
+ 
+ /**
+- * seccomp_set_mode: internal function for setting seccomp mode
+- * @seccomp_mode: requested mode to use
+- * @filter: optional struct sock_fprog for use with SECCOMP_MODE_FILTER
++ * seccomp_set_mode_strict: internal function for setting strict seccomp
+  *
+- * This function may be called repeatedly with a @seccomp_mode of
+- * SECCOMP_MODE_FILTER to install additional filters.  Every filter
+- * successfully installed will be evaluated (in reverse order) for each system
+- * call the task makes.
++ * Once current->seccomp.mode is non-zero, it may not be changed.
++ *
++ * Returns 0 on success or -EINVAL on failure.
++ */
++static long seccomp_set_mode_strict(void)
++{
++	const unsigned long seccomp_mode = SECCOMP_MODE_STRICT;
++	unsigned long irqflags;
++	int ret = -EINVAL;
++
++	if (unlikely(!lock_task_sighand(current, &irqflags)))
++		return -EINVAL;
++
++	if (!seccomp_check_mode(current, seccomp_mode))
++		goto out;
++
++#ifdef TIF_NOTSC
++	disable_TSC();
++#endif
++	seccomp_assign_mode(current, seccomp_mode);
++	ret = 0;
++
++out:
++	unlock_task_sighand(current, &irqflags);
++
++	return ret;
++}
++
++#ifdef CONFIG_SECCOMP_FILTER
++/**
++ * seccomp_set_mode_filter: internal function for setting seccomp filter
++ * @filter: struct sock_fprog containing filter
++ *
++ * This function may be called repeatedly to install additional filters.
++ * Every filter successfully installed will be evaluated (in reverse order)
++ * for each system call the task makes.
+  *
+  * Once current->seccomp.mode is non-zero, it may not be changed.
+  *
+  * Returns 0 on success or -EINVAL on failure.
+  */
+-static long seccomp_set_mode(unsigned long seccomp_mode, char __user *filter)
++static long seccomp_set_mode_filter(char __user *filter)
+ {
++	const unsigned long seccomp_mode = SECCOMP_MODE_FILTER;
+ 	struct seccomp_filter *prepared = NULL;
+ 	unsigned long irqflags;
+ 	long ret = -EINVAL;
+ 
+-#ifdef CONFIG_SECCOMP_FILTER
+-	/* Prepare the new filter outside of the seccomp lock. */
+-	if (seccomp_mode == SECCOMP_MODE_FILTER) {
+-		prepared = seccomp_prepare_user_filter(filter);
+-		if (IS_ERR(prepared))
+-			return PTR_ERR(prepared);
+-	}
+-#endif
++	/* Prepare the new filter outside of any locking. */
++	prepared = seccomp_prepare_user_filter(filter);
++	if (IS_ERR(prepared))
++		return PTR_ERR(prepared);
+ 
+ 	if (unlikely(!lock_task_sighand(current, &irqflags)))
+ 		goto out_free;
+ 
+-	if (current->seccomp.mode &&
+-	    current->seccomp.mode != seccomp_mode)
++	if (!seccomp_check_mode(current, seccomp_mode))
+ 		goto out;
+ 
+-	switch (seccomp_mode) {
+-	case SECCOMP_MODE_STRICT:
+-		ret = 0;
+-#ifdef TIF_NOTSC
+-		disable_TSC();
+-#endif
+-		break;
+-#ifdef CONFIG_SECCOMP_FILTER
+-	case SECCOMP_MODE_FILTER:
+-		ret = seccomp_attach_filter(prepared);
+-		if (ret)
+-			goto out;
+-		/* Do not free the successfully attached filter. */
+-		prepared = NULL;
+-		break;
+-#endif
+-	default:
++	ret = seccomp_attach_filter(prepared);
++	if (ret)
+ 		goto out;
+-	}
++	/* Do not free the successfully attached filter. */
++	prepared = NULL;
+ 
+-	current->seccomp.mode = seccomp_mode;
+-	set_thread_flag(TIF_SECCOMP);
++	seccomp_assign_mode(current, seccomp_mode);
+ out:
+ 	unlock_task_sighand(current, &irqflags);
+ out_free:
+ 	seccomp_filter_free(prepared);
+ 	return ret;
+ }
++#else
++static inline long seccomp_set_mode_filter(char __user *filter)
++{
++	return -EINVAL;
++}
++#endif
+ 
+ /**
+  * prctl_set_seccomp: configures current->seccomp.mode
+@@ -573,5 +612,12 @@ out_free:
+  */
+ long prctl_set_seccomp(unsigned long seccomp_mode, char __user *filter)
+ {
+-	return seccomp_set_mode(seccomp_mode, filter);
++	switch (seccomp_mode) {
++	case SECCOMP_MODE_STRICT:
++		return seccomp_set_mode_strict();
++	case SECCOMP_MODE_FILTER:
++		return seccomp_set_mode_filter(filter);
++	default:
++		return -EINVAL;
++	}
+ }
+-- 
+1.7.9.5
 
-Acked-by: David S. Miller <davem@davemloft.net>
