@@ -1,102 +1,114 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtprelay0170.hostedemail.com ([216.40.44.170]:41655 "EHLO
-	smtprelay.hostedemail.com" rhost-flags-OK-OK-OK-FAIL)
-	by vger.kernel.org with ESMTP id S1756240AbaFWNwi (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Mon, 23 Jun 2014 09:52:38 -0400
-From: Joe Perches <joe@perches.com>
-Subject: [PATCH 00/22] Add and use pci_zalloc_consistent
-Date: Mon, 23 Jun 2014 06:41:28 -0700
-Message-ID: <cover.1403530604.git.joe@perches.com>
+Received: from bombadil.infradead.org ([198.137.202.9]:39944 "EHLO
+	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755648AbaFWQMU (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 23 Jun 2014 12:12:20 -0400
+Date: Mon, 23 Jun 2014 18:12:00 +0200
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH 01/11] qspinlock: A simple generic 4-byte queue spinlock
+Message-ID: <20140623161200.GG19860@laptop.programming.kicks-ass.net>
+References: <20140615124657.264658593@chello.nl>
+ <20140615130152.912524881@chello.nl>
+ <20140616204918.GA26140@laptop.dumpdata.com>
+ <20140617200329.GA27400@laptop.dumpdata.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20140617200329.GA27400@laptop.dumpdata.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: linux-atm-general@lists.sourceforge.net, netdev@vger.kernel.org, iss_storagedev@hp.com, linux-crypto@vger.kernel.org, dri-devel@lists.freedesktop.org, linux-rdma@vger.kernel.org, linux-media@vger.kernel.org, linux-wireless@vger.kernel.org, linux-scsi@vger.kernel.org, linux-eata@i-connect.net, devel@driverdev.osuosl.org, linux-arch@vger.kernel.org
-Message-ID: <20140623134128.JlW9aOkL4hWimQDy75D3BknfpTboU3SKE37rbrraWt4@z>
+To: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
+Cc: Waiman.Long@hp.com, tglx@linutronix.de, mingo@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, paolo.bonzini@gmail.com, boris.ostrovsky@oracle.com, paulmck@linux.vnet.ibm.com, riel@redhat.com, torvalds@linux-foundation.org, raghavendra.kt@linux.vnet.ibm.com, david.vrabel@citrix.com, oleg@redhat.com, gleb@redhat.com, scott.norton@hp.com, chegu_vinod@hp.com
+Message-ID: <20140623161200.Z9fL5lmFDqAk4lCIUkHSUlOWiCvqK6TAtkc-87Vea6c@z>
 
-Adding the helper reduces object code size as well as overall
-source size line count.
+On Tue, Jun 17, 2014 at 04:03:29PM -0400, Konrad Rzeszutek Wilk wrote:
+> > > +			new = tail | (val & _Q_LOCKED_MASK);
+> > > +
+> > > +		old = atomic_cmpxchg(&lock->val, val, new);
+> > > +		if (old == val)
+> > > +			break;
+> > > +
+> > > +		val = old;
+> > > +	}
+> > > +
+> > > +	/*
+> > > +	 * we won the trylock; forget about queueing.
+> > > +	 */
+> > > +	if (new == _Q_LOCKED_VAL)
+> > > +		goto release;
+> > > +
+> > > +	/*
+> > > +	 * if there was a previous node; link it and wait.
+> > > +	 */
+> > > +	if (old & ~_Q_LOCKED_MASK) {
+> > > +		prev = decode_tail(old);
+> > > +		ACCESS_ONCE(prev->next) = node;
+> > > +
+> > > +		arch_mcs_spin_lock_contended(&node->locked);
+> 
+> Could you add a comment here:
+> 
+> /* We are spinning forever until the previous node updates locked - which
+> it does once the it has updated lock->val with our tail number. */
 
-It's also consistent with all the various zalloc mechanisms
-in the kernel.
+That's incorrect -- or at least, I understand that to be incorrect. The
+previous node will not have changed the tail to point to us. You always
+change to tail to point to yourself, seeing how you add yourself to the
+tail.
 
-Done with a simple cocci script and some typing.
+Is the existing comment any better if I s/wait./wait for it to release
+us./ ?
 
-Joe Perches (22):
-  pci-dma-compat: Add pci_zalloc_consistent helper
-  atm: Use pci_zalloc_consistent
-  block: Use pci_zalloc_consistent
-  crypto: Use pci_zalloc_consistent
-  infiniband: Use pci_zalloc_consistent
-  i810: Use pci_zalloc_consistent
-  media: Use pci_zalloc_consistent
-  amd: Use pci_zalloc_consistent
-  atl1e: Use pci_zalloc_consistent
-  enic: Use pci_zalloc_consistent
-  sky2: Use pci_zalloc_consistent
-  micrel: Use pci_zalloc_consistent
-  qlogic: Use pci_zalloc_consistent
-  irda: Use pci_zalloc_consistent
-  ipw2100: Use pci_zalloc_consistent
-  mwl8k: Use pci_zalloc_consistent
-  rtl818x: Use pci_zalloc_consistent
-  rtlwifi: Use pci_zalloc_consistent
-  scsi: Use pci_zalloc_consistent
-  staging: Use pci_zalloc_consistent
-  synclink_gt: Use pci_zalloc_consistent
-  vme: bridges: Use pci_zalloc_consistent
+> > > +	/*
+> > > +	 * claim the lock:
+> > > +	 *
+> > > +	 * n,0 -> 0,1 : lock, uncontended
+> > > +	 * *,0 -> *,1 : lock, contended
+> > > +	 */
+> > > +	for (;;) {
+> > > +		new = _Q_LOCKED_VAL;
+> > > +		if (val != tail)
+> > > +			new |= val;
+> > 
+> ..snip..
+> > 
+> > Could you help a bit in explaining it in English please?
+> 
+> After looking at the assembler code I finally figured out how
+> we can get here. And the 'contended' part threw me off. Somehow
+> I imagined there are two more more CPUs stampeding here and 
+> trying to update the lock->val. But in reality the other CPUs
+> are stuck in the arch_mcs_spin_lock_contended spinning on their
+> local value.
 
- drivers/atm/he.c                                   | 31 ++++++++---------
- drivers/atm/idt77252.c                             | 15 ++++----
- drivers/block/DAC960.c                             | 18 +++++-----
- drivers/block/cciss.c                              | 11 +++---
- drivers/block/skd_main.c                           | 25 +++++---------
- drivers/crypto/hifn_795x.c                         |  5 ++-
- drivers/gpu/drm/i810/i810_dma.c                    |  5 ++-
- drivers/infiniband/hw/amso1100/c2.c                |  6 ++--
- drivers/infiniband/hw/nes/nes_hw.c                 | 12 +++----
- drivers/infiniband/hw/nes/nes_verbs.c              |  5 ++-
- drivers/media/common/saa7146/saa7146_core.c        | 15 ++++----
- drivers/media/common/saa7146/saa7146_fops.c        |  5 +--
- drivers/media/pci/bt8xx/bt878.c                    | 16 +++------
- drivers/media/pci/ngene/ngene-core.c               |  7 ++--
- drivers/media/usb/ttusb-budget/dvb-ttusb-budget.c  | 11 ++----
- drivers/media/usb/ttusb-dec/ttusb_dec.c            | 11 ++----
- drivers/net/ethernet/amd/pcnet32.c                 | 16 ++++-----
- drivers/net/ethernet/atheros/atl1e/atl1e_main.c    |  7 ++--
- drivers/net/ethernet/cisco/enic/vnic_dev.c         |  8 ++---
- drivers/net/ethernet/marvell/sky2.c                |  5 ++-
- drivers/net/ethernet/micrel/ksz884x.c              |  7 ++--
- .../net/ethernet/qlogic/netxen/netxen_nic_ctx.c    |  4 +--
- drivers/net/ethernet/qlogic/qlge/qlge_main.c       | 11 +++---
- drivers/net/irda/vlsi_ir.c                         |  4 +--
- drivers/net/wireless/ipw2x00/ipw2100.c             | 16 +++------
- drivers/net/wireless/mwl8k.c                       |  6 ++--
- drivers/net/wireless/rtl818x/rtl8180/dev.c         | 11 +++---
- drivers/net/wireless/rtlwifi/pci.c                 | 17 +++------
- drivers/scsi/3w-sas.c                              |  5 ++-
- drivers/scsi/a100u2w.c                             |  8 ++---
- drivers/scsi/be2iscsi/be_main.c                    | 10 +++---
- drivers/scsi/be2iscsi/be_mgmt.c                    |  3 +-
- drivers/scsi/csiostor/csio_wr.c                    |  8 +----
- drivers/scsi/eata.c                                |  5 ++-
- drivers/scsi/hpsa.c                                |  8 ++---
- drivers/scsi/megaraid/megaraid_mbox.c              | 16 ++++-----
- drivers/scsi/megaraid/megaraid_sas_base.c          |  8 ++---
- drivers/scsi/mesh.c                                |  6 ++--
- drivers/scsi/mvumi.c                               |  9 ++---
- drivers/scsi/pm8001/pm8001_sas.c                   |  5 ++-
- drivers/staging/rtl8192e/rtl8192e/rtl_core.c       | 15 +++-----
- drivers/staging/rtl8192ee/pci.c                    | 37 +++++++-------------
- drivers/staging/rtl8821ae/pci.c                    | 36 +++++++------------
- drivers/staging/slicoss/slicoss.c                  |  9 ++---
- drivers/staging/vt6655/device_main.c               | 40 +++++++---------------
- drivers/tty/synclink_gt.c                          |  5 ++-
- drivers/vme/bridges/vme_ca91cx42.c                 |  6 ++--
- drivers/vme/bridges/vme_tsi148.c                   |  6 ++--
- include/asm-generic/pci-dma-compat.h               |  8 +++++
- 49 files changed, 209 insertions(+), 354 deletions(-)
+Well, the lock as a whole is contended (there's >1 waiters), and the
+point of MCS style locks it to make sure they're not actually pounding
+on the same cacheline. So the whole thing is consistent.
 
--- 
-1.8.1.2.459.gbcd45b4.dirty
+> Perhaps you could add this comment.
+> 
+> /* Once queue_spin_unlock is called (which _subtracts_ _Q_LOCKED_VAL from
+> the lock->val and still preserving the tail data), the winner gets to
+> claim the ticket. 
+
+There's no tickets :/
+
+> Since we still need the other CPUs to continue and
+> preserve the strict ordering in which they setup node->next, we:
+>  1) update lock->val to the tail value (so tail CPU and its index) with
+>     _Q_LOCKED_VAL.
+
+We don't, we preserve the tail value, unless we're the tail, in which
+case we clear the tail.
+
+>  2). Once we are done, we poke the other CPU (the one that linked to
+>     us) by writting to node->locked (below) so they can make progress and
+>     loop on lock->val changing from _Q_LOCKED_MASK to zero).
+
+_If_ there was another cpu, ie. the tail didn't point to us.
+
+---
+
+I don't do well with natural language comments like that; they tend to
+confuse me more than anything.
 
