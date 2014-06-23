@@ -1,261 +1,373 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.outflux.net ([198.145.64.163]:36031 "EHLO smtp.outflux.net"
+Received: from smtp.outflux.net ([198.145.64.163]:35775 "EHLO smtp.outflux.net"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753846AbaFWV7A (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 23 Jun 2014 17:59:00 -0400
+	id S1753082AbaFWX3w (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 23 Jun 2014 19:29:52 -0400
+Date: Mon, 23 Jun 2014 15:01:50 -0700
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH v7 3/9] seccomp: introduce writer locking
-Date: Mon, 23 Jun 2014 14:58:07 -0700
-Message-ID: <1403560693-21809-4-git-send-email-keescook@chromium.org>
+Subject: [PATCH v7 1/1] man-pages: seccomp.2: document syscall
+Message-ID: <20140623220150.GM5412@outflux.net>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
 In-Reply-To: <1403560693-21809-1-git-send-email-keescook@chromium.org>
-References: <1403560693-21809-1-git-send-email-keescook@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: Kees Cook <keescook@chromium.org>, Andy Lutomirski <luto@amacapital.net>, Alexei Starovoitov <ast@plumgrid.com>, "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, Daniel Borkmann <dborkman@redhat.com>, Oleg Nesterov <oleg@redhat.com>, Will Drewry <wad@chromium.org>, Julien Tinnes <jln@chromium.org>, David Drysdale <drysdale@google.com>, linux-api@vger.kernel.org, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-mips@linux-mips.org, linux-arch@vger.kernel.org, linux-security-module@vger.kernel.org
-Message-ID: <20140623215807.x8HaZ-zwRZTCBG0IS_iumLCjnA4Fois6Vp7Wb-bsyeI@z>
+To: "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>
+Cc: linux-kernel@vger.kernel.org, Andy Lutomirski <luto@amacapital.net>, Alexei Starovoitov <ast@plumgrid.com>, Andrew Morton <akpm@linux-foundation.org>, Daniel Borkmann <dborkman@redhat.com>, Oleg Nesterov <oleg@redhat.com>, Will Drewry <wad@chromium.org>, Julien Tinnes <jln@chromium.org>, David Drysdale <drysdale@google.com>, linux-api@vger.kernel.org, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-mips@linux-mips.org, linux-arch@vger.kernel.org, linux-security-module@vger.kernel.org
+Message-ID: <20140623220150.E3TiCbhXFh63OTFIiqU_gn4GQ3lo06doD5BW10qeIfA@z>
 
-Normally, task_struct.seccomp.filter is only ever read or modified by
-the task that owns it (current). This property aids in fast access
-during system call filtering as read access is lockless.
-
-Updating the pointer from another task, however, opens up race
-conditions. To allow cross-thread filter pointer updates, writes to
-the seccomp fields are now protected by the sighand spinlock (which
-is unique to the thread group). Read access remains lockless because
-pointer updates themselves are atomic.  However, writes (or cloning)
-often entail additional checking (like maximum instruction counts)
-which require locking to perform safely.
-
-In the case of cloning threads, the child is invisible to the system
-until it enters the task list. To make sure a child can't be cloned from
-a thread and left in a prior state, seccomp duplication is additionally
-moved under the tasklist_lock. Then parent and child are certain have
-the same seccomp state when they exit the lock.
-
-Based on patches by Will Drewry and David Drysdale.
+Combines documentation from prctl, and in-kernel seccomp_filter.txt,
+along with new details specific to the new syscall.
 
 Signed-off-by: Kees Cook <keescook@chromium.org>
 ---
- include/linux/seccomp.h |    6 +++---
- kernel/fork.c           |   40 ++++++++++++++++++++++++++++++++++++----
- kernel/seccomp.c        |   23 ++++++++++++++++-------
- 3 files changed, 55 insertions(+), 14 deletions(-)
+ man2/seccomp.2 |  333 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 333 insertions(+)
+ create mode 100644 man2/seccomp.2
 
-diff --git a/include/linux/seccomp.h b/include/linux/seccomp.h
-index 4054b0994071..9ff98b4bfe2e 100644
---- a/include/linux/seccomp.h
-+++ b/include/linux/seccomp.h
-@@ -14,11 +14,11 @@ struct seccomp_filter;
-  *
-  * @mode:  indicates one of the valid values above for controlled
-  *         system calls available to a process.
-- * @filter: The metadata and ruleset for determining what system calls
-- *          are allowed for a task.
-+ * @filter: must always point to a valid seccomp-filter or NULL as it is
-+ *          accessed without locking during system call entry.
-  *
-  *          @filter must only be accessed from the context of current as there
-- *          is no locking.
-+ *          is no read locking.
-  */
- struct seccomp {
- 	int mode;
-diff --git a/kernel/fork.c b/kernel/fork.c
-index d2799d1fc952..6b2a9add1079 100644
---- a/kernel/fork.c
-+++ b/kernel/fork.c
-@@ -315,6 +315,15 @@ static struct task_struct *dup_task_struct(struct task_struct *orig)
- 		goto free_ti;
- 
- 	tsk->stack = ti;
-+#ifdef CONFIG_SECCOMP
-+	/*
-+	 * We must handle setting up seccomp filters once we're under
-+	 * the tasklist_lock in case orig has changed between now and
-+	 * then. Until then, filter must be NULL to avoid messing up
-+	 * the usage counts on the error path calling free_task.
-+	 */
-+	tsk->seccomp.filter = NULL;
-+#endif
- 
- 	setup_thread_stack(tsk, orig);
- 	clear_user_return_notifier(tsk);
-@@ -1081,6 +1090,23 @@ static int copy_signal(unsigned long clone_flags, struct task_struct *tsk)
- 	return 0;
- }
- 
-+static void copy_seccomp(struct task_struct *p)
-+{
-+#ifdef CONFIG_SECCOMP
-+	/*
-+	 * Must be called with sighand->lock held. Child lock not needed
-+	 * since it is not yet in tasklist.
-+	 */
-+	BUG_ON(!spin_is_locked(&current->sighand->siglock));
+diff --git a/man2/seccomp.2 b/man2/seccomp.2
+new file mode 100644
+index 0000000..de7fbf7
+--- /dev/null
++++ b/man2/seccomp.2
+@@ -0,0 +1,333 @@
++.\" Copyright (C) 2014 Kees Cook <keescook@chromium.org>
++.\" and Copyright (C) 2012 Will Drewry <wad@chromium.org>
++.\" and Copyright (C) 2008 Michael Kerrisk <mtk.manpages@gmail.com>
++.\"
++.\" %%%LICENSE_START(VERBATIM)
++.\" Permission is granted to make and distribute verbatim copies of this
++.\" manual provided the copyright notice and this permission notice are
++.\" preserved on all copies.
++.\"
++.\" Permission is granted to copy and distribute modified versions of this
++.\" manual under the conditions for verbatim copying, provided that the
++.\" entire resulting derived work is distributed under the terms of a
++.\" permission notice identical to this one.
++.\"
++.\" Since the Linux kernel and libraries are constantly changing, this
++.\" manual page may be incorrect or out-of-date.  The author(s) assume no
++.\" responsibility for errors or omissions, or for damages resulting from
++.\" the use of the information contained herein.  The author(s) may not
++.\" have taken the same level of care in the production of this manual,
++.\" which is licensed free of charge, as they might when working
++.\" professionally.
++.\"
++.\" Formatted or processed versions of this manual, if unaccompanied by
++.\" the source, must acknowledge the copyright and authors of this work.
++.\" %%%LICENSE_END
++.\"
++.TH SECCOMP 2 2014-06-23 "Linux" "Linux Programmer's Manual"
++.SH NAME
++seccomp \-
++operate on Secure Computing state of the process
++.SH SYNOPSIS
++.nf
++.B #include <linux/seccomp.h>
++.B #include <linux/filter.h>
++.B #include <linux/audit.h>
++.B #include <linux/signal.h>
++.B #include <sys/ptrace.h>
 +
-+	get_seccomp_filter(current);
-+	p->seccomp = current->seccomp;
++.BI "int seccomp(unsigned int " operation ", unsigned int " flags ,
++.BI "            unsigned char *" args );
++.fi
++.SH DESCRIPTION
++The
++.BR seccomp ()
++system call operates on the Secure Computing (seccomp) state of the
++current process.
 +
-+	if (p->seccomp.mode != SECCOMP_MODE_DISABLED)
-+		set_tsk_thread_flag(p, TIF_SECCOMP);
-+#endif
-+}
++Currently, Linux supports the following
++.IR operation
++values:
++.TP
++.BR SECCOMP_SET_MODE_STRICT
++Only system calls that the thread is permitted to make are
++.BR read (2),
++.BR write (2),
++.BR _exit (2),
++and
++.BR sigreturn (2).
++Other system calls result in the delivery of a
++.BR SIGKILL
++signal. Strict secure computing mode is useful for number-crunching
++applications that may need to execute untrusted byte code, perhaps
++obtained by reading from a pipe or socket.
 +
- SYSCALL_DEFINE1(set_tid_address, int __user *, tidptr)
- {
- 	current->clear_child_tid = tidptr;
-@@ -1142,6 +1168,7 @@ static struct task_struct *copy_process(unsigned long clone_flags,
- {
- 	int retval;
- 	struct task_struct *p;
-+	unsigned long irqflags;
- 
- 	if ((clone_flags & (CLONE_NEWNS|CLONE_FS)) == (CLONE_NEWNS|CLONE_FS))
- 		return ERR_PTR(-EINVAL);
-@@ -1196,7 +1223,6 @@ static struct task_struct *copy_process(unsigned long clone_flags,
- 		goto fork_out;
- 
- 	ftrace_graph_init_task(p);
--	get_seccomp_filter(p);
- 
- 	rt_mutex_init_task(p);
- 
-@@ -1434,7 +1460,13 @@ static struct task_struct *copy_process(unsigned long clone_flags,
- 		p->parent_exec_id = current->self_exec_id;
- 	}
- 
--	spin_lock(&current->sighand->siglock);
-+	spin_lock_irqsave(&current->sighand->siglock, irqflags);
++This operation is available only if the kernel is configured with
++.BR CONFIG_SECCOMP
++enabled.
 +
-+	/*
-+	 * Copy seccomp details explicitly here, in case they were changed
-+	 * before holding tasklist_lock.
-+	 */
-+	copy_seccomp(p);
- 
- 	/*
- 	 * Process group and session signals need to be delivered to just the
-@@ -1446,7 +1478,7 @@ static struct task_struct *copy_process(unsigned long clone_flags,
- 	*/
- 	recalc_sigpending();
- 	if (signal_pending(current)) {
--		spin_unlock(&current->sighand->siglock);
-+		spin_unlock_irqrestore(&current->sighand->siglock, irqflags);
- 		write_unlock_irq(&tasklist_lock);
- 		retval = -ERESTARTNOINTR;
- 		goto bad_fork_free_pid;
-@@ -1486,7 +1518,7 @@ static struct task_struct *copy_process(unsigned long clone_flags,
- 	}
- 
- 	total_forks++;
--	spin_unlock(&current->sighand->siglock);
-+	spin_unlock_irqrestore(&current->sighand->siglock, irqflags);
- 	write_unlock_irq(&tasklist_lock);
- 	proc_fork_connector(p);
- 	cgroup_post_fork(p);
-diff --git a/kernel/seccomp.c b/kernel/seccomp.c
-index edc8c79ed16d..065ff5137e39 100644
---- a/kernel/seccomp.c
-+++ b/kernel/seccomp.c
-@@ -172,12 +172,12 @@ static int seccomp_check_filter(struct sock_filter *filter, unsigned int flen)
-  */
- static u32 seccomp_run_filters(int syscall)
- {
--	struct seccomp_filter *f;
-+	struct seccomp_filter *f = smp_load_acquire(&current->seccomp.filter);
- 	struct seccomp_data sd;
- 	u32 ret = SECCOMP_RET_ALLOW;
- 
- 	/* Ensure unexpected behavior doesn't result in failing open. */
--	if (WARN_ON(current->seccomp.filter == NULL))
-+	if (WARN_ON(f == NULL))
- 		return SECCOMP_RET_KILL;
- 
- 	populate_seccomp_data(&sd);
-@@ -186,9 +186,8 @@ static u32 seccomp_run_filters(int syscall)
- 	 * All filters in the list are evaluated and the lowest BPF return
- 	 * value always takes priority (ignoring the DATA).
- 	 */
--	for (f = current->seccomp.filter; f; f = f->prev) {
-+	for (; f; f = smp_load_acquire(&f->prev)) {
- 		u32 cur_ret = SK_RUN_FILTER(f->prog, (void *)&sd);
--
- 		if ((cur_ret & SECCOMP_RET_ACTION) < (ret & SECCOMP_RET_ACTION))
- 			ret = cur_ret;
- 	}
-@@ -312,6 +311,8 @@ out:
-  * seccomp_attach_filter: validate and attach filter
-  * @filter: seccomp filter to add to the current process
-  *
-+ * Caller must be holding current->sighand->siglock lock.
-+ *
-  * Returns 0 on success, -ve on error.
-  */
- static long seccomp_attach_filter(struct seccomp_filter *filter)
-@@ -319,6 +320,8 @@ static long seccomp_attach_filter(struct seccomp_filter *filter)
- 	unsigned long total_insns;
- 	struct seccomp_filter *walker;
- 
-+	BUG_ON(!spin_is_locked(&current->sighand->siglock));
++The value of
++.IR flags
++must be 0, and
++.IR args
++must be NULL.
 +
- 	/* Validate resulting filter length. */
- 	total_insns = filter->prog->len;
- 	for (walker = current->seccomp.filter; walker; walker = walker->prev)
-@@ -331,7 +334,7 @@ static long seccomp_attach_filter(struct seccomp_filter *filter)
- 	 * task reference.
- 	 */
- 	filter->prev = current->seccomp.filter;
--	current->seccomp.filter = filter;
-+	smp_store_release(&current->seccomp.filter, filter);
- 
- 	return 0;
- }
-@@ -339,7 +342,7 @@ static long seccomp_attach_filter(struct seccomp_filter *filter)
- /* get_seccomp_filter - increments the reference count of the filter on @tsk */
- void get_seccomp_filter(struct task_struct *tsk)
- {
--	struct seccomp_filter *orig = tsk->seccomp.filter;
-+	struct seccomp_filter *orig = smp_load_acquire(&tsk->seccomp.filter);
- 	if (!orig)
- 		return;
- 	/* Reference count is bounded by the number of total processes. */
-@@ -361,7 +364,7 @@ void put_seccomp_filter(struct task_struct *tsk)
- 	/* Clean up single-reference branches iteratively. */
- 	while (orig && atomic_dec_and_test(&orig->usage)) {
- 		struct seccomp_filter *freeme = orig;
--		orig = orig->prev;
-+		orig = smp_load_acquire(&orig->prev);
- 		seccomp_filter_free(freeme);
- 	}
- }
-@@ -513,6 +516,7 @@ long prctl_get_seccomp(void)
- static long seccomp_set_mode(unsigned long seccomp_mode, char __user *filter)
- {
- 	struct seccomp_filter *prepared = NULL;
-+	unsigned long irqflags;
- 	long ret = -EINVAL;
- 
- #ifdef CONFIG_SECCOMP_FILTER
-@@ -524,6 +528,9 @@ static long seccomp_set_mode(unsigned long seccomp_mode, char __user *filter)
- 	}
- #endif
- 
-+	if (unlikely(!lock_task_sighand(current, &irqflags)))
-+		goto out_free;
++This operation is functionally identical to calling
++.IR "prctl(PR_SET_SECCOMP,\ SECCOMP_MODE_STRICT)" .
++.TP
++.BR SECCOMP_SET_MODE_FILTER
++The system calls allowed are defined by a pointer to a Berkeley Packet
++Filter (BPF) passed via
++.IR args .
++This argument is a pointer to
++.IR "struct\ sock_fprog" ;
++it can be designed to filter arbitrary system calls and system call
++arguments. If the filter is invalid, the call will fail, returning
++.BR EACCESS
++in
++.IR errno .
 +
- 	if (current->seccomp.mode &&
- 	    current->seccomp.mode != seccomp_mode)
- 		goto out;
-@@ -551,6 +558,8 @@ static long seccomp_set_mode(unsigned long seccomp_mode, char __user *filter)
- 	current->seccomp.mode = seccomp_mode;
- 	set_thread_flag(TIF_SECCOMP);
- out:
-+	unlock_task_sighand(current, &irqflags);
-+out_free:
- 	seccomp_filter_free(prepared);
- 	return ret;
- }
++If
++.BR fork (2),
++.BR clone (2),
++or
++.BR execve (2)
++are allowed by the filter, any child processes will be constrained to
++the same filters and system calls as the parent.
++
++Prior to using this operation, the process must call
++.IR "prctl(PR_SET_NO_NEW_PRIVS,\ 1)"
++or run with
++.BR CAP_SYS_ADMIN
++privileges in its namespace. If these are not true, the call will fail
++and return
++.BR EACCES
++in
++.IR errno .
++This requirement ensures that filter programs cannot be applied to child
++processes with greater privileges than the process that installed them.
++
++Additionally, if
++.BR prctl (2)
++or
++.BR seccomp (2)
++is allowed by the attached filter, additional filters may be layered on
++which will increase evaluation time, but allow for further reduction of
++the attack surface during execution of a process.
++
++This operation is available only if the kernel is configured with
++.BR CONFIG_SECCOMP_FILTER
++enabled.
++
++When
++.IR flags
++are 0, this operation is functionally identical to calling
++.IR "prctl(PR_SET_SECCOMP,\ SECCOMP_MODE_FILTER,\ args)" .
++
++The recognized
++.IR flags
++are:
++.RS
++.TP
++.BR SECCOMP_FILTER_FLAG_TSYNC
++When adding a new filter, synchronize all other threads of the current
++process to the same seccomp filter tree. If any thread cannot do this,
++the call will not attach the new seccomp filter, and will fail returning
++the first thread ID found that cannot synchronize.  Synchronization will
++fail if another thread is in
++.BR SECCOMP_MODE_STRICT
++or if it has attached new seccomp filters to itself, diverging from the
++calling thread's filter tree.
++.RE
++.SH FILTERS
++When adding filters via
++.BR SECCOMP_SET_MODE_FILTER ,
++.IR args
++points to a filter program:
++
++.in +4n
++.nf
++struct sock_fprog {
++    unsigned short      len;    /* Number of filter blocks */
++    struct sock_filter *filter;
++};
++.fi
++.in
++
++Each program must contain one or more BPF instructions:
++
++.in +4n
++.nf
++struct sock_filter {    /* Filter block */
++    __u16   code;       /* Actual filter code */
++    __u8    jt;         /* Jump true */
++    __u8    jf;         /* Jump false */
++    __u32   k;          /* Generic multiuse field */
++};
++.fi
++.in
++
++When executing the instructions, the BPF program executes over the
++syscall information made available via:
++
++.in +4n
++.nf
++struct seccomp_data {
++    int nr;                     /* system call number */
++    __u32 arch;                 /* AUDIT_ARCH_* value */
++    __u64 instruction_pointer;  /* CPU instruction pointer */
++    __u64 args[6];              /* up to 6 system call arguments */
++};
++.fi
++.in
++
++A seccomp filter may return any of the following values. If multiple
++filters exist, the return value for the evaluation of a given system
++call will always use the highest precedent value. (For example,
++.BR SECCOMP_RET_KILL
++will always take precedence.)
++
++In precedence order, they are:
++.TP
++.BR SECCOMP_RET_KILL
++Results in the task exiting immediately without executing the
++system call.  The exit status of the task (status & 0x7f) will
++be
++.BR SIGSYS ,
++not
++.BR SIGKILL .
++.TP
++.BR SECCOMP_RET_TRAP
++Results in the kernel sending a
++.BR SIGSYS
++signal to the triggering task without executing the system call.
++.IR siginfo\->si_call_addr
++will show the address of the system call instruction, and
++.IR siginfo\->si_syscall
++and
++.IR siginfo\->si_arch
++will indicate which syscall was attempted.  The program counter will be
++as though the syscall happened (i.e. it will not point to the syscall
++instruction).  The return value register will contain an arch\-dependent
++value; if resuming execution, set it to something sensible.
++(The architecture dependency is because replacing it with
++.BR ENOSYS
++could overwrite some useful information.)
++
++The
++.BR SECCOMP_RET_DATA
++portion of the return value will be passed as
++.IR si_errno .
++
++.BR SIGSYS
++triggered by seccomp will have a
++.IR si_code
++of
++.BR SYS_SECCOMP .
++.TP
++.BR SECCOMP_RET_ERRNO
++Results in the lower 16-bits of the return value being passed
++to userland as the
++.IR errno
++without executing the system call.
++.TP
++.BR SECCOMP_RET_TRACE
++When returned, this value will cause the kernel to attempt to
++notify a ptrace()-based tracer prior to executing the system
++call.  If there is no tracer present,
++.BR ENOSYS
++is returned to userland and the system call is not executed.
++
++A tracer will be notified if it requests
++.BR PTRACE_O_TRACESECCOMP
++using
++.IR ptrace(PTRACE_SETOPTIONS) .
++The tracer will be notified of a
++.BR PTRACE_EVENT_SECCOMP
++and the
++.BR SECCOMP_RET_DATA
++portion of the BPF program return value will be available to the tracer
++via
++.BR PTRACE_GETEVENTMSG .
++
++The tracer can skip the system call by changing the syscall number
++to \-1.  Alternatively, the tracer can change the system call
++requested by changing the system call to a valid syscall number.  If
++the tracer asks to skip the system call, then the system call will
++appear to return the value that the tracer puts in the return value
++register.
++
++The seccomp check will not be run again after the tracer is
++notified.  (This means that seccomp-based sandboxes MUST NOT
++allow use of ptrace, even of other sandboxed processes, without
++extreme care; ptracers can use this mechanism to escape.)
++.TP
++.BR SECCOMP_RET_ALLOW
++Results in the system call being executed.
++
++If multiple filters exist, the return value for the evaluation of a
++given system call will always use the highest precedent value.
++
++Precedence is only determined using the
++.BR SECCOMP_RET_ACTION
++mask.  When multiple filters return values of the same precedence,
++only the
++.BR SECCOMP_RET_DATA
++from the most recently installed filter will be returned.
++.SH RETURN VALUE
++On success,
++.BR seccomp ()
++returns 0.
++On error, if
++.BR SECCOMP_FILTER_FLAG_TSYNC
++was used, the return value is the thread ID that caused the
++synchronization failure. On other errors, \-1 is returned, and
++.IR errno
++is set to indicate the cause of the error.
++.SH ERRORS
++.BR seccomp ()
++can fail for the following reasons:
++.TP
++.BR EACCESS
++the caller did not have the
++.BR CAP_SYS_ADMIN
++capability, or had not set
++.IR no_new_privs
++before using
++.BR SECCOMP_SET_MODE_FILTER .
++.TP
++.BR EFAULT
++.IR args
++was required to be a valid address.
++.TP
++.BR EINVAL
++.IR operation
++is unknown; or
++.IR flags
++are invalid for the given
++.IR operation
++.TP
++.BR ESRCH
++Another thread caused a failure during thread sync, but its ID could not
++be determined.
++.SH VERSIONS
++This system call first appeared in Linux 3.16.
++.\" FIXME Add glibc version
++.SH CONFORMING TO
++This system call is a nonstandard Linux extensions.
++.SH NOTES
++.BR seccomp ()
++provides a superset of the functionality provided by
++.IR PR_SET_SECCOMP
++of
++.BR prctl (2) .
++(Which does not support
++.IR flags .)
++.SH SEE ALSO
++.ad l
++.nh
++.BR prctl (2),
++.BR ptrace (2),
++.BR signal (7)
++.BR socket (7)
++.ad
 -- 
 1.7.9.5
 
+
+-- 
+Kees Cook                                            @outflux.net
