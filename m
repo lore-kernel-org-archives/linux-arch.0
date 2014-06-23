@@ -1,34 +1,36 @@
-From: Joe Perches <joe@perches.com>
-Subject: Re: [PATCH 01/22] pci-dma-compat: Add pci_zalloc_consistent helper
-Date: Mon, 23 Jun 2014 07:03:28 -0700
-Message-ID: <1403532208.18747.58.camel@joe-AO725>
-References: <cover.1403530604.git.joe@perches.com>
-	 <2248b3ffe86cd8995a809bf7e2871f38039979c1.1403530604.git.joe@perches.com>
-	 <4279380.YmNJ3E7DEi@wuerfel>
+From: "Carmen Rofriguez" <carlfern@canada-11.com>
+Subject: You've won a Prize
+Date: Mon, 23 Jun 2014 16:33:22 +0200
+Message-ID: <201406231432.s5NEWE5x031789@comx2.bbmail.com.hk>
+Reply-To: <payingroll446@yahoo.com.hk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="ISO-8859-1"
+Content-Type: text/plain;
+	charset="Windows-1251"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtprelay0037.hostedemail.com ([216.40.44.37]:33264 "EHLO
-	smtprelay.hostedemail.com" rhost-flags-OK-OK-OK-FAIL)
-	by vger.kernel.org with ESMTP id S1753393AbaFWODd (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Mon, 23 Jun 2014 10:03:33 -0400
-In-Reply-To: <4279380.YmNJ3E7DEi@wuerfel>
+Received: from mailer11.incnets.com ([210.6.92.70]:46405 "EHLO
+	mailer11.incnets.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754060AbaFWOq4 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 23 Jun 2014 10:46:56 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Mon, 2014-06-23 at 15:53 +0200, Arnd Bergmann wrote:
-> On Monday 23 June 2014 06:41:29 Joe Perches wrote:
-> > Add this helper for consistency with pci_zalloc_coherent
-> > and the ability to remove unnecessary memset(,0,) uses.
+You've won a Prize
+MICROSOFT IBERICA SL"
+YOU 'VE WON.
+ATTN:MICROSOFT IBERICA SL
+Your email has won (EUR244,000,00)
+(TWO HUNDRED AND FOURTY FOUR THOUSAND EURO)
+Batch number:XL73276498AM
+Ref number:QR352899526KC
+This is a millennium scientific computer game in which
+email addresses were used.It is a promotional program aimed at
+encouraging internet users,therefore you do not need to buy ticket to enter
+for it.
+For further development,clarification and procedure please
+Contact:Dr Eduardo Sanchez (Foreign Service Manager
+Email contact:payingroll446@yahoo.com.hk
 
-> Shouldn't these drivers just use the normal dma-mapping API now?
-
-Maybe.  I wouldn't mind.
-
-They do seem to have a trivial bit of unnecessary overhead for 
-
-hwdev == NULL ? NULL : &hwdev->dev
+Regards
+Carmen Rodriguez
+Lottery Co-ordinator
