@@ -1,91 +1,78 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wi0-f178.google.com ([209.85.212.178]:54686 "EHLO
-	mail-wi0-f178.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752604AbaF0Mol (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 27 Jun 2014 08:44:41 -0400
-Received: by mail-wi0-f178.google.com with SMTP id n15so2709176wiw.17
-        for <linux-arch@vger.kernel.org>; Fri, 27 Jun 2014 05:44:40 -0700 (PDT)
-Date: Fri, 27 Jun 2014 13:44:37 +0100
-From: Steve Capper <steve.capper@linaro.org>
-Subject: Re: [PATCH 2/6] arm: mm: Introduce special ptes for LPAE
-Message-ID: <20140627124436.GC30585@linaro.org>
-References: <1403710824-24340-1-git-send-email-steve.capper@linaro.org>
- <1403710824-24340-3-git-send-email-steve.capper@linaro.org>
- <20140627121721.GM26276@arm.com>
+Received: from userp1040.oracle.com ([156.151.31.81]:39918 "EHLO
+	userp1040.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754091AbaF0OXy (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 27 Jun 2014 10:23:54 -0400
+Date: Mon, 23 Jun 2014 12:45:12 -0400
+From: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
+Subject: Re: [PATCH 01/11] qspinlock: A simple generic 4-byte queue spinlock
+Message-ID: <20140623164512.GA9788@laptop.dumpdata.com>
+References: <20140615124657.264658593@chello.nl>
+ <20140615130152.912524881@chello.nl>
+ <20140617200531.GB27242@laptop.dumpdata.com>
+ <20140623162622.GH19860@laptop.programming.kicks-ass.net>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20140627121721.GM26276@arm.com>
+In-Reply-To: <20140623162622.GH19860@laptop.programming.kicks-ass.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will.deacon@arm.com>
-Cc: "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Catalin Marinas <Catalin.Marinas@arm.com>, "linux@arm.linux.org.uk" <linux@arm.linux.org.uk>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "gary.robertson@linaro.org" <gary.robertson@linaro.org>, "christoffer.dall@linaro.org" <christoffer.dall@linaro.org>, "peterz@infradead.org" <peterz@infradead.org>, "anders.roxell@linaro.org" <anders.roxell@linaro.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>
-Message-ID: <20140627124437.auCMvq19hqPMbxN52p6yHds2sGHenpvMfHAC9JBL-90@z>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Waiman.Long@hp.com, tglx@linutronix.de, mingo@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, paolo.bonzini@gmail.com, boris.ostrovsky@oracle.com, paulmck@linux.vnet.ibm.com, riel@redhat.com, torvalds@linux-foundation.org, raghavendra.kt@linux.vnet.ibm.com, david.vrabel@citrix.com, oleg@redhat.com, gleb@redhat.com, scott.norton@hp.com, chegu_vinod@hp.com
+Message-ID: <20140623164512.PcU_i1a4ITGZRKG8TUbECPHJssNIOGl0NPHbpec7nBU@z>
 
-On Fri, Jun 27, 2014 at 01:17:21PM +0100, Will Deacon wrote:
-> On Wed, Jun 25, 2014 at 04:40:20PM +0100, Steve Capper wrote:
-> > We need a mechanism to tag ptes as being special, this indicates that
-> > no attempt should be made to access the underlying struct page *
-> > associated with the pte. This is used by the fast_gup when operating on
-> > ptes as it has no means to access VMAs (that also contain this
-> > information) locklessly.
+On Mon, Jun 23, 2014 at 06:26:22PM +0200, Peter Zijlstra wrote:
+> On Tue, Jun 17, 2014 at 04:05:31PM -0400, Konrad Rzeszutek Wilk wrote:
+> > > + * The basic principle of a queue-based spinlock can best be understood
+> > > + * by studying a classic queue-based spinlock implementation called the
+> > > + * MCS lock. The paper below provides a good description for this kind
+> > > + * of lock.
+> > > + *
+> > > + * http://www.cise.ufl.edu/tr/DOC/REP-1992-71.pdf
+> > > + *
+> > > + * This queue spinlock implementation is based on the MCS lock, however to make
+> > > + * it fit the 4 bytes we assume spinlock_t to be, and preserve its existing
+> > > + * API, we must modify it some.
+> > > + *
+> > > + * In particular; where the traditional MCS lock consists of a tail pointer
+> > > + * (8 bytes) and needs the next pointer (another 8 bytes) of its own node to
+> > > + * unlock the next pending (next->locked), we compress both these: {tail,
+> > > + * next->locked} into a single u32 value.
+> > > + *
+> > > + * Since a spinlock disables recursion of its own context and there is a limit
+> > > + * to the contexts that can nest; namely: task, softirq, hardirq, nmi, we can
+> > > + * encode the tail as and index indicating this context and a cpu number.
+> > > + *
+> > > + * We can further change the first spinner to spin on a bit in the lock word
+> > > + * instead of its node; whereby avoiding the need to carry a node from lock to
+> > > + * unlock, and preserving API.
 > > 
-> > The L_PTE_SPECIAL bit is already allocated for LPAE, this patch modifies
-> > pte_special and pte_mkspecial to make use of it, and defines
-> > __HAVE_ARCH_PTE_SPECIAL.
+> > You also made changes (compared to the MCS) in that the unlock path is not
+> > spinning waiting for the successor and that the job of passing the lock
+> > is not done in the unlock path either.
 > > 
-> > This patch also excludes special ptes from the icache/dcache sync logic.
+> > Instead all of that is now done in the path of the lock acquirer logic. 
 > > 
-> > Signed-off-by: Steve Capper <steve.capper@linaro.org>
-> > ---
-> >  arch/arm/include/asm/pgtable-2level.h | 2 ++
-> >  arch/arm/include/asm/pgtable-3level.h | 8 ++++++++
-> >  arch/arm/include/asm/pgtable.h        | 6 ++----
-> >  3 files changed, 12 insertions(+), 4 deletions(-)
-> > 
-> > diff --git a/arch/arm/include/asm/pgtable-2level.h b/arch/arm/include/asm/pgtable-2level.h
-> > index 219ac88..f027941 100644
-> > --- a/arch/arm/include/asm/pgtable-2level.h
-> > +++ b/arch/arm/include/asm/pgtable-2level.h
-> > @@ -182,6 +182,8 @@ static inline pmd_t *pmd_offset(pud_t *pud, unsigned long addr)
-> >  #define pmd_addr_end(addr,end) (end)
-> >  
-> >  #define set_pte_ext(ptep,pte,ext) cpu_set_pte_ext(ptep,pte,ext)
-> > +#define pte_special(pte)	(0)
-> > +static inline pte_t pte_mkspecial(pte_t pte) { return pte; }
-> >  
-> >  /*
-> >   * We don't have huge page support for short descriptors, for the moment
-> > diff --git a/arch/arm/include/asm/pgtable-3level.h b/arch/arm/include/asm/pgtable-3level.h
-> > index 85c60ad..b286ba9 100644
-> > --- a/arch/arm/include/asm/pgtable-3level.h
-> > +++ b/arch/arm/include/asm/pgtable-3level.h
-> > @@ -207,6 +207,14 @@ static inline pmd_t *pmd_offset(pud_t *pud, unsigned long addr)
-> >  #define pte_huge(pte)		(pte_val(pte) && !(pte_val(pte) & PTE_TABLE_BIT))
-> >  #define pte_mkhuge(pte)		(__pte(pte_val(pte) & ~PTE_TABLE_BIT))
-> >  
-> > +#define pte_special(pte)	(!!(pte_val(pte) & L_PTE_SPECIAL))
+> > Could you update the comment to say that please?
 > 
-> Why the !!? Also, shouldn't this be rebased on your series adding the
-> pte_isset macro to ARM?
+> I _think_ I know what you mean.. So that is actually implied by the last
 
-Yes it should, I had this series logically separate to the pte_isset patch.
-I will have the pte_isset patch as a pre-requisite to the ARM fast_gup
-activation logic.
+You do :-)
 
+> paragraph, but I suppose I can make it explicit; something like:
 > 
-> > +static inline pte_t pte_mkspecial(pte_t pte)
-> > +{
-> > +	pte_val(pte) |= L_PTE_SPECIAL;
-> > +	return pte;
-> > +}
+>   *
+>   * Another way to look at it is:
+>   *
+>   *  lock(tail,locked)
+>   *    struct mcs_spinlock node;
+>   *    mcs_spin_lock(tail, &node);
+>   *    test-and-set locked;
+>   *    mcs_spin_unlock(tail, &node);
+>   *
+>   *  unlock(tail,locked)
+>   *    clear locked
+>   *
+>   * Where we have compressed (tail,locked) into a single u32 word.
 > 
-> If you put this in pgtable.h based on #ifdef __HAVE_ARCH_PTE_SPECIAL, then
-> you can use PTE_BIT_FUNC to avoid reinventing the wheel (or define
-> L_PTE_SPECIAL as 0 for 2-level and have one function).
-
-Thanks, I'll give this a go.
-
-Cheers,
---
-Steve
+> 
