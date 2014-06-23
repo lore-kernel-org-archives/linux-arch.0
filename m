@@ -1,94 +1,106 @@
-From: Maarten Lankhorst <maarten.lankhorst@canonical.com>
-Subject: Re: [REPOST PATCH 4/8] android: convert sync to fence api, v5
-Date: Mon, 23 Jun 2014 10:45:47 +0200
-Message-ID: <53A7E93B.4060007@canonical.com>
-References: <20140618102957.15728.43525.stgit@patser> <20140618103711.15728.97842.stgit@patser> <20140619011556.GE10921@kroah.com> <20140619063727.GL5821@phenom.ffwll.local> <20140619114825.GB28111@ulmo> <CAKMK7uE_B3pCZB9orh5+BJGooNfyEa0APrZqRpXqYu5xfQ0PCQ@mail.gmail.com> <20140620205252.GC28814@mithrandir>
+From: Joe Perches <joe@perches.com>
+Subject: [PATCH 00/22] Add and use pci_zalloc_consistent
+Date: Mon, 23 Jun 2014 06:41:28 -0700
+Message-ID: <cover.1403530604.git.joe@perches.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
+Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from youngberry.canonical.com ([91.189.89.112]:35243 "EHLO
-	youngberry.canonical.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752341AbaFWIp4 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 23 Jun 2014 04:45:56 -0400
-In-Reply-To: <20140620205252.GC28814@mithrandir>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Thierry Reding <thierry.reding@gmail.com>, Daniel Vetter <daniel@ffwll.ch>
-Cc: Greg KH <gregkh@linuxfoundation.org>, linux-arch@vger.kernel.org, Thomas Hellstrom <thellstrom@vmware.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, dri-devel <dri-devel@lists.freedesktop.org>, "linaro-mm-sig@lists.linaro.org" <linaro-mm-sig@lists.linaro.org>, "Clark, Rob" <robdclark@gmail.com>, Colin Cross <ccross@google.com>, Sumit Semwal <sumit.semwal@linaro.org>, "linux-media@vger.kernel.org" <linux-media@vger.kernel.org>
+Return-path: <dri-devel-bounces@lists.freedesktop.org>
+List-Unsubscribe: <http://lists.freedesktop.org/mailman/options/dri-devel>,
+ <mailto:dri-devel-request@lists.freedesktop.org?subject=unsubscribe>
+List-Archive: <http://lists.freedesktop.org/archives/dri-devel>
+List-Post: <mailto:dri-devel@lists.freedesktop.org>
+List-Help: <mailto:dri-devel-request@lists.freedesktop.org?subject=help>
+List-Subscribe: <http://lists.freedesktop.org/mailman/listinfo/dri-devel>,
+ <mailto:dri-devel-request@lists.freedesktop.org?subject=subscribe>
+Errors-To: dri-devel-bounces@lists.freedesktop.org
+Sender: "dri-devel" <dri-devel-bounces@lists.freedesktop.org>
+To: linux-kernel@vger.kernel.org
+Cc: devel@driverdev.osuosl.org, linux-arch@vger.kernel.org, linux-scsi@vger.kernel.org, iss_storagedev@hp.com, linux-rdma@vger.kernel.org, netdev@vger.kernel.org, linux-atm-general@lists.sourceforge.net, linux-wireless@vger.kernel.org, dri-devel@lists.freedesktop.org, linux-crypto@vger.kernel.org, linux-eata@i-connect.net, linux-media@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-Hey,
+Adding the helper reduces object code size as well as overall
+source size line count.
 
-op 20-06-14 22:52, Thierry Reding schreef:
-> On Thu, Jun 19, 2014 at 02:28:14PM +0200, Daniel Vetter wrote:
->> On Thu, Jun 19, 2014 at 1:48 PM, Thierry Reding
->> <thierry.reding@gmail.com> wrote:
->>>>> With these changes, can we pull the android sync logic out of
->>>>> drivers/staging/ now?
->>>> Afaik the google guys never really looked at this and acked it. So I'm not
->>>> sure whether they'll follow along. The other issue I have as the
->>>> maintainer of gfx driver is that I don't want to implement support for two
->>>> different sync object primitives (once for dma-buf and once for android
->>>> syncpts), and my impression thus far has been that even with this we're
->>>> not there.
->>>>
->>>> I'm trying to get our own android guys to upstream their i915 syncpts
->>>> support, but thus far I haven't managed to convince them to throw people's
->>>> time at this.
->>> This has been discussed a fair bit internally recently and some of our
->>> GPU experts have raised concerns that this may result in seriously
->>> degraded performance in our proprietary graphics stack. Now I don't care
->>> very much for the proprietary graphics stack, but by extension I would
->>> assume that the same restrictions are relevant for any open-source
->>> driver as well.
->>>
->>> I'm still trying to fully understand all the implications and at the
->>> same time get some of the people who raised concerns to join in this
->>> discussion. As I understand it the concern is mostly about explicit vs.
->>> implicit synchronization and having this mechanism in the kernel will
->>> implicitly synchronize all accesses to these buffers even in cases where
->>> it's not needed (read vs. write locks, etc.). In one particular instance
->>> it was even mentioned that this kind of implicit synchronization can
->>> lead to deadlocks in some use-cases (this was mentioned for Android
->>> compositing, but I suspect that the same may happen for Wayland or X
->>> compositors).
->> Well the implicit fences here actually can't deadlock. That's the
->> entire point behind using ww mutexes. I've also heard tons of
->> complaints about implicit enforced syncing (especially from opencl
->> people), but in the end drivers and always expose unsynchronized
->> access for specific cases. We do that in i915 for upload buffers and
->> other fun stuff. This is about shared stuff across different drivers
->> and different processes.
-> Tegra K1 needs to share buffers across different drivers even for very
-> basic use-cases since the GPU and display drivers are separate. So while
-> I agree that the GPU driver can still use explicit synchronization for
-> internal work, things aren't that simple in general.
->
-> Let me try to reconstruct the use-case that caused the lock on Android:
-> the compositor uses a hardware overlay to display an image. The system
-> detects that there's little activity and instructs the compositor to put
-> everything into one image and scan out only that (for power efficiency).
-> Now with implicit locking the display driver has a lock on the image, so
-> the GPU (used for compositing) needs to wait for it before it can
-> composite everything into one image. But the display driver cannot
-> release the lock on the image until the final image has been composited
-> and can be displayed instead.
->
-> This may not be technically a deadlock, but it's still a stalemate.
-> Unless I'm missing something fundamental about DMA fences and ww mutexes
-> I don't see how you can get out of this situation.
-This sounds like a case for implicit shared fences. ;-) Reading and scanning out would
-only wait for the last 'exclusive' fence, not on each other.
+It's also consistent with all the various zalloc mechanisms
+in the kernel.
 
-But in drivers/drm I can encounter a similar issue, people expect to be able to
-overwrite the contents of the currently displayed buffer, so I 'solved' it by not adding
-a fence on the buffer, only by waiting for buffer idle before page flipping.
-The rationale is that the buffer is pinned internally, and the backing storage cannot
-go away until dma_buf_unmap_attachment is called. So when you render to the
-current front buffer without queuing a page flip you get exactly what you expect. ;-)
+Done with a simple cocci script and some typing.
 
-> Explicit vs. implicit synchronization may also become more of an issue
-> as buffers are imported from other sources (such as cameras).
-Yeah, but the kernel space primitives would in both cases be the same, so drivers don't need to implement 2 separate fencing mechanisms for that. :-)
+Joe Perches (22):
+  pci-dma-compat: Add pci_zalloc_consistent helper
+  atm: Use pci_zalloc_consistent
+  block: Use pci_zalloc_consistent
+  crypto: Use pci_zalloc_consistent
+  infiniband: Use pci_zalloc_consistent
+  i810: Use pci_zalloc_consistent
+  media: Use pci_zalloc_consistent
+  amd: Use pci_zalloc_consistent
+  atl1e: Use pci_zalloc_consistent
+  enic: Use pci_zalloc_consistent
+  sky2: Use pci_zalloc_consistent
+  micrel: Use pci_zalloc_consistent
+  qlogic: Use pci_zalloc_consistent
+  irda: Use pci_zalloc_consistent
+  ipw2100: Use pci_zalloc_consistent
+  mwl8k: Use pci_zalloc_consistent
+  rtl818x: Use pci_zalloc_consistent
+  rtlwifi: Use pci_zalloc_consistent
+  scsi: Use pci_zalloc_consistent
+  staging: Use pci_zalloc_consistent
+  synclink_gt: Use pci_zalloc_consistent
+  vme: bridges: Use pci_zalloc_consistent
 
-~Maarten
+ drivers/atm/he.c                                   | 31 ++++++++---------
+ drivers/atm/idt77252.c                             | 15 ++++----
+ drivers/block/DAC960.c                             | 18 +++++-----
+ drivers/block/cciss.c                              | 11 +++---
+ drivers/block/skd_main.c                           | 25 +++++---------
+ drivers/crypto/hifn_795x.c                         |  5 ++-
+ drivers/gpu/drm/i810/i810_dma.c                    |  5 ++-
+ drivers/infiniband/hw/amso1100/c2.c                |  6 ++--
+ drivers/infiniband/hw/nes/nes_hw.c                 | 12 +++----
+ drivers/infiniband/hw/nes/nes_verbs.c              |  5 ++-
+ drivers/media/common/saa7146/saa7146_core.c        | 15 ++++----
+ drivers/media/common/saa7146/saa7146_fops.c        |  5 +--
+ drivers/media/pci/bt8xx/bt878.c                    | 16 +++------
+ drivers/media/pci/ngene/ngene-core.c               |  7 ++--
+ drivers/media/usb/ttusb-budget/dvb-ttusb-budget.c  | 11 ++----
+ drivers/media/usb/ttusb-dec/ttusb_dec.c            | 11 ++----
+ drivers/net/ethernet/amd/pcnet32.c                 | 16 ++++-----
+ drivers/net/ethernet/atheros/atl1e/atl1e_main.c    |  7 ++--
+ drivers/net/ethernet/cisco/enic/vnic_dev.c         |  8 ++---
+ drivers/net/ethernet/marvell/sky2.c                |  5 ++-
+ drivers/net/ethernet/micrel/ksz884x.c              |  7 ++--
+ .../net/ethernet/qlogic/netxen/netxen_nic_ctx.c    |  4 +--
+ drivers/net/ethernet/qlogic/qlge/qlge_main.c       | 11 +++---
+ drivers/net/irda/vlsi_ir.c                         |  4 +--
+ drivers/net/wireless/ipw2x00/ipw2100.c             | 16 +++------
+ drivers/net/wireless/mwl8k.c                       |  6 ++--
+ drivers/net/wireless/rtl818x/rtl8180/dev.c         | 11 +++---
+ drivers/net/wireless/rtlwifi/pci.c                 | 17 +++------
+ drivers/scsi/3w-sas.c                              |  5 ++-
+ drivers/scsi/a100u2w.c                             |  8 ++---
+ drivers/scsi/be2iscsi/be_main.c                    | 10 +++---
+ drivers/scsi/be2iscsi/be_mgmt.c                    |  3 +-
+ drivers/scsi/csiostor/csio_wr.c                    |  8 +----
+ drivers/scsi/eata.c                                |  5 ++-
+ drivers/scsi/hpsa.c                                |  8 ++---
+ drivers/scsi/megaraid/megaraid_mbox.c              | 16 ++++-----
+ drivers/scsi/megaraid/megaraid_sas_base.c          |  8 ++---
+ drivers/scsi/mesh.c                                |  6 ++--
+ drivers/scsi/mvumi.c                               |  9 ++---
+ drivers/scsi/pm8001/pm8001_sas.c                   |  5 ++-
+ drivers/staging/rtl8192e/rtl8192e/rtl_core.c       | 15 +++-----
+ drivers/staging/rtl8192ee/pci.c                    | 37 +++++++-------------
+ drivers/staging/rtl8821ae/pci.c                    | 36 +++++++------------
+ drivers/staging/slicoss/slicoss.c                  |  9 ++---
+ drivers/staging/vt6655/device_main.c               | 40 +++++++---------------
+ drivers/tty/synclink_gt.c                          |  5 ++-
+ drivers/vme/bridges/vme_ca91cx42.c                 |  6 ++--
+ drivers/vme/bridges/vme_tsi148.c                   |  6 ++--
+ include/asm-generic/pci-dma-compat.h               |  8 +++++
+ 49 files changed, 209 insertions(+), 354 deletions(-)
+
+-- 
+1.8.1.2.459.gbcd45b4.dirty
