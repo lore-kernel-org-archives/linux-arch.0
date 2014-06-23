@@ -1,96 +1,94 @@
-From: Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>
-Subject: Re: [PATCH 11/11] qspinlock, kvm: Add paravirt support
-Date: Sun, 22 Jun 2014 22:06:18 +0530
-Message-ID: <53A70602.8020000@linux.vnet.ibm.com>
-References: <20140615124657.264658593@chello.nl>
-	<20140615130154.400698797@chello.nl>
+From: Maarten Lankhorst <maarten.lankhorst@canonical.com>
+Subject: Re: [REPOST PATCH 4/8] android: convert sync to fence api, v5
+Date: Mon, 23 Jun 2014 10:45:47 +0200
+Message-ID: <53A7E93B.4060007@canonical.com>
+References: <20140618102957.15728.43525.stgit@patser> <20140618103711.15728.97842.stgit@patser> <20140619011556.GE10921@kroah.com> <20140619063727.GL5821@phenom.ffwll.local> <20140619114825.GB28111@ulmo> <CAKMK7uE_B3pCZB9orh5+BJGooNfyEa0APrZqRpXqYu5xfQ0PCQ@mail.gmail.com> <20140620205252.GC28814@mithrandir>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"; Format="flowed"
+Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 7bit
-Return-path: <virtualization-bounces@lists.linux-foundation.org>
-In-Reply-To: <20140615130154.400698797@chello.nl>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
-List-Post: <mailto:virtualization@lists.linux-foundation.org>
-List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
-Sender: virtualization-bounces@lists.linux-foundation.org
-Errors-To: virtualization-bounces@lists.linux-foundation.org
-To: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Cc: Waiman.Long@hp.com, linux-arch@vger.kernel.org, riel@redhat.com, gleb@redhat.com, kvm@vger.kernel.org, konrad.wilk@oracle.com, boris.ostrovsky@oracle.com, scott.norton@hp.com, paolo.bonzini@gmail.com, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, Peter Zijlstra <peterz@infradead.org>, chegu_vinod@hp.com, david.vrabel@citrix.com, oleg@redhat.com, xen-devel@lists.xenproject.org, tglx@linutronix.de, paulmck@linux.vnet.ibm.com, torvalds@linux-foundation.org, mingo@kernel.org
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from youngberry.canonical.com ([91.189.89.112]:35243 "EHLO
+	youngberry.canonical.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752341AbaFWIp4 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 23 Jun 2014 04:45:56 -0400
+In-Reply-To: <20140620205252.GC28814@mithrandir>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Thierry Reding <thierry.reding@gmail.com>, Daniel Vetter <daniel@ffwll.ch>
+Cc: Greg KH <gregkh@linuxfoundation.org>, linux-arch@vger.kernel.org, Thomas Hellstrom <thellstrom@vmware.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, dri-devel <dri-devel@lists.freedesktop.org>, "linaro-mm-sig@lists.linaro.org" <linaro-mm-sig@lists.linaro.org>, "Clark, Rob" <robdclark@gmail.com>, Colin Cross <ccross@google.com>, Sumit Semwal <sumit.semwal@linaro.org>, "linux-media@vger.kernel.org" <linux-media@vger.kernel.org>
 
-On 06/15/2014 06:17 PM, Peter Zijlstra wrote:
-> Signed-off-by: Peter Zijlstra<peterz@infradead.org>
-> ---
-[...]
-> +
-> +void kvm_wait(int *ptr, int val)
-> +{
-> +	unsigned long flags;
-> +
-> +	if (in_nmi())
-> +		return;
-> +
-> +	/*
-> +	 * Make sure an interrupt handler can't upset things in a
-> +	 * partially setup state.
-> +	 */
+Hey,
 
-I am seeing hang with even 2 cpu guest (with patches on top of 3.15-rc6 ).
-looking further with gdb I see one cpu is stuck with native_halt with
-slowpath flag(_Q_LOCKED_SLOW) set when it was called.
+op 20-06-14 22:52, Thierry Reding schreef:
+> On Thu, Jun 19, 2014 at 02:28:14PM +0200, Daniel Vetter wrote:
+>> On Thu, Jun 19, 2014 at 1:48 PM, Thierry Reding
+>> <thierry.reding@gmail.com> wrote:
+>>>>> With these changes, can we pull the android sync logic out of
+>>>>> drivers/staging/ now?
+>>>> Afaik the google guys never really looked at this and acked it. So I'm not
+>>>> sure whether they'll follow along. The other issue I have as the
+>>>> maintainer of gfx driver is that I don't want to implement support for two
+>>>> different sync object primitives (once for dma-buf and once for android
+>>>> syncpts), and my impression thus far has been that even with this we're
+>>>> not there.
+>>>>
+>>>> I'm trying to get our own android guys to upstream their i915 syncpts
+>>>> support, but thus far I haven't managed to convince them to throw people's
+>>>> time at this.
+>>> This has been discussed a fair bit internally recently and some of our
+>>> GPU experts have raised concerns that this may result in seriously
+>>> degraded performance in our proprietary graphics stack. Now I don't care
+>>> very much for the proprietary graphics stack, but by extension I would
+>>> assume that the same restrictions are relevant for any open-source
+>>> driver as well.
+>>>
+>>> I'm still trying to fully understand all the implications and at the
+>>> same time get some of the people who raised concerns to join in this
+>>> discussion. As I understand it the concern is mostly about explicit vs.
+>>> implicit synchronization and having this mechanism in the kernel will
+>>> implicitly synchronize all accesses to these buffers even in cases where
+>>> it's not needed (read vs. write locks, etc.). In one particular instance
+>>> it was even mentioned that this kind of implicit synchronization can
+>>> lead to deadlocks in some use-cases (this was mentioned for Android
+>>> compositing, but I suspect that the same may happen for Wayland or X
+>>> compositors).
+>> Well the implicit fences here actually can't deadlock. That's the
+>> entire point behind using ww mutexes. I've also heard tons of
+>> complaints about implicit enforced syncing (especially from opencl
+>> people), but in the end drivers and always expose unsynchronized
+>> access for specific cases. We do that in i915 for upload buffers and
+>> other fun stuff. This is about shared stuff across different drivers
+>> and different processes.
+> Tegra K1 needs to share buffers across different drivers even for very
+> basic use-cases since the GPU and display drivers are separate. So while
+> I agree that the GPU driver can still use explicit synchronization for
+> internal work, things aren't that simple in general.
+>
+> Let me try to reconstruct the use-case that caused the lock on Android:
+> the compositor uses a hardware overlay to display an image. The system
+> detects that there's little activity and instructs the compositor to put
+> everything into one image and scan out only that (for power efficiency).
+> Now with implicit locking the display driver has a lock on the image, so
+> the GPU (used for compositing) needs to wait for it before it can
+> composite everything into one image. But the display driver cannot
+> release the lock on the image until the final image has been composited
+> and can be displayed instead.
+>
+> This may not be technically a deadlock, but it's still a stalemate.
+> Unless I'm missing something fundamental about DMA fences and ww mutexes
+> I don't see how you can get out of this situation.
+This sounds like a case for implicit shared fences. ;-) Reading and scanning out would
+only wait for the last 'exclusive' fence, not on each other.
 
-(gdb) bt
-#0  native_halt () at /test/master/arch/x86/include/asm/irqflags.h:55
-#1  0xffffffff81033118 in halt (ptr=0xffffffff81eb0e58, val=524291) at 
-/test/master/arch/x86/include/asm/paravirt.h:116
-#2  kvm_wait (ptr=0xffffffff81eb0e58, val=524291) at 
-arch/x86/kernel/kvm.c:835
-#3  kvm_wait (ptr=0xffffffff81eb0e58, val=524291) at 
-arch/x86/kernel/kvm.c:809
-#4  0xffffffff810a2d8e in pv_wait (lock=0xffffffff81eb0e58) at 
-/test/master/arch/x86/include/asm/paravirt.h:744
-#5  __pv_wait_head (lock=0xffffffff81eb0e58) at 
-kernel/locking/qspinlock.c:352
+But in drivers/drm I can encounter a similar issue, people expect to be able to
+overwrite the contents of the currently displayed buffer, so I 'solved' it by not adding
+a fence on the buffer, only by waiting for buffer idle before page flipping.
+The rationale is that the buffer is pinned internally, and the backing storage cannot
+go away until dma_buf_unmap_attachment is called. So when you render to the
+current front buffer without queuing a page flip you get exactly what you expect. ;-)
 
-Value of lock seem to be 524288 (means already unlocked?)
-So apart from races Waiman mentioned, are we also in need of smp_mb()
-here and/or native_queue_unlock()?.
+> Explicit vs. implicit synchronization may also become more of an issue
+> as buffers are imported from other sources (such as cameras).
+Yeah, but the kernel space primitives would in both cases be the same, so drivers don't need to implement 2 separate fencing mechanisms for that. :-)
 
-Interestingly I see other cpu stuck at multi_cpu_stop().
-
-(gdb) thr 1
-[Switching to thread 1 (Thread 1)]#0  multi_cpu_stop 
-(data=0xffff8802140d1da0) at kernel/stop_machine.c:192
-192			if (msdata->state != curstate) {
-
-Or is it I am missing something.
-
-please let me know if .config need to be shared.
-
-> +	local_irq_save(flags);
-> +
-> +	/*
-> +	 * check again make sure it didn't become free while
-> +	 * we weren't looking.
-> +	 */
-> +	if (ACCESS_ONCE(*ptr) != val)
-> +		goto out;
-> +
-> +	/*
-> +	 * halt until it's our turn and kicked. Note that we do safe halt
-> +	 * for irq enabled case to avoid hang when lock info is overwritten
-> +	 * in irq spinlock slowpath and no spurious interrupt occur to save us.
-> +	 */
-> +	if (arch_irqs_disabled_flags(flags))
-> +		halt();
-> +	else
-> +		safe_halt();
-> +
-> +out:
-> +	local_irq_restore(flags);
-> +}
-> +#endif /* QUEUE_SPINLOCK */
+~Maarten
