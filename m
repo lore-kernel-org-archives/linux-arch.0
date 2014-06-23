@@ -1,30 +1,102 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.126.131]:54795 "EHLO
-	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753886AbaFWNxR (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 23 Jun 2014 09:53:17 -0400
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH 01/22] pci-dma-compat: Add pci_zalloc_consistent helper
-Date: Mon, 23 Jun 2014 15:53:12 +0200
-Message-ID: <4279380.YmNJ3E7DEi@wuerfel>
-In-Reply-To: <2248b3ffe86cd8995a809bf7e2871f38039979c1.1403530604.git.joe@perches.com>
-References: <cover.1403530604.git.joe@perches.com> <2248b3ffe86cd8995a809bf7e2871f38039979c1.1403530604.git.joe@perches.com>
-MIME-Version: 1.0
-Content-Transfer-Encoding: 7Bit
-Content-Type: text/plain; charset="us-ascii"
+Received: from smtprelay0170.hostedemail.com ([216.40.44.170]:41655 "EHLO
+	smtprelay.hostedemail.com" rhost-flags-OK-OK-OK-FAIL)
+	by vger.kernel.org with ESMTP id S1756240AbaFWNwi (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Mon, 23 Jun 2014 09:52:38 -0400
+From: Joe Perches <joe@perches.com>
+Subject: [PATCH 00/22] Add and use pci_zalloc_consistent
+Date: Mon, 23 Jun 2014 06:41:28 -0700
+Message-ID: <cover.1403530604.git.joe@perches.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Joe Perches <joe@perches.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20140623135312.yC_ySN8MVp4Nl3HJiYeXasNbUBOUJ5DLyjuG1CpSOwc@z>
+To: linux-kernel@vger.kernel.org
+Cc: linux-atm-general@lists.sourceforge.net, netdev@vger.kernel.org, iss_storagedev@hp.com, linux-crypto@vger.kernel.org, dri-devel@lists.freedesktop.org, linux-rdma@vger.kernel.org, linux-media@vger.kernel.org, linux-wireless@vger.kernel.org, linux-scsi@vger.kernel.org, linux-eata@i-connect.net, devel@driverdev.osuosl.org, linux-arch@vger.kernel.org
+Message-ID: <20140623134128.JlW9aOkL4hWimQDy75D3BknfpTboU3SKE37rbrraWt4@z>
 
-On Monday 23 June 2014 06:41:29 Joe Perches wrote:
-> Add this helper for consistency with pci_zalloc_coherent
-> and the ability to remove unnecessary memset(,0,) uses.
-> 
-> Signed-off-by: Joe Perches <joe@perches.com>
-> 
+Adding the helper reduces object code size as well as overall
+source size line count.
 
-Shouldn't these drivers just use the normal dma-mapping API now?
+It's also consistent with all the various zalloc mechanisms
+in the kernel.
 
-	Arnd
+Done with a simple cocci script and some typing.
+
+Joe Perches (22):
+  pci-dma-compat: Add pci_zalloc_consistent helper
+  atm: Use pci_zalloc_consistent
+  block: Use pci_zalloc_consistent
+  crypto: Use pci_zalloc_consistent
+  infiniband: Use pci_zalloc_consistent
+  i810: Use pci_zalloc_consistent
+  media: Use pci_zalloc_consistent
+  amd: Use pci_zalloc_consistent
+  atl1e: Use pci_zalloc_consistent
+  enic: Use pci_zalloc_consistent
+  sky2: Use pci_zalloc_consistent
+  micrel: Use pci_zalloc_consistent
+  qlogic: Use pci_zalloc_consistent
+  irda: Use pci_zalloc_consistent
+  ipw2100: Use pci_zalloc_consistent
+  mwl8k: Use pci_zalloc_consistent
+  rtl818x: Use pci_zalloc_consistent
+  rtlwifi: Use pci_zalloc_consistent
+  scsi: Use pci_zalloc_consistent
+  staging: Use pci_zalloc_consistent
+  synclink_gt: Use pci_zalloc_consistent
+  vme: bridges: Use pci_zalloc_consistent
+
+ drivers/atm/he.c                                   | 31 ++++++++---------
+ drivers/atm/idt77252.c                             | 15 ++++----
+ drivers/block/DAC960.c                             | 18 +++++-----
+ drivers/block/cciss.c                              | 11 +++---
+ drivers/block/skd_main.c                           | 25 +++++---------
+ drivers/crypto/hifn_795x.c                         |  5 ++-
+ drivers/gpu/drm/i810/i810_dma.c                    |  5 ++-
+ drivers/infiniband/hw/amso1100/c2.c                |  6 ++--
+ drivers/infiniband/hw/nes/nes_hw.c                 | 12 +++----
+ drivers/infiniband/hw/nes/nes_verbs.c              |  5 ++-
+ drivers/media/common/saa7146/saa7146_core.c        | 15 ++++----
+ drivers/media/common/saa7146/saa7146_fops.c        |  5 +--
+ drivers/media/pci/bt8xx/bt878.c                    | 16 +++------
+ drivers/media/pci/ngene/ngene-core.c               |  7 ++--
+ drivers/media/usb/ttusb-budget/dvb-ttusb-budget.c  | 11 ++----
+ drivers/media/usb/ttusb-dec/ttusb_dec.c            | 11 ++----
+ drivers/net/ethernet/amd/pcnet32.c                 | 16 ++++-----
+ drivers/net/ethernet/atheros/atl1e/atl1e_main.c    |  7 ++--
+ drivers/net/ethernet/cisco/enic/vnic_dev.c         |  8 ++---
+ drivers/net/ethernet/marvell/sky2.c                |  5 ++-
+ drivers/net/ethernet/micrel/ksz884x.c              |  7 ++--
+ .../net/ethernet/qlogic/netxen/netxen_nic_ctx.c    |  4 +--
+ drivers/net/ethernet/qlogic/qlge/qlge_main.c       | 11 +++---
+ drivers/net/irda/vlsi_ir.c                         |  4 +--
+ drivers/net/wireless/ipw2x00/ipw2100.c             | 16 +++------
+ drivers/net/wireless/mwl8k.c                       |  6 ++--
+ drivers/net/wireless/rtl818x/rtl8180/dev.c         | 11 +++---
+ drivers/net/wireless/rtlwifi/pci.c                 | 17 +++------
+ drivers/scsi/3w-sas.c                              |  5 ++-
+ drivers/scsi/a100u2w.c                             |  8 ++---
+ drivers/scsi/be2iscsi/be_main.c                    | 10 +++---
+ drivers/scsi/be2iscsi/be_mgmt.c                    |  3 +-
+ drivers/scsi/csiostor/csio_wr.c                    |  8 +----
+ drivers/scsi/eata.c                                |  5 ++-
+ drivers/scsi/hpsa.c                                |  8 ++---
+ drivers/scsi/megaraid/megaraid_mbox.c              | 16 ++++-----
+ drivers/scsi/megaraid/megaraid_sas_base.c          |  8 ++---
+ drivers/scsi/mesh.c                                |  6 ++--
+ drivers/scsi/mvumi.c                               |  9 ++---
+ drivers/scsi/pm8001/pm8001_sas.c                   |  5 ++-
+ drivers/staging/rtl8192e/rtl8192e/rtl_core.c       | 15 +++-----
+ drivers/staging/rtl8192ee/pci.c                    | 37 +++++++-------------
+ drivers/staging/rtl8821ae/pci.c                    | 36 +++++++------------
+ drivers/staging/slicoss/slicoss.c                  |  9 ++---
+ drivers/staging/vt6655/device_main.c               | 40 +++++++---------------
+ drivers/tty/synclink_gt.c                          |  5 ++-
+ drivers/vme/bridges/vme_ca91cx42.c                 |  6 ++--
+ drivers/vme/bridges/vme_tsi148.c                   |  6 ++--
+ include/asm-generic/pci-dma-compat.h               |  8 +++++
+ 49 files changed, 209 insertions(+), 354 deletions(-)
+
+-- 
+1.8.1.2.459.gbcd45b4.dirty
+
