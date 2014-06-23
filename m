@@ -1,97 +1,51 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e23smtp03.au.ibm.com ([202.81.31.145]:36242 "EHLO
-	e23smtp03.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751715AbaFVQcQ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 22 Jun 2014 12:32:16 -0400
-Received: from /spool/local
-	by e23smtp03.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <raghavendra.kt@linux.vnet.ibm.com>;
-	Mon, 23 Jun 2014 02:32:14 +1000
-Message-ID: <53A70602.8020000@linux.vnet.ibm.com>
-Date: Sun, 22 Jun 2014 22:06:18 +0530
-From: Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>
-MIME-Version: 1.0
-Subject: Re: [PATCH 11/11] qspinlock, kvm: Add paravirt support
-References: <20140615124657.264658593@chello.nl> <20140615130154.400698797@chello.nl>
-In-Reply-To: <20140615130154.400698797@chello.nl>
-Content-Type: text/plain; charset=UTF-8; format=flowed
-Content-Transfer-Encoding: 7bit
+Received: from smtprelay0006.hostedemail.com ([216.40.44.6]:43025 "EHLO
+	smtprelay.hostedemail.com" rhost-flags-OK-OK-OK-FAIL)
+	by vger.kernel.org with ESMTP id S1756231AbaFWNwZ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Mon, 23 Jun 2014 09:52:25 -0400
+Received: from smtprelay.hostedemail.com (ff-bigip1 [10.5.19.254])
+	by smtpgrave07.hostedemail.com (Postfix) with ESMTP id 86E3611A442
+	for <linux-arch@vger.kernel.org>; Mon, 23 Jun 2014 13:42:44 +0000 (UTC)
+From: Joe Perches <joe@perches.com>
+Subject: [PATCH 01/22] pci-dma-compat: Add pci_zalloc_consistent helper
+Date: Mon, 23 Jun 2014 06:41:29 -0700
+Message-ID: <2248b3ffe86cd8995a809bf7e2871f38039979c1.1403530604.git.joe@perches.com>
+In-Reply-To: <cover.1403530604.git.joe@perches.com>
+References: <cover.1403530604.git.joe@perches.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Cc: Waiman.Long@hp.com, tglx@linutronix.de, mingo@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, paolo.bonzini@gmail.com, konrad.wilk@oracle.com, boris.ostrovsky@oracle.com, paulmck@linux.vnet.ibm.com, riel@redhat.com, torvalds@linux-foundation.org, david.vrabel@citrix.com, oleg@redhat.com, gleb@redhat.com, scott.norton@hp.com, chegu_vinod@hp.com, Peter Zijlstra <peterz@infradead.org>
-Message-ID: <20140622163618.4WnEu2c97ARz6DmT3xfSLJphQ8CRWKC5fX8zjRTZcv8@z>
+To: linux-kernel@vger.kernel.org
+Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org
+Message-ID: <20140623134129.mHeZZeV7Rs7JHySbtobsSNOv5W8LhsHbLzEN_GJj0Dg@z>
 
-On 06/15/2014 06:17 PM, Peter Zijlstra wrote:
-> Signed-off-by: Peter Zijlstra<peterz@infradead.org>
-> ---
-[...]
-> +
-> +void kvm_wait(int *ptr, int val)
-> +{
-> +	unsigned long flags;
-> +
-> +	if (in_nmi())
-> +		return;
-> +
-> +	/*
-> +	 * Make sure an interrupt handler can't upset things in a
-> +	 * partially setup state.
-> +	 */
+Add this helper for consistency with pci_zalloc_coherent
+and the ability to remove unnecessary memset(,0,) uses.
 
-I am seeing hang with even 2 cpu guest (with patches on top of 3.15-rc6 ).
-looking further with gdb I see one cpu is stuck with native_halt with
-slowpath flag(_Q_LOCKED_SLOW) set when it was called.
+Signed-off-by: Joe Perches <joe@perches.com>
+---
+ include/asm-generic/pci-dma-compat.h | 8 ++++++++
+ 1 file changed, 8 insertions(+)
 
-(gdb) bt
-#0  native_halt () at /test/master/arch/x86/include/asm/irqflags.h:55
-#1  0xffffffff81033118 in halt (ptr=0xffffffff81eb0e58, val=524291) at 
-/test/master/arch/x86/include/asm/paravirt.h:116
-#2  kvm_wait (ptr=0xffffffff81eb0e58, val=524291) at 
-arch/x86/kernel/kvm.c:835
-#3  kvm_wait (ptr=0xffffffff81eb0e58, val=524291) at 
-arch/x86/kernel/kvm.c:809
-#4  0xffffffff810a2d8e in pv_wait (lock=0xffffffff81eb0e58) at 
-/test/master/arch/x86/include/asm/paravirt.h:744
-#5  __pv_wait_head (lock=0xffffffff81eb0e58) at 
-kernel/locking/qspinlock.c:352
-
-Value of lock seem to be 524288 (means already unlocked?)
-So apart from races Waiman mentioned, are we also in need of smp_mb()
-here and/or native_queue_unlock()?.
-
-Interestingly I see other cpu stuck at multi_cpu_stop().
-
-(gdb) thr 1
-[Switching to thread 1 (Thread 1)]#0  multi_cpu_stop 
-(data=0xffff8802140d1da0) at kernel/stop_machine.c:192
-192			if (msdata->state != curstate) {
-
-Or is it I am missing something.
-
-please let me know if .config need to be shared.
-
-> +	local_irq_save(flags);
-> +
-> +	/*
-> +	 * check again make sure it didn't become free while
-> +	 * we weren't looking.
-> +	 */
-> +	if (ACCESS_ONCE(*ptr) != val)
-> +		goto out;
-> +
-> +	/*
-> +	 * halt until it's our turn and kicked. Note that we do safe halt
-> +	 * for irq enabled case to avoid hang when lock info is overwritten
-> +	 * in irq spinlock slowpath and no spurious interrupt occur to save us.
-> +	 */
-> +	if (arch_irqs_disabled_flags(flags))
-> +		halt();
-> +	else
-> +		safe_halt();
-> +
-> +out:
-> +	local_irq_restore(flags);
-> +}
-> +#endif /* QUEUE_SPINLOCK */
+diff --git a/include/asm-generic/pci-dma-compat.h b/include/asm-generic/pci-dma-compat.h
+index 1437b7d..c110843 100644
+--- a/include/asm-generic/pci-dma-compat.h
++++ b/include/asm-generic/pci-dma-compat.h
+@@ -19,6 +19,14 @@ pci_alloc_consistent(struct pci_dev *hwdev, size_t size,
+ 	return dma_alloc_coherent(hwdev == NULL ? NULL : &hwdev->dev, size, dma_handle, GFP_ATOMIC);
+ }
+ 
++static inline void *
++pci_zalloc_consistent(struct pci_dev *hwdev, size_t size,
++		      dma_addr_t *dma_handle)
++{
++	return dma_zalloc_coherent(hwdev == NULL ? NULL : &hwdev->dev,
++				   size, dma_handle, GFP_ATOMIC);
++}
++
+ static inline void
+ pci_free_consistent(struct pci_dev *hwdev, size_t size,
+ 		    void *vaddr, dma_addr_t dma_handle)
+-- 
+1.8.1.2.459.gbcd45b4.dirty
 
