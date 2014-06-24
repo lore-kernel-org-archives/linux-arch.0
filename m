@@ -1,37 +1,40 @@
-From: Johannes Berg <johannes@sipsolutions.net>
-Subject: Re: [PATCH 00/22] Add and use pci_zalloc_consistent
-Date: Tue, 24 Jun 2014 13:32:49 +0200
-Message-ID: <1403609569.10831.0.camel@jlt4.sipsolutions.net>
-References: <cover.1403530604.git.joe@perches.com>
-	 <20140623172512.GA1390@garbanzo.do-not-panic.com>
-	 <1403550809.15811.13.camel@joe-AO725>
-	 <CAGRGNgVD2f0S-v8YZ-qABEhDJAwk5pp71FU9uLR8aSZ+DhABjg@mail.gmail.com>
-	 (sfid-20140624_012812_032630_4B31BBC9)
+From: Kees Cook <keescook@chromium.org>
+Subject: Re: [PATCH v7 1/1] man-pages: seccomp.2: document syscall
+Date: Tue, 24 Jun 2014 09:43:58 -0700
+Message-ID: <CAGXu5j+A1WCA13rRnREh_m0kwsYfBrZSwB25NXEdpQNpgjJfyw@mail.gmail.com>
+References: <20140623220150.GM5412@outflux.net>
+	<53A95187.4010805@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from s3.sipsolutions.net ([5.9.151.49]:48550 "EHLO sipsolutions.net"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751206AbaFXLde (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 24 Jun 2014 07:33:34 -0400
-In-Reply-To: <CAGRGNgVD2f0S-v8YZ-qABEhDJAwk5pp71FU9uLR8aSZ+DhABjg@mail.gmail.com> (sfid-20140624_012812_032630_4B31BBC9)
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Julian Calaby <julian.calaby@gmail.com>
-Cc: Joe Perches <joe@perches.com>, "Luis R. Rodriguez" <mcgrof@do-not-panic.com>, Arnd Bergmann <arnd@arndb.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "devel@driverdev.osuosl.org" <devel@driverdev.osuosl.org>, linux-arch@vger.kernel.org, linux-scsi <linux-scsi@vger.kernel.org>, iss_storagedev@hp.com, linux-rdma@vger.kernel.org, netdev <netdev@vger.kernel.org>, linux-atm-general@lists.sourceforge.net, linux-wireless <linux-wireless@vger.kernel.org>, dri-devel@lists.freedesktop.org, linux-crypto@vger.kernel.org, linux-eata@i-connect.net, linux-media@vger.kernel.org
+Content-Type: text/plain; charset=UTF-8
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <53A95187.4010805@gmail.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>
+Cc: LKML <linux-kernel@vger.kernel.org>, Andy Lutomirski <luto@amacapital.net>, Alexei Starovoitov <ast@plumgrid.com>, Andrew Morton <akpm@linux-foundation.org>, Daniel Borkmann <dborkman@redhat.com>, Oleg Nesterov <oleg@redhat.com>, Will Drewry <wad@chromium.org>, Julien Tinnes <jln@chromium.org>, David Drysdale <drysdale@google.com>, Linux API <linux-api@vger.kernel.org>, "x86@kernel.org" <x86@kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, linux-mips@linux-mips.org, linux-arch <linux-arch@vger.kernel.org>, linux-security-module <linux-security-module@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, 2014-06-24 at 09:27 +1000, Julian Calaby wrote:
+On Tue, Jun 24, 2014 at 3:23 AM, Michael Kerrisk (man-pages)
+<mtk.manpages@gmail.com> wrote:
+> On 06/24/2014 12:01 AM, Kees Cook wrote:
+>> Combines documentation from prctl, and in-kernel seccomp_filter.txt,
+>> along with new details specific to the new syscall.
+>
+> Great work on the man page, Kees! (BTW, just looking at the complexity detailed
+> there further supports the decision to grant this functionality as a separate
+> syscall, rather than multiplexed into prctl(2).
 
-> > - x = (T)pci_alloc_consistent(E1,E2,E3);
-> > + x = pci_zalloc_consistent(E1,E2,E3);
-> >   if ((x==NULL) || ...) S
-> > - memset((T2)x,0,E2);
-> 
-> I don't know much about SmPL, but wouldn't having that if statement
-> there reduce your matches?
+Great, thanks!
 
-Code that matched without the if statement would be buggy, since it
-wouldn't be checking the pci_zalloc_consistent return value properly.l
+> Would there be some suitable, not too long program that we
+> could put in the man page as an example for using filters?
 
-johannes
+Sure thing. I can modify the "dropper" sample in samples/seccomp. I
+will resend the man-page with that added.
+
+Thanks!
+
+-Kees
+
+-- 
+Kees Cook
+Chrome OS Security
