@@ -1,43 +1,37 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH 04/11] qspinlock: Extract out the exchange of tail code
-	word
-Date: Tue, 24 Jun 2014 12:47:02 +0200
-Message-ID: <20140624104702.GO13930@laptop.programming.kicks-ass.net>
-References: <20140615124657.264658593@chello.nl>
-	<20140615130153.376621956@chello.nl>
-	<20140617205525.GB29634@laptop.dumpdata.com>
-	<53A17A09.6010007@redhat.com>
+From: Johannes Berg <johannes@sipsolutions.net>
+Subject: Re: [PATCH 00/22] Add and use pci_zalloc_consistent
+Date: Tue, 24 Jun 2014 13:32:49 +0200
+Message-ID: <1403609569.10831.0.camel@jlt4.sipsolutions.net>
+References: <cover.1403530604.git.joe@perches.com>
+	 <20140623172512.GA1390@garbanzo.do-not-panic.com>
+	 <1403550809.15811.13.camel@joe-AO725>
+	 <CAGRGNgVD2f0S-v8YZ-qABEhDJAwk5pp71FU9uLR8aSZ+DhABjg@mail.gmail.com>
+	 (sfid-20140624_012812_032630_4B31BBC9)
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
+Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: 7bit
-Return-path: <virtualization-bounces@lists.linux-foundation.org>
-Content-Disposition: inline
-In-Reply-To: <53A17A09.6010007@redhat.com>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
-List-Post: <mailto:virtualization@lists.linux-foundation.org>
-List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
-Sender: virtualization-bounces@lists.linux-foundation.org
-Errors-To: virtualization-bounces@lists.linux-foundation.org
-To: Paolo Bonzini <pbonzini@redhat.com>
-Cc: Waiman.Long@hp.com, linux-arch@vger.kernel.org, riel@redhat.com, gleb@redhat.com, kvm@vger.kernel.org, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, boris.ostrovsky@oracle.com, scott.norton@hp.com, raghavendra.kt@linux.vnet.ibm.com, paolo.bonzini@gmail.com, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, chegu_vinod@hp.com, david.vrabel@citrix.com, oleg@redhat.com, xen-devel@lists.xenproject.org, tglx@linutronix.de, paulmck@linux.vnet.ibm.com, torvalds@linux-foundation.org, mingo@kernel.org
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from s3.sipsolutions.net ([5.9.151.49]:48550 "EHLO sipsolutions.net"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751206AbaFXLde (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 24 Jun 2014 07:33:34 -0400
+In-Reply-To: <CAGRGNgVD2f0S-v8YZ-qABEhDJAwk5pp71FU9uLR8aSZ+DhABjg@mail.gmail.com> (sfid-20140624_012812_032630_4B31BBC9)
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Julian Calaby <julian.calaby@gmail.com>
+Cc: Joe Perches <joe@perches.com>, "Luis R. Rodriguez" <mcgrof@do-not-panic.com>, Arnd Bergmann <arnd@arndb.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "devel@driverdev.osuosl.org" <devel@driverdev.osuosl.org>, linux-arch@vger.kernel.org, linux-scsi <linux-scsi@vger.kernel.org>, iss_storagedev@hp.com, linux-rdma@vger.kernel.org, netdev <netdev@vger.kernel.org>, linux-atm-general@lists.sourceforge.net, linux-wireless <linux-wireless@vger.kernel.org>, dri-devel@lists.freedesktop.org, linux-crypto@vger.kernel.org, linux-eata@i-connect.net, linux-media@vger.kernel.org
 
-On Wed, Jun 18, 2014 at 01:37:45PM +0200, Paolo Bonzini wrote:
-> However, I *do* agree with you that it's simpler to just squash this patch
-> into 01/11.
+On Tue, 2014-06-24 at 09:27 +1000, Julian Calaby wrote:
 
-So I explicitly broke out these optimizations into separate patches so
-that we can see them independently and agree they're idempotent wrt the
-state machine.
+> > - x = (T)pci_alloc_consistent(E1,E2,E3);
+> > + x = pci_zalloc_consistent(E1,E2,E3);
+> >   if ((x==NULL) || ...) S
+> > - memset((T2)x,0,E2);
+> 
+> I don't know much about SmPL, but wouldn't having that if statement
+> there reduce your matches?
 
-The initial patches by Waiman were totally unreadable, partly because
-the optimizations made the code terribly complex.
+Code that matched without the if statement would be buggy, since it
+wouldn't be checking the pci_zalloc_consistent return value properly.l
 
-Luckily waiman then dropped the most horrible optimizations
-(optimization for the very large nr_cpus case, were we cannot have a
-pending byte), so the end result isn't quite as complex as it used to
-be.
+johannes
