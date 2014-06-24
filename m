@@ -1,101 +1,69 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:54686 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:23582 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752593AbaFXShb (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 24 Jun 2014 14:37:31 -0400
-Date: Tue, 24 Jun 2014 20:35:50 +0200
+	id S1755008AbaFXSjj (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 24 Jun 2014 14:39:39 -0400
+Date: Tue, 24 Jun 2014 20:37:49 +0200
 From: Oleg Nesterov <oleg@redhat.com>
-Subject: Re: [PATCH v7 3/9] seccomp: introduce writer locking
-Message-ID: <20140624183550.GB1258@redhat.com>
-References: <1403560693-21809-1-git-send-email-keescook@chromium.org> <1403560693-21809-4-git-send-email-keescook@chromium.org> <20140624165216.GA29272@redhat.com> <CAGXu5j+G8qAkGD7H=3R2iw2ZTqZSrMPa2f=czoEjwSW5wKqUWQ@mail.gmail.com>
+Subject: Re: [PATCH v7 7/9] seccomp: implement SECCOMP_FILTER_FLAG_TSYNC
+Message-ID: <20140624183749.GC1258@redhat.com>
+References: <1403560693-21809-1-git-send-email-keescook@chromium.org> <1403560693-21809-8-git-send-email-keescook@chromium.org> <20140624172753.GA31435@redhat.com> <CAGXu5jKoDEXffJqFSjhO+D=5toJOA=KAomi+LQOahPDYKFbEdg@mail.gmail.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <CAGXu5j+G8qAkGD7H=3R2iw2ZTqZSrMPa2f=czoEjwSW5wKqUWQ@mail.gmail.com>
+In-Reply-To: <CAGXu5jKoDEXffJqFSjhO+D=5toJOA=KAomi+LQOahPDYKFbEdg@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Kees Cook <keescook@chromium.org>
 Cc: LKML <linux-kernel@vger.kernel.org>, Andy Lutomirski <luto@amacapital.net>, Alexei Starovoitov <ast@plumgrid.com>, "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, Daniel Borkmann <dborkman@redhat.com>, Will Drewry <wad@chromium.org>, Julien Tinnes <jln@chromium.org>, David Drysdale <drysdale@google.com>, Linux API <linux-api@vger.kernel.org>, "x86@kernel.org" <x86@kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, linux-mips@linux-mips.org, linux-arch <linux-arch@vger.kernel.org>, linux-security-module <linux-security-module@vger.kernel.org>
-Message-ID: <20140624183550.YelilWcoeMV5szMPQjC29kSmbvpeypkkzOOxqu-B1Eg@z>
+Message-ID: <20140624183749.ag7wOrhlFdhK0gLy-iQzMx2r3-Ck1vXiZ9yaw1pV17c@z>
 
 On 06/24, Kees Cook wrote:
 >
-> On Tue, Jun 24, 2014 at 9:52 AM, Oleg Nesterov <oleg@redhat.com> wrote:
-> > Kees,
-> >
-> > I am still trying to force myself to read and try to understand what
-> > this series does ;) Just a minor nit so far.
->
-> The use-case this solves is when a userspace process does not control
-> (or know) when a thread is spawned (e.g. via shared library init, or
-> LD_PRELOAD) but wants to make sure seccomp filters have been applied
-> to it.
-
-Yes, thanks, I understand this. But the details are not clear to me so
-far, I'll try to re-read this series later.
-
-> >> @@ -1142,6 +1168,7 @@ static struct task_struct *copy_process(unsigned long clone_flags,
-> >>  {
-> >>       int retval;
-> >>       struct task_struct *p;
-> >> +     unsigned long irqflags;
+> On Tue, Jun 24, 2014 at 10:27 AM, Oleg Nesterov <oleg@redhat.com> wrote:
+> > On 06/23, Kees Cook wrote:
 > >>
-> >>       if ((clone_flags & (CLONE_NEWNS|CLONE_FS)) == (CLONE_NEWNS|CLONE_FS))
-> >>               return ERR_PTR(-EINVAL);
-> >> @@ -1196,7 +1223,6 @@ static struct task_struct *copy_process(unsigned long clone_flags,
-> >>               goto fork_out;
-> >>
-> >>       ftrace_graph_init_task(p);
-> >> -     get_seccomp_filter(p);
-> >>
-> >>       rt_mutex_init_task(p);
-> >>
-> >> @@ -1434,7 +1460,13 @@ static struct task_struct *copy_process(unsigned long clone_flags,
-> >>               p->parent_exec_id = current->self_exec_id;
-> >>       }
-> >>
-> >> -     spin_lock(&current->sighand->siglock);
-> >> +     spin_lock_irqsave(&current->sighand->siglock, irqflags);
+> >> +static pid_t seccomp_can_sync_threads(void)
+> >> +{
+> >> +     struct task_struct *thread, *caller;
 > >> +
-> >> +     /*
-> >> +      * Copy seccomp details explicitly here, in case they were changed
-> >> +      * before holding tasklist_lock.
-> >> +      */
-> >> +     copy_seccomp(p);
-> >>
-> >>       /*
-> >>        * Process group and session signals need to be delivered to just the
-> >> @@ -1446,7 +1478,7 @@ static struct task_struct *copy_process(unsigned long clone_flags,
-> >>       */
-> >>       recalc_sigpending();
-> >>       if (signal_pending(current)) {
-> >> -             spin_unlock(&current->sighand->siglock);
-> >> +             spin_unlock_irqrestore(&current->sighand->siglock, irqflags);
-> >>               write_unlock_irq(&tasklist_lock);
-> >>               retval = -ERESTARTNOINTR;
-> >>               goto bad_fork_free_pid;
-> >> @@ -1486,7 +1518,7 @@ static struct task_struct *copy_process(unsigned long clone_flags,
-> >>       }
-> >>
-> >>       total_forks++;
-> >> -     spin_unlock(&current->sighand->siglock);
-> >> +     spin_unlock_irqrestore(&current->sighand->siglock, irqflags);
-> >>       write_unlock_irq(&tasklist_lock);
-> >>       proc_fork_connector(p);
-> >>       cgroup_post_fork(p);
+> >> +     BUG_ON(write_can_lock(&tasklist_lock));
+> >> +     BUG_ON(!spin_is_locked(&current->sighand->siglock));
+> >> +
+> >> +     if (current->seccomp.mode != SECCOMP_MODE_FILTER)
+> >> +             return -EACCES;
+> >> +
+> >> +     /* Validate all threads being eligible for synchronization. */
+> >> +     thread = caller = current;
+> >> +     for_each_thread(caller, thread) {
+> >> +             pid_t failed;
+> >> +
+> >> +             if (thread->seccomp.mode == SECCOMP_MODE_DISABLED ||
+> >> +                 (thread->seccomp.mode == SECCOMP_MODE_FILTER &&
+> >> +                  is_ancestor(thread->seccomp.filter,
+> >> +                              caller->seccomp.filter)))
+> >> +                     continue;
+> >> +
+> >> +             /* Return the first thread that cannot be synchronized. */
+> >> +             failed = task_pid_vnr(thread);
+> >> +             /* If the pid cannot be resolved, then return -ESRCH */
+> >> +             if (failed == 0)
+> >> +                     failed = -ESRCH;
 > >
-> > It seems that the only change copy_process() needs is copy_seccomp() under the locks.
-> > Everythinh else (irqflags games) looks obviously unneeded?
+> > forgot to mention, task_pid_vnr() can't fail. sighand->siglock is held,
+> > for_each_thread() can't see a thread which has passed unhash_process().
 >
-> I got irq lock dep warnings without these changes.
+> Certainly good to know, but I'd be much more comfortable leaving this
+> check as-is. Having "failed" return with "0" would be very very bad
+> (userspace would think the filter had been successfully applied, etc).
+> I'd rather stay highly defensive here.
 
-With or without your patches? Could you show the waring?
+OK, agreed. Although in this case I'd suggest
 
-> If they're
-> unneeded, that's totally fine by me, but some change (either this or
-> markings to keep lockdep happy) is needed.
+		if (WARN_ON(failed == 0))
+			failed = -ESRCH;
 
-Yes, we need to understand what what happens...
+but I won't insist.
 
 Oleg.
 
