@@ -1,39 +1,47 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.9]:44269 "EHLO
-	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751407AbaFXKrP (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 24 Jun 2014 06:47:15 -0400
-Date: Tue, 24 Jun 2014 12:47:02 +0200
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH 04/11] qspinlock: Extract out the exchange of tail code
- word
-Message-ID: <20140624104702.GO13930@laptop.programming.kicks-ass.net>
-References: <20140615124657.264658593@chello.nl>
- <20140615130153.376621956@chello.nl>
- <20140617205525.GB29634@laptop.dumpdata.com>
- <53A17A09.6010007@redhat.com>
+Received: from mail-oa0-f41.google.com ([209.85.219.41]:58756 "EHLO
+	mail-oa0-f41.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932472AbaFXQn7 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 24 Jun 2014 12:43:59 -0400
+Received: by mail-oa0-f41.google.com with SMTP id l6so648646oag.28
+        for <linux-arch@vger.kernel.org>; Tue, 24 Jun 2014 09:43:59 -0700 (PDT)
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <53A17A09.6010007@redhat.com>
+In-Reply-To: <53A95187.4010805@gmail.com>
+References: <20140623220150.GM5412@outflux.net>
+	<53A95187.4010805@gmail.com>
+Date: Tue, 24 Jun 2014 09:43:58 -0700
+Message-ID: <CAGXu5j+A1WCA13rRnREh_m0kwsYfBrZSwB25NXEdpQNpgjJfyw@mail.gmail.com>
+Subject: Re: [PATCH v7 1/1] man-pages: seccomp.2: document syscall
+From: Kees Cook <keescook@chromium.org>
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Paolo Bonzini <pbonzini@redhat.com>
-Cc: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Waiman.Long@hp.com, tglx@linutronix.de, mingo@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, paolo.bonzini@gmail.com, boris.ostrovsky@oracle.com, paulmck@linux.vnet.ibm.com, riel@redhat.com, torvalds@linux-foundation.org, raghavendra.kt@linux.vnet.ibm.com, david.vrabel@citrix.com, oleg@redhat.com, gleb@redhat.com, scott.norton@hp.com, chegu_vinod@hp.com
-Message-ID: <20140624104702.OrPM44DehMjF_6Hwij_gZ9LeBTmTOLOI1Bg9UrOgMqg@z>
+To: "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>
+Cc: LKML <linux-kernel@vger.kernel.org>, Andy Lutomirski <luto@amacapital.net>, Alexei Starovoitov <ast@plumgrid.com>, Andrew Morton <akpm@linux-foundation.org>, Daniel Borkmann <dborkman@redhat.com>, Oleg Nesterov <oleg@redhat.com>, Will Drewry <wad@chromium.org>, Julien Tinnes <jln@chromium.org>, David Drysdale <drysdale@google.com>, Linux API <linux-api@vger.kernel.org>, "x86@kernel.org" <x86@kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, linux-mips@linux-mips.org, linux-arch <linux-arch@vger.kernel.org>, linux-security-module <linux-security-module@vger.kernel.org>
+Message-ID: <20140624164358.DZxGTsPDoWO9MFc4843plX5KmIjH2pEInSOg67T26AA@z>
 
-On Wed, Jun 18, 2014 at 01:37:45PM +0200, Paolo Bonzini wrote:
-> However, I *do* agree with you that it's simpler to just squash this patch
-> into 01/11.
+On Tue, Jun 24, 2014 at 3:23 AM, Michael Kerrisk (man-pages)
+<mtk.manpages@gmail.com> wrote:
+> On 06/24/2014 12:01 AM, Kees Cook wrote:
+>> Combines documentation from prctl, and in-kernel seccomp_filter.txt,
+>> along with new details specific to the new syscall.
+>
+> Great work on the man page, Kees! (BTW, just looking at the complexity detailed
+> there further supports the decision to grant this functionality as a separate
+> syscall, rather than multiplexed into prctl(2).
 
-So I explicitly broke out these optimizations into separate patches so
-that we can see them independently and agree they're idempotent wrt the
-state machine.
+Great, thanks!
 
-The initial patches by Waiman were totally unreadable, partly because
-the optimizations made the code terribly complex.
+> Would there be some suitable, not too long program that we
+> could put in the man page as an example for using filters?
 
-Luckily waiman then dropped the most horrible optimizations
-(optimization for the very large nr_cpus case, were we cannot have a
-pending byte), so the end result isn't quite as complex as it used to
-be.
+Sure thing. I can modify the "dropper" sample in samples/seccomp. I
+will resend the man-page with that added.
+
+Thanks!
+
+-Kees
+
+-- 
+Kees Cook
+Chrome OS Security
