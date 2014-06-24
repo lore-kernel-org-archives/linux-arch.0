@@ -1,77 +1,88 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-oa0-f50.google.com ([209.85.219.50]:64844 "EHLO
-	mail-oa0-f50.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752513AbaFXST1 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 24 Jun 2014 14:19:27 -0400
-Received: by mail-oa0-f50.google.com with SMTP id n16so789327oag.23
-        for <linux-arch@vger.kernel.org>; Tue, 24 Jun 2014 11:19:27 -0700 (PDT)
+Received: from mx1.redhat.com ([209.132.183.28]:33291 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751307AbaFXSc3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 24 Jun 2014 14:32:29 -0400
+Date: Tue, 24 Jun 2014 20:30:24 +0200
+From: Oleg Nesterov <oleg@redhat.com>
+Subject: Re: [PATCH v7 3/9] seccomp: introduce writer locking
+Message-ID: <20140624183024.GA1258@redhat.com>
+References: <1403560693-21809-1-git-send-email-keescook@chromium.org> <1403560693-21809-4-git-send-email-keescook@chromium.org>
 MIME-Version: 1.0
-In-Reply-To: <20140624170800.GA30480@redhat.com>
-References: <1403560693-21809-1-git-send-email-keescook@chromium.org>
-	<1403560693-21809-8-git-send-email-keescook@chromium.org>
-	<20140624170800.GA30480@redhat.com>
-Date: Tue, 24 Jun 2014 11:19:27 -0700
-Message-ID: <CAGXu5jLaYq2wncbZ=UjuteFAh=jyVDNtE7pBpx52CbHn07De+Q@mail.gmail.com>
-Subject: Re: [PATCH v7 7/9] seccomp: implement SECCOMP_FILTER_FLAG_TSYNC
-From: Kees Cook <keescook@chromium.org>
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1403560693-21809-4-git-send-email-keescook@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Oleg Nesterov <oleg@redhat.com>
-Cc: LKML <linux-kernel@vger.kernel.org>, Andy Lutomirski <luto@amacapital.net>, Alexei Starovoitov <ast@plumgrid.com>, "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, Daniel Borkmann <dborkman@redhat.com>, Will Drewry <wad@chromium.org>, Julien Tinnes <jln@chromium.org>, David Drysdale <drysdale@google.com>, Linux API <linux-api@vger.kernel.org>, "x86@kernel.org" <x86@kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, linux-mips@linux-mips.org, linux-arch <linux-arch@vger.kernel.org>, linux-security-module <linux-security-module@vger.kernel.org>
-Message-ID: <20140624181927.eddM6cO7FWQyplcaKSGSf6G5V0wi_p21ge128oV-Vb8@z>
+To: Kees Cook <keescook@chromium.org>
+Cc: linux-kernel@vger.kernel.org, Andy Lutomirski <luto@amacapital.net>, Alexei Starovoitov <ast@plumgrid.com>, "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, Daniel Borkmann <dborkman@redhat.com>, Will Drewry <wad@chromium.org>, Julien Tinnes <jln@chromium.org>, David Drysdale <drysdale@google.com>, linux-api@vger.kernel.org, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-mips@linux-mips.org, linux-arch@vger.kernel.org, linux-security-module@vger.kernel.org
+Message-ID: <20140624183024.0oe8TL82bfcJfv0w6ksdVHf5BLQDb5lkWcqLMS65Ctg@z>
 
-On Tue, Jun 24, 2014 at 10:08 AM, Oleg Nesterov <oleg@redhat.com> wrote:
-> On 06/23, Kees Cook wrote:
->>
->> +static pid_t seccomp_can_sync_threads(void)
->> +{
->> +     struct task_struct *thread, *caller;
->> +
->> +     BUG_ON(write_can_lock(&tasklist_lock));
->> +     BUG_ON(!spin_is_locked(&current->sighand->siglock));
->> +
->> +     if (current->seccomp.mode != SECCOMP_MODE_FILTER)
->> +             return -EACCES;
->> +
->> +     /* Validate all threads being eligible for synchronization. */
->> +     thread = caller = current;
->> +     for_each_thread(caller, thread) {
+I am puzzled by the usage of smp_load_acquire(),
+
+On 06/23, Kees Cook wrote:
 >
-> You only need to initialize "caller" for for_each_thread(). Same for
-> seccomp_sync_threads().
+>  static u32 seccomp_run_filters(int syscall)
+>  {
+> -	struct seccomp_filter *f;
+> +	struct seccomp_filter *f = smp_load_acquire(&current->seccomp.filter);
+>  	struct seccomp_data sd;
+>  	u32 ret = SECCOMP_RET_ALLOW;
+>  
+>  	/* Ensure unexpected behavior doesn't result in failing open. */
+> -	if (WARN_ON(current->seccomp.filter == NULL))
+> +	if (WARN_ON(f == NULL))
+>  		return SECCOMP_RET_KILL;
+>  
+>  	populate_seccomp_data(&sd);
+> @@ -186,9 +186,8 @@ static u32 seccomp_run_filters(int syscall)
+>  	 * All filters in the list are evaluated and the lowest BPF return
+>  	 * value always takes priority (ignoring the DATA).
+>  	 */
+> -	for (f = current->seccomp.filter; f; f = f->prev) {
+> +	for (; f; f = smp_load_acquire(&f->prev)) {
+>  		u32 cur_ret = SK_RUN_FILTER(f->prog, (void *)&sd);
+> -
+>  		if ((cur_ret & SECCOMP_RET_ACTION) < (ret & SECCOMP_RET_ACTION))
+>  			ret = cur_ret;
 
-Thanks, I'll fix this up.
+OK, in this case the 1st one is probably fine, altgough it is not
+clear to me why it is better than read_barrier_depends().
 
->> @@ -586,6 +701,17 @@ static long seccomp_set_mode_filter(unsigned int flags,
->>       if (IS_ERR(prepared))
->>               return PTR_ERR(prepared);
->>
->> +     /*
->> +      * If we're doing thread sync, we must hold tasklist_lock
->> +      * to make sure seccomp filter changes are stable on threads
->> +      * entering or leaving the task list. And we must take it
->> +      * before the sighand lock to avoid deadlocking.
->> +      */
->> +     if (flags & SECCOMP_FILTER_FLAG_TSYNC)
->> +             write_lock_irqsave(&tasklist_lock, taskflags);
->> +     else
->> +             __acquire(&tasklist_lock); /* keep sparse happy */
->> +
->
-> Why? ->siglock should be enough, it seems.
->
-> It obviously does not protect the global process list, but *sync_threads()
-> only care about current's thread group list, no?
+But why do we need a 2nd one inside the loop? And if we actually need
+it (I don't think so) then why it is safe to use f->prog without
+load_acquire ?
 
-I think I was concerned about the exit case, but reading through those
-paths again, I can't find a race. Calls to put_seccomp_filter() should
-already be safe. Let me see what happens if I drop the tasklist_lock
-usage...
+>  void get_seccomp_filter(struct task_struct *tsk)
+>  {
+> -	struct seccomp_filter *orig = tsk->seccomp.filter;
+> +	struct seccomp_filter *orig = smp_load_acquire(&tsk->seccomp.filter);
+>  	if (!orig)
+>  		return;
 
--Kees
+This one looks unneeded.
 
+First of all, afaics atomic_inc() should work correctly without any barriers,
+otherwise it is buggy. But even this doesn't matter.
 
--- 
-Kees Cook
-Chrome OS Security
+With this changes get_seccomp_filter() must be called under ->siglock, it can't
+race with add-filter and thus tsk->seccomp.filter should be stable.
+
+>  	/* Reference count is bounded by the number of total processes. */
+> @@ -361,7 +364,7 @@ void put_seccomp_filter(struct task_struct *tsk)
+>  	/* Clean up single-reference branches iteratively. */
+>  	while (orig && atomic_dec_and_test(&orig->usage)) {
+>  		struct seccomp_filter *freeme = orig;
+> -		orig = orig->prev;
+> +		orig = smp_load_acquire(&orig->prev);
+>  		seccomp_filter_free(freeme);
+>  	}
+
+This one looks unneeded too. And note that this patch does not add
+smp_load_acquire() to read tsk->seccomp.filter.
+
+atomic_dec_and_test() adds mb(), we do not need more barriers to access
+->prev ?
+
+Oleg.
+
