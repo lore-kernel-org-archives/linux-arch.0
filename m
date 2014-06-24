@@ -1,120 +1,81 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-oa0-f45.google.com ([209.85.219.45]:45236 "EHLO
-	mail-oa0-f45.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751590AbaFXSCF (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 24 Jun 2014 14:02:05 -0400
-Received: by mail-oa0-f45.google.com with SMTP id o6so754539oag.4
-        for <linux-arch@vger.kernel.org>; Tue, 24 Jun 2014 11:02:04 -0700 (PDT)
+Received: from mail-lb0-f180.google.com ([209.85.217.180]:59692 "EHLO
+	mail-lb0-f180.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754138AbaFXSGm (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 24 Jun 2014 14:06:42 -0400
+Received: by mail-lb0-f180.google.com with SMTP id w7so962665lbi.25
+        for <linux-arch@vger.kernel.org>; Tue, 24 Jun 2014 11:06:40 -0700 (PDT)
 MIME-Version: 1.0
-In-Reply-To: <20140624165216.GA29272@redhat.com>
-References: <1403560693-21809-1-git-send-email-keescook@chromium.org>
-	<1403560693-21809-4-git-send-email-keescook@chromium.org>
-	<20140624165216.GA29272@redhat.com>
-Date: Tue, 24 Jun 2014 11:02:04 -0700
-Message-ID: <CAGXu5j+G8qAkGD7H=3R2iw2ZTqZSrMPa2f=czoEjwSW5wKqUWQ@mail.gmail.com>
-Subject: Re: [PATCH v7 3/9] seccomp: introduce writer locking
-From: Kees Cook <keescook@chromium.org>
+In-Reply-To: <20140623220150.GM5412@outflux.net>
+References: <1403560693-21809-1-git-send-email-keescook@chromium.org> <20140623220150.GM5412@outflux.net>
+From: Andy Lutomirski <luto@amacapital.net>
+Date: Tue, 24 Jun 2014 11:06:20 -0700
+Message-ID: <CALCETrV=nAuWi8_Xj6KnJ6P1Yiaw36+n50-gHKaTgea4yH85Eg@mail.gmail.com>
+Subject: Re: [PATCH v7 1/1] man-pages: seccomp.2: document syscall
 Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Oleg Nesterov <oleg@redhat.com>
-Cc: LKML <linux-kernel@vger.kernel.org>, Andy Lutomirski <luto@amacapital.net>, Alexei Starovoitov <ast@plumgrid.com>, "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, Daniel Borkmann <dborkman@redhat.com>, Will Drewry <wad@chromium.org>, Julien Tinnes <jln@chromium.org>, David Drysdale <drysdale@google.com>, Linux API <linux-api@vger.kernel.org>, "x86@kernel.org" <x86@kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, linux-mips@linux-mips.org, linux-arch <linux-arch@vger.kernel.org>, linux-security-module <linux-security-module@vger.kernel.org>
-Message-ID: <20140624180204.yzymx49SNWqDIKDBNpP6yQtOA7ZoMD7gU_ZjMMzMrpM@z>
+To: Kees Cook <keescook@chromium.org>
+Cc: "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Alexei Starovoitov <ast@plumgrid.com>, Andrew Morton <akpm@linux-foundation.org>, Daniel Borkmann <dborkman@redhat.com>, Oleg Nesterov <oleg@redhat.com>, Will Drewry <wad@chromium.org>, Julien Tinnes <jln@chromium.org>, David Drysdale <drysdale@google.com>, Linux API <linux-api@vger.kernel.org>, X86 ML <x86@kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, linux-mips@linux-mips.org, linux-arch <linux-arch@vger.kernel.org>, LSM List <linux-security-module@vger.kernel.org>
+Message-ID: <20140624180620.LVhabYgw-TrkFPk4NiEVblB3ky7Tr9_p8UhRxhXLP5w@z>
 
-On Tue, Jun 24, 2014 at 9:52 AM, Oleg Nesterov <oleg@redhat.com> wrote:
-> Kees,
+On Mon, Jun 23, 2014 at 3:01 PM, Kees Cook <keescook@chromium.org> wrote:
+> Combines documentation from prctl, and in-kernel seccomp_filter.txt,
+> along with new details specific to the new syscall.
 >
-> I am still trying to force myself to read and try to understand what
-> this series does ;) Just a minor nit so far.
-
-The use-case this solves is when a userspace process does not control
-(or know) when a thread is spawned (e.g. via shared library init, or
-LD_PRELOAD) but wants to make sure seccomp filters have been applied
-to it. Specifically, Chrome, when loading some proprietary graphics
-drivers, will have those drivers spawning threads before there has
-been an ability to call seccomp. While some games can be played to get
-ahead of it, it's not always possible, or racey, depending on the
-drivers. With seccomp thread-sync, we can be certain that all threads
-have had the filter applied.
-
+> Signed-off-by: Kees Cook <keescook@chromium.org>
+> ---
+>  man2/seccomp.2 |  333 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+>  1 file changed, 333 insertions(+)
+>  create mode 100644 man2/seccomp.2
 >
-> On 06/23, Kees Cook wrote:
->>
->> @@ -1142,6 +1168,7 @@ static struct task_struct *copy_process(unsigned long clone_flags,
->>  {
->>       int retval;
->>       struct task_struct *p;
->> +     unsigned long irqflags;
->>
->>       if ((clone_flags & (CLONE_NEWNS|CLONE_FS)) == (CLONE_NEWNS|CLONE_FS))
->>               return ERR_PTR(-EINVAL);
->> @@ -1196,7 +1223,6 @@ static struct task_struct *copy_process(unsigned long clone_flags,
->>               goto fork_out;
->>
->>       ftrace_graph_init_task(p);
->> -     get_seccomp_filter(p);
->>
->>       rt_mutex_init_task(p);
->>
->> @@ -1434,7 +1460,13 @@ static struct task_struct *copy_process(unsigned long clone_flags,
->>               p->parent_exec_id = current->self_exec_id;
->>       }
->>
->> -     spin_lock(&current->sighand->siglock);
->> +     spin_lock_irqsave(&current->sighand->siglock, irqflags);
->> +
->> +     /*
->> +      * Copy seccomp details explicitly here, in case they were changed
->> +      * before holding tasklist_lock.
->> +      */
->> +     copy_seccomp(p);
->>
->>       /*
->>        * Process group and session signals need to be delivered to just the
->> @@ -1446,7 +1478,7 @@ static struct task_struct *copy_process(unsigned long clone_flags,
->>       */
->>       recalc_sigpending();
->>       if (signal_pending(current)) {
->> -             spin_unlock(&current->sighand->siglock);
->> +             spin_unlock_irqrestore(&current->sighand->siglock, irqflags);
->>               write_unlock_irq(&tasklist_lock);
->>               retval = -ERESTARTNOINTR;
->>               goto bad_fork_free_pid;
->> @@ -1486,7 +1518,7 @@ static struct task_struct *copy_process(unsigned long clone_flags,
->>       }
->>
->>       total_forks++;
->> -     spin_unlock(&current->sighand->siglock);
->> +     spin_unlock_irqrestore(&current->sighand->siglock, irqflags);
->>       write_unlock_irq(&tasklist_lock);
->>       proc_fork_connector(p);
->>       cgroup_post_fork(p);
->
-> It seems that the only change copy_process() needs is copy_seccomp() under the locks.
-> Everythinh else (irqflags games) looks obviously unneeded?
+> diff --git a/man2/seccomp.2 b/man2/seccomp.2
+> new file mode 100644
+> index 0000000..de7fbf7
+> --- /dev/null
+> +++ b/man2/seccomp.2
+> @@ -0,0 +1,333 @@
+> +.\" Copyright (C) 2014 Kees Cook <keescook@chromium.org>
+> +.\" and Copyright (C) 2012 Will Drewry <wad@chromium.org>
+> +.\" and Copyright (C) 2008 Michael Kerrisk <mtk.manpages@gmail.com>
+> +.\"
+> +.\" %%%LICENSE_START(VERBATIM)
+> +.\" Permission is granted to make and distribute verbatim copies of this
+> +.\" manual provided the copyright notice and this permission notice are
+> +.\" preserved on all copies.
+> +.\"
+> +.\" Permission is granted to copy and distribute modified versions of this
+> +.\" manual under the conditions for verbatim copying, provided that the
+> +.\" entire resulting derived work is distributed under the terms of a
+> +.\" permission notice identical to this one.
+> +.\"
+> +.\" Since the Linux kernel and libraries are constantly changing, this
+> +.\" manual page may be incorrect or out-of-date.  The author(s) assume no
+> +.\" responsibility for errors or omissions, or for damages resulting from
+> +.\" the use of the information contained herein.  The author(s) may not
+> +.\" have taken the same level of care in the production of this manual,
+> +.\" which is licensed free of charge, as they might when working
+> +.\" professionally.
+> +.\"
+> +.\" Formatted or processed versions of this manual, if unaccompanied by
+> +.\" the source, must acknowledge the copyright and authors of this work.
+> +.\" %%%LICENSE_END
+> +.\"
+> +.TH SECCOMP 2 2014-06-23 "Linux" "Linux Programmer's Manual"
+> +.SH NAME
+> +seccomp \-
+> +operate on Secure Computing state of the process
+> +.SH SYNOPSIS
+> +.nf
+> +.B #include <linux/seccomp.h>
+> +.B #include <linux/filter.h>
+> +.B #include <linux/audit.h>
+> +.B #include <linux/signal.h>
+> +.B #include <sys/ptrace.h>
+> +
+> +.BI "int seccomp(unsigned int " operation ", unsigned int " flags ,
+> +.BI "            unsigned char *" args );
 
-I got irq lock dep warnings without these changes. If they're
-unneeded, that's totally fine by me, but some change (either this or
-markings to keep lockdep happy) is needed.
+At the very least, shouldn't this be void *args?
 
->> @@ -524,6 +528,9 @@ static long seccomp_set_mode(unsigned long seccomp_mode, char __user *filter)
->>       }
->>  #endif
->>
->> +     if (unlikely(!lock_task_sighand(current, &irqflags)))
->> +             goto out_free;
->> +
->
-> Unless this task is exiting (namely, it has already called exit_notify()),
-> lock_task_sighand(current) must not fail. Looks like you can simply do
-> spin_lock_irq(->siglock).
-
-Okay. I wasn't sure if I needed to be extra careful here or not. I
-opted for just using lock_task_sighand since that seemed to be the
-most used. :)
-
--Kees
-
--- 
-Kees Cook
-Chrome OS Security
+--Andy
