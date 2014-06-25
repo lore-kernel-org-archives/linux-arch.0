@@ -1,32 +1,42 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from lxorguk.ukuu.org.uk ([81.2.110.251]:50523 "EHLO
-	lxorguk.ukuu.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752337AbaFYNG3 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 25 Jun 2014 09:06:29 -0400
-Date: Wed, 25 Jun 2014 14:04:40 +0100
-From: One Thousand Gnomes <gnomes@lxorguk.ukuu.org.uk>
-Subject: Re: [PATCH v8 1/1] man-pages: seccomp.2: document syscall
-Message-ID: <20140625140440.6870eac1@alan.etchedpixels.co.uk>
-In-Reply-To: <20140624205615.GW5412@outflux.net>
-References: <1403642893-23107-1-git-send-email-keescook@chromium.org>
-	<20140624205615.GW5412@outflux.net>
+Received: from mx1.redhat.com ([209.132.183.28]:14265 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1756944AbaFYNqY (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 25 Jun 2014 09:46:24 -0400
+Date: Wed, 25 Jun 2014 15:43:54 +0200
+From: Oleg Nesterov <oleg@redhat.com>
+Subject: Re: [PATCH v8 4/9] sched: move no_new_privs into new atomic flags
+Message-ID: <20140625134354.GA7892@redhat.com>
+References: <1403642893-23107-1-git-send-email-keescook@chromium.org> <1403642893-23107-5-git-send-email-keescook@chromium.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1403642893-23107-5-git-send-email-keescook@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Kees Cook <keescook@chromium.org>
-Cc: "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>, Oleg Nesterov <oleg@redhat.com>, Andy Lutomirski <luto@amacapital.net>, Alexei Starovoitov <ast@plumgrid.com>, Andrew Morton <akpm@linux-foundation.org>, Daniel Borkmann <dborkman@redhat.com>, Will Drewry <wad@chromium.org>, Julien Tinnes <jln@chromium.org>, David Drysdale <drysdale@google.com>, linux-api@vger.kernel.org, linux-kernel@vger.kernel.org, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-mips@linux-mips.org, linux-arch@vger.kernel.org, linux-security-module@vger.kernel.org
-Message-ID: <20140625130440.JOOBKqhiu3Enj7cG5m8A5LZInN-sA4geqeLcKZpSqLE@z>
+Cc: linux-kernel@vger.kernel.org, Andy Lutomirski <luto@amacapital.net>, "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>, Alexei Starovoitov <ast@plumgrid.com>, Andrew Morton <akpm@linux-foundation.org>, Daniel Borkmann <dborkman@redhat.com>, Will Drewry <wad@chromium.org>, Julien Tinnes <jln@chromium.org>, David Drysdale <drysdale@google.com>, linux-api@vger.kernel.org, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-mips@linux-mips.org, linux-arch@vger.kernel.org, linux-security-module@vger.kernel.org
+Message-ID: <20140625134354.Vl3d7isPtoGt4JFKElzfSJmJrYqhIEKYm9CUnP0LzWQ@z>
 
-On Tue, 24 Jun 2014 13:56:15 -0700
-Kees Cook <keescook@chromium.org> wrote:
+On 06/24, Kees Cook wrote:
+>
+> --- a/include/linux/sched.h
+> +++ b/include/linux/sched.h
+> @@ -1307,8 +1307,7 @@ struct task_struct {
+>  				 * execve */
+>  	unsigned in_iowait:1;
+>
+> -	/* task may not gain privileges */
+> -	unsigned no_new_privs:1;
+> +	unsigned long atomic_flags; /* Flags needing atomic access. */
+>
+>  	/* Revert to default priority/policy when forking */
+>  	unsigned sched_reset_on_fork:1;
 
-> Combines documentation from prctl, in-kernel seccomp_filter.txt and
-> dropper.c, along with details specific to the new syscall.
+Agreed, personally I like it more than seccomp->flags.
 
-What is the license on the example ? Probably you want to propogate the
-minimal form of the text in seccomp/dropper into the document example to
-avoid confusion ?
+But probably it would be better to place the new member before/after
+other bitfields to save the space?
 
-Alan
+Oleg.
+
