@@ -1,75 +1,51 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:56958 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755444AbaFYOXk (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 25 Jun 2014 10:23:40 -0400
-Date: Wed, 25 Jun 2014 16:21:21 +0200
-From: Oleg Nesterov <oleg@redhat.com>
-Subject: Re: [PATCH v8 9/9] seccomp: implement SECCOMP_FILTER_FLAG_TSYNC
-Message-ID: <20140625142121.GD7892@redhat.com>
-References: <1403642893-23107-1-git-send-email-keescook@chromium.org> <1403642893-23107-10-git-send-email-keescook@chromium.org>
+Received: from mail-oa0-f49.google.com ([209.85.219.49]:33777 "EHLO
+	mail-oa0-f49.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756909AbaFYOoQ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 25 Jun 2014 10:44:16 -0400
+Received: by mail-oa0-f49.google.com with SMTP id i7so2149773oag.8
+        for <linux-arch@vger.kernel.org>; Wed, 25 Jun 2014 07:44:15 -0700 (PDT)
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1403642893-23107-10-git-send-email-keescook@chromium.org>
+In-Reply-To: <20140625134354.GA7892@redhat.com>
+References: <1403642893-23107-1-git-send-email-keescook@chromium.org>
+	<1403642893-23107-5-git-send-email-keescook@chromium.org>
+	<20140625134354.GA7892@redhat.com>
+Date: Wed, 25 Jun 2014 07:44:15 -0700
+Message-ID: <CAGXu5j+yutPBpEq3qiVwAMT6q0y36bwM2ksBvj-=6AqkWAgaGQ@mail.gmail.com>
+Subject: Re: [PATCH v8 4/9] sched: move no_new_privs into new atomic flags
+From: Kees Cook <keescook@chromium.org>
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Kees Cook <keescook@chromium.org>
-Cc: linux-kernel@vger.kernel.org, Andy Lutomirski <luto@amacapital.net>, "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>, Alexei Starovoitov <ast@plumgrid.com>, Andrew Morton <akpm@linux-foundation.org>, Daniel Borkmann <dborkman@redhat.com>, Will Drewry <wad@chromium.org>, Julien Tinnes <jln@chromium.org>, David Drysdale <drysdale@google.com>, linux-api@vger.kernel.org, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-mips@linux-mips.org, linux-arch@vger.kernel.org, linux-security-module@vger.kernel.org
-Message-ID: <20140625142121.-KQDFjW0eVPwHs2zVZC90gfN8Rz9smbZALaq9H4Gy0I@z>
+To: Oleg Nesterov <oleg@redhat.com>
+Cc: LKML <linux-kernel@vger.kernel.org>, Andy Lutomirski <luto@amacapital.net>, "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>, Alexei Starovoitov <ast@plumgrid.com>, Andrew Morton <akpm@linux-foundation.org>, Daniel Borkmann <dborkman@redhat.com>, Will Drewry <wad@chromium.org>, Julien Tinnes <jln@chromium.org>, David Drysdale <drysdale@google.com>, Linux API <linux-api@vger.kernel.org>, "x86@kernel.org" <x86@kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, linux-mips@linux-mips.org, linux-arch <linux-arch@vger.kernel.org>, linux-security-module <linux-security-module@vger.kernel.org>
+Message-ID: <20140625144415.6LRBLIZF75eizlSIrsdKSi3BcR_99lDJByLTc53h3B4@z>
 
-On 06/24, Kees Cook wrote:
+On Wed, Jun 25, 2014 at 6:43 AM, Oleg Nesterov <oleg@redhat.com> wrote:
+> On 06/24, Kees Cook wrote:
+>>
+>> --- a/include/linux/sched.h
+>> +++ b/include/linux/sched.h
+>> @@ -1307,8 +1307,7 @@ struct task_struct {
+>>                                * execve */
+>>       unsigned in_iowait:1;
+>>
+>> -     /* task may not gain privileges */
+>> -     unsigned no_new_privs:1;
+>> +     unsigned long atomic_flags; /* Flags needing atomic access. */
+>>
+>>       /* Revert to default priority/policy when forking */
+>>       unsigned sched_reset_on_fork:1;
 >
-> +static void seccomp_sync_threads(void)
-> +{
-> +	struct task_struct *thread, *caller;
-> +
-> +	BUG_ON(!spin_is_locked(&current->sighand->siglock));
-> +
-> +	/* Synchronize all threads. */
-> +	caller = current;
-> +	for_each_thread(caller, thread) {
-> +		/* Get a task reference for the new leaf node. */
-> +		get_seccomp_filter(caller);
-> +		/*
-> +		 * Drop the task reference to the shared ancestor since
-> +		 * current's path will hold a reference.  (This also
-> +		 * allows a put before the assignment.)
-> +		 */
-> +		put_seccomp_filter(thread);
-> +		thread->seccomp.filter = caller->seccomp.filter;
-> +		/* Opt the other thread into seccomp if needed.
-> +		 * As threads are considered to be trust-realm
-> +		 * equivalent (see ptrace_may_access), it is safe to
-> +		 * allow one thread to transition the other.
-> +		 */
-> +		if (thread->seccomp.mode == SECCOMP_MODE_DISABLED) {
-> +			/*
-> +			 * Don't let an unprivileged task work around
-> +			 * the no_new_privs restriction by creating
-> +			 * a thread that sets it up, enters seccomp,
-> +			 * then dies.
-> +			 */
-> +			if (task_no_new_privs(caller))
-> +				task_set_no_new_privs(thread);
-> +
-> +			seccomp_assign_mode(thread, SECCOMP_MODE_FILTER);
-> +		}
-> +	}
-> +}
+> Agreed, personally I like it more than seccomp->flags.
+>
+> But probably it would be better to place the new member before/after
+> other bitfields to save the space?
 
-OK, personally I think this all make sense. I even think that perhaps
-SECCOMP_FILTER_FLAG_TSYNC should allow filter == NULL, a thread might
-want to "sync" without adding the new filter, but this is minor/offtopic.
+Sure, I'll move it down. (Though I thought the compiler was smarter about that.)
 
-But. Doesn't this change add the new security hole?
+-Kees
 
-Obviously, we should not allow to install a filter and then (say) exec
-a suid binary, that is why we have no_new_privs/LSM_UNSAFE_NO_NEW_PRIVS.
-
-But what if "thread->seccomp.filter = caller->seccomp.filter" races with
-any user of task_no_new_privs() ? Say, suppose this thread has already
-passed check_unsafe_exec/etc and it is going to exec the suid binary?
-
-Oleg.
-
+-- 
+Kees Cook
+Chrome OS Security
