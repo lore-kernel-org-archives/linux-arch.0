@@ -1,42 +1,44 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:14265 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:40462 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1756944AbaFYNqY (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 25 Jun 2014 09:46:24 -0400
-Date: Wed, 25 Jun 2014 15:43:54 +0200
+	id S1754764AbaFYNxG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 25 Jun 2014 09:53:06 -0400
+Date: Wed, 25 Jun 2014 15:51:22 +0200
 From: Oleg Nesterov <oleg@redhat.com>
-Subject: Re: [PATCH v8 4/9] sched: move no_new_privs into new atomic flags
-Message-ID: <20140625134354.GA7892@redhat.com>
-References: <1403642893-23107-1-git-send-email-keescook@chromium.org> <1403642893-23107-5-git-send-email-keescook@chromium.org>
+Subject: Re: [PATCH v8 5/9] seccomp: split mode set routines
+Message-ID: <20140625135121.GB7892@redhat.com>
+References: <1403642893-23107-1-git-send-email-keescook@chromium.org> <1403642893-23107-6-git-send-email-keescook@chromium.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <1403642893-23107-5-git-send-email-keescook@chromium.org>
+In-Reply-To: <1403642893-23107-6-git-send-email-keescook@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Kees Cook <keescook@chromium.org>
 Cc: linux-kernel@vger.kernel.org, Andy Lutomirski <luto@amacapital.net>, "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>, Alexei Starovoitov <ast@plumgrid.com>, Andrew Morton <akpm@linux-foundation.org>, Daniel Borkmann <dborkman@redhat.com>, Will Drewry <wad@chromium.org>, Julien Tinnes <jln@chromium.org>, David Drysdale <drysdale@google.com>, linux-api@vger.kernel.org, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-mips@linux-mips.org, linux-arch@vger.kernel.org, linux-security-module@vger.kernel.org
-Message-ID: <20140625134354.Vl3d7isPtoGt4JFKElzfSJmJrYqhIEKYm9CUnP0LzWQ@z>
+Message-ID: <20140625135122.n2VSI9eV0hW36GbjbOxCsS3TDzVQQu-qDQRF1ssp_RE@z>
 
 On 06/24, Kees Cook wrote:
 >
-> --- a/include/linux/sched.h
-> +++ b/include/linux/sched.h
-> @@ -1307,8 +1307,7 @@ struct task_struct {
->  				 * execve */
->  	unsigned in_iowait:1;
->
-> -	/* task may not gain privileges */
-> -	unsigned no_new_privs:1;
-> +	unsigned long atomic_flags; /* Flags needing atomic access. */
->
->  	/* Revert to default priority/policy when forking */
->  	unsigned sched_reset_on_fork:1;
+> +static inline void seccomp_assign_mode(struct task_struct *task,
+> +				       unsigned long seccomp_mode)
+> +{
+> +	BUG_ON(!spin_is_locked(&task->sighand->siglock));
+> +
+> +	task->seccomp.mode = seccomp_mode;
+> +	set_tsk_thread_flag(task, TIF_SECCOMP);
+> +}
 
-Agreed, personally I like it more than seccomp->flags.
+OK, but unless task == current this can race with secure_computing().
+I think this needs smp_mb__before_atomic() and secure_computing() needs
+rmb() after test_bit(TIF_SECCOMP).
 
-But probably it would be better to place the new member before/after
-other bitfields to save the space?
+Otherwise, can't __secure_computing() hit BUG() if it sees the old
+mode == SECCOMP_MODE_DISABLED ?
+
+Or seccomp_run_filters() can see ->filters == NULL and WARN(),
+smp_load_acquire() only serializes that LOAD with the subsequent memory
+operations.
 
 Oleg.
 
