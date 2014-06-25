@@ -1,90 +1,68 @@
-From: Steve Capper <steve.capper@linaro.org>
-Subject: [PATCH 5/6] arm64: mm: Enable HAVE_RCU_TABLE_FREE logic
-Date: Wed, 25 Jun 2014 16:40:23 +0100
-Message-ID: <1403710824-24340-6-git-send-email-steve.capper@linaro.org>
-References: <1403710824-24340-1-git-send-email-steve.capper@linaro.org>
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <1403710824-24340-1-git-send-email-steve.capper@linaro.org>
-Sender: owner-linux-mm@kvack.org
-To: linux-arm-kernel@lists.infradead.org, catalin.marinas@arm.com, linux@arm.linux.org.uk, linux-arch@vger.kernel.org, linux-mm@kvack.org
-Cc: will.deacon@arm.com, gary.robertson@linaro.org, christoffer.dall@linaro.org, peterz@infradead.org, anders.roxell@linaro.org, akpm@linux-foundation.org, Steve Capper <steve.capper@linaro.org>
-List-Id: linux-arch.vger.kernel.org
+From: Andy Lutomirski <luto@amacapital.net>
+Subject: Re: [PATCH v8 5/9] seccomp: split mode set routines
+Date: Wed, 25 Jun 2014 09:10:32 -0700
+Message-ID: <CALCETrUBNmLnpa+LM91om2RSpR6SjupP-EdefzhU1Me4nv3Dfw@mail.gmail.com>
+References: <1403642893-23107-1-git-send-email-keescook@chromium.org>
+ <1403642893-23107-6-git-send-email-keescook@chromium.org> <20140625135121.GB7892@redhat.com>
+ <CAGXu5jJkFxh4K=40xuh6tu3kUf4oJM8Dry+4upBdRieW3FNLgw@mail.gmail.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-la0-f48.google.com ([209.85.215.48]:61170 "EHLO
+	mail-la0-f48.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756853AbaFYQKy (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 25 Jun 2014 12:10:54 -0400
+Received: by mail-la0-f48.google.com with SMTP id el20so917921lab.21
+        for <linux-arch@vger.kernel.org>; Wed, 25 Jun 2014 09:10:52 -0700 (PDT)
+In-Reply-To: <CAGXu5jJkFxh4K=40xuh6tu3kUf4oJM8Dry+4upBdRieW3FNLgw@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Kees Cook <keescook@chromium.org>
+Cc: Oleg Nesterov <oleg@redhat.com>, LKML <linux-kernel@vger.kernel.org>, "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>, Alexei Starovoitov <ast@plumgrid.com>, Andrew Morton <akpm@linux-foundation.org>, Daniel Borkmann <dborkman@redhat.com>, Will Drewry <wad@chromium.org>, Julien Tinnes <jln@chromium.org>, David Drysdale <drysdale@google.com>, Linux API <linux-api@vger.kernel.org>, "x86@kernel.org" <x86@kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, linux-mips@linux-mips.org, linux-arch <linux-arch@vger.kernel.org>, linux-security-module <linux-security-module@vger.kernel.org>
 
-In order to implement fast_get_user_pages we need to ensure that the
-page table walker is protected from page table pages being freed from
-under it.
+On Wed, Jun 25, 2014 at 7:51 AM, Kees Cook <keescook@chromium.org> wrote:
+> On Wed, Jun 25, 2014 at 6:51 AM, Oleg Nesterov <oleg@redhat.com> wrote:
+>> On 06/24, Kees Cook wrote:
+>>>
+>>> +static inline void seccomp_assign_mode(struct task_struct *task,
+>>> +                                    unsigned long seccomp_mode)
+>>> +{
+>>> +     BUG_ON(!spin_is_locked(&task->sighand->siglock));
+>>> +
+>>> +     task->seccomp.mode = seccomp_mode;
+>>> +     set_tsk_thread_flag(task, TIF_SECCOMP);
+>>> +}
+>>
+>> OK, but unless task == current this can race with secure_computing().
+>> I think this needs smp_mb__before_atomic() and secure_computing() needs
+>> rmb() after test_bit(TIF_SECCOMP).
+>>
+>> Otherwise, can't __secure_computing() hit BUG() if it sees the old
+>> mode == SECCOMP_MODE_DISABLED ?
+>>
+>> Or seccomp_run_filters() can see ->filters == NULL and WARN(),
+>> smp_load_acquire() only serializes that LOAD with the subsequent memory
+>> operations.
+>
+> Hm, actually, now I'm worried about smp_load_acquire() being too slow
+> in run_filters().
+>
+> The ordering must be:
+> - task->seccomp.filter must be valid before
+> - task->seccomp.mode is set, which must be valid before
+> - TIF_SECCOMP is set
+>
+> But I don't want to impact secure_computing(). What's the best way to
+> make sure this ordering is respected?
 
-This patch enables HAVE_RCU_TABLE_FREE, any page table pages belonging
-to address spaces with multiple users will be call_rcu_sched freed.
-Meaning that disabling interrupts will block the free and protect the
-fast gup page walker.
+Remove the ordering requirement, perhaps?
 
-Signed-off-by: Steve Capper <steve.capper@linaro.org>
----
- arch/arm64/Kconfig           |  1 +
- arch/arm64/include/asm/tlb.h | 18 ++++++++++++++++--
- 2 files changed, 17 insertions(+), 2 deletions(-)
+What if you moved mode into seccomp.filter?  Then there would be
+little reason to check TIF_SECCOMP from secure_computing; instead, you
+could smp_load_acquire (or read_barrier_depends, maybe) seccomp.filter
+from secure_computing and pass the result as a parameter to
+__secure_computing.  Or you could even remove the distinction between
+secure_computing and __secure_computing -- it's essentially useless
+anyway to split entry hook approaches like my x86 fastpath prototype.
 
-diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
-index a474de34..e1d2eef 100644
---- a/arch/arm64/Kconfig
-+++ b/arch/arm64/Kconfig
-@@ -49,6 +49,7 @@ config ARM64
- 	select HAVE_PERF_EVENTS
- 	select HAVE_PERF_REGS
- 	select HAVE_PERF_USER_STACK_DUMP
-+	select HAVE_RCU_TABLE_FREE
- 	select HAVE_SYSCALL_TRACEPOINTS
- 	select IRQ_DOMAIN
- 	select MODULES_USE_ELF_RELA
-diff --git a/arch/arm64/include/asm/tlb.h b/arch/arm64/include/asm/tlb.h
-index 80e2c08..8e4dde5 100644
---- a/arch/arm64/include/asm/tlb.h
-+++ b/arch/arm64/include/asm/tlb.h
-@@ -23,6 +23,20 @@
- 
- #include <asm-generic/tlb.h>
- 
-+#include <linux/pagemap.h>
-+#include <linux/swap.h>
-+
-+#ifdef CONFIG_HAVE_RCU_TABLE_FREE
-+
-+#define tlb_remove_entry(tlb, entry)	tlb_remove_table(tlb, entry)
-+static inline void __tlb_remove_table(void *_table)
-+{
-+	free_page_and_swap_cache((struct page *)_table);
-+}
-+#else
-+#define tlb_remove_entry(tlb, entry)	tlb_remove_page(tlb, entry)
-+#endif /* CONFIG_HAVE_RCU_TABLE_FREE */
-+
- /*
-  * There's three ways the TLB shootdown code is used:
-  *  1. Unmapping a range of vmas.  See zap_page_range(), unmap_region().
-@@ -88,7 +102,7 @@ static inline void __pte_free_tlb(struct mmu_gather *tlb, pgtable_t pte,
- {
- 	pgtable_page_dtor(pte);
- 	tlb_add_flush(tlb, addr);
--	tlb_remove_page(tlb, pte);
-+	tlb_remove_entry(tlb, pte);
- }
- 
- #ifndef CONFIG_ARM64_64K_PAGES
-@@ -96,7 +110,7 @@ static inline void __pmd_free_tlb(struct mmu_gather *tlb, pmd_t *pmdp,
- 				  unsigned long addr)
- {
- 	tlb_add_flush(tlb, addr);
--	tlb_remove_page(tlb, virt_to_page(pmdp));
-+	tlb_remove_entry(tlb, virt_to_page(pmdp));
- }
- #endif
- 
--- 
-1.9.3
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+--Andy
