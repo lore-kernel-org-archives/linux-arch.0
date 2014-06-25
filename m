@@ -1,40 +1,30 @@
-From: "John W. Linville" <linville@tuxdriver.com>
-Subject: Re: [PATCH 00/22] Add and use pci_zalloc_consistent
-Date: Wed, 25 Jun 2014 15:41:12 -0400
-Message-ID: <20140625194112.GJ3445@tuxdriver.com>
-References: <cover.1403530604.git.joe@perches.com>
+From: Andrew Morton <akpm@linux-foundation.org>
+Subject: Re: [PATCH 0/6] RCU get_user_pages_fast and __get_user_pages_fast
+Date: Wed, 25 Jun 2014 13:42:35 -0700
+Message-ID: <20140625134235.4f32768faa1a4380a62458ff@linux-foundation.org>
+References: <1403710824-24340-1-git-send-email-steve.capper@linaro.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from charlotte.tuxdriver.com ([70.61.120.58]:55286 "EHLO
-	smtp.tuxdriver.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750807AbaFYTpM (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 25 Jun 2014 15:45:12 -0400
-Content-Disposition: inline
-In-Reply-To: <cover.1403530604.git.joe@perches.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Joe Perches <joe@perches.com>
-Cc: linux-kernel@vger.kernel.org, linux-atm-general@lists.sourceforge.net, netdev@vger.kernel.org, iss_storagedev@hp.com, linux-crypto@vger.kernel.org, dri-devel@lists.freedesktop.org, linux-rdma@vger.kernel.org, linux-media@vger.kernel.org, linux-wireless@vger.kernel.org, linux-scsi@vger.kernel.org, linux-eata@i-connect.net, devel@driverdev.osuosl.org, linux-arch@vger.kernel.org
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <1403710824-24340-1-git-send-email-steve.capper@linaro.org>
+Sender: owner-linux-mm@kvack.org
+To: Steve Capper <steve.capper@linaro.org>
+Cc: linux-arm-kernel@lists.infradead.org, catalin.marinas@arm.com, linux@arm.linux.org.uk, linux-arch@vger.kernel.org, linux-mm@kvack.org, will.deacon@arm.com, gary.robertson@linaro.org, christoffer.dall@linaro.org, peterz@infradead.org, anders.roxell@linaro.org
+List-Id: linux-arch.vger.kernel.org
 
-On Mon, Jun 23, 2014 at 06:41:28AM -0700, Joe Perches wrote:
-> Adding the helper reduces object code size as well as overall
-> source size line count.
-> 
-> It's also consistent with all the various zalloc mechanisms
-> in the kernel.
-> 
-> Done with a simple cocci script and some typing.
-> 
-> Joe Perches (22):
+On Wed, 25 Jun 2014 16:40:18 +0100 Steve Capper <steve.capper@linaro.org> wrote:
 
->   ipw2100: Use pci_zalloc_consistent
->   mwl8k: Use pci_zalloc_consistent
->   rtl818x: Use pci_zalloc_consistent
->   rtlwifi: Use pci_zalloc_consistent
+> This series implements general forms of get_user_pages_fast and
+> __get_user_pages_fast and activates them for arm and arm64.
 
-Sure, fine by me.
+Why not x86?
 
--- 
-John W. Linville		Someday the world will need a hero, and you
-linville@tuxdriver.com			might be all we have.  Be ready.
+I think I might have already asked this.  If so, it's your fault for
+not updating the changelog ;)
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
