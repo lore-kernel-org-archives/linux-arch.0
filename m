@@ -1,36 +1,75 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:21683 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:56958 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754459AbaFYOFs (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 25 Jun 2014 10:05:48 -0400
-Date: Wed, 25 Jun 2014 16:03:12 +0200
+	id S1755444AbaFYOXk (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 25 Jun 2014 10:23:40 -0400
+Date: Wed, 25 Jun 2014 16:21:21 +0200
 From: Oleg Nesterov <oleg@redhat.com>
-Subject: Re: [PATCH v8 3/9] seccomp: introduce writer locking
-Message-ID: <20140625140312.GC7892@redhat.com>
-References: <1403642893-23107-1-git-send-email-keescook@chromium.org> <1403642893-23107-4-git-send-email-keescook@chromium.org>
+Subject: Re: [PATCH v8 9/9] seccomp: implement SECCOMP_FILTER_FLAG_TSYNC
+Message-ID: <20140625142121.GD7892@redhat.com>
+References: <1403642893-23107-1-git-send-email-keescook@chromium.org> <1403642893-23107-10-git-send-email-keescook@chromium.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <1403642893-23107-4-git-send-email-keescook@chromium.org>
+In-Reply-To: <1403642893-23107-10-git-send-email-keescook@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Kees Cook <keescook@chromium.org>
 Cc: linux-kernel@vger.kernel.org, Andy Lutomirski <luto@amacapital.net>, "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>, Alexei Starovoitov <ast@plumgrid.com>, Andrew Morton <akpm@linux-foundation.org>, Daniel Borkmann <dborkman@redhat.com>, Will Drewry <wad@chromium.org>, Julien Tinnes <jln@chromium.org>, David Drysdale <drysdale@google.com>, linux-api@vger.kernel.org, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-mips@linux-mips.org, linux-arch@vger.kernel.org, linux-security-module@vger.kernel.org
-Message-ID: <20140625140312.aUpl6SrYCQWW8JlErlWcmfUeM3o0w4UBlKZiW2D3V14@z>
+Message-ID: <20140625142121.-KQDFjW0eVPwHs2zVZC90gfN8Rz9smbZALaq9H4Gy0I@z>
 
 On 06/24, Kees Cook wrote:
 >
-> @@ -524,6 +529,8 @@ static long seccomp_set_mode(unsigned long seccomp_mode, char __user *filter)
->  	}
->  #endif
->
-> +	spin_lock_irqsave(&current->sighand->siglock, irqflags);
+> +static void seccomp_sync_threads(void)
+> +{
+> +	struct task_struct *thread, *caller;
 > +
+> +	BUG_ON(!spin_is_locked(&current->sighand->siglock));
+> +
+> +	/* Synchronize all threads. */
+> +	caller = current;
+> +	for_each_thread(caller, thread) {
+> +		/* Get a task reference for the new leaf node. */
+> +		get_seccomp_filter(caller);
+> +		/*
+> +		 * Drop the task reference to the shared ancestor since
+> +		 * current's path will hold a reference.  (This also
+> +		 * allows a put before the assignment.)
+> +		 */
+> +		put_seccomp_filter(thread);
+> +		thread->seccomp.filter = caller->seccomp.filter;
+> +		/* Opt the other thread into seccomp if needed.
+> +		 * As threads are considered to be trust-realm
+> +		 * equivalent (see ptrace_may_access), it is safe to
+> +		 * allow one thread to transition the other.
+> +		 */
+> +		if (thread->seccomp.mode == SECCOMP_MODE_DISABLED) {
+> +			/*
+> +			 * Don't let an unprivileged task work around
+> +			 * the no_new_privs restriction by creating
+> +			 * a thread that sets it up, enters seccomp,
+> +			 * then dies.
+> +			 */
+> +			if (task_no_new_privs(caller))
+> +				task_set_no_new_privs(thread);
+> +
+> +			seccomp_assign_mode(thread, SECCOMP_MODE_FILTER);
+> +		}
+> +	}
+> +}
 
-Well, I won't argue if you prefer to use _irqsave "just in case".
+OK, personally I think this all make sense. I even think that perhaps
+SECCOMP_FILTER_FLAG_TSYNC should allow filter == NULL, a thread might
+want to "sync" without adding the new filter, but this is minor/offtopic.
 
-But irqs must be enabled in syscall paths, you could use spin_lock_irq().
-The same for seccomp_set_mode_filter() added later.
+But. Doesn't this change add the new security hole?
+
+Obviously, we should not allow to install a filter and then (say) exec
+a suid binary, that is why we have no_new_privs/LSM_UNSAFE_NO_NEW_PRIVS.
+
+But what if "thread->seccomp.filter = caller->seccomp.filter" races with
+any user of task_no_new_privs() ? Say, suppose this thread has already
+passed check_unsafe_exec/etc and it is going to exec the suid binary?
 
 Oleg.
 
