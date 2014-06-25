@@ -1,68 +1,72 @@
-From: Andy Lutomirski <luto@amacapital.net>
-Subject: Re: [PATCH v8 5/9] seccomp: split mode set routines
-Date: Wed, 25 Jun 2014 09:10:32 -0700
-Message-ID: <CALCETrUBNmLnpa+LM91om2RSpR6SjupP-EdefzhU1Me4nv3Dfw@mail.gmail.com>
-References: <1403642893-23107-1-git-send-email-keescook@chromium.org>
- <1403642893-23107-6-git-send-email-keescook@chromium.org> <20140625135121.GB7892@redhat.com>
- <CAGXu5jJkFxh4K=40xuh6tu3kUf4oJM8Dry+4upBdRieW3FNLgw@mail.gmail.com>
+From: Mark Rutland <mark.rutland@arm.com>
+Subject: Re: [PATCH 6/6] arm64: mm: Enable RCU fast_gup
+Date: Wed, 25 Jun 2014 17:50:03 +0100
+Message-ID: <20140625165003.GI15240@leverpostej>
+References: <1403710824-24340-1-git-send-email-steve.capper@linaro.org>
+ <1403710824-24340-7-git-send-email-steve.capper@linaro.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-la0-f48.google.com ([209.85.215.48]:61170 "EHLO
-	mail-la0-f48.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756853AbaFYQKy (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 25 Jun 2014 12:10:54 -0400
-Received: by mail-la0-f48.google.com with SMTP id el20so917921lab.21
-        for <linux-arch@vger.kernel.org>; Wed, 25 Jun 2014 09:10:52 -0700 (PDT)
-In-Reply-To: <CAGXu5jJkFxh4K=40xuh6tu3kUf4oJM8Dry+4upBdRieW3FNLgw@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Kees Cook <keescook@chromium.org>
-Cc: Oleg Nesterov <oleg@redhat.com>, LKML <linux-kernel@vger.kernel.org>, "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>, Alexei Starovoitov <ast@plumgrid.com>, Andrew Morton <akpm@linux-foundation.org>, Daniel Borkmann <dborkman@redhat.com>, Will Drewry <wad@chromium.org>, Julien Tinnes <jln@chromium.org>, David Drysdale <drysdale@google.com>, Linux API <linux-api@vger.kernel.org>, "x86@kernel.org" <x86@kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, linux-mips@linux-mips.org, linux-arch <linux-arch@vger.kernel.org>, linux-security-module <linux-security-module@vger.kernel.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <owner-linux-mm@kvack.org>
+Content-Disposition: inline
+In-Reply-To: <1403710824-24340-7-git-send-email-steve.capper@linaro.org>
+Content-Language: en-US
+Sender: owner-linux-mm@kvack.org
+To: Steve Capper <steve.capper@linaro.org>
+Cc: "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Catalin Marinas <Catalin.Marinas@arm.com>, "linux@arm.linux.org.uk" <linux@arm.linux.org.uk>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "anders.roxell@linaro.org" <anders.roxell@linaro.org>, "peterz@infradead.org" <peterz@infradead.org>, "gary.robertson@linaro.org" <gary.robertson@linaro.org>, Will Deacon <Will.Deacon@arm.com>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "christoffer.dall@linaro.org" <christoffer.dall@linaro.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, Jun 25, 2014 at 7:51 AM, Kees Cook <keescook@chromium.org> wrote:
-> On Wed, Jun 25, 2014 at 6:51 AM, Oleg Nesterov <oleg@redhat.com> wrote:
->> On 06/24, Kees Cook wrote:
->>>
->>> +static inline void seccomp_assign_mode(struct task_struct *task,
->>> +                                    unsigned long seccomp_mode)
->>> +{
->>> +     BUG_ON(!spin_is_locked(&task->sighand->siglock));
->>> +
->>> +     task->seccomp.mode = seccomp_mode;
->>> +     set_tsk_thread_flag(task, TIF_SECCOMP);
->>> +}
->>
->> OK, but unless task == current this can race with secure_computing().
->> I think this needs smp_mb__before_atomic() and secure_computing() needs
->> rmb() after test_bit(TIF_SECCOMP).
->>
->> Otherwise, can't __secure_computing() hit BUG() if it sees the old
->> mode == SECCOMP_MODE_DISABLED ?
->>
->> Or seccomp_run_filters() can see ->filters == NULL and WARN(),
->> smp_load_acquire() only serializes that LOAD with the subsequent memory
->> operations.
->
-> Hm, actually, now I'm worried about smp_load_acquire() being too slow
-> in run_filters().
->
-> The ordering must be:
-> - task->seccomp.filter must be valid before
-> - task->seccomp.mode is set, which must be valid before
-> - TIF_SECCOMP is set
->
-> But I don't want to impact secure_computing(). What's the best way to
-> make sure this ordering is respected?
+Hi Steve,
 
-Remove the ordering requirement, perhaps?
+On Wed, Jun 25, 2014 at 04:40:24PM +0100, Steve Capper wrote:
+> Activate the RCU fast_gup for ARM64. We also need to force THP splits
+> to broadcast an IPI s.t. we block in the fast_gup page walker. As THP
+> splits are comparatively rare, this should not lead to a noticeable
+> performance degradation.
+> 
+> Some pre-requisite functions pud_write and pud_page are also added.
+> 
+> Signed-off-by: Steve Capper <steve.capper@linaro.org>
+> ---
+>  arch/arm64/Kconfig               |  3 +++
+>  arch/arm64/include/asm/pgtable.h | 11 ++++++++++-
+>  arch/arm64/mm/flush.c            | 19 +++++++++++++++++++
+>  3 files changed, 32 insertions(+), 1 deletion(-)
 
-What if you moved mode into seccomp.filter?  Then there would be
-little reason to check TIF_SECCOMP from secure_computing; instead, you
-could smp_load_acquire (or read_barrier_depends, maybe) seccomp.filter
-from secure_computing and pass the result as a parameter to
-__secure_computing.  Or you could even remove the distinction between
-secure_computing and __secure_computing -- it's essentially useless
-anyway to split entry hook approaches like my x86 fastpath prototype.
+[...]
 
---Andy
+> diff --git a/arch/arm64/mm/flush.c b/arch/arm64/mm/flush.c
+> index e4193e3..ddf96c1 100644
+> --- a/arch/arm64/mm/flush.c
+> +++ b/arch/arm64/mm/flush.c
+> @@ -103,3 +103,22 @@ EXPORT_SYMBOL(flush_dcache_page);
+>   */
+>  EXPORT_SYMBOL(flush_cache_all);
+>  EXPORT_SYMBOL(flush_icache_range);
+> +
+> +#ifdef CONFIG_TRANSPARENT_HUGEPAGE
+> +#ifdef CONFIG_HAVE_RCU_TABLE_FREE
+> +static void thp_splitting_flush_sync(void *arg)
+> +{
+> +}
+> +
+> +void pmdp_splitting_flush(struct vm_area_struct *vma, unsigned long address,
+> +			  pmd_t *pmdp)
+> +{
+> +	pmd_t pmd = pmd_mksplitting(*pmdp);
+> +	VM_BUG_ON(address & ~PMD_MASK);
+> +	set_pmd_at(vma->vm_mm, address, pmdp, pmd);
+> +
+> +	/* dummy IPI to serialise against fast_gup */
+> +	smp_call_function(thp_splitting_flush_sync, NULL, 1);
+
+Is there some reason we can't use kick_all_cpus_sync()?
+
+From a glance it seems that powerpc does just that.
+
+Mark.
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
