@@ -1,61 +1,58 @@
-From: Joe Perches <joe@perches.com>
+From: David Miller <davem@davemloft.net>
 Subject: Re: [PATCH 01/22] pci-dma-compat: Add pci_zalloc_consistent helper
-Date: Wed, 25 Jun 2014 15:14:00 -0700
-Message-ID: <1403734440.24788.15.camel@joe-AO725>
-References: <cover.1403530604.git.joe@perches.com>
-	 <2248b3ffe86cd8995a809bf7e2871f38039979c1.1403530604.git.joe@perches.com>
-	 <20140625122755.152685fadbc9cffe7a298dc6@linux-foundation.org>
-	 <1403733111.24788.8.camel@joe-AO725>
-	 <20140625145744.9cb4ec9e3ea7a63bf630eeaa@linux-foundation.org>
+Date: Wed, 25 Jun 2014 15:31:09 -0700 (PDT)
+Message-ID: <20140625.153109.1658452238116055408.davem@davemloft.net>
+References: <2248b3ffe86cd8995a809bf7e2871f38039979c1.1403530604.git.joe@perches.com>
+	<20140625122755.152685fadbc9cffe7a298dc6@linux-foundation.org>
+	<1403733111.24788.8.camel@joe-AO725>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="ISO-8859-1"
+Content-Type: Text/Plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtprelay0068.hostedemail.com ([216.40.44.68]:51264 "EHLO
-	smtprelay.hostedemail.com" rhost-flags-OK-OK-OK-FAIL)
-	by vger.kernel.org with ESMTP id S1757058AbaFYWOD (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 25 Jun 2014 18:14:03 -0400
-In-Reply-To: <20140625145744.9cb4ec9e3ea7a63bf630eeaa@linux-foundation.org>
+Received: from shards.monkeyblade.net ([149.20.54.216]:38742 "EHLO
+	shards.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755226AbaFYWbM (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 25 Jun 2014 18:31:12 -0400
+In-Reply-To: <1403733111.24788.8.camel@joe-AO725>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org
+To: joe@perches.com
+Cc: akpm@linux-foundation.org, linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org
 
-On Wed, 2014-06-25 at 14:57 -0700, Andrew Morton wrote:
-> On Wed, 25 Jun 2014 14:51:51 -0700 Joe Perches <joe@perches.com> wrote:
+From: Joe Perches <joe@perches.com>
+Date: Wed, 25 Jun 2014 14:51:51 -0700
+
+> On Wed, 2014-06-25 at 12:27 -0700, Andrew Morton wrote:
+>> On Mon, 23 Jun 2014 06:41:29 -0700 Joe Perches <joe@perches.com> wrote:
+>> 
+>> > Add this helper for consistency with pci_zalloc_coherent
+>> > and the ability to remove unnecessary memset(,0,) uses.
+>> 
+>> While we're being anal..  I'm not a big fan of the patch titles.  Worst
+>> is "amd: Use pci_zalloc_consistent".  "amd" is quite a poor identifier
+>> - it's only when you get in and look at the diff that you realise it's
+>> an ethernet driver.
 > 
-> > > People sometimes address this by using
-> > > 
-> > > 	"drivers: net: ethernet: amd: use pci_zalloc_consistent"
-> > > 
-> > > which strikes me as utterly perverse.  We already have a nice way of
-> > > representing the hierarchy and that's using '/'.
-> > 
-> > I used to do that until several people complained.
+> Yeah, those "amd:" prefixes should really have been "pcnet32:"
 > 
-> Slap 'em.
+>> People sometimes address this by using
+>> 
+>> 	"drivers: net: ethernet: amd: use pci_zalloc_consistent"
+>> 
+>> which strikes me as utterly perverse.  We already have a nice way of
+>> representing the hierarchy and that's using '/'.
+> 
+> I used to do that until several people complained.
+> Now I don't.  btw:  Documentation/SubmittingPatches says:
+> 
+> 15) The canonical patch format
+> 
+> The canonical patch subject line is:
+> 
+>     Subject: [PATCH 001/123] subsystem: summary phrase
 
-And get booked for assault?  No thanks.
-My mild-mannered persona thinks that a poor plan.
++1
 
-My actual feeling is I don't much care.
-
-btw:  https://lkml.org/lkml/2010/11/15/387
-
-I also proposed a scheme where the prescriptive
-patch subject pedants could put some pattern
-into MAINTAINERS so that these subject lines
-could be more automatically generated.
-
-https://lkml.org/lkml/2010/11/16/245
-
-> I don't know where this thing is coming from - I'd suspected there must
-> be some misguided doc somewhere but I don't know where it is.  Some
-> vast conspiracy against common sense.
-
-> I don't want to be overly proscriptive here, but it's a bit maddening
-> when you're skimming patch titles and cannot work out which part of the
-> kernel is being patched :(
-
-Yup.
+We've been representing subsystems using colon prefixes for ages, and
+I can't seen the value of starting to use something inconsistent with
+a decade of precedence.
