@@ -1,70 +1,29 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ob0-f178.google.com ([209.85.214.178]:48509 "EHLO
-	mail-ob0-f178.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757623AbaFYSbt (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 25 Jun 2014 14:31:49 -0400
-Received: by mail-ob0-f178.google.com with SMTP id wn1so2617330obc.9
-        for <linux-arch@vger.kernel.org>; Wed, 25 Jun 2014 11:31:49 -0700 (PDT)
-MIME-Version: 1.0
-In-Reply-To: <20140625182012.GA19437@redhat.com>
-References: <1403642893-23107-1-git-send-email-keescook@chromium.org>
-	<1403642893-23107-10-git-send-email-keescook@chromium.org>
-	<20140625142121.GD7892@redhat.com>
-	<CAGXu5jJtLrjbobZC1FD4WV-Jm2p7cRGa1aSPK-d_isnfCZAHdA@mail.gmail.com>
-	<20140625165209.GA14720@redhat.com>
-	<CAGXu5jLHDew1fifGY_mWgwcH7evm0T8rqSnBrw4XpoAXGK+t-Q@mail.gmail.com>
-	<20140625172410.GA17133@redhat.com>
-	<CAGXu5jKkLS3++_dtWHnjWudVvaSR9DRwjNG3q00SmSy6XoCMaw@mail.gmail.com>
-	<20140625182012.GA19437@redhat.com>
-Date: Wed, 25 Jun 2014 11:31:48 -0700
-Message-ID: <CAGXu5jLh-a2x0N+kHW7qbZSW0gOPs8v05EzBFkMYQwhft8o2aA@mail.gmail.com>
-Subject: Re: [PATCH v8 9/9] seccomp: implement SECCOMP_FILTER_FLAG_TSYNC
-From: Kees Cook <keescook@chromium.org>
-Content-Type: text/plain; charset=UTF-8
+Received: from mail.linuxfoundation.org ([140.211.169.12]:47473 "EHLO
+	mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932263AbaFYUmh (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 25 Jun 2014 16:42:37 -0400
+Date: Wed, 25 Jun 2014 13:42:35 -0700
+From: Andrew Morton <akpm@linux-foundation.org>
+Subject: Re: [PATCH 0/6] RCU get_user_pages_fast and __get_user_pages_fast
+Message-ID: <20140625134235.4f32768faa1a4380a62458ff@linux-foundation.org>
+In-Reply-To: <1403710824-24340-1-git-send-email-steve.capper@linaro.org>
+References: <1403710824-24340-1-git-send-email-steve.capper@linaro.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Oleg Nesterov <oleg@redhat.com>
-Cc: linux-arch <linux-arch@vger.kernel.org>, linux-mips@linux-mips.org, Will Drewry <wad@chromium.org>, linux-security-module <linux-security-module@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, "x86@kernel.org" <x86@kernel.org>, LKML <linux-kernel@vger.kernel.org>, Andy Lutomirski <luto@amacapital.net>, Daniel Borkmann <dborkman@redhat.com>, Julien Tinnes <jln@chromium.org>, "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, David Drysdale <drysdale@google.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Alexei Starovoitov <ast@plumgrid.com>
-Message-ID: <20140625183148.L0FFJENlveATZHmlf5XbSn96xD2JF0MIo6uU97_Gres@z>
+To: Steve Capper <steve.capper@linaro.org>
+Cc: linux-arm-kernel@lists.infradead.org, catalin.marinas@arm.com, linux@arm.linux.org.uk, linux-arch@vger.kernel.org, linux-mm@kvack.org, will.deacon@arm.com, gary.robertson@linaro.org, christoffer.dall@linaro.org, peterz@infradead.org, anders.roxell@linaro.org
+Message-ID: <20140625204235.goe4O8GJz1Hfa7UBT9GJ4i-oX5zlNFnn7LraHg3IZLg@z>
 
-On Wed, Jun 25, 2014 at 11:20 AM, Oleg Nesterov <oleg@redhat.com> wrote:
-> On 06/25, Kees Cook wrote:
->>
->> On Wed, Jun 25, 2014 at 10:24 AM, Oleg Nesterov <oleg@redhat.com> wrote:
->> >
->> > However, do_execve() takes cred_guard_mutex at the start in prepare_bprm_creds()
->> > and drops it in install_exec_creds(), so it should solve the problem?
->>
->> I can't tell yet. I'm still trying to understand the order of
->> operations here. It looks like de_thread() takes the sighand lock.
->> do_execve_common does:
->>
->> prepare_bprm_creds (takes cred_guard_mutex)
->> check_unsafe_exec (checks nnp to set LSM_UNSAFE_NO_NEW_PRIVS)
->> prepare_binprm (handles suid escalation, checks nnp separately)
->>     security_bprm_set_creds (checks LSM_UNSAFE_NO_NEW_PRIVS)
->> exec_binprm
->>     load_elf_binary
->>         flush_old_exec
->>             de_thread (takes and releases sighand->lock)
->>         install_exec_creds (releases cred_guard_mutex)
->
-> Yes, and note that when cred_guard_mutex is dropped all other threads
-> are already killed,
->
->> I don't see a way to use cred_guard_mutex during tsync (which holds
->> sighand->lock) without dead-locking. What were you considering here?
->
-> Just take/drop current->signal->cred_guard_mutex along with ->siglock
-> in seccomp_set_mode_filter() ? Unconditionally on depending on
-> SECCOMP_FILTER_FLAG_TSYNC.
+On Wed, 25 Jun 2014 16:40:18 +0100 Steve Capper <steve.capper@linaro.org> wrote:
 
-Yeah, this looks good. *whew* Testing it now, so far so good.
+> This series implements general forms of get_user_pages_fast and
+> __get_user_pages_fast and activates them for arm and arm64.
 
-Thanks!
+Why not x86?
 
--Kees
-
--- 
-Kees Cook
-Chrome OS Security
+I think I might have already asked this.  If so, it's your fault for
+not updating the changelog ;)
