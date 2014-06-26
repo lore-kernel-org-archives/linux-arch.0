@@ -1,22 +1,21 @@
 From: Steven Rostedt <rostedt@goodmis.org>
-Subject: [RFA][PATCH 22/27] microblaze: ftrace: Remove check of obsolete variable
- function_trace_stop
-Date: Thu, 26 Jun 2014 12:52:43 -0400
-Message-ID: <20140626165852.891982463@goodmis.org>
+Subject: [RFA][PATCH 19/27] sh: ftrace: Remove check of obsolete variable function_trace_stop
+Date: Thu, 26 Jun 2014 12:52:40 -0400
+Message-ID: <20140626165852.312670231@goodmis.org>
 References: <20140626165221.736847419@goodmis.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from cdptpa-outbound-snat.email.rr.com ([107.14.166.226]:30172 "EHLO
+Received: from cdptpa-outbound-snat.email.rr.com ([107.14.166.226]:61228 "EHLO
 	cdptpa-oedge-vip.email.rr.com" rhost-flags-OK-OK-OK-FAIL)
-	by vger.kernel.org with ESMTP id S1757876AbaFZQ6z (ORCPT
+	by vger.kernel.org with ESMTP id S1758026AbaFZRAI (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 26 Jun 2014 12:58:55 -0400
-Content-Disposition: inline; filename=0022-microblaze-ftrace-Remove-check-of-obsolete-variable-.patch
+	Thu, 26 Jun 2014 13:00:08 -0400
+Content-Disposition: inline; filename=0019-sh-ftrace-Remove-check-of-obsolete-variable-function.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: Ingo Molnar <mingo@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Jiri Kosina <jkosina@suse.cz>, Josh Poimboeuf <notifications@github.com>, Michal Simek <monstr@monstr.eu>
+Cc: Ingo Molnar <mingo@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Jiri Kosina <jkosina@suse.cz>, Josh Poimboeuf <notifications@github.com>, Matt Fleming <matt@console-pimps.org>, Paul Mundt <lethal@linux-sh.org>
 
 From: "Steven Rostedt (Red Hat)" <rostedt@goodmis.org>
 
@@ -25,40 +24,88 @@ Remove the check for it in the arch code.
 
 [ Please test this on your arch ]
 
-Cc: Michal Simek <monstr@monstr.eu>
+Cc: Matt Fleming <matt@console-pimps.org>
+Cc: Paul Mundt <lethal@linux-sh.org>
 Signed-off-by: Steven Rostedt <rostedt@goodmis.org>
 ---
- arch/microblaze/Kconfig         | 1 -
- arch/microblaze/kernel/mcount.S | 5 -----
- 2 files changed, 6 deletions(-)
+ arch/sh/Kconfig      |  1 -
+ arch/sh/lib/mcount.S | 24 ++----------------------
+ 2 files changed, 2 insertions(+), 23 deletions(-)
 
-diff --git a/arch/microblaze/Kconfig b/arch/microblaze/Kconfig
-index 9ae08541e30d..40e1c1dd0e24 100644
---- a/arch/microblaze/Kconfig
-+++ b/arch/microblaze/Kconfig
-@@ -22,7 +22,6 @@ config MICROBLAZE
- 	select HAVE_DYNAMIC_FTRACE
- 	select HAVE_FTRACE_MCOUNT_RECORD
- 	select HAVE_FUNCTION_GRAPH_TRACER
--	select HAVE_FUNCTION_TRACE_MCOUNT_TEST
+diff --git a/arch/sh/Kconfig b/arch/sh/Kconfig
+index 834b67c4db5a..aa2df3eaeb29 100644
+--- a/arch/sh/Kconfig
++++ b/arch/sh/Kconfig
+@@ -57,7 +57,6 @@ config SUPERH32
  	select HAVE_FUNCTION_TRACER
- 	select HAVE_MEMBLOCK
- 	select HAVE_MEMBLOCK_NODE_MAP
-diff --git a/arch/microblaze/kernel/mcount.S b/arch/microblaze/kernel/mcount.S
-index fc1e1322ce4c..fed9da5de8c4 100644
---- a/arch/microblaze/kernel/mcount.S
-+++ b/arch/microblaze/kernel/mcount.S
-@@ -91,11 +91,6 @@ ENTRY(ftrace_caller)
+ 	select HAVE_FTRACE_MCOUNT_RECORD
+ 	select HAVE_DYNAMIC_FTRACE
+-	select HAVE_FUNCTION_TRACE_MCOUNT_TEST
+ 	select HAVE_FTRACE_NMI_ENTER if DYNAMIC_FTRACE
+ 	select ARCH_WANT_IPC_PARSE_VERSION
+ 	select HAVE_FUNCTION_GRAPH_TRACER
+diff --git a/arch/sh/lib/mcount.S b/arch/sh/lib/mcount.S
+index 52aa2011d753..7a8572f9d58b 100644
+--- a/arch/sh/lib/mcount.S
++++ b/arch/sh/lib/mcount.S
+@@ -92,13 +92,6 @@ mcount:
+ 	rts
+ 	 nop
+ #else
+-#ifndef CONFIG_DYNAMIC_FTRACE
+-	mov.l	.Lfunction_trace_stop, r0
+-	mov.l	@r0, r0
+-	tst	r0, r0
+-	bf	ftrace_stub
+-#endif
+-
+ 	MCOUNT_ENTER()
+ 
+ #ifdef CONFIG_DYNAMIC_FTRACE
+@@ -174,11 +167,6 @@ ftrace_graph_call:
+ 
+ 	.globl ftrace_caller
+ ftrace_caller:
+-	mov.l	.Lfunction_trace_stop, r0
+-	mov.l	@r0, r0
+-	tst	r0, r0
+-	bf	ftrace_stub
+-
+ 	MCOUNT_ENTER()
+ 
+ 	.globl ftrace_call
+@@ -196,8 +184,6 @@ ftrace_call:
  #endif /* CONFIG_DYNAMIC_FTRACE */
- 	SAVE_REGS
- 	swi	r15, r1, 0;
--	/* MS: HAVE_FUNCTION_TRACE_MCOUNT_TEST begin of checking */
--	lwi	r5, r0, function_trace_stop;
--	bneid	r5, end;
--	nop;
--	/* MS: HAVE_FUNCTION_TRACE_MCOUNT_TEST end of checking */
+ 
+ 	.align 2
+-.Lfunction_trace_stop:
+-	.long	function_trace_stop
+ 
+ /*
+  * NOTE: From here on the locations of the .Lftrace_stub label and
+@@ -217,12 +203,7 @@ ftrace_stub:
  #ifdef CONFIG_FUNCTION_GRAPH_TRACER
- #ifndef CONFIG_DYNAMIC_FTRACE
- 	lwi	r5, r0, ftrace_graph_return;
+ 	.globl	ftrace_graph_caller
+ ftrace_graph_caller:
+-	mov.l	2f, r0
+-	mov.l	@r0, r0
+-	tst	r0, r0
+-	bt	1f
+-
+-	mov.l	3f, r1
++	mov.l	2f, r1
+ 	jmp	@r1
+ 	 nop
+ 1:
+@@ -242,8 +223,7 @@ ftrace_graph_caller:
+ 	MCOUNT_LEAVE()
+ 
+ 	.align 2
+-2:	.long	function_trace_stop
+-3:	.long	skip_trace
++2:	.long	skip_trace
+ .Lprepare_ftrace_return:
+ 	.long	prepare_ftrace_return
+ 
 -- 
 2.0.0
