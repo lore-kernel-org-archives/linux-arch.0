@@ -1,73 +1,76 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
 Received: from cdptpa-outbound-snat.email.rr.com ([107.14.166.226]:30172 "EHLO
 	cdptpa-oedge-vip.email.rr.com" rhost-flags-OK-OK-OK-FAIL)
-	by vger.kernel.org with ESMTP id S1757849AbaFZQ6y (ORCPT
+	by vger.kernel.org with ESMTP id S1757372AbaFZQ6u (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 26 Jun 2014 12:58:54 -0400
-Message-ID: <20140626165852.665644919@goodmis.org>
-Date: Thu, 26 Jun 2014 12:52:42 -0400
+	Thu, 26 Jun 2014 12:58:50 -0400
+Message-ID: <20140626165847.934409696@goodmis.org>
+Date: Thu, 26 Jun 2014 12:52:22 -0400
 From: Steven Rostedt <rostedt@goodmis.org>
-Subject: [RFA][PATCH 21/27] MIPS: ftrace: Remove check of obsolete variable function_trace_stop
+Subject: [RFA][PATCH 01/27] x86, power, suspend: Annotate restore_processor_state() with notrace
 References: <20140626165221.736847419@goodmis.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
-Content-Disposition: inline; filename=0021-MIPS-ftrace-Remove-check-of-obsolete-variable-functi.patch
+Content-Disposition: inline; filename=0001-x86-power-suspend-Annotate-restore_processor_state-w.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
 Cc: Ingo Molnar <mingo@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Jiri Kosina <jkosina@suse.cz>, Josh Poimboeuf <notifications@github.com>
-Message-ID: <20140626165242.BTHvpS6FHey7d3K4yKBay-4IRiBo_X8BgFPgJU7Znfo@z>
+Message-ID: <20140626165222.bG3RdnIN6UPIizyhLZxNwI8Tkf6Ho6qwKzda3W1risM@z>
 
 From: "Steven Rostedt (Red Hat)" <rostedt@goodmis.org>
 
-Nothing sets function_trace_stop to disable function tracing anymore.
-Remove the check for it in the arch code.
+ftrace_stop() is used to stop function tracing during suspend and resume
+which removes a lot of possible debugging opportunities with tracing.
+The reason was that some function in the resume path was causing a triple
+fault if it were to be traced. The issue I found was that doing something
+as simple as calling smp_processor_id() would reboot the box!
 
-[ Please test this on your arch ]
+When function tracing was first created I didn't have a good way to figure
+out what function was having issues, or it looked to be multiple ones. To
+fix it, we just created a big hammer approach to the problem which was to
+add a flag in the mcount trampoline that could be checked and not call
+the traced functions.
+
+Lately I developed better ways to find problem functions and I can bisect
+down to see what function is causing the issue. I removed the flag that
+stopped tracing and proceeded to find the problem function and it ended
+up being restore_processor_state(). This function makes sense as when the
+CPU comes back online from a suspend it calls this function to set up
+registers, amongst them the GS register, which stores things such as
+what CPU the processor is (if you call smp_processor_id() without this
+set up properly, it would fault).
+
+By making restore_processor_state() notrace, the system can suspend and
+resume without the need of the big hammer tracing to stop.
 
 Signed-off-by: Steven Rostedt <rostedt@goodmis.org>
 ---
- arch/mips/Kconfig         | 1 -
- arch/mips/kernel/mcount.S | 7 -------
- 2 files changed, 8 deletions(-)
+ arch/x86/power/cpu.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
 
-diff --git a/arch/mips/Kconfig b/arch/mips/Kconfig
-index 7a469acee33c..9ca52987fcd5 100644
---- a/arch/mips/Kconfig
-+++ b/arch/mips/Kconfig
-@@ -15,7 +15,6 @@ config MIPS
- 	select HAVE_BPF_JIT if !CPU_MICROMIPS
- 	select ARCH_HAVE_CUSTOM_GPIO_H
- 	select HAVE_FUNCTION_TRACER
--	select HAVE_FUNCTION_TRACE_MCOUNT_TEST
- 	select HAVE_DYNAMIC_FTRACE
- 	select HAVE_FTRACE_MCOUNT_RECORD
- 	select HAVE_C_RECORDMCOUNT
-diff --git a/arch/mips/kernel/mcount.S b/arch/mips/kernel/mcount.S
-index 539b6294b613..00940d1d5c4f 100644
---- a/arch/mips/kernel/mcount.S
-+++ b/arch/mips/kernel/mcount.S
-@@ -74,10 +74,6 @@ _mcount:
- #endif
+diff --git a/arch/x86/power/cpu.c b/arch/x86/power/cpu.c
+index 424f4c97a44d..6ec7910f59bf 100644
+--- a/arch/x86/power/cpu.c
++++ b/arch/x86/power/cpu.c
+@@ -165,7 +165,7 @@ static void fix_processor_context(void)
+  *		by __save_processor_state()
+  *	@ctxt - structure to load the registers contents from
+  */
+-static void __restore_processor_state(struct saved_context *ctxt)
++static void notrace __restore_processor_state(struct saved_context *ctxt)
+ {
+ 	if (ctxt->misc_enable_saved)
+ 		wrmsrl(MSR_IA32_MISC_ENABLE, ctxt->misc_enable);
+@@ -239,7 +239,7 @@ static void __restore_processor_state(struct saved_context *ctxt)
+ }
  
- 	/* When tracing is activated, it calls ftrace_caller+8 (aka here) */
--	lw	t1, function_trace_stop
--	bnez	t1, ftrace_stub
--	 nop
--
- 	MCOUNT_SAVE_REGS
- #ifdef KBUILD_MCOUNT_RA_ADDRESS
- 	PTR_S	MCOUNT_RA_ADDRESS_REG, PT_R12(sp)
-@@ -105,9 +101,6 @@ ftrace_stub:
- #else	/* ! CONFIG_DYNAMIC_FTRACE */
- 
- NESTED(_mcount, PT_SIZE, ra)
--	lw	t1, function_trace_stop
--	bnez	t1, ftrace_stub
--	 nop
- 	PTR_LA	t1, ftrace_stub
- 	PTR_L	t2, ftrace_trace_function /* Prepare t2 for (1) */
- 	bne	t1, t2, static_trace
+ /* Needed by apm.c */
+-void restore_processor_state(void)
++void notrace restore_processor_state(void)
+ {
+ 	__restore_processor_state(&saved_context);
+ }
 -- 
 2.0.0
 
