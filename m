@@ -1,72 +1,63 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.9]:42839 "EHLO
-	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754046AbaFZH4P (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 26 Jun 2014 03:56:15 -0400
-Date: Thu, 26 Jun 2014 09:56:05 +0200
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH 6/6] arm64: mm: Enable RCU fast_gup
-Message-ID: <20140626075605.GB12054@laptop.lan>
-References: <1403710824-24340-1-git-send-email-steve.capper@linaro.org>
- <1403710824-24340-7-git-send-email-steve.capper@linaro.org>
- <20140625165003.GI15240@leverpostej>
+Received: from cdptpa-outbound-snat.email.rr.com ([107.14.166.226]:56938 "EHLO
+	cdptpa-oedge-vip.email.rr.com" rhost-flags-OK-OK-OK-FAIL)
+	by vger.kernel.org with ESMTP id S1758022AbaFZRAH (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Thu, 26 Jun 2014 13:00:07 -0400
+Message-ID: <20140626165851.208049368@goodmis.org>
+Date: Thu, 26 Jun 2014 12:52:35 -0400
+From: Steven Rostedt <rostedt@goodmis.org>
+Subject: [RFA][PATCH 14/27] ftrace: Remove function_trace_stop check from list func
+References: <20140626165221.736847419@goodmis.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20140625165003.GI15240@leverpostej>
+Content-Type: text/plain; charset=UTF-8
+Content-Disposition: inline; filename=0014-ftrace-Remove-function_trace_stop-check-from-list-fu.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Mark Rutland <mark.rutland@arm.com>
-Cc: Steve Capper <steve.capper@linaro.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Catalin Marinas <Catalin.Marinas@arm.com>, "linux@arm.linux.org.uk" <linux@arm.linux.org.uk>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "anders.roxell@linaro.org" <anders.roxell@linaro.org>, "gary.robertson@linaro.org" <gary.robertson@linaro.org>, Will Deacon <Will.Deacon@arm.com>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "christoffer.dall@linaro.org" <christoffer.dall@linaro.org>, Thomas Gleixner <tglx@linutronix.de>
-Message-ID: <20140626075605.1A_4FjpmoJdW5Q40JSnRA-IFcK2Q1v6pH0oMcH0tQwQ@z>
+To: linux-kernel@vger.kernel.org
+Cc: Ingo Molnar <mingo@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Jiri Kosina <jkosina@suse.cz>, Josh Poimboeuf <notifications@github.com>
+Message-ID: <20140626165235.oJ31xlz0S6mKXbtp2VULXvkSCBXFdwtMnybQX0VemKM@z>
 
-On Wed, Jun 25, 2014 at 05:50:03PM +0100, Mark Rutland wrote:
-> Hi Steve,
-> 
-> On Wed, Jun 25, 2014 at 04:40:24PM +0100, Steve Capper wrote:
-> > Activate the RCU fast_gup for ARM64. We also need to force THP splits
-> > to broadcast an IPI s.t. we block in the fast_gup page walker. As THP
-> > splits are comparatively rare, this should not lead to a noticeable
-> > performance degradation.
-> > 
-> > Some pre-requisite functions pud_write and pud_page are also added.
-> > 
-> > Signed-off-by: Steve Capper <steve.capper@linaro.org>
-> > ---
-> >  arch/arm64/Kconfig               |  3 +++
-> >  arch/arm64/include/asm/pgtable.h | 11 ++++++++++-
-> >  arch/arm64/mm/flush.c            | 19 +++++++++++++++++++
-> >  3 files changed, 32 insertions(+), 1 deletion(-)
-> 
-> [...]
-> 
-> > diff --git a/arch/arm64/mm/flush.c b/arch/arm64/mm/flush.c
-> > index e4193e3..ddf96c1 100644
-> > --- a/arch/arm64/mm/flush.c
-> > +++ b/arch/arm64/mm/flush.c
-> > @@ -103,3 +103,22 @@ EXPORT_SYMBOL(flush_dcache_page);
-> >   */
-> >  EXPORT_SYMBOL(flush_cache_all);
-> >  EXPORT_SYMBOL(flush_icache_range);
-> > +
-> > +#ifdef CONFIG_TRANSPARENT_HUGEPAGE
-> > +#ifdef CONFIG_HAVE_RCU_TABLE_FREE
-> > +static void thp_splitting_flush_sync(void *arg)
-> > +{
-> > +}
-> > +
-> > +void pmdp_splitting_flush(struct vm_area_struct *vma, unsigned long address,
-> > +			  pmd_t *pmdp)
-> > +{
-> > +	pmd_t pmd = pmd_mksplitting(*pmdp);
-> > +	VM_BUG_ON(address & ~PMD_MASK);
-> > +	set_pmd_at(vma->vm_mm, address, pmdp, pmd);
-> > +
-> > +	/* dummy IPI to serialise against fast_gup */
-> > +	smp_call_function(thp_splitting_flush_sync, NULL, 1);
-> 
-> Is there some reason we can't use kick_all_cpus_sync()?
+From: "Steven Rostedt (Red Hat)" <rostedt@goodmis.org>
 
-Yes that would be equivalent. But looking at that, I worry about the
-smp_mb(); archs are supposed to make sure IPIs are serializing.
+function_trace_stop is no longer used to stop function tracing.
+Remove the check from __ftrace_ops_list_func().
+
+Also, call FTRACE_WARN_ON() instead of setting function_trace_stop
+if a ops has no func to call.
+
+Signed-off-by: Steven Rostedt <rostedt@goodmis.org>
+---
+ kernel/trace/ftrace.c | 8 ++------
+ 1 file changed, 2 insertions(+), 6 deletions(-)
+
+diff --git a/kernel/trace/ftrace.c b/kernel/trace/ftrace.c
+index 1e4e9bbb8dfa..34994885bb1d 100644
+--- a/kernel/trace/ftrace.c
++++ b/kernel/trace/ftrace.c
+@@ -4692,9 +4692,6 @@ __ftrace_ops_list_func(unsigned long ip, unsigned long parent_ip,
+ 	struct ftrace_ops *op;
+ 	int bit;
+ 
+-	if (function_trace_stop)
+-		return;
+-
+ 	bit = trace_test_and_set_recursion(TRACE_LIST_START, TRACE_LIST_MAX);
+ 	if (bit < 0)
+ 		return;
+@@ -4706,9 +4703,8 @@ __ftrace_ops_list_func(unsigned long ip, unsigned long parent_ip,
+ 	preempt_disable_notrace();
+ 	do_for_each_ftrace_op(op, ftrace_ops_list) {
+ 		if (ftrace_ops_test(op, ip, regs)) {
+-			if (WARN_ON(!op->func)) {
+-				function_trace_stop = 1;
+-				printk("op=%p %pS\n", op, op);
++			if (FTRACE_WARN_ON(!op->func)) {
++				pr_warn("op=%p %pS\n", op, op);
+ 				goto out;
+ 			}
+ 			op->func(ip, parent_ip, op, regs);
+-- 
+2.0.0
+
 
