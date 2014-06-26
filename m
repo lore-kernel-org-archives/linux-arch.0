@@ -1,27 +1,27 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cdptpa-outbound-snat.email.rr.com ([107.14.166.225]:24639 "EHLO
+Received: from cdptpa-outbound-snat.email.rr.com ([107.14.166.229]:25108 "EHLO
 	cdptpa-oedge-vip.email.rr.com" rhost-flags-OK-OK-OK-FAIL)
-	by vger.kernel.org with ESMTP id S1757879AbaFZReb convert rfc822-to-8bit
+	by vger.kernel.org with ESMTP id S1757829AbaFZRfR convert rfc822-to-8bit
 	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 26 Jun 2014 13:34:31 -0400
-Date: Thu, 26 Jun 2014 13:34:28 -0400
+	Thu, 26 Jun 2014 13:35:17 -0400
+Date: Thu, 26 Jun 2014 13:35:15 -0400
 From: Steven Rostedt <rostedt@goodmis.org>
-Subject: Re: [RFA][PATCH 18/27] sparc64,ftrace: Remove check of obsolete
+Subject: Re: [RFA][PATCH 19/27] sh: ftrace: Remove check of obsolete
  variable function_trace_stop
-Message-ID: <20140626133428.4909e53a@gandalf.local.home>
-In-Reply-To: <20140626165852.160038235@goodmis.org>
+Message-ID: <20140626133515.4c87c40d@gandalf.local.home>
+In-Reply-To: <20140626165852.312670231@goodmis.org>
 References: <20140626165221.736847419@goodmis.org>
-	<20140626165852.160038235@goodmis.org>
+	<20140626165852.312670231@goodmis.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "David S. Miller" <davem@davemloft.net>
+To: Matt Fleming <matt@console-pimps.org>, Paul Mundt <lethal@linux-sh.org>
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20140626173428.dumO-KwhHPSh1gG7oTCwBjpdyBXIT4-4KTiLT6RYPFU@z>
+Message-ID: <20140626173515.Hs7M9JN8mJXE7qxKQzqUBIpb2GFqXf5agWKYERh9ves@z>
 
-On Thu, 26 Jun 2014 12:52:39 -0400
+On Thu, 26 Jun 2014 12:52:40 -0400
 Steven Rostedt <rostedt@goodmis.org> wrote:
 
 > From: "Steven Rostedt (Red Hat)" <rostedt@goodmis.org>
@@ -62,52 +62,87 @@ intact.
 -- Steve
 
 > 
-> Cc: David S. Miller <davem@davemloft.net>
+> Cc: Matt Fleming <matt@console-pimps.org>
+> Cc: Paul Mundt <lethal@linux-sh.org>
 > Signed-off-by: Steven Rostedt <rostedt@goodmis.org>
 > ---
->  arch/sparc/Kconfig      |  1 -
->  arch/sparc/lib/mcount.S | 10 ++--------
->  2 files changed, 2 insertions(+), 9 deletions(-)
+>  arch/sh/Kconfig      |  1 -
+>  arch/sh/lib/mcount.S | 24 ++----------------------
+>  2 files changed, 2 insertions(+), 23 deletions(-)
 > 
-> diff --git a/arch/sparc/Kconfig b/arch/sparc/Kconfig
-> index 29f2e988c56a..abd7d5575a7d 100644
-> --- a/arch/sparc/Kconfig
-> +++ b/arch/sparc/Kconfig
-> @@ -55,7 +55,6 @@ config SPARC64
+> diff --git a/arch/sh/Kconfig b/arch/sh/Kconfig
+> index 834b67c4db5a..aa2df3eaeb29 100644
+> --- a/arch/sh/Kconfig
+> +++ b/arch/sh/Kconfig
+> @@ -57,7 +57,6 @@ config SUPERH32
 >  	select HAVE_FUNCTION_TRACER
->  	select HAVE_FUNCTION_GRAPH_TRACER
->  	select HAVE_FUNCTION_GRAPH_FP_TEST
+>  	select HAVE_FTRACE_MCOUNT_RECORD
+>  	select HAVE_DYNAMIC_FTRACE
 > -	select HAVE_FUNCTION_TRACE_MCOUNT_TEST
->  	select HAVE_KRETPROBES
->  	select HAVE_KPROBES
->  	select HAVE_RCU_TABLE_FREE if SMP
-> diff --git a/arch/sparc/lib/mcount.S b/arch/sparc/lib/mcount.S
-> index 3ad6cbdc2163..0b0ed4d34219 100644
-> --- a/arch/sparc/lib/mcount.S
-> +++ b/arch/sparc/lib/mcount.S
-> @@ -24,10 +24,7 @@ mcount:
->  #ifdef CONFIG_DYNAMIC_FTRACE
->  	/* Do nothing, the retl/nop below is all we need.  */
+>  	select HAVE_FTRACE_NMI_ENTER if DYNAMIC_FTRACE
+>  	select ARCH_WANT_IPC_PARSE_VERSION
+>  	select HAVE_FUNCTION_GRAPH_TRACER
+> diff --git a/arch/sh/lib/mcount.S b/arch/sh/lib/mcount.S
+> index 52aa2011d753..7a8572f9d58b 100644
+> --- a/arch/sh/lib/mcount.S
+> +++ b/arch/sh/lib/mcount.S
+> @@ -92,13 +92,6 @@ mcount:
+>  	rts
+>  	 nop
 >  #else
-> -	sethi		%hi(function_trace_stop), %g1
-> -	lduw		[%g1 + %lo(function_trace_stop)], %g2
-> -	brnz,pn		%g2, 2f
-> -	 sethi		%hi(ftrace_trace_function), %g1
-> +	sethi		%hi(ftrace_trace_function), %g1
->  	sethi		%hi(ftrace_stub), %g2
->  	ldx		[%g1 + %lo(ftrace_trace_function)], %g1
->  	or		%g2, %lo(ftrace_stub), %g2
-> @@ -80,11 +77,8 @@ ftrace_stub:
->  	.globl		ftrace_caller
->  	.type		ftrace_caller,#function
+> -#ifndef CONFIG_DYNAMIC_FTRACE
+> -	mov.l	.Lfunction_trace_stop, r0
+> -	mov.l	@r0, r0
+> -	tst	r0, r0
+> -	bf	ftrace_stub
+> -#endif
+> -
+>  	MCOUNT_ENTER()
+>  
+>  #ifdef CONFIG_DYNAMIC_FTRACE
+> @@ -174,11 +167,6 @@ ftrace_graph_call:
+>  
+>  	.globl ftrace_caller
 >  ftrace_caller:
-> -	sethi		%hi(function_trace_stop), %g1
->  	mov		%i7, %g2
-> -	lduw		[%g1 + %lo(function_trace_stop)], %g1
-> -	brnz,pn		%g1, ftrace_stub
-> -	 mov		%fp, %g3
-> +	mov		%fp, %g3
->  	save		%sp, -176, %sp
->  	mov		%g2, %o1
->  	mov		%g2, %l0
+> -	mov.l	.Lfunction_trace_stop, r0
+> -	mov.l	@r0, r0
+> -	tst	r0, r0
+> -	bf	ftrace_stub
+> -
+>  	MCOUNT_ENTER()
+>  
+>  	.globl ftrace_call
+> @@ -196,8 +184,6 @@ ftrace_call:
+>  #endif /* CONFIG_DYNAMIC_FTRACE */
+>  
+>  	.align 2
+> -.Lfunction_trace_stop:
+> -	.long	function_trace_stop
+>  
+>  /*
+>   * NOTE: From here on the locations of the .Lftrace_stub label and
+> @@ -217,12 +203,7 @@ ftrace_stub:
+>  #ifdef CONFIG_FUNCTION_GRAPH_TRACER
+>  	.globl	ftrace_graph_caller
+>  ftrace_graph_caller:
+> -	mov.l	2f, r0
+> -	mov.l	@r0, r0
+> -	tst	r0, r0
+> -	bt	1f
+> -
+> -	mov.l	3f, r1
+> +	mov.l	2f, r1
+>  	jmp	@r1
+>  	 nop
+>  1:
+> @@ -242,8 +223,7 @@ ftrace_graph_caller:
+>  	MCOUNT_LEAVE()
+>  
+>  	.align 2
+> -2:	.long	function_trace_stop
+> -3:	.long	skip_trace
+> +2:	.long	skip_trace
+>  .Lprepare_ftrace_return:
+>  	.long	prepare_ftrace_return
+>  
 
