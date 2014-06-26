@@ -1,12 +1,12 @@
 From: Steven Rostedt <rostedt@goodmis.org>
-Subject: [RFA][PATCH 13/27] ftrace: Do no disable function tracing on enabling function tracing
-Date: Thu, 26 Jun 2014 12:52:34 -0400
-Message-ID: <20140626165850.889732172@goodmis.org>
+Subject: [RFA][PATCH 12/27] ftrace: Remove ftrace_start/stop()
+Date: Thu, 26 Jun 2014 12:52:33 -0400
+Message-ID: <20140626165850.667742481@goodmis.org>
 References: <20140626165221.736847419@goodmis.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline; filename=0013-ftrace-Do-no-disable-function-tracing-on-enabling-fu.patch
+Content-Disposition: inline; filename=0012-ftrace-Remove-ftrace_start-stop.patch
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
 Cc: Ingo Molnar <mingo@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Jiri Kosina <jkosina@suse.cz>, Josh Poimboeuf <notifications@github.com>
@@ -14,42 +14,59 @@ List-Id: linux-arch.vger.kernel.org
 
 From: "Steven Rostedt (Red Hat)" <rostedt@goodmis.org>
 
-When function tracing is being updated function_trace_stop is set to
-keep from tracing the updates. This was fine when function tracing
-was done from stop machine. But it is no longer done that way and
-this can cause real tracing to be missed.
-
-Remove it.
+There are no more kernel users of ftrace_stop() and ftrace_start().
+Remove them.
 
 Signed-off-by: Steven Rostedt <rostedt@goodmis.org>
 ---
- kernel/trace/ftrace.c | 7 -------
- 1 file changed, 7 deletions(-)
+ include/linux/ftrace.h | 28 ----------------------------
+ 1 file changed, 28 deletions(-)
 
-diff --git a/kernel/trace/ftrace.c b/kernel/trace/ftrace.c
-index 823984c20262..1e4e9bbb8dfa 100644
---- a/kernel/trace/ftrace.c
-+++ b/kernel/trace/ftrace.c
-@@ -2260,11 +2260,6 @@ static void ftrace_run_update_code(int command)
- 	FTRACE_WARN_ON(ret);
- 	if (ret)
- 		return;
--	/*
--	 * Do not call function tracer while we update the code.
--	 * We are in stop machine.
--	 */
--	function_trace_stop++;
+diff --git a/include/linux/ftrace.h b/include/linux/ftrace.h
+index ec059c343e78..d74a37d53271 100644
+--- a/include/linux/ftrace.h
++++ b/include/linux/ftrace.h
+@@ -143,32 +143,6 @@ enum ftrace_tracing_type_t {
+ /* Current tracing type, default is FTRACE_TYPE_ENTER */
+ extern enum ftrace_tracing_type_t ftrace_tracing_type;
  
- 	/*
- 	 * By default we use stop_machine() to modify the code.
-@@ -2274,8 +2269,6 @@ static void ftrace_run_update_code(int command)
- 	 */
- 	arch_ftrace_update_code(command);
- 
--	function_trace_stop--;
+-/**
+- * ftrace_stop - stop function tracer.
+- *
+- * A quick way to stop the function tracer. Note this an on off switch,
+- * it is not something that is recursive like preempt_disable.
+- * This does not disable the calling of mcount, it only stops the
+- * calling of functions from mcount.
+- */
+-static inline void ftrace_stop(void)
+-{
+-	function_trace_stop = 1;
+-}
 -
- 	ret = ftrace_arch_code_modify_post_process();
- 	FTRACE_WARN_ON(ret);
+-/**
+- * ftrace_start - start the function tracer.
+- *
+- * This function is the inverse of ftrace_stop. This does not enable
+- * the function tracing if the function tracer is disabled. This only
+- * sets the function tracer flag to continue calling the functions
+- * from mcount.
+- */
+-static inline void ftrace_start(void)
+-{
+-	function_trace_stop = 0;
+-}
+-
+ /*
+  * The ftrace_ops must be a static and should also
+  * be read_mostly.  These functions do modify read_mostly variables
+@@ -245,8 +219,6 @@ static inline int ftrace_nr_registered_ops(void)
+ }
+ static inline void clear_ftrace_function(void) { }
+ static inline void ftrace_kill(void) { }
+-static inline void ftrace_stop(void) { }
+-static inline void ftrace_start(void) { }
+ #endif /* CONFIG_FUNCTION_TRACER */
  
+ #ifdef CONFIG_STACK_TRACER
 -- 
 2.0.0
