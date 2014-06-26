@@ -1,55 +1,55 @@
 From: Steven Rostedt <rostedt@goodmis.org>
-Subject: [RFA][PATCH 25/27] arm64, ftrace: Remove check of obsolete variable function_trace_stop
-Date: Thu, 26 Jun 2014 12:52:46 -0400
-Message-ID: <20140626165853.482575534@goodmis.org>
+Subject: [RFA][PATCH 08/27] parisc: ftrace: Add call to ftrace_graph_is_dead() in function graph
+ code
+Date: Thu, 26 Jun 2014 12:52:29 -0400
+Message-ID: <20140626165849.694583919@goodmis.org>
 References: <20140626165221.736847419@goodmis.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from cdptpa-outbound-snat.email.rr.com ([107.14.166.226]:60325 "EHLO
+Received: from cdptpa-outbound-snat.email.rr.com ([107.14.166.226]:61228 "EHLO
 	cdptpa-oedge-vip.email.rr.com" rhost-flags-OK-OK-OK-FAIL)
-	by vger.kernel.org with ESMTP id S1757882AbaFZQ6z (ORCPT
+	by vger.kernel.org with ESMTP id S1758021AbaFZRAH (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 26 Jun 2014 12:58:55 -0400
-Content-Disposition: inline; filename=0025-arm64-ftrace-Remove-check-of-obsolete-variable-funct.patch
+	Thu, 26 Jun 2014 13:00:07 -0400
+Content-Disposition: inline; filename=0008-parisc-ftrace-Add-call-to-ftrace_graph_is_dead-in-fu.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: Ingo Molnar <mingo@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Jiri Kosina <jkosina@suse.cz>, Josh Poimboeuf <notifications@github.com>, AKASHI Takahiro <takahiro.akashi@linaro.org>, Will Deacon <will.deacon@arm.com>
+Cc: Ingo Molnar <mingo@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Jiri Kosina <jkosina@suse.cz>, Josh Poimboeuf <notifications@github.com>, Helge Deller <deller@gmx.de>, Kyle McMartin <kyle@mcmartin.ca>
 
 From: "Steven Rostedt (Red Hat)" <rostedt@goodmis.org>
 
-Nothing sets function_trace_stop to disable function tracing anymore.
-Remove the check for it in the arch code.
+ftrace_stop() is going away as it disables parts of function tracing
+that affects users that should not be affected. But ftrace_graph_stop()
+is built on ftrace_stop(). Here's another example of killing all of
+function tracing because something went wrong with function graph
+tracing.
 
-arm64 was broken anyway, as it had an ifdef testing
- CONFIG_HAVE_FUNCTION_TRACE_MCOUNT_TEST which is only set if
-the arch supports the code (which it obviously did not), and
-it was testing a non existent ftrace_trace_stop instead of
-function_trace_stop.
+Instead of disabling all users of function tracing on function graph
+error, disable only function graph tracing. To do this, the arch code
+must call ftrace_graph_is_dead() before it implements function graph.
 
-Cc: AKASHI Takahiro <takahiro.akashi@linaro.org>
-Cc: Will Deacon <will.deacon@arm.com>
+Cc: Helge Deller <deller@gmx.de>
+Cc: Kyle McMartin <kyle@mcmartin.ca>
 Signed-off-by: Steven Rostedt <rostedt@goodmis.org>
 ---
- arch/arm64/kernel/entry-ftrace.S | 5 -----
- 1 file changed, 5 deletions(-)
+ arch/parisc/kernel/ftrace.c | 3 +++
+ 1 file changed, 3 insertions(+)
 
-diff --git a/arch/arm64/kernel/entry-ftrace.S b/arch/arm64/kernel/entry-ftrace.S
-index b051871f2965..1b1e330e6849 100644
---- a/arch/arm64/kernel/entry-ftrace.S
-+++ b/arch/arm64/kernel/entry-ftrace.S
-@@ -96,11 +96,6 @@
-  *     - ftrace_graph_caller to set up an exit hook
-  */
- ENTRY(_mcount)
--#ifdef CONFIG_HAVE_FUNCTION_TRACE_MCOUNT_TEST
--	ldr	x0, =ftrace_trace_stop
--	ldr	x0, [x0]		// if ftrace_trace_stop
--	ret				//   return;
--#endif
- 	mcount_enter
+diff --git a/arch/parisc/kernel/ftrace.c b/arch/parisc/kernel/ftrace.c
+index 5beb97bafbb1..5512ab32c5e0 100644
+--- a/arch/parisc/kernel/ftrace.c
++++ b/arch/parisc/kernel/ftrace.c
+@@ -112,6 +112,9 @@ void prepare_ftrace_return(unsigned long *parent, unsigned long self_addr)
+ 	unsigned long long calltime;
+ 	struct ftrace_graph_ent trace;
  
- 	ldr	x0, =ftrace_trace_function
++	if (unlikely(ftrace_graph_is_dead()))
++		return;
++
+ 	if (unlikely(atomic_read(&current->tracing_graph_pause)))
+ 		return;
+ 
 -- 
 2.0.0
