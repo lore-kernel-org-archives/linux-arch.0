@@ -1,21 +1,22 @@
 From: Steven Rostedt <rostedt@goodmis.org>
-Subject: [RFA][PATCH 17/27] tile: ftrace: Remove check of obsolete variable function_trace_stop
-Date: Thu, 26 Jun 2014 12:52:38 -0400
-Message-ID: <20140626165852.012558348@goodmis.org>
+Subject: [RFA][PATCH 22/27] microblaze: ftrace: Remove check of obsolete variable
+ function_trace_stop
+Date: Thu, 26 Jun 2014 12:52:43 -0400
+Message-ID: <20140626165852.891982463@goodmis.org>
 References: <20140626165221.736847419@goodmis.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from cdptpa-outbound-snat.email.rr.com ([107.14.166.226]:61228 "EHLO
+Received: from cdptpa-outbound-snat.email.rr.com ([107.14.166.226]:30172 "EHLO
 	cdptpa-oedge-vip.email.rr.com" rhost-flags-OK-OK-OK-FAIL)
-	by vger.kernel.org with ESMTP id S1758023AbaFZRAH (ORCPT
+	by vger.kernel.org with ESMTP id S1757876AbaFZQ6z (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 26 Jun 2014 13:00:07 -0400
-Content-Disposition: inline; filename=0017-tile-ftrace-Remove-check-of-obsolete-variable-functi.patch
+	Thu, 26 Jun 2014 12:58:55 -0400
+Content-Disposition: inline; filename=0022-microblaze-ftrace-Remove-check-of-obsolete-variable-.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: Ingo Molnar <mingo@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Jiri Kosina <jkosina@suse.cz>, Josh Poimboeuf <notifications@github.com>, Chris Metcalf <cmetcalf@tilera.com>
+Cc: Ingo Molnar <mingo@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Jiri Kosina <jkosina@suse.cz>, Josh Poimboeuf <notifications@github.com>, Michal Simek <monstr@monstr.eu>
 
 From: "Steven Rostedt (Red Hat)" <rostedt@goodmis.org>
 
@@ -24,60 +25,40 @@ Remove the check for it in the arch code.
 
 [ Please test this on your arch ]
 
-Cc: Chris Metcalf <cmetcalf@tilera.com>
+Cc: Michal Simek <monstr@monstr.eu>
 Signed-off-by: Steven Rostedt <rostedt@goodmis.org>
 ---
- arch/tile/Kconfig            |  1 -
- arch/tile/kernel/mcount_64.S | 18 ------------------
- 2 files changed, 19 deletions(-)
+ arch/microblaze/Kconfig         | 1 -
+ arch/microblaze/kernel/mcount.S | 5 -----
+ 2 files changed, 6 deletions(-)
 
-diff --git a/arch/tile/Kconfig b/arch/tile/Kconfig
-index 4f3006b600e3..7fcd492adbfc 100644
---- a/arch/tile/Kconfig
-+++ b/arch/tile/Kconfig
-@@ -128,7 +128,6 @@ config TILEGX
- 	select SPARSE_IRQ
- 	select GENERIC_IRQ_LEGACY_ALLOC_HWIRQ
- 	select HAVE_FUNCTION_TRACER
--	select HAVE_FUNCTION_TRACE_MCOUNT_TEST
- 	select HAVE_FUNCTION_GRAPH_TRACER
+diff --git a/arch/microblaze/Kconfig b/arch/microblaze/Kconfig
+index 9ae08541e30d..40e1c1dd0e24 100644
+--- a/arch/microblaze/Kconfig
++++ b/arch/microblaze/Kconfig
+@@ -22,7 +22,6 @@ config MICROBLAZE
  	select HAVE_DYNAMIC_FTRACE
  	select HAVE_FTRACE_MCOUNT_RECORD
-diff --git a/arch/tile/kernel/mcount_64.S b/arch/tile/kernel/mcount_64.S
-index 70d7bb0c4d8f..3c2b8d5e1d1a 100644
---- a/arch/tile/kernel/mcount_64.S
-+++ b/arch/tile/kernel/mcount_64.S
-@@ -77,15 +77,6 @@ STD_ENDPROC(__mcount)
- 
- 	.align	64
- STD_ENTRY(ftrace_caller)
--	moveli	r11, hw2_last(function_trace_stop)
--	{ shl16insli	r11, r11, hw1(function_trace_stop); move r12, lr }
--	{ shl16insli	r11, r11, hw0(function_trace_stop); move lr, r10 }
--	ld	r11, r11
--	beqz	r11, 1f
--	jrp	r12
--
--1:
--	{ move	r10, lr; move	lr, r12 }
- 	MCOUNT_SAVE_REGS
- 
- 	/* arg1: self return address */
-@@ -119,15 +110,6 @@ STD_ENDPROC(ftrace_caller)
- 
- 	.align	64
- STD_ENTRY(__mcount)
--	moveli	r11, hw2_last(function_trace_stop)
--	{ shl16insli	r11, r11, hw1(function_trace_stop); move r12, lr }
--	{ shl16insli	r11, r11, hw0(function_trace_stop); move lr, r10 }
--	ld	r11, r11
--	beqz	r11, 1f
--	jrp	r12
--
--1:
--	{ move	r10, lr; move	lr, r12 }
- 	{
- 	 moveli	r11, hw2_last(ftrace_trace_function)
- 	 moveli	r13, hw2_last(ftrace_stub)
+ 	select HAVE_FUNCTION_GRAPH_TRACER
+-	select HAVE_FUNCTION_TRACE_MCOUNT_TEST
+ 	select HAVE_FUNCTION_TRACER
+ 	select HAVE_MEMBLOCK
+ 	select HAVE_MEMBLOCK_NODE_MAP
+diff --git a/arch/microblaze/kernel/mcount.S b/arch/microblaze/kernel/mcount.S
+index fc1e1322ce4c..fed9da5de8c4 100644
+--- a/arch/microblaze/kernel/mcount.S
++++ b/arch/microblaze/kernel/mcount.S
+@@ -91,11 +91,6 @@ ENTRY(ftrace_caller)
+ #endif /* CONFIG_DYNAMIC_FTRACE */
+ 	SAVE_REGS
+ 	swi	r15, r1, 0;
+-	/* MS: HAVE_FUNCTION_TRACE_MCOUNT_TEST begin of checking */
+-	lwi	r5, r0, function_trace_stop;
+-	bneid	r5, end;
+-	nop;
+-	/* MS: HAVE_FUNCTION_TRACE_MCOUNT_TEST end of checking */
+ #ifdef CONFIG_FUNCTION_GRAPH_TRACER
+ #ifndef CONFIG_DYNAMIC_FTRACE
+ 	lwi	r5, r0, ftrace_graph_return;
 -- 
 2.0.0
