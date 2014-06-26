@@ -1,48 +1,84 @@
 From: Steven Rostedt <rostedt@goodmis.org>
-Subject: [RFA][PATCH 10/27] sh: ftrace: Add call to ftrace_graph_is_dead() in function graph code
-Date: Thu, 26 Jun 2014 12:52:31 -0400
-Message-ID: <20140626165850.311953940@goodmis.org>
+Subject: [RFA][PATCH 26/27] s390/ftrace: remove check of obsolete variable function_trace_stop
+Date: Thu, 26 Jun 2014 12:52:47 -0400
+Message-ID: <20140626165853.685458770@goodmis.org>
 References: <20140626165221.736847419@goodmis.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline; filename=0010-sh-ftrace-Add-call-to-ftrace_graph_is_dead-in-functi.patch
+Content-Disposition: inline; filename=0026-s390-ftrace-remove-check-of-obsolete-variable-functi.patch
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
-Cc: Ingo Molnar <mingo@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Jiri Kosina <jkosina@suse.cz>, Josh Poimboeuf <notifications@github.com>, Paul Mundt <lethal@linux-sh.org>
+Cc: Ingo Molnar <mingo@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Jiri Kosina <jkosina@suse.cz>, Josh Poimboeuf <notifications@github.com>, Heiko Carstens <heiko.carstens@de.ibm.com>
 List-Id: linux-arch.vger.kernel.org
 
-From: "Steven Rostedt (Red Hat)" <rostedt@goodmis.org>
+From: Heiko Carstens <heiko.carstens@de.ibm.com>
 
-ftrace_stop() is going away as it disables parts of function tracing
-that affects users that should not be affected. But ftrace_graph_stop()
-is built on ftrace_stop(). Here's another example of killing all of
-function tracing because something went wrong with function graph
-tracing.
+Remove check of obsolete variable function_trace_stop as requested by
+Steven Rostedt.
 
-Instead of disabling all users of function tracing on function graph
-error, disable only function graph tracing. To do this, the arch code
-must call ftrace_graph_is_dead() before it implements function graph.
-
-Cc: Paul Mundt <lethal@linux-sh.org>
+Signed-off-by: Heiko Carstens <heiko.carstens@de.ibm.com>
 Signed-off-by: Steven Rostedt <rostedt@goodmis.org>
 ---
- arch/sh/kernel/ftrace.c | 3 +++
- 1 file changed, 3 insertions(+)
+ arch/s390/Kconfig           |  1 -
+ arch/s390/kernel/mcount.S   | 10 +++-------
+ arch/s390/kernel/mcount64.S |  3 ---
+ 3 files changed, 3 insertions(+), 11 deletions(-)
 
-diff --git a/arch/sh/kernel/ftrace.c b/arch/sh/kernel/ftrace.c
-index 3c74f53db6db..079d70e6d74b 100644
---- a/arch/sh/kernel/ftrace.c
-+++ b/arch/sh/kernel/ftrace.c
-@@ -344,6 +344,9 @@ void prepare_ftrace_return(unsigned long *parent, unsigned long self_addr)
- 	struct ftrace_graph_ent trace;
- 	unsigned long return_hooker = (unsigned long)&return_to_handler;
+diff --git a/arch/s390/Kconfig b/arch/s390/Kconfig
+index bb63499fc5d3..f5af5f6ef0f4 100644
+--- a/arch/s390/Kconfig
++++ b/arch/s390/Kconfig
+@@ -116,7 +116,6 @@ config S390
+ 	select HAVE_FTRACE_MCOUNT_RECORD
+ 	select HAVE_FUNCTION_GRAPH_TRACER
+ 	select HAVE_FUNCTION_TRACER
+-	select HAVE_FUNCTION_TRACE_MCOUNT_TEST
+ 	select HAVE_FUTEX_CMPXCHG if FUTEX
+ 	select HAVE_KERNEL_BZIP2
+ 	select HAVE_KERNEL_GZIP
+diff --git a/arch/s390/kernel/mcount.S b/arch/s390/kernel/mcount.S
+index 08dcf21cb8df..433c6dbfa442 100644
+--- a/arch/s390/kernel/mcount.S
++++ b/arch/s390/kernel/mcount.S
+@@ -21,13 +21,9 @@ ENTRY(_mcount)
+ ENTRY(ftrace_caller)
+ #endif
+ 	stm	%r2,%r5,16(%r15)
+-	bras	%r1,2f
++	bras	%r1,1f
+ 0:	.long	ftrace_trace_function
+-1:	.long	function_trace_stop
+-2:	l	%r2,1b-0b(%r1)
+-	icm	%r2,0xf,0(%r2)
+-	jnz	3f
+-	st	%r14,56(%r15)
++1:	st	%r14,56(%r15)
+ 	lr	%r0,%r15
+ 	ahi	%r15,-96
+ 	l	%r3,100(%r15)
+@@ -50,7 +46,7 @@ ENTRY(ftrace_graph_caller)
+ #endif
+ 	ahi	%r15,96
+ 	l	%r14,56(%r15)
+-3:	lm	%r2,%r5,16(%r15)
++	lm	%r2,%r5,16(%r15)
+ 	br	%r14
  
-+	if (unlikely(ftrace_graph_is_dead()))
-+		return;
-+
- 	if (unlikely(atomic_read(&current->tracing_graph_pause)))
- 		return;
+ #ifdef CONFIG_FUNCTION_GRAPH_TRACER
+diff --git a/arch/s390/kernel/mcount64.S b/arch/s390/kernel/mcount64.S
+index 1c52eae3396a..c67a8bf0fd9a 100644
+--- a/arch/s390/kernel/mcount64.S
++++ b/arch/s390/kernel/mcount64.S
+@@ -20,9 +20,6 @@ ENTRY(_mcount)
  
+ ENTRY(ftrace_caller)
+ #endif
+-	larl	%r1,function_trace_stop
+-	icm	%r1,0xf,0(%r1)
+-	bnzr	%r14
+ 	stmg	%r2,%r5,32(%r15)
+ 	stg	%r14,112(%r15)
+ 	lgr	%r1,%r15
 -- 
 2.0.0
