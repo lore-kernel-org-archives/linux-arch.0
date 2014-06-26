@@ -1,27 +1,26 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cdptpa-outbound-snat.email.rr.com ([107.14.166.225]:59985 "EHLO
+Received: from cdptpa-outbound-snat.email.rr.com ([107.14.166.227]:57508 "EHLO
 	cdptpa-oedge-vip.email.rr.com" rhost-flags-OK-OK-OK-FAIL)
-	by vger.kernel.org with ESMTP id S1757785AbaFZRiW convert rfc822-to-8bit
+	by vger.kernel.org with ESMTP id S1757466AbaFZRiu convert rfc822-to-8bit
 	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 26 Jun 2014 13:38:22 -0400
-Date: Thu, 26 Jun 2014 13:38:13 -0400
+	Thu, 26 Jun 2014 13:38:50 -0400
+Date: Thu, 26 Jun 2014 13:38:48 -0400
 From: Steven Rostedt <rostedt@goodmis.org>
-Subject: Re: [RFA][PATCH 22/27] microblaze: ftrace: Remove check of obsolete
+Subject: Re: [RFA][PATCH 23/27] metag: ftrace: Remove check of obsolete
  variable function_trace_stop
-Message-ID: <20140626133813.5eeed38f@gandalf.local.home>
-In-Reply-To: <20140626165852.891982463@goodmis.org>
+Message-ID: <20140626133848.0567e365@gandalf.local.home>
+In-Reply-To: <20140626165853.049120840@goodmis.org>
 References: <20140626165221.736847419@goodmis.org>
-	<20140626165852.891982463@goodmis.org>
+	<20140626165853.049120840@goodmis.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Michal Simek <monstr@monstr.eu>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20140626173813.RF6faNJI6i3T8dMXiFDXJIMd2yW2K5t8m0dm4iBI2lo@z>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, James Hogan <james.hogan@imgtec.com>
+Message-ID: <20140626173848.gY4nXiYWyBEJQ-Y9K_NuJYbgR8qkVmtsC4UNgRmMInU@z>
 
-On Thu, 26 Jun 2014 12:52:43 -0400
+On Thu, 26 Jun 2014 12:52:44 -0400
 Steven Rostedt <rostedt@goodmis.org> wrote:
 
 > From: "Steven Rostedt (Red Hat)" <rostedt@goodmis.org>
@@ -62,39 +61,55 @@ intact.
 -- Steve
 
 > 
-> Cc: Michal Simek <monstr@monstr.eu>
+> Cc: James Hogan <james.hogan@imgtec.com>
 > Signed-off-by: Steven Rostedt <rostedt@goodmis.org>
 > ---
->  arch/microblaze/Kconfig         | 1 -
->  arch/microblaze/kernel/mcount.S | 5 -----
->  2 files changed, 6 deletions(-)
+>  arch/metag/Kconfig              |  1 -
+>  arch/metag/kernel/ftrace_stub.S | 14 --------------
+>  2 files changed, 15 deletions(-)
 > 
-> diff --git a/arch/microblaze/Kconfig b/arch/microblaze/Kconfig
-> index 9ae08541e30d..40e1c1dd0e24 100644
-> --- a/arch/microblaze/Kconfig
-> +++ b/arch/microblaze/Kconfig
-> @@ -22,7 +22,6 @@ config MICROBLAZE
+> diff --git a/arch/metag/Kconfig b/arch/metag/Kconfig
+> index 499b7610eaaf..0b389a81c43a 100644
+> --- a/arch/metag/Kconfig
+> +++ b/arch/metag/Kconfig
+> @@ -13,7 +13,6 @@ config METAG
 >  	select HAVE_DYNAMIC_FTRACE
 >  	select HAVE_FTRACE_MCOUNT_RECORD
->  	select HAVE_FUNCTION_GRAPH_TRACER
-> -	select HAVE_FUNCTION_TRACE_MCOUNT_TEST
 >  	select HAVE_FUNCTION_TRACER
->  	select HAVE_MEMBLOCK
->  	select HAVE_MEMBLOCK_NODE_MAP
-> diff --git a/arch/microblaze/kernel/mcount.S b/arch/microblaze/kernel/mcount.S
-> index fc1e1322ce4c..fed9da5de8c4 100644
-> --- a/arch/microblaze/kernel/mcount.S
-> +++ b/arch/microblaze/kernel/mcount.S
-> @@ -91,11 +91,6 @@ ENTRY(ftrace_caller)
->  #endif /* CONFIG_DYNAMIC_FTRACE */
->  	SAVE_REGS
->  	swi	r15, r1, 0;
-> -	/* MS: HAVE_FUNCTION_TRACE_MCOUNT_TEST begin of checking */
-> -	lwi	r5, r0, function_trace_stop;
-> -	bneid	r5, end;
-> -	nop;
-> -	/* MS: HAVE_FUNCTION_TRACE_MCOUNT_TEST end of checking */
->  #ifdef CONFIG_FUNCTION_GRAPH_TRACER
->  #ifndef CONFIG_DYNAMIC_FTRACE
->  	lwi	r5, r0, ftrace_graph_return;
+> -	select HAVE_FUNCTION_TRACE_MCOUNT_TEST
+>  	select HAVE_KERNEL_BZIP2
+>  	select HAVE_KERNEL_GZIP
+>  	select HAVE_KERNEL_LZO
+> diff --git a/arch/metag/kernel/ftrace_stub.S b/arch/metag/kernel/ftrace_stub.S
+> index e70bff745bdd..3acc288217c0 100644
+> --- a/arch/metag/kernel/ftrace_stub.S
+> +++ b/arch/metag/kernel/ftrace_stub.S
+> @@ -16,13 +16,6 @@ _mcount_wrapper:
+>  	.global _ftrace_caller
+>  	.type	_ftrace_caller,function
+>  _ftrace_caller:
+> -	MOVT    D0Re0,#HI(_function_trace_stop)
+> -	ADD	D0Re0,D0Re0,#LO(_function_trace_stop)
+> -	GETD	D0Re0,[D0Re0]
+> -	CMP	D0Re0,#0
+> -	BEQ	$Lcall_stub
+> -	MOV	PC,D0.4
+> -$Lcall_stub:
+>  	MSETL   [A0StP], D0Ar6, D0Ar4, D0Ar2, D0.4
+>  	MOV     D1Ar1, D0.4
+>  	MOV     D0Ar2, D1RtP
+> @@ -42,13 +35,6 @@ _ftrace_call:
+>  	.global	_mcount_wrapper
+>  	.type	_mcount_wrapper,function
+>  _mcount_wrapper:
+> -	MOVT    D0Re0,#HI(_function_trace_stop)
+> -	ADD	D0Re0,D0Re0,#LO(_function_trace_stop)
+> -	GETD	D0Re0,[D0Re0]
+> -	CMP	D0Re0,#0
+> -	BEQ	$Lcall_mcount
+> -	MOV	PC,D0.4
+> -$Lcall_mcount:
+>  	MSETL   [A0StP], D0Ar6, D0Ar4, D0Ar2, D0.4
+>  	MOV     D1Ar1, D0.4
+>  	MOV     D0Ar2, D1RtP
 
