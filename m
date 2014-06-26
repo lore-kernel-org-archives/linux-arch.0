@@ -1,55 +1,55 @@
-From: David Drysdale <drysdale@google.com>
-Subject: Re: [PATCH v7 2/9] seccomp: split filter prep from check and apply
-Date: Thu, 26 Jun 2014 13:37:10 +0100
-Message-ID: <20140626123710.GA16204@google.com>
-References: <1403560693-21809-1-git-send-email-keescook@chromium.org>
- <1403560693-21809-3-git-send-email-keescook@chromium.org>
+From: Steven Rostedt <rostedt@goodmis.org>
+Subject: [RFA][PATCH 14/27] ftrace: Remove function_trace_stop check from list func
+Date: Thu, 26 Jun 2014 12:52:35 -0400
+Message-ID: <20140626165851.208049368@goodmis.org>
+References: <20140626165221.736847419@goodmis.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wg0-f73.google.com ([74.125.82.73]:63601 "EHLO
-	mail-wg0-f73.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754789AbaFZMhN (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 26 Jun 2014 08:37:13 -0400
-Received: by mail-wg0-f73.google.com with SMTP id b13so368257wgh.0
-        for <linux-arch@vger.kernel.org>; Thu, 26 Jun 2014 05:37:12 -0700 (PDT)
-Content-Disposition: inline
-In-Reply-To: <1403560693-21809-3-git-send-email-keescook@chromium.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Kees Cook <keescook@chromium.org>
-Cc: linux-kernel@vger.kernel.org, Andy Lutomirski <luto@amacapital.net>, Alexei Starovoitov <ast@plumgrid.com>, "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, Daniel Borkmann <dborkman@redhat.com>, Oleg Nesterov <oleg@redhat.com>, Will Drewry <wad@chromium.org>, Julien Tinnes <jln@chromium.org>, linux-api@vger.kernel.org, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-mips@linux-mips.org, linux-arch@vger.kernel.org, linux-security-module@vger.kernel.org
+Content-Type: text/plain; charset=UTF-8
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline; filename=0014-ftrace-Remove-function_trace_stop-check-from-list-fu.patch
+Sender: linux-kernel-owner@vger.kernel.org
+To: linux-kernel@vger.kernel.org
+Cc: Ingo Molnar <mingo@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Jiri Kosina <jkosina@suse.cz>, Josh Poimboeuf <notifications@github.com>
+List-Id: linux-arch.vger.kernel.org
 
-On Mon, Jun 23, 2014 at 02:58:06PM -0700, Kees Cook wrote:
-> In preparation for adding seccomp locking, move filter creation away
-> from where it is checked and applied. This will allow for locking whe=
-re
-> no memory allocation is happening. The validation, filter attachment,
-> and seccomp mode setting can all happen under the future locks.
->=20
-> Signed-off-by: Kees Cook <keescook@chromium.org>
-> ---
->  kernel/seccomp.c |   97 +++++++++++++++++++++++++++++++++++++-------=
-----------
->  1 file changed, 67 insertions(+), 30 deletions(-)
->=20
-> diff --git a/kernel/seccomp.c b/kernel/seccomp.c
-> index afb916c7e890..edc8c79ed16d 100644
-> --- a/kernel/seccomp.c
-> +++ b/kernel/seccomp.c
-> @@ -515,6 +551,7 @@ static long seccomp_set_mode(unsigned long seccom=
-p_mode, char __user *filter)
->  	current->seccomp.mode =3D seccomp_mode;
->  	set_thread_flag(TIF_SECCOMP);
->  out:
-> +	seccomp_filter_free(prepared);
->  	return ret;
->  }
+From: "Steven Rostedt (Red Hat)" <rostedt@goodmis.org>
 
-I think this needs to be inside #ifdef CONFIG_SECCOMP_FILTER to match
-the definition of seccomp_filter_free:
+function_trace_stop is no longer used to stop function tracing.
+Remove the check from __ftrace_ops_list_func().
 
-=2E./kernel/seccomp.c:554:2: error: implicit declaration of function =E2=
-=80=98seccomp_filter_free=E2=80=99 [-Werror=3Dimplicit-function-declara=
-tion]
+Also, call FTRACE_WARN_ON() instead of setting function_trace_stop
+if a ops has no func to call.
+
+Signed-off-by: Steven Rostedt <rostedt@goodmis.org>
+---
+ kernel/trace/ftrace.c | 8 ++------
+ 1 file changed, 2 insertions(+), 6 deletions(-)
+
+diff --git a/kernel/trace/ftrace.c b/kernel/trace/ftrace.c
+index 1e4e9bbb8dfa..34994885bb1d 100644
+--- a/kernel/trace/ftrace.c
++++ b/kernel/trace/ftrace.c
+@@ -4692,9 +4692,6 @@ __ftrace_ops_list_func(unsigned long ip, unsigned long parent_ip,
+ 	struct ftrace_ops *op;
+ 	int bit;
+ 
+-	if (function_trace_stop)
+-		return;
+-
+ 	bit = trace_test_and_set_recursion(TRACE_LIST_START, TRACE_LIST_MAX);
+ 	if (bit < 0)
+ 		return;
+@@ -4706,9 +4703,8 @@ __ftrace_ops_list_func(unsigned long ip, unsigned long parent_ip,
+ 	preempt_disable_notrace();
+ 	do_for_each_ftrace_op(op, ftrace_ops_list) {
+ 		if (ftrace_ops_test(op, ip, regs)) {
+-			if (WARN_ON(!op->func)) {
+-				function_trace_stop = 1;
+-				printk("op=%p %pS\n", op, op);
++			if (FTRACE_WARN_ON(!op->func)) {
++				pr_warn("op=%p %pS\n", op, op);
+ 				goto out;
+ 			}
+ 			op->func(ip, parent_ip, op, regs);
+-- 
+2.0.0
