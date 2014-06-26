@@ -1,127 +1,77 @@
 From: Steven Rostedt <rostedt@goodmis.org>
-Subject: [RFA][PATCH 04/27] ftrace-graph: Remove dependency of ftrace_stop() from
- ftrace_graph_stop()
-Date: Thu, 26 Jun 2014 12:52:25 -0400
-Message-ID: <20140626165848.568062800@goodmis.org>
+Subject: [RFA][PATCH 27/27] tracing: Remove function_trace_stop and
+ HAVE_FUNCTION_TRACE_MCOUNT_TEST
+Date: Thu, 26 Jun 2014 12:52:48 -0400
+Message-ID: <20140626165853.970373284@goodmis.org>
 References: <20140626165221.736847419@goodmis.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from cdptpa-outbound-snat.email.rr.com ([107.14.166.226]:56728 "EHLO
+Received: from cdptpa-outbound-snat.email.rr.com ([107.14.166.226]:30172 "EHLO
 	cdptpa-oedge-vip.email.rr.com" rhost-flags-OK-OK-OK-FAIL)
-	by vger.kernel.org with ESMTP id S1757894AbaFZQ7u (ORCPT
+	by vger.kernel.org with ESMTP id S1757915AbaFZQ64 (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 26 Jun 2014 12:59:50 -0400
-Content-Disposition: inline; filename=0004-ftrace-graph-Remove-dependency-of-ftrace_stop-from-f.patch
+	Thu, 26 Jun 2014 12:58:56 -0400
+Content-Disposition: inline; filename=0027-tracing-Remove-function_trace_stop-and-HAVE_FUNCTION.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: Ingo Molnar <mingo@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Jiri Kosina <jkosina@suse.cz>, Josh Poimboeuf <notifications@github.com>, Frederic Weisbecker <fweisbec@gmail.com>
+Cc: Ingo Molnar <mingo@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Jiri Kosina <jkosina@suse.cz>, Josh Poimboeuf <notifications@github.com>
 
 From: "Steven Rostedt (Red Hat)" <rostedt@goodmis.org>
 
-ftrace_stop() is going away as it disables parts of function tracing
-that affects users that should not be affected. But ftrace_graph_stop()
-is built on ftrace_stop(). Here's another example of killing all of
-function tracing because something went wrong with function graph
-tracing.
+All users of function_trace_stop and HAVE_FUNCTION_TRACE_MCOUNT_TEST have
+been removed. We can safely remove them from the kernel.
 
-Instead of disabling all users of function tracing on function graph
-error, disable only function graph tracing.
-
-A new function is created called ftrace_graph_is_dead(). This is called
-in strategic paths to prevent function graph from doing more harm and
-allowing at least a warning to be printed before the system crashes.
-
-NOTE: ftrace_stop() is still used until all the archs are converted over
-to use ftrace_graph_is_dead(). After that, ftrace_stop() will be removed.
-
-Cc: Frederic Weisbecker <fweisbec@gmail.com>
 Signed-off-by: Steven Rostedt <rostedt@goodmis.org>
 ---
- include/linux/ftrace.h               |  1 +
- kernel/trace/ftrace.c                |  5 -----
- kernel/trace/trace_functions_graph.c | 35 +++++++++++++++++++++++++++++++++++
- 3 files changed, 36 insertions(+), 5 deletions(-)
+ include/linux/ftrace.h | 2 --
+ kernel/trace/Kconfig   | 5 -----
+ kernel/trace/ftrace.c  | 3 ---
+ 3 files changed, 10 deletions(-)
 
 diff --git a/include/linux/ftrace.h b/include/linux/ftrace.h
-index 11e18fd58b1a..ec059c343e78 100644
+index 7a21d5358b74..ff860dbff75a 100644
 --- a/include/linux/ftrace.h
 +++ b/include/linux/ftrace.h
-@@ -750,6 +750,7 @@ extern char __irqentry_text_end[];
- extern int register_ftrace_graph(trace_func_graph_ret_t retfunc,
- 				trace_func_graph_ent_t entryfunc);
+@@ -129,8 +129,6 @@ struct ftrace_ops {
+ #endif
+ };
  
-+extern bool ftrace_graph_is_dead(void);
- extern void ftrace_graph_stop(void);
+-extern int function_trace_stop;
+-
+ /*
+  * Type of the current tracing.
+  */
+diff --git a/kernel/trace/Kconfig b/kernel/trace/Kconfig
+index d4409356f40d..a5da09c899dd 100644
+--- a/kernel/trace/Kconfig
++++ b/kernel/trace/Kconfig
+@@ -29,11 +29,6 @@ config HAVE_FUNCTION_GRAPH_FP_TEST
+ 	help
+ 	  See Documentation/trace/ftrace-design.txt
  
- /* The current handlers in use */
+-config HAVE_FUNCTION_TRACE_MCOUNT_TEST
+-	bool
+-	help
+-	  See Documentation/trace/ftrace-design.txt
+-
+ config HAVE_DYNAMIC_FTRACE
+ 	bool
+ 	help
 diff --git a/kernel/trace/ftrace.c b/kernel/trace/ftrace.c
-index 3a6d44c76af7..823984c20262 100644
+index 34994885bb1d..2241bfbe4fbc 100644
 --- a/kernel/trace/ftrace.c
 +++ b/kernel/trace/ftrace.c
-@@ -5439,9 +5439,4 @@ void ftrace_graph_exit_task(struct task_struct *t)
+@@ -80,9 +80,6 @@ static struct ftrace_ops ftrace_list_end __read_mostly = {
+ int ftrace_enabled __read_mostly;
+ static int last_ftrace_enabled;
  
- 	kfree(ret_stack);
- }
+-/* Quick disabling of function tracer. */
+-int function_trace_stop __read_mostly;
 -
--void ftrace_graph_stop(void)
--{
--	ftrace_stop();
--}
- #endif
-diff --git a/kernel/trace/trace_functions_graph.c b/kernel/trace/trace_functions_graph.c
-index 4de3e57f723c..3604690be70b 100644
---- a/kernel/trace/trace_functions_graph.c
-+++ b/kernel/trace/trace_functions_graph.c
-@@ -15,6 +15,38 @@
- #include "trace.h"
- #include "trace_output.h"
- 
-+static bool kill_ftrace_graph;
-+
-+/**
-+ * ftrace_graph_is_dead - returns true if ftrace_graph_stop() was called
-+ *
-+ * ftrace_graph_stop() is called when a severe error is detected in
-+ * the function graph tracing. This function is called by the critical
-+ * paths of function graph to keep those paths from doing any more harm.
-+ */
-+bool ftrace_graph_is_dead(void)
-+{
-+	return kill_ftrace_graph;
-+}
-+
-+/**
-+ * ftrace_graph_stop - set to permanently disable function graph tracincg
-+ *
-+ * In case of an error int function graph tracing, this is called
-+ * to try to keep function graph tracing from causing any more harm.
-+ * Usually this is pretty severe and this is called to try to at least
-+ * get a warning out to the user.
-+ */
-+void ftrace_graph_stop(void)
-+{
-+	kill_ftrace_graph = true;
-+	/*
-+	 * ftrace_stop() will be removed when all archs are updated to
-+	 * use ftrace_graph_is_dead()
-+	 */
-+	ftrace_stop();
-+}
-+
- /* When set, irq functions will be ignored */
- static int ftrace_graph_skip_irqs;
- 
-@@ -92,6 +124,9 @@ ftrace_push_return_trace(unsigned long ret, unsigned long func, int *depth,
- 	unsigned long long calltime;
- 	int index;
- 
-+	if (unlikely(ftrace_graph_is_dead()))
-+		return -EBUSY;
-+
- 	if (!current->ret_stack)
- 		return -EBUSY;
- 
+ /* Current function tracing op */
+ struct ftrace_ops *function_trace_op __read_mostly = &ftrace_list_end;
+ /* What to set function_trace_op to */
 -- 
 2.0.0
