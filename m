@@ -1,54 +1,112 @@
 From: Steven Rostedt <rostedt@goodmis.org>
-Subject: [RFA][PATCH 06/27] microblaze: ftrace: Add call to ftrace_graph_is_dead() in function
- graph code
-Date: Thu, 26 Jun 2014 12:52:27 -0400
-Message-ID: <20140626165849.119568888@goodmis.org>
+Subject: [RFA][PATCH 02/27] PM / Sleep: Remove ftrace_stop/start() from suspend and hibernate
+Date: Thu, 26 Jun 2014 12:52:23 -0400
+Message-ID: <20140626165848.128028586@goodmis.org>
 References: <20140626165221.736847419@goodmis.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from cdptpa-outbound-snat.email.rr.com ([107.14.166.226]:60325 "EHLO
+Received: from cdptpa-outbound-snat.email.rr.com ([107.14.166.226]:36024 "EHLO
 	cdptpa-oedge-vip.email.rr.com" rhost-flags-OK-OK-OK-FAIL)
-	by vger.kernel.org with ESMTP id S1757719AbaFZQ6v (ORCPT
+	by vger.kernel.org with ESMTP id S1758220AbaFZRGG (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 26 Jun 2014 12:58:51 -0400
-Content-Disposition: inline; filename=0006-microblaze-ftrace-Add-call-to-ftrace_graph_is_dead-i.patch
+	Thu, 26 Jun 2014 13:06:06 -0400
+Content-Disposition: inline; filename=0002-PM-Sleep-Remove-ftrace_stop-start-from-suspend-and-h.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: Ingo Molnar <mingo@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Jiri Kosina <jkosina@suse.cz>, Josh Poimboeuf <notifications@github.com>, Michal Simek <monstr@monstr.eu>
+Cc: Ingo Molnar <mingo@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Jiri Kosina <jkosina@suse.cz>, Josh Poimboeuf <notifications@github.com>
 
 From: "Steven Rostedt (Red Hat)" <rostedt@goodmis.org>
 
-ftrace_stop() is going away as it disables parts of function tracing
-that affects users that should not be affected. But ftrace_graph_stop()
-is built on ftrace_stop(). Here's another example of killing all of
-function tracing because something went wrong with function graph
-tracing.
+ftrace_stop() and ftrace_start() were added to the suspend and hibernate
+process because there was some function within the work flow that caused
+the system to reboot if it was traced. This function has recently been
+found (restore_processor_state()). Now there's no reason to disable
+function tracing while we are going into suspend or hibernate, which means
+that being able to trace this will help tremendously in debugging any
+issues with suspend or hibernate.
 
-Instead of disabling all users of function tracing on function graph
-error, disable only function graph tracing. To do this, the arch code
-must call ftrace_graph_is_dead() before it implements function graph.
+This also means that the ftrace_stop/start() functions can be removed
+and simplify the function tracing code a bit.
 
-Cc: Michal Simek <monstr@monstr.eu>
 Signed-off-by: Steven Rostedt <rostedt@goodmis.org>
 ---
- arch/microblaze/kernel/ftrace.c | 3 +++
- 1 file changed, 3 insertions(+)
+ kernel/power/hibernate.c | 6 ------
+ kernel/power/suspend.c   | 2 --
+ 2 files changed, 8 deletions(-)
 
-diff --git a/arch/microblaze/kernel/ftrace.c b/arch/microblaze/kernel/ftrace.c
-index bbcd2533766c..fc7b48a52cd5 100644
---- a/arch/microblaze/kernel/ftrace.c
-+++ b/arch/microblaze/kernel/ftrace.c
-@@ -27,6 +27,9 @@ void prepare_ftrace_return(unsigned long *parent, unsigned long self_addr)
- 	unsigned long return_hooker = (unsigned long)
- 				&return_to_handler;
+diff --git a/kernel/power/hibernate.c b/kernel/power/hibernate.c
+index 49e0a20fd010..ca7b1906c6c8 100644
+--- a/kernel/power/hibernate.c
++++ b/kernel/power/hibernate.c
+@@ -365,7 +365,6 @@ int hibernation_snapshot(int platform_mode)
+ 	}
  
-+	if (unlikely(ftrace_graph_is_dead()))
-+		return;
-+
- 	if (unlikely(atomic_read(&current->tracing_graph_pause)))
- 		return;
+ 	suspend_console();
+-	ftrace_stop();
+ 	pm_restrict_gfp_mask();
  
+ 	error = dpm_suspend(PMSG_FREEZE);
+@@ -391,7 +390,6 @@ int hibernation_snapshot(int platform_mode)
+ 	if (error || !in_suspend)
+ 		pm_restore_gfp_mask();
+ 
+-	ftrace_start();
+ 	resume_console();
+ 	dpm_complete(msg);
+ 
+@@ -494,7 +492,6 @@ int hibernation_restore(int platform_mode)
+ 
+ 	pm_prepare_console();
+ 	suspend_console();
+-	ftrace_stop();
+ 	pm_restrict_gfp_mask();
+ 	error = dpm_suspend_start(PMSG_QUIESCE);
+ 	if (!error) {
+@@ -502,7 +499,6 @@ int hibernation_restore(int platform_mode)
+ 		dpm_resume_end(PMSG_RECOVER);
+ 	}
+ 	pm_restore_gfp_mask();
+-	ftrace_start();
+ 	resume_console();
+ 	pm_restore_console();
+ 	return error;
+@@ -529,7 +525,6 @@ int hibernation_platform_enter(void)
+ 
+ 	entering_platform_hibernation = true;
+ 	suspend_console();
+-	ftrace_stop();
+ 	error = dpm_suspend_start(PMSG_HIBERNATE);
+ 	if (error) {
+ 		if (hibernation_ops->recover)
+@@ -573,7 +568,6 @@ int hibernation_platform_enter(void)
+  Resume_devices:
+ 	entering_platform_hibernation = false;
+ 	dpm_resume_end(PMSG_RESTORE);
+-	ftrace_start();
+ 	resume_console();
+ 
+  Close:
+diff --git a/kernel/power/suspend.c b/kernel/power/suspend.c
+index 4dd8822f732a..f6623da034d8 100644
+--- a/kernel/power/suspend.c
++++ b/kernel/power/suspend.c
+@@ -248,7 +248,6 @@ static int suspend_enter(suspend_state_t state, bool *wakeup)
+ 		goto Platform_wake;
+ 	}
+ 
+-	ftrace_stop();
+ 	error = disable_nonboot_cpus();
+ 	if (error || suspend_test(TEST_CPUS))
+ 		goto Enable_cpus;
+@@ -275,7 +274,6 @@ static int suspend_enter(suspend_state_t state, bool *wakeup)
+ 
+  Enable_cpus:
+ 	enable_nonboot_cpus();
+-	ftrace_start();
+ 
+  Platform_wake:
+ 	if (need_suspend_ops(state) && suspend_ops->wake)
 -- 
 2.0.0
