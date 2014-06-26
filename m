@@ -1,21 +1,21 @@
 From: Steven Rostedt <rostedt@goodmis.org>
-Subject: Re: [RFA][PATCH 21/27] MIPS: ftrace: Remove check of obsolete
+Subject: Re: [RFA][PATCH 22/27] microblaze: ftrace: Remove check of obsolete
  variable function_trace_stop
-Date: Thu, 26 Jun 2014 13:37:43 -0400
-Message-ID: <20140626133743.43f76e37@gandalf.local.home>
+Date: Thu, 26 Jun 2014 13:38:13 -0400
+Message-ID: <20140626133813.5eeed38f@gandalf.local.home>
 References: <20140626165221.736847419@goodmis.org>
-	<20140626165852.665644919@goodmis.org>
+	<20140626165852.891982463@goodmis.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 8BIT
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20140626165852.665644919@goodmis.org>
+In-Reply-To: <20140626165852.891982463@goodmis.org>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Ralf Baechle <ralf@linux-mips.org>
+To: Michal Simek <monstr@monstr.eu>
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, 26 Jun 2014 12:52:42 -0400
+On Thu, 26 Jun 2014 12:52:43 -0400
 Steven Rostedt <rostedt@goodmis.org> wrote:
 
 > From: "Steven Rostedt (Red Hat)" <rostedt@goodmis.org>
@@ -24,11 +24,6 @@ Steven Rostedt <rostedt@goodmis.org> wrote:
 > Remove the check for it in the arch code.
 > 
 > [ Please test this on your arch ]
-> 
-
-Bah! I forgot to add you to the Cc of this email :-p
-
-Anyway,
 
 From the cover letter, you were not Cc'd on.
 
@@ -60,47 +55,39 @@ intact.
 
 -- Steve
 
-
+> 
+> Cc: Michal Simek <monstr@monstr.eu>
 > Signed-off-by: Steven Rostedt <rostedt@goodmis.org>
 > ---
->  arch/mips/Kconfig         | 1 -
->  arch/mips/kernel/mcount.S | 7 -------
->  2 files changed, 8 deletions(-)
+>  arch/microblaze/Kconfig         | 1 -
+>  arch/microblaze/kernel/mcount.S | 5 -----
+>  2 files changed, 6 deletions(-)
 > 
-> diff --git a/arch/mips/Kconfig b/arch/mips/Kconfig
-> index 7a469acee33c..9ca52987fcd5 100644
-> --- a/arch/mips/Kconfig
-> +++ b/arch/mips/Kconfig
-> @@ -15,7 +15,6 @@ config MIPS
->  	select HAVE_BPF_JIT if !CPU_MICROMIPS
->  	select ARCH_HAVE_CUSTOM_GPIO_H
->  	select HAVE_FUNCTION_TRACER
-> -	select HAVE_FUNCTION_TRACE_MCOUNT_TEST
+> diff --git a/arch/microblaze/Kconfig b/arch/microblaze/Kconfig
+> index 9ae08541e30d..40e1c1dd0e24 100644
+> --- a/arch/microblaze/Kconfig
+> +++ b/arch/microblaze/Kconfig
+> @@ -22,7 +22,6 @@ config MICROBLAZE
 >  	select HAVE_DYNAMIC_FTRACE
 >  	select HAVE_FTRACE_MCOUNT_RECORD
->  	select HAVE_C_RECORDMCOUNT
-> diff --git a/arch/mips/kernel/mcount.S b/arch/mips/kernel/mcount.S
-> index 539b6294b613..00940d1d5c4f 100644
-> --- a/arch/mips/kernel/mcount.S
-> +++ b/arch/mips/kernel/mcount.S
-> @@ -74,10 +74,6 @@ _mcount:
->  #endif
->  
->  	/* When tracing is activated, it calls ftrace_caller+8 (aka here) */
-> -	lw	t1, function_trace_stop
-> -	bnez	t1, ftrace_stub
-> -	 nop
-> -
->  	MCOUNT_SAVE_REGS
->  #ifdef KBUILD_MCOUNT_RA_ADDRESS
->  	PTR_S	MCOUNT_RA_ADDRESS_REG, PT_R12(sp)
-> @@ -105,9 +101,6 @@ ftrace_stub:
->  #else	/* ! CONFIG_DYNAMIC_FTRACE */
->  
->  NESTED(_mcount, PT_SIZE, ra)
-> -	lw	t1, function_trace_stop
-> -	bnez	t1, ftrace_stub
-> -	 nop
->  	PTR_LA	t1, ftrace_stub
->  	PTR_L	t2, ftrace_trace_function /* Prepare t2 for (1) */
->  	bne	t1, t2, static_trace
+>  	select HAVE_FUNCTION_GRAPH_TRACER
+> -	select HAVE_FUNCTION_TRACE_MCOUNT_TEST
+>  	select HAVE_FUNCTION_TRACER
+>  	select HAVE_MEMBLOCK
+>  	select HAVE_MEMBLOCK_NODE_MAP
+> diff --git a/arch/microblaze/kernel/mcount.S b/arch/microblaze/kernel/mcount.S
+> index fc1e1322ce4c..fed9da5de8c4 100644
+> --- a/arch/microblaze/kernel/mcount.S
+> +++ b/arch/microblaze/kernel/mcount.S
+> @@ -91,11 +91,6 @@ ENTRY(ftrace_caller)
+>  #endif /* CONFIG_DYNAMIC_FTRACE */
+>  	SAVE_REGS
+>  	swi	r15, r1, 0;
+> -	/* MS: HAVE_FUNCTION_TRACE_MCOUNT_TEST begin of checking */
+> -	lwi	r5, r0, function_trace_stop;
+> -	bneid	r5, end;
+> -	nop;
+> -	/* MS: HAVE_FUNCTION_TRACE_MCOUNT_TEST end of checking */
+>  #ifdef CONFIG_FUNCTION_GRAPH_TRACER
+>  #ifndef CONFIG_DYNAMIC_FTRACE
+>  	lwi	r5, r0, ftrace_graph_return;
