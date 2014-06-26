@@ -1,32 +1,34 @@
 From: Steven Rostedt <rostedt@goodmis.org>
-Subject: Re: [RFA][PATCH 20/27] parisc: ftrace: Remove check of obsolete
+Subject: Re: [RFA][PATCH 21/27] MIPS: ftrace: Remove check of obsolete
  variable function_trace_stop
-Date: Thu, 26 Jun 2014 13:35:48 -0400
-Message-ID: <20140626133548.03f7b90a@gandalf.local.home>
+Date: Thu, 26 Jun 2014 13:37:43 -0400
+Message-ID: <20140626133743.43f76e37@gandalf.local.home>
 References: <20140626165221.736847419@goodmis.org>
-	<20140626165852.497955187@goodmis.org>
+	<20140626165852.665644919@goodmis.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 8BIT
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from cdptpa-outbound-snat.email.rr.com ([107.14.166.231]:24658 "EHLO
-	cdptpa-oedge-vip.email.rr.com" rhost-flags-OK-OK-OK-FAIL)
-	by vger.kernel.org with ESMTP id S932288AbaFZRfu convert rfc822-to-8bit
-	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 26 Jun 2014 13:35:50 -0400
-In-Reply-To: <20140626165852.497955187@goodmis.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Helge Deller <deller@gmx.de>, Kyle McMartin <kyle@mcmartin.ca>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20140626165852.665644919@goodmis.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Ralf Baechle <ralf@linux-mips.org>
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Thu, 26 Jun 2014 12:52:41 -0400
+On Thu, 26 Jun 2014 12:52:42 -0400
 Steven Rostedt <rostedt@goodmis.org> wrote:
 
 > From: "Steven Rostedt (Red Hat)" <rostedt@goodmis.org>
 > 
 > Nothing sets function_trace_stop to disable function tracing anymore.
 > Remove the check for it in the arch code.
+> 
+> [ Please test this on your arch ]
+> 
+
+Bah! I forgot to add you to the Cc of this email :-p
+
+Anyway,
 
 From the cover letter, you were not Cc'd on.
 
@@ -58,38 +60,47 @@ intact.
 
 -- Steve
 
-> 
-> Cc: Helge Deller <deller@gmx.de>
-> Cc: Kyle McMartin <kyle@mcmartin.ca>
+
 > Signed-off-by: Steven Rostedt <rostedt@goodmis.org>
 > ---
->  arch/parisc/Kconfig         | 1 -
->  arch/parisc/kernel/ftrace.c | 3 ---
->  2 files changed, 4 deletions(-)
+>  arch/mips/Kconfig         | 1 -
+>  arch/mips/kernel/mcount.S | 7 -------
+>  2 files changed, 8 deletions(-)
 > 
-> diff --git a/arch/parisc/Kconfig b/arch/parisc/Kconfig
-> index 108d48e652af..6e75e2030927 100644
-> --- a/arch/parisc/Kconfig
-> +++ b/arch/parisc/Kconfig
-> @@ -6,7 +6,6 @@ config PARISC
->  	select HAVE_OPROFILE
->  	select HAVE_FUNCTION_TRACER if 64BIT
->  	select HAVE_FUNCTION_GRAPH_TRACER if 64BIT
-> -	select HAVE_FUNCTION_TRACE_MCOUNT_TEST if 64BIT
->  	select ARCH_WANT_FRAME_POINTERS
->  	select RTC_CLASS
->  	select RTC_DRV_GENERIC
-> diff --git a/arch/parisc/kernel/ftrace.c b/arch/parisc/kernel/ftrace.c
-> index 5512ab32c5e0..559d400f9385 100644
-> --- a/arch/parisc/kernel/ftrace.c
-> +++ b/arch/parisc/kernel/ftrace.c
-> @@ -155,9 +155,6 @@ void ftrace_function_trampoline(unsigned long parent,
->  {
->  	extern ftrace_func_t ftrace_trace_function;
+> diff --git a/arch/mips/Kconfig b/arch/mips/Kconfig
+> index 7a469acee33c..9ca52987fcd5 100644
+> --- a/arch/mips/Kconfig
+> +++ b/arch/mips/Kconfig
+> @@ -15,7 +15,6 @@ config MIPS
+>  	select HAVE_BPF_JIT if !CPU_MICROMIPS
+>  	select ARCH_HAVE_CUSTOM_GPIO_H
+>  	select HAVE_FUNCTION_TRACER
+> -	select HAVE_FUNCTION_TRACE_MCOUNT_TEST
+>  	select HAVE_DYNAMIC_FTRACE
+>  	select HAVE_FTRACE_MCOUNT_RECORD
+>  	select HAVE_C_RECORDMCOUNT
+> diff --git a/arch/mips/kernel/mcount.S b/arch/mips/kernel/mcount.S
+> index 539b6294b613..00940d1d5c4f 100644
+> --- a/arch/mips/kernel/mcount.S
+> +++ b/arch/mips/kernel/mcount.S
+> @@ -74,10 +74,6 @@ _mcount:
+>  #endif
 >  
-> -	if (function_trace_stop)
-> -		return;
+>  	/* When tracing is activated, it calls ftrace_caller+8 (aka here) */
+> -	lw	t1, function_trace_stop
+> -	bnez	t1, ftrace_stub
+> -	 nop
 > -
->  	if (ftrace_trace_function != ftrace_stub) {
->  		ftrace_trace_function(parent, self_addr);
->  		return;
+>  	MCOUNT_SAVE_REGS
+>  #ifdef KBUILD_MCOUNT_RA_ADDRESS
+>  	PTR_S	MCOUNT_RA_ADDRESS_REG, PT_R12(sp)
+> @@ -105,9 +101,6 @@ ftrace_stub:
+>  #else	/* ! CONFIG_DYNAMIC_FTRACE */
+>  
+>  NESTED(_mcount, PT_SIZE, ra)
+> -	lw	t1, function_trace_stop
+> -	bnez	t1, ftrace_stub
+> -	 nop
+>  	PTR_LA	t1, ftrace_stub
+>  	PTR_L	t2, ftrace_trace_function /* Prepare t2 for (1) */
+>  	bne	t1, t2, static_trace
