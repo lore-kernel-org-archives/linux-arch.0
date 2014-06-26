@@ -1,62 +1,91 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
 Received: from cdptpa-outbound-snat.email.rr.com ([107.14.166.226]:56938 "EHLO
 	cdptpa-oedge-vip.email.rr.com" rhost-flags-OK-OK-OK-FAIL)
-	by vger.kernel.org with ESMTP id S1758022AbaFZRAH (ORCPT
+	by vger.kernel.org with ESMTP id S1758028AbaFZRAI (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 26 Jun 2014 13:00:07 -0400
-Message-ID: <20140626165851.208049368@goodmis.org>
-Date: Thu, 26 Jun 2014 12:52:35 -0400
+	Thu, 26 Jun 2014 13:00:08 -0400
+Message-ID: <20140626165853.685458770@goodmis.org>
+Date: Thu, 26 Jun 2014 12:52:47 -0400
 From: Steven Rostedt <rostedt@goodmis.org>
-Subject: [RFA][PATCH 14/27] ftrace: Remove function_trace_stop check from list func
+Subject: [RFA][PATCH 26/27] s390/ftrace: remove check of obsolete variable function_trace_stop
 References: <20140626165221.736847419@goodmis.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
-Content-Disposition: inline; filename=0014-ftrace-Remove-function_trace_stop-check-from-list-fu.patch
+Content-Disposition: inline; filename=0026-s390-ftrace-remove-check-of-obsolete-variable-functi.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: Ingo Molnar <mingo@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Jiri Kosina <jkosina@suse.cz>, Josh Poimboeuf <notifications@github.com>
-Message-ID: <20140626165235.oJ31xlz0S6mKXbtp2VULXvkSCBXFdwtMnybQX0VemKM@z>
+Cc: Ingo Molnar <mingo@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Jiri Kosina <jkosina@suse.cz>, Josh Poimboeuf <notifications@github.com>, Heiko Carstens <heiko.carstens@de.ibm.com>
+Message-ID: <20140626165247.YyN93zMganMpSvYJgkhSaOyHoGK8ybDOZkgjbp4Gc8Y@z>
 
-From: "Steven Rostedt (Red Hat)" <rostedt@goodmis.org>
+From: Heiko Carstens <heiko.carstens@de.ibm.com>
 
-function_trace_stop is no longer used to stop function tracing.
-Remove the check from __ftrace_ops_list_func().
+Remove check of obsolete variable function_trace_stop as requested by
+Steven Rostedt.
 
-Also, call FTRACE_WARN_ON() instead of setting function_trace_stop
-if a ops has no func to call.
-
+Signed-off-by: Heiko Carstens <heiko.carstens@de.ibm.com>
 Signed-off-by: Steven Rostedt <rostedt@goodmis.org>
 ---
- kernel/trace/ftrace.c | 8 ++------
- 1 file changed, 2 insertions(+), 6 deletions(-)
+ arch/s390/Kconfig           |  1 -
+ arch/s390/kernel/mcount.S   | 10 +++-------
+ arch/s390/kernel/mcount64.S |  3 ---
+ 3 files changed, 3 insertions(+), 11 deletions(-)
 
-diff --git a/kernel/trace/ftrace.c b/kernel/trace/ftrace.c
-index 1e4e9bbb8dfa..34994885bb1d 100644
---- a/kernel/trace/ftrace.c
-+++ b/kernel/trace/ftrace.c
-@@ -4692,9 +4692,6 @@ __ftrace_ops_list_func(unsigned long ip, unsigned long parent_ip,
- 	struct ftrace_ops *op;
- 	int bit;
+diff --git a/arch/s390/Kconfig b/arch/s390/Kconfig
+index bb63499fc5d3..f5af5f6ef0f4 100644
+--- a/arch/s390/Kconfig
++++ b/arch/s390/Kconfig
+@@ -116,7 +116,6 @@ config S390
+ 	select HAVE_FTRACE_MCOUNT_RECORD
+ 	select HAVE_FUNCTION_GRAPH_TRACER
+ 	select HAVE_FUNCTION_TRACER
+-	select HAVE_FUNCTION_TRACE_MCOUNT_TEST
+ 	select HAVE_FUTEX_CMPXCHG if FUTEX
+ 	select HAVE_KERNEL_BZIP2
+ 	select HAVE_KERNEL_GZIP
+diff --git a/arch/s390/kernel/mcount.S b/arch/s390/kernel/mcount.S
+index 08dcf21cb8df..433c6dbfa442 100644
+--- a/arch/s390/kernel/mcount.S
++++ b/arch/s390/kernel/mcount.S
+@@ -21,13 +21,9 @@ ENTRY(_mcount)
+ ENTRY(ftrace_caller)
+ #endif
+ 	stm	%r2,%r5,16(%r15)
+-	bras	%r1,2f
++	bras	%r1,1f
+ 0:	.long	ftrace_trace_function
+-1:	.long	function_trace_stop
+-2:	l	%r2,1b-0b(%r1)
+-	icm	%r2,0xf,0(%r2)
+-	jnz	3f
+-	st	%r14,56(%r15)
++1:	st	%r14,56(%r15)
+ 	lr	%r0,%r15
+ 	ahi	%r15,-96
+ 	l	%r3,100(%r15)
+@@ -50,7 +46,7 @@ ENTRY(ftrace_graph_caller)
+ #endif
+ 	ahi	%r15,96
+ 	l	%r14,56(%r15)
+-3:	lm	%r2,%r5,16(%r15)
++	lm	%r2,%r5,16(%r15)
+ 	br	%r14
  
--	if (function_trace_stop)
--		return;
--
- 	bit = trace_test_and_set_recursion(TRACE_LIST_START, TRACE_LIST_MAX);
- 	if (bit < 0)
- 		return;
-@@ -4706,9 +4703,8 @@ __ftrace_ops_list_func(unsigned long ip, unsigned long parent_ip,
- 	preempt_disable_notrace();
- 	do_for_each_ftrace_op(op, ftrace_ops_list) {
- 		if (ftrace_ops_test(op, ip, regs)) {
--			if (WARN_ON(!op->func)) {
--				function_trace_stop = 1;
--				printk("op=%p %pS\n", op, op);
-+			if (FTRACE_WARN_ON(!op->func)) {
-+				pr_warn("op=%p %pS\n", op, op);
- 				goto out;
- 			}
- 			op->func(ip, parent_ip, op, regs);
+ #ifdef CONFIG_FUNCTION_GRAPH_TRACER
+diff --git a/arch/s390/kernel/mcount64.S b/arch/s390/kernel/mcount64.S
+index 1c52eae3396a..c67a8bf0fd9a 100644
+--- a/arch/s390/kernel/mcount64.S
++++ b/arch/s390/kernel/mcount64.S
+@@ -20,9 +20,6 @@ ENTRY(_mcount)
+ 
+ ENTRY(ftrace_caller)
+ #endif
+-	larl	%r1,function_trace_stop
+-	icm	%r1,0xf,0(%r1)
+-	bnzr	%r14
+ 	stmg	%r2,%r5,32(%r15)
+ 	stg	%r14,112(%r15)
+ 	lgr	%r1,%r15
 -- 
 2.0.0
 
