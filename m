@@ -1,20 +1,20 @@
 From: Steven Rostedt <rostedt@goodmis.org>
-Subject: Re: [RFA][PATCH 23/27] metag: ftrace: Remove check of obsolete
+Subject: Re: [RFA][PATCH 24/27] Blackfin: ftrace: Remove check of obsolete
  variable function_trace_stop
-Date: Thu, 26 Jun 2014 13:38:48 -0400
-Message-ID: <20140626133848.0567e365@gandalf.local.home>
+Date: Thu, 26 Jun 2014 13:39:41 -0400
+Message-ID: <20140626133941.174fdb2e@gandalf.local.home>
 References: <20140626165221.736847419@goodmis.org>
-	<20140626165853.049120840@goodmis.org>
+	<20140626165853.211937817@goodmis.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 8BIT
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20140626165853.049120840@goodmis.org>
+In-Reply-To: <20140626165853.211937817@goodmis.org>
 Sender: linux-kernel-owner@vger.kernel.org
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, James Hogan <james.hogan@imgtec.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Mike Frysinger <vapier@gentoo.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, 26 Jun 2014 12:52:44 -0400
+On Thu, 26 Jun 2014 12:52:45 -0400
 Steven Rostedt <rostedt@goodmis.org> wrote:
 
 > From: "Steven Rostedt (Red Hat)" <rostedt@goodmis.org>
@@ -55,54 +55,58 @@ intact.
 -- Steve
 
 > 
-> Cc: James Hogan <james.hogan@imgtec.com>
+> Cc: Mike Frysinger <vapier@gentoo.org>
 > Signed-off-by: Steven Rostedt <rostedt@goodmis.org>
 > ---
->  arch/metag/Kconfig              |  1 -
->  arch/metag/kernel/ftrace_stub.S | 14 --------------
->  2 files changed, 15 deletions(-)
+>  arch/blackfin/Kconfig               |  1 -
+>  arch/blackfin/kernel/ftrace-entry.S | 18 ------------------
+>  2 files changed, 19 deletions(-)
 > 
-> diff --git a/arch/metag/Kconfig b/arch/metag/Kconfig
-> index 499b7610eaaf..0b389a81c43a 100644
-> --- a/arch/metag/Kconfig
-> +++ b/arch/metag/Kconfig
-> @@ -13,7 +13,6 @@ config METAG
->  	select HAVE_DYNAMIC_FTRACE
+> diff --git a/arch/blackfin/Kconfig b/arch/blackfin/Kconfig
+> index f81e7b989fff..ed30699cc635 100644
+> --- a/arch/blackfin/Kconfig
+> +++ b/arch/blackfin/Kconfig
+> @@ -18,7 +18,6 @@ config BLACKFIN
 >  	select HAVE_FTRACE_MCOUNT_RECORD
+>  	select HAVE_FUNCTION_GRAPH_TRACER
 >  	select HAVE_FUNCTION_TRACER
 > -	select HAVE_FUNCTION_TRACE_MCOUNT_TEST
->  	select HAVE_KERNEL_BZIP2
->  	select HAVE_KERNEL_GZIP
->  	select HAVE_KERNEL_LZO
-> diff --git a/arch/metag/kernel/ftrace_stub.S b/arch/metag/kernel/ftrace_stub.S
-> index e70bff745bdd..3acc288217c0 100644
-> --- a/arch/metag/kernel/ftrace_stub.S
-> +++ b/arch/metag/kernel/ftrace_stub.S
-> @@ -16,13 +16,6 @@ _mcount_wrapper:
->  	.global _ftrace_caller
->  	.type	_ftrace_caller,function
->  _ftrace_caller:
-> -	MOVT    D0Re0,#HI(_function_trace_stop)
-> -	ADD	D0Re0,D0Re0,#LO(_function_trace_stop)
-> -	GETD	D0Re0,[D0Re0]
-> -	CMP	D0Re0,#0
-> -	BEQ	$Lcall_stub
-> -	MOV	PC,D0.4
-> -$Lcall_stub:
->  	MSETL   [A0StP], D0Ar6, D0Ar4, D0Ar2, D0.4
->  	MOV     D1Ar1, D0.4
->  	MOV     D0Ar2, D1RtP
-> @@ -42,13 +35,6 @@ _ftrace_call:
->  	.global	_mcount_wrapper
->  	.type	_mcount_wrapper,function
->  _mcount_wrapper:
-> -	MOVT    D0Re0,#HI(_function_trace_stop)
-> -	ADD	D0Re0,D0Re0,#LO(_function_trace_stop)
-> -	GETD	D0Re0,[D0Re0]
-> -	CMP	D0Re0,#0
-> -	BEQ	$Lcall_mcount
-> -	MOV	PC,D0.4
-> -$Lcall_mcount:
->  	MSETL   [A0StP], D0Ar6, D0Ar4, D0Ar2, D0.4
->  	MOV     D1Ar1, D0.4
->  	MOV     D0Ar2, D1RtP
+>  	select HAVE_IDE
+>  	select HAVE_KERNEL_GZIP if RAMKERNEL
+>  	select HAVE_KERNEL_BZIP2 if RAMKERNEL
+> diff --git a/arch/blackfin/kernel/ftrace-entry.S b/arch/blackfin/kernel/ftrace-entry.S
+> index 7eed00bbd26d..28d059540424 100644
+> --- a/arch/blackfin/kernel/ftrace-entry.S
+> +++ b/arch/blackfin/kernel/ftrace-entry.S
+> @@ -33,15 +33,6 @@ ENDPROC(__mcount)
+>   * function will be waiting there.  mmmm pie.
+>   */
+>  ENTRY(_ftrace_caller)
+> -# ifdef CONFIG_HAVE_FUNCTION_TRACE_MCOUNT_TEST
+> -	/* optional micro optimization: return if stopped */
+> -	p1.l = _function_trace_stop;
+> -	p1.h = _function_trace_stop;
+> -	r3 = [p1];
+> -	cc = r3 == 0;
+> -	if ! cc jump _ftrace_stub (bp);
+> -# endif
+> -
+>  	/* save first/second/third function arg and the return register */
+>  	[--sp] = r2;
+>  	[--sp] = r0;
+> @@ -83,15 +74,6 @@ ENDPROC(_ftrace_caller)
+>  
+>  /* See documentation for _ftrace_caller */
+>  ENTRY(__mcount)
+> -# ifdef CONFIG_HAVE_FUNCTION_TRACE_MCOUNT_TEST
+> -	/* optional micro optimization: return if stopped */
+> -	p1.l = _function_trace_stop;
+> -	p1.h = _function_trace_stop;
+> -	r3 = [p1];
+> -	cc = r3 == 0;
+> -	if ! cc jump _ftrace_stub (bp);
+> -# endif
+> -
+>  	/* save third function arg early so we can do testing below */
+>  	[--sp] = r2;
+>  
