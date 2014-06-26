@@ -1,55 +1,69 @@
 From: Steven Rostedt <rostedt@goodmis.org>
-Subject: [RFA][PATCH 09/27] powerpc/ftrace: Add call to ftrace_graph_is_dead() in function graph
- code
-Date: Thu, 26 Jun 2014 12:52:30 -0400
-Message-ID: <20140626165850.107467021@goodmis.org>
+Subject: [RFA][PATCH 01/27] x86, power, suspend: Annotate restore_processor_state() with notrace
+Date: Thu, 26 Jun 2014 12:52:22 -0400
+Message-ID: <20140626165847.934409696@goodmis.org>
 References: <20140626165221.736847419@goodmis.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from cdptpa-outbound-snat.email.rr.com ([107.14.166.226]:30172 "EHLO
-	cdptpa-oedge-vip.email.rr.com" rhost-flags-OK-OK-OK-FAIL)
-	by vger.kernel.org with ESMTP id S1757372AbaFZQ6w (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 26 Jun 2014 12:58:52 -0400
-Content-Disposition: inline; filename=0009-powerpc-ftrace-Add-call-to-ftrace_graph_is_dead-in-f.patch
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline; filename=0001-x86-power-suspend-Annotate-restore_processor_state-w.patch
+Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
-Cc: Ingo Molnar <mingo@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Jiri Kosina <jkosina@suse.cz>, Josh Poimboeuf <notifications@github.com>, Anton Blanchard <anton@samba.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Ingo Molnar <mingo@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Jiri Kosina <jkosina@suse.cz>, Josh Poimboeuf <notifications@github.com>
+List-Id: linux-arch.vger.kernel.org
 
 From: "Steven Rostedt (Red Hat)" <rostedt@goodmis.org>
 
-ftrace_stop() is going away as it disables parts of function tracing
-that affects users that should not be affected. But ftrace_graph_stop()
-is built on ftrace_stop(). Here's another example of killing all of
-function tracing because something went wrong with function graph
-tracing.
+ftrace_stop() is used to stop function tracing during suspend and resume
+which removes a lot of possible debugging opportunities with tracing.
+The reason was that some function in the resume path was causing a triple
+fault if it were to be traced. The issue I found was that doing something
+as simple as calling smp_processor_id() would reboot the box!
 
-Instead of disabling all users of function tracing on function graph
-error, disable only function graph tracing. To do this, the arch code
-must call ftrace_graph_is_dead() before it implements function graph.
+When function tracing was first created I didn't have a good way to figure
+out what function was having issues, or it looked to be multiple ones. To
+fix it, we just created a big hammer approach to the problem which was to
+add a flag in the mcount trampoline that could be checked and not call
+the traced functions.
 
-Cc: Anton Blanchard <anton@samba.org>
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Lately I developed better ways to find problem functions and I can bisect
+down to see what function is causing the issue. I removed the flag that
+stopped tracing and proceeded to find the problem function and it ended
+up being restore_processor_state(). This function makes sense as when the
+CPU comes back online from a suspend it calls this function to set up
+registers, amongst them the GS register, which stores things such as
+what CPU the processor is (if you call smp_processor_id() without this
+set up properly, it would fault).
+
+By making restore_processor_state() notrace, the system can suspend and
+resume without the need of the big hammer tracing to stop.
+
 Signed-off-by: Steven Rostedt <rostedt@goodmis.org>
 ---
- arch/powerpc/kernel/ftrace.c | 3 +++
- 1 file changed, 3 insertions(+)
+ arch/x86/power/cpu.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
 
-diff --git a/arch/powerpc/kernel/ftrace.c b/arch/powerpc/kernel/ftrace.c
-index f202d0731b06..f8c0ce5523a5 100644
---- a/arch/powerpc/kernel/ftrace.c
-+++ b/arch/powerpc/kernel/ftrace.c
-@@ -527,6 +527,9 @@ void prepare_ftrace_return(unsigned long *parent, unsigned long self_addr)
- 	struct ftrace_graph_ent trace;
- 	unsigned long return_hooker = (unsigned long)&return_to_handler;
+diff --git a/arch/x86/power/cpu.c b/arch/x86/power/cpu.c
+index 424f4c97a44d..6ec7910f59bf 100644
+--- a/arch/x86/power/cpu.c
++++ b/arch/x86/power/cpu.c
+@@ -165,7 +165,7 @@ static void fix_processor_context(void)
+  *		by __save_processor_state()
+  *	@ctxt - structure to load the registers contents from
+  */
+-static void __restore_processor_state(struct saved_context *ctxt)
++static void notrace __restore_processor_state(struct saved_context *ctxt)
+ {
+ 	if (ctxt->misc_enable_saved)
+ 		wrmsrl(MSR_IA32_MISC_ENABLE, ctxt->misc_enable);
+@@ -239,7 +239,7 @@ static void __restore_processor_state(struct saved_context *ctxt)
+ }
  
-+	if (unlikely(ftrace_graph_is_dead()))
-+		return;
-+
- 	if (unlikely(atomic_read(&current->tracing_graph_pause)))
- 		return;
- 
+ /* Needed by apm.c */
+-void restore_processor_state(void)
++void notrace restore_processor_state(void)
+ {
+ 	__restore_processor_state(&saved_context);
+ }
 -- 
 2.0.0
