@@ -1,55 +1,83 @@
 From: Steven Rostedt <rostedt@goodmis.org>
-Subject: [RFA][PATCH 08/27] parisc: ftrace: Add call to ftrace_graph_is_dead() in function graph
- code
-Date: Thu, 26 Jun 2014 12:52:29 -0400
-Message-ID: <20140626165849.694583919@goodmis.org>
+Subject: [RFA][PATCH 17/27] tile: ftrace: Remove check of obsolete variable function_trace_stop
+Date: Thu, 26 Jun 2014 12:52:38 -0400
+Message-ID: <20140626165852.012558348@goodmis.org>
 References: <20140626165221.736847419@goodmis.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-arch-owner@vger.kernel.org>
 Received: from cdptpa-outbound-snat.email.rr.com ([107.14.166.226]:61228 "EHLO
 	cdptpa-oedge-vip.email.rr.com" rhost-flags-OK-OK-OK-FAIL)
-	by vger.kernel.org with ESMTP id S1758021AbaFZRAH (ORCPT
+	by vger.kernel.org with ESMTP id S1758023AbaFZRAH (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
 	Thu, 26 Jun 2014 13:00:07 -0400
-Content-Disposition: inline; filename=0008-parisc-ftrace-Add-call-to-ftrace_graph_is_dead-in-fu.patch
+Content-Disposition: inline; filename=0017-tile-ftrace-Remove-check-of-obsolete-variable-functi.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: Ingo Molnar <mingo@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Jiri Kosina <jkosina@suse.cz>, Josh Poimboeuf <notifications@github.com>, Helge Deller <deller@gmx.de>, Kyle McMartin <kyle@mcmartin.ca>
+Cc: Ingo Molnar <mingo@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Jiri Kosina <jkosina@suse.cz>, Josh Poimboeuf <notifications@github.com>, Chris Metcalf <cmetcalf@tilera.com>
 
 From: "Steven Rostedt (Red Hat)" <rostedt@goodmis.org>
 
-ftrace_stop() is going away as it disables parts of function tracing
-that affects users that should not be affected. But ftrace_graph_stop()
-is built on ftrace_stop(). Here's another example of killing all of
-function tracing because something went wrong with function graph
-tracing.
+Nothing sets function_trace_stop to disable function tracing anymore.
+Remove the check for it in the arch code.
 
-Instead of disabling all users of function tracing on function graph
-error, disable only function graph tracing. To do this, the arch code
-must call ftrace_graph_is_dead() before it implements function graph.
+[ Please test this on your arch ]
 
-Cc: Helge Deller <deller@gmx.de>
-Cc: Kyle McMartin <kyle@mcmartin.ca>
+Cc: Chris Metcalf <cmetcalf@tilera.com>
 Signed-off-by: Steven Rostedt <rostedt@goodmis.org>
 ---
- arch/parisc/kernel/ftrace.c | 3 +++
- 1 file changed, 3 insertions(+)
+ arch/tile/Kconfig            |  1 -
+ arch/tile/kernel/mcount_64.S | 18 ------------------
+ 2 files changed, 19 deletions(-)
 
-diff --git a/arch/parisc/kernel/ftrace.c b/arch/parisc/kernel/ftrace.c
-index 5beb97bafbb1..5512ab32c5e0 100644
---- a/arch/parisc/kernel/ftrace.c
-+++ b/arch/parisc/kernel/ftrace.c
-@@ -112,6 +112,9 @@ void prepare_ftrace_return(unsigned long *parent, unsigned long self_addr)
- 	unsigned long long calltime;
- 	struct ftrace_graph_ent trace;
+diff --git a/arch/tile/Kconfig b/arch/tile/Kconfig
+index 4f3006b600e3..7fcd492adbfc 100644
+--- a/arch/tile/Kconfig
++++ b/arch/tile/Kconfig
+@@ -128,7 +128,6 @@ config TILEGX
+ 	select SPARSE_IRQ
+ 	select GENERIC_IRQ_LEGACY_ALLOC_HWIRQ
+ 	select HAVE_FUNCTION_TRACER
+-	select HAVE_FUNCTION_TRACE_MCOUNT_TEST
+ 	select HAVE_FUNCTION_GRAPH_TRACER
+ 	select HAVE_DYNAMIC_FTRACE
+ 	select HAVE_FTRACE_MCOUNT_RECORD
+diff --git a/arch/tile/kernel/mcount_64.S b/arch/tile/kernel/mcount_64.S
+index 70d7bb0c4d8f..3c2b8d5e1d1a 100644
+--- a/arch/tile/kernel/mcount_64.S
++++ b/arch/tile/kernel/mcount_64.S
+@@ -77,15 +77,6 @@ STD_ENDPROC(__mcount)
  
-+	if (unlikely(ftrace_graph_is_dead()))
-+		return;
-+
- 	if (unlikely(atomic_read(&current->tracing_graph_pause)))
- 		return;
+ 	.align	64
+ STD_ENTRY(ftrace_caller)
+-	moveli	r11, hw2_last(function_trace_stop)
+-	{ shl16insli	r11, r11, hw1(function_trace_stop); move r12, lr }
+-	{ shl16insli	r11, r11, hw0(function_trace_stop); move lr, r10 }
+-	ld	r11, r11
+-	beqz	r11, 1f
+-	jrp	r12
+-
+-1:
+-	{ move	r10, lr; move	lr, r12 }
+ 	MCOUNT_SAVE_REGS
  
+ 	/* arg1: self return address */
+@@ -119,15 +110,6 @@ STD_ENDPROC(ftrace_caller)
+ 
+ 	.align	64
+ STD_ENTRY(__mcount)
+-	moveli	r11, hw2_last(function_trace_stop)
+-	{ shl16insli	r11, r11, hw1(function_trace_stop); move r12, lr }
+-	{ shl16insli	r11, r11, hw0(function_trace_stop); move lr, r10 }
+-	ld	r11, r11
+-	beqz	r11, 1f
+-	jrp	r12
+-
+-1:
+-	{ move	r10, lr; move	lr, r12 }
+ 	{
+ 	 moveli	r11, hw2_last(ftrace_trace_function)
+ 	 moveli	r13, hw2_last(ftrace_stub)
 -- 
 2.0.0
