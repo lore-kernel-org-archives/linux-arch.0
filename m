@@ -1,55 +1,79 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
 Received: from cdptpa-outbound-snat.email.rr.com ([107.14.166.226]:60325 "EHLO
 	cdptpa-oedge-vip.email.rr.com" rhost-flags-OK-OK-OK-FAIL)
-	by vger.kernel.org with ESMTP id S1757788AbaFZQ6w (ORCPT
+	by vger.kernel.org with ESMTP id S1757816AbaFZQ6x (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 26 Jun 2014 12:58:52 -0400
-Message-ID: <20140626165850.311953940@goodmis.org>
-Date: Thu, 26 Jun 2014 12:52:31 -0400
+	Thu, 26 Jun 2014 12:58:53 -0400
+Message-ID: <20140626165850.667742481@goodmis.org>
+Date: Thu, 26 Jun 2014 12:52:33 -0400
 From: Steven Rostedt <rostedt@goodmis.org>
-Subject: [RFA][PATCH 10/27] sh: ftrace: Add call to ftrace_graph_is_dead() in function graph code
+Subject: [RFA][PATCH 12/27] ftrace: Remove ftrace_start/stop()
 References: <20140626165221.736847419@goodmis.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
-Content-Disposition: inline; filename=0010-sh-ftrace-Add-call-to-ftrace_graph_is_dead-in-functi.patch
+Content-Disposition: inline; filename=0012-ftrace-Remove-ftrace_start-stop.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: Ingo Molnar <mingo@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Jiri Kosina <jkosina@suse.cz>, Josh Poimboeuf <notifications@github.com>, Paul Mundt <lethal@linux-sh.org>
-Message-ID: <20140626165231.tukUAnOXez2DWkOZ3OC2BCRzT8QrK4hiQoJXtAUz5Og@z>
+Cc: Ingo Molnar <mingo@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Jiri Kosina <jkosina@suse.cz>, Josh Poimboeuf <notifications@github.com>
+Message-ID: <20140626165233.anr7FrdvatiNY6M1v1jdybEU9z-XI2UbzgW3BLqDpdI@z>
 
 From: "Steven Rostedt (Red Hat)" <rostedt@goodmis.org>
 
-ftrace_stop() is going away as it disables parts of function tracing
-that affects users that should not be affected. But ftrace_graph_stop()
-is built on ftrace_stop(). Here's another example of killing all of
-function tracing because something went wrong with function graph
-tracing.
+There are no more kernel users of ftrace_stop() and ftrace_start().
+Remove them.
 
-Instead of disabling all users of function tracing on function graph
-error, disable only function graph tracing. To do this, the arch code
-must call ftrace_graph_is_dead() before it implements function graph.
-
-Cc: Paul Mundt <lethal@linux-sh.org>
 Signed-off-by: Steven Rostedt <rostedt@goodmis.org>
 ---
- arch/sh/kernel/ftrace.c | 3 +++
- 1 file changed, 3 insertions(+)
+ include/linux/ftrace.h | 28 ----------------------------
+ 1 file changed, 28 deletions(-)
 
-diff --git a/arch/sh/kernel/ftrace.c b/arch/sh/kernel/ftrace.c
-index 3c74f53db6db..079d70e6d74b 100644
---- a/arch/sh/kernel/ftrace.c
-+++ b/arch/sh/kernel/ftrace.c
-@@ -344,6 +344,9 @@ void prepare_ftrace_return(unsigned long *parent, unsigned long self_addr)
- 	struct ftrace_graph_ent trace;
- 	unsigned long return_hooker = (unsigned long)&return_to_handler;
+diff --git a/include/linux/ftrace.h b/include/linux/ftrace.h
+index ec059c343e78..d74a37d53271 100644
+--- a/include/linux/ftrace.h
++++ b/include/linux/ftrace.h
+@@ -143,32 +143,6 @@ enum ftrace_tracing_type_t {
+ /* Current tracing type, default is FTRACE_TYPE_ENTER */
+ extern enum ftrace_tracing_type_t ftrace_tracing_type;
  
-+	if (unlikely(ftrace_graph_is_dead()))
-+		return;
-+
- 	if (unlikely(atomic_read(&current->tracing_graph_pause)))
- 		return;
+-/**
+- * ftrace_stop - stop function tracer.
+- *
+- * A quick way to stop the function tracer. Note this an on off switch,
+- * it is not something that is recursive like preempt_disable.
+- * This does not disable the calling of mcount, it only stops the
+- * calling of functions from mcount.
+- */
+-static inline void ftrace_stop(void)
+-{
+-	function_trace_stop = 1;
+-}
+-
+-/**
+- * ftrace_start - start the function tracer.
+- *
+- * This function is the inverse of ftrace_stop. This does not enable
+- * the function tracing if the function tracer is disabled. This only
+- * sets the function tracer flag to continue calling the functions
+- * from mcount.
+- */
+-static inline void ftrace_start(void)
+-{
+-	function_trace_stop = 0;
+-}
+-
+ /*
+  * The ftrace_ops must be a static and should also
+  * be read_mostly.  These functions do modify read_mostly variables
+@@ -245,8 +219,6 @@ static inline int ftrace_nr_registered_ops(void)
+ }
+ static inline void clear_ftrace_function(void) { }
+ static inline void ftrace_kill(void) { }
+-static inline void ftrace_stop(void) { }
+-static inline void ftrace_start(void) { }
+ #endif /* CONFIG_FUNCTION_TRACER */
  
+ #ifdef CONFIG_STACK_TRACER
 -- 
 2.0.0
 
