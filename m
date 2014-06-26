@@ -1,51 +1,96 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cdptpa-outbound-snat.email.rr.com ([107.14.166.225]:26008 "EHLO
+Received: from cdptpa-outbound-snat.email.rr.com ([107.14.166.226]:30172 "EHLO
 	cdptpa-oedge-vip.email.rr.com" rhost-flags-OK-OK-OK-FAIL)
-	by vger.kernel.org with ESMTP id S1757789AbaFZQ6w (ORCPT
+	by vger.kernel.org with ESMTP id S1757824AbaFZQ6x (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 26 Jun 2014 12:58:52 -0400
-Message-ID: <20140626165850.468278492@goodmis.org>
-Date: Thu, 26 Jun 2014 12:52:32 -0400
+	Thu, 26 Jun 2014 12:58:53 -0400
+Message-ID: <20140626165851.536020319@goodmis.org>
+Date: Thu, 26 Jun 2014 12:52:36 -0400
 From: Steven Rostedt <rostedt@goodmis.org>
-Subject: [RFA][PATCH 11/27] ftrace-graph: Remove usage of ftrace_stop() in ftrace_graph_stop()
+Subject: [RFA][PATCH 15/27] ftrace: Remove check for HAVE_FUNCTION_TRACE_MCOUNT_TEST
 References: <20140626165221.736847419@goodmis.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
-Content-Disposition: inline; filename=0011-ftrace-graph-Remove-usage-of-ftrace_stop-in-ftrace_g.patch
+Content-Disposition: inline; filename=0015-ftrace-Remove-check-for-HAVE_FUNCTION_TRACE_MCOUNT_T.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: Ingo Molnar <mingo@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Jiri Kosina <jkosina@suse.cz>, Josh Poimboeuf <notifications@github.com>, Frederic Weisbecker <fweisbec@gmail.com>
-Message-ID: <20140626165232._00fjTglOtrNd4z5j773ME9-PWfWbTnvEAcp_PP0qCw@z>
+Cc: Ingo Molnar <mingo@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Jiri Kosina <jkosina@suse.cz>, Josh Poimboeuf <notifications@github.com>
+Message-ID: <20140626165236.RU-NBZoOMEAMXTOMTdOHlfDBMHj3p13-2hkBvj6LeZg@z>
 
 From: "Steven Rostedt (Red Hat)" <rostedt@goodmis.org>
 
-All archs now use ftrace_graph_is_dead() to stop function graph
-tracing. Remove the usage of ftrace_stop() as that is no longer
-needed.
+function_trace_stop is no longer used to disable function tracing.
+This means that archs are no longer limited if it does not support
+checking this variable in the mcount trampoline.
 
-Cc: Frederic Weisbecker <fweisbec@gmail.com>
+No need to use the list_func for archs that do not support this
+obsolete method.
+
 Signed-off-by: Steven Rostedt <rostedt@goodmis.org>
 ---
- kernel/trace/trace_functions_graph.c | 5 -----
- 1 file changed, 5 deletions(-)
+ Documentation/trace/ftrace-design.txt | 26 --------------------------
+ include/linux/ftrace.h                |  3 +--
+ 2 files changed, 1 insertion(+), 28 deletions(-)
 
-diff --git a/kernel/trace/trace_functions_graph.c b/kernel/trace/trace_functions_graph.c
-index 3604690be70b..2c944e6c4a9d 100644
---- a/kernel/trace/trace_functions_graph.c
-+++ b/kernel/trace/trace_functions_graph.c
-@@ -40,11 +40,6 @@ bool ftrace_graph_is_dead(void)
- void ftrace_graph_stop(void)
- {
- 	kill_ftrace_graph = true;
--	/*
--	 * ftrace_stop() will be removed when all archs are updated to
--	 * use ftrace_graph_is_dead()
--	 */
--	ftrace_stop();
- }
+diff --git a/Documentation/trace/ftrace-design.txt b/Documentation/trace/ftrace-design.txt
+index 3f669b9e8852..dd5f916b351d 100644
+--- a/Documentation/trace/ftrace-design.txt
++++ b/Documentation/trace/ftrace-design.txt
+@@ -102,30 +102,6 @@ extern void mcount(void);
+ EXPORT_SYMBOL(mcount);
  
- /* When set, irq functions will be ignored */
+ 
+-HAVE_FUNCTION_TRACE_MCOUNT_TEST
+--------------------------------
+-
+-This is an optional optimization for the normal case when tracing is turned off
+-in the system.  If you do not enable this Kconfig option, the common ftrace
+-code will take care of doing the checking for you.
+-
+-To support this feature, you only need to check the function_trace_stop
+-variable in the mcount function.  If it is non-zero, there is no tracing to be
+-done at all, so you can return.
+-
+-This additional pseudo code would simply be:
+-void mcount(void)
+-{
+-	/* save any bare state needed in order to do initial checking */
+-
+-+	if (function_trace_stop)
+-+		return;
+-
+-	extern void (*ftrace_trace_function)(unsigned long, unsigned long);
+-	if (ftrace_trace_function != ftrace_stub)
+-...
+-
+-
+ HAVE_FUNCTION_GRAPH_TRACER
+ --------------------------
+ 
+@@ -328,8 +304,6 @@ void mcount(void)
+ 
+ void ftrace_caller(void)
+ {
+-	/* implement HAVE_FUNCTION_TRACE_MCOUNT_TEST if you desire */
+-
+ 	/* save all state needed by the ABI (see paragraph above) */
+ 
+ 	unsigned long frompc = ...;
+diff --git a/include/linux/ftrace.h b/include/linux/ftrace.h
+index d74a37d53271..7a21d5358b74 100644
+--- a/include/linux/ftrace.h
++++ b/include/linux/ftrace.h
+@@ -33,8 +33,7 @@
+  * features, then it must call an indirect function that
+  * does. Or at least does enough to prevent any unwelcomed side effects.
+  */
+-#if !defined(CONFIG_HAVE_FUNCTION_TRACE_MCOUNT_TEST) || \
+-	!ARCH_SUPPORTS_FTRACE_OPS
++#if !ARCH_SUPPORTS_FTRACE_OPS
+ # define FTRACE_FORCE_LIST_FUNC 1
+ #else
+ # define FTRACE_FORCE_LIST_FUNC 0
 -- 
 2.0.0
 
