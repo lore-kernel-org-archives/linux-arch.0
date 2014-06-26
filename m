@@ -1,58 +1,34 @@
-From: David Miller <davem@davemloft.net>
-Subject: Re: [PATCH 01/22] pci-dma-compat: Add pci_zalloc_consistent helper
-Date: Wed, 25 Jun 2014 15:31:09 -0700 (PDT)
-Message-ID: <20140625.153109.1658452238116055408.davem@davemloft.net>
-References: <2248b3ffe86cd8995a809bf7e2871f38039979c1.1403530604.git.joe@perches.com>
-	<20140625122755.152685fadbc9cffe7a298dc6@linux-foundation.org>
-	<1403733111.24788.8.camel@joe-AO725>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH 0/6] RCU get_user_pages_fast and __get_user_pages_fast
+Date: Thu, 26 Jun 2014 09:53:34 +0200
+Message-ID: <20140626075334.GA12054@laptop.lan>
+References: <1403710824-24340-1-git-send-email-steve.capper@linaro.org>
+ <20140625134235.4f32768faa1a4380a62458ff@linux-foundation.org>
 Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from shards.monkeyblade.net ([149.20.54.216]:38742 "EHLO
-	shards.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755226AbaFYWbM (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 25 Jun 2014 18:31:12 -0400
-In-Reply-To: <1403733111.24788.8.camel@joe-AO725>
+Received: from casper.infradead.org ([85.118.1.10]:33824 "EHLO
+	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754046AbaFZHxk (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 26 Jun 2014 03:53:40 -0400
+Content-Disposition: inline
+In-Reply-To: <20140625134235.4f32768faa1a4380a62458ff@linux-foundation.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: joe@perches.com
-Cc: akpm@linux-foundation.org, linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Steve Capper <steve.capper@linaro.org>, linux-arm-kernel@lists.infradead.org, catalin.marinas@arm.com, linux@arm.linux.org.uk, linux-arch@vger.kernel.org, linux-mm@kvack.org, will.deacon@arm.com, gary.robertson@linaro.org, christoffer.dall@linaro.org, anders.roxell@linaro.org
 
-From: Joe Perches <joe@perches.com>
-Date: Wed, 25 Jun 2014 14:51:51 -0700
+On Wed, Jun 25, 2014 at 01:42:35PM -0700, Andrew Morton wrote:
+> On Wed, 25 Jun 2014 16:40:18 +0100 Steve Capper <steve.capper@linaro.org> wrote:
+> 
+> > This series implements general forms of get_user_pages_fast and
+> > __get_user_pages_fast and activates them for arm and arm64.
+> 
+> Why not x86?
+> 
+> I think I might have already asked this.  If so, it's your fault for
+> not updating the changelog ;)
 
-> On Wed, 2014-06-25 at 12:27 -0700, Andrew Morton wrote:
->> On Mon, 23 Jun 2014 06:41:29 -0700 Joe Perches <joe@perches.com> wrote:
->> 
->> > Add this helper for consistency with pci_zalloc_coherent
->> > and the ability to remove unnecessary memset(,0,) uses.
->> 
->> While we're being anal..  I'm not a big fan of the patch titles.  Worst
->> is "amd: Use pci_zalloc_consistent".  "amd" is quite a poor identifier
->> - it's only when you get in and look at the diff that you realise it's
->> an ethernet driver.
-> 
-> Yeah, those "amd:" prefixes should really have been "pcnet32:"
-> 
->> People sometimes address this by using
->> 
->> 	"drivers: net: ethernet: amd: use pci_zalloc_consistent"
->> 
->> which strikes me as utterly perverse.  We already have a nice way of
->> representing the hierarchy and that's using '/'.
-> 
-> I used to do that until several people complained.
-> Now I don't.  btw:  Documentation/SubmittingPatches says:
-> 
-> 15) The canonical patch format
-> 
-> The canonical patch subject line is:
-> 
->     Subject: [PATCH 001/123] subsystem: summary phrase
-
-+1
-
-We've been representing subsystems using colon prefixes for ages, and
-I can't seen the value of starting to use something inconsistent with
-a decade of precedence.
+Because x86 doesn't do RCU freed page tables :-) Also because i386 PAE
+has magic (although one might expect ARM PAE -- or whatever they called
+it -- to need similar magic).
