@@ -1,72 +1,55 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH 6/6] arm64: mm: Enable RCU fast_gup
-Date: Thu, 26 Jun 2014 09:56:05 +0200
-Message-ID: <20140626075605.GB12054@laptop.lan>
-References: <1403710824-24340-1-git-send-email-steve.capper@linaro.org>
- <1403710824-24340-7-git-send-email-steve.capper@linaro.org>
- <20140625165003.GI15240@leverpostej>
+From: David Drysdale <drysdale@google.com>
+Subject: Re: [PATCH v7 2/9] seccomp: split filter prep from check and apply
+Date: Thu, 26 Jun 2014 13:37:10 +0100
+Message-ID: <20140626123710.GA16204@google.com>
+References: <1403560693-21809-1-git-send-email-keescook@chromium.org>
+ <1403560693-21809-3-git-send-email-keescook@chromium.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <owner-linux-mm@kvack.org>
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-wg0-f73.google.com ([74.125.82.73]:63601 "EHLO
+	mail-wg0-f73.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754789AbaFZMhN (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 26 Jun 2014 08:37:13 -0400
+Received: by mail-wg0-f73.google.com with SMTP id b13so368257wgh.0
+        for <linux-arch@vger.kernel.org>; Thu, 26 Jun 2014 05:37:12 -0700 (PDT)
 Content-Disposition: inline
-In-Reply-To: <20140625165003.GI15240@leverpostej>
-Sender: owner-linux-mm@kvack.org
-To: Mark Rutland <mark.rutland@arm.com>
-Cc: Steve Capper <steve.capper@linaro.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Catalin Marinas <Catalin.Marinas@arm.com>, "linux@arm.linux.org.uk" <linux@arm.linux.org.uk>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "anders.roxell@linaro.org" <anders.roxell@linaro.org>, "gary.robertson@linaro.org" <gary.robertson@linaro.org>, Will Deacon <Will.Deacon@arm.com>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "christoffer.dall@linaro.org" <christoffer.dall@linaro.org>, Thomas Gleixner <tglx@linutronix.de>
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <1403560693-21809-3-git-send-email-keescook@chromium.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Kees Cook <keescook@chromium.org>
+Cc: linux-kernel@vger.kernel.org, Andy Lutomirski <luto@amacapital.net>, Alexei Starovoitov <ast@plumgrid.com>, "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, Daniel Borkmann <dborkman@redhat.com>, Oleg Nesterov <oleg@redhat.com>, Will Drewry <wad@chromium.org>, Julien Tinnes <jln@chromium.org>, linux-api@vger.kernel.org, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-mips@linux-mips.org, linux-arch@vger.kernel.org, linux-security-module@vger.kernel.org
 
-On Wed, Jun 25, 2014 at 05:50:03PM +0100, Mark Rutland wrote:
-> Hi Steve,
-> 
-> On Wed, Jun 25, 2014 at 04:40:24PM +0100, Steve Capper wrote:
-> > Activate the RCU fast_gup for ARM64. We also need to force THP splits
-> > to broadcast an IPI s.t. we block in the fast_gup page walker. As THP
-> > splits are comparatively rare, this should not lead to a noticeable
-> > performance degradation.
-> > 
-> > Some pre-requisite functions pud_write and pud_page are also added.
-> > 
-> > Signed-off-by: Steve Capper <steve.capper@linaro.org>
-> > ---
-> >  arch/arm64/Kconfig               |  3 +++
-> >  arch/arm64/include/asm/pgtable.h | 11 ++++++++++-
-> >  arch/arm64/mm/flush.c            | 19 +++++++++++++++++++
-> >  3 files changed, 32 insertions(+), 1 deletion(-)
-> 
-> [...]
-> 
-> > diff --git a/arch/arm64/mm/flush.c b/arch/arm64/mm/flush.c
-> > index e4193e3..ddf96c1 100644
-> > --- a/arch/arm64/mm/flush.c
-> > +++ b/arch/arm64/mm/flush.c
-> > @@ -103,3 +103,22 @@ EXPORT_SYMBOL(flush_dcache_page);
-> >   */
-> >  EXPORT_SYMBOL(flush_cache_all);
-> >  EXPORT_SYMBOL(flush_icache_range);
-> > +
-> > +#ifdef CONFIG_TRANSPARENT_HUGEPAGE
-> > +#ifdef CONFIG_HAVE_RCU_TABLE_FREE
-> > +static void thp_splitting_flush_sync(void *arg)
-> > +{
-> > +}
-> > +
-> > +void pmdp_splitting_flush(struct vm_area_struct *vma, unsigned long address,
-> > +			  pmd_t *pmdp)
-> > +{
-> > +	pmd_t pmd = pmd_mksplitting(*pmdp);
-> > +	VM_BUG_ON(address & ~PMD_MASK);
-> > +	set_pmd_at(vma->vm_mm, address, pmdp, pmd);
-> > +
-> > +	/* dummy IPI to serialise against fast_gup */
-> > +	smp_call_function(thp_splitting_flush_sync, NULL, 1);
-> 
-> Is there some reason we can't use kick_all_cpus_sync()?
+On Mon, Jun 23, 2014 at 02:58:06PM -0700, Kees Cook wrote:
+> In preparation for adding seccomp locking, move filter creation away
+> from where it is checked and applied. This will allow for locking whe=
+re
+> no memory allocation is happening. The validation, filter attachment,
+> and seccomp mode setting can all happen under the future locks.
+>=20
+> Signed-off-by: Kees Cook <keescook@chromium.org>
+> ---
+>  kernel/seccomp.c |   97 +++++++++++++++++++++++++++++++++++++-------=
+----------
+>  1 file changed, 67 insertions(+), 30 deletions(-)
+>=20
+> diff --git a/kernel/seccomp.c b/kernel/seccomp.c
+> index afb916c7e890..edc8c79ed16d 100644
+> --- a/kernel/seccomp.c
+> +++ b/kernel/seccomp.c
+> @@ -515,6 +551,7 @@ static long seccomp_set_mode(unsigned long seccom=
+p_mode, char __user *filter)
+>  	current->seccomp.mode =3D seccomp_mode;
+>  	set_thread_flag(TIF_SECCOMP);
+>  out:
+> +	seccomp_filter_free(prepared);
+>  	return ret;
+>  }
 
-Yes that would be equivalent. But looking at that, I worry about the
-smp_mb(); archs are supposed to make sure IPIs are serializing.
+I think this needs to be inside #ifdef CONFIG_SECCOMP_FILTER to match
+the definition of seccomp_filter_free:
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+=2E./kernel/seccomp.c:554:2: error: implicit declaration of function =E2=
+=80=98seccomp_filter_free=E2=80=99 [-Werror=3Dimplicit-function-declara=
+tion]
