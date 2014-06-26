@@ -1,124 +1,64 @@
-From: Steven Rostedt <rostedt@goodmis.org>
-Subject: Re: [RFA][PATCH 26/27] s390/ftrace: remove check of obsolete
- variable function_trace_stop
-Date: Thu, 26 Jun 2014 13:41:41 -0400
-Message-ID: <20140626134141.18d92f1d@gandalf.local.home>
-References: <20140626165221.736847419@goodmis.org>
-	<20140626165853.685458770@goodmis.org>
+From: Mike Frysinger <vapier@gentoo.org>
+Subject: Re: [RFA][PATCH 24/27] Blackfin: ftrace: Remove check of obsolete variable function_trace_stop
+Date: Thu, 26 Jun 2014 15:25:31 -0400
+Message-ID: <3144266.ziutPk5CNZ@vapier>
+References: <20140626165221.736847419@goodmis.org> <20140626165853.211937817@goodmis.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 8BIT
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20140626165853.685458770@goodmis.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Heiko Carstens <heiko.carstens@de.ibm.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: multipart/signed; boundary="nextPart1508370.1FC40tlUPP"; micalg="pgp-sha1"; protocol="application/pgp-signature"
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from smtp.gentoo.org ([140.211.166.183]:56645 "EHLO smtp.gentoo.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1750940AbaFZTZ3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 26 Jun 2014 15:25:29 -0400
+In-Reply-To: <20140626165853.211937817@goodmis.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Steven Rostedt <rostedt@goodmis.org>
+Cc: linux-kernel@vger.kernel.org, Ingo Molnar <mingo@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Jiri Kosina <jkosina@suse.cz>, Josh Poimboeuf <notifications@github.com>
 
-On Thu, 26 Jun 2014 12:52:47 -0400
-Steven Rostedt <rostedt@goodmis.org> wrote:
 
-> From: Heiko Carstens <heiko.carstens@de.ibm.com>
-> 
-> Remove check of obsolete variable function_trace_stop as requested by
-> Steven Rostedt.
+--nextPart1508370.1FC40tlUPP
+Content-Transfer-Encoding: quoted-printable
+Content-Type: text/plain; charset="us-ascii"
 
-From the cover letter, you were not Cc'd on.
+On Thu 26 Jun 2014 12:52:45 Steven Rostedt wrote:
+> From: "Steven Rostedt (Red Hat)" <rostedt@goodmis.org>
+>=20
+> Nothing sets function_trace_stop to disable function tracing anymore.=
 
-Anyway, as there is no more reason to set function_trace_stop it is time
-to remove it. Unfortunately it's in several archs in assembly. Most of
-the assembly looks rather straight forward and I removed them myself.
-But I was only able to compile test them (for archs: arm64, metag, and
-microblaze I do not have my cross tools set up for them and did not
-even compile test it). But I would really love it if people can
-download their patch and test it out. You only need the patches that go
-against your arch and to really test it, also include the patch titled: 
+> Remove the check for it in the arch code.
+>=20
+> [ Please test this on your arch ]
 
- ftrace: Remove check for HAVE_FUNCTION_TRACE_MCOUNT_TEST
+i haven't tested, but the asm looks correct -- it's only using scratch=20=
 
-Otherwise your arch patch will call the list op that still does the
-check. That is, if you want to test suspend and resume on your arch.
+registers, and the rest of the code doesn't rely on the state in that i=
+fdef=20
+(by design).
 
-As you may see, there are patches to the ftrace infrastructure that
-depend on the arch patches being implemented. I removed the
-functionality from the infrastructure, then removed it from the archs,
-and then finally removed the existence of the function_trace_stop
-variable, which would cause the archs to fail to compile if that were
-to go first.
+Acked-by: Mike Frysinger <vapier@gentoo.org>
+=2Dmike
+--nextPart1508370.1FC40tlUPP
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: This is a digitally signed message part.
+Content-Transfer-Encoding: 7Bit
 
-If you can test your arch and give me your acked-by, I would appreciate
-it. Otherwise, if you need this to go through your tree, I would ask you
-to set up a dedicated branch that I can pull from to keep this order
-intact.
----
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v2
 
-I know you wrote this patch, but you may want to test it out with
-the ftrace: Remove check for HAVE_FUNCTION_TRACE_MCOUNT_TEST patch
-applied too.
+iQIcBAABAgAGBQJTrHOrAAoJEEFjO5/oN/WBIBAP/jG3a6aq1VWXYF3pCCZkAGRD
+WqP8NHNFrabZaykxsgwgGzOqOIJYjIGHLB1SK7xRhKnqkG5oRB5F4sdULb2xAlyj
+RxoHdB9fxJjV+wsGbfWNkn5khktANdslAXsgvkIIfCwff9HI9PeZ7L3OBjZWolJ4
+GOzcgiH8pvmLClwSkkvUGgciBOtui9bCbMTiyBjYVgWRXxvAubfjCk5qES0TD5L9
+AE2dJX2iB3U9L+ppuwfl4ExHpl53D2MO5ht0LuKPoJtgztjU+v/NtYDnwNZuPqls
+44dtDa9xiidsLVmArr57pEnRjQdla/vPOil+FspV1HjdhFrrwJkcyLX4KcxB3mIB
+x5Mi887+pDRrz1ICftUKNr8SXFfINkAQpNHNHRaFAWQoaiUVyInAOWqRmQqGNMCd
+MWXW3Dt0QScSg4Bg/q1OwdlvRa1/ND5G/kbveWlX2JjkRRUpMrn35nX6qzq+WPlb
+EIetjFEOXdqR2+rtf+xXFRkyMlT2a50n6c4g4WsX7gRg5RhhPbhZdPAn6zZ9gvtb
+nPc15T6/RxFQ/F8px6tHbvqTZY7PBwUluVGaNqOvCvNT82Glvb7cdhrqbeV4AD81
+T63eA4YeEPmQ6h9lcpzUL3px436ocIDtAAQpG5UF/nmwbcarXsNQMdzfQFy0rRcb
+bSoi45PnMZwxw8sNyM/u
+=S/EQ
+-----END PGP SIGNATURE-----
 
--- Steve
-
-> 
-> Signed-off-by: Heiko Carstens <heiko.carstens@de.ibm.com>
-> Signed-off-by: Steven Rostedt <rostedt@goodmis.org>
-> ---
->  arch/s390/Kconfig           |  1 -
->  arch/s390/kernel/mcount.S   | 10 +++-------
->  arch/s390/kernel/mcount64.S |  3 ---
->  3 files changed, 3 insertions(+), 11 deletions(-)
-> 
-> diff --git a/arch/s390/Kconfig b/arch/s390/Kconfig
-> index bb63499fc5d3..f5af5f6ef0f4 100644
-> --- a/arch/s390/Kconfig
-> +++ b/arch/s390/Kconfig
-> @@ -116,7 +116,6 @@ config S390
->  	select HAVE_FTRACE_MCOUNT_RECORD
->  	select HAVE_FUNCTION_GRAPH_TRACER
->  	select HAVE_FUNCTION_TRACER
-> -	select HAVE_FUNCTION_TRACE_MCOUNT_TEST
->  	select HAVE_FUTEX_CMPXCHG if FUTEX
->  	select HAVE_KERNEL_BZIP2
->  	select HAVE_KERNEL_GZIP
-> diff --git a/arch/s390/kernel/mcount.S b/arch/s390/kernel/mcount.S
-> index 08dcf21cb8df..433c6dbfa442 100644
-> --- a/arch/s390/kernel/mcount.S
-> +++ b/arch/s390/kernel/mcount.S
-> @@ -21,13 +21,9 @@ ENTRY(_mcount)
->  ENTRY(ftrace_caller)
->  #endif
->  	stm	%r2,%r5,16(%r15)
-> -	bras	%r1,2f
-> +	bras	%r1,1f
->  0:	.long	ftrace_trace_function
-> -1:	.long	function_trace_stop
-> -2:	l	%r2,1b-0b(%r1)
-> -	icm	%r2,0xf,0(%r2)
-> -	jnz	3f
-> -	st	%r14,56(%r15)
-> +1:	st	%r14,56(%r15)
->  	lr	%r0,%r15
->  	ahi	%r15,-96
->  	l	%r3,100(%r15)
-> @@ -50,7 +46,7 @@ ENTRY(ftrace_graph_caller)
->  #endif
->  	ahi	%r15,96
->  	l	%r14,56(%r15)
-> -3:	lm	%r2,%r5,16(%r15)
-> +	lm	%r2,%r5,16(%r15)
->  	br	%r14
->  
->  #ifdef CONFIG_FUNCTION_GRAPH_TRACER
-> diff --git a/arch/s390/kernel/mcount64.S b/arch/s390/kernel/mcount64.S
-> index 1c52eae3396a..c67a8bf0fd9a 100644
-> --- a/arch/s390/kernel/mcount64.S
-> +++ b/arch/s390/kernel/mcount64.S
-> @@ -20,9 +20,6 @@ ENTRY(_mcount)
->  
->  ENTRY(ftrace_caller)
->  #endif
-> -	larl	%r1,function_trace_stop
-> -	icm	%r1,0xf,0(%r1)
-> -	bnzr	%r14
->  	stmg	%r2,%r5,32(%r15)
->  	stg	%r14,112(%r15)
->  	lgr	%r1,%r15
+--nextPart1508370.1FC40tlUPP--
