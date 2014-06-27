@@ -1,138 +1,57 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-lb0-f170.google.com ([209.85.217.170]:49784 "EHLO
-	mail-lb0-f170.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752460AbaF0TLe (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 27 Jun 2014 15:11:34 -0400
-Received: by mail-lb0-f170.google.com with SMTP id 10so4336778lbg.15
-        for <linux-arch@vger.kernel.org>; Fri, 27 Jun 2014 12:11:32 -0700 (PDT)
+Received: from mail-la0-f49.google.com ([209.85.215.49]:38098 "EHLO
+	mail-la0-f49.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752138AbaF0Tbj (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 27 Jun 2014 15:31:39 -0400
+Received: by mail-la0-f49.google.com with SMTP id gf5so3236340lab.22
+        for <linux-arch@vger.kernel.org>; Fri, 27 Jun 2014 12:31:37 -0700 (PDT)
 MIME-Version: 1.0
-In-Reply-To: <CAGXu5jL5rN6=2-SwHiiEVuGVain-T7Ucg2PsN7u08vQ5Rxz6Mg@mail.gmail.com>
-References: <1403642893-23107-1-git-send-email-keescook@chromium.org>
- <1403642893-23107-6-git-send-email-keescook@chromium.org> <20140625135121.GB7892@redhat.com>
- <CAGXu5jJkFxh4K=40xuh6tu3kUf4oJM8Dry+4upBdRieW3FNLgw@mail.gmail.com>
+In-Reply-To: <20140627192753.GA30752@redhat.com>
+References: <CAGXu5jJkFxh4K=40xuh6tu3kUf4oJM8Dry+4upBdRieW3FNLgw@mail.gmail.com>
  <CALCETrUBNmLnpa+LM91om2RSpR6SjupP-EdefzhU1Me4nv3Dfw@mail.gmail.com>
  <CAGXu5j+J11zJnuFR8bYKAXizAHhCx4R+uJE_QH6zC3q2udkpaQ@mail.gmail.com>
  <CALCETrVrs8sb19+UUqyFEpAFzTih5dkAwn-WpQjfgPcPJMpP5g@mail.gmail.com>
  <20140625173245.GA17695@redhat.com> <CALCETrUc65H+fn6dtMdYnB_xR39wcmgDdTbdR3fFRjyrndJhgA@mail.gmail.com>
  <20140625175136.GA18185@redhat.com> <CAGXu5jL17k6=GXju6x+eLU20FMwBHhnuRiHoQD1Bzj_EmpiKjg@mail.gmail.com>
  <CALCETrVNwhWSPNiBiZmgP1nD9zLJPTk6cH0yo=85rbxTPTYFRg@mail.gmail.com>
- <CAGXu5jLavA8FJD8m-1y4wO0uzh3qvvMmajAg0Lrr1Cn_Om3a3w@mail.gmail.com>
- <CALCETrUPxTxseJ=sOhD9CyJPtOqCR5sL8yx7KezLmLZcFSFNMA@mail.gmail.com>
- <CAGXu5j+wPvAuo6pVc_XoJqv7CvW6yDf3YE6P7tFwtO9hfcUUsg@mail.gmail.com>
- <CALCETrWr+5n_w+q-fNc0G55eUteN57sm+7-bPCXKb7acmLu0Cg@mail.gmail.com> <CAGXu5jL5rN6=2-SwHiiEVuGVain-T7Ucg2PsN7u08vQ5Rxz6Mg@mail.gmail.com>
+ <CAGXu5jLavA8FJD8m-1y4wO0uzh3qvvMmajAg0Lrr1Cn_Om3a3w@mail.gmail.com> <20140627192753.GA30752@redhat.com>
 From: Andy Lutomirski <luto@amacapital.net>
-Date: Fri, 27 Jun 2014 12:11:12 -0700
-Message-ID: <CALCETrUdAWyigafb=tFafRkFYgWdXKwhRs0n5SYsef4KVyJ-eQ@mail.gmail.com>
+Date: Fri, 27 Jun 2014 12:31:16 -0700
+Message-ID: <CALCETrVbJqfG6oBaZEjj7H3pPa1oVJx6QXAYc5zZ6o-niV=WKQ@mail.gmail.com>
 Subject: Re: [PATCH v8 5/9] seccomp: split mode set routines
 Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Kees Cook <keescook@chromium.org>
-Cc: Oleg Nesterov <oleg@redhat.com>, LKML <linux-kernel@vger.kernel.org>, "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>, Alexei Starovoitov <ast@plumgrid.com>, Andrew Morton <akpm@linux-foundation.org>, Daniel Borkmann <dborkman@redhat.com>, Will Drewry <wad@chromium.org>, Julien Tinnes <jln@chromium.org>, David Drysdale <drysdale@google.com>, Linux API <linux-api@vger.kernel.org>, "x86@kernel.org" <x86@kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, linux-mips@linux-mips.org, linux-arch <linux-arch@vger.kernel.org>, linux-security-module <linux-security-module@vger.kernel.org>
-Message-ID: <20140627191112.0klyHWdMX849JSrfPK4cwd0KLK6GR8Q-bfroh3qgo3M@z>
+To: Oleg Nesterov <oleg@redhat.com>
+Cc: Kees Cook <keescook@chromium.org>, LKML <linux-kernel@vger.kernel.org>, "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>, Alexei Starovoitov <ast@plumgrid.com>, Andrew Morton <akpm@linux-foundation.org>, Daniel Borkmann <dborkman@redhat.com>, Will Drewry <wad@chromium.org>, Julien Tinnes <jln@chromium.org>, David Drysdale <drysdale@google.com>, Linux API <linux-api@vger.kernel.org>, "x86@kernel.org" <x86@kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, linux-mips@linux-mips.org, linux-arch <linux-arch@vger.kernel.org>, linux-security-module <linux-security-module@vger.kernel.org>
+Message-ID: <20140627193116.Y80TaNNY-FWw7TSEmPSNbVm32Z6UutoCR6khNhK6fVA@z>
 
-On Fri, Jun 27, 2014 at 12:04 PM, Kees Cook <keescook@chromium.org> wrote:
-> On Fri, Jun 27, 2014 at 11:56 AM, Andy Lutomirski <luto@amacapital.net> wrote:
->> On Fri, Jun 27, 2014 at 11:52 AM, Kees Cook <keescook@chromium.org> wrote:
->>> On Fri, Jun 27, 2014 at 11:39 AM, Andy Lutomirski <luto@amacapital.net> wrote:
->>>> On Fri, Jun 27, 2014 at 11:33 AM, Kees Cook <keescook@chromium.org> wrote:
->>>>> On Wed, Jun 25, 2014 at 11:07 AM, Andy Lutomirski <luto@amacapital.net> wrote:
->>>>>> On Wed, Jun 25, 2014 at 11:00 AM, Kees Cook <keescook@chromium.org> wrote:
->>>>>>> On Wed, Jun 25, 2014 at 10:51 AM, Oleg Nesterov <oleg@redhat.com> wrote:
->>>>>>>> On 06/25, Andy Lutomirski wrote:
->>>>>>>>>
->>>>>>>>> On Wed, Jun 25, 2014 at 10:32 AM, Oleg Nesterov <oleg@redhat.com> wrote:
->>>>>>>>> > On 06/25, Andy Lutomirski wrote:
->>>>>>>>> >>
->>>>>>>>> >> Write the filter, then smp_mb (or maybe a weaker barrier is okay),
->>>>>>>>> >> then set the bit.
->>>>>>>>> >
->>>>>>>>> > Yes, exactly, this is what I meant. Plas rmb() in __secure_computing().
->>>>>>>>> >
->>>>>>>>> > But I still can't understand the rest of your discussion about the
->>>>>>>>> > ordering we need ;)
->>>>>>>>>
->>>>>>>>> Let me try again from scratch.
->>>>>>>>>
->>>>>>>>> Currently there are three relevant variables: TIF_SECCOMP,
->>>>>>>>> seccomp.mode, and seccomp.filter.  __secure_computing needs
->>>>>>>>> seccomp.mode and seccomp.filter to be in sync, and it wants (but
->>>>>>>>> doesn't really need) TIF_SECCOMP to be in sync as well.
->>>>>>>>>
->>>>>>>>> My suggestion is to rearrange it a bit.  Move mode into seccomp.filter
->>>>>>>>> (so that filter == NULL implies no seccomp) and don't check
->>>>>>>
->>>>>>> This would require that we reimplement mode 1 seccomp via mode 2
->>>>>>> filters. Which isn't too hard, but may add complexity.
->>>>>>>
->>>>>>>>> TIF_SECCOMP in secure_computing.  Then turning on seccomp is entirely
->>>>>>>>> atomic except for the fact that the seccomp hooks won't be called if
->>>>>>>>> filter != NULL but !TIF_SECCOMP.  This removes all ordering
->>>>>>>>> requirements.
->>>>>>>>
->>>>>>>> Ah, got it, thanks. Perhaps I missed somehing, but to me this looks like
->>>>>>>> unnecessary complication at first glance.
->>>>>>>>
->>>>>>>> We alredy have TIF_SECCOMP, we need it anyway, and we should only care
->>>>>>>> about the case when this bit is actually set, so that we can race with
->>>>>>>> the 1st call of __secure_computing().
->>>>>>>>
->>>>>>>> Otherwise we are fine: we can miss the new filter anyway, ->mode can't
->>>>>>>> be changed it is already nonzero.
->>>>>>>>
->>>>>>>>> Alternatively, __secure_computing could still BUG_ON(!seccomp.filter).
->>>>>>>>> In that case, filter needs to be set before TIF_SECCOMP is set, but
->>>>>>>>> that's straightforward.
->>>>>>>>
->>>>>>>> Yep. And this is how seccomp_assign_mode() already works? It is called
->>>>>>>> after we change ->filter chain, it changes ->mode before set(TIF_SECCOMP)
->>>>>>>> just it lacks a barrier.
->>>>>>>
->>>>>>> Right, I think the best solution is to add the barrier. I was
->>>>>>> concerned that adding the read barrier in secure_computing would have
->>>>>>> a performance impact, though.
->>>>>>>
->>>>>>
->>>>>> I can't speak for ARM, but I think that all of the read barriers are
->>>>>> essentially free on x86.  (smp_mb is a very different story, but that
->>>>>> shouldn't be needed here.)
->>>>>
->>>>> It looks like SMP ARM issues dsb for rmb, which seems a bit expensive.
->>>>> http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.dui0204g/CIHJFGFE.html
->>>>>
->>>>> If I skip the rmb in the secure_computing call before checking mode,
->>>>> it sounds like I run the risk of racing an out-of-order TIF_SECCOMP vs
->>>>> mode and filter. This seems unlikely to me, given an addition of the
->>>>> smp_mb__before_atomic() during the seccomp_assign_mode()? I guess I
->>>>> don't have a sense of how aggressively ARM might do data caching in
->>>>> this area. Could the other thread actually see TIF_SECCOMP get set but
->>>>> still have an out of date copy of seccomp.mode?
->>>>>
->>>>> I really want to avoid adding anything to the secure_computing()
->>>>> execution path. :(
->>>>
->>>> Hence my suggestion to make the ordering not matter.  No ordering
->>>> requirement, no barriers.
->>>
->>> I may be misunderstanding something, but I think there's still an
->>> ordering problem. We'll have TIF_SECCOMP already, so if we enter
->>> secure_computing with a NULL filter, we'll kill the process.
->>>
->>> Merging .mode and .filter would remove one of the race failure paths:
->>> having TIF_SECCOMP and not having a mode set (leading to BUG). With
->>> the merge, we could still race and land in the same place as have
->>> TIF_SECCOMP and mode==2, but filter==NULL, leading to WARN and kill.
+On Fri, Jun 27, 2014 at 12:27 PM, Oleg Nesterov <oleg@redhat.com> wrote:
+> On 06/27, Kees Cook wrote:
 >>
->> You could just make secure_computing do nothing if filter == NULL.
->> It's probably faster to test that than TIF_SECCOMP anyway, since you
->> need to read the filter cacheline regardless, and testing a regular
->> variable for non-NULLness might be faster than an atomic bit test
->> operation.  (Or may not -- I don't know.)
+>> It looks like SMP ARM issues dsb for rmb, which seems a bit expensive.
+>> http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.dui0204g/CIHJFGFE.htm
+>>
+>> ...
+>>
+>> I really want to avoid adding anything to the secure_computing()
+>> execution path. :(
 >
-> I am uncomfortable about making filter == NULL be a "fail open"
-> condition if TIF_SECCOMP is set.
+> I must have missed something but I do not understand your concerns.
+>
+> __secure_computing() is not trivial, and we are going to execute the
+> filters. Do you really think rmb() can add the noticeable difference?
+>
+> Not to mention that we can only get here if we take the slow syscall
+> enter path due to TIF_SECCOMP...
+>
 
-I'm unconvinced here.  TIF_SECCOMP unset is already a fail-open
-condition if filter is set.
+On my box, with my fancy multi-phase seccomp patches, the total
+seccomp overhead for a very short filter is about 13ns.  Adding a full
+barrier would add several ns, I think.
+
+Admittedly, this is x86, not ARM, so comparisons here are completely
+bogus.  And that read memory barrier doesn't even need an instruction
+on x86.  But still, let's try to keep this fast.
 
 --Andy
