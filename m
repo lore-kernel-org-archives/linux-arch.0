@@ -1,79 +1,79 @@
 From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [PATCH 6/6] arm64: mm: Enable RCU fast_gup
-Date: Fri, 27 Jun 2014 13:20:32 +0100
-Message-ID: <20140627122032.GN26276@arm.com>
-References: <1403710824-24340-1-git-send-email-steve.capper@linaro.org>
- <1403710824-24340-7-git-send-email-steve.capper@linaro.org>
- <20140625165003.GI15240@leverpostej>
- <20140626075605.GB12054@laptop.lan>
+Subject: Re: [RFA][PATCH 25/27] arm64, ftrace: Remove check of obsolete
+ variable function_trace_stop
+Date: Fri, 27 Jun 2014 13:44:21 +0100
+Message-ID: <20140627124421.GP26276@arm.com>
+References: <20140626165221.736847419@goodmis.org>
+ <20140626165853.482575534@goodmis.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <owner-linux-mm@kvack.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:35438 "EHLO
+	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1751972AbaF0Mok (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Fri, 27 Jun 2014 08:44:40 -0400
 Content-Disposition: inline
-In-Reply-To: <20140626075605.GB12054@laptop.lan>
-Sender: owner-linux-mm@kvack.org
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Mark Rutland <Mark.Rutland@arm.com>, Steve Capper <steve.capper@linaro.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Catalin Marinas <Catalin.Marinas@arm.com>, "linux@arm.linux.org.uk" <linux@arm.linux.org.uk>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "anders.roxell@linaro.org" <anders.roxell@linaro.org>, "gary.robertson@linaro.org" <gary.robertson@linaro.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "christoffer.dall@linaro.org" <christoffer.dall@linaro.org>, Thomas Gleixner <tglx@linutronix.de>
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <20140626165853.482575534@goodmis.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Steven Rostedt <rostedt@goodmis.org>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>, "H. Peter Anvin" <hpa@zytor.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Jiri Kosina <jkosina@suse.cz>, Josh Poimboeuf <notifications@github.com>, AKASHI Takahiro <takahiro.akashi@linaro.org>
 
-On Thu, Jun 26, 2014 at 08:56:05AM +0100, Peter Zijlstra wrote:
-> On Wed, Jun 25, 2014 at 05:50:03PM +0100, Mark Rutland wrote:
-> > Hi Steve,
-> > 
-> > On Wed, Jun 25, 2014 at 04:40:24PM +0100, Steve Capper wrote:
-> > > Activate the RCU fast_gup for ARM64. We also need to force THP splits
-> > > to broadcast an IPI s.t. we block in the fast_gup page walker. As THP
-> > > splits are comparatively rare, this should not lead to a noticeable
-> > > performance degradation.
-> > > 
-> > > Some pre-requisite functions pud_write and pud_page are also added.
-> > > 
-> > > Signed-off-by: Steve Capper <steve.capper@linaro.org>
-> > > ---
-> > >  arch/arm64/Kconfig               |  3 +++
-> > >  arch/arm64/include/asm/pgtable.h | 11 ++++++++++-
-> > >  arch/arm64/mm/flush.c            | 19 +++++++++++++++++++
-> > >  3 files changed, 32 insertions(+), 1 deletion(-)
-> > 
-> > [...]
-> > 
-> > > diff --git a/arch/arm64/mm/flush.c b/arch/arm64/mm/flush.c
-> > > index e4193e3..ddf96c1 100644
-> > > --- a/arch/arm64/mm/flush.c
-> > > +++ b/arch/arm64/mm/flush.c
-> > > @@ -103,3 +103,22 @@ EXPORT_SYMBOL(flush_dcache_page);
-> > >   */
-> > >  EXPORT_SYMBOL(flush_cache_all);
-> > >  EXPORT_SYMBOL(flush_icache_range);
-> > > +
-> > > +#ifdef CONFIG_TRANSPARENT_HUGEPAGE
-> > > +#ifdef CONFIG_HAVE_RCU_TABLE_FREE
-> > > +static void thp_splitting_flush_sync(void *arg)
-> > > +{
-> > > +}
-> > > +
-> > > +void pmdp_splitting_flush(struct vm_area_struct *vma, unsigned long address,
-> > > +			  pmd_t *pmdp)
-> > > +{
-> > > +	pmd_t pmd = pmd_mksplitting(*pmdp);
-> > > +	VM_BUG_ON(address & ~PMD_MASK);
-> > > +	set_pmd_at(vma->vm_mm, address, pmdp, pmd);
-> > > +
-> > > +	/* dummy IPI to serialise against fast_gup */
-> > > +	smp_call_function(thp_splitting_flush_sync, NULL, 1);
-> > 
-> > Is there some reason we can't use kick_all_cpus_sync()?
+Hi Steve,
+
+On Thu, Jun 26, 2014 at 05:52:46PM +0100, Steven Rostedt wrote:
+> From: "Steven Rostedt (Red Hat)" <rostedt@goodmis.org>
 > 
-> Yes that would be equivalent. But looking at that, I worry about the
-> smp_mb(); archs are supposed to make sure IPIs are serializing.
+> Nothing sets function_trace_stop to disable function tracing anymore.
+> Remove the check for it in the arch code.
+> 
+> arm64 was broken anyway, as it had an ifdef testing
+>  CONFIG_HAVE_FUNCTION_TRACE_MCOUNT_TEST which is only set if
+> the arch supports the code (which it obviously did not), and
+> it was testing a non existent ftrace_trace_stop instead of
+> function_trace_stop.
 
-Agreed; smp_call_function would be hopelessly broken if that wasn't true
-(at least, everywhere I've used it ;)
+Yeah, the current code is total crap. Well spotted.
+
+> Cc: AKASHI Takahiro <takahiro.akashi@linaro.org>
+> Cc: Will Deacon <will.deacon@arm.com>
+> Signed-off-by: Steven Rostedt <rostedt@goodmis.org>
+> ---
+>  arch/arm64/kernel/entry-ftrace.S | 5 -----
+>  1 file changed, 5 deletions(-)
+
+  Acked-by: Will Deacon <will.deacon@arm.com>
+
+I'm happy for you to take this via the ftrace tree, along with the rest of
+the series.
+
+I successfully ran the ftrace self tests with this applied (on top of
+"ftrace: Remove check for HAVE_FUNCTION_TRACE_MCOUNT_TEST"), but note
+that I don't have a platform with working suspend/resume right now.
+
+Cheers,
 
 Will
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+> diff --git a/arch/arm64/kernel/entry-ftrace.S b/arch/arm64/kernel/entry-ftrace.S
+> index b051871f2965..1b1e330e6849 100644
+> --- a/arch/arm64/kernel/entry-ftrace.S
+> +++ b/arch/arm64/kernel/entry-ftrace.S
+> @@ -96,11 +96,6 @@
+>   *     - ftrace_graph_caller to set up an exit hook
+>   */
+>  ENTRY(_mcount)
+> -#ifdef CONFIG_HAVE_FUNCTION_TRACE_MCOUNT_TEST
+> -	ldr	x0, =ftrace_trace_stop
+> -	ldr	x0, [x0]		// if ftrace_trace_stop
+> -	ret				//   return;
+> -#endif
+>  	mcount_enter
+>  
+>  	ldr	x0, =ftrace_trace_function
+> -- 
+> 2.0.0
+> 
+> 
+> 
