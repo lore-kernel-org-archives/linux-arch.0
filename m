@@ -1,39 +1,38 @@
-From: Steven Rostedt <rostedt@goodmis.org>
-Subject: Re: [RFA][PATCH 24/27] Blackfin: ftrace: Remove check of obsolete
+From: Heiko Carstens <heiko.carstens@de.ibm.com>
+Subject: Re: [RFA][PATCH 26/27] s390/ftrace: remove check of obsolete
  variable function_trace_stop
-Date: Thu, 26 Jun 2014 15:34:32 -0400
-Message-ID: <20140626153432.69dbb7ca@gandalf.local.home>
+Date: Fri, 27 Jun 2014 08:01:02 +0200
+Message-ID: <20140627060102.GA4396@osiris>
 References: <20140626165221.736847419@goodmis.org>
-	<20140626165853.211937817@goodmis.org>
-	<3144266.ziutPk5CNZ@vapier>
+ <20140626165853.685458770@goodmis.org>
+ <20140626134141.18d92f1d@gandalf.local.home>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <3144266.ziutPk5CNZ@vapier>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Mike Frysinger <vapier@gentoo.org>
-Cc: linux-kernel@vger.kernel.org, Ingo Molnar <mingo@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Jiri Kosina <jkosina@suse.cz>, Josh Poimboeuf <notifications@github.com>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from e06smtp15.uk.ibm.com ([195.75.94.111]:56787 "EHLO
+	e06smtp15.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752629AbaF0GBH (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 27 Jun 2014 02:01:07 -0400
+Received: from /spool/local
+	by e06smtp15.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <heiko.carstens@de.ibm.com>;
+	Fri, 27 Jun 2014 07:01:05 +0100
+Content-Disposition: inline
+In-Reply-To: <20140626134141.18d92f1d@gandalf.local.home>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Steven Rostedt <rostedt@goodmis.org>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Thu, 26 Jun 2014 15:25:31 -0400
-Mike Frysinger <vapier@gentoo.org> wrote:
-
-> On Thu 26 Jun 2014 12:52:45 Steven Rostedt wrote:
-> > From: "Steven Rostedt (Red Hat)" <rostedt@goodmis.org>
-> > 
-> > Nothing sets function_trace_stop to disable function tracing anymore.
-> > Remove the check for it in the arch code.
-> > 
-> > [ Please test this on your arch ]
+On Thu, Jun 26, 2014 at 01:41:41PM -0400, Steven Rostedt wrote:
 > 
-> i haven't tested, but the asm looks correct -- it's only using scratch 
-> registers, and the rest of the code doesn't rely on the state in that ifdef 
-> (by design).
-> 
-> Acked-by: Mike Frysinger <vapier@gentoo.org>
-> -mike
+> I know you wrote this patch, but you may want to test it out with
+> the ftrace: Remove check for HAVE_FUNCTION_TRACE_MCOUNT_TEST patch
+> applied too.
 
-Thanks!
+In order to compile this, I'd have to apply all common code patches, I think.
+But they don't apply against Linus' master tree and I wouldn't know which
+tree these patches are against.
+But anyway, it all looks good ;)
 
--- Steve
+Acked-by: Heiko Carstens <heiko.carstens@de.ibm.com>
