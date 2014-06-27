@@ -1,75 +1,134 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.outflux.net ([198.145.64.163]:46382 "EHLO smtp.outflux.net"
+Received: from smtp.outflux.net ([198.145.64.163]:52539 "EHLO smtp.outflux.net"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754213AbaF0XX4 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 27 Jun 2014 19:23:56 -0400
+	id S1754456AbaF0XXz (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 27 Jun 2014 19:23:55 -0400
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH v9 02/11] seccomp: extract check/assign mode helpers
-Date: Fri, 27 Jun 2014 16:22:51 -0700
-Message-ID: <1403911380-27787-3-git-send-email-keescook@chromium.org>
+Subject: [PATCH v9 03/11] seccomp: split mode setting routines
+Date: Fri, 27 Jun 2014 16:22:52 -0700
+Message-ID: <1403911380-27787-4-git-send-email-keescook@chromium.org>
 In-Reply-To: <1403911380-27787-1-git-send-email-keescook@chromium.org>
 References: <1403911380-27787-1-git-send-email-keescook@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
 Cc: Kees Cook <keescook@chromium.org>, Oleg Nesterov <oleg@redhat.com>, Andy Lutomirski <luto@amacapital.net>, "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>, Alexei Starovoitov <ast@plumgrid.com>, Andrew Morton <akpm@linux-foundation.org>, Daniel Borkmann <dborkman@redhat.com>, Will Drewry <wad@chromium.org>, Julien Tinnes <jln@chromium.org>, David Drysdale <drysdale@google.com>, linux-api@vger.kernel.org, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-mips@linux-mips.org, linux-arch@vger.kernel.org, linux-security-module@vger.kernel.org
-Message-ID: <20140627232251.KA23q5iNW9xe3yjAjFJoFxmlHuujzGpZuwe6hxJtHcY@z>
+Message-ID: <20140627232252.SBHmMuyYDnuCscQXUEkoFgASbQC8ns5p57tZXhenzzs@z>
 
-To support splitting mode 1 from mode 2, extract the mode checking and
-assignment logic into common functions.
+Separates the two mode setting paths to make things more readable with
+fewer #ifdefs within function bodies.
 
 Signed-off-by: Kees Cook <keescook@chromium.org>
 ---
- kernel/seccomp.c |   22 ++++++++++++++++++----
- 1 file changed, 18 insertions(+), 4 deletions(-)
+ kernel/seccomp.c |   71 ++++++++++++++++++++++++++++++++++++------------------
+ 1 file changed, 48 insertions(+), 23 deletions(-)
 
 diff --git a/kernel/seccomp.c b/kernel/seccomp.c
-index afb916c7e890..03a5959b7930 100644
+index 03a5959b7930..812cea2e7ffb 100644
 --- a/kernel/seccomp.c
 +++ b/kernel/seccomp.c
-@@ -194,7 +194,23 @@ static u32 seccomp_run_filters(int syscall)
- 	}
- 	return ret;
+@@ -489,48 +489,66 @@ long prctl_get_seccomp(void)
  }
-+#endif /* CONFIG_SECCOMP_FILTER */
  
-+static inline bool seccomp_check_mode(unsigned long seccomp_mode)
-+{
-+	if (current->seccomp.mode && current->seccomp.mode != seccomp_mode)
-+		return false;
-+
-+	return true;
-+}
-+
-+static inline void seccomp_assign_mode(unsigned long seccomp_mode)
-+{
-+	current->seccomp.mode = seccomp_mode;
-+	set_tsk_thread_flag(current, TIF_SECCOMP);
-+}
-+
-+#ifdef CONFIG_SECCOMP_FILTER
  /**
-  * seccomp_attach_filter: Attaches a seccomp filter to current.
-  * @fprog: BPF program to install
-@@ -490,8 +506,7 @@ static long seccomp_set_mode(unsigned long seccomp_mode, char __user *filter)
+- * seccomp_set_mode: internal function for setting seccomp mode
+- * @seccomp_mode: requested mode to use
+- * @filter: optional struct sock_fprog for use with SECCOMP_MODE_FILTER
+- *
+- * This function may be called repeatedly with a @seccomp_mode of
+- * SECCOMP_MODE_FILTER to install additional filters.  Every filter
+- * successfully installed will be evaluated (in reverse order) for each system
+- * call the task makes.
++ * seccomp_set_mode_strict: internal function for setting strict seccomp
+  *
+  * Once current->seccomp.mode is non-zero, it may not be changed.
+  *
+  * Returns 0 on success or -EINVAL on failure.
+  */
+-static long seccomp_set_mode(unsigned long seccomp_mode, char __user *filter)
++static long seccomp_set_mode_strict(void)
  {
++	const unsigned long seccomp_mode = SECCOMP_MODE_STRICT;
  	long ret = -EINVAL;
  
--	if (current->seccomp.mode &&
--	    current->seccomp.mode != seccomp_mode)
-+	if (!seccomp_check_mode(seccomp_mode))
+ 	if (!seccomp_check_mode(seccomp_mode))
  		goto out;
  
- 	switch (seccomp_mode) {
-@@ -512,8 +527,7 @@ static long seccomp_set_mode(unsigned long seccomp_mode, char __user *filter)
- 		goto out;
- 	}
- 
--	current->seccomp.mode = seccomp_mode;
--	set_thread_flag(TIF_SECCOMP);
+-	switch (seccomp_mode) {
+-	case SECCOMP_MODE_STRICT:
+-		ret = 0;
+ #ifdef TIF_NOTSC
+-		disable_TSC();
++	disable_TSC();
+ #endif
+-		break;
 +	seccomp_assign_mode(seccomp_mode);
++	ret = 0;
++
++out:
++
++	return ret;
++}
++
+ #ifdef CONFIG_SECCOMP_FILTER
+-	case SECCOMP_MODE_FILTER:
+-		ret = seccomp_attach_user_filter(filter);
+-		if (ret)
+-			goto out;
+-		break;
+-#endif
+-	default:
++/**
++ * seccomp_set_mode_filter: internal function for setting seccomp filter
++ * @filter: struct sock_fprog containing filter
++ *
++ * This function may be called repeatedly to install additional filters.
++ * Every filter successfully installed will be evaluated (in reverse order)
++ * for each system call the task makes.
++ *
++ * Once current->seccomp.mode is non-zero, it may not be changed.
++ *
++ * Returns 0 on success or -EINVAL on failure.
++ */
++static long seccomp_set_mode_filter(char __user *filter)
++{
++	const unsigned long seccomp_mode = SECCOMP_MODE_FILTER;
++	long ret = -EINVAL;
++
++	if (!seccomp_check_mode(seccomp_mode))
++		goto out;
++
++	ret = seccomp_attach_user_filter(filter);
++	if (ret)
+ 		goto out;
+-	}
+ 
+ 	seccomp_assign_mode(seccomp_mode);
  out:
  	return ret;
+ }
++#else
++static inline long seccomp_set_mode_filter(char __user *filter)
++{
++	return -EINVAL;
++}
++#endif
+ 
+ /**
+  * prctl_set_seccomp: configures current->seccomp.mode
+@@ -541,5 +559,12 @@ out:
+  */
+ long prctl_set_seccomp(unsigned long seccomp_mode, char __user *filter)
+ {
+-	return seccomp_set_mode(seccomp_mode, filter);
++	switch (seccomp_mode) {
++	case SECCOMP_MODE_STRICT:
++		return seccomp_set_mode_strict();
++	case SECCOMP_MODE_FILTER:
++		return seccomp_set_mode_filter(filter);
++	default:
++		return -EINVAL;
++	}
  }
 -- 
 1.7.9.5
