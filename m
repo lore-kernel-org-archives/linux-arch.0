@@ -1,30 +1,33 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-la0-f43.google.com ([209.85.215.43]:51743 "EHLO
-	mail-la0-f43.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751406AbaF0UIm (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 27 Jun 2014 16:08:42 -0400
-Received: by mail-la0-f43.google.com with SMTP id e16so3348815lan.30
-        for <linux-arch@vger.kernel.org>; Fri, 27 Jun 2014 13:08:40 -0700 (PDT)
+Received: from mail-ob0-f175.google.com ([209.85.214.175]:34607 "EHLO
+	mail-ob0-f175.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753256AbaF0U4r (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 27 Jun 2014 16:56:47 -0400
+Received: by mail-ob0-f175.google.com with SMTP id wm4so6241436obc.34
+        for <linux-arch@vger.kernel.org>; Fri, 27 Jun 2014 13:56:47 -0700 (PDT)
 MIME-Version: 1.0
 In-Reply-To: <20140627195559.GA31661@redhat.com>
 References: <CAGXu5j+J11zJnuFR8bYKAXizAHhCx4R+uJE_QH6zC3q2udkpaQ@mail.gmail.com>
- <CALCETrVrs8sb19+UUqyFEpAFzTih5dkAwn-WpQjfgPcPJMpP5g@mail.gmail.com>
- <20140625173245.GA17695@redhat.com> <CALCETrUc65H+fn6dtMdYnB_xR39wcmgDdTbdR3fFRjyrndJhgA@mail.gmail.com>
- <20140625175136.GA18185@redhat.com> <CAGXu5jL17k6=GXju6x+eLU20FMwBHhnuRiHoQD1Bzj_EmpiKjg@mail.gmail.com>
- <CALCETrVNwhWSPNiBiZmgP1nD9zLJPTk6cH0yo=85rbxTPTYFRg@mail.gmail.com>
- <CAGXu5jLavA8FJD8m-1y4wO0uzh3qvvMmajAg0Lrr1Cn_Om3a3w@mail.gmail.com>
- <20140627192753.GA30752@redhat.com> <CALCETrVbJqfG6oBaZEjj7H3pPa1oVJx6QXAYc5zZ6o-niV=WKQ@mail.gmail.com>
- <20140627195559.GA31661@redhat.com>
-From: Andy Lutomirski <luto@amacapital.net>
-Date: Fri, 27 Jun 2014 13:08:20 -0700
-Message-ID: <CALCETrUxGbTet--zJiKX4BqbOaw2MDBPqT18HaQOdf7zwWWtEw@mail.gmail.com>
+	<CALCETrVrs8sb19+UUqyFEpAFzTih5dkAwn-WpQjfgPcPJMpP5g@mail.gmail.com>
+	<20140625173245.GA17695@redhat.com>
+	<CALCETrUc65H+fn6dtMdYnB_xR39wcmgDdTbdR3fFRjyrndJhgA@mail.gmail.com>
+	<20140625175136.GA18185@redhat.com>
+	<CAGXu5jL17k6=GXju6x+eLU20FMwBHhnuRiHoQD1Bzj_EmpiKjg@mail.gmail.com>
+	<CALCETrVNwhWSPNiBiZmgP1nD9zLJPTk6cH0yo=85rbxTPTYFRg@mail.gmail.com>
+	<CAGXu5jLavA8FJD8m-1y4wO0uzh3qvvMmajAg0Lrr1Cn_Om3a3w@mail.gmail.com>
+	<20140627192753.GA30752@redhat.com>
+	<CALCETrVbJqfG6oBaZEjj7H3pPa1oVJx6QXAYc5zZ6o-niV=WKQ@mail.gmail.com>
+	<20140627195559.GA31661@redhat.com>
+Date: Fri, 27 Jun 2014 13:56:46 -0700
+Message-ID: <CAGXu5j+M+MHkxNMSaQ+RqYrty=1Fgur6_duSnL8DAZ_SazeJ7w@mail.gmail.com>
 Subject: Re: [PATCH v8 5/9] seccomp: split mode set routines
+From: Kees Cook <keescook@chromium.org>
 Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Oleg Nesterov <oleg@redhat.com>
-Cc: Kees Cook <keescook@chromium.org>, LKML <linux-kernel@vger.kernel.org>, "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>, Alexei Starovoitov <ast@plumgrid.com>, Andrew Morton <akpm@linux-foundation.org>, Daniel Borkmann <dborkman@redhat.com>, Will Drewry <wad@chromium.org>, Julien Tinnes <jln@chromium.org>, David Drysdale <drysdale@google.com>, Linux API <linux-api@vger.kernel.org>, "x86@kernel.org" <x86@kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, linux-mips@linux-mips.org, linux-arch <linux-arch@vger.kernel.org>, linux-security-module <linux-security-module@vger.kernel.org>
-Message-ID: <20140627200820.euyBe2CQnU8-OVoCLQsy9-IA3fgzVOb-k9X6Gc35Kew@z>
+Cc: Andy Lutomirski <luto@amacapital.net>, LKML <linux-kernel@vger.kernel.org>, "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>, Alexei Starovoitov <ast@plumgrid.com>, Andrew Morton <akpm@linux-foundation.org>, Daniel Borkmann <dborkman@redhat.com>, Will Drewry <wad@chromium.org>, Julien Tinnes <jln@chromium.org>, David Drysdale <drysdale@google.com>, Linux API <linux-api@vger.kernel.org>, "x86@kernel.org" <x86@kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, linux-mips@linux-mips.org, linux-arch <linux-arch@vger.kernel.org>, linux-security-module <linux-security-module@vger.kernel.org>
+Message-ID: <20140627205646.QBG6NVLCdwCqdU45uYwG05p0PAceHfrEMrS8Qu9T3yU@z>
 
 On Fri, Jun 27, 2014 at 12:55 PM, Oleg Nesterov <oleg@redhat.com> wrote:
 > On 06/27, Andy Lutomirski wrote:
@@ -55,11 +58,32 @@ On Fri, Jun 27, 2014 at 12:55 PM, Oleg Nesterov <oleg@redhat.com> wrote:
 >
 > I am just curious, does this 13ns overhead include the penalty from the
 > slow syscall enter path triggered by TIF_SECCOMP ?
+>
+>> Admittedly, this is x86, not ARM, so comparisons here are completely
+>> bogus.  And that read memory barrier doesn't even need an instruction
+>> on x86.  But still, let's try to keep this fast.
+>
+> Well, I am not going to insist...
+>
+> But imo it would be better to make it correct in a most simple way, then
+> we can optimize this code and see if there is a noticeable difference.
+>
+> Not only we can change the ordering, we can remove the BUG_ON's and just
+> accept the fact the __secure_computing() can race with sys_seccomp() from
+> another thread.
+>
+> If nothing else, it would be much simpler to discuss this patch if it comes
+> as a separate change.
 
-Yes, which is more or less the whole point of that patch series.  I
-rewrote part of the TIF_SECCOMP-but-no-tracing case in assembly :)
+Yeah, the way I want to go is to add the rmb() for now (it gets us
+"correctness"), and then later deal with any potential performance
+problems on ARM at a later time. (At present, I'm unable to perform
+any timings on ARM -- maybe next week.)
 
-I'm playing with rewriting it in C, but it's looking like it'll be a
-bit more far-reaching than I was hoping.
+I will send the v9 series in a moment here...
 
---Andy
+-Kees
+
+-- 
+Kees Cook
+Chrome OS Security
