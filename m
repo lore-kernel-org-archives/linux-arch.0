@@ -1,127 +1,57 @@
-From: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
-Subject: Re: [PATCH 01/11] qspinlock: A simple generic 4-byte queue spinlock
-Date: Mon, 23 Jun 2014 12:20:20 -0400
-Message-ID: <20140623162020.GA9426@laptop.dumpdata.com>
-References: <20140615124657.264658593@chello.nl>
-	<20140615130152.912524881@chello.nl>
-	<20140616204918.GA26140@laptop.dumpdata.com>
-	<20140617200329.GA27400@laptop.dumpdata.com>
-	<20140623161200.GG19860@laptop.programming.kicks-ass.net>
+From: Kees Cook <keescook@chromium.org>
+Subject: Re: [PATCH v8 3/9] seccomp: introduce writer locking
+Date: Fri, 27 Jun 2014 10:27:05 -0700
+Message-ID: <CAGXu5j+97V=8H-ft0Rmn8PPR7X=m_L5vLzgneUvbv920+8Yc2w@mail.gmail.com>
+References: <1403642893-23107-1-git-send-email-keescook@chromium.org>
+	<1403642893-23107-4-git-send-email-keescook@chromium.org>
+	<20140625180705.GB18185@redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <virtualization-bounces@lists.linux-foundation.org>
-Content-Disposition: inline
-In-Reply-To: <20140623161200.GG19860@laptop.programming.kicks-ass.net>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
-List-Post: <mailto:virtualization@lists.linux-foundation.org>
-List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
-Sender: virtualization-bounces@lists.linux-foundation.org
-Errors-To: virtualization-bounces@lists.linux-foundation.org
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Waiman.Long@hp.com, linux-arch@vger.kernel.org, riel@redhat.com, gleb@redhat.com, kvm@vger.kernel.org, boris.ostrovsky@oracle.com, scott.norton@hp.com, raghavendra.kt@linux.vnet.ibm.com, paolo.bonzini@gmail.com, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, chegu_vinod@hp.com, david.vrabel@citrix.com, oleg@redhat.com, xen-devel@lists.xenproject.org, tglx@linutronix.de, paulmck@linux.vnet.ibm.com, torvalds@linux-foundation.org, mingo@kernel.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=UTF-8
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-oa0-f42.google.com ([209.85.219.42]:45427 "EHLO
+	mail-oa0-f42.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751917AbaF0R1G (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 27 Jun 2014 13:27:06 -0400
+Received: by mail-oa0-f42.google.com with SMTP id eb12so6015751oac.29
+        for <linux-arch@vger.kernel.org>; Fri, 27 Jun 2014 10:27:05 -0700 (PDT)
+In-Reply-To: <20140625180705.GB18185@redhat.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Oleg Nesterov <oleg@redhat.com>
+Cc: LKML <linux-kernel@vger.kernel.org>, Andy Lutomirski <luto@amacapital.net>, "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>, Alexei Starovoitov <ast@plumgrid.com>, Andrew Morton <akpm@linux-foundation.org>, Daniel Borkmann <dborkman@redhat.com>, Will Drewry <wad@chromium.org>, Julien Tinnes <jln@chromium.org>, David Drysdale <drysdale@google.com>, Linux API <linux-api@vger.kernel.org>, "x86@kernel.org" <x86@kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, linux-mips@linux-mips.org, linux-arch <linux-arch@vger.kernel.org>, linux-security-module <linux-security-module@vger.kernel.org>
 
-On Mon, Jun 23, 2014 at 06:12:00PM +0200, Peter Zijlstra wrote:
-> On Tue, Jun 17, 2014 at 04:03:29PM -0400, Konrad Rzeszutek Wilk wrote:
-> > > > +			new = tail | (val & _Q_LOCKED_MASK);
-> > > > +
-> > > > +		old = atomic_cmpxchg(&lock->val, val, new);
-> > > > +		if (old == val)
-> > > > +			break;
-> > > > +
-> > > > +		val = old;
-> > > > +	}
-> > > > +
-> > > > +	/*
-> > > > +	 * we won the trylock; forget about queueing.
-> > > > +	 */
-> > > > +	if (new == _Q_LOCKED_VAL)
-> > > > +		goto release;
-> > > > +
-> > > > +	/*
-> > > > +	 * if there was a previous node; link it and wait.
-> > > > +	 */
-> > > > +	if (old & ~_Q_LOCKED_MASK) {
-> > > > +		prev = decode_tail(old);
-> > > > +		ACCESS_ONCE(prev->next) = node;
-> > > > +
-> > > > +		arch_mcs_spin_lock_contended(&node->locked);
-> > 
-> > Could you add a comment here:
-> > 
-> > /* We are spinning forever until the previous node updates locked - which
-> > it does once the it has updated lock->val with our tail number. */
-> 
-> That's incorrect -- or at least, I understand that to be incorrect. The
-> previous node will not have changed the tail to point to us. You always
-> change to tail to point to yourself, seeing how you add yourself to the
-> tail.
-> 
-> Is the existing comment any better if I s/wait./wait for it to release
-> us./ ?
+On Wed, Jun 25, 2014 at 11:07 AM, Oleg Nesterov <oleg@redhat.com> wrote:
+> On 06/24, Kees Cook wrote:
+>>
+>> +static void copy_seccomp(struct task_struct *p)
+>> +{
+>> +#ifdef CONFIG_SECCOMP
+>> +     /*
+>> +      * Must be called with sighand->lock held, which is common to
+>> +      * all threads in the group. Regardless, nothing special is
+>> +      * needed for the child since it is not yet in the tasklist.
+>> +      */
+>> +     BUG_ON(!spin_is_locked(&current->sighand->siglock));
+>> +
+>> +     get_seccomp_filter(current);
+>> +     p->seccomp = current->seccomp;
+>> +
+>> +     if (p->seccomp.mode != SECCOMP_MODE_DISABLED)
+>> +             set_tsk_thread_flag(p, TIF_SECCOMP);
+>> +#endif
+>> +}
+>
+> Wait. But what about no_new_privs? We should copy it as well...
+>
+> Perhaps this helper should be updated a bit and moved into seccomp.c so
+> that seccomp_sync_threads() could use it too.
 
-Yes!
-> 
-> > > > +	/*
-> > > > +	 * claim the lock:
-> > > > +	 *
-> > > > +	 * n,0 -> 0,1 : lock, uncontended
-> > > > +	 * *,0 -> *,1 : lock, contended
-> > > > +	 */
-> > > > +	for (;;) {
-> > > > +		new = _Q_LOCKED_VAL;
-> > > > +		if (val != tail)
-> > > > +			new |= val;
-> > > 
-> > ..snip..
-> > > 
-> > > Could you help a bit in explaining it in English please?
-> > 
-> > After looking at the assembler code I finally figured out how
-> > we can get here. And the 'contended' part threw me off. Somehow
-> > I imagined there are two more more CPUs stampeding here and 
-> > trying to update the lock->val. But in reality the other CPUs
-> > are stuck in the arch_mcs_spin_lock_contended spinning on their
-> > local value.
-> 
-> Well, the lock as a whole is contended (there's >1 waiters), and the
-> point of MCS style locks it to make sure they're not actually pounding
-> on the same cacheline. So the whole thing is consistent.
-> 
-> > Perhaps you could add this comment.
-> > 
-> > /* Once queue_spin_unlock is called (which _subtracts_ _Q_LOCKED_VAL from
-> > the lock->val and still preserving the tail data), the winner gets to
-> > claim the ticket. 
-> 
-> There's no tickets :/
+Ah! Yes. I had been thinking it had been copied during the task_struct
+duplication, but that would have been before holding sighand->lock, so
+it needs explicit recopying. Thanks!
 
-s/ticket/be first in line/ ?
+-Kees
 
-> 
-> > Since we still need the other CPUs to continue and
-> > preserve the strict ordering in which they setup node->next, we:
-> >  1) update lock->val to the tail value (so tail CPU and its index) with
-> >     _Q_LOCKED_VAL.
-> 
-> We don't, we preserve the tail value, unless we're the tail, in which
-> case we clear the tail.
-> 
-> >  2). Once we are done, we poke the other CPU (the one that linked to
-> >     us) by writting to node->locked (below) so they can make progress and
-> >     loop on lock->val changing from _Q_LOCKED_MASK to zero).
-> 
-> _If_ there was another cpu, ie. the tail didn't point to us.
-
-<nods>
-> 
-> ---
-> 
-> I don't do well with natural language comments like that; they tend to
-> confuse me more than anything.
-> 
+-- 
+Kees Cook
+Chrome OS Security
