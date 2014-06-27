@@ -1,67 +1,133 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.outflux.net ([198.145.64.163]:44851 "EHLO smtp.outflux.net"
+Received: from smtp.outflux.net ([198.145.64.163]:33592 "EHLO smtp.outflux.net"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753256AbaF0XXv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 27 Jun 2014 19:23:51 -0400
+	id S1753256AbaF0XXy (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 27 Jun 2014 19:23:54 -0400
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH v9 01/11] seccomp: create internal mode-setting function
-Date: Fri, 27 Jun 2014 16:22:50 -0700
-Message-ID: <1403911380-27787-2-git-send-email-keescook@chromium.org>
+Subject: [PATCH v9 06/11] MIPS: add seccomp syscall
+Date: Fri, 27 Jun 2014 16:22:55 -0700
+Message-ID: <1403911380-27787-7-git-send-email-keescook@chromium.org>
 In-Reply-To: <1403911380-27787-1-git-send-email-keescook@chromium.org>
 References: <1403911380-27787-1-git-send-email-keescook@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
 Cc: Kees Cook <keescook@chromium.org>, Oleg Nesterov <oleg@redhat.com>, Andy Lutomirski <luto@amacapital.net>, "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>, Alexei Starovoitov <ast@plumgrid.com>, Andrew Morton <akpm@linux-foundation.org>, Daniel Borkmann <dborkman@redhat.com>, Will Drewry <wad@chromium.org>, Julien Tinnes <jln@chromium.org>, David Drysdale <drysdale@google.com>, linux-api@vger.kernel.org, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-mips@linux-mips.org, linux-arch@vger.kernel.org, linux-security-module@vger.kernel.org
-Message-ID: <20140627232250.-i-of-PdRIw4HTQ2LeJYXovW_77WMxko1vv7Yc7pJ2c@z>
+Message-ID: <20140627232255.TPHxqQqeqHOfqwyAvmYsl9t538_bT6ISQmZIgE4oyJc@z>
 
-In preparation for having other callers of the seccomp mode setting
-logic, split the prctl entry point away from the core logic that performs
-seccomp mode setting.
+Wires up the new seccomp syscall.
 
 Signed-off-by: Kees Cook <keescook@chromium.org>
 ---
- kernel/seccomp.c |   16 ++++++++++++++--
- 1 file changed, 14 insertions(+), 2 deletions(-)
+ arch/mips/include/uapi/asm/unistd.h |   15 +++++++++------
+ arch/mips/kernel/scall32-o32.S      |    1 +
+ arch/mips/kernel/scall64-64.S       |    1 +
+ arch/mips/kernel/scall64-n32.S      |    1 +
+ arch/mips/kernel/scall64-o32.S      |    1 +
+ 5 files changed, 13 insertions(+), 6 deletions(-)
 
-diff --git a/kernel/seccomp.c b/kernel/seccomp.c
-index 301bbc24739c..afb916c7e890 100644
---- a/kernel/seccomp.c
-+++ b/kernel/seccomp.c
-@@ -473,7 +473,7 @@ long prctl_get_seccomp(void)
- }
+diff --git a/arch/mips/include/uapi/asm/unistd.h b/arch/mips/include/uapi/asm/unistd.h
+index 5805414777e0..9bc13eaf9d67 100644
+--- a/arch/mips/include/uapi/asm/unistd.h
++++ b/arch/mips/include/uapi/asm/unistd.h
+@@ -372,16 +372,17 @@
+ #define __NR_sched_setattr		(__NR_Linux + 349)
+ #define __NR_sched_getattr		(__NR_Linux + 350)
+ #define __NR_renameat2			(__NR_Linux + 351)
++#define __NR_seccomp			(__NR_Linux + 352)
  
- /**
-- * prctl_set_seccomp: configures current->seccomp.mode
-+ * seccomp_set_mode: internal function for setting seccomp mode
-  * @seccomp_mode: requested mode to use
-  * @filter: optional struct sock_fprog for use with SECCOMP_MODE_FILTER
-  *
-@@ -486,7 +486,7 @@ long prctl_get_seccomp(void)
-  *
-  * Returns 0 on success or -EINVAL on failure.
+ /*
+  * Offset of the last Linux o32 flavoured syscall
   */
--long prctl_set_seccomp(unsigned long seccomp_mode, char __user *filter)
-+static long seccomp_set_mode(unsigned long seccomp_mode, char __user *filter)
- {
- 	long ret = -EINVAL;
+-#define __NR_Linux_syscalls		351
++#define __NR_Linux_syscalls		352
  
-@@ -517,3 +517,15 @@ long prctl_set_seccomp(unsigned long seccomp_mode, char __user *filter)
- out:
- 	return ret;
- }
-+
-+/**
-+ * prctl_set_seccomp: configures current->seccomp.mode
-+ * @seccomp_mode: requested mode to use
-+ * @filter: optional struct sock_fprog for use with SECCOMP_MODE_FILTER
-+ *
-+ * Returns 0 on success or -EINVAL on failure.
-+ */
-+long prctl_set_seccomp(unsigned long seccomp_mode, char __user *filter)
-+{
-+	return seccomp_set_mode(seccomp_mode, filter);
-+}
+ #endif /* _MIPS_SIM == _MIPS_SIM_ABI32 */
+ 
+ #define __NR_O32_Linux			4000
+-#define __NR_O32_Linux_syscalls		351
++#define __NR_O32_Linux_syscalls		352
+ 
+ #if _MIPS_SIM == _MIPS_SIM_ABI64
+ 
+@@ -701,16 +702,17 @@
+ #define __NR_sched_setattr		(__NR_Linux + 309)
+ #define __NR_sched_getattr		(__NR_Linux + 310)
+ #define __NR_renameat2			(__NR_Linux + 311)
++#define __NR_seccomp			(__NR_Linux + 312)
+ 
+ /*
+  * Offset of the last Linux 64-bit flavoured syscall
+  */
+-#define __NR_Linux_syscalls		311
++#define __NR_Linux_syscalls		312
+ 
+ #endif /* _MIPS_SIM == _MIPS_SIM_ABI64 */
+ 
+ #define __NR_64_Linux			5000
+-#define __NR_64_Linux_syscalls		311
++#define __NR_64_Linux_syscalls		312
+ 
+ #if _MIPS_SIM == _MIPS_SIM_NABI32
+ 
+@@ -1034,15 +1036,16 @@
+ #define __NR_sched_setattr		(__NR_Linux + 313)
+ #define __NR_sched_getattr		(__NR_Linux + 314)
+ #define __NR_renameat2			(__NR_Linux + 315)
++#define __NR_seccomp			(__NR_Linux + 316)
+ 
+ /*
+  * Offset of the last N32 flavoured syscall
+  */
+-#define __NR_Linux_syscalls		315
++#define __NR_Linux_syscalls		316
+ 
+ #endif /* _MIPS_SIM == _MIPS_SIM_NABI32 */
+ 
+ #define __NR_N32_Linux			6000
+-#define __NR_N32_Linux_syscalls		315
++#define __NR_N32_Linux_syscalls		316
+ 
+ #endif /* _UAPI_ASM_UNISTD_H */
+diff --git a/arch/mips/kernel/scall32-o32.S b/arch/mips/kernel/scall32-o32.S
+index 3245474f19d5..ab02d14f1b5c 100644
+--- a/arch/mips/kernel/scall32-o32.S
++++ b/arch/mips/kernel/scall32-o32.S
+@@ -578,3 +578,4 @@ EXPORT(sys_call_table)
+ 	PTR	sys_sched_setattr
+ 	PTR	sys_sched_getattr		/* 4350 */
+ 	PTR	sys_renameat2
++	PTR	sys_seccomp
+diff --git a/arch/mips/kernel/scall64-64.S b/arch/mips/kernel/scall64-64.S
+index be2fedd4ae33..010dccf128ec 100644
+--- a/arch/mips/kernel/scall64-64.S
++++ b/arch/mips/kernel/scall64-64.S
+@@ -431,4 +431,5 @@ EXPORT(sys_call_table)
+ 	PTR	sys_sched_setattr
+ 	PTR	sys_sched_getattr		/* 5310 */
+ 	PTR	sys_renameat2
++	PTR	sys_seccomp
+ 	.size	sys_call_table,.-sys_call_table
+diff --git a/arch/mips/kernel/scall64-n32.S b/arch/mips/kernel/scall64-n32.S
+index c1dbcda4b816..c3b3b6525df5 100644
+--- a/arch/mips/kernel/scall64-n32.S
++++ b/arch/mips/kernel/scall64-n32.S
+@@ -424,4 +424,5 @@ EXPORT(sysn32_call_table)
+ 	PTR	sys_sched_setattr
+ 	PTR	sys_sched_getattr
+ 	PTR	sys_renameat2			/* 6315 */
++	PTR	sys_seccomp
+ 	.size	sysn32_call_table,.-sysn32_call_table
+diff --git a/arch/mips/kernel/scall64-o32.S b/arch/mips/kernel/scall64-o32.S
+index f1343ccd7ed7..bb1550b1f501 100644
+--- a/arch/mips/kernel/scall64-o32.S
++++ b/arch/mips/kernel/scall64-o32.S
+@@ -557,4 +557,5 @@ EXPORT(sys32_call_table)
+ 	PTR	sys_sched_setattr
+ 	PTR	sys_sched_getattr		/* 4350 */
+ 	PTR	sys_renameat2
++	PTR	sys_seccomp
+ 	.size	sys32_call_table,.-sys32_call_table
 -- 
 1.7.9.5
 
