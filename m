@@ -1,119 +1,78 @@
-From: "Rafael J. Wysocki" <rjw@rjwysocki.net>
-Subject: Re: [RFA][PATCH 02/27] PM / Sleep: Remove ftrace_stop/start() from suspend and hibernate
-Date: Sat, 28 Jun 2014 02:02:24 +0200
-Message-ID: <1518201.VD9cU33jRU@vostro.rjw.lan>
-References: <20140626165221.736847419@goodmis.org> <20140626165848.128028586@goodmis.org>
+From: Helge Deller <deller@gmx.de>
+Subject: Re: [RFA][PATCH 20/27] parisc: ftrace: Remove check of obsolete variable
+ function_trace_stop
+Date: Sun, 29 Jun 2014 23:20:23 +0200
+Message-ID: <53B08317.7010501@gmx.de>
+References: <20140626165221.736847419@goodmis.org>	<20140626165852.497955187@goodmis.org> <20140626133548.03f7b90a@gandalf.local.home>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: 7Bit
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from v094114.home.net.pl ([79.96.170.134]:53767 "HELO
-	v094114.home.net.pl" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with SMTP id S1753454AbaF0Xof (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 27 Jun 2014 19:44:35 -0400
-In-Reply-To: <20140626165848.128028586@goodmis.org>
+Received: from mout.gmx.net ([212.227.17.22]:55558 "EHLO mout.gmx.net"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1753143AbaF2VU3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 29 Jun 2014 17:20:29 -0400
+In-Reply-To: <20140626133548.03f7b90a@gandalf.local.home>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Steven Rostedt <rostedt@goodmis.org>
-Cc: linux-kernel@vger.kernel.org, Ingo Molnar <mingo@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, Jiri Kosina <jkosina@suse.cz>, Josh Poimboeuf <notifications@github.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Thursday, June 26, 2014 12:52:23 PM Steven Rostedt wrote:
-> From: "Steven Rostedt (Red Hat)" <rostedt@goodmis.org>
-> 
-> ftrace_stop() and ftrace_start() were added to the suspend and hibernate
-> process because there was some function within the work flow that caused
-> the system to reboot if it was traced. This function has recently been
-> found (restore_processor_state()). Now there's no reason to disable
-> function tracing while we are going into suspend or hibernate, which means
-> that being able to trace this will help tremendously in debugging any
-> issues with suspend or hibernate.
-> 
-> This also means that the ftrace_stop/start() functions can be removed
-> and simplify the function tracing code a bit.
-> 
-> Signed-off-by: Steven Rostedt <rostedt@goodmis.org>
+Hi Steven,
 
-ACK
-
-> ---
->  kernel/power/hibernate.c | 6 ------
->  kernel/power/suspend.c   | 2 --
->  2 files changed, 8 deletions(-)
+On 06/26/2014 07:35 PM, Steven Rostedt wrote:
+> On Thu, 26 Jun 2014 12:52:41 -0400
+> Steven Rostedt <rostedt@goodmis.org> wrote:
 > 
-> diff --git a/kernel/power/hibernate.c b/kernel/power/hibernate.c
-> index 49e0a20fd010..ca7b1906c6c8 100644
-> --- a/kernel/power/hibernate.c
-> +++ b/kernel/power/hibernate.c
-> @@ -365,7 +365,6 @@ int hibernation_snapshot(int platform_mode)
->  	}
->  
->  	suspend_console();
-> -	ftrace_stop();
->  	pm_restrict_gfp_mask();
->  
->  	error = dpm_suspend(PMSG_FREEZE);
-> @@ -391,7 +390,6 @@ int hibernation_snapshot(int platform_mode)
->  	if (error || !in_suspend)
->  		pm_restore_gfp_mask();
->  
-> -	ftrace_start();
->  	resume_console();
->  	dpm_complete(msg);
->  
-> @@ -494,7 +492,6 @@ int hibernation_restore(int platform_mode)
->  
->  	pm_prepare_console();
->  	suspend_console();
-> -	ftrace_stop();
->  	pm_restrict_gfp_mask();
->  	error = dpm_suspend_start(PMSG_QUIESCE);
->  	if (!error) {
-> @@ -502,7 +499,6 @@ int hibernation_restore(int platform_mode)
->  		dpm_resume_end(PMSG_RECOVER);
->  	}
->  	pm_restore_gfp_mask();
-> -	ftrace_start();
->  	resume_console();
->  	pm_restore_console();
->  	return error;
-> @@ -529,7 +525,6 @@ int hibernation_platform_enter(void)
->  
->  	entering_platform_hibernation = true;
->  	suspend_console();
-> -	ftrace_stop();
->  	error = dpm_suspend_start(PMSG_HIBERNATE);
->  	if (error) {
->  		if (hibernation_ops->recover)
-> @@ -573,7 +568,6 @@ int hibernation_platform_enter(void)
->   Resume_devices:
->  	entering_platform_hibernation = false;
->  	dpm_resume_end(PMSG_RESTORE);
-> -	ftrace_start();
->  	resume_console();
->  
->   Close:
-> diff --git a/kernel/power/suspend.c b/kernel/power/suspend.c
-> index 4dd8822f732a..f6623da034d8 100644
-> --- a/kernel/power/suspend.c
-> +++ b/kernel/power/suspend.c
-> @@ -248,7 +248,6 @@ static int suspend_enter(suspend_state_t state, bool *wakeup)
->  		goto Platform_wake;
->  	}
->  
-> -	ftrace_stop();
->  	error = disable_nonboot_cpus();
->  	if (error || suspend_test(TEST_CPUS))
->  		goto Enable_cpus;
-> @@ -275,7 +274,6 @@ static int suspend_enter(suspend_state_t state, bool *wakeup)
->  
->   Enable_cpus:
->  	enable_nonboot_cpus();
-> -	ftrace_start();
->  
->   Platform_wake:
->  	if (need_suspend_ops(state) && suspend_ops->wake)
+>> From: "Steven Rostedt (Red Hat)" <rostedt@goodmis.org>
+>>
+>> Nothing sets function_trace_stop to disable function tracing anymore.
+>> Remove the check for it in the arch code.
 > 
+> From the cover letter, you were not Cc'd on.
+> 
+> Anyway, as there is no more reason to set function_trace_stop it is time
+> to remove it. Unfortunately it's in several archs in assembly. Most of
+> the assembly looks rather straight forward and I removed them myself.
+> But I was only able to compile test them (for archs: arm64, metag, and
+> microblaze I do not have my cross tools set up for them and did not
+> even compile test it). But I would really love it if people can
+> download their patch and test it out. You only need the patches that go
+> against your arch and to really test it, also include the patch titled: 
+> 
+>  ftrace: Remove check for HAVE_FUNCTION_TRACE_MCOUNT_TEST
+> 
+> Otherwise your arch patch will call the list op that still does the
+> check. That is, if you want to test suspend and resume on your arch.
+> 
+> As you may see, there are patches to the ftrace infrastructure that
+> depend on the arch patches being implemented. I removed the
+> functionality from the infrastructure, then removed it from the archs,
+> and then finally removed the existence of the function_trace_stop
+> variable, which would cause the archs to fail to compile if that were
+> to go first.
+> 
+> If you can test your arch and give me your acked-by, I would appreciate
+> it. Otherwise, if you need this to go through your tree, I would ask you
+> to set up a dedicated branch that I can pull from to keep this order
+> intact.
 
--- 
-I speak only for myself.
-Rafael J. Wysocki, Intel Open Source Technology Center.
+Sadly the arch-related tracing code in parisc is really broken.
+It doesn't even compile cleanly on parisc (at least on 64bit), and as I wrote you in another mail
+I really need to fix this soon (which I already started on).
+
+But your patches look clean, so to get the basics right, I'm happy to give a 
+Acked-by: Helge Deller <deller@gmx.de>
+for the two patches which affect parisc, which are:
+[PATCH 08/27] parisc: ftrace: Add call to ftrace_graph_is_dead() in function graph code
+[PATCH 20/27] parisc: ftrace: Remove check of obsolete variable function_trace_stop
+
+It would be good if you can push them through your tree.
+I assume your tree is: 
+git://git.kernel.org/pub/scm/linux/kernel/git/rostedt/linux-trace.git
+with branch ftrace/next. 
+Is this correct?
+If yes, I can build my patches upon this tree...
+
+Thanks!
+Helge
