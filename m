@@ -1,94 +1,82 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.outflux.net ([198.145.64.163]:40209 "EHLO smtp.outflux.net"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754209AbaF0XXw (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 27 Jun 2014 19:23:52 -0400
-From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH v9 10/11] seccomp: allow mode setting across threads
-Date: Fri, 27 Jun 2014 16:22:59 -0700
-Message-ID: <1403911380-27787-11-git-send-email-keescook@chromium.org>
-In-Reply-To: <1403911380-27787-1-git-send-email-keescook@chromium.org>
-References: <1403911380-27787-1-git-send-email-keescook@chromium.org>
+Received: from mail9.hitachi.co.jp ([133.145.228.44]:39698 "EHLO
+	mail9.hitachi.co.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752688AbaF3DNQ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 29 Jun 2014 23:13:16 -0400
+Message-ID: <53B0D5C4.8000909@hitachi.com>
+Date: Mon, 30 Jun 2014 12:13:08 +0900
+From: Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>
+MIME-Version: 1.0
+Subject: Re: [RFA][PATCH 00/27] ftrace: Remove ftrace_start/stop() and friends
+References: <20140626165221.736847419@goodmis.org>
+In-Reply-To: <20140626165221.736847419@goodmis.org>
+Content-Type: text/plain; charset=ISO-2022-JP
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: Kees Cook <keescook@chromium.org>, Oleg Nesterov <oleg@redhat.com>, Andy Lutomirski <luto@amacapital.net>, "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>, Alexei Starovoitov <ast@plumgrid.com>, Andrew Morton <akpm@linux-foundation.org>, Daniel Borkmann <dborkman@redhat.com>, Will Drewry <wad@chromium.org>, Julien Tinnes <jln@chromium.org>, David Drysdale <drysdale@google.com>, linux-api@vger.kernel.org, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-mips@linux-mips.org, linux-arch@vger.kernel.org, linux-security-module@vger.kernel.org
-Message-ID: <20140627232259.gfRn-0TJul_M1Nogegqt7SMamXN7A65kMD3vzSRCLMM@z>
+To: Steven Rostedt <rostedt@goodmis.org>
+Cc: linux-kernel@vger.kernel.org, Ingo Molnar <mingo@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Jiri Kosina <jkosina@suse.cz>, Josh Poimboeuf <notifications@github.com>
+Message-ID: <20140630031308.2Ntt9Fy2Y33jONNt1kVclpLNyozngnna2XmObQT6VIc@z>
 
-This changes the mode setting helper to allow threads to change the
-seccomp mode from another thread. We must maintain barriers to keep
-TIF_SECCOMP synchronized with the rest of the seccomp state.
+(2014/06/27 1:52), Steven Rostedt wrote:
+> * Request for Acks *
+> 
+>>From the time I created the use of function_trace_stop, I hated it.
+> There was two reasons to create this, one was to try to lower the
+> function tracing overhead when debugfs file tracing_enable was set to zero
+> (note, tracing_enable no longer exists), the other was a way to stop
+> function tracing when going down into suspend and resume.
+> 
+> Some function was causing suspend and resume to reboot the kernel. In
+> debugging this I found that an empty callback from mcount would work.
+> That is, instead of running the tracing code, I would just have the
+> function trace callback be a nop:
+> 
+>  void function_trace_call(unsigned long ip, unsigned long parent_ip)
+>  {
+>  }
+> 
+> This worked. That means the code in mcount wasn't an issue. I started
+> bisecting the contents of the function_trace_call and found that this
+> would cause the system to reboot!
+> 
+>  void function_trace_call(unsigned long ip, unsigned long parent_ip)
+>  {
+> 	smp_processor_id();
+>  }
+> 
+> That is, just calling smp_processor_id() was enough to trigger a triple
+> fault on resume of the system.
+> 
+> Today, this big hammer approach of disabling the function tracer is starting
+> to show its issues. It can't help out in debugging suspend and resume,
+> and there's other function trace callbacks that should still work.
+> 
+> I also have learned ways to bisect functions that cause bugs in function
+> tracing. I finally got some time to do so with a box that would reboot
+> on suspend and resume. This led me down to a single function:
+> 
+>  restore_processor_state()
+> 
+> This made perfect sense, as this function is called from assembly on a
+> CPU startup. One of the jobs of this function was to set up the GS register.
+> That register is also the register that is used by smp_processor_id()
+> to find what CPU the task is running on. With it not set up it will offset
+> into some random location and fault. As the fault handlers can also be
+> traced, those will fault too and finally the system will reset due to a
+> triple fault.
 
-Signed-off-by: Kees Cook <keescook@chromium.org>
----
- kernel/seccomp.c |   27 +++++++++++++++++++--------
- 1 file changed, 19 insertions(+), 8 deletions(-)
+Uh, from the same reason, I must list it in the kprobe blacklist too...
 
-diff --git a/kernel/seccomp.c b/kernel/seccomp.c
-index e1ff2c193190..7bbcb9ed16df 100644
---- a/kernel/seccomp.c
-+++ b/kernel/seccomp.c
-@@ -207,12 +207,18 @@ static inline bool seccomp_check_mode(unsigned long seccomp_mode)
- 	return true;
- }
- 
--static inline void seccomp_assign_mode(unsigned long seccomp_mode)
-+static inline void seccomp_assign_mode(struct task_struct *task,
-+				       unsigned long seccomp_mode)
- {
--	BUG_ON(!spin_is_locked(&current->sighand->siglock));
-+	BUG_ON(!spin_is_locked(&task->sighand->siglock));
- 
--	current->seccomp.mode = seccomp_mode;
--	set_tsk_thread_flag(current, TIF_SECCOMP);
-+	task->seccomp.mode = seccomp_mode;
-+	/*
-+	 * Make sure TIF_SECCOMP cannot be set before the mode (and
-+	 * filter) is set.
-+	 */
-+	smp_mb__before_atomic();
-+	set_tsk_thread_flag(task, TIF_SECCOMP);
- }
- 
- #ifdef CONFIG_SECCOMP_FILTER
-@@ -433,12 +439,17 @@ static int mode1_syscalls_32[] = {
- 
- int __secure_computing(int this_syscall)
- {
--	int mode = current->seccomp.mode;
- 	int exit_sig = 0;
- 	int *syscall;
- 	u32 ret;
- 
--	switch (mode) {
-+	/*
-+	 * Make sure that any changes to mode from another thread have
-+	 * been seen after TIF_SECCOMP was seen.
-+	 */
-+	rmb();
-+
-+	switch (current->seccomp.mode) {
- 	case SECCOMP_MODE_STRICT:
- 		syscall = mode1_syscalls;
- #ifdef CONFIG_COMPAT
-@@ -543,7 +554,7 @@ static long seccomp_set_mode_strict(void)
- #ifdef TIF_NOTSC
- 	disable_TSC();
- #endif
--	seccomp_assign_mode(seccomp_mode);
-+	seccomp_assign_mode(current, seccomp_mode);
- 	ret = 0;
- 
- out:
-@@ -593,7 +604,7 @@ static long seccomp_set_mode_filter(unsigned int flags,
- 	/* Do not free the successfully attached filter. */
- 	prepared = NULL;
- 
--	seccomp_assign_mode(seccomp_mode);
-+	seccomp_assign_mode(current, seccomp_mode);
- out:
- 	spin_unlock_irq(&current->sighand->siglock);
- 	seccomp_filter_free(prepared);
+BTW, as far as I can review, x86 and generic parts of the series seems
+OK to me. :)
+
+Thank you,
+
 -- 
-1.7.9.5
+Masami HIRAMATSU
+Software Platform Research Dept. Linux Technology Research Center
+Hitachi, Ltd., Yokohama Research Laboratory
+E-mail: masami.hiramatsu.pt@hitachi.com
+
 
