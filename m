@@ -1,86 +1,75 @@
-From: AKASHI Takahiro <takahiro.akashi@linaro.org>
-Subject: Re: [RFA][PATCH 25/27] arm64, ftrace: Remove check of obsolete variable
- function_trace_stop
-Date: Tue, 01 Jul 2014 20:33:07 +0900
-Message-ID: <53B29C73.9090509@linaro.org>
-References: <20140626165221.736847419@goodmis.org> <20140626165853.482575534@goodmis.org> <20140627124421.GP26276@arm.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pa0-f48.google.com ([209.85.220.48]:58062 "EHLO
-	mail-pa0-f48.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752050AbaGALdS (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 1 Jul 2014 07:33:18 -0400
-Received: by mail-pa0-f48.google.com with SMTP id et14so10445675pad.21
-        for <linux-arch@vger.kernel.org>; Tue, 01 Jul 2014 04:33:17 -0700 (PDT)
-In-Reply-To: <20140627124421.GP26276@arm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will.deacon@arm.com>, Steven Rostedt <rostedt@goodmis.org>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>, "H. Peter Anvin" <hpa@zytor.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Jiri Kosina <jkosina@suse.cz>, Josh Poimboeuf <notifications@github.com>
+From: Filipe Brandenburger <filbranden@google.com>
+Subject: [PATCH] core: fix typo in percpu read_mostly section
+Date: Tue,  1 Jul 2014 12:11:47 -0700
+Message-ID: <1404241907-27093-1-git-send-email-filbranden@google.com>
+References: <1403547365-13428-1-git-send-email-filbranden@google.com>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1403547365-13428-1-git-send-email-filbranden@google.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Tejun Heo <tj@kernel.org>, Christoph Lameter <cl@linux-foundation.org>
+Cc: Eric Dumazet <eric.dumazet@gmail.com>, "H. Peter Anvin" <hpa@linux.intel.com>, Andi Kleen <andi@firstfloor.org>, Zhengyu He <hzy@google.com>, Greg Thelen <gthelen@google.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Filipe Brandenburger <filbranden@google.com>
+List-Id: linux-arch.vger.kernel.org
 
-On 06/27/2014 09:44 PM, Will Deacon wrote:
-> Hi Steve,
->
-> On Thu, Jun 26, 2014 at 05:52:46PM +0100, Steven Rostedt wrote:
->> From: "Steven Rostedt (Red Hat)" <rostedt@goodmis.org>
->>
->> Nothing sets function_trace_stop to disable function tracing anymore.
->> Remove the check for it in the arch code.
->>
->> arm64 was broken anyway, as it had an ifdef testing
->>   CONFIG_HAVE_FUNCTION_TRACE_MCOUNT_TEST which is only set if
->> the arch supports the code (which it obviously did not), and
->> it was testing a non existent ftrace_trace_stop instead of
->> function_trace_stop.
->
-> Yeah, the current code is total crap. Well spotted.
+From: Zhengyu He <hzy@google.com>
 
-Thank you for fixing my bug :)
-I also exercised ftrace with sysfs interface, and it just works well.
+This fixes a typo that named the read_mostly section of percpu as
+readmostly. It works fine with SMP because the linker script specifies
+.data..percpu..readmostly. However, UP kernel builds don't have percpu
+sections defined and the non-percpu version of the section is called
+data..read_mostly, so .data..readmostly will float around and may break
+things unexpectedly.
 
--Takahiro AKASHI
+Looking at the original change that introduced data..percpu..readmostly
+(commit c957ef2c59e952803766ddc22e89981ab534606f), it looks like this
+was the original intention.
 
->
->> Cc: AKASHI Takahiro <takahiro.akashi@linaro.org>
->> Cc: Will Deacon <will.deacon@arm.com>
->> Signed-off-by: Steven Rostedt <rostedt@goodmis.org>
->> ---
->>   arch/arm64/kernel/entry-ftrace.S | 5 -----
->>   1 file changed, 5 deletions(-)
->
->    Acked-by: Will Deacon <will.deacon@arm.com>
->
-> I'm happy for you to take this via the ftrace tree, along with the rest of
-> the series.
->
-> I successfully ran the ftrace self tests with this applied (on top of
-> "ftrace: Remove check for HAVE_FUNCTION_TRACE_MCOUNT_TEST"), but note
-> that I don't have a platform with working suspend/resume right now.
->
-> Cheers,
->
-> Will
->
->> diff --git a/arch/arm64/kernel/entry-ftrace.S b/arch/arm64/kernel/entry-ftrace.S
->> index b051871f2965..1b1e330e6849 100644
->> --- a/arch/arm64/kernel/entry-ftrace.S
->> +++ b/arch/arm64/kernel/entry-ftrace.S
->> @@ -96,11 +96,6 @@
->>    *     - ftrace_graph_caller to set up an exit hook
->>    */
->>   ENTRY(_mcount)
->> -#ifdef CONFIG_HAVE_FUNCTION_TRACE_MCOUNT_TEST
->> -	ldr	x0, =ftrace_trace_stop
->> -	ldr	x0, [x0]		// if ftrace_trace_stop
->> -	ret				//   return;
->> -#endif
->>   	mcount_enter
->>
->>   	ldr	x0, =ftrace_trace_function
->> --
->> 2.0.0
->>
->>
->>
+Tested: Built UP kernel and confirmed the sections got merged.
+
+- Before the patch:
+$ objdump -h vmlinux.o  | grep '\.data\.\.read.*mostly'
+38 .data..read_mostly 00004418  0000000000000000  0000000000000000  00431ac0  2**6
+50 .data..readmostly 00000014  0000000000000000  0000000000000000  00444000  2**3
+
+- After the patch:
+$ objdump -h vmlinux.o  | grep '\.data\.\.read.*mostly'
+38 .data..read_mostly 00004438  0000000000000000  0000000000000000  00431ac0  2**6
+
+Signed-off-by: Zhengyu He <hzy@google.com>
+Signed-off-by: Filipe Brandenburger <filbranden@google.com>
+---
+ include/asm-generic/vmlinux.lds.h | 2 +-
+ include/linux/percpu-defs.h       | 4 ++--
+ 2 files changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+index 471ba48c7ae4..c1c0b0cf39b4 100644
+--- a/include/asm-generic/vmlinux.lds.h
++++ b/include/asm-generic/vmlinux.lds.h
+@@ -693,7 +693,7 @@
+ 	. = ALIGN(PAGE_SIZE);						\
+ 	*(.data..percpu..page_aligned)					\
+ 	. = ALIGN(cacheline);						\
+-	*(.data..percpu..readmostly)					\
++	*(.data..percpu..read_mostly)					\
+ 	. = ALIGN(cacheline);						\
+ 	*(.data..percpu)						\
+ 	*(.data..percpu..shared_aligned)				\
+diff --git a/include/linux/percpu-defs.h b/include/linux/percpu-defs.h
+index a5fc7d01aad6..dec01d6c3f80 100644
+--- a/include/linux/percpu-defs.h
++++ b/include/linux/percpu-defs.h
+@@ -146,10 +146,10 @@
+  * Declaration/definition used for per-CPU variables that must be read mostly.
+  */
+ #define DECLARE_PER_CPU_READ_MOSTLY(type, name)			\
+-	DECLARE_PER_CPU_SECTION(type, name, "..readmostly")
++	DECLARE_PER_CPU_SECTION(type, name, "..read_mostly")
+ 
+ #define DEFINE_PER_CPU_READ_MOSTLY(type, name)				\
+-	DEFINE_PER_CPU_SECTION(type, name, "..readmostly")
++	DEFINE_PER_CPU_SECTION(type, name, "..read_mostly")
+ 
+ /*
+  * Intermodule exports for per-CPU variables.  sparse forgets about
+-- 
+2.0.0.526.g5318336
