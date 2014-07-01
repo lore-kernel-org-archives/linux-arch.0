@@ -1,12 +1,11 @@
 From: Maarten Lankhorst <maarten.lankhorst@canonical.com>
-Subject: [PATCH v2 3/9] seqno-fence: Hardware dma-buf implementation of
- fencing (v6)
-Date: Tue, 01 Jul 2014 12:57:20 +0200
-Message-ID: <20140701105720.12718.2421.stgit@patser>
+Subject: [PATCH v2 4/9] dma-buf: use reservation objects
+Date: Tue, 01 Jul 2014 12:57:26 +0200
+Message-ID: <20140701105726.12718.58338.stgit@patser>
 References: <20140701103432.12718.82795.stgit@patser>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
 Return-path: <dri-devel-bounces@lists.freedesktop.org>
 In-Reply-To: <20140701103432.12718.82795.stgit@patser>
 List-Unsubscribe: <http://lists.freedesktop.org/mailman/options/dri-devel>,
@@ -22,274 +21,264 @@ To: gregkh@linuxfoundation.org
 Cc: linux-arch@vger.kernel.org, thellstrom@vmware.com, linux-kernel@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, ccross@google.com, linux-media@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-This type of fence can be used with hardware synchronization for simple
-hardware that can block execution until the condition
-(dma_buf[offset] - value) >= 0 has been met when WAIT_GEQUAL is used,
-or (dma_buf[offset] != 0) has been met when WAIT_NONZERO is set.
-
-A software fallback still has to be provided in case the fence is used
-with a device that doesn't support this mechanism. It is useful to expose
-this for graphics cards that have an op to support this.
-
-Some cards like i915 can export those, but don't have an option to wait,
-so they need the software fallback.
-
-I extended the original patch by Rob Clark.
-
-v1: Original
-v2: Renamed from bikeshed to seqno, moved into dma-fence.c since
-    not much was left of the file. Lots of documentation added.
-v3: Use fence_ops instead of custom callbacks. Moved to own file
-    to avoid circular dependency between dma-buf.h and fence.h
-v4: Add spinlock pointer to seqno_fence_init
-v5: Add condition member to allow wait for != 0.
-    Fix small style errors pointed out by checkpatch.
-v6: Move to a separate file. Fix up api changes in fences.
-
-Signed-off-by: Maarten Lankhorst <maarten.lankhorst@canonical.com>
-Reviewed-by: Rob Clark <robdclark@gmail.com> #v4
----
- Documentation/DocBook/device-drivers.tmpl |    2 +
- MAINTAINERS                               |    2 -
- drivers/dma-buf/Makefile                  |    2 -
- drivers/dma-buf/seqno-fence.c             |   73 ++++++++++++++++++
- include/linux/seqno-fence.h               |  116 +++++++++++++++++++++++++++++
- 5 files changed, 193 insertions(+), 2 deletions(-)
- create mode 100644 drivers/dma-buf/seqno-fence.c
- create mode 100644 include/linux/seqno-fence.h
-
-diff --git a/Documentation/DocBook/device-drivers.tmpl b/Documentation/DocBook/device-drivers.tmpl
-index e634657efb52..ed0ef00cd7bc 100644
---- a/Documentation/DocBook/device-drivers.tmpl
-+++ b/Documentation/DocBook/device-drivers.tmpl
-@@ -130,7 +130,9 @@ X!Edrivers/base/interface.c
-      <sect1><title>Device Drivers DMA Management</title>
- !Edrivers/dma-buf/dma-buf.c
- !Edrivers/dma-buf/fence.c
-+!Edrivers/dma-buf/seqno-fence.c
- !Iinclude/linux/fence.h
-+!Iinclude/linux/seqno-fence.h
- !Iinclude/linux/reservation.h
- !Edrivers/base/dma-coherent.c
- !Edrivers/base/dma-mapping.c
-diff --git a/MAINTAINERS b/MAINTAINERS
-index ebc1ebf6f542..135929f6cf6a 100644
---- a/MAINTAINERS
-+++ b/MAINTAINERS
-@@ -2883,7 +2883,7 @@ L:	linux-media@vger.kernel.org
- L:	dri-devel@lists.freedesktop.org
- L:	linaro-mm-sig@lists.linaro.org
- F:	drivers/dma-buf/
--F:	include/linux/dma-buf* include/linux/reservation.h include/linux/fence.h
-+F:	include/linux/dma-buf* include/linux/reservation.h include/linux/*fence.h
- F:	Documentation/dma-buf-sharing.txt
- T:	git git://git.linaro.org/people/sumitsemwal/linux-dma-buf.git
- 
-diff --git a/drivers/dma-buf/Makefile b/drivers/dma-buf/Makefile
-index d7825bfe630e..57a675f90cd0 100644
---- a/drivers/dma-buf/Makefile
-+++ b/drivers/dma-buf/Makefile
-@@ -1 +1 @@
--obj-y := dma-buf.o fence.o reservation.o
-+obj-y := dma-buf.o fence.o reservation.o seqno-fence.o
-diff --git a/drivers/dma-buf/seqno-fence.c b/drivers/dma-buf/seqno-fence.c
-new file mode 100644
-index 000000000000..7d12a39a4b57
---- /dev/null
-+++ b/drivers/dma-buf/seqno-fence.c
-@@ -0,0 +1,73 @@
-+/*
-+ * seqno-fence, using a dma-buf to synchronize fencing
-+ *
-+ * Copyright (C) 2012 Texas Instruments
-+ * Copyright (C) 2012-2014 Canonical Ltd
-+ * Authors:
-+ *   Rob Clark <robdclark@gmail.com>
-+ *   Maarten Lankhorst <maarten.lankhorst@canonical.com>
-+ *
-+ * This program is free software; you can redistribute it and/or modify it
-+ * under the terms of the GNU General Public License version 2 as published by
-+ * the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful, but WITHOUT
-+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
-+ * more details.
-+ */
-+
-+#include <linux/slab.h>
-+#include <linux/export.h>
-+#include <linux/seqno-fence.h>
-+
-+static const char *seqno_fence_get_driver_name(struct fence *fence)
-+{
-+	struct seqno_fence *seqno_fence = to_seqno_fence(fence);
-+	return seqno_fence->ops->get_driver_name(fence);
-+}
-+
-+static const char *seqno_fence_get_timeline_name(struct fence *fence)
-+{
-+	struct seqno_fence *seqno_fence = to_seqno_fence(fence);
-+	return seqno_fence->ops->get_timeline_name(fence);
-+}
-+
-+static bool seqno_enable_signaling(struct fence *fence)
-+{
-+	struct seqno_fence *seqno_fence = to_seqno_fence(fence);
-+	return seqno_fence->ops->enable_signaling(fence);
-+}
-+
-+static bool seqno_signaled(struct fence *fence)
-+{
-+	struct seqno_fence *seqno_fence = to_seqno_fence(fence);
-+	return seqno_fence->ops->signaled && seqno_fence->ops->signaled(fence);
-+}
-+
-+static void seqno_release(struct fence *fence)
-+{
-+	struct seqno_fence *f = to_seqno_fence(fence);
-+
-+	dma_buf_put(f->sync_buf);
-+	if (f->ops->release)
-+		f->ops->release(fence);
-+	else
-+		fence_free(&f->base);
-+}
-+
-+static signed long seqno_wait(struct fence *fence, bool intr, signed long timeout)
-+{
-+	struct seqno_fence *f = to_seqno_fence(fence);
-+	return f->ops->wait(fence, intr, timeout);
-+}
-+
-+const struct fence_ops seqno_fence_ops = {
-+	.get_driver_name = seqno_fence_get_driver_name,
-+	.get_timeline_name = seqno_fence_get_timeline_name,
-+	.enable_signaling = seqno_enable_signaling,
-+	.signaled = seqno_signaled,
-+	.wait = seqno_wait,
-+	.release = seqno_release,
-+};
-+EXPORT_SYMBOL(seqno_fence_ops);
-diff --git a/include/linux/seqno-fence.h b/include/linux/seqno-fence.h
-new file mode 100644
-index 000000000000..3d6003de4b0d
---- /dev/null
-+++ b/include/linux/seqno-fence.h
-@@ -0,0 +1,116 @@
-+/*
-+ * seqno-fence, using a dma-buf to synchronize fencing
-+ *
-+ * Copyright (C) 2012 Texas Instruments
-+ * Copyright (C) 2012 Canonical Ltd
-+ * Authors:
-+ *   Rob Clark <robdclark@gmail.com>
-+ *   Maarten Lankhorst <maarten.lankhorst@canonical.com>
-+ *
-+ * This program is free software; you can redistribute it and/or modify it
-+ * under the terms of the GNU General Public License version 2 as published by
-+ * the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful, but WITHOUT
-+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
-+ * more details.
-+ */
-+
-+#ifndef __LINUX_SEQNO_FENCE_H
-+#define __LINUX_SEQNO_FENCE_H
-+
-+#include <linux/fence.h>
-+#include <linux/dma-buf.h>
-+
-+enum seqno_fence_condition {
-+	SEQNO_FENCE_WAIT_GEQUAL,
-+	SEQNO_FENCE_WAIT_NONZERO
-+};
-+
-+struct seqno_fence {
-+	struct fence base;
-+
-+	const struct fence_ops *ops;
-+	struct dma_buf *sync_buf;
-+	uint32_t seqno_ofs;
-+	enum seqno_fence_condition condition;
-+};
-+
-+extern const struct fence_ops seqno_fence_ops;
-+
-+/**
-+ * to_seqno_fence - cast a fence to a seqno_fence
-+ * @fence: fence to cast to a seqno_fence
-+ *
-+ * Returns NULL if the fence is not a seqno_fence,
-+ * or the seqno_fence otherwise.
-+ */
-+static inline struct seqno_fence *
-+to_seqno_fence(struct fence *fence)
-+{
-+	if (fence->ops != &seqno_fence_ops)
-+		return NULL;
-+	return container_of(fence, struct seqno_fence, base);
-+}
-+
-+/**
-+ * seqno_fence_init - initialize a seqno fence
-+ * @fence: seqno_fence to initialize
-+ * @lock: pointer to spinlock to use for fence
-+ * @sync_buf: buffer containing the memory location to signal on
-+ * @context: the execution context this fence is a part of
-+ * @seqno_ofs: the offset within @sync_buf
-+ * @seqno: the sequence # to signal on
-+ * @ops: the fence_ops for operations on this seqno fence
-+ *
-+ * This function initializes a struct seqno_fence with passed parameters,
-+ * and takes a reference on sync_buf which is released on fence destruction.
-+ *
-+ * A seqno_fence is a dma_fence which can complete in software when
-+ * enable_signaling is called, but it also completes when
-+ * (s32)((sync_buf)[seqno_ofs] - seqno) >= 0 is true
-+ *
-+ * The seqno_fence will take a refcount on the sync_buf until it's
-+ * destroyed, but actual lifetime of sync_buf may be longer if one of the
-+ * callers take a reference to it.
-+ *
-+ * Certain hardware have instructions to insert this type of wait condition
-+ * in the command stream, so no intervention from software would be needed.
-+ * This type of fence can be destroyed before completed, however a reference
-+ * on the sync_buf dma-buf can be taken. It is encouraged to re-use the same
-+ * dma-buf for sync_buf, since mapping or unmapping the sync_buf to the
-+ * device's vm can be expensive.
-+ *
-+ * It is recommended for creators of seqno_fence to call fence_signal
-+ * before destruction. This will prevent possible issues from wraparound at
-+ * time of issue vs time of check, since users can check fence_is_signaled
-+ * before submitting instructions for the hardware to wait on the fence.
-+ * However, when ops.enable_signaling is not called, it doesn't have to be
-+ * done as soon as possible, just before there's any real danger of seqno
-+ * wraparound.
-+ */
-+static inline void
-+seqno_fence_init(struct seqno_fence *fence, spinlock_t *lock,
-+		 struct dma_buf *sync_buf,  uint32_t context,
-+		 uint32_t seqno_ofs, uint32_t seqno,
-+		 enum seqno_fence_condition cond,
-+		 const struct fence_ops *ops)
-+{
-+	BUG_ON(!fence || !sync_buf || !ops);
-+	BUG_ON(!ops->wait || !ops->enable_signaling ||
-+	       !ops->get_driver_name || !ops->get_timeline_name);
-+
-+	/*
-+	 * ops is used in fence_init for get_driver_name, so needs to be
-+	 * initialized first
-+	 */
-+	fence->ops = ops;
-+	fence_init(&fence->base, &seqno_fence_ops, lock, context, seqno);
-+	get_dma_buf(sync_buf);
-+	fence->sync_buf = sync_buf;
-+	fence->seqno_ofs = seqno_ofs;
-+	fence->condition = cond;
-+}
-+
-+#endif /* __LINUX_SEQNO_FENCE_H */
+VGhpcyBhbGxvd3MgcmVzZXJ2YXRpb24gb2JqZWN0cyB0byBiZSB1c2VkIGluIGRtYS1idWYuIGl0
+J3MgcmVxdWlyZWQKZm9yIGltcGxlbWVudGluZyBwb2xsaW5nIHN1cHBvcnQgb24gdGhlIGZlbmNl
+cyB0aGF0IGJlbG9uZyB0byBhIGRtYS1idWYuCgpTaWduZWQtb2ZmLWJ5OiBNYWFydGVuIExhbmto
+b3JzdCA8bWFhcnRlbi5sYW5raG9yc3RAY2Fub25pY2FsLmNvbT4KQWNrZWQtYnk6IE1hdXJvIENh
+cnZhbGhvIENoZWhhYiA8bS5jaGVoYWJAc2Ftc3VuZy5jb20+ICNkcml2ZXJzL21lZGlhL3Y0bDIt
+Y29yZS8KQWNrZWQtYnk6IFRob21hcyBIZWxsc3Ryb20gPHRoZWxsc3Ryb21Adm13YXJlLmNvbT4g
+I2RyaXZlcnMvZ3B1L2RybS90dG0KU2lnbmVkLW9mZi1ieTogVmluY2VudCBTdGVobMOpIDx2aW5j
+ZW50LnN0ZWhsZUBsYXBvc3RlLm5ldD4gI2RyaXZlcnMvZ3B1L2RybS9hcm1hZGEvCi0tLQogZHJp
+dmVycy9kbWEtYnVmL2RtYS1idWYuYyAgICAgICAgICAgICAgICAgICAgICB8ICAgMjIgKysrKysr
+KysrKysrKysrKysrKystLQogZHJpdmVycy9ncHUvZHJtL2FybWFkYS9hcm1hZGFfZ2VtLmMgICAg
+ICAgICAgICB8ICAgIDIgKy0KIGRyaXZlcnMvZ3B1L2RybS9kcm1fcHJpbWUuYyAgICAgICAgICAg
+ICAgICAgICAgfCAgICA4ICsrKysrKystCiBkcml2ZXJzL2dwdS9kcm0vZXh5bm9zL2V4eW5vc19k
+cm1fZG1hYnVmLmMgICAgIHwgICAgMiArLQogZHJpdmVycy9ncHUvZHJtL2k5MTUvaTkxNV9nZW1f
+ZG1hYnVmLmMgICAgICAgICB8ICAgIDMgKystCiBkcml2ZXJzL2dwdS9kcm0vbm91dmVhdS9ub3V2
+ZWF1X2RybS5jICAgICAgICAgIHwgICAgMSArCiBkcml2ZXJzL2dwdS9kcm0vbm91dmVhdS9ub3V2
+ZWF1X2dlbS5oICAgICAgICAgIHwgICAgMSArCiBkcml2ZXJzL2dwdS9kcm0vbm91dmVhdS9ub3V2
+ZWF1X3ByaW1lLmMgICAgICAgIHwgICAgNyArKysrKysrCiBkcml2ZXJzL2dwdS9kcm0vb21hcGRy
+bS9vbWFwX2dlbV9kbWFidWYuYyAgICAgIHwgICAgMiArLQogZHJpdmVycy9ncHUvZHJtL3JhZGVv
+bi9yYWRlb25fZHJ2LmMgICAgICAgICAgICB8ICAgIDIgKysKIGRyaXZlcnMvZ3B1L2RybS9yYWRl
+b24vcmFkZW9uX3ByaW1lLmMgICAgICAgICAgfCAgICA4ICsrKysrKysrCiBkcml2ZXJzL2dwdS9k
+cm0vdGVncmEvZ2VtLmMgICAgICAgICAgICAgICAgICAgIHwgICAgMiArLQogZHJpdmVycy9ncHUv
+ZHJtL3R0bS90dG1fb2JqZWN0LmMgICAgICAgICAgICAgICB8ICAgIDIgKy0KIGRyaXZlcnMvbWVk
+aWEvdjRsMi1jb3JlL3ZpZGVvYnVmMi1kbWEtY29udGlnLmMgfCAgICAyICstCiBkcml2ZXJzL3N0
+YWdpbmcvYW5kcm9pZC9pb24vaW9uLmMgICAgICAgICAgICAgIHwgICAgMyArKy0KIGluY2x1ZGUv
+ZHJtL2RybVAuaCAgICAgICAgICAgICAgICAgICAgICAgICAgICAgfCAgICAzICsrKwogaW5jbHVk
+ZS9saW51eC9kbWEtYnVmLmggICAgICAgICAgICAgICAgICAgICAgICB8ICAgIDkgKysrKysrLS0t
+CiAxNyBmaWxlcyBjaGFuZ2VkLCA2NSBpbnNlcnRpb25zKCspLCAxNCBkZWxldGlvbnMoLSkKCmRp
+ZmYgLS1naXQgYS9kcml2ZXJzL2RtYS1idWYvZG1hLWJ1Zi5jIGIvZHJpdmVycy9kbWEtYnVmL2Rt
+YS1idWYuYwppbmRleCA4NDBjN2ZhODA5ODMuLmNkNDBjYTIyOTExZiAxMDA2NDQKLS0tIGEvZHJp
+dmVycy9kbWEtYnVmL2RtYS1idWYuYworKysgYi9kcml2ZXJzL2RtYS1idWYvZG1hLWJ1Zi5jCkBA
+IC0yNSwxMCArMjUsMTIgQEAKICNpbmNsdWRlIDxsaW51eC9mcy5oPgogI2luY2x1ZGUgPGxpbnV4
+L3NsYWIuaD4KICNpbmNsdWRlIDxsaW51eC9kbWEtYnVmLmg+CisjaW5jbHVkZSA8bGludXgvZmVu
+Y2UuaD4KICNpbmNsdWRlIDxsaW51eC9hbm9uX2lub2Rlcy5oPgogI2luY2x1ZGUgPGxpbnV4L2V4
+cG9ydC5oPgogI2luY2x1ZGUgPGxpbnV4L2RlYnVnZnMuaD4KICNpbmNsdWRlIDxsaW51eC9zZXFf
+ZmlsZS5oPgorI2luY2x1ZGUgPGxpbnV4L3Jlc2VydmF0aW9uLmg+CiAKIHN0YXRpYyBpbmxpbmUg
+aW50IGlzX2RtYV9idWZfZmlsZShzdHJ1Y3QgZmlsZSAqKTsKIApAQCAtNTYsNiArNTgsOSBAQCBz
+dGF0aWMgaW50IGRtYV9idWZfcmVsZWFzZShzdHJ1Y3QgaW5vZGUgKmlub2RlLCBzdHJ1Y3QgZmls
+ZSAqZmlsZSkKIAlsaXN0X2RlbCgmZG1hYnVmLT5saXN0X25vZGUpOwogCW11dGV4X3VubG9jaygm
+ZGJfbGlzdC5sb2NrKTsKIAorCWlmIChkbWFidWYtPnJlc3YgPT0gKHN0cnVjdCByZXNlcnZhdGlv
+bl9vYmplY3QgKikmZG1hYnVmWzFdKQorCQlyZXNlcnZhdGlvbl9vYmplY3RfZmluaShkbWFidWYt
+PnJlc3YpOworCiAJa2ZyZWUoZG1hYnVmKTsKIAlyZXR1cm4gMDsKIH0KQEAgLTEyOCw2ICsxMzMs
+NyBAQCBzdGF0aWMgaW5saW5lIGludCBpc19kbWFfYnVmX2ZpbGUoc3RydWN0IGZpbGUgKmZpbGUp
+CiAgKiBAc2l6ZToJW2luXQlTaXplIG9mIHRoZSBidWZmZXIKICAqIEBmbGFnczoJW2luXQltb2Rl
+IGZsYWdzIGZvciB0aGUgZmlsZS4KICAqIEBleHBfbmFtZToJW2luXQluYW1lIG9mIHRoZSBleHBv
+cnRpbmcgbW9kdWxlIC0gdXNlZnVsIGZvciBkZWJ1Z2dpbmcuCisgKiBAcmVzdjoJW2luXQlyZXNl
+cnZhdGlvbi1vYmplY3QsIE5VTEwgdG8gYWxsb2NhdGUgZGVmYXVsdCBvbmUuCiAgKgogICogUmV0
+dXJucywgb24gc3VjY2VzcywgYSBuZXdseSBjcmVhdGVkIGRtYV9idWYgb2JqZWN0LCB3aGljaCB3
+cmFwcyB0aGUKICAqIHN1cHBsaWVkIHByaXZhdGUgZGF0YSBhbmQgb3BlcmF0aW9ucyBmb3IgZG1h
+X2J1Zl9vcHMuIE9uIGVpdGhlciBtaXNzaW5nCkBAIC0xMzUsMTAgKzE0MSwxNyBAQCBzdGF0aWMg
+aW5saW5lIGludCBpc19kbWFfYnVmX2ZpbGUoc3RydWN0IGZpbGUgKmZpbGUpCiAgKgogICovCiBz
+dHJ1Y3QgZG1hX2J1ZiAqZG1hX2J1Zl9leHBvcnRfbmFtZWQodm9pZCAqcHJpdiwgY29uc3Qgc3Ry
+dWN0IGRtYV9idWZfb3BzICpvcHMsCi0JCQkJc2l6ZV90IHNpemUsIGludCBmbGFncywgY29uc3Qg
+Y2hhciAqZXhwX25hbWUpCisJCQkJc2l6ZV90IHNpemUsIGludCBmbGFncywgY29uc3QgY2hhciAq
+ZXhwX25hbWUsCisJCQkJc3RydWN0IHJlc2VydmF0aW9uX29iamVjdCAqcmVzdikKIHsKIAlzdHJ1
+Y3QgZG1hX2J1ZiAqZG1hYnVmOwogCXN0cnVjdCBmaWxlICpmaWxlOworCXNpemVfdCBhbGxvY19z
+aXplID0gc2l6ZW9mKHN0cnVjdCBkbWFfYnVmKTsKKwlpZiAoIXJlc3YpCisJCWFsbG9jX3NpemUg
+Kz0gc2l6ZW9mKHN0cnVjdCByZXNlcnZhdGlvbl9vYmplY3QpOworCWVsc2UKKwkJLyogcHJldmVu
+dCAmZG1hX2J1ZlsxXSA9PSBkbWFfYnVmLT5yZXN2ICovCisJCWFsbG9jX3NpemUgKz0gMTsKIAog
+CWlmIChXQVJOX09OKCFwcml2IHx8ICFvcHMKIAkJCSAgfHwgIW9wcy0+bWFwX2RtYV9idWYKQEAg
+LTE1MCw3ICsxNjMsNyBAQCBzdHJ1Y3QgZG1hX2J1ZiAqZG1hX2J1Zl9leHBvcnRfbmFtZWQodm9p
+ZCAqcHJpdiwgY29uc3Qgc3RydWN0IGRtYV9idWZfb3BzICpvcHMsCiAJCXJldHVybiBFUlJfUFRS
+KC1FSU5WQUwpOwogCX0KIAotCWRtYWJ1ZiA9IGt6YWxsb2Moc2l6ZW9mKHN0cnVjdCBkbWFfYnVm
+KSwgR0ZQX0tFUk5FTCk7CisJZG1hYnVmID0ga3phbGxvYyhhbGxvY19zaXplLCBHRlBfS0VSTkVM
+KTsKIAlpZiAoZG1hYnVmID09IE5VTEwpCiAJCXJldHVybiBFUlJfUFRSKC1FTk9NRU0pOwogCkBA
+IC0xNTgsNiArMTcxLDExIEBAIHN0cnVjdCBkbWFfYnVmICpkbWFfYnVmX2V4cG9ydF9uYW1lZCh2
+b2lkICpwcml2LCBjb25zdCBzdHJ1Y3QgZG1hX2J1Zl9vcHMgKm9wcywKIAlkbWFidWYtPm9wcyA9
+IG9wczsKIAlkbWFidWYtPnNpemUgPSBzaXplOwogCWRtYWJ1Zi0+ZXhwX25hbWUgPSBleHBfbmFt
+ZTsKKwlpZiAoIXJlc3YpIHsKKwkJcmVzdiA9IChzdHJ1Y3QgcmVzZXJ2YXRpb25fb2JqZWN0ICop
+JmRtYWJ1ZlsxXTsKKwkJcmVzZXJ2YXRpb25fb2JqZWN0X2luaXQocmVzdik7CisJfQorCWRtYWJ1
+Zi0+cmVzdiA9IHJlc3Y7CiAKIAlmaWxlID0gYW5vbl9pbm9kZV9nZXRmaWxlKCJkbWFidWYiLCAm
+ZG1hX2J1Zl9mb3BzLCBkbWFidWYsIGZsYWdzKTsKIAlpZiAoSVNfRVJSKGZpbGUpKSB7CmRpZmYg
+LS1naXQgYS9kcml2ZXJzL2dwdS9kcm0vYXJtYWRhL2FybWFkYV9nZW0uYyBiL2RyaXZlcnMvZ3B1
+L2RybS9hcm1hZGEvYXJtYWRhX2dlbS5jCmluZGV4IGJiOWI2NDJkODQ4NS4uNzQ5NmY1NTYxMWE1
+IDEwMDY0NAotLS0gYS9kcml2ZXJzL2dwdS9kcm0vYXJtYWRhL2FybWFkYV9nZW0uYworKysgYi9k
+cml2ZXJzL2dwdS9kcm0vYXJtYWRhL2FybWFkYV9nZW0uYwpAQCAtNTM5LDcgKzUzOSw3IEBAIGFy
+bWFkYV9nZW1fcHJpbWVfZXhwb3J0KHN0cnVjdCBkcm1fZGV2aWNlICpkZXYsIHN0cnVjdCBkcm1f
+Z2VtX29iamVjdCAqb2JqLAogCWludCBmbGFncykKIHsKIAlyZXR1cm4gZG1hX2J1Zl9leHBvcnQo
+b2JqLCAmYXJtYWRhX2dlbV9wcmltZV9kbWFidWZfb3BzLCBvYmotPnNpemUsCi0JCQkgICAgICBP
+X1JEV1IpOworCQkJICAgICAgT19SRFdSLCBOVUxMKTsKIH0KIAogc3RydWN0IGRybV9nZW1fb2Jq
+ZWN0ICoKZGlmZiAtLWdpdCBhL2RyaXZlcnMvZ3B1L2RybS9kcm1fcHJpbWUuYyBiL2RyaXZlcnMv
+Z3B1L2RybS9kcm1fcHJpbWUuYwppbmRleCAzMDRjYThjYWNiYzQuLjk5ZDU3OGJhZDE3ZSAxMDA2
+NDQKLS0tIGEvZHJpdmVycy9ncHUvZHJtL2RybV9wcmltZS5jCisrKyBiL2RyaXZlcnMvZ3B1L2Ry
+bS9kcm1fcHJpbWUuYwpAQCAtMzM2LDcgKzMzNiwxMyBAQCBzdGF0aWMgY29uc3Qgc3RydWN0IGRt
+YV9idWZfb3BzIGRybV9nZW1fcHJpbWVfZG1hYnVmX29wcyA9ICB7CiBzdHJ1Y3QgZG1hX2J1ZiAq
+ZHJtX2dlbV9wcmltZV9leHBvcnQoc3RydWN0IGRybV9kZXZpY2UgKmRldiwKIAkJCQkgICAgIHN0
+cnVjdCBkcm1fZ2VtX29iamVjdCAqb2JqLCBpbnQgZmxhZ3MpCiB7Ci0JcmV0dXJuIGRtYV9idWZf
+ZXhwb3J0KG9iaiwgJmRybV9nZW1fcHJpbWVfZG1hYnVmX29wcywgb2JqLT5zaXplLCBmbGFncyk7
+CisJc3RydWN0IHJlc2VydmF0aW9uX29iamVjdCAqcm9iaiA9IE5VTEw7CisKKwlpZiAoZGV2LT5k
+cml2ZXItPmdlbV9wcmltZV9yZXNfb2JqKQorCQlyb2JqID0gZGV2LT5kcml2ZXItPmdlbV9wcmlt
+ZV9yZXNfb2JqKG9iaik7CisKKwlyZXR1cm4gZG1hX2J1Zl9leHBvcnQob2JqLCAmZHJtX2dlbV9w
+cmltZV9kbWFidWZfb3BzLCBvYmotPnNpemUsCisJCQkgICAgICBmbGFncywgcm9iaik7CiB9CiBF
+WFBPUlRfU1lNQk9MKGRybV9nZW1fcHJpbWVfZXhwb3J0KTsKIApkaWZmIC0tZ2l0IGEvZHJpdmVy
+cy9ncHUvZHJtL2V4eW5vcy9leHlub3NfZHJtX2RtYWJ1Zi5jIGIvZHJpdmVycy9ncHUvZHJtL2V4
+eW5vcy9leHlub3NfZHJtX2RtYWJ1Zi5jCmluZGV4IDJhM2FkMjQyNzZmOC4uNjAxOTJlZDU0NGYw
+IDEwMDY0NAotLS0gYS9kcml2ZXJzL2dwdS9kcm0vZXh5bm9zL2V4eW5vc19kcm1fZG1hYnVmLmMK
+KysrIGIvZHJpdmVycy9ncHUvZHJtL2V4eW5vcy9leHlub3NfZHJtX2RtYWJ1Zi5jCkBAIC0xODcs
+NyArMTg3LDcgQEAgc3RydWN0IGRtYV9idWYgKmV4eW5vc19kbWFidWZfcHJpbWVfZXhwb3J0KHN0
+cnVjdCBkcm1fZGV2aWNlICpkcm1fZGV2LAogCXN0cnVjdCBleHlub3NfZHJtX2dlbV9vYmogKmV4
+eW5vc19nZW1fb2JqID0gdG9fZXh5bm9zX2dlbV9vYmoob2JqKTsKIAogCXJldHVybiBkbWFfYnVm
+X2V4cG9ydChvYmosICZleHlub3NfZG1hYnVmX29wcywKLQkJCQlleHlub3NfZ2VtX29iai0+YmFz
+ZS5zaXplLCBmbGFncyk7CisJCQkJZXh5bm9zX2dlbV9vYmotPmJhc2Uuc2l6ZSwgZmxhZ3MsIE5V
+TEwpOwogfQogCiBzdHJ1Y3QgZHJtX2dlbV9vYmplY3QgKmV4eW5vc19kbWFidWZfcHJpbWVfaW1w
+b3J0KHN0cnVjdCBkcm1fZGV2aWNlICpkcm1fZGV2LApkaWZmIC0tZ2l0IGEvZHJpdmVycy9ncHUv
+ZHJtL2k5MTUvaTkxNV9nZW1fZG1hYnVmLmMgYi9kcml2ZXJzL2dwdS9kcm0vaTkxNS9pOTE1X2dl
+bV9kbWFidWYuYwppbmRleCA1ODBhYTQyNDQzZWQuLjgyYTFmNGI1Nzc3OCAxMDA2NDQKLS0tIGEv
+ZHJpdmVycy9ncHUvZHJtL2k5MTUvaTkxNV9nZW1fZG1hYnVmLmMKKysrIGIvZHJpdmVycy9ncHUv
+ZHJtL2k5MTUvaTkxNV9nZW1fZG1hYnVmLmMKQEAgLTIzNyw3ICsyMzcsOCBAQCBzdHJ1Y3QgZG1h
+X2J1ZiAqaTkxNV9nZW1fcHJpbWVfZXhwb3J0KHN0cnVjdCBkcm1fZGV2aWNlICpkZXYsCiAJCQly
+ZXR1cm4gRVJSX1BUUihyZXQpOwogCX0KIAotCXJldHVybiBkbWFfYnVmX2V4cG9ydChnZW1fb2Jq
+LCAmaTkxNV9kbWFidWZfb3BzLCBnZW1fb2JqLT5zaXplLCBmbGFncyk7CisJcmV0dXJuIGRtYV9i
+dWZfZXhwb3J0KGdlbV9vYmosICZpOTE1X2RtYWJ1Zl9vcHMsIGdlbV9vYmotPnNpemUsIGZsYWdz
+LAorCQkJICAgICAgTlVMTCk7CiB9CiAKIHN0YXRpYyBpbnQgaTkxNV9nZW1fb2JqZWN0X2dldF9w
+YWdlc19kbWFidWYoc3RydWN0IGRybV9pOTE1X2dlbV9vYmplY3QgKm9iaikKZGlmZiAtLWdpdCBh
+L2RyaXZlcnMvZ3B1L2RybS9ub3V2ZWF1L25vdXZlYXVfZHJtLmMgYi9kcml2ZXJzL2dwdS9kcm0v
+bm91dmVhdS9ub3V2ZWF1X2RybS5jCmluZGV4IGRkZDgzNzU2YjlhMi4uZThhZTY4YTlhYWYxIDEw
+MDY0NAotLS0gYS9kcml2ZXJzL2dwdS9kcm0vbm91dmVhdS9ub3V2ZWF1X2RybS5jCisrKyBiL2Ry
+aXZlcnMvZ3B1L2RybS9ub3V2ZWF1L25vdXZlYXVfZHJtLmMKQEAgLTg0NCw2ICs4NDQsNyBAQCBk
+cml2ZXIgPSB7CiAJLmdlbV9wcmltZV9leHBvcnQgPSBkcm1fZ2VtX3ByaW1lX2V4cG9ydCwKIAku
+Z2VtX3ByaW1lX2ltcG9ydCA9IGRybV9nZW1fcHJpbWVfaW1wb3J0LAogCS5nZW1fcHJpbWVfcGlu
+ID0gbm91dmVhdV9nZW1fcHJpbWVfcGluLAorCS5nZW1fcHJpbWVfcmVzX29iaiA9IG5vdXZlYXVf
+Z2VtX3ByaW1lX3Jlc19vYmosCiAJLmdlbV9wcmltZV91bnBpbiA9IG5vdXZlYXVfZ2VtX3ByaW1l
+X3VucGluLAogCS5nZW1fcHJpbWVfZ2V0X3NnX3RhYmxlID0gbm91dmVhdV9nZW1fcHJpbWVfZ2V0
+X3NnX3RhYmxlLAogCS5nZW1fcHJpbWVfaW1wb3J0X3NnX3RhYmxlID0gbm91dmVhdV9nZW1fcHJp
+bWVfaW1wb3J0X3NnX3RhYmxlLApkaWZmIC0tZ2l0IGEvZHJpdmVycy9ncHUvZHJtL25vdXZlYXUv
+bm91dmVhdV9nZW0uaCBiL2RyaXZlcnMvZ3B1L2RybS9ub3V2ZWF1L25vdXZlYXVfZ2VtLmgKaW5k
+ZXggN2NhY2EwNTdiYzM4Li5kZGFiNzYyZDgxZmUgMTAwNjQ0Ci0tLSBhL2RyaXZlcnMvZ3B1L2Ry
+bS9ub3V2ZWF1L25vdXZlYXVfZ2VtLmgKKysrIGIvZHJpdmVycy9ncHUvZHJtL25vdXZlYXUvbm91
+dmVhdV9nZW0uaApAQCAtMzUsNiArMzUsNyBAQCBleHRlcm4gaW50IG5vdXZlYXVfZ2VtX2lvY3Rs
+X2luZm8oc3RydWN0IGRybV9kZXZpY2UgKiwgdm9pZCAqLAogCQkJCSAgc3RydWN0IGRybV9maWxl
+ICopOwogCiBleHRlcm4gaW50IG5vdXZlYXVfZ2VtX3ByaW1lX3BpbihzdHJ1Y3QgZHJtX2dlbV9v
+YmplY3QgKik7CitzdHJ1Y3QgcmVzZXJ2YXRpb25fb2JqZWN0ICpub3V2ZWF1X2dlbV9wcmltZV9y
+ZXNfb2JqKHN0cnVjdCBkcm1fZ2VtX29iamVjdCAqKTsKIGV4dGVybiB2b2lkIG5vdXZlYXVfZ2Vt
+X3ByaW1lX3VucGluKHN0cnVjdCBkcm1fZ2VtX29iamVjdCAqKTsKIGV4dGVybiBzdHJ1Y3Qgc2df
+dGFibGUgKm5vdXZlYXVfZ2VtX3ByaW1lX2dldF9zZ190YWJsZShzdHJ1Y3QgZHJtX2dlbV9vYmpl
+Y3QgKik7CiBleHRlcm4gc3RydWN0IGRybV9nZW1fb2JqZWN0ICpub3V2ZWF1X2dlbV9wcmltZV9p
+bXBvcnRfc2dfdGFibGUoCmRpZmYgLS1naXQgYS9kcml2ZXJzL2dwdS9kcm0vbm91dmVhdS9ub3V2
+ZWF1X3ByaW1lLmMgYi9kcml2ZXJzL2dwdS9kcm0vbm91dmVhdS9ub3V2ZWF1X3ByaW1lLmMKaW5k
+ZXggNTFhMmNiMTAyYjQ0Li4xZjUxMDA4ZTRkMjYgMTAwNjQ0Ci0tLSBhL2RyaXZlcnMvZ3B1L2Ry
+bS9ub3V2ZWF1L25vdXZlYXVfcHJpbWUuYworKysgYi9kcml2ZXJzL2dwdS9kcm0vbm91dmVhdS9u
+b3V2ZWF1X3ByaW1lLmMKQEAgLTEwMiwzICsxMDIsMTAgQEAgdm9pZCBub3V2ZWF1X2dlbV9wcmlt
+ZV91bnBpbihzdHJ1Y3QgZHJtX2dlbV9vYmplY3QgKm9iaikKIAogCW5vdXZlYXVfYm9fdW5waW4o
+bnZibyk7CiB9CisKK3N0cnVjdCByZXNlcnZhdGlvbl9vYmplY3QgKm5vdXZlYXVfZ2VtX3ByaW1l
+X3Jlc19vYmooc3RydWN0IGRybV9nZW1fb2JqZWN0ICpvYmopCit7CisJc3RydWN0IG5vdXZlYXVf
+Ym8gKm52Ym8gPSBub3V2ZWF1X2dlbV9vYmplY3Qob2JqKTsKKworCXJldHVybiBudmJvLT5iby5y
+ZXN2OworfQpkaWZmIC0tZ2l0IGEvZHJpdmVycy9ncHUvZHJtL29tYXBkcm0vb21hcF9nZW1fZG1h
+YnVmLmMgYi9kcml2ZXJzL2dwdS9kcm0vb21hcGRybS9vbWFwX2dlbV9kbWFidWYuYwppbmRleCA0
+ZmNjYThkNDI3OTYuLmEyZGJmYjE3MzdiNCAxMDA2NDQKLS0tIGEvZHJpdmVycy9ncHUvZHJtL29t
+YXBkcm0vb21hcF9nZW1fZG1hYnVmLmMKKysrIGIvZHJpdmVycy9ncHUvZHJtL29tYXBkcm0vb21h
+cF9nZW1fZG1hYnVmLmMKQEAgLTE3MSw3ICsxNzEsNyBAQCBzdGF0aWMgc3RydWN0IGRtYV9idWZf
+b3BzIG9tYXBfZG1hYnVmX29wcyA9IHsKIHN0cnVjdCBkbWFfYnVmICpvbWFwX2dlbV9wcmltZV9l
+eHBvcnQoc3RydWN0IGRybV9kZXZpY2UgKmRldiwKIAkJc3RydWN0IGRybV9nZW1fb2JqZWN0ICpv
+YmosIGludCBmbGFncykKIHsKLQlyZXR1cm4gZG1hX2J1Zl9leHBvcnQob2JqLCAmb21hcF9kbWFi
+dWZfb3BzLCBvYmotPnNpemUsIGZsYWdzKTsKKwlyZXR1cm4gZG1hX2J1Zl9leHBvcnQob2JqLCAm
+b21hcF9kbWFidWZfb3BzLCBvYmotPnNpemUsIGZsYWdzLCBOVUxMKTsKIH0KIAogc3RydWN0IGRy
+bV9nZW1fb2JqZWN0ICpvbWFwX2dlbV9wcmltZV9pbXBvcnQoc3RydWN0IGRybV9kZXZpY2UgKmRl
+diwKZGlmZiAtLWdpdCBhL2RyaXZlcnMvZ3B1L2RybS9yYWRlb24vcmFkZW9uX2Rydi5jIGIvZHJp
+dmVycy9ncHUvZHJtL3JhZGVvbi9yYWRlb25fZHJ2LmMKaW5kZXggNmUzMDE3NDEzMzg2Li45YjMw
+ZTBjZThhNGQgMTAwNjQ0Ci0tLSBhL2RyaXZlcnMvZ3B1L2RybS9yYWRlb24vcmFkZW9uX2Rydi5j
+CisrKyBiL2RyaXZlcnMvZ3B1L2RybS9yYWRlb24vcmFkZW9uX2Rydi5jCkBAIC0xMzIsNiArMTMy
+LDcgQEAgc3RydWN0IGRybV9nZW1fb2JqZWN0ICpyYWRlb25fZ2VtX3ByaW1lX2ltcG9ydF9zZ190
+YWJsZShzdHJ1Y3QgZHJtX2RldmljZSAqZGV2LAogCQkJCQkJCXN0cnVjdCBzZ190YWJsZSAqc2cp
+OwogaW50IHJhZGVvbl9nZW1fcHJpbWVfcGluKHN0cnVjdCBkcm1fZ2VtX29iamVjdCAqb2JqKTsK
+IHZvaWQgcmFkZW9uX2dlbV9wcmltZV91bnBpbihzdHJ1Y3QgZHJtX2dlbV9vYmplY3QgKm9iaik7
+CitzdHJ1Y3QgcmVzZXJ2YXRpb25fb2JqZWN0ICpyYWRlb25fZ2VtX3ByaW1lX3Jlc19vYmooc3Ry
+dWN0IGRybV9nZW1fb2JqZWN0ICopOwogdm9pZCAqcmFkZW9uX2dlbV9wcmltZV92bWFwKHN0cnVj
+dCBkcm1fZ2VtX29iamVjdCAqb2JqKTsKIHZvaWQgcmFkZW9uX2dlbV9wcmltZV92dW5tYXAoc3Ry
+dWN0IGRybV9nZW1fb2JqZWN0ICpvYmosIHZvaWQgKnZhZGRyKTsKIGV4dGVybiBsb25nIHJhZGVv
+bl9rbXNfY29tcGF0X2lvY3RsKHN0cnVjdCBmaWxlICpmaWxwLCB1bnNpZ25lZCBpbnQgY21kLApA
+QCAtNTYyLDYgKzU2Myw3IEBAIHN0YXRpYyBzdHJ1Y3QgZHJtX2RyaXZlciBrbXNfZHJpdmVyID0g
+ewogCS5nZW1fcHJpbWVfaW1wb3J0ID0gZHJtX2dlbV9wcmltZV9pbXBvcnQsCiAJLmdlbV9wcmlt
+ZV9waW4gPSByYWRlb25fZ2VtX3ByaW1lX3BpbiwKIAkuZ2VtX3ByaW1lX3VucGluID0gcmFkZW9u
+X2dlbV9wcmltZV91bnBpbiwKKwkuZ2VtX3ByaW1lX3Jlc19vYmogPSByYWRlb25fZ2VtX3ByaW1l
+X3Jlc19vYmosCiAJLmdlbV9wcmltZV9nZXRfc2dfdGFibGUgPSByYWRlb25fZ2VtX3ByaW1lX2dl
+dF9zZ190YWJsZSwKIAkuZ2VtX3ByaW1lX2ltcG9ydF9zZ190YWJsZSA9IHJhZGVvbl9nZW1fcHJp
+bWVfaW1wb3J0X3NnX3RhYmxlLAogCS5nZW1fcHJpbWVfdm1hcCA9IHJhZGVvbl9nZW1fcHJpbWVf
+dm1hcCwKZGlmZiAtLWdpdCBhL2RyaXZlcnMvZ3B1L2RybS9yYWRlb24vcmFkZW9uX3ByaW1lLmMg
+Yi9kcml2ZXJzL2dwdS9kcm0vcmFkZW9uL3JhZGVvbl9wcmltZS5jCmluZGV4IDIwMDc0NTYwZmMy
+NS4uMjhkNzEwNzBjMzg5IDEwMDY0NAotLS0gYS9kcml2ZXJzL2dwdS9kcm0vcmFkZW9uL3JhZGVv
+bl9wcmltZS5jCisrKyBiL2RyaXZlcnMvZ3B1L2RybS9yYWRlb24vcmFkZW9uX3ByaW1lLmMKQEAg
+LTEwMywzICsxMDMsMTEgQEAgdm9pZCByYWRlb25fZ2VtX3ByaW1lX3VucGluKHN0cnVjdCBkcm1f
+Z2VtX29iamVjdCAqb2JqKQogCXJhZGVvbl9ib191bnBpbihibyk7CiAJcmFkZW9uX2JvX3VucmVz
+ZXJ2ZShibyk7CiB9CisKKworc3RydWN0IHJlc2VydmF0aW9uX29iamVjdCAqcmFkZW9uX2dlbV9w
+cmltZV9yZXNfb2JqKHN0cnVjdCBkcm1fZ2VtX29iamVjdCAqb2JqKQoreworCXN0cnVjdCByYWRl
+b25fYm8gKmJvID0gZ2VtX3RvX3JhZGVvbl9ibyhvYmopOworCisJcmV0dXJuIGJvLT50Ym8ucmVz
+djsKK30KZGlmZiAtLWdpdCBhL2RyaXZlcnMvZ3B1L2RybS90ZWdyYS9nZW0uYyBiL2RyaXZlcnMv
+Z3B1L2RybS90ZWdyYS9nZW0uYwppbmRleCBhYTg1YjdiMjZmMTAuLjc4Y2M4MTQzNzYwYSAxMDA2
+NDQKLS0tIGEvZHJpdmVycy9ncHUvZHJtL3RlZ3JhL2dlbS5jCisrKyBiL2RyaXZlcnMvZ3B1L2Ry
+bS90ZWdyYS9nZW0uYwpAQCAtNDIwLDcgKzQyMCw3IEBAIHN0cnVjdCBkbWFfYnVmICp0ZWdyYV9n
+ZW1fcHJpbWVfZXhwb3J0KHN0cnVjdCBkcm1fZGV2aWNlICpkcm0sCiAJCQkJICAgICAgIGludCBm
+bGFncykKIHsKIAlyZXR1cm4gZG1hX2J1Zl9leHBvcnQoZ2VtLCAmdGVncmFfZ2VtX3ByaW1lX2Rt
+YWJ1Zl9vcHMsIGdlbS0+c2l6ZSwKLQkJCSAgICAgIGZsYWdzKTsKKwkJCSAgICAgIGZsYWdzLCBO
+VUxMKTsKIH0KIAogc3RydWN0IGRybV9nZW1fb2JqZWN0ICp0ZWdyYV9nZW1fcHJpbWVfaW1wb3J0
+KHN0cnVjdCBkcm1fZGV2aWNlICpkcm0sCmRpZmYgLS1naXQgYS9kcml2ZXJzL2dwdS9kcm0vdHRt
+L3R0bV9vYmplY3QuYyBiL2RyaXZlcnMvZ3B1L2RybS90dG0vdHRtX29iamVjdC5jCmluZGV4IGQy
+YTA1MzM1Mjc4OS4uMTJjODcxMTBkYjNhIDEwMDY0NAotLS0gYS9kcml2ZXJzL2dwdS9kcm0vdHRt
+L3R0bV9vYmplY3QuYworKysgYi9kcml2ZXJzL2dwdS9kcm0vdHRtL3R0bV9vYmplY3QuYwpAQCAt
+Njk1LDcgKzY5NSw3IEBAIGludCB0dG1fcHJpbWVfaGFuZGxlX3RvX2ZkKHN0cnVjdCB0dG1fb2Jq
+ZWN0X2ZpbGUgKnRmaWxlLAogCQl9CiAKIAkJZG1hX2J1ZiA9IGRtYV9idWZfZXhwb3J0KHByaW1l
+LCAmdGRldi0+b3BzLAotCQkJCQkgcHJpbWUtPnNpemUsIGZsYWdzKTsKKwkJCQkJIHByaW1lLT5z
+aXplLCBmbGFncywgTlVMTCk7CiAJCWlmIChJU19FUlIoZG1hX2J1ZikpIHsKIAkJCXJldCA9IFBU
+Ul9FUlIoZG1hX2J1Zik7CiAJCQl0dG1fbWVtX2dsb2JhbF9mcmVlKHRkZXYtPm1lbV9nbG9iLApk
+aWZmIC0tZ2l0IGEvZHJpdmVycy9tZWRpYS92NGwyLWNvcmUvdmlkZW9idWYyLWRtYS1jb250aWcu
+YyBiL2RyaXZlcnMvbWVkaWEvdjRsMi1jb3JlL3ZpZGVvYnVmMi1kbWEtY29udGlnLmMKaW5kZXgg
+ODgwYmUwNzgyZGQ5Li5jNGU0ZGZhODEyM2EgMTAwNjQ0Ci0tLSBhL2RyaXZlcnMvbWVkaWEvdjRs
+Mi1jb3JlL3ZpZGVvYnVmMi1kbWEtY29udGlnLmMKKysrIGIvZHJpdmVycy9tZWRpYS92NGwyLWNv
+cmUvdmlkZW9idWYyLWRtYS1jb250aWcuYwpAQCAtNDA0LDcgKzQwNCw3IEBAIHN0YXRpYyBzdHJ1
+Y3QgZG1hX2J1ZiAqdmIyX2RjX2dldF9kbWFidWYodm9pZCAqYnVmX3ByaXYsIHVuc2lnbmVkIGxv
+bmcgZmxhZ3MpCiAJaWYgKFdBUk5fT04oIWJ1Zi0+c2d0X2Jhc2UpKQogCQlyZXR1cm4gTlVMTDsK
+IAotCWRidWYgPSBkbWFfYnVmX2V4cG9ydChidWYsICZ2YjJfZGNfZG1hYnVmX29wcywgYnVmLT5z
+aXplLCBmbGFncyk7CisJZGJ1ZiA9IGRtYV9idWZfZXhwb3J0KGJ1ZiwgJnZiMl9kY19kbWFidWZf
+b3BzLCBidWYtPnNpemUsIGZsYWdzLCBOVUxMKTsKIAlpZiAoSVNfRVJSKGRidWYpKQogCQlyZXR1
+cm4gTlVMTDsKIApkaWZmIC0tZ2l0IGEvZHJpdmVycy9zdGFnaW5nL2FuZHJvaWQvaW9uL2lvbi5j
+IGIvZHJpdmVycy9zdGFnaW5nL2FuZHJvaWQvaW9uL2lvbi5jCmluZGV4IDM4OWI4ZjY3YTJlYy4u
+MjcwMzYwOTEyYjJjIDEwMDY0NAotLS0gYS9kcml2ZXJzL3N0YWdpbmcvYW5kcm9pZC9pb24vaW9u
+LmMKKysrIGIvZHJpdmVycy9zdGFnaW5nL2FuZHJvaWQvaW9uL2lvbi5jCkBAIC0xMTIwLDcgKzEx
+MjAsOCBAQCBzdHJ1Y3QgZG1hX2J1ZiAqaW9uX3NoYXJlX2RtYV9idWYoc3RydWN0IGlvbl9jbGll
+bnQgKmNsaWVudCwKIAlpb25fYnVmZmVyX2dldChidWZmZXIpOwogCW11dGV4X3VubG9jaygmY2xp
+ZW50LT5sb2NrKTsKIAotCWRtYWJ1ZiA9IGRtYV9idWZfZXhwb3J0KGJ1ZmZlciwgJmRtYV9idWZf
+b3BzLCBidWZmZXItPnNpemUsIE9fUkRXUik7CisJZG1hYnVmID0gZG1hX2J1Zl9leHBvcnQoYnVm
+ZmVyLCAmZG1hX2J1Zl9vcHMsIGJ1ZmZlci0+c2l6ZSwgT19SRFdSLAorCQkJCU5VTEwpOwogCWlm
+IChJU19FUlIoZG1hYnVmKSkgewogCQlpb25fYnVmZmVyX3B1dChidWZmZXIpOwogCQlyZXR1cm4g
+ZG1hYnVmOwpkaWZmIC0tZ2l0IGEvaW5jbHVkZS9kcm0vZHJtUC5oIGIvaW5jbHVkZS9kcm0vZHJt
+UC5oCmluZGV4IDhhZjcxYThlMmMwMC4uZTQxZjE3ZWExZjEzIDEwMDY0NAotLS0gYS9pbmNsdWRl
+L2RybS9kcm1QLmgKKysrIGIvaW5jbHVkZS9kcm0vZHJtUC5oCkBAIC04Myw2ICs4Myw3IEBAIHN0
+cnVjdCBkcm1fZGV2aWNlOwogCiBzdHJ1Y3QgZGV2aWNlX25vZGU7CiBzdHJ1Y3QgdmlkZW9tb2Rl
+Oworc3RydWN0IHJlc2VydmF0aW9uX29iamVjdDsKIAogI2luY2x1ZGUgPGRybS9kcm1fb3NfbGlu
+dXguaD4KICNpbmNsdWRlIDxkcm0vZHJtX2hhc2h0YWIuaD4KQEAgLTkyMyw2ICs5MjQsOCBAQCBz
+dHJ1Y3QgZHJtX2RyaXZlciB7CiAJLyogbG93LWxldmVsIGludGVyZmFjZSB1c2VkIGJ5IGRybV9n
+ZW1fcHJpbWVfe2ltcG9ydCxleHBvcnR9ICovCiAJaW50ICgqZ2VtX3ByaW1lX3Bpbikoc3RydWN0
+IGRybV9nZW1fb2JqZWN0ICpvYmopOwogCXZvaWQgKCpnZW1fcHJpbWVfdW5waW4pKHN0cnVjdCBk
+cm1fZ2VtX29iamVjdCAqb2JqKTsKKwlzdHJ1Y3QgcmVzZXJ2YXRpb25fb2JqZWN0ICogKCpnZW1f
+cHJpbWVfcmVzX29iaikoCisJCQkJc3RydWN0IGRybV9nZW1fb2JqZWN0ICpvYmopOwogCXN0cnVj
+dCBzZ190YWJsZSAqKCpnZW1fcHJpbWVfZ2V0X3NnX3RhYmxlKShzdHJ1Y3QgZHJtX2dlbV9vYmpl
+Y3QgKm9iaik7CiAJc3RydWN0IGRybV9nZW1fb2JqZWN0ICooKmdlbV9wcmltZV9pbXBvcnRfc2df
+dGFibGUpKAogCQkJCXN0cnVjdCBkcm1fZGV2aWNlICpkZXYsIHNpemVfdCBzaXplLApkaWZmIC0t
+Z2l0IGEvaW5jbHVkZS9saW51eC9kbWEtYnVmLmggYi9pbmNsdWRlL2xpbnV4L2RtYS1idWYuaApp
+bmRleCBmODg2OTg1YTI4YjIuLmZkN2RlZjJlMGFlMiAxMDA2NDQKLS0tIGEvaW5jbHVkZS9saW51
+eC9kbWEtYnVmLmgKKysrIGIvaW5jbHVkZS9saW51eC9kbWEtYnVmLmgKQEAgLTExNSw2ICsxMTUs
+NyBAQCBzdHJ1Y3QgZG1hX2J1Zl9vcHMgewogICogQGV4cF9uYW1lOiBuYW1lIG9mIHRoZSBleHBv
+cnRlcjsgdXNlZnVsIGZvciBkZWJ1Z2dpbmcuCiAgKiBAbGlzdF9ub2RlOiBub2RlIGZvciBkbWFf
+YnVmIGFjY291bnRpbmcgYW5kIGRlYnVnZ2luZy4KICAqIEBwcml2OiBleHBvcnRlciBzcGVjaWZp
+YyBwcml2YXRlIGRhdGEgZm9yIHRoaXMgYnVmZmVyIG9iamVjdC4KKyAqIEByZXN2OiByZXNlcnZh
+dGlvbiBvYmplY3QgbGlua2VkIHRvIHRoaXMgZG1hLWJ1ZgogICovCiBzdHJ1Y3QgZG1hX2J1ZiB7
+CiAJc2l6ZV90IHNpemU7CkBAIC0xMjgsNiArMTI5LDcgQEAgc3RydWN0IGRtYV9idWYgewogCWNv
+bnN0IGNoYXIgKmV4cF9uYW1lOwogCXN0cnVjdCBsaXN0X2hlYWQgbGlzdF9ub2RlOwogCXZvaWQg
+KnByaXY7CisJc3RydWN0IHJlc2VydmF0aW9uX29iamVjdCAqcmVzdjsKIH07CiAKIC8qKgpAQCAt
+MTY4LDEwICsxNzAsMTEgQEAgdm9pZCBkbWFfYnVmX2RldGFjaChzdHJ1Y3QgZG1hX2J1ZiAqZG1h
+YnVmLAogCQkJCXN0cnVjdCBkbWFfYnVmX2F0dGFjaG1lbnQgKmRtYWJ1Zl9hdHRhY2gpOwogCiBz
+dHJ1Y3QgZG1hX2J1ZiAqZG1hX2J1Zl9leHBvcnRfbmFtZWQodm9pZCAqcHJpdiwgY29uc3Qgc3Ry
+dWN0IGRtYV9idWZfb3BzICpvcHMsCi0JCQkgICAgICAgc2l6ZV90IHNpemUsIGludCBmbGFncywg
+Y29uc3QgY2hhciAqKTsKKwkJCSAgICAgICBzaXplX3Qgc2l6ZSwgaW50IGZsYWdzLCBjb25zdCBj
+aGFyICosCisJCQkgICAgICAgc3RydWN0IHJlc2VydmF0aW9uX29iamVjdCAqKTsKIAotI2RlZmlu
+ZSBkbWFfYnVmX2V4cG9ydChwcml2LCBvcHMsIHNpemUsIGZsYWdzKQlcCi0JZG1hX2J1Zl9leHBv
+cnRfbmFtZWQocHJpdiwgb3BzLCBzaXplLCBmbGFncywgS0JVSUxEX01PRE5BTUUpCisjZGVmaW5l
+IGRtYV9idWZfZXhwb3J0KHByaXYsIG9wcywgc2l6ZSwgZmxhZ3MsIHJlc3YpCVwKKwlkbWFfYnVm
+X2V4cG9ydF9uYW1lZChwcml2LCBvcHMsIHNpemUsIGZsYWdzLCBLQlVJTERfTU9ETkFNRSwgcmVz
+dikKIAogaW50IGRtYV9idWZfZmQoc3RydWN0IGRtYV9idWYgKmRtYWJ1ZiwgaW50IGZsYWdzKTsK
+IHN0cnVjdCBkbWFfYnVmICpkbWFfYnVmX2dldChpbnQgZmQpOwoKX19fX19fX19fX19fX19fX19f
+X19fX19fX19fX19fX19fX19fX19fX19fX19fX18KZHJpLWRldmVsIG1haWxpbmcgbGlzdApkcmkt
+ZGV2ZWxAbGlzdHMuZnJlZWRlc2t0b3Aub3JnCmh0dHA6Ly9saXN0cy5mcmVlZGVza3RvcC5vcmcv
+bWFpbG1hbi9saXN0aW5mby9kcmktZGV2ZWwK
