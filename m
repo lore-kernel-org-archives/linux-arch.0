@@ -1,43 +1,108 @@
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [PATCH v2 09/10] arm64,ia64,ppc,s390,sh,tile,um,x86,mm: Remove
- default gate area
-Date: Tue, 1 Jul 2014 10:23:46 +0100
-Message-ID: <20140701092345.GH28164@arm.com>
-References: <cover.1404164803.git.luto@amacapital.net>
- <e1656ab2adfd1891f62610abe3e85ad992ee0cbf.1404164803.git.luto@amacapital.net>
+From: Maarten Lankhorst <maarten.lankhorst@canonical.com>
+Subject: [PATCH v2 0/9] Updated fence patch series
+Date: Tue, 01 Jul 2014 12:57:02 +0200
+Message-ID: <20140701103432.12718.82795.stgit@patser>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <owner-linux-mm@kvack.org>
-Content-Disposition: inline
-In-Reply-To: <e1656ab2adfd1891f62610abe3e85ad992ee0cbf.1404164803.git.luto@amacapital.net>
-Sender: owner-linux-mm@kvack.org
-To: Andy Lutomirski <luto@amacapital.net>
-Cc: "x86@kernel.org" <x86@kernel.org>, "hpa@zytor.org" <hpa@zytor.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Catalin Marinas <Catalin.Marinas@arm.com>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, "linux390@de.ibm.com" <linux390@de.ibm.com>, Chris Metcalf <cmetcalf@tilera.com>, Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Nathan Lynch <Nathan_Lynch@mentor.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>l
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <dri-devel-bounces@lists.freedesktop.org>
+List-Unsubscribe: <http://lists.freedesktop.org/mailman/options/dri-devel>,
+ <mailto:dri-devel-request@lists.freedesktop.org?subject=unsubscribe>
+List-Archive: <http://lists.freedesktop.org/archives/dri-devel>
+List-Post: <mailto:dri-devel@lists.freedesktop.org>
+List-Help: <mailto:dri-devel-request@lists.freedesktop.org?subject=help>
+List-Subscribe: <http://lists.freedesktop.org/mailman/listinfo/dri-devel>,
+ <mailto:dri-devel-request@lists.freedesktop.org?subject=subscribe>
+Errors-To: dri-devel-bounces@lists.freedesktop.org
+Sender: "dri-devel" <dri-devel-bounces@lists.freedesktop.org>
+To: gregkh@linuxfoundation.org
+Cc: linux-arch@vger.kernel.org, thellstrom@vmware.com, linux-kernel@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, ccross@google.com, linux-media@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, Jun 30, 2014 at 10:53:20PM +0100, Andy Lutomirski wrote:
-> The core mm code will provide a default gate area based on
-> FIXADDR_USER_START and FIXADDR_USER_END if
-> !defined(__HAVE_ARCH_GATE_AREA) && defined(AT_SYSINFO_EHDR).
-> 
-> This default is only useful for ia64.  arm64, ppc, s390, sh, tile,
-> 64-bit UML, and x86_32 have their own code just to disable it.  arm,
-> 32-bit UML, and x86_64 have gate areas, but they have their own
-> implementations.
-> 
-> This gets rid of the default and moves the code into ia64.
-> 
-> This should save some code on architectures without a gate area: it's
-> now possible to inline the gate_area functions in the default case.
+So after some more hacking I've moved dma-buf to its own subdirectory,
+drivers/dma-buf and applied the fence patches to its new place. I believe that the
+first patch should be applied regardless, and the rest should be ready now.
+:-)
 
-For the arm64 bit:
+Changes to the fence api:
+- release_fence -> fence_release etc.
+- __fence_init -> fence_init
+- __fence_signal -> fence_signal_locked
+- __fence_is_signaled -> fence_is_signaled_locked
+- Changing BUG_ON to WARN_ON in fence_later, and return NULL if it triggers.
 
-  Acked-by: Will Deacon <will.deacon@arm.com>
+Android can expose fences to userspace. It's possible to make the new fence
+mechanism expose the same fences to userspace by changing sync_fence_create
+to take a struct fence instead of a struct sync_pt. No other change is needed,
+because only the fence parts of struct sync_pt are used. But because the
+userspace fences are a separate problem and I haven't really looked at it yet
+I feel it should stay in staging, for now.
 
-Will
+---
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+Maarten Lankhorst (9):
+      dma-buf: move to drivers/dma-buf
+      fence: dma-buf cross-device synchronization (v18)
+      seqno-fence: Hardware dma-buf implementation of fencing (v6)
+      dma-buf: use reservation objects
+      android: convert sync to fence api, v6
+      reservation: add support for fences to enable cross-device synchronisation
+      dma-buf: add poll support, v3
+      reservation: update api and add some helpers
+      reservation: add suppport for read-only access using rcu
+
+
+ Documentation/DocBook/device-drivers.tmpl      |    8 
+ MAINTAINERS                                    |    4 
+ drivers/Makefile                               |    1 
+ drivers/base/Kconfig                           |    9 
+ drivers/base/Makefile                          |    1 
+ drivers/base/dma-buf.c                         |  743 --------------------
+ drivers/base/reservation.c                     |   39 -
+ drivers/dma-buf/Makefile                       |    1 
+ drivers/dma-buf/dma-buf.c                      |  907 ++++++++++++++++++++++++
+ drivers/dma-buf/fence.c                        |  431 +++++++++++
+ drivers/dma-buf/reservation.c                  |  477 +++++++++++++
+ drivers/dma-buf/seqno-fence.c                  |   73 ++
+ drivers/gpu/drm/armada/armada_gem.c            |    2 
+ drivers/gpu/drm/drm_prime.c                    |    8 
+ drivers/gpu/drm/exynos/exynos_drm_dmabuf.c     |    2 
+ drivers/gpu/drm/i915/i915_gem_dmabuf.c         |    3 
+ drivers/gpu/drm/nouveau/nouveau_drm.c          |    1 
+ drivers/gpu/drm/nouveau/nouveau_gem.h          |    1 
+ drivers/gpu/drm/nouveau/nouveau_prime.c        |    7 
+ drivers/gpu/drm/omapdrm/omap_gem_dmabuf.c      |    2 
+ drivers/gpu/drm/radeon/radeon_drv.c            |    2 
+ drivers/gpu/drm/radeon/radeon_prime.c          |    8 
+ drivers/gpu/drm/tegra/gem.c                    |    2 
+ drivers/gpu/drm/ttm/ttm_object.c               |    2 
+ drivers/media/v4l2-core/videobuf2-dma-contig.c |    2 
+ drivers/staging/android/Kconfig                |    1 
+ drivers/staging/android/Makefile               |    2 
+ drivers/staging/android/ion/ion.c              |    3 
+ drivers/staging/android/sw_sync.c              |    6 
+ drivers/staging/android/sync.c                 |  913 ++++++++----------------
+ drivers/staging/android/sync.h                 |   79 +-
+ drivers/staging/android/sync_debug.c           |  247 ++++++
+ drivers/staging/android/trace/sync.h           |   12 
+ include/drm/drmP.h                             |    3 
+ include/linux/dma-buf.h                        |   21 -
+ include/linux/fence.h                          |  360 +++++++++
+ include/linux/reservation.h                    |   82 ++
+ include/linux/seqno-fence.h                    |  116 +++
+ include/trace/events/fence.h                   |  128 +++
+ 39 files changed, 3258 insertions(+), 1451 deletions(-)
+ delete mode 100644 drivers/base/dma-buf.c
+ delete mode 100644 drivers/base/reservation.c
+ create mode 100644 drivers/dma-buf/Makefile
+ create mode 100644 drivers/dma-buf/dma-buf.c
+ create mode 100644 drivers/dma-buf/fence.c
+ create mode 100644 drivers/dma-buf/reservation.c
+ create mode 100644 drivers/dma-buf/seqno-fence.c
+ create mode 100644 drivers/staging/android/sync_debug.c
+ create mode 100644 include/linux/fence.h
+ create mode 100644 include/linux/seqno-fence.h
+ create mode 100644 include/trace/events/fence.h
+
+-- 
+Signature
