@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from adelie.canonical.com ([91.189.90.139]:60251 "EHLO
+Received: from adelie.canonical.com ([91.189.90.139]:60182 "EHLO
 	adelie.canonical.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757927AbaGAK6I (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 1 Jul 2014 06:58:08 -0400
-Subject: [PATCH v2 5/9] android: convert sync to fence api, v6
+	with ESMTP id S1757573AbaGAK5p (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 1 Jul 2014 06:57:45 -0400
+Subject: [PATCH v2 1/9] dma-buf: move to drivers/dma-buf
 From: Maarten Lankhorst <maarten.lankhorst@canonical.com>
-Date: Tue, 01 Jul 2014 12:57:31 +0200
-Message-ID: <20140701105731.12718.25783.stgit@patser>
+Date: Tue, 01 Jul 2014 12:57:08 +0200
+Message-ID: <20140701105708.12718.50675.stgit@patser>
 In-Reply-To: <20140701103432.12718.82795.stgit@patser>
 References: <20140701103432.12718.82795.stgit@patser>
 MIME-Version: 1.0
@@ -16,1731 +16,1672 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: gregkh@linuxfoundation.org
 Cc: linux-arch@vger.kernel.org, thellstrom@vmware.com, linux-kernel@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, robdclark@gmail.com, thierry.reding@gmail.com, ccross@google.com, daniel@ffwll.ch, sumit.semwal@linaro.org, linux-media@vger.kernel.org
-Message-ID: <20140701105731.KJTWhpNZtKlyoFMof99UGCzK9Rw3zD8pROINvRZJqzc@z>
-
-Just to show it's easy.
-
-Android syncpoints can be mapped to a timeline. This removes the need
-to maintain a separate api for synchronization. I've left the android
-trace events in place, but the core fence events should already be
-sufficient for debugging.
-
-v2:
-- Call fence_remove_callback in sync_fence_free if not all fences have fired.
-v3:
-- Merge Colin Cross' bugfixes, and the android fence merge optimization.
-v4:
-- Merge with the upstream fixes.
-v5:
-- Fix small style issues pointed out by Thomas Hellstrom.
-v6:
-- Fix for updates to fence api.
+Message-ID: <20140701105708.h21_Oeva-46MEu6E5Scqp5_Xe3iKDKKZ5AfiARkZE_E@z>
 
 Signed-off-by: Maarten Lankhorst <maarten.lankhorst@canonical.com>
-Acked-by: John Stultz <john.stultz@linaro.org>
 ---
- drivers/staging/android/Kconfig      |    1 
- drivers/staging/android/Makefile     |    2 
- drivers/staging/android/sw_sync.c    |    6 
- drivers/staging/android/sync.c       |  913 +++++++++++-----------------------
- drivers/staging/android/sync.h       |   79 ++-
- drivers/staging/android/sync_debug.c |  247 +++++++++
- drivers/staging/android/trace/sync.h |   12 
- 7 files changed, 609 insertions(+), 651 deletions(-)
- create mode 100644 drivers/staging/android/sync_debug.c
+ Documentation/DocBook/device-drivers.tmpl |    3 
+ MAINTAINERS                               |    4 
+ drivers/Makefile                          |    1 
+ drivers/base/Makefile                     |    1 
+ drivers/base/dma-buf.c                    |  743 -----------------------------
+ drivers/base/reservation.c                |   39 --
+ drivers/dma-buf/Makefile                  |    1 
+ drivers/dma-buf/dma-buf.c                 |  743 +++++++++++++++++++++++++++++
+ drivers/dma-buf/reservation.c             |   39 ++
+ 9 files changed, 787 insertions(+), 787 deletions(-)
+ delete mode 100644 drivers/base/dma-buf.c
+ delete mode 100644 drivers/base/reservation.c
+ create mode 100644 drivers/dma-buf/Makefile
+ create mode 100644 drivers/dma-buf/dma-buf.c
+ create mode 100644 drivers/dma-buf/reservation.c
 
-diff --git a/drivers/staging/android/Kconfig b/drivers/staging/android/Kconfig
-index 99e484f845f2..51607e9aa049 100644
---- a/drivers/staging/android/Kconfig
-+++ b/drivers/staging/android/Kconfig
-@@ -88,6 +88,7 @@ config SYNC
- 	bool "Synchronization framework"
- 	default n
- 	select ANON_INODES
-+	select DMA_SHARED_BUFFER
- 	---help---
- 	  This option enables the framework for synchronization between multiple
- 	  drivers.  Sync implementations can take advantage of hardware
-diff --git a/drivers/staging/android/Makefile b/drivers/staging/android/Makefile
-index 0a01e1914905..517ad5ffa429 100644
---- a/drivers/staging/android/Makefile
-+++ b/drivers/staging/android/Makefile
-@@ -9,5 +9,5 @@ obj-$(CONFIG_ANDROID_TIMED_OUTPUT)	+= timed_output.o
- obj-$(CONFIG_ANDROID_TIMED_GPIO)	+= timed_gpio.o
- obj-$(CONFIG_ANDROID_LOW_MEMORY_KILLER)	+= lowmemorykiller.o
- obj-$(CONFIG_ANDROID_INTF_ALARM_DEV)	+= alarm-dev.o
--obj-$(CONFIG_SYNC)			+= sync.o
-+obj-$(CONFIG_SYNC)			+= sync.o sync_debug.o
- obj-$(CONFIG_SW_SYNC)			+= sw_sync.o
-diff --git a/drivers/staging/android/sw_sync.c b/drivers/staging/android/sw_sync.c
-index 12a136ec1cec..a76db3ff87cb 100644
---- a/drivers/staging/android/sw_sync.c
-+++ b/drivers/staging/android/sw_sync.c
-@@ -50,7 +50,7 @@ static struct sync_pt *sw_sync_pt_dup(struct sync_pt *sync_pt)
- {
- 	struct sw_sync_pt *pt = (struct sw_sync_pt *) sync_pt;
- 	struct sw_sync_timeline *obj =
--		(struct sw_sync_timeline *)sync_pt->parent;
-+		(struct sw_sync_timeline *)sync_pt_parent(sync_pt);
+diff --git a/Documentation/DocBook/device-drivers.tmpl b/Documentation/DocBook/device-drivers.tmpl
+index cc63f30de166..ac61ebd92875 100644
+--- a/Documentation/DocBook/device-drivers.tmpl
++++ b/Documentation/DocBook/device-drivers.tmpl
+@@ -128,8 +128,7 @@ X!Edrivers/base/interface.c
+ !Edrivers/base/bus.c
+      </sect1>
+      <sect1><title>Device Drivers DMA Management</title>
+-!Edrivers/base/dma-buf.c
+-!Edrivers/base/reservation.c
++!Edrivers/dma-buf/dma-buf.c
+ !Iinclude/linux/reservation.h
+ !Edrivers/base/dma-coherent.c
+ !Edrivers/base/dma-mapping.c
+diff --git a/MAINTAINERS b/MAINTAINERS
+index 134483f206e4..c948e53a4ee6 100644
+--- a/MAINTAINERS
++++ b/MAINTAINERS
+@@ -2882,8 +2882,8 @@ S:	Maintained
+ L:	linux-media@vger.kernel.org
+ L:	dri-devel@lists.freedesktop.org
+ L:	linaro-mm-sig@lists.linaro.org
+-F:	drivers/base/dma-buf*
+-F:	include/linux/dma-buf*
++F:	drivers/dma-buf/
++F:	include/linux/dma-buf* include/linux/reservation.h
+ F:	Documentation/dma-buf-sharing.txt
+ T:	git git://git.linaro.org/people/sumitsemwal/linux-dma-buf.git
  
- 	return (struct sync_pt *) sw_sync_pt_create(obj, pt->value);
- }
-@@ -59,7 +59,7 @@ static int sw_sync_pt_has_signaled(struct sync_pt *sync_pt)
- {
- 	struct sw_sync_pt *pt = (struct sw_sync_pt *)sync_pt;
- 	struct sw_sync_timeline *obj =
--		(struct sw_sync_timeline *)sync_pt->parent;
-+		(struct sw_sync_timeline *)sync_pt_parent(sync_pt);
+diff --git a/drivers/Makefile b/drivers/Makefile
+index f98b50d8251d..c00337be5351 100644
+--- a/drivers/Makefile
++++ b/drivers/Makefile
+@@ -61,6 +61,7 @@ obj-$(CONFIG_FB_INTEL)          += video/fbdev/intelfb/
  
- 	return sw_sync_cmp(obj->value, pt->value) >= 0;
- }
-@@ -97,7 +97,6 @@ static void sw_sync_pt_value_str(struct sync_pt *sync_pt,
- 				       char *str, int size)
- {
- 	struct sw_sync_pt *pt = (struct sw_sync_pt *)sync_pt;
+ obj-$(CONFIG_PARPORT)		+= parport/
+ obj-y				+= base/ block/ misc/ mfd/ nfc/
++obj-$(CONFIG_DMA_SHARED_BUFFER) += dma-buf/
+ obj-$(CONFIG_NUBUS)		+= nubus/
+ obj-y				+= macintosh/
+ obj-$(CONFIG_IDE)		+= ide/
+diff --git a/drivers/base/Makefile b/drivers/base/Makefile
+index 04b314e0fa51..4aab26ec0292 100644
+--- a/drivers/base/Makefile
++++ b/drivers/base/Makefile
+@@ -10,7 +10,6 @@ obj-$(CONFIG_DMA_CMA) += dma-contiguous.o
+ obj-y			+= power/
+ obj-$(CONFIG_HAS_DMA)	+= dma-mapping.o
+ obj-$(CONFIG_HAVE_GENERIC_DMA_COHERENT) += dma-coherent.o
+-obj-$(CONFIG_DMA_SHARED_BUFFER) += dma-buf.o reservation.o
+ obj-$(CONFIG_ISA)	+= isa.o
+ obj-$(CONFIG_FW_LOADER)	+= firmware_class.o
+ obj-$(CONFIG_NUMA)	+= node.o
+diff --git a/drivers/base/dma-buf.c b/drivers/base/dma-buf.c
+deleted file mode 100644
+index 840c7fa80983..000000000000
+--- a/drivers/base/dma-buf.c
++++ /dev/null
+@@ -1,743 +0,0 @@
+-/*
+- * Framework for buffer objects that can be shared across devices/subsystems.
+- *
+- * Copyright(C) 2011 Linaro Limited. All rights reserved.
+- * Author: Sumit Semwal <sumit.semwal@ti.com>
+- *
+- * Many thanks to linaro-mm-sig list, and specially
+- * Arnd Bergmann <arnd@arndb.de>, Rob Clark <rob@ti.com> and
+- * Daniel Vetter <daniel@ffwll.ch> for their support in creation and
+- * refining of this idea.
+- *
+- * This program is free software; you can redistribute it and/or modify it
+- * under the terms of the GNU General Public License version 2 as published by
+- * the Free Software Foundation.
+- *
+- * This program is distributed in the hope that it will be useful, but WITHOUT
+- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+- * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
+- * more details.
+- *
+- * You should have received a copy of the GNU General Public License along with
+- * this program.  If not, see <http://www.gnu.org/licenses/>.
+- */
 -
- 	snprintf(str, size, "%d", pt->value);
- }
- 
-@@ -157,7 +156,6 @@ static int sw_sync_open(struct inode *inode, struct file *file)
- static int sw_sync_release(struct inode *inode, struct file *file)
- {
- 	struct sw_sync_timeline *obj = file->private_data;
+-#include <linux/fs.h>
+-#include <linux/slab.h>
+-#include <linux/dma-buf.h>
+-#include <linux/anon_inodes.h>
+-#include <linux/export.h>
+-#include <linux/debugfs.h>
+-#include <linux/seq_file.h>
 -
- 	sync_timeline_destroy(&obj->obj);
- 	return 0;
- }
-diff --git a/drivers/staging/android/sync.c b/drivers/staging/android/sync.c
-index 18174f7c871c..c9a0c2cdc81a 100644
---- a/drivers/staging/android/sync.c
-+++ b/drivers/staging/android/sync.c
-@@ -31,22 +31,13 @@
- #define CREATE_TRACE_POINTS
- #include "trace/sync.h"
- 
--static void sync_fence_signal_pt(struct sync_pt *pt);
--static int _sync_pt_has_signaled(struct sync_pt *pt);
--static void sync_fence_free(struct kref *kref);
--static void sync_dump(void);
+-static inline int is_dma_buf_file(struct file *);
 -
--static LIST_HEAD(sync_timeline_list_head);
--static DEFINE_SPINLOCK(sync_timeline_list_lock);
--
--static LIST_HEAD(sync_fence_list_head);
--static DEFINE_SPINLOCK(sync_fence_list_lock);
-+static const struct fence_ops android_fence_ops;
-+static const struct file_operations sync_fence_fops;
- 
- struct sync_timeline *sync_timeline_create(const struct sync_timeline_ops *ops,
- 					   int size, const char *name)
- {
- 	struct sync_timeline *obj;
--	unsigned long flags;
- 
- 	if (size < sizeof(struct sync_timeline))
- 		return NULL;
-@@ -57,17 +48,14 @@ struct sync_timeline *sync_timeline_create(const struct sync_timeline_ops *ops,
- 
- 	kref_init(&obj->kref);
- 	obj->ops = ops;
-+	obj->context = fence_context_alloc(1);
- 	strlcpy(obj->name, name, sizeof(obj->name));
- 
- 	INIT_LIST_HEAD(&obj->child_list_head);
--	spin_lock_init(&obj->child_list_lock);
--
- 	INIT_LIST_HEAD(&obj->active_list_head);
--	spin_lock_init(&obj->active_list_lock);
-+	spin_lock_init(&obj->child_list_lock);
- 
--	spin_lock_irqsave(&sync_timeline_list_lock, flags);
--	list_add_tail(&obj->sync_timeline_list, &sync_timeline_list_head);
--	spin_unlock_irqrestore(&sync_timeline_list_lock, flags);
-+	sync_timeline_debug_add(obj);
- 
- 	return obj;
- }
-@@ -77,11 +65,8 @@ static void sync_timeline_free(struct kref *kref)
- {
- 	struct sync_timeline *obj =
- 		container_of(kref, struct sync_timeline, kref);
--	unsigned long flags;
- 
--	spin_lock_irqsave(&sync_timeline_list_lock, flags);
--	list_del(&obj->sync_timeline_list);
--	spin_unlock_irqrestore(&sync_timeline_list_lock, flags);
-+	sync_timeline_debug_remove(obj);
- 
- 	if (obj->ops->release_obj)
- 		obj->ops->release_obj(obj);
-@@ -89,6 +74,16 @@ static void sync_timeline_free(struct kref *kref)
- 	kfree(obj);
- }
- 
-+static void sync_timeline_get(struct sync_timeline *obj)
-+{
-+	kref_get(&obj->kref);
-+}
-+
-+static void sync_timeline_put(struct sync_timeline *obj)
-+{
-+	kref_put(&obj->kref, sync_timeline_free);
-+}
-+
- void sync_timeline_destroy(struct sync_timeline *obj)
- {
- 	obj->destroyed = true;
-@@ -102,75 +97,33 @@ void sync_timeline_destroy(struct sync_timeline *obj)
- 	 * signal any children that their parent is going away.
- 	 */
- 	sync_timeline_signal(obj);
--
--	kref_put(&obj->kref, sync_timeline_free);
-+	sync_timeline_put(obj);
- }
- EXPORT_SYMBOL(sync_timeline_destroy);
- 
--static void sync_timeline_add_pt(struct sync_timeline *obj, struct sync_pt *pt)
--{
--	unsigned long flags;
--
--	pt->parent = obj;
--
--	spin_lock_irqsave(&obj->child_list_lock, flags);
--	list_add_tail(&pt->child_list, &obj->child_list_head);
--	spin_unlock_irqrestore(&obj->child_list_lock, flags);
--}
--
--static void sync_timeline_remove_pt(struct sync_pt *pt)
--{
--	struct sync_timeline *obj = pt->parent;
--	unsigned long flags;
--
--	spin_lock_irqsave(&obj->active_list_lock, flags);
--	if (!list_empty(&pt->active_list))
--		list_del_init(&pt->active_list);
--	spin_unlock_irqrestore(&obj->active_list_lock, flags);
--
--	spin_lock_irqsave(&obj->child_list_lock, flags);
--	if (!list_empty(&pt->child_list))
--		list_del_init(&pt->child_list);
--
--	spin_unlock_irqrestore(&obj->child_list_lock, flags);
--}
--
- void sync_timeline_signal(struct sync_timeline *obj)
- {
- 	unsigned long flags;
- 	LIST_HEAD(signaled_pts);
--	struct list_head *pos, *n;
-+	struct sync_pt *pt, *next;
- 
- 	trace_sync_timeline(obj);
- 
--	spin_lock_irqsave(&obj->active_list_lock, flags);
--
--	list_for_each_safe(pos, n, &obj->active_list_head) {
--		struct sync_pt *pt =
--			container_of(pos, struct sync_pt, active_list);
-+	spin_lock_irqsave(&obj->child_list_lock, flags);
- 
--		if (_sync_pt_has_signaled(pt)) {
--			list_del_init(pos);
--			list_add(&pt->signaled_list, &signaled_pts);
--			kref_get(&pt->fence->kref);
--		}
-+	list_for_each_entry_safe(pt, next, &obj->active_list_head,
-+				 active_list) {
-+		if (fence_is_signaled_locked(&pt->base))
-+			list_del(&pt->active_list);
- 	}
- 
--	spin_unlock_irqrestore(&obj->active_list_lock, flags);
--
--	list_for_each_safe(pos, n, &signaled_pts) {
--		struct sync_pt *pt =
--			container_of(pos, struct sync_pt, signaled_list);
--
--		list_del_init(pos);
--		sync_fence_signal_pt(pt);
--		kref_put(&pt->fence->kref, sync_fence_free);
--	}
-+	spin_unlock_irqrestore(&obj->child_list_lock, flags);
- }
- EXPORT_SYMBOL(sync_timeline_signal);
- 
--struct sync_pt *sync_pt_create(struct sync_timeline *parent, int size)
-+struct sync_pt *sync_pt_create(struct sync_timeline *obj, int size)
- {
-+	unsigned long flags;
- 	struct sync_pt *pt;
- 
- 	if (size < sizeof(struct sync_pt))
-@@ -180,87 +133,28 @@ struct sync_pt *sync_pt_create(struct sync_timeline *parent, int size)
- 	if (pt == NULL)
- 		return NULL;
- 
-+	spin_lock_irqsave(&obj->child_list_lock, flags);
-+	sync_timeline_get(obj);
-+	fence_init(&pt->base, &android_fence_ops, &obj->child_list_lock,
-+		   obj->context, ++obj->value);
-+	list_add_tail(&pt->child_list, &obj->child_list_head);
- 	INIT_LIST_HEAD(&pt->active_list);
--	kref_get(&parent->kref);
--	sync_timeline_add_pt(parent, pt);
--
-+	spin_unlock_irqrestore(&obj->child_list_lock, flags);
- 	return pt;
- }
- EXPORT_SYMBOL(sync_pt_create);
- 
- void sync_pt_free(struct sync_pt *pt)
- {
--	if (pt->parent->ops->free_pt)
--		pt->parent->ops->free_pt(pt);
--
--	sync_timeline_remove_pt(pt);
--
--	kref_put(&pt->parent->kref, sync_timeline_free);
--
--	kfree(pt);
-+	fence_put(&pt->base);
- }
- EXPORT_SYMBOL(sync_pt_free);
- 
--/* call with pt->parent->active_list_lock held */
--static int _sync_pt_has_signaled(struct sync_pt *pt)
--{
--	int old_status = pt->status;
--
--	if (!pt->status)
--		pt->status = pt->parent->ops->has_signaled(pt);
--
--	if (!pt->status && pt->parent->destroyed)
--		pt->status = -ENOENT;
--
--	if (pt->status != old_status)
--		pt->timestamp = ktime_get();
--
--	return pt->status;
--}
--
--static struct sync_pt *sync_pt_dup(struct sync_pt *pt)
--{
--	return pt->parent->ops->dup(pt);
--}
--
--/* Adds a sync pt to the active queue.  Called when added to a fence */
--static void sync_pt_activate(struct sync_pt *pt)
--{
--	struct sync_timeline *obj = pt->parent;
--	unsigned long flags;
--	int err;
--
--	spin_lock_irqsave(&obj->active_list_lock, flags);
--
--	err = _sync_pt_has_signaled(pt);
--	if (err != 0)
--		goto out;
--
--	list_add_tail(&pt->active_list, &obj->active_list_head);
--
--out:
--	spin_unlock_irqrestore(&obj->active_list_lock, flags);
--}
--
--static int sync_fence_release(struct inode *inode, struct file *file);
--static unsigned int sync_fence_poll(struct file *file, poll_table *wait);
--static long sync_fence_ioctl(struct file *file, unsigned int cmd,
--			     unsigned long arg);
--
--
--static const struct file_operations sync_fence_fops = {
--	.release = sync_fence_release,
--	.poll = sync_fence_poll,
--	.unlocked_ioctl = sync_fence_ioctl,
--	.compat_ioctl = sync_fence_ioctl,
+-struct dma_buf_list {
+-	struct list_head head;
+-	struct mutex lock;
 -};
 -
--static struct sync_fence *sync_fence_alloc(const char *name)
-+static struct sync_fence *sync_fence_alloc(int size, const char *name)
- {
- 	struct sync_fence *fence;
--	unsigned long flags;
- 
--	fence = kzalloc(sizeof(struct sync_fence), GFP_KERNEL);
-+	fence = kzalloc(size, GFP_KERNEL);
- 	if (fence == NULL)
- 		return NULL;
- 
-@@ -272,16 +166,8 @@ static struct sync_fence *sync_fence_alloc(const char *name)
- 	kref_init(&fence->kref);
- 	strlcpy(fence->name, name, sizeof(fence->name));
- 
--	INIT_LIST_HEAD(&fence->pt_list_head);
--	INIT_LIST_HEAD(&fence->waiter_list_head);
--	spin_lock_init(&fence->waiter_list_lock);
+-static struct dma_buf_list db_list;
 -
- 	init_waitqueue_head(&fence->wq);
- 
--	spin_lock_irqsave(&sync_fence_list_lock, flags);
--	list_add_tail(&fence->sync_fence_list, &sync_fence_list_head);
--	spin_unlock_irqrestore(&sync_fence_list_lock, flags);
--
- 	return fence;
- 
- err:
-@@ -289,120 +175,42 @@ err:
- 	return NULL;
- }
- 
--/* TODO: implement a create which takes more that one sync_pt */
--struct sync_fence *sync_fence_create(const char *name, struct sync_pt *pt)
-+static void fence_check_cb_func(struct fence *f, struct fence_cb *cb)
- {
-+	struct sync_fence_cb *check;
- 	struct sync_fence *fence;
- 
--	if (pt->fence)
--		return NULL;
--
--	fence = sync_fence_alloc(name);
--	if (fence == NULL)
--		return NULL;
-+	check = container_of(cb, struct sync_fence_cb, cb);
-+	fence = check->fence;
- 
--	pt->fence = fence;
--	list_add(&pt->pt_list, &fence->pt_list_head);
--	sync_pt_activate(pt);
--
--	/*
--	 * signal the fence in case pt was activated before
--	 * sync_pt_activate(pt) was called
--	 */
--	sync_fence_signal_pt(pt);
--
--	return fence;
--}
--EXPORT_SYMBOL(sync_fence_create);
--
--static int sync_fence_copy_pts(struct sync_fence *dst, struct sync_fence *src)
+-static int dma_buf_release(struct inode *inode, struct file *file)
 -{
--	struct list_head *pos;
+-	struct dma_buf *dmabuf;
 -
--	list_for_each(pos, &src->pt_list_head) {
--		struct sync_pt *orig_pt =
--			container_of(pos, struct sync_pt, pt_list);
--		struct sync_pt *new_pt = sync_pt_dup(orig_pt);
+-	if (!is_dma_buf_file(file))
+-		return -EINVAL;
 -
--		if (new_pt == NULL)
--			return -ENOMEM;
+-	dmabuf = file->private_data;
 -
--		new_pt->fence = dst;
--		list_add(&new_pt->pt_list, &dst->pt_list_head);
--	}
+-	BUG_ON(dmabuf->vmapping_counter);
 -
--	return 0;
-+	if (atomic_dec_and_test(&fence->status))
-+		wake_up_all(&fence->wq);
- }
- 
--static int sync_fence_merge_pts(struct sync_fence *dst, struct sync_fence *src)
--{
--	struct list_head *src_pos, *dst_pos, *n;
+-	dmabuf->ops->release(dmabuf);
 -
--	list_for_each(src_pos, &src->pt_list_head) {
--		struct sync_pt *src_pt =
--			container_of(src_pos, struct sync_pt, pt_list);
--		bool collapsed = false;
+-	mutex_lock(&db_list.lock);
+-	list_del(&dmabuf->list_node);
+-	mutex_unlock(&db_list.lock);
 -
--		list_for_each_safe(dst_pos, n, &dst->pt_list_head) {
--			struct sync_pt *dst_pt =
--				container_of(dst_pos, struct sync_pt, pt_list);
--			/* collapse two sync_pts on the same timeline
--			 * to a single sync_pt that will signal at
--			 * the later of the two
--			 */
--			if (dst_pt->parent == src_pt->parent) {
--				if (dst_pt->parent->ops->compare(dst_pt, src_pt)
--						 == -1) {
--					struct sync_pt *new_pt =
--						sync_pt_dup(src_pt);
--					if (new_pt == NULL)
--						return -ENOMEM;
--
--					new_pt->fence = dst;
--					list_replace(&dst_pt->pt_list,
--						     &new_pt->pt_list);
--					sync_pt_free(dst_pt);
--				}
--				collapsed = true;
--				break;
--			}
--		}
--
--		if (!collapsed) {
--			struct sync_pt *new_pt = sync_pt_dup(src_pt);
--
--			if (new_pt == NULL)
--				return -ENOMEM;
--
--			new_pt->fence = dst;
--			list_add(&new_pt->pt_list, &dst->pt_list_head);
--		}
--	}
--
+-	kfree(dmabuf);
 -	return 0;
 -}
 -
--static void sync_fence_detach_pts(struct sync_fence *fence)
-+/* TODO: implement a create which takes more that one sync_pt */
-+struct sync_fence *sync_fence_create(const char *name, struct sync_pt *pt)
- {
--	struct list_head *pos, *n;
-+	struct sync_fence *fence;
- 
--	list_for_each_safe(pos, n, &fence->pt_list_head) {
--		struct sync_pt *pt = container_of(pos, struct sync_pt, pt_list);
-+	fence = sync_fence_alloc(offsetof(struct sync_fence, cbs[1]), name);
-+	if (fence == NULL)
-+		return NULL;
- 
--		sync_timeline_remove_pt(pt);
--	}
--}
-+	fence->num_fences = 1;
-+	atomic_set(&fence->status, 1);
- 
--static void sync_fence_free_pts(struct sync_fence *fence)
+-static int dma_buf_mmap_internal(struct file *file, struct vm_area_struct *vma)
 -{
--	struct list_head *pos, *n;
-+	fence_get(&pt->base);
-+	fence->cbs[0].sync_pt = &pt->base;
-+	fence->cbs[0].fence = fence;
-+	if (fence_add_callback(&pt->base, &fence->cbs[0].cb,
-+			       fence_check_cb_func))
-+		atomic_dec(&fence->status);
- 
--	list_for_each_safe(pos, n, &fence->pt_list_head) {
--		struct sync_pt *pt = container_of(pos, struct sync_pt, pt_list);
-+	sync_fence_debug_add(fence);
- 
--		sync_pt_free(pt);
--	}
-+	return fence;
- }
-+EXPORT_SYMBOL(sync_fence_create);
- 
- struct sync_fence *sync_fence_fdget(int fd)
- {
-@@ -434,197 +242,155 @@ void sync_fence_install(struct sync_fence *fence, int fd)
- }
- EXPORT_SYMBOL(sync_fence_install);
- 
--static int sync_fence_get_status(struct sync_fence *fence)
-+static void sync_fence_add_pt(struct sync_fence *fence,
-+			      int *i, struct fence *pt)
- {
--	struct list_head *pos;
--	int status = 1;
+-	struct dma_buf *dmabuf;
 -
--	list_for_each(pos, &fence->pt_list_head) {
--		struct sync_pt *pt = container_of(pos, struct sync_pt, pt_list);
--		int pt_status = pt->status;
+-	if (!is_dma_buf_file(file))
+-		return -EINVAL;
 -
--		if (pt_status < 0) {
--			status = pt_status;
--			break;
--		} else if (status == 1) {
--			status = pt_status;
--		}
--	}
-+	fence->cbs[*i].sync_pt = pt;
-+	fence->cbs[*i].fence = fence;
- 
--	return status;
-+	if (!fence_add_callback(pt, &fence->cbs[*i].cb, fence_check_cb_func)) {
-+		fence_get(pt);
-+		(*i)++;
-+	}
- }
- 
- struct sync_fence *sync_fence_merge(const char *name,
- 				    struct sync_fence *a, struct sync_fence *b)
- {
-+	int num_fences = a->num_fences + b->num_fences;
- 	struct sync_fence *fence;
--	struct list_head *pos;
--	int err;
-+	int i, i_a, i_b;
-+	unsigned long size = offsetof(struct sync_fence, cbs[num_fences]);
- 
--	fence = sync_fence_alloc(name);
-+	fence = sync_fence_alloc(size, name);
- 	if (fence == NULL)
- 		return NULL;
- 
--	err = sync_fence_copy_pts(fence, a);
--	if (err < 0)
--		goto err;
-+	atomic_set(&fence->status, num_fences);
- 
--	err = sync_fence_merge_pts(fence, b);
--	if (err < 0)
--		goto err;
-+	/*
-+	 * Assume sync_fence a and b are both ordered and have no
-+	 * duplicates with the same context.
-+	 *
-+	 * If a sync_fence can only be created with sync_fence_merge
-+	 * and sync_fence_create, this is a reasonable assumption.
-+	 */
-+	for (i = i_a = i_b = 0; i_a < a->num_fences && i_b < b->num_fences; ) {
-+		struct fence *pt_a = a->cbs[i_a].sync_pt;
-+		struct fence *pt_b = b->cbs[i_b].sync_pt;
-+
-+		if (pt_a->context < pt_b->context) {
-+			sync_fence_add_pt(fence, &i, pt_a);
-+
-+			i_a++;
-+		} else if (pt_a->context > pt_b->context) {
-+			sync_fence_add_pt(fence, &i, pt_b);
- 
--	list_for_each(pos, &fence->pt_list_head) {
--		struct sync_pt *pt =
--			container_of(pos, struct sync_pt, pt_list);
--		sync_pt_activate(pt);
-+			i_b++;
-+		} else {
-+			if (pt_a->seqno - pt_b->seqno <= INT_MAX)
-+				sync_fence_add_pt(fence, &i, pt_a);
-+			else
-+				sync_fence_add_pt(fence, &i, pt_b);
-+
-+			i_a++;
-+			i_b++;
-+		}
- 	}
- 
--	/*
--	 * signal the fence in case one of it's pts were activated before
--	 * they were activated
--	 */
--	sync_fence_signal_pt(list_first_entry(&fence->pt_list_head,
--					      struct sync_pt,
--					      pt_list));
-+	for (; i_a < a->num_fences; i_a++)
-+		sync_fence_add_pt(fence, &i, a->cbs[i_a].sync_pt);
- 
-+	for (; i_b < b->num_fences; i_b++)
-+		sync_fence_add_pt(fence, &i, b->cbs[i_b].sync_pt);
-+
-+	if (num_fences > i)
-+		atomic_sub(num_fences - i, &fence->status);
-+	fence->num_fences = i;
-+
-+	sync_fence_debug_add(fence);
- 	return fence;
--err:
--	sync_fence_free_pts(fence);
--	kfree(fence);
--	return NULL;
- }
- EXPORT_SYMBOL(sync_fence_merge);
- 
--static void sync_fence_signal_pt(struct sync_pt *pt)
-+int sync_fence_wake_up_wq(wait_queue_t *curr, unsigned mode,
-+				 int wake_flags, void *key)
- {
--	LIST_HEAD(signaled_waiters);
--	struct sync_fence *fence = pt->fence;
--	struct list_head *pos;
--	struct list_head *n;
--	unsigned long flags;
--	int status;
+-	dmabuf = file->private_data;
 -
--	status = sync_fence_get_status(fence);
+-	/* check for overflowing the buffer's size */
+-	if (vma->vm_pgoff + ((vma->vm_end - vma->vm_start) >> PAGE_SHIFT) >
+-	    dmabuf->size >> PAGE_SHIFT)
+-		return -EINVAL;
 -
--	spin_lock_irqsave(&fence->waiter_list_lock, flags);
--	/*
--	 * this should protect against two threads racing on the signaled
--	 * false -> true transition
--	 */
--	if (status && !fence->status) {
--		list_for_each_safe(pos, n, &fence->waiter_list_head)
--			list_move(pos, &signaled_waiters);
--
--		fence->status = status;
--	} else {
--		status = 0;
--	}
--	spin_unlock_irqrestore(&fence->waiter_list_lock, flags);
-+	struct sync_fence_waiter *wait;
- 
--	if (status) {
--		list_for_each_safe(pos, n, &signaled_waiters) {
--			struct sync_fence_waiter *waiter =
--				container_of(pos, struct sync_fence_waiter,
--					     waiter_list);
-+	wait = container_of(curr, struct sync_fence_waiter, work);
-+	list_del_init(&wait->work.task_list);
- 
--			list_del(pos);
--			waiter->callback(fence, waiter);
--		}
--		wake_up(&fence->wq);
--	}
-+	wait->callback(wait->work.private, wait);
-+	return 1;
- }
- 
- int sync_fence_wait_async(struct sync_fence *fence,
- 			  struct sync_fence_waiter *waiter)
- {
-+	int err = atomic_read(&fence->status);
- 	unsigned long flags;
--	int err = 0;
- 
--	spin_lock_irqsave(&fence->waiter_list_lock, flags);
-+	if (err < 0)
-+		return err;
- 
--	if (fence->status) {
--		err = fence->status;
--		goto out;
--	}
-+	if (!err)
-+		return 1;
- 
--	list_add_tail(&waiter->waiter_list, &fence->waiter_list_head);
--out:
--	spin_unlock_irqrestore(&fence->waiter_list_lock, flags);
-+	init_waitqueue_func_entry(&waiter->work, sync_fence_wake_up_wq);
-+	waiter->work.private = fence;
- 
--	return err;
-+	spin_lock_irqsave(&fence->wq.lock, flags);
-+	err = atomic_read(&fence->status);
-+	if (err > 0)
-+		__add_wait_queue_tail(&fence->wq, &waiter->work);
-+	spin_unlock_irqrestore(&fence->wq.lock, flags);
-+
-+	if (err < 0)
-+		return err;
-+
-+	return !err;
- }
- EXPORT_SYMBOL(sync_fence_wait_async);
- 
- int sync_fence_cancel_async(struct sync_fence *fence,
- 			     struct sync_fence_waiter *waiter)
- {
--	struct list_head *pos;
--	struct list_head *n;
- 	unsigned long flags;
--	int ret = -ENOENT;
-+	int ret = 0;
- 
--	spin_lock_irqsave(&fence->waiter_list_lock, flags);
--	/*
--	 * Make sure waiter is still in waiter_list because it is possible for
--	 * the waiter to be removed from the list while the callback is still
--	 * pending.
--	 */
--	list_for_each_safe(pos, n, &fence->waiter_list_head) {
--		struct sync_fence_waiter *list_waiter =
--			container_of(pos, struct sync_fence_waiter,
--				     waiter_list);
--		if (list_waiter == waiter) {
--			list_del(pos);
--			ret = 0;
--			break;
--		}
--	}
--	spin_unlock_irqrestore(&fence->waiter_list_lock, flags);
-+	spin_lock_irqsave(&fence->wq.lock, flags);
-+	if (!list_empty(&waiter->work.task_list))
-+		list_del_init(&waiter->work.task_list);
-+	else
-+		ret = -ENOENT;
-+	spin_unlock_irqrestore(&fence->wq.lock, flags);
- 	return ret;
- }
- EXPORT_SYMBOL(sync_fence_cancel_async);
- 
--static bool sync_fence_check(struct sync_fence *fence)
--{
--	/*
--	 * Make sure that reads to fence->status are ordered with the
--	 * wait queue event triggering
--	 */
--	smp_rmb();
--	return fence->status != 0;
+-	return dmabuf->ops->mmap(dmabuf, vma);
 -}
 -
- int sync_fence_wait(struct sync_fence *fence, long timeout)
- {
--	int err = 0;
--	struct sync_pt *pt;
--
--	trace_sync_wait(fence, 1);
--	list_for_each_entry(pt, &fence->pt_list_head, pt_list)
--		trace_sync_pt(pt);
-+	long ret;
-+	int i;
- 
--	if (timeout > 0) {
-+	if (timeout < 0)
-+		timeout = MAX_SCHEDULE_TIMEOUT;
-+	else
- 		timeout = msecs_to_jiffies(timeout);
--		err = wait_event_interruptible_timeout(fence->wq,
--						       sync_fence_check(fence),
--						       timeout);
--	} else if (timeout < 0) {
--		err = wait_event_interruptible(fence->wq,
--					       sync_fence_check(fence));
--	}
--	trace_sync_wait(fence, 0);
- 
--	if (err < 0)
--		return err;
--
--	if (fence->status < 0) {
--		pr_info("fence error %d on [%p]\n", fence->status, fence);
--		sync_dump();
--		return fence->status;
--	}
-+	trace_sync_wait(fence, 1);
-+	for (i = 0; i < fence->num_fences; ++i)
-+		trace_sync_pt(fence->cbs[i].sync_pt);
-+	ret = wait_event_interruptible_timeout(fence->wq,
-+					       atomic_read(&fence->status) <= 0,
-+					       timeout);
-+	trace_sync_wait(fence, 0);
- 
--	if (fence->status == 0) {
--		if (timeout > 0) {
-+	if (ret < 0)
-+		return ret;
-+	else if (ret == 0) {
-+		if (timeout) {
- 			pr_info("fence timeout on [%p] after %dms\n", fence,
- 				jiffies_to_msecs(timeout));
- 			sync_dump();
-@@ -632,15 +398,136 @@ int sync_fence_wait(struct sync_fence *fence, long timeout)
- 		return -ETIME;
- 	}
- 
--	return 0;
-+	ret = atomic_read(&fence->status);
-+	if (ret) {
-+		pr_info("fence error %ld on [%p]\n", ret, fence);
-+		sync_dump();
-+	}
-+	return ret;
- }
- EXPORT_SYMBOL(sync_fence_wait);
- 
-+static const char *android_fence_get_driver_name(struct fence *fence)
-+{
-+	struct sync_pt *pt = container_of(fence, struct sync_pt, base);
-+	struct sync_timeline *parent = sync_pt_parent(pt);
-+
-+	return parent->ops->driver_name;
-+}
-+
-+static const char *android_fence_get_timeline_name(struct fence *fence)
-+{
-+	struct sync_pt *pt = container_of(fence, struct sync_pt, base);
-+	struct sync_timeline *parent = sync_pt_parent(pt);
-+
-+	return parent->name;
-+}
-+
-+static void android_fence_release(struct fence *fence)
-+{
-+	struct sync_pt *pt = container_of(fence, struct sync_pt, base);
-+	struct sync_timeline *parent = sync_pt_parent(pt);
-+	unsigned long flags;
-+
-+	spin_lock_irqsave(fence->lock, flags);
-+	list_del(&pt->child_list);
-+	if (WARN_ON_ONCE(!list_empty(&pt->active_list)))
-+		list_del(&pt->active_list);
-+	spin_unlock_irqrestore(fence->lock, flags);
-+
-+	if (parent->ops->free_pt)
-+		parent->ops->free_pt(pt);
-+
-+	sync_timeline_put(parent);
-+	fence_free(&pt->base);
-+}
-+
-+static bool android_fence_signaled(struct fence *fence)
-+{
-+	struct sync_pt *pt = container_of(fence, struct sync_pt, base);
-+	struct sync_timeline *parent = sync_pt_parent(pt);
-+	int ret;
-+
-+	ret = parent->ops->has_signaled(pt);
-+	if (ret < 0)
-+		fence->status = ret;
-+	return ret;
-+}
-+
-+static bool android_fence_enable_signaling(struct fence *fence)
-+{
-+	struct sync_pt *pt = container_of(fence, struct sync_pt, base);
-+	struct sync_timeline *parent = sync_pt_parent(pt);
-+
-+	if (android_fence_signaled(fence))
-+		return false;
-+
-+	list_add_tail(&pt->active_list, &parent->active_list_head);
-+	return true;
-+}
-+
-+static int android_fence_fill_driver_data(struct fence *fence,
-+					  void *data, int size)
-+{
-+	struct sync_pt *pt = container_of(fence, struct sync_pt, base);
-+	struct sync_timeline *parent = sync_pt_parent(pt);
-+
-+	if (!parent->ops->fill_driver_data)
-+		return 0;
-+	return parent->ops->fill_driver_data(pt, data, size);
-+}
-+
-+static void android_fence_value_str(struct fence *fence,
-+				    char *str, int size)
-+{
-+	struct sync_pt *pt = container_of(fence, struct sync_pt, base);
-+	struct sync_timeline *parent = sync_pt_parent(pt);
-+
-+	if (!parent->ops->pt_value_str) {
-+		if (size)
-+			*str = 0;
-+		return;
-+	}
-+	parent->ops->pt_value_str(pt, str, size);
-+}
-+
-+static void android_fence_timeline_value_str(struct fence *fence,
-+					     char *str, int size)
-+{
-+	struct sync_pt *pt = container_of(fence, struct sync_pt, base);
-+	struct sync_timeline *parent = sync_pt_parent(pt);
-+
-+	if (!parent->ops->timeline_value_str) {
-+		if (size)
-+			*str = 0;
-+		return;
-+	}
-+	parent->ops->timeline_value_str(parent, str, size);
-+}
-+
-+static const struct fence_ops android_fence_ops = {
-+	.get_driver_name = android_fence_get_driver_name,
-+	.get_timeline_name = android_fence_get_timeline_name,
-+	.enable_signaling = android_fence_enable_signaling,
-+	.signaled = android_fence_signaled,
-+	.wait = fence_default_wait,
-+	.release = android_fence_release,
-+	.fill_driver_data = android_fence_fill_driver_data,
-+	.fence_value_str = android_fence_value_str,
-+	.timeline_value_str = android_fence_timeline_value_str,
-+};
-+
- static void sync_fence_free(struct kref *kref)
- {
- 	struct sync_fence *fence = container_of(kref, struct sync_fence, kref);
-+	int i, status = atomic_read(&fence->status);
- 
--	sync_fence_free_pts(fence);
-+	for (i = 0; i < fence->num_fences; ++i) {
-+		if (status)
-+			fence_remove_callback(fence->cbs[i].sync_pt,
-+					      &fence->cbs[i].cb);
-+		fence_put(fence->cbs[i].sync_pt);
-+	}
- 
- 	kfree(fence);
- }
-@@ -648,44 +535,25 @@ static void sync_fence_free(struct kref *kref)
- static int sync_fence_release(struct inode *inode, struct file *file)
- {
- 	struct sync_fence *fence = file->private_data;
--	unsigned long flags;
--
--	/*
--	 * We need to remove all ways to access this fence before droping
--	 * our ref.
--	 *
--	 * start with its membership in the global fence list
--	 */
--	spin_lock_irqsave(&sync_fence_list_lock, flags);
--	list_del(&fence->sync_fence_list);
--	spin_unlock_irqrestore(&sync_fence_list_lock, flags);
- 
--	/*
--	 * remove its pts from their parents so that sync_timeline_signal()
--	 * can't reference the fence.
--	 */
--	sync_fence_detach_pts(fence);
-+	sync_fence_debug_remove(fence);
- 
- 	kref_put(&fence->kref, sync_fence_free);
--
- 	return 0;
- }
- 
- static unsigned int sync_fence_poll(struct file *file, poll_table *wait)
- {
- 	struct sync_fence *fence = file->private_data;
-+	int status;
- 
- 	poll_wait(file, &fence->wq, wait);
- 
--	/*
--	 * Make sure that reads to fence->status are ordered with the
--	 * wait queue event triggering
--	 */
--	smp_rmb();
-+	status = atomic_read(&fence->status);
- 
--	if (fence->status == 1)
-+	if (!status)
- 		return POLLIN;
--	else if (fence->status < 0)
-+	else if (status < 0)
- 		return POLLERR;
- 	else
- 		return 0;
-@@ -750,7 +618,7 @@ err_put_fd:
- 	return err;
- }
- 
--static int sync_fill_pt_info(struct sync_pt *pt, void *data, int size)
-+static int sync_fill_pt_info(struct fence *fence, void *data, int size)
- {
- 	struct sync_pt_info *info = data;
- 	int ret;
-@@ -760,20 +628,24 @@ static int sync_fill_pt_info(struct sync_pt *pt, void *data, int size)
- 
- 	info->len = sizeof(struct sync_pt_info);
- 
--	if (pt->parent->ops->fill_driver_data) {
--		ret = pt->parent->ops->fill_driver_data(pt, info->driver_data,
--							size - sizeof(*info));
-+	if (fence->ops->fill_driver_data) {
-+		ret = fence->ops->fill_driver_data(fence, info->driver_data,
-+						   size - sizeof(*info));
- 		if (ret < 0)
- 			return ret;
- 
- 		info->len += ret;
- 	}
- 
--	strlcpy(info->obj_name, pt->parent->name, sizeof(info->obj_name));
--	strlcpy(info->driver_name, pt->parent->ops->driver_name,
-+	strlcpy(info->obj_name, fence->ops->get_timeline_name(fence),
-+		sizeof(info->obj_name));
-+	strlcpy(info->driver_name, fence->ops->get_driver_name(fence),
- 		sizeof(info->driver_name));
--	info->status = pt->status;
--	info->timestamp_ns = ktime_to_ns(pt->timestamp);
-+	if (fence_is_signaled(fence))
-+		info->status = fence->status >= 0 ? 1 : fence->status;
-+	else
-+		info->status = 0;
-+	info->timestamp_ns = ktime_to_ns(fence->timestamp);
- 
- 	return info->len;
- }
-@@ -782,10 +654,9 @@ static long sync_fence_ioctl_fence_info(struct sync_fence *fence,
- 					unsigned long arg)
- {
- 	struct sync_fence_info_data *data;
--	struct list_head *pos;
- 	__u32 size;
- 	__u32 len = 0;
--	int ret;
-+	int ret, i;
- 
- 	if (copy_from_user(&size, (void __user *)arg, sizeof(size)))
- 		return -EFAULT;
-@@ -801,12 +672,14 @@ static long sync_fence_ioctl_fence_info(struct sync_fence *fence,
- 		return -ENOMEM;
- 
- 	strlcpy(data->name, fence->name, sizeof(data->name));
--	data->status = fence->status;
-+	data->status = atomic_read(&fence->status);
-+	if (data->status >= 0)
-+		data->status = !data->status;
-+
- 	len = sizeof(struct sync_fence_info_data);
- 
--	list_for_each(pos, &fence->pt_list_head) {
--		struct sync_pt *pt =
--			container_of(pos, struct sync_pt, pt_list);
-+	for (i = 0; i < fence->num_fences; ++i) {
-+		struct fence *pt = fence->cbs[i].sync_pt;
- 
- 		ret = sync_fill_pt_info(pt, (u8 *)data + len, size - len);
- 
-@@ -833,7 +706,6 @@ static long sync_fence_ioctl(struct file *file, unsigned int cmd,
- 			     unsigned long arg)
- {
- 	struct sync_fence *fence = file->private_data;
--
- 	switch (cmd) {
- 	case SYNC_IOC_WAIT:
- 		return sync_fence_ioctl_wait(fence, arg);
-@@ -849,181 +721,10 @@ static long sync_fence_ioctl(struct file *file, unsigned int cmd,
- 	}
- }
- 
--#ifdef CONFIG_DEBUG_FS
--static const char *sync_status_str(int status)
+-static loff_t dma_buf_llseek(struct file *file, loff_t offset, int whence)
 -{
--	if (status > 0)
--		return "signaled";
--	else if (status == 0)
--		return "active";
+-	struct dma_buf *dmabuf;
+-	loff_t base;
+-
+-	if (!is_dma_buf_file(file))
+-		return -EBADF;
+-
+-	dmabuf = file->private_data;
+-
+-	/* only support discovering the end of the buffer,
+-	   but also allow SEEK_SET to maintain the idiomatic
+-	   SEEK_END(0), SEEK_CUR(0) pattern */
+-	if (whence == SEEK_END)
+-		base = dmabuf->size;
+-	else if (whence == SEEK_SET)
+-		base = 0;
 -	else
--		return "error";
+-		return -EINVAL;
+-
+-	if (offset != 0)
+-		return -EINVAL;
+-
+-	return base + offset;
 -}
 -
--static void sync_print_pt(struct seq_file *s, struct sync_pt *pt, bool fence)
+-static const struct file_operations dma_buf_fops = {
+-	.release	= dma_buf_release,
+-	.mmap		= dma_buf_mmap_internal,
+-	.llseek		= dma_buf_llseek,
+-};
+-
+-/*
+- * is_dma_buf_file - Check if struct file* is associated with dma_buf
+- */
+-static inline int is_dma_buf_file(struct file *file)
 -{
--	int status = pt->status;
+-	return file->f_op == &dma_buf_fops;
+-}
 -
--	seq_printf(s, "  %s%spt %s",
--		   fence ? pt->parent->name : "",
--		   fence ? "_" : "",
--		   sync_status_str(status));
--	if (pt->status) {
--		struct timeval tv = ktime_to_timeval(pt->timestamp);
+-/**
+- * dma_buf_export_named - Creates a new dma_buf, and associates an anon file
+- * with this buffer, so it can be exported.
+- * Also connect the allocator specific data and ops to the buffer.
+- * Additionally, provide a name string for exporter; useful in debugging.
+- *
+- * @priv:	[in]	Attach private data of allocator to this buffer
+- * @ops:	[in]	Attach allocator-defined dma buf ops to the new buffer.
+- * @size:	[in]	Size of the buffer
+- * @flags:	[in]	mode flags for the file.
+- * @exp_name:	[in]	name of the exporting module - useful for debugging.
+- *
+- * Returns, on success, a newly created dma_buf object, which wraps the
+- * supplied private data and operations for dma_buf_ops. On either missing
+- * ops, or error in allocating struct dma_buf, will return negative error.
+- *
+- */
+-struct dma_buf *dma_buf_export_named(void *priv, const struct dma_buf_ops *ops,
+-				size_t size, int flags, const char *exp_name)
+-{
+-	struct dma_buf *dmabuf;
+-	struct file *file;
 -
--		seq_printf(s, "@%ld.%06ld", tv.tv_sec, tv.tv_usec);
+-	if (WARN_ON(!priv || !ops
+-			  || !ops->map_dma_buf
+-			  || !ops->unmap_dma_buf
+-			  || !ops->release
+-			  || !ops->kmap_atomic
+-			  || !ops->kmap
+-			  || !ops->mmap)) {
+-		return ERR_PTR(-EINVAL);
 -	}
 -
--	if (pt->parent->ops->timeline_value_str &&
--	    pt->parent->ops->pt_value_str) {
--		char value[64];
+-	dmabuf = kzalloc(sizeof(struct dma_buf), GFP_KERNEL);
+-	if (dmabuf == NULL)
+-		return ERR_PTR(-ENOMEM);
 -
--		pt->parent->ops->pt_value_str(pt, value, sizeof(value));
--		seq_printf(s, ": %s", value);
--		if (fence) {
--			pt->parent->ops->timeline_value_str(pt->parent, value,
--						    sizeof(value));
--			seq_printf(s, " / %s", value);
+-	dmabuf->priv = priv;
+-	dmabuf->ops = ops;
+-	dmabuf->size = size;
+-	dmabuf->exp_name = exp_name;
+-
+-	file = anon_inode_getfile("dmabuf", &dma_buf_fops, dmabuf, flags);
+-	if (IS_ERR(file)) {
+-		kfree(dmabuf);
+-		return ERR_CAST(file);
+-	}
+-
+-	file->f_mode |= FMODE_LSEEK;
+-	dmabuf->file = file;
+-
+-	mutex_init(&dmabuf->lock);
+-	INIT_LIST_HEAD(&dmabuf->attachments);
+-
+-	mutex_lock(&db_list.lock);
+-	list_add(&dmabuf->list_node, &db_list.head);
+-	mutex_unlock(&db_list.lock);
+-
+-	return dmabuf;
+-}
+-EXPORT_SYMBOL_GPL(dma_buf_export_named);
+-
+-
+-/**
+- * dma_buf_fd - returns a file descriptor for the given dma_buf
+- * @dmabuf:	[in]	pointer to dma_buf for which fd is required.
+- * @flags:      [in]    flags to give to fd
+- *
+- * On success, returns an associated 'fd'. Else, returns error.
+- */
+-int dma_buf_fd(struct dma_buf *dmabuf, int flags)
+-{
+-	int fd;
+-
+-	if (!dmabuf || !dmabuf->file)
+-		return -EINVAL;
+-
+-	fd = get_unused_fd_flags(flags);
+-	if (fd < 0)
+-		return fd;
+-
+-	fd_install(fd, dmabuf->file);
+-
+-	return fd;
+-}
+-EXPORT_SYMBOL_GPL(dma_buf_fd);
+-
+-/**
+- * dma_buf_get - returns the dma_buf structure related to an fd
+- * @fd:	[in]	fd associated with the dma_buf to be returned
+- *
+- * On success, returns the dma_buf structure associated with an fd; uses
+- * file's refcounting done by fget to increase refcount. returns ERR_PTR
+- * otherwise.
+- */
+-struct dma_buf *dma_buf_get(int fd)
+-{
+-	struct file *file;
+-
+-	file = fget(fd);
+-
+-	if (!file)
+-		return ERR_PTR(-EBADF);
+-
+-	if (!is_dma_buf_file(file)) {
+-		fput(file);
+-		return ERR_PTR(-EINVAL);
+-	}
+-
+-	return file->private_data;
+-}
+-EXPORT_SYMBOL_GPL(dma_buf_get);
+-
+-/**
+- * dma_buf_put - decreases refcount of the buffer
+- * @dmabuf:	[in]	buffer to reduce refcount of
+- *
+- * Uses file's refcounting done implicitly by fput()
+- */
+-void dma_buf_put(struct dma_buf *dmabuf)
+-{
+-	if (WARN_ON(!dmabuf || !dmabuf->file))
+-		return;
+-
+-	fput(dmabuf->file);
+-}
+-EXPORT_SYMBOL_GPL(dma_buf_put);
+-
+-/**
+- * dma_buf_attach - Add the device to dma_buf's attachments list; optionally,
+- * calls attach() of dma_buf_ops to allow device-specific attach functionality
+- * @dmabuf:	[in]	buffer to attach device to.
+- * @dev:	[in]	device to be attached.
+- *
+- * Returns struct dma_buf_attachment * for this attachment; returns ERR_PTR on
+- * error.
+- */
+-struct dma_buf_attachment *dma_buf_attach(struct dma_buf *dmabuf,
+-					  struct device *dev)
+-{
+-	struct dma_buf_attachment *attach;
+-	int ret;
+-
+-	if (WARN_ON(!dmabuf || !dev))
+-		return ERR_PTR(-EINVAL);
+-
+-	attach = kzalloc(sizeof(struct dma_buf_attachment), GFP_KERNEL);
+-	if (attach == NULL)
+-		return ERR_PTR(-ENOMEM);
+-
+-	attach->dev = dev;
+-	attach->dmabuf = dmabuf;
+-
+-	mutex_lock(&dmabuf->lock);
+-
+-	if (dmabuf->ops->attach) {
+-		ret = dmabuf->ops->attach(dmabuf, dev, attach);
+-		if (ret)
+-			goto err_attach;
+-	}
+-	list_add(&attach->node, &dmabuf->attachments);
+-
+-	mutex_unlock(&dmabuf->lock);
+-	return attach;
+-
+-err_attach:
+-	kfree(attach);
+-	mutex_unlock(&dmabuf->lock);
+-	return ERR_PTR(ret);
+-}
+-EXPORT_SYMBOL_GPL(dma_buf_attach);
+-
+-/**
+- * dma_buf_detach - Remove the given attachment from dmabuf's attachments list;
+- * optionally calls detach() of dma_buf_ops for device-specific detach
+- * @dmabuf:	[in]	buffer to detach from.
+- * @attach:	[in]	attachment to be detached; is free'd after this call.
+- *
+- */
+-void dma_buf_detach(struct dma_buf *dmabuf, struct dma_buf_attachment *attach)
+-{
+-	if (WARN_ON(!dmabuf || !attach))
+-		return;
+-
+-	mutex_lock(&dmabuf->lock);
+-	list_del(&attach->node);
+-	if (dmabuf->ops->detach)
+-		dmabuf->ops->detach(dmabuf, attach);
+-
+-	mutex_unlock(&dmabuf->lock);
+-	kfree(attach);
+-}
+-EXPORT_SYMBOL_GPL(dma_buf_detach);
+-
+-/**
+- * dma_buf_map_attachment - Returns the scatterlist table of the attachment;
+- * mapped into _device_ address space. Is a wrapper for map_dma_buf() of the
+- * dma_buf_ops.
+- * @attach:	[in]	attachment whose scatterlist is to be returned
+- * @direction:	[in]	direction of DMA transfer
+- *
+- * Returns sg_table containing the scatterlist to be returned; returns ERR_PTR
+- * on error.
+- */
+-struct sg_table *dma_buf_map_attachment(struct dma_buf_attachment *attach,
+-					enum dma_data_direction direction)
+-{
+-	struct sg_table *sg_table = ERR_PTR(-EINVAL);
+-
+-	might_sleep();
+-
+-	if (WARN_ON(!attach || !attach->dmabuf))
+-		return ERR_PTR(-EINVAL);
+-
+-	sg_table = attach->dmabuf->ops->map_dma_buf(attach, direction);
+-	if (!sg_table)
+-		sg_table = ERR_PTR(-ENOMEM);
+-
+-	return sg_table;
+-}
+-EXPORT_SYMBOL_GPL(dma_buf_map_attachment);
+-
+-/**
+- * dma_buf_unmap_attachment - unmaps and decreases usecount of the buffer;might
+- * deallocate the scatterlist associated. Is a wrapper for unmap_dma_buf() of
+- * dma_buf_ops.
+- * @attach:	[in]	attachment to unmap buffer from
+- * @sg_table:	[in]	scatterlist info of the buffer to unmap
+- * @direction:  [in]    direction of DMA transfer
+- *
+- */
+-void dma_buf_unmap_attachment(struct dma_buf_attachment *attach,
+-				struct sg_table *sg_table,
+-				enum dma_data_direction direction)
+-{
+-	might_sleep();
+-
+-	if (WARN_ON(!attach || !attach->dmabuf || !sg_table))
+-		return;
+-
+-	attach->dmabuf->ops->unmap_dma_buf(attach, sg_table,
+-						direction);
+-}
+-EXPORT_SYMBOL_GPL(dma_buf_unmap_attachment);
+-
+-
+-/**
+- * dma_buf_begin_cpu_access - Must be called before accessing a dma_buf from the
+- * cpu in the kernel context. Calls begin_cpu_access to allow exporter-specific
+- * preparations. Coherency is only guaranteed in the specified range for the
+- * specified access direction.
+- * @dmabuf:	[in]	buffer to prepare cpu access for.
+- * @start:	[in]	start of range for cpu access.
+- * @len:	[in]	length of range for cpu access.
+- * @direction:	[in]	length of range for cpu access.
+- *
+- * Can return negative error values, returns 0 on success.
+- */
+-int dma_buf_begin_cpu_access(struct dma_buf *dmabuf, size_t start, size_t len,
+-			     enum dma_data_direction direction)
+-{
+-	int ret = 0;
+-
+-	if (WARN_ON(!dmabuf))
+-		return -EINVAL;
+-
+-	if (dmabuf->ops->begin_cpu_access)
+-		ret = dmabuf->ops->begin_cpu_access(dmabuf, start, len, direction);
+-
+-	return ret;
+-}
+-EXPORT_SYMBOL_GPL(dma_buf_begin_cpu_access);
+-
+-/**
+- * dma_buf_end_cpu_access - Must be called after accessing a dma_buf from the
+- * cpu in the kernel context. Calls end_cpu_access to allow exporter-specific
+- * actions. Coherency is only guaranteed in the specified range for the
+- * specified access direction.
+- * @dmabuf:	[in]	buffer to complete cpu access for.
+- * @start:	[in]	start of range for cpu access.
+- * @len:	[in]	length of range for cpu access.
+- * @direction:	[in]	length of range for cpu access.
+- *
+- * This call must always succeed.
+- */
+-void dma_buf_end_cpu_access(struct dma_buf *dmabuf, size_t start, size_t len,
+-			    enum dma_data_direction direction)
+-{
+-	WARN_ON(!dmabuf);
+-
+-	if (dmabuf->ops->end_cpu_access)
+-		dmabuf->ops->end_cpu_access(dmabuf, start, len, direction);
+-}
+-EXPORT_SYMBOL_GPL(dma_buf_end_cpu_access);
+-
+-/**
+- * dma_buf_kmap_atomic - Map a page of the buffer object into kernel address
+- * space. The same restrictions as for kmap_atomic and friends apply.
+- * @dmabuf:	[in]	buffer to map page from.
+- * @page_num:	[in]	page in PAGE_SIZE units to map.
+- *
+- * This call must always succeed, any necessary preparations that might fail
+- * need to be done in begin_cpu_access.
+- */
+-void *dma_buf_kmap_atomic(struct dma_buf *dmabuf, unsigned long page_num)
+-{
+-	WARN_ON(!dmabuf);
+-
+-	return dmabuf->ops->kmap_atomic(dmabuf, page_num);
+-}
+-EXPORT_SYMBOL_GPL(dma_buf_kmap_atomic);
+-
+-/**
+- * dma_buf_kunmap_atomic - Unmap a page obtained by dma_buf_kmap_atomic.
+- * @dmabuf:	[in]	buffer to unmap page from.
+- * @page_num:	[in]	page in PAGE_SIZE units to unmap.
+- * @vaddr:	[in]	kernel space pointer obtained from dma_buf_kmap_atomic.
+- *
+- * This call must always succeed.
+- */
+-void dma_buf_kunmap_atomic(struct dma_buf *dmabuf, unsigned long page_num,
+-			   void *vaddr)
+-{
+-	WARN_ON(!dmabuf);
+-
+-	if (dmabuf->ops->kunmap_atomic)
+-		dmabuf->ops->kunmap_atomic(dmabuf, page_num, vaddr);
+-}
+-EXPORT_SYMBOL_GPL(dma_buf_kunmap_atomic);
+-
+-/**
+- * dma_buf_kmap - Map a page of the buffer object into kernel address space. The
+- * same restrictions as for kmap and friends apply.
+- * @dmabuf:	[in]	buffer to map page from.
+- * @page_num:	[in]	page in PAGE_SIZE units to map.
+- *
+- * This call must always succeed, any necessary preparations that might fail
+- * need to be done in begin_cpu_access.
+- */
+-void *dma_buf_kmap(struct dma_buf *dmabuf, unsigned long page_num)
+-{
+-	WARN_ON(!dmabuf);
+-
+-	return dmabuf->ops->kmap(dmabuf, page_num);
+-}
+-EXPORT_SYMBOL_GPL(dma_buf_kmap);
+-
+-/**
+- * dma_buf_kunmap - Unmap a page obtained by dma_buf_kmap.
+- * @dmabuf:	[in]	buffer to unmap page from.
+- * @page_num:	[in]	page in PAGE_SIZE units to unmap.
+- * @vaddr:	[in]	kernel space pointer obtained from dma_buf_kmap.
+- *
+- * This call must always succeed.
+- */
+-void dma_buf_kunmap(struct dma_buf *dmabuf, unsigned long page_num,
+-		    void *vaddr)
+-{
+-	WARN_ON(!dmabuf);
+-
+-	if (dmabuf->ops->kunmap)
+-		dmabuf->ops->kunmap(dmabuf, page_num, vaddr);
+-}
+-EXPORT_SYMBOL_GPL(dma_buf_kunmap);
+-
+-
+-/**
+- * dma_buf_mmap - Setup up a userspace mmap with the given vma
+- * @dmabuf:	[in]	buffer that should back the vma
+- * @vma:	[in]	vma for the mmap
+- * @pgoff:	[in]	offset in pages where this mmap should start within the
+- * 			dma-buf buffer.
+- *
+- * This function adjusts the passed in vma so that it points at the file of the
+- * dma_buf operation. It also adjusts the starting pgoff and does bounds
+- * checking on the size of the vma. Then it calls the exporters mmap function to
+- * set up the mapping.
+- *
+- * Can return negative error values, returns 0 on success.
+- */
+-int dma_buf_mmap(struct dma_buf *dmabuf, struct vm_area_struct *vma,
+-		 unsigned long pgoff)
+-{
+-	struct file *oldfile;
+-	int ret;
+-
+-	if (WARN_ON(!dmabuf || !vma))
+-		return -EINVAL;
+-
+-	/* check for offset overflow */
+-	if (pgoff + ((vma->vm_end - vma->vm_start) >> PAGE_SHIFT) < pgoff)
+-		return -EOVERFLOW;
+-
+-	/* check for overflowing the buffer's size */
+-	if (pgoff + ((vma->vm_end - vma->vm_start) >> PAGE_SHIFT) >
+-	    dmabuf->size >> PAGE_SHIFT)
+-		return -EINVAL;
+-
+-	/* readjust the vma */
+-	get_file(dmabuf->file);
+-	oldfile = vma->vm_file;
+-	vma->vm_file = dmabuf->file;
+-	vma->vm_pgoff = pgoff;
+-
+-	ret = dmabuf->ops->mmap(dmabuf, vma);
+-	if (ret) {
+-		/* restore old parameters on failure */
+-		vma->vm_file = oldfile;
+-		fput(dmabuf->file);
+-	} else {
+-		if (oldfile)
+-			fput(oldfile);
+-	}
+-	return ret;
+-
+-}
+-EXPORT_SYMBOL_GPL(dma_buf_mmap);
+-
+-/**
+- * dma_buf_vmap - Create virtual mapping for the buffer object into kernel
+- * address space. Same restrictions as for vmap and friends apply.
+- * @dmabuf:	[in]	buffer to vmap
+- *
+- * This call may fail due to lack of virtual mapping address space.
+- * These calls are optional in drivers. The intended use for them
+- * is for mapping objects linear in kernel space for high use objects.
+- * Please attempt to use kmap/kunmap before thinking about these interfaces.
+- *
+- * Returns NULL on error.
+- */
+-void *dma_buf_vmap(struct dma_buf *dmabuf)
+-{
+-	void *ptr;
+-
+-	if (WARN_ON(!dmabuf))
+-		return NULL;
+-
+-	if (!dmabuf->ops->vmap)
+-		return NULL;
+-
+-	mutex_lock(&dmabuf->lock);
+-	if (dmabuf->vmapping_counter) {
+-		dmabuf->vmapping_counter++;
+-		BUG_ON(!dmabuf->vmap_ptr);
+-		ptr = dmabuf->vmap_ptr;
+-		goto out_unlock;
+-	}
+-
+-	BUG_ON(dmabuf->vmap_ptr);
+-
+-	ptr = dmabuf->ops->vmap(dmabuf);
+-	if (WARN_ON_ONCE(IS_ERR(ptr)))
+-		ptr = NULL;
+-	if (!ptr)
+-		goto out_unlock;
+-
+-	dmabuf->vmap_ptr = ptr;
+-	dmabuf->vmapping_counter = 1;
+-
+-out_unlock:
+-	mutex_unlock(&dmabuf->lock);
+-	return ptr;
+-}
+-EXPORT_SYMBOL_GPL(dma_buf_vmap);
+-
+-/**
+- * dma_buf_vunmap - Unmap a vmap obtained by dma_buf_vmap.
+- * @dmabuf:	[in]	buffer to vunmap
+- * @vaddr:	[in]	vmap to vunmap
+- */
+-void dma_buf_vunmap(struct dma_buf *dmabuf, void *vaddr)
+-{
+-	if (WARN_ON(!dmabuf))
+-		return;
+-
+-	BUG_ON(!dmabuf->vmap_ptr);
+-	BUG_ON(dmabuf->vmapping_counter == 0);
+-	BUG_ON(dmabuf->vmap_ptr != vaddr);
+-
+-	mutex_lock(&dmabuf->lock);
+-	if (--dmabuf->vmapping_counter == 0) {
+-		if (dmabuf->ops->vunmap)
+-			dmabuf->ops->vunmap(dmabuf, vaddr);
+-		dmabuf->vmap_ptr = NULL;
+-	}
+-	mutex_unlock(&dmabuf->lock);
+-}
+-EXPORT_SYMBOL_GPL(dma_buf_vunmap);
+-
+-#ifdef CONFIG_DEBUG_FS
+-static int dma_buf_describe(struct seq_file *s)
+-{
+-	int ret;
+-	struct dma_buf *buf_obj;
+-	struct dma_buf_attachment *attach_obj;
+-	int count = 0, attach_count;
+-	size_t size = 0;
+-
+-	ret = mutex_lock_interruptible(&db_list.lock);
+-
+-	if (ret)
+-		return ret;
+-
+-	seq_puts(s, "\nDma-buf Objects:\n");
+-	seq_puts(s, "size\tflags\tmode\tcount\texp_name\n");
+-
+-	list_for_each_entry(buf_obj, &db_list.head, list_node) {
+-		ret = mutex_lock_interruptible(&buf_obj->lock);
+-
+-		if (ret) {
+-			seq_puts(s,
+-				 "\tERROR locking buffer object: skipping\n");
+-			continue;
 -		}
--	} else if (pt->parent->ops->print_pt) {
--		seq_puts(s, ": ");
--		pt->parent->ops->print_pt(s, pt);
+-
+-		seq_printf(s, "%08zu\t%08x\t%08x\t%08ld\t%s\n",
+-				buf_obj->size,
+-				buf_obj->file->f_flags, buf_obj->file->f_mode,
+-				(long)(buf_obj->file->f_count.counter),
+-				buf_obj->exp_name);
+-
+-		seq_puts(s, "\tAttached Devices:\n");
+-		attach_count = 0;
+-
+-		list_for_each_entry(attach_obj, &buf_obj->attachments, node) {
+-			seq_puts(s, "\t");
+-
+-			seq_printf(s, "%s\n", dev_name(attach_obj->dev));
+-			attach_count++;
+-		}
+-
+-		seq_printf(s, "Total %d devices attached\n\n",
+-				attach_count);
+-
+-		count++;
+-		size += buf_obj->size;
+-		mutex_unlock(&buf_obj->lock);
 -	}
 -
--	seq_puts(s, "\n");
--}
+-	seq_printf(s, "\nTotal %d objects, %zu bytes\n", count, size);
 -
--static void sync_print_obj(struct seq_file *s, struct sync_timeline *obj)
--{
--	struct list_head *pos;
--	unsigned long flags;
--
--	seq_printf(s, "%s %s", obj->name, obj->ops->driver_name);
--
--	if (obj->ops->timeline_value_str) {
--		char value[64];
--
--		obj->ops->timeline_value_str(obj, value, sizeof(value));
--		seq_printf(s, ": %s", value);
--	} else if (obj->ops->print_obj) {
--		seq_puts(s, ": ");
--		obj->ops->print_obj(s, obj);
--	}
--
--	seq_puts(s, "\n");
--
--	spin_lock_irqsave(&obj->child_list_lock, flags);
--	list_for_each(pos, &obj->child_list_head) {
--		struct sync_pt *pt =
--			container_of(pos, struct sync_pt, child_list);
--		sync_print_pt(s, pt, false);
--	}
--	spin_unlock_irqrestore(&obj->child_list_lock, flags);
--}
--
--static void sync_print_fence(struct seq_file *s, struct sync_fence *fence)
--{
--	struct list_head *pos;
--	unsigned long flags;
--
--	seq_printf(s, "[%p] %s: %s\n", fence, fence->name,
--		   sync_status_str(fence->status));
--
--	list_for_each(pos, &fence->pt_list_head) {
--		struct sync_pt *pt =
--			container_of(pos, struct sync_pt, pt_list);
--		sync_print_pt(s, pt, true);
--	}
--
--	spin_lock_irqsave(&fence->waiter_list_lock, flags);
--	list_for_each(pos, &fence->waiter_list_head) {
--		struct sync_fence_waiter *waiter =
--			container_of(pos, struct sync_fence_waiter,
--				     waiter_list);
--
--		seq_printf(s, "waiter %pF\n", waiter->callback);
--	}
--	spin_unlock_irqrestore(&fence->waiter_list_lock, flags);
--}
--
--static int sync_debugfs_show(struct seq_file *s, void *unused)
--{
--	unsigned long flags;
--	struct list_head *pos;
--
--	seq_puts(s, "objs:\n--------------\n");
--
--	spin_lock_irqsave(&sync_timeline_list_lock, flags);
--	list_for_each(pos, &sync_timeline_list_head) {
--		struct sync_timeline *obj =
--			container_of(pos, struct sync_timeline,
--				     sync_timeline_list);
--
--		sync_print_obj(s, obj);
--		seq_puts(s, "\n");
--	}
--	spin_unlock_irqrestore(&sync_timeline_list_lock, flags);
--
--	seq_puts(s, "fences:\n--------------\n");
--
--	spin_lock_irqsave(&sync_fence_list_lock, flags);
--	list_for_each(pos, &sync_fence_list_head) {
--		struct sync_fence *fence =
--			container_of(pos, struct sync_fence, sync_fence_list);
--
--		sync_print_fence(s, fence);
--		seq_puts(s, "\n");
--	}
--	spin_unlock_irqrestore(&sync_fence_list_lock, flags);
+-	mutex_unlock(&db_list.lock);
 -	return 0;
 -}
 -
--static int sync_debugfs_open(struct inode *inode, struct file *file)
+-static int dma_buf_show(struct seq_file *s, void *unused)
 -{
--	return single_open(file, sync_debugfs_show, inode->i_private);
+-	void (*func)(struct seq_file *) = s->private;
+-	func(s);
+-	return 0;
 -}
 -
--static const struct file_operations sync_debugfs_fops = {
--	.open           = sync_debugfs_open,
+-static int dma_buf_debug_open(struct inode *inode, struct file *file)
+-{
+-	return single_open(file, dma_buf_show, inode->i_private);
+-}
+-
+-static const struct file_operations dma_buf_debug_fops = {
+-	.open           = dma_buf_debug_open,
 -	.read           = seq_read,
 -	.llseek         = seq_lseek,
 -	.release        = single_release,
-+static const struct file_operations sync_fence_fops = {
-+	.release = sync_fence_release,
-+	.poll = sync_fence_poll,
-+	.unlocked_ioctl = sync_fence_ioctl,
-+	.compat_ioctl = sync_fence_ioctl,
- };
- 
--static __init int sync_debugfs_init(void)
+-};
+-
+-static struct dentry *dma_buf_debugfs_dir;
+-
+-static int dma_buf_init_debugfs(void)
 -{
--	debugfs_create_file("sync", S_IRUGO, NULL, NULL, &sync_debugfs_fops);
--	return 0;
--}
--late_initcall(sync_debugfs_init);
--
--#define DUMP_CHUNK 256
--static char sync_dump_buf[64 * 1024];
--static void sync_dump(void)
--{
--	struct seq_file s = {
--		.buf = sync_dump_buf,
--		.size = sizeof(sync_dump_buf) - 1,
--	};
--	int i;
--
--	sync_debugfs_show(&s, NULL);
--
--	for (i = 0; i < s.count; i += DUMP_CHUNK) {
--		if ((s.count - i) > DUMP_CHUNK) {
--			char c = s.buf[i + DUMP_CHUNK];
--
--			s.buf[i + DUMP_CHUNK] = 0;
--			pr_cont("%s", s.buf + i);
--			s.buf[i + DUMP_CHUNK] = c;
--		} else {
--			s.buf[s.count] = 0;
--			pr_cont("%s", s.buf + i);
--		}
+-	int err = 0;
+-	dma_buf_debugfs_dir = debugfs_create_dir("dma_buf", NULL);
+-	if (IS_ERR(dma_buf_debugfs_dir)) {
+-		err = PTR_ERR(dma_buf_debugfs_dir);
+-		dma_buf_debugfs_dir = NULL;
+-		return err;
 -	}
+-
+-	err = dma_buf_debugfs_create_file("bufinfo", dma_buf_describe);
+-
+-	if (err)
+-		pr_debug("dma_buf: debugfs: failed to create node bufinfo\n");
+-
+-	return err;
+-}
+-
+-static void dma_buf_uninit_debugfs(void)
+-{
+-	if (dma_buf_debugfs_dir)
+-		debugfs_remove_recursive(dma_buf_debugfs_dir);
+-}
+-
+-int dma_buf_debugfs_create_file(const char *name,
+-				int (*write)(struct seq_file *))
+-{
+-	struct dentry *d;
+-
+-	d = debugfs_create_file(name, S_IRUGO, dma_buf_debugfs_dir,
+-			write, &dma_buf_debug_fops);
+-
+-	return PTR_ERR_OR_ZERO(d);
 -}
 -#else
--static void sync_dump(void)
+-static inline int dma_buf_init_debugfs(void)
+-{
+-	return 0;
+-}
+-static inline void dma_buf_uninit_debugfs(void)
 -{
 -}
 -#endif
-diff --git a/drivers/staging/android/sync.h b/drivers/staging/android/sync.h
-index eaf57cccf626..66b0f431f63e 100644
---- a/drivers/staging/android/sync.h
-+++ b/drivers/staging/android/sync.h
-@@ -19,6 +19,7 @@
- #include <linux/list.h>
- #include <linux/spinlock.h>
- #include <linux/wait.h>
-+#include <linux/fence.h>
- 
- #include "uapi/sync.h"
- 
-@@ -40,8 +41,6 @@ struct sync_fence;
-  *			 -1 if a will signal before b
-  * @free_pt:		called before sync_pt is freed
-  * @release_obj:	called before sync_timeline is freed
-- * @print_obj:		deprecated
-- * @print_pt:		deprecated
-  * @fill_driver_data:	write implementation specific driver data to data.
-  *			  should return an error if there is not enough room
-  *			  as specified by size.  This information is returned
-@@ -67,13 +66,6 @@ struct sync_timeline_ops {
- 	/* optional */
- 	void (*release_obj)(struct sync_timeline *sync_timeline);
- 
--	/* deprecated */
--	void (*print_obj)(struct seq_file *s,
--			  struct sync_timeline *sync_timeline);
 -
--	/* deprecated */
--	void (*print_pt)(struct seq_file *s, struct sync_pt *sync_pt);
+-static int __init dma_buf_init(void)
+-{
+-	mutex_init(&db_list.lock);
+-	INIT_LIST_HEAD(&db_list.head);
+-	dma_buf_init_debugfs();
+-	return 0;
+-}
+-subsys_initcall(dma_buf_init);
 -
- 	/* optional */
- 	int (*fill_driver_data)(struct sync_pt *syncpt, void *data, int size);
- 
-@@ -104,19 +96,21 @@ struct sync_timeline {
- 
- 	/* protected by child_list_lock */
- 	bool			destroyed;
-+	int			context, value;
- 
- 	struct list_head	child_list_head;
- 	spinlock_t		child_list_lock;
- 
- 	struct list_head	active_list_head;
--	spinlock_t		active_list_lock;
- 
-+#ifdef CONFIG_DEBUG_FS
- 	struct list_head	sync_timeline_list;
-+#endif
- };
- 
- /**
-  * struct sync_pt - sync point
-- * @parent:		sync_timeline to which this sync_pt belongs
-+ * @fence:		base fence class
-  * @child_list:		membership in sync_timeline.child_list_head
-  * @active_list:	membership in sync_timeline.active_list_head
-  * @signaled_list:	membership in temporary signaled_list on stack
-@@ -127,19 +121,22 @@ struct sync_timeline {
-  *			  signaled or error.
-  */
- struct sync_pt {
--	struct sync_timeline		*parent;
--	struct list_head	child_list;
-+	struct fence base;
- 
-+	struct list_head	child_list;
- 	struct list_head	active_list;
--	struct list_head	signaled_list;
+-static void __exit dma_buf_deinit(void)
+-{
+-	dma_buf_uninit_debugfs();
+-}
+-__exitcall(dma_buf_deinit);
+diff --git a/drivers/base/reservation.c b/drivers/base/reservation.c
+deleted file mode 100644
+index a73fbf3b8e56..000000000000
+--- a/drivers/base/reservation.c
++++ /dev/null
+@@ -1,39 +0,0 @@
+-/*
+- * Copyright (C) 2012-2013 Canonical Ltd
+- *
+- * Based on bo.c which bears the following copyright notice,
+- * but is dual licensed:
+- *
+- * Copyright (c) 2006-2009 VMware, Inc., Palo Alto, CA., USA
+- * All Rights Reserved.
+- *
+- * Permission is hereby granted, free of charge, to any person obtaining a
+- * copy of this software and associated documentation files (the
+- * "Software"), to deal in the Software without restriction, including
+- * without limitation the rights to use, copy, modify, merge, publish,
+- * distribute, sub license, and/or sell copies of the Software, and to
+- * permit persons to whom the Software is furnished to do so, subject to
+- * the following conditions:
+- *
+- * The above copyright notice and this permission notice (including the
+- * next paragraph) shall be included in all copies or substantial portions
+- * of the Software.
+- *
+- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+- * FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT. IN NO EVENT SHALL
+- * THE COPYRIGHT HOLDERS, AUTHORS AND/OR ITS SUPPLIERS BE LIABLE FOR ANY CLAIM,
+- * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+- * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
+- * USE OR OTHER DEALINGS IN THE SOFTWARE.
+- *
+- **************************************************************************/
+-/*
+- * Authors: Thomas Hellstrom <thellstrom-at-vmware-dot-com>
+- */
 -
--	struct sync_fence	*fence;
--	struct list_head	pt_list;
-+};
- 
--	/* protected by parent->active_list_lock */
--	int			status;
-+static inline struct sync_timeline *sync_pt_parent(struct sync_pt *pt)
-+{
-+	return container_of(pt->base.lock, struct sync_timeline,
-+			    child_list_lock);
-+}
- 
--	ktime_t			timestamp;
-+struct sync_fence_cb {
-+	struct fence_cb cb;
-+	struct fence *sync_pt;
-+	struct sync_fence *fence;
- };
- 
- /**
-@@ -149,9 +146,7 @@ struct sync_pt {
-  * @name:		name of sync_fence.  Useful for debugging
-  * @pt_list_head:	list of sync_pts in the fence.  immutable once fence
-  *			  is created
-- * @waiter_list_head:	list of asynchronous waiters on this fence
-- * @waiter_list_lock:	lock protecting @waiter_list_head and @status
-- * @status:		1: signaled, 0:active, <0: error
-+ * @status:		0: signaled, >0:active, <0: error
-  *
-  * @wq:			wait queue for fence signaling
-  * @sync_fence_list:	membership in global fence list
-@@ -160,17 +155,15 @@ struct sync_fence {
- 	struct file		*file;
- 	struct kref		kref;
- 	char			name[32];
+-#include <linux/reservation.h>
+-#include <linux/export.h>
 -
--	/* this list is immutable once the fence is created */
--	struct list_head	pt_list_head;
--
--	struct list_head	waiter_list_head;
--	spinlock_t		waiter_list_lock; /* also protects status */
--	int			status;
-+#ifdef CONFIG_DEBUG_FS
-+	struct list_head	sync_fence_list;
-+#endif
-+	int num_fences;
- 
- 	wait_queue_head_t	wq;
-+	atomic_t		status;
- 
--	struct list_head	sync_fence_list;
-+	struct sync_fence_cb	cbs[];
- };
- 
- struct sync_fence_waiter;
-@@ -184,14 +177,14 @@ typedef void (*sync_callback_t)(struct sync_fence *fence,
-  * @callback_data:	pointer to pass to @callback
-  */
- struct sync_fence_waiter {
--	struct list_head	waiter_list;
--
--	sync_callback_t		callback;
-+	wait_queue_t work;
-+	sync_callback_t callback;
- };
- 
- static inline void sync_fence_waiter_init(struct sync_fence_waiter *waiter,
- 					  sync_callback_t callback)
- {
-+	INIT_LIST_HEAD(&waiter->work.task_list);
- 	waiter->callback = callback;
- }
- 
-@@ -341,4 +334,22 @@ int sync_fence_cancel_async(struct sync_fence *fence,
-  */
- int sync_fence_wait(struct sync_fence *fence, long timeout);
- 
-+#ifdef CONFIG_DEBUG_FS
-+
-+extern void sync_timeline_debug_add(struct sync_timeline *obj);
-+extern void sync_timeline_debug_remove(struct sync_timeline *obj);
-+extern void sync_fence_debug_add(struct sync_fence *fence);
-+extern void sync_fence_debug_remove(struct sync_fence *fence);
-+extern void sync_dump(void);
-+
-+#else
-+# define sync_timeline_debug_add(obj)
-+# define sync_timeline_debug_remove(obj)
-+# define sync_fence_debug_add(fence)
-+# define sync_fence_debug_remove(fence)
-+# define sync_dump()
-+#endif
-+int sync_fence_wake_up_wq(wait_queue_t *curr, unsigned mode,
-+				 int wake_flags, void *key);
-+
- #endif /* _LINUX_SYNC_H */
-diff --git a/drivers/staging/android/sync_debug.c b/drivers/staging/android/sync_debug.c
+-DEFINE_WW_CLASS(reservation_ww_class);
+-EXPORT_SYMBOL(reservation_ww_class);
+diff --git a/drivers/dma-buf/Makefile b/drivers/dma-buf/Makefile
 new file mode 100644
-index 000000000000..a9f7fd506da3
+index 000000000000..4a4f4c9bacd0
 --- /dev/null
-+++ b/drivers/staging/android/sync_debug.c
-@@ -0,0 +1,247 @@
++++ b/drivers/dma-buf/Makefile
+@@ -0,0 +1 @@
++obj-y := dma-buf.o reservation.o
+diff --git a/drivers/dma-buf/dma-buf.c b/drivers/dma-buf/dma-buf.c
+new file mode 100644
+index 000000000000..840c7fa80983
+--- /dev/null
++++ b/drivers/dma-buf/dma-buf.c
+@@ -0,0 +1,743 @@
 +/*
-+ * drivers/base/sync.c
++ * Framework for buffer objects that can be shared across devices/subsystems.
 + *
-+ * Copyright (C) 2012 Google, Inc.
++ * Copyright(C) 2011 Linaro Limited. All rights reserved.
++ * Author: Sumit Semwal <sumit.semwal@ti.com>
 + *
-+ * This software is licensed under the terms of the GNU General Public
-+ * License version 2, as published by the Free Software Foundation, and
-+ * may be copied, distributed, and modified under those terms.
++ * Many thanks to linaro-mm-sig list, and specially
++ * Arnd Bergmann <arnd@arndb.de>, Rob Clark <rob@ti.com> and
++ * Daniel Vetter <daniel@ffwll.ch> for their support in creation and
++ * refining of this idea.
 + *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
++ * This program is free software; you can redistribute it and/or modify it
++ * under the terms of the GNU General Public License version 2 as published by
++ * the Free Software Foundation.
 + *
++ * This program is distributed in the hope that it will be useful, but WITHOUT
++ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
++ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
++ * more details.
++ *
++ * You should have received a copy of the GNU General Public License along with
++ * this program.  If not, see <http://www.gnu.org/licenses/>.
 + */
 +
-+#include <linux/debugfs.h>
-+#include <linux/export.h>
-+#include <linux/file.h>
 +#include <linux/fs.h>
-+#include <linux/kernel.h>
-+#include <linux/poll.h>
-+#include <linux/sched.h>
-+#include <linux/seq_file.h>
 +#include <linux/slab.h>
-+#include <linux/uaccess.h>
++#include <linux/dma-buf.h>
 +#include <linux/anon_inodes.h>
-+#include "sync.h"
++#include <linux/export.h>
++#include <linux/debugfs.h>
++#include <linux/seq_file.h>
 +
-+#ifdef CONFIG_DEBUG_FS
++static inline int is_dma_buf_file(struct file *);
 +
-+static LIST_HEAD(sync_timeline_list_head);
-+static DEFINE_SPINLOCK(sync_timeline_list_lock);
-+static LIST_HEAD(sync_fence_list_head);
-+static DEFINE_SPINLOCK(sync_fence_list_lock);
++struct dma_buf_list {
++	struct list_head head;
++	struct mutex lock;
++};
 +
-+void sync_timeline_debug_add(struct sync_timeline *obj)
++static struct dma_buf_list db_list;
++
++static int dma_buf_release(struct inode *inode, struct file *file)
 +{
-+	unsigned long flags;
++	struct dma_buf *dmabuf;
 +
-+	spin_lock_irqsave(&sync_timeline_list_lock, flags);
-+	list_add_tail(&obj->sync_timeline_list, &sync_timeline_list_head);
-+	spin_unlock_irqrestore(&sync_timeline_list_lock, flags);
-+}
++	if (!is_dma_buf_file(file))
++		return -EINVAL;
 +
-+void sync_timeline_debug_remove(struct sync_timeline *obj)
-+{
-+	unsigned long flags;
++	dmabuf = file->private_data;
 +
-+	spin_lock_irqsave(&sync_timeline_list_lock, flags);
-+	list_del(&obj->sync_timeline_list);
-+	spin_unlock_irqrestore(&sync_timeline_list_lock, flags);
-+}
++	BUG_ON(dmabuf->vmapping_counter);
 +
-+void sync_fence_debug_add(struct sync_fence *fence)
-+{
-+	unsigned long flags;
++	dmabuf->ops->release(dmabuf);
 +
-+	spin_lock_irqsave(&sync_fence_list_lock, flags);
-+	list_add_tail(&fence->sync_fence_list, &sync_fence_list_head);
-+	spin_unlock_irqrestore(&sync_fence_list_lock, flags);
-+}
++	mutex_lock(&db_list.lock);
++	list_del(&dmabuf->list_node);
++	mutex_unlock(&db_list.lock);
 +
-+void sync_fence_debug_remove(struct sync_fence *fence)
-+{
-+	unsigned long flags;
-+
-+	spin_lock_irqsave(&sync_fence_list_lock, flags);
-+	list_del(&fence->sync_fence_list);
-+	spin_unlock_irqrestore(&sync_fence_list_lock, flags);
-+}
-+
-+static const char *sync_status_str(int status)
-+{
-+	if (status == 0)
-+		return "signaled";
-+	else if (status > 0)
-+		return "active";
-+	else
-+		return "error";
-+}
-+
-+static void sync_print_pt(struct seq_file *s, struct sync_pt *pt, bool fence)
-+{
-+	int status = 1;
-+	struct sync_timeline *parent = sync_pt_parent(pt);
-+
-+	if (fence_is_signaled_locked(&pt->base))
-+		status = pt->base.status;
-+
-+	seq_printf(s, "  %s%spt %s",
-+		   fence ? parent->name : "",
-+		   fence ? "_" : "",
-+		   sync_status_str(status));
-+
-+	if (status <= 0) {
-+		struct timeval tv = ktime_to_timeval(pt->base.timestamp);
-+		seq_printf(s, "@%ld.%06ld", tv.tv_sec, tv.tv_usec);
-+	}
-+
-+	if (parent->ops->timeline_value_str &&
-+	    parent->ops->pt_value_str) {
-+		char value[64];
-+		parent->ops->pt_value_str(pt, value, sizeof(value));
-+		seq_printf(s, ": %s", value);
-+		if (fence) {
-+			parent->ops->timeline_value_str(parent, value,
-+						    sizeof(value));
-+			seq_printf(s, " / %s", value);
-+		}
-+	}
-+
-+	seq_puts(s, "\n");
-+}
-+
-+static void sync_print_obj(struct seq_file *s, struct sync_timeline *obj)
-+{
-+	struct list_head *pos;
-+	unsigned long flags;
-+
-+	seq_printf(s, "%s %s", obj->name, obj->ops->driver_name);
-+
-+	if (obj->ops->timeline_value_str) {
-+		char value[64];
-+		obj->ops->timeline_value_str(obj, value, sizeof(value));
-+		seq_printf(s, ": %s", value);
-+	}
-+
-+	seq_puts(s, "\n");
-+
-+	spin_lock_irqsave(&obj->child_list_lock, flags);
-+	list_for_each(pos, &obj->child_list_head) {
-+		struct sync_pt *pt =
-+			container_of(pos, struct sync_pt, child_list);
-+		sync_print_pt(s, pt, false);
-+	}
-+	spin_unlock_irqrestore(&obj->child_list_lock, flags);
-+}
-+
-+static void sync_print_fence(struct seq_file *s, struct sync_fence *fence)
-+{
-+	wait_queue_t *pos;
-+	unsigned long flags;
-+	int i;
-+
-+	seq_printf(s, "[%p] %s: %s\n", fence, fence->name,
-+		   sync_status_str(atomic_read(&fence->status)));
-+
-+	for (i = 0; i < fence->num_fences; ++i) {
-+		struct sync_pt *pt =
-+			container_of(fence->cbs[i].sync_pt,
-+				     struct sync_pt, base);
-+
-+		sync_print_pt(s, pt, true);
-+	}
-+
-+	spin_lock_irqsave(&fence->wq.lock, flags);
-+	list_for_each_entry(pos, &fence->wq.task_list, task_list) {
-+		struct sync_fence_waiter *waiter;
-+
-+		if (pos->func != &sync_fence_wake_up_wq)
-+			continue;
-+
-+		waiter = container_of(pos, struct sync_fence_waiter, work);
-+
-+		seq_printf(s, "waiter %pF\n", waiter->callback);
-+	}
-+	spin_unlock_irqrestore(&fence->wq.lock, flags);
-+}
-+
-+static int sync_debugfs_show(struct seq_file *s, void *unused)
-+{
-+	unsigned long flags;
-+	struct list_head *pos;
-+
-+	seq_puts(s, "objs:\n--------------\n");
-+
-+	spin_lock_irqsave(&sync_timeline_list_lock, flags);
-+	list_for_each(pos, &sync_timeline_list_head) {
-+		struct sync_timeline *obj =
-+			container_of(pos, struct sync_timeline,
-+				     sync_timeline_list);
-+
-+		sync_print_obj(s, obj);
-+		seq_puts(s, "\n");
-+	}
-+	spin_unlock_irqrestore(&sync_timeline_list_lock, flags);
-+
-+	seq_puts(s, "fences:\n--------------\n");
-+
-+	spin_lock_irqsave(&sync_fence_list_lock, flags);
-+	list_for_each(pos, &sync_fence_list_head) {
-+		struct sync_fence *fence =
-+			container_of(pos, struct sync_fence, sync_fence_list);
-+
-+		sync_print_fence(s, fence);
-+		seq_puts(s, "\n");
-+	}
-+	spin_unlock_irqrestore(&sync_fence_list_lock, flags);
++	kfree(dmabuf);
 +	return 0;
 +}
 +
-+static int sync_debugfs_open(struct inode *inode, struct file *file)
++static int dma_buf_mmap_internal(struct file *file, struct vm_area_struct *vma)
 +{
-+	return single_open(file, sync_debugfs_show, inode->i_private);
++	struct dma_buf *dmabuf;
++
++	if (!is_dma_buf_file(file))
++		return -EINVAL;
++
++	dmabuf = file->private_data;
++
++	/* check for overflowing the buffer's size */
++	if (vma->vm_pgoff + ((vma->vm_end - vma->vm_start) >> PAGE_SHIFT) >
++	    dmabuf->size >> PAGE_SHIFT)
++		return -EINVAL;
++
++	return dmabuf->ops->mmap(dmabuf, vma);
 +}
 +
-+static const struct file_operations sync_debugfs_fops = {
-+	.open           = sync_debugfs_open,
++static loff_t dma_buf_llseek(struct file *file, loff_t offset, int whence)
++{
++	struct dma_buf *dmabuf;
++	loff_t base;
++
++	if (!is_dma_buf_file(file))
++		return -EBADF;
++
++	dmabuf = file->private_data;
++
++	/* only support discovering the end of the buffer,
++	   but also allow SEEK_SET to maintain the idiomatic
++	   SEEK_END(0), SEEK_CUR(0) pattern */
++	if (whence == SEEK_END)
++		base = dmabuf->size;
++	else if (whence == SEEK_SET)
++		base = 0;
++	else
++		return -EINVAL;
++
++	if (offset != 0)
++		return -EINVAL;
++
++	return base + offset;
++}
++
++static const struct file_operations dma_buf_fops = {
++	.release	= dma_buf_release,
++	.mmap		= dma_buf_mmap_internal,
++	.llseek		= dma_buf_llseek,
++};
++
++/*
++ * is_dma_buf_file - Check if struct file* is associated with dma_buf
++ */
++static inline int is_dma_buf_file(struct file *file)
++{
++	return file->f_op == &dma_buf_fops;
++}
++
++/**
++ * dma_buf_export_named - Creates a new dma_buf, and associates an anon file
++ * with this buffer, so it can be exported.
++ * Also connect the allocator specific data and ops to the buffer.
++ * Additionally, provide a name string for exporter; useful in debugging.
++ *
++ * @priv:	[in]	Attach private data of allocator to this buffer
++ * @ops:	[in]	Attach allocator-defined dma buf ops to the new buffer.
++ * @size:	[in]	Size of the buffer
++ * @flags:	[in]	mode flags for the file.
++ * @exp_name:	[in]	name of the exporting module - useful for debugging.
++ *
++ * Returns, on success, a newly created dma_buf object, which wraps the
++ * supplied private data and operations for dma_buf_ops. On either missing
++ * ops, or error in allocating struct dma_buf, will return negative error.
++ *
++ */
++struct dma_buf *dma_buf_export_named(void *priv, const struct dma_buf_ops *ops,
++				size_t size, int flags, const char *exp_name)
++{
++	struct dma_buf *dmabuf;
++	struct file *file;
++
++	if (WARN_ON(!priv || !ops
++			  || !ops->map_dma_buf
++			  || !ops->unmap_dma_buf
++			  || !ops->release
++			  || !ops->kmap_atomic
++			  || !ops->kmap
++			  || !ops->mmap)) {
++		return ERR_PTR(-EINVAL);
++	}
++
++	dmabuf = kzalloc(sizeof(struct dma_buf), GFP_KERNEL);
++	if (dmabuf == NULL)
++		return ERR_PTR(-ENOMEM);
++
++	dmabuf->priv = priv;
++	dmabuf->ops = ops;
++	dmabuf->size = size;
++	dmabuf->exp_name = exp_name;
++
++	file = anon_inode_getfile("dmabuf", &dma_buf_fops, dmabuf, flags);
++	if (IS_ERR(file)) {
++		kfree(dmabuf);
++		return ERR_CAST(file);
++	}
++
++	file->f_mode |= FMODE_LSEEK;
++	dmabuf->file = file;
++
++	mutex_init(&dmabuf->lock);
++	INIT_LIST_HEAD(&dmabuf->attachments);
++
++	mutex_lock(&db_list.lock);
++	list_add(&dmabuf->list_node, &db_list.head);
++	mutex_unlock(&db_list.lock);
++
++	return dmabuf;
++}
++EXPORT_SYMBOL_GPL(dma_buf_export_named);
++
++
++/**
++ * dma_buf_fd - returns a file descriptor for the given dma_buf
++ * @dmabuf:	[in]	pointer to dma_buf for which fd is required.
++ * @flags:      [in]    flags to give to fd
++ *
++ * On success, returns an associated 'fd'. Else, returns error.
++ */
++int dma_buf_fd(struct dma_buf *dmabuf, int flags)
++{
++	int fd;
++
++	if (!dmabuf || !dmabuf->file)
++		return -EINVAL;
++
++	fd = get_unused_fd_flags(flags);
++	if (fd < 0)
++		return fd;
++
++	fd_install(fd, dmabuf->file);
++
++	return fd;
++}
++EXPORT_SYMBOL_GPL(dma_buf_fd);
++
++/**
++ * dma_buf_get - returns the dma_buf structure related to an fd
++ * @fd:	[in]	fd associated with the dma_buf to be returned
++ *
++ * On success, returns the dma_buf structure associated with an fd; uses
++ * file's refcounting done by fget to increase refcount. returns ERR_PTR
++ * otherwise.
++ */
++struct dma_buf *dma_buf_get(int fd)
++{
++	struct file *file;
++
++	file = fget(fd);
++
++	if (!file)
++		return ERR_PTR(-EBADF);
++
++	if (!is_dma_buf_file(file)) {
++		fput(file);
++		return ERR_PTR(-EINVAL);
++	}
++
++	return file->private_data;
++}
++EXPORT_SYMBOL_GPL(dma_buf_get);
++
++/**
++ * dma_buf_put - decreases refcount of the buffer
++ * @dmabuf:	[in]	buffer to reduce refcount of
++ *
++ * Uses file's refcounting done implicitly by fput()
++ */
++void dma_buf_put(struct dma_buf *dmabuf)
++{
++	if (WARN_ON(!dmabuf || !dmabuf->file))
++		return;
++
++	fput(dmabuf->file);
++}
++EXPORT_SYMBOL_GPL(dma_buf_put);
++
++/**
++ * dma_buf_attach - Add the device to dma_buf's attachments list; optionally,
++ * calls attach() of dma_buf_ops to allow device-specific attach functionality
++ * @dmabuf:	[in]	buffer to attach device to.
++ * @dev:	[in]	device to be attached.
++ *
++ * Returns struct dma_buf_attachment * for this attachment; returns ERR_PTR on
++ * error.
++ */
++struct dma_buf_attachment *dma_buf_attach(struct dma_buf *dmabuf,
++					  struct device *dev)
++{
++	struct dma_buf_attachment *attach;
++	int ret;
++
++	if (WARN_ON(!dmabuf || !dev))
++		return ERR_PTR(-EINVAL);
++
++	attach = kzalloc(sizeof(struct dma_buf_attachment), GFP_KERNEL);
++	if (attach == NULL)
++		return ERR_PTR(-ENOMEM);
++
++	attach->dev = dev;
++	attach->dmabuf = dmabuf;
++
++	mutex_lock(&dmabuf->lock);
++
++	if (dmabuf->ops->attach) {
++		ret = dmabuf->ops->attach(dmabuf, dev, attach);
++		if (ret)
++			goto err_attach;
++	}
++	list_add(&attach->node, &dmabuf->attachments);
++
++	mutex_unlock(&dmabuf->lock);
++	return attach;
++
++err_attach:
++	kfree(attach);
++	mutex_unlock(&dmabuf->lock);
++	return ERR_PTR(ret);
++}
++EXPORT_SYMBOL_GPL(dma_buf_attach);
++
++/**
++ * dma_buf_detach - Remove the given attachment from dmabuf's attachments list;
++ * optionally calls detach() of dma_buf_ops for device-specific detach
++ * @dmabuf:	[in]	buffer to detach from.
++ * @attach:	[in]	attachment to be detached; is free'd after this call.
++ *
++ */
++void dma_buf_detach(struct dma_buf *dmabuf, struct dma_buf_attachment *attach)
++{
++	if (WARN_ON(!dmabuf || !attach))
++		return;
++
++	mutex_lock(&dmabuf->lock);
++	list_del(&attach->node);
++	if (dmabuf->ops->detach)
++		dmabuf->ops->detach(dmabuf, attach);
++
++	mutex_unlock(&dmabuf->lock);
++	kfree(attach);
++}
++EXPORT_SYMBOL_GPL(dma_buf_detach);
++
++/**
++ * dma_buf_map_attachment - Returns the scatterlist table of the attachment;
++ * mapped into _device_ address space. Is a wrapper for map_dma_buf() of the
++ * dma_buf_ops.
++ * @attach:	[in]	attachment whose scatterlist is to be returned
++ * @direction:	[in]	direction of DMA transfer
++ *
++ * Returns sg_table containing the scatterlist to be returned; returns ERR_PTR
++ * on error.
++ */
++struct sg_table *dma_buf_map_attachment(struct dma_buf_attachment *attach,
++					enum dma_data_direction direction)
++{
++	struct sg_table *sg_table = ERR_PTR(-EINVAL);
++
++	might_sleep();
++
++	if (WARN_ON(!attach || !attach->dmabuf))
++		return ERR_PTR(-EINVAL);
++
++	sg_table = attach->dmabuf->ops->map_dma_buf(attach, direction);
++	if (!sg_table)
++		sg_table = ERR_PTR(-ENOMEM);
++
++	return sg_table;
++}
++EXPORT_SYMBOL_GPL(dma_buf_map_attachment);
++
++/**
++ * dma_buf_unmap_attachment - unmaps and decreases usecount of the buffer;might
++ * deallocate the scatterlist associated. Is a wrapper for unmap_dma_buf() of
++ * dma_buf_ops.
++ * @attach:	[in]	attachment to unmap buffer from
++ * @sg_table:	[in]	scatterlist info of the buffer to unmap
++ * @direction:  [in]    direction of DMA transfer
++ *
++ */
++void dma_buf_unmap_attachment(struct dma_buf_attachment *attach,
++				struct sg_table *sg_table,
++				enum dma_data_direction direction)
++{
++	might_sleep();
++
++	if (WARN_ON(!attach || !attach->dmabuf || !sg_table))
++		return;
++
++	attach->dmabuf->ops->unmap_dma_buf(attach, sg_table,
++						direction);
++}
++EXPORT_SYMBOL_GPL(dma_buf_unmap_attachment);
++
++
++/**
++ * dma_buf_begin_cpu_access - Must be called before accessing a dma_buf from the
++ * cpu in the kernel context. Calls begin_cpu_access to allow exporter-specific
++ * preparations. Coherency is only guaranteed in the specified range for the
++ * specified access direction.
++ * @dmabuf:	[in]	buffer to prepare cpu access for.
++ * @start:	[in]	start of range for cpu access.
++ * @len:	[in]	length of range for cpu access.
++ * @direction:	[in]	length of range for cpu access.
++ *
++ * Can return negative error values, returns 0 on success.
++ */
++int dma_buf_begin_cpu_access(struct dma_buf *dmabuf, size_t start, size_t len,
++			     enum dma_data_direction direction)
++{
++	int ret = 0;
++
++	if (WARN_ON(!dmabuf))
++		return -EINVAL;
++
++	if (dmabuf->ops->begin_cpu_access)
++		ret = dmabuf->ops->begin_cpu_access(dmabuf, start, len, direction);
++
++	return ret;
++}
++EXPORT_SYMBOL_GPL(dma_buf_begin_cpu_access);
++
++/**
++ * dma_buf_end_cpu_access - Must be called after accessing a dma_buf from the
++ * cpu in the kernel context. Calls end_cpu_access to allow exporter-specific
++ * actions. Coherency is only guaranteed in the specified range for the
++ * specified access direction.
++ * @dmabuf:	[in]	buffer to complete cpu access for.
++ * @start:	[in]	start of range for cpu access.
++ * @len:	[in]	length of range for cpu access.
++ * @direction:	[in]	length of range for cpu access.
++ *
++ * This call must always succeed.
++ */
++void dma_buf_end_cpu_access(struct dma_buf *dmabuf, size_t start, size_t len,
++			    enum dma_data_direction direction)
++{
++	WARN_ON(!dmabuf);
++
++	if (dmabuf->ops->end_cpu_access)
++		dmabuf->ops->end_cpu_access(dmabuf, start, len, direction);
++}
++EXPORT_SYMBOL_GPL(dma_buf_end_cpu_access);
++
++/**
++ * dma_buf_kmap_atomic - Map a page of the buffer object into kernel address
++ * space. The same restrictions as for kmap_atomic and friends apply.
++ * @dmabuf:	[in]	buffer to map page from.
++ * @page_num:	[in]	page in PAGE_SIZE units to map.
++ *
++ * This call must always succeed, any necessary preparations that might fail
++ * need to be done in begin_cpu_access.
++ */
++void *dma_buf_kmap_atomic(struct dma_buf *dmabuf, unsigned long page_num)
++{
++	WARN_ON(!dmabuf);
++
++	return dmabuf->ops->kmap_atomic(dmabuf, page_num);
++}
++EXPORT_SYMBOL_GPL(dma_buf_kmap_atomic);
++
++/**
++ * dma_buf_kunmap_atomic - Unmap a page obtained by dma_buf_kmap_atomic.
++ * @dmabuf:	[in]	buffer to unmap page from.
++ * @page_num:	[in]	page in PAGE_SIZE units to unmap.
++ * @vaddr:	[in]	kernel space pointer obtained from dma_buf_kmap_atomic.
++ *
++ * This call must always succeed.
++ */
++void dma_buf_kunmap_atomic(struct dma_buf *dmabuf, unsigned long page_num,
++			   void *vaddr)
++{
++	WARN_ON(!dmabuf);
++
++	if (dmabuf->ops->kunmap_atomic)
++		dmabuf->ops->kunmap_atomic(dmabuf, page_num, vaddr);
++}
++EXPORT_SYMBOL_GPL(dma_buf_kunmap_atomic);
++
++/**
++ * dma_buf_kmap - Map a page of the buffer object into kernel address space. The
++ * same restrictions as for kmap and friends apply.
++ * @dmabuf:	[in]	buffer to map page from.
++ * @page_num:	[in]	page in PAGE_SIZE units to map.
++ *
++ * This call must always succeed, any necessary preparations that might fail
++ * need to be done in begin_cpu_access.
++ */
++void *dma_buf_kmap(struct dma_buf *dmabuf, unsigned long page_num)
++{
++	WARN_ON(!dmabuf);
++
++	return dmabuf->ops->kmap(dmabuf, page_num);
++}
++EXPORT_SYMBOL_GPL(dma_buf_kmap);
++
++/**
++ * dma_buf_kunmap - Unmap a page obtained by dma_buf_kmap.
++ * @dmabuf:	[in]	buffer to unmap page from.
++ * @page_num:	[in]	page in PAGE_SIZE units to unmap.
++ * @vaddr:	[in]	kernel space pointer obtained from dma_buf_kmap.
++ *
++ * This call must always succeed.
++ */
++void dma_buf_kunmap(struct dma_buf *dmabuf, unsigned long page_num,
++		    void *vaddr)
++{
++	WARN_ON(!dmabuf);
++
++	if (dmabuf->ops->kunmap)
++		dmabuf->ops->kunmap(dmabuf, page_num, vaddr);
++}
++EXPORT_SYMBOL_GPL(dma_buf_kunmap);
++
++
++/**
++ * dma_buf_mmap - Setup up a userspace mmap with the given vma
++ * @dmabuf:	[in]	buffer that should back the vma
++ * @vma:	[in]	vma for the mmap
++ * @pgoff:	[in]	offset in pages where this mmap should start within the
++ * 			dma-buf buffer.
++ *
++ * This function adjusts the passed in vma so that it points at the file of the
++ * dma_buf operation. It also adjusts the starting pgoff and does bounds
++ * checking on the size of the vma. Then it calls the exporters mmap function to
++ * set up the mapping.
++ *
++ * Can return negative error values, returns 0 on success.
++ */
++int dma_buf_mmap(struct dma_buf *dmabuf, struct vm_area_struct *vma,
++		 unsigned long pgoff)
++{
++	struct file *oldfile;
++	int ret;
++
++	if (WARN_ON(!dmabuf || !vma))
++		return -EINVAL;
++
++	/* check for offset overflow */
++	if (pgoff + ((vma->vm_end - vma->vm_start) >> PAGE_SHIFT) < pgoff)
++		return -EOVERFLOW;
++
++	/* check for overflowing the buffer's size */
++	if (pgoff + ((vma->vm_end - vma->vm_start) >> PAGE_SHIFT) >
++	    dmabuf->size >> PAGE_SHIFT)
++		return -EINVAL;
++
++	/* readjust the vma */
++	get_file(dmabuf->file);
++	oldfile = vma->vm_file;
++	vma->vm_file = dmabuf->file;
++	vma->vm_pgoff = pgoff;
++
++	ret = dmabuf->ops->mmap(dmabuf, vma);
++	if (ret) {
++		/* restore old parameters on failure */
++		vma->vm_file = oldfile;
++		fput(dmabuf->file);
++	} else {
++		if (oldfile)
++			fput(oldfile);
++	}
++	return ret;
++
++}
++EXPORT_SYMBOL_GPL(dma_buf_mmap);
++
++/**
++ * dma_buf_vmap - Create virtual mapping for the buffer object into kernel
++ * address space. Same restrictions as for vmap and friends apply.
++ * @dmabuf:	[in]	buffer to vmap
++ *
++ * This call may fail due to lack of virtual mapping address space.
++ * These calls are optional in drivers. The intended use for them
++ * is for mapping objects linear in kernel space for high use objects.
++ * Please attempt to use kmap/kunmap before thinking about these interfaces.
++ *
++ * Returns NULL on error.
++ */
++void *dma_buf_vmap(struct dma_buf *dmabuf)
++{
++	void *ptr;
++
++	if (WARN_ON(!dmabuf))
++		return NULL;
++
++	if (!dmabuf->ops->vmap)
++		return NULL;
++
++	mutex_lock(&dmabuf->lock);
++	if (dmabuf->vmapping_counter) {
++		dmabuf->vmapping_counter++;
++		BUG_ON(!dmabuf->vmap_ptr);
++		ptr = dmabuf->vmap_ptr;
++		goto out_unlock;
++	}
++
++	BUG_ON(dmabuf->vmap_ptr);
++
++	ptr = dmabuf->ops->vmap(dmabuf);
++	if (WARN_ON_ONCE(IS_ERR(ptr)))
++		ptr = NULL;
++	if (!ptr)
++		goto out_unlock;
++
++	dmabuf->vmap_ptr = ptr;
++	dmabuf->vmapping_counter = 1;
++
++out_unlock:
++	mutex_unlock(&dmabuf->lock);
++	return ptr;
++}
++EXPORT_SYMBOL_GPL(dma_buf_vmap);
++
++/**
++ * dma_buf_vunmap - Unmap a vmap obtained by dma_buf_vmap.
++ * @dmabuf:	[in]	buffer to vunmap
++ * @vaddr:	[in]	vmap to vunmap
++ */
++void dma_buf_vunmap(struct dma_buf *dmabuf, void *vaddr)
++{
++	if (WARN_ON(!dmabuf))
++		return;
++
++	BUG_ON(!dmabuf->vmap_ptr);
++	BUG_ON(dmabuf->vmapping_counter == 0);
++	BUG_ON(dmabuf->vmap_ptr != vaddr);
++
++	mutex_lock(&dmabuf->lock);
++	if (--dmabuf->vmapping_counter == 0) {
++		if (dmabuf->ops->vunmap)
++			dmabuf->ops->vunmap(dmabuf, vaddr);
++		dmabuf->vmap_ptr = NULL;
++	}
++	mutex_unlock(&dmabuf->lock);
++}
++EXPORT_SYMBOL_GPL(dma_buf_vunmap);
++
++#ifdef CONFIG_DEBUG_FS
++static int dma_buf_describe(struct seq_file *s)
++{
++	int ret;
++	struct dma_buf *buf_obj;
++	struct dma_buf_attachment *attach_obj;
++	int count = 0, attach_count;
++	size_t size = 0;
++
++	ret = mutex_lock_interruptible(&db_list.lock);
++
++	if (ret)
++		return ret;
++
++	seq_puts(s, "\nDma-buf Objects:\n");
++	seq_puts(s, "size\tflags\tmode\tcount\texp_name\n");
++
++	list_for_each_entry(buf_obj, &db_list.head, list_node) {
++		ret = mutex_lock_interruptible(&buf_obj->lock);
++
++		if (ret) {
++			seq_puts(s,
++				 "\tERROR locking buffer object: skipping\n");
++			continue;
++		}
++
++		seq_printf(s, "%08zu\t%08x\t%08x\t%08ld\t%s\n",
++				buf_obj->size,
++				buf_obj->file->f_flags, buf_obj->file->f_mode,
++				(long)(buf_obj->file->f_count.counter),
++				buf_obj->exp_name);
++
++		seq_puts(s, "\tAttached Devices:\n");
++		attach_count = 0;
++
++		list_for_each_entry(attach_obj, &buf_obj->attachments, node) {
++			seq_puts(s, "\t");
++
++			seq_printf(s, "%s\n", dev_name(attach_obj->dev));
++			attach_count++;
++		}
++
++		seq_printf(s, "Total %d devices attached\n\n",
++				attach_count);
++
++		count++;
++		size += buf_obj->size;
++		mutex_unlock(&buf_obj->lock);
++	}
++
++	seq_printf(s, "\nTotal %d objects, %zu bytes\n", count, size);
++
++	mutex_unlock(&db_list.lock);
++	return 0;
++}
++
++static int dma_buf_show(struct seq_file *s, void *unused)
++{
++	void (*func)(struct seq_file *) = s->private;
++	func(s);
++	return 0;
++}
++
++static int dma_buf_debug_open(struct inode *inode, struct file *file)
++{
++	return single_open(file, dma_buf_show, inode->i_private);
++}
++
++static const struct file_operations dma_buf_debug_fops = {
++	.open           = dma_buf_debug_open,
 +	.read           = seq_read,
 +	.llseek         = seq_lseek,
 +	.release        = single_release,
 +};
 +
-+static __init int sync_debugfs_init(void)
++static struct dentry *dma_buf_debugfs_dir;
++
++static int dma_buf_init_debugfs(void)
 +{
-+	debugfs_create_file("sync", S_IRUGO, NULL, NULL, &sync_debugfs_fops);
++	int err = 0;
++	dma_buf_debugfs_dir = debugfs_create_dir("dma_buf", NULL);
++	if (IS_ERR(dma_buf_debugfs_dir)) {
++		err = PTR_ERR(dma_buf_debugfs_dir);
++		dma_buf_debugfs_dir = NULL;
++		return err;
++	}
++
++	err = dma_buf_debugfs_create_file("bufinfo", dma_buf_describe);
++
++	if (err)
++		pr_debug("dma_buf: debugfs: failed to create node bufinfo\n");
++
++	return err;
++}
++
++static void dma_buf_uninit_debugfs(void)
++{
++	if (dma_buf_debugfs_dir)
++		debugfs_remove_recursive(dma_buf_debugfs_dir);
++}
++
++int dma_buf_debugfs_create_file(const char *name,
++				int (*write)(struct seq_file *))
++{
++	struct dentry *d;
++
++	d = debugfs_create_file(name, S_IRUGO, dma_buf_debugfs_dir,
++			write, &dma_buf_debug_fops);
++
++	return PTR_ERR_OR_ZERO(d);
++}
++#else
++static inline int dma_buf_init_debugfs(void)
++{
 +	return 0;
 +}
-+late_initcall(sync_debugfs_init);
-+
-+#define DUMP_CHUNK 256
-+static char sync_dump_buf[64 * 1024];
-+void sync_dump(void)
++static inline void dma_buf_uninit_debugfs(void)
 +{
-+	struct seq_file s = {
-+		.buf = sync_dump_buf,
-+		.size = sizeof(sync_dump_buf) - 1,
-+	};
-+	int i;
-+
-+	sync_debugfs_show(&s, NULL);
-+
-+	for (i = 0; i < s.count; i += DUMP_CHUNK) {
-+		if ((s.count - i) > DUMP_CHUNK) {
-+			char c = s.buf[i + DUMP_CHUNK];
-+			s.buf[i + DUMP_CHUNK] = 0;
-+			pr_cont("%s", s.buf + i);
-+			s.buf[i + DUMP_CHUNK] = c;
-+		} else {
-+			s.buf[s.count] = 0;
-+			pr_cont("%s", s.buf + i);
-+		}
-+	}
 +}
-+
 +#endif
-diff --git a/drivers/staging/android/trace/sync.h b/drivers/staging/android/trace/sync.h
-index 95462359ba57..77edb977a7bf 100644
---- a/drivers/staging/android/trace/sync.h
-+++ b/drivers/staging/android/trace/sync.h
-@@ -45,7 +45,7 @@ TRACE_EVENT(sync_wait,
- 
- 	TP_fast_assign(
- 			__assign_str(name, fence->name);
--			__entry->status = fence->status;
-+			__entry->status = atomic_read(&fence->status);
- 			__entry->begin = begin;
- 	),
- 
-@@ -54,19 +54,19 @@ TRACE_EVENT(sync_wait,
- );
- 
- TRACE_EVENT(sync_pt,
--	TP_PROTO(struct sync_pt *pt),
-+	TP_PROTO(struct fence *pt),
- 
- 	TP_ARGS(pt),
- 
- 	TP_STRUCT__entry(
--		__string(timeline, pt->parent->name)
-+		__string(timeline, pt->ops->get_timeline_name(pt))
- 		__array(char, value, 32)
- 	),
- 
- 	TP_fast_assign(
--		__assign_str(timeline, pt->parent->name);
--		if (pt->parent->ops->pt_value_str) {
--			pt->parent->ops->pt_value_str(pt, __entry->value,
-+		__assign_str(timeline, pt->ops->get_timeline_name(pt));
-+		if (pt->ops->fence_value_str) {
-+			pt->ops->fence_value_str(pt, __entry->value,
- 							sizeof(__entry->value));
- 		} else {
- 			__entry->value[0] = '\0';
++
++static int __init dma_buf_init(void)
++{
++	mutex_init(&db_list.lock);
++	INIT_LIST_HEAD(&db_list.head);
++	dma_buf_init_debugfs();
++	return 0;
++}
++subsys_initcall(dma_buf_init);
++
++static void __exit dma_buf_deinit(void)
++{
++	dma_buf_uninit_debugfs();
++}
++__exitcall(dma_buf_deinit);
+diff --git a/drivers/dma-buf/reservation.c b/drivers/dma-buf/reservation.c
+new file mode 100644
+index 000000000000..a73fbf3b8e56
+--- /dev/null
++++ b/drivers/dma-buf/reservation.c
+@@ -0,0 +1,39 @@
++/*
++ * Copyright (C) 2012-2013 Canonical Ltd
++ *
++ * Based on bo.c which bears the following copyright notice,
++ * but is dual licensed:
++ *
++ * Copyright (c) 2006-2009 VMware, Inc., Palo Alto, CA., USA
++ * All Rights Reserved.
++ *
++ * Permission is hereby granted, free of charge, to any person obtaining a
++ * copy of this software and associated documentation files (the
++ * "Software"), to deal in the Software without restriction, including
++ * without limitation the rights to use, copy, modify, merge, publish,
++ * distribute, sub license, and/or sell copies of the Software, and to
++ * permit persons to whom the Software is furnished to do so, subject to
++ * the following conditions:
++ *
++ * The above copyright notice and this permission notice (including the
++ * next paragraph) shall be included in all copies or substantial portions
++ * of the Software.
++ *
++ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
++ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
++ * FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT. IN NO EVENT SHALL
++ * THE COPYRIGHT HOLDERS, AUTHORS AND/OR ITS SUPPLIERS BE LIABLE FOR ANY CLAIM,
++ * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
++ * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
++ * USE OR OTHER DEALINGS IN THE SOFTWARE.
++ *
++ **************************************************************************/
++/*
++ * Authors: Thomas Hellstrom <thellstrom-at-vmware-dot-com>
++ */
++
++#include <linux/reservation.h>
++#include <linux/export.h>
++
++DEFINE_WW_CLASS(reservation_ww_class);
++EXPORT_SYMBOL(reservation_ww_class);
 
