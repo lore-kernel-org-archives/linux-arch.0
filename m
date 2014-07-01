@@ -1,121 +1,86 @@
-From: Maarten Lankhorst <maarten.lankhorst@canonical.com>
-Subject: Re: [PATCH v2 1/9] dma-buf: move to drivers/dma-buf
-Date: Tue, 01 Jul 2014 13:09:50 +0200
-Message-ID: <53B296FE.8050701@canonical.com>
-References: <20140701103432.12718.82795.stgit@patser>
- <20140701105708.12718.50675.stgit@patser> <53B29619.60704@broadcom.com>
+From: AKASHI Takahiro <takahiro.akashi@linaro.org>
+Subject: Re: [RFA][PATCH 25/27] arm64, ftrace: Remove check of obsolete variable
+ function_trace_stop
+Date: Tue, 01 Jul 2014 20:33:07 +0900
+Message-ID: <53B29C73.9090509@linaro.org>
+References: <20140626165221.736847419@goodmis.org> <20140626165853.482575534@goodmis.org> <20140627124421.GP26276@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
 Content-Transfer-Encoding: 7bit
-Return-path: <dri-devel-bounces@lists.freedesktop.org>
-In-Reply-To: <53B29619.60704@broadcom.com>
-List-Unsubscribe: <http://lists.freedesktop.org/mailman/options/dri-devel>,
- <mailto:dri-devel-request@lists.freedesktop.org?subject=unsubscribe>
-List-Archive: <http://lists.freedesktop.org/archives/dri-devel>
-List-Post: <mailto:dri-devel@lists.freedesktop.org>
-List-Help: <mailto:dri-devel-request@lists.freedesktop.org?subject=help>
-List-Subscribe: <http://lists.freedesktop.org/mailman/listinfo/dri-devel>,
- <mailto:dri-devel-request@lists.freedesktop.org?subject=subscribe>
-Errors-To: dri-devel-bounces@lists.freedesktop.org
-Sender: "dri-devel" <dri-devel-bounces@lists.freedesktop.org>
-To: Arend van Spriel <arend@broadcom.com>, gregkh@linuxfoundation.org
-Cc: linux-arch@vger.kernel.org, thellstrom@vmware.com, linux-kernel@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, ccross@google.com, linux-media@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-pa0-f48.google.com ([209.85.220.48]:58062 "EHLO
+	mail-pa0-f48.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752050AbaGALdS (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 1 Jul 2014 07:33:18 -0400
+Received: by mail-pa0-f48.google.com with SMTP id et14so10445675pad.21
+        for <linux-arch@vger.kernel.org>; Tue, 01 Jul 2014 04:33:17 -0700 (PDT)
+In-Reply-To: <20140627124421.GP26276@arm.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Will Deacon <will.deacon@arm.com>, Steven Rostedt <rostedt@goodmis.org>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>, "H. Peter Anvin" <hpa@zytor.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Jiri Kosina <jkosina@suse.cz>, Josh Poimboeuf <notifications@github.com>
 
-op 01-07-14 13:06, Arend van Spriel schreef:
-> On 01-07-14 12:57, Maarten Lankhorst wrote:
->> Signed-off-by: Maarten Lankhorst <maarten.lankhorst@canonical.com>
-> It would help to use '-M' option with format-patch for this kind of rework.
+On 06/27/2014 09:44 PM, Will Deacon wrote:
+> Hi Steve,
 >
-> Regards,
-> Arend
+> On Thu, Jun 26, 2014 at 05:52:46PM +0100, Steven Rostedt wrote:
+>> From: "Steven Rostedt (Red Hat)" <rostedt@goodmis.org>
+>>
+>> Nothing sets function_trace_stop to disable function tracing anymore.
+>> Remove the check for it in the arch code.
+>>
+>> arm64 was broken anyway, as it had an ifdef testing
+>>   CONFIG_HAVE_FUNCTION_TRACE_MCOUNT_TEST which is only set if
+>> the arch supports the code (which it obviously did not), and
+>> it was testing a non existent ftrace_trace_stop instead of
+>> function_trace_stop.
 >
-Thanks, was looking for some option but didn't find it.
+> Yeah, the current code is total crap. Well spotted.
 
-Have a rediff below. :-)
-8< --------
+Thank you for fixing my bug :)
+I also exercised ftrace with sysfs interface, and it just works well.
 
-Signed-off-by: Maarten Lankhorst <maarten.lankhorst@canonical.com>
----
- Documentation/DocBook/device-drivers.tmpl | 3 +--
- MAINTAINERS                               | 4 ++--
- drivers/Makefile                          | 1 +
- drivers/base/Makefile                     | 1 -
- drivers/dma-buf/Makefile                  | 1 +
- drivers/{base => dma-buf}/dma-buf.c       | 0
- drivers/{base => dma-buf}/reservation.c   | 0
- 7 files changed, 5 insertions(+), 5 deletions(-)
- create mode 100644 drivers/dma-buf/Makefile
- rename drivers/{base => dma-buf}/dma-buf.c (100%)
- rename drivers/{base => dma-buf}/reservation.c (100%)
+-Takahiro AKASHI
 
-diff --git a/Documentation/DocBook/device-drivers.tmpl b/Documentation/DocBook/device-drivers.tmpl
-index cc63f30de166..ac61ebd92875 100644
---- a/Documentation/DocBook/device-drivers.tmpl
-+++ b/Documentation/DocBook/device-drivers.tmpl
-@@ -128,8 +128,7 @@ X!Edrivers/base/interface.c
- !Edrivers/base/bus.c
-      </sect1>
-      <sect1><title>Device Drivers DMA Management</title>
--!Edrivers/base/dma-buf.c
--!Edrivers/base/reservation.c
-+!Edrivers/dma-buf/dma-buf.c
- !Iinclude/linux/reservation.h
- !Edrivers/base/dma-coherent.c
- !Edrivers/base/dma-mapping.c
-diff --git a/MAINTAINERS b/MAINTAINERS
-index 134483f206e4..c948e53a4ee6 100644
---- a/MAINTAINERS
-+++ b/MAINTAINERS
-@@ -2882,8 +2882,8 @@ S:	Maintained
- L:	linux-media@vger.kernel.org
- L:	dri-devel@lists.freedesktop.org
- L:	linaro-mm-sig@lists.linaro.org
--F:	drivers/base/dma-buf*
--F:	include/linux/dma-buf*
-+F:	drivers/dma-buf/
-+F:	include/linux/dma-buf* include/linux/reservation.h
- F:	Documentation/dma-buf-sharing.txt
- T:	git git://git.linaro.org/people/sumitsemwal/linux-dma-buf.git
- 
-diff --git a/drivers/Makefile b/drivers/Makefile
-index f98b50d8251d..c00337be5351 100644
---- a/drivers/Makefile
-+++ b/drivers/Makefile
-@@ -61,6 +61,7 @@ obj-$(CONFIG_FB_INTEL)          += video/fbdev/intelfb/
- 
- obj-$(CONFIG_PARPORT)		+= parport/
- obj-y				+= base/ block/ misc/ mfd/ nfc/
-+obj-$(CONFIG_DMA_SHARED_BUFFER) += dma-buf/
- obj-$(CONFIG_NUBUS)		+= nubus/
- obj-y				+= macintosh/
- obj-$(CONFIG_IDE)		+= ide/
-diff --git a/drivers/base/Makefile b/drivers/base/Makefile
-index 04b314e0fa51..4aab26ec0292 100644
---- a/drivers/base/Makefile
-+++ b/drivers/base/Makefile
-@@ -10,7 +10,6 @@ obj-$(CONFIG_DMA_CMA) += dma-contiguous.o
- obj-y			+= power/
- obj-$(CONFIG_HAS_DMA)	+= dma-mapping.o
- obj-$(CONFIG_HAVE_GENERIC_DMA_COHERENT) += dma-coherent.o
--obj-$(CONFIG_DMA_SHARED_BUFFER) += dma-buf.o reservation.o
- obj-$(CONFIG_ISA)	+= isa.o
- obj-$(CONFIG_FW_LOADER)	+= firmware_class.o
- obj-$(CONFIG_NUMA)	+= node.o
-diff --git a/drivers/dma-buf/Makefile b/drivers/dma-buf/Makefile
-new file mode 100644
-index 000000000000..4a4f4c9bacd0
---- /dev/null
-+++ b/drivers/dma-buf/Makefile
-@@ -0,0 +1 @@
-+obj-y := dma-buf.o reservation.o
-diff --git a/drivers/base/dma-buf.c b/drivers/dma-buf/dma-buf.c
-similarity index 100%
-rename from drivers/base/dma-buf.c
-rename to drivers/dma-buf/dma-buf.c
-diff --git a/drivers/base/reservation.c b/drivers/dma-buf/reservation.c
-similarity index 100%
-rename from drivers/base/reservation.c
-rename to drivers/dma-buf/reservation.c
--- 
-2.0.0
+>
+>> Cc: AKASHI Takahiro <takahiro.akashi@linaro.org>
+>> Cc: Will Deacon <will.deacon@arm.com>
+>> Signed-off-by: Steven Rostedt <rostedt@goodmis.org>
+>> ---
+>>   arch/arm64/kernel/entry-ftrace.S | 5 -----
+>>   1 file changed, 5 deletions(-)
+>
+>    Acked-by: Will Deacon <will.deacon@arm.com>
+>
+> I'm happy for you to take this via the ftrace tree, along with the rest of
+> the series.
+>
+> I successfully ran the ftrace self tests with this applied (on top of
+> "ftrace: Remove check for HAVE_FUNCTION_TRACE_MCOUNT_TEST"), but note
+> that I don't have a platform with working suspend/resume right now.
+>
+> Cheers,
+>
+> Will
+>
+>> diff --git a/arch/arm64/kernel/entry-ftrace.S b/arch/arm64/kernel/entry-ftrace.S
+>> index b051871f2965..1b1e330e6849 100644
+>> --- a/arch/arm64/kernel/entry-ftrace.S
+>> +++ b/arch/arm64/kernel/entry-ftrace.S
+>> @@ -96,11 +96,6 @@
+>>    *     - ftrace_graph_caller to set up an exit hook
+>>    */
+>>   ENTRY(_mcount)
+>> -#ifdef CONFIG_HAVE_FUNCTION_TRACE_MCOUNT_TEST
+>> -	ldr	x0, =ftrace_trace_stop
+>> -	ldr	x0, [x0]		// if ftrace_trace_stop
+>> -	ret				//   return;
+>> -#endif
+>>   	mcount_enter
+>>
+>>   	ldr	x0, =ftrace_trace_function
+>> --
+>> 2.0.0
+>>
+>>
+>>
