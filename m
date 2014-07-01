@@ -1,743 +1,1699 @@
-From: Maarten Lankhorst <maarten.lankhorst@canonical.com>
-Subject: [PATCH v2 9/9] reservation: add suppport for read-only access using
- rcu
-Date: Tue, 01 Jul 2014 12:58:00 +0200
-Message-ID: <20140701105800.12718.18636.stgit@patser>
-References: <20140701103432.12718.82795.stgit@patser>
+From: Arend van Spriel <arend@broadcom.com>
+Subject: Re: [PATCH v2 1/9] dma-buf: move to drivers/dma-buf
+Date: Tue, 1 Jul 2014 13:06:01 +0200
+Message-ID: <53B29619.60704@broadcom.com>
+References: <20140701103432.12718.82795.stgit@patser> <20140701105708.12718.50675.stgit@patser>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
+Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: 7bit
-Return-path: <dri-devel-bounces@lists.freedesktop.org>
-In-Reply-To: <20140701103432.12718.82795.stgit@patser>
-List-Unsubscribe: <http://lists.freedesktop.org/mailman/options/dri-devel>,
- <mailto:dri-devel-request@lists.freedesktop.org?subject=unsubscribe>
-List-Archive: <http://lists.freedesktop.org/archives/dri-devel>
-List-Post: <mailto:dri-devel@lists.freedesktop.org>
-List-Help: <mailto:dri-devel-request@lists.freedesktop.org?subject=help>
-List-Subscribe: <http://lists.freedesktop.org/mailman/listinfo/dri-devel>,
- <mailto:dri-devel-request@lists.freedesktop.org?subject=subscribe>
-Errors-To: dri-devel-bounces@lists.freedesktop.org
-Sender: "dri-devel" <dri-devel-bounces@lists.freedesktop.org>
-To: gregkh@linuxfoundation.org
-Cc: linux-arch@vger.kernel.org, thellstrom@vmware.com, linux-kernel@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, ccross@google.com, linux-media@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-gw2-out.broadcom.com ([216.31.210.63]:12016 "EHLO
+	mail-gw2-out.broadcom.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753139AbaGALGI (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 1 Jul 2014 07:06:08 -0400
+In-Reply-To: <20140701105708.12718.50675.stgit@patser>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Maarten Lankhorst <maarten.lankhorst@canonical.com>, gregkh@linuxfoundation.org
+Cc: linux-arch@vger.kernel.org, thellstrom@vmware.com, linux-kernel@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, robdclark@gmail.com, thierry.reding@gmail.com, ccross@google.com, daniel@ffwll.ch, sumit.semwal@linaro.org, linux-media@vger.kernel.org
 
-This adds some extra functions to deal with rcu.
+On 01-07-14 12:57, Maarten Lankhorst wrote:
+> Signed-off-by: Maarten Lankhorst <maarten.lankhorst@canonical.com>
 
-reservation_object_get_fences_rcu() will obtain the list of shared
-and exclusive fences without obtaining the ww_mutex.
+It would help to use '-M' option with format-patch for this kind of rework.
 
-reservation_object_wait_timeout_rcu() will wait on all fences of the
-reservation_object, without obtaining the ww_mutex.
+Regards,
+Arend
 
-reservation_object_test_signaled_rcu() will test if all fences of the
-reservation_object are signaled without using the ww_mutex.
-
-reservation_object_get_excl and reservation_object_get_list require
-the reservation object to be held, updating requires
-write_seqcount_begin/end. If only the exclusive fence is needed,
-rcu_dereference followed by fence_get_rcu can be used, if the shared
-fences are needed it's recommended to use the supplied functions.
-
-Signed-off-by: Maarten Lankhorst <maarten.lankhorst@canonical.com>
-Reviewed-By: Thomas Hellstrom <thellstrom@vmware.com>
----
- drivers/dma-buf/dma-buf.c     |   47 ++++--
- drivers/dma-buf/fence.c       |    2 
- drivers/dma-buf/reservation.c |  336 ++++++++++++++++++++++++++++++++++++++---
- include/linux/fence.h         |   17 ++
- include/linux/reservation.h   |   52 ++++--
- 5 files changed, 400 insertions(+), 54 deletions(-)
-
-diff --git a/drivers/dma-buf/dma-buf.c b/drivers/dma-buf/dma-buf.c
-index cb8379dfeed5..f3014c448e1e 100644
---- a/drivers/dma-buf/dma-buf.c
-+++ b/drivers/dma-buf/dma-buf.c
-@@ -137,7 +137,7 @@ static unsigned int dma_buf_poll(struct file *file, poll_table *poll)
- 	struct reservation_object_list *fobj;
- 	struct fence *fence_excl;
- 	unsigned long events;
--	unsigned shared_count;
-+	unsigned shared_count, seq;
- 
- 	dmabuf = file->private_data;
- 	if (!dmabuf || !dmabuf->resv)
-@@ -151,14 +151,20 @@ static unsigned int dma_buf_poll(struct file *file, poll_table *poll)
- 	if (!events)
- 		return 0;
- 
--	ww_mutex_lock(&resv->lock, NULL);
-+retry:
-+	seq = read_seqcount_begin(&resv->seq);
-+	rcu_read_lock();
- 
--	fobj = resv->fence;
--	if (!fobj)
--		goto out;
--
--	shared_count = fobj->shared_count;
--	fence_excl = resv->fence_excl;
-+	fobj = rcu_dereference(resv->fence);
-+	if (fobj)
-+		shared_count = fobj->shared_count;
-+	else
-+		shared_count = 0;
-+	fence_excl = rcu_dereference(resv->fence_excl);
-+	if (read_seqcount_retry(&resv->seq, seq)) {
-+		rcu_read_unlock();
-+		goto retry;
-+	}
- 
- 	if (fence_excl && (!(events & POLLOUT) || shared_count == 0)) {
- 		struct dma_buf_poll_cb_t *dcb = &dmabuf->cb_excl;
-@@ -176,14 +182,20 @@ static unsigned int dma_buf_poll(struct file *file, poll_table *poll)
- 		spin_unlock_irq(&dmabuf->poll.lock);
- 
- 		if (events & pevents) {
--			if (!fence_add_callback(fence_excl, &dcb->cb,
-+			if (!fence_get_rcu(fence_excl)) {
-+				/* force a recheck */
-+				events &= ~pevents;
-+				dma_buf_poll_cb(NULL, &dcb->cb);
-+			} else if (!fence_add_callback(fence_excl, &dcb->cb,
- 						       dma_buf_poll_cb)) {
- 				events &= ~pevents;
-+				fence_put(fence_excl);
- 			} else {
- 				/*
- 				 * No callback queued, wake up any additional
- 				 * waiters.
- 				 */
-+				fence_put(fence_excl);
- 				dma_buf_poll_cb(NULL, &dcb->cb);
- 			}
- 		}
-@@ -205,13 +217,26 @@ static unsigned int dma_buf_poll(struct file *file, poll_table *poll)
- 			goto out;
- 
- 		for (i = 0; i < shared_count; ++i) {
--			struct fence *fence = fobj->shared[i];
-+			struct fence *fence = rcu_dereference(fobj->shared[i]);
- 
-+			if (!fence_get_rcu(fence)) {
-+				/*
-+				 * fence refcount dropped to zero, this means
-+				 * that fobj has been freed
-+				 *
-+				 * call dma_buf_poll_cb and force a recheck!
-+				 */
-+				events &= ~POLLOUT;
-+				dma_buf_poll_cb(NULL, &dcb->cb);
-+				break;
-+			}
- 			if (!fence_add_callback(fence, &dcb->cb,
- 						dma_buf_poll_cb)) {
-+				fence_put(fence);
- 				events &= ~POLLOUT;
- 				break;
- 			}
-+			fence_put(fence);
- 		}
- 
- 		/* No callback queued, wake up any additional waiters. */
-@@ -220,7 +245,7 @@ static unsigned int dma_buf_poll(struct file *file, poll_table *poll)
- 	}
- 
- out:
--	ww_mutex_unlock(&resv->lock);
-+	rcu_read_unlock();
- 	return events;
- }
- 
-diff --git a/drivers/dma-buf/fence.c b/drivers/dma-buf/fence.c
-index 948bf00d955e..4222cb2aa96a 100644
---- a/drivers/dma-buf/fence.c
-+++ b/drivers/dma-buf/fence.c
-@@ -184,7 +184,7 @@ EXPORT_SYMBOL(fence_release);
- 
- void fence_free(struct fence *fence)
- {
--	kfree(fence);
-+	kfree_rcu(fence, rcu);
- }
- EXPORT_SYMBOL(fence_free);
- 
-diff --git a/drivers/dma-buf/reservation.c b/drivers/dma-buf/reservation.c
-index e6166723a9ae..3c97c8fa8d02 100644
---- a/drivers/dma-buf/reservation.c
-+++ b/drivers/dma-buf/reservation.c
-@@ -38,6 +38,11 @@
- DEFINE_WW_CLASS(reservation_ww_class);
- EXPORT_SYMBOL(reservation_ww_class);
- 
-+struct lock_class_key reservation_seqcount_class;
-+EXPORT_SYMBOL(reservation_seqcount_class);
-+
-+const char reservation_seqcount_string[] = "reservation_seqcount";
-+EXPORT_SYMBOL(reservation_seqcount_string);
- /*
-  * Reserve space to add a shared fence to a reservation_object,
-  * must be called with obj->lock held.
-@@ -82,27 +87,37 @@ reservation_object_add_shared_inplace(struct reservation_object *obj,
- {
- 	u32 i;
- 
-+	fence_get(fence);
-+
-+	preempt_disable();
-+	write_seqcount_begin(&obj->seq);
-+
- 	for (i = 0; i < fobj->shared_count; ++i) {
--		if (fobj->shared[i]->context == fence->context) {
--			struct fence *old_fence = fobj->shared[i];
-+		struct fence *old_fence;
- 
--			fence_get(fence);
-+		old_fence = rcu_dereference_protected(fobj->shared[i],
-+						reservation_object_held(obj));
- 
--			fobj->shared[i] = fence;
-+		if (old_fence->context == fence->context) {
-+			/* memory barrier is added by write_seqcount_begin */
-+			RCU_INIT_POINTER(fobj->shared[i], fence);
-+			write_seqcount_end(&obj->seq);
-+			preempt_enable();
- 
- 			fence_put(old_fence);
- 			return;
- 		}
- 	}
- 
--	fence_get(fence);
--	fobj->shared[fobj->shared_count] = fence;
- 	/*
--	 * make the new fence visible before incrementing
--	 * fobj->shared_count
-+	 * memory barrier is added by write_seqcount_begin,
-+	 * fobj->shared_count is protected by this lock too
- 	 */
--	smp_wmb();
-+	RCU_INIT_POINTER(fobj->shared[fobj->shared_count], fence);
- 	fobj->shared_count++;
-+
-+	write_seqcount_end(&obj->seq);
-+	preempt_enable();
- }
- 
- static void
-@@ -112,11 +127,12 @@ reservation_object_add_shared_replace(struct reservation_object *obj,
- 				      struct fence *fence)
- {
- 	unsigned i;
-+	struct fence *old_fence = NULL;
- 
- 	fence_get(fence);
- 
- 	if (!old) {
--		fobj->shared[0] = fence;
-+		RCU_INIT_POINTER(fobj->shared[0], fence);
- 		fobj->shared_count = 1;
- 		goto done;
- 	}
-@@ -130,19 +146,38 @@ reservation_object_add_shared_replace(struct reservation_object *obj,
- 	fobj->shared_count = old->shared_count;
- 
- 	for (i = 0; i < old->shared_count; ++i) {
--		if (fence && old->shared[i]->context == fence->context) {
--			fence_put(old->shared[i]);
--			fobj->shared[i] = fence;
--			fence = NULL;
-+		struct fence *check;
-+
-+		check = rcu_dereference_protected(old->shared[i],
-+						reservation_object_held(obj));
-+
-+		if (!old_fence && check->context == fence->context) {
-+			old_fence = check;
-+			RCU_INIT_POINTER(fobj->shared[i], fence);
- 		} else
--			fobj->shared[i] = old->shared[i];
-+			RCU_INIT_POINTER(fobj->shared[i], check);
-+	}
-+	if (!old_fence) {
-+		RCU_INIT_POINTER(fobj->shared[fobj->shared_count], fence);
-+		fobj->shared_count++;
- 	}
--	if (fence)
--		fobj->shared[fobj->shared_count++] = fence;
- 
- done:
--	obj->fence = fobj;
--	kfree(old);
-+	preempt_disable();
-+	write_seqcount_begin(&obj->seq);
-+	/*
-+	 * RCU_INIT_POINTER can be used here,
-+	 * seqcount provides the necessary barriers
-+	 */
-+	RCU_INIT_POINTER(obj->fence, fobj);
-+	write_seqcount_end(&obj->seq);
-+	preempt_enable();
-+
-+	if (old)
-+		kfree_rcu(old, rcu);
-+
-+	if (old_fence)
-+		fence_put(old_fence);
- }
- 
- /*
-@@ -158,7 +193,7 @@ void reservation_object_add_shared_fence(struct reservation_object *obj,
- 	obj->staged = NULL;
- 
- 	if (!fobj) {
--		BUG_ON(old->shared_count == old->shared_max);
-+		BUG_ON(old->shared_count >= old->shared_max);
- 		reservation_object_add_shared_inplace(obj, old, fence);
- 	} else
- 		reservation_object_add_shared_replace(obj, old, fobj, fence);
-@@ -168,26 +203,275 @@ EXPORT_SYMBOL(reservation_object_add_shared_fence);
- void reservation_object_add_excl_fence(struct reservation_object *obj,
- 				       struct fence *fence)
- {
--	struct fence *old_fence = obj->fence_excl;
-+	struct fence *old_fence = reservation_object_get_excl(obj);
- 	struct reservation_object_list *old;
- 	u32 i = 0;
- 
- 	old = reservation_object_get_list(obj);
--	if (old) {
-+	if (old)
- 		i = old->shared_count;
--		old->shared_count = 0;
--	}
- 
- 	if (fence)
- 		fence_get(fence);
- 
--	obj->fence_excl = fence;
-+	preempt_disable();
-+	write_seqcount_begin(&obj->seq);
-+	/* write_seqcount_begin provides the necessary memory barrier */
-+	RCU_INIT_POINTER(obj->fence_excl, fence);
-+	if (old)
-+		old->shared_count = 0;
-+	write_seqcount_end(&obj->seq);
-+	preempt_enable();
- 
- 	/* inplace update, no shared fences */
- 	while (i--)
--		fence_put(old->shared[i]);
-+		fence_put(rcu_dereference_protected(old->shared[i],
-+						reservation_object_held(obj)));
- 
- 	if (old_fence)
- 		fence_put(old_fence);
- }
- EXPORT_SYMBOL(reservation_object_add_excl_fence);
-+
-+int reservation_object_get_fences_rcu(struct reservation_object *obj,
-+				      struct fence **pfence_excl,
-+				      unsigned *pshared_count,
-+				      struct fence ***pshared)
-+{
-+	unsigned shared_count = 0;
-+	unsigned retry = 1;
-+	struct fence **shared = NULL, *fence_excl = NULL;
-+	int ret = 0;
-+
-+	while (retry) {
-+		struct reservation_object_list *fobj;
-+		unsigned seq;
-+
-+		seq = read_seqcount_begin(&obj->seq);
-+
-+		rcu_read_lock();
-+
-+		fobj = rcu_dereference(obj->fence);
-+		if (fobj) {
-+			struct fence **nshared;
-+			size_t sz = sizeof(*shared) * fobj->shared_max;
-+
-+			nshared = krealloc(shared, sz,
-+					   GFP_NOWAIT | __GFP_NOWARN);
-+			if (!nshared) {
-+				rcu_read_unlock();
-+				nshared = krealloc(shared, sz, GFP_KERNEL);
-+				if (nshared) {
-+					shared = nshared;
-+					continue;
-+				}
-+
-+				ret = -ENOMEM;
-+				shared_count = 0;
-+				break;
-+			}
-+			shared = nshared;
-+			memcpy(shared, fobj->shared, sz);
-+			shared_count = fobj->shared_count;
-+		} else
-+			shared_count = 0;
-+		fence_excl = rcu_dereference(obj->fence_excl);
-+
-+		retry = read_seqcount_retry(&obj->seq, seq);
-+		if (retry)
-+			goto unlock;
-+
-+		if (!fence_excl || fence_get_rcu(fence_excl)) {
-+			unsigned i;
-+
-+			for (i = 0; i < shared_count; ++i) {
-+				if (fence_get_rcu(shared[i]))
-+					continue;
-+
-+				/* uh oh, refcount failed, abort and retry */
-+				while (i--)
-+					fence_put(shared[i]);
-+
-+				if (fence_excl) {
-+					fence_put(fence_excl);
-+					fence_excl = NULL;
-+				}
-+
-+				retry = 1;
-+				break;
-+			}
-+		} else
-+			retry = 1;
-+
-+unlock:
-+		rcu_read_unlock();
-+	}
-+	*pshared_count = shared_count;
-+	if (shared_count)
-+		*pshared = shared;
-+	else {
-+		*pshared = NULL;
-+		kfree(shared);
-+	}
-+	*pfence_excl = fence_excl;
-+
-+	return ret;
-+}
-+EXPORT_SYMBOL_GPL(reservation_object_get_fences_rcu);
-+
-+long reservation_object_wait_timeout_rcu(struct reservation_object *obj,
-+					 bool wait_all, bool intr,
-+					 unsigned long timeout)
-+{
-+	struct fence *fence;
-+	unsigned seq, shared_count, i = 0;
-+	long ret = timeout;
-+
-+retry:
-+	fence = NULL;
-+	shared_count = 0;
-+	seq = read_seqcount_begin(&obj->seq);
-+	rcu_read_lock();
-+
-+	if (wait_all) {
-+		struct reservation_object_list *fobj = rcu_dereference(obj->fence);
-+
-+		if (fobj)
-+			shared_count = fobj->shared_count;
-+
-+		if (read_seqcount_retry(&obj->seq, seq))
-+			goto unlock_retry;
-+
-+		for (i = 0; i < shared_count; ++i) {
-+			struct fence *lfence = rcu_dereference(fobj->shared[i]);
-+
-+			if (test_bit(FENCE_FLAG_SIGNALED_BIT, &lfence->flags))
-+				continue;
-+
-+			if (!fence_get_rcu(lfence))
-+				goto unlock_retry;
-+
-+			if (fence_is_signaled(lfence)) {
-+				fence_put(lfence);
-+				continue;
-+			}
-+
-+			fence = lfence;
-+			break;
-+		}
-+	}
-+
-+	if (!shared_count) {
-+		struct fence *fence_excl = rcu_dereference(obj->fence_excl);
-+
-+		if (read_seqcount_retry(&obj->seq, seq))
-+			goto unlock_retry;
-+
-+		if (fence_excl &&
-+		    !test_bit(FENCE_FLAG_SIGNALED_BIT, &fence_excl->flags)) {
-+			if (!fence_get_rcu(fence_excl))
-+				goto unlock_retry;
-+
-+			if (fence_is_signaled(fence_excl))
-+				fence_put(fence_excl);
-+			else
-+				fence = fence_excl;
-+		}
-+	}
-+
-+	rcu_read_unlock();
-+	if (fence) {
-+		ret = fence_wait_timeout(fence, intr, ret);
-+		fence_put(fence);
-+		if (ret > 0 && wait_all && (i + 1 < shared_count))
-+			goto retry;
-+	}
-+	return ret;
-+
-+unlock_retry:
-+	rcu_read_unlock();
-+	goto retry;
-+}
-+EXPORT_SYMBOL_GPL(reservation_object_wait_timeout_rcu);
-+
-+
-+static inline int
-+reservation_object_test_signaled_single(struct fence *passed_fence)
-+{
-+	struct fence *fence, *lfence = passed_fence;
-+	int ret = 1;
-+
-+	if (!test_bit(FENCE_FLAG_SIGNALED_BIT, &lfence->flags)) {
-+		int ret;
-+
-+		fence = fence_get_rcu(lfence);
-+		if (!fence)
-+			return -1;
-+
-+		ret = !!fence_is_signaled(fence);
-+		fence_put(fence);
-+	}
-+	return ret;
-+}
-+
-+bool reservation_object_test_signaled_rcu(struct reservation_object *obj,
-+					  bool test_all)
-+{
-+	unsigned seq, shared_count;
-+	int ret = true;
-+
-+retry:
-+	shared_count = 0;
-+	seq = read_seqcount_begin(&obj->seq);
-+	rcu_read_lock();
-+
-+	if (test_all) {
-+		unsigned i;
-+
-+		struct reservation_object_list *fobj = rcu_dereference(obj->fence);
-+
-+		if (fobj)
-+			shared_count = fobj->shared_count;
-+
-+		if (read_seqcount_retry(&obj->seq, seq))
-+			goto unlock_retry;
-+
-+		for (i = 0; i < shared_count; ++i) {
-+			struct fence *fence = rcu_dereference(fobj->shared[i]);
-+
-+			ret = reservation_object_test_signaled_single(fence);
-+			if (ret < 0)
-+				goto unlock_retry;
-+			else if (!ret)
-+				break;
-+		}
-+
-+		/*
-+		 * There could be a read_seqcount_retry here, but nothing cares
-+		 * about whether it's the old or newer fence pointers that are
-+		 * signaled. That race could still have happened after checking
-+		 * read_seqcount_retry. If you care, use ww_mutex_lock.
-+		 */
-+	}
-+
-+	if (!shared_count) {
-+		struct fence *fence_excl = rcu_dereference(obj->fence_excl);
-+
-+		if (read_seqcount_retry(&obj->seq, seq))
-+			goto unlock_retry;
-+
-+		if (fence_excl) {
-+			ret = reservation_object_test_signaled_single(fence_excl);
-+			if (ret < 0)
-+				goto unlock_retry;
-+		}
-+	}
-+
-+	rcu_read_unlock();
-+	return ret;
-+
-+unlock_retry:
-+	rcu_read_unlock();
-+	goto retry;
-+}
-+EXPORT_SYMBOL_GPL(reservation_object_test_signaled_rcu);
-diff --git a/include/linux/fence.h b/include/linux/fence.h
-index b935cc650123..d174585b874b 100644
---- a/include/linux/fence.h
-+++ b/include/linux/fence.h
-@@ -28,6 +28,7 @@
- #include <linux/kref.h>
- #include <linux/sched.h>
- #include <linux/printk.h>
-+#include <linux/rcupdate.h>
- 
- struct fence;
- struct fence_ops;
-@@ -37,6 +38,7 @@ struct fence_cb;
-  * struct fence - software synchronization primitive
-  * @refcount: refcount for this fence
-  * @ops: fence_ops associated with this fence
-+ * @rcu: used for releasing fence with kfree_rcu
-  * @cb_list: list of all callbacks to call
-  * @lock: spin_lock_irqsave used for locking
-  * @context: execution context this fence belongs to, returned by
-@@ -70,6 +72,7 @@ struct fence_cb;
- struct fence {
- 	struct kref refcount;
- 	const struct fence_ops *ops;
-+	struct rcu_head rcu;
- 	struct list_head cb_list;
- 	spinlock_t *lock;
- 	unsigned context, seqno;
-@@ -192,6 +195,20 @@ static inline struct fence *fence_get(struct fence *fence)
- }
- 
- /**
-+ * fence_get_rcu - get a fence from a reservation_object_list with rcu read lock
-+ * @fence:	[in]	fence to increase refcount of
-+ *
-+ * Function returns NULL if no refcount could be obtained, or the fence.
-+ */
-+static inline struct fence *fence_get_rcu(struct fence *fence)
-+{
-+	if (kref_get_unless_zero(&fence->refcount))
-+		return fence;
-+	else
-+		return NULL;
-+}
-+
-+/**
-  * fence_put - decreases refcount of the fence
-  * @fence:	[in]	fence to reduce refcount of
-  */
-diff --git a/include/linux/reservation.h b/include/linux/reservation.h
-index 2affe67dea6e..5a0b64cf68b4 100644
---- a/include/linux/reservation.h
-+++ b/include/linux/reservation.h
-@@ -42,22 +42,29 @@
- #include <linux/ww_mutex.h>
- #include <linux/fence.h>
- #include <linux/slab.h>
-+#include <linux/seqlock.h>
-+#include <linux/rcupdate.h>
- 
- extern struct ww_class reservation_ww_class;
-+extern struct lock_class_key reservation_seqcount_class;
-+extern const char reservation_seqcount_string[];
- 
- struct reservation_object_list {
-+	struct rcu_head rcu;
- 	u32 shared_count, shared_max;
--	struct fence *shared[];
-+	struct fence __rcu *shared[];
- };
- 
- struct reservation_object {
- 	struct ww_mutex lock;
-+	seqcount_t seq;
- 
--	struct fence *fence_excl;
--	struct reservation_object_list *fence;
-+	struct fence __rcu *fence_excl;
-+	struct reservation_object_list __rcu *fence;
- 	struct reservation_object_list *staged;
- };
- 
-+#define reservation_object_held(obj) lockdep_is_held(&(obj)->lock.base)
- #define reservation_object_assert_held(obj) \
- 	lockdep_assert_held(&(obj)->lock.base)
- 
-@@ -66,8 +73,9 @@ reservation_object_init(struct reservation_object *obj)
- {
- 	ww_mutex_init(&obj->lock, &reservation_ww_class);
- 
--	obj->fence_excl = NULL;
--	obj->fence = NULL;
-+	__seqcount_init(&obj->seq, reservation_seqcount_string, &reservation_seqcount_class);
-+	RCU_INIT_POINTER(obj->fence, NULL);
-+	RCU_INIT_POINTER(obj->fence_excl, NULL);
- 	obj->staged = NULL;
- }
- 
-@@ -76,18 +84,20 @@ reservation_object_fini(struct reservation_object *obj)
- {
- 	int i;
- 	struct reservation_object_list *fobj;
-+	struct fence *excl;
- 
- 	/*
- 	 * This object should be dead and all references must have
--	 * been released to it.
-+	 * been released to it, so no need to be protected with rcu.
- 	 */
--	if (obj->fence_excl)
--		fence_put(obj->fence_excl);
-+	excl = rcu_dereference_protected(obj->fence_excl, 1);
-+	if (excl)
-+		fence_put(excl);
- 
--	fobj = obj->fence;
-+	fobj = rcu_dereference_protected(obj->fence, 1);
- 	if (fobj) {
- 		for (i = 0; i < fobj->shared_count; ++i)
--			fence_put(fobj->shared[i]);
-+			fence_put(rcu_dereference_protected(fobj->shared[i], 1));
- 
- 		kfree(fobj);
- 	}
-@@ -99,17 +109,15 @@ reservation_object_fini(struct reservation_object *obj)
- static inline struct reservation_object_list *
- reservation_object_get_list(struct reservation_object *obj)
- {
--	reservation_object_assert_held(obj);
--
--	return obj->fence;
-+	return rcu_dereference_protected(obj->fence,
-+					 reservation_object_held(obj));
- }
- 
- static inline struct fence *
- reservation_object_get_excl(struct reservation_object *obj)
- {
--	reservation_object_assert_held(obj);
--
--	return obj->fence_excl;
-+	return rcu_dereference_protected(obj->fence_excl,
-+					 reservation_object_held(obj));
- }
- 
- int reservation_object_reserve_shared(struct reservation_object *obj);
-@@ -119,4 +127,16 @@ void reservation_object_add_shared_fence(struct reservation_object *obj,
- void reservation_object_add_excl_fence(struct reservation_object *obj,
- 				       struct fence *fence);
- 
-+int reservation_object_get_fences_rcu(struct reservation_object *obj,
-+				      struct fence **pfence_excl,
-+				      unsigned *pshared_count,
-+				      struct fence ***pshared);
-+
-+long reservation_object_wait_timeout_rcu(struct reservation_object *obj,
-+					 bool wait_all, bool intr,
-+					 unsigned long timeout);
-+
-+bool reservation_object_test_signaled_rcu(struct reservation_object *obj,
-+					  bool test_all);
-+
- #endif /* _LINUX_RESERVATION_H */
+> ---
+>  Documentation/DocBook/device-drivers.tmpl |    3 
+>  MAINTAINERS                               |    4 
+>  drivers/Makefile                          |    1 
+>  drivers/base/Makefile                     |    1 
+>  drivers/base/dma-buf.c                    |  743 -----------------------------
+>  drivers/base/reservation.c                |   39 --
+>  drivers/dma-buf/Makefile                  |    1 
+>  drivers/dma-buf/dma-buf.c                 |  743 +++++++++++++++++++++++++++++
+>  drivers/dma-buf/reservation.c             |   39 ++
+>  9 files changed, 787 insertions(+), 787 deletions(-)
+>  delete mode 100644 drivers/base/dma-buf.c
+>  delete mode 100644 drivers/base/reservation.c
+>  create mode 100644 drivers/dma-buf/Makefile
+>  create mode 100644 drivers/dma-buf/dma-buf.c
+>  create mode 100644 drivers/dma-buf/reservation.c
+> 
+> diff --git a/Documentation/DocBook/device-drivers.tmpl b/Documentation/DocBook/device-drivers.tmpl
+> index cc63f30de166..ac61ebd92875 100644
+> --- a/Documentation/DocBook/device-drivers.tmpl
+> +++ b/Documentation/DocBook/device-drivers.tmpl
+> @@ -128,8 +128,7 @@ X!Edrivers/base/interface.c
+>  !Edrivers/base/bus.c
+>       </sect1>
+>       <sect1><title>Device Drivers DMA Management</title>
+> -!Edrivers/base/dma-buf.c
+> -!Edrivers/base/reservation.c
+> +!Edrivers/dma-buf/dma-buf.c
+>  !Iinclude/linux/reservation.h
+>  !Edrivers/base/dma-coherent.c
+>  !Edrivers/base/dma-mapping.c
+> diff --git a/MAINTAINERS b/MAINTAINERS
+> index 134483f206e4..c948e53a4ee6 100644
+> --- a/MAINTAINERS
+> +++ b/MAINTAINERS
+> @@ -2882,8 +2882,8 @@ S:	Maintained
+>  L:	linux-media@vger.kernel.org
+>  L:	dri-devel@lists.freedesktop.org
+>  L:	linaro-mm-sig@lists.linaro.org
+> -F:	drivers/base/dma-buf*
+> -F:	include/linux/dma-buf*
+> +F:	drivers/dma-buf/
+> +F:	include/linux/dma-buf* include/linux/reservation.h
+>  F:	Documentation/dma-buf-sharing.txt
+>  T:	git git://git.linaro.org/people/sumitsemwal/linux-dma-buf.git
+>  
+> diff --git a/drivers/Makefile b/drivers/Makefile
+> index f98b50d8251d..c00337be5351 100644
+> --- a/drivers/Makefile
+> +++ b/drivers/Makefile
+> @@ -61,6 +61,7 @@ obj-$(CONFIG_FB_INTEL)          += video/fbdev/intelfb/
+>  
+>  obj-$(CONFIG_PARPORT)		+= parport/
+>  obj-y				+= base/ block/ misc/ mfd/ nfc/
+> +obj-$(CONFIG_DMA_SHARED_BUFFER) += dma-buf/
+>  obj-$(CONFIG_NUBUS)		+= nubus/
+>  obj-y				+= macintosh/
+>  obj-$(CONFIG_IDE)		+= ide/
+> diff --git a/drivers/base/Makefile b/drivers/base/Makefile
+> index 04b314e0fa51..4aab26ec0292 100644
+> --- a/drivers/base/Makefile
+> +++ b/drivers/base/Makefile
+> @@ -10,7 +10,6 @@ obj-$(CONFIG_DMA_CMA) += dma-contiguous.o
+>  obj-y			+= power/
+>  obj-$(CONFIG_HAS_DMA)	+= dma-mapping.o
+>  obj-$(CONFIG_HAVE_GENERIC_DMA_COHERENT) += dma-coherent.o
+> -obj-$(CONFIG_DMA_SHARED_BUFFER) += dma-buf.o reservation.o
+>  obj-$(CONFIG_ISA)	+= isa.o
+>  obj-$(CONFIG_FW_LOADER)	+= firmware_class.o
+>  obj-$(CONFIG_NUMA)	+= node.o
+> diff --git a/drivers/base/dma-buf.c b/drivers/base/dma-buf.c
+> deleted file mode 100644
+> index 840c7fa80983..000000000000
+> --- a/drivers/base/dma-buf.c
+> +++ /dev/null
+> @@ -1,743 +0,0 @@
+> -/*
+> - * Framework for buffer objects that can be shared across devices/subsystems.
+> - *
+> - * Copyright(C) 2011 Linaro Limited. All rights reserved.
+> - * Author: Sumit Semwal <sumit.semwal@ti.com>
+> - *
+> - * Many thanks to linaro-mm-sig list, and specially
+> - * Arnd Bergmann <arnd@arndb.de>, Rob Clark <rob@ti.com> and
+> - * Daniel Vetter <daniel@ffwll.ch> for their support in creation and
+> - * refining of this idea.
+> - *
+> - * This program is free software; you can redistribute it and/or modify it
+> - * under the terms of the GNU General Public License version 2 as published by
+> - * the Free Software Foundation.
+> - *
+> - * This program is distributed in the hope that it will be useful, but WITHOUT
+> - * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+> - * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
+> - * more details.
+> - *
+> - * You should have received a copy of the GNU General Public License along with
+> - * this program.  If not, see <http://www.gnu.org/licenses/>.
+> - */
+> -
+> -#include <linux/fs.h>
+> -#include <linux/slab.h>
+> -#include <linux/dma-buf.h>
+> -#include <linux/anon_inodes.h>
+> -#include <linux/export.h>
+> -#include <linux/debugfs.h>
+> -#include <linux/seq_file.h>
+> -
+> -static inline int is_dma_buf_file(struct file *);
+> -
+> -struct dma_buf_list {
+> -	struct list_head head;
+> -	struct mutex lock;
+> -};
+> -
+> -static struct dma_buf_list db_list;
+> -
+> -static int dma_buf_release(struct inode *inode, struct file *file)
+> -{
+> -	struct dma_buf *dmabuf;
+> -
+> -	if (!is_dma_buf_file(file))
+> -		return -EINVAL;
+> -
+> -	dmabuf = file->private_data;
+> -
+> -	BUG_ON(dmabuf->vmapping_counter);
+> -
+> -	dmabuf->ops->release(dmabuf);
+> -
+> -	mutex_lock(&db_list.lock);
+> -	list_del(&dmabuf->list_node);
+> -	mutex_unlock(&db_list.lock);
+> -
+> -	kfree(dmabuf);
+> -	return 0;
+> -}
+> -
+> -static int dma_buf_mmap_internal(struct file *file, struct vm_area_struct *vma)
+> -{
+> -	struct dma_buf *dmabuf;
+> -
+> -	if (!is_dma_buf_file(file))
+> -		return -EINVAL;
+> -
+> -	dmabuf = file->private_data;
+> -
+> -	/* check for overflowing the buffer's size */
+> -	if (vma->vm_pgoff + ((vma->vm_end - vma->vm_start) >> PAGE_SHIFT) >
+> -	    dmabuf->size >> PAGE_SHIFT)
+> -		return -EINVAL;
+> -
+> -	return dmabuf->ops->mmap(dmabuf, vma);
+> -}
+> -
+> -static loff_t dma_buf_llseek(struct file *file, loff_t offset, int whence)
+> -{
+> -	struct dma_buf *dmabuf;
+> -	loff_t base;
+> -
+> -	if (!is_dma_buf_file(file))
+> -		return -EBADF;
+> -
+> -	dmabuf = file->private_data;
+> -
+> -	/* only support discovering the end of the buffer,
+> -	   but also allow SEEK_SET to maintain the idiomatic
+> -	   SEEK_END(0), SEEK_CUR(0) pattern */
+> -	if (whence == SEEK_END)
+> -		base = dmabuf->size;
+> -	else if (whence == SEEK_SET)
+> -		base = 0;
+> -	else
+> -		return -EINVAL;
+> -
+> -	if (offset != 0)
+> -		return -EINVAL;
+> -
+> -	return base + offset;
+> -}
+> -
+> -static const struct file_operations dma_buf_fops = {
+> -	.release	= dma_buf_release,
+> -	.mmap		= dma_buf_mmap_internal,
+> -	.llseek		= dma_buf_llseek,
+> -};
+> -
+> -/*
+> - * is_dma_buf_file - Check if struct file* is associated with dma_buf
+> - */
+> -static inline int is_dma_buf_file(struct file *file)
+> -{
+> -	return file->f_op == &dma_buf_fops;
+> -}
+> -
+> -/**
+> - * dma_buf_export_named - Creates a new dma_buf, and associates an anon file
+> - * with this buffer, so it can be exported.
+> - * Also connect the allocator specific data and ops to the buffer.
+> - * Additionally, provide a name string for exporter; useful in debugging.
+> - *
+> - * @priv:	[in]	Attach private data of allocator to this buffer
+> - * @ops:	[in]	Attach allocator-defined dma buf ops to the new buffer.
+> - * @size:	[in]	Size of the buffer
+> - * @flags:	[in]	mode flags for the file.
+> - * @exp_name:	[in]	name of the exporting module - useful for debugging.
+> - *
+> - * Returns, on success, a newly created dma_buf object, which wraps the
+> - * supplied private data and operations for dma_buf_ops. On either missing
+> - * ops, or error in allocating struct dma_buf, will return negative error.
+> - *
+> - */
+> -struct dma_buf *dma_buf_export_named(void *priv, const struct dma_buf_ops *ops,
+> -				size_t size, int flags, const char *exp_name)
+> -{
+> -	struct dma_buf *dmabuf;
+> -	struct file *file;
+> -
+> -	if (WARN_ON(!priv || !ops
+> -			  || !ops->map_dma_buf
+> -			  || !ops->unmap_dma_buf
+> -			  || !ops->release
+> -			  || !ops->kmap_atomic
+> -			  || !ops->kmap
+> -			  || !ops->mmap)) {
+> -		return ERR_PTR(-EINVAL);
+> -	}
+> -
+> -	dmabuf = kzalloc(sizeof(struct dma_buf), GFP_KERNEL);
+> -	if (dmabuf == NULL)
+> -		return ERR_PTR(-ENOMEM);
+> -
+> -	dmabuf->priv = priv;
+> -	dmabuf->ops = ops;
+> -	dmabuf->size = size;
+> -	dmabuf->exp_name = exp_name;
+> -
+> -	file = anon_inode_getfile("dmabuf", &dma_buf_fops, dmabuf, flags);
+> -	if (IS_ERR(file)) {
+> -		kfree(dmabuf);
+> -		return ERR_CAST(file);
+> -	}
+> -
+> -	file->f_mode |= FMODE_LSEEK;
+> -	dmabuf->file = file;
+> -
+> -	mutex_init(&dmabuf->lock);
+> -	INIT_LIST_HEAD(&dmabuf->attachments);
+> -
+> -	mutex_lock(&db_list.lock);
+> -	list_add(&dmabuf->list_node, &db_list.head);
+> -	mutex_unlock(&db_list.lock);
+> -
+> -	return dmabuf;
+> -}
+> -EXPORT_SYMBOL_GPL(dma_buf_export_named);
+> -
+> -
+> -/**
+> - * dma_buf_fd - returns a file descriptor for the given dma_buf
+> - * @dmabuf:	[in]	pointer to dma_buf for which fd is required.
+> - * @flags:      [in]    flags to give to fd
+> - *
+> - * On success, returns an associated 'fd'. Else, returns error.
+> - */
+> -int dma_buf_fd(struct dma_buf *dmabuf, int flags)
+> -{
+> -	int fd;
+> -
+> -	if (!dmabuf || !dmabuf->file)
+> -		return -EINVAL;
+> -
+> -	fd = get_unused_fd_flags(flags);
+> -	if (fd < 0)
+> -		return fd;
+> -
+> -	fd_install(fd, dmabuf->file);
+> -
+> -	return fd;
+> -}
+> -EXPORT_SYMBOL_GPL(dma_buf_fd);
+> -
+> -/**
+> - * dma_buf_get - returns the dma_buf structure related to an fd
+> - * @fd:	[in]	fd associated with the dma_buf to be returned
+> - *
+> - * On success, returns the dma_buf structure associated with an fd; uses
+> - * file's refcounting done by fget to increase refcount. returns ERR_PTR
+> - * otherwise.
+> - */
+> -struct dma_buf *dma_buf_get(int fd)
+> -{
+> -	struct file *file;
+> -
+> -	file = fget(fd);
+> -
+> -	if (!file)
+> -		return ERR_PTR(-EBADF);
+> -
+> -	if (!is_dma_buf_file(file)) {
+> -		fput(file);
+> -		return ERR_PTR(-EINVAL);
+> -	}
+> -
+> -	return file->private_data;
+> -}
+> -EXPORT_SYMBOL_GPL(dma_buf_get);
+> -
+> -/**
+> - * dma_buf_put - decreases refcount of the buffer
+> - * @dmabuf:	[in]	buffer to reduce refcount of
+> - *
+> - * Uses file's refcounting done implicitly by fput()
+> - */
+> -void dma_buf_put(struct dma_buf *dmabuf)
+> -{
+> -	if (WARN_ON(!dmabuf || !dmabuf->file))
+> -		return;
+> -
+> -	fput(dmabuf->file);
+> -}
+> -EXPORT_SYMBOL_GPL(dma_buf_put);
+> -
+> -/**
+> - * dma_buf_attach - Add the device to dma_buf's attachments list; optionally,
+> - * calls attach() of dma_buf_ops to allow device-specific attach functionality
+> - * @dmabuf:	[in]	buffer to attach device to.
+> - * @dev:	[in]	device to be attached.
+> - *
+> - * Returns struct dma_buf_attachment * for this attachment; returns ERR_PTR on
+> - * error.
+> - */
+> -struct dma_buf_attachment *dma_buf_attach(struct dma_buf *dmabuf,
+> -					  struct device *dev)
+> -{
+> -	struct dma_buf_attachment *attach;
+> -	int ret;
+> -
+> -	if (WARN_ON(!dmabuf || !dev))
+> -		return ERR_PTR(-EINVAL);
+> -
+> -	attach = kzalloc(sizeof(struct dma_buf_attachment), GFP_KERNEL);
+> -	if (attach == NULL)
+> -		return ERR_PTR(-ENOMEM);
+> -
+> -	attach->dev = dev;
+> -	attach->dmabuf = dmabuf;
+> -
+> -	mutex_lock(&dmabuf->lock);
+> -
+> -	if (dmabuf->ops->attach) {
+> -		ret = dmabuf->ops->attach(dmabuf, dev, attach);
+> -		if (ret)
+> -			goto err_attach;
+> -	}
+> -	list_add(&attach->node, &dmabuf->attachments);
+> -
+> -	mutex_unlock(&dmabuf->lock);
+> -	return attach;
+> -
+> -err_attach:
+> -	kfree(attach);
+> -	mutex_unlock(&dmabuf->lock);
+> -	return ERR_PTR(ret);
+> -}
+> -EXPORT_SYMBOL_GPL(dma_buf_attach);
+> -
+> -/**
+> - * dma_buf_detach - Remove the given attachment from dmabuf's attachments list;
+> - * optionally calls detach() of dma_buf_ops for device-specific detach
+> - * @dmabuf:	[in]	buffer to detach from.
+> - * @attach:	[in]	attachment to be detached; is free'd after this call.
+> - *
+> - */
+> -void dma_buf_detach(struct dma_buf *dmabuf, struct dma_buf_attachment *attach)
+> -{
+> -	if (WARN_ON(!dmabuf || !attach))
+> -		return;
+> -
+> -	mutex_lock(&dmabuf->lock);
+> -	list_del(&attach->node);
+> -	if (dmabuf->ops->detach)
+> -		dmabuf->ops->detach(dmabuf, attach);
+> -
+> -	mutex_unlock(&dmabuf->lock);
+> -	kfree(attach);
+> -}
+> -EXPORT_SYMBOL_GPL(dma_buf_detach);
+> -
+> -/**
+> - * dma_buf_map_attachment - Returns the scatterlist table of the attachment;
+> - * mapped into _device_ address space. Is a wrapper for map_dma_buf() of the
+> - * dma_buf_ops.
+> - * @attach:	[in]	attachment whose scatterlist is to be returned
+> - * @direction:	[in]	direction of DMA transfer
+> - *
+> - * Returns sg_table containing the scatterlist to be returned; returns ERR_PTR
+> - * on error.
+> - */
+> -struct sg_table *dma_buf_map_attachment(struct dma_buf_attachment *attach,
+> -					enum dma_data_direction direction)
+> -{
+> -	struct sg_table *sg_table = ERR_PTR(-EINVAL);
+> -
+> -	might_sleep();
+> -
+> -	if (WARN_ON(!attach || !attach->dmabuf))
+> -		return ERR_PTR(-EINVAL);
+> -
+> -	sg_table = attach->dmabuf->ops->map_dma_buf(attach, direction);
+> -	if (!sg_table)
+> -		sg_table = ERR_PTR(-ENOMEM);
+> -
+> -	return sg_table;
+> -}
+> -EXPORT_SYMBOL_GPL(dma_buf_map_attachment);
+> -
+> -/**
+> - * dma_buf_unmap_attachment - unmaps and decreases usecount of the buffer;might
+> - * deallocate the scatterlist associated. Is a wrapper for unmap_dma_buf() of
+> - * dma_buf_ops.
+> - * @attach:	[in]	attachment to unmap buffer from
+> - * @sg_table:	[in]	scatterlist info of the buffer to unmap
+> - * @direction:  [in]    direction of DMA transfer
+> - *
+> - */
+> -void dma_buf_unmap_attachment(struct dma_buf_attachment *attach,
+> -				struct sg_table *sg_table,
+> -				enum dma_data_direction direction)
+> -{
+> -	might_sleep();
+> -
+> -	if (WARN_ON(!attach || !attach->dmabuf || !sg_table))
+> -		return;
+> -
+> -	attach->dmabuf->ops->unmap_dma_buf(attach, sg_table,
+> -						direction);
+> -}
+> -EXPORT_SYMBOL_GPL(dma_buf_unmap_attachment);
+> -
+> -
+> -/**
+> - * dma_buf_begin_cpu_access - Must be called before accessing a dma_buf from the
+> - * cpu in the kernel context. Calls begin_cpu_access to allow exporter-specific
+> - * preparations. Coherency is only guaranteed in the specified range for the
+> - * specified access direction.
+> - * @dmabuf:	[in]	buffer to prepare cpu access for.
+> - * @start:	[in]	start of range for cpu access.
+> - * @len:	[in]	length of range for cpu access.
+> - * @direction:	[in]	length of range for cpu access.
+> - *
+> - * Can return negative error values, returns 0 on success.
+> - */
+> -int dma_buf_begin_cpu_access(struct dma_buf *dmabuf, size_t start, size_t len,
+> -			     enum dma_data_direction direction)
+> -{
+> -	int ret = 0;
+> -
+> -	if (WARN_ON(!dmabuf))
+> -		return -EINVAL;
+> -
+> -	if (dmabuf->ops->begin_cpu_access)
+> -		ret = dmabuf->ops->begin_cpu_access(dmabuf, start, len, direction);
+> -
+> -	return ret;
+> -}
+> -EXPORT_SYMBOL_GPL(dma_buf_begin_cpu_access);
+> -
+> -/**
+> - * dma_buf_end_cpu_access - Must be called after accessing a dma_buf from the
+> - * cpu in the kernel context. Calls end_cpu_access to allow exporter-specific
+> - * actions. Coherency is only guaranteed in the specified range for the
+> - * specified access direction.
+> - * @dmabuf:	[in]	buffer to complete cpu access for.
+> - * @start:	[in]	start of range for cpu access.
+> - * @len:	[in]	length of range for cpu access.
+> - * @direction:	[in]	length of range for cpu access.
+> - *
+> - * This call must always succeed.
+> - */
+> -void dma_buf_end_cpu_access(struct dma_buf *dmabuf, size_t start, size_t len,
+> -			    enum dma_data_direction direction)
+> -{
+> -	WARN_ON(!dmabuf);
+> -
+> -	if (dmabuf->ops->end_cpu_access)
+> -		dmabuf->ops->end_cpu_access(dmabuf, start, len, direction);
+> -}
+> -EXPORT_SYMBOL_GPL(dma_buf_end_cpu_access);
+> -
+> -/**
+> - * dma_buf_kmap_atomic - Map a page of the buffer object into kernel address
+> - * space. The same restrictions as for kmap_atomic and friends apply.
+> - * @dmabuf:	[in]	buffer to map page from.
+> - * @page_num:	[in]	page in PAGE_SIZE units to map.
+> - *
+> - * This call must always succeed, any necessary preparations that might fail
+> - * need to be done in begin_cpu_access.
+> - */
+> -void *dma_buf_kmap_atomic(struct dma_buf *dmabuf, unsigned long page_num)
+> -{
+> -	WARN_ON(!dmabuf);
+> -
+> -	return dmabuf->ops->kmap_atomic(dmabuf, page_num);
+> -}
+> -EXPORT_SYMBOL_GPL(dma_buf_kmap_atomic);
+> -
+> -/**
+> - * dma_buf_kunmap_atomic - Unmap a page obtained by dma_buf_kmap_atomic.
+> - * @dmabuf:	[in]	buffer to unmap page from.
+> - * @page_num:	[in]	page in PAGE_SIZE units to unmap.
+> - * @vaddr:	[in]	kernel space pointer obtained from dma_buf_kmap_atomic.
+> - *
+> - * This call must always succeed.
+> - */
+> -void dma_buf_kunmap_atomic(struct dma_buf *dmabuf, unsigned long page_num,
+> -			   void *vaddr)
+> -{
+> -	WARN_ON(!dmabuf);
+> -
+> -	if (dmabuf->ops->kunmap_atomic)
+> -		dmabuf->ops->kunmap_atomic(dmabuf, page_num, vaddr);
+> -}
+> -EXPORT_SYMBOL_GPL(dma_buf_kunmap_atomic);
+> -
+> -/**
+> - * dma_buf_kmap - Map a page of the buffer object into kernel address space. The
+> - * same restrictions as for kmap and friends apply.
+> - * @dmabuf:	[in]	buffer to map page from.
+> - * @page_num:	[in]	page in PAGE_SIZE units to map.
+> - *
+> - * This call must always succeed, any necessary preparations that might fail
+> - * need to be done in begin_cpu_access.
+> - */
+> -void *dma_buf_kmap(struct dma_buf *dmabuf, unsigned long page_num)
+> -{
+> -	WARN_ON(!dmabuf);
+> -
+> -	return dmabuf->ops->kmap(dmabuf, page_num);
+> -}
+> -EXPORT_SYMBOL_GPL(dma_buf_kmap);
+> -
+> -/**
+> - * dma_buf_kunmap - Unmap a page obtained by dma_buf_kmap.
+> - * @dmabuf:	[in]	buffer to unmap page from.
+> - * @page_num:	[in]	page in PAGE_SIZE units to unmap.
+> - * @vaddr:	[in]	kernel space pointer obtained from dma_buf_kmap.
+> - *
+> - * This call must always succeed.
+> - */
+> -void dma_buf_kunmap(struct dma_buf *dmabuf, unsigned long page_num,
+> -		    void *vaddr)
+> -{
+> -	WARN_ON(!dmabuf);
+> -
+> -	if (dmabuf->ops->kunmap)
+> -		dmabuf->ops->kunmap(dmabuf, page_num, vaddr);
+> -}
+> -EXPORT_SYMBOL_GPL(dma_buf_kunmap);
+> -
+> -
+> -/**
+> - * dma_buf_mmap - Setup up a userspace mmap with the given vma
+> - * @dmabuf:	[in]	buffer that should back the vma
+> - * @vma:	[in]	vma for the mmap
+> - * @pgoff:	[in]	offset in pages where this mmap should start within the
+> - * 			dma-buf buffer.
+> - *
+> - * This function adjusts the passed in vma so that it points at the file of the
+> - * dma_buf operation. It also adjusts the starting pgoff and does bounds
+> - * checking on the size of the vma. Then it calls the exporters mmap function to
+> - * set up the mapping.
+> - *
+> - * Can return negative error values, returns 0 on success.
+> - */
+> -int dma_buf_mmap(struct dma_buf *dmabuf, struct vm_area_struct *vma,
+> -		 unsigned long pgoff)
+> -{
+> -	struct file *oldfile;
+> -	int ret;
+> -
+> -	if (WARN_ON(!dmabuf || !vma))
+> -		return -EINVAL;
+> -
+> -	/* check for offset overflow */
+> -	if (pgoff + ((vma->vm_end - vma->vm_start) >> PAGE_SHIFT) < pgoff)
+> -		return -EOVERFLOW;
+> -
+> -	/* check for overflowing the buffer's size */
+> -	if (pgoff + ((vma->vm_end - vma->vm_start) >> PAGE_SHIFT) >
+> -	    dmabuf->size >> PAGE_SHIFT)
+> -		return -EINVAL;
+> -
+> -	/* readjust the vma */
+> -	get_file(dmabuf->file);
+> -	oldfile = vma->vm_file;
+> -	vma->vm_file = dmabuf->file;
+> -	vma->vm_pgoff = pgoff;
+> -
+> -	ret = dmabuf->ops->mmap(dmabuf, vma);
+> -	if (ret) {
+> -		/* restore old parameters on failure */
+> -		vma->vm_file = oldfile;
+> -		fput(dmabuf->file);
+> -	} else {
+> -		if (oldfile)
+> -			fput(oldfile);
+> -	}
+> -	return ret;
+> -
+> -}
+> -EXPORT_SYMBOL_GPL(dma_buf_mmap);
+> -
+> -/**
+> - * dma_buf_vmap - Create virtual mapping for the buffer object into kernel
+> - * address space. Same restrictions as for vmap and friends apply.
+> - * @dmabuf:	[in]	buffer to vmap
+> - *
+> - * This call may fail due to lack of virtual mapping address space.
+> - * These calls are optional in drivers. The intended use for them
+> - * is for mapping objects linear in kernel space for high use objects.
+> - * Please attempt to use kmap/kunmap before thinking about these interfaces.
+> - *
+> - * Returns NULL on error.
+> - */
+> -void *dma_buf_vmap(struct dma_buf *dmabuf)
+> -{
+> -	void *ptr;
+> -
+> -	if (WARN_ON(!dmabuf))
+> -		return NULL;
+> -
+> -	if (!dmabuf->ops->vmap)
+> -		return NULL;
+> -
+> -	mutex_lock(&dmabuf->lock);
+> -	if (dmabuf->vmapping_counter) {
+> -		dmabuf->vmapping_counter++;
+> -		BUG_ON(!dmabuf->vmap_ptr);
+> -		ptr = dmabuf->vmap_ptr;
+> -		goto out_unlock;
+> -	}
+> -
+> -	BUG_ON(dmabuf->vmap_ptr);
+> -
+> -	ptr = dmabuf->ops->vmap(dmabuf);
+> -	if (WARN_ON_ONCE(IS_ERR(ptr)))
+> -		ptr = NULL;
+> -	if (!ptr)
+> -		goto out_unlock;
+> -
+> -	dmabuf->vmap_ptr = ptr;
+> -	dmabuf->vmapping_counter = 1;
+> -
+> -out_unlock:
+> -	mutex_unlock(&dmabuf->lock);
+> -	return ptr;
+> -}
+> -EXPORT_SYMBOL_GPL(dma_buf_vmap);
+> -
+> -/**
+> - * dma_buf_vunmap - Unmap a vmap obtained by dma_buf_vmap.
+> - * @dmabuf:	[in]	buffer to vunmap
+> - * @vaddr:	[in]	vmap to vunmap
+> - */
+> -void dma_buf_vunmap(struct dma_buf *dmabuf, void *vaddr)
+> -{
+> -	if (WARN_ON(!dmabuf))
+> -		return;
+> -
+> -	BUG_ON(!dmabuf->vmap_ptr);
+> -	BUG_ON(dmabuf->vmapping_counter == 0);
+> -	BUG_ON(dmabuf->vmap_ptr != vaddr);
+> -
+> -	mutex_lock(&dmabuf->lock);
+> -	if (--dmabuf->vmapping_counter == 0) {
+> -		if (dmabuf->ops->vunmap)
+> -			dmabuf->ops->vunmap(dmabuf, vaddr);
+> -		dmabuf->vmap_ptr = NULL;
+> -	}
+> -	mutex_unlock(&dmabuf->lock);
+> -}
+> -EXPORT_SYMBOL_GPL(dma_buf_vunmap);
+> -
+> -#ifdef CONFIG_DEBUG_FS
+> -static int dma_buf_describe(struct seq_file *s)
+> -{
+> -	int ret;
+> -	struct dma_buf *buf_obj;
+> -	struct dma_buf_attachment *attach_obj;
+> -	int count = 0, attach_count;
+> -	size_t size = 0;
+> -
+> -	ret = mutex_lock_interruptible(&db_list.lock);
+> -
+> -	if (ret)
+> -		return ret;
+> -
+> -	seq_puts(s, "\nDma-buf Objects:\n");
+> -	seq_puts(s, "size\tflags\tmode\tcount\texp_name\n");
+> -
+> -	list_for_each_entry(buf_obj, &db_list.head, list_node) {
+> -		ret = mutex_lock_interruptible(&buf_obj->lock);
+> -
+> -		if (ret) {
+> -			seq_puts(s,
+> -				 "\tERROR locking buffer object: skipping\n");
+> -			continue;
+> -		}
+> -
+> -		seq_printf(s, "%08zu\t%08x\t%08x\t%08ld\t%s\n",
+> -				buf_obj->size,
+> -				buf_obj->file->f_flags, buf_obj->file->f_mode,
+> -				(long)(buf_obj->file->f_count.counter),
+> -				buf_obj->exp_name);
+> -
+> -		seq_puts(s, "\tAttached Devices:\n");
+> -		attach_count = 0;
+> -
+> -		list_for_each_entry(attach_obj, &buf_obj->attachments, node) {
+> -			seq_puts(s, "\t");
+> -
+> -			seq_printf(s, "%s\n", dev_name(attach_obj->dev));
+> -			attach_count++;
+> -		}
+> -
+> -		seq_printf(s, "Total %d devices attached\n\n",
+> -				attach_count);
+> -
+> -		count++;
+> -		size += buf_obj->size;
+> -		mutex_unlock(&buf_obj->lock);
+> -	}
+> -
+> -	seq_printf(s, "\nTotal %d objects, %zu bytes\n", count, size);
+> -
+> -	mutex_unlock(&db_list.lock);
+> -	return 0;
+> -}
+> -
+> -static int dma_buf_show(struct seq_file *s, void *unused)
+> -{
+> -	void (*func)(struct seq_file *) = s->private;
+> -	func(s);
+> -	return 0;
+> -}
+> -
+> -static int dma_buf_debug_open(struct inode *inode, struct file *file)
+> -{
+> -	return single_open(file, dma_buf_show, inode->i_private);
+> -}
+> -
+> -static const struct file_operations dma_buf_debug_fops = {
+> -	.open           = dma_buf_debug_open,
+> -	.read           = seq_read,
+> -	.llseek         = seq_lseek,
+> -	.release        = single_release,
+> -};
+> -
+> -static struct dentry *dma_buf_debugfs_dir;
+> -
+> -static int dma_buf_init_debugfs(void)
+> -{
+> -	int err = 0;
+> -	dma_buf_debugfs_dir = debugfs_create_dir("dma_buf", NULL);
+> -	if (IS_ERR(dma_buf_debugfs_dir)) {
+> -		err = PTR_ERR(dma_buf_debugfs_dir);
+> -		dma_buf_debugfs_dir = NULL;
+> -		return err;
+> -	}
+> -
+> -	err = dma_buf_debugfs_create_file("bufinfo", dma_buf_describe);
+> -
+> -	if (err)
+> -		pr_debug("dma_buf: debugfs: failed to create node bufinfo\n");
+> -
+> -	return err;
+> -}
+> -
+> -static void dma_buf_uninit_debugfs(void)
+> -{
+> -	if (dma_buf_debugfs_dir)
+> -		debugfs_remove_recursive(dma_buf_debugfs_dir);
+> -}
+> -
+> -int dma_buf_debugfs_create_file(const char *name,
+> -				int (*write)(struct seq_file *))
+> -{
+> -	struct dentry *d;
+> -
+> -	d = debugfs_create_file(name, S_IRUGO, dma_buf_debugfs_dir,
+> -			write, &dma_buf_debug_fops);
+> -
+> -	return PTR_ERR_OR_ZERO(d);
+> -}
+> -#else
+> -static inline int dma_buf_init_debugfs(void)
+> -{
+> -	return 0;
+> -}
+> -static inline void dma_buf_uninit_debugfs(void)
+> -{
+> -}
+> -#endif
+> -
+> -static int __init dma_buf_init(void)
+> -{
+> -	mutex_init(&db_list.lock);
+> -	INIT_LIST_HEAD(&db_list.head);
+> -	dma_buf_init_debugfs();
+> -	return 0;
+> -}
+> -subsys_initcall(dma_buf_init);
+> -
+> -static void __exit dma_buf_deinit(void)
+> -{
+> -	dma_buf_uninit_debugfs();
+> -}
+> -__exitcall(dma_buf_deinit);
+> diff --git a/drivers/base/reservation.c b/drivers/base/reservation.c
+> deleted file mode 100644
+> index a73fbf3b8e56..000000000000
+> --- a/drivers/base/reservation.c
+> +++ /dev/null
+> @@ -1,39 +0,0 @@
+> -/*
+> - * Copyright (C) 2012-2013 Canonical Ltd
+> - *
+> - * Based on bo.c which bears the following copyright notice,
+> - * but is dual licensed:
+> - *
+> - * Copyright (c) 2006-2009 VMware, Inc., Palo Alto, CA., USA
+> - * All Rights Reserved.
+> - *
+> - * Permission is hereby granted, free of charge, to any person obtaining a
+> - * copy of this software and associated documentation files (the
+> - * "Software"), to deal in the Software without restriction, including
+> - * without limitation the rights to use, copy, modify, merge, publish,
+> - * distribute, sub license, and/or sell copies of the Software, and to
+> - * permit persons to whom the Software is furnished to do so, subject to
+> - * the following conditions:
+> - *
+> - * The above copyright notice and this permission notice (including the
+> - * next paragraph) shall be included in all copies or substantial portions
+> - * of the Software.
+> - *
+> - * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+> - * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+> - * FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT. IN NO EVENT SHALL
+> - * THE COPYRIGHT HOLDERS, AUTHORS AND/OR ITS SUPPLIERS BE LIABLE FOR ANY CLAIM,
+> - * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+> - * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
+> - * USE OR OTHER DEALINGS IN THE SOFTWARE.
+> - *
+> - **************************************************************************/
+> -/*
+> - * Authors: Thomas Hellstrom <thellstrom-at-vmware-dot-com>
+> - */
+> -
+> -#include <linux/reservation.h>
+> -#include <linux/export.h>
+> -
+> -DEFINE_WW_CLASS(reservation_ww_class);
+> -EXPORT_SYMBOL(reservation_ww_class);
+> diff --git a/drivers/dma-buf/Makefile b/drivers/dma-buf/Makefile
+> new file mode 100644
+> index 000000000000..4a4f4c9bacd0
+> --- /dev/null
+> +++ b/drivers/dma-buf/Makefile
+> @@ -0,0 +1 @@
+> +obj-y := dma-buf.o reservation.o
+> diff --git a/drivers/dma-buf/dma-buf.c b/drivers/dma-buf/dma-buf.c
+> new file mode 100644
+> index 000000000000..840c7fa80983
+> --- /dev/null
+> +++ b/drivers/dma-buf/dma-buf.c
+> @@ -0,0 +1,743 @@
+> +/*
+> + * Framework for buffer objects that can be shared across devices/subsystems.
+> + *
+> + * Copyright(C) 2011 Linaro Limited. All rights reserved.
+> + * Author: Sumit Semwal <sumit.semwal@ti.com>
+> + *
+> + * Many thanks to linaro-mm-sig list, and specially
+> + * Arnd Bergmann <arnd@arndb.de>, Rob Clark <rob@ti.com> and
+> + * Daniel Vetter <daniel@ffwll.ch> for their support in creation and
+> + * refining of this idea.
+> + *
+> + * This program is free software; you can redistribute it and/or modify it
+> + * under the terms of the GNU General Public License version 2 as published by
+> + * the Free Software Foundation.
+> + *
+> + * This program is distributed in the hope that it will be useful, but WITHOUT
+> + * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+> + * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
+> + * more details.
+> + *
+> + * You should have received a copy of the GNU General Public License along with
+> + * this program.  If not, see <http://www.gnu.org/licenses/>.
+> + */
+> +
+> +#include <linux/fs.h>
+> +#include <linux/slab.h>
+> +#include <linux/dma-buf.h>
+> +#include <linux/anon_inodes.h>
+> +#include <linux/export.h>
+> +#include <linux/debugfs.h>
+> +#include <linux/seq_file.h>
+> +
+> +static inline int is_dma_buf_file(struct file *);
+> +
+> +struct dma_buf_list {
+> +	struct list_head head;
+> +	struct mutex lock;
+> +};
+> +
+> +static struct dma_buf_list db_list;
+> +
+> +static int dma_buf_release(struct inode *inode, struct file *file)
+> +{
+> +	struct dma_buf *dmabuf;
+> +
+> +	if (!is_dma_buf_file(file))
+> +		return -EINVAL;
+> +
+> +	dmabuf = file->private_data;
+> +
+> +	BUG_ON(dmabuf->vmapping_counter);
+> +
+> +	dmabuf->ops->release(dmabuf);
+> +
+> +	mutex_lock(&db_list.lock);
+> +	list_del(&dmabuf->list_node);
+> +	mutex_unlock(&db_list.lock);
+> +
+> +	kfree(dmabuf);
+> +	return 0;
+> +}
+> +
+> +static int dma_buf_mmap_internal(struct file *file, struct vm_area_struct *vma)
+> +{
+> +	struct dma_buf *dmabuf;
+> +
+> +	if (!is_dma_buf_file(file))
+> +		return -EINVAL;
+> +
+> +	dmabuf = file->private_data;
+> +
+> +	/* check for overflowing the buffer's size */
+> +	if (vma->vm_pgoff + ((vma->vm_end - vma->vm_start) >> PAGE_SHIFT) >
+> +	    dmabuf->size >> PAGE_SHIFT)
+> +		return -EINVAL;
+> +
+> +	return dmabuf->ops->mmap(dmabuf, vma);
+> +}
+> +
+> +static loff_t dma_buf_llseek(struct file *file, loff_t offset, int whence)
+> +{
+> +	struct dma_buf *dmabuf;
+> +	loff_t base;
+> +
+> +	if (!is_dma_buf_file(file))
+> +		return -EBADF;
+> +
+> +	dmabuf = file->private_data;
+> +
+> +	/* only support discovering the end of the buffer,
+> +	   but also allow SEEK_SET to maintain the idiomatic
+> +	   SEEK_END(0), SEEK_CUR(0) pattern */
+> +	if (whence == SEEK_END)
+> +		base = dmabuf->size;
+> +	else if (whence == SEEK_SET)
+> +		base = 0;
+> +	else
+> +		return -EINVAL;
+> +
+> +	if (offset != 0)
+> +		return -EINVAL;
+> +
+> +	return base + offset;
+> +}
+> +
+> +static const struct file_operations dma_buf_fops = {
+> +	.release	= dma_buf_release,
+> +	.mmap		= dma_buf_mmap_internal,
+> +	.llseek		= dma_buf_llseek,
+> +};
+> +
+> +/*
+> + * is_dma_buf_file - Check if struct file* is associated with dma_buf
+> + */
+> +static inline int is_dma_buf_file(struct file *file)
+> +{
+> +	return file->f_op == &dma_buf_fops;
+> +}
+> +
+> +/**
+> + * dma_buf_export_named - Creates a new dma_buf, and associates an anon file
+> + * with this buffer, so it can be exported.
+> + * Also connect the allocator specific data and ops to the buffer.
+> + * Additionally, provide a name string for exporter; useful in debugging.
+> + *
+> + * @priv:	[in]	Attach private data of allocator to this buffer
+> + * @ops:	[in]	Attach allocator-defined dma buf ops to the new buffer.
+> + * @size:	[in]	Size of the buffer
+> + * @flags:	[in]	mode flags for the file.
+> + * @exp_name:	[in]	name of the exporting module - useful for debugging.
+> + *
+> + * Returns, on success, a newly created dma_buf object, which wraps the
+> + * supplied private data and operations for dma_buf_ops. On either missing
+> + * ops, or error in allocating struct dma_buf, will return negative error.
+> + *
+> + */
+> +struct dma_buf *dma_buf_export_named(void *priv, const struct dma_buf_ops *ops,
+> +				size_t size, int flags, const char *exp_name)
+> +{
+> +	struct dma_buf *dmabuf;
+> +	struct file *file;
+> +
+> +	if (WARN_ON(!priv || !ops
+> +			  || !ops->map_dma_buf
+> +			  || !ops->unmap_dma_buf
+> +			  || !ops->release
+> +			  || !ops->kmap_atomic
+> +			  || !ops->kmap
+> +			  || !ops->mmap)) {
+> +		return ERR_PTR(-EINVAL);
+> +	}
+> +
+> +	dmabuf = kzalloc(sizeof(struct dma_buf), GFP_KERNEL);
+> +	if (dmabuf == NULL)
+> +		return ERR_PTR(-ENOMEM);
+> +
+> +	dmabuf->priv = priv;
+> +	dmabuf->ops = ops;
+> +	dmabuf->size = size;
+> +	dmabuf->exp_name = exp_name;
+> +
+> +	file = anon_inode_getfile("dmabuf", &dma_buf_fops, dmabuf, flags);
+> +	if (IS_ERR(file)) {
+> +		kfree(dmabuf);
+> +		return ERR_CAST(file);
+> +	}
+> +
+> +	file->f_mode |= FMODE_LSEEK;
+> +	dmabuf->file = file;
+> +
+> +	mutex_init(&dmabuf->lock);
+> +	INIT_LIST_HEAD(&dmabuf->attachments);
+> +
+> +	mutex_lock(&db_list.lock);
+> +	list_add(&dmabuf->list_node, &db_list.head);
+> +	mutex_unlock(&db_list.lock);
+> +
+> +	return dmabuf;
+> +}
+> +EXPORT_SYMBOL_GPL(dma_buf_export_named);
+> +
+> +
+> +/**
+> + * dma_buf_fd - returns a file descriptor for the given dma_buf
+> + * @dmabuf:	[in]	pointer to dma_buf for which fd is required.
+> + * @flags:      [in]    flags to give to fd
+> + *
+> + * On success, returns an associated 'fd'. Else, returns error.
+> + */
+> +int dma_buf_fd(struct dma_buf *dmabuf, int flags)
+> +{
+> +	int fd;
+> +
+> +	if (!dmabuf || !dmabuf->file)
+> +		return -EINVAL;
+> +
+> +	fd = get_unused_fd_flags(flags);
+> +	if (fd < 0)
+> +		return fd;
+> +
+> +	fd_install(fd, dmabuf->file);
+> +
+> +	return fd;
+> +}
+> +EXPORT_SYMBOL_GPL(dma_buf_fd);
+> +
+> +/**
+> + * dma_buf_get - returns the dma_buf structure related to an fd
+> + * @fd:	[in]	fd associated with the dma_buf to be returned
+> + *
+> + * On success, returns the dma_buf structure associated with an fd; uses
+> + * file's refcounting done by fget to increase refcount. returns ERR_PTR
+> + * otherwise.
+> + */
+> +struct dma_buf *dma_buf_get(int fd)
+> +{
+> +	struct file *file;
+> +
+> +	file = fget(fd);
+> +
+> +	if (!file)
+> +		return ERR_PTR(-EBADF);
+> +
+> +	if (!is_dma_buf_file(file)) {
+> +		fput(file);
+> +		return ERR_PTR(-EINVAL);
+> +	}
+> +
+> +	return file->private_data;
+> +}
+> +EXPORT_SYMBOL_GPL(dma_buf_get);
+> +
+> +/**
+> + * dma_buf_put - decreases refcount of the buffer
+> + * @dmabuf:	[in]	buffer to reduce refcount of
+> + *
+> + * Uses file's refcounting done implicitly by fput()
+> + */
+> +void dma_buf_put(struct dma_buf *dmabuf)
+> +{
+> +	if (WARN_ON(!dmabuf || !dmabuf->file))
+> +		return;
+> +
+> +	fput(dmabuf->file);
+> +}
+> +EXPORT_SYMBOL_GPL(dma_buf_put);
+> +
+> +/**
+> + * dma_buf_attach - Add the device to dma_buf's attachments list; optionally,
+> + * calls attach() of dma_buf_ops to allow device-specific attach functionality
+> + * @dmabuf:	[in]	buffer to attach device to.
+> + * @dev:	[in]	device to be attached.
+> + *
+> + * Returns struct dma_buf_attachment * for this attachment; returns ERR_PTR on
+> + * error.
+> + */
+> +struct dma_buf_attachment *dma_buf_attach(struct dma_buf *dmabuf,
+> +					  struct device *dev)
+> +{
+> +	struct dma_buf_attachment *attach;
+> +	int ret;
+> +
+> +	if (WARN_ON(!dmabuf || !dev))
+> +		return ERR_PTR(-EINVAL);
+> +
+> +	attach = kzalloc(sizeof(struct dma_buf_attachment), GFP_KERNEL);
+> +	if (attach == NULL)
+> +		return ERR_PTR(-ENOMEM);
+> +
+> +	attach->dev = dev;
+> +	attach->dmabuf = dmabuf;
+> +
+> +	mutex_lock(&dmabuf->lock);
+> +
+> +	if (dmabuf->ops->attach) {
+> +		ret = dmabuf->ops->attach(dmabuf, dev, attach);
+> +		if (ret)
+> +			goto err_attach;
+> +	}
+> +	list_add(&attach->node, &dmabuf->attachments);
+> +
+> +	mutex_unlock(&dmabuf->lock);
+> +	return attach;
+> +
+> +err_attach:
+> +	kfree(attach);
+> +	mutex_unlock(&dmabuf->lock);
+> +	return ERR_PTR(ret);
+> +}
+> +EXPORT_SYMBOL_GPL(dma_buf_attach);
+> +
+> +/**
+> + * dma_buf_detach - Remove the given attachment from dmabuf's attachments list;
+> + * optionally calls detach() of dma_buf_ops for device-specific detach
+> + * @dmabuf:	[in]	buffer to detach from.
+> + * @attach:	[in]	attachment to be detached; is free'd after this call.
+> + *
+> + */
+> +void dma_buf_detach(struct dma_buf *dmabuf, struct dma_buf_attachment *attach)
+> +{
+> +	if (WARN_ON(!dmabuf || !attach))
+> +		return;
+> +
+> +	mutex_lock(&dmabuf->lock);
+> +	list_del(&attach->node);
+> +	if (dmabuf->ops->detach)
+> +		dmabuf->ops->detach(dmabuf, attach);
+> +
+> +	mutex_unlock(&dmabuf->lock);
+> +	kfree(attach);
+> +}
+> +EXPORT_SYMBOL_GPL(dma_buf_detach);
+> +
+> +/**
+> + * dma_buf_map_attachment - Returns the scatterlist table of the attachment;
+> + * mapped into _device_ address space. Is a wrapper for map_dma_buf() of the
+> + * dma_buf_ops.
+> + * @attach:	[in]	attachment whose scatterlist is to be returned
+> + * @direction:	[in]	direction of DMA transfer
+> + *
+> + * Returns sg_table containing the scatterlist to be returned; returns ERR_PTR
+> + * on error.
+> + */
+> +struct sg_table *dma_buf_map_attachment(struct dma_buf_attachment *attach,
+> +					enum dma_data_direction direction)
+> +{
+> +	struct sg_table *sg_table = ERR_PTR(-EINVAL);
+> +
+> +	might_sleep();
+> +
+> +	if (WARN_ON(!attach || !attach->dmabuf))
+> +		return ERR_PTR(-EINVAL);
+> +
+> +	sg_table = attach->dmabuf->ops->map_dma_buf(attach, direction);
+> +	if (!sg_table)
+> +		sg_table = ERR_PTR(-ENOMEM);
+> +
+> +	return sg_table;
+> +}
+> +EXPORT_SYMBOL_GPL(dma_buf_map_attachment);
+> +
+> +/**
+> + * dma_buf_unmap_attachment - unmaps and decreases usecount of the buffer;might
+> + * deallocate the scatterlist associated. Is a wrapper for unmap_dma_buf() of
+> + * dma_buf_ops.
+> + * @attach:	[in]	attachment to unmap buffer from
+> + * @sg_table:	[in]	scatterlist info of the buffer to unmap
+> + * @direction:  [in]    direction of DMA transfer
+> + *
+> + */
+> +void dma_buf_unmap_attachment(struct dma_buf_attachment *attach,
+> +				struct sg_table *sg_table,
+> +				enum dma_data_direction direction)
+> +{
+> +	might_sleep();
+> +
+> +	if (WARN_ON(!attach || !attach->dmabuf || !sg_table))
+> +		return;
+> +
+> +	attach->dmabuf->ops->unmap_dma_buf(attach, sg_table,
+> +						direction);
+> +}
+> +EXPORT_SYMBOL_GPL(dma_buf_unmap_attachment);
+> +
+> +
+> +/**
+> + * dma_buf_begin_cpu_access - Must be called before accessing a dma_buf from the
+> + * cpu in the kernel context. Calls begin_cpu_access to allow exporter-specific
+> + * preparations. Coherency is only guaranteed in the specified range for the
+> + * specified access direction.
+> + * @dmabuf:	[in]	buffer to prepare cpu access for.
+> + * @start:	[in]	start of range for cpu access.
+> + * @len:	[in]	length of range for cpu access.
+> + * @direction:	[in]	length of range for cpu access.
+> + *
+> + * Can return negative error values, returns 0 on success.
+> + */
+> +int dma_buf_begin_cpu_access(struct dma_buf *dmabuf, size_t start, size_t len,
+> +			     enum dma_data_direction direction)
+> +{
+> +	int ret = 0;
+> +
+> +	if (WARN_ON(!dmabuf))
+> +		return -EINVAL;
+> +
+> +	if (dmabuf->ops->begin_cpu_access)
+> +		ret = dmabuf->ops->begin_cpu_access(dmabuf, start, len, direction);
+> +
+> +	return ret;
+> +}
+> +EXPORT_SYMBOL_GPL(dma_buf_begin_cpu_access);
+> +
+> +/**
+> + * dma_buf_end_cpu_access - Must be called after accessing a dma_buf from the
+> + * cpu in the kernel context. Calls end_cpu_access to allow exporter-specific
+> + * actions. Coherency is only guaranteed in the specified range for the
+> + * specified access direction.
+> + * @dmabuf:	[in]	buffer to complete cpu access for.
+> + * @start:	[in]	start of range for cpu access.
+> + * @len:	[in]	length of range for cpu access.
+> + * @direction:	[in]	length of range for cpu access.
+> + *
+> + * This call must always succeed.
+> + */
+> +void dma_buf_end_cpu_access(struct dma_buf *dmabuf, size_t start, size_t len,
+> +			    enum dma_data_direction direction)
+> +{
+> +	WARN_ON(!dmabuf);
+> +
+> +	if (dmabuf->ops->end_cpu_access)
+> +		dmabuf->ops->end_cpu_access(dmabuf, start, len, direction);
+> +}
+> +EXPORT_SYMBOL_GPL(dma_buf_end_cpu_access);
+> +
+> +/**
+> + * dma_buf_kmap_atomic - Map a page of the buffer object into kernel address
+> + * space. The same restrictions as for kmap_atomic and friends apply.
+> + * @dmabuf:	[in]	buffer to map page from.
+> + * @page_num:	[in]	page in PAGE_SIZE units to map.
+> + *
+> + * This call must always succeed, any necessary preparations that might fail
+> + * need to be done in begin_cpu_access.
+> + */
+> +void *dma_buf_kmap_atomic(struct dma_buf *dmabuf, unsigned long page_num)
+> +{
+> +	WARN_ON(!dmabuf);
+> +
+> +	return dmabuf->ops->kmap_atomic(dmabuf, page_num);
+> +}
+> +EXPORT_SYMBOL_GPL(dma_buf_kmap_atomic);
+> +
+> +/**
+> + * dma_buf_kunmap_atomic - Unmap a page obtained by dma_buf_kmap_atomic.
+> + * @dmabuf:	[in]	buffer to unmap page from.
+> + * @page_num:	[in]	page in PAGE_SIZE units to unmap.
+> + * @vaddr:	[in]	kernel space pointer obtained from dma_buf_kmap_atomic.
+> + *
+> + * This call must always succeed.
+> + */
+> +void dma_buf_kunmap_atomic(struct dma_buf *dmabuf, unsigned long page_num,
+> +			   void *vaddr)
+> +{
+> +	WARN_ON(!dmabuf);
+> +
+> +	if (dmabuf->ops->kunmap_atomic)
+> +		dmabuf->ops->kunmap_atomic(dmabuf, page_num, vaddr);
+> +}
+> +EXPORT_SYMBOL_GPL(dma_buf_kunmap_atomic);
+> +
+> +/**
+> + * dma_buf_kmap - Map a page of the buffer object into kernel address space. The
+> + * same restrictions as for kmap and friends apply.
+> + * @dmabuf:	[in]	buffer to map page from.
+> + * @page_num:	[in]	page in PAGE_SIZE units to map.
+> + *
+> + * This call must always succeed, any necessary preparations that might fail
+> + * need to be done in begin_cpu_access.
+> + */
+> +void *dma_buf_kmap(struct dma_buf *dmabuf, unsigned long page_num)
+> +{
+> +	WARN_ON(!dmabuf);
+> +
+> +	return dmabuf->ops->kmap(dmabuf, page_num);
+> +}
+> +EXPORT_SYMBOL_GPL(dma_buf_kmap);
+> +
+> +/**
+> + * dma_buf_kunmap - Unmap a page obtained by dma_buf_kmap.
+> + * @dmabuf:	[in]	buffer to unmap page from.
+> + * @page_num:	[in]	page in PAGE_SIZE units to unmap.
+> + * @vaddr:	[in]	kernel space pointer obtained from dma_buf_kmap.
+> + *
+> + * This call must always succeed.
+> + */
+> +void dma_buf_kunmap(struct dma_buf *dmabuf, unsigned long page_num,
+> +		    void *vaddr)
+> +{
+> +	WARN_ON(!dmabuf);
+> +
+> +	if (dmabuf->ops->kunmap)
+> +		dmabuf->ops->kunmap(dmabuf, page_num, vaddr);
+> +}
+> +EXPORT_SYMBOL_GPL(dma_buf_kunmap);
+> +
+> +
+> +/**
+> + * dma_buf_mmap - Setup up a userspace mmap with the given vma
+> + * @dmabuf:	[in]	buffer that should back the vma
+> + * @vma:	[in]	vma for the mmap
+> + * @pgoff:	[in]	offset in pages where this mmap should start within the
+> + * 			dma-buf buffer.
+> + *
+> + * This function adjusts the passed in vma so that it points at the file of the
+> + * dma_buf operation. It also adjusts the starting pgoff and does bounds
+> + * checking on the size of the vma. Then it calls the exporters mmap function to
+> + * set up the mapping.
+> + *
+> + * Can return negative error values, returns 0 on success.
+> + */
+> +int dma_buf_mmap(struct dma_buf *dmabuf, struct vm_area_struct *vma,
+> +		 unsigned long pgoff)
+> +{
+> +	struct file *oldfile;
+> +	int ret;
+> +
+> +	if (WARN_ON(!dmabuf || !vma))
+> +		return -EINVAL;
+> +
+> +	/* check for offset overflow */
+> +	if (pgoff + ((vma->vm_end - vma->vm_start) >> PAGE_SHIFT) < pgoff)
+> +		return -EOVERFLOW;
+> +
+> +	/* check for overflowing the buffer's size */
+> +	if (pgoff + ((vma->vm_end - vma->vm_start) >> PAGE_SHIFT) >
+> +	    dmabuf->size >> PAGE_SHIFT)
+> +		return -EINVAL;
+> +
+> +	/* readjust the vma */
+> +	get_file(dmabuf->file);
+> +	oldfile = vma->vm_file;
+> +	vma->vm_file = dmabuf->file;
+> +	vma->vm_pgoff = pgoff;
+> +
+> +	ret = dmabuf->ops->mmap(dmabuf, vma);
+> +	if (ret) {
+> +		/* restore old parameters on failure */
+> +		vma->vm_file = oldfile;
+> +		fput(dmabuf->file);
+> +	} else {
+> +		if (oldfile)
+> +			fput(oldfile);
+> +	}
+> +	return ret;
+> +
+> +}
+> +EXPORT_SYMBOL_GPL(dma_buf_mmap);
+> +
+> +/**
+> + * dma_buf_vmap - Create virtual mapping for the buffer object into kernel
+> + * address space. Same restrictions as for vmap and friends apply.
+> + * @dmabuf:	[in]	buffer to vmap
+> + *
+> + * This call may fail due to lack of virtual mapping address space.
+> + * These calls are optional in drivers. The intended use for them
+> + * is for mapping objects linear in kernel space for high use objects.
+> + * Please attempt to use kmap/kunmap before thinking about these interfaces.
+> + *
+> + * Returns NULL on error.
+> + */
+> +void *dma_buf_vmap(struct dma_buf *dmabuf)
+> +{
+> +	void *ptr;
+> +
+> +	if (WARN_ON(!dmabuf))
+> +		return NULL;
+> +
+> +	if (!dmabuf->ops->vmap)
+> +		return NULL;
+> +
+> +	mutex_lock(&dmabuf->lock);
+> +	if (dmabuf->vmapping_counter) {
+> +		dmabuf->vmapping_counter++;
+> +		BUG_ON(!dmabuf->vmap_ptr);
+> +		ptr = dmabuf->vmap_ptr;
+> +		goto out_unlock;
+> +	}
+> +
+> +	BUG_ON(dmabuf->vmap_ptr);
+> +
+> +	ptr = dmabuf->ops->vmap(dmabuf);
+> +	if (WARN_ON_ONCE(IS_ERR(ptr)))
+> +		ptr = NULL;
+> +	if (!ptr)
+> +		goto out_unlock;
+> +
+> +	dmabuf->vmap_ptr = ptr;
+> +	dmabuf->vmapping_counter = 1;
+> +
+> +out_unlock:
+> +	mutex_unlock(&dmabuf->lock);
+> +	return ptr;
+> +}
+> +EXPORT_SYMBOL_GPL(dma_buf_vmap);
+> +
+> +/**
+> + * dma_buf_vunmap - Unmap a vmap obtained by dma_buf_vmap.
+> + * @dmabuf:	[in]	buffer to vunmap
+> + * @vaddr:	[in]	vmap to vunmap
+> + */
+> +void dma_buf_vunmap(struct dma_buf *dmabuf, void *vaddr)
+> +{
+> +	if (WARN_ON(!dmabuf))
+> +		return;
+> +
+> +	BUG_ON(!dmabuf->vmap_ptr);
+> +	BUG_ON(dmabuf->vmapping_counter == 0);
+> +	BUG_ON(dmabuf->vmap_ptr != vaddr);
+> +
+> +	mutex_lock(&dmabuf->lock);
+> +	if (--dmabuf->vmapping_counter == 0) {
+> +		if (dmabuf->ops->vunmap)
+> +			dmabuf->ops->vunmap(dmabuf, vaddr);
+> +		dmabuf->vmap_ptr = NULL;
+> +	}
+> +	mutex_unlock(&dmabuf->lock);
+> +}
+> +EXPORT_SYMBOL_GPL(dma_buf_vunmap);
+> +
+> +#ifdef CONFIG_DEBUG_FS
+> +static int dma_buf_describe(struct seq_file *s)
+> +{
+> +	int ret;
+> +	struct dma_buf *buf_obj;
+> +	struct dma_buf_attachment *attach_obj;
+> +	int count = 0, attach_count;
+> +	size_t size = 0;
+> +
+> +	ret = mutex_lock_interruptible(&db_list.lock);
+> +
+> +	if (ret)
+> +		return ret;
+> +
+> +	seq_puts(s, "\nDma-buf Objects:\n");
+> +	seq_puts(s, "size\tflags\tmode\tcount\texp_name\n");
+> +
+> +	list_for_each_entry(buf_obj, &db_list.head, list_node) {
+> +		ret = mutex_lock_interruptible(&buf_obj->lock);
+> +
+> +		if (ret) {
+> +			seq_puts(s,
+> +				 "\tERROR locking buffer object: skipping\n");
+> +			continue;
+> +		}
+> +
+> +		seq_printf(s, "%08zu\t%08x\t%08x\t%08ld\t%s\n",
+> +				buf_obj->size,
+> +				buf_obj->file->f_flags, buf_obj->file->f_mode,
+> +				(long)(buf_obj->file->f_count.counter),
+> +				buf_obj->exp_name);
+> +
+> +		seq_puts(s, "\tAttached Devices:\n");
+> +		attach_count = 0;
+> +
+> +		list_for_each_entry(attach_obj, &buf_obj->attachments, node) {
+> +			seq_puts(s, "\t");
+> +
+> +			seq_printf(s, "%s\n", dev_name(attach_obj->dev));
+> +			attach_count++;
+> +		}
+> +
+> +		seq_printf(s, "Total %d devices attached\n\n",
+> +				attach_count);
+> +
+> +		count++;
+> +		size += buf_obj->size;
+> +		mutex_unlock(&buf_obj->lock);
+> +	}
+> +
+> +	seq_printf(s, "\nTotal %d objects, %zu bytes\n", count, size);
+> +
+> +	mutex_unlock(&db_list.lock);
+> +	return 0;
+> +}
+> +
+> +static int dma_buf_show(struct seq_file *s, void *unused)
+> +{
+> +	void (*func)(struct seq_file *) = s->private;
+> +	func(s);
+> +	return 0;
+> +}
+> +
+> +static int dma_buf_debug_open(struct inode *inode, struct file *file)
+> +{
+> +	return single_open(file, dma_buf_show, inode->i_private);
+> +}
+> +
+> +static const struct file_operations dma_buf_debug_fops = {
+> +	.open           = dma_buf_debug_open,
+> +	.read           = seq_read,
+> +	.llseek         = seq_lseek,
+> +	.release        = single_release,
+> +};
+> +
+> +static struct dentry *dma_buf_debugfs_dir;
+> +
+> +static int dma_buf_init_debugfs(void)
+> +{
+> +	int err = 0;
+> +	dma_buf_debugfs_dir = debugfs_create_dir("dma_buf", NULL);
+> +	if (IS_ERR(dma_buf_debugfs_dir)) {
+> +		err = PTR_ERR(dma_buf_debugfs_dir);
+> +		dma_buf_debugfs_dir = NULL;
+> +		return err;
+> +	}
+> +
+> +	err = dma_buf_debugfs_create_file("bufinfo", dma_buf_describe);
+> +
+> +	if (err)
+> +		pr_debug("dma_buf: debugfs: failed to create node bufinfo\n");
+> +
+> +	return err;
+> +}
+> +
+> +static void dma_buf_uninit_debugfs(void)
+> +{
+> +	if (dma_buf_debugfs_dir)
+> +		debugfs_remove_recursive(dma_buf_debugfs_dir);
+> +}
+> +
+> +int dma_buf_debugfs_create_file(const char *name,
+> +				int (*write)(struct seq_file *))
+> +{
+> +	struct dentry *d;
+> +
+> +	d = debugfs_create_file(name, S_IRUGO, dma_buf_debugfs_dir,
+> +			write, &dma_buf_debug_fops);
+> +
+> +	return PTR_ERR_OR_ZERO(d);
+> +}
+> +#else
+> +static inline int dma_buf_init_debugfs(void)
+> +{
+> +	return 0;
+> +}
+> +static inline void dma_buf_uninit_debugfs(void)
+> +{
+> +}
+> +#endif
+> +
+> +static int __init dma_buf_init(void)
+> +{
+> +	mutex_init(&db_list.lock);
+> +	INIT_LIST_HEAD(&db_list.head);
+> +	dma_buf_init_debugfs();
+> +	return 0;
+> +}
+> +subsys_initcall(dma_buf_init);
+> +
+> +static void __exit dma_buf_deinit(void)
+> +{
+> +	dma_buf_uninit_debugfs();
+> +}
+> +__exitcall(dma_buf_deinit);
+> diff --git a/drivers/dma-buf/reservation.c b/drivers/dma-buf/reservation.c
+> new file mode 100644
+> index 000000000000..a73fbf3b8e56
+> --- /dev/null
+> +++ b/drivers/dma-buf/reservation.c
+> @@ -0,0 +1,39 @@
+> +/*
+> + * Copyright (C) 2012-2013 Canonical Ltd
+> + *
+> + * Based on bo.c which bears the following copyright notice,
+> + * but is dual licensed:
+> + *
+> + * Copyright (c) 2006-2009 VMware, Inc., Palo Alto, CA., USA
+> + * All Rights Reserved.
+> + *
+> + * Permission is hereby granted, free of charge, to any person obtaining a
+> + * copy of this software and associated documentation files (the
+> + * "Software"), to deal in the Software without restriction, including
+> + * without limitation the rights to use, copy, modify, merge, publish,
+> + * distribute, sub license, and/or sell copies of the Software, and to
+> + * permit persons to whom the Software is furnished to do so, subject to
+> + * the following conditions:
+> + *
+> + * The above copyright notice and this permission notice (including the
+> + * next paragraph) shall be included in all copies or substantial portions
+> + * of the Software.
+> + *
+> + * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+> + * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+> + * FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT. IN NO EVENT SHALL
+> + * THE COPYRIGHT HOLDERS, AUTHORS AND/OR ITS SUPPLIERS BE LIABLE FOR ANY CLAIM,
+> + * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+> + * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
+> + * USE OR OTHER DEALINGS IN THE SOFTWARE.
+> + *
+> + **************************************************************************/
+> +/*
+> + * Authors: Thomas Hellstrom <thellstrom-at-vmware-dot-com>
+> + */
+> +
+> +#include <linux/reservation.h>
+> +#include <linux/export.h>
+> +
+> +DEFINE_WW_CLASS(reservation_ww_class);
+> +EXPORT_SYMBOL(reservation_ww_class);
+> 
+> --
+> To unsubscribe from this list: send the line "unsubscribe linux-kernel" in
+> the body of a message to majordomo@vger.kernel.org
+> More majordomo info at  http://vger.kernel.org/majordomo-info.html
+> Please read the FAQ at  http://www.tux.org/lkml/
+> 
