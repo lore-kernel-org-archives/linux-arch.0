@@ -1,530 +1,105 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pd0-f177.google.com ([209.85.192.177]:36039 "EHLO
-	mail-pd0-f177.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932215AbaF3Vx7 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 30 Jun 2014 17:53:59 -0400
-Received: by mail-pd0-f177.google.com with SMTP id y10so8891469pdj.36
-        for <linux-arch@vger.kernel.org>; Mon, 30 Jun 2014 14:53:58 -0700 (PDT)
-From: Andy Lutomirski <luto@amacapital.net>
-Subject: [PATCH v2 09/10] arm64,ia64,ppc,s390,sh,tile,um,x86,mm: Remove default gate area
-Date: Mon, 30 Jun 2014 14:53:20 -0700
-Message-ID: <e1656ab2adfd1891f62610abe3e85ad992ee0cbf.1404164803.git.luto@amacapital.net>
-In-Reply-To: <cover.1404164803.git.luto@amacapital.net>
-References: <cover.1404164803.git.luto@amacapital.net>
-In-Reply-To: <cover.1404164803.git.luto@amacapital.net>
-References: <cover.1404164803.git.luto@amacapital.net>
+Received: from adelie.canonical.com ([91.189.90.139]:60168 "EHLO
+	adelie.canonical.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752804AbaGAK5k (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 1 Jul 2014 06:57:40 -0400
+Subject: [PATCH v2 0/9] Updated fence patch series
+From: Maarten Lankhorst <maarten.lankhorst@canonical.com>
+Date: Tue, 01 Jul 2014 12:57:02 +0200
+Message-ID: <20140701103432.12718.82795.stgit@patser>
+MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: x86@kernel.org, hpa@zytor.org
-Cc: linux-kernel@vger.kernel.org, Andy Lutomirski <luto@amacapital.net>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux390@de.ibm.com, Chris Metcalf <cmetcalf@tilera.com>, Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Nathan Lynch <Nathan_Lynch@mentor.com>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, user-mode-linux-devel@lists.sourceforge.net, linux-mm@kvack.org
-Message-ID: <20140630215320.NGsd8VUOrR7_4unq-n0sJ-uQl4NqJf9UGx6Eghj4BvE@z>
+To: gregkh@linuxfoundation.org
+Cc: linux-arch@vger.kernel.org, thellstrom@vmware.com, linux-kernel@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, robdclark@gmail.com, thierry.reding@gmail.com, ccross@google.com, daniel@ffwll.ch, sumit.semwal@linaro.org, linux-media@vger.kernel.org
+Message-ID: <20140701105702.FoGpjXvH0fnZqtsGgtYH4jqr5zW24X_AT_Y7tIVIPEg@z>
 
-The core mm code will provide a default gate area based on
-FIXADDR_USER_START and FIXADDR_USER_END if
-!defined(__HAVE_ARCH_GATE_AREA) && defined(AT_SYSINFO_EHDR).
+So after some more hacking I've moved dma-buf to its own subdirectory,
+drivers/dma-buf and applied the fence patches to its new place. I believe that the
+first patch should be applied regardless, and the rest should be ready now.
+:-)
 
-This default is only useful for ia64.  arm64, ppc, s390, sh, tile,
-64-bit UML, and x86_32 have their own code just to disable it.  arm,
-32-bit UML, and x86_64 have gate areas, but they have their own
-implementations.
+Changes to the fence api:
+- release_fence -> fence_release etc.
+- __fence_init -> fence_init
+- __fence_signal -> fence_signal_locked
+- __fence_is_signaled -> fence_is_signaled_locked
+- Changing BUG_ON to WARN_ON in fence_later, and return NULL if it triggers.
 
-This gets rid of the default and moves the code into ia64.
+Android can expose fences to userspace. It's possible to make the new fence
+mechanism expose the same fences to userspace by changing sync_fence_create
+to take a struct fence instead of a struct sync_pt. No other change is needed,
+because only the fence parts of struct sync_pt are used. But because the
+userspace fences are a separate problem and I haven't really looked at it yet
+I feel it should stay in staging, for now.
 
-This should save some code on architectures without a gate area: it's
-now possible to inline the gate_area functions in the default case.
-
-Cc: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Will Deacon <will.deacon@arm.com>
-Cc: Tony Luck <tony.luck@intel.com>
-Cc: Fenghua Yu <fenghua.yu@intel.com>
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: Paul Mackerras <paulus@samba.org>
-Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
-Cc: linux390@de.ibm.com
-Cc: Chris Metcalf <cmetcalf@tilera.com>
-Cc: Jeff Dike <jdike@addtoit.com>
-Cc: Richard Weinberger <richard@nod.at>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Ingo Molnar <mingo@redhat.com>
-Cc: "H. Peter Anvin" <hpa@zytor.com>
-Cc: Nathan Lynch <Nathan_Lynch@mentor.com>
-Cc: x86@kernel.org
-Cc: linux-arch@vger.kernel.org
-Cc: linux-arm-kernel@lists.infradead.org
-Cc: linux-kernel@vger.kernel.org
-Cc: linux-ia64@vger.kernel.org
-Cc: linuxppc-dev@lists.ozlabs.org
-Cc: linux-s390@vger.kernel.org
-Cc: linux-sh@vger.kernel.org
-Cc: user-mode-linux-devel@lists.sourceforge.net
-Cc: linux-mm@kvack.org
-Signed-off-by: Andy Lutomirski <luto@amacapital.net>
 ---
- arch/arm64/include/asm/page.h      |  3 ---
- arch/arm64/kernel/vdso.c           | 19 -------------------
- arch/ia64/include/asm/page.h       |  2 ++
- arch/ia64/mm/init.c                | 26 ++++++++++++++++++++++++++
- arch/powerpc/include/asm/page.h    |  3 ---
- arch/powerpc/kernel/vdso.c         | 16 ----------------
- arch/s390/include/asm/page.h       |  2 --
- arch/s390/kernel/vdso.c            | 15 ---------------
- arch/sh/include/asm/page.h         |  5 -----
- arch/sh/kernel/vsyscall/vsyscall.c | 15 ---------------
- arch/tile/include/asm/page.h       |  6 ------
- arch/tile/kernel/vdso.c            | 15 ---------------
- arch/um/include/asm/page.h         |  5 +++++
- arch/x86/include/asm/page.h        |  1 -
- arch/x86/include/asm/page_64.h     |  2 ++
- arch/x86/um/asm/elf.h              |  1 -
- arch/x86/um/mem_64.c               | 15 ---------------
- arch/x86/vdso/vdso32-setup.c       | 19 +------------------
- include/linux/mm.h                 | 17 ++++++++++++-----
- mm/memory.c                        | 38 --------------------------------------
- mm/nommu.c                         |  5 -----
- 21 files changed, 48 insertions(+), 182 deletions(-)
 
-diff --git a/arch/arm64/include/asm/page.h b/arch/arm64/include/asm/page.h
-index 46bf666..992710f 100644
---- a/arch/arm64/include/asm/page.h
-+++ b/arch/arm64/include/asm/page.h
-@@ -28,9 +28,6 @@
- #define PAGE_SIZE		(_AC(1,UL) << PAGE_SHIFT)
- #define PAGE_MASK		(~(PAGE_SIZE-1))
- 
--/* We do define AT_SYSINFO_EHDR but don't use the gate mechanism */
--#define __HAVE_ARCH_GATE_AREA		1
--
- #ifndef __ASSEMBLY__
- 
- #ifdef CONFIG_ARM64_64K_PAGES
-diff --git a/arch/arm64/kernel/vdso.c b/arch/arm64/kernel/vdso.c
-index 50384fe..f630626 100644
---- a/arch/arm64/kernel/vdso.c
-+++ b/arch/arm64/kernel/vdso.c
-@@ -187,25 +187,6 @@ const char *arch_vma_name(struct vm_area_struct *vma)
- }
- 
- /*
-- * We define AT_SYSINFO_EHDR, so we need these function stubs to keep
-- * Linux happy.
-- */
--int in_gate_area_no_mm(unsigned long addr)
--{
--	return 0;
--}
--
--int in_gate_area(struct mm_struct *mm, unsigned long addr)
--{
--	return 0;
--}
--
--struct vm_area_struct *get_gate_vma(struct mm_struct *mm)
--{
--	return NULL;
--}
--
--/*
-  * Update the vDSO data page to keep in sync with kernel timekeeping.
-  */
- void update_vsyscall(struct timekeeper *tk)
-diff --git a/arch/ia64/include/asm/page.h b/arch/ia64/include/asm/page.h
-index f1e1b2e..1f1bf14 100644
---- a/arch/ia64/include/asm/page.h
-+++ b/arch/ia64/include/asm/page.h
-@@ -231,4 +231,6 @@ get_order (unsigned long size)
- #define PERCPU_ADDR		(-PERCPU_PAGE_SIZE)
- #define LOAD_OFFSET		(KERNEL_START - KERNEL_TR_PAGE_SIZE)
- 
-+#define __HAVE_ARCH_GATE_AREA	1
-+
- #endif /* _ASM_IA64_PAGE_H */
-diff --git a/arch/ia64/mm/init.c b/arch/ia64/mm/init.c
-index 25c3502..35efaa3 100644
---- a/arch/ia64/mm/init.c
-+++ b/arch/ia64/mm/init.c
-@@ -278,6 +278,32 @@ setup_gate (void)
- 	ia64_patch_gate();
- }
- 
-+static struct vm_area_struct gate_vma;
-+
-+static int __init gate_vma_init(void)
-+{
-+	gate_vma.vm_mm = NULL;
-+	gate_vma.vm_start = FIXADDR_USER_START;
-+	gate_vma.vm_end = FIXADDR_USER_END;
-+	gate_vma.vm_flags = VM_READ | VM_MAYREAD | VM_EXEC | VM_MAYEXEC;
-+	gate_vma.vm_page_prot = __P101;
-+
-+	return 0;
-+}
-+__initcall(gate_vma_init);
-+
-+struct vm_area_struct *get_gate_vma(struct mm_struct *mm)
-+{
-+	return &gate_vma;
-+}
-+
-+int in_gate_area_no_mm(unsigned long addr)
-+{
-+	if ((addr >= FIXADDR_USER_START) && (addr < FIXADDR_USER_END))
-+		return 1;
-+	return 0;
-+}
-+
- void ia64_mmu_init(void *my_cpu_data)
- {
- 	unsigned long pta, impl_va_bits;
-diff --git a/arch/powerpc/include/asm/page.h b/arch/powerpc/include/asm/page.h
-index 32e4e21..26fe1ae 100644
---- a/arch/powerpc/include/asm/page.h
-+++ b/arch/powerpc/include/asm/page.h
-@@ -48,9 +48,6 @@ extern unsigned int HPAGE_SHIFT;
- #define HUGE_MAX_HSTATE		(MMU_PAGE_COUNT-1)
- #endif
- 
--/* We do define AT_SYSINFO_EHDR but don't use the gate mechanism */
--#define __HAVE_ARCH_GATE_AREA		1
--
- /*
-  * Subtle: (1 << PAGE_SHIFT) is an int, not an unsigned long. So if we
-  * assign PAGE_MASK to a larger type it gets extended the way we want
-diff --git a/arch/powerpc/kernel/vdso.c b/arch/powerpc/kernel/vdso.c
-index ce74c33..f174351 100644
---- a/arch/powerpc/kernel/vdso.c
-+++ b/arch/powerpc/kernel/vdso.c
-@@ -840,19 +840,3 @@ static int __init vdso_init(void)
- 	return 0;
- }
- arch_initcall(vdso_init);
--
--int in_gate_area_no_mm(unsigned long addr)
--{
--	return 0;
--}
--
--int in_gate_area(struct mm_struct *mm, unsigned long addr)
--{
--	return 0;
--}
--
--struct vm_area_struct *get_gate_vma(struct mm_struct *mm)
--{
--	return NULL;
--}
--
-diff --git a/arch/s390/include/asm/page.h b/arch/s390/include/asm/page.h
-index 114258e..7b2ac6e 100644
---- a/arch/s390/include/asm/page.h
-+++ b/arch/s390/include/asm/page.h
-@@ -162,6 +162,4 @@ static inline int devmem_is_allowed(unsigned long pfn)
- #include <asm-generic/memory_model.h>
- #include <asm-generic/getorder.h>
- 
--#define __HAVE_ARCH_GATE_AREA 1
--
- #endif /* _S390_PAGE_H */
-diff --git a/arch/s390/kernel/vdso.c b/arch/s390/kernel/vdso.c
-index 6136490..0bbb7e0 100644
---- a/arch/s390/kernel/vdso.c
-+++ b/arch/s390/kernel/vdso.c
-@@ -316,18 +316,3 @@ static int __init vdso_init(void)
- 	return 0;
- }
- early_initcall(vdso_init);
--
--int in_gate_area_no_mm(unsigned long addr)
--{
--	return 0;
--}
--
--int in_gate_area(struct mm_struct *mm, unsigned long addr)
--{
--	return 0;
--}
--
--struct vm_area_struct *get_gate_vma(struct mm_struct *mm)
--{
--	return NULL;
--}
-diff --git a/arch/sh/include/asm/page.h b/arch/sh/include/asm/page.h
-index 15d9703..fe20d14 100644
---- a/arch/sh/include/asm/page.h
-+++ b/arch/sh/include/asm/page.h
-@@ -186,11 +186,6 @@ typedef struct page *pgtable_t;
- #include <asm-generic/memory_model.h>
- #include <asm-generic/getorder.h>
- 
--/* vDSO support */
--#ifdef CONFIG_VSYSCALL
--#define __HAVE_ARCH_GATE_AREA
--#endif
--
- /*
-  * Some drivers need to perform DMA into kmalloc'ed buffers
-  * and so we have to increase the kmalloc minalign for this.
-diff --git a/arch/sh/kernel/vsyscall/vsyscall.c b/arch/sh/kernel/vsyscall/vsyscall.c
-index 5ca5797..ea2aa13 100644
---- a/arch/sh/kernel/vsyscall/vsyscall.c
-+++ b/arch/sh/kernel/vsyscall/vsyscall.c
-@@ -92,18 +92,3 @@ const char *arch_vma_name(struct vm_area_struct *vma)
- 
- 	return NULL;
- }
--
--struct vm_area_struct *get_gate_vma(struct mm_struct *mm)
--{
--	return NULL;
--}
--
--int in_gate_area(struct mm_struct *mm, unsigned long address)
--{
--	return 0;
--}
--
--int in_gate_area_no_mm(unsigned long address)
--{
--	return 0;
--}
-diff --git a/arch/tile/include/asm/page.h b/arch/tile/include/asm/page.h
-index 6727680..a213a8d 100644
---- a/arch/tile/include/asm/page.h
-+++ b/arch/tile/include/asm/page.h
-@@ -39,12 +39,6 @@
- #define HPAGE_MASK	(~(HPAGE_SIZE - 1))
- 
- /*
-- * We do define AT_SYSINFO_EHDR to support vDSO,
-- * but don't use the gate mechanism.
-- */
--#define __HAVE_ARCH_GATE_AREA		1
--
--/*
-  * If the Kconfig doesn't specify, set a maximum zone order that
-  * is enough so that we can create huge pages from small pages given
-  * the respective sizes of the two page types.  See <linux/mmzone.h>.
-diff --git a/arch/tile/kernel/vdso.c b/arch/tile/kernel/vdso.c
-index 1533af2..5bc51d7 100644
---- a/arch/tile/kernel/vdso.c
-+++ b/arch/tile/kernel/vdso.c
-@@ -121,21 +121,6 @@ const char *arch_vma_name(struct vm_area_struct *vma)
- 	return NULL;
- }
- 
--struct vm_area_struct *get_gate_vma(struct mm_struct *mm)
--{
--	return NULL;
--}
--
--int in_gate_area(struct mm_struct *mm, unsigned long address)
--{
--	return 0;
--}
--
--int in_gate_area_no_mm(unsigned long address)
--{
--	return 0;
--}
--
- int setup_vdso_pages(void)
- {
- 	struct page **pagelist;
-diff --git a/arch/um/include/asm/page.h b/arch/um/include/asm/page.h
-index 5ff53d9..71c5d13 100644
---- a/arch/um/include/asm/page.h
-+++ b/arch/um/include/asm/page.h
-@@ -119,4 +119,9 @@ extern unsigned long uml_physmem;
- #include <asm-generic/getorder.h>
- 
- #endif	/* __ASSEMBLY__ */
-+
-+#ifdef CONFIG_X86_32
-+#define __HAVE_ARCH_GATE_AREA 1
-+#endif
-+
- #endif	/* __UM_PAGE_H */
-diff --git a/arch/x86/include/asm/page.h b/arch/x86/include/asm/page.h
-index 775873d..802dde3 100644
---- a/arch/x86/include/asm/page.h
-+++ b/arch/x86/include/asm/page.h
-@@ -70,7 +70,6 @@ extern bool __virt_addr_valid(unsigned long kaddr);
- #include <asm-generic/memory_model.h>
- #include <asm-generic/getorder.h>
- 
--#define __HAVE_ARCH_GATE_AREA 1
- #define HAVE_ARCH_HUGETLB_UNMAPPED_AREA
- 
- #endif	/* __KERNEL__ */
-diff --git a/arch/x86/include/asm/page_64.h b/arch/x86/include/asm/page_64.h
-index 0f1ddee..f408caf 100644
---- a/arch/x86/include/asm/page_64.h
-+++ b/arch/x86/include/asm/page_64.h
-@@ -39,4 +39,6 @@ void copy_page(void *to, void *from);
- 
- #endif	/* !__ASSEMBLY__ */
- 
-+#define __HAVE_ARCH_GATE_AREA 1
-+
- #endif /* _ASM_X86_PAGE_64_H */
-diff --git a/arch/x86/um/asm/elf.h b/arch/x86/um/asm/elf.h
-index 0feee2f..25a1022 100644
---- a/arch/x86/um/asm/elf.h
-+++ b/arch/x86/um/asm/elf.h
-@@ -216,6 +216,5 @@ extern long elf_aux_hwcap;
- #define ELF_HWCAP (elf_aux_hwcap)
- 
- #define SET_PERSONALITY(ex) do ; while(0)
--#define __HAVE_ARCH_GATE_AREA 1
- 
- #endif
-diff --git a/arch/x86/um/mem_64.c b/arch/x86/um/mem_64.c
-index c6492e7..f8fecad 100644
---- a/arch/x86/um/mem_64.c
-+++ b/arch/x86/um/mem_64.c
-@@ -9,18 +9,3 @@ const char *arch_vma_name(struct vm_area_struct *vma)
- 
- 	return NULL;
- }
--
--struct vm_area_struct *get_gate_vma(struct mm_struct *mm)
--{
--	return NULL;
--}
--
--int in_gate_area(struct mm_struct *mm, unsigned long addr)
--{
--	return 0;
--}
--
--int in_gate_area_no_mm(unsigned long addr)
--{
--	return 0;
--}
-diff --git a/arch/x86/vdso/vdso32-setup.c b/arch/x86/vdso/vdso32-setup.c
-index e4f7781..e904c27 100644
---- a/arch/x86/vdso/vdso32-setup.c
-+++ b/arch/x86/vdso/vdso32-setup.c
-@@ -115,23 +115,6 @@ static __init int ia32_binfmt_init(void)
- 	return 0;
- }
- __initcall(ia32_binfmt_init);
--#endif
--
--#else  /* CONFIG_X86_32 */
--
--struct vm_area_struct *get_gate_vma(struct mm_struct *mm)
--{
--	return NULL;
--}
--
--int in_gate_area(struct mm_struct *mm, unsigned long addr)
--{
--	return 0;
--}
--
--int in_gate_area_no_mm(unsigned long addr)
--{
--	return 0;
--}
-+#endif /* CONFIG_SYSCTL */
- 
- #endif	/* CONFIG_X86_64 */
-diff --git a/include/linux/mm.h b/include/linux/mm.h
-index e03dd29..8981cc8 100644
---- a/include/linux/mm.h
-+++ b/include/linux/mm.h
-@@ -2014,13 +2014,20 @@ static inline bool kernel_page_present(struct page *page) { return true; }
- #endif /* CONFIG_HIBERNATION */
- #endif
- 
-+#ifdef __HAVE_ARCH_GATE_AREA
- extern struct vm_area_struct *get_gate_vma(struct mm_struct *mm);
--#ifdef	__HAVE_ARCH_GATE_AREA
--int in_gate_area_no_mm(unsigned long addr);
--int in_gate_area(struct mm_struct *mm, unsigned long addr);
-+extern int in_gate_area_no_mm(unsigned long addr);
-+extern int in_gate_area(struct mm_struct *mm, unsigned long addr);
- #else
--int in_gate_area_no_mm(unsigned long addr);
--#define in_gate_area(mm, addr) ({(void)mm; in_gate_area_no_mm(addr);})
-+static inline struct vm_area_struct *get_gate_vma(struct mm_struct *mm)
-+{
-+	return NULL;
-+}
-+static inline int in_gate_area_no_mm(unsigned long addr) { return 0; }
-+static inline int in_gate_area(struct mm_struct *mm, unsigned long addr)
-+{
-+	return 0;
-+}
- #endif	/* __HAVE_ARCH_GATE_AREA */
- 
- #ifdef CONFIG_SYSCTL
-diff --git a/mm/memory.c b/mm/memory.c
-index d67fd9f..099d234 100644
---- a/mm/memory.c
-+++ b/mm/memory.c
-@@ -3399,44 +3399,6 @@ int __pmd_alloc(struct mm_struct *mm, pud_t *pud, unsigned long address)
- }
- #endif /* __PAGETABLE_PMD_FOLDED */
- 
--#if !defined(__HAVE_ARCH_GATE_AREA)
--
--#if defined(AT_SYSINFO_EHDR)
--static struct vm_area_struct gate_vma;
--
--static int __init gate_vma_init(void)
--{
--	gate_vma.vm_mm = NULL;
--	gate_vma.vm_start = FIXADDR_USER_START;
--	gate_vma.vm_end = FIXADDR_USER_END;
--	gate_vma.vm_flags = VM_READ | VM_MAYREAD | VM_EXEC | VM_MAYEXEC;
--	gate_vma.vm_page_prot = __P101;
--
--	return 0;
--}
--__initcall(gate_vma_init);
--#endif
--
--struct vm_area_struct *get_gate_vma(struct mm_struct *mm)
--{
--#ifdef AT_SYSINFO_EHDR
--	return &gate_vma;
--#else
--	return NULL;
--#endif
--}
--
--int in_gate_area_no_mm(unsigned long addr)
--{
--#ifdef AT_SYSINFO_EHDR
--	if ((addr >= FIXADDR_USER_START) && (addr < FIXADDR_USER_END))
--		return 1;
--#endif
--	return 0;
--}
--
--#endif	/* __HAVE_ARCH_GATE_AREA */
--
- static int __follow_pte(struct mm_struct *mm, unsigned long address,
- 		pte_t **ptepp, spinlock_t **ptlp)
- {
-diff --git a/mm/nommu.c b/mm/nommu.c
-index 4a852f6..a881d96 100644
---- a/mm/nommu.c
-+++ b/mm/nommu.c
-@@ -1981,11 +1981,6 @@ error:
- 	return -ENOMEM;
- }
- 
--int in_gate_area_no_mm(unsigned long addr)
--{
--	return 0;
--}
--
- int filemap_fault(struct vm_area_struct *vma, struct vm_fault *vmf)
- {
- 	BUG();
+Maarten Lankhorst (9):
+      dma-buf: move to drivers/dma-buf
+      fence: dma-buf cross-device synchronization (v18)
+      seqno-fence: Hardware dma-buf implementation of fencing (v6)
+      dma-buf: use reservation objects
+      android: convert sync to fence api, v6
+      reservation: add support for fences to enable cross-device synchronisation
+      dma-buf: add poll support, v3
+      reservation: update api and add some helpers
+      reservation: add suppport for read-only access using rcu
+
+
+ Documentation/DocBook/device-drivers.tmpl      |    8 
+ MAINTAINERS                                    |    4 
+ drivers/Makefile                               |    1 
+ drivers/base/Kconfig                           |    9 
+ drivers/base/Makefile                          |    1 
+ drivers/base/dma-buf.c                         |  743 --------------------
+ drivers/base/reservation.c                     |   39 -
+ drivers/dma-buf/Makefile                       |    1 
+ drivers/dma-buf/dma-buf.c                      |  907 ++++++++++++++++++++++++
+ drivers/dma-buf/fence.c                        |  431 +++++++++++
+ drivers/dma-buf/reservation.c                  |  477 +++++++++++++
+ drivers/dma-buf/seqno-fence.c                  |   73 ++
+ drivers/gpu/drm/armada/armada_gem.c            |    2 
+ drivers/gpu/drm/drm_prime.c                    |    8 
+ drivers/gpu/drm/exynos/exynos_drm_dmabuf.c     |    2 
+ drivers/gpu/drm/i915/i915_gem_dmabuf.c         |    3 
+ drivers/gpu/drm/nouveau/nouveau_drm.c          |    1 
+ drivers/gpu/drm/nouveau/nouveau_gem.h          |    1 
+ drivers/gpu/drm/nouveau/nouveau_prime.c        |    7 
+ drivers/gpu/drm/omapdrm/omap_gem_dmabuf.c      |    2 
+ drivers/gpu/drm/radeon/radeon_drv.c            |    2 
+ drivers/gpu/drm/radeon/radeon_prime.c          |    8 
+ drivers/gpu/drm/tegra/gem.c                    |    2 
+ drivers/gpu/drm/ttm/ttm_object.c               |    2 
+ drivers/media/v4l2-core/videobuf2-dma-contig.c |    2 
+ drivers/staging/android/Kconfig                |    1 
+ drivers/staging/android/Makefile               |    2 
+ drivers/staging/android/ion/ion.c              |    3 
+ drivers/staging/android/sw_sync.c              |    6 
+ drivers/staging/android/sync.c                 |  913 ++++++++----------------
+ drivers/staging/android/sync.h                 |   79 +-
+ drivers/staging/android/sync_debug.c           |  247 ++++++
+ drivers/staging/android/trace/sync.h           |   12 
+ include/drm/drmP.h                             |    3 
+ include/linux/dma-buf.h                        |   21 -
+ include/linux/fence.h                          |  360 +++++++++
+ include/linux/reservation.h                    |   82 ++
+ include/linux/seqno-fence.h                    |  116 +++
+ include/trace/events/fence.h                   |  128 +++
+ 39 files changed, 3258 insertions(+), 1451 deletions(-)
+ delete mode 100644 drivers/base/dma-buf.c
+ delete mode 100644 drivers/base/reservation.c
+ create mode 100644 drivers/dma-buf/Makefile
+ create mode 100644 drivers/dma-buf/dma-buf.c
+ create mode 100644 drivers/dma-buf/fence.c
+ create mode 100644 drivers/dma-buf/reservation.c
+ create mode 100644 drivers/dma-buf/seqno-fence.c
+ create mode 100644 drivers/staging/android/sync_debug.c
+ create mode 100644 include/linux/fence.h
+ create mode 100644 include/linux/seqno-fence.h
+ create mode 100644 include/trace/events/fence.h
+
 -- 
-1.9.3
-
+Signature
