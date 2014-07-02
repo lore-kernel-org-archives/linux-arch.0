@@ -1,54 +1,52 @@
-From: Tejun Heo <tj@kernel.org>
-Subject: Re: [PATCH] core: fix typo in percpu read_mostly section
-Date: Tue, 1 Jul 2014 16:46:17 -0400
-Message-ID: <20140701204617.GC12459@htj.dyndns.org>
-References: <1403547365-13428-1-git-send-email-filbranden@google.com>
- <1404241907-27093-1-git-send-email-filbranden@google.com>
+From: Greg KH <gregkh@linuxfoundation.org>
+Subject: Re: [PATCH v2 0/9] Updated fence patch series
+Date: Tue, 1 Jul 2014 22:37:58 -0700
+Message-ID: <20140702053758.GA7578@kroah.com>
+References: <20140701103432.12718.82795.stgit@patser>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qg0-f50.google.com ([209.85.192.50]:43379 "EHLO
-	mail-qg0-f50.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753884AbaGAUqV (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 1 Jul 2014 16:46:21 -0400
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <dri-devel-bounces@lists.freedesktop.org>
 Content-Disposition: inline
-In-Reply-To: <1404241907-27093-1-git-send-email-filbranden@google.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Filipe Brandenburger <filbranden@google.com>
-Cc: Christoph Lameter <cl@linux-foundation.org>, Eric Dumazet <eric.dumazet@gmail.com>, "H. Peter Anvin" <hpa@linux.intel.com>, Andi Kleen <andi@firstfloor.org>, Zhengyu He <hzy@google.com>, Greg Thelen <gthelen@google.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+In-Reply-To: <20140701103432.12718.82795.stgit@patser>
+List-Unsubscribe: <http://lists.freedesktop.org/mailman/options/dri-devel>,
+ <mailto:dri-devel-request@lists.freedesktop.org?subject=unsubscribe>
+List-Archive: <http://lists.freedesktop.org/archives/dri-devel>
+List-Post: <mailto:dri-devel@lists.freedesktop.org>
+List-Help: <mailto:dri-devel-request@lists.freedesktop.org?subject=help>
+List-Subscribe: <http://lists.freedesktop.org/mailman/listinfo/dri-devel>,
+ <mailto:dri-devel-request@lists.freedesktop.org?subject=subscribe>
+Errors-To: dri-devel-bounces@lists.freedesktop.org
+Sender: "dri-devel" <dri-devel-bounces@lists.freedesktop.org>
+To: Maarten Lankhorst <maarten.lankhorst@canonical.com>
+Cc: linux-arch@vger.kernel.org, thellstrom@vmware.com, linux-kernel@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, ccross@google.com, linux-media@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, Jul 01, 2014 at 12:11:47PM -0700, Filipe Brandenburger wrote:
-> From: Zhengyu He <hzy@google.com>
+On Tue, Jul 01, 2014 at 12:57:02PM +0200, Maarten Lankhorst wrote:
+> So after some more hacking I've moved dma-buf to its own subdirectory,
+> drivers/dma-buf and applied the fence patches to its new place. I believe that the
+> first patch should be applied regardless, and the rest should be ready now.
+> :-)
 > 
-> This fixes a typo that named the read_mostly section of percpu as
-> readmostly. It works fine with SMP because the linker script specifies
-> .data..percpu..readmostly. However, UP kernel builds don't have percpu
-> sections defined and the non-percpu version of the section is called
-> data..read_mostly, so .data..readmostly will float around and may break
-> things unexpectedly.
+> Changes to the fence api:
+> - release_fence -> fence_release etc.
+> - __fence_init -> fence_init
+> - __fence_signal -> fence_signal_locked
+> - __fence_is_signaled -> fence_is_signaled_locked
+> - Changing BUG_ON to WARN_ON in fence_later, and return NULL if it triggers.
 > 
-> Looking at the original change that introduced data..percpu..readmostly
-> (commit c957ef2c59e952803766ddc22e89981ab534606f), it looks like this
-> was the original intention.
-> 
-> Tested: Built UP kernel and confirmed the sections got merged.
-> 
-> - Before the patch:
-> $ objdump -h vmlinux.o  | grep '\.data\.\.read.*mostly'
-> 38 .data..read_mostly 00004418  0000000000000000  0000000000000000  00431ac0  2**6
-> 50 .data..readmostly 00000014  0000000000000000  0000000000000000  00444000  2**3
-> 
-> - After the patch:
-> $ objdump -h vmlinux.o  | grep '\.data\.\.read.*mostly'
-> 38 .data..read_mostly 00004438  0000000000000000  0000000000000000  00431ac0  2**6
-> 
-> Signed-off-by: Zhengyu He <hzy@google.com>
-> Signed-off-by: Filipe Brandenburger <filbranden@google.com>
+> Android can expose fences to userspace. It's possible to make the new fence
+> mechanism expose the same fences to userspace by changing sync_fence_create
+> to take a struct fence instead of a struct sync_pt. No other change is needed,
+> because only the fence parts of struct sync_pt are used. But because the
+> userspace fences are a separate problem and I haven't really looked at it yet
+> I feel it should stay in staging, for now.
 
-Applied to percpu/for-3.16-fixes.
+Ok, that's reasonable.
 
-Thanks.
+At first glance, this all looks "sane" to me, any objection from anyone
+if I merge this through my driver-core tree for 3.17?
 
--- 
-tejun
+thanks,
+
+greg k-h
