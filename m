@@ -1,83 +1,48 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-yh0-f73.google.com ([209.85.213.73]:59221 "EHLO
-	mail-yh0-f73.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752667AbaGATMA (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 1 Jul 2014 15:12:00 -0400
-Received: by mail-yh0-f73.google.com with SMTP id f10so1076798yha.2
-        for <linux-arch@vger.kernel.org>; Tue, 01 Jul 2014 12:12:00 -0700 (PDT)
-From: Filipe Brandenburger <filbranden@google.com>
-Subject: [PATCH] core: fix typo in percpu read_mostly section
-Date: Tue,  1 Jul 2014 12:11:47 -0700
-Message-ID: <1404241907-27093-1-git-send-email-filbranden@google.com>
-In-Reply-To: <1403547365-13428-1-git-send-email-filbranden@google.com>
-References: <1403547365-13428-1-git-send-email-filbranden@google.com>
+Received: from mail.linuxfoundation.org ([140.211.169.12]:57269 "EHLO
+	mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751484AbaGBFiS (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 2 Jul 2014 01:38:18 -0400
+Date: Tue, 1 Jul 2014 22:37:58 -0700
+From: Greg KH <gregkh@linuxfoundation.org>
+Subject: Re: [PATCH v2 0/9] Updated fence patch series
+Message-ID: <20140702053758.GA7578@kroah.com>
+References: <20140701103432.12718.82795.stgit@patser>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20140701103432.12718.82795.stgit@patser>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Tejun Heo <tj@kernel.org>, Christoph Lameter <cl@linux-foundation.org>
-Cc: Eric Dumazet <eric.dumazet@gmail.com>, "H. Peter Anvin" <hpa@linux.intel.com>, Andi Kleen <andi@firstfloor.org>, Zhengyu He <hzy@google.com>, Greg Thelen <gthelen@google.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Filipe Brandenburger <filbranden@google.com>
-Message-ID: <20140701191147.F28MA09LBnkis_0n4-FG81OKBbeXBycBy_2hPtwjnGQ@z>
+To: Maarten Lankhorst <maarten.lankhorst@canonical.com>
+Cc: linux-arch@vger.kernel.org, thellstrom@vmware.com, linux-kernel@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, robdclark@gmail.com, thierry.reding@gmail.com, ccross@google.com, daniel@ffwll.ch, sumit.semwal@linaro.org, linux-media@vger.kernel.org
+Message-ID: <20140702053758.RrrvTZZVd-ZcsGwi83EgFINX1KWk5X_N08vGUTzPEe8@z>
 
-From: Zhengyu He <hzy@google.com>
+On Tue, Jul 01, 2014 at 12:57:02PM +0200, Maarten Lankhorst wrote:
+> So after some more hacking I've moved dma-buf to its own subdirectory,
+> drivers/dma-buf and applied the fence patches to its new place. I believe that the
+> first patch should be applied regardless, and the rest should be ready now.
+> :-)
+> 
+> Changes to the fence api:
+> - release_fence -> fence_release etc.
+> - __fence_init -> fence_init
+> - __fence_signal -> fence_signal_locked
+> - __fence_is_signaled -> fence_is_signaled_locked
+> - Changing BUG_ON to WARN_ON in fence_later, and return NULL if it triggers.
+> 
+> Android can expose fences to userspace. It's possible to make the new fence
+> mechanism expose the same fences to userspace by changing sync_fence_create
+> to take a struct fence instead of a struct sync_pt. No other change is needed,
+> because only the fence parts of struct sync_pt are used. But because the
+> userspace fences are a separate problem and I haven't really looked at it yet
+> I feel it should stay in staging, for now.
 
-This fixes a typo that named the read_mostly section of percpu as
-readmostly. It works fine with SMP because the linker script specifies
-.data..percpu..readmostly. However, UP kernel builds don't have percpu
-sections defined and the non-percpu version of the section is called
-data..read_mostly, so .data..readmostly will float around and may break
-things unexpectedly.
+Ok, that's reasonable.
 
-Looking at the original change that introduced data..percpu..readmostly
-(commit c957ef2c59e952803766ddc22e89981ab534606f), it looks like this
-was the original intention.
+At first glance, this all looks "sane" to me, any objection from anyone
+if I merge this through my driver-core tree for 3.17?
 
-Tested: Built UP kernel and confirmed the sections got merged.
+thanks,
 
-- Before the patch:
-$ objdump -h vmlinux.o  | grep '\.data\.\.read.*mostly'
-38 .data..read_mostly 00004418  0000000000000000  0000000000000000  00431ac0  2**6
-50 .data..readmostly 00000014  0000000000000000  0000000000000000  00444000  2**3
-
-- After the patch:
-$ objdump -h vmlinux.o  | grep '\.data\.\.read.*mostly'
-38 .data..read_mostly 00004438  0000000000000000  0000000000000000  00431ac0  2**6
-
-Signed-off-by: Zhengyu He <hzy@google.com>
-Signed-off-by: Filipe Brandenburger <filbranden@google.com>
----
- include/asm-generic/vmlinux.lds.h | 2 +-
- include/linux/percpu-defs.h       | 4 ++--
- 2 files changed, 3 insertions(+), 3 deletions(-)
-
-diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-index 471ba48c7ae4..c1c0b0cf39b4 100644
---- a/include/asm-generic/vmlinux.lds.h
-+++ b/include/asm-generic/vmlinux.lds.h
-@@ -693,7 +693,7 @@
- 	. = ALIGN(PAGE_SIZE);						\
- 	*(.data..percpu..page_aligned)					\
- 	. = ALIGN(cacheline);						\
--	*(.data..percpu..readmostly)					\
-+	*(.data..percpu..read_mostly)					\
- 	. = ALIGN(cacheline);						\
- 	*(.data..percpu)						\
- 	*(.data..percpu..shared_aligned)				\
-diff --git a/include/linux/percpu-defs.h b/include/linux/percpu-defs.h
-index a5fc7d01aad6..dec01d6c3f80 100644
---- a/include/linux/percpu-defs.h
-+++ b/include/linux/percpu-defs.h
-@@ -146,10 +146,10 @@
-  * Declaration/definition used for per-CPU variables that must be read mostly.
-  */
- #define DECLARE_PER_CPU_READ_MOSTLY(type, name)			\
--	DECLARE_PER_CPU_SECTION(type, name, "..readmostly")
-+	DECLARE_PER_CPU_SECTION(type, name, "..read_mostly")
- 
- #define DEFINE_PER_CPU_READ_MOSTLY(type, name)				\
--	DEFINE_PER_CPU_SECTION(type, name, "..readmostly")
-+	DEFINE_PER_CPU_SECTION(type, name, "..read_mostly")
- 
- /*
-  * Intermodule exports for per-CPU variables.  sparse forgets about
--- 
-2.0.0.526.g5318336
-
+greg k-h
