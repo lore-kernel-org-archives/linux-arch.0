@@ -1,67 +1,98 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cdptpa-outbound-snat.email.rr.com ([107.14.166.232]:62523 "EHLO
+Received: from cdptpa-outbound-snat.email.rr.com ([107.14.166.231]:37587 "EHLO
 	cdptpa-oedge-vip.email.rr.com" rhost-flags-OK-OK-OK-FAIL)
-	by vger.kernel.org with ESMTP id S1759363AbaGCQej (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 3 Jul 2014 12:34:39 -0400
-Date: Thu, 3 Jul 2014 12:34:36 -0400
+	by vger.kernel.org with ESMTP id S1752890AbaGCQls (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 3 Jul 2014 12:41:48 -0400
+Date: Thu, 3 Jul 2014 12:41:46 -0400
 From: Steven Rostedt <rostedt@goodmis.org>
-Subject: Re: [RFA][PATCH 06/27] microblaze: ftrace: Add call to
- ftrace_graph_is_dead() in function graph code
-Message-ID: <20140703123436.2054cffb@gandalf.local.home>
-In-Reply-To: <20140626165849.119568888@goodmis.org>
+Subject: Re: [RFA][PATCH 18/27] sparc64,ftrace: Remove check of obsolete
+ variable function_trace_stop
+Message-ID: <20140703124146.3a93668f@gandalf.local.home>
+In-Reply-To: <20140626165852.160038235@goodmis.org>
 References: <20140626165221.736847419@goodmis.org>
-	<20140626165849.119568888@goodmis.org>
+	<20140626165852.160038235@goodmis.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Steven Rostedt <rostedt@goodmis.org>
-Cc: linux-kernel@vger.kernel.org, Ingo Molnar <mingo@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Jiri Kosina <jkosina@suse.cz>, Josh Poimboeuf <notifications@github.com>, Michal Simek <monstr@monstr.eu>
-Message-ID: <20140703163436.P_WLc2yVc3I311cliaCh3SY-vPTIQvEiE1YuAM0f4Ko@z>
+Cc: linux-kernel@vger.kernel.org, Ingo Molnar <mingo@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Jiri Kosina <jkosina@suse.cz>, Josh Poimboeuf <notifications@github.com>, "David S. Miller" <davem@davemloft.net>, sparclinux@vger.kernel.org
+Message-ID: <20140703164146.o3KSbG9mD9Eih1waMl7Yb-h7s2pOfb6JOadufeAzoiQ@z>
 
-Michal,
 
-Can you give me your Acked-by on this and patch 22? I'm still waiting
-of a few arch maintainers before I can push these up to my for-next
-branch.
+David,
+
+Do you have any problem with this patch going through my tree? It
+compiles, but I do not have any hardware to test it. If you can verify
+that this patch works and ack it, it would be much appreciated.
+
+This code is at:
+
+ git://git.kernel.org/pub/scm/linux/kernel/git/rostedt/linux-trace.git
+
+branch: rfc/remove-function-trace-stop
+
+Thanks!
 
 -- Steve
 
-
-On Thu, 26 Jun 2014 12:52:27 -0400
+On Thu, 26 Jun 2014 12:52:39 -0400
 Steven Rostedt <rostedt@goodmis.org> wrote:
 
 > From: "Steven Rostedt (Red Hat)" <rostedt@goodmis.org>
 > 
-> ftrace_stop() is going away as it disables parts of function tracing
-> that affects users that should not be affected. But ftrace_graph_stop()
-> is built on ftrace_stop(). Here's another example of killing all of
-> function tracing because something went wrong with function graph
-> tracing.
+> Nothing sets function_trace_stop to disable function tracing anymore.
+> Remove the check for it in the arch code.
 > 
-> Instead of disabling all users of function tracing on function graph
-> error, disable only function graph tracing. To do this, the arch code
-> must call ftrace_graph_is_dead() before it implements function graph.
+> [ Please test this on your arch ]
 > 
-> Cc: Michal Simek <monstr@monstr.eu>
+> Cc: David S. Miller <davem@davemloft.net>
 > Signed-off-by: Steven Rostedt <rostedt@goodmis.org>
 > ---
->  arch/microblaze/kernel/ftrace.c | 3 +++
->  1 file changed, 3 insertions(+)
+>  arch/sparc/Kconfig      |  1 -
+>  arch/sparc/lib/mcount.S | 10 ++--------
+>  2 files changed, 2 insertions(+), 9 deletions(-)
 > 
-> diff --git a/arch/microblaze/kernel/ftrace.c b/arch/microblaze/kernel/ftrace.c
-> index bbcd2533766c..fc7b48a52cd5 100644
-> --- a/arch/microblaze/kernel/ftrace.c
-> +++ b/arch/microblaze/kernel/ftrace.c
-> @@ -27,6 +27,9 @@ void prepare_ftrace_return(unsigned long *parent, unsigned long self_addr)
->  	unsigned long return_hooker = (unsigned long)
->  				&return_to_handler;
->  
-> +	if (unlikely(ftrace_graph_is_dead()))
-> +		return;
-> +
->  	if (unlikely(atomic_read(&current->tracing_graph_pause)))
->  		return;
->  
+> diff --git a/arch/sparc/Kconfig b/arch/sparc/Kconfig
+> index 29f2e988c56a..abd7d5575a7d 100644
+> --- a/arch/sparc/Kconfig
+> +++ b/arch/sparc/Kconfig
+> @@ -55,7 +55,6 @@ config SPARC64
+>  	select HAVE_FUNCTION_TRACER
+>  	select HAVE_FUNCTION_GRAPH_TRACER
+>  	select HAVE_FUNCTION_GRAPH_FP_TEST
+> -	select HAVE_FUNCTION_TRACE_MCOUNT_TEST
+>  	select HAVE_KRETPROBES
+>  	select HAVE_KPROBES
+>  	select HAVE_RCU_TABLE_FREE if SMP
+> diff --git a/arch/sparc/lib/mcount.S b/arch/sparc/lib/mcount.S
+> index 3ad6cbdc2163..0b0ed4d34219 100644
+> --- a/arch/sparc/lib/mcount.S
+> +++ b/arch/sparc/lib/mcount.S
+> @@ -24,10 +24,7 @@ mcount:
+>  #ifdef CONFIG_DYNAMIC_FTRACE
+>  	/* Do nothing, the retl/nop below is all we need.  */
+>  #else
+> -	sethi		%hi(function_trace_stop), %g1
+> -	lduw		[%g1 + %lo(function_trace_stop)], %g2
+> -	brnz,pn		%g2, 2f
+> -	 sethi		%hi(ftrace_trace_function), %g1
+> +	sethi		%hi(ftrace_trace_function), %g1
+>  	sethi		%hi(ftrace_stub), %g2
+>  	ldx		[%g1 + %lo(ftrace_trace_function)], %g1
+>  	or		%g2, %lo(ftrace_stub), %g2
+> @@ -80,11 +77,8 @@ ftrace_stub:
+>  	.globl		ftrace_caller
+>  	.type		ftrace_caller,#function
+>  ftrace_caller:
+> -	sethi		%hi(function_trace_stop), %g1
+>  	mov		%i7, %g2
+> -	lduw		[%g1 + %lo(function_trace_stop)], %g1
+> -	brnz,pn		%g1, ftrace_stub
+> -	 mov		%fp, %g3
+> +	mov		%fp, %g3
+>  	save		%sp, -176, %sp
+>  	mov		%g2, %o1
+>  	mov		%g2, %l0
 
