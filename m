@@ -1,40 +1,61 @@
 From: Steven Rostedt <rostedt@goodmis.org>
-Subject: Re: [RFA][PATCH 17/27] tile: ftrace: Remove check of obsolete
- variable function_trace_stop
-Date: Thu, 3 Jul 2014 10:02:09 -0400
-Message-ID: <20140703100209.394163c5@gandalf.local.home>
+Subject: Re: [RFA][PATCH 06/27] microblaze: ftrace: Add call to
+ ftrace_graph_is_dead() in function graph code
+Date: Thu, 3 Jul 2014 12:34:36 -0400
+Message-ID: <20140703123436.2054cffb@gandalf.local.home>
 References: <20140626165221.736847419@goodmis.org>
-	<20140626165852.012558348@goodmis.org>
-	<53B56061.3050601@tilera.com>
+	<20140626165849.119568888@goodmis.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <53B56061.3050601@tilera.com>
+In-Reply-To: <20140626165849.119568888@goodmis.org>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Chris Metcalf <cmetcalf@tilera.com>
-Cc: linux-kernel@vger.kernel.org, Ingo Molnar <mingo@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Jiri Kosina <jkosina@suse.cz>, Josh Poimboeuf <notifications@github.com>, Tony Lu <zlu@tilera.com>
+To: Steven Rostedt <rostedt@goodmis.org>
+Cc: linux-kernel@vger.kernel.org, Ingo Molnar <mingo@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Jiri Kosina <jkosina@suse.cz>, Josh Poimboeuf <notifications@github.com>, Michal Simek <monstr@monstr.eu>
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, 3 Jul 2014 09:53:37 -0400
-Chris Metcalf <cmetcalf@tilera.com> wrote:
+Michal,
 
-> On 6/26/2014 12:52 PM, Steven Rostedt wrote:
-> > From: "Steven Rostedt (Red Hat)"<rostedt@goodmis.org>
-> >
-> > Nothing sets function_trace_stop to disable function tracing anymore.
-> > Remove the check for it in the arch code.
-> >
-> > [ Please test this on your arch ]
-> >
-> > Cc: Chris Metcalf<cmetcalf@tilera.com>
-> > Signed-off-by: Steven Rostedt<rostedt@goodmis.org>
-> 
-> I forwarded this internally to the guy who did the work at Tilera and he's happy with the change.
-> 
-> Acked-by: Zhigang Lu<zlu@tilera.com>
-> 
-
-Thanks!
+Can you give me your Acked-by on this and patch 22? I'm still waiting
+of a few arch maintainers before I can push these up to my for-next
+branch.
 
 -- Steve
+
+
+On Thu, 26 Jun 2014 12:52:27 -0400
+Steven Rostedt <rostedt@goodmis.org> wrote:
+
+> From: "Steven Rostedt (Red Hat)" <rostedt@goodmis.org>
+> 
+> ftrace_stop() is going away as it disables parts of function tracing
+> that affects users that should not be affected. But ftrace_graph_stop()
+> is built on ftrace_stop(). Here's another example of killing all of
+> function tracing because something went wrong with function graph
+> tracing.
+> 
+> Instead of disabling all users of function tracing on function graph
+> error, disable only function graph tracing. To do this, the arch code
+> must call ftrace_graph_is_dead() before it implements function graph.
+> 
+> Cc: Michal Simek <monstr@monstr.eu>
+> Signed-off-by: Steven Rostedt <rostedt@goodmis.org>
+> ---
+>  arch/microblaze/kernel/ftrace.c | 3 +++
+>  1 file changed, 3 insertions(+)
+> 
+> diff --git a/arch/microblaze/kernel/ftrace.c b/arch/microblaze/kernel/ftrace.c
+> index bbcd2533766c..fc7b48a52cd5 100644
+> --- a/arch/microblaze/kernel/ftrace.c
+> +++ b/arch/microblaze/kernel/ftrace.c
+> @@ -27,6 +27,9 @@ void prepare_ftrace_return(unsigned long *parent, unsigned long self_addr)
+>  	unsigned long return_hooker = (unsigned long)
+>  				&return_to_handler;
+>  
+> +	if (unlikely(ftrace_graph_is_dead()))
+> +		return;
+> +
+>  	if (unlikely(atomic_read(&current->tracing_graph_pause)))
+>  		return;
+>  
