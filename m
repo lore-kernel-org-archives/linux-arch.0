@@ -1,72 +1,83 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from casper.infradead.org ([85.118.1.10]:50365 "EHLO
+Received: from casper.infradead.org ([85.118.1.10]:50397 "EHLO
 	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751020AbaGGPVK (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 7 Jul 2014 11:21:10 -0400
-Date: Mon, 7 Jul 2014 17:20:58 +0200
+	with ESMTP id S1751775AbaGGPX6 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 7 Jul 2014 11:23:58 -0400
+Date: Mon, 7 Jul 2014 17:23:50 +0200
 From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH 10/11] qspinlock: Paravirt support
-Message-ID: <20140707152058.GV6758@twins.programming.kicks-ass.net>
+Subject: Re: [PATCH 11/11] qspinlock, kvm: Add paravirt support
+Message-ID: <20140707152350.GW6758@twins.programming.kicks-ass.net>
 References: <20140615124657.264658593@chello.nl>
- <20140615130154.213923590@chello.nl>
- <539F6AD5.4070301@hp.com>
- <53A18000.8080909@redhat.com>
+ <20140615130154.400698797@chello.nl>
+ <53A70602.8020000@linux.vnet.ibm.com>
 MIME-Version: 1.0
 Content-Type: multipart/signed; micalg=pgp-sha1;
-	protocol="application/pgp-signature"; boundary="CD1rT0yj7A8qvce7"
+	protocol="application/pgp-signature"; boundary="le3rj4S+jilWgWjH"
 Content-Disposition: inline
-In-Reply-To: <53A18000.8080909@redhat.com>
+In-Reply-To: <53A70602.8020000@linux.vnet.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Paolo Bonzini <pbonzini@redhat.com>
-Cc: Waiman Long <waiman.long@hp.com>, tglx@linutronix.de, mingo@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, paolo.bonzini@gmail.com, konrad.wilk@oracle.com, boris.ostrovsky@oracle.com, paulmck@linux.vnet.ibm.com, riel@redhat.com, torvalds@linux-foundation.org, raghavendra.kt@linux.vnet.ibm.com, david.vrabel@citrix.com, oleg@redhat.com, gleb@redhat.com, scott.norton@hp.com, chegu_vinod@hp.com
-Message-ID: <20140707152058.NhG1O5tQrJDKZjVPnUBykWP6YKvYz6D5cRQtJ8w3Ius@z>
+To: Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>
+Cc: Waiman.Long@hp.com, tglx@linutronix.de, mingo@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, paolo.bonzini@gmail.com, konrad.wilk@oracle.com, boris.ostrovsky@oracle.com, paulmck@linux.vnet.ibm.com, riel@redhat.com, torvalds@linux-foundation.org, david.vrabel@citrix.com, oleg@redhat.com, gleb@redhat.com, scott.norton@hp.com, chegu_vinod@hp.com
+Message-ID: <20140707152350.29MFJrhtu22-_kdKs0LhD5NkNH7kZkL0AIGhsS3K-fM@z>
 
 
---CD1rT0yj7A8qvce7
+--le3rj4S+jilWgWjH
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
 Content-Transfer-Encoding: quoted-printable
 
-On Wed, Jun 18, 2014 at 02:03:12PM +0200, Paolo Bonzini wrote:
-> Il 17/06/2014 00:08, Waiman Long ha scritto:
-> >>+void __pv_queue_unlock(struct qspinlock *lock)
-> >>+{
-> >>+	int val =3D atomic_read(&lock->val);
-> >>+
-> >>+	native_queue_unlock(lock);
-> >>+
-> >>+	if (val & _Q_LOCKED_SLOW)
-> >>+		___pv_kick_head(lock);
-> >>+}
-> >>+
-> >
-> >Again a race can happen here between the reading and writing of the lock
-> >value. I can't think of a good way to do that without using cmpxchg.
+On Sun, Jun 22, 2014 at 10:06:18PM +0530, Raghavendra K T wrote:
+> On 06/15/2014 06:17 PM, Peter Zijlstra wrote:
+> >Signed-off-by: Peter Zijlstra<peterz@infradead.org>
+> >---
+> [...]
+> >+
+> >+void kvm_wait(int *ptr, int val)
+> >+{
+> >+	unsigned long flags;
+> >+
+> >+	if (in_nmi())
+> >+		return;
+> >+
+> >+	/*
+> >+	 * Make sure an interrupt handler can't upset things in a
+> >+	 * partially setup state.
+> >+	 */
 >=20
-> Could you just use xchg on the locked byte?
+> I am seeing hang with even 2 cpu guest (with patches on top of 3.15-rc6 ).
+> looking further with gdb I see one cpu is stuck with native_halt with
+> slowpath flag(_Q_LOCKED_SLOW) set when it was called.
 
-I'll have to, indeed. This is racy.
+Like said in 0/n I think, I only booted the kernel in kvm, didn't
+actually do anything with it.
 
---CD1rT0yj7A8qvce7
+It took me most of the day to figure out how to get paravirt working at
+all, didn't feel like spending another many hours trying to figure out
+how to make the crap thing do actual work.
+
+But I'll see what I can do after we can 'conceptually' agree on the
+paravirt patch.
+
+--le3rj4S+jilWgWjH
 Content-Type: application/pgp-signature
 
 -----BEGIN PGP SIGNATURE-----
 Version: GnuPG v1.4.12 (GNU/Linux)
 
-iQIcBAEBAgAGBQJTurraAAoJEHZH4aRLwOS6woQQALa23vPO8qjDhhPYoIwHEwVa
-TzdXCRTjA7apxOj3scM4040xy1HFRoRFNnLrl7EOcnawLX/lFaQn8Wj1ArbFoCh0
-64HTmvRj3tRQBnfxlyd66crvh8qdL9qCvVe5V4dav1ZNJdaWfanU2tPxNoVe6x8E
-CsgLd2XDcHcOkhv5Q/6rwUYdbZOqb2hUqtYfyv4OS7g4R+PmZ7BqP9GvAd0jacoc
-j6/sL6MjOLUfwnrixV7oLsntbXGbGC5UsC8BXs4cUJQmGuc1+75xGjhsW3cEJiau
-RxuM0NxD7z+veNHibgbM8k3orVFa5XjY5XJF1UH+PLt6+LKHDtOWBLQlil5xG/R3
-SQLlc7xOT2rLaKUWGHywEinKTCS8H10BKQG4a/ArhIZuupCTuAkblX3CvjzEGDvk
-wK0+XYqYTL3S5+MmzzgpnkXsJ8s4yftYSTa9JlMkIrFs8f2q+HpTyscKp3LFsOyD
-afpouZ3FhHUfDxbiyTipUlS1MxnLe7xx4x4BF3FNay5FvVvtkj00Fqiz4m5DPMA4
-Pwna6s/UxU2VHUORDvAVBGBPU8dEhPxE+PcX6XJqONdUtHHngb+o0aJeBVmyrXbP
-ufBmxyfALJc97TarUcgOgDzko2ukJ3JCfrjGIU5aF2P2M3+Ya0jJsGxR2wuku4V2
-TpP71x+Ql19Zx9ZmGJbU
-=LQMv
+iQIcBAEBAgAGBQJTuruGAAoJEHZH4aRLwOS67I4QAIcJ86JFQTzlVTnDFdzCM8es
+Xe06S3HLj1KAVhYTDjpIbcI41zKR6NAu5vtnyU6sFTJIfOK9sUaIzQ8KMxEZQxWe
+uuhKhfeVjPSJ1Yxm+Itv1KHCwzIbF91PlvmgB2GIloF3vfJ8AgvdMZlanWrrseC+
+R+zgYDA0Sov39tZ3YGAZydD/tdy9nXABUcFLMngGJpf0QU2VftTMgVPeJYs2dUGf
+nDTSoAfAtRw1HIJsrLiyX2llQjtbQXhk5EC0nzq5ZuLy7x6eNug4bd6AYy16WQO5
+jLKEe0ulTLaGTwZVgnqpSPnqpliwmP++4HlxbT2tMN3sEaNxrjJC3WsZElZJcCMA
+YkArNQaIi144RH1KK6kOaZyxbto983ffBJGs0qp80mhPS27DbqAANvKzNmpqT9tJ
+5hGNIMOO2JI0/gIWEcQynz69yD+X2iAzkNYMwi51g1khE+PSC1S5iQxhVMj6aYNc
+RWtzJrPHKGv1TbdXZG/nDv8KdNZyhJR5u1K2vZK8JcD4+qHyIpM2XF9GhtgTF58X
+1knzEbqG31fk6SbnvqCjG+upb+UkybxmXpGphaT+KPuQ/r24yRuHUV5ZikFbaggR
+Be6ZeyrqLMoC9/NCBNMMx+mOyHRNP3yrjdsAySXuiVD+7OCX+8UtBYbBjV2diL3D
+YGPdmLAD8N5s2iyw5OLJ
+=Q7O/
 -----END PGP SIGNATURE-----
 
---CD1rT0yj7A8qvce7--
+--le3rj4S+jilWgWjH--
