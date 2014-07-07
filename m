@@ -1,58 +1,122 @@
 From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH 10/11] qspinlock: Paravirt support
-Date: Mon, 7 Jul 2014 17:27:34 +0200
-Message-ID: <20140707152734.GX6758@twins.programming.kicks-ass.net>
+Subject: Re: [PATCH 05/11] qspinlock: Optimize for smaller NR_CPUS
+Date: Mon, 7 Jul 2014 17:35:52 +0200
+Message-ID: <20140707153552.GE19379@twins.programming.kicks-ass.net>
 References: <20140615124657.264658593@chello.nl>
- <20140615130154.213923590@chello.nl>
- <20140620134608.GA11545@laptop.dumpdata.com>
+	<20140615130153.483502389@chello.nl> <53A17A88.7090705@redhat.com>
+	<20140707143503.GS6758@twins.programming.kicks-ass.net>
+	<53BAB7E1.4010506@redhat.com>
 Mime-Version: 1.0
+Content-Type: multipart/mixed; boundary="===============9121187562882594778=="
+Return-path: <virtualization-bounces@lists.linux-foundation.org>
+In-Reply-To: <53BAB7E1.4010506@redhat.com>
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
+List-Post: <mailto:virtualization@lists.linux-foundation.org>
+List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
+Sender: virtualization-bounces@lists.linux-foundation.org
+Errors-To: virtualization-bounces@lists.linux-foundation.org
+To: Paolo Bonzini <pbonzini@redhat.com>
+Cc: Waiman.Long@hp.com, linux-arch@vger.kernel.org, riel@redhat.com, gleb@redhat.com, kvm@vger.kernel.org, konrad.wilk@oracle.com, boris.ostrovsky@oracle.com, scott.norton@hp.com, raghavendra.kt@linux.vnet.ibm.com, paolo.bonzini@gmail.com, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, chegu_vinod@hp.com, david.vrabel@citrix.com, oleg@redhat.com, xen-devel@lists.xenproject.org, tglx@linutronix.de, paulmck@linux.vnet.ibm.com, torvalds@linux-foundation.org, mingo@kernel.org
+List-Id: linux-arch.vger.kernel.org
+
+
+--===============9121187562882594778==
 Content-Type: multipart/signed; micalg=pgp-sha1;
-	protocol="application/pgp-signature"; boundary="B1+FeH9/zg1Fgdnk"
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from casper.infradead.org ([85.118.1.10]:50444 "EHLO
-	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752424AbaGGP1m (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 7 Jul 2014 11:27:42 -0400
+	protocol="application/pgp-signature"; boundary="FWV58dOTQOM6W93I"
 Content-Disposition: inline
-In-Reply-To: <20140620134608.GA11545@laptop.dumpdata.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
-Cc: Waiman.Long@hp.com, tglx@linutronix.de, mingo@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, paolo.bonzini@gmail.com, boris.ostrovsky@oracle.com, paulmck@linux.vnet.ibm.com, riel@redhat.com, torvalds@linux-foundation.org, raghavendra.kt@linux.vnet.ibm.com, david.vrabel@citrix.com, oleg@redhat.com, gleb@redhat.com, scott.norton@hp.com, chegu_vinod@hp.com
 
 
---B1+FeH9/zg1Fgdnk
+--FWV58dOTQOM6W93I
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
 
-On Fri, Jun 20, 2014 at 09:46:08AM -0400, Konrad Rzeszutek Wilk wrote:
-> I dug in the code and I have some comments about it, but before
-> I post them I was wondering if you have any plans to run any performance
-> tests against the PV ticketlock with normal and over-committed scenarios?
+On Mon, Jul 07, 2014 at 05:08:17PM +0200, Paolo Bonzini wrote:
+> Il 07/07/2014 16:35, Peter Zijlstra ha scritto:
+> >On Wed, Jun 18, 2014 at 01:39:52PM +0200, Paolo Bonzini wrote:
+> >>Il 15/06/2014 14:47, Peter Zijlstra ha scritto:
+> >>>
+> >>>-	for (;;) {
+> >>>-		new =3D (val & ~_Q_PENDING_MASK) | _Q_LOCKED_VAL;
+> >>>-
+> >>>-		old =3D atomic_cmpxchg(&lock->val, val, new);
+> >>>-		if (old =3D=3D val)
+> >>>-			break;
+> >>>-
+> >>>-		val =3D old;
+> >>>-	}
+> >>>+	clear_pending_set_locked(lock, val);
+> >>>	return;
+> >>
+> >>
+> >>Might as well add clear_pending_set_locked already in patch 3.
+> >
+> >Patch 4, if anywhere.
+> >
+>=20
+> This code is added in patch 3:
+>=20
+> +	/*
+> +	 * take ownership and clear the pending bit.
+> +	 *
+> +	 * *,1,0 -> *,0,1
+> +	 */
+> +	for (;;) {
+> +		new =3D (val & ~_Q_PENDING_MASK) | _Q_LOCKED_VAL;
+> +
+> +		old =3D atomic_cmpxchg(&lock->val, val, new);
+> +		if (old =3D=3D val)
+> +			break;
+> +
+> +		val =3D old;
+> +	}
+> +	return;
+>=20
+> Unlike the change in patch 4, clear_pending_set_locked doesn't change how
+> qspinlock moves from a state to the next.
 
-I can barely boot a guest.. I'm not sure I can make them do anything
-much at all yet. All this virt crap is totally painful.
+True, but its where we start to break up into smaller functions. And the
+only reason we break them out is because we'll get different
+implementations depending on NR_CPUS.
 
+So we can view the breakout of xchg_tail and clear_and_set_pending as
+preparatory work for introducing the NR_CPUS thing.
 
---B1+FeH9/zg1Fgdnk
+--FWV58dOTQOM6W93I
 Content-Type: application/pgp-signature
 
 -----BEGIN PGP SIGNATURE-----
 Version: GnuPG v1.4.12 (GNU/Linux)
 
-iQIcBAEBAgAGBQJTurxmAAoJEHZH4aRLwOS6V8kP/2/wBt9lbzbfHPE65HZV/Gk0
-vSJ6u+u0ZL3rqRqBkVCRF/YTeg7bE+LSMcR6ZuWwouWvjpzoJyWoNCwUNk62RUr+
-pITOJhkQ5ZWOsnjsaA7M6WAJyjQBf8MKK2aquNVO5MxOFShiRmjw5COz/MkBGs9Y
-25KKiNaoO+3+/FSUiTPD56XaatUf6tcepG1W0vD08lswZk07HAlGEYX13NZlxMo/
-+4YoSxzrcjouShTzSJuLn/WYcVTETVnq9RBmnpBzpEhhAd1ZsQAT9uv1WaUc/f25
-bCAvv3rFCnj+UxZkuE8RNp4bPAoxq1VBcFyF+rPnZD13Kxs7CiLI9kxRvNWM2u8x
-bQi952q1tUVMSfskl6SrOZ9i16r42f42YkVJMOhDolDBCadknTrczBOQkvC59EkJ
-fGI35n0qPfvmhH4cw08lQ4WYAmdIX+snpmIswSJWjWgpHYqldTIHMKIRAfOgQvRa
-TVqvzdKNc+Oe28dxDZFsXCGMM8kW8Kx2zPst6+jpzjMQ6k6MVBy+9Iwtr9yChhYy
-QsWzTvHOvBC3C5buow3ohOukxedIgG/vckhYRqzkgYPfjXtx+WuycqykYKIb68Lt
-+zvmGb76j8VZaVsCWylllEaQ81EL+esw5E9Wlw1lIY2yv9j9uItjWpIgeSqfUUXV
-mDvqdGIcLtsltap+YBdV
-=00/v
+iQIcBAEBAgAGBQJTur5YAAoJEHZH4aRLwOS6g3kQAKXtlRCvCSg2g2sPmw3PnenM
+KOImaErwG99JHISCd2HIb2apdNU0AoZ+PYUF1TtHfIK0K3ISP05z81srYDLJ8xGS
+A5ajSkLMF6H+cAqQdXa2H8BnuOUSJtdg5D+0hPRugjtuzOrHrow0otYIKlFJOPZ0
+0Nlvr3zGg9bUTLKLBJzEN2rLAmrVTooo/07TbDf2JGpf3c95i3Z13xebLDGIoru6
+HtD1yl24i6K/I8ZK6oDiiKv7JJf/QH+Zwmb1rATjITy5D4koHleWLm7k1E7Tjl3t
+zqSU+NU+68i18cFlZ5IRfL3W3D4lB/Hjtpeb0mZSbMN5MJKxZdmpKPz03kHEI+j5
+8t2CE8cEMISyuGLSl1Q44hUrchKcdRcga52E/0VbRmL838T3j+bOzdmjPwZ8doL8
+IB9yoG0+uR+TtEhgWro4f+esE6WQ6kIpAjFzBuiUVmu6gwPUsvb2XEu58bLzCsWf
+RTp338Vpbtb8Rafnjbj5uJlYJgFePRlFWure7CtmNgl9rhEbkJMtqcoBlK4+BLl2
+W2t5melO9VI74J20x6oS1N3ZCTZxebaC/dfCVzHl3QEi1NMX4TusHHPsSV0lu+Of
+wvcfhaOeraRmPzvs3krCRIPvhjNIeAl/2A9jupThdM6FEh+/EoEQybEZq6YhpMfp
+G03clWJdHdCmzBkHpZa0
+=IqHF
 -----END PGP SIGNATURE-----
 
---B1+FeH9/zg1Fgdnk--
+--FWV58dOTQOM6W93I--
+
+--===============9121187562882594778==
+Content-Type: text/plain; charset="us-ascii"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7bit
+Content-Disposition: inline
+
+_______________________________________________
+Virtualization mailing list
+Virtualization@lists.linux-foundation.org
+https://lists.linuxfoundation.org/mailman/listinfo/virtualization
+--===============9121187562882594778==--
