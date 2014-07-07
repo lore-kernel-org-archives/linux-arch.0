@@ -1,33 +1,41 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:4041 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750951AbaGGQLc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 7 Jul 2014 12:11:32 -0400
-Message-ID: <53BAC676.5030804@redhat.com>
-Date: Mon, 07 Jul 2014 18:10:30 +0200
-From: Paolo Bonzini <pbonzini@redhat.com>
+Received: from mail.linuxfoundation.org ([140.211.169.12]:51573 "EHLO
+	mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750809AbaGGR03 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 7 Jul 2014 13:26:29 -0400
+Date: Mon, 7 Jul 2014 10:30:52 -0700
+From: Greg KH <gregkh@linuxfoundation.org>
+Subject: Re: [PATCH v2 0/9] Updated fence patch series
+Message-ID: <20140707173052.GA8693@kroah.com>
+References: <20140701103432.12718.82795.stgit@patser>
+ <20140702053758.GA7578@kroah.com>
+ <CAKMK7uHZQjQ2m7KE22kTRVs-NtGguHREk24pSJiLbN7EoQLZ=g@mail.gmail.com>
 MIME-Version: 1.0
-Subject: Re: [PATCH 05/11] qspinlock: Optimize for smaller NR_CPUS
-References: <20140615124657.264658593@chello.nl> <20140615130153.483502389@chello.nl> <53A17A88.7090705@redhat.com> <20140707143503.GS6758@twins.programming.kicks-ass.net> <53BAB7E1.4010506@redhat.com> <20140707153552.GE19379@twins.programming.kicks-ass.net>
-In-Reply-To: <20140707153552.GE19379@twins.programming.kicks-ass.net>
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <CAKMK7uHZQjQ2m7KE22kTRVs-NtGguHREk24pSJiLbN7EoQLZ=g@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Waiman.Long@hp.com, tglx@linutronix.de, mingo@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, paolo.bonzini@gmail.com, konrad.wilk@oracle.com, boris.ostrovsky@oracle.com, paulmck@linux.vnet.ibm.com, riel@redhat.com, torvalds@linux-foundation.org, raghavendra.kt@linux.vnet.ibm.com, david.vrabel@citrix.com, oleg@redhat.com, gleb@redhat.com, scott.norton@hp.com, chegu_vinod@hp.com
-Message-ID: <20140707161030.FoVRUU4x62PjWtB5S_dTUCrbiT-Z_DZiOZbHtNzq9QI@z>
+To: Daniel Vetter <daniel@ffwll.ch>
+Cc: Maarten Lankhorst <maarten.lankhorst@canonical.com>, "open list:GENERIC INCLUDE/A..." <linux-arch@vger.kernel.org>, Thomas Hellstrom <thellstrom@vmware.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, dri-devel <dri-devel@lists.freedesktop.org>, "linaro-mm-sig@lists.linaro.org" <linaro-mm-sig@lists.linaro.org>, "Clark, Rob" <robdclark@gmail.com>, Thierry Reding <thierry.reding@gmail.com>, Colin Cross <ccross@google.com>, Sumit Semwal <sumit.semwal@linaro.org>, "linux-media@vger.kernel.org" <linux-media@vger.kernel.org>
+Message-ID: <20140707173052.9LsKK45spw7eqG60eK_BIDosWyGrZzEQt7ZdzZu-Eq4@z>
 
-Il 07/07/2014 17:35, Peter Zijlstra ha scritto:
->> > Unlike the change in patch 4, clear_pending_set_locked doesn't change how
->> > qspinlock moves from a state to the next.
-> True, but its where we start to break up into smaller functions. And the
-> only reason we break them out is because we'll get different
-> implementations depending on NR_CPUS.
->
-> So we can view the breakout of xchg_tail and clear_and_set_pending as
-> preparatory work for introducing the NR_CPUS thing.
+On Mon, Jul 07, 2014 at 03:23:17PM +0200, Daniel Vetter wrote:
+> On Wed, Jul 2, 2014 at 7:37 AM, Greg KH <gregkh@linuxfoundation.org> wrote:
+> >> Android can expose fences to userspace. It's possible to make the new fence
+> >> mechanism expose the same fences to userspace by changing sync_fence_create
+> >> to take a struct fence instead of a struct sync_pt. No other change is needed,
+> >> because only the fence parts of struct sync_pt are used. But because the
+> >> userspace fences are a separate problem and I haven't really looked at it yet
+> >> I feel it should stay in staging, for now.
+> >
+> > Ok, that's reasonable.
+> >
+> > At first glance, this all looks "sane" to me, any objection from anyone
+> > if I merge this through my driver-core tree for 3.17?
+> 
+> Ack from my side fwiw.
 
-That's a different reasoning, but it's fine by me too.
+Thanks, I'll queue it up later today.
 
-Paolo
+greg k-h
