@@ -1,83 +1,104 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from casper.infradead.org ([85.118.1.10]:50397 "EHLO
-	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751775AbaGGPX6 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 7 Jul 2014 11:23:58 -0400
-Date: Mon, 7 Jul 2014 17:23:50 +0200
+Received: from bombadil.infradead.org ([198.137.202.9]:59010 "EHLO
+	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751176AbaGGPgO (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 7 Jul 2014 11:36:14 -0400
+Date: Mon, 7 Jul 2014 17:35:52 +0200
 From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH 11/11] qspinlock, kvm: Add paravirt support
-Message-ID: <20140707152350.GW6758@twins.programming.kicks-ass.net>
+Subject: Re: [PATCH 05/11] qspinlock: Optimize for smaller NR_CPUS
+Message-ID: <20140707153552.GE19379@twins.programming.kicks-ass.net>
 References: <20140615124657.264658593@chello.nl>
- <20140615130154.400698797@chello.nl>
- <53A70602.8020000@linux.vnet.ibm.com>
+ <20140615130153.483502389@chello.nl>
+ <53A17A88.7090705@redhat.com>
+ <20140707143503.GS6758@twins.programming.kicks-ass.net>
+ <53BAB7E1.4010506@redhat.com>
 MIME-Version: 1.0
 Content-Type: multipart/signed; micalg=pgp-sha1;
-	protocol="application/pgp-signature"; boundary="le3rj4S+jilWgWjH"
+	protocol="application/pgp-signature"; boundary="FWV58dOTQOM6W93I"
 Content-Disposition: inline
-In-Reply-To: <53A70602.8020000@linux.vnet.ibm.com>
+In-Reply-To: <53BAB7E1.4010506@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>
-Cc: Waiman.Long@hp.com, tglx@linutronix.de, mingo@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, paolo.bonzini@gmail.com, konrad.wilk@oracle.com, boris.ostrovsky@oracle.com, paulmck@linux.vnet.ibm.com, riel@redhat.com, torvalds@linux-foundation.org, david.vrabel@citrix.com, oleg@redhat.com, gleb@redhat.com, scott.norton@hp.com, chegu_vinod@hp.com
-Message-ID: <20140707152350.29MFJrhtu22-_kdKs0LhD5NkNH7kZkL0AIGhsS3K-fM@z>
+To: Paolo Bonzini <pbonzini@redhat.com>
+Cc: Waiman.Long@hp.com, tglx@linutronix.de, mingo@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, paolo.bonzini@gmail.com, konrad.wilk@oracle.com, boris.ostrovsky@oracle.com, paulmck@linux.vnet.ibm.com, riel@redhat.com, torvalds@linux-foundation.org, raghavendra.kt@linux.vnet.ibm.com, david.vrabel@citrix.com, oleg@redhat.com, gleb@redhat.com, scott.norton@hp.com, chegu_vinod@hp.com
+Message-ID: <20140707153552.Zxm7VhhOzBov48s37cTskTWnOX2kOWNm47m5YXi2r_0@z>
 
 
---le3rj4S+jilWgWjH
+--FWV58dOTQOM6W93I
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
 Content-Transfer-Encoding: quoted-printable
 
-On Sun, Jun 22, 2014 at 10:06:18PM +0530, Raghavendra K T wrote:
-> On 06/15/2014 06:17 PM, Peter Zijlstra wrote:
-> >Signed-off-by: Peter Zijlstra<peterz@infradead.org>
-> >---
-> [...]
-> >+
-> >+void kvm_wait(int *ptr, int val)
-> >+{
-> >+	unsigned long flags;
-> >+
-> >+	if (in_nmi())
-> >+		return;
-> >+
-> >+	/*
-> >+	 * Make sure an interrupt handler can't upset things in a
-> >+	 * partially setup state.
-> >+	 */
+On Mon, Jul 07, 2014 at 05:08:17PM +0200, Paolo Bonzini wrote:
+> Il 07/07/2014 16:35, Peter Zijlstra ha scritto:
+> >On Wed, Jun 18, 2014 at 01:39:52PM +0200, Paolo Bonzini wrote:
+> >>Il 15/06/2014 14:47, Peter Zijlstra ha scritto:
+> >>>
+> >>>-	for (;;) {
+> >>>-		new =3D (val & ~_Q_PENDING_MASK) | _Q_LOCKED_VAL;
+> >>>-
+> >>>-		old =3D atomic_cmpxchg(&lock->val, val, new);
+> >>>-		if (old =3D=3D val)
+> >>>-			break;
+> >>>-
+> >>>-		val =3D old;
+> >>>-	}
+> >>>+	clear_pending_set_locked(lock, val);
+> >>>	return;
+> >>
+> >>
+> >>Might as well add clear_pending_set_locked already in patch 3.
+> >
+> >Patch 4, if anywhere.
+> >
 >=20
-> I am seeing hang with even 2 cpu guest (with patches on top of 3.15-rc6 ).
-> looking further with gdb I see one cpu is stuck with native_halt with
-> slowpath flag(_Q_LOCKED_SLOW) set when it was called.
+> This code is added in patch 3:
+>=20
+> +	/*
+> +	 * take ownership and clear the pending bit.
+> +	 *
+> +	 * *,1,0 -> *,0,1
+> +	 */
+> +	for (;;) {
+> +		new =3D (val & ~_Q_PENDING_MASK) | _Q_LOCKED_VAL;
+> +
+> +		old =3D atomic_cmpxchg(&lock->val, val, new);
+> +		if (old =3D=3D val)
+> +			break;
+> +
+> +		val =3D old;
+> +	}
+> +	return;
+>=20
+> Unlike the change in patch 4, clear_pending_set_locked doesn't change how
+> qspinlock moves from a state to the next.
 
-Like said in 0/n I think, I only booted the kernel in kvm, didn't
-actually do anything with it.
+True, but its where we start to break up into smaller functions. And the
+only reason we break them out is because we'll get different
+implementations depending on NR_CPUS.
 
-It took me most of the day to figure out how to get paravirt working at
-all, didn't feel like spending another many hours trying to figure out
-how to make the crap thing do actual work.
+So we can view the breakout of xchg_tail and clear_and_set_pending as
+preparatory work for introducing the NR_CPUS thing.
 
-But I'll see what I can do after we can 'conceptually' agree on the
-paravirt patch.
-
---le3rj4S+jilWgWjH
+--FWV58dOTQOM6W93I
 Content-Type: application/pgp-signature
 
 -----BEGIN PGP SIGNATURE-----
 Version: GnuPG v1.4.12 (GNU/Linux)
 
-iQIcBAEBAgAGBQJTuruGAAoJEHZH4aRLwOS67I4QAIcJ86JFQTzlVTnDFdzCM8es
-Xe06S3HLj1KAVhYTDjpIbcI41zKR6NAu5vtnyU6sFTJIfOK9sUaIzQ8KMxEZQxWe
-uuhKhfeVjPSJ1Yxm+Itv1KHCwzIbF91PlvmgB2GIloF3vfJ8AgvdMZlanWrrseC+
-R+zgYDA0Sov39tZ3YGAZydD/tdy9nXABUcFLMngGJpf0QU2VftTMgVPeJYs2dUGf
-nDTSoAfAtRw1HIJsrLiyX2llQjtbQXhk5EC0nzq5ZuLy7x6eNug4bd6AYy16WQO5
-jLKEe0ulTLaGTwZVgnqpSPnqpliwmP++4HlxbT2tMN3sEaNxrjJC3WsZElZJcCMA
-YkArNQaIi144RH1KK6kOaZyxbto983ffBJGs0qp80mhPS27DbqAANvKzNmpqT9tJ
-5hGNIMOO2JI0/gIWEcQynz69yD+X2iAzkNYMwi51g1khE+PSC1S5iQxhVMj6aYNc
-RWtzJrPHKGv1TbdXZG/nDv8KdNZyhJR5u1K2vZK8JcD4+qHyIpM2XF9GhtgTF58X
-1knzEbqG31fk6SbnvqCjG+upb+UkybxmXpGphaT+KPuQ/r24yRuHUV5ZikFbaggR
-Be6ZeyrqLMoC9/NCBNMMx+mOyHRNP3yrjdsAySXuiVD+7OCX+8UtBYbBjV2diL3D
-YGPdmLAD8N5s2iyw5OLJ
-=Q7O/
+iQIcBAEBAgAGBQJTur5YAAoJEHZH4aRLwOS6g3kQAKXtlRCvCSg2g2sPmw3PnenM
+KOImaErwG99JHISCd2HIb2apdNU0AoZ+PYUF1TtHfIK0K3ISP05z81srYDLJ8xGS
+A5ajSkLMF6H+cAqQdXa2H8BnuOUSJtdg5D+0hPRugjtuzOrHrow0otYIKlFJOPZ0
+0Nlvr3zGg9bUTLKLBJzEN2rLAmrVTooo/07TbDf2JGpf3c95i3Z13xebLDGIoru6
+HtD1yl24i6K/I8ZK6oDiiKv7JJf/QH+Zwmb1rATjITy5D4koHleWLm7k1E7Tjl3t
+zqSU+NU+68i18cFlZ5IRfL3W3D4lB/Hjtpeb0mZSbMN5MJKxZdmpKPz03kHEI+j5
+8t2CE8cEMISyuGLSl1Q44hUrchKcdRcga52E/0VbRmL838T3j+bOzdmjPwZ8doL8
+IB9yoG0+uR+TtEhgWro4f+esE6WQ6kIpAjFzBuiUVmu6gwPUsvb2XEu58bLzCsWf
+RTp338Vpbtb8Rafnjbj5uJlYJgFePRlFWure7CtmNgl9rhEbkJMtqcoBlK4+BLl2
+W2t5melO9VI74J20x6oS1N3ZCTZxebaC/dfCVzHl3QEi1NMX4TusHHPsSV0lu+Of
+wvcfhaOeraRmPzvs3krCRIPvhjNIeAl/2A9jupThdM6FEh+/EoEQybEZq6YhpMfp
+G03clWJdHdCmzBkHpZa0
+=IqHF
 -----END PGP SIGNATURE-----
 
---le3rj4S+jilWgWjH--
+--FWV58dOTQOM6W93I--
