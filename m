@@ -1,40 +1,45 @@
-From: Paolo Bonzini <pbonzini@redhat.com>
-Subject: Re: [PATCH 05/11] qspinlock: Optimize for smaller NR_CPUS
-Date: Mon, 07 Jul 2014 18:10:30 +0200
-Message-ID: <53BAC676.5030804@redhat.com>
-References: <20140615124657.264658593@chello.nl>
-	<20140615130153.483502389@chello.nl> <53A17A88.7090705@redhat.com>
-	<20140707143503.GS6758@twins.programming.kicks-ass.net>
-	<53BAB7E1.4010506@redhat.com>
-	<20140707153552.GE19379@twins.programming.kicks-ass.net>
+From: Greg KH <gregkh@linuxfoundation.org>
+Subject: Re: [PATCH v2 0/9] Updated fence patch series
+Date: Mon, 7 Jul 2014 10:30:52 -0700
+Message-ID: <20140707173052.GA8693@kroah.com>
+References: <20140701103432.12718.82795.stgit@patser>
+ <20140702053758.GA7578@kroah.com>
+ <CAKMK7uHZQjQ2m7KE22kTRVs-NtGguHREk24pSJiLbN7EoQLZ=g@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"; Format="flowed"
+Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-Return-path: <virtualization-bounces@lists.linux-foundation.org>
-In-Reply-To: <20140707153552.GE19379@twins.programming.kicks-ass.net>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
-List-Post: <mailto:virtualization@lists.linux-foundation.org>
-List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
-Sender: virtualization-bounces@lists.linux-foundation.org
-Errors-To: virtualization-bounces@lists.linux-foundation.org
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Waiman.Long@hp.com, linux-arch@vger.kernel.org, riel@redhat.com, gleb@redhat.com, kvm@vger.kernel.org, konrad.wilk@oracle.com, boris.ostrovsky@oracle.com, scott.norton@hp.com, raghavendra.kt@linux.vnet.ibm.com, paolo.bonzini@gmail.com, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, chegu_vinod@hp.com, david.vrabel@citrix.com, oleg@redhat.com, xen-devel@lists.xenproject.org, tglx@linutronix.de, paulmck@linux.vnet.ibm.com, torvalds@linux-foundation.org, mingo@kernel.org
+Return-path: <dri-devel-bounces@lists.freedesktop.org>
+Content-Disposition: inline
+In-Reply-To: <CAKMK7uHZQjQ2m7KE22kTRVs-NtGguHREk24pSJiLbN7EoQLZ=g@mail.gmail.com>
+List-Unsubscribe: <http://lists.freedesktop.org/mailman/options/dri-devel>,
+ <mailto:dri-devel-request@lists.freedesktop.org?subject=unsubscribe>
+List-Archive: <http://lists.freedesktop.org/archives/dri-devel>
+List-Post: <mailto:dri-devel@lists.freedesktop.org>
+List-Help: <mailto:dri-devel-request@lists.freedesktop.org?subject=help>
+List-Subscribe: <http://lists.freedesktop.org/mailman/listinfo/dri-devel>,
+ <mailto:dri-devel-request@lists.freedesktop.org?subject=subscribe>
+Errors-To: dri-devel-bounces@lists.freedesktop.org
+Sender: "dri-devel" <dri-devel-bounces@lists.freedesktop.org>
+To: Daniel Vetter <daniel@ffwll.ch>
+Cc: "open list:GENERIC INCLUDE/A..." <linux-arch@vger.kernel.org>, Thomas Hellstrom <thellstrom@vmware.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, dri-devel <dri-devel@lists.freedesktop.org>, "linaro-mm-sig@lists.linaro.org" <linaro-mm-sig@lists.linaro.org>, Colin Cross <ccross@google.com>, "linux-media@vger.kernel.org" <linux-media@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-Il 07/07/2014 17:35, Peter Zijlstra ha scritto:
->> > Unlike the change in patch 4, clear_pending_set_locked doesn't change how
->> > qspinlock moves from a state to the next.
-> True, but its where we start to break up into smaller functions. And the
-> only reason we break them out is because we'll get different
-> implementations depending on NR_CPUS.
->
-> So we can view the breakout of xchg_tail and clear_and_set_pending as
-> preparatory work for introducing the NR_CPUS thing.
+On Mon, Jul 07, 2014 at 03:23:17PM +0200, Daniel Vetter wrote:
+> On Wed, Jul 2, 2014 at 7:37 AM, Greg KH <gregkh@linuxfoundation.org> wrote:
+> >> Android can expose fences to userspace. It's possible to make the new fence
+> >> mechanism expose the same fences to userspace by changing sync_fence_create
+> >> to take a struct fence instead of a struct sync_pt. No other change is needed,
+> >> because only the fence parts of struct sync_pt are used. But because the
+> >> userspace fences are a separate problem and I haven't really looked at it yet
+> >> I feel it should stay in staging, for now.
+> >
+> > Ok, that's reasonable.
+> >
+> > At first glance, this all looks "sane" to me, any objection from anyone
+> > if I merge this through my driver-core tree for 3.17?
+> 
+> Ack from my side fwiw.
 
-That's a different reasoning, but it's fine by me too.
+Thanks, I'll queue it up later today.
 
-Paolo
+greg k-h
