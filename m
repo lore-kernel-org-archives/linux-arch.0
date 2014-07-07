@@ -1,98 +1,58 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cdptpa-outbound-snat.email.rr.com ([107.14.166.231]:37587 "EHLO
-	cdptpa-oedge-vip.email.rr.com" rhost-flags-OK-OK-OK-FAIL)
-	by vger.kernel.org with ESMTP id S1752890AbaGCQls (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 3 Jul 2014 12:41:48 -0400
-Date: Thu, 3 Jul 2014 12:41:46 -0400
-From: Steven Rostedt <rostedt@goodmis.org>
-Subject: Re: [RFA][PATCH 18/27] sparc64,ftrace: Remove check of obsolete
- variable function_trace_stop
-Message-ID: <20140703124146.3a93668f@gandalf.local.home>
-In-Reply-To: <20140626165852.160038235@goodmis.org>
-References: <20140626165221.736847419@goodmis.org>
-	<20140626165852.160038235@goodmis.org>
+Received: from mail-ie0-f169.google.com ([209.85.223.169]:47235 "EHLO
+	mail-ie0-f169.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753247AbaGGNXS (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 7 Jul 2014 09:23:18 -0400
+Received: by mail-ie0-f169.google.com with SMTP id rl12so3633464iec.14
+        for <linux-arch@vger.kernel.org>; Mon, 07 Jul 2014 06:23:17 -0700 (PDT)
 MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+In-Reply-To: <20140702053758.GA7578@kroah.com>
+References: <20140701103432.12718.82795.stgit@patser>
+	<20140702053758.GA7578@kroah.com>
+Date: Mon, 7 Jul 2014 15:23:17 +0200
+Message-ID: <CAKMK7uHZQjQ2m7KE22kTRVs-NtGguHREk24pSJiLbN7EoQLZ=g@mail.gmail.com>
+Subject: Re: [PATCH v2 0/9] Updated fence patch series
+From: Daniel Vetter <daniel@ffwll.ch>
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Steven Rostedt <rostedt@goodmis.org>
-Cc: linux-kernel@vger.kernel.org, Ingo Molnar <mingo@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Jiri Kosina <jkosina@suse.cz>, Josh Poimboeuf <notifications@github.com>, "David S. Miller" <davem@davemloft.net>, sparclinux@vger.kernel.org
-Message-ID: <20140703164146.o3KSbG9mD9Eih1waMl7Yb-h7s2pOfb6JOadufeAzoiQ@z>
+To: Greg KH <gregkh@linuxfoundation.org>
+Cc: Maarten Lankhorst <maarten.lankhorst@canonical.com>, "open list:GENERIC INCLUDE/A..." <linux-arch@vger.kernel.org>, Thomas Hellstrom <thellstrom@vmware.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, dri-devel <dri-devel@lists.freedesktop.org>, "linaro-mm-sig@lists.linaro.org" <linaro-mm-sig@lists.linaro.org>, "Clark, Rob" <robdclark@gmail.com>, Thierry Reding <thierry.reding@gmail.com>, Colin Cross <ccross@google.com>, Sumit Semwal <sumit.semwal@linaro.org>, "linux-media@vger.kernel.org" <linux-media@vger.kernel.org>
+Message-ID: <20140707132317.IHFuKLLKkezNu3smPAa2bNpL4qorNNJGTwGf0yT2nqA@z>
 
+On Wed, Jul 2, 2014 at 7:37 AM, Greg KH <gregkh@linuxfoundation.org> wrote:
+>> Android can expose fences to userspace. It's possible to make the new fence
+>> mechanism expose the same fences to userspace by changing sync_fence_create
+>> to take a struct fence instead of a struct sync_pt. No other change is needed,
+>> because only the fence parts of struct sync_pt are used. But because the
+>> userspace fences are a separate problem and I haven't really looked at it yet
+>> I feel it should stay in staging, for now.
+>
+> Ok, that's reasonable.
+>
+> At first glance, this all looks "sane" to me, any objection from anyone
+> if I merge this through my driver-core tree for 3.17?
 
-David,
+Ack from my side fwiw.
 
-Do you have any problem with this patch going through my tree? It
-compiles, but I do not have any hardware to test it. If you can verify
-that this patch works and ack it, it would be much appreciated.
+Just for the record (again) about android syncpts. I think using
+android syncpts stuff as the official userspace interfaces for fences
+for userspace that wants to do explicit syncing is the sane approach -
+after all the (only) big platform using explicit fencing is Android
+since opencl is kinda not yet there really on linux (which would be
+the other guy really interested in explicit fencing).
 
-This code is at:
+But before we de-stage android syncpts (and so bake in the userspace
+abi forever) I really want to see a full upstream gpu driver
+implementation using fences and running on both X+DRI userspace
+(implicit syncing) and android (expclicit syncing), including good
+test coverage for corner-cases to make sure we've addressed all warts
+and hidden dragons. i915 looks like the most likely candidate to get
+there first (we have the code for both use-cases out-of-tree after
+all) so I'll keep on pestering people. No promises though ;-)
 
- git://git.kernel.org/pub/scm/linux/kernel/git/rostedt/linux-trace.git
-
-branch: rfc/remove-function-trace-stop
-
-Thanks!
-
--- Steve
-
-On Thu, 26 Jun 2014 12:52:39 -0400
-Steven Rostedt <rostedt@goodmis.org> wrote:
-
-> From: "Steven Rostedt (Red Hat)" <rostedt@goodmis.org>
-> 
-> Nothing sets function_trace_stop to disable function tracing anymore.
-> Remove the check for it in the arch code.
-> 
-> [ Please test this on your arch ]
-> 
-> Cc: David S. Miller <davem@davemloft.net>
-> Signed-off-by: Steven Rostedt <rostedt@goodmis.org>
-> ---
->  arch/sparc/Kconfig      |  1 -
->  arch/sparc/lib/mcount.S | 10 ++--------
->  2 files changed, 2 insertions(+), 9 deletions(-)
-> 
-> diff --git a/arch/sparc/Kconfig b/arch/sparc/Kconfig
-> index 29f2e988c56a..abd7d5575a7d 100644
-> --- a/arch/sparc/Kconfig
-> +++ b/arch/sparc/Kconfig
-> @@ -55,7 +55,6 @@ config SPARC64
->  	select HAVE_FUNCTION_TRACER
->  	select HAVE_FUNCTION_GRAPH_TRACER
->  	select HAVE_FUNCTION_GRAPH_FP_TEST
-> -	select HAVE_FUNCTION_TRACE_MCOUNT_TEST
->  	select HAVE_KRETPROBES
->  	select HAVE_KPROBES
->  	select HAVE_RCU_TABLE_FREE if SMP
-> diff --git a/arch/sparc/lib/mcount.S b/arch/sparc/lib/mcount.S
-> index 3ad6cbdc2163..0b0ed4d34219 100644
-> --- a/arch/sparc/lib/mcount.S
-> +++ b/arch/sparc/lib/mcount.S
-> @@ -24,10 +24,7 @@ mcount:
->  #ifdef CONFIG_DYNAMIC_FTRACE
->  	/* Do nothing, the retl/nop below is all we need.  */
->  #else
-> -	sethi		%hi(function_trace_stop), %g1
-> -	lduw		[%g1 + %lo(function_trace_stop)], %g2
-> -	brnz,pn		%g2, 2f
-> -	 sethi		%hi(ftrace_trace_function), %g1
-> +	sethi		%hi(ftrace_trace_function), %g1
->  	sethi		%hi(ftrace_stub), %g2
->  	ldx		[%g1 + %lo(ftrace_trace_function)], %g1
->  	or		%g2, %lo(ftrace_stub), %g2
-> @@ -80,11 +77,8 @@ ftrace_stub:
->  	.globl		ftrace_caller
->  	.type		ftrace_caller,#function
->  ftrace_caller:
-> -	sethi		%hi(function_trace_stop), %g1
->  	mov		%i7, %g2
-> -	lduw		[%g1 + %lo(function_trace_stop)], %g1
-> -	brnz,pn		%g1, ftrace_stub
-> -	 mov		%fp, %g3
-> +	mov		%fp, %g3
->  	save		%sp, -176, %sp
->  	mov		%g2, %o1
->  	mov		%g2, %l0
-
+Cheers, Daniel
+-- 
+Daniel Vetter
+Software Engineer, Intel Corporation
++41 (0) 79 365 57 48 - http://blog.ffwll.ch
