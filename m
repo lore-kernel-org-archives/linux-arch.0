@@ -1,102 +1,58 @@
 From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH 11/11] qspinlock, kvm: Add paravirt support
-Date: Mon, 7 Jul 2014 17:23:50 +0200
-Message-ID: <20140707152350.GW6758@twins.programming.kicks-ass.net>
+Subject: Re: [PATCH 10/11] qspinlock: Paravirt support
+Date: Mon, 7 Jul 2014 17:27:34 +0200
+Message-ID: <20140707152734.GX6758@twins.programming.kicks-ass.net>
 References: <20140615124657.264658593@chello.nl>
-	<20140615130154.400698797@chello.nl>
-	<53A70602.8020000@linux.vnet.ibm.com>
+ <20140615130154.213923590@chello.nl>
+ <20140620134608.GA11545@laptop.dumpdata.com>
 Mime-Version: 1.0
-Content-Type: multipart/mixed; boundary="===============9054424669753111164=="
-Return-path: <virtualization-bounces@lists.linux-foundation.org>
-In-Reply-To: <53A70602.8020000@linux.vnet.ibm.com>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
-List-Post: <mailto:virtualization@lists.linux-foundation.org>
-List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
-Sender: virtualization-bounces@lists.linux-foundation.org
-Errors-To: virtualization-bounces@lists.linux-foundation.org
-To: Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>
-Cc: Waiman.Long@hp.com, linux-arch@vger.kernel.org, riel@redhat.com, gleb@redhat.com, kvm@vger.kernel.org, konrad.wilk@oracle.com, boris.ostrovsky@oracle.com, scott.norton@hp.com, paolo.bonzini@gmail.com, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, chegu_vinod@hp.com, david.vrabel@citrix.com, oleg@redhat.com, xen-devel@lists.xenproject.org, tglx@linutronix.de, paulmck@linux.vnet.ibm.com, torvalds@linux-foundation.org, mingo@kernel.org
-List-Id: linux-arch.vger.kernel.org
-
-
---===============9054424669753111164==
 Content-Type: multipart/signed; micalg=pgp-sha1;
-	protocol="application/pgp-signature"; boundary="le3rj4S+jilWgWjH"
+	protocol="application/pgp-signature"; boundary="B1+FeH9/zg1Fgdnk"
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from casper.infradead.org ([85.118.1.10]:50444 "EHLO
+	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752424AbaGGP1m (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 7 Jul 2014 11:27:42 -0400
 Content-Disposition: inline
+In-Reply-To: <20140620134608.GA11545@laptop.dumpdata.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
+Cc: Waiman.Long@hp.com, tglx@linutronix.de, mingo@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, paolo.bonzini@gmail.com, boris.ostrovsky@oracle.com, paulmck@linux.vnet.ibm.com, riel@redhat.com, torvalds@linux-foundation.org, raghavendra.kt@linux.vnet.ibm.com, david.vrabel@citrix.com, oleg@redhat.com, gleb@redhat.com, scott.norton@hp.com, chegu_vinod@hp.com
 
 
---le3rj4S+jilWgWjH
+--B1+FeH9/zg1Fgdnk
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
 
-On Sun, Jun 22, 2014 at 10:06:18PM +0530, Raghavendra K T wrote:
-> On 06/15/2014 06:17 PM, Peter Zijlstra wrote:
-> >Signed-off-by: Peter Zijlstra<peterz@infradead.org>
-> >---
-> [...]
-> >+
-> >+void kvm_wait(int *ptr, int val)
-> >+{
-> >+	unsigned long flags;
-> >+
-> >+	if (in_nmi())
-> >+		return;
-> >+
-> >+	/*
-> >+	 * Make sure an interrupt handler can't upset things in a
-> >+	 * partially setup state.
-> >+	 */
->=20
-> I am seeing hang with even 2 cpu guest (with patches on top of 3.15-rc6 ).
-> looking further with gdb I see one cpu is stuck with native_halt with
-> slowpath flag(_Q_LOCKED_SLOW) set when it was called.
+On Fri, Jun 20, 2014 at 09:46:08AM -0400, Konrad Rzeszutek Wilk wrote:
+> I dug in the code and I have some comments about it, but before
+> I post them I was wondering if you have any plans to run any performance
+> tests against the PV ticketlock with normal and over-committed scenarios?
 
-Like said in 0/n I think, I only booted the kernel in kvm, didn't
-actually do anything with it.
+I can barely boot a guest.. I'm not sure I can make them do anything
+much at all yet. All this virt crap is totally painful.
 
-It took me most of the day to figure out how to get paravirt working at
-all, didn't feel like spending another many hours trying to figure out
-how to make the crap thing do actual work.
 
-But I'll see what I can do after we can 'conceptually' agree on the
-paravirt patch.
-
---le3rj4S+jilWgWjH
+--B1+FeH9/zg1Fgdnk
 Content-Type: application/pgp-signature
 
 -----BEGIN PGP SIGNATURE-----
 Version: GnuPG v1.4.12 (GNU/Linux)
 
-iQIcBAEBAgAGBQJTuruGAAoJEHZH4aRLwOS67I4QAIcJ86JFQTzlVTnDFdzCM8es
-Xe06S3HLj1KAVhYTDjpIbcI41zKR6NAu5vtnyU6sFTJIfOK9sUaIzQ8KMxEZQxWe
-uuhKhfeVjPSJ1Yxm+Itv1KHCwzIbF91PlvmgB2GIloF3vfJ8AgvdMZlanWrrseC+
-R+zgYDA0Sov39tZ3YGAZydD/tdy9nXABUcFLMngGJpf0QU2VftTMgVPeJYs2dUGf
-nDTSoAfAtRw1HIJsrLiyX2llQjtbQXhk5EC0nzq5ZuLy7x6eNug4bd6AYy16WQO5
-jLKEe0ulTLaGTwZVgnqpSPnqpliwmP++4HlxbT2tMN3sEaNxrjJC3WsZElZJcCMA
-YkArNQaIi144RH1KK6kOaZyxbto983ffBJGs0qp80mhPS27DbqAANvKzNmpqT9tJ
-5hGNIMOO2JI0/gIWEcQynz69yD+X2iAzkNYMwi51g1khE+PSC1S5iQxhVMj6aYNc
-RWtzJrPHKGv1TbdXZG/nDv8KdNZyhJR5u1K2vZK8JcD4+qHyIpM2XF9GhtgTF58X
-1knzEbqG31fk6SbnvqCjG+upb+UkybxmXpGphaT+KPuQ/r24yRuHUV5ZikFbaggR
-Be6ZeyrqLMoC9/NCBNMMx+mOyHRNP3yrjdsAySXuiVD+7OCX+8UtBYbBjV2diL3D
-YGPdmLAD8N5s2iyw5OLJ
-=Q7O/
+iQIcBAEBAgAGBQJTurxmAAoJEHZH4aRLwOS6V8kP/2/wBt9lbzbfHPE65HZV/Gk0
+vSJ6u+u0ZL3rqRqBkVCRF/YTeg7bE+LSMcR6ZuWwouWvjpzoJyWoNCwUNk62RUr+
+pITOJhkQ5ZWOsnjsaA7M6WAJyjQBf8MKK2aquNVO5MxOFShiRmjw5COz/MkBGs9Y
+25KKiNaoO+3+/FSUiTPD56XaatUf6tcepG1W0vD08lswZk07HAlGEYX13NZlxMo/
++4YoSxzrcjouShTzSJuLn/WYcVTETVnq9RBmnpBzpEhhAd1ZsQAT9uv1WaUc/f25
+bCAvv3rFCnj+UxZkuE8RNp4bPAoxq1VBcFyF+rPnZD13Kxs7CiLI9kxRvNWM2u8x
+bQi952q1tUVMSfskl6SrOZ9i16r42f42YkVJMOhDolDBCadknTrczBOQkvC59EkJ
+fGI35n0qPfvmhH4cw08lQ4WYAmdIX+snpmIswSJWjWgpHYqldTIHMKIRAfOgQvRa
+TVqvzdKNc+Oe28dxDZFsXCGMM8kW8Kx2zPst6+jpzjMQ6k6MVBy+9Iwtr9yChhYy
+QsWzTvHOvBC3C5buow3ohOukxedIgG/vckhYRqzkgYPfjXtx+WuycqykYKIb68Lt
++zvmGb76j8VZaVsCWylllEaQ81EL+esw5E9Wlw1lIY2yv9j9uItjWpIgeSqfUUXV
+mDvqdGIcLtsltap+YBdV
+=00/v
 -----END PGP SIGNATURE-----
 
---le3rj4S+jilWgWjH--
-
---===============9054424669753111164==
-Content-Type: text/plain; charset="us-ascii"
-MIME-Version: 1.0
-Content-Transfer-Encoding: 7bit
-Content-Disposition: inline
-
-_______________________________________________
-Virtualization mailing list
-Virtualization@lists.linux-foundation.org
-https://lists.linuxfoundation.org/mailman/listinfo/virtualization
---===============9054424669753111164==--
+--B1+FeH9/zg1Fgdnk--
