@@ -1,13 +1,15 @@
 From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH 05/11] qspinlock: Optimize for smaller NR_CPUS
-Date: Mon, 7 Jul 2014 16:35:03 +0200
-Message-ID: <20140707143503.GS6758@twins.programming.kicks-ass.net>
+Subject: Re: [PATCH 07/11] qspinlock: Use a simple write to grab the lock, if
+	applicable
+Date: Mon, 7 Jul 2014 16:51:45 +0200
+Message-ID: <20140707145145.GT6758@twins.programming.kicks-ass.net>
 References: <20140615124657.264658593@chello.nl>
-	<20140615130153.483502389@chello.nl> <53A17A88.7090705@redhat.com>
+	<20140615130153.786898559@chello.nl>
+	<20140618163615.GA5331@laptop.dumpdata.com>
 Mime-Version: 1.0
-Content-Type: multipart/mixed; boundary="===============5972172975130093178=="
+Content-Type: multipart/mixed; boundary="===============6899177928135428686=="
 Return-path: <virtualization-bounces@lists.linux-foundation.org>
-In-Reply-To: <53A17A88.7090705@redhat.com>
+In-Reply-To: <20140618163615.GA5331@laptop.dumpdata.com>
 List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
 	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
 List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
@@ -17,66 +19,77 @@ List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualizati
 	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
 Sender: virtualization-bounces@lists.linux-foundation.org
 Errors-To: virtualization-bounces@lists.linux-foundation.org
-To: Paolo Bonzini <pbonzini@redhat.com>
-Cc: Waiman.Long@hp.com, linux-arch@vger.kernel.org, riel@redhat.com, gleb@redhat.com, kvm@vger.kernel.org, konrad.wilk@oracle.com, boris.ostrovsky@oracle.com, scott.norton@hp.com, raghavendra.kt@linux.vnet.ibm.com, paolo.bonzini@gmail.com, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, chegu_vinod@hp.com, david.vrabel@citrix.com, oleg@redhat.com, xen-devel@lists.xenproject.org, tglx@linutronix.de, paulmck@linux.vnet.ibm.com, torvalds@linux-foundation.org, mingo@kernel.org
+To: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
+Cc: Waiman.Long@hp.com, linux-arch@vger.kernel.org, riel@redhat.com, gleb@redhat.com, kvm@vger.kernel.org, boris.ostrovsky@oracle.com, scott.norton@hp.com, raghavendra.kt@linux.vnet.ibm.com, paolo.bonzini@gmail.com, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, chegu_vinod@hp.com, david.vrabel@citrix.com, oleg@redhat.com, xen-devel@lists.xenproject.org, tglx@linutronix.de, paulmck@linux.vnet.ibm.com, torvalds@linux-foundation.org, mingo@kernel.org
 List-Id: linux-arch.vger.kernel.org
 
 
---===============5972172975130093178==
+--===============6899177928135428686==
 Content-Type: multipart/signed; micalg=pgp-sha1;
-	protocol="application/pgp-signature"; boundary="GWLvvOwKrQC9aCO6"
+	protocol="application/pgp-signature"; boundary="pU61X8j5lbVWa/m1"
 Content-Disposition: inline
 
 
---GWLvvOwKrQC9aCO6
+--pU61X8j5lbVWa/m1
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
 Content-Transfer-Encoding: quoted-printable
 
-On Wed, Jun 18, 2014 at 01:39:52PM +0200, Paolo Bonzini wrote:
-> Il 15/06/2014 14:47, Peter Zijlstra ha scritto:
-> >
-> >-	for (;;) {
-> >-		new =3D (val & ~_Q_PENDING_MASK) | _Q_LOCKED_VAL;
-> >-
-> >-		old =3D atomic_cmpxchg(&lock->val, val, new);
-> >-		if (old =3D=3D val)
-> >-			break;
-> >-
-> >-		val =3D old;
-> >-	}
-> >+	clear_pending_set_locked(lock, val);
-> > 	return;
+On Wed, Jun 18, 2014 at 12:36:15PM -0400, Konrad Rzeszutek Wilk wrote:
+> On Sun, Jun 15, 2014 at 02:47:04PM +0200, Peter Zijlstra wrote:
+> > From: Waiman Long <Waiman.Long@hp.com>
+> >=20
+> > Currently, atomic_cmpxchg() is used to get the lock. However, this is
+> > not really necessary if there is more than one task in the queue and
+> > the queue head don't need to reset the queue code word. For that case,
+>=20
+> s/queue code word/tail {number,value}/ ?
 >=20
 >=20
-> Might as well add clear_pending_set_locked already in patch 3.
+> > a simple write to set the lock bit is enough as the queue head will
+> > be the only one eligible to get the lock as long as it checks that
+> > both the lock and pending bits are not set. The current pending bit
+> > waiting code will ensure that the bit will not be set as soon as the
+> > queue code word (tail) in the lock is set.
+>=20
+> Just use the same word as above.
 
-Patch 4, if anywhere.
+I made that:
 
---GWLvvOwKrQC9aCO6
+Currently, atomic_cmpxchg() is used to get the lock. However, this is
+not really necessary if there is more than one task in the queue and
+the queue head doesn't need to reset the queue tail.
+
+For that case, a simple write to set the lock byte is enough as the
+queue head will be the only one eligible to get the lock as long as it
+checks that both the lock and pending bits are not set. The current
+pending bit waiting code will ensure that the bit will not be set as
+soon as the queue tail is set.
+
+--pU61X8j5lbVWa/m1
 Content-Type: application/pgp-signature
 
 -----BEGIN PGP SIGNATURE-----
 Version: GnuPG v1.4.12 (GNU/Linux)
 
-iQIcBAEBAgAGBQJTurAXAAoJEHZH4aRLwOS6tJMP/2/ejA34BXi0AUQBXy9sqoLV
-4RvzSDvwtOwzPXS+41vrujUL9TcW0ehExmCWzDM7SRveQgpUL1UO4JezQTxI5bFd
-H8W92MkEjieElMiywUCD74tAjyR5VRhISbFsKfyTI936xHxp+3EsML/uak1jEye+
-Oq2qeDt5Z3s2UuGwAAEElaIJVjgpDqGoid98oWTAKn18P4Tf5aPXta2D75hPsaSE
-teGnn18YtOZNsK3Poup+ILMcCzaxRz+ywXNgMSu+F37X3RRs1tU9v3yCvHMyXvW1
-3VY7vLwwnuw0ZC8cyYqlPAx97Y/SO/Dufr1zRFxVXzj9onVQrB1JGqcX9w/S17+u
-UpWCwGT59wCqzk6LlEXiKvMEsnHajpyO2pPHgc/QZWEY6B2zqUhq4KDEgSu7oGfa
-Z9Mr6QUzhgb1ZZRnhzMjgX5ma/7TLkh5l3FykNpi/A3EY/u+Ix59Q79rU8eDza8Q
-h4Hbn37SiWW+GZCCf8SruSuA5kA+tizzp+vlHY/mBOFdq1G+FN/AkcZuhgZnSxS+
-4nM5+AjEihrDobaJ5qBU0TN3s9j22n0J7TCCQGKZ3fvZ00Op3VRl0IOiL7XSG463
-XkvJULht9ksfz2C1+uoTs1KSaoZKu8G7VdMORXntN7Os4kA8+hznTQzK3rzv9GAZ
-bEuwTxenzLrQ7GrSFUpP
-=6YZk
+iQIcBAEBAgAGBQJTurQBAAoJEHZH4aRLwOS6WToP/0klEyJW66JPUpNtJF1tneQM
+Oq1eDjkll1dWXWFFOveinihYFNAdsY+Fy6eLc2qlkKPRExlsLwoT5xab4KW9n/cb
+Mx8tFFiWhsY20pwJh7Nw0q0xEWiHanEwdbAUESbVj1adxpzLpXq6hRscslJfO/Id
+5n7zAv41QZAejY+wO/pau5j/CDTrIXKbGexKaC4X01OOlDEjHBP12R0uqL2gu2Vj
+OfjmCLmFa/3kjhLuxFsQplRnQ5/j2WgKFqXmxcstT9i/bu3gCpRxSIuuYpjWSf+q
+j4MNlm7wvWnXn3eEMtXjFQwyTJArJWBSED/kCqOluaumhAhn+2AMYLpZ9UUZO37t
+xywiPnbfOB2I/HdsiJlbuueqJdrzYZRqssuPjJhmNyc7d8nkOMEL+JtPd8F5H9wi
+qH6M3NUhTvH20aehcozqz0lS6LqT0hl6BlASgHxeEXNvS31c5UwVlinLPXfrTM1E
+8PZ843CAyQ4i3laxNvxh4FclWFTDWP0vRkHHN6xF9UTmsHR/MrIVQ2TE5AkLsKWn
+qXZp82wlREbwKCkmpENr0UwtPfD7ARhkUVbcPA4suFblo6iDbjgbcNOVKlxHXrTQ
+cEYgmzh/ARl7kISFvsI28Yrq9AwRQvwlpV8qcBQxxVG2SDxkIRXkpcNfEcDzdJGo
+u9rgaONm5H8a/5fSyxtl
+=gXci
 -----END PGP SIGNATURE-----
 
---GWLvvOwKrQC9aCO6--
+--pU61X8j5lbVWa/m1--
 
---===============5972172975130093178==
+--===============6899177928135428686==
 Content-Type: text/plain; charset="us-ascii"
 MIME-Version: 1.0
 Content-Transfer-Encoding: 7bit
@@ -86,4 +99,4 @@ _______________________________________________
 Virtualization mailing list
 Virtualization@lists.linux-foundation.org
 https://lists.linuxfoundation.org/mailman/listinfo/virtualization
---===============5972172975130093178==--
+--===============6899177928135428686==--
