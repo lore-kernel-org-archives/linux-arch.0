@@ -1,15 +1,17 @@
-From: Peter Zijlstra <peterz@infradead.org>
+From: Paolo Bonzini <pbonzini@redhat.com>
 Subject: Re: [PATCH 05/11] qspinlock: Optimize for smaller NR_CPUS
-Date: Mon, 7 Jul 2014 17:35:52 +0200
-Message-ID: <20140707153552.GE19379@twins.programming.kicks-ass.net>
+Date: Mon, 07 Jul 2014 18:10:30 +0200
+Message-ID: <53BAC676.5030804@redhat.com>
 References: <20140615124657.264658593@chello.nl>
 	<20140615130153.483502389@chello.nl> <53A17A88.7090705@redhat.com>
 	<20140707143503.GS6758@twins.programming.kicks-ass.net>
 	<53BAB7E1.4010506@redhat.com>
+	<20140707153552.GE19379@twins.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: multipart/mixed; boundary="===============9121187562882594778=="
+Content-Type: text/plain; charset="us-ascii"; Format="flowed"
+Content-Transfer-Encoding: 7bit
 Return-path: <virtualization-bounces@lists.linux-foundation.org>
-In-Reply-To: <53BAB7E1.4010506@redhat.com>
+In-Reply-To: <20140707153552.GE19379@twins.programming.kicks-ass.net>
 List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
 	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
 List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
@@ -19,104 +21,20 @@ List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualizati
 	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
 Sender: virtualization-bounces@lists.linux-foundation.org
 Errors-To: virtualization-bounces@lists.linux-foundation.org
-To: Paolo Bonzini <pbonzini@redhat.com>
+To: Peter Zijlstra <peterz@infradead.org>
 Cc: Waiman.Long@hp.com, linux-arch@vger.kernel.org, riel@redhat.com, gleb@redhat.com, kvm@vger.kernel.org, konrad.wilk@oracle.com, boris.ostrovsky@oracle.com, scott.norton@hp.com, raghavendra.kt@linux.vnet.ibm.com, paolo.bonzini@gmail.com, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, chegu_vinod@hp.com, david.vrabel@citrix.com, oleg@redhat.com, xen-devel@lists.xenproject.org, tglx@linutronix.de, paulmck@linux.vnet.ibm.com, torvalds@linux-foundation.org, mingo@kernel.org
 List-Id: linux-arch.vger.kernel.org
 
+Il 07/07/2014 17:35, Peter Zijlstra ha scritto:
+>> > Unlike the change in patch 4, clear_pending_set_locked doesn't change how
+>> > qspinlock moves from a state to the next.
+> True, but its where we start to break up into smaller functions. And the
+> only reason we break them out is because we'll get different
+> implementations depending on NR_CPUS.
+>
+> So we can view the breakout of xchg_tail and clear_and_set_pending as
+> preparatory work for introducing the NR_CPUS thing.
 
---===============9121187562882594778==
-Content-Type: multipart/signed; micalg=pgp-sha1;
-	protocol="application/pgp-signature"; boundary="FWV58dOTQOM6W93I"
-Content-Disposition: inline
+That's a different reasoning, but it's fine by me too.
 
-
---FWV58dOTQOM6W93I
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
-
-On Mon, Jul 07, 2014 at 05:08:17PM +0200, Paolo Bonzini wrote:
-> Il 07/07/2014 16:35, Peter Zijlstra ha scritto:
-> >On Wed, Jun 18, 2014 at 01:39:52PM +0200, Paolo Bonzini wrote:
-> >>Il 15/06/2014 14:47, Peter Zijlstra ha scritto:
-> >>>
-> >>>-	for (;;) {
-> >>>-		new =3D (val & ~_Q_PENDING_MASK) | _Q_LOCKED_VAL;
-> >>>-
-> >>>-		old =3D atomic_cmpxchg(&lock->val, val, new);
-> >>>-		if (old =3D=3D val)
-> >>>-			break;
-> >>>-
-> >>>-		val =3D old;
-> >>>-	}
-> >>>+	clear_pending_set_locked(lock, val);
-> >>>	return;
-> >>
-> >>
-> >>Might as well add clear_pending_set_locked already in patch 3.
-> >
-> >Patch 4, if anywhere.
-> >
->=20
-> This code is added in patch 3:
->=20
-> +	/*
-> +	 * take ownership and clear the pending bit.
-> +	 *
-> +	 * *,1,0 -> *,0,1
-> +	 */
-> +	for (;;) {
-> +		new =3D (val & ~_Q_PENDING_MASK) | _Q_LOCKED_VAL;
-> +
-> +		old =3D atomic_cmpxchg(&lock->val, val, new);
-> +		if (old =3D=3D val)
-> +			break;
-> +
-> +		val =3D old;
-> +	}
-> +	return;
->=20
-> Unlike the change in patch 4, clear_pending_set_locked doesn't change how
-> qspinlock moves from a state to the next.
-
-True, but its where we start to break up into smaller functions. And the
-only reason we break them out is because we'll get different
-implementations depending on NR_CPUS.
-
-So we can view the breakout of xchg_tail and clear_and_set_pending as
-preparatory work for introducing the NR_CPUS thing.
-
---FWV58dOTQOM6W93I
-Content-Type: application/pgp-signature
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.12 (GNU/Linux)
-
-iQIcBAEBAgAGBQJTur5YAAoJEHZH4aRLwOS6g3kQAKXtlRCvCSg2g2sPmw3PnenM
-KOImaErwG99JHISCd2HIb2apdNU0AoZ+PYUF1TtHfIK0K3ISP05z81srYDLJ8xGS
-A5ajSkLMF6H+cAqQdXa2H8BnuOUSJtdg5D+0hPRugjtuzOrHrow0otYIKlFJOPZ0
-0Nlvr3zGg9bUTLKLBJzEN2rLAmrVTooo/07TbDf2JGpf3c95i3Z13xebLDGIoru6
-HtD1yl24i6K/I8ZK6oDiiKv7JJf/QH+Zwmb1rATjITy5D4koHleWLm7k1E7Tjl3t
-zqSU+NU+68i18cFlZ5IRfL3W3D4lB/Hjtpeb0mZSbMN5MJKxZdmpKPz03kHEI+j5
-8t2CE8cEMISyuGLSl1Q44hUrchKcdRcga52E/0VbRmL838T3j+bOzdmjPwZ8doL8
-IB9yoG0+uR+TtEhgWro4f+esE6WQ6kIpAjFzBuiUVmu6gwPUsvb2XEu58bLzCsWf
-RTp338Vpbtb8Rafnjbj5uJlYJgFePRlFWure7CtmNgl9rhEbkJMtqcoBlK4+BLl2
-W2t5melO9VI74J20x6oS1N3ZCTZxebaC/dfCVzHl3QEi1NMX4TusHHPsSV0lu+Of
-wvcfhaOeraRmPzvs3krCRIPvhjNIeAl/2A9jupThdM6FEh+/EoEQybEZq6YhpMfp
-G03clWJdHdCmzBkHpZa0
-=IqHF
------END PGP SIGNATURE-----
-
---FWV58dOTQOM6W93I--
-
---===============9121187562882594778==
-Content-Type: text/plain; charset="us-ascii"
-MIME-Version: 1.0
-Content-Transfer-Encoding: 7bit
-Content-Disposition: inline
-
-_______________________________________________
-Virtualization mailing list
-Virtualization@lists.linux-foundation.org
-https://lists.linuxfoundation.org/mailman/listinfo/virtualization
---===============9121187562882594778==--
+Paolo
