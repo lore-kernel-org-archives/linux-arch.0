@@ -1,55 +1,55 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ie0-f169.google.com ([209.85.223.169]:47235 "EHLO
-	mail-ie0-f169.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753247AbaGGNXS (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 7 Jul 2014 09:23:18 -0400
-Received: by mail-ie0-f169.google.com with SMTP id rl12so3633464iec.14
-        for <linux-arch@vger.kernel.org>; Mon, 07 Jul 2014 06:23:17 -0700 (PDT)
+Received: from mail-ie0-f180.google.com ([209.85.223.180]:63533 "EHLO
+	mail-ie0-f180.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753404AbaGGN2n (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 7 Jul 2014 09:28:43 -0400
+Received: by mail-ie0-f180.google.com with SMTP id tr6so1699950ieb.11
+        for <linux-arch@vger.kernel.org>; Mon, 07 Jul 2014 06:28:42 -0700 (PDT)
 MIME-Version: 1.0
-In-Reply-To: <20140702053758.GA7578@kroah.com>
-References: <20140701103432.12718.82795.stgit@patser>
-	<20140702053758.GA7578@kroah.com>
-Date: Mon, 7 Jul 2014 15:23:17 +0200
-Message-ID: <CAKMK7uHZQjQ2m7KE22kTRVs-NtGguHREk24pSJiLbN7EoQLZ=g@mail.gmail.com>
-Subject: Re: [PATCH v2 0/9] Updated fence patch series
+In-Reply-To: <53A7E93B.4060007@canonical.com>
+References: <20140618102957.15728.43525.stgit@patser>
+	<20140618103711.15728.97842.stgit@patser>
+	<20140619011556.GE10921@kroah.com>
+	<20140619063727.GL5821@phenom.ffwll.local>
+	<20140619114825.GB28111@ulmo>
+	<CAKMK7uE_B3pCZB9orh5+BJGooNfyEa0APrZqRpXqYu5xfQ0PCQ@mail.gmail.com>
+	<20140620205252.GC28814@mithrandir>
+	<53A7E93B.4060007@canonical.com>
+Date: Mon, 7 Jul 2014 15:28:42 +0200
+Message-ID: <CAKMK7uE78SP74JGViNpTia=PeV6OnHiePn+0_aG5CVoFWFW4Fg@mail.gmail.com>
+Subject: Re: [REPOST PATCH 4/8] android: convert sync to fence api, v5
 From: Daniel Vetter <daniel@ffwll.ch>
 Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Greg KH <gregkh@linuxfoundation.org>
-Cc: Maarten Lankhorst <maarten.lankhorst@canonical.com>, "open list:GENERIC INCLUDE/A..." <linux-arch@vger.kernel.org>, Thomas Hellstrom <thellstrom@vmware.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, dri-devel <dri-devel@lists.freedesktop.org>, "linaro-mm-sig@lists.linaro.org" <linaro-mm-sig@lists.linaro.org>, "Clark, Rob" <robdclark@gmail.com>, Thierry Reding <thierry.reding@gmail.com>, Colin Cross <ccross@google.com>, Sumit Semwal <sumit.semwal@linaro.org>, "linux-media@vger.kernel.org" <linux-media@vger.kernel.org>
-Message-ID: <20140707132317.IHFuKLLKkezNu3smPAa2bNpL4qorNNJGTwGf0yT2nqA@z>
+To: Maarten Lankhorst <maarten.lankhorst@canonical.com>
+Cc: Thierry Reding <thierry.reding@gmail.com>, Greg KH <gregkh@linuxfoundation.org>, "open list:GENERIC INCLUDE/A..." <linux-arch@vger.kernel.org>, Thomas Hellstrom <thellstrom@vmware.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, dri-devel <dri-devel@lists.freedesktop.org>, "linaro-mm-sig@lists.linaro.org" <linaro-mm-sig@lists.linaro.org>, "Clark, Rob" <robdclark@gmail.com>, Colin Cross <ccross@google.com>, Sumit Semwal <sumit.semwal@linaro.org>, "linux-media@vger.kernel.org" <linux-media@vger.kernel.org>
+Message-ID: <20140707132842.MEuQePon_ZmGU1Pz2bypC-MNSQfLbXqWtUPKMdbVnmA@z>
 
-On Wed, Jul 2, 2014 at 7:37 AM, Greg KH <gregkh@linuxfoundation.org> wrote:
->> Android can expose fences to userspace. It's possible to make the new fence
->> mechanism expose the same fences to userspace by changing sync_fence_create
->> to take a struct fence instead of a struct sync_pt. No other change is needed,
->> because only the fence parts of struct sync_pt are used. But because the
->> userspace fences are a separate problem and I haven't really looked at it yet
->> I feel it should stay in staging, for now.
->
-> Ok, that's reasonable.
->
-> At first glance, this all looks "sane" to me, any objection from anyone
-> if I merge this through my driver-core tree for 3.17?
+On Mon, Jun 23, 2014 at 10:45 AM, Maarten Lankhorst
+<maarten.lankhorst@canonical.com> wrote:
+> But in drivers/drm I can encounter a similar issue, people expect to be able to
+> overwrite the contents of the currently displayed buffer, so I 'solved' it by not adding
+> a fence on the buffer, only by waiting for buffer idle before page flipping.
+> The rationale is that the buffer is pinned internally, and the backing storage cannot
+> go away until dma_buf_unmap_attachment is called. So when you render to the
+> current front buffer without queuing a page flip you get exactly what you expect. ;-)
 
-Ack from my side fwiw.
+Yeah, scanout buffers are special and imo we should only uses fences
+as barriers just around the flip, but _not_ to prevent frontbuffer in
+general. Userspace is after all allowed to do that (e.g. with the dumb
+bo ioctls). If we'd premanently lock scanout buffers that would indeed
+result in hilarity all over the place, no surprises there. And all
+current drivers with dynamic memory management solve this through
+pinning, but not by restricting write access at all.
 
-Just for the record (again) about android syncpts. I think using
-android syncpts stuff as the official userspace interfaces for fences
-for userspace that wants to do explicit syncing is the sane approach -
-after all the (only) big platform using explicit fencing is Android
-since opencl is kinda not yet there really on linux (which would be
-the other guy really interested in explicit fencing).
+So I think we can shrug this scenario off as a non-issue of the "don't
+do this" kind ;-) Thierry, is there anything else you've stumbled over
+in the tegra k1 enabling work?
 
-But before we de-stage android syncpts (and so bake in the userspace
-abi forever) I really want to see a full upstream gpu driver
-implementation using fences and running on both X+DRI userspace
-(implicit syncing) and android (expclicit syncing), including good
-test coverage for corner-cases to make sure we've addressed all warts
-and hidden dragons. i915 looks like the most likely candidate to get
-there first (we have the code for both use-cases out-of-tree after
-all) so I'll keep on pestering people. No promises though ;-)
+I still get the impression that there's an awful lot of
+misunderstandings between the explicit and implicit syncing camps and
+that we need to do a lot more talking for a better understanding ...
 
 Cheers, Daniel
 -- 
