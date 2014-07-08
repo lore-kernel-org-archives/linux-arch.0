@@ -1,55 +1,52 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-oa0-f44.google.com ([209.85.219.44]:40057 "EHLO
-	mail-oa0-f44.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750869AbaGGR14 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 7 Jul 2014 13:27:56 -0400
-Received: by mail-oa0-f44.google.com with SMTP id i7so4992805oag.3
-        for <linux-arch@vger.kernel.org>; Mon, 07 Jul 2014 10:27:55 -0700 (PDT)
-MIME-Version: 1.0
-In-Reply-To: <20140702053758.GA7578@kroah.com>
-References: <20140701103432.12718.82795.stgit@patser> <20140702053758.GA7578@kroah.com>
-From: Sumit Semwal <sumit.semwal@linaro.org>
-Date: Mon, 7 Jul 2014 22:57:35 +0530
-Message-ID: <CAO_48GGkhB3wQwcW=DpDR4zO7k8-2tm_aynsDxZ5Q72ffwtx=A@mail.gmail.com>
+Received: from mail-wg0-f52.google.com ([74.125.82.52]:50566 "EHLO
+	mail-wg0-f52.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754127AbaGHNoU (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 8 Jul 2014 09:44:20 -0400
+Received: by mail-wg0-f52.google.com with SMTP id b13so5951289wgh.35
+        for <linux-arch@vger.kernel.org>; Tue, 08 Jul 2014 06:44:18 -0700 (PDT)
+Date: Tue, 8 Jul 2014 15:44:27 +0200
+From: Daniel Vetter <daniel@ffwll.ch>
 Subject: Re: [PATCH v2 0/9] Updated fence patch series
-Content-Type: text/plain; charset=UTF-8
+Message-ID: <20140708134427.GG17271@phenom.ffwll.local>
+References: <20140701103432.12718.82795.stgit@patser>
+ <20140702053758.GA7578@kroah.com>
+ <CAKMK7uHZQjQ2m7KE22kTRVs-NtGguHREk24pSJiLbN7EoQLZ=g@mail.gmail.com>
+ <20140707173052.GA8693@kroah.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20140707173052.GA8693@kroah.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Greg KH <gregkh@linuxfoundation.org>
-Cc: Maarten Lankhorst <maarten.lankhorst@canonical.com>, linux-arch <linux-arch@vger.kernel.org>, Thomas Hellstrom <thellstrom@vmware.com>, LKML <linux-kernel@vger.kernel.org>, DRI mailing list <dri-devel@lists.freedesktop.org>, Linaro MM SIG <linaro-mm-sig@lists.linaro.org>, Rob Clark <robdclark@gmail.com>, Thierry Reding <thierry.reding@gmail.com>, Colin Cross <ccross@google.com>, Daniel Vetter <daniel@ffwll.ch>, "linux-media@vger.kernel.org" <linux-media@vger.kernel.org>
-Message-ID: <20140707172735.d8HZMWs96kTQsIZzE3jp89Xr4O49ZT7YhGWs2VQCHkA@z>
+Cc: Daniel Vetter <daniel@ffwll.ch>, Maarten Lankhorst <maarten.lankhorst@canonical.com>, "open list:GENERIC INCLUDE/A..." <linux-arch@vger.kernel.org>, Thomas Hellstrom <thellstrom@vmware.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, dri-devel <dri-devel@lists.freedesktop.org>, "linaro-mm-sig@lists.linaro.org" <linaro-mm-sig@lists.linaro.org>, "Clark, Rob" <robdclark@gmail.com>, Thierry Reding <thierry.reding@gmail.com>, Colin Cross <ccross@google.com>, Sumit Semwal <sumit.semwal@linaro.org>, "linux-media@vger.kernel.org" <linux-media@vger.kernel.org>
+Message-ID: <20140708134427.pVN_Fmayv-8oDOtBzzlCGwBtYsjSbP5ljyDksXN9fEs@z>
 
-Hi Greg,
+On Mon, Jul 07, 2014 at 10:30:52AM -0700, Greg KH wrote:
+> On Mon, Jul 07, 2014 at 03:23:17PM +0200, Daniel Vetter wrote:
+> > On Wed, Jul 2, 2014 at 7:37 AM, Greg KH <gregkh@linuxfoundation.org> wrote:
+> > >> Android can expose fences to userspace. It's possible to make the new fence
+> > >> mechanism expose the same fences to userspace by changing sync_fence_create
+> > >> to take a struct fence instead of a struct sync_pt. No other change is needed,
+> > >> because only the fence parts of struct sync_pt are used. But because the
+> > >> userspace fences are a separate problem and I haven't really looked at it yet
+> > >> I feel it should stay in staging, for now.
+> > >
+> > > Ok, that's reasonable.
+> > >
+> > > At first glance, this all looks "sane" to me, any objection from anyone
+> > > if I merge this through my driver-core tree for 3.17?
+> > 
+> > Ack from my side fwiw.
+> 
+> Thanks, I'll queue it up later today.
 
-On 2 July 2014 11:07, Greg KH <gregkh@linuxfoundation.org> wrote:
-> On Tue, Jul 01, 2014 at 12:57:02PM +0200, Maarten Lankhorst wrote:
->> So after some more hacking I've moved dma-buf to its own subdirectory,
->> drivers/dma-buf and applied the fence patches to its new place. I believe that the
->> first patch should be applied regardless, and the rest should be ready now.
->> :-)
->>
->> Changes to the fence api:
->> - release_fence -> fence_release etc.
->> - __fence_init -> fence_init
->> - __fence_signal -> fence_signal_locked
->> - __fence_is_signaled -> fence_is_signaled_locked
->> - Changing BUG_ON to WARN_ON in fence_later, and return NULL if it triggers.
->>
->> Android can expose fences to userspace. It's possible to make the new fence
->> mechanism expose the same fences to userspace by changing sync_fence_create
->> to take a struct fence instead of a struct sync_pt. No other change is needed,
->> because only the fence parts of struct sync_pt are used. But because the
->> userspace fences are a separate problem and I haven't really looked at it yet
->> I feel it should stay in staging, for now.
->
-> Ok, that's reasonable.
->
-> At first glance, this all looks "sane" to me, any objection from anyone
-> if I merge this through my driver-core tree for 3.17?
->
-Fwiw, Ack from me as well!
-> thanks,
->
-> greg k-h
-Best regards,
-~Sumit.
+btw should we add you as a (co)maintainer for driver/core/dma-buf since
+you seem to want to keep a closer tab on what the insane gfx folks are up
+to in there?
+-Daniel
+-- 
+Daniel Vetter
+Software Engineer, Intel Corporation
++41 (0) 79 365 57 48 - http://blog.ffwll.ch
