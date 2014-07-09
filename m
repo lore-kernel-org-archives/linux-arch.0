@@ -1,80 +1,44 @@
-From: James Hogan <james.hogan@imgtec.com>
-Subject: Re: [RFA][PATCH 07/27] MIPS: ftrace: Add call to ftrace_graph_is_dead()
- in function graph code
-Date: Wed, 9 Jul 2014 16:48:32 +0100
-Message-ID: <53BD6450.50103@imgtec.com>
-References: <20140626165221.736847419@goodmis.org>	<20140626165849.321719498@goodmis.org> <20140702103138.01880b1d@gandalf.local.home>
+From: Sam Ravnborg <sam@ravnborg.org>
+Subject: Re: [PATCH 1/3] asm-generic/io.h: Implement generic {read,write}s*()
+Date: Wed, 9 Jul 2014 19:38:34 +0200
+Message-ID: <20140709173834.GA31974@ravnborg.org>
+References: <1404918699-17284-1-git-send-email-thierry.reding@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="ISO-8859-1"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mailapp01.imgtec.com ([195.59.15.196]:5897 "EHLO
-	mailapp01.imgtec.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755924AbaGIPuS (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 9 Jul 2014 11:50:18 -0400
-In-Reply-To: <20140702103138.01880b1d@gandalf.local.home>
+Received: from asavdk4.altibox.net ([109.247.116.15]:46019 "EHLO
+	asavdk4.altibox.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751542AbaGIRiw (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 9 Jul 2014 13:38:52 -0400
+Content-Disposition: inline
+In-Reply-To: <1404918699-17284-1-git-send-email-thierry.reding@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Steven Rostedt <rostedt@goodmis.org>, linux-mips@linux-mips.org
-Cc: linux-kernel@vger.kernel.org, Ingo Molnar <mingo@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Jiri Kosina <jkosina@suse.cz>, Josh Poimboeuf <notifications@github.com>, Ralf Baechle <ralf@linux-mips.org>
+To: Thierry Reding <thierry.reding@gmail.com>
+Cc: Russell King <linux@arm.linux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-Hi Steven,
+On Wed, Jul 09, 2014 at 05:11:37PM +0200, Thierry Reding wrote:
+> From: Thierry Reding <treding@nvidia.com>
+> 
+> This patch implements generic versions of readsb(), readsw(), readsl(),
+> readsq(), writesb(), writesw(), writesl() and writesq(). Variants of
+> these string functions for I/O accesses (ins*() and outs*() as well as
+> ioread*_rep() and iowrite*_rep()) are now implemented in terms of the
+> new functions.
+> 
+> While at it, also make sure that any of the functions provided as
+> fallback for architectures that don't override them can't be overridden
+> subsequently.
+> 
+> This is compile- and runtime-tested on 32-bit and 64-bit ARM and compile
+> tested on Microblaze, s390, SPARC and Xtensa. For ARC, Blackfin, Metag,
+> OpenRISC, Score and Unicore32 which also use asm-generic/io.h I couldn't
+> find or build a cross-compiler that would run on my system. But by code
+> inspection they shouldn't break with this patch.
 
-I've given this a quick test on a mips32 le target, on your
-rfc/remove-function-trace-stop branch (4161daee7df8). Booted fine,
-startup tests fine, function and function_graph trace appear to work
-from a quick cat of the trace file. Feel free to add my Tested-by:
+Looks good. When this is in mainline I will try to convert sparc64
+to use asm-generic/io.h too.
+Last I tried this did not fly because there were some #define
+missing and then I lost track of it.
 
-Tested-by: James Hogan <james.hogan@imgtec.com> [MIPS]
-
-Cheers
-James
-
-On 02/07/14 15:31, Steven Rostedt wrote:
-> 
-> Adding linux-mips@linux-mips.org.
-> 
-> -- Steve
-> 
-> 
-> On Thu, 26 Jun 2014 12:52:28 -0400
-> Steven Rostedt <rostedt@goodmis.org> wrote:
-> 
->> From: "Steven Rostedt (Red Hat)" <rostedt@goodmis.org>
->>
->> ftrace_stop() is going away as it disables parts of function tracing
->> that affects users that should not be affected. But ftrace_graph_stop()
->> is built on ftrace_stop(). Here's another example of killing all of
->> function tracing because something went wrong with function graph
->> tracing.
->>
->> Instead of disabling all users of function tracing on function graph
->> error, disable only function graph tracing. To do this, the arch code
->> must call ftrace_graph_is_dead() before it implements function graph.
->>
->> Cc: Ralf Baechle <ralf@linux-mips.org>
->> Signed-off-by: Steven Rostedt <rostedt@goodmis.org>
->> ---
->>  arch/mips/kernel/ftrace.c | 3 +++
->>  1 file changed, 3 insertions(+)
->>
->> diff --git a/arch/mips/kernel/ftrace.c b/arch/mips/kernel/ftrace.c
->> index 60e7e5e45af1..8b6538750fe1 100644
->> --- a/arch/mips/kernel/ftrace.c
->> +++ b/arch/mips/kernel/ftrace.c
->> @@ -302,6 +302,9 @@ void prepare_ftrace_return(unsigned long *parent_ra_addr, unsigned long self_ra,
->>  	    &return_to_handler;
->>  	int faulted, insns;
->>  
->> +	if (unlikely(ftrace_graph_is_dead()))
->> +		return;
->> +
->>  	if (unlikely(atomic_read(&current->tracing_graph_pause)))
->>  		return;
->>  
-> 
-> --
-> To unsubscribe from this list: send the line "unsubscribe linux-arch" in
-> the body of a message to majordomo@vger.kernel.org
-> More majordomo info at  http://vger.kernel.org/majordomo-info.html
-> 
+	Sam
