@@ -1,57 +1,68 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.linuxfoundation.org ([140.211.169.12]:36188 "EHLO
-	mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754110AbaGHUmQ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 8 Jul 2014 16:42:16 -0400
-Date: Tue, 8 Jul 2014 13:46:40 -0700
-From: Greg KH <gregkh@linuxfoundation.org>
-Subject: Re: [PATCH v2 0/9] Updated fence patch series
-Message-ID: <20140708204640.GA25937@kroah.com>
-References: <20140701103432.12718.82795.stgit@patser>
- <20140702053758.GA7578@kroah.com>
- <53B3CD00.5030003@canonical.com>
+Received: from cdptpa-outbound-snat.email.rr.com ([107.14.166.227]:44996 "EHLO
+	cdptpa-oedge-vip.email.rr.com" rhost-flags-OK-OK-OK-FAIL)
+	by vger.kernel.org with ESMTP id S1756243AbaGIOFE (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 9 Jul 2014 10:05:04 -0400
+Date: Wed, 9 Jul 2014 10:04:53 -0400
+From: Steven Rostedt <rostedt@goodmis.org>
+Subject: Re: [RFA][PATCH 09/27] powerpc/ftrace: Add call to
+ ftrace_graph_is_dead() in function graph code
+Message-ID: <20140709100453.689b1ef6@gandalf.local.home>
+In-Reply-To: <20140626165850.107467021@goodmis.org>
+References: <20140626165221.736847419@goodmis.org>
+	<20140626165850.107467021@goodmis.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <53B3CD00.5030003@canonical.com>
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Maarten Lankhorst <maarten.lankhorst@canonical.com>
-Cc: linux-arch@vger.kernel.org, thellstrom@vmware.com, linux-kernel@vger.kernel.org, dri-devel@lists.freedesktop.org, linaro-mm-sig@lists.linaro.org, robdclark@gmail.com, thierry.reding@gmail.com, ccross@google.com, daniel@ffwll.ch, sumit.semwal@linaro.org, linux-media@vger.kernel.org
-Message-ID: <20140708204640.y0gCUzxPPn3opjJeUzPKPjOpl_gASXEoOBgR4t-DbWM@z>
+To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: linux-kernel@vger.kernel.org, Ingo Molnar <mingo@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Jiri Kosina <jkosina@suse.cz>, Josh Poimboeuf <notifications@github.com>, Anton Blanchard <anton@samba.org>
+Message-ID: <20140709140453._FWr0rPaxQvWNGtn6_iF0UsmvfTvXtnPyE13u99P-Wc@z>
 
-On Wed, Jul 02, 2014 at 11:12:32AM +0200, Maarten Lankhorst wrote:
-> op 02-07-14 07:37, Greg KH schreef:
-> > On Tue, Jul 01, 2014 at 12:57:02PM +0200, Maarten Lankhorst wrote:
-> >> So after some more hacking I've moved dma-buf to its own subdirectory,
-> >> drivers/dma-buf and applied the fence patches to its new place. I believe that the
-> >> first patch should be applied regardless, and the rest should be ready now.
-> >> :-)
-> >>
-> >> Changes to the fence api:
-> >> - release_fence -> fence_release etc.
-> >> - __fence_init -> fence_init
-> >> - __fence_signal -> fence_signal_locked
-> >> - __fence_is_signaled -> fence_is_signaled_locked
-> >> - Changing BUG_ON to WARN_ON in fence_later, and return NULL if it triggers.
-> >>
-> >> Android can expose fences to userspace. It's possible to make the new fence
-> >> mechanism expose the same fences to userspace by changing sync_fence_create
-> >> to take a struct fence instead of a struct sync_pt. No other change is needed,
-> >> because only the fence parts of struct sync_pt are used. But because the
-> >> userspace fences are a separate problem and I haven't really looked at it yet
-> >> I feel it should stay in staging, for now.
-> > Ok, that's reasonable.
-> >
-> > At first glance, this all looks "sane" to me, any objection from anyone
-> > if I merge this through my driver-core tree for 3.17?
-> >
-> Sounds good to me, let me know when you pull it in, so I can rebase my
-> drm conversion on top of it. :-)
+Ben,
 
-All are now queued up and in my driver-core tree in the driver-core-next
-branch, you should have gotten the emails about it.
+Can you ack this please?
 
-thanks,
+Thanks,
 
-greg k-h
+-- Steve
+
+
+On Thu, 26 Jun 2014 12:52:30 -0400
+Steven Rostedt <rostedt@goodmis.org> wrote:
+
+> From: "Steven Rostedt (Red Hat)" <rostedt@goodmis.org>
+> 
+> ftrace_stop() is going away as it disables parts of function tracing
+> that affects users that should not be affected. But ftrace_graph_stop()
+> is built on ftrace_stop(). Here's another example of killing all of
+> function tracing because something went wrong with function graph
+> tracing.
+> 
+> Instead of disabling all users of function tracing on function graph
+> error, disable only function graph tracing. To do this, the arch code
+> must call ftrace_graph_is_dead() before it implements function graph.
+> 
+> Cc: Anton Blanchard <anton@samba.org>
+> Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+> Signed-off-by: Steven Rostedt <rostedt@goodmis.org>
+> ---
+>  arch/powerpc/kernel/ftrace.c | 3 +++
+>  1 file changed, 3 insertions(+)
+> 
+> diff --git a/arch/powerpc/kernel/ftrace.c b/arch/powerpc/kernel/ftrace.c
+> index f202d0731b06..f8c0ce5523a5 100644
+> --- a/arch/powerpc/kernel/ftrace.c
+> +++ b/arch/powerpc/kernel/ftrace.c
+> @@ -527,6 +527,9 @@ void prepare_ftrace_return(unsigned long *parent, unsigned long self_addr)
+>  	struct ftrace_graph_ent trace;
+>  	unsigned long return_hooker = (unsigned long)&return_to_handler;
+>  
+> +	if (unlikely(ftrace_graph_is_dead()))
+> +		return;
+> +
+>  	if (unlikely(atomic_read(&current->tracing_graph_pause)))
+>  		return;
+>  
+
