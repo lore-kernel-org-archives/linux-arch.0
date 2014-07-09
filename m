@@ -1,44 +1,60 @@
-From: Sam Ravnborg <sam@ravnborg.org>
-Subject: Re: [PATCH 1/3] asm-generic/io.h: Implement generic {read,write}s*()
-Date: Wed, 9 Jul 2014 19:38:34 +0200
-Message-ID: <20140709173834.GA31974@ravnborg.org>
-References: <1404918699-17284-1-git-send-email-thierry.reding@gmail.com>
+From: Oleg Nesterov <oleg@redhat.com>
+Subject: Re: [PATCH v9 11/11] seccomp: implement SECCOMP_FILTER_FLAG_TSYNC
+Date: Wed, 9 Jul 2014 20:05:20 +0200
+Message-ID: <20140709180520.GA2560@redhat.com>
+References: <1403911380-27787-1-git-send-email-keescook@chromium.org> <1403911380-27787-12-git-send-email-keescook@chromium.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from asavdk4.altibox.net ([109.247.116.15]:46019 "EHLO
-	asavdk4.altibox.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751542AbaGIRiw (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 9 Jul 2014 13:38:52 -0400
+Return-path: <linux-mips-bounce@linux-mips.org>
 Content-Disposition: inline
-In-Reply-To: <1404918699-17284-1-git-send-email-thierry.reding@gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Thierry Reding <thierry.reding@gmail.com>
-Cc: Russell King <linux@arm.linux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+In-Reply-To: <1403911380-27787-12-git-send-email-keescook@chromium.org>
+Sender: linux-mips-bounce@linux-mips.org
+Errors-to: linux-mips-bounce@linux-mips.org
+List-help: <mailto:ecartis@linux-mips.org?Subject=help>
+List-unsubscribe: <mailto:ecartis@linux-mips.org?subject=unsubscribe%20linux-mips>
+List-software: Ecartis version 1.0.0
+List-subscribe: <mailto:ecartis@linux-mips.org?subject=subscribe%20linux-mips>
+List-owner: <mailto:ralf@linux-mips.org>
+List-post: <mailto:linux-mips@linux-mips.org>
+List-archive: <http://www.linux-mips.org/archives/linux-mips/>
+To: Kees Cook <keescook@chromium.org>
+Cc: linux-kernel@vger.kernel.org, Andy Lutomirski <luto@amacapital.net>, "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>, Alexei Starovoitov <ast@plumgrid.com>, Andrew Morton <akpm@linux-foundation.org>, Daniel Borkmann <dborkman@redhat.com>, Will Drewry <wad@chromium.org>, Julien Tinnes <jln@chromium.org>, David Drysdale <drysdale@google.com>, linux-api@vger.kernel.org, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-mips@linux-mips.org, linux-arch@vger.kernel.org, linux-security-module@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, Jul 09, 2014 at 05:11:37PM +0200, Thierry Reding wrote:
-> From: Thierry Reding <treding@nvidia.com>
-> 
-> This patch implements generic versions of readsb(), readsw(), readsl(),
-> readsq(), writesb(), writesw(), writesl() and writesq(). Variants of
-> these string functions for I/O accesses (ins*() and outs*() as well as
-> ioread*_rep() and iowrite*_rep()) are now implemented in terms of the
-> new functions.
-> 
-> While at it, also make sure that any of the functions provided as
-> fallback for architectures that don't override them can't be overridden
-> subsequently.
-> 
-> This is compile- and runtime-tested on 32-bit and 64-bit ARM and compile
-> tested on Microblaze, s390, SPARC and Xtensa. For ARC, Blackfin, Metag,
-> OpenRISC, Score and Unicore32 which also use asm-generic/io.h I couldn't
-> find or build a cross-compiler that would run on my system. But by code
-> inspection they shouldn't break with this patch.
+First of all, sorry for delay ;)
 
-Looks good. When this is in mainline I will try to convert sparc64
-to use asm-generic/io.h too.
-Last I tried this did not fly because there were some #define
-missing and then I lost track of it.
+So far I quickly glanced at this series and everything look fine, but
+I am confused by the signal_group_exit() check,
 
-	Sam
+On 06/27, Kees Cook wrote:
+>
+> To make sure that de_thread() is actually able
+> to kill other threads during an exec, any sighand holders need to check
+> if they've been scheduled to be killed, and to give up on their work.
+
+Probably this connects to that check below? I can't understand this...
+
+> +	/*
+> +	 * Make sure we cannot change seccomp or nnp state via TSYNC
+> +	 * while another thread is in the middle of calling exec.
+> +	 */
+> +	if (flags & SECCOMP_FILTER_FLAG_TSYNC &&
+> +	    mutex_lock_killable(&current->signal->cred_guard_mutex))
+> +		goto out_free;
+
+-EINVAL looks a bit confusing in this case, but this is cosemtic because
+userspace won't see this error-code anyway.
+
+>  	spin_lock_irq(&current->sighand->siglock);
+> +	if (unlikely(signal_group_exit(current->signal))) {
+> +		/* If thread is dying, return to process the signal. */
+
+OK, this doesn't hurt, but why?
+
+You could check __fatal_signal_pending() with the same effect. And since
+we hold this mutex, exec (de_thread) can be the source of that SIGKILL.
+We take this mutex specially to avoid the race with exec.
+
+So why do we need to abort if we race with kill() or exit_grouo() ?
+
+Oleg.
