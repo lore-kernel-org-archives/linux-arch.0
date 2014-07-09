@@ -1,68 +1,77 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cdptpa-outbound-snat.email.rr.com ([107.14.166.227]:44996 "EHLO
+Received: from cdptpa-outbound-snat.email.rr.com ([107.14.166.231]:53310 "EHLO
 	cdptpa-oedge-vip.email.rr.com" rhost-flags-OK-OK-OK-FAIL)
-	by vger.kernel.org with ESMTP id S1756243AbaGIOFE (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 9 Jul 2014 10:05:04 -0400
-Date: Wed, 9 Jul 2014 10:04:53 -0400
+	by vger.kernel.org with ESMTP id S1756529AbaGIOQR (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 9 Jul 2014 10:16:17 -0400
+Date: Wed, 9 Jul 2014 10:16:15 -0400
 From: Steven Rostedt <rostedt@goodmis.org>
-Subject: Re: [RFA][PATCH 09/27] powerpc/ftrace: Add call to
- ftrace_graph_is_dead() in function graph code
-Message-ID: <20140709100453.689b1ef6@gandalf.local.home>
-In-Reply-To: <20140626165850.107467021@goodmis.org>
+Subject: Re: [RFA][PATCH 22/27] microblaze: ftrace: Remove check of obsolete
+ variable function_trace_stop
+Message-ID: <20140709101615.1300f991@gandalf.local.home>
+In-Reply-To: <20140626165852.891982463@goodmis.org>
 References: <20140626165221.736847419@goodmis.org>
-	<20140626165850.107467021@goodmis.org>
+	<20140626165852.891982463@goodmis.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: linux-kernel@vger.kernel.org, Ingo Molnar <mingo@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Jiri Kosina <jkosina@suse.cz>, Josh Poimboeuf <notifications@github.com>, Anton Blanchard <anton@samba.org>
-Message-ID: <20140709140453._FWr0rPaxQvWNGtn6_iF0UsmvfTvXtnPyE13u99P-Wc@z>
+To: Michal Simek <monstr@monstr.eu>
+Cc: linux-kernel@vger.kernel.org, Ingo Molnar <mingo@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Jiri Kosina <jkosina@suse.cz>, Josh Poimboeuf <notifications@github.com>
+Message-ID: <20140709141615.x5cd9Z0EecCQAAOoNhg-liOoTbMhGMkyR-vX76Prlbk@z>
 
-Ben,
+Michal,
 
-Can you ack this please?
+Can you please ack this patch.
 
-Thanks,
+Thanks!
 
 -- Steve
 
 
-On Thu, 26 Jun 2014 12:52:30 -0400
+On Thu, 26 Jun 2014 12:52:43 -0400
 Steven Rostedt <rostedt@goodmis.org> wrote:
 
 > From: "Steven Rostedt (Red Hat)" <rostedt@goodmis.org>
 > 
-> ftrace_stop() is going away as it disables parts of function tracing
-> that affects users that should not be affected. But ftrace_graph_stop()
-> is built on ftrace_stop(). Here's another example of killing all of
-> function tracing because something went wrong with function graph
-> tracing.
+> Nothing sets function_trace_stop to disable function tracing anymore.
+> Remove the check for it in the arch code.
 > 
-> Instead of disabling all users of function tracing on function graph
-> error, disable only function graph tracing. To do this, the arch code
-> must call ftrace_graph_is_dead() before it implements function graph.
+> [ Please test this on your arch ]
 > 
-> Cc: Anton Blanchard <anton@samba.org>
-> Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+> Cc: Michal Simek <monstr@monstr.eu>
 > Signed-off-by: Steven Rostedt <rostedt@goodmis.org>
 > ---
->  arch/powerpc/kernel/ftrace.c | 3 +++
->  1 file changed, 3 insertions(+)
+>  arch/microblaze/Kconfig         | 1 -
+>  arch/microblaze/kernel/mcount.S | 5 -----
+>  2 files changed, 6 deletions(-)
 > 
-> diff --git a/arch/powerpc/kernel/ftrace.c b/arch/powerpc/kernel/ftrace.c
-> index f202d0731b06..f8c0ce5523a5 100644
-> --- a/arch/powerpc/kernel/ftrace.c
-> +++ b/arch/powerpc/kernel/ftrace.c
-> @@ -527,6 +527,9 @@ void prepare_ftrace_return(unsigned long *parent, unsigned long self_addr)
->  	struct ftrace_graph_ent trace;
->  	unsigned long return_hooker = (unsigned long)&return_to_handler;
->  
-> +	if (unlikely(ftrace_graph_is_dead()))
-> +		return;
-> +
->  	if (unlikely(atomic_read(&current->tracing_graph_pause)))
->  		return;
->  
+> diff --git a/arch/microblaze/Kconfig b/arch/microblaze/Kconfig
+> index 9ae08541e30d..40e1c1dd0e24 100644
+> --- a/arch/microblaze/Kconfig
+> +++ b/arch/microblaze/Kconfig
+> @@ -22,7 +22,6 @@ config MICROBLAZE
+>  	select HAVE_DYNAMIC_FTRACE
+>  	select HAVE_FTRACE_MCOUNT_RECORD
+>  	select HAVE_FUNCTION_GRAPH_TRACER
+> -	select HAVE_FUNCTION_TRACE_MCOUNT_TEST
+>  	select HAVE_FUNCTION_TRACER
+>  	select HAVE_MEMBLOCK
+>  	select HAVE_MEMBLOCK_NODE_MAP
+> diff --git a/arch/microblaze/kernel/mcount.S b/arch/microblaze/kernel/mcount.S
+> index fc1e1322ce4c..fed9da5de8c4 100644
+> --- a/arch/microblaze/kernel/mcount.S
+> +++ b/arch/microblaze/kernel/mcount.S
+> @@ -91,11 +91,6 @@ ENTRY(ftrace_caller)
+>  #endif /* CONFIG_DYNAMIC_FTRACE */
+>  	SAVE_REGS
+>  	swi	r15, r1, 0;
+> -	/* MS: HAVE_FUNCTION_TRACE_MCOUNT_TEST begin of checking */
+> -	lwi	r5, r0, function_trace_stop;
+> -	bneid	r5, end;
+> -	nop;
+> -	/* MS: HAVE_FUNCTION_TRACE_MCOUNT_TEST end of checking */
+>  #ifdef CONFIG_FUNCTION_GRAPH_TRACER
+>  #ifndef CONFIG_DYNAMIC_FTRACE
+>  	lwi	r5, r0, ftrace_graph_return;
 
