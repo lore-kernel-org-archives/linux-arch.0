@@ -1,60 +1,52 @@
-From: Oleg Nesterov <oleg@redhat.com>
-Subject: Re: [PATCH v9 11/11] seccomp: implement SECCOMP_FILTER_FLAG_TSYNC
-Date: Wed, 9 Jul 2014 20:05:20 +0200
-Message-ID: <20140709180520.GA2560@redhat.com>
-References: <1403911380-27787-1-git-send-email-keescook@chromium.org> <1403911380-27787-12-git-send-email-keescook@chromium.org>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: [PATCH 10/17] tile: Remove tile-specific _sinitdata and _einitdata
+Date: Wed, 9 Jul 2014 20:33:19 +0200
+Message-ID: <CAMuHMdXUSMU6dTnaMtSDPgL-x89XJh8hKKRhhDBYJvWZ9rpomQ@mail.gmail.com>
+References: <1384285347-13506-1-git-send-email-geert@linux-m68k.org>
+	<1384285347-13506-11-git-send-email-geert@linux-m68k.org>
+	<528414A6.8090208@tilera.com>
+	<alpine.DEB.2.02.1311140927170.9407@ayla.of.borg>
+	<5284E467.6040502@tilera.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-mips-bounce@linux-mips.org>
-Content-Disposition: inline
-In-Reply-To: <1403911380-27787-12-git-send-email-keescook@chromium.org>
-Sender: linux-mips-bounce@linux-mips.org
-Errors-to: linux-mips-bounce@linux-mips.org
-List-help: <mailto:ecartis@linux-mips.org?Subject=help>
-List-unsubscribe: <mailto:ecartis@linux-mips.org?subject=unsubscribe%20linux-mips>
-List-software: Ecartis version 1.0.0
-List-subscribe: <mailto:ecartis@linux-mips.org?subject=subscribe%20linux-mips>
-List-owner: <mailto:ralf@linux-mips.org>
-List-post: <mailto:linux-mips@linux-mips.org>
-List-archive: <http://www.linux-mips.org/archives/linux-mips/>
-To: Kees Cook <keescook@chromium.org>
-Cc: linux-kernel@vger.kernel.org, Andy Lutomirski <luto@amacapital.net>, "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>, Alexei Starovoitov <ast@plumgrid.com>, Andrew Morton <akpm@linux-foundation.org>, Daniel Borkmann <dborkman@redhat.com>, Will Drewry <wad@chromium.org>, Julien Tinnes <jln@chromium.org>, David Drysdale <drysdale@google.com>, linux-api@vger.kernel.org, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-mips@linux-mips.org, linux-arch@vger.kernel.org, linux-security-module@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=UTF-8
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-lb0-f177.google.com ([209.85.217.177]:41958 "EHLO
+	mail-lb0-f177.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751325AbaGISdV (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 9 Jul 2014 14:33:21 -0400
+In-Reply-To: <5284E467.6040502@tilera.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Chris Metcalf <cmetcalf@tilera.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
 
-First of all, sorry for delay ;)
+Hi Chris,
 
-So far I quickly glanced at this series and everything look fine, but
-I am confused by the signal_group_exit() check,
-
-On 06/27, Kees Cook wrote:
+On Thu, Nov 14, 2013 at 3:55 PM, Chris Metcalf <cmetcalf@tilera.com> wrote:
+> On 11/14/2013 3:31 AM, Geert Uytterhoeven wrote:
+>> Feel free to take v2 below. Thanks!
+>>
+>> From d761d4d63945ff0a6eab5a9058c132f870c92aff Mon Sep 17 00:00:00 2001
+>> From: Geert Uytterhoeven <geert@linux-m68k.org>
+>> Date: Fri, 8 Nov 2013 21:33:29 +0100
+>> Subject: [PATCH -v2] tile: Remove tile-specific _sinitdata and _einitdata
+>>
+>> Use standard __init_begin and __init_end instead.
+>>
+>> Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
+>> Acked-by: Chris Metcalf <cmetcalf@tilera.com>
 >
-> To make sure that de_thread() is actually able
-> to kill other threads during an exec, any sighand holders need to check
-> if they've been scheduled to be killed, and to give up on their work.
+> Taken into the tile tree; thanks!  (I did fix one extra place where it mentioned _sinitdata in a comment.)
 
-Probably this connects to that check below? I can't understand this...
+I'm going through old patches, and it seems this is still not upstream?
 
-> +	/*
-> +	 * Make sure we cannot change seccomp or nnp state via TSYNC
-> +	 * while another thread is in the middle of calling exec.
-> +	 */
-> +	if (flags & SECCOMP_FILTER_FLAG_TSYNC &&
-> +	    mutex_lock_killable(&current->signal->cred_guard_mutex))
-> +		goto out_free;
+Gr{oetje,eeting}s,
 
--EINVAL looks a bit confusing in this case, but this is cosemtic because
-userspace won't see this error-code anyway.
+                        Geert
 
->  	spin_lock_irq(&current->sighand->siglock);
-> +	if (unlikely(signal_group_exit(current->signal))) {
-> +		/* If thread is dying, return to process the signal. */
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
 
-OK, this doesn't hurt, but why?
-
-You could check __fatal_signal_pending() with the same effect. And since
-we hold this mutex, exec (de_thread) can be the source of that SIGKILL.
-We take this mutex specially to avoid the race with exec.
-
-So why do we need to abort if we race with kill() or exit_grouo() ?
-
-Oleg.
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
