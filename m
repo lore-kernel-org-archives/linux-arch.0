@@ -1,60 +1,57 @@
-From: Kees Cook <keescook@chromium.org>
-Subject: Re: [PATCH v9 09/11] seccomp: introduce writer locking
-Date: Thu, 10 Jul 2014 02:25:12 -0700
-Message-ID: <CAGXu5jL6q1d16uA1Yu+QO4eV7zWwcWEWgkZrwmsfymbMvEr6+Q@mail.gmail.com>
-References: <1403911380-27787-1-git-send-email-keescook@chromium.org>
-	<1403911380-27787-10-git-send-email-keescook@chromium.org>
-	<20140709184215.GA4866@redhat.com>
-	<20140709185549.GB4866@redhat.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH 1/3] asm-generic/io.h: Implement generic {read,write}s*()
+Date: Thu, 10 Jul 2014 12:38:55 +0200
+Message-ID: <201407101238.56081.arnd@arndb.de>
+References: <1404918699-17284-1-git-send-email-thierry.reding@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: Text/Plain;
+  charset="iso-8859-15"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-oa0-f44.google.com ([209.85.219.44]:59111 "EHLO
-	mail-oa0-f44.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752274AbaGJJZN (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 10 Jul 2014 05:25:13 -0400
-Received: by mail-oa0-f44.google.com with SMTP id i7so9522834oag.3
-        for <linux-arch@vger.kernel.org>; Thu, 10 Jul 2014 02:25:12 -0700 (PDT)
-In-Reply-To: <20140709185549.GB4866@redhat.com>
+Received: from mout.kundenserver.de ([212.227.126.187]:55078 "EHLO
+	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750778AbaGJKje (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 10 Jul 2014 06:39:34 -0400
+In-Reply-To: <1404918699-17284-1-git-send-email-thierry.reding@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Oleg Nesterov <oleg@redhat.com>
-Cc: LKML <linux-kernel@vger.kernel.org>, Andy Lutomirski <luto@amacapital.net>, "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>, Alexei Starovoitov <ast@plumgrid.com>, Andrew Morton <akpm@linux-foundation.org>, Daniel Borkmann <dborkman@redhat.com>, Will Drewry <wad@chromium.org>, Julien Tinnes <jln@chromium.org>, David Drysdale <drysdale@google.com>, Linux API <linux-api@vger.kernel.org>, "x86@kernel.org" <x86@kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, linux-mips@linux-mips.org, linux-arch <linux-arch@vger.kernel.org>, linux-security-module <linux-security-module@vger.kernel.org>
+To: Thierry Reding <thierry.reding@gmail.com>
+Cc: Russell King <linux@arm.linux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-On Wed, Jul 9, 2014 at 11:55 AM, Oleg Nesterov <oleg@redhat.com> wrote:
-> On 07/09, Oleg Nesterov wrote:
->>
->> On 06/27, Kees Cook wrote:
->> >
->> >  static u32 seccomp_run_filters(int syscall)
->> >  {
->> > -   struct seccomp_filter *f;
->> > +   struct seccomp_filter *f = ACCESS_ONCE(current->seccomp.filter);
->>
->> I am not sure...
->>
->> This is fine if this ->filter is the 1st (and only) one, in this case
->> we can rely on rmb() in the caller.
->>
->> But the new filter can be installed at any moment. Say, right after that
->> rmb() although this doesn't matter. Either we need smp_read_barrier_depends()
->> after that, or smp_load_acquire() like the previous version did?
->
-> Wait... and it seems that seccomp_sync_threads() needs smp_store_release()
-> when it sets thread->filter = current->filter by the same reason?
->
-> OTOH. smp_store_release() in seccomp_attach_filter() can die, "current"
-> doesn't need a barrier to serialize with itself.
+On Wednesday 09 July 2014, Thierry Reding wrote:
+> 
+> From: Thierry Reding <treding@nvidia.com>
+> 
+> This patch implements generic versions of readsb(), readsw(), readsl(),
+> readsq(), writesb(), writesw(), writesl() and writesq(). Variants of
+> these string functions for I/O accesses (ins*() and outs*() as well as
+> ioread*_rep() and iowrite*_rep()) are now implemented in terms of the
+> new functions.
+> 
+> While at it, also make sure that any of the functions provided as
+> fallback for architectures that don't override them can't be overridden
+> subsequently.
+> 
+> This is compile- and runtime-tested on 32-bit and 64-bit ARM and compile
+> tested on Microblaze, s390, SPARC and Xtensa. For ARC, Blackfin, Metag,
+> OpenRISC, Score and Unicore32 which also use asm-generic/io.h I couldn't
+> find or build a cross-compiler that would run on my system. But by code
+> inspection they shouldn't break with this patch.
+> 
+> Signed-off-by: Thierry Reding <treding@nvidia.com>
 
-I have lost track of what you're suggesting to change. :)
+Acked-by: Arnd Bergmann <arnd@arndb.de>
 
-Since rmb() happens before run_filters, isn't the ACCESS_ONCE
-sufficient? We only care that TIF_SECCOMP, mode, and some filter is
-valid. In a tsync thread race, it's okay to use not use the deepest
-filter node in the list, it just needs A filter.
+Thanks for doing this!
 
--Kees
+Not sure how to best merge the series, but for the asm-generic patch,
+I'd suggest to keep it together with the follow-on patches in one
+branch and merge it either through Russell's arm32 tree or through
+Catalin's arm64 tree.
 
--- 
-Kees Cook
-Chrome OS Security
+The easiest way would probably be to take patches 1 and 3 for arm64 in
+3.17 and merge patch 2 in 3.18, unless Russell wants to see this earlier,
+in which case we could have a branch that is shared between arm32 and
+arm64.
+
+	Arnd
