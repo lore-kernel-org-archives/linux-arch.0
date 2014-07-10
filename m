@@ -1,89 +1,94 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ob0-f179.google.com ([209.85.214.179]:58750 "EHLO
-	mail-ob0-f179.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752277AbaGJJRb (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 10 Jul 2014 05:17:31 -0400
-Received: by mail-ob0-f179.google.com with SMTP id uz6so9435876obc.38
-        for <linux-arch@vger.kernel.org>; Thu, 10 Jul 2014 02:17:30 -0700 (PDT)
-MIME-Version: 1.0
-In-Reply-To: <20140709180520.GA2560@redhat.com>
-References: <1403911380-27787-1-git-send-email-keescook@chromium.org>
-	<1403911380-27787-12-git-send-email-keescook@chromium.org>
-	<20140709180520.GA2560@redhat.com>
-Date: Thu, 10 Jul 2014 02:17:30 -0700
-Message-ID: <CAGXu5jLUqz-T1tRBCpPLkzWijyAF-Vjw_7PnQ1EvUh4urwyaUg@mail.gmail.com>
+Received: from mx1.redhat.com ([209.132.183.28]:53018 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751969AbaGJPKp (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 10 Jul 2014 11:10:45 -0400
+Date: Thu, 10 Jul 2014 17:08:32 +0200
+From: Oleg Nesterov <oleg@redhat.com>
 Subject: Re: [PATCH v9 11/11] seccomp: implement SECCOMP_FILTER_FLAG_TSYNC
-From: Kees Cook <keescook@chromium.org>
-Content-Type: text/plain; charset=UTF-8
+Message-ID: <20140710150832.GA20861@redhat.com>
+References: <1403911380-27787-1-git-send-email-keescook@chromium.org> <1403911380-27787-12-git-send-email-keescook@chromium.org> <20140709180520.GA2560@redhat.com> <CAGXu5jLUqz-T1tRBCpPLkzWijyAF-Vjw_7PnQ1EvUh4urwyaUg@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <CAGXu5jLUqz-T1tRBCpPLkzWijyAF-Vjw_7PnQ1EvUh4urwyaUg@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Oleg Nesterov <oleg@redhat.com>
+To: Kees Cook <keescook@chromium.org>
 Cc: LKML <linux-kernel@vger.kernel.org>, Andy Lutomirski <luto@amacapital.net>, "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>, Alexei Starovoitov <ast@plumgrid.com>, Andrew Morton <akpm@linux-foundation.org>, Daniel Borkmann <dborkman@redhat.com>, Will Drewry <wad@chromium.org>, Julien Tinnes <jln@chromium.org>, David Drysdale <drysdale@google.com>, Linux API <linux-api@vger.kernel.org>, "x86@kernel.org" <x86@kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, linux-mips@linux-mips.org, linux-arch <linux-arch@vger.kernel.org>, linux-security-module <linux-security-module@vger.kernel.org>
-Message-ID: <20140710091730.GTz9Wj--txsq_EqR-mjB9Gtm93S6fbtELQZLHM9jd7Y@z>
+Message-ID: <20140710150832.9VOL2DJXasQtGP6l9MQNS7zEGBF3cqhNRbnbzEmN0SI@z>
 
-On Wed, Jul 9, 2014 at 11:05 AM, Oleg Nesterov <oleg@redhat.com> wrote:
-> First of all, sorry for delay ;)
+On 07/10, Kees Cook wrote:
 >
-> So far I quickly glanced at this series and everything look fine, but
-> I am confused by the signal_group_exit() check,
+> On Wed, Jul 9, 2014 at 11:05 AM, Oleg Nesterov <oleg@redhat.com> wrote:
+> >
+> >> +     /*
+> >> +      * Make sure we cannot change seccomp or nnp state via TSYNC
+> >> +      * while another thread is in the middle of calling exec.
+> >> +      */
+> >> +     if (flags & SECCOMP_FILTER_FLAG_TSYNC &&
+> >> +         mutex_lock_killable(&current->signal->cred_guard_mutex))
+> >> +             goto out_free;
+> >
+> > -EINVAL looks a bit confusing in this case, but this is cosemtic because
+> > userspace won't see this error-code anyway.
 >
-> On 06/27, Kees Cook wrote:
->>
->> To make sure that de_thread() is actually able
->> to kill other threads during an exec, any sighand holders need to check
->> if they've been scheduled to be killed, and to give up on their work.
+> Happy to use whatever since, as you say, it's cosmetic. Perhaps -EAGAIN?
+
+Or -EINTR. I do not really mind, I only mentioned this because I had another
+nit.
+
+> >>       spin_lock_irq(&current->sighand->siglock);
+> >> +     if (unlikely(signal_group_exit(current->signal))) {
+> >> +             /* If thread is dying, return to process the signal. */
+> >
+> > OK, this doesn't hurt, but why?
+> >
+> > You could check __fatal_signal_pending() with the same effect. And since
+> > we hold this mutex, exec (de_thread) can be the source of that SIGKILL.
+> > We take this mutex specially to avoid the race with exec.
+> >
+> > So why do we need to abort if we race with kill() or exit_grouo() ?
 >
-> Probably this connects to that check below? I can't understand this...
+> In my initial code inspection that we could block waiting for the
+> cred_guard mutex, with exec holding it, exec would schedule death in
+> de_thread, and then once it released, the tsync thread would try to
+> keep running.
 >
->> +     /*
->> +      * Make sure we cannot change seccomp or nnp state via TSYNC
->> +      * while another thread is in the middle of calling exec.
->> +      */
->> +     if (flags & SECCOMP_FILTER_FLAG_TSYNC &&
->> +         mutex_lock_killable(&current->signal->cred_guard_mutex))
->> +             goto out_free;
+> However, in looking at this again, now I'm concerned this produces a
+> dead-lock in de_thread, since it waits for all threads to actually
+> die, but tsync will be waiting with the killable mutex.
+
+That is why you should always use _killable (or _interruptible) if you
+want to take ->cred_guard_mutex.
+
+If this thread races with de_thread() which holds this mutex, it will
+be killed and mutex_lock_killable() will fail.
+
+(to clarify; this deadlock is not "fatal", de_thread() can be killed too,
+ but this doesn't really matter).
+
+> So I think I got too defensive when I read the top of de_thread where
+> it checks for pending signals itself.
 >
-> -EINVAL looks a bit confusing in this case, but this is cosemtic because
-> userspace won't see this error-code anyway.
+> It seems like I can just safely remove the singal_group_exit checks?
+> The other paths (non-tsync seccomp_set_mode_filter, and
+> seccomp_set_mode_strict)
 
-Happy to use whatever since, as you say, it's cosmetic. Perhaps -EAGAIN?
+Yes, I missed another signal_group_exit() in seccomp_set_mode_strict().
+It looks equally unneeded.
 
->
->>       spin_lock_irq(&current->sighand->siglock);
->> +     if (unlikely(signal_group_exit(current->signal))) {
->> +             /* If thread is dying, return to process the signal. */
->
-> OK, this doesn't hurt, but why?
->
-> You could check __fatal_signal_pending() with the same effect. And since
-> we hold this mutex, exec (de_thread) can be the source of that SIGKILL.
-> We take this mutex specially to avoid the race with exec.
->
-> So why do we need to abort if we race with kill() or exit_grouo() ?
+> I can't decide which feels cleaner: just letting stuff
+> clean up naturally on death or to short-circuit after taking
+> sighand->siglock.
 
-In my initial code inspection that we could block waiting for the
-cred_guard mutex, with exec holding it, exec would schedule death in
-de_thread, and then once it released, the tsync thread would try to
-keep running.
+I'd prefer to simply remove the singal_group_exit checks.
 
-However, in looking at this again, now I'm concerned this produces a
-dead-lock in de_thread, since it waits for all threads to actually
-die, but tsync will be waiting with the killable mutex.
+I won't argue if you prefer to keep them, but then please add a comment
+to explain that this is not needed for correctness.
 
-So I think I got too defensive when I read the top of de_thread where
-it checks for pending signals itself.
+Because otherwise the code looks confusing, as if there is a subtle reason
+why we must not do this if killed.
 
-It seems like I can just safely remove the singal_group_exit checks?
-The other paths (non-tsync seccomp_set_mode_filter, and
-seccomp_set_mode_strict) would just run until it finished the syscall,
-and then died. I can't decide which feels cleaner: just letting stuff
-clean up naturally on death or to short-circuit after taking
-sighand->siglock.
+Oleg.
 
-What do you think?
-
--Kees
-
--- 
-Kees Cook
-Chrome OS Security
