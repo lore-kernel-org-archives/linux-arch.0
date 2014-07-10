@@ -1,57 +1,57 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH 1/3] asm-generic/io.h: Implement generic {read,write}s*()
-Date: Thu, 10 Jul 2014 12:38:55 +0200
-Message-ID: <201407101238.56081.arnd@arndb.de>
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [PATCH 3/3] arm64: Use include/asm-generic/io.h
+Date: Thu, 10 Jul 2014 12:00:34 +0100
+Message-ID: <20140710110034.GI16137@arm.com>
 References: <1404918699-17284-1-git-send-email-thierry.reding@gmail.com>
+ <1404918699-17284-3-git-send-email-thierry.reding@gmail.com>
 Mime-Version: 1.0
-Content-Type: Text/Plain;
-  charset="iso-8859-15"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.126.187]:55078 "EHLO
-	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750778AbaGJKje (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 10 Jul 2014 06:39:34 -0400
-In-Reply-To: <1404918699-17284-1-git-send-email-thierry.reding@gmail.com>
+Received: from fw-tnat.austin.arm.com ([217.140.110.23]:38824 "EHLO
+	collaborate-mta1.arm.com" rhost-flags-OK-OK-OK-FAIL)
+	by vger.kernel.org with ESMTP id S1750778AbaGJLAx (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Thu, 10 Jul 2014 07:00:53 -0400
+Content-Disposition: inline
+In-Reply-To: <1404918699-17284-3-git-send-email-thierry.reding@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Thierry Reding <thierry.reding@gmail.com>
-Cc: Russell King <linux@arm.linux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Cc: Russell King <linux@arm.linux.org.uk>, Will Deacon <Will.Deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
 
-On Wednesday 09 July 2014, Thierry Reding wrote:
-> 
-> From: Thierry Reding <treding@nvidia.com>
-> 
-> This patch implements generic versions of readsb(), readsw(), readsl(),
-> readsq(), writesb(), writesw(), writesl() and writesq(). Variants of
-> these string functions for I/O accesses (ins*() and outs*() as well as
-> ioread*_rep() and iowrite*_rep()) are now implemented in terms of the
-> new functions.
-> 
-> While at it, also make sure that any of the functions provided as
-> fallback for architectures that don't override them can't be overridden
-> subsequently.
-> 
-> This is compile- and runtime-tested on 32-bit and 64-bit ARM and compile
-> tested on Microblaze, s390, SPARC and Xtensa. For ARC, Blackfin, Metag,
-> OpenRISC, Score and Unicore32 which also use asm-generic/io.h I couldn't
-> find or build a cross-compiler that would run on my system. But by code
-> inspection they shouldn't break with this patch.
-> 
-> Signed-off-by: Thierry Reding <treding@nvidia.com>
+On Wed, Jul 09, 2014 at 04:11:39PM +0100, Thierry Reding wrote:
+> diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
+> index a497556520d4..a428ac1573e7 100644
+> --- a/arch/arm64/Kconfig
+> +++ b/arch/arm64/Kconfig
+> @@ -20,7 +20,6 @@ config ARM64
+>  	select GENERIC_CLOCKEVENTS_BROADCAST if SMP
+>  	select GENERIC_CPU_AUTOPROBE
+>  	select GENERIC_EARLY_IOREMAP
+> -	select GENERIC_IOMAP
+>  	select GENERIC_IRQ_PROBE
+>  	select GENERIC_IRQ_SHOW
+>  	select GENERIC_SCHED_CLOCK
+> diff --git a/arch/arm64/include/asm/io.h b/arch/arm64/include/asm/io.h
+> index e0ecdcf6632d..00c7f9faf2a3 100644
+> --- a/arch/arm64/include/asm/io.h
+> +++ b/arch/arm64/include/asm/io.h
+[...]
+> @@ -235,8 +155,7 @@ extern void __iomem *ioremap_cache(phys_addr_t phys_addr, size_t size);
+>  #define ioremap_wc(addr, size)		__ioremap((addr), (size), __pgprot(PROT_NORMAL_NC))
+>  #define iounmap				__iounmap
+>  
+> -#define ARCH_HAS_IOREMAP_WC
+> -#include <asm-generic/iomap.h>
+> +#include <asm-generic/io.h>
 
-Acked-by: Arnd Bergmann <arnd@arndb.de>
+We don't currently have PCIe support in mainline for arm64 but what I
+had in mind with the generic iomap is that functions like ioread32_rep
+first check whether the address is an IO address or a memory one and
+calls the insl or mmio_insl accordingly. With your generic
+implementation, this check disappears.
 
-Thanks for doing this!
+The question is whether this functionality would still be needed.
 
-Not sure how to best merge the series, but for the asm-generic patch,
-I'd suggest to keep it together with the follow-on patches in one
-branch and merge it either through Russell's arm32 tree or through
-Catalin's arm64 tree.
-
-The easiest way would probably be to take patches 1 and 3 for arm64 in
-3.17 and merge patch 2 in 3.18, unless Russell wants to see this earlier,
-in which case we could have a branch that is shared between arm32 and
-arm64.
-
-	Arnd
+-- 
+Catalin
