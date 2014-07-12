@@ -1,51 +1,46 @@
-From: Stephen Boyd <sboyd@codeaurora.org>
-Subject: Re: [PATCH v2 1/3] asm-generic/io.h: Implement generic {read,write}s*()
-Date: Fri, 11 Jul 2014 14:59:38 -0700
-Message-ID: <53C05E4A.2030708@codeaurora.org>
-References: <1405092672-18549-1-git-send-email-thierry.reding@gmail.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH v2 2/3] ARM: Use include/asm-generic/io.h
+Date: Sat, 12 Jul 2014 14:27:22 +0200
+Message-ID: <201407121427.22668.arnd@arndb.de>
+References: <1405092672-18549-1-git-send-email-thierry.reding@gmail.com> <1405092672-18549-2-git-send-email-thierry.reding@gmail.com> <20140711162422.GF16321@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
+Content-Type: Text/Plain;
+  charset="iso-8859-1"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.codeaurora.org ([198.145.11.231]:59131 "EHLO
-	smtp.codeaurora.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750723AbaGKV7k (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 11 Jul 2014 17:59:40 -0400
-In-Reply-To: <1405092672-18549-1-git-send-email-thierry.reding@gmail.com>
+Received: from mout.kundenserver.de ([212.227.126.131]:58984 "EHLO
+	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752420AbaGLM1g (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 12 Jul 2014 08:27:36 -0400
+In-Reply-To: <20140711162422.GF16321@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Thierry Reding <thierry.reding@gmail.com>
-Cc: Russell King <linux@arm.linux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Ben Herrenschmidt <benh@kernel.crashing.org>
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Thierry Reding <thierry.reding@gmail.com>, Russell King <linux@arm.linux.org.uk>, Will Deacon <Will.Deacon@arm.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
 
-On 07/11/14 08:31, Thierry Reding wrote:
-> From: Thierry Reding <treding@nvidia.com>
->
-> This patch implements generic versions of readsb(), readsw(), readsl(),
-> readsq(), writesb(), writesw(), writesl() and writesq(). Variants of
-> these string functions for I/O accesses (ins*() and outs*() as well as
-> ioread*_rep() and iowrite*_rep()) are now implemented in terms of the
-> new functions.
->
-> While at it, also make sure that any of the functions provided as
-> fallback for architectures that don't override them can't be overridden
-> subsequently.
->
-> This is compile- and runtime-tested on 32-bit and 64-bit ARM and compile
-> tested on Microblaze, s390, SPARC and Xtensa. For ARC, Blackfin, Metag,
-> OpenRISC, Score and Unicore32 which also use asm-generic/io.h I couldn't
-> find or build a cross-compiler that would run on my system. But by code
-> inspection they shouldn't break with this patch.
->
-> Signed-off-by: Thierry Reding <treding@nvidia.com>
+On Friday 11 July 2014, Catalin Marinas wrote:
+> 
+> On Fri, Jul 11, 2014 at 04:31:11PM +0100, Thierry Reding wrote:
+> > diff --git a/arch/arm/include/asm/io.h b/arch/arm/include/asm/io.h
+> > index a78562f21aab..ef54f5c8a7ae 100644
+> > --- a/arch/arm/include/asm/io.h
+> > +++ b/arch/arm/include/asm/io.h
+> [...]
+> > -#define iowrite16be(v,p) ({ __iowmb(); __raw_writew((__force __u16)cpu_to_be16(v), p); })
+> > -#define iowrite32be(v,p) ({ __iowmb(); __raw_writel((__force __u32)cpu_to_be32(v), p); })
+> 
+> Aren't you losing the barrier semantics here? The generic iowrite*be()
+> functions call __raw_write*() directly which don't have a barrier
+> (write* accessors do).
+> 
 
-There isn't any mention of why we're doing this in the commit text. It
-looks like patch 2 and 3 sort of mention why.
+Indeed, sorry for missing this. The generic implementation still makes sense for
+include/asm-generic, but arm32 and arm64 must provide their own versions here.
 
-I also wonder if it could be explained how this about turn is desired,
-given that patch b2656a138ab7 (asm-generic: io: remove {read,write}
-string functions, 2012-10-17) did the complete opposite. Can you please
-explain?
+An alternative would be to define
 
--- 
-Qualcomm Innovation Center, Inc. is a member of Code Aurora Forum,
-hosted by The Linux Foundation
+#define iowrite32be(v, p) iowrite32(swab32(v), p)
+
+which is correct but can end up swapping multiple twice.
+
+	Arnd
