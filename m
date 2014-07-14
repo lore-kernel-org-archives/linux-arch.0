@@ -1,44 +1,49 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from asavdk4.altibox.net ([109.247.116.15]:48533 "EHLO
+Received: from asavdk4.altibox.net ([109.247.116.15]:48491 "EHLO
 	asavdk4.altibox.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756097AbaGNPJb (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 14 Jul 2014 11:09:31 -0400
+	with ESMTP id S1756075AbaGNPJ1 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 14 Jul 2014 11:09:27 -0400
 From: Sam Ravnborg <sam@ravnborg.org>
-Subject: [PATCH 27/38] openrisc: clean-up uapi Kbuild file
-Date: Mon, 14 Jul 2014 17:08:55 +0200
-Message-ID: <1405350546-28467-27-git-send-email-sam@ravnborg.org>
+Subject: [PATCH 19/38] hexagon: clean-up uapi Kbuild file
+Date: Mon, 14 Jul 2014 17:08:47 +0200
+Message-ID: <1405350546-28467-19-git-send-email-sam@ravnborg.org>
 In-Reply-To: <1405350546-28467-1-git-send-email-sam@ravnborg.org>
 References: <20140714150609.GA28358@ravnborg.org>
  <1405350546-28467-1-git-send-email-sam@ravnborg.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Arnd Bergmann <arnd@arndb.de>
-Cc: lkml <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Sam Ravnborg <sam@ravnborg.org>, Jonas Bonn <jonas@southpole.se>
-Message-ID: <20140714150855.WKYvAGS8uoO1M6zrb54_6i8TWhDA4Der6joDZFBMTAs@z>
+Cc: lkml <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Sam Ravnborg <sam@ravnborg.org>, Richard Kuo <rkuo@codeaurora.org>
+Message-ID: <20140714150847.qBhE0iWrDMhAuWxwbRGd2b28fbMAIRpPcfM7VcN05tk@z>
 
 Remove redundant assignments.
 
 Signed-off-by: Sam Ravnborg <sam@ravnborg.org>
-Cc: Jonas Bonn <jonas@southpole.se>
+Cc: Richard Kuo <rkuo@codeaurora.org>
 ---
- arch/openrisc/include/uapi/asm/Kbuild | 6 ------
- 1 file changed, 6 deletions(-)
+ arch/hexagon/include/uapi/asm/Kbuild | 10 ----------
+ 1 file changed, 10 deletions(-)
 
-diff --git a/arch/openrisc/include/uapi/asm/Kbuild b/arch/openrisc/include/uapi/asm/Kbuild
-index 80761eb..1ecfc9d 100644
---- a/arch/openrisc/include/uapi/asm/Kbuild
-+++ b/arch/openrisc/include/uapi/asm/Kbuild
-@@ -1,10 +1,4 @@
+diff --git a/arch/hexagon/include/uapi/asm/Kbuild b/arch/hexagon/include/uapi/asm/Kbuild
+index c31706c..3f464d5 100644
+--- a/arch/hexagon/include/uapi/asm/Kbuild
++++ b/arch/hexagon/include/uapi/asm/Kbuild
+@@ -1,15 +1,5 @@
  # UAPI Header export list
  include include/uapi/asm-generic/Kbuild.asm
  
+-header-y += bitsperlong.h
 -header-y += byteorder.h
- header-y += elf.h
 -header-y += kvm_para.h
 -header-y += param.h
 -header-y += ptrace.h
+ header-y += registers.h
+-header-y += setup.h
 -header-y += sigcontext.h
+-header-y += signal.h
+-header-y += swab.h
 -header-y += unistd.h
+ header-y += user.h
 -- 
 1.9.3
 
