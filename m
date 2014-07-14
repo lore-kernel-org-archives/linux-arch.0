@@ -1,47 +1,47 @@
 From: Sam Ravnborg <sam@ravnborg.org>
-Subject: [PATCH 07/38] Delete unused Kbuild files in include/*
-Date: Mon, 14 Jul 2014 17:08:35 +0200
-Message-ID: <1405350546-28467-7-git-send-email-sam@ravnborg.org>
+Subject: [PATCH 09/38] uapi: check for optional files which are generated
+Date: Mon, 14 Jul 2014 17:08:37 +0200
+Message-ID: <1405350546-28467-9-git-send-email-sam@ravnborg.org>
 References: <20140714150609.GA28358@ravnborg.org>
  <1405350546-28467-1-git-send-email-sam@ravnborg.org>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from asavdk4.altibox.net ([109.247.116.15]:48420 "EHLO
+Received: from asavdk4.altibox.net ([109.247.116.15]:48433 "EHLO
 	asavdk4.altibox.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756025AbaGNPJW (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 14 Jul 2014 11:09:22 -0400
+	with ESMTP id S1756041AbaGNPJX (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 14 Jul 2014 11:09:23 -0400
 In-Reply-To: <1405350546-28467-1-git-send-email-sam@ravnborg.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Arnd Bergmann <arnd@arndb.de>
-Cc: lkml <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Sam Ravnborg <sam@ravnborg.org>, David Howells <dhowells@redhat.com>
+Cc: lkml <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Sam Ravnborg <sam@ravnborg.org>
 
-The following files are not used - and they serve no purpose.
-Delete them.
+In include/uapi/asm-generic/Kbuild.asm we have a few optional files
+listed. The files may be provided by the architecture
+or the wrapped from asm-generic may be used.
+The current logic failed to check for generated wrappers.
+
+Replace the obsolete check for the file outside uapi with a check
+for a generated file.
+
+This changes makes a few "header-y += kvm_para.h" asssignments redundant.
 
 Signed-off-by: Sam Ravnborg <sam@ravnborg.org>
-Cc: David Howells <dhowells@redhat.com>
 ---
- include/Kbuild         | 2 --
- include/scsi/fc/Kbuild | 0
- include/video/Kbuild   | 0
- 3 files changed, 2 deletions(-)
- delete mode 100644 include/Kbuild
- delete mode 100644 include/scsi/fc/Kbuild
- delete mode 100644 include/video/Kbuild
+ include/uapi/asm-generic/Kbuild.asm | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/include/Kbuild b/include/Kbuild
-deleted file mode 100644
-index bab1145..0000000
---- a/include/Kbuild
-+++ /dev/null
-@@ -1,2 +0,0 @@
--# Top-level Makefile calls into asm-$(ARCH)
--# List only non-arch directories below
-diff --git a/include/scsi/fc/Kbuild b/include/scsi/fc/Kbuild
-deleted file mode 100644
-index e69de29..0000000
-diff --git a/include/video/Kbuild b/include/video/Kbuild
-deleted file mode 100644
-index e69de29..0000000
+diff --git a/include/uapi/asm-generic/Kbuild.asm b/include/uapi/asm-generic/Kbuild.asm
+index fcd50b7..81b3f40 100644
+--- a/include/uapi/asm-generic/Kbuild.asm
++++ b/include/uapi/asm-generic/Kbuild.asm
+@@ -43,7 +43,7 @@ header-y += $(foreach hdr,$(opt-header), \
+ 	      $(if \
+ 		$(wildcard \
+ 			$(srctree)/arch/$(SRCARCH)/include/uapi/asm/$(hdr) \
+-			$(srctree)/arch/$(SRCARCH)/include/asm/$(hdr) \
++			$(objtree)/arch/$(SRCARCH)/include/generated/uapi/asm/$(hdr) \
+ 		), \
+ 		$(hdr) \
+ 		))
 -- 
 1.9.3
