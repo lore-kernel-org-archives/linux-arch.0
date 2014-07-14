@@ -1,67 +1,49 @@
 From: Sam Ravnborg <sam@ravnborg.org>
-Subject: [PATCH 17/38] cris: clean-up uapi Kbuild file
-Date: Mon, 14 Jul 2014 17:08:45 +0200
-Message-ID: <1405350546-28467-17-git-send-email-sam@ravnborg.org>
+Subject: [PATCH 05/38] tile: clean up Kbuild files
+Date: Mon, 14 Jul 2014 17:08:33 +0200
+Message-ID: <1405350546-28467-5-git-send-email-sam@ravnborg.org>
 References: <20140714150609.GA28358@ravnborg.org>
  <1405350546-28467-1-git-send-email-sam@ravnborg.org>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from asavdk4.altibox.net ([109.247.116.15]:48404 "EHLO
+	asavdk4.altibox.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755949AbaGNPJU (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 14 Jul 2014 11:09:20 -0400
 In-Reply-To: <1405350546-28467-1-git-send-email-sam@ravnborg.org>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Arnd Bergmann <arnd@arndb.de>
-Cc: lkml <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Sam Ravnborg <sam@ravnborg.org>, Mikael Starvik <starvik@axis.com>, Jesper Nilsson <jesper.nilsson@axis.com>
-List-Id: linux-arch.vger.kernel.org
+Cc: lkml <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Sam Ravnborg <sam@ravnborg.org>, Chris Metcalf <cmetcalf@tilera.com>, David Howells <dhowells@redhat.com>
 
-Remove redundant assignments.
+Drop an unused Kbuild file - it was anyway empty
+Drop an irrelevent assignment to header-y
 
 Signed-off-by: Sam Ravnborg <sam@ravnborg.org>
-Cc: Mikael Starvik <starvik@axis.com>
-Cc: Jesper Nilsson <jesper.nilsson@axis.com>
+Cc: Chris Metcalf <cmetcalf@tilera.com>
+Cc: David Howells <dhowells@redhat.com>
 ---
- arch/cris/include/uapi/asm/Kbuild | 31 +------------------------------
- 1 file changed, 1 insertion(+), 30 deletions(-)
+ arch/tile/include/arch/Kbuild | 1 -
+ arch/tile/include/asm/Kbuild  | 3 ---
+ 2 files changed, 4 deletions(-)
+ delete mode 100644 arch/tile/include/arch/Kbuild
 
-diff --git a/arch/cris/include/uapi/asm/Kbuild b/arch/cris/include/uapi/asm/Kbuild
-index 01f66b8..de41e86 100644
---- a/arch/cris/include/uapi/asm/Kbuild
-+++ b/arch/cris/include/uapi/asm/Kbuild
-@@ -3,37 +3,8 @@ include include/uapi/asm-generic/Kbuild.asm
- 
- header-y += ../arch-v10/arch/
- header-y += ../arch-v32/arch/
--header-y += auxvec.h
--header-y += bitsperlong.h
--header-y += byteorder.h
--header-y += errno.h
-+
- header-y += ethernet.h
- header-y += etraxgpio.h
--header-y += fcntl.h
--header-y += ioctl.h
--header-y += ioctls.h
--header-y += ipcbuf.h
--header-y += mman.h
--header-y += msgbuf.h
--header-y += param.h
--header-y += poll.h
--header-y += posix_types.h
--header-y += ptrace.h
--header-y += resource.h
- header-y += rs485.h
--header-y += sembuf.h
--header-y += setup.h
--header-y += shmbuf.h
--header-y += sigcontext.h
--header-y += siginfo.h
--header-y += signal.h
--header-y += socket.h
--header-y += sockios.h
--header-y += stat.h
--header-y += statfs.h
--header-y += swab.h
- header-y += sync_serial.h
--header-y += termbits.h
--header-y += termios.h
--header-y += types.h
--header-y += unistd.h
+diff --git a/arch/tile/include/arch/Kbuild b/arch/tile/include/arch/Kbuild
+deleted file mode 100644
+index 3751c9f..0000000
+--- a/arch/tile/include/arch/Kbuild
++++ /dev/null
+@@ -1 +0,0 @@
+-# Tile arch headers
+diff --git a/arch/tile/include/asm/Kbuild b/arch/tile/include/asm/Kbuild
+index 0aa5675..3013a07 100644
+--- a/arch/tile/include/asm/Kbuild
++++ b/arch/tile/include/asm/Kbuild
+@@ -1,6 +1,3 @@
+-
+-header-y += ../arch/
+-
+ generic-y += bug.h
+ generic-y += bugs.h
+ generic-y += clkdev.h
 -- 
 1.9.3
