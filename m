@@ -1,57 +1,43 @@
 From: Sam Ravnborg <sam@ravnborg.org>
-Subject: [PATCH 37/38] xtensa: clean-up uapi Kbuild file
-Date: Mon, 14 Jul 2014 17:09:05 +0200
-Message-ID: <1405350546-28467-37-git-send-email-sam@ravnborg.org>
+Subject: [PATCH 35/38] unicore32: clean-up uapi Kbuild file
+Date: Mon, 14 Jul 2014 17:09:03 +0200
+Message-ID: <1405350546-28467-35-git-send-email-sam@ravnborg.org>
 References: <20140714150609.GA28358@ravnborg.org>
  <1405350546-28467-1-git-send-email-sam@ravnborg.org>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from asavdk4.altibox.net ([109.247.116.15]:48467 "EHLO
+Received: from asavdk4.altibox.net ([109.247.116.15]:48592 "EHLO
 	asavdk4.altibox.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756114AbaGNPJh (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 14 Jul 2014 11:09:37 -0400
+	with ESMTP id S1756113AbaGNPJg (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 14 Jul 2014 11:09:36 -0400
 In-Reply-To: <1405350546-28467-1-git-send-email-sam@ravnborg.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Arnd Bergmann <arnd@arndb.de>
-Cc: lkml <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Sam Ravnborg <sam@ravnborg.org>, Max Filippov <jcmvbkbc@gmail.com>
+Cc: lkml <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Sam Ravnborg <sam@ravnborg.org>, Guan Xuetao <gxt@mprc.pku.edu.cn>
 
 Remove redundant assignments.
 
 Signed-off-by: Sam Ravnborg <sam@ravnborg.org>
-Cc: Max Filippov <jcmvbkbc@gmail.com>
+Cc: Guan Xuetao <gxt@mprc.pku.edu.cn>
 ---
- arch/xtensa/include/uapi/asm/Kbuild | 23 -----------------------
- 1 file changed, 23 deletions(-)
+ arch/unicore32/include/uapi/asm/Kbuild | 7 +------
+ 1 file changed, 1 insertion(+), 6 deletions(-)
 
-diff --git a/arch/xtensa/include/uapi/asm/Kbuild b/arch/xtensa/include/uapi/asm/Kbuild
-index 56aad54..b15bf6b 100644
---- a/arch/xtensa/include/uapi/asm/Kbuild
-+++ b/arch/xtensa/include/uapi/asm/Kbuild
-@@ -1,25 +1,2 @@
+diff --git a/arch/unicore32/include/uapi/asm/Kbuild b/arch/unicore32/include/uapi/asm/Kbuild
+index 0514d7a..aff532f 100644
+--- a/arch/unicore32/include/uapi/asm/Kbuild
++++ b/arch/unicore32/include/uapi/asm/Kbuild
+@@ -1,10 +1,5 @@
  # UAPI Header export list
  include include/uapi/asm-generic/Kbuild.asm
--
--header-y += auxvec.h
+ 
 -header-y += byteorder.h
--header-y += ioctls.h
--header-y += ipcbuf.h
--header-y += mman.h
--header-y += msgbuf.h
--header-y += param.h
--header-y += poll.h
--header-y += posix_types.h
+-header-y += kvm_para.h
 -header-y += ptrace.h
--header-y += sembuf.h
--header-y += setup.h
--header-y += shmbuf.h
 -header-y += sigcontext.h
--header-y += signal.h
--header-y += socket.h
--header-y += sockios.h
--header-y += stat.h
--header-y += swab.h
--header-y += termbits.h
--header-y += types.h
 -header-y += unistd.h
+-
++# Wapper from asm-generic
+ generic-y += kvm_para.h
 -- 
 1.9.3
