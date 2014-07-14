@@ -1,94 +1,208 @@
-From: Thierry Reding <thierry.reding@gmail.com>
-Subject: Re: [PATCH v2 1/3] asm-generic/io.h: Implement generic
- {read,write}s*()
-Date: Mon, 14 Jul 2014 11:10:58 +0200
-Message-ID: <20140714091057.GP2081@ulmo>
-References: <1405092672-18549-1-git-send-email-thierry.reding@gmail.com>
- <53C05E4A.2030708@codeaurora.org>
+From: "Helge Deller" <deller@gmx.de>
+Subject: Aw: [PATCH 15/43] parisc: Use get_signal() signal_setup_done()
+Date: Mon, 14 Jul 2014 12:14:57 +0200
+Message-ID: <trinity-8afac813-e5e0-4845-8438-a0531b1b8782-1405332896965@3capp-gmx-bs13>
+References: <1405324541-29911-1-git-send-email-richard@nod.at>,
+ <1405324541-29911-16-git-send-email-richard@nod.at>
 Mime-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha1;
-	protocol="application/pgp-signature"; boundary="qSHHer9gQ0dtepKr"
+Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wi0-f169.google.com ([209.85.212.169]:52871 "EHLO
-	mail-wi0-f169.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752111AbaGNJLD (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 14 Jul 2014 05:11:03 -0400
-Content-Disposition: inline
-In-Reply-To: <53C05E4A.2030708@codeaurora.org>
+Received: from mout.gmx.net ([212.227.17.22]:52576 "EHLO mout.gmx.net"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1754370AbaGNKPC (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 14 Jul 2014 06:15:02 -0400
+In-Reply-To: <1405324541-29911-16-git-send-email-richard@nod.at>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Stephen Boyd <sboyd@codeaurora.org>
-Cc: Russell King <linux@arm.linux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Ben Herrenschmidt <benh@kernel.crashing.org>
+To: Richard Weinberger <richard@nod.at>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, "James E.J. Bottomley" <jejb@parisc-linux.org>
 
+Hi Richard,
 
---qSHHer9gQ0dtepKr
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+nice work!
+I pulled your tree and tested your patch series on parisc.
+Everything seems OK.
 
-On Fri, Jul 11, 2014 at 02:59:38PM -0700, Stephen Boyd wrote:
-> On 07/11/14 08:31, Thierry Reding wrote:
-> > From: Thierry Reding <treding@nvidia.com>
-> >
-> > This patch implements generic versions of readsb(), readsw(), readsl(),
-> > readsq(), writesb(), writesw(), writesl() and writesq(). Variants of
-> > these string functions for I/O accesses (ins*() and outs*() as well as
-> > ioread*_rep() and iowrite*_rep()) are now implemented in terms of the
-> > new functions.
-> >
-> > While at it, also make sure that any of the functions provided as
-> > fallback for architectures that don't override them can't be overridden
-> > subsequently.
-> >
-> > This is compile- and runtime-tested on 32-bit and 64-bit ARM and compile
-> > tested on Microblaze, s390, SPARC and Xtensa. For ARC, Blackfin, Metag,
-> > OpenRISC, Score and Unicore32 which also use asm-generic/io.h I couldn't
-> > find or build a cross-compiler that would run on my system. But by code
-> > inspection they shouldn't break with this patch.
-> >
-> > Signed-off-by: Thierry Reding <treding@nvidia.com>
->=20
-> There isn't any mention of why we're doing this in the commit text. It
-> looks like patch 2 and 3 sort of mention why.
->=20
-> I also wonder if it could be explained how this about turn is desired,
-> given that patch b2656a138ab7 (asm-generic: io: remove {read,write}
-> string functions, 2012-10-17) did the complete opposite. Can you please
-> explain?
+Regarding the changes to the parisc arch, you can add my
 
-The reason behind this was that people have been told to migrate towards
-using io{read,write}{8,16,32}_rep() because {read,write}s{b,w,l}() are
-not as "portable". The only reason why the aren't portable is because no
-generic versions of them existed. That's what this series originally
-started out as.
+Acked-by: Helge Deller <deller@gmx.de>
 
-Also, it's somewhat backwards (and inconsistent) to go through the io*()
-functions when it's known up front that the device will always only be
-memory-mapped and never I/O mapped. So with these patches going forward,
-people should be using either {read,write}{,s}{b,w,l}() *or* their
-io{read,write}{8,16,32}{,_rep}() counterparts, not mixing them.
+Thanks!
+Helge
 
-Thierry
-
---qSHHer9gQ0dtepKr
-Content-Type: application/pgp-signature
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v2
-
-iQIcBAEBAgAGBQJTw56hAAoJEN0jrNd/PrOhddUP/2HJZ6+7D6xGrNZJPdkmR6U1
-AI6tUVRDowELJEK4ZMRMKroFRIg6+jUKB/oHPcbYXJdnSuk1CvZImemUexPlJlK/
-VLy4BY5jHXds4hP+bte/VSmkRYRDwIjMMMzQN1Ar2M+ejFgdsuBOSdzB0zgMhsH2
-5SeLvx6B9AtfTx3oi2/Spo5L0iW8uL7H3nhbGPP1jnoDKOc6feFvPfPpi8hrGvvd
-lqpzi7dr/u/XFhDRAZMZThcpAehPhWyU2pBE9YGm5TO9kL1RyJTgZf7hpoTUBpb4
-4FwpQTAe+OoyjfNp6huyhSJitZkrCMWTx+XmrS3vj7ty3To5F8CHO6GANYd10WW5
-glpw+MNUk4IRljiSZzj/RFeCD5SEsx1nNdYRnN6IPJ/WpHIeP6NhrobPcCtG5G6/
-3Q9Td1Xb/On8cQmLJxDo6jEzBtl4O6xdNG8Fg0OC0EXW0ywbwFhJDsZG0Tg6V8eJ
-/wbh0hmCqm8E1bxENmDwqi8s8y+k1zuTQpyql8z5mFR4MCNdISJ8EfHwxJJEWwGo
-7rXYntrLOdE0ZXV9O/pXppnUVqWI+A7SHCmZI/FtJkKsr6g/dV57Fc/z+kzyVWNK
-Xy+G/wkx1XZmFtlRpxAK+HSD89G5D+QJzn4LJVMzNsnduy+x2wQapYL5EfWcrbfx
-AnkOqX2mZDDfkx8Gk0kT
-=r4DG
------END PGP SIGNATURE-----
-
---qSHHer9gQ0dtepKr--
+> Betreff: [PATCH 15/43] parisc: Use get_signal() signal_setup_done()
+>
+> Use the more generic functions get_signal() signal_setup_done()
+> for signal delivery.
+> 
+> Signed-off-by: Richard Weinberger <richard@nod.at>
+> ---
+>  arch/parisc/kernel/signal.c | 58 +++++++++++++++++++--------------------------
+>  1 file changed, 24 insertions(+), 34 deletions(-)
+> 
+> diff --git a/arch/parisc/kernel/signal.c b/arch/parisc/kernel/signal.c
+> index 1cba8f2..012d4fa 100644
+> --- a/arch/parisc/kernel/signal.c
+> +++ b/arch/parisc/kernel/signal.c
+> @@ -227,8 +227,8 @@ setup_sigcontext(struct sigcontext __user *sc, struct pt_regs *regs, int in_sysc
+>  }
+>  
+>  static long
+> -setup_rt_frame(int sig, struct k_sigaction *ka, siginfo_t *info,
+> -	       sigset_t *set, struct pt_regs *regs, int in_syscall)
+> +setup_rt_frame(struct ksignal *ksig, sigset_t *set, struct pt_regs *regs,
+> +	       int in_syscall)
+>  {
+>  	struct rt_sigframe __user *frame;
+>  	unsigned long rp, usp;
+> @@ -241,10 +241,10 @@ setup_rt_frame(int sig, struct k_sigaction *ka, siginfo_t *info,
+>  	
+>  	usp = (regs->gr[30] & ~(0x01UL));
+>  	/*FIXME: frame_size parameter is unused, remove it. */
+> -	frame = get_sigframe(ka, usp, sizeof(*frame));
+> +	frame = get_sigframe(&ksig->ka, usp, sizeof(*frame));
+>  
+>  	DBG(1,"SETUP_RT_FRAME: START\n");
+> -	DBG(1,"setup_rt_frame: frame %p info %p\n", frame, info);
+> +	DBG(1,"setup_rt_frame: frame %p info %p\n", frame, ksig->info);
+>  
+>  	
+>  #ifdef CONFIG_64BIT
+> @@ -253,7 +253,7 @@ setup_rt_frame(int sig, struct k_sigaction *ka, siginfo_t *info,
+>  	
+>  	if (is_compat_task()) {
+>  		DBG(1,"setup_rt_frame: frame->info = 0x%p\n", &compat_frame->info);
+> -		err |= copy_siginfo_to_user32(&compat_frame->info, info);
+> +		err |= copy_siginfo_to_user32(&compat_frame->info, &ksig->info);
+>  		err |= __compat_save_altstack( &compat_frame->uc.uc_stack, regs->gr[30]);
+>  		DBG(1,"setup_rt_frame: frame->uc = 0x%p\n", &compat_frame->uc);
+>  		DBG(1,"setup_rt_frame: frame->uc.uc_mcontext = 0x%p\n", &compat_frame->uc.uc_mcontext);
+> @@ -265,7 +265,7 @@ setup_rt_frame(int sig, struct k_sigaction *ka, siginfo_t *info,
+>  #endif
+>  	{	
+>  		DBG(1,"setup_rt_frame: frame->info = 0x%p\n", &frame->info);
+> -		err |= copy_siginfo_to_user(&frame->info, info);
+> +		err |= copy_siginfo_to_user(&frame->info, &ksig->info);
+>  		err |= __save_altstack(&frame->uc.uc_stack, regs->gr[30]);
+>  		DBG(1,"setup_rt_frame: frame->uc = 0x%p\n", &frame->uc);
+>  		DBG(1,"setup_rt_frame: frame->uc.uc_mcontext = 0x%p\n", &frame->uc.uc_mcontext);
+> @@ -275,7 +275,7 @@ setup_rt_frame(int sig, struct k_sigaction *ka, siginfo_t *info,
+>  	}
+>  	
+>  	if (err)
+> -		goto give_sigsegv;
+> +		return -EFAULT;
+>  
+>  	/* Set up to return from userspace.  If provided, use a stub
+>  	   already in userspace. The first words of tramp are used to
+> @@ -312,9 +312,9 @@ setup_rt_frame(int sig, struct k_sigaction *ka, siginfo_t *info,
+>  	rp = (unsigned long) &frame->tramp[SIGRESTARTBLOCK_TRAMP];
+>  
+>  	if (err)
+> -		goto give_sigsegv;
+> +		return -EFAULT;
+>  
+> -	haddr = A(ka->sa.sa_handler);
+> +	haddr = A(ksig->ka.sa.sa_handler);
+>  	/* The sa_handler may be a pointer to a function descriptor */
+>  #ifdef CONFIG_64BIT
+>  	if (is_compat_task()) {
+> @@ -326,7 +326,7 @@ setup_rt_frame(int sig, struct k_sigaction *ka, siginfo_t *info,
+>  			err = __copy_from_user(&fdesc, ufdesc, sizeof(fdesc));
+>  
+>  			if (err)
+> -				goto give_sigsegv;
+> +				return -EFAULT;
+>  
+>  			haddr = fdesc.addr;
+>  			regs->gr[19] = fdesc.gp;
+> @@ -339,7 +339,7 @@ setup_rt_frame(int sig, struct k_sigaction *ka, siginfo_t *info,
+>  		err = __copy_from_user(&fdesc, ufdesc, sizeof(fdesc));
+>  		
+>  		if (err)
+> -			goto give_sigsegv;
+> +			return -EFAULT;
+>  		
+>  		haddr = fdesc.addr;
+>  		regs->gr[19] = fdesc.gp;
+> @@ -386,7 +386,7 @@ setup_rt_frame(int sig, struct k_sigaction *ka, siginfo_t *info,
+>  	}
+>  
+>  	regs->gr[2]  = rp;                /* userland return pointer */
+> -	regs->gr[26] = sig;               /* signal number */
+> +	regs->gr[26] = ksig->sig;               /* signal number */
+>  	
+>  #ifdef CONFIG_64BIT
+>  	if (is_compat_task()) {
+> @@ -410,11 +410,6 @@ setup_rt_frame(int sig, struct k_sigaction *ka, siginfo_t *info,
+>  	       current->comm, current->pid, frame, regs->gr[30],
+>  	       regs->iaoq[0], regs->iaoq[1], rp);
+>  
+> -	return 1;
+> -
+> -give_sigsegv:
+> -	DBG(1,"setup_rt_frame: sending SIGSEGV\n");
+> -	force_sigsegv(sig, current);
+>  	return 0;
+>  }
+>  
+> @@ -423,20 +418,19 @@ give_sigsegv:
+>   */	
+>  
+>  static void
+> -handle_signal(unsigned long sig, siginfo_t *info, struct k_sigaction *ka,
+> -		struct pt_regs *regs, int in_syscall)
+> +handle_signal(struct ksignal *ksig, struct pt_regs *regs, int in_syscall)
+>  {
+> +	int ret;
+>  	sigset_t *oldset = sigmask_to_save();
+> +
+>  	DBG(1,"handle_signal: sig=%ld, ka=%p, info=%p, oldset=%p, regs=%p\n",
+> -	       sig, ka, info, oldset, regs);
+> +	       ksig->sig, ksig->ka, ksig->info, oldset, regs);
+>  	
+>  	/* Set up the stack frame */
+> -	if (!setup_rt_frame(sig, ka, info, oldset, regs, in_syscall))
+> -		return;
+> +	ret = setup_rt_frame(ksig, oldset, regs, in_syscall);
+>  
+> -	signal_delivered(sig, info, ka, regs, 
+> -		test_thread_flag(TIF_SINGLESTEP) ||
+> -		test_thread_flag(TIF_BLOCKSTEP));
+> +	signal_setup_done(ret, ksig, test_thread_flag(TIF_SINGLESTEP) ||
+> +			  test_thread_flag(TIF_BLOCKSTEP));
+>  
+>  	DBG(1,KERN_DEBUG "do_signal: Exit (success), regs->gr[28] = %ld\n",
+>  		regs->gr[28]);
+> @@ -544,22 +538,18 @@ insert_restart_trampoline(struct pt_regs *regs)
+>  asmlinkage void
+>  do_signal(struct pt_regs *regs, long in_syscall)
+>  {
+> -	siginfo_t info;
+> -	struct k_sigaction ka;
+> -	int signr;
+> +	struct ksignal ksig;
+>  
+>  	DBG(1,"\ndo_signal: regs=0x%p, sr7 %#lx, in_syscall=%d\n",
+>  	       regs, regs->sr[7], in_syscall);
+>  
+> -	signr = get_signal_to_deliver(&info, &ka, regs, NULL);
+> -	DBG(3,"do_signal: signr = %d, regs->gr[28] = %ld\n", signr, regs->gr[28]); 
+> -	
+> -	if (signr > 0) {
+> +	if (get_signal(&ksig)) {
+> +		DBG(3,"do_signal: signr = %d, regs->gr[28] = %ld\n", signr, regs->gr[28]);
+>  		/* Restart a system call if necessary. */
+>  		if (in_syscall)
+> -			syscall_restart(regs, &ka);
+> +			syscall_restart(regs, &ksig.ka);
+>  
+> -		handle_signal(signr, &info, &ka, regs, in_syscall);
+> +		handle_signal(&ksig, regs, in_syscall);
+>  		return;
+>  	}
+>  
+> -- 
+> 2.0.1
+> 
+> 
