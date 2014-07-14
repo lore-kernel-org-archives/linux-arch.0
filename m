@@ -1,38 +1,73 @@
-From: Stephen Boyd <sboyd@codeaurora.org>
-Subject: Re: [PATCH v2 1/3] asm-generic/io.h: Implement generic {read,write}s*()
-Date: Mon, 14 Jul 2014 10:23:31 -0700
-Message-ID: <53C41213.6020102@codeaurora.org>
-References: <1405092672-18549-1-git-send-email-thierry.reding@gmail.com> <53C05E4A.2030708@codeaurora.org> <20140714091057.GP2081@ulmo>
+From: Hans-Christian Egtvedt <egtvedt@samfundet.no>
+Subject: Re: [PATCH 14/38] avr32: clean-up uapi Kbuild file
+Date: Mon, 14 Jul 2014 19:53:27 +0200
+Message-ID: <20140714175327.GB28953@samfundet.no>
+References: <20140714150609.GA28358@ravnborg.org>
+ <1405350546-28467-1-git-send-email-sam@ravnborg.org>
+ <1405350546-28467-14-git-send-email-sam@ravnborg.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.codeaurora.org ([198.145.11.231]:50322 "EHLO
-	smtp.codeaurora.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751334AbaGNRXe (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 14 Jul 2014 13:23:34 -0400
-In-Reply-To: <20140714091057.GP2081@ulmo>
+Received: from cassarossa.samfundet.no ([193.35.52.29]:50701 "EHLO
+	cassarossa.samfundet.no" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752861AbaGNRxd (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 14 Jul 2014 13:53:33 -0400
+Content-Disposition: inline
+In-Reply-To: <1405350546-28467-14-git-send-email-sam@ravnborg.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Thierry Reding <thierry.reding@gmail.com>
-Cc: Russell King <linux@arm.linux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Ben Herrenschmidt <benh@kernel.crashing.org>
+To: Sam Ravnborg <sam@ravnborg.org>
+Cc: Arnd Bergmann <arnd@arndb.de>, lkml <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Haavard Skinnemoen <hskinnemoen@gmail.com>
 
-On 07/14/14 02:10, Thierry Reding wrote:
-> The reason behind this was that people have been told to migrate towards
-> using io{read,write}{8,16,32}_rep() because {read,write}s{b,w,l}() are
-> not as "portable". The only reason why the aren't portable is because no
-> generic versions of them existed. That's what this series originally
-> started out as.
->
-> Also, it's somewhat backwards (and inconsistent) to go through the io*()
-> functions when it's known up front that the device will always only be
-> memory-mapped and never I/O mapped. So with these patches going forward,
-> people should be using either {read,write}{,s}{b,w,l}() *or* their
-> io{read,write}{8,16,32}{,_rep}() counterparts, not mixing them.
->
+Around Mon 14 Jul 2014 17:08:42 +0200 or thereabout, Sam Ravnborg wrote:
+> Remove redundant assignments.
+> 
 
-Thanks. Can we please have this explanation in the commit text?
+Fantastic, reducing code is the best patches.
 
+> Signed-off-by: Sam Ravnborg <sam@ravnborg.org>
+> Cc: Haavard Skinnemoen <hskinnemoen@gmail.com>
+> Cc: Hans-Christian Egtvedt <egtvedt@samfundet.no>
+
+Acked-by: Hans-Christian Egtvedt <egtvedt@samfundet.no>
+
+> ---
+>  arch/avr32/include/uapi/asm/Kbuild | 21 ++-------------------
+>  1 file changed, 2 insertions(+), 19 deletions(-)
+> 
+> diff --git a/arch/avr32/include/uapi/asm/Kbuild b/arch/avr32/include/uapi/asm/Kbuild
+> index 08d8a3d..6e33c08 100644
+> --- a/arch/avr32/include/uapi/asm/Kbuild
+> +++ b/arch/avr32/include/uapi/asm/Kbuild
+> @@ -1,26 +1,9 @@
+>  # UAPI Header export list
+>  include include/uapi/asm-generic/Kbuild.asm
+>  
+> -header-y += auxvec.h
+> -header-y += byteorder.h
+>  header-y += cachectl.h
+> -header-y += msgbuf.h
+> -header-y += param.h
+> -header-y += posix_types.h
+> -header-y += ptrace.h
+> -header-y += sembuf.h
+> -header-y += setup.h
+> -header-y += shmbuf.h
+> -header-y += sigcontext.h
+> -header-y += signal.h
+> -header-y += socket.h
+> -header-y += sockios.h
+> -header-y += stat.h
+> -header-y += swab.h
+> -header-y += termbits.h
+> -header-y += termios.h
+> -header-y += types.h
+> -header-y += unistd.h
+> +
+> +# Wrappers from asm-generic
+>  generic-y += bitsperlong.h
+>  generic-y += errno.h
+>  generic-y += fcntl.h
 -- 
-Qualcomm Innovation Center, Inc. is a member of Code Aurora Forum,
-hosted by The Linux Foundation
+mvh
+Hans-Christian Egtvedt
