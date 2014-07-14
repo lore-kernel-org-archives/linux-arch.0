@@ -1,77 +1,46 @@
 From: Sam Ravnborg <sam@ravnborg.org>
-Subject: [PATCH 11/38] alpha: clean-up uapi Kbuild file
-Date: Mon, 14 Jul 2014 17:08:39 +0200
-Message-ID: <1405350546-28467-11-git-send-email-sam@ravnborg.org>
+Subject: [PATCH 06/38] x86: clean-up Kbuild file - drop unused assignments
+Date: Mon, 14 Jul 2014 17:08:34 +0200
+Message-ID: <1405350546-28467-6-git-send-email-sam@ravnborg.org>
 References: <20140714150609.GA28358@ravnborg.org>
  <1405350546-28467-1-git-send-email-sam@ravnborg.org>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from asavdk4.altibox.net ([109.247.116.15]:48454 "EHLO
+Received: from asavdk4.altibox.net ([109.247.116.15]:48412 "EHLO
 	asavdk4.altibox.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756050AbaGNPJY (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 14 Jul 2014 11:09:24 -0400
+	with ESMTP id S1756012AbaGNPJW (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 14 Jul 2014 11:09:22 -0400
 In-Reply-To: <1405350546-28467-1-git-send-email-sam@ravnborg.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Arnd Bergmann <arnd@arndb.de>
-Cc: lkml <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Sam Ravnborg <sam@ravnborg.org>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>
+Cc: lkml <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Sam Ravnborg <sam@ravnborg.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, David Howells <dhowells@redhat.com>
 
-Remove redundant assignments.
+Drop unused assignment in Kbuild file.
+The unistd* files are exported using the Kbuild file in uapi/*
+and the assignments in this file was left-overs from the past.
 
 Signed-off-by: Sam Ravnborg <sam@ravnborg.org>
-Cc: Richard Henderson <rth@twiddle.net>
-Cc: Ivan Kokshaysky <ink@jurassic.park.msu.ru>
-Cc: Matt Turner <mattst88@gmail.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Ingo Molnar <mingo@redhat.com>
+Cc: "H. Peter Anvin" <hpa@zytor.com>
+Cc: David Howells <dhowells@redhat.com>
 ---
- arch/alpha/include/uapi/asm/Kbuild | 32 --------------------------------
- 1 file changed, 32 deletions(-)
+ arch/x86/include/asm/Kbuild | 6 ------
+ 1 file changed, 6 deletions(-)
 
-diff --git a/arch/alpha/include/uapi/asm/Kbuild b/arch/alpha/include/uapi/asm/Kbuild
-index d96f2ef..cc2b567 100644
---- a/arch/alpha/include/uapi/asm/Kbuild
-+++ b/arch/alpha/include/uapi/asm/Kbuild
-@@ -1,43 +1,11 @@
- # UAPI Header export list
- include include/uapi/asm-generic/Kbuild.asm
- 
--header-y += a.out.h
--header-y += auxvec.h
--header-y += bitsperlong.h
--header-y += byteorder.h
- header-y += compiler.h
- header-y += console.h
--header-y += errno.h
--header-y += fcntl.h
- header-y += fpu.h
- header-y += gentrap.h
--header-y += ioctl.h
--header-y += ioctls.h
--header-y += ipcbuf.h
--header-y += kvm_para.h
--header-y += mman.h
--header-y += msgbuf.h
- header-y += pal.h
--header-y += param.h
--header-y += poll.h
--header-y += posix_types.h
--header-y += ptrace.h
- header-y += reg.h
- header-y += regdef.h
--header-y += resource.h
--header-y += sembuf.h
--header-y += setup.h
--header-y += shmbuf.h
--header-y += sigcontext.h
--header-y += siginfo.h
--header-y += signal.h
--header-y += socket.h
--header-y += sockios.h
--header-y += stat.h
--header-y += statfs.h
--header-y += swab.h
- header-y += sysinfo.h
--header-y += termbits.h
--header-y += termios.h
--header-y += types.h
--header-y += unistd.h
+diff --git a/arch/x86/include/asm/Kbuild b/arch/x86/include/asm/Kbuild
+index 3ca9762..3221167 100644
+--- a/arch/x86/include/asm/Kbuild
++++ b/arch/x86/include/asm/Kbuild
+@@ -1,9 +1,3 @@
+-
+-
+-genhdr-y += unistd_32.h
+-genhdr-y += unistd_64.h
+-genhdr-y += unistd_x32.h
+-
+ generic-y += clkdev.h
+ generic-y += early_ioremap.h
+ generic-y += cputime.h
 -- 
 1.9.3
