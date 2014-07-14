@@ -1,41 +1,47 @@
 From: Sam Ravnborg <sam@ravnborg.org>
-Subject: [PATCH 02/38] openrisc: drop ucontext from list exported headers
-Date: Mon, 14 Jul 2014 17:08:30 +0200
-Message-ID: <1405350546-28467-2-git-send-email-sam@ravnborg.org>
+Subject: [PATCH 07/38] Delete unused Kbuild files in include/*
+Date: Mon, 14 Jul 2014 17:08:35 +0200
+Message-ID: <1405350546-28467-7-git-send-email-sam@ravnborg.org>
 References: <20140714150609.GA28358@ravnborg.org>
  <1405350546-28467-1-git-send-email-sam@ravnborg.org>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from asavdk4.altibox.net ([109.247.116.15]:48387 "EHLO
+Received: from asavdk4.altibox.net ([109.247.116.15]:48420 "EHLO
 	asavdk4.altibox.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755648AbaGNPJS (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 14 Jul 2014 11:09:18 -0400
+	with ESMTP id S1756025AbaGNPJW (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 14 Jul 2014 11:09:22 -0400
 In-Reply-To: <1405350546-28467-1-git-send-email-sam@ravnborg.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Arnd Bergmann <arnd@arndb.de>
-Cc: lkml <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Sam Ravnborg <sam@ravnborg.org>, Jonas Bonn <jonas@southpole.se>, openrisc <linux@lists.openrisc.net>, David Howells <dhowells@redhat.com>
+Cc: lkml <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Sam Ravnborg <sam@ravnborg.org>, David Howells <dhowells@redhat.com>
 
-ucontext.h is already specified in include/uapi/asm-generic/Kbuild
-so this is redundant.
+The following files are not used - and they serve no purpose.
+Delete them.
 
 Signed-off-by: Sam Ravnborg <sam@ravnborg.org>
-Cc: Jonas Bonn <jonas@southpole.se>
-Cc: openrisc <linux@lists.openrisc.net>
 Cc: David Howells <dhowells@redhat.com>
 ---
- arch/openrisc/include/asm/Kbuild | 3 ---
- 1 file changed, 3 deletions(-)
+ include/Kbuild         | 2 --
+ include/scsi/fc/Kbuild | 0
+ include/video/Kbuild   | 0
+ 3 files changed, 2 deletions(-)
+ delete mode 100644 include/Kbuild
+ delete mode 100644 include/scsi/fc/Kbuild
+ delete mode 100644 include/video/Kbuild
 
-diff --git a/arch/openrisc/include/asm/Kbuild b/arch/openrisc/include/asm/Kbuild
-index 480af0d..4a80261 100644
---- a/arch/openrisc/include/asm/Kbuild
-+++ b/arch/openrisc/include/asm/Kbuild
-@@ -1,6 +1,3 @@
--
--header-y += ucontext.h
--
- generic-y += atomic.h
- generic-y += auxvec.h
- generic-y += barrier.h
+diff --git a/include/Kbuild b/include/Kbuild
+deleted file mode 100644
+index bab1145..0000000
+--- a/include/Kbuild
++++ /dev/null
+@@ -1,2 +0,0 @@
+-# Top-level Makefile calls into asm-$(ARCH)
+-# List only non-arch directories below
+diff --git a/include/scsi/fc/Kbuild b/include/scsi/fc/Kbuild
+deleted file mode 100644
+index e69de29..0000000
+diff --git a/include/video/Kbuild b/include/video/Kbuild
+deleted file mode 100644
+index e69de29..0000000
 -- 
 1.9.3
