@@ -1,111 +1,71 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from asavdk4.altibox.net ([109.247.116.15]:48429 "EHLO
-	asavdk4.altibox.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756033AbaGNPJW (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 14 Jul 2014 11:09:22 -0400
-From: Sam Ravnborg <sam@ravnborg.org>
-Subject: [PATCH 08/38] kbuild: drop support for non uapi Kbuild files in headers_install
-Date: Mon, 14 Jul 2014 17:08:36 +0200
-Message-ID: <1405350546-28467-8-git-send-email-sam@ravnborg.org>
-In-Reply-To: <1405350546-28467-1-git-send-email-sam@ravnborg.org>
-References: <20140714150609.GA28358@ravnborg.org>
- <1405350546-28467-1-git-send-email-sam@ravnborg.org>
+Received: from mail-oa0-f52.google.com ([209.85.219.52]:63641 "EHLO
+	mail-oa0-f52.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756815AbaGNS7J (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 14 Jul 2014 14:59:09 -0400
+Received: by mail-oa0-f52.google.com with SMTP id o6so2796811oag.11
+        for <linux-arch@vger.kernel.org>; Mon, 14 Jul 2014 11:59:09 -0700 (PDT)
+MIME-Version: 1.0
+In-Reply-To: <CAGXu5jK-x0=Rr7kX2a=b4Z8ueA77uwmhNZZAayG8cwmNOKa8Ug@mail.gmail.com>
+References: <1405017631-27346-1-git-send-email-keescook@chromium.org>
+	<20140711164931.GA18473@redhat.com>
+	<CAGXu5jK-x0=Rr7kX2a=b4Z8ueA77uwmhNZZAayG8cwmNOKa8Ug@mail.gmail.com>
+Date: Mon, 14 Jul 2014 11:59:08 -0700
+Message-ID: <CAGXu5jJJsiTxxn5UijkBz7jpWgqg01BS=Zc0WbHXbs0vH_xPMQ@mail.gmail.com>
+Subject: Re: [PATCH v10 0/11] seccomp: add thread sync ability
+From: Kees Cook <keescook@chromium.org>
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: lkml <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Sam Ravnborg <sam@ravnborg.org>, David Howells <dhowells@redhat.com>
-Message-ID: <20140714150836.7yfQw1f3sK2eSNLgh7cVbB3sn3Ch6YN4ZubDLOxgqRo@z>
+To: James Morris <james.l.morris@oracle.com>
+Cc: Oleg Nesterov <oleg@redhat.com>, LKML <linux-kernel@vger.kernel.org>, Andy Lutomirski <luto@amacapital.net>, Alexei Starovoitov <ast@plumgrid.com>, "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, Daniel Borkmann <dborkman@redhat.com>, Will Drewry <wad@chromium.org>, Julien Tinnes <jln@chromium.org>, David Drysdale <drysdale@google.com>, Linux API <linux-api@vger.kernel.org>, "x86@kernel.org" <x86@kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, linux-mips@linux-mips.org, linux-arch <linux-arch@vger.kernel.org>, linux-security-module <linux-security-module@vger.kernel.org>
+Message-ID: <20140714185908.Wf8khRrBdr2XHaSPdohYZekGxWz-U5wBBs3lSuLLv1U@z>
 
-There are no more Kbuild files outside uapi directories used
-for exported headers so drop support for these.
-Also update documentation to reference the correct files.
-Except for destination-y which has no in-tree users at the moment.
+Hi James,
 
-Signed-off-by: Sam Ravnborg <sam@ravnborg.org>
-Cc: David Howells <dhowells@redhat.com>
----
- Documentation/kbuild/makefiles.txt |  4 ++--
- scripts/Makefile.headersinst       | 17 +----------------
- 2 files changed, 3 insertions(+), 18 deletions(-)
+Is this series something you would carry in the security-next tree?
+That has traditionally been where seccomp features have landed in the
+past.
 
-diff --git a/Documentation/kbuild/makefiles.txt b/Documentation/kbuild/makefiles.txt
-index c600e2f..98b89bf 100644
---- a/Documentation/kbuild/makefiles.txt
-+++ b/Documentation/kbuild/makefiles.txt
-@@ -1294,7 +1294,7 @@ See subsequent chapter for the syntax of the Kbuild file.
- 	header-y specify header files to be exported.
- 
- 		Example:
--			#include/linux/Kbuild
-+			#include/linux/uapi/Kbuild
- 			header-y += usb/
- 			header-y += aio_abi.h
- 
-@@ -1314,7 +1314,7 @@ See subsequent chapter for the syntax of the Kbuild file.
- 	up in another directory when doing 'make O=...' builds.
- 
- 		Example:
--			#include/linux/Kbuild
-+			#include/linux/uapi/Kbuild
- 			genhdr-y += version.h
- 
- 	--- 7.3 destination-y
-diff --git a/scripts/Makefile.headersinst b/scripts/Makefile.headersinst
-index 8ccf830..3f72031 100644
---- a/scripts/Makefile.headersinst
-+++ b/scripts/Makefile.headersinst
-@@ -16,11 +16,6 @@ include $(kbuild-file)
- # called may set destination dir (when installing to asm/)
- _dst := $(if $(destination-y),$(destination-y),$(if $(dst),$(dst),$(obj)))
- 
--old-kbuild-file := $(srctree)/$(subst uapi/,,$(obj))/Kbuild
--ifneq ($(wildcard $(old-kbuild-file)),)
--include $(old-kbuild-file)
--endif
--
- include scripts/Kbuild.include
- 
- installdir    := $(INSTALL_HDR_PATH)/$(subst uapi/,,$(_dst))
-@@ -40,8 +35,6 @@ wrapper-files := $(filter $(header-y), $(generic-y))
- srcdir        := $(srctree)/$(obj)
- gendir        := $(objtree)/$(gen)
- 
--oldsrcdir     := $(srctree)/$(subst /uapi,,$(obj))
--
- # all headers files for this dir
- header-y      := $(filter-out $(generic-y), $(header-y))
- all-files     := $(header-y) $(genhdr-y) $(wrapper-files)
-@@ -52,13 +45,6 @@ input-files1  := $(foreach hdr, $(header-y), \
- 			$(wildcard $(srcdir)/$(hdr))) \
- 		   )
- input-files1-name := $(notdir $(input-files1))
--input-files2  := $(foreach hdr, $(header-y), \
--		   $(if  $(wildcard $(srcdir)/$(hdr)),, \
--			$(if $(wildcard $(oldsrcdir)/$(hdr)), \
--				$(wildcard $(oldsrcdir)/$(hdr)), \
--				$(error Missing UAPI file $(srcdir)/$(hdr))) \
--		   ))
--input-files2-name := $(notdir $(input-files2))
- input-files3  := $(foreach hdr, $(genhdr-y), \
- 		   $(if	$(wildcard $(gendir)/$(hdr)), \
- 			$(wildcard $(gendir)/$(hdr)), \
-@@ -79,7 +65,6 @@ quiet_cmd_install = INSTALL $(printdir) ($(words $(all-files))\
-                             file$(if $(word 2, $(all-files)),s))
-       cmd_install = \
-         $(CONFIG_SHELL) $< $(installdir) $(srcdir) $(input-files1-name); \
--        $(CONFIG_SHELL) $< $(installdir) $(oldsrcdir) $(input-files2-name); \
-         $(CONFIG_SHELL) $< $(installdir) $(gendir) $(input-files3-name); \
-         for F in $(wrapper-files); do                                   \
-                 echo "\#include <asm-generic/$$F>" > $(installdir)/$$F;    \
-@@ -106,7 +91,7 @@ __headersinst: $(subdirs) $(install-file)
- 	@:
- 
- targets += $(install-file)
--$(install-file): scripts/headers_install.sh $(input-files1) $(input-files2) $(input-files3) FORCE
-+$(install-file): scripts/headers_install.sh $(input-files1) $(input-files3) FORCE
- 	$(if $(unwanted),$(call cmd,remove),)
- 	$(if $(wildcard $(dir $@)),,$(shell mkdir -p $(dir $@)))
- 	$(call if_changed,install)
+-Kees
+
+
+On Fri, Jul 11, 2014 at 10:55 AM, Kees Cook <keescook@chromium.org> wrote:
+> On Fri, Jul 11, 2014 at 9:49 AM, Oleg Nesterov <oleg@redhat.com> wrote:
+>> On 07/10, Kees Cook wrote:
+>>>
+>>> This adds the ability for threads to request seccomp filter
+>>> synchronization across their thread group (at filter attach time).
+>>> For example, for Chrome to make sure graphic driver threads are fully
+>>> confined after seccomp filters have been attached.
+>>>
+>>> To support this, locking on seccomp changes via thread-group-shared
+>>> sighand lock is introduced, along with refactoring of no_new_privs. Races
+>>> with thread creation are handled via delayed duplication of the seccomp
+>>> task struct field and cred_guard_mutex.
+>>>
+>>> This includes a new syscall (instead of adding a new prctl option),
+>>> as suggested by Andy Lutomirski and Michael Kerrisk.
+>>
+>> I do not not see any problems in this version,
+>
+> Awesome! Thank you for all the reviews. :) If Andy and Michael are
+> happy with this too, I think this is in good shape. \o/
+>
+> -Kees
+>
+>>
+>> Reviewed-by: Oleg Nesterov <oleg@redhat.com>
+>>
+>
+>
+>
+> --
+> Kees Cook
+> Chrome OS Security
+
+
+
 -- 
-1.9.3
-
+Kees Cook
+Chrome OS Security
