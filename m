@@ -1,54 +1,58 @@
 From: Sam Ravnborg <sam@ravnborg.org>
-Subject: [PATCH 28/38] parisc: clean-up uapi Kbuild file
-Date: Mon, 14 Jul 2014 17:08:56 +0200
-Message-ID: <1405350546-28467-28-git-send-email-sam@ravnborg.org>
+Subject: [PATCH 24/38] microblaze: clean-up uapi Kbuild file
+Date: Mon, 14 Jul 2014 17:08:52 +0200
+Message-ID: <1405350546-28467-24-git-send-email-sam@ravnborg.org>
 References: <20140714150609.GA28358@ravnborg.org>
  <1405350546-28467-1-git-send-email-sam@ravnborg.org>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from asavdk4.altibox.net ([109.247.116.15]:48541 "EHLO
+Received: from asavdk4.altibox.net ([109.247.116.15]:48404 "EHLO
 	asavdk4.altibox.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756095AbaGNPJb (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 14 Jul 2014 11:09:31 -0400
+	with ESMTP id S1756085AbaGNPJ3 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 14 Jul 2014 11:09:29 -0400
 In-Reply-To: <1405350546-28467-1-git-send-email-sam@ravnborg.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Arnd Bergmann <arnd@arndb.de>
-Cc: lkml <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Sam Ravnborg <sam@ravnborg.org>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>
+Cc: lkml <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Sam Ravnborg <sam@ravnborg.org>, Michal Simek <monstr@monstr.eu>
 
 Remove redundant assignments.
 
 Signed-off-by: Sam Ravnborg <sam@ravnborg.org>
-Cc: "James E.J. Bottomley" <jejb@parisc-linux.org>
-Cc: Helge Deller <deller@gmx.de>
+Cc: Michal Simek <monstr@monstr.eu>
 ---
- arch/parisc/include/uapi/asm/Kbuild | 30 +++---------------------------
- 1 file changed, 3 insertions(+), 27 deletions(-)
+ arch/microblaze/include/uapi/asm/Kbuild | 34 +++------------------------------
+ 1 file changed, 3 insertions(+), 31 deletions(-)
 
-diff --git a/arch/parisc/include/uapi/asm/Kbuild b/arch/parisc/include/uapi/asm/Kbuild
-index 348356c..98f81e9 100644
---- a/arch/parisc/include/uapi/asm/Kbuild
-+++ b/arch/parisc/include/uapi/asm/Kbuild
-@@ -1,32 +1,8 @@
+diff --git a/arch/microblaze/include/uapi/asm/Kbuild b/arch/microblaze/include/uapi/asm/Kbuild
+index 1aac99f..098e942 100644
+--- a/arch/microblaze/include/uapi/asm/Kbuild
++++ b/arch/microblaze/include/uapi/asm/Kbuild
+@@ -1,36 +1,8 @@
  # UAPI Header export list
  include include/uapi/asm-generic/Kbuild.asm
  
-+header-y += pdc.h
++header-y += elf.h
 +
-+# Wrapper from asm-generic
- generic-y += resource.h
++#Wrapper from asm-generic
+ generic-y += types.h
  
+-header-y += auxvec.h
 -header-y += bitsperlong.h
 -header-y += byteorder.h
+-header-y += elf.h
 -header-y += errno.h
 -header-y += fcntl.h
 -header-y += ioctl.h
 -header-y += ioctls.h
 -header-y += ipcbuf.h
+-header-y += kvm_para.h
 -header-y += mman.h
 -header-y += msgbuf.h
--header-y += pdc.h
+-header-y += param.h
+-header-y += poll.h
 -header-y += posix_types.h
 -header-y += ptrace.h
+-header-y += resource.h
 -header-y += sembuf.h
 -header-y += setup.h
 -header-y += shmbuf.h
@@ -62,7 +66,6 @@ index 348356c..98f81e9 100644
 -header-y += swab.h
 -header-y += termbits.h
 -header-y += termios.h
--header-y += types.h
 -header-y += unistd.h
 -- 
 1.9.3
