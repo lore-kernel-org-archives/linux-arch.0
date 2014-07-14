@@ -1,31 +1,30 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [RFC PATCH 0/38] clean-up uapi + asm-generic Kbuild files
-Date: Mon, 14 Jul 2014 17:34:59 +0200
-Message-ID: <8199537.GiECsdyhzt@wuerfel>
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [PATCH 13/38] arm64: clean-up uapi Kbuild file
+Date: Mon, 14 Jul 2014 18:02:49 +0100
+Message-ID: <20140714170249.GJ1112@arm.com>
 References: <20140714150609.GA28358@ravnborg.org>
+ <1405350546-28467-1-git-send-email-sam@ravnborg.org>
+ <1405350546-28467-13-git-send-email-sam@ravnborg.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7Bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.17.10]:58366 "EHLO
-	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755900AbaGNPfQ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 14 Jul 2014 11:35:16 -0400
-In-Reply-To: <20140714150609.GA28358@ravnborg.org>
+Received: from fw-tnat.austin.arm.com ([217.140.110.23]:21442 "EHLO
+	collaborate-mta1.arm.com" rhost-flags-OK-OK-OK-FAIL)
+	by vger.kernel.org with ESMTP id S1755965AbaGNRDE (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Mon, 14 Jul 2014 13:03:04 -0400
+Content-Disposition: inline
+In-Reply-To: <1405350546-28467-13-git-send-email-sam@ravnborg.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Sam Ravnborg <sam@ravnborg.org>
-Cc: lkml <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Russell King <linux@arm.linux.org.uk>, Michal Marek <mmarek@suse.cz>, David Howells <dhowells@redhat.com>
+Cc: Arnd Bergmann <arnd@arndb.de>, lkml <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Will Deacon <Will.Deacon@arm.com>
 
-On Monday 14 July 2014 17:06:09 Sam Ravnborg wrote:
+On Mon, Jul 14, 2014 at 04:08:41PM +0100, Sam Ravnborg wrote:
+> Remove redundant assignments.
 > 
-> What tree is the best for this stuff?
-> I would suggest to go via the asm-generic tree that Arnd has.
-> But it also touches a lot of architectures so Andrews -mm or
-> kbuild#misc could be used.
+> Signed-off-by: Sam Ravnborg <sam@ravnborg.org>
+> Cc: Catalin Marinas <catalin.marinas@arm.com>
+> Cc: Will Deacon <will.deacon@arm.com>
 
-I rarely have anything to send for the asm-generic tree, usually I
-rely on things getting merged the other way round, through whoever
-has an interest in changing asm-generic.
-
-	Arnd
+Acked-by: Catalin Marinas <catalin.marinas@arm.com>
