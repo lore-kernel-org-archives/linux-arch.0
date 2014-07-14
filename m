@@ -1,208 +1,166 @@
-From: "Helge Deller" <deller@gmx.de>
-Subject: Aw: [PATCH 15/43] parisc: Use get_signal() signal_setup_done()
-Date: Mon, 14 Jul 2014 12:14:57 +0200
-Message-ID: <trinity-8afac813-e5e0-4845-8438-a0531b1b8782-1405332896965@3capp-gmx-bs13>
-References: <1405324541-29911-1-git-send-email-richard@nod.at>,
- <1405324541-29911-16-git-send-email-richard@nod.at>
+From: Sam Ravnborg <sam@ravnborg.org>
+Subject: [RFC PATCH 0/38] clean-up uapi + asm-generic Kbuild files
+Date: Mon, 14 Jul 2014 17:06:09 +0200
+Message-ID: <20140714150609.GA28358@ravnborg.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.gmx.net ([212.227.17.22]:52576 "EHLO mout.gmx.net"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754370AbaGNKPC (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 14 Jul 2014 06:15:02 -0400
-In-Reply-To: <1405324541-29911-16-git-send-email-richard@nod.at>
+Received: from asavdk3.altibox.net ([109.247.116.14]:43925 "EHLO
+	asavdk3.altibox.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755192AbaGNPGQ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 14 Jul 2014 11:06:16 -0400
+Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Richard Weinberger <richard@nod.at>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, "James E.J. Bottomley" <jejb@parisc-linux.org>
+To: lkml <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>
+Cc: Russell King <linux@arm.linux.org.uk>, Michal Marek <mmarek@suse.cz>, David Howells <dhowells@redhat.com>, Sam Ravnborg <sam@ravnborg.org>
 
-Hi Richard,
+While working one another patch-set I noticed some stray Kbuild files.
+And then when I started to dig into this it somehow got out
+of control and I ended up with the following set of patches.
 
-nice work!
-I pulled your tree and tested your patch series on parisc.
-Everything seems OK.
+Almost 600 lines chopped of the kernel - which is nice.
+But even better is that the Kbuild files for uapi + asm-generic
+has become simpler to grok after the clean-up.
 
-Regarding the changes to the parisc arch, you can add my
+The patch-set contains the following major items:
 
-Acked-by: Helge Deller <deller@gmx.de>
+o Fix headers_install for cris - this was trivial to fix
+  after uapi support was added.
 
-Thanks!
-Helge
+o Drop a few unused Kbuild files.
 
-> Betreff: [PATCH 15/43] parisc: Use get_signal() signal_setup_done()
->
-> Use the more generic functions get_signal() signal_setup_done()
-> for signal delivery.
-> 
-> Signed-off-by: Richard Weinberger <richard@nod.at>
-> ---
->  arch/parisc/kernel/signal.c | 58 +++++++++++++++++++--------------------------
->  1 file changed, 24 insertions(+), 34 deletions(-)
-> 
-> diff --git a/arch/parisc/kernel/signal.c b/arch/parisc/kernel/signal.c
-> index 1cba8f2..012d4fa 100644
-> --- a/arch/parisc/kernel/signal.c
-> +++ b/arch/parisc/kernel/signal.c
-> @@ -227,8 +227,8 @@ setup_sigcontext(struct sigcontext __user *sc, struct pt_regs *regs, int in_sysc
->  }
->  
->  static long
-> -setup_rt_frame(int sig, struct k_sigaction *ka, siginfo_t *info,
-> -	       sigset_t *set, struct pt_regs *regs, int in_syscall)
-> +setup_rt_frame(struct ksignal *ksig, sigset_t *set, struct pt_regs *regs,
-> +	       int in_syscall)
->  {
->  	struct rt_sigframe __user *frame;
->  	unsigned long rp, usp;
-> @@ -241,10 +241,10 @@ setup_rt_frame(int sig, struct k_sigaction *ka, siginfo_t *info,
->  	
->  	usp = (regs->gr[30] & ~(0x01UL));
->  	/*FIXME: frame_size parameter is unused, remove it. */
-> -	frame = get_sigframe(ka, usp, sizeof(*frame));
-> +	frame = get_sigframe(&ksig->ka, usp, sizeof(*frame));
->  
->  	DBG(1,"SETUP_RT_FRAME: START\n");
-> -	DBG(1,"setup_rt_frame: frame %p info %p\n", frame, info);
-> +	DBG(1,"setup_rt_frame: frame %p info %p\n", frame, ksig->info);
->  
->  	
->  #ifdef CONFIG_64BIT
-> @@ -253,7 +253,7 @@ setup_rt_frame(int sig, struct k_sigaction *ka, siginfo_t *info,
->  	
->  	if (is_compat_task()) {
->  		DBG(1,"setup_rt_frame: frame->info = 0x%p\n", &compat_frame->info);
-> -		err |= copy_siginfo_to_user32(&compat_frame->info, info);
-> +		err |= copy_siginfo_to_user32(&compat_frame->info, &ksig->info);
->  		err |= __compat_save_altstack( &compat_frame->uc.uc_stack, regs->gr[30]);
->  		DBG(1,"setup_rt_frame: frame->uc = 0x%p\n", &compat_frame->uc);
->  		DBG(1,"setup_rt_frame: frame->uc.uc_mcontext = 0x%p\n", &compat_frame->uc.uc_mcontext);
-> @@ -265,7 +265,7 @@ setup_rt_frame(int sig, struct k_sigaction *ka, siginfo_t *info,
->  #endif
->  	{	
->  		DBG(1,"setup_rt_frame: frame->info = 0x%p\n", &frame->info);
-> -		err |= copy_siginfo_to_user(&frame->info, info);
-> +		err |= copy_siginfo_to_user(&frame->info, &ksig->info);
->  		err |= __save_altstack(&frame->uc.uc_stack, regs->gr[30]);
->  		DBG(1,"setup_rt_frame: frame->uc = 0x%p\n", &frame->uc);
->  		DBG(1,"setup_rt_frame: frame->uc.uc_mcontext = 0x%p\n", &frame->uc.uc_mcontext);
-> @@ -275,7 +275,7 @@ setup_rt_frame(int sig, struct k_sigaction *ka, siginfo_t *info,
->  	}
->  	
->  	if (err)
-> -		goto give_sigsegv;
-> +		return -EFAULT;
->  
->  	/* Set up to return from userspace.  If provided, use a stub
->  	   already in userspace. The first words of tramp are used to
-> @@ -312,9 +312,9 @@ setup_rt_frame(int sig, struct k_sigaction *ka, siginfo_t *info,
->  	rp = (unsigned long) &frame->tramp[SIGRESTARTBLOCK_TRAMP];
->  
->  	if (err)
-> -		goto give_sigsegv;
-> +		return -EFAULT;
->  
-> -	haddr = A(ka->sa.sa_handler);
-> +	haddr = A(ksig->ka.sa.sa_handler);
->  	/* The sa_handler may be a pointer to a function descriptor */
->  #ifdef CONFIG_64BIT
->  	if (is_compat_task()) {
-> @@ -326,7 +326,7 @@ setup_rt_frame(int sig, struct k_sigaction *ka, siginfo_t *info,
->  			err = __copy_from_user(&fdesc, ufdesc, sizeof(fdesc));
->  
->  			if (err)
-> -				goto give_sigsegv;
-> +				return -EFAULT;
->  
->  			haddr = fdesc.addr;
->  			regs->gr[19] = fdesc.gp;
-> @@ -339,7 +339,7 @@ setup_rt_frame(int sig, struct k_sigaction *ka, siginfo_t *info,
->  		err = __copy_from_user(&fdesc, ufdesc, sizeof(fdesc));
->  		
->  		if (err)
-> -			goto give_sigsegv;
-> +			return -EFAULT;
->  		
->  		haddr = fdesc.addr;
->  		regs->gr[19] = fdesc.gp;
-> @@ -386,7 +386,7 @@ setup_rt_frame(int sig, struct k_sigaction *ka, siginfo_t *info,
->  	}
->  
->  	regs->gr[2]  = rp;                /* userland return pointer */
-> -	regs->gr[26] = sig;               /* signal number */
-> +	regs->gr[26] = ksig->sig;               /* signal number */
->  	
->  #ifdef CONFIG_64BIT
->  	if (is_compat_task()) {
-> @@ -410,11 +410,6 @@ setup_rt_frame(int sig, struct k_sigaction *ka, siginfo_t *info,
->  	       current->comm, current->pid, frame, regs->gr[30],
->  	       regs->iaoq[0], regs->iaoq[1], rp);
->  
-> -	return 1;
-> -
-> -give_sigsegv:
-> -	DBG(1,"setup_rt_frame: sending SIGSEGV\n");
-> -	force_sigsegv(sig, current);
->  	return 0;
->  }
->  
-> @@ -423,20 +418,19 @@ give_sigsegv:
->   */	
->  
->  static void
-> -handle_signal(unsigned long sig, siginfo_t *info, struct k_sigaction *ka,
-> -		struct pt_regs *regs, int in_syscall)
-> +handle_signal(struct ksignal *ksig, struct pt_regs *regs, int in_syscall)
->  {
-> +	int ret;
->  	sigset_t *oldset = sigmask_to_save();
-> +
->  	DBG(1,"handle_signal: sig=%ld, ka=%p, info=%p, oldset=%p, regs=%p\n",
-> -	       sig, ka, info, oldset, regs);
-> +	       ksig->sig, ksig->ka, ksig->info, oldset, regs);
->  	
->  	/* Set up the stack frame */
-> -	if (!setup_rt_frame(sig, ka, info, oldset, regs, in_syscall))
-> -		return;
-> +	ret = setup_rt_frame(ksig, oldset, regs, in_syscall);
->  
-> -	signal_delivered(sig, info, ka, regs, 
-> -		test_thread_flag(TIF_SINGLESTEP) ||
-> -		test_thread_flag(TIF_BLOCKSTEP));
-> +	signal_setup_done(ret, ksig, test_thread_flag(TIF_SINGLESTEP) ||
-> +			  test_thread_flag(TIF_BLOCKSTEP));
->  
->  	DBG(1,KERN_DEBUG "do_signal: Exit (success), regs->gr[28] = %ld\n",
->  		regs->gr[28]);
-> @@ -544,22 +538,18 @@ insert_restart_trampoline(struct pt_regs *regs)
->  asmlinkage void
->  do_signal(struct pt_regs *regs, long in_syscall)
->  {
-> -	siginfo_t info;
-> -	struct k_sigaction ka;
-> -	int signr;
-> +	struct ksignal ksig;
->  
->  	DBG(1,"\ndo_signal: regs=0x%p, sr7 %#lx, in_syscall=%d\n",
->  	       regs, regs->sr[7], in_syscall);
->  
-> -	signr = get_signal_to_deliver(&info, &ka, regs, NULL);
-> -	DBG(3,"do_signal: signr = %d, regs->gr[28] = %ld\n", signr, regs->gr[28]); 
-> -	
-> -	if (signr > 0) {
-> +	if (get_signal(&ksig)) {
-> +		DBG(3,"do_signal: signr = %d, regs->gr[28] = %ld\n", signr, regs->gr[28]);
->  		/* Restart a system call if necessary. */
->  		if (in_syscall)
-> -			syscall_restart(regs, &ka);
-> +			syscall_restart(regs, &ksig.ka);
->  
-> -		handle_signal(signr, &info, &ka, regs, in_syscall);
-> +		handle_signal(&ksig, regs, in_syscall);
->  		return;
->  	}
->  
-> -- 
-> 2.0.1
-> 
-> 
+o Drop obsolete support for non uapi files in Makefile.headersinst
+
+o Perform a long overdue clean-up of the uapi files.
+ The files contained a lot of redundant assignments.
+
+o The last patch introduces include/asm-generic/Kbuild.generic
+  This file shall list all asm-generic files that are used by all architectures.
+  This makes it much simpler to add a new common asm-generic file.
+
+The patch was broken up in many smaller peices as I wanted to keep the clean-up
+patches separate for each architecture to make it easier for arch maintainers to
+review/ack their part.
+
+The clean-up patches rely on one of the former patches so they shall
+be applied as one serie.
+It was done on top of -rc4.
+
+What tree is the best for this stuff?
+I would suggest to go via the asm-generic tree that Arnd has.
+But it also touches a lot of architectures so Andrews -mm or
+kbuild#misc could be used.
+
+The patch-set touches all architectues so I could not copy
+all arch maintainers on the mail. Thus I rely on them to read linux-arch.
+
+	Sam
+
+
+Sam Ravnborg (38):
+      cris: fix headers_install
+      openrisc: drop ucontext from list exported headers
+      hexagon: drop ucontext from list exported headers
+      score: drop irrelevant assignment from Kbuild file
+      tile: clean up Kbuild files
+      x86: clean-up Kbuild file - drop unused assignments
+      Delete unused Kbuild files in include/*
+      kbuild: drop support for non uapi Kbuild files in headers_install
+      uapi: check for optional files which are generated
+      uapi: drop obsolete logic for generated headers
+      alpha: clean-up uapi Kbuild file
+      arm: clean-up uapi Kbuild file
+      arm64: clean-up uapi Kbuild file
+      avr32: clean-up uapi Kbuild file
+      blackfin: clean-up uapi Kbuild file
+      c6x: clean-up uapi Kbuild file
+      cris: clean-up uapi Kbuild file
+      frv: clean-up uapi Kbuild file
+      hexagon: clean-up uapi Kbuild file
+      ia64: clean-up uapi Kbuild file
+      m32r: clean-up uapi Kbuild file
+      m68k: clean-up uapi Kbuild file
+      metag: clean-up uapi Kbuild file
+      microblaze: clean-up uapi Kbuild file
+      mips: clean-up uapi Kbuild file
+      mn10300: clean-up uapi Kbuild file
+      openrisc: clean-up uapi Kbuild file
+      parisc: clean-up uapi Kbuild file
+      powerpc: clean-up uapi Kbuild file
+      s390: clean-up uapi Kbuild file
+      score: clean-up uapi Kbuild file
+      sh: clean-up uapi Kbuild file
+      sparc: clean-up uapi Kbuild file
+      tile: clean-up uapi Kbuild file
+      unicore32: clean-up uapi Kbuild file
+      x86: clean-up uapi Kbuild file
+      xtensa: clean-up uapi Kbuild file
+      asm-generic: introduc Kbuild.generic
+
+ Documentation/kbuild/makefiles.txt      |  4 ++--
+ arch/alpha/include/asm/Kbuild           |  4 ++--
+ arch/alpha/include/uapi/asm/Kbuild      | 32 ---------------------------
+ arch/arc/include/asm/Kbuild             |  4 +++-
+ arch/arm/include/asm/Kbuild             |  4 ++--
+ arch/arm/include/uapi/asm/Kbuild        | 14 ------------
+ arch/arm64/include/asm/Kbuild           |  4 ++--
+ arch/arm64/include/uapi/asm/Kbuild      | 16 --------------
+ arch/avr32/include/asm/Kbuild           |  3 ++-
+ arch/avr32/include/uapi/asm/Kbuild      | 21 ++----------------
+ arch/blackfin/include/asm/Kbuild        |  3 ++-
+ arch/blackfin/include/uapi/asm/Kbuild   | 13 -----------
+ arch/c6x/include/asm/Kbuild             |  3 ++-
+ arch/c6x/include/uapi/asm/Kbuild        | 10 ---------
+ arch/cris/include/asm/Kbuild            |  7 ++----
+ arch/cris/include/uapi/asm/Kbuild       | 35 +++---------------------------
+ arch/frv/include/asm/Kbuild             |  3 ++-
+ arch/frv/include/uapi/asm/Kbuild        | 31 ---------------------------
+ arch/hexagon/include/asm/Kbuild         |  5 ++---
+ arch/hexagon/include/uapi/asm/Kbuild    | 10 ---------
+ arch/ia64/include/asm/Kbuild            |  3 ++-
+ arch/ia64/include/uapi/asm/Kbuild       | 36 +++----------------------------
+ arch/m32r/include/asm/Kbuild            |  3 ++-
+ arch/m32r/include/uapi/asm/Kbuild       | 31 ---------------------------
+ arch/m68k/include/asm/Kbuild            |  4 +++-
+ arch/m68k/include/uapi/asm/Kbuild       | 33 +++++++++-------------------
+ arch/metag/include/asm/Kbuild           |  4 +++-
+ arch/metag/include/uapi/asm/Kbuild      |  7 +-----
+ arch/microblaze/include/asm/Kbuild      |  3 ++-
+ arch/microblaze/include/uapi/asm/Kbuild | 34 +++--------------------------
+ arch/mips/include/asm/Kbuild            |  5 +++--
+ arch/mips/include/uapi/asm/Kbuild       | 38 ++++++---------------------------
+ arch/mn10300/include/asm/Kbuild         |  3 ++-
+ arch/mn10300/include/uapi/asm/Kbuild    | 32 ---------------------------
+ arch/openrisc/include/asm/Kbuild        |  5 ++---
+ arch/openrisc/include/uapi/asm/Kbuild   |  6 ------
+ arch/parisc/include/asm/Kbuild          |  3 ++-
+ arch/parisc/include/uapi/asm/Kbuild     | 30 +++-----------------------
+ arch/powerpc/include/asm/Kbuild         |  3 ++-
+ arch/powerpc/include/uapi/asm/Kbuild    | 32 ---------------------------
+ arch/s390/include/asm/Kbuild            |  4 ++--
+ arch/s390/include/uapi/asm/Kbuild       | 31 ---------------------------
+ arch/score/include/asm/Kbuild           |  6 ++----
+ arch/score/include/uapi/asm/Kbuild      | 32 ---------------------------
+ arch/sh/include/asm/Kbuild              |  3 ++-
+ arch/sh/include/uapi/asm/Kbuild         | 12 -----------
+ arch/sparc/include/asm/Kbuild           |  5 ++---
+ arch/sparc/include/uapi/asm/Kbuild      | 30 --------------------------
+ arch/tile/include/arch/Kbuild           |  1 -
+ arch/tile/include/asm/Kbuild            |  5 ++---
+ arch/tile/include/uapi/asm/Kbuild       | 14 +-----------
+ arch/um/include/asm/Kbuild              |  4 +++-
+ arch/unicore32/include/asm/Kbuild       |  3 ++-
+ arch/unicore32/include/uapi/asm/Kbuild  |  7 +-----
+ arch/x86/include/asm/Kbuild             |  8 ++-----
+ arch/x86/include/uapi/asm/Kbuild        | 34 +----------------------------
+ arch/xtensa/include/asm/Kbuild          |  4 +++-
+ arch/xtensa/include/uapi/asm/Kbuild     | 23 --------------------
+ include/Kbuild                          |  2 --
+ include/asm-generic/Kbuild.generic      |  6 ++++++
+ include/scsi/fc/Kbuild                  |  0
+ include/uapi/asm-generic/Kbuild.asm     |  2 +-
+ include/video/Kbuild                    |  0
+ scripts/Makefile.headersinst            | 22 ++-----------------
+ scripts/headers.sh                      |  2 --
+ 65 files changed, 109 insertions(+), 692 deletions(-)
