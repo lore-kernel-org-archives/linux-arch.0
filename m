@@ -1,67 +1,47 @@
 From: Sam Ravnborg <sam@ravnborg.org>
-Subject: [PATCH 26/38] mn10300: clean-up uapi Kbuild file
-Date: Mon, 14 Jul 2014 17:08:54 +0200
-Message-ID: <1405350546-28467-26-git-send-email-sam@ravnborg.org>
+Subject: [PATCH 23/38] metag: clean-up uapi Kbuild file
+Date: Mon, 14 Jul 2014 17:08:51 +0200
+Message-ID: <1405350546-28467-23-git-send-email-sam@ravnborg.org>
 References: <20140714150609.GA28358@ravnborg.org>
  <1405350546-28467-1-git-send-email-sam@ravnborg.org>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from asavdk4.altibox.net ([109.247.116.15]:48420 "EHLO
+Received: from asavdk4.altibox.net ([109.247.116.15]:48453 "EHLO
 	asavdk4.altibox.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756093AbaGNPJa (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 14 Jul 2014 11:09:30 -0400
+	with ESMTP id S1756081AbaGNPJ2 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 14 Jul 2014 11:09:28 -0400
 In-Reply-To: <1405350546-28467-1-git-send-email-sam@ravnborg.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Arnd Bergmann <arnd@arndb.de>
-Cc: lkml <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Sam Ravnborg <sam@ravnborg.org>, David Howells <dhowells@redhat.com>, Koichi Yasutake <yasutake.koichi@jp.panasonic.com>
+Cc: lkml <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Sam Ravnborg <sam@ravnborg.org>, James Hogan <james.hogan@imgtec.com>
 
 Remove redundant assignments.
 
 Signed-off-by: Sam Ravnborg <sam@ravnborg.org>
-Cc: David Howells <dhowells@redhat.com>
-Cc: Koichi Yasutake <yasutake.koichi@jp.panasonic.com>
+Cc: James Hogan <james.hogan@imgtec.com>
 ---
- arch/mn10300/include/uapi/asm/Kbuild | 32 --------------------------------
- 1 file changed, 32 deletions(-)
+ arch/metag/include/uapi/asm/Kbuild | 7 +------
+ 1 file changed, 1 insertion(+), 6 deletions(-)
 
-diff --git a/arch/mn10300/include/uapi/asm/Kbuild b/arch/mn10300/include/uapi/asm/Kbuild
-index 040178c..b15bf6b 100644
---- a/arch/mn10300/include/uapi/asm/Kbuild
-+++ b/arch/mn10300/include/uapi/asm/Kbuild
-@@ -1,34 +1,2 @@
+diff --git a/arch/metag/include/uapi/asm/Kbuild b/arch/metag/include/uapi/asm/Kbuild
+index ab78be2..1f7f43f 100644
+--- a/arch/metag/include/uapi/asm/Kbuild
++++ b/arch/metag/include/uapi/asm/Kbuild
+@@ -1,14 +1,9 @@
  # UAPI Header export list
  include include/uapi/asm-generic/Kbuild.asm
--
--header-y += auxvec.h
--header-y += bitsperlong.h
+ 
 -header-y += byteorder.h
--header-y += errno.h
--header-y += fcntl.h
--header-y += ioctl.h
--header-y += ioctls.h
--header-y += ipcbuf.h
--header-y += kvm_para.h
--header-y += mman.h
--header-y += msgbuf.h
--header-y += param.h
--header-y += poll.h
--header-y += posix_types.h
+ header-y += ech.h
 -header-y += ptrace.h
--header-y += resource.h
--header-y += sembuf.h
--header-y += setup.h
--header-y += shmbuf.h
 -header-y += sigcontext.h
 -header-y += siginfo.h
--header-y += signal.h
--header-y += socket.h
--header-y += sockios.h
--header-y += stat.h
--header-y += statfs.h
 -header-y += swab.h
--header-y += termbits.h
--header-y += termios.h
--header-y += types.h
 -header-y += unistd.h
+ 
++# Wrappers from asm-generic
+ generic-y += mman.h
+ generic-y += resource.h
+ generic-y += setup.h
 -- 
 1.9.3
