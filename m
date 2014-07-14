@@ -1,43 +1,51 @@
 From: Sam Ravnborg <sam@ravnborg.org>
-Subject: [PATCH 19/38] hexagon: clean-up uapi Kbuild file
-Date: Mon, 14 Jul 2014 17:08:47 +0200
-Message-ID: <1405350546-28467-19-git-send-email-sam@ravnborg.org>
+Subject: [PATCH 12/38] arm: clean-up uapi Kbuild file
+Date: Mon, 14 Jul 2014 17:08:40 +0200
+Message-ID: <1405350546-28467-12-git-send-email-sam@ravnborg.org>
 References: <20140714150609.GA28358@ravnborg.org>
  <1405350546-28467-1-git-send-email-sam@ravnborg.org>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from asavdk4.altibox.net ([109.247.116.15]:48467 "EHLO
+	asavdk4.altibox.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756019AbaGNPJ1 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 14 Jul 2014 11:09:27 -0400
 In-Reply-To: <1405350546-28467-1-git-send-email-sam@ravnborg.org>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Arnd Bergmann <arnd@arndb.de>
-Cc: lkml <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Sam Ravnborg <sam@ravnborg.org>, Richard Kuo <rkuo@codeaurora.org>
-List-Id: linux-arch.vger.kernel.org
+Cc: lkml <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Sam Ravnborg <sam@ravnborg.org>, Russell King <linux@arm.linux.org.uk>
 
 Remove redundant assignments.
 
 Signed-off-by: Sam Ravnborg <sam@ravnborg.org>
-Cc: Richard Kuo <rkuo@codeaurora.org>
+Cc: Russell King <linux@arm.linux.org.uk>
 ---
- arch/hexagon/include/uapi/asm/Kbuild | 10 ----------
- 1 file changed, 10 deletions(-)
+ arch/arm/include/uapi/asm/Kbuild | 14 --------------
+ 1 file changed, 14 deletions(-)
 
-diff --git a/arch/hexagon/include/uapi/asm/Kbuild b/arch/hexagon/include/uapi/asm/Kbuild
-index c31706c..3f464d5 100644
---- a/arch/hexagon/include/uapi/asm/Kbuild
-+++ b/arch/hexagon/include/uapi/asm/Kbuild
-@@ -1,15 +1,5 @@
+diff --git a/arch/arm/include/uapi/asm/Kbuild b/arch/arm/include/uapi/asm/Kbuild
+index 70a1c9d..aa17aa8 100644
+--- a/arch/arm/include/uapi/asm/Kbuild
++++ b/arch/arm/include/uapi/asm/Kbuild
+@@ -1,19 +1,5 @@
  # UAPI Header export list
  include include/uapi/asm-generic/Kbuild.asm
  
--header-y += bitsperlong.h
 -header-y += byteorder.h
+-header-y += fcntl.h
+ header-y += hwcap.h
+-header-y += ioctls.h
 -header-y += kvm_para.h
--header-y += param.h
+-header-y += mman.h
+ header-y += perf_regs.h
+-header-y += posix_types.h
 -header-y += ptrace.h
- header-y += registers.h
 -header-y += setup.h
 -header-y += sigcontext.h
 -header-y += signal.h
+-header-y += stat.h
+-header-y += statfs.h
 -header-y += swab.h
 -header-y += unistd.h
- header-y += user.h
 -- 
 1.9.3
