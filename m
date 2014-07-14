@@ -1,52 +1,50 @@
-From: Mark Salter <msalter@redhat.com>
-Subject: Re: [PATCH 16/38] c6x: clean-up uapi Kbuild file
-Date: Mon, 14 Jul 2014 16:40:08 -0400
-Message-ID: <1405370408.25580.13.camel@deneb.redhat.com>
+From: Sam Ravnborg <sam@ravnborg.org>
+Subject: Re: [RFC PATCH 0/38] clean-up uapi + asm-generic Kbuild files
+Date: Tue, 15 Jul 2014 00:14:14 +0200
+Message-ID: <20140714221414.GA957@ravnborg.org>
 References: <20140714150609.GA28358@ravnborg.org>
-	 <1405350546-28467-1-git-send-email-sam@ravnborg.org>
-	 <1405350546-28467-16-git-send-email-sam@ravnborg.org>
+ <8199537.GiECsdyhzt@wuerfel>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:47535 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1756827AbaGNUkY (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 14 Jul 2014 16:40:24 -0400
-In-Reply-To: <1405350546-28467-16-git-send-email-sam@ravnborg.org>
+Received: from asavdk4.altibox.net ([109.247.116.15]:54107 "EHLO
+	asavdk4.altibox.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756122AbaGNWOd (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 14 Jul 2014 18:14:33 -0400
+Content-Disposition: inline
+In-Reply-To: <8199537.GiECsdyhzt@wuerfel>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Sam Ravnborg <sam@ravnborg.org>
-Cc: Arnd Bergmann <arnd@arndb.de>, lkml <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Aurelien Jacquiot <a-jacquiot@ti.com>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: lkml <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Russell King <linux@arm.linux.org.uk>, Michal Marek <mmarek@suse.cz>, David Howells <dhowells@redhat.com>
 
-On Mon, 2014-07-14 at 17:08 +0200, Sam Ravnborg wrote:
-> Remove redundant assignments.
-> Also drop kvm_para.h wrapper as it is never referenced from c6x code.
+On Mon, Jul 14, 2014 at 05:34:59PM +0200, Arnd Bergmann wrote:
+> On Monday 14 July 2014 17:06:09 Sam Ravnborg wrote:
+> > 
+> > What tree is the best for this stuff?
+> > I would suggest to go via the asm-generic tree that Arnd has.
+> > But it also touches a lot of architectures so Andrews -mm or
+> > kbuild#misc could be used.
 > 
-> Signed-off-by: Sam Ravnborg <sam@ravnborg.org>
-> Cc: Mark Salter <msalter@redhat.com>
-> Cc: Aurelien Jacquiot <a-jacquiot@ti.com>
-> ---
+> I rarely have anything to send for the asm-generic tree, usually I
+> rely on things getting merged the other way round, through whoever
+> has an interest in changing asm-generic.
+OK - I will try to channel it through another tree.
 
-Acked-by: Mark Salter <msalter@redhat.com>
+If you could fine time to review "[PATCH 38/38] asm-generic: introduc Kbuild.generic"
+I would be happy.
+The patch itself is simple - but it is more if it really
+is relevant. I am not sure how many files from asm-generic that
+in reality end up being used by all architectures.
 
->  arch/c6x/include/uapi/asm/Kbuild | 10 ----------
->  1 file changed, 10 deletions(-)
-> 
-> diff --git a/arch/c6x/include/uapi/asm/Kbuild b/arch/c6x/include/uapi/asm/Kbuild
-> index e9bc2b2..b15bf6b 100644
-> --- a/arch/c6x/include/uapi/asm/Kbuild
-> +++ b/arch/c6x/include/uapi/asm/Kbuild
-> @@ -1,12 +1,2 @@
->  # UAPI Header export list
->  include include/uapi/asm-generic/Kbuild.asm
-> -
-> -generic-y += kvm_para.h
-> -
-> -header-y += byteorder.h
-> -header-y += kvm_para.h
-> -header-y += ptrace.h
-> -header-y += setup.h
-> -header-y += sigcontext.h
-> -header-y += swab.h
-> -header-y += unistd.h
+A possibility is to extend this so we can drop a specific file
+from a few architectures could be added.
+We could for example use this to add preempt.h for all architectures
+except x86 that provide a x86 specific version.
+But I decided to start simple.
+
+Btw. I should have made this patch separate from the rest.
+I just added it on top of the others since it touched the same area.
+I will keep it separate in future submissions.
+
+	Sam
