@@ -1,7 +1,7 @@
 From: Ley Foon Tan <lftan@altera.com>
-Subject: [PATCH v2 25/29] nios2: ptrace support
-Date: Tue, 15 Jul 2014 16:45:52 +0800
-Message-ID: <1405413956-2772-26-git-send-email-lftan@altera.com>
+Subject: [PATCH v2 20/29] nios2: Cpuinfo handling
+Date: Tue, 15 Jul 2014 16:45:47 +0800
+Message-ID: <1405413956-2772-21-git-send-email-lftan@altera.com>
 References: <1405413956-2772-1-git-send-email-lftan@altera.com>
 Mime-Version: 1.0
 Content-Type: text/plain
@@ -12,368 +12,283 @@ To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-doc@vger.ker
 Cc: Ley Foon Tan <lftan@altera.com>, lftan.linux@gmail.com, cltang@codesourcery.com
 List-Id: linux-arch.vger.kernel.org
 
-Add ptrace support for nios2.
-
 Signed-off-by: Ley Foon Tan <lftan@altera.com>
 ---
- arch/nios2/include/asm/ptrace.h      |  33 +++++++
- arch/nios2/include/uapi/asm/ptrace.h | 120 +++++++++++++++++++++++
- arch/nios2/kernel/ptrace.c           | 180 +++++++++++++++++++++++++++++++++++
- 3 files changed, 333 insertions(+)
- create mode 100644 arch/nios2/include/asm/ptrace.h
- create mode 100644 arch/nios2/include/uapi/asm/ptrace.h
- create mode 100644 arch/nios2/kernel/ptrace.c
+ arch/nios2/include/asm/cpuinfo.h |  57 +++++++++++
+ arch/nios2/kernel/cpuinfo.c      | 201 +++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 258 insertions(+)
+ create mode 100644 arch/nios2/include/asm/cpuinfo.h
+ create mode 100644 arch/nios2/kernel/cpuinfo.c
 
-diff --git a/arch/nios2/include/asm/ptrace.h b/arch/nios2/include/asm/ptrace.h
+diff --git a/arch/nios2/include/asm/cpuinfo.h b/arch/nios2/include/asm/cpuinfo.h
 new file mode 100644
-index 0000000..20fb1cf
+index 0000000..e88fcae
 --- /dev/null
-+++ b/arch/nios2/include/asm/ptrace.h
-@@ -0,0 +1,33 @@
++++ b/arch/nios2/include/asm/cpuinfo.h
+@@ -0,0 +1,57 @@
++/*
++ * Copyright (C) 2011 Tobias Klauser <tklauser@distanz.ch>
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ *
++ */
++
++#ifndef _ASM_NIOS2_CPUINFO_H
++#define _ASM_NIOS2_CPUINFO_H
++
++#include <linux/types.h>
++
++struct cpuinfo {
++	/* Core CPU configuration */
++	char cpu_impl[12];
++	u32 cpu_clock_freq;
++	u32 mmu;
++	u32 has_div;
++	u32 has_mul;
++	u32 has_mulx;
++
++	/* CPU caches */
++	u32 icache_line_size;
++	u32 icache_size;
++	u32 dcache_line_size;
++	u32 dcache_size;
++
++	/* TLB */
++	u32 tlb_pid_num_bits;	/* number of bits used for the PID in TLBMISC */
++	u32 tlb_num_ways;
++	u32 tlb_num_ways_log2;
++	u32 tlb_num_entries;
++	u32 tlb_num_lines;
++	u32 tlb_ptr_sz;
++
++	/* Addresses */
++	u32 reset_addr;
++	u32 exception_addr;
++	u32 fast_tlb_miss_exc_addr;
++};
++
++extern struct cpuinfo cpuinfo;
++
++extern void setup_cpuinfo(void);
++
++#endif /* _ASM_NIOS2_CPUINFO_H */
+diff --git a/arch/nios2/kernel/cpuinfo.c b/arch/nios2/kernel/cpuinfo.c
+new file mode 100644
+index 0000000..fa57a2d
+--- /dev/null
++++ b/arch/nios2/kernel/cpuinfo.c
+@@ -0,0 +1,201 @@
 +/*
 + * Copyright (C) 2013 Altera Corporation
-+ * Copyright (C) 2010 Tobias Klauser <tklauser@distanz.ch>
-+ * Copyright (C) 2004 Microtronix Datacom Ltd
++ * Copyright (C) 2011 Tobias Klauser <tklauser@distanz.ch>
 + *
-+ * based on m68k asm/processor.h
++ * Based on cpuinfo.c from microblaze
 + *
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License.  See the file "COPYING" in the main directory of this archive
-+ * for more details.
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ *
 + */
 +
-+#ifndef _ASM_NIOS2_PTRACE_H
-+#define _ASM_NIOS2_PTRACE_H
-+
-+#include <uapi/asm/ptrace.h>
-+
-+#ifndef __ASSEMBLY__
-+#define user_mode(regs)	(((regs)->estatus & ESTATUS_EU))
-+
-+#define instruction_pointer(regs)	((regs)->ra)
-+#define profile_pc(regs)		instruction_pointer(regs)
-+#define user_stack_pointer(regs)	((regs)->sp)
-+extern void show_regs(struct pt_regs *);
-+
-+#define current_pt_regs() \
-+	((struct pt_regs *)((unsigned long)current_thread_info() + THREAD_SIZE)\
-+		- 1)
-+
-+int do_syscall_trace_enter(void);
-+void do_syscall_trace_exit(void);
-+#endif /* __ASSEMBLY__ */
-+#endif /* _ASM_NIOS2_PTRACE_H */
-diff --git a/arch/nios2/include/uapi/asm/ptrace.h b/arch/nios2/include/uapi/asm/ptrace.h
-new file mode 100644
-index 0000000..e83a7c9
---- /dev/null
-+++ b/arch/nios2/include/uapi/asm/ptrace.h
-@@ -0,0 +1,120 @@
-+/*
-+ * Copyright (C) 2010 Tobias Klauser <tklauser@distanz.ch>
-+ * Copyright (C) 2004 Microtronix Datacom Ltd
-+ *
-+ * based on m68k asm/processor.h
-+ *
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License.  See the file "COPYING" in the main directory of this archive
-+ * for more details.
-+ */
-+
-+#ifndef _UAPI_ASM_NIOS2_PTRACE_H
-+#define _UAPI_ASM_NIOS2_PTRACE_H
-+
-+#ifndef __ASSEMBLY__
-+
-+/*
-+ * Register numbers used by 'ptrace' system call interface.
-+ */
-+
-+/* GP registers */
-+#define PTR_R0		0
-+#define PTR_R1		1
-+#define PTR_R2		2
-+#define PTR_R3		3
-+#define PTR_R4		4
-+#define PTR_R5		5
-+#define PTR_R6		6
-+#define PTR_R7		7
-+#define PTR_R8		8
-+#define PTR_R9		9
-+#define PTR_R10		10
-+#define PTR_R11		11
-+#define PTR_R12		12
-+#define PTR_R13		13
-+#define PTR_R14		14
-+#define PTR_R15		15
-+#define PTR_R16		16
-+#define PTR_R17		17
-+#define PTR_R18		18
-+#define PTR_R19		19
-+#define PTR_R20		20
-+#define PTR_R21		21
-+#define PTR_R22		22
-+#define PTR_R23		23
-+#define PTR_R24		24
-+#define PTR_R25		25
-+#define PTR_GP		26
-+#define PTR_SP		27
-+#define PTR_FP		28
-+#define PTR_EA		29
-+#define PTR_BA		30
-+#define PTR_RA		31
-+/* Control registers */
-+#define PTR_PC		32
-+#define PTR_STATUS	33
-+#define PTR_ESTATUS	34
-+#define PTR_BSTATUS	35
-+#define PTR_IENABLE	36
-+#define PTR_IPENDING	37
-+#define PTR_CPUID	38
-+#define PTR_CTL6	39
-+#define PTR_CTL7	40
-+#define PTR_PTEADDR	41
-+#define PTR_TLBACC	42
-+#define PTR_TLBMISC	43
-+
-+#define NUM_PTRACE_REG (PTR_TLBMISC + 1)
-+
-+/* this struct defines the way the registers are stored on the
-+   stack during a system call.
-+
-+   There is a fake_regs in setup.c that has to match pt_regs.*/
-+
-+struct pt_regs {
-+	unsigned long  r8;		/* r8-r15 Caller-saved GP registers */
-+	unsigned long  r9;
-+	unsigned long  r10;
-+	unsigned long  r11;
-+	unsigned long  r12;
-+	unsigned long  r13;
-+	unsigned long  r14;
-+	unsigned long  r15;
-+	unsigned long  r1;		/* Assembler temporary */
-+	unsigned long  r2;		/* Retval LS 32bits */
-+	unsigned long  r3;		/* Retval MS 32bits */
-+	unsigned long  r4;		/* r4-r7 Register arguments */
-+	unsigned long  r5;
-+	unsigned long  r6;
-+	unsigned long  r7;
-+	unsigned long  orig_r2;		/* Copy of r2 ?? */
-+	unsigned long  ra;		/* Return address */
-+	unsigned long  fp;		/* Frame pointer */
-+	unsigned long  sp;		/* Stack pointer */
-+	unsigned long  gp;		/* Global pointer */
-+	unsigned long  estatus;
-+	unsigned long  ea;		/* Exception return address (pc) */
-+	unsigned long  orig_r7;
-+};
-+
-+/*
-+ * This is the extended stack used by signal handlers and the context
-+ * switcher: it's pushed after the normal "struct pt_regs".
-+ */
-+struct switch_stack {
-+	unsigned long  r16;		/* r16-r23 Callee-saved GP registers */
-+	unsigned long  r17;
-+	unsigned long  r18;
-+	unsigned long  r19;
-+	unsigned long  r20;
-+	unsigned long  r21;
-+	unsigned long  r22;
-+	unsigned long  r23;
-+	unsigned long  fp;
-+	unsigned long  gp;
-+	unsigned long  ra;
-+};
-+
-+#endif /* __ASSEMBLY__ */
-+#endif /* _UAPI_ASM_NIOS2_PTRACE_H */
-diff --git a/arch/nios2/kernel/ptrace.c b/arch/nios2/kernel/ptrace.c
-new file mode 100644
-index 0000000..152b31c
---- /dev/null
-+++ b/arch/nios2/kernel/ptrace.c
-@@ -0,0 +1,180 @@
-+/*
-+ * Copyright (C) 2014 Altera Corporation
-+ * Copyright (C) 2010 Tobias Klauser <tklauser@distanz.ch>
-+ *
-+ * based on arch/m68knommu/kernel/ptrace.c
-+ *
-+ * Copyright (C) 1994 by Hamish Macdonald
-+ *
-+ * This file is subject to the terms and conditions of the GNU General
-+ * Public License.  See the file COPYING in the main directory of this
-+ * archive for more details.
-+ */
-+
-+#include <linux/elf.h>
-+#include <linux/errno.h>
 +#include <linux/kernel.h>
-+#include <linux/mm.h>
-+#include <linux/ptrace.h>
-+#include <linux/regset.h>
-+#include <linux/sched.h>
-+#include <linux/tracehook.h>
-+#include <linux/uaccess.h>
-+#include <linux/user.h>
++#include <linux/init.h>
++#include <linux/delay.h>
++#include <linux/seq_file.h>
++#include <linux/string.h>
++#include <linux/of.h>
++#include <asm/cpuinfo.h>
 +
-+static int genregs_get(struct task_struct *target,
-+		       const struct user_regset *regset,
-+		       unsigned int pos, unsigned int count,
-+		       void *kbuf, void __user * ubuf)
++struct cpuinfo cpuinfo;
++
++#define err_cpu(x) \
++	pr_err("ERROR: Nios II " x " different for kernel and DTS\n");
++
++static inline u32 fcpu(struct device_node *cpu, const char *n)
 +{
-+	const struct pt_regs *regs = task_pt_regs(target);
-+	const struct switch_stack *sw = (struct switch_stack *)regs - 1;
-+	int ret = 0;
++	u32 val = 0;
 +
-+#define REG_O_ZERO_RANGE(START, END)		\
-+	if (!ret)					\
-+		ret = user_regset_copyout_zero(&pos, &count, &kbuf, &ubuf, \
-+			START * 4, (END * 4) + 4);
++	of_property_read_u32(cpu, n, &val);
 +
-+#define REG_O_ONE(PTR, LOC)	\
-+	if (!ret)			\
-+		ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf, PTR, \
-+			LOC * 4, (LOC * 4) + 4);
-+
-+#define REG_O_RANGE(PTR, START, END)	\
-+	if (!ret)				\
-+		ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf, PTR, \
-+			START * 4, (END * 4) + 4);
-+
-+	REG_O_ZERO_RANGE(PTR_R0, PTR_R0);
-+	REG_O_RANGE(&regs->r1,PTR_R1, PTR_R7);
-+	REG_O_RANGE(&regs->r8,PTR_R8, PTR_R15);
-+	REG_O_RANGE(sw, PTR_R16, PTR_R23);
-+	REG_O_ZERO_RANGE(PTR_R24, PTR_R25); /* et and bt */
-+	REG_O_ONE(&regs->gp, PTR_GP);
-+	REG_O_ONE(&regs->sp, PTR_SP);
-+	REG_O_ONE(&regs->fp, PTR_FP);
-+	REG_O_ONE(&regs->ea, PTR_EA);
-+	REG_O_ZERO_RANGE(PTR_BA, PTR_BA);
-+	REG_O_ONE(&regs->ra, PTR_RA);
-+	REG_O_ONE(&regs->ea, PTR_PC); /* use ea for PC */
-+	if (!ret)
-+		ret = user_regset_copyout_zero(&pos, &count, &kbuf, &ubuf,
-+					 PTR_STATUS * 4, -1);
-+
-+	return ret;
++	return val;
 +}
++
++static inline u32 fcpu_has(struct device_node *cpu, const char *n)
++{
++	return of_get_property(cpu, n, NULL) ? 1 : 0;
++}
++
++void __init setup_cpuinfo(void)
++{
++	struct device_node *cpu;
++	const char *str;
++	int len;
++
++	cpu = of_find_node_by_type(NULL, "cpu");
++	if (!cpu)
++		panic("%s: No CPU found in devicetree!\n", __func__);
++
++	if (!fcpu_has(cpu, "altr,has-initda"))
++		panic("initda instruction is unimplemented. Please update your "
++			"hardware system to have more than 4-byte line data "
++			"cache\n");
++
++	cpuinfo.cpu_clock_freq = fcpu(cpu, "clock-frequency");
++
++	str = of_get_property(cpu, "altr,implementation", &len);
++	if (str)
++		strlcpy(cpuinfo.cpu_impl, str, sizeof(cpuinfo.cpu_impl));
++	else
++		strcpy(cpuinfo.cpu_impl, "<unknown>");
++
++	cpuinfo.has_div = fcpu_has(cpu, "altr,has-div");
++	cpuinfo.has_mul = fcpu_has(cpu, "altr,has-mul");
++	cpuinfo.has_mulx = fcpu_has(cpu, "altr,has-mulx");
++
++#ifdef CONFIG_NIOS2_HW_DIV_SUPPORT
++	if (!cpuinfo.has_div)
++		err_cpu("DIV");
++#endif
++#ifdef CONFIG_NIOS2_HW_MUL_SUPPORT
++	if (!cpuinfo.has_mul)
++		err_cpu("MUL");
++#endif
++#ifdef CONFIG_NIOS2_HW_MULX_SUPPORT
++	if (!cpuinfo.has_mulx)
++		err_cpu("MULX");
++#endif
++
++	cpuinfo.tlb_num_ways = fcpu(cpu, "altr,tlb-num-ways");
++	if (!cpuinfo.tlb_num_ways)
++		panic("altr,tlb-num-ways can't be 0. Please check your hardware "
++			"system\n");
++	cpuinfo.icache_line_size = fcpu(cpu, "icache-line-size");
++	cpuinfo.icache_size = fcpu(cpu, "icache-size");
++	if (CONFIG_NIOS2_ICACHE_SIZE != cpuinfo.icache_size)
++	pr_warn("Warning: icache size configuration mismatch "
++		"(0x%x vs 0x%x) of CONFIG_NIOS2_ICACHE_SIZE vs "
++		"device tree icache-size\n",
++		CONFIG_NIOS2_ICACHE_SIZE, cpuinfo.icache_size);
++
++	cpuinfo.dcache_line_size = fcpu(cpu, "dcache-line-size");
++	if (CONFIG_NIOS2_DCACHE_LINE_SIZE != cpuinfo.dcache_line_size)
++		pr_warn("Warning: dcache line size configuration mismatch "
++		"(0x%x vs 0x%x) of CONFIG_NIOS2_DCACHE_LINE_SIZE vs "
++		"device tree dcache-line-size\n",
++		CONFIG_NIOS2_DCACHE_LINE_SIZE, cpuinfo.dcache_line_size);
++	cpuinfo.dcache_size = fcpu(cpu, "dcache-size");
++	if (CONFIG_NIOS2_DCACHE_SIZE != cpuinfo.dcache_size)
++		pr_warn("Warning: dcache size configuration mismatch "
++			"(0x%x vs 0x%x) of CONFIG_NIOS2_DCACHE_SIZE vs "
++			"device tree dcache-size\n",
++			CONFIG_NIOS2_DCACHE_SIZE, cpuinfo.dcache_size);
++
++	cpuinfo.tlb_pid_num_bits = fcpu(cpu, "altr,pid-num-bits");
++	cpuinfo.tlb_num_ways_log2 = ilog2(cpuinfo.tlb_num_ways);
++	cpuinfo.tlb_num_entries = fcpu(cpu, "altr,tlb-num-entries");
++	cpuinfo.tlb_num_lines = cpuinfo.tlb_num_entries / cpuinfo.tlb_num_ways;
++	cpuinfo.tlb_ptr_sz = fcpu(cpu, "altr,tlb-ptr-sz");
++
++	cpuinfo.reset_addr = fcpu(cpu, "altr,reset-addr");
++	cpuinfo.exception_addr = fcpu(cpu, "altr,exception-addr");
++	cpuinfo.fast_tlb_miss_exc_addr = fcpu(cpu, "altr,fast-tlb-miss-addr");
++}
++
++#ifdef CONFIG_PROC_FS
 +
 +/*
-+ * Set the thread state from a regset passed in via ptrace
++ * Get CPU information for use by the procfs.
 + */
-+static int genregs_set(struct task_struct *target,
-+		       const struct user_regset *regset,
-+		       unsigned int pos, unsigned int count,
-+		       const void *kbuf, const void __user * ubuf)
++static int show_cpuinfo(struct seq_file *m, void *v)
 +{
-+	struct pt_regs *regs = task_pt_regs(target);
-+	const struct switch_stack *sw = (struct switch_stack *)regs - 1;
-+	int ret = 0;
++	int count = 0;
++	const u32 clockfreq = cpuinfo.cpu_clock_freq;
 +
-+#define REG_IGNORE_RANGE(START, END)		\
-+	if (!ret)					\
-+		ret = user_regset_copyin_ignore(&pos, &count, &kbuf, &ubuf, \
-+			START * 4, (END * 4) + 4);
++	count = seq_printf(m,
++			"CPU:\t\tNios II/%s\n"
++			"MMU:\t\t%s\n"
++			"FPU:\t\tnone\n"
++			"Clocking:\t%u.%02u MHz\n"
++			"BogoMips:\t%lu.%02lu\n"
++			"Calibration:\t%lu loops\n",
++			cpuinfo.cpu_impl,
++			cpuinfo.mmu ? "present" : "none",
++			clockfreq / 1000000, (clockfreq / 100000) % 10,
++			(loops_per_jiffy * HZ) / 500000,
++			((loops_per_jiffy * HZ) / 5000) % 100,
++			(loops_per_jiffy * HZ));
 +
-+#define REG_IN_ONE(PTR, LOC)	\
-+	if (!ret)			\
-+		ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf, \
-+			(void *)(PTR), LOC * 4, (LOC * 4) + 4);
++	count += seq_printf(m,
++			"HW:\n"
++			" MUL:\t\t%s\n"
++			" MULX:\t\t%s\n"
++			" DIV:\t\t%s\n",
++			cpuinfo.has_mul ? "yes" : "no",
++			cpuinfo.has_mulx ? "yes" : "no",
++			cpuinfo.has_div ? "yes" : "no");
 +
-+#define REG_IN_RANGE(PTR, START, END)	\
-+	if (!ret)				\
-+		ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf, \
-+			(void *)(PTR), START * 4, (END * 4) + 4);
++	count += seq_printf(m,
++			"Icache:\t\t%ukB, line length: %u\n",
++			cpuinfo.icache_size >> 10,
++			cpuinfo.icache_line_size);
 +
-+	REG_IGNORE_RANGE(PTR_R0, PTR_R0);
-+	REG_IN_RANGE(&regs->r1,PTR_R1, PTR_R7);
-+	REG_IN_RANGE(&regs->r8,PTR_R8, PTR_R15);
-+	REG_IN_RANGE(sw, PTR_R16, PTR_R23);
-+	REG_IGNORE_RANGE(PTR_R24, PTR_R25); /* et and bt */
-+	REG_IN_ONE(&regs->gp, PTR_GP);
-+	REG_IN_ONE(&regs->sp, PTR_SP);
-+	REG_IN_ONE(&regs->fp, PTR_FP);
-+	REG_IN_ONE(&regs->ea, PTR_EA);
-+	REG_IGNORE_RANGE(PTR_BA, PTR_BA);
-+	REG_IN_ONE(&regs->ra, PTR_RA);
-+	REG_IN_ONE(&regs->ea, PTR_PC); /* use ea for PC */
-+	if (!ret)
-+		ret = user_regset_copyin_ignore(&pos, &count, &kbuf, &ubuf,
-+					 PTR_STATUS * 4, -1);
++	count += seq_printf(m,
++			"Dcache:\t\t%ukB, line length: %u\n",
++			cpuinfo.dcache_size >> 10,
++			cpuinfo.dcache_line_size);
 +
-+	return ret;
++	count += seq_printf(m,
++			"TLB:\t\t%u ways, %u entries, %u PID bits\n",
++			cpuinfo.tlb_num_ways,
++			cpuinfo.tlb_num_entries,
++			cpuinfo.tlb_pid_num_bits);
++
++	return 0;
 +}
 +
-+/*
-+ * Define the register sets available on Nios2 under Linux
-+ */
-+enum nios2_regset {
-+	REGSET_GENERAL,
++static void *cpuinfo_start(struct seq_file *m, loff_t *pos)
++{
++	unsigned long i = *pos;
++
++	return i < num_possible_cpus() ? (void *) (i + 1) : NULL;
++}
++
++static void *cpuinfo_next(struct seq_file *m, void *v, loff_t *pos)
++{
++	++*pos;
++	return cpuinfo_start(m, pos);
++}
++
++static void cpuinfo_stop(struct seq_file *m, void *v)
++{
++}
++
++const struct seq_operations cpuinfo_op = {
++	.start	= cpuinfo_start,
++	.next	= cpuinfo_next,
++	.stop	= cpuinfo_stop,
++	.show	= show_cpuinfo
 +};
 +
-+static const struct user_regset nios2_regsets[] = {
-+	[REGSET_GENERAL] = {
-+		.core_note_type = NT_PRSTATUS,
-+		.n = NUM_PTRACE_REG,
-+		.size = sizeof(unsigned long),
-+		.align = sizeof(unsigned long),
-+		.get = genregs_get,
-+		.set = genregs_set,
-+	}
-+};
-+
-+static const struct user_regset_view nios2_user_view = {
-+	.name = "nios2",
-+	.e_machine = ELF_ARCH,
-+	.ei_osabi = ELF_OSABI,
-+	.regsets = nios2_regsets,
-+	.n = ARRAY_SIZE(nios2_regsets)
-+};
-+
-+const struct user_regset_view *task_user_regset_view(struct task_struct *task)
-+{
-+	return &nios2_user_view;
-+}
-+
-+void ptrace_disable(struct task_struct *child)
-+{
-+
-+}
-+
-+long arch_ptrace(struct task_struct *child, long request, unsigned long addr,
-+		 unsigned long data)
-+{
-+	int ret = -EIO;
-+
-+	pr_debug("REQ=%ld: ADDR =0x%lx, DATA=0x%lx)\n", request, addr, data);
-+
-+	switch (request) {
-+	default:
-+		ret = ptrace_request(child, request, addr, data);
-+		break;
-+	}
-+
-+	return ret;
-+}
-+
-+asmlinkage int do_syscall_trace_enter(void)
-+{
-+	int ret = 0;
-+
-+	if (test_thread_flag(TIF_SYSCALL_TRACE))
-+		ret = tracehook_report_syscall_entry(task_pt_regs(current));
-+
-+	return ret;
-+}
-+
-+asmlinkage void do_syscall_trace_exit(void)
-+{
-+	if (test_thread_flag(TIF_SYSCALL_TRACE))
-+		tracehook_report_syscall_exit(task_pt_regs(current), 0);
-+}
++#endif /* CONFIG_PROC_FS */
 -- 
 1.8.2.1
