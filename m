@@ -1,7 +1,7 @@
 From: Ley Foon Tan <lftan@altera.com>
-Subject: [PATCH v2 05/29] nios2: Memory management
-Date: Tue, 15 Jul 2014 16:45:32 +0800
-Message-ID: <1405413956-2772-6-git-send-email-lftan@altera.com>
+Subject: [PATCH v2 08/29] nios2: Page table management
+Date: Tue, 15 Jul 2014 16:45:35 +0800
+Message-ID: <1405413956-2772-9-git-send-email-lftan@altera.com>
 References: <1405413956-2772-1-git-send-email-lftan@altera.com>
 Mime-Version: 1.0
 Content-Type: text/plain
@@ -12,720 +12,542 @@ To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-doc@vger.ker
 Cc: Ley Foon Tan <lftan@altera.com>, lftan.linux@gmail.com, cltang@codesourcery.com
 List-Id: linux-arch.vger.kernel.org
 
-This patch contains the initialisation of the memory blocks, MMU
-attributes and the memory map.
+This patch adds support for page table management.
 
 Signed-off-by: Ley Foon Tan <lftan@altera.com>
 ---
- arch/nios2/include/asm/mmu.h     |  18 +++
- arch/nios2/include/asm/page.h    | 113 +++++++++++++++++++
- arch/nios2/include/asm/uaccess.h | 233 +++++++++++++++++++++++++++++++++++++++
- arch/nios2/mm/init.c             | 142 ++++++++++++++++++++++++
- arch/nios2/mm/uaccess.c          | 162 +++++++++++++++++++++++++++
- 5 files changed, 668 insertions(+)
- create mode 100644 arch/nios2/include/asm/mmu.h
- create mode 100644 arch/nios2/include/asm/page.h
- create mode 100644 arch/nios2/include/asm/uaccess.h
- create mode 100644 arch/nios2/mm/init.c
- create mode 100644 arch/nios2/mm/uaccess.c
+ arch/nios2/include/asm/pgalloc.h      |  86 ++++++++++
+ arch/nios2/include/asm/pgtable-bits.h |  35 ++++
+ arch/nios2/include/asm/pgtable.h      | 305 ++++++++++++++++++++++++++++++++++
+ arch/nios2/mm/pgtable.c               |  73 ++++++++
+ 4 files changed, 499 insertions(+)
+ create mode 100644 arch/nios2/include/asm/pgalloc.h
+ create mode 100644 arch/nios2/include/asm/pgtable-bits.h
+ create mode 100644 arch/nios2/include/asm/pgtable.h
+ create mode 100644 arch/nios2/mm/pgtable.c
 
-diff --git a/arch/nios2/include/asm/mmu.h b/arch/nios2/include/asm/mmu.h
+diff --git a/arch/nios2/include/asm/pgalloc.h b/arch/nios2/include/asm/pgalloc.h
 new file mode 100644
-index 0000000..96ab052
+index 0000000..6e2985e
 --- /dev/null
-+++ b/arch/nios2/include/asm/mmu.h
-@@ -0,0 +1,18 @@
++++ b/arch/nios2/include/asm/pgalloc.h
+@@ -0,0 +1,86 @@
 +/*
-+ * Copyright (C) 2010 Tobias Klauser <tklauser@distanz.ch>
-+ * Copyright (C) 2004 Microtronix Datacom Ltd.
-+ *
-+ * Taken from m68knommu.
-+ *
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License. See the file "COPYING" in the main directory of this archive
-+ * for more details.
-+ */
-+
-+#ifndef _ASM_NIOS2_MMU_H
-+#define _ASM_NIOS2_MMU_H
-+
-+/* Default "unsigned long" context */
-+typedef unsigned long mm_context_t;
-+
-+#endif /* _ASM_NIOS2_MMU_H */
-diff --git a/arch/nios2/include/asm/page.h b/arch/nios2/include/asm/page.h
-new file mode 100644
-index 0000000..b89c1d6
---- /dev/null
-+++ b/arch/nios2/include/asm/page.h
-@@ -0,0 +1,113 @@
-+/*
-+ * Copyright (C) 2011 Tobias Klauser <tklauser@distanz.ch>
-+ * Copyright (C) 2004 Microtronix Datacom Ltd.
-+ *
-+ * MMU support based on asm/page.h from mips which is:
-+ *
-+ * Copyright (C) 1994 - 1999, 2000, 03 Ralf Baechle
-+ * Copyright (C) 1999, 2000 Silicon Graphics, Inc.
-+ *
-+ * NOMMU support based on asm/page.h from m68knommu.
-+ *
 + * This file is subject to the terms and conditions of the GNU General Public
 + * License.  See the file "COPYING" in the main directory of this archive
 + * for more details.
-+ */
-+
-+#ifndef _ASM_NIOS2_PAGE_H
-+#define _ASM_NIOS2_PAGE_H
-+
-+#include <linux/pfn.h>
-+#include <linux/const.h>
-+
-+/*
-+ * PAGE_SHIFT determines the page size
-+ */
-+#define PAGE_SHIFT	12
-+#define PAGE_SIZE	(_AC(1, UL) << PAGE_SHIFT)
-+#define PAGE_MASK	(~(PAGE_SIZE - 1))
-+
-+/*
-+ * PAGE_OFFSET -- the first address of the first page of memory.
-+ */
-+#define PAGE_OFFSET	\
-+	(CONFIG_NIOS2_MEM_BASE + CONFIG_NIOS2_KERNEL_REGION_BASE)
-+
-+#ifndef __ASSEMBLY__
-+
-+/*
-+ * This gives the physical RAM offset.
-+ */
-+#define PHYS_OFFSET		CONFIG_NIOS2_MEM_BASE
-+
-+/*
-+ * It's normally defined only for FLATMEM config but it's
-+ * used in our early mem init code for all memory models.
-+ * So always define it.
-+ */
-+#define ARCH_PFN_OFFSET		PFN_UP(PHYS_OFFSET)
-+
-+#define clear_page(page)	memset((page), 0, PAGE_SIZE)
-+#define copy_page(to, from)	memcpy((to), (from), PAGE_SIZE)
-+
-+struct page;
-+
-+extern void clear_user_page(void *addr, unsigned long vaddr, struct page *page);
-+extern void copy_user_page(void *vto, void *vfrom, unsigned long vaddr,
-+				struct page *to);
-+
-+extern unsigned long shm_align_mask;
-+
-+/*
-+ * These are used to make use of C type-checking.
-+ */
-+typedef struct page *pgtable_t;
-+typedef struct { unsigned long pte; } pte_t;
-+typedef struct { unsigned long pgd; } pgd_t;
-+typedef struct { unsigned long pgprot; } pgprot_t;
-+
-+#define pte_val(x)	((x).pte)
-+#define pgd_val(x)	((x).pgd)
-+#define pgprot_val(x)	((x).pgprot)
-+
-+#define __pte(x)	((pte_t) { (x) })
-+#define __pgd(x)	((pgd_t) { (x) })
-+#define __pgprot(x)	((pgprot_t) { (x) })
-+
-+extern unsigned long memory_start;
-+extern unsigned long memory_end;
-+extern unsigned long memory_size;
-+
-+extern struct page *mem_map;
-+
-+#endif /* !__ASSEMBLY__ */
-+
-+# define __pa(x)		\
-+	((unsigned long)(x) - PAGE_OFFSET + PHYS_OFFSET)
-+# define __va(x)		\
-+	((void *)((unsigned long)(x) + PAGE_OFFSET - PHYS_OFFSET))
-+
-+#define page_to_virt(page)	\
-+	((((page) - mem_map) << PAGE_SHIFT) + PAGE_OFFSET)
-+
-+# define pfn_to_kaddr(pfn)	__va((pfn) << PAGE_SHIFT)
-+# define pfn_valid(pfn)		((pfn) >= ARCH_PFN_OFFSET &&	\
-+					(pfn) < max_mapnr)
-+
-+# define virt_to_page(vaddr)	pfn_to_page(PFN_DOWN(virt_to_phys(vaddr)))
-+# define virt_addr_valid(vaddr)	pfn_valid(PFN_DOWN(virt_to_phys(vaddr)))
-+
-+# define VM_DATA_DEFAULT_FLAGS	(VM_READ | VM_WRITE | \
-+				 VM_MAYREAD | VM_MAYWRITE | VM_MAYEXEC)
-+
-+# define UNCAC_ADDR(addr)	\
-+	((void *)((unsigned)(addr) | CONFIG_NIOS2_IO_REGION_BASE))
-+# define CAC_ADDR(addr)		\
-+	((void *)(((unsigned)(addr) & ~CONFIG_NIOS2_IO_REGION_BASE) |	\
-+		CONFIG_NIOS2_KERNEL_REGION_BASE))
-+
-+#include <asm-generic/memory_model.h>
-+
-+#include <asm-generic/getorder.h>
-+
-+#endif /* _ASM_NIOS2_PAGE_H */
-diff --git a/arch/nios2/include/asm/uaccess.h b/arch/nios2/include/asm/uaccess.h
-new file mode 100644
-index 0000000..3e36f53
---- /dev/null
-+++ b/arch/nios2/include/asm/uaccess.h
-@@ -0,0 +1,233 @@
-+/*
-+ * User space memory access functions for Nios II
 + *
-+ * Copyright (C) 2010-2011, Tobias Klauser <tklauser@distanz.ch>
-+ * Copyright (C) 2009, Wind River Systems Inc
-+ *   Implemented by fredrik.markstrom@gmail.com and ivarholmqvist@gmail.com
-+ *
-+ * Based on asm/uaccess.h from m68knommu
-+ *
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License.  See the file "COPYING" in the main directory of this archive
-+ * for more details.
++ * Copyright (C) 1994 - 2001, 2003 by Ralf Baechle
++ * Copyright (C) 1999, 2000, 2001 Silicon Graphics, Inc.
 + */
 +
-+#ifndef _ASM_NIOS2_UACCESS_H
-+#define _ASM_NIOS2_UACCESS_H
++#ifndef _ASM_NIOS2_PGALLOC_H
++#define _ASM_NIOS2_PGALLOC_H
 +
-+#include <linux/errno.h>
-+#include <linux/thread_info.h>
-+#include <linux/string.h>
++#include <linux/mm.h>
 +
-+#include <asm/page.h>
++static inline void pmd_populate_kernel(struct mm_struct *mm, pmd_t *pmd,
++	pte_t *pte)
++{
++	set_pmd(pmd, __pmd((unsigned long)pte));
++}
 +
-+#define VERIFY_READ	0
-+#define VERIFY_WRITE	1
++static inline void pmd_populate(struct mm_struct *mm, pmd_t *pmd,
++	pgtable_t pte)
++{
++	set_pmd(pmd, __pmd((unsigned long)page_address(pte)));
++}
++#define pmd_pgtable(pmd) pmd_page(pmd)
 +
 +/*
-+ * The exception table consists of pairs of addresses: the first is the
-+ * address of an instruction that is allowed to fault, and the second is
-+ * the address at which the program should continue.  No registers are
-+ * modified, so it is entirely up to the continuation code to figure out
-+ * what to do.
-+ *
-+ * All the routines below use bits of fixup code that are out of line
-+ * with the main instruction path.  This means when everything is well,
-+ * we don't even have to jump over them.  Further, they do not intrude
-+ * on our cache or tlb entries.
++ * Initialize a new pmd table with invalid pointers.
 + */
-+struct exception_table_entry {
-+	unsigned long insn;
-+	unsigned long fixup;
-+};
++extern void pmd_init(unsigned long page, unsigned long pagetable);
 +
-+extern int fixup_exception(struct pt_regs *regs);
++extern pgd_t *pgd_alloc(struct mm_struct *mm);
 +
-+/*
-+ * Segment stuff
-+ */
-+#define MAKE_MM_SEG(s)		((mm_segment_t) { (s) })
-+#define USER_DS			MAKE_MM_SEG(0x80000000UL)
-+#define KERNEL_DS		MAKE_MM_SEG(0)
-+
-+#define get_ds()		(KERNEL_DS)
-+
-+#define get_fs()		(current_thread_info()->addr_limit)
-+#define set_fs(seg)		(current_thread_info()->addr_limit = (seg))
-+
-+#define segment_eq(a, b)	((a).seg == (b).seg)
-+
-+#define __access_ok(addr, len)			\
-+	(((signed long)(((long)get_fs().seg) &	\
-+		((long)(addr) | (((long)(addr)) + (len)) | (len)))) == 0)
-+
-+#define access_ok(type, addr, len)		\
-+	likely(__access_ok((unsigned long)(addr), (unsigned long)(len)))
-+
-+# define __EX_TABLE_SECTION	".section __ex_table,\"a\"\n"
-+
-+/*
-+ * Zero Userspace
-+ */
-+
-+static inline unsigned long __must_check __clear_user(void __user *to,
-+						      unsigned long n)
++static inline void pgd_free(struct mm_struct *mm, pgd_t *pgd)
 +{
-+	__asm__ __volatile__ (
-+		"1:     stb     zero, 0(%1)\n"
-+		"       addi    %0, %0, -1\n"
-+		"       addi    %1, %1, 1\n"
-+		"       bne     %0, zero, 1b\n"
-+		"2:\n"
-+		__EX_TABLE_SECTION
-+		".word  1b, 2b\n"
-+		".previous\n"
-+		: "=r" (n), "=r" (to)
-+		: "0" (n), "1" (to)
-+	);
-+
-+	return n;
++	free_pages((unsigned long)pgd, PGD_ORDER);
 +}
 +
-+static inline unsigned long __must_check clear_user(void __user *to,
-+						    unsigned long n)
++static inline pte_t *pte_alloc_one_kernel(struct mm_struct *mm,
++	unsigned long address)
 +{
-+	if (!access_ok(VERIFY_WRITE, to, n))
-+		return n;
-+	return __clear_user(to, n);
++	pte_t *pte;
++
++	pte = (pte_t *) __get_free_pages(GFP_KERNEL|__GFP_REPEAT|__GFP_ZERO,
++					PTE_ORDER);
++
++	return pte;
 +}
 +
-+extern long __copy_from_user(void *to, const void __user *from,
-+				unsigned long n);
-+extern long __copy_to_user(void __user *to, const void *from, unsigned long n);
-+
-+static inline long copy_from_user(void *to, const void __user *from,
-+				unsigned long n)
++static inline pgtable_t pte_alloc_one(struct mm_struct *mm,
++	unsigned long address)
 +{
-+	if (!access_ok(VERIFY_READ, from, n))
-+		return n;
-+	return __copy_from_user(to, from, n);
++	struct page *pte;
++
++	pte = alloc_pages(GFP_KERNEL | __GFP_REPEAT, PTE_ORDER);
++	if (pte) {
++		if (!pgtable_page_ctor(pte)) {
++			__free_page(pte);
++			return NULL;
++		}
++		clear_highpage(pte);
++	}
++	return pte;
 +}
 +
-+static inline long copy_to_user(void __user *to, const void *from,
-+				unsigned long n)
++static inline void pte_free_kernel(struct mm_struct *mm, pte_t *pte)
 +{
-+	if (!access_ok(VERIFY_WRITE, to, n))
-+		return n;
-+	return __copy_to_user(to, from, n);
++	free_pages((unsigned long)pte, PTE_ORDER);
 +}
 +
-+extern long strncpy_from_user(char *__to, const char __user *__from,
-+				long __len);
-+extern long strnlen_user(const char __user *s, long n);
-+
-+#define __copy_from_user_inatomic	__copy_from_user
-+#define __copy_to_user_inatomic		__copy_to_user
-+
-+/* Optimized macros */
-+#define __get_user_asm(val, insn, addr, err)				\
-+{									\
-+	__asm__ __volatile__(						\
-+	"       movi    %0, %3\n"					\
-+	"1:   " insn " %1, 0(%2)\n"					\
-+	"       movi     %0, 0\n"					\
-+	"2:\n"								\
-+	"       .section __ex_table,\"a\"\n"				\
-+	"       .word 1b, 2b\n"						\
-+	"       .previous"						\
-+	: "=&r" (err), "=r" (val)					\
-+	: "r" (addr), "i" (-EFAULT));					\
++static inline void pte_free(struct mm_struct *mm, struct page *pte)
++{
++	pgtable_page_dtor(pte);
++	__free_pages(pte, PTE_ORDER);
 +}
 +
-+#define __get_user_unknown(val, size, ptr, err) do {			\
-+	err = 0;							\
-+	if (copy_from_user(&(val), ptr, size)) {			\
-+		err = -EFAULT;						\
-+	}								\
++#define __pte_free_tlb(tlb, pte, addr)				\
++	do {							\
++		pgtable_page_dtor(pte);				\
++		tlb_remove_page((tlb), (pte));			\
 +	} while (0)
 +
-+#define __get_user_common(val, size, ptr, err)				\
-+do {									\
-+	switch (size) {							\
-+	case 1:								\
-+		__get_user_asm(val, "ldbu", ptr, err);			\
-+		break;							\
-+	case 2:								\
-+		__get_user_asm(val, "ldhu", ptr, err);			\
-+		break;							\
-+	case 4:								\
-+		__get_user_asm(val, "ldw", ptr, err);			\
-+		break;							\
-+	default:							\
-+		__get_user_unknown(val, size, ptr, err);		\
-+		break;							\
-+	}								\
-+} while (0)
++#define check_pgt_cache()	do { } while (0)
 +
-+#define __get_user(x, ptr)						\
-+	({								\
-+	long __gu_err = -EFAULT;					\
-+	const __typeof__(*(ptr)) __user *__gu_ptr = (ptr);		\
-+	unsigned long __gu_val;						\
-+	__get_user_common(__gu_val, sizeof(*(ptr)), __gu_ptr, __gu_err);\
-+	(x) = (__typeof__(x))__gu_val;					\
-+	__gu_err;							\
-+	})
-+
-+#define get_user(x, ptr)						\
-+({									\
-+	long __gu_err = -EFAULT;					\
-+	const __typeof__(*(ptr)) __user *__gu_ptr = (ptr);		\
-+	unsigned long __gu_val = 0;					\
-+	if (access_ok(VERIFY_READ,  __gu_ptr, sizeof(*__gu_ptr)))	\
-+		__get_user_common(__gu_val, sizeof(*__gu_ptr),		\
-+			__gu_ptr, __gu_err);				\
-+	(x) = (__typeof__(x))__gu_val;					\
-+	__gu_err;							\
-+})
-+
-+#define __put_user_asm(val, insn, ptr, err)				\
-+{									\
-+	__asm__ __volatile__(						\
-+	"       movi    %0, %3\n"					\
-+	"1:   " insn " %1, 0(%2)\n"					\
-+	"       movi     %0, 0\n"					\
-+	"2:\n"								\
-+	"       .section __ex_table,\"a\"\n"				\
-+	"       .word 1b, 2b\n"						\
-+	"       .previous\n"						\
-+	: "=&r" (err)							\
-+	: "r" (val), "r" (ptr), "i" (-EFAULT));				\
-+}
-+
-+#define put_user(x, ptr)						\
-+({									\
-+	long __pu_err = -EFAULT;					\
-+	__typeof__(*(ptr)) __user *__pu_ptr = (ptr);			\
-+	__typeof__(*(ptr)) __pu_val = (__typeof(*ptr))(x);		\
-+	if (access_ok(VERIFY_WRITE, __pu_ptr, sizeof(*__pu_ptr))) {	\
-+		switch (sizeof(*__pu_ptr)) {				\
-+		case 1:							\
-+			__put_user_asm(__pu_val, "stb", __pu_ptr, __pu_err); \
-+			break;						\
-+		case 2:							\
-+			__put_user_asm(__pu_val, "sth", __pu_ptr, __pu_err); \
-+			break;						\
-+		case 4:							\
-+			__put_user_asm(__pu_val, "stw", __pu_ptr, __pu_err); \
-+			break;						\
-+		default:						\
-+			/* XXX: This looks wrong... */			\
-+			__pu_err = 0;					\
-+			if (copy_to_user(__pu_ptr, &(__pu_val),		\
-+				sizeof(*__pu_ptr)))			\
-+				__pu_err = -EFAULT;			\
-+			break;						\
-+		}							\
-+	}								\
-+	__pu_err;							\
-+})
-+
-+#define __put_user(x, ptr) put_user(x, ptr)
-+
-+#endif /* _ASM_NIOS2_UACCESS_H */
-diff --git a/arch/nios2/mm/init.c b/arch/nios2/mm/init.c
++#endif /* _ASM_NIOS2_PGALLOC_H */
+diff --git a/arch/nios2/include/asm/pgtable-bits.h b/arch/nios2/include/asm/pgtable-bits.h
 new file mode 100644
-index 0000000..e75c75d
+index 0000000..ce9e706
 --- /dev/null
-+++ b/arch/nios2/mm/init.c
-@@ -0,0 +1,142 @@
++++ b/arch/nios2/include/asm/pgtable-bits.h
+@@ -0,0 +1,35 @@
 +/*
-+ * Copyright (C) 2013 Altera Corporation
-+ * Copyright (C) 2010 Tobias Klauser <tklauser@distanz.ch>
++ * Copyright (C) 2011 Tobias Klauser <tklauser@distanz.ch>
 + * Copyright (C) 2009 Wind River Systems Inc
-+ *   Implemented by fredrik.markstrom@gmail.com and ivarholmqvist@gmail.com
-+ * Copyright (C) 2004 Microtronix Datacom Ltd
-+ *
-+ * based on arch/m68k/mm/init.c
 + *
 + * This file is subject to the terms and conditions of the GNU General Public
-+ * License. See the file "COPYING" in the main directory of this archive
++ * License.  See the file "COPYING" in the main directory of this archive
 + * for more details.
 + */
 +
-+#include <linux/signal.h>
-+#include <linux/sched.h>
-+#include <linux/kernel.h>
-+#include <linux/errno.h>
-+#include <linux/string.h>
-+#include <linux/types.h>
-+#include <linux/ptrace.h>
-+#include <linux/mman.h>
-+#include <linux/mm.h>
-+#include <linux/init.h>
-+#include <linux/pagemap.h>
-+#include <linux/bootmem.h>
-+#include <linux/slab.h>
-+#include <linux/binfmts.h>
-+
-+#include <asm/setup.h>
-+#include <asm/page.h>
-+#include <asm/pgtable.h>
-+#include <asm/sections.h>
-+#include <asm/tlb.h>
-+#include <asm/mmu_context.h>
-+#include <asm/cpuinfo.h>
-+#include <asm/processor.h>
-+
-+pgd_t *pgd_current;
++#ifndef _ASM_NIOS2_PGTABLE_BITS_H
++#define _ASM_NIOS2_PGTABLE_BITS_H
 +
 +/*
-+ * paging_init() continues the virtual memory environment setup which
-+ * was begun by the code in arch/head.S.
-+ * The parameters are pointers to where to stick the starting and ending
-+ * addresses of available kernel virtual memory.
++ * These are actual hardware defined protection bits in the tlbacc register
++ * which looks like this:
++ *
++ * 31 30 ... 26 25 24 23 22 21 20 19 18 ...  1  0
++ * ignored........  C  R  W  X  G PFN............
 + */
-+void __init paging_init(void)
++#define _PAGE_GLOBAL	(1<<20)
++#define _PAGE_EXEC	(1<<21)
++#define _PAGE_WRITE	(1<<22)
++#define _PAGE_READ	(1<<23)
++#define _PAGE_CACHED	(1<<24)	/* C: data access cacheable */
++
++/*
++ * Software defined bits. They are ignored by the hardware and always read back
++ * as zero, but can be written as non-zero.
++ */
++#define _PAGE_PRESENT	(1<<25)	/* PTE contains a translation */
++#define _PAGE_ACCESSED	(1<<26)	/* page referenced */
++#define _PAGE_DIRTY	(1<<27)	/* dirty page */
++#define _PAGE_FILE	(1<<28)	/* PTE used for file mapping or swap */
++
++#endif /* _ASM_NIOS2_PGTABLE_BITS_H */
+diff --git a/arch/nios2/include/asm/pgtable.h b/arch/nios2/include/asm/pgtable.h
+new file mode 100644
+index 0000000..ec85481
+--- /dev/null
++++ b/arch/nios2/include/asm/pgtable.h
+@@ -0,0 +1,305 @@
++/*
++ * Copyright (C) 2011 Tobias Klauser <tklauser@distanz.ch>
++ * Copyright (C) 2009 Wind River Systems Inc
++ *
++ * Based on asm/pgtable-32.h from mips which is:
++ *
++ * Copyright (C) 1994, 95, 96, 97, 98, 99, 2000, 2003 Ralf Baechle
++ * Copyright (C) 1999, 2000, 2001 Silicon Graphics, Inc.
++ *
++ * This file is subject to the terms and conditions of the GNU General Public
++ * License.  See the file "COPYING" in the main directory of this archive
++ * for more details.
++ */
++
++#ifndef _ASM_NIOS2_PGTABLE_H
++#define _ASM_NIOS2_PGTABLE_H
++
++#include <linux/io.h>
++#include <linux/bug.h>
++#include <asm/page.h>
++#include <asm/cacheflush.h>
++#include <asm/tlbflush.h>
++
++#include <asm/pgtable-bits.h>
++#include <asm-generic/pgtable-nopmd.h>
++
++#define FIRST_USER_ADDRESS	0
++
++#define VMALLOC_START		CONFIG_NIOS2_KERNEL_MMU_REGION_BASE
++#define VMALLOC_END		(CONFIG_NIOS2_KERNEL_REGION_BASE - 1)
++
++struct mm_struct;
++
++/* Helper macro */
++#define MKP(x, w, r) __pgprot(_PAGE_PRESENT | _PAGE_CACHED |		\
++				((x) ? _PAGE_EXEC : 0) |		\
++				((r) ? _PAGE_READ : 0) |		\
++				((w) ? _PAGE_WRITE : 0))
++/*
++ * These are the macros that generic kernel code needs
++ * (to populate protection_map[])
++ */
++
++/* Remove W bit on private pages for COW support */
++#define __P000	MKP(0, 0, 0)
++#define __P001	MKP(0, 0, 1)
++#define __P010	MKP(0, 0, 0)	/* COW */
++#define __P011	MKP(0, 0, 1)	/* COW */
++#define __P100	MKP(1, 0, 0)
++#define __P101	MKP(1, 0, 1)
++#define __P110	MKP(1, 0, 0)	/* COW */
++#define __P111	MKP(1, 0, 1)	/* COW */
++
++/* Shared pages can have exact HW mapping */
++#define __S000	MKP(0, 0, 0)
++#define __S001	MKP(0, 0, 1)
++#define __S010	MKP(0, 1, 0)
++#define __S011	MKP(0, 1, 1)
++#define __S100	MKP(1, 0, 0)
++#define __S101	MKP(1, 0, 1)
++#define __S110	MKP(1, 1, 0)
++#define __S111	MKP(1, 1, 1)
++
++/* Used all over the kernel */
++#define PAGE_KERNEL __pgprot(_PAGE_PRESENT | _PAGE_CACHED | _PAGE_READ | \
++			     _PAGE_WRITE | _PAGE_EXEC | _PAGE_GLOBAL)
++
++#define PAGE_COPY MKP(0, 0, 1)
++
++#define PGD_ORDER	0
++#define PTE_ORDER	0
++
++#define PTRS_PER_PGD	((PAGE_SIZE << PGD_ORDER) / sizeof(pgd_t))
++#define PTRS_PER_PTE	((PAGE_SIZE << PTE_ORDER) / sizeof(pte_t))
++
++#define USER_PTRS_PER_PGD	\
++	(CONFIG_NIOS2_KERNEL_MMU_REGION_BASE / PGDIR_SIZE)
++
++#define PGDIR_SHIFT	22
++#define PGDIR_SIZE	(1UL << PGDIR_SHIFT)
++#define PGDIR_MASK	(~(PGDIR_SIZE-1))
++
++/*
++ * ZERO_PAGE is a global shared page that is always zero: used
++ * for zero-mapped memory areas etc..
++ */
++extern unsigned long empty_zero_page[PAGE_SIZE / sizeof(unsigned long)];
++#define ZERO_PAGE(vaddr)	(virt_to_page(empty_zero_page))
++
++extern pgd_t swapper_pg_dir[PTRS_PER_PGD];
++extern pte_t invalid_pte_table[PAGE_SIZE/sizeof(pte_t)];
++
++/*
++ * (pmds are folded into puds so this doesn't get actually called,
++ * but the define is needed for a generic inline function.)
++ */
++static inline void set_pmd(pmd_t *pmdptr, pmd_t pmdval)
 +{
-+	unsigned long zones_size[MAX_NR_ZONES];
-+
-+	memset(zones_size, 0, sizeof(zones_size));
-+
-+	pagetable_init();
-+	pgd_current = swapper_pg_dir;
-+
-+	zones_size[ZONE_NORMAL] = max_mapnr;
-+
-+	/* pass the memory from the bootmem allocator to the main allocator */
-+	free_area_init(zones_size);
-+
-+	flush_dcache_range((unsigned long)empty_zero_page,
-+			(unsigned long)empty_zero_page + PAGE_SIZE);
++	pmdptr->pud.pgd.pgd = pmdval.pud.pgd.pgd;
 +}
 +
-+void __init mem_init(void)
++/* to find an entry in a page-table-directory */
++#define pgd_index(addr)		(((addr) >> PGDIR_SHIFT) & (PTRS_PER_PGD - 1))
++#define pgd_offset(mm, addr)	((mm)->pgd + pgd_index(addr))
++
++static inline int pte_write(pte_t pte)		\
++	{ return pte_val(pte) & _PAGE_WRITE; }
++static inline int pte_dirty(pte_t pte)		\
++	{ return pte_val(pte) & _PAGE_DIRTY; }
++static inline int pte_young(pte_t pte)		\
++	{ return pte_val(pte) & _PAGE_ACCESSED; }
++static inline int pte_file(pte_t pte)		\
++	{ return pte_val(pte) & _PAGE_FILE; }
++static inline int pte_special(pte_t pte)	{ return 0; }
++
++#define pgprot_noncached pgprot_noncached
++
++static inline pgprot_t pgprot_noncached(pgprot_t _prot)
 +{
-+	unsigned long end_mem   = memory_end; /* this must not include
-+						kernel stack at top */
++	unsigned long prot = pgprot_val(_prot);
 +
-+	pr_debug("mem_init: start=%lx, end=%lx\n", memory_start, memory_end);
++	prot &= ~_PAGE_CACHED;
 +
-+	end_mem &= PAGE_MASK;
-+	high_memory = __va(end_mem);
-+
-+	/* this will put all memory onto the freelists */
-+	free_all_bootmem();
-+	mem_init_print_info(NULL);
++	return __pgprot(prot);
 +}
 +
-+void __init mmu_init(void)
++static inline int pte_none(pte_t pte)
 +{
-+	flush_tlb_all();
++	return !(pte_val(pte) & ~(_PAGE_GLOBAL|0xf));
 +}
 +
-+#ifdef CONFIG_BLK_DEV_INITRD
-+void __init free_initrd_mem(unsigned long start, unsigned long end)
++static inline int pte_present(pte_t pte)	\
++	{ return pte_val(pte) & _PAGE_PRESENT; }
++
++/*
++ * The following only work if pte_present() is true.
++ * Undefined behaviour if not..
++ */
++static inline pte_t pte_wrprotect(pte_t pte)
 +{
-+	free_reserved_area((void *)start, (void *)end, -1, "initrd");
++	pte_val(pte) &= ~_PAGE_WRITE;
++	return pte;
 +}
-+#endif
 +
-+void __init_refok free_initmem(void)
++static inline pte_t pte_mkclean(pte_t pte)
 +{
-+	free_initmem_default(-1);
++	pte_val(pte) &= ~_PAGE_DIRTY;
++	return pte;
 +}
 +
-+#define __page_aligned(order) __aligned(PAGE_SIZE << (order))
-+pgd_t swapper_pg_dir[PTRS_PER_PGD] __page_aligned(PGD_ORDER);
-+pte_t invalid_pte_table[PTRS_PER_PTE] __page_aligned(PTE_ORDER);
-+static struct page *kuser_page[1];
-+
-+static int alloc_kuser_page(void)
++static inline pte_t pte_mkold(pte_t pte)
 +{
-+	extern char __kuser_helper_start[], __kuser_helper_end[];
-+	int kuser_sz = __kuser_helper_end - __kuser_helper_start;
-+	unsigned long vpage;
-+
-+	vpage = get_zeroed_page(GFP_ATOMIC);
-+	if (!vpage)
-+		return -ENOMEM;
-+
-+	/* Copy kuser helpers */
-+	memcpy((void *)vpage, __kuser_helper_start, kuser_sz);
-+
-+	flush_icache_range(vpage, vpage + KUSER_SIZE);
-+	kuser_page[0] = virt_to_page(vpage);
-+
-+	return 0;
++	pte_val(pte) &= ~_PAGE_ACCESSED;
++	return pte;
 +}
-+arch_initcall(alloc_kuser_page);
 +
-+int arch_setup_additional_pages(struct linux_binprm *bprm, int uses_interp)
++static inline pte_t pte_mkwrite(pte_t pte)
 +{
-+	struct mm_struct *mm = current->mm;
-+	int ret;
++	pte_val(pte) |= _PAGE_WRITE;
++	return pte;
++}
 +
-+	down_write(&mm->mmap_sem);
++static inline pte_t pte_mkdirty(pte_t pte)
++{
++	pte_val(pte) |= _PAGE_DIRTY;
++	return pte;
++}
 +
-+	/* Map kuser helpers to user space address */
-+	ret = install_special_mapping(mm, KUSER_BASE, KUSER_SIZE,
-+				      VM_READ | VM_EXEC | VM_MAYREAD |
-+				      VM_MAYEXEC, kuser_page);
++static inline pte_t pte_mkspecial(pte_t pte)	{ return pte; }
 +
-+	up_write(&mm->mmap_sem);
++static inline pte_t pte_mkyoung(pte_t pte)
++{
++	pte_val(pte) |= _PAGE_ACCESSED;
++	return pte;
++}
++
++static inline pte_t pte_modify(pte_t pte, pgprot_t newprot)
++{
++	const unsigned long mask = _PAGE_READ | _PAGE_WRITE | _PAGE_EXEC;
++	pte_val(pte) = (pte_val(pte) & ~mask) | (pgprot_val(newprot) & mask);
++	return pte;
++}
++
++static inline int pmd_present(pmd_t pmd)
++{
++	return (pmd_val(pmd) != (unsigned long) invalid_pte_table)
++			&& (pmd_val(pmd) != 0UL);
++}
++
++static inline void pmd_clear(pmd_t *pmdp)
++{
++	pmd_val(*pmdp) = (unsigned long) invalid_pte_table;
++}
++
++#define pte_pfn(pte)		(pte_val(pte) & 0xfffff)
++#define pfn_pte(pfn, prot)	(__pte(pfn | pgprot_val(prot)))
++#define pte_page(pte)		(pfn_to_page(pte_pfn(pte)))
++
++/*
++ * Store a linux PTE into the linux page table.
++ */
++static inline void set_pte(pte_t *ptep, pte_t pteval)
++{
++	*ptep = pteval;
++}
++
++static inline void set_pte_at(struct mm_struct *mm, unsigned long addr,
++			      pte_t *ptep, pte_t pteval)
++{
++	unsigned long paddr = page_to_virt(pte_page(pteval));
++	flush_dcache_range(paddr, paddr + PAGE_SIZE);
++	set_pte(ptep, pteval);
++}
++
++static inline int pmd_none(pmd_t pmd)
++{
++	return (pmd_val(pmd) ==
++		(unsigned long) invalid_pte_table) || (pmd_val(pmd) == 0UL);
++}
++
++#define pmd_bad(pmd)	(pmd_val(pmd) & ~PAGE_MASK)
++
++static inline void pte_clear(struct mm_struct *mm,
++				unsigned long addr, pte_t *ptep)
++{
++	pte_t null;
++
++	pte_val(null) = (addr >> PAGE_SHIFT) & 0xf;
++
++	set_pte_at(mm, addr, ptep, null);
++	flush_tlb_one(addr);
++}
++
++/*
++ * Conversion functions: convert a page and protection to a page entry,
++ * and a page entry and page directory to the page they refer to.
++ */
++#define mk_pte(page, prot)	(pfn_pte(page_to_pfn(page), prot))
++
++#define pte_unmap(pte)	do { } while (0)
++
++/*
++ * Conversion functions: convert a page and protection to a page entry,
++ * and a page entry and page directory to the page they refer to.
++ */
++#define pmd_phys(pmd)		virt_to_phys((void *)pmd_val(pmd))
++#define pmd_page(pmd)		(pfn_to_page(pmd_phys(pmd) >> PAGE_SHIFT))
++#define pmd_page_vaddr(pmd)	pmd_val(pmd)
++
++#define pte_offset_map(dir, addr)			\
++	((pte_t *) page_address(pmd_page(*dir)) +	\
++	 (((addr) >> PAGE_SHIFT) & (PTRS_PER_PTE - 1)))
++
++/* to find an entry in a kernel page-table-directory */
++#define pgd_offset_k(addr)	pgd_offset(&init_mm, addr)
++
++/* Get the address to the PTE for a vaddr in specfic directory */
++#define pte_offset_kernel(dir, addr)			\
++	((pte_t *) pmd_page_vaddr(*(dir)) +		\
++	 (((addr) >> PAGE_SHIFT) & (PTRS_PER_PTE - 1)))
++
++#define pte_ERROR(e) \
++	pr_err("%s:%d: bad pte %08lx.\n", \
++		__FILE__, __LINE__, pte_val(e))
++#define pgd_ERROR(e) \
++	pr_err("%s:%d: bad pgd %08lx.\n", \
++		__FILE__, __LINE__, pgd_val(e))
++
++/*
++ * Encode and decode a swap entry (must be !pte_none(pte) && !pte_present(pte)
++ * && !pte_file(pte)):
++ *
++ * 31 30 29 28 27 26 25 24 23 22 21 20 19 18 ...  1  0
++ *  0  0  0  0 type.  0  0  0  0  0  0 offset.........
++ *
++ * This gives us up to 2**2 = 4 swap files and 2**20 * 4K = 4G per swap file.
++ *
++ * Note that the offset field is always non-zero, thus !pte_none(pte) is always
++ * true.
++ */
++#define __swp_type(swp)		(((swp).val >> 26) & 0x3)
++#define __swp_offset(swp)	((swp).val & 0xfffff)
++#define __swp_entry(type, off)	((swp_entry_t) { (((type) & 0x3) << 26) \
++						 | ((off) & 0xfffff) })
++#define __swp_entry_to_pte(swp)	((pte_t) { (swp).val })
++#define __pte_to_swp_entry(pte)	((swp_entry_t) { pte_val(pte) })
++
++/* Encode and decode a nonlinear file mapping entry */
++#define PTE_FILE_MAX_BITS	25
++#define pte_to_pgoff(pte)	(pte_val(pte) & 0x1ffffff)
++#define pgoff_to_pte(off)	__pte(((off) & 0x1ffffff) | _PAGE_FILE)
++
++#define kern_addr_valid(addr)		(1)
++
++#include <asm-generic/pgtable.h>
++
++#define pgtable_cache_init()		do { } while (0)
++
++extern void __init paging_init(void);
++extern void __init mmu_init(void);
++
++extern void update_mmu_cache(struct vm_area_struct *vma,
++			     unsigned long address, pte_t *pte);
++
++#endif /* _ASM_NIOS2_PGTABLE_H */
+diff --git a/arch/nios2/mm/pgtable.c b/arch/nios2/mm/pgtable.c
+new file mode 100644
+index 0000000..21e865f
+--- /dev/null
++++ b/arch/nios2/mm/pgtable.c
+@@ -0,0 +1,73 @@
++/*
++ * Copyright (C) 2009 Wind River Systems Inc
++ *   Implemented by fredrik.markstrom@gmail.com and ivarholmqvist@gmail.com
++ *
++ * This file is subject to the terms and conditions of the GNU General Public
++ * License.  See the file "COPYING" in the main directory of this archive
++ * for more details.
++ */
++
++#include <linux/mm.h>
++#include <linux/sched.h>
++
++#include <asm/pgtable.h>
++#include <asm/cpuinfo.h>
++
++/* pteaddr:
++ *   ptbase | vpn* | zero
++ *   31-22  | 21-2 | 1-0
++ *
++ *   *vpn is preserved on double fault
++ *
++ * tlbacc:
++ *   IG   |*flags| pfn
++ *   31-25|24-20 | 19-0
++ *
++ *   *crwxg
++ *
++ * tlbmisc:
++ *   resv  |way   |rd | we|pid |dbl|bad|perm|d
++ *   31-24 |23-20 |19 | 20|17-4|3  |2  |1   |0
++ *
++ */
++
++/*
++ * Initialize a new pgd / pmd table with invalid pointers.
++ */
++static void pgd_init(pgd_t *pgd)
++{
++	unsigned long *p = (unsigned long *) pgd;
++	int i;
++
++	for (i = 0; i < USER_PTRS_PER_PGD; i += 8) {
++		p[i + 0] = (unsigned long) invalid_pte_table;
++		p[i + 1] = (unsigned long) invalid_pte_table;
++		p[i + 2] = (unsigned long) invalid_pte_table;
++		p[i + 3] = (unsigned long) invalid_pte_table;
++		p[i + 4] = (unsigned long) invalid_pte_table;
++		p[i + 5] = (unsigned long) invalid_pte_table;
++		p[i + 6] = (unsigned long) invalid_pte_table;
++		p[i + 7] = (unsigned long) invalid_pte_table;
++	}
++}
++
++pgd_t *pgd_alloc(struct mm_struct *mm)
++{
++	pgd_t *ret, *init;
++	ret = (pgd_t *) __get_free_pages(GFP_KERNEL, PGD_ORDER);
++	if (ret) {
++		init = pgd_offset(&init_mm, 0UL);
++		pgd_init(ret);
++		memcpy(ret + USER_PTRS_PER_PGD, init + USER_PTRS_PER_PGD,
++		       (PTRS_PER_PGD - USER_PTRS_PER_PGD) * sizeof(pgd_t));
++	}
 +
 +	return ret;
 +}
 +
-+const char *arch_vma_name(struct vm_area_struct *vma)
++void __init pagetable_init(void)
 +{
-+	return (vma->vm_start == KUSER_BASE) ? "[kuser]" : NULL;
-+}
-diff --git a/arch/nios2/mm/uaccess.c b/arch/nios2/mm/uaccess.c
-new file mode 100644
-index 0000000..4a38ad3
---- /dev/null
-+++ b/arch/nios2/mm/uaccess.c
-@@ -0,0 +1,162 @@
-+/*
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License.  See the file "COPYING" in the main directory of this archive
-+ * for more details.
-+ *
-+ * Copyright (C) 2009, Wind River Systems Inc
-+ * Implemented by fredrik.markstrom@gmail.com and ivarholmqvist@gmail.com
-+ */
-+
-+#include <linux/export.h>
-+#include <linux/uaccess.h>
-+
-+asm(".global	__copy_from_user\n"
-+	"   .type __copy_from_user, @function\n"
-+	"__copy_from_user:\n"
-+	"   movi  r2,7\n"
-+	"   mov   r3,r4\n"
-+	"   bge   r2,r6,1f\n"
-+	"   xor   r2,r4,r5\n"
-+	"   andi  r2,r2,3\n"
-+	"   movi  r7,3\n"
-+	"   beq   r2,zero,4f\n"
-+	"1: addi  r6,r6,-1\n"
-+	"   movi  r2,-1\n"
-+	"   beq   r6,r2,3f\n"
-+	"   mov   r7,r2\n"
-+	"2: ldbu  r2,0(r5)\n"
-+	"   addi  r6,r6,-1\n"
-+	"   addi  r5,r5,1\n"
-+	"   stb   r2,0(r3)\n"
-+	"   addi  r3,r3,1\n"
-+	"   bne   r6,r7,2b\n"
-+	"3:\n"
-+	"   addi  r2,r6,1\n"
-+	"   ret\n"
-+	"13:mov   r2,r6\n"
-+	"   ret\n"
-+	"4: andi  r2,r4,1\n"
-+	"   cmpeq r2,r2,zero\n"
-+	"   beq   r2,zero,7f\n"
-+	"5: andi  r2,r3,2\n"
-+	"   beq   r2,zero,6f\n"
-+	"9: ldhu  r2,0(r5)\n"
-+	"   addi  r6,r6,-2\n"
-+	"   addi  r5,r5,2\n"
-+	"   sth   r2,0(r3)\n"
-+	"   addi  r3,r3,2\n"
-+	"6: bge   r7,r6,1b\n"
-+	"10:ldw   r2,0(r5)\n"
-+	"   addi  r6,r6,-4\n"
-+	"   addi  r5,r5,4\n"
-+	"   stw   r2,0(r3)\n"
-+	"   addi  r3,r3,4\n"
-+	"   br    6b\n"
-+	"7: ldbu  r2,0(r5)\n"
-+	"   addi  r6,r6,-1\n"
-+	"   addi  r5,r5,1\n"
-+	"   addi  r3,r4,1\n"
-+	"   stb   r2,0(r4)\n"
-+	"   br    5b\n"
-+	".section __ex_table,\"a\"\n"
-+	".word 2b,3b\n"
-+	".word 9b,13b\n"
-+	".word 10b,13b\n"
-+	".word 7b,13b\n"
-+	".previous\n"
-+	);
-+EXPORT_SYMBOL(__copy_from_user);
-+
-+asm(
-+	"   .global __copy_to_user\n"
-+	"   .type __copy_to_user, @function\n"
-+	"__copy_to_user:\n"
-+	"   movi  r2,7\n"
-+	"   mov   r3,r4\n"
-+	"   bge   r2,r6,1f\n"
-+	"   xor   r2,r4,r5\n"
-+	"   andi  r2,r2,3\n"
-+	"   movi  r7,3\n"
-+	"   beq   r2,zero,4f\n"
-+	/* Bail if we try to copy zero bytes  */
-+	"1: addi  r6,r6,-1\n"
-+	"   movi  r2,-1\n"
-+	"   beq   r6,r2,3f\n"
-+	/* Copy byte by byte for small copies and if src^dst != 0 */
-+	"   mov   r7,r2\n"
-+	"2: ldbu  r2,0(r5)\n"
-+	"   addi  r5,r5,1\n"
-+	"9: stb   r2,0(r3)\n"
-+	"   addi  r6,r6,-1\n"
-+	"   addi  r3,r3,1\n"
-+	"   bne   r6,r7,2b\n"
-+	"3: addi  r2,r6,1\n"
-+	"   ret\n"
-+	"13:mov   r2,r6\n"
-+	"   ret\n"
-+	/*  If 'to' is an odd address byte copy */
-+	"4: andi  r2,r4,1\n"
-+	"   cmpeq r2,r2,zero\n"
-+	"   beq   r2,zero,7f\n"
-+	/* If 'to' is not divideable by four copy halfwords */
-+	"5: andi  r2,r3,2\n"
-+	"   beq   r2,zero,6f\n"
-+	"   ldhu  r2,0(r5)\n"
-+	"   addi  r5,r5,2\n"
-+	"10:sth   r2,0(r3)\n"
-+	"   addi  r6,r6,-2\n"
-+	"   addi  r3,r3,2\n"
-+	/* Copy words */
-+	"6: bge   r7,r6,1b\n"
-+	"   ldw   r2,0(r5)\n"
-+	"   addi  r5,r5,4\n"
-+	"11:stw   r2,0(r3)\n"
-+	"   addi  r6,r6,-4\n"
-+	"   addi  r3,r3,4\n"
-+	"   br    6b\n"
-+	/* Copy remaining bytes */
-+	"7: ldbu  r2,0(r5)\n"
-+	"   addi  r5,r5,1\n"
-+	"   addi  r3,r4,1\n"
-+	"12: stb  r2,0(r4)\n"
-+	"   addi  r6,r6,-1\n"
-+	"   br    5b\n"
-+	".section __ex_table,\"a\"\n"
-+	".word 9b,3b\n"
-+	".word 10b,13b\n"
-+	".word 11b,13b\n"
-+	".word 12b,13b\n"
-+	".previous\n");
-+EXPORT_SYMBOL(__copy_to_user);
-+
-+long strncpy_from_user(char *__to, const char __user *__from, long __len)
-+{
-+	int l = strnlen_user(__from, __len);
-+	int is_zt = 1;
-+
-+	if (l > __len) {
-+		is_zt = 0;
-+		l = __len;
-+	}
-+
-+	if (l == 0 || copy_from_user(__to, __from, l))
-+		return -EFAULT;
-+
-+	if (is_zt)
-+		l--;
-+	return l;
-+}
-+
-+long strnlen_user(const char __user *s, long n)
-+{
-+	long i;
-+
-+	for (i = 0; i < n; i++) {
-+		char c;
-+		if (get_user(c, s + i) == -EFAULT)
-+			return 0;
-+		if (c == 0)
-+			return i + 1;
-+	}
-+	return n + 1;
++	/* Initialize the entire pgd.  */
++	pgd_init(swapper_pg_dir);
++	pgd_init(swapper_pg_dir + USER_PTRS_PER_PGD);
 +}
 -- 
 1.8.2.1
