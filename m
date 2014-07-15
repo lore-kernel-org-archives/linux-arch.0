@@ -1,65 +1,112 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from userp1040.oracle.com ([156.151.31.81]:35175 "EHLO
-	userp1040.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752460AbaGOOX4 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 15 Jul 2014 10:23:56 -0400
-Date: Tue, 15 Jul 2014 10:23:05 -0400
-From: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
-Subject: Re: [PATCH 10/11] qspinlock: Paravirt support
-Message-ID: <20140715142305.GA3403@laptop.dumpdata.com>
-References: <20140615124657.264658593@chello.nl>
- <20140615130154.213923590@chello.nl>
- <20140620134608.GA11545@laptop.dumpdata.com>
- <20140707152734.GX6758@twins.programming.kicks-ass.net>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20140707152734.GX6758@twins.programming.kicks-ass.net>
+Received: from mail-pa0-f42.google.com ([209.85.220.42]:35299 "EHLO
+	mail-pa0-f42.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S933367AbaGOTdN (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 15 Jul 2014 15:33:13 -0400
+Received: by mail-pa0-f42.google.com with SMTP id lf10so3931008pab.1
+        for <linux-arch@vger.kernel.org>; Tue, 15 Jul 2014 12:33:12 -0700 (PDT)
+From: Andy Lutomirski <luto@amacapital.net>
+Subject: [PATCH 6/7] x86_64,entry: Treat regs->ax the same in fastpath and slowpath syscalls
+Date: Tue, 15 Jul 2014 12:32:35 -0700
+Message-ID: <3bee564fe07150f11d2e5078d457b6aacde43bec.1405452484.git.luto@amacapital.net>
+In-Reply-To: <cover.1405452484.git.luto@amacapital.net>
+References: <cover.1405452484.git.luto@amacapital.net>
+In-Reply-To: <cover.1405452484.git.luto@amacapital.net>
+References: <cover.1405452484.git.luto@amacapital.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Waiman.Long@hp.com, tglx@linutronix.de, mingo@kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, paolo.bonzini@gmail.com, boris.ostrovsky@oracle.com, paulmck@linux.vnet.ibm.com, riel@redhat.com, torvalds@linux-foundation.org, raghavendra.kt@linux.vnet.ibm.com, david.vrabel@citrix.com, oleg@redhat.com, gleb@redhat.com, scott.norton@hp.com, chegu_vinod@hp.com
-Message-ID: <20140715142305.VPEzUMStx2RiQ64s5mjOgMNo4LfmVnT4ruDQg9rzsUo@z>
+To: linux-kernel@vger.kernel.org, Kees Cook <keescook@chromium.org>, Will Drewry <wad@chromium.org>, James Morris <james.l.morris@oracle.com>
+Cc: Oleg Nesterov <oleg@redhat.com>, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-mips@linux-mips.org, linux-arch@vger.kernel.org, linux-security-module@vger.kernel.org, Alexei Starovoitov <ast@plumgrid.com>, Andy Lutomirski <luto@amacapital.net>
+Message-ID: <20140715193235.M0dgPnADs3lQg08t8NOxYm-K14-oYB1yegeckCPZChM@z>
 
-On Mon, Jul 07, 2014 at 05:27:34PM +0200, Peter Zijlstra wrote:
-> On Fri, Jun 20, 2014 at 09:46:08AM -0400, Konrad Rzeszutek Wilk wrote:
-> > I dug in the code and I have some comments about it, but before
-> > I post them I was wondering if you have any plans to run any performance
-> > tests against the PV ticketlock with normal and over-committed scenarios?
-> 
-> I can barely boot a guest.. I'm not sure I can make them do anything
-> much at all yet. All this virt crap is totally painful.
+For slowpath syscalls, we initialize regs->ax to -ENOSYS and stick
+the syscall number into regs->orig_ax prior to any possible tracing
+and syscall execution.  This is user-visible ABI used by ptrace
+syscall emulation and seccomp.
 
-HA!
+For fastpath syscalls, there's no good reason not to do the same
+thing.  It's even slightly simpler than what we're currently doing.
+It probably has no measureable performance impact.  It should have
+no user-visible effect.
 
-The reason I asked about that is from a pen-and-paper view it looks
-suboptimal in the worst case scenario compared to PV ticketlock.
+The purpose of this patch is to prepare for seccomp-based syscall
+emulation in the fast path.  This change is just subtle enough that
+I'm keeping it separate.
 
-The 'worst case scenario' is when we over-commit (more CPUs than there
-are physical CPUs) or have to delay guests (the sum of all virtual
-CPUs > physical CPUs and all of the guests are compiling kernels).
+Signed-off-by: Andy Lutomirski <luto@amacapital.net>
+---
+ arch/x86/include/asm/calling.h |  6 +++++-
+ arch/x86/kernel/entry_64.S     | 11 +++--------
+ 2 files changed, 8 insertions(+), 9 deletions(-)
 
-In those cases the PV ticketlock goes to sleep and gets woken up
-once the ticket holder has finished. In the PV qspinlock we do
-wake up the first in queue, but we also wake the next one in queue
-so it can progress further. And so on.
-
-Perhaps a better mechanism is just ditch the queue part and utilize
-the byte part and under KVM and Xen just do bytelocking (since we
-have 8 bits). For the PV halt/waking we can stash in the 'struct mcs'
-the current lock that each CPU is waiting for. And the unlocker
-can iterate over all of those and wake them all up. Perhaps make
-the iteration random. Anyhow, that is how the old PV bytelock under
-Xen worked (before 3.11) and it had worked pretty well (it didn't
-do it random thought - always started with 'for_each_online_cpu').
-
-Squashing in the ticketlock concept in qspinlock for PV looks
-scary.
-
-And as I said - this is all pen-and-paper - so it might be that this
-'wake-up-go-sleep-on-the-queue' kick is actually not that bad?
-
-Lastly - thank you for taking a stab at this.
-> 
-
+diff --git a/arch/x86/include/asm/calling.h b/arch/x86/include/asm/calling.h
+index cb4c73b..76659b6 100644
+--- a/arch/x86/include/asm/calling.h
++++ b/arch/x86/include/asm/calling.h
+@@ -85,7 +85,7 @@ For 32-bit we have the following conventions - kernel is built with
+ #define ARGOFFSET	R11
+ #define SWFRAME		ORIG_RAX
+ 
+-	.macro SAVE_ARGS addskip=0, save_rcx=1, save_r891011=1
++	.macro SAVE_ARGS addskip=0, save_rcx=1, save_r891011=1, rax_enosys=0
+ 	subq  $9*8+\addskip, %rsp
+ 	CFI_ADJUST_CFA_OFFSET	9*8+\addskip
+ 	movq_cfi rdi, 8*8
+@@ -96,7 +96,11 @@ For 32-bit we have the following conventions - kernel is built with
+ 	movq_cfi rcx, 5*8
+ 	.endif
+ 
++	.if \rax_enosys
++	movq $-ENOSYS, 4*8(%rsp)
++	.else
+ 	movq_cfi rax, 4*8
++	.endif
+ 
+ 	.if \save_r891011
+ 	movq_cfi r8,  3*8
+diff --git a/arch/x86/kernel/entry_64.S b/arch/x86/kernel/entry_64.S
+index b25ca96..432c190 100644
+--- a/arch/x86/kernel/entry_64.S
++++ b/arch/x86/kernel/entry_64.S
+@@ -405,8 +405,8 @@ GLOBAL(system_call_after_swapgs)
+ 	 * and short:
+ 	 */
+ 	ENABLE_INTERRUPTS(CLBR_NONE)
+-	SAVE_ARGS 8,0
+-	movq  %rax,ORIG_RAX-ARGOFFSET(%rsp)
++	SAVE_ARGS 8, 0, rax_enosys=1
++	movq_cfi rax,(ORIG_RAX-ARGOFFSET)
+ 	movq  %rcx,RIP-ARGOFFSET(%rsp)
+ 	CFI_REL_OFFSET rip,RIP-ARGOFFSET
+ 	testl $_TIF_WORK_SYSCALL_ENTRY,TI_flags+THREAD_INFO(%rsp,RIP-ARGOFFSET)
+@@ -418,7 +418,7 @@ system_call_fastpath:
+ 	andl $__SYSCALL_MASK,%eax
+ 	cmpl $__NR_syscall_max,%eax
+ #endif
+-	ja badsys
++	ja ret_from_sys_call  /* and return regs->ax */
+ 	movq %r10,%rcx
+ 	call *sys_call_table(,%rax,8)  # XXX:	 rip relative
+ 	movq %rax,RAX-ARGOFFSET(%rsp)
+@@ -477,10 +477,6 @@ sysret_signal:
+ 	FIXUP_TOP_OF_STACK %r11, -ARGOFFSET
+ 	jmp int_check_syscall_exit_work
+ 
+-badsys:
+-	movq $-ENOSYS,RAX-ARGOFFSET(%rsp)
+-	jmp ret_from_sys_call
+-
+ #ifdef CONFIG_AUDITSYSCALL
+ 	/*
+ 	 * Fast path for syscall audit without full syscall trace.
+@@ -520,7 +516,6 @@ tracesys:
+ 	jz auditsys
+ #endif
+ 	SAVE_REST
+-	movq $-ENOSYS,RAX(%rsp) /* ptrace can change this for a bad syscall */
+ 	FIXUP_TOP_OF_STACK %rdi
+ 	movq %rsp,%rdi
+ 	call syscall_trace_enter
+-- 
+1.9.3
 
