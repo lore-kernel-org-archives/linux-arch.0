@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bn1lp0139.outbound.protection.outlook.com ([207.46.163.139]:38858
+Received: from mail-bn1lp0141.outbound.protection.outlook.com ([207.46.163.141]:5392
 	"EHLO na01-bn1-obe.outbound.protection.outlook.com"
 	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1757584AbaGOIr5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 15 Jul 2014 04:47:57 -0400
+	id S1758182AbaGOIrQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 15 Jul 2014 04:47:16 -0400
 From: Ley Foon Tan <lftan@altera.com>
-Subject: [PATCH v2 11/29] nios2: TLB handling
-Date: Tue, 15 Jul 2014 16:45:38 +0800
-Message-ID: <1405413956-2772-12-git-send-email-lftan@altera.com>
+Subject: [PATCH v2 05/29] nios2: Memory management
+Date: Tue, 15 Jul 2014 16:45:32 +0800
+Message-ID: <1405413956-2772-6-git-send-email-lftan@altera.com>
 In-Reply-To: <1405413956-2772-1-git-send-email-lftan@altera.com>
 References: <1405413956-2772-1-git-send-email-lftan@altera.com>
 MIME-Version: 1.0
@@ -16,391 +16,722 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org
 Cc: Ley Foon Tan <lftan@altera.com>, lftan.linux@gmail.com, cltang@codesourcery.com
-Message-ID: <20140715084538.2X_BzXohLQDvlOB9tOiiT6tJjZAgRgbdlkw_HfigcAQ@z>
+Message-ID: <20140715084532.1baXZURfAaJb_lV0h5OiB0fsp3xrioJ53UIxCF7Yoyk@z>
 
-This patch adds the TLB maintenance functions.
+This patch contains the initialisation of the memory blocks, MMU
+attributes and the memory map.
 
 Signed-off-by: Ley Foon Tan <lftan@altera.com>
 ---
- arch/nios2/include/asm/tlb.h      |  34 +++++
- arch/nios2/include/asm/tlbflush.h |  46 +++++++
- arch/nios2/mm/tlb.c               | 274 ++++++++++++++++++++++++++++++++++++++
- 3 files changed, 354 insertions(+)
- create mode 100644 arch/nios2/include/asm/tlb.h
- create mode 100644 arch/nios2/include/asm/tlbflush.h
- create mode 100644 arch/nios2/mm/tlb.c
+ arch/nios2/include/asm/mmu.h     |  18 +++
+ arch/nios2/include/asm/page.h    | 113 +++++++++++++++++++
+ arch/nios2/include/asm/uaccess.h | 233 +++++++++++++++++++++++++++++++++++++++
+ arch/nios2/mm/init.c             | 142 ++++++++++++++++++++++++
+ arch/nios2/mm/uaccess.c          | 162 +++++++++++++++++++++++++++
+ 5 files changed, 668 insertions(+)
+ create mode 100644 arch/nios2/include/asm/mmu.h
+ create mode 100644 arch/nios2/include/asm/page.h
+ create mode 100644 arch/nios2/include/asm/uaccess.h
+ create mode 100644 arch/nios2/mm/init.c
+ create mode 100644 arch/nios2/mm/uaccess.c
 
-diff --git a/arch/nios2/include/asm/tlb.h b/arch/nios2/include/asm/tlb.h
+diff --git a/arch/nios2/include/asm/mmu.h b/arch/nios2/include/asm/mmu.h
 new file mode 100644
-index 0000000..d3bc648
+index 0000000..96ab052
 --- /dev/null
-+++ b/arch/nios2/include/asm/tlb.h
-@@ -0,0 +1,34 @@
++++ b/arch/nios2/include/asm/mmu.h
+@@ -0,0 +1,18 @@
 +/*
 + * Copyright (C) 2010 Tobias Klauser <tklauser@distanz.ch>
-+ * Copyright (C) 2009 Wind River Systems Inc
 + * Copyright (C) 2004 Microtronix Datacom Ltd.
++ *
++ * Taken from m68knommu.
 + *
 + * This file is subject to the terms and conditions of the GNU General Public
 + * License. See the file "COPYING" in the main directory of this archive
 + * for more details.
 + */
 +
-+#ifndef _ASM_NIOS2_TLB_H
-+#define _ASM_NIOS2_TLB_H
++#ifndef _ASM_NIOS2_MMU_H
++#define _ASM_NIOS2_MMU_H
 +
-+#define tlb_flush(tlb)	flush_tlb_mm((tlb)->mm)
++/* Default "unsigned long" context */
++typedef unsigned long mm_context_t;
 +
-+extern void set_mmu_pid(unsigned long pid);
-+
-+/*
-+ * NiosII doesn't need any special per-pte or per-vma handling, except
-+ * we need to flush cache for the area to be unmapped.
-+ */
-+#define tlb_start_vma(tlb, vma)					\
-+	do {							\
-+		if (!tlb->fullmm)				\
-+			flush_cache_range(vma, vma->vm_start, vma->vm_end); \
-+	}  while (0)
-+
-+#define tlb_end_vma(tlb, vma)	do { } while (0)
-+#define __tlb_remove_tlb_entry(tlb, ptep, address)	do { } while (0)
-+
-+#include <linux/pagemap.h>
-+#include <asm-generic/tlb.h>
-+
-+#endif /* _ASM_NIOS2_TLB_H */
-diff --git a/arch/nios2/include/asm/tlbflush.h b/arch/nios2/include/asm/tlbflush.h
++#endif /* _ASM_NIOS2_MMU_H */
+diff --git a/arch/nios2/include/asm/page.h b/arch/nios2/include/asm/page.h
 new file mode 100644
-index 0000000..e19652f
+index 0000000..b89c1d6
 --- /dev/null
-+++ b/arch/nios2/include/asm/tlbflush.h
-@@ -0,0 +1,46 @@
++++ b/arch/nios2/include/asm/page.h
+@@ -0,0 +1,113 @@
 +/*
-+ * Copyright (C) 2010 Tobias Klauser <tklauser@distanz.ch>
++ * Copyright (C) 2011 Tobias Klauser <tklauser@distanz.ch>
++ * Copyright (C) 2004 Microtronix Datacom Ltd.
 + *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License as published by
-+ * the Free Software Foundation; either version 2 of the License, or
-+ * (at your option) any later version.
++ * MMU support based on asm/page.h from mips which is:
 + *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
++ * Copyright (C) 1994 - 1999, 2000, 03 Ralf Baechle
++ * Copyright (C) 1999, 2000 Silicon Graphics, Inc.
 + *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
-+ *
-+ */
-+
-+#ifndef _ASM_NIOS2_TLBFLUSH_H
-+#define _ASM_NIOS2_TLBFLUSH_H
-+
-+struct mm_struct;
-+
-+/*
-+ * TLB flushing:
-+ *
-+ *  - flush_tlb_all() flushes all processes TLB entries
-+ *  - flush_tlb_mm(mm) flushes the specified mm context TLB entries
-+ *  - flush_tlb_page(vma, vmaddr) flushes one page
-+ *  - flush_tlb_range(vma, start, end) flushes a range of pages
-+ *  - flush_tlb_kernel_range(start, end) flushes a range of kernel pages
-+ */
-+extern void flush_tlb_all(void);
-+extern void flush_tlb_mm(struct mm_struct *mm);
-+extern void flush_tlb_range(struct vm_area_struct *vma, unsigned long start,
-+			    unsigned long end);
-+extern void flush_tlb_kernel_range(unsigned long start, unsigned long end);
-+extern void flush_tlb_one(unsigned long vaddr);
-+
-+static inline void flush_tlb_page(struct vm_area_struct *vma,
-+				unsigned long addr)
-+{
-+	flush_tlb_one(addr);
-+}
-+
-+#endif /* _ASM_NIOS2_TLBFLUSH_H */
-diff --git a/arch/nios2/mm/tlb.c b/arch/nios2/mm/tlb.c
-new file mode 100644
-index 0000000..642b6df
---- /dev/null
-+++ b/arch/nios2/mm/tlb.c
-@@ -0,0 +1,274 @@
-+/*
-+ * Nios2 TLB handling
-+ *
-+ * Copyright (C) 2009, Wind River Systems Inc
-+ *   Implemented by fredrik.markstrom@gmail.com and ivarholmqvist@gmail.com
++ * NOMMU support based on asm/page.h from m68knommu.
 + *
 + * This file is subject to the terms and conditions of the GNU General Public
 + * License.  See the file "COPYING" in the main directory of this archive
 + * for more details.
 + */
 +
-+#include <linux/init.h>
-+#include <linux/sched.h>
-+#include <linux/mm.h>
-+#include <linux/pagemap.h>
++#ifndef _ASM_NIOS2_PAGE_H
++#define _ASM_NIOS2_PAGE_H
 +
++#include <linux/pfn.h>
++#include <linux/const.h>
++
++/*
++ * PAGE_SHIFT determines the page size
++ */
++#define PAGE_SHIFT	12
++#define PAGE_SIZE	(_AC(1, UL) << PAGE_SHIFT)
++#define PAGE_MASK	(~(PAGE_SIZE - 1))
++
++/*
++ * PAGE_OFFSET -- the first address of the first page of memory.
++ */
++#define PAGE_OFFSET	\
++	(CONFIG_NIOS2_MEM_BASE + CONFIG_NIOS2_KERNEL_REGION_BASE)
++
++#ifndef __ASSEMBLY__
++
++/*
++ * This gives the physical RAM offset.
++ */
++#define PHYS_OFFSET		CONFIG_NIOS2_MEM_BASE
++
++/*
++ * It's normally defined only for FLATMEM config but it's
++ * used in our early mem init code for all memory models.
++ * So always define it.
++ */
++#define ARCH_PFN_OFFSET		PFN_UP(PHYS_OFFSET)
++
++#define clear_page(page)	memset((page), 0, PAGE_SIZE)
++#define copy_page(to, from)	memcpy((to), (from), PAGE_SIZE)
++
++struct page;
++
++extern void clear_user_page(void *addr, unsigned long vaddr, struct page *page);
++extern void copy_user_page(void *vto, void *vfrom, unsigned long vaddr,
++				struct page *to);
++
++extern unsigned long shm_align_mask;
++
++/*
++ * These are used to make use of C type-checking.
++ */
++typedef struct page *pgtable_t;
++typedef struct { unsigned long pte; } pte_t;
++typedef struct { unsigned long pgd; } pgd_t;
++typedef struct { unsigned long pgprot; } pgprot_t;
++
++#define pte_val(x)	((x).pte)
++#define pgd_val(x)	((x).pgd)
++#define pgprot_val(x)	((x).pgprot)
++
++#define __pte(x)	((pte_t) { (x) })
++#define __pgd(x)	((pgd_t) { (x) })
++#define __pgprot(x)	((pgprot_t) { (x) })
++
++extern unsigned long memory_start;
++extern unsigned long memory_end;
++extern unsigned long memory_size;
++
++extern struct page *mem_map;
++
++#endif /* !__ASSEMBLY__ */
++
++# define __pa(x)		\
++	((unsigned long)(x) - PAGE_OFFSET + PHYS_OFFSET)
++# define __va(x)		\
++	((void *)((unsigned long)(x) + PAGE_OFFSET - PHYS_OFFSET))
++
++#define page_to_virt(page)	\
++	((((page) - mem_map) << PAGE_SHIFT) + PAGE_OFFSET)
++
++# define pfn_to_kaddr(pfn)	__va((pfn) << PAGE_SHIFT)
++# define pfn_valid(pfn)		((pfn) >= ARCH_PFN_OFFSET &&	\
++					(pfn) < max_mapnr)
++
++# define virt_to_page(vaddr)	pfn_to_page(PFN_DOWN(virt_to_phys(vaddr)))
++# define virt_addr_valid(vaddr)	pfn_valid(PFN_DOWN(virt_to_phys(vaddr)))
++
++# define VM_DATA_DEFAULT_FLAGS	(VM_READ | VM_WRITE | \
++				 VM_MAYREAD | VM_MAYWRITE | VM_MAYEXEC)
++
++# define UNCAC_ADDR(addr)	\
++	((void *)((unsigned)(addr) | CONFIG_NIOS2_IO_REGION_BASE))
++# define CAC_ADDR(addr)		\
++	((void *)(((unsigned)(addr) & ~CONFIG_NIOS2_IO_REGION_BASE) |	\
++		CONFIG_NIOS2_KERNEL_REGION_BASE))
++
++#include <asm-generic/memory_model.h>
++
++#include <asm-generic/getorder.h>
++
++#endif /* _ASM_NIOS2_PAGE_H */
+diff --git a/arch/nios2/include/asm/uaccess.h b/arch/nios2/include/asm/uaccess.h
+new file mode 100644
+index 0000000..3e36f53
+--- /dev/null
++++ b/arch/nios2/include/asm/uaccess.h
+@@ -0,0 +1,233 @@
++/*
++ * User space memory access functions for Nios II
++ *
++ * Copyright (C) 2010-2011, Tobias Klauser <tklauser@distanz.ch>
++ * Copyright (C) 2009, Wind River Systems Inc
++ *   Implemented by fredrik.markstrom@gmail.com and ivarholmqvist@gmail.com
++ *
++ * Based on asm/uaccess.h from m68knommu
++ *
++ * This file is subject to the terms and conditions of the GNU General Public
++ * License.  See the file "COPYING" in the main directory of this archive
++ * for more details.
++ */
++
++#ifndef _ASM_NIOS2_UACCESS_H
++#define _ASM_NIOS2_UACCESS_H
++
++#include <linux/errno.h>
++#include <linux/thread_info.h>
++#include <linux/string.h>
++
++#include <asm/page.h>
++
++#define VERIFY_READ	0
++#define VERIFY_WRITE	1
++
++/*
++ * The exception table consists of pairs of addresses: the first is the
++ * address of an instruction that is allowed to fault, and the second is
++ * the address at which the program should continue.  No registers are
++ * modified, so it is entirely up to the continuation code to figure out
++ * what to do.
++ *
++ * All the routines below use bits of fixup code that are out of line
++ * with the main instruction path.  This means when everything is well,
++ * we don't even have to jump over them.  Further, they do not intrude
++ * on our cache or tlb entries.
++ */
++struct exception_table_entry {
++	unsigned long insn;
++	unsigned long fixup;
++};
++
++extern int fixup_exception(struct pt_regs *regs);
++
++/*
++ * Segment stuff
++ */
++#define MAKE_MM_SEG(s)		((mm_segment_t) { (s) })
++#define USER_DS			MAKE_MM_SEG(0x80000000UL)
++#define KERNEL_DS		MAKE_MM_SEG(0)
++
++#define get_ds()		(KERNEL_DS)
++
++#define get_fs()		(current_thread_info()->addr_limit)
++#define set_fs(seg)		(current_thread_info()->addr_limit = (seg))
++
++#define segment_eq(a, b)	((a).seg == (b).seg)
++
++#define __access_ok(addr, len)			\
++	(((signed long)(((long)get_fs().seg) &	\
++		((long)(addr) | (((long)(addr)) + (len)) | (len)))) == 0)
++
++#define access_ok(type, addr, len)		\
++	likely(__access_ok((unsigned long)(addr), (unsigned long)(len)))
++
++# define __EX_TABLE_SECTION	".section __ex_table,\"a\"\n"
++
++/*
++ * Zero Userspace
++ */
++
++static inline unsigned long __must_check __clear_user(void __user *to,
++						      unsigned long n)
++{
++	__asm__ __volatile__ (
++		"1:     stb     zero, 0(%1)\n"
++		"       addi    %0, %0, -1\n"
++		"       addi    %1, %1, 1\n"
++		"       bne     %0, zero, 1b\n"
++		"2:\n"
++		__EX_TABLE_SECTION
++		".word  1b, 2b\n"
++		".previous\n"
++		: "=r" (n), "=r" (to)
++		: "0" (n), "1" (to)
++	);
++
++	return n;
++}
++
++static inline unsigned long __must_check clear_user(void __user *to,
++						    unsigned long n)
++{
++	if (!access_ok(VERIFY_WRITE, to, n))
++		return n;
++	return __clear_user(to, n);
++}
++
++extern long __copy_from_user(void *to, const void __user *from,
++				unsigned long n);
++extern long __copy_to_user(void __user *to, const void *from, unsigned long n);
++
++static inline long copy_from_user(void *to, const void __user *from,
++				unsigned long n)
++{
++	if (!access_ok(VERIFY_READ, from, n))
++		return n;
++	return __copy_from_user(to, from, n);
++}
++
++static inline long copy_to_user(void __user *to, const void *from,
++				unsigned long n)
++{
++	if (!access_ok(VERIFY_WRITE, to, n))
++		return n;
++	return __copy_to_user(to, from, n);
++}
++
++extern long strncpy_from_user(char *__to, const char __user *__from,
++				long __len);
++extern long strnlen_user(const char __user *s, long n);
++
++#define __copy_from_user_inatomic	__copy_from_user
++#define __copy_to_user_inatomic		__copy_to_user
++
++/* Optimized macros */
++#define __get_user_asm(val, insn, addr, err)				\
++{									\
++	__asm__ __volatile__(						\
++	"       movi    %0, %3\n"					\
++	"1:   " insn " %1, 0(%2)\n"					\
++	"       movi     %0, 0\n"					\
++	"2:\n"								\
++	"       .section __ex_table,\"a\"\n"				\
++	"       .word 1b, 2b\n"						\
++	"       .previous"						\
++	: "=&r" (err), "=r" (val)					\
++	: "r" (addr), "i" (-EFAULT));					\
++}
++
++#define __get_user_unknown(val, size, ptr, err) do {			\
++	err = 0;							\
++	if (copy_from_user(&(val), ptr, size)) {			\
++		err = -EFAULT;						\
++	}								\
++	} while (0)
++
++#define __get_user_common(val, size, ptr, err)				\
++do {									\
++	switch (size) {							\
++	case 1:								\
++		__get_user_asm(val, "ldbu", ptr, err);			\
++		break;							\
++	case 2:								\
++		__get_user_asm(val, "ldhu", ptr, err);			\
++		break;							\
++	case 4:								\
++		__get_user_asm(val, "ldw", ptr, err);			\
++		break;							\
++	default:							\
++		__get_user_unknown(val, size, ptr, err);		\
++		break;							\
++	}								\
++} while (0)
++
++#define __get_user(x, ptr)						\
++	({								\
++	long __gu_err = -EFAULT;					\
++	const __typeof__(*(ptr)) __user *__gu_ptr = (ptr);		\
++	unsigned long __gu_val;						\
++	__get_user_common(__gu_val, sizeof(*(ptr)), __gu_ptr, __gu_err);\
++	(x) = (__typeof__(x))__gu_val;					\
++	__gu_err;							\
++	})
++
++#define get_user(x, ptr)						\
++({									\
++	long __gu_err = -EFAULT;					\
++	const __typeof__(*(ptr)) __user *__gu_ptr = (ptr);		\
++	unsigned long __gu_val = 0;					\
++	if (access_ok(VERIFY_READ,  __gu_ptr, sizeof(*__gu_ptr)))	\
++		__get_user_common(__gu_val, sizeof(*__gu_ptr),		\
++			__gu_ptr, __gu_err);				\
++	(x) = (__typeof__(x))__gu_val;					\
++	__gu_err;							\
++})
++
++#define __put_user_asm(val, insn, ptr, err)				\
++{									\
++	__asm__ __volatile__(						\
++	"       movi    %0, %3\n"					\
++	"1:   " insn " %1, 0(%2)\n"					\
++	"       movi     %0, 0\n"					\
++	"2:\n"								\
++	"       .section __ex_table,\"a\"\n"				\
++	"       .word 1b, 2b\n"						\
++	"       .previous\n"						\
++	: "=&r" (err)							\
++	: "r" (val), "r" (ptr), "i" (-EFAULT));				\
++}
++
++#define put_user(x, ptr)						\
++({									\
++	long __pu_err = -EFAULT;					\
++	__typeof__(*(ptr)) __user *__pu_ptr = (ptr);			\
++	__typeof__(*(ptr)) __pu_val = (__typeof(*ptr))(x);		\
++	if (access_ok(VERIFY_WRITE, __pu_ptr, sizeof(*__pu_ptr))) {	\
++		switch (sizeof(*__pu_ptr)) {				\
++		case 1:							\
++			__put_user_asm(__pu_val, "stb", __pu_ptr, __pu_err); \
++			break;						\
++		case 2:							\
++			__put_user_asm(__pu_val, "sth", __pu_ptr, __pu_err); \
++			break;						\
++		case 4:							\
++			__put_user_asm(__pu_val, "stw", __pu_ptr, __pu_err); \
++			break;						\
++		default:						\
++			/* XXX: This looks wrong... */			\
++			__pu_err = 0;					\
++			if (copy_to_user(__pu_ptr, &(__pu_val),		\
++				sizeof(*__pu_ptr)))			\
++				__pu_err = -EFAULT;			\
++			break;						\
++		}							\
++	}								\
++	__pu_err;							\
++})
++
++#define __put_user(x, ptr) put_user(x, ptr)
++
++#endif /* _ASM_NIOS2_UACCESS_H */
+diff --git a/arch/nios2/mm/init.c b/arch/nios2/mm/init.c
+new file mode 100644
+index 0000000..e75c75d
+--- /dev/null
++++ b/arch/nios2/mm/init.c
+@@ -0,0 +1,142 @@
++/*
++ * Copyright (C) 2013 Altera Corporation
++ * Copyright (C) 2010 Tobias Klauser <tklauser@distanz.ch>
++ * Copyright (C) 2009 Wind River Systems Inc
++ *   Implemented by fredrik.markstrom@gmail.com and ivarholmqvist@gmail.com
++ * Copyright (C) 2004 Microtronix Datacom Ltd
++ *
++ * based on arch/m68k/mm/init.c
++ *
++ * This file is subject to the terms and conditions of the GNU General Public
++ * License. See the file "COPYING" in the main directory of this archive
++ * for more details.
++ */
++
++#include <linux/signal.h>
++#include <linux/sched.h>
++#include <linux/kernel.h>
++#include <linux/errno.h>
++#include <linux/string.h>
++#include <linux/types.h>
++#include <linux/ptrace.h>
++#include <linux/mman.h>
++#include <linux/mm.h>
++#include <linux/init.h>
++#include <linux/pagemap.h>
++#include <linux/bootmem.h>
++#include <linux/slab.h>
++#include <linux/binfmts.h>
++
++#include <asm/setup.h>
++#include <asm/page.h>
++#include <asm/pgtable.h>
++#include <asm/sections.h>
 +#include <asm/tlb.h>
 +#include <asm/mmu_context.h>
-+#include <asm/pgtable.h>
 +#include <asm/cpuinfo.h>
++#include <asm/processor.h>
 +
-+#define TLB_INDEX_MASK		\
-+	((((1UL << (cpuinfo.tlb_ptr_sz - cpuinfo.tlb_num_ways_log2))) - 1) \
-+		<< PAGE_SHIFT)
-+
-+/* Used as illegal PHYS_ADDR for TLB mappings
-+ */
-+#define MAX_PHYS_ADDR 0
-+
-+static void get_misc_and_pid(unsigned long *misc, unsigned long *pid)
-+{
-+	*misc  = RDCTL(CTL_TLBMISC);
-+	*misc &= (TLBMISC_PID | TLBMISC_WAY);
-+	*pid  = *misc & TLBMISC_PID;
-+}
++pgd_t *pgd_current;
 +
 +/*
-+ * All entries common to a mm share an asid.  To effectively flush these
-+ * entries, we just bump the asid.
++ * paging_init() continues the virtual memory environment setup which
++ * was begun by the code in arch/head.S.
++ * The parameters are pointers to where to stick the starting and ending
++ * addresses of available kernel virtual memory.
 + */
-+void flush_tlb_mm(struct mm_struct *mm)
++void __init paging_init(void)
 +{
-+	if (current->mm == mm)
-+		flush_tlb_all();
-+	else
-+		memset(&mm->context, 0, sizeof(mm_context_t));
++	unsigned long zones_size[MAX_NR_ZONES];
++
++	memset(zones_size, 0, sizeof(zones_size));
++
++	pagetable_init();
++	pgd_current = swapper_pg_dir;
++
++	zones_size[ZONE_NORMAL] = max_mapnr;
++
++	/* pass the memory from the bootmem allocator to the main allocator */
++	free_area_init(zones_size);
++
++	flush_dcache_range((unsigned long)empty_zero_page,
++			(unsigned long)empty_zero_page + PAGE_SIZE);
 +}
 +
++void __init mem_init(void)
++{
++	unsigned long end_mem   = memory_end; /* this must not include
++						kernel stack at top */
++
++	pr_debug("mem_init: start=%lx, end=%lx\n", memory_start, memory_end);
++
++	end_mem &= PAGE_MASK;
++	high_memory = __va(end_mem);
++
++	/* this will put all memory onto the freelists */
++	free_all_bootmem();
++	mem_init_print_info(NULL);
++}
++
++void __init mmu_init(void)
++{
++	flush_tlb_all();
++}
++
++#ifdef CONFIG_BLK_DEV_INITRD
++void __init free_initrd_mem(unsigned long start, unsigned long end)
++{
++	free_reserved_area((void *)start, (void *)end, -1, "initrd");
++}
++#endif
++
++void __init_refok free_initmem(void)
++{
++	free_initmem_default(-1);
++}
++
++#define __page_aligned(order) __aligned(PAGE_SIZE << (order))
++pgd_t swapper_pg_dir[PTRS_PER_PGD] __page_aligned(PGD_ORDER);
++pte_t invalid_pte_table[PTRS_PER_PTE] __page_aligned(PTE_ORDER);
++static struct page *kuser_page[1];
++
++static int alloc_kuser_page(void)
++{
++	extern char __kuser_helper_start[], __kuser_helper_end[];
++	int kuser_sz = __kuser_helper_end - __kuser_helper_start;
++	unsigned long vpage;
++
++	vpage = get_zeroed_page(GFP_ATOMIC);
++	if (!vpage)
++		return -ENOMEM;
++
++	/* Copy kuser helpers */
++	memcpy((void *)vpage, __kuser_helper_start, kuser_sz);
++
++	flush_icache_range(vpage, vpage + KUSER_SIZE);
++	kuser_page[0] = virt_to_page(vpage);
++
++	return 0;
++}
++arch_initcall(alloc_kuser_page);
++
++int arch_setup_additional_pages(struct linux_binprm *bprm, int uses_interp)
++{
++	struct mm_struct *mm = current->mm;
++	int ret;
++
++	down_write(&mm->mmap_sem);
++
++	/* Map kuser helpers to user space address */
++	ret = install_special_mapping(mm, KUSER_BASE, KUSER_SIZE,
++				      VM_READ | VM_EXEC | VM_MAYREAD |
++				      VM_MAYEXEC, kuser_page);
++
++	up_write(&mm->mmap_sem);
++
++	return ret;
++}
++
++const char *arch_vma_name(struct vm_area_struct *vma)
++{
++	return (vma->vm_start == KUSER_BASE) ? "[kuser]" : NULL;
++}
+diff --git a/arch/nios2/mm/uaccess.c b/arch/nios2/mm/uaccess.c
+new file mode 100644
+index 0000000..4a38ad3
+--- /dev/null
++++ b/arch/nios2/mm/uaccess.c
+@@ -0,0 +1,162 @@
 +/*
-+ * This one is only used for pages with the global bit set so we don't care
-+ * much about the ASID.
++ * This file is subject to the terms and conditions of the GNU General Public
++ * License.  See the file "COPYING" in the main directory of this archive
++ * for more details.
++ *
++ * Copyright (C) 2009, Wind River Systems Inc
++ * Implemented by fredrik.markstrom@gmail.com and ivarholmqvist@gmail.com
 + */
-+void flush_tlb_one_pid(unsigned long addr, unsigned long mmu_pid)
++
++#include <linux/export.h>
++#include <linux/uaccess.h>
++
++asm(".global	__copy_from_user\n"
++	"   .type __copy_from_user, @function\n"
++	"__copy_from_user:\n"
++	"   movi  r2,7\n"
++	"   mov   r3,r4\n"
++	"   bge   r2,r6,1f\n"
++	"   xor   r2,r4,r5\n"
++	"   andi  r2,r2,3\n"
++	"   movi  r7,3\n"
++	"   beq   r2,zero,4f\n"
++	"1: addi  r6,r6,-1\n"
++	"   movi  r2,-1\n"
++	"   beq   r6,r2,3f\n"
++	"   mov   r7,r2\n"
++	"2: ldbu  r2,0(r5)\n"
++	"   addi  r6,r6,-1\n"
++	"   addi  r5,r5,1\n"
++	"   stb   r2,0(r3)\n"
++	"   addi  r3,r3,1\n"
++	"   bne   r6,r7,2b\n"
++	"3:\n"
++	"   addi  r2,r6,1\n"
++	"   ret\n"
++	"13:mov   r2,r6\n"
++	"   ret\n"
++	"4: andi  r2,r4,1\n"
++	"   cmpeq r2,r2,zero\n"
++	"   beq   r2,zero,7f\n"
++	"5: andi  r2,r3,2\n"
++	"   beq   r2,zero,6f\n"
++	"9: ldhu  r2,0(r5)\n"
++	"   addi  r6,r6,-2\n"
++	"   addi  r5,r5,2\n"
++	"   sth   r2,0(r3)\n"
++	"   addi  r3,r3,2\n"
++	"6: bge   r7,r6,1b\n"
++	"10:ldw   r2,0(r5)\n"
++	"   addi  r6,r6,-4\n"
++	"   addi  r5,r5,4\n"
++	"   stw   r2,0(r3)\n"
++	"   addi  r3,r3,4\n"
++	"   br    6b\n"
++	"7: ldbu  r2,0(r5)\n"
++	"   addi  r6,r6,-1\n"
++	"   addi  r5,r5,1\n"
++	"   addi  r3,r4,1\n"
++	"   stb   r2,0(r4)\n"
++	"   br    5b\n"
++	".section __ex_table,\"a\"\n"
++	".word 2b,3b\n"
++	".word 9b,13b\n"
++	".word 10b,13b\n"
++	".word 7b,13b\n"
++	".previous\n"
++	);
++EXPORT_SYMBOL(__copy_from_user);
++
++asm(
++	"   .global __copy_to_user\n"
++	"   .type __copy_to_user, @function\n"
++	"__copy_to_user:\n"
++	"   movi  r2,7\n"
++	"   mov   r3,r4\n"
++	"   bge   r2,r6,1f\n"
++	"   xor   r2,r4,r5\n"
++	"   andi  r2,r2,3\n"
++	"   movi  r7,3\n"
++	"   beq   r2,zero,4f\n"
++	/* Bail if we try to copy zero bytes  */
++	"1: addi  r6,r6,-1\n"
++	"   movi  r2,-1\n"
++	"   beq   r6,r2,3f\n"
++	/* Copy byte by byte for small copies and if src^dst != 0 */
++	"   mov   r7,r2\n"
++	"2: ldbu  r2,0(r5)\n"
++	"   addi  r5,r5,1\n"
++	"9: stb   r2,0(r3)\n"
++	"   addi  r6,r6,-1\n"
++	"   addi  r3,r3,1\n"
++	"   bne   r6,r7,2b\n"
++	"3: addi  r2,r6,1\n"
++	"   ret\n"
++	"13:mov   r2,r6\n"
++	"   ret\n"
++	/*  If 'to' is an odd address byte copy */
++	"4: andi  r2,r4,1\n"
++	"   cmpeq r2,r2,zero\n"
++	"   beq   r2,zero,7f\n"
++	/* If 'to' is not divideable by four copy halfwords */
++	"5: andi  r2,r3,2\n"
++	"   beq   r2,zero,6f\n"
++	"   ldhu  r2,0(r5)\n"
++	"   addi  r5,r5,2\n"
++	"10:sth   r2,0(r3)\n"
++	"   addi  r6,r6,-2\n"
++	"   addi  r3,r3,2\n"
++	/* Copy words */
++	"6: bge   r7,r6,1b\n"
++	"   ldw   r2,0(r5)\n"
++	"   addi  r5,r5,4\n"
++	"11:stw   r2,0(r3)\n"
++	"   addi  r6,r6,-4\n"
++	"   addi  r3,r3,4\n"
++	"   br    6b\n"
++	/* Copy remaining bytes */
++	"7: ldbu  r2,0(r5)\n"
++	"   addi  r5,r5,1\n"
++	"   addi  r3,r4,1\n"
++	"12: stb  r2,0(r4)\n"
++	"   addi  r6,r6,-1\n"
++	"   br    5b\n"
++	".section __ex_table,\"a\"\n"
++	".word 9b,3b\n"
++	".word 10b,13b\n"
++	".word 11b,13b\n"
++	".word 12b,13b\n"
++	".previous\n");
++EXPORT_SYMBOL(__copy_to_user);
++
++long strncpy_from_user(char *__to, const char __user *__from, long __len)
 +{
-+	unsigned int way;
-+	unsigned long org_misc, pid_misc;
++	int l = strnlen_user(__from, __len);
++	int is_zt = 1;
 +
-+	pr_debug("Flush tlb-entry for vaddr=%#lx\n", addr);
-+
-+	/* remember pid/way until we return. */
-+	get_misc_and_pid(&org_misc, &pid_misc);
-+
-+	WRCTL(CTL_PTEADDR, (addr >> PAGE_SHIFT) << 2);
-+
-+	for (way = 0; way < cpuinfo.tlb_num_ways; way++) {
-+		unsigned long pteaddr;
-+		unsigned long tlbmisc;
-+		unsigned long pid;
-+
-+		tlbmisc = pid_misc | TLBMISC_RD | (way << TLBMISC_WAY_SHIFT);
-+		WRCTL(CTL_TLBMISC, tlbmisc);
-+		pteaddr = RDCTL(CTL_PTEADDR);
-+		tlbmisc = RDCTL(CTL_TLBMISC);
-+		pid = (tlbmisc >> TLBMISC_PID_SHIFT) & TLBMISC_PID_MASK;
-+		if (((((pteaddr >> 2) & 0xfffff)) == (addr >> PAGE_SHIFT)) &&
-+				pid == mmu_pid) {
-+			unsigned long vaddr = CONFIG_NIOS2_IO_REGION_BASE +
-+				((PAGE_SIZE * cpuinfo.tlb_num_lines) * way) +
-+				(addr & TLB_INDEX_MASK);
-+			pr_debug("Flush entry by writing %#lx way=%dl pid=%ld\n",
-+				vaddr, way, (pid_misc >> TLBMISC_PID_SHIFT));
-+
-+			WRCTL(CTL_PTEADDR, (vaddr >> 12) << 2);
-+			tlbmisc = pid_misc | TLBMISC_WE |
-+				(way << TLBMISC_WAY_SHIFT);
-+			WRCTL(CTL_TLBMISC, tlbmisc);
-+			WRCTL(CTL_TLBACC, (MAX_PHYS_ADDR >> PAGE_SHIFT));
-+		}
++	if (l > __len) {
++		is_zt = 0;
++		l = __len;
 +	}
 +
-+	WRCTL(CTL_TLBMISC, org_misc);
++	if (l == 0 || copy_from_user(__to, __from, l))
++		return -EFAULT;
++
++	if (is_zt)
++		l--;
++	return l;
 +}
 +
-+void flush_tlb_range(struct vm_area_struct *vma, unsigned long start,
-+			unsigned long end)
++long strnlen_user(const char __user *s, long n)
 +{
-+	unsigned long mmu_pid = get_pid_from_context(&vma->vm_mm->context);
++	long i;
 +
-+	while (start < end) {
-+		flush_tlb_one_pid(start, mmu_pid);
-+		start += PAGE_SIZE;
++	for (i = 0; i < n; i++) {
++		char c;
++		if (get_user(c, s + i) == -EFAULT)
++			return 0;
++		if (c == 0)
++			return i + 1;
 +	}
-+}
-+
-+void flush_tlb_kernel_range(unsigned long start, unsigned long end)
-+{
-+	while (start < end) {
-+		flush_tlb_one(start);
-+		start += PAGE_SIZE;
-+	}
-+}
-+
-+/*
-+ * This one is only used for pages with the global bit set so we don't care
-+ * much about the ASID.
-+ */
-+void flush_tlb_one(unsigned long addr)
-+{
-+	unsigned int way;
-+	unsigned long org_misc, pid_misc;
-+
-+	pr_debug("Flush tlb-entry for vaddr=%#lx\n", addr);
-+
-+	/* remember pid/way until we return. */
-+	get_misc_and_pid(&org_misc, &pid_misc);
-+
-+	WRCTL(CTL_PTEADDR, (addr >> PAGE_SHIFT) << 2);
-+
-+	for (way = 0; way < cpuinfo.tlb_num_ways; way++) {
-+		unsigned long pteaddr;
-+		unsigned long tlbmisc;
-+
-+		tlbmisc = pid_misc | TLBMISC_RD | (way << TLBMISC_WAY_SHIFT);
-+		WRCTL(CTL_TLBMISC, tlbmisc);
-+		pteaddr = RDCTL(CTL_PTEADDR);
-+		tlbmisc = RDCTL(CTL_TLBMISC);
-+
-+		if ((((pteaddr >> 2) & 0xfffff)) == (addr >> PAGE_SHIFT)) {
-+			unsigned long vaddr = CONFIG_NIOS2_IO_REGION_BASE +
-+				((PAGE_SIZE * cpuinfo.tlb_num_lines) * way) +
-+				(addr & TLB_INDEX_MASK);
-+
-+			pr_debug("Flush entry by writing %#lx way=%dl pid=%ld\n",
-+				vaddr, way, (pid_misc >> TLBMISC_PID_SHIFT));
-+
-+			tlbmisc = pid_misc | TLBMISC_WE |
-+				(way << TLBMISC_WAY_SHIFT);
-+			WRCTL(CTL_PTEADDR, (vaddr >> 12) << 2);
-+			WRCTL(CTL_TLBMISC, tlbmisc);
-+			WRCTL(CTL_TLBACC, (MAX_PHYS_ADDR >> PAGE_SHIFT));
-+		}
-+	}
-+
-+	WRCTL(CTL_TLBMISC, org_misc);
-+}
-+
-+void dump_tlb_line(unsigned long line)
-+{
-+	unsigned int way;
-+	unsigned long org_misc;
-+
-+	pr_debug("dump tlb-entries for line=%#lx (addr %08lx)\n", line,
-+		line << (PAGE_SHIFT + cpuinfo.tlb_num_ways_log2));
-+
-+	/* remember pid/way until we return */
-+	org_misc = (RDCTL(CTL_TLBMISC) & (TLBMISC_PID | TLBMISC_WAY));
-+
-+	WRCTL(CTL_PTEADDR, line << 2);
-+
-+	for (way = 0; way < cpuinfo.tlb_num_ways; way++) {
-+		unsigned long pteaddr;
-+		unsigned long tlbmisc;
-+		unsigned long tlbacc;
-+
-+		WRCTL(CTL_TLBMISC, TLBMISC_RD | (way << TLBMISC_WAY_SHIFT));
-+		pteaddr = RDCTL(CTL_PTEADDR);
-+		tlbmisc = RDCTL(CTL_TLBMISC);
-+		tlbacc = RDCTL(CTL_TLBACC);
-+
-+		if ((tlbacc << PAGE_SHIFT) != (MAX_PHYS_ADDR & PAGE_MASK)) {
-+			pr_debug("-- way:%02x vpn:0x%08lx phys:0x%08lx pid:0x%02lx flags:%c%c%c%c%c\n",
-+				way,
-+				(pteaddr << (PAGE_SHIFT-2)),
-+				(tlbacc << PAGE_SHIFT),
-+				((tlbmisc >> TLBMISC_PID_SHIFT) &
-+				TLBMISC_PID_MASK),
-+				(tlbacc & _PAGE_READ ? 'r' : '-'),
-+				(tlbacc & _PAGE_WRITE ? 'w' : '-'),
-+				(tlbacc & _PAGE_EXEC ? 'x' : '-'),
-+				(tlbacc & _PAGE_GLOBAL ? 'g' : '-'),
-+				(tlbacc & _PAGE_CACHED ? 'c' : '-'));
-+		}
-+	}
-+
-+	WRCTL(CTL_TLBMISC, org_misc);
-+}
-+
-+void dump_tlb(void)
-+{
-+	unsigned int i;
-+	for (i = 0; i < cpuinfo.tlb_num_lines; i++)
-+		dump_tlb_line(i);
-+}
-+
-+void flush_tlb_pid(unsigned long pid)
-+{
-+	unsigned int line;
-+	unsigned int way;
-+	unsigned long org_misc, pid_misc;
-+
-+	/* remember pid/way until we return */
-+	get_misc_and_pid(&org_misc, &pid_misc);
-+
-+	for (line = 0; line < cpuinfo.tlb_num_lines; line++) {
-+		WRCTL(CTL_PTEADDR, line << 2);
-+
-+		for (way = 0; way < cpuinfo.tlb_num_ways; way++) {
-+			unsigned long pteaddr;
-+			unsigned long tlbmisc;
-+			unsigned long tlbacc;
-+
-+			tlbmisc = pid_misc | TLBMISC_RD |
-+				(way << TLBMISC_WAY_SHIFT);
-+			WRCTL(CTL_TLBMISC, tlbmisc);
-+			pteaddr = RDCTL(CTL_PTEADDR);
-+			tlbmisc = RDCTL(CTL_TLBMISC);
-+			tlbacc = RDCTL(CTL_TLBACC);
-+
-+			if (((tlbmisc>>TLBMISC_PID_SHIFT) & TLBMISC_PID_MASK)
-+				== pid) {
-+				tlbmisc = pid_misc | TLBMISC_WE |
-+					(way << TLBMISC_WAY_SHIFT);
-+				WRCTL(CTL_TLBMISC, tlbmisc);
-+				WRCTL(CTL_TLBACC,
-+					(MAX_PHYS_ADDR >> PAGE_SHIFT));
-+			}
-+		}
-+
-+		WRCTL(CTL_TLBMISC, org_misc);
-+	}
-+}
-+
-+void flush_tlb_all(void)
-+{
-+	int i;
-+	unsigned long vaddr = CONFIG_NIOS2_IO_REGION_BASE;
-+	unsigned int way;
-+	unsigned long org_misc, pid_misc, tlbmisc;
-+
-+	/* remember pid/way until we return */
-+	get_misc_and_pid(&org_misc, &pid_misc);
-+	pid_misc |= TLBMISC_WE;
-+
-+	/* Map each TLB entry to physcal address 0 with no-access and a
-+	   bad ptbase */
-+	for (way = 0; way < cpuinfo.tlb_num_ways; way++) {
-+		tlbmisc = pid_misc | (way << TLBMISC_WAY_SHIFT);
-+		for (i = 0; i < cpuinfo.tlb_num_lines; i++) {
-+			WRCTL(CTL_PTEADDR, ((vaddr) >> PAGE_SHIFT) << 2);
-+			WRCTL(CTL_TLBMISC, tlbmisc);
-+			WRCTL(CTL_TLBACC, (MAX_PHYS_ADDR >> PAGE_SHIFT));
-+			vaddr += 1UL << 12;
-+		}
-+	}
-+
-+	/* restore pid/way */
-+	WRCTL(CTL_TLBMISC, org_misc);
-+}
-+
-+void set_mmu_pid(unsigned long pid)
-+{
-+	WRCTL(CTL_TLBMISC, (RDCTL(CTL_TLBMISC) & TLBMISC_WAY) |
-+		((pid & TLBMISC_PID_MASK) << TLBMISC_PID_SHIFT));
++	return n + 1;
 +}
 -- 
 1.8.2.1
