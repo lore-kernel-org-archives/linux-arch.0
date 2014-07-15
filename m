@@ -1,87 +1,67 @@
-From: David Howells <dhowells@redhat.com>
-Subject: Re: [PATCH v2 00/29] nios2 Linux kernel port
-Date: Tue, 15 Jul 2014 15:20:31 +0100
-Message-ID: <20544.1405434031@warthog.procyon.org.uk>
-References: <CAFLxGvw_fnG1KTVXrcZxHZzKPnG5DA117VmcZBvw3EYgXw-DVw@mail.gmail.com> <1405413956-2772-1-git-send-email-lftan@altera.com> <4213.1405430178@warthog.procyon.org.uk>
+From: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
+Subject: Re: [PATCH 10/11] qspinlock: Paravirt support
+Date: Tue, 15 Jul 2014 10:23:05 -0400
+Message-ID: <20140715142305.GA3403@laptop.dumpdata.com>
+References: <20140615124657.264658593@chello.nl>
+	<20140615130154.213923590@chello.nl>
+	<20140620134608.GA11545@laptop.dumpdata.com>
+	<20140707152734.GX6758@twins.programming.kicks-ass.net>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 8BIT
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:7301 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751027AbaGOOUp convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 15 Jul 2014 10:20:45 -0400
-In-Reply-To: <CAFLxGvw_fnG1KTVXrcZxHZzKPnG5DA117VmcZBvw3EYgXw-DVw@mail.gmail.com>
-Content-ID: <20543.1405434031.1@warthog.procyon.org.uk>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Richard Weinberger <richard.weinberger@gmail.com>
-Cc: dhowells@redhat.com, Ley Foon Tan <lftan@altera.com>, Linux-Arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, LeyFoon Tan <lftan.linux@gmail.com>, cltang@codesourcery.com
+Content-Transfer-Encoding: 7bit
+Return-path: <virtualization-bounces@lists.linux-foundation.org>
+Content-Disposition: inline
+In-Reply-To: <20140707152734.GX6758@twins.programming.kicks-ass.net>
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
+List-Post: <mailto:virtualization@lists.linux-foundation.org>
+List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
+Sender: virtualization-bounces@lists.linux-foundation.org
+Errors-To: virtualization-bounces@lists.linux-foundation.org
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Waiman.Long@hp.com, linux-arch@vger.kernel.org, riel@redhat.com, gleb@redhat.com, kvm@vger.kernel.org, boris.ostrovsky@oracle.com, scott.norton@hp.com, raghavendra.kt@linux.vnet.ibm.com, paolo.bonzini@gmail.com, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, chegu_vinod@hp.com, david.vrabel@citrix.com, oleg@redhat.com, xen-devel@lists.xenproject.org, tglx@linutronix.de, paulmck@linux.vnet.ibm.com, torvalds@linux-foundation.org, mingo@kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-Richard Weinberger <richard.weinberger@gmail.com> wrote:
+On Mon, Jul 07, 2014 at 05:27:34PM +0200, Peter Zijlstra wrote:
+> On Fri, Jun 20, 2014 at 09:46:08AM -0400, Konrad Rzeszutek Wilk wrote:
+> > I dug in the code and I have some comments about it, but before
+> > I post them I was wondering if you have any plans to run any performance
+> > tests against the PV ticketlock with normal and over-committed scenarios?
+> 
+> I can barely boot a guest.. I'm not sure I can make them do anything
+> much at all yet. All this virt crap is totally painful.
 
-> Having it on https://www.kernel.org/pub/tools/crosstool/ would be also nice.
+HA!
 
-Does the Fedora cross-compiler suite fit with your set?  All the fedora
-cross-compilers are build from a single pair of SRPMS into a slew of binary
-RPMs and none of the resulting RPMs are relocatable (they all end up in /usr).
+The reason I asked about that is from a pen-and-paper view it looks
+suboptimal in the worst case scenario compared to PV ticketlock.
 
-The easiest way to install them is:
+The 'worst case scenario' is when we over-commit (more CPUs than there
+are physical CPUs) or have to delay guests (the sum of all virtual
+CPUs > physical CPUs and all of the guests are compiling kernels).
 
-	yum install gcc-\*-linux-gnu
+In those cases the PV ticketlock goes to sleep and gets woken up
+once the ticket holder has finished. In the PV qspinlock we do
+wake up the first in queue, but we also wake the next one in queue
+so it can progress further. And so on.
 
-For reference, the current rawhide SRPMs can be found here:
+Perhaps a better mechanism is just ditch the queue part and utilize
+the byte part and under KVM and Xen just do bytelocking (since we
+have 8 bits). For the PV halt/waking we can stash in the 'struct mcs'
+the current lock that each CPU is waiting for. And the unlocker
+can iterate over all of those and wake them all up. Perhaps make
+the iteration random. Anyhow, that is how the old PV bytelock under
+Xen worked (before 3.11) and it had worked pretty well (it didn't
+do it random thought - always started with 'for_each_online_cpu').
 
-	https://dl.fedoraproject.org/pub/fedora/linux/development/rawhide/source/SRPMS/c/cross-binutils-2.24-4.fc21.src.rpm
-	https://dl.fedoraproject.org/pub/fedora/linux/development/rawhide/source/SRPMS/c/cross-gcc-4.9.0-3.fc21.src.rpm
+Squashing in the ticketlock concept in qspinlock for PV looks
+scary.
 
-I haven't yet pushed the NIOS2 arch changes (I'm waiting on a fix to allow me
-to build libgcc for Cris).
+And as I said - this is all pen-and-paper - so it might be that this
+'wake-up-go-sleep-on-the-queue' kick is actually not that bad?
 
-I haven't applied any of your patches, though I do apply the same patches that
-are applied to the core Fedora binutils and gcc.  Note that this URL linked to
-on your page:
-
-	https://www.kernel.org/pub/tools/crosstool/patches/
-
-does not seem to exist.
-
-The compilers that I have managed to produce and install on my system are:
-
-	gcc-aarch64-linux-gnu
-	gcc-alpha-linux-gnu
-	gcc-arm-linux-gnu
-	gcc-avr32-linux-gnu
-	gcc-bfin-linux-gnu
-	gcc-c6x-linux-gnu
-	gcc-cris-linux-gnu
-	gcc-frv-linux-gnu
-	gcc-h8300-linux-gnu
-	gcc-hppa-linux-gnu
-	gcc-hppa64-linux-gnu
-	gcc-ia64-linux-gnu
-	gcc-m32r-linux-gnu
-	gcc-m68k-linux-gnu
-	gcc-microblaze-linux-gnu
-	gcc-mips64-linux-gnu
-	gcc-mn10300-linux-gnu
-	gcc-nios2-linux-gnu
-	gcc-powerpc64-linux-gnu
-	gcc-ppc64-linux-gnu
-	gcc-s390x-linux-gnu
-	gcc-sh-linux-gnu
-	gcc-sh64-linux-gnu
-	gcc-sparc64-linux-gnu
-	gcc-tile-linux-gnu
-	gcc-x86_64-linux-gnu
-	gcc-xtensa-linux-gnu
-
-All but cris, nios2, sh, sh64 and tile have a collection of libgcc built.
-
-I don't build i386, mips, powerpc, s390, sh4 and sparc as these are covered by
-the ones I do build.
-
-gcc doesn't support Metag or Openrisc, it considers Score obsolete and
-Hexagon and Unicore32 don't seem to have suitable binutils support.
-
-David
+Lastly - thank you for taking a stab at this.
+> 
