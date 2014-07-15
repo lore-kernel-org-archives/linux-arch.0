@@ -1,43 +1,46 @@
-From: Tobias Klauser <tklauser@distanz.ch>
-Subject: Re: [PATCH v2 00/29] nios2 Linux kernel port
-Date: Tue, 15 Jul 2014 11:08:13 +0200
-Message-ID: <20140715090813.GE7668@distanz.ch>
-References: <1405413956-2772-1-git-send-email-lftan@altera.com>
+From: Sam Ravnborg <sam@ravnborg.org>
+Subject: Re: [PATCH 07/38] Delete unused Kbuild files in include/*
+Date: Tue, 15 Jul 2014 11:19:03 +0200
+Message-ID: <20140715091902.GA3290@ravnborg.org>
+References: <20140714150609.GA28358@ravnborg.org>
+ <1405350546-28467-1-git-send-email-sam@ravnborg.org>
+ <1405350546-28467-7-git-send-email-sam@ravnborg.org>
+ <53C4EF1B.2050506@imgtec.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from asavdk4.altibox.net ([109.247.116.15]:32938 "EHLO
+	asavdk4.altibox.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753497AbaGOJTJ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 15 Jul 2014 05:19:09 -0400
 Content-Disposition: inline
-In-Reply-To: <1405413956-2772-1-git-send-email-lftan@altera.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Ley Foon Tan <lftan@altera.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, lftan.linux@gmail.com, cltang@codesourcery.com
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <53C4EF1B.2050506@imgtec.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: James Hogan <james.hogan@imgtec.com>
+Cc: Arnd Bergmann <arnd@arndb.de>, lkml <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, David Howells <dhowells@redhat.com>
 
-On 2014-07-15 at 10:45:27 +0200, Ley Foon Tan <lftan@altera.com> wrote:
-> This is the 2nd version of patchset adds the Linux kernel port for Nios II processor from
-> Altera. All of the feedback from v1 patchseries has been addressed. Thanks to all who
-> provided feedback on the previous version.
+On Tue, Jul 15, 2014 at 10:06:35AM +0100, James Hogan wrote:
+> On 14/07/14 16:08, Sam Ravnborg wrote:
+> > The following files are not used - and they serve no purpose.
+> > Delete them.
+> > 
+> > Signed-off-by: Sam Ravnborg <sam@ravnborg.org>
+> > Cc: David Howells <dhowells@redhat.com>
+> > ---
+> >  include/Kbuild         | 2 --
+> >  include/scsi/fc/Kbuild | 0
+> >  include/video/Kbuild   | 0
+> >  3 files changed, 2 deletions(-)
+> >  delete mode 100644 include/Kbuild
+> >  delete mode 100644 include/scsi/fc/Kbuild
+> >  delete mode 100644 include/video/Kbuild
 > 
-> About Nios II Cores
-> -------------------
-> Nios II is a 32-bit embedded-processor architecture designed specifically for the
-> Altera family of FPGAs.
-> More information is available  at http://www.altera.com/devices/processor/nios2/ni2-index.html
-> 
-> Instruction set and architecture overview documents can be found on the
-> following page:
-> http://www.altera.com/literature/lit-nio2.jsp
-> 
-> Nios2 GCC port is in mainline and will be in the FSF 4.9 release.
-> 
-> The patchset are based on v3.16-rc5 and can also be found in the following git tree:
-> git://git.rocketboards.org/linux-socfpga-next.git  nios2-upstream
+> include/asm-generic/Kbuild.asm could go too since it isn't included
+> anywhere.
 
-Very nice work Ley Foon! It's great to see the Nios II port finally
-making it upstream.
+Good catch. I recall that I was wondering what the purpose of the file
+was but forgot about it again.
+Will delete in in v2 of this patch-set.
 
-I'll test the series on the NEEK and my custom board some time this
-week.
-
-Cheers
-Tobias
+	Sam
