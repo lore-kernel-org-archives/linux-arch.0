@@ -1,86 +1,81 @@
-From: Richard Weinberger <richard@nod.at>
-Subject: Re: [PATCH v2 00/29] nios2 Linux kernel port
-Date: Tue, 15 Jul 2014 22:27:50 +0200
-Message-ID: <53C58EC6.8060508@nod.at>
-References: <CAFLxGvw_fnG1KTVXrcZxHZzKPnG5DA117VmcZBvw3EYgXw-DVw@mail.gmail.com> <1405413956-2772-1-git-send-email-lftan@altera.com> <4213.1405430178@warthog.procyon.org.uk> <20544.1405434031@warthog.procyon.org.uk>
+From: Steven Rostedt <rostedt@goodmis.org>
+Subject: Re: [RFA][PATCH 22/27] microblaze: ftrace: Remove check of obsolete
+ variable function_trace_stop
+Date: Tue, 15 Jul 2014 17:51:12 -0400
+Message-ID: <20140715175112.3e9128be@gandalf.local.home>
+References: <20140626165221.736847419@goodmis.org>
+	<20140626165852.891982463@goodmis.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
+Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from [95.130.255.143] ([95.130.255.143]:65275 "EHLO radon.swed.at"
-	rhost-flags-FAIL-FAIL-OK-OK) by vger.kernel.org with ESMTP
-	id S1757029AbaGOU2Z (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 15 Jul 2014 16:28:25 -0400
-In-Reply-To: <20544.1405434031@warthog.procyon.org.uk>
+Received: from cdptpa-outbound-snat.email.rr.com ([107.14.166.229]:5245 "EHLO
+	cdptpa-oedge-vip.email.rr.com" rhost-flags-OK-OK-OK-FAIL)
+	by vger.kernel.org with ESMTP id S1759952AbaGOVvX (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Tue, 15 Jul 2014 17:51:23 -0400
+In-Reply-To: <20140626165852.891982463@goodmis.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Howells <dhowells@redhat.com>
-Cc: Ley Foon Tan <lftan@altera.com>, Linux-Arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, LeyFoon Tan <lftan.linux@gmail.com>, cltang@codesourcery.com
+To: Steven Rostedt <rostedt@goodmis.org>
+Cc: linux-kernel@vger.kernel.org, Ingo Molnar <mingo@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Jiri Kosina <jkosina@suse.cz>, Josh Poimboeuf <notifications@github.com>, Michal Simek <monstr@monstr.eu>
 
-Am 15.07.2014 16:20, schrieb David Howells:
-> Richard Weinberger <richard.weinberger@gmail.com> wrote:
-> 
->> Having it on https://www.kernel.org/pub/tools/crosstool/ would be also nice.
-> 
-> Does the Fedora cross-compiler suite fit with your set?  All the fedora
-> cross-compilers are build from a single pair of SRPMS into a slew of binary
-> RPMs and none of the resulting RPMs are relocatable (they all end up in /usr).
+Michal,
 
-I'm not using Fedora.
+Can you please test and ack this and patch 6 of this series. Otherwise I
+may have to stip it out of the series which will break the build on
+microblaze.
 
-> The easiest way to install them is:
-> 
-> 	yum install gcc-\*-linux-gnu
-> 
-> For reference, the current rawhide SRPMs can be found here:
-> 
-> 	https://dl.fedoraproject.org/pub/fedora/linux/development/rawhide/source/SRPMS/c/cross-binutils-2.24-4.fc21.src.rpm
-> 	https://dl.fedoraproject.org/pub/fedora/linux/development/rawhide/source/SRPMS/c/cross-gcc-4.9.0-3.fc21.src.rpm
-> 
-> I haven't yet pushed the NIOS2 arch changes (I'm waiting on a fix to allow me
-> to build libgcc for Cris).
-> 
-> I haven't applied any of your patches, though I do apply the same patches that
-> are applied to the core Fedora binutils and gcc.  Note that this URL linked to
-> on your page:
-> 
-> 	https://www.kernel.org/pub/tools/crosstool/patches/
-> 
-> does not seem to exist.
-> 
-> The compilers that I have managed to produce and install on my system are:
-> 
-> 	gcc-aarch64-linux-gnu
-> 	gcc-alpha-linux-gnu
-> 	gcc-arm-linux-gnu
-> 	gcc-avr32-linux-gnu
-> 	gcc-bfin-linux-gnu
-> 	gcc-c6x-linux-gnu
-> 	gcc-cris-linux-gnu
-> 	gcc-frv-linux-gnu
-> 	gcc-h8300-linux-gnu
-> 	gcc-hppa-linux-gnu
-> 	gcc-hppa64-linux-gnu
-> 	gcc-ia64-linux-gnu
-> 	gcc-m32r-linux-gnu
-> 	gcc-m68k-linux-gnu
-> 	gcc-microblaze-linux-gnu
-> 	gcc-mips64-linux-gnu
-> 	gcc-mn10300-linux-gnu
-> 	gcc-nios2-linux-gnu
-> 	gcc-powerpc64-linux-gnu
-> 	gcc-ppc64-linux-gnu
-> 	gcc-s390x-linux-gnu
-> 	gcc-sh-linux-gnu
-> 	gcc-sh64-linux-gnu
-> 	gcc-sparc64-linux-gnu
-> 	gcc-tile-linux-gnu
-> 	gcc-x86_64-linux-gnu
-> 	gcc-xtensa-linux-gnu
->
+You can test my branch at:
+
+  git://git.kernel.org/pub/scm/linux/kernel/git/rostedt/linux-trace.git
+rfc/remove-function-trace-stop
+
+-- Steve
 
 
-Nice collection. Let's see whether I can repack your RPMs for openSUSE.
+On Thu, 26 Jun 2014 12:52:43 -0400
+Steven Rostedt <rostedt@goodmis.org> wrote:
 
-Thanks,
-//richard
+> From: "Steven Rostedt (Red Hat)" <rostedt@goodmis.org>
+> 
+> Nothing sets function_trace_stop to disable function tracing anymore.
+> Remove the check for it in the arch code.
+> 
+> [ Please test this on your arch ]
+> 
+> Cc: Michal Simek <monstr@monstr.eu>
+> Signed-off-by: Steven Rostedt <rostedt@goodmis.org>
+> ---
+>  arch/microblaze/Kconfig         | 1 -
+>  arch/microblaze/kernel/mcount.S | 5 -----
+>  2 files changed, 6 deletions(-)
+> 
+> diff --git a/arch/microblaze/Kconfig b/arch/microblaze/Kconfig
+> index 9ae08541e30d..40e1c1dd0e24 100644
+> --- a/arch/microblaze/Kconfig
+> +++ b/arch/microblaze/Kconfig
+> @@ -22,7 +22,6 @@ config MICROBLAZE
+>  	select HAVE_DYNAMIC_FTRACE
+>  	select HAVE_FTRACE_MCOUNT_RECORD
+>  	select HAVE_FUNCTION_GRAPH_TRACER
+> -	select HAVE_FUNCTION_TRACE_MCOUNT_TEST
+>  	select HAVE_FUNCTION_TRACER
+>  	select HAVE_MEMBLOCK
+>  	select HAVE_MEMBLOCK_NODE_MAP
+> diff --git a/arch/microblaze/kernel/mcount.S b/arch/microblaze/kernel/mcount.S
+> index fc1e1322ce4c..fed9da5de8c4 100644
+> --- a/arch/microblaze/kernel/mcount.S
+> +++ b/arch/microblaze/kernel/mcount.S
+> @@ -91,11 +91,6 @@ ENTRY(ftrace_caller)
+>  #endif /* CONFIG_DYNAMIC_FTRACE */
+>  	SAVE_REGS
+>  	swi	r15, r1, 0;
+> -	/* MS: HAVE_FUNCTION_TRACE_MCOUNT_TEST begin of checking */
+> -	lwi	r5, r0, function_trace_stop;
+> -	bneid	r5, end;
+> -	nop;
+> -	/* MS: HAVE_FUNCTION_TRACE_MCOUNT_TEST end of checking */
+>  #ifdef CONFIG_FUNCTION_GRAPH_TRACER
+>  #ifndef CONFIG_DYNAMIC_FTRACE
+>  	lwi	r5, r0, ftrace_graph_return;
