@@ -1,46 +1,33 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH v2 12/29] nios2: Interrupt handling
-Date: Tue, 15 Jul 2014 11:27:55 +0200
-Message-ID: <5170097.X9RFbxSEnp@wuerfel>
-References: <1405413956-2772-1-git-send-email-lftan@altera.com> <1405413956-2772-13-git-send-email-lftan@altera.com>
+From: Ley Foon Tan <lftan@altera.com>
+Subject: Re: [PATCH v2 00/29] nios2 Linux kernel port
+Date: Tue, 15 Jul 2014 17:38:36 +0800
+Message-ID: <CAFiDJ5-YNB_uctBYFGkoABHfnwhuncy2FGrQk1j0qPVZBDrC3g@mail.gmail.com>
+References: <1405413956-2772-1-git-send-email-lftan@altera.com>
+	<20140715090813.GE7668@distanz.ch>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7Bit
+Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-doc-owner@vger.kernel.org>
-In-Reply-To: <1405413956-2772-13-git-send-email-lftan@altera.com>
+In-Reply-To: <20140715090813.GE7668@distanz.ch>
 Sender: linux-doc-owner@vger.kernel.org
-To: Ley Foon Tan <lftan@altera.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, lftan.linux@gmail.com, cltang@codesourcery.com
+To: Tobias Klauser <tklauser@distanz.ch>
+Cc: Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Chung-Lin Tang <cltang@codesourcery.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Tuesday 15 July 2014 16:45:39 Ley Foon Tan wrote:
-> +#ifndef _ASM_NIOS2_IRQ_H
-> +#define _ASM_NIOS2_IRQ_H
-> +
-> +#define NIOS2_CPU_NR_IRQS	32
-> +/* Reserve 32 additional interrupts for GPIO IRQs */
-> +#define NR_IRQS			(NIOS2_CPU_NR_IRQS + 32)
+On Tue, Jul 15, 2014 at 5:08 PM, Tobias Klauser <tklauser@distanz.ch> wrote:
+>
+> On 2014-07-15 at 10:45:27 +0200, Ley Foon Tan <lftan@altera.com> wrote:
 
-Is this intentional? I would expect that you use SPARSE_IRQ
-instead and not define NR_IRQS.
+>
+> Very nice work Ley Foon! It's great to see the Nios II port finally
+> making it upstream.
+>
+> I'll test the series on the NEEK and my custom board some time this
+> week.
 
-> +#ifndef NO_IRQ
-> +#define NO_IRQ			(-1)
-> +#endif
+Hi Tobias
 
-New architectures should no longer define NO_IRQ. Please fix all users
-you encounter instead.
+FYI, you need new compiler that support generic ABI syscall. But, this
+new compiler is not public available yet.
+Will let you know once it is available.
 
-> diff --git a/arch/nios2/kernel/irq.c b/arch/nios2/kernel/irq.c
-> new file mode 100644
-> index 0000000..8770d50
-> --- /dev/null
-> +++ b/arch/nios2/kernel/irq.c
-> +#include <linux/init.h>
-> +#include <linux/interrupt.h>
-> +#include <linux/of.h>
-
-Maybe move this into drivers/irqchip/? Probably doesn't matter either way,
-your choice.
-
-	Arnd
+Ley Foon
