@@ -1,34 +1,64 @@
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [PATCH v2 21/29] nios2: Futex operations
-Date: Tue, 15 Jul 2014 12:03:28 +0200 (CEST)
-Message-ID: <alpine.DEB.2.10.1407151201170.24854@nanos>
-References: <1405413956-2772-1-git-send-email-lftan@altera.com> <1405413956-2772-22-git-send-email-lftan@altera.com>
+From: James Hogan <james.hogan@imgtec.com>
+Subject: Re: [PATCH 13/38] arm64: clean-up uapi Kbuild file
+Date: Tue, 15 Jul 2014 11:14:21 +0100
+Message-ID: <53C4FEFD.20104@imgtec.com>
+References: <20140714150609.GA28358@ravnborg.org> <1405350546-28467-1-git-send-email-sam@ravnborg.org> <1405350546-28467-13-git-send-email-sam@ravnborg.org>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
-Return-path: <linux-doc-owner@vger.kernel.org>
-In-Reply-To: <1405413956-2772-22-git-send-email-lftan@altera.com>
-Sender: linux-doc-owner@vger.kernel.org
-To: Ley Foon Tan <lftan@altera.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, lftan.linux@gmail.com, cltang@codesourcery.com
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="ISO-8859-1"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mailapp01.imgtec.com ([195.59.15.196]:46329 "EHLO
+	mailapp01.imgtec.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1758008AbaGOKOZ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 15 Jul 2014 06:14:25 -0400
+In-Reply-To: <1405350546-28467-13-git-send-email-sam@ravnborg.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Sam Ravnborg <sam@ravnborg.org>, Arnd Bergmann <arnd@arndb.de>
+Cc: lkml <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>
 
-On Tue, 15 Jul 2014, Ley Foon Tan wrote:
- +static inline int atomic_futex_op_xchg_set(int oparg, u32 __user *uaddr,
-> +					   int *oldval)
-> +{
-> +	unsigned long flags;
-> +	int ret;
-> +
-> +	local_irq_save(flags);
-> +
-> +	ret = get_user(*oldval, uaddr);
-> +	if (!ret)
-> +		ret = put_user(oparg, uaddr);
+On 14/07/14 16:08, Sam Ravnborg wrote:
+> Remove redundant assignments.
+> 
+> Signed-off-by: Sam Ravnborg <sam@ravnborg.org>
+> Cc: Catalin Marinas <catalin.marinas@arm.com>
+> Cc: Will Deacon <will.deacon@arm.com>
+> ---
+>  arch/arm64/include/uapi/asm/Kbuild | 16 ----------------
+>  1 file changed, 16 deletions(-)
+> 
+> diff --git a/arch/arm64/include/uapi/asm/Kbuild b/arch/arm64/include/uapi/asm/Kbuild
+> index 942376d..aa17aa8 100644
+> --- a/arch/arm64/include/uapi/asm/Kbuild
+> +++ b/arch/arm64/include/uapi/asm/Kbuild
+> @@ -1,21 +1,5 @@
+>  # UAPI Header export list
+>  include include/uapi/asm-generic/Kbuild.asm
+>  
+> -generic-y += kvm_para.h
 
-This is wrong as it gets. get_user() might fault and sleep.
+Don't you need this in order for it to be picked up by patch 9 and
+exported? I guess the non-uapi generic-y += kvm_para.h might be
+redundant though.
 
-You need a proper implementation, which handles fault exceptions.
+Cheers
+James
 
-Thanks,
-
-	tglx
+> -
+> -header-y += auxvec.h
+> -header-y += bitsperlong.h
+> -header-y += byteorder.h
+> -header-y += fcntl.h
+>  header-y += hwcap.h
+> -header-y += kvm_para.h
+>  header-y += perf_regs.h
+> -header-y += param.h
+> -header-y += ptrace.h
+> -header-y += setup.h
+> -header-y += sigcontext.h
+> -header-y += siginfo.h
+> -header-y += signal.h
+> -header-y += stat.h
+> -header-y += statfs.h
+> -header-y += unistd.h
+> 
