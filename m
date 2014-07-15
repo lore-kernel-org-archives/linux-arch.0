@@ -1,44 +1,67 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH v2 24/29] nios2: Module support
-Date: Tue, 15 Jul 2014 12:24:46 +0200
-Message-ID: <6364841.e2Acy30lOs@wuerfel>
-References: <1405413956-2772-1-git-send-email-lftan@altera.com> <1405413956-2772-25-git-send-email-lftan@altera.com>
+From: Ley Foon Tan <lftan@altera.com>
+Subject: Re: [PATCH v2 06/29] nios2: I/O Mapping
+Date: Tue, 15 Jul 2014 18:51:16 +0800
+Message-ID: <CAFiDJ58U-uK1izCB1w2-+v-_RWp=3=WEdK29+bhMshh_is9RtQ@mail.gmail.com>
+References: <1405413956-2772-1-git-send-email-lftan@altera.com>
+	<1405413956-2772-7-git-send-email-lftan@altera.com>
+	<6508070.FGfEk39Nmq@wuerfel>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7Bit
-Return-path: <linux-doc-owner@vger.kernel.org>
-In-Reply-To: <1405413956-2772-25-git-send-email-lftan@altera.com>
-Sender: linux-doc-owner@vger.kernel.org
-To: Ley Foon Tan <lftan@altera.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, lftan.linux@gmail.com, cltang@codesourcery.com
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=UTF-8
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-qg0-f42.google.com ([209.85.192.42]:56055 "EHLO
+	mail-qg0-f42.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1758038AbaGOKvR (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 15 Jul 2014 06:51:17 -0400
+In-Reply-To: <6508070.FGfEk39Nmq@wuerfel>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Chung-Lin Tang <cltang@codesourcery.com>
 
-On Tuesday 15 July 2014 16:45:51 Ley Foon Tan wrote:
-> +void *module_alloc(unsigned long size)
-> +{
-> +	if (size == 0)
-> +		return NULL;
-> +	return kmalloc(size, GFP_KERNEL);
-> +}
-> +
-> +/* Free memory returned from module_alloc */
-> +void module_free(struct module *mod, void *module_region)
-> +{
-> +	kfree(module_region);
-> +}
+On Tue, Jul 15, 2014 at 5:22 PM, Arnd Bergmann <arnd@arndb.de> wrote:
+> On Tuesday 15 July 2014 16:45:33 Ley Foon Tan wrote:
+>> +#ifdef __IO_USE_DUFFS
+>> +
+>> +/* Use "Duff's Device" to unroll the loops. */
+>> +#define __IO_OUT_LOOP(a, b, l)                               \
+>> +     do {                                            \
+>
+> The I/O loops can probably better go into the C file that uses them.
+Okay.
 
-Any particular reason for defining these to use kmalloc rather than
-the default vmalloc based functions?
 
-Note that kmalloc is more limited in size and won't work if the memory
-is fragmented, while vmalloc has a small overhead on some architectures
-due to TLB pressure, but only if the normal kernel memory is able to
-use huge pages.
+>
+> These should either use inline functions or macros that behave like them,
+> to avoid miscompilation. The normal way to define those macros is
+>
+> #define inb(a) ({ 0; })
+> #define outb(x, a) do { } while (0)
+Okay, will update these.
 
-> +void module_arch_cleanup(struct module *mod)
-> +{
-> +}
+>
+>> +static inline void __iomem *ioremap_writethrough(unsigned long physaddr,
+>> +                                             unsigned long size)
+>> +{
+>> +     return __ioremap(physaddr, size, 0);
+>> +}
+>
+> ioremap_writethrough() is not a standard interface, just drop it.
+Okay, will drop this.
+>
+>> +static inline void __iomem *ioremap_fullcache(unsigned long physaddr,
+>> +                                             unsigned long size)
+>> +{
+>> +     return __ioremap(physaddr, size, _PAGE_CACHED);
+>> +}
+>
+> This is more commonly called ioremap_cache().
+>
+> ioremap_fullcache() is defined on some architectures but never used. If
+> you don't use this in your own code, you can drop it as well.
 
-This is not needed at all.
+We are not using ioremap_fullcache(), will drop it.
 
-	Arnd
+Thanks.
+
+Regards
+Ley Foon
