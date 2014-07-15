@@ -1,37 +1,44 @@
-From: Joe Perches <joe@perches.com>
-Subject: Re: [PATCH v2 27/29] MAINTAINERS: Add nios2 maintainer
-Date: Tue, 15 Jul 2014 04:10:15 -0700
-Message-ID: <1405422615.14773.1.camel@joe-AO725>
+From: Tobias Klauser <tklauser@distanz.ch>
+Subject: Re: [PATCH v2 24/29] nios2: Module support
+Date: Tue, 15 Jul 2014 13:12:37 +0200
+Message-ID: <20140715111237.GF7668@distanz.ch>
 References: <1405413956-2772-1-git-send-email-lftan@altera.com>
-	 <1405413956-2772-28-git-send-email-lftan@altera.com>
+ <1405413956-2772-25-git-send-email-lftan@altera.com>
+ <6364841.e2Acy30lOs@wuerfel>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="ISO-8859-1"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtprelay0045.hostedemail.com ([216.40.44.45]:36112 "EHLO
-	smtprelay.hostedemail.com" rhost-flags-OK-OK-OK-FAIL)
-	by vger.kernel.org with ESMTP id S1758752AbaGOLKV (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 15 Jul 2014 07:10:21 -0400
-In-Reply-To: <1405413956-2772-28-git-send-email-lftan@altera.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Ley Foon Tan <lftan@altera.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, lftan.linux@gmail.com, cltang@codesourcery.com
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-doc-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <6364841.e2Acy30lOs@wuerfel>
+Sender: linux-doc-owner@vger.kernel.org
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Ley Foon Tan <lftan@altera.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, lftan.linux@gmail.com, cltang@codesourcery.com
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, 2014-07-15 at 16:45 +0800, Ley Foon Tan wrote:
-> Signed-off-by: Ley Foon Tan <lftan@altera.com>
+On 2014-07-15 at 12:24:46 +0200, Arnd Bergmann <arnd@arndb.de> wrote:
+> On Tuesday 15 July 2014 16:45:51 Ley Foon Tan wrote:
+> > +void *module_alloc(unsigned long size)
+> > +{
+> > +	if (size == 0)
+> > +		return NULL;
+> > +	return kmalloc(size, GFP_KERNEL);
+> > +}
+> > +
+> > +/* Free memory returned from module_alloc */
+> > +void module_free(struct module *mod, void *module_region)
+> > +{
+> > +	kfree(module_region);
+> > +}
+> 
+> Any particular reason for defining these to use kmalloc rather than
+> the default vmalloc based functions?
 
-trivia:
+AFAIR this is due to relocation issues, as the FIXME comment in the
+"original" code [1] states. I don't know whether this still applies,
+though (or what would be the proper fix for this to overcome the
+relocation issues).
 
-> diff --git a/MAINTAINERS b/MAINTAINERS
-[]
-> @@ -6350,6 +6350,13 @@ S:	Maintained
-[]
-> +NIOS2 ARCHITECTURE
-> +M:	Ley Foon Tan <lftan@altera.com>
-> +L:	nios2-dev@lists.rocketboards.org (moderated for non-subscribers)
-> +T:	git://git.rocketboards.org/linux-socfpga.git
+[1] https://github.com/tklauser/linux-nios2/blob/nios2/arch/nios2/kernel/module.c#L45
 
-this should be:
-T:	git git://git.rocketboards.org/linux-socfpga.git
+Cheers
+Tobias
