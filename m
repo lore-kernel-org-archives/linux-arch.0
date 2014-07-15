@@ -1,64 +1,122 @@
-From: James Hogan <james.hogan@imgtec.com>
-Subject: Re: [PATCH 13/38] arm64: clean-up uapi Kbuild file
-Date: Tue, 15 Jul 2014 11:14:21 +0100
-Message-ID: <53C4FEFD.20104@imgtec.com>
-References: <20140714150609.GA28358@ravnborg.org> <1405350546-28467-1-git-send-email-sam@ravnborg.org> <1405350546-28467-13-git-send-email-sam@ravnborg.org>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH v2 22/29] nios2: Miscellaneous header files
+Date: Tue, 15 Jul 2014 12:22:01 +0200
+Message-ID: <4999408.jEEY9BVX9F@wuerfel>
+References: <1405413956-2772-1-git-send-email-lftan@altera.com> <1405413956-2772-23-git-send-email-lftan@altera.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="ISO-8859-1"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mailapp01.imgtec.com ([195.59.15.196]:46329 "EHLO
-	mailapp01.imgtec.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1758008AbaGOKOZ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 15 Jul 2014 06:14:25 -0400
-In-Reply-To: <1405350546-28467-13-git-send-email-sam@ravnborg.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Sam Ravnborg <sam@ravnborg.org>, Arnd Bergmann <arnd@arndb.de>
-Cc: lkml <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7Bit
+Return-path: <linux-doc-owner@vger.kernel.org>
+In-Reply-To: <1405413956-2772-23-git-send-email-lftan@altera.com>
+Sender: linux-doc-owner@vger.kernel.org
+To: Ley Foon Tan <lftan@altera.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, lftan.linux@gmail.com, cltang@codesourcery.com
+List-Id: linux-arch.vger.kernel.org
 
-On 14/07/14 16:08, Sam Ravnborg wrote:
-> Remove redundant assignments.
-> 
-> Signed-off-by: Sam Ravnborg <sam@ravnborg.org>
-> Cc: Catalin Marinas <catalin.marinas@arm.com>
-> Cc: Will Deacon <will.deacon@arm.com>
-> ---
->  arch/arm64/include/uapi/asm/Kbuild | 16 ----------------
->  1 file changed, 16 deletions(-)
-> 
-> diff --git a/arch/arm64/include/uapi/asm/Kbuild b/arch/arm64/include/uapi/asm/Kbuild
-> index 942376d..aa17aa8 100644
-> --- a/arch/arm64/include/uapi/asm/Kbuild
-> +++ b/arch/arm64/include/uapi/asm/Kbuild
-> @@ -1,21 +1,5 @@
->  # UAPI Header export list
->  include include/uapi/asm-generic/Kbuild.asm
->  
-> -generic-y += kvm_para.h
+On Tuesday 15 July 2014 16:45:49 Ley Foon Tan wrote:
+> diff --git a/arch/nios2/include/asm/gpio.h b/arch/nios2/include/asm/gpio.h
+> new file mode 100644
+> index 0000000..e726bfc
+> --- /dev/null
+> +++ b/arch/nios2/include/asm/gpio.h
+> @@ -0,0 +1,23 @@
+> +/*
+> + * Copyright (C) 2013 Altera Corporation
+> + *
+> + * This program is free software; you can redistribute it and/or modify it
+> + * under the terms and conditions of the GNU General Public License,
+> + * version 2, as published by the Free Software Foundation.
+> + *
+> + * This program is distributed in the hope it will be useful, but WITHOUT
+> + * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+> + * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
+> + * more details.
+> + *
+> + * You should have received a copy of the GNU General Public License along with
+> + * this program.  If not, see <http://www.gnu.org/licenses/>.
+> + *
+> + */
+> +
+> +#ifndef _ASM_NIOS2_GPIO_H
+> +#define _ASM_NIOS2_GPIO_H
+> +
+> +#include <linux/gpio.h>
+> +
+> +#endif /* _ASM_NIOS2_GPIO_H */
 
-Don't you need this in order for it to be picked up by patch 9 and
-exported? I guess the non-uapi generic-y += kvm_para.h might be
-redundant though.
+This seems wrong. If any device drivers rely on this, better fix them to
+use linux/gpio.h directly.
 
-Cheers
-James
+> diff --git a/arch/nios2/include/asm/pci.h b/arch/nios2/include/asm/pci.h
+> new file mode 100644
+> index 0000000..69c86fa
+> --- /dev/null
+> +++ b/arch/nios2/include/asm/pci.h
+> @@ -0,0 +1,25 @@
+> +/*
+> + *  Copyright (C) 2013 Altera Corporation
+> + *
+> + * This program is free software; you can redistribute it and/or modify
+> + * it under the terms of the GNU General Public License as published by
+> + * the Free Software Foundation; either version 2 of the License, or
+> + * (at your option) any later version.
+> + *
+> + * This program is distributed in the hope that it will be useful,
+> + * but WITHOUT ANY WARRANTY; without even the implied warranty of
+> + * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+> + * GNU General Public License for more details.
+> + *
+> + * You should have received a copy of the GNU General Public License
+> + * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+> + *
+> + */
+> +
+> +
+> +#ifndef __ASM_NIOS2_PCI_H__
+> +#define __ASM_NIOS2_PCI_H__
+> +
+> +/* We don't support PCI yet, but some drivers require this file anyway */
+> +
+> +#endif /* __ASM_NIOS2_PCI_H__ */
 
-> -
-> -header-y += auxvec.h
-> -header-y += bitsperlong.h
-> -header-y += byteorder.h
-> -header-y += fcntl.h
->  header-y += hwcap.h
-> -header-y += kvm_para.h
->  header-y += perf_regs.h
-> -header-y += param.h
-> -header-y += ptrace.h
-> -header-y += setup.h
-> -header-y += sigcontext.h
-> -header-y += siginfo.h
-> -header-y += signal.h
-> -header-y += stat.h
-> -header-y += statfs.h
-> -header-y += unistd.h
-> 
+What's wrong with the generic version?
+
+> +#ifndef _UAPI_ASM_NIOS2_STAT_H
+> +#define _UAPI_ASM_NIOS2_STAT_H
+> +
+> +#include <asm-generic/stat.h>
+> +
+> +#endif
+
+This should just use the Kconfig logic to fall back on the generic file.
+
+
+> +
+> +#ifndef _UAPI_ASM_NIOS2_STATFS_H
+> +#define _UAPI_ASM_NIOS2_STATFS_H
+> +
+> +#define __statfs_word __s32
+
+Why this? Every other architecture except parisc uses the default __u32 here.
+
+> +#include <linux/types.h>
+> +#include <asm-generic/swab.h>
+> +
+> +#ifdef CONFIG_NIOS2_CI_SWAB_SUPPORT
+> +#ifdef __GNUC__
+> +
+> +#define __nios2_swab(x)		\
+> +	__builtin_custom_ini(CONFIG_NIOS2_CI_SWAB_NO, (x))
+> +
+> +static inline __attribute__((const)) __u16 __arch_swab16(__u16 x)
+> +{
+> +	return (__u16) __nios2_swab(((__u32) x) << 16);
+> +}
+
+Is this actually better than ___constant_swab16()?
+
+Also, have you checked if you need to support old compiler versions that
+don't have __builtin_bswap16/32/64? With newer compilers you don't need
+to define any of these yourself.
+
+	Arnd
