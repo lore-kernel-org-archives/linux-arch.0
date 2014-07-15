@@ -1,29 +1,52 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:10850 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1758734AbaGONQ3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 15 Jul 2014 09:16:29 -0400
-From: David Howells <dhowells@redhat.com>
-In-Reply-To: <1405413956-2772-1-git-send-email-lftan@altera.com>
-References: <1405413956-2772-1-git-send-email-lftan@altera.com>
-Subject: Re: [PATCH v2 00/29] nios2 Linux kernel port
+Received: from mail-vc0-f171.google.com ([209.85.220.171]:55865 "EHLO
+	mail-vc0-f171.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753062AbaGON50 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 15 Jul 2014 09:57:26 -0400
 MIME-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-ID: <4212.1405430178.1@warthog.procyon.org.uk>
-Date: Tue, 15 Jul 2014 14:16:18 +0100
-Message-ID: <4213.1405430178@warthog.procyon.org.uk>
+In-Reply-To: <1405350546-28467-4-git-send-email-sam@ravnborg.org>
+References: <20140714150609.GA28358@ravnborg.org>
+	<1405350546-28467-1-git-send-email-sam@ravnborg.org>
+	<1405350546-28467-4-git-send-email-sam@ravnborg.org>
+Date: Tue, 15 Jul 2014 21:57:24 +0800
+Message-ID: <CAF0htA7-_50ctd9PwpGiWNVMjehomaOh1UK2f9zgwW7T+40NDg@mail.gmail.com>
+Subject: Re: [PATCH 04/38] score: drop irrelevant assignment from Kbuild file
+From: Lennox Wu <lennox.wu@gmail.com>
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ley Foon Tan <lftan@altera.com>
-Cc: dhowells@redhat.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, lftan.linux@gmail.com, cltang@codesourcery.com
-Message-ID: <20140715131618.6awPdokrNI6OCNDmYXwAQUnmnEjlzBHPsj-wgHPCQDw@z>
+To: Sam Ravnborg <sam@ravnborg.org>
+Cc: Arnd Bergmann <arnd@arndb.de>, lkml <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Chen Liqin <liqin.linux@gmail.com>, David Howells <dhowells@redhat.com>
+Message-ID: <20140715135724.gt44HCP_0wk-PM4UXOa0vcxA65zjMmDKxaS1am4aX-Q@z>
 
-Ley Foon Tan <lftan@altera.com> wrote:
+Thanks :)
 
-> Nios2 GCC port is in mainline and will be in the FSF 4.9 release.
+Acked-by: Lennox Wu<lennox.wu@gmail.com>
 
-I managed to build a nios2-linux-gnu cross compiler from gcc-4.9.0 that I can
-add to the Fedora cross-compiler set.  I can't build libgcc without kernel
-headers, though:-/
 
-David
+2014-07-14 23:08 GMT+08:00 Sam Ravnborg <sam@ravnborg.org>:
+> header-y assignemnt in this file has no effect - drop it.
+>
+> Signed-off-by: Sam Ravnborg <sam@ravnborg.org>
+> Cc: Chen Liqin <liqin.linux@gmail.com>
+> Cc: Lennox Wu <lennox.wu@gmail.com>
+> Cc: David Howells <dhowells@redhat.com>
+> ---
+>  arch/score/include/asm/Kbuild | 3 ---
+>  1 file changed, 3 deletions(-)
+>
+> diff --git a/arch/score/include/asm/Kbuild b/arch/score/include/asm/Kbuild
+> index 2f947ab..f67b3f6 100644
+> --- a/arch/score/include/asm/Kbuild
+> +++ b/arch/score/include/asm/Kbuild
+> @@ -1,7 +1,4 @@
+>
+> -header-y +=
+> -
+> -
+>  generic-y += barrier.h
+>  generic-y += clkdev.h
+>  generic-y += cputime.h
+> --
+> 1.9.3
+>
