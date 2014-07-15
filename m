@@ -1,48 +1,56 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from sym2.noone.org ([178.63.92.236]:55642 "EHLO sym2.noone.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1758154AbaGOJQl (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 15 Jul 2014 05:16:41 -0400
-Date: Tue, 15 Jul 2014 11:08:13 +0200
-From: Tobias Klauser <tklauser@distanz.ch>
-Subject: Re: [PATCH v2 00/29] nios2 Linux kernel port
-Message-ID: <20140715090813.GE7668@distanz.ch>
-References: <1405413956-2772-1-git-send-email-lftan@altera.com>
+Received: from mailapp01.imgtec.com ([195.59.15.196]:18357 "EHLO
+	mailapp01.imgtec.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751256AbaGOJWS (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 15 Jul 2014 05:22:18 -0400
+Message-ID: <53C4F2C6.8050303@imgtec.com>
+Date: Tue, 15 Jul 2014 10:22:14 +0100
+From: James Hogan <james.hogan@imgtec.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1405413956-2772-1-git-send-email-lftan@altera.com>
+Subject: Re: [PATCH 23/38] metag: clean-up uapi Kbuild file
+References: <20140714150609.GA28358@ravnborg.org> <1405350546-28467-1-git-send-email-sam@ravnborg.org> <1405350546-28467-23-git-send-email-sam@ravnborg.org>
+In-Reply-To: <1405350546-28467-23-git-send-email-sam@ravnborg.org>
+Content-Type: text/plain; charset="ISO-8859-1"
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ley Foon Tan <lftan@altera.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, lftan.linux@gmail.com, cltang@codesourcery.com
-Message-ID: <20140715090813.zBcu2DflofoE-9rYJ7dkH1bzp_yHXz4JkqCpUhwaNP8@z>
+To: Sam Ravnborg <sam@ravnborg.org>, Arnd Bergmann <arnd@arndb.de>
+Cc: lkml <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, linux-metag <linux-metag@vger.kernel.org>
+Message-ID: <20140715092214.vRHY1Acoe7GzfEH7H7ZkwkV3gRI-O70CnwRJ3SR4qjo@z>
 
-On 2014-07-15 at 10:45:27 +0200, Ley Foon Tan <lftan@altera.com> wrote:
-> This is the 2nd version of patchset adds the Linux kernel port for Nios II processor from
-> Altera. All of the feedback from v1 patchseries has been addressed. Thanks to all who
-> provided feedback on the previous version.
+On 14/07/14 16:08, Sam Ravnborg wrote:
+> Remove redundant assignments.
 > 
-> About Nios II Cores
-> -------------------
-> Nios II is a 32-bit embedded-processor architecture designed specifically for the
-> Altera family of FPGAs.
-> More information is available  at http://www.altera.com/devices/processor/nios2/ni2-index.html
-> 
-> Instruction set and architecture overview documents can be found on the
-> following page:
-> http://www.altera.com/literature/lit-nio2.jsp
-> 
-> Nios2 GCC port is in mainline and will be in the FSF 4.9 release.
-> 
-> The patchset are based on v3.16-rc5 and can also be found in the following git tree:
-> git://git.rocketboards.org/linux-socfpga-next.git  nios2-upstream
+> Signed-off-by: Sam Ravnborg <sam@ravnborg.org>
+> Cc: James Hogan <james.hogan@imgtec.com>
 
-Very nice work Ley Foon! It's great to see the Nios II port finally
-making it upstream.
+Acked-by: James Hogan <james.hogan@imgtec.com>
 
-I'll test the series on the NEEK and my custom board some time this
-week.
+Thanks!
+James
 
-Cheers
-Tobias
+> ---
+>  arch/metag/include/uapi/asm/Kbuild | 7 +------
+>  1 file changed, 1 insertion(+), 6 deletions(-)
+> 
+> diff --git a/arch/metag/include/uapi/asm/Kbuild b/arch/metag/include/uapi/asm/Kbuild
+> index ab78be2..1f7f43f 100644
+> --- a/arch/metag/include/uapi/asm/Kbuild
+> +++ b/arch/metag/include/uapi/asm/Kbuild
+> @@ -1,14 +1,9 @@
+>  # UAPI Header export list
+>  include include/uapi/asm-generic/Kbuild.asm
+>  
+> -header-y += byteorder.h
+>  header-y += ech.h
+> -header-y += ptrace.h
+> -header-y += sigcontext.h
+> -header-y += siginfo.h
+> -header-y += swab.h
+> -header-y += unistd.h
+>  
+> +# Wrappers from asm-generic
+>  generic-y += mman.h
+>  generic-y += resource.h
+>  generic-y += setup.h
+> 
