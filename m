@@ -1,66 +1,34 @@
-From: Ley Foon Tan <lftan@altera.com>
-Subject: Re: [PATCH v2 18/29] nios2: Device tree support
-Date: Tue, 15 Jul 2014 18:02:01 +0800
-Message-ID: <CAFiDJ59ip=m-6hUOukYaWGNc+id06BwBq-imAzqn+RTpZ6vvEw@mail.gmail.com>
-References: <1405413956-2772-1-git-send-email-lftan@altera.com>
-	<1405413956-2772-19-git-send-email-lftan@altera.com>
-	<5098448.1h12jNJ4cv@wuerfel>
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: Re: [PATCH v2 21/29] nios2: Futex operations
+Date: Tue, 15 Jul 2014 12:03:28 +0200 (CEST)
+Message-ID: <alpine.DEB.2.10.1407151201170.24854@nanos>
+References: <1405413956-2772-1-git-send-email-lftan@altera.com> <1405413956-2772-22-git-send-email-lftan@altera.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Return-path: <linux-doc-owner@vger.kernel.org>
-In-Reply-To: <5098448.1h12jNJ4cv@wuerfel>
+In-Reply-To: <1405413956-2772-22-git-send-email-lftan@altera.com>
 Sender: linux-doc-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Chung-Lin Tang <cltang@codesourcery.com>
+To: Ley Foon Tan <lftan@altera.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, lftan.linux@gmail.com, cltang@codesourcery.com
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Jul 15, 2014 at 5:41 PM, Arnd Bergmann <arnd@arndb.de> wrote:
-> On Tuesday 15 July 2014 16:45:45 Ley Foon Tan wrote:
->> +static struct of_device_id altera_of_bus_ids[] __initdata = {
->> +       { .compatible = "simple-bus", },
->> +       { .compatible = "altr,avalon", },
->> +       {}
->> +};
->
-> Can you change the avalon bus nodes to be compatible to with "simple-bus"
-> as well, so you can use the default id list?
-Yes, it is compatible with both "altr,avalon" and "simple-bus". We can
-change it to default id list.
+On Tue, 15 Jul 2014, Ley Foon Tan wrote:
+ +static inline int atomic_futex_op_xchg_set(int oparg, u32 __user *uaddr,
+> +					   int *oldval)
+> +{
+> +	unsigned long flags;
+> +	int ret;
+> +
+> +	local_irq_save(flags);
+> +
+> +	ret = get_user(*oldval, uaddr);
+> +	if (!ret)
+> +		ret = put_user(oparg, uaddr);
 
-compatible = "altr,avalon", "simple-bus";
+This is wrong as it gets. get_user() might fault and sleep.
 
->
->> +static int __init nios2_soc_device_init(void)
->> +{
->> +       struct soc_device *soc_dev;
->> +       struct soc_device_attribute *soc_dev_attr;
->> +       const char *machine;
->> +
->> +       soc_dev_attr = kzalloc(sizeof(*soc_dev_attr), GFP_KERNEL);
->> +       if (soc_dev_attr) {
->> +               machine = of_flat_dt_get_machine_name();
->> +               if (machine)
->> +                       soc_dev_attr->machine = kasprintf(GFP_KERNEL, "%s",
->> +                                               machine);
->> +
->> +               soc_dev_attr->family = "Nios II";
->> +
->> +               soc_dev = soc_device_register(soc_dev_attr);
->> +               if (IS_ERR(soc_dev)) {
->> +                       kfree(soc_dev_attr->machine);
->> +                       kfree(soc_dev_attr);
->> +               }
->> +       }
->> +
->> +       return of_platform_bus_probe(NULL, altera_of_bus_ids, NULL);
->> +}
->> +
->> +device_initcall(nios2_soc_device_init);
->>
-> I think you should use of_platform_populate instead of of_platform_bus_probe
-> here.
+You need a proper implementation, which handles fault exceptions.
 
-Okay, will change to of_platform_populate().
+Thanks,
 
-Regards
-Ley Foon
+	tglx
