@@ -1,14 +1,14 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.17.13]:50283 "EHLO
+Received: from mout.kundenserver.de ([212.227.126.131]:58763 "EHLO
 	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1758479AbaGOKWF (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 15 Jul 2014 06:22:05 -0400
+	with ESMTP id S1758043AbaGOKYu (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 15 Jul 2014 06:24:50 -0400
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH v2 22/29] nios2: Miscellaneous header files
-Date: Tue, 15 Jul 2014 12:22:01 +0200
-Message-ID: <4999408.jEEY9BVX9F@wuerfel>
-In-Reply-To: <1405413956-2772-23-git-send-email-lftan@altera.com>
-References: <1405413956-2772-1-git-send-email-lftan@altera.com> <1405413956-2772-23-git-send-email-lftan@altera.com>
+Subject: Re: [PATCH v2 24/29] nios2: Module support
+Date: Tue, 15 Jul 2014 12:24:46 +0200
+Message-ID: <6364841.e2Acy30lOs@wuerfel>
+In-Reply-To: <1405413956-2772-25-git-send-email-lftan@altera.com>
+References: <1405413956-2772-1-git-send-email-lftan@altera.com> <1405413956-2772-25-git-send-email-lftan@altera.com>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 7Bit
 Content-Type: text/plain; charset="us-ascii"
@@ -16,112 +16,34 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Ley Foon Tan <lftan@altera.com>
 Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, lftan.linux@gmail.com, cltang@codesourcery.com
-Message-ID: <20140715102201.cXiXk9eHNNz5HWN8jeHbLMstgTztLStKZH3Qb2ENHLM@z>
+Message-ID: <20140715102446.m9HVHuwX9UdGSRttumyJD6n_NBQMm38mCp6e10B3gQc@z>
 
-On Tuesday 15 July 2014 16:45:49 Ley Foon Tan wrote:
-> diff --git a/arch/nios2/include/asm/gpio.h b/arch/nios2/include/asm/gpio.h
-> new file mode 100644
-> index 0000000..e726bfc
-> --- /dev/null
-> +++ b/arch/nios2/include/asm/gpio.h
-> @@ -0,0 +1,23 @@
-> +/*
-> + * Copyright (C) 2013 Altera Corporation
-> + *
-> + * This program is free software; you can redistribute it and/or modify it
-> + * under the terms and conditions of the GNU General Public License,
-> + * version 2, as published by the Free Software Foundation.
-> + *
-> + * This program is distributed in the hope it will be useful, but WITHOUT
-> + * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-> + * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
-> + * more details.
-> + *
-> + * You should have received a copy of the GNU General Public License along with
-> + * this program.  If not, see <http://www.gnu.org/licenses/>.
-> + *
-> + */
-> +
-> +#ifndef _ASM_NIOS2_GPIO_H
-> +#define _ASM_NIOS2_GPIO_H
-> +
-> +#include <linux/gpio.h>
-> +
-> +#endif /* _ASM_NIOS2_GPIO_H */
-
-This seems wrong. If any device drivers rely on this, better fix them to
-use linux/gpio.h directly.
-
-> diff --git a/arch/nios2/include/asm/pci.h b/arch/nios2/include/asm/pci.h
-> new file mode 100644
-> index 0000000..69c86fa
-> --- /dev/null
-> +++ b/arch/nios2/include/asm/pci.h
-> @@ -0,0 +1,25 @@
-> +/*
-> + *  Copyright (C) 2013 Altera Corporation
-> + *
-> + * This program is free software; you can redistribute it and/or modify
-> + * it under the terms of the GNU General Public License as published by
-> + * the Free Software Foundation; either version 2 of the License, or
-> + * (at your option) any later version.
-> + *
-> + * This program is distributed in the hope that it will be useful,
-> + * but WITHOUT ANY WARRANTY; without even the implied warranty of
-> + * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-> + * GNU General Public License for more details.
-> + *
-> + * You should have received a copy of the GNU General Public License
-> + * along with this program.  If not, see <http://www.gnu.org/licenses/>.
-> + *
-> + */
-> +
-> +
-> +#ifndef __ASM_NIOS2_PCI_H__
-> +#define __ASM_NIOS2_PCI_H__
-> +
-> +/* We don't support PCI yet, but some drivers require this file anyway */
-> +
-> +#endif /* __ASM_NIOS2_PCI_H__ */
-
-What's wrong with the generic version?
-
-> +#ifndef _UAPI_ASM_NIOS2_STAT_H
-> +#define _UAPI_ASM_NIOS2_STAT_H
-> +
-> +#include <asm-generic/stat.h>
-> +
-> +#endif
-
-This should just use the Kconfig logic to fall back on the generic file.
-
-
-> +
-> +#ifndef _UAPI_ASM_NIOS2_STATFS_H
-> +#define _UAPI_ASM_NIOS2_STATFS_H
-> +
-> +#define __statfs_word __s32
-
-Why this? Every other architecture except parisc uses the default __u32 here.
-
-> +#include <linux/types.h>
-> +#include <asm-generic/swab.h>
-> +
-> +#ifdef CONFIG_NIOS2_CI_SWAB_SUPPORT
-> +#ifdef __GNUC__
-> +
-> +#define __nios2_swab(x)		\
-> +	__builtin_custom_ini(CONFIG_NIOS2_CI_SWAB_NO, (x))
-> +
-> +static inline __attribute__((const)) __u16 __arch_swab16(__u16 x)
+On Tuesday 15 July 2014 16:45:51 Ley Foon Tan wrote:
+> +void *module_alloc(unsigned long size)
 > +{
-> +	return (__u16) __nios2_swab(((__u32) x) << 16);
+> +	if (size == 0)
+> +		return NULL;
+> +	return kmalloc(size, GFP_KERNEL);
+> +}
+> +
+> +/* Free memory returned from module_alloc */
+> +void module_free(struct module *mod, void *module_region)
+> +{
+> +	kfree(module_region);
 > +}
 
-Is this actually better than ___constant_swab16()?
+Any particular reason for defining these to use kmalloc rather than
+the default vmalloc based functions?
 
-Also, have you checked if you need to support old compiler versions that
-don't have __builtin_bswap16/32/64? With newer compilers you don't need
-to define any of these yourself.
+Note that kmalloc is more limited in size and won't work if the memory
+is fragmented, while vmalloc has a small overhead on some architectures
+due to TLB pressure, but only if the normal kernel memory is able to
+use huge pages.
+
+> +void module_arch_cleanup(struct module *mod)
+> +{
+> +}
+
+This is not needed at all.
 
 	Arnd
