@@ -1,14 +1,14 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.17.10]:56814 "EHLO
+Received: from mout.kundenserver.de ([212.227.17.13]:56245 "EHLO
 	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1758260AbaGOJp3 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 15 Jul 2014 05:45:29 -0400
+	with ESMTP id S1757530AbaGOJrc (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 15 Jul 2014 05:47:32 -0400
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH v2 19/29] nios2: Time keeping
-Date: Tue, 15 Jul 2014 11:45:17 +0200
-Message-ID: <5348663.eHVXUR5shS@wuerfel>
-In-Reply-To: <1405413956-2772-20-git-send-email-lftan@altera.com>
-References: <1405413956-2772-1-git-send-email-lftan@altera.com> <1405413956-2772-20-git-send-email-lftan@altera.com>
+Subject: Re: [PATCH v2 20/29] nios2: Cpuinfo handling
+Date: Tue, 15 Jul 2014 11:47:28 +0200
+Message-ID: <7103938.6xzUh5tnai@wuerfel>
+In-Reply-To: <1405413956-2772-21-git-send-email-lftan@altera.com>
+References: <1405413956-2772-1-git-send-email-lftan@altera.com> <1405413956-2772-21-git-send-email-lftan@altera.com>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 7Bit
 Content-Type: text/plain; charset="us-ascii"
@@ -16,48 +16,31 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Ley Foon Tan <lftan@altera.com>
 Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, lftan.linux@gmail.com, cltang@codesourcery.com
-Message-ID: <20140715094517.MLlpHnh1vUYBj4pHrD12Y7q--FnTD4IaSw-wf63iE-Q@z>
+Message-ID: <20140715094728.OytBP58NUVcyaOwyOSSz6uZsPHnnBqQBntQRSGEr7Bk@z>
 
-On Tuesday 15 July 2014 16:45:46 Ley Foon Tan wrote:
-> +
-> +static inline void __delay(unsigned long loops)
+On Tuesday 15 July 2014 16:45:47 Ley Foon Tan wrote:
+> +static void *cpuinfo_start(struct seq_file *m, loff_t *pos)
 > +{
-> +	int dummy;
+> +       unsigned long i = *pos;
 > +
-> +	__asm__ __volatile__(
-> +	"1:\n\t"
-> +	"    beq    %0,zero,2f\n\t"
-> +	"    addi   %0, %0, -1\n\t"
-> +	"    br     1b\n\t"
-> +	"2:\n\t"
-> +	:  "=r" (dummy)		/* Need output for optimizer */
-> +	:  "0" (loops));	/* %0  Input */
+> +       return i < num_possible_cpus() ? (void *) (i + 1) : NULL;
+> +}
+> +
+> +static void *cpuinfo_next(struct seq_file *m, void *v, loff_t *pos)
+> +{
+> +       ++*pos;
+> +       return cpuinfo_start(m, pos);
 > +}
 
-Do you have a reliable clock source? If you do, it would be better
-to replace the delay loop with an implementation that waits for
-the exact time to pass instead. This will also avoid the loop
-calibration during boot and give you better boot times.
+Do you actually have SMP support?
 
-> +#ifndef _ASM_NIOS2_TIMEX_H
-> +#define _ASM_NIOS2_TIMEX_H
-> +
-> +/* Supply dummy tick-rate. Real value will be read from devicetree */
-> +#define CLOCK_TICK_RATE		(HZ * 100000UL)
-> +
-> +#include <asm-generic/timex.h>
-> +
-> +#endif
+> +const struct seq_operations cpuinfo_op = {
+> +       .start  = cpuinfo_start,
+> +       .next   = cpuinfo_next,
+> +       .stop   = cpuinfo_stop,
+> +       .show   = show_cpuinfo
+> +};
 
-CLOCK_TICK_RATE is no longer used anywhere, no need for this file.
-
-> diff --git a/arch/nios2/kernel/time.c b/arch/nios2/kernel/time.c
-> new file mode 100644
-> index 0000000..111ade1
-> --- /dev/null
-> +++ b/arch/nios2/kernel/time.c
-
-Maybe move this to drivers/clocksource? Same argument as for the
-irqchip driver, so either move both or neither.
+If not, you can use single_start/next/stop here rather than defining your own.
 
 	Arnd
