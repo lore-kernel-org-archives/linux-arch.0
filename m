@@ -1,62 +1,46 @@
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH v2 06/29] nios2: I/O Mapping
-Date: Tue, 15 Jul 2014 11:22:54 +0200
-Message-ID: <6508070.FGfEk39Nmq@wuerfel>
-References: <1405413956-2772-1-git-send-email-lftan@altera.com> <1405413956-2772-7-git-send-email-lftan@altera.com>
+Subject: Re: [PATCH v2 12/29] nios2: Interrupt handling
+Date: Tue, 15 Jul 2014 11:27:55 +0200
+Message-ID: <5170097.X9RFbxSEnp@wuerfel>
+References: <1405413956-2772-1-git-send-email-lftan@altera.com> <1405413956-2772-13-git-send-email-lftan@altera.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7Bit
 Return-path: <linux-doc-owner@vger.kernel.org>
-In-Reply-To: <1405413956-2772-7-git-send-email-lftan@altera.com>
+In-Reply-To: <1405413956-2772-13-git-send-email-lftan@altera.com>
 Sender: linux-doc-owner@vger.kernel.org
 To: Ley Foon Tan <lftan@altera.com>
 Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, lftan.linux@gmail.com, cltang@codesourcery.com
 List-Id: linux-arch.vger.kernel.org
 
-On Tuesday 15 July 2014 16:45:33 Ley Foon Tan wrote:
-> +#ifdef __IO_USE_DUFFS
+On Tuesday 15 July 2014 16:45:39 Ley Foon Tan wrote:
+> +#ifndef _ASM_NIOS2_IRQ_H
+> +#define _ASM_NIOS2_IRQ_H
 > +
-> +/* Use "Duff's Device" to unroll the loops. */
-> +#define __IO_OUT_LOOP(a, b, l)				\
-> +	do {						\
+> +#define NIOS2_CPU_NR_IRQS	32
+> +/* Reserve 32 additional interrupts for GPIO IRQs */
+> +#define NR_IRQS			(NIOS2_CPU_NR_IRQS + 32)
 
-The I/O loops can probably better go into the C file that uses them.
+Is this intentional? I would expect that you use SPARSE_IRQ
+instead and not define NR_IRQS.
 
-> +
-> +/*
-> + * PCI is not enabled in nios2. Provide dummy implementation to get 'allyesconfig'
-> + * to build successfully.
-> + */
-> +#define inb(addr)	0
-> +#define inw(addr)	0
-> +#define inl(addr)	0
-> +#define outb(x, addr)
-> +#define outw(x, addr)
-> +#define outl(x, addr)
+> +#ifndef NO_IRQ
+> +#define NO_IRQ			(-1)
+> +#endif
 
-These should either use inline functions or macros that behave like them,
-to avoid miscompilation. The normal way to define those macros is
+New architectures should no longer define NO_IRQ. Please fix all users
+you encounter instead.
 
-#define inb(a) ({ 0; })
-#define outb(x, a) do { } while (0)
+> diff --git a/arch/nios2/kernel/irq.c b/arch/nios2/kernel/irq.c
+> new file mode 100644
+> index 0000000..8770d50
+> --- /dev/null
+> +++ b/arch/nios2/kernel/irq.c
+> +#include <linux/init.h>
+> +#include <linux/interrupt.h>
+> +#include <linux/of.h>
 
-> +static inline void __iomem *ioremap_writethrough(unsigned long physaddr,
-> +						unsigned long size)
-> +{
-> +	return __ioremap(physaddr, size, 0);
-> +}
-
-ioremap_writethrough() is not a standard interface, just drop it.
-
-> +static inline void __iomem *ioremap_fullcache(unsigned long physaddr,
-> +						unsigned long size)
-> +{
-> +	return __ioremap(physaddr, size, _PAGE_CACHED);
-> +}
-
-This is more commonly called ioremap_cache().
-
-ioremap_fullcache() is defined on some architectures but never used. If
-you don't use this in your own code, you can drop it as well.
+Maybe move this into drivers/irqchip/? Probably doesn't matter either way,
+your choice.
 
 	Arnd
