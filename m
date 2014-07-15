@@ -1,67 +1,41 @@
-From: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
-Subject: Re: [PATCH 10/11] qspinlock: Paravirt support
-Date: Tue, 15 Jul 2014 10:23:05 -0400
-Message-ID: <20140715142305.GA3403@laptop.dumpdata.com>
-References: <20140615124657.264658593@chello.nl>
-	<20140615130154.213923590@chello.nl>
-	<20140620134608.GA11545@laptop.dumpdata.com>
-	<20140707152734.GX6758@twins.programming.kicks-ass.net>
+From: Andy Lutomirski <luto@amacapital.net>
+Subject: Re: [PATCH v3] arm64,ia64,ppc,s390,sh,tile,um,x86,mm: Remove default
+ gate area
+Date: Tue, 15 Jul 2014 07:47:26 -0700
+Message-ID: <CALCETrXG6nL4K=Er+kv5-CXBDVa0TLg9yR6iePnMyE2ufXgKkw@mail.gmail.com>
+References: <70f331f59e620dc4e66bd3fa095e6f6b744b532b.1405281639.git.luto@amacapital.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <virtualization-bounces@lists.linux-foundation.org>
-Content-Disposition: inline
-In-Reply-To: <20140707152734.GX6758@twins.programming.kicks-ass.net>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
-List-Post: <mailto:virtualization@lists.linux-foundation.org>
-List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
-Sender: virtualization-bounces@lists.linux-foundation.org
-Errors-To: virtualization-bounces@lists.linux-foundation.org
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Waiman.Long@hp.com, linux-arch@vger.kernel.org, riel@redhat.com, gleb@redhat.com, kvm@vger.kernel.org, boris.ostrovsky@oracle.com, scott.norton@hp.com, raghavendra.kt@linux.vnet.ibm.com, paolo.bonzini@gmail.com, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, chegu_vinod@hp.com, david.vrabel@citrix.com, oleg@redhat.com, xen-devel@lists.xenproject.org, tglx@linutronix.de, paulmck@linux.vnet.ibm.com, torvalds@linux-foundation.org, mingo@kernel.org
+Content-Type: text/plain; charset=UTF-8
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <70f331f59e620dc4e66bd3fa095e6f6b744b532b.1405281639.git.luto@amacapital.net>
+Sender: owner-linux-mm@kvack.org
+To: Andy Lutomirski <luto@amacapital.net>
+Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux390@de.ibm.com, Chris Metcalf <cmetcalf@tilera.com>, Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Nathan Lynch <Nathan_Lynch@mentor.com>, X86 ML <x86@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.ke
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, Jul 07, 2014 at 05:27:34PM +0200, Peter Zijlstra wrote:
-> On Fri, Jun 20, 2014 at 09:46:08AM -0400, Konrad Rzeszutek Wilk wrote:
-> > I dug in the code and I have some comments about it, but before
-> > I post them I was wondering if you have any plans to run any performance
-> > tests against the PV ticketlock with normal and over-committed scenarios?
-> 
-> I can barely boot a guest.. I'm not sure I can make them do anything
-> much at all yet. All this virt crap is totally painful.
+On Sun, Jul 13, 2014 at 1:01 PM, Andy Lutomirski <luto@amacapital.net> wrote:
+> The core mm code will provide a default gate area based on
+> FIXADDR_USER_START and FIXADDR_USER_END if
+> !defined(__HAVE_ARCH_GATE_AREA) && defined(AT_SYSINFO_EHDR).
+>
+> This default is only useful for ia64.  arm64, ppc, s390, sh, tile,
+> 64-bit UML, and x86_32 have their own code just to disable it.  arm,
+> 32-bit UML, and x86_64 have gate areas, but they have their own
+> implementations.
+>
+> This gets rid of the default and moves the code into ia64.
+>
+> This should save some code on architectures without a gate area: it's
+> now possible to inline the gate_area functions in the default case.
 
-HA!
+Can one of you pull this somewhere?  Otherwise I can put it somewhere
+stable and ask for -next inclusion, but that seems like overkill for a
+single patch.
 
-The reason I asked about that is from a pen-and-paper view it looks
-suboptimal in the worst case scenario compared to PV ticketlock.
+--Andy
 
-The 'worst case scenario' is when we over-commit (more CPUs than there
-are physical CPUs) or have to delay guests (the sum of all virtual
-CPUs > physical CPUs and all of the guests are compiling kernels).
-
-In those cases the PV ticketlock goes to sleep and gets woken up
-once the ticket holder has finished. In the PV qspinlock we do
-wake up the first in queue, but we also wake the next one in queue
-so it can progress further. And so on.
-
-Perhaps a better mechanism is just ditch the queue part and utilize
-the byte part and under KVM and Xen just do bytelocking (since we
-have 8 bits). For the PV halt/waking we can stash in the 'struct mcs'
-the current lock that each CPU is waiting for. And the unlocker
-can iterate over all of those and wake them all up. Perhaps make
-the iteration random. Anyhow, that is how the old PV bytelock under
-Xen worked (before 3.11) and it had worked pretty well (it didn't
-do it random thought - always started with 'for_each_online_cpu').
-
-Squashing in the ticketlock concept in qspinlock for PV looks
-scary.
-
-And as I said - this is all pen-and-paper - so it might be that this
-'wake-up-go-sleep-on-the-queue' kick is actually not that bad?
-
-Lastly - thank you for taking a stab at this.
-> 
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
