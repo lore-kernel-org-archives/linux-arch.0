@@ -1,46 +1,71 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.17.13]:56245 "EHLO
-	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757530AbaGOJrc (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 15 Jul 2014 05:47:32 -0400
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH v2 20/29] nios2: Cpuinfo handling
-Date: Tue, 15 Jul 2014 11:47:28 +0200
-Message-ID: <7103938.6xzUh5tnai@wuerfel>
-In-Reply-To: <1405413956-2772-21-git-send-email-lftan@altera.com>
-References: <1405413956-2772-1-git-send-email-lftan@altera.com> <1405413956-2772-21-git-send-email-lftan@altera.com>
+Received: from mail-qa0-f50.google.com ([209.85.216.50]:51937 "EHLO
+	mail-qa0-f50.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1758043AbaGOKCD (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 15 Jul 2014 06:02:03 -0400
 MIME-Version: 1.0
-Content-Transfer-Encoding: 7Bit
-Content-Type: text/plain; charset="us-ascii"
+In-Reply-To: <5098448.1h12jNJ4cv@wuerfel>
+References: <1405413956-2772-1-git-send-email-lftan@altera.com>
+	<1405413956-2772-19-git-send-email-lftan@altera.com>
+	<5098448.1h12jNJ4cv@wuerfel>
+Date: Tue, 15 Jul 2014 18:02:01 +0800
+Message-ID: <CAFiDJ59ip=m-6hUOukYaWGNc+id06BwBq-imAzqn+RTpZ6vvEw@mail.gmail.com>
+Subject: Re: [PATCH v2 18/29] nios2: Device tree support
+From: Ley Foon Tan <lftan@altera.com>
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ley Foon Tan <lftan@altera.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, lftan.linux@gmail.com, cltang@codesourcery.com
-Message-ID: <20140715094728.OytBP58NUVcyaOwyOSSz6uZsPHnnBqQBntQRSGEr7Bk@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Chung-Lin Tang <cltang@codesourcery.com>
+Message-ID: <20140715100201.8S2PnmYJHkKEbU2NmxNyJUFFgKljqeq5lADbiTmrFdY@z>
 
-On Tuesday 15 July 2014 16:45:47 Ley Foon Tan wrote:
-> +static void *cpuinfo_start(struct seq_file *m, loff_t *pos)
-> +{
-> +       unsigned long i = *pos;
-> +
-> +       return i < num_possible_cpus() ? (void *) (i + 1) : NULL;
-> +}
-> +
-> +static void *cpuinfo_next(struct seq_file *m, void *v, loff_t *pos)
-> +{
-> +       ++*pos;
-> +       return cpuinfo_start(m, pos);
-> +}
+On Tue, Jul 15, 2014 at 5:41 PM, Arnd Bergmann <arnd@arndb.de> wrote:
+> On Tuesday 15 July 2014 16:45:45 Ley Foon Tan wrote:
+>> +static struct of_device_id altera_of_bus_ids[] __initdata = {
+>> +       { .compatible = "simple-bus", },
+>> +       { .compatible = "altr,avalon", },
+>> +       {}
+>> +};
+>
+> Can you change the avalon bus nodes to be compatible to with "simple-bus"
+> as well, so you can use the default id list?
+Yes, it is compatible with both "altr,avalon" and "simple-bus". We can
+change it to default id list.
 
-Do you actually have SMP support?
+compatible = "altr,avalon", "simple-bus";
 
-> +const struct seq_operations cpuinfo_op = {
-> +       .start  = cpuinfo_start,
-> +       .next   = cpuinfo_next,
-> +       .stop   = cpuinfo_stop,
-> +       .show   = show_cpuinfo
-> +};
+>
+>> +static int __init nios2_soc_device_init(void)
+>> +{
+>> +       struct soc_device *soc_dev;
+>> +       struct soc_device_attribute *soc_dev_attr;
+>> +       const char *machine;
+>> +
+>> +       soc_dev_attr = kzalloc(sizeof(*soc_dev_attr), GFP_KERNEL);
+>> +       if (soc_dev_attr) {
+>> +               machine = of_flat_dt_get_machine_name();
+>> +               if (machine)
+>> +                       soc_dev_attr->machine = kasprintf(GFP_KERNEL, "%s",
+>> +                                               machine);
+>> +
+>> +               soc_dev_attr->family = "Nios II";
+>> +
+>> +               soc_dev = soc_device_register(soc_dev_attr);
+>> +               if (IS_ERR(soc_dev)) {
+>> +                       kfree(soc_dev_attr->machine);
+>> +                       kfree(soc_dev_attr);
+>> +               }
+>> +       }
+>> +
+>> +       return of_platform_bus_probe(NULL, altera_of_bus_ids, NULL);
+>> +}
+>> +
+>> +device_initcall(nios2_soc_device_init);
+>>
+> I think you should use of_platform_populate instead of of_platform_bus_probe
+> here.
 
-If not, you can use single_start/next/stop here rather than defining your own.
+Okay, will change to of_platform_populate().
 
-	Arnd
+Regards
+Ley Foon
