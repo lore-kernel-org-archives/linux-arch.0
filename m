@@ -1,352 +1,335 @@
 From: Ley Foon Tan <lftan@altera.com>
-Subject: [PATCH v2 15/29] nios2: System calls handling
-Date: Tue, 15 Jul 2014 16:45:42 +0800
-Message-ID: <1405413956-2772-16-git-send-email-lftan@altera.com>
+Subject: [PATCH v2 13/29] nios2: DMA mapping API
+Date: Tue, 15 Jul 2014 16:45:40 +0800
+Message-ID: <1405413956-2772-14-git-send-email-lftan@altera.com>
 References: <1405413956-2772-1-git-send-email-lftan@altera.com>
 Mime-Version: 1.0
 Content-Type: text/plain
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bl2lp0212.outbound.protection.outlook.com ([207.46.163.212]:12715
+Received: from mail-bl2lp0211.outbound.protection.outlook.com ([207.46.163.211]:55311
 	"EHLO na01-bl2-obe.outbound.protection.outlook.com"
 	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1758362AbaGOIsj (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 15 Jul 2014 04:48:39 -0400
+	id S1758346AbaGOIsg (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 15 Jul 2014 04:48:36 -0400
 In-Reply-To: <1405413956-2772-1-git-send-email-lftan@altera.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org
 Cc: Ley Foon Tan <lftan@altera.com>, lftan.linux@gmail.com, cltang@codesourcery.com
 
-This patch adds support for system calls from userspaces. It uses the
-asm-generic/unistd.h definitions with architecture spcific syscall. The sys_call_table
-is just an array defined in a C file and it contains pointers to the syscall functions.
+This patch adds support for the DMA mapping API.
 
 Signed-off-by: Ley Foon Tan <lftan@altera.com>
 ---
- arch/nios2/include/asm/syscall.h     | 138 +++++++++++++++++++++++++++++++++++
- arch/nios2/include/asm/syscalls.h    |  25 +++++++
- arch/nios2/include/uapi/asm/unistd.h |  25 +++++++
- arch/nios2/kernel/sys_nios2.c        |  66 +++++++++++++++++
- arch/nios2/kernel/syscall_table.c    |  29 ++++++++
- 5 files changed, 283 insertions(+)
- create mode 100644 arch/nios2/include/asm/syscall.h
- create mode 100644 arch/nios2/include/asm/syscalls.h
- create mode 100644 arch/nios2/include/uapi/asm/unistd.h
- create mode 100644 arch/nios2/kernel/sys_nios2.c
- create mode 100644 arch/nios2/kernel/syscall_table.c
+ arch/nios2/include/asm/dma-mapping.h | 106 ++++++++++++++++++++
+ arch/nios2/mm/dma-mapping.c          | 186 +++++++++++++++++++++++++++++++++++
+ 2 files changed, 292 insertions(+)
+ create mode 100644 arch/nios2/include/asm/dma-mapping.h
+ create mode 100644 arch/nios2/mm/dma-mapping.c
 
-diff --git a/arch/nios2/include/asm/syscall.h b/arch/nios2/include/asm/syscall.h
+diff --git a/arch/nios2/include/asm/dma-mapping.h b/arch/nios2/include/asm/dma-mapping.h
 new file mode 100644
-index 0000000..9de2208
+index 0000000..2db7ac3
 --- /dev/null
-+++ b/arch/nios2/include/asm/syscall.h
-@@ -0,0 +1,138 @@
++++ b/arch/nios2/include/asm/dma-mapping.h
+@@ -0,0 +1,106 @@
 +/*
-+ * Copyright Altera Corporation (C) <2014>. All rights reserved
++ * Copyright (C) 2011 Tobias Klauser <tklauser@distanz.ch>
++ * Copyright (C) 2009 Wind River Systems Inc
 + *
-+ * This program is free software; you can redistribute it and/or modify it
-+ * under the terms and conditions of the GNU General Public License,
-+ * version 2, as published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope it will be useful, but WITHOUT
-+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
-+ * more details.
-+ *
-+ * You should have received a copy of the GNU General Public License along with
-+ * this program.  If not, see <http://www.gnu.org/licenses/>.
++ * This file is subject to the terms and conditions of the GNU General
++ * Public License.  See the file COPYING in the main directory of this
++ * archive for more details.
 + */
 +
-+#ifndef __ASM_NIOS2_SYSCALL_H__
-+#define __ASM_NIOS2_SYSCALL_H__
++#ifndef _ASM_NIOS2_DMA_MAPPING_H
++#define _ASM_NIOS2_DMA_MAPPING_H
 +
-+#include <linux/err.h>
-+#include <linux/sched.h>
++#include <linux/scatterlist.h>
++#include <linux/cache.h>
++#include <asm/cacheflush.h>
 +
-+static inline int syscall_get_nr(struct task_struct *task, struct pt_regs *regs)
++static inline void __dma_sync(void *vaddr, size_t size,
++			      enum dma_data_direction direction)
 +{
-+	return regs->r2;
-+}
-+
-+static inline void syscall_rollback(struct task_struct *task,
-+				struct pt_regs *regs)
-+{
-+	regs->r2 = regs->orig_r2;
-+	regs->r7 = regs->orig_r7;
-+}
-+
-+static inline long syscall_get_error(struct task_struct *task,
-+				struct pt_regs *regs)
-+{
-+	return regs->r7 ? regs->r2 : 0;
-+}
-+
-+static inline long syscall_get_return_value(struct task_struct *task,
-+	struct pt_regs *regs)
-+{
-+	return regs->r2;
-+}
-+
-+static inline void syscall_set_return_value(struct task_struct *task,
-+	struct pt_regs *regs, int error, long val)
-+{
-+	if (error) {
-+		/* error < 0, but nios2 uses > 0 return value */
-+		regs->r2 = -error;
-+		regs->r7 = 1;
-+	} else {
-+		regs->r2 = val;
-+		regs->r7 = 0;
-+	}
-+}
-+
-+static inline void syscall_get_arguments(struct task_struct *task,
-+	struct pt_regs *regs, unsigned int i, unsigned int n,
-+	unsigned long *args)
-+{
-+	BUG_ON(i + n > 6);
-+
-+	switch (i) {
-+	case 0:
-+		if (!n--)
-+			break;
-+		*args++ = regs->r4;
-+	case 1:
-+		if (!n--)
-+			break;
-+		*args++ = regs->r5;
-+	case 2:
-+		if (!n--)
-+			break;
-+		*args++ = regs->r6;
-+	case 3:
-+		if (!n--)
-+			break;
-+		*args++ = regs->r7;
-+	case 4:
-+		if (!n--)
-+			break;
-+		*args++ = regs->r8;
-+	case 5:
-+		if (!n--)
-+			break;
-+		*args++ = regs->r9;
-+	case 6:
-+		if (!n--)
-+			break;
++	switch (direction) {
++	case DMA_FROM_DEVICE:	/* invalidate cache */
++		invalidate_dcache_range((unsigned long)vaddr,
++			(unsigned long)(vaddr + size));
++		break;
++	case DMA_TO_DEVICE:	/* flush and invalidate cache */
++	case DMA_BIDIRECTIONAL:
++		flush_dcache_range((unsigned long)vaddr,
++			(unsigned long)(vaddr + size));
++		break;
 +	default:
 +		BUG();
 +	}
 +}
 +
-+static inline void syscall_set_arguments(struct task_struct *task,
-+	struct pt_regs *regs, unsigned int i, unsigned int n,
-+	const unsigned long *args)
-+{
-+	BUG_ON(i + n > 6);
++#define dma_alloc_noncoherent(d, s, h, f) dma_alloc_coherent(d, s, h, f)
++#define dma_free_noncoherent(d, s, v, h) dma_free_coherent(d, s, v, h)
 +
-+	switch (i) {
-+	case 0:
-+		if (!n--)
-+			break;
-+		regs->r4 = *args++;
-+	case 1:
-+		if (!n--)
-+			break;
-+		regs->r5 = *args++;
-+	case 2:
-+		if (!n--)
-+			break;
-+		regs->r6 = *args++;
-+	case 3:
-+		if (!n--)
-+			break;
-+		regs->r7 = *args++;
-+	case 4:
-+		if (!n--)
-+			break;
-+		regs->r8 = *args++;
-+	case 5:
-+		if (!n--)
-+			break;
-+		regs->r9 = *args++;
-+	case 6:
-+		if (!n)
-+			break;
-+	default:
-+		BUG();
-+	}
++void *dma_alloc_coherent(struct device *dev, size_t size,
++			   dma_addr_t *dma_handle, gfp_t flag);
++
++void dma_free_coherent(struct device *dev, size_t size,
++			 void *vaddr, dma_addr_t dma_handle);
++
++static inline dma_addr_t dma_map_single(struct device *dev, void *ptr,
++					size_t size,
++					enum dma_data_direction direction)
++{
++	__dma_sync(ptr, size, direction);
++	return virt_to_phys(ptr);
 +}
 +
-+#endif
-diff --git a/arch/nios2/include/asm/syscalls.h b/arch/nios2/include/asm/syscalls.h
++static inline void dma_unmap_single(struct device *dev, dma_addr_t dma_addr,
++				size_t size, enum dma_data_direction direction)
++{
++}
++
++extern int dma_map_sg(struct device *dev, struct scatterlist *sg, int nents,
++	enum dma_data_direction direction);
++extern dma_addr_t dma_map_page(struct device *dev, struct page *page,
++	unsigned long offset, size_t size, enum dma_data_direction direction);
++extern void dma_unmap_page(struct device *dev, dma_addr_t dma_address,
++	size_t size, enum dma_data_direction direction);
++extern void dma_unmap_sg(struct device *dev, struct scatterlist *sg,
++	int nhwentries, enum dma_data_direction direction);
++extern void dma_sync_single_for_cpu(struct device *dev, dma_addr_t dma_handle,
++	size_t size, enum dma_data_direction direction);
++extern void dma_sync_single_for_device(struct device *dev,
++	dma_addr_t dma_handle, size_t size, enum dma_data_direction direction);
++extern void dma_sync_single_range_for_cpu(struct device *dev,
++	dma_addr_t dma_handle, unsigned long offset, size_t size,
++	enum dma_data_direction direction);
++extern void dma_sync_single_range_for_device(struct device *dev,
++	dma_addr_t dma_handle, unsigned long offset, size_t size,
++	enum dma_data_direction direction);
++extern void dma_sync_sg_for_cpu(struct device *dev, struct scatterlist *sg,
++	int nelems, enum dma_data_direction direction);
++extern void dma_sync_sg_for_device(struct device *dev, struct scatterlist *sg,
++	int nelems, enum dma_data_direction direction);
++
++static inline int dma_supported(struct device *dev, u64 mask)
++{
++	return 1;
++}
++
++static inline int dma_set_mask(struct device *dev, u64 mask)
++{
++	if (!dev->dma_mask || !dma_supported(dev, mask))
++		return -EIO;
++
++	*dev->dma_mask = mask;
++
++	return 0;
++}
++
++static inline int dma_mapping_error(struct device *dev, dma_addr_t dma_addr)
++{
++	return 0;
++}
++
++static inline void dma_cache_sync(struct device *dev, void *vaddr, size_t size,
++				  enum dma_data_direction direction)
++{
++	__dma_sync(vaddr, size, direction);
++}
++
++#endif /* _ASM_NIOS2_DMA_MAPPING_H */
+diff --git a/arch/nios2/mm/dma-mapping.c b/arch/nios2/mm/dma-mapping.c
 new file mode 100644
-index 0000000..0245d78
+index 0000000..a9bafe9
 --- /dev/null
-+++ b/arch/nios2/include/asm/syscalls.h
-@@ -0,0 +1,25 @@
++++ b/arch/nios2/mm/dma-mapping.c
+@@ -0,0 +1,186 @@
 +/*
-+ * Copyright Altera Corporation (C) 2013. All rights reserved
++ * Copyright (C) 2011 Tobias Klauser <tklauser@distanz.ch>
++ * Copyright (C) 2009 Wind River Systems Inc
++ *  Implemented by fredrik.markstrom@gmail.com and ivarholmqvist@gmail.com
 + *
-+ * This program is free software; you can redistribute it and/or modify it
-+ * under the terms and conditions of the GNU General Public License,
-+ * version 2, as published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope it will be useful, but WITHOUT
-+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
-+ * more details.
-+ *
-+ * You should have received a copy of the GNU General Public License along with
-+ * this program.  If not, see <http://www.gnu.org/licenses/>.
-+ *
-+ */
-+#ifndef __ASM_NIOS2_SYSCALLS_H
-+#define __ASM_NIOS2_SYSCALLS_H
-+
-+int sys_cacheflush(unsigned long addr, unsigned long len,
-+				unsigned int op);
-+
-+#include <asm-generic/syscalls.h>
-+
-+#endif /* __ASM_NIOS2_SYSCALLS_H */
-diff --git a/arch/nios2/include/uapi/asm/unistd.h b/arch/nios2/include/uapi/asm/unistd.h
-new file mode 100644
-index 0000000..c4bf795
---- /dev/null
-+++ b/arch/nios2/include/uapi/asm/unistd.h
-@@ -0,0 +1,25 @@
-+/*
-+ * Copyright (C) 2013 Altera Corporation
-+ *
-+ * This program is free software; you can redistribute it and/or modify it
-+ * under the terms and conditions of the GNU General Public License,
-+ * version 2, as published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope it will be useful, but WITHOUT
-+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
-+ * more details.
-+ *
-+ * You should have received a copy of the GNU General Public License along with
-+ * this program.  If not, see <http://www.gnu.org/licenses/>.
-+ *
-+ */
-+
-+ #define sys_mmap2 sys_mmap_pgoff
-+
-+/* Use the standard ABI for syscalls */
-+#include <asm-generic/unistd.h>
-+
-+/* Additional Nios II specific syscalls. */
-+#define __NR_cacheflush (__NR_arch_specific_syscall)
-+__SYSCALL(__NR_cacheflush, sys_cacheflush)
-diff --git a/arch/nios2/kernel/sys_nios2.c b/arch/nios2/kernel/sys_nios2.c
-new file mode 100644
-index 0000000..b418f7e
---- /dev/null
-+++ b/arch/nios2/kernel/sys_nios2.c
-@@ -0,0 +1,66 @@
-+/*
-+ * Copyright (C) 2013 Altera Corporation
-+ * Copyright (C) 2011-2012 Tobias Klauser <tklauser@distanz.ch>
-+ * Copyright (C) 2004 Microtronix Datacom Ltd.
++ * Based on DMA code from MIPS.
 + *
 + * This file is subject to the terms and conditions of the GNU General Public
 + * License.  See the file "COPYING" in the main directory of this archive
 + * for more details.
 + */
 +
++#include <linux/types.h>
++#include <linux/mm.h>
 +#include <linux/export.h>
-+#include <linux/file.h>
-+#include <linux/fs.h>
-+#include <linux/slab.h>
-+#include <linux/syscalls.h>
-+
++#include <linux/string.h>
++#include <linux/scatterlist.h>
++#include <linux/dma-mapping.h>
++#include <linux/io.h>
++#include <linux/cache.h>
 +#include <asm/cacheflush.h>
-+#include <asm/traps.h>
 +
-+/* sys_cacheflush -- flush the processor cache. */
-+asmlinkage int sys_cacheflush(unsigned long addr, unsigned long len,
-+				unsigned int op)
++
++void *dma_alloc_coherent(struct device *dev, size_t size,
++			    dma_addr_t *dma_handle, gfp_t gfp)
 +{
-+	struct vm_area_struct *vma;
++	void *ret;
 +
-+	if (len == 0)
-+		return 0;
++	/* ignore region specifiers */
++	gfp &= ~(__GFP_DMA | __GFP_HIGHMEM);
 +
-+	/* We only support op 0 now, return error if op is non-zero.*/
-+	if (op)
-+		return -EINVAL;
++	/* optimized page clearing */
++	gfp |= __GFP_ZERO;
 +
-+	/* Check for overflow */
-+	if (addr + len < addr)
-+		return -EFAULT;
++	if (dev == NULL || (dev->coherent_dma_mask < 0xffffffff))
++		gfp |= GFP_DMA;
 +
-+	/*
-+	 * Verify that the specified address region actually belongs
-+	 * to this process.
-+	 */
-+	vma = find_vma(current->mm, addr);
-+	if (vma == NULL || addr < vma->vm_start || addr + len > vma->vm_end)
-+		return -EFAULT;
++	ret = (void *) __get_free_pages(gfp, get_order(size));
++	if (ret != NULL) {
++		*dma_handle = virt_to_phys(ret);
++		flush_dcache_range((unsigned long) ret,
++			(unsigned long) ret + size);
++		ret = UNCAC_ADDR(ret);
++	}
 +
-+	flush_cache_range(vma, addr, addr + len);
-+
-+	return 0;
++	return ret;
 +}
++EXPORT_SYMBOL(dma_alloc_coherent);
 +
-+asmlinkage int sys_getpagesize(void)
++void dma_free_coherent(struct device *dev, size_t size, void *vaddr,
++			dma_addr_t dma_handle)
 +{
-+	return PAGE_SIZE;
++	unsigned long addr = (unsigned long) CAC_ADDR((unsigned long) vaddr);
++	free_pages(addr, get_order(size));
 +}
++EXPORT_SYMBOL(dma_free_coherent);
 +
-+#if defined(CONFIG_FB) || defined(CONFIG_FB_MODULE)
-+#include <linux/fb.h>
-+unsigned long get_fb_unmapped_area(struct file *filp, unsigned long orig_addr,
-+		unsigned long len, unsigned long pgoff, unsigned long flags)
++int dma_map_sg(struct device *dev, struct scatterlist *sg, int nents,
++		enum dma_data_direction direction)
 +{
++	int i;
 +
-+	struct fb_info *info = filp->private_data;
++	BUG_ON(!valid_dma_direction(direction));
 +
-+	return info->screen_base;
++	for_each_sg(sg, sg, nents, i) {
++		void *addr;
++
++		addr = sg_virt(sg);
++		if (addr) {
++			__dma_sync(addr, sg->length, direction);
++			sg->dma_address = sg_phys(sg);
++		}
++	}
++
++	return nents;
 +}
-+EXPORT_SYMBOL(get_fb_unmapped_area);
-+#endif /* CONFIG_FB */
-diff --git a/arch/nios2/kernel/syscall_table.c b/arch/nios2/kernel/syscall_table.c
-new file mode 100644
-index 0000000..06e6ac1
---- /dev/null
-+++ b/arch/nios2/kernel/syscall_table.c
-@@ -0,0 +1,29 @@
-+/*
-+ * Copyright Altera Corporation (C) 2013. All rights reserved
-+ *
-+ * This program is free software; you can redistribute it and/or modify it
-+ * under the terms and conditions of the GNU General Public License,
-+ * version 2, as published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope it will be useful, but WITHOUT
-+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
-+ * more details.
-+ *
-+ * You should have received a copy of the GNU General Public License along with
-+ * this program.  If not, see <http://www.gnu.org/licenses/>.
-+ *
-+ */
++EXPORT_SYMBOL(dma_map_sg);
 +
-+#include <linux/syscalls.h>
-+#include <linux/signal.h>
-+#include <linux/unistd.h>
++dma_addr_t dma_map_page(struct device *dev, struct page *page,
++			unsigned long offset, size_t size,
++			enum dma_data_direction direction)
++{
++	void *addr;
 +
-+#include <asm/syscalls.h>
++	BUG_ON(!valid_dma_direction(direction));
 +
-+#undef __SYSCALL
-+#define __SYSCALL(nr, call) [nr] = (call),
++	addr = page_address(page) + offset;
++	__dma_sync(addr, size, direction);
 +
-+void *sys_call_table[__NR_syscalls] = {
-+#include <asm/unistd.h>
-+};
++	return page_to_phys(page) + offset;
++}
++EXPORT_SYMBOL(dma_map_page);
++
++void dma_unmap_page(struct device *dev, dma_addr_t dma_address, size_t size,
++		    enum dma_data_direction direction)
++{
++	BUG_ON(!valid_dma_direction(direction));
++
++	if (direction != DMA_TO_DEVICE)
++		__dma_sync(phys_to_virt(dma_address), size, direction);
++}
++EXPORT_SYMBOL(dma_unmap_page);
++
++void dma_unmap_sg(struct device *dev, struct scatterlist *sg, int nhwentries,
++		  enum dma_data_direction direction)
++{
++	void *addr;
++	int i;
++
++	BUG_ON(!valid_dma_direction(direction));
++
++	if (direction == DMA_TO_DEVICE)
++		return;
++
++	for_each_sg(sg, sg, nhwentries, i) {
++		addr = sg_virt(sg);
++		if (addr)
++			__dma_sync(addr, sg->length, direction);
++	}
++}
++EXPORT_SYMBOL(dma_unmap_sg);
++
++void dma_sync_single_for_cpu(struct device *dev, dma_addr_t dma_handle,
++			     size_t size, enum dma_data_direction direction)
++{
++	BUG_ON(!valid_dma_direction(direction));
++
++	__dma_sync(phys_to_virt(dma_handle), size, direction);
++}
++EXPORT_SYMBOL(dma_sync_single_for_cpu);
++
++void dma_sync_single_for_device(struct device *dev, dma_addr_t dma_handle,
++				size_t size, enum dma_data_direction direction)
++{
++	BUG_ON(!valid_dma_direction(direction));
++
++	__dma_sync(phys_to_virt(dma_handle), size, direction);
++}
++EXPORT_SYMBOL(dma_sync_single_for_device);
++
++void dma_sync_single_range_for_cpu(struct device *dev, dma_addr_t dma_handle,
++					unsigned long offset, size_t size,
++					enum dma_data_direction direction)
++{
++	BUG_ON(!valid_dma_direction(direction));
++
++	__dma_sync(phys_to_virt(dma_handle), size, direction);
++}
++EXPORT_SYMBOL(dma_sync_single_range_for_cpu);
++
++void dma_sync_single_range_for_device(struct device *dev, dma_addr_t dma_handle,
++					unsigned long offset, size_t size,
++					enum dma_data_direction direction)
++{
++	BUG_ON(!valid_dma_direction(direction));
++
++	__dma_sync(phys_to_virt(dma_handle), size, direction);
++}
++EXPORT_SYMBOL(dma_sync_single_range_for_device);
++
++void dma_sync_sg_for_cpu(struct device *dev, struct scatterlist *sg, int nelems,
++			 enum dma_data_direction direction)
++{
++	int i;
++
++	BUG_ON(!valid_dma_direction(direction));
++
++	/* Make sure that gcc doesn't leave the empty loop body.  */
++	for_each_sg(sg, sg, nelems, i)
++		__dma_sync(sg_virt(sg), sg->length, direction);
++}
++EXPORT_SYMBOL(dma_sync_sg_for_cpu);
++
++void dma_sync_sg_for_device(struct device *dev, struct scatterlist *sg,
++				int nelems, enum dma_data_direction direction)
++{
++	int i;
++
++	BUG_ON(!valid_dma_direction(direction));
++
++	/* Make sure that gcc doesn't leave the empty loop body.  */
++	for_each_sg(sg, sg, nelems, i)
++		__dma_sync(sg_virt(sg), sg->length, direction);
++
++}
++EXPORT_SYMBOL(dma_sync_sg_for_device);
 -- 
 1.8.2.1
