@@ -1,41 +1,37 @@
-From: Andy Lutomirski <luto@amacapital.net>
-Subject: Re: [PATCH v3] arm64,ia64,ppc,s390,sh,tile,um,x86,mm: Remove default
- gate area
-Date: Tue, 15 Jul 2014 07:47:26 -0700
-Message-ID: <CALCETrXG6nL4K=Er+kv5-CXBDVa0TLg9yR6iePnMyE2ufXgKkw@mail.gmail.com>
-References: <70f331f59e620dc4e66bd3fa095e6f6b744b532b.1405281639.git.luto@amacapital.net>
+From: "H. Peter Anvin" <hpa@zytor.com>
+Subject: Re: [RFA][PATCH 05/27] ftrace/x86: Add call to ftrace_graph_is_dead()
+ in function graph code
+Date: Tue, 15 Jul 2014 08:47:36 -0700
+Message-ID: <53C54D18.3020602@zytor.com>
+References: <20140626165221.736847419@goodmis.org> <20140626165848.832117370@goodmis.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <70f331f59e620dc4e66bd3fa095e6f6b744b532b.1405281639.git.luto@amacapital.net>
-Sender: owner-linux-mm@kvack.org
-To: Andy Lutomirski <luto@amacapital.net>
-Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux390@de.ibm.com, Chris Metcalf <cmetcalf@tilera.com>, Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Nathan Lynch <Nathan_Lynch@mentor.com>, X86 ML <x86@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.ke
-List-Id: linux-arch.vger.kernel.org
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from terminus.zytor.com ([198.137.202.10]:56046 "EHLO mail.zytor.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751467AbaGOPsF (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 15 Jul 2014 11:48:05 -0400
+In-Reply-To: <20140626165848.832117370@goodmis.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Steven Rostedt <rostedt@goodmis.org>, linux-kernel@vger.kernel.org
+Cc: Ingo Molnar <mingo@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>, linux-arch@vger.kernel.org, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Jiri Kosina <jkosina@suse.cz>, Josh Poimboeuf <notifications@github.com>
 
-On Sun, Jul 13, 2014 at 1:01 PM, Andy Lutomirski <luto@amacapital.net> wrote:
-> The core mm code will provide a default gate area based on
-> FIXADDR_USER_START and FIXADDR_USER_END if
-> !defined(__HAVE_ARCH_GATE_AREA) && defined(AT_SYSINFO_EHDR).
->
-> This default is only useful for ia64.  arm64, ppc, s390, sh, tile,
-> 64-bit UML, and x86_32 have their own code just to disable it.  arm,
-> 32-bit UML, and x86_64 have gate areas, but they have their own
-> implementations.
->
-> This gets rid of the default and moves the code into ia64.
->
-> This should save some code on architectures without a gate area: it's
-> now possible to inline the gate_area functions in the default case.
+On 06/26/2014 09:52 AM, Steven Rostedt wrote:
+> From: "Steven Rostedt (Red Hat)" <rostedt@goodmis.org>
+> 
+> ftrace_stop() is going away as it disables parts of function tracing
+> that affects users that should not be affected. But ftrace_graph_stop()
+> is built on ftrace_stop(). Here's another example of killing all of
+> function tracing because something went wrong with function graph
+> tracing.
+> 
+> Instead of disabling all users of function tracing on function graph
+> error, disable only function graph tracing. To do this, the arch code
+> must call ftrace_graph_is_dead() before it implements function graph.
+> 
+> Cc: H. Peter Anvin <hpa@zytor.com>
+> Signed-off-by: Steven Rostedt <rostedt@goodmis.org>
 
-Can one of you pull this somewhere?  Otherwise I can put it somewhere
-stable and ask for -next inclusion, but that seems like overkill for a
-single patch.
-
---Andy
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+Acked-by: H. Peter Anvin <hpa@linux.intel.com>
