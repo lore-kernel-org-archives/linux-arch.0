@@ -1,30 +1,75 @@
-From: "H. Peter Anvin" <hpa@zytor.com>
-Subject: Re: [RFA][PATCH 16/27] ftrace: x86: Remove check of obsolete variable
- function_trace_stop
-Date: Tue, 15 Jul 2014 08:48:02 -0700
-Message-ID: <53C54D32.6000000@zytor.com>
-References: <20140626165221.736847419@goodmis.org> <20140626165851.883708348@goodmis.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+From: Andy Lutomirski <luto@amacapital.net>
+Subject: [PATCH 0/7] Two-phase seccomp and x86 tracing changes
+Date: Tue, 15 Jul 2014 12:32:29 -0700
+Message-ID: <cover.1405452484.git.luto@amacapital.net>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:56060 "EHLO mail.zytor.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752450AbaGOPsX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 15 Jul 2014 11:48:23 -0400
-In-Reply-To: <20140626165851.883708348@goodmis.org>
+Received: from mail-pa0-f41.google.com ([209.85.220.41]:48964 "EHLO
+	mail-pa0-f41.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932890AbaGOTcm (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 15 Jul 2014 15:32:42 -0400
+Received: by mail-pa0-f41.google.com with SMTP id fb1so7898287pad.28
+        for <linux-arch@vger.kernel.org>; Tue, 15 Jul 2014 12:32:42 -0700 (PDT)
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Steven Rostedt <rostedt@goodmis.org>, linux-kernel@vger.kernel.org
-Cc: Ingo Molnar <mingo@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>, linux-arch@vger.kernel.org, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Jiri Kosina <jkosina@suse.cz>, Josh Poimboeuf <notifications@github.com>, "H. Peter Anvin" <hpa@linux.intel.com>
+To: linux-kernel@vger.kernel.org, Kees Cook <keescook@chromium.org>, Will Drewry <wad@chromium.org>, James Morris <james.l.morris@oracle.com>
+Cc: Oleg Nesterov <oleg@redhat.com>, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-mips@linux-mips.org, linux-arch@vger.kernel.org, linux-security-module@vger.kernel.org, Alexei Starovoitov <ast@plumgrid.com>, Andy Lutomirski <luto@amacapital.net>
 
-On 06/26/2014 09:52 AM, Steven Rostedt wrote:
-> From: "Steven Rostedt (Red Hat)" <rostedt@goodmis.org>
-> 
-> Nothing sets function_trace_stop to disable function tracing anymore.
-> Remove the check for it in the arch code.
-> 
-> Cc: H. Peter Anvin <hpa@linux.intel.com>
-> Signed-off-by: Steven Rostedt <rostedt@goodmis.org>
+This is both a cleanup and a speedup.  It reduces overhead due to
+installing a trivial seccomp filter by 87%.  The speedup comes from
+avoiding the full syscall tracing mechanism for filters that don't
+return SECCOMP_RET_TRACE.
 
-Acked-by: H. Peter Anvin <hpa@linux.intel.com>
+This series works by splitting the seccomp hooks into two phases.
+The first phase evaluates the filter; it can skip syscalls, allow
+them, kill the calling task, or pass a u32 to the second phase.  The
+second phase requires a full tracing context, and it sends ptrace
+events if necessary.
+
+Once this is done, I implemented a similar split for the x86 syscall
+entry work.  The C callback is invoked in two phases: the first has
+only a partial frame, and it can request phase 2 processing with a
+full frame.
+
+Finally, I switch the 64-bit system_call code to use the new split
+entry work.  This is a net deletion of assembly code: it replaces
+all of the audit entry muck.
+
+In the process, I fixed some bugs.
+
+If this is acceptable, someone can do the same tweak for the
+ia32entry and entry_32 code.
+
+This passes all seccomp tests that I know of, except for the ones
+that don't work on current kernels.
+
+Presumably, once everyone gets a chance to poke at this, it should
+go in to some combination of James' and hpa's trees.
+
+Changes from RFC version:
+ - The first three patches are more or less the same
+ - The rest is more or less a rewrite
+
+Andy Lutomirski (7):
+  seccomp,x86,arm,mips,s390: Remove nr parameter from secure_computing
+  seccomp: Refactor the filter callback and the API
+  seccomp: Allow arch code to provide seccomp_data
+  x86,x32,audit: Fix x32's AUDIT_ARCH wrt audit
+  x86: Split syscall_trace_enter into two phases
+  x86_64,entry: Treat regs->ax the same in fastpath and slowpath
+    syscalls
+  x86_64,entry: Use split-phase syscall_trace_enter for 64-bit syscalls
+
+ arch/arm/kernel/ptrace.c       |   7 +-
+ arch/mips/kernel/ptrace.c      |   2 +-
+ arch/s390/kernel/ptrace.c      |   2 +-
+ arch/x86/include/asm/calling.h |   6 +-
+ arch/x86/include/asm/ptrace.h  |   5 +
+ arch/x86/kernel/entry_64.S     |  51 ++++-----
+ arch/x86/kernel/ptrace.c       | 146 +++++++++++++++++++-----
+ arch/x86/kernel/vsyscall_64.c  |   2 +-
+ include/linux/seccomp.h        |  25 +++--
+ kernel/seccomp.c               | 246 +++++++++++++++++++++++++++--------------
+ 10 files changed, 339 insertions(+), 153 deletions(-)
+
+-- 
+1.9.3
