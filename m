@@ -1,71 +1,39 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qa0-f50.google.com ([209.85.216.50]:51937 "EHLO
-	mail-qa0-f50.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1758043AbaGOKCD (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 15 Jul 2014 06:02:03 -0400
+Received: from www.linutronix.de ([62.245.132.108]:46989 "EHLO
+	Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1758182AbaGOKDc (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 15 Jul 2014 06:03:32 -0400
+Date: Tue, 15 Jul 2014 12:03:28 +0200 (CEST)
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: Re: [PATCH v2 21/29] nios2: Futex operations
+In-Reply-To: <1405413956-2772-22-git-send-email-lftan@altera.com>
+Message-ID: <alpine.DEB.2.10.1407151201170.24854@nanos>
+References: <1405413956-2772-1-git-send-email-lftan@altera.com> <1405413956-2772-22-git-send-email-lftan@altera.com>
 MIME-Version: 1.0
-In-Reply-To: <5098448.1h12jNJ4cv@wuerfel>
-References: <1405413956-2772-1-git-send-email-lftan@altera.com>
-	<1405413956-2772-19-git-send-email-lftan@altera.com>
-	<5098448.1h12jNJ4cv@wuerfel>
-Date: Tue, 15 Jul 2014 18:02:01 +0800
-Message-ID: <CAFiDJ59ip=m-6hUOukYaWGNc+id06BwBq-imAzqn+RTpZ6vvEw@mail.gmail.com>
-Subject: Re: [PATCH v2 18/29] nios2: Device tree support
-From: Ley Foon Tan <lftan@altera.com>
-Content-Type: text/plain; charset=UTF-8
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Chung-Lin Tang <cltang@codesourcery.com>
-Message-ID: <20140715100201.8S2PnmYJHkKEbU2NmxNyJUFFgKljqeq5lADbiTmrFdY@z>
+To: Ley Foon Tan <lftan@altera.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, lftan.linux@gmail.com, cltang@codesourcery.com
+Message-ID: <20140715100328.2c_qmCTXUyaeeslwNkmL8-jCaQ8GCXAhHJNVmWKmHdg@z>
 
-On Tue, Jul 15, 2014 at 5:41 PM, Arnd Bergmann <arnd@arndb.de> wrote:
-> On Tuesday 15 July 2014 16:45:45 Ley Foon Tan wrote:
->> +static struct of_device_id altera_of_bus_ids[] __initdata = {
->> +       { .compatible = "simple-bus", },
->> +       { .compatible = "altr,avalon", },
->> +       {}
->> +};
->
-> Can you change the avalon bus nodes to be compatible to with "simple-bus"
-> as well, so you can use the default id list?
-Yes, it is compatible with both "altr,avalon" and "simple-bus". We can
-change it to default id list.
+On Tue, 15 Jul 2014, Ley Foon Tan wrote:
+ +static inline int atomic_futex_op_xchg_set(int oparg, u32 __user *uaddr,
+> +					   int *oldval)
+> +{
+> +	unsigned long flags;
+> +	int ret;
+> +
+> +	local_irq_save(flags);
+> +
+> +	ret = get_user(*oldval, uaddr);
+> +	if (!ret)
+> +		ret = put_user(oparg, uaddr);
 
-compatible = "altr,avalon", "simple-bus";
+This is wrong as it gets. get_user() might fault and sleep.
 
->
->> +static int __init nios2_soc_device_init(void)
->> +{
->> +       struct soc_device *soc_dev;
->> +       struct soc_device_attribute *soc_dev_attr;
->> +       const char *machine;
->> +
->> +       soc_dev_attr = kzalloc(sizeof(*soc_dev_attr), GFP_KERNEL);
->> +       if (soc_dev_attr) {
->> +               machine = of_flat_dt_get_machine_name();
->> +               if (machine)
->> +                       soc_dev_attr->machine = kasprintf(GFP_KERNEL, "%s",
->> +                                               machine);
->> +
->> +               soc_dev_attr->family = "Nios II";
->> +
->> +               soc_dev = soc_device_register(soc_dev_attr);
->> +               if (IS_ERR(soc_dev)) {
->> +                       kfree(soc_dev_attr->machine);
->> +                       kfree(soc_dev_attr);
->> +               }
->> +       }
->> +
->> +       return of_platform_bus_probe(NULL, altera_of_bus_ids, NULL);
->> +}
->> +
->> +device_initcall(nios2_soc_device_init);
->>
-> I think you should use of_platform_populate instead of of_platform_bus_probe
-> here.
+You need a proper implementation, which handles fault exceptions.
 
-Okay, will change to of_platform_populate().
+Thanks,
 
-Regards
-Ley Foon
+	tglx
