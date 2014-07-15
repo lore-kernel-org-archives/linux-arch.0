@@ -1,64 +1,98 @@
-From: James Hogan <james.hogan@imgtec.com>
-Subject: Re: [PATCH 35/38] unicore32: clean-up uapi Kbuild file
-Date: Tue, 15 Jul 2014 11:53:52 +0100
-Message-ID: <53C50840.2020204@imgtec.com>
-References: <20140714150609.GA28358@ravnborg.org> <1405350546-28467-1-git-send-email-sam@ravnborg.org> <1405350546-28467-35-git-send-email-sam@ravnborg.org>
+From: Chung-Lin Tang <cltang@codesourcery.com>
+Subject: Re: [PATCH v2 22/29] nios2: Miscellaneous header files
+Date: Tue, 15 Jul 2014 19:03:35 +0800
+Message-ID: <53C50A87.6000902@codesourcery.com>
+References: <1405413956-2772-1-git-send-email-lftan@altera.com> <1405413956-2772-23-git-send-email-lftan@altera.com> <4999408.jEEY9BVX9F@wuerfel>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="ISO-8859-1"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mailapp01.imgtec.com ([195.59.15.196]:60101 "EHLO
-	mailapp01.imgtec.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1758040AbaGOKxz (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 15 Jul 2014 06:53:55 -0400
-In-Reply-To: <1405350546-28467-35-git-send-email-sam@ravnborg.org>
+Received: from relay1.mentorg.com ([192.94.38.131]:42275 "EHLO
+	relay1.mentorg.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1758108AbaGOLDj (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 15 Jul 2014 07:03:39 -0400
+In-Reply-To: <4999408.jEEY9BVX9F@wuerfel>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Sam Ravnborg <sam@ravnborg.org>, Arnd Bergmann <arnd@arndb.de>
-Cc: lkml <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Guan Xuetao <gxt@mprc.pku.edu.cn>, kvm <kvm@vger.kernel.org>
+To: Arnd Bergmann <arnd@arndb.de>, Ley Foon Tan <lftan@altera.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, lftan.linux@gmail.com
 
-On 14/07/14 16:09, Sam Ravnborg wrote:
-> Remove redundant assignments.
+On 2014/7/15 06:22 PM, Arnd Bergmann wrote:
+>> +
+>> > +#ifndef _UAPI_ASM_NIOS2_STATFS_H
+>> > +#define _UAPI_ASM_NIOS2_STATFS_H
+>> > +
+>> > +#define __statfs_word __s32
+> Why this? Every other architecture except parisc uses the default __u32 here.
+
+Because include/uapi/asm/statfs.h has this:
+
+#ifndef __statfs_word
+#if __BITS_PER_LONG == 64
+#define __statfs_word __kernel_long_t
+#else
+#define __statfs_word __u32
+#endif
+#endif
+...
+struct statfs64 {
+        __statfs_word f_type;
+        __statfs_word f_bsize;
+        __u64 f_blocks;
+        __u64 f_bfree;
+...
+
+While the bits/statfs.h header in glibc has this:
+struct statfs
+  {
+    __SWORD_TYPE f_type;
+    __SWORD_TYPE f_bsize;
+    __field64(__fsblkcnt_t, __fsblkcnt64_t, f_blocks);
+...
+struct statfs64
+  {
+    __SWORD_TYPE f_type;
+    __SWORD_TYPE f_bsize;
+    __fsblkcnt64_t f_blocks;
+...
+
+Where __SWORD_TYPE is always a signed integer (int or long int depending
+on 32/64-bit word size).  Hence we define the kernel __statfs_word to be
+signed 32-bit to match.
+
+Supposedly, tilepro should have a similar issue too, though I guess this
+is quite obscure in practice. We so far haven't encountered any issues
+on nios2 without this __s32 override either, it's just by observation.
+
+>> > +#include <linux/types.h>
+>> > +#include <asm-generic/swab.h>
+>> > +
+>> > +#ifdef CONFIG_NIOS2_CI_SWAB_SUPPORT
+>> > +#ifdef __GNUC__
+>> > +
+>> > +#define __nios2_swab(x)		\
+>> > +	__builtin_custom_ini(CONFIG_NIOS2_CI_SWAB_NO, (x))
+>> > +
+>> > +static inline __attribute__((const)) __u16 __arch_swab16(__u16 x)
+>> > +{
+>> > +	return (__u16) __nios2_swab(((__u32) x) << 16);
+>> > +}
+> Is this actually better than ___constant_swab16()?
 > 
-> Signed-off-by: Sam Ravnborg <sam@ravnborg.org>
-> Cc: Guan Xuetao <gxt@mprc.pku.edu.cn>
-> ---
->  arch/unicore32/include/uapi/asm/Kbuild | 7 +------
->  1 file changed, 1 insertion(+), 6 deletions(-)
+> Also, have you checked if you need to support old compiler versions that
+> don't have __builtin_bswap16/32/64? With newer compilers you don't need
+> to define any of these yourself.
 > 
-> diff --git a/arch/unicore32/include/uapi/asm/Kbuild b/arch/unicore32/include/uapi/asm/Kbuild
-> index 0514d7a..aff532f 100644
-> --- a/arch/unicore32/include/uapi/asm/Kbuild
-> +++ b/arch/unicore32/include/uapi/asm/Kbuild
-> @@ -1,10 +1,5 @@
->  # UAPI Header export list
->  include include/uapi/asm-generic/Kbuild.asm
->  
-> -header-y += byteorder.h
-> -header-y += kvm_para.h
-> -header-y += ptrace.h
-> -header-y += sigcontext.h
-> -header-y += unistd.h
-> -
-> +# Wapper from asm-generic
->  generic-y += kvm_para.h
-> 
+> 	Arnd
 
-You dropped the generic-y += kvm_para.h for arm64 & c6x, but not for
-unicore, avr32 & ia64 patch, which seems a bit inconsistent. Was there
-some reason behind that?
+This swap is configured/implemented using Nios II's custom instruction
+facility; it is not part of the compiler supported Nios II core
+instruction set. In fact, even the exact opcode allocated is not fixed.
 
-AFACT the non-uapi kvm_para.h is needed (e.g. by using the generic
-non-uapi one) by kernel/watchdog.c for
-kvm_check_and_clear_guest_paused(), so all arches should have at least
-generic-y += kvm_para.h (or their own one) for non-uapi, even if they
-have a uapi one too.
+So the custom swap will not be in a form usable by the compiler, and
+hence no use of it during code generation (if it is, you might not even
+need to use __builtin_swap*(), there's a optimization pass that
+recognizes the shift+or-ing C code patterns)
 
-For UAPI, they're presumably only needed for architectures which support
-KVM (s390, ia64, arm, powerpc, arm64, mips, x86 all provide an asm/kvm.h).
-
-Is that right? Clearly there's some cleanup to do for kvm_para.h (which
-is what made me look at the header issues previously).
-
-Cheers
-James
+Thanks,
+Chung-Lin
