@@ -1,47 +1,87 @@
-From: Lennox Wu <lennox.wu@gmail.com>
-Subject: Re: [PATCH 04/38] score: drop irrelevant assignment from Kbuild file
-Date: Tue, 15 Jul 2014 21:57:24 +0800
-Message-ID: <CAF0htA7-_50ctd9PwpGiWNVMjehomaOh1UK2f9zgwW7T+40NDg@mail.gmail.com>
-References: <20140714150609.GA28358@ravnborg.org>
-	<1405350546-28467-1-git-send-email-sam@ravnborg.org>
-	<1405350546-28467-4-git-send-email-sam@ravnborg.org>
+From: David Howells <dhowells@redhat.com>
+Subject: Re: [PATCH v2 00/29] nios2 Linux kernel port
+Date: Tue, 15 Jul 2014 15:20:31 +0100
+Message-ID: <20544.1405434031@warthog.procyon.org.uk>
+References: <CAFLxGvw_fnG1KTVXrcZxHZzKPnG5DA117VmcZBvw3EYgXw-DVw@mail.gmail.com> <1405413956-2772-1-git-send-email-lftan@altera.com> <4213.1405430178@warthog.procyon.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1405350546-28467-4-git-send-email-sam@ravnborg.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Sam Ravnborg <sam@ravnborg.org>
-Cc: Arnd Bergmann <arnd@arndb.de>, lkml <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Chen Liqin <liqin.linux@gmail.com>, David Howells <dhowells@redhat.com>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 8BIT
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mx1.redhat.com ([209.132.183.28]:7301 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751027AbaGOOUp convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 15 Jul 2014 10:20:45 -0400
+In-Reply-To: <CAFLxGvw_fnG1KTVXrcZxHZzKPnG5DA117VmcZBvw3EYgXw-DVw@mail.gmail.com>
+Content-ID: <20543.1405434031.1@warthog.procyon.org.uk>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Richard Weinberger <richard.weinberger@gmail.com>
+Cc: dhowells@redhat.com, Ley Foon Tan <lftan@altera.com>, Linux-Arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, LeyFoon Tan <lftan.linux@gmail.com>, cltang@codesourcery.com
 
-Thanks :)
+Richard Weinberger <richard.weinberger@gmail.com> wrote:
 
-Acked-by: Lennox Wu<lennox.wu@gmail.com>
+> Having it on https://www.kernel.org/pub/tools/crosstool/ would be also nice.
 
+Does the Fedora cross-compiler suite fit with your set?  All the fedora
+cross-compilers are build from a single pair of SRPMS into a slew of binary
+RPMs and none of the resulting RPMs are relocatable (they all end up in /usr).
 
-2014-07-14 23:08 GMT+08:00 Sam Ravnborg <sam@ravnborg.org>:
-> header-y assignemnt in this file has no effect - drop it.
->
-> Signed-off-by: Sam Ravnborg <sam@ravnborg.org>
-> Cc: Chen Liqin <liqin.linux@gmail.com>
-> Cc: Lennox Wu <lennox.wu@gmail.com>
-> Cc: David Howells <dhowells@redhat.com>
-> ---
->  arch/score/include/asm/Kbuild | 3 ---
->  1 file changed, 3 deletions(-)
->
-> diff --git a/arch/score/include/asm/Kbuild b/arch/score/include/asm/Kbuild
-> index 2f947ab..f67b3f6 100644
-> --- a/arch/score/include/asm/Kbuild
-> +++ b/arch/score/include/asm/Kbuild
-> @@ -1,7 +1,4 @@
->
-> -header-y +=
-> -
-> -
->  generic-y += barrier.h
->  generic-y += clkdev.h
->  generic-y += cputime.h
-> --
-> 1.9.3
->
+The easiest way to install them is:
+
+	yum install gcc-\*-linux-gnu
+
+For reference, the current rawhide SRPMs can be found here:
+
+	https://dl.fedoraproject.org/pub/fedora/linux/development/rawhide/source/SRPMS/c/cross-binutils-2.24-4.fc21.src.rpm
+	https://dl.fedoraproject.org/pub/fedora/linux/development/rawhide/source/SRPMS/c/cross-gcc-4.9.0-3.fc21.src.rpm
+
+I haven't yet pushed the NIOS2 arch changes (I'm waiting on a fix to allow me
+to build libgcc for Cris).
+
+I haven't applied any of your patches, though I do apply the same patches that
+are applied to the core Fedora binutils and gcc.  Note that this URL linked to
+on your page:
+
+	https://www.kernel.org/pub/tools/crosstool/patches/
+
+does not seem to exist.
+
+The compilers that I have managed to produce and install on my system are:
+
+	gcc-aarch64-linux-gnu
+	gcc-alpha-linux-gnu
+	gcc-arm-linux-gnu
+	gcc-avr32-linux-gnu
+	gcc-bfin-linux-gnu
+	gcc-c6x-linux-gnu
+	gcc-cris-linux-gnu
+	gcc-frv-linux-gnu
+	gcc-h8300-linux-gnu
+	gcc-hppa-linux-gnu
+	gcc-hppa64-linux-gnu
+	gcc-ia64-linux-gnu
+	gcc-m32r-linux-gnu
+	gcc-m68k-linux-gnu
+	gcc-microblaze-linux-gnu
+	gcc-mips64-linux-gnu
+	gcc-mn10300-linux-gnu
+	gcc-nios2-linux-gnu
+	gcc-powerpc64-linux-gnu
+	gcc-ppc64-linux-gnu
+	gcc-s390x-linux-gnu
+	gcc-sh-linux-gnu
+	gcc-sh64-linux-gnu
+	gcc-sparc64-linux-gnu
+	gcc-tile-linux-gnu
+	gcc-x86_64-linux-gnu
+	gcc-xtensa-linux-gnu
+
+All but cris, nios2, sh, sh64 and tile have a collection of libgcc built.
+
+I don't build i386, mips, powerpc, s390, sh4 and sparc as these are covered by
+the ones I do build.
+
+gcc doesn't support Metag or Openrisc, it considers Score obsolete and
+Hexagon and Unicore32 don't seem to have suitable binutils support.
+
+David
