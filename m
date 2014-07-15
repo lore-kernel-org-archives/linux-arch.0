@@ -1,98 +1,46 @@
-From: Chung-Lin Tang <cltang@codesourcery.com>
-Subject: Re: [PATCH v2 22/29] nios2: Miscellaneous header files
-Date: Tue, 15 Jul 2014 19:03:35 +0800
-Message-ID: <53C50A87.6000902@codesourcery.com>
-References: <1405413956-2772-1-git-send-email-lftan@altera.com> <1405413956-2772-23-git-send-email-lftan@altera.com> <4999408.jEEY9BVX9F@wuerfel>
+From: Sam Ravnborg <sam@ravnborg.org>
+Subject: Re: [PATCH 35/38] unicore32: clean-up uapi Kbuild file
+Date: Tue, 15 Jul 2014 13:07:30 +0200
+Message-ID: <20140715110730.GA3690@ravnborg.org>
+References: <20140714150609.GA28358@ravnborg.org>
+ <1405350546-28467-1-git-send-email-sam@ravnborg.org>
+ <1405350546-28467-35-git-send-email-sam@ravnborg.org>
+ <53C50840.2020204@imgtec.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="ISO-8859-1"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from relay1.mentorg.com ([192.94.38.131]:42275 "EHLO
-	relay1.mentorg.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1758108AbaGOLDj (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 15 Jul 2014 07:03:39 -0400
-In-Reply-To: <4999408.jEEY9BVX9F@wuerfel>
+Received: from asavdk4.altibox.net ([109.247.116.15]:34747 "EHLO
+	asavdk4.altibox.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1758450AbaGOLHr (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 15 Jul 2014 07:07:47 -0400
+Content-Disposition: inline
+In-Reply-To: <53C50840.2020204@imgtec.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>, Ley Foon Tan <lftan@altera.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, lftan.linux@gmail.com
+To: James Hogan <james.hogan@imgtec.com>
+Cc: Arnd Bergmann <arnd@arndb.de>, lkml <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Guan Xuetao <gxt@mprc.pku.edu.cn>, kvm <kvm@vger.kernel.org>
 
-On 2014/7/15 06:22 PM, Arnd Bergmann wrote:
->> +
->> > +#ifndef _UAPI_ASM_NIOS2_STATFS_H
->> > +#define _UAPI_ASM_NIOS2_STATFS_H
->> > +
->> > +#define __statfs_word __s32
-> Why this? Every other architecture except parisc uses the default __u32 here.
+Hi James.
 
-Because include/uapi/asm/statfs.h has this:
-
-#ifndef __statfs_word
-#if __BITS_PER_LONG == 64
-#define __statfs_word __kernel_long_t
-#else
-#define __statfs_word __u32
-#endif
-#endif
-...
-struct statfs64 {
-        __statfs_word f_type;
-        __statfs_word f_bsize;
-        __u64 f_blocks;
-        __u64 f_bfree;
-...
-
-While the bits/statfs.h header in glibc has this:
-struct statfs
-  {
-    __SWORD_TYPE f_type;
-    __SWORD_TYPE f_bsize;
-    __field64(__fsblkcnt_t, __fsblkcnt64_t, f_blocks);
-...
-struct statfs64
-  {
-    __SWORD_TYPE f_type;
-    __SWORD_TYPE f_bsize;
-    __fsblkcnt64_t f_blocks;
-...
-
-Where __SWORD_TYPE is always a signed integer (int or long int depending
-on 32/64-bit word size).  Hence we define the kernel __statfs_word to be
-signed 32-bit to match.
-
-Supposedly, tilepro should have a similar issue too, though I guess this
-is quite obscure in practice. We so far haven't encountered any issues
-on nios2 without this __s32 override either, it's just by observation.
-
->> > +#include <linux/types.h>
->> > +#include <asm-generic/swab.h>
->> > +
->> > +#ifdef CONFIG_NIOS2_CI_SWAB_SUPPORT
->> > +#ifdef __GNUC__
->> > +
->> > +#define __nios2_swab(x)		\
->> > +	__builtin_custom_ini(CONFIG_NIOS2_CI_SWAB_NO, (x))
->> > +
->> > +static inline __attribute__((const)) __u16 __arch_swab16(__u16 x)
->> > +{
->> > +	return (__u16) __nios2_swab(((__u32) x) << 16);
->> > +}
-> Is this actually better than ___constant_swab16()?
+> > +# Wapper from asm-generic
+> >  generic-y += kvm_para.h
+> > 
 > 
-> Also, have you checked if you need to support old compiler versions that
-> don't have __builtin_bswap16/32/64? With newer compilers you don't need
-> to define any of these yourself.
-> 
-> 	Arnd
+> You dropped the generic-y += kvm_para.h for arm64 & c6x, but not for
+> unicore, avr32 & ia64 patch, which seems a bit inconsistent. Was there
+> some reason behind that?
+I was fooling around with kvm_para.h and in both cases dropping
+them was wrong.
 
-This swap is configured/implemented using Nios II's custom instruction
-facility; it is not part of the compiler supported Nios II core
-instruction set. In fact, even the exact opcode allocated is not fixed.
+kvm_para.h shows the current nightmare when you want to add a header
+file that for most architectures has a generic implementation, but
+in a few cases have a dedicated implementation.
+This is the same point that Arnd raises.
 
-So the custom swap will not be in a form usable by the compiler, and
-hence no use of it during code generation (if it is, you might not even
-need to use __builtin_swap*(), there's a optimization pass that
-recognizes the shift+or-ing C code patterns)
+I will fix it up so kvm_para.h is again specified for arm64 + c6x.
+And then will address the whole mess later if I manage to come up
+with something that is acceptable (simple enough).
 
-Thanks,
-Chung-Lin
+Thanks for the review!
+
+	Sam
