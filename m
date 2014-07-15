@@ -1,46 +1,55 @@
-From: Sam Ravnborg <sam@ravnborg.org>
-Subject: Re: [PATCH 07/38] Delete unused Kbuild files in include/*
-Date: Tue, 15 Jul 2014 11:19:03 +0200
-Message-ID: <20140715091902.GA3290@ravnborg.org>
-References: <20140714150609.GA28358@ravnborg.org>
- <1405350546-28467-1-git-send-email-sam@ravnborg.org>
- <1405350546-28467-7-git-send-email-sam@ravnborg.org>
- <53C4EF1B.2050506@imgtec.com>
+From: James Hogan <james.hogan-1AXoQHu6uovQT0dZR+AlfA@public.gmane.org>
+Subject: Re: [PATCH 23/38] metag: clean-up uapi Kbuild file
+Date: Tue, 15 Jul 2014 10:22:14 +0100
+Message-ID: <53C4F2C6.8050303@imgtec.com>
+References: <20140714150609.GA28358@ravnborg.org> <1405350546-28467-1-git-send-email-sam@ravnborg.org> <1405350546-28467-23-git-send-email-sam@ravnborg.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from asavdk4.altibox.net ([109.247.116.15]:32938 "EHLO
-	asavdk4.altibox.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753497AbaGOJTJ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 15 Jul 2014 05:19:09 -0400
-Content-Disposition: inline
-In-Reply-To: <53C4EF1B.2050506@imgtec.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: James Hogan <james.hogan@imgtec.com>
-Cc: Arnd Bergmann <arnd@arndb.de>, lkml <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, David Howells <dhowells@redhat.com>
+Content-Type: text/plain; charset="ISO-8859-1"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-metag-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+In-Reply-To: <1405350546-28467-23-git-send-email-sam-uyr5N9Q2VtJg9hUCZPvPmw@public.gmane.org>
+Sender: linux-metag-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: Sam Ravnborg <sam-uyr5N9Q2VtJg9hUCZPvPmw@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>
+Cc: lkml <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, linux-arch <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, linux-metag <linux-metag-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, Jul 15, 2014 at 10:06:35AM +0100, James Hogan wrote:
-> On 14/07/14 16:08, Sam Ravnborg wrote:
-> > The following files are not used - and they serve no purpose.
-> > Delete them.
-> > 
-> > Signed-off-by: Sam Ravnborg <sam@ravnborg.org>
-> > Cc: David Howells <dhowells@redhat.com>
-> > ---
-> >  include/Kbuild         | 2 --
-> >  include/scsi/fc/Kbuild | 0
-> >  include/video/Kbuild   | 0
-> >  3 files changed, 2 deletions(-)
-> >  delete mode 100644 include/Kbuild
-> >  delete mode 100644 include/scsi/fc/Kbuild
-> >  delete mode 100644 include/video/Kbuild
+On 14/07/14 16:08, Sam Ravnborg wrote:
+> Remove redundant assignments.
 > 
-> include/asm-generic/Kbuild.asm could go too since it isn't included
-> anywhere.
+> Signed-off-by: Sam Ravnborg <sam-uyr5N9Q2VtJg9hUCZPvPmw@public.gmane.org>
+> Cc: James Hogan <james.hogan-1AXoQHu6uovQT0dZR+AlfA@public.gmane.org>
 
-Good catch. I recall that I was wondering what the purpose of the file
-was but forgot about it again.
-Will delete in in v2 of this patch-set.
+Acked-by: James Hogan <james.hogan-1AXoQHu6uovQT0dZR+AlfA@public.gmane.org>
 
-	Sam
+Thanks!
+James
+
+> ---
+>  arch/metag/include/uapi/asm/Kbuild | 7 +------
+>  1 file changed, 1 insertion(+), 6 deletions(-)
+> 
+> diff --git a/arch/metag/include/uapi/asm/Kbuild b/arch/metag/include/uapi/asm/Kbuild
+> index ab78be2..1f7f43f 100644
+> --- a/arch/metag/include/uapi/asm/Kbuild
+> +++ b/arch/metag/include/uapi/asm/Kbuild
+> @@ -1,14 +1,9 @@
+>  # UAPI Header export list
+>  include include/uapi/asm-generic/Kbuild.asm
+>  
+> -header-y += byteorder.h
+>  header-y += ech.h
+> -header-y += ptrace.h
+> -header-y += sigcontext.h
+> -header-y += siginfo.h
+> -header-y += swab.h
+> -header-y += unistd.h
+>  
+> +# Wrappers from asm-generic
+>  generic-y += mman.h
+>  generic-y += resource.h
+>  generic-y += setup.h
+> 
+--
+To unsubscribe from this list: send the line "unsubscribe linux-metag" in
+the body of a message to majordomo-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+More majordomo info at  http://vger.kernel.org/majordomo-info.html
