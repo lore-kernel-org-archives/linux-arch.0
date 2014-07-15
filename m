@@ -1,235 +1,86 @@
-From: Andy Lutomirski <luto@amacapital.net>
-Subject: [PATCH 5/7] x86: Split syscall_trace_enter into two phases
-Date: Tue, 15 Jul 2014 12:32:34 -0700
-Message-ID: <bd4e2efb7cd97f2bf9d4f1e2065f16c9091d799a.1405452484.git.luto@amacapital.net>
-References: <cover.1405452484.git.luto@amacapital.net>
+From: Richard Weinberger <richard@nod.at>
+Subject: Re: [PATCH v2 00/29] nios2 Linux kernel port
+Date: Tue, 15 Jul 2014 22:27:50 +0200
+Message-ID: <53C58EC6.8060508@nod.at>
+References: <CAFLxGvw_fnG1KTVXrcZxHZzKPnG5DA117VmcZBvw3EYgXw-DVw@mail.gmail.com> <1405413956-2772-1-git-send-email-lftan@altera.com> <4213.1405430178@warthog.procyon.org.uk> <20544.1405434031@warthog.procyon.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
+Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-In-Reply-To: <cover.1405452484.git.luto@amacapital.net>
-In-Reply-To: <cover.1405452484.git.luto@amacapital.net>
-References: <cover.1405452484.git.luto@amacapital.net>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: linux-kernel@vger.kernel.org, Kees Cook <keescook@chromium.org>, Will Drewry <wad@chromium.org>, James Morris <james.l.morris@oracle.com>
-Cc: linux-arch@vger.kernel.org, linux-mips@linux-mips.org, x86@kernel.org, Oleg Nesterov <oleg@redhat.com>, Andy Lutomirski <luto@amacapital.net>, linux-security-module@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Alexei Starovoitov <ast@plumgrid.com>
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from [95.130.255.143] ([95.130.255.143]:65275 "EHLO radon.swed.at"
+	rhost-flags-FAIL-FAIL-OK-OK) by vger.kernel.org with ESMTP
+	id S1757029AbaGOU2Z (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 15 Jul 2014 16:28:25 -0400
+In-Reply-To: <20544.1405434031@warthog.procyon.org.uk>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: David Howells <dhowells@redhat.com>
+Cc: Ley Foon Tan <lftan@altera.com>, Linux-Arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, LeyFoon Tan <lftan.linux@gmail.com>, cltang@codesourcery.com
 
-This splits syscall_trace_enter into syscall_trace_enter_phase1 and
-syscall_trace_enter_phase2.  Only phase 2 has full pt_regs, and only
-phase 2 is permitted to modify any of pt_regs except for orig_ax.
+Am 15.07.2014 16:20, schrieb David Howells:
+> Richard Weinberger <richard.weinberger@gmail.com> wrote:
+> 
+>> Having it on https://www.kernel.org/pub/tools/crosstool/ would be also nice.
+> 
+> Does the Fedora cross-compiler suite fit with your set?  All the fedora
+> cross-compilers are build from a single pair of SRPMS into a slew of binary
+> RPMs and none of the resulting RPMs are relocatable (they all end up in /usr).
 
-The intent is that phase 1 can be called from the syscall fast path.
+I'm not using Fedora.
 
-Signed-off-by: Andy Lutomirski <luto@amacapital.net>
----
- arch/x86/include/asm/ptrace.h |   5 ++
- arch/x86/kernel/ptrace.c      | 139 ++++++++++++++++++++++++++++++++++++------
- 2 files changed, 125 insertions(+), 19 deletions(-)
+> The easiest way to install them is:
+> 
+> 	yum install gcc-\*-linux-gnu
+> 
+> For reference, the current rawhide SRPMs can be found here:
+> 
+> 	https://dl.fedoraproject.org/pub/fedora/linux/development/rawhide/source/SRPMS/c/cross-binutils-2.24-4.fc21.src.rpm
+> 	https://dl.fedoraproject.org/pub/fedora/linux/development/rawhide/source/SRPMS/c/cross-gcc-4.9.0-3.fc21.src.rpm
+> 
+> I haven't yet pushed the NIOS2 arch changes (I'm waiting on a fix to allow me
+> to build libgcc for Cris).
+> 
+> I haven't applied any of your patches, though I do apply the same patches that
+> are applied to the core Fedora binutils and gcc.  Note that this URL linked to
+> on your page:
+> 
+> 	https://www.kernel.org/pub/tools/crosstool/patches/
+> 
+> does not seem to exist.
+> 
+> The compilers that I have managed to produce and install on my system are:
+> 
+> 	gcc-aarch64-linux-gnu
+> 	gcc-alpha-linux-gnu
+> 	gcc-arm-linux-gnu
+> 	gcc-avr32-linux-gnu
+> 	gcc-bfin-linux-gnu
+> 	gcc-c6x-linux-gnu
+> 	gcc-cris-linux-gnu
+> 	gcc-frv-linux-gnu
+> 	gcc-h8300-linux-gnu
+> 	gcc-hppa-linux-gnu
+> 	gcc-hppa64-linux-gnu
+> 	gcc-ia64-linux-gnu
+> 	gcc-m32r-linux-gnu
+> 	gcc-m68k-linux-gnu
+> 	gcc-microblaze-linux-gnu
+> 	gcc-mips64-linux-gnu
+> 	gcc-mn10300-linux-gnu
+> 	gcc-nios2-linux-gnu
+> 	gcc-powerpc64-linux-gnu
+> 	gcc-ppc64-linux-gnu
+> 	gcc-s390x-linux-gnu
+> 	gcc-sh-linux-gnu
+> 	gcc-sh64-linux-gnu
+> 	gcc-sparc64-linux-gnu
+> 	gcc-tile-linux-gnu
+> 	gcc-x86_64-linux-gnu
+> 	gcc-xtensa-linux-gnu
+>
 
-diff --git a/arch/x86/include/asm/ptrace.h b/arch/x86/include/asm/ptrace.h
-index 14fd6fd..dcbfb49 100644
---- a/arch/x86/include/asm/ptrace.h
-+++ b/arch/x86/include/asm/ptrace.h
-@@ -75,6 +75,11 @@ convert_ip_to_linear(struct task_struct *child, struct pt_regs *regs);
- extern void send_sigtrap(struct task_struct *tsk, struct pt_regs *regs,
- 			 int error_code, int si_code);
- 
-+
-+extern unsigned long syscall_trace_enter_phase1(struct pt_regs *, u32 arch);
-+extern long syscall_trace_enter_phase2(struct pt_regs *, u32 arch,
-+				       unsigned long phase1_result);
-+
- extern long syscall_trace_enter(struct pt_regs *);
- extern void syscall_trace_leave(struct pt_regs *);
- 
-diff --git a/arch/x86/kernel/ptrace.c b/arch/x86/kernel/ptrace.c
-index 39296d2..8e05418 100644
---- a/arch/x86/kernel/ptrace.c
-+++ b/arch/x86/kernel/ptrace.c
-@@ -1441,13 +1441,111 @@ void send_sigtrap(struct task_struct *tsk, struct pt_regs *regs,
- 	force_sig_info(SIGTRAP, &info, tsk);
- }
- 
-+static void do_audit_syscall_entry(struct pt_regs *regs, u32 arch)
-+{
-+	if (arch == AUDIT_ARCH_X86_64) {
-+		audit_syscall_entry(arch, regs->orig_ax, regs->di,
-+				    regs->si, regs->dx, regs->r10);
-+	} else {
-+		audit_syscall_entry(arch, regs->orig_ax, regs->bx,
-+				    regs->cx, regs->dx, regs->si);
-+	}
-+}
-+
- /*
-- * We must return the syscall number to actually look up in the table.
-- * This can be -1L to skip running any syscall at all.
-+ * We can return 0 to resume the syscall or anything else to go to phase
-+ * 2.  If we resume the syscall, we need to put something appropriate in
-+ * regs->orig_ax.
-+ *
-+ * NB: We don't have full pt_regs here, but regs->orig_ax and regs->ax
-+ * are fully functional.
-+ *
-+ * For phase 2's benefit, our return value is:
-+ * 0: resume the syscall
-+ * 1: go to phase 2; no seccomp phase 2 needed
-+ * 2: go to phase 2; pass return value to seccomp
-  */
--long syscall_trace_enter(struct pt_regs *regs)
-+unsigned long syscall_trace_enter_phase1(struct pt_regs *regs, u32 arch)
-+{
-+	unsigned long ret = 0;
-+	u32 work;
-+
-+	BUG_ON(regs != task_pt_regs(current));
-+
-+	work = ACCESS_ONCE(current_thread_info()->flags) &
-+		_TIF_WORK_SYSCALL_ENTRY;
-+
-+#ifdef CONFIG_SECCOMP
-+	/*
-+	 * Do seccomp first -- it should minimize exposure of other
-+	 * code, and keeping seccomp fast is probably more valuable
-+	 * than the rest of this.
-+	 */
-+	if (work & _TIF_SECCOMP) {
-+		struct seccomp_data sd;
-+
-+		sd.arch = arch;
-+		sd.nr = regs->orig_ax;
-+		sd.instruction_pointer = regs->ip;
-+		if (arch == AUDIT_ARCH_X86_64) {
-+			sd.args[0] = regs->di;
-+			sd.args[1] = regs->si;
-+			sd.args[2] = regs->dx;
-+			sd.args[3] = regs->r10;
-+			sd.args[4] = regs->r8;
-+			sd.args[5] = regs->r9;
-+		} else {
-+			sd.args[0] = regs->bx;
-+			sd.args[1] = regs->cx;
-+			sd.args[2] = regs->dx;
-+			sd.args[3] = regs->si;
-+			sd.args[4] = regs->di;
-+			sd.args[5] = regs->bp;
-+		}
-+
-+		BUILD_BUG_ON(SECCOMP_PHASE1_OK != 0);
-+		BUILD_BUG_ON(SECCOMP_PHASE1_SKIP != 1);
-+
-+		ret = seccomp_phase1(&sd);
-+		if (ret == SECCOMP_PHASE1_SKIP) {
-+			regs->orig_ax = -ENOSYS;
-+			ret = 0;
-+		} else if (ret != SECCOMP_PHASE1_OK) {
-+			return ret;  /* Go directly to phase 2 */
-+		}
-+
-+		work &= ~_TIF_SECCOMP;
-+	}
-+#endif
-+
-+	/* Do our best to finish without phase 2. */
-+	if (work == 0)
-+		return ret;  /* seccomp only (ret == 0 here) */
-+
-+#ifdef CONFIG_AUDITSYSCALL
-+	if (work == _TIF_SYSCALL_AUDIT) {
-+		/*
-+		 * If there is no more work to be done except auditing,
-+		 * then audit in phase 1.  Phase 2 always audits, so, if
-+		 * we audit here, then we can't go on to phase 2.
-+		 */
-+		do_audit_syscall_entry(regs, arch);
-+		return 0;
-+	}
-+#endif
-+
-+	return 1;  /* Something is enabled that we can't handle in phase 1 */
-+}
-+
-+/* Returns the syscall nr to run (which should match regs->orig_ax). */
-+long syscall_trace_enter_phase2(struct pt_regs *regs, u32 arch,
-+				unsigned long phase1_result)
- {
- 	long ret = 0;
-+	u32 work = ACCESS_ONCE(current_thread_info()->flags) &
-+		_TIF_WORK_SYSCALL_ENTRY;
-+
-+	BUG_ON(regs != task_pt_regs(current));
- 
- 	user_exit();
- 
-@@ -1458,17 +1556,20 @@ long syscall_trace_enter(struct pt_regs *regs)
- 	 * do_debug() and we need to set it again to restore the user
- 	 * state.  If we entered on the slow path, TF was already set.
- 	 */
--	if (test_thread_flag(TIF_SINGLESTEP))
-+	if (work & _TIF_SINGLESTEP)
- 		regs->flags |= X86_EFLAGS_TF;
- 
--	/* do the secure computing check first */
--	if (secure_computing()) {
-+	/*
-+	 * Call seccomp_phase2 before running the other hooks so that
-+	 * they can see any changes made by a seccomp tracer.
-+	 */
-+	if (phase1_result > 1 && seccomp_phase2(phase1_result)) {
- 		/* seccomp failures shouldn't expose any additional code. */
- 		ret = -1L;
- 		goto out;
- 	}
- 
--	if (unlikely(test_thread_flag(TIF_SYSCALL_EMU)))
-+	if (unlikely(work & _TIF_SYSCALL_EMU))
- 		ret = -1L;
- 
- 	if ((ret || test_thread_flag(TIF_SYSCALL_TRACE)) &&
-@@ -1478,23 +1579,23 @@ long syscall_trace_enter(struct pt_regs *regs)
- 	if (unlikely(test_thread_flag(TIF_SYSCALL_TRACEPOINT)))
- 		trace_sys_enter(regs, regs->orig_ax);
- 
--	if (is_ia32_task())
--		audit_syscall_entry(AUDIT_ARCH_I386,
--				    regs->orig_ax,
--				    regs->bx, regs->cx,
--				    regs->dx, regs->si);
--#ifdef CONFIG_X86_64
--	else
--		audit_syscall_entry(AUDIT_ARCH_X86_64,
--				    regs->orig_ax,
--				    regs->di, regs->si,
--				    regs->dx, regs->r10);
--#endif
-+	do_audit_syscall_entry(regs, arch);
- 
- out:
- 	return ret ?: regs->orig_ax;
- }
- 
-+long syscall_trace_enter(struct pt_regs *regs)
-+{
-+	u32 arch = is_ia32_task() ? AUDIT_ARCH_I386 : AUDIT_ARCH_X86_64;
-+	unsigned long phase1_result = syscall_trace_enter_phase1(regs, arch);
-+
-+	if (phase1_result == 0)
-+		return regs->orig_ax;
-+	else
-+		return syscall_trace_enter_phase2(regs, arch, phase1_result);
-+}
-+
- void syscall_trace_leave(struct pt_regs *regs)
- {
- 	bool step;
--- 
-1.9.3
+
+Nice collection. Let's see whether I can repack your RPMs for openSUSE.
+
+Thanks,
+//richard
