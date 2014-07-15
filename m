@@ -1,46 +1,37 @@
-From: Sam Ravnborg <sam@ravnborg.org>
-Subject: Re: [PATCH 35/38] unicore32: clean-up uapi Kbuild file
-Date: Tue, 15 Jul 2014 13:07:30 +0200
-Message-ID: <20140715110730.GA3690@ravnborg.org>
-References: <20140714150609.GA28358@ravnborg.org>
- <1405350546-28467-1-git-send-email-sam@ravnborg.org>
- <1405350546-28467-35-git-send-email-sam@ravnborg.org>
- <53C50840.2020204@imgtec.com>
+From: Joe Perches <joe@perches.com>
+Subject: Re: [PATCH v2 27/29] MAINTAINERS: Add nios2 maintainer
+Date: Tue, 15 Jul 2014 04:10:15 -0700
+Message-ID: <1405422615.14773.1.camel@joe-AO725>
+References: <1405413956-2772-1-git-send-email-lftan@altera.com>
+	 <1405413956-2772-28-git-send-email-lftan@altera.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="ISO-8859-1"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from asavdk4.altibox.net ([109.247.116.15]:34747 "EHLO
-	asavdk4.altibox.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1758450AbaGOLHr (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 15 Jul 2014 07:07:47 -0400
-Content-Disposition: inline
-In-Reply-To: <53C50840.2020204@imgtec.com>
+Received: from smtprelay0045.hostedemail.com ([216.40.44.45]:36112 "EHLO
+	smtprelay.hostedemail.com" rhost-flags-OK-OK-OK-FAIL)
+	by vger.kernel.org with ESMTP id S1758752AbaGOLKV (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Tue, 15 Jul 2014 07:10:21 -0400
+In-Reply-To: <1405413956-2772-28-git-send-email-lftan@altera.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: James Hogan <james.hogan@imgtec.com>
-Cc: Arnd Bergmann <arnd@arndb.de>, lkml <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Guan Xuetao <gxt@mprc.pku.edu.cn>, kvm <kvm@vger.kernel.org>
+To: Ley Foon Tan <lftan@altera.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, lftan.linux@gmail.com, cltang@codesourcery.com
 
-Hi James.
+On Tue, 2014-07-15 at 16:45 +0800, Ley Foon Tan wrote:
+> Signed-off-by: Ley Foon Tan <lftan@altera.com>
 
-> > +# Wapper from asm-generic
-> >  generic-y += kvm_para.h
-> > 
-> 
-> You dropped the generic-y += kvm_para.h for arm64 & c6x, but not for
-> unicore, avr32 & ia64 patch, which seems a bit inconsistent. Was there
-> some reason behind that?
-I was fooling around with kvm_para.h and in both cases dropping
-them was wrong.
+trivia:
 
-kvm_para.h shows the current nightmare when you want to add a header
-file that for most architectures has a generic implementation, but
-in a few cases have a dedicated implementation.
-This is the same point that Arnd raises.
+> diff --git a/MAINTAINERS b/MAINTAINERS
+[]
+> @@ -6350,6 +6350,13 @@ S:	Maintained
+[]
+> +NIOS2 ARCHITECTURE
+> +M:	Ley Foon Tan <lftan@altera.com>
+> +L:	nios2-dev@lists.rocketboards.org (moderated for non-subscribers)
+> +T:	git://git.rocketboards.org/linux-socfpga.git
 
-I will fix it up so kvm_para.h is again specified for arm64 + c6x.
-And then will address the whole mess later if I manage to come up
-with something that is acceptable (simple enough).
-
-Thanks for the review!
-
-	Sam
+this should be:
+T:	git git://git.rocketboards.org/linux-socfpga.git
