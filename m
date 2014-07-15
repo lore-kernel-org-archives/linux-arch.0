@@ -1,140 +1,329 @@
 From: Ley Foon Tan <lftan@altera.com>
-Subject: [PATCH v2 19/29] nios2: Time keeping
-Date: Tue, 15 Jul 2014 16:45:46 +0800
-Message-ID: <1405413956-2772-20-git-send-email-lftan@altera.com>
+Subject: [PATCH v2 18/29] nios2: Device tree support
+Date: Tue, 15 Jul 2014 16:45:45 +0800
+Message-ID: <1405413956-2772-19-git-send-email-lftan@altera.com>
 References: <1405413956-2772-1-git-send-email-lftan@altera.com>
 Mime-Version: 1.0
 Content-Type: text/plain
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bn1lp0140.outbound.protection.outlook.com ([207.46.163.140]:55812
-	"EHLO na01-bn1-obe.outbound.protection.outlook.com"
-	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1758294AbaGOIsY (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 15 Jul 2014 04:48:24 -0400
+Return-path: <linux-doc-owner@vger.kernel.org>
 In-Reply-To: <1405413956-2772-1-git-send-email-lftan@altera.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-doc-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org
 Cc: Ley Foon Tan <lftan@altera.com>, lftan.linux@gmail.com, cltang@codesourcery.com
+List-Id: linux-arch.vger.kernel.org
 
-Add time keeping code for nios2.
+Add device tree support to arch/nios2.
 
 Signed-off-by: Ley Foon Tan <lftan@altera.com>
 ---
- arch/nios2/include/asm/delay.h |  92 +++++++++++++++++++++++++
- arch/nios2/include/asm/timex.h |  27 ++++++++
- arch/nios2/kernel/time.c       | 150 +++++++++++++++++++++++++++++++++++++++++
- 3 files changed, 269 insertions(+)
- create mode 100644 arch/nios2/include/asm/delay.h
- create mode 100644 arch/nios2/include/asm/timex.h
- create mode 100644 arch/nios2/kernel/time.c
+ Documentation/devicetree/bindings/nios2/nios2.txt |  62 +++++++++
+ Documentation/devicetree/bindings/nios2/timer.txt |  19 +++
+ arch/nios2/boot/dts/3c120_devboard.dts            | 155 ++++++++++++++++++++++
+ arch/nios2/boot/linked_dtb.S                      |  19 +++
+ arch/nios2/kernel/prom.c                          |  66 +++++++++
+ arch/nios2/platform/platform.c                    |  51 +++++++
+ 6 files changed, 372 insertions(+)
+ create mode 100644 Documentation/devicetree/bindings/nios2/nios2.txt
+ create mode 100644 Documentation/devicetree/bindings/nios2/timer.txt
+ create mode 100644 arch/nios2/boot/dts/3c120_devboard.dts
+ create mode 100644 arch/nios2/boot/linked_dtb.S
+ create mode 100644 arch/nios2/kernel/prom.c
+ create mode 100644 arch/nios2/platform/platform.c
 
-diff --git a/arch/nios2/include/asm/delay.h b/arch/nios2/include/asm/delay.h
+diff --git a/Documentation/devicetree/bindings/nios2/nios2.txt b/Documentation/devicetree/bindings/nios2/nios2.txt
 new file mode 100644
-index 0000000..8070a09
+index 0000000..d6d0a94
 --- /dev/null
-+++ b/arch/nios2/include/asm/delay.h
-@@ -0,0 +1,92 @@
++++ b/Documentation/devicetree/bindings/nios2/nios2.txt
+@@ -0,0 +1,62 @@
++* Nios II Processor Binding
++
++This binding specifies what properties available in the device tree
++representation of a Nios II Processor Core.
++
++Users can use sopc2dts tool for generating device tree sources (dts) from a
++Qsys system. See more detail in: http://www.alterawiki.com/wiki/Sopc2dts
++
++Required properties:
++
++- compatible: Compatible property value should be "altr,nios2-1.0".
++- reg: Contains CPU index.
++- interrupt-controller: Specifies that the node is an interrupt controller
++- #interrupt-cells: Specifies the number of cells needed to encode an
++		interrupt source, should be 1.
++- clock-frequency: Contains the clock frequency for CPU, in Hz.
++- dcache-line-size: Contains data cache line size.
++- icache-line-size: Contains instruction line size.
++- dcache-size: Contains data cache size.
++- icache-size: Contains instruction cache size.
++- altr,pid-num-bits: Specifies the number of bits to use to represent the process
++		identifier (PID).
++- altr,tlb-num-ways: Specifies the number of set-associativity ways in the TLB.
++- altr,tlb-num-entries: Specifies the number of entries in the TLB.
++- altr,tlb-ptr-sz: Specifies size of TLB pointer.
++- altr,has-mul: Specifies CPU hardware multipy support, should be 1.
++- altr,has-mmu: Specifies CPU support MMU support, should be 1.
++- altr,has-initda: Specifies CPU support initda instruction, should be 1.
++- altr,reset-addr: Specifies CPU reset address
++- altr,fast-tlb-miss-addr: Specifies CPU fast TLB miss exception address
++- altr,exception-addr: Specifies CPU exception address
++
++Optional properties:
++- altr,has-div: Specifies CPU hardware divide support
++- altr,implementation: Nios II core implementation, this should be "fast";
++
++Example:
++
++cpu@0x0 {
++	device_type = "cpu";
++	compatible = "altr,nios2-1.0";
++	reg = <0>;
++	interrupt-controller;
++	#interrupt-cells = <1>;
++	clock-frequency = <125000000>;
++	dcache-line-size = <32>;
++	icache-line-size = <32>;
++	dcache-size = <32768>;
++	icache-size = <32768>;
++	altr,implementation = "fast";
++	altr,pid-num-bits = <8>;
++	altr,tlb-num-ways = <16>;
++	altr,tlb-num-entries = <128>;
++	altr,tlb-ptr-sz = <7>;
++	altr,has-div = <1>;
++	altr,has-mul = <1>;
++	altr,reset-addr = <0xc2800000>;
++	altr,fast-tlb-miss-addr = <0xc7fff400>;
++	altr,exception-addr = <0xd0000020>;
++	altr,has-initda = <1>;
++	altr,has-mmu = <1>;
++};
+diff --git a/Documentation/devicetree/bindings/nios2/timer.txt b/Documentation/devicetree/bindings/nios2/timer.txt
+new file mode 100644
+index 0000000..904a584
+--- /dev/null
++++ b/Documentation/devicetree/bindings/nios2/timer.txt
+@@ -0,0 +1,19 @@
++Altera Timer
++
++Required properties:
++
++- compatible : should be "altr,timer-1.0"
++- reg : Specifies base physical address and size of the registers.
++- interrupt-parent: phandle of the interrupt controller
++- interrupts : Should contain the timer interrupt number
++- clock-frequency : The frequency of the clock that drives the counter, in Hz.
++
++Example:
++
++timer {
++	compatible = "altr,timer-1.0";
++	reg = <0x00400000 0x00000020>;
++	interrupt-parent = <&cpu>;
++	interrupts = <11>;
++	clock-frequency = <125000000>;
++};
+diff --git a/arch/nios2/boot/dts/3c120_devboard.dts b/arch/nios2/boot/dts/3c120_devboard.dts
+new file mode 100644
+index 0000000..c8fe26d
+--- /dev/null
++++ b/arch/nios2/boot/dts/3c120_devboard.dts
+@@ -0,0 +1,155 @@
 +/*
-+ * Copyright (C) 2004 Microtronix Datacom Ltd
++ *  Copyright (C) 2013 Altera Corporation
 + *
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License.  See the file "COPYING" in the main directory of this archive
-+ * for more details.
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ *
++ * This file is generated by sopc2dts.
 + */
 +
-+#ifndef _ASM_NIOS2_DELAY_H
-+#define _ASM_NIOS2_DELAY_H
++/dts-v1/;
 +
-+#include <asm/param.h>
++/ {
++	model = "altr,qsys_ghrd_3c120";
++	compatible = "altr,qsys_ghrd_3c120";
++	#address-cells = <1>;
++	#size-cells = <1>;
 +
-+static inline void __delay(unsigned long loops)
-+{
-+	int dummy;
++	cpus {
++		#address-cells = <1>;
++		#size-cells = <0>;
 +
-+	__asm__ __volatile__(
-+	"1:\n\t"
-+	"    beq    %0,zero,2f\n\t"
-+	"    addi   %0, %0, -1\n\t"
-+	"    br     1b\n\t"
-+	"2:\n\t"
-+	:  "=r" (dummy)		/* Need output for optimizer */
-+	:  "0" (loops));	/* %0  Input */
-+}
++		cpu: cpu@0x0 {
++			device_type = "cpu";
++			compatible = "altr,nios2-1.0";
++			reg = <0x00000000>;
++			interrupt-controller;
++			#interrupt-cells = <1>;
++			clock-frequency = <125000000>;
++			dcache-line-size = <32>;
++			icache-line-size = <32>;
++			dcache-size = <32768>;
++			icache-size = <32768>;
++			altr,implementation = "fast";
++			altr,pid-num-bits = <8>;
++			altr,tlb-num-ways = <16>;
++			altr,tlb-num-entries = <128>;
++			altr,tlb-ptr-sz = <7>;
++			altr,has-div = <1>;
++			altr,has-mul = <1>;
++			altr,reset-addr = <0xc2800000>;
++			altr,fast-tlb-miss-addr = <0xc7fff400>;
++			altr,exception-addr = <0xd0000020>;
++			altr,has-initda = <1>;
++			altr,has-mmu = <1>;
++		};
++	};
 +
-+/*
-+ * Note that 19 * 226 == 4294 ==~ 2^32 / 10^6, so
-+ * loops = (4294 * usecs * loops_per_jiffy * HZ) / 2^32.
-+ *
-+ * The mul instruction gives us loops = (a * b) / 2^32.
-+ * We choose a = usecs * 19 * HZ and b = loops_per_jiffy * 226
-+ * because this lets us support a wide range of HZ and
-+ * loops_per_jiffy values without either a or b overflowing 2^32.
-+ * Thus we need usecs * HZ <= (2^32 - 1) / 19 = 226050910 and
-+ * loops_per_jiffy <= (2^32 - 1) / 226 = 19004280
-+ * (which corresponds to ~3800 bogomips at HZ = 100).
-+ *  -- paulus
-+ */
-+#define __MAX_UDELAY	(226050910UL/HZ)	/* maximum udelay argument */
-+#define __MAX_NDELAY	(4294967295UL/HZ)	/* maximum ndelay argument */
++	memory@0 {
++		device_type = "memory";
++		reg = <0x10000000 0x08000000>,
++			<0x07fff400 0x00000400>;
++	};
 +
-+extern unsigned long loops_per_jiffy;
++	sopc@0 {
++		device_type = "soc";
++		ranges;
++		#address-cells = <1>;
++		#size-cells = <1>;
++		compatible = "altr,avalon", "simple-bus";
++		bus-frequency = <125000000>;
 +
-+static inline void __udelay(unsigned int x)
-+{
-+	unsigned int loops;
++		pb_cpu_to_io: bridge@0x8000000 {
++			compatible = "simple-bus";
++			reg = <0x08000000 0x00800000>;
++			#address-cells = <1>;
++			#size-cells = <1>;
++			ranges = <0x00002000 0x08002000 0x00002000>,
++				<0x00004000 0x08004000 0x00000400>,
++				<0x00004400 0x08004400 0x00000040>,
++				<0x00004800 0x08004800 0x00000040>,
++				<0x00004c80 0x08004c80 0x00000020>,
++				<0x00004d50 0x08004d50 0x00000008>,
++				<0x00400000 0x08400000 0x00000020>;
 +
-+	/*
-+	 * Note, if this is compiled with -mhw-mulx it will produce a "mulxuu"
-+	 * (at least in toolchain 145) so there is no need for inline
-+	 * assembly here anymore, which might in turn be emulated if unsupported
-+	 * by the design.
-+	 */
-+	loops = (unsigned int)((((unsigned long long)(x) *
-+			(unsigned long long)(loops_per_jiffy * 226))) >> 32);
++			timer_1ms: timer@0x400000 {
++				compatible = "altr,timer-1.0";
++				reg = <0x00400000 0x00000020>;
++				interrupt-parent = <&cpu>;
++				interrupts = <11>;
++				clock-frequency = <125000000>;
++			};
 +
-+/*
-+	__asm__("mulxuu %0,%1,%2" : "=r" (loops) :
-+		"r" (x), "r" (loops_per_jiffy * 226));
-+*/
-+	__delay(loops);
-+}
++			jtag_uart: serial@0x4d50 {
++				compatible = "altr,juart-1.0";
++				reg = <0x00004d50 0x00000008>;
++				interrupt-parent = <&cpu>;
++				interrupts = <1>;
++			};
 +
-+static inline void __ndelay(unsigned int x)
-+{
-+	unsigned int loops;
++			tse_mac: ethernet@0x4000 {
++				compatible = "altr,tse-1.0";
++				reg = <0x00004000 0x00000400>,
++					<0x00004400 0x00000040>,
++					<0x00004800 0x00000040>,
++					<0x00002000 0x00002000>;
++				reg-names = "control_port", "rx_csr", "tx_csr", "s1";
++				interrupt-parent = <&cpu>;
++				interrupts = <2 3>;
++				interrupt-names = "rx_irq", "tx_irq";
++				rx-fifo-depth = <8192>;
++				tx-fifo-depth = <8192>;
++				max-frame-size = <1518>;
++				local-mac-address = [ 00 00 00 00 00 00 ];
++				phy-mode = "rgmii-id";
++				phy-handle = <&phy0>;
++				tse_mac_mdio: mdio {
++					compatible = "altr,tse-mdio";
++					#address-cells = <1>;
++					#size-cells = <0>;
++					phy0: ethernet-phy@18 {
++						reg = <18>;
++						device_type = "ethernet-phy";
++					};
++				};
++			};
 +
-+	/* see comment in __udelay */
-+	loops = (unsigned int)((((unsigned long long)(x) *
-+			(unsigned long long)(loops_per_jiffy * 5))) >> 32);
++			uart: serial@0x4c80 {
++				compatible = "altr,uart-1.0";
++				reg = <0x00004c80 0x00000020>;
++				interrupt-parent = <&cpu>;
++				interrupts = <10>;
++				current-speed = <115200>;
++				clock-frequency = <62500000>;
++			};
++		};
 +
-+/*
-+	__asm__("mulxuu %0,%1,%2" : "=r" (loops) :
-+		"r" (x), "r" (loops_per_jiffy * 5));
-+*/
-+	__delay(loops);
-+}
++		cfi_flash_64m: flash@0x0 {
++			compatible = "cfi-flash";
++			reg = <0x00000000 0x04000000>;
++			bank-width = <2>;
++			device-width = <1>;
++			#address-cells = <1>;
++			#size-cells = <1>;
 +
-+extern void __bad_udelay(void);		/* deliberately undefined */
-+extern void __bad_ndelay(void);		/* deliberately undefined */
++			partition@800000 {
++				reg = <0x00800000 0x01e00000>;
++				label = "JFFS2 Filesystem";
++			};
++		};
++	};
 +
-+#define udelay(n) (__builtin_constant_p(n) ? \
-+	((n) > __MAX_UDELAY ? __bad_udelay() : __udelay((n) * (19 * HZ))) : \
-+	__udelay((n) * (19 * HZ)))
-+
-+#define ndelay(n) (__builtin_constant_p(n) ? \
-+	((n) > __MAX_NDELAY ? __bad_ndelay() : __ndelay((n) * HZ)) : \
-+	__ndelay((n) * HZ))
-+
-+#endif /* _ASM_NIOS2_DELAY_H */
-diff --git a/arch/nios2/include/asm/timex.h b/arch/nios2/include/asm/timex.h
++	chosen {
++		bootargs = "debug console=ttyJ0,115200";
++	};
++};
+diff --git a/arch/nios2/boot/linked_dtb.S b/arch/nios2/boot/linked_dtb.S
 new file mode 100644
-index 0000000..524b47d
+index 0000000..071f922
 --- /dev/null
-+++ b/arch/nios2/include/asm/timex.h
-@@ -0,0 +1,27 @@
++++ b/arch/nios2/boot/linked_dtb.S
+@@ -0,0 +1,19 @@
 +/*
++ * Copyright (C) 2011 Thomas Chou <thomas@wytron.com.tw>
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ *
++ */
++.section .dtb.init.rodata,"a"
++.incbin "arch/nios2/boot/system.dtb"
+diff --git a/arch/nios2/kernel/prom.c b/arch/nios2/kernel/prom.c
+new file mode 100644
+index 0000000..8b1ac14
+--- /dev/null
++++ b/arch/nios2/kernel/prom.c
+@@ -0,0 +1,66 @@
++/*
++ * Device tree support
++ *
++ * Copyright (C) 2013 Altera Corporation
 + * Copyright (C) 2010 Thomas Chou <thomas@wytron.com.tw>
++ *
++ * Based on MIPS support for CONFIG_OF device tree support
++ *
++ * Copyright (C) 2010 Cisco Systems Inc. <dediao@cisco.com>
 + *
 + * This program is free software; you can redistribute it and/or modify
 + * it under the terms of the GNU General Public License as published by
@@ -151,170 +340,104 @@ index 0000000..524b47d
 + *
 + */
 +
-+#ifndef _ASM_NIOS2_TIMEX_H
-+#define _ASM_NIOS2_TIMEX_H
++#include <linux/init.h>
++#include <linux/types.h>
++#include <linux/bootmem.h>
++#include <linux/of.h>
++#include <linux/of_fdt.h>
++#include <linux/io.h>
 +
-+/* Supply dummy tick-rate. Real value will be read from devicetree */
-+#define CLOCK_TICK_RATE		(HZ * 100000UL)
++#include <asm/sections.h>
 +
-+#include <asm-generic/timex.h>
++void __init early_init_dt_add_memory_arch(u64 base, u64 size)
++{
++	u64 kernel_start = (u64)virt_to_phys(_text);
 +
++	if (!memory_size &&
++	    (kernel_start >= base) && (kernel_start < (base + size)))
++		memory_size = size;
++
++	return;
++}
++
++void * __init early_init_dt_alloc_memory_arch(u64 size, u64 align)
++{
++	return alloc_bootmem_align(size, align);
++}
++
++void __init early_init_devtree(void *params)
++{
++	__be32 *dtb = (u32*)__dtb_start;
++#if defined(CONFIG_NIOS2_DTB_AT_PHYS_ADDR)
++	if (be32_to_cpup((__be32 *)CONFIG_NIOS2_DTB_PHYS_ADDR) ==
++		 OF_DT_HEADER) {
++		params = (void *)CONFIG_NIOS2_DTB_PHYS_ADDR;
++		early_init_dt_scan(params);
++		return;
++	}
 +#endif
-diff --git a/arch/nios2/kernel/time.c b/arch/nios2/kernel/time.c
++	if (be32_to_cpu((__be32) *dtb) == OF_DT_HEADER)
++		params = (void *)__dtb_start;
++
++	early_init_dt_scan(params);
++}
+diff --git a/arch/nios2/platform/platform.c b/arch/nios2/platform/platform.c
 new file mode 100644
-index 0000000..111ade1
+index 0000000..df759f5
 --- /dev/null
-+++ b/arch/nios2/kernel/time.c
-@@ -0,0 +1,150 @@
++++ b/arch/nios2/platform/platform.c
+@@ -0,0 +1,51 @@
 +/*
 + * Copyright (C) 2013 Altera Corporation
-+ * Copyright (C) 2010 Tobias Klauser <tklauser@distanz.ch>
-+ * Copyright (C) 2004 Microtronix Datacom Ltd.
++ * Copyright (C) 2011 Thomas Chou
++ * Copyright (C) 2011 Walter Goossens
 + *
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License. See the file "COPYING" in the main directory of this archive
-+ * for more details.
++ * This file is subject to the terms and conditions of the GNU General
++ * Public License. See the file COPYING in the main directory of this
++ * archive for more details.
 + */
 +
 +#include <linux/init.h>
-+#include <linux/sched.h>
-+#include <linux/interrupt.h>
-+#include <linux/time.h>
-+#include <linux/timex.h>
-+#include <linux/profile.h>
-+#include <linux/clocksource.h>
-+#include <linux/of.h>
++#include <linux/of_platform.h>
 +#include <linux/of_address.h>
-+#include <linux/of_irq.h>
++#include <linux/of_fdt.h>
++#include <linux/err.h>
++#include <linux/slab.h>
++#include <linux/sys_soc.h>
 +#include <linux/io.h>
 +
-+#define	TICK_SIZE		(tick_nsec / 1000)
-+#define NIOS2_TIMER_PERIOD	(timer_freq / HZ)
-+
-+#define ALTERA_TIMER_STATUS_REG		0
-+#define ALTERA_TIMER_CONTROL_REG	4
-+#define ALTERA_TIMER_PERIODL_REG	8
-+#define ALTERA_TIMER_PERIODH_REG	12
-+#define ALTERA_TIMER_SNAPL_REG		16
-+#define ALTERA_TIMER_SNAPH_REG		20
-+
-+#define ALTERA_TIMER_CONTROL_ITO_MSK	(0x1)
-+#define ALTERA_TIMER_CONTROL_CONT_MSK	(0x2)
-+#define ALTERA_TIMER_CONTROL_START_MSK	(0x4)
-+#define ALTERA_TIMER_CONTROL_STOP_MSK	(0x8)
-+
-+static u32 nios2_timer_count;
-+static void __iomem *timer_membase;
-+static u32 timer_freq;
-+
-+static inline unsigned long read_timersnapshot(void)
-+{
-+	unsigned long count;
-+
-+	writew(0, timer_membase + ALTERA_TIMER_SNAPL_REG);
-+	count =
-+		readw(timer_membase + ALTERA_TIMER_SNAPH_REG) << 16 |
-+		readw(timer_membase + ALTERA_TIMER_SNAPL_REG);
-+
-+	return count;
-+}
-+
-+static inline void write_timerperiod(unsigned long period)
-+{
-+	writew(period, timer_membase + ALTERA_TIMER_PERIODL_REG);
-+	writew(period >> 16, timer_membase + ALTERA_TIMER_PERIODH_REG);
-+}
-+
-+/*
-+ * timer_interrupt() needs to keep up the real-time clock,
-+ * as well as call the "xtime_update()" routine every clocktick
-+ */
-+irqreturn_t timer_interrupt(int irq, void *dummy)
-+{
-+	/* Clear the interrupt condition */
-+	writew(0, timer_membase + ALTERA_TIMER_STATUS_REG);
-+	nios2_timer_count += NIOS2_TIMER_PERIOD;
-+
-+	profile_tick(CPU_PROFILING);
-+
-+	xtime_update(1);
-+
-+	update_process_times(user_mode(get_irq_regs()));
-+
-+	return IRQ_HANDLED;
-+}
-+
-+static cycle_t nios2_timer_read(struct clocksource *cs)
-+{
-+	unsigned long flags;
-+	u32 cycles;
-+	u32 tcn;
-+
-+	local_irq_save(flags);
-+	tcn = NIOS2_TIMER_PERIOD - 1 - read_timersnapshot();
-+	cycles = nios2_timer_count;
-+	local_irq_restore(flags);
-+
-+	return cycles + tcn;
-+}
-+
-+static struct clocksource nios2_timer = {
-+	.name	= "timer",
-+	.rating	= 250,
-+	.read	= nios2_timer_read,
-+	.shift	= 20,
-+	.mask	= CLOCKSOURCE_MASK(32),
-+	.flags	= CLOCK_SOURCE_IS_CONTINUOUS,
++static struct of_device_id altera_of_bus_ids[] __initdata = {
++	{ .compatible = "simple-bus", },
++	{ .compatible = "altr,avalon", },
++	{}
 +};
 +
-+static struct irqaction nios2_timer_irq = {
-+	.name		= "timer",
-+	.flags		= IRQF_TIMER,
-+	.handler	= timer_interrupt,
-+};
-+
-+static void __init nios2_time_init(struct device_node *timer)
++static int __init nios2_soc_device_init(void)
 +{
-+	int irq;
-+	unsigned int ctrl;
++	struct soc_device *soc_dev;
++	struct soc_device_attribute *soc_dev_attr;
++	const char *machine;
 +
-+	timer_membase = of_iomap(timer, 0);
-+	if (!timer_membase)
-+		panic("Unable to map timer resource\n");
++	soc_dev_attr = kzalloc(sizeof(*soc_dev_attr), GFP_KERNEL);
++	if (soc_dev_attr) {
++		machine = of_flat_dt_get_machine_name();
++		if (machine)
++			soc_dev_attr->machine = kasprintf(GFP_KERNEL, "%s",
++						machine);
 +
-+	if (of_property_read_u32(timer, "clock-frequency", &timer_freq))
-+		panic("Unable to get timer clock frequency\n");
++		soc_dev_attr->family = "Nios II";
 +
-+	irq = irq_of_parse_and_map(timer, 0);
-+	if (irq < 0)
-+		panic("Unable to parse timer irq\n");
++		soc_dev = soc_device_register(soc_dev_attr);
++		if (IS_ERR(soc_dev)) {
++			kfree(soc_dev_attr->machine);
++			kfree(soc_dev_attr);
++		}
++	}
 +
-+	if (setup_irq(irq, &nios2_timer_irq))
-+		panic("Unable to setup timer irq\n");
-+
-+	write_timerperiod(NIOS2_TIMER_PERIOD - 1);
-+
-+	/* clocksource initialize */
-+	nios2_timer.mult = clocksource_hz2mult(timer_freq, nios2_timer.shift);
-+	clocksource_register(&nios2_timer);
-+
-+	/* interrupt enable + continuous + start */
-+	ctrl = ALTERA_TIMER_CONTROL_ITO_MSK | ALTERA_TIMER_CONTROL_CONT_MSK |
-+		ALTERA_TIMER_CONTROL_START_MSK;
-+	writew(ctrl, timer_membase + ALTERA_TIMER_CONTROL_REG);
++	return of_platform_bus_probe(NULL, altera_of_bus_ids, NULL);
 +}
 +
-+void read_persistent_clock(struct timespec *ts)
-+{
-+	ts->tv_sec = mktime(2007, 1, 1, 0, 0, 0);
-+	ts->tv_nsec = 0;
-+}
-+
-+void __init time_init(void)
-+{
-+	clocksource_of_init();
-+}
-+
-+CLOCKSOURCE_OF_DECLARE(nios2_timer, "altr,timer-1.0", nios2_time_init);
++device_initcall(nios2_soc_device_init);
 -- 
 1.8.2.1
+
