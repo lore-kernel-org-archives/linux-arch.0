@@ -1,64 +1,40 @@
 From: Andy Lutomirski <luto@amacapital.net>
-Subject: Re: [PATCH 2/7] seccomp: Refactor the filter callback and the API
-Date: Wed, 16 Jul 2014 13:56:20 -0700
-Message-ID: <CALCETrW7UEBTprnJdca0X1Vd-bstyQi1LK9GbfUzdr8FFWze9w@mail.gmail.com>
-References: <cover.1405452484.git.luto@amacapital.net> <4f153feea35430104d6d1a7c83805fccbffdf089.1405452484.git.luto@amacapital.net>
- <CAGXu5jK0v=dtPNY4Y2m7D01peeNoBSDq8zowgLu_rjZe41=eUg@mail.gmail.com>
+Subject: Re: [PATCH 5/7] x86: Split syscall_trace_enter into two phases
+Date: Wed, 16 Jul 2014 14:15:44 -0700
+Message-ID: <CALCETrWuWxZANoKAR=FG55EOHtzvTHmc3euMdtf8yfibtK-QYw@mail.gmail.com>
+References: <cover.1405452484.git.luto@amacapital.net> <bd4e2efb7cd97f2bf9d4f1e2065f16c9091d799a.1405452484.git.luto@amacapital.net>
+ <CAGXu5jJornzMJjyPXVZB_eYi-FRet=bXcJWJDa1vnB_oU9ZA_Q@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-security-module-owner@vger.kernel.org>
-In-Reply-To: <CAGXu5jK0v=dtPNY4Y2m7D01peeNoBSDq8zowgLu_rjZe41=eUg@mail.gmail.com>
-Sender: linux-security-module-owner@vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-la0-f43.google.com ([209.85.215.43]:37608 "EHLO
+	mail-la0-f43.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751980AbaGPVQG (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 16 Jul 2014 17:16:06 -0400
+Received: by mail-la0-f43.google.com with SMTP id hr17so1093282lab.30
+        for <linux-arch@vger.kernel.org>; Wed, 16 Jul 2014 14:16:04 -0700 (PDT)
+In-Reply-To: <CAGXu5jJornzMJjyPXVZB_eYi-FRet=bXcJWJDa1vnB_oU9ZA_Q@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Kees Cook <keescook@chromium.org>
-Cc: LKML <linux-kernel@vger.kernel.org>, Will Drewry <wad@chromium.org>, James Morris <james.l.morris@oracle.com>, Oleg Nesterov <oleg@redhat.com>, "x86@kernel.org" <x86@kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, linux-mips@linux-mips.org, linux-arch <linux-arch@vger.kernel.org>, linux-security-module <linux-security-module@vger.kernel.org>, Alexei Starovoitov <ast@plumgrid.com>
-List-Id: linux-arch.vger.kernel.org
+Cc: LKML <linux-kernel@vger.kernel.org>, Will Drewry <wad@chromium.org>, James Morris <james.l.morris@oracle.com>, Oleg Nesterov <oleg@redhat.com>, "x86@kernel.org" <x86@kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Linux MIPS Mailing List <linux-mips@linux-mips.org>, linux-arch <linux-arch@vger.kernel.org>, linux-security-module <linux-security-module@vger.kernel.org>, Alexei Starovoitov <ast@plumgrid.com>
 
-On Wed, Jul 16, 2014 at 1:12 PM, Kees Cook <keescook@chromium.org> wrote:
+On Wed, Jul 16, 2014 at 1:21 PM, Kees Cook <keescook@chromium.org> wrote:
 > On Tue, Jul 15, 2014 at 12:32 PM, Andy Lutomirski <luto@amacapital.net> wrote:
->> The reason I did this is to add a seccomp API that will be usable
->> for an x86 fast path.  The x86 entry code needs to use a rather
->> expensive slow path for a syscall that might be visible to things
->> like ptrace.  By splitting seccomp into two phases, we can check
->> whether we need the slow path and then use the fast path in if the
->> filter allows the syscall or just returns some errno.
 >>
->> As a side effect, I think the new code is much easier to understand
->> than the old code.
+>> +
+>> +               ret = seccomp_phase1(&sd);
+>> +               if (ret == SECCOMP_PHASE1_SKIP) {
+>> +                       regs->orig_ax = -ENOSYS;
 >
-> I'd agree. The #idefs got a little weirder, but the actual code flow
-> was much easier to read. I wonder if "phase1" and "phase2" should be
-> renamed "pretrace" and "tracing" or something more meaningful? Or
-> "fast" and "slow"?
+> Before, seccomp didn't touch orig_ax on a skip. I don't see any
+> problem with this, and it's probably more clear this way, but are you
+> sure there aren't unexpected side-effects from this?
 
-Queue the bikeshedding :)
+It's necessary to cause the syscall to be skipped -- see syscall_trace_enter.
 
-I like "phase1" and "phase2" because it makes it clear that phase1 has
-to come first.  But I'd be amenable to counterarguments.
-
->
->> This has one user-visible effect: the audit record written for
->> SECCOMP_RET_TRACE is now a simple indication that SECCOMP_RET_TRACE
->> happened.  It used to depend in a complicated way on what the tracer
->> did.  I couldn't make much sense of it.
->
-> I think this change is okay. The only way to get the audit record to
-> report SIGSYS before was to have an additional signal come in and kill
-> it while the tracer was working on it. Which is confusing too. I like
-> this way better.
-
-Thanks :)
+That being said, setting it to -ENOSYS is nonsense and probably
+confused you at least as much as it confused me.  It should be
+regs->orig_ax = -1.
 
 --Andy
-
->
-> -Kees
->
-> --
-> Kees Cook
-> Chrome OS Security
-
-
-
--- 
-Andy Lutomirski
-AMA Capital Management, LLC
