@@ -1,60 +1,62 @@
-From: Michal Nazarewicz <mina86@mina86.com>
-Subject: Re: [PATCH 4/4] mips: dma: Add cma support
-Date: Wed, 16 Jul 2014 18:39:05 +0200
-Message-ID: <xa1t7g3db6mu.fsf@mina86.com>
-References: <1405525892-60383-1-git-send-email-Zubair.Kakakhel@imgtec.com> <1405525892-60383-5-git-send-email-Zubair.Kakakhel@imgtec.com>
+From: James Morris <jmorris@namei.org>
+Subject: Re: [PATCH v10 0/11] seccomp: add thread sync ability
+Date: Thu, 17 Jul 2014 02:44:20 +1000 (EST)
+Message-ID: <alpine.LRH.2.11.1407170243480.22946@namei.org>
+References: <1405017631-27346-1-git-send-email-keescook@chromium.org> <20140711164931.GA18473@redhat.com> <CAGXu5jK-x0=Rr7kX2a=b4Z8ueA77uwmhNZZAayG8cwmNOKa8Ug@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wg0-f47.google.com ([74.125.82.47]:64296 "EHLO
-	mail-wg0-f47.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932684AbaGPQjJ convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 16 Jul 2014 12:39:09 -0400
-Received: by mail-wg0-f47.google.com with SMTP id b13so1192364wgh.6
-        for <linux-arch@vger.kernel.org>; Wed, 16 Jul 2014 09:39:08 -0700 (PDT)
-In-Reply-To: <1405525892-60383-5-git-send-email-Zubair.Kakakhel@imgtec.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Zubair Lutfullah Kakakhel <Zubair.Kakakhel@imgtec.com>, ralf@linux-mips.org, catalin.marinas@arm.com, will.deacon@arm.com, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, arnd@arndb.de, gregkh@linuxfoundation.org, m.szyprowski@samsung.com
-Cc: x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@linux-mips.org, linux-arch@vger.kernel.org
+Content-Type: TEXT/PLAIN; charset=US-ASCII
+Return-path: <linux-mips-bounce@linux-mips.org>
+In-Reply-To: <CAGXu5jK-x0=Rr7kX2a=b4Z8ueA77uwmhNZZAayG8cwmNOKa8Ug@mail.gmail.com>
+Sender: linux-mips-bounce@linux-mips.org
+Errors-to: linux-mips-bounce@linux-mips.org
+List-help: <mailto:ecartis@linux-mips.org?Subject=help>
+List-unsubscribe: <mailto:ecartis@linux-mips.org?subject=unsubscribe%20linux-mips>
+List-software: Ecartis version 1.0.0
+List-subscribe: <mailto:ecartis@linux-mips.org?subject=subscribe%20linux-mips>
+List-owner: <mailto:ralf@linux-mips.org>
+List-post: <mailto:linux-mips@linux-mips.org>
+List-archive: <http://www.linux-mips.org/archives/linux-mips/>
+To: Kees Cook <keescook@chromium.org>
+Cc: Oleg Nesterov <oleg@redhat.com>, LKML <linux-kernel@vger.kernel.org>, Andy Lutomirski <luto@amacapital.net>, Alexei Starovoitov <ast@plumgrid.com>, "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, Daniel Borkmann <dborkman@redhat.com>, Will Drewry <wad@chromium.org>, Julien Tinnes <jln@chromium.org>, David Drysdale <drysdale@google.com>, Linux API <linux-api@vger.kernel.org>, "x86@kernel.org" <x86@kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, linux-mips@linux-mips.org, linux-arch <linux-arch@vger.kernel.org>, linux-security-module <linux-security-module@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, Jul 16 2014, Zubair Lutfullah Kakakhel <Zubair.Kakakhel@imgtec.=
-com> wrote:
-> Adds cma support to the mips architecture.
->
-> cma uses memblock. However, mips uses bootmem.
+On Fri, 11 Jul 2014, Kees Cook wrote:
 
-Does cma_early_percent_memory work correctly then?
+> On Fri, Jul 11, 2014 at 9:49 AM, Oleg Nesterov <oleg@redhat.com> wrote:
+> > On 07/10, Kees Cook wrote:
+> >>
+> >> This adds the ability for threads to request seccomp filter
+> >> synchronization across their thread group (at filter attach time).
+> >> For example, for Chrome to make sure graphic driver threads are fully
+> >> confined after seccomp filters have been attached.
+> >>
+> >> To support this, locking on seccomp changes via thread-group-shared
+> >> sighand lock is introduced, along with refactoring of no_new_privs. Races
+> >> with thread creation are handled via delayed duplication of the seccomp
+> >> task struct field and cred_guard_mutex.
+> >>
+> >> This includes a new syscall (instead of adding a new prctl option),
+> >> as suggested by Andy Lutomirski and Michael Kerrisk.
+> >
+> > I do not not see any problems in this version,
+> 
+> Awesome! Thank you for all the reviews. :) If Andy and Michael are
+> happy with this too, I think this is in good shape. \o/
+> 
+> -Kees
 
-> bootmem is informed about any regions reserved by memblock
+If you re-send this, please add Oleg's Reviewed-by to each patch.
 
-Alternatively maybe it would make sense to create a new definition of
-dma_contiguous_reserve_area that uses bootmem and choose it based on
-some CONFIG_CMA_USE_BOOTMEM which would be selected by MIPS.
 
-> dma api is modified to use cma reserved memory regions when available
->
-> Tested using cma_test. cma_test is a simple driver that assigns block=
-s
-> of memory from cma reserved sections.
->
-> Signed-off-by: Zubair Lutfullah Kakakhel <Zubair.Kakakhel@imgtec.com>
+> 
+> >
+> > Reviewed-by: Oleg Nesterov <oleg@redhat.com>
+> >
+> 
+> 
+> 
+> 
 
-Acked-by: Michal Nazarewicz <mina86@mina86.com>
-
-> ---
->  arch/mips/Kconfig            |  1 +
->  arch/mips/include/asm/Kbuild |  1 +
->  arch/mips/kernel/setup.c     |  9 +++++++++
->  arch/mips/mm/dma-default.c   | 37 +++++++++++++++++++++++++---------=
----
->  4 files changed, 36 insertions(+), 12 deletions(-)
->
-
---=20
-Best regards,                                         _     _
-=2Eo. | Liege of Serenely Enlightened Majesty of      o' \,=3D./ `o
-=2E.o | Computer Science,  Micha=C5=82 =E2=80=9Cmina86=E2=80=9D Nazarew=
-icz    (o o)
-ooo +--<mpn@google.com>--<xmpp:mina86@jabber.org>--ooO--(_)--Ooo--
+-- 
+James Morris
+<jmorris@namei.org>
