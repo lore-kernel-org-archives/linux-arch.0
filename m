@@ -1,58 +1,118 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ig0-f178.google.com ([209.85.213.178]:38691 "EHLO
-	mail-ig0-f178.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751370AbaGPUlx (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 16 Jul 2014 16:41:53 -0400
-Received: by mail-ig0-f178.google.com with SMTP id uq10so1504141igb.17
-        for <linux-arch@vger.kernel.org>; Wed, 16 Jul 2014 13:41:52 -0700 (PDT)
+Received: from mail-la0-f45.google.com ([209.85.215.45]:48021 "EHLO
+	mail-la0-f45.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750805AbaGPUx6 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 16 Jul 2014 16:53:58 -0400
+Received: by mail-la0-f45.google.com with SMTP id ty20so1064339lab.32
+        for <linux-arch@vger.kernel.org>; Wed, 16 Jul 2014 13:53:57 -0700 (PDT)
 MIME-Version: 1.0
-In-Reply-To: <cover.1405452484.git.luto@amacapital.net>
-References: <cover.1405452484.git.luto@amacapital.net>
-Date: Wed, 16 Jul 2014 13:41:52 -0700
-Message-ID: <CAGXu5jJx8Wk-pZvhJY4xA=oywCZDLH3CLiLZ0wrBVqEqSaYT4A@mail.gmail.com>
-Subject: Re: [PATCH 0/7] Two-phase seccomp and x86 tracing changes
-From: Kees Cook <keescook@chromium.org>
+In-Reply-To: <CAMEtUuywjY8habDJJWyDZLBWtXZXDqpmn2hZ9Dts1hrQ7OWXnA@mail.gmail.com>
+References: <cover.1405452484.git.luto@amacapital.net> <3bee564fe07150f11d2e5078d457b6aacde43bec.1405452484.git.luto@amacapital.net>
+ <CAMEtUuywjY8habDJJWyDZLBWtXZXDqpmn2hZ9Dts1hrQ7OWXnA@mail.gmail.com>
+From: Andy Lutomirski <luto@amacapital.net>
+Date: Wed, 16 Jul 2014 13:53:36 -0700
+Message-ID: <CALCETrWJq67VtgJmHeV+4AGqTeYnX9KvjJMMSb+LLyA7yUZ7Qw@mail.gmail.com>
+Subject: Re: [PATCH 6/7] x86_64,entry: Treat regs->ax the same in fastpath and
+ slowpath syscalls
 Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andy Lutomirski <luto@amacapital.net>
-Cc: LKML <linux-kernel@vger.kernel.org>, Will Drewry <wad@chromium.org>, James Morris <james.l.morris@oracle.com>, Oleg Nesterov <oleg@redhat.com>, "x86@kernel.org" <x86@kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, linux-mips@linux-mips.org, linux-arch <linux-arch@vger.kernel.org>, linux-security-module <linux-security-module@vger.kernel.org>, Alexei Starovoitov <ast@plumgrid.com>
-Message-ID: <20140716204152.b8BC-AamFZYXokDR5CO5R0fSVguAi82MeUX5s4y2dZM@z>
+To: Alexei Starovoitov <ast@plumgrid.com>
+Cc: LKML <linux-kernel@vger.kernel.org>, Kees Cook <keescook@chromium.org>, Will Drewry <wad@chromium.org>, James Morris <james.l.morris@oracle.com>, Oleg Nesterov <oleg@redhat.com>, X86 ML <x86@kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Linux MIPS Mailing List <linux-mips@linux-mips.org>, linux-arch <linux-arch@vger.kernel.org>, LSM List <linux-security-module@vger.kernel.org>
+Message-ID: <20140716205336.58U2XF-n_XrNG137PXE6cuV3HcUjPsl-hihtpn4VHKc@z>
 
-On Tue, Jul 15, 2014 at 12:32 PM, Andy Lutomirski <luto@amacapital.net> wrote:
-> This is both a cleanup and a speedup.  It reduces overhead due to
-> installing a trivial seccomp filter by 87%.  The speedup comes from
-> avoiding the full syscall tracing mechanism for filters that don't
-> return SECCOMP_RET_TRACE.
+On Wed, Jul 16, 2014 at 1:08 PM, Alexei Starovoitov <ast@plumgrid.com> wrote:
+> On Tue, Jul 15, 2014 at 12:32 PM, Andy Lutomirski <luto@amacapital.net> wrote:
+>> For slowpath syscalls, we initialize regs->ax to -ENOSYS and stick
+>> the syscall number into regs->orig_ax prior to any possible tracing
+>> and syscall execution.  This is user-visible ABI used by ptrace
+>> syscall emulation and seccomp.
+>>
+>> For fastpath syscalls, there's no good reason not to do the same
+>> thing.  It's even slightly simpler than what we're currently doing.
+>> It probably has no measureable performance impact.  It should have
+>> no user-visible effect.
+>>
+>> The purpose of this patch is to prepare for seccomp-based syscall
+>> emulation in the fast path.  This change is just subtle enough that
+>> I'm keeping it separate.
+>>
+>> Signed-off-by: Andy Lutomirski <luto@amacapital.net>
+>> ---
+>>  arch/x86/include/asm/calling.h |  6 +++++-
+>>  arch/x86/kernel/entry_64.S     | 11 +++--------
+>>  2 files changed, 8 insertions(+), 9 deletions(-)
+>>
+>> diff --git a/arch/x86/include/asm/calling.h b/arch/x86/include/asm/calling.h
+>> index cb4c73b..76659b6 100644
+>> --- a/arch/x86/include/asm/calling.h
+>> +++ b/arch/x86/include/asm/calling.h
+>> @@ -85,7 +85,7 @@ For 32-bit we have the following conventions - kernel is built with
+>>  #define ARGOFFSET      R11
+>>  #define SWFRAME                ORIG_RAX
+>>
+>> -       .macro SAVE_ARGS addskip=0, save_rcx=1, save_r891011=1
+>> +       .macro SAVE_ARGS addskip=0, save_rcx=1, save_r891011=1, rax_enosys=0
+>>         subq  $9*8+\addskip, %rsp
+>>         CFI_ADJUST_CFA_OFFSET   9*8+\addskip
+>>         movq_cfi rdi, 8*8
+>> @@ -96,7 +96,11 @@ For 32-bit we have the following conventions - kernel is built with
+>>         movq_cfi rcx, 5*8
+>>         .endif
+>>
+>> +       .if \rax_enosys
+>> +       movq $-ENOSYS, 4*8(%rsp)
+>> +       .else
+>>         movq_cfi rax, 4*8
+>> +       .endif
+>>
+>>         .if \save_r891011
+>>         movq_cfi r8,  3*8
+>> diff --git a/arch/x86/kernel/entry_64.S b/arch/x86/kernel/entry_64.S
+>> index b25ca96..432c190 100644
+>> --- a/arch/x86/kernel/entry_64.S
+>> +++ b/arch/x86/kernel/entry_64.S
+>> @@ -405,8 +405,8 @@ GLOBAL(system_call_after_swapgs)
+>>          * and short:
+>>          */
+>>         ENABLE_INTERRUPTS(CLBR_NONE)
+>> -       SAVE_ARGS 8,0
+>> -       movq  %rax,ORIG_RAX-ARGOFFSET(%rsp)
+>> +       SAVE_ARGS 8, 0, rax_enosys=1
+>> +       movq_cfi rax,(ORIG_RAX-ARGOFFSET)
 >
-> This series works by splitting the seccomp hooks into two phases.
-> The first phase evaluates the filter; it can skip syscalls, allow
-> them, kill the calling task, or pass a u32 to the second phase.  The
-> second phase requires a full tracing context, and it sends ptrace
-> events if necessary.
->
-> Once this is done, I implemented a similar split for the x86 syscall
-> entry work.  The C callback is invoked in two phases: the first has
-> only a partial frame, and it can request phase 2 processing with a
-> full frame.
->
-> Finally, I switch the 64-bit system_call code to use the new split
-> entry work.  This is a net deletion of assembly code: it replaces
-> all of the audit entry muck.
->
-> In the process, I fixed some bugs.
->
-> If this is acceptable, someone can do the same tweak for the
-> ia32entry and entry_32 code.
->
-> This passes all seccomp tests that I know of, except for the ones
-> that don't work on current kernels.
+> I think changing store rax to macro is unnecessary,
+> since it breaks common style of asm with the next line:
 
-After fighting a bit with merging this with the tsync series, I can
-confirm this all behaves nicely on x86_64 and ARM.
+I think it's necessary to maintain CFI correctness.  rax is no longer
+saved in "ax", so "orig_ax" is now the correct slot.
 
--Kees
+>>         movq  %rcx,RIP-ARGOFFSET(%rsp)
+
+This, in contrast, is the saved rip, not the saved rcx.  rcx is lost
+when syscall happens.
+
+> Also it made the diff harder to grasp.
+
+
+>
+> The change from the next patch 7/7:
+>
+>> -       ja   int_ret_from_sys_call      /* RAX(%rsp) set to -ENOSYS above */
+>> +       ja   int_ret_from_sys_call      /* RAX(%rsp) is already set */
+>
+> probably belongs in this 6/7 patch as well.
+
+Agreed.  Will do for v3.
+
+--Andy
+
+>
+> The rest look good to me. I think it's a big improvement in readability
+> comparing to v1.
+
+
 
 -- 
-Kees Cook
-Chrome OS Security
+Andy Lutomirski
+AMA Capital Management, LLC
