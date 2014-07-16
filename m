@@ -1,70 +1,41 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-la0-f49.google.com ([209.85.215.49]:42673 "EHLO
-	mail-la0-f49.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753061AbaGPVR1 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 16 Jul 2014 17:17:27 -0400
-Received: by mail-la0-f49.google.com with SMTP id hz20so1064192lab.8
-        for <linux-arch@vger.kernel.org>; Wed, 16 Jul 2014 14:17:26 -0700 (PDT)
+Received: from mail-la0-f43.google.com ([209.85.215.43]:64139 "EHLO
+	mail-la0-f43.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753279AbaGPV17 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 16 Jul 2014 17:27:59 -0400
+Received: by mail-la0-f43.google.com with SMTP id hr17so1097818lab.16
+        for <linux-arch@vger.kernel.org>; Wed, 16 Jul 2014 14:27:58 -0700 (PDT)
 MIME-Version: 1.0
-In-Reply-To: <CAGXu5jJx8Wk-pZvhJY4xA=oywCZDLH3CLiLZ0wrBVqEqSaYT4A@mail.gmail.com>
-References: <cover.1405452484.git.luto@amacapital.net> <CAGXu5jJx8Wk-pZvhJY4xA=oywCZDLH3CLiLZ0wrBVqEqSaYT4A@mail.gmail.com>
+In-Reply-To: <CAGXu5jKMwiAxeCVZVPS72XWCd2KhiR-uc4VFKT0mvD9s-cTO_Q@mail.gmail.com>
+References: <1405017631-27346-1-git-send-email-keescook@chromium.org>
+ <20140711164931.GA18473@redhat.com> <CAGXu5jK-x0=Rr7kX2a=b4Z8ueA77uwmhNZZAayG8cwmNOKa8Ug@mail.gmail.com>
+ <CALCETrVXgA9a2f7VwnCYW4_XB+JAPRSR8xsuH_ZYbA82=ZozRw@mail.gmail.com>
+ <CAGXu5j+r-CpJiXipCT=j09+ZfJjF9jTc3kuZFAH3ZxgUEvktTA@mail.gmail.com>
+ <CALCETrX48nuR6wqEV4Nu47BF4Z3XFvBpYer_fzwaqJdi0fpdKw@mail.gmail.com> <CAGXu5jKMwiAxeCVZVPS72XWCd2KhiR-uc4VFKT0mvD9s-cTO_Q@mail.gmail.com>
 From: Andy Lutomirski <luto@amacapital.net>
-Date: Wed, 16 Jul 2014 14:17:05 -0700
-Message-ID: <CALCETrVVJ-FRFFDs685zjHvqQCeaBYY49QZbj4rAe+Q7yEF10Q@mail.gmail.com>
-Subject: Re: [PATCH 0/7] Two-phase seccomp and x86 tracing changes
+Date: Wed, 16 Jul 2014 14:27:38 -0700
+Message-ID: <CALCETrUXRszBEhB7aOu6nXtCj09zofY_b_5BUNbJk-EFefA6fw@mail.gmail.com>
+Subject: Re: [PATCH v10 0/11] seccomp: add thread sync ability
 Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Kees Cook <keescook@chromium.org>
-Cc: LKML <linux-kernel@vger.kernel.org>, Will Drewry <wad@chromium.org>, James Morris <james.l.morris@oracle.com>, Oleg Nesterov <oleg@redhat.com>, "x86@kernel.org" <x86@kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Linux MIPS Mailing List <linux-mips@linux-mips.org>, linux-arch <linux-arch@vger.kernel.org>, linux-security-module <linux-security-module@vger.kernel.org>, Alexei Starovoitov <ast@plumgrid.com>
-Message-ID: <20140716211705.zb7NoKs0ksyMoxTuzkSJUQexYgsPAxF2L306nOU36U8@z>
+Cc: Oleg Nesterov <oleg@redhat.com>, LKML <linux-kernel@vger.kernel.org>, Alexei Starovoitov <ast@plumgrid.com>, "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, Daniel Borkmann <dborkman@redhat.com>, Will Drewry <wad@chromium.org>, Julien Tinnes <jln@chromium.org>, David Drysdale <drysdale@google.com>, Linux API <linux-api@vger.kernel.org>, "x86@kernel.org" <x86@kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Linux MIPS Mailing List <linux-mips@linux-mips.org>, linux-arch <linux-arch@vger.kernel.org>, linux-security-module <linux-security-module@vger.kernel.org>
+Message-ID: <20140716212738.MmE0aCdxITJx9IgYGqzg0xnVgLDvV2kcpgsiF7gQWT0@z>
 
-On Wed, Jul 16, 2014 at 1:41 PM, Kees Cook <keescook@chromium.org> wrote:
-> On Tue, Jul 15, 2014 at 12:32 PM, Andy Lutomirski <luto@amacapital.net> wrote:
->> This is both a cleanup and a speedup.  It reduces overhead due to
->> installing a trivial seccomp filter by 87%.  The speedup comes from
->> avoiding the full syscall tracing mechanism for filters that don't
->> return SECCOMP_RET_TRACE.
->>
->> This series works by splitting the seccomp hooks into two phases.
->> The first phase evaluates the filter; it can skip syscalls, allow
->> them, kill the calling task, or pass a u32 to the second phase.  The
->> second phase requires a full tracing context, and it sends ptrace
->> events if necessary.
->>
->> Once this is done, I implemented a similar split for the x86 syscall
->> entry work.  The C callback is invoked in two phases: the first has
->> only a partial frame, and it can request phase 2 processing with a
->> full frame.
->>
->> Finally, I switch the 64-bit system_call code to use the new split
->> entry work.  This is a net deletion of assembly code: it replaces
->> all of the audit entry muck.
->>
->> In the process, I fixed some bugs.
->>
->> If this is acceptable, someone can do the same tweak for the
->> ia32entry and entry_32 code.
->>
->> This passes all seccomp tests that I know of, except for the ones
->> that don't work on current kernels.
+On Wed, Jul 16, 2014 at 2:23 PM, Kees Cook <keescook@chromium.org> wrote:
+> On Wed, Jul 16, 2014 at 12:45 PM, Andy Lutomirski <luto@amacapital.net> wrote:
+>> In seccomp_prepare_user_filter, would it make sense to return -EINVAL
+>> if !user_filter?  That will make it slightly more pleasant to
+>> implement TSYNC-without-change if anyone ever wants it.  (This isn't
+>> really necessary -- it's just slightly more polite.)
 >
-> After fighting a bit with merging this with the tsync series, I can
-> confirm this all behaves nicely on x86_64 and ARM.
->
+> I can't do this since EFAULT is already used to detect seccomp
+> capabilities from userspace.
 
-I'll hold off on v3 until your stuff lands.
+Aha.  In that case, can you (separately) send a prctl.2 manpage patch
+documenting that?  Also, I'm pretty sure you can get away with doing
+this for seccomp(2) -- EINVAL and ENOSYS are easily distinguishable,
+but the current behavior is IMO also fine if documented.
 
 --Andy
-
-> -Kees
->
-> --
-> Kees Cook
-> Chrome OS Security
-
-
-
--- 
-Andy Lutomirski
-AMA Capital Management, LLC
