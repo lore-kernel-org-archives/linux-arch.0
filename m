@@ -1,42 +1,36 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.linuxfoundation.org ([140.211.169.12]:44725 "EHLO
-	mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751027AbaGOWki (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 15 Jul 2014 18:40:38 -0400
-Date: Tue, 15 Jul 2014 15:45:10 -0700
-From: Greg KH <gregkh@linuxfoundation.org>
-Subject: Re: [PATCH v2 00/29] nios2 Linux kernel port
-Message-ID: <20140715224510.GA10733@kroah.com>
-References: <53C58EC6.8060508@nod.at>
- <CAFLxGvw_fnG1KTVXrcZxHZzKPnG5DA117VmcZBvw3EYgXw-DVw@mail.gmail.com>
- <1405413956-2772-1-git-send-email-lftan@altera.com>
- <4213.1405430178@warthog.procyon.org.uk>
- <20544.1405434031@warthog.procyon.org.uk>
- <4700.1405463814@warthog.procyon.org.uk>
+Received: from mail-qa0-f53.google.com ([209.85.216.53]:33355 "EHLO
+	mail-qa0-f53.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755932AbaGPBVT (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 15 Jul 2014 21:21:19 -0400
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <4700.1405463814@warthog.procyon.org.uk>
+In-Reply-To: <20140715111541.GG7668@distanz.ch>
+References: <1405413956-2772-1-git-send-email-lftan@altera.com>
+	<20140715090813.GE7668@distanz.ch>
+	<CAFiDJ5-YNB_uctBYFGkoABHfnwhuncy2FGrQk1j0qPVZBDrC3g@mail.gmail.com>
+	<20140715111541.GG7668@distanz.ch>
+Date: Wed, 16 Jul 2014 09:21:18 +0800
+Message-ID: <CAFiDJ59f0p3MF=ffH-Qk8Xx3w=sC-XqVMgeHKiQzcQ1=P=X+Xw@mail.gmail.com>
+Subject: Re: [PATCH v2 00/29] nios2 Linux kernel port
+From: Ley Foon Tan <lftan@altera.com>
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Howells <dhowells@redhat.com>
-Cc: Richard Weinberger <richard@nod.at>, Ley Foon Tan <lftan@altera.com>, Linux-Arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, LeyFoon Tan <lftan.linux@gmail.com>, cltang@codesourcery.com
-Message-ID: <20140715224510.M7KUMqWkU1-kIouT_eGkFJrGSU-cCf5WbiViyFwkWZw@z>
+To: Tobias Klauser <tklauser@distanz.ch>
+Cc: Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Chung-Lin Tang <cltang@codesourcery.com>
+Message-ID: <20140716012118.dHiCYH4e_Dlq-hAQrkim5oL4XdCG9oTMh3mThmFN8MI@z>
 
-On Tue, Jul 15, 2014 at 11:36:54PM +0100, David Howells wrote:
-> Richard Weinberger <richard@nod.at> wrote:
-> 
-> > Nice collection. Let's see whether I can repack your RPMs for openSUSE.
-> 
-> It ought to be straightforward.  Greg has been interested in doing it, but I
-> don't think he's had the time.
+On Tue, Jul 15, 2014 at 7:15 PM, Tobias Klauser <tklauser@distanz.ch> wrote:
+> Hi Ley Foon
 
-No, and I don't really use openSUSE anymore, so my interest is even less
-these days, sorry.
+>
+> Ah, thanks for the notice. Is it still possible to use the old syscall
+> ABI as a replacement on top of this series and use the current toolchain
+> from Mentor Graphics?
+Hi Tobias
 
-Richard, please do so, it would be great to have these in OBS so that
-people can grab them for any distro.
+There are other changes in the nios2 kernel that requires new compiler.
+So, old syscall ABI replacement most probably won't work.
 
-thanks,
-
-greg k-h
+Regards
+Ley Foon
