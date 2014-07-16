@@ -1,53 +1,61 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.outflux.net ([198.145.64.163]:34930 "EHLO smtp.outflux.net"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751380AbaGPVvi (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 16 Jul 2014 17:51:38 -0400
+Received: from mail-ig0-f171.google.com ([209.85.213.171]:61225 "EHLO
+	mail-ig0-f171.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751480AbaGPV4m (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 16 Jul 2014 17:56:42 -0400
+Received: by mail-ig0-f171.google.com with SMTP id l13so4912666iga.10
+        for <linux-arch@vger.kernel.org>; Wed, 16 Jul 2014 14:56:42 -0700 (PDT)
+MIME-Version: 1.0
+In-Reply-To: <CALCETrW7UEBTprnJdca0X1Vd-bstyQi1LK9GbfUzdr8FFWze9w@mail.gmail.com>
+References: <cover.1405452484.git.luto@amacapital.net>
+	<4f153feea35430104d6d1a7c83805fccbffdf089.1405452484.git.luto@amacapital.net>
+	<CAGXu5jK0v=dtPNY4Y2m7D01peeNoBSDq8zowgLu_rjZe41=eUg@mail.gmail.com>
+	<CALCETrW7UEBTprnJdca0X1Vd-bstyQi1LK9GbfUzdr8FFWze9w@mail.gmail.com>
+Date: Wed, 16 Jul 2014 14:56:42 -0700
+Message-ID: <CAGXu5j+1C7HnVz7WW3si_rpOw2OBMz1KQB1a9ynrncgUH_1RfQ@mail.gmail.com>
+Subject: Re: [PATCH 2/7] seccomp: Refactor the filter callback and the API
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH v11 05/11] ARM: add seccomp syscall
-Date: Wed, 16 Jul 2014 14:50:36 -0700
-Message-ID: <1405547442-26641-6-git-send-email-keescook@chromium.org>
-In-Reply-To: <1405547442-26641-1-git-send-email-keescook@chromium.org>
-References: <1405547442-26641-1-git-send-email-keescook@chromium.org>
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: Kees Cook <keescook@chromium.org>, Andy Lutomirski <luto@amacapital.net>, Oleg Nesterov <oleg@redhat.com>, James Morris <jmorris@namei.org>, "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>, Alexei Starovoitov <ast@plumgrid.com>, Andrew Morton <akpm@linux-foundation.org>, Daniel Borkmann <dborkman@redhat.com>, Will Drewry <wad@chromium.org>, Julien Tinnes <jln@chromium.org>, David Drysdale <drysdale@google.com>, linux-api@vger.kernel.org, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-mips@linux-mips.org, linux-arch@vger.kernel.org, linux-security-module@vger.kernel.org
-Message-ID: <20140716215036.nHfvceUngTQ1zQevNrrk4YwN7Y-kcAirk6bzx8EdPh4@z>
+To: Andy Lutomirski <luto@amacapital.net>
+Cc: LKML <linux-kernel@vger.kernel.org>, Will Drewry <wad@chromium.org>, James Morris <james.l.morris@oracle.com>, Oleg Nesterov <oleg@redhat.com>, "x86@kernel.org" <x86@kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, linux-mips@linux-mips.org, linux-arch <linux-arch@vger.kernel.org>, linux-security-module <linux-security-module@vger.kernel.org>, Alexei Starovoitov <ast@plumgrid.com>
+Message-ID: <20140716215642.yi4vQGKbRWKvqpQqlGkQICGD2n7RoC7lxVpxGr2KjpY@z>
 
-Wires up the new seccomp syscall.
+On Wed, Jul 16, 2014 at 1:56 PM, Andy Lutomirski <luto@amacapital.net> wrote:
+> On Wed, Jul 16, 2014 at 1:12 PM, Kees Cook <keescook@chromium.org> wrote:
+>> On Tue, Jul 15, 2014 at 12:32 PM, Andy Lutomirski <luto@amacapital.net> wrote:
+>>> The reason I did this is to add a seccomp API that will be usable
+>>> for an x86 fast path.  The x86 entry code needs to use a rather
+>>> expensive slow path for a syscall that might be visible to things
+>>> like ptrace.  By splitting seccomp into two phases, we can check
+>>> whether we need the slow path and then use the fast path in if the
+>>> filter allows the syscall or just returns some errno.
+>>>
+>>> As a side effect, I think the new code is much easier to understand
+>>> than the old code.
+>>
+>> I'd agree. The #idefs got a little weirder, but the actual code flow
+>> was much easier to read. I wonder if "phase1" and "phase2" should be
+>> renamed "pretrace" and "tracing" or something more meaningful? Or
+>> "fast" and "slow"?
+>
+> Queue the bikeshedding :)
+>
+> I like "phase1" and "phase2" because it makes it clear that phase1 has
+> to come first.  But I'd be amenable to counterarguments.
 
-Signed-off-by: Kees Cook <keescook@chromium.org>
-Reviewed-by: Oleg Nesterov <oleg@redhat.com>
----
- arch/arm/include/uapi/asm/unistd.h |    1 +
- arch/arm/kernel/calls.S            |    1 +
- 2 files changed, 2 insertions(+)
+That works. I didn't have a strong feeling about it. I was just
+wondering if there was a good way to self-document that phase1 is on
+the fast path, and phase2 was on the slow path for tracing. The
+existing comments really should be sufficient, though.
 
-diff --git a/arch/arm/include/uapi/asm/unistd.h b/arch/arm/include/uapi/asm/unistd.h
-index ba94446c72d9..e21b4a069701 100644
---- a/arch/arm/include/uapi/asm/unistd.h
-+++ b/arch/arm/include/uapi/asm/unistd.h
-@@ -409,6 +409,7 @@
- #define __NR_sched_setattr		(__NR_SYSCALL_BASE+380)
- #define __NR_sched_getattr		(__NR_SYSCALL_BASE+381)
- #define __NR_renameat2			(__NR_SYSCALL_BASE+382)
-+#define __NR_seccomp			(__NR_SYSCALL_BASE+383)
- 
- /*
-  * This may need to be greater than __NR_last_syscall+1 in order to
-diff --git a/arch/arm/kernel/calls.S b/arch/arm/kernel/calls.S
-index 8f51bdcdacbb..bea85f97f363 100644
---- a/arch/arm/kernel/calls.S
-+++ b/arch/arm/kernel/calls.S
-@@ -392,6 +392,7 @@
- /* 380 */	CALL(sys_sched_setattr)
- 		CALL(sys_sched_getattr)
- 		CALL(sys_renameat2)
-+		CALL(sys_seccomp)
- #ifndef syscalls_counted
- .equ syscalls_padding, ((NR_syscalls + 3) & ~3) - NR_syscalls
- #define syscalls_counted
+You mentioned architectures providing "sd" directly. I wonder if that
+new optional ability should be mentioned in the Kconfig help text that
+defines what's needed for an arch to support SECCOMP_FILTER?
+
+-Kees
+
 -- 
-1.7.9.5
-
+Kees Cook
+Chrome OS Security
