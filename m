@@ -1,63 +1,62 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-la0-f41.google.com ([209.85.215.41]:54063 "EHLO
-	mail-la0-f41.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751036AbaGPU4m (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 16 Jul 2014 16:56:42 -0400
-Received: by mail-la0-f41.google.com with SMTP id s18so1067129lam.14
-        for <linux-arch@vger.kernel.org>; Wed, 16 Jul 2014 13:56:40 -0700 (PDT)
+Received: from mail-la0-f49.google.com ([209.85.215.49]:42673 "EHLO
+	mail-la0-f49.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753061AbaGPVR1 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 16 Jul 2014 17:17:27 -0400
+Received: by mail-la0-f49.google.com with SMTP id hz20so1064192lab.8
+        for <linux-arch@vger.kernel.org>; Wed, 16 Jul 2014 14:17:26 -0700 (PDT)
 MIME-Version: 1.0
-In-Reply-To: <CAGXu5jK0v=dtPNY4Y2m7D01peeNoBSDq8zowgLu_rjZe41=eUg@mail.gmail.com>
-References: <cover.1405452484.git.luto@amacapital.net> <4f153feea35430104d6d1a7c83805fccbffdf089.1405452484.git.luto@amacapital.net>
- <CAGXu5jK0v=dtPNY4Y2m7D01peeNoBSDq8zowgLu_rjZe41=eUg@mail.gmail.com>
+In-Reply-To: <CAGXu5jJx8Wk-pZvhJY4xA=oywCZDLH3CLiLZ0wrBVqEqSaYT4A@mail.gmail.com>
+References: <cover.1405452484.git.luto@amacapital.net> <CAGXu5jJx8Wk-pZvhJY4xA=oywCZDLH3CLiLZ0wrBVqEqSaYT4A@mail.gmail.com>
 From: Andy Lutomirski <luto@amacapital.net>
-Date: Wed, 16 Jul 2014 13:56:20 -0700
-Message-ID: <CALCETrW7UEBTprnJdca0X1Vd-bstyQi1LK9GbfUzdr8FFWze9w@mail.gmail.com>
-Subject: Re: [PATCH 2/7] seccomp: Refactor the filter callback and the API
+Date: Wed, 16 Jul 2014 14:17:05 -0700
+Message-ID: <CALCETrVVJ-FRFFDs685zjHvqQCeaBYY49QZbj4rAe+Q7yEF10Q@mail.gmail.com>
+Subject: Re: [PATCH 0/7] Two-phase seccomp and x86 tracing changes
 Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Kees Cook <keescook@chromium.org>
-Cc: LKML <linux-kernel@vger.kernel.org>, Will Drewry <wad@chromium.org>, James Morris <james.l.morris@oracle.com>, Oleg Nesterov <oleg@redhat.com>, "x86@kernel.org" <x86@kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, linux-mips@linux-mips.org, linux-arch <linux-arch@vger.kernel.org>, linux-security-module <linux-security-module@vger.kernel.org>, Alexei Starovoitov <ast@plumgrid.com>
-Message-ID: <20140716205620.FoB-dXwtKBXhEzLRi9Zi94W9mb046gXWYxV3KrnSKRw@z>
+Cc: LKML <linux-kernel@vger.kernel.org>, Will Drewry <wad@chromium.org>, James Morris <james.l.morris@oracle.com>, Oleg Nesterov <oleg@redhat.com>, "x86@kernel.org" <x86@kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Linux MIPS Mailing List <linux-mips@linux-mips.org>, linux-arch <linux-arch@vger.kernel.org>, linux-security-module <linux-security-module@vger.kernel.org>, Alexei Starovoitov <ast@plumgrid.com>
+Message-ID: <20140716211705.zb7NoKs0ksyMoxTuzkSJUQexYgsPAxF2L306nOU36U8@z>
 
-On Wed, Jul 16, 2014 at 1:12 PM, Kees Cook <keescook@chromium.org> wrote:
+On Wed, Jul 16, 2014 at 1:41 PM, Kees Cook <keescook@chromium.org> wrote:
 > On Tue, Jul 15, 2014 at 12:32 PM, Andy Lutomirski <luto@amacapital.net> wrote:
->> The reason I did this is to add a seccomp API that will be usable
->> for an x86 fast path.  The x86 entry code needs to use a rather
->> expensive slow path for a syscall that might be visible to things
->> like ptrace.  By splitting seccomp into two phases, we can check
->> whether we need the slow path and then use the fast path in if the
->> filter allows the syscall or just returns some errno.
+>> This is both a cleanup and a speedup.  It reduces overhead due to
+>> installing a trivial seccomp filter by 87%.  The speedup comes from
+>> avoiding the full syscall tracing mechanism for filters that don't
+>> return SECCOMP_RET_TRACE.
 >>
->> As a side effect, I think the new code is much easier to understand
->> than the old code.
+>> This series works by splitting the seccomp hooks into two phases.
+>> The first phase evaluates the filter; it can skip syscalls, allow
+>> them, kill the calling task, or pass a u32 to the second phase.  The
+>> second phase requires a full tracing context, and it sends ptrace
+>> events if necessary.
+>>
+>> Once this is done, I implemented a similar split for the x86 syscall
+>> entry work.  The C callback is invoked in two phases: the first has
+>> only a partial frame, and it can request phase 2 processing with a
+>> full frame.
+>>
+>> Finally, I switch the 64-bit system_call code to use the new split
+>> entry work.  This is a net deletion of assembly code: it replaces
+>> all of the audit entry muck.
+>>
+>> In the process, I fixed some bugs.
+>>
+>> If this is acceptable, someone can do the same tweak for the
+>> ia32entry and entry_32 code.
+>>
+>> This passes all seccomp tests that I know of, except for the ones
+>> that don't work on current kernels.
 >
-> I'd agree. The #idefs got a little weirder, but the actual code flow
-> was much easier to read. I wonder if "phase1" and "phase2" should be
-> renamed "pretrace" and "tracing" or something more meaningful? Or
-> "fast" and "slow"?
-
-Queue the bikeshedding :)
-
-I like "phase1" and "phase2" because it makes it clear that phase1 has
-to come first.  But I'd be amenable to counterarguments.
-
+> After fighting a bit with merging this with the tsync series, I can
+> confirm this all behaves nicely on x86_64 and ARM.
 >
->> This has one user-visible effect: the audit record written for
->> SECCOMP_RET_TRACE is now a simple indication that SECCOMP_RET_TRACE
->> happened.  It used to depend in a complicated way on what the tracer
->> did.  I couldn't make much sense of it.
->
-> I think this change is okay. The only way to get the audit record to
-> report SIGSYS before was to have an additional signal come in and kill
-> it while the tracer was working on it. Which is confusing too. I like
-> this way better.
 
-Thanks :)
+I'll hold off on v3 until your stuff lands.
 
 --Andy
 
->
 > -Kees
 >
 > --
