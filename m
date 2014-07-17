@@ -1,28 +1,33 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-la0-f45.google.com ([209.85.215.45]:48063 "EHLO
-	mail-la0-f45.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S934471AbaGQQVB (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 17 Jul 2014 12:21:01 -0400
+Received: from mail-la0-f50.google.com ([209.85.215.50]:34428 "EHLO
+	mail-la0-f50.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755226AbaGQRD1 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 17 Jul 2014 13:03:27 -0400
 From: Max Filippov <jcmvbkbc@gmail.com>
-Subject: [PATCH] mm/highmem.c: make kmap cache coloring aware
-Date: Thu, 17 Jul 2014 20:20:35 +0400
-Message-ID: <1405614035-11413-1-git-send-email-jcmvbkbc@gmail.com>
+Subject: [PATCH v2] mm/highmem: make kmap cache coloring aware
+Date: Thu, 17 Jul 2014 21:03:18 +0400
+Message-ID: <1405616598-14798-1-git-send-email-jcmvbkbc@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-mm@kvack.org
 Cc: linux-arch@vger.kernel.org, linux-mips@linux-mips.org, linux-xtensa@linux-xtensa.org, linux-kernel@vger.kernel.org, Leonid Yegoshin <Leonid.Yegoshin@imgtec.com>, Max Filippov <jcmvbkbc@gmail.com>
-Message-ID: <20140717162035.CjIl-GfzXSkPPyea1HQJ9A3LkrEk6SJqEwYvoJ2Mimk@z>
+Message-ID: <20140717170318.OEww6ifCrhTLfuPWZt0MD-ELCR6KWMwIX5HifgkX008@z>
 
 From: Leonid Yegoshin <Leonid.Yegoshin@imgtec.com>
 
 Provide hooks that allow architectures with aliasing cache to align
-mapping address of high pages according to their color.
+mapping address of high pages according to their color. Such architectures
+may enforce similar coloring of low- and high-memory page mappings and
+reuse existing cache management functions to support highmem.
 
 Signed-off-by: Leonid Yegoshin <Leonid.Yegoshin@imgtec.com>
 [ Max: extract architecture-independent part of the original patch, clean
   up checkpatch and build warnings. ]
 Signed-off-by: Max Filippov <jcmvbkbc@gmail.com>
 ---
+Changes v1->v2:
+- fix description
+
  mm/highmem.c | 19 ++++++++++++++++---
  1 file changed, 16 insertions(+), 3 deletions(-)
 
