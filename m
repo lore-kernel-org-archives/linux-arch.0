@@ -1,42 +1,65 @@
-From: Zubair Lutfullah Kakakhel <Zubair.Kakakhel@imgtec.com>
-Subject: Re: [PATCH 3/4] x86: use generic dma-contiguous.h
-Date: Thu, 17 Jul 2014 10:02:34 +0100
-Message-ID: <53C7912A.4080404@imgtec.com>
-References: <1405525892-60383-1-git-send-email-Zubair.Kakakhel@imgtec.com> <1405525892-60383-4-git-send-email-Zubair.Kakakhel@imgtec.com> <xa1ta989b7ha.fsf@mina86.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH v2 12/29] nios2: Interrupt handling
+Date: Thu, 17 Jul 2014 11:24:07 +0200
+Message-ID: <7476152.ZcIrSvABEg@wuerfel>
+References: <1405413956-2772-1-git-send-email-lftan@altera.com> <5170097.X9RFbxSEnp@wuerfel> <CAFiDJ5_dTKXSVPtr20uDU32=v_jb3NKUDHGw4OFjW6DuvoZyeA@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-mips-bounce@linux-mips.org>
-In-Reply-To: <xa1ta989b7ha.fsf@mina86.com>
-Sender: linux-mips-bounce@linux-mips.org
-Errors-to: linux-mips-bounce@linux-mips.org
-List-help: <mailto:ecartis@linux-mips.org?Subject=help>
-List-unsubscribe: <mailto:ecartis@linux-mips.org?subject=unsubscribe%20linux-mips>
-List-software: Ecartis version 1.0.0
-List-subscribe: <mailto:ecartis@linux-mips.org?subject=subscribe%20linux-mips>
-List-owner: <mailto:ralf@linux-mips.org>
-List-post: <mailto:linux-mips@linux-mips.org>
-List-archive: <http://www.linux-mips.org/archives/linux-mips/>
-To: Michal Nazarewicz <mina86@mina86.com>, ralf@linux-mips.org, catalin.marinas@arm.com, will.deacon@arm.com, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, arnd@arndb.de, gregkh@linuxfoundation.org, m.szyprowski@samsung.com
-Cc: x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@linux-mips.org, linux-arch@vger.kernel.org
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7Bit
+Return-path: <linux-doc-owner@vger.kernel.org>
+In-Reply-To: <CAFiDJ5_dTKXSVPtr20uDU32=v_jb3NKUDHGw4OFjW6DuvoZyeA@mail.gmail.com>
+Sender: linux-doc-owner@vger.kernel.org
+To: Ley Foon Tan <lftan@altera.com>
+Cc: Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Chung-Lin Tang <cltang@codesourcery.com>
 List-Id: linux-arch.vger.kernel.org
 
-
-
-On 16/07/14 17:20, Michal Nazarewicz wrote:
-> On Wed, Jul 16 2014, Zubair Lutfullah Kakakhel <Zubair.Kakakhel@imgtec.com> wrote:
->> dma-contiguous.h is now in asm-generic. Use that to avoid code
->> repetition in x86.
->>
->> Signed-off-by: Zubair Lutfullah Kakakhel <Zubair.Kakakhel@imgtec.com>
+On Thursday 17 July 2014 14:15:44 Ley Foon Tan wrote:
+> On Tue, Jul 15, 2014 at 5:27 PM, Arnd Bergmann <arnd@arndb.de> wrote:
+> > On Tuesday 15 July 2014 16:45:39 Ley Foon Tan wrote:
+> >> +#ifndef _ASM_NIOS2_IRQ_H
+> >> +#define _ASM_NIOS2_IRQ_H
+> >> +
+> >> +#define NIOS2_CPU_NR_IRQS    32
+> >> +/* Reserve 32 additional interrupts for GPIO IRQs */
+> >> +#define NR_IRQS                      (NIOS2_CPU_NR_IRQS + 32)
+> >
+> > Is this intentional? I would expect that you use SPARSE_IRQ
+> > instead and not define NR_IRQS.
+> Okay, will change to use SPARSE_IRQ.
+> >
+> >> +#ifndef NO_IRQ
+> >> +#define NO_IRQ                       (-1)
+> >> +#endif
+> >
+> > New architectures should no longer define NO_IRQ. Please fix all users
+> > you encounter instead.
+> Okay.
 > 
-> Acked-by: Michal Nazarewicz <mina86@mina86.com>
-> 
-> But to be honest, I would fold the three into a single commit.
+> >
+> >> diff --git a/arch/nios2/kernel/irq.c b/arch/nios2/kernel/irq.c
+> >> new file mode 100644
+> >> index 0000000..8770d50
+> >> --- /dev/null
+> >> +++ b/arch/nios2/kernel/irq.c
+> >> +#include <linux/init.h>
+> >> +#include <linux/interrupt.h>
+> >> +#include <linux/of.h>
+> >
+> > Maybe move this into drivers/irqchip/? Probably doesn't matter either way,
+> > your choice.
+> Will keep it here.
+> BTW, this interrupt controller is part of Nios2 cpu architecture.
+> Should we move to drivers/irqchip/ if that's the case? Any example of
+> arch doing this?
 
-Thank-you for the acks. I understand as its a trivial change.
+A lot of interrupt controllers can be used on multiple architectures,
+and a lot of architectures have a wide variety of interrupt controllers
+that can be used, so moving them all into drivers/irqchip is the generally
+preferred choice.
 
-But architectures like it separate. They will obviously go
-together via one tree.
+If your driver can't work on anything other than nios2 (e.g. because it
+uses special CPU instructions rather than MMIO access) or the CPU core
+always comes with this irqchip and doesn't have a way to use a different
+one, there is no problem leaving it in the arch code.
 
-ZubairLK
+	Arnd
