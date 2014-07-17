@@ -1,134 +1,71 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.outflux.net ([198.145.64.163]:42074 "EHLO smtp.outflux.net"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752116AbaGQSJY (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 17 Jul 2014 14:09:24 -0400
-From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH v12 06/11] MIPS: add seccomp syscall
-Date: Thu, 17 Jul 2014 11:08:33 -0700
-Message-ID: <1405620518-18495-7-git-send-email-keescook@chromium.org>
-In-Reply-To: <1405620518-18495-1-git-send-email-keescook@chromium.org>
-References: <1405620518-18495-1-git-send-email-keescook@chromium.org>
+Received: from usmamail.tilera.com ([12.216.194.151]:30903 "EHLO
+	USMAMAIL.TILERA.COM" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756640AbaGQTlk (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 17 Jul 2014 15:41:40 -0400
+Message-ID: <53C826F3.4030302@tilera.com>
+Date: Thu, 17 Jul 2014 15:41:39 -0400
+From: Chris Metcalf <cmetcalf@tilera.com>
+MIME-Version: 1.0
+Subject: Re: [PATCH 05/38] tile: clean up Kbuild files
+References: <20140714150609.GA28358@ravnborg.org> <1405350546-28467-1-git-send-email-sam@ravnborg.org> <1405350546-28467-5-git-send-email-sam@ravnborg.org>
+In-Reply-To: <1405350546-28467-5-git-send-email-sam@ravnborg.org>
+Content-Type: text/plain; charset="ISO-8859-1"; format=flowed
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: Kees Cook <keescook@chromium.org>, James Morris <james.l.morris@oracle.com>, Oleg Nesterov <oleg@redhat.com>, Andy Lutomirski <luto@amacapital.net>, David Drysdale <drysdale@google.com>, "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>, Will Drewry <wad@chromium.org>, Julien Tinnes <jln@chromium.org>, linux-api@vger.kernel.org, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-mips@linux-mips.org, linux-arch@vger.kernel.org, linux-security-module@vger.kernel.org
-Message-ID: <20140717180833.dqjasjZ5wkssOZyOgLvzQ5wpLsBSVrBdpK3U-Alf9Rs@z>
+To: Sam Ravnborg <sam@ravnborg.org>, Arnd Bergmann <arnd@arndb.de>
+Cc: lkml <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, David Howells <dhowells@redhat.com>
+Message-ID: <20140717194139.a1kg1cbyyLjh8ep3PaZselLziTdYGlyCaGz_KEfNP8c@z>
 
-Wires up the new seccomp syscall.
+On 7/14/2014 11:08 AM, Sam Ravnborg wrote:
+> Drop an unused Kbuild file - it was anyway empty
+> Drop an irrelevent assignment to header-y
+>
+> Signed-off-by: Sam Ravnborg <sam@ravnborg.org>
+> Cc: Chris Metcalf <cmetcalf@tilera.com>
+> Cc: David Howells <dhowells@redhat.com>
+> ---
+>   arch/tile/include/arch/Kbuild | 1 -
+>   arch/tile/include/asm/Kbuild  | 3 ---
+>   2 files changed, 4 deletions(-)
+>   delete mode 100644 arch/tile/include/arch/Kbuild
+>
+> diff --git a/arch/tile/include/arch/Kbuild b/arch/tile/include/arch/Kbuild
+> deleted file mode 100644
+> index 3751c9f..0000000
+> --- a/arch/tile/include/arch/Kbuild
+> +++ /dev/null
+> @@ -1 +0,0 @@
+> -# Tile arch headers
 
-Signed-off-by: Kees Cook <keescook@chromium.org>
-Reviewed-by: Oleg Nesterov <oleg@redhat.com>
----
- arch/mips/include/uapi/asm/unistd.h |   15 +++++++++------
- arch/mips/kernel/scall32-o32.S      |    1 +
- arch/mips/kernel/scall64-64.S       |    1 +
- arch/mips/kernel/scall64-n32.S      |    1 +
- arch/mips/kernel/scall64-o32.S      |    1 +
- 5 files changed, 13 insertions(+), 6 deletions(-)
+Acked-by: Chris Metcalf <cmetcalf@tilera.com>
 
-diff --git a/arch/mips/include/uapi/asm/unistd.h b/arch/mips/include/uapi/asm/unistd.h
-index 5805414777e0..9bc13eaf9d67 100644
---- a/arch/mips/include/uapi/asm/unistd.h
-+++ b/arch/mips/include/uapi/asm/unistd.h
-@@ -372,16 +372,17 @@
- #define __NR_sched_setattr		(__NR_Linux + 349)
- #define __NR_sched_getattr		(__NR_Linux + 350)
- #define __NR_renameat2			(__NR_Linux + 351)
-+#define __NR_seccomp			(__NR_Linux + 352)
- 
- /*
-  * Offset of the last Linux o32 flavoured syscall
-  */
--#define __NR_Linux_syscalls		351
-+#define __NR_Linux_syscalls		352
- 
- #endif /* _MIPS_SIM == _MIPS_SIM_ABI32 */
- 
- #define __NR_O32_Linux			4000
--#define __NR_O32_Linux_syscalls		351
-+#define __NR_O32_Linux_syscalls		352
- 
- #if _MIPS_SIM == _MIPS_SIM_ABI64
- 
-@@ -701,16 +702,17 @@
- #define __NR_sched_setattr		(__NR_Linux + 309)
- #define __NR_sched_getattr		(__NR_Linux + 310)
- #define __NR_renameat2			(__NR_Linux + 311)
-+#define __NR_seccomp			(__NR_Linux + 312)
- 
- /*
-  * Offset of the last Linux 64-bit flavoured syscall
-  */
--#define __NR_Linux_syscalls		311
-+#define __NR_Linux_syscalls		312
- 
- #endif /* _MIPS_SIM == _MIPS_SIM_ABI64 */
- 
- #define __NR_64_Linux			5000
--#define __NR_64_Linux_syscalls		311
-+#define __NR_64_Linux_syscalls		312
- 
- #if _MIPS_SIM == _MIPS_SIM_NABI32
- 
-@@ -1034,15 +1036,16 @@
- #define __NR_sched_setattr		(__NR_Linux + 313)
- #define __NR_sched_getattr		(__NR_Linux + 314)
- #define __NR_renameat2			(__NR_Linux + 315)
-+#define __NR_seccomp			(__NR_Linux + 316)
- 
- /*
-  * Offset of the last N32 flavoured syscall
-  */
--#define __NR_Linux_syscalls		315
-+#define __NR_Linux_syscalls		316
- 
- #endif /* _MIPS_SIM == _MIPS_SIM_NABI32 */
- 
- #define __NR_N32_Linux			6000
--#define __NR_N32_Linux_syscalls		315
-+#define __NR_N32_Linux_syscalls		316
- 
- #endif /* _UAPI_ASM_UNISTD_H */
-diff --git a/arch/mips/kernel/scall32-o32.S b/arch/mips/kernel/scall32-o32.S
-index 3245474f19d5..ab02d14f1b5c 100644
---- a/arch/mips/kernel/scall32-o32.S
-+++ b/arch/mips/kernel/scall32-o32.S
-@@ -578,3 +578,4 @@ EXPORT(sys_call_table)
- 	PTR	sys_sched_setattr
- 	PTR	sys_sched_getattr		/* 4350 */
- 	PTR	sys_renameat2
-+	PTR	sys_seccomp
-diff --git a/arch/mips/kernel/scall64-64.S b/arch/mips/kernel/scall64-64.S
-index be2fedd4ae33..010dccf128ec 100644
---- a/arch/mips/kernel/scall64-64.S
-+++ b/arch/mips/kernel/scall64-64.S
-@@ -431,4 +431,5 @@ EXPORT(sys_call_table)
- 	PTR	sys_sched_setattr
- 	PTR	sys_sched_getattr		/* 5310 */
- 	PTR	sys_renameat2
-+	PTR	sys_seccomp
- 	.size	sys_call_table,.-sys_call_table
-diff --git a/arch/mips/kernel/scall64-n32.S b/arch/mips/kernel/scall64-n32.S
-index c1dbcda4b816..c3b3b6525df5 100644
---- a/arch/mips/kernel/scall64-n32.S
-+++ b/arch/mips/kernel/scall64-n32.S
-@@ -424,4 +424,5 @@ EXPORT(sysn32_call_table)
- 	PTR	sys_sched_setattr
- 	PTR	sys_sched_getattr
- 	PTR	sys_renameat2			/* 6315 */
-+	PTR	sys_seccomp
- 	.size	sysn32_call_table,.-sysn32_call_table
-diff --git a/arch/mips/kernel/scall64-o32.S b/arch/mips/kernel/scall64-o32.S
-index f1343ccd7ed7..bb1550b1f501 100644
---- a/arch/mips/kernel/scall64-o32.S
-+++ b/arch/mips/kernel/scall64-o32.S
-@@ -557,4 +557,5 @@ EXPORT(sys32_call_table)
- 	PTR	sys_sched_setattr
- 	PTR	sys_sched_getattr		/* 4350 */
- 	PTR	sys_renameat2
-+	PTR	sys_seccomp
- 	.size	sys32_call_table,.-sys32_call_table
+for this piece.  David Howells left these with just comments originally,
+but removing the file entirely seems fine too.
+
+> diff --git a/arch/tile/include/asm/Kbuild b/arch/tile/include/asm/Kbuild
+> index 0aa5675..3013a07 100644
+> --- a/arch/tile/include/asm/Kbuild
+> +++ b/arch/tile/include/asm/Kbuild
+> @@ -1,6 +1,3 @@
+> -
+> -header-y += ../arch/
+> -
+>   generic-y += bug.h
+>   generic-y += bugs.h
+>   generic-y += clkdev.h
+
+Nack for this patch.  The arch/ headers are all intended to be shared by the
+kernel and userspace, so we install them from the kernel.  This one header-y
+line installs the 16 header files in usr/include/arch/*.h.  If there's a
+better way to make that happen, that would be fine too, of course.
+
+Arguably we could provide them separately (a tarball from tilera.com or
+something) but frankly, this just makes the standard build flows for kernel,
+gcc, and glibc more non-standard for tile, which seems like a bad thing.
+
 -- 
-1.7.9.5
+Chris Metcalf, Tilera Corp.
+http://www.tilera.com
 
