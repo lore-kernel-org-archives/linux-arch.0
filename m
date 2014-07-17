@@ -1,55 +1,59 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH v2 21/29] nios2: Futex operations
-Date: Thu, 17 Jul 2014 13:07:54 +0200
-Message-ID: <12323898.sHjczXbE7P@wuerfel>
-References: <1405413956-2772-1-git-send-email-lftan@altera.com> <alpine.DEB.2.10.1407151201170.24854@nanos> <CAFiDJ5-UQ4pu1Hkc444yaA6cbttTXM7KM2eProGUkYgjqvOSUg@mail.gmail.com>
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [PATCH v3 1/3] asm-generic/io.h: Implement generic
+ {read,write}s*()
+Date: Thu, 17 Jul 2014 13:01:22 +0100
+Message-ID: <20140717120122.GG18203@arm.com>
+References: <1405508484-18303-1-git-send-email-thierry.reding@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7Bit
-Return-path: <linux-doc-owner@vger.kernel.org>
-In-Reply-To: <CAFiDJ5-UQ4pu1Hkc444yaA6cbttTXM7KM2eProGUkYgjqvOSUg@mail.gmail.com>
-Sender: linux-doc-owner@vger.kernel.org
-To: Ley Foon Tan <lftan@altera.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Chung-Lin Tang <cltang@codesourcery.com>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from fw-tnat.austin.arm.com ([217.140.110.23]:19292 "EHLO
+	collaborate-mta1.arm.com" rhost-flags-OK-OK-OK-FAIL)
+	by vger.kernel.org with ESMTP id S1754855AbaGQMBj (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Thu, 17 Jul 2014 08:01:39 -0400
+Content-Disposition: inline
+In-Reply-To: <1405508484-18303-1-git-send-email-thierry.reding@gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Thierry Reding <thierry.reding@gmail.com>
+Cc: Russell King <linux@arm.linux.org.uk>, Will Deacon <Will.Deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Stephen Boyd <sboyd@codeaurora.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
 
-On Thursday 17 July 2014 18:55:49 Ley Foon Tan wrote:
-> On Tue, Jul 15, 2014 at 6:03 PM, Thomas Gleixner <tglx@linutronix.de> wrote:
-> > On Tue, 15 Jul 2014, Ley Foon Tan wrote:
-> >  +static inline int atomic_futex_op_xchg_set(int oparg, u32 __user *uaddr,
-> >> +                                        int *oldval)
-> >> +{
-> >> +     unsigned long flags;
-> >> +     int ret;
-> >> +
-> >> +     local_irq_save(flags);
-> >> +
-> >> +     ret = get_user(*oldval, uaddr);
-> >> +     if (!ret)
-> >> +             ret = put_user(oparg, uaddr);
-> >
-> > This is wrong as it gets. get_user() might fault and sleep.
-> >
-> > You need a proper implementation, which handles fault exceptions.
-> I have checked that we use nios2 specific get_user() in [1]. This
-> function will not sleep and it handles fault exception.
-> I think this should be fine.
+On Wed, Jul 16, 2014 at 12:01:22PM +0100, Thierry Reding wrote:
+> From: Thierry Reding <treding@nvidia.com>
+> 
+> Currently driver writers need to use io{read,write}{8,16,32}_rep() when
+> accessing FIFO registers portably. This is bad for two reasons: it is
+> inconsistent with how other registers are accessed using the standard
+> {read,write}{b,w,l}() functions, which can lead to confusion. On some
+> architectures the io{read,write}*() functions also need to perform some
+> extra checks to determine whether an address is memory-mapped or refers
+> to I/O space. Drivers which can be expected to never use I/O can safely
+> use the {read,write}s{b,w,l,q}(), just like they use their non-string
+> variants and there's no need for these extra checks.
+> 
+> This patch implements generic versions of readsb(), readsw(), readsl(),
+> readsq(), writesb(), writesw(), writesl() and writesq(). Variants of
+> these string functions for I/O accesses (ins*() and outs*() as well as
+> ioread*_rep() and iowrite*_rep()) are now implemented in terms of the
+> new functions.
+> 
+> Going forward, {read,write}{,s}{b,w,l,q}() should be used consistently
+> by drivers for devices that will only ever be memory-mapped and hence
+> don't need to access I/O space, whereas io{read,write}{8,16,32}_rep()
+> should be used by drivers for devices that can be either memory-mapped
+> or I/O-mapped.
+> 
+> While at it, also make sure that any of the functions provided as
+> fallback for architectures that don't override them can't be overridden
+> subsequently.
+> 
+> This is compile- and runtime-tested on 32-bit and 64-bit ARM and compile
+> tested on Microblaze, s390, SPARC and Xtensa. For ARC, Blackfin, Metag,
+> OpenRISC, Score and Unicore32 which also use asm-generic/io.h I couldn't
+> find or build a cross-compiler that would run on my system. But by code
+> inspection they shouldn't break with this patch.
+> 
+> Signed-off-by: Thierry Reding <treding@nvidia.com>
 
-The get_user/put_user functions really need to be annotated might_fault(),
-because that's what they do.
-
-The whole point of get_user() is to access an unchecked user space
-pointer, which 	can do a number of things based on what the pointer
-points to:
-
-- access a user space variable that resides in memory
-- access a kernel pointer and fail because of the access_ok()
-  check
-- access a user space pointer that is not mapped and return
-  through the __ex_table fixup.
-- access a user space pointer that has a valid VMA but not PTE,
-  causing a page fault to be resolved.
-
-It's the last case that breaks here.
-
-	Arnd
+Acked-by: Catalin Marinas <catalin.marinas@arm.com>
