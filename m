@@ -1,80 +1,152 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ie0-f170.google.com ([209.85.223.170]:61679 "EHLO
-	mail-ie0-f170.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751312AbaGQRwv (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 17 Jul 2014 13:52:51 -0400
-Received: by mail-ie0-f170.google.com with SMTP id rl12so3482593iec.29
-        for <linux-arch@vger.kernel.org>; Thu, 17 Jul 2014 10:52:50 -0700 (PDT)
-MIME-Version: 1.0
-In-Reply-To: <CAGXu5j+dFZdnnK8f-HRrUs2vLeyhWyHh_AY-OynDcp-Ye+dy7Q@mail.gmail.com>
-References: <1405547442-26641-1-git-send-email-keescook@chromium.org>
-	<1405547442-26641-12-git-send-email-keescook@chromium.org>
-	<CAHse=S_32tmusk4ceY4U6GbNpX4PkX12iPPDZFVZ7qgv-RAooA@mail.gmail.com>
-	<CAGXu5j+dFZdnnK8f-HRrUs2vLeyhWyHh_AY-OynDcp-Ye+dy7Q@mail.gmail.com>
-Date: Thu, 17 Jul 2014 10:52:50 -0700
-Message-ID: <CAGXu5jJy0pW9X8YMhnfChtBO55EZKW6J7-+svKMBYP7WGM4PaA@mail.gmail.com>
-Subject: Re: [PATCH v11 11/11] seccomp: implement SECCOMP_FILTER_FLAG_TSYNC
+Received: from smtp.outflux.net ([198.145.64.163]:34393 "EHLO smtp.outflux.net"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752815AbaGQSJe (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 17 Jul 2014 14:09:34 -0400
 From: Kees Cook <keescook@chromium.org>
-Content-Type: text/plain; charset=UTF-8
+Subject: [PATCH v12 07/11] sched: move no_new_privs into new atomic flags
+Date: Thu, 17 Jul 2014 11:08:34 -0700
+Message-ID: <1405620518-18495-8-git-send-email-keescook@chromium.org>
+In-Reply-To: <1405620518-18495-1-git-send-email-keescook@chromium.org>
+References: <1405620518-18495-1-git-send-email-keescook@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Drysdale <drysdale@google.com>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Andy Lutomirski <luto@amacapital.net>, Oleg Nesterov <oleg@redhat.com>, James Morris <jmorris@namei.org>, "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>, Alexei Starovoitov <ast@plumgrid.com>, Andrew Morton <akpm@linux-foundation.org>, Daniel Borkmann <dborkman@redhat.com>, Will Drewry <wad@chromium.org>, Julien Tinnes <jln@chromium.org>, Linux API <linux-api@vger.kernel.org>, "x86@kernel.org" <x86@kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Linux MIPS Mailing List <linux-mips@linux-mips.org>, linux-arch <linux-arch@vger.kernel.org>, LSM List <linux-security-module@vger.kernel.org>
-Message-ID: <20140717175250.BhuGBKg7NkBQLN2CL5JGjJTD_v7oX6HZEv7-vm6R0LI@z>
+To: linux-kernel@vger.kernel.org
+Cc: Kees Cook <keescook@chromium.org>, James Morris <james.l.morris@oracle.com>, Oleg Nesterov <oleg@redhat.com>, Andy Lutomirski <luto@amacapital.net>, David Drysdale <drysdale@google.com>, "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>, Will Drewry <wad@chromium.org>, Julien Tinnes <jln@chromium.org>, linux-api@vger.kernel.org, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-mips@linux-mips.org, linux-arch@vger.kernel.org, linux-security-module@vger.kernel.org
+Message-ID: <20140717180834.XnzDOp9DOwlG7_ZvssYtZh7J94qgSLMmEPXMGyH-YmA@z>
 
-On Thu, Jul 17, 2014 at 8:45 AM, Kees Cook <keescook@chromium.org> wrote:
-> On Thu, Jul 17, 2014 at 8:04 AM, David Drysdale <drysdale@google.com> wrote:
->> On Wed, Jul 16, 2014 at 10:50 PM, Kees Cook <keescook@chromium.org> wrote:
->>> diff --git a/kernel/seccomp.c b/kernel/seccomp.c
->>> index 9065d2c79c56..2125b83ccfd4 100644
->>> +/**
->>> + * seccomp_can_sync_threads: checks if all threads can be synchronized
->>> + *
->>> + * Expects sighand and cred_guard_mutex locks to be held.
->>> + *
->>> + * Returns 0 on success, -ve on error, or the pid of a thread which was
->>> + * either not in the correct seccomp mode or it did not have an ancestral
->>> + * seccomp filter.
->>> + */
->>> +static inline pid_t seccomp_can_sync_threads(void)
->>> +{
->>> +       struct task_struct *thread, *caller;
->>> +
->>> +       BUG_ON(!mutex_is_locked(&current->signal->cred_guard_mutex));
->>> +       BUG_ON(!spin_is_locked(&current->sighand->siglock));
->>> +
->>> +       if (current->seccomp.mode != SECCOMP_MODE_FILTER)
->>> +               return -EACCES;
->>
->> Quick question -- is it possible to apply the first filter and also synchronize
->> it across threads in the same operation?  If so, does this arm also need to
->> cope with seccomp.mode being SECCOMP_MODE_DISABLED?
->>
->> [seccomp_set_mode_filter() looks to call this via seccomp_attach_filter()
->> before it does seccomp_assign_mode()]
->
-> I don't entirely understand what you're asking. The threads gain the
-> filter and the mode before the current thread may gain the mode (if
-> it's the first time this has been called). Due to all the locks,
-> though, this isn't a problem. Is there a situation you see where there
-> might be a problem?
+Since seccomp transitions between threads requires updates to the
+no_new_privs flag to be atomic, the flag must be part of an atomic flag
+set. This moves the nnp flag into a separate task field, and introduces
+accessors.
 
-Just to follow up for posterity on lkml: the problem was that mode was
-being set in "current" _after_ sync, so the mode check in can_sync
-would fail if "current" was not yet in filter mode. (i.e. the first
-attached filter could not have the TSYNC flag.) This check was
-redundant with the attach_filter entry point checks, and protected
-nothing, so it has been removed and a new test added to the seccomp
-regression test suite. :)
+Signed-off-by: Kees Cook <keescook@chromium.org>
+Reviewed-by: Oleg Nesterov <oleg@redhat.com>
+Reviewed-by: Andy Lutomirski <luto@amacapital.net>
+---
+ fs/exec.c                  |    4 ++--
+ include/linux/sched.h      |   18 +++++++++++++++---
+ kernel/seccomp.c           |    2 +-
+ kernel/sys.c               |    4 ++--
+ security/apparmor/domain.c |    4 ++--
+ 5 files changed, 22 insertions(+), 10 deletions(-)
 
-I sent it as a new patch on top of v11, instead of respinning
-everything as v12. If that's not preferred, I can send v12 with this
-fix incorporated.
-
-Thanks!
-
--Kees
-
+diff --git a/fs/exec.c b/fs/exec.c
+index a3d33fe592d6..0f5c272410f6 100644
+--- a/fs/exec.c
++++ b/fs/exec.c
+@@ -1234,7 +1234,7 @@ static void check_unsafe_exec(struct linux_binprm *bprm)
+ 	 * This isn't strictly necessary, but it makes it harder for LSMs to
+ 	 * mess up.
+ 	 */
+-	if (current->no_new_privs)
++	if (task_no_new_privs(current))
+ 		bprm->unsafe |= LSM_UNSAFE_NO_NEW_PRIVS;
+ 
+ 	t = p;
+@@ -1272,7 +1272,7 @@ int prepare_binprm(struct linux_binprm *bprm)
+ 	bprm->cred->egid = current_egid();
+ 
+ 	if (!(bprm->file->f_path.mnt->mnt_flags & MNT_NOSUID) &&
+-	    !current->no_new_privs &&
++	    !task_no_new_privs(current) &&
+ 	    kuid_has_mapping(bprm->cred->user_ns, inode->i_uid) &&
+ 	    kgid_has_mapping(bprm->cred->user_ns, inode->i_gid)) {
+ 		/* Set-uid? */
+diff --git a/include/linux/sched.h b/include/linux/sched.h
+index 0376b054a0d0..45cec6b70eaf 100644
+--- a/include/linux/sched.h
++++ b/include/linux/sched.h
+@@ -1307,13 +1307,12 @@ struct task_struct {
+ 				 * execve */
+ 	unsigned in_iowait:1;
+ 
+-	/* task may not gain privileges */
+-	unsigned no_new_privs:1;
+-
+ 	/* Revert to default priority/policy when forking */
+ 	unsigned sched_reset_on_fork:1;
+ 	unsigned sched_contributes_to_load:1;
+ 
++	unsigned long atomic_flags; /* Flags needing atomic access. */
++
+ 	pid_t pid;
+ 	pid_t tgid;
+ 
+@@ -1967,6 +1966,19 @@ static inline void memalloc_noio_restore(unsigned int flags)
+ 	current->flags = (current->flags & ~PF_MEMALLOC_NOIO) | flags;
+ }
+ 
++/* Per-process atomic flags. */
++#define PFA_NO_NEW_PRIVS 0x00000001	/* May not gain new privileges. */
++
++static inline bool task_no_new_privs(struct task_struct *p)
++{
++	return test_bit(PFA_NO_NEW_PRIVS, &p->atomic_flags);
++}
++
++static inline void task_set_no_new_privs(struct task_struct *p)
++{
++	set_bit(PFA_NO_NEW_PRIVS, &p->atomic_flags);
++}
++
+ /*
+  * task->jobctl flags
+  */
+diff --git a/kernel/seccomp.c b/kernel/seccomp.c
+index f0652578af75..d2596136b0d1 100644
+--- a/kernel/seccomp.c
++++ b/kernel/seccomp.c
+@@ -241,7 +241,7 @@ static long seccomp_attach_filter(struct sock_fprog *fprog)
+ 	 * This avoids scenarios where unprivileged tasks can affect the
+ 	 * behavior of privileged children.
+ 	 */
+-	if (!current->no_new_privs &&
++	if (!task_no_new_privs(current) &&
+ 	    security_capable_noaudit(current_cred(), current_user_ns(),
+ 				     CAP_SYS_ADMIN) != 0)
+ 		return -EACCES;
+diff --git a/kernel/sys.c b/kernel/sys.c
+index 66a751ebf9d9..ce8129192a26 100644
+--- a/kernel/sys.c
++++ b/kernel/sys.c
+@@ -1990,12 +1990,12 @@ SYSCALL_DEFINE5(prctl, int, option, unsigned long, arg2, unsigned long, arg3,
+ 		if (arg2 != 1 || arg3 || arg4 || arg5)
+ 			return -EINVAL;
+ 
+-		current->no_new_privs = 1;
++		task_set_no_new_privs(current);
+ 		break;
+ 	case PR_GET_NO_NEW_PRIVS:
+ 		if (arg2 || arg3 || arg4 || arg5)
+ 			return -EINVAL;
+-		return current->no_new_privs ? 1 : 0;
++		return task_no_new_privs(current) ? 1 : 0;
+ 	case PR_GET_THP_DISABLE:
+ 		if (arg2 || arg3 || arg4 || arg5)
+ 			return -EINVAL;
+diff --git a/security/apparmor/domain.c b/security/apparmor/domain.c
+index 452567d3a08e..d97cba3e3849 100644
+--- a/security/apparmor/domain.c
++++ b/security/apparmor/domain.c
+@@ -621,7 +621,7 @@ int aa_change_hat(const char *hats[], int count, u64 token, bool permtest)
+ 	 * There is no exception for unconfined as change_hat is not
+ 	 * available.
+ 	 */
+-	if (current->no_new_privs)
++	if (task_no_new_privs(current))
+ 		return -EPERM;
+ 
+ 	/* released below */
+@@ -776,7 +776,7 @@ int aa_change_profile(const char *ns_name, const char *hname, bool onexec,
+ 	 * no_new_privs is set because this aways results in a reduction
+ 	 * of permissions.
+ 	 */
+-	if (current->no_new_privs && !unconfined(profile)) {
++	if (task_no_new_privs(current) && !unconfined(profile)) {
+ 		put_cred(cred);
+ 		return -EPERM;
+ 	}
 -- 
-Kees Cook
-Chrome OS Security
+1.7.9.5
+
