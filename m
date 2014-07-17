@@ -1,45 +1,55 @@
-From: Ley Foon Tan <lftan@altera.com>
+From: Arnd Bergmann <arnd@arndb.de>
 Subject: Re: [PATCH v2 21/29] nios2: Futex operations
-Date: Thu, 17 Jul 2014 18:55:49 +0800
-Message-ID: <CAFiDJ5-UQ4pu1Hkc444yaA6cbttTXM7KM2eProGUkYgjqvOSUg@mail.gmail.com>
-References: <1405413956-2772-1-git-send-email-lftan@altera.com>
-	<1405413956-2772-22-git-send-email-lftan@altera.com>
-	<alpine.DEB.2.10.1407151201170.24854@nanos>
+Date: Thu, 17 Jul 2014 13:07:54 +0200
+Message-ID: <12323898.sHjczXbE7P@wuerfel>
+References: <1405413956-2772-1-git-send-email-lftan@altera.com> <alpine.DEB.2.10.1407151201170.24854@nanos> <CAFiDJ5-UQ4pu1Hkc444yaA6cbttTXM7KM2eProGUkYgjqvOSUg@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qc0-f169.google.com ([209.85.216.169]:45785 "EHLO
-	mail-qc0-f169.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756555AbaGQKzu (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 17 Jul 2014 06:55:50 -0400
-In-Reply-To: <alpine.DEB.2.10.1407151201170.24854@nanos>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Chung-Lin Tang <cltang@codesourcery.com>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7Bit
+Return-path: <linux-doc-owner@vger.kernel.org>
+In-Reply-To: <CAFiDJ5-UQ4pu1Hkc444yaA6cbttTXM7KM2eProGUkYgjqvOSUg@mail.gmail.com>
+Sender: linux-doc-owner@vger.kernel.org
+To: Ley Foon Tan <lftan@altera.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Chung-Lin Tang <cltang@codesourcery.com>
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, Jul 15, 2014 at 6:03 PM, Thomas Gleixner <tglx@linutronix.de> wrote:
-> On Tue, 15 Jul 2014, Ley Foon Tan wrote:
->  +static inline int atomic_futex_op_xchg_set(int oparg, u32 __user *uaddr,
->> +                                        int *oldval)
->> +{
->> +     unsigned long flags;
->> +     int ret;
->> +
->> +     local_irq_save(flags);
->> +
->> +     ret = get_user(*oldval, uaddr);
->> +     if (!ret)
->> +             ret = put_user(oparg, uaddr);
->
-> This is wrong as it gets. get_user() might fault and sleep.
->
-> You need a proper implementation, which handles fault exceptions.
-I have checked that we use nios2 specific get_user() in [1]. This
-function will not sleep and it handles fault exception.
-I think this should be fine.
+On Thursday 17 July 2014 18:55:49 Ley Foon Tan wrote:
+> On Tue, Jul 15, 2014 at 6:03 PM, Thomas Gleixner <tglx@linutronix.de> wrote:
+> > On Tue, 15 Jul 2014, Ley Foon Tan wrote:
+> >  +static inline int atomic_futex_op_xchg_set(int oparg, u32 __user *uaddr,
+> >> +                                        int *oldval)
+> >> +{
+> >> +     unsigned long flags;
+> >> +     int ret;
+> >> +
+> >> +     local_irq_save(flags);
+> >> +
+> >> +     ret = get_user(*oldval, uaddr);
+> >> +     if (!ret)
+> >> +             ret = put_user(oparg, uaddr);
+> >
+> > This is wrong as it gets. get_user() might fault and sleep.
+> >
+> > You need a proper implementation, which handles fault exceptions.
+> I have checked that we use nios2 specific get_user() in [1]. This
+> function will not sleep and it handles fault exception.
+> I think this should be fine.
 
-[1] http://rocketboards.org/gitweb/?p=linux-socfpga-next.git;a=blob;f=arch/nios2/include/asm/uaccess.h;h=3e36f536afaba24c308a8416a66b8a2573e042a5;hb=refs/heads/nios2-upstream
+The get_user/put_user functions really need to be annotated might_fault(),
+because that's what they do.
 
-Regards
-Ley Foon
+The whole point of get_user() is to access an unchecked user space
+pointer, which 	can do a number of things based on what the pointer
+points to:
+
+- access a user space variable that resides in memory
+- access a kernel pointer and fail because of the access_ok()
+  check
+- access a user space pointer that is not mapped and return
+  through the __ex_table fixup.
+- access a user space pointer that has a valid VMA but not PTE,
+  causing a page fault to be resolved.
+
+It's the last case that breaks here.
+
+	Arnd
