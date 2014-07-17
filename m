@@ -1,70 +1,62 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-la0-f54.google.com ([209.85.215.54]:47588 "EHLO
-	mail-la0-f54.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751165AbaGPWG3 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 16 Jul 2014 18:06:29 -0400
-Received: by mail-la0-f54.google.com with SMTP id el20so1086337lab.41
-        for <linux-arch@vger.kernel.org>; Wed, 16 Jul 2014 15:06:27 -0700 (PDT)
+Received: from mail-qa0-f41.google.com ([209.85.216.41]:50164 "EHLO
+	mail-qa0-f41.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754122AbaGQGPp (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 17 Jul 2014 02:15:45 -0400
 MIME-Version: 1.0
-In-Reply-To: <CAGXu5j+1C7HnVz7WW3si_rpOw2OBMz1KQB1a9ynrncgUH_1RfQ@mail.gmail.com>
-References: <cover.1405452484.git.luto@amacapital.net> <4f153feea35430104d6d1a7c83805fccbffdf089.1405452484.git.luto@amacapital.net>
- <CAGXu5jK0v=dtPNY4Y2m7D01peeNoBSDq8zowgLu_rjZe41=eUg@mail.gmail.com>
- <CALCETrW7UEBTprnJdca0X1Vd-bstyQi1LK9GbfUzdr8FFWze9w@mail.gmail.com> <CAGXu5j+1C7HnVz7WW3si_rpOw2OBMz1KQB1a9ynrncgUH_1RfQ@mail.gmail.com>
-From: Andy Lutomirski <luto@amacapital.net>
-Date: Wed, 16 Jul 2014 15:06:07 -0700
-Message-ID: <CALCETrW_ZsOGTNj--vjnkryzRA=QRrDs21TXr_bHqZb8ntFLeg@mail.gmail.com>
-Subject: Re: [PATCH 2/7] seccomp: Refactor the filter callback and the API
+In-Reply-To: <5170097.X9RFbxSEnp@wuerfel>
+References: <1405413956-2772-1-git-send-email-lftan@altera.com>
+	<1405413956-2772-13-git-send-email-lftan@altera.com>
+	<5170097.X9RFbxSEnp@wuerfel>
+Date: Thu, 17 Jul 2014 14:15:44 +0800
+Message-ID: <CAFiDJ5_dTKXSVPtr20uDU32=v_jb3NKUDHGw4OFjW6DuvoZyeA@mail.gmail.com>
+Subject: Re: [PATCH v2 12/29] nios2: Interrupt handling
+From: Ley Foon Tan <lftan@altera.com>
 Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Kees Cook <keescook@chromium.org>
-Cc: LKML <linux-kernel@vger.kernel.org>, Will Drewry <wad@chromium.org>, James Morris <james.l.morris@oracle.com>, Oleg Nesterov <oleg@redhat.com>, "x86@kernel.org" <x86@kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Linux MIPS Mailing List <linux-mips@linux-mips.org>, linux-arch <linux-arch@vger.kernel.org>, linux-security-module <linux-security-module@vger.kernel.org>, Alexei Starovoitov <ast@plumgrid.com>
-Message-ID: <20140716220607.f3rZIDoREQUrKXcvnxKpLKP4jBk6uFu-Xp4G76WyTOM@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Chung-Lin Tang <cltang@codesourcery.com>
+Message-ID: <20140717061544.DragJCcNcEsGEnCO1ZoybdApN23FVBZ9s2OaJzH2vNI@z>
 
-On Wed, Jul 16, 2014 at 2:56 PM, Kees Cook <keescook@chromium.org> wrote:
-> On Wed, Jul 16, 2014 at 1:56 PM, Andy Lutomirski <luto@amacapital.net> wrote:
->> On Wed, Jul 16, 2014 at 1:12 PM, Kees Cook <keescook@chromium.org> wrote:
->>> On Tue, Jul 15, 2014 at 12:32 PM, Andy Lutomirski <luto@amacapital.net> wrote:
->>>> The reason I did this is to add a seccomp API that will be usable
->>>> for an x86 fast path.  The x86 entry code needs to use a rather
->>>> expensive slow path for a syscall that might be visible to things
->>>> like ptrace.  By splitting seccomp into two phases, we can check
->>>> whether we need the slow path and then use the fast path in if the
->>>> filter allows the syscall or just returns some errno.
->>>>
->>>> As a side effect, I think the new code is much easier to understand
->>>> than the old code.
->>>
->>> I'd agree. The #idefs got a little weirder, but the actual code flow
->>> was much easier to read. I wonder if "phase1" and "phase2" should be
->>> renamed "pretrace" and "tracing" or something more meaningful? Or
->>> "fast" and "slow"?
->>
->> Queue the bikeshedding :)
->>
->> I like "phase1" and "phase2" because it makes it clear that phase1 has
->> to come first.  But I'd be amenable to counterarguments.
+On Tue, Jul 15, 2014 at 5:27 PM, Arnd Bergmann <arnd@arndb.de> wrote:
+> On Tuesday 15 July 2014 16:45:39 Ley Foon Tan wrote:
+>> +#ifndef _ASM_NIOS2_IRQ_H
+>> +#define _ASM_NIOS2_IRQ_H
+>> +
+>> +#define NIOS2_CPU_NR_IRQS    32
+>> +/* Reserve 32 additional interrupts for GPIO IRQs */
+>> +#define NR_IRQS                      (NIOS2_CPU_NR_IRQS + 32)
 >
-> That works. I didn't have a strong feeling about it. I was just
-> wondering if there was a good way to self-document that phase1 is on
-> the fast path, and phase2 was on the slow path for tracing. The
-> existing comments really should be sufficient, though.
+> Is this intentional? I would expect that you use SPARSE_IRQ
+> instead and not define NR_IRQS.
+Okay, will change to use SPARSE_IRQ.
 >
-> You mentioned architectures providing "sd" directly. I wonder if that
-> new optional ability should be mentioned in the Kconfig help text that
-> defines what's needed for an arch to support SECCOMP_FILTER?
-
-Good call.  Queued for v2.
+>> +#ifndef NO_IRQ
+>> +#define NO_IRQ                       (-1)
+>> +#endif
+>
+> New architectures should no longer define NO_IRQ. Please fix all users
+> you encounter instead.
+Okay.
 
 >
-> -Kees
+>> diff --git a/arch/nios2/kernel/irq.c b/arch/nios2/kernel/irq.c
+>> new file mode 100644
+>> index 0000000..8770d50
+>> --- /dev/null
+>> +++ b/arch/nios2/kernel/irq.c
+>> +#include <linux/init.h>
+>> +#include <linux/interrupt.h>
+>> +#include <linux/of.h>
 >
-> --
-> Kees Cook
-> Chrome OS Security
+> Maybe move this into drivers/irqchip/? Probably doesn't matter either way,
+> your choice.
+Will keep it here.
+BTW, this interrupt controller is part of Nios2 cpu architecture.
+Should we move to drivers/irqchip/ if that's the case? Any example of
+arch doing this?
+Thanks.
 
-
-
--- 
-Andy Lutomirski
-AMA Capital Management, LLC
+Regards
+Ley Foon
