@@ -1,68 +1,72 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from www.linutronix.de ([62.245.132.108]:36193 "EHLO
-	Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932366AbaGQN6w (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 17 Jul 2014 09:58:52 -0400
-Date: Thu, 17 Jul 2014 15:58:46 +0200 (CEST)
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [PATCH v2 12/29] nios2: Interrupt handling
-In-Reply-To: <CAFiDJ58oEfFN5CgLZxqTLSiGfuxNH2t3OFAaSUWLJ_P_B_QRBQ@mail.gmail.com>
-Message-ID: <alpine.DEB.2.10.1407171555580.24854@nanos>
-References: <1405413956-2772-1-git-send-email-lftan@altera.com> <1405413956-2772-13-git-send-email-lftan@altera.com> <alpine.DEB.2.10.1407151147540.24854@nanos> <CAFiDJ58oEfFN5CgLZxqTLSiGfuxNH2t3OFAaSUWLJ_P_B_QRBQ@mail.gmail.com>
+Received: from mail-vc0-f181.google.com ([209.85.220.181]:50898 "EHLO
+	mail-vc0-f181.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S933148AbaGQPFV (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 17 Jul 2014 11:05:21 -0400
+Received: by mail-vc0-f181.google.com with SMTP id lf12so4837018vcb.12
+        for <linux-arch@vger.kernel.org>; Thu, 17 Jul 2014 08:05:17 -0700 (PDT)
 MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+In-Reply-To: <1405547442-26641-12-git-send-email-keescook@chromium.org>
+References: <1405547442-26641-1-git-send-email-keescook@chromium.org> <1405547442-26641-12-git-send-email-keescook@chromium.org>
+From: David Drysdale <drysdale@google.com>
+Date: Thu, 17 Jul 2014 16:04:56 +0100
+Message-ID: <CAHse=S_32tmusk4ceY4U6GbNpX4PkX12iPPDZFVZ7qgv-RAooA@mail.gmail.com>
+Subject: Re: [PATCH v11 11/11] seccomp: implement SECCOMP_FILTER_FLAG_TSYNC
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ley Foon Tan <lftan@altera.com>
-Cc: Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Chung-Lin Tang <cltang@codesourcery.com>
-Message-ID: <20140717135846._c0SN1lpNt1QAExXZWteZchMMQG69hb8EpW6W6BqWZk@z>
+To: Kees Cook <keescook@chromium.org>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Andy Lutomirski <luto@amacapital.net>, Oleg Nesterov <oleg@redhat.com>, James Morris <jmorris@namei.org>, "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>, Alexei Starovoitov <ast@plumgrid.com>, Andrew Morton <akpm@linux-foundation.org>, Daniel Borkmann <dborkman@redhat.com>, Will Drewry <wad@chromium.org>, Julien Tinnes <jln@chromium.org>, Linux API <linux-api@vger.kernel.org>, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-mips@linux-mips.org, linux-arch@vger.kernel.org, LSM List <linux-security-module@vger.kernel.org>
+Message-ID: <20140717150456.rxrlkX8pbpzAJv7PnZOX-95E6FZEaqNzKj2S-20rYPo@z>
 
-On Thu, 17 Jul 2014, Ley Foon Tan wrote:
+On Wed, Jul 16, 2014 at 10:50 PM, Kees Cook <keescook@chromium.org> wrote:
+> diff --git a/kernel/seccomp.c b/kernel/seccomp.c
+> index 9065d2c79c56..2125b83ccfd4 100644
+> +/**
+> + * seccomp_can_sync_threads: checks if all threads can be synchronized
+> + *
+> + * Expects sighand and cred_guard_mutex locks to be held.
+> + *
+> + * Returns 0 on success, -ve on error, or the pid of a thread which was
+> + * either not in the correct seccomp mode or it did not have an ancestral
+> + * seccomp filter.
+> + */
+> +static inline pid_t seccomp_can_sync_threads(void)
+> +{
+> +       struct task_struct *thread, *caller;
+> +
+> +       BUG_ON(!mutex_is_locked(&current->signal->cred_guard_mutex));
+> +       BUG_ON(!spin_is_locked(&current->sighand->siglock));
+> +
+> +       if (current->seccomp.mode != SECCOMP_MODE_FILTER)
+> +               return -EACCES;
 
-> On Tue, Jul 15, 2014 at 5:51 PM, Thomas Gleixner <tglx@linutronix.de> wrote:
-> > On Tue, 15 Jul 2014, Ley Foon Tan wrote:
-> >> +#ifndef _ASM_NIOS2_IRQ_H
-> >> +#define _ASM_NIOS2_IRQ_H
-> >> +
-> >> +#define NIOS2_CPU_NR_IRQS    32
-> >> +/* Reserve 32 additional interrupts for GPIO IRQs */
-> >> +#define NR_IRQS                      (NIOS2_CPU_NR_IRQS + 32)
-> >
-> > Please use sparse irqs. Hardcoded limits tend to work out really bad.
-> Yes, will change this.
-> >
-> >> +#include <linux/init.h>
-> >> +#include <linux/interrupt.h>
-> >> +#include <linux/of.h>
-> >> +
-> 
-> >> +static void chip_unmask(struct irq_data *d)
-> >> +{
-> >> +     u32 ien;
-> >> +     ien = RDCTL(CTL_IENABLE);
-> >> +     ien |= (1 << d->hwirq);
-> >> +     WRCTL(CTL_IENABLE, ien);
-> >
-> > So this is UP only, right?
-> Yes, this is to enable one interrupt.
+Quick question -- is it possible to apply the first filter and also synchronize
+it across threads in the same operation?  If so, does this arm also need to
+cope with seccomp.mode being SECCOMP_MODE_DISABLED?
 
-The question was, whether this is always a UniProcessor machine.
+[seccomp_set_mode_filter() looks to call this via seccomp_attach_filter()
+before it does seccomp_assign_mode()]
 
-> > Also why don't you cache the register content so spare the extra read
-> > from the hardware?
-> Need to make sure nobody modify the register if we cache the register content.
-> Will keep as it is.
-
-Sigh.
-
-If this is a uniprocessor only design, then nothing can modify the
-cached values as all these functions are always called with interrupts
-disabled.
-
-If this should be SMP safe, then you'd need serialization of the
-register access as well becasue the read/modify/write sequence is not
-atomic.
-
-Thanks,
-
-	tglx
+> +
+> +       /* Validate all threads being eligible for synchronization. */
+> +       caller = current;
+> +       for_each_thread(caller, thread) {
+> +               pid_t failed;
+> +
+> +               if (thread->seccomp.mode == SECCOMP_MODE_DISABLED ||
+> +                   (thread->seccomp.mode == SECCOMP_MODE_FILTER &&
+> +                    is_ancestor(thread->seccomp.filter,
+> +                                caller->seccomp.filter)))
+> +                       continue;
+> +
+> +               /* Return the first thread that cannot be synchronized. */
+> +               failed = task_pid_vnr(thread);
+> +               /* If the pid cannot be resolved, then return -ESRCH */
+> +               if (unlikely(WARN_ON(failed == 0)))
+> +                       failed = -ESRCH;
+> +               return failed;
+> +       }
+> +
+> +       return 0;
+> +}
