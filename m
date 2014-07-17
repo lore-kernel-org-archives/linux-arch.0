@@ -1,60 +1,63 @@
-From: Marek Szyprowski <m.szyprowski@samsung.com>
-Subject: Re: [PATCH 0/4] mips: Add cma support to mips
-Date: Thu, 17 Jul 2014 14:31:48 +0200
-Message-ID: <53C7C234.4030903@samsung.com>
-References: <1405525892-60383-1-git-send-email-Zubair.Kakakhel@imgtec.com>
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: Re: [PATCH v2 12/29] nios2: Interrupt handling
+Date: Thu, 17 Jul 2014 15:58:46 +0200 (CEST)
+Message-ID: <alpine.DEB.2.10.1407171555580.24854@nanos>
+References: <1405413956-2772-1-git-send-email-lftan@altera.com> <1405413956-2772-13-git-send-email-lftan@altera.com> <alpine.DEB.2.10.1407151147540.24854@nanos> <CAFiDJ58oEfFN5CgLZxqTLSiGfuxNH2t3OFAaSUWLJ_P_B_QRBQ@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8; format=flowed
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mailout3.w1.samsung.com ([210.118.77.13]:63981 "EHLO
-	mailout3.w1.samsung.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754657AbaGQMbv (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 17 Jul 2014 08:31:51 -0400
-In-reply-to: <1405525892-60383-1-git-send-email-Zubair.Kakakhel@imgtec.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Zubair Lutfullah Kakakhel <Zubair.Kakakhel@imgtec.com>, ralf@linux-mips.org, catalin.marinas@arm.com, will.deacon@arm.com, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, arnd@arndb.de, gregkh@linuxfoundation.org, mina86@mina86.com
-Cc: x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@linux-mips.org, linux-arch@vger.kernel.org
+Content-Type: TEXT/PLAIN; charset=US-ASCII
+Return-path: <linux-doc-owner@vger.kernel.org>
+In-Reply-To: <CAFiDJ58oEfFN5CgLZxqTLSiGfuxNH2t3OFAaSUWLJ_P_B_QRBQ@mail.gmail.com>
+Sender: linux-doc-owner@vger.kernel.org
+To: Ley Foon Tan <lftan@altera.com>
+Cc: Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Chung-Lin Tang <cltang@codesourcery.com>
+List-Id: linux-arch.vger.kernel.org
 
-Hello,
+On Thu, 17 Jul 2014, Ley Foon Tan wrote:
 
-On 2014-07-16 17:51, Zubair Lutfullah Kakakhel wrote:
-> Here we have 4 patches that add cma support to mips.
->
-> Patch 1 adds dma-contiguous.h to asm-generic
-> Patch 2 and 3 make arm64 and x86 use dma-contiguous from asm-generic
-> Patch 4 adds cma to mips.
->
-> I'd like to request ralf to take these set of 4 patches via his tree.
->
-> acks from asm-generic, arm64 and x86 welcome.
->
-> patches based on linux-next b997a07604562f1a54cc531fe1cf7447f0ed6078
+> On Tue, Jul 15, 2014 at 5:51 PM, Thomas Gleixner <tglx@linutronix.de> wrote:
+> > On Tue, 15 Jul 2014, Ley Foon Tan wrote:
+> >> +#ifndef _ASM_NIOS2_IRQ_H
+> >> +#define _ASM_NIOS2_IRQ_H
+> >> +
+> >> +#define NIOS2_CPU_NR_IRQS    32
+> >> +/* Reserve 32 additional interrupts for GPIO IRQs */
+> >> +#define NR_IRQS                      (NIOS2_CPU_NR_IRQS + 32)
+> >
+> > Please use sparse irqs. Hardcoded limits tend to work out really bad.
+> Yes, will change this.
+> >
+> >> +#include <linux/init.h>
+> >> +#include <linux/interrupt.h>
+> >> +#include <linux/of.h>
+> >> +
+> 
+> >> +static void chip_unmask(struct irq_data *d)
+> >> +{
+> >> +     u32 ien;
+> >> +     ien = RDCTL(CTL_IENABLE);
+> >> +     ien |= (1 << d->hwirq);
+> >> +     WRCTL(CTL_IENABLE, ien);
+> >
+> > So this is UP only, right?
+> Yes, this is to enable one interrupt.
 
-Acked-by: Marek Szyprowski <m.szyprowski@samsung.com>
+The question was, whether this is always a UniProcessor machine.
 
-> Zubair Lutfullah Kakakhel (4):
->    asm-generic: Add dma-contiguous.h
->    arm64: use generic dma-contiguous.h
->    x86: use generic dma-contiguous.h
->    mips: dma: Add cma support
->
->   arch/arm64/include/asm/Kbuild           |  1 +
->   arch/arm64/include/asm/dma-contiguous.h | 28 -------------------------
->   arch/mips/Kconfig                       |  1 +
->   arch/mips/include/asm/Kbuild            |  1 +
->   arch/mips/kernel/setup.c                |  9 ++++++++
->   arch/mips/mm/dma-default.c              | 37 ++++++++++++++++++++++-----------
->   arch/x86/include/asm/Kbuild             |  1 +
->   arch/x86/include/asm/dma-contiguous.h   | 12 -----------
->   include/asm-generic/dma-contiguous.h    |  9 ++++++++
->   9 files changed, 47 insertions(+), 52 deletions(-)
->   delete mode 100644 arch/arm64/include/asm/dma-contiguous.h
->   delete mode 100644 arch/x86/include/asm/dma-contiguous.h
->   create mode 100644 include/asm-generic/dma-contiguous.h
+> > Also why don't you cache the register content so spare the extra read
+> > from the hardware?
+> Need to make sure nobody modify the register if we cache the register content.
+> Will keep as it is.
 
-Best regards
--- 
-Marek Szyprowski, PhD
-Samsung R&D Institute Poland
+Sigh.
+
+If this is a uniprocessor only design, then nothing can modify the
+cached values as all these functions are always called with interrupts
+disabled.
+
+If this should be SMP safe, then you'd need serialization of the
+register access as well becasue the read/modify/write sequence is not
+atomic.
+
+Thanks,
+
+	tglx
