@@ -1,7 +1,7 @@
 From: Max Filippov <jcmvbkbc@gmail.com>
-Subject: [PATCH] mm/highmem.c: make kmap cache coloring aware
-Date: Thu, 17 Jul 2014 20:20:35 +0400
-Message-ID: <1405614035-11413-1-git-send-email-jcmvbkbc@gmail.com>
+Subject: [PATCH v2] mm/highmem: make kmap cache coloring aware
+Date: Thu, 17 Jul 2014 21:03:18 +0400
+Message-ID: <1405616598-14798-1-git-send-email-jcmvbkbc@gmail.com>
 Return-path: <owner-linux-mm@kvack.org>
 Sender: owner-linux-mm@kvack.org
 To: linux-mm@kvack.org
@@ -11,13 +11,18 @@ List-Id: linux-arch.vger.kernel.org
 From: Leonid Yegoshin <Leonid.Yegoshin@imgtec.com>
 
 Provide hooks that allow architectures with aliasing cache to align
-mapping address of high pages according to their color.
+mapping address of high pages according to their color. Such architectures
+may enforce similar coloring of low- and high-memory page mappings and
+reuse existing cache management functions to support highmem.
 
 Signed-off-by: Leonid Yegoshin <Leonid.Yegoshin@imgtec.com>
 [ Max: extract architecture-independent part of the original patch, clean
   up checkpatch and build warnings. ]
 Signed-off-by: Max Filippov <jcmvbkbc@gmail.com>
 ---
+Changes v1->v2:
+- fix description
+
  mm/highmem.c | 19 ++++++++++++++++---
  1 file changed, 16 insertions(+), 3 deletions(-)
 
