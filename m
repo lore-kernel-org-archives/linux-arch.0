@@ -1,57 +1,58 @@
-From: Ley Foon Tan <lftan@altera.com>
-Subject: Re: [PATCH v2 12/29] nios2: Interrupt handling
-Date: Thu, 17 Jul 2014 14:15:44 +0800
-Message-ID: <CAFiDJ5_dTKXSVPtr20uDU32=v_jb3NKUDHGw4OFjW6DuvoZyeA@mail.gmail.com>
-References: <1405413956-2772-1-git-send-email-lftan@altera.com>
-	<1405413956-2772-13-git-send-email-lftan@altera.com>
-	<5170097.X9RFbxSEnp@wuerfel>
+From: "Mr. Alfred Robert" <admin@agentoffice.atmailcloud.com>
+Subject: Kindly consider my proposal
+Date: Thu, 17 Jul 2014 02:50:29 -0300 (ART)
+Message-ID: <ee49d571367a5bfad10a3829c92722cf.squirrel__40381.615170236$1405577782$gmane$org@webmail.pjba.gov.ar>
+Reply-To: ar0654835@gmail.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-doc-owner@vger.kernel.org>
-In-Reply-To: <5170097.X9RFbxSEnp@wuerfel>
-Sender: linux-doc-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Chung-Lin Tang <cltang@codesourcery.com>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7BIT
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail1.scba.gov.ar ([200.43.170.5]:35313 "HELO
+	mailgate.scba.gov.ar" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with SMTP id S1752051AbaGQGQN convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 17 Jul 2014 02:16:13 -0400
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: ad02@rjjworks.com
 
-On Tue, Jul 15, 2014 at 5:27 PM, Arnd Bergmann <arnd@arndb.de> wrote:
-> On Tuesday 15 July 2014 16:45:39 Ley Foon Tan wrote:
->> +#ifndef _ASM_NIOS2_IRQ_H
->> +#define _ASM_NIOS2_IRQ_H
->> +
->> +#define NIOS2_CPU_NR_IRQS    32
->> +/* Reserve 32 additional interrupts for GPIO IRQs */
->> +#define NR_IRQS                      (NIOS2_CPU_NR_IRQS + 32)
->
-> Is this intentional? I would expect that you use SPARSE_IRQ
-> instead and not define NR_IRQS.
-Okay, will change to use SPARSE_IRQ.
->
->> +#ifndef NO_IRQ
->> +#define NO_IRQ                       (-1)
->> +#endif
->
-> New architectures should no longer define NO_IRQ. Please fix all users
-> you encounter instead.
-Okay.
+---------------------------- Original Message ----------------------------
+Good day
 
->
->> diff --git a/arch/nios2/kernel/irq.c b/arch/nios2/kernel/irq.c
->> new file mode 100644
->> index 0000000..8770d50
->> --- /dev/null
->> +++ b/arch/nios2/kernel/irq.c
->> +#include <linux/init.h>
->> +#include <linux/interrupt.h>
->> +#include <linux/of.h>
->
-> Maybe move this into drivers/irqchip/? Probably doesn't matter either way,
-> your choice.
-Will keep it here.
-BTW, this interrupt controller is part of Nios2 cpu architecture.
-Should we move to drivers/irqchip/ if that's the case? Any example of
-arch doing this?
-Thanks.
+My name is Alfred Robert and I work with the finance house here in the
+Netherlands. I found your address through my countries international
+Web directory. During our last meeting and examination of the bank
+accounts here in the Netherlands, my department found a dormant account
+with an enormous sum of US$ 6,500,000.00 (Six million five hundred
+thousand US dollar) which was deposited by late Mr. Williams
+from England.
+
+Before his death he transferred the sum of US$ 6,500,000.00 (Six million
+five hundred thousand US dollar) to a bank here in Netherlands. From our
+investigation he had no beneficiary or next of kin to claim these funds.
+The financial regulations of our bank allow only a foreigner to stand as
+next relatives or next of kin. The request of a foreigner as a next of kin
+is base on the fact that the depositor was a foreigner and somebody in the
+Netherlands cannot stand as the next of kin.
+
+I need your permission as the next relative or next of kin of our deceased
+customer, so that the funds can be released and transferred to your
+account, at the end of the transaction 40% will be for you and 60% will be
+for me and my colleague.
+We need a foreign account. I still work at the financial house and that's
+the actual reason that I need a second party or person to stand and work
+with me and apply to the bank here in the Netherlands as the next of kin.
+I have in my possession all the necessary documents to have this
+transaction carried out successfully.
+
+Further information will be provided upon the receipt of your prompt
+response and I want you to know that there is no risk involved. I will
+need us to work together if you are interested and I assure you that I
+will provide all useful information and documentation as this business
+needs urgent attention as there is no much time to waste.
+
+Kindly Write me directly with your Name, Address, telephone and fax number
+on this  so I can explain the procedures.
 
 Regards
-Ley Foon
+ALFRED ROBERT.
+ar0654835@gmail.com
