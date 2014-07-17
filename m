@@ -1,35 +1,89 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from usmamail.tilera.com ([12.216.194.151]:30922 "EHLO
-	USMAMAIL.TILERA.COM" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754796AbaGQToH (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 17 Jul 2014 15:44:07 -0400
-Message-ID: <53C82786.2080609@tilera.com>
-Date: Thu, 17 Jul 2014 15:44:06 -0400
-From: Chris Metcalf <cmetcalf@tilera.com>
+Received: from mail-lb0-f180.google.com ([209.85.217.180]:57639 "EHLO
+	mail-lb0-f180.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756425AbaGQVkI (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 17 Jul 2014 17:40:08 -0400
+Received: by mail-lb0-f180.google.com with SMTP id v6so1901852lbi.25
+        for <linux-arch@vger.kernel.org>; Thu, 17 Jul 2014 14:40:06 -0700 (PDT)
 MIME-Version: 1.0
-Subject: Re: [PATCH 34/38] tile: clean-up uapi Kbuild file
-References: <20140714150609.GA28358@ravnborg.org> <1405350546-28467-1-git-send-email-sam@ravnborg.org> <1405350546-28467-34-git-send-email-sam@ravnborg.org>
-In-Reply-To: <1405350546-28467-34-git-send-email-sam@ravnborg.org>
-Content-Type: text/plain; charset="ISO-8859-1"; format=flowed
-Content-Transfer-Encoding: 7bit
+In-Reply-To: <53C48986.5010109@oracle.com>
+References: <1405017631-27346-1-git-send-email-keescook@chromium.org>
+ <20140711164931.GA18473@redhat.com> <CAGXu5jK-x0=Rr7kX2a=b4Z8ueA77uwmhNZZAayG8cwmNOKa8Ug@mail.gmail.com>
+ <CAGXu5jJJsiTxxn5UijkBz7jpWgqg01BS=Zc0WbHXbs0vH_xPMQ@mail.gmail.com> <53C48986.5010109@oracle.com>
+From: Andy Lutomirski <luto@amacapital.net>
+Date: Thu, 17 Jul 2014 14:39:46 -0700
+Message-ID: <CALCETrUf-Tei+R32SR-KKLD50zWa89Vrfu4S4uZ+4jh4eEFOdg@mail.gmail.com>
+Subject: Re: [PATCH v10 0/11] seccomp: add thread sync ability
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Sam Ravnborg <sam@ravnborg.org>, Arnd Bergmann <arnd@arndb.de>
-Cc: lkml <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
-Message-ID: <20140717194406.9iMuFQ973G2-hi2DykXd3ou-geaYmf08ds4CLkrEVdc@z>
+To: James Morris <james.l.morris@oracle.com>
+Cc: Kees Cook <keescook@chromium.org>, Oleg Nesterov <oleg@redhat.com>, LKML <linux-kernel@vger.kernel.org>, Alexei Starovoitov <ast@plumgrid.com>, "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, Daniel Borkmann <dborkman@redhat.com>, Will Drewry <wad@chromium.org>, Julien Tinnes <jln@chromium.org>, David Drysdale <drysdale@google.com>, Linux API <linux-api@vger.kernel.org>, "x86@kernel.org" <x86@kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Linux MIPS Mailing List <linux-mips@linux-mips.org>, linux-arch <linux-arch@vger.kernel.org>, linux-security-module <linux-security-module@vger.kernel.org>
+Message-ID: <20140717213946.wuVn6_vw9QWjVwfeEuLKh_BDaG-oDjp57e9mXYpKryg@z>
 
-On 7/14/2014 11:09 AM, Sam Ravnborg wrote:
-> Remove redundant assignments.
+On Mon, Jul 14, 2014 at 6:53 PM, James Morris <james.l.morris@oracle.com> wrote:
+> On 07/15/2014 04:59 AM, Kees Cook wrote:
+>>
+>> Hi James,
+>>
+>> Is this series something you would carry in the security-next tree?
+>> That has traditionally been where seccomp features have landed in the
+>> past.
+>>
+>> -Kees
+>>
+>>
+>> On Fri, Jul 11, 2014 at 10:55 AM, Kees Cook <keescook@chromium.org> wrote:
+>>>
+>>> On Fri, Jul 11, 2014 at 9:49 AM, Oleg Nesterov <oleg@redhat.com> wrote:
+>>>>
+>>>> On 07/10, Kees Cook wrote:
+>>>>>
+>>>>>
+>>>>> This adds the ability for threads to request seccomp filter
+>>>>> synchronization across their thread group (at filter attach time).
+>>>>> For example, for Chrome to make sure graphic driver threads are fully
+>>>>> confined after seccomp filters have been attached.
+>>>>>
+>>>>> To support this, locking on seccomp changes via thread-group-shared
+>>>>> sighand lock is introduced, along with refactoring of no_new_privs.
+>>>>> Races
+>>>>> with thread creation are handled via delayed duplication of the seccomp
+>>>>> task struct field and cred_guard_mutex.
+>>>>>
+>>>>> This includes a new syscall (instead of adding a new prctl option),
+>>>>> as suggested by Andy Lutomirski and Michael Kerrisk.
+>>>>
+>>>>
+>>>> I do not not see any problems in this version,
+>>>
+>>>
+>>> Awesome! Thank you for all the reviews. :) If Andy and Michael are
+>>> happy with this too, I think this is in good shape. \o/
+>>>
+>>> -Kees
+>>>
+>>>>
+>>>> Reviewed-by: Oleg Nesterov <oleg@redhat.com>
+>>>>
+>>>
+>>>
+>>>
+>>> --
+>>> Kees Cook
+>>> Chrome OS Security
+>>
+>>
+>>
+>>
 >
-> Signed-off-by: Sam Ravnborg<sam@ravnborg.org>
-> Cc: Chris Metcalf<cmetcalf@tilera.com>
-> ---
->   arch/tile/include/uapi/asm/Kbuild | 14 +-------------
->   1 file changed, 1 insertion(+), 13 deletions(-)
+> Yep, certainly.
+>
 
-Acked-by: Chris Metcalf <cmetcalf@tilera.com>
+Any ETA?  I'm currently blocking on having stable commit hashes for these.
 
--- 
-Chris Metcalf, Tilera Corp.
-http://www.tilera.com
+If you're planning on pulling from Kees' tree instead of importing the
+patches, I can work with that, too.
 
+Thanks,
+Andy
