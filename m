@@ -1,63 +1,62 @@
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [PATCH v2 12/29] nios2: Interrupt handling
-Date: Thu, 17 Jul 2014 15:58:46 +0200 (CEST)
-Message-ID: <alpine.DEB.2.10.1407171555580.24854@nanos>
-References: <1405413956-2772-1-git-send-email-lftan@altera.com> <1405413956-2772-13-git-send-email-lftan@altera.com> <alpine.DEB.2.10.1407151147540.24854@nanos> <CAFiDJ58oEfFN5CgLZxqTLSiGfuxNH2t3OFAaSUWLJ_P_B_QRBQ@mail.gmail.com>
+From: Tomeu Vizoso <tomeu.vizoso@collabora.com>
+Subject: [PATCH v4 0/6] Per-user clock constraints
+Date: Thu, 17 Jul 2014 16:13:13 +0200
+Message-ID: <1405606399-26608-1-git-send-email-tomeu.vizoso@collabora.com>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
-Return-path: <linux-doc-owner@vger.kernel.org>
-In-Reply-To: <CAFiDJ58oEfFN5CgLZxqTLSiGfuxNH2t3OFAaSUWLJ_P_B_QRBQ@mail.gmail.com>
-Sender: linux-doc-owner@vger.kernel.org
-To: Ley Foon Tan <lftan@altera.com>
-Cc: Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Chung-Lin Tang <cltang@codesourcery.com>
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
+List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
+ <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
+List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
+List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
+List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
+List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
+ <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
+Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
+Sender: "Linuxppc-dev"
+ <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
+To: Mike Turquette <mturquette@linaro.org>
+Cc: Andrew Lunn <andrew@lunn.ch>, Ulf Hansson <ulf.hansson@linaro.org>, Prashant Gaikwad <pgaikwad@nvidia.com>, Tony Lindgren <tony@atomide.com>, Tomasz Figa <t.figa@samsung.com>, alsa-devel@alsa-project.org, Jaroslav Kysela <perex@perex.cz>, Thierry Reding <thierry.reding@gmail.com>, Paul Mackerras <paulus@samba.org>, Sylwester Nawrocki <s.nawrocki@samsung.com>, Daniel Walker <dwalker@fifo99.com>, linux-arch@vger.kernel.org, Boris Brezillon <boris.brezillon@free-electrons.com>, linux-samsung-soc@vger.kernel.org, Kukjin Kim <kgene.kim@samsung.com>, Russell King <linux@arm.linux.org.uk>, =?UTF-8?q?Emilio=20L=C3=B3pez?= <emilio@elopez.com.ar>, Takashi Iwai <tiwai@suse.de>, Michal Simek <michal.simek@xilinx.com>, Kyungmin Park <kyungmin.park@samsung.com>, Kevin Hilman <khilman@deeprootsystems.com>, linux-arm-kernel@lists.infradead.org, patches@opensource.wolfsonmicro.com, Vire
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, 17 Jul 2014, Ley Foon Tan wrote:
-
-> On Tue, Jul 15, 2014 at 5:51 PM, Thomas Gleixner <tglx@linutronix.de> wrote:
-> > On Tue, 15 Jul 2014, Ley Foon Tan wrote:
-> >> +#ifndef _ASM_NIOS2_IRQ_H
-> >> +#define _ASM_NIOS2_IRQ_H
-> >> +
-> >> +#define NIOS2_CPU_NR_IRQS    32
-> >> +/* Reserve 32 additional interrupts for GPIO IRQs */
-> >> +#define NR_IRQS                      (NIOS2_CPU_NR_IRQS + 32)
-> >
-> > Please use sparse irqs. Hardcoded limits tend to work out really bad.
-> Yes, will change this.
-> >
-> >> +#include <linux/init.h>
-> >> +#include <linux/interrupt.h>
-> >> +#include <linux/of.h>
-> >> +
-> 
-> >> +static void chip_unmask(struct irq_data *d)
-> >> +{
-> >> +     u32 ien;
-> >> +     ien = RDCTL(CTL_IENABLE);
-> >> +     ien |= (1 << d->hwirq);
-> >> +     WRCTL(CTL_IENABLE, ien);
-> >
-> > So this is UP only, right?
-> Yes, this is to enable one interrupt.
-
-The question was, whether this is always a UniProcessor machine.
-
-> > Also why don't you cache the register content so spare the extra read
-> > from the hardware?
-> Need to make sure nobody modify the register if we cache the register content.
-> Will keep as it is.
-
-Sigh.
-
-If this is a uniprocessor only design, then nothing can modify the
-cached values as all these functions are always called with interrupts
-disabled.
-
-If this should be SMP safe, then you'd need serialization of the
-register access as well becasue the read/modify/write sequence is not
-atomic.
-
-Thanks,
-
-	tglx
+SGksCgpJJ20gcmV0YWtpbmcgUmFiaW4ncyBwYXRjaGVzIFswXSBmb3Igc3BsaXR0aW5nIHRoZSBj
+bGsgQVBJIGluIHR3bzogb25lIEFQSSBmb3IKY2xrIGNvbnN1bWVycyBhbmQgYW5vdGhlciBmb3Ig
+cHJvdmlkZXJzLiBUaGUgY29uc3VtZXIgQVBJIHVzZXMgYSBjbGsgc3RydWN0dXJlCnRoYXQganVz
+dCBrZWVwcyB0cmFjayBvZiB0aGUgY29uc3VtZXIgYW5kIGhhcyBhIHJlZmVyZW5jZSB0byB0aGUg
+YWN0dWFsCmNsa19jb3JlIHN0cnVjdCwgd2hpY2ggaXMgdXNlZCBpbnRlcm5hbGx5LgoKSSBoYXZl
+IGtlcHQgYSBwYXRjaCBmcm9tIFJhYmluIHRoYXQgYWltcyB0byBhaWQgaW4gZGVidWdnaW5nIG5l
+c3RlZAplbmFibGUvZGlzYWJsZSBjYWxscywgdGhvdWdoIG15IHBlcnNvbmFsIGFpbSBpcyB0byBh
+bGxvdyBtb3JlIHRoYW4gb25lIGNvbnN1bWVyCnRvIGluZmx1ZW5jZSB0aGUgZmluYWwsIGVmZmVj
+dGl2ZSBmcmVxdWVuY3kgcmF0ZS4gRm9yIG5vdyB0aGlzIGlzIGxpbWl0ZWQgdG8Kc2V0dGluZyBm
+bG9vciBhbmQgY2VpbGluZyBjb25zdHJhaW50cywgd2l0aCB0aGUgc2hvcnQtdGVybSBhaW0gb2Yg
+YWxsb3dpbmcKZGV2ZnJlcSBhbmQgdGhlcm1hbCBkcml2ZXJzIHRvIHNldCBmbG9vciBhbmQgY2Vp
+bGluZyBmcmVxdWVuY2llcyBvbiB0aGUgbWVtb3J5CmNsb2NrLCByZXNwZWN0aXZlbHkuCgpGb3Ig
+dGhvc2UgZnVuY3Rpb25zIGluIHRoZSBjb25zdW1lciBjbGsgQVBJIHRoYXQgd2VyZSBjYWxsZWQg
+ZnJvbSBwcm92aWRlcnMsIEkKaGF2ZSBhZGRlZCB2YXJpYW50cyB0byBjbGstcHJvdmlkZXIuaCB0
+aGF0IGFyZSB0aGUgc2FtZSBvbmx5IHRoYXQgYWNjZXB0IGEKY2xrX2NvcmUgaW5zdGVhZC4gVGhl
+c2UgZnVuY3Rpb25zIGFyZSBwcmVmaXhlZCB3aXRoIGNsa19wcm92aWRlcl8uCgpQYXRjaCAxLzYg
+anVzdCBhZGRzIGEgYnVuY2ggb2YgZGVmaW5lcyB3aXRoIHRoZSBnb2FsIG9mIGhhdmluZyBhbGwg
+dGhlIHJlbmFtZXMKaW4gdGhlaXIgb3duIGNvbW1pdCB3aGlsZSBwcmVzZXJ2aW5nIGdpdC1iaXNl
+Y3RhYmlsaXR5LCB3aXRoIHBhdGNoIDMvNgpjb250YWluaW5nIHRoZSByZW5hbWUgaXRzZWxmIGFz
+IGdlbmVyYXRlZCBieSB0aGUgQ29jY2luZWxsZSBzY3JpcHQgaW4gWzFdLgpQYXRjaCAyLzYgaXMg
+bmVlZGVkIGJlY2F1c2Ugc291bmQvc29jL214cy9teHMtc2FpZi5jIGNhbGxzIGJvdGggdGhlIGNv
+bnN1bWVyCmFuZCB0aGUgcHJvdmlkZXIgQVBJLiBUaGUgYWN0dWFsIGltcGxlbWVudGF0aW9uIG9m
+IHRoZSBBUEkgc3BsaXQgY29tZXMgaW4gcGF0Y2gKNC82LiBJIHdpbGwgYmUgaGFwcHkgdG8gb3Jn
+YW5pemUgdGhlIHJlZmFjdG9yaW5nIGRpZmZlcmVudGx5IGlmIGFueWJvZHkgaGFzIGEKYmV0dGVy
+IGlkZWEuCgpQYXRjaCA1LzYgd2FybnMgd2hlbiB0aGVyZSdzIGFuIHVuYmFsYW5jZWQgdXNhZ2Ug
+b2YgdGhlIGVuYWJsZSBhbmQgZGlzYWJsZQpBUElzLCBhbmQgcGF0Y2ggNi82IGFkZHMgdGhlIEFQ
+SSBmb3Igc2V0dGluZyBmbG9vciBhbmQgY2VpbGluZyBmcmVxdWVuY2llcywgcGVyCmNvbnN1bWVy
+LgoKWzBdIGh0dHA6Ly90aHJlYWQuZ21hbmUub3JnL2dtYW5lLmxpbnV4Lmtlcm5lbC8xNDAyMDA2
+ClsxXSBodHRwOi8vY2dpdC5jb2xsYWJvcmEuY29tL2dpdC91c2VyL3RvbWV1L2xpbnV4LmdpdC9j
+b21taXQvP2lkPWRhOWM3ZTM0ZDkKClRoYW5rcywKClRvbWV1CgpUb21ldSBWaXpvc28gKDYpOgog
+IGNsazogQWRkIHRlbXBvcmFyeSBtYXBwaW5nIHRvIHRoZSBleGlzdGluZyBBUEkKICBBU29DOiBt
+eHMtc2FpZjogZml4IG1peGVkIHVzZSBvZiBwdWJsaWMgYW5kIHByb3ZpZGVyIGNsayBBUEkKICBj
+bGs6IE1vdmUgYWxsIGRyaXZlcnMgdG8gdXNlIGludGVybmFsIEFQSQogIGNsazogdXNlIHN0cnVj
+dCBjbGsgb25seSBmb3IgZXh0ZXJuYWwgQVBJCiAgY2xrOiBwZXItdXNlciBjbG9jayBhY2NvdW50
+aW5nIGZvciBkZWJ1ZwogIGNsazogQWRkIGZsb29yIGFuZCBjZWlsaW5nIGNvbnN0cmFpbnRzIHRv
+IGNsb2NrIHJhdGVzCgpbZGV0YWlsZWQgZGlmZnN0YXQgb21pdHRlZCBmb3IgYnJldml0eSBzYWtl
+XQoKIDI0NCBmaWxlcyBjaGFuZ2VkLCAyMzQ1IGluc2VydGlvbnMoKyksIDE4MTIgZGVsZXRpb25z
+KC0pCgotLSAKMS45LjMKCl9fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19f
+X19fX19fCkxpbnV4cHBjLWRldiBtYWlsaW5nIGxpc3QKTGludXhwcGMtZGV2QGxpc3RzLm96bGFi
+cy5vcmcKaHR0cHM6Ly9saXN0cy5vemxhYnMub3JnL2xpc3RpbmZvL2xpbnV4cHBjLWRldg==
