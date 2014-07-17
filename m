@@ -1,74 +1,47 @@
-From: Ley Foon Tan <lftan@altera.com>
-Subject: Re: [PATCH v2 12/29] nios2: Interrupt handling
-Date: Thu, 17 Jul 2014 18:48:27 +0800
-Message-ID: <CAFiDJ5_mT=Ho200cCaLqVJNjJvg5M__X+8E=Z+Pi_SUhaVD-RA@mail.gmail.com>
-References: <1405413956-2772-1-git-send-email-lftan@altera.com>
-	<5170097.X9RFbxSEnp@wuerfel>
-	<CAFiDJ5_dTKXSVPtr20uDU32=v_jb3NKUDHGw4OFjW6DuvoZyeA@mail.gmail.com>
-	<7476152.ZcIrSvABEg@wuerfel>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH 38/38] asm-generic: introduc Kbuild.generic
+Date: Thu, 17 Jul 2014 12:50:07 +0200
+Message-ID: <5003088.VRbrHdWpA3@wuerfel>
+References: <20140714150609.GA28358@ravnborg.org> <4667634.oiTEQ4v5vj@wuerfel> <20140717103815.GA16291@ravnborg.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-doc-owner@vger.kernel.org>
-In-Reply-To: <7476152.ZcIrSvABEg@wuerfel>
-Sender: linux-doc-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Chung-Lin Tang <cltang@codesourcery.com>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7Bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mout.kundenserver.de ([212.227.17.10]:54004 "EHLO
+	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751221AbaGQKuO (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 17 Jul 2014 06:50:14 -0400
+In-Reply-To: <20140717103815.GA16291@ravnborg.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Sam Ravnborg <sam@ravnborg.org>
+Cc: lkml <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
 
-On Thu, Jul 17, 2014 at 5:24 PM, Arnd Bergmann <arnd@arndb.de> wrote:
-> On Thursday 17 July 2014 14:15:44 Ley Foon Tan wrote:
->> On Tue, Jul 15, 2014 at 5:27 PM, Arnd Bergmann <arnd@arndb.de> wrote:
->> > On Tuesday 15 July 2014 16:45:39 Ley Foon Tan wrote:
->> >> +#ifndef _ASM_NIOS2_IRQ_H
->> >> +#define _ASM_NIOS2_IRQ_H
->> >> +
->> >> +#define NIOS2_CPU_NR_IRQS    32
->> >> +/* Reserve 32 additional interrupts for GPIO IRQs */
->> >> +#define NR_IRQS                      (NIOS2_CPU_NR_IRQS + 32)
->> >
->> > Is this intentional? I would expect that you use SPARSE_IRQ
->> > instead and not define NR_IRQS.
->> Okay, will change to use SPARSE_IRQ.
->> >
->> >> +#ifndef NO_IRQ
->> >> +#define NO_IRQ                       (-1)
->> >> +#endif
->> >
->> > New architectures should no longer define NO_IRQ. Please fix all users
->> > you encounter instead.
->> Okay.
->>
->> >
->> >> diff --git a/arch/nios2/kernel/irq.c b/arch/nios2/kernel/irq.c
->> >> new file mode 100644
->> >> index 0000000..8770d50
->> >> --- /dev/null
->> >> +++ b/arch/nios2/kernel/irq.c
->> >> +#include <linux/init.h>
->> >> +#include <linux/interrupt.h>
->> >> +#include <linux/of.h>
->> >
->> > Maybe move this into drivers/irqchip/? Probably doesn't matter either way,
->> > your choice.
->> Will keep it here.
->> BTW, this interrupt controller is part of Nios2 cpu architecture.
->> Should we move to drivers/irqchip/ if that's the case? Any example of
->> arch doing this?
->
-> A lot of interrupt controllers can be used on multiple architectures,
-> and a lot of architectures have a wide variety of interrupt controllers
-> that can be used, so moving them all into drivers/irqchip is the generally
-> preferred choice.
->
-> If your driver can't work on anything other than nios2 (e.g. because it
-> uses special CPU instructions rather than MMIO access) or the CPU core
-> always comes with this irqchip and doesn't have a way to use a different
-> one, there is no problem leaving it in the arch code.
-Yes, this driver only can be used with nios2 and all these irq
-registers are part of nios2 control registers.
-So, we just leave code here.
+On Thursday 17 July 2014 12:38:15 Sam Ravnborg wrote:
+> > * We could improve the situation if the definition of this list is
+> >   changed so we only generate the generic header files that are not
+> >   already provided by an architecture. If we do this, we can consolidate
+> >   a lot more here, which is nice, but the cost would be equivalent to
+> >   another level of indirection and a potential for subtle bugs if it's
+> >   not done very careful.
+> I think this is the way to go - and will try to give it a spin.
+> 
+> Something along these lines:
+> include/asm-generic/Kbuild.asm will include a list of all header files
+> that shall be present for any architecture and may come from asm-generic.
+> If the architecture provide there own file - good.
+> If the architecture do not provide their own file => create wrapper.
+> 
+> The arch provided header file comes first in the search path,
+> so if a wrapper was generated and later a dedicated file is added
+> then we will use the dedicated file and not the wrapper that points
+> back to asm-generic.
+> 
+> The same logic applies for uapi/asm-generic as well.
+> 
+> I will try to come up with an implementation of this,
+> then we can see if this flys.
 
-Thanks.
+Ok, sounds good. Thanks!
 
-Regards
-Ley Foon
+	Arnd
