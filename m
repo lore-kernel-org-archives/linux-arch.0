@@ -1,69 +1,33 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from usmamail.tilera.com ([12.216.194.151]:30903 "EHLO
+Received: from usmamail.tilera.com ([12.216.194.151]:30922 "EHLO
 	USMAMAIL.TILERA.COM" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756640AbaGQTlk (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 17 Jul 2014 15:41:40 -0400
-Message-ID: <53C826F3.4030302@tilera.com>
-Date: Thu, 17 Jul 2014 15:41:39 -0400
+	with ESMTP id S1754796AbaGQToH (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 17 Jul 2014 15:44:07 -0400
+Message-ID: <53C82786.2080609@tilera.com>
+Date: Thu, 17 Jul 2014 15:44:06 -0400
 From: Chris Metcalf <cmetcalf@tilera.com>
 MIME-Version: 1.0
-Subject: Re: [PATCH 05/38] tile: clean up Kbuild files
-References: <20140714150609.GA28358@ravnborg.org> <1405350546-28467-1-git-send-email-sam@ravnborg.org> <1405350546-28467-5-git-send-email-sam@ravnborg.org>
-In-Reply-To: <1405350546-28467-5-git-send-email-sam@ravnborg.org>
+Subject: Re: [PATCH 34/38] tile: clean-up uapi Kbuild file
+References: <20140714150609.GA28358@ravnborg.org> <1405350546-28467-1-git-send-email-sam@ravnborg.org> <1405350546-28467-34-git-send-email-sam@ravnborg.org>
+In-Reply-To: <1405350546-28467-34-git-send-email-sam@ravnborg.org>
 Content-Type: text/plain; charset="ISO-8859-1"; format=flowed
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Sam Ravnborg <sam@ravnborg.org>, Arnd Bergmann <arnd@arndb.de>
-Cc: lkml <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, David Howells <dhowells@redhat.com>
-Message-ID: <20140717194139.a1kg1cbyyLjh8ep3PaZselLziTdYGlyCaGz_KEfNP8c@z>
+Cc: lkml <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
+Message-ID: <20140717194406.9iMuFQ973G2-hi2DykXd3ou-geaYmf08ds4CLkrEVdc@z>
 
-On 7/14/2014 11:08 AM, Sam Ravnborg wrote:
-> Drop an unused Kbuild file - it was anyway empty
-> Drop an irrelevent assignment to header-y
+On 7/14/2014 11:09 AM, Sam Ravnborg wrote:
+> Remove redundant assignments.
 >
-> Signed-off-by: Sam Ravnborg <sam@ravnborg.org>
-> Cc: Chris Metcalf <cmetcalf@tilera.com>
-> Cc: David Howells <dhowells@redhat.com>
+> Signed-off-by: Sam Ravnborg<sam@ravnborg.org>
+> Cc: Chris Metcalf<cmetcalf@tilera.com>
 > ---
->   arch/tile/include/arch/Kbuild | 1 -
->   arch/tile/include/asm/Kbuild  | 3 ---
->   2 files changed, 4 deletions(-)
->   delete mode 100644 arch/tile/include/arch/Kbuild
->
-> diff --git a/arch/tile/include/arch/Kbuild b/arch/tile/include/arch/Kbuild
-> deleted file mode 100644
-> index 3751c9f..0000000
-> --- a/arch/tile/include/arch/Kbuild
-> +++ /dev/null
-> @@ -1 +0,0 @@
-> -# Tile arch headers
+>   arch/tile/include/uapi/asm/Kbuild | 14 +-------------
+>   1 file changed, 1 insertion(+), 13 deletions(-)
 
 Acked-by: Chris Metcalf <cmetcalf@tilera.com>
-
-for this piece.  David Howells left these with just comments originally,
-but removing the file entirely seems fine too.
-
-> diff --git a/arch/tile/include/asm/Kbuild b/arch/tile/include/asm/Kbuild
-> index 0aa5675..3013a07 100644
-> --- a/arch/tile/include/asm/Kbuild
-> +++ b/arch/tile/include/asm/Kbuild
-> @@ -1,6 +1,3 @@
-> -
-> -header-y += ../arch/
-> -
->   generic-y += bug.h
->   generic-y += bugs.h
->   generic-y += clkdev.h
-
-Nack for this patch.  The arch/ headers are all intended to be shared by the
-kernel and userspace, so we install them from the kernel.  This one header-y
-line installs the 16 header files in usr/include/arch/*.h.  If there's a
-better way to make that happen, that would be fine too, of course.
-
-Arguably we could provide them separately (a tarball from tilera.com or
-something) but frankly, this just makes the standard build flows for kernel,
-gcc, and glibc more non-standard for tile, which seems like a bad thing.
 
 -- 
 Chris Metcalf, Tilera Corp.
