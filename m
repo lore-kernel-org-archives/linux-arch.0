@@ -1,33 +1,82 @@
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH 2/4] arm64: use generic dma-contiguous.h
-Date: Thu, 17 Jul 2014 11:23:19 +0100
-Message-ID: <20140717102318.GC18203@arm.com>
-References: <1405525892-60383-1-git-send-email-Zubair.Kakakhel@imgtec.com>
- <1405525892-60383-3-git-send-email-Zubair.Kakakhel@imgtec.com>
+From: Sam Ravnborg <sam@ravnborg.org>
+Subject: Re: [PATCH 38/38] asm-generic: introduc Kbuild.generic
+Date: Thu, 17 Jul 2014 12:38:15 +0200
+Message-ID: <20140717103815.GA16291@ravnborg.org>
+References: <20140714150609.GA28358@ravnborg.org>
+ <1405350546-28467-1-git-send-email-sam@ravnborg.org>
+ <1405350546-28467-38-git-send-email-sam@ravnborg.org>
+ <4667634.oiTEQ4v5vj@wuerfel>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from fw-tnat.austin.arm.com ([217.140.110.23]:34482 "EHLO
-	collaborate-mta1.arm.com" rhost-flags-OK-OK-OK-FAIL)
-	by vger.kernel.org with ESMTP id S1755474AbaGQKXh (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 17 Jul 2014 06:23:37 -0400
+Received: from asavdk3.altibox.net ([109.247.116.14]:32912 "EHLO
+	asavdk3.altibox.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756009AbaGQKiY (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 17 Jul 2014 06:38:24 -0400
 Content-Disposition: inline
-In-Reply-To: <1405525892-60383-3-git-send-email-Zubair.Kakakhel@imgtec.com>
+In-Reply-To: <4667634.oiTEQ4v5vj@wuerfel>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Zubair Lutfullah Kakakhel <Zubair.Kakakhel@imgtec.com>
-Cc: "ralf@linux-mips.org" <ralf@linux-mips.org>, Will Deacon <Will.Deacon@arm.com>, "tglx@linutronix.de" <tglx@linutronix.de>, "mingo@redhat.com" <mingo@redhat.com>, "hpa@zytor.com" <hpa@zytor.com>, "arnd@arndb.de" <arnd@arndb.de>, "gregkh@linuxfoundation.org" <gregkh@linuxfoundation.org>, "m.szyprowski@samsung.com" <m.szyprowski@samsung.com>, "mina86@mina86.com" <mina86@mina86.com>, "x86@kernel.org" <x86@kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-mips@linux-mips.org" <linux-mips@linux-mips.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: lkml <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
 
-On Wed, Jul 16, 2014 at 04:51:30PM +0100, Zubair Lutfullah Kakakhel wrote:
-> dma-contiguous.h is now in asm-generic. Use that to avoid code
-> repetition in arm64.
+On Tue, Jul 15, 2014 at 09:03:00AM +0200, Arnd Bergmann wrote:
+> On Monday 14 July 2014 17:09:06 Sam Ravnborg wrote:
+> > Kbuild.generic is for asm-generic files that are used
+> > by all architectures.
+> > So rather than adding the file to the individual Kbuild files
+> > it is enough to add it to this file
+> > 
+> > Signed-off-by: Sam Ravnborg <sam@ravnborg.org>
+> > Cc: Arnd Bergmann <arnd@arndb.de>
 > 
-> Signed-off-by: Zubair Lutfullah Kakakhel <Zubair.Kakakhel@imgtec.com>
-> ---
->  arch/arm64/include/asm/Kbuild           |  1 +
->  arch/arm64/include/asm/dma-contiguous.h | 28 ----------------------------
->  2 files changed, 1 insertion(+), 28 deletions(-)
->  delete mode 100644 arch/arm64/include/asm/dma-contiguous.h
+> This has been suggested in the past, and I remember there being some
+> controversy around it, but I don't really mind it, so you have my
+> ok in principle. Two points though that we have to work out first:
+> 
+> > diff --git a/arch/alpha/include/asm/Kbuild b/arch/alpha/include/asm/Kbuild
+> > index 96e54be..e09f8e7 100644
+> > --- a/arch/alpha/include/asm/Kbuild
+> > +++ b/arch/alpha/include/asm/Kbuild
+> > @@ -1,9 +1,9 @@
+> > -
+> > +# Generic wrappers from include/asm-generic
+> > +include include/asm-generic/Kbuild.generic
+> 
+> We have the same kind of header for the uapi files, it's called 
+> include/uapi/asm-generic/Kbuild.asm. I don't know why I picked that
+> name back then, Kbuild.generic seems more appropriate, but I think
+> either way it would be good to be consistent.
+> 
+> Can you either rename the existing file to Kbuild.generic, or call
+> the new one Kbuild.asm as well?
+There was already a file name Kbuild.asm in that directory - therefore I picked another name.
+But the original Kbuild.asm was in reality not used so I have deleted it in
+my patch-set and will re-introduce it with a different purpose.
+People are used to the name "Kbuild.asm" so let's stick to that.
 
-Acked-by: Catalin Marinas <catalin.marinas@arm.com>
+> * We could improve the situation if the definition of this list is
+>   changed so we only generate the generic header files that are not
+>   already provided by an architecture. If we do this, we can consolidate
+>   a lot more here, which is nice, but the cost would be equivalent to
+>   another level of indirection and a potential for subtle bugs if it's
+>   not done very careful.
+I think this is the way to go - and will try to give it a spin.
+
+Something along these lines:
+include/asm-generic/Kbuild.asm will include a list of all header files
+that shall be present for any architecture and may come from asm-generic.
+If the architecture provide there own file - good.
+If the architecture do not provide their own file => create wrapper.
+
+The arch provided header file comes first in the search path,
+so if a wrapper was generated and later a dedicated file is added
+then we will use the dedicated file and not the wrapper that points
+back to asm-generic.
+
+The same logic applies for uapi/asm-generic as well.
+
+I will try to come up with an implementation of this,
+then we can see if this flys.
+
+	Sam
