@@ -1,79 +1,60 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qc0-f171.google.com ([209.85.216.171]:62309 "EHLO
-	mail-qc0-f171.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756617AbaGQKs2 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 17 Jul 2014 06:48:28 -0400
+Received: from mout.kundenserver.de ([212.227.126.131]:65321 "EHLO
+	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756553AbaGQLIK (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 17 Jul 2014 07:08:10 -0400
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH v2 21/29] nios2: Futex operations
+Date: Thu, 17 Jul 2014 13:07:54 +0200
+Message-ID: <12323898.sHjczXbE7P@wuerfel>
+In-Reply-To: <CAFiDJ5-UQ4pu1Hkc444yaA6cbttTXM7KM2eProGUkYgjqvOSUg@mail.gmail.com>
+References: <1405413956-2772-1-git-send-email-lftan@altera.com> <alpine.DEB.2.10.1407151201170.24854@nanos> <CAFiDJ5-UQ4pu1Hkc444yaA6cbttTXM7KM2eProGUkYgjqvOSUg@mail.gmail.com>
 MIME-Version: 1.0
-In-Reply-To: <7476152.ZcIrSvABEg@wuerfel>
-References: <1405413956-2772-1-git-send-email-lftan@altera.com>
-	<5170097.X9RFbxSEnp@wuerfel>
-	<CAFiDJ5_dTKXSVPtr20uDU32=v_jb3NKUDHGw4OFjW6DuvoZyeA@mail.gmail.com>
-	<7476152.ZcIrSvABEg@wuerfel>
-Date: Thu, 17 Jul 2014 18:48:27 +0800
-Message-ID: <CAFiDJ5_mT=Ho200cCaLqVJNjJvg5M__X+8E=Z+Pi_SUhaVD-RA@mail.gmail.com>
-Subject: Re: [PATCH v2 12/29] nios2: Interrupt handling
-From: Ley Foon Tan <lftan@altera.com>
-Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7Bit
+Content-Type: text/plain; charset="us-ascii"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Chung-Lin Tang <cltang@codesourcery.com>
-Message-ID: <20140717104827.XKLUeSaOu-pTclHAwcRKPVaBNqExTa3QXCXwnHl5B7k@z>
+To: Ley Foon Tan <lftan@altera.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Chung-Lin Tang <cltang@codesourcery.com>
+Message-ID: <20140717110754.BTMHfQ1tyfvMy-P6lcItazVwQX70GxMESc_y43WveYk@z>
 
-On Thu, Jul 17, 2014 at 5:24 PM, Arnd Bergmann <arnd@arndb.de> wrote:
-> On Thursday 17 July 2014 14:15:44 Ley Foon Tan wrote:
->> On Tue, Jul 15, 2014 at 5:27 PM, Arnd Bergmann <arnd@arndb.de> wrote:
->> > On Tuesday 15 July 2014 16:45:39 Ley Foon Tan wrote:
->> >> +#ifndef _ASM_NIOS2_IRQ_H
->> >> +#define _ASM_NIOS2_IRQ_H
->> >> +
->> >> +#define NIOS2_CPU_NR_IRQS    32
->> >> +/* Reserve 32 additional interrupts for GPIO IRQs */
->> >> +#define NR_IRQS                      (NIOS2_CPU_NR_IRQS + 32)
->> >
->> > Is this intentional? I would expect that you use SPARSE_IRQ
->> > instead and not define NR_IRQS.
->> Okay, will change to use SPARSE_IRQ.
->> >
->> >> +#ifndef NO_IRQ
->> >> +#define NO_IRQ                       (-1)
->> >> +#endif
->> >
->> > New architectures should no longer define NO_IRQ. Please fix all users
->> > you encounter instead.
->> Okay.
->>
->> >
->> >> diff --git a/arch/nios2/kernel/irq.c b/arch/nios2/kernel/irq.c
->> >> new file mode 100644
->> >> index 0000000..8770d50
->> >> --- /dev/null
->> >> +++ b/arch/nios2/kernel/irq.c
->> >> +#include <linux/init.h>
->> >> +#include <linux/interrupt.h>
->> >> +#include <linux/of.h>
->> >
->> > Maybe move this into drivers/irqchip/? Probably doesn't matter either way,
->> > your choice.
->> Will keep it here.
->> BTW, this interrupt controller is part of Nios2 cpu architecture.
->> Should we move to drivers/irqchip/ if that's the case? Any example of
->> arch doing this?
->
-> A lot of interrupt controllers can be used on multiple architectures,
-> and a lot of architectures have a wide variety of interrupt controllers
-> that can be used, so moving them all into drivers/irqchip is the generally
-> preferred choice.
->
-> If your driver can't work on anything other than nios2 (e.g. because it
-> uses special CPU instructions rather than MMIO access) or the CPU core
-> always comes with this irqchip and doesn't have a way to use a different
-> one, there is no problem leaving it in the arch code.
-Yes, this driver only can be used with nios2 and all these irq
-registers are part of nios2 control registers.
-So, we just leave code here.
+On Thursday 17 July 2014 18:55:49 Ley Foon Tan wrote:
+> On Tue, Jul 15, 2014 at 6:03 PM, Thomas Gleixner <tglx@linutronix.de> wrote:
+> > On Tue, 15 Jul 2014, Ley Foon Tan wrote:
+> >  +static inline int atomic_futex_op_xchg_set(int oparg, u32 __user *uaddr,
+> >> +                                        int *oldval)
+> >> +{
+> >> +     unsigned long flags;
+> >> +     int ret;
+> >> +
+> >> +     local_irq_save(flags);
+> >> +
+> >> +     ret = get_user(*oldval, uaddr);
+> >> +     if (!ret)
+> >> +             ret = put_user(oparg, uaddr);
+> >
+> > This is wrong as it gets. get_user() might fault and sleep.
+> >
+> > You need a proper implementation, which handles fault exceptions.
+> I have checked that we use nios2 specific get_user() in [1]. This
+> function will not sleep and it handles fault exception.
+> I think this should be fine.
 
-Thanks.
+The get_user/put_user functions really need to be annotated might_fault(),
+because that's what they do.
 
-Regards
-Ley Foon
+The whole point of get_user() is to access an unchecked user space
+pointer, which 	can do a number of things based on what the pointer
+points to:
+
+- access a user space variable that resides in memory
+- access a kernel pointer and fail because of the access_ok()
+  check
+- access a user space pointer that is not mapped and return
+  through the __ex_table fixup.
+- access a user space pointer that has a valid VMA but not PTE,
+  causing a page fault to be resolved.
+
+It's the last case that breaks here.
+
+	Arnd
