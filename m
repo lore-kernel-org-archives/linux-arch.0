@@ -1,60 +1,68 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.126.131]:65321 "EHLO
-	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756553AbaGQLIK (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 17 Jul 2014 07:08:10 -0400
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH v2 21/29] nios2: Futex operations
-Date: Thu, 17 Jul 2014 13:07:54 +0200
-Message-ID: <12323898.sHjczXbE7P@wuerfel>
-In-Reply-To: <CAFiDJ5-UQ4pu1Hkc444yaA6cbttTXM7KM2eProGUkYgjqvOSUg@mail.gmail.com>
-References: <1405413956-2772-1-git-send-email-lftan@altera.com> <alpine.DEB.2.10.1407151201170.24854@nanos> <CAFiDJ5-UQ4pu1Hkc444yaA6cbttTXM7KM2eProGUkYgjqvOSUg@mail.gmail.com>
+Received: from www.linutronix.de ([62.245.132.108]:36193 "EHLO
+	Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932366AbaGQN6w (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 17 Jul 2014 09:58:52 -0400
+Date: Thu, 17 Jul 2014 15:58:46 +0200 (CEST)
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: Re: [PATCH v2 12/29] nios2: Interrupt handling
+In-Reply-To: <CAFiDJ58oEfFN5CgLZxqTLSiGfuxNH2t3OFAaSUWLJ_P_B_QRBQ@mail.gmail.com>
+Message-ID: <alpine.DEB.2.10.1407171555580.24854@nanos>
+References: <1405413956-2772-1-git-send-email-lftan@altera.com> <1405413956-2772-13-git-send-email-lftan@altera.com> <alpine.DEB.2.10.1407151147540.24854@nanos> <CAFiDJ58oEfFN5CgLZxqTLSiGfuxNH2t3OFAaSUWLJ_P_B_QRBQ@mail.gmail.com>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 7Bit
-Content-Type: text/plain; charset="us-ascii"
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Ley Foon Tan <lftan@altera.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Chung-Lin Tang <cltang@codesourcery.com>
-Message-ID: <20140717110754.BTMHfQ1tyfvMy-P6lcItazVwQX70GxMESc_y43WveYk@z>
+Cc: Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Chung-Lin Tang <cltang@codesourcery.com>
+Message-ID: <20140717135846._c0SN1lpNt1QAExXZWteZchMMQG69hb8EpW6W6BqWZk@z>
 
-On Thursday 17 July 2014 18:55:49 Ley Foon Tan wrote:
-> On Tue, Jul 15, 2014 at 6:03 PM, Thomas Gleixner <tglx@linutronix.de> wrote:
+On Thu, 17 Jul 2014, Ley Foon Tan wrote:
+
+> On Tue, Jul 15, 2014 at 5:51 PM, Thomas Gleixner <tglx@linutronix.de> wrote:
 > > On Tue, 15 Jul 2014, Ley Foon Tan wrote:
-> >  +static inline int atomic_futex_op_xchg_set(int oparg, u32 __user *uaddr,
-> >> +                                        int *oldval)
+> >> +#ifndef _ASM_NIOS2_IRQ_H
+> >> +#define _ASM_NIOS2_IRQ_H
+> >> +
+> >> +#define NIOS2_CPU_NR_IRQS    32
+> >> +/* Reserve 32 additional interrupts for GPIO IRQs */
+> >> +#define NR_IRQS                      (NIOS2_CPU_NR_IRQS + 32)
+> >
+> > Please use sparse irqs. Hardcoded limits tend to work out really bad.
+> Yes, will change this.
+> >
+> >> +#include <linux/init.h>
+> >> +#include <linux/interrupt.h>
+> >> +#include <linux/of.h>
+> >> +
+> 
+> >> +static void chip_unmask(struct irq_data *d)
 > >> +{
-> >> +     unsigned long flags;
-> >> +     int ret;
-> >> +
-> >> +     local_irq_save(flags);
-> >> +
-> >> +     ret = get_user(*oldval, uaddr);
-> >> +     if (!ret)
-> >> +             ret = put_user(oparg, uaddr);
+> >> +     u32 ien;
+> >> +     ien = RDCTL(CTL_IENABLE);
+> >> +     ien |= (1 << d->hwirq);
+> >> +     WRCTL(CTL_IENABLE, ien);
 > >
-> > This is wrong as it gets. get_user() might fault and sleep.
-> >
-> > You need a proper implementation, which handles fault exceptions.
-> I have checked that we use nios2 specific get_user() in [1]. This
-> function will not sleep and it handles fault exception.
-> I think this should be fine.
+> > So this is UP only, right?
+> Yes, this is to enable one interrupt.
 
-The get_user/put_user functions really need to be annotated might_fault(),
-because that's what they do.
+The question was, whether this is always a UniProcessor machine.
 
-The whole point of get_user() is to access an unchecked user space
-pointer, which 	can do a number of things based on what the pointer
-points to:
+> > Also why don't you cache the register content so spare the extra read
+> > from the hardware?
+> Need to make sure nobody modify the register if we cache the register content.
+> Will keep as it is.
 
-- access a user space variable that resides in memory
-- access a kernel pointer and fail because of the access_ok()
-  check
-- access a user space pointer that is not mapped and return
-  through the __ex_table fixup.
-- access a user space pointer that has a valid VMA but not PTE,
-  causing a page fault to be resolved.
+Sigh.
 
-It's the last case that breaks here.
+If this is a uniprocessor only design, then nothing can modify the
+cached values as all these functions are always called with interrupts
+disabled.
 
-	Arnd
+If this should be SMP safe, then you'd need serialization of the
+register access as well becasue the read/modify/write sequence is not
+atomic.
+
+Thanks,
+
+	tglx
