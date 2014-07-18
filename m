@@ -1,60 +1,122 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from asavdk3.altibox.net ([109.247.116.14]:39674 "EHLO
-	asavdk3.altibox.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1946095AbaGRVGf (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 18 Jul 2014 17:06:35 -0400
-Date: Fri, 18 Jul 2014 23:06:31 +0200
-From: Sam Ravnborg <sam@ravnborg.org>
-Subject: Re: [PATCH v3 1/3] asm-generic/io.h: Implement generic
- {read,write}s*()
-Message-ID: <20140718210631.GA22109@ravnborg.org>
-References: <1405508484-18303-1-git-send-email-thierry.reding@gmail.com>
- <20140718205953.GA21964@ravnborg.org>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20140718205953.GA21964@ravnborg.org>
+Received: from mail-pd0-f177.google.com ([209.85.192.177]:40553 "EHLO
+	mail-pd0-f177.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S935283AbaGRVTN (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 18 Jul 2014 17:19:13 -0400
+Received: by mail-pd0-f177.google.com with SMTP id p10so5599413pdj.22
+        for <linux-arch@vger.kernel.org>; Fri, 18 Jul 2014 14:19:12 -0700 (PDT)
+From: Andy Lutomirski <luto@amacapital.net>
+Subject: [PATCH v2 6/7] x86_64,entry: Treat regs->ax the same in fastpath and slowpath syscalls
+Date: Fri, 18 Jul 2014 14:18:14 -0700
+Message-ID: <90f4dbe738cb61a8a90ba9a64c3fc94c903a52cb.1405717901.git.luto@amacapital.net>
+In-Reply-To: <cover.1405717901.git.luto@amacapital.net>
+References: <cover.1405717901.git.luto@amacapital.net>
+In-Reply-To: <cover.1405717901.git.luto@amacapital.net>
+References: <cover.1405717901.git.luto@amacapital.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Thierry Reding <thierry.reding@gmail.com>
-Cc: Russell King <linux@arm.linux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Stephen Boyd <sboyd@codeaurora.org>, linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20140718210631.UHvRXIsSBOPggHcsQ_vzN5ZSX0rFbPrgPGPvAdTsTB4@z>
+To: linux-kernel@vger.kernel.org, Kees Cook <keescook@chromium.org>, Will Drewry <wad@chromium.org>
+Cc: Oleg Nesterov <oleg@redhat.com>, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-mips@linux-mips.org, linux-arch@vger.kernel.org, linux-security-module@vger.kernel.org, Alexei Starovoitov <ast@plumgrid.com>, hpa@zytor.com, Andy Lutomirski <luto@amacapital.net>
+Message-ID: <20140718211814.f48YgG0Qz174xoo22WZxVG2nXLhIq0TdAQes2qIf8Ms@z>
 
-> 
-> All these things are not introduced by your patch but now that
-> you show some love and care for this file maybe we could take
-> the next step and bring more order to the current semi chaos?
+For slowpath syscalls, we initialize regs->ax to -ENOSYS and stick
+the syscall number into regs->orig_ax prior to any possible tracing
+and syscall execution.  This is user-visible ABI used by ptrace
+syscall emulation and seccomp.
 
-And I just noticed...
+For fastpath syscalls, there's no good reason not to do the same
+thing.  It's even slightly simpler than what we're currently doing.
+It probably has no measureable performance impact.  It should have
+no user-visible effect.
 
-These are never used - and only defined a few places:
-#define inb_p(addr)     inb(addr)
-#define inw_p(addr)     inw(addr)
-#define inl_p(addr)     inl(addr)
-#define outb_p(x, addr) outb((x), (addr))
-#define outw_p(x, addr) outw((x), (addr))
-#define outl_p(x, addr) outl((x), (addr))
+The purpose of this patch is to prepare for two-phase syscall
+tracing, in which the first phase might modify the saved RAX without
+leaving the fast path.  This change is just subtle enough that I'm
+keeping it separate.
 
-Likewise for these:
-#define insb_p(port,to,len)     insb(port,to,len)
-#define insw_p(port,to,len)     insw(port,to,len)
-#define insl_p(port,to,len)     insl(port,to,len)
+Signed-off-by: Andy Lutomirski <luto@amacapital.net>
+---
+ arch/x86/include/asm/calling.h |  6 +++++-
+ arch/x86/kernel/entry_64.S     | 13 ++++---------
+ 2 files changed, 9 insertions(+), 10 deletions(-)
 
-#define outsb_p(port,from,len)  outsb(port,from,len)
-#define outsw_p(port,from,len)  outsw(port,from,len)
-#define outsl_p(port,from,len)  outsl(port,from,len)
+diff --git a/arch/x86/include/asm/calling.h b/arch/x86/include/asm/calling.h
+index cb4c73b..76659b6 100644
+--- a/arch/x86/include/asm/calling.h
++++ b/arch/x86/include/asm/calling.h
+@@ -85,7 +85,7 @@ For 32-bit we have the following conventions - kernel is built with
+ #define ARGOFFSET	R11
+ #define SWFRAME		ORIG_RAX
+ 
+-	.macro SAVE_ARGS addskip=0, save_rcx=1, save_r891011=1
++	.macro SAVE_ARGS addskip=0, save_rcx=1, save_r891011=1, rax_enosys=0
+ 	subq  $9*8+\addskip, %rsp
+ 	CFI_ADJUST_CFA_OFFSET	9*8+\addskip
+ 	movq_cfi rdi, 8*8
+@@ -96,7 +96,11 @@ For 32-bit we have the following conventions - kernel is built with
+ 	movq_cfi rcx, 5*8
+ 	.endif
+ 
++	.if \rax_enosys
++	movq $-ENOSYS, 4*8(%rsp)
++	.else
+ 	movq_cfi rax, 4*8
++	.endif
+ 
+ 	.if \save_r891011
+ 	movq_cfi r8,  3*8
+diff --git a/arch/x86/kernel/entry_64.S b/arch/x86/kernel/entry_64.S
+index b25ca96..1eb3094 100644
+--- a/arch/x86/kernel/entry_64.S
++++ b/arch/x86/kernel/entry_64.S
+@@ -405,8 +405,8 @@ GLOBAL(system_call_after_swapgs)
+ 	 * and short:
+ 	 */
+ 	ENABLE_INTERRUPTS(CLBR_NONE)
+-	SAVE_ARGS 8,0
+-	movq  %rax,ORIG_RAX-ARGOFFSET(%rsp)
++	SAVE_ARGS 8, 0, rax_enosys=1
++	movq_cfi rax,(ORIG_RAX-ARGOFFSET)
+ 	movq  %rcx,RIP-ARGOFFSET(%rsp)
+ 	CFI_REL_OFFSET rip,RIP-ARGOFFSET
+ 	testl $_TIF_WORK_SYSCALL_ENTRY,TI_flags+THREAD_INFO(%rsp,RIP-ARGOFFSET)
+@@ -418,7 +418,7 @@ system_call_fastpath:
+ 	andl $__SYSCALL_MASK,%eax
+ 	cmpl $__NR_syscall_max,%eax
+ #endif
+-	ja badsys
++	ja ret_from_sys_call  /* and return regs->ax */
+ 	movq %r10,%rcx
+ 	call *sys_call_table(,%rax,8)  # XXX:	 rip relative
+ 	movq %rax,RAX-ARGOFFSET(%rsp)
+@@ -477,10 +477,6 @@ sysret_signal:
+ 	FIXUP_TOP_OF_STACK %r11, -ARGOFFSET
+ 	jmp int_check_syscall_exit_work
+ 
+-badsys:
+-	movq $-ENOSYS,RAX-ARGOFFSET(%rsp)
+-	jmp ret_from_sys_call
+-
+ #ifdef CONFIG_AUDITSYSCALL
+ 	/*
+ 	 * Fast path for syscall audit without full syscall trace.
+@@ -520,7 +516,6 @@ tracesys:
+ 	jz auditsys
+ #endif
+ 	SAVE_REST
+-	movq $-ENOSYS,RAX(%rsp) /* ptrace can change this for a bad syscall */
+ 	FIXUP_TOP_OF_STACK %rdi
+ 	movq %rsp,%rdi
+ 	call syscall_trace_enter
+@@ -537,7 +532,7 @@ tracesys:
+ 	andl $__SYSCALL_MASK,%eax
+ 	cmpl $__NR_syscall_max,%eax
+ #endif
+-	ja   int_ret_from_sys_call	/* RAX(%rsp) set to -ENOSYS above */
++	ja   int_ret_from_sys_call	/* RAX(%rsp) is already set */
+ 	movq %r10,%rcx	/* fixup for C */
+ 	call *sys_call_table(,%rax,8)
+ 	movq %rax,RAX-ARGOFFSET(%rsp)
+-- 
+1.9.3
 
-
-
-This set:
-#define inb_p(addr)     inb(addr)
-#define inw_p(addr)     inw(addr)
-#define inl_p(addr)     inl(addr)
-#define outb_p(x, addr) outb((x), (addr))
-#define outw_p(x, addr) outw((x), (addr))
-#define outl_p(x, addr) outl((x), (addr))
-
-Should have a comment that say they are deprecated.
-Especially the "b" variants still have many users.
-
-	Sam
