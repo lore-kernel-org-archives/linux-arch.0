@@ -1,104 +1,63 @@
-From: Michal Simek <monstr@monstr.eu>
-Subject: Re: [RFA][PATCH 06/27] microblaze: ftrace: Add call to ftrace_graph_is_dead()
- in function graph code
-Date: Fri, 18 Jul 2014 10:19:00 +0200
-Message-ID: <53C8D874.9090601@monstr.eu>
-References: <20140626165221.736847419@goodmis.org>	<20140626165849.119568888@goodmis.org> <20140709100310.3c3b25ff@gandalf.local.home>
-Reply-To: monstr@monstr.eu
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH v2 21/29] nios2: Futex operations
+Date: Fri, 18 Jul 2014 11:09:10 +0200
+Message-ID: <17186253.ZJUn1qWK0f@wuerfel>
+References: <1405413956-2772-1-git-send-email-lftan@altera.com> <12323898.sHjczXbE7P@wuerfel> <CAFiDJ5-uDPCZha-s2-DrLbHLjezBkLTEjJ0nbnsMocof7kO=1Q@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha1;
- protocol="application/pgp-signature";
- boundary="jotGSWd0QMuNBtdMKqdovla59LUAjOFIV"
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20140709100310.3c3b25ff@gandalf.local.home>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Steven Rostedt <rostedt@goodmis.org>
-Cc: linux-kernel@vger.kernel.org, Ingo Molnar <mingo@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, Masami Hiramatsu <masami.hiramatsu.pt@hitachi.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Jiri Kosina <jkosina@suse.cz>, Josh Poimboeuf <notifications@github.com>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7Bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mout.kundenserver.de ([212.227.126.187]:58803 "EHLO
+	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756084AbaGRJJR (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 18 Jul 2014 05:09:17 -0400
+In-Reply-To: <CAFiDJ5-uDPCZha-s2-DrLbHLjezBkLTEjJ0nbnsMocof7kO=1Q@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Ley Foon Tan <lftan@altera.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Chung-Lin Tang <cltang@codesourcery.com>
 
-This is an OpenPGP/MIME signed message (RFC 4880 and 3156)
---jotGSWd0QMuNBtdMKqdovla59LUAjOFIV
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: quoted-printable
+On Friday 18 July 2014 14:07:42 Ley Foon Tan wrote:
+> On Thu, Jul 17, 2014 at 7:07 PM, Arnd Bergmann <arnd@arndb.de> wrote:
+> > The get_user/put_user functions really need to be annotated might_fault(),
+> > because that's what they do.
+> >
+> > The whole point of get_user() is to access an unchecked user space
+> > pointer, which  can do a number of things based on what the pointer
+> > points to:
+> >
+> > - access a user space variable that resides in memory
+> > - access a kernel pointer and fail because of the access_ok()
+> >   check
+> > - access a user space pointer that is not mapped and return
+> >   through the __ex_table fixup.
+> > - access a user space pointer that has a valid VMA but not PTE,
+> >   causing a page fault to be resolved.
+> >
+> > It's the last case that breaks here.
+> So, do you mean that we can't use get_user/put_user in futex support?
+> BTW, some architectures like sh,parisc, m68k use get_user in futex
+> function as well.
+> Any recommendation way to support futex if we can't use get_user.
+> Note, nios2 doesn't have atomic instruction.
+> Thanks.
 
-Hi Steve,
+I looked at it again now and I'm no longer sure about my initial
+interpretation. The way it seems to work is that pagefault_disable()
+turns the case I mentioned into a simple error through the fixup,
+so we return -EFAULT from get_user, and retry the futex from
+futex_wake_op().
 
-On 07/09/2014 04:03 PM, Steven Rostedt wrote:
-> Michal,
->=20
-> Can you ack this please?
->=20
-> -- Steve
->=20
->=20
-> On Thu, 26 Jun 2014 12:52:27 -0400
-> Steven Rostedt <rostedt@goodmis.org> wrote:
->=20
->> From: "Steven Rostedt (Red Hat)" <rostedt@goodmis.org>
->>
->> ftrace_stop() is going away as it disables parts of function tracing
->> that affects users that should not be affected. But ftrace_graph_stop(=
-)
->> is built on ftrace_stop(). Here's another example of killing all of
->> function tracing because something went wrong with function graph
->> tracing.
->>
->> Instead of disabling all users of function tracing on function graph
->> error, disable only function graph tracing. To do this, the arch code
->> must call ftrace_graph_is_dead() before it implements function graph.
->>
->> Cc: Michal Simek <monstr@monstr.eu>
->> Signed-off-by: Steven Rostedt <rostedt@goodmis.org>
->> ---
->>  arch/microblaze/kernel/ftrace.c | 3 +++
->>  1 file changed, 3 insertions(+)
->>
->> diff --git a/arch/microblaze/kernel/ftrace.c b/arch/microblaze/kernel/=
-ftrace.c
->> index bbcd2533766c..fc7b48a52cd5 100644
->> --- a/arch/microblaze/kernel/ftrace.c
->> +++ b/arch/microblaze/kernel/ftrace.c
->> @@ -27,6 +27,9 @@ void prepare_ftrace_return(unsigned long *parent, un=
-signed long self_addr)
->>  	unsigned long return_hooker =3D (unsigned long)
->>  				&return_to_handler;
->> =20
->> +	if (unlikely(ftrace_graph_is_dead()))
->> +		return;
->> +
->>  	if (unlikely(atomic_read(&current->tracing_graph_pause)))
->>  		return;
->> =20
->=20
+This would however also mean that there is no need for a spinlock
+at all, atomicity is already implied by pagefault_disable() here
+because you are running on a UP kernel and pagefault_disable() also
+means there is no preemption.
 
-sorry for delay. Here is mine.
+If this understanding is right, we can probably just merge the
+m68k implementation into the asm-generic version, as that does
+exactly that, and just isn't SMP safe. I'm still unsure whether
+I'm missing something here though, as everything else seems to
+do this in assembly, even for non-SMP machines that could use
+the trivial method that m68k has.
 
-Tested-by: Michal Simek <monstr@monstr.eu>
-
-Thanks,
-Michal
-
---=20
-Michal Simek, Ing. (M.Eng), OpenPGP -> KeyID: FE3D1F91
-w: www.monstr.eu p: +42-0-721842854
-Maintainer of Linux kernel - Microblaze cpu - http://www.monstr.eu/fdt/
-Maintainer of Linux kernel - Xilinx Zynq ARM architecture
-Microblaze U-BOOT custodian and responsible for u-boot arm zynq platform
-
-
-
---jotGSWd0QMuNBtdMKqdovla59LUAjOFIV
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: OpenPGP digital signature
-Content-Disposition: attachment; filename="signature.asc"
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.10 (GNU/Linux)
-Comment: Using GnuPG with Thunderbird - http://www.enigmail.net/
-
-iEYEARECAAYFAlPI2HQACgkQykllyylKDCGjVwCfUPgO2lm0Cn0pyUjgmc+Gv4pu
-tQEAni/St935oBXwqaMYVGeuUIPyltIz
-=phGk
------END PGP SIGNATURE-----
-
---jotGSWd0QMuNBtdMKqdovla59LUAjOFIV--
+	Arnd
