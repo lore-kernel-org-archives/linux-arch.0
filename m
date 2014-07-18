@@ -1,35 +1,76 @@
-From: Andy Lutomirski <luto-kltTT9wpgjJwATOyAt5JVQ@public.gmane.org>
-Subject: Re: [PATCH v12 11/11] seccomp: add thread sync ability
-Date: Fri, 18 Jul 2014 10:17:06 -0700
-Message-ID: <CALCETrUv3G+C3PTOD1FJGOG8AQCA30hNkUiusCnQDGq6Kt_Feg@mail.gmail.com>
-References: <1405620518-18495-1-git-send-email-keescook@chromium.org> <alpine.LRH.2.11.1407181325200.15709@namei.org>
+From: Nathan Lynch <Nathan_Lynch@mentor.com>
+Subject: Re: [PATCH v3] arm64,ia64,ppc,s390,sh,tile,um,x86,mm: Remove default
+ gate area
+Date: Fri, 18 Jul 2014 12:28:18 -0500
+Message-ID: <53C95932.206@mentor.com>
+References: <70f331f59e620dc4e66bd3fa095e6f6b744b532b.1405281639.git.luto@amacapital.net> <CALCETrXG6nL4K=Er+kv5-CXBDVa0TLg9yR6iePnMyE2ufXgKkw@mail.gmail.com> <20140718101416.GB1818@arm.com> <53C8F4DF.8020103@nod.at> <CALCETrXve-=N5yzqDw2YQee4BmC6sb8GYWYJcV2780V38OuJiQ@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <alpine.LRH.2.11.1407181325200.15709-gx6/JNMH7DfYtjvyW6yDsg@public.gmane.org>
-Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: James Morris <jmorris-gx6/JNMH7DfYtjvyW6yDsg@public.gmane.org>
-Cc: Kees Cook <keescook-F7+t8E8rja9g9hUCZPvPmw@public.gmane.org>, "linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, James Morris <james.l.morris-QHcLZuEGTsvQT0dZR+AlfA@public.gmane.org>, Oleg Nesterov <oleg-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, David Drysdale <drysdale-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, "Michael Kerrisk (man-pages)" <mtk.manpages-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Will Drewry <wad-F7+t8E8rja9g9hUCZPvPmw@public.gmane.org>, Julien Tinnes <jln-F7+t8E8rja9g9hUCZPvPmw@public.gmane.org>, Linux API <linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, X86 ML <x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, "linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org" <linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org>, Linux MIPS Mailing List <linux-mips-6z/3iImG2C8G8FEW9MqTrA@public.gmane.org>, linux-arch <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, LSM List <linux-security-module-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <CALCETrXve-=N5yzqDw2YQee4BmC6sb8GYWYJcV2780V38OuJiQ@mail.gmail.com>
+Sender: owner-linux-mm@kvack.org
+To: Andy Lutomirski <luto@amacapital.net>
+Cc: Richard Weinberger <richard@nod.at>, Andrew Morton <akpm@linux-foundation.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, linuxppc-dev@lists.ozlabs.org, Fenghua Yu <fenghua.yu@intel.com>, X86 ML <x86@kernel.org>, Catalin Marinas <Catalin.Marinas@arm.com>, Ingo Molnar <mingo@redhat.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux-arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Tony Luck <tony.luck@intel.com>, "linux-sh@vger.kernel.org" <linux-sh@vger.kernel.org>, "linux390@de.ibm.com" <linux390@de.ibm.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Chris Metcalf <cmetcalf@tilera.com>, Will Deacon <will.d>
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Jul 17, 2014 at 8:26 PM, James Morris <jmorris-gx6/JNMH7DfYtjvyW6yDsg@public.gmane.org> wrote:
-> On Thu, 17 Jul 2014, Kees Cook wrote:
->
->> Twelfth time's the charm! :)
->
-> Btw, there doesn't seem to be an official seccomp maintainer.  Kees, would
-> you like to volunteer for this?  If so, send in a patch for MAINTAINERS,
-> and set up a git tree for me to pull from.
+On 07/18/2014 11:53 AM, Andy Lutomirski wrote:
+> 
+> On Jul 18, 2014 3:20 AM, "Richard Weinberger" <richard@nod.at
+> <mailto:richard@nod.at>> wrote:
+>>
+>> Am 18.07.2014 12:14, schrieb Will Deacon:
+>> > On Tue, Jul 15, 2014 at 03:47:26PM +0100, Andy Lutomirski wrote:
+>> >> On Sun, Jul 13, 2014 at 1:01 PM, Andy Lutomirski
+> <luto@amacapital.net <mailto:luto@amacapital.net>> wrote:
+>> >>> The core mm code will provide a default gate area based on
+>> >>> FIXADDR_USER_START and FIXADDR_USER_END if
+>> >>> !defined(__HAVE_ARCH_GATE_AREA) && defined(AT_SYSINFO_EHDR).
+>> >>>
+>> >>> This default is only useful for ia64.  arm64, ppc, s390, sh, tile,
+>> >>> 64-bit UML, and x86_32 have their own code just to disable it.  arm,
+>> >>> 32-bit UML, and x86_64 have gate areas, but they have their own
+>> >>> implementations.
+>> >>>
+>> >>> This gets rid of the default and moves the code into ia64.
+>> >>>
+>> >>> This should save some code on architectures without a gate area: it's
+>> >>> now possible to inline the gate_area functions in the default case.
+>> >>
+>> >> Can one of you pull this somewhere?  Otherwise I can put it somewhere
+>> >> stable and ask for -next inclusion, but that seems like overkill for a
+>> >> single patch.
+>>
+>> For the um bits:
+>> Acked-by: Richard Weinberger <richard@nod.at <mailto:richard@nod.at>>
+>>
+>> > I'd be happy to take the arm64 part, but it doesn't feel right for mm/*
+>> > changes (or changes to other archs) to go via our tree.
+>> >
+>> > I'm not sure what the best approach is if you want to send this via
+> a single
+>> > tree. Maybe you could ask akpm nicely?
+>>
+>> Going though Andrew's tree sounds sane to me.
+> 
+> Splitting this will be annoying: I'd probably have to add a flag asking
+> for the new behavior, update all the arches, then remove the flag.  The
+> chance of screwing up bisectability in the process seems pretty high. 
+> This seems like overkill for a patch that mostly deletes code.
+> 
+> Akpm, can you take this?
 
-*snicker* :)
+FWIW:
 
-Kees, if you take on this awesome responsibility, should I send you a
-rebased version of the fastpath stuff?  If so, I think that the
-arch-neutral part should go in through your shiny new tree (once it's
-reviewed to your satisfaction), and I'll ask hpa to pick up the x86
-part.
+Acked-by: Nathan Lynch <nathan_lynch@mentor.com>
 
-I'd volunteer to be a "R:eviewer", but I don't think that the R tag
-has made it into MAINTAINERS yet.
+This patch allows me to avoid adding a bunch of empty hooks to arch/arm
+when adding VDSO support:
 
---Andy
+http://lists.infradead.org/pipermail/linux-arm-kernel/2014-June/268045.html
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
