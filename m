@@ -1,55 +1,36 @@
-From: Kees Cook <keescook@chromium.org>
-Subject: Re: [PATCH v12 11/11] seccomp: add thread sync ability
-Date: Fri, 18 Jul 2014 11:13:59 -0700
-Message-ID: <CAGXu5jL9wQ4ZJ1kDRx_Y_cyGQEjO_Ugmcc--Q71x32_x1q9ScA@mail.gmail.com>
-References: <1405620518-18495-1-git-send-email-keescook@chromium.org>
-	<alpine.LRH.2.11.1407181325200.15709@namei.org>
-	<CALCETrUv3G+C3PTOD1FJGOG8AQCA30hNkUiusCnQDGq6Kt_Feg@mail.gmail.com>
+From: "H. Peter Anvin" <hpa@zytor.com>
+Subject: Re: [PATCH v3] arm64,ia64,ppc,s390,sh,tile,um,x86,mm: Remove default
+ gate area
+Date: Fri, 18 Jul 2014 11:36:54 -0700
+Message-ID: <53C96946.4090304@zytor.com>
+References: <70f331f59e620dc4e66bd3fa095e6f6b744b532b.1405281639.git.luto@amacapital.net> <CALCETrXG6nL4K=Er+kv5-CXBDVa0TLg9yR6iePnMyE2ufXgKkw@mail.gmail.com> <20140718101416.GB1818@arm.com> <53C8F4DF.8020103@nod.at> <CALCETrXve-=N5yzqDw2YQee4BmC6sb8GYWYJcV2780V38OuJiQ@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-oa0-f43.google.com ([209.85.219.43]:52527 "EHLO
-	mail-oa0-f43.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1030567AbaGRSOA (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 18 Jul 2014 14:14:00 -0400
-Received: by mail-oa0-f43.google.com with SMTP id i7so3885334oag.16
-        for <linux-arch@vger.kernel.org>; Fri, 18 Jul 2014 11:14:00 -0700 (PDT)
-In-Reply-To: <CALCETrUv3G+C3PTOD1FJGOG8AQCA30hNkUiusCnQDGq6Kt_Feg@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Andy Lutomirski <luto@amacapital.net>
-Cc: James Morris <jmorris@namei.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, James Morris <james.l.morris@oracle.com>, Oleg Nesterov <oleg@redhat.com>, David Drysdale <drysdale@google.com>, "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>, Will Drewry <wad@chromium.org>, Julien Tinnes <jln@chromium.org>, Linux API <linux-api@vger.kernel.org>, X86 ML <x86@kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Linux MIPS Mailing List <linux-mips@linux-mips.org>, linux-arch <linux-arch@vger.kernel.org>, LSM List <linux-security-module@vger.kernel.org>
+Content-Transfer-Encoding: 7bit
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <CALCETrXve-=N5yzqDw2YQee4BmC6sb8GYWYJcV2780V38OuJiQ@mail.gmail.com>
+Sender: owner-linux-mm@kvack.org
+To: Andy Lutomirski <luto@amacapital.net>, Richard Weinberger <richard@nod.at>, Andrew Morton <akpm@linux-foundation.org>
+Cc: "linux-mm@kvack.org" <linux-mm@kvack.org>, linuxppc-dev@lists.ozlabs.org, Fenghua Yu <fenghua.yu@intel.com>, X86 ML <x86@kernel.org>, Catalin Marinas <Catalin.Marinas@arm.com>, Ingo Molnar <mingo@redhat.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux-arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Tony Luck <tony.luck@intel.com>, "linux-sh@vger.kernel.org" <linux-sh@vger.kernel.org>, Nathan Lynch <Nathan_Lynch@mentor.com>, "linux390@de.ibm.com" <linux390@de.ibm.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Chris Metcalf <cmetcalf@t>
+List-Id: linux-arch.vger.kernel.org
 
-On Fri, Jul 18, 2014 at 10:17 AM, Andy Lutomirski <luto@amacapital.net> wrote:
-> On Thu, Jul 17, 2014 at 8:26 PM, James Morris <jmorris@namei.org> wrote:
->> On Thu, 17 Jul 2014, Kees Cook wrote:
->>
->>> Twelfth time's the charm! :)
->>
->> Btw, there doesn't seem to be an official seccomp maintainer.  Kees, would
->> you like to volunteer for this?  If so, send in a patch for MAINTAINERS,
->> and set up a git tree for me to pull from.
+On 07/18/2014 09:53 AM, Andy Lutomirski wrote:
+> 
+> Splitting this will be annoying: I'd probably have to add a flag asking for
+> the new behavior, update all the arches, then remove the flag.  The chance
+> of screwing up bisectability in the process seems pretty high.  This seems
+> like overkill for a patch that mostly deletes code.
+> 
+> Akpm, can you take this?
+> 
 
-Sure thing, I'll get this set up now. I wonder if I should include the
-glob "arch/*/kernel/ptrace.c" in the MAINTAINERS entry. :P
+I'm fine with it as-is.
 
-> *snicker* :)
->
-> Kees, if you take on this awesome responsibility, should I send you a
-> rebased version of the fastpath stuff?  If so, I think that the
-> arch-neutral part should go in through your shiny new tree (once it's
-> reviewed to your satisfaction), and I'll ask hpa to pick up the x86
-> part.
+Acked-by: H. Peter Anvin <hpa@linux.intel.com>
 
-Yeah, that sounds perfect.
 
-> I'd volunteer to be a "R:eviewer", but I don't think that the R tag
-> has made it into MAINTAINERS yet.
-
-I'd love to have you listed. :)
-
--Kees
-
--- 
-Kees Cook
-Chrome OS Security
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
