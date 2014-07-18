@@ -1,65 +1,85 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pa0-f43.google.com ([209.85.220.43]:51853 "EHLO
-	mail-pa0-f43.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932165AbaGRVTF (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 18 Jul 2014 17:19:05 -0400
-Received: by mail-pa0-f43.google.com with SMTP id lf10so6095145pab.2
-        for <linux-arch@vger.kernel.org>; Fri, 18 Jul 2014 14:19:04 -0700 (PDT)
+Received: from mail-pa0-f51.google.com ([209.85.220.51]:49902 "EHLO
+	mail-pa0-f51.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1762203AbaGRVSf (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 18 Jul 2014 17:18:35 -0400
+Received: by mail-pa0-f51.google.com with SMTP id ey11so6171441pad.10
+        for <linux-arch@vger.kernel.org>; Fri, 18 Jul 2014 14:18:35 -0700 (PDT)
 From: Andy Lutomirski <luto@amacapital.net>
-Subject: [PATCH v2 4/7] x86,x32,audit: Fix x32's AUDIT_ARCH wrt audit
-Date: Fri, 18 Jul 2014 14:18:12 -0700
-Message-ID: <a724eeae03fdec10268cc81da615a36522503458.1405717901.git.luto@amacapital.net>
-In-Reply-To: <cover.1405717901.git.luto@amacapital.net>
-References: <cover.1405717901.git.luto@amacapital.net>
-In-Reply-To: <cover.1405717901.git.luto@amacapital.net>
-References: <cover.1405717901.git.luto@amacapital.net>
+Subject: [PATCH v2 0/7] Two-phase seccomp and x86 tracing changes
+Date: Fri, 18 Jul 2014 14:18:08 -0700
+Message-ID: <cover.1405717901.git.luto@amacapital.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, Kees Cook <keescook@chromium.org>, Will Drewry <wad@chromium.org>
 Cc: Oleg Nesterov <oleg@redhat.com>, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-mips@linux-mips.org, linux-arch@vger.kernel.org, linux-security-module@vger.kernel.org, Alexei Starovoitov <ast@plumgrid.com>, hpa@zytor.com, Andy Lutomirski <luto@amacapital.net>
-Message-ID: <20140718211812.lGXE6b1pAJLxIPOAGA4i3_Xv755e2A7cF8LHTk59Wbc@z>
+Message-ID: <20140718211808.lXwYhVKoUl7WUzY3kAktiGWZ2hUBHirvQtQMAHsdorM@z>
 
-is_compat_task() is the wrong check for audit arch; the check should
-be is_ia32_task(): x32 syscalls should be AUDIT_ARCH_X86_64, not
-AUDIT_ARCH_I386.
+This is both a cleanup and a speedup.  It reduces overhead due to
+installing a trivial seccomp filter by 87%.  The speedup comes from
+avoiding the full syscall tracing mechanism for filters that don't
+return SECCOMP_RET_TRACE.
 
-CONFIG_AUDITSYSCALL is currently incompatible with x32, so this has
-no visible effect.
+This series works by splitting the seccomp hooks into two phases.
+The first phase evaluates the filter; it can skip syscalls, allow
+them, kill the calling task, or pass a u32 to the second phase.  The
+second phase requires a full tracing context, and it sends ptrace
+events if necessary.
 
-Signed-off-by: Andy Lutomirski <luto@amacapital.net>
----
- arch/x86/kernel/ptrace.c | 11 +----------
- 1 file changed, 1 insertion(+), 10 deletions(-)
+Once this is done, I implemented a similar split for the x86 syscall
+entry work.  The C callback is invoked in two phases: the first has
+only a partial frame, and it can request phase 2 processing with a
+full frame.
 
-diff --git a/arch/x86/kernel/ptrace.c b/arch/x86/kernel/ptrace.c
-index 93c182a..39296d2 100644
---- a/arch/x86/kernel/ptrace.c
-+++ b/arch/x86/kernel/ptrace.c
-@@ -1441,15 +1441,6 @@ void send_sigtrap(struct task_struct *tsk, struct pt_regs *regs,
- 	force_sig_info(SIGTRAP, &info, tsk);
- }
- 
--
--#ifdef CONFIG_X86_32
--# define IS_IA32	1
--#elif defined CONFIG_IA32_EMULATION
--# define IS_IA32	is_compat_task()
--#else
--# define IS_IA32	0
--#endif
--
- /*
-  * We must return the syscall number to actually look up in the table.
-  * This can be -1L to skip running any syscall at all.
-@@ -1487,7 +1478,7 @@ long syscall_trace_enter(struct pt_regs *regs)
- 	if (unlikely(test_thread_flag(TIF_SYSCALL_TRACEPOINT)))
- 		trace_sys_enter(regs, regs->orig_ax);
- 
--	if (IS_IA32)
-+	if (is_ia32_task())
- 		audit_syscall_entry(AUDIT_ARCH_I386,
- 				    regs->orig_ax,
- 				    regs->bx, regs->cx,
+Finally, I switch the 64-bit system_call code to use the new split
+entry work.  This is a net deletion of assembly code: it replaces
+all of the audit entry muck.
+
+In the process, I fixed some bugs.
+
+If this is acceptable, someone can do the same tweak for the
+ia32entry and entry_32 code.
+
+This passes all seccomp tests that I know of.  Now that it's properly
+rebased, even the previously expected failures are gone.
+
+Kees, if you like this version, can you create a branch with patches
+1-3?  I think that the rest should go into tip/x86 once everyone's happy
+with it.
+
+Changes from v1:
+ - Rebased on top of Kees' shiny new seccomp tree (no effect on the x86
+   part).
+ - Improved patch 6 vs patch 7 split (thanks Alexei!)
+ - Fixed bogus -ENOSYS in patch 5 (thanks Kees!)
+ - Improved changelog message in patch 6.
+
+Changes from RFC version:
+ - The first three patches are more or less the same
+ - The rest is more or less a rewrite
+
+Andy Lutomirski (7):
+  seccomp,x86,arm,mips,s390: Remove nr parameter from secure_computing
+  seccomp: Refactor the filter callback and the API
+  seccomp: Allow arch code to provide seccomp_data
+  x86,x32,audit: Fix x32's AUDIT_ARCH wrt audit
+  x86: Split syscall_trace_enter into two phases
+  x86_64,entry: Treat regs->ax the same in fastpath and slowpath
+    syscalls
+  x86_64,entry: Use split-phase syscall_trace_enter for 64-bit syscalls
+
+ arch/arm/kernel/ptrace.c       |   7 +-
+ arch/mips/kernel/ptrace.c      |   2 +-
+ arch/s390/kernel/ptrace.c      |   2 +-
+ arch/x86/include/asm/calling.h |   6 +-
+ arch/x86/include/asm/ptrace.h  |   5 +
+ arch/x86/kernel/entry_64.S     |  51 ++++-----
+ arch/x86/kernel/ptrace.c       | 146 +++++++++++++++++++-----
+ arch/x86/kernel/vsyscall_64.c  |   2 +-
+ include/linux/seccomp.h        |  25 ++--
+ kernel/seccomp.c               | 252 ++++++++++++++++++++++++++++-------------
+ 10 files changed, 344 insertions(+), 154 deletions(-)
+
 -- 
 1.9.3
 
