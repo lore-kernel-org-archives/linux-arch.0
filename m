@@ -1,52 +1,35 @@
-From: Ley Foon Tan <lftan@altera.com>
-Subject: Re: [PATCH v2 20/29] nios2: Cpuinfo handling
-Date: Fri, 18 Jul 2014 10:43:31 +0800
-Message-ID: <CAFiDJ5-KFmf9-YBnvZae7iwMWwb6XOgOLUFA+9eRLvuk_TDXnw@mail.gmail.com>
-References: <1405413956-2772-1-git-send-email-lftan@altera.com>
-	<1405413956-2772-21-git-send-email-lftan@altera.com>
-	<7103938.6xzUh5tnai@wuerfel>
+From: James Morris <jmorris@namei.org>
+Subject: Re: [PATCH v12 11/11] seccomp: add thread sync ability
+Date: Fri, 18 Jul 2014 13:26:48 +1000 (EST)
+Message-ID: <alpine.LRH.2.11.1407181325200.15709@namei.org>
+References: <1405620518-18495-1-git-send-email-keescook@chromium.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qc0-f179.google.com ([209.85.216.179]:59516 "EHLO
-	mail-qc0-f179.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753569AbaGRCnc (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 17 Jul 2014 22:43:32 -0400
-In-Reply-To: <7103938.6xzUh5tnai@wuerfel>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Chung-Lin Tang <cltang@codesourcery.com>
+Content-Type: TEXT/PLAIN; charset=US-ASCII
+Return-path: <linux-mips-bounce@linux-mips.org>
+In-Reply-To: <1405620518-18495-1-git-send-email-keescook@chromium.org>
+Sender: linux-mips-bounce@linux-mips.org
+Errors-to: linux-mips-bounce@linux-mips.org
+List-help: <mailto:ecartis@linux-mips.org?Subject=help>
+List-unsubscribe: <mailto:ecartis@linux-mips.org?subject=unsubscribe%20linux-mips>
+List-software: Ecartis version 1.0.0
+List-subscribe: <mailto:ecartis@linux-mips.org?subject=subscribe%20linux-mips>
+List-owner: <mailto:ralf@linux-mips.org>
+List-post: <mailto:linux-mips@linux-mips.org>
+List-archive: <http://www.linux-mips.org/archives/linux-mips/>
+To: Kees Cook <keescook@chromium.org>
+Cc: linux-kernel@vger.kernel.org, James Morris <james.l.morris@oracle.com>, Oleg Nesterov <oleg@redhat.com>, Andy Lutomirski <luto@amacapital.net>, David Drysdale <drysdale@google.com>, "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>, Will Drewry <wad@chromium.org>, Julien Tinnes <jln@chromium.org>, linux-api@vger.kernel.org, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-mips@linux-mips.org, linux-arch@vger.kernel.org, linux-security-module@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, Jul 15, 2014 at 5:47 PM, Arnd Bergmann <arnd@arndb.de> wrote:
-> On Tuesday 15 July 2014 16:45:47 Ley Foon Tan wrote:
->> +static void *cpuinfo_start(struct seq_file *m, loff_t *pos)
->> +{
->> +       unsigned long i = *pos;
->> +
->> +       return i < num_possible_cpus() ? (void *) (i + 1) : NULL;
->> +}
->> +
->> +static void *cpuinfo_next(struct seq_file *m, void *v, loff_t *pos)
->> +{
->> +       ++*pos;
->> +       return cpuinfo_start(m, pos);
->> +}
->
-> Do you actually have SMP support?
-Not.
+On Thu, 17 Jul 2014, Kees Cook wrote:
+
+> Twelfth time's the charm! :)
+
+Btw, there doesn't seem to be an official seccomp maintainer.  Kees, would 
+you like to volunteer for this?  If so, send in a patch for MAINTAINERS, 
+and set up a git tree for me to pull from.
 
 
->> +const struct seq_operations cpuinfo_op = {
->> +       .start  = cpuinfo_start,
->> +       .next   = cpuinfo_next,
->> +       .stop   = cpuinfo_stop,
->> +       .show   = show_cpuinfo
->> +};
->
-> If not, you can use single_start/next/stop here rather than defining your own.
-Okay, I will look into your suggestion.
-Thanks.
 
-Regards
-Ley Foon
+-- 
+James Morris
+<jmorris@namei.org>
