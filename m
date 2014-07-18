@@ -1,53 +1,148 @@
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH v3 3/3] arm64: Use include/asm-generic/io.h
-Date: Fri, 18 Jul 2014 16:50:03 +0100
-Message-ID: <20140718155002.GE4608@arm.com>
-References: <1405508484-18303-1-git-send-email-thierry.reding@gmail.com>
- <1405508484-18303-3-git-send-email-thierry.reding@gmail.com>
- <20140717120441.GI18203@arm.com>
- <20140717122649.GA1006@ulmo>
+From: Andy Lutomirski <luto@amacapital.net>
+Subject: Re: [PATCH v3] arm64,ia64,ppc,s390,sh,tile,um,x86,mm: Remove default
+ gate area
+Date: Fri, 18 Jul 2014 09:53:14 -0700
+Message-ID: <CALCETrXve-=N5yzqDw2YQee4BmC6sb8GYWYJcV2780V38OuJiQ@mail.gmail.com>
+References: <70f331f59e620dc4e66bd3fa095e6f6b744b532b.1405281639.git.luto@amacapital.net>
+ <CALCETrXG6nL4K=Er+kv5-CXBDVa0TLg9yR6iePnMyE2ufXgKkw@mail.gmail.com>
+ <20140718101416.GB1818@arm.com> <53C8F4DF.8020103@nod.at>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from fw-tnat.austin.arm.com ([217.140.110.23]:50102 "EHLO
-	collaborate-mta1.arm.com" rhost-flags-OK-OK-OK-FAIL)
-	by vger.kernel.org with ESMTP id S1751376AbaGRPuZ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Fri, 18 Jul 2014 11:50:25 -0400
-Content-Disposition: inline
-In-Reply-To: <20140717122649.GA1006@ulmo>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Thierry Reding <thierry.reding@gmail.com>
-Cc: Russell King <linux@arm.linux.org.uk>, Will Deacon <Will.Deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Stephen Boyd <sboyd@codeaurora.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
+Content-Type: multipart/alternative; boundary=001a11c3f90a12d5e104fe7a9985
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <53C8F4DF.8020103@nod.at>
+Sender: owner-linux-mm@kvack.org
+To: Richard Weinberger <richard@nod.at>, Andrew Morton <akpm@linux-foundation.org>
+Cc: "linux-mm@kvack.org" <linux-mm@kvack.org>, linuxppc-dev@lists.ozlabs.org, Fenghua Yu <fenghua.yu@intel.com>, X86 ML <x86@kernel.org>, Catalin Marinas <Catalin.Marinas@arm.com>, Ingo Molnar <mingo@redhat.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux-arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Tony Luck <tony.luck@intel.com>, "linux-sh@vger.kernel.org" <linux-sh@vger.kernel.org>, Nathan Lynch <Nathan_Lynch@mentor.com>, "linux390@de.ibm.com" <linux390@de.ibm.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Chris Metcalf <cmetcalf@tilera.com>, Will Deacon <will.deacon@arm.com>, Benjamin
+List-Id: linux-arch.vger.kernel.org
 
-On Thu, Jul 17, 2014 at 01:26:51PM +0100, Thierry Reding wrote:
-> On Thu, Jul 17, 2014 at 01:04:41PM +0100, Catalin Marinas wrote:
-> > On Wed, Jul 16, 2014 at 12:01:24PM +0100, Thierry Reding wrote:
-> > > From: Thierry Reding <treding@nvidia.com>
-> > > 
-> > > Include the generic I/O header file so that duplicate implementations
-> > > can be removed. This will also help to establish consistency across more
-> > > architectures regarding which accessors they support.
-> > > 
-> > > Acked-by: Catalin Marinas <catalin.marinas@arm.com>
-> > > Signed-off-by: Thierry Reding <treding@nvidia.com>
-> > > ---
-> > > Changes in v3:
-> > > - add io{read,write}{16,32}be() to match what 32-bit ARM does
-> > 
-> > It looks fine. Thanks.
-> 
-> Great. Russell hasn't commented on this yet, anyone know how to get his
-> attention?
+--001a11c3f90a12d5e104fe7a9985
+Content-Type: text/plain; charset=UTF-8
 
-Given he dependency on the first patch, they should either go in
-together or first patch in 3.17 and the rest later (but I would prefer
-that they all go in at the same time).
+On Jul 18, 2014 3:20 AM, "Richard Weinberger" <richard@nod.at> wrote:
+>
+> Am 18.07.2014 12:14, schrieb Will Deacon:
+> > On Tue, Jul 15, 2014 at 03:47:26PM +0100, Andy Lutomirski wrote:
+> >> On Sun, Jul 13, 2014 at 1:01 PM, Andy Lutomirski <luto@amacapital.net>
+wrote:
+> >>> The core mm code will provide a default gate area based on
+> >>> FIXADDR_USER_START and FIXADDR_USER_END if
+> >>> !defined(__HAVE_ARCH_GATE_AREA) && defined(AT_SYSINFO_EHDR).
+> >>>
+> >>> This default is only useful for ia64.  arm64, ppc, s390, sh, tile,
+> >>> 64-bit UML, and x86_32 have their own code just to disable it.  arm,
+> >>> 32-bit UML, and x86_64 have gate areas, but they have their own
+> >>> implementations.
+> >>>
+> >>> This gets rid of the default and moves the code into ia64.
+> >>>
+> >>> This should save some code on architectures without a gate area: it's
+> >>> now possible to inline the gate_area functions in the default case.
+> >>
+> >> Can one of you pull this somewhere?  Otherwise I can put it somewhere
+> >> stable and ask for -next inclusion, but that seems like overkill for a
+> >> single patch.
+>
+> For the um bits:
+> Acked-by: Richard Weinberger <richard@nod.at>
+>
+> > I'd be happy to take the arm64 part, but it doesn't feel right for mm/*
+> > changes (or changes to other archs) to go via our tree.
+> >
+> > I'm not sure what the best approach is if you want to send this via a
+single
+> > tree. Maybe you could ask akpm nicely?
+>
+> Going though Andrew's tree sounds sane to me.
 
-I don't mind how they are merged (the arm32 tree, arm-soc or arm64). If
-Russell doesn't have an opinion, I can take the 1st and 3rd patches via
-the arm64 tree.
+Splitting this will be annoying: I'd probably have to add a flag asking for
+the new behavior, update all the arches, then remove the flag.  The chance
+of screwing up bisectability in the process seems pretty high.  This seems
+like overkill for a patch that mostly deletes code.
 
--- 
-Catalin
+Akpm, can you take this?
+
+--Andy
+
+>
+> Thanks,
+> //richard
+
+--001a11c3f90a12d5e104fe7a9985
+Content-Type: text/html; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
+
+<div dir=3D"ltr"><p dir=3D"ltr"><br>
+On Jul 18, 2014 3:20 AM, &quot;Richard Weinberger&quot; &lt;<a href=3D"mail=
+to:richard@nod.at" target=3D"_blank">richard@nod.at</a>&gt; wrote:<br>
+&gt;<br>
+&gt; Am 18.07.2014 12:14, schrieb Will Deacon:<br>
+&gt; &gt; On Tue, Jul 15, 2014 at 03:47:26PM +0100, Andy Lutomirski wrote:<=
+br>
+&gt; &gt;&gt; On Sun, Jul 13, 2014 at 1:01 PM, Andy Lutomirski &lt;<a href=
+=3D"mailto:luto@amacapital.net" target=3D"_blank">luto@amacapital.net</a>&g=
+t; wrote:<br>
+&gt; &gt;&gt;&gt; The core mm code will provide a default gate area based o=
+n<br>
+&gt; &gt;&gt;&gt; FIXADDR_USER_START and FIXADDR_USER_END if<br>
+&gt; &gt;&gt;&gt; !defined(__HAVE_ARCH_GATE_AREA) &amp;&amp; defined(AT_SYS=
+INFO_EHDR).<br>
+&gt; &gt;&gt;&gt;<br>
+&gt; &gt;&gt;&gt; This default is only useful for ia64. =C2=A0arm64, ppc, s=
+390, sh, tile,<br>
+&gt; &gt;&gt;&gt; 64-bit UML, and x86_32 have their own code just to disabl=
+e it. =C2=A0arm,<br>
+&gt; &gt;&gt;&gt; 32-bit UML, and x86_64 have gate areas, but they have the=
+ir own<br>
+&gt; &gt;&gt;&gt; implementations.<br>
+&gt; &gt;&gt;&gt;<br>
+&gt; &gt;&gt;&gt; This gets rid of the default and moves the code into ia64=
+.<br>
+&gt; &gt;&gt;&gt;<br>
+&gt; &gt;&gt;&gt; This should save some code on architectures without a gat=
+e area: it&#39;s<br>
+&gt; &gt;&gt;&gt; now possible to inline the gate_area functions in the def=
+ault case.<br>
+&gt; &gt;&gt;<br>
+&gt; &gt;&gt; Can one of you pull this somewhere? =C2=A0Otherwise I can put=
+ it somewhere<br>
+&gt; &gt;&gt; stable and ask for -next inclusion, but that seems like overk=
+ill for a<br>
+&gt; &gt;&gt; single patch.<br>
+&gt;<br>
+&gt; For the um bits:<br>
+&gt; Acked-by: Richard Weinberger &lt;<a href=3D"mailto:richard@nod.at" tar=
+get=3D"_blank">richard@nod.at</a>&gt;<br>
+&gt;<br>
+&gt; &gt; I&#39;d be happy to take the arm64 part, but it doesn&#39;t feel =
+right for mm/*<br>
+&gt; &gt; changes (or changes to other archs) to go via our tree.<br>
+&gt; &gt;<br>
+&gt; &gt; I&#39;m not sure what the best approach is if you want to send th=
+is via a single<br>
+&gt; &gt; tree. Maybe you could ask akpm nicely?<br>
+&gt;<br>
+&gt; Going though Andrew&#39;s tree sounds sane to me.</p>
+<p dir=3D"ltr">Splitting this will be annoying: I&#39;d probably have to ad=
+d a flag asking for the new behavior, update all the arches, then remove th=
+e flag.=C2=A0 The chance of screwing up bisectability in the process seems =
+pretty high.=C2=A0 This seems like overkill for a patch that mostly deletes=
+ code.</p>
+
+
+
+
+<p dir=3D"ltr">Akpm, can you take this?</p>
+<p dir=3D"ltr">--Andy</p>
+<p dir=3D"ltr">&gt;<br>
+&gt; Thanks,<br>
+&gt; //richard<br>
+</p>
+</div>
+
+--001a11c3f90a12d5e104fe7a9985--
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
