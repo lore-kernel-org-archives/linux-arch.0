@@ -1,35 +1,47 @@
-From: James Morris <jmorris@namei.org>
-Subject: Re: [PATCH v12 11/11] seccomp: add thread sync ability
-Date: Fri, 18 Jul 2014 13:26:48 +1000 (EST)
-Message-ID: <alpine.LRH.2.11.1407181325200.15709@namei.org>
-References: <1405620518-18495-1-git-send-email-keescook@chromium.org>
+From: Ley Foon Tan <lftan@altera.com>
+Subject: Re: [PATCH v2 21/29] nios2: Futex operations
+Date: Fri, 18 Jul 2014 14:07:42 +0800
+Message-ID: <CAFiDJ5-uDPCZha-s2-DrLbHLjezBkLTEjJ0nbnsMocof7kO=1Q@mail.gmail.com>
+References: <1405413956-2772-1-git-send-email-lftan@altera.com>
+	<alpine.DEB.2.10.1407151201170.24854@nanos>
+	<CAFiDJ5-UQ4pu1Hkc444yaA6cbttTXM7KM2eProGUkYgjqvOSUg@mail.gmail.com>
+	<12323898.sHjczXbE7P@wuerfel>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
-Return-path: <linux-mips-bounce@linux-mips.org>
-In-Reply-To: <1405620518-18495-1-git-send-email-keescook@chromium.org>
-Sender: linux-mips-bounce@linux-mips.org
-Errors-to: linux-mips-bounce@linux-mips.org
-List-help: <mailto:ecartis@linux-mips.org?Subject=help>
-List-unsubscribe: <mailto:ecartis@linux-mips.org?subject=unsubscribe%20linux-mips>
-List-software: Ecartis version 1.0.0
-List-subscribe: <mailto:ecartis@linux-mips.org?subject=subscribe%20linux-mips>
-List-owner: <mailto:ralf@linux-mips.org>
-List-post: <mailto:linux-mips@linux-mips.org>
-List-archive: <http://www.linux-mips.org/archives/linux-mips/>
-To: Kees Cook <keescook@chromium.org>
-Cc: linux-kernel@vger.kernel.org, James Morris <james.l.morris@oracle.com>, Oleg Nesterov <oleg@redhat.com>, Andy Lutomirski <luto@amacapital.net>, David Drysdale <drysdale@google.com>, "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>, Will Drewry <wad@chromium.org>, Julien Tinnes <jln@chromium.org>, linux-api@vger.kernel.org, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-mips@linux-mips.org, linux-arch@vger.kernel.org, linux-security-module@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=UTF-8
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-qg0-f49.google.com ([209.85.192.49]:63025 "EHLO
+	mail-qg0-f49.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755283AbaGRGHn (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 18 Jul 2014 02:07:43 -0400
+In-Reply-To: <12323898.sHjczXbE7P@wuerfel>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Chung-Lin Tang <cltang@codesourcery.com>
 
-On Thu, 17 Jul 2014, Kees Cook wrote:
+On Thu, Jul 17, 2014 at 7:07 PM, Arnd Bergmann <arnd@arndb.de> wrote:
+> The get_user/put_user functions really need to be annotated might_fault(),
+> because that's what they do.
+>
+> The whole point of get_user() is to access an unchecked user space
+> pointer, which  can do a number of things based on what the pointer
+> points to:
+>
+> - access a user space variable that resides in memory
+> - access a kernel pointer and fail because of the access_ok()
+>   check
+> - access a user space pointer that is not mapped and return
+>   through the __ex_table fixup.
+> - access a user space pointer that has a valid VMA but not PTE,
+>   causing a page fault to be resolved.
+>
+> It's the last case that breaks here.
+So, do you mean that we can't use get_user/put_user in futex support?
+BTW, some architectures like sh,parisc, m68k use get_user in futex
+function as well.
+Any recommendation way to support futex if we can't use get_user.
+Note, nios2 doesn't have atomic instruction.
+Thanks.
 
-> Twelfth time's the charm! :)
-
-Btw, there doesn't seem to be an official seccomp maintainer.  Kees, would 
-you like to volunteer for this?  If so, send in a patch for MAINTAINERS, 
-and set up a git tree for me to pull from.
-
-
-
--- 
-James Morris
-<jmorris@namei.org>
+Regards
+Ley Foon
