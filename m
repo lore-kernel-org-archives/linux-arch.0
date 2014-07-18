@@ -1,70 +1,53 @@
-From: Lennox Wu <lennox.wu@gmail.com>
-Subject: Re: [PATCH 31/38] score: clean-up uapi Kbuild file
-Date: Fri, 18 Jul 2014 23:19:19 +0800
-Message-ID: <CAF0htA4ZWAfvUdu6HvrAZc1-D2cwWZ8v9dHcYQVS6p6UM9M7Uw@mail.gmail.com>
-References: <20140714150609.GA28358@ravnborg.org>
-	<1405350546-28467-1-git-send-email-sam@ravnborg.org>
-	<1405350546-28467-31-git-send-email-sam@ravnborg.org>
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [PATCH v3 3/3] arm64: Use include/asm-generic/io.h
+Date: Fri, 18 Jul 2014 16:50:03 +0100
+Message-ID: <20140718155002.GE4608@arm.com>
+References: <1405508484-18303-1-git-send-email-thierry.reding@gmail.com>
+ <1405508484-18303-3-git-send-email-thierry.reding@gmail.com>
+ <20140717120441.GI18203@arm.com>
+ <20140717122649.GA1006@ulmo>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1405350546-28467-31-git-send-email-sam@ravnborg.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Sam Ravnborg <sam@ravnborg.org>
-Cc: lkml <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Chen Liqin <liqin.linux@gmail.com>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from fw-tnat.austin.arm.com ([217.140.110.23]:50102 "EHLO
+	collaborate-mta1.arm.com" rhost-flags-OK-OK-OK-FAIL)
+	by vger.kernel.org with ESMTP id S1751376AbaGRPuZ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Fri, 18 Jul 2014 11:50:25 -0400
+Content-Disposition: inline
+In-Reply-To: <20140717122649.GA1006@ulmo>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Thierry Reding <thierry.reding@gmail.com>
+Cc: Russell King <linux@arm.linux.org.uk>, Will Deacon <Will.Deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Stephen Boyd <sboyd@codeaurora.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
 
- Acked-by: Lennox Wu <lennox.wu@gamil.com>
+On Thu, Jul 17, 2014 at 01:26:51PM +0100, Thierry Reding wrote:
+> On Thu, Jul 17, 2014 at 01:04:41PM +0100, Catalin Marinas wrote:
+> > On Wed, Jul 16, 2014 at 12:01:24PM +0100, Thierry Reding wrote:
+> > > From: Thierry Reding <treding@nvidia.com>
+> > > 
+> > > Include the generic I/O header file so that duplicate implementations
+> > > can be removed. This will also help to establish consistency across more
+> > > architectures regarding which accessors they support.
+> > > 
+> > > Acked-by: Catalin Marinas <catalin.marinas@arm.com>
+> > > Signed-off-by: Thierry Reding <treding@nvidia.com>
+> > > ---
+> > > Changes in v3:
+> > > - add io{read,write}{16,32}be() to match what 32-bit ARM does
+> > 
+> > It looks fine. Thanks.
+> 
+> Great. Russell hasn't commented on this yet, anyone know how to get his
+> attention?
 
-2014-07-14 23:08 GMT+08:00 Sam Ravnborg <sam@ravnborg.org>:
-> Remove redundant assignments.
->
-> Signed-off-by: Sam Ravnborg <sam@ravnborg.org>
-> Cc: Chen Liqin <liqin.linux@gmail.com>
-> Cc: Lennox Wu <lennox.wu@gmail.com>
-> ---
->  arch/score/include/uapi/asm/Kbuild | 32 --------------------------------
->  1 file changed, 32 deletions(-)
->
-> diff --git a/arch/score/include/uapi/asm/Kbuild b/arch/score/include/uapi/asm/Kbuild
-> index 040178c..b15bf6b 100644
-> --- a/arch/score/include/uapi/asm/Kbuild
-> +++ b/arch/score/include/uapi/asm/Kbuild
-> @@ -1,34 +1,2 @@
->  # UAPI Header export list
->  include include/uapi/asm-generic/Kbuild.asm
-> -
-> -header-y += auxvec.h
-> -header-y += bitsperlong.h
-> -header-y += byteorder.h
-> -header-y += errno.h
-> -header-y += fcntl.h
-> -header-y += ioctl.h
-> -header-y += ioctls.h
-> -header-y += ipcbuf.h
-> -header-y += kvm_para.h
-> -header-y += mman.h
-> -header-y += msgbuf.h
-> -header-y += param.h
-> -header-y += poll.h
-> -header-y += posix_types.h
-> -header-y += ptrace.h
-> -header-y += resource.h
-> -header-y += sembuf.h
-> -header-y += setup.h
-> -header-y += shmbuf.h
-> -header-y += sigcontext.h
-> -header-y += siginfo.h
-> -header-y += signal.h
-> -header-y += socket.h
-> -header-y += sockios.h
-> -header-y += stat.h
-> -header-y += statfs.h
-> -header-y += swab.h
-> -header-y += termbits.h
-> -header-y += termios.h
-> -header-y += types.h
-> -header-y += unistd.h
-> --
-> 1.9.3
->
+Given he dependency on the first patch, they should either go in
+together or first patch in 3.17 and the rest later (but I would prefer
+that they all go in at the same time).
+
+I don't mind how they are merged (the arm32 tree, arm-soc or arm64). If
+Russell doesn't have an opinion, I can take the 1st and 3rd patches via
+the arm64 tree.
+
+-- 
+Catalin
