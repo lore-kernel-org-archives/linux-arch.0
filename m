@@ -1,31 +1,61 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from relay1.mentorg.com ([192.94.38.131]:64773 "EHLO
-	relay1.mentorg.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755503AbaGRGPB (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 18 Jul 2014 02:15:01 -0400
-Message-ID: <53C8BB6B.5050606@codesourcery.com>
-Date: Fri, 18 Jul 2014 14:15:07 +0800
-From: Chung-Lin Tang <cltang@codesourcery.com>
+Received: from mail-qa0-f50.google.com ([209.85.216.50]:64603 "EHLO
+	mail-qa0-f50.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1759400AbaGRGzD (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 18 Jul 2014 02:55:03 -0400
 MIME-Version: 1.0
-Subject: Re: [PATCH v2 22/29] nios2: Miscellaneous header files
-References: <1405413956-2772-1-git-send-email-lftan@altera.com> <4999408.jEEY9BVX9F@wuerfel> <53C50A87.6000902@codesourcery.com> <4477048.XUlURsz4uq@wuerfel>
-In-Reply-To: <4477048.XUlURsz4uq@wuerfel>
-Content-Type: text/plain; charset="ISO-8859-1"
-Content-Transfer-Encoding: 7bit
+In-Reply-To: <alpine.DEB.2.10.1407171555580.24854@nanos>
+References: <1405413956-2772-1-git-send-email-lftan@altera.com>
+	<1405413956-2772-13-git-send-email-lftan@altera.com>
+	<alpine.DEB.2.10.1407151147540.24854@nanos>
+	<CAFiDJ58oEfFN5CgLZxqTLSiGfuxNH2t3OFAaSUWLJ_P_B_QRBQ@mail.gmail.com>
+	<alpine.DEB.2.10.1407171555580.24854@nanos>
+Date: Fri, 18 Jul 2014 14:55:01 +0800
+Message-ID: <CAFiDJ5-U-Ce1kX59xEzAe9w8pbah=pZkO15pYNV_YgjQnEPkrw@mail.gmail.com>
+Subject: Re: [PATCH v2 12/29] nios2: Interrupt handling
+From: Ley Foon Tan <lftan@altera.com>
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Ley Foon Tan <lftan@altera.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, lftan.linux@gmail.com, "Joseph S. Myers" <joseph@codesourcery.com>
-Message-ID: <20140718061507.PvITN2DUaoR1RGyXZ3folepUtBiOSLbUbGFzZVSxzPg@z>
+To: Thomas Gleixner <tglx@linutronix.de>
+Cc: Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Chung-Lin Tang <cltang@codesourcery.com>
+Message-ID: <20140718065501.KkJQ7UlWY-Qf1wWYRfwNO2uEB8uc0B5Zqq9-doCj1zA@z>
 
-Hi Arnd,
-Considering two other kernel interface issues that appeared earlier in
-the context of nios2 glibc/kernel upstreaming:
+On Thu, Jul 17, 2014 at 9:58 PM, Thomas Gleixner <tglx@linutronix.de> wrote:
+> On Thu, 17 Jul 2014, Ley Foon Tan wrote:
+>
+>> On Tue, Jul 15, 2014 at 5:51 PM, Thomas Gleixner <tglx@linutronix.de> wrote:
+>> > On Tue, 15 Jul 2014, Ley Foon Tan wrote:
 
-(1) The 64-bit time_t/timespec issue.
-(2) Dropping renameat by default in favor of renameat2
+>> >> +static void chip_unmask(struct irq_data *d)
+>> >> +{
+>> >> +     u32 ien;
+>> >> +     ien = RDCTL(CTL_IENABLE);
+>> >> +     ien |= (1 << d->hwirq);
+>> >> +     WRCTL(CTL_IENABLE, ien);
+>> >
+>> > So this is UP only, right?
+>> Yes, this is to enable one interrupt.
+>
+> The question was, whether this is always a UniProcessor machine.
+Yes, it is UP.
+>
+>> > Also why don't you cache the register content so spare the extra read
+>> > from the hardware?
+>> Need to make sure nobody modify the register if we cache the register content.
+>> Will keep as it is.
+>
+> Sigh.
+>
+> If this is a uniprocessor only design, then nothing can modify the
+> cached values as all these functions are always called with interrupts
+> disabled.
+>
+> If this should be SMP safe, then you'd need serialization of the
+> register access as well becasue the read/modify/write sequence is not
+> atomic.
+Okay, we can cache the value.
+Thanks.
 
-What's the decision for these? Are they delayed to the next release?
-
-Thanks,
-Chung-Lin
+Regards
+Ley Foon
