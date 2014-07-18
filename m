@@ -1,14 +1,14 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pd0-f177.google.com ([209.85.192.177]:40553 "EHLO
-	mail-pd0-f177.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S935283AbaGRVTN (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 18 Jul 2014 17:19:13 -0400
-Received: by mail-pd0-f177.google.com with SMTP id p10so5599413pdj.22
-        for <linux-arch@vger.kernel.org>; Fri, 18 Jul 2014 14:19:12 -0700 (PDT)
+Received: from mail-pd0-f175.google.com ([209.85.192.175]:49201 "EHLO
+	mail-pd0-f175.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1422829AbaGRVS5 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 18 Jul 2014 17:18:57 -0400
+Received: by mail-pd0-f175.google.com with SMTP id r10so4190747pdi.20
+        for <linux-arch@vger.kernel.org>; Fri, 18 Jul 2014 14:18:57 -0700 (PDT)
 From: Andy Lutomirski <luto@amacapital.net>
-Subject: [PATCH v2 6/7] x86_64,entry: Treat regs->ax the same in fastpath and slowpath syscalls
-Date: Fri, 18 Jul 2014 14:18:14 -0700
-Message-ID: <90f4dbe738cb61a8a90ba9a64c3fc94c903a52cb.1405717901.git.luto@amacapital.net>
+Subject: [PATCH v2 3/7] seccomp: Allow arch code to provide seccomp_data
+Date: Fri, 18 Jul 2014 14:18:11 -0700
+Message-ID: <ce65e0e8be18ae8fab437899db44ca41c912b506.1405717901.git.luto@amacapital.net>
 In-Reply-To: <cover.1405717901.git.luto@amacapital.net>
 References: <cover.1405717901.git.luto@amacapital.net>
 In-Reply-To: <cover.1405717901.git.luto@amacapital.net>
@@ -17,106 +17,154 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, Kees Cook <keescook@chromium.org>, Will Drewry <wad@chromium.org>
 Cc: Oleg Nesterov <oleg@redhat.com>, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-mips@linux-mips.org, linux-arch@vger.kernel.org, linux-security-module@vger.kernel.org, Alexei Starovoitov <ast@plumgrid.com>, hpa@zytor.com, Andy Lutomirski <luto@amacapital.net>
-Message-ID: <20140718211814.f48YgG0Qz174xoo22WZxVG2nXLhIq0TdAQes2qIf8Ms@z>
+Message-ID: <20140718211811.qmld0nCO44zc4GrlXb5V_miSl3dt3Xi33PRgfbfLkSs@z>
 
-For slowpath syscalls, we initialize regs->ax to -ENOSYS and stick
-the syscall number into regs->orig_ax prior to any possible tracing
-and syscall execution.  This is user-visible ABI used by ptrace
-syscall emulation and seccomp.
+populate_seccomp_data is expensive: it works by inspecting
+task_pt_regs and various other bits to piece together all the
+information, and it's does so in multiple partially redundant steps.
 
-For fastpath syscalls, there's no good reason not to do the same
-thing.  It's even slightly simpler than what we're currently doing.
-It probably has no measureable performance impact.  It should have
-no user-visible effect.
+Arch-specific code in the syscall entry path can do much better.
 
-The purpose of this patch is to prepare for two-phase syscall
-tracing, in which the first phase might modify the saved RAX without
-leaving the fast path.  This change is just subtle enough that I'm
-keeping it separate.
+Admittedly this adds a bit of additional room for error, but the
+speedup should be worth it.
 
 Signed-off-by: Andy Lutomirski <luto@amacapital.net>
 ---
- arch/x86/include/asm/calling.h |  6 +++++-
- arch/x86/kernel/entry_64.S     | 13 ++++---------
- 2 files changed, 9 insertions(+), 10 deletions(-)
+ include/linux/seccomp.h |  2 +-
+ kernel/seccomp.c        | 32 +++++++++++++++++++-------------
+ 2 files changed, 20 insertions(+), 14 deletions(-)
 
-diff --git a/arch/x86/include/asm/calling.h b/arch/x86/include/asm/calling.h
-index cb4c73b..76659b6 100644
---- a/arch/x86/include/asm/calling.h
-+++ b/arch/x86/include/asm/calling.h
-@@ -85,7 +85,7 @@ For 32-bit we have the following conventions - kernel is built with
- #define ARGOFFSET	R11
- #define SWFRAME		ORIG_RAX
+diff --git a/include/linux/seccomp.h b/include/linux/seccomp.h
+index 3885108..a19ddac 100644
+--- a/include/linux/seccomp.h
++++ b/include/linux/seccomp.h
+@@ -39,7 +39,7 @@ static inline int secure_computing(void)
+ #define SECCOMP_PHASE1_OK	0
+ #define SECCOMP_PHASE1_SKIP	1
  
--	.macro SAVE_ARGS addskip=0, save_rcx=1, save_r891011=1
-+	.macro SAVE_ARGS addskip=0, save_rcx=1, save_r891011=1, rax_enosys=0
- 	subq  $9*8+\addskip, %rsp
- 	CFI_ADJUST_CFA_OFFSET	9*8+\addskip
- 	movq_cfi rdi, 8*8
-@@ -96,7 +96,11 @@ For 32-bit we have the following conventions - kernel is built with
- 	movq_cfi rcx, 5*8
- 	.endif
+-extern u32 seccomp_phase1(void);
++extern u32 seccomp_phase1(struct seccomp_data *sd);
+ int seccomp_phase2(u32 phase1_result);
+ #else
+ extern void secure_computing_strict(int this_syscall);
+diff --git a/kernel/seccomp.c b/kernel/seccomp.c
+index 0088d29..80115b0 100644
+--- a/kernel/seccomp.c
++++ b/kernel/seccomp.c
+@@ -173,10 +173,10 @@ static int seccomp_check_filter(struct sock_filter *filter, unsigned int flen)
+  *
+  * Returns valid seccomp BPF response codes.
+  */
+-static u32 seccomp_run_filters(void)
++static u32 seccomp_run_filters(struct seccomp_data *sd)
+ {
+ 	struct seccomp_filter *f = ACCESS_ONCE(current->seccomp.filter);
+-	struct seccomp_data sd;
++	struct seccomp_data sd_local;
+ 	u32 ret = SECCOMP_RET_ALLOW;
  
-+	.if \rax_enosys
-+	movq $-ENOSYS, 4*8(%rsp)
-+	.else
- 	movq_cfi rax, 4*8
-+	.endif
+ 	/* Ensure unexpected behavior doesn't result in failing open. */
+@@ -186,14 +186,17 @@ static u32 seccomp_run_filters(void)
+ 	/* Make sure cross-thread synced filter points somewhere sane. */
+ 	smp_read_barrier_depends();
  
- 	.if \save_r891011
- 	movq_cfi r8,  3*8
-diff --git a/arch/x86/kernel/entry_64.S b/arch/x86/kernel/entry_64.S
-index b25ca96..1eb3094 100644
---- a/arch/x86/kernel/entry_64.S
-+++ b/arch/x86/kernel/entry_64.S
-@@ -405,8 +405,8 @@ GLOBAL(system_call_after_swapgs)
- 	 * and short:
- 	 */
- 	ENABLE_INTERRUPTS(CLBR_NONE)
--	SAVE_ARGS 8,0
--	movq  %rax,ORIG_RAX-ARGOFFSET(%rsp)
-+	SAVE_ARGS 8, 0, rax_enosys=1
-+	movq_cfi rax,(ORIG_RAX-ARGOFFSET)
- 	movq  %rcx,RIP-ARGOFFSET(%rsp)
- 	CFI_REL_OFFSET rip,RIP-ARGOFFSET
- 	testl $_TIF_WORK_SYSCALL_ENTRY,TI_flags+THREAD_INFO(%rsp,RIP-ARGOFFSET)
-@@ -418,7 +418,7 @@ system_call_fastpath:
- 	andl $__SYSCALL_MASK,%eax
- 	cmpl $__NR_syscall_max,%eax
- #endif
--	ja badsys
-+	ja ret_from_sys_call  /* and return regs->ax */
- 	movq %r10,%rcx
- 	call *sys_call_table(,%rax,8)  # XXX:	 rip relative
- 	movq %rax,RAX-ARGOFFSET(%rsp)
-@@ -477,10 +477,6 @@ sysret_signal:
- 	FIXUP_TOP_OF_STACK %r11, -ARGOFFSET
- 	jmp int_check_syscall_exit_work
+-	populate_seccomp_data(&sd);
++	if (!sd) {
++		populate_seccomp_data(&sd_local);
++		sd = &sd_local;
++	}
  
--badsys:
--	movq $-ENOSYS,RAX-ARGOFFSET(%rsp)
--	jmp ret_from_sys_call
--
- #ifdef CONFIG_AUDITSYSCALL
  	/*
- 	 * Fast path for syscall audit without full syscall trace.
-@@ -520,7 +516,6 @@ tracesys:
- 	jz auditsys
+ 	 * All filters in the list are evaluated and the lowest BPF return
+ 	 * value always takes priority (ignoring the DATA).
+ 	 */
+ 	for (; f; f = f->prev) {
+-		u32 cur_ret = SK_RUN_FILTER(f->prog, (void *)&sd);
++		u32 cur_ret = SK_RUN_FILTER(f->prog, (void *)sd);
+ 
+ 		if ((cur_ret & SECCOMP_RET_ACTION) < (ret & SECCOMP_RET_ACTION))
+ 			ret = cur_ret;
+@@ -599,7 +602,7 @@ void secure_computing_strict(int this_syscall)
+ #else
+ int __secure_computing(void)
+ {
+-	u32 phase1_result = seccomp_phase1();
++	u32 phase1_result = seccomp_phase1(NULL);
+ 
+ 	if (likely(phase1_result == SECCOMP_PHASE1_OK))
+ 		return 0;
+@@ -610,7 +613,7 @@ int __secure_computing(void)
+ }
+ 
+ #ifdef CONFIG_SECCOMP_FILTER
+-static u32 __seccomp_phase1_filter(int this_syscall, struct pt_regs *regs)
++static u32 __seccomp_phase1_filter(int this_syscall, struct seccomp_data *sd)
+ {
+ 	u32 filter_ret, action;
+ 	int data;
+@@ -621,20 +624,20 @@ static u32 __seccomp_phase1_filter(int this_syscall, struct pt_regs *regs)
+ 	 */
+ 	rmb();
+ 
+-	filter_ret = seccomp_run_filters();
++	filter_ret = seccomp_run_filters(sd);
+ 	data = filter_ret & SECCOMP_RET_DATA;
+ 	action = filter_ret & SECCOMP_RET_ACTION;
+ 
+ 	switch (action) {
+ 	case SECCOMP_RET_ERRNO:
+ 		/* Set the low-order 16-bits as a errno. */
+-		syscall_set_return_value(current, regs,
++		syscall_set_return_value(current, task_pt_regs(current),
+ 					 -data, 0);
+ 		goto skip;
+ 
+ 	case SECCOMP_RET_TRAP:
+ 		/* Show the handler the original registers. */
+-		syscall_rollback(current, regs);
++		syscall_rollback(current, task_pt_regs(current));
+ 		/* Let the filter pass back 16 bits of data. */
+ 		seccomp_send_sigsys(this_syscall, data);
+ 		goto skip;
+@@ -661,11 +664,14 @@ skip:
+ 
+ /**
+  * seccomp_phase1() - run fast path seccomp checks on the current syscall
++ * @arg sd: The seccomp_data or NULL
+  *
+  * This only reads pt_regs via the syscall_xyz helpers.  The only change
+  * it will make to pt_regs is via syscall_set_return_value, and it will
+  * only do that if it returns SECCOMP_PHASE1_SKIP.
+  *
++ * If sd is provided, it will not read pt_regs at all.
++ *
+  * It may also call do_exit or force a signal; these actions must be
+  * safe.
+  *
+@@ -679,11 +685,11 @@ skip:
+  * If it returns anything else, then the return value should be passed
+  * to seccomp_phase2 from a context in which ptrace hooks are safe.
+  */
+-u32 seccomp_phase1(void)
++u32 seccomp_phase1(struct seccomp_data *sd)
+ {
+ 	int mode = current->seccomp.mode;
+-	struct pt_regs *regs = task_pt_regs(current);
+-	int this_syscall = syscall_get_nr(current, regs);
++	int this_syscall = sd ? sd->nr :
++		syscall_get_nr(current, task_pt_regs(current));
+ 
+ 	switch (mode) {
+ 	case SECCOMP_MODE_STRICT:
+@@ -691,7 +697,7 @@ u32 seccomp_phase1(void)
+ 		return SECCOMP_PHASE1_OK;
+ #ifdef CONFIG_SECCOMP_FILTER
+ 	case SECCOMP_MODE_FILTER:
+-		return __seccomp_phase1_filter(this_syscall, regs);
++		return __seccomp_phase1_filter(this_syscall, sd);
  #endif
- 	SAVE_REST
--	movq $-ENOSYS,RAX(%rsp) /* ptrace can change this for a bad syscall */
- 	FIXUP_TOP_OF_STACK %rdi
- 	movq %rsp,%rdi
- 	call syscall_trace_enter
-@@ -537,7 +532,7 @@ tracesys:
- 	andl $__SYSCALL_MASK,%eax
- 	cmpl $__NR_syscall_max,%eax
- #endif
--	ja   int_ret_from_sys_call	/* RAX(%rsp) set to -ENOSYS above */
-+	ja   int_ret_from_sys_call	/* RAX(%rsp) is already set */
- 	movq %r10,%rcx	/* fixup for C */
- 	call *sys_call_table(,%rax,8)
- 	movq %rax,RAX-ARGOFFSET(%rsp)
+ 	default:
+ 		BUG();
 -- 
 1.9.3
 
