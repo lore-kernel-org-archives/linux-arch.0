@@ -1,47 +1,26 @@
-From: Ley Foon Tan <lftan@altera.com>
-Subject: Re: [PATCH v2 21/29] nios2: Futex operations
-Date: Fri, 18 Jul 2014 14:07:42 +0800
-Message-ID: <CAFiDJ5-uDPCZha-s2-DrLbHLjezBkLTEjJ0nbnsMocof7kO=1Q@mail.gmail.com>
-References: <1405413956-2772-1-git-send-email-lftan@altera.com>
-	<alpine.DEB.2.10.1407151201170.24854@nanos>
-	<CAFiDJ5-UQ4pu1Hkc444yaA6cbttTXM7KM2eProGUkYgjqvOSUg@mail.gmail.com>
-	<12323898.sHjczXbE7P@wuerfel>
+From: Chung-Lin Tang <cltang@codesourcery.com>
+Subject: Re: [PATCH v2 22/29] nios2: Miscellaneous header files
+Date: Fri, 18 Jul 2014 14:15:07 +0800
+Message-ID: <53C8BB6B.5050606@codesourcery.com>
+References: <1405413956-2772-1-git-send-email-lftan@altera.com> <4999408.jEEY9BVX9F@wuerfel> <53C50A87.6000902@codesourcery.com> <4477048.XUlURsz4uq@wuerfel>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qg0-f49.google.com ([209.85.192.49]:63025 "EHLO
-	mail-qg0-f49.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755283AbaGRGHn (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 18 Jul 2014 02:07:43 -0400
-In-Reply-To: <12323898.sHjczXbE7P@wuerfel>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Content-Type: text/plain; charset="ISO-8859-1"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-doc-owner@vger.kernel.org>
+In-Reply-To: <4477048.XUlURsz4uq@wuerfel>
+Sender: linux-doc-owner@vger.kernel.org
 To: Arnd Bergmann <arnd@arndb.de>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Chung-Lin Tang <cltang@codesourcery.com>
+Cc: Ley Foon Tan <lftan@altera.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, lftan.linux@gmail.com, "Joseph S. Myers" <joseph@codesourcery.com>
+List-Id: linux-arch.vger.kernel.org
 
-On Thu, Jul 17, 2014 at 7:07 PM, Arnd Bergmann <arnd@arndb.de> wrote:
-> The get_user/put_user functions really need to be annotated might_fault(),
-> because that's what they do.
->
-> The whole point of get_user() is to access an unchecked user space
-> pointer, which  can do a number of things based on what the pointer
-> points to:
->
-> - access a user space variable that resides in memory
-> - access a kernel pointer and fail because of the access_ok()
->   check
-> - access a user space pointer that is not mapped and return
->   through the __ex_table fixup.
-> - access a user space pointer that has a valid VMA but not PTE,
->   causing a page fault to be resolved.
->
-> It's the last case that breaks here.
-So, do you mean that we can't use get_user/put_user in futex support?
-BTW, some architectures like sh,parisc, m68k use get_user in futex
-function as well.
-Any recommendation way to support futex if we can't use get_user.
-Note, nios2 doesn't have atomic instruction.
-Thanks.
+Hi Arnd,
+Considering two other kernel interface issues that appeared earlier in
+the context of nios2 glibc/kernel upstreaming:
 
-Regards
-Ley Foon
+(1) The 64-bit time_t/timespec issue.
+(2) Dropping renameat by default in favor of renameat2
+
+What's the decision for these? Are they delayed to the next release?
+
+Thanks,
+Chung-Lin
