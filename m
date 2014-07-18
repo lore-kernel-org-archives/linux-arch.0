@@ -1,75 +1,42 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-vc0-f178.google.com ([209.85.220.178]:53403 "EHLO
-	mail-vc0-f178.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1030462AbaGRPTV (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 18 Jul 2014 11:19:21 -0400
+Received: from mail-lb0-f169.google.com ([209.85.217.169]:49576 "EHLO
+	mail-lb0-f169.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S965888AbaGRRR2 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 18 Jul 2014 13:17:28 -0400
+Received: by mail-lb0-f169.google.com with SMTP id s7so3130335lbd.0
+        for <linux-arch@vger.kernel.org>; Fri, 18 Jul 2014 10:17:26 -0700 (PDT)
 MIME-Version: 1.0
-In-Reply-To: <1405350546-28467-31-git-send-email-sam@ravnborg.org>
-References: <20140714150609.GA28358@ravnborg.org>
-	<1405350546-28467-1-git-send-email-sam@ravnborg.org>
-	<1405350546-28467-31-git-send-email-sam@ravnborg.org>
-Date: Fri, 18 Jul 2014 23:19:19 +0800
-Message-ID: <CAF0htA4ZWAfvUdu6HvrAZc1-D2cwWZ8v9dHcYQVS6p6UM9M7Uw@mail.gmail.com>
-Subject: Re: [PATCH 31/38] score: clean-up uapi Kbuild file
-From: Lennox Wu <lennox.wu@gmail.com>
+In-Reply-To: <alpine.LRH.2.11.1407181325200.15709@namei.org>
+References: <1405620518-18495-1-git-send-email-keescook@chromium.org> <alpine.LRH.2.11.1407181325200.15709@namei.org>
+From: Andy Lutomirski <luto@amacapital.net>
+Date: Fri, 18 Jul 2014 10:17:06 -0700
+Message-ID: <CALCETrUv3G+C3PTOD1FJGOG8AQCA30hNkUiusCnQDGq6Kt_Feg@mail.gmail.com>
+Subject: Re: [PATCH v12 11/11] seccomp: add thread sync ability
 Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Sam Ravnborg <sam@ravnborg.org>
-Cc: lkml <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Chen Liqin <liqin.linux@gmail.com>
-Message-ID: <20140718151919.iYT-aFuuGDm9BPOWvGKfIzxVdPFN_lN3w6CrOH9CjEM@z>
+To: James Morris <jmorris@namei.org>
+Cc: Kees Cook <keescook@chromium.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, James Morris <james.l.morris@oracle.com>, Oleg Nesterov <oleg@redhat.com>, David Drysdale <drysdale@google.com>, "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>, Will Drewry <wad@chromium.org>, Julien Tinnes <jln@chromium.org>, Linux API <linux-api@vger.kernel.org>, X86 ML <x86@kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Linux MIPS Mailing List <linux-mips@linux-mips.org>, linux-arch <linux-arch@vger.kernel.org>, LSM List <linux-security-module@vger.kernel.org>
+Message-ID: <20140718171706.SY0D9mBoJM-NvCtpvNJ3CdoBPmoP1GF21sik4l64TuY@z>
 
- Acked-by: Lennox Wu <lennox.wu@gamil.com>
+On Thu, Jul 17, 2014 at 8:26 PM, James Morris <jmorris@namei.org> wrote:
+> On Thu, 17 Jul 2014, Kees Cook wrote:
+>
+>> Twelfth time's the charm! :)
+>
+> Btw, there doesn't seem to be an official seccomp maintainer.  Kees, would
+> you like to volunteer for this?  If so, send in a patch for MAINTAINERS,
+> and set up a git tree for me to pull from.
 
-2014-07-14 23:08 GMT+08:00 Sam Ravnborg <sam@ravnborg.org>:
-> Remove redundant assignments.
->
-> Signed-off-by: Sam Ravnborg <sam@ravnborg.org>
-> Cc: Chen Liqin <liqin.linux@gmail.com>
-> Cc: Lennox Wu <lennox.wu@gmail.com>
-> ---
->  arch/score/include/uapi/asm/Kbuild | 32 --------------------------------
->  1 file changed, 32 deletions(-)
->
-> diff --git a/arch/score/include/uapi/asm/Kbuild b/arch/score/include/uapi/asm/Kbuild
-> index 040178c..b15bf6b 100644
-> --- a/arch/score/include/uapi/asm/Kbuild
-> +++ b/arch/score/include/uapi/asm/Kbuild
-> @@ -1,34 +1,2 @@
->  # UAPI Header export list
->  include include/uapi/asm-generic/Kbuild.asm
-> -
-> -header-y += auxvec.h
-> -header-y += bitsperlong.h
-> -header-y += byteorder.h
-> -header-y += errno.h
-> -header-y += fcntl.h
-> -header-y += ioctl.h
-> -header-y += ioctls.h
-> -header-y += ipcbuf.h
-> -header-y += kvm_para.h
-> -header-y += mman.h
-> -header-y += msgbuf.h
-> -header-y += param.h
-> -header-y += poll.h
-> -header-y += posix_types.h
-> -header-y += ptrace.h
-> -header-y += resource.h
-> -header-y += sembuf.h
-> -header-y += setup.h
-> -header-y += shmbuf.h
-> -header-y += sigcontext.h
-> -header-y += siginfo.h
-> -header-y += signal.h
-> -header-y += socket.h
-> -header-y += sockios.h
-> -header-y += stat.h
-> -header-y += statfs.h
-> -header-y += swab.h
-> -header-y += termbits.h
-> -header-y += termios.h
-> -header-y += types.h
-> -header-y += unistd.h
-> --
-> 1.9.3
->
+*snicker* :)
+
+Kees, if you take on this awesome responsibility, should I send you a
+rebased version of the fastpath stuff?  If so, I think that the
+arch-neutral part should go in through your shiny new tree (once it's
+reviewed to your satisfaction), and I'll ask hpa to pick up the x86
+part.
+
+I'd volunteer to be a "R:eviewer", but I don't think that the R tag
+has made it into MAINTAINERS yet.
+
+--Andy
