@@ -1,63 +1,58 @@
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH v2 21/29] nios2: Futex operations
-Date: Fri, 18 Jul 2014 11:09:10 +0200
-Message-ID: <17186253.ZJUn1qWK0f@wuerfel>
-References: <1405413956-2772-1-git-send-email-lftan@altera.com> <12323898.sHjczXbE7P@wuerfel> <CAFiDJ5-uDPCZha-s2-DrLbHLjezBkLTEjJ0nbnsMocof7kO=1Q@mail.gmail.com>
+Subject: Re: [PATCH v2 22/29] nios2: Miscellaneous header files
+Date: Fri, 18 Jul 2014 11:18:44 +0200
+Message-ID: <24519153.8UnNuM8InF@wuerfel>
+References: <1405413956-2772-1-git-send-email-lftan@altera.com> <4477048.XUlURsz4uq@wuerfel> <53C8BB6B.5050606@codesourcery.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7Bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.126.187]:58803 "EHLO
-	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756084AbaGRJJR (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 18 Jul 2014 05:09:17 -0400
-In-Reply-To: <CAFiDJ5-uDPCZha-s2-DrLbHLjezBkLTEjJ0nbnsMocof7kO=1Q@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Ley Foon Tan <lftan@altera.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Chung-Lin Tang <cltang@codesourcery.com>
+Return-path: <linux-doc-owner@vger.kernel.org>
+In-Reply-To: <53C8BB6B.5050606@codesourcery.com>
+Sender: linux-doc-owner@vger.kernel.org
+To: Chung-Lin Tang <cltang@codesourcery.com>
+Cc: Ley Foon Tan <lftan@altera.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, lftan.linux@gmail.com, "Joseph S. Myers" <joseph@codesourcery.com>
+List-Id: linux-arch.vger.kernel.org
 
-On Friday 18 July 2014 14:07:42 Ley Foon Tan wrote:
-> On Thu, Jul 17, 2014 at 7:07 PM, Arnd Bergmann <arnd@arndb.de> wrote:
-> > The get_user/put_user functions really need to be annotated might_fault(),
-> > because that's what they do.
-> >
-> > The whole point of get_user() is to access an unchecked user space
-> > pointer, which  can do a number of things based on what the pointer
-> > points to:
-> >
-> > - access a user space variable that resides in memory
-> > - access a kernel pointer and fail because of the access_ok()
-> >   check
-> > - access a user space pointer that is not mapped and return
-> >   through the __ex_table fixup.
-> > - access a user space pointer that has a valid VMA but not PTE,
-> >   causing a page fault to be resolved.
-> >
-> > It's the last case that breaks here.
-> So, do you mean that we can't use get_user/put_user in futex support?
-> BTW, some architectures like sh,parisc, m68k use get_user in futex
-> function as well.
-> Any recommendation way to support futex if we can't use get_user.
-> Note, nios2 doesn't have atomic instruction.
-> Thanks.
+On Friday 18 July 2014 14:15:07 Chung-Lin Tang wrote:
+> Hi Arnd,
+> Considering two other kernel interface issues that appeared earlier in
+> the context of nios2 glibc/kernel upstreaming:
+> 
+> (1) The 64-bit time_t/timespec issue.
+> (2) Dropping renameat by default in favor of renameat2
+> 
+> What's the decision for these? Are they delayed to the next release?
 
-I looked at it again now and I'm no longer sure about my initial
-interpretation. The way it seems to work is that pagefault_disable()
-turns the case I mentioned into a simple error through the fixup,
-so we return -EFAULT from get_user, and retry the futex from
-futex_wake_op().
+For renameat2, I believe we had patches to change the generic syscall
+list. It would be nice if you could include those in your patch
+series as a prerequisite and base your patches on top.
 
-This would however also mean that there is no need for a spinlock
-at all, atomicity is already implied by pagefault_disable() here
-because you are running on a UP kernel and pagefault_disable() also
-means there is no preemption.
+Regarding time_t, I've spent much more time looking into what we
+need to do for the other 32-bit architectures now. My feeling now
+is that we're better off not introducing another special case for
+nios2 here, as that will have the effect of making it harder to
+move everyone else over later. We already have to deal with:
 
-If this understanding is right, we can probably just merge the
-m68k implementation into the asm-generic version, as that does
-exactly that, and just isn't SMP safe. I'm still unsure whether
-I'm missing something here though, as everything else seems to
-do this in assembly, even for non-SMP machines that could use
-the trivial method that m68k has.
+- 32-bit architectures using 32-bit time_t
+- 64-bit architectures using 64-bit time_t
+- 64-bit architectures running 32-bit tasks with 32-bit time_t
+- 64-bit x86-64 and soon arm64 running x32 user space with 64-bit time_t
+
+and we will get in the future
+
+- 32-bit architectures providing both 32-bit time_t and 64-bit time64_t
+- 64-bit architectures with compat tasks running 64-bit time64_t
+
+Adding a 32-bit architecture that has a native 64-bit time_t will
+just add another special case that we will have to live with for
+a long time and that can introduce bugs for the other cases if we
+get it wrong. I vote for keeping 32-bit time_t on nios2 and fixing
+it along with arm32 and x86-32 and the others.
+
+Presumably this is not a huge problem for you as I expect it's
+easier for you to do another ABI change in user space when we get
+there: once we have support for 64-bit time64_t in the kernel, you
+can change your toolchains to default to that in user space and
+rebuild everything. This is not something we can easily do in x86.
 
 	Arnd
