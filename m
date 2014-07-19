@@ -1,55 +1,63 @@
-From: Andy Lutomirski <luto@amacapital.net>
-Subject: [PATCH v2 8/7] seccomp: Document two-phase seccomp and arch-provided seccomp_data
-Date: Fri, 18 Jul 2014 15:32:00 -0700
-Message-ID: <0a79fe55572054ac3b533548481ad1d2b6104eb6.1405722642.git.luto@amacapital.net>
-References: <cover.1405717901.git.luto@amacapital.net>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH v3 1/3] asm-generic/io.h: Implement generic {read,write}s*()
+Date: Sat, 19 Jul 2014 09:38:33 +0200
+Message-ID: <43703371.jktNRIezc3@wuerfel>
+References: <1405508484-18303-1-git-send-email-thierry.reding@gmail.com> <20140718205953.GA21964@ravnborg.org> <20140718210631.GA22109@ravnborg.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7Bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pa0-f53.google.com ([209.85.220.53]:38030 "EHLO
-	mail-pa0-f53.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754585AbaGRWc2 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 18 Jul 2014 18:32:28 -0400
-Received: by mail-pa0-f53.google.com with SMTP id kq14so6142272pab.26
-        for <linux-arch@vger.kernel.org>; Fri, 18 Jul 2014 15:32:28 -0700 (PDT)
-In-Reply-To: <cover.1405717901.git.luto@amacapital.net>
+Received: from mout.kundenserver.de ([212.227.126.187]:63209 "EHLO
+	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751654AbaGSHiv (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 19 Jul 2014 03:38:51 -0400
+In-Reply-To: <20140718210631.GA22109@ravnborg.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, Kees Cook <keescook@chromium.org>, Will Drewry <wad@chromium.org>
-Cc: Oleg Nesterov <oleg@redhat.com>, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-mips@linux-mips.org, linux-arch@vger.kernel.org, linux-security-module@vger.kernel.org, Alexei Starovoitov <ast@plumgrid.com>, hpa@zytor.com, Andy Lutomirski <luto@amacapital.net>
+To: Sam Ravnborg <sam@ravnborg.org>
+Cc: Thierry Reding <thierry.reding@gmail.com>, Russell King <linux@arm.linux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Stephen Boyd <sboyd@codeaurora.org>, linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-The description of how arches should implement seccomp filters was
-still strictly correct, but it failed to describe the newly
-available optimizations.
+On Friday 18 July 2014 23:06:31 Sam Ravnborg wrote:
+> > 
+> > All these things are not introduced by your patch but now that
+> > you show some love and care for this file maybe we could take
+> > the next step and bring more order to the current semi chaos?
+> 
+> And I just noticed...
+> 
+> These are never used - and only defined a few places:
+> #define inb_p(addr)     inb(addr)
+> #define inw_p(addr)     inw(addr)
+> #define inl_p(addr)     inl(addr)
+> #define outb_p(x, addr) outb((x), (addr))
+> #define outw_p(x, addr) outw((x), (addr))
+> #define outl_p(x, addr) outl((x), (addr))
+> 
+> Likewise for these:
+> #define insb_p(port,to,len)     insb(port,to,len)
+> #define insw_p(port,to,len)     insw(port,to,len)
+> #define insl_p(port,to,len)     insl(port,to,len)
+> 
+> #define outsb_p(port,from,len)  outsb(port,from,len)
+> #define outsw_p(port,from,len)  outsw(port,from,len)
+> #define outsl_p(port,from,len)  outsl(port,from,len)
+> 
+> 
+> 
+> This set:
+> #define inb_p(addr)     inb(addr)
+> #define inw_p(addr)     inw(addr)
+> #define inl_p(addr)     inl(addr)
+> #define outb_p(x, addr) outb((x), (addr))
+> #define outw_p(x, addr) outw((x), (addr))
+> #define outl_p(x, addr) outl((x), (addr))
+> 
+> Should have a comment that say they are deprecated.
+> Especially the "b" variants still have many users.
 
-Signed-off-by: Andy Lutomirski <luto@amacapital.net>
----
+Are they? I don't remember ever seeing a reason to deprecate
+them. We could perhaps enclose them in #ifdef CONFIG_ISA, but
+there may also be some drivers that use the same code for ISA
+and PCI, and it doesn't really hurt on PCI.
 
-I lost this somehow.  Here it as an an extra patch.  If I end up sending
-a v3, I'll fold it in.
-
- arch/Kconfig | 11 +++++++++++
- 1 file changed, 11 insertions(+)
-
-diff --git a/arch/Kconfig b/arch/Kconfig
-index 0eae9df..05d7a8a 100644
---- a/arch/Kconfig
-+++ b/arch/Kconfig
-@@ -323,6 +323,17 @@ config HAVE_ARCH_SECCOMP_FILTER
- 	    results in the system call being skipped immediately.
- 	  - seccomp syscall wired up
- 
-+	  For best performance, an arch should use seccomp_phase1 and
-+	  seccomp_phase2 directly.  It should call seccomp_phase1 for all
-+	  syscalls if TIF_SECCOMP is set, but seccomp_phase1 does not
-+	  need to be called from a ptrace-safe context.  It must then
-+	  call seccomp_phase2 if seccomp_phase1 returns anything other
-+	  than SECCOMP_PHASE1_OK or SECCOMP_PHASE1_SKIP.
-+
-+	  As an additional optimization, an arch may provide seccomp_data
-+	  directly to seccomp_phase1; this avoids multiple calls
-+	  to the syscall_xyz helpers for every syscall.
-+
- config SECCOMP_FILTER
- 	def_bool y
- 	depends on HAVE_ARCH_SECCOMP_FILTER && SECCOMP && NET
--- 
-1.9.3
+	Arnd
