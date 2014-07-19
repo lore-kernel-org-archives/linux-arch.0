@@ -1,43 +1,49 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-oa0-f53.google.com ([209.85.219.53]:57249 "EHLO
-	mail-oa0-f53.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755462AbaGRWQi (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 18 Jul 2014 18:16:38 -0400
-Received: by mail-oa0-f53.google.com with SMTP id j17so4123902oag.26
-        for <linux-arch@vger.kernel.org>; Fri, 18 Jul 2014 15:16:37 -0700 (PDT)
+Received: from asavdk3.altibox.net ([109.247.116.14]:44231 "EHLO
+	asavdk3.altibox.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752959AbaGSImB (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 19 Jul 2014 04:42:01 -0400
+Date: Sat, 19 Jul 2014 10:41:52 +0200
+From: Sam Ravnborg <sam@ravnborg.org>
+Subject: Re: [PATCH v3 1/3] asm-generic/io.h: Implement generic
+ {read,write}s*()
+Message-ID: <20140719084152.GA31564@ravnborg.org>
+References: <1405508484-18303-1-git-send-email-thierry.reding@gmail.com>
+ <20140718205953.GA21964@ravnborg.org>
+ <20140718210631.GA22109@ravnborg.org>
+ <43703371.jktNRIezc3@wuerfel>
 MIME-Version: 1.0
-In-Reply-To: <ce65e0e8be18ae8fab437899db44ca41c912b506.1405717901.git.luto@amacapital.net>
-References: <cover.1405717901.git.luto@amacapital.net>
-	<ce65e0e8be18ae8fab437899db44ca41c912b506.1405717901.git.luto@amacapital.net>
-Date: Fri, 18 Jul 2014 15:16:37 -0700
-Message-ID: <CAGXu5jLsnSujJdZmA=nzHw1_K3eYhSiUEnntJ3S2hCZ8DFVYpg@mail.gmail.com>
-Subject: Re: [PATCH v2 3/7] seccomp: Allow arch code to provide seccomp_data
-From: Kees Cook <keescook@chromium.org>
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <43703371.jktNRIezc3@wuerfel>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andy Lutomirski <luto@amacapital.net>
-Cc: LKML <linux-kernel@vger.kernel.org>, Will Drewry <wad@chromium.org>, Oleg Nesterov <oleg@redhat.com>, "x86@kernel.org" <x86@kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Linux MIPS Mailing List <linux-mips@linux-mips.org>, linux-arch <linux-arch@vger.kernel.org>, linux-security-module <linux-security-module@vger.kernel.org>, Alexei Starovoitov <ast@plumgrid.com>, "H. Peter Anvin" <hpa@zytor.com>
-Message-ID: <20140718221637.fyEeenmuQcuqX37-nTNFLIQVkL6tzmaL0E4xlxPFRbE@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Thierry Reding <thierry.reding@gmail.com>, Russell King <linux@arm.linux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Stephen Boyd <sboyd@codeaurora.org>, linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20140719084152.KBXcqPieky55228iC2mzuuk9LAMn1_wnn659zEShpyo@z>
 
-On Fri, Jul 18, 2014 at 2:18 PM, Andy Lutomirski <luto@amacapital.net> wrote:
-> populate_seccomp_data is expensive: it works by inspecting
-> task_pt_regs and various other bits to piece together all the
-> information, and it's does so in multiple partially redundant steps.
->
-> Arch-specific code in the syscall entry path can do much better.
->
-> Admittedly this adds a bit of additional room for error, but the
-> speedup should be worth it.
+> > 
+> > This set:
+> > #define inb_p(addr)     inb(addr)
+> > #define inw_p(addr)     inw(addr)
+> > #define inl_p(addr)     inl(addr)
+> > #define outb_p(x, addr) outb((x), (addr))
+> > #define outw_p(x, addr) outw((x), (addr))
+> > #define outl_p(x, addr) outl((x), (addr))
+> > 
+> > Should have a comment that say they are deprecated.
+> > Especially the "b" variants still have many users.
+> 
+> Are they? I don't remember ever seeing a reason to deprecate
+> them. We could perhaps enclose them in #ifdef CONFIG_ISA, but
+> there may also be some drivers that use the same code for ISA
+> and PCI, and it doesn't really hurt on PCI.
 
-I still think we should gain either a note in the
-HAVE_ARCH_SECCOMP_FILTER help text in arch/Kconfig, or possibly a new
-section in Documentation/prctl/seccomp.txt (or similar) on how do
-implement filter support for an architecture, that mentions the
-arch-supplied seccomp_data and how two-phase can be done.
+It is my understanding that inl and inl_p are the same these days.
+A quick grep indicate that only m68k define the
+_p variant different from the other.
+But I failed to find and description of the difference between the
+two which is why I assumed they were identical and thus no need for both.
 
--Kees
 
--- 
-Kees Cook
-Chrome OS Security
+	Sam
