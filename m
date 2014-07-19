@@ -1,83 +1,61 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from asavdk4.altibox.net ([109.247.116.15]:55459 "EHLO
+Received: from asavdk4.altibox.net ([109.247.116.15]:55576 "EHLO
 	asavdk4.altibox.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1760383AbaGSIx4 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 19 Jul 2014 04:53:56 -0400
-Date: Sat, 19 Jul 2014 10:53:38 +0200
+	with ESMTP id S1757768AbaGSJMB (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 19 Jul 2014 05:12:01 -0400
+Date: Sat, 19 Jul 2014 11:11:56 +0200
 From: Sam Ravnborg <sam@ravnborg.org>
 Subject: Re: [PATCH v3 1/3] asm-generic/io.h: Implement generic
  {read,write}s*()
-Message-ID: <20140719085338.GB31564@ravnborg.org>
+Message-ID: <20140719091156.GA31772@ravnborg.org>
 References: <1405508484-18303-1-git-send-email-thierry.reding@gmail.com>
- <20140718205953.GA21964@ravnborg.org>
- <5913515.3g98ODuH6W@wuerfel>
+ <43703371.jktNRIezc3@wuerfel>
+ <20140719084152.GA31564@ravnborg.org>
+ <4967546.K5Yf5hcJE1@wuerfel>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <5913515.3g98ODuH6W@wuerfel>
+In-Reply-To: <4967546.K5Yf5hcJE1@wuerfel>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arm-kernel@lists.infradead.org, Thierry Reding <thierry.reding@gmail.com>, linux-arch@vger.kernel.org, Russell King <linux@arm.linux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Stephen Boyd <sboyd@codeaurora.org>, linux-kernel@vger.kernel.org, Will Deacon <will.deacon@arm.com>
-Message-ID: <20140719085338.MQuxq5U0f6VlpwqFYrf-4B4YX4-Wzi3bJ77Kq3xLMXc@z>
+Cc: Thierry Reding <thierry.reding@gmail.com>, Russell King <linux@arm.linux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Stephen Boyd <sboyd@codeaurora.org>, linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20140719091156.M5vDLG3wXPjZScoODSkLeRN3owTn3Pj-y4PtMq2U4Rc@z>
 
-> > A semi related question.
-> > Why do we play all these macro tricks in io.h?
+On Sat, Jul 19, 2014 at 11:05:33AM +0200, Arnd Bergmann wrote:
+> On Saturday 19 July 2014 10:41:52 Sam Ravnborg wrote:
+> > > > 
+> > > > This set:
+> > > > #define inb_p(addr)     inb(addr)
+> > > > #define inw_p(addr)     inw(addr)
+> > > > #define inl_p(addr)     inl(addr)
+> > > > #define outb_p(x, addr) outb((x), (addr))
+> > > > #define outw_p(x, addr) outw((x), (addr))
+> > > > #define outl_p(x, addr) outl((x), (addr))
+> > > > 
+> > > > Should have a comment that say they are deprecated.
+> > > > Especially the "b" variants still have many users.
+> > > 
+> > > Are they? I don't remember ever seeing a reason to deprecate
+> > > them. We could perhaps enclose them in #ifdef CONFIG_ISA, but
+> > > there may also be some drivers that use the same code for ISA
+> > > and PCI, and it doesn't really hurt on PCI.
 > > 
-> > Example:
-> > 
-> >     #define writeb __raw_writeb
-> > 
-> > The consensus these days is to use static inline to have the
-> > correct prototype but this file is contains a lot of these
-> > macro conversions.
-> > 
-> > All these things are not introduced by your patch but now that
-> > you show some love and care for this file maybe we could take
-> > the next step and bring more order to the current semi chaos?
+> > It is my understanding that inl and inl_p are the same these days.
+> > A quick grep indicate that only m68k define the
+> > _p variant different from the other.
+> > But I failed to find and description of the difference between the
+> > two which is why I assumed they were identical and thus no need for both.
 > 
-> The macros are mainly there so we can test their presence with
-> #ifdef.
+> I don't know why m68k needs it, it's really an x86-specific
+> thing, see slow_down_io() in arch/x86/include/asm/io.h.
 
-There are two types of macros in io.h:
+I had missed the x86 versions when grepping.
+Hmm, and with the macro tricks they play in asm/io.h this
+file is not at all grep friendly.
 
-    #define __raw_writeb __raw_writeb
-    #ifndef __raw_writeb
-
-This is the one you talk about which allows an architecture to
-provide a local implementation of a function.
-These are prefectly OK and are required.
-
-
-Then there are the other type where one IO access function
-may re-use the implementation of another IO access function:
-
-    #ifndef writeb
-    #define writeb __raw_writeb
-    #endif
-
-This could have been implmented like this:
-
-#ifndef writeb
-#define writeb writeb
-static inline void writeb(u8 b, volatile void __iomem *addr)
-{
-   __raw_writeb(b, addr);
-}
-#endif
-
-In this way the prototype of the function is easy to understand and
-we avoid the macro tricks were we blindly replace one function name,
-with another function name.
-And we also use the same pattarn all over for the various functions.
-
-Concerning the efficiency the compiler should be smart enough to
-do the same independent on the two implmentations.
-
-The only drawback I see is that the above is 6 lines of codes,
-where the macro expansion is 3 lines of code.
-
-And when we talk about simpler expansion like ioread8()
-then we replace one line with 4 lines.
+So xxx_p is for pause (or something like that).
+This also matches that m68k do some tricks with delay() in the _p variants.
+Thanks for the explanation.
 
 	Sam
