@@ -1,74 +1,74 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qa0-f43.google.com ([209.85.216.43]:38624 "EHLO
-	mail-qa0-f43.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754143AbaGUKHD (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 21 Jul 2014 06:07:03 -0400
+Received: from mail-qg0-f54.google.com ([209.85.192.54]:53976 "EHLO
+	mail-qg0-f54.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754663AbaGULJk (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 21 Jul 2014 07:09:40 -0400
 MIME-Version: 1.0
-In-Reply-To: <5348663.eHVXUR5shS@wuerfel>
+In-Reply-To: <alpine.DEB.2.10.1407151152310.24854@nanos>
 References: <1405413956-2772-1-git-send-email-lftan@altera.com>
 	<1405413956-2772-20-git-send-email-lftan@altera.com>
-	<5348663.eHVXUR5shS@wuerfel>
-Date: Mon, 21 Jul 2014 18:07:02 +0800
-Message-ID: <CAFiDJ5-v7BEuLNEn0OyLpbLUJkeeZuKnDrFZZwQrjhFSU4PZSw@mail.gmail.com>
+	<alpine.DEB.2.10.1407151152310.24854@nanos>
+Date: Mon, 21 Jul 2014 19:09:39 +0800
+Message-ID: <CAFiDJ5_AQ7Rby5Ta=mhzwQ28hiR_VbxbxXemSHqP9OyJmJx+Kw@mail.gmail.com>
 Subject: Re: [PATCH v2 19/29] nios2: Time keeping
 From: Ley Foon Tan <lftan@altera.com>
 Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
+To: Thomas Gleixner <tglx@linutronix.de>
 Cc: Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Chung-Lin Tang <cltang@codesourcery.com>
-Message-ID: <20140721100702.LoCnZC6bzNMIpyixEHq9W2_YrFSdkekGYxFwJGAqKeY@z>
+Message-ID: <20140721110939.UPUcoOlz1QXANV7U-ymZeo3Nnl9FmNAQ31U6aD8d2WA@z>
 
-On Tue, Jul 15, 2014 at 5:45 PM, Arnd Bergmann <arnd@arndb.de> wrote:
-> On Tuesday 15 July 2014 16:45:46 Ley Foon Tan wrote:
->> +
->> +static inline void __delay(unsigned long loops)
+On Tue, Jul 15, 2014 at 6:00 PM, Thomas Gleixner <tglx@linutronix.de> wrote:
+
+>> +     count =
+>> +             readw(timer_membase + ALTERA_TIMER_SNAPH_REG) << 16 |
+>> +             readw(timer_membase + ALTERA_TIMER_SNAPL_REG);
+>
+> So you're serious about having a new architecture with a timer
+> implementation which cant read 32bit in one go? I'm impressed ...
+This is to compatible with 16-bit and 32-bit processors. The older
+version of Nios is 16-bit and Nios II is 32-bit.
+But this timer core doesn't get updated after Nios is end of life.
+
+
+>> +irqreturn_t timer_interrupt(int irq, void *dummy)
 >> +{
->> +     int dummy;
+>> +     /* Clear the interrupt condition */
+>> +     writew(0, timer_membase + ALTERA_TIMER_STATUS_REG);
+>> +     nios2_timer_count += NIOS2_TIMER_PERIOD;
 >> +
->> +     __asm__ __volatile__(
->> +     "1:\n\t"
->> +     "    beq    %0,zero,2f\n\t"
->> +     "    addi   %0, %0, -1\n\t"
->> +     "    br     1b\n\t"
->> +     "2:\n\t"
->> +     :  "=r" (dummy)         /* Need output for optimizer */
->> +     :  "0" (loops));        /* %0  Input */
+>> +     profile_tick(CPU_PROFILING);
+>> +
+>> +     xtime_update(1);
+>> +
+>> +     update_process_times(user_mode(get_irq_regs()));
+>> +
+>> +     return IRQ_HANDLED;
+>
+> Please use the clock events infrastructure. New users of the old style
+> timer management are not welcome.
+Okay, will change this.
+
+>
 >> +}
->
-> Do you have a reliable clock source? If you do, it would be better
-> to replace the delay loop with an implementation that waits for
-> the exact time to pass instead. This will also avoid the loop
-> calibration during boot and give you better boot times.
-Okay, will change this to use timer instead.
-
->
->> +#ifndef _ASM_NIOS2_TIMEX_H
->> +#define _ASM_NIOS2_TIMEX_H
 >> +
->> +/* Supply dummy tick-rate. Real value will be read from devicetree */
->> +#define CLOCK_TICK_RATE              (HZ * 100000UL)
+>> +static cycle_t nios2_timer_read(struct clocksource *cs)
+>> +{
+>> +     unsigned long flags;
+>> +     u32 cycles;
+>> +     u32 tcn;
 >> +
->> +#include <asm-generic/timex.h>
->> +
->> +#endif
+>> +     local_irq_save(flags);
+>> +     tcn = NIOS2_TIMER_PERIOD - 1 - read_timersnapshot();
+>> +     cycles = nios2_timer_count;
 >
-> CLOCK_TICK_RATE is no longer used anywhere, no need for this file.
-
-I found jiffies.h still using this define. Can we still remove this?
-In include/linux/jiffies.h:
-#define LATCH ((CLOCK_TICK_RATE + HZ/2) / HZ)   /* For divider */
-
->
->> diff --git a/arch/nios2/kernel/time.c b/arch/nios2/kernel/time.c
->> new file mode 100644
->> index 0000000..111ade1
->> --- /dev/null
->> +++ b/arch/nios2/kernel/time.c
->
-> Maybe move this to drivers/clocksource? Same argument as for the
-> irqchip driver, so either move both or neither.
-Will keep this here since we don't move irq driver.
+> This is wrong and completely pointless. The core code takes care about
+> the offset.
+This offset is different from the core code. The core code is handling
+cycle counter overlapping.
+But this is for the offset between last timer interrupt counter and
+current counter (read_timersnapshot()).
 
 Thanks.
 
