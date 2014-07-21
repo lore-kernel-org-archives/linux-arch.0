@@ -1,19 +1,19 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.sigma-star.at ([95.130.255.111]:14395 "EHLO
+Received: from mail.sigma-star.at ([95.130.255.111]:14394 "EHLO
 	mail.sigma-star.at" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932489AbaGUOEE (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 21 Jul 2014 10:04:04 -0400
+	with ESMTP id S932099AbaGUOED (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 21 Jul 2014 10:04:03 -0400
 From: Richard Weinberger <richard@sigma-star.at>
-Subject: [PATCH 11/43] m68k: Use get_signal() signal_setup_done()
-Date: Mon, 21 Jul 2014 16:02:57 +0200
-Message-ID: <1405951409-16953-12-git-send-email-richard@sigma-star.at>
+Subject: [PATCH 10/43] m32r: Use get_signal() signal_setup_done()
+Date: Mon, 21 Jul 2014 16:02:56 +0200
+Message-ID: <1405951409-16953-11-git-send-email-richard@sigma-star.at>
 In-Reply-To: <1405951409-16953-1-git-send-email-richard@sigma-star.at>
 References: <1405951409-16953-1-git-send-email-richard@sigma-star.at>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: akpm@linux-foundation.org
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Richard Weinberger <richard@nod.at>, geert@linux-m68k.org, linux-m68k@lists.linux-m68k.org
-Message-ID: <20140721140257.V_ClkkExGuxJrFByrt5qh-THl0a99_H2mPiStqgMKzI@z>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Richard Weinberger <richard@nod.at>, takata@linux-m32r.org, linux-m32r@ml.linux-m32r.org, linux-m32r-ja@ml.linux-m32r.org
+Message-ID: <20140721140256.KpfXFCxzqHBNVFatsQk6Aqa5R5VbTRT2DRMlrvM_qyc@z>
 
 From: Richard Weinberger <richard@nod.at>
 
@@ -22,185 +22,150 @@ for signal delivery.
 
 Signed-off-by: Richard Weinberger <richard@nod.at>
 ---
- arch/m68k/kernel/signal.c | 63 ++++++++++++++++++-----------------------------
- 1 file changed, 24 insertions(+), 39 deletions(-)
+ arch/m32r/kernel/signal.c | 47 ++++++++++++++++++++---------------------------
+ 1 file changed, 20 insertions(+), 27 deletions(-)
 
-diff --git a/arch/m68k/kernel/signal.c b/arch/m68k/kernel/signal.c
-index 57fd286..c8e6fa8 100644
---- a/arch/m68k/kernel/signal.c
-+++ b/arch/m68k/kernel/signal.c
-@@ -850,23 +850,23 @@ get_sigframe(struct k_sigaction *ka, struct pt_regs *regs, size_t frame_size)
- 	return (void __user *)((usp - frame_size) & -8UL);
+diff --git a/arch/m32r/kernel/signal.c b/arch/m32r/kernel/signal.c
+index d503568..cce3fd3 100644
+--- a/arch/m32r/kernel/signal.c
++++ b/arch/m32r/kernel/signal.c
+@@ -173,17 +173,17 @@ get_sigframe(struct k_sigaction *ka, unsigned long sp, size_t frame_size)
+ 	return (void __user *)((sp - frame_size) & -8ul);
  }
  
--static int setup_frame (int sig, struct k_sigaction *ka,
--			 sigset_t *set, struct pt_regs *regs)
-+static int setup_frame(struct ksignal *ksig, sigset_t *set,
-+			struct pt_regs *regs)
+-static int setup_rt_frame(int sig, struct k_sigaction *ka, siginfo_t *info,
+-			   sigset_t *set, struct pt_regs *regs)
++static int setup_rt_frame(struct ksignal *ksig, sigset_t *set,
++			  struct pt_regs *regs)
  {
- 	struct sigframe __user *frame;
- 	int fsize = frame_extra_sizes(regs->format);
- 	struct sigcontext context;
--	int err = 0;
-+	int err = 0, sig = ksig->sig;
+ 	struct rt_sigframe __user *frame;
+ 	int err = 0;
+-	int signal;
++	int signal, sig = ksig->sig;
  
- 	if (fsize < 0) {
- #ifdef DEBUG
- 		printk ("setup_frame: Unknown frame format %#x\n",
- 			regs->format);
- #endif
+-	frame = get_sigframe(ka, regs->spu, sizeof(*frame));
++	frame = get_sigframe(&ksig->ka, regs->spu, sizeof(*frame));
+ 
+ 	if (!access_ok(VERIFY_WRITE, frame, sizeof(*frame)))
 -		goto give_sigsegv;
 +		return -EFAULT;
- 	}
  
--	frame = get_sigframe(ka, regs, sizeof(*frame) + fsize);
-+	frame = get_sigframe(&ksig->ka, regs, sizeof(*frame) + fsize);
+ 	signal = current_thread_info()->exec_domain
+ 		&& current_thread_info()->exec_domain->signal_invmap
+@@ -193,13 +193,13 @@ static int setup_rt_frame(int sig, struct k_sigaction *ka, siginfo_t *info,
  
- 	if (fsize)
- 		err |= copy_to_user (frame + 1, regs + 1, fsize);
-@@ -899,7 +899,7 @@ static int setup_frame (int sig, struct k_sigaction *ka,
- #endif
- 
+ 	err |= __put_user(signal, &frame->sig);
  	if (err)
 -		goto give_sigsegv;
 +		return -EFAULT;
  
- 	push_cache ((unsigned long) &frame->retcode);
- 
-@@ -908,7 +908,7 @@ static int setup_frame (int sig, struct k_sigaction *ka,
- 	 * to destroy is successfully copied to sigframe.
- 	 */
- 	wrusp ((unsigned long) frame);
--	regs->pc = (unsigned long) ka->sa.sa_handler;
-+	regs->pc = (unsigned long) ksig->ka.sa.sa_handler;
- 	adjustformat(regs);
- 
- 	/*
-@@ -934,28 +934,24 @@ static int setup_frame (int sig, struct k_sigaction *ka,
- 		tregs->sr = regs->sr;
- 	}
- 	return 0;
--
--give_sigsegv:
--	force_sigsegv(sig, current);
--	return err;
- }
- 
--static int setup_rt_frame (int sig, struct k_sigaction *ka, siginfo_t *info,
--			    sigset_t *set, struct pt_regs *regs)
-+static int setup_rt_frame(struct ksignal *ksig, sigset_t *set,
-+			   struct pt_regs *regs)
- {
- 	struct rt_sigframe __user *frame;
- 	int fsize = frame_extra_sizes(regs->format);
--	int err = 0;
-+	int err = 0, sig = ksig->sig;
- 
- 	if (fsize < 0) {
- #ifdef DEBUG
- 		printk ("setup_frame: Unknown frame format %#x\n",
- 			regs->format);
- #endif
--		goto give_sigsegv;
-+		return -EFAULT;
- 	}
- 
--	frame = get_sigframe(ka, regs, sizeof(*frame));
-+	frame = get_sigframe(&ksig->ka, regs, sizeof(*frame));
- 
- 	if (fsize)
- 		err |= copy_to_user (&frame->uc.uc_extra, regs + 1, fsize);
-@@ -968,7 +964,7 @@ static int setup_rt_frame (int sig, struct k_sigaction *ka, siginfo_t *info,
- 			  &frame->sig);
  	err |= __put_user(&frame->info, &frame->pinfo);
  	err |= __put_user(&frame->uc, &frame->puc);
 -	err |= copy_siginfo_to_user(&frame->info, info);
 +	err |= copy_siginfo_to_user(&frame->info, &ksig->info);
- 
- 	/* Create the ucontext.  */
- 	err |= __put_user(0, &frame->uc.uc_flags);
-@@ -996,7 +992,7 @@ static int setup_rt_frame (int sig, struct k_sigaction *ka, siginfo_t *info,
- #endif /* CONFIG_MMU */
- 
  	if (err)
 -		goto give_sigsegv;
 +		return -EFAULT;
  
- 	push_cache ((unsigned long) &frame->retcode);
+ 	/* Create the ucontext.  */
+ 	err |= __put_user(0, &frame->uc.uc_flags);
+@@ -208,17 +208,17 @@ static int setup_rt_frame(int sig, struct k_sigaction *ka, siginfo_t *info,
+ 	err |= setup_sigcontext(&frame->uc.uc_mcontext, regs, set->sig[0]);
+ 	err |= __copy_to_user(&frame->uc.uc_sigmask, set, sizeof(*set));
+ 	if (err)
+-		goto give_sigsegv;
++		return -EFAULT;
  
-@@ -1005,7 +1001,7 @@ static int setup_rt_frame (int sig, struct k_sigaction *ka, siginfo_t *info,
- 	 * to destroy is successfully copied to sigframe.
- 	 */
- 	wrusp ((unsigned long) frame);
--	regs->pc = (unsigned long) ka->sa.sa_handler;
-+	regs->pc = (unsigned long) ksig->ka.sa.sa_handler;
- 	adjustformat(regs);
+ 	/* Set up to return from userspace.  */
+-	regs->lr = (unsigned long)ka->sa.sa_restorer;
++	regs->lr = (unsigned long)ksig->ka.sa.sa_restorer;
  
- 	/*
-@@ -1031,10 +1027,6 @@ static int setup_rt_frame (int sig, struct k_sigaction *ka, siginfo_t *info,
- 		tregs->sr = regs->sr;
- 	}
+ 	/* Set up registers for signal handler */
+ 	regs->spu = (unsigned long)frame;
+ 	regs->r0 = signal;	/* Arg for signal handler */
+ 	regs->r1 = (unsigned long)&frame->info;
+ 	regs->r2 = (unsigned long)&frame->uc;
+-	regs->bpc = (unsigned long)ka->sa.sa_handler;
++	regs->bpc = (unsigned long)ksig->ka.sa.sa_handler;
+ 
+ 	set_fs(USER_DS);
+ 
+@@ -228,10 +228,6 @@ static int setup_rt_frame(int sig, struct k_sigaction *ka, siginfo_t *info,
+ #endif
+ 
  	return 0;
 -
 -give_sigsegv:
 -	force_sigsegv(sig, current);
--	return err;
+-	return -EFAULT;
  }
  
- static inline void
-@@ -1074,26 +1066,22 @@ handle_restart(struct pt_regs *regs, struct k_sigaction *ka, int has_handler)
-  * OK, we're invoking a handler
+ static int prev_insn(struct pt_regs *regs)
+@@ -252,9 +248,10 @@ static int prev_insn(struct pt_regs *regs)
   */
+ 
  static void
--handle_signal(int sig, struct k_sigaction *ka, siginfo_t *info,
+-handle_signal(unsigned long sig, struct k_sigaction *ka, siginfo_t *info,
 -	      struct pt_regs *regs)
 +handle_signal(struct ksignal *ksig, struct pt_regs *regs)
  {
- 	sigset_t *oldset = sigmask_to_save();
- 	int err;
- 	/* are we from a system call? */
- 	if (regs->orig_d0 >= 0)
++	int ret;
++
+ 	/* Are we from a system call? */
+ 	if (regs->syscall_nr >= 0) {
  		/* If so, check system call restarting.. */
--		handle_restart(regs, ka, 1);
-+		handle_restart(regs, &ksig->ka, 1);
+@@ -265,7 +262,7 @@ handle_signal(unsigned long sig, struct k_sigaction *ka, siginfo_t *info,
+ 				break;
  
- 	/* set up the stack frame */
--	if (ka->sa.sa_flags & SA_SIGINFO)
--		err = setup_rt_frame(sig, ka, info, oldset, regs);
-+	if (ksig->ka.sa.sa_flags & SA_SIGINFO)
-+		err = setup_rt_frame(ksig, oldset, regs);
- 	else
--		err = setup_frame(sig, ka, oldset, regs);
--
--	if (err)
+ 			case -ERESTARTSYS:
+-				if (!(ka->sa.sa_flags & SA_RESTART)) {
++				if (!(ksig->ka.sa.sa_flags & SA_RESTART)) {
+ 					regs->r0 = -EINTR;
+ 					break;
+ 				}
+@@ -278,10 +275,9 @@ handle_signal(unsigned long sig, struct k_sigaction *ka, siginfo_t *info,
+ 	}
+ 
+ 	/* Set up the stack frame */
+-	if (setup_rt_frame(sig, ka, info, sigmask_to_save(), regs))
 -		return;
-+		err = setup_frame(ksig, oldset, regs);
++	ret = setup_rt_frame(ksig, sigmask_to_save(), regs);
  
 -	signal_delivered(sig, info, ka, regs, 0);
-+	signal_setup_done(err, ksig, 0);
++	signal_setup_done(ret, ksig, 0);
+ }
  
- 	if (test_thread_flag(TIF_DELAYED_TRACE)) {
- 		regs->sr &= ~0x8000;
-@@ -1108,16 +1096,13 @@ handle_signal(int sig, struct k_sigaction *ka, siginfo_t *info,
+ /*
+@@ -291,9 +287,7 @@ handle_signal(unsigned long sig, struct k_sigaction *ka, siginfo_t *info,
   */
  static void do_signal(struct pt_regs *regs)
  {
 -	siginfo_t info;
--	struct k_sigaction ka;
 -	int signr;
+-	struct k_sigaction ka;
 +	struct ksignal ksig;
  
- 	current->thread.esp0 = (unsigned long) regs;
+ 	/*
+ 	 * We want the common case to go fast, which
+@@ -304,8 +298,7 @@ static void do_signal(struct pt_regs *regs)
+ 	if (!user_mode(regs))
+ 		return;
  
 -	signr = get_signal_to_deliver(&info, &ka, regs, NULL);
 -	if (signr > 0) {
 +	if (get_signal(&ksig)) {
+ 		/* Re-enable any watchpoints before delivering the
+ 		 * signal to user space. The processor register will
+ 		 * have been cleared if the watchpoint triggered
+@@ -313,7 +306,7 @@ static void do_signal(struct pt_regs *regs)
+ 		 */
+ 
  		/* Whee!  Actually deliver the signal.  */
 -		handle_signal(signr, &ka, &info, regs);
 +		handle_signal(&ksig, regs);
+ 
  		return;
  	}
- 
 -- 
 1.8.4.5
 
