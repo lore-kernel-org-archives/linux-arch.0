@@ -1,62 +1,62 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.sigma-star.at ([95.130.255.111]:14385 "EHLO
+Received: from mail.sigma-star.at ([95.130.255.111]:14389 "EHLO
 	mail.sigma-star.at" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932579AbaGUOEU (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 21 Jul 2014 10:04:20 -0400
+	with ESMTP id S932527AbaGUOEW (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 21 Jul 2014 10:04:22 -0400
 From: Richard Weinberger <richard@sigma-star.at>
-Subject: [PATCH 32/43] c6x: Use sigsp()
-Date: Mon, 21 Jul 2014 16:03:18 +0200
-Message-ID: <1405951409-16953-33-git-send-email-richard@sigma-star.at>
+Subject: [PATCH 35/43] hexagon: Use sigsp()
+Date: Mon, 21 Jul 2014 16:03:21 +0200
+Message-ID: <1405951409-16953-36-git-send-email-richard@sigma-star.at>
 In-Reply-To: <1405951409-16953-1-git-send-email-richard@sigma-star.at>
 References: <1405951409-16953-1-git-send-email-richard@sigma-star.at>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: akpm@linux-foundation.org
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Richard Weinberger <richard@nod.at>, msalter@redhat.com, a-jacquiot@ti.com, linux-c6x-dev@linux-c6x.org
-Message-ID: <20140721140318.g1Eo6wTBmSfEimD0utVrDwUtp4_I7xMXuz_7x73fD00@z>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Richard Weinberger <richard@nod.at>, rkuo@codeaurora.org, linux-hexagon@vger.kernel.org
+Message-ID: <20140721140321.nu9HLTTvPuA0zjz9KNHYiRI1utMbPQHSOTs8sufTpbs@z>
 
 From: Richard Weinberger <richard@nod.at>
 
 Use sigsp() instead of the open coded variant.
 
 Signed-off-by: Richard Weinberger <richard@nod.at>
-Acked-by: Mark Salter <msalter@redhat.com>
 ---
- arch/c6x/kernel/signal.c | 12 +++---------
- 1 file changed, 3 insertions(+), 9 deletions(-)
+ arch/hexagon/kernel/signal.c | 14 +++-----------
+ 1 file changed, 3 insertions(+), 11 deletions(-)
 
-diff --git a/arch/c6x/kernel/signal.c b/arch/c6x/kernel/signal.c
-index 8bf9aad..fe68226 100644
---- a/arch/c6x/kernel/signal.c
-+++ b/arch/c6x/kernel/signal.c
-@@ -127,17 +127,11 @@ static int setup_sigcontext(struct sigcontext __user *sc, struct pt_regs *regs,
- 	return err;
- }
+diff --git a/arch/hexagon/kernel/signal.c b/arch/hexagon/kernel/signal.c
+index 6525358..eadd70e 100644
+--- a/arch/hexagon/kernel/signal.c
++++ b/arch/hexagon/kernel/signal.c
+@@ -36,18 +36,10 @@ struct rt_sigframe {
+ 	struct ucontext uc;
+ };
  
--static inline void __user *get_sigframe(struct k_sigaction *ka,
-+static inline void __user *get_sigframe(struct ksignal *ksig,
- 					struct pt_regs *regs,
- 					unsigned long framesize)
+-static void __user *get_sigframe(struct k_sigaction *ka, struct pt_regs *regs,
++static void __user *get_sigframe(struct ksignal *ksig, struct pt_regs *regs,
+ 			  size_t frame_size)
  {
--	unsigned long sp = regs->sp;
+-	unsigned long sp = regs->r29;
 -
--	/*
--	 * This is the X/Open sanctioned signal stack switching.
--	 */
--	if ((ka->sa.sa_flags & SA_ONSTACK) && sas_ss_flags(sp) == 0)
+-	/* check if we would overflow the alt stack */
+-	if (on_sig_stack(sp) && !likely(on_sig_stack(sp - frame_size)))
+-		return (void __user __force *)-1UL;
+-
+-	/* Switch to signal stack if appropriate */
+-	if ((ka->sa.sa_flags & SA_ONSTACK) && (sas_ss_flags(sp) == 0))
 -		sp = current->sas_ss_sp + current->sas_ss_size;
-+	unsigned long sp = sigsp(regs->sp, ksig);
++	unsigned long sp = sigsp(regs->r29, ksig);
  
- 	/*
- 	 * No matter what happens, 'sp' must be dword
-@@ -153,7 +147,7 @@ static int setup_rt_frame(struct ksignal *ksig, sigset_t *set,
- 	unsigned long __user *retcode;
- 	int err = 0;
+ 	return (void __user *)((sp - frame_size) & ~(sizeof(long long) - 1));
+ }
+@@ -119,7 +111,7 @@ static int setup_rt_frame(struct ksignal *ksig, sigset_t *set,
+ 	struct rt_sigframe __user *frame;
+ 	struct hexagon_vdso *vdso = current->mm->context.vdso;
  
--	frame = get_sigframe(&ksig->ka, regs, sizeof(*frame));
-+	frame = get_sigframe(ksig, regs, sizeof(*frame));
+-	frame = get_sigframe(&ksig->ka, regs, sizeof(struct rt_sigframe));
++	frame = get_sigframe(ksig, regs, sizeof(struct rt_sigframe));
  
- 	if (!access_ok(VERIFY_WRITE, frame, sizeof(*frame)))
+ 	if (!access_ok(VERIFY_WRITE, frame, sizeof(struct rt_sigframe)))
  		return -EFAULT;
 -- 
 1.8.4.5
