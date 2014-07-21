@@ -1,72 +1,59 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.sigma-star.at ([95.130.255.111]:14389 "EHLO
+Received: from mail.sigma-star.at ([95.130.255.111]:14396 "EHLO
 	mail.sigma-star.at" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932507AbaGUOEY (ORCPT
+	with ESMTP id S932623AbaGUOEY (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>); Mon, 21 Jul 2014 10:04:24 -0400
 From: Richard Weinberger <richard@sigma-star.at>
-Subject: [PATCH 37/43] m68k: Use sigsp()
-Date: Mon, 21 Jul 2014 16:03:23 +0200
-Message-ID: <1405951409-16953-38-git-send-email-richard@sigma-star.at>
+Subject: [PATCH 38/43] metag: Use sigsp()
+Date: Mon, 21 Jul 2014 16:03:24 +0200
+Message-ID: <1405951409-16953-39-git-send-email-richard@sigma-star.at>
 In-Reply-To: <1405951409-16953-1-git-send-email-richard@sigma-star.at>
 References: <1405951409-16953-1-git-send-email-richard@sigma-star.at>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: akpm@linux-foundation.org
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Richard Weinberger <richard@nod.at>, geert@linux-m68k.org, linux-m68k@lists.linux-m68k.org
-Message-ID: <20140721140323.iYoauDtHpIxg6uP9ZwMvQS-yk3QoKEiU0gxy6zIzDxQ@z>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Richard Weinberger <richard@nod.at>, james.hogan@imgtec.com, linux-metag@vger.kernel.org
+Message-ID: <20140721140324.6LtFsVg0CF076KJu92kpEHk6K69lYk41GH0mVBInUZI@z>
 
 From: Richard Weinberger <richard@nod.at>
 
 Use sigsp() instead of the open coded variant.
 
 Signed-off-by: Richard Weinberger <richard@nod.at>
+Acked-by: James Hogan <james.hogan@imgtec.com>
 ---
- arch/m68k/kernel/signal.c | 16 ++++------------
- 1 file changed, 4 insertions(+), 12 deletions(-)
+ arch/metag/kernel/signal.c | 10 +++-------
+ 1 file changed, 3 insertions(+), 7 deletions(-)
 
-diff --git a/arch/m68k/kernel/signal.c b/arch/m68k/kernel/signal.c
-index c8e6fa8..967a8b7 100644
---- a/arch/m68k/kernel/signal.c
-+++ b/arch/m68k/kernel/signal.c
-@@ -835,18 +835,10 @@ static inline int rt_setup_ucontext(struct ucontext __user *uc, struct pt_regs *
- }
- 
- static inline void __user *
--get_sigframe(struct k_sigaction *ka, struct pt_regs *regs, size_t frame_size)
-+get_sigframe(struct ksignal *ksig, size_t frame_size)
+diff --git a/arch/metag/kernel/signal.c b/arch/metag/kernel/signal.c
+index b9e4a82..0d100d5 100644
+--- a/arch/metag/kernel/signal.c
++++ b/arch/metag/kernel/signal.c
+@@ -140,13 +140,9 @@ static int setup_sigcontext(struct sigcontext __user *sc, struct pt_regs *regs,
+ /*
+  * Determine which stack to use..
+  */
+-static void __user *get_sigframe(struct k_sigaction *ka, unsigned long sp,
+-				 size_t frame_size)
++static void __user *get_sigframe(struct ksignal *ksig, unsigned long sp)
  {
--	unsigned long usp;
+-	/* Meta stacks grows upwards */
+-	if ((ka->sa.sa_flags & SA_ONSTACK) && (sas_ss_flags(sp) == 0))
+-		sp = current->sas_ss_sp;
 -
--	/* Default to using normal stack.  */
--	usp = rdusp();
-+	unsigned long usp = sigsp(rdusp(), ksig);
++	sp = sigsp(sp, ksig);
+ 	sp = (sp + 7) & ~7;			/* 8byte align stack */
  
--	/* This is the X/Open sanctioned signal stack switching.  */
--	if (ka->sa.sa_flags & SA_ONSTACK) {
--		if (!sas_ss_flags(usp))
--			usp = current->sas_ss_sp + current->sas_ss_size;
--	}
- 	return (void __user *)((usp - frame_size) & -8UL);
- }
+ 	return (void __user *)sp;
+@@ -159,7 +155,7 @@ static int setup_rt_frame(struct ksignal *ksig, sigset_t *set,
+ 	int err;
+ 	unsigned long code;
  
-@@ -866,7 +858,7 @@ static int setup_frame(struct ksignal *ksig, sigset_t *set,
+-	frame = get_sigframe(&ksig->ka, regs->REG_SP, sizeof(*frame));
++	frame = get_sigframe(ksig, regs->REG_SP);
+ 	if (!access_ok(VERIFY_WRITE, frame, sizeof(*frame)))
  		return -EFAULT;
- 	}
  
--	frame = get_sigframe(&ksig->ka, regs, sizeof(*frame) + fsize);
-+	frame = get_sigframe(ksig, sizeof(*frame) + fsize);
- 
- 	if (fsize)
- 		err |= copy_to_user (frame + 1, regs + 1, fsize);
-@@ -951,7 +943,7 @@ static int setup_rt_frame(struct ksignal *ksig, sigset_t *set,
- 		return -EFAULT;
- 	}
- 
--	frame = get_sigframe(&ksig->ka, regs, sizeof(*frame));
-+	frame = get_sigframe(ksig, sizeof(*frame));
- 
- 	if (fsize)
- 		err |= copy_to_user (&frame->uc.uc_extra, regs + 1, fsize);
 -- 
 1.8.4.5
 
