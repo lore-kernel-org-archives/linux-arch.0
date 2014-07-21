@@ -1,50 +1,75 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qa0-f41.google.com ([209.85.216.41]:61957 "EHLO
-	mail-qa0-f41.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752029AbaGUDUC (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 20 Jul 2014 23:20:02 -0400
+Received: from mail-qa0-f43.google.com ([209.85.216.43]:38624 "EHLO
+	mail-qa0-f43.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754143AbaGUKHD (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 21 Jul 2014 06:07:03 -0400
 MIME-Version: 1.0
-In-Reply-To: <5659104.6O7AZx76W6@wuerfel>
+In-Reply-To: <5348663.eHVXUR5shS@wuerfel>
 References: <1405413956-2772-1-git-send-email-lftan@altera.com>
-	<17186253.ZJUn1qWK0f@wuerfel>
-	<alpine.DEB.2.10.1407181140250.24854@nanos>
-	<5659104.6O7AZx76W6@wuerfel>
-Date: Mon, 21 Jul 2014 11:20:02 +0800
-Message-ID: <CAFiDJ5_hjBQ4tOpsUdgqgwRrJ1TgFSa9pEqc2m+srMj5Fkir=w@mail.gmail.com>
-Subject: Re: [PATCH v2 21/29] nios2: Futex operations
+	<1405413956-2772-20-git-send-email-lftan@altera.com>
+	<5348663.eHVXUR5shS@wuerfel>
+Date: Mon, 21 Jul 2014 18:07:02 +0800
+Message-ID: <CAFiDJ5-v7BEuLNEn0OyLpbLUJkeeZuKnDrFZZwQrjhFSU4PZSw@mail.gmail.com>
+Subject: Re: [PATCH v2 19/29] nios2: Time keeping
 From: Ley Foon Tan <lftan@altera.com>
 Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Arnd Bergmann <arnd@arndb.de>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Chung-Lin Tang <cltang@codesourcery.com>
-Message-ID: <20140721032002.-MMu3R7T0u3KhQsVNEWZK4Usj236n_2QsoLB-Uxy6t8@z>
+Cc: Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Chung-Lin Tang <cltang@codesourcery.com>
+Message-ID: <20140721100702.LoCnZC6bzNMIpyixEHq9W2_YrFSdkekGYxFwJGAqKeY@z>
 
-On Fri, Jul 18, 2014 at 5:55 PM, Arnd Bergmann <arnd@arndb.de> wrote:
-> On Friday 18 July 2014 11:42:34 Thomas Gleixner wrote:
->> On Fri, 18 Jul 2014, Arnd Bergmann wrote:
->> > On Friday 18 July 2014 14:07:42 Ley Foon Tan wrote:
->> > > On Thu, Jul 17, 2014 at 7:07 PM, Arnd Bergmann <arnd@arndb.de> wrote:
->> > If this understanding is right, we can probably just merge the
->> > m68k implementation into the asm-generic version, as that does
->> > exactly that, and just isn't SMP safe. I'm still unsure whether
->> > I'm missing something here though, as everything else seems to
->> > do this in assembly, even for non-SMP machines that could use
->> > the trivial method that m68k has.
->>
->> For UP relying of pagefault disable should be good enough indeed. I
->> guess the asm for the other UP stuff results from looking at
->> architectures or copying from architectures which did this in ASM
+On Tue, Jul 15, 2014 at 5:45 PM, Arnd Bergmann <arnd@arndb.de> wrote:
+> On Tuesday 15 July 2014 16:45:46 Ley Foon Tan wrote:
+>> +
+>> +static inline void __delay(unsigned long loops)
+>> +{
+>> +     int dummy;
+>> +
+>> +     __asm__ __volatile__(
+>> +     "1:\n\t"
+>> +     "    beq    %0,zero,2f\n\t"
+>> +     "    addi   %0, %0, -1\n\t"
+>> +     "    br     1b\n\t"
+>> +     "2:\n\t"
+>> +     :  "=r" (dummy)         /* Need output for optimizer */
+>> +     :  "0" (loops));        /* %0  Input */
+>> +}
 >
-> Ok, thanks for the confirmation!
->
-> Ley Foon Tan, I think the best way forward then is for you to
-> take the m68k code and copy (or move) that into asm-generic/futex.h
-> under an #ifndef CONFIG_SMP.
+> Do you have a reliable clock source? If you do, it would be better
+> to replace the delay loop with an implementation that waits for
+> the exact time to pass instead. This will also avoid the loop
+> calibration during boot and give you better boot times.
+Okay, will change this to use timer instead.
 
-Okay, I will copy m68k implementation to asm-generic/futex.h.
-Do you prefer this as separate patch submission or this can be part of
-nios2 patchset?
+>
+>> +#ifndef _ASM_NIOS2_TIMEX_H
+>> +#define _ASM_NIOS2_TIMEX_H
+>> +
+>> +/* Supply dummy tick-rate. Real value will be read from devicetree */
+>> +#define CLOCK_TICK_RATE              (HZ * 100000UL)
+>> +
+>> +#include <asm-generic/timex.h>
+>> +
+>> +#endif
+>
+> CLOCK_TICK_RATE is no longer used anywhere, no need for this file.
+
+I found jiffies.h still using this define. Can we still remove this?
+In include/linux/jiffies.h:
+#define LATCH ((CLOCK_TICK_RATE + HZ/2) / HZ)   /* For divider */
+
+>
+>> diff --git a/arch/nios2/kernel/time.c b/arch/nios2/kernel/time.c
+>> new file mode 100644
+>> index 0000000..111ade1
+>> --- /dev/null
+>> +++ b/arch/nios2/kernel/time.c
+>
+> Maybe move this to drivers/clocksource? Same argument as for the
+> irqchip driver, so either move both or neither.
+Will keep this here since we don't move irq driver.
+
 Thanks.
 
 Regards
