@@ -1,46 +1,63 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.sigma-star.at ([95.130.255.111]:14389 "EHLO
+Received: from mail.sigma-star.at ([95.130.255.111]:14386 "EHLO
 	mail.sigma-star.at" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932557AbaGUOER (ORCPT
+	with ESMTP id S932555AbaGUOER (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>); Mon, 21 Jul 2014 10:04:17 -0400
 From: Richard Weinberger <richard@sigma-star.at>
-Subject: [PATCH 27/43] sas_ss_flags: Remove nested ternary if
-Date: Mon, 21 Jul 2014 16:03:13 +0200
-Message-ID: <1405951409-16953-28-git-send-email-richard@sigma-star.at>
+Subject: [PATCH 28/43] arc: Use sigsp()
+Date: Mon, 21 Jul 2014 16:03:14 +0200
+Message-ID: <1405951409-16953-29-git-send-email-richard@sigma-star.at>
 In-Reply-To: <1405951409-16953-1-git-send-email-richard@sigma-star.at>
 References: <1405951409-16953-1-git-send-email-richard@sigma-star.at>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: akpm@linux-foundation.org
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Richard Weinberger <richard@nod.at>, mingo@redhat.com, peterz@infradead.org
-Message-ID: <20140721140313.IU4zx34NvE_q7BkAc9P1td-alCeKJ4VBv5IvX92TQJY@z>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Richard Weinberger <richard@nod.at>, vgupta@synopsys.com
+Message-ID: <20140721140314.VMZ7HcSvHpveRkSHuKlhU_xyxx_1z7iNC50AI0AK4qw@z>
 
 From: Richard Weinberger <richard@nod.at>
 
-...to make it readable.
+Use sigsp() instead of the open coded variant.
 
 Signed-off-by: Richard Weinberger <richard@nod.at>
+Acked-by: Vineet Gupta <vgupta@synopsys.com>
 ---
- include/linux/sched.h | 6 ++++--
- 1 file changed, 4 insertions(+), 2 deletions(-)
+ arch/arc/kernel/signal.c | 10 +++-------
+ 1 file changed, 3 insertions(+), 7 deletions(-)
 
-diff --git a/include/linux/sched.h b/include/linux/sched.h
-index 0376b05..795ea2b 100644
---- a/include/linux/sched.h
-+++ b/include/linux/sched.h
-@@ -2360,8 +2360,10 @@ static inline int on_sig_stack(unsigned long sp)
- 
- static inline int sas_ss_flags(unsigned long sp)
+diff --git a/arch/arc/kernel/signal.c b/arch/arc/kernel/signal.c
+index c2031e2..cb3142a 100644
+--- a/arch/arc/kernel/signal.c
++++ b/arch/arc/kernel/signal.c
+@@ -141,17 +141,13 @@ badframe:
+ /*
+  * Determine which stack to use..
+  */
+-static inline void __user *get_sigframe(struct k_sigaction *ka,
++static inline void __user *get_sigframe(struct ksignal *ksig,
+ 					struct pt_regs *regs,
+ 					unsigned long framesize)
  {
--	return (current->sas_ss_size == 0 ? SS_DISABLE
--		: on_sig_stack(sp) ? SS_ONSTACK : 0);
-+	if (!current->sas_ss_size)
-+		return SS_DISABLE;
-+
-+	return on_sig_stack(sp) ? SS_ONSTACK : 0;
- }
+-	unsigned long sp = regs->sp;
++	unsigned long sp = sigsp(regs->sp, ksig);
+ 	void __user *frame;
  
- static inline unsigned long sigsp(unsigned long sp, struct ksignal *ksig)
+-	/* This is the X/Open sanctioned signal stack switching */
+-	if ((ka->sa.sa_flags & SA_ONSTACK) && !sas_ss_flags(sp))
+-		sp = current->sas_ss_sp + current->sas_ss_size;
+-
+ 	/* No matter what happens, 'sp' must be word
+ 	 * aligned otherwise nasty things could happen
+ 	 */
+@@ -185,7 +181,7 @@ setup_rt_frame(struct ksignal *ksig, sigset_t *set, struct pt_regs *regs)
+ 	unsigned int magic = 0;
+ 	int err = 0;
+ 
+-	sf = get_sigframe(&ksig->ka, regs, sizeof(struct rt_sigframe));
++	sf = get_sigframe(ksig, regs, sizeof(struct rt_sigframe));
+ 	if (!sf)
+ 		return 1;
+ 
 -- 
 1.8.4.5
 
