@@ -1,69 +1,35 @@
 From: Ley Foon Tan <lftan@altera.com>
-Subject: Re: [PATCH v2 19/29] nios2: Time keeping
-Date: Mon, 21 Jul 2014 18:07:02 +0800
-Message-ID: <CAFiDJ5-v7BEuLNEn0OyLpbLUJkeeZuKnDrFZZwQrjhFSU4PZSw@mail.gmail.com>
+Subject: Re: [PATCH v2 21/29] nios2: Futex operations
+Date: Mon, 21 Jul 2014 18:24:07 +0800
+Message-ID: <CAFiDJ5_HeUDDO4mCyGEd=vMMAs5MYAXZ-XuTxwLEvwBspf98XA@mail.gmail.com>
 References: <1405413956-2772-1-git-send-email-lftan@altera.com>
-	<1405413956-2772-20-git-send-email-lftan@altera.com>
-	<5348663.eHVXUR5shS@wuerfel>
+	<5659104.6O7AZx76W6@wuerfel>
+	<CAFiDJ5_hjBQ4tOpsUdgqgwRrJ1TgFSa9pEqc2m+srMj5Fkir=w@mail.gmail.com>
+	<5003438.ZMUcOxtMrE@wuerfel>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-doc-owner@vger.kernel.org>
-In-Reply-To: <5348663.eHVXUR5shS@wuerfel>
-Sender: linux-doc-owner@vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-qa0-f50.google.com ([209.85.216.50]:54618 "EHLO
+	mail-qa0-f50.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754580AbaGUKYI (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 21 Jul 2014 06:24:08 -0400
+In-Reply-To: <5003438.ZMUcOxtMrE@wuerfel>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Arnd Bergmann <arnd@arndb.de>
-Cc: Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Chung-Lin Tang <cltang@codesourcery.com>
-List-Id: linux-arch.vger.kernel.org
+Cc: Thomas Gleixner <tglx@linutronix.de>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Chung-Lin Tang <cltang@codesourcery.com>
 
-On Tue, Jul 15, 2014 at 5:45 PM, Arnd Bergmann <arnd@arndb.de> wrote:
-> On Tuesday 15 July 2014 16:45:46 Ley Foon Tan wrote:
->> +
->> +static inline void __delay(unsigned long loops)
->> +{
->> +     int dummy;
->> +
->> +     __asm__ __volatile__(
->> +     "1:\n\t"
->> +     "    beq    %0,zero,2f\n\t"
->> +     "    addi   %0, %0, -1\n\t"
->> +     "    br     1b\n\t"
->> +     "2:\n\t"
->> +     :  "=r" (dummy)         /* Need output for optimizer */
->> +     :  "0" (loops));        /* %0  Input */
->> +}
->
-> Do you have a reliable clock source? If you do, it would be better
-> to replace the delay loop with an implementation that waits for
-> the exact time to pass instead. This will also avoid the loop
-> calibration during boot and give you better boot times.
-Okay, will change this to use timer instead.
+On Mon, Jul 21, 2014 at 4:01 PM, Arnd Bergmann <arnd@arndb.de> wrote:
 
+>>
+>> Okay, I will copy m68k implementation to asm-generic/futex.h.
+>> Do you prefer this as separate patch submission or this can be part of
+>> nios2 patchset?
 >
->> +#ifndef _ASM_NIOS2_TIMEX_H
->> +#define _ASM_NIOS2_TIMEX_H
->> +
->> +/* Supply dummy tick-rate. Real value will be read from devicetree */
->> +#define CLOCK_TICK_RATE              (HZ * 100000UL)
->> +
->> +#include <asm-generic/timex.h>
->> +
->> +#endif
->
-> CLOCK_TICK_RATE is no longer used anywhere, no need for this file.
-
-I found jiffies.h still using this define. Can we still remove this?
-In include/linux/jiffies.h:
-#define LATCH ((CLOCK_TICK_RATE + HZ/2) / HZ)   /* For divider */
-
->
->> diff --git a/arch/nios2/kernel/time.c b/arch/nios2/kernel/time.c
->> new file mode 100644
->> index 0000000..111ade1
->> --- /dev/null
->> +++ b/arch/nios2/kernel/time.c
->
-> Maybe move this to drivers/clocksource? Same argument as for the
-> irqchip driver, so either move both or neither.
-Will keep this here since we don't move irq driver.
+> I think it's better for everybody if you include it in your nios2
+> patchset, once I've seen the patch and provided an Ack. You can send
+> it separately for review at first.
+Okay. Will add to my next revision of nios2 patchset.
 
 Thanks.
 
