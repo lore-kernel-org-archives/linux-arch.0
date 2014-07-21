@@ -1,37 +1,51 @@
-From: Ley Foon Tan <lftan@altera.com>
-Subject: Re: [PATCH v2 21/29] nios2: Futex operations
-Date: Mon, 21 Jul 2014 18:24:07 +0800
-Message-ID: <CAFiDJ5_HeUDDO4mCyGEd=vMMAs5MYAXZ-XuTxwLEvwBspf98XA@mail.gmail.com>
-References: <1405413956-2772-1-git-send-email-lftan@altera.com>
-	<5659104.6O7AZx76W6@wuerfel>
-	<CAFiDJ5_hjBQ4tOpsUdgqgwRrJ1TgFSa9pEqc2m+srMj5Fkir=w@mail.gmail.com>
-	<5003438.ZMUcOxtMrE@wuerfel>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH v2 19/29] nios2: Time keeping
+Date: Mon, 21 Jul 2014 12:51:44 +0200
+Message-ID: <17740341.0lUJQdnn9z@wuerfel>
+References: <1405413956-2772-1-git-send-email-lftan@altera.com> <5348663.eHVXUR5shS@wuerfel> <CAFiDJ5-v7BEuLNEn0OyLpbLUJkeeZuKnDrFZZwQrjhFSU4PZSw@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7Bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qa0-f50.google.com ([209.85.216.50]:54618 "EHLO
-	mail-qa0-f50.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754580AbaGUKYI (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 21 Jul 2014 06:24:08 -0400
-In-Reply-To: <5003438.ZMUcOxtMrE@wuerfel>
+Received: from mout.kundenserver.de ([212.227.126.131]:57927 "EHLO
+	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754324AbaGUKvu (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 21 Jul 2014 06:51:50 -0400
+In-Reply-To: <CAFiDJ5-v7BEuLNEn0OyLpbLUJkeeZuKnDrFZZwQrjhFSU4PZSw@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Chung-Lin Tang <cltang@codesourcery.com>
+To: Ley Foon Tan <lftan@altera.com>
+Cc: Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Chung-Lin Tang <cltang@codesourcery.com>
 
-On Mon, Jul 21, 2014 at 4:01 PM, Arnd Bergmann <arnd@arndb.de> wrote:
+On Monday 21 July 2014 18:07:02 Ley Foon Tan wrote:
+> >
+> >> +#ifndef _ASM_NIOS2_TIMEX_H
+> >> +#define _ASM_NIOS2_TIMEX_H
+> >> +
+> >> +/* Supply dummy tick-rate. Real value will be read from devicetree */
+> >> +#define CLOCK_TICK_RATE              (HZ * 100000UL)
+> >> +
+> >> +#include <asm-generic/timex.h>
+> >> +
+> >> +#endif
+> >
+> > CLOCK_TICK_RATE is no longer used anywhere, no need for this file.
+> 
+> I found jiffies.h still using this define. Can we still remove this?
+> In include/linux/jiffies.h:
+> #define LATCH ((CLOCK_TICK_RATE + HZ/2) / HZ)   /* For divider */
+> 
 
->>
->> Okay, I will copy m68k implementation to asm-generic/futex.h.
->> Do you prefer this as separate patch submission or this can be part of
->> nios2 patchset?
->
-> I think it's better for everybody if you include it in your nios2
-> patchset, once I've seen the patch and provided an Ack. You can send
-> it separately for review at first.
-Okay. Will add to my next revision of nios2 patchset.
+Ah, I thought we had killed off LATCH, but at least it is only used
+on architecture specific code, and only in two files:
 
-Thanks.
+arch/x86/kernel/apm_32.c:       outb_p(LATCH & 0xff, PIT_CH0);  /* LSB */
+arch/unicore32/kernel/time.c:   writel(readl(OST_OSMR0) - LATCH, OST_OSCR);
 
-Regards
-Ley Foon
+We could decide to move the LATCH definition into those two files to
+remove it from common code, but it doesn't really hurt otherwise,
+and everything works fine if you don't define CLOCK_TICK_RATE on
+architectures that don't need LATCH or CLOCK_TICK_RATE in their
+architecture-specific code.
+
+	Arnd
