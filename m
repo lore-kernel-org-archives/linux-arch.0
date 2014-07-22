@@ -1,16 +1,12 @@
 From: Max Filippov <jcmvbkbc@gmail.com>
 Subject: [PATCH 0/8] xtensa: highmem support on cores with aliasing cache
 Date: Tue, 22 Jul 2014 23:01:05 +0400
-Message-ID: <1406055673-10100-1-git-send-email-jcmvbkbc__23066.64202265$1406055849$gmane$org@gmail.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-la0-f47.google.com ([209.85.215.47]:39783 "EHLO
-	mail-la0-f47.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755761AbaGVTBY (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 22 Jul 2014 15:01:24 -0400
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Message-ID: <1406055673-10100-1-git-send-email-jcmvbkbc__14766.828568145$1406055863$gmane$org@gmail.com>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: linux-xtensa@linux-xtensa.org
 Cc: Chris Zankel <chris@zankel.net>, Marc Gauthier <marc@cadence.com>, linux-kernel@vger.kernel.org, Max Filippov <jcmvbkbc@gmail.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-mips@linux-mips.org, David Rientjes <rientjes@google.com>
+List-Id: linux-arch.vger.kernel.org
 
 Hi,
 
