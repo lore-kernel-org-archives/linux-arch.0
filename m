@@ -1,252 +1,106 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.sigma-star.at ([95.130.255.111]:14386 "EHLO
-	mail.sigma-star.at" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932270AbaGUOD7 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 21 Jul 2014 10:03:59 -0400
-From: Richard Weinberger <richard@sigma-star.at>
-Subject: [PATCH 02/43] arm64: Use get_signal() signal_setup_done()
-Date: Mon, 21 Jul 2014 16:02:48 +0200
-Message-ID: <1405951409-16953-3-git-send-email-richard@sigma-star.at>
-In-Reply-To: <1405951409-16953-1-git-send-email-richard@sigma-star.at>
-References: <1405951409-16953-1-git-send-email-richard@sigma-star.at>
+Received: from mail-ie0-f175.google.com ([209.85.223.175]:33476 "EHLO
+	mail-ie0-f175.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750960AbaGVA6s (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 21 Jul 2014 20:58:48 -0400
+Received: by mail-ie0-f175.google.com with SMTP id x19so7560133ier.34
+        for <linux-arch@vger.kernel.org>; Mon, 21 Jul 2014 17:58:48 -0700 (PDT)
+Date: Mon, 21 Jul 2014 17:58:46 -0700 (PDT)
+From: David Rientjes <rientjes@google.com>
+Subject: Re: [PATCH v2] mm/highmem: make kmap cache coloring aware
+In-Reply-To: <1405616598-14798-1-git-send-email-jcmvbkbc@gmail.com>
+Message-ID: <alpine.DEB.2.02.1407211754350.7042@chino.kir.corp.google.com>
+References: <1405616598-14798-1-git-send-email-jcmvbkbc@gmail.com>
+MIME-Version: 1.0
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: akpm@linux-foundation.org
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Richard Weinberger <richard@nod.at>, catalin.marinas@arm.com, will.deacon@arm.com, linux-arm-kernel@lists.infradead.org
-Message-ID: <20140721140248.VWD6DsJohdxEFo_ROVjjEe04Kn91z7MWINUhZXylax8@z>
+To: Max Filippov <jcmvbkbc@gmail.com>
+Cc: linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-mips@linux-mips.org, linux-xtensa@linux-xtensa.org, linux-kernel@vger.kernel.org, Leonid Yegoshin <Leonid.Yegoshin@imgtec.com>
+Message-ID: <20140722005846.5SMXWC9opmJdeLgNAEiwa9CioAUwlmxjm-KHWfPQb38@z>
 
-From: Richard Weinberger <richard@nod.at>
+On Thu, 17 Jul 2014, Max Filippov wrote:
 
-Use the more generic functions get_signal() signal_setup_done()
-for signal delivery.
+> From: Leonid Yegoshin <Leonid.Yegoshin@imgtec.com>
+> 
+> Provide hooks that allow architectures with aliasing cache to align
+> mapping address of high pages according to their color. Such architectures
+> may enforce similar coloring of low- and high-memory page mappings and
+> reuse existing cache management functions to support highmem.
+> 
 
-Signed-off-by: Richard Weinberger <richard@nod.at>
----
- arch/arm64/include/asm/signal32.h | 11 ++++-----
- arch/arm64/kernel/signal.c        | 48 ++++++++++++++++-----------------------
- arch/arm64/kernel/signal32.c      | 14 ++++++------
- 3 files changed, 32 insertions(+), 41 deletions(-)
+Typically a change like this would be proposed along with a change to an 
+architecture which would define this new ARCH_PKMAP_COLORING and have its 
+own overriding definitions.  Based on who you sent this patch to, it looks 
+like that would be mips and xtensa.  Now the only question is where are 
+those patches to add the alternate definitions for those platforms?
 
-diff --git a/arch/arm64/include/asm/signal32.h b/arch/arm64/include/asm/signal32.h
-index 7c275e3..eeaa975 100644
---- a/arch/arm64/include/asm/signal32.h
-+++ b/arch/arm64/include/asm/signal32.h
-@@ -24,22 +24,21 @@
- 
- extern const compat_ulong_t aarch32_sigret_code[6];
- 
--int compat_setup_frame(int usig, struct k_sigaction *ka, sigset_t *set,
-+int compat_setup_frame(int usig, struct ksignal *ksig, sigset_t *set,
- 		       struct pt_regs *regs);
--int compat_setup_rt_frame(int usig, struct k_sigaction *ka, siginfo_t *info,
--			  sigset_t *set, struct pt_regs *regs);
-+int compat_setup_rt_frame(int usig, struct ksignal *ksig, sigset_t *set,
-+			  struct pt_regs *regs);
- 
- void compat_setup_restart_syscall(struct pt_regs *regs);
- #else
- 
--static inline int compat_setup_frame(int usid, struct k_sigaction *ka,
-+static inline int compat_setup_frame(int usid, struct ksignal *ksig,
- 				     sigset_t *set, struct pt_regs *regs)
- {
- 	return -ENOSYS;
- }
- 
--static inline int compat_setup_rt_frame(int usig, struct k_sigaction *ka,
--					siginfo_t *info, sigset_t *set,
-+static inline int compat_setup_rt_frame(int usig, struct ksignal *ksig, sigset_t *set,
- 					struct pt_regs *regs)
- {
- 	return -ENOSYS;
-diff --git a/arch/arm64/kernel/signal.c b/arch/arm64/kernel/signal.c
-index 6357b9c..b29f5da 100644
---- a/arch/arm64/kernel/signal.c
-+++ b/arch/arm64/kernel/signal.c
-@@ -253,13 +253,13 @@ static void setup_return(struct pt_regs *regs, struct k_sigaction *ka,
- 	regs->regs[30] = (unsigned long)sigtramp;
- }
- 
--static int setup_rt_frame(int usig, struct k_sigaction *ka, siginfo_t *info,
--			  sigset_t *set, struct pt_regs *regs)
-+static int setup_rt_frame(int usig, struct ksignal *ksig, sigset_t *set,
-+			  struct pt_regs *regs)
- {
- 	struct rt_sigframe __user *frame;
- 	int err = 0;
- 
--	frame = get_sigframe(ka, regs);
-+	frame = get_sigframe(&ksig->ka, regs);
- 	if (!frame)
- 		return 1;
- 
-@@ -269,9 +269,9 @@ static int setup_rt_frame(int usig, struct k_sigaction *ka, siginfo_t *info,
- 	err |= __save_altstack(&frame->uc.uc_stack, regs->sp);
- 	err |= setup_sigframe(frame, regs, set);
- 	if (err == 0) {
--		setup_return(regs, ka, frame, usig);
--		if (ka->sa.sa_flags & SA_SIGINFO) {
--			err |= copy_siginfo_to_user(&frame->info, info);
-+		setup_return(regs, &ksig->ka, frame, usig);
-+		if (ksig->ka.sa.sa_flags & SA_SIGINFO) {
-+			err |= copy_siginfo_to_user(&frame->info, &ksig->info);
- 			regs->regs[1] = (unsigned long)&frame->info;
- 			regs->regs[2] = (unsigned long)&frame->uc;
- 		}
-@@ -291,13 +291,12 @@ static void setup_restart_syscall(struct pt_regs *regs)
- /*
-  * OK, we're invoking a handler
-  */
--static void handle_signal(unsigned long sig, struct k_sigaction *ka,
--			  siginfo_t *info, struct pt_regs *regs)
-+static void handle_signal(struct ksignal *ksig, struct pt_regs *regs)
- {
- 	struct thread_info *thread = current_thread_info();
- 	struct task_struct *tsk = current;
- 	sigset_t *oldset = sigmask_to_save();
--	int usig = sig;
-+	int usig = ksig->sig;
- 	int ret;
- 
- 	/*
-@@ -310,13 +309,12 @@ static void handle_signal(unsigned long sig, struct k_sigaction *ka,
- 	 * Set up the stack frame
- 	 */
- 	if (is_compat_task()) {
--		if (ka->sa.sa_flags & SA_SIGINFO)
--			ret = compat_setup_rt_frame(usig, ka, info, oldset,
--						    regs);
-+		if (ksig->ka.sa.sa_flags & SA_SIGINFO)
-+			ret = compat_setup_rt_frame(usig, ksig, oldset, regs);
- 		else
--			ret = compat_setup_frame(usig, ka, oldset, regs);
-+			ret = compat_setup_frame(usig, ksig, oldset, regs);
- 	} else {
--		ret = setup_rt_frame(usig, ka, info, oldset, regs);
-+		ret = setup_rt_frame(usig, ksig, oldset, regs);
- 	}
- 
- 	/*
-@@ -324,18 +322,14 @@ static void handle_signal(unsigned long sig, struct k_sigaction *ka,
- 	 */
- 	ret |= !valid_user_regs(&regs->user_regs);
- 
--	if (ret != 0) {
--		force_sigsegv(sig, tsk);
--		return;
--	}
--
- 	/*
- 	 * Fast forward the stepping logic so we step into the signal
- 	 * handler.
- 	 */
--	user_fastforward_single_step(tsk);
-+	if (!ret)
-+		user_fastforward_single_step(tsk);
- 
--	signal_delivered(sig, info, ka, regs, 0);
-+	signal_setup_done(ret, ksig, 0);
- }
- 
- /*
-@@ -350,10 +344,9 @@ static void handle_signal(unsigned long sig, struct k_sigaction *ka,
- static void do_signal(struct pt_regs *regs)
- {
- 	unsigned long continue_addr = 0, restart_addr = 0;
--	struct k_sigaction ka;
--	siginfo_t info;
--	int signr, retval = 0;
-+	int retval = 0;
- 	int syscall = (int)regs->syscallno;
-+	struct ksignal ksig;
- 
- 	/*
- 	 * If we were from a system call, check for system call restarting...
-@@ -387,8 +380,7 @@ static void do_signal(struct pt_regs *regs)
- 	 * Get the signal to deliver. When running under ptrace, at this point
- 	 * the debugger may change all of our registers.
- 	 */
--	signr = get_signal_to_deliver(&info, &ka, regs, NULL);
--	if (signr > 0) {
-+	if (get_signal(&ksig)) {
- 		/*
- 		 * Depending on the signal settings, we may need to revert the
- 		 * decision to restart the system call, but skip this if a
-@@ -398,12 +390,12 @@ static void do_signal(struct pt_regs *regs)
- 		    (retval == -ERESTARTNOHAND ||
- 		     retval == -ERESTART_RESTARTBLOCK ||
- 		     (retval == -ERESTARTSYS &&
--		      !(ka.sa.sa_flags & SA_RESTART)))) {
-+		      !(ksig.ka.sa.sa_flags & SA_RESTART)))) {
- 			regs->regs[0] = -EINTR;
- 			regs->pc = continue_addr;
- 		}
- 
--		handle_signal(signr, &ka, &info, regs);
-+		handle_signal(&ksig, regs);
- 		return;
- 	}
- 
-diff --git a/arch/arm64/kernel/signal32.c b/arch/arm64/kernel/signal32.c
-index 3491c63..b69ee69 100644
---- a/arch/arm64/kernel/signal32.c
-+++ b/arch/arm64/kernel/signal32.c
-@@ -520,18 +520,18 @@ static int compat_setup_sigframe(struct compat_sigframe __user *sf,
- /*
-  * 32-bit signal handling routines called from signal.c
-  */
--int compat_setup_rt_frame(int usig, struct k_sigaction *ka, siginfo_t *info,
-+int compat_setup_rt_frame(int usig, struct ksignal *ksig,
- 			  sigset_t *set, struct pt_regs *regs)
- {
- 	struct compat_rt_sigframe __user *frame;
- 	int err = 0;
- 
--	frame = compat_get_sigframe(ka, regs, sizeof(*frame));
-+	frame = compat_get_sigframe(&ksig->ka, regs, sizeof(*frame));
- 
- 	if (!frame)
- 		return 1;
- 
--	err |= copy_siginfo_to_user32(&frame->info, info);
-+	err |= copy_siginfo_to_user32(&frame->info, &ksig->info);
- 
- 	__put_user_error(0, &frame->sig.uc.uc_flags, err);
- 	__put_user_error(0, &frame->sig.uc.uc_link, err);
-@@ -541,7 +541,7 @@ int compat_setup_rt_frame(int usig, struct k_sigaction *ka, siginfo_t *info,
- 	err |= compat_setup_sigframe(&frame->sig, regs, set);
- 
- 	if (err == 0) {
--		compat_setup_return(regs, ka, frame->sig.retcode, frame, usig);
-+		compat_setup_return(regs, &ksig->ka, frame->sig.retcode, frame, usig);
- 		regs->regs[1] = (compat_ulong_t)(unsigned long)&frame->info;
- 		regs->regs[2] = (compat_ulong_t)(unsigned long)&frame->sig.uc;
- 	}
-@@ -549,13 +549,13 @@ int compat_setup_rt_frame(int usig, struct k_sigaction *ka, siginfo_t *info,
- 	return err;
- }
- 
--int compat_setup_frame(int usig, struct k_sigaction *ka, sigset_t *set,
-+int compat_setup_frame(int usig, struct ksignal *ksig, sigset_t *set,
- 		       struct pt_regs *regs)
- {
- 	struct compat_sigframe __user *frame;
- 	int err = 0;
- 
--	frame = compat_get_sigframe(ka, regs, sizeof(*frame));
-+	frame = compat_get_sigframe(&ksig->ka, regs, sizeof(*frame));
- 
- 	if (!frame)
- 		return 1;
-@@ -564,7 +564,7 @@ int compat_setup_frame(int usig, struct k_sigaction *ka, sigset_t *set,
- 
- 	err |= compat_setup_sigframe(frame, regs, set);
- 	if (err == 0)
--		compat_setup_return(regs, ka, frame->retcode, frame, usig);
-+		compat_setup_return(regs, &ksig->ka, frame->retcode, frame, usig);
- 
- 	return err;
- }
--- 
-1.8.4.5
+> Signed-off-by: Leonid Yegoshin <Leonid.Yegoshin@imgtec.com>
+> [ Max: extract architecture-independent part of the original patch, clean
+>   up checkpatch and build warnings. ]
+> Signed-off-by: Max Filippov <jcmvbkbc@gmail.com>
+> ---
+> Changes v1->v2:
+> - fix description
+> 
+>  mm/highmem.c | 19 ++++++++++++++++---
+>  1 file changed, 16 insertions(+), 3 deletions(-)
+> 
+> diff --git a/mm/highmem.c b/mm/highmem.c
+> index b32b70c..6898a8b 100644
+> --- a/mm/highmem.c
+> +++ b/mm/highmem.c
+> @@ -44,6 +44,14 @@ DEFINE_PER_CPU(int, __kmap_atomic_idx);
+>   */
+>  #ifdef CONFIG_HIGHMEM
+>  
+> +#ifndef ARCH_PKMAP_COLORING
+> +#define set_pkmap_color(pg, cl)		/* */
 
+This is typically done with do {} while (0).
+
+> +#define get_last_pkmap_nr(p, cl)	(p)
+> +#define get_next_pkmap_nr(p, cl)	(((p) + 1) & LAST_PKMAP_MASK)
+> +#define is_no_more_pkmaps(p, cl)	(!(p))
+
+That's not gramatically proper.
+
+> +#define get_next_pkmap_counter(c, cl)	((c) - 1)
+> +#endif
+> +
+>  unsigned long totalhigh_pages __read_mostly;
+>  EXPORT_SYMBOL(totalhigh_pages);
+>  
+> @@ -161,19 +169,24 @@ static inline unsigned long map_new_virtual(struct page *page)
+>  {
+>  	unsigned long vaddr;
+>  	int count;
+> +	int color __maybe_unused;
+> +
+> +	set_pkmap_color(page, color);
+> +	last_pkmap_nr = get_last_pkmap_nr(last_pkmap_nr, color);
+>  
+>  start:
+>  	count = LAST_PKMAP;
+>  	/* Find an empty entry */
+>  	for (;;) {
+> -		last_pkmap_nr = (last_pkmap_nr + 1) & LAST_PKMAP_MASK;
+> -		if (!last_pkmap_nr) {
+> +		last_pkmap_nr = get_next_pkmap_nr(last_pkmap_nr, color);
+> +		if (is_no_more_pkmaps(last_pkmap_nr, color)) {
+>  			flush_all_zero_pkmaps();
+>  			count = LAST_PKMAP;
+>  		}
+>  		if (!pkmap_count[last_pkmap_nr])
+>  			break;	/* Found a usable entry */
+> -		if (--count)
+> +		count = get_next_pkmap_counter(count, color);
+
+And that's not equivalent at all, --count decrements the auto variable and 
+then tests it for being non-zero.  Your get_next_pkmap_counter() never 
+decrements count.
+
+> +		if (count > 0)
+>  			continue;
+>  
+>  		/*
