@@ -1,59 +1,39 @@
-From: Stephen Rothwell <sfr@canb.auug.org.au>
+From: Richard Weinberger <richard@nod.at>
 Subject: Re: Global signal cleanup, take 4
-Date: Tue, 22 Jul 2014 14:47:27 +1000
-Message-ID: <20140722144727.441bcc2a@canb.auug.org.au>
-References: <1405951409-16953-1-git-send-email-richard@sigma-star.at>
+Date: Tue, 22 Jul 2014 08:52:21 +0200
+Message-ID: <53CE0A25.7090508@nod.at>
+References: <1405951409-16953-1-git-send-email-richard@sigma-star.at> <20140722144727.441bcc2a@canb.auug.org.au>
 Mime-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha256;
- boundary="Sig_/d+81fpIa4D7A+9a2.i4FEvk"; protocol="application/pgp-signature"
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1405951409-16953-1-git-send-email-richard@sigma-star.at>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Richard Weinberger <richard@sigma-star.at>
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from a.ns.miles-group.at ([95.130.255.143]:65276 "EHLO radon.swed.at"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751090AbaGVGwd (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 22 Jul 2014 02:52:33 -0400
+In-Reply-To: <20140722144727.441bcc2a@canb.auug.org.au>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Stephen Rothwell <sfr@canb.auug.org.au>
 Cc: akpm@linux-foundation.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
 
---Sig_/d+81fpIa4D7A+9a2.i4FEvk
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: quoted-printable
+Stephen,
 
-Hi Richard,
+Am 22.07.2014 06:47, schrieb Stephen Rothwell:
+> Hi Richard,
+> 
+> On Mon, 21 Jul 2014 16:02:46 +0200 Richard Weinberger <richard@sigma-star.at> wrote:
+>>
+>> The whole series can also be found at:
+>> git://git.kernel.org/pub/scm/linux/kernel/git/rw/misc.git signal_v4
+>>
+>> Andrew, can you please pickup this series?
+> 
+> Why don't we just add that git tree to linux-next? Then you can send
+> Linus a pull request in the next merge window.
 
-On Mon, 21 Jul 2014 16:02:46 +0200 Richard Weinberger <richard@sigma-star.a=
-t> wrote:
->
-> The whole series can also be found at:
-> git://git.kernel.org/pub/scm/linux/kernel/git/rw/misc.git signal_v4
->=20
-> Andrew, can you please pickup this series?
+That's a good idea.
+Can you please add the tree to linux-next?
 
-Why don't we just add that git tree to linux-next? Then you can send
-Linus a pull request in the next merge window.
-
---=20
-Cheers,
-Stephen Rothwell                    sfr@canb.auug.org.au
-
---Sig_/d+81fpIa4D7A+9a2.i4FEvk
-Content-Type: application/pgp-signature; name=signature.asc
-Content-Disposition: attachment; filename=signature.asc
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v2
-
-iQIcBAEBCAAGBQJTze0CAAoJEMDTa8Ir7ZwV0Z0P/jmWTVR9D+rTW/vtxJTGg898
-y7dgRN6O8BQH9+5J33HxVaWSWY/qapwPB4ZWiGm7CJw4YdSGf3R7s6iy8y0h1Y+B
-eenoPitCUzzZCgGxCyFMILlaFZ6qwHI/E3kxp3U2j/5YORXCElLx1kWj9tuSY/9K
-adcb13jaKJsXOMN31LB98I3dT5wlBT0DipHr4OoeKzm1gn06vptQbEo+/jyeXGJS
-JXf8zdv0LGKRTjwtapMH8aLRwM/Jll1lIc+G742gY1C+vZzPSubHutJO+c6iRS3Q
-WtKvebgk8Mj02G22Tb2NT1dcRzXOo9DRCSpFUEynhCSXIMrVO0FmqoB99XdRZBSr
-SOdcka3hTHuVT1iSDRfNc0h9WVIMz0MuJhjCqUDB7QjBCqzNjTZ7nCRIbpG83Zxq
-Zqd0xp8npwoDyi7dMHDkmGXn0X1KdQuqCjPY5RWFTdyAQ0RKOxLV8wqWGTCBStfr
-Y9xZWn8Dkc/k0CPmcH5jBZoLT581GOqpa/Umz71eKHwq10h7j5b34223Gi3uhkm1
-gh1PvaoaQEi96KOMkLJiI42JdG8/+PkpPWCq7IjaE33f5yZzjF2ndhV3GqSqXcx8
-czpZxLpprkWCquzjP2lrhg6zsejtRtM7uMZXDrLfSd7+ioH/DorNiRJ4O4Hc2Wa8
-0XdbwLNdfpjBkOw2eS2a
-=iBo6
------END PGP SIGNATURE-----
-
---Sig_/d+81fpIa4D7A+9a2.i4FEvk--
+Thanks,
+//richard
