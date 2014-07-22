@@ -1,97 +1,59 @@
-From: Andy Lutomirski <luto@amacapital.net>
-Subject: [PATCH v3 8/8] x86_64,entry: Use split-phase syscall_trace_enter for 64-bit syscalls
-Date: Mon, 21 Jul 2014 18:53:43 -0700
-Message-ID: <ba0a8c0f87970f0af60f38ce2d07def3e991b419.1405992946.git.luto@amacapital.net>
-References: <2baeb5fad958c292705885941d61ab31771a75bb.1405992946.git.luto@amacapital.net>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pd0-f171.google.com ([209.85.192.171]:40486 "EHLO
-	mail-pd0-f171.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752581AbaGVByI (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 21 Jul 2014 21:54:08 -0400
-Received: by mail-pd0-f171.google.com with SMTP id z10so10236261pdj.30
-        for <linux-arch@vger.kernel.org>; Mon, 21 Jul 2014 18:54:07 -0700 (PDT)
-In-Reply-To: <2baeb5fad958c292705885941d61ab31771a75bb.1405992946.git.luto@amacapital.net>
-In-Reply-To: <cover.1405992946.git.luto@amacapital.net>
-References: <cover.1405992946.git.luto@amacapital.net>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, Kees Cook <keescook@chromium.org>, Will Drewry <wad@chromium.org>
-Cc: Oleg Nesterov <oleg@redhat.com>, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-mips@linux-mips.org, linux-arch@vger.kernel.org, linux-security-module@vger.kernel.org, Alexei Starovoitov <ast@plumgrid.com>, hpa@zytor.com, Andy Lutomirski <luto@amacapital.net>
+From: Stephen Rothwell <sfr@canb.auug.org.au>
+Subject: Re: Global signal cleanup, take 4
+Date: Tue, 22 Jul 2014 14:47:27 +1000
+Message-ID: <20140722144727.441bcc2a@canb.auug.org.au>
+References: <1405951409-16953-1-git-send-email-richard@sigma-star.at>
+Mime-Version: 1.0
+Content-Type: multipart/signed; micalg=pgp-sha256;
+ boundary="Sig_/d+81fpIa4D7A+9a2.i4FEvk"; protocol="application/pgp-signature"
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1405951409-16953-1-git-send-email-richard@sigma-star.at>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Richard Weinberger <richard@sigma-star.at>
+Cc: akpm@linux-foundation.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On KVM on my box, this reduces the overhead from an always-accept
-seccomp filter from ~130ns to ~17ns.  Most of that comes from
-avoiding IRET on every syscall when seccomp is enabled.
+--Sig_/d+81fpIa4D7A+9a2.i4FEvk
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: quoted-printable
 
-In extremely approximate hacked-up benchmarking, just bypassing IRET
-saves about 80ns, so there's another 43ns of savings here from
-simplifying the seccomp path.
+Hi Richard,
 
-The diffstat is also rather nice :)
+On Mon, 21 Jul 2014 16:02:46 +0200 Richard Weinberger <richard@sigma-star.a=
+t> wrote:
+>
+> The whole series can also be found at:
+> git://git.kernel.org/pub/scm/linux/kernel/git/rw/misc.git signal_v4
+>=20
+> Andrew, can you please pickup this series?
 
-Signed-off-by: Andy Lutomirski <luto@amacapital.net>
----
- arch/x86/kernel/entry_64.S | 38 +++++++++++++++-----------------------
- 1 file changed, 15 insertions(+), 23 deletions(-)
+Why don't we just add that git tree to linux-next? Then you can send
+Linus a pull request in the next merge window.
 
-diff --git a/arch/x86/kernel/entry_64.S b/arch/x86/kernel/entry_64.S
-index 1eb3094..13e0c1d 100644
---- a/arch/x86/kernel/entry_64.S
-+++ b/arch/x86/kernel/entry_64.S
-@@ -479,22 +479,6 @@ sysret_signal:
- 
- #ifdef CONFIG_AUDITSYSCALL
- 	/*
--	 * Fast path for syscall audit without full syscall trace.
--	 * We just call __audit_syscall_entry() directly, and then
--	 * jump back to the normal fast path.
--	 */
--auditsys:
--	movq %r10,%r9			/* 6th arg: 4th syscall arg */
--	movq %rdx,%r8			/* 5th arg: 3rd syscall arg */
--	movq %rsi,%rcx			/* 4th arg: 2nd syscall arg */
--	movq %rdi,%rdx			/* 3rd arg: 1st syscall arg */
--	movq %rax,%rsi			/* 2nd arg: syscall number */
--	movl $AUDIT_ARCH_X86_64,%edi	/* 1st arg: audit arch */
--	call __audit_syscall_entry
--	LOAD_ARGS 0		/* reload call-clobbered registers */
--	jmp system_call_fastpath
--
--	/*
- 	 * Return fast path for syscall audit.  Call __audit_syscall_exit()
- 	 * directly and then jump back to the fast path with TIF_SYSCALL_AUDIT
- 	 * masked off.
-@@ -511,17 +495,25 @@ sysret_audit:
- 
- 	/* Do syscall tracing */
- tracesys:
--#ifdef CONFIG_AUDITSYSCALL
--	testl $(_TIF_WORK_SYSCALL_ENTRY & ~_TIF_SYSCALL_AUDIT),TI_flags+THREAD_INFO(%rsp,RIP-ARGOFFSET)
--	jz auditsys
--#endif
-+	leaq -REST_SKIP(%rsp), %rdi
-+	movq $AUDIT_ARCH_X86_64, %rsi
-+	call syscall_trace_enter_phase1
-+	test %rax, %rax
-+	jnz tracesys_phase2		/* if needed, run the slow path */
-+	LOAD_ARGS 0			/* else restore clobbered regs */
-+	jmp system_call_fastpath	/*      and return to the fast path */
-+
-+tracesys_phase2:
- 	SAVE_REST
- 	FIXUP_TOP_OF_STACK %rdi
--	movq %rsp,%rdi
--	call syscall_trace_enter
-+	movq %rsp, %rdi
-+	movq $AUDIT_ARCH_X86_64, %rsi
-+	movq %rax,%rdx
-+	call syscall_trace_enter_phase2
-+
- 	/*
- 	 * Reload arg registers from stack in case ptrace changed them.
--	 * We don't reload %rax because syscall_trace_enter() returned
-+	 * We don't reload %rax because syscall_trace_entry_phase2() returned
- 	 * the value it wants us to use in the table lookup.
- 	 */
- 	LOAD_ARGS ARGOFFSET, 1
--- 
-1.9.3
+--=20
+Cheers,
+Stephen Rothwell                    sfr@canb.auug.org.au
+
+--Sig_/d+81fpIa4D7A+9a2.i4FEvk
+Content-Type: application/pgp-signature; name=signature.asc
+Content-Disposition: attachment; filename=signature.asc
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v2
+
+iQIcBAEBCAAGBQJTze0CAAoJEMDTa8Ir7ZwV0Z0P/jmWTVR9D+rTW/vtxJTGg898
+y7dgRN6O8BQH9+5J33HxVaWSWY/qapwPB4ZWiGm7CJw4YdSGf3R7s6iy8y0h1Y+B
+eenoPitCUzzZCgGxCyFMILlaFZ6qwHI/E3kxp3U2j/5YORXCElLx1kWj9tuSY/9K
+adcb13jaKJsXOMN31LB98I3dT5wlBT0DipHr4OoeKzm1gn06vptQbEo+/jyeXGJS
+JXf8zdv0LGKRTjwtapMH8aLRwM/Jll1lIc+G742gY1C+vZzPSubHutJO+c6iRS3Q
+WtKvebgk8Mj02G22Tb2NT1dcRzXOo9DRCSpFUEynhCSXIMrVO0FmqoB99XdRZBSr
+SOdcka3hTHuVT1iSDRfNc0h9WVIMz0MuJhjCqUDB7QjBCqzNjTZ7nCRIbpG83Zxq
+Zqd0xp8npwoDyi7dMHDkmGXn0X1KdQuqCjPY5RWFTdyAQ0RKOxLV8wqWGTCBStfr
+Y9xZWn8Dkc/k0CPmcH5jBZoLT581GOqpa/Umz71eKHwq10h7j5b34223Gi3uhkm1
+gh1PvaoaQEi96KOMkLJiI42JdG8/+PkpPWCq7IjaE33f5yZzjF2ndhV3GqSqXcx8
+czpZxLpprkWCquzjP2lrhg6zsejtRtM7uMZXDrLfSd7+ioH/DorNiRJ4O4Hc2Wa8
+0XdbwLNdfpjBkOw2eS2a
+=iBo6
+-----END PGP SIGNATURE-----
+
+--Sig_/d+81fpIa4D7A+9a2.i4FEvk--
