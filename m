@@ -1,150 +1,105 @@
-From: Lennox Wu <lennox.wu@gmail.com>
-Subject: Re: [PATCH 18/43] score: Use get_signal() signal_setup_done()
-Date: Mon, 21 Jul 2014 22:47:34 +0800
-Message-ID: <CAF0htA4XuN035oYR5-13bzLnpHB1kUbe+igVstJ5QZXULbz58A@mail.gmail.com>
-References: <1405951409-16953-1-git-send-email-richard@sigma-star.at>
-	<1405951409-16953-19-git-send-email-richard@sigma-star.at>
+From: David Rientjes <rientjes@google.com>
+Subject: Re: [PATCH v2] mm/highmem: make kmap cache coloring aware
+Date: Mon, 21 Jul 2014 17:58:46 -0700 (PDT)
+Message-ID: <alpine.DEB.2.02.1407211754350.7042@chino.kir.corp.google.com>
+References: <1405616598-14798-1-git-send-email-jcmvbkbc@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-vc0-f177.google.com ([209.85.220.177]:59296 "EHLO
-	mail-vc0-f177.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932519AbaGUOrf (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 21 Jul 2014 10:47:35 -0400
-In-Reply-To: <1405951409-16953-19-git-send-email-richard@sigma-star.at>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Richard Weinberger <richard@sigma-star.at>
-Cc: open list <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Liqin Chen <liqin.linux@gmail.com>
+Content-Type: TEXT/PLAIN; charset=US-ASCII
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <1405616598-14798-1-git-send-email-jcmvbkbc@gmail.com>
+Sender: owner-linux-mm@kvack.org
+To: Max Filippov <jcmvbkbc@gmail.com>
+Cc: linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-mips@linux-mips.org, linux-xtensa@linux-xtensa.org, linux-kernel@vger.kernel.org, Leonid Yegoshin <Leonid.Yegoshin@imgtec.com>
+List-Id: linux-arch.vger.kernel.org
 
-I am picking up some missed patches and merging them into our git
-tree. If the patch is missed, we will merge it.
+On Thu, 17 Jul 2014, Max Filippov wrote:
 
-Best,
-Lennox
+> From: Leonid Yegoshin <Leonid.Yegoshin@imgtec.com>
+> 
+> Provide hooks that allow architectures with aliasing cache to align
+> mapping address of high pages according to their color. Such architectures
+> may enforce similar coloring of low- and high-memory page mappings and
+> reuse existing cache management functions to support highmem.
+> 
 
-2014-07-21 22:03 GMT+08:00 Richard Weinberger <richard@sigma-star.at>:
-> From: Richard Weinberger <richard@nod.at>
->
-> Use the more generic functions get_signal() signal_setup_done()
-> for signal delivery.
->
-> Acked-by: Lennox Wu <lennox.wu@gmail.com>
-> Signed-off-by: Richard Weinberger <richard@nod.at>
+Typically a change like this would be proposed along with a change to an 
+architecture which would define this new ARCH_PKMAP_COLORING and have its 
+own overriding definitions.  Based on who you sent this patch to, it looks 
+like that would be mips and xtensa.  Now the only question is where are 
+those patches to add the alternate definitions for those platforms?
+
+> Signed-off-by: Leonid Yegoshin <Leonid.Yegoshin@imgtec.com>
+> [ Max: extract architecture-independent part of the original patch, clean
+>   up checkpatch and build warnings. ]
+> Signed-off-by: Max Filippov <jcmvbkbc@gmail.com>
 > ---
->  arch/score/kernel/signal.c | 43 ++++++++++++++++++-------------------------
->  1 file changed, 18 insertions(+), 25 deletions(-)
->
-> diff --git a/arch/score/kernel/signal.c b/arch/score/kernel/signal.c
-> index a00fba3..1651807 100644
-> --- a/arch/score/kernel/signal.c
-> +++ b/arch/score/kernel/signal.c
-> @@ -173,15 +173,15 @@ badframe:
->         return 0;
->  }
->
-> -static int setup_rt_frame(struct k_sigaction *ka, struct pt_regs *regs,
-> -               int signr, sigset_t *set, siginfo_t *info)
-> +static int setup_rt_frame(struct ksignal *ksig, struct pt_regs *regs,
-> +                         sigset_t *set)
->  {
->         struct rt_sigframe __user *frame;
->         int err = 0;
->
-> -       frame = get_sigframe(ka, regs, sizeof(*frame));
-> +       frame = get_sigframe(&ksig->ka, regs, sizeof(*frame));
->         if (!access_ok(VERIFY_WRITE, frame, sizeof(*frame)))
-> -               goto give_sigsegv;
-> +               return -EFAULT;
->
->         /*
->          * Set up the return code ...
-> @@ -194,7 +194,7 @@ static int setup_rt_frame(struct k_sigaction *ka, struct pt_regs *regs,
->         err |= __put_user(0x80008002, frame->rs_code + 1);
->         flush_cache_sigtramp((unsigned long) frame->rs_code);
->
-> -       err |= copy_siginfo_to_user(&frame->rs_info, info);
-> +       err |= copy_siginfo_to_user(&frame->rs_info, &ksig->info);
->         err |= __put_user(0, &frame->rs_uc.uc_flags);
->         err |= __put_user(NULL, &frame->rs_uc.uc_link);
->         err |= __save_altstack(&frame->rs_uc.uc_stack, regs->regs[0]);
-> @@ -202,26 +202,23 @@ static int setup_rt_frame(struct k_sigaction *ka, struct pt_regs *regs,
->         err |= __copy_to_user(&frame->rs_uc.uc_sigmask, set, sizeof(*set));
->
->         if (err)
-> -               goto give_sigsegv;
-> +               return -EFAULT;
->
->         regs->regs[0] = (unsigned long) frame;
->         regs->regs[3] = (unsigned long) frame->rs_code;
-> -       regs->regs[4] = signr;
-> +       regs->regs[4] = ksig->sig;
->         regs->regs[5] = (unsigned long) &frame->rs_info;
->         regs->regs[6] = (unsigned long) &frame->rs_uc;
-> -       regs->regs[29] = (unsigned long) ka->sa.sa_handler;
-> -       regs->cp0_epc = (unsigned long) ka->sa.sa_handler;
-> +       regs->regs[29] = (unsigned long) ksig->ka.sa.sa_handler;
-> +       regs->cp0_epc = (unsigned long) ksig->ka.sa.sa_handler;
->
->         return 0;
-> -
-> -give_sigsegv:
-> -       force_sigsegv(signr, current);
-> -       return -EFAULT;
->  }
->
-> -static void handle_signal(unsigned long sig, siginfo_t *info,
-> -       struct k_sigaction *ka, struct pt_regs *regs)
-> +static void handle_signal(struct ksignal *ksig, struct pt_regs *regs)
->  {
-> +       int ret;
+> Changes v1->v2:
+> - fix description
+> 
+>  mm/highmem.c | 19 ++++++++++++++++---
+>  1 file changed, 16 insertions(+), 3 deletions(-)
+> 
+> diff --git a/mm/highmem.c b/mm/highmem.c
+> index b32b70c..6898a8b 100644
+> --- a/mm/highmem.c
+> +++ b/mm/highmem.c
+> @@ -44,6 +44,14 @@ DEFINE_PER_CPU(int, __kmap_atomic_idx);
+>   */
+>  #ifdef CONFIG_HIGHMEM
+>  
+> +#ifndef ARCH_PKMAP_COLORING
+> +#define set_pkmap_color(pg, cl)		/* */
+
+This is typically done with do {} while (0).
+
+> +#define get_last_pkmap_nr(p, cl)	(p)
+> +#define get_next_pkmap_nr(p, cl)	(((p) + 1) & LAST_PKMAP_MASK)
+> +#define is_no_more_pkmaps(p, cl)	(!(p))
+
+That's not gramatically proper.
+
+> +#define get_next_pkmap_counter(c, cl)	((c) - 1)
+> +#endif
 > +
->         if (regs->is_syscall) {
->                 switch (regs->regs[4]) {
->                 case ERESTART_RESTARTBLOCK:
-> @@ -229,7 +226,7 @@ static void handle_signal(unsigned long sig, siginfo_t *info,
->                         regs->regs[4] = EINTR;
->                         break;
->                 case ERESTARTSYS:
-> -                       if (!(ka->sa.sa_flags & SA_RESTART)) {
-> +                       if (!(ksig->ka.sa.sa_flags & SA_RESTART)) {
->                                 regs->regs[4] = EINTR;
->                                 break;
->                         }
-> @@ -245,17 +242,14 @@ static void handle_signal(unsigned long sig, siginfo_t *info,
->         /*
->          * Set up the stack frame
->          */
-> -       if (setup_rt_frame(ka, regs, sig, sigmask_to_save(), info) < 0)
-> -               return;
-> +       ret = setup_rt_frame(ksig, regs, sigmask_to_save());
->
-> -       signal_delivered(sig, info, ka, regs, 0);
-> +       signal_setup_done(ret, ksig, 0);
->  }
->
->  static void do_signal(struct pt_regs *regs)
+>  unsigned long totalhigh_pages __read_mostly;
+>  EXPORT_SYMBOL(totalhigh_pages);
+>  
+> @@ -161,19 +169,24 @@ static inline unsigned long map_new_virtual(struct page *page)
 >  {
-> -       struct k_sigaction ka;
-> -       siginfo_t info;
-> -       int signr;
-> +       struct ksignal ksig;
->
->         /*
->          * We want the common case to go fast, which is why we may in certain
-> @@ -265,10 +259,9 @@ static void do_signal(struct pt_regs *regs)
->         if (!user_mode(regs))
->                 return;
->
-> -       signr = get_signal_to_deliver(&info, &ka, regs, NULL);
-> -       if (signr > 0) {
-> +       if (get_signal(&ksig)) {
->                 /* Actually deliver the signal.  */
-> -               handle_signal(signr, &info, &ka, regs);
-> +               handle_signal(&ksig, regs);
->                 return;
->         }
->
-> --
-> 1.8.4.5
->
+>  	unsigned long vaddr;
+>  	int count;
+> +	int color __maybe_unused;
+> +
+> +	set_pkmap_color(page, color);
+> +	last_pkmap_nr = get_last_pkmap_nr(last_pkmap_nr, color);
+>  
+>  start:
+>  	count = LAST_PKMAP;
+>  	/* Find an empty entry */
+>  	for (;;) {
+> -		last_pkmap_nr = (last_pkmap_nr + 1) & LAST_PKMAP_MASK;
+> -		if (!last_pkmap_nr) {
+> +		last_pkmap_nr = get_next_pkmap_nr(last_pkmap_nr, color);
+> +		if (is_no_more_pkmaps(last_pkmap_nr, color)) {
+>  			flush_all_zero_pkmaps();
+>  			count = LAST_PKMAP;
+>  		}
+>  		if (!pkmap_count[last_pkmap_nr])
+>  			break;	/* Found a usable entry */
+> -		if (--count)
+> +		count = get_next_pkmap_counter(count, color);
+
+And that's not equivalent at all, --count decrements the auto variable and 
+then tests it for being non-zero.  Your get_next_pkmap_counter() never 
+decrements count.
+
+> +		if (count > 0)
+>  			continue;
+>  
+>  		/*
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
