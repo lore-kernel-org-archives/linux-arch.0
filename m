@@ -1,14 +1,18 @@
 From: Max Filippov <jcmvbkbc@gmail.com>
 Subject: [PATCH 6/8] mm/highmem: make kmap cache coloring aware
 Date: Tue, 22 Jul 2014 23:01:11 +0400
-Message-ID: <1406055673-10100-7-git-send-email-jcmvbkbc__26359.3736374334$1406055721$gmane$org@gmail.com>
+Message-ID: <1406055673-10100-7-git-send-email-jcmvbkbc__45950.0131583356$1406055736$gmane$org@gmail.com>
 References: <1406055673-10100-1-git-send-email-jcmvbkbc@gmail.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-la0-f54.google.com ([209.85.215.54]:41063 "EHLO
+	mail-la0-f54.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756586AbaGVTBd (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 22 Jul 2014 15:01:33 -0400
 In-Reply-To: <1406055673-10100-1-git-send-email-jcmvbkbc@gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: linux-xtensa@linux-xtensa.org
 Cc: Chris Zankel <chris@zankel.net>, Marc Gauthier <marc@cadence.com>, linux-kernel@vger.kernel.org, Leonid Yegoshin <Leonid.Yegoshin@imgtec.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-mips@linux-mips.org, David Rientjes <rientjes@google.com>, Max Filippov <jcmvbkbc@gmail.com>
-List-Id: linux-arch.vger.kernel.org
 
 From: Leonid Yegoshin <Leonid.Yegoshin@imgtec.com>
 
