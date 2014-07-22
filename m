@@ -1,82 +1,58 @@
 From: Max Filippov <jcmvbkbc@gmail.com>
-Subject: [PATCH 7/8] xtensa: support aliasing cache in kmap
-Date: Tue, 22 Jul 2014 23:01:12 +0400
-Message-ID: <1406055673-10100-8-git-send-email-jcmvbkbc__19497.7751737044$1406055757$gmane$org@gmail.com>
-References: <1406055673-10100-1-git-send-email-jcmvbkbc@gmail.com>
+Subject: [PATCH 0/8] xtensa: highmem support on cores with aliasing cache
+Date: Tue, 22 Jul 2014 23:01:05 +0400
+Message-ID: <1406055673-10100-1-git-send-email-jcmvbkbc__23066.64202265$1406055849$gmane$org@gmail.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-la0-f45.google.com ([209.85.215.45]:52291 "EHLO
-	mail-la0-f45.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756615AbaGVTBe (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 22 Jul 2014 15:01:34 -0400
-In-Reply-To: <1406055673-10100-1-git-send-email-jcmvbkbc@gmail.com>
+Received: from mail-la0-f47.google.com ([209.85.215.47]:39783 "EHLO
+	mail-la0-f47.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755761AbaGVTBY (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 22 Jul 2014 15:01:24 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-xtensa@linux-xtensa.org
 Cc: Chris Zankel <chris@zankel.net>, Marc Gauthier <marc@cadence.com>, linux-kernel@vger.kernel.org, Max Filippov <jcmvbkbc@gmail.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-mips@linux-mips.org, David Rientjes <rientjes@google.com>
 
-Define ARCH_PKMAP_COLORING and provide corresponding macro definitions
-on cores with aliasing data cache.
+Hi,
 
-Instead of single last_pkmap_nr maintain an array last_pkmap_nr_arr of
-pkmap counters for each page color. Make sure that kmap maps physical
-page at virtual address with color matching its physical address.
+this series implements highmem support on xtensa cores with aliasing cache.
+It does so by making sure that high memory pages are always mapped at
+virtual addresses with color that match color of their physical address.
+
+This involves changing the generic kmap code to make it aware of cache
+coloring. This part with corresponding arch changes is cc'd linux-mm,
+linux-arch and linux-mips.
+
+The whole series can also be found at:
+git://github.com/jcmvbkbc/linux-xtensa.git xtensa-highmem-ca
+
+Leonid Yegoshin (1):
+  mm/highmem: make kmap cache coloring aware
+
+Max Filippov (7):
+  xtensa: make fixmap region addressing grow with index
+  xtensa: allow fixmap and kmap span more than one page table
+  xtensa: fix TLBTEMP_BASE_2 region handling in fast_second_level_miss
+  xtensa: implement clear_user_highpage and copy_user_highpage
+  xtensa: support aliasing cache in k[un]map_atomic
+  xtensa: support aliasing cache in kmap
+  xtensa: support highmem in aliasing cache flushing code
+
+ arch/xtensa/include/asm/cacheflush.h |   2 +
+ arch/xtensa/include/asm/fixmap.h     |  30 +++++++--
+ arch/xtensa/include/asm/highmem.h    |  18 +++++-
+ arch/xtensa/include/asm/page.h       |  14 ++++-
+ arch/xtensa/include/asm/pgtable.h    |   7 ++-
+ arch/xtensa/kernel/entry.S           |   2 +-
+ arch/xtensa/mm/cache.c               |  77 ++++++++++++++++++++---
+ arch/xtensa/mm/highmem.c             |  24 +++++---
+ arch/xtensa/mm/misc.S                | 116 ++++++++++++++++-------------------
+ arch/xtensa/mm/mmu.c                 |  38 +++++++-----
+ mm/highmem.c                         |  19 +++++-
+ 11 files changed, 235 insertions(+), 112 deletions(-)
 
 Cc: linux-mm@kvack.org
 Cc: linux-arch@vger.kernel.org
 Cc: linux-mips@linux-mips.org
 Cc: David Rientjes <rientjes@google.com>
-Signed-off-by: Max Filippov <jcmvbkbc@gmail.com>
----
- arch/xtensa/include/asm/highmem.h | 18 ++++++++++++++++--
- arch/xtensa/mm/highmem.c          |  1 +
- 2 files changed, 17 insertions(+), 2 deletions(-)
-
-diff --git a/arch/xtensa/include/asm/highmem.h b/arch/xtensa/include/asm/highmem.h
-index 2653ef5..a5c3380 100644
---- a/arch/xtensa/include/asm/highmem.h
-+++ b/arch/xtensa/include/asm/highmem.h
-@@ -17,14 +17,28 @@
- #include <asm/kmap_types.h>
- #include <asm/pgtable.h>
- 
--#define PKMAP_BASE		(FIXADDR_START - PMD_SIZE)
--#define LAST_PKMAP		PTRS_PER_PTE
-+#define PKMAP_BASE		((FIXADDR_START - \
-+				  (LAST_PKMAP + 1) * PAGE_SIZE) & PMD_MASK)
-+#define LAST_PKMAP		(PTRS_PER_PTE * DCACHE_N_COLORS)
- #define LAST_PKMAP_MASK		(LAST_PKMAP - 1)
- #define PKMAP_NR(virt)		(((virt) - PKMAP_BASE) >> PAGE_SHIFT)
- #define PKMAP_ADDR(nr)		(PKMAP_BASE + ((nr) << PAGE_SHIFT))
- 
- #define kmap_prot		PAGE_KERNEL
- 
-+#if DCACHE_WAY_SIZE > PAGE_SIZE
-+#define ARCH_PKMAP_COLORING
-+#define set_pkmap_color(pg, cl)		((cl) = DCACHE_ALIAS(page_to_phys(pg)))
-+#define get_last_pkmap_nr(p, cl)	(last_pkmap_nr_arr[cl] + (cl))
-+#define get_next_pkmap_nr(p, cl)	\
-+	((last_pkmap_nr_arr[cl] = ((last_pkmap_nr_arr[cl] + DCACHE_N_COLORS) & \
-+				   LAST_PKMAP_MASK)) + (cl))
-+#define no_more_pkmaps(p, cl)		((p) < DCACHE_N_COLORS)
-+#define get_next_pkmap_counter(c, cl)	((c) - DCACHE_N_COLORS)
-+
-+extern unsigned int last_pkmap_nr_arr[];
-+#endif
-+
- extern pte_t *pkmap_page_table;
- 
- void *kmap_high(struct page *page);
-diff --git a/arch/xtensa/mm/highmem.c b/arch/xtensa/mm/highmem.c
-index 466abae..3742a37 100644
---- a/arch/xtensa/mm/highmem.c
-+++ b/arch/xtensa/mm/highmem.c
-@@ -12,6 +12,7 @@
- #include <linux/highmem.h>
- #include <asm/tlbflush.h>
- 
-+unsigned int last_pkmap_nr_arr[DCACHE_N_COLORS];
- static pte_t *kmap_pte;
- 
- static inline enum fixed_addresses kmap_idx(int type, unsigned long color)
 -- 
 1.8.1.4
