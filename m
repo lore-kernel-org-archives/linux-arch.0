@@ -1,14 +1,18 @@
 From: Max Filippov <jcmvbkbc@gmail.com>
 Subject: [PATCH 7/8] xtensa: support aliasing cache in kmap
 Date: Tue, 22 Jul 2014 23:01:12 +0400
-Message-ID: <1406055673-10100-8-git-send-email-jcmvbkbc__45429.1961658329$1406055736$gmane$org@gmail.com>
+Message-ID: <1406055673-10100-8-git-send-email-jcmvbkbc__19497.7751737044$1406055757$gmane$org@gmail.com>
 References: <1406055673-10100-1-git-send-email-jcmvbkbc@gmail.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-la0-f45.google.com ([209.85.215.45]:52291 "EHLO
+	mail-la0-f45.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756615AbaGVTBe (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 22 Jul 2014 15:01:34 -0400
 In-Reply-To: <1406055673-10100-1-git-send-email-jcmvbkbc@gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: linux-xtensa@linux-xtensa.org
 Cc: Chris Zankel <chris@zankel.net>, Marc Gauthier <marc@cadence.com>, linux-kernel@vger.kernel.org, Max Filippov <jcmvbkbc@gmail.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-mips@linux-mips.org, David Rientjes <rientjes@google.com>
-List-Id: linux-arch.vger.kernel.org
 
 Define ARCH_PKMAP_COLORING and provide corresponding macro definitions
 on cores with aliasing data cache.
