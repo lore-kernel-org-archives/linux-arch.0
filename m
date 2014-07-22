@@ -1,64 +1,126 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ozlabs.org ([103.22.144.67]:44943 "EHLO ozlabs.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750843AbaGVEsH (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 22 Jul 2014 00:48:07 -0400
-Date: Tue, 22 Jul 2014 14:47:27 +1000
-From: Stephen Rothwell <sfr@canb.auug.org.au>
-Subject: Re: Global signal cleanup, take 4
-Message-ID: <20140722144727.441bcc2a@canb.auug.org.au>
-In-Reply-To: <1405951409-16953-1-git-send-email-richard@sigma-star.at>
-References: <1405951409-16953-1-git-send-email-richard@sigma-star.at>
+Received: from mail-oa0-f41.google.com ([209.85.219.41]:47128 "EHLO
+	mail-oa0-f41.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752965AbaGVJov (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 22 Jul 2014 05:44:51 -0400
 MIME-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha256;
- boundary="Sig_/d+81fpIa4D7A+9a2.i4FEvk"; protocol="application/pgp-signature"
+In-Reply-To: <alpine.DEB.2.02.1407211754350.7042@chino.kir.corp.google.com>
+References: <1405616598-14798-1-git-send-email-jcmvbkbc@gmail.com>
+	<alpine.DEB.2.02.1407211754350.7042@chino.kir.corp.google.com>
+Date: Tue, 22 Jul 2014 13:44:50 +0400
+Message-ID: <CAMo8BfKL2gAxidf3M_vdxSJJSh9=1JoJLt+WD8mv7S=h+OCJuw@mail.gmail.com>
+Subject: Re: [PATCH v2] mm/highmem: make kmap cache coloring aware
+From: Max Filippov <jcmvbkbc@gmail.com>
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Richard Weinberger <richard@sigma-star.at>
-Cc: akpm@linux-foundation.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20140722044727.hWRNHNDMcKkjANXJXsd8wGfVI3XvY8AMatU5x86rskE@z>
+To: David Rientjes <rientjes@google.com>
+Cc: "linux-mm@kvack.org" <linux-mm@kvack.org>, Linux-Arch <linux-arch@vger.kernel.org>, Linux/MIPS Mailing List <linux-mips@linux-mips.org>, "linux-xtensa@linux-xtensa.org" <linux-xtensa@linux-xtensa.org>, LKML <linux-kernel@vger.kernel.org>, Leonid Yegoshin <Leonid.Yegoshin@imgtec.com>
+Message-ID: <20140722094450.lVilZUYzeHwMAUD-1n2GWPnuWntD3iKBq1il34nKN9c@z>
 
---Sig_/d+81fpIa4D7A+9a2.i4FEvk
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: quoted-printable
+Hi David,
 
-Hi Richard,
-
-On Mon, 21 Jul 2014 16:02:46 +0200 Richard Weinberger <richard@sigma-star.a=
-t> wrote:
+On Tue, Jul 22, 2014 at 4:58 AM, David Rientjes <rientjes@google.com> wrote:
+> On Thu, 17 Jul 2014, Max Filippov wrote:
 >
-> The whole series can also be found at:
-> git://git.kernel.org/pub/scm/linux/kernel/git/rw/misc.git signal_v4
->=20
-> Andrew, can you please pickup this series?
+>> From: Leonid Yegoshin <Leonid.Yegoshin@imgtec.com>
+>>
+>> Provide hooks that allow architectures with aliasing cache to align
+>> mapping address of high pages according to their color. Such architectures
+>> may enforce similar coloring of low- and high-memory page mappings and
+>> reuse existing cache management functions to support highmem.
+>>
+>
+> Typically a change like this would be proposed along with a change to an
+> architecture which would define this new ARCH_PKMAP_COLORING and have its
+> own overriding definitions.  Based on who you sent this patch to, it looks
+> like that would be mips and xtensa.  Now the only question is where are
+> those patches to add the alternate definitions for those platforms?
 
-Why don't we just add that git tree to linux-next? Then you can send
-Linus a pull request in the next merge window.
+I'm going to post xtensa series shortly, and I saw corresponding changes
+for MIPS in the following patch:
+http://permalink.gmane.org/gmane.linux.kernel.mm/107654
 
---=20
-Cheers,
-Stephen Rothwell                    sfr@canb.auug.org.au
+>> Signed-off-by: Leonid Yegoshin <Leonid.Yegoshin@imgtec.com>
+>> [ Max: extract architecture-independent part of the original patch, clean
+>>   up checkpatch and build warnings. ]
+>> Signed-off-by: Max Filippov <jcmvbkbc@gmail.com>
+>> ---
+>> Changes v1->v2:
+>> - fix description
+>>
+>>  mm/highmem.c | 19 ++++++++++++++++---
+>>  1 file changed, 16 insertions(+), 3 deletions(-)
+>>
+>> diff --git a/mm/highmem.c b/mm/highmem.c
+>> index b32b70c..6898a8b 100644
+>> --- a/mm/highmem.c
+>> +++ b/mm/highmem.c
+>> @@ -44,6 +44,14 @@ DEFINE_PER_CPU(int, __kmap_atomic_idx);
+>>   */
+>>  #ifdef CONFIG_HIGHMEM
+>>
+>> +#ifndef ARCH_PKMAP_COLORING
+>> +#define set_pkmap_color(pg, cl)              /* */
+>
+> This is typically done with do {} while (0).
 
---Sig_/d+81fpIa4D7A+9a2.i4FEvk
-Content-Type: application/pgp-signature; name=signature.asc
-Content-Disposition: attachment; filename=signature.asc
+Will fix.
 
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v2
+>> +#define get_last_pkmap_nr(p, cl)     (p)
+>> +#define get_next_pkmap_nr(p, cl)     (((p) + 1) & LAST_PKMAP_MASK)
+>> +#define is_no_more_pkmaps(p, cl)     (!(p))
+>
+> That's not gramatically proper.
 
-iQIcBAEBCAAGBQJTze0CAAoJEMDTa8Ir7ZwV0Z0P/jmWTVR9D+rTW/vtxJTGg898
-y7dgRN6O8BQH9+5J33HxVaWSWY/qapwPB4ZWiGm7CJw4YdSGf3R7s6iy8y0h1Y+B
-eenoPitCUzzZCgGxCyFMILlaFZ6qwHI/E3kxp3U2j/5YORXCElLx1kWj9tuSY/9K
-adcb13jaKJsXOMN31LB98I3dT5wlBT0DipHr4OoeKzm1gn06vptQbEo+/jyeXGJS
-JXf8zdv0LGKRTjwtapMH8aLRwM/Jll1lIc+G742gY1C+vZzPSubHutJO+c6iRS3Q
-WtKvebgk8Mj02G22Tb2NT1dcRzXOo9DRCSpFUEynhCSXIMrVO0FmqoB99XdRZBSr
-SOdcka3hTHuVT1iSDRfNc0h9WVIMz0MuJhjCqUDB7QjBCqzNjTZ7nCRIbpG83Zxq
-Zqd0xp8npwoDyi7dMHDkmGXn0X1KdQuqCjPY5RWFTdyAQ0RKOxLV8wqWGTCBStfr
-Y9xZWn8Dkc/k0CPmcH5jBZoLT581GOqpa/Umz71eKHwq10h7j5b34223Gi3uhkm1
-gh1PvaoaQEi96KOMkLJiI42JdG8/+PkpPWCq7IjaE33f5yZzjF2ndhV3GqSqXcx8
-czpZxLpprkWCquzjP2lrhg6zsejtRtM7uMZXDrLfSd7+ioH/DorNiRJ4O4Hc2Wa8
-0XdbwLNdfpjBkOw2eS2a
-=iBo6
------END PGP SIGNATURE-----
+Just no_more_pkmaps maybe?
 
---Sig_/d+81fpIa4D7A+9a2.i4FEvk--
+>> +#define get_next_pkmap_counter(c, cl)        ((c) - 1)
+>> +#endif
+>> +
+>>  unsigned long totalhigh_pages __read_mostly;
+>>  EXPORT_SYMBOL(totalhigh_pages);
+>>
+>> @@ -161,19 +169,24 @@ static inline unsigned long map_new_virtual(struct page *page)
+>>  {
+>>       unsigned long vaddr;
+>>       int count;
+>> +     int color __maybe_unused;
+>> +
+>> +     set_pkmap_color(page, color);
+>> +     last_pkmap_nr = get_last_pkmap_nr(last_pkmap_nr, color);
+>>
+>>  start:
+>>       count = LAST_PKMAP;
+>>       /* Find an empty entry */
+>>       for (;;) {
+>> -             last_pkmap_nr = (last_pkmap_nr + 1) & LAST_PKMAP_MASK;
+>> -             if (!last_pkmap_nr) {
+>> +             last_pkmap_nr = get_next_pkmap_nr(last_pkmap_nr, color);
+>> +             if (is_no_more_pkmaps(last_pkmap_nr, color)) {
+>>                       flush_all_zero_pkmaps();
+>>                       count = LAST_PKMAP;
+>>               }
+>>               if (!pkmap_count[last_pkmap_nr])
+>>                       break;  /* Found a usable entry */
+>> -             if (--count)
+>> +             count = get_next_pkmap_counter(count, color);
+>
+> And that's not equivalent at all, --count decrements the auto variable and
+> then tests it for being non-zero.  Your get_next_pkmap_counter() never
+> decrements count.
+
+Yes, it's not literally equivalent, but it does the same thing: count gets
+decreased by 1 and for loop iterates until count reaches zero.
+get_next_pkmap_counter has no side effects, which is good. And count
+is not supposed to go below zero anyway, but sure I can change the below
+condition to 'if (count)'.
+
+>> +             if (count > 0)
+>>                       continue;
+>>
+>>               /*
+
+-- 
+Thanks.
+-- Max
