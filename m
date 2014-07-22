@@ -1,53 +1,86 @@
-From: Stephen Warren <swarren@wwwdotorg.org>
-Subject: Re: [PATCH v4 6/6] clk: Add floor and ceiling constraints to clock
- rates
-Date: Tue, 22 Jul 2014 11:50:59 -0600
-Message-ID: <53CEA483.6090704@wwwdotorg.org>
-References: <1405606399-26608-1-git-send-email-tomeu.vizoso@collabora.com>
- <1405606399-26608-7-git-send-email-tomeu.vizoso@collabora.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
-In-Reply-To: <1405606399-26608-7-git-send-email-tomeu.vizoso@collabora.com>
-List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
-List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
-List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
-List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
-List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
-Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
-Sender: "Linuxppc-dev"
- <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
-To: Tomeu Vizoso <tomeu.vizoso@collabora.com>, Mike Turquette <mturquette@linaro.org>
-Cc: Andrew Lunn <andrew@lunn.ch>, Ulf Hansson <ulf.hansson@linaro.org>, Prashant Gaikwad <pgaikwad@nvidia.com>, Tony Lindgren <tony@atomide.com>, Tomasz Figa <t.figa@samsung.com>, alsa-devel@alsa-project.org, Jaroslav Kysela <perex@perex.cz>, Thierry Reding <thierry.reding@gmail.com>, Paul Mackerras <paulus@samba.org>, Sylwester Nawrocki <s.nawrocki@samsung.com>, Daniel Walker <dwalker@fifo99.com>, linux-arch@vger.kernel.org, Boris Brezillon <boris.brezillon@free-electrons.com>, linux-samsung-soc@vger.kernel.org, Kukjin Kim <kgene.kim@samsung.com>, Russell King <linux@arm.linux.org.uk>, =?ISO-8859-1?Q?Emilio_L=F3pez?= <emilio@elopez.com.ar>, Takashi Iwai <tiwai@suse.de>, Michal Simek <michal.simek@xilinx.com>, Kyungmin Park <kyungmin.park@samsung.com>, Kevin Hilman <khilman@deeprootsystems.com>, linux-arm-kernel@lists.infradead.org, patches@opensource.wolfsonmicro.com, Vire
+From: Max Filippov <jcmvbkbc@gmail.com>
+Subject: [PATCH 6/8] mm/highmem: make kmap cache coloring aware
+Date: Tue, 22 Jul 2014 23:01:11 +0400
+Message-ID: <1406055673-10100-7-git-send-email-jcmvbkbc__26359.3736374334$1406055721$gmane$org@gmail.com>
+References: <1406055673-10100-1-git-send-email-jcmvbkbc@gmail.com>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1406055673-10100-1-git-send-email-jcmvbkbc@gmail.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: linux-xtensa@linux-xtensa.org
+Cc: Chris Zankel <chris@zankel.net>, Marc Gauthier <marc@cadence.com>, linux-kernel@vger.kernel.org, Leonid Yegoshin <Leonid.Yegoshin@imgtec.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-mips@linux-mips.org, David Rientjes <rientjes@google.com>, Max Filippov <jcmvbkbc@gmail.com>
 List-Id: linux-arch.vger.kernel.org
 
-T24gMDcvMTcvMjAxNCAwODoxMyBBTSwgVG9tZXUgVml6b3NvIHdyb3RlOgo+IEFkZHMgYSB3YXkg
-Zm9yIGNsb2NrIGNvbnN1bWVycyB0byBzZXQgbWF4aW11bSBhbmQgbWluaW11bSByYXRlcy4gVGhp
-cyBjYW4gYmUKPiB1c2VkIGZvciB0aGVybWFsIGRyaXZlcnMgdG8gc2V0IGNlaWxpbmcgcmF0ZXMs
-IG9yIGJ5IG1pc2MuIGRyaXZlcnMgdG8gc2V0Cj4gZmxvb3IgcmF0ZXMgdG8gYXNzdXJlIGEgbWlu
-aW11bSBwZXJmb3JtYW5jZSBsZXZlbC4KCj4gZGlmZiAtLWdpdCBhL2RyaXZlcnMvY2xrL2Nsay5j
-IGIvZHJpdmVycy9jbGsvY2xrLmMKCj4gK3N0cnVjdCByYXRlX2NvbnN0cmFpbnQgewo+ICsJc3Ry
-dWN0IGhsaXN0X25vZGUJbm9kZTsKPiArCWNvbnN0IGNoYXIJCSpkZXZfaWQ7Cj4gKwljb25zdCBj
-aGFyCQkqY29uX2lkOwo+ICsJZW51bSBjb25zdHJhaW50X3R5cGUJdHlwZTsKPiArCXVuc2lnbmVk
-IGxvbmcJCXJhdGU7Cj4gK307CgpJIHdvdWxkIHBlcnNvbmFsbHkgc3RpbGwgcHJlZmVyIGVpdGhl
-cjoKCmEpIFRoZSBzdHJ1Y3QgcmF0ZV9jb25zdHJhaW50cyBiZSBzdG9yZWQgaW4gc3RydWN0IGNs
-ayByYXRoZXIgdGhhbgpzdHJ1Y3QgY2xrX2NvcmUsIHNvIHRoZXkncmUgc3RvcmVkIGluIHRoZSBj
-b250YWluZXIgdGhhdCAic2V0IiB0aGUKY29uc3RyYWludHMuIFRoaXMgd291bGQgbWVhbiBpdGVy
-YXRpbmcgb3ZlciBhIHN0cnVjdCBjbGtfY29yZSdzCmFzc29jaWF0ZWQgc3RydWN0IGNsa3MsIHRo
-ZW4gaXRlcmF0aW5nIG92ZXIgdGhlIHN0cnVjdCByYXRlX2NvbnN0cmFpbnRzCndpdGhpbiBlYWNo
-IHN0cnVjdCBjbGsuCgpvcjoKCmIpIHN0cnVjdCByYXRlX2NvbnN0cmFpbnQgdG8gY29udGFpbiBh
-IHBvaW50ZXIgdG8gdGhlIHN0cnVjdCBjbGsgdGhhdApjcmVhdGVkIHRoZSBjb25zdHJhaW50LCBy
-YXRoZXIgdGhhbiBjb3B5aW5nIHRoZSBkZXZfaWQvY29uX2lkIGZyb20gdGhhdApzdHJ1Y3QgY2xr
-IGludG8gdGhlIHN0cnVjdCByYXRlX2NvbnN0cmFpbnQuCgpXaXRoIGVpdGhlciBvZiB0aG9zZSBj
-aGFuZ2VzLCB0aGUgY29uc3RyYWludHMgYXJlIGRpcmVjdGx5IGFzc29jaWF0ZWQKd2l0aCB0aGUg
-Y2xvY2sgY2xpZW50IG9iamVjdCB0aGF0IGNyZWF0ZWQgdGhlIGNvbnN0cmFpbnQgbXVjaCBiZXR0
-ZXIKdGhhbiByaWdodCBub3csIHdoZXJlIHRoZSBtYXRjaGluZyBpcyBvbmx5IGJlY2F1c2UgdGhl
-IHN0cnVjdCBjbGsgYW5kCnN0cnVjdCByYXRlX2NvbnN0cmFpbnQgImhhcHBlbiB0byIgaGF2ZSB0
-aGUgc2FtZSBkZXZfaWQvY29uX2lkIHZhbHVlcy4KClN0aWxsLCB0aGlzIGlzIGEgcHJldHR5IG1p
-bm9yIGlzc3VlLCBhbmQgb3ZlcmFsbCB0aGlzIHNlcmllcyBsb29rcwpyZWFzb25hYmxlIHRvIG1l
-IGF0IGEgcXVpY2sgbG9vay4KX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19f
-X19fX19fX18KTGludXhwcGMtZGV2IG1haWxpbmcgbGlzdApMaW51eHBwYy1kZXZAbGlzdHMub3ps
-YWJzLm9yZwpodHRwczovL2xpc3RzLm96bGFicy5vcmcvbGlzdGluZm8vbGludXhwcGMtZGV2
+From: Leonid Yegoshin <Leonid.Yegoshin@imgtec.com>
+
+Provide hooks that allow architectures with aliasing cache to align
+mapping address of high pages according to their color. Such architectures
+may enforce similar coloring of low- and high-memory page mappings and
+reuse existing cache management functions to support highmem.
+
+Cc: linux-mm@kvack.org
+Cc: linux-arch@vger.kernel.org
+Cc: linux-mips@linux-mips.org
+Cc: David Rientjes <rientjes@google.com>
+Signed-off-by: Leonid Yegoshin <Leonid.Yegoshin@imgtec.com>
+[ Max: extract architecture-independent part of the original patch, clean
+  up checkpatch and build warnings. ]
+Signed-off-by: Max Filippov <jcmvbkbc@gmail.com>
+---
+Changes since the initial version:
+- define set_pkmap_color(pg, cl) as do { } while (0) instead of /* */;
+- rename is_no_more_pkmaps to no_more_pkmaps;
+- change 'if (count > 0)' to 'if (count)' to better match the original
+  code behavior;
+
+ mm/highmem.c | 19 ++++++++++++++++---
+ 1 file changed, 16 insertions(+), 3 deletions(-)
+
+diff --git a/mm/highmem.c b/mm/highmem.c
+index b32b70c..88fb62e 100644
+--- a/mm/highmem.c
++++ b/mm/highmem.c
+@@ -44,6 +44,14 @@ DEFINE_PER_CPU(int, __kmap_atomic_idx);
+  */
+ #ifdef CONFIG_HIGHMEM
+ 
++#ifndef ARCH_PKMAP_COLORING
++#define set_pkmap_color(pg, cl)		do { } while (0)
++#define get_last_pkmap_nr(p, cl)	(p)
++#define get_next_pkmap_nr(p, cl)	(((p) + 1) & LAST_PKMAP_MASK)
++#define no_more_pkmaps(p, cl)		(!(p))
++#define get_next_pkmap_counter(c, cl)	((c) - 1)
++#endif
++
+ unsigned long totalhigh_pages __read_mostly;
+ EXPORT_SYMBOL(totalhigh_pages);
+ 
+@@ -161,19 +169,24 @@ static inline unsigned long map_new_virtual(struct page *page)
+ {
+ 	unsigned long vaddr;
+ 	int count;
++	int color __maybe_unused;
++
++	set_pkmap_color(page, color);
++	last_pkmap_nr = get_last_pkmap_nr(last_pkmap_nr, color);
+ 
+ start:
+ 	count = LAST_PKMAP;
+ 	/* Find an empty entry */
+ 	for (;;) {
+-		last_pkmap_nr = (last_pkmap_nr + 1) & LAST_PKMAP_MASK;
+-		if (!last_pkmap_nr) {
++		last_pkmap_nr = get_next_pkmap_nr(last_pkmap_nr, color);
++		if (no_more_pkmaps(last_pkmap_nr, color)) {
+ 			flush_all_zero_pkmaps();
+ 			count = LAST_PKMAP;
+ 		}
+ 		if (!pkmap_count[last_pkmap_nr])
+ 			break;	/* Found a usable entry */
+-		if (--count)
++		count = get_next_pkmap_counter(count, color);
++		if (count)
+ 			continue;
+ 
+ 		/*
+-- 
+1.8.1.4
