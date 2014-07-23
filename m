@@ -1,95 +1,73 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ozlabs.org ([103.22.144.67]:55541 "EHLO ozlabs.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S932507AbaGVWvE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 22 Jul 2014 18:51:04 -0400
-Date: Wed, 23 Jul 2014 08:50:57 +1000
-From: Stephen Rothwell <sfr@canb.auug.org.au>
-Subject: Re: Global signal cleanup, take 4
-Message-ID: <20140723085057.5d0b12d6@canb.auug.org.au>
-In-Reply-To: <53CE0A25.7090508@nod.at>
-References: <1405951409-16953-1-git-send-email-richard@sigma-star.at>
-	<20140722144727.441bcc2a@canb.auug.org.au>
-	<53CE0A25.7090508@nod.at>
+Received: from mail-la0-f51.google.com ([209.85.215.51]:43838 "EHLO
+	mail-la0-f51.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932735AbaGWTUl (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 23 Jul 2014 15:20:41 -0400
+Received: by mail-la0-f51.google.com with SMTP id el20so1298988lab.10
+        for <linux-arch@vger.kernel.org>; Wed, 23 Jul 2014 12:20:39 -0700 (PDT)
 MIME-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha256;
- boundary="Sig_/LqKh5uz_JjdXR2DRZ3TltvT"; protocol="application/pgp-signature"
+In-Reply-To: <CAGXu5jJ93-vto9voMENc4jX5itcd_Rm5AZjeChF57fpMYnWocA@mail.gmail.com>
+References: <cover.1405992946.git.luto@amacapital.net> <CAGXu5jJ93-vto9voMENc4jX5itcd_Rm5AZjeChF57fpMYnWocA@mail.gmail.com>
+From: Andy Lutomirski <luto@amacapital.net>
+Date: Wed, 23 Jul 2014 12:20:18 -0700
+Message-ID: <CALCETrVwqDeRbFOw=k_OhQZ4V6Pn5v3t8ODw75UuE7HKPFz=Sw@mail.gmail.com>
+Subject: Re: [PATCH v3 0/8] Two-phase seccomp and x86 tracing changes
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Richard Weinberger <richard@nod.at>
-Cc: akpm@linux-foundation.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20140722225057.yLJhDrvqvVorrsQwfHd4B4_PsPnFY6nRyhxzAHUsZzU@z>
+To: Kees Cook <keescook@chromium.org>
+Cc: "H. Peter Anvin" <hpa@zytor.com>, LKML <linux-kernel@vger.kernel.org>, Will Drewry <wad@chromium.org>, Oleg Nesterov <oleg@redhat.com>, "x86@kernel.org" <x86@kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Linux MIPS Mailing List <linux-mips@linux-mips.org>, linux-arch <linux-arch@vger.kernel.org>, linux-security-module <linux-security-module@vger.kernel.org>, Alexei Starovoitov <ast@plumgrid.com>
+Message-ID: <20140723192018.E0yqE_hW57J99SZGV3eal6Mfc-dA8U6eHjIsrVHM5DY@z>
 
---Sig_/LqKh5uz_JjdXR2DRZ3TltvT
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: quoted-printable
-
-Hi Richard,
-
-On Tue, 22 Jul 2014 08:52:21 +0200 Richard Weinberger <richard@nod.at> wrot=
-e:
+On Tue, Jul 22, 2014 at 12:37 PM, Kees Cook <keescook@chromium.org> wrote:
+> On Mon, Jul 21, 2014 at 6:49 PM, Andy Lutomirski <luto@amacapital.net> wrote:
+>> [applies on jmorris's security-next tree]
+>>
+>> This is both a cleanup and a speedup.  It reduces overhead due to
+>> installing a trivial seccomp filter by 87%.  The speedup comes from
+>> avoiding the full syscall tracing mechanism for filters that don't
+>> return SECCOMP_RET_TRACE.
+>>
+>> This series works by splitting the seccomp hooks into two phases.
+>> The first phase evaluates the filter; it can skip syscalls, allow
+>> them, kill the calling task, or pass a u32 to the second phase.  The
+>> second phase requires a full tracing context, and it sends ptrace
+>> events if necessary.
+>>
+>> Once this is done, I implemented a similar split for the x86 syscall
+>> entry work.  The C callback is invoked in two phases: the first has
+>> only a partial frame, and it can request phase 2 processing with a
+>> full frame.
+>>
+>> Finally, I switch the 64-bit system_call code to use the new split
+>> entry work.  This is a net deletion of assembly code: it replaces
+>> all of the audit entry muck.
+>>
+>> In the process, I fixed some bugs.
+>>
+>> If this is acceptable, someone can do the same tweak for the
+>> ia32entry and entry_32 code.
+>>
+>> This passes all seccomp tests that I know of.  Now that it's properly
+>> rebased, even the previously expected failures are gone.
+>>
+>> Kees, if you like this version, can you create a branch with patches
+>> 1-4?  I think that the rest should go into tip/x86 once everyone's happy
+>> with it.
+>>
+>> Changes from v2:
+>>  - Fixed 32-bit x86 build (and the tests pass).
+>>  - Put the doc patch where it belongs.
 >
-> Am 22.07.2014 06:47, schrieb Stephen Rothwell:
-> >=20
-> > On Mon, 21 Jul 2014 16:02:46 +0200 Richard Weinberger <richard@sigma-st=
-ar.at> wrote:
-> >>
-> >> The whole series can also be found at:
-> >> git://git.kernel.org/pub/scm/linux/kernel/git/rw/misc.git signal_v4
-> >>
-> >> Andrew, can you please pickup this series?
-> >=20
-> > Why don't we just add that git tree to linux-next? Then you can send
-> > Linus a pull request in the next merge window.
->=20
-> That's a good idea.
-> Can you please add the tree to linux-next?
+> Thanks! This looks good to me. I'll add it to my tree.
+>
+> Peter, how do you feel about this series? Do the x86 changes look good to you?
+>
 
-Added from today.  But I would prefer a more generic branch name if it
-ever changes.
+It looks like patches 1-4 have landed here:
 
-Thanks for adding your subsystem tree as a participant of linux-next.  As
-you may know, this is not a judgment of your code.  The purpose of
-linux-next is for integration testing and to lower the impact of
-conflicts between subsystems in the next merge window.=20
+https://git.kernel.org/cgit/linux/kernel/git/kees/linux.git/log/?h=seccomp/fastpath
 
-You will need to ensure that the patches/commits in your tree/series have
-been:
-     * submitted under GPL v2 (or later) and include the Contributor's
-        Signed-off-by,
-     * posted to the relevant mailing list,
-     * reviewed by you (or another maintainer of your subsystem tree),
-     * successfully unit tested, and=20
-     * destined for the current or next Linux merge window.
+hpa, what's the route forward for the x86 part?
 
-Basically, this should be just what you would send to Linus (or ask him
-to fetch).  It is allowed to be rebased if you deem it necessary.
-
---=20
-Cheers,
-Stephen Rothwell=20
-sfr@canb.auug.org.au
-
---Sig_/LqKh5uz_JjdXR2DRZ3TltvT
-Content-Type: application/pgp-signature; name=signature.asc
-Content-Disposition: attachment; filename=signature.asc
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v2
-
-iQIcBAEBCAAGBQJTzurWAAoJEMDTa8Ir7ZwVqT4P/0MJcpcuSMQ8M2ywy1VxnYyO
-M4rRZlsy/v+0hPaxGTksb10UIYJEAp/cUppOD9ib2V0G8h1FeGop5asseiSYaBgf
-sAGPimMq5ta9C0bBE7HgMl8M75Yva+St+mwaiTBCQ/U7nwvmPkWQ/Dqxil+XhNld
-Kc1NElB2io2trZ215OmDkva1AlnoRK72xWWD9//6XAkhmP3QNR63oGifSUvR0cHN
-gwqQzY0WfXEPN/tmOfhIiw5GoI9EjKOpj2Xaba4PI6lIYhL61CNnDuFDmOB1A/2S
-mO+lmZ8xEOJp6N3+461BBtearZspgxyqKZxME/KpArfqXS+hQ7hD9+2wTgABR7FD
-J9NozV3vha6cXtimTMZPq55YVFZTS5hiY4GNE7zuK1O7WUXclChYWhs/6PhIw0nF
-SErVRaqVABYfEYSBy0pdMq9QUm2Wq8AYSche93VUZ0RZII6EC71Mx15CqCKwPGQc
-uKZeVD5bfcrGxHto/sXscgab5dz0iNzWKN2AOMBeIQJRdgcOcTpADQazZA5Glo7F
-0bqcOqEY4HoGfHGuLgeIe5OQWBQy53YawFfSzaQqv0HVusr/QNwQdB4wL4rKbFl/
-vJbpiCeuyRE54N2oRntvQ674Gbev3iDyz3RjGTpPJk/FEqF9sSiJ8qT2cS9uKy/G
-jkm9NbyZe8ezy3VDsSuB
-=YTla
------END PGP SIGNATURE-----
-
---Sig_/LqKh5uz_JjdXR2DRZ3TltvT--
+--Andy
