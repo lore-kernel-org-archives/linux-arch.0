@@ -1,128 +1,544 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.126.187]:51472 "EHLO
-	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751138AbaGXMF2 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 24 Jul 2014 08:05:28 -0400
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH v2 13/29] nios2: DMA mapping API
-Date: Thu, 24 Jul 2014 14:05:16 +0200
-Message-ID: <5059148.8xZUvoce2l@wuerfel>
-In-Reply-To: <CAFiDJ582FiLAS=B13O3PV_d-FkR31j=5bN_LcXBSWkrGsHK_Gw@mail.gmail.com>
-References: <1405413956-2772-1-git-send-email-lftan@altera.com> <4843763.ps2D25LEeM@wuerfel> <CAFiDJ582FiLAS=B13O3PV_d-FkR31j=5bN_LcXBSWkrGsHK_Gw@mail.gmail.com>
-MIME-Version: 1.0
-Content-Transfer-Encoding: 7Bit
-Content-Type: text/plain; charset="us-ascii"
+Received: from mail-pd0-f177.google.com ([209.85.192.177]:56108 "EHLO
+	mail-pd0-f177.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S934687AbaGXU4f (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 24 Jul 2014 16:56:35 -0400
+Received: by mail-pd0-f177.google.com with SMTP id p10so4351446pdj.36
+        for <linux-arch@vger.kernel.org>; Thu, 24 Jul 2014 13:56:35 -0700 (PDT)
+From: Andy Lutomirski <luto@amacapital.net>
+Subject: [PATCH v4] arm64,ia64,ppc,s390,sh,tile,um,x86,mm: Remove default gate area
+Date: Thu, 24 Jul 2014 13:56:24 -0700
+Message-ID: <6435254cc74d6e9172931f27be3854d522ad299b.1406232860.git.luto@amacapital.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ley Foon Tan <lftan@altera.com>
-Cc: Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Chung-Lin Tang <cltang@codesourcery.com>, Richard Kuo <rkuo@codeaurora.org>, linux-hexagon@vger.kernel.org, Mark Salter <msalter@redhat.com>, Aurelien Jacquiot <a-jacquiot@ti.com>, linux-c6x-dev@linux-c6x.org
-Message-ID: <20140724120516.UYHqpZyvRZiFPy-v4-zbcaFKfqiE0f0KRWm21wfqmK0@z>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Andy Lutomirski <luto@amacapital.net>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux390@de.ibm.com, Chris Metcalf <cmetcalf@tilera.com>, Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Nathan Lynch <Nathan_Lynch@mentor.com>, x86@kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, user-mode-linux-devel@lists.sourceforge.net, linux-mm@kvack.org
+Message-ID: <20140724205624.MUUsnCmrM8560jSgjFAQ76cxuFoy3oszaxFuBFTjeko@z>
 
-On Thursday 24 July 2014 19:37:11 Ley Foon Tan wrote:
-> On Tue, Jul 15, 2014 at 5:38 PM, Arnd Bergmann <arnd@arndb.de> wrote:
-> > On Tuesday 15 July 2014 16:45:40 Ley Foon Tan wrote:
-> >> +#define dma_alloc_noncoherent(d, s, h, f) dma_alloc_coherent(d, s, h, f)
-> >> +#define dma_free_noncoherent(d, s, v, h) dma_free_coherent(d, s, v, h)
-> >> +
-> > ...
-> >> +static inline void dma_cache_sync(struct device *dev, void *vaddr, size_t size,
-> >> +                               enum dma_data_direction direction)
-> >> +{
-> >> +     __dma_sync(vaddr, size, direction);
-> >> +}
-> >
-> > IIRC dma_cache_sync should be empty if you define dma_alloc_noncoherent
-> > to be the same as dma_alloc_coherent: It's already coherent, so no sync
-> > should be needed. What does the CPU do if you try to invalidate the cache
-> > on a coherent mapping?
-> Okay, I got what you mean here. I will leave this dma_cache_sync()
-> function empty.
-> The CPU just do nothing if we try to invalidate cache on a coherent region.
-> BTW, I found many other architectures still provide dma_cache_sync()
-> even they define dma_alloc_noncoherent
-> same as dma_alloc_coherent. Eg: blackfin, x86 or xtense.
+The core mm code will provide a default gate area based on
+FIXADDR_USER_START and FIXADDR_USER_END if
+!defined(__HAVE_ARCH_GATE_AREA) && defined(AT_SYSINFO_EHDR).
 
-They are probably all wrong ;-)
+This default is only useful for ia64.  arm64, ppc, s390, sh, tile,
+64-bit UML, and x86_32 have their own code just to disable it.  arm,
+32-bit UML, and x86_64 have gate areas, but they have their own
+implementations.
 
-It's not a big issue though, since the x86 operation is cheap and the
-other ones don't support any of the drivers that use dma_cache_sync.
+This gets rid of the default and moves the code into ia64.
 
-> >> +void dma_sync_single_for_cpu(struct device *dev, dma_addr_t dma_handle,
-> >> +                          size_t size, enum dma_data_direction direction)
-> >> +{
-> >> +     BUG_ON(!valid_dma_direction(direction));
-> >> +
-> >> +     __dma_sync(phys_to_virt(dma_handle), size, direction);
-> >> +}
-> >> +EXPORT_SYMBOL(dma_sync_single_for_cpu);
-> >> +
-> >> +void dma_sync_single_for_device(struct device *dev, dma_addr_t dma_handle,
-> >> +                             size_t size, enum dma_data_direction direction)
-> >> +{
-> >> +     BUG_ON(!valid_dma_direction(direction));
-> >> +
-> >> +     __dma_sync(phys_to_virt(dma_handle), size, direction);
-> >> +}
-> >> +EXPORT_SYMBOL(dma_sync_single_for_device);
-> >
-> > More importantly: you do the same operation for both _for_cpu and _for_device.
-> > I assume your CPU can never do speculative cache prefetches, so it's not
-> > incorrect, but you do twice the number of invalidations and flushes that
-> > you need.
-> >
-> > Why would you do anything for _for_cpu here?
-> I am a bit confused for _for_cpu and _for_device here. I found some
-> architectures like c6x and hexagon have same operation for both
-> _for_cpu and _for_device as well.
+This should save some code on architectures without a gate area: it's
+now possible to inline the gate_area functions in the default case.
 
-(adding their maintainers to cc)
+Cc: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Will Deacon <will.deacon@arm.com>
+Cc: Tony Luck <tony.luck@intel.com>
+Cc: Fenghua Yu <fenghua.yu@intel.com>
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Paul Mackerras <paulus@samba.org>
+Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
+Cc: linux390@de.ibm.com
+Cc: Chris Metcalf <cmetcalf@tilera.com>
+Cc: Jeff Dike <jdike@addtoit.com>
+Cc: Richard Weinberger <richard@nod.at>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Ingo Molnar <mingo@redhat.com>
+Cc: "H. Peter Anvin" <hpa@zytor.com>
+Cc: Nathan Lynch <Nathan_Lynch@mentor.com>
+Cc: x86@kernel.org
+Cc: linux-arch@vger.kernel.org
+Cc: linux-arm-kernel@lists.infradead.org
+Cc: linux-kernel@vger.kernel.org
+Cc: linux-ia64@vger.kernel.org
+Cc: linuxppc-dev@lists.ozlabs.org
+Cc: linux-s390@vger.kernel.org
+Cc: linux-sh@vger.kernel.org
+Cc: user-mode-linux-devel@lists.sourceforge.net
+Cc: linux-mm@kvack.org
+Acked-by: Nathan Lynch <nathan_lynch@mentor.com>
+Acked-by: H. Peter Anvin <hpa@linux.intel.com>
+Acked-by: Benjamin Herrenschmidt <benh@kernel.crashing.org> [in principle]
+Acked-by: Richard Weinberger <richard@nod.at> [for um]
+Acked-by: Will Deacon <will.deacon@arm.com> [for arm64]
+Signed-off-by: Andy Lutomirski <luto@amacapital.net>
+---
 
-Yes, you are right, they seem to have the same bug and could see a noticeable
-DMA performance improvement if they change it as well.
+Changes from v3: Fix ia64 build (I was missing in_gate_area in the ia64 part).
 
-> I have spent some times look at other architectures and below is what
-> I found. Please correct me if I am wrong, especially
-> for_device():DMA_FROM_DEVICE.
-> 
-> _for_cpu():
-> case DMA_BIDIRECTIONAL:
-> case DMA_FROM_DEVICE:
->      /* invalidate cache */
-> break;
-> case DMA_TO_DEVICE:
->    /* do nothing */
-> break;
+This now builds successfully with allnoconfig on ia64.  I don't know how
+to test-boot it (no QEMU support), and I got a failure on a randconfig,
+but I don't think the randconfig failure has anything to do with this
+patch.
 
-This seems fine: for a FROM_DEVICE mapping, we have flushed all
-dirty entries during the _for_device or the map operation,
-so if any clean entries are around, they need to be invalidated
-in order to read the data from the device.
+ arch/arm64/include/asm/page.h      |  3 ---
+ arch/arm64/kernel/vdso.c           | 19 -------------------
+ arch/ia64/include/asm/page.h       |  2 ++
+ arch/ia64/mm/init.c                | 31 +++++++++++++++++++++++++++++++
+ arch/powerpc/include/asm/page.h    |  3 ---
+ arch/powerpc/kernel/vdso.c         | 16 ----------------
+ arch/s390/include/asm/page.h       |  2 --
+ arch/s390/kernel/vdso.c            | 15 ---------------
+ arch/sh/include/asm/page.h         |  5 -----
+ arch/sh/kernel/vsyscall/vsyscall.c | 15 ---------------
+ arch/tile/include/asm/page.h       |  6 ------
+ arch/tile/kernel/vdso.c            | 15 ---------------
+ arch/um/include/asm/page.h         |  5 +++++
+ arch/x86/include/asm/page.h        |  1 -
+ arch/x86/include/asm/page_64.h     |  2 ++
+ arch/x86/um/asm/elf.h              |  1 -
+ arch/x86/um/mem_64.c               | 15 ---------------
+ arch/x86/vdso/vdso32-setup.c       | 19 +------------------
+ include/linux/mm.h                 | 17 ++++++++++++-----
+ mm/memory.c                        | 38 --------------------------------------
+ mm/nommu.c                         |  5 -----
+ 21 files changed, 53 insertions(+), 182 deletions(-)
 
-for TO_DEVICE, we don't care about the cache, because we are
-going to overwrite the data, and we don't need to do anything.
+diff --git a/arch/arm64/include/asm/page.h b/arch/arm64/include/asm/page.h
+index 46bf666..992710f 100644
+--- a/arch/arm64/include/asm/page.h
++++ b/arch/arm64/include/asm/page.h
+@@ -28,9 +28,6 @@
+ #define PAGE_SIZE		(_AC(1,UL) << PAGE_SHIFT)
+ #define PAGE_MASK		(~(PAGE_SIZE-1))
+ 
+-/* We do define AT_SYSINFO_EHDR but don't use the gate mechanism */
+-#define __HAVE_ARCH_GATE_AREA		1
+-
+ #ifndef __ASSEMBLY__
+ 
+ #ifdef CONFIG_ARM64_64K_PAGES
+diff --git a/arch/arm64/kernel/vdso.c b/arch/arm64/kernel/vdso.c
+index 50384fe..f630626 100644
+--- a/arch/arm64/kernel/vdso.c
++++ b/arch/arm64/kernel/vdso.c
+@@ -187,25 +187,6 @@ const char *arch_vma_name(struct vm_area_struct *vma)
+ }
+ 
+ /*
+- * We define AT_SYSINFO_EHDR, so we need these function stubs to keep
+- * Linux happy.
+- */
+-int in_gate_area_no_mm(unsigned long addr)
+-{
+-	return 0;
+-}
+-
+-int in_gate_area(struct mm_struct *mm, unsigned long addr)
+-{
+-	return 0;
+-}
+-
+-struct vm_area_struct *get_gate_vma(struct mm_struct *mm)
+-{
+-	return NULL;
+-}
+-
+-/*
+  * Update the vDSO data page to keep in sync with kernel timekeeping.
+  */
+ void update_vsyscall(struct timekeeper *tk)
+diff --git a/arch/ia64/include/asm/page.h b/arch/ia64/include/asm/page.h
+index f1e1b2e..1f1bf14 100644
+--- a/arch/ia64/include/asm/page.h
++++ b/arch/ia64/include/asm/page.h
+@@ -231,4 +231,6 @@ get_order (unsigned long size)
+ #define PERCPU_ADDR		(-PERCPU_PAGE_SIZE)
+ #define LOAD_OFFSET		(KERNEL_START - KERNEL_TR_PAGE_SIZE)
+ 
++#define __HAVE_ARCH_GATE_AREA	1
++
+ #endif /* _ASM_IA64_PAGE_H */
+diff --git a/arch/ia64/mm/init.c b/arch/ia64/mm/init.c
+index 25c3502..0e7ad82 100644
+--- a/arch/ia64/mm/init.c
++++ b/arch/ia64/mm/init.c
+@@ -278,6 +278,37 @@ setup_gate (void)
+ 	ia64_patch_gate();
+ }
+ 
++static struct vm_area_struct gate_vma;
++
++static int __init gate_vma_init(void)
++{
++	gate_vma.vm_mm = NULL;
++	gate_vma.vm_start = FIXADDR_USER_START;
++	gate_vma.vm_end = FIXADDR_USER_END;
++	gate_vma.vm_flags = VM_READ | VM_MAYREAD | VM_EXEC | VM_MAYEXEC;
++	gate_vma.vm_page_prot = __P101;
++
++	return 0;
++}
++__initcall(gate_vma_init);
++
++struct vm_area_struct *get_gate_vma(struct mm_struct *mm)
++{
++	return &gate_vma;
++}
++
++int in_gate_area_no_mm(unsigned long addr)
++{
++	if ((addr >= FIXADDR_USER_START) && (addr < FIXADDR_USER_END))
++		return 1;
++	return 0;
++}
++
++int in_gate_area(struct mm_struct *mm, unsigned long addr)
++{
++	return in_gate_area_no_mm(addr);
++}
++
+ void ia64_mmu_init(void *my_cpu_data)
+ {
+ 	unsigned long pta, impl_va_bits;
+diff --git a/arch/powerpc/include/asm/page.h b/arch/powerpc/include/asm/page.h
+index 32e4e21..26fe1ae 100644
+--- a/arch/powerpc/include/asm/page.h
++++ b/arch/powerpc/include/asm/page.h
+@@ -48,9 +48,6 @@ extern unsigned int HPAGE_SHIFT;
+ #define HUGE_MAX_HSTATE		(MMU_PAGE_COUNT-1)
+ #endif
+ 
+-/* We do define AT_SYSINFO_EHDR but don't use the gate mechanism */
+-#define __HAVE_ARCH_GATE_AREA		1
+-
+ /*
+  * Subtle: (1 << PAGE_SHIFT) is an int, not an unsigned long. So if we
+  * assign PAGE_MASK to a larger type it gets extended the way we want
+diff --git a/arch/powerpc/kernel/vdso.c b/arch/powerpc/kernel/vdso.c
+index ce74c33..f174351 100644
+--- a/arch/powerpc/kernel/vdso.c
++++ b/arch/powerpc/kernel/vdso.c
+@@ -840,19 +840,3 @@ static int __init vdso_init(void)
+ 	return 0;
+ }
+ arch_initcall(vdso_init);
+-
+-int in_gate_area_no_mm(unsigned long addr)
+-{
+-	return 0;
+-}
+-
+-int in_gate_area(struct mm_struct *mm, unsigned long addr)
+-{
+-	return 0;
+-}
+-
+-struct vm_area_struct *get_gate_vma(struct mm_struct *mm)
+-{
+-	return NULL;
+-}
+-
+diff --git a/arch/s390/include/asm/page.h b/arch/s390/include/asm/page.h
+index 114258e..7b2ac6e 100644
+--- a/arch/s390/include/asm/page.h
++++ b/arch/s390/include/asm/page.h
+@@ -162,6 +162,4 @@ static inline int devmem_is_allowed(unsigned long pfn)
+ #include <asm-generic/memory_model.h>
+ #include <asm-generic/getorder.h>
+ 
+-#define __HAVE_ARCH_GATE_AREA 1
+-
+ #endif /* _S390_PAGE_H */
+diff --git a/arch/s390/kernel/vdso.c b/arch/s390/kernel/vdso.c
+index 6136490..0bbb7e0 100644
+--- a/arch/s390/kernel/vdso.c
++++ b/arch/s390/kernel/vdso.c
+@@ -316,18 +316,3 @@ static int __init vdso_init(void)
+ 	return 0;
+ }
+ early_initcall(vdso_init);
+-
+-int in_gate_area_no_mm(unsigned long addr)
+-{
+-	return 0;
+-}
+-
+-int in_gate_area(struct mm_struct *mm, unsigned long addr)
+-{
+-	return 0;
+-}
+-
+-struct vm_area_struct *get_gate_vma(struct mm_struct *mm)
+-{
+-	return NULL;
+-}
+diff --git a/arch/sh/include/asm/page.h b/arch/sh/include/asm/page.h
+index 15d9703..fe20d14 100644
+--- a/arch/sh/include/asm/page.h
++++ b/arch/sh/include/asm/page.h
+@@ -186,11 +186,6 @@ typedef struct page *pgtable_t;
+ #include <asm-generic/memory_model.h>
+ #include <asm-generic/getorder.h>
+ 
+-/* vDSO support */
+-#ifdef CONFIG_VSYSCALL
+-#define __HAVE_ARCH_GATE_AREA
+-#endif
+-
+ /*
+  * Some drivers need to perform DMA into kmalloc'ed buffers
+  * and so we have to increase the kmalloc minalign for this.
+diff --git a/arch/sh/kernel/vsyscall/vsyscall.c b/arch/sh/kernel/vsyscall/vsyscall.c
+index 5ca5797..ea2aa13 100644
+--- a/arch/sh/kernel/vsyscall/vsyscall.c
++++ b/arch/sh/kernel/vsyscall/vsyscall.c
+@@ -92,18 +92,3 @@ const char *arch_vma_name(struct vm_area_struct *vma)
+ 
+ 	return NULL;
+ }
+-
+-struct vm_area_struct *get_gate_vma(struct mm_struct *mm)
+-{
+-	return NULL;
+-}
+-
+-int in_gate_area(struct mm_struct *mm, unsigned long address)
+-{
+-	return 0;
+-}
+-
+-int in_gate_area_no_mm(unsigned long address)
+-{
+-	return 0;
+-}
+diff --git a/arch/tile/include/asm/page.h b/arch/tile/include/asm/page.h
+index 6727680..a213a8d 100644
+--- a/arch/tile/include/asm/page.h
++++ b/arch/tile/include/asm/page.h
+@@ -39,12 +39,6 @@
+ #define HPAGE_MASK	(~(HPAGE_SIZE - 1))
+ 
+ /*
+- * We do define AT_SYSINFO_EHDR to support vDSO,
+- * but don't use the gate mechanism.
+- */
+-#define __HAVE_ARCH_GATE_AREA		1
+-
+-/*
+  * If the Kconfig doesn't specify, set a maximum zone order that
+  * is enough so that we can create huge pages from small pages given
+  * the respective sizes of the two page types.  See <linux/mmzone.h>.
+diff --git a/arch/tile/kernel/vdso.c b/arch/tile/kernel/vdso.c
+index 1533af2..5bc51d7 100644
+--- a/arch/tile/kernel/vdso.c
++++ b/arch/tile/kernel/vdso.c
+@@ -121,21 +121,6 @@ const char *arch_vma_name(struct vm_area_struct *vma)
+ 	return NULL;
+ }
+ 
+-struct vm_area_struct *get_gate_vma(struct mm_struct *mm)
+-{
+-	return NULL;
+-}
+-
+-int in_gate_area(struct mm_struct *mm, unsigned long address)
+-{
+-	return 0;
+-}
+-
+-int in_gate_area_no_mm(unsigned long address)
+-{
+-	return 0;
+-}
+-
+ int setup_vdso_pages(void)
+ {
+ 	struct page **pagelist;
+diff --git a/arch/um/include/asm/page.h b/arch/um/include/asm/page.h
+index 5ff53d9..71c5d13 100644
+--- a/arch/um/include/asm/page.h
++++ b/arch/um/include/asm/page.h
+@@ -119,4 +119,9 @@ extern unsigned long uml_physmem;
+ #include <asm-generic/getorder.h>
+ 
+ #endif	/* __ASSEMBLY__ */
++
++#ifdef CONFIG_X86_32
++#define __HAVE_ARCH_GATE_AREA 1
++#endif
++
+ #endif	/* __UM_PAGE_H */
+diff --git a/arch/x86/include/asm/page.h b/arch/x86/include/asm/page.h
+index 775873d..802dde3 100644
+--- a/arch/x86/include/asm/page.h
++++ b/arch/x86/include/asm/page.h
+@@ -70,7 +70,6 @@ extern bool __virt_addr_valid(unsigned long kaddr);
+ #include <asm-generic/memory_model.h>
+ #include <asm-generic/getorder.h>
+ 
+-#define __HAVE_ARCH_GATE_AREA 1
+ #define HAVE_ARCH_HUGETLB_UNMAPPED_AREA
+ 
+ #endif	/* __KERNEL__ */
+diff --git a/arch/x86/include/asm/page_64.h b/arch/x86/include/asm/page_64.h
+index 0f1ddee..f408caf 100644
+--- a/arch/x86/include/asm/page_64.h
++++ b/arch/x86/include/asm/page_64.h
+@@ -39,4 +39,6 @@ void copy_page(void *to, void *from);
+ 
+ #endif	/* !__ASSEMBLY__ */
+ 
++#define __HAVE_ARCH_GATE_AREA 1
++
+ #endif /* _ASM_X86_PAGE_64_H */
+diff --git a/arch/x86/um/asm/elf.h b/arch/x86/um/asm/elf.h
+index 0feee2f..25a1022 100644
+--- a/arch/x86/um/asm/elf.h
++++ b/arch/x86/um/asm/elf.h
+@@ -216,6 +216,5 @@ extern long elf_aux_hwcap;
+ #define ELF_HWCAP (elf_aux_hwcap)
+ 
+ #define SET_PERSONALITY(ex) do ; while(0)
+-#define __HAVE_ARCH_GATE_AREA 1
+ 
+ #endif
+diff --git a/arch/x86/um/mem_64.c b/arch/x86/um/mem_64.c
+index c6492e7..f8fecad 100644
+--- a/arch/x86/um/mem_64.c
++++ b/arch/x86/um/mem_64.c
+@@ -9,18 +9,3 @@ const char *arch_vma_name(struct vm_area_struct *vma)
+ 
+ 	return NULL;
+ }
+-
+-struct vm_area_struct *get_gate_vma(struct mm_struct *mm)
+-{
+-	return NULL;
+-}
+-
+-int in_gate_area(struct mm_struct *mm, unsigned long addr)
+-{
+-	return 0;
+-}
+-
+-int in_gate_area_no_mm(unsigned long addr)
+-{
+-	return 0;
+-}
+diff --git a/arch/x86/vdso/vdso32-setup.c b/arch/x86/vdso/vdso32-setup.c
+index e4f7781..e904c27 100644
+--- a/arch/x86/vdso/vdso32-setup.c
++++ b/arch/x86/vdso/vdso32-setup.c
+@@ -115,23 +115,6 @@ static __init int ia32_binfmt_init(void)
+ 	return 0;
+ }
+ __initcall(ia32_binfmt_init);
+-#endif
+-
+-#else  /* CONFIG_X86_32 */
+-
+-struct vm_area_struct *get_gate_vma(struct mm_struct *mm)
+-{
+-	return NULL;
+-}
+-
+-int in_gate_area(struct mm_struct *mm, unsigned long addr)
+-{
+-	return 0;
+-}
+-
+-int in_gate_area_no_mm(unsigned long addr)
+-{
+-	return 0;
+-}
++#endif /* CONFIG_SYSCTL */
+ 
+ #endif	/* CONFIG_X86_64 */
+diff --git a/include/linux/mm.h b/include/linux/mm.h
+index e03dd29..8981cc8 100644
+--- a/include/linux/mm.h
++++ b/include/linux/mm.h
+@@ -2014,13 +2014,20 @@ static inline bool kernel_page_present(struct page *page) { return true; }
+ #endif /* CONFIG_HIBERNATION */
+ #endif
+ 
++#ifdef __HAVE_ARCH_GATE_AREA
+ extern struct vm_area_struct *get_gate_vma(struct mm_struct *mm);
+-#ifdef	__HAVE_ARCH_GATE_AREA
+-int in_gate_area_no_mm(unsigned long addr);
+-int in_gate_area(struct mm_struct *mm, unsigned long addr);
++extern int in_gate_area_no_mm(unsigned long addr);
++extern int in_gate_area(struct mm_struct *mm, unsigned long addr);
+ #else
+-int in_gate_area_no_mm(unsigned long addr);
+-#define in_gate_area(mm, addr) ({(void)mm; in_gate_area_no_mm(addr);})
++static inline struct vm_area_struct *get_gate_vma(struct mm_struct *mm)
++{
++	return NULL;
++}
++static inline int in_gate_area_no_mm(unsigned long addr) { return 0; }
++static inline int in_gate_area(struct mm_struct *mm, unsigned long addr)
++{
++	return 0;
++}
+ #endif	/* __HAVE_ARCH_GATE_AREA */
+ 
+ #ifdef CONFIG_SYSCTL
+diff --git a/mm/memory.c b/mm/memory.c
+index d67fd9f..099d234 100644
+--- a/mm/memory.c
++++ b/mm/memory.c
+@@ -3399,44 +3399,6 @@ int __pmd_alloc(struct mm_struct *mm, pud_t *pud, unsigned long address)
+ }
+ #endif /* __PAGETABLE_PMD_FOLDED */
+ 
+-#if !defined(__HAVE_ARCH_GATE_AREA)
+-
+-#if defined(AT_SYSINFO_EHDR)
+-static struct vm_area_struct gate_vma;
+-
+-static int __init gate_vma_init(void)
+-{
+-	gate_vma.vm_mm = NULL;
+-	gate_vma.vm_start = FIXADDR_USER_START;
+-	gate_vma.vm_end = FIXADDR_USER_END;
+-	gate_vma.vm_flags = VM_READ | VM_MAYREAD | VM_EXEC | VM_MAYEXEC;
+-	gate_vma.vm_page_prot = __P101;
+-
+-	return 0;
+-}
+-__initcall(gate_vma_init);
+-#endif
+-
+-struct vm_area_struct *get_gate_vma(struct mm_struct *mm)
+-{
+-#ifdef AT_SYSINFO_EHDR
+-	return &gate_vma;
+-#else
+-	return NULL;
+-#endif
+-}
+-
+-int in_gate_area_no_mm(unsigned long addr)
+-{
+-#ifdef AT_SYSINFO_EHDR
+-	if ((addr >= FIXADDR_USER_START) && (addr < FIXADDR_USER_END))
+-		return 1;
+-#endif
+-	return 0;
+-}
+-
+-#endif	/* __HAVE_ARCH_GATE_AREA */
+-
+ static int __follow_pte(struct mm_struct *mm, unsigned long address,
+ 		pte_t **ptepp, spinlock_t **ptlp)
+ {
+diff --git a/mm/nommu.c b/mm/nommu.c
+index 4a852f6..a881d96 100644
+--- a/mm/nommu.c
++++ b/mm/nommu.c
+@@ -1981,11 +1981,6 @@ error:
+ 	return -ENOMEM;
+ }
+ 
+-int in_gate_area_no_mm(unsigned long addr)
+-{
+-	return 0;
+-}
+-
+ int filemap_fault(struct vm_area_struct *vma, struct vm_fault *vmf)
+ {
+ 	BUG();
+-- 
+1.9.3
 
-> -------------------------
-> _for_device():
-> case DMA_BIDIRECTIONAL:
-> case DMA_TO_DEVICE:
->      /* flush and invalidate cache */
-> break;
-> case DMA_FROM_DEVICE:
->  /* should we invalidate cache or do nothing? */
-> break;
-
-You actually don't need to invalidate the TO_DEVICE mappings
-in both _for_device and _for_cpu. You have to flush them
-in for_device, and you have to invalidate them at least once,
-but don't need to invalidate them again in for_cpu if you have
-done that already in for_device and your CPU does not do any
-speculative prefetches that might populate the dcache.
-
-In case of for_device FROM_DEVICE, you have to invalidate or
-flush the caches to ensure that no dirty cache lines are
-written to memory, but only if your CPU has a write-back
-cache rather than write-through.
-
-For bidirectional mappings, you may have to flush and invalidate.
-
-	Arnd
