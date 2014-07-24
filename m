@@ -1,73 +1,43 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-la0-f51.google.com ([209.85.215.51]:43838 "EHLO
-	mail-la0-f51.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932735AbaGWTUl (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 23 Jul 2014 15:20:41 -0400
-Received: by mail-la0-f51.google.com with SMTP id el20so1298988lab.10
-        for <linux-arch@vger.kernel.org>; Wed, 23 Jul 2014 12:20:39 -0700 (PDT)
+Received: from mail-oa0-f43.google.com ([209.85.219.43]:55843 "EHLO
+	mail-oa0-f43.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S933187AbaGXAiC (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 23 Jul 2014 20:38:02 -0400
 MIME-Version: 1.0
-In-Reply-To: <CAGXu5jJ93-vto9voMENc4jX5itcd_Rm5AZjeChF57fpMYnWocA@mail.gmail.com>
-References: <cover.1405992946.git.luto@amacapital.net> <CAGXu5jJ93-vto9voMENc4jX5itcd_Rm5AZjeChF57fpMYnWocA@mail.gmail.com>
-From: Andy Lutomirski <luto@amacapital.net>
-Date: Wed, 23 Jul 2014 12:20:18 -0700
-Message-ID: <CALCETrVwqDeRbFOw=k_OhQZ4V6Pn5v3t8ODw75UuE7HKPFz=Sw@mail.gmail.com>
-Subject: Re: [PATCH v3 0/8] Two-phase seccomp and x86 tracing changes
+In-Reply-To: <20140723141721.d6a58555f124a7024d010067@linux-foundation.org>
+References: <1405616598-14798-1-git-send-email-jcmvbkbc@gmail.com>
+	<20140723141721.d6a58555f124a7024d010067@linux-foundation.org>
+Date: Thu, 24 Jul 2014 04:38:01 +0400
+Message-ID: <CAMo8BfJ0zC16ssBDGUxsLNwmVOpgnyk1PjikunB9u-C7x9uaOA@mail.gmail.com>
+Subject: Re: [PATCH v2] mm/highmem: make kmap cache coloring aware
+From: Max Filippov <jcmvbkbc@gmail.com>
 Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Kees Cook <keescook@chromium.org>
-Cc: "H. Peter Anvin" <hpa@zytor.com>, LKML <linux-kernel@vger.kernel.org>, Will Drewry <wad@chromium.org>, Oleg Nesterov <oleg@redhat.com>, "x86@kernel.org" <x86@kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Linux MIPS Mailing List <linux-mips@linux-mips.org>, linux-arch <linux-arch@vger.kernel.org>, linux-security-module <linux-security-module@vger.kernel.org>, Alexei Starovoitov <ast@plumgrid.com>
-Message-ID: <20140723192018.E0yqE_hW57J99SZGV3eal6Mfc-dA8U6eHjIsrVHM5DY@z>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: "linux-mm@kvack.org" <linux-mm@kvack.org>, Linux-Arch <linux-arch@vger.kernel.org>, Linux/MIPS Mailing List <linux-mips@linux-mips.org>, "linux-xtensa@linux-xtensa.org" <linux-xtensa@linux-xtensa.org>, LKML <linux-kernel@vger.kernel.org>, Leonid Yegoshin <Leonid.Yegoshin@imgtec.com>, Chris Zankel <chris@zankel.net>, Marc Gauthier <marc@cadence.com>
+Message-ID: <20140724003801.lQNqZbHFOwurmRi9p2KOsGCaY37yMNE3K8dr5_0Kar4@z>
 
-On Tue, Jul 22, 2014 at 12:37 PM, Kees Cook <keescook@chromium.org> wrote:
-> On Mon, Jul 21, 2014 at 6:49 PM, Andy Lutomirski <luto@amacapital.net> wrote:
->> [applies on jmorris's security-next tree]
->>
->> This is both a cleanup and a speedup.  It reduces overhead due to
->> installing a trivial seccomp filter by 87%.  The speedup comes from
->> avoiding the full syscall tracing mechanism for filters that don't
->> return SECCOMP_RET_TRACE.
->>
->> This series works by splitting the seccomp hooks into two phases.
->> The first phase evaluates the filter; it can skip syscalls, allow
->> them, kill the calling task, or pass a u32 to the second phase.  The
->> second phase requires a full tracing context, and it sends ptrace
->> events if necessary.
->>
->> Once this is done, I implemented a similar split for the x86 syscall
->> entry work.  The C callback is invoked in two phases: the first has
->> only a partial frame, and it can request phase 2 processing with a
->> full frame.
->>
->> Finally, I switch the 64-bit system_call code to use the new split
->> entry work.  This is a net deletion of assembly code: it replaces
->> all of the audit entry muck.
->>
->> In the process, I fixed some bugs.
->>
->> If this is acceptable, someone can do the same tweak for the
->> ia32entry and entry_32 code.
->>
->> This passes all seccomp tests that I know of.  Now that it's properly
->> rebased, even the previously expected failures are gone.
->>
->> Kees, if you like this version, can you create a branch with patches
->> 1-4?  I think that the rest should go into tip/x86 once everyone's happy
->> with it.
->>
->> Changes from v2:
->>  - Fixed 32-bit x86 build (and the tests pass).
->>  - Put the doc patch where it belongs.
->
-> Thanks! This looks good to me. I'll add it to my tree.
->
-> Peter, how do you feel about this series? Do the x86 changes look good to you?
->
+Hi Andrew,
 
-It looks like patches 1-4 have landed here:
+thanks for your feedback, I'll address your points in the next version of this
+series.
 
-https://git.kernel.org/cgit/linux/kernel/git/kees/linux.git/log/?h=seccomp/fastpath
+On Thu, Jul 24, 2014 at 1:17 AM, Andrew Morton
+<akpm@linux-foundation.org> wrote:
+> Fifthly, it would be very useful to publish the performance testing
+> results for at least one architecture so that we can determine the
+> patchset's desirability.  And perhaps to motivate other architectures
+> to implement this.
 
-hpa, what's the route forward for the x86 part?
+What sort of performance numbers would be relevant?
+For xtensa this patch enables highmem use for cores with aliasing cache,
+that is access to a gigabyte of memory (typical on KC705 FPGA board) vs.
+only 128MBytes of low memory, which is highly desirable. But performance
+comparison of these two configurations seems to make little sense.
+OTOH performance comparison of highmem variants with and without
+cache aliasing would show the quality of our cache flushing code.
 
---Andy
+-- 
+Thanks.
+-- Max
