@@ -1,139 +1,119 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-oa0-f52.google.com ([209.85.219.52]:60290 "EHLO
-	mail-oa0-f52.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S934061AbaGXGzW (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 24 Jul 2014 02:55:22 -0400
+Received: from mail-qg0-f51.google.com ([209.85.192.51]:56657 "EHLO
+	mail-qg0-f51.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750772AbaGXLhM (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 24 Jul 2014 07:37:12 -0400
 MIME-Version: 1.0
-In-Reply-To: <1405951409-16953-5-git-send-email-richard@sigma-star.at>
-References: <1405951409-16953-1-git-send-email-richard@sigma-star.at>
-	<1405951409-16953-5-git-send-email-richard@sigma-star.at>
-Date: Thu, 24 Jul 2014 14:55:21 +0800
-Message-ID: <CAMk6uBkU1Hooz-=OxENRGdpbzq4mZ6Jns4t4vQRJx4=au2Ce8A@mail.gmail.com>
-Subject: Re: [PATCH 04/43] blackfin: Use get_signal() signal_setup_done()
-From: Steven Miao <realmz6@gmail.com>
+In-Reply-To: <4843763.ps2D25LEeM@wuerfel>
+References: <1405413956-2772-1-git-send-email-lftan@altera.com>
+	<1405413956-2772-14-git-send-email-lftan@altera.com>
+	<4843763.ps2D25LEeM@wuerfel>
+Date: Thu, 24 Jul 2014 19:37:11 +0800
+Message-ID: <CAFiDJ582FiLAS=B13O3PV_d-FkR31j=5bN_LcXBSWkrGsHK_Gw@mail.gmail.com>
+Subject: Re: [PATCH v2 13/29] nios2: DMA mapping API
+From: Ley Foon Tan <lftan@altera.com>
 Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Richard Weinberger <richard@sigma-star.at>
-Cc: Andrew Morton <akpm@linux-foundation.org>, "open list:CAN NETWORK DRIVERS <linux-can@vger.kernel.org>, open
-	list:NETWORKING DRIVERS <netdev@vger.kernel.org>, open list" <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Richard Weinberger <richard@nod.at>, bfin <adi-buildroot-devel@lists.sourceforge.net>
-Message-ID: <20140724065521.AVBzzp8f_b5rFXFW2Y0B5-d9NQZFGkz1LJOLy8e6tGc@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Chung-Lin Tang <cltang@codesourcery.com>
+Message-ID: <20140724113711.t-RMqthWkn6ylN8xTl8A84wB0UdOyMO39qriviHWyk4@z>
 
-Acked-by: Steven Miao <realmz6@gmail.com>
+On Tue, Jul 15, 2014 at 5:38 PM, Arnd Bergmann <arnd@arndb.de> wrote:
+> On Tuesday 15 July 2014 16:45:40 Ley Foon Tan wrote:
+>
+>> +static inline void __dma_sync(void *vaddr, size_t size,
+>> +                           enum dma_data_direction direction)
+>> +{
+>> +     switch (direction) {
+>> +     case DMA_FROM_DEVICE:   /* invalidate cache */
+>> +             invalidate_dcache_range((unsigned long)vaddr,
+>> +                     (unsigned long)(vaddr + size));
+>> +             break;
+>> +     case DMA_TO_DEVICE:     /* flush and invalidate cache */
+>> +     case DMA_BIDIRECTIONAL:
+>> +             flush_dcache_range((unsigned long)vaddr,
+>> +                     (unsigned long)(vaddr + size));
+>> +             break;
+>> +     default:
+>> +             BUG();
+>> +     }
+>> +}
+>
+> This seems strange. More on that below.
+>
+>> +#define dma_alloc_noncoherent(d, s, h, f) dma_alloc_coherent(d, s, h, f)
+>> +#define dma_free_noncoherent(d, s, v, h) dma_free_coherent(d, s, v, h)
+>> +
+> ...
+>> +static inline void dma_cache_sync(struct device *dev, void *vaddr, size_t size,
+>> +                               enum dma_data_direction direction)
+>> +{
+>> +     __dma_sync(vaddr, size, direction);
+>> +}
+>
+> IIRC dma_cache_sync should be empty if you define dma_alloc_noncoherent
+> to be the same as dma_alloc_coherent: It's already coherent, so no sync
+> should be needed. What does the CPU do if you try to invalidate the cache
+> on a coherent mapping?
+Okay, I got what you mean here. I will leave this dma_cache_sync()
+function empty.
+The CPU just do nothing if we try to invalidate cache on a coherent region.
+BTW, I found many other architectures still provide dma_cache_sync()
+even they define dma_alloc_noncoherent
+same as dma_alloc_coherent. Eg: blackfin, x86 or xtense.
+>
+>> +void dma_sync_single_for_cpu(struct device *dev, dma_addr_t dma_handle,
+>> +                          size_t size, enum dma_data_direction direction)
+>> +{
+>> +     BUG_ON(!valid_dma_direction(direction));
+>> +
+>> +     __dma_sync(phys_to_virt(dma_handle), size, direction);
+>> +}
+>> +EXPORT_SYMBOL(dma_sync_single_for_cpu);
+>> +
+>> +void dma_sync_single_for_device(struct device *dev, dma_addr_t dma_handle,
+>> +                             size_t size, enum dma_data_direction direction)
+>> +{
+>> +     BUG_ON(!valid_dma_direction(direction));
+>> +
+>> +     __dma_sync(phys_to_virt(dma_handle), size, direction);
+>> +}
+>> +EXPORT_SYMBOL(dma_sync_single_for_device);
+>
+> More importantly: you do the same operation for both _for_cpu and _for_device.
+> I assume your CPU can never do speculative cache prefetches, so it's not
+> incorrect, but you do twice the number of invalidations and flushes that
+> you need.
+>
+> Why would you do anything for _for_cpu here?
+I am a bit confused for _for_cpu and _for_device here. I found some
+architectures like c6x and hexagon have same operation for both
+_for_cpu and _for_device as well.
+I have spent some times look at other architectures and below is what
+I found. Please correct me if I am wrong, especially
+for_device():DMA_FROM_DEVICE.
 
-Thanks.
+_for_cpu():
+case DMA_BIDIRECTIONAL:
+case DMA_FROM_DEVICE:
+     /* invalidate cache */
+break;
+case DMA_TO_DEVICE:
+   /* do nothing */
+break;
 
-On Mon, Jul 21, 2014 at 10:02 PM, Richard Weinberger
-<richard@sigma-star.at> wrote:
-> From: Richard Weinberger <richard@nod.at>
->
-> Use the more generic functions get_signal() signal_setup_done()
-> for signal delivery.
->
-> Signed-off-by: Richard Weinberger <richard@nod.at>
-> ---
->  arch/blackfin/kernel/signal.c | 39 +++++++++++++++++----------------------
->  1 file changed, 17 insertions(+), 22 deletions(-)
->
-> diff --git a/arch/blackfin/kernel/signal.c b/arch/blackfin/kernel/signal.c
-> index b022af6..1389cd3 100644
-> --- a/arch/blackfin/kernel/signal.c
-> +++ b/arch/blackfin/kernel/signal.c
-> @@ -152,23 +152,22 @@ static inline void *get_sigframe(struct k_sigaction *ka, struct pt_regs *regs,
->  }
->
->  static int
-> -setup_rt_frame(int sig, struct k_sigaction *ka, siginfo_t * info,
-> -              sigset_t * set, struct pt_regs *regs)
-> +setup_rt_frame(struct ksignal *ksig, sigset_t *set, struct pt_regs *regs)
->  {
->         struct rt_sigframe *frame;
->         int err = 0;
->
-> -       frame = get_sigframe(ka, regs, sizeof(*frame));
-> +       frame = get_sigframe(&ksig->ka, regs, sizeof(*frame));
->
->         err |= __put_user((current_thread_info()->exec_domain
->                            && current_thread_info()->exec_domain->signal_invmap
-> -                          && sig < 32
-> +                          && ksig->sig < 32
->                            ? current_thread_info()->exec_domain->
-> -                          signal_invmap[sig] : sig), &frame->sig);
-> +                          signal_invmap[ksig->sig] : ksig->sig), &frame->sig);
->
->         err |= __put_user(&frame->info, &frame->pinfo);
->         err |= __put_user(&frame->uc, &frame->puc);
-> -       err |= copy_siginfo_to_user(&frame->info, info);
-> +       err |= copy_siginfo_to_user(&frame->info, &ksig->info);
->
->         /* Create the ucontext.  */
->         err |= __put_user(0, &frame->uc.uc_flags);
-> @@ -183,7 +182,7 @@ setup_rt_frame(int sig, struct k_sigaction *ka, siginfo_t * info,
->         /* Set up registers for signal handler */
->         if (current->personality & FDPIC_FUNCPTRS) {
->                 struct fdpic_func_descriptor __user *funcptr =
-> -                       (struct fdpic_func_descriptor *) ka->sa.sa_handler;
-> +                       (struct fdpic_func_descriptor *) ksig->ka.sa.sa_handler;
->                 u32 pc, p3;
->                 err |= __get_user(pc, &funcptr->text);
->                 err |= __get_user(p3, &funcptr->GOT);
-> @@ -192,7 +191,7 @@ setup_rt_frame(int sig, struct k_sigaction *ka, siginfo_t * info,
->                 regs->pc = pc;
->                 regs->p3 = p3;
->         } else
-> -               regs->pc = (unsigned long)ka->sa.sa_handler;
-> +               regs->pc = (unsigned long)ksig->ka.sa.sa_handler;
->         wrusp((unsigned long)frame);
->         regs->rets = SIGRETURN_STUB;
->
-> @@ -237,20 +236,19 @@ handle_restart(struct pt_regs *regs, struct k_sigaction *ka, int has_handler)
->   * OK, we're invoking a handler
->   */
->  static void
-> -handle_signal(int sig, siginfo_t *info, struct k_sigaction *ka,
-> -             struct pt_regs *regs)
-> +handle_signal(struct ksignal *ksig, struct pt_regs *regs)
->  {
-> +       int ret;
-> +
->         /* are we from a system call? to see pt_regs->orig_p0 */
->         if (regs->orig_p0 >= 0)
->                 /* If so, check system call restarting.. */
-> -               handle_restart(regs, ka, 1);
-> +               handle_restart(regs, &ksig->ka, 1);
->
->         /* set up the stack frame */
-> -       if (setup_rt_frame(sig, ka, info, sigmask_to_save(), regs) < 0)
-> -               force_sigsegv(sig, current);
-> -       else
-> -               signal_delivered(sig, info, ka, regs,
-> -                               test_thread_flag(TIF_SINGLESTEP));
-> +       ret = setup_rt_frame(ksig, sigmask_to_save(), regs);
-> +
-> +       signal_setup_done(ret, ksig, test_thread_flag(TIF_SINGLESTEP));
->  }
->
->  /*
-> @@ -264,16 +262,13 @@ handle_signal(int sig, siginfo_t *info, struct k_sigaction *ka,
->   */
->  asmlinkage void do_signal(struct pt_regs *regs)
->  {
-> -       siginfo_t info;
-> -       int signr;
-> -       struct k_sigaction ka;
-> +       struct ksignal ksig;
->
->         current->thread.esp0 = (unsigned long)regs;
->
-> -       signr = get_signal_to_deliver(&info, &ka, regs, NULL);
-> -       if (signr > 0) {
-> +       if (get_signal(&ksig)) {
->                 /* Whee!  Actually deliver the signal.  */
-> -               handle_signal(signr, &info, &ka, regs);
-> +               handle_signal(&ksig, regs);
->                 return;
->         }
->
-> --
-> 1.8.4.5
->
+-------------------------
+_for_device():
+case DMA_BIDIRECTIONAL:
+case DMA_TO_DEVICE:
+     /* flush and invalidate cache */
+break;
+case DMA_FROM_DEVICE:
+ /* should we invalidate cache or do nothing? */
+break;
+
+Thanks for review.
+
+Regards
+Ley Foon
