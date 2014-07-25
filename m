@@ -1,14 +1,18 @@
 From: Max Filippov <jcmvbkbc@gmail.com>
 Subject: [PATCH v3 1/2] mm/highmem: make kmap cache coloring aware
 Date: Fri, 25 Jul 2014 23:43:46 +0400
-Message-ID: <1406317427-10215-2-git-send-email-jcmvbkbc__30419.2139454701$1406317482$gmane$org@gmail.com>
+Message-ID: <1406317427-10215-2-git-send-email-jcmvbkbc__8242.8403817632$1406317488$gmane$org@gmail.com>
 References: <1406317427-10215-1-git-send-email-jcmvbkbc@gmail.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-la0-f48.google.com ([209.85.215.48]:56572 "EHLO
+	mail-la0-f48.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1761021AbaGYToQ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 25 Jul 2014 15:44:16 -0400
 In-Reply-To: <1406317427-10215-1-git-send-email-jcmvbkbc@gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: linux-xtensa@linux-xtensa.org
 Cc: Chris Zankel <chris@zankel.net>, Marc Gauthier <marc@cadence.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-mips@linux-mips.org, linux-kernel@vger.kernel.org, David Rientjes <rientjes@google.com>, Andrew Morton <akpm@linux-foundation.org>, Leonid Yegoshin <Leonid.Yegoshin@imgtec.com>, Steven Hill <Steven.Hill@imgtec.com>, Max Filippov <jcmvbkbc@gmail.com>
-List-Id: linux-arch.vger.kernel.org
 
 VIPT cache with way size larger than MMU page size may suffer from
 aliasing problem: a single physical address accessed via different
