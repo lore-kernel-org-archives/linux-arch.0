@@ -1,85 +1,230 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mailapp01.imgtec.com ([195.59.15.196]:5218 "EHLO
-	mailapp01.imgtec.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756814AbaGYCMI (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 24 Jul 2014 22:12:08 -0400
-Message-ID: <53D1BCF0.3080706@imgtec.com>
-Date: Thu, 24 Jul 2014 19:12:00 -0700
-From: Leonid Yegoshin <Leonid.Yegoshin@imgtec.com>
-MIME-Version: 1.0
-Subject: Re: [PATCH v2] mm/highmem: make kmap cache coloring aware
-References: <1405616598-14798-1-git-send-email-jcmvbkbc@gmail.com> <20140723141721.d6a58555f124a7024d010067@linux-foundation.org> <CAMo8BfJ0zC16ssBDGUxsLNwmVOpgnyk1PjikunB9u-C7x9uaOA@mail.gmail.com> <20140724152133.bd4556f632b9cbb506b168cf@linux-foundation.org>
-In-Reply-To: <20140724152133.bd4556f632b9cbb506b168cf@linux-foundation.org>
-Content-Type: text/plain; charset="ISO-8859-1"; format=flowed
-Content-Transfer-Encoding: 7bit
+Received: from mail-la0-f48.google.com ([209.85.215.48]:56572 "EHLO
+	mail-la0-f48.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1761021AbaGYToQ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 25 Jul 2014 15:44:16 -0400
+From: Max Filippov <jcmvbkbc@gmail.com>
+Subject: [PATCH v3 1/2] mm/highmem: make kmap cache coloring aware
+Date: Fri, 25 Jul 2014 23:43:46 +0400
+Message-Id: <1406317427-10215-2-git-send-email-jcmvbkbc@gmail.com>
+In-Reply-To: <1406317427-10215-1-git-send-email-jcmvbkbc@gmail.com>
+References: <1406317427-10215-1-git-send-email-jcmvbkbc@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Max Filippov <jcmvbkbc@gmail.com>, "linux-mm@kvack.org" <linux-mm@kvack.org>, Linux-Arch <linux-arch@vger.kernel.org>, Linux/MIPS Mailing List <linux-mips@linux-mips.org>, "linux-xtensa@linux-xtensa.org" <linux-xtensa@linux-xtensa.org>, LKML <linux-kernel@vger.kernel.org>, Chris Zankel <chris@zankel.net>, Marc Gauthier <marc@cadence.com>, Steven Hill <Steven.Hill@imgtec.com>
-Message-ID: <20140725021200.jT9EJFUivI5RInwF8i7MbRbLBfm6xNIpWQrw54SKZw8@z>
+To: linux-xtensa@linux-xtensa.org
+Cc: Chris Zankel <chris@zankel.net>, Marc Gauthier <marc@cadence.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-mips@linux-mips.org, linux-kernel@vger.kernel.org, David Rientjes <rientjes@google.com>, Andrew Morton <akpm@linux-foundation.org>, Leonid Yegoshin <Leonid.Yegoshin@imgtec.com>, Steven Hill <Steven.Hill@imgtec.com>, Max Filippov <jcmvbkbc@gmail.com>
 
-On 07/24/2014 03:21 PM, Andrew Morton wrote:
-> On Thu, 24 Jul 2014 04:38:01 +0400 Max Filippov <jcmvbkbc@gmail.com> wrote:
->
->> On Thu, Jul 24, 2014 at 1:17 AM, Andrew Morton
->> <akpm@linux-foundation.org> wrote:
->>> Fifthly, it would be very useful to publish the performance testing
->>> results for at least one architecture so that we can determine the
->>> patchset's desirability.  And perhaps to motivate other architectures
->>> to implement this.
->> What sort of performance numbers would be relevant?
->> For xtensa this patch enables highmem use for cores with aliasing cache,
->> that is access to a gigabyte of memory (typical on KC705 FPGA board) vs.
->> only 128MBytes of low memory, which is highly desirable. But performance
->> comparison of these two configurations seems to make little sense.
->> OTOH performance comparison of highmem variants with and without
->> cache aliasing would show the quality of our cache flushing code.
-> I'd assumed the patch was making cache coloring available as a
-> performance tweak.  But you appear to be saying that the (high) memory
-> is simply unavailable for such cores without this change.  I think.
+VIPT cache with way size larger than MMU page size may suffer from
+aliasing problem: a single physical address accessed via different
+virtual addresses may end up in multiple locations in the cache.
+Virtual mappings of a physical address that always get cached in
+different cache locations are said to have different colors.
+L1 caching hardware usually doesn't handle this situation leaving it
+up to software. Software must avoid this situation as it leads to
+data corruption.
 
->
-> Please ensure that v3's changelog explains the full reason for the
-> patch.  Assume you're talking to all-the-worlds-an-x86 dummies, OK?
->
+One way to handle this is to flush and invalidate data cache every time
+page mapping changes color. The other way is to always map physical page
+at a virtual address with the same color. Low memory pages already have
+this property. Giving architecture a way to control color of high memory
+page mapping allows reusing of existing low memory cache alias handling
+code.
 
-I am not sure that I will work on it again, we move to bigger pages and 
-non-aliasing cache, and I ask Steven Hill to help with MIPS variant.
-So, I try to summarise an expanation here:
+Provide hooks that allow architectures with aliasing cache to align
+mapping address of high pages according to their color. Such architectures
+may enforce similar coloring of low- and high-memory page mappings and
+reuse existing cache management functions to support highmem.
 
-If cache line of some page in MIPS (and XTENSA?) is accessed via 
-multiple page virtual addresses (kernel or/and user) then it may be 
-located twice or more times in L1 cache which is an obvious coherency 
-bug. It is a trade-off for simple L1 access hardware. Two virtual 
-addresses of page which hits the same location in L1 cache are named as 
-"in the same page colour". Usually, colours are numbered and sequential 
-page colours looks like 0,1,0,1 or 0,1,2,3,0,1,2,3... It is usually 
-least one-two-or-three bits of PFN.
+This code is based on the implementation of similar feature for MIPS by
+Leonid Yegoshin <Leonid.Yegoshin@imgtec.com>.
 
-One simple way to hit this problem is using current HIGHMEM remapping 
-service because it doesn't take care of "page colouring". To prevent 
-coherency failure a current HIGHMEM code attempts to flush page from L1 
-cache each time before changing it's virtual address: flush cache each 
-PKMAP recycle and at each kunmap_atomic(), see arch/arm/mm/highmem.c - 
-MIPS code even doesn't have a flush here (BUG!).
+Signed-off-by: Max Filippov <jcmvbkbc@gmail.com>
+---
+Changes v2->v3:
+- drop ARCH_PKMAP_COLORING, check gif et_pkmap_color is defined instead;
+- add comment stating that arch should place definitions into
+  asm/highmem.h, include it directly to mm/highmem.c;
+- replace macros with inline functions, change set_pkmap_color to
+  get_pkmap_color which better fits inline function model;
+- drop get_last_pkmap_nr;
+- replace get_next_pkmap_counter with get_pkmap_entries_count, leave
+  original counting code;
+- introduce get_pkmap_wait_queue_head and make sleeping/waking dependent
+  on mapping color;
+- move file-scope static variables last_pkmap_nr and pkmap_map_wait into
+  get_next_pkmap_nr and get_pkmap_wait_queue_head respectively;
+- document new functions;
+- expand patch description and change authorship.
 
-However, kunmap_atomic() should do it locally to CPU without kmap_lock 
-by definition of kmap_atomic() and can't prevent a situation then a 
-second CPU hyper-thread accesses the same page via kmap() right after 
-kmap_atomic() got a page and uses a different page colour (different 
-virtual address set). Also, setting the whole cycle 
-kmap_atomic()...page...access...kunmap_atomic() under kmap_lock is 
-impractical.
+Changes v1->v2:
+- define set_pkmap_color(pg, cl) as do { } while (0) instead of /* */;
+- rename is_no_more_pkmaps to no_more_pkmaps;
+- change 'if (count > 0)' to 'if (count)' to better match the original
+  code behavior;
 
-This patch introduces some interface for architecture code to work with 
-coloured pages in PKMAP array which eliminates the kmap_atomic problem 
-and cancels cache flush requirements. It also can be consistent with 
-kmap_coherent() code which is required for some cache aliasing 
-architecture to handle aliasing between kernel virtual address and user 
-virtual address. The whole idea of this patch - force the same page 
-colour then page is assigned some PKMAP virtual address or kmap_atomic 
-address. Page colour is set by architecture code, usually it is a 
-physical address colour (which is usually == KVA colour).
+ mm/highmem.c | 89 ++++++++++++++++++++++++++++++++++++++++++++++++++++--------
+ 1 file changed, 78 insertions(+), 11 deletions(-)
 
-- Leonid.
+diff --git a/mm/highmem.c b/mm/highmem.c
+index b32b70c..0d0cbbb 100644
+--- a/mm/highmem.c
++++ b/mm/highmem.c
+@@ -28,6 +28,9 @@
+ #include <linux/highmem.h>
+ #include <linux/kgdb.h>
+ #include <asm/tlbflush.h>
++#ifdef CONFIG_HIGHMEM
++#include <asm/highmem.h>
++#endif
+ 
+ 
+ #if defined(CONFIG_HIGHMEM) || defined(CONFIG_X86_32)
+@@ -44,6 +47,66 @@ DEFINE_PER_CPU(int, __kmap_atomic_idx);
+  */
+ #ifdef CONFIG_HIGHMEM
+ 
++/*
++ * Architecture with aliasing data cache may define the following family of
++ * helper functions in its asm/highmem.h to control cache color of virtual
++ * addresses where physical memory pages are mapped by kmap.
++ */
++#ifndef get_pkmap_color
++
++/*
++ * Determine color of virtual address where the page should be mapped.
++ */
++static inline unsigned int get_pkmap_color(struct page *page)
++{
++	return 0;
++}
++#define get_pkmap_color get_pkmap_color
++
++/*
++ * Get next index for mapping inside PKMAP region for page with given color.
++ */
++static inline unsigned int get_next_pkmap_nr(unsigned int color)
++{
++	static unsigned int last_pkmap_nr;
++
++	last_pkmap_nr = (last_pkmap_nr + 1) & LAST_PKMAP_MASK;
++	return last_pkmap_nr;
++}
++
++/*
++ * Determine if page index inside PKMAP region (pkmap_nr) of given color
++ * has wrapped around PKMAP region end. When this happens an attempt to
++ * flush all unused PKMAP slots is made.
++ */
++static inline int no_more_pkmaps(unsigned int pkmap_nr, unsigned int color)
++{
++	return pkmap_nr == 0;
++}
++
++/*
++ * Get the number of PKMAP entries of the given color. If no free slot is
++ * found after checking that much entries, kmap will sleep waiting for
++ * someone to call kunmap and free PKMAP slot.
++ */
++static inline int get_pkmap_entries_count(unsigned int color)
++{
++	return LAST_PKMAP;
++}
++
++/*
++ * Get head of a wait queue for PKMAP entries of the given color.
++ * Wait queues for different mapping colors should be independent to avoid
++ * unnecessary wakeups caused by freeing of slots of other colors.
++ */
++static inline wait_queue_head_t *get_pkmap_wait_queue_head(unsigned int color)
++{
++	static DECLARE_WAIT_QUEUE_HEAD(pkmap_map_wait);
++
++	return &pkmap_map_wait;
++}
++#endif
++
+ unsigned long totalhigh_pages __read_mostly;
+ EXPORT_SYMBOL(totalhigh_pages);
+ 
+@@ -68,13 +131,10 @@ unsigned int nr_free_highpages (void)
+ }
+ 
+ static int pkmap_count[LAST_PKMAP];
+-static unsigned int last_pkmap_nr;
+ static  __cacheline_aligned_in_smp DEFINE_SPINLOCK(kmap_lock);
+ 
+ pte_t * pkmap_page_table;
+ 
+-static DECLARE_WAIT_QUEUE_HEAD(pkmap_map_wait);
+-
+ /*
+  * Most architectures have no use for kmap_high_get(), so let's abstract
+  * the disabling of IRQ out of the locking in that case to save on a
+@@ -161,15 +221,17 @@ static inline unsigned long map_new_virtual(struct page *page)
+ {
+ 	unsigned long vaddr;
+ 	int count;
++	unsigned int last_pkmap_nr;
++	unsigned int color = get_pkmap_color(page);
+ 
+ start:
+-	count = LAST_PKMAP;
++	count = get_pkmap_entries_count(color);
+ 	/* Find an empty entry */
+ 	for (;;) {
+-		last_pkmap_nr = (last_pkmap_nr + 1) & LAST_PKMAP_MASK;
+-		if (!last_pkmap_nr) {
++		last_pkmap_nr = get_next_pkmap_nr(color);
++		if (no_more_pkmaps(last_pkmap_nr, color)) {
+ 			flush_all_zero_pkmaps();
+-			count = LAST_PKMAP;
++			count = get_pkmap_entries_count(color);
+ 		}
+ 		if (!pkmap_count[last_pkmap_nr])
+ 			break;	/* Found a usable entry */
+@@ -181,12 +243,14 @@ start:
+ 		 */
+ 		{
+ 			DECLARE_WAITQUEUE(wait, current);
++			wait_queue_head_t *pkmap_map_wait =
++				get_pkmap_wait_queue_head(color);
+ 
+ 			__set_current_state(TASK_UNINTERRUPTIBLE);
+-			add_wait_queue(&pkmap_map_wait, &wait);
++			add_wait_queue(pkmap_map_wait, &wait);
+ 			unlock_kmap();
+ 			schedule();
+-			remove_wait_queue(&pkmap_map_wait, &wait);
++			remove_wait_queue(pkmap_map_wait, &wait);
+ 			lock_kmap();
+ 
+ 			/* Somebody else might have mapped it while we slept */
+@@ -274,6 +338,8 @@ void kunmap_high(struct page *page)
+ 	unsigned long nr;
+ 	unsigned long flags;
+ 	int need_wakeup;
++	unsigned int color = get_pkmap_color(page);
++	wait_queue_head_t *pkmap_map_wait;
+ 
+ 	lock_kmap_any(flags);
+ 	vaddr = (unsigned long)page_address(page);
+@@ -299,13 +365,14 @@ void kunmap_high(struct page *page)
+ 		 * no need for the wait-queue-head's lock.  Simply
+ 		 * test if the queue is empty.
+ 		 */
+-		need_wakeup = waitqueue_active(&pkmap_map_wait);
++		pkmap_map_wait = get_pkmap_wait_queue_head(color);
++		need_wakeup = waitqueue_active(pkmap_map_wait);
+ 	}
+ 	unlock_kmap_any(flags);
+ 
+ 	/* do wake-up, if needed, race-free outside of the spin lock */
+ 	if (need_wakeup)
+-		wake_up(&pkmap_map_wait);
++		wake_up(pkmap_map_wait);
+ }
+ 
+ EXPORT_SYMBOL(kunmap_high);
+-- 
+1.8.1.4
 
