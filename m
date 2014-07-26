@@ -1,8 +1,7 @@
 From: Yijing Wang <wangyijing@huawei.com>
-Subject: [RFC PATCH 05/11] PCI/MSI: Move populate_msi_sysfs() out of
- msi_capability_init()
-Date: Sat, 26 Jul 2014 11:08:42 +0800
-Message-ID: <1406344128-27055-6-git-send-email-wangyijing@huawei.com>
+Subject: [RFC PATCH 06/11] PCI/MSI: Save MSI irq in PCI MSI layer
+Date: Sat, 26 Jul 2014 11:08:43 +0800
+Message-ID: <1406344128-27055-7-git-send-email-wangyijing@huawei.com>
 References: <1406344128-27055-1-git-send-email-wangyijing@huawei.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -22,89 +21,41 @@ To: linux-kernel@vger.kernel.org
 Cc: linux-arch@vger.kernel.org, Russell King <linux@arm.linux.org.uk>, Paul.Mundt@huawei.com, Marc Zyngier <marc.zyngier@arm.com>, linux-pci@vger.kernel.org, "James E.J. Bottomley" <jejb@parisc-linux.org>, virtualization@lists.linux-foundation.org, Xinwei Hu <huxinwei@huawei.com>, Yijing Wang <wangyijing@huawei.com>, Hanjun Guo <guohanjun@huawei.com>, Bjorn Helgaas <bhelgaas@google.com>, Wuyun <wuyun.wu@huawei.com>, arnab.basu@freescale.com, linux-arm-kernel@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-Because some Non-PCI devices don't need to create sysfs object,
-so move populate_msi_sysfs() out of generic MSI function
-msi/x_capability_init().
+Save MSI irq in PCI MSI layer, this is preparation
+for generic MSI.
 
 Signed-off-by: Yijing Wang <wangyijing@huawei.com>
 ---
- drivers/pci/msi.c |   31 ++++++++++++++++++-------------
- 1 files changed, 18 insertions(+), 13 deletions(-)
+ drivers/pci/msi.c |    5 +++--
+ 1 files changed, 3 insertions(+), 2 deletions(-)
 
 diff --git a/drivers/pci/msi.c b/drivers/pci/msi.c
-index 116383c..21b16e0 100644
+index 21b16e0..f96dd38 100644
 --- a/drivers/pci/msi.c
 +++ b/drivers/pci/msi.c
-@@ -646,13 +646,6 @@ static int msi_capability_init(struct pci_dev *dev, int nvec)
- 		return ret;
- 	}
- 
--	ret = populate_msi_sysfs(dev);
--	if (ret) {
--		msi_mask_irq(entry, mask, ~mask);
--		free_msi_irqs(dev);
--		return ret;
--	}
--
- 	/* Set MSI enabled bits	 */
+@@ -650,8 +650,6 @@ static int msi_capability_init(struct pci_dev *dev, int nvec)
  	pci_intx_for_msi(dev, 0);
  	msi_set_enable(dev, 1);
-@@ -760,10 +753,6 @@ static int msix_capability_init(struct pci_dev *dev, void __iomem *base,
- 
- 	msix_program_entries(dev, entries);
- 
--	ret = populate_msi_sysfs(dev);
--	if (ret)
--		goto out_free;
+ 	dev->msi_enabled = 1;
 -
- 	/* Set MSI-X enabled bits and unmask the function */
- 	pci_intx_for_msi(dev, 0);
- 	dev->msix_enabled = 1;
-@@ -789,7 +778,6 @@ out_avail:
- 			ret = avail;
+-	dev->irq = entry->irq;
+ 	return 0;
+ }
+ 
+@@ -1059,6 +1057,7 @@ int pci_enable_msi_range(struct pci_dev *dev, int minvec, int maxvec)
+ {
+ 	int nvec;
+ 	int rc;
++	struct msi_desc *entry;
+ 
+ 	if (dev->current_state != PCI_D0)
+ 		return -EINVAL;
+@@ -1114,6 +1113,8 @@ int pci_enable_msi_range(struct pci_dev *dev, int minvec, int maxvec)
+ 		return rc;
  	}
  
--out_free:
- 	free_msi_irqs(dev);
- 
- 	return ret;
-@@ -939,7 +927,7 @@ EXPORT_SYMBOL(pci_msix_vec_count);
- int pci_enable_msix(struct pci_dev *dev, struct msix_entry *entries, int nvec)
- {
- 	int status, nr_entries;
--	int i, j;
-+	int i, j, ret;
- 	void __iomem *base;
- 	u16 control;
- 
-@@ -980,6 +968,14 @@ int pci_enable_msix(struct pci_dev *dev, struct msix_entry *entries, int nvec)
- 		return -ENOMEM;
- 
- 	status = msix_capability_init(dev, base, entries, nvec);
-+	if (!status) {
-+		ret = populate_msi_sysfs(dev);
-+		if (ret) {
-+			dev->msix_enabled = 0;
-+			pci_intx_for_msi(dev, 1);
-+			free_msi_irqs(dev);
-+		}
-+	}
- 	return status;
- }
- EXPORT_SYMBOL(pci_enable_msix);
-@@ -1109,6 +1105,15 @@ int pci_enable_msi_range(struct pci_dev *dev, int minvec, int maxvec)
- 		}
- 	} while (rc);
- 
-+	rc = populate_msi_sysfs(dev);
-+	if (rc) {
-+		msi_set_enable(dev, 0);
-+		pci_intx_for_msi(dev, 1);
-+		dev->msi_enabled = 0;
-+		free_msi_irqs(dev);
-+		return rc;
-+	}
-+
++	entry = list_entry(dev->msi_list.next, struct msi_desc, list);
++	dev->irq = entry->irq;
  	return nvec;
  }
  EXPORT_SYMBOL(pci_enable_msi_range);
