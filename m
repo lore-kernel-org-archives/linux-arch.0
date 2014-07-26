@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from szxga01-in.huawei.com ([119.145.14.64]:45740 "EHLO
-	szxga01-in.huawei.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1758030AbaGZCnv (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 25 Jul 2014 22:43:51 -0400
+Received: from szxga02-in.huawei.com ([119.145.14.65]:6657 "EHLO
+	szxga02-in.huawei.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752637AbaGZCnt (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 25 Jul 2014 22:43:49 -0400
 From: Yijing Wang <wangyijing@huawei.com>
-Subject: [RFC PATCH 07/11] PCI/MSI: Mask MSI-X entry in msix_setup_entries()
-Date: Sat, 26 Jul 2014 11:08:44 +0800
-Message-ID: <1406344128-27055-8-git-send-email-wangyijing@huawei.com>
+Subject: [RFC PATCH 05/11] PCI/MSI: Move populate_msi_sysfs() out of msi_capability_init()
+Date: Sat, 26 Jul 2014 11:08:42 +0800
+Message-ID: <1406344128-27055-6-git-send-email-wangyijing@huawei.com>
 In-Reply-To: <1406344128-27055-1-git-send-email-wangyijing@huawei.com>
 References: <1406344128-27055-1-git-send-email-wangyijing@huawei.com>
 MIME-Version: 1.0
@@ -15,78 +15,94 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
 Cc: Xinwei Hu <huxinwei@huawei.com>, Wuyun <wuyun.wu@huawei.com>, Bjorn Helgaas <bhelgaas@google.com>, linux-pci@vger.kernel.org, Paul.Mundt@huawei.com, "James E.J. Bottomley" <jejb@parisc-linux.org>, Marc Zyngier <marc.zyngier@arm.com>, linux-arm-kernel@lists.infradead.org, Russell King <linux@arm.linux.org.uk>, linux-arch@vger.kernel.org, arnab.basu@freescale.com, virtualization@lists.linux-foundation.org, Hanjun Guo <guohanjun@huawei.com>, Yijing Wang <wangyijing@huawei.com>
-Message-ID: <20140726030844.RQ8bcCuuDXMPb1O6fYpc0nOGbnJ-9fligkE1iN312ws@z>
+Message-ID: <20140726030842.S1j54diNqfYPOufISll9MIpDF7n87t1KhdxrU0-KjdU@z>
 
-Save the MSI-X entry initial mask status in
-msix_setup_entries(), also mask the entry.
-This is preparation for generic MSI.
+Because some Non-PCI devices don't need to create sysfs object,
+so move populate_msi_sysfs() out of generic MSI function
+msi/x_capability_init().
 
 Signed-off-by: Yijing Wang <wangyijing@huawei.com>
 ---
- drivers/pci/msi.c |   21 +++++++++++----------
- 1 files changed, 11 insertions(+), 10 deletions(-)
+ drivers/pci/msi.c |   31 ++++++++++++++++++-------------
+ 1 files changed, 18 insertions(+), 13 deletions(-)
 
 diff --git a/drivers/pci/msi.c b/drivers/pci/msi.c
-index f96dd38..41c33da 100644
+index 116383c..21b16e0 100644
 --- a/drivers/pci/msi.c
 +++ b/drivers/pci/msi.c
-@@ -672,7 +672,7 @@ static int msix_setup_entries(struct pci_dev *dev, void __iomem *base,
- 			      struct msix_entry *entries, int nvec)
- {
- 	struct msi_desc *entry;
--	int i;
-+	int i, offset;
- 
- 	for (i = 0; i < nvec; i++) {
- 		entry = alloc_msi_entry(dev);
-@@ -691,6 +691,15 @@ static int msix_setup_entries(struct pci_dev *dev, void __iomem *base,
- 		entry->msi_attrib.default_irq	= dev->irq;
- 		entry->mask_base		= base;
- 
-+		msix_clear_and_set_ctrl(dev, 0, 
-+				PCI_MSIX_FLAGS_MASKALL | PCI_MSIX_FLAGS_ENABLE);
-+		offset = entries[i].entry * PCI_MSIX_ENTRY_SIZE +
-+						PCI_MSIX_ENTRY_VECTOR_CTRL;
-+		entry->masked = readl(entry->mask_base + offset);
-+		msix_mask_irq(entry, 1);
-+		msix_clear_and_set_ctrl(dev, 
-+				PCI_MSIX_FLAGS_MASKALL | PCI_MSIX_FLAGS_ENABLE, 0);
-+
- 		list_add_tail(&entry->list, &dev->msi_list);
+@@ -646,13 +646,6 @@ static int msi_capability_init(struct pci_dev *dev, int nvec)
+ 		return ret;
  	}
  
-@@ -704,13 +713,8 @@ static void msix_program_entries(struct pci_dev *dev,
- 	int i = 0;
+-	ret = populate_msi_sysfs(dev);
+-	if (ret) {
+-		msi_mask_irq(entry, mask, ~mask);
+-		free_msi_irqs(dev);
+-		return ret;
+-	}
+-
+ 	/* Set MSI enabled bits	 */
+ 	pci_intx_for_msi(dev, 0);
+ 	msi_set_enable(dev, 1);
+@@ -760,10 +753,6 @@ static int msix_capability_init(struct pci_dev *dev, void __iomem *base,
  
- 	list_for_each_entry(entry, &dev->msi_list, list) {
--		int offset = entries[i].entry * PCI_MSIX_ENTRY_SIZE +
--						PCI_MSIX_ENTRY_VECTOR_CTRL;
--
- 		entries[i].vector = entry->irq;
- 		irq_set_msi_desc(entry->irq, entry);
--		entry->masked = readl(entry->mask_base + offset);
--		msix_mask_irq(entry, 1);
- 		i++;
- 	}
- }
-@@ -746,16 +750,13 @@ static int msix_capability_init(struct pci_dev *dev, void __iomem *base,
- 	 * MSI-X registers.  We need to mask all the vectors to prevent
- 	 * interrupts coming in before they're fully set up.
- 	 */
--	msix_clear_and_set_ctrl(dev, 0,
--				PCI_MSIX_FLAGS_MASKALL | PCI_MSIX_FLAGS_ENABLE);
--
  	msix_program_entries(dev, entries);
  
+-	ret = populate_msi_sysfs(dev);
+-	if (ret)
+-		goto out_free;
+-
  	/* Set MSI-X enabled bits and unmask the function */
  	pci_intx_for_msi(dev, 0);
  	dev->msix_enabled = 1;
+@@ -789,7 +778,6 @@ out_avail:
+ 			ret = avail;
+ 	}
  
--	msix_clear_and_set_ctrl(dev, PCI_MSIX_FLAGS_MASKALL, 0);
-+	msix_clear_and_set_ctrl(dev, 0, PCI_MSIX_FLAGS_ENABLE);
+-out_free:
+ 	free_msi_irqs(dev);
  
- 	return 0;
+ 	return ret;
+@@ -939,7 +927,7 @@ EXPORT_SYMBOL(pci_msix_vec_count);
+ int pci_enable_msix(struct pci_dev *dev, struct msix_entry *entries, int nvec)
+ {
+ 	int status, nr_entries;
+-	int i, j;
++	int i, j, ret;
+ 	void __iomem *base;
+ 	u16 control;
  
+@@ -980,6 +968,14 @@ int pci_enable_msix(struct pci_dev *dev, struct msix_entry *entries, int nvec)
+ 		return -ENOMEM;
+ 
+ 	status = msix_capability_init(dev, base, entries, nvec);
++	if (!status) {
++		ret = populate_msi_sysfs(dev);
++		if (ret) {
++			dev->msix_enabled = 0;
++			pci_intx_for_msi(dev, 1);
++			free_msi_irqs(dev);
++		}
++	}
+ 	return status;
+ }
+ EXPORT_SYMBOL(pci_enable_msix);
+@@ -1109,6 +1105,15 @@ int pci_enable_msi_range(struct pci_dev *dev, int minvec, int maxvec)
+ 		}
+ 	} while (rc);
+ 
++	rc = populate_msi_sysfs(dev);
++	if (rc) {
++		msi_set_enable(dev, 0);
++		pci_intx_for_msi(dev, 1);
++		dev->msi_enabled = 0;
++		free_msi_irqs(dev);
++		return rc;
++	}
++
+ 	return nvec;
+ }
+ EXPORT_SYMBOL(pci_enable_msi_range);
 -- 
 1.7.1
 
