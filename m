@@ -1,35 +1,58 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:47703 "EHLO mail.zytor.com"
+Received: from mx1.redhat.com ([209.132.183.28]:29749 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750985AbaG1SAc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 28 Jul 2014 14:00:32 -0400
-Message-ID: <53D68F91.4000106@zytor.com>
-Date: Mon, 28 Jul 2014 10:59:45 -0700
-From: "H. Peter Anvin" <hpa@zytor.com>
+	id S1751167AbaG1TA3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 28 Jul 2014 15:00:29 -0400
+Date: Mon, 28 Jul 2014 20:58:03 +0200
+From: Oleg Nesterov <oleg@redhat.com>
+Subject: TIF_NOHZ can escape nonhz mask? (Was: [PATCH v3 6/8] x86: Split
+	syscall_trace_enter into two phases)
+Message-ID: <20140728185803.GA24663@redhat.com>
+References: <cover.1405992946.git.luto@amacapital.net> <3f649f5658a163645e3ce15156176c325283762e.1405992946.git.luto@amacapital.net> <20140728173723.GA20993@redhat.com>
 MIME-Version: 1.0
-Subject: Re: [PATCH v3 0/8] Two-phase seccomp and x86 tracing changes
-References: <cover.1405992946.git.luto@amacapital.net> <CAGXu5jJ93-vto9voMENc4jX5itcd_Rm5AZjeChF57fpMYnWocA@mail.gmail.com> <CALCETrVwqDeRbFOw=k_OhQZ4V6Pn5v3t8ODw75UuE7HKPFz=Sw@mail.gmail.com>
-In-Reply-To: <CALCETrVwqDeRbFOw=k_OhQZ4V6Pn5v3t8ODw75UuE7HKPFz=Sw@mail.gmail.com>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20140728173723.GA20993@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andy Lutomirski <luto@amacapital.net>, Kees Cook <keescook@chromium.org>
-Cc: LKML <linux-kernel@vger.kernel.org>, Will Drewry <wad@chromium.org>, Oleg Nesterov <oleg@redhat.com>, "x86@kernel.org" <x86@kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Linux MIPS Mailing List <linux-mips@linux-mips.org>, linux-arch <linux-arch@vger.kernel.org>, linux-security-module <linux-security-module@vger.kernel.org>, Alexei Starovoitov <ast@plumgrid.com>
-Message-ID: <20140728175945.u4DDXjUzNioEf_tJslDH4Cb2wOWZaPhyJRuazTeySVU@z>
+To: Andy Lutomirski <luto@amacapital.net>, Frederic Weisbecker <fweisbec@gmail.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Cc: linux-kernel@vger.kernel.org, Kees Cook <keescook@chromium.org>, Will Drewry <wad@chromium.org>, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-mips@linux-mips.org, linux-arch@vger.kernel.org, linux-security-module@vger.kernel.org, Alexei Starovoitov <ast@plumgrid.com>, hpa@zytor.com
+Message-ID: <20140728185803.v1chPvGWHEwYtQWPSBLo8bbqsc_zJFdVYCp_cYPoWjw@z>
 
-On 07/23/2014 12:20 PM, Andy Lutomirski wrote:
-> 
-> It looks like patches 1-4 have landed here:
-> 
-> https://git.kernel.org/cgit/linux/kernel/git/kees/linux.git/log/?h=seccomp/fastpath
-> 
-> hpa, what's the route forward for the x86 part?
-> 
+Off-topic, but...
 
-I guess I should discuss this with Kees to figure out what makes most
-sense.  In the meantime, could you address Oleg's question?
+On 07/28, Oleg Nesterov wrote:
+>
+> But we should always call user_exit() unconditionally?
 
-	-hpa
+Frederic, don't we need the patch below? In fact clear_() can be moved
+under "if ()" too. and probably copy_process() should clear this flag...
 
+Or. __context_tracking_task_switch() can simply do
+
+	 if (context_tracking_cpu_is_enabled())
+	 	set_tsk_thread_flag(next, TIF_NOHZ);
+	 else
+	 	clear_tsk_thread_flag(next, TIF_NOHZ);
+
+and then we can forget about copy_process(). Or I am totally confused?
+
+
+I am also wondering if we can extend user_return_notifier to handle
+enter/exit and kill TIF_NOHZ.
+
+Oleg.
+
+--- x/kernel/context_tracking.c
++++ x/kernel/context_tracking.c
+@@ -202,7 +202,8 @@ void __context_tracking_task_switch(stru
+ 				    struct task_struct *next)
+ {
+ 	clear_tsk_thread_flag(prev, TIF_NOHZ);
+-	set_tsk_thread_flag(next, TIF_NOHZ);
++	if (context_tracking_cpu_is_enabled())
++		set_tsk_thread_flag(next, TIF_NOHZ);
+ }
+ 
+ #ifdef CONFIG_CONTEXT_TRACKING_FORCE
 
