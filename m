@@ -1,63 +1,52 @@
-From: Yijing Wang <wangyijing@huawei.com>
-Subject: [RFC PATCH 06/11] PCI/MSI: Save MSI irq in PCI MSI layer
-Date: Sat, 26 Jul 2014 11:08:43 +0800
-Message-ID: <1406344128-27055-7-git-send-email-wangyijing@huawei.com>
-References: <1406344128-27055-1-git-send-email-wangyijing@huawei.com>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: [PATCH v2 05/29] nios2: Memory management
+Date: Mon, 28 Jul 2014 16:59:13 +0200
+Message-ID: <CAMuHMdUyif5JS9OdiamHhf+r5oeTRdd7Gzd6-rBUyamnNQ6C8A@mail.gmail.com>
+References: <1405413956-2772-1-git-send-email-lftan@altera.com>
+	<1405413956-2772-6-git-send-email-lftan@altera.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-In-Reply-To: <1406344128-27055-1-git-send-email-wangyijing@huawei.com>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Russell King <linux@arm.linux.org.uk>, Paul.Mundt@huawei.com, Marc Zyngier <marc.zyngier@arm.com>, linux-pci@vger.kernel.org, "James E.J. Bottomley" <jejb@parisc-linux.org>, virtualization@lists.linux-foundation.org, Xinwei Hu <huxinwei@huawei.com>, Yijing Wang <wangyijing@huawei.com>, Hanjun Guo <guohanjun@huawei.com>, Bjorn Helgaas <bhelgaas@google.com>, Wuyun <wuyun.wu@huawei.com>, arnab.basu@freescale.com, linux-arm-kernel@lists.infradead.org
+Content-Type: text/plain; charset=UTF-8
+Return-path: <linux-doc-owner@vger.kernel.org>
+In-Reply-To: <1405413956-2772-6-git-send-email-lftan@altera.com>
+Sender: linux-doc-owner@vger.kernel.org
+To: Ley Foon Tan <lftan@altera.com>
+Cc: Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, LeyFoon Tan <lftan.linux@gmail.com>, Chung-Lin Tang <cltang@codesourcery.com>
 List-Id: linux-arch.vger.kernel.org
 
-Save MSI irq in PCI MSI layer, this is preparation
-for generic MSI.
+On Tue, Jul 15, 2014 at 10:45 AM, Ley Foon Tan <lftan@altera.com> wrote:
+> --- /dev/null
+> +++ b/arch/nios2/include/asm/mmu.h
+> @@ -0,0 +1,18 @@
+> +/*
+> + * Copyright (C) 2010 Tobias Klauser <tklauser@distanz.ch>
+> + * Copyright (C) 2004 Microtronix Datacom Ltd.
+> + *
+> + * Taken from m68knommu.
+> + *
+> + * This file is subject to the terms and conditions of the GNU General Public
+> + * License. See the file "COPYING" in the main directory of this archive
+> + * for more details.
+> + */
+> +
+> +#ifndef _ASM_NIOS2_MMU_H
+> +#define _ASM_NIOS2_MMU_H
+> +
+> +/* Default "unsigned long" context */
+> +typedef unsigned long mm_context_t;
+> +
+> +#endif /* _ASM_NIOS2_MMU_H */
 
-Signed-off-by: Yijing Wang <wangyijing@huawei.com>
----
- drivers/pci/msi.c |    5 +++--
- 1 files changed, 3 insertions(+), 2 deletions(-)
+Any chance you can use mmu.h from asm-generic instead?
+It uses a struct with a single "unsigned long end_brk" member (unless
+CONFIG_BINFMT_ELF_FDPIC is defined).
 
-diff --git a/drivers/pci/msi.c b/drivers/pci/msi.c
-index 21b16e0..f96dd38 100644
---- a/drivers/pci/msi.c
-+++ b/drivers/pci/msi.c
-@@ -650,8 +650,6 @@ static int msi_capability_init(struct pci_dev *dev, int nvec)
- 	pci_intx_for_msi(dev, 0);
- 	msi_set_enable(dev, 1);
- 	dev->msi_enabled = 1;
--
--	dev->irq = entry->irq;
- 	return 0;
- }
- 
-@@ -1059,6 +1057,7 @@ int pci_enable_msi_range(struct pci_dev *dev, int minvec, int maxvec)
- {
- 	int nvec;
- 	int rc;
-+	struct msi_desc *entry;
- 
- 	if (dev->current_state != PCI_D0)
- 		return -EINVAL;
-@@ -1114,6 +1113,8 @@ int pci_enable_msi_range(struct pci_dev *dev, int minvec, int maxvec)
- 		return rc;
- 	}
- 
-+	entry = list_entry(dev->msi_list.next, struct msi_desc, list);
-+	dev->irq = entry->irq;
- 	return nvec;
- }
- EXPORT_SYMBOL(pci_enable_msi_range);
--- 
-1.7.1
+Gr{oetje,eeting}s,
+
+                        Geert
+
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
