@@ -1,65 +1,53 @@
 From: rkuo <rkuo@codeaurora.org>
-Subject: Re: [PATCH v2 13/29] nios2: DMA mapping API
-Date: Mon, 28 Jul 2014 10:48:14 -0500
-Message-ID: <20140728154814.GA9179@codeaurora.org>
-References: <1405413956-2772-1-git-send-email-lftan@altera.com>
- <4843763.ps2D25LEeM@wuerfel>
- <CAFiDJ582FiLAS=B13O3PV_d-FkR31j=5bN_LcXBSWkrGsHK_Gw@mail.gmail.com>
- <5059148.8xZUvoce2l@wuerfel>
+Subject: Re: [PATCH 03/38] hexagon: drop ucontext from list exported headers
+Date: Mon, 28 Jul 2014 11:19:05 -0500
+Message-ID: <20140728161905.GB9179@codeaurora.org>
+References: <20140714150609.GA28358@ravnborg.org>
+ <1405350546-28467-1-git-send-email-sam@ravnborg.org>
+ <1405350546-28467-3-git-send-email-sam@ravnborg.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.codeaurora.org ([198.145.11.231]:60612 "EHLO
+Received: from smtp.codeaurora.org ([198.145.11.231]:34269 "EHLO
 	smtp.codeaurora.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750999AbaG1PsU (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 28 Jul 2014 11:48:20 -0400
+	with ESMTP id S1750883AbaG1QTJ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 28 Jul 2014 12:19:09 -0400
 Content-Disposition: inline
-In-Reply-To: <5059148.8xZUvoce2l@wuerfel>
+In-Reply-To: <1405350546-28467-3-git-send-email-sam@ravnborg.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Ley Foon Tan <lftan@altera.com>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Chung-Lin Tang <cltang@codesourcery.com>, linux-hexagon@vger.kernel.org, Mark Salter <msalter@redhat.com>, Aurelien Jacquiot <a-jacquiot@ti.com>, linux-c6x-dev@linux-c6x.org
+To: Sam Ravnborg <sam@ravnborg.org>
+Cc: Arnd Bergmann <arnd@arndb.de>, lkml <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, linux-hexagon <linux-hexagon@vger.kernel.org>, David Howells <dhowells@redhat.com>
 
-On Thu, Jul 24, 2014 at 02:05:16PM +0200, Arnd Bergmann wrote:
-> > >> +void dma_sync_single_for_cpu(struct device *dev, dma_addr_t dma_handle,
-> > >> +                          size_t size, enum dma_data_direction direction)
-> > >> +{
-> > >> +     BUG_ON(!valid_dma_direction(direction));
-> > >> +
-> > >> +     __dma_sync(phys_to_virt(dma_handle), size, direction);
-> > >> +}
-> > >> +EXPORT_SYMBOL(dma_sync_single_for_cpu);
-> > >> +
-> > >> +void dma_sync_single_for_device(struct device *dev, dma_addr_t dma_handle,
-> > >> +                             size_t size, enum dma_data_direction direction)
-> > >> +{
-> > >> +     BUG_ON(!valid_dma_direction(direction));
-> > >> +
-> > >> +     __dma_sync(phys_to_virt(dma_handle), size, direction);
-> > >> +}
-> > >> +EXPORT_SYMBOL(dma_sync_single_for_device);
-> > >
-> > > More importantly: you do the same operation for both _for_cpu and _for_device.
-> > > I assume your CPU can never do speculative cache prefetches, so it's not
-> > > incorrect, but you do twice the number of invalidations and flushes that
-> > > you need.
-> > >
-> > > Why would you do anything for _for_cpu here?
-> > I am a bit confused for _for_cpu and _for_device here. I found some
-> > architectures like c6x and hexagon have same operation for both
-> > _for_cpu and _for_device as well.
+On Mon, Jul 14, 2014 at 05:08:31PM +0200, Sam Ravnborg wrote:
+> ucontext.h is already specified in include/uapi/asm-generic/Kbuild
+> so this is redundant.
 > 
-> (adding their maintainers to cc)
+> Signed-off-by: Sam Ravnborg <sam@ravnborg.org>
+> Cc: Richard Kuo <rkuo@codeaurora.org>
+> Cc: linux-hexagon <linux-hexagon@vger.kernel.org>
+> Cc: David Howells <dhowells@redhat.com>
+> ---
+>  arch/hexagon/include/asm/Kbuild | 3 ---
+>  1 file changed, 3 deletions(-)
 > 
-> Yes, you are right, they seem to have the same bug and could see a noticeable
-> DMA performance improvement if they change it as well.
+> diff --git a/arch/hexagon/include/asm/Kbuild b/arch/hexagon/include/asm/Kbuild
+> index 0e69796..1ddcd97 100644
+> --- a/arch/hexagon/include/asm/Kbuild
+> +++ b/arch/hexagon/include/asm/Kbuild
+> @@ -1,6 +1,3 @@
+> -
+> -header-y += ucontext.h
+> -
+>  generic-y += auxvec.h
+>  generic-y += barrier.h
+>  generic-y += bug.h
+> -- 
+> 1.9.3
 > 
 
-Yep that's a bug.  Thanks for pointing this out.
 
-
--Richard Kuo
-
+Acked-by: Richard Kuo <rkuo@codeaurora.org>
 
 -- 
 
