@@ -1,52 +1,68 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [PATCH v2 05/29] nios2: Memory management
-Date: Mon, 28 Jul 2014 16:59:13 +0200
-Message-ID: <CAMuHMdUyif5JS9OdiamHhf+r5oeTRdd7Gzd6-rBUyamnNQ6C8A@mail.gmail.com>
+From: rkuo <rkuo@codeaurora.org>
+Subject: Re: [PATCH v2 13/29] nios2: DMA mapping API
+Date: Mon, 28 Jul 2014 10:48:14 -0500
+Message-ID: <20140728154814.GA9179@codeaurora.org>
 References: <1405413956-2772-1-git-send-email-lftan@altera.com>
-	<1405413956-2772-6-git-send-email-lftan@altera.com>
+ <4843763.ps2D25LEeM@wuerfel>
+ <CAFiDJ582FiLAS=B13O3PV_d-FkR31j=5bN_LcXBSWkrGsHK_Gw@mail.gmail.com>
+ <5059148.8xZUvoce2l@wuerfel>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-doc-owner@vger.kernel.org>
-In-Reply-To: <1405413956-2772-6-git-send-email-lftan@altera.com>
-Sender: linux-doc-owner@vger.kernel.org
-To: Ley Foon Tan <lftan@altera.com>
-Cc: Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, LeyFoon Tan <lftan.linux@gmail.com>, Chung-Lin Tang <cltang@codesourcery.com>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from smtp.codeaurora.org ([198.145.11.231]:60612 "EHLO
+	smtp.codeaurora.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750999AbaG1PsU (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 28 Jul 2014 11:48:20 -0400
+Content-Disposition: inline
+In-Reply-To: <5059148.8xZUvoce2l@wuerfel>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Ley Foon Tan <lftan@altera.com>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Chung-Lin Tang <cltang@codesourcery.com>, linux-hexagon@vger.kernel.org, Mark Salter <msalter@redhat.com>, Aurelien Jacquiot <a-jacquiot@ti.com>, linux-c6x-dev@linux-c6x.org
 
-On Tue, Jul 15, 2014 at 10:45 AM, Ley Foon Tan <lftan@altera.com> wrote:
-> --- /dev/null
-> +++ b/arch/nios2/include/asm/mmu.h
-> @@ -0,0 +1,18 @@
-> +/*
-> + * Copyright (C) 2010 Tobias Klauser <tklauser@distanz.ch>
-> + * Copyright (C) 2004 Microtronix Datacom Ltd.
-> + *
-> + * Taken from m68knommu.
-> + *
-> + * This file is subject to the terms and conditions of the GNU General Public
-> + * License. See the file "COPYING" in the main directory of this archive
-> + * for more details.
-> + */
-> +
-> +#ifndef _ASM_NIOS2_MMU_H
-> +#define _ASM_NIOS2_MMU_H
-> +
-> +/* Default "unsigned long" context */
-> +typedef unsigned long mm_context_t;
-> +
-> +#endif /* _ASM_NIOS2_MMU_H */
+On Thu, Jul 24, 2014 at 02:05:16PM +0200, Arnd Bergmann wrote:
+> > >> +void dma_sync_single_for_cpu(struct device *dev, dma_addr_t dma_handle,
+> > >> +                          size_t size, enum dma_data_direction direction)
+> > >> +{
+> > >> +     BUG_ON(!valid_dma_direction(direction));
+> > >> +
+> > >> +     __dma_sync(phys_to_virt(dma_handle), size, direction);
+> > >> +}
+> > >> +EXPORT_SYMBOL(dma_sync_single_for_cpu);
+> > >> +
+> > >> +void dma_sync_single_for_device(struct device *dev, dma_addr_t dma_handle,
+> > >> +                             size_t size, enum dma_data_direction direction)
+> > >> +{
+> > >> +     BUG_ON(!valid_dma_direction(direction));
+> > >> +
+> > >> +     __dma_sync(phys_to_virt(dma_handle), size, direction);
+> > >> +}
+> > >> +EXPORT_SYMBOL(dma_sync_single_for_device);
+> > >
+> > > More importantly: you do the same operation for both _for_cpu and _for_device.
+> > > I assume your CPU can never do speculative cache prefetches, so it's not
+> > > incorrect, but you do twice the number of invalidations and flushes that
+> > > you need.
+> > >
+> > > Why would you do anything for _for_cpu here?
+> > I am a bit confused for _for_cpu and _for_device here. I found some
+> > architectures like c6x and hexagon have same operation for both
+> > _for_cpu and _for_device as well.
+> 
+> (adding their maintainers to cc)
+> 
+> Yes, you are right, they seem to have the same bug and could see a noticeable
+> DMA performance improvement if they change it as well.
+> 
 
-Any chance you can use mmu.h from asm-generic instead?
-It uses a struct with a single "unsigned long end_brk" member (unless
-CONFIG_BINFMT_ELF_FDPIC is defined).
+Yep that's a bug.  Thanks for pointing this out.
 
-Gr{oetje,eeting}s,
 
-                        Geert
+-Richard Kuo
 
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
 
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+-- 
+
+Sent by an employee of the Qualcomm Innovation Center, Inc.
+The Qualcomm Innovation Center, Inc. is a member of the Code Aurora Forum,
+hosted by The Linux Foundation
