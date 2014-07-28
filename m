@@ -1,57 +1,59 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-lb0-f169.google.com ([209.85.217.169]:52317 "EHLO
-	mail-lb0-f169.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752324AbaG1O7P (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 28 Jul 2014 10:59:15 -0400
+Received: from mx1.redhat.com ([209.132.183.28]:35842 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751953AbaG1Rjv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 28 Jul 2014 13:39:51 -0400
+Date: Mon, 28 Jul 2014 19:37:23 +0200
+From: Oleg Nesterov <oleg@redhat.com>
+Subject: Re: [PATCH v3 6/8] x86: Split syscall_trace_enter into two phases
+Message-ID: <20140728173723.GA20993@redhat.com>
+References: <cover.1405992946.git.luto@amacapital.net> <3f649f5658a163645e3ce15156176c325283762e.1405992946.git.luto@amacapital.net>
 MIME-Version: 1.0
-In-Reply-To: <1405413956-2772-6-git-send-email-lftan@altera.com>
-References: <1405413956-2772-1-git-send-email-lftan@altera.com>
-	<1405413956-2772-6-git-send-email-lftan@altera.com>
-Date: Mon, 28 Jul 2014 16:59:13 +0200
-Message-ID: <CAMuHMdUyif5JS9OdiamHhf+r5oeTRdd7Gzd6-rBUyamnNQ6C8A@mail.gmail.com>
-Subject: Re: [PATCH v2 05/29] nios2: Memory management
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <3f649f5658a163645e3ce15156176c325283762e.1405992946.git.luto@amacapital.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ley Foon Tan <lftan@altera.com>
-Cc: Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, LeyFoon Tan <lftan.linux@gmail.com>, Chung-Lin Tang <cltang@codesourcery.com>
-Message-ID: <20140728145913.OZdBJgIJHGzGlexe8gpWVPK9K9r5XcHs5WyiN63VQm4@z>
+To: Andy Lutomirski <luto@amacapital.net>
+Cc: linux-kernel@vger.kernel.org, Kees Cook <keescook@chromium.org>, Will Drewry <wad@chromium.org>, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-mips@linux-mips.org, linux-arch@vger.kernel.org, linux-security-module@vger.kernel.org, Alexei Starovoitov <ast@plumgrid.com>, hpa@zytor.com
+Message-ID: <20140728173723.fmC1Cpz9sDPBuHABMH2cUC4N69YOVK56j24pbxfD_Vk@z>
 
-On Tue, Jul 15, 2014 at 10:45 AM, Ley Foon Tan <lftan@altera.com> wrote:
-> --- /dev/null
-> +++ b/arch/nios2/include/asm/mmu.h
-> @@ -0,0 +1,18 @@
-> +/*
-> + * Copyright (C) 2010 Tobias Klauser <tklauser@distanz.ch>
-> + * Copyright (C) 2004 Microtronix Datacom Ltd.
-> + *
-> + * Taken from m68knommu.
-> + *
-> + * This file is subject to the terms and conditions of the GNU General Public
-> + * License. See the file "COPYING" in the main directory of this archive
-> + * for more details.
-> + */
+Hi Andy,
+
+I am really sorry for delay.
+
+This is on top of the recent change from Kees, right? Could me remind me
+where can I found the tree this series based on? So that I could actually
+apply these changes...
+
+On 07/21, Andy Lutomirski wrote:
+>
+> +long syscall_trace_enter_phase2(struct pt_regs *regs, u32 arch,
+> +				unsigned long phase1_result)
+>  {
+>  	long ret = 0;
+> +	u32 work = ACCESS_ONCE(current_thread_info()->flags) &
+> +		_TIF_WORK_SYSCALL_ENTRY;
 > +
-> +#ifndef _ASM_NIOS2_MMU_H
-> +#define _ASM_NIOS2_MMU_H
-> +
-> +/* Default "unsigned long" context */
-> +typedef unsigned long mm_context_t;
-> +
-> +#endif /* _ASM_NIOS2_MMU_H */
+> +	BUG_ON(regs != task_pt_regs(current));
+>  
+>  	user_exit();
+>  
+> @@ -1458,17 +1562,20 @@ long syscall_trace_enter(struct pt_regs *regs)
+>  	 * do_debug() and we need to set it again to restore the user
+>  	 * state.  If we entered on the slow path, TF was already set.
+>  	 */
+> -	if (test_thread_flag(TIF_SINGLESTEP))
+> +	if (work & _TIF_SINGLESTEP)
+>  		regs->flags |= X86_EFLAGS_TF;
 
-Any chance you can use mmu.h from asm-generic instead?
-It uses a struct with a single "unsigned long end_brk" member (unless
-CONFIG_BINFMT_ELF_FDPIC is defined).
+This looks suspicious, but perhaps I misread this change.
 
-Gr{oetje,eeting}s,
+If I understand correctly, syscall_trace_enter() can avoid _phase2() above.
+But we should always call user_exit() unconditionally?
 
-                        Geert
+And we should always set X86_EFLAGS_TF if TIF_SINGLESTEP? IIRC, TF can be
+actually cleared on a 32bit kernel if we step over sysenter insn?
 
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+Oleg.
 
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
