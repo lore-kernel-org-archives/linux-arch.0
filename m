@@ -1,87 +1,79 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wg0-f44.google.com ([74.125.82.44]:34508 "EHLO
-	mail-wg0-f44.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750825AbaG1TWY (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 28 Jul 2014 15:22:24 -0400
-Date: Mon, 28 Jul 2014 21:22:13 +0200
-From: Frederic Weisbecker <fweisbec@gmail.com>
-Subject: Re: TIF_NOHZ can escape nonhz mask? (Was: [PATCH v3 6/8] x86: Split
- syscall_trace_enter into two phases)
-Message-ID: <20140728192209.GA26017@localhost.localdomain>
-References: <cover.1405992946.git.luto@amacapital.net>
- <3f649f5658a163645e3ce15156176c325283762e.1405992946.git.luto@amacapital.net>
- <20140728173723.GA20993@redhat.com>
- <20140728185803.GA24663@redhat.com>
+Received: from mail-la0-f49.google.com ([209.85.215.49]:39696 "EHLO
+	mail-la0-f49.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750933AbaG1UXf (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 28 Jul 2014 16:23:35 -0400
+Received: by mail-la0-f49.google.com with SMTP id hz20so5912496lab.36
+        for <linux-arch@vger.kernel.org>; Mon, 28 Jul 2014 13:23:33 -0700 (PDT)
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20140728185803.GA24663@redhat.com>
+In-Reply-To: <20140728173723.GA20993@redhat.com>
+References: <cover.1405992946.git.luto@amacapital.net> <3f649f5658a163645e3ce15156176c325283762e.1405992946.git.luto@amacapital.net>
+ <20140728173723.GA20993@redhat.com>
+From: Andy Lutomirski <luto@amacapital.net>
+Date: Mon, 28 Jul 2014 13:23:13 -0700
+Message-ID: <CALCETrWUFo_zXcAZja-vdL4_MgJDd=1ed5Vt54eyUuim930xAw@mail.gmail.com>
+Subject: Re: [PATCH v3 6/8] x86: Split syscall_trace_enter into two phases
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Oleg Nesterov <oleg@redhat.com>
-Cc: Andy Lutomirski <luto@amacapital.net>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, linux-kernel@vger.kernel.org, Kees Cook <keescook@chromium.org>, Will Drewry <wad@chromium.org>, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-mips@linux-mips.org, linux-arch@vger.kernel.org, linux-security-module@vger.kernel.org, Alexei Starovoitov <ast@plumgrid.com>, hpa@zytor.com
-Message-ID: <20140728192213.LaHnFmP3UDVfATNgxaCUh10luEwt61ocK2MTw6LwiF4@z>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Kees Cook <keescook@chromium.org>, Will Drewry <wad@chromium.org>, X86 ML <x86@kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Linux MIPS Mailing List <linux-mips@linux-mips.org>, linux-arch <linux-arch@vger.kernel.org>, LSM List <linux-security-module@vger.kernel.org>, Alexei Starovoitov <ast@plumgrid.com>, "H. Peter Anvin" <hpa@zytor.com>
+Message-ID: <20140728202313.ZNDGMgyUD7_8KWUg3LYQfGy926YyuwZHpLmnd0yUm4E@z>
 
-On Mon, Jul 28, 2014 at 08:58:03PM +0200, Oleg Nesterov wrote:
-> Off-topic, but...
-> 
-> On 07/28, Oleg Nesterov wrote:
-> >
-> > But we should always call user_exit() unconditionally?
-> 
-> Frederic, don't we need the patch below? In fact clear_() can be moved
-> under "if ()" too. and probably copy_process() should clear this flag...
-> 
-> Or. __context_tracking_task_switch() can simply do
-> 
-> 	 if (context_tracking_cpu_is_enabled())
-> 	 	set_tsk_thread_flag(next, TIF_NOHZ);
-> 	 else
-> 	 	clear_tsk_thread_flag(next, TIF_NOHZ);
-> 
-> and then we can forget about copy_process(). Or I am totally confused?
-> 
-> 
-> I am also wondering if we can extend user_return_notifier to handle
-> enter/exit and kill TIF_NOHZ.
-> 
-> Oleg.
-> 
-> --- x/kernel/context_tracking.c
-> +++ x/kernel/context_tracking.c
-> @@ -202,7 +202,8 @@ void __context_tracking_task_switch(stru
->  				    struct task_struct *next)
->  {
->  	clear_tsk_thread_flag(prev, TIF_NOHZ);
-> -	set_tsk_thread_flag(next, TIF_NOHZ);
-> +	if (context_tracking_cpu_is_enabled())
-> +		set_tsk_thread_flag(next, TIF_NOHZ);
->  }
->  
->  #ifdef CONFIG_CONTEXT_TRACKING_FORCE
+On Mon, Jul 28, 2014 at 10:37 AM, Oleg Nesterov <oleg@redhat.com> wrote:
+> Hi Andy,
+>
+> I am really sorry for delay.
+>
+> This is on top of the recent change from Kees, right? Could me remind me
+> where can I found the tree this series based on? So that I could actually
+> apply these changes...
 
-Unfortunately, as long as tasks can migrate in and out a context tracked CPU, we
-need to track all CPUs.
+https://git.kernel.org/cgit/linux/kernel/git/kees/linux.git/log/?h=seccomp/fastpath
 
-This is because there is always a small shift between hard and soft kernelspace
-boundaries.
+The first four patches are already applied there.
 
-Hard boundaries are the real strict boundaries: between "int", "iret" or faulting
-instructions for example.
+>
+> On 07/21, Andy Lutomirski wrote:
+>>
+>> +long syscall_trace_enter_phase2(struct pt_regs *regs, u32 arch,
+>> +                             unsigned long phase1_result)
+>>  {
+>>       long ret = 0;
+>> +     u32 work = ACCESS_ONCE(current_thread_info()->flags) &
+>> +             _TIF_WORK_SYSCALL_ENTRY;
+>> +
+>> +     BUG_ON(regs != task_pt_regs(current));
+>>
+>>       user_exit();
+>>
+>> @@ -1458,17 +1562,20 @@ long syscall_trace_enter(struct pt_regs *regs)
+>>        * do_debug() and we need to set it again to restore the user
+>>        * state.  If we entered on the slow path, TF was already set.
+>>        */
+>> -     if (test_thread_flag(TIF_SINGLESTEP))
+>> +     if (work & _TIF_SINGLESTEP)
+>>               regs->flags |= X86_EFLAGS_TF;
+>
+> This looks suspicious, but perhaps I misread this change.
+>
+> If I understand correctly, syscall_trace_enter() can avoid _phase2() above.
+> But we should always call user_exit() unconditionally?
 
-Soft boundaries are the place where we put our context tracking probes. They
-are just function calls and a distance between them and hard boundaries is inevitable.
+Damnit.  I read that every function called by user_exit, and none of
+them give any indication of why they're needed for traced syscalls but
+not for untraced syscalls.  On a second look, it seems that TIF_NOHZ
+controls it.  I'll update the code to call user_exit iff TIF_NOHZ is
+set.  If that's still wrong, then I don't see how the current code is
+correct either.
 
-So here is a scenario where this is a problem: a task runs on CPU 0, passes the context
-tracking call before returning from a syscall to userspace, and gets an interrupt. The
-interrupt preempts the task and it moves to CPU 1. So it returns from preempt_schedule_irq()
-after which it is going to resume to userspace.
+>
+> And we should always set X86_EFLAGS_TF if TIF_SINGLESTEP? IIRC, TF can be
+> actually cleared on a 32bit kernel if we step over sysenter insn?
 
-In this scenario, if context tracking is only enabled on CPU 1, we have no way to know that
-the task is resuming to userspace, because we passed through the context tracking probe
-already and it was ignored on CPU 0.
+I don't follow.  If TIF_SINGLESTEP, then phase1 will return a nonzero
+value, and phase2 will set TF.
 
-This might be hackbable by ensuring that irqs are disabled between context tracking
-calls and actual returns to userspace. It's a nightmare to audit on all archs though,
-and it makes the context tracking callers less flexible also that only solve the issue
-for irqs. Exception have a similar problem and we can't mask them.
+I admit I don't really understand all the TF machinations.
+
+--Andy
