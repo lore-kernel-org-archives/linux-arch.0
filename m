@@ -1,68 +1,40 @@
-From: Kees Cook <keescook@chromium.org>
-Subject: Re: [PATCH v3 0/8] Two-phase seccomp and x86 tracing changes
-Date: Mon, 28 Jul 2014 16:54:38 -0700
-Message-ID: <CAGXu5jJA=gN+5gQs5wNUdsnqiK3kRVvYnpBB6DkdhmVCsenugQ@mail.gmail.com>
-References: <cover.1405992946.git.luto@amacapital.net>
-	<CAGXu5jJ93-vto9voMENc4jX5itcd_Rm5AZjeChF57fpMYnWocA@mail.gmail.com>
-	<CALCETrVwqDeRbFOw=k_OhQZ4V6Pn5v3t8ODw75UuE7HKPFz=Sw@mail.gmail.com>
-	<53D68F91.4000106@zytor.com>
-	<CAGXu5jKJOrtjY9JsCBUvUbj_y4Hv+AeMEmGwWZZ18FmiZmAbbQ@mail.gmail.com>
-	<53D6DE1E.1060501@zytor.com>
-	<CAGXu5jLjmHczeQiJN1Q+aGQKn_B+08FEXHWxjku6QedkGDhDTg@mail.gmail.com>
-	<53D6E07F.7090806@zytor.com>
+From: Michael Ellerman <mpe@ellerman.id.au>
+Subject: Re: [PATCH v4] arm64, ia64, ppc, s390, sh, tile, um, x86, mm:
+ Remove default gate area
+Date: Tue, 29 Jul 2014 12:19:16 +1000
+Message-ID: <1406600356.11977.4.camel@concordia>
+References: <6435254cc74d6e9172931f27be3854d522ad299b.1406232860.git.luto@amacapital.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-oi0-f47.google.com ([209.85.218.47]:45773 "EHLO
-	mail-oi0-f47.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750917AbaG1Xyj (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 28 Jul 2014 19:54:39 -0400
-Received: by mail-oi0-f47.google.com with SMTP id x69so6763235oia.6
-        for <linux-arch@vger.kernel.org>; Mon, 28 Jul 2014 16:54:38 -0700 (PDT)
-In-Reply-To: <53D6E07F.7090806@zytor.com>
+Received: from ozlabs.org ([103.22.144.67]:35757 "EHLO ozlabs.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751953AbaG2CTU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 28 Jul 2014 22:19:20 -0400
+In-Reply-To: <6435254cc74d6e9172931f27be3854d522ad299b.1406232860.git.luto@amacapital.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "H. Peter Anvin" <hpa@zytor.com>
-Cc: linux-arch <linux-arch@vger.kernel.org>, Linux MIPS Mailing List <linux-mips@linux-mips.org>, Will Drewry <wad@chromium.org>, "x86@kernel.org" <x86@kernel.org>, LKML <linux-kernel@vger.kernel.org>, Andy Lutomirski <luto@amacapital.net>, linux-security-module <linux-security-module@vger.kernel.org>, Oleg Nesterov <oleg@redhat.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Alexei Starovoitov <ast@plumgrid.com>
+To: Andy Lutomirski <luto@amacapital.net>
+Cc: Andrew Morton <akpm@linux-foundation.org>, linux-ia64@vger.kernel.org, linux-sh@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux-mm@kvack.org, Paul Mackerras <paulus@samba.org>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, Richard Weinberger <richard@nod.at>, x86@kernel.org, Ingo Molnar <mingo@redhat.com>, Fenghua Yu <fenghua.yu@intel.com>, user-mode-linux-devel@lists.sourceforge.net, Will Deacon <will.deacon@arm.com>, Jeff Dike <jdike@addtoit.com>, Chris Metcalf <cmetcalf@tilera.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arm-kernel@lists.infradead.org, Tony Luck <tony.luck@intel.com>, Nathan Lynch <Nathan_Lynch@mentor.com>, linux-kernel@vger.kernel.org, Martin Schwidefsky <schwidefsky@de.ibm.com>, linux390@de.ibm.com, linuxppc-dev@lists.ozlabs.org
 
-On Mon, Jul 28, 2014 at 4:45 PM, H. Peter Anvin <hpa@zytor.com> wrote:
-> On 07/28/2014 04:42 PM, Kees Cook wrote:
->> On Mon, Jul 28, 2014 at 4:34 PM, H. Peter Anvin <hpa@zytor.com> wrote:
->>> On 07/28/2014 04:29 PM, Kees Cook wrote:
->>>> On Mon, Jul 28, 2014 at 10:59 AM, H. Peter Anvin <hpa@zytor.com> wrote:
->>>>> On 07/23/2014 12:20 PM, Andy Lutomirski wrote:
->>>>>>
->>>>>> It looks like patches 1-4 have landed here:
->>>>>>
->>>>>> https://git.kernel.org/cgit/linux/kernel/git/kees/linux.git/log/?h=seccomp/fastpath
->>>>>>
->>>>>> hpa, what's the route forward for the x86 part?
->>>>>>
->>>>>
->>>>> I guess I should discuss this with Kees to figure out what makes most
->>>>> sense.  In the meantime, could you address Oleg's question?
->>>>
->>>> Since the x86 parts depend on the seccomp parts, I'm happy if you
->>>> carry them instead of having them land from my tree. Otherwise I'm
->>>> open to how to coordinate timing.
->>>>
->>>
->>> You mean for me to carry the seccomp part as well?
->>
->> If that makes sense as far as the coordination, that's fine with me.
->> Otherwise I'm not sure how x86 can build without having the seccomp
->> changes in your tree.
->>
->
-> Exactly.  What I guess I'll do is set up a separate tip branch for this,
-> pull your branch into it, and then put the x86 patches on top.  Does
-> that make sense for everyone?
+On Thu, 2014-07-24 at 13:56 -0700, Andy Lutomirski wrote:
+> The core mm code will provide a default gate area based on
+> FIXADDR_USER_START and FIXADDR_USER_END if
+> !defined(__HAVE_ARCH_GATE_AREA) && defined(AT_SYSINFO_EHDR).
+> 
+> This default is only useful for ia64.  arm64, ppc, s390, sh, tile,
+> 64-bit UML, and x86_32 have their own code just to disable it.  arm,
+> 32-bit UML, and x86_64 have gate areas, but they have their own
+> implementations.
+> 
+> This gets rid of the default and moves the code into ia64.
+> 
+> This should save some code on architectures without a gate area: it's
+> now possible to inline the gate_area functions in the default case.
 
-Sounds good to me. Once Oleg and Andy are happy, we'll be set.
+Looks good to me. Booted and everything seems happy, I still have a vdso etc.
 
--Kees
+Tested-by: Michael Ellerman <mpe@ellerman.id.au> (for powerpc)
 
-
--- 
-Kees Cook
-Chrome OS Security
+cheers
