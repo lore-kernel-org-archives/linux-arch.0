@@ -1,81 +1,102 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-lb0-f182.google.com ([209.85.217.182]:48103 "EHLO
-	mail-lb0-f182.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751575AbaG2RCI (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 29 Jul 2014 13:02:08 -0400
-Received: by mail-lb0-f182.google.com with SMTP id z11so7230996lbi.13
-        for <linux-arch@vger.kernel.org>; Tue, 29 Jul 2014 10:02:07 -0700 (PDT)
+Received: from mx1.redhat.com ([209.132.183.28]:54513 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751066AbaG2R5S (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 29 Jul 2014 13:57:18 -0400
+Date: Tue, 29 Jul 2014 19:54:14 +0200
+From: Oleg Nesterov <oleg@redhat.com>
+Subject: Re: TIF_NOHZ can escape nonhz mask? (Was: [PATCH v3 6/8] x86:
+	Split syscall_trace_enter into two phases)
+Message-ID: <20140729175414.GA3289@redhat.com>
+References: <cover.1405992946.git.luto@amacapital.net> <3f649f5658a163645e3ce15156176c325283762e.1405992946.git.luto@amacapital.net> <20140728173723.GA20993@redhat.com> <20140728185803.GA24663@redhat.com> <20140728192209.GA26017@localhost.localdomain>
 MIME-Version: 1.0
-In-Reply-To: <20140729165416.GA967@redhat.com>
-References: <cover.1405992946.git.luto@amacapital.net> <3f649f5658a163645e3ce15156176c325283762e.1405992946.git.luto@amacapital.net>
- <20140728173723.GA20993@redhat.com> <CALCETrWUFo_zXcAZja-vdL4_MgJDd=1ed5Vt54eyUuim930xAw@mail.gmail.com>
- <20140729165416.GA967@redhat.com>
-From: Andy Lutomirski <luto@amacapital.net>
-Date: Tue, 29 Jul 2014 10:01:47 -0700
-Message-ID: <CALCETrWBU-=zqLTCP7B1feZ9J-e4u-Boic+e1EEn1rL-ijeEKg@mail.gmail.com>
-Subject: Re: [PATCH v3 6/8] x86: Split syscall_trace_enter into two phases
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20140728192209.GA26017@localhost.localdomain>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Oleg Nesterov <oleg@redhat.com>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Kees Cook <keescook@chromium.org>, Will Drewry <wad@chromium.org>, X86 ML <x86@kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Linux MIPS Mailing List <linux-mips@linux-mips.org>, linux-arch <linux-arch@vger.kernel.org>, LSM List <linux-security-module@vger.kernel.org>, Alexei Starovoitov <ast@plumgrid.com>, "H. Peter Anvin" <hpa@zytor.com>
-Message-ID: <20140729170147.73M_Hf8qe8l7HZAKoJQpezpIvpzt3YX1TnLa0LgillA@z>
+To: Frederic Weisbecker <fweisbec@gmail.com>
+Cc: Andy Lutomirski <luto@amacapital.net>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, linux-kernel@vger.kernel.org, Kees Cook <keescook@chromium.org>, Will Drewry <wad@chromium.org>, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-mips@linux-mips.org, linux-arch@vger.kernel.org, linux-security-module@vger.kernel.org, Alexei Starovoitov <ast@plumgrid.com>, hpa@zytor.com
+Message-ID: <20140729175414.tB82dlTB8xfxO-ja4GMlRPPCMdftopnzoa6hb6cADVw@z>
 
-On Tue, Jul 29, 2014 at 9:54 AM, Oleg Nesterov <oleg@redhat.com> wrote:
-> On 07/28, Andy Lutomirski wrote:
->>
->> On Mon, Jul 28, 2014 at 10:37 AM, Oleg Nesterov <oleg@redhat.com> wrote:
->> > Hi Andy,
->> >
->> > I am really sorry for delay.
->> >
->> > This is on top of the recent change from Kees, right? Could me remind me
->> > where can I found the tree this series based on? So that I could actually
->> > apply these changes...
->>
->> https://git.kernel.org/cgit/linux/kernel/git/kees/linux.git/log/?h=seccomp/fastpath
->>
->> The first four patches are already applied there.
+On 07/28, Frederic Weisbecker wrote:
 >
-> Thanks!
+> On Mon, Jul 28, 2014 at 08:58:03PM +0200, Oleg Nesterov wrote:
+> >
+> > Frederic, don't we need the patch below? In fact clear_() can be moved
+> > under "if ()" too. and probably copy_process() should clear this flag...
+> >
+> > Or. __context_tracking_task_switch() can simply do
+> >
+> > 	 if (context_tracking_cpu_is_enabled())
+> > 	 	set_tsk_thread_flag(next, TIF_NOHZ);
+> > 	 else
+> > 	 	clear_tsk_thread_flag(next, TIF_NOHZ);
+> >
+> > and then we can forget about copy_process(). Or I am totally confused?
+> >
+> >
+> > I am also wondering if we can extend user_return_notifier to handle
+> > enter/exit and kill TIF_NOHZ.
+> >
+> > Oleg.
+> >
+> > --- x/kernel/context_tracking.c
+> > +++ x/kernel/context_tracking.c
+> > @@ -202,7 +202,8 @@ void __context_tracking_task_switch(stru
+> >  				    struct task_struct *next)
+> >  {
+> >  	clear_tsk_thread_flag(prev, TIF_NOHZ);
+> > -	set_tsk_thread_flag(next, TIF_NOHZ);
+> > +	if (context_tracking_cpu_is_enabled())
+> > +		set_tsk_thread_flag(next, TIF_NOHZ);
+> >  }
+> >
+> >  #ifdef CONFIG_CONTEXT_TRACKING_FORCE
 >
->> > If I understand correctly, syscall_trace_enter() can avoid _phase2() above.
->> > But we should always call user_exit() unconditionally?
->>
->> Damnit.  I read that every function called by user_exit, and none of
->> them give any indication of why they're needed for traced syscalls but
->> not for untraced syscalls.  On a second look, it seems that TIF_NOHZ
->> controls it.
->
-> Yes, just to trigger the slow path, I guess.
->
->> I'll update the code to call user_exit iff TIF_NOHZ is
->> set.
->
-> Or perhaps it would be better to not add another user of this (strange) flag
-> and just call user_exit() unconditionally(). But, yes, you need to use
-> from "work = flags & (_TIF_WORK_SYSCALL_ENTRY & ~TIF_NOHZ)" then.\
+> Unfortunately, as long as tasks can migrate in and out a context tracked CPU, we
+> need to track all CPUs.
 
-user_exit looks slow enough to me that a branch to try to avoid it may
-be worthwhile.  I bet that explicitly checking the flag is
-actually both faster and clearer.  That's what I did for v4.
+Thanks Frederic for your explanations. Yes, I was confused. But cough, now I am
+even more confused.
 
---Andy
+I didn't even try to read this code, perhaps I'll try later, but let me ask
+another question while you are here ;)
 
+The comment above __context_tracking_task_switch() says:
+
+	 * The context tracking uses the syscall slow path to implement its user-kernel
+	 * boundaries probes on syscalls. This way it doesn't impact the syscall fast
+	 * path on CPUs that don't do context tracking.
+	        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+How? Every running task should have TIF_NOHZ set if context_tracking_is_enabled() ?
+
+	 * But we need to clear the flag on the previous task because it may later
+	 * migrate to some CPU that doesn't do the context tracking. As such the TIF
+	 * flag may not be desired there.
+
+For what? How this can help? This flag will be set again when we switch to this
+task again?
+
+Looks like, we can kill context_tracking_task_switch() and simply change the
+"__init" callers of context_tracking_cpu_set() to do set_thread_flag(TIF_NOHZ) ?
+Then this flag will be propagated by copy_process().
+
+Or I am totally confused? (quite possible).
+
+> So here is a scenario where this is a problem: a task runs on CPU 0, passes the context
+> tracking call before returning from a syscall to userspace, and gets an interrupt. The
+> interrupt preempts the task and it moves to CPU 1. So it returns from preempt_schedule_irq()
+> after which it is going to resume to userspace.
 >
->> > And we should always set X86_EFLAGS_TF if TIF_SINGLESTEP? IIRC, TF can be
->> > actually cleared on a 32bit kernel if we step over sysenter insn?
->>
->> I don't follow.  If TIF_SINGLESTEP, then phase1 will return a nonzero
->> value,
->
-> Ah yes, thanks, I missed this.
->
-> Oleg.
->
+> In this scenario, if context tracking is only enabled on CPU 1, we have no way to know that
+> the task is resuming to userspace, because we passed through the context tracking probe
+> already and it was ignored on CPU 0.
 
+Thanks. But I still can't understand... So if we only track CPU 1, then in this
+case context_tracking.state == IN_USER on CPU 0, but it can be IN_USER or IN_KERNEL
+on CPU 1.
 
+Oleg.
 
--- 
-Andy Lutomirski
-AMA Capital Management, LLC
