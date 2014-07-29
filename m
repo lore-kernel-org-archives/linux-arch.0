@@ -1,74 +1,33 @@
-From: Andy Lutomirski <luto@amacapital.net>
-Subject: Re: [PATCH v3 6/8] x86: Split syscall_trace_enter into two phases
-Date: Tue, 29 Jul 2014 11:22:31 -0700
-Message-ID: <CALCETrVWOOs3HCnQNaqmnn480oQYn3scrWUfR4JJX9+zTxUDRw@mail.gmail.com>
-References: <cover.1405992946.git.luto@amacapital.net> <3f649f5658a163645e3ce15156176c325283762e.1405992946.git.luto@amacapital.net>
- <20140728173723.GA20993@redhat.com> <CALCETrWUFo_zXcAZja-vdL4_MgJDd=1ed5Vt54eyUuim930xAw@mail.gmail.com>
- <20140729165416.GA967@redhat.com> <CALCETrWBU-=zqLTCP7B1feZ9J-e4u-Boic+e1EEn1rL-ijeEKg@mail.gmail.com>
- <20140729173136.GA2808@redhat.com> <CALCETrVP-P+EJ6YJ=CZL_gyA1r8O9eogUNTik7_31_SA+Pj3pg@mail.gmail.com>
- <20140729181615.GA4950@redhat.com>
+From: "Margaret Crawford" <afliana.latumakulita@bpjs-kesehatan.go.id>
+Subject: Humanitarian help
+Date: Tue, 29 Jul 2014 18:00:00 +0100
+Message-ID: <20140729170040.45ACB2FF2EA__16139.8870674477$1406658401$gmane$org@mtasvr1.telkomsigma.com>
+Reply-To: mlawson@citynew.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-security-module-owner@vger.kernel.org>
-In-Reply-To: <20140729181615.GA4950@redhat.com>
-Sender: linux-security-module-owner@vger.kernel.org
-To: Oleg Nesterov <oleg@redhat.com>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Kees Cook <keescook@chromium.org>, Will Drewry <wad@chromium.org>, X86 ML <x86@kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Linux MIPS Mailing List <linux-mips@linux-mips.org>, linux-arch <linux-arch@vger.kernel.org>, LSM List <linux-security-module@vger.kernel.org>, Alexei Starovoitov <ast@plumgrid.com>, "H. Peter Anvin" <hpa@zytor.com>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7BIT
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from [118.97.213.212] ([118.97.213.212]:60118 "EHLO
+	MTARelay-AS-001.localdomain" rhost-flags-FAIL-FAIL-OK-FAIL)
+	by vger.kernel.org with ESMTP id S1752335AbaG2S0T convert rfc822-to-8bit
+	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 29 Jul 2014 14:26:19 -0400
+Content-Description: Mail message body
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Recipients <afliana.latumakulita@bpjs-kesehatan.go.id>
 
-On Tue, Jul 29, 2014 at 11:16 AM, Oleg Nesterov <oleg@redhat.com> wrote:
-> On 07/29, Andy Lutomirski wrote:
->>
->> On Tue, Jul 29, 2014 at 10:31 AM, Oleg Nesterov <oleg@redhat.com> wrote:
->> >
->> > I don't think so (unless I am confused again), note that user_exit() uses
->> > jump label. But this doesn't matter. I meant that we should avoid TIF_NOHZ
->> > if possible because I think it should die somehow (currently I do not know
->> > how ;). And because it is ugly to check the same condition twice:
->> >
->> >         if (work & TIF_NOHZ) {
->> >                 // user_exit()
->> >                 if (context_tracking_is_enabled())
->> >                         context_tracking_user_exit();
->> >         }
->> >
->> > TIF_NOHZ is set if and only if context_tracking_is_enabled() is true.
->> > So I think that
->> >
->> >         work = current_thread_info()->flags & (_TIF_WORK_SYSCALL_ENTRY & ~TIF_NOHZ);
->> >
->> >         user_exit();
->> >
->> > looks a bit better. But I won't argue.
->>
->> I don't get it.
->
-> Don't worry, you are not alone.
->
->> context_tracking_is_enabled is global, and TIF_NOHZ
->> is per-task.  Isn't this stuff determined per-task or per-cpu or
->> something?
->>
->> IOW, if one CPU is running something that's very heavily
->> userspace-oriented and another CPU is doing something syscall- or
->> sleep-heavy, then shouldn't only the first CPU end up paying the price
->> of context tracking?
->
-> Please see another email I sent to Frederic.
->
+Hello,
 
-I'll add at least this argument in favor of my approach: if context
-tracking works at all, then it had better not demand that syscall
-entry call user_exit if TIF_NOHZ is *not* set.  So adding the
-condition ought to be safe, barring dumb bugs in my code.
+I am Mrs. Margaret Crawford, i write you this email to seek for your Humanitarian help, i have decided to donate part of my inheritance to you for humanitarian work and your personal use. As a result of my heart status. I need you to contact my Attorney. Mark Lawson. with this email for a better information only if you are interested. Email: mlawson@citynew.com
 
---Andy
+Thank you
+Mrs. Margaret Crawford
+____________________________________________________________________________________
 
-> Oleg.
->
+"Zero Problem 2014, Cakupan Semesta 2019"
 
+Mari kita bergotong royong sukseskan Sistem Jaminan Sosial Kesehatan, demi tercapainya Jaminan Kesehatan untuk Semesta Bagi Seluruh Rakyat Indonesia Tahun 
+2019
 
-
--- 
-Andy Lutomirski
-AMA Capital Management, LLC
+HALLO BPJS KESEHATAN 500-400
