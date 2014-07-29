@@ -1,73 +1,45 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:33269 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:58025 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751234AbaG2TX2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 29 Jul 2014 15:23:28 -0400
-Date: Tue, 29 Jul 2014 21:20:56 +0200
+	id S1751693AbaG2T2O (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 29 Jul 2014 15:28:14 -0400
+Date: Tue, 29 Jul 2014 21:25:55 +0200
 From: Oleg Nesterov <oleg@redhat.com>
-Subject: Re: [PATCH v4 0/5] x86: two-phase syscall tracing and seccomp
-	fastpath
-Message-ID: <20140729192056.GA6308@redhat.com>
-References: <cover.1406604806.git.luto@amacapital.net>
+Subject: Re: [PATCH v4 3/5] x86: Split syscall_trace_enter into two phases
+Message-ID: <20140729192555.GB6308@redhat.com>
+References: <cover.1406604806.git.luto@amacapital.net> <714cf438762d342673b3b131d5c90bc69ca921a9.1406604806.git.luto@amacapital.net>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <cover.1406604806.git.luto@amacapital.net>
+In-Reply-To: <714cf438762d342673b3b131d5c90bc69ca921a9.1406604806.git.luto@amacapital.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andy Lutomirski <luto@amacapital.net>
 Cc: linux-kernel@vger.kernel.org, Kees Cook <keescook@chromium.org>, Will Drewry <wad@chromium.org>, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-mips@linux-mips.org, linux-arch@vger.kernel.org, linux-security-module@vger.kernel.org, Alexei Starovoitov <ast@plumgrid.com>, hpa@zytor.com, Frederic Weisbecker <fweisbec@gmail.com>
-Message-ID: <20140729192056.6DbawEyKMhVSqP3QEtXzdz-WLKX1aHmG8CG71T5rbkE@z>
-
-Andy, to avoid the confusion: I am not trying to review this changes.
-As you probably know my understanding of asm code in entry.S is very
-limited.
-
-Just a couple of questions to ensure I understand this correctly.
+Message-ID: <20140729192555.eiVjt0vSjFEZ-iQAtjLSIutYGJ8gasTOpTjO4V_ioYY@z>
 
 On 07/28, Andy Lutomirski wrote:
 >
-> This is both a cleanup and a speedup.  It reduces overhead due to
-> installing a trivial seccomp filter by 87%.  The speedup comes from
-> avoiding the full syscall tracing mechanism for filters that don't
-> return SECCOMP_RET_TRACE.
+> +long syscall_trace_enter_phase2(struct pt_regs *regs, u32 arch,
+> +				unsigned long phase1_result)
+> +{
+> +	long ret = 0;
+> +	u32 work = ACCESS_ONCE(current_thread_info()->flags) &
+> +		_TIF_WORK_SYSCALL_ENTRY;
+> +
+> +	BUG_ON(regs != task_pt_regs(current));
+>  
+>  	/*
+>  	 * If we stepped into a sysenter/syscall insn, it trapped in
+> @@ -1463,17 +1569,20 @@ long syscall_trace_enter(struct pt_regs *regs)
+>  	 * do_debug() and we need to set it again to restore the user
+>  	 * state.  If we entered on the slow path, TF was already set.
+>  	 */
+> -	if (test_thread_flag(TIF_SINGLESTEP))
+> +	if (work & _TIF_SINGLESTEP)
+>  		regs->flags |= X86_EFLAGS_TF;
 
-And only after I look at 5/5 I _seem_ to actually understand where
-this speedup comes from.
-
-So. Currently tracesys: path always lead to "iret" after syscall, with
-this change we can avoid it if phase_1() returns zero, correct?
-
-And, this also removes the special TIF_SYSCALL_AUDIT-only case in entry.S,
-cool.
-
-I am wondering if we can do something similar with do_notify_resume() ?
-
-
-Stupid question. To simplify, lets forget that syscall_trace_enter()
-already returns the value. Can't we simplify the asm code if we do
-not export 2 functions, but make syscall_trace_enter() return
-"bool slow_path_is_needed". So that "tracesys:" could do
-
-	// pseudo code
-
-tracesys:
-	SAVE_REST
-	FIXUP_TOP_OF_STACK
-
-	call syscall_trace_enter
-
-	if (!slow_path_is_needed) {
-		addq REST_SKIP, %rsp
-		jmp system_call_fastpath
-	}
-	
-	...
-
-?
-
-Once again, I am just curious, it is not that I actually suggest to consider
-this option.
+This is minor, I won't argue, but this can be moved into phase1(), afaics.
 
 Oleg.
 
