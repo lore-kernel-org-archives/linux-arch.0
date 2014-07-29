@@ -1,47 +1,90 @@
-From: Oleg Nesterov <oleg@redhat.com>
-Subject: Re: [PATCH v4 3/5] x86: Split syscall_trace_enter into two phases
-Date: Tue, 29 Jul 2014 21:25:55 +0200
-Message-ID: <20140729192555.GB6308@redhat.com>
-References: <cover.1406604806.git.luto@amacapital.net> <714cf438762d342673b3b131d5c90bc69ca921a9.1406604806.git.luto@amacapital.net>
+From: Bruce Fields <bfields@fieldses.org>
+Subject: Re: [PATCH 1/3] SUNRPC: Reduce contention in svc_xprt_enqueue()
+Date: Tue, 29 Jul 2014 15:31:08 -0400
+Message-ID: <20140729193108.GC21091@fieldses.org>
+References: <1406260773-16231-1-git-send-email-trond.myklebust@primarydata.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-mips-bounce@linux-mips.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from fieldses.org ([174.143.236.118]:45104 "EHLO fieldses.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751680AbaG2Tbi (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 29 Jul 2014 15:31:38 -0400
 Content-Disposition: inline
-In-Reply-To: <714cf438762d342673b3b131d5c90bc69ca921a9.1406604806.git.luto@amacapital.net>
-Sender: linux-mips-bounce@linux-mips.org
-Errors-to: linux-mips-bounce@linux-mips.org
-List-help: <mailto:ecartis@linux-mips.org?Subject=help>
-List-unsubscribe: <mailto:ecartis@linux-mips.org?subject=unsubscribe%20linux-mips>
-List-software: Ecartis version 1.0.0
-List-subscribe: <mailto:ecartis@linux-mips.org?subject=subscribe%20linux-mips>
-List-owner: <mailto:ralf@linux-mips.org>
-List-post: <mailto:linux-mips@linux-mips.org>
-List-archive: <http://www.linux-mips.org/archives/linux-mips/>
-To: Andy Lutomirski <luto@amacapital.net>
-Cc: linux-kernel@vger.kernel.org, Kees Cook <keescook@chromium.org>, Will Drewry <wad@chromium.org>, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-mips@linux-mips.org, linux-arch@vger.kernel.org, linux-security-module@vger.kernel.org, Alexei Starovoitov <ast@plumgrid.com>, hpa@zytor.com, Frederic Weisbecker <fweisbec@gmail.com>
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <1406260773-16231-1-git-send-email-trond.myklebust@primarydata.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Trond Myklebust <trond.myklebust@primarydata.com>
+Cc: linux-nfs@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@kernel.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On 07/28, Andy Lutomirski wrote:
->
-> +long syscall_trace_enter_phase2(struct pt_regs *regs, u32 arch,
-> +				unsigned long phase1_result)
-> +{
-> +	long ret = 0;
-> +	u32 work = ACCESS_ONCE(current_thread_info()->flags) &
-> +		_TIF_WORK_SYSCALL_ENTRY;
-> +
-> +	BUG_ON(regs != task_pt_regs(current));
->  
->  	/*
->  	 * If we stepped into a sysenter/syscall insn, it trapped in
-> @@ -1463,17 +1569,20 @@ long syscall_trace_enter(struct pt_regs *regs)
->  	 * do_debug() and we need to set it again to restore the user
->  	 * state.  If we entered on the slow path, TF was already set.
+All three patches look good to me, thanks.
+
+From private email, this:
+
+On Thu, Jul 24, 2014 at 11:59:31PM -0400, Trond Myklebust wrote:
+> @@ -222,11 +223,12 @@ static void svc_xprt_received(struct svc_xprt *xprt)
+>  	if (!test_bit(XPT_BUSY, &xprt->xpt_flags))
+>  		return;
+>  	/* As soon as we clear busy, the xprt could be closed and
+> -	 * 'put', so we need a reference to call svc_xprt_enqueue with:
+> +	 * 'put', so we need a reference to call svc_xprt_do_enqueue with:
 >  	 */
-> -	if (test_thread_flag(TIF_SINGLESTEP))
-> +	if (work & _TIF_SINGLESTEP)
->  		regs->flags |= X86_EFLAGS_TF;
+>  	svc_xprt_get(xprt);
+> +	smp_mb__before_clear_bit();
 
-This is minor, I won't argue, but this can be moved into phase1(), afaics.
+triggered a warning about smp_mb__before_clear_bit noticed by the kbuild
+robot.  Looks like that was due to
+febdbfe8a91ce0d11939d4940b592eb0dba8d663 "arch: Prepare for
+smp_mb__{before,after}_atomic()".
 
-Oleg.
+You questioned whether deprecating smp_mb__{before,after}_clear_bit was
+an unnecessary burden on people maintaining stable kernels or doing
+backports more generally.  Cc'ing some addresses from that commit.
+
+Whatever--I'll probably just replace do the clear_bit->before_atomic
+replacement and apply unless there's some objection.
+
+--b.
+
+>  	clear_bit(XPT_BUSY, &xprt->xpt_flags);
+> -	svc_xprt_enqueue(xprt);
+> +	svc_xprt_do_enqueue(xprt);
+>  	svc_xprt_put(xprt);
+>  }
+>  
+> @@ -335,12 +337,7 @@ static bool svc_xprt_has_something_to_do(struct svc_xprt *xprt)
+>  	return false;
+>  }
+>  
+> -/*
+> - * Queue up a transport with data pending. If there are idle nfsd
+> - * processes, wake 'em up.
+> - *
+> - */
+> -void svc_xprt_enqueue(struct svc_xprt *xprt)
+> +static void svc_xprt_do_enqueue(struct svc_xprt *xprt)
+>  {
+>  	struct svc_pool *pool;
+>  	struct svc_rqst	*rqstp;
+> @@ -398,6 +395,18 @@ void svc_xprt_enqueue(struct svc_xprt *xprt)
+>  out_unlock:
+>  	spin_unlock_bh(&pool->sp_lock);
+>  }
+> +
+> +/*
+> + * Queue up a transport with data pending. If there are idle nfsd
+> + * processes, wake 'em up.
+> + *
+> + */
+> +void svc_xprt_enqueue(struct svc_xprt *xprt)
+> +{
+> +	if (test_bit(XPT_BUSY, &xprt->xpt_flags))
+> +		return;
+> +	svc_xprt_do_enqueue(xprt);
+> +}
+>  EXPORT_SYMBOL_GPL(svc_xprt_enqueue);
+>  
+>  /*
+> -- 
+> 1.9.3
+> 
