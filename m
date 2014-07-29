@@ -1,57 +1,21 @@
-From: Andy Lutomirski <luto@amacapital.net>
-Subject: [PATCH v4 2/5] x86,entry: Only call user_exit if TIF_NOHZ
-Date: Mon, 28 Jul 2014 20:38:29 -0700
-Message-ID: <7123b2489cc5d1d5abb7bcf1364ca729cab3e6ca.1406604806.git.luto@amacapital.net>
-References: <cover.1406604806.git.luto@amacapital.net>
+From: "Noemi Alvarez" <nimvarez@gmail.com>
+Subject: Hello
+Date: Tue, 29 Jul 2014 10:23:20 +0200
+Message-ID: <adf9c84deea711c6326c744d8c46dc8a.squirrel__17373.9517726519$1406636025$gmane$org@acemedia.mk>
+Reply-To: nimvarez@live.com
+Mime-Version: 1.0
+Content-Type: text/plain;charset=UTF8
+Content-Transfer-Encoding: 8bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pd0-f169.google.com ([209.85.192.169]:55509 "EHLO
-	mail-pd0-f169.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752676AbaG2Diu (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 28 Jul 2014 23:38:50 -0400
-Received: by mail-pd0-f169.google.com with SMTP id y10so11019829pdj.28
-        for <linux-arch@vger.kernel.org>; Mon, 28 Jul 2014 20:38:50 -0700 (PDT)
-In-Reply-To: <cover.1406604806.git.luto@amacapital.net>
-In-Reply-To: <cover.1406604806.git.luto@amacapital.net>
-References: <cover.1406604806.git.luto@amacapital.net>
+Received: from dns.inelhost.com ([37.26.96.2]:34598 "EHLO inelhost.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1753709AbaG2MNH (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 29 Jul 2014 08:13:07 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, Kees Cook <keescook@chromium.org>, Will Drewry <wad@chromium.org>
-Cc: Oleg Nesterov <oleg@redhat.com>, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-mips@linux-mips.org, linux-arch@vger.kernel.org, linux-security-module@vger.kernel.org, Alexei Starovoitov <ast@plumgrid.com>, hpa@zytor.com, Frederic Weisbecker <fweisbec@gmail.com>, Andy Lutomirski <luto@amacapital.net>
 
-The RCU context tracking code requires that arch code call
-user_exit() on any entry into kernel code if TIF_NOHZ is set.  This
-patch adds a check for TIF_NOHZ and a comment to the syscall entry
-tracing code.
 
-The main purpose of this patch is to make the code easier to follow:
-one can read the body of user_exit and of every function it calls
-without finding any explanation of why it's called for traced
-syscalls but not for untraced syscalls.  This makes it clear when
-user_exit() is necessary.
-
-Cc: Frederic Weisbecker <fweisbec@gmail.com>
-Signed-off-by: Andy Lutomirski <luto@amacapital.net>
----
- arch/x86/kernel/ptrace.c | 7 ++++++-
- 1 file changed, 6 insertions(+), 1 deletion(-)
-
-diff --git a/arch/x86/kernel/ptrace.c b/arch/x86/kernel/ptrace.c
-index 39296d2..bbf338a 100644
---- a/arch/x86/kernel/ptrace.c
-+++ b/arch/x86/kernel/ptrace.c
-@@ -1449,7 +1449,12 @@ long syscall_trace_enter(struct pt_regs *regs)
- {
- 	long ret = 0;
- 
--	user_exit();
-+	/*
-+	 * If TIF_NOHZ is set, we are required to call user_exit() before
-+	 * doing anything that could touch RCU.
-+	 */
-+	if (test_thread_flag(TIF_NOHZ))
-+		user_exit();
- 
- 	/*
- 	 * If we stepped into a sysenter/syscall insn, it trapped in
--- 
-1.9.3
+I want to keep up with you with hope for friendship if you are interested.
+If you don't mind i will like you to write me back. I am waiting to read
+from you, because i have something important and urgent to discuss with
+you. I will also send some of my beautiful photos to you.
