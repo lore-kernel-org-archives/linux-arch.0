@@ -1,42 +1,52 @@
-From: James Bottomley <James.Bottomley@HansenPartnership.com>
-Subject: Re: [PATCH v2 13/29] nios2: DMA mapping API
-Date: Wed, 30 Jul 2014 16:56:32 +0400
-Message-ID: <1406724992.4865.65.camel@jarvis>
-References: <1405413956-2772-1-git-send-email-lftan@altera.com>
-	 <1405413956-2772-14-git-send-email-lftan@altera.com>
-	 <4843763.ps2D25LEeM@wuerfel>
+From: Oleg Nesterov <oleg@redhat.com>
+Subject: Re: [PATCH v4 0/5] x86: two-phase syscall tracing and seccomp
+        fastpath
+Date: Wed, 30 Jul 2014 17:32:59 +0200
+Message-ID: <20140730153259.GA25478@redhat.com>
+References: <cover.1406604806.git.luto@amacapital.net> <20140729192056.GA6308@redhat.com> <CALCETrX6P7SJQdgc0gTM7FLdwyT_Ld1MWvkLYpTO_2xsvBC9sA@mail.gmail.com> <CALCETrXHF5YzPQDvnJs=mFNm2Ff_FekGu_Y8-JyMaWh2hctR7A@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <4843763.ps2D25LEeM@wuerfel>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Ley Foon Tan <lftan@altera.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, lftan.linux@gmail.com, cltang@codesourcery.com
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-mips-bounce@linux-mips.org>
+Content-Disposition: inline
+In-Reply-To: <CALCETrXHF5YzPQDvnJs=mFNm2Ff_FekGu_Y8-JyMaWh2hctR7A@mail.gmail.com>
+Sender: linux-mips-bounce@linux-mips.org
+Errors-to: linux-mips-bounce@linux-mips.org
+List-help: <mailto:ecartis@linux-mips.org?Subject=help>
+List-unsubscribe: <mailto:ecartis@linux-mips.org?subject=unsubscribe%20linux-mips>
+List-software: Ecartis version 1.0.0
+List-subscribe: <mailto:ecartis@linux-mips.org?subject=subscribe%20linux-mips>
+List-owner: <mailto:ralf@linux-mips.org>
+List-post: <mailto:linux-mips@linux-mips.org>
+List-archive: <http://www.linux-mips.org/archives/linux-mips/>
+To: Andy Lutomirski <luto@amacapital.net>
+Cc: "H. Peter Anvin" <hpa@zytor.com>, linux-arch <linux-arch@vger.kernel.org>, X86 ML <x86@kernel.org>, Frederic Weisbecker <fweisbec@gmail.com>, LSM List <linux-security-module@vger.kernel.org>, Linux MIPS Mailing List <linux-mips@linux-mips.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Alexei Starovoitov <ast@plumgrid.com>, Will Drewry <wad@chromium.org>, Kees Cook <keescook@chromium.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, 2014-07-15 at 11:38 +0200, Arnd Bergmann wrote:
-> More importantly: you do the same operation for both _for_cpu and _for_device.
-> I assume your CPU can never do speculative cache prefetches, so it's not
-> incorrect, but you do twice the number of invalidations and flushes that
-> you need. 
+On 07/29, Andy Lutomirski wrote:
+>
+> > SAVE_REST is 6 movq instructions and a subq.  FIXUP_TOP_OF_STACK is 7
+> > movqs (and 8 if I ever get my way).  RESTORE_TOP_OF_STACK is 4.
+> > RESTORE_REST is 6 movqs and an adsq.  So we're talking about avoiding
+> > 21 movqs, and addq, and a subq.  That may be significant.  (And I
+> > suspect that the difference is much larger on platforms like arm64,
+> > but that's a separate issue.)
 
-That's not necessarily a correct assumption.  A lot of CPUs (x86, arm,
-parisc) feel entitled to speculate provided they have a TLB entry.
-Usually they don't just do it for a whim, so the cpu has to be doing
-something to cause the speculation, like reading from an adjacent page.
-However, for DMA you always have to assume the possibility (unless you
-really, really know the architecture cannot).
+OK, thanks. We could probably simplify the logic in phase1 + phase2 if
+it was a single function though.
 
-Therefore the pattern should be (assuming your bus doesn't need some
-kind of flush and all flushes are only for the CPU).
+> To put some more options on the table: there's an argument to be made
+> that the whole fast-path/slow-path split isn't worth it.  We could
+> unconditionally set up a full frame for all syscalls.  This means:
 
-DMA_TO_DEVICE: flush before (_for_device) do nothing after (_for_cpu)
+Or, at least, can't we allocate the full frame and avoid "add/sub %rsp"?
 
-DMA_FROM_DEVICE: do nothing before (_for_device), invalidate after
-(_for_cpu)
+> This means:
+...
+> On the
+> other hand, there's zero chance that this would be ready for 3.17.
+>
+> I'd tend to advocate for keeping the approach in my patches for now.
 
-DMA_BIDIRECTIONAL: flush before (_for_device) and invalidate after
-(_for_cpu).
+Yes, sure, I didn't try to convince you to change this code. Thanks.
 
-James
+Oleg.
