@@ -1,72 +1,53 @@
 From: Ley Foon Tan <lftan@altera.com>
-Subject: Re: [PATCH v2 13/29] nios2: DMA mapping API
-Date: Wed, 30 Jul 2014 11:42:27 +0800
-Message-ID: <CAFiDJ59GxBRtDw3bnGRMbq=NF3TwbZbXq1ROUwXn26SDV=-agg@mail.gmail.com>
+Subject: Re: [PATCH v2 05/29] nios2: Memory management
+Date: Wed, 30 Jul 2014 14:42:00 +0800
+Message-ID: <CAFiDJ5_9a7pr+16gjV5-cA_Ruoz1LDMKivFemNiOf_Me4bLEUg@mail.gmail.com>
 References: <1405413956-2772-1-git-send-email-lftan@altera.com>
-	<4843763.ps2D25LEeM@wuerfel>
-	<CAFiDJ582FiLAS=B13O3PV_d-FkR31j=5bN_LcXBSWkrGsHK_Gw@mail.gmail.com>
-	<5059148.8xZUvoce2l@wuerfel>
+	<1405413956-2772-6-git-send-email-lftan@altera.com>
+	<CAMuHMdUyif5JS9OdiamHhf+r5oeTRdd7Gzd6-rBUyamnNQ6C8A@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-hexagon-owner@vger.kernel.org>
-In-Reply-To: <5059148.8xZUvoce2l@wuerfel>
-Sender: linux-hexagon-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Chung-Lin Tang <cltang@codesourcery.com>, Richard Kuo <rkuo@codeaurora.org>, linux-hexagon@vger.kernel.org, Mark Salter <msalter@redhat.com>, Aurelien Jacquiot <a-jacquiot@ti.com>, linux-c6x-dev@linux-c6x.org
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-qa0-f46.google.com ([209.85.216.46]:43350 "EHLO
+	mail-qa0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754259AbaG3GmB (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 30 Jul 2014 02:42:01 -0400
+In-Reply-To: <CAMuHMdUyif5JS9OdiamHhf+r5oeTRdd7Gzd6-rBUyamnNQ6C8A@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Chung-Lin Tang <cltang@codesourcery.com>
 
-On Thu, Jul 24, 2014 at 8:05 PM, Arnd Bergmann <arnd@arndb.de> wrote:
->> I have spent some times look at other architectures and below is what
->> I found. Please correct me if I am wrong, especially
->> for_device():DMA_FROM_DEVICE.
->>
->> _for_cpu():
->> case DMA_BIDIRECTIONAL:
->> case DMA_FROM_DEVICE:
->>      /* invalidate cache */
->> break;
->> case DMA_TO_DEVICE:
->>    /* do nothing */
->> break;
+On Mon, Jul 28, 2014 at 10:59 PM, Geert Uytterhoeven
+<geert@linux-m68k.org> wrote:
+> On Tue, Jul 15, 2014 at 10:45 AM, Ley Foon Tan <lftan@altera.com> wrote:
+>> --- /dev/null
+>> +++ b/arch/nios2/include/asm/mmu.h
+>> @@ -0,0 +1,18 @@
+>> +/*
+>> + * Copyright (C) 2010 Tobias Klauser <tklauser@distanz.ch>
+>> + * Copyright (C) 2004 Microtronix Datacom Ltd.
+>> + *
+>> + * Taken from m68knommu.
+>> + *
+>> + * This file is subject to the terms and conditions of the GNU General Public
+>> + * License. See the file "COPYING" in the main directory of this archive
+>> + * for more details.
+>> + */
+>> +
+>> +#ifndef _ASM_NIOS2_MMU_H
+>> +#define _ASM_NIOS2_MMU_H
+>> +
+>> +/* Default "unsigned long" context */
+>> +typedef unsigned long mm_context_t;
+>> +
+>> +#endif /* _ASM_NIOS2_MMU_H */
 >
-> This seems fine: for a FROM_DEVICE mapping, we have flushed all
-> dirty entries during the _for_device or the map operation,
-> so if any clean entries are around, they need to be invalidated
-> in order to read the data from the device.
->
-> for TO_DEVICE, we don't care about the cache, because we are
-> going to overwrite the data, and we don't need to do anything.
-Okay.
-
->
->> -------------------------
->> _for_device():
->> case DMA_BIDIRECTIONAL:
->> case DMA_TO_DEVICE:
->>      /* flush and invalidate cache */
->> break;
->> case DMA_FROM_DEVICE:
->>  /* should we invalidate cache or do nothing? */
->> break;
->
-> You actually don't need to invalidate the TO_DEVICE mappings
-> in both _for_device and _for_cpu. You have to flush them
-> in for_device, and you have to invalidate them at least once,
-> but don't need to invalidate them again in for_cpu if you have
-> done that already in for_device and your CPU does not do any
-> speculative prefetches that might populate the dcache.
-Nios2 processor doesn't have flush-cache-only instruction. Its flush
-instruction will do 2 operations, flush and invalidate cache.
-
-
-> In case of for_device FROM_DEVICE, you have to invalidate or
-> flush the caches to ensure that no dirty cache lines are
-> written to memory, but only if your CPU has a write-back
-> cache rather than write-through.
-Nios2 has a write-back cache. So, will do invalidate cache here.
-
-> For bidirectional mappings, you may have to flush and invalidate.
-To confirm, do you mean bidirectional for both for_device and for_cpu?
+> Any chance you can use mmu.h from asm-generic instead?
+> It uses a struct with a single "unsigned long end_brk" member (unless
+> CONFIG_BINFMT_ELF_FDPIC is defined).
+From asm-generic/mmu.h, it is for nommu implementations.
+So, I will keep this as it is now.
 
 Thanks.
 
