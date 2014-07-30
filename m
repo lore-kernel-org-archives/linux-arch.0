@@ -1,107 +1,49 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wi0-f181.google.com ([209.85.212.181]:57346 "EHLO
-	mail-wi0-f181.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753921AbaG3Qf0 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 30 Jul 2014 12:35:26 -0400
-Date: Wed, 30 Jul 2014 18:35:21 +0200
+Received: from mail-wi0-f177.google.com ([209.85.212.177]:62623 "EHLO
+	mail-wi0-f177.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755209AbaG3Qnx (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 30 Jul 2014 12:43:53 -0400
+Date: Wed, 30 Jul 2014 18:43:46 +0200
 From: Frederic Weisbecker <fweisbec@gmail.com>
-Subject: Re: TIF_NOHZ can escape nonhz mask? (Was: [PATCH v3 6/8] x86: Split
- syscall_trace_enter into two phases)
-Message-ID: <20140730163516.GC18158@localhost.localdomain>
-References: <cover.1405992946.git.luto@amacapital.net>
- <3f649f5658a163645e3ce15156176c325283762e.1405992946.git.luto@amacapital.net>
- <20140728173723.GA20993@redhat.com>
- <20140728185803.GA24663@redhat.com>
- <20140728192209.GA26017@localhost.localdomain>
- <20140729175414.GA3289@redhat.com>
+Subject: Re: [PATCH v4 2/5] x86,entry: Only call user_exit if TIF_NOHZ
+Message-ID: <20140730164344.GA27954@localhost.localdomain>
+References: <cover.1406604806.git.luto@amacapital.net>
+ <7123b2489cc5d1d5abb7bcf1364ca729cab3e6ca.1406604806.git.luto@amacapital.net>
+ <20140729193232.GA8153@redhat.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20140729175414.GA3289@redhat.com>
+In-Reply-To: <20140729193232.GA8153@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Oleg Nesterov <oleg@redhat.com>
-Cc: Andy Lutomirski <luto@amacapital.net>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, linux-kernel@vger.kernel.org, Kees Cook <keescook@chromium.org>, Will Drewry <wad@chromium.org>, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-mips@linux-mips.org, linux-arch@vger.kernel.org, linux-security-module@vger.kernel.org, Alexei Starovoitov <ast@plumgrid.com>, hpa@zytor.com
-Message-ID: <20140730163521.37hvCVlfdswxcilhXS7CyEv28_xak9fmJ9pfGYqXPGE@z>
+Cc: Andy Lutomirski <luto@amacapital.net>, linux-kernel@vger.kernel.org, Kees Cook <keescook@chromium.org>, Will Drewry <wad@chromium.org>, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-mips@linux-mips.org, linux-arch@vger.kernel.org, linux-security-module@vger.kernel.org, Alexei Starovoitov <ast@plumgrid.com>, hpa@zytor.com
+Message-ID: <20140730164346.auAXni0hvcntuO_Xc_0LaU-bOHHNJ8KBzTDFRQOzXkw@z>
 
-On Tue, Jul 29, 2014 at 07:54:14PM +0200, Oleg Nesterov wrote:
-> Thanks Frederic for your explanations. Yes, I was confused. But cough, now I am
-> even more confused.
-> 
-> I didn't even try to read this code, perhaps I'll try later, but let me ask
-> another question while you are here ;)
-> 
-> The comment above __context_tracking_task_switch() says:
-> 
-> 	 * The context tracking uses the syscall slow path to implement its user-kernel
-> 	 * boundaries probes on syscalls. This way it doesn't impact the syscall fast
-> 	 * path on CPUs that don't do context tracking.
-> 	        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-Indeed, in fact the comment is confusing the way it explain things. It suggests that
-some CPUs maybe doing context tracking while some other can choose not to context track.
-
-It's rather all or nothing. Actually TIF_NOHZ optimize systems that have CONFIG_CONTEXT_TRACKING=y
-and that don't need context tracking. In this case TIF_NOHZ is cleared and thus the syscall
-fastpath has no overhead.
-
-So I should rephrase it that way:
-
-        * The context tracking uses the syscall slow path to implement its user-kernel
-        * boundaries probes on syscalls. This way it doesn't impact the syscall fast
-        * path when context tracking is globally disabled.
-
-> 
-> How? Every running task should have TIF_NOHZ set if context_tracking_is_enabled() ?
-> 
-> 	 * But we need to clear the flag on the previous task because it may later
-> 	 * migrate to some CPU that doesn't do the context tracking. As such the TIF
-> 	 * flag may not be desired there.
-> 
-> For what? How this can help? This flag will be set again when we switch to this
-> task again?
-
-That is indeed a stale comment from aborted early design.
-
-> 
-> Looks like, we can kill context_tracking_task_switch() and simply change the
-> "__init" callers of context_tracking_cpu_set() to do set_thread_flag(TIF_NOHZ) ?
-> Then this flag will be propagated by copy_process().
-
-Right, that would be much better. Good catch! context tracking is enabled from
-tick_nohz_init(). This is the init 0 task so the flag should be propagated from there.
-
-I still think we need a for_each_process_thread() set as well though because some
-kernel threads may well have been created at this stage already.
-
-> 
-> Or I am totally confused? (quite possible).
-> 
-> > So here is a scenario where this is a problem: a task runs on CPU 0, passes the context
-> > tracking call before returning from a syscall to userspace, and gets an interrupt. The
-> > interrupt preempts the task and it moves to CPU 1. So it returns from preempt_schedule_irq()
-> > after which it is going to resume to userspace.
+On Tue, Jul 29, 2014 at 09:32:32PM +0200, Oleg Nesterov wrote:
+> On 07/28, Andy Lutomirski wrote:
 > >
-> > In this scenario, if context tracking is only enabled on CPU 1, we have no way to know that
-> > the task is resuming to userspace, because we passed through the context tracking probe
-> > already and it was ignored on CPU 0.
+> > @@ -1449,7 +1449,12 @@ long syscall_trace_enter(struct pt_regs *regs)
+> >  {
+> >  	long ret = 0;
+> >  
+> > -	user_exit();
+> > +	/*
+> > +	 * If TIF_NOHZ is set, we are required to call user_exit() before
+> > +	 * doing anything that could touch RCU.
+> > +	 */
+> > +	if (test_thread_flag(TIF_NOHZ))
+> > +		user_exit();
 > 
-> Thanks. But I still can't understand... So if we only track CPU 1, then in this
-> case context_tracking.state == IN_USER on CPU 0, but it can be IN_USER or IN_KERNEL
-> on CPU 1.
-
-I'm not sure I understand your question. Context tracking is either enabled everywhere or
-nowhere.
-
-I need to say though that there is a per CPU context tracking state named context_tracking.active.
-It's confusing because it suggests that context tracking is active per CPU. Actually it's tracked
-everywhere when globally enabled, but active determines if we call the RCU and vtime callbacks or
-not.
-
-So only nohz full CPUs have context_tracking.active set because only these need to call the RCU
-and vtime callbacks. Other CPUs still do the context tracking but they won't call rcu and vtime
-functions.
-
+> Personally I still think this change just adds more confusion, but I leave
+> this to you and Frederic.
 > 
-> Oleg.
+> It is not that "If TIF_NOHZ is set, we are required to call user_exit()", we
+> need to call user_exit() just because we enter the kernel. TIF_NOHZ is just
+> the implementation detail which triggers this slow path.
 > 
+> At least it should be correct, unless I am confused even more than I think.
+
+Agreed, Perhaps the confusion is on the syscall_trace_enter() name which suggests
+this is only about tracing? syscall_slowpath_enter() could be an alternative.
+But that's still tracing in a general sense so...
