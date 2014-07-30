@@ -1,65 +1,39 @@
 From: Ley Foon Tan <lftan@altera.com>
 Subject: Re: [PATCH v2 05/29] nios2: Memory management
-Date: Wed, 30 Jul 2014 18:50:58 +0800
-Message-ID: <CAFiDJ5_d4zhV6m8BzqWC6vTErYv_S1QBQqkH=55wqQjUrK-pwg@mail.gmail.com>
+Date: Wed, 30 Jul 2014 18:52:50 +0800
+Message-ID: <CAFiDJ5-hu8HDMiteNA2LeWkkSHXtnFefZZ1Bi=HqVRwuvZaowA@mail.gmail.com>
 References: <1405413956-2772-1-git-send-email-lftan@altera.com>
 	<1405413956-2772-6-git-send-email-lftan@altera.com>
-	<20140730090101.GD10301@distanz.ch>
+	<CAMuHMdUyif5JS9OdiamHhf+r5oeTRdd7Gzd6-rBUyamnNQ6C8A@mail.gmail.com>
+	<CAFiDJ5_9a7pr+16gjV5-cA_Ruoz1LDMKivFemNiOf_Me4bLEUg@mail.gmail.com>
+	<CAMuHMdWw7WGibh38OdAQEmFzV3J9-z3=B74y8i8XxNsdTvOEyw@mail.gmail.com>
+	<20140730085743.GC10301@distanz.ch>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qa0-f52.google.com ([209.85.216.52]:47308 "EHLO
-	mail-qa0-f52.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751345AbaG3Ku7 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 30 Jul 2014 06:50:59 -0400
-In-Reply-To: <20140730090101.GD10301@distanz.ch>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20140730085743.GC10301@distanz.ch>
+Sender: linux-kernel-owner@vger.kernel.org
 To: Tobias Klauser <tklauser@distanz.ch>
-Cc: Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Chung-Lin Tang <cltang@codesourcery.com>
+Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Chung-Lin Tang <cltang@codesourcery.com>
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, Jul 30, 2014 at 5:01 PM, Tobias Klauser <tklauser@distanz.ch> wrote:
-> On 2014-07-15 at 10:45:32 +0200, Ley Foon Tan <lftan@altera.com> wrote:
->> This patch contains the initialisation of the memory blocks, MMU
->> attributes and the memory map.
+On Wed, Jul 30, 2014 at 4:57 PM, Tobias Klauser <tklauser@distanz.ch> wrote:
+
+>> >> Any chance you can use mmu.h from asm-generic instead?
+>> >> It uses a struct with a single "unsigned long end_brk" member (unless
+>> >> CONFIG_BINFMT_ELF_FDPIC is defined).
+>> > From asm-generic/mmu.h, it is for nommu implementations.
+>> > So, I will keep this as it is now.
 >>
->> Signed-off-by: Ley Foon Tan <lftan@altera.com>
->> ---
->>  arch/nios2/include/asm/mmu.h     |  18 +++
->>  arch/nios2/include/asm/page.h    | 113 +++++++++++++++++++
->>  arch/nios2/include/asm/uaccess.h | 233 +++++++++++++++++++++++++++++++++++++++
->>  arch/nios2/mm/init.c             | 142 ++++++++++++++++++++++++
->>  arch/nios2/mm/uaccess.c          | 162 +++++++++++++++++++++++++++
->>  5 files changed, 668 insertions(+)
->>  create mode 100644 arch/nios2/include/asm/mmu.h
->>  create mode 100644 arch/nios2/include/asm/page.h
->>  create mode 100644 arch/nios2/include/asm/uaccess.h
->>  create mode 100644 arch/nios2/mm/init.c
->>  create mode 100644 arch/nios2/mm/uaccess.c
+>> Right, you have a MMU.
+>> I got confused by the "Taken from m68knommu" comment, and you still
+>> only need a single "unsigned long".
 >
-> [...]
->
->> diff --git a/arch/nios2/include/asm/page.h b/arch/nios2/include/asm/page.h
->> new file mode 100644
->> index 0000000..b89c1d6
->> --- /dev/null
->> +++ b/arch/nios2/include/asm/page.h
->> @@ -0,0 +1,113 @@
->> +/*
->> + * Copyright (C) 2011 Tobias Klauser <tklauser@distanz.ch>
->> + * Copyright (C) 2004 Microtronix Datacom Ltd.
->> + *
->> + * MMU support based on asm/page.h from mips which is:
->> + *
->> + * Copyright (C) 1994 - 1999, 2000, 03 Ralf Baechle
->> + * Copyright (C) 1999, 2000 Silicon Graphics, Inc.
->> + *
->> + * NOMMU support based on asm/page.h from m68knommu.
->
-> You might want to remove this line to avoid confusion, since NOMMU is
-> not supported anymore in this submission of the NIOS II port.
-
-Okay.
+> That comment stems from the initial Nios II NOMMU port done by
+> Microtronix. Since Nios II NOMMU support was dropped for mainline
+> submission anyhow, it might be better to drop that comment to avoid any
+> future confusion :)
+Okay, I will remove these nommu comments.
 
 Thanks.
 
