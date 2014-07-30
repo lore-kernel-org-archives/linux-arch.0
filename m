@@ -1,61 +1,50 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qg0-f54.google.com ([209.85.192.54]:35840 "EHLO
-	mail-qg0-f54.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752104AbaG3K6R (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 30 Jul 2014 06:58:17 -0400
-MIME-Version: 1.0
-In-Reply-To: <20140730091215.GE10301@distanz.ch>
+Received: from bedivere.hansenpartnership.com ([66.63.167.143]:44873 "EHLO
+	bedivere.hansenpartnership.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1754173AbaG3M4h (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Wed, 30 Jul 2014 08:56:37 -0400
+Message-ID: <1406724992.4865.65.camel@jarvis>
+Subject: Re: [PATCH v2 13/29] nios2: DMA mapping API
+From: James Bottomley <James.Bottomley@HansenPartnership.com>
+Date: Wed, 30 Jul 2014 16:56:32 +0400
+In-Reply-To: <4843763.ps2D25LEeM@wuerfel>
 References: <1405413956-2772-1-git-send-email-lftan@altera.com>
-	<1405413956-2772-3-git-send-email-lftan@altera.com>
-	<20140730091215.GE10301@distanz.ch>
-Date: Wed, 30 Jul 2014 18:58:16 +0800
-Message-ID: <CAFiDJ596dR5XCPcAHJezFXR0dq4dMR0-dPFfmjEgpWv-9px=nw@mail.gmail.com>
-Subject: Re: [PATCH v2 02/29] nios2: Kernel booting and initialization
-From: Ley Foon Tan <lftan@altera.com>
-Content-Type: text/plain; charset=UTF-8
+	 <1405413956-2772-14-git-send-email-lftan@altera.com>
+	 <4843763.ps2D25LEeM@wuerfel>
+Content-Type: text/plain; charset="UTF-8"
+Mime-Version: 1.0
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Tobias Klauser <tklauser@distanz.ch>
-Cc: Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Chung-Lin Tang <cltang@codesourcery.com>
-Message-ID: <20140730105816.8yrdjv8Yo4qSGN3NlkBLywEUl5hlOTGkdlHNS9VwQF0@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Ley Foon Tan <lftan@altera.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, lftan.linux@gmail.com, cltang@codesourcery.com
+Message-ID: <20140730125632.j5GHRrOfnzogn7YgujsO-Vq5YYIzkKXnaYW6QdD2Jno@z>
 
-On Wed, Jul 30, 2014 at 5:12 PM, Tobias Klauser <tklauser@distanz.ch> wrote:
->> +/*
->> + * Stack layout in 'ret_from_exception':
->> + *
->> + * This allows access to the syscall arguments in registers r4-r8
->> + *
->> + *    0(sp) - r8
->> + *    4(sp) - r9
->> + *    8(sp) - r10
->> + *    C(sp) - r11
->> + *   10(sp) - r12
->> + *   14(sp) - r13
->> + *   18(sp) - r14
->> + *   1C(sp) - r15
->> + *   20(sp) - r1
->> + *   24(sp) - r2
->> + *   28(sp) - r3
->> + *   2C(sp) - r4
->> + *   30(sp) - r5
->> + *   34(sp) - r6
->> + *   38(sp) - r7
->> + *   3C(sp) - orig_r2
->> + *   40(sp) - ra
->> + *   44(sp) - fp
->> + *   48(sp) - sp
->> + *   4C(sp) - gp
->> + *   50(sp) - estatus
->> + *   54(sp) - status_extension (NOMMU only)
->> + *   58(sp) - ea
->> + */
->
-> status_extension no longer exists and orig_r7 is missing in the list
-> above. Since this corresponds to the order of struct pt_regs anyhow,
-> this comment seems rather pointless to me, so you might as well want to
-> remove it altogether.
-Okay, I will remove these comments.
-Thanks for review.
+On Tue, 2014-07-15 at 11:38 +0200, Arnd Bergmann wrote:
+> More importantly: you do the same operation for both _for_cpu and _for_device.
+> I assume your CPU can never do speculative cache prefetches, so it's not
+> incorrect, but you do twice the number of invalidations and flushes that
+> you need. 
 
-Regards
-Ley Foon
+That's not necessarily a correct assumption.  A lot of CPUs (x86, arm,
+parisc) feel entitled to speculate provided they have a TLB entry.
+Usually they don't just do it for a whim, so the cpu has to be doing
+something to cause the speculation, like reading from an adjacent page.
+However, for DMA you always have to assume the possibility (unless you
+really, really know the architecture cannot).
+
+Therefore the pattern should be (assuming your bus doesn't need some
+kind of flush and all flushes are only for the CPU).
+
+DMA_TO_DEVICE: flush before (_for_device) do nothing after (_for_cpu)
+
+DMA_FROM_DEVICE: do nothing before (_for_device), invalidate after
+(_for_cpu)
+
+DMA_BIDIRECTIONAL: flush before (_for_device) and invalidate after
+(_for_cpu).
+
+James
+
+
