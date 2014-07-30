@@ -1,176 +1,93 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-la0-f46.google.com ([209.85.215.46]:35608 "EHLO
-	mail-la0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755648AbaG3RZc (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 30 Jul 2014 13:25:32 -0400
-Received: by mail-la0-f46.google.com with SMTP id b8so1167784lan.33
-        for <linux-arch@vger.kernel.org>; Wed, 30 Jul 2014 10:25:30 -0700 (PDT)
+Received: from mx1.redhat.com ([209.132.183.28]:7719 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1755667AbaG3Rst (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 30 Jul 2014 13:48:49 -0400
+Date: Wed, 30 Jul 2014 19:46:30 +0200
+From: Oleg Nesterov <oleg@redhat.com>
+Subject: Re: TIF_NOHZ can escape nonhz mask? (Was: [PATCH v3 6/8] x86:
+	Split syscall_trace_enter into two phases)
+Message-ID: <20140730174630.GA30862@redhat.com>
+References: <cover.1405992946.git.luto@amacapital.net> <3f649f5658a163645e3ce15156176c325283762e.1405992946.git.luto@amacapital.net> <20140728173723.GA20993@redhat.com> <20140728185803.GA24663@redhat.com> <20140728192209.GA26017@localhost.localdomain> <20140729175414.GA3289@redhat.com> <20140730163516.GC18158@localhost.localdomain>
 MIME-Version: 1.0
-In-Reply-To: <20140730165940.GB27954@localhost.localdomain>
-References: <cover.1406604806.git.luto@amacapital.net> <20140729192056.GA6308@redhat.com>
- <CALCETrX6P7SJQdgc0gTM7FLdwyT_Ld1MWvkLYpTO_2xsvBC9sA@mail.gmail.com>
- <CALCETrXHF5YzPQDvnJs=mFNm2Ff_FekGu_Y8-JyMaWh2hctR7A@mail.gmail.com> <20140730165940.GB27954@localhost.localdomain>
-From: Andy Lutomirski <luto@amacapital.net>
-Date: Wed, 30 Jul 2014 10:25:10 -0700
-Message-ID: <CALCETrUafpWfnbfZzgu3qSGqyxcG0+6A=A1RE8g++=GrQKD93Q@mail.gmail.com>
-Subject: Re: [PATCH v4 0/5] x86: two-phase syscall tracing and seccomp fastpath
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20140730163516.GC18158@localhost.localdomain>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Frederic Weisbecker <fweisbec@gmail.com>
-Cc: Oleg Nesterov <oleg@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch <linux-arch@vger.kernel.org>, X86 ML <x86@kernel.org>, LSM List <linux-security-module@vger.kernel.org>, Linux MIPS Mailing List <linux-mips@linux-mips.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Alexei Starovoitov <ast@plumgrid.com>, Will Drewry <wad@chromium.org>, Kees Cook <keescook@chromium.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
-Message-ID: <20140730172510.pVrasiNfh7riHvBku1sE48FwMDAXsc-6PBaQZC24uEc@z>
+Cc: Andy Lutomirski <luto@amacapital.net>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, linux-kernel@vger.kernel.org, Kees Cook <keescook@chromium.org>, Will Drewry <wad@chromium.org>, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-mips@linux-mips.org, linux-arch@vger.kernel.org, linux-security-module@vger.kernel.org, Alexei Starovoitov <ast@plumgrid.com>, hpa@zytor.com
+Message-ID: <20140730174630.Q_zVdII22EWmx2e2v4KqlpwvKgzUpXVSenFIb1UjZos@z>
 
-On Wed, Jul 30, 2014 at 9:59 AM, Frederic Weisbecker <fweisbec@gmail.com> wrote:
-> On Tue, Jul 29, 2014 at 04:30:58PM -0700, Andy Lutomirski wrote:
->> On Tue, Jul 29, 2014 at 1:54 PM, Andy Lutomirski <luto@amacapital.net> wrote:
->> > On Jul 29, 2014 12:22 PM, "Oleg Nesterov" <oleg@redhat.com> wrote:
->> >>
->> >> Andy, to avoid the confusion: I am not trying to review this changes.
->> >> As you probably know my understanding of asm code in entry.S is very
->> >> limited.
->> >>
->> >> Just a couple of questions to ensure I understand this correctly.
->> >>
->> >> On 07/28, Andy Lutomirski wrote:
->> >> >
->> >> > This is both a cleanup and a speedup.  It reduces overhead due to
->> >> > installing a trivial seccomp filter by 87%.  The speedup comes from
->> >> > avoiding the full syscall tracing mechanism for filters that don't
->> >> > return SECCOMP_RET_TRACE.
->> >>
->> >> And only after I look at 5/5 I _seem_ to actually understand where
->> >> this speedup comes from.
->> >>
->> >> So. Currently tracesys: path always lead to "iret" after syscall, with
->> >> this change we can avoid it if phase_1() returns zero, correct?
->> >>
->> >> And, this also removes the special TIF_SYSCALL_AUDIT-only case in entry.S,
->> >> cool.
->> >>
->> >> I am wondering if we can do something similar with do_notify_resume() ?
->> >>
->> >>
->> >> Stupid question. To simplify, lets forget that syscall_trace_enter()
->> >> already returns the value. Can't we simplify the asm code if we do
->> >> not export 2 functions, but make syscall_trace_enter() return
->> >> "bool slow_path_is_needed". So that "tracesys:" could do
->> >>
->> >>         // pseudo code
->> >>
->> >> tracesys:
->> >>         SAVE_REST
->> >>         FIXUP_TOP_OF_STACK
->> >>
->> >>         call syscall_trace_enter
->> >>
->> >>         if (!slow_path_is_needed) {
->> >>                 addq REST_SKIP, %rsp
->> >>                 jmp system_call_fastpath
->> >>         }
->> >>
->> >>         ...
->> >>
->> >> ?
->> >>
->> >> Once again, I am just curious, it is not that I actually suggest to consider
->> >> this option.
->> >
->> > We could, but this would lose a decent amount of the speedup.  I could
->> > try it and benchmark it, but I'm guessing that the save and restore is
->> > kind of expensive.  This will make audit slower than it currently is,
->> > which may also annoy some people.  (Not me.)
->> >
->> > I'm also not convinced that it would be much simpler.  My code is currently:
->> >
->> > tracesys:
->> >     leaq -REST_SKIP(%rsp), %rdi
->> >     movq $AUDIT_ARCH_X86_64, %rsi
->> >     call syscall_trace_enter_phase1
->> >     test %rax, %rax
->> >     jnz tracesys_phase2        /* if needed, run the slow path */
->> >     LOAD_ARGS 0            /* else restore clobbered regs */
->> >     jmp system_call_fastpath    /*      and return to the fast path */
->> >
->> > tracesys_phase2:
->> >     SAVE_REST
->> >     FIXUP_TOP_OF_STACK %rdi
->> >     movq %rsp, %rdi
->> >     movq $AUDIT_ARCH_X86_64, %rsi
->> >     movq %rax,%rdx
->> >     call syscall_trace_enter_phase2
->> >
->> >     LOAD_ARGS ARGOFFSET, 1
->> >     RESTORE_REST
->> >
->> >     ... slow path here ...
->> >
->> > It would end up looking more like (totally untested):
->> >
->> > tracesys:
->> >     SAVE_REST
->> >     FIXUP_TOP_OF_STACK %rdi
->> >     mov %rsp, %rdi
->> >     movq $AUDIT_ARCH_X86_64, %rsi
->> >     call syscall_trace_enter
->> >     LOAD_ARGS
->> >     RESTORE_REST
->> >     test [whatever condition]
->> >     j[cond] system_call_fastpath
->> >
->> >     ... slow path here ...
->> >
->> > So it's a bit simpler.  Oddly, the ia32entry code doesn't have this
->> > multiple syscall path distinction.
->> >
->> > SAVE_REST is 6 movq instructions and a subq.  FIXUP_TOP_OF_STACK is 7
->> > movqs (and 8 if I ever get my way).  RESTORE_TOP_OF_STACK is 4.
->> > RESTORE_REST is 6 movqs and an adsq.  So we're talking about avoiding
->> > 21 movqs, and addq, and a subq.  That may be significant.  (And I
->> > suspect that the difference is much larger on platforms like arm64,
->> > but that's a separate issue.)
->>
->> To put some more options on the table: there's an argument to be made
->> that the whole fast-path/slow-path split isn't worth it.  We could
->> unconditionally set up a full frame for all syscalls.  This means:
->>
->> No FIXUP_TOP_OF_STACK.  Instead, the system_call entry sets up RSP,
->> SS, CS, RCX, and EFLAGS right away.  That's five stores for all
->> syscalls instead of two loads and five stores for syscalls that need
->> it.  But it also gets rid of RESTORE_TOP_OF_STACK completely.
->>
->> No more bugs involving C code that assumes a full stack frame when no
->> such frame exists inside syscall code.
->>
->> We could possibly remove a whole bunch of duplicated code.
->>
->> The upshot would be simpler code, faster slow-path syscalls, and
->> slower fast-path syscalls (but probably not much slower).  On the
->> other hand, there's zero chance that this would be ready for 3.17.
+On 07/30, Frederic Weisbecker wrote:
 >
-> Indeed.
+> On Tue, Jul 29, 2014 at 07:54:14PM +0200, Oleg Nesterov wrote:
 >
-> If we ever take that direction (ie: remove that partial frame optimization),
-> there is that common part that we can find in many archs when they return
-> from syscalls, exceptions or interrupts which could be more or less consolidated as:
+> >
+> > Looks like, we can kill context_tracking_task_switch() and simply change the
+> > "__init" callers of context_tracking_cpu_set() to do set_thread_flag(TIF_NOHZ) ?
+> > Then this flag will be propagated by copy_process().
 >
-> void sysret_check(struct pt_regs *regs)
-> {
->           while(test_thread_flag(TIF_ALLWORK_MASK)) {
->               int resched = need_resched();
->
->               local_irq_enable();
->               if (resched)
->                   schedule();
->               else
->                   do_notify_resume(regs);
->               local_irq_disable()
->            }
-> }
->
-> But well, probably the syscall fastpath is still worth it.
+> Right, that would be much better. Good catch! context tracking is enabled from
+> tick_nohz_init(). This is the init 0 task so the flag should be propagated from there.
 
-And yet x86_64 has this code implemented in assembly even in the
-slowpath.  Go figure.
+actually init 1 task, but this doesn't matter.
 
---Andy
+> I still think we need a for_each_process_thread() set as well though because some
+> kernel threads may well have been created at this stage already.
+
+Yes... Or we can add set_thread_flag(TIF_NOHZ) into ____call_usermodehelper().
+
+> > Or I am totally confused? (quite possible).
+> >
+> > > So here is a scenario where this is a problem: a task runs on CPU 0, passes the context
+> > > tracking call before returning from a syscall to userspace, and gets an interrupt. The
+> > > interrupt preempts the task and it moves to CPU 1. So it returns from preempt_schedule_irq()
+> > > after which it is going to resume to userspace.
+> > >
+> > > In this scenario, if context tracking is only enabled on CPU 1, we have no way to know that
+> > > the task is resuming to userspace, because we passed through the context tracking probe
+> > > already and it was ignored on CPU 0.
+> >
+> > Thanks. But I still can't understand... So if we only track CPU 1, then in this
+> > case context_tracking.state == IN_USER on CPU 0, but it can be IN_USER or IN_KERNEL
+> > on CPU 1.
+>
+> I'm not sure I understand your question.
+
+Probably because it was stupid. Seriously, I still have no idea what this code
+actually does.
+
+> Context tracking is either enabled everywhere or
+> nowhere.
+>
+> I need to say though that there is a per CPU context tracking state named context_tracking.active.
+> It's confusing because it suggests that context tracking is active per CPU. Actually it's tracked
+> everywhere when globally enabled, but active determines if we call the RCU and vtime callbacks or
+> not.
+>
+> So only nohz full CPUs have context_tracking.active set because only these need to call the RCU
+> and vtime callbacks. Other CPUs still do the context tracking but they won't call rcu and vtime
+> functions.
+
+I meant that in the scenario you described above the "global" TIF_NOHZ doesn't
+really make a difference, afaics.
+
+Lets assume that context tracking is only enabled on CPU 1. To simplify,
+assume that we have a single usermode task T which sleeps in kernel mode.
+
+So context_tracking[0].state == context_tracking[1].state == IN_KERNEL.
+
+T wakes up on CPU_0, returns to user space, calls user_enter(). This sets
+context_tracking[0].state = IN_USER but otherwise does nothing else, this
+CPU is not tracked and .active is false.
+
+Right after local_irq_restore() this task can migrate to CPU_1 and finish
+its ret-to-usermode path. But since it had already passed user_enter() we
+do not change context_tracking[1].state and do not play with rcu/vtime.
+(unless this task hits SCHEDULE_USER in asm).
+
+The same for user_exit() of course.
+
+Oleg.
+
