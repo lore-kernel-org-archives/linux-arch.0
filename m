@@ -1,68 +1,66 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from sym2.noone.org ([178.63.92.236]:60555 "EHLO sym2.noone.org"
+Received: from sym2.noone.org ([178.63.92.236]:60920 "EHLO sym2.noone.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751577AbaG3I5s (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 30 Jul 2014 04:57:48 -0400
-Date: Wed, 30 Jul 2014 10:57:43 +0200
+	id S1751692AbaG3JBE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 30 Jul 2014 05:01:04 -0400
+Date: Wed, 30 Jul 2014 11:01:02 +0200
 From: Tobias Klauser <tklauser@distanz.ch>
 Subject: Re: [PATCH v2 05/29] nios2: Memory management
-Message-ID: <20140730085743.GC10301@distanz.ch>
+Message-ID: <20140730090101.GD10301@distanz.ch>
 References: <1405413956-2772-1-git-send-email-lftan@altera.com>
  <1405413956-2772-6-git-send-email-lftan@altera.com>
- <CAMuHMdUyif5JS9OdiamHhf+r5oeTRdd7Gzd6-rBUyamnNQ6C8A@mail.gmail.com>
- <CAFiDJ5_9a7pr+16gjV5-cA_Ruoz1LDMKivFemNiOf_Me4bLEUg@mail.gmail.com>
- <CAMuHMdWw7WGibh38OdAQEmFzV3J9-z3=B74y8i8XxNsdTvOEyw@mail.gmail.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <CAMuHMdWw7WGibh38OdAQEmFzV3J9-z3=B74y8i8XxNsdTvOEyw@mail.gmail.com>
+In-Reply-To: <1405413956-2772-6-git-send-email-lftan@altera.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Ley Foon Tan <lftan@altera.com>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Chung-Lin Tang <cltang@codesourcery.com>
-Message-ID: <20140730085743.Ijx-jc3BZTmvGK7lFWeR1tF297taacYNE7I9PZox1vU@z>
+To: Ley Foon Tan <lftan@altera.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, lftan.linux@gmail.com, cltang@codesourcery.com
+Message-ID: <20140730090102._oxd5aDdoUSr63-BEmD_x3NyaYCOxhtNuDWrz6C8UM4@z>
 
-On 2014-07-30 at 10:18:49 +0200, Geert Uytterhoeven <geert@linux-m68k.org> wrote:
-> On Wed, Jul 30, 2014 at 8:42 AM, Ley Foon Tan <lftan@altera.com> wrote:
-> > On Mon, Jul 28, 2014 at 10:59 PM, Geert Uytterhoeven
-> > <geert@linux-m68k.org> wrote:
-> >> On Tue, Jul 15, 2014 at 10:45 AM, Ley Foon Tan <lftan@altera.com> wrote:
-> >>> --- /dev/null
-> >>> +++ b/arch/nios2/include/asm/mmu.h
-> >>> @@ -0,0 +1,18 @@
-> >>> +/*
-> >>> + * Copyright (C) 2010 Tobias Klauser <tklauser@distanz.ch>
-> >>> + * Copyright (C) 2004 Microtronix Datacom Ltd.
-> >>> + *
-> >>> + * Taken from m68knommu.
-> >>> + *
-> >>> + * This file is subject to the terms and conditions of the GNU General Public
-> >>> + * License. See the file "COPYING" in the main directory of this archive
-> >>> + * for more details.
-> >>> + */
-> >>> +
-> >>> +#ifndef _ASM_NIOS2_MMU_H
-> >>> +#define _ASM_NIOS2_MMU_H
-> >>> +
-> >>> +/* Default "unsigned long" context */
-> >>> +typedef unsigned long mm_context_t;
-> >>> +
-> >>> +#endif /* _ASM_NIOS2_MMU_H */
-> >>
-> >> Any chance you can use mmu.h from asm-generic instead?
-> >> It uses a struct with a single "unsigned long end_brk" member (unless
-> >> CONFIG_BINFMT_ELF_FDPIC is defined).
-> > From asm-generic/mmu.h, it is for nommu implementations.
-> > So, I will keep this as it is now.
+On 2014-07-15 at 10:45:32 +0200, Ley Foon Tan <lftan@altera.com> wrote:
+> This patch contains the initialisation of the memory blocks, MMU
+> attributes and the memory map.
 > 
-> Right, you have a MMU.
-> I got confused by the "Taken from m68knommu" comment, and you still
-> only need a single "unsigned long".
+> Signed-off-by: Ley Foon Tan <lftan@altera.com>
+> ---
+>  arch/nios2/include/asm/mmu.h     |  18 +++
+>  arch/nios2/include/asm/page.h    | 113 +++++++++++++++++++
+>  arch/nios2/include/asm/uaccess.h | 233 +++++++++++++++++++++++++++++++++++++++
+>  arch/nios2/mm/init.c             | 142 ++++++++++++++++++++++++
+>  arch/nios2/mm/uaccess.c          | 162 +++++++++++++++++++++++++++
+>  5 files changed, 668 insertions(+)
+>  create mode 100644 arch/nios2/include/asm/mmu.h
+>  create mode 100644 arch/nios2/include/asm/page.h
+>  create mode 100644 arch/nios2/include/asm/uaccess.h
+>  create mode 100644 arch/nios2/mm/init.c
+>  create mode 100644 arch/nios2/mm/uaccess.c
 
-That comment stems from the initial Nios II NOMMU port done by
-Microtronix. Since Nios II NOMMU support was dropped for mainline
-submission anyhow, it might be better to drop that comment to avoid any
-future confusion :)
+[...]
 
-Cheers
-Tobias
+> diff --git a/arch/nios2/include/asm/page.h b/arch/nios2/include/asm/page.h
+> new file mode 100644
+> index 0000000..b89c1d6
+> --- /dev/null
+> +++ b/arch/nios2/include/asm/page.h
+> @@ -0,0 +1,113 @@
+> +/*
+> + * Copyright (C) 2011 Tobias Klauser <tklauser@distanz.ch>
+> + * Copyright (C) 2004 Microtronix Datacom Ltd.
+> + *
+> + * MMU support based on asm/page.h from mips which is:
+> + *
+> + * Copyright (C) 1994 - 1999, 2000, 03 Ralf Baechle
+> + * Copyright (C) 1999, 2000 Silicon Graphics, Inc.
+> + *
+> + * NOMMU support based on asm/page.h from m68knommu.
+
+You might want to remove this line to avoid confusion, since NOMMU is
+not supported anymore in this submission of the NIOS II port.
+
+> + *
+> + * This file is subject to the terms and conditions of the GNU General Public
+> + * License.  See the file "COPYING" in the main directory of this archive
+> + * for more details.
+> + */
