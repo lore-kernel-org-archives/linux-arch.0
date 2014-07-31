@@ -1,69 +1,33 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:46533 "EHLO mx1.redhat.com"
+Received: from terminus.zytor.com ([198.137.202.10]:60449 "EHLO mail.zytor.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752518AbaGaQ4n (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 31 Jul 2014 12:56:43 -0400
-Date: Thu, 31 Jul 2014 18:54:23 +0200
-From: Oleg Nesterov <oleg@redhat.com>
-Subject: Re: [PATCH v4 2/5] x86,entry: Only call user_exit if TIF_NOHZ
-Message-ID: <20140731165423.GA16800@redhat.com>
-References: <cover.1406604806.git.luto@amacapital.net> <7123b2489cc5d1d5abb7bcf1364ca729cab3e6ca.1406604806.git.luto@amacapital.net> <20140729193232.GA8153@redhat.com> <20140730164344.GA27954@localhost.localdomain> <CALCETrUVaz3JFiNbyU=r3M-E9muHa1ffn7RX+_-4V_0U-hVaPw@mail.gmail.com> <20140731151630.GA7842@localhost.localdomain> <20140731164246.GA15974@redhat.com> <20140731164918.GC7842@localhost.localdomain>
+	id S1751349AbaGaQ5a (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 31 Jul 2014 12:57:30 -0400
+Message-ID: <53DA7550.40905@zytor.com>
+Date: Thu, 31 Jul 2014 09:56:48 -0700
+From: "H. Peter Anvin" <hpa@zytor.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20140731164918.GC7842@localhost.localdomain>
+Subject: Re: [PATCH v4 0/5] x86: two-phase syscall tracing and seccomp fastpath
+References: <cover.1406604806.git.luto@amacapital.net> <20140729192056.GA6308@redhat.com> <CALCETrX6P7SJQdgc0gTM7FLdwyT_Ld1MWvkLYpTO_2xsvBC9sA@mail.gmail.com> <CALCETrXHF5YzPQDvnJs=mFNm2Ff_FekGu_Y8-JyMaWh2hctR7A@mail.gmail.com> <20140730165940.GB27954@localhost.localdomain> <CALCETrUafpWfnbfZzgu3qSGqyxcG0+6A=A1RE8g++=GrQKD93Q@mail.gmail.com>
+In-Reply-To: <CALCETrUafpWfnbfZzgu3qSGqyxcG0+6A=A1RE8g++=GrQKD93Q@mail.gmail.com>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Frederic Weisbecker <fweisbec@gmail.com>
-Cc: Andy Lutomirski <luto@amacapital.net>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Kees Cook <keescook@chromium.org>, Will Drewry <wad@chromium.org>, X86 ML <x86@kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Linux MIPS Mailing List <linux-mips@linux-mips.org>, linux-arch <linux-arch@vger.kernel.org>, LSM List <linux-security-module@vger.kernel.org>, Alexei Starovoitov <ast@plumgrid.com>, "H. Peter Anvin" <hpa@zytor.com>
-Message-ID: <20140731165423.HsTWgVkVNhh9-n2LwflU_Qbt52Kfaz2B4P4s9OmKfk8@z>
+To: Andy Lutomirski <luto@amacapital.net>, Frederic Weisbecker <fweisbec@gmail.com>
+Cc: Oleg Nesterov <oleg@redhat.com>, linux-arch <linux-arch@vger.kernel.org>, X86 ML <x86@kernel.org>, LSM List <linux-security-module@vger.kernel.org>, Linux MIPS Mailing List <linux-mips@linux-mips.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Alexei Starovoitov <ast@plumgrid.com>, Will Drewry <wad@chromium.org>, Kees Cook <keescook@chromium.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
+Message-ID: <20140731165648.jFUZC01sJG3nVqi06bTknqb_nRptekM3_zNS8iamJ-Y@z>
 
-On 07/31, Frederic Weisbecker wrote:
->
-> On Thu, Jul 31, 2014 at 06:42:46PM +0200, Oleg Nesterov wrote:
-> > On 07/31, Frederic Weisbecker wrote:
-> > >
-> > > On Wed, Jul 30, 2014 at 10:23:34AM -0700, Andy Lutomirski wrote:
-> > > >
-> > > > At the end of the day, the syscall slowpath code calls a bunch of
-> > > > functions depending on what TIF_XYZ flags are set.  As long as it's
-> > > > structured like "if (TIF_A) do_a(); if (TIF_B) do_b();" or something
-> > > > like that, it's comprehensible.  But once random functions with no
-> > > > explicit flag checks or comments start showing up, it gets confusing.
-> > >
-> > > Yeah that's a point. I don't mind much the TIF_NOHZ test if you like.
-> >
-> > And in my opinion
-> >
-> > 	if (work & TIF_XYZ)
-> > 		user_exit();
-> >
-> > looks even more confusing. Because, once again, TIF_XYZ is not the
-> > reason to call user_exit().
-> >
-> > Not to mention this adds a minor performance penalty.
->
-> That's a point too! You guys both convinced me! ;-)
+On 07/30/2014 10:25 AM, Andy Lutomirski wrote:
+> 
+> And yet x86_64 has this code implemented in assembly even in the
+> slowpath.  Go figure.
+> 
 
-Very nice, now I know that you can agree with 2 opposite opinions at
-the same time ;)
+There is way too much assembly in entry_64.S probably because things
+have been grafted on, ahem, "organically".  It is darn nigh impossible
+to even remotely figure out what goes on in that file.
 
-> > > > If it's indeed all-or-nothing, I could remove the check and add a
-> > > > comment.  But please keep in mind that, currently, the slow path is
-> > > > *slow*, and my patches only improve the entry case.  So enabling
-> > > > context tracking on every task will hurt.
-> > >
-> > > That's what we do anyway. I haven't found a safe way to enabled context tracking
-> > > without tracking all CPUs.
-> >
-> > And if we change this, then the code above becomes racy. The state of
-> > TIF_XYZ can be changed right after the check. OK, it is racy anyway ;)
-> > but still this adds more confusion.
->
-> No because all running tasks have this flag set when context tracking is
-> enabled. And context tracking can't be disabled on runtime.
+	-hpa
 
-Yes, yes, please note that I said "if we change this".
-
-Oleg.
 
