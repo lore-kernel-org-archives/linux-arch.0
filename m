@@ -1,67 +1,172 @@
-From: Stephen Warren <swarren@wwwdotorg.org>
-Subject: Re: [PATCH v4 6/6] clk: Add floor and ceiling constraints to clock
- rates
-Date: Thu, 31 Jul 2014 11:51:20 -0600
-Message-ID: <53DA8218.7070300@wwwdotorg.org>
-References: <1405606399-26608-1-git-send-email-tomeu.vizoso@collabora.com>
- <1405606399-26608-7-git-send-email-tomeu.vizoso@collabora.com>
- <53CEA483.6090704@wwwdotorg.org> <53DA2CCB.2080300@collabora.com>
+From: Oleg Nesterov <oleg@redhat.com>
+Subject: Re: TIF_NOHZ can escape nonhz mask? (Was: [PATCH v3 6/8] x86:
+        Split syscall_trace_enter into two phases)
+Date: Thu, 31 Jul 2014 20:12:30 +0200
+Message-ID: <20140731181230.GA18695@redhat.com>
+References: <3f649f5658a163645e3ce15156176c325283762e.1405992946.git.luto@amacapital.net> <20140728173723.GA20993@redhat.com> <20140728185803.GA24663@redhat.com> <20140728192209.GA26017@localhost.localdomain> <20140729175414.GA3289@redhat.com> <20140730163516.GC18158@localhost.localdomain> <20140730174630.GA30862@redhat.com> <20140731003034.GA32078@localhost.localdomain> <20140731160353.GA14772@redhat.com> <20140731171329.GD7842@localhost.localdomain>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"; Format="flowed"
-Content-Transfer-Encoding: base64
-Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
-In-Reply-To: <53DA2CCB.2080300@collabora.com>
-List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
-List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
-List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
-List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
-List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
-Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
-Sender: "Linuxppc-dev"
- <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
-To: Tomeu Vizoso <tomeu.vizoso@collabora.com>, Mike Turquette <mturquette@linaro.org>
-Cc: Andrew Lunn <andrew@lunn.ch>, Ulf Hansson <ulf.hansson@linaro.org>, Prashant Gaikwad <pgaikwad@nvidia.com>, Tony Lindgren <tony@atomide.com>, Tomasz Figa <t.figa@samsung.com>, alsa-devel@alsa-project.org, Jaroslav Kysela <perex@perex.cz>, Thierry Reding <thierry.reding@gmail.com>, Paul Mackerras <paulus@samba.org>, Sylwester Nawrocki <s.nawrocki@samsung.com>, Daniel Walker <dwalker@fifo99.com>, linux-arch@vger.kernel.org, Boris Brezillon <boris.brezillon@free-electrons.com>, linux-samsung-soc@vger.kernel.org, Kukjin Kim <kgene.kim@samsung.com>, Russell King <linux@arm.linux.org.uk>, =?windows-1252?Q?Emilio_L=F3pez?= <emilio@elopez.com.ar>, Takashi Iwai <tiwai@suse.de>, Michal Simek <michal.simek@xilinx.com>, Kyungmin Park <kyungmin.park@samsung.com>, Kevin Hilman <khilman@deeprootsystems.com>, linux-arm-kernel@lists.infradead.org, patches@opensource.wolfsonmicro.com, Vi
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-mips-bounce@linux-mips.org>
+Content-Disposition: inline
+In-Reply-To: <20140731171329.GD7842@localhost.localdomain>
+Sender: linux-mips-bounce@linux-mips.org
+Errors-to: linux-mips-bounce@linux-mips.org
+List-help: <mailto:ecartis@linux-mips.org?Subject=help>
+List-unsubscribe: <mailto:ecartis@linux-mips.org?subject=unsubscribe%20linux-mips>
+List-software: Ecartis version 1.0.0
+List-subscribe: <mailto:ecartis@linux-mips.org?subject=subscribe%20linux-mips>
+List-owner: <mailto:ralf@linux-mips.org>
+List-post: <mailto:linux-mips@linux-mips.org>
+List-archive: <http://www.linux-mips.org/archives/linux-mips/>
+To: Frederic Weisbecker <fweisbec@gmail.com>
+Cc: Andy Lutomirski <luto@amacapital.net>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, linux-kernel@vger.kernel.org, Kees Cook <keescook@chromium.org>, Will Drewry <wad@chromium.org>, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-mips@linux-mips.org, linux-arch@vger.kernel.org, linux-security-module@vger.kernel.org, Alexei Starovoitov <ast@plumgrid.com>, hpa@zytor.com
 List-Id: linux-arch.vger.kernel.org
 
-T24gMDcvMzEvMjAxNCAwNTo0NyBBTSwgVG9tZXUgVml6b3NvIHdyb3RlOgo+IE9uIDA3LzIyLzIw
-MTQgMDc6NTAgUE0sIFN0ZXBoZW4gV2FycmVuIHdyb3RlOgo+PiBPbiAwNy8xNy8yMDE0IDA4OjEz
-IEFNLCBUb21ldSBWaXpvc28gd3JvdGU6Cj4+PiBBZGRzIGEgd2F5IGZvciBjbG9jayBjb25zdW1l
-cnMgdG8gc2V0IG1heGltdW0gYW5kIG1pbmltdW0gcmF0ZXMuIFRoaXMKPj4+IGNhbiBiZQo+Pj4g
-dXNlZCBmb3IgdGhlcm1hbCBkcml2ZXJzIHRvIHNldCBjZWlsaW5nIHJhdGVzLCBvciBieSBtaXNj
-LiBkcml2ZXJzIHRvCj4+PiBzZXQKPj4+IGZsb29yIHJhdGVzIHRvIGFzc3VyZSBhIG1pbmltdW0g
-cGVyZm9ybWFuY2UgbGV2ZWwuCj4+Cj4+PiBkaWZmIC0tZ2l0IGEvZHJpdmVycy9jbGsvY2xrLmMg
-Yi9kcml2ZXJzL2Nsay9jbGsuYwo+Pgo+Pj4gK3N0cnVjdCByYXRlX2NvbnN0cmFpbnQgewo+Pj4g
-KyAgICBzdHJ1Y3QgaGxpc3Rfbm9kZSAgICBub2RlOwo+Pj4gKyAgICBjb25zdCBjaGFyICAgICAg
-ICAqZGV2X2lkOwo+Pj4gKyAgICBjb25zdCBjaGFyICAgICAgICAqY29uX2lkOwo+Pj4gKyAgICBl
-bnVtIGNvbnN0cmFpbnRfdHlwZSAgICB0eXBlOwo+Pj4gKyAgICB1bnNpZ25lZCBsb25nICAgICAg
-ICByYXRlOwo+Pj4gK307Cj4+Cj4+IEkgd291bGQgcGVyc29uYWxseSBzdGlsbCBwcmVmZXIgZWl0
-aGVyOgo+Pgo+PiBhKSBUaGUgc3RydWN0IHJhdGVfY29uc3RyYWludHMgYmUgc3RvcmVkIGluIHN0
-cnVjdCBjbGsgcmF0aGVyIHRoYW4KPj4gc3RydWN0IGNsa19jb3JlLCBzbyB0aGV5J3JlIHN0b3Jl
-ZCBpbiB0aGUgY29udGFpbmVyIHRoYXQgInNldCIgdGhlCj4+IGNvbnN0cmFpbnRzLiBUaGlzIHdv
-dWxkIG1lYW4gaXRlcmF0aW5nIG92ZXIgYSBzdHJ1Y3QgY2xrX2NvcmUncwo+PiBhc3NvY2lhdGVk
-IHN0cnVjdCBjbGtzLCB0aGVuIGl0ZXJhdGluZyBvdmVyIHRoZSBzdHJ1Y3QgcmF0ZV9jb25zdHJh
-aW50cwo+PiB3aXRoaW4gZWFjaCBzdHJ1Y3QgY2xrLgo+Pgo+PiBvcjoKPj4KPj4gYikgc3RydWN0
-IHJhdGVfY29uc3RyYWludCB0byBjb250YWluIGEgcG9pbnRlciB0byB0aGUgc3RydWN0IGNsayB0
-aGF0Cj4+IGNyZWF0ZWQgdGhlIGNvbnN0cmFpbnQsIHJhdGhlciB0aGFuIGNvcHlpbmcgdGhlIGRl
-dl9pZC9jb25faWQgZnJvbSB0aGF0Cj4+IHN0cnVjdCBjbGsgaW50byB0aGUgc3RydWN0IHJhdGVf
-Y29uc3RyYWludC4KPj4KPj4gV2l0aCBlaXRoZXIgb2YgdGhvc2UgY2hhbmdlcywgdGhlIGNvbnN0
-cmFpbnRzIGFyZSBkaXJlY3RseSBhc3NvY2lhdGVkCj4+IHdpdGggdGhlIGNsb2NrIGNsaWVudCBv
-YmplY3QgdGhhdCBjcmVhdGVkIHRoZSBjb25zdHJhaW50IG11Y2ggYmV0dGVyCj4+IHRoYW4gcmln
-aHQgbm93LCB3aGVyZSB0aGUgbWF0Y2hpbmcgaXMgb25seSBiZWNhdXNlIHRoZSBzdHJ1Y3QgY2xr
-IGFuZAo+PiBzdHJ1Y3QgcmF0ZV9jb25zdHJhaW50ICJoYXBwZW4gdG8iIGhhdmUgdGhlIHNhbWUg
-ZGV2X2lkL2Nvbl9pZCB2YWx1ZXMuCj4+Cj4+IFN0aWxsLCB0aGlzIGlzIGEgcHJldHR5IG1pbm9y
-IGlzc3VlLCBhbmQgb3ZlcmFsbCB0aGlzIHNlcmllcyBsb29rcwo+PiByZWFzb25hYmxlIHRvIG1l
-IGF0IGEgcXVpY2sgbG9vay4KPgo+IFllYWgsIEkgYWdyZWUgYW5kIHBlcnNvbmFsbHkgcHJlZmVy
-IGEpLCBidXQgZ2l2ZW4gdGhlIGxpdHRsZSBmZWVkYmFjawo+IHRoYXQgSSBoYXZlIGdvdHRlbiBz
-byBmYXIgb24gdGhlIHJlZmFjdG9yaW5nLCBJJ20gc3RhcnRpbmcgdG8gY29uc2lkZXIKPiBmb3Jn
-ZXR0aW5nIGFib3V0IHRoZSBwZXItdXNlciBjbGsgc3RydWN0IGFuZCBnbyBpbnN0ZWFkIHdpdGgg
-YQo+IHJlcXVlc3QtYmFzZWQgQVBJIHNpbWlsYXIgdG8gdGhhdCBvZiBwbV9xb3MsIGZvciBzZXR0
-aW5nIGZsb29yIGFuZAo+IGNlaWxpbmcgZnJlcXVlbmNpZXMuCgpJIHdvdWxkIG9idmlvdXNseSBl
-bmNvdXJhZ2UgeW91IHRvIGNvbnRpbnVlIHB1c2hpbmcgZm9yIHRoaXMgZmVhdHVyZSwgCmFsdGhv
-dWdoIEkgdW5kZXJzdGFuZCBpdCBjYW4gYmUgZGlmZmljdWx0IHRvIGJlIG1vdGl2YXRlZCB3aGVu
-IHRoZSAKcGF0Y2hlcyBkb24ndCBnZXQgbXVjaCBmZWVkYmFjay4KX19fX19fX19fX19fX19fX19f
-X19fX19fX19fX19fX19fX19fX19fX19fX19fX18KTGludXhwcGMtZGV2IG1haWxpbmcgbGlzdApM
-aW51eHBwYy1kZXZAbGlzdHMub3psYWJzLm9yZwpodHRwczovL2xpc3RzLm96bGFicy5vcmcvbGlz
-dGluZm8vbGludXhwcGMtZGV2
+On 07/31, Frederic Weisbecker wrote:
+>
+> On Thu, Jul 31, 2014 at 06:03:53PM +0200, Oleg Nesterov wrote:
+> > On 07/31, Frederic Weisbecker wrote:
+> > >
+> > > I was convinced that the very first kernel init task is PID 0 then
+> > > it forks on rest_init() to launch the userspace init with PID 1. Then init/0 becomes the
+> > > idle task of the boot CPU.
+> >
+> > Yes sure. But context_tracking_cpu_set() is called by init task with PID 1, not
+> > by "swapper".
+>
+> Are you sure? It's called from start_kernel() which is init/0.
+
+But do_initcalls() is called by kernel_init(), this is the init process which is
+going to exec /sbin/init later.
+
+But this doesn't really matter,
+
+> Maybe we should just enable it everywhere.
+
+Yes, yes, this doesn't really matter. We can even add set(TIF_NOHZ) at the start
+of start_kernel(). The question is, I still can't understand why do we want to
+have the global TIF_NOHZ.
+
+> > OK. To simplify, lets discuss user_enter() only. So, it is actually a nop on
+> > CPU_0, and CPU_1 can miss it anyway.
+> >
+> > > But global TIF_NOHZ should enforce context tracking everywhere.
+> >
+> > And this is what I can't understand. Lets return to my initial question, why
+> > we can't change __context_tracking_task_switch()
+> >
+> > 	void __context_tracking_task_switch(struct task_struct *prev,
+> > 					    struct task_struct *next)
+> > 	{
+> > 		if (context_tracking_cpu_is_enabled())
+> > 			set_tsk_thread_flag(next, TIF_NOHZ);
+> > 		else
+> > 			clear_tsk_thread_flag(next, TIF_NOHZ);
+> > 	}
+> >
+> > ?
+>
+> Well we can change it to global TIF_NOHZ
+>
+> > How can the global TIF_NOHZ help?
+>
+> It avoids that flag swap on task_switch.
+
+Ah, you probably meant that we can kill context_tracking_task_switch() as
+we discussed.
+
+But I meant another thing, TIF_NOHZ is already global because it is always
+set after context_tracking_cpu_set().
+
+Performance-wise, this set/clear code above can be better because it avoids
+the slow paths on the untracked CPU's. But let's ignore this, the question is
+why the change above is not correct? Or why it can make the things worse?
+
+
+> > OK, OK, a task can return to usermode on CPU_0, notice TIF_NOHZ, take the
+> > slow path, and do the "right" thing if it migrates to CPU_1 _before_ it
+> > comes to user_enter(). But this case is very unlikely, certainly this can't
+> > explain why do we penalize the untracked CPU's ?
+>
+> It's rather that CPU 0 calls user_enter() and then migrate to CPU 1 and resume
+> to userspace.
+
+And in this case a) user_enter() is pointless on CPU_0, and b) CPU_1 misses
+the necessary user_enter().
+
+> It's unlikely but possible. I actually observed that very easily on early testing.
+
+Sure. And this can happen anyway? Why the change in __context_tracking_task_switch()
+is wrong?
+
+> And it's a big problem because then the CPU runs in userspace, possibly for a long while
+> in HPC case, and context tracking thinks it is in kernelspace. As a result, RCU waits
+> for that CPU to complete grace periods and cputime is accounted to kernelspace instead of
+> userspace.
+>
+> It looks like a harmless race but it can have big consequences.
+
+I see. Again, does the global TIF_NOHZ really help?
+
+> > > And also it's
+> > > less context switch overhead.
+> >
+> > Why???
+>
+> Because calling context_switch_task_switch() on every context switch is costly.
+
+See above. This depends, but forcing the slow paths on all CPU's can be more
+costly.
+
+> > And of course I can't understand exception_enter/exit(). Not to mention that
+> > (afaics) "prev_ctx == IN_USER" in exception_exit() can be false positive even
+> > if we forget that the caller can migrate in between. Just because, once again,
+> > a tracked CPU can miss user_exit().
+>
+> You lost me on this. How can a tracked CPU miss user_exit()?
+
+I am lost too ;) Didn't we already discuss this? A task calls user_exit() on
+CPU_0 for no reason, migrates to the tracked CPU_1 and finally returns to user
+space leaving this cpu in IN_KERNEL state?
+
+> > So, why not
+> >
+> > 	static inline void exception_enter(void)
+> > 	{
+> > 		user_exit();
+> > 	}
+> >
+> > 	static inline void exception_exit(struct pt_regs *regs)
+> > 	{
+> > 		if (user_mode(regs))
+> > 			user_enter();
+> > 	}
+>
+> That's how I implemented it first. But then I changed it the way it is now:
+> 6c1e0256fad84a843d915414e4b5973b7443d48d
+> ("context_tracking: Restore correct previous context state on exception exit")
+>
+> This is again due to the shift between hard and soft userspace boundaries.
+> user_mode(regs) checks hard boundaries only.
+>
+> Lets get back to our beloved example:
+>
+>           CPU 0                                  CPU 1
+>           ---------------------------------------------
+>
+>           returning from syscall {
+>                user_enter();
+>                exception {
+>                     exception_enter()
+>                     PREEMPT!
+>                     ----------------------->
+>                                                  //resume exception
+>                                                    exception_exit();
+>                                                    return to userspace
+
+OK, thanks, so in this case we miss user_enter().
+
+But again, we can miss it anyway if preemptions comes before "exception" ?
+if CPU 1 was in IN_KERNEL state.
+
+Oleg.
