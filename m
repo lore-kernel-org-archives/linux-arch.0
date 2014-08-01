@@ -1,104 +1,85 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pd0-f179.google.com ([209.85.192.179]:44144 "EHLO
-	mail-pd0-f179.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750892AbaHAOKD (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 1 Aug 2014 10:10:03 -0400
-Date: Fri, 1 Aug 2014 16:09:57 +0200
-From: Thierry Reding <thierry.reding@gmail.com>
-Subject: Re: [PATCH] asm-generic/io.h: reorder funtions to form logical groups
-Message-ID: <20140801140956.GA1913@ulmo.nvidia.com>
-References: <1405508484-18303-1-git-send-email-thierry.reding@gmail.com>
- <20140718205953.GA21964@ravnborg.org>
- <20140719125937.GA18566@ravnborg.org>
+Received: from mail-oi0-f44.google.com ([209.85.218.44]:36070 "EHLO
+	mail-oi0-f44.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754818AbaHAUcD (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 1 Aug 2014 16:32:03 -0400
 MIME-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha1;
-	protocol="application/pgp-signature"; boundary="/04w6evG8XlLl3ft"
-Content-Disposition: inline
-In-Reply-To: <20140719125937.GA18566@ravnborg.org>
+In-Reply-To: <20140801131049.e94e0e6daec0180ac0236f68@linux-foundation.org>
+References: <1406317427-10215-1-git-send-email-jcmvbkbc@gmail.com>
+	<1406317427-10215-2-git-send-email-jcmvbkbc@gmail.com>
+	<20140801131049.e94e0e6daec0180ac0236f68@linux-foundation.org>
+Date: Sat, 2 Aug 2014 00:24:43 +0400
+Message-ID: <CAMo8BfLN0reEuE2u50Dkv4kyVmq0QMPJdQ4mR5RsQRX4HQFkVA@mail.gmail.com>
+Subject: Re: [PATCH v3 1/2] mm/highmem: make kmap cache coloring aware
+From: Max Filippov <jcmvbkbc@gmail.com>
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Sam Ravnborg <sam@ravnborg.org>
-Cc: Russell King <linux@arm.linux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Stephen Boyd <sboyd@codeaurora.org>, linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20140801140957.ini3024Si5-VUoa1Oc5f1IdGnWQDcBqDv3heAeT02rg@z>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: "linux-xtensa@linux-xtensa.org" <linux-xtensa@linux-xtensa.org>, Chris Zankel <chris@zankel.net>, Marc Gauthier <marc@cadence.com>, "linux-mm@kvack.org" <linux-mm@kvack.org>, Linux-Arch <linux-arch@vger.kernel.org>, Linux/MIPS Mailing List <linux-mips@linux-mips.org>, LKML <linux-kernel@vger.kernel.org>, David Rientjes <rientjes@google.com>, Leonid Yegoshin <Leonid.Yegoshin@imgtec.com>, Steven Hill <Steven.Hill@imgtec.com>
+Message-ID: <20140801202443._OixAGjAb6W8FTlWEIaonF92s02IRfc3rJz967RMdtM@z>
 
+On Sat, Aug 2, 2014 at 12:10 AM, Andrew Morton
+<akpm@linux-foundation.org> wrote:
+> On Fri, 25 Jul 2014 23:43:46 +0400 Max Filippov <jcmvbkbc@gmail.com> wrote:
+>
+>> VIPT cache with way size larger than MMU page size may suffer from
+>> aliasing problem: a single physical address accessed via different
+>> virtual addresses may end up in multiple locations in the cache.
+>> Virtual mappings of a physical address that always get cached in
+>> different cache locations are said to have different colors.
+>> L1 caching hardware usually doesn't handle this situation leaving it
+>> up to software. Software must avoid this situation as it leads to
+>> data corruption.
+>>
+>> One way to handle this is to flush and invalidate data cache every time
+>> page mapping changes color. The other way is to always map physical page
+>> at a virtual address with the same color. Low memory pages already have
+>> this property. Giving architecture a way to control color of high memory
+>> page mapping allows reusing of existing low memory cache alias handling
+>> code.
+>>
+>> Provide hooks that allow architectures with aliasing cache to align
+>> mapping address of high pages according to their color. Such architectures
+>> may enforce similar coloring of low- and high-memory page mappings and
+>> reuse existing cache management functions to support highmem.
+>>
+>> This code is based on the implementation of similar feature for MIPS by
+>> Leonid Yegoshin <Leonid.Yegoshin@imgtec.com>.
+>>
+>
+> It's worth mentioning that xtensa needs this.
+>
+> What is (still) missing from these changelogs is a clear description of
+> the end-user visible effects.  Does it fix some bug?  If so what?  Is
+> it a performace optimisation?  If so how much?  This info is the
+> top-line reason for the patchset and should be presented as such.
 
---/04w6evG8XlLl3ft
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+Ok, let me try again.
 
-On Sat, Jul 19, 2014 at 02:59:37PM +0200, Sam Ravnborg wrote:
-> From 929c64c1aaf378b767e0ed89826b6bb12449df15 Mon Sep 17 00:00:00 2001
-> From: Sam Ravnborg <sam@ravnborg.org>
-> Date: Sat, 19 Jul 2014 14:47:43 +0200
-> Subject: [PATCH] asm-generic/io.h: reorder funtions to form logical groups
->=20
-> Reoder the functions so the various functions are grouped
-> according to how they access memoy.
-> For example __raw_{read,write}* are now all grouped.
->=20
-> The benefit of this grouping is that one can easier find all
-> IO accessors of one type.
-> To do so a few more #ifdef CONFIG_64BIT had to be used.
->=20
-> Add a small boiler plate comment for some of the groups to
-> better let them stand out.
->=20
-> Signed-off-by: Sam Ravnborg <sam@ravnborg.org>
-> ---
->=20
-> Hi Thierry.
->=20
-> This is my attempt to bring some order into io.h
-> with respect to the order the functions are defined in.
->=20
-> In a follow-up mail I also said we should delete the _p variants
-> of some methods but I then learned they are for slow IO access.
-> So these I have left as is.
->=20
-> And introducing static inline for all functions that are pure macro
-> substitution is also left out for now.
->=20
-> Please consider if you will take this as a follow-on patch.
+>> --- a/mm/highmem.c
+>> +++ b/mm/highmem.c
+>> @@ -28,6 +28,9 @@
+>>  #include <linux/highmem.h>
+>>  #include <linux/kgdb.h>
+>>  #include <asm/tlbflush.h>
+>> +#ifdef CONFIG_HIGHMEM
+>> +#include <asm/highmem.h>
+>> +#endif
+>
+> Should be unneeded - the linux/highmem.h inclusion already did this.
 
-Just a short update on this: I've pulled your patch into my series and
-then thought I'd make a last pass over these and send out a new version
-but then I started noticing a few more things that I thought I could
-quickly clean up as well. One thing led to another and I'm now up to
-double the number of patches. I still think it's worth doing, but
-unfortunately it's become somewhat more complicated since it now touches
-a couple more architectures and even some drivers (/dev/mem (!) and
-sunzilog).
+Ok, I'll drop it.
 
-I'm almost through sorting out the remaining issues I think, but it'll
-take me another couple of days to rebase and squash patches and run some
-build tests to verify that things don't break somewhere in the middle.
+> Apart from that it all looks OK to me.  I'm assuming this is 3.17-rc1
+> material, but I am unsure because of the missing end-user-impact info.
+> If it's needed in earlier kernels then we can tag it for -stable
+> backporting but again, the -stable team (ie: Greg) will want so see the
+> justification for that backport.
 
-Oh, by the way: would you prefer that I keep your patch separate or
-shall I just squash it into the one that has the major asm-generic/io.h
-cleanup?
+It's not a fix, for xtensa it's a part of a new feature, so no need
+for backporting.
 
-Thierry
-
---/04w6evG8XlLl3ft
-Content-Type: application/pgp-signature
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v2
-
-iQIcBAEBAgAGBQJT25+0AAoJEN0jrNd/PrOhe30P/ineumK56L2BTvHKxwre7TvU
-ktlIGWcQyCqWV0swR3nVvJRJJzPcqW+vsi0nIbHDBN9DK1s0iYpS4htTxDL/9li0
-r3vSlqlbuNmGBmlEh8NzTOVXIrlYy6o3wEAYm8CcmEwCpV8BPvHw1z/Fj4l/spYh
-ehWwbVPSsSb12xFPpDDb1crmPzmXR/kKQ6rWjID1GWVqbNjnxFPopEb+otgYLTtB
-mgixDgJ36t/uS+JWJM4iQX6YuJUySlsIV3z+sM+n4wJlfJyn7Zdn86Bw2m9wiYtI
-lRXJm322gcegEwxwgDbilSGnnYzszmOFtguhba1LKXXP4vvRqgGwPMbunUVqvsl2
-CBY5IdN/luYydPLt2x2pALPxt+B9zqQUczUCwa83boNDsCZm2f8ff+qaPxQShDJp
-ta78e9JX37oT+DvjjBOU7wIrwOMOnKfIumBDj3+GAMdYhvp1HeUPjKvfacKTQtZx
-uQU/r9rBZ7JLlCqQiCv6lnHpWAZp31ZqA5JIrMCvdG9V3kTLikxbY0LBgz77v3km
-/l3gbQrlnxikfRoOmsj0yha6J+E6bLbTLBtYt605nLxqxmTUMg5w/m6986orMq13
-BGKQAgpmBQU5KxgVptK1oTeeZf79QPzonQckAv+DlM1BRugNRR4iBgmXX7hCFh/L
-GCFW0WaQB8rcPmFyYllk
-=Dp+w
------END PGP SIGNATURE-----
-
---/04w6evG8XlLl3ft--
+-- 
+Thanks.
+-- Max
