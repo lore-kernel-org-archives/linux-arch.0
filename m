@@ -1,49 +1,47 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:26856 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751322AbaGaTHy (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 31 Jul 2014 15:07:54 -0400
-Date: Thu, 31 Jul 2014 21:05:18 +0200
-From: Oleg Nesterov <oleg@redhat.com>
-Subject: Re: TIF_NOHZ can escape nonhz mask? (Was: [PATCH v3 6/8] x86:
-	Split syscall_trace_enter into two phases)
-Message-ID: <20140731190518.GA21938@redhat.com>
-References: <20140728192209.GA26017@localhost.localdomain> <20140729175414.GA3289@redhat.com> <20140730163516.GC18158@localhost.localdomain> <20140730174630.GA30862@redhat.com> <20140731003034.GA32078@localhost.localdomain> <20140731160353.GA14772@redhat.com> <20140731171329.GD7842@localhost.localdomain> <20140731181230.GA18695@redhat.com> <20140731184729.GA12296@localhost.localdomain> <CAFTL4hyHh3Bw0eeJe9q50HVrt=B-zgmyu6C_hy+RoW21kQEJtg@mail.gmail.com>
+Received: from mout.kundenserver.de ([212.227.17.24]:58592 "EHLO
+	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754881AbaHANRY (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 1 Aug 2014 09:17:24 -0400
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [RFC PATCH 00/11] Refactor MSI to support Non-PCI device
+Date: Fri, 1 Aug 2014 15:16:26 +0200
+References: <1406344128-27055-1-git-send-email-wangyijing@huawei.com> <53D89502.60506@linux.intel.com> <53D89CA1.7000501@huawei.com>
+In-Reply-To: <53D89CA1.7000501@huawei.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <CAFTL4hyHh3Bw0eeJe9q50HVrt=B-zgmyu6C_hy+RoW21kQEJtg@mail.gmail.com>
+Content-Type: Text/Plain;
+  charset="iso-8859-1"
+Content-Transfer-Encoding: 7bit
+Message-ID: <201408011516.26253.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Frederic Weisbecker <fweisbec@gmail.com>
-Cc: Andy Lutomirski <luto@amacapital.net>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, LKML <linux-kernel@vger.kernel.org>, Kees Cook <keescook@chromium.org>, Will Drewry <wad@chromium.org>, the arch/x86 maintainers <x86@kernel.org>, "<linux-arm-kernel@lists.infradead.org>" <linux-arm-kernel@lists.infradead.org>, Linux MIPS Mailing List <linux-mips@linux-mips.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, LSM List <linux-security-module@vger.kernel.org>, Alexei Starovoitov <ast@plumgrid.com>, "H. Peter Anvin" <hpa@zytor.com>
-Message-ID: <20140731190518.PeofMK0XTnTBSbJdeO2b6_iBUyGlxo-BqeI1VFwPt98@z>
+To: Yijing Wang <wangyijing@huawei.com>
+Cc: Jiang Liu <jiang.liu@linux.intel.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Russell King <linux@arm.linux.org.uk>, Paul.Mundt@huawei.com, Marc Zyngier <marc.zyngier@arm.com>, linux-pci@vger.kernel.org, "James E.J. Bottomley" <jejb@parisc-linux.org>, virtualization@lists.linux-foundation.org, Xinwei Hu <huxinwei@huawei.com>, Hanjun Guo <guohanjun@huawei.com>, Bjorn Helgaas <bhelgaas@google.com>, Wuyun <wuyun.wu@huawei.com>
+Message-ID: <20140801131626.o3m3ys-VWDgwRb1OSmcm7EsQdL__WqqZBFoDyM9PxTE@z>
 
-On 07/31, Frederic Weisbecker wrote:
->
-> 2014-07-31 20:47 GMT+02:00 Frederic Weisbecker <fweisbec@gmail.com>:
-> > On Thu, Jul 31, 2014 at 08:12:30PM +0200, Oleg Nesterov wrote:
-> >> On 07/31, Frederic Weisbecker wrote:
-> > No, because preempt_schedule_irq() does the ctx_state save and restore with
-> > exception_enter/exception_exit.
->
-> Similar thing happens with schedule_user().
->
-> preempt_schedule_irq() handles kernel preemption and schedule_user()
-> the user preemption. On both cases we save and restore the context
-> tracking state.
->
-> This might be the missing piece you were missing :)
+On Wednesday 30 July 2014, Yijing Wang wrote:
+> >>>
+> >>> The other part I'm not completely sure about is how you want to
+> >>> have MSIs map into normal IRQ descriptors. At the moment, all
+> >>> MSI users are based on IRQ numbers, but this has known scalability problems.
+> >>
+> >> Hmmm, I still use the IRQ number to map the MSIs to IRQ description.
+> >> I'm sorry, I don't understand you meaning.
+> >> What are the scalability problems you mentioned ?
+> > We have soft limitation of nr_irqs or hard limitation NR_IRQS,
+> > we couldn't allocate as much irq number as we need in some cases,
+> > such as to support MSI-x.
+> 
+> Oh, yes, this is a potential issue. Gerry, thanks for you explanation. :)
 
-YYYYYEEEEESSSS, thanks!!
+This should no longer be an issue, as arm64 uses CONFIG_SPARSE_IRQ
+and the number of interrupts is not limited in any form.
 
-And in fact I was going to suggest to add this logic into preempt schedule
-paths to improve the situation if we can't make TIF_NOHZ per-cpu.
+My point was more that the device driver should not need to care about
+the interrupt number: it gets made up on the spot when the MSI is
+needed, and then it is only used to request the IRQ. This can be
+simplified into one interface at the device driver level, even though
+the internal still use numbers somewhere. If we ever remove IRQ numbers
+from the driver API, this part doesn't need to get touched again.
 
-But Frederic, perhaps I'll return here tomorrow with another question, it
-is too late for me now ;)
-
-Thanks!
-
-Oleg.
-
+	Arnd
