@@ -1,245 +1,153 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-oi0-f48.google.com ([209.85.218.48]:48360 "EHLO
-	mail-oi0-f48.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750859AbaHANhu (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 1 Aug 2014 09:37:50 -0400
+Received: from mout.kundenserver.de ([212.227.126.130]:57602 "EHLO
+	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750845AbaHANwy (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 1 Aug 2014 09:52:54 -0400
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [RFC PATCH 00/11] Refactor MSI to support Non-PCI device
+Date: Fri, 1 Aug 2014 15:52:31 +0200
+References: <1406344128-27055-1-git-send-email-wangyijing@huawei.com> <1748052.OMBQJiOLYT@wuerfel> <53D85C2E.3060205@huawei.com>
+In-Reply-To: <53D85C2E.3060205@huawei.com>
 MIME-Version: 1.0
-In-Reply-To: <1406317427-10215-2-git-send-email-jcmvbkbc@gmail.com>
-References: <1406317427-10215-1-git-send-email-jcmvbkbc@gmail.com>
-	<1406317427-10215-2-git-send-email-jcmvbkbc@gmail.com>
-Date: Fri, 1 Aug 2014 17:37:49 +0400
-Message-ID: <CAMo8BfKmYwG2tJym_97XeSP2zej7Oecw7_W9YNqf_Ogep-3-KA@mail.gmail.com>
-Subject: Re: [PATCH v3 1/2] mm/highmem: make kmap cache coloring aware
-From: Max Filippov <jcmvbkbc@gmail.com>
-Content-Type: text/plain; charset=UTF-8
+Content-Type: Text/Plain;
+  charset="iso-8859-1"
+Content-Transfer-Encoding: 7bit
+Message-ID: <201408011552.32135.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "linux-xtensa@linux-xtensa.org" <linux-xtensa@linux-xtensa.org>
-Cc: Chris Zankel <chris@zankel.net>, Marc Gauthier <marc@cadence.com>, "linux-mm@kvack.org" <linux-mm@kvack.org>, Linux-Arch <linux-arch@vger.kernel.org>, Linux/MIPS Mailing List <linux-mips@linux-mips.org>, LKML <linux-kernel@vger.kernel.org>, David Rientjes <rientjes@google.com>, Andrew Morton <akpm@linux-foundation.org>, Leonid Yegoshin <Leonid.Yegoshin@imgtec.com>, Steven Hill <Steven.Hill@imgtec.com>, Max Filippov <jcmvbkbc@gmail.com>
-Message-ID: <20140801133749.2ozQdv-3pIYrDJ95K6fIHQbFDXCLDsLymImaU075Mns@z>
+To: Yijing Wang <wangyijing@huawei.com>
+Cc: linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Russell King <linux@arm.linux.org.uk>, Paul.Mundt@huawei.com, Marc Zyngier <marc.zyngier@arm.com>, linux-pci@vger.kernel.org, "James E.J. Bottomley" <jejb@parisc-linux.org>, virtualization@lists.linux-foundation.org, Xinwei Hu <huxinwei@huawei.com>, Hanjun Guo <guohanjun@huawei.com>, Bjorn Helgaas <bhelgaas@google.com>, Wuyun <wuyun.wu@huawei.com>
+Message-ID: <20140801135231.ZiDLPW1CsnDQp-HwurcSlPLJlOC6T0I6_2dXv6H3pn4@z>
 
-On Fri, Jul 25, 2014 at 11:43 PM, Max Filippov <jcmvbkbc@gmail.com> wrote:
-> VIPT cache with way size larger than MMU page size may suffer from
-> aliasing problem: a single physical address accessed via different
-> virtual addresses may end up in multiple locations in the cache.
-> Virtual mappings of a physical address that always get cached in
-> different cache locations are said to have different colors.
-> L1 caching hardware usually doesn't handle this situation leaving it
-> up to software. Software must avoid this situation as it leads to
-> data corruption.
->
-> One way to handle this is to flush and invalidate data cache every time
-> page mapping changes color. The other way is to always map physical page
-> at a virtual address with the same color. Low memory pages already have
-> this property. Giving architecture a way to control color of high memory
-> page mapping allows reusing of existing low memory cache alias handling
-> code.
->
-> Provide hooks that allow architectures with aliasing cache to align
-> mapping address of high pages according to their color. Such architectures
-> may enforce similar coloring of low- and high-memory page mappings and
-> reuse existing cache management functions to support highmem.
->
-> This code is based on the implementation of similar feature for MIPS by
-> Leonid Yegoshin <Leonid.Yegoshin@imgtec.com>.
->
-> Signed-off-by: Max Filippov <jcmvbkbc@gmail.com>
-> ---
+On Wednesday 30 July 2014, Yijing Wang wrote:
+> On 2014/7/29 22:08, Arnd Bergmann wrote:
+> > On Saturday 26 July 2014 11:08:37 Yijing Wang wrote:
+> >>
+> >> The new data struct for generic MSI driver.
+> >> struct msi_irqs {
+> >>         u8 msi_enabled:1; /* Enable flag */
+> >>         u8 msix_enabled:1;
+> >>         struct list_head msi_list; /* MSI desc list */
+> >>         void *data;     /* help to find the MSI device */
+> >>         struct msi_ops *ops; /* MSI device specific hook */
+> >> };
+> >> struct msi_irqs is used to manage MSI related informations. Every device supports
+> >> MSI should contain this data struct and allocate it.
+> > 
+> > I think you should have a stronger association with the 'struct
+> > device' here. Can you replace the 'void *data' with 'struct device *dev'?
+> 
+> Actually, I used the struct device *dev in my first draft, finally, I replaced
+> it with void *data, because some MSI devices don't have a struct device *dev,
+> like the existing hpet device, dmar msi device, and OF device, like the ARM consolidator.
+> 
+> Of course, we can make the MSI devices have their own struct device, and register to
+> device tree, eg, add a class device named MSI_DEV. But I'm not sure whether it is appropriate.
 
-Ping? Is there anything else that can help making this patch better
-and getting it merged?
+It doesn't have to be in the (OF) device tree, but I think it absolutely makes
+sense to use the 'struct device' infrastructure here, as almost everything uses
+a device, and the ones that don't do that today can be easily changed.
 
-> Changes v2->v3:
-> - drop ARCH_PKMAP_COLORING, check gif et_pkmap_color is defined instead;
-> - add comment stating that arch should place definitions into
->   asm/highmem.h, include it directly to mm/highmem.c;
-> - replace macros with inline functions, change set_pkmap_color to
->   get_pkmap_color which better fits inline function model;
-> - drop get_last_pkmap_nr;
-> - replace get_next_pkmap_counter with get_pkmap_entries_count, leave
->   original counting code;
-> - introduce get_pkmap_wait_queue_head and make sleeping/waking dependent
->   on mapping color;
-> - move file-scope static variables last_pkmap_nr and pkmap_map_wait into
->   get_next_pkmap_nr and get_pkmap_wait_queue_head respectively;
-> - document new functions;
-> - expand patch description and change authorship.
->
-> Changes v1->v2:
-> - define set_pkmap_color(pg, cl) as do { } while (0) instead of /* */;
-> - rename is_no_more_pkmaps to no_more_pkmaps;
-> - change 'if (count > 0)' to 'if (count)' to better match the original
->   code behavior;
->
->  mm/highmem.c | 89 ++++++++++++++++++++++++++++++++++++++++++++++++++++--------
->  1 file changed, 78 insertions(+), 11 deletions(-)
->
-> diff --git a/mm/highmem.c b/mm/highmem.c
-> index b32b70c..0d0cbbb 100644
-> --- a/mm/highmem.c
-> +++ b/mm/highmem.c
-> @@ -28,6 +28,9 @@
->  #include <linux/highmem.h>
->  #include <linux/kgdb.h>
->  #include <asm/tlbflush.h>
-> +#ifdef CONFIG_HIGHMEM
-> +#include <asm/highmem.h>
-> +#endif
->
->
->  #if defined(CONFIG_HIGHMEM) || defined(CONFIG_X86_32)
-> @@ -44,6 +47,66 @@ DEFINE_PER_CPU(int, __kmap_atomic_idx);
->   */
->  #ifdef CONFIG_HIGHMEM
->
-> +/*
-> + * Architecture with aliasing data cache may define the following family of
-> + * helper functions in its asm/highmem.h to control cache color of virtual
-> + * addresses where physical memory pages are mapped by kmap.
-> + */
-> +#ifndef get_pkmap_color
-> +
-> +/*
-> + * Determine color of virtual address where the page should be mapped.
-> + */
-> +static inline unsigned int get_pkmap_color(struct page *page)
-> +{
-> +       return 0;
-> +}
-> +#define get_pkmap_color get_pkmap_color
-> +
-> +/*
-> + * Get next index for mapping inside PKMAP region for page with given color.
-> + */
-> +static inline unsigned int get_next_pkmap_nr(unsigned int color)
-> +{
-> +       static unsigned int last_pkmap_nr;
-> +
-> +       last_pkmap_nr = (last_pkmap_nr + 1) & LAST_PKMAP_MASK;
-> +       return last_pkmap_nr;
-> +}
-> +
-> +/*
-> + * Determine if page index inside PKMAP region (pkmap_nr) of given color
-> + * has wrapped around PKMAP region end. When this happens an attempt to
-> + * flush all unused PKMAP slots is made.
-> + */
-> +static inline int no_more_pkmaps(unsigned int pkmap_nr, unsigned int color)
-> +{
-> +       return pkmap_nr == 0;
-> +}
-> +
-> +/*
-> + * Get the number of PKMAP entries of the given color. If no free slot is
-> + * found after checking that much entries, kmap will sleep waiting for
-> + * someone to call kunmap and free PKMAP slot.
-> + */
-> +static inline int get_pkmap_entries_count(unsigned int color)
-> +{
-> +       return LAST_PKMAP;
-> +}
-> +
-> +/*
-> + * Get head of a wait queue for PKMAP entries of the given color.
-> + * Wait queues for different mapping colors should be independent to avoid
-> + * unnecessary wakeups caused by freeing of slots of other colors.
-> + */
-> +static inline wait_queue_head_t *get_pkmap_wait_queue_head(unsigned int color)
-> +{
-> +       static DECLARE_WAIT_QUEUE_HEAD(pkmap_map_wait);
-> +
-> +       return &pkmap_map_wait;
-> +}
-> +#endif
-> +
->  unsigned long totalhigh_pages __read_mostly;
->  EXPORT_SYMBOL(totalhigh_pages);
->
-> @@ -68,13 +131,10 @@ unsigned int nr_free_highpages (void)
->  }
->
->  static int pkmap_count[LAST_PKMAP];
-> -static unsigned int last_pkmap_nr;
->  static  __cacheline_aligned_in_smp DEFINE_SPINLOCK(kmap_lock);
->
->  pte_t * pkmap_page_table;
->
-> -static DECLARE_WAIT_QUEUE_HEAD(pkmap_map_wait);
-> -
->  /*
->   * Most architectures have no use for kmap_high_get(), so let's abstract
->   * the disabling of IRQ out of the locking in that case to save on a
-> @@ -161,15 +221,17 @@ static inline unsigned long map_new_virtual(struct page *page)
->  {
->         unsigned long vaddr;
->         int count;
-> +       unsigned int last_pkmap_nr;
-> +       unsigned int color = get_pkmap_color(page);
->
->  start:
-> -       count = LAST_PKMAP;
-> +       count = get_pkmap_entries_count(color);
->         /* Find an empty entry */
->         for (;;) {
-> -               last_pkmap_nr = (last_pkmap_nr + 1) & LAST_PKMAP_MASK;
-> -               if (!last_pkmap_nr) {
-> +               last_pkmap_nr = get_next_pkmap_nr(color);
-> +               if (no_more_pkmaps(last_pkmap_nr, color)) {
->                         flush_all_zero_pkmaps();
-> -                       count = LAST_PKMAP;
-> +                       count = get_pkmap_entries_count(color);
->                 }
->                 if (!pkmap_count[last_pkmap_nr])
->                         break;  /* Found a usable entry */
-> @@ -181,12 +243,14 @@ start:
->                  */
->                 {
->                         DECLARE_WAITQUEUE(wait, current);
-> +                       wait_queue_head_t *pkmap_map_wait =
-> +                               get_pkmap_wait_queue_head(color);
->
->                         __set_current_state(TASK_UNINTERRUPTIBLE);
-> -                       add_wait_queue(&pkmap_map_wait, &wait);
-> +                       add_wait_queue(pkmap_map_wait, &wait);
->                         unlock_kmap();
->                         schedule();
-> -                       remove_wait_queue(&pkmap_map_wait, &wait);
-> +                       remove_wait_queue(pkmap_map_wait, &wait);
->                         lock_kmap();
->
->                         /* Somebody else might have mapped it while we slept */
-> @@ -274,6 +338,8 @@ void kunmap_high(struct page *page)
->         unsigned long nr;
->         unsigned long flags;
->         int need_wakeup;
-> +       unsigned int color = get_pkmap_color(page);
-> +       wait_queue_head_t *pkmap_map_wait;
->
->         lock_kmap_any(flags);
->         vaddr = (unsigned long)page_address(page);
-> @@ -299,13 +365,14 @@ void kunmap_high(struct page *page)
->                  * no need for the wait-queue-head's lock.  Simply
->                  * test if the queue is empty.
->                  */
-> -               need_wakeup = waitqueue_active(&pkmap_map_wait);
-> +               pkmap_map_wait = get_pkmap_wait_queue_head(color);
-> +               need_wakeup = waitqueue_active(pkmap_map_wait);
->         }
->         unlock_kmap_any(flags);
->
->         /* do wake-up, if needed, race-free outside of the spin lock */
->         if (need_wakeup)
-> -               wake_up(&pkmap_map_wait);
-> +               wake_up(pkmap_map_wait);
->  }
->
->  EXPORT_SYMBOL(kunmap_high);
-> --
-> 1.8.1.4
->
+> > The other part I'm not completely sure about is how you want to
+> > have MSIs map into normal IRQ descriptors. At the moment, all
+> > MSI users are based on IRQ numbers, but this has known scalability problems.
+> 
+> Hmmm, I still use the IRQ number to map the MSIs to IRQ description.
+> I'm sorry, I don't understand you meaning.
+> What are the scalability problems you mentioned ?
+> For device drivers, they always process interrupt in two steps.
+> If irq is the legacy interrupt, drivers will first
+> use the irq_of_parse_and_map() or pci_enable_device() to parse and get the IRQ number.
+> Then drivers will call the request_irq() to register the interrupt handler.
+> If irq is MSIs, first call pci_enable_msi/x() to get the IRQ number and then call
+> request_irq() to register interrupt handler.
+
+The method you describe here makes sense for PCI devices that are required to support
+legacy interrupts and may or may not support MSI on a given system, but not so much
+for platform devices for which we know exactly whether we want to use MSI
+or legacy interrupts.
+
+In particular if you have a device that can only do MSI, the entire pci_enable_msi
+step is pointless: all we need to do is program the correct MSI target address/message
+pair into the device and register the handler.
+
+> > I wonder if we can do the interface in a way that
+> > hides the interrupt number from generic device drivers and just
+> > passes a 'struct irq_desc'. Note that there are long-term plans to
+> > get rid of IRQ numbers entirely, but those plans have existed for
+> > a long time already without anybody seriously addressing the device
+> > driver interfaces so far, so it might never really happen.
+> > 
+> 
+> Maybe this is a huge work, now hundreds drivers use the IRQ number, so maybe we can consider
+> this in a separate title.
+
+Sorry for being unclear here: I did suggest changing all drivers now. What I meant
+is that we use a different API for non-PCI devices that works without IRQ numbers.
+I don't think we should touch the PCI interfaces at this point.
+
+> > With the other operations, I think they should all take a 'struct device *'
+> > as the first argument for convenience and consistency. I don't think you actually
+> > need msi_read_message(), and we could avoid msi_write_message() by doing it
+> > the other way round.
+> > 
+> 
+> There only two functions use the read_msi_msg(), because every msi_desc has
+> a struct msi_msg, and it caches the msi address and data. I will consider to
+> retrieve the msg from cached msi_msg, then we can avoid the msi_read_message().
+> But msi_write_message() maybe necessary, some xxx_set_affinity() functions and
+> restore functions need the msi_write_message() to rewrite the address and data.
+
+Makes sense. I'd have to think about it more, but I think you are right
+about the affinity APIs needing this.
+
+> > What I'd envision as the API from the device driver perspective is something
+> > as simple like this:
+> > 
+> > struct msi_desc *msi_request(struct msi_chip *chip, irq_handler_t handler,
+> > 			unsigned long flags, const char *name, struct device *dev);
+> > 
+> > which would get an msi descriptor that is valid for this device (dev)
+> > connected to a particular msi_chip, and associate a handler function
+> > with it. The device driver can call that function and retrieve the
+> > address/message pair from the msi_desc in order to store it in its own
+> > device specific registers. The request_irq() can be handled internally
+> > to msi_request().
+> 
+> This is a huge change for device drivers, and some device drivers don't know which msi_chip
+> their MSI irq deliver to. I'm reworking the msi_chip, and try to use msi_chip to eliminate
+> all arch_msi_xxx() under every arch in kernel. And the important point is how to create the
+> binding for the MSI device to the target msi_chip.
+
+Which drivers are you thinking of? Again, I wouldn't expect to change any PCI drivers,
+but only platform drivers that do native MSI, so we only have to change drivers that
+do not support any MSI at all yet and that need to be changed anyway in order to add
+support.
+
+> For PCI device, some arm platform already bound the msi_chip to the pci hostbridge, then all
+> pci devices under the pci hostbridge deliver their MSI irqs to the target msi_chip.
+> And other platform create the binding in DTS file, then the MSI device can find their msi_chip
+> by device_node.
+> I don't know whether there are other situations, we should provide a generic interface that
+> every MSI device under every platform can use it to find its msi_chip exactly.
+
+We have introduced the "msi-parent" property to mirror the "interrupt-parent" property.
+For the PCI case, this property is only needed in the PCI host controller, and there
+can be a system-wide default, by putting the "msi-parent" property into the root device
+node or the node of a bus that is parent to all devices supporting MSI.
+
+For non-PCI devices, it should be possible to override the "msi-parent" property per
+device, but those can also use the global property.
+
+The main use case that I see are PCI host controllers that have their own MSI catcher
+included, so meaning that any PCI device can either send its MSIs there, or to a
+system-wide GICv3 instance, and we need a way to select which one.
+
+A degenerate case of this would be a system where a PCI device sends its MSI into
+the host controller, that generates a legacy interrupt and that in turn gets 
+sent to an irqchip which turns it back into an MSI for the GICv3. This would of
+course be very inefficient, but I think we should be able to express this with
+both the binding and the in-kernel framework just to be on the safe side.
 
 
-
--- 
-Thanks.
--- Max
+	Arnd
