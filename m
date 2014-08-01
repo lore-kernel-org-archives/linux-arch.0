@@ -1,99 +1,137 @@
-From: Thierry Reding <thierry.reding@gmail.com>
-Subject: Re: [PATCH] asm-generic/io.h: reorder funtions to form logical groups
-Date: Fri, 1 Aug 2014 16:09:57 +0200
-Message-ID: <20140801140956.GA1913@ulmo.nvidia.com>
-References: <1405508484-18303-1-git-send-email-thierry.reding@gmail.com>
- <20140718205953.GA21964@ravnborg.org>
- <20140719125937.GA18566@ravnborg.org>
+From: Russell King - ARM Linux <linux@arm.linux.org.uk>
+Subject: Re: [PATCH v2] dma-mapping: Provide write-combine allocations
+Date: Fri, 1 Aug 2014 16:19:17 +0100
+Message-ID: <20140801151917.GS30282@n2100.arm.linux.org.uk>
+References: <1403863018-20033-1-git-send-email-thierry.reding@gmail.com> <20140801124057.GA19889@ulmo>
 Mime-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha1;
-	protocol="application/pgp-signature"; boundary="/04w6evG8XlLl3ft"
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20140719125937.GA18566@ravnborg.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Sam Ravnborg <sam@ravnborg.org>
-Cc: Russell King <linux@arm.linux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Stephen Boyd <sboyd@codeaurora.org>, linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
-
-
---/04w6evG8XlLl3ft
 Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from gw-1.arm.linux.org.uk ([78.32.30.217]:32934 "EHLO
+	pandora.arm.linux.org.uk" rhost-flags-OK-OK-OK-FAIL)
+	by vger.kernel.org with ESMTP id S1754595AbaHAPTb (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 1 Aug 2014 11:19:31 -0400
 Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+In-Reply-To: <20140801124057.GA19889@ulmo>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Thierry Reding <thierry.reding@gmail.com>
+Cc: Arnd Bergmann <arnd@arndb.de>, Marek Szyprowski <m.szyprowski@samsung.com>, linaro-mm-sig@lists.linaro.org, linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-On Sat, Jul 19, 2014 at 02:59:37PM +0200, Sam Ravnborg wrote:
-> From 929c64c1aaf378b767e0ed89826b6bb12449df15 Mon Sep 17 00:00:00 2001
-> From: Sam Ravnborg <sam@ravnborg.org>
-> Date: Sat, 19 Jul 2014 14:47:43 +0200
-> Subject: [PATCH] asm-generic/io.h: reorder funtions to form logical groups
->=20
-> Reoder the functions so the various functions are grouped
-> according to how they access memoy.
-> For example __raw_{read,write}* are now all grouped.
->=20
-> The benefit of this grouping is that one can easier find all
-> IO accessors of one type.
-> To do so a few more #ifdef CONFIG_64BIT had to be used.
->=20
-> Add a small boiler plate comment for some of the groups to
-> better let them stand out.
->=20
-> Signed-off-by: Sam Ravnborg <sam@ravnborg.org>
-> ---
->=20
-> Hi Thierry.
->=20
-> This is my attempt to bring some order into io.h
-> with respect to the order the functions are defined in.
->=20
-> In a follow-up mail I also said we should delete the _p variants
-> of some methods but I then learned they are for slow IO access.
-> So these I have left as is.
->=20
-> And introducing static inline for all functions that are pure macro
-> substitution is also left out for now.
->=20
-> Please consider if you will take this as a follow-on patch.
+On Fri, Aug 01, 2014 at 02:40:59PM +0200, Thierry Reding wrote:
+> On Fri, Jun 27, 2014 at 11:56:58AM +0200, Thierry Reding wrote:
+> > From: Thierry Reding <treding@nvidia.com>
+> > 
+> > Provide an implementation for dma_{alloc,free,mmap}_writecombine() when
+> > the architecture supports DMA attributes.
+> > 
+> > Signed-off-by: Thierry Reding <treding@nvidia.com>
+> > ---
+> > Changes in v2:
+> > - Add a generic dma_mmap_writecombine() function
+> > 
+> >  arch/arm/include/asm/dma-mapping.h       | 16 ----------------
+> >  include/asm-generic/dma-mapping-common.h |  8 --------
+> >  include/linux/dma-mapping.h              | 26 ++++++++++++++++++++++++++
+> >  3 files changed, 26 insertions(+), 24 deletions(-)
+> 
+> Ping?
 
-Just a short update on this: I've pulled your patch into my series and
-then thought I'd make a last pass over these and send out a new version
-but then I started noticing a few more things that I thought I could
-quickly clean up as well. One thing led to another and I'm now up to
-double the number of patches. I still think it's worth doing, but
-unfortunately it's become somewhat more complicated since it now touches
-a couple more architectures and even some drivers (/dev/mem (!) and
-sunzilog).
+I have no problem with this, but I don't think I can say yes to it; that
+depends whether other people are happy for this to live in
+include/linux/dma-mapping.h.
 
-I'm almost through sorting out the remaining issues I think, but it'll
-take me another couple of days to rebase and squash patches and run some
-build tests to verify that things don't break somewhere in the middle.
+I guess consent for this change can only come by no one objecting to it
+after several postings.
 
-Oh, by the way: would you prefer that I keep your patch separate or
-shall I just squash it into the one that has the major asm-generic/io.h
-cleanup?
+> > diff --git a/arch/arm/include/asm/dma-mapping.h b/arch/arm/include/asm/dma-mapping.h
+> > index c45b61a4b4a5..85738b200023 100644
+> > --- a/arch/arm/include/asm/dma-mapping.h
+> > +++ b/arch/arm/include/asm/dma-mapping.h
+> > @@ -265,22 +265,6 @@ extern int arm_dma_mmap(struct device *dev, struct vm_area_struct *vma,
+> >  			void *cpu_addr, dma_addr_t dma_addr, size_t size,
+> >  			struct dma_attrs *attrs);
+> >  
+> > -static inline void *dma_alloc_writecombine(struct device *dev, size_t size,
+> > -				       dma_addr_t *dma_handle, gfp_t flag)
+> > -{
+> > -	DEFINE_DMA_ATTRS(attrs);
+> > -	dma_set_attr(DMA_ATTR_WRITE_COMBINE, &attrs);
+> > -	return dma_alloc_attrs(dev, size, dma_handle, flag, &attrs);
+> > -}
+> > -
+> > -static inline void dma_free_writecombine(struct device *dev, size_t size,
+> > -				     void *cpu_addr, dma_addr_t dma_handle)
+> > -{
+> > -	DEFINE_DMA_ATTRS(attrs);
+> > -	dma_set_attr(DMA_ATTR_WRITE_COMBINE, &attrs);
+> > -	return dma_free_attrs(dev, size, cpu_addr, dma_handle, &attrs);
+> > -}
+> > -
+> >  /*
+> >   * This can be called during early boot to increase the size of the atomic
+> >   * coherent DMA pool above the default value of 256KiB. It must be called
+> > diff --git a/include/asm-generic/dma-mapping-common.h b/include/asm-generic/dma-mapping-common.h
+> > index de8bf89940f8..d137431bf26f 100644
+> > --- a/include/asm-generic/dma-mapping-common.h
+> > +++ b/include/asm-generic/dma-mapping-common.h
+> > @@ -205,14 +205,6 @@ dma_mmap_attrs(struct device *dev, struct vm_area_struct *vma, void *cpu_addr,
+> >  
+> >  #define dma_mmap_coherent(d, v, c, h, s) dma_mmap_attrs(d, v, c, h, s, NULL)
+> >  
+> > -static inline int dma_mmap_writecombine(struct device *dev, struct vm_area_struct *vma,
+> > -		      void *cpu_addr, dma_addr_t dma_addr, size_t size)
+> > -{
+> > -	DEFINE_DMA_ATTRS(attrs);
+> > -	dma_set_attr(DMA_ATTR_WRITE_COMBINE, &attrs);
+> > -	return dma_mmap_attrs(dev, vma, cpu_addr, dma_addr, size, &attrs);
+> > -}
+> > -
+> >  int
+> >  dma_common_get_sgtable(struct device *dev, struct sg_table *sgt,
+> >  		       void *cpu_addr, dma_addr_t dma_addr, size_t size);
+> > diff --git a/include/linux/dma-mapping.h b/include/linux/dma-mapping.h
+> > index 931b70986272..d5d388160f42 100644
+> > --- a/include/linux/dma-mapping.h
+> > +++ b/include/linux/dma-mapping.h
+> > @@ -263,6 +263,32 @@ struct dma_attrs;
+> >  #define dma_unmap_sg_attrs(dev, sgl, nents, dir, attrs) \
+> >  	dma_unmap_sg(dev, sgl, nents, dir)
+> >  
+> > +#else
+> > +static inline void *dma_alloc_writecombine(struct device *dev, size_t size,
+> > +					   dma_addr_t *dma_addr, gfp_t gfp)
+> > +{
+> > +	DEFINE_DMA_ATTRS(attrs);
+> > +	dma_set_attr(DMA_ATTR_WRITE_COMBINE, &attrs);
+> > +	return dma_alloc_attrs(dev, size, dma_addr, gfp, &attrs);
+> > +}
+> > +
+> > +static inline void dma_free_writecombine(struct device *dev, size_t size,
+> > +					 void *cpu_addr, dma_addr_t dma_addr)
+> > +{
+> > +	DEFINE_DMA_ATTRS(attrs);
+> > +	dma_set_attr(DMA_ATTR_WRITE_COMBINE, &attrs);
+> > +	return dma_free_attrs(dev, size, cpu_addr, dma_addr, &attrs);
+> > +}
+> > +
+> > +static inline int dma_mmap_writecombine(struct device *dev,
+> > +					struct vm_area_struct *vma,
+> > +					void *cpu_addr, dma_addr_t dma_addr,
+> > +					size_t size)
+> > +{
+> > +	DEFINE_DMA_ATTRS(attrs);
+> > +	dma_set_attr(DMA_ATTR_WRITE_COMBINE, &attrs);
+> > +	return dma_mmap_attrs(dev, vma, cpu_addr, dma_addr, size, &attrs);
+> > +}
+> >  #endif /* CONFIG_HAVE_DMA_ATTRS */
+> >  
+> >  #ifdef CONFIG_NEED_DMA_MAP_STATE
+> > -- 
+> > 2.0.0
+> > 
 
-Thierry
 
---/04w6evG8XlLl3ft
-Content-Type: application/pgp-signature
 
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v2
-
-iQIcBAEBAgAGBQJT25+0AAoJEN0jrNd/PrOhe30P/ineumK56L2BTvHKxwre7TvU
-ktlIGWcQyCqWV0swR3nVvJRJJzPcqW+vsi0nIbHDBN9DK1s0iYpS4htTxDL/9li0
-r3vSlqlbuNmGBmlEh8NzTOVXIrlYy6o3wEAYm8CcmEwCpV8BPvHw1z/Fj4l/spYh
-ehWwbVPSsSb12xFPpDDb1crmPzmXR/kKQ6rWjID1GWVqbNjnxFPopEb+otgYLTtB
-mgixDgJ36t/uS+JWJM4iQX6YuJUySlsIV3z+sM+n4wJlfJyn7Zdn86Bw2m9wiYtI
-lRXJm322gcegEwxwgDbilSGnnYzszmOFtguhba1LKXXP4vvRqgGwPMbunUVqvsl2
-CBY5IdN/luYydPLt2x2pALPxt+B9zqQUczUCwa83boNDsCZm2f8ff+qaPxQShDJp
-ta78e9JX37oT+DvjjBOU7wIrwOMOnKfIumBDj3+GAMdYhvp1HeUPjKvfacKTQtZx
-uQU/r9rBZ7JLlCqQiCv6lnHpWAZp31ZqA5JIrMCvdG9V3kTLikxbY0LBgz77v3km
-/l3gbQrlnxikfRoOmsj0yha6J+E6bLbTLBtYt605nLxqxmTUMg5w/m6986orMq13
-BGKQAgpmBQU5KxgVptK1oTeeZf79QPzonQckAv+DlM1BRugNRR4iBgmXX7hCFh/L
-GCFW0WaQB8rcPmFyYllk
-=Dp+w
------END PGP SIGNATURE-----
-
---/04w6evG8XlLl3ft--
+-- 
+FTTC broadband for 0.8mile line: currently at 9.5Mbps down 400kbps up
+according to speedtest.net.
