@@ -1,172 +1,81 @@
-From: Lennox Wu <lennox.wu@gmail.com>
-Subject: Re: [PATCH 18/43] score: Use get_signal() signal_setup_done()
-Date: Sat, 02 Aug 2014 14:41:38 +0800
-Message-ID: <53DC8822.9030901@gmail.com>
-References: <1405951409-16953-1-git-send-email-richard@sigma-star.at>	<1405951409-16953-19-git-send-email-richard@sigma-star.at> <CAF0htA4XuN035oYR5-13bzLnpHB1kUbe+igVstJ5QZXULbz58A@mail.gmail.com>
+From: Oleg Nesterov <oleg@redhat.com>
+Subject: Re: TIF_NOHZ can escape nonhz mask? (Was: [PATCH v3 6/8] x86:
+        Split syscall_trace_enter into two phases)
+Date: Sat, 2 Aug 2014 19:30:24 +0200
+Message-ID: <20140802173024.GB22510@redhat.com>
+References: <20140728185803.GA24663@redhat.com> <20140728192209.GA26017@localhost.localdomain> <20140729175414.GA3289@redhat.com> <20140730163516.GC18158@localhost.localdomain> <20140730174630.GA30862@redhat.com> <20140731003034.GA32078@localhost.localdomain> <20140731160353.GA14772@redhat.com> <20140731171329.GD7842@localhost.localdomain> <20140731181230.GA18695@redhat.com> <20140731184729.GA12296@localhost.localdomain>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8;
-	format=flowed
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pd0-f172.google.com ([209.85.192.172]:46311 "EHLO
-	mail-pd0-f172.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750972AbaHBGl4 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 2 Aug 2014 02:41:56 -0400
-In-Reply-To: <CAF0htA4XuN035oYR5-13bzLnpHB1kUbe+igVstJ5QZXULbz58A@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Richard Weinberger <richard@sigma-star.at>
-Cc: open list <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Liqin Chen <liqin.linux@gmail.com>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-mips-bounce@linux-mips.org>
+Content-Disposition: inline
+In-Reply-To: <20140731184729.GA12296@localhost.localdomain>
+Sender: linux-mips-bounce@linux-mips.org
+Errors-to: linux-mips-bounce@linux-mips.org
+List-help: <mailto:ecartis@linux-mips.org?Subject=help>
+List-unsubscribe: <mailto:ecartis@linux-mips.org?subject=unsubscribe%20linux-mips>
+List-software: Ecartis version 1.0.0
+List-subscribe: <mailto:ecartis@linux-mips.org?subject=subscribe%20linux-mips>
+List-owner: <mailto:ralf@linux-mips.org>
+List-post: <mailto:linux-mips@linux-mips.org>
+List-archive: <http://www.linux-mips.org/archives/linux-mips/>
+To: Frederic Weisbecker <fweisbec@gmail.com>
+Cc: Andy Lutomirski <luto@amacapital.net>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, linux-kernel@vger.kernel.org, Kees Cook <keescook@chromium.org>, Will Drewry <wad@chromium.org>, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-mips@linux-mips.org, linux-arch@vger.kernel.org, linux-security-module@vger.kernel.org, Alexei Starovoitov <ast@plumgrid.com>, hpa@zytor.com
+List-Id: linux-arch.vger.kernel.org
 
-It was merged into Score's git tree, and it will show in the next PULL=20
-request.
-
-Best,
-Lennox
-
-Lennox Wu =E6=96=BC 2014/7/21 =E4=B8=8B=E5=8D=88 10:47 =E5=AF=AB=E9=81=93=
-:
-> I am picking up some missed patches and merging them into our git
-> tree. If the patch is missed, we will merge it.
+On 07/31, Frederic Weisbecker wrote:
 >
-> Best,
-> Lennox
+> On Thu, Jul 31, 2014 at 08:12:30PM +0200, Oleg Nesterov wrote:
+> > > >
+> > > > Yes sure. But context_tracking_cpu_set() is called by init task with PID 1, not
+> > > > by "swapper".
+> > >
+> > > Are you sure? It's called from start_kernel() which is init/0.
+> >
+> > But do_initcalls() is called by kernel_init(), this is the init process which is
+> > going to exec /sbin/init later.
+> >
+> > But this doesn't really matter,
 >
-> 2014-07-21 22:03 GMT+08:00 Richard Weinberger <richard@sigma-star.at>=
-:
->> From: Richard Weinberger <richard@nod.at>
->>
->> Use the more generic functions get_signal() signal_setup_done()
->> for signal delivery.
->>
->> Acked-by: Lennox Wu <lennox.wu@gmail.com>
->> Signed-off-by: Richard Weinberger <richard@nod.at>
->> ---
->>   arch/score/kernel/signal.c | 43 ++++++++++++++++++----------------=
----------
->>   1 file changed, 18 insertions(+), 25 deletions(-)
->>
->> diff --git a/arch/score/kernel/signal.c b/arch/score/kernel/signal.c
->> index a00fba3..1651807 100644
->> --- a/arch/score/kernel/signal.c
->> +++ b/arch/score/kernel/signal.c
->> @@ -173,15 +173,15 @@ badframe:
->>          return 0;
->>   }
->>
->> -static int setup_rt_frame(struct k_sigaction *ka, struct pt_regs *r=
-egs,
->> -               int signr, sigset_t *set, siginfo_t *info)
->> +static int setup_rt_frame(struct ksignal *ksig, struct pt_regs *reg=
-s,
->> +                         sigset_t *set)
->>   {
->>          struct rt_sigframe __user *frame;
->>          int err =3D 0;
->>
->> -       frame =3D get_sigframe(ka, regs, sizeof(*frame));
->> +       frame =3D get_sigframe(&ksig->ka, regs, sizeof(*frame));
->>          if (!access_ok(VERIFY_WRITE, frame, sizeof(*frame)))
->> -               goto give_sigsegv;
->> +               return -EFAULT;
->>
->>          /*
->>           * Set up the return code ...
->> @@ -194,7 +194,7 @@ static int setup_rt_frame(struct k_sigaction *ka=
-, struct pt_regs *regs,
->>          err |=3D __put_user(0x80008002, frame->rs_code + 1);
->>          flush_cache_sigtramp((unsigned long) frame->rs_code);
->>
->> -       err |=3D copy_siginfo_to_user(&frame->rs_info, info);
->> +       err |=3D copy_siginfo_to_user(&frame->rs_info, &ksig->info);
->>          err |=3D __put_user(0, &frame->rs_uc.uc_flags);
->>          err |=3D __put_user(NULL, &frame->rs_uc.uc_link);
->>          err |=3D __save_altstack(&frame->rs_uc.uc_stack, regs->regs=
-[0]);
->> @@ -202,26 +202,23 @@ static int setup_rt_frame(struct k_sigaction *=
-ka, struct pt_regs *regs,
->>          err |=3D __copy_to_user(&frame->rs_uc.uc_sigmask, set, size=
-of(*set));
->>
->>          if (err)
->> -               goto give_sigsegv;
->> +               return -EFAULT;
->>
->>          regs->regs[0] =3D (unsigned long) frame;
->>          regs->regs[3] =3D (unsigned long) frame->rs_code;
->> -       regs->regs[4] =3D signr;
->> +       regs->regs[4] =3D ksig->sig;
->>          regs->regs[5] =3D (unsigned long) &frame->rs_info;
->>          regs->regs[6] =3D (unsigned long) &frame->rs_uc;
->> -       regs->regs[29] =3D (unsigned long) ka->sa.sa_handler;
->> -       regs->cp0_epc =3D (unsigned long) ka->sa.sa_handler;
->> +       regs->regs[29] =3D (unsigned long) ksig->ka.sa.sa_handler;
->> +       regs->cp0_epc =3D (unsigned long) ksig->ka.sa.sa_handler;
->>
->>          return 0;
->> -
->> -give_sigsegv:
->> -       force_sigsegv(signr, current);
->> -       return -EFAULT;
->>   }
->>
->> -static void handle_signal(unsigned long sig, siginfo_t *info,
->> -       struct k_sigaction *ka, struct pt_regs *regs)
->> +static void handle_signal(struct ksignal *ksig, struct pt_regs *reg=
-s)
->>   {
->> +       int ret;
->> +
->>          if (regs->is_syscall) {
->>                  switch (regs->regs[4]) {
->>                  case ERESTART_RESTARTBLOCK:
->> @@ -229,7 +226,7 @@ static void handle_signal(unsigned long sig, sig=
-info_t *info,
->>                          regs->regs[4] =3D EINTR;
->>                          break;
->>                  case ERESTARTSYS:
->> -                       if (!(ka->sa.sa_flags & SA_RESTART)) {
->> +                       if (!(ksig->ka.sa.sa_flags & SA_RESTART)) {
->>                                  regs->regs[4] =3D EINTR;
->>                                  break;
->>                          }
->> @@ -245,17 +242,14 @@ static void handle_signal(unsigned long sig, s=
-iginfo_t *info,
->>          /*
->>           * Set up the stack frame
->>           */
->> -       if (setup_rt_frame(ka, regs, sig, sigmask_to_save(), info) <=
- 0)
->> -               return;
->> +       ret =3D setup_rt_frame(ksig, regs, sigmask_to_save());
->>
->> -       signal_delivered(sig, info, ka, regs, 0);
->> +       signal_setup_done(ret, ksig, 0);
->>   }
->>
->>   static void do_signal(struct pt_regs *regs)
->>   {
->> -       struct k_sigaction ka;
->> -       siginfo_t info;
->> -       int signr;
->> +       struct ksignal ksig;
->>
->>          /*
->>           * We want the common case to go fast, which is why we may =
-in certain
->> @@ -265,10 +259,9 @@ static void do_signal(struct pt_regs *regs)
->>          if (!user_mode(regs))
->>                  return;
->>
->> -       signr =3D get_signal_to_deliver(&info, &ka, regs, NULL);
->> -       if (signr > 0) {
->> +       if (get_signal(&ksig)) {
->>                  /* Actually deliver the signal.  */
->> -               handle_signal(signr, &info, &ka, regs);
->> +               handle_signal(&ksig, regs);
->>                  return;
->>          }
->>
->> --
->> 1.8.4.5
->>
+> Yeah but tick_nohz_init() is not an initcall, it's a function called from start_kernel(),
+> before initcalls.
+
+Ah, indeed, and context_tracking_init() too. Even better, so we only need
+
+	--- x/kernel/context_tracking.c
+	+++ x/kernel/context_tracking.c
+	@@ -30,8 +30,10 @@ EXPORT_SYMBOL_GPL(context_tracking_enabl
+	 DEFINE_PER_CPU(struct context_tracking, context_tracking);
+	 EXPORT_SYMBOL_GPL(context_tracking);
+	 
+	-void context_tracking_cpu_set(int cpu)
+	+void __init context_tracking_cpu_set(int cpu)
+	 {
+	+	/* Called by "swapper" thread, all threads will inherit this flag */
+	+	set_thread_flag(TIF_NOHZ);
+		if (!per_cpu(context_tracking.active, cpu)) {
+			per_cpu(context_tracking.active, cpu) = true;
+			static_key_slow_inc(&context_tracking_enabled);
+
+and now we can kill context_tracking_task_switch() ?
+
+> > Yes, yes, this doesn't really matter. We can even add set(TIF_NOHZ) at the start
+> > of start_kernel(). The question is, I still can't understand why do we want to
+> > have the global TIF_NOHZ.
+>
+> Because then the flags is inherited in forks. It's better than inheriting it on
+> context switch due to context switch being called much more often than fork.
+
+This is clear, that is why I suggested this. Just we didn't understand each other,
+when I said "global TIF_NOHZ" I meant the current situtation when every (running)
+task has this bit set anyway. Sorry for confusion.
+
+> No, because preempt_schedule_irq() does the ctx_state save and restore with
+> exception_enter/exception_exit.
+
+Thanks again. Can't understand how I managed to miss that exception_enter/exit
+in preempt_schedule_*.
+
+Damn. And after I spent more time, I don't have any idea how to make this
+tracking cheaper.
+
+Oleg.
