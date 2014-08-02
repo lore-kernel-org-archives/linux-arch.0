@@ -1,234 +1,172 @@
-From: Max Filippov <jcmvbkbc@gmail.com>
-Subject: [PATCH v4 1/2] mm/highmem: make kmap cache coloring aware
-Date: Sat,  2 Aug 2014 05:11:38 +0400
-Message-ID: <1406941899-19932-2-git-send-email-jcmvbkbc__38213.8153691359$1406941995$gmane$org@gmail.com>
-References: <1406941899-19932-1-git-send-email-jcmvbkbc@gmail.com>
+From: Lennox Wu <lennox.wu@gmail.com>
+Subject: Re: [PATCH 18/43] score: Use get_signal() signal_setup_done()
+Date: Sat, 02 Aug 2014 14:41:38 +0800
+Message-ID: <53DC8822.9030901@gmail.com>
+References: <1405951409-16953-1-git-send-email-richard@sigma-star.at>	<1405951409-16953-19-git-send-email-richard@sigma-star.at> <CAF0htA4XuN035oYR5-13bzLnpHB1kUbe+igVstJ5QZXULbz58A@mail.gmail.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=utf-8;
+	format=flowed
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-lb0-f171.google.com ([209.85.217.171]:47007 "EHLO
-	mail-lb0-f171.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752255AbaHBBMJ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 1 Aug 2014 21:12:09 -0400
-In-Reply-To: <1406941899-19932-1-git-send-email-jcmvbkbc@gmail.com>
+Received: from mail-pd0-f172.google.com ([209.85.192.172]:46311 "EHLO
+	mail-pd0-f172.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750972AbaHBGl4 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 2 Aug 2014 02:41:56 -0400
+In-Reply-To: <CAF0htA4XuN035oYR5-13bzLnpHB1kUbe+igVstJ5QZXULbz58A@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-xtensa@linux-xtensa.org
-Cc: Chris Zankel <chris@zankel.net>, Marc Gauthier <marc@cadence.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-mips@linux-mips.org, linux-kernel@vger.kernel.org, David Rientjes <rientjes@google.com>, Andrew Morton <akpm@linux-foundation.org>, Leonid Yegoshin <Leonid.Yegoshin@imgtec.com>, Steven Hill <Steven.Hill@imgtec.com>, Max Filippov <jcmvbkbc@gmail.com>
+To: Richard Weinberger <richard@sigma-star.at>
+Cc: open list <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Liqin Chen <liqin.linux@gmail.com>
 
-User-visible effect:
-Architectures that choose this method of maintaining cache coherency
-(MIPS and xtensa currently) are able to use high memory on cores with
-aliasing data cache. Without this fix such architectures can not use
-high memory (in case of xtensa it means that at most 128 MBytes of
-physical memory is available).
+It was merged into Score's git tree, and it will show in the next PULL=20
+request.
 
-The problem:
-VIPT cache with way size larger than MMU page size may suffer from
-aliasing problem: a single physical address accessed via different
-virtual addresses may end up in multiple locations in the cache.
-Virtual mappings of a physical address that always get cached in
-different cache locations are said to have different colors.
-L1 caching hardware usually doesn't handle this situation leaving it
-up to software. Software must avoid this situation as it leads to
-data corruption.
+Best,
+Lennox
 
-What can be done:
-One way to handle this is to flush and invalidate data cache every time
-page mapping changes color. The other way is to always map physical page
-at a virtual address with the same color. Low memory pages already have
-this property. Giving architecture a way to control color of high memory
-page mapping allows reusing of existing low memory cache alias handling
-code.
-
-How this is done with this patch:
-Provide hooks that allow architectures with aliasing cache to align
-mapping address of high pages according to their color. Such architectures
-may enforce similar coloring of low- and high-memory page mappings and
-reuse existing cache management functions to support highmem.
-
-This code is based on the implementation of similar feature for MIPS by
-Leonid Yegoshin <Leonid.Yegoshin@imgtec.com>.
-
-Signed-off-by: Max Filippov <jcmvbkbc@gmail.com>
----
-Changes v3->v4:
-- drop #include <asm/highmem.h> from mm/highmem.c as it's done in
-  linux/highmem.h;
-- add 'User-visible effect' section to changelog.
-
-Changes v2->v3:
-- drop ARCH_PKMAP_COLORING, check gif et_pkmap_color is defined instead;
-- add comment stating that arch should place definitions into
-  asm/highmem.h, include it directly to mm/highmem.c;
-- replace macros with inline functions, change set_pkmap_color to
-  get_pkmap_color which better fits inline function model;
-- drop get_last_pkmap_nr;
-- replace get_next_pkmap_counter with get_pkmap_entries_count, leave
-  original counting code;
-- introduce get_pkmap_wait_queue_head and make sleeping/waking dependent
-  on mapping color;
-- move file-scope static variables last_pkmap_nr and pkmap_map_wait into
-  get_next_pkmap_nr and get_pkmap_wait_queue_head respectively;
-- document new functions;
-- expand patch description and change authorship.
-
-Changes v1->v2:
-- define set_pkmap_color(pg, cl) as do { } while (0) instead of /* */;
-- rename is_no_more_pkmaps to no_more_pkmaps;
-- change 'if (count > 0)' to 'if (count)' to better match the original
-  code behavior;
-
- mm/highmem.c | 86 ++++++++++++++++++++++++++++++++++++++++++++++++++++--------
- 1 file changed, 75 insertions(+), 11 deletions(-)
-
-diff --git a/mm/highmem.c b/mm/highmem.c
-index b32b70c..123bcd3 100644
---- a/mm/highmem.c
-+++ b/mm/highmem.c
-@@ -44,6 +44,66 @@ DEFINE_PER_CPU(int, __kmap_atomic_idx);
-  */
- #ifdef CONFIG_HIGHMEM
- 
-+/*
-+ * Architecture with aliasing data cache may define the following family of
-+ * helper functions in its asm/highmem.h to control cache color of virtual
-+ * addresses where physical memory pages are mapped by kmap.
-+ */
-+#ifndef get_pkmap_color
-+
-+/*
-+ * Determine color of virtual address where the page should be mapped.
-+ */
-+static inline unsigned int get_pkmap_color(struct page *page)
-+{
-+	return 0;
-+}
-+#define get_pkmap_color get_pkmap_color
-+
-+/*
-+ * Get next index for mapping inside PKMAP region for page with given color.
-+ */
-+static inline unsigned int get_next_pkmap_nr(unsigned int color)
-+{
-+	static unsigned int last_pkmap_nr;
-+
-+	last_pkmap_nr = (last_pkmap_nr + 1) & LAST_PKMAP_MASK;
-+	return last_pkmap_nr;
-+}
-+
-+/*
-+ * Determine if page index inside PKMAP region (pkmap_nr) of given color
-+ * has wrapped around PKMAP region end. When this happens an attempt to
-+ * flush all unused PKMAP slots is made.
-+ */
-+static inline int no_more_pkmaps(unsigned int pkmap_nr, unsigned int color)
-+{
-+	return pkmap_nr == 0;
-+}
-+
-+/*
-+ * Get the number of PKMAP entries of the given color. If no free slot is
-+ * found after checking that many entries, kmap will sleep waiting for
-+ * someone to call kunmap and free PKMAP slot.
-+ */
-+static inline int get_pkmap_entries_count(unsigned int color)
-+{
-+	return LAST_PKMAP;
-+}
-+
-+/*
-+ * Get head of a wait queue for PKMAP entries of the given color.
-+ * Wait queues for different mapping colors should be independent to avoid
-+ * unnecessary wakeups caused by freeing of slots of other colors.
-+ */
-+static inline wait_queue_head_t *get_pkmap_wait_queue_head(unsigned int color)
-+{
-+	static DECLARE_WAIT_QUEUE_HEAD(pkmap_map_wait);
-+
-+	return &pkmap_map_wait;
-+}
-+#endif
-+
- unsigned long totalhigh_pages __read_mostly;
- EXPORT_SYMBOL(totalhigh_pages);
- 
-@@ -68,13 +128,10 @@ unsigned int nr_free_highpages (void)
- }
- 
- static int pkmap_count[LAST_PKMAP];
--static unsigned int last_pkmap_nr;
- static  __cacheline_aligned_in_smp DEFINE_SPINLOCK(kmap_lock);
- 
- pte_t * pkmap_page_table;
- 
--static DECLARE_WAIT_QUEUE_HEAD(pkmap_map_wait);
--
- /*
-  * Most architectures have no use for kmap_high_get(), so let's abstract
-  * the disabling of IRQ out of the locking in that case to save on a
-@@ -161,15 +218,17 @@ static inline unsigned long map_new_virtual(struct page *page)
- {
- 	unsigned long vaddr;
- 	int count;
-+	unsigned int last_pkmap_nr;
-+	unsigned int color = get_pkmap_color(page);
- 
- start:
--	count = LAST_PKMAP;
-+	count = get_pkmap_entries_count(color);
- 	/* Find an empty entry */
- 	for (;;) {
--		last_pkmap_nr = (last_pkmap_nr + 1) & LAST_PKMAP_MASK;
--		if (!last_pkmap_nr) {
-+		last_pkmap_nr = get_next_pkmap_nr(color);
-+		if (no_more_pkmaps(last_pkmap_nr, color)) {
- 			flush_all_zero_pkmaps();
--			count = LAST_PKMAP;
-+			count = get_pkmap_entries_count(color);
- 		}
- 		if (!pkmap_count[last_pkmap_nr])
- 			break;	/* Found a usable entry */
-@@ -181,12 +240,14 @@ start:
- 		 */
- 		{
- 			DECLARE_WAITQUEUE(wait, current);
-+			wait_queue_head_t *pkmap_map_wait =
-+				get_pkmap_wait_queue_head(color);
- 
- 			__set_current_state(TASK_UNINTERRUPTIBLE);
--			add_wait_queue(&pkmap_map_wait, &wait);
-+			add_wait_queue(pkmap_map_wait, &wait);
- 			unlock_kmap();
- 			schedule();
--			remove_wait_queue(&pkmap_map_wait, &wait);
-+			remove_wait_queue(pkmap_map_wait, &wait);
- 			lock_kmap();
- 
- 			/* Somebody else might have mapped it while we slept */
-@@ -274,6 +335,8 @@ void kunmap_high(struct page *page)
- 	unsigned long nr;
- 	unsigned long flags;
- 	int need_wakeup;
-+	unsigned int color = get_pkmap_color(page);
-+	wait_queue_head_t *pkmap_map_wait;
- 
- 	lock_kmap_any(flags);
- 	vaddr = (unsigned long)page_address(page);
-@@ -299,13 +362,14 @@ void kunmap_high(struct page *page)
- 		 * no need for the wait-queue-head's lock.  Simply
- 		 * test if the queue is empty.
- 		 */
--		need_wakeup = waitqueue_active(&pkmap_map_wait);
-+		pkmap_map_wait = get_pkmap_wait_queue_head(color);
-+		need_wakeup = waitqueue_active(pkmap_map_wait);
- 	}
- 	unlock_kmap_any(flags);
- 
- 	/* do wake-up, if needed, race-free outside of the spin lock */
- 	if (need_wakeup)
--		wake_up(&pkmap_map_wait);
-+		wake_up(pkmap_map_wait);
- }
- 
- EXPORT_SYMBOL(kunmap_high);
--- 
-1.8.1.4
+Lennox Wu =E6=96=BC 2014/7/21 =E4=B8=8B=E5=8D=88 10:47 =E5=AF=AB=E9=81=93=
+:
+> I am picking up some missed patches and merging them into our git
+> tree. If the patch is missed, we will merge it.
+>
+> Best,
+> Lennox
+>
+> 2014-07-21 22:03 GMT+08:00 Richard Weinberger <richard@sigma-star.at>=
+:
+>> From: Richard Weinberger <richard@nod.at>
+>>
+>> Use the more generic functions get_signal() signal_setup_done()
+>> for signal delivery.
+>>
+>> Acked-by: Lennox Wu <lennox.wu@gmail.com>
+>> Signed-off-by: Richard Weinberger <richard@nod.at>
+>> ---
+>>   arch/score/kernel/signal.c | 43 ++++++++++++++++++----------------=
+---------
+>>   1 file changed, 18 insertions(+), 25 deletions(-)
+>>
+>> diff --git a/arch/score/kernel/signal.c b/arch/score/kernel/signal.c
+>> index a00fba3..1651807 100644
+>> --- a/arch/score/kernel/signal.c
+>> +++ b/arch/score/kernel/signal.c
+>> @@ -173,15 +173,15 @@ badframe:
+>>          return 0;
+>>   }
+>>
+>> -static int setup_rt_frame(struct k_sigaction *ka, struct pt_regs *r=
+egs,
+>> -               int signr, sigset_t *set, siginfo_t *info)
+>> +static int setup_rt_frame(struct ksignal *ksig, struct pt_regs *reg=
+s,
+>> +                         sigset_t *set)
+>>   {
+>>          struct rt_sigframe __user *frame;
+>>          int err =3D 0;
+>>
+>> -       frame =3D get_sigframe(ka, regs, sizeof(*frame));
+>> +       frame =3D get_sigframe(&ksig->ka, regs, sizeof(*frame));
+>>          if (!access_ok(VERIFY_WRITE, frame, sizeof(*frame)))
+>> -               goto give_sigsegv;
+>> +               return -EFAULT;
+>>
+>>          /*
+>>           * Set up the return code ...
+>> @@ -194,7 +194,7 @@ static int setup_rt_frame(struct k_sigaction *ka=
+, struct pt_regs *regs,
+>>          err |=3D __put_user(0x80008002, frame->rs_code + 1);
+>>          flush_cache_sigtramp((unsigned long) frame->rs_code);
+>>
+>> -       err |=3D copy_siginfo_to_user(&frame->rs_info, info);
+>> +       err |=3D copy_siginfo_to_user(&frame->rs_info, &ksig->info);
+>>          err |=3D __put_user(0, &frame->rs_uc.uc_flags);
+>>          err |=3D __put_user(NULL, &frame->rs_uc.uc_link);
+>>          err |=3D __save_altstack(&frame->rs_uc.uc_stack, regs->regs=
+[0]);
+>> @@ -202,26 +202,23 @@ static int setup_rt_frame(struct k_sigaction *=
+ka, struct pt_regs *regs,
+>>          err |=3D __copy_to_user(&frame->rs_uc.uc_sigmask, set, size=
+of(*set));
+>>
+>>          if (err)
+>> -               goto give_sigsegv;
+>> +               return -EFAULT;
+>>
+>>          regs->regs[0] =3D (unsigned long) frame;
+>>          regs->regs[3] =3D (unsigned long) frame->rs_code;
+>> -       regs->regs[4] =3D signr;
+>> +       regs->regs[4] =3D ksig->sig;
+>>          regs->regs[5] =3D (unsigned long) &frame->rs_info;
+>>          regs->regs[6] =3D (unsigned long) &frame->rs_uc;
+>> -       regs->regs[29] =3D (unsigned long) ka->sa.sa_handler;
+>> -       regs->cp0_epc =3D (unsigned long) ka->sa.sa_handler;
+>> +       regs->regs[29] =3D (unsigned long) ksig->ka.sa.sa_handler;
+>> +       regs->cp0_epc =3D (unsigned long) ksig->ka.sa.sa_handler;
+>>
+>>          return 0;
+>> -
+>> -give_sigsegv:
+>> -       force_sigsegv(signr, current);
+>> -       return -EFAULT;
+>>   }
+>>
+>> -static void handle_signal(unsigned long sig, siginfo_t *info,
+>> -       struct k_sigaction *ka, struct pt_regs *regs)
+>> +static void handle_signal(struct ksignal *ksig, struct pt_regs *reg=
+s)
+>>   {
+>> +       int ret;
+>> +
+>>          if (regs->is_syscall) {
+>>                  switch (regs->regs[4]) {
+>>                  case ERESTART_RESTARTBLOCK:
+>> @@ -229,7 +226,7 @@ static void handle_signal(unsigned long sig, sig=
+info_t *info,
+>>                          regs->regs[4] =3D EINTR;
+>>                          break;
+>>                  case ERESTARTSYS:
+>> -                       if (!(ka->sa.sa_flags & SA_RESTART)) {
+>> +                       if (!(ksig->ka.sa.sa_flags & SA_RESTART)) {
+>>                                  regs->regs[4] =3D EINTR;
+>>                                  break;
+>>                          }
+>> @@ -245,17 +242,14 @@ static void handle_signal(unsigned long sig, s=
+iginfo_t *info,
+>>          /*
+>>           * Set up the stack frame
+>>           */
+>> -       if (setup_rt_frame(ka, regs, sig, sigmask_to_save(), info) <=
+ 0)
+>> -               return;
+>> +       ret =3D setup_rt_frame(ksig, regs, sigmask_to_save());
+>>
+>> -       signal_delivered(sig, info, ka, regs, 0);
+>> +       signal_setup_done(ret, ksig, 0);
+>>   }
+>>
+>>   static void do_signal(struct pt_regs *regs)
+>>   {
+>> -       struct k_sigaction ka;
+>> -       siginfo_t info;
+>> -       int signr;
+>> +       struct ksignal ksig;
+>>
+>>          /*
+>>           * We want the common case to go fast, which is why we may =
+in certain
+>> @@ -265,10 +259,9 @@ static void do_signal(struct pt_regs *regs)
+>>          if (!user_mode(regs))
+>>                  return;
+>>
+>> -       signr =3D get_signal_to_deliver(&info, &ka, regs, NULL);
+>> -       if (signr > 0) {
+>> +       if (get_signal(&ksig)) {
+>>                  /* Actually deliver the signal.  */
+>> -               handle_signal(signr, &info, &ka, regs);
+>> +               handle_signal(&ksig, regs);
+>>                  return;
+>>          }
+>>
+>> --
+>> 1.8.4.5
+>>
