@@ -1,91 +1,48 @@
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: Re: TIF_NOHZ can escape nonhz mask? (Was: [PATCH v3 6/8] x86:	Split
- syscall_trace_enter into two phases)
-Date: Mon, 4 Aug 2014 05:02:25 -0700
-Message-ID: <20140804120225.GA32378@linux.vnet.ibm.com>
-References: <20140728192209.GA26017@localhost.localdomain>
- <20140729175414.GA3289@redhat.com>
- <20140730163516.GC18158@localhost.localdomain>
- <20140730174630.GA30862@redhat.com>
- <20140731003034.GA32078@localhost.localdomain>
- <20140731160353.GA14772@redhat.com>
- <20140731171329.GD7842@localhost.localdomain>
- <20140731181230.GA18695@redhat.com>
- <20140731184729.GA12296@localhost.localdomain>
- <20140802173024.GB22510@redhat.com>
-Reply-To: paulmck@linux.vnet.ibm.com
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [RFC PATCH 00/11] Refactor MSI to support Non-PCI device
+Date: Mon, 4 Aug 2014 16:45:50 +0200
+Message-ID: <201408041645.50566.arnd@arndb.de>
+References: <1406344128-27055-1-git-send-email-wangyijing@huawei.com> <201408011516.26253.arnd@arndb.de> <53DEFECB.3030201@huawei.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-security-module-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20140802173024.GB22510@redhat.com>
-Sender: linux-security-module-owner@vger.kernel.org
-To: Oleg Nesterov <oleg@redhat.com>
-Cc: Frederic Weisbecker <fweisbec@gmail.com>, Andy Lutomirski <luto@amacapital.net>, linux-kernel@vger.kernel.org, Kees Cook <keescook@chromium.org>, Will Drewry <wad@chromium.org>, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-mips@linux-mips.org, linux-arch@vger.kernel.org, linux-security-module@vger.kernel.org, Alexei Starovoitov <ast@plumgrid.com>, hpa@zytor.com
-List-Id: linux-arch.vger.kernel.org
+Content-Type: Text/Plain;
+  charset="iso-8859-1"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mout.kundenserver.de ([212.227.126.187]:64309 "EHLO
+	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752653AbaHDOq6 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 4 Aug 2014 10:46:58 -0400
+In-Reply-To: <53DEFECB.3030201@huawei.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Yijing Wang <wangyijing@huawei.com>
+Cc: Jiang Liu <jiang.liu@linux.intel.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Russell King <linux@arm.linux.org.uk>, Paul.Mundt@huawei.com, Marc Zyngier <marc.zyngier@arm.com>, linux-pci@vger.kernel.org, "James E.J. Bottomley" <jejb@parisc-linux.org>, virtualization@lists.linux-foundation.org, Xinwei Hu <huxinwei@huawei.com>, Hanjun Guo <guohanjun@huawei.com>, Bjorn Helgaas <bhelgaas@google.com>, Wuyun <wuyun.wu@huawei.com>
 
-On Sat, Aug 02, 2014 at 07:30:24PM +0200, Oleg Nesterov wrote:
-> On 07/31, Frederic Weisbecker wrote:
-> >
-> > On Thu, Jul 31, 2014 at 08:12:30PM +0200, Oleg Nesterov wrote:
-> > > > >
-> > > > > Yes sure. But context_tracking_cpu_set() is called by init task with PID 1, not
-> > > > > by "swapper".
-> > > >
-> > > > Are you sure? It's called from start_kernel() which is init/0.
-> > >
-> > > But do_initcalls() is called by kernel_init(), this is the init process which is
-> > > going to exec /sbin/init later.
-> > >
-> > > But this doesn't really matter,
-> >
-> > Yeah but tick_nohz_init() is not an initcall, it's a function called from start_kernel(),
-> > before initcalls.
+On Monday 04 August 2014, Yijing Wang wrote:
+> I have another question is some drivers will request more than one
+> MSI/MSI-X IRQ, and the driver will use them to process different things.
+> Eg. network driver generally uses one of them to process trivial network thins,
+> and others to transmit/receive data.
 > 
-> Ah, indeed, and context_tracking_init() too. Even better, so we only need
+> So, in this case, it seems to driver need to touch the IRQ numbers.
 > 
-> 	--- x/kernel/context_tracking.c
-> 	+++ x/kernel/context_tracking.c
-> 	@@ -30,8 +30,10 @@ EXPORT_SYMBOL_GPL(context_tracking_enabl
-> 	 DEFINE_PER_CPU(struct context_tracking, context_tracking);
-> 	 EXPORT_SYMBOL_GPL(context_tracking);
-> 	 
-> 	-void context_tracking_cpu_set(int cpu)
-> 	+void __init context_tracking_cpu_set(int cpu)
-> 	 {
-> 	+	/* Called by "swapper" thread, all threads will inherit this flag */
-> 	+	set_thread_flag(TIF_NOHZ);
-> 		if (!per_cpu(context_tracking.active, cpu)) {
-> 			per_cpu(context_tracking.active, cpu) = true;
-> 			static_key_slow_inc(&context_tracking_enabled);
+> wr-linux:~ # cat /proc/interrupts
+>             CPU0       CPU1       CPU2     ....      CPU17      CPU18      CPU19      CPU20      CPU21      CPU22      CPU23
+>  ......
+>  100:          0          0          0               0          0          0          0          0          0          0  IR-PCI-MSI-edge      eth0
+>  101:          2          0          0               0          0          0  302830488          0          0          0  IR-PCI-MSI-edge      eth0-TxRx-0
+>  102:        110          0          0               0          0  360675897          0          0          0          0  IR-PCI-MSI-edge      eth0-TxRx-1
+>  103:        109          0          0               0          0          0          0          0          0          0  IR-PCI-MSI-edge      eth0-TxRx-2
+>  104:        107          0          0         9678933          0          0          0          0          0          0  IR-PCI-MSI-edge      eth0-TxRx-3
+>  105:        107          0          0               0  357838258          0          0          0          0          0  IR-PCI-MSI-edge      eth0-TxRx-4
+>  106:        115          0          0               0          0          0          0          0          0          0  IR-PCI-MSI-edge      eth0-TxRx-5
+>  107:        114          0          0               0          0          0          0  337866096          0          0  IR-PCI-MSI-edge      eth0-TxRx-6
+>  108:  373801199          0          0               0          0          0          0          0          0          0  IR-PCI-MSI-edge      eth0-TxRx-7
 > 
-> and now we can kill context_tracking_task_switch() ?
-> 
-> > > Yes, yes, this doesn't really matter. We can even add set(TIF_NOHZ) at the start
-> > > of start_kernel(). The question is, I still can't understand why do we want to
-> > > have the global TIF_NOHZ.
-> >
-> > Because then the flags is inherited in forks. It's better than inheriting it on
-> > context switch due to context switch being called much more often than fork.
-> 
-> This is clear, that is why I suggested this. Just we didn't understand each other,
-> when I said "global TIF_NOHZ" I meant the current situtation when every (running)
-> task has this bit set anyway. Sorry for confusion.
-> 
-> > No, because preempt_schedule_irq() does the ctx_state save and restore with
-> > exception_enter/exception_exit.
-> 
-> Thanks again. Can't understand how I managed to miss that exception_enter/exit
-> in preempt_schedule_*.
-> 
-> Damn. And after I spent more time, I don't have any idea how to make this
-> tracking cheaper.
 
-Mike Galbraith's profiles showed that timekeeping was one of the most
-expensive operations.  Would it make sense to have the option of statistical
-jiffy-based accounting?  The idea would be to sample the jiffies counter
-at each context switch, and charge the time to whoever happens to be running
-when the jiffies counter increments.
+I think in this example, you just need to request eight interrupts, and pass a
+different data pointer each time, pointing to the napi_struct of each of the
+NIC queues. The driver has no need to deal with the IRQ number at all,
+and I would be surprised if it cared today.
 
-							Thanx, Paul
-
+	Arnd
