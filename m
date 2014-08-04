@@ -1,100 +1,124 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e39.co.us.ibm.com ([32.97.110.160]:49853 "EHLO
-	e39.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752076AbaHDMCd (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 4 Aug 2014 08:02:33 -0400
-Received: from /spool/local
-	by e39.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-	Mon, 4 Aug 2014 06:02:32 -0600
-Date: Mon, 4 Aug 2014 05:02:25 -0700
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: Re: TIF_NOHZ can escape nonhz mask? (Was: [PATCH v3 6/8] x86:	Split
- syscall_trace_enter into two phases)
-Message-ID: <20140804120225.GA32378@linux.vnet.ibm.com>
-Reply-To: paulmck@linux.vnet.ibm.com
-References: <20140728192209.GA26017@localhost.localdomain>
- <20140729175414.GA3289@redhat.com>
- <20140730163516.GC18158@localhost.localdomain>
- <20140730174630.GA30862@redhat.com>
- <20140731003034.GA32078@localhost.localdomain>
- <20140731160353.GA14772@redhat.com>
- <20140731171329.GD7842@localhost.localdomain>
- <20140731181230.GA18695@redhat.com>
- <20140731184729.GA12296@localhost.localdomain>
- <20140802173024.GB22510@redhat.com>
+Received: from mout.kundenserver.de ([212.227.126.131]:55040 "EHLO
+	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751860AbaHDPCr (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 4 Aug 2014 11:02:47 -0400
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [RFC PATCH 00/11] Refactor MSI to support Non-PCI device
+Date: Mon, 4 Aug 2014 16:59:31 +0200
+References: <1406344128-27055-1-git-send-email-wangyijing@huawei.com> <201408011552.32135.arnd@arndb.de> <53DF2B7B.4000605@huawei.com>
+In-Reply-To: <53DF2B7B.4000605@huawei.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20140802173024.GB22510@redhat.com>
+Content-Type: Text/Plain;
+  charset="iso-8859-1"
+Content-Transfer-Encoding: 7bit
+Message-ID: <201408041659.31364.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Oleg Nesterov <oleg@redhat.com>
-Cc: Frederic Weisbecker <fweisbec@gmail.com>, Andy Lutomirski <luto@amacapital.net>, linux-kernel@vger.kernel.org, Kees Cook <keescook@chromium.org>, Will Drewry <wad@chromium.org>, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-mips@linux-mips.org, linux-arch@vger.kernel.org, linux-security-module@vger.kernel.org, Alexei Starovoitov <ast@plumgrid.com>, hpa@zytor.com
-Message-ID: <20140804120225.NR-8p1vpyiEivYA_82X92t8gDv6GrIwRKvNZ1UVS7OY@z>
+To: Yijing Wang <wangyijing@huawei.com>
+Cc: linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Russell King <linux@arm.linux.org.uk>, Paul.Mundt@huawei.com, Marc Zyngier <marc.zyngier@arm.com>, linux-pci@vger.kernel.org, "James E.J. Bottomley" <jejb@parisc-linux.org>, virtualization@lists.linux-foundation.org, Xinwei Hu <huxinwei@huawei.com>, Hanjun Guo <guohanjun@huawei.com>, Bjorn Helgaas <bhelgaas@google.com>, Wuyun <wuyun.wu@huawei.com>
+Message-ID: <20140804145931.QXjtwish9ZX1RkV-TB9oWJ8IgnQVue14pK72GSJPpc0@z>
 
-On Sat, Aug 02, 2014 at 07:30:24PM +0200, Oleg Nesterov wrote:
-> On 07/31, Frederic Weisbecker wrote:
-> >
-> > On Thu, Jul 31, 2014 at 08:12:30PM +0200, Oleg Nesterov wrote:
-> > > > >
-> > > > > Yes sure. But context_tracking_cpu_set() is called by init task with PID 1, not
-> > > > > by "swapper".
-> > > >
-> > > > Are you sure? It's called from start_kernel() which is init/0.
-> > >
-> > > But do_initcalls() is called by kernel_init(), this is the init process which is
-> > > going to exec /sbin/init later.
-> > >
-> > > But this doesn't really matter,
-> >
-> > Yeah but tick_nohz_init() is not an initcall, it's a function called from start_kernel(),
-> > before initcalls.
+On Monday 04 August 2014, Yijing Wang wrote:
+> On 2014/8/1 21:52, Arnd Bergmann wrote:
+> > On Wednesday 30 July 2014, Yijing Wang wrote:
+> >> On 2014/7/29 22:08, Arnd Bergmann wrote:
+> >>> The other part I'm not completely sure about is how you want to
+> >>> have MSIs map into normal IRQ descriptors. At the moment, all
+> >>> MSI users are based on IRQ numbers, but this has known scalability problems.
+> >>
+> >> Hmmm, I still use the IRQ number to map the MSIs to IRQ description.
+> >> I'm sorry, I don't understand you meaning.
+> >> What are the scalability problems you mentioned ?
+> >> For device drivers, they always process interrupt in two steps.
+> >> If irq is the legacy interrupt, drivers will first
+> >> use the irq_of_parse_and_map() or pci_enable_device() to parse and get the IRQ number.
+> >> Then drivers will call the request_irq() to register the interrupt handler.
+> >> If irq is MSIs, first call pci_enable_msi/x() to get the IRQ number and then call
+> >> request_irq() to register interrupt handler.
+> > 
+> > The method you describe here makes sense for PCI devices that are required to support
+> > legacy interrupts and may or may not support MSI on a given system, but not so much
+> > for platform devices for which we know exactly whether we want to use MSI
+> > or legacy interrupts.
+> > 
+> > In particular if you have a device that can only do MSI, the entire pci_enable_msi
+> > step is pointless: all we need to do is program the correct MSI target address/message
+> > pair into the device and register the handler.
 > 
-> Ah, indeed, and context_tracking_init() too. Even better, so we only need
-> 
-> 	--- x/kernel/context_tracking.c
-> 	+++ x/kernel/context_tracking.c
-> 	@@ -30,8 +30,10 @@ EXPORT_SYMBOL_GPL(context_tracking_enabl
-> 	 DEFINE_PER_CPU(struct context_tracking, context_tracking);
-> 	 EXPORT_SYMBOL_GPL(context_tracking);
-> 	 
-> 	-void context_tracking_cpu_set(int cpu)
-> 	+void __init context_tracking_cpu_set(int cpu)
-> 	 {
-> 	+	/* Called by "swapper" thread, all threads will inherit this flag */
-> 	+	set_thread_flag(TIF_NOHZ);
-> 		if (!per_cpu(context_tracking.active, cpu)) {
-> 			per_cpu(context_tracking.active, cpu) = true;
-> 			static_key_slow_inc(&context_tracking_enabled);
-> 
-> and now we can kill context_tracking_task_switch() ?
-> 
-> > > Yes, yes, this doesn't really matter. We can even add set(TIF_NOHZ) at the start
-> > > of start_kernel(). The question is, I still can't understand why do we want to
-> > > have the global TIF_NOHZ.
-> >
-> > Because then the flags is inherited in forks. It's better than inheriting it on
-> > context switch due to context switch being called much more often than fork.
-> 
-> This is clear, that is why I suggested this. Just we didn't understand each other,
-> when I said "global TIF_NOHZ" I meant the current situtation when every (running)
-> task has this bit set anyway. Sorry for confusion.
-> 
-> > No, because preempt_schedule_irq() does the ctx_state save and restore with
-> > exception_enter/exception_exit.
-> 
-> Thanks again. Can't understand how I managed to miss that exception_enter/exit
-> in preempt_schedule_*.
-> 
-> Damn. And after I spent more time, I don't have any idea how to make this
-> tracking cheaper.
+> Yes, I almost agree if we won't change the existing hundreds of drivers, what
+> I worried about is some drivers may want to know the IRQ numbers, and use the IRQ
+> number to process different things, as I mentioned in another reply.
+> But we can also provide the interface which integrate MSI configuration and request_irq(),
+> if most drivers don't care the IRQ number.
 
-Mike Galbraith's profiles showed that timekeeping was one of the most
-expensive operations.  Would it make sense to have the option of statistical
-jiffy-based accounting?  The idea would be to sample the jiffies counter
-at each context switch, and charge the time to whoever happens to be running
-when the jiffies counter increments.
+The driver would still have the option of getting the IRQ number for now: With
+the interface I imagine, you would get a 'struct msi_desc' pointer, from which
+you can look up the 'struct irq_desc' pointer (either embedded in msi_desc,
+or using a pointer from a member of msi_desc), and you can already get the
+interrupt number from the irq_desc.
 
-							Thanx, Paul
+My point was that a well-written driver already does not care about the interrupt
+number: the only information a driver needs in the interrupt handler is a pointer
+to its own context, which we already derive from the irq_desc.
 
+The main interface that currently requires the irq number is free_irq(), but
+I would argue that we can just add a wrapper that takes the msi_desc pointer
+as its first argument so the driver does not have to worry about it.
+
+We can add additional wrappers like that as needed.
+
+> >>> What I'd envision as the API from the device driver perspective is something
+> >>> as simple like this:
+> >>>
+> >>> struct msi_desc *msi_request(struct msi_chip *chip, irq_handler_t handler,
+> >>> 			unsigned long flags, const char *name, struct device *dev);
+> >>>
+> >>> which would get an msi descriptor that is valid for this device (dev)
+> >>> connected to a particular msi_chip, and associate a handler function
+> >>> with it. The device driver can call that function and retrieve the
+> >>> address/message pair from the msi_desc in order to store it in its own
+> >>> device specific registers. The request_irq() can be handled internally
+> >>> to msi_request().
+> >>
+> >> This is a huge change for device drivers, and some device drivers don't know which msi_chip
+> >> their MSI irq deliver to. I'm reworking the msi_chip, and try to use msi_chip to eliminate
+> >> all arch_msi_xxx() under every arch in kernel. And the important point is how to create the
+> >> binding for the MSI device to the target msi_chip.
+> > 
+> > Which drivers are you thinking of? Again, I wouldn't expect to change any PCI drivers,
+> > but only platform drivers that do native MSI, so we only have to change drivers that
+> > do not support any MSI at all yet and that need to be changed anyway in order to add
+> > support.
+> 
+> I mean platform device drivers, because we can find the target msi_chip by some platform
+> interfaces(like the existing of_pci_find_msi_chip_by_node()). So we no need to explicitly
+> provide the msi_chip as the function argument.
+
+Right, that works too. I was thinking we might need an interface that allows us to
+pick a particular msi_chip if there are several alternatives (e.g. one in the GIC
+and one in the PCI host), but you are right: we should normally be able to hardwire
+that information in DT or elsewhere, and just need the 'struct device pointer' which
+should probably be the first argument here.
+
+As you pointed out, it's common to have multiple MSIs for a single device, so we
+also need a context to pass around, so my suggestion would become something like:
+
+struct msi_desc *msi_request(struct device *dev, irq_handler_t handler,
+ 			unsigned long flags, const char *name, void *data);
+
+It's possible that we have to add one or two more arguments here.
+
+> > A degenerate case of this would be a system where a PCI device sends its MSI into
+> > the host controller, that generates a legacy interrupt and that in turn gets 
+> > sent to an irqchip which turns it back into an MSI for the GICv3. This would of
+> > course be very inefficient, but I think we should be able to express this with
+> > both the binding and the in-kernel framework just to be on the safe side.
+> 
+> Yes, the best way to tell the kernel which msi_chip should deliver to is describe
+> the binding in DTS file. If a real degenerate case found, we can update the platform
+> interface which is responsible for getting the match msi_chip in future.
+
+Ok.
+
+	Arnd
