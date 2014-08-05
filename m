@@ -1,49 +1,65 @@
 From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [PATCH v2 21/29] nios2: Futex operations
-Date: Tue, 5 Aug 2014 10:49:59 +0200
-Message-ID: <CAMuHMdVRwTefEsKOMb2gotq5b7JoQ7Z2a8-5dERD7r4MwJdTvg@mail.gmail.com>
-References: <1405413956-2772-1-git-send-email-lftan@altera.com>
-	<17186253.ZJUn1qWK0f@wuerfel>
-	<alpine.DEB.2.10.1407181140250.24854@nanos>
-	<5659104.6O7AZx76W6@wuerfel>
+Subject: Re: [PATCH v3 1/3] asm-generic/io.h: Implement generic {read,write}s*()
+Date: Tue, 5 Aug 2014 11:07:55 +0200
+Message-ID: <CAMuHMdUUSMGghDVDpdQygQCv0OWGP-Lwxzy004xRpR6BsZS81A@mail.gmail.com>
+References: <1405508484-18303-1-git-send-email-thierry.reding@gmail.com>
+	<43703371.jktNRIezc3@wuerfel>
+	<20140719084152.GA31564@ravnborg.org>
+	<4967546.K5Yf5hcJE1@wuerfel>
+	<20140719091156.GA31772@ravnborg.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-la0-f42.google.com ([209.85.215.42]:52725 "EHLO
-	mail-la0-f42.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757256AbaHEIuB (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 5 Aug 2014 04:50:01 -0400
-In-Reply-To: <5659104.6O7AZx76W6@wuerfel>
+Received: from mail-lb0-f170.google.com ([209.85.217.170]:64974 "EHLO
+	mail-lb0-f170.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932753AbaHEJH5 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 5 Aug 2014 05:07:57 -0400
+In-Reply-To: <20140719091156.GA31772@ravnborg.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Ley Foon Tan <lftan@altera.com>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Chung-Lin Tang <cltang@codesourcery.com>
+To: Sam Ravnborg <sam@ravnborg.org>
+Cc: Arnd Bergmann <arnd@arndb.de>, Thierry Reding <thierry.reding@gmail.com>, Russell King <linux@arm.linux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Stephen Boyd <sboyd@codeaurora.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
 
-On Fri, Jul 18, 2014 at 11:55 AM, Arnd Bergmann <arnd@arndb.de> wrote:
-> On Friday 18 July 2014 11:42:34 Thomas Gleixner wrote:
->> On Fri, 18 Jul 2014, Arnd Bergmann wrote:
->> > On Friday 18 July 2014 14:07:42 Ley Foon Tan wrote:
->> > > On Thu, Jul 17, 2014 at 7:07 PM, Arnd Bergmann <arnd@arndb.de> wrote:
->> > If this understanding is right, we can probably just merge the
->> > m68k implementation into the asm-generic version, as that does
->> > exactly that, and just isn't SMP safe. I'm still unsure whether
->> > I'm missing something here though, as everything else seems to
->> > do this in assembly, even for non-SMP machines that could use
->> > the trivial method that m68k has.
+On Sat, Jul 19, 2014 at 11:11 AM, Sam Ravnborg <sam@ravnborg.org> wrote:
+> On Sat, Jul 19, 2014 at 11:05:33AM +0200, Arnd Bergmann wrote:
+>> On Saturday 19 July 2014 10:41:52 Sam Ravnborg wrote:
+>> > > >
+>> > > > This set:
+>> > > > #define inb_p(addr)     inb(addr)
+>> > > > #define inw_p(addr)     inw(addr)
+>> > > > #define inl_p(addr)     inl(addr)
+>> > > > #define outb_p(x, addr) outb((x), (addr))
+>> > > > #define outw_p(x, addr) outw((x), (addr))
+>> > > > #define outl_p(x, addr) outl((x), (addr))
+>> > > >
+>> > > > Should have a comment that say they are deprecated.
+>> > > > Especially the "b" variants still have many users.
+>> > >
+>> > > Are they? I don't remember ever seeing a reason to deprecate
+>> > > them. We could perhaps enclose them in #ifdef CONFIG_ISA, but
+>> > > there may also be some drivers that use the same code for ISA
+>> > > and PCI, and it doesn't really hurt on PCI.
+>> >
+>> > It is my understanding that inl and inl_p are the same these days.
+>> > A quick grep indicate that only m68k define the
+>> > _p variant different from the other.
+>> > But I failed to find and description of the difference between the
+>> > two which is why I assumed they were identical and thus no need for both.
 >>
->> For UP relying of pagefault disable should be good enough indeed. I
->> guess the asm for the other UP stuff results from looking at
->> architectures or copying from architectures which did this in ASM
+>> I don't know why m68k needs it, it's really an x86-specific
+>> thing, see slow_down_io() in arch/x86/include/asm/io.h.
 >
-> Ok, thanks for the confirmation!
+> I had missed the x86 versions when grepping.
+> Hmm, and with the macro tricks they play in asm/io.h this
+> file is not at all grep friendly.
 >
-> Ley Foon Tan, I think the best way forward then is for you to
-> take the m68k code and copy (or move) that into asm-generic/futex.h
-> under an #ifndef CONFIG_SMP.
+> So xxx_p is for pause (or something like that).
+> This also matches that m68k do some tricks with delay() in the _p variants.
+> Thanks for the explanation.
 
-Yes, that should work.
-
-I tried that a while ago for OpenRISC, but never cleant it up and sent it out.
+m68k's isa_delay() uses the same approach as x86's slow_down_io(),
+but only for Q40/Q60, which has a "real" ISA bus that accepts legacy
+ISA expansion cards (http://www.q40.de/).
 
 Gr{oetje,eeting}s,
 
