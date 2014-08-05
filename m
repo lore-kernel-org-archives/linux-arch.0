@@ -1,55 +1,57 @@
-From: Yijing Wang <wangyijing@huawei.com>
-Subject: Re: [RFC PATCH 00/11] Refactor MSI to support Non-PCI device
-Date: Tue, 5 Aug 2014 10:20:55 +0800
-Message-ID: <53E03F87.8040702@huawei.com>
-References: <1406344128-27055-1-git-send-email-wangyijing@huawei.com> <201408011516.26253.arnd@arndb.de> <53DEFECB.3030201@huawei.com> <201408041645.50566.arnd@arndb.de>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: [PATCH v2 21/29] nios2: Futex operations
+Date: Tue, 5 Aug 2014 10:49:59 +0200
+Message-ID: <CAMuHMdVRwTefEsKOMb2gotq5b7JoQ7Z2a8-5dERD7r4MwJdTvg@mail.gmail.com>
+References: <1405413956-2772-1-git-send-email-lftan@altera.com>
+	<17186253.ZJUn1qWK0f@wuerfel>
+	<alpine.DEB.2.10.1407181140250.24854@nanos>
+	<5659104.6O7AZx76W6@wuerfel>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="ISO-8859-1"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-pci-owner@vger.kernel.org>
-In-Reply-To: <201408041645.50566.arnd@arndb.de>
-Sender: linux-pci-owner@vger.kernel.org
+Content-Type: text/plain; charset=UTF-8
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-la0-f42.google.com ([209.85.215.42]:52725 "EHLO
+	mail-la0-f42.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1757256AbaHEIuB (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 5 Aug 2014 04:50:01 -0400
+In-Reply-To: <5659104.6O7AZx76W6@wuerfel>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Arnd Bergmann <arnd@arndb.de>
-Cc: Jiang Liu <jiang.liu@linux.intel.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Russell King <linux@arm.linux.org.uk>, Paul.Mundt@huawei.com, Marc Zyngier <marc.zyngier@arm.com>, linux-pci@vger.kernel.org, "James E.J. Bottomley" <jejb@parisc-linux.org>, virtualization@lists.linux-foundation.org, Xinwei Hu <huxinwei@huawei.com>, Hanjun Guo <guohanjun@huawei.com>, Bjorn Helgaas <bhelgaas@google.com>, Wuyun <wuyun.wu@huawei.com>
-List-Id: linux-arch.vger.kernel.org
+Cc: Thomas Gleixner <tglx@linutronix.de>, Ley Foon Tan <lftan@altera.com>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Chung-Lin Tang <cltang@codesourcery.com>
 
-On 2014/8/4 22:45, Arnd Bergmann wrote:
-> On Monday 04 August 2014, Yijing Wang wrote:
->> I have another question is some drivers will request more than one
->> MSI/MSI-X IRQ, and the driver will use them to process different things.
->> Eg. network driver generally uses one of them to process trivial network thins,
->> and others to transmit/receive data.
+On Fri, Jul 18, 2014 at 11:55 AM, Arnd Bergmann <arnd@arndb.de> wrote:
+> On Friday 18 July 2014 11:42:34 Thomas Gleixner wrote:
+>> On Fri, 18 Jul 2014, Arnd Bergmann wrote:
+>> > On Friday 18 July 2014 14:07:42 Ley Foon Tan wrote:
+>> > > On Thu, Jul 17, 2014 at 7:07 PM, Arnd Bergmann <arnd@arndb.de> wrote:
+>> > If this understanding is right, we can probably just merge the
+>> > m68k implementation into the asm-generic version, as that does
+>> > exactly that, and just isn't SMP safe. I'm still unsure whether
+>> > I'm missing something here though, as everything else seems to
+>> > do this in assembly, even for non-SMP machines that could use
+>> > the trivial method that m68k has.
 >>
->> So, in this case, it seems to driver need to touch the IRQ numbers.
->>
->> wr-linux:~ # cat /proc/interrupts
->>             CPU0       CPU1       CPU2     ....      CPU17      CPU18      CPU19      CPU20      CPU21      CPU22      CPU23
->>  ......
->>  100:          0          0          0               0          0          0          0          0          0          0  IR-PCI-MSI-edge      eth0
->>  101:          2          0          0               0          0          0  302830488          0          0          0  IR-PCI-MSI-edge      eth0-TxRx-0
->>  102:        110          0          0               0          0  360675897          0          0          0          0  IR-PCI-MSI-edge      eth0-TxRx-1
->>  103:        109          0          0               0          0          0          0          0          0          0  IR-PCI-MSI-edge      eth0-TxRx-2
->>  104:        107          0          0         9678933          0          0          0          0          0          0  IR-PCI-MSI-edge      eth0-TxRx-3
->>  105:        107          0          0               0  357838258          0          0          0          0          0  IR-PCI-MSI-edge      eth0-TxRx-4
->>  106:        115          0          0               0          0          0          0          0          0          0  IR-PCI-MSI-edge      eth0-TxRx-5
->>  107:        114          0          0               0          0          0          0  337866096          0          0  IR-PCI-MSI-edge      eth0-TxRx-6
->>  108:  373801199          0          0               0          0          0          0          0          0          0  IR-PCI-MSI-edge      eth0-TxRx-7
->>
-> 
-> I think in this example, you just need to request eight interrupts, and pass a
-> different data pointer each time, pointing to the napi_struct of each of the
-> NIC queues. The driver has no need to deal with the IRQ number at all,
-> and I would be surprised if it cared today.
+>> For UP relying of pagefault disable should be good enough indeed. I
+>> guess the asm for the other UP stuff results from looking at
+>> architectures or copying from architectures which did this in ASM
+>
+> Ok, thanks for the confirmation!
+>
+> Ley Foon Tan, I think the best way forward then is for you to
+> take the m68k code and copy (or move) that into asm-generic/futex.h
+> under an #ifndef CONFIG_SMP.
 
-Yes, you are right, this is not a stumbling block. :)
+Yes, that should work.
 
-> 
-> 	Arnd
-> 
-> .
-> 
+I tried that a while ago for OpenRISC, but never cleant it up and sent it out.
 
+Gr{oetje,eeting}s,
 
--- 
-Thanks!
-Yijing
+                        Geert
+
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
