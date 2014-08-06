@@ -1,66 +1,75 @@
-From: Stephen Rothwell <sfr@canb.auug.org.au>
+From: Richard Weinberger <richard@nod.at>
 Subject: Re: [GIT PULL] Global signal cleanup
-Date: Wed, 6 Aug 2014 21:27:20 +1000
-Message-ID: <20140806212720.66dbd58b@canb.auug.org.au>
-References: <53E20F1E.2080606@nod.at>
+Date: Wed, 06 Aug 2014 13:29:10 +0200
+Message-ID: <53E21186.3000702@nod.at>
+References: <53E20F1E.2080606@nod.at> <20140806212720.66dbd58b@canb.auug.org.au>
 Mime-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha256;
- boundary="Sig_/E=u+L6=k3oyshtyASGDyD1V"; protocol="application/pgp-signature"
+Content-Type: multipart/signed; micalg=pgp-sha1;
+ protocol="application/pgp-signature";
+ boundary="r33u7PHmOnJtjCj8t01NFpF8ODcCjg63U"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from ozlabs.org ([103.22.144.67]:42924 "EHLO ozlabs.org"
+Received: from a.ns.miles-group.at ([95.130.255.143]:65276 "EHLO radon.swed.at"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754118AbaHFL1a (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 6 Aug 2014 07:27:30 -0400
-In-Reply-To: <53E20F1E.2080606@nod.at>
+	id S1755235AbaHFL3N (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 6 Aug 2014 07:29:13 -0400
+In-Reply-To: <20140806212720.66dbd58b@canb.auug.org.au>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Richard Weinberger <richard@nod.at>
+To: Stephen Rothwell <sfr@canb.auug.org.au>
 Cc: Linus Torvalds <torvalds@linux-foundation.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
 
---Sig_/E=u+L6=k3oyshtyASGDyD1V
-Content-Type: text/plain; charset=US-ASCII
+This is an OpenPGP/MIME signed message (RFC 4880 and 3156)
+--r33u7PHmOnJtjCj8t01NFpF8ODcCjg63U
+Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: quoted-printable
 
-Hi,
-
-On Wed, 06 Aug 2014 13:18:54 +0200 Richard Weinberger <richard@nod.at> wrot=
-e:
->
-> the following changes since commit 19583ca584d6f574384e17fe7613dfaeadcdc4=
-a6:
+Am 06.08.2014 13:27, schrieb Stephen Rothwell:
+> Hi,
 >=20
->   Linux 3.16 (2014-08-03 15:25:02 -0700)
+> On Wed, 06 Aug 2014 13:18:54 +0200 Richard Weinberger <richard@nod.at> =
+wrote:
+>>
+>> the following changes since commit 19583ca584d6f574384e17fe7613dfaeadc=
+dc4a6:
+>>
+>>   Linux 3.16 (2014-08-03 15:25:02 -0700)
+>>
+>> are available in the git repository at:
+>>
+>>   git://git.kernel.org/pub/scm/linux/kernel/git/rw/misc.git signal-cle=
+anup
 >=20
-> are available in the git repository at:
->=20
->   git://git.kernel.org/pub/scm/linux/kernel/git/rw/misc.git signal-cleanup
+> This has all been rebased onto v3.16 but none of the patches changed.
 
-This has all been rebased onto v3.16 but none of the patches changed.
+This was my indention. Also I've added some acks.
+Did I screw something up?
 
---=20
-Cheers,
-Stephen Rothwell                    sfr@canb.auug.org.au
+Thanks,
+//richard
 
---Sig_/E=u+L6=k3oyshtyASGDyD1V
-Content-Type: application/pgp-signature; name=signature.asc
-Content-Disposition: attachment; filename=signature.asc
+
+--r33u7PHmOnJtjCj8t01NFpF8ODcCjg63U
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: OpenPGP digital signature
+Content-Disposition: attachment; filename="signature.asc"
 
 -----BEGIN PGP SIGNATURE-----
-Version: GnuPG v2
+Version: GnuPG v2.0.22 (GNU/Linux)
+Comment: Using GnuPG with Thunderbird - http://www.enigmail.net/
 
-iQIcBAEBCAAGBQJT4hEfAAoJEMDTa8Ir7ZwVYWkP/RPnY8WkaWMtiuOF0bG3+l0b
-aWVMG7OqJkXQLvLkjgxW19AHEvkEjd89Paptp0LGKCM6XI0MQRV678aPlwI/3SXM
-KcZewCULEhgcZIo9tfXBRc0IF1pCl6HNGO+jaZCCYTCIsnrejSOV0b35O5pb6DSA
-Y44lUIb6qIAS/fMMYX97hoLzY8XxMNGeLQKiTsKjMReutVJKHi7xN7/k+4QmdQG5
-rixfygnESI6UNNG8Yu7EXeXGsn+wD4qkmCscqtcmDyrYPShP5ZdSaEUv9fadHgll
-i9wxTScY9PirTsdzDV3GeDFzdYhY6o0vnNwwEhee76+tS4oa712bT7UjhM3/QRsd
-OuP0WEoTua9JWFzFYTdLvg596hgIeL4QPh3ROcHMczxGioIqUbGbI84HujnbKerI
-3zLXmet06Wyb+u754STTkXfsqylPzF7sf59y26bBmAlwevJKDBvFahdcVlZfP3xj
-M+8YEoK90Lzi9Swglg4SLR7WEKTvA8tu3Oebw2wnwweTcar6+L7W8FCf3kO3686L
-Pv7y9Y8hcwF+owOdc5RLnF+fgBiw5WxFSWYy77TCcE1yvRXmtc7fgMJlMbJaP60I
-A0YhZzJnodHBNmapB8jERKT9LqlXU3B+PQXtfRzX1AD44BE1oOLT/yE+8P+AkJPq
-u3fPgJalIC1KVRRAY//G
-=rlUB
+iQIcBAEBAgAGBQJT4hGGAAoJEPmeIjfg4UaayLsP/1rteWCjezmHqCvrZq8LH5Ba
+n448/g8fQIUTpPwFMKKo13GrBnNmz90f7VM9ulIyhi6/YnMjjP2rMfCzRC7QyDLR
+ktbyuGT+12CNgfFJYks0Pu36gAtmejIksNpfBz1pJQWN6MQWbm8KnQ6XzkSnxx3q
+XKFQZlDT56v96orwCzi0XLlSXVKp3W7zgyxJr+lR6BMdPSbH3q47hL12w+l2QLRA
+rXevPgf+054OW7EqkWzERJYyuazBQ11dTbLKg7A4XfwocNaQFDTFHN0TWoWLjQMJ
+1Jx5eNz/fYKB9X++u6AKipHxUxKLr/SMinNWTxZHAy7c0wv07+8xvcUDe7Mu/2pr
+cZVbzKAcju5gLv2zk/95GVknZhuV9QbArdzKoadz3jgf3kHmwXWQfRoXkcWLzUFS
+SX1f6aYCHYKFBDbfZCe7NjyivATQw9ao265QHqUoGw7BMY0fZNwj2HseMI/mIACG
+RK/enOZvZJfmbIwMi7Mbay0rxgslEvx1pHdseZIn3JF/hhz9pW+S6H1K3kVoVLzn
+gjP1sIGBnHC2KiyjrpDQaAWBr3Z3Lceuk9hF8HSFKgt7W2c6x7+aF2acLYm7EkCQ
+z9vl5SAVxThEuRjMqF52og9KUCW8o41SuILnEk1zmTcbFC/yQChiMeNCH0Wr7g1R
+zXYM9fKJBiVOM7Mq/Pmv
+=tOQr
 -----END PGP SIGNATURE-----
 
---Sig_/E=u+L6=k3oyshtyASGDyD1V--
+--r33u7PHmOnJtjCj8t01NFpF8ODcCjg63U--
