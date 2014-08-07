@@ -1,92 +1,43 @@
-From: Stephen Rothwell <sfr@canb.auug.org.au>
-Subject: Re: [GIT PULL] Global signal cleanup
-Date: Thu, 7 Aug 2014 10:28:23 +1000
-Message-ID: <20140807102823.7a743bdf@canb.auug.org.au>
-References: <53E20F1E.2080606@nod.at>
-	<20140806212720.66dbd58b@canb.auug.org.au>
-	<53E21186.3000702@nod.at>
-Mime-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha256;
- boundary="Sig_/Nv1vUrpHWTkFQU0vb4I.MsY"; protocol="application/pgp-signature"
+From: Nick Krause <xerofoiify@gmail.com>
+Subject: [PATCH 1/1] bug: Add unreachable() to generic BUG() to silence warnings
+Date: Thu,  7 Aug 2014 03:13:41 +0200
+Message-ID: <1407374021-20682-1-git-send-email-xerofoiify@gmail.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from ozlabs.org ([103.22.144.67]:49263 "EHLO ozlabs.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754158AbaHGA2c (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 6 Aug 2014 20:28:32 -0400
-In-Reply-To: <53E21186.3000702@nod.at>
+Received: from mail-yk0-f194.google.com ([209.85.160.194]:39214 "EHLO
+	mail-yk0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754423AbaHGBNi (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 6 Aug 2014 21:13:38 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Richard Weinberger <richard@nod.at>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
+To: Arnd Bergmann <arnd@arndb.de>, "open list:GENERIC INCLUDE/A..." <linux-arch@vger.kernel.org>, open list <linux-kernel@vger.kernel.org>
+Cc: josh@joshtriplett.org
 
---Sig_/Nv1vUrpHWTkFQU0vb4I.MsY
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: quoted-printable
+Architectures which use generic BUG() have warnings like 
 
-Hi Richard,
+kernel/sched/core.c:2692:1: warning: control reaches end of non-void function [-Wreturn-type]
+net/core/ethtool.c:236:1: warning: control reaches end of non-void function [-Wreturn-type]
 
-On Wed, 06 Aug 2014 13:29:10 +0200 Richard Weinberger <richard@nod.at> wrot=
-e:
->
-> Am 06.08.2014 13:27, schrieb Stephen Rothwell:
-> >=20
-> > On Wed, 06 Aug 2014 13:18:54 +0200 Richard Weinberger <richard@nod.at> =
-wrote:
-> >>
-> >> the following changes since commit 19583ca584d6f574384e17fe7613dfaeadc=
-dc4a6:
-> >>
-> >>   Linux 3.16 (2014-08-03 15:25:02 -0700)
-> >>
-> >> are available in the git repository at:
-> >>
-> >>   git://git.kernel.org/pub/scm/linux/kernel/git/rw/misc.git signal-cle=
-anup
-> >=20
-> > This has all been rebased onto v3.16 but none of the patches changed.
->=20
-> This was my indention. Also I've added some acks.
-> Did I screw something up?
+Other BUG() implementations
+have added unreachable() at end but generic does not. I guess
+that is why
+it showing these errors. We can silence them using unreachable().
 
-We discourage people from rebasing their trees just before asking Linus
-to pull them unless they have a good reason.  Adding Acks is not
-necessarily a good reason.  It may be a different thing if you rewrite
-your tree (without changing it base) and, given that none of your
-actual patches changed, that would have worked for you.
+Signed-off-by: Nick Krause <xerofoify@gmail.com>
+---
+ include/asm-generic/bug.h | 1 +
+ 1 file changed, 1 insertion(+)
 
-In your case, since you haven't updated the branch (signal_v4) that I
-fetch for linux-next, its doubly bad as, after Linus' pulls your tree,
-I will have two copies of all those patches in my tree - which could
-easily lead to conflicts that I really don't need to have.
-
-Also, note that the fact that the actual patches did not change at all
-means that either you missed some change that coudl have justified the
-rebase, or the rebase was unnecessary (since the things you are
-patching did not change).
---=20
-Cheers,
-Stephen Rothwell                    sfr@canb.auug.org.au
-
---Sig_/Nv1vUrpHWTkFQU0vb4I.MsY
-Content-Type: application/pgp-signature; name=signature.asc
-Content-Disposition: attachment; filename=signature.asc
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v2
-
-iQIcBAEBCAAGBQJT4sgsAAoJEMDTa8Ir7ZwVIksP/A4ihaJNYEJMfI2QbroS7phD
-aw9mnnyWOkiACxi5yFKeZLgbri4QQ2Nquuffd7dQU0p3HE4FXUZRIRKrnx0lE4HZ
-ISWHRa/avlYy+mSgQKjPAbVc2mFSWhlHkBaaYqEQAz/Y4zGCPb4f5txeHtU87LQx
-aNwnPRz3VHUvrVsgljtSR7NoDnjFFBmOtLutA8irvYq9l4VZtBxlhMUxee9s3nku
-dvW7Rfqfrm3FOVXZWLaopCuU/FF7kZt2G74475TIyFiV5U1cc6M+h3qH6PyRjzL1
-IQgCl+SAOY5KQApkBljEj7W635X/UejsO42STmZPudZKPjpmaCglYsCj6VvwiJts
-dSNR34jLVkIfy9cY4EXdoLrUCcjaa4ib9itdIaGICvHaXeKEI4pE/oHBzZmtfqfO
-kgk1vzxCmikJss8BCta4qGDUHYuDUJlP0vJsosEtFyY9uvfJfvYxnAkWGmoOFuDN
-zDBlE6pDpU2nB4sZd2CHWZPSBu1uchcuRmgJDmKP9O9Hbibg9L4ESqlvSdZU4exJ
-DLFrcghkZBzYifZ4Q3KVCsdhFMtC0C6haQZcWYyj8qVIBxuQJEt6jDW0quy8AjbF
-louensC5enCCPZw260q0Nq6TCnSRnYfnjaqvNJlLkk0OcLyN7ZOb8ErhIrhcJ/Hk
-4ZeQrFal2ZUirjSnee7T
-=ev1y
------END PGP SIGNATURE-----
-
---Sig_/Nv1vUrpHWTkFQU0vb4I.MsY--
+diff --git a/include/asm-generic/bug.h b/include/asm-generic/bug.h
+index 630dd23..effcc82 100644
+--- a/include/asm-generic/bug.h
++++ b/include/asm-generic/bug.h
+@@ -48,6 +48,7 @@ struct bug_entry {
+ #define BUG() do { \
+ 	printk("BUG: failure at %s:%d/%s()!\n", __FILE__, __LINE__, __func__); \
+ 	panic("BUG!"); \
++	unreachable(); \
+ } while (0)
+ #endif
+ 
+-- 
+2.0.1
