@@ -1,54 +1,101 @@
-From: Josh Triplett <josh@joshtriplett.org>
-Subject: Re: [PATCH 1/1] bug: Add unreachable() to generic BUG() to silence
- warnings
-Date: Wed, 6 Aug 2014 22:06:54 -0700
-Message-ID: <20140807050654.GA2340@thin>
-References: <1407374021-20682-1-git-send-email-xerofoiify@gmail.com>
+From: Richard Weinberger <richard@nod.at>
+Subject: Re: [GIT PULL] Global signal cleanup
+Date: Thu, 07 Aug 2014 09:35:56 +0200
+Message-ID: <53E32C5C.5010103@nod.at>
+References: <53E20F1E.2080606@nod.at>	<20140806212720.66dbd58b@canb.auug.org.au>	<53E21186.3000702@nod.at> <20140807102823.7a743bdf@canb.auug.org.au>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: multipart/signed; micalg=pgp-sha1;
+ protocol="application/pgp-signature";
+ boundary="pjSBldROt1suUeH1jhKBiWnxfO8hGaAaB"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from relay6-d.mail.gandi.net ([217.70.183.198]:44296 "EHLO
-	relay6-d.mail.gandi.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757252AbaHGFHE (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 7 Aug 2014 01:07:04 -0400
-Content-Disposition: inline
-In-Reply-To: <1407374021-20682-1-git-send-email-xerofoiify@gmail.com>
+Received: from a.ns.miles-group.at ([95.130.255.143]:65276 "EHLO radon.swed.at"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1754037AbaHGHgB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 7 Aug 2014 03:36:01 -0400
+In-Reply-To: <20140807102823.7a743bdf@canb.auug.org.au>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Nick Krause <xerofoiify@gmail.com>
-Cc: Arnd Bergmann <arnd@arndb.de>, "open list:GENERIC INCLUDE/A..." <linux-arch@vger.kernel.org>, open list <linux-kernel@vger.kernel.org>
+To: Stephen Rothwell <sfr@canb.auug.org.au>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
 
-On Thu, Aug 07, 2014 at 03:13:41AM +0200, Nick Krause wrote:
-> Architectures which use generic BUG() have warnings like 
-> 
-> kernel/sched/core.c:2692:1: warning: control reaches end of non-void function [-Wreturn-type]
-> net/core/ethtool.c:236:1: warning: control reaches end of non-void function [-Wreturn-type]
-> 
-> Other BUG() implementations
-> have added unreachable() at end but generic does not. I guess
-> that is why
-> it showing these errors. We can silence them using unreachable().
-> 
-> Signed-off-by: Nick Krause <xerofoify@gmail.com>
+This is an OpenPGP/MIME signed message (RFC 4880 and 3156)
+--pjSBldROt1suUeH1jhKBiWnxfO8hGaAaB
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: quoted-printable
 
-You shouldn't see those warnings.  panic() has __noreturn set, which
-should have exactly the same effect.
+Am 07.08.2014 02:28, schrieb Stephen Rothwell:
+> Hi Richard,
+>=20
+> On Wed, 06 Aug 2014 13:29:10 +0200 Richard Weinberger <richard@nod.at> =
+wrote:
+>>
+>> Am 06.08.2014 13:27, schrieb Stephen Rothwell:
+>>>
+>>> On Wed, 06 Aug 2014 13:18:54 +0200 Richard Weinberger <richard@nod.at=
+> wrote:
+>>>>
+>>>> the following changes since commit 19583ca584d6f574384e17fe7613dfaea=
+dcdc4a6:
+>>>>
+>>>>   Linux 3.16 (2014-08-03 15:25:02 -0700)
+>>>>
+>>>> are available in the git repository at:
+>>>>
+>>>>   git://git.kernel.org/pub/scm/linux/kernel/git/rw/misc.git signal-c=
+leanup
+>>>
+>>> This has all been rebased onto v3.16 but none of the patches changed.=
 
->  include/asm-generic/bug.h | 1 +
->  1 file changed, 1 insertion(+)
-> 
-> diff --git a/include/asm-generic/bug.h b/include/asm-generic/bug.h
-> index 630dd23..effcc82 100644
-> --- a/include/asm-generic/bug.h
-> +++ b/include/asm-generic/bug.h
-> @@ -48,6 +48,7 @@ struct bug_entry {
->  #define BUG() do { \
->  	printk("BUG: failure at %s:%d/%s()!\n", __FILE__, __LINE__, __func__); \
->  	panic("BUG!"); \
-> +	unreachable(); \
->  } while (0)
->  #endif
->  
-> -- 
-> 2.0.1
-> 
+>>
+>> This was my indention. Also I've added some acks.
+>> Did I screw something up?
+>=20
+> We discourage people from rebasing their trees just before asking Linus=
+
+> to pull them unless they have a good reason.  Adding Acks is not
+> necessarily a good reason.  It may be a different thing if you rewrite
+> your tree (without changing it base) and, given that none of your
+> actual patches changed, that would have worked for you.
+>=20
+> In your case, since you haven't updated the branch (signal_v4) that I
+> fetch for linux-next, its doubly bad as, after Linus' pulls your tree,
+> I will have two copies of all those patches in my tree - which could
+> easily lead to conflicts that I really don't need to have.
+>=20
+> Also, note that the fact that the actual patches did not change at all
+> means that either you missed some change that coudl have justified the
+> rebase, or the rebase was unnecessary (since the things you are
+> patching did not change).
+>=20
+
+Thanks for the kind explanation.
+It would be nice to see these rules written down somewhere.
+
+Thanks,
+//richard
+
+
+--pjSBldROt1suUeH1jhKBiWnxfO8hGaAaB
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: OpenPGP digital signature
+Content-Disposition: attachment; filename="signature.asc"
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v2.0.22 (GNU/Linux)
+
+iQIcBAEBAgAGBQJT4yxcAAoJEPmeIjfg4Uaae3UQAJEeWfauWDyHSEUmC1tPfbQY
+SoWsSwOBytySwVnvdJgOad7lkqQPOBCpMC1Qkx7wUpZ2kM0iIe/TsO652hPRfalt
+mm0meQSFzs8rqW/vQvRD0bWf4GmEa4VwO4k6xr3fHqvuOUHCCHzuhnUoO3TFieJU
+7bTibYl+rGzCPOv+6fT3SZYwMP5/Ai8Xq2ydv83gw1JHjCaVzwT0/s4aCzQCG6sO
+/mxPWc6gQu54ChyP74bSlvpGvlzwXe9MG1kXoXpzsUIe2f9tl621rddFgfIC5PTI
++z7Ru/hBcoH6iiVSskULUdhaYww+OHmLSwZ2fX5srAFIKfaeKBJdND5SY3enT7+L
+e4VTyAj3cD2WRn8erpGr7pymA9LqlGJttUKu4eFzSABpeIZM30AMg+BHEUj6puKk
+p2Jk1ciS+IZ58TxmI6u4TvrDR9f7Qy4aIA45kq6RUvATqTRF5W6DEkv5jaMzwl/4
+2KC6L+bvmCd3GSdMCGlsJzM8hlzMGbDWLDEw3/0lZLTl6+fNtiXPK4onhXFXv8VH
+koGwKDOwOy48aHGig2+BPZxWwbA3kYqzju66eEWR56nqT8is83Z6ru2YEEEttyft
+2KAcxZKiwLoWn52ns/yZxNkh7bhs9wCI0nlTQX2QZsCxgR9/GIv9ZzkGiz2B938q
+nGeWuduJJDuoRI5JyBSI
+=yAvt
+-----END PGP SIGNATURE-----
+
+--pjSBldROt1suUeH1jhKBiWnxfO8hGaAaB--
