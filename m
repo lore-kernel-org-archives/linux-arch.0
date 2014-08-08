@@ -1,54 +1,96 @@
-From: Richard Weinberger <richard@nod.at>
+From: Stephen Rothwell <sfr@canb.auug.org.au>
 Subject: Re: [GIT PULL] Global signal cleanup
-Date: Fri, 08 Aug 2014 00:05:27 +0200
-Message-ID: <53E3F827.9030902@nod.at>
-References: <53E20F1E.2080606@nod.at>	<20140806212720.66dbd58b@canb.auug.org.au>	<53E21186.3000702@nod.at>	<20140807102823.7a743bdf@canb.auug.org.au>	<53E32C5C.5010103@nod.at> <CA+55aFy0OFQ5ncwHwpah4xwxuOuMEWL+w6Dv-akTFnogpLo1yA@mail.gmail.com> <53E3E5C8.9090408@nod.at>
+Date: Fri, 8 Aug 2014 13:21:35 +1000
+Message-ID: <20140808132135.47e16442@canb.auug.org.au>
+References: <53E20F1E.2080606@nod.at>
+	<20140806212720.66dbd58b@canb.auug.org.au>
+	<53E21186.3000702@nod.at>
+	<20140807102823.7a743bdf@canb.auug.org.au>
+	<53E32C5C.5010103@nod.at>
+	<CA+55aFy0OFQ5ncwHwpah4xwxuOuMEWL+w6Dv-akTFnogpLo1yA@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from a.ns.miles-group.at ([95.130.255.143]:65276 "EHLO radon.swed.at"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751237AbaHGWFb (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 7 Aug 2014 18:05:31 -0400
-In-Reply-To: <53E3E5C8.9090408@nod.at>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Content-Type: multipart/signed; micalg=pgp-sha256;
+ boundary="Sig_/aYcb.0iqbNNUc2fOzR=SUL_"; protocol="application/pgp-signature"
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <CA+55aFy0OFQ5ncwHwpah4xwxuOuMEWL+w6Dv-akTFnogpLo1yA@mail.gmail.com>
+Sender: linux-kernel-owner@vger.kernel.org
 To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Stephen Rothwell <sfr@canb.auug.org.au>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
+Cc: Richard Weinberger <richard@nod.at>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-Am 07.08.2014 22:47, schrieb Richard Weinberger:
-> Thanks for the clarification.
-> 
-> Here is what happened:
-> 
-> Branch signal_v4 is in linux-next, it never got rebased.
-> While preparing the pull request I noticed that some of the patches gained new acks
-> from various architectures.
-> So I took the *local* copy of signal_v4 added these acks using git rebase and rebased them to v3.16.
-> Then I've pushed that branch to signal-cleanup and sent you the request.
-> signal-cleanup did not exist before that.
-> My fault was rebasing my work from v3.16-rc6 to v3.16 before pushing it.
-> It won't happen again. But I never did a push -f or something like that.
-> 
-> If you feel better you can still pull from:
-> git://git.kernel.org/pub/scm/linux/kernel/git/rw/misc.git signal_v4
-> 
-> It is the as-is branch from linux-next.
+--Sig_/aYcb.0iqbNNUc2fOzR=SUL_
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: quoted-printable
 
-Btw: This is how you can verify that I did not alter any code between the branch in linux-next
-and the one in the pull request:
+Hi all,
 
-$ git branch prove_signal_v4 v3.16
-$ git branch prove_signal-cleanup v3.16
-$ git checkout prove_signal_v4
-$ git pull git://git.kernel.org/pub/scm/linux/kernel/git/rw/misc.git signal_v4
-$ git checkout prove_signal-cleanup
-$ git pull git://git.kernel.org/pub/scm/linux/kernel/git/rw/misc.git signal-cleanup
-$ git diff prove_signal_v4..prove_signal-cleanup | wc -l
-0
+On Thu, 7 Aug 2014 08:53:56 -1000 Linus Torvalds <torvalds@linux-foundation=
+.org> wrote:
+>
+> On Wed, Aug 6, 2014 at 9:35 PM, Richard Weinberger <richard@nod.at> wrote:
+> >
+> > It would be nice to see these rules written down somewhere.
+>=20
+> The rules have been pretty clear: "don't rebase public trees".
+>=20
+> That's always been the basic rule. There are _exceptions_ when
+> rebasing is the right thing to do, and they all boil down to "lesser
+> of two evils", but the evils really have to be pretty big.
+>=20
+> Possible reasons to rebase:
+>=20
+>  (a) It's not public yet. You haven't pushed to kernel.org or any
+> other public site, and nobody saw you do it.
 
-Again, sorry for any inconvenience caused.
+So this would not be in linux-next, so I don't care :-)
 
-Thanks,
-//richard
+>  (b) You *really* screwed up, and the downsides of rebasing are
+> smaller than the downsides of exposing it.
+>=20
+>      As in "oops, that half-way commit doesn't even compile or work at
+> all, so leaving it in that state will screw up anybody trying to find
+> other bugs with 'git bisect'"
+>=20
+>      At the same time, if you do this just before pushing to me, maybe
+> you should take a step back and say "oops, my tree was completely
+> broken, maybe I shouldn't push this to Linus just after fixing it".
+
+And this is fine but shouldn't happen just before sending a pull
+request (as Linus said).  But may also require informing anyone who
+depends on your tree (especially if that other tree is also in
+linux-next ... otherwise I could easily end up with both versions).
+
+>  (c) You want to clean things up, and you're not even remotely ready
+> to push things upstream, and while people have *seen* your work,
+> nobody relies on it or uses it.
+
+And this should not be in linux-next yet, so again I don't care and
+shouldn't see it.
+
+--=20
+Cheers,
+Stephen Rothwell                    sfr@canb.auug.org.au
+
+--Sig_/aYcb.0iqbNNUc2fOzR=SUL_
+Content-Type: application/pgp-signature; name=signature.asc
+Content-Disposition: attachment; filename=signature.asc
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v2
+
+iQIcBAEBCAAGBQJT5EJEAAoJEMDTa8Ir7ZwV+BMP/iOP+hmBdpp5FtfdZ+LD2IS4
+8i2TgQdxgort25B9/jBkiA7XI4ojZyeFwWHZCLZsXhYHLpnDFzwMHSc4fTVn3dV8
+pysRsVbS+h6bCXV4csVIWfxEMvwA6ltPJ96Avqj0W4wQaWiZa54iH5KLagmVtPbK
+ZoQKd+au8Dt7wbKJHHoasBxxi3XK59RgKLx4/sUXC/MVI89ebu1YDTG6QCHIvD50
+pA6lzl2LjGU2wykTce8Swe4SkKp+sM5y0N/pp1RFfjqWAyOg63vDYEYSNY8XgXGs
+3H1UObfE2i9F7dgNLIUYBlmEmNm9MfCJQwpoyVgLsFOunl8H4SqIlSNVoZPjlL5I
+AKHLjFI1wCxPAr/RQlHJzVr+AWLFom3KYX/1zmIgwURMWcLpoARixs5Qz4icAI/x
+2Kprbxc2OTDZdkIqE52JOr47Q2QIfHsVBJQF1CIVbJW7N4hFicmCHRasdXF7XCt5
+pEWzCGwBE3lhUFe/LKyMTt0bDPFfuMa3LqWQ1MtumFAmohkhot7HMhkHWjEizYQ1
+E17Y44iFCLaMMlmTSHWkgKzgcsKq1N+0fiINZPU0UFtC8Ywo5N8puuA9fwvSCh14
+q7maJPGhN/d142KJN8pb4aqgAYhvIbOy4Jmq5n05QSI3XLcIfxbcJJPKaza39KPj
+75f3Zw0vmACvN9dahIb2
+=4sSH
+-----END PGP SIGNATURE-----
+
+--Sig_/aYcb.0iqbNNUc2fOzR=SUL_--
