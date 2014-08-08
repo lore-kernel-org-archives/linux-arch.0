@@ -1,96 +1,85 @@
-From: Stephen Rothwell <sfr@canb.auug.org.au>
-Subject: Re: [GIT PULL] Global signal cleanup
-Date: Fri, 8 Aug 2014 13:21:35 +1000
-Message-ID: <20140808132135.47e16442@canb.auug.org.au>
-References: <53E20F1E.2080606@nod.at>
-	<20140806212720.66dbd58b@canb.auug.org.au>
-	<53E21186.3000702@nod.at>
-	<20140807102823.7a743bdf@canb.auug.org.au>
-	<53E32C5C.5010103@nod.at>
-	<CA+55aFy0OFQ5ncwHwpah4xwxuOuMEWL+w6Dv-akTFnogpLo1yA@mail.gmail.com>
+From: Ley Foon Tan <lftan@altera.com>
+Subject: Re: [PATCH v2 16/29] nios2: Signal handling support
+Date: Fri, 8 Aug 2014 15:21:36 +0800
+Message-ID: <CAFiDJ599JbMv97GdEV6vyXQ4ThXb6n5VXn==+Zr-gEBm9gp7iQ@mail.gmail.com>
+References: <1405413956-2772-1-git-send-email-lftan@altera.com>
+	<1405413956-2772-17-git-send-email-lftan@altera.com>
+	<CAFLxGvxi80hNNFwquvF6veX23m_ph1UC9m1onLK5eNjrzu5DKA@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha256;
- boundary="Sig_/aYcb.0iqbNNUc2fOzR=SUL_"; protocol="application/pgp-signature"
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CA+55aFy0OFQ5ncwHwpah4xwxuOuMEWL+w6Dv-akTFnogpLo1yA@mail.gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Richard Weinberger <richard@nod.at>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=UTF-8
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-la0-f45.google.com ([209.85.215.45]:61689 "EHLO
+	mail-la0-f45.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756018AbaHHHVj (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 8 Aug 2014 03:21:39 -0400
+In-Reply-To: <CAFLxGvxi80hNNFwquvF6veX23m_ph1UC9m1onLK5eNjrzu5DKA@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Richard Weinberger <richard.weinberger@gmail.com>
+Cc: Linux-Arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Chung-Lin Tang <cltang@codesourcery.com>
 
---Sig_/aYcb.0iqbNNUc2fOzR=SUL_
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: quoted-printable
+On Fri, Jul 18, 2014 at 4:04 PM, Richard Weinberger
+<richard.weinberger@gmail.com> wrote:
 
-Hi all,
-
-On Thu, 7 Aug 2014 08:53:56 -1000 Linus Torvalds <torvalds@linux-foundation=
-.org> wrote:
+>> +
+>> +#include <asm/ucontext.h>
+>> +#include <asm/cacheflush.h>
+>> +
+>> +#define _BLOCKABLE (~(sigmask(SIGKILL) | sigmask(SIGSTOP)))
+>> +
+>> +static int do_signal(struct pt_regs *regs, int in_syscall);
 >
-> On Wed, Aug 6, 2014 at 9:35 PM, Richard Weinberger <richard@nod.at> wrote:
-> >
-> > It would be nice to see these rules written down somewhere.
->=20
-> The rules have been pretty clear: "don't rebase public trees".
->=20
-> That's always been the basic rule. There are _exceptions_ when
-> rebasing is the right thing to do, and they all boil down to "lesser
-> of two evils", but the evils really have to be pretty big.
->=20
-> Possible reasons to rebase:
->=20
->  (a) It's not public yet. You haven't pushed to kernel.org or any
-> other public site, and nobody saw you do it.
+> Do you really need this prototype?
+Yes, we don't need this. Will remove this.
 
-So this would not be in linux-next, so I don't care :-)
 
->  (b) You *really* screwed up, and the downsides of rebasing are
-> smaller than the downsides of exposing it.
->=20
->      As in "oops, that half-way commit doesn't even compile or work at
-> all, so leaving it in that state will screw up anybody trying to find
-> other bugs with 'git bisect'"
->=20
->      At the same time, if you do this just before pushing to me, maybe
-> you should take a step back and say "oops, my tree was completely
-> broken, maybe I shouldn't push this to Linus just after fixing it".
 
-And this is fine but shouldn't happen just before sending a pull
-request (as Linus said).  But may also require informing anyone who
-depends on your tree (especially if that other tree is also in
-linux-next ... otherwise I could easily end up with both versions).
+>> +
+>> +asmlinkage int do_rt_sigreturn(struct switch_stack *sw)
+>> +{
+>> +       struct pt_regs *regs = (struct pt_regs *)(sw + 1);
+>> +       /* Verify, can we follow the stack back */
+>> +       struct rt_sigframe *frame = (struct rt_sigframe *) regs->sp;
+>> +       sigset_t set;
+>> +       int rval;
+>> +
+>> +       if (!access_ok(VERIFY_READ, frame, sizeof(*frame)))
+>> +               goto badframe;
+>> +
+>> +       if (__copy_from_user(&set, &frame->uc.uc_sigmask, sizeof(set)))
+>> +               goto badframe;
+>> +
+>> +       sigdelsetmask(&set, ~_BLOCKABLE);
+>> +       spin_lock_irq(&current->sighand->siglock);
+>> +       current->blocked = set;
+>> +       recalc_sigpending();
+>> +       spin_unlock_irq(&current->sighand->siglock);
+>
+> Why aren't you using set_current_blocked() here?
+Okay, will change to use set_current_blocked().
 
->  (c) You want to clean things up, and you're not even remotely ready
-> to push things upstream, and while people have *seen* your work,
-> nobody relies on it or uses it.
+>> +static int setup_rt_frame(struct ksignal *ksig, sigset_t *set,
+>> +                         struct pt_regs *regs)
+>> +{
+>> +       struct rt_sigframe *frame;
+>> +       int err = 0;
+>> +
+>> +       frame = get_sigframe(ksig, regs, sizeof(*frame));
+>> +
+>> +       if (ksig->ka.sa.sa_flags & SA_SIGINFO)
+>> +               err |= copy_siginfo_to_user(&frame->info, &ksig->info);
+>> +
+>> +       /* Create the ucontext.  */
+>> +       err |= __put_user(0, &frame->uc.uc_flags);
+>> +       err |= __put_user(0, &frame->uc.uc_link);
+>> +       err |= __save_altstack(&frame->uc.uc_stack, regs->sp);
+>> +       err |= rt_setup_ucontext(&frame->uc, regs);
+>> +       err |= copy_to_user(&frame->uc.uc_sigmask, set, sizeof(*set));
+>
+> You neither check nor propagate this error code.
+Okay, will add error handling here.
 
-And this should not be in linux-next yet, so again I don't care and
-shouldn't see it.
+Thanks.
 
---=20
-Cheers,
-Stephen Rothwell                    sfr@canb.auug.org.au
-
---Sig_/aYcb.0iqbNNUc2fOzR=SUL_
-Content-Type: application/pgp-signature; name=signature.asc
-Content-Disposition: attachment; filename=signature.asc
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v2
-
-iQIcBAEBCAAGBQJT5EJEAAoJEMDTa8Ir7ZwV+BMP/iOP+hmBdpp5FtfdZ+LD2IS4
-8i2TgQdxgort25B9/jBkiA7XI4ojZyeFwWHZCLZsXhYHLpnDFzwMHSc4fTVn3dV8
-pysRsVbS+h6bCXV4csVIWfxEMvwA6ltPJ96Avqj0W4wQaWiZa54iH5KLagmVtPbK
-ZoQKd+au8Dt7wbKJHHoasBxxi3XK59RgKLx4/sUXC/MVI89ebu1YDTG6QCHIvD50
-pA6lzl2LjGU2wykTce8Swe4SkKp+sM5y0N/pp1RFfjqWAyOg63vDYEYSNY8XgXGs
-3H1UObfE2i9F7dgNLIUYBlmEmNm9MfCJQwpoyVgLsFOunl8H4SqIlSNVoZPjlL5I
-AKHLjFI1wCxPAr/RQlHJzVr+AWLFom3KYX/1zmIgwURMWcLpoARixs5Qz4icAI/x
-2Kprbxc2OTDZdkIqE52JOr47Q2QIfHsVBJQF1CIVbJW7N4hFicmCHRasdXF7XCt5
-pEWzCGwBE3lhUFe/LKyMTt0bDPFfuMa3LqWQ1MtumFAmohkhot7HMhkHWjEizYQ1
-E17Y44iFCLaMMlmTSHWkgKzgcsKq1N+0fiINZPU0UFtC8Ywo5N8puuA9fwvSCh14
-q7maJPGhN/d142KJN8pb4aqgAYhvIbOy4Jmq5n05QSI3XLcIfxbcJJPKaza39KPj
-75f3Zw0vmACvN9dahIb2
-=4sSH
------END PGP SIGNATURE-----
-
---Sig_/aYcb.0iqbNNUc2fOzR=SUL_--
+Regards
+Ley Foon
