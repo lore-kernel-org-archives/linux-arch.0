@@ -1,37 +1,33 @@
-From: Richard Weinberger <richard@nod.at>
-Subject: Re: [GIT PULL] Global signal cleanup
-Date: Sat, 09 Aug 2014 11:17:08 +0200
-Message-ID: <53E5E714.6030703@nod.at>
-References: <53E20F1E.2080606@nod.at> <53E3E53B.8060705@synopsys.com>
+From: "D.Y. CHAN" <DY.C@epagri.sc.gov.br>
+Subject: I hope this =?iso-8859-1?b?ZS1t42ls?= is still in use
+Date: Sat, 09 Aug 2014 10:09:04 -0300
+Message-ID: <20140809100904.204455nkhq04c60g@webmail.epagri.sc.gov.br>
+Reply-To: Douglas.ch49@hk.am
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-15
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=ISO-8859-1;
+	DelSp=Yes	format=flowed
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from a.ns.miles-group.at ([95.130.255.143]:65275 "EHLO radon.swed.at"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751266AbaHIJRN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sat, 9 Aug 2014 05:17:13 -0400
-In-Reply-To: <53E3E53B.8060705@synopsys.com>
+Received: from smtp.epagri.sc.gov.br ([200.18.9.19]:7080 "EHLO
+	smtp.epagri.sc.gov.br" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750900AbaHINPs convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 9 Aug 2014 09:15:48 -0400
+Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Vineet Gupta <Vineet.Gupta1@synopsys.com>, Linus Torvalds <torvalds@linux-foundation.org>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, "sfr@canb.auug.org.au" <sfr@canb.auug.org.au>
 
-Vineet,
 
-Am 07.08.2014 22:44, schrieb Vineet Gupta:
-> Hi Richard,
-> 
-> On Wednesday 06 August 2014 04:18 AM, Richard Weinberger wrote:
->>       arc: Use get_signal() signal_setup_done()
-> 
-> I'd added this patch into arc tree for 3.17 (in linux-next for a while) and AFAIKR
-> I'd also left you a note to same effect. However it seems you are routing
-> everything thru ur tree, so I'll drop it from mine - OK ?
 
-Yes, please drop it from your tree.
-Technically git merge will not cry about the double commit but
-let's keep the history clean.
+=46orgiv=E9 me if you don't find interest in this.
+I have a profitabl=E9 / Confid=E9ntial deal [worth 48M Dollars] to disc=
+uss =20
+with you, but I need your permission before I give d=E9tails.
 
-Thanks,
-//richard
+Thanks in adv.
+
+
+
+
+
+----------------------------------------------------------------
+This message was sent using IMP, the Internet Messaging Program.
