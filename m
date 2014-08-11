@@ -1,458 +1,72 @@
-From: Mikael Starvik <mikael.starvik@axis.com>
-Subject: RE: [PATCH 06/43] cris: Use get_signal() signal_setup_done()
-Date: Mon, 11 Aug 2014 07:35:44 +0200
-Message-ID: <4BEA3FF3CAA35E408EA55C7BE2E61D0589EBFBC0FD@xmail3.se.axis.com>
-References: <1405951409-16953-1-git-send-email-richard@sigma-star.at>
- <1405951409-16953-7-git-send-email-richard@sigma-star.at>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: seccomp: add "seccomp" syscall
+Date: Mon, 11 Aug 2014 22:07:12 +0200
+Message-ID: <CAMuHMdWp1iWm9xLqRN0q3hV72bD8jPRLDW74Cm+Gxp3gB76asQ@mail.gmail.com>
+References: <20140806162754.3BCA1660E61@gitolite.kernel.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 8BIT
+Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from bes.se.axis.com ([195.60.68.10]:50086 "EHLO bes.se.axis.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752034AbaHKFmk convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 11 Aug 2014 01:42:40 -0400
-In-Reply-To: <1405951409-16953-7-git-send-email-richard@sigma-star.at>
-Content-Language: en-US
+Received: from mail-la0-f44.google.com ([209.85.215.44]:60534 "EHLO
+	mail-la0-f44.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754991AbaHKUHO (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 11 Aug 2014 16:07:14 -0400
+In-Reply-To: <20140806162754.3BCA1660E61@gitolite.kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Richard Weinberger <richard@sigma-star.at>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Richard Weinberger <richard@nod.at>, Jesper Nilsson <jespern@axis.com>, linux-cris-kernel <linux-cris-kernel@axis.com>
+To: Kees Cook <keescook@chromium.org>
+Cc: Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
 
-Acked-by: Mikael Starvik <mikael.starvik@axis.com>
+Hi Kees,
 
------Original Message-----
-From: Richard Weinberger [mailto:richard@sigma-star.at] 
-Sent: den 21 juli 2014 16:03
-To: akpm@linux-foundation.org
-Cc: linux-kernel@vger.kernel.org; linux-arch@vger.kernel.org; Richard Weinberger; Mikael Starvik; Jesper Nilsson; linux-cris-kernel
-Subject: [PATCH 06/43] cris: Use get_signal() signal_setup_done()
+v3.17 is gonna get a lot of new syscalls...
 
-From: Richard Weinberger <richard@nod.at>
+On Wed, Aug 6, 2014 at 6:27 PM, Linux Kernel Mailing List
+<linux-kernel@vger.kernel.org> wrote:
+> Gitweb:     http://git.kernel.org/linus/;a=commit;h=48dc92b9fc3926844257316e75ba11eb5c742b2c
+> Commit:     48dc92b9fc3926844257316e75ba11eb5c742b2c
+> Parent:     3b23dd12846215eff4afb073366b80c0c4d7543e
+> Refname:    refs/heads/master
+> Author:     Kees Cook <keescook@chromium.org>
+> AuthorDate: Wed Jun 25 16:08:24 2014 -0700
+> Committer:  Kees Cook <keescook@chromium.org>
+> CommitDate: Fri Jul 18 12:13:37 2014 -0700
+>
+>     seccomp: add "seccomp" syscall
+>
+>     This adds the new "seccomp" syscall with both an "operation" and "flags"
+>     parameter for future expansion. The third argument is a pointer value,
+>     used with the SECCOMP_SET_MODE_FILTER operation. Currently, flags must
+>     be 0. This is functionally equivalent to prctl(PR_SET_SECCOMP, ...).
+>
+>     In addition to the TSYNC flag later in this patch series, there is a
+>     non-zero chance that this syscall could be used for configuring a fixed
+>     argument area for seccomp-tracer-aware processes to pass syscall arguments
+>     in the future. Hence, the use of "seccomp" not simply "seccomp_add_filter"
+>     for this syscall. Additionally, this syscall uses operation, flags,
+>     and user pointer for arguments because strictly passing arguments via
+>     a user pointer would mean seccomp itself would be unable to trivially
+>     filter the seccomp syscall itself.
+>
+>     Signed-off-by: Kees Cook <keescook@chromium.org>
+>     Reviewed-by: Oleg Nesterov <oleg@redhat.com>
+>     Reviewed-by: Andy Lutomirski <luto@amacapital.net>
 
-Use the more generic functions get_signal() signal_setup_done() for signal delivery.
+Is this something that I should enable?
 
-Signed-off-by: Richard Weinberger <richard@nod.at>
----
- arch/cris/arch-v10/kernel/signal.c | 79 ++++++++++++++++----------------------
- arch/cris/arch-v32/kernel/signal.c | 77 +++++++++++++++----------------------
- 2 files changed, 63 insertions(+), 93 deletions(-)
+As it depends on CONFIG_SECCOMP, it only makes sense on architectures that
+already support CONFIG_SECCOMP, right?
+Does it make sense to reserve a syscall slot for it on architectures that
+don't support it yet?
 
-diff --git a/arch/cris/arch-v10/kernel/signal.c b/arch/cris/arch-v10/kernel/signal.c
-index 61ce627..12aac1f 100644
---- a/arch/cris/arch-v10/kernel/signal.c
-+++ b/arch/cris/arch-v10/kernel/signal.c
-@@ -228,33 +228,33 @@ get_sigframe(struct k_sigaction *ka, struct pt_regs *regs, size_t frame_size)
-  * user-mode trampoline.
-  */
- 
--static int setup_frame(int sig, struct k_sigaction *ka,
--		       sigset_t *set, struct pt_regs *regs)
-+static int setup_frame(struct ksignal *ksig, sigset_t *set,
-+		       struct pt_regs *regs)
- {
- 	struct sigframe __user *frame;
- 	unsigned long return_ip;
- 	int err = 0;
- 
--	frame = get_sigframe(ka, regs, sizeof(*frame));
-+	frame = get_sigframe(&ksig->ka, regs, sizeof(*frame));
- 
- 	if (!access_ok(VERIFY_WRITE, frame, sizeof(*frame)))
--		goto give_sigsegv;
-+		return -EFAULT;
- 
- 	err |= setup_sigcontext(&frame->sc, regs, set->sig[0]);
- 	if (err)
--		goto give_sigsegv;
-+		return -EFAULT;
- 
- 	if (_NSIG_WORDS > 1) {
- 		err |= __copy_to_user(frame->extramask, &set->sig[1],
- 				      sizeof(frame->extramask));
- 	}
- 	if (err)
--		goto give_sigsegv;
-+		return -EFAULT;
- 
- 	/* Set up to return from userspace.  If provided, use a stub
- 	   already in userspace.  */
--	if (ka->sa.sa_flags & SA_RESTORER) {
--		return_ip = (unsigned long)ka->sa.sa_restorer;
-+	if (ksig->ka.sa.sa_flags & SA_RESTORER) {
-+		return_ip = (unsigned long)ksig->ka.sa.sa_restorer;
- 	} else {
- 		/* trampoline - the desired return ip is the retcode itself */
- 		return_ip = (unsigned long)&frame->retcode; @@ -265,42 +265,38 @@ static int setup_frame(int sig, struct k_sigaction *ka,
- 	}
- 
- 	if (err)
--		goto give_sigsegv;
-+		return -EFAULT;
- 
- 	/* Set up registers for signal handler */
- 
--	regs->irp = (unsigned long) ka->sa.sa_handler;  /* what we enter NOW   */
-+	regs->irp = (unsigned long) ksig->ka.sa.sa_handler;  /* what we enter NOW   */
- 	regs->srp = return_ip;                          /* what we enter LATER */
--	regs->r10 = sig;                                /* first argument is signo */
-+	regs->r10 = ksig->sig;                                /* first argument is signo */
- 
- 	/* actually move the usp to reflect the stacked frame */
- 
- 	wrusp((unsigned long)frame);
- 
- 	return 0;
--
--give_sigsegv:
--	force_sigsegv(sig, current);
--	return -EFAULT;
- }
- 
--static int setup_rt_frame(int sig, struct k_sigaction *ka, siginfo_t *info,
--	sigset_t *set, struct pt_regs *regs)
-+static int setup_rt_frame(struct ksignal *ksig, sigset_t *set,
-+			  struct pt_regs *regs)
- {
- 	struct rt_sigframe __user *frame;
- 	unsigned long return_ip;
- 	int err = 0;
- 
--	frame = get_sigframe(ka, regs, sizeof(*frame));
-+	frame = get_sigframe(&ksig->ka, regs, sizeof(*frame));
- 
- 	if (!access_ok(VERIFY_WRITE, frame, sizeof(*frame)))
--		goto give_sigsegv;
-+		return -EFAULT;
- 
- 	err |= __put_user(&frame->info, &frame->pinfo);
- 	err |= __put_user(&frame->uc, &frame->puc);
--	err |= copy_siginfo_to_user(&frame->info, info);
-+	err |= copy_siginfo_to_user(&frame->info, &ksig->info);
- 	if (err)
--		goto give_sigsegv;
-+		return -EFAULT;
- 
- 	/* Clear all the bits of the ucontext we don't use.  */
-         err |= __clear_user(&frame->uc, offsetof(struct ucontext, uc_mcontext)); @@ -312,12 +308,12 @@ static int setup_rt_frame(int sig, struct k_sigaction *ka, siginfo_t *info,
- 	err |= __save_altstack(&frame->uc.uc_stack, rdusp());
- 
- 	if (err)
--		goto give_sigsegv;
-+		return -EFAULT;
- 
- 	/* Set up to return from userspace.  If provided, use a stub
- 	   already in userspace.  */
--	if (ka->sa.sa_flags & SA_RESTORER) {
--		return_ip = (unsigned long)ka->sa.sa_restorer;
-+	if (ksig->ka.sa.sa_flags & SA_RESTORER) {
-+		return_ip = (unsigned long)ksig->ka.sa.sa_restorer;
- 	} else {
- 		/* trampoline - the desired return ip is the retcode itself */
- 		return_ip = (unsigned long)&frame->retcode; @@ -329,18 +325,18 @@ static int setup_rt_frame(int sig, struct k_sigaction *ka, siginfo_t *info,
- 	}
- 
- 	if (err)
--		goto give_sigsegv;
-+		return -EFAULT;
- 
- 	/* TODO what is the current->exec_domain stuff and invmap ? */
- 
- 	/* Set up registers for signal handler */
- 
- 	/* What we enter NOW   */
--	regs->irp = (unsigned long) ka->sa.sa_handler;
-+	regs->irp = (unsigned long) ksig->ka.sa.sa_handler;
- 	/* What we enter LATER */
- 	regs->srp = return_ip;
- 	/* First argument is signo */
--	regs->r10 = sig;
-+	regs->r10 = ksig->sig;
- 	/* Second argument is (siginfo_t *) */
- 	regs->r11 = (unsigned long)&frame->info;
- 	/* Third argument is unused */
-@@ -350,19 +346,14 @@ static int setup_rt_frame(int sig, struct k_sigaction *ka, siginfo_t *info,
- 	wrusp((unsigned long)frame);
- 
- 	return 0;
--
--give_sigsegv:
--	force_sigsegv(sig, current);
--	return -EFAULT;
- }
- 
- /*
-  * OK, we're invoking a handler
-  */
- 
--static inline void handle_signal(int canrestart, unsigned long sig,
--	siginfo_t *info, struct k_sigaction *ka,
--	struct pt_regs *regs)
-+static inline void handle_signal(int canrestart, struct ksignal *ksig,
-+				 struct pt_regs *regs)
- {
- 	sigset_t *oldset = sigmask_to_save();
- 	int ret;
-@@ -383,7 +374,7 @@ static inline void handle_signal(int canrestart, unsigned long sig,
- 			/* ERESTARTSYS means to restart the syscall if
- 			 * there is no handler or the handler was
- 			 * registered with SA_RESTART */
--			if (!(ka->sa.sa_flags & SA_RESTART)) {
-+			if (!(ksig->ka.sa.sa_flags & SA_RESTART)) {
- 				regs->r10 = -EINTR;
- 				break;
- 			}
-@@ -396,13 +387,12 @@ static inline void handle_signal(int canrestart, unsigned long sig,
- 	}
- 
- 	/* Set up the stack frame */
--	if (ka->sa.sa_flags & SA_SIGINFO)
--		ret = setup_rt_frame(sig, ka, info, oldset, regs);
-+	if (ksig->ka.sa.sa_flags & SA_SIGINFO)
-+		ret = setup_rt_frame(ksig, oldset, regs);
- 	else
--		ret = setup_frame(sig, ka, oldset, regs);
-+		ret = setup_frame(ksig, oldset, regs);
- 
--	if (ret == 0)
--		signal_delivered(sig, info, ka, regs, 0);
-+	signal_setup_done(ret, ksig, 0);
- }
- 
- /*
-@@ -419,9 +409,7 @@ static inline void handle_signal(int canrestart, unsigned long sig,
- 
- void do_signal(int canrestart, struct pt_regs *regs)  {
--	siginfo_t info;
--	int signr;
--        struct k_sigaction ka;
-+	struct ksignal ksig;
- 
- 	/*
- 	 * We want the common case to go fast, which @@ -432,10 +420,9 @@ void do_signal(int canrestart, struct pt_regs *regs)
- 	if (!user_mode(regs))
- 		return;
- 
--	signr = get_signal_to_deliver(&info, &ka, regs, NULL);
--	if (signr > 0) {
-+	if (get_signal(&ksig)) {
- 		/* Whee!  Actually deliver the signal.  */
--		handle_signal(canrestart, signr, &info, &ka, regs);
-+		handle_signal(canrestart, &ksig, regs);
- 		return;
- 	}
- 
-diff --git a/arch/cris/arch-v32/kernel/signal.c b/arch/cris/arch-v32/kernel/signal.c
-index 01d1375..cc7a39a 100644
---- a/arch/cris/arch-v32/kernel/signal.c
-+++ b/arch/cris/arch-v32/kernel/signal.c
-@@ -215,23 +215,22 @@ get_sigframe(struct k_sigaction *ka, struct pt_regs * regs, size_t frame_size)
-  * trampoline.
-   */
- static int
--setup_frame(int sig, struct k_sigaction *ka,  sigset_t *set,
--	    struct pt_regs * regs)
-+setup_frame(struct ksignal *ksig, sigset_t *set, struct pt_regs *regs)
- {
- 	int err;
- 	unsigned long return_ip;
- 	struct signal_frame __user *frame;
- 
- 	err = 0;
--	frame = get_sigframe(ka, regs, sizeof(*frame));
-+	frame = get_sigframe(&ksig->ka, regs, sizeof(*frame));
- 
- 	if (!access_ok(VERIFY_WRITE, frame, sizeof(*frame)))
--		goto give_sigsegv;
-+		return -EFAULT;
- 
- 	err |= setup_sigcontext(&frame->sc, regs, set->sig[0]);
- 
- 	if (err)
--		goto give_sigsegv;
-+		return -EFAULT;
- 
- 	if (_NSIG_WORDS > 1) {
- 		err |= __copy_to_user(frame->extramask, &set->sig[1], @@ -239,14 +238,14 @@ setup_frame(int sig, struct k_sigaction *ka,  sigset_t *set,
- 	}
- 
- 	if (err)
--		goto give_sigsegv;
-+		return -EFAULT;
- 
- 	/*
- 	 * Set up to return from user-space. If provided, use a stub
- 	 * already located in user-space.
- 	 */
--	if (ka->sa.sa_flags & SA_RESTORER) {
--		return_ip = (unsigned long)ka->sa.sa_restorer;
-+	if (ksig->ka.sa.sa_flags & SA_RESTORER) {
-+		return_ip = (unsigned long)ksig->ka.sa.sa_restorer;
- 	} else {
- 		/* Trampoline - the desired return ip is in the signal return page. */
- 		return_ip = cris_signal_return_page;
-@@ -264,7 +263,7 @@ setup_frame(int sig, struct k_sigaction *ka,  sigset_t *set,
- 	}
- 
- 	if (err)
--		goto give_sigsegv;
-+		return -EFAULT;
- 
- 	/*
- 	 * Set up registers for signal handler.
-@@ -273,42 +272,37 @@ setup_frame(int sig, struct k_sigaction *ka,  sigset_t *set,
- 	 * Where the code enter later.
- 	 * First argument, signo.
- 	 */
--	regs->erp = (unsigned long) ka->sa.sa_handler;
-+	regs->erp = (unsigned long) ksig->ka.sa.sa_handler;
- 	regs->srp = return_ip;
--	regs->r10 = sig;
-+	regs->r10 = ksig->sig;
- 
- 	/* Actually move the USP to reflect the stacked frame. */
- 	wrusp((unsigned long)frame);
- 
- 	return 0;
--
--give_sigsegv:
--	force_sigsegv(sig, current);
--	return -EFAULT;
- }
- 
- static int
--setup_rt_frame(int sig, struct k_sigaction *ka, siginfo_t *info,
--	       sigset_t *set, struct pt_regs * regs)
-+setup_rt_frame(struct ksignal *ksig, sigset_t *set, struct pt_regs 
-+*regs)
- {
- 	int err;
- 	unsigned long return_ip;
- 	struct rt_signal_frame __user *frame;
- 
- 	err = 0;
--	frame = get_sigframe(ka, regs, sizeof(*frame));
-+	frame = get_sigframe(&ksig->ka, regs, sizeof(*frame));
- 
- 	if (!access_ok(VERIFY_WRITE, frame, sizeof(*frame)))
--		goto give_sigsegv;
-+		return -EFAULT;
- 
- 	/* TODO: what is the current->exec_domain stuff and invmap ? */
- 
- 	err |= __put_user(&frame->info, &frame->pinfo);
- 	err |= __put_user(&frame->uc, &frame->puc);
--	err |= copy_siginfo_to_user(&frame->info, info);
-+	err |= copy_siginfo_to_user(&frame->info, &ksig->info);
- 
- 	if (err)
--		goto give_sigsegv;
-+		return -EFAULT;
- 
- 	/* Clear all the bits of the ucontext we don't use.  */
- 	err |= __clear_user(&frame->uc, offsetof(struct ucontext, uc_mcontext)); @@ -317,14 +311,14 @@ setup_rt_frame(int sig, struct k_sigaction *ka, siginfo_t *info,
- 	err |= __save_altstack(&frame->uc.uc_stack, rdusp());
- 
- 	if (err)
--		goto give_sigsegv;
-+		return -EFAULT;
- 
- 	/*
- 	 * Set up to return from user-space. If provided, use a stub
- 	 * already located in user-space.
- 	 */
--	if (ka->sa.sa_flags & SA_RESTORER) {
--		return_ip = (unsigned long) ka->sa.sa_restorer;
-+	if (ksig->ka.sa.sa_flags & SA_RESTORER) {
-+		return_ip = (unsigned long) ksig->ka.sa.sa_restorer;
- 	} else {
- 		/* Trampoline - the desired return ip is in the signal return page. */
- 		return_ip = cris_signal_return_page + 6; @@ -345,7 +339,7 @@ setup_rt_frame(int sig, struct k_sigaction *ka, siginfo_t *info,
- 	}
- 
- 	if (err)
--		goto give_sigsegv;
-+		return -EFAULT;
- 
- 	/*
- 	 * Set up registers for signal handler.
-@@ -356,9 +350,9 @@ setup_rt_frame(int sig, struct k_sigaction *ka, siginfo_t *info,
- 	 * Second argument is (siginfo_t *).
- 	 * Third argument is unused.
- 	 */
--	regs->erp = (unsigned long) ka->sa.sa_handler;
-+	regs->erp = (unsigned long) ksig->ka.sa.sa_handler;
- 	regs->srp = return_ip;
--	regs->r10 = sig;
-+	regs->r10 = ksig->sig;
- 	regs->r11 = (unsigned long) &frame->info;
- 	regs->r12 = 0;
- 
-@@ -366,17 +360,11 @@ setup_rt_frame(int sig, struct k_sigaction *ka, siginfo_t *info,
- 	wrusp((unsigned long)frame);
- 
- 	return 0;
--
--give_sigsegv:
--	force_sigsegv(sig, current);
--	return -EFAULT;
- }
- 
- /* Invoke a signal handler to, well, handle the signal. */  static inline void -handle_signal(int canrestart, unsigned long sig,
--	      siginfo_t *info, struct k_sigaction *ka,
--              struct pt_regs * regs)
-+handle_signal(int canrestart, struct ksignal *ksig, struct pt_regs 
-+*regs)
- {
- 	sigset_t *oldset = sigmask_to_save();
- 	int ret;
-@@ -404,7 +392,7 @@ handle_signal(int canrestart, unsigned long sig,
-                                  * there is no handler, or the handler
-                                  * was registered with SA_RESTART.
- 				 */
--				if (!(ka->sa.sa_flags & SA_RESTART)) {
-+				if (!(ksig->ka.sa.sa_flags & SA_RESTART)) {
- 					regs->r10 = -EINTR;
- 					break;
- 				}
-@@ -423,13 +411,12 @@ handle_signal(int canrestart, unsigned long sig,
-         }
- 
- 	/* Set up the stack frame. */
--	if (ka->sa.sa_flags & SA_SIGINFO)
--		ret = setup_rt_frame(sig, ka, info, oldset, regs);
-+	if (ksig->ka.sa.sa_flags & SA_SIGINFO)
-+		ret = setup_rt_frame(ksig, oldset, regs);
- 	else
--		ret = setup_frame(sig, ka, oldset, regs);
-+		ret = setup_frame(ksig, oldset, regs);
- 
--	if (ret == 0)
--		signal_delivered(sig, info, ka, regs, 0);
-+	signal_setup_done(ret, ksig, 0);
- }
- 
- /*
-@@ -446,9 +433,7 @@ handle_signal(int canrestart, unsigned long sig,  void  do_signal(int canrestart, struct pt_regs *regs)  {
--	int signr;
--	siginfo_t info;
--        struct k_sigaction ka;
-+	struct ksignal ksig;
- 
- 	/*
- 	 * The common case should go fast, which is why this point is @@ -458,11 +443,9 @@ do_signal(int canrestart, struct pt_regs *regs)
- 	if (!user_mode(regs))
- 		return;
- 
--	signr = get_signal_to_deliver(&info, &ka, regs, NULL);
--
--	if (signr > 0) {
-+	if (get_signal(&ksig)) {
- 		/* Whee!  Actually deliver the signal.  */
--		handle_signal(canrestart, signr, &info, &ka, regs);
-+		handle_signal(canrestart, &ksig, regs);
- 		return;
- 	}
- 
+Thanks!
+
+Gr{oetje,eeting}s,
+
+                        Geert
+
 --
-1.8.4.5
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
