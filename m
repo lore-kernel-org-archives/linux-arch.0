@@ -1,111 +1,50 @@
 From: Liviu Dudau <Liviu.Dudau@arm.com>
-Subject: [PATCH v9 07/12] PCI: Create pci_host_bridge before its associated bus in pci_create_root_bus.
-Date: Tue, 12 Aug 2014 17:25:20 +0100
-Message-ID: <1407860725-25202-8-git-send-email-Liviu.Dudau@arm.com>
+Subject: [PATCH v9 01/12] Fix ioport_map() for !CONFIG_GENERIC_IOMAP cases.
+Date: Tue, 12 Aug 2014 17:25:14 +0100
+Message-ID: <1407860725-25202-2-git-send-email-Liviu.Dudau@arm.com>
 References: <1407860725-25202-1-git-send-email-Liviu.Dudau@arm.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
 In-Reply-To: <1407860725-25202-1-git-send-email-Liviu.Dudau@arm.com>
-Sender: linux-kernel-owner@vger.kernel.org
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
 To: Bjorn Helgaas <bhelgaas@google.com>, Catalin Marinas <Catalin.Marinas@arm.com>, Will Deacon <Will.Deacon@arm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@arm.linux.org.uk>, Tanmay Inamdar <tinamdar@apm.com>, Grant Likely <grant.likely@secretlab.ca>, Sinan Kaya <okaya@codeaurora.org>, Jingoo Han <jg1.han@samsung.com>, Kukjin Kim <kgene.kim@samsung.com>, Suravee Suthikulanit <suravee.suthikulpanit@amd.com>, linux-pci <linux-pci@vger.kernel.org>
-Cc: linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Device Tree ML <devicetree@vger.kernel.org>, LAKML <linux-arm-kernel@lists.infradead.org>
+Cc: linux-arch <linux-arch@vger.kernel.org>, Device Tree ML <devicetree@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, LAKML <linux-arm-kernel@lists.infradead.org>
 List-Id: linux-arch.vger.kernel.org
 
-Before commit 7b5436635800 the pci_host_bridge was created before the root bus.
-As that commit has added a needless dependency on the bus for pci_alloc_host_bridge()
-the creation order has been changed for no good reason. Revert the order of
-creation as we are going to depend on the pci_host_bridge structure to retrieve the
-domain number of the root bus.
+The inline version of ioport_map() that gets used when !CONFIG_GENERIC_IOMAP
+is wrong. It returns a mapped (i.e. virtual) address that can start from
+zero and completely ignores the PCI_IOBASE and IO_SPACE_LIMIT that most
+architectures that use !CONFIG_GENERIC_MAP define.
 
-Cc: Bjorn Helgaas <bhelgaas@google.com>
 Signed-off-by: Liviu Dudau <Liviu.Dudau@arm.com>
-Acked-by: Grant Likely <grant.likely@linaro.org>
+Acked-by: Arnd Bergmann <arnd@arndb.de>
 Tested-by: Tanmay Inamdar <tinamdar@apm.com>
 ---
- drivers/pci/probe.c | 32 +++++++++++++++++---------------
- 1 file changed, 17 insertions(+), 15 deletions(-)
+ include/asm-generic/io.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/drivers/pci/probe.c b/drivers/pci/probe.c
-index e3cf8a2..5ff72ec 100644
---- a/drivers/pci/probe.c
-+++ b/drivers/pci/probe.c
-@@ -515,7 +515,7 @@ static void pci_release_host_bridge_dev(struct device *dev)
- 	kfree(bridge);
- }
- 
--static struct pci_host_bridge *pci_alloc_host_bridge(struct pci_bus *b)
-+static struct pci_host_bridge *pci_alloc_host_bridge(void)
+diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
+index 975e1cc..2e2161b 100644
+--- a/include/asm-generic/io.h
++++ b/include/asm-generic/io.h
+@@ -331,7 +331,7 @@ static inline void iounmap(void __iomem *addr)
+ #ifndef CONFIG_GENERIC_IOMAP
+ static inline void __iomem *ioport_map(unsigned long port, unsigned int nr)
  {
- 	struct pci_host_bridge *bridge;
- 
-@@ -524,7 +524,8 @@ static struct pci_host_bridge *pci_alloc_host_bridge(struct pci_bus *b)
- 		return NULL;
- 
- 	INIT_LIST_HEAD(&bridge->windows);
--	bridge->bus = b;
-+	bridge->dev.release = pci_release_host_bridge_dev;
-+
- 	return bridge;
+-	return (void __iomem *) port;
++	return (void __iomem *)(PCI_IOBASE + (port & IO_SPACE_LIMIT));
  }
  
-@@ -1761,9 +1762,15 @@ struct pci_bus *pci_create_root_bus(struct device *parent, int bus,
- 	char bus_addr[64];
- 	char *fmt;
- 
-+	bridge = pci_alloc_host_bridge();
-+	if (!bridge)
-+		return NULL;
-+
-+	bridge->dev.parent = parent;
-+
- 	b = pci_alloc_bus();
- 	if (!b)
--		return NULL;
-+		goto err_out;
- 
- 	b->sysdata = sysdata;
- 	b->ops = ops;
-@@ -1772,26 +1779,19 @@ struct pci_bus *pci_create_root_bus(struct device *parent, int bus,
- 	if (b2) {
- 		/* If we already got to this bus through a different bridge, ignore it */
- 		dev_dbg(&b2->dev, "bus already known\n");
--		goto err_out;
-+		goto err_bus_out;
- 	}
- 
--	bridge = pci_alloc_host_bridge(b);
--	if (!bridge)
--		goto err_out;
--
--	bridge->dev.parent = parent;
--	bridge->dev.release = pci_release_host_bridge_dev;
-+	bridge->bus = b;
- 	dev_set_name(&bridge->dev, "pci%04x:%02x", pci_domain_nr(b), bus);
- 	error = pcibios_root_bridge_prepare(bridge);
--	if (error) {
--		kfree(bridge);
-+	if (error)
- 		goto err_out;
--	}
- 
- 	error = device_register(&bridge->dev);
- 	if (error) {
- 		put_device(&bridge->dev);
--		goto err_out;
-+		goto err_bus_out;
- 	}
- 	b->bridge = get_device(&bridge->dev);
- 	device_enable_async_suspend(b->bridge);
-@@ -1848,8 +1848,10 @@ struct pci_bus *pci_create_root_bus(struct device *parent, int bus,
- class_dev_reg_err:
- 	put_device(&bridge->dev);
- 	device_unregister(&bridge->dev);
--err_out:
-+err_bus_out:
- 	kfree(b);
-+err_out:
-+	kfree(bridge);
- 	return NULL;
- }
- 
+ static inline void ioport_unmap(void __iomem *p)
 -- 
 2.0.4
