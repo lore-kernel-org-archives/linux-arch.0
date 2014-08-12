@@ -1,101 +1,54 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ozlabs.org ([103.22.144.67]:46641 "EHLO ozlabs.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755016AbaHHDVo (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 7 Aug 2014 23:21:44 -0400
-Date: Fri, 8 Aug 2014 13:21:35 +1000
-From: Stephen Rothwell <sfr@canb.auug.org.au>
-Subject: Re: [GIT PULL] Global signal cleanup
-Message-ID: <20140808132135.47e16442@canb.auug.org.au>
-In-Reply-To: <CA+55aFy0OFQ5ncwHwpah4xwxuOuMEWL+w6Dv-akTFnogpLo1yA@mail.gmail.com>
-References: <53E20F1E.2080606@nod.at>
-	<20140806212720.66dbd58b@canb.auug.org.au>
-	<53E21186.3000702@nod.at>
-	<20140807102823.7a743bdf@canb.auug.org.au>
-	<53E32C5C.5010103@nod.at>
-	<CA+55aFy0OFQ5ncwHwpah4xwxuOuMEWL+w6Dv-akTFnogpLo1yA@mail.gmail.com>
+Received: from mail-pa0-f47.google.com ([209.85.220.47]:56918 "EHLO
+	mail-pa0-f47.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753190AbaHLDXJ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 11 Aug 2014 23:23:09 -0400
+Message-ID: <53E989AE.7070808@gmail.com>
+Date: Tue, 12 Aug 2014 11:27:42 +0800
+From: Chen Gang <gang.chen.5i5j@gmail.com>
 MIME-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha256;
- boundary="Sig_/aYcb.0iqbNNUc2fOzR=SUL_"; protocol="application/pgp-signature"
+Subject: Re: [PATCH] arch: Kconfig: Let all little endian architectures define
+ CPU_LITTLE_ENDIAN explicitly
+References: <53E93334.5000205@gmail.com> <20140811225326.GF30401@n2100.arm.linux.org.uk>
+In-Reply-To: <20140811225326.GF30401@n2100.arm.linux.org.uk>
+Content-Type: text/plain; charset=windows-1252
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Richard Weinberger <richard@nod.at>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
-Message-ID: <20140808032135.HXd-syAEbeKx8OunApKoEZaWRgkvOzZE2AROgG5U0MQ@z>
+To: Russell King - ARM Linux <linux@arm.linux.org.uk>
+Cc: Arnd Bergmann <arnd@arndb.de>, akpm@linux-foundation.org, Geert Uytterhoeven <geert@linux-m68k.org>, Jean Delvare <jdelvare@suse.de>, catalin.marinas@arm.com, will.deacon@arm.com, tony.luck@intel.com, fenghua.yu@intel.com, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-ia64@vger.kernel.org, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, gxt@mprc.pku.edu.cn, liqin.linux@gmail.com, lennox.wu@gmail.com, cmetcalf@tilera.com, hskinnemoen@gmail.com, egtvedt@samfundet.no, james.hogan@imgtec.com, linux-arch@vger.kernel.org
+Message-ID: <20140812032742.3Wx3C4BQ4xOoWnDgf1BACcgmep2_PvsaI-xgVaZDJzc@z>
 
---Sig_/aYcb.0iqbNNUc2fOzR=SUL_
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: quoted-printable
 
-Hi all,
 
-On Thu, 7 Aug 2014 08:53:56 -1000 Linus Torvalds <torvalds@linux-foundation=
-.org> wrote:
->
-> On Wed, Aug 6, 2014 at 9:35 PM, Richard Weinberger <richard@nod.at> wrote:
-> >
-> > It would be nice to see these rules written down somewhere.
->=20
-> The rules have been pretty clear: "don't rebase public trees".
->=20
-> That's always been the basic rule. There are _exceptions_ when
-> rebasing is the right thing to do, and they all boil down to "lesser
-> of two evils", but the evils really have to be pretty big.
->=20
-> Possible reasons to rebase:
->=20
->  (a) It's not public yet. You haven't pushed to kernel.org or any
-> other public site, and nobody saw you do it.
+On 8/12/14 6:53, Russell King - ARM Linux wrote:
+> On Tue, Aug 12, 2014 at 05:18:44AM +0800, Chen Gang wrote:
+>> x86, ia64, and arm(64) are little endian, and also another architectures
+>> may be little endian (mips, sh, powerpc, and m32r) which already marked
+>> CPU_LITTLE_ENDIAN explicitly.
+> 
+> This is incorrect.  ARM can be either endian.
+> 
+> arch/arm/mm/Kconfig:
+> 
+> config CPU_BIG_ENDIAN
+>         bool "Build big-endian kernel"
+>         depends on ARCH_SUPPORTS_BIG_ENDIAN
+>         help
+>           Say Y if you plan on running a kernel in big-endian mode.
+>           Note that your board must be properly built and your board
+>           port must properly enable any big-endian related features
+>           of your chipset/board/processor.
+> 
 
-So this would not be in linux-next, so I don't care :-)
+OK, thanks, I shall check all CPU_BIG_ENDIAN and send patch v2 for it.
 
->  (b) You *really* screwed up, and the downsides of rebasing are
-> smaller than the downsides of exposing it.
->=20
->      As in "oops, that half-way commit doesn't even compile or work at
-> all, so leaving it in that state will screw up anybody trying to find
-> other bugs with 'git bisect'"
->=20
->      At the same time, if you do this just before pushing to me, maybe
-> you should take a step back and say "oops, my tree was completely
-> broken, maybe I shouldn't push this to Linus just after fixing it".
+And still welcome another ideas, suggestions or completions, especially
+for another architectures.
 
-And this is fine but shouldn't happen just before sending a pull
-request (as Linus said).  But may also require informing anyone who
-depends on your tree (especially if that other tree is also in
-linux-next ... otherwise I could easily end up with both versions).
 
->  (c) You want to clean things up, and you're not even remotely ready
-> to push things upstream, and while people have *seen* your work,
-> nobody relies on it or uses it.
+Thanks.
+-- 
+Chen Gang
 
-And this should not be in linux-next yet, so again I don't care and
-shouldn't see it.
-
---=20
-Cheers,
-Stephen Rothwell                    sfr@canb.auug.org.au
-
---Sig_/aYcb.0iqbNNUc2fOzR=SUL_
-Content-Type: application/pgp-signature; name=signature.asc
-Content-Disposition: attachment; filename=signature.asc
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v2
-
-iQIcBAEBCAAGBQJT5EJEAAoJEMDTa8Ir7ZwV+BMP/iOP+hmBdpp5FtfdZ+LD2IS4
-8i2TgQdxgort25B9/jBkiA7XI4ojZyeFwWHZCLZsXhYHLpnDFzwMHSc4fTVn3dV8
-pysRsVbS+h6bCXV4csVIWfxEMvwA6ltPJ96Avqj0W4wQaWiZa54iH5KLagmVtPbK
-ZoQKd+au8Dt7wbKJHHoasBxxi3XK59RgKLx4/sUXC/MVI89ebu1YDTG6QCHIvD50
-pA6lzl2LjGU2wykTce8Swe4SkKp+sM5y0N/pp1RFfjqWAyOg63vDYEYSNY8XgXGs
-3H1UObfE2i9F7dgNLIUYBlmEmNm9MfCJQwpoyVgLsFOunl8H4SqIlSNVoZPjlL5I
-AKHLjFI1wCxPAr/RQlHJzVr+AWLFom3KYX/1zmIgwURMWcLpoARixs5Qz4icAI/x
-2Kprbxc2OTDZdkIqE52JOr47Q2QIfHsVBJQF1CIVbJW7N4hFicmCHRasdXF7XCt5
-pEWzCGwBE3lhUFe/LKyMTt0bDPFfuMa3LqWQ1MtumFAmohkhot7HMhkHWjEizYQ1
-E17Y44iFCLaMMlmTSHWkgKzgcsKq1N+0fiINZPU0UFtC8Ywo5N8puuA9fwvSCh14
-q7maJPGhN/d142KJN8pb4aqgAYhvIbOy4Jmq5n05QSI3XLcIfxbcJJPKaza39KPj
-75f3Zw0vmACvN9dahIb2
-=4sSH
------END PGP SIGNATURE-----
-
---Sig_/aYcb.0iqbNNUc2fOzR=SUL_--
+Open, share, and attitude like air, water, and life which God blessed
