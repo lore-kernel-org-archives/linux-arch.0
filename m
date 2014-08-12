@@ -1,72 +1,49 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: seccomp: add "seccomp" syscall
-Date: Mon, 11 Aug 2014 22:07:12 +0200
-Message-ID: <CAMuHMdWp1iWm9xLqRN0q3hV72bD8jPRLDW74Cm+Gxp3gB76asQ@mail.gmail.com>
-References: <20140806162754.3BCA1660E61@gitolite.kernel.org>
+From: Chen Gang <gang.chen.5i5j@gmail.com>
+Subject: Re: [PATCH] arch: Kconfig: Let all little endian architectures define
+ CPU_LITTLE_ENDIAN explicitly
+Date: Tue, 12 Aug 2014 11:27:42 +0800
+Message-ID: <53E989AE.7070808@gmail.com>
+References: <53E93334.5000205@gmail.com> <20140811225326.GF30401@n2100.arm.linux.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-la0-f44.google.com ([209.85.215.44]:60534 "EHLO
-	mail-la0-f44.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754991AbaHKUHO (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 11 Aug 2014 16:07:14 -0400
-In-Reply-To: <20140806162754.3BCA1660E61@gitolite.kernel.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Kees Cook <keescook@chromium.org>
-Cc: Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
+Content-Type: text/plain; charset=windows-1252
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-ia64-owner@vger.kernel.org>
+In-Reply-To: <20140811225326.GF30401@n2100.arm.linux.org.uk>
+Sender: linux-ia64-owner@vger.kernel.org
+To: Russell King - ARM Linux <linux@arm.linux.org.uk>
+Cc: Arnd Bergmann <arnd@arndb.de>, akpm@linux-foundation.org, Geert Uytterhoeven <geert@linux-m68k.org>, Jean Delvare <jdelvare@suse.de>, catalin.marinas@arm.com, will.deacon@arm.com, tony.luck@intel.com, fenghua.yu@intel.com, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-ia64@vger.kernel.org, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, gxt@mprc.pku.edu.cn, liqin.linux@gmail.com, lennox.wu@gmail.com, cmetcalf@tilera.com, hskinnemoen@gmail.com, egtvedt@samfundet.no, james.hogan@imgtec.com, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-Hi Kees,
 
-v3.17 is gonna get a lot of new syscalls...
 
-On Wed, Aug 6, 2014 at 6:27 PM, Linux Kernel Mailing List
-<linux-kernel@vger.kernel.org> wrote:
-> Gitweb:     http://git.kernel.org/linus/;a=commit;h=48dc92b9fc3926844257316e75ba11eb5c742b2c
-> Commit:     48dc92b9fc3926844257316e75ba11eb5c742b2c
-> Parent:     3b23dd12846215eff4afb073366b80c0c4d7543e
-> Refname:    refs/heads/master
-> Author:     Kees Cook <keescook@chromium.org>
-> AuthorDate: Wed Jun 25 16:08:24 2014 -0700
-> Committer:  Kees Cook <keescook@chromium.org>
-> CommitDate: Fri Jul 18 12:13:37 2014 -0700
->
->     seccomp: add "seccomp" syscall
->
->     This adds the new "seccomp" syscall with both an "operation" and "flags"
->     parameter for future expansion. The third argument is a pointer value,
->     used with the SECCOMP_SET_MODE_FILTER operation. Currently, flags must
->     be 0. This is functionally equivalent to prctl(PR_SET_SECCOMP, ...).
->
->     In addition to the TSYNC flag later in this patch series, there is a
->     non-zero chance that this syscall could be used for configuring a fixed
->     argument area for seccomp-tracer-aware processes to pass syscall arguments
->     in the future. Hence, the use of "seccomp" not simply "seccomp_add_filter"
->     for this syscall. Additionally, this syscall uses operation, flags,
->     and user pointer for arguments because strictly passing arguments via
->     a user pointer would mean seccomp itself would be unable to trivially
->     filter the seccomp syscall itself.
->
->     Signed-off-by: Kees Cook <keescook@chromium.org>
->     Reviewed-by: Oleg Nesterov <oleg@redhat.com>
->     Reviewed-by: Andy Lutomirski <luto@amacapital.net>
+On 8/12/14 6:53, Russell King - ARM Linux wrote:
+> On Tue, Aug 12, 2014 at 05:18:44AM +0800, Chen Gang wrote:
+>> x86, ia64, and arm(64) are little endian, and also another architectures
+>> may be little endian (mips, sh, powerpc, and m32r) which already marked
+>> CPU_LITTLE_ENDIAN explicitly.
+> 
+> This is incorrect.  ARM can be either endian.
+> 
+> arch/arm/mm/Kconfig:
+> 
+> config CPU_BIG_ENDIAN
+>         bool "Build big-endian kernel"
+>         depends on ARCH_SUPPORTS_BIG_ENDIAN
+>         help
+>           Say Y if you plan on running a kernel in big-endian mode.
+>           Note that your board must be properly built and your board
+>           port must properly enable any big-endian related features
+>           of your chipset/board/processor.
+> 
 
-Is this something that I should enable?
+OK, thanks, I shall check all CPU_BIG_ENDIAN and send patch v2 for it.
 
-As it depends on CONFIG_SECCOMP, it only makes sense on architectures that
-already support CONFIG_SECCOMP, right?
-Does it make sense to reserve a syscall slot for it on architectures that
-don't support it yet?
+And still welcome another ideas, suggestions or completions, especially
+for another architectures.
 
-Thanks!
 
-Gr{oetje,eeting}s,
+Thanks.
+-- 
+Chen Gang
 
-                        Geert
-
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+Open, share, and attitude like air, water, and life which God blessed
