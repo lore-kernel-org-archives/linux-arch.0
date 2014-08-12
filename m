@@ -1,117 +1,117 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from fw-tnat.cambridge.arm.com ([217.140.96.21]:54725 "EHLO
+Received: from fw-tnat.cambridge.arm.com ([217.140.96.21]:54752 "EHLO
 	cam-smtp0.cambridge.arm.com" rhost-flags-OK-OK-OK-FAIL)
-	by vger.kernel.org with ESMTP id S1753258AbaHLQ0v (ORCPT
+	by vger.kernel.org with ESMTP id S1753521AbaHLQ0y (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 12 Aug 2014 12:26:51 -0400
+	Tue, 12 Aug 2014 12:26:54 -0400
 From: Liviu Dudau <Liviu.Dudau@arm.com>
-Subject: [PATCH v9 04/12] PCI: OF: Fix the conversion of IO ranges into IO resources.
-Date: Tue, 12 Aug 2014 17:25:17 +0100
-Message-ID: <1407860725-25202-5-git-send-email-Liviu.Dudau@arm.com>
+Subject: [PATCH v9 06/12] ARM: integrator: Correct usage of of_pci_range_to_resource()
+Date: Tue, 12 Aug 2014 17:25:19 +0100
+Message-ID: <1407860725-25202-7-git-send-email-Liviu.Dudau@arm.com>
 In-Reply-To: <1407860725-25202-1-git-send-email-Liviu.Dudau@arm.com>
 References: <1407860725-25202-1-git-send-email-Liviu.Dudau@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Bjorn Helgaas <bhelgaas@google.com>, Catalin Marinas <Catalin.Marinas@arm.com>, Will Deacon <Will.Deacon@arm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@arm.linux.org.uk>, Tanmay Inamdar <tinamdar@apm.com>, Grant Likely <grant.likely@secretlab.ca>, Sinan Kaya <okaya@codeaurora.org>, Jingoo Han <jg1.han@samsung.com>, Kukjin Kim <kgene.kim@samsung.com>, Suravee Suthikulanit <suravee.suthikulpanit@amd.com>, linux-pci <linux-pci@vger.kernel.org>
 Cc: linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Device Tree ML <devicetree@vger.kernel.org>, LAKML <linux-arm-kernel@lists.infradead.org>
-Message-ID: <20140812162517.N7WNTVLfVUhJA_E4NeLqiUC9jUKKer4b64nnJTHbwZg@z>
+Message-ID: <20140812162519.SApRt3EHXSXMHcK70qOTywCppBk3-k7xFOAHpGpGie8@z>
 
-The ranges property for a host bridge controller in DT describes
-the mapping between the PCI bus address and the CPU physical address.
-The resources framework however expects that the IO resources start
-at a pseudo "port" address 0 (zero) and have a maximum size of IO_SPACE_LIMIT.
-The conversion from pci ranges to resources failed to take that into account.
+Previously, of_pci_range_to_resource() would return a resource
+that contained physical addresses of the IO space even if the
+IORESOURCE_IO flags mandate a logical port set of values. Now
+that the function has been fixed we need to update the drivers
+that were taking advantage of the old behaviour.
 
-In the process move the function into drivers/of/address.c as it now
-depends on pci_address_to_pio() code and make it return an error code.
-
-Cc: Grant Likely <grant.likely@linaro.org>
-Cc: Rob Herring <robh+dt@kernel.org>
+Cc: Linus Walleij <linus.walleij@linaro.org>
 Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: Rob Herring <robh+dt@kernel.org>
+Cc: Russell King <linux@arm.linux.org.uk>
 Signed-off-by: Liviu Dudau <Liviu.Dudau@arm.com>
 ---
- drivers/of/address.c       | 46 ++++++++++++++++++++++++++++++++++++++++++++++
- include/linux/of_address.h | 13 ++-----------
- 2 files changed, 48 insertions(+), 11 deletions(-)
+ arch/arm/mach-integrator/pci_v3.c | 24 +++++++++++++-----------
+ 1 file changed, 13 insertions(+), 11 deletions(-)
 
-diff --git a/drivers/of/address.c b/drivers/of/address.c
-index 4dab700..3735ac7 100644
---- a/drivers/of/address.c
-+++ b/drivers/of/address.c
-@@ -906,3 +906,49 @@ bool of_dma_is_coherent(struct device_node *np)
- 	return false;
- }
- EXPORT_SYMBOL_GPL(of_dma_is_coherent);
-+
-+/*
-+ * of_pci_range_to_resource - Create a resource from an of_pci_range
-+ * @range:	the PCI range that describes the resource
-+ * @np:		device node where the range belongs to
-+ * @res:	pointer to a valid resource that will be updated to
-+ *              reflect the values contained in the range.
-+ *
-+ * Returns EINVAL if the range cannot be converted to resource.
-+ *
-+ * Note that if the range is an IO range, the resource will be converted
-+ * using pci_address_to_pio() which can fail if it is called too early or
-+ * if the range cannot be matched to any host bridge IO space (our case here).
-+ * To guard against that we try to register the IO range first.
-+ * If that fails we know that pci_address_to_pio() will do too.
-+ */
-+int of_pci_range_to_resource(struct of_pci_range *range,
-+	struct device_node *np, struct resource *res)
-+{
-+	int err;
-+	res->flags = range->flags;
-+	res->parent = res->child = res->sibling = NULL;
-+	res->name = np->full_name;
-+
-+	if (res->flags & IORESOURCE_IO) {
-+		unsigned long port = -1;
-+		err = pci_register_io_range(range->cpu_addr, range->size);
-+		if (err)
-+			goto invalid_range;
-+		port = pci_address_to_pio(range->cpu_addr);
-+		if (port == (unsigned long)-1) {
-+			err = -EINVAL;
-+			goto invalid_range;
-+		}
-+		res->start = port;
-+	} else {
-+		res->start = range->cpu_addr;
-+	}
-+	res->end = res->start + range->size - 1;
-+	return 0;
-+
-+invalid_range:
-+	res->start = (resource_size_t)OF_BAD_ADDR;
-+	res->end = (resource_size_t)OF_BAD_ADDR;
-+	return err;
-+}
-diff --git a/include/linux/of_address.h b/include/linux/of_address.h
-index 28e6836..6015f21 100644
---- a/include/linux/of_address.h
-+++ b/include/linux/of_address.h
-@@ -23,17 +23,8 @@ struct of_pci_range {
- #define for_each_of_pci_range(parser, range) \
- 	for (; of_pci_range_parser_one(parser, range);)
+diff --git a/arch/arm/mach-integrator/pci_v3.c b/arch/arm/mach-integrator/pci_v3.c
+index 05e1f73..193b7f8 100644
+--- a/arch/arm/mach-integrator/pci_v3.c
++++ b/arch/arm/mach-integrator/pci_v3.c
+@@ -660,6 +660,7 @@ static void __init pci_v3_preinit(void)
+ {
+ 	unsigned long flags;
+ 	unsigned int temp;
++	phys_addr_t io_address = pci_pio_to_address(io_mem.start);
  
--static inline void of_pci_range_to_resource(struct of_pci_range *range,
--					    struct device_node *np,
--					    struct resource *res)
--{
--	res->flags = range->flags;
--	res->start = range->cpu_addr;
--	res->end = range->cpu_addr + range->size - 1;
--	res->parent = res->child = res->sibling = NULL;
--	res->name = np->full_name;
--}
--
-+extern int of_pci_range_to_resource(struct of_pci_range *range,
-+		struct device_node *np, struct resource *res);
- /* Translate a DMA address from device space to CPU space */
- extern u64 of_translate_dma_address(struct device_node *dev,
- 				    const __be32 *in_addr);
+ 	pcibios_min_mem = 0x00100000;
+ 
+@@ -701,7 +702,7 @@ static void __init pci_v3_preinit(void)
+ 	/*
+ 	 * Setup window 2 - PCI IO
+ 	 */
+-	v3_writel(V3_LB_BASE2, v3_addr_to_lb_base2(io_mem.start) |
++	v3_writel(V3_LB_BASE2, v3_addr_to_lb_base2(io_address) |
+ 			V3_LB_BASE_ENABLE);
+ 	v3_writew(V3_LB_MAP2, v3_addr_to_lb_map2(0));
+ 
+@@ -742,6 +743,7 @@ static void __init pci_v3_preinit(void)
+ static void __init pci_v3_postinit(void)
+ {
+ 	unsigned int pci_cmd;
++	phys_addr_t io_address = pci_pio_to_address(io_mem.start);
+ 
+ 	pci_cmd = PCI_COMMAND_MEMORY |
+ 		  PCI_COMMAND_MASTER | PCI_COMMAND_INVALIDATE;
+@@ -758,7 +760,7 @@ static void __init pci_v3_postinit(void)
+ 		       "interrupt: %d\n", ret);
+ #endif
+ 
+-	register_isa_ports(non_mem.start, io_mem.start, 0);
++	register_isa_ports(non_mem.start, io_address, 0);
+ }
+ 
+ /*
+@@ -867,33 +869,33 @@ static int __init pci_v3_probe(struct platform_device *pdev)
+ 
+ 	for_each_of_pci_range(&parser, &range) {
+ 		if (!range.flags) {
+-			of_pci_range_to_resource(&range, np, &conf_mem);
++			ret = of_pci_range_to_resource(&range, np, &conf_mem);
+ 			conf_mem.name = "PCIv3 config";
+ 		}
+ 		if (range.flags & IORESOURCE_IO) {
+-			of_pci_range_to_resource(&range, np, &io_mem);
++			ret = of_pci_range_to_resource(&range, np, &io_mem);
++			dev_info(&pdev->dev, "IO PCI range converted\n");
+ 			io_mem.name = "PCIv3 I/O";
+ 		}
+ 		if ((range.flags & IORESOURCE_MEM) &&
+ 			!(range.flags & IORESOURCE_PREFETCH)) {
+ 			non_mem_pci = range.pci_addr;
+ 			non_mem_pci_sz = range.size;
+-			of_pci_range_to_resource(&range, np, &non_mem);
++			ret = of_pci_range_to_resource(&range, np, &non_mem);
+ 			non_mem.name = "PCIv3 non-prefetched mem";
+ 		}
+ 		if ((range.flags & IORESOURCE_MEM) &&
+ 			(range.flags & IORESOURCE_PREFETCH)) {
+ 			pre_mem_pci = range.pci_addr;
+ 			pre_mem_pci_sz = range.size;
+-			of_pci_range_to_resource(&range, np, &pre_mem);
++			ret = of_pci_range_to_resource(&range, np, &pre_mem);
+ 			pre_mem.name = "PCIv3 prefetched mem";
+ 		}
+-	}
+ 
+-	if (!conf_mem.start || !io_mem.start ||
+-	    !non_mem.start || !pre_mem.start) {
+-		dev_err(&pdev->dev, "missing ranges in device node\n");
+-		return -EINVAL;
++		if (ret < 0) {
++			dev_err(&pdev->dev, "missing ranges in device node\n");
++			return -EINVAL;
++		}
+ 	}
+ 
+ 	pci_v3.map_irq = of_irq_parse_and_map_pci;
 -- 
 2.0.4
 
