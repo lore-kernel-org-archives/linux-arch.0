@@ -1,14 +1,11 @@
 From: Liviu Dudau <Liviu.Dudau@arm.com>
-Subject: [PATCH v9 03/12] PCI: Introduce helper functions to deal with PCI I/O
- ranges.
-Date: Tue, 12 Aug 2014 17:25:16 +0100
-Message-ID: <1407860725-25202-4-git-send-email-Liviu.Dudau@arm.com>
-References: <1407860725-25202-1-git-send-email-Liviu.Dudau@arm.com>
+Subject: [PATCH v9 00/12] Support for creating generic PCI host bridges from DT
+Date: Tue, 12 Aug 2014 17:25:13 +0100
+Message-ID: <1407860725-25202-1-git-send-email-Liviu.Dudau@arm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-In-Reply-To: <1407860725-25202-1-git-send-email-Liviu.Dudau@arm.com>
 List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
  <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
 List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
@@ -22,163 +19,109 @@ To: Bjorn Helgaas <bhelgaas@google.com>, Catalin Marinas <Catalin.Marinas@arm.co
 Cc: linux-arch <linux-arch@vger.kernel.org>, Device Tree ML <devicetree@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, LAKML <linux-arm-kernel@lists.infradead.org>
 List-Id: linux-arch.vger.kernel.org
 
-Some architectures do not have a simple view of the PCI I/O space
-and instead use a range of CPU addresses that map to bus addresses.
-For some architectures these ranges will be expressed by OF bindings
-in a device tree file.
+This is my updated attempt at adding support for generic PCI host
+bridge controllers that make use of device tree information to
+configure themselves. This version incorporates Catalin's proposal
+for managing domain numbers that got Bjorn's approval. I am now requesting
+ACKs from the relevant maintainers as I would like to get the upstream ball
+rolling.
 
-This patch introduces a pci_register_io_range() helper function with
-a generic implementation that can be used by such architectures to
-keep track of the I/O ranges described by the PCI bindings. If the
-PCI_IOBASE macro is not defined that signals lack of support for PCI
-and we return an error.
+Of the more important changes vs v8, this version has an altered implementation
+of of_create_pci_host_bridge() that allows for easier conversion of architectures
+that use pci_scan_root_bus() in their code rather than pci_create_root_bus().
+With my v8 version of the patchset it would've meant adding back the code
+from pci_scan_root_bus() into architectural code. v9 fixes that and adds
+a callback parameter to of_create_pci_host_bridge() that permits the host
+controller driver to finish the driver setup before the bus is being scanned.
 
-In order to retrieve the CPU address associated with an I/O port, a
-new helper function pci_pio_to_address() is introduced. This will
-search in the list of ranges registered with pci_register_io_range()
-and return the CPU address that corresponds to the given port.
+To repeat for the benefit of people writing host bridge drivers on top of
+my patchset: the API for of_create_pci_host_bridge() has changed and it will now
+do all the child bus and device scanning for you, so you only need to provide a
+setup function that will be called before scanning start. I will post a patch
+that Lorenzo has kindly constructed for converting pci-host-generic.c to my API.
 
-Cc: Grant Likely <grant.likely@linaro.org>
-Cc: Rob Herring <robh+dt@kernel.org>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Signed-off-by: Liviu Dudau <Liviu.Dudau@arm.com>
----
- drivers/of/address.c       | 95 ++++++++++++++++++++++++++++++++++++++++++++++
- include/linux/of_address.h |  2 +
- 2 files changed, 97 insertions(+)
+Changes from v8:
+  - Introduce a new helper function pci_pio_to_address() to translate between
+    I/O port numbers and CPU addresses. This is a temporary band aid
+    for drivers that rely on the old behaviour of of_pci_range_to_resource()
+    until they are converted to the new framework. ARM's Integrator AP
+    pci_v3.c makes use of that.
+  - Patch pci_v3.c against changes in of_pci_range_to_resource(). This is the
+    only driver that made use of the fact that the function was returning
+    CPU addresses rather than I/O port numbers.
+  - Added a warning when parsing more that one I/O range as this will discard
+    previous information regarding the CPU address of the range.
+  - Add support for generic domain number handling. The domain number is now
+    stored in the struct bus if CONFIG_PCI_DOMAINS_GENERIC is defined. This
+    is a cleanup of the patch that Catalin has proposed and Bjorn has ACKed,
+    but I've added it here without the ACK as I have slightly modified the
+    proposed API.
+  - Create a new function to managing domain numbers that will query the DT
+    for pci-domain information.
+  - Introduce an updated version of of_create_pci_host_bridge() that takes
+    a function pointer for a setup function that can be used by the host bridge
+    driver to finish the setup after the DT has been parsed and host bridge
+    created but before the scanning of the root bus has been initiated.
+    This makes of_create_pci_host_bridge() an easy swap for architectures that
+    do manual DT parsing and use pci_scan_root_bus()
+  - Added arguments to of_create_pci_host_bridge() to be able to pass the
+    bus number for the root bus and the maximum bus number to be used in
+    the bus range resource. Changed the return value from a pointer to
+    the pci_host_bridge into an int with the error code as the host bridge
+    is not needed now given that of_create_pci_host_bridge() does all the
+    scanning work.
+  - Introduce a new pgprot_device() for remapping I/O space. For architectures
+    that don't support it defaults to pgprot_noncached.
+  - Fix the generic function for remaping I/O space by using
+    pgprot_device(PAGE_KERNEL) as the parameter for ioremap_page_range()
+  - Header include fixes, initialisation fixes and misc cleanup
 
-diff --git a/drivers/of/address.c b/drivers/of/address.c
-index 5edfcb0..4dab700 100644
---- a/drivers/of/address.c
-+++ b/drivers/of/address.c
-@@ -5,6 +5,7 @@
- #include <linux/module.h>
- #include <linux/of_address.h>
- #include <linux/pci_regs.h>
-+#include <linux/slab.h>
- #include <linux/string.h>
- 
- /* Max address size we deal with */
-@@ -601,12 +602,106 @@ const __be32 *of_get_address(struct device_node *dev, int index, u64 *size,
- }
- EXPORT_SYMBOL(of_get_address);
- 
-+#ifdef PCI_IOBASE
-+struct io_range {
-+	struct list_head list;
-+	phys_addr_t start;
-+	resource_size_t size;
-+};
-+
-+static LIST_HEAD(io_range_list);
-+static DEFINE_SPINLOCK(io_range_lock);
-+#endif
-+
-+/*
-+ * Record the PCI IO range (expressed as CPU physical address + size).
-+ * Return a negative value if an error has occured, zero otherwise
-+ */
-+int __weak pci_register_io_range(phys_addr_t addr, resource_size_t size)
-+{
-+#ifdef PCI_IOBASE
-+	struct io_range *range;
-+	resource_size_t allocated_size = 0;
-+
-+	/* check if the range hasn't been previously recorded */
-+	spin_lock(&io_range_lock);
-+	list_for_each_entry(range, &io_range_list, list) {
-+		if (addr >= range->start && addr + size <= range->start + size)
-+			return 0;
-+		allocated_size += range->size;
-+	}
-+	spin_unlock(&io_range_lock);
-+
-+	/* range not registed yet, check for available space */
-+	if (allocated_size + size - 1 > IO_SPACE_LIMIT) {
-+		/* if it's too big check if 64K space can be reserved */
-+		if (allocated_size + SZ_64K - 1 > IO_SPACE_LIMIT)
-+			return -E2BIG;
-+
-+		size = SZ_64K;
-+		pr_warn("Requested IO range too big, new size set to 64K\n");
-+	}
-+
-+	/* add the range to the list */
-+	range = kzalloc(sizeof(*range), GFP_KERNEL);
-+	if (!range)
-+		return -ENOMEM;
-+
-+	range->start = addr;
-+	range->size = size;
-+
-+	list_add_tail(&range->list, &io_range_list);
-+#endif
-+
-+	return 0;
-+}
-+
-+phys_addr_t pci_pio_to_address(unsigned long pio)
-+{
-+	phys_addr_t address = (phys_addr_t)OF_BAD_ADDR;
-+
-+#ifdef PCI_IOBASE
-+	struct io_range *range;
-+	resource_size_t allocated_size = 0;
-+
-+	if (pio > IO_SPACE_LIMIT)
-+		return address;
-+
-+	spin_lock(&io_range_lock);
-+	list_for_each_entry(range, &io_range_list, list) {
-+		if (pio >= allocated_size && pio < allocated_size + range->size) {
-+			address = range->start + pio - allocated_size;
-+			break;
-+		}
-+		allocated_size += range->size;
-+	}
-+	spin_unlock(&io_range_lock);
-+#endif
-+
-+	return address;
-+}
-+
- unsigned long __weak pci_address_to_pio(phys_addr_t address)
- {
-+#ifdef PCI_IOBASE
-+	struct io_range *res;
-+	resource_size_t offset = 0;
-+
-+	list_for_each_entry(res, &io_range_list, list) {
-+		if (address >= res->start &&
-+			address < res->start + res->size) {
-+			return res->start - address + offset;
-+		}
-+		offset += res->size;
-+	}
-+
-+	return (unsigned long)-1;
-+#else
- 	if (address > IO_SPACE_LIMIT)
- 		return (unsigned long)-1;
- 
- 	return (unsigned long) address;
-+#endif
- }
- 
- static int __of_address_to_resource(struct device_node *dev,
-diff --git a/include/linux/of_address.h b/include/linux/of_address.h
-index c13b878..28e6836 100644
---- a/include/linux/of_address.h
-+++ b/include/linux/of_address.h
-@@ -55,7 +55,9 @@ extern void __iomem *of_iomap(struct device_node *device, int index);
- extern const __be32 *of_get_address(struct device_node *dev, int index,
- 			   u64 *size, unsigned int *flags);
- 
-+extern int pci_register_io_range(phys_addr_t addr, resource_size_t size);
- extern unsigned long pci_address_to_pio(phys_addr_t addr);
-+extern phys_addr_t pci_pio_to_address(unsigned long pio);
- 
- extern int of_pci_range_parser_init(struct of_pci_range_parser *parser,
- 			struct device_node *node);
+Changes from v7:
+  - Reordered the patches so that fixes and non-controversial patches
+    from v7 can be accepted more easily. If agreed I can split the
+    series again into patches that can be upstreamed easily and ones
+    that still need discussion.
+  - Moved the of_create_host_bridge() function to drivers/of/of_pci.c
+    to better reflect its target use.
+  - Added the function to remap the bus I/O resources that used to be
+    provided in my arm64 patch series and (re)named it pci_remap_iospace()
+  - Removed error code checking from parsing and mapping of IRQ from DT
+    in recognition that some PCI devices will not have legacy IRQ mappings.
+
+v8 thread here: https://lkml.org/lkml/2014/7/1/450
+v7 thread here with all the historic information: https://lkml.org/lkml/2014/3/14/279
+
+Best regards,
+Liviu
+
+Liviu Dudau (12):
+  Fix ioport_map() for !CONFIG_GENERIC_IOMAP cases.
+  PCI: OF: Parse and map the IRQ when adding the PCI device.
+  PCI: Introduce helper functions to deal with PCI I/O ranges.
+  PCI: OF: Fix the conversion of IO ranges into IO resources.
+  ARM: Define PCI_IOBASE as the base of virtual PCI IO space.
+  ARM: integrator: Correct usage of of_pci_range_to_resource()
+  PCI: Create pci_host_bridge before its associated bus in pci_create_root_bus.
+  PCI: Introduce generic domain handling for PCI busses.
+  OF: Introduce helper function for getting PCI domain_nr
+  OF: PCI: Add support for creating a generic host_bridge from DT
+  arm64: Add pgprot_device() interface for device mappings.
+  PCI: Introduce pci_remap_iospace() for remapping PCI I/O bus resources into CPU space
+
+ arch/arm/include/asm/io.h         |   1 +
+ arch/arm/mach-integrator/pci_v3.c |  24 ++---
+ arch/arm64/include/asm/pgtable.h  |   2 +
+ drivers/of/address.c              | 141 ++++++++++++++++++++++++++++
+ drivers/of/of_pci.c               | 193 ++++++++++++++++++++++++++++++++++++++
+ drivers/pci/host-bridge.c         |  15 +++
+ drivers/pci/pci.c                 |  36 +++++++
+ drivers/pci/probe.c               |  43 +++++----
+ include/asm-generic/io.h          |   2 +-
+ include/asm-generic/pgtable.h     |   4 +
+ include/linux/of_address.h        |  15 +--
+ include/linux/of_pci.h            |  20 ++++
+ include/linux/pci.h               |  30 ++++++
+ 13 files changed, 485 insertions(+), 41 deletions(-)
+
 -- 
 2.0.4
