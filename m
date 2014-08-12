@@ -1,105 +1,81 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from fw-tnat.cambridge.arm.com ([217.140.96.21]:54724 "EHLO
-	cam-smtp0.cambridge.arm.com" rhost-flags-OK-OK-OK-FAIL)
-	by vger.kernel.org with ESMTP id S1753065AbaHLQ0v (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 12 Aug 2014 12:26:51 -0400
-From: Liviu Dudau <Liviu.Dudau@arm.com>
-Subject: [PATCH v9 09/12] OF: Introduce helper function for getting PCI domain_nr
-Date: Tue, 12 Aug 2014 17:25:22 +0100
-Message-ID: <1407860725-25202-10-git-send-email-Liviu.Dudau@arm.com>
-In-Reply-To: <1407860725-25202-1-git-send-email-Liviu.Dudau@arm.com>
-References: <1407860725-25202-1-git-send-email-Liviu.Dudau@arm.com>
+Received: from mail-oa0-f45.google.com ([209.85.219.45]:35583 "EHLO
+	mail-oa0-f45.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753180AbaHLQZo (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 12 Aug 2014 12:25:44 -0400
+Received: by mail-oa0-f45.google.com with SMTP id i7so7454030oag.4
+        for <linux-arch@vger.kernel.org>; Tue, 12 Aug 2014 09:25:43 -0700 (PDT)
+MIME-Version: 1.0
+In-Reply-To: <CAMuHMdWp1iWm9xLqRN0q3hV72bD8jPRLDW74Cm+Gxp3gB76asQ@mail.gmail.com>
+References: <20140806162754.3BCA1660E61@gitolite.kernel.org>
+	<CAMuHMdWp1iWm9xLqRN0q3hV72bD8jPRLDW74Cm+Gxp3gB76asQ@mail.gmail.com>
+Date: Tue, 12 Aug 2014 09:25:43 -0700
+Message-ID: <CAGXu5jLxkhaDU7KtHLLXAbseHXc9nEuj93EYM9JvtWvPLzW=ug@mail.gmail.com>
+Subject: Re: seccomp: add "seccomp" syscall
+From: Kees Cook <keescook@chromium.org>
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Bjorn Helgaas <bhelgaas@google.com>, Catalin Marinas <Catalin.Marinas@arm.com>, Will Deacon <Will.Deacon@arm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@arm.linux.org.uk>, Tanmay Inamdar <tinamdar@apm.com>, Grant Likely <grant.likely@secretlab.ca>, Sinan Kaya <okaya@codeaurora.org>, Jingoo Han <jg1.han@samsung.com>, Kukjin Kim <kgene.kim@samsung.com>, Suravee Suthikulanit <suravee.suthikulpanit@amd.com>, linux-pci <linux-pci@vger.kernel.org>
-Cc: linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Device Tree ML <devicetree@vger.kernel.org>, LAKML <linux-arm-kernel@lists.infradead.org>
-Message-ID: <20140812162522.v50WCkadxAoWgC3sD0WqYMFSpZYxwhgU7051VNuojW8@z>
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>
+Message-ID: <20140812162543.UBCAtkvJ80Q5zPhbD3HPVzWJ4lmUgS4pani8rPIoHgc@z>
 
-Add of_pci_get_domain_nr() to retrieve the PCI domain number
-of a given device from DT. If the information is not present,
-the function can be requested to allocate a new domain number.
+On Mon, Aug 11, 2014 at 1:07 PM, Geert Uytterhoeven
+<geert@linux-m68k.org> wrote:
+> Hi Kees,
+>
+> v3.17 is gonna get a lot of new syscalls...
 
-Cc: Bjorn Helgaas <bhelgaas@google.com>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: Grant Likely <grant.likely@linaro.org>
-Cc: Rob Herring <robh+dt@kernel.org>
-Signed-off-by: Liviu Dudau <Liviu.Dudau@arm.com>
----
- drivers/of/of_pci.c    | 34 ++++++++++++++++++++++++++++++++++
- include/linux/of_pci.h |  7 +++++++
- 2 files changed, 41 insertions(+)
+4 so far! :P
 
-diff --git a/drivers/of/of_pci.c b/drivers/of/of_pci.c
-index 8481996..a107edb 100644
---- a/drivers/of/of_pci.c
-+++ b/drivers/of/of_pci.c
-@@ -89,6 +89,40 @@ int of_pci_parse_bus_range(struct device_node *node, struct resource *res)
- }
- EXPORT_SYMBOL_GPL(of_pci_parse_bus_range);
- 
-+static atomic_t of_domain_nr = ATOMIC_INIT(-1);
-+
-+/**
-+ * This function will try to obtain the host bridge domain number by
-+ * using of_alias_get_id() call with "pci-domain" as a stem. If that
-+ * fails, a local allocator will be used. The local allocator can
-+ * be requested to return a new domain_nr if the information is missing
-+ * from the device tree.
-+ *
-+ * @node: device tree node with the domain information
-+ * @allocate_if_missing: if DT lacks information about the domain nr,
-+ * allocate a new number.
-+ *
-+ * Returns the associated domain number from DT, or a new domain number
-+ * if DT information is missing and @allocate_if_missing is true. If
-+ * @allocate_if_missing is false then the last allocated domain number
-+ * will be returned.
-+ */
-+int of_pci_get_domain_nr(struct device_node *node, bool allocate_if_missing)
-+{
-+	int domain;
-+
-+	domain = of_alias_get_id(node, "pci-domain");
-+	if (domain == -ENODEV) {
-+		if (allocate_if_missing)
-+			domain = atomic_inc_return(&of_domain_nr);
-+		else
-+			domain = atomic_read(&of_domain_nr);
-+	}
-+
-+	return domain;
-+}
-+EXPORT_SYMBOL_GPL(of_pci_get_domain_nr);
-+
- #ifdef CONFIG_PCI_MSI
- 
- static LIST_HEAD(of_pci_msi_chip_list);
-diff --git a/include/linux/of_pci.h b/include/linux/of_pci.h
-index dde3a4a..3a3824c 100644
---- a/include/linux/of_pci.h
-+++ b/include/linux/of_pci.h
-@@ -15,6 +15,7 @@ struct device_node *of_pci_find_child_device(struct device_node *parent,
- int of_pci_get_devfn(struct device_node *np);
- int of_irq_parse_and_map_pci(const struct pci_dev *dev, u8 slot, u8 pin);
- int of_pci_parse_bus_range(struct device_node *node, struct resource *res);
-+int of_pci_get_domain_nr(struct device_node *node, bool allocate_if_missing);
- #else
- static inline int of_irq_parse_pci(const struct pci_dev *pdev, struct of_phandle_args *out_irq)
- {
-@@ -43,6 +44,12 @@ of_pci_parse_bus_range(struct device_node *node, struct resource *res)
- {
- 	return -EINVAL;
- }
-+
-+static inline int
-+of_pci_get_domain_nr(struct device_node *node, bool allocate_if_missing)
-+{
-+	return -1;
-+}
- #endif
- 
- #if defined(CONFIG_OF) && defined(CONFIG_PCI_MSI)
+>
+> On Wed, Aug 6, 2014 at 6:27 PM, Linux Kernel Mailing List
+> <linux-kernel@vger.kernel.org> wrote:
+>> Gitweb:     http://git.kernel.org/linus/;a=commit;h=48dc92b9fc3926844257316e75ba11eb5c742b2c
+>> Commit:     48dc92b9fc3926844257316e75ba11eb5c742b2c
+>> Parent:     3b23dd12846215eff4afb073366b80c0c4d7543e
+>> Refname:    refs/heads/master
+>> Author:     Kees Cook <keescook@chromium.org>
+>> AuthorDate: Wed Jun 25 16:08:24 2014 -0700
+>> Committer:  Kees Cook <keescook@chromium.org>
+>> CommitDate: Fri Jul 18 12:13:37 2014 -0700
+>>
+>>     seccomp: add "seccomp" syscall
+>>
+>>     This adds the new "seccomp" syscall with both an "operation" and "flags"
+>>     parameter for future expansion. The third argument is a pointer value,
+>>     used with the SECCOMP_SET_MODE_FILTER operation. Currently, flags must
+>>     be 0. This is functionally equivalent to prctl(PR_SET_SECCOMP, ...).
+>>
+>>     In addition to the TSYNC flag later in this patch series, there is a
+>>     non-zero chance that this syscall could be used for configuring a fixed
+>>     argument area for seccomp-tracer-aware processes to pass syscall arguments
+>>     in the future. Hence, the use of "seccomp" not simply "seccomp_add_filter"
+>>     for this syscall. Additionally, this syscall uses operation, flags,
+>>     and user pointer for arguments because strictly passing arguments via
+>>     a user pointer would mean seccomp itself would be unable to trivially
+>>     filter the seccomp syscall itself.
+>>
+>>     Signed-off-by: Kees Cook <keescook@chromium.org>
+>>     Reviewed-by: Oleg Nesterov <oleg@redhat.com>
+>>     Reviewed-by: Andy Lutomirski <luto@amacapital.net>
+>
+> Is this something that I should enable?
+>
+> As it depends on CONFIG_SECCOMP, it only makes sense on architectures that
+> already support CONFIG_SECCOMP, right?
+> Does it make sense to reserve a syscall slot for it on architectures that
+> don't support it yet?
+
+I don't see a good reason to reserve the syscall slot if seccomp
+filter is not already implemented. I've CCed linux-api in case there
+is something I'm not considering, though.
+
+FWIW, if someone wants to add it for m68k, the steps to support
+seccomp are listed in the arch/Kconfig for HAVE_ARCH_SECCOMP_FILTER.
+
+-Kees
+
 -- 
-2.0.4
-
+Kees Cook
+Chrome OS Security
