@@ -1,46 +1,42 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from fw-tnat.cambridge.arm.com ([217.140.96.21]:54726 "EHLO
-	cam-smtp0.cambridge.arm.com" rhost-flags-OK-OK-OK-FAIL)
-	by vger.kernel.org with ESMTP id S1753291AbaHLQ0v (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 12 Aug 2014 12:26:51 -0400
-From: Liviu Dudau <Liviu.Dudau@arm.com>
-Subject: [PATCH v9 05/12] ARM: Define PCI_IOBASE as the base of virtual PCI IO space.
-Date: Tue, 12 Aug 2014 17:25:18 +0100
-Message-ID: <1407860725-25202-6-git-send-email-Liviu.Dudau@arm.com>
-In-Reply-To: <1407860725-25202-1-git-send-email-Liviu.Dudau@arm.com>
-References: <1407860725-25202-1-git-send-email-Liviu.Dudau@arm.com>
+Received: from asavdk4.altibox.net ([109.247.116.15]:60600 "EHLO
+	asavdk4.altibox.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750759AbaHMFIT (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 13 Aug 2014 01:08:19 -0400
+Date: Wed, 13 Aug 2014 07:08:09 +0200
+From: Sam Ravnborg <sam@ravnborg.org>
+Subject: Re: [PATCH v2] arch: Kconfig: Let all little endian architectures
+ define CPU_LITTLE_ENDIAN explicitly
+Message-ID: <20140813050809.GB30459@ravnborg.org>
+References: <53EA99C3.90203@gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <53EA99C3.90203@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Bjorn Helgaas <bhelgaas@google.com>, Catalin Marinas <Catalin.Marinas@arm.com>, Will Deacon <Will.Deacon@arm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@arm.linux.org.uk>, Tanmay Inamdar <tinamdar@apm.com>, Grant Likely <grant.likely@secretlab.ca>, Sinan Kaya <okaya@codeaurora.org>, Jingoo Han <jg1.han@samsung.com>, Kukjin Kim <kgene.kim@samsung.com>, Suravee Suthikulanit <suravee.suthikulpanit@amd.com>, linux-pci <linux-pci@vger.kernel.org>
-Cc: linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Device Tree ML <devicetree@vger.kernel.org>, LAKML <linux-arm-kernel@lists.infradead.org>
-Message-ID: <20140812162518.6BxvZGZzGXdxdk0xqUmsEmlRYk1HgtN65D1XMLGqtaI@z>
+To: Chen Gang <gang.chen.5i5j@gmail.com>
+Cc: Arnd Bergmann <arnd@arndb.de>, akpm@linux-foundation.org, Geert Uytterhoeven <geert@linux-m68k.org>, Jean Delvare <jdelvare@suse.de>, linux@arm.linux.org.uk, catalin.marinas@arm.com, will.deacon@arm.com, msalter@redhat.com, a-jacquiot@ti.com, tony.luck@intel.com, fenghua.yu@intel.com, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-ia64@vger.kernel.org, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
+Message-ID: <20140813050809.bnR_nHaRISKSVdotTVl5icSQApC6JPibV3d6Hu_whWA@z>
 
-This is needed for calls into OF code that parses PCI ranges.
-It signals support for memory mapped PCI I/O accesses that
-are described be device trees.
+On Wed, Aug 13, 2014 at 06:48:35AM +0800, Chen Gang wrote:
+> x86 and ia64 are always little endian. And another architectures may be
+> little endian: mips, sh, powerpc, and m32r (may mark CPU_LITTLE_ENDIAN
+> explicitly); also arm(64) and c6x (which may be !CPU_BIG_ENDIAN).
+> 
+> Some drivers (e.g. some of "drivers/isdn/hisax") may only support little
+> endian (CPU_LITTLE_ENDIAN), and some drivers may only support big endian
+> (!CPU_LITTLE_ENDIAN).
+> 
+> So export all little endian architectures within kernel wide, so can let
+> Kconfig easier for the modules which only support little endian or only
+> for big endian (assume !CPU_LITTLE_ENDIAN is same as CPU_BIG_ENDIAN).
+We need to cover three cases here:
+- An arch supports only little endian
+- An arch supports only big endian
+- An arch may be both little and big endian
 
-Cc: Russell King <linux@arm.linux.org.uk>
-Cc: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: Rob Herring <robh+dt@kernel.org>
-Signed-off-by: Liviu Dudau <Liviu.Dudau@arm.com>
----
- arch/arm/include/asm/io.h | 1 +
- 1 file changed, 1 insertion(+)
+The solution you suggest assumes that an arch is either little or big endian.
+But we cannot ignore the hybriads that can do both.
 
-diff --git a/arch/arm/include/asm/io.h b/arch/arm/include/asm/io.h
-index 3d23418..22b7529 100644
---- a/arch/arm/include/asm/io.h
-+++ b/arch/arm/include/asm/io.h
-@@ -178,6 +178,7 @@ static inline void __iomem *__typesafe_io(unsigned long addr)
- 
- /* PCI fixed i/o mapping */
- #define PCI_IO_VIRT_BASE	0xfee00000
-+#define PCI_IOBASE		PCI_IO_VIRT_BASE
- 
- #if defined(CONFIG_PCI)
- void pci_ioremap_set_mem_type(int mem_type);
--- 
-2.0.4
-
+	Sam
