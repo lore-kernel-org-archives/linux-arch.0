@@ -1,42 +1,99 @@
-From: Boris BREZILLON <boris.brezillon@free-electrons.com>
-Subject: Re: [PATCH v5 3/6] clk: Move all drivers to use internal API
-Date: Wed, 13 Aug 2014 11:50:56 +0200
-Message-ID: <20140813115056.0bd5ead7@bbrezillon>
-References: <1407333468-32180-1-git-send-email-tomeu.vizoso@collabora.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
-In-Reply-To: <1407333468-32180-1-git-send-email-tomeu.vizoso@collabora.com>
-List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
-List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
-List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
-List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
-List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
-Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
-Sender: "Linuxppc-dev"
- <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
-To: Tomeu Vizoso <tomeu.vizoso@collabora.com>
-Cc: Andrew Lunn <andrew@lunn.ch>, Ulf Hansson <ulf.hansson@linaro.org>, Prashant Gaikwad <pgaikwad@nvidia.com>, Tony Lindgren <tony@atomide.com>, Tomasz Figa <t.figa@samsung.com>, alsa-devel@alsa-project.org, Liam Girdwood <lgirdwood@gmail.com>, Thierry Reding <thierry.reding@gmail.com>, Paul Mackerras <paulus@samba.org>, Sylwester Nawrocki <s.nawrocki@samsung.com>, Daniel Walker <dwalker@fifo99.com>, linux-arch@vger.kernel.org, linux-samsung-soc@vger.kernel.org, Kukjin Kim <kgene.kim@samsung.com>, Mike Turquette <mturquette@linaro.org>, Emilio =?UTF-8?B?TMOzcGV6?= <emilio@elopez.com.ar>, Takashi Iwai <tiwai@suse.de>, Michal Simek <michal.simek@xilinx.com>, Kyungmin Park <kyungmin.park@samsung.com>, Kevin Hilman <khilman@deeprootsystems.com>, linux-omap@vger.kernel.org, linux-arm-kernel@lists.infradead.org, patches@opensource.wolfsonmicro.com, Viresh Kumar <viresh.linux@gmai>
-List-Id: linux-arch.vger.kernel.org
+From: Thierry Reding <thierry.reding@gmail.com>
+Subject: [PATCH v4 0/8] asm-generic/io.h overhaul
+Date: Wed, 13 Aug 2014 12:28:50 +0200
+Message-ID: <1407925738-26170-1-git-send-email-thierry.reding@gmail.com>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-wi0-f180.google.com ([209.85.212.180]:36251 "EHLO
+	mail-wi0-f180.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750772AbaHMK3C (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 13 Aug 2014 06:29:02 -0400
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Russell King <linux@arm.linux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Stephen Boyd <sboyd@codeaurora.org>, Sam Ravnborg <sam@ravnborg.org>, linux-arm-kernel@lists.infradead.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, x86@kernel.org, linux-serial@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-SGkgVG9tZXUsCgpPbiBXZWQsICA2IEF1ZyAyMDE0IDE1OjU3OjQ4ICswMjAwClRvbWV1IFZpem9z
-byA8dG9tZXUudml6b3NvQGNvbGxhYm9yYS5jb20+IHdyb3RlOgoKPiBJbiBwcmVwYXJhdGlvbiB0
-byBjaGFuZ2UgdGhlIHB1YmxpYyBBUEkgdG8gcmV0dXJuIGEgcGVyLXVzZXIgY2xrIHN0cnVjdHVy
-ZSwKPiByZW1vdmUgYW55IHVzYWdlIG9mIHRoaXMgcHVibGljIEFQSSBmcm9tIHRoZSBjbG9jayBp
-bXBsZW1lbnRhdGlvbnMuCj4gCj4gVGhlIHJlYXNvbiBmb3IgaGF2aW5nIHRoaXMgaW4gYSBzZXBh
-cmF0ZSBjb21taXQgZnJvbSB0aGUgb25lIHRoYXQgaW50cm9kdWNlcwo+IHRoZSBpbXBsZW1lbnRh
-dGlvbiBvZiB0aGUgbmV3IGZ1bmN0aW9ucyBpcyB0byBzZXBhcmF0ZSB0aGUgY2hhbmdlcyBnZW5l
-cmF0ZWQKPiB3aXRoIENvY2NpbmVsbGUgZnJvbSB0aGUgcmVzdCwgYW5kIGtlZXAgdGhlIHBhdGNo
-ZXMnIHNpemUgcmVhc29uYWJsZS4KPiAKCllvdSBjYW4gYWRkIG15OgoKVGVzdGVkLWJ5OiBCb3Jp
-cyBCcmV6aWxsb24gPGJvcmlzLmJyZXppbGxvbkBmcmVlLWVsZWN0cm9ucy5jb20+CgphbmQKCkFj
-a2VkLWJ5OiBCb3JpcyBCcmV6aWxsb24gPGJvcmlzLmJyZXppbGxvbkBmcmVlLWVsZWN0cm9ucy5j
-b20+Cgpmb3IgdGhlIGF0OTEgcGFydC4KCj4gU2lnbmVkLW9mZi1ieTogVG9tZXUgVml6b3NvIDx0
-b21ldS52aXpvc29AY29sbGFib3JhLmNvbT4KCkJlc3QgUmVnYXJkcywKCkJvcmlzCgotLSAKQm9y
-aXMgQnJlemlsbG9uLCBGcmVlIEVsZWN0cm9ucwpFbWJlZGRlZCBMaW51eCBhbmQgS2VybmVsIGVu
-Z2luZWVyaW5nCmh0dHA6Ly9mcmVlLWVsZWN0cm9ucy5jb20KX19fX19fX19fX19fX19fX19fX19f
-X19fX19fX19fX19fX19fX19fX19fX19fX18KTGludXhwcGMtZGV2IG1haWxpbmcgbGlzdApMaW51
-eHBwYy1kZXZAbGlzdHMub3psYWJzLm9yZwpodHRwczovL2xpc3RzLm96bGFicy5vcmcvbGlzdGlu
-Zm8vbGludXhwcGMtZGV2
+From: Thierry Reding <treding@nvidia.com>
+
+Hi,
+
+Here is the fourth version of a series that started out as an attempt to
+provide string versions of the read*() and write*() accessors to more
+architectures so that drivers can use them portably. The series has
+since evolved into a more general cleanup of asm-generic/io.h and the
+functions defined therein.
+
+Patch 1 is trivial and removes a redundant redefinition of PCI_IOBASE
+from the asm/io.h header on ARC. Patches 2 and 3 remove unnecessary
+volatile keywoards from some functions, which is a prerequisite to clean
+up some of the functions in subsequent patches.
+
+The xlate_dev_{kmem,mem}_ptr() functions are used to map memory when the
+/dev/mem device is accessed. Patches 4 and 5 use more consistent data
+types for these functions, which will get a "standard" prototype in the
+asm-generic/io.h header in a subsequent patch.
+
+Patch 6 is the bulk of this series. It implements the string variants of
+the read*() and write*() accessors and cleans up various other parts of
+the asm-generic/io.h header file. Macros are converted to static inline
+functions for better type checking. Overriding generic implementations
+in architectures is handled more consistently.
+
+Patches 7 and 8, finally, make use of the asm-generic/io.h header on the
+32-bit and 64-bit ARM architectures.
+
+This is compile- and runtime-tested on 32-bit and 64-bit ARM and compile
+tested on IA64, Microblaze, s390, SPARC, x86 and Xtensa. For ARC,
+Blackfin, Metag, OpenRISC, Score and Unicore32 which also use
+asm-generic/io.h I couldn't find or build a cross-compiler that would
+run on my system. But by code inspection they shouldn't break with this
+patch.
+
+To ensure bisectability I built multi_v7_defconfig on 32-bit ARM and the
+defconfig for 64-bit ARM, IA64, Microblaze, s390, SPARC, x86 and Xtensa
+after each commit and verified that the series does not introduce any
+build errors or warnings.
+
+Provided there are no objections to the patches there's still the matter
+of how to merge them. Patch 6 depends on patches 1-5 to avoid warnings
+and/or errors during the build. Patches 7 and 8 depend on patch 6. In my
+opinion it doesn't make much sense to split them up, so I guess we'll
+need a volunteer to take them all into one tree. Ideally that tree would
+feed into linux-next so that we can get as much build and test-coverage
+as possible during the 3.17 release cycle so that these patches can go
+into 3.18.
+
+Arnd, I'm opportunistically sending this To: you in the hopes that you
+can take it into your asm-generic tree which seems like the best fit for
+this.
+
+Thierry
+
+Thierry Reding (8):
+  ARC: Remove redundant PCI_IOBASE declaration
+  serial: sunzilog: Remove unnecessary volatile keyword
+  sparc: Remove unnecessary volatile usage
+  [IA64] Change xlate_dev_{kmem,mem}_ptr() prototypes
+  /dev/mem: Use more consistent data types
+  asm-generic/io.h: Implement generic {read,write}s*()
+  ARM: Use include/asm-generic/io.h
+  arm64: Use include/asm-generic/io.h
+
+ arch/arc/include/asm/io.h       |   2 -
+ arch/arm/include/asm/io.h       |  75 ++---
+ arch/arm/include/asm/memory.h   |   2 +
+ arch/arm64/Kconfig              |   1 -
+ arch/arm64/include/asm/io.h     | 122 ++-----
+ arch/arm64/include/asm/memory.h |   2 +
+ arch/ia64/include/asm/uaccess.h |  16 +-
+ arch/s390/include/asm/io.h      |   5 +-
+ arch/s390/mm/maccess.c          |   4 +-
+ arch/sparc/include/asm/io_32.h  |  18 +-
+ arch/x86/include/asm/io.h       |   4 +-
+ arch/x86/mm/ioremap.c           |   4 +-
+ drivers/char/mem.c              |  13 +-
+ drivers/tty/serial/sunzilog.h   |   8 +-
+ include/asm-generic/io.h        | 683 ++++++++++++++++++++++++++++++++--------
+ 15 files changed, 647 insertions(+), 312 deletions(-)
+
+-- 
+2.0.4
