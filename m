@@ -1,73 +1,57 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pa0-f45.google.com ([209.85.220.45]:62622 "EHLO
-	mail-pa0-f45.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751405AbaHMHj4 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 13 Aug 2014 03:39:56 -0400
-Message-ID: <53EB1752.9010601@gmail.com>
-Date: Wed, 13 Aug 2014 15:44:18 +0800
-From: Chen Gang <gang.chen.5i5j@gmail.com>
+Received: from mail-lb0-f175.google.com ([209.85.217.175]:36810 "EHLO
+	mail-lb0-f175.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751907AbaHMIDM (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 13 Aug 2014 04:03:12 -0400
 MIME-Version: 1.0
+In-Reply-To: <53EA99C3.90203@gmail.com>
+References: <53EA99C3.90203@gmail.com>
+Date: Wed, 13 Aug 2014 10:03:09 +0200
+Message-ID: <CAMuHMdV_2b-A+eE--cXEFA68=72HK6mqx8+TCXRMVkyhESLYxQ@mail.gmail.com>
 Subject: Re: [PATCH v2] arch: Kconfig: Let all little endian architectures
  define CPU_LITTLE_ENDIAN explicitly
-References: <53EA99C3.90203@gmail.com> <20140813050809.GB30459@ravnborg.org> <53EAF85E.3000208@gmail.com> <53EB0AF6.6060208@zytor.com>
-In-Reply-To: <53EB0AF6.6060208@zytor.com>
-Content-Type: text/plain; charset=windows-1252
-Content-Transfer-Encoding: 7bit
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "H. Peter Anvin" <hpa@zytor.com>, Sam Ravnborg <sam@ravnborg.org>
-Cc: Arnd Bergmann <arnd@arndb.de>, akpm@linux-foundation.org, Geert Uytterhoeven <geert@linux-m68k.org>, Jean Delvare <jdelvare@suse.de>, linux@arm.linux.org.uk, catalin.marinas@arm.com, will.deacon@arm.com, msalter@redhat.com, a-jacquiot@ti.com, tony.luck@intel.com, fenghua.yu@intel.com, tglx@linutronix.de, mingo@redhat.com, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-ia64@vger.kernel.org, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
-Message-ID: <20140813074418.zkZn6px82JxdC1QhqiFKTRVR3dQcZi4z234iO5h1pAA@z>
+To: Chen Gang <gang.chen.5i5j@gmail.com>
+Cc: Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Jean Delvare <jdelvare@suse.de>, Russell King <linux@arm.linux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Mark Salter <msalter@redhat.com>, "a-jacquiot@ti.com" <a-jacquiot@ti.com>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, the arch/x86 maintainers <x86@kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, linux-c6x-dev@linux-c6x.org, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, linux-kbuild <linux-kbuild@vger.kernel.org>
+Message-ID: <20140813080309.tMh0FhdShdHtct5TpYECR2Lwj_TPEFd1zlX0w-1CVJ8@z>
 
+CC kbuild
 
+On Wed, Aug 13, 2014 at 12:48 AM, Chen Gang <gang.chen.5i5j@gmail.com> wrote:
+> diff --git a/arch/arm/Kconfig b/arch/arm/Kconfig
+> index c49a775..0510a5d 100644
+> --- a/arch/arm/Kconfig
+> +++ b/arch/arm/Kconfig
+> @@ -199,6 +199,11 @@ config NEED_DMA_MAP_STATE
+>  config ARCH_SUPPORTS_UPROBES
+>         def_bool y
+>
+> +config CPU_LITTLE_ENDIAN
+> +       depends on !CPU_BIG_ENDIAN
+> +       def_bool y
+> +
+> +
+>  config ARCH_HAS_DMA_SET_COHERENT_MASK
+>         bool
 
-On 8/13/14 14:51, H. Peter Anvin wrote:
-> On 08/12/2014 10:32 PM, Chen Gang wrote:
->>
->> Yeah, we need.
->>
->>> The solution you suggest assumes that an arch is either little or big endian.
->>> But we cannot ignore the hybriads that can do both.
->>>
->>
->> For the architectures which can do both, for me, they are: sh, powerpc,
->> m32r, and mips (may mark CPU_LITTLE_ENDIAN), also are: arm/arm64, and
->> c6x (may mark !CPU_BIG_ENDIAN).
->>
->> For the architectures which only support little endian: x86, and ia64.
->>
->> The left, I assumes they are big endian (no any 'ENDIAN' can be found
->> in their Kconfig files). In my memory, except related with Intel, all
->> are (or support) big endian.
->>
-> 
-> I'm quite certain that is wrong.  From memory, for example, I believe
-> CRIS is littleendian, and sure enough:
-> 
-> : tazenda 103 ; less arch/cris/include/uapi/asm/byteorder.h
-> #ifndef _CRIS_BYTEORDER_H
-> #define _CRIS_BYTEORDER_H
-> 
-> #include <linux/byteorder/little_endian.h>
-> 
-> #endif
-> 
+As this is a common symbol, and replicated for all affected architectures,
+I'm wondering if we should have the "config CPU_LITTLE_ENDIAN" in
+common Kconfig code instead, and make the individual architectures do a
+"select CPU_LITTLE_ENDIAN"?
 
-OK, what you said sounds reasonable to me. After search "endian" in
-"./arch", xtensa also can be support both big endian or little endian.
+Also we could have "config CPU_BIG_ENDIAN", too, and error out
+if none or both are selected (can Kconfig error out?).
 
-> As far as I know, endianism is always a compile-time option on Linux, so
-> we should be able to relatively easily define the architecture so that
-> we either have hardwired littleendian, bigendian, or prompt.
-> 
+Gr{oetje,eeting}s,
 
-Yeah, but that may break building and re-config manually. So it is still
-necessary to check little endian or big endian during configuration time
-("make *config").
+                        Geert
 
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
 
-Thanks.
--- 
-Chen Gang
-
-Open, share, and attitude like air, water, and life which God blessed
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
