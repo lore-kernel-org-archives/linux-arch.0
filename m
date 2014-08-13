@@ -1,47 +1,60 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-we0-f177.google.com ([74.125.82.177]:37594 "EHLO
-	mail-we0-f177.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750939AbaHMK3F (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 13 Aug 2014 06:29:05 -0400
-From: Thierry Reding <thierry.reding@gmail.com>
-Subject: [PATCH v4 1/8] ARC: Remove redundant PCI_IOBASE declaration
-Date: Wed, 13 Aug 2014 12:28:51 +0200
-Message-ID: <1407925738-26170-2-git-send-email-thierry.reding@gmail.com>
-In-Reply-To: <1407925738-26170-1-git-send-email-thierry.reding@gmail.com>
-References: <1407925738-26170-1-git-send-email-thierry.reding@gmail.com>
+Received: from service87.mimecast.com ([91.220.42.44]:35769 "EHLO
+	service87.mimecast.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752511AbaHMKdQ convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 13 Aug 2014 06:33:16 -0400
+Date: Wed, 13 Aug 2014 11:33:11 +0100
+From: Liviu Dudau <Liviu.Dudau@arm.com>
+Subject: Re: [PATCH v9 12/12] PCI: Introduce pci_remap_iospace() for
+ remapping PCI I/O bus resources into CPU space
+Message-ID: <20140813103311.GQ25761@e106497-lin.cambridge.arm.com>
+References: <1407860725-25202-1-git-send-email-Liviu.Dudau@arm.com>
+ <1407860725-25202-13-git-send-email-Liviu.Dudau@arm.com>
+ <20140813100118.GC18495@arm.com>
+MIME-Version: 1.0
+In-Reply-To: <20140813100118.GC18495@arm.com>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8BIT
+Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Russell King <linux@arm.linux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Stephen Boyd <sboyd@codeaurora.org>, Sam Ravnborg <sam@ravnborg.org>, linux-arm-kernel@lists.infradead.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, x86@kernel.org, linux-serial@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20140813102851.0TRFTAyJ88r9oanNk8d5RxzERT6Xw6o4-UyB-l8WFaE@z>
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Bjorn Helgaas <bhelgaas@google.com>, Will Deacon <Will.Deacon@arm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@arm.linux.org.uk>, Tanmay Inamdar <tinamdar@apm.com>, Grant Likely <grant.likely@secretlab.ca>, Sinan Kaya <okaya@codeaurora.org>, Jingoo Han <jg1.han@samsung.com>, Kukjin Kim <kgene.kim@samsung.com>, Suravee Suthikulanit <suravee.suthikulpanit@amd.com>, linux-pci <linux-pci@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Device Tree ML <devicetree@vger.kernel.org>, LAKML <linux-arm-kernel@lists.infradead.org>
+Message-ID: <20140813103311.4X9YbXXT2pm4L5VWktC6qsNU0jbuHLGMjL6VDTQJgUI@z>
 
-From: Thierry Reding <treding@nvidia.com>
+On Wed, Aug 13, 2014 at 11:01:18AM +0100, Catalin Marinas wrote:
+> On Tue, Aug 12, 2014 at 05:25:25PM +0100, Liviu Dudau wrote:
+> > Introduce a default implementation for remapping PCI bus I/O resources
+> > onto the CPU address space. Architectures with special needs may
+> > provide their own version, but most should be able to use this one.
+> > 
+> > Cc: Bjorn Helgaas <bhelgaas@google.com>
+> > Cc: Arnd Bergmann <arnd@arndb.de>
+> > Cc: Rob Herring <robh+dt@kernel.org>
+> > Signed-off-by: Liviu Dudau <Liviu.Dudau@arm.com>
+> 
+> I guess you could have added the generic pgprot_device definition to
+> this patch and the arm64 specific one in the separate arm64 PCIe support
+> (and one less patch in total). But not a big issue either way.
 
-ARC's asm/io.h includes the asm-generic/io.h which already defines the
-PCI_IOBASE variable in exactly the same way, so it can be dropped from
-the architecture specific header.
+I went by the established history on that file, where a new interface gets
+introduced together with its use. I guess it makes backing out the change
+much easier?
 
-Signed-off-by: Thierry Reding <treding@nvidia.com>
----
-Changes in v4:
-- new patch
+Best regards,
+Liviu
 
- arch/arc/include/asm/io.h | 2 --
- 1 file changed, 2 deletions(-)
+> 
+> -- 
+> Catalin
 
-diff --git a/arch/arc/include/asm/io.h b/arch/arc/include/asm/io.h
-index 334ce7017a18..cabd518cb253 100644
---- a/arch/arc/include/asm/io.h
-+++ b/arch/arc/include/asm/io.h
-@@ -13,8 +13,6 @@
- #include <asm/byteorder.h>
- #include <asm/page.h>
- 
--#define PCI_IOBASE ((void __iomem *)0)
--
- extern void __iomem *ioremap(unsigned long physaddr, unsigned long size);
- extern void __iomem *ioremap_prot(phys_addr_t offset, unsigned long size,
- 				  unsigned long flags);
 -- 
-2.0.4
+====================
+| I would like to |
+| fix the world,  |
+| but they're not |
+| giving me the   |
+ \ source code!  /
+  ---------------
+    ¯\_(ツ)_/¯
 
