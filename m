@@ -1,57 +1,73 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:51246 "EHLO mail.zytor.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751393AbaHMGzQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 13 Aug 2014 02:55:16 -0400
-Message-ID: <53EB0AF6.6060208@zytor.com>
-Date: Tue, 12 Aug 2014 23:51:34 -0700
-From: "H. Peter Anvin" <hpa@zytor.com>
+Received: from mail-pa0-f45.google.com ([209.85.220.45]:62622 "EHLO
+	mail-pa0-f45.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751405AbaHMHj4 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 13 Aug 2014 03:39:56 -0400
+Message-ID: <53EB1752.9010601@gmail.com>
+Date: Wed, 13 Aug 2014 15:44:18 +0800
+From: Chen Gang <gang.chen.5i5j@gmail.com>
 MIME-Version: 1.0
 Subject: Re: [PATCH v2] arch: Kconfig: Let all little endian architectures
  define CPU_LITTLE_ENDIAN explicitly
-References: <53EA99C3.90203@gmail.com> <20140813050809.GB30459@ravnborg.org> <53EAF85E.3000208@gmail.com>
-In-Reply-To: <53EAF85E.3000208@gmail.com>
+References: <53EA99C3.90203@gmail.com> <20140813050809.GB30459@ravnborg.org> <53EAF85E.3000208@gmail.com> <53EB0AF6.6060208@zytor.com>
+In-Reply-To: <53EB0AF6.6060208@zytor.com>
 Content-Type: text/plain; charset=windows-1252
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Chen Gang <gang.chen.5i5j@gmail.com>, Sam Ravnborg <sam@ravnborg.org>
+To: "H. Peter Anvin" <hpa@zytor.com>, Sam Ravnborg <sam@ravnborg.org>
 Cc: Arnd Bergmann <arnd@arndb.de>, akpm@linux-foundation.org, Geert Uytterhoeven <geert@linux-m68k.org>, Jean Delvare <jdelvare@suse.de>, linux@arm.linux.org.uk, catalin.marinas@arm.com, will.deacon@arm.com, msalter@redhat.com, a-jacquiot@ti.com, tony.luck@intel.com, fenghua.yu@intel.com, tglx@linutronix.de, mingo@redhat.com, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-c6x-dev@linux-c6x.org, linux-ia64@vger.kernel.org, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
-Message-ID: <20140813065134.X8VloK5M8jjIE1yXi6gPHER6PEXM__IHQKIA5fP0fMs@z>
+Message-ID: <20140813074418.zkZn6px82JxdC1QhqiFKTRVR3dQcZi4z234iO5h1pAA@z>
 
-On 08/12/2014 10:32 PM, Chen Gang wrote:
-> 
-> Yeah, we need.
-> 
->> The solution you suggest assumes that an arch is either little or big endian.
->> But we cannot ignore the hybriads that can do both.
+
+
+On 8/13/14 14:51, H. Peter Anvin wrote:
+> On 08/12/2014 10:32 PM, Chen Gang wrote:
+>>
+>> Yeah, we need.
+>>
+>>> The solution you suggest assumes that an arch is either little or big endian.
+>>> But we cannot ignore the hybriads that can do both.
+>>>
+>>
+>> For the architectures which can do both, for me, they are: sh, powerpc,
+>> m32r, and mips (may mark CPU_LITTLE_ENDIAN), also are: arm/arm64, and
+>> c6x (may mark !CPU_BIG_ENDIAN).
+>>
+>> For the architectures which only support little endian: x86, and ia64.
+>>
+>> The left, I assumes they are big endian (no any 'ENDIAN' can be found
+>> in their Kconfig files). In my memory, except related with Intel, all
+>> are (or support) big endian.
 >>
 > 
-> For the architectures which can do both, for me, they are: sh, powerpc,
-> m32r, and mips (may mark CPU_LITTLE_ENDIAN), also are: arm/arm64, and
-> c6x (may mark !CPU_BIG_ENDIAN).
+> I'm quite certain that is wrong.  From memory, for example, I believe
+> CRIS is littleendian, and sure enough:
 > 
-> For the architectures which only support little endian: x86, and ia64.
+> : tazenda 103 ; less arch/cris/include/uapi/asm/byteorder.h
+> #ifndef _CRIS_BYTEORDER_H
+> #define _CRIS_BYTEORDER_H
 > 
-> The left, I assumes they are big endian (no any 'ENDIAN' can be found
-> in their Kconfig files). In my memory, except related with Intel, all
-> are (or support) big endian.
+> #include <linux/byteorder/little_endian.h>
+> 
+> #endif
 > 
 
-I'm quite certain that is wrong.  From memory, for example, I believe
-CRIS is littleendian, and sure enough:
+OK, what you said sounds reasonable to me. After search "endian" in
+"./arch", xtensa also can be support both big endian or little endian.
 
-: tazenda 103 ; less arch/cris/include/uapi/asm/byteorder.h
-#ifndef _CRIS_BYTEORDER_H
-#define _CRIS_BYTEORDER_H
+> As far as I know, endianism is always a compile-time option on Linux, so
+> we should be able to relatively easily define the architecture so that
+> we either have hardwired littleendian, bigendian, or prompt.
+> 
 
-#include <linux/byteorder/little_endian.h>
+Yeah, but that may break building and re-config manually. So it is still
+necessary to check little endian or big endian during configuration time
+("make *config").
 
-#endif
 
-As far as I know, endianism is always a compile-time option on Linux, so
-we should be able to relatively easily define the architecture so that
-we either have hardwired littleendian, bigendian, or prompt.
+Thanks.
+-- 
+Chen Gang
 
-	-hpa
-
+Open, share, and attitude like air, water, and life which God blessed
