@@ -1,33 +1,21 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from fw-tnat.austin.arm.com ([217.140.110.23]:36004 "EHLO
-	collaborate-mta1.arm.com" rhost-flags-OK-OK-OK-FAIL)
-	by vger.kernel.org with ESMTP id S1751753AbaHRO0l (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Mon, 18 Aug 2014 10:26:41 -0400
-Date: Mon, 18 Aug 2014 15:26:22 +0100
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH v9 00/12] Support for creating generic PCI host bridges
- from DT
-Message-ID: <20140818142622.GP20043@localhost>
-References: <1407860725-25202-1-git-send-email-Liviu.Dudau@arm.com>
+Received: from mx1.redhat.com ([209.132.183.28]:28727 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1750906AbaHROrJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 18 Aug 2014 10:47:09 -0400
+From: David Howells <dhowells@redhat.com>
+Subject: Is the SH64 (sub)arch actually meant to be a 64-bit arch?
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1407860725-25202-1-git-send-email-Liviu.Dudau@arm.com>
+Content-Type: text/plain; charset="us-ascii"
+Content-ID: <23892.1408373226.1@warthog.procyon.org.uk>
+Date: Mon, 18 Aug 2014 15:47:06 +0100
+Message-ID: <23893.1408373226@warthog.procyon.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Liviu Dudau <Liviu.Dudau@arm.com>
-Cc: Bjorn Helgaas <bhelgaas@google.com>, Will Deacon <Will.Deacon@arm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@arm.linux.org.uk>, Tanmay Inamdar <tinamdar@apm.com>, Grant Likely <grant.likely@secretlab.ca>, Sinan Kaya <okaya@codeaurora.org>, Jingoo Han <jg1.han@samsung.com>, Kukjin Kim <kgene.kim@samsung.com>, Suravee Suthikulanit <suravee.suthikulpanit@amd.com>, linux-pci <linux-pci@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Device Tree ML <devicetree@vger.kernel.org>, LAKML <linux-arm-kernel@lists.infradead.org>
-Message-ID: <20140818142622.X9YLlg7OuMS-zy2_oeFh7Hynw9tdQe5Ngx2cHBLCyFU@z>
+To: linux-arch@vger.kernel.org, linux-sh@vger.kernel.org
+Cc: dhowells@redhat.com
+Message-ID: <20140818144706.rajBkS50qNh5u9x9v8FWb2IBwU1WWTdJ5kgeJD3n7K4@z>
 
-On Tue, Aug 12, 2014 at 05:25:13PM +0100, Liviu Dudau wrote:
-> This is my updated attempt at adding support for generic PCI host
-> bridge controllers that make use of device tree information to
-> configure themselves. This version incorporates Catalin's proposal
-> for managing domain numbers that got Bjorn's approval. I am now requesting
-> ACKs from the relevant maintainers as I would like to get the upstream ball
-> rolling.
+Does anyone know if the SH64 arch is actually meant to be a 64-bit arch?
 
-As this series kept me busy on a long flight, you can add:
-
-Reviewed-by: Catalin Marinas <catalin.marinas@arm.com>
+David
