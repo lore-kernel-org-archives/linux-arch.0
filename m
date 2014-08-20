@@ -1,157 +1,122 @@
-From: Yijing Wang <wangyijing@huawei.com>
-Subject: Re: [RFC PATCH 00/11] Refactor MSI to support Non-PCI device
-Date: Wed, 20 Aug 2014 15:55:46 +0800
-Message-ID: <53F45482.4020505@huawei.com>
-References: <1406344128-27055-1-git-send-email-wangyijing@huawei.com> <c6d34fe1bbe9457ea8cff7dcd97902b8@DM2PR03MB317.namprd03.prod.outlook.com> <53DEF80C.1010608@huawei.com> <8a2b4e237f2d4c7e95ef72867658b53a@BLUPR03MB566.namprd03.prod.outlook.com> <53F44022.6030706@huawei.com> <c3b2bd89ef3d462cb302f6ede56a0d44@BLUPR03MB566.namprd03.prod.outlook.com>
+From: Dann Frazier <dann.frazier@canonical.com>
+Subject: Re: [PATCH 0/6] RCU get_user_pages_fast and __get_user_pages_fast
+Date: Wed, 20 Aug 2014 08:56:09 -0600
+Message-ID: <CALdTtns6+MRb=Z7i0ncq_c2u7QZWo1mUxD824bvNF==q-_+BiQ@mail.gmail.com>
+References: <1403710824-24340-1-git-send-email-steve.capper@linaro.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="ISO-8859-1"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from szxga03-in.huawei.com ([119.145.14.66]:38636 "EHLO
-	szxga03-in.huawei.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750809AbaHTH4k (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 20 Aug 2014 03:56:40 -0400
-In-Reply-To: <c3b2bd89ef3d462cb302f6ede56a0d44@BLUPR03MB566.namprd03.prod.outlook.com>
+Received: from mail-wi0-f177.google.com ([209.85.212.177]:56546 "EHLO
+	mail-wi0-f177.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751331AbaHTO4L (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 20 Aug 2014 10:56:11 -0400
+Received: by mail-wi0-f177.google.com with SMTP id ho1so7070000wib.10
+        for <linux-arch@vger.kernel.org>; Wed, 20 Aug 2014 07:56:09 -0700 (PDT)
+In-Reply-To: <1403710824-24340-1-git-send-email-steve.capper@linaro.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Bharat.Bhushan@freescale.com" <Bharat.Bhushan@freescale.com>, "arnab.basu@freescale.com" <arnab.basu@freescale.com>
-Cc: Xinwei Hu <huxinwei@huawei.com>, Wuyun <wuyun.wu@huawei.com>, Bjorn Helgaas <bhelgaas@google.com>, "linux-pci@vger.kernel.org" <linux-pci@vger.kernel.org>, "Paul.Mundt@huawei.com" <Paul.Mundt@huawei.com>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Marc Zyngier <marc.zyngier@arm.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Russell King <linux@arm.linux.org.uk>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "virtualization@lists.linux-foundation.org" <virtualization@lists.linux-foundation.org>, Hanjun Guo <guohanjun@huawei.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
+To: Steve Capper <steve.capper@linaro.org>
+Cc: linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, Catalin Marinas <catalin.marinas@arm.com>, linux@arm.linux.org.uk, linux-arch@vger.kernel.org, linux-mm@kvack.org, anders.roxell@linaro.org, peterz@infradead.org, gary.robertson@linaro.org, Will Deacon <will.deacon@arm.com>, akpm@linux-foundation.org, Christoffer Dall <christoffer.dall@linaro.org>
 
->>> We in Freescale will be using MSI for the devices behind a new-bus (which is
->> not PCI based), We have a separate bus driver for same. And this new bus driver
->> register/provide its own address/data write function which is based on that
->> specific bus protocol.
->>
->> Hi Bharat, I'm glad to know your MSI device working mode.
->> Provide the private MSI setup functions in bus-driver layer can't apply to all
->> Non-PCI MSI devices, because we can not guarantee Non-PCI MSI devices are always
->> on a bus. The existing HPET, DMAR device both have no bus bind.
-> 
-> Yes, that's why I was not sure of bus-driver or device-driver model.
-> 
->> I'm working on a
->> new MSI setup framework, as you mentioned before, in device-driver model.
->>
->> I abstracted a new virtual device (called struct msi_dev), this msi_dev will
->> manage all MSI info,
-> 
-> Will this "struct msi_dev" will be part of "struct device"?
+On Wed, Jun 25, 2014 at 9:40 AM, Steve Capper <steve.capper@linaro.org> wrote:
+> Hello,
+> This series implements general forms of get_user_pages_fast and
+> __get_user_pages_fast and activates them for arm and arm64.
+>
+> These are required for Transparent HugePages to function correctly, as
+> a futex on a THP tail will otherwise result in an infinite loop (due to
+> the core implementation of __get_user_pages_fast always returning 0).
+>
+> This series may also be beneficial for direct-IO heavy workloads and
+> certain KVM workloads.
+>
+> The main changes since RFC V5 are:
+>  * Rebased against 3.16-rc1.
+>  * pmd_present no longer tested for by gup_huge_pmd and gup_huge_pud,
+>    because the entry must be present for these leaf functions to be
+>    called.
+>  * Rather than assume puds can be re-cast as pmds, a separate
+>    function pud_write is instead used by the core gup.
+>  * ARM activation logic changed, now it will only activate
+>    RCU_TABLE_FREE and RCU_GUP when running with LPAE.
+>
+> The main changes since RFC V4 are:
+>  * corrected the arm64 logic so it now correctly rcu-frees page
+>    table backing pages.
+>  * rcu free logic relaxed for pre-ARMv7 ARM as we need an IPI to
+>    invalidate TLBs anyway.
+>  * rebased to 3.15-rc3 (some minor changes were needed to allow it to merge).
+>  * dropped Catalin's mmu_gather patch as that's been merged already.
+>
+> This series has been tested with LTP and some custom futex tests that
+> exacerbate the futex on THP tail case. Also debug counters were
+> temporarily employed to ensure that the RCU_TABLE_FREE logic was
+> behaving as expected.
+>
+> I would really appreciate any testers or comments (especially on the
+> validity or otherwise of the core fast_gup implementation).
 
-struct msi_dev contains the struct device
+I have a test case that can reliably hit the THP issue on arm64, which
+hits it on both 3.16 and 3.17-rc1. I do a "juju bootstrap local" w/
+THP disabled at boot. Then I reboot with THP enabled. At this point
+you'll see jujud spin at 200% CPU. gccgo binaries seem to have a nack
+for hitting it.
 
-piece code:
+I validated that your patches resolve this issue on 3.16, so:
 
-struct msi_dev {
-    u8 type;
-    u8 enabled;
-    u8 nvec;
-    u8 nvec_retry;
-    char *id;
-    void __iomem *base;
-    struct msix_entry *entries;
-    struct list_head msi_list;
-    struct device dev;
-    void *msi_data;
-    struct msi_driver *driver;
-    const struct attribute_group **irq_groups;
-};
+Tested-by: dann frazier <dann.frazier@canonical.com>
 
+I haven't done the same for 3.17-rc1 because they no longer apply
+cleanly, but I'm happy to test future submissions w/ hopefully a
+shorter feedback loop (please add me to the CC). btw, should we
+consider something like this until your patches go in?
 
-struct msi_driver {
-    const char *name;
-    char *id;
-    void (*msi_set_enable)(struct msi_dev *dev, int enable);
-    int (*msi_setup_entry)(struct msi_dev *dev, struct msi_desc *entry);
-    int (*msix_setup_entries)(struct msi_dev *dev, struct msi_desc *entry, int index);
-    u32 (*msi_mask_irq)(struct msi_desc *desc, u32 mask, u32 flag);
-    u32 (*msix_mask_irq)(struct msi_desc *desc, u32 flag);
-    void (*msi_read_message)(struct msi_desc *desc, struct msi_msg *msg);
-    void (*msi_write_message)(struct msi_desc *desc, struct msi_msg *msg);
-    void (*msi_set_legacy_irq)(struct msi_dev *dev, int enable);
-    struct device_driver driver;
-};
+diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
+index fd4e81a..820e3d9 100644
+--- a/arch/arm64/Kconfig
++++ b/arch/arm64/Kconfig
+@@ -306,6 +306,7 @@ config ARCH_WANT_HUGE_PMD_SHARE
 
-Thanks!
-Yijing.
+ config HAVE_ARCH_TRANSPARENT_HUGEPAGE
+        def_bool y
++       depends on BROKEN
 
-> 
->> and a new bus named msi_bus, also introduced a new driver
->> msi_driver, msi_bus is responsible for binding msi_dev and msi_driver.
->> All MSI devices will be classified into different MSI device types, like
->> MSI_TYPE_PCI, MSI_TYPE_HPET, MSI_TYPE_DMAR, etc..
->>
->> Each MSI type device should provide a private struct msi_driver. msi_driver
->> should contain the type specific MSI ops functions to help setup and enable MSI
->> device, request MSI irq.
->>
->> I almost finish the first draft, and will post out next week in plan :)
-> 
-> Will be looking forward to next version.
-> 
-> Thanks
-> -Bharat
-> 
->>
->>
->> Thanks!
->> Yijing.
->>
->>>
->>> Thanks
->>> -Bharat
->>>
->>>>
->>>> My patchset is just a RFC draft, I will update it later, all we want
->>>> to do is make kernel support Non-PCI MSI devices.
->>>>
->>>> Thanks!
->>>> Yijing.
->>>>
->>>>
->>>>>
->>>>> Thanks
->>>>> Arnab
->>>>> --
->>>>> To unsubscribe from this list: send the line "unsubscribe
->>>>> linux-kernel" in the body of a message to majordomo@vger.kernel.org
->>>>> More majordomo info at  http://vger.kernel.org/majordomo-info.html
->>>>> Please read the FAQ at  http://www.tux.org/lkml/
->>>>>
->>>>> .
->>>>>
->>>>
->>>>
->>>> --
->>>> Thanks!
->>>> Yijing
->>>>
->>>> --
->>>> To unsubscribe from this list: send the line "unsubscribe linux-pci"
->>>> in the body of a message to majordomo@vger.kernel.org More majordomo
->>>> info at http://vger.kernel.org/majordomo-info.html
->>>
->>> .
->>>
->>
->>
->> --
->> Thanks!
->> Yijing
->>
->> --
->> To unsubscribe from this list: send the line "unsubscribe linux-pci" in the body
->> of a message to majordomo@vger.kernel.org More majordomo info at
->> http://vger.kernel.org/majordomo-info.html
+ config ARCH_HAS_CACHE_LINE_SIZE
+        def_bool y
+
+  -dann
+
+> Cheers,
 > --
-> To unsubscribe from this list: send the line "unsubscribe linux-kernel" in
-> the body of a message to majordomo@vger.kernel.org
-> More majordomo info at  http://vger.kernel.org/majordomo-info.html
-> Please read the FAQ at  http://www.tux.org/lkml/
-> 
-> .
-> 
-
-
--- 
-Thanks!
-Yijing
+> Steve
+>
+> Steve Capper (6):
+>   mm: Introduce a general RCU get_user_pages_fast.
+>   arm: mm: Introduce special ptes for LPAE
+>   arm: mm: Enable HAVE_RCU_TABLE_FREE logic
+>   arm: mm: Enable RCU fast_gup
+>   arm64: mm: Enable HAVE_RCU_TABLE_FREE logic
+>   arm64: mm: Enable RCU fast_gup
+>
+>  arch/arm/Kconfig                      |   5 +
+>  arch/arm/include/asm/pgtable-2level.h |   2 +
+>  arch/arm/include/asm/pgtable-3level.h |  16 ++
+>  arch/arm/include/asm/pgtable.h        |   6 +-
+>  arch/arm/include/asm/tlb.h            |  38 ++++-
+>  arch/arm/mm/flush.c                   |  19 +++
+>  arch/arm64/Kconfig                    |   4 +
+>  arch/arm64/include/asm/pgtable.h      |  11 +-
+>  arch/arm64/include/asm/tlb.h          |  18 ++-
+>  arch/arm64/mm/flush.c                 |  19 +++
+>  mm/Kconfig                            |   3 +
+>  mm/gup.c                              | 278 ++++++++++++++++++++++++++++++++++
+>  12 files changed, 410 insertions(+), 9 deletions(-)
+>
+> --
+> 1.9.3
+>
+>
+> _______________________________________________
+> linux-arm-kernel mailing list
+> linux-arm-kernel@lists.infradead.org
+> http://lists.infradead.org/mailman/listinfo/linux-arm-kernel
