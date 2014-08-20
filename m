@@ -1,124 +1,40 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-by2lp0243.outbound.protection.outlook.com ([207.46.163.243]:27244
-	"EHLO na01-by2-obe.outbound.protection.outlook.com"
+Received: from mail-bl2lp0212.outbound.protection.outlook.com ([207.46.163.212]:3191
+	"EHLO na01-bl2-obe.outbound.protection.outlook.com"
 	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1750971AbaHTFoV convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 20 Aug 2014 01:44:21 -0400
+	id S1750984AbaHTF6L convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 20 Aug 2014 01:58:11 -0400
 From: "Bharat.Bhushan@freescale.com" <Bharat.Bhushan@freescale.com>
-Subject: RE: [RFC PATCH 00/11] Refactor MSI to support Non-PCI device
-Date: Wed, 20 Aug 2014 05:44:17 +0000
-Message-ID: <8a2b4e237f2d4c7e95ef72867658b53a@BLUPR03MB566.namprd03.prod.outlook.com>
+Subject: RE: [RFC PATCH 03/11] PCI/MSI: Refactor pci_dev_msi_enabled()
+Date: Wed, 20 Aug 2014 05:57:55 +0000
+Message-ID: <674b6075c4dd4ee1a4c4149219b5afea@BLUPR03MB566.namprd03.prod.outlook.com>
 References: <1406344128-27055-1-git-send-email-wangyijing@huawei.com>
- <c6d34fe1bbe9457ea8cff7dcd97902b8@DM2PR03MB317.namprd03.prod.outlook.com>
- <53DEF80C.1010608@huawei.com>
-In-Reply-To: <53DEF80C.1010608@huawei.com>
+ <1406344128-27055-4-git-send-email-wangyijing@huawei.com>
+In-Reply-To: <1406344128-27055-4-git-send-email-wangyijing@huawei.com>
 Content-Language: en-US
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 8BIT
 MIME-Version: 1.0
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Yijing Wang <wangyijing@huawei.com>, "arnab.basu@freescale.com" <arnab.basu@freescale.com>
-Cc: Xinwei Hu <huxinwei@huawei.com>, Wuyun <wuyun.wu@huawei.com>, Bjorn Helgaas <bhelgaas@google.com>, "linux-pci@vger.kernel.org" <linux-pci@vger.kernel.org>, "Paul.Mundt@huawei.com" <Paul.Mundt@huawei.com>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Marc Zyngier <marc.zyngier@arm.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Russell King <linux@arm.linux.org.uk>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "virtualization@lists.linux-foundation.org" <virtualization@lists.linux-foundation.org>, Hanjun Guo <guohanjun@huawei.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
-Message-ID: <20140820054417.zQcxUedkWaHgTkjJkDVtAV84FcGRYWfhzh3e5ORgZWs@z>
+To: Yijing Wang <wangyijing@huawei.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
+Cc: Xinwei Hu <huxinwei@huawei.com>, Wuyun <wuyun.wu@huawei.com>, Bjorn Helgaas <bhelgaas@google.com>, "linux-pci@vger.kernel.org" <linux-pci@vger.kernel.org>, "Paul.Mundt@huawei.com" <Paul.Mundt@huawei.com>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Marc Zyngier <marc.zyngier@arm.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Russell King <linux@arm.linux.org.uk>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "arnab.basu@freescale.com" <arnab.basu@freescale.com>, "virtualization@lists.linux-foundation.org" <virtualization@lists.linux-foundation.org>, Hanjun Guo <guohanjun@huawei.com>
+Message-ID: <20140820055755.wF_aficxEXRK3dGOlsagZ52BVv1_ltVjsL0Qd8vybMk@z>
 
-Hi Yijing
+
 
 > -----Original Message-----
 > From: linux-pci-owner@vger.kernel.org [mailto:linux-pci-owner@vger.kernel.org]
 > On Behalf Of Yijing Wang
-> Sent: Monday, August 04, 2014 8:34 AM
-> To: Basu Arnab-B45036
+> Sent: Saturday, July 26, 2014 8:39 AM
+> To: linux-kernel@vger.kernel.org
 > Cc: Xinwei Hu; Wuyun; Bjorn Helgaas; linux-pci@vger.kernel.org;
 > Paul.Mundt@huawei.com; James E.J. Bottomley; Marc Zyngier; linux-arm-
-> kernel@lists.infradead.org; Russell King; linux-arch@vger.kernel.org;
-> virtualization@lists.linux-foundation.org; Hanjun Guo; linux-
-> kernel@vger.kernel.org
-> Subject: Re: [RFC PATCH 00/11] Refactor MSI to support Non-PCI device
+> kernel@lists.infradead.org; Russell King; linux-arch@vger.kernel.org; Basu
+> Arnab-B45036; virtualization@lists.linux-foundation.org; Hanjun Guo; Yijing Wang
+> Subject: [RFC PATCH 03/11] PCI/MSI: Refactor pci_dev_msi_enabled()
 > 
-> >> MSI was introduced in PCI Spec 2.2. Currently, kernel MSI driver
-> >> codes are bonding with PCI device. Because MSI has a lot advantages in
-> design.
-> >> More and more non-PCI devices want to use MSI as their default interrupt.
-> >> The existing MSI device include HPET. HPET driver provide its own MSI
-> >> code to initialize and process MSI interrupts. In the latest GIC v3
-> >> spec, legacy device can deliver MSI by the help of a relay device
-> >> named consolidator.
-> >> Consolidator can translate the legacy interrupts connected to it to
-> >> MSI/MSI-X. And new non-PCI device will be designed to support MSI in
-> >> future. So make the MSI driver code be generic will help the non-PCI
-> >> device use MSI more simply.
-> >
-> > As per my understanding the GICv3 provides a service that will convert writes
-> to a specified address to IRQs delivered to the core and as you mention above
-> MSIs are part of the PCI spec. So I can see a strong case for non-PCI devices to
-> want MSI like functionality without being fully compliant with the requirements
-> of the MSI spec.
-> 
-> In GICv3, MBI is named for the service, but there is no more detailed
-> information about it, only we can know is MBI is analogous to MSI, MBI devices
-> must have address/data registers, but other registers like enable/mask/ctrl are
-> not mandatory requirement.
-> I don't know whether the MBI spec will be release, but anyway I think MSI
-> refactoring is make sense, there are some existing Non-PCI MSI device like hpet,
-> dmar.
-> For simplicity, let name MSI and MBI to MSI temporarily.
-> >
-> > My question is do we necessarily want to rework so much of the PCI-MSI layer
-> to support non PCI devices? Or will it be sufficient to create a framework to
-> allow non PCI devices to hook up with a device that can convert their writes to
-> an IRQ to the core.
-> >
-> > As I understand it, the msi_chip is (almost) such a framework. The only
-> problem being that it makes some PCI specific assumptions (such as PCI specific
-> writes from within msi_chip functions). Won't it be sufficient to make the
-> msi_chip framework generic enough to be used by non-PCI devices and let each
-> bus/device manage any additional requirements (such as configuration flow, bit
-> definitions etc) that it places on message based interrupts?
-> 
-> msi_chip framework is important to support that, but I think maybe it's not
-> enough, msi_chip is only responsible for IRQ allocation, teardown, etc..
-> 
-> The key difference between PCI device and Non-PCI MSI is the interfaces to
-> access hardware MSI registers.
-> for instance, currently, msi_chip->setup_irq() to setup MSI irq and configure
-> the MSI address/data registers, so we need to provide device specific
-> write_msi_msg() interface, then when we call msi_chip->setup_irq(), the device
-> MSI registers can be configured appropriately.
+> Pci_dev_msi_enabled() is used to check whether device MSI/MSIX enabled. Refactor
+> this function  to suuport checking only device MSI or MSIX enabled.
 
-What if we can register/override the setup_irq() from bus-driver (not sure, but may be device-driver itself). Example PCI bus-driver will provide setup_irq() (or the part of setup_irq which set address and data in h/w) by PCI bus, which configure address/data in h/w as per PCI standard. 
-
-We in Freescale will be using MSI for the devices behind a new-bus (which is not PCI based), We have a separate bus driver for same. And this new bus driver register/provide its own address/data write function which is based on that specific bus protocol.
-
-Thanks
--Bharat
-
-> 
-> My patchset is just a RFC draft, I will update it later, all we want to do is
-> make kernel support Non-PCI MSI devices.
-> 
-> Thanks!
-> Yijing.
-> 
-> 
-> >
-> > Thanks
-> > Arnab
-> > --
-> > To unsubscribe from this list: send the line "unsubscribe
-> > linux-kernel" in the body of a message to majordomo@vger.kernel.org
-> > More majordomo info at  http://vger.kernel.org/majordomo-info.html
-> > Please read the FAQ at  http://www.tux.org/lkml/
-> >
-> > .
-> >
-> 
-> 
-> --
-> Thanks!
-> Yijing
-> 
-> --
-> To unsubscribe from this list: send the line "unsubscribe linux-pci" in the body
-> of a message to majordomo@vger.kernel.org More majordomo info at
-> http://vger.kernel.org/majordomo-info.html
+s/support/support
