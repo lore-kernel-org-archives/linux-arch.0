@@ -1,42 +1,124 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.17.24]:64342 "EHLO
-	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751660AbaHSMk4 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 19 Aug 2014 08:40:56 -0400
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH v9 02/12] PCI: OF: Parse and map the IRQ when adding the PCI device.
-Date: Tue, 19 Aug 2014 14:39:56 +0200
-References: <1407860725-25202-1-git-send-email-Liviu.Dudau@arm.com> <20140818213054.GB13147@bart.dudau.co.uk> <20140818220906.GJ24600@localhost>
-In-Reply-To: <20140818220906.GJ24600@localhost>
+Received: from mail-by2lp0243.outbound.protection.outlook.com ([207.46.163.243]:27244
+	"EHLO na01-by2-obe.outbound.protection.outlook.com"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1750971AbaHTFoV convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 20 Aug 2014 01:44:21 -0400
+From: "Bharat.Bhushan@freescale.com" <Bharat.Bhushan@freescale.com>
+Subject: RE: [RFC PATCH 00/11] Refactor MSI to support Non-PCI device
+Date: Wed, 20 Aug 2014 05:44:17 +0000
+Message-ID: <8a2b4e237f2d4c7e95ef72867658b53a@BLUPR03MB566.namprd03.prod.outlook.com>
+References: <1406344128-27055-1-git-send-email-wangyijing@huawei.com>
+ <c6d34fe1bbe9457ea8cff7dcd97902b8@DM2PR03MB317.namprd03.prod.outlook.com>
+ <53DEF80C.1010608@huawei.com>
+In-Reply-To: <53DEF80C.1010608@huawei.com>
+Content-Language: en-US
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 8BIT
 MIME-Version: 1.0
-Content-Type: Text/Plain;
-  charset="iso-8859-1"
-Content-Transfer-Encoding: 7bit
-Message-ID: <201408191439.56493.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Liviu Dudau <liviu@dudau.co.uk>, Liviu Dudau <Liviu.Dudau@arm.com>, Wei Yang <weiyang@linux.vnet.ibm.com>, Bjorn Helgaas <bhelgaas@google.com>, Will Deacon <Will.Deacon@arm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Russell King <linux@arm.linux.org.uk>, Tanmay Inamdar <tinamdar@apm.com>, Grant Likely <grant.likely@secretlab.ca>, Sinan Kaya <okaya@codeaurora.org>, Jingoo Han <jg1.han@samsung.com>, Kukjin Kim <kgene.kim@samsung.com>, Suravee Suthikulanit <suravee.suthikulpanit@amd.com>, linux-pci <linux-pci@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Device Tree ML <devicetree@vger.kernel.org>, LAKML <linux-arm-kernel@lists.infradead.org>
-Message-ID: <20140819123956.6Z6M35ppk52LzqvASvRJ1gRx9Y07Bz1DpESioLsIdRo@z>
+To: Yijing Wang <wangyijing@huawei.com>, "arnab.basu@freescale.com" <arnab.basu@freescale.com>
+Cc: Xinwei Hu <huxinwei@huawei.com>, Wuyun <wuyun.wu@huawei.com>, Bjorn Helgaas <bhelgaas@google.com>, "linux-pci@vger.kernel.org" <linux-pci@vger.kernel.org>, "Paul.Mundt@huawei.com" <Paul.Mundt@huawei.com>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Marc Zyngier <marc.zyngier@arm.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Russell King <linux@arm.linux.org.uk>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "virtualization@lists.linux-foundation.org" <virtualization@lists.linux-foundation.org>, Hanjun Guo <guohanjun@huawei.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
+Message-ID: <20140820054417.zQcxUedkWaHgTkjJkDVtAV84FcGRYWfhzh3e5ORgZWs@z>
 
-On Tuesday 19 August 2014, Catalin Marinas wrote:
-> On Mon, Aug 18, 2014 at 10:30:54PM +0100, Liviu Dudau wrote:
-> > At this point I would like to hear more from people doing the conversion of
-> > the drivers. I cannot answer fully for all arm or arm64 drivers.
+Hi Yijing
+
+> -----Original Message-----
+> From: linux-pci-owner@vger.kernel.org [mailto:linux-pci-owner@vger.kernel.org]
+> On Behalf Of Yijing Wang
+> Sent: Monday, August 04, 2014 8:34 AM
+> To: Basu Arnab-B45036
+> Cc: Xinwei Hu; Wuyun; Bjorn Helgaas; linux-pci@vger.kernel.org;
+> Paul.Mundt@huawei.com; James E.J. Bottomley; Marc Zyngier; linux-arm-
+> kernel@lists.infradead.org; Russell King; linux-arch@vger.kernel.org;
+> virtualization@lists.linux-foundation.org; Hanjun Guo; linux-
+> kernel@vger.kernel.org
+> Subject: Re: [RFC PATCH 00/11] Refactor MSI to support Non-PCI device
 > 
-> As I read the description of pcibios_add_device(), it is meant as an
-> architecture hook. While it's nice to generalise this, I'm not sure we
-> we can find a common denominator. For example, we may want to call
-> set_dma_ops() as powerpc does but the ops would be arm64 specific (so
-> even the __weak implementation may not be used by any architecture).
+> >> MSI was introduced in PCI Spec 2.2. Currently, kernel MSI driver
+> >> codes are bonding with PCI device. Because MSI has a lot advantages in
+> design.
+> >> More and more non-PCI devices want to use MSI as their default interrupt.
+> >> The existing MSI device include HPET. HPET driver provide its own MSI
+> >> code to initialize and process MSI interrupts. In the latest GIC v3
+> >> spec, legacy device can deliver MSI by the help of a relay device
+> >> named consolidator.
+> >> Consolidator can translate the legacy interrupts connected to it to
+> >> MSI/MSI-X. And new non-PCI device will be designed to support MSI in
+> >> future. So make the MSI driver code be generic will help the non-PCI
+> >> device use MSI more simply.
+> >
+> > As per my understanding the GICv3 provides a service that will convert writes
+> to a specified address to IRQs delivered to the core and as you mention above
+> MSIs are part of the PCI spec. So I can see a strong case for non-PCI devices to
+> want MSI like functionality without being fully compliant with the requirements
+> of the MSI spec.
+> 
+> In GICv3, MBI is named for the service, but there is no more detailed
+> information about it, only we can know is MBI is analogous to MSI, MBI devices
+> must have address/data registers, but other registers like enable/mask/ctrl are
+> not mandatory requirement.
+> I don't know whether the MBI spec will be release, but anyway I think MSI
+> refactoring is make sense, there are some existing Non-PCI MSI device like hpet,
+> dmar.
+> For simplicity, let name MSI and MBI to MSI temporarily.
+> >
+> > My question is do we necessarily want to rework so much of the PCI-MSI layer
+> to support non PCI devices? Or will it be sufficient to create a framework to
+> allow non PCI devices to hook up with a device that can convert their writes to
+> an IRQ to the core.
+> >
+> > As I understand it, the msi_chip is (almost) such a framework. The only
+> problem being that it makes some PCI specific assumptions (such as PCI specific
+> writes from within msi_chip functions). Won't it be sufficient to make the
+> msi_chip framework generic enough to be used by non-PCI devices and let each
+> bus/device manage any additional requirements (such as configuration flow, bit
+> definitions etc) that it places on message based interrupts?
+> 
+> msi_chip framework is important to support that, but I think maybe it's not
+> enough, msi_chip is only responsible for IRQ allocation, teardown, etc..
+> 
+> The key difference between PCI device and Non-PCI MSI is the interfaces to
+> access hardware MSI registers.
+> for instance, currently, msi_chip->setup_irq() to setup MSI irq and configure
+> the MSI address/data registers, so we need to provide device specific
+> write_msi_msg() interface, then when we call msi_chip->setup_irq(), the device
+> MSI registers can be configured appropriately.
 
-Right. I'm a strong advocate of the idea of having no architecture specific
-parts in the PCI support, but I can see the set_dma_ops() call as a
-good reason to make an exception here.
+What if we can register/override the setup_irq() from bus-driver (not sure, but may be device-driver itself). Example PCI bus-driver will provide setup_irq() (or the part of setup_irq which set address and data in h/w) by PCI bus, which configure address/data in h/w as per PCI standard. 
 
-We could add another layer of indirection for the purpose of API purity
-here, to call an architecture specific DMA setup function, but it doesn't
-really add that much benefits, in particular when the DMA setup is currently
-in flux as well.
+We in Freescale will be using MSI for the devices behind a new-bus (which is not PCI based), We have a separate bus driver for same. And this new bus driver register/provide its own address/data write function which is based on that specific bus protocol.
 
-	Arnd
+Thanks
+-Bharat
+
+> 
+> My patchset is just a RFC draft, I will update it later, all we want to do is
+> make kernel support Non-PCI MSI devices.
+> 
+> Thanks!
+> Yijing.
+> 
+> 
+> >
+> > Thanks
+> > Arnab
+> > --
+> > To unsubscribe from this list: send the line "unsubscribe
+> > linux-kernel" in the body of a message to majordomo@vger.kernel.org
+> > More majordomo info at  http://vger.kernel.org/majordomo-info.html
+> > Please read the FAQ at  http://www.tux.org/lkml/
+> >
+> > .
+> >
+> 
+> 
+> --
+> Thanks!
+> Yijing
+> 
+> --
+> To unsubscribe from this list: send the line "unsubscribe linux-pci" in the body
+> of a message to majordomo@vger.kernel.org More majordomo info at
+> http://vger.kernel.org/majordomo-info.html
