@@ -1,109 +1,100 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wi0-f175.google.com ([209.85.212.175]:45303 "EHLO
-	mail-wi0-f175.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751725AbaHUPnz (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 21 Aug 2014 11:43:55 -0400
-Received: by mail-wi0-f175.google.com with SMTP id ho1so8895439wib.14
-        for <linux-arch@vger.kernel.org>; Thu, 21 Aug 2014 08:43:54 -0700 (PDT)
-From: Steve Capper <steve.capper@linaro.org>
-Subject: [PATH V2 6/6] arm64: mm: Enable RCU fast_gup
-Date: Thu, 21 Aug 2014 16:43:32 +0100
-Message-ID: <1408635812-31584-7-git-send-email-steve.capper@linaro.org>
+Received: from mail-wg0-f45.google.com ([74.125.82.45]:46091 "EHLO
+	mail-wg0-f45.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753562AbaHUUmb (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 21 Aug 2014 16:42:31 -0400
+Received: by mail-wg0-f45.google.com with SMTP id x12so9550358wgg.28
+        for <linux-arch@vger.kernel.org>; Thu, 21 Aug 2014 13:42:29 -0700 (PDT)
+MIME-Version: 1.0
 In-Reply-To: <1408635812-31584-1-git-send-email-steve.capper@linaro.org>
 References: <1408635812-31584-1-git-send-email-steve.capper@linaro.org>
+Date: Thu, 21 Aug 2014 14:42:29 -0600
+Message-ID: <CALdTtnuuZBNGR5Ti3PsN3BdA=FQ7ErYuyHMsiSp_5TD-U0n2Lg@mail.gmail.com>
+Subject: Re: [PATH V2 0/6] RCU get_user_pages_fast and __get_user_pages_fast
+From: Dann Frazier <dann.frazier@canonical.com>
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arm-kernel@lists.infradead.org, catalin.marinas@arm.com, linux@arm.linux.org.uk, linux-arch@vger.kernel.org, linux-mm@kvack.org
-Cc: will.deacon@arm.com, gary.robertson@linaro.org, christoffer.dall@linaro.org, peterz@infradead.org, anders.roxell@linaro.org, akpm@linux-foundation.org, dann.frazier@canonical.com, mark.rutland@arm.com, mgorman@suse.de, Steve Capper <steve.capper@linaro.org>
-Message-ID: <20140821154332.nAFR7l3uonquyqsXdJEKBR-tKhdxjlqszkTJDHhR0jo@z>
+To: Steve Capper <steve.capper@linaro.org>
+Cc: linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, Catalin Marinas <catalin.marinas@arm.com>, linux@arm.linux.org.uk, linux-arch@vger.kernel.org, linux-mm@kvack.org, Will Deacon <will.deacon@arm.com>, gary.robertson@linaro.org, Christoffer Dall <christoffer.dall@linaro.org>, peterz@infradead.org, anders.roxell@linaro.org, akpm@linux-foundation.org, Mark Rutland <mark.rutland@arm.com>, mgorman@suse.de
+Message-ID: <20140821204229.uJmHVUxmioOalrG9olF3rEdCycjAK3tdb-oomtTgdEs@z>
 
-Activate the RCU fast_gup for ARM64. We also need to force THP splits
-to broadcast an IPI s.t. we block in the fast_gup page walker. As THP
-splits are comparatively rare, this should not lead to a noticeable
-performance degradation.
+On Thu, Aug 21, 2014 at 9:43 AM, Steve Capper <steve.capper@linaro.org> wrote:
+> Hello,
+> This series implements general forms of get_user_pages_fast and
+> __get_user_pages_fast and activates them for arm and arm64.
+>
+> These are required for Transparent HugePages to function correctly, as
+> a futex on a THP tail will otherwise result in an infinite loop (due to
+> the core implementation of __get_user_pages_fast always returning 0).
+>
+> Unfortunately, a futex on THP tail can be quite common for certain
+> workloads; thus THP is unreliable without a __get_user_pages_fast
+> implementation.
+>
+> This series may also be beneficial for direct-IO heavy workloads and
+> certain KVM workloads.
+>
+> Changes since PATCH V1 are:
+>  * Rebase to 3.17-rc1
+>  * Switched to kick_all_cpus_sync as suggested by Mark Rutland.
+>
+> The main changes since RFC V5 are:
+>  * Rebased against 3.16-rc1.
+>  * pmd_present no longer tested for by gup_huge_pmd and gup_huge_pud,
+>    because the entry must be present for these leaf functions to be
+>    called.
+>  * Rather than assume puds can be re-cast as pmds, a separate
+>    function pud_write is instead used by the core gup.
+>  * ARM activation logic changed, now it will only activate
+>    RCU_TABLE_FREE and RCU_GUP when running with LPAE.
+>
+> The main changes since RFC V4 are:
+>  * corrected the arm64 logic so it now correctly rcu-frees page
+>    table backing pages.
+>  * rcu free logic relaxed for pre-ARMv7 ARM as we need an IPI to
+>    invalidate TLBs anyway.
+>  * rebased to 3.15-rc3 (some minor changes were needed to allow it to merge).
+>  * dropped Catalin's mmu_gather patch as that's been merged already.
+>
+> This series has been tested with LTP mm tests and some custom futex tests
+> that exacerbate the futex on THP tail case; on both an Arndale board and
+> a Juno board. Also debug counters were temporarily employed to ensure that
+> the RCU_TABLE_FREE logic was behaving as expected.
+>
+> I would really appreciate any comments (especially on the validity or
+> otherwise of the core fast_gup implementation) and testers.
 
-Some pre-requisite functions pud_write and pud_page are also added.
+Continues to gets rid of my gccgo hang issue w/ THP.
 
-Signed-off-by: Steve Capper <steve.capper@linaro.org>
----
- arch/arm64/Kconfig               |  3 +++
- arch/arm64/include/asm/pgtable.h | 11 ++++++++++-
- arch/arm64/mm/flush.c            | 15 +++++++++++++++
- 3 files changed, 28 insertions(+), 1 deletion(-)
+Tested-by: dann frazier <dann.frazier@canonical.com>
 
-diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
-index ce9062b..f03273d 100644
---- a/arch/arm64/Kconfig
-+++ b/arch/arm64/Kconfig
-@@ -108,6 +108,9 @@ config GENERIC_CALIBRATE_DELAY
- config ZONE_DMA
- 	def_bool y
- 
-+config HAVE_RCU_GUP
-+	def_bool y
-+
- config ARCH_DMA_ADDR_T_64BIT
- 	def_bool y
- 
-diff --git a/arch/arm64/include/asm/pgtable.h b/arch/arm64/include/asm/pgtable.h
-index ffe1ba0..f2a48e9 100644
---- a/arch/arm64/include/asm/pgtable.h
-+++ b/arch/arm64/include/asm/pgtable.h
-@@ -256,7 +256,13 @@ static inline pmd_t pte_pmd(pte_t pte)
- #ifdef CONFIG_TRANSPARENT_HUGEPAGE
- #define pmd_trans_huge(pmd)	(pmd_val(pmd) && !(pmd_val(pmd) & PMD_TABLE_BIT))
- #define pmd_trans_splitting(pmd)	pte_special(pmd_pte(pmd))
--#endif
-+#ifdef CONFIG_HAVE_RCU_TABLE_FREE
-+#define __HAVE_ARCH_PMDP_SPLITTING_FLUSH
-+struct vm_area_struct;
-+void pmdp_splitting_flush(struct vm_area_struct *vma, unsigned long address,
-+			  pmd_t *pmdp);
-+#endif /* CONFIG_HAVE_RCU_TABLE_FREE */
-+#endif /* CONFIG_TRANSPARENT_HUGEPAGE */
- 
- #define pmd_young(pmd)		pte_young(pmd_pte(pmd))
- #define pmd_wrprotect(pmd)	pte_pmd(pte_wrprotect(pmd_pte(pmd)))
-@@ -277,6 +283,7 @@ static inline pmd_t pte_pmd(pte_t pte)
- #define mk_pmd(page,prot)	pfn_pmd(page_to_pfn(page),prot)
- 
- #define pmd_page(pmd)           pfn_to_page(__phys_to_pfn(pmd_val(pmd) & PHYS_MASK))
-+#define pud_write(pud)		pmd_write(__pmd(pud_val(pud)))
- #define pud_pfn(pud)		(((pud_val(pud) & PUD_MASK) & PHYS_MASK) >> PAGE_SHIFT)
- 
- #define set_pmd_at(mm, addr, pmdp, pmd)	set_pte_at(mm, addr, (pte_t *)pmdp, pmd_pte(pmd))
-@@ -376,6 +383,8 @@ static inline pmd_t *pmd_offset(pud_t *pud, unsigned long addr)
- 	return (pmd_t *)pud_page_vaddr(*pud) + pmd_index(addr);
- }
- 
-+#define pud_page(pud)           pmd_page(__pmd(pud_val(pud)))
-+
- #endif	/* CONFIG_ARM64_PGTABLE_LEVELS > 2 */
- 
- #if CONFIG_ARM64_PGTABLE_LEVELS > 3
-diff --git a/arch/arm64/mm/flush.c b/arch/arm64/mm/flush.c
-index 0d64089..2d5fd47 100644
---- a/arch/arm64/mm/flush.c
-+++ b/arch/arm64/mm/flush.c
-@@ -104,3 +104,18 @@ EXPORT_SYMBOL(flush_dcache_page);
-  */
- EXPORT_SYMBOL(flush_cache_all);
- EXPORT_SYMBOL(flush_icache_range);
-+
-+#ifdef CONFIG_TRANSPARENT_HUGEPAGE
-+#ifdef CONFIG_HAVE_RCU_TABLE_FREE
-+void pmdp_splitting_flush(struct vm_area_struct *vma, unsigned long address,
-+			  pmd_t *pmdp)
-+{
-+	pmd_t pmd = pmd_mksplitting(*pmdp);
-+	VM_BUG_ON(address & ~PMD_MASK);
-+	set_pmd_at(vma->vm_mm, address, pmdp, pmd);
-+
-+	/* dummy IPI to serialise against fast_gup */
-+	kick_all_cpus_sync();
-+}
-+#endif /* CONFIG_HAVE_RCU_TABLE_FREE */
-+#endif /* CONFIG_TRANSPARENT_HUGEPAGE */
--- 
-1.9.3
-
+> Cheers,
+> --
+> Steve
+>
+> Steve Capper (6):
+>   mm: Introduce a general RCU get_user_pages_fast.
+>   arm: mm: Introduce special ptes for LPAE
+>   arm: mm: Enable HAVE_RCU_TABLE_FREE logic
+>   arm: mm: Enable RCU fast_gup
+>   arm64: mm: Enable HAVE_RCU_TABLE_FREE logic
+>   arm64: mm: Enable RCU fast_gup
+>
+>  arch/arm/Kconfig                      |   5 +
+>  arch/arm/include/asm/pgtable-2level.h |   2 +
+>  arch/arm/include/asm/pgtable-3level.h |  15 ++
+>  arch/arm/include/asm/pgtable.h        |   6 +-
+>  arch/arm/include/asm/tlb.h            |  38 ++++-
+>  arch/arm/mm/flush.c                   |  15 ++
+>  arch/arm64/Kconfig                    |   4 +
+>  arch/arm64/include/asm/pgtable.h      |  11 +-
+>  arch/arm64/include/asm/tlb.h          |  20 ++-
+>  arch/arm64/mm/flush.c                 |  15 ++
+>  mm/Kconfig                            |   3 +
+>  mm/gup.c                              | 278 ++++++++++++++++++++++++++++++++++
+>  12 files changed, 402 insertions(+), 10 deletions(-)
+>
+> --
+> 1.9.3
+>
