@@ -1,128 +1,102 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-vc0-f175.google.com ([209.85.220.175]:52477 "EHLO
-	mail-vc0-f175.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750831AbaHVEJK (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 22 Aug 2014 00:09:10 -0400
+Received: from mail-vc0-f169.google.com ([209.85.220.169]:49409 "EHLO
+	mail-vc0-f169.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750770AbaHVEQh (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 22 Aug 2014 00:16:37 -0400
 MIME-Version: 1.0
-In-Reply-To: <1407860725-25202-5-git-send-email-Liviu.Dudau@arm.com>
-References: <1407860725-25202-1-git-send-email-Liviu.Dudau@arm.com> <1407860725-25202-5-git-send-email-Liviu.Dudau@arm.com>
+In-Reply-To: <1407860725-25202-13-git-send-email-Liviu.Dudau@arm.com>
+References: <1407860725-25202-1-git-send-email-Liviu.Dudau@arm.com> <1407860725-25202-13-git-send-email-Liviu.Dudau@arm.com>
 From: Rob Herring <robherring2@gmail.com>
-Date: Thu, 21 Aug 2014 23:08:48 -0500
-Message-ID: <CAL_JsqJm6qWNdrJ2F8xddFUj46y42n6hQVu1nkTaA-5Tbg--XQ@mail.gmail.com>
-Subject: Re: [PATCH v9 04/12] PCI: OF: Fix the conversion of IO ranges into IO resources.
+Date: Thu, 21 Aug 2014 23:16:16 -0500
+Message-ID: <CAL_JsqK6XiuS7OJ_2F16ySA8oj9AHqP0fAft21AOtJxXP2SqnQ@mail.gmail.com>
+Subject: Re: [PATCH v9 12/12] PCI: Introduce pci_remap_iospace() for remapping
+ PCI I/O bus resources into CPU space
 Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Liviu Dudau <Liviu.Dudau@arm.com>
 Cc: Bjorn Helgaas <bhelgaas@google.com>, Catalin Marinas <Catalin.Marinas@arm.com>, Will Deacon <Will.Deacon@arm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@arm.linux.org.uk>, Tanmay Inamdar <tinamdar@apm.com>, Grant Likely <grant.likely@secretlab.ca>, Sinan Kaya <okaya@codeaurora.org>, Jingoo Han <jg1.han@samsung.com>, Kukjin Kim <kgene.kim@samsung.com>, Suravee Suthikulanit <suravee.suthikulpanit@amd.com>, linux-pci <linux-pci@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Device Tree ML <devicetree@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, LAKML <linux-arm-kernel@lists.infradead.org>
-Message-ID: <20140822040848.OJyslLhtWb8oMT5ezaFznWU2e3wfq7aZdklLrIQkbHc@z>
+Message-ID: <20140822041616.iHFsJPjs9zGgnTXu2Rtvpibv_TfIlgqWlgwnXESyDAY@z>
 
 On Tue, Aug 12, 2014 at 11:25 AM, Liviu Dudau <Liviu.Dudau@arm.com> wrote:
-> The ranges property for a host bridge controller in DT describes
-> the mapping between the PCI bus address and the CPU physical address.
-> The resources framework however expects that the IO resources start
-> at a pseudo "port" address 0 (zero) and have a maximum size of IO_SPACE_LIMIT.
-> The conversion from pci ranges to resources failed to take that into account.
+> Introduce a default implementation for remapping PCI bus I/O resources
+> onto the CPU address space. Architectures with special needs may
+> provide their own version, but most should be able to use this one.
 >
-> In the process move the function into drivers/of/address.c as it now
-> depends on pci_address_to_pio() code and make it return an error code.
->
-> Cc: Grant Likely <grant.likely@linaro.org>
+> Cc: Bjorn Helgaas <bhelgaas@google.com>
+> Cc: Arnd Bergmann <arnd@arndb.de>
 > Cc: Rob Herring <robh+dt@kernel.org>
+> Signed-off-by: Liviu Dudau <Liviu.Dudau@arm.com>
 
-Humm, this says I'm cc'ed, but I'm not which defeats the point of
-recording the Cc's in the commit.
+Reviewed-by: Rob Herring <robh@kernel.org>
 
-I still have the same concerns that this will break existing users.
-Are you sure integrator is the only platform affected?
+However, I would like to see ARM pci_ioremap_io converted over to this function.
 
 Rob
 
-> Cc: Arnd Bergmann <arnd@arndb.de>
-> Signed-off-by: Liviu Dudau <Liviu.Dudau@arm.com>
 > ---
->  drivers/of/address.c       | 46 ++++++++++++++++++++++++++++++++++++++++++++++
->  include/linux/of_address.h | 13 ++-----------
->  2 files changed, 48 insertions(+), 11 deletions(-)
+>  drivers/pci/pci.c   | 33 +++++++++++++++++++++++++++++++++
+>  include/linux/pci.h |  3 +++
+>  2 files changed, 36 insertions(+)
 >
-> diff --git a/drivers/of/address.c b/drivers/of/address.c
-> index 4dab700..3735ac7 100644
-> --- a/drivers/of/address.c
-> +++ b/drivers/of/address.c
-> @@ -906,3 +906,49 @@ bool of_dma_is_coherent(struct device_node *np)
->         return false;
+> diff --git a/drivers/pci/pci.c b/drivers/pci/pci.c
+> index 29d1775..76d21b6 100644
+> --- a/drivers/pci/pci.c
+> +++ b/drivers/pci/pci.c
+> @@ -2707,6 +2707,39 @@ int pci_request_regions_exclusive(struct pci_dev *pdev, const char *res_name)
 >  }
->  EXPORT_SYMBOL_GPL(of_dma_is_coherent);
-> +
-> +/*
-> + * of_pci_range_to_resource - Create a resource from an of_pci_range
-> + * @range:     the PCI range that describes the resource
-> + * @np:                device node where the range belongs to
-> + * @res:       pointer to a valid resource that will be updated to
-> + *              reflect the values contained in the range.
+>  EXPORT_SYMBOL(pci_request_regions_exclusive);
+>
+> +/**
+> + *     pci_remap_iospace - Remap the memory mapped I/O space
+> + *     @res: Resource describing the I/O space
+> + *     @phys_addr: physical address where the range will be mapped.
 > + *
-> + * Returns EINVAL if the range cannot be converted to resource.
-> + *
-> + * Note that if the range is an IO range, the resource will be converted
-> + * using pci_address_to_pio() which can fail if it is called too early or
-> + * if the range cannot be matched to any host bridge IO space (our case here).
-> + * To guard against that we try to register the IO range first.
-> + * If that fails we know that pci_address_to_pio() will do too.
+> + *     Remap the memory mapped I/O space described by the @res
+> + *     into the CPU physical address space. Only architectures
+> + *     that have memory mapped IO defined (and hence PCI_IOBASE)
+> + *     should call this function.
 > + */
-> +int of_pci_range_to_resource(struct of_pci_range *range,
-> +       struct device_node *np, struct resource *res)
+> +int __weak pci_remap_iospace(const struct resource *res, phys_addr_t phys_addr)
 > +{
-> +       int err;
-> +       res->flags = range->flags;
-> +       res->parent = res->child = res->sibling = NULL;
-> +       res->name = np->full_name;
+> +       int err = -ENODEV;
 > +
-> +       if (res->flags & IORESOURCE_IO) {
-> +               unsigned long port = -1;
-> +               err = pci_register_io_range(range->cpu_addr, range->size);
-> +               if (err)
-> +                       goto invalid_range;
-> +               port = pci_address_to_pio(range->cpu_addr);
-> +               if (port == (unsigned long)-1) {
-> +                       err = -EINVAL;
-> +                       goto invalid_range;
-> +               }
-> +               res->start = port;
-> +       } else {
-> +               res->start = range->cpu_addr;
-> +       }
-> +       res->end = res->start + range->size - 1;
-> +       return 0;
+> +#ifdef PCI_IOBASE
+> +       if (!(res->flags & IORESOURCE_IO))
+> +               return -EINVAL;
 > +
-> +invalid_range:
-> +       res->start = (resource_size_t)OF_BAD_ADDR;
-> +       res->end = (resource_size_t)OF_BAD_ADDR;
+> +       if (res->end > IO_SPACE_LIMIT)
+> +               return -EINVAL;
+> +
+> +       err = ioremap_page_range(res->start + (unsigned long)PCI_IOBASE,
+> +                               res->end + 1 + (unsigned long)PCI_IOBASE,
+> +                               phys_addr, pgprot_device(PAGE_KERNEL));
+> +#else
+> +       /* this architecture does not have memory mapped I/O space,
+> +          so this function should never be called */
+> +       WARN_ON(1);
+> +#endif
+> +
 > +       return err;
 > +}
-> diff --git a/include/linux/of_address.h b/include/linux/of_address.h
-> index 28e6836..6015f21 100644
-> --- a/include/linux/of_address.h
-> +++ b/include/linux/of_address.h
-> @@ -23,17 +23,8 @@ struct of_pci_range {
->  #define for_each_of_pci_range(parser, range) \
->         for (; of_pci_range_parser_one(parser, range);)
+> +
+>  static void __pci_set_master(struct pci_dev *dev, bool enable)
+>  {
+>         u16 old_cmd, cmd;
+> diff --git a/include/linux/pci.h b/include/linux/pci.h
+> index e1e0d80..988c2f5 100644
+> --- a/include/linux/pci.h
+> +++ b/include/linux/pci.h
+> @@ -1098,6 +1098,9 @@ int __must_check pci_bus_alloc_resource(struct pci_bus *bus,
+>                                                   resource_size_t),
+>                         void *alignf_data);
 >
-> -static inline void of_pci_range_to_resource(struct of_pci_range *range,
-> -                                           struct device_node *np,
-> -                                           struct resource *res)
-> -{
-> -       res->flags = range->flags;
-> -       res->start = range->cpu_addr;
-> -       res->end = range->cpu_addr + range->size - 1;
-> -       res->parent = res->child = res->sibling = NULL;
-> -       res->name = np->full_name;
-> -}
-> -
-> +extern int of_pci_range_to_resource(struct of_pci_range *range,
-> +               struct device_node *np, struct resource *res);
->  /* Translate a DMA address from device space to CPU space */
->  extern u64 of_translate_dma_address(struct device_node *dev,
->                                     const __be32 *in_addr);
+> +
+> +int pci_remap_iospace(const struct resource *res, phys_addr_t phys_addr);
+> +
+>  static inline dma_addr_t pci_bus_address(struct pci_dev *pdev, int bar)
+>  {
+>         struct pci_bus_region region;
 > --
 > 2.0.4
 >
