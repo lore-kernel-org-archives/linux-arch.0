@@ -1,100 +1,133 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wg0-f45.google.com ([74.125.82.45]:46091 "EHLO
-	mail-wg0-f45.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753562AbaHUUmb (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 21 Aug 2014 16:42:31 -0400
-Received: by mail-wg0-f45.google.com with SMTP id x12so9550358wgg.28
-        for <linux-arch@vger.kernel.org>; Thu, 21 Aug 2014 13:42:29 -0700 (PDT)
+Received: from mail-vc0-f175.google.com ([209.85.220.175]:52477 "EHLO
+	mail-vc0-f175.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750831AbaHVEJK (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 22 Aug 2014 00:09:10 -0400
 MIME-Version: 1.0
-In-Reply-To: <1408635812-31584-1-git-send-email-steve.capper@linaro.org>
-References: <1408635812-31584-1-git-send-email-steve.capper@linaro.org>
-Date: Thu, 21 Aug 2014 14:42:29 -0600
-Message-ID: <CALdTtnuuZBNGR5Ti3PsN3BdA=FQ7ErYuyHMsiSp_5TD-U0n2Lg@mail.gmail.com>
-Subject: Re: [PATH V2 0/6] RCU get_user_pages_fast and __get_user_pages_fast
-From: Dann Frazier <dann.frazier@canonical.com>
+In-Reply-To: <1407860725-25202-5-git-send-email-Liviu.Dudau@arm.com>
+References: <1407860725-25202-1-git-send-email-Liviu.Dudau@arm.com> <1407860725-25202-5-git-send-email-Liviu.Dudau@arm.com>
+From: Rob Herring <robherring2@gmail.com>
+Date: Thu, 21 Aug 2014 23:08:48 -0500
+Message-ID: <CAL_JsqJm6qWNdrJ2F8xddFUj46y42n6hQVu1nkTaA-5Tbg--XQ@mail.gmail.com>
+Subject: Re: [PATCH v9 04/12] PCI: OF: Fix the conversion of IO ranges into IO resources.
 Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Steve Capper <steve.capper@linaro.org>
-Cc: linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, Catalin Marinas <catalin.marinas@arm.com>, linux@arm.linux.org.uk, linux-arch@vger.kernel.org, linux-mm@kvack.org, Will Deacon <will.deacon@arm.com>, gary.robertson@linaro.org, Christoffer Dall <christoffer.dall@linaro.org>, peterz@infradead.org, anders.roxell@linaro.org, akpm@linux-foundation.org, Mark Rutland <mark.rutland@arm.com>, mgorman@suse.de
-Message-ID: <20140821204229.uJmHVUxmioOalrG9olF3rEdCycjAK3tdb-oomtTgdEs@z>
+To: Liviu Dudau <Liviu.Dudau@arm.com>
+Cc: Bjorn Helgaas <bhelgaas@google.com>, Catalin Marinas <Catalin.Marinas@arm.com>, Will Deacon <Will.Deacon@arm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@arm.linux.org.uk>, Tanmay Inamdar <tinamdar@apm.com>, Grant Likely <grant.likely@secretlab.ca>, Sinan Kaya <okaya@codeaurora.org>, Jingoo Han <jg1.han@samsung.com>, Kukjin Kim <kgene.kim@samsung.com>, Suravee Suthikulanit <suravee.suthikulpanit@amd.com>, linux-pci <linux-pci@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Device Tree ML <devicetree@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, LAKML <linux-arm-kernel@lists.infradead.org>
+Message-ID: <20140822040848.OJyslLhtWb8oMT5ezaFznWU2e3wfq7aZdklLrIQkbHc@z>
 
-On Thu, Aug 21, 2014 at 9:43 AM, Steve Capper <steve.capper@linaro.org> wrote:
-> Hello,
-> This series implements general forms of get_user_pages_fast and
-> __get_user_pages_fast and activates them for arm and arm64.
+On Tue, Aug 12, 2014 at 11:25 AM, Liviu Dudau <Liviu.Dudau@arm.com> wrote:
+> The ranges property for a host bridge controller in DT describes
+> the mapping between the PCI bus address and the CPU physical address.
+> The resources framework however expects that the IO resources start
+> at a pseudo "port" address 0 (zero) and have a maximum size of IO_SPACE_LIMIT.
+> The conversion from pci ranges to resources failed to take that into account.
 >
-> These are required for Transparent HugePages to function correctly, as
-> a futex on a THP tail will otherwise result in an infinite loop (due to
-> the core implementation of __get_user_pages_fast always returning 0).
+> In the process move the function into drivers/of/address.c as it now
+> depends on pci_address_to_pio() code and make it return an error code.
 >
-> Unfortunately, a futex on THP tail can be quite common for certain
-> workloads; thus THP is unreliable without a __get_user_pages_fast
-> implementation.
->
-> This series may also be beneficial for direct-IO heavy workloads and
-> certain KVM workloads.
->
-> Changes since PATCH V1 are:
->  * Rebase to 3.17-rc1
->  * Switched to kick_all_cpus_sync as suggested by Mark Rutland.
->
-> The main changes since RFC V5 are:
->  * Rebased against 3.16-rc1.
->  * pmd_present no longer tested for by gup_huge_pmd and gup_huge_pud,
->    because the entry must be present for these leaf functions to be
->    called.
->  * Rather than assume puds can be re-cast as pmds, a separate
->    function pud_write is instead used by the core gup.
->  * ARM activation logic changed, now it will only activate
->    RCU_TABLE_FREE and RCU_GUP when running with LPAE.
->
-> The main changes since RFC V4 are:
->  * corrected the arm64 logic so it now correctly rcu-frees page
->    table backing pages.
->  * rcu free logic relaxed for pre-ARMv7 ARM as we need an IPI to
->    invalidate TLBs anyway.
->  * rebased to 3.15-rc3 (some minor changes were needed to allow it to merge).
->  * dropped Catalin's mmu_gather patch as that's been merged already.
->
-> This series has been tested with LTP mm tests and some custom futex tests
-> that exacerbate the futex on THP tail case; on both an Arndale board and
-> a Juno board. Also debug counters were temporarily employed to ensure that
-> the RCU_TABLE_FREE logic was behaving as expected.
->
-> I would really appreciate any comments (especially on the validity or
-> otherwise of the core fast_gup implementation) and testers.
+> Cc: Grant Likely <grant.likely@linaro.org>
+> Cc: Rob Herring <robh+dt@kernel.org>
 
-Continues to gets rid of my gccgo hang issue w/ THP.
+Humm, this says I'm cc'ed, but I'm not which defeats the point of
+recording the Cc's in the commit.
 
-Tested-by: dann frazier <dann.frazier@canonical.com>
+I still have the same concerns that this will break existing users.
+Are you sure integrator is the only platform affected?
 
-> Cheers,
+Rob
+
+> Cc: Arnd Bergmann <arnd@arndb.de>
+> Signed-off-by: Liviu Dudau <Liviu.Dudau@arm.com>
+> ---
+>  drivers/of/address.c       | 46 ++++++++++++++++++++++++++++++++++++++++++++++
+>  include/linux/of_address.h | 13 ++-----------
+>  2 files changed, 48 insertions(+), 11 deletions(-)
+>
+> diff --git a/drivers/of/address.c b/drivers/of/address.c
+> index 4dab700..3735ac7 100644
+> --- a/drivers/of/address.c
+> +++ b/drivers/of/address.c
+> @@ -906,3 +906,49 @@ bool of_dma_is_coherent(struct device_node *np)
+>         return false;
+>  }
+>  EXPORT_SYMBOL_GPL(of_dma_is_coherent);
+> +
+> +/*
+> + * of_pci_range_to_resource - Create a resource from an of_pci_range
+> + * @range:     the PCI range that describes the resource
+> + * @np:                device node where the range belongs to
+> + * @res:       pointer to a valid resource that will be updated to
+> + *              reflect the values contained in the range.
+> + *
+> + * Returns EINVAL if the range cannot be converted to resource.
+> + *
+> + * Note that if the range is an IO range, the resource will be converted
+> + * using pci_address_to_pio() which can fail if it is called too early or
+> + * if the range cannot be matched to any host bridge IO space (our case here).
+> + * To guard against that we try to register the IO range first.
+> + * If that fails we know that pci_address_to_pio() will do too.
+> + */
+> +int of_pci_range_to_resource(struct of_pci_range *range,
+> +       struct device_node *np, struct resource *res)
+> +{
+> +       int err;
+> +       res->flags = range->flags;
+> +       res->parent = res->child = res->sibling = NULL;
+> +       res->name = np->full_name;
+> +
+> +       if (res->flags & IORESOURCE_IO) {
+> +               unsigned long port = -1;
+> +               err = pci_register_io_range(range->cpu_addr, range->size);
+> +               if (err)
+> +                       goto invalid_range;
+> +               port = pci_address_to_pio(range->cpu_addr);
+> +               if (port == (unsigned long)-1) {
+> +                       err = -EINVAL;
+> +                       goto invalid_range;
+> +               }
+> +               res->start = port;
+> +       } else {
+> +               res->start = range->cpu_addr;
+> +       }
+> +       res->end = res->start + range->size - 1;
+> +       return 0;
+> +
+> +invalid_range:
+> +       res->start = (resource_size_t)OF_BAD_ADDR;
+> +       res->end = (resource_size_t)OF_BAD_ADDR;
+> +       return err;
+> +}
+> diff --git a/include/linux/of_address.h b/include/linux/of_address.h
+> index 28e6836..6015f21 100644
+> --- a/include/linux/of_address.h
+> +++ b/include/linux/of_address.h
+> @@ -23,17 +23,8 @@ struct of_pci_range {
+>  #define for_each_of_pci_range(parser, range) \
+>         for (; of_pci_range_parser_one(parser, range);)
+>
+> -static inline void of_pci_range_to_resource(struct of_pci_range *range,
+> -                                           struct device_node *np,
+> -                                           struct resource *res)
+> -{
+> -       res->flags = range->flags;
+> -       res->start = range->cpu_addr;
+> -       res->end = range->cpu_addr + range->size - 1;
+> -       res->parent = res->child = res->sibling = NULL;
+> -       res->name = np->full_name;
+> -}
+> -
+> +extern int of_pci_range_to_resource(struct of_pci_range *range,
+> +               struct device_node *np, struct resource *res);
+>  /* Translate a DMA address from device space to CPU space */
+>  extern u64 of_translate_dma_address(struct device_node *dev,
+>                                     const __be32 *in_addr);
 > --
-> Steve
+> 2.0.4
 >
-> Steve Capper (6):
->   mm: Introduce a general RCU get_user_pages_fast.
->   arm: mm: Introduce special ptes for LPAE
->   arm: mm: Enable HAVE_RCU_TABLE_FREE logic
->   arm: mm: Enable RCU fast_gup
->   arm64: mm: Enable HAVE_RCU_TABLE_FREE logic
->   arm64: mm: Enable RCU fast_gup
 >
->  arch/arm/Kconfig                      |   5 +
->  arch/arm/include/asm/pgtable-2level.h |   2 +
->  arch/arm/include/asm/pgtable-3level.h |  15 ++
->  arch/arm/include/asm/pgtable.h        |   6 +-
->  arch/arm/include/asm/tlb.h            |  38 ++++-
->  arch/arm/mm/flush.c                   |  15 ++
->  arch/arm64/Kconfig                    |   4 +
->  arch/arm64/include/asm/pgtable.h      |  11 +-
->  arch/arm64/include/asm/tlb.h          |  20 ++-
->  arch/arm64/mm/flush.c                 |  15 ++
->  mm/Kconfig                            |   3 +
->  mm/gup.c                              | 278 ++++++++++++++++++++++++++++++++++
->  12 files changed, 402 insertions(+), 10 deletions(-)
->
-> --
-> 1.9.3
->
+> _______________________________________________
+> linux-arm-kernel mailing list
+> linux-arm-kernel@lists.infradead.org
+> http://lists.infradead.org/mailman/listinfo/linux-arm-kernel
