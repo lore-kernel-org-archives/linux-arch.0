@@ -1,56 +1,46 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cantor2.suse.de ([195.135.220.15]:57063 "EHLO mx2.suse.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751974AbaHVLJX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 22 Aug 2014 07:09:23 -0400
-Message-ID: <53F724DD.1080605@suse.cz>
-Date: Fri, 22 Aug 2014 13:09:17 +0200
-From: Michal Marek <mmarek@suse.cz>
+Received: from mail-vc0-f181.google.com ([209.85.220.181]:54221 "EHLO
+	mail-vc0-f181.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750916AbaHWQ51 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 23 Aug 2014 12:57:27 -0400
 MIME-Version: 1.0
-Subject: Re: [PATCH v2] arch: Kconfig: Let all little endian architectures
- define CPU_LITTLE_ENDIAN explicitly
-References: <53EA99C3.90203@gmail.com> <CAMuHMdV_2b-A+eE--cXEFA68=72HK6mqx8+TCXRMVkyhESLYxQ@mail.gmail.com>
-In-Reply-To: <CAMuHMdV_2b-A+eE--cXEFA68=72HK6mqx8+TCXRMVkyhESLYxQ@mail.gmail.com>
+In-Reply-To: <20140822124326.GL13147@bart.dudau.co.uk>
+References: <1407860725-25202-1-git-send-email-Liviu.Dudau@arm.com>
+ <1407860725-25202-13-git-send-email-Liviu.Dudau@arm.com> <CAL_JsqK6XiuS7OJ_2F16ySA8oj9AHqP0fAft21AOtJxXP2SqnQ@mail.gmail.com>
+ <20140822124326.GL13147@bart.dudau.co.uk>
+From: Rob Herring <robherring2@gmail.com>
+Date: Sat, 23 Aug 2014 11:57:06 -0500
+Message-ID: <CAL_JsqLP3K1p3Q-B1rBtdRcRwpWJqCLQaML8uX0EXrX5GcO1CA@mail.gmail.com>
+Subject: Re: [PATCH v9 12/12] PCI: Introduce pci_remap_iospace() for remapping
+ PCI I/O bus resources into CPU space
 Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>, Chen Gang <gang.chen.5i5j@gmail.com>
-Cc: Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Jean Delvare <jdelvare@suse.de>, Russell King <linux@arm.linux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Mark Salter <msalter@redhat.com>, "a-jacquiot@ti.com" <a-jacquiot@ti.com>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, the arch/x86 maintainers <x86@kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, linux-c6x-dev@linux-c6x.org, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, linux-kbuild <linux-kbuild@vger.kernel.org>
-Message-ID: <20140822110917.Vzd5cvda__h4-8yvvPQ_UPu33qT0RfQtTKK2wgjGADY@z>
+To: Liviu Dudau <liviu@dudau.co.uk>
+Cc: Liviu Dudau <Liviu.Dudau@arm.com>, Bjorn Helgaas <bhelgaas@google.com>, Catalin Marinas <Catalin.Marinas@arm.com>, Will Deacon <Will.Deacon@arm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@arm.linux.org.uk>, Tanmay Inamdar <tinamdar@apm.com>, Grant Likely <grant.likely@secretlab.ca>, Sinan Kaya <okaya@codeaurora.org>, Jingoo Han <jg1.han@samsung.com>, Kukjin Kim <kgene.kim@samsung.com>, Suravee Suthikulanit <suravee.suthikulpanit@amd.com>, linux-pci <linux-pci@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Device Tree ML <devicetree@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, LAKML <linux-arm-kernel@lists.infradead.org>
+Message-ID: <20140823165706.zxCaUR_I5AT9lQN_p_SfvNx1_5ron0dNUpF9CNcZwug@z>
 
-Dne 13.8.2014 10:03, Geert Uytterhoeven napsal(a):
-> CC kbuild
-> 
-> On Wed, Aug 13, 2014 at 12:48 AM, Chen Gang <gang.chen.5i5j@gmail.com> wrote:
->> diff --git a/arch/arm/Kconfig b/arch/arm/Kconfig
->> index c49a775..0510a5d 100644
->> --- a/arch/arm/Kconfig
->> +++ b/arch/arm/Kconfig
->> @@ -199,6 +199,11 @@ config NEED_DMA_MAP_STATE
->>  config ARCH_SUPPORTS_UPROBES
->>         def_bool y
+On Fri, Aug 22, 2014 at 7:43 AM, Liviu Dudau <liviu@dudau.co.uk> wrote:
+> On Thu, Aug 21, 2014 at 11:16:16PM -0500, Rob Herring wrote:
+>> On Tue, Aug 12, 2014 at 11:25 AM, Liviu Dudau <Liviu.Dudau@arm.com> wrote:
+>> > Introduce a default implementation for remapping PCI bus I/O resources
+>> > onto the CPU address space. Architectures with special needs may
+>> > provide their own version, but most should be able to use this one.
+>> >
+>> > Cc: Bjorn Helgaas <bhelgaas@google.com>
+>> > Cc: Arnd Bergmann <arnd@arndb.de>
+>> > Cc: Rob Herring <robh+dt@kernel.org>
+>> > Signed-off-by: Liviu Dudau <Liviu.Dudau@arm.com>
 >>
->> +config CPU_LITTLE_ENDIAN
->> +       depends on !CPU_BIG_ENDIAN
->> +       def_bool y
->> +
->> +
->>  config ARCH_HAS_DMA_SET_COHERENT_MASK
->>         bool
-> 
-> As this is a common symbol, and replicated for all affected architectures,
-> I'm wondering if we should have the "config CPU_LITTLE_ENDIAN" in
-> common Kconfig code instead, and make the individual architectures do a
-> "select CPU_LITTLE_ENDIAN"?
+>> Reviewed-by: Rob Herring <robh@kernel.org>
+>
+> Thanks, Rob, much appreciated!
+>
+>>
+>> However, I would like to see ARM pci_ioremap_io converted over to this function.
+>
+> Do you care if this is done as a separate patch?
 
-Yes!
+Yes, that's fine hence the reviewed-by.
 
-
-> Also we could have "config CPU_BIG_ENDIAN", too, and error out
-> if none or both are selected (can Kconfig error out?).
-
-We can error out in the Makefile, if there is consensus that we should
-be doing so.
-
-Michal
+Rob
