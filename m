@@ -1,45 +1,70 @@
-From: Rob Herring <robherring2-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
-Subject: Re: [PATCH v9 12/12] PCI: Introduce pci_remap_iospace() for remapping
- PCI I/O bus resources into CPU space
-Date: Sat, 23 Aug 2014 11:57:06 -0500
-Message-ID: <CAL_JsqLP3K1p3Q-B1rBtdRcRwpWJqCLQaML8uX0EXrX5GcO1CA@mail.gmail.com>
+From: Rob Herring <robherring2@gmail.com>
+Subject: Re: [PATCH v9 04/12] PCI: OF: Fix the conversion of IO ranges into IO resources.
+Date: Sun, 24 Aug 2014 18:27:48 -0500
+Message-ID: <CAL_JsqLGa3em5Phct-H0Q=vB5AnA78h19uA=4xi3xHA1rCVq+A@mail.gmail.com>
 References: <1407860725-25202-1-git-send-email-Liviu.Dudau@arm.com>
- <1407860725-25202-13-git-send-email-Liviu.Dudau@arm.com> <CAL_JsqK6XiuS7OJ_2F16ySA8oj9AHqP0fAft21AOtJxXP2SqnQ@mail.gmail.com>
- <20140822124326.GL13147@bart.dudau.co.uk>
+ <1407860725-25202-5-git-send-email-Liviu.Dudau@arm.com> <CAL_JsqJm6qWNdrJ2F8xddFUj46y42n6hQVu1nkTaA-5Tbg--XQ@mail.gmail.com>
+ <20140822130640.GM13147@bart.dudau.co.uk>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
-Return-path: <devicetree-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <20140822124326.GL13147-hOhETlTuV5niMG9XS5x8Mg@public.gmane.org>
-Sender: devicetree-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: Liviu Dudau <liviu-I3yL/QOVVjH10XsdtD+oqA@public.gmane.org>
-Cc: Liviu Dudau <Liviu.Dudau-5wv7dgnIgG8@public.gmane.org>, Bjorn Helgaas <bhelgaas-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, Catalin Marinas <Catalin.Marinas-5wv7dgnIgG8@public.gmane.org>, Will Deacon <Will.Deacon-5wv7dgnIgG8@public.gmane.org>, Benjamin Herrenschmidt <benh-XVmvHMARGAS8U2dJNN8I7kB+6BGkLq7r@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Russell King <linux-lFZ/pmaqli7XmaaqVzeoHQ@public.gmane.org>, Tanmay Inamdar <tinamdar-qTEPVZfXA3Y@public.gmane.org>, Grant Likely <grant.likely-s3s/WqlpOiPyB63q8FvJNQ@public.gmane.org>, Sinan Kaya <okaya-sgV2jX0FEOL9JmXXK+q4OQ@public.gmane.org>, Jingoo Han <jg1.han-Sze3O3UU22JBDgjK7y7TUQ@public.gmane.org>, Kukjin Kim <kgene.kim-Sze3O3UU22JBDgjK7y7TUQ@public.gmane.org>, Suravee Suthikulanit <suravee.suthikulpanit-5C7GfCeVMHo@public.gmane.org>, linux-pci <linux-pci-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, linux-arch <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Device Tree ML <devicetree-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, LKML <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, LAKML <linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org>
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-vc0-f172.google.com ([209.85.220.172]:42091 "EHLO
+	mail-vc0-f172.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753144AbaHXX2N (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 24 Aug 2014 19:28:13 -0400
+In-Reply-To: <20140822130640.GM13147@bart.dudau.co.uk>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Liviu Dudau <liviu@dudau.co.uk>
+Cc: Liviu Dudau <Liviu.Dudau@arm.com>, Bjorn Helgaas <bhelgaas@google.com>, Catalin Marinas <Catalin.Marinas@arm.com>, Will Deacon <Will.Deacon@arm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@arm.linux.org.uk>, Tanmay Inamdar <tinamdar@apm.com>, Grant Likely <grant.likely@secretlab.ca>, Sinan Kaya <okaya@codeaurora.org>, Jingoo Han <jg1.han@samsung.com>, Kukjin Kim <kgene.kim@samsung.com>, Suravee Suthikulanit <suravee.suthikulpanit@amd.com>, linux-pci <linux-pci@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Device Tree ML <devicetree@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, LAKML <linux-arm-kernel@lists.infradead.org>
 
-On Fri, Aug 22, 2014 at 7:43 AM, Liviu Dudau <liviu-I3yL/QOVVjH10XsdtD+oqA@public.gmane.org> wrote:
-> On Thu, Aug 21, 2014 at 11:16:16PM -0500, Rob Herring wrote:
->> On Tue, Aug 12, 2014 at 11:25 AM, Liviu Dudau <Liviu.Dudau-5wv7dgnIgG8@public.gmane.org> wrote:
->> > Introduce a default implementation for remapping PCI bus I/O resources
->> > onto the CPU address space. Architectures with special needs may
->> > provide their own version, but most should be able to use this one.
+On Fri, Aug 22, 2014 at 8:06 AM, Liviu Dudau <liviu@dudau.co.uk> wrote:
+> On Thu, Aug 21, 2014 at 11:08:48PM -0500, Rob Herring wrote:
+>> On Tue, Aug 12, 2014 at 11:25 AM, Liviu Dudau <Liviu.Dudau@arm.com> wrote:
+>> > The ranges property for a host bridge controller in DT describes
+>> > the mapping between the PCI bus address and the CPU physical address.
+>> > The resources framework however expects that the IO resources start
+>> > at a pseudo "port" address 0 (zero) and have a maximum size of IO_SPACE_LIMIT.
+>> > The conversion from pci ranges to resources failed to take that into account.
 >> >
->> > Cc: Bjorn Helgaas <bhelgaas-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>
->> > Cc: Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>
->> > Cc: Rob Herring <robh+dt-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>
->> > Signed-off-by: Liviu Dudau <Liviu.Dudau-5wv7dgnIgG8@public.gmane.org>
+>> > In the process move the function into drivers/of/address.c as it now
+>> > depends on pci_address_to_pio() code and make it return an error code.
+>> >
+>> > Cc: Grant Likely <grant.likely@linaro.org>
+>> > Cc: Rob Herring <robh+dt@kernel.org>
 >>
->> Reviewed-by: Rob Herring <robh-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>
+>> Humm, this says I'm cc'ed, but I'm not which defeats the point of
+>> recording the Cc's in the commit.
 >
-> Thanks, Rob, much appreciated!
+> Appologies, I've screwed up my git send-email arguments.
 >
 >>
->> However, I would like to see ARM pci_ioremap_io converted over to this function.
+>> I still have the same concerns that this will break existing users.
+>> Are you sure integrator is the only platform affected?
 >
-> Do you care if this is done as a separate patch?
+> microblaze and powerpc have their similar handcoded routine for parsing ranges
+> where they pre-compute the io_base and adjust the values again when registering
+> resources. I'm not absolutely sure they are not broken as I lack the appropriate
+> platforms to test (I've been asking for an FPGA engineer to build me a microblaze
+> image with all the bits included but haven't received anything yet and it is
+> possible Xilinx has now shifted their interests towards ARM + PCI as the ML605
+> board that I have seems to have been discontinued).
 
-Yes, that's fine hence the reviewed-by.
+I will settle for "I've read through the $arch code and believe they
+are not broken". It is unrealistic for you to test on everything.
+
+> mips is doing the same thing and I believe is not affected, pci-host-generic.c
+> was adjusting the returned values afterwards so that will not be needed and Lorenzo
+> has a patch for the driver to adapt it to this series anyway.
+>
+> pcie-designware.c also recalculates the io.start and io.end values, so that's fine
+> for now. The only ones that I believe are still affected are pci-tegra.c and
+> pcie-rcar.c for which I will need to provide a patch similar to integrator unless
+> the code gets converted to the new range parsing.
+
+Well, the latter would be nice, but they certainly have to be fixed.
+Now that I think about it, this needs to be handled in a bisectable
+way. So I think you need to fix all affected platforms in this patch
+rather than a separate patch as you have done.
 
 Rob
---
-To unsubscribe from this list: send the line "unsubscribe devicetree" in
-the body of a message to majordomo-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-More majordomo info at  http://vger.kernel.org/majordomo-info.html
