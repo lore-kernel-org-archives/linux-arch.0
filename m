@@ -1,39 +1,48 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from eddie.linux-mips.org ([148.251.95.138]:42004 "EHLO
-	cvs.linux-mips.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S933017AbaHYRik (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 25 Aug 2014 13:38:40 -0400
-Received: from localhost.localdomain ([127.0.0.1]:54260 "EHLO linux-mips.org"
-        rhost-flags-OK-OK-OK-FAIL) by eddie.linux-mips.org with ESMTP
-        id S27006756AbaHYRQKDdXZA (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 25 Aug 2014 19:16:10 +0200
-Date: Mon, 25 Aug 2014 19:16:00 +0200
-From: Ralf Baechle <ralf@linux-mips.org>
-Subject: Re: [PATCH v4 0/2] mm/highmem: make kmap cache coloring aware
-Message-ID: <20140825171600.GH25892@linux-mips.org>
-References: <1406941899-19932-1-git-send-email-jcmvbkbc@gmail.com>
+Received: from qmta04.westchester.pa.mail.comcast.net ([76.96.62.40]:35919
+	"EHLO qmta04.westchester.pa.mail.comcast.net" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1756677AbaHZACD (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Mon, 25 Aug 2014 20:02:03 -0400
+Message-ID: <53FBCD09.1050003@gentoo.org>
+Date: Mon, 25 Aug 2014 19:55:53 -0400
+From: Joshua Kinard <kumba@gentoo.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1406941899-19932-1-git-send-email-jcmvbkbc@gmail.com>
+Subject: Re: [PATCH v4 0/2] mm/highmem: make kmap cache coloring aware
+References: <1406941899-19932-1-git-send-email-jcmvbkbc@gmail.com> <20140825171600.GH25892@linux-mips.org>
+In-Reply-To: <20140825171600.GH25892@linux-mips.org>
+Content-Type: text/plain; charset=windows-1252
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Max Filippov <jcmvbkbc@gmail.com>
+To: Ralf Baechle <ralf@linux-mips.org>, Max Filippov <jcmvbkbc@gmail.com>
 Cc: linux-xtensa@linux-xtensa.org, Chris Zankel <chris@zankel.net>, Marc Gauthier <marc@cadence.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-mips@linux-mips.org, linux-kernel@vger.kernel.org, David Rientjes <rientjes@google.com>, Andrew Morton <akpm@linux-foundation.org>, Leonid Yegoshin <Leonid.Yegoshin@imgtec.com>, Steven Hill <Steven.Hill@imgtec.com>
-Message-ID: <20140825171600.Q5Hv2jB-AYNxHVfOzpEDSSKoOx3K6fcH1sTuYGQsbwk@z>
+Message-ID: <20140825235553.eUs40Z3a6lU3lZBuB8trFLzzH7UTGy_zjc9S-0nfeMw@z>
 
-On Sat, Aug 02, 2014 at 05:11:37AM +0400, Max Filippov wrote:
+On 08/25/2014 13:16, Ralf Baechle wrote:
+> On Sat, Aug 02, 2014 at 05:11:37AM +0400, Max Filippov wrote:
+> 
+>> this series adds mapping color control to the generic kmap code, allowing
+>> architectures with aliasing VIPT cache to use high memory. There's also
+>> use example of this new interface by xtensa.
+> 
+> I haven't actually ported this to MIPS but it certainly appears to be
+> the right framework to get highmem aliases handled on MIPS, too.
+> 
+> Though I still consider increasing PAGE_SIZE to 16k the preferable
+> solution because it will entirly do away with cache aliases.
 
-> this series adds mapping color control to the generic kmap code, allowing
-> architectures with aliasing VIPT cache to use high memory. There's also
-> use example of this new interface by xtensa.
+Won't setting PAGE_SIZE to 16k break some existing userlands (o32)?  I use a
+4k PAGE_SIZE because the last few times I've tried 16k or 64k, init won't
+load (SIGSEGVs or such, which panicks the kernel).
 
-I haven't actually ported this to MIPS but it certainly appears to be
-the right framework to get highmem aliases handled on MIPS, too.
+-- 
+Joshua Kinard
+Gentoo/MIPS
+kumba@gentoo.org
+4096R/D25D95E3 2011-03-28
 
-Though I still consider increasing PAGE_SIZE to 16k the preferable
-solution because it will entirly do away with cache aliases.
+"The past tempts us, the present confuses us, the future frightens us.  And
+our lives slip away, moment by moment, lost in that vast, terrible in-between."
 
-Thanks,
-
-  Ralf
+--Emperor Turhan, Centauri Republic
