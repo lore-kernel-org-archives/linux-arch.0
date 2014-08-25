@@ -1,70 +1,138 @@
-From: Rob Herring <robherring2@gmail.com>
-Subject: Re: [PATCH v9 04/12] PCI: OF: Fix the conversion of IO ranges into IO resources.
-Date: Sun, 24 Aug 2014 18:27:48 -0500
-Message-ID: <CAL_JsqLGa3em5Phct-H0Q=vB5AnA78h19uA=4xi3xHA1rCVq+A@mail.gmail.com>
-References: <1407860725-25202-1-git-send-email-Liviu.Dudau@arm.com>
- <1407860725-25202-5-git-send-email-Liviu.Dudau@arm.com> <CAL_JsqJm6qWNdrJ2F8xddFUj46y42n6hQVu1nkTaA-5Tbg--XQ@mail.gmail.com>
- <20140822130640.GM13147@bart.dudau.co.uk>
+From: Thierry Reding <thierry.reding@gmail.com>
+Subject: Re: [PATCH v4 0/8] asm-generic/io.h overhaul
+Date: Mon, 25 Aug 2014 13:26:33 +0200
+Message-ID: <20140825112630.GA4163@ulmo.nvidia.com>
+References: <1407925738-26170-1-git-send-email-thierry.reding@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: multipart/signed; micalg=pgp-sha1;
+	protocol="application/pgp-signature"; boundary="3V7upXqbjpZ4EhLz"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-vc0-f172.google.com ([209.85.220.172]:42091 "EHLO
-	mail-vc0-f172.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753144AbaHXX2N (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 24 Aug 2014 19:28:13 -0400
-In-Reply-To: <20140822130640.GM13147@bart.dudau.co.uk>
+Received: from mail-pa0-f49.google.com ([209.85.220.49]:53731 "EHLO
+	mail-pa0-f49.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752496AbaHYL0i (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 25 Aug 2014 07:26:38 -0400
+Content-Disposition: inline
+In-Reply-To: <1407925738-26170-1-git-send-email-thierry.reding@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Liviu Dudau <liviu@dudau.co.uk>
-Cc: Liviu Dudau <Liviu.Dudau@arm.com>, Bjorn Helgaas <bhelgaas@google.com>, Catalin Marinas <Catalin.Marinas@arm.com>, Will Deacon <Will.Deacon@arm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@arm.linux.org.uk>, Tanmay Inamdar <tinamdar@apm.com>, Grant Likely <grant.likely@secretlab.ca>, Sinan Kaya <okaya@codeaurora.org>, Jingoo Han <jg1.han@samsung.com>, Kukjin Kim <kgene.kim@samsung.com>, Suravee Suthikulanit <suravee.suthikulpanit@amd.com>, linux-pci <linux-pci@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Device Tree ML <devicetree@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, LAKML <linux-arm-kernel@lists.infradead.org>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Russell King <linux@arm.linux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Stephen Boyd <sboyd@codeaurora.org>, Sam Ravnborg <sam@ravnborg.org>, linux-arm-kernel@lists.infradead.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, x86@kernel.org, linux-serial@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-On Fri, Aug 22, 2014 at 8:06 AM, Liviu Dudau <liviu@dudau.co.uk> wrote:
-> On Thu, Aug 21, 2014 at 11:08:48PM -0500, Rob Herring wrote:
->> On Tue, Aug 12, 2014 at 11:25 AM, Liviu Dudau <Liviu.Dudau@arm.com> wrote:
->> > The ranges property for a host bridge controller in DT describes
->> > the mapping between the PCI bus address and the CPU physical address.
->> > The resources framework however expects that the IO resources start
->> > at a pseudo "port" address 0 (zero) and have a maximum size of IO_SPACE_LIMIT.
->> > The conversion from pci ranges to resources failed to take that into account.
->> >
->> > In the process move the function into drivers/of/address.c as it now
->> > depends on pci_address_to_pio() code and make it return an error code.
->> >
->> > Cc: Grant Likely <grant.likely@linaro.org>
->> > Cc: Rob Herring <robh+dt@kernel.org>
->>
->> Humm, this says I'm cc'ed, but I'm not which defeats the point of
->> recording the Cc's in the commit.
->
-> Appologies, I've screwed up my git send-email arguments.
->
->>
->> I still have the same concerns that this will break existing users.
->> Are you sure integrator is the only platform affected?
->
-> microblaze and powerpc have their similar handcoded routine for parsing ranges
-> where they pre-compute the io_base and adjust the values again when registering
-> resources. I'm not absolutely sure they are not broken as I lack the appropriate
-> platforms to test (I've been asking for an FPGA engineer to build me a microblaze
-> image with all the bits included but haven't received anything yet and it is
-> possible Xilinx has now shifted their interests towards ARM + PCI as the ML605
-> board that I have seems to have been discontinued).
 
-I will settle for "I've read through the $arch code and believe they
-are not broken". It is unrealistic for you to test on everything.
+--3V7upXqbjpZ4EhLz
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
 
-> mips is doing the same thing and I believe is not affected, pci-host-generic.c
-> was adjusting the returned values afterwards so that will not be needed and Lorenzo
-> has a patch for the driver to adapt it to this series anyway.
->
-> pcie-designware.c also recalculates the io.start and io.end values, so that's fine
-> for now. The only ones that I believe are still affected are pci-tegra.c and
-> pcie-rcar.c for which I will need to provide a patch similar to integrator unless
-> the code gets converted to the new range parsing.
+On Wed, Aug 13, 2014 at 12:28:50PM +0200, Thierry Reding wrote:
+> From: Thierry Reding <treding@nvidia.com>
+>=20
+> Hi,
+>=20
+> Here is the fourth version of a series that started out as an attempt to
+> provide string versions of the read*() and write*() accessors to more
+> architectures so that drivers can use them portably. The series has
+> since evolved into a more general cleanup of asm-generic/io.h and the
+> functions defined therein.
+>=20
+> Patch 1 is trivial and removes a redundant redefinition of PCI_IOBASE
+> from the asm/io.h header on ARC. Patches 2 and 3 remove unnecessary
+> volatile keywoards from some functions, which is a prerequisite to clean
+> up some of the functions in subsequent patches.
+>=20
+> The xlate_dev_{kmem,mem}_ptr() functions are used to map memory when the
+> /dev/mem device is accessed. Patches 4 and 5 use more consistent data
+> types for these functions, which will get a "standard" prototype in the
+> asm-generic/io.h header in a subsequent patch.
+>=20
+> Patch 6 is the bulk of this series. It implements the string variants of
+> the read*() and write*() accessors and cleans up various other parts of
+> the asm-generic/io.h header file. Macros are converted to static inline
+> functions for better type checking. Overriding generic implementations
+> in architectures is handled more consistently.
+>=20
+> Patches 7 and 8, finally, make use of the asm-generic/io.h header on the
+> 32-bit and 64-bit ARM architectures.
+>=20
+> This is compile- and runtime-tested on 32-bit and 64-bit ARM and compile
+> tested on IA64, Microblaze, s390, SPARC, x86 and Xtensa. For ARC,
+> Blackfin, Metag, OpenRISC, Score and Unicore32 which also use
+> asm-generic/io.h I couldn't find or build a cross-compiler that would
+> run on my system. But by code inspection they shouldn't break with this
+> patch.
+>=20
+> To ensure bisectability I built multi_v7_defconfig on 32-bit ARM and the
+> defconfig for 64-bit ARM, IA64, Microblaze, s390, SPARC, x86 and Xtensa
+> after each commit and verified that the series does not introduce any
+> build errors or warnings.
+>=20
+> Provided there are no objections to the patches there's still the matter
+> of how to merge them. Patch 6 depends on patches 1-5 to avoid warnings
+> and/or errors during the build. Patches 7 and 8 depend on patch 6. In my
+> opinion it doesn't make much sense to split them up, so I guess we'll
+> need a volunteer to take them all into one tree. Ideally that tree would
+> feed into linux-next so that we can get as much build and test-coverage
+> as possible during the 3.17 release cycle so that these patches can go
+> into 3.18.
+>=20
+> Arnd, I'm opportunistically sending this To: you in the hopes that you
+> can take it into your asm-generic tree which seems like the best fit for
+> this.
+>=20
+> Thierry
+>=20
+> Thierry Reding (8):
+>   ARC: Remove redundant PCI_IOBASE declaration
+>   serial: sunzilog: Remove unnecessary volatile keyword
+>   sparc: Remove unnecessary volatile usage
+>   [IA64] Change xlate_dev_{kmem,mem}_ptr() prototypes
+>   /dev/mem: Use more consistent data types
+>   asm-generic/io.h: Implement generic {read,write}s*()
+>   ARM: Use include/asm-generic/io.h
+>   arm64: Use include/asm-generic/io.h
+>=20
+>  arch/arc/include/asm/io.h       |   2 -
+>  arch/arm/include/asm/io.h       |  75 ++---
+>  arch/arm/include/asm/memory.h   |   2 +
+>  arch/arm64/Kconfig              |   1 -
+>  arch/arm64/include/asm/io.h     | 122 ++-----
+>  arch/arm64/include/asm/memory.h |   2 +
+>  arch/ia64/include/asm/uaccess.h |  16 +-
+>  arch/s390/include/asm/io.h      |   5 +-
+>  arch/s390/mm/maccess.c          |   4 +-
+>  arch/sparc/include/asm/io_32.h  |  18 +-
+>  arch/x86/include/asm/io.h       |   4 +-
+>  arch/x86/mm/ioremap.c           |   4 +-
+>  drivers/char/mem.c              |  13 +-
+>  drivers/tty/serial/sunzilog.h   |   8 +-
+>  include/asm-generic/io.h        | 683 ++++++++++++++++++++++++++++++++--=
+------
+>  15 files changed, 647 insertions(+), 312 deletions(-)
 
-Well, the latter would be nice, but they certainly have to be fixed.
-Now that I think about it, this needs to be handled in a bisectable
-way. So I think you need to fix all affected platforms in this patch
-rather than a separate patch as you have done.
+Arnd, do you think this looks good to take for test-driving in
+linux-next?
 
-Rob
+Thierry
+
+--3V7upXqbjpZ4EhLz
+Content-Type: application/pgp-signature
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v2
+
+iQIcBAEBAgAGBQJT+x1mAAoJEN0jrNd/PrOhB6cP/3hBN9312AUPTbkDv6xnddM7
+Z519rK6er4jx7i1+fwNgZIzpZ36XlgFavja3Gj12Md/tPi/p/GtRFbZTm62QkOs8
+AqMX4b/2/S8iWeCmCBM8Cp/GOQmpRDqv7lbDZHpNGeQE4bL36cLpFi47+MklEUug
+cUydGG9BrNVN0Y4bMlvBNbiq7vzZPbM0YTGyJ2VjeKduuJYkIA1nVM4QW2e9cJ/4
+HbLSKFU5OKkHCuXSYAE6wd+xlYxz6pZMb6NQTtQnw4VPFBYaQf/89vsXGIAh7T/i
+LbiyJH7nGZRFUmGIwtq8FTgNayydZJBfP8Oqxcb3gh0sSG25L3Mc3a2d0JqbTYJF
+jjX8O2KGKFWLolhOWEAOmEkvsSx6j8CchPfInRF7GD70Fy7Kclo5VV/XMIJMED46
+kQ/PyCxokdRmJERlPaIIuUItBIQ5GHrNeeUtUjetQoFI45js9Lkm+s71MBFeNAzh
+xzxin7A3IRbH4zFXTtm4NrQLxL9PS9VPCubK9cGYETKDCFjrO6CnD52ZuilTNrrK
+dktw7vcBGUX0nVcVEAceweCLOVutQVGSxvasGT3aYdMHqp6yIvIzUdtiwpi3njsp
+XlYBj7DhrT7IK4IF/foZDulcfn4M7ULkuswVMwJG2FLczrG7RjinEQfsezqF47ta
+i/k8tEowx0DE21ZTa6a1
+=6o5v
+-----END PGP SIGNATURE-----
+
+--3V7upXqbjpZ4EhLz--
