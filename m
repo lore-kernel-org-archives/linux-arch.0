@@ -1,46 +1,118 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-vc0-f181.google.com ([209.85.220.181]:54221 "EHLO
-	mail-vc0-f181.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750916AbaHWQ51 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 23 Aug 2014 12:57:27 -0400
+Received: from mail-pd0-f173.google.com ([209.85.192.173]:43670 "EHLO
+	mail-pd0-f173.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755525AbaHYM1m (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 25 Aug 2014 08:27:42 -0400
+Date: Mon, 25 Aug 2014 14:27:35 +0200
+From: Thierry Reding <thierry.reding@gmail.com>
+Subject: Re: [PATCH v4 0/8] asm-generic/io.h overhaul
+Message-ID: <20140825122734.GD4163@ulmo.nvidia.com>
+References: <1407925738-26170-1-git-send-email-thierry.reding@gmail.com>
+ <CAFLxGvyyW5J0En1bFwonZiMwoJK+XDgtHvC2PQOhqgvyF4F-uQ@mail.gmail.com>
 MIME-Version: 1.0
-In-Reply-To: <20140822124326.GL13147@bart.dudau.co.uk>
-References: <1407860725-25202-1-git-send-email-Liviu.Dudau@arm.com>
- <1407860725-25202-13-git-send-email-Liviu.Dudau@arm.com> <CAL_JsqK6XiuS7OJ_2F16ySA8oj9AHqP0fAft21AOtJxXP2SqnQ@mail.gmail.com>
- <20140822124326.GL13147@bart.dudau.co.uk>
-From: Rob Herring <robherring2@gmail.com>
-Date: Sat, 23 Aug 2014 11:57:06 -0500
-Message-ID: <CAL_JsqLP3K1p3Q-B1rBtdRcRwpWJqCLQaML8uX0EXrX5GcO1CA@mail.gmail.com>
-Subject: Re: [PATCH v9 12/12] PCI: Introduce pci_remap_iospace() for remapping
- PCI I/O bus resources into CPU space
-Content-Type: text/plain; charset=UTF-8
+Content-Type: multipart/signed; micalg=pgp-sha1;
+	protocol="application/pgp-signature"; boundary="k4f25fnPtRuIRUb3"
+Content-Disposition: inline
+In-Reply-To: <CAFLxGvyyW5J0En1bFwonZiMwoJK+XDgtHvC2PQOhqgvyF4F-uQ@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Liviu Dudau <liviu@dudau.co.uk>
-Cc: Liviu Dudau <Liviu.Dudau@arm.com>, Bjorn Helgaas <bhelgaas@google.com>, Catalin Marinas <Catalin.Marinas@arm.com>, Will Deacon <Will.Deacon@arm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@arm.linux.org.uk>, Tanmay Inamdar <tinamdar@apm.com>, Grant Likely <grant.likely@secretlab.ca>, Sinan Kaya <okaya@codeaurora.org>, Jingoo Han <jg1.han@samsung.com>, Kukjin Kim <kgene.kim@samsung.com>, Suravee Suthikulanit <suravee.suthikulpanit@amd.com>, linux-pci <linux-pci@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Device Tree ML <devicetree@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, LAKML <linux-arm-kernel@lists.infradead.org>
-Message-ID: <20140823165706.zxCaUR_I5AT9lQN_p_SfvNx1_5ron0dNUpF9CNcZwug@z>
+To: Richard Weinberger <richard.weinberger@gmail.com>
+Cc: Arnd Bergmann <arnd@arndb.de>, Russell King <linux@arm.linux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Stephen Boyd <sboyd@codeaurora.org>, Sam Ravnborg <sam@ravnborg.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, linux-ia64@vger.kernel.org, "linux-s390@vger.kernel.org" <linux-s390@vger.kernel.org>, sparclinux@vger.kernel.org, "x86@kernel.org" <x86@kernel.org>, linux-serial@vger.kernel.org, Linux-Arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>
+Message-ID: <20140825122735.eAvhVQA3akVYgYs-9I-Ky6JYK8SUpwSs5ctnWwoQFSE@z>
 
-On Fri, Aug 22, 2014 at 7:43 AM, Liviu Dudau <liviu@dudau.co.uk> wrote:
-> On Thu, Aug 21, 2014 at 11:16:16PM -0500, Rob Herring wrote:
->> On Tue, Aug 12, 2014 at 11:25 AM, Liviu Dudau <Liviu.Dudau@arm.com> wrote:
->> > Introduce a default implementation for remapping PCI bus I/O resources
->> > onto the CPU address space. Architectures with special needs may
->> > provide their own version, but most should be able to use this one.
->> >
->> > Cc: Bjorn Helgaas <bhelgaas@google.com>
->> > Cc: Arnd Bergmann <arnd@arndb.de>
->> > Cc: Rob Herring <robh+dt@kernel.org>
->> > Signed-off-by: Liviu Dudau <Liviu.Dudau@arm.com>
->>
->> Reviewed-by: Rob Herring <robh@kernel.org>
->
-> Thanks, Rob, much appreciated!
->
->>
->> However, I would like to see ARM pci_ioremap_io converted over to this function.
->
-> Do you care if this is done as a separate patch?
 
-Yes, that's fine hence the reviewed-by.
+--k4f25fnPtRuIRUb3
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
 
-Rob
+On Mon, Aug 25, 2014 at 01:53:30PM +0200, Richard Weinberger wrote:
+> On Wed, Aug 13, 2014 at 12:28 PM, Thierry Reding
+> <thierry.reding@gmail.com> wrote:
+> > From: Thierry Reding <treding@nvidia.com>
+> >
+> > Hi,
+> >
+> > Here is the fourth version of a series that started out as an attempt to
+> > provide string versions of the read*() and write*() accessors to more
+> > architectures so that drivers can use them portably. The series has
+> > since evolved into a more general cleanup of asm-generic/io.h and the
+> > functions defined therein.
+> >
+> > Patch 1 is trivial and removes a redundant redefinition of PCI_IOBASE
+> > from the asm/io.h header on ARC. Patches 2 and 3 remove unnecessary
+> > volatile keywoards from some functions, which is a prerequisite to clean
+> > up some of the functions in subsequent patches.
+> >
+> > The xlate_dev_{kmem,mem}_ptr() functions are used to map memory when the
+> > /dev/mem device is accessed. Patches 4 and 5 use more consistent data
+> > types for these functions, which will get a "standard" prototype in the
+> > asm-generic/io.h header in a subsequent patch.
+> >
+> > Patch 6 is the bulk of this series. It implements the string variants of
+> > the read*() and write*() accessors and cleans up various other parts of
+> > the asm-generic/io.h header file. Macros are converted to static inline
+> > functions for better type checking. Overriding generic implementations
+> > in architectures is handled more consistently.
+> >
+> > Patches 7 and 8, finally, make use of the asm-generic/io.h header on the
+> > 32-bit and 64-bit ARM architectures.
+> >
+> > This is compile- and runtime-tested on 32-bit and 64-bit ARM and compile
+> > tested on IA64, Microblaze, s390, SPARC, x86 and Xtensa. For ARC,
+> > Blackfin, Metag, OpenRISC, Score and Unicore32 which also use
+> > asm-generic/io.h I couldn't find or build a cross-compiler that would
+> > run on my system. But by code inspection they shouldn't break with this
+> > patch.
+> >
+> > To ensure bisectability I built multi_v7_defconfig on 32-bit ARM and the
+> > defconfig for 64-bit ARM, IA64, Microblaze, s390, SPARC, x86 and Xtensa
+> > after each commit and verified that the series does not introduce any
+> > build errors or warnings.
+> >
+> > Provided there are no objections to the patches there's still the matter
+> > of how to merge them. Patch 6 depends on patches 1-5 to avoid warnings
+> > and/or errors during the build. Patches 7 and 8 depend on patch 6. In my
+> > opinion it doesn't make much sense to split them up, so I guess we'll
+> > need a volunteer to take them all into one tree. Ideally that tree would
+> > feed into linux-next so that we can get as much build and test-coverage
+> > as possible during the 3.17 release cycle so that these patches can go
+> > into 3.18.
+> >
+> > Arnd, I'm opportunistically sending this To: you in the hopes that you
+> > can take it into your asm-generic tree which seems like the best fit for
+> > this.
+>=20
+> Do you have a git tree for that?
+> Would be nice for testing UML, it depends also on generic io.
+
+Yes, it's all here:
+
+	https://github.com/thierryreding/linux.git staging/asm-generic-io
+
+That branch is based on today's linux-next (next-20140825).
+
+Thierry
+
+--k4f25fnPtRuIRUb3
+Content-Type: application/pgp-signature
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v2
+
+iQIcBAEBAgAGBQJT+yu2AAoJEN0jrNd/PrOh+AcP/2a/7t9y0saxuvXfle2hOY3Y
+1oGDlghGLODVxM4AcdylgjzHfgbd/NaO9xgYMYNduPAjQ60SIcAqEzWKq+1Vl/yF
+rEvUuEtEUXwswhZ7w+1GPJeANwcB5ZmxnMdY9WqzRB6fWNmNpJHz5HB9pjWx3xpH
+KDYEik1I0VLQ1zOYwYvK9399yPmzA5mcgok403uW+q2mhCLWR3ezT9KYKdGOo+4q
+mT7pYoyKYVL8cQTdQlrbmM2c/6pBUhSNZ3sVXlT/ecS5JeudP4/IB/gF5PXrsHC+
+pa0tPeIR5r8RF8pxKaUVoMPC76FUAFAfrAh5YAGGpa5vYMtdKpd+lzF5D1susSxH
+sMwXVm0wuYc8u+GzQWMnjutlvfXMdkMC/2JX21ZG5eoZ77+KxAQ+Yv9aMKNCeDLm
+Y+VRXyXYkTxro84vaKEmk8GGjsiNokyGkidU5wuAlhNAqrmu3nQiYj7eCUZeR6Wc
+McxzMFcLtl666curxWW3HvTS/I0dwxzeHstRBEcoS9bfbZqkA4uWZWgvn8ZSZKNh
+oebDv1W8dqCrvJuENlPr0RWqvQc5upqFfuEUwllYEEkU1eUklTjkCetJ5BxFqDpx
+PAkQWF4/jCbvpRY/+zEMh15w2NQiyAx7M4nQrgLm2OCZRfq6BvnLBjuWe5HEdo3K
+2LsO0HupoQ/dtuddqU/n
+=Jynz
+-----END PGP SIGNATURE-----
+
+--k4f25fnPtRuIRUb3--
