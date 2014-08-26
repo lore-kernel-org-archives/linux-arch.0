@@ -1,122 +1,67 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qg0-f54.google.com ([209.85.192.54]:55241 "EHLO
-	mail-qg0-f54.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750886AbaHZQNr (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 26 Aug 2014 12:13:47 -0400
-Received: by mail-qg0-f54.google.com with SMTP id j5so12215685qga.27
-        for <linux-arch@vger.kernel.org>; Tue, 26 Aug 2014 09:13:47 -0700 (PDT)
-Message-ID: <53FCB239.90104@bluespec.com>
-Date: Tue, 26 Aug 2014 12:13:45 -0400
-From: Darius Rad <darius@bluespec.com>
+Received: from mail-ob0-f171.google.com ([209.85.214.171]:36941 "EHLO
+	mail-ob0-f171.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751610AbaHZRpu (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 26 Aug 2014 13:45:50 -0400
+Message-ID: <53FCC7CB.8010701@gmail.com>
+Date: Tue, 26 Aug 2014 10:45:47 -0700
+From: David Daney <ddaney.cavm@gmail.com>
 MIME-Version: 1.0
-Subject: Re: [PATCH] include/asm-generic/cmpxchg-local.h: perform comparison
- in cmpxchg using appropriate size of data
-References: <53FB5733.4010607@bluespec.com> <22513003.HL2jGO1mLV@wuerfel>
-In-Reply-To: <22513003.HL2jGO1mLV@wuerfel>
-Content-Type: text/plain; charset=ISO-8859-1
+Subject: Re: [PATCH v4 0/2] mm/highmem: make kmap cache coloring aware
+References: <1406941899-19932-1-git-send-email-jcmvbkbc@gmail.com> <20140825171600.GH25892@linux-mips.org> <53FBCD09.1050003@gentoo.org> <53FBD676.8080307@gmail.com> <53FBF3C3.90509@gentoo.org>
+In-Reply-To: <53FBF3C3.90509@gentoo.org>
+Content-Type: text/plain; charset=windows-1252; format=flowed
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20140826161345.DtPMz3RyBPIrRCzP3AdebDB07LpKiXJY6HnJrLGqgdw@z>
+To: Joshua Kinard <kumba@gentoo.org>
+Cc: Ralf Baechle <ralf@linux-mips.org>, Max Filippov <jcmvbkbc@gmail.com>, linux-xtensa@linux-xtensa.org, Chris Zankel <chris@zankel.net>, Marc Gauthier <marc@cadence.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-mips@linux-mips.org, linux-kernel@vger.kernel.org, David Rientjes <rientjes@google.com>, Andrew Morton <akpm@linux-foundation.org>, Leonid Yegoshin <Leonid.Yegoshin@imgtec.com>, Steven Hill <Steven.Hill@imgtec.com>
+Message-ID: <20140826174547.wGCnapGdHzArs5R4NP1adn5uiBA1Dyp6dxzofQ4rcPY@z>
 
-On 08/26/2014 08:33 AM, Arnd Bergmann wrote:
-> On Monday 25 August 2014 11:33:07 Darius Rad wrote:
->> In the generic implementation of cmpxchg, cast the parameters to the size
->> of the data prior to comparison.  Otherwise, it is possible for the
->> comparison to be done incorrectly in the case where the data size is
->> smaller than the architecture register size.
+On 08/25/2014 07:41 PM, Joshua Kinard wrote:
+> On 08/25/2014 20:36, David Daney wrote:
+>> On 08/25/2014 04:55 PM, Joshua Kinard wrote:
+>>> On 08/25/2014 13:16, Ralf Baechle wrote:
+>>>> On Sat, Aug 02, 2014 at 05:11:37AM +0400, Max Filippov wrote:
+>>>>
+>>>>> this series adds mapping color control to the generic kmap code, allowing
+>>>>> architectures with aliasing VIPT cache to use high memory. There's also
+>>>>> use example of this new interface by xtensa.
+>>>>
+>>>> I haven't actually ported this to MIPS but it certainly appears to be
+>>>> the right framework to get highmem aliases handled on MIPS, too.
+>>>>
+>>>> Though I still consider increasing PAGE_SIZE to 16k the preferable
+>>>> solution because it will entirly do away with cache aliases.
+>>>
+>>> Won't setting PAGE_SIZE to 16k break some existing userlands (o32)?  I use a
+>>> 4k PAGE_SIZE because the last few times I've tried 16k or 64k, init won't
+>>> load (SIGSEGVs or such, which panicks the kernel).
+>>>
 >>
->> For example, on a 64-bit architecture, a 32-bit value is sign extended
->> differently if it is typecast from an int to an unsigned long as compared
->> to being loaded from memory via an unsigned pointer (u32 *).
-> 
-> I don't see the scenario where this applies yet. The function itself
-> only deals with unsigned values, so there should never be any sign extension.
-> 
-> Is this a problem with the caller using a signed type? Does the same
-> code work on architectures that don't use the generic code?
-> 
-
-Yes, the problem is when the caller uses a signed type (that is also smaller
-than unsigned long).  For example, set_last_pid() in kernel/pid.c passes an
-int.
-
-And yes, the same code works without using the generic code.  In my testing,
-simply casting the u32 case comparison makes the code work, whereas
-with the generic code everything in user space gets killed.
-
-
->>  Given that
->> the primary, or possibly only, use of cmpxchg is with 4 and 8 byte values,
->> the incorrect comparison could only occur on 64-bit architectures that make
->> use of the generic cmxchg.
-> 
-> cmpxchg is definitely meant to handle 1 and 2 byte values as well, but it's
-> relatively rare. ARMv6 for instance does not handle 2-byte atomics and only
-> one driver (xen) has had problems because of this.
-> 
-
-Understood.  I noticed that some architectures (e.g., MIPS, Xtensa) only
-implement the 4 and 8 byte varieties, which is why I made that initial
-assumption.
-
-
->> Signed-off-by: Darius Rad <darius@bluespec.com>
+>> It isn't supposed to break things.  Using "stock" toolchains should result
+>> in executables that will run with any page size.
 >>
->> ---
->> It does not appear that this is relevant to architectures that are in the
->> kernel tree, since the generic cmpxchg is only ever used by some 32-bit
->> architectures.  This does impact the RISC-V architecture that is currently
->> in development.
-> 
-> I guess that means that RISC-V has no mandatory atomic instructions, right?
-> 
-
-Correct.
-
-
+>> In the past, some geniuses came up with some linker (ld) patches that, in
+>> order to save a few KB of RAM, produced executables that ran only on 4K pages.
 >>
->>  include/asm-generic/cmpxchg-local.h |    8 ++++----
->>  1 file changed, 4 insertions(+), 4 deletions(-)
+>> There were some equally astute Debian emacs package maintainers that were
+>> carrying emacs patches into Debian that would not work on non-4K page size
+>> systems.
 >>
->> --- linux-3.17-rc1.orig/include/asm-generic/cmpxchg-local.h	2014-08-16 12:40:26.000000000 -0400
->> +++ linux-3.17-rc1/include/asm-generic/cmpxchg-local.h	2014-08-22 14:26:59.280746090 -0400
->> @@ -25,19 +25,19 @@ static inline unsigned long __cmpxchg_lo
->>  	raw_local_irq_save(flags);
->>  	switch (size) {
->>  	case 1: prev = *(u8 *)ptr;
->> -		if (prev == old)
->> +		if ((u8)prev == (u8)old)
->>  			*(u8 *)ptr = (u8)new;
->>  		break;
->>  	case 2: prev = *(u16 *)ptr;
->> -		if (prev == old)
->> +		if ((u16)prev == (u16)old)
->>  			*(u16 *)ptr = (u16)new;
->>  		break;
->>  	case 4: prev = *(u32 *)ptr;
->> -		if (prev == old)
->> +		if ((u32)prev == (u32)old)
->>  			*(u32 *)ptr = (u32)new;
->>  		break;
->>  	case 8: prev = *(u64 *)ptr;
->> -		if (prev == old)
->> +		if ((u64)prev == (u64)old)
->>  			*(u64 *)ptr = (u64)new;
->>  		break;
->>  	default:
-> 
-> I can see how the cast of 'old' to a narrower type makes sense, but
-> not 'prev', which we just loaded and zero-extended one line earlier.
-> 
+>> That said, I think such thinking should be punished.  The punishment should
+>> be to not have their software run when we select non-4K page sizes.  The
+>> vast majority of prepackaged software runs just fine with a larger page size.
+>
+> Well, it does appear to mostly work now w/ 16k PAGE_SIZE.  The Octane booted
+> into userland with just a couple of "illegal instruction" errors from 'rm'
+> and 'mdadm'.  I wonder if that's tied to a hardcoded PAGE_SIZE somewhere.
+> Have to dig around and find something that reproduces the problem on demand.
+>
 
-Indeed, I agree that casting 'prev' is not necessary.
-
-
-> 	Arnd
-> 
-
-// darius
+What does the output of "readelf -lW" look like for the failing 
+programs?  If the "Offset" and "VirtAddr" constraints for the LOAD 
+Program Headers are not possible to achieve with the selected PAGE_SIZE, 
+you will see problems.  A "correct" toolchain will generate binaries 
+that work with any PAGE_SIZE up to 64K.
 
