@@ -1,35 +1,97 @@
-From: Alexei Starovoitov <ast@plumgrid.com>
-Subject: Re: Post-merge-window ping (Re: [PATCH v4 0/5] x86: two-phase syscall
- tracing and seccomp fastpath)
-Date: Tue, 26 Aug 2014 18:45:06 -0700
-Message-ID: <CAMEtUuwZPn+hY6BTz6jj+TJHFWjhyOVFZGj_Brw9DE9YjiTbrQ@mail.gmail.com>
-References: <CALCETrUaZ8w92g96SmFEZDE0Jr+0Moeo+S24-TyW8crrK5reSg@mail.gmail.com>
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [PATH V2 1/6] mm: Introduce a general RCU get_user_pages_fast.
+Date: Wed, 27 Aug 2014 09:54:42 +0100
+Message-ID: <20140827085442.GD16376@arm.com>
+References: <1408635812-31584-1-git-send-email-steve.capper@linaro.org>
+ <1408635812-31584-2-git-send-email-steve.capper@linaro.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-security-module-owner@vger.kernel.org>
-In-Reply-To: <CALCETrUaZ8w92g96SmFEZDE0Jr+0Moeo+S24-TyW8crrK5reSg@mail.gmail.com>
-Sender: linux-security-module-owner@vger.kernel.org
-To: Andy Lutomirski <luto@amacapital.net>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Kees Cook <keescook@chromium.org>, Will Drewry <wad@chromium.org>, Oleg Nesterov <oleg@redhat.com>, X86 ML <x86@kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Linux MIPS Mailing List <linux-mips@linux-mips.org>, linux-arch <linux-arch@vger.kernel.org>, LSM List <linux-security-module@vger.kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Frederic Weisbecker <fweisbec@gmail.com>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:48279 "EHLO
+	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1752674AbaH0Iy2 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Wed, 27 Aug 2014 04:54:28 -0400
+Content-Disposition: inline
+In-Reply-To: <1408635812-31584-2-git-send-email-steve.capper@linaro.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Steve Capper <steve.capper@linaro.org>
+Cc: "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Catalin Marinas <Catalin.Marinas@arm.com>, "linux@arm.linux.org.uk" <linux@arm.linux.org.uk>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "gary.robertson@linaro.org" <gary.robertson@linaro.org>, "christoffer.dall@linaro.org" <christoffer.dall@linaro.org>, "peterz@infradead.org" <peterz@infradead.org>, "anders.roxell@linaro.org" <anders.roxell@linaro.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "dann.frazier@canonical.com" <dann.frazier@canonical.com>, Mark Rutland <Mark.Rutland@arm.com>, "mgorman@suse.de" <mgorman@suse.de>
 
-On Tue, Aug 26, 2014 at 6:32 PM, Andy Lutomirski <luto@amacapital.net> wrote:
-> On Mon, Jul 28, 2014 at 8:38 PM, Andy Lutomirski <luto@amacapital.net> wrote:
->> This applies to:
->> git://git.kernel.org/pub/scm/linux/kernel/git/kees/linux.git seccomp-fastpath
->>
->> Gitweb:
->> https://git.kernel.org/cgit/linux/kernel/git/kees/linux.git/log/?h=seccomp/fastpath
->
-> Hi all-
->
-> AFAIK the only thing that's changed since I submitted it is that the
-> 3.17 merge window is closed.  Kees rebased the tree this applies to,
-> but I think the patches all still apply.  What, if anything, do I need
-> to do to help this along for 3.18?
->
+Hi Steve,
 
-+1
-I think it's not just an optimization of seccomp path, but I feel
-in the future it will help me speedup syscall tracepoints which
-are quite slow right now comparing to kprobes...
+A few minor comments (took me a while to understand how this works, so I
+thought I'd make some noise :)
+
+On Thu, Aug 21, 2014 at 04:43:27PM +0100, Steve Capper wrote:
+> get_user_pages_fast attempts to pin user pages by walking the page
+> tables directly and avoids taking locks. Thus the walker needs to be
+> protected from page table pages being freed from under it, and needs
+> to block any THP splits.
+> 
+> One way to achieve this is to have the walker disable interrupts, and
+> rely on IPIs from the TLB flushing code blocking before the page table
+> pages are freed.
+> 
+> On some platforms we have hardware broadcast of TLB invalidations, thus
+> the TLB flushing code doesn't necessarily need to broadcast IPIs; and
+> spuriously broadcasting IPIs can hurt system performance if done too
+> often.
+> 
+> This problem has been solved on PowerPC and Sparc by batching up page
+> table pages belonging to more than one mm_user, then scheduling an
+> rcu_sched callback to free the pages. This RCU page table free logic
+> has been promoted to core code and is activated when one enables
+> HAVE_RCU_TABLE_FREE. Unfortunately, these architectures implement
+> their own get_user_pages_fast routines.
+> 
+> The RCU page table free logic coupled with a an IPI broadcast on THP
+> split (which is a rare event), allows one to protect a page table
+> walker by merely disabling the interrupts during the walk.
+
+Disabling interrupts isn't completely free (it's a self-synchronising
+operation on ARM). It would be interesting to see if your futex workload
+performance is improved by my simple irq_save optimisation for ARM:
+
+  https://git.kernel.org/cgit/linux/kernel/git/will/linux.git/commit/?h=misc-patches&id=312a70adfa6f22e9d62803dd21400f481253e58b
+
+(I've been struggling to show anything other than tiny improvements from
+that patch).
+
+> This patch provides a general RCU implementation of get_user_pages_fast
+> that can be used by architectures that perform hardware broadcast of
+> TLB invalidations.
+> 
+> It is based heavily on the PowerPC implementation by Nick Piggin.
+
+[...]
+
+> diff --git a/mm/gup.c b/mm/gup.c
+> index 91d044b..2f684fa 100644
+> --- a/mm/gup.c
+> +++ b/mm/gup.c
+> @@ -10,6 +10,10 @@
+>  #include <linux/swap.h>
+>  #include <linux/swapops.h>
+>  
+> +#include <linux/sched.h>
+> +#include <linux/rwsem.h>
+> +#include <asm/pgtable.h>
+> +
+>  #include "internal.h"
+>  
+>  static struct page *no_page_table(struct vm_area_struct *vma,
+> @@ -672,3 +676,277 @@ struct page *get_dump_page(unsigned long addr)
+>  	return page;
+>  }
+>  #endif /* CONFIG_ELF_CORE */
+> +
+> +#ifdef CONFIG_HAVE_RCU_GUP
+> +
+> +#ifdef __HAVE_ARCH_PTE_SPECIAL
+
+Do we actually require this (pte special) if hugepages are disabled or
+not supported?
+
+Will
