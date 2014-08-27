@@ -1,126 +1,109 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from qmta06.emeryville.ca.mail.comcast.net ([76.96.30.56]:35505 "EHLO
-	qmta06.emeryville.ca.mail.comcast.net" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1756365AbaH0BKx (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 26 Aug 2014 21:10:53 -0400
-Message-ID: <53FD2E9E.6050809@gentoo.org>
-Date: Tue, 26 Aug 2014 21:04:30 -0400
-From: Joshua Kinard <kumba@gentoo.org>
+Received: from mail-lb0-f181.google.com ([209.85.217.181]:55837 "EHLO
+	mail-lb0-f181.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753907AbaH0Bco (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 26 Aug 2014 21:32:44 -0400
+Received: by mail-lb0-f181.google.com with SMTP id 10so2273445lbg.26
+        for <linux-arch@vger.kernel.org>; Tue, 26 Aug 2014 18:32:43 -0700 (PDT)
 MIME-Version: 1.0
-Subject: Re: [PATCH v4 0/2] mm/highmem: make kmap cache coloring aware
-References: <1406941899-19932-1-git-send-email-jcmvbkbc@gmail.com> <20140825171600.GH25892@linux-mips.org> <53FBCD09.1050003@gentoo.org> <53FBD676.8080307@gmail.com> <53FBF3C3.90509@gentoo.org> <53FCC7CB.8010701@gmail.com>
-In-Reply-To: <53FCC7CB.8010701@gmail.com>
-Content-Type: text/plain; charset=windows-1252
-Content-Transfer-Encoding: 7bit
+From: Andy Lutomirski <luto@amacapital.net>
+Date: Tue, 26 Aug 2014 18:32:23 -0700
+Message-ID: <CALCETrUaZ8w92g96SmFEZDE0Jr+0Moeo+S24-TyW8crrK5reSg@mail.gmail.com>
+Subject: Post-merge-window ping (Re: [PATCH v4 0/5] x86: two-phase syscall
+ tracing and seccomp fastpath)
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Daney <ddaney.cavm@gmail.com>
-Cc: Ralf Baechle <ralf@linux-mips.org>, Max Filippov <jcmvbkbc@gmail.com>, linux-xtensa@linux-xtensa.org, Chris Zankel <chris@zankel.net>, Marc Gauthier <marc@cadence.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-mips@linux-mips.org, linux-kernel@vger.kernel.org, David Rientjes <rientjes@google.com>, Andrew Morton <akpm@linux-foundation.org>, Leonid Yegoshin <Leonid.Yegoshin@imgtec.com>, Steven Hill <Steven.Hill@imgtec.com>
-Message-ID: <20140827010430.P4QVjOVKOse9wvvAVe3NPPcqDdDTvb6M9cqnTxgX_0Q@z>
+To: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Kees Cook <keescook@chromium.org>, Will Drewry <wad@chromium.org>
+Cc: Oleg Nesterov <oleg@redhat.com>, X86 ML <x86@kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Linux MIPS Mailing List <linux-mips@linux-mips.org>, linux-arch <linux-arch@vger.kernel.org>, LSM List <linux-security-module@vger.kernel.org>, Alexei Starovoitov <ast@plumgrid.com>, "H. Peter Anvin" <hpa@zytor.com>, Frederic Weisbecker <fweisbec@gmail.com>, Andy Lutomirski <luto@amacapital.net>
+Message-ID: <20140827013223.fN0wcO3aG7V9P4kPCkw2AN_0Cp0tighmaEkExjmBC-E@z>
 
-On 08/26/2014 13:45, David Daney wrote:
-> On 08/25/2014 07:41 PM, Joshua Kinard wrote:
->> On 08/25/2014 20:36, David Daney wrote:
->>> On 08/25/2014 04:55 PM, Joshua Kinard wrote:
->>>> On 08/25/2014 13:16, Ralf Baechle wrote:
->>>>> On Sat, Aug 02, 2014 at 05:11:37AM +0400, Max Filippov wrote:
->>>>>
->>>>>> this series adds mapping color control to the generic kmap code, allowing
->>>>>> architectures with aliasing VIPT cache to use high memory. There's also
->>>>>> use example of this new interface by xtensa.
->>>>>
->>>>> I haven't actually ported this to MIPS but it certainly appears to be
->>>>> the right framework to get highmem aliases handled on MIPS, too.
->>>>>
->>>>> Though I still consider increasing PAGE_SIZE to 16k the preferable
->>>>> solution because it will entirly do away with cache aliases.
->>>>
->>>> Won't setting PAGE_SIZE to 16k break some existing userlands (o32)?  I
->>>> use a
->>>> 4k PAGE_SIZE because the last few times I've tried 16k or 64k, init won't
->>>> load (SIGSEGVs or such, which panicks the kernel).
->>>>
->>>
->>> It isn't supposed to break things.  Using "stock" toolchains should result
->>> in executables that will run with any page size.
->>>
->>> In the past, some geniuses came up with some linker (ld) patches that, in
->>> order to save a few KB of RAM, produced executables that ran only on 4K
->>> pages.
->>>
->>> There were some equally astute Debian emacs package maintainers that were
->>> carrying emacs patches into Debian that would not work on non-4K page size
->>> systems.
->>>
->>> That said, I think such thinking should be punished.  The punishment should
->>> be to not have their software run when we select non-4K page sizes.  The
->>> vast majority of prepackaged software runs just fine with a larger page
->>> size.
->>
->> Well, it does appear to mostly work now w/ 16k PAGE_SIZE.  The Octane booted
->> into userland with just a couple of "illegal instruction" errors from 'rm'
->> and 'mdadm'.  I wonder if that's tied to a hardcoded PAGE_SIZE somewhere.
->> Have to dig around and find something that reproduces the problem on demand.
->>
-> 
-> What does the output of "readelf -lW" look like for the failing programs? 
-> If the "Offset" and "VirtAddr" constraints for the LOAD Program Headers are
-> not possible to achieve with the selected PAGE_SIZE, you will see problems. 
-> A "correct" toolchain will generate binaries that work with any PAGE_SIZE up
-> to 64K.
+On Mon, Jul 28, 2014 at 8:38 PM, Andy Lutomirski <luto@amacapital.net> wrote:
+> This applies to:
+> git://git.kernel.org/pub/scm/linux/kernel/git/kees/linux.git seccomp-fastpath
+>
+> Gitweb:
+> https://git.kernel.org/cgit/linux/kernel/git/kees/linux.git/log/?h=seccomp/fastpath
 
-Well, I recently rebuilt shash, so that might've changed things.  But,
-running readelf -lW on shash core dumped readelf itself on the first
-invocation (with a SIGBUS instead of SIGILL).  So I instead ran readelf -lW
-on itself, which hasn't been recently rebuilt:
+Hi all-
 
-# readelf -lW /usr/bin/shash
-Bus error (core dumped)
-# readelf -lW /usr/bin/readelf
+AFAIK the only thing that's changed since I submitted it is that the
+3.17 merge window is closed.  Kees rebased the tree this applies to,
+but I think the patches all still apply.  What, if anything, do I need
+to do to help this along for 3.18?
 
-Elf file type is EXEC (Executable file)
-Entry point 0x402590
-There are 11 program headers, starting at offset 52
+--Andy
 
-Program Headers:
-  Type           Offset   VirtAddr   PhysAddr   FileSiz MemSiz  Flg Align
-  PHDR           0x000034 0x00400034 0x00400034 0x00160 0x00160 R E 0x4
-  INTERP         0x000194 0x00400194 0x00400194 0x0000d 0x0000d R   0x1
-      [Requesting program interpreter: /lib/ld.so.1]
-  REGINFO        0x0001c4 0x004001c4 0x004001c4 0x00018 0x00018 R   0x4
-  LOAD           0x000000 0x00400000 0x00400000 0x72338 0x72338 R E 0x10000
-  LOAD           0x0728c8 0x004828c8 0x004828c8 0x01834 0x03d88 RW  0x10000
-  DYNAMIC        0x0001dc 0x004001dc 0x004001dc 0x000e0 0x000e0 RWE 0x4
-  NOTE           0x0001a4 0x004001a4 0x004001a4 0x00020 0x00020 R   0x4
-  GNU_EH_FRAME   0x0722c0 0x004722c0 0x004722c0 0x00024 0x00024 R   0x4
-  GNU_RELRO      0x0728c8 0x004828c8 0x004828c8 0x00738 0x00738 R   0x1
-  PAX_FLAGS      0x000000 0x00000000 0x00000000 0x00000 0x00000     0x4
-  NULL           0x000000 0x00000000 0x00000000 0x00000 0x00000     0x4
+>
+> This is both a cleanup and a speedup.  It reduces overhead due to
+> installing a trivial seccomp filter by 87%.  The speedup comes from
+> avoiding the full syscall tracing mechanism for filters that don't
+> return SECCOMP_RET_TRACE.
+>
+> This series depends on splitting the seccomp hooks into two phases.
+> The first phase evaluates the filter; it can skip syscalls, allow
+> them, kill the calling task, or pass a u32 to the second phase.  The
+> second phase requires a full tracing context, and it sends ptrace
+> events if necessary.  The seccomp core part is in Kees' seccomp/fastpath
+> tree.
+>
+> These patches implement a similar split for the x86 syscall
+> entry work.  The C callback is invoked in two phases: the first has
+> only a partial frame, and it can request phase 2 processing with a
+> full frame.
+>
+> Finally, I switch the 64-bit system_call code to use the new split
+> entry work.  This is a net deletion of assembly code: it replaces
+> all of the audit entry muck.
+>
+> In the process, I fixed some bugs.
+>
+> If this is acceptable, someone can do the same tweak for the
+> ia32entry and entry_32 code.
+>
+> This passes all seccomp tests that I know of.
+>
+> Changes from v3:
+>  - Dropped the core seccomp changes from the email -- Kees has applied them.
+>  - Add patch 2 (the TIF_NOHZ change).
+>  - Fix TIF_NOHZ in the two-phase entry code (thanks, Oleg).
+>
+> Changes from v2:
+>  - Fixed 32-bit x86 build (and the tests pass).
+>  - Put the doc patch where it belongs.
+>
+> Changes from v1:
+>  - Rebased on top of Kees' shiny new seccomp tree (no effect on the x86
+>    part).
+>  - Improved patch 6 vs patch 7 split (thanks Alexei!)
+>  - Fixed bogus -ENOSYS in patch 5 (thanks Kees!)
+>  - Improved changelog message in patch 6.
+>
+> Changes from RFC version:
+>  - The first three patches are more or less the same
+>  - The rest is more or less a rewrite
+>
+>
+> Andy Lutomirski (5):
+>   x86,x32,audit: Fix x32's AUDIT_ARCH wrt audit
+>   x86,entry: Only call user_exit if TIF_NOHZ
+>   x86: Split syscall_trace_enter into two phases
+>   x86_64,entry: Treat regs->ax the same in fastpath and slowpath
+>     syscalls
+>   x86_64,entry: Use split-phase syscall_trace_enter for 64-bit syscalls
+>
+>  arch/x86/include/asm/calling.h |   6 +-
+>  arch/x86/include/asm/ptrace.h  |   5 ++
+>  arch/x86/kernel/entry_64.S     |  51 +++++--------
+>  arch/x86/kernel/ptrace.c       | 159 ++++++++++++++++++++++++++++++++++-------
+>  4 files changed, 161 insertions(+), 60 deletions(-)
+>
+> --
+> 1.9.3
+>
 
- Section to Segment mapping:
-  Segment Sections...
-   00
-   01     .interp
-   02     .reginfo
-   03     .interp .note.ABI-tag .reginfo .dynamic .hash .dynsym .dynstr
-.gnu.version .gnu.version_r .init .text .MIPS.stubs .fini .rodata
-.eh_frame_hdr .eh_frame
-   04     .ctors .dtors .jcr .data.rel.ro .data .rld_map .got .sdata .sbss .bss
-   05     .dynamic
-   06     .note.ABI-tag
-   07     .eh_frame_hdr
-   08     .ctors .dtors .jcr .data.rel.ro
-   09
-   10
+
 
 -- 
-Joshua Kinard
-Gentoo/MIPS
-kumba@gentoo.org
-4096R/D25D95E3 2011-03-28
-
-"The past tempts us, the present confuses us, the future frightens us.  And
-our lives slip away, moment by moment, lost in that vast, terrible in-between."
-
---Emperor Turhan, Centauri Republic
+Andy Lutomirski
+AMA Capital Management, LLC
