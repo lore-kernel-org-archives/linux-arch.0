@@ -1,42 +1,38 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wg0-f43.google.com ([74.125.82.43]:55834 "EHLO
-	mail-wg0-f43.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756254AbaH0BpH (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 26 Aug 2014 21:45:07 -0400
-Received: by mail-wg0-f43.google.com with SMTP id l18so15082952wgh.26
-        for <linux-arch@vger.kernel.org>; Tue, 26 Aug 2014 18:45:06 -0700 (PDT)
+Received: from fw-tnat.austin.arm.com ([217.140.110.23]:42222 "EHLO
+	collaborate-mta1.arm.com" rhost-flags-OK-OK-OK-FAIL)
+	by vger.kernel.org with ESMTP id S932539AbaH0KtP (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Wed, 27 Aug 2014 06:49:15 -0400
+Date: Wed, 27 Aug 2014 11:48:41 +0100
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [PATH V2 5/6] arm64: mm: Enable HAVE_RCU_TABLE_FREE logic
+Message-ID: <20140827104840.GH6968@arm.com>
+References: <1408635812-31584-1-git-send-email-steve.capper@linaro.org>
+ <1408635812-31584-6-git-send-email-steve.capper@linaro.org>
 MIME-Version: 1.0
-In-Reply-To: <CALCETrUaZ8w92g96SmFEZDE0Jr+0Moeo+S24-TyW8crrK5reSg@mail.gmail.com>
-References: <CALCETrUaZ8w92g96SmFEZDE0Jr+0Moeo+S24-TyW8crrK5reSg@mail.gmail.com>
-Date: Tue, 26 Aug 2014 18:45:06 -0700
-Message-ID: <CAMEtUuwZPn+hY6BTz6jj+TJHFWjhyOVFZGj_Brw9DE9YjiTbrQ@mail.gmail.com>
-Subject: Re: Post-merge-window ping (Re: [PATCH v4 0/5] x86: two-phase syscall
- tracing and seccomp fastpath)
-From: Alexei Starovoitov <ast@plumgrid.com>
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1408635812-31584-6-git-send-email-steve.capper@linaro.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andy Lutomirski <luto@amacapital.net>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Kees Cook <keescook@chromium.org>, Will Drewry <wad@chromium.org>, Oleg Nesterov <oleg@redhat.com>, X86 ML <x86@kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Linux MIPS Mailing List <linux-mips@linux-mips.org>, linux-arch <linux-arch@vger.kernel.org>, LSM List <linux-security-module@vger.kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Frederic Weisbecker <fweisbec@gmail.com>
-Message-ID: <20140827014506.ayJd_dd8UTovvZpPUrQ5K5PZxBl6NX1LYLMk2gll5wE@z>
+To: Steve Capper <steve.capper@linaro.org>
+Cc: "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux@arm.linux.org.uk" <linux@arm.linux.org.uk>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, Will Deacon <Will.Deacon@arm.com>, "gary.robertson@linaro.org" <gary.robertson@linaro.org>, "christoffer.dall@linaro.org" <christoffer.dall@linaro.org>, "peterz@infradead.org" <peterz@infradead.org>, "anders.roxell@linaro.org" <anders.roxell@linaro.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "dann.frazier@canonical.com" <dann.frazier@canonical.com>, Mark Rutland <Mark.Rutland@arm.com>, "mgorman@suse.de" <mgorman@suse.de>
+Message-ID: <20140827104841.6zPwE95uHA6V2P7eC0PJlwUG-HxLVE8OR_Onw3TsZPE@z>
 
-On Tue, Aug 26, 2014 at 6:32 PM, Andy Lutomirski <luto@amacapital.net> wrote:
-> On Mon, Jul 28, 2014 at 8:38 PM, Andy Lutomirski <luto@amacapital.net> wrote:
->> This applies to:
->> git://git.kernel.org/pub/scm/linux/kernel/git/kees/linux.git seccomp-fastpath
->>
->> Gitweb:
->> https://git.kernel.org/cgit/linux/kernel/git/kees/linux.git/log/?h=seccomp/fastpath
->
-> Hi all-
->
-> AFAIK the only thing that's changed since I submitted it is that the
-> 3.17 merge window is closed.  Kees rebased the tree this applies to,
-> but I think the patches all still apply.  What, if anything, do I need
-> to do to help this along for 3.18?
->
+On Thu, Aug 21, 2014 at 04:43:31PM +0100, Steve Capper wrote:
+> In order to implement fast_get_user_pages we need to ensure that the
+> page table walker is protected from page table pages being freed from
+> under it.
+> 
+> This patch enables HAVE_RCU_TABLE_FREE, any page table pages belonging
+> to address spaces with multiple users will be call_rcu_sched freed.
+> Meaning that disabling interrupts will block the free and protect the
+> fast gup page walker.
+> 
+> Signed-off-by: Steve Capper <steve.capper@linaro.org>
 
-+1
-I think it's not just an optimization of seccomp path, but I feel
-in the future it will help me speedup syscall tracepoints which
-are quite slow right now comparing to kprobes...
+I'm happy to take this patch independently of this series. But if the
+whole series goes in via some other tree (mm):
+
+Acked-by: Catalin Marinas <catalin.marinas@arm.com>
