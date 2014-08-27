@@ -1,119 +1,85 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-we0-f170.google.com ([74.125.82.170]:36427 "EHLO
-	mail-we0-f170.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S933449AbaH0Mug (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 27 Aug 2014 08:50:36 -0400
-Received: by mail-we0-f170.google.com with SMTP id w62so171682wes.15
-        for <linux-arch@vger.kernel.org>; Wed, 27 Aug 2014 05:50:35 -0700 (PDT)
-Date: Wed, 27 Aug 2014 13:50:28 +0100
+Received: from mail-wg0-f52.google.com ([74.125.82.52]:39255 "EHLO
+	mail-wg0-f52.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932179AbaH0M73 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 27 Aug 2014 08:59:29 -0400
+Received: by mail-wg0-f52.google.com with SMTP id a1so181585wgh.11
+        for <linux-arch@vger.kernel.org>; Wed, 27 Aug 2014 05:59:28 -0700 (PDT)
+Date: Wed, 27 Aug 2014 13:59:25 +0100
 From: Steve Capper <steve.capper@linaro.org>
-Subject: Re: [PATH V2 1/6] mm: Introduce a general RCU get_user_pages_fast.
-Message-ID: <20140827125027.GA7765@linaro.org>
+Subject: Re: [PATH V2 3/6] arm: mm: Enable HAVE_RCU_TABLE_FREE logic
+Message-ID: <20140827125924.GC7765@linaro.org>
 References: <1408635812-31584-1-git-send-email-steve.capper@linaro.org>
- <1408635812-31584-2-git-send-email-steve.capper@linaro.org>
- <20140827085442.GD16376@arm.com>
+ <1408635812-31584-4-git-send-email-steve.capper@linaro.org>
+ <20140827115010.GJ6968@arm.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20140827085442.GD16376@arm.com>
+In-Reply-To: <20140827115010.GJ6968@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will.deacon@arm.com>
-Cc: "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Catalin Marinas <Catalin.Marinas@arm.com>, "linux@arm.linux.org.uk" <linux@arm.linux.org.uk>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "gary.robertson@linaro.org" <gary.robertson@linaro.org>, "christoffer.dall@linaro.org" <christoffer.dall@linaro.org>, "peterz@infradead.org" <peterz@infradead.org>, "anders.roxell@linaro.org" <anders.roxell@linaro.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "dann.frazier@canonical.com" <dann.frazier@canonical.com>, Mark Rutland <Mark.Rutland@arm.com>, "mgorman@suse.de" <mgorman@suse.de>
-Message-ID: <20140827125028.ZBpiBDWytW0BGO0GR0-zsSqaQdc7ERQ21xxym1krp24@z>
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux@arm.linux.org.uk" <linux@arm.linux.org.uk>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, Will Deacon <Will.Deacon@arm.com>, "gary.robertson@linaro.org" <gary.robertson@linaro.org>, "christoffer.dall@linaro.org" <christoffer.dall@linaro.org>, "peterz@infradead.org" <peterz@infradead.org>, "anders.roxell@linaro.org" <anders.roxell@linaro.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "dann.frazier@canonical.com" <dann.frazier@canonical.com>, Mark Rutland <Mark.Rutland@arm.com>, "mgorman@suse.de" <mgorman@suse.de>
+Message-ID: <20140827125925._D5O_pPAnE5NFdovPvpJ5DPkggDhm5-OD0Ppa7-Dam4@z>
 
-On Wed, Aug 27, 2014 at 09:54:42AM +0100, Will Deacon wrote:
-> Hi Steve,
-> 
-
-Hey Will,
-
-> A few minor comments (took me a while to understand how this works, so I
-> thought I'd make some noise :)
-
-A big thank you for reading through it :-).
-
-> 
-> On Thu, Aug 21, 2014 at 04:43:27PM +0100, Steve Capper wrote:
-> > get_user_pages_fast attempts to pin user pages by walking the page
-> > tables directly and avoids taking locks. Thus the walker needs to be
-> > protected from page table pages being freed from under it, and needs
-> > to block any THP splits.
-> > 
-> > One way to achieve this is to have the walker disable interrupts, and
-> > rely on IPIs from the TLB flushing code blocking before the page table
-> > pages are freed.
-> > 
-> > On some platforms we have hardware broadcast of TLB invalidations, thus
-> > the TLB flushing code doesn't necessarily need to broadcast IPIs; and
-> > spuriously broadcasting IPIs can hurt system performance if done too
-> > often.
-> > 
-> > This problem has been solved on PowerPC and Sparc by batching up page
-> > table pages belonging to more than one mm_user, then scheduling an
-> > rcu_sched callback to free the pages. This RCU page table free logic
-> > has been promoted to core code and is activated when one enables
-> > HAVE_RCU_TABLE_FREE. Unfortunately, these architectures implement
-> > their own get_user_pages_fast routines.
-> > 
-> > The RCU page table free logic coupled with a an IPI broadcast on THP
-> > split (which is a rare event), allows one to protect a page table
-> > walker by merely disabling the interrupts during the walk.
-> 
-> Disabling interrupts isn't completely free (it's a self-synchronising
-> operation on ARM). It would be interesting to see if your futex workload
-> performance is improved by my simple irq_save optimisation for ARM:
-> 
->   https://git.kernel.org/cgit/linux/kernel/git/will/linux.git/commit/?h=misc-patches&id=312a70adfa6f22e9d62803dd21400f481253e58b
-> 
-> (I've been struggling to show anything other than tiny improvements from
-> that patch).
-> 
-
-This looks like a useful optimisation; I'll have a think about workloads that
-fire many futexes on THP tails. (The test I used only fired off one futex).
-
-> > This patch provides a general RCU implementation of get_user_pages_fast
-> > that can be used by architectures that perform hardware broadcast of
-> > TLB invalidations.
-> > 
-> > It is based heavily on the PowerPC implementation by Nick Piggin.
-> 
-> [...]
-> 
-> > diff --git a/mm/gup.c b/mm/gup.c
-> > index 91d044b..2f684fa 100644
-> > --- a/mm/gup.c
-> > +++ b/mm/gup.c
-> > @@ -10,6 +10,10 @@
-> >  #include <linux/swap.h>
-> >  #include <linux/swapops.h>
+On Wed, Aug 27, 2014 at 12:50:10PM +0100, Catalin Marinas wrote:
+> On Thu, Aug 21, 2014 at 04:43:29PM +0100, Steve Capper wrote:
+> > --- a/arch/arm/include/asm/tlb.h
+> > +++ b/arch/arm/include/asm/tlb.h
+> > @@ -35,12 +35,39 @@
 > >  
-> > +#include <linux/sched.h>
-> > +#include <linux/rwsem.h>
-> > +#include <asm/pgtable.h>
-> > +
-> >  #include "internal.h"
+> >  #define MMU_GATHER_BUNDLE	8
 > >  
-> >  static struct page *no_page_table(struct vm_area_struct *vma,
-> > @@ -672,3 +676,277 @@ struct page *get_dump_page(unsigned long addr)
-> >  	return page;
-> >  }
-> >  #endif /* CONFIG_ELF_CORE */
+> > +#ifdef CONFIG_HAVE_RCU_TABLE_FREE
+> > +static inline void __tlb_remove_table(void *_table)
+> > +{
+> > +	free_page_and_swap_cache((struct page *)_table);
+> > +}
 > > +
-> > +#ifdef CONFIG_HAVE_RCU_GUP
+> > +struct mmu_table_batch {
+> > +	struct rcu_head		rcu;
+> > +	unsigned int		nr;
+> > +	void			*tables[0];
+> > +};
 > > +
-> > +#ifdef __HAVE_ARCH_PTE_SPECIAL
+> > +#define MAX_TABLE_BATCH		\
+> > +	((PAGE_SIZE - sizeof(struct mmu_table_batch)) / sizeof(void *))
+> > +
+> > +extern void tlb_table_flush(struct mmu_gather *tlb);
+> > +extern void tlb_remove_table(struct mmu_gather *tlb, void *table);
+> > +
+> > +#define tlb_remove_entry(tlb, entry)	tlb_remove_table(tlb, entry)
+> > +#else
+> > +#define tlb_remove_entry(tlb, entry)	tlb_remove_page(tlb, entry)
+> > +#endif /* CONFIG_HAVE_RCU_TABLE_FREE */
+> > +
+> >  /*
+> >   * TLB handling.  This allows us to remove pages from the page
+> >   * tables, and efficiently handle the TLB issues.
+> >   */
+> >  struct mmu_gather {
+> >  	struct mm_struct	*mm;
+> > +#ifdef CONFIG_HAVE_RCU_TABLE_FREE
+> > +	struct mmu_table_batch	*batch;
+> > +	unsigned int		need_flush;
+> > +#endif
 > 
-> Do we actually require this (pte special) if hugepages are disabled or
-> not supported?
+> We add need_flush here just because it is set by tlb_remove_table() but
+> it won't actually be checked by anything since arch/arm uses its own
+> version of tlb_flush_mmu(). But I wouldn't go for #ifdefs in the core
+> code either.
+> 
+> We should (as a separate patchset) convert arch/arm to generic
+> mmu_gather. I know Russell had objections in the past but mmu_gather has
+> evolved since and it's not longer inefficient (I think the only case is
+> shift_arg_pages but that's pretty much lost in the noise).
 
-We need this logic if we want use fast_gup on normal pages safely. The special
-bit indicates that we should not attempt to take a reference to the underlying
-page.
+I would be happy to help out with a conversion to generic mmu_gather if
+it's wanted for arm.
 
-Huge pages are guaranteed not to be special.
+> 
+> For this patch:
+> 
+> Reviewed-by: Catalin Marinas <catalin.marinas@arm.com>
 
-Cheers,
--- 
-Steve
+Cheers.
