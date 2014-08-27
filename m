@@ -1,38 +1,76 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from fw-tnat.austin.arm.com ([217.140.110.23]:42222 "EHLO
+Received: from fw-tnat.austin.arm.com ([217.140.110.23]:58423 "EHLO
 	collaborate-mta1.arm.com" rhost-flags-OK-OK-OK-FAIL)
-	by vger.kernel.org with ESMTP id S932539AbaH0KtP (ORCPT
+	by vger.kernel.org with ESMTP id S932079AbaH0Luu (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 27 Aug 2014 06:49:15 -0400
-Date: Wed, 27 Aug 2014 11:48:41 +0100
+	Wed, 27 Aug 2014 07:50:50 -0400
+Date: Wed, 27 Aug 2014 12:50:10 +0100
 From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATH V2 5/6] arm64: mm: Enable HAVE_RCU_TABLE_FREE logic
-Message-ID: <20140827104840.GH6968@arm.com>
+Subject: Re: [PATH V2 3/6] arm: mm: Enable HAVE_RCU_TABLE_FREE logic
+Message-ID: <20140827115010.GJ6968@arm.com>
 References: <1408635812-31584-1-git-send-email-steve.capper@linaro.org>
- <1408635812-31584-6-git-send-email-steve.capper@linaro.org>
+ <1408635812-31584-4-git-send-email-steve.capper@linaro.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <1408635812-31584-6-git-send-email-steve.capper@linaro.org>
+In-Reply-To: <1408635812-31584-4-git-send-email-steve.capper@linaro.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Steve Capper <steve.capper@linaro.org>
 Cc: "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux@arm.linux.org.uk" <linux@arm.linux.org.uk>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, Will Deacon <Will.Deacon@arm.com>, "gary.robertson@linaro.org" <gary.robertson@linaro.org>, "christoffer.dall@linaro.org" <christoffer.dall@linaro.org>, "peterz@infradead.org" <peterz@infradead.org>, "anders.roxell@linaro.org" <anders.roxell@linaro.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "dann.frazier@canonical.com" <dann.frazier@canonical.com>, Mark Rutland <Mark.Rutland@arm.com>, "mgorman@suse.de" <mgorman@suse.de>
-Message-ID: <20140827104841.6zPwE95uHA6V2P7eC0PJlwUG-HxLVE8OR_Onw3TsZPE@z>
+Message-ID: <20140827115010.MCZPNqT1p73iYURc8H7ALc3Prc3cdF5ZifbZlenojJw@z>
 
-On Thu, Aug 21, 2014 at 04:43:31PM +0100, Steve Capper wrote:
-> In order to implement fast_get_user_pages we need to ensure that the
-> page table walker is protected from page table pages being freed from
-> under it.
-> 
-> This patch enables HAVE_RCU_TABLE_FREE, any page table pages belonging
-> to address spaces with multiple users will be call_rcu_sched freed.
-> Meaning that disabling interrupts will block the free and protect the
-> fast gup page walker.
-> 
-> Signed-off-by: Steve Capper <steve.capper@linaro.org>
+On Thu, Aug 21, 2014 at 04:43:29PM +0100, Steve Capper wrote:
+> --- a/arch/arm/include/asm/tlb.h
+> +++ b/arch/arm/include/asm/tlb.h
+> @@ -35,12 +35,39 @@
+>  
+>  #define MMU_GATHER_BUNDLE	8
+>  
+> +#ifdef CONFIG_HAVE_RCU_TABLE_FREE
+> +static inline void __tlb_remove_table(void *_table)
+> +{
+> +	free_page_and_swap_cache((struct page *)_table);
+> +}
+> +
+> +struct mmu_table_batch {
+> +	struct rcu_head		rcu;
+> +	unsigned int		nr;
+> +	void			*tables[0];
+> +};
+> +
+> +#define MAX_TABLE_BATCH		\
+> +	((PAGE_SIZE - sizeof(struct mmu_table_batch)) / sizeof(void *))
+> +
+> +extern void tlb_table_flush(struct mmu_gather *tlb);
+> +extern void tlb_remove_table(struct mmu_gather *tlb, void *table);
+> +
+> +#define tlb_remove_entry(tlb, entry)	tlb_remove_table(tlb, entry)
+> +#else
+> +#define tlb_remove_entry(tlb, entry)	tlb_remove_page(tlb, entry)
+> +#endif /* CONFIG_HAVE_RCU_TABLE_FREE */
+> +
+>  /*
+>   * TLB handling.  This allows us to remove pages from the page
+>   * tables, and efficiently handle the TLB issues.
+>   */
+>  struct mmu_gather {
+>  	struct mm_struct	*mm;
+> +#ifdef CONFIG_HAVE_RCU_TABLE_FREE
+> +	struct mmu_table_batch	*batch;
+> +	unsigned int		need_flush;
+> +#endif
 
-I'm happy to take this patch independently of this series. But if the
-whole series goes in via some other tree (mm):
+We add need_flush here just because it is set by tlb_remove_table() but
+it won't actually be checked by anything since arch/arm uses its own
+version of tlb_flush_mmu(). But I wouldn't go for #ifdefs in the core
+code either.
 
-Acked-by: Catalin Marinas <catalin.marinas@arm.com>
+We should (as a separate patchset) convert arch/arm to generic
+mmu_gather. I know Russell had objections in the past but mmu_gather has
+evolved since and it's not longer inefficient (I think the only case is
+shift_arg_pages but that's pretty much lost in the noise).
+
+For this patch:
+
+Reviewed-by: Catalin Marinas <catalin.marinas@arm.com>
