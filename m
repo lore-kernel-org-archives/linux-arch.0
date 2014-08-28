@@ -1,91 +1,102 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wi0-f170.google.com ([209.85.212.170]:38945 "EHLO
-	mail-wi0-f170.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S934718AbaH1I7s (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 28 Aug 2014 04:59:48 -0400
-Received: by mail-wi0-f170.google.com with SMTP id cc10so192578wib.5
-        for <linux-arch@vger.kernel.org>; Thu, 28 Aug 2014 01:59:47 -0700 (PDT)
-Date: Thu, 28 Aug 2014 09:59:40 +0100
+Received: from mail-wg0-f46.google.com ([74.125.82.46]:35637 "EHLO
+	mail-wg0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751034AbaH1OpS (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 28 Aug 2014 10:45:18 -0400
+Received: by mail-wg0-f46.google.com with SMTP id x13so856364wgg.5
+        for <linux-arch@vger.kernel.org>; Thu, 28 Aug 2014 07:45:15 -0700 (PDT)
 From: Steve Capper <steve.capper@linaro.org>
-Subject: Re: [PATH V2 1/6] mm: Introduce a general RCU get_user_pages_fast.
-Message-ID: <20140828085939.GA15409@linaro.org>
-References: <1408635812-31584-1-git-send-email-steve.capper@linaro.org>
- <1408635812-31584-2-git-send-email-steve.capper@linaro.org>
- <20140827150139.GZ30401@n2100.arm.linux.org.uk>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20140827150139.GZ30401@n2100.arm.linux.org.uk>
+Subject: [PATCH V3 0/6] RCU get_user_pages_fast and __get_user_pages_fast
+Date: Thu, 28 Aug 2014 15:45:01 +0100
+Message-ID: <1409237107-24228-1-git-send-email-steve.capper@linaro.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Russell King - ARM Linux <linux@arm.linux.org.uk>
-Cc: linux-arm-kernel@lists.infradead.org, catalin.marinas@arm.com, linux-arch@vger.kernel.org, linux-mm@kvack.org, will.deacon@arm.com, gary.robertson@linaro.org, christoffer.dall@linaro.org, peterz@infradead.org, anders.roxell@linaro.org, akpm@linux-foundation.org, dann.frazier@canonical.com, mark.rutland@arm.com, mgorman@suse.de
-Message-ID: <20140828085940.Mk0eHbL5CM_ak7zQxuVC4sMW-hQUamUiAPlGMBSmPBY@z>
+To: linux-arm-kernel@lists.infradead.org, catalin.marinas@arm.com, linux@arm.linux.org.uk, linux-arch@vger.kernel.org, linux-mm@kvack.org, akpm@linux-foundation.org
+Cc: will.deacon@arm.com, gary.robertson@linaro.org, christoffer.dall@linaro.org, peterz@infradead.org, anders.roxell@linaro.org, dann.frazier@canonical.com, mark.rutland@arm.com, mgorman@suse.de, Steve Capper <steve.capper@linaro.org>
+Message-ID: <20140828144501.xGbE6G82L6d7Xr3u73E2_wV9A7MazW9RnZMrc2FLsmQ@z>
 
-On Wed, Aug 27, 2014 at 04:01:39PM +0100, Russell King - ARM Linux wrote:
+Hello,
+This series implements general forms of get_user_pages_fast and
+__get_user_pages_fast and activates them for arm and arm64.
 
-Hi Russell,
+These are required for Transparent HugePages to function correctly, as
+a futex on a THP tail will otherwise result in an infinite loop (due to
+the core implementation of __get_user_pages_fast always returning 0).
 
-> On Thu, Aug 21, 2014 at 04:43:27PM +0100, Steve Capper wrote:
-> > +int get_user_pages_fast(unsigned long start, int nr_pages, int write,
-> > +			struct page **pages)
-> > +{
-> > +	struct mm_struct *mm = current->mm;
-> > +	int nr, ret;
-> > +
-> > +	start &= PAGE_MASK;
-> > +	nr = __get_user_pages_fast(start, nr_pages, write, pages);
-> > +	ret = nr;
-> > +
-> > +	if (nr < nr_pages) {
-> > +		/* Try to get the remaining pages with get_user_pages */
-> > +		start += nr << PAGE_SHIFT;
-> > +		pages += nr;
-> 
-> When I read this, my first reaction was... what if nr is negative?  In
-> that case, if nr_pages is positive, we fall through into this if, and
-> start to wind things backwards - which isn't what we want.
-> 
-> It looks like that can't happen... right?  __get_user_pages_fast() only
-> returns greater-or-equal to zero right now, but what about the future?
+Unfortunately, a futex on THP tail can be quite common for certain
+workloads; thus THP is unreliable without a __get_user_pages_fast
+implementation.
 
-__get_user_pages_fast is a strict fast path, it will grab as many page
-references as it can and if something gets in its way it backs off. As
-it can't take locks, it can't inspect the VMA, thus it really isn't in
-a position to know if there's an error. It may be possible for the
-slow path to take a write fault for a read only pte, for instance.
-(we could in theory return an error on pte_special and save a fallback
-to the slowpath but I don't believe it's worth doing as special ptes
-should be encountered very rarely by the fast_gup).
+This series may also be beneficial for direct-IO heavy workloads and
+certain KVM workloads.
 
-I think it's safe to assume that __get_use_pages_fast has non-negative
-return values; also it is logically contained in the same area as
-get_user_pages_fast, so if this does change we can apply changes below
-it too.
+Changes since PATCH V2 are:
+ * spelt `PATCH' correctly in the subject prefix this time. :-(
+ * Added acks, tested-bys and reviewed-bys.
+ * Cleanup of patch #6 with pud_pte and pud_pmd helpers.
+ * Switched config option from HAVE_RCU_GUP to HAVE_GENERIC_RCU_GUP.
 
-get_user_pages_fast attempts the fast path but is allowed to fallback
-to the slowpath, so is in a position to return an error code thus can
-return negative values.
+Changes since PATCH V1 are:
+ * Rebase to 3.17-rc1
+ * Switched to kick_all_cpus_sync as suggested by Mark Rutland.
 
-> 
-> > +
-> > +		down_read(&mm->mmap_sem);
-> > +		ret = get_user_pages(current, mm, start,
-> > +				     nr_pages - nr, write, 0, pages, NULL);
-> > +		up_read(&mm->mmap_sem);
-> > +
-> > +		/* Have to be a bit careful with return values */
-> > +		if (nr > 0) {
-> 
-> This kind'a makes it look like nr could be negative.
+The main changes since RFC V5 are:
+ * Rebased against 3.16-rc1.
+ * pmd_present no longer tested for by gup_huge_pmd and gup_huge_pud,
+   because the entry must be present for these leaf functions to be
+   called. 
+ * Rather than assume puds can be re-cast as pmds, a separate
+   function pud_write is instead used by the core gup.
+ * ARM activation logic changed, now it will only activate
+   RCU_TABLE_FREE and RCU_GUP when running with LPAE.
 
-I read it as "did the fast path get at least one page?".
+The main changes since RFC V4 are:
+ * corrected the arm64 logic so it now correctly rcu-frees page
+   table backing pages.
+ * rcu free logic relaxed for pre-ARMv7 ARM as we need an IPI to
+   invalidate TLBs anyway.
+ * rebased to 3.15-rc3 (some minor changes were needed to allow it to merge).
+ * dropped Catalin's mmu_gather patch as that's been merged already.
 
-> 
-> Other than that, I don't see anything obviously wrong with it.
+This series has been tested with LTP mm tests and some custom futex tests
+that exacerbate the futex on THP tail case; on both an Arndale board and
+a Juno board. Also debug counters were temporarily employed to ensure that
+the RCU_TABLE_FREE logic was behaving as expected.
 
-Thank you for giving this a going over.
+I would like to get this series into 3.18 as it fixes quite a big problem
+with THP on arm and arm64. This series is split into a core mm part, an
+arm part and an arm64 part.
+
+Could somebody please take patch #1 (if it looks okay)?
+Russell, would you be happy with patches #2, #3, #4? (if we get #1 merged)
+Catalin, would you be happy taking patches #5, #6? (if we get #1 merged)
 
 Cheers,
--- 
+--
 Steve
+
+Steve Capper (6):
+  mm: Introduce a general RCU get_user_pages_fast.
+  arm: mm: Introduce special ptes for LPAE
+  arm: mm: Enable HAVE_RCU_TABLE_FREE logic
+  arm: mm: Enable RCU fast_gup
+  arm64: mm: Enable HAVE_RCU_TABLE_FREE logic
+  arm64: mm: Enable RCU fast_gup
+
+ arch/arm/Kconfig                      |   5 +
+ arch/arm/include/asm/pgtable-2level.h |   2 +
+ arch/arm/include/asm/pgtable-3level.h |  15 ++
+ arch/arm/include/asm/pgtable.h        |   6 +-
+ arch/arm/include/asm/tlb.h            |  38 ++++-
+ arch/arm/mm/flush.c                   |  15 ++
+ arch/arm64/Kconfig                    |   4 +
+ arch/arm64/include/asm/pgtable.h      |  21 ++-
+ arch/arm64/include/asm/tlb.h          |  20 ++-
+ arch/arm64/mm/flush.c                 |  15 ++
+ mm/Kconfig                            |   3 +
+ mm/gup.c                              | 278 ++++++++++++++++++++++++++++++++++
+ 12 files changed, 412 insertions(+), 10 deletions(-)
+
+-- 
+1.9.3
+
