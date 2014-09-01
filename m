@@ -1,104 +1,54 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wi0-f179.google.com ([209.85.212.179]:38535 "EHLO
-	mail-wi0-f179.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751611AbaH1Op1 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 28 Aug 2014 10:45:27 -0400
-Received: by mail-wi0-f179.google.com with SMTP id q5so1028463wiv.6
-        for <linux-arch@vger.kernel.org>; Thu, 28 Aug 2014 07:45:25 -0700 (PDT)
-From: Steve Capper <steve.capper@linaro.org>
-Subject: [PATCH V3 2/6] arm: mm: Introduce special ptes for LPAE
-Date: Thu, 28 Aug 2014 15:45:03 +0100
-Message-ID: <1409237107-24228-3-git-send-email-steve.capper@linaro.org>
-In-Reply-To: <1409237107-24228-1-git-send-email-steve.capper@linaro.org>
+Received: from mail-yh0-f43.google.com ([209.85.213.43]:53836 "EHLO
+	mail-yh0-f43.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751500AbaIALnH (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 1 Sep 2014 07:43:07 -0400
+Received: by mail-yh0-f43.google.com with SMTP id f73so3326661yha.16
+        for <linux-arch@vger.kernel.org>; Mon, 01 Sep 2014 04:43:06 -0700 (PDT)
+MIME-Version: 1.0
+In-Reply-To: <20140828152320.GN22580@arm.com>
 References: <1409237107-24228-1-git-send-email-steve.capper@linaro.org>
+	<20140828152320.GN22580@arm.com>
+Date: Mon, 1 Sep 2014 12:43:06 +0100
+Message-ID: <CAPvkgC0YVhPEBqbWSDnGyZBUn3+8Kv7-yx1-_n0Jx+giKzOqmw@mail.gmail.com>
+Subject: Re: [PATCH V3 0/6] RCU get_user_pages_fast and __get_user_pages_fast
+From: Steve Capper <steve.capper@linaro.org>
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arm-kernel@lists.infradead.org, catalin.marinas@arm.com, linux@arm.linux.org.uk, linux-arch@vger.kernel.org, linux-mm@kvack.org, akpm@linux-foundation.org
-Cc: will.deacon@arm.com, gary.robertson@linaro.org, christoffer.dall@linaro.org, peterz@infradead.org, anders.roxell@linaro.org, dann.frazier@canonical.com, mark.rutland@arm.com, mgorman@suse.de, Steve Capper <steve.capper@linaro.org>
-Message-ID: <20140828144503.zJwbDrIPt1qJz8a_U6Jnv6OJlJdZvOtX9Xe0aomSOKU@z>
+To: "linux-mm@kvack.org" <linux-mm@kvack.org>, Will Deacon <will.deacon@arm.com>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>
+Cc: "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Catalin Marinas <Catalin.Marinas@arm.com>, "linux@arm.linux.org.uk" <linux@arm.linux.org.uk>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "gary.robertson@linaro.org" <gary.robertson@linaro.org>, "christoffer.dall@linaro.org" <christoffer.dall@linaro.org>, "peterz@infradead.org" <peterz@infradead.org>, "anders.roxell@linaro.org" <anders.roxell@linaro.org>, "dann.frazier@canonical.com" <dann.frazier@canonical.com>, Mark Rutland <Mark.Rutland@arm.com>, "mgorman@suse.de" <mgorman@suse.de>
+Message-ID: <20140901114306.yo74-bC_Bw4Bwox6CV6A1QPTmyFeMYT34o7FlCCF43M@z>
 
-We need a mechanism to tag ptes as being special, this indicates that
-no attempt should be made to access the underlying struct page *
-associated with the pte. This is used by the fast_gup when operating on
-ptes as it has no means to access VMAs (that also contain this
-information) locklessly.
+On 28 August 2014 16:23, Will Deacon <will.deacon@arm.com> wrote:
+> On Thu, Aug 28, 2014 at 03:45:01PM +0100, Steve Capper wrote:
+>> I would like to get this series into 3.18 as it fixes quite a big problem
+>> with THP on arm and arm64. This series is split into a core mm part, an
+>> arm part and an arm64 part.
+>>
+>> Could somebody please take patch #1 (if it looks okay)?
+>> Russell, would you be happy with patches #2, #3, #4? (if we get #1 merged)
+>> Catalin, would you be happy taking patches #5, #6? (if we get #1 merged)
+>
+> Pretty sure we're happy to take the arm64 bits once you've got the core
+> changes sorted out. Failing that, Catalin's acked them so they could go via
+> an mm tree if it's easier.
+>
 
-The L_PTE_SPECIAL bit is already allocated for LPAE, this patch modifies
-pte_special and pte_mkspecial to make use of it, and defines
-__HAVE_ARCH_PTE_SPECIAL.
+Hello,
 
-This patch also excludes special ptes from the icache/dcache sync logic.
+Are any mm maintainers willing to take the first patch from this
+series into their tree for merging into 3.18?
+  mm: Introduce a general RCU get_user_pages_fast.
 
-Signed-off-by: Steve Capper <steve.capper@linaro.org>
-Reviewed-by: Catalin Marinas <catalin.marinas@arm.com>
----
- arch/arm/include/asm/pgtable-2level.h | 2 ++
- arch/arm/include/asm/pgtable-3level.h | 7 +++++++
- arch/arm/include/asm/pgtable.h        | 6 ++----
- 3 files changed, 11 insertions(+), 4 deletions(-)
+(or please let me know if there are any issues with the patch that
+need addressing).
 
-diff --git a/arch/arm/include/asm/pgtable-2level.h b/arch/arm/include/asm/pgtable-2level.h
-index 219ac88..f027941 100644
---- a/arch/arm/include/asm/pgtable-2level.h
-+++ b/arch/arm/include/asm/pgtable-2level.h
-@@ -182,6 +182,8 @@ static inline pmd_t *pmd_offset(pud_t *pud, unsigned long addr)
- #define pmd_addr_end(addr,end) (end)
- 
- #define set_pte_ext(ptep,pte,ext) cpu_set_pte_ext(ptep,pte,ext)
-+#define pte_special(pte)	(0)
-+static inline pte_t pte_mkspecial(pte_t pte) { return pte; }
- 
- /*
-  * We don't have huge page support for short descriptors, for the moment
-diff --git a/arch/arm/include/asm/pgtable-3level.h b/arch/arm/include/asm/pgtable-3level.h
-index 06e0bc0..16122d4 100644
---- a/arch/arm/include/asm/pgtable-3level.h
-+++ b/arch/arm/include/asm/pgtable-3level.h
-@@ -213,6 +213,13 @@ static inline pmd_t *pmd_offset(pud_t *pud, unsigned long addr)
- #define pmd_isclear(pmd, val)	(!(pmd_val(pmd) & (val)))
- 
- #define pmd_young(pmd)		(pmd_isset((pmd), PMD_SECT_AF))
-+#define pte_special(pte)	(pte_isset((pte), L_PTE_SPECIAL))
-+static inline pte_t pte_mkspecial(pte_t pte)
-+{
-+	pte_val(pte) |= L_PTE_SPECIAL;
-+	return pte;
-+}
-+#define	__HAVE_ARCH_PTE_SPECIAL
- 
- #define __HAVE_ARCH_PMD_WRITE
- #define pmd_write(pmd)		(pmd_isclear((pmd), L_PMD_SECT_RDONLY))
-diff --git a/arch/arm/include/asm/pgtable.h b/arch/arm/include/asm/pgtable.h
-index 01baef0..90aa4583 100644
---- a/arch/arm/include/asm/pgtable.h
-+++ b/arch/arm/include/asm/pgtable.h
-@@ -226,7 +226,6 @@ static inline pte_t *pmd_page_vaddr(pmd_t pmd)
- #define pte_dirty(pte)		(pte_isset((pte), L_PTE_DIRTY))
- #define pte_young(pte)		(pte_isset((pte), L_PTE_YOUNG))
- #define pte_exec(pte)		(pte_isclear((pte), L_PTE_XN))
--#define pte_special(pte)	(0)
- 
- #define pte_valid_user(pte)	\
- 	(pte_valid(pte) && pte_isset((pte), L_PTE_USER) && pte_young(pte))
-@@ -245,7 +244,8 @@ static inline void set_pte_at(struct mm_struct *mm, unsigned long addr,
- 	unsigned long ext = 0;
- 
- 	if (addr < TASK_SIZE && pte_valid_user(pteval)) {
--		__sync_icache_dcache(pteval);
-+		if (!pte_special(pteval))
-+			__sync_icache_dcache(pteval);
- 		ext |= PTE_EXT_NG;
- 	}
- 
-@@ -264,8 +264,6 @@ PTE_BIT_FUNC(mkyoung,   |= L_PTE_YOUNG);
- PTE_BIT_FUNC(mkexec,   &= ~L_PTE_XN);
- PTE_BIT_FUNC(mknexec,   |= L_PTE_XN);
- 
--static inline pte_t pte_mkspecial(pte_t pte) { return pte; }
--
- static inline pte_t pte_modify(pte_t pte, pgprot_t newprot)
- {
- 	const pteval_t mask = L_PTE_XN | L_PTE_RDONLY | L_PTE_USER |
--- 
-1.9.3
+As Will has stated, Catalin's already acked the arm64 patches, and
+these can also go in via an mm tree if that makes things easier:
+  arm64: mm: Enable HAVE_RCU_TABLE_FREE logic
+  arm64: mm: Enable RCU fast_gup
 
+Thanks,
+--
+Steve
