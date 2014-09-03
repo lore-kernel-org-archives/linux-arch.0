@@ -1,93 +1,72 @@
-From: Peter Hurley <peter@hurleysoftware.com>
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 Subject: Re: bit fields && data tearing
-Date: Wed, 03 Sep 2014 18:51:28 -0400
-Message-ID: <54079B70.4050200@hurleysoftware.com>
+Date: Thu, 04 Sep 2014 09:11:33 +1000
+Message-ID: <1409785893.30640.118.camel@pasglop>
 References: <20140712181328.GA8738@redhat.com>
+ <54079B70.4050200@hurleysoftware.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20140712181328.GA8738@redhat.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Jakub Jelinek <jakub@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Richard Henderson <rth@twiddle.net>
-Cc: Oleg Nesterov <oleg@redhat.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Miroslav Franc <mfranc@redhat.com>, Paul Mackerras <paulus@samba.org>, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Tony Luck <tony.luck@intel.com>, linux-ia64@vger.kernel.org
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
+In-Reply-To: <54079B70.4050200@hurleysoftware.com>
+List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
+ <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
+List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
+List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
+List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
+List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
+ <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
+Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
+Sender: "Linuxppc-dev"
+ <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
+To: Peter Hurley <peter@hurleysoftware.com>
+Cc: Jakub Jelinek <jakub@redhat.com>, linux-arch@vger.kernel.org, Tony Luck <tony.luck@intel.com>, linux-ia64@vger.kernel.org, Oleg Nesterov <oleg@redhat.com>, linux-kernel@vger.kernel.org, Paul Mackerras <paulus@samba.org>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, linuxppc-dev@lists.ozlabs.org, Miroslav Franc <mfranc@redhat.com>, Richard Henderson <rth@twiddle.net>
 List-Id: linux-arch.vger.kernel.org
 
-[ +cc linux-arch, Tony Luck, 
-
-On 07/12/2014 02:13 PM, Oleg Nesterov wrote:
-> Hello,
-> 
-> I am not sure I should ask here, but since Documentation/memory-barriers.txt
-> mentions load/store tearing perhaps my question is not completely off-topic...
-> 
-> I am fighting with mysterious RHEL bug, it can be reproduced on ppc and s390
-> but not on x86. Finally I seem to understand the problem, and I even wrote the
-> stupid kernel module to ensure, see it below at the end.
-> 
-> It triggers the problem immediately, kt_2() sees the wrong value in freeze_stop.
-> (If I turn ->freeze_stop int "long", the problem goes away).
-> 
-> So the question is: is this gcc bug or the code below is buggy?
-> 
-> If it is buggy, then probably memory-barriers.txt could mention that you should
-> be carefull with bit fields, even ACCESS_ONCE() obviously can't help.
-> 
-> Or this just discloses my ignorance and you need at least aligned(long) after a
-> bit field to be thread-safe ? I thought that compiler should take care and add
-> the necessary alignment if (say) CPU can't update a single byte/uint.
-
-Apologies for hijacking this thread but I need to extend this discussion
-somewhat regarding what a compiler might do with adjacent fields in a structure.
-
-The tty subsystem defines a large aggregate structure, struct tty_struct.
-Importantly, several different locks apply to different fields within that
-structure; ie., a specific spinlock will be claimed before updating or accessing
-certain fields while a different spinlock will be claimed before updating or
-accessing certain _adjacent_ fields.
-
-What is necessary and sufficient to prevent accidental false-sharing?
-The patch below was flagged as insufficient on ia64, and possibly ARM.
-
-Regards,
-Peter Hurley
-
---- >% ---
-Subject: [PATCH 21/26] tty: Convert tty_struct bitfield to bools
-
-The stopped, hw_stopped, flow_stopped and packet bits are smp-unsafe
-and interrupt-unsafe. For example,
-
-CPU 0                         | CPU 1
-                              |
-tty->flow_stopped = 1         | tty->hw_stopped = 0
-
-One of these updates will be corrupted, as the bitwise operation
-on the bitfield is non-atomic.
-
-Ensure each flag has a separate memory location, so concurrent
-updates do not corrupt orthogonal states.
-
-Signed-off-by: Peter Hurley <peter@hurleysoftware.com>
----
- include/linux/tty.h | 5 ++++-
- 1 file changed, 4 insertions(+), 1 deletion(-)
-
-diff --git a/include/linux/tty.h b/include/linux/tty.h
-index 1c3316a..7cf61cb 100644
---- a/include/linux/tty.h
-+++ b/include/linux/tty.h
-@@ -261,7 +261,10 @@ struct tty_struct {
- 	unsigned long flags;
- 	int count;
- 	struct winsize winsize;		/* winsize_mutex */
--	unsigned char stopped:1, hw_stopped:1, flow_stopped:1, packet:1;
-+	bool stopped;
-+	bool hw_stopped;
-+	bool flow_stopped;
-+	bool packet;
- 	unsigned char ctrl_status;	/* ctrl_lock */
- 	unsigned int receive_room;	/* Bytes free for queue */
- 	int flow_change;
--- 
-2.1.0
+T24gV2VkLCAyMDE0LTA5LTAzIGF0IDE4OjUxIC0wNDAwLCBQZXRlciBIdXJsZXkgd3JvdGU6Cgo+
+IEFwb2xvZ2llcyBmb3IgaGlqYWNraW5nIHRoaXMgdGhyZWFkIGJ1dCBJIG5lZWQgdG8gZXh0ZW5k
+IHRoaXMgZGlzY3Vzc2lvbgo+IHNvbWV3aGF0IHJlZ2FyZGluZyB3aGF0IGEgY29tcGlsZXIgbWln
+aHQgZG8gd2l0aCBhZGphY2VudCBmaWVsZHMgaW4gYSBzdHJ1Y3R1cmUuCj4gCj4gVGhlIHR0eSBz
+dWJzeXN0ZW0gZGVmaW5lcyBhIGxhcmdlIGFnZ3JlZ2F0ZSBzdHJ1Y3R1cmUsIHN0cnVjdCB0dHlf
+c3RydWN0Lgo+IEltcG9ydGFudGx5LCBzZXZlcmFsIGRpZmZlcmVudCBsb2NrcyBhcHBseSB0byBk
+aWZmZXJlbnQgZmllbGRzIHdpdGhpbiB0aGF0Cj4gc3RydWN0dXJlOyBpZS4sIGEgc3BlY2lmaWMg
+c3BpbmxvY2sgd2lsbCBiZSBjbGFpbWVkIGJlZm9yZSB1cGRhdGluZyBvciBhY2Nlc3NpbmcKPiBj
+ZXJ0YWluIGZpZWxkcyB3aGlsZSBhIGRpZmZlcmVudCBzcGlubG9jayB3aWxsIGJlIGNsYWltZWQg
+YmVmb3JlIHVwZGF0aW5nIG9yCj4gYWNjZXNzaW5nIGNlcnRhaW4gX2FkamFjZW50XyBmaWVsZHMu
+Cj4gCj4gV2hhdCBpcyBuZWNlc3NhcnkgYW5kIHN1ZmZpY2llbnQgdG8gcHJldmVudCBhY2NpZGVu
+dGFsIGZhbHNlLXNoYXJpbmc/Cj4gVGhlIHBhdGNoIGJlbG93IHdhcyBmbGFnZ2VkIGFzIGluc3Vm
+ZmljaWVudCBvbiBpYTY0LCBhbmQgcG9zc2libHkgQVJNLgoKV2UgZXhwZWN0IG5hdGl2ZSBhbGln
+bmVkIHNjYWxhciB0eXBlcyB0byBiZSBhY2Nlc3NlZCBhdG9taWNhbGx5ICh0aGUKcmVhZC9tb2Rp
+Znkvd3JpdGUgb2YgYSBsYXJnZXIgcXVhbnRpdHkgdGhhdCBnY2MgZG9lcyBvbiBzb21lIGJpdGZp
+ZWxkCmNhc2VzIGhhcyBiZWVuIGZsYWdnZWQgYXMgYSBnY2MgYnVnLCBidXQgc2hvdWxkbid0IGhh
+cHBlbiBvbiBub3JtYWwKc2NhbGFyIHR5cGVzKS4KCkkgYW0gbm90IDEwMCUgY2VydGFpbiBvZiAi
+Ym9vbCIgaGVyZSwgSSBhc3N1bWUgaXQncyB0cmVhdGVkIGFzIGEgbm9ybWFsCnNjYWxhciBhbmQg
+dGh1cyBhdG9taWMgYnV0IGlmIHVuc3VyZSwgeW91IGNhbiBhbHdheXMgdXNlIGludC4KCkFub3Ro
+ZXIgb3B0aW9uIGlzIHRvIHVzZSB0aGUgYXRvbWljIGJpdG9wcyBhbmQgbWFrZSB0aGVzZSBiaXRz
+IGluIGEKYml0bWFzayBidXQgdGhhdCBpcyBwcm9iYWJseSB1bm5lY2Vzc2FyeSBpZiB5b3UgaGF2
+ZSBsb2NrcyBhbHJlYWR5LgoKQ2hlZXJzLApCZW4uCgoKPiBSZWdhcmRzLAo+IFBldGVyIEh1cmxl
+eQo+IAo+IC0tLSA+JSAtLS0KPiBTdWJqZWN0OiBbUEFUQ0ggMjEvMjZdIHR0eTogQ29udmVydCB0
+dHlfc3RydWN0IGJpdGZpZWxkIHRvIGJvb2xzCj4gCj4gVGhlIHN0b3BwZWQsIGh3X3N0b3BwZWQs
+IGZsb3dfc3RvcHBlZCBhbmQgcGFja2V0IGJpdHMgYXJlIHNtcC11bnNhZmUKPiBhbmQgaW50ZXJy
+dXB0LXVuc2FmZS4gRm9yIGV4YW1wbGUsCj4gCj4gQ1BVIDAgICAgICAgICAgICAgICAgICAgICAg
+ICAgfCBDUFUgMQo+ICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIHwKPiB0dHktPmZsb3df
+c3RvcHBlZCA9IDEgICAgICAgICB8IHR0eS0+aHdfc3RvcHBlZCA9IDAKPiAKPiBPbmUgb2YgdGhl
+c2UgdXBkYXRlcyB3aWxsIGJlIGNvcnJ1cHRlZCwgYXMgdGhlIGJpdHdpc2Ugb3BlcmF0aW9uCj4g
+b24gdGhlIGJpdGZpZWxkIGlzIG5vbi1hdG9taWMuCj4gCj4gRW5zdXJlIGVhY2ggZmxhZyBoYXMg
+YSBzZXBhcmF0ZSBtZW1vcnkgbG9jYXRpb24sIHNvIGNvbmN1cnJlbnQKPiB1cGRhdGVzIGRvIG5v
+dCBjb3JydXB0IG9ydGhvZ29uYWwgc3RhdGVzLgo+IAo+IFNpZ25lZC1vZmYtYnk6IFBldGVyIEh1
+cmxleSA8cGV0ZXJAaHVybGV5c29mdHdhcmUuY29tPgo+IC0tLQo+ICBpbmNsdWRlL2xpbnV4L3R0
+eS5oIHwgNSArKysrLQo+ICAxIGZpbGUgY2hhbmdlZCwgNCBpbnNlcnRpb25zKCspLCAxIGRlbGV0
+aW9uKC0pCj4gCj4gZGlmZiAtLWdpdCBhL2luY2x1ZGUvbGludXgvdHR5LmggYi9pbmNsdWRlL2xp
+bnV4L3R0eS5oCj4gaW5kZXggMWMzMzE2YS4uN2NmNjFjYiAxMDA2NDQKPiAtLS0gYS9pbmNsdWRl
+L2xpbnV4L3R0eS5oCj4gKysrIGIvaW5jbHVkZS9saW51eC90dHkuaAo+IEBAIC0yNjEsNyArMjYx
+LDEwIEBAIHN0cnVjdCB0dHlfc3RydWN0IHsKPiAgCXVuc2lnbmVkIGxvbmcgZmxhZ3M7Cj4gIAlp
+bnQgY291bnQ7Cj4gIAlzdHJ1Y3Qgd2luc2l6ZSB3aW5zaXplOwkJLyogd2luc2l6ZV9tdXRleCAq
+Lwo+IC0JdW5zaWduZWQgY2hhciBzdG9wcGVkOjEsIGh3X3N0b3BwZWQ6MSwgZmxvd19zdG9wcGVk
+OjEsIHBhY2tldDoxOwo+ICsJYm9vbCBzdG9wcGVkOwo+ICsJYm9vbCBod19zdG9wcGVkOwo+ICsJ
+Ym9vbCBmbG93X3N0b3BwZWQ7Cj4gKwlib29sIHBhY2tldDsKPiAgCXVuc2lnbmVkIGNoYXIgY3Ry
+bF9zdGF0dXM7CS8qIGN0cmxfbG9jayAqLwo+ICAJdW5zaWduZWQgaW50IHJlY2VpdmVfcm9vbTsJ
+LyogQnl0ZXMgZnJlZSBmb3IgcXVldWUgKi8KPiAgCWludCBmbG93X2NoYW5nZTsKCgpfX19fX19f
+X19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fXwpMaW51eHBwYy1kZXYgbWFp
+bGluZyBsaXN0CkxpbnV4cHBjLWRldkBsaXN0cy5vemxhYnMub3JnCmh0dHBzOi8vbGlzdHMub3ps
+YWJzLm9yZy9saXN0aW5mby9saW51eHBwYy1kZXY=
