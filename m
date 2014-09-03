@@ -1,42 +1,93 @@
-From: Husam Al Sayed <oscar55@post.sk>
-Subject: FROM: Husam Al Sayed.
-Date: Wed, 3 Sep 2014 20:31:27 +0200 (CEST)
-Message-ID: <372459955.347142.1409769087740.JavaMail.root@mbox05>
-Reply-To: "alsayedhusa@hotmail.com" <alsayedhusa@hotmail.com>
+From: Peter Hurley <peter@hurleysoftware.com>
+Subject: Re: bit fields && data tearing
+Date: Wed, 03 Sep 2014 18:51:28 -0400
+Message-ID: <54079B70.4050200@hurleysoftware.com>
+References: <20140712181328.GA8738@redhat.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 8BIT
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp02.post.sk ([195.146.144.202]:44684 "EHLO smtp02.post.sk"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754808AbaICSjn convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 3 Sep 2014 14:39:43 -0400
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-Cc: timur@tabi.org, linux-cachefs@redhat.com, jaegeuk.kim@samsung.com, linux-f2fs-devel@lists.sourceforge.net, jwoithe@just42.net, riverful.kim@samsung.com, khnz@gmx.de, miklos@szeredi.hu, fuse-devel@lists.sourceforge.net, faith@cs.unc.edu, oberpar@linux.vnet.ibm.com, achim_leubner@adaptec.com, hskinnemoen@gmail.com, peter.korsgaard@barco.com, arnd@arndb.de, linux-arch@vger.kernel.org, kishon@ti.com, swhiteho@redhat.com, cluster-devel@redhat.com, hjlipp@web.de, tilman@imap.cc, gigaset307x-common@lists.sourceforge.net, gnurou@gmail.com, kristoffer@gaisler.com, frank@zago.net, o.lorin@laposte.net, erik.andren@gmail.com, brijohn@gmail.com, lcostantino@gmail.com, davidlohr@hp.com
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20140712181328.GA8738@redhat.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Jakub Jelinek <jakub@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Richard Henderson <rth@twiddle.net>
+Cc: Oleg Nesterov <oleg@redhat.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Miroslav Franc <mfranc@redhat.com>, Paul Mackerras <paulus@samba.org>, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Tony Luck <tony.luck@intel.com>, linux-ia64@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-FROM: Husam Al Sayed.
+[ +cc linux-arch, Tony Luck, 
 
-EMAIL:alsayedhusa@hotmail.com
- 
-Hello,
- 
-I decided to write you this proposal in good faith, believing that you will
-not betray me. I am Mr. Husam Al Sayed, a Bank officer here in U.A.E.
- 
-One Mr. Peter Adams, a citizen of your country and Crude Oil dealer made a fixed deposit with my bank in 2005 for 108 calendar months, valued at US$30,000,000.00 (Thirty Million United State Dollars) the due date for this deposit contract was last 22nd of January 2014. Sadly Peter was among the death victims in the May 27 2006 Earthquake disaster in Java, Indonesia that killed over 5,000 people. He was in Indonesia on a business trip and that was how he met his untimely end. My bank management is yet to know about his death, I knew about it because he was my friend and I am his Account Officer. Peter did not mention any Next of Kin/ Heir when the account was opened, he was not married and no children. Last week my Bank Management requested that Peter should give instructions on what to do 
- about his funds, if to renew the contract.
- 
-I know this will happen and that is why I have been looking for a means to handle the situation, because if my Bank Directors happens to know that Peter is dead and do not have any Heir, they will take the funds for their personal use, so I don't want such to happen. That is why I am seeking your co-operation to present you as the Next of Kin/ Heir to the account, since you are a foreigner and my bank head quarters will release the account to you. There is no risk involved; the transaction will be executed under a legitimate arrangement that will protect us from any breach of law. It is better that we claim the money, than allowing the Bank Directors to take it, they are rich already. I am not a greedy person, so I am suggesting we share the funds in this ratio, 50/50%, equal sharing. Let 
- me know your mind on this and please do treat this information highly confidential. We shall go over the details once I receive your urgent response. Please Urgently get back to me through this email address as soon as possible:
- 
- 
- 
-Have a nice day and God bless. Anticipating your communication.
- 
+On 07/12/2014 02:13 PM, Oleg Nesterov wrote:
+> Hello,
+> 
+> I am not sure I should ask here, but since Documentation/memory-barriers.txt
+> mentions load/store tearing perhaps my question is not completely off-topic...
+> 
+> I am fighting with mysterious RHEL bug, it can be reproduced on ppc and s390
+> but not on x86. Finally I seem to understand the problem, and I even wrote the
+> stupid kernel module to ensure, see it below at the end.
+> 
+> It triggers the problem immediately, kt_2() sees the wrong value in freeze_stop.
+> (If I turn ->freeze_stop int "long", the problem goes away).
+> 
+> So the question is: is this gcc bug or the code below is buggy?
+> 
+> If it is buggy, then probably memory-barriers.txt could mention that you should
+> be carefull with bit fields, even ACCESS_ONCE() obviously can't help.
+> 
+> Or this just discloses my ignorance and you need at least aligned(long) after a
+> bit field to be thread-safe ? I thought that compiler should take care and add
+> the necessary alignment if (say) CPU can't update a single byte/uint.
+
+Apologies for hijacking this thread but I need to extend this discussion
+somewhat regarding what a compiler might do with adjacent fields in a structure.
+
+The tty subsystem defines a large aggregate structure, struct tty_struct.
+Importantly, several different locks apply to different fields within that
+structure; ie., a specific spinlock will be claimed before updating or accessing
+certain fields while a different spinlock will be claimed before updating or
+accessing certain _adjacent_ fields.
+
+What is necessary and sufficient to prevent accidental false-sharing?
+The patch below was flagged as insufficient on ia64, and possibly ARM.
+
 Regards,
-FROM: Husam Al Sayed.
-EMAIL: alsayedhusa@hotmail.com
-_____________________________________________________________________
+Peter Hurley
 
-Hladate vazny vztah? Zaregistrujte sa na - http://dvaja.sme.sk
+--- >% ---
+Subject: [PATCH 21/26] tty: Convert tty_struct bitfield to bools
+
+The stopped, hw_stopped, flow_stopped and packet bits are smp-unsafe
+and interrupt-unsafe. For example,
+
+CPU 0                         | CPU 1
+                              |
+tty->flow_stopped = 1         | tty->hw_stopped = 0
+
+One of these updates will be corrupted, as the bitwise operation
+on the bitfield is non-atomic.
+
+Ensure each flag has a separate memory location, so concurrent
+updates do not corrupt orthogonal states.
+
+Signed-off-by: Peter Hurley <peter@hurleysoftware.com>
+---
+ include/linux/tty.h | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
+
+diff --git a/include/linux/tty.h b/include/linux/tty.h
+index 1c3316a..7cf61cb 100644
+--- a/include/linux/tty.h
++++ b/include/linux/tty.h
+@@ -261,7 +261,10 @@ struct tty_struct {
+ 	unsigned long flags;
+ 	int count;
+ 	struct winsize winsize;		/* winsize_mutex */
+-	unsigned char stopped:1, hw_stopped:1, flow_stopped:1, packet:1;
++	bool stopped;
++	bool hw_stopped;
++	bool flow_stopped;
++	bool packet;
+ 	unsigned char ctrl_status;	/* ctrl_lock */
+ 	unsigned int receive_room;	/* Bytes free for queue */
+ 	int flow_change;
+-- 
+2.1.0
