@@ -1,121 +1,88 @@
-From: Yijing Wang <wangyijing@huawei.com>
-Subject: Re: [RFC PATCH 00/11] Refactor MSI to support Non-PCI device
-Date: Wed, 3 Sep 2014 15:15:11 +0800
-Message-ID: <5406BFFF.9000505@huawei.com>
-References: <1406344128-27055-1-git-send-email-wangyijing@huawei.com> <c6d34fe1bbe9457ea8cff7dcd97902b8@DM2PR03MB317.namprd03.prod.outlook.com> <53DEF80C.1010608@huawei.com> <8a2b4e237f2d4c7e95ef72867658b53a@BLUPR03MB566.namprd03.prod.outlook.com> <53F44022.6030706@huawei.com> <c3b2bd89ef3d462cb302f6ede56a0d44@BLUPR03MB566.namprd03.prod.outlook.com>
+From: Jesper Nilsson <jesper.nilsson@axis.com>
+Subject: Re: [PATCH 01/38] cris: fix headers_install
+Date: Wed, 3 Sep 2014 13:22:58 +0200
+Message-ID: <20140903112258.GQ27603@axis.com>
+References: <20140714150609.GA28358@ravnborg.org>
+ <1405350546-28467-1-git-send-email-sam@ravnborg.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="ISO-8859-1"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from szxga01-in.huawei.com ([119.145.14.64]:37092 "EHLO
-	szxga01-in.huawei.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753760AbaICHST (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 3 Sep 2014 03:18:19 -0400
-In-Reply-To: <c3b2bd89ef3d462cb302f6ede56a0d44@BLUPR03MB566.namprd03.prod.outlook.com>
+Received: from bastet.se.axis.com ([195.60.68.11]:47914 "EHLO
+	bastet.se.axis.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754760AbaICLXF (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 3 Sep 2014 07:23:05 -0400
+Content-Disposition: inline
+In-Reply-To: <1405350546-28467-1-git-send-email-sam@ravnborg.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Bharat.Bhushan@freescale.com" <Bharat.Bhushan@freescale.com>, "arnab.basu@freescale.com" <arnab.basu@freescale.com>
-Cc: Xinwei Hu <huxinwei@huawei.com>, Wuyun <wuyun.wu@huawei.com>, Bjorn Helgaas <bhelgaas@google.com>, "linux-pci@vger.kernel.org" <linux-pci@vger.kernel.org>, "Paul.Mundt@huawei.com" <Paul.Mundt@huawei.com>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Marc Zyngier <marc.zyngier@arm.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Russell King <linux@arm.linux.org.uk>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "virtualization@lists.linux-foundation.org" <virtualization@lists.linux-foundation.org>, Hanjun Guo <guohanjun@huawei.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
+To: Sam Ravnborg <sam@ravnborg.org>
+Cc: Arnd Bergmann <arnd@arndb.de>, lkml <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Mikael Starvik <starvik@axis.com>, Jesper Nilsson <jespern@axis.com>, David Howells <dhowells@redhat.com>
 
->> Provide the private MSI setup functions in bus-driver layer can't apply to all
->> Non-PCI MSI devices, because we can not guarantee Non-PCI MSI devices are always
->> on a bus. The existing HPET, DMAR device both have no bus bind.
-> 
-> Yes, that's why I was not sure of bus-driver or device-driver model.
-> 
->> I'm working on a
->> new MSI setup framework, as you mentioned before, in device-driver model.
->>
->> I abstracted a new virtual device (called struct msi_dev), this msi_dev will
->> manage all MSI info,
-> 
-> Will this "struct msi_dev" will be part of "struct device"?
-> 
->> and a new bus named msi_bus, also introduced a new driver
->> msi_driver, msi_bus is responsible for binding msi_dev and msi_driver.
->> All MSI devices will be classified into different MSI device types, like
->> MSI_TYPE_PCI, MSI_TYPE_HPET, MSI_TYPE_DMAR, etc..
->>
->> Each MSI type device should provide a private struct msi_driver. msi_driver
->> should contain the type specific MSI ops functions to help setup and enable MSI
->> device, request MSI irq.
->>
->> I almost finish the first draft, and will post out next week in plan :)
-> 
-> Will be looking forward to next version.
+On Mon, Jul 14, 2014 at 05:08:29PM +0200, Sam Ravnborg wrote:
+> Fix headers_install by adjusting the path to arch files.
+> And delete unused Kbuild file.
+> Drop special handling of cris in the headers.sh script as a nice side-effect.
 
-Hi Bharat, I'm sorry I had to delay to send out the new version :(. I found some risks in the
-new MSI framework, i.e. DMAR MSI initialized the MSI before the linux device-driver tree be built.
-And we also found some problems during test. So I think I need more time to review and test.
+Don't see this patch in Linus tree yet, so if you want it, here's my
 
-Thanks!
-Yijing.
+Acked-by: Jesper Nilsson <jesper.nilsson@axis.com>
 
-> 
-> Thanks
-> -Bharat
-> 
->>
->>
->> Thanks!
->> Yijing.
->>
->>>
->>> Thanks
->>> -Bharat
->>>
->>>>
->>>> My patchset is just a RFC draft, I will update it later, all we want
->>>> to do is make kernel support Non-PCI MSI devices.
->>>>
->>>> Thanks!
->>>> Yijing.
->>>>
->>>>
->>>>>
->>>>> Thanks
->>>>> Arnab
->>>>> --
->>>>> To unsubscribe from this list: send the line "unsubscribe
->>>>> linux-kernel" in the body of a message to majordomo@vger.kernel.org
->>>>> More majordomo info at  http://vger.kernel.org/majordomo-info.html
->>>>> Please read the FAQ at  http://www.tux.org/lkml/
->>>>>
->>>>> .
->>>>>
->>>>
->>>>
->>>> --
->>>> Thanks!
->>>> Yijing
->>>>
->>>> --
->>>> To unsubscribe from this list: send the line "unsubscribe linux-pci"
->>>> in the body of a message to majordomo@vger.kernel.org More majordomo
->>>> info at http://vger.kernel.org/majordomo-info.html
->>>
->>> .
->>>
->>
->>
->> --
->> Thanks!
->> Yijing
->>
->> --
->> To unsubscribe from this list: send the line "unsubscribe linux-pci" in the body
->> of a message to majordomo@vger.kernel.org More majordomo info at
->> http://vger.kernel.org/majordomo-info.html
-> --
-> To unsubscribe from this list: send the line "unsubscribe linux-kernel" in
-> the body of a message to majordomo@vger.kernel.org
-> More majordomo info at  http://vger.kernel.org/majordomo-info.html
-> Please read the FAQ at  http://www.tux.org/lkml/
-> 
-> .
-> 
+and thanks!
 
+> Signed-off-by: Sam Ravnborg <sam@ravnborg.org>
+> Cc: Mikael Starvik <starvik@axis.com>
+> Cc: Jesper Nilsson <jesper.nilsson@axis.com>
+> Cc: David Howells <dhowells@redhat.com>
+> ---
+>  arch/cris/include/asm/Kbuild      | 5 -----
+>  arch/cris/include/uapi/asm/Kbuild | 4 ++--
+>  scripts/headers.sh                | 2 --
+>  3 files changed, 2 insertions(+), 9 deletions(-)
+> 
+> diff --git a/arch/cris/include/asm/Kbuild b/arch/cris/include/asm/Kbuild
+> index afff510..35574f5 100644
+> --- a/arch/cris/include/asm/Kbuild
+> +++ b/arch/cris/include/asm/Kbuild
+> @@ -1,8 +1,3 @@
+> -
+> -header-y += arch-v10/
+> -header-y += arch-v32/
+> -
+> -
+>  generic-y += barrier.h
+>  generic-y += clkdev.h
+>  generic-y += cputime.h
+> diff --git a/arch/cris/include/uapi/asm/Kbuild b/arch/cris/include/uapi/asm/Kbuild
+> index 7d47b36..01f66b8 100644
+> --- a/arch/cris/include/uapi/asm/Kbuild
+> +++ b/arch/cris/include/uapi/asm/Kbuild
+> @@ -1,8 +1,8 @@
+>  # UAPI Header export list
+>  include include/uapi/asm-generic/Kbuild.asm
+>  
+> -header-y += arch-v10/
+> -header-y += arch-v32/
+> +header-y += ../arch-v10/arch/
+> +header-y += ../arch-v32/arch/
+>  header-y += auxvec.h
+>  header-y += bitsperlong.h
+>  header-y += byteorder.h
+> diff --git a/scripts/headers.sh b/scripts/headers.sh
+> index 95ece06..d4dc4de 100755
+> --- a/scripts/headers.sh
+> +++ b/scripts/headers.sh
+> @@ -19,8 +19,6 @@ for arch in ${archs}; do
+>  	case ${arch} in
+>  	um)        # no userspace export
+>  		;;
+> -	cris)      # headers export are known broken
+> -		;;
+>  	*)
+>  		if [ -d ${srctree}/arch/${arch} ]; then
+>  			do_command $1 ${arch}
+> -- 
+> 1.9.3
 
+/^JN - Jesper Nilsson
 -- 
-Thanks!
-Yijing
+               Jesper Nilsson -- jesper.nilsson@axis.com
