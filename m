@@ -1,88 +1,92 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bastet.se.axis.com ([195.60.68.11]:47929 "EHLO
-	bastet.se.axis.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932119AbaICLXR (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 3 Sep 2014 07:23:17 -0400
-Date: Wed, 3 Sep 2014 13:23:11 +0200
-From: Jesper Nilsson <jesper.nilsson@axis.com>
-Subject: Re: [PATCH 17/38] cris: clean-up uapi Kbuild file
-Message-ID: <20140903112311.GR27603@axis.com>
-References: <20140714150609.GA28358@ravnborg.org>
- <1405350546-28467-1-git-send-email-sam@ravnborg.org>
- <1405350546-28467-17-git-send-email-sam@ravnborg.org>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1405350546-28467-17-git-send-email-sam@ravnborg.org>
+Received: from gate.crashing.org ([63.228.1.57]:49915 "EHLO gate.crashing.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S933258AbaICXuc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 3 Sep 2014 19:50:32 -0400
+Message-ID: <1409785893.30640.118.camel@pasglop>
+Subject: Re: bit fields && data tearing
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Date: Thu, 04 Sep 2014 09:11:33 +1000
+In-Reply-To: <54079B70.4050200@hurleysoftware.com>
+References: <20140712181328.GA8738@redhat.com>
+	 <54079B70.4050200@hurleysoftware.com>
+Content-Type: text/plain; charset="UTF-8"
+Mime-Version: 1.0
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Sam Ravnborg <sam@ravnborg.org>
-Cc: Arnd Bergmann <arnd@arndb.de>, lkml <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Mikael Starvik <starvik@axis.com>, Jesper Nilsson <jespern@axis.com>
-Message-ID: <20140903112311.WkiPRyZe3lF6Dtq45rBL-_aqryNhQpSqh9WDSleuFxI@z>
+To: Peter Hurley <peter@hurleysoftware.com>
+Cc: Jakub Jelinek <jakub@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Richard Henderson <rth@twiddle.net>, Oleg Nesterov <oleg@redhat.com>, Miroslav Franc <mfranc@redhat.com>, Paul Mackerras <paulus@samba.org>, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Tony Luck <tony.luck@intel.com>, linux-ia64@vger.kernel.org
+Message-ID: <20140903231133.mrUg-dwbI1gpnWZ58Qn1F7fFfcjB0MvEVVWLLQqgQRg@z>
 
-On Mon, Jul 14, 2014 at 05:08:45PM +0200, Sam Ravnborg wrote:
-> Remove redundant assignments.
+On Wed, 2014-09-03 at 18:51 -0400, Peter Hurley wrote:
+
+> Apologies for hijacking this thread but I need to extend this discussion
+> somewhat regarding what a compiler might do with adjacent fields in a structure.
 > 
-> Signed-off-by: Sam Ravnborg <sam@ravnborg.org>
-> Cc: Mikael Starvik <starvik@axis.com>
-> Cc: Jesper Nilsson <jesper.nilsson@axis.com>
+> The tty subsystem defines a large aggregate structure, struct tty_struct.
+> Importantly, several different locks apply to different fields within that
+> structure; ie., a specific spinlock will be claimed before updating or accessing
+> certain fields while a different spinlock will be claimed before updating or
+> accessing certain _adjacent_ fields.
+> 
+> What is necessary and sufficient to prevent accidental false-sharing?
+> The patch below was flagged as insufficient on ia64, and possibly ARM.
 
-Don't see this patch in Linus tree yet, so if you want it, here's my
+We expect native aligned scalar types to be accessed atomically (the
+read/modify/write of a larger quantity that gcc does on some bitfield
+cases has been flagged as a gcc bug, but shouldn't happen on normal
+scalar types).
 
-Acked-by: Jesper Nilsson <jesper.nilsson@axis.com>
+I am not 100% certain of "bool" here, I assume it's treated as a normal
+scalar and thus atomic but if unsure, you can always use int.
 
-and thanks!
+Another option is to use the atomic bitops and make these bits in a
+bitmask but that is probably unnecessary if you have locks already.
 
+Cheers,
+Ben.
+
+
+> Regards,
+> Peter Hurley
+> 
+> --- >% ---
+> Subject: [PATCH 21/26] tty: Convert tty_struct bitfield to bools
+> 
+> The stopped, hw_stopped, flow_stopped and packet bits are smp-unsafe
+> and interrupt-unsafe. For example,
+> 
+> CPU 0                         | CPU 1
+>                               |
+> tty->flow_stopped = 1         | tty->hw_stopped = 0
+> 
+> One of these updates will be corrupted, as the bitwise operation
+> on the bitfield is non-atomic.
+> 
+> Ensure each flag has a separate memory location, so concurrent
+> updates do not corrupt orthogonal states.
+> 
+> Signed-off-by: Peter Hurley <peter@hurleysoftware.com>
 > ---
->  arch/cris/include/uapi/asm/Kbuild | 31 +------------------------------
->  1 file changed, 1 insertion(+), 30 deletions(-)
+>  include/linux/tty.h | 5 ++++-
+>  1 file changed, 4 insertions(+), 1 deletion(-)
 > 
-> diff --git a/arch/cris/include/uapi/asm/Kbuild b/arch/cris/include/uapi/asm/Kbuild
-> index 01f66b8..de41e86 100644
-> --- a/arch/cris/include/uapi/asm/Kbuild
-> +++ b/arch/cris/include/uapi/asm/Kbuild
-> @@ -3,37 +3,8 @@ include include/uapi/asm-generic/Kbuild.asm
->  
->  header-y += ../arch-v10/arch/
->  header-y += ../arch-v32/arch/
-> -header-y += auxvec.h
-> -header-y += bitsperlong.h
-> -header-y += byteorder.h
-> -header-y += errno.h
-> +
->  header-y += ethernet.h
->  header-y += etraxgpio.h
-> -header-y += fcntl.h
-> -header-y += ioctl.h
-> -header-y += ioctls.h
-> -header-y += ipcbuf.h
-> -header-y += mman.h
-> -header-y += msgbuf.h
-> -header-y += param.h
-> -header-y += poll.h
-> -header-y += posix_types.h
-> -header-y += ptrace.h
-> -header-y += resource.h
->  header-y += rs485.h
-> -header-y += sembuf.h
-> -header-y += setup.h
-> -header-y += shmbuf.h
-> -header-y += sigcontext.h
-> -header-y += siginfo.h
-> -header-y += signal.h
-> -header-y += socket.h
-> -header-y += sockios.h
-> -header-y += stat.h
-> -header-y += statfs.h
-> -header-y += swab.h
->  header-y += sync_serial.h
-> -header-y += termbits.h
-> -header-y += termios.h
-> -header-y += types.h
-> -header-y += unistd.h
-> -- 
-> 1.9.3
+> diff --git a/include/linux/tty.h b/include/linux/tty.h
+> index 1c3316a..7cf61cb 100644
+> --- a/include/linux/tty.h
+> +++ b/include/linux/tty.h
+> @@ -261,7 +261,10 @@ struct tty_struct {
+>  	unsigned long flags;
+>  	int count;
+>  	struct winsize winsize;		/* winsize_mutex */
+> -	unsigned char stopped:1, hw_stopped:1, flow_stopped:1, packet:1;
+> +	bool stopped;
+> +	bool hw_stopped;
+> +	bool flow_stopped;
+> +	bool packet;
+>  	unsigned char ctrl_status;	/* ctrl_lock */
+>  	unsigned int receive_room;	/* Bytes free for queue */
+>  	int flow_change;
 
-/^JN - Jesper Nilsson
--- 
-               Jesper Nilsson -- jesper.nilsson@axis.com
+
