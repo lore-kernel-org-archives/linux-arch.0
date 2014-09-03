@@ -1,54 +1,88 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-yh0-f43.google.com ([209.85.213.43]:53836 "EHLO
-	mail-yh0-f43.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751500AbaIALnH (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 1 Sep 2014 07:43:07 -0400
-Received: by mail-yh0-f43.google.com with SMTP id f73so3326661yha.16
-        for <linux-arch@vger.kernel.org>; Mon, 01 Sep 2014 04:43:06 -0700 (PDT)
+Received: from bastet.se.axis.com ([195.60.68.11]:47929 "EHLO
+	bastet.se.axis.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932119AbaICLXR (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 3 Sep 2014 07:23:17 -0400
+Date: Wed, 3 Sep 2014 13:23:11 +0200
+From: Jesper Nilsson <jesper.nilsson@axis.com>
+Subject: Re: [PATCH 17/38] cris: clean-up uapi Kbuild file
+Message-ID: <20140903112311.GR27603@axis.com>
+References: <20140714150609.GA28358@ravnborg.org>
+ <1405350546-28467-1-git-send-email-sam@ravnborg.org>
+ <1405350546-28467-17-git-send-email-sam@ravnborg.org>
 MIME-Version: 1.0
-In-Reply-To: <20140828152320.GN22580@arm.com>
-References: <1409237107-24228-1-git-send-email-steve.capper@linaro.org>
-	<20140828152320.GN22580@arm.com>
-Date: Mon, 1 Sep 2014 12:43:06 +0100
-Message-ID: <CAPvkgC0YVhPEBqbWSDnGyZBUn3+8Kv7-yx1-_n0Jx+giKzOqmw@mail.gmail.com>
-Subject: Re: [PATCH V3 0/6] RCU get_user_pages_fast and __get_user_pages_fast
-From: Steve Capper <steve.capper@linaro.org>
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1405350546-28467-17-git-send-email-sam@ravnborg.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "linux-mm@kvack.org" <linux-mm@kvack.org>, Will Deacon <will.deacon@arm.com>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>
-Cc: "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Catalin Marinas <Catalin.Marinas@arm.com>, "linux@arm.linux.org.uk" <linux@arm.linux.org.uk>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "gary.robertson@linaro.org" <gary.robertson@linaro.org>, "christoffer.dall@linaro.org" <christoffer.dall@linaro.org>, "peterz@infradead.org" <peterz@infradead.org>, "anders.roxell@linaro.org" <anders.roxell@linaro.org>, "dann.frazier@canonical.com" <dann.frazier@canonical.com>, Mark Rutland <Mark.Rutland@arm.com>, "mgorman@suse.de" <mgorman@suse.de>
-Message-ID: <20140901114306.yo74-bC_Bw4Bwox6CV6A1QPTmyFeMYT34o7FlCCF43M@z>
+To: Sam Ravnborg <sam@ravnborg.org>
+Cc: Arnd Bergmann <arnd@arndb.de>, lkml <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Mikael Starvik <starvik@axis.com>, Jesper Nilsson <jespern@axis.com>
+Message-ID: <20140903112311.WkiPRyZe3lF6Dtq45rBL-_aqryNhQpSqh9WDSleuFxI@z>
 
-On 28 August 2014 16:23, Will Deacon <will.deacon@arm.com> wrote:
-> On Thu, Aug 28, 2014 at 03:45:01PM +0100, Steve Capper wrote:
->> I would like to get this series into 3.18 as it fixes quite a big problem
->> with THP on arm and arm64. This series is split into a core mm part, an
->> arm part and an arm64 part.
->>
->> Could somebody please take patch #1 (if it looks okay)?
->> Russell, would you be happy with patches #2, #3, #4? (if we get #1 merged)
->> Catalin, would you be happy taking patches #5, #6? (if we get #1 merged)
->
-> Pretty sure we're happy to take the arm64 bits once you've got the core
-> changes sorted out. Failing that, Catalin's acked them so they could go via
-> an mm tree if it's easier.
->
+On Mon, Jul 14, 2014 at 05:08:45PM +0200, Sam Ravnborg wrote:
+> Remove redundant assignments.
+> 
+> Signed-off-by: Sam Ravnborg <sam@ravnborg.org>
+> Cc: Mikael Starvik <starvik@axis.com>
+> Cc: Jesper Nilsson <jesper.nilsson@axis.com>
 
-Hello,
+Don't see this patch in Linus tree yet, so if you want it, here's my
 
-Are any mm maintainers willing to take the first patch from this
-series into their tree for merging into 3.18?
-  mm: Introduce a general RCU get_user_pages_fast.
+Acked-by: Jesper Nilsson <jesper.nilsson@axis.com>
 
-(or please let me know if there are any issues with the patch that
-need addressing).
+and thanks!
 
-As Will has stated, Catalin's already acked the arm64 patches, and
-these can also go in via an mm tree if that makes things easier:
-  arm64: mm: Enable HAVE_RCU_TABLE_FREE logic
-  arm64: mm: Enable RCU fast_gup
+> ---
+>  arch/cris/include/uapi/asm/Kbuild | 31 +------------------------------
+>  1 file changed, 1 insertion(+), 30 deletions(-)
+> 
+> diff --git a/arch/cris/include/uapi/asm/Kbuild b/arch/cris/include/uapi/asm/Kbuild
+> index 01f66b8..de41e86 100644
+> --- a/arch/cris/include/uapi/asm/Kbuild
+> +++ b/arch/cris/include/uapi/asm/Kbuild
+> @@ -3,37 +3,8 @@ include include/uapi/asm-generic/Kbuild.asm
+>  
+>  header-y += ../arch-v10/arch/
+>  header-y += ../arch-v32/arch/
+> -header-y += auxvec.h
+> -header-y += bitsperlong.h
+> -header-y += byteorder.h
+> -header-y += errno.h
+> +
+>  header-y += ethernet.h
+>  header-y += etraxgpio.h
+> -header-y += fcntl.h
+> -header-y += ioctl.h
+> -header-y += ioctls.h
+> -header-y += ipcbuf.h
+> -header-y += mman.h
+> -header-y += msgbuf.h
+> -header-y += param.h
+> -header-y += poll.h
+> -header-y += posix_types.h
+> -header-y += ptrace.h
+> -header-y += resource.h
+>  header-y += rs485.h
+> -header-y += sembuf.h
+> -header-y += setup.h
+> -header-y += shmbuf.h
+> -header-y += sigcontext.h
+> -header-y += siginfo.h
+> -header-y += signal.h
+> -header-y += socket.h
+> -header-y += sockios.h
+> -header-y += stat.h
+> -header-y += statfs.h
+> -header-y += swab.h
+>  header-y += sync_serial.h
+> -header-y += termbits.h
+> -header-y += termios.h
+> -header-y += types.h
+> -header-y += unistd.h
+> -- 
+> 1.9.3
 
-Thanks,
---
-Steve
+/^JN - Jesper Nilsson
+-- 
+               Jesper Nilsson -- jesper.nilsson@axis.com
