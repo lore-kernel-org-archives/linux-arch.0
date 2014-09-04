@@ -1,99 +1,51 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mailout62.mail01.mtsvc.net ([216.70.64.126]:59562 "EHLO
-	mailout62.mail01.mtsvc.net" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1754957AbaIDB2H (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 3 Sep 2014 21:28:07 -0400
-Message-ID: <54079B70.4050200@hurleysoftware.com>
-Date: Wed, 03 Sep 2014 18:51:28 -0400
-From: Peter Hurley <peter@hurleysoftware.com>
-MIME-Version: 1.0
-Subject: Re: bit fields && data tearing
+Received: from mx0.aculab.com ([213.249.233.131]:47790 "HELO mx0.aculab.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with SMTP
+	id S1756028AbaIDIo0 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 4 Sep 2014 04:44:26 -0400
+Received: from mx0.aculab.com ([127.0.0.1])
+ by localhost (mx0.aculab.com [127.0.0.1]) (amavisd-new, port 10024) with SMTP
+ id 08139-06 for <linux-arch@vger.kernel.org>;
+ Thu,  4 Sep 2014 09:44:17 +0100 (BST)
+From: David Laight <David.Laight@ACULAB.COM>
+Subject: RE: bit fields && data tearing
+Date: Thu, 4 Sep 2014 08:43:13 +0000
+Message-ID: <063D6719AE5E284EB5DD2968C1650D6D17487172@AcuExch.aculab.com>
 References: <20140712181328.GA8738@redhat.com>
-In-Reply-To: <20140712181328.GA8738@redhat.com>
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
+ <54079B70.4050200@hurleysoftware.com> <1409785893.30640.118.camel@pasglop>
+In-Reply-To: <1409785893.30640.118.camel@pasglop>
+Content-Language: en-US
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+MIME-Version: 1.0
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jakub Jelinek <jakub@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Richard Henderson <rth@twiddle.net>
-Cc: Oleg Nesterov <oleg@redhat.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Miroslav Franc <mfranc@redhat.com>, Paul Mackerras <paulus@samba.org>, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Tony Luck <tony.luck@intel.com>, linux-ia64@vger.kernel.org
-Message-ID: <20140903225128.oDXX3MY9IvPZ23btDeimyruEw-Rn29H-TEwFwzqcQso@z>
+To: 'Benjamin Herrenschmidt' <benh@kernel.crashing.org>, Peter Hurley <peter@hurleysoftware.com>
+Cc: Jakub Jelinek <jakub@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Tony Luck <tony.luck@intel.com>, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, Oleg Nesterov <oleg@redhat.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Paul Mackerras <paulus@samba.org>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, "linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>, Miroslav Franc <mfranc@redhat.com>, Richard Henderson <rth@twiddle.net>
 
-[ +cc linux-arch, Tony Luck, 
-
-On 07/12/2014 02:13 PM, Oleg Nesterov wrote:
-> Hello,
-> 
-> I am not sure I should ask here, but since Documentation/memory-barriers.txt
-> mentions load/store tearing perhaps my question is not completely off-topic...
-> 
-> I am fighting with mysterious RHEL bug, it can be reproduced on ppc and s390
-> but not on x86. Finally I seem to understand the problem, and I even wrote the
-> stupid kernel module to ensure, see it below at the end.
-> 
-> It triggers the problem immediately, kt_2() sees the wrong value in freeze_stop.
-> (If I turn ->freeze_stop int "long", the problem goes away).
-> 
-> So the question is: is this gcc bug or the code below is buggy?
-> 
-> If it is buggy, then probably memory-barriers.txt could mention that you should
-> be carefull with bit fields, even ACCESS_ONCE() obviously can't help.
-> 
-> Or this just discloses my ignorance and you need at least aligned(long) after a
-> bit field to be thread-safe ? I thought that compiler should take care and add
-> the necessary alignment if (say) CPU can't update a single byte/uint.
-
-Apologies for hijacking this thread but I need to extend this discussion
-somewhat regarding what a compiler might do with adjacent fields in a structure.
-
-The tty subsystem defines a large aggregate structure, struct tty_struct.
-Importantly, several different locks apply to different fields within that
-structure; ie., a specific spinlock will be claimed before updating or accessing
-certain fields while a different spinlock will be claimed before updating or
-accessing certain _adjacent_ fields.
-
-What is necessary and sufficient to prevent accidental false-sharing?
-The patch below was flagged as insufficient on ia64, and possibly ARM.
-
-Regards,
-Peter Hurley
-
---- >% ---
-Subject: [PATCH 21/26] tty: Convert tty_struct bitfield to bools
-
-The stopped, hw_stopped, flow_stopped and packet bits are smp-unsafe
-and interrupt-unsafe. For example,
-
-CPU 0                         | CPU 1
-                              |
-tty->flow_stopped = 1         | tty->hw_stopped = 0
-
-One of these updates will be corrupted, as the bitwise operation
-on the bitfield is non-atomic.
-
-Ensure each flag has a separate memory location, so concurrent
-updates do not corrupt orthogonal states.
-
-Signed-off-by: Peter Hurley <peter@hurleysoftware.com>
----
- include/linux/tty.h | 5 ++++-
- 1 file changed, 4 insertions(+), 1 deletion(-)
-
-diff --git a/include/linux/tty.h b/include/linux/tty.h
-index 1c3316a..7cf61cb 100644
---- a/include/linux/tty.h
-+++ b/include/linux/tty.h
-@@ -261,7 +261,10 @@ struct tty_struct {
- 	unsigned long flags;
- 	int count;
- 	struct winsize winsize;		/* winsize_mutex */
--	unsigned char stopped:1, hw_stopped:1, flow_stopped:1, packet:1;
-+	bool stopped;
-+	bool hw_stopped;
-+	bool flow_stopped;
-+	bool packet;
- 	unsigned char ctrl_status;	/* ctrl_lock */
- 	unsigned int receive_room;	/* Bytes free for queue */
- 	int flow_change;
--- 
-2.1.0
-
+RnJvbTogIEJlbmphbWluIEhlcnJlbnNjaG1pZHQNCj4gT24gV2VkLCAyMDE0LTA5LTAzIGF0IDE4
+OjUxIC0wNDAwLCBQZXRlciBIdXJsZXkgd3JvdGU6DQo+IA0KPiA+IEFwb2xvZ2llcyBmb3IgaGlq
+YWNraW5nIHRoaXMgdGhyZWFkIGJ1dCBJIG5lZWQgdG8gZXh0ZW5kIHRoaXMgZGlzY3Vzc2lvbg0K
+PiA+IHNvbWV3aGF0IHJlZ2FyZGluZyB3aGF0IGEgY29tcGlsZXIgbWlnaHQgZG8gd2l0aCBhZGph
+Y2VudCBmaWVsZHMgaW4gYSBzdHJ1Y3R1cmUuDQo+ID4NCj4gPiBUaGUgdHR5IHN1YnN5c3RlbSBk
+ZWZpbmVzIGEgbGFyZ2UgYWdncmVnYXRlIHN0cnVjdHVyZSwgc3RydWN0IHR0eV9zdHJ1Y3QuDQo+
+ID4gSW1wb3J0YW50bHksIHNldmVyYWwgZGlmZmVyZW50IGxvY2tzIGFwcGx5IHRvIGRpZmZlcmVu
+dCBmaWVsZHMgd2l0aGluIHRoYXQNCj4gPiBzdHJ1Y3R1cmU7IGllLiwgYSBzcGVjaWZpYyBzcGlu
+bG9jayB3aWxsIGJlIGNsYWltZWQgYmVmb3JlIHVwZGF0aW5nIG9yIGFjY2Vzc2luZw0KPiA+IGNl
+cnRhaW4gZmllbGRzIHdoaWxlIGEgZGlmZmVyZW50IHNwaW5sb2NrIHdpbGwgYmUgY2xhaW1lZCBi
+ZWZvcmUgdXBkYXRpbmcgb3INCj4gPiBhY2Nlc3NpbmcgY2VydGFpbiBfYWRqYWNlbnRfIGZpZWxk
+cy4NCj4gPg0KPiA+IFdoYXQgaXMgbmVjZXNzYXJ5IGFuZCBzdWZmaWNpZW50IHRvIHByZXZlbnQg
+YWNjaWRlbnRhbCBmYWxzZS1zaGFyaW5nPw0KPiA+IFRoZSBwYXRjaCBiZWxvdyB3YXMgZmxhZ2dl
+ZCBhcyBpbnN1ZmZpY2llbnQgb24gaWE2NCwgYW5kIHBvc3NpYmx5IEFSTS4NCj4gDQo+IFdlIGV4
+cGVjdCBuYXRpdmUgYWxpZ25lZCBzY2FsYXIgdHlwZXMgdG8gYmUgYWNjZXNzZWQgYXRvbWljYWxs
+eSAodGhlDQo+IHJlYWQvbW9kaWZ5L3dyaXRlIG9mIGEgbGFyZ2VyIHF1YW50aXR5IHRoYXQgZ2Nj
+IGRvZXMgb24gc29tZSBiaXRmaWVsZA0KPiBjYXNlcyBoYXMgYmVlbiBmbGFnZ2VkIGFzIGEgZ2Nj
+IGJ1ZywgYnV0IHNob3VsZG4ndCBoYXBwZW4gb24gbm9ybWFsDQo+IHNjYWxhciB0eXBlcykuDQoN
+ClRoYXQgaXNuJ3QgdHJ1ZSBvbiBhbGwgYXJjaGl0ZWN0dXJlcyBmb3IgaXRlbXMgc21hbGxlciB0
+aGFuIGEgbWFjaGluZSB3b3JkLg0KQXQgbGVhc3Qgb25lIGhhcyB0byBkbyBybXcgZm9yIGJ5dGUg
+YWNjZXNzZXMuDQoNCglEYXZpZA0KDQo+IEkgYW0gbm90IDEwMCUgY2VydGFpbiBvZiAiYm9vbCIg
+aGVyZSwgSSBhc3N1bWUgaXQncyB0cmVhdGVkIGFzIGEgbm9ybWFsDQo+IHNjYWxhciBhbmQgdGh1
+cyBhdG9taWMgYnV0IGlmIHVuc3VyZSwgeW91IGNhbiBhbHdheXMgdXNlIGludC4NCj4gDQo+IEFu
+b3RoZXIgb3B0aW9uIGlzIHRvIHVzZSB0aGUgYXRvbWljIGJpdG9wcyBhbmQgbWFrZSB0aGVzZSBi
+aXRzIGluIGENCj4gYml0bWFzayBidXQgdGhhdCBpcyBwcm9iYWJseSB1bm5lY2Vzc2FyeSBpZiB5
+b3UgaGF2ZSBsb2NrcyBhbHJlYWR5Lg0KPiANCj4gQ2hlZXJzLA0KPiBCZW4uDQo=
