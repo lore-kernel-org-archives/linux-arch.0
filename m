@@ -1,55 +1,60 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:39702 "EHLO mx1.redhat.com"
+Received: from gate.crashing.org ([63.228.1.57]:55031 "EHLO gate.crashing.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754040AbaIDJK2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 4 Sep 2014 05:10:28 -0400
-Date: Thu, 4 Sep 2014 11:09:52 +0200
-From: Jakub Jelinek <jakub@redhat.com>
+	id S1750902AbaIDJxg (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 4 Sep 2014 05:53:36 -0400
+Message-ID: <1409824374.4246.62.camel@pasglop>
 Subject: Re: bit fields && data tearing
-Message-ID: <20140904090952.GW17454@tucnak.redhat.com>
-Reply-To: Jakub Jelinek <jakub@redhat.com>
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Date: Thu, 04 Sep 2014 19:52:54 +1000
+In-Reply-To: <063D6719AE5E284EB5DD2968C1650D6D17487172@AcuExch.aculab.com>
 References: <20140712181328.GA8738@redhat.com>
- <54079B70.4050200@hurleysoftware.com>
- <1409785893.30640.118.camel@pasglop>
- <21512.10628.412205.873477@gargle.gargle.HOWL>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <21512.10628.412205.873477@gargle.gargle.HOWL>
+	 <54079B70.4050200@hurleysoftware.com> <1409785893.30640.118.camel@pasglop>
+	 <063D6719AE5E284EB5DD2968C1650D6D17487172@AcuExch.aculab.com>
+Content-Type: text/plain; charset="UTF-8"
+Mime-Version: 1.0
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Mikael Pettersson <mikpelinux@gmail.com>
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Peter Hurley <peter@hurleysoftware.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Richard Henderson <rth@twiddle.net>, Oleg Nesterov <oleg@redhat.com>, Miroslav Franc <mfranc@redhat.com>, Paul Mackerras <paulus@samba.org>, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Tony Luck <tony.luck@intel.com>, linux-ia64@vger.kernel.org
+To: David Laight <David.Laight@ACULAB.COM>
+Cc: Peter Hurley <peter@hurleysoftware.com>, Jakub Jelinek <jakub@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Tony Luck <tony.luck@intel.com>, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, Oleg Nesterov <oleg@redhat.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Paul Mackerras <paulus@samba.org>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, "linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>, Miroslav Franc <mfranc@redhat.com>, Richard Henderson <rth@twiddle.net>
 
-On Thu, Sep 04, 2014 at 10:57:40AM +0200, Mikael Pettersson wrote:
-> Benjamin Herrenschmidt writes:
->  > On Wed, 2014-09-03 at 18:51 -0400, Peter Hurley wrote:
->  > 
->  > > Apologies for hijacking this thread but I need to extend this discussion
->  > > somewhat regarding what a compiler might do with adjacent fields in a structure.
->  > > 
->  > > The tty subsystem defines a large aggregate structure, struct tty_struct.
->  > > Importantly, several different locks apply to different fields within that
->  > > structure; ie., a specific spinlock will be claimed before updating or accessing
->  > > certain fields while a different spinlock will be claimed before updating or
->  > > accessing certain _adjacent_ fields.
->  > > 
->  > > What is necessary and sufficient to prevent accidental false-sharing?
->  > > The patch below was flagged as insufficient on ia64, and possibly ARM.
->  > 
->  > We expect native aligned scalar types to be accessed atomically (the
->  > read/modify/write of a larger quantity that gcc does on some bitfield
->  > cases has been flagged as a gcc bug, but shouldn't happen on normal
->  > scalar types).
->  > 
->  > I am not 100% certain of "bool" here, I assume it's treated as a normal
->  > scalar and thus atomic but if unsure, you can always use int.
+On Thu, 2014-09-04 at 08:43 +0000, David Laight wrote:
+> From:  Benjamin Herrenschmidt
+> > On Wed, 2014-09-03 at 18:51 -0400, Peter Hurley wrote:
+> > 
+> > > Apologies for hijacking this thread but I need to extend this discussion
+> > > somewhat regarding what a compiler might do with adjacent fields in a structure.
+> > >
+> > > The tty subsystem defines a large aggregate structure, struct tty_struct.
+> > > Importantly, several different locks apply to different fields within that
+> > > structure; ie., a specific spinlock will be claimed before updating or accessing
+> > > certain fields while a different spinlock will be claimed before updating or
+> > > accessing certain _adjacent_ fields.
+> > >
+> > > What is necessary and sufficient to prevent accidental false-sharing?
+> > > The patch below was flagged as insufficient on ia64, and possibly ARM.
+> > 
+> > We expect native aligned scalar types to be accessed atomically (the
+> > read/modify/write of a larger quantity that gcc does on some bitfield
+> > cases has been flagged as a gcc bug, but shouldn't happen on normal
+> > scalar types).
 > 
-> Please use an aligned int or long.  Some machines cannot do atomic
-> accesses on sub-int/long quantities, so 'bool' may cause unexpected
-> rmw cycles on adjacent fields.
+> That isn't true on all architectures for items smaller than a machine word.
+> At least one has to do rmw for byte accesses.
 
-Yeah, at least pre-EV56 Alpha performs rmw cycles on char/short accesses
-and thus those are not atomic.
+Yeah correct, alpha and bytes right ? Is there any other ? That's why I
+suggested int.
 
-	Jakub
+> 	David
+> 
+> > I am not 100% certain of "bool" here, I assume it's treated as a normal
+> > scalar and thus atomic but if unsure, you can always use int.
+> > 
+> > Another option is to use the atomic bitops and make these bits in a
+> > bitmask but that is probably unnecessary if you have locks already.
+> > 
+> > Cheers,
+> > Ben.
+
+
