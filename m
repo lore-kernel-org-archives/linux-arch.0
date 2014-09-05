@@ -1,58 +1,63 @@
-From: Sergei Shtylyov <sergei.shtylyov-M4DtvfQ/ZS1MRgGoP+s0PdBPR1lH4CV8@public.gmane.org>
-Subject: Re: [PATCH v1 09/21] Irq_remapping/MSI: Use MSI chip framework to
-	configure MSI/MSI-X irq
-Date: Fri, 05 Sep 2014 14:42:59 +0400
-Message-ID: <540993B3.1000701@cogentembedded.com>
-References: <1409911806-10519-1-git-send-email-wangyijing@huawei.com>
-	<1409911806-10519-10-git-send-email-wangyijing@huawei.com>
+From: Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>
+Subject: Re: [PATCH v1 15/21] Powerpc/MSI: Use MSI chip framework to configure
+ MSI/MSI-X irq
+Date: Fri, 05 Sep 2014 14:47:48 +0400
+Message-ID: <540994D4.6040500@cogentembedded.com>
+References: <1409911806-10519-1-git-send-email-wangyijing@huawei.com> <1409911806-10519-16-git-send-email-wangyijing@huawei.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"; Format="flowed"
+Content-Type: text/plain; charset=windows-1252; format=flowed
 Content-Transfer-Encoding: 7bit
-Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-In-Reply-To: <1409911806-10519-10-git-send-email-wangyijing-hv44wF8Li93QT0dZR+AlfA@public.gmane.org>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
-List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
-Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-To: Yijing Wang <wangyijing-hv44wF8Li93QT0dZR+AlfA@public.gmane.org>, Bjorn Helgaas <bhelgaas-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>
-Cc: linux-mips-6z/3iImG2C8G8FEW9MqTrA@public.gmane.org, linux-ia64-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-pci-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, sparclinux-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-s390-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Russell King <linux-lFZ/pmaqli7XmaaqVzeoHQ@public.gmane.org>, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, Sebastian Ott <sebott-23VcF4HTsmIX0ybBhKVfKdBPR1lH4CV8@public.gmane.org>, Benjamin Herrenschmidt <benh-XVmvHMARGAS8U2dJNN8I7kB+6BGkLq7r@public.gmane.org>, xen-devel-GuqFBffKawtpuQazS67q72D2FQJk+8+b@public.gmane.org, arnab.basu-KZfg59tc24xl57MIdRCFDg@public.gmane.org, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Chris Metcalf <cmetcalf-kv+TWInifGbQT0dZR+AlfA@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, Xinwei Hu <huxinwei-hv44wF8Li93QT0dZR+AlfA@public.gmane.org>, Tony Luck <tony.luck-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org>, Ralf Baechle <ralf-6z/3iImG2C8G8FEW9MqTrA@public.gmane.org>, iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org, Wuyun <wuyun.wu-hv44wF8Li93QT0dZR+AlfA@public.gmane.org>, linuxppc-dev-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org, "David S. Miller" <davem-fT/PcQaiUtIeIZ0/mPfg9Q@public.gmane.org>
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-lb0-f172.google.com ([209.85.217.172]:45394 "EHLO
+	mail-lb0-f172.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756677AbaIEKrw (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 5 Sep 2014 06:47:52 -0400
+Received: by mail-lb0-f172.google.com with SMTP id c11so4929275lbj.31
+        for <linux-arch@vger.kernel.org>; Fri, 05 Sep 2014 03:47:51 -0700 (PDT)
+In-Reply-To: <1409911806-10519-16-git-send-email-wangyijing@huawei.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Yijing Wang <wangyijing@huawei.com>, Bjorn Helgaas <bhelgaas@google.com>
+Cc: Xinwei Hu <huxinwei@huawei.com>, Wuyun <wuyun.wu@huawei.com>, linux-pci@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Russell King <linux@arm.linux.org.uk>, linux-arch@vger.kernel.org, arnab.basu@freescale.com, Bharat.Bhushan@freescale.com, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, Thomas Gleixner <tglx@linutronix.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, xen-devel@lists.xenproject.org, Joerg Roedel <joro@8bytes.org>, iommu@lists.linux-foundation.org, linux-mips@linux-mips.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, Sebastian Ott <sebott@linux.vnet.ibm.com>, Tony Luck <tony.luck@intel.com>, linux-ia64@vger.kernel.org, "David S. Miller" <davem@davemloft.net>, sparclinux@vger.kernel.org, Chris Metcalf <cmetcalf@tilera.com>, Ralf Baechle <ralf@linux-mips.org>
 
 Hello.
 
-On 9/5/2014 2:09 PM, Yijing Wang wrote:
+On 9/5/2014 2:10 PM, Yijing Wang wrote:
 
 > Use MSI chip framework instead of arch MSI functions to configure
 > MSI/MSI-X irq. So we can manage MSI/MSI-X irq in a unified framework.
 
-> Signed-off-by: Yijing Wang <wangyijing-hv44wF8Li93QT0dZR+AlfA@public.gmane.org>
+> Signed-off-by: Yijing Wang <wangyijing@huawei.com>
 > ---
->   drivers/iommu/irq_remapping.c |    8 +++++++-
->   1 files changed, 7 insertions(+), 1 deletions(-)
+>   arch/powerpc/kernel/msi.c |   14 ++++++++++++--
+>   1 files changed, 12 insertions(+), 2 deletions(-)
 
-> diff --git a/drivers/iommu/irq_remapping.c b/drivers/iommu/irq_remapping.c
-> index 33c4395..e75026e 100644
-> --- a/drivers/iommu/irq_remapping.c
-> +++ b/drivers/iommu/irq_remapping.c
+> diff --git a/arch/powerpc/kernel/msi.c b/arch/powerpc/kernel/msi.c
+> index 71bd161..01781a4 100644
+> --- a/arch/powerpc/kernel/msi.c
+> +++ b/arch/powerpc/kernel/msi.c
 [...]
-> @@ -165,9 +170,10 @@ static void __init irq_remapping_modify_x86_ops(void)
->   	x86_io_apic_ops.set_affinity	= set_remapped_irq_affinity;
->   	x86_io_apic_ops.setup_entry	= setup_ioapic_remapped_entry;
->   	x86_io_apic_ops.eoi_ioapic_pin	= eoi_ioapic_pin_remapped;
-> -	x86_msi.setup_msi_irqs		= irq_remapping_setup_msi_irqs;
-> +	x86_msi.setup_msi_irqs          = irq_remapping_setup_msi_irqs;
+> @@ -27,7 +27,17 @@ int arch_setup_msi_irqs(struct pci_dev *dev, int nvec, int type)
+>   	return ppc_md.setup_msi_irqs(dev, nvec, type);
+>   }
+>
+> -void arch_teardown_msi_irqs(struct pci_dev *dev)
+> +static void ppc_teardown_msi_irqs(struct pci_dev *dev)
 
-    AFAICS, this change only converts tabs to spaces, so not needed at all.
+    Shouldn't this function take IRQ # instead?
 
->   	x86_msi.setup_hpet_msi		= setup_hpet_msi_remapped;
->   	x86_msi.compose_msi_msg		= compose_remapped_msi_msg;
-> +	x86_msi_chip = &remap_msi_chip;
-
-    Please align = with the rest of assignments.
+>   {
+>   	ppc_md.teardown_msi_irqs(dev);
+>   }
+> +
+> +static struct msi_chip ppc_msi_chip = {
+> +	.setup_irqs = ppc_setup_msi_irqs,
+> +	.teardown_irqs = ppc_teardown_msi_irqs,
+> +};
+> +
+> +struct msi_chip *arch_find_msi_chip(struct pci_dev *dev)
+> +{
+> +	return &ppc_msi_chip;
+> +}
 
 WBR, Sergei
