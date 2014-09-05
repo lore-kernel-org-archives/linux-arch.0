@@ -1,66 +1,64 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e35.co.us.ibm.com ([32.97.110.153]:48657 "EHLO
-	e35.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751557AbaIEVFv (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 5 Sep 2014 17:05:51 -0400
-Received: from /spool/local
-	by e35.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-	Fri, 5 Sep 2014 15:05:50 -0600
-Date: Fri, 5 Sep 2014 14:05:43 -0700
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Received: from mail.orcon.net.nz ([219.88.242.56]:59457 "EHLO
+	mail.orcon.net.nz" rhost-flags-OK-FAIL-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1752178AbaIEVdg (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 5 Sep 2014 17:33:36 -0400
+Date: Sat, 6 Sep 2014 09:27:27 +1200
+From: Michael Cree <mcree@orcon.net.nz>
 Subject: Re: bit fields && data tearing
-Message-ID: <20140905210543.GC5001@linux.vnet.ibm.com>
-Reply-To: paulmck@linux.vnet.ibm.com
-References: <54091B30.2090509@zytor.com>
+Message-ID: <20140905212727.GA6169@omega>
+References: <54090AF4.7060406@hurleysoftware.com>
+ <54091B30.2090509@zytor.com>
  <20140905081648.GB5281@omega>
  <20140905180950.GU5001@linux.vnet.ibm.com>
  <540A05F7.1070202@hurleysoftware.com>
  <20140905190506.GV5001@linux.vnet.ibm.com>
  <8CA974F497CA064FA9926E10ABCC061F05F97E7B77@MAILSJ4.global.cadence.com>
  <540A19B8.4010907@hurleysoftware.com>
- <540A1E6C.2020005@zytor.com>
- <20140905204312.GA5001@linux.vnet.ibm.com>
- <alpine.DEB.2.10.1409052247460.5472@nanos>
+ <20140905203951.GA4053@omega>
+ <540A273C.7020804@hurleysoftware.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <alpine.DEB.2.10.1409052247460.5472@nanos>
+In-Reply-To: <540A273C.7020804@hurleysoftware.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: "H. Peter Anvin" <hpa@zytor.com>, Peter Hurley <peter@hurleysoftware.com>, Marc Gauthier <marc@cadence.com>, Michael Cree <mcree@orcon.net.nz>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Laight <David.Laight@ACULAB.COM>, Jakub Jelinek <jakub@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Tony Luck <tony.luck@intel.com>, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, Oleg Nesterov <oleg@redhat.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Paul Mackerras <paulus@samba.org>, "linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>, Miroslav Franc <mfranc@redhat.com>, Richard Henderson <rth@twiddle.net>, "linux-alpha@vger.kernel.org" <linux-alpha@vger.kernel.org>
-Message-ID: <20140905210543.c5fVYK_CFukvQMZYJLaFYJ91ThumIi4UNWRRlroBIcw@z>
+To: Peter Hurley <peter@hurleysoftware.com>
+Cc: Marc Gauthier <marc@cadence.com>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>, "H. Peter Anvin" <hpa@zytor.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Laight <David.Laight@ACULAB.COM>, Jakub Jelinek <jakub@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Tony Luck <tony.luck@intel.com>, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, Oleg Nesterov <oleg@redhat.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Paul Mackerras <paulus@samba.org>, "linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>, Miroslav Franc <mfranc@redhat.com>, Richard Henderson <rth@twiddle.net>, "linux-alpha@vger.kernel.org" <linux-alpha@vger.kernel.org>
+Message-ID: <20140905212727.KjZ4DDujvnMqGcXfIKQCzyobeY1O4zXHWo1dS5p0C54@z>
 
-On Fri, Sep 05, 2014 at 10:48:34PM +0200, Thomas Gleixner wrote:
-> On Fri, 5 Sep 2014, Paul E. McKenney wrote:
-> > On Fri, Sep 05, 2014 at 01:34:52PM -0700, H. Peter Anvin wrote:
-> > > On 09/05/2014 01:14 PM, Peter Hurley wrote:
-> > > > 
-> > > > Here's how I read the two statements.
-> > > > 
-> > > > First, the commit message:
-> > > > 
-> > > > "It [this commit] documents that CPUs [supported by the Linux kernel]
-> > > > _must provide_ atomic one-byte and two-byte naturally aligned loads and stores."
-> > > > 
-> > > > Second, in the body of the document:
-> > > > 
-> > > > "The Linux kernel no longer supports pre-EV56 Alpha CPUs, because these
-> > > > older CPUs _do not provide_ atomic one-byte and two-byte loads and stores."
-> > > > 
-> > > 
-> > > Does this apply in general or only to SMP configurations?  I guess
-> > > non-SMP configurations would still have problems if interrupted in the
-> > > wrong place...
+On Fri, Sep 05, 2014 at 05:12:28PM -0400, Peter Hurley wrote:
+> On 09/05/2014 04:39 PM, Michael Cree wrote:
+> > On Fri, Sep 05, 2014 at 04:14:48PM -0400, Peter Hurley wrote:
+> >> Second, in the body of the document:
+> >>
+> >> "The Linux kernel no longer supports pre-EV56 Alpha CPUs, because these
+> >> older CPUs _do not provide_ atomic one-byte and two-byte loads and stores."
 > > 
-> > And preemption could cause problems, too.  So I believe that it needs
-> > to be universal.
+> > Let's be clear here, the pre-EV56 Alpha CPUs do provide an atomic
+> > one-byte and two-byte load and store; it's just that one must use
+> > locked load and store sequences to achieve atomicity.  The point,
+> > I think, is that the pre-EV56 Alpha CPUs provide non-atomic one-byte
+> > and two-byte load and stores as the norm, and that is the problem.
 > 
-> Well preemption is usually caused by an interrupt, except you have a
-> combined load and preempt instruction :)
+> I'm all for an Alpha expert to jump in here and meet the criteria;
+> which is that byte stores cannot corrupt adjacent storage (nor can
+> aligned short stores).
+> 
+> To my mind, a quick look at Documentation/circular-buffers.txt will
+> pretty much convince anyone that trying to differentiate by execution
+> context is undoable.
+> 
+> If someone wants to make Alphas do cmpxchg loops for every byte store,
+> then ok. Or any other solution that doesn't require subsystem code
+> changes.
 
-Fair point!  ;-)
+I am not suggesting that anyone do that work.  I'm certainly not going
+to do it.
 
-							Thanx, Paul
+All I was pointing out is that the claim that "_do not provide_" made
+above with emphasis is, strictly interpreted, not true, thus should not
+be committed to the documentation without further clarification.
 
+Cheers
+Michael.
