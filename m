@@ -1,40 +1,55 @@
-From: "H. Peter Anvin" <hpa@zytor.com>
+From: James Bottomley <James.Bottomley@HansenPartnership.com>
 Subject: Re: bit fields && data tearing
-Date: Thu, 04 Sep 2014 19:08:48 -0700
-Message-ID: <54091B30.7080100@zytor.com>
-References: <20140712181328.GA8738@redhat.com>	
- <54079B70.4050200@hurleysoftware.com> <1409785893.30640.118.camel@pasglop>	
- <063D6719AE5E284EB5DD2968C1650D6D17487172@AcuExch.aculab.com>
- <1409824374.4246.62.camel@pasglop> <5408E458.3@zytor.com>
- <54090AF4.7060406@hurleysoftware.com>
+Date: Thu, 04 Sep 2014 19:11:38 -0700
+Message-ID: <1409883098.5078.14.camel@jarvis.lan>
+References: <20140712181328.GA8738@redhat.com>
+	 <54079B70.4050200@hurleysoftware.com> <1409785893.30640.118.camel@pasglop>
+	 <21512.10628.412205.873477@gargle.gargle.HOWL>
+	 <20140904090952.GW17454@tucnak.redhat.com>
+	 <540859EC.5000407@hurleysoftware.com>
+	 <20140904175044.4697aee4@alan.etchedpixels.co.uk>
+	 <5408C0AB.6050801@hurleysoftware.com>
+	 <20140905001751.GL5001@linux.vnet.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
-In-Reply-To: <54090AF4.7060406@hurleysoftware.com>
-List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
-List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
-List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
-List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
-List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
-Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
-Sender: "Linuxppc-dev"
- <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
-To: Peter Hurley <peter@hurleysoftware.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Laight <David.Laight@ACULAB.COM>
-Cc: Jakub Jelinek <jakub@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Tony Luck <tony.luck@intel.com>, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, Oleg Nesterov <oleg@redhat.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Paul Mackerras <paulus@samba.org>, linux-alpha@vger.kernel.org, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, "linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>, Miroslav Franc <mfranc@redhat.com>, Richard Henderson <rth@twiddle.net>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from bedivere.hansenpartnership.com ([66.63.167.143]:47696 "EHLO
+	bedivere.hansenpartnership.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1751104AbaIECLk (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 4 Sep 2014 22:11:40 -0400
+In-Reply-To: <20140905001751.GL5001@linux.vnet.ibm.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: paulmck@linux.vnet.ibm.com
+Cc: "H. Peter Anvin" <hpa@zytor.com>, Peter Hurley <peter@hurleysoftware.com>, One Thousand Gnomes <gnomes@lxorguk.ukuu.org.uk>, Jakub Jelinek <jakub@redhat.com>, Mikael Pettersson <mikpelinux@gmail.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Richard Henderson <rth@twiddle.net>, Oleg Nesterov <oleg@redhat.com>, Miroslav Franc <mfranc@redhat.com>, Paul Mackerras <paulus@samba.org>, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Tony Luck <tony.luck@intel.com>, linux-ia64@vger.kernel.org
 
-T24gMDkvMDQvMjAxNCAwNTo1OSBQTSwgUGV0ZXIgSHVybGV5IHdyb3RlOgo+IEkgaGF2ZSBubyBp
-ZGVhIGhvdyBwcmV2YWxlbnQgdGhlIGV2NTYgaXMgY29tcGFyZWQgdG8gdGhlIGV2NS4KPiBTdGls
-bCB3ZSdyZSB0YWxraW5nIGFib3V0IGEgY2hpcCB0aGF0IGNhbWUgb3V0IGluIDE5OTYuCgpBaCB5
-ZXMsIEkgc3RhbmQgY29ycmVjdGVkLiAgQWNjb3JkaW5nIHRvIFdpa2lwZWRpYSwgdGhlIGFmZmVj
-dGVkIENQVXMKd2VyZSBhbGwgdGhlIDIxMDZ4IENQVXMgKEVWNCwgRVY0NSwgTENBNCwgTENBNDUp
-IHBsdXMgdGhlIDIxMTY0IHdpdGggbm8Kc3VmZml4IChFVjUpLiAgSG93ZXZlciwgd2UncmUgc3Rp
-bGwgdGFsa2luZyBhYm91dCBtdXNldW0gcGllY2VzIGhlcmUuCgpJIHdvbmRlciB3aGF0IHRoZSBv
-bmUgSSBoYXZlIGluIG15IGdhcmFnZSBpcy4uLiBJJ20gc3VyZSBJIGNvdWxkIGVtdWxhdGUKaXQg
-ZmFzdGVyLCB0aG91Z2guCgoJLWhwYQoKCl9fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19f
-X19fX19fX19fX19fX19fCkxpbnV4cHBjLWRldiBtYWlsaW5nIGxpc3QKTGludXhwcGMtZGV2QGxp
-c3RzLm96bGFicy5vcmcKaHR0cHM6Ly9saXN0cy5vemxhYnMub3JnL2xpc3RpbmZvL2xpbnV4cHBj
-LWRldg==
+On Thu, 2014-09-04 at 17:17 -0700, Paul E. McKenney wrote:
+> +And there are anti-guarantees:
+> +
+> + (*) These guarantees do not apply to bitfields, because compilers often
+> +     generate code to modify these using non-atomic read-modify-write
+> +     sequences.  Do not attempt to use bitfields to synchronize parallel
+> +     algorithms.
+> +
+> + (*) Even in cases where bitfields are protected by locks, all fields
+> +     in a given bitfield must be protected by one lock.  If two fields
+> +     in a given bitfield are protected by different locks, the compiler's
+> +     non-atomic read-modify-write sequences can cause an update to one
+> +     field to corrupt the value of an adjacent field.
+> +
+> + (*) These guarantees apply only to properly aligned and sized scalar
+> +     variables.  "Properly sized" currently means "int" and "long",
+> +     because some CPU families do not support loads and stores of
+> +     other sizes.  ("Some CPU families" is currently believed to
+> +     be only Alpha 21064.  If this is actually the case, a different
+> +     non-guarantee is likely to be formulated.)
+
+This is a bit unclear.  Presumably you're talking about definiteness of
+the outcome (as in what's seen after multiple stores to the same
+variable).  The guarantees are only for natural width on Parisc as well,
+so you would get a mess if you did byte stores to adjacent memory
+locations.  But multiple 32 bit stores guarantees to see one of the
+stored values as the final outcome.
+
+James
