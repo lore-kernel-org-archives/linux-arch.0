@@ -1,60 +1,75 @@
-From: Sergei Shtylyov <sergei.shtylyov-M4DtvfQ/ZS1MRgGoP+s0PdBPR1lH4CV8@public.gmane.org>
-Subject: Re: [PATCH v1 15/21] Powerpc/MSI: Use MSI chip framework to configure
-	MSI/MSI-X irq
-Date: Fri, 05 Sep 2014 15:41:40 +0400
-Message-ID: <5409A174.3050205@cogentembedded.com>
-References: <1409911806-10519-1-git-send-email-wangyijing@huawei.com>
-	<1409911806-10519-16-git-send-email-wangyijing@huawei.com>
-	<540994D4.6040500@cogentembedded.com>
-	<43412AE0-85BB-4B4B-A4EA-2C6D3B8B85D7@gmail.com>
+From: Peter Hurley <peter@hurleysoftware.com>
+Subject: Re: bit fields && data tearing
+Date: Fri, 05 Sep 2014 08:31:06 -0400
+Message-ID: <5409AD0A.5090305@hurleysoftware.com>
+References: <54079B70.4050200@hurleysoftware.com> <1409785893.30640.118.camel@pasglop> <21512.10628.412205.873477@gargle.gargle.HOWL> <20140904090952.GW17454@tucnak.redhat.com> <540859EC.5000407@hurleysoftware.com> <20140904175044.4697aee4@alan.etchedpixels.co.uk> <5408C0AB.6050801@hurleysoftware.com> <20140905001751.GL5001@linux.vnet.ibm.com> <1409883098.5078.14.camel@jarvis.lan> <5409243C.4080704@hurleysoftware.com> <20140905040645.GO5001@linux.vnet.ibm.com> <063D6719AE5E284EB5DD2968C1650D6D17487F66@AcuExch.aculab.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"; Format="flowed"
+Content-Type: text/plain; charset=utf-8
 Content-Transfer-Encoding: 7bit
-Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-In-Reply-To: <43412AE0-85BB-4B4B-A4EA-2C6D3B8B85D7-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
-List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
-Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-To: wangyijing <wangyijing0307-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
-Cc: "linux-mips-6z/3iImG2C8G8FEW9MqTrA@public.gmane.org" <linux-mips-6z/3iImG2C8G8FEW9MqTrA@public.gmane.org>, "linux-ia64-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <linux-ia64-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, "linux-pci-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <linux-pci-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, "sparclinux-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <sparclinux-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, "linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, "linux-s390-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <linux-s390-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Russell King <linux-lFZ/pmaqli7XmaaqVzeoHQ@public.gmane.org>, "x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org" <x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Sebastian Ott <sebott-23VcF4HTsmIX0ybBhKVfKdBPR1lH4CV8@public.gmane.org>, Benjamin Herrenschmidt <benh-XVmvHMARGAS8U2dJNN8I7kB+6BGkLq7r@public.gmane.org>, "xen-devel-GuqFBffKawtpuQazS67q72D2FQJk+8+b@public.gmane.org" <xen-devel-GuqFBffKawtpuQazS67q72D2FQJk+8+b@public.gmane.org>, "arnab.basu-KZfg59tc24xl57MIdRCFDg@public.gmane.org" <arnab.basu-KZfg59tc24xl57MIdRCFDg@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Chris Metcalf <cmetcalf-kv+TWInifGbQT0dZR+AlfA@public.gmane.org>, Bjorn Helgaas <bhelgaas-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, "linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org" <linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org>, Xinwei Hu <huxinwei>
+Return-path: <linux-ia64-owner@vger.kernel.org>
+In-Reply-To: <063D6719AE5E284EB5DD2968C1650D6D17487F66@AcuExch.aculab.com>
+Sender: linux-ia64-owner@vger.kernel.org
+To: David Laight <David.Laight@ACULAB.COM>, "'paulmck@linux.vnet.ibm.com'" <paulmck@linux.vnet.ibm.com>
+Cc: Jakub Jelinek <jakub@redhat.com>, One Thousand Gnomes <gnomes@lxorguk.ukuu.org.uk>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, Mikael Pettersson <mikpelinux@gmail.com>, Oleg Nesterov <oleg@redhat.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, James Bottomley <James.Bottomley@HansenPartnership.com>, Tony Luck <tony.luck@intel.com>, Paul Mackerras <paulus@samba.org>, "H. Peter Anvin" <hpa@zytor.com>, "linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>, Miroslav Franc <mfranc@redhat.com>, Richard Henderson <rth@twiddle.net>, linux-arm@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On 9/5/2014 3:33 PM, wangyijing wrote:
+[ +cc linux-arm ]
 
->>> Use MSI chip framework instead of arch MSI functions to configure
->>> MSI/MSI-X irq. So we can manage MSI/MSI-X irq in a unified framework.
+Hi David,
 
->>> Signed-off-by: Yijing Wang <wangyijing-hv44wF8Li93QT0dZR+AlfA@public.gmane.org>
->>> ---
->>>   arch/powerpc/kernel/msi.c |   14 ++++++++++++--
->>>   1 files changed, 12 insertions(+), 2 deletions(-)
+On 09/05/2014 04:30 AM, David Laight wrote:
+> I've seen gcc generate 32bit accesses for 16bit structure members on arm.
+> It does this because of the more limited range of the offsets for the 16bit access.
+> OTOH I don't know if it ever did this for writes - so it may be moot.
 
->>> diff --git a/arch/powerpc/kernel/msi.c b/arch/powerpc/kernel/msi.c
->>> index 71bd161..01781a4 100644
->>> --- a/arch/powerpc/kernel/msi.c
->>> +++ b/arch/powerpc/kernel/msi.c
->> [...]
->>> @@ -27,7 +27,17 @@ int arch_setup_msi_irqs(struct pci_dev *dev, int nvec, int type)
->>>       return ppc_md.setup_msi_irqs(dev, nvec, type);
->>>   }
->>>
->>> -void arch_teardown_msi_irqs(struct pci_dev *dev)
->>> +static void ppc_teardown_msi_irqs(struct pci_dev *dev)
+Can you recall the particulars, like what ARM config or what code?
 
->>    Shouldn't this function take IRQ # instead?
+I tried an overly-simple test to see if gcc would bump up to the word load for
+the 12-bit offset mode, but it stuck with register offset rather than immediate
+offset. [I used the compiler options for allmodconfig and a 4.8 cross-compiler.]
 
-> This function need to teardown all msi irqs of the pci dev, we should pass the pci dev as argument .
+Maybe the test doesn't generate enough register pressure on the compiler?
 
-    Ah, I've mixed up the teardown_irqs() method with teardown_irq()! Too 
-similar. :-)
+Regards,
+Peter Hurley
 
-> Thanks!
-> Yijing.
+#define ARRAY_SIZE(x)  (sizeof(x)/sizeof((x)[0]))
 
-WBR, Sergei
+struct x {
+	long unused[64];
+	short b[12];
+	int unused2[10];
+	short c;
+};
+
+void store_c(struct x *p, short a[]) {
+	int i;
+
+	for (i = 0; i < ARRAY_SIZE(p->b); i++)
+		p->b[i] = a[i];
+	p->c = 2;
+}
+
+
+void store_c(struct x *p, short a[]) {
+   0:	e1a0c00d 	mov	ip, sp
+   4:	e3a03000 	mov	r3, #0
+   8:	e92dd800 	push	{fp, ip, lr, pc}
+   c:	e24cb004 	sub	fp, ip, #4
+	int i;
+
+	for (i = 0; i < ARRAY_SIZE(p->b); i++)
+		p->b[i] = a[i];
+  10:	e191c0b3 	ldrh	ip, [r1, r3]
+  14:	e0802003 	add	r2, r0, r3
+  18:	e2822c01 	add	r2, r2, #256	; 0x100
+  1c:	e2833002 	add	r3, r3, #2
+  20:	e3530018 	cmp	r3, #24
+  24:	e1c2c0b0 	strh	ip, [r2]
+  28:	1afffff8 	bne	10 <store_c+0x10>
+	p->c = 2;
+  2c:	e3a03d05 	mov	r3, #320	; 0x140
+  30:	e3a02002 	mov	r2, #2
+  34:	e18020b3 	strh	r2, [r0, r3]
+  38:	e89da800 	ldm	sp, {fp, sp, pc}
+
