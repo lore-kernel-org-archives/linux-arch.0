@@ -1,64 +1,130 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.orcon.net.nz ([219.88.242.56]:59457 "EHLO
-	mail.orcon.net.nz" rhost-flags-OK-FAIL-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1752178AbaIEVdg (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 5 Sep 2014 17:33:36 -0400
-Date: Sat, 6 Sep 2014 09:27:27 +1200
-From: Michael Cree <mcree@orcon.net.nz>
-Subject: Re: bit fields && data tearing
-Message-ID: <20140905212727.GA6169@omega>
-References: <54090AF4.7060406@hurleysoftware.com>
- <54091B30.2090509@zytor.com>
- <20140905081648.GB5281@omega>
- <20140905180950.GU5001@linux.vnet.ibm.com>
- <540A05F7.1070202@hurleysoftware.com>
- <20140905190506.GV5001@linux.vnet.ibm.com>
- <8CA974F497CA064FA9926E10ABCC061F05F97E7B77@MAILSJ4.global.cadence.com>
- <540A19B8.4010907@hurleysoftware.com>
- <20140905203951.GA4053@omega>
- <540A273C.7020804@hurleysoftware.com>
+Received: from mail-pd0-f170.google.com ([209.85.192.170]:38685 "EHLO
+	mail-pd0-f170.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750869AbaIEWI0 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 5 Sep 2014 18:08:26 -0400
+Received: by mail-pd0-f170.google.com with SMTP id r10so16605779pdi.29
+        for <linux-arch@vger.kernel.org>; Fri, 05 Sep 2014 15:08:26 -0700 (PDT)
+Date: Fri, 5 Sep 2014 16:08:20 -0600
+From: Bjorn Helgaas <bhelgaas@google.com>
+Subject: Re: [PATCH v9 06/12] ARM: integrator: Correct usage of
+ of_pci_range_to_resource()
+Message-ID: <20140905220820.GI8080@google.com>
+References: <1407860725-25202-1-git-send-email-Liviu.Dudau@arm.com>
+ <1407860725-25202-7-git-send-email-Liviu.Dudau@arm.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <540A273C.7020804@hurleysoftware.com>
+In-Reply-To: <1407860725-25202-7-git-send-email-Liviu.Dudau@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Hurley <peter@hurleysoftware.com>
-Cc: Marc Gauthier <marc@cadence.com>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>, "H. Peter Anvin" <hpa@zytor.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Laight <David.Laight@ACULAB.COM>, Jakub Jelinek <jakub@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Tony Luck <tony.luck@intel.com>, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, Oleg Nesterov <oleg@redhat.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Paul Mackerras <paulus@samba.org>, "linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>, Miroslav Franc <mfranc@redhat.com>, Richard Henderson <rth@twiddle.net>, "linux-alpha@vger.kernel.org" <linux-alpha@vger.kernel.org>
-Message-ID: <20140905212727.KjZ4DDujvnMqGcXfIKQCzyobeY1O4zXHWo1dS5p0C54@z>
+To: Liviu Dudau <Liviu.Dudau@arm.com>
+Cc: Catalin Marinas <Catalin.Marinas@arm.com>, Will Deacon <Will.Deacon@arm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@arm.linux.org.uk>, Tanmay Inamdar <tinamdar@apm.com>, Grant Likely <grant.likely@secretlab.ca>, Sinan Kaya <okaya@codeaurora.org>, Jingoo Han <jg1.han@samsung.com>, Kukjin Kim <kgene.kim@samsung.com>, Suravee Suthikulanit <suravee.suthikulpanit@amd.com>, linux-pci <linux-pci@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Device Tree ML <devicetree@vger.kernel.org>, LAKML <linux-arm-kernel@lists.infradead.org>, Linus Walleij <linus.walleij@linaro.org>
+Message-ID: <20140905220820.os_g9RJBKIFmVXixIyvzEh54wrt7RdzKJaCuIHaEGB4@z>
 
-On Fri, Sep 05, 2014 at 05:12:28PM -0400, Peter Hurley wrote:
-> On 09/05/2014 04:39 PM, Michael Cree wrote:
-> > On Fri, Sep 05, 2014 at 04:14:48PM -0400, Peter Hurley wrote:
-> >> Second, in the body of the document:
-> >>
-> >> "The Linux kernel no longer supports pre-EV56 Alpha CPUs, because these
-> >> older CPUs _do not provide_ atomic one-byte and two-byte loads and stores."
-> > 
-> > Let's be clear here, the pre-EV56 Alpha CPUs do provide an atomic
-> > one-byte and two-byte load and store; it's just that one must use
-> > locked load and store sequences to achieve atomicity.  The point,
-> > I think, is that the pre-EV56 Alpha CPUs provide non-atomic one-byte
-> > and two-byte load and stores as the norm, and that is the problem.
+[+cc Linus]
+
+On Tue, Aug 12, 2014 at 05:25:19PM +0100, Liviu Dudau wrote:
+> Previously, of_pci_range_to_resource() would return a resource
+> that contained physical addresses of the IO space even if the
+> IORESOURCE_IO flags mandate a logical port set of values. Now
+> that the function has been fixed we need to update the drivers
+> that were taking advantage of the old behaviour.
 > 
-> I'm all for an Alpha expert to jump in here and meet the criteria;
-> which is that byte stores cannot corrupt adjacent storage (nor can
-> aligned short stores).
+> Cc: Linus Walleij <linus.walleij@linaro.org>
+> Cc: Arnd Bergmann <arnd@arndb.de>
+> Cc: Rob Herring <robh+dt@kernel.org>
+> Cc: Russell King <linux@arm.linux.org.uk>
+> Signed-off-by: Liviu Dudau <Liviu.Dudau@arm.com>
+
+Something's wrong with the CC: list.  You list Linus here in the changelog,
+but I don't see him in the CC: headers.
+
+> ---
+>  arch/arm/mach-integrator/pci_v3.c | 24 +++++++++++++-----------
+>  1 file changed, 13 insertions(+), 11 deletions(-)
 > 
-> To my mind, a quick look at Documentation/circular-buffers.txt will
-> pretty much convince anyone that trying to differentiate by execution
-> context is undoable.
+> diff --git a/arch/arm/mach-integrator/pci_v3.c b/arch/arm/mach-integrator/pci_v3.c
+> index 05e1f73..193b7f8 100644
+> --- a/arch/arm/mach-integrator/pci_v3.c
+> +++ b/arch/arm/mach-integrator/pci_v3.c
+> @@ -660,6 +660,7 @@ static void __init pci_v3_preinit(void)
+>  {
+>  	unsigned long flags;
+>  	unsigned int temp;
+> +	phys_addr_t io_address = pci_pio_to_address(io_mem.start);
+>  
+>  	pcibios_min_mem = 0x00100000;
+>  
+> @@ -701,7 +702,7 @@ static void __init pci_v3_preinit(void)
+>  	/*
+>  	 * Setup window 2 - PCI IO
+>  	 */
+> -	v3_writel(V3_LB_BASE2, v3_addr_to_lb_base2(io_mem.start) |
+> +	v3_writel(V3_LB_BASE2, v3_addr_to_lb_base2(io_address) |
+>  			V3_LB_BASE_ENABLE);
+>  	v3_writew(V3_LB_MAP2, v3_addr_to_lb_map2(0));
+>  
+> @@ -742,6 +743,7 @@ static void __init pci_v3_preinit(void)
+>  static void __init pci_v3_postinit(void)
+>  {
+>  	unsigned int pci_cmd;
+> +	phys_addr_t io_address = pci_pio_to_address(io_mem.start);
+>  
+>  	pci_cmd = PCI_COMMAND_MEMORY |
+>  		  PCI_COMMAND_MASTER | PCI_COMMAND_INVALIDATE;
+> @@ -758,7 +760,7 @@ static void __init pci_v3_postinit(void)
+>  		       "interrupt: %d\n", ret);
+>  #endif
+>  
+> -	register_isa_ports(non_mem.start, io_mem.start, 0);
+> +	register_isa_ports(non_mem.start, io_address, 0);
+>  }
+>  
+>  /*
+> @@ -867,33 +869,33 @@ static int __init pci_v3_probe(struct platform_device *pdev)
+>  
+>  	for_each_of_pci_range(&parser, &range) {
+>  		if (!range.flags) {
+> -			of_pci_range_to_resource(&range, np, &conf_mem);
+> +			ret = of_pci_range_to_resource(&range, np, &conf_mem);
+>  			conf_mem.name = "PCIv3 config";
+>  		}
+>  		if (range.flags & IORESOURCE_IO) {
+> -			of_pci_range_to_resource(&range, np, &io_mem);
+> +			ret = of_pci_range_to_resource(&range, np, &io_mem);
+> +			dev_info(&pdev->dev, "IO PCI range converted\n");
+>  			io_mem.name = "PCIv3 I/O";
+>  		}
+>  		if ((range.flags & IORESOURCE_MEM) &&
+>  			!(range.flags & IORESOURCE_PREFETCH)) {
+>  			non_mem_pci = range.pci_addr;
+>  			non_mem_pci_sz = range.size;
+> -			of_pci_range_to_resource(&range, np, &non_mem);
+> +			ret = of_pci_range_to_resource(&range, np, &non_mem);
+>  			non_mem.name = "PCIv3 non-prefetched mem";
+>  		}
+>  		if ((range.flags & IORESOURCE_MEM) &&
+>  			(range.flags & IORESOURCE_PREFETCH)) {
+>  			pre_mem_pci = range.pci_addr;
+>  			pre_mem_pci_sz = range.size;
+> -			of_pci_range_to_resource(&range, np, &pre_mem);
+> +			ret = of_pci_range_to_resource(&range, np, &pre_mem);
+>  			pre_mem.name = "PCIv3 prefetched mem";
+>  		}
+> -	}
+>  
+> -	if (!conf_mem.start || !io_mem.start ||
+> -	    !non_mem.start || !pre_mem.start) {
+> -		dev_err(&pdev->dev, "missing ranges in device node\n");
+> -		return -EINVAL;
+> +		if (ret < 0) {
+> +			dev_err(&pdev->dev, "missing ranges in device node\n");
+> +			return -EINVAL;
+> +		}
+>  	}
+>  
+>  	pci_v3.map_irq = of_irq_parse_and_map_pci;
+> -- 
+> 2.0.4
 > 
-> If someone wants to make Alphas do cmpxchg loops for every byte store,
-> then ok. Or any other solution that doesn't require subsystem code
-> changes.
-
-I am not suggesting that anyone do that work.  I'm certainly not going
-to do it.
-
-All I was pointing out is that the claim that "_do not provide_" made
-above with emphasis is, strictly interpreted, not true, thus should not
-be committed to the documentation without further clarification.
-
-Cheers
-Michael.
