@@ -1,80 +1,60 @@
-From: wangyijing <wangyijing0307@gmail.com>
-Subject: Re: [PATCH v1 15/21] Powerpc/MSI: Use MSI chip framework to configure MSI/MSI-X irq
-Date: Fri, 5 Sep 2014 19:33:08 +0800
-Message-ID: <43412AE0-85BB-4B4B-A4EA-2C6D3B8B85D7@gmail.com>
-References: <1409911806-10519-1-git-send-email-wangyijing@huawei.com> <1409911806-10519-16-git-send-email-wangyijing@huawei.com> <540994D4.6040500@cogentembedded.com>
-Mime-Version: 1.0 (1.0)
-Content-Type: text/plain; charset=gb2312
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pd0-f179.google.com ([209.85.192.179]:48682 "EHLO
-	mail-pd0-f179.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756478AbaIELdN convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 5 Sep 2014 07:33:13 -0400
-In-Reply-To: <540994D4.6040500@cogentembedded.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>
-Cc: Yijing Wang <wangyijing@huawei.com>, Bjorn Helgaas <bhelgaas@google.com>, Xinwei Hu <huxinwei@huawei.com>, Wuyun <wuyun.wu@huawei.com>, "linux-pci@vger.kernel.org" <linux-pci@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Russell King <linux@arm.linux.org.uk>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "arnab.basu@freescale.com" <arnab.basu@freescale.com>, "Bharat.Bhushan@freescale.com" <Bharat.Bhushan@freescale.com>, "x86@kernel.org" <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Thomas Gleixner <tglx@linutronix.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, "xen-devel@lists.xenproject.org" <xen-devel@lists.xenproject.org>, Joerg Roedel <joro@8bytes.org>, "iommu@lists.linux-foundation.org" <iommu@lists.linux-foundation.org>, "linux-mips@linux-mips.org" <linux-mips@linux-mips.org>, Benjamin
+From: Sergei Shtylyov <sergei.shtylyov-M4DtvfQ/ZS1MRgGoP+s0PdBPR1lH4CV8@public.gmane.org>
+Subject: Re: [PATCH v1 15/21] Powerpc/MSI: Use MSI chip framework to configure
+	MSI/MSI-X irq
+Date: Fri, 05 Sep 2014 15:41:40 +0400
+Message-ID: <5409A174.3050205@cogentembedded.com>
+References: <1409911806-10519-1-git-send-email-wangyijing@huawei.com>
+	<1409911806-10519-16-git-send-email-wangyijing@huawei.com>
+	<540994D4.6040500@cogentembedded.com>
+	<43412AE0-85BB-4B4B-A4EA-2C6D3B8B85D7@gmail.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"; Format="flowed"
+Content-Transfer-Encoding: 7bit
+Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+In-Reply-To: <43412AE0-85BB-4B4B-A4EA-2C6D3B8B85D7-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
+	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
+List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
+	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
+Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+To: wangyijing <wangyijing0307-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
+Cc: "linux-mips-6z/3iImG2C8G8FEW9MqTrA@public.gmane.org" <linux-mips-6z/3iImG2C8G8FEW9MqTrA@public.gmane.org>, "linux-ia64-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <linux-ia64-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, "linux-pci-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <linux-pci-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, "sparclinux-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <sparclinux-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, "linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, "linux-s390-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <linux-s390-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Russell King <linux-lFZ/pmaqli7XmaaqVzeoHQ@public.gmane.org>, "x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org" <x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Sebastian Ott <sebott-23VcF4HTsmIX0ybBhKVfKdBPR1lH4CV8@public.gmane.org>, Benjamin Herrenschmidt <benh-XVmvHMARGAS8U2dJNN8I7kB+6BGkLq7r@public.gmane.org>, "xen-devel-GuqFBffKawtpuQazS67q72D2FQJk+8+b@public.gmane.org" <xen-devel-GuqFBffKawtpuQazS67q72D2FQJk+8+b@public.gmane.org>, "arnab.basu-KZfg59tc24xl57MIdRCFDg@public.gmane.org" <arnab.basu-KZfg59tc24xl57MIdRCFDg@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Chris Metcalf <cmetcalf-kv+TWInifGbQT0dZR+AlfA@public.gmane.org>, Bjorn Helgaas <bhelgaas-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, "linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org" <linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org>, Xinwei Hu <huxinwei>
+List-Id: linux-arch.vger.kernel.org
 
+On 9/5/2014 3:33 PM, wangyijing wrote:
 
+>>> Use MSI chip framework instead of arch MSI functions to configure
+>>> MSI/MSI-X irq. So we can manage MSI/MSI-X irq in a unified framework.
 
-> =D4=DA 2014=C4=EA9=D4=C25=C8=D5=A3=AC18:47=A3=ACSergei Shtylyov <serg=
-ei.shtylyov@cogentembedded.com> =D0=B4=B5=C0=A3=BA
->=20
-> Hello.
->=20
->> On 9/5/2014 2:10 PM, Yijing Wang wrote:
->>=20
->> Use MSI chip framework instead of arch MSI functions to configure
->> MSI/MSI-X irq. So we can manage MSI/MSI-X irq in a unified framework=
-=2E
->=20
->> Signed-off-by: Yijing Wang <wangyijing@huawei.com>
->> ---
->>  arch/powerpc/kernel/msi.c |   14 ++++++++++++--
->>  1 files changed, 12 insertions(+), 2 deletions(-)
->=20
->> diff --git a/arch/powerpc/kernel/msi.c b/arch/powerpc/kernel/msi.c
->> index 71bd161..01781a4 100644
->> --- a/arch/powerpc/kernel/msi.c
->> +++ b/arch/powerpc/kernel/msi.c
-> [...]
->> @@ -27,7 +27,17 @@ int arch_setup_msi_irqs(struct pci_dev *dev, int =
-nvec, int type)
->>      return ppc_md.setup_msi_irqs(dev, nvec, type);
->>  }
->>=20
->> -void arch_teardown_msi_irqs(struct pci_dev *dev)
->> +static void ppc_teardown_msi_irqs(struct pci_dev *dev)
->=20
->   Shouldn't this function take IRQ # instead?
+>>> Signed-off-by: Yijing Wang <wangyijing-hv44wF8Li93QT0dZR+AlfA@public.gmane.org>
+>>> ---
+>>>   arch/powerpc/kernel/msi.c |   14 ++++++++++++--
+>>>   1 files changed, 12 insertions(+), 2 deletions(-)
 
-This function need to teardown all msi irqs of the pci dev, we should p=
-ass the pci dev as argument .
+>>> diff --git a/arch/powerpc/kernel/msi.c b/arch/powerpc/kernel/msi.c
+>>> index 71bd161..01781a4 100644
+>>> --- a/arch/powerpc/kernel/msi.c
+>>> +++ b/arch/powerpc/kernel/msi.c
+>> [...]
+>>> @@ -27,7 +27,17 @@ int arch_setup_msi_irqs(struct pci_dev *dev, int nvec, int type)
+>>>       return ppc_md.setup_msi_irqs(dev, nvec, type);
+>>>   }
+>>>
+>>> -void arch_teardown_msi_irqs(struct pci_dev *dev)
+>>> +static void ppc_teardown_msi_irqs(struct pci_dev *dev)
 
-Thanks!
-Yijing.
+>>    Shouldn't this function take IRQ # instead?
 
->=20
->>  {
->>      ppc_md.teardown_msi_irqs(dev);
->>  }
->> +
->> +static struct msi_chip ppc_msi_chip =3D {
->> +    .setup_irqs =3D ppc_setup_msi_irqs,
->> +    .teardown_irqs =3D ppc_teardown_msi_irqs,
->> +};
->> +
->> +struct msi_chip *arch_find_msi_chip(struct pci_dev *dev)
->> +{
->> +    return &ppc_msi_chip;
->> +}
->=20
-> WBR, Sergei
->=20
-> --
-> To unsubscribe from this list: send the line "unsubscribe linux-pci" =
-in
-> the body of a message to majordomo@vger.kernel.org
-> More majordomo info at  http://vger.kernel.org/majordomo-info.html
+> This function need to teardown all msi irqs of the pci dev, we should pass the pci dev as argument .
+
+    Ah, I've mixed up the teardown_irqs() method with teardown_irq()! Too 
+similar. :-)
+
+> Thanks!
+> Yijing.
+
+WBR, Sergei
