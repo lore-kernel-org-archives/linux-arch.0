@@ -1,57 +1,80 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-lb0-f173.google.com ([209.85.217.173]:62319 "EHLO
-	mail-lb0-f173.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757059AbaIELln (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 5 Sep 2014 07:41:43 -0400
-Received: by mail-lb0-f173.google.com with SMTP id c11so13316530lbj.32
-        for <linux-arch@vger.kernel.org>; Fri, 05 Sep 2014 04:41:42 -0700 (PDT)
-Message-ID: <5409A174.3050205@cogentembedded.com>
-Date: Fri, 05 Sep 2014 15:41:40 +0400
-From: Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>
+Received: from mailout32.mail01.mtsvc.net ([216.70.64.70]:35914 "EHLO
+	n23.mail01.mtsvc.net" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S932179AbaIEMbT (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 5 Sep 2014 08:31:19 -0400
+Message-ID: <5409AD0A.5090305@hurleysoftware.com>
+Date: Fri, 05 Sep 2014 08:31:06 -0400
+From: Peter Hurley <peter@hurleysoftware.com>
 MIME-Version: 1.0
-Subject: Re: [PATCH v1 15/21] Powerpc/MSI: Use MSI chip framework to configure
- MSI/MSI-X irq
-References: <1409911806-10519-1-git-send-email-wangyijing@huawei.com> <1409911806-10519-16-git-send-email-wangyijing@huawei.com> <540994D4.6040500@cogentembedded.com> <43412AE0-85BB-4B4B-A4EA-2C6D3B8B85D7@gmail.com>
-In-Reply-To: <43412AE0-85BB-4B4B-A4EA-2C6D3B8B85D7@gmail.com>
-Content-Type: text/plain; charset=gbk; format=flowed
+Subject: Re: bit fields && data tearing
+References: <54079B70.4050200@hurleysoftware.com> <1409785893.30640.118.camel@pasglop> <21512.10628.412205.873477@gargle.gargle.HOWL> <20140904090952.GW17454@tucnak.redhat.com> <540859EC.5000407@hurleysoftware.com> <20140904175044.4697aee4@alan.etchedpixels.co.uk> <5408C0AB.6050801@hurleysoftware.com> <20140905001751.GL5001@linux.vnet.ibm.com> <1409883098.5078.14.camel@jarvis.lan> <5409243C.4080704@hurleysoftware.com> <20140905040645.GO5001@linux.vnet.ibm.com> <063D6719AE5E284EB5DD2968C1650D6D17487F66@AcuExch.aculab.com>
+In-Reply-To: <063D6719AE5E284EB5DD2968C1650D6D17487F66@AcuExch.aculab.com>
+Content-Type: text/plain; charset=utf-8
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: wangyijing <wangyijing0307@gmail.com>
-Cc: Yijing Wang <wangyijing@huawei.com>, Bjorn Helgaas <bhelgaas@google.com>, Xinwei Hu <huxinwei@huawei.com>, Wuyun <wuyun.wu@huawei.com>, "linux-pci@vger.kernel.org" <linux-pci@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Russell King <linux@arm.linux.org.uk>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "arnab.basu@freescale.com" <arnab.basu@freescale.com>, "Bharat.Bhushan@freescale.com" <Bharat.Bhushan@freescale.com>, "x86@kernel.org" <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Thomas Gleixner <tglx@linutronix.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, "xen-devel@lists.xenproject.org" <xen-devel@lists.xenproject.org>, Joerg Roedel <joro@8bytes.org>, "iommu@lists.linux-foundation.org" <iommu@lists.linux-foundation.org>, "linux-mips@linux-mips.org" <linux-mips@linux-mips.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, "linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>, "linux-s390@vger.kernel.org" <linux-s390@vger.kernel.org>, Sebastian Ott <sebott@linux.vnet.ibm.com>, Tony Luck <tony.luck@intel.com>, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, "David S. Miller" <davem@davemloft.net>, "sparclinux@vger.kernel.org" <sparclinux@vger.kernel.org>, Chris Metcalf <cmetcalf@tilera.com>, Ralf Baechle <ralf@linux-mips.org>
-Message-ID: <20140905114140.THj5vg8KXB3nJw_aAC4G2mhDL4o3MyqsCk1jBecXICk@z>
+To: David Laight <David.Laight@ACULAB.COM>, "'paulmck@linux.vnet.ibm.com'" <paulmck@linux.vnet.ibm.com>
+Cc: Jakub Jelinek <jakub@redhat.com>, One Thousand Gnomes <gnomes@lxorguk.ukuu.org.uk>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, Mikael Pettersson <mikpelinux@gmail.com>, Oleg Nesterov <oleg@redhat.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, James Bottomley <James.Bottomley@HansenPartnership.com>, Tony Luck <tony.luck@intel.com>, Paul Mackerras <paulus@samba.org>, "H. Peter Anvin" <hpa@zytor.com>, "linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>, Miroslav Franc <mfranc@redhat.com>, Richard Henderson <rth@twiddle.net>, linux-arm@vger.kernel.org
+Message-ID: <20140905123106.XKJCpri4fvMEXzDy2YLkW2pZfcaer5ocFDNeWkQd4r0@z>
 
-On 9/5/2014 3:33 PM, wangyijing wrote:
+[ +cc linux-arm ]
 
->>> Use MSI chip framework instead of arch MSI functions to configure
->>> MSI/MSI-X irq. So we can manage MSI/MSI-X irq in a unified framework.
+Hi David,
 
->>> Signed-off-by: Yijing Wang <wangyijing@huawei.com>
->>> ---
->>>   arch/powerpc/kernel/msi.c |   14 ++++++++++++--
->>>   1 files changed, 12 insertions(+), 2 deletions(-)
+On 09/05/2014 04:30 AM, David Laight wrote:
+> I've seen gcc generate 32bit accesses for 16bit structure members on arm.
+> It does this because of the more limited range of the offsets for the 16bit access.
+> OTOH I don't know if it ever did this for writes - so it may be moot.
 
->>> diff --git a/arch/powerpc/kernel/msi.c b/arch/powerpc/kernel/msi.c
->>> index 71bd161..01781a4 100644
->>> --- a/arch/powerpc/kernel/msi.c
->>> +++ b/arch/powerpc/kernel/msi.c
->> [...]
->>> @@ -27,7 +27,17 @@ int arch_setup_msi_irqs(struct pci_dev *dev, int nvec, int type)
->>>       return ppc_md.setup_msi_irqs(dev, nvec, type);
->>>   }
->>>
->>> -void arch_teardown_msi_irqs(struct pci_dev *dev)
->>> +static void ppc_teardown_msi_irqs(struct pci_dev *dev)
+Can you recall the particulars, like what ARM config or what code?
 
->>    Shouldn't this function take IRQ # instead?
+I tried an overly-simple test to see if gcc would bump up to the word load for
+the 12-bit offset mode, but it stuck with register offset rather than immediate
+offset. [I used the compiler options for allmodconfig and a 4.8 cross-compiler.]
 
-> This function need to teardown all msi irqs of the pci dev, we should pass the pci dev as argument .
+Maybe the test doesn't generate enough register pressure on the compiler?
 
-    Ah, I've mixed up the teardown_irqs() method with teardown_irq()! Too 
-similar. :-)
+Regards,
+Peter Hurley
 
-> Thanks!
-> Yijing.
+#define ARRAY_SIZE(x)  (sizeof(x)/sizeof((x)[0]))
 
-WBR, Sergei
+struct x {
+	long unused[64];
+	short b[12];
+	int unused2[10];
+	short c;
+};
+
+void store_c(struct x *p, short a[]) {
+	int i;
+
+	for (i = 0; i < ARRAY_SIZE(p->b); i++)
+		p->b[i] = a[i];
+	p->c = 2;
+}
+
+
+void store_c(struct x *p, short a[]) {
+   0:	e1a0c00d 	mov	ip, sp
+   4:	e3a03000 	mov	r3, #0
+   8:	e92dd800 	push	{fp, ip, lr, pc}
+   c:	e24cb004 	sub	fp, ip, #4
+	int i;
+
+	for (i = 0; i < ARRAY_SIZE(p->b); i++)
+		p->b[i] = a[i];
+  10:	e191c0b3 	ldrh	ip, [r1, r3]
+  14:	e0802003 	add	r2, r0, r3
+  18:	e2822c01 	add	r2, r2, #256	; 0x100
+  1c:	e2833002 	add	r3, r3, #2
+  20:	e3530018 	cmp	r3, #24
+  24:	e1c2c0b0 	strh	ip, [r2]
+  28:	1afffff8 	bne	10 <store_c+0x10>
+	p->c = 2;
+  2c:	e3a03d05 	mov	r3, #320	; 0x140
+  30:	e3a02002 	mov	r2, #2
+  34:	e18020b3 	strh	r2, [r0, r3]
+  38:	e89da800 	ldm	sp, {fp, sp, pc}
 
