@@ -1,83 +1,59 @@
-From: Andy Lutomirski <luto@amacapital.net>
-Subject: Re: Post-merge-window ping (Re: [PATCH v4 0/5] x86: two-phase syscall
- tracing and seccomp fastpath)
-Date: Fri, 5 Sep 2014 14:14:20 -0700
-Message-ID: <CALCETrXFD=D=W6pjQfhzzWU-ZOZzkJ=ZMxF5=sKxFx7NAg7xng@mail.gmail.com>
-References: <CALCETrUaZ8w92g96SmFEZDE0Jr+0Moeo+S24-TyW8crrK5reSg@mail.gmail.com>
- <540A1800.3000005@zytor.com> <540A2080.8050404@zytor.com>
+From: Michael Cree <mcree@orcon.net.nz>
+Subject: Re: bit fields && data tearing
+Date: Sat, 6 Sep 2014 09:27:27 +1200
+Message-ID: <20140905212727.GA6169@omega>
+References: <54090AF4.7060406@hurleysoftware.com>
+ <54091B30.2090509@zytor.com>
+ <20140905081648.GB5281@omega>
+ <20140905180950.GU5001@linux.vnet.ibm.com>
+ <540A05F7.1070202@hurleysoftware.com>
+ <20140905190506.GV5001@linux.vnet.ibm.com>
+ <8CA974F497CA064FA9926E10ABCC061F05F97E7B77@MAILSJ4.global.cadence.com>
+ <540A19B8.4010907@hurleysoftware.com>
+ <20140905203951.GA4053@omega>
+ <540A273C.7020804@hurleysoftware.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-la0-f45.google.com ([209.85.215.45]:46268 "EHLO
-	mail-la0-f45.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750940AbaIEVOm convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 5 Sep 2014 17:14:42 -0400
-Received: by mail-la0-f45.google.com with SMTP id pn19so14573541lab.4
-        for <linux-arch@vger.kernel.org>; Fri, 05 Sep 2014 14:14:40 -0700 (PDT)
-In-Reply-To: <540A2080.8050404@zytor.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: "H. Peter Anvin" <hpa@zytor.com>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Kees Cook <keescook@chromium.org>, Will Drewry <wad@chromium.org>, Oleg Nesterov <oleg@redhat.com>, X86 ML <x86@kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Linux MIPS Mailing List <linux-mips@linux-mips.org>, linux-arch <linux-arch@vger.kernel.org>, LSM List <linux-security-module@vger.kernel.org>, Alexei Starovoitov <ast@plumgrid.com>, Frederic Weisbecker <fweisbec@gmail.com>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-alpha-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <540A273C.7020804@hurleysoftware.com>
+Sender: linux-alpha-owner@vger.kernel.org
+To: Peter Hurley <peter@hurleysoftware.com>
+Cc: Marc Gauthier <marc@cadence.com>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>, "H. Peter Anvin" <hpa@zytor.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Laight <David.Laight@ACULAB.COM>, Jakub Jelinek <jakub@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Tony Luck <tony.luck@intel.com>, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, Oleg Nesterov <oleg@redhat.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Paul Mackerras <paulus@samba.org>, "linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>, Miroslav Franc <mfranc@redhat.com>, Richard Henderson <rth@twiddle.net>, "linux-alpha@vger.kernel.org" <linux-alpha@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Fri, Sep 5, 2014 at 1:43 PM, H. Peter Anvin <hpa@zytor.com> wrote:
-> On 09/05/2014 01:07 PM, H. Peter Anvin wrote:
->> On 08/26/2014 06:32 PM, Andy Lutomirski wrote:
->>> On Mon, Jul 28, 2014 at 8:38 PM, Andy Lutomirski <luto@amacapital.n=
-et> wrote:
->>>> This applies to:
->>>> git://git.kernel.org/pub/scm/linux/kernel/git/kees/linux.git secco=
-mp-fastpath
->>>>
->>>> Gitweb:
->>>> https://git.kernel.org/cgit/linux/kernel/git/kees/linux.git/log/?h=
-=3Dseccomp/fastpath
->>>
->>> Hi all-
->>>
->>> AFAIK the only thing that's changed since I submitted it is that th=
-e
->>> 3.17 merge window is closed.  Kees rebased the tree this applies to=
-,
->>> but I think the patches all still apply.  What, if anything, do I n=
-eed
->>> to do to help this along for 3.18?
->>>
->>
->> Just put this stuff in a branch and running through my personal test
->> battery now.
->>
->
-> ... and they fail build testing.  Specifically, both i386 and x86-64
-> allnoconfig fail with:
+On Fri, Sep 05, 2014 at 05:12:28PM -0400, Peter Hurley wrote:
+> On 09/05/2014 04:39 PM, Michael Cree wrote:
+> > On Fri, Sep 05, 2014 at 04:14:48PM -0400, Peter Hurley wrote:
+> >> Second, in the body of the document:
+> >>
+> >> "The Linux kernel no longer supports pre-EV56 Alpha CPUs, because these
+> >> older CPUs _do not provide_ atomic one-byte and two-byte loads and stores."
+> > 
+> > Let's be clear here, the pre-EV56 Alpha CPUs do provide an atomic
+> > one-byte and two-byte load and store; it's just that one must use
+> > locked load and store sequences to achieve atomicity.  The point,
+> > I think, is that the pre-EV56 Alpha CPUs provide non-atomic one-byte
+> > and two-byte load and stores as the norm, and that is the problem.
+> 
+> I'm all for an Alpha expert to jump in here and meet the criteria;
+> which is that byte stores cannot corrupt adjacent storage (nor can
+> aligned short stores).
+> 
+> To my mind, a quick look at Documentation/circular-buffers.txt will
+> pretty much convince anyone that trying to differentiate by execution
+> context is undoable.
+> 
+> If someone wants to make Alphas do cmpxchg loops for every byte store,
+> then ok. Or any other solution that doesn't require subsystem code
+> changes.
 
-OK, that's embarrassing.  Also, this has been sitting on
-git.kernel.org forever and kbuild never spotted it either.  Hmm.
+I am not suggesting that anyone do that work.  I'm certainly not going
+to do it.
 
-Anyway, updates coming.
+All I was pointing out is that the claim that "_do not provide_" made
+above with emphasis is, strictly interpreted, not true, thus should not
+be committed to the documentation without further clarification.
 
---Andy
-
->
-> arch/x86/kernel/ptrace.c: In function =E2=80=98syscall_trace_enter_ph=
-ase2=E2=80=99:
->   LD      fs/quota/built-in.o
-> ../arch/x86/kernel/ptrace.c:1579:2: error: implicit declaration of
-> function =E2=80=98seccomp_phase2=E2=80=99 [-Werror=3Dimplicit-functio=
-n-declaration]
->   if (phase1_result > 1 && seccomp_phase2(phase1_result)) {
->   ^
-> cc1: some warnings being treated as errors
->   CC      arch/x86/kernel/step.o
-> make[4]: *** [arch/x86/kernel/ptrace.o] Error 1
->
->         -hpa
->
->
-
-
-
---=20
-Andy Lutomirski
-AMA Capital Management, LLC
+Cheers
+Michael.
