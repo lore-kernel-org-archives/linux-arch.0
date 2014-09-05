@@ -1,61 +1,41 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0a-0014ca01.pphosted.com ([208.84.65.235]:7159 "EHLO
-	mx0a-0014ca01.pphosted.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1751144AbaIEUaC convert rfc822-to-8bit
-	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 5 Sep 2014 16:30:02 -0400
-From: Marc Gauthier <marc@cadence.com>
-Date: Fri, 5 Sep 2014 12:38:56 -0700
-Subject: RE: bit fields && data tearing
-Message-ID: <8CA974F497CA064FA9926E10ABCC061F05F97E7B77@MAILSJ4.global.cadence.com>
-References: <54079B70.4050200@hurleysoftware.com>
- <1409785893.30640.118.camel@pasglop>
- <063D6719AE5E284EB5DD2968C1650D6D17487172@AcuExch.aculab.com>
- <1409824374.4246.62.camel@pasglop> <5408E458.3@zytor.com>
- <54090AF4.7060406@hurleysoftware.com> <54091B30.2090509@zytor.com>
- <20140905081648.GB5281@omega> <20140905180950.GU5001@linux.vnet.ibm.com>
- <540A05F7.1070202@hurleysoftware.com>
- <20140905190506.GV5001@linux.vnet.ibm.com>
-In-Reply-To: <20140905190506.GV5001@linux.vnet.ibm.com>
-Content-Language: en-US
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 8BIT
+Received: from terminus.zytor.com ([198.137.202.10]:51259 "EHLO mail.zytor.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751193AbaIEUfd (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 5 Sep 2014 16:35:33 -0400
+Message-ID: <540A1E6C.2020005@zytor.com>
+Date: Fri, 05 Sep 2014 13:34:52 -0700
+From: "H. Peter Anvin" <hpa@zytor.com>
 MIME-Version: 1.0
+Subject: Re: bit fields && data tearing
+References: <54079B70.4050200@hurleysoftware.com> <1409785893.30640.118.camel@pasglop> <063D6719AE5E284EB5DD2968C1650D6D17487172@AcuExch.aculab.com> <1409824374.4246.62.camel@pasglop> <5408E458.3@zytor.com> <54090AF4.7060406@hurleysoftware.com> <54091B30.2090509@zytor.com> <20140905081648.GB5281@omega> <20140905180950.GU5001@linux.vnet.ibm.com> <540A05F7.1070202@hurleysoftware.com> <20140905190506.GV5001@linux.vnet.ibm.com> <8CA974F497CA064FA9926E10ABCC061F05F97E7B77@MAILSJ4.global.cadence.com> <540A19B8.4010907@hurleysoftware.com>
+In-Reply-To: <540A19B8.4010907@hurleysoftware.com>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>, Peter Hurley <peter@hurleysoftware.com>
-Cc: Michael Cree <mcree@orcon.net.nz>, "H. Peter Anvin" <hpa@zytor.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Laight <David.Laight@ACULAB.COM>, Jakub Jelinek <jakub@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Tony Luck <tony.luck@intel.com>, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, Oleg Nesterov <oleg@redhat.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Paul Mackerras <paulus@samba.org>, "linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>, Miroslav Franc <mfranc@redhat.com>, Richard Henderson <rth@twiddle.net>, "linux-alpha@vger.kernel.org" <linux-alpha@vger.kernel.org>
-Message-ID: <20140905193856.F68am2Dvt0_njmVVA0K-3lZEZn6HKhrx4Jdg51FSLuE@z>
+To: Peter Hurley <peter@hurleysoftware.com>, Marc Gauthier <marc@cadence.com>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>
+Cc: Michael Cree <mcree@orcon.net.nz>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Laight <David.Laight@ACULAB.COM>, Jakub Jelinek <jakub@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Tony Luck <tony.luck@intel.com>, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, Oleg Nesterov <oleg@redhat.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Paul Mackerras <paulus@samba.org>, "linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>, Miroslav Franc <mfranc@redhat.com>, Richard Henderson <rth@twiddle.net>, "linux-alpha@vger.kernel.org" <linux-alpha@vger.kernel.org>
+Message-ID: <20140905203452.IkbXUkwwKHPYX1kqiVk9iHy4SQHbPCSMtWTJwXEQB6g@z>
 
-Paul E. McKenney wrote:
->On Fri, Sep 05, 2014 at 02:50:31PM -0400, Peter Hurley wrote:
->>On 09/05/2014 02:09 PM, Paul E. McKenney wrote:
->>> This commit documents the fact that it is not safe to use bitfields as
->>> shared variables in synchronization algorithms.  It also documents that
->>> CPUs must provide one-byte and two-byte load and store instructions
->>                    ^
->>                 atomic
+On 09/05/2014 01:14 PM, Peter Hurley wrote:
 > 
-> Here you meant non-atomic?  My guess is that you are referring to the
-> fact that you could emulate a one-byte store on pre-EV56 Alpha CPUs
-> using the ll and sc atomic-read-modify-write instructions, correct?
+> Here's how I read the two statements.
 > 
->>> in order to be supported by the Linux kernel.  (Michael Cree
->>> has agreed to the resulting non-support of pre-EV56 Alpha CPUs:
->>> https://lkml.org/lkml/2014/9/5/143.
-[...]
-
->>> +     and 64-bit systems, respectively.  Note that this means that the
->>> +     Linux kernel does not support pre-EV56 Alpha CPUs, because these
->>> +     older CPUs do not provide one-byte and two-byte loads and stores.
->>                                  ^
->>                             non-atomic
+> First, the commit message:
 > 
-> I took this, thank you!
+> "It [this commit] documents that CPUs [supported by the Linux kernel]
+> _must provide_ atomic one-byte and two-byte naturally aligned loads and stores."
+> 
+> Second, in the body of the document:
+> 
+> "The Linux kernel no longer supports pre-EV56 Alpha CPUs, because these
+> older CPUs _do not provide_ atomic one-byte and two-byte loads and stores."
+> 
 
-Eum, am I totally lost, or aren't both of these supposed to say "atomic" ?
+Does this apply in general or only to SMP configurations?  I guess
+non-SMP configurations would still have problems if interrupted in the
+wrong place...
 
-Can't imagine requiring a CPU to provide non-atomic loads and stores
-(i.e. requiring old Alpha behavior?).
+	-hpa
 
--Marc
