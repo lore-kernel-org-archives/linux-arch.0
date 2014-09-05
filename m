@@ -1,9 +1,9 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:40864 "EHLO mail.zytor.com"
+Received: from terminus.zytor.com ([198.137.202.10]:40865 "EHLO mail.zytor.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750961AbaIECJS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 4 Sep 2014 22:09:18 -0400
-Message-ID: <54091B30.2090509@zytor.com>
+	id S1750982AbaIECJU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 4 Sep 2014 22:09:20 -0400
+Message-ID: <54091B30.7080100@zytor.com>
 Date: Thu, 04 Sep 2014 19:08:48 -0700
 From: "H. Peter Anvin" <hpa@zytor.com>
 MIME-Version: 1.0
@@ -16,7 +16,7 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Peter Hurley <peter@hurleysoftware.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Laight <David.Laight@ACULAB.COM>
 Cc: Jakub Jelinek <jakub@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Tony Luck <tony.luck@intel.com>, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, Oleg Nesterov <oleg@redhat.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Paul Mackerras <paulus@samba.org>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, "linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>, Miroslav Franc <mfranc@redhat.com>, Richard Henderson <rth@twiddle.net>, linux-alpha@vger.kernel.org
-Message-ID: <20140905020848.WFEtfACNQtCjdaOEbkMloGnM70Z_pMjqSyU57bvGrjA@z>
+Message-ID: <20140905020848.3LPiQmNLjyXb3Y9VMpmDOV6jHpvwIm0gEMkBxsariqU@z>
 
 On 09/04/2014 05:59 PM, Peter Hurley wrote:
 > I have no idea how prevalent the ev56 is compared to the ev5.
