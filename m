@@ -1,41 +1,91 @@
-From: Bjorn Helgaas <bhelgaas@google.com>
-Subject: Re: [PATCH v9 04/12] PCI: OF: Fix the conversion of IO ranges into
- IO resources.
-Date: Fri, 5 Sep 2014 16:11:31 -0600
-Message-ID: <20140905221131.GJ8080@google.com>
-References: <1407860725-25202-1-git-send-email-Liviu.Dudau@arm.com>
- <1407860725-25202-5-git-send-email-Liviu.Dudau@arm.com>
- <CAL_JsqJm6qWNdrJ2F8xddFUj46y42n6hQVu1nkTaA-5Tbg--XQ@mail.gmail.com>
- <20140822130640.GM13147@bart.dudau.co.uk>
- <CAL_JsqLGa3em5Phct-H0Q=vB5AnA78h19uA=4xi3xHA1rCVq+A@mail.gmail.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-pci-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <CAL_JsqLGa3em5Phct-H0Q=vB5AnA78h19uA=4xi3xHA1rCVq+A@mail.gmail.com>
-Sender: linux-pci-owner@vger.kernel.org
-To: Rob Herring <robherring2@gmail.com>
-Cc: Liviu Dudau <liviu@dudau.co.uk>, Liviu Dudau <Liviu.Dudau@arm.com>, Catalin Marinas <Catalin.Marinas@arm.com>, Will Deacon <Will.Deacon@arm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@arm.linux.org.uk>, Tanmay Inamdar <tinamdar@apm.com>, Grant Likely <grant.likely@secretlab.ca>, Sinan Kaya <okaya@codeaurora.org>, Jingoo Han <jg1.han@samsung.com>, Kukjin Kim <kgene.kim@samsung.com>, Suravee Suthikulanit <suravee.suthikulpanit@amd.com>, linux-pci <linux-pci@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Device Tree ML <devicetree@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, LAKML <linux-arm-kernel@lists.infradead.org>
-List-Id: linux-arch.vger.kernel.org
+From: Andy Lutomirski <luto@amacapital.net>
+Subject: [PATCH v5 0/5] x86: two-phase syscall tracing and seccomp fastpath
+Date: Fri,  5 Sep 2014 15:13:51 -0700
+Message-ID: <cover.1409954077.git.luto@amacapital.net>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-yk0-f176.google.com ([209.85.160.176]:34114 "EHLO
+	mail-yk0-f176.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750931AbaIEWOG (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 5 Sep 2014 18:14:06 -0400
+Received: by mail-yk0-f176.google.com with SMTP id 19so7349109ykq.21
+        for <linux-arch@vger.kernel.org>; Fri, 05 Sep 2014 15:14:04 -0700 (PDT)
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linux-kernel@vger.kernel.org, Kees Cook <keescook@chromium.org>, Will Drewry <wad@chromium.org>, Oleg Nesterov <oleg@redhat.com>
+Cc: x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-mips@linux-mips.org, linux-arch@vger.kernel.org, linux-security-module@vger.kernel.org, Alexei Starovoitov <ast@plumgrid.com>, hpa@zytor.com, Frederic Weisbecker <fweisbec@gmail.com>, Andy Lutomirski <luto@amacapital.net>
 
-On Sun, Aug 24, 2014 at 06:27:48PM -0500, Rob Herring wrote:
-> On Fri, Aug 22, 2014 at 8:06 AM, Liviu Dudau <liviu@dudau.co.uk> wrote:
-> > mips is doing the same thing and I believe is not affected, pci-host-generic.c
-> > was adjusting the returned values afterwards so that will not be needed and Lorenzo
-> > has a patch for the driver to adapt it to this series anyway.
-> >
-> > pcie-designware.c also recalculates the io.start and io.end values, so that's fine
-> > for now. The only ones that I believe are still affected are pci-tegra.c and
-> > pcie-rcar.c for which I will need to provide a patch similar to integrator unless
-> > the code gets converted to the new range parsing.
-> 
-> Well, the latter would be nice, but they certainly have to be fixed.
-> Now that I think about it, this needs to be handled in a bisectable
-> way. So I think you need to fix all affected platforms in this patch
-> rather than a separate patch as you have done.
+This applies to:
+git://git.kernel.org/pub/scm/linux/kernel/git/kees/linux.git seccomp-fastpath
 
-Yep, I was about to complain that the "ARM: integrator: Correct usage of
-of_pci_range_to_resource()" patch needs to be squashed into whatever broke
-it, but I see Rob already caught that.
+Gitweb:
+https://git.kernel.org/cgit/linux/kernel/git/kees/linux.git/log/?h=seccomp/fastpath
 
-Bjorn
+This is both a cleanup and a speedup.  It reduces overhead due to
+installing a trivial seccomp filter by 87%.  The speedup comes from
+avoiding the full syscall tracing mechanism for filters that don't
+return SECCOMP_RET_TRACE.
+
+This series depends on splitting the seccomp hooks into two phases.
+The first phase evaluates the filter; it can skip syscalls, allow
+them, kill the calling task, or pass a u32 to the second phase.  The
+second phase requires a full tracing context, and it sends ptrace
+events if necessary.  The seccomp core part is in Kees' seccomp/fastpath
+tree.
+
+These patches implement a similar split for the x86 syscall
+entry work.  The C callback is invoked in two phases: the first has
+only a partial frame, and it can request phase 2 processing with a
+full frame.
+
+Finally, I switch the 64-bit system_call code to use the new split
+entry work.  This is a net deletion of assembly code: it replaces
+all of the audit entry muck.
+
+In the process, I fixed some bugs.
+
+If this is acceptable, someone can do the same tweak for the
+ia32entry and entry_32 code.
+
+This passes all seccomp tests that I know of.
+
+Changes from v4:
+ - Rebased (which seems to have been a no-op)
+ - Fixed embarrassing bug that broke allnoconfig
+   (patch 3 was missing an ifdef).
+
+Changes from v3:
+ - Dropped the core seccomp changes from the email -- Kees has applied them.
+ - Add patch 2 (the TIF_NOHZ change).
+ - Fix TIF_NOHZ in the two-phase entry code (thanks, Oleg).
+
+Changes from v2:
+ - Fixed 32-bit x86 build (and the tests pass).
+ - Put the doc patch where it belongs.
+
+Changes from v1:
+ - Rebased on top of Kees' shiny new seccomp tree (no effect on the x86
+   part).
+ - Improved patch 6 vs patch 7 split (thanks Alexei!)
+ - Fixed bogus -ENOSYS in patch 5 (thanks Kees!)
+ - Improved changelog message in patch 6.
+
+Changes from RFC version:
+ - The first three patches are more or less the same
+ - The rest is more or less a rewrite
+
+Andy Lutomirski (5):
+  x86,x32,audit: Fix x32's AUDIT_ARCH wrt audit
+  x86,entry: Only call user_exit if TIF_NOHZ
+  x86: Split syscall_trace_enter into two phases
+  x86_64,entry: Treat regs->ax the same in fastpath and slowpath
+    syscalls
+  x86_64,entry: Use split-phase syscall_trace_enter for 64-bit syscalls
+
+ arch/x86/include/asm/calling.h |   6 +-
+ arch/x86/include/asm/ptrace.h  |   5 ++
+ arch/x86/kernel/entry_64.S     |  51 +++++--------
+ arch/x86/kernel/ptrace.c       | 165 +++++++++++++++++++++++++++++++++--------
+ 4 files changed, 164 insertions(+), 63 deletions(-)
+
+-- 
+1.9.3
