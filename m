@@ -1,54 +1,79 @@
 From: Yijing Wang <wangyijing@huawei.com>
-Subject: [PATCH v1 05/21] PCI/MSI: Introduce weak arch_find_msi_chip() to find MSI chip
-Date: Fri, 5 Sep 2014 18:09:50 +0800
-Message-ID: <1409911806-10519-6-git-send-email-wangyijing@huawei.com>
-References: <1409911806-10519-1-git-send-email-wangyijing@huawei.com>
+Subject: [PATCH v1 00/21] Use MSI chip to configure MSI/MSI-X in all platforms
+Date: Fri, 5 Sep 2014 18:09:45 +0800
+Message-ID: <1409911806-10519-1-git-send-email-wangyijing@huawei.com>
 Mime-Version: 1.0
 Content-Type: text/plain
-Return-path: <linux-ia64-owner@vger.kernel.org>
-In-Reply-To: <1409911806-10519-1-git-send-email-wangyijing@huawei.com>
-Sender: linux-ia64-owner@vger.kernel.org
+Return-path: <linux-pci-owner@vger.kernel.org>
+Sender: linux-pci-owner@vger.kernel.org
 To: Bjorn Helgaas <bhelgaas@google.com>
 Cc: Xinwei Hu <huxinwei@huawei.com>, Wuyun <wuyun.wu@huawei.com>, linux-pci@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Russell King <linux@arm.linux.org.uk>, linux-arch@vger.kernel.org, arnab.basu@freescale.com, Bharat.Bhushan@freescale.com, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, Thomas Gleixner <tglx@linutronix.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, xen-devel@lists.xenproject.org, Joerg Roedel <joro@8bytes.org>, iommu@lists.linux-foundation.org, linux-mips@linux-mips.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, Sebastian Ott <sebott@linux.vnet.ibm.com>, Tony Luck <tony.luck@intel.com>, linux-ia64@vger.kernel.org, "David S. Miller" <davem@davemloft.net>, sparclinux@vger.kernel.org, Chris Metcalf <cmetcalf@tilera.com>, Ralf Baechle <ralf@>
 List-Id: linux-arch.vger.kernel.org
 
-Introduce weak arch_find_msi_chip() to find the match msi_chip.
-Currently, MSI chip associates pci bus to msi_chip. Because in
-ARM platform, there may be more than one MSI controller in system.
-Associate pci bus to msi_chip help pci device to find the match
-msi_chip and setup MSI/MSI-X irq correctly. But in other platform,
-like in x86. we only need one MSI chip, because all device use
-the same MSI address/data and irq etc. So it's no need to associate
-pci bus to MSI chip, just use a arch function, arch_find_msi_chip()
-to return the MSI chip for simplicity. The default weak
-arch_find_msi_chip() used in ARM platform, find the MSI chip
-by pci bus.
+This series is based Bjorn's pci-next branch + Alexander Gordeev's two patches
+"Remove arch_msi_check_device()" link: https://lkml.org/lkml/2014/7/12/41
 
-Signed-off-by: Yijing Wang <wangyijing@huawei.com>
----
- drivers/pci/msi.c |    7 ++++++-
- 1 files changed, 6 insertions(+), 1 deletions(-)
+Currently, there are a lot of weak arch functions in MSI code.
+Thierry Reding Introduced MSI chip framework to configure MSI/MSI-X in arm.
+This series use MSI chip framework to refactor MSI code across all platforms
+to eliminate weak arch functions. It has been tested fine in x86(with or without
+irq remap).
 
-diff --git a/drivers/pci/msi.c b/drivers/pci/msi.c
-index a77e7f7..539c11d 100644
---- a/drivers/pci/msi.c
-+++ b/drivers/pci/msi.c
-@@ -29,9 +29,14 @@ static int pci_msi_enable = 1;
- 
- /* Arch hooks */
- 
-+struct msi_chip * __weak arch_find_msi_chip(struct pci_dev *dev)
-+{
-+	return dev->bus->msi;
-+}
-+
- int __weak arch_setup_msi_irq(struct pci_dev *dev, struct msi_desc *desc)
- {
--	struct msi_chip *chip = dev->bus->msi;
-+	struct msi_chip *chip = arch_find_msi_chip(dev);
- 	int err;
- 
- 	if (!chip || !chip->setup_irq)
--- 
-1.7.1
 
+RFC->v1: Updated "[patch 4/21] x86/xen/MSI: Eliminate...", export msi_chip instead
+         of #ifdef to fix MSI bug in xen running in x86. 
+		 Rename arch_get_match_msi_chip() to arch_find_msi_chip().
+		 Drop use struct device as the msi_chip argument, we will do that
+		 later in another patchset.
+
+Yijing Wang (21):
+  PCI/MSI: Clean up struct msi_chip argument
+  PCI/MSI: Remove useless bus->msi assignment
+  MSI: Remove the redundant irq_set_chip_data()
+  x86/xen/MSI: Eliminate arch_msix_mask_irq() and arch_msi_mask_irq()
+  PCI/MSI: Introduce weak arch_find_msi_chip() to find MSI chip
+  PCI/MSI: Refactor struct msi_chip to make it become more common
+  x86/MSI: Use MSI chip framework to configure MSI/MSI-X irq
+  x86/xen/MSI: Use MSI chip framework to configure MSI/MSI-X irq
+  Irq_remapping/MSI: Use MSI chip framework to configure MSI/MSI-X irq
+  x86/MSI: Remove unused MSI weak arch functions
+  MIPS/Octeon/MSI: Use MSI chip framework to configure MSI/MSI-X irq
+  MIPS/Xlp: Remove the dead function destroy_irq() to fix build error
+  MIPS/Xlp/MSI: Use MSI chip framework to configure MSI/MSI-X irq
+  MIPS/Xlr/MSI: Use MSI chip framework to configure MSI/MSI-X irq
+  Powerpc/MSI: Use MSI chip framework to configure MSI/MSI-X irq
+  s390/MSI: Use MSI chip framework to configure MSI/MSI-X irq
+  arm/iop13xx/MSI: Use MSI chip framework to configure MSI/MSI-X irq
+  IA64/MSI: Use MSI chip framework to configure MSI/MSI-X irq
+  Sparc/MSI: Use MSI chip framework to configure MSI/MSI-X irq
+  tile/MSI: Use MSI chip framework to configure MSI/MSI-X irq
+  PCI/MSI: Clean up unused MSI arch functions
+
+ arch/arm/mach-iop13xx/include/mach/pci.h |    2 +
+ arch/arm/mach-iop13xx/iq81340mc.c        |    1 +
+ arch/arm/mach-iop13xx/iq81340sc.c        |    1 +
+ arch/arm/mach-iop13xx/msi.c              |    9 ++-
+ arch/arm/mach-iop13xx/pci.c              |    6 ++
+ arch/ia64/kernel/msi_ia64.c              |   18 ++++-
+ arch/mips/pci/msi-octeon.c               |   35 +++++---
+ arch/mips/pci/msi-xlp.c                  |   18 +++-
+ arch/mips/pci/pci-xlr.c                  |   15 +++-
+ arch/powerpc/kernel/msi.c                |   14 +++-
+ arch/s390/pci/pci.c                      |   18 ++++-
+ arch/sparc/kernel/pci.c                  |   14 +++-
+ arch/tile/kernel/pci_gx.c                |   14 +++-
+ arch/x86/include/asm/apic.h              |    4 +
+ arch/x86/include/asm/pci.h               |    4 +-
+ arch/x86/include/asm/x86_init.h          |    7 --
+ arch/x86/kernel/apic/io_apic.c           |   16 ++++-
+ arch/x86/kernel/x86_init.c               |   34 --------
+ arch/x86/pci/xen.c                       |   60 +++++++++------
+ drivers/iommu/irq_remapping.c            |    9 ++-
+ drivers/irqchip/irq-armada-370-xp.c      |   12 +--
+ drivers/pci/host/pci-tegra.c             |    8 +-
+ drivers/pci/host/pcie-designware.c       |    4 +-
+ drivers/pci/host/pcie-rcar.c             |    8 +-
+ drivers/pci/msi.c                        |  123 +++++++++++++-----------------
+ drivers/pci/probe.c                      |    1 -
+ include/linux/msi.h                      |   26 ++-----
+ 27 files changed, 268 insertions(+), 213 deletions(-)
