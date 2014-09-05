@@ -1,57 +1,59 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.orcon.net.nz ([219.88.242.59]:33363 "EHLO
-	mail.orcon.net.nz" rhost-flags-OK-FAIL-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1751828AbaIEIuN (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 5 Sep 2014 04:50:13 -0400
-Date: Fri, 5 Sep 2014 20:16:48 +1200
-From: Michael Cree <mcree@orcon.net.nz>
-Subject: Re: bit fields && data tearing
-Message-ID: <20140905081648.GB5281@omega>
-References: <20140712181328.GA8738@redhat.com>
- <54079B70.4050200@hurleysoftware.com>
- <1409785893.30640.118.camel@pasglop>
- <063D6719AE5E284EB5DD2968C1650D6D17487172@AcuExch.aculab.com>
- <1409824374.4246.62.camel@pasglop>
- <5408E458.3@zytor.com>
- <54090AF4.7060406@hurleysoftware.com>
- <54091B30.2090509@zytor.com>
+Received: from szxga03-in.huawei.com ([119.145.14.66]:61256 "EHLO
+	szxga03-in.huawei.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755939AbaIEJpt (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 5 Sep 2014 05:45:49 -0400
+From: Yijing Wang <wangyijing@huawei.com>
+Subject: [PATCH v1 05/21] PCI/MSI: Introduce weak arch_find_msi_chip() to find MSI chip
+Date: Fri, 5 Sep 2014 18:09:50 +0800
+Message-ID: <1409911806-10519-6-git-send-email-wangyijing@huawei.com>
+In-Reply-To: <1409911806-10519-1-git-send-email-wangyijing@huawei.com>
+References: <1409911806-10519-1-git-send-email-wangyijing@huawei.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <54091B30.2090509@zytor.com>
+Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "H. Peter Anvin" <hpa@zytor.com>
-Cc: Peter Hurley <peter@hurleysoftware.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Laight <David.Laight@ACULAB.COM>, Jakub Jelinek <jakub@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Tony Luck <tony.luck@intel.com>, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, Oleg Nesterov <oleg@redhat.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Paul Mackerras <paulus@samba.org>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, "linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>, Miroslav Franc <mfranc@redhat.com>, Richard Henderson <rth@twiddle.net>, linux-alpha@vger.kernel.org
-Message-ID: <20140905081648.Dil2iCqSr78iKl9Tf1Fo2pCYGJU2Iz0OFNqhjWb34eA@z>
+To: Bjorn Helgaas <bhelgaas@google.com>
+Cc: Xinwei Hu <huxinwei@huawei.com>, Wuyun <wuyun.wu@huawei.com>, linux-pci@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Russell King <linux@arm.linux.org.uk>, linux-arch@vger.kernel.org, arnab.basu@freescale.com, Bharat.Bhushan@freescale.com, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, Thomas Gleixner <tglx@linutronix.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, xen-devel@lists.xenproject.org, Joerg Roedel <joro@8bytes.org>, iommu@lists.linux-foundation.org, linux-mips@linux-mips.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, Sebastian Ott <sebott@linux.vnet.ibm.com>, Tony Luck <tony.luck@intel.com>, linux-ia64@vger.kernel.org, "David S. Miller" <davem@davemloft.net>, sparclinux@vger.kernel.org, Chris Metcalf <cmetcalf@tilera.com>, Ralf Baechle <ralf@linux-mips.org>, Yijing Wang <wangyijing@huawei.com>
+Message-ID: <20140905100950.f0_BVDz7r-kFc04NWXiWoxe3AvlkJeLkjWL4AOcNNRg@z>
 
-On Thu, Sep 04, 2014 at 07:08:48PM -0700, H. Peter Anvin wrote:
-> On 09/04/2014 05:59 PM, Peter Hurley wrote:
-> > I have no idea how prevalent the ev56 is compared to the ev5.
-> > Still we're talking about a chip that came out in 1996.
-> 
-> Ah yes, I stand corrected.  According to Wikipedia, the affected CPUs
-> were all the 2106x CPUs (EV4, EV45, LCA4, LCA45) plus the 21164 with no
-> suffix (EV5).  However, we're still talking about museum pieces here.
+Introduce weak arch_find_msi_chip() to find the match msi_chip.
+Currently, MSI chip associates pci bus to msi_chip. Because in
+ARM platform, there may be more than one MSI controller in system.
+Associate pci bus to msi_chip help pci device to find the match
+msi_chip and setup MSI/MSI-X irq correctly. But in other platform,
+like in x86. we only need one MSI chip, because all device use
+the same MSI address/data and irq etc. So it's no need to associate
+pci bus to MSI chip, just use a arch function, arch_find_msi_chip()
+to return the MSI chip for simplicity. The default weak
+arch_find_msi_chip() used in ARM platform, find the MSI chip
+by pci bus.
 
-Yes, that is correct, EV56 is the first Alpha CPU to have the byte-word
-extension (BWX) CPU instructions.
+Signed-off-by: Yijing Wang <wangyijing@huawei.com>
+---
+ drivers/pci/msi.c |    7 ++++++-
+ 1 files changed, 6 insertions(+), 1 deletions(-)
 
-It would not worry me if the kernel decided to assume atomic aligned
-scalar accesses for all arches, thus terminating support for Alphas
-without BWX.
+diff --git a/drivers/pci/msi.c b/drivers/pci/msi.c
+index a77e7f7..539c11d 100644
+--- a/drivers/pci/msi.c
++++ b/drivers/pci/msi.c
+@@ -29,9 +29,14 @@ static int pci_msi_enable = 1;
+ 
+ /* Arch hooks */
+ 
++struct msi_chip * __weak arch_find_msi_chip(struct pci_dev *dev)
++{
++	return dev->bus->msi;
++}
++
+ int __weak arch_setup_msi_irq(struct pci_dev *dev, struct msi_desc *desc)
+ {
+-	struct msi_chip *chip = dev->bus->msi;
++	struct msi_chip *chip = arch_find_msi_chip(dev);
+ 	int err;
+ 
+ 	if (!chip || !chip->setup_irq)
+-- 
+1.7.1
 
-The X server, ever since the libpciaccess change, does not work on
-Alphas without BWX.
-
-Debian Alpha (pretty much up to date at Debian-Ports) is still compiled
-for all Alphas, i.e., without BWX.  The last attempt to start compiling
-Debian Alpha with BWX, about three years ago when Alpha was kicked out
-to Debian-Ports resulted in a couple or so complaints so got nowhere.
-It's frustrating supporting the lowest common demoninator as many of
-the bugs specific to Alpha can be resolved by recompiling with the BWX.
-The kernel no longer supporting Alphas without BWX might just be the
-incentive we need to switch Debian Alpha to compiling with BWX.
-
-Cheers
-Michael.
