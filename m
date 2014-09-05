@@ -1,85 +1,57 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from szxga03-in.huawei.com ([119.145.14.66]:61259 "EHLO
-	szxga03-in.huawei.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756061AbaIEJpt (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 5 Sep 2014 05:45:49 -0400
-From: Yijing Wang <wangyijing@huawei.com>
-Subject: [PATCH v1 00/21] Use MSI chip to configure MSI/MSI-X in all platforms
-Date: Fri, 5 Sep 2014 18:09:45 +0800
-Message-ID: <1409911806-10519-1-git-send-email-wangyijing@huawei.com>
+Received: from mail-lb0-f178.google.com ([209.85.217.178]:56870 "EHLO
+	mail-lb0-f178.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756833AbaIEKnD (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 5 Sep 2014 06:43:03 -0400
+Received: by mail-lb0-f178.google.com with SMTP id v6so13375539lbi.9
+        for <linux-arch@vger.kernel.org>; Fri, 05 Sep 2014 03:43:01 -0700 (PDT)
+Message-ID: <540993B3.1000701@cogentembedded.com>
+Date: Fri, 05 Sep 2014 14:42:59 +0400
+From: Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>
 MIME-Version: 1.0
-Content-Type: text/plain
+Subject: Re: [PATCH v1 09/21] Irq_remapping/MSI: Use MSI chip framework to
+ configure MSI/MSI-X irq
+References: <1409911806-10519-1-git-send-email-wangyijing@huawei.com> <1409911806-10519-10-git-send-email-wangyijing@huawei.com>
+In-Reply-To: <1409911806-10519-10-git-send-email-wangyijing@huawei.com>
+Content-Type: text/plain; charset=windows-1252; format=flowed
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Bjorn Helgaas <bhelgaas@google.com>
-Cc: Xinwei Hu <huxinwei@huawei.com>, Wuyun <wuyun.wu@huawei.com>, linux-pci@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Russell King <linux@arm.linux.org.uk>, linux-arch@vger.kernel.org, arnab.basu@freescale.com, Bharat.Bhushan@freescale.com, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, Thomas Gleixner <tglx@linutronix.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, xen-devel@lists.xenproject.org, Joerg Roedel <joro@8bytes.org>, iommu@lists.linux-foundation.org, linux-mips@linux-mips.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, Sebastian Ott <sebott@linux.vnet.ibm.com>, Tony Luck <tony.luck@intel.com>, linux-ia64@vger.kernel.org, "David S. Miller" <davem@davemloft.net>, sparclinux@vger.kernel.org, Chris Metcalf <cmetcalf@tilera.com>, Ralf Baechle <ralf@linux-mips.org>, Yijing Wang <wangyijing@huawei.com>
-Message-ID: <20140905100945.qXjx1d5T8-kGWYQirxNIuu8uxo05ps65-466ZVdB2dg@z>
+To: Yijing Wang <wangyijing@huawei.com>, Bjorn Helgaas <bhelgaas@google.com>
+Cc: Xinwei Hu <huxinwei@huawei.com>, Wuyun <wuyun.wu@huawei.com>, linux-pci@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Russell King <linux@arm.linux.org.uk>, linux-arch@vger.kernel.org, arnab.basu@freescale.com, Bharat.Bhushan@freescale.com, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, Thomas Gleixner <tglx@linutronix.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, xen-devel@lists.xenproject.org, Joerg Roedel <joro@8bytes.org>, iommu@lists.linux-foundation.org, linux-mips@linux-mips.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, Sebastian Ott <sebott@linux.vnet.ibm.com>, Tony Luck <tony.luck@intel.com>, linux-ia64@vger.kernel.org, "David S. Miller" <davem@davemloft.net>, sparclinux@vger.kernel.org, Chris Metcalf <cmetcalf@tilera.com>, Ralf Baechle <ralf@linux-mips.org>
+Message-ID: <20140905104259.c7eRiYryI2xWQ4YSvBMnT-qVUxkSYpFAu5OVxhYwwCA@z>
 
-This series is based Bjorn's pci-next branch + Alexander Gordeev's two patches
-"Remove arch_msi_check_device()" link: https://lkml.org/lkml/2014/7/12/41
+Hello.
 
-Currently, there are a lot of weak arch functions in MSI code.
-Thierry Reding Introduced MSI chip framework to configure MSI/MSI-X in arm.
-This series use MSI chip framework to refactor MSI code across all platforms
-to eliminate weak arch functions. It has been tested fine in x86(with or without
-irq remap).
+On 9/5/2014 2:09 PM, Yijing Wang wrote:
 
+> Use MSI chip framework instead of arch MSI functions to configure
+> MSI/MSI-X irq. So we can manage MSI/MSI-X irq in a unified framework.
 
-RFC->v1: Updated "[patch 4/21] x86/xen/MSI: Eliminate...", export msi_chip instead
-         of #ifdef to fix MSI bug in xen running in x86. 
-		 Rename arch_get_match_msi_chip() to arch_find_msi_chip().
-		 Drop use struct device as the msi_chip argument, we will do that
-		 later in another patchset.
+> Signed-off-by: Yijing Wang <wangyijing@huawei.com>
+> ---
+>   drivers/iommu/irq_remapping.c |    8 +++++++-
+>   1 files changed, 7 insertions(+), 1 deletions(-)
 
-Yijing Wang (21):
-  PCI/MSI: Clean up struct msi_chip argument
-  PCI/MSI: Remove useless bus->msi assignment
-  MSI: Remove the redundant irq_set_chip_data()
-  x86/xen/MSI: Eliminate arch_msix_mask_irq() and arch_msi_mask_irq()
-  PCI/MSI: Introduce weak arch_find_msi_chip() to find MSI chip
-  PCI/MSI: Refactor struct msi_chip to make it become more common
-  x86/MSI: Use MSI chip framework to configure MSI/MSI-X irq
-  x86/xen/MSI: Use MSI chip framework to configure MSI/MSI-X irq
-  Irq_remapping/MSI: Use MSI chip framework to configure MSI/MSI-X irq
-  x86/MSI: Remove unused MSI weak arch functions
-  MIPS/Octeon/MSI: Use MSI chip framework to configure MSI/MSI-X irq
-  MIPS/Xlp: Remove the dead function destroy_irq() to fix build error
-  MIPS/Xlp/MSI: Use MSI chip framework to configure MSI/MSI-X irq
-  MIPS/Xlr/MSI: Use MSI chip framework to configure MSI/MSI-X irq
-  Powerpc/MSI: Use MSI chip framework to configure MSI/MSI-X irq
-  s390/MSI: Use MSI chip framework to configure MSI/MSI-X irq
-  arm/iop13xx/MSI: Use MSI chip framework to configure MSI/MSI-X irq
-  IA64/MSI: Use MSI chip framework to configure MSI/MSI-X irq
-  Sparc/MSI: Use MSI chip framework to configure MSI/MSI-X irq
-  tile/MSI: Use MSI chip framework to configure MSI/MSI-X irq
-  PCI/MSI: Clean up unused MSI arch functions
+> diff --git a/drivers/iommu/irq_remapping.c b/drivers/iommu/irq_remapping.c
+> index 33c4395..e75026e 100644
+> --- a/drivers/iommu/irq_remapping.c
+> +++ b/drivers/iommu/irq_remapping.c
+[...]
+> @@ -165,9 +170,10 @@ static void __init irq_remapping_modify_x86_ops(void)
+>   	x86_io_apic_ops.set_affinity	= set_remapped_irq_affinity;
+>   	x86_io_apic_ops.setup_entry	= setup_ioapic_remapped_entry;
+>   	x86_io_apic_ops.eoi_ioapic_pin	= eoi_ioapic_pin_remapped;
+> -	x86_msi.setup_msi_irqs		= irq_remapping_setup_msi_irqs;
+> +	x86_msi.setup_msi_irqs          = irq_remapping_setup_msi_irqs;
 
- arch/arm/mach-iop13xx/include/mach/pci.h |    2 +
- arch/arm/mach-iop13xx/iq81340mc.c        |    1 +
- arch/arm/mach-iop13xx/iq81340sc.c        |    1 +
- arch/arm/mach-iop13xx/msi.c              |    9 ++-
- arch/arm/mach-iop13xx/pci.c              |    6 ++
- arch/ia64/kernel/msi_ia64.c              |   18 ++++-
- arch/mips/pci/msi-octeon.c               |   35 +++++---
- arch/mips/pci/msi-xlp.c                  |   18 +++-
- arch/mips/pci/pci-xlr.c                  |   15 +++-
- arch/powerpc/kernel/msi.c                |   14 +++-
- arch/s390/pci/pci.c                      |   18 ++++-
- arch/sparc/kernel/pci.c                  |   14 +++-
- arch/tile/kernel/pci_gx.c                |   14 +++-
- arch/x86/include/asm/apic.h              |    4 +
- arch/x86/include/asm/pci.h               |    4 +-
- arch/x86/include/asm/x86_init.h          |    7 --
- arch/x86/kernel/apic/io_apic.c           |   16 ++++-
- arch/x86/kernel/x86_init.c               |   34 --------
- arch/x86/pci/xen.c                       |   60 +++++++++------
- drivers/iommu/irq_remapping.c            |    9 ++-
- drivers/irqchip/irq-armada-370-xp.c      |   12 +--
- drivers/pci/host/pci-tegra.c             |    8 +-
- drivers/pci/host/pcie-designware.c       |    4 +-
- drivers/pci/host/pcie-rcar.c             |    8 +-
- drivers/pci/msi.c                        |  123 +++++++++++++-----------------
- drivers/pci/probe.c                      |    1 -
- include/linux/msi.h                      |   26 ++-----
- 27 files changed, 268 insertions(+), 213 deletions(-)
+    AFAICS, this change only converts tabs to spaces, so not needed at all.
+
+>   	x86_msi.setup_hpet_msi		= setup_hpet_msi_remapped;
+>   	x86_msi.compose_msi_msg		= compose_remapped_msi_msg;
+> +	x86_msi_chip = &remap_msi_chip;
+
+    Please align = with the rest of assignments.
+
+WBR, Sergei
 
