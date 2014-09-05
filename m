@@ -1,57 +1,54 @@
-From: Michael Cree <mcree@orcon.net.nz>
-Subject: Re: bit fields && data tearing
-Date: Fri, 5 Sep 2014 20:16:48 +1200
-Message-ID: <20140905081648.GB5281@omega>
-References: <20140712181328.GA8738@redhat.com>
- <54079B70.4050200@hurleysoftware.com>
- <1409785893.30640.118.camel@pasglop>
- <063D6719AE5E284EB5DD2968C1650D6D17487172@AcuExch.aculab.com>
- <1409824374.4246.62.camel@pasglop> <5408E458.3@zytor.com>
- <54090AF4.7060406@hurleysoftware.com> <54091B30.2090509@zytor.com>
+From: Yijing Wang <wangyijing@huawei.com>
+Subject: [PATCH v1 05/21] PCI/MSI: Introduce weak arch_find_msi_chip() to find MSI chip
+Date: Fri, 5 Sep 2014 18:09:50 +0800
+Message-ID: <1409911806-10519-6-git-send-email-wangyijing@huawei.com>
+References: <1409911806-10519-1-git-send-email-wangyijing@huawei.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
-Content-Disposition: inline
-In-Reply-To: <54091B30.2090509@zytor.com>
-List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
-List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
-List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
-List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
-List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
-Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
-Sender: "Linuxppc-dev"
- <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
-To: "H. Peter Anvin" <hpa@zytor.com>
-Cc: Jakub Jelinek <jakub@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Tony Luck <tony.luck@intel.com>, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, Peter Hurley <peter@hurleysoftware.com>, Oleg Nesterov <oleg@redhat.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, David Laight <David.Laight@ACULAB.COM>, Paul Mackerras <paulus@samba.org>, linux-alpha@vger.kernel.org, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, "linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>, Miroslav Franc <mfranc@redhat.com>, Richard Henderson <rth@twiddle.net>
+Content-Type: text/plain
+Return-path: <linux-ia64-owner@vger.kernel.org>
+In-Reply-To: <1409911806-10519-1-git-send-email-wangyijing@huawei.com>
+Sender: linux-ia64-owner@vger.kernel.org
+To: Bjorn Helgaas <bhelgaas@google.com>
+Cc: Xinwei Hu <huxinwei@huawei.com>, Wuyun <wuyun.wu@huawei.com>, linux-pci@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Russell King <linux@arm.linux.org.uk>, linux-arch@vger.kernel.org, arnab.basu@freescale.com, Bharat.Bhushan@freescale.com, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, Thomas Gleixner <tglx@linutronix.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, xen-devel@lists.xenproject.org, Joerg Roedel <joro@8bytes.org>, iommu@lists.linux-foundation.org, linux-mips@linux-mips.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, Sebastian Ott <sebott@linux.vnet.ibm.com>, Tony Luck <tony.luck@intel.com>, linux-ia64@vger.kernel.org, "David S. Miller" <davem@davemloft.net>, sparclinux@vger.kernel.org, Chris Metcalf <cmetcalf@tilera.com>, Ralf Baechle <ralf@>
 List-Id: linux-arch.vger.kernel.org
 
-T24gVGh1LCBTZXAgMDQsIDIwMTQgYXQgMDc6MDg6NDhQTSAtMDcwMCwgSC4gUGV0ZXIgQW52aW4g
-d3JvdGU6Cj4gT24gMDkvMDQvMjAxNCAwNTo1OSBQTSwgUGV0ZXIgSHVybGV5IHdyb3RlOgo+ID4g
-SSBoYXZlIG5vIGlkZWEgaG93IHByZXZhbGVudCB0aGUgZXY1NiBpcyBjb21wYXJlZCB0byB0aGUg
-ZXY1Lgo+ID4gU3RpbGwgd2UncmUgdGFsa2luZyBhYm91dCBhIGNoaXAgdGhhdCBjYW1lIG91dCBp
-biAxOTk2Lgo+IAo+IEFoIHllcywgSSBzdGFuZCBjb3JyZWN0ZWQuICBBY2NvcmRpbmcgdG8gV2lr
-aXBlZGlhLCB0aGUgYWZmZWN0ZWQgQ1BVcwo+IHdlcmUgYWxsIHRoZSAyMTA2eCBDUFVzIChFVjQs
-IEVWNDUsIExDQTQsIExDQTQ1KSBwbHVzIHRoZSAyMTE2NCB3aXRoIG5vCj4gc3VmZml4IChFVjUp
-LiAgSG93ZXZlciwgd2UncmUgc3RpbGwgdGFsa2luZyBhYm91dCBtdXNldW0gcGllY2VzIGhlcmUu
-CgpZZXMsIHRoYXQgaXMgY29ycmVjdCwgRVY1NiBpcyB0aGUgZmlyc3QgQWxwaGEgQ1BVIHRvIGhh
-dmUgdGhlIGJ5dGUtd29yZApleHRlbnNpb24gKEJXWCkgQ1BVIGluc3RydWN0aW9ucy4KCkl0IHdv
-dWxkIG5vdCB3b3JyeSBtZSBpZiB0aGUga2VybmVsIGRlY2lkZWQgdG8gYXNzdW1lIGF0b21pYyBh
-bGlnbmVkCnNjYWxhciBhY2Nlc3NlcyBmb3IgYWxsIGFyY2hlcywgdGh1cyB0ZXJtaW5hdGluZyBz
-dXBwb3J0IGZvciBBbHBoYXMKd2l0aG91dCBCV1guCgpUaGUgWCBzZXJ2ZXIsIGV2ZXIgc2luY2Ug
-dGhlIGxpYnBjaWFjY2VzcyBjaGFuZ2UsIGRvZXMgbm90IHdvcmsgb24KQWxwaGFzIHdpdGhvdXQg
-QldYLgoKRGViaWFuIEFscGhhIChwcmV0dHkgbXVjaCB1cCB0byBkYXRlIGF0IERlYmlhbi1Qb3J0
-cykgaXMgc3RpbGwgY29tcGlsZWQKZm9yIGFsbCBBbHBoYXMsIGkuZS4sIHdpdGhvdXQgQldYLiAg
-VGhlIGxhc3QgYXR0ZW1wdCB0byBzdGFydCBjb21waWxpbmcKRGViaWFuIEFscGhhIHdpdGggQldY
-LCBhYm91dCB0aHJlZSB5ZWFycyBhZ28gd2hlbiBBbHBoYSB3YXMga2lja2VkIG91dAp0byBEZWJp
-YW4tUG9ydHMgcmVzdWx0ZWQgaW4gYSBjb3VwbGUgb3Igc28gY29tcGxhaW50cyBzbyBnb3Qgbm93
-aGVyZS4KSXQncyBmcnVzdHJhdGluZyBzdXBwb3J0aW5nIHRoZSBsb3dlc3QgY29tbW9uIGRlbW9u
-aW5hdG9yIGFzIG1hbnkgb2YKdGhlIGJ1Z3Mgc3BlY2lmaWMgdG8gQWxwaGEgY2FuIGJlIHJlc29s
-dmVkIGJ5IHJlY29tcGlsaW5nIHdpdGggdGhlIEJXWC4KVGhlIGtlcm5lbCBubyBsb25nZXIgc3Vw
-cG9ydGluZyBBbHBoYXMgd2l0aG91dCBCV1ggbWlnaHQganVzdCBiZSB0aGUKaW5jZW50aXZlIHdl
-IG5lZWQgdG8gc3dpdGNoIERlYmlhbiBBbHBoYSB0byBjb21waWxpbmcgd2l0aCBCV1guCgpDaGVl
-cnMKTWljaGFlbC4KX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19f
-X18KTGludXhwcGMtZGV2IG1haWxpbmcgbGlzdApMaW51eHBwYy1kZXZAbGlzdHMub3psYWJzLm9y
-ZwpodHRwczovL2xpc3RzLm96bGFicy5vcmcvbGlzdGluZm8vbGludXhwcGMtZGV2
+Introduce weak arch_find_msi_chip() to find the match msi_chip.
+Currently, MSI chip associates pci bus to msi_chip. Because in
+ARM platform, there may be more than one MSI controller in system.
+Associate pci bus to msi_chip help pci device to find the match
+msi_chip and setup MSI/MSI-X irq correctly. But in other platform,
+like in x86. we only need one MSI chip, because all device use
+the same MSI address/data and irq etc. So it's no need to associate
+pci bus to MSI chip, just use a arch function, arch_find_msi_chip()
+to return the MSI chip for simplicity. The default weak
+arch_find_msi_chip() used in ARM platform, find the MSI chip
+by pci bus.
+
+Signed-off-by: Yijing Wang <wangyijing@huawei.com>
+---
+ drivers/pci/msi.c |    7 ++++++-
+ 1 files changed, 6 insertions(+), 1 deletions(-)
+
+diff --git a/drivers/pci/msi.c b/drivers/pci/msi.c
+index a77e7f7..539c11d 100644
+--- a/drivers/pci/msi.c
++++ b/drivers/pci/msi.c
+@@ -29,9 +29,14 @@ static int pci_msi_enable = 1;
+ 
+ /* Arch hooks */
+ 
++struct msi_chip * __weak arch_find_msi_chip(struct pci_dev *dev)
++{
++	return dev->bus->msi;
++}
++
+ int __weak arch_setup_msi_irq(struct pci_dev *dev, struct msi_desc *desc)
+ {
+-	struct msi_chip *chip = dev->bus->msi;
++	struct msi_chip *chip = arch_find_msi_chip(dev);
+ 	int err;
+ 
+ 	if (!chip || !chip->setup_irq)
+-- 
+1.7.1
+
