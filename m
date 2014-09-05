@@ -1,94 +1,95 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mailout32.mail01.mtsvc.net ([216.70.64.70]:43245 "EHLO
-	n23.mail01.mtsvc.net" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1751016AbaIECre (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 4 Sep 2014 22:47:34 -0400
-Message-ID: <5409243C.4080704@hurleysoftware.com>
-Date: Thu, 04 Sep 2014 22:47:24 -0400
-From: Peter Hurley <peter@hurleysoftware.com>
+Received: from mx0.aculab.com ([213.249.233.131]:39137 "HELO mx0.aculab.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with SMTP
+	id S1750906AbaIEIbU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 5 Sep 2014 04:31:20 -0400
+Received: from mx0.aculab.com ([127.0.0.1])
+ by localhost (mx0.aculab.com [127.0.0.1]) (amavisd-new, port 10024) with SMTP
+ id 07034-06 for <linux-arch@vger.kernel.org>;
+ Fri,  5 Sep 2014 09:31:11 +0100 (BST)
+From: David Laight <David.Laight@ACULAB.COM>
+Subject: RE: bit fields && data tearing
+Date: Fri, 5 Sep 2014 08:30:03 +0000
+Message-ID: <063D6719AE5E284EB5DD2968C1650D6D17487F66@AcuExch.aculab.com>
+References: <54079B70.4050200@hurleysoftware.com>
+ <1409785893.30640.118.camel@pasglop>
+ <21512.10628.412205.873477@gargle.gargle.HOWL>
+ <20140904090952.GW17454@tucnak.redhat.com>
+ <540859EC.5000407@hurleysoftware.com>
+ <20140904175044.4697aee4@alan.etchedpixels.co.uk>
+ <5408C0AB.6050801@hurleysoftware.com>
+ <20140905001751.GL5001@linux.vnet.ibm.com>
+ <1409883098.5078.14.camel@jarvis.lan> <5409243C.4080704@hurleysoftware.com>
+ <20140905040645.GO5001@linux.vnet.ibm.com>
+In-Reply-To: <20140905040645.GO5001@linux.vnet.ibm.com>
+Content-Language: en-US
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
 MIME-Version: 1.0
-Subject: Re: bit fields && data tearing
-References: <20140712181328.GA8738@redhat.com>	 <54079B70.4050200@hurleysoftware.com> <1409785893.30640.118.camel@pasglop>	 <21512.10628.412205.873477@gargle.gargle.HOWL>	 <20140904090952.GW17454@tucnak.redhat.com>	 <540859EC.5000407@hurleysoftware.com>	 <20140904175044.4697aee4@alan.etchedpixels.co.uk>	 <5408C0AB.6050801@hurleysoftware.com>	 <20140905001751.GL5001@linux.vnet.ibm.com> <1409883098.5078.14.camel@jarvis.lan>
-In-Reply-To: <1409883098.5078.14.camel@jarvis.lan>
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: James Bottomley <James.Bottomley@HansenPartnership.com>, paulmck@linux.vnet.ibm.com
-Cc: "H. Peter Anvin" <hpa@zytor.com>, One Thousand Gnomes <gnomes@lxorguk.ukuu.org.uk>, Jakub Jelinek <jakub@redhat.com>, Mikael Pettersson <mikpelinux@gmail.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Richard Henderson <rth@twiddle.net>, Oleg Nesterov <oleg@redhat.com>, Miroslav Franc <mfranc@redhat.com>, Paul Mackerras <paulus@samba.org>, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Tony Luck <tony.luck@intel.com>, linux-ia64@vger.kernel.org
-Message-ID: <20140905024724.mMkx_2oUC5YzAKlnxSRkQrNyPbQpt3ke-50iMmVeeXY@z>
+To: "'paulmck@linux.vnet.ibm.com'" <paulmck@linux.vnet.ibm.com>, Peter Hurley <peter@hurleysoftware.com>
+Cc: Jakub Jelinek <jakub@redhat.com>, One Thousand Gnomes <gnomes@lxorguk.ukuu.org.uk>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, Mikael Pettersson <mikpelinux@gmail.com>, Oleg Nesterov <oleg@redhat.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, James Bottomley <James.Bottomley@HansenPartnership.com>, Tony Luck <tony.luck@intel.com>, Paul Mackerras <paulus@samba.org>, "H. Peter Anvin" <hpa@zytor.com>, "linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>, Miroslav Franc <mfranc@redhat.com>, Richard Henderson <rth@twiddle.net>
+Message-ID: <20140905083003.VRcwFgYbNJrSEJlw-8_aMvmMtGaHruXcWyLrqo2KCNg@z>
 
-Hi James,
-
-On 09/04/2014 10:11 PM, James Bottomley wrote:
-> On Thu, 2014-09-04 at 17:17 -0700, Paul E. McKenney wrote:
->> +And there are anti-guarantees:
->> +
->> + (*) These guarantees do not apply to bitfields, because compilers often
->> +     generate code to modify these using non-atomic read-modify-write
->> +     sequences.  Do not attempt to use bitfields to synchronize parallel
->> +     algorithms.
->> +
->> + (*) Even in cases where bitfields are protected by locks, all fields
->> +     in a given bitfield must be protected by one lock.  If two fields
->> +     in a given bitfield are protected by different locks, the compiler's
->> +     non-atomic read-modify-write sequences can cause an update to one
->> +     field to corrupt the value of an adjacent field.
->> +
->> + (*) These guarantees apply only to properly aligned and sized scalar
->> +     variables.  "Properly sized" currently means "int" and "long",
->> +     because some CPU families do not support loads and stores of
->> +     other sizes.  ("Some CPU families" is currently believed to
->> +     be only Alpha 21064.  If this is actually the case, a different
->> +     non-guarantee is likely to be formulated.)
-> 
-> This is a bit unclear.  Presumably you're talking about definiteness of
-> the outcome (as in what's seen after multiple stores to the same
-> variable).
-
-No, the last conditions refers to adjacent byte stores from different
-cpu contexts (either interrupt or SMP).
-
-> The guarantees are only for natural width on Parisc as well,
-> so you would get a mess if you did byte stores to adjacent memory
-> locations.
-
-For a simple test like:
-
-struct x {
-	long a;
-	char b;
-	char c;
-	char d;
-	char e;
-};
-
-void store_bc(struct x *p) {
-	p->b = 1;
-	p->c = 2;
-}
-
-on parisc, gcc generates separate byte stores
-
-void store_bc(struct x *p) {
-   0:	34 1c 00 02 	ldi 1,ret0
-   4:	0f 5c 12 08 	stb ret0,4(r26)
-   8:	34 1c 00 04 	ldi 2,ret0
-   c:	e8 40 c0 00 	bv r0(rp)
-  10:	0f 5c 12 0a 	stb ret0,5(r26)
-
-which appears to confirm that on parisc adjacent byte data
-is safe from corruption by concurrent cpu updates; that is,
-
-CPU 0                | CPU 1
-                     |
-p->b = 1             | p->c = 2
-                     |
-
-will result in p->b == 1 && p->c == 2 (assume both values
-were 0 before the call to store_bc()).
-
-Regards,
-Peter Hurley
-
-
+RnJvbTogUGF1bCBFLiBNY0tlbm5leQ0KPiBPbiBUaHUsIFNlcCAwNCwgMjAxNCBhdCAxMDo0Nzoy
+NFBNIC0wNDAwLCBQZXRlciBIdXJsZXkgd3JvdGU6DQo+ID4gSGkgSmFtZXMsDQo+ID4NCj4gPiBP
+biAwOS8wNC8yMDE0IDEwOjExIFBNLCBKYW1lcyBCb3R0b21sZXkgd3JvdGU6DQo+ID4gPiBPbiBU
+aHUsIDIwMTQtMDktMDQgYXQgMTc6MTcgLTA3MDAsIFBhdWwgRS4gTWNLZW5uZXkgd3JvdGU6DQo+
+ID4gPj4gK0FuZCB0aGVyZSBhcmUgYW50aS1ndWFyYW50ZWVzOg0KPiA+ID4+ICsNCj4gPiA+PiAr
+ICgqKSBUaGVzZSBndWFyYW50ZWVzIGRvIG5vdCBhcHBseSB0byBiaXRmaWVsZHMsIGJlY2F1c2Ug
+Y29tcGlsZXJzIG9mdGVuDQo+ID4gPj4gKyAgICAgZ2VuZXJhdGUgY29kZSB0byBtb2RpZnkgdGhl
+c2UgdXNpbmcgbm9uLWF0b21pYyByZWFkLW1vZGlmeS13cml0ZQ0KPiA+ID4+ICsgICAgIHNlcXVl
+bmNlcy4gIERvIG5vdCBhdHRlbXB0IHRvIHVzZSBiaXRmaWVsZHMgdG8gc3luY2hyb25pemUgcGFy
+YWxsZWwNCj4gPiA+PiArICAgICBhbGdvcml0aG1zLg0KPiA+ID4+ICsNCj4gPiA+PiArICgqKSBF
+dmVuIGluIGNhc2VzIHdoZXJlIGJpdGZpZWxkcyBhcmUgcHJvdGVjdGVkIGJ5IGxvY2tzLCBhbGwg
+ZmllbGRzDQo+ID4gPj4gKyAgICAgaW4gYSBnaXZlbiBiaXRmaWVsZCBtdXN0IGJlIHByb3RlY3Rl
+ZCBieSBvbmUgbG9jay4gIElmIHR3byBmaWVsZHMNCj4gPiA+PiArICAgICBpbiBhIGdpdmVuIGJp
+dGZpZWxkIGFyZSBwcm90ZWN0ZWQgYnkgZGlmZmVyZW50IGxvY2tzLCB0aGUgY29tcGlsZXIncw0K
+PiA+ID4+ICsgICAgIG5vbi1hdG9taWMgcmVhZC1tb2RpZnktd3JpdGUgc2VxdWVuY2VzIGNhbiBj
+YXVzZSBhbiB1cGRhdGUgdG8gb25lDQo+ID4gPj4gKyAgICAgZmllbGQgdG8gY29ycnVwdCB0aGUg
+dmFsdWUgb2YgYW4gYWRqYWNlbnQgZmllbGQuDQo+ID4gPj4gKw0KPiA+ID4+ICsgKCopIFRoZXNl
+IGd1YXJhbnRlZXMgYXBwbHkgb25seSB0byBwcm9wZXJseSBhbGlnbmVkIGFuZCBzaXplZCBzY2Fs
+YXINCj4gPiA+PiArICAgICB2YXJpYWJsZXMuICAiUHJvcGVybHkgc2l6ZWQiIGN1cnJlbnRseSBt
+ZWFucyAiaW50IiBhbmQgImxvbmciLA0KPiA+ID4+ICsgICAgIGJlY2F1c2Ugc29tZSBDUFUgZmFt
+aWxpZXMgZG8gbm90IHN1cHBvcnQgbG9hZHMgYW5kIHN0b3JlcyBvZg0KPiA+ID4+ICsgICAgIG90
+aGVyIHNpemVzLiAgKCJTb21lIENQVSBmYW1pbGllcyIgaXMgY3VycmVudGx5IGJlbGlldmVkIHRv
+DQo+ID4gPj4gKyAgICAgYmUgb25seSBBbHBoYSAyMTA2NC4gIElmIHRoaXMgaXMgYWN0dWFsbHkg
+dGhlIGNhc2UsIGEgZGlmZmVyZW50DQo+ID4gPj4gKyAgICAgbm9uLWd1YXJhbnRlZSBpcyBsaWtl
+bHkgdG8gYmUgZm9ybXVsYXRlZC4pDQo+ID4gPg0KPiA+ID4gVGhpcyBpcyBhIGJpdCB1bmNsZWFy
+LiAgUHJlc3VtYWJseSB5b3UncmUgdGFsa2luZyBhYm91dCBkZWZpbml0ZW5lc3Mgb2YNCj4gPiA+
+IHRoZSBvdXRjb21lIChhcyBpbiB3aGF0J3Mgc2VlbiBhZnRlciBtdWx0aXBsZSBzdG9yZXMgdG8g
+dGhlIHNhbWUNCj4gPiA+IHZhcmlhYmxlKS4NCj4gPg0KPiA+IE5vLCB0aGUgbGFzdCBjb25kaXRp
+b25zIHJlZmVycyB0byBhZGphY2VudCBieXRlIHN0b3JlcyBmcm9tIGRpZmZlcmVudA0KPiA+IGNw
+dSBjb250ZXh0cyAoZWl0aGVyIGludGVycnVwdCBvciBTTVApLg0KPiA+DQo+ID4gPiBUaGUgZ3Vh
+cmFudGVlcyBhcmUgb25seSBmb3IgbmF0dXJhbCB3aWR0aCBvbiBQYXJpc2MgYXMgd2VsbCwNCj4g
+PiA+IHNvIHlvdSB3b3VsZCBnZXQgYSBtZXNzIGlmIHlvdSBkaWQgYnl0ZSBzdG9yZXMgdG8gYWRq
+YWNlbnQgbWVtb3J5DQo+ID4gPiBsb2NhdGlvbnMuDQo+ID4NCj4gPiBGb3IgYSBzaW1wbGUgdGVz
+dCBsaWtlOg0KPiA+DQo+ID4gc3RydWN0IHggew0KPiA+IAlsb25nIGE7DQo+ID4gCWNoYXIgYjsN
+Cj4gPiAJY2hhciBjOw0KPiA+IAljaGFyIGQ7DQo+ID4gCWNoYXIgZTsNCj4gPiB9Ow0KPiA+DQo+
+ID4gdm9pZCBzdG9yZV9iYyhzdHJ1Y3QgeCAqcCkgew0KPiA+IAlwLT5iID0gMTsNCj4gPiAJcC0+
+YyA9IDI7DQo+ID4gfQ0KPiA+DQo+ID4gb24gcGFyaXNjLCBnY2MgZ2VuZXJhdGVzIHNlcGFyYXRl
+IGJ5dGUgc3RvcmVzDQo+ID4NCj4gPiB2b2lkIHN0b3JlX2JjKHN0cnVjdCB4ICpwKSB7DQo+ID4g
+ICAgMDoJMzQgMWMgMDAgMDIgCWxkaSAxLHJldDANCj4gPiAgICA0OgkwZiA1YyAxMiAwOCAJc3Ri
+IHJldDAsNChyMjYpDQo+ID4gICAgODoJMzQgMWMgMDAgMDQgCWxkaSAyLHJldDANCj4gPiAgICBj
+OgllOCA0MCBjMCAwMCAJYnYgcjAocnApDQo+ID4gICAxMDoJMGYgNWMgMTIgMGEgCXN0YiByZXQw
+LDUocjI2KQ0KPiA+DQo+ID4gd2hpY2ggYXBwZWFycyB0byBjb25maXJtIHRoYXQgb24gcGFyaXNj
+IGFkamFjZW50IGJ5dGUgZGF0YQ0KPiA+IGlzIHNhZmUgZnJvbSBjb3JydXB0aW9uIGJ5IGNvbmN1
+cnJlbnQgY3B1IHVwZGF0ZXM7IHRoYXQgaXMsDQo+ID4NCj4gPiBDUFUgMCAgICAgICAgICAgICAg
+ICB8IENQVSAxDQo+ID4gICAgICAgICAgICAgICAgICAgICAgfA0KPiA+IHAtPmIgPSAxICAgICAg
+ICAgICAgIHwgcC0+YyA9IDINCj4gPiAgICAgICAgICAgICAgICAgICAgICB8DQo+ID4NCj4gPiB3
+aWxsIHJlc3VsdCBpbiBwLT5iID09IDEgJiYgcC0+YyA9PSAyIChhc3N1bWUgYm90aCB2YWx1ZXMN
+Cj4gPiB3ZXJlIDAgYmVmb3JlIHRoZSBjYWxsIHRvIHN0b3JlX2JjKCkpLg0KPiANCj4gV2hhdCBQ
+ZXRlciBzYWlkLiAgSSB3b3VsZCBhc2sgZm9yIHN1Z2dlc3Rpb25zIGZvciBiZXR0ZXIgd29yZGlu
+ZywgYnV0DQo+IEkgd291bGQgbXVjaCByYXRoZXIgYmUgYWJsZSB0byBzYXkgdGhhdCBzaW5nbGUt
+Ynl0ZSByZWFkcyBhbmQgd3JpdGVzDQo+IGFyZSBhdG9taWMgYW5kIHRoYXQgYWxpZ25lZC1zaG9y
+dCByZWFkcyBhbmQgd3JpdGVzIGFyZSBhbHNvIGF0b21pYy4NCj4gDQo+IFRodXMgZmFyLCBpdCBs
+b29rcyBsaWtlIHdlIGxvc2Ugb25seSB2ZXJ5IG9sZCBBbHBoYSBzeXN0ZW1zLCBzbyB1bmxlc3MN
+Cj4gSSBoZWFyIG90aGVyd2lzZSwgSSB1cGRhdGUgbXkgcGF0Y2ggdG8gb3V0bGF3IHRoZXNlIHZl
+cnkgb2xkIHN5c3RlbXMuDQoNClBlb3BsZSB3aXRoIG9sZCBBbHBoYXMgY2FuIHJ1biBOZXRCU0Qg
+aW5zdGVhZCwgYWxvbmcgd2l0aCB0aG9zZSB3aG8gaGF2ZSByZWFsIFZBWGVuIDotKQ0KDQpJJ3Zl
+IHNlZW4gZ2NjIGdlbmVyYXRlIDMyYml0IGFjY2Vzc2VzIGZvciAxNmJpdCBzdHJ1Y3R1cmUgbWVt
+YmVycyBvbiBhcm0uDQpJdCBkb2VzIHRoaXMgYmVjYXVzZSBvZiB0aGUgbW9yZSBsaW1pdGVkIHJh
+bmdlIG9mIHRoZSBvZmZzZXRzIGZvciB0aGUgMTZiaXQgYWNjZXNzLg0KT1RPSCBJIGRvbid0IGtu
+b3cgaWYgaXQgZXZlciBkaWQgdGhpcyBmb3Igd3JpdGVzIC0gc28gaXQgbWF5IGJlIG1vb3QuDQoN
+CglEYXZpZA0KDQo=
