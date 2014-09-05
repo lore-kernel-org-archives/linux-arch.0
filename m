@@ -1,14 +1,14 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-yk0-f180.google.com ([209.85.160.180]:41267 "EHLO
-	mail-yk0-f180.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753523AbaIEWOP (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 5 Sep 2014 18:14:15 -0400
-Received: by mail-yk0-f180.google.com with SMTP id 9so7500383ykp.11
-        for <linux-arch@vger.kernel.org>; Fri, 05 Sep 2014 15:14:14 -0700 (PDT)
+Received: from mail-yh0-f41.google.com ([209.85.213.41]:53658 "EHLO
+	mail-yh0-f41.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753289AbaIEWOK (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 5 Sep 2014 18:14:10 -0400
+Received: by mail-yh0-f41.google.com with SMTP id 29so7836495yhl.14
+        for <linux-arch@vger.kernel.org>; Fri, 05 Sep 2014 15:14:09 -0700 (PDT)
 From: Andy Lutomirski <luto@amacapital.net>
-Subject: [PATCH v5 2/5] x86,entry: Only call user_exit if TIF_NOHZ
-Date: Fri,  5 Sep 2014 15:13:53 -0700
-Message-ID: <0b13e0e24ec0307d67ab7a23b58764f6b1270116.1409954077.git.luto@amacapital.net>
+Subject: [PATCH v5 1/5] x86,x32,audit: Fix x32's AUDIT_ARCH wrt audit
+Date: Fri,  5 Sep 2014 15:13:52 -0700
+Message-ID: <a0138ed8c709882aec06e4acc30bfa9b623b8717.1409954077.git.luto@amacapital.net>
 In-Reply-To: <cover.1409954077.git.luto@amacapital.net>
 References: <cover.1409954077.git.luto@amacapital.net>
 In-Reply-To: <cover.1409954077.git.luto@amacapital.net>
@@ -17,43 +17,49 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, Kees Cook <keescook@chromium.org>, Will Drewry <wad@chromium.org>, Oleg Nesterov <oleg@redhat.com>
 Cc: x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-mips@linux-mips.org, linux-arch@vger.kernel.org, linux-security-module@vger.kernel.org, Alexei Starovoitov <ast@plumgrid.com>, hpa@zytor.com, Frederic Weisbecker <fweisbec@gmail.com>, Andy Lutomirski <luto@amacapital.net>
-Message-ID: <20140905221353.3z6KKIMKHz9xkNKx2ySKVtOqSVoB1lHhNcSzXxbQILU@z>
+Message-ID: <20140905221352.xbM9beMWl6XWf29zHR7G7HTXsL-8Hez0Onsa0oQRnUk@z>
 
-The RCU context tracking code requires that arch code call
-user_exit() on any entry into kernel code if TIF_NOHZ is set.  This
-patch adds a check for TIF_NOHZ and a comment to the syscall entry
-tracing code.
+is_compat_task() is the wrong check for audit arch; the check should
+be is_ia32_task(): x32 syscalls should be AUDIT_ARCH_X86_64, not
+AUDIT_ARCH_I386.
 
-The main purpose of this patch is to make the code easier to follow:
-one can read the body of user_exit and of every function it calls
-without finding any explanation of why it's called for traced
-syscalls but not for untraced syscalls.  This makes it clear when
-user_exit() is necessary.
+CONFIG_AUDITSYSCALL is currently incompatible with x32, so this has
+no visible effect.
 
-Cc: Frederic Weisbecker <fweisbec@gmail.com>
 Signed-off-by: Andy Lutomirski <luto@amacapital.net>
 ---
- arch/x86/kernel/ptrace.c | 7 ++++++-
- 1 file changed, 6 insertions(+), 1 deletion(-)
+ arch/x86/kernel/ptrace.c | 11 +----------
+ 1 file changed, 1 insertion(+), 10 deletions(-)
 
 diff --git a/arch/x86/kernel/ptrace.c b/arch/x86/kernel/ptrace.c
-index 39296d25708c..bbf338a04a5d 100644
+index 93c182a00506..39296d25708c 100644
 --- a/arch/x86/kernel/ptrace.c
 +++ b/arch/x86/kernel/ptrace.c
-@@ -1449,7 +1449,12 @@ long syscall_trace_enter(struct pt_regs *regs)
- {
- 	long ret = 0;
+@@ -1441,15 +1441,6 @@ void send_sigtrap(struct task_struct *tsk, struct pt_regs *regs,
+ 	force_sig_info(SIGTRAP, &info, tsk);
+ }
  
--	user_exit();
-+	/*
-+	 * If TIF_NOHZ is set, we are required to call user_exit() before
-+	 * doing anything that could touch RCU.
-+	 */
-+	if (test_thread_flag(TIF_NOHZ))
-+		user_exit();
+-
+-#ifdef CONFIG_X86_32
+-# define IS_IA32	1
+-#elif defined CONFIG_IA32_EMULATION
+-# define IS_IA32	is_compat_task()
+-#else
+-# define IS_IA32	0
+-#endif
+-
+ /*
+  * We must return the syscall number to actually look up in the table.
+  * This can be -1L to skip running any syscall at all.
+@@ -1487,7 +1478,7 @@ long syscall_trace_enter(struct pt_regs *regs)
+ 	if (unlikely(test_thread_flag(TIF_SYSCALL_TRACEPOINT)))
+ 		trace_sys_enter(regs, regs->orig_ax);
  
- 	/*
- 	 * If we stepped into a sysenter/syscall insn, it trapped in
+-	if (IS_IA32)
++	if (is_ia32_task())
+ 		audit_syscall_entry(AUDIT_ARCH_I386,
+ 				    regs->orig_ax,
+ 				    regs->bx, regs->cx,
 -- 
 1.9.3
 
