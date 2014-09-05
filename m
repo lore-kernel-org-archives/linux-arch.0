@@ -1,42 +1,62 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:50969 "EHLO mail.zytor.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750869AbaIEUIY (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 5 Sep 2014 16:08:24 -0400
-Message-ID: <540A1800.3000005@zytor.com>
-Date: Fri, 05 Sep 2014 13:07:28 -0700
-From: "H. Peter Anvin" <hpa@zytor.com>
+Received: from e37.co.us.ibm.com ([32.97.110.158]:39899 "EHLO
+	e37.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752279AbaIEUJd (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 5 Sep 2014 16:09:33 -0400
+Received: from /spool/local
+	by e37.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
+	Fri, 5 Sep 2014 14:09:32 -0600
+Date: Fri, 5 Sep 2014 13:09:26 -0700
+From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Subject: Re: bit fields && data tearing
+Message-ID: <20140905200926.GW5001@linux.vnet.ibm.com>
+Reply-To: paulmck@linux.vnet.ibm.com
+References: <063D6719AE5E284EB5DD2968C1650D6D17487172@AcuExch.aculab.com>
+ <1409824374.4246.62.camel@pasglop>
+ <5408E458.3@zytor.com>
+ <54090AF4.7060406@hurleysoftware.com>
+ <54091B30.2090509@zytor.com>
+ <20140905081648.GB5281@omega>
+ <20140905180950.GU5001@linux.vnet.ibm.com>
+ <540A05F7.1070202@hurleysoftware.com>
+ <20140905190506.GV5001@linux.vnet.ibm.com>
+ <540A0DF3.8030802@hurleysoftware.com>
 MIME-Version: 1.0
-Subject: Re: Post-merge-window ping (Re: [PATCH v4 0/5] x86: two-phase syscall
- tracing and seccomp fastpath)
-References: <CALCETrUaZ8w92g96SmFEZDE0Jr+0Moeo+S24-TyW8crrK5reSg@mail.gmail.com>
-In-Reply-To: <CALCETrUaZ8w92g96SmFEZDE0Jr+0Moeo+S24-TyW8crrK5reSg@mail.gmail.com>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <540A0DF3.8030802@hurleysoftware.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andy Lutomirski <luto@amacapital.net>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Kees Cook <keescook@chromium.org>, Will Drewry <wad@chromium.org>
-Cc: Oleg Nesterov <oleg@redhat.com>, X86 ML <x86@kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Linux MIPS Mailing List <linux-mips@linux-mips.org>, linux-arch <linux-arch@vger.kernel.org>, LSM List <linux-security-module@vger.kernel.org>, Alexei Starovoitov <ast@plumgrid.com>, Frederic Weisbecker <fweisbec@gmail.com>
-Message-ID: <20140905200728.h0oAXpcaxPdqZ8NRqUXj3x1w_rTbgdxkNlS1FoDjGHU@z>
+To: Peter Hurley <peter@hurleysoftware.com>
+Cc: Michael Cree <mcree@orcon.net.nz>, "H. Peter Anvin" <hpa@zytor.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Laight <David.Laight@ACULAB.COM>, Jakub Jelinek <jakub@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Tony Luck <tony.luck@intel.com>, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, Oleg Nesterov <oleg@redhat.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Paul Mackerras <paulus@samba.org>, "linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>, Miroslav Franc <mfranc@redhat.com>, Richard Henderson <rth@twiddle.net>, linux-alpha@vger.kernel.org
+Message-ID: <20140905200926.n0S4-59lFXXE2E4i0es7Eawb596Nyw5odHnwIj1grGM@z>
 
-On 08/26/2014 06:32 PM, Andy Lutomirski wrote:
-> On Mon, Jul 28, 2014 at 8:38 PM, Andy Lutomirski <luto@amacapital.net> wrote:
->> This applies to:
->> git://git.kernel.org/pub/scm/linux/kernel/git/kees/linux.git seccomp-fastpath
->>
->> Gitweb:
->> https://git.kernel.org/cgit/linux/kernel/git/kees/linux.git/log/?h=seccomp/fastpath
+On Fri, Sep 05, 2014 at 03:24:35PM -0400, Peter Hurley wrote:
+> On 09/05/2014 03:05 PM, Paul E. McKenney wrote:
+> > On Fri, Sep 05, 2014 at 02:50:31PM -0400, Peter Hurley wrote:
+> >> On 09/05/2014 02:09 PM, Paul E. McKenney wrote:
 > 
-> Hi all-
+> [cut]
 > 
-> AFAIK the only thing that's changed since I submitted it is that the
-> 3.17 merge window is closed.  Kees rebased the tree this applies to,
-> but I think the patches all still apply.  What, if anything, do I need
-> to do to help this along for 3.18?
+> >>> ------------------------------------------------------------------------
+> >>>
+> >>> documentation: Record limitations of bitfields and small variables
+> >>>
+> >>> This commit documents the fact that it is not safe to use bitfields as
+> >>> shared variables in synchronization algorithms.  It also documents that
+> >>> CPUs must provide one-byte and two-byte load and store instructions
+> >>                    ^
+> >>                 atomic
+> > 
+> > Here you meant non-atomic?  My guess is that you are referring to the
+> > fact that you could emulate a one-byte store on pre-EV56 Alpha CPUs
+> > using the ll and sc atomic-read-modify-write instructions, correct?
 > 
+> Yes, that's what I meant. I must be tired and am misreading the commit
+> message, or misinterpreting it's meaning.
 
-Just put this stuff in a branch and running through my personal test
-battery now.
+Very good, got it!
 
-	-hpa
+							Thanx, Paul
 
