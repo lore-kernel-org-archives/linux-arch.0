@@ -1,40 +1,33 @@
-From: David Vrabel <david.vrabel@citrix.com>
-Subject: Re: [Xen-devel] [PATCH v1 08/21] x86/xen/MSI: Use MSI chip framework
- to configure MSI/MSI-X irq
-Date: Fri, 5 Sep 2014 15:29:20 +0100
-Message-ID: <5409C8C0.8020200@citrix.com>
-References: <1409911806-10519-1-git-send-email-wangyijing@huawei.com> <1409911806-10519-9-git-send-email-wangyijing@huawei.com>
+From: Peter Hurley <peter@hurleysoftware.com>
+Subject: Re: bit fields && data tearing
+Date: Fri, 05 Sep 2014 11:31:57 -0400
+Message-ID: <5409D76D.2070203@hurleysoftware.com>
+References: <20140712181328.GA8738@redhat.com>	 <54079B70.4050200@hurleysoftware.com> <1409785893.30640.118.camel@pasglop>	 <063D6719AE5E284EB5DD2968C1650D6D17487172@AcuExch.aculab.com> <1409824374.4246.62.camel@pasglop> <5408E458.3@zytor.com> <54090AF4.7060406@hurleysoftware.com> <54091B30.7080100@zytor.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="ISO-8859-1"
+Content-Type: text/plain; charset=utf-8
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-ia64-owner@vger.kernel.org>
-In-Reply-To: <1409911806-10519-9-git-send-email-wangyijing@huawei.com>
-Sender: linux-ia64-owner@vger.kernel.org
-To: Yijing Wang <wangyijing@huawei.com>, Bjorn Helgaas <bhelgaas@google.com>
-Cc: linux-mips@linux-mips.org, linux-ia64@vger.kernel.org, linux-pci@vger.kernel.org, Bharat.Bhushan@freescale.com, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, Russell King <linux@arm.linux.org.uk>, Joerg Roedel <joro@8bytes.org>, x86@kernel.org, Sebastian Ott <sebott@linux.vnet.ibm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, xen-devel@lists.xenproject.org, arnab.basu@freescale.com, Arnd Bergmann <arnd@arndb.de>, Chris Metcalf <cmetcalf@tilera.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arm-kernel@lists.infradead.org, Xinwei Hu <huxinwei@huawei.com>, Tony Luck <tony.luck@intel.com>, Ralf Baechle <ralf@linux-mips.org>, iommu@lists.linux-foundation.org, Wuyun <wuyun.wu@huawei.com>, linuxppc-dev@lists.ozlabs.org, "David S. Miller" <davem@davemloft.net>
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mailout32.mail01.mtsvc.net ([216.70.64.70]:42942 "EHLO
+	n23.mail01.mtsvc.net" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1751271AbaIEPcM (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 5 Sep 2014 11:32:12 -0400
+In-Reply-To: <54091B30.7080100@zytor.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: "H. Peter Anvin" <hpa@zytor.com>
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Laight <David.Laight@ACULAB.COM>, Jakub Jelinek <jakub@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Tony Luck <tony.luck@intel.com>, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, Oleg Nesterov <oleg@redhat.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Paul Mackerras <paulus@samba.org>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, "linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>, Miroslav Franc <mfranc@redhat.com>, Richard Henderson <rth@twiddle.net>, linux-alpha@vger.kernel.org
 
-On 05/09/14 11:09, Yijing Wang wrote:
-> Use MSI chip framework instead of arch MSI functions to configure
-> MSI/MSI-X irq. So we can manage MSI/MSI-X irq in a unified framework.
-[...]
-> --- a/arch/x86/pci/xen.c
-> +++ b/arch/x86/pci/xen.c
-[...]
-> @@ -418,9 +430,9 @@ int __init pci_xen_init(void)
->  #endif
->  
->  #ifdef CONFIG_PCI_MSI
-> -	x86_msi.setup_msi_irqs = xen_setup_msi_irqs;
-> -	x86_msi.teardown_msi_irq = xen_teardown_msi_irq;
-> -	x86_msi.teardown_msi_irqs = xen_teardown_msi_irqs;
-> +	xen_msi_chip.setup_irqs = xen_setup_msi_irqs;
-> +	xen_msi_chip.teardown_irqs = xen_teardown_msi_irqs;
-> +	x86_msi_chip = &xen_msi_chip;
->  	msi_chip.irq_mask = xen_nop_msi_mask;
->  	msi_chip.irq_unmask = xen_nop_msi_mask;
+On 09/04/2014 10:08 PM, H. Peter Anvin wrote:
+> On 09/04/2014 05:59 PM, Peter Hurley wrote:
+>> I have no idea how prevalent the ev56 is compared to the ev5.
+>> Still we're talking about a chip that came out in 1996.
+> 
+> Ah yes, I stand corrected.  According to Wikipedia, the affected CPUs
+> were all the 2106x CPUs (EV4, EV45, LCA4, LCA45) plus the 21164 with no
+> suffix (EV5).  However, we're still talking about museum pieces here.
+> 
+> I wonder what the one I have in my garage is... I'm sure I could emulate
+> it faster, though.
 
-Why have these not been changed to set the x86_msi_chip.mask/unmask
-fields instead?
-
-David
+Which is a bit ironic because I remember when Digital had a team
+working on emulating native x86 apps on Alpha/NT.
