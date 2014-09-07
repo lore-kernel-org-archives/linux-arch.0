@@ -1,65 +1,117 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-yh0-f41.google.com ([209.85.213.41]:53658 "EHLO
-	mail-yh0-f41.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753289AbaIEWOK (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 5 Sep 2014 18:14:10 -0400
-Received: by mail-yh0-f41.google.com with SMTP id 29so7836495yhl.14
-        for <linux-arch@vger.kernel.org>; Fri, 05 Sep 2014 15:14:09 -0700 (PDT)
-From: Andy Lutomirski <luto@amacapital.net>
-Subject: [PATCH v5 1/5] x86,x32,audit: Fix x32's AUDIT_ARCH wrt audit
-Date: Fri,  5 Sep 2014 15:13:52 -0700
-Message-ID: <a0138ed8c709882aec06e4acc30bfa9b623b8717.1409954077.git.luto@amacapital.net>
-In-Reply-To: <cover.1409954077.git.luto@amacapital.net>
-References: <cover.1409954077.git.luto@amacapital.net>
-In-Reply-To: <cover.1409954077.git.luto@amacapital.net>
-References: <cover.1409954077.git.luto@amacapital.net>
+Received: from bedivere.hansenpartnership.com ([66.63.167.143]:58552 "EHLO
+	bedivere.hansenpartnership.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1750819AbaIGFHZ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 7 Sep 2014 01:07:25 -0400
+Message-ID: <1410066442.12512.13.camel@jarvis.lan>
+Subject: Re: bit fields && data tearing
+From: James Bottomley <James.Bottomley@HansenPartnership.com>
+Date: Sat, 06 Sep 2014 22:07:22 -0700
+In-Reply-To: <20140905040645.GO5001@linux.vnet.ibm.com>
+References: <54079B70.4050200@hurleysoftware.com>
+	 <1409785893.30640.118.camel@pasglop>
+	 <21512.10628.412205.873477@gargle.gargle.HOWL>
+	 <20140904090952.GW17454@tucnak.redhat.com>
+	 <540859EC.5000407@hurleysoftware.com>
+	 <20140904175044.4697aee4@alan.etchedpixels.co.uk>
+	 <5408C0AB.6050801@hurleysoftware.com>
+	 <20140905001751.GL5001@linux.vnet.ibm.com>
+	 <1409883098.5078.14.camel@jarvis.lan> <5409243C.4080704@hurleysoftware.com>
+	 <20140905040645.GO5001@linux.vnet.ibm.com>
+Content-Type: text/plain; charset="UTF-8"
+Mime-Version: 1.0
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, Kees Cook <keescook@chromium.org>, Will Drewry <wad@chromium.org>, Oleg Nesterov <oleg@redhat.com>
-Cc: x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-mips@linux-mips.org, linux-arch@vger.kernel.org, linux-security-module@vger.kernel.org, Alexei Starovoitov <ast@plumgrid.com>, hpa@zytor.com, Frederic Weisbecker <fweisbec@gmail.com>, Andy Lutomirski <luto@amacapital.net>
-Message-ID: <20140905221352.xbM9beMWl6XWf29zHR7G7HTXsL-8Hez0Onsa0oQRnUk@z>
+To: paulmck@linux.vnet.ibm.com
+Cc: Peter Hurley <peter@hurleysoftware.com>, "H. Peter Anvin" <hpa@zytor.com>, One Thousand Gnomes <gnomes@lxorguk.ukuu.org.uk>, Jakub Jelinek <jakub@redhat.com>, Mikael Pettersson <mikpelinux@gmail.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Richard Henderson <rth@twiddle.net>, Oleg Nesterov <oleg@redhat.com>, Miroslav Franc <mfranc@redhat.com>, Paul Mackerras <paulus@samba.org>, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Tony Luck <tony.luck@intel.com>, linux-ia64@vger.kernel.org
+Message-ID: <20140907050722.fSasuNBLrafQcxWvflCAr1IQmetNkkOol-F_8bfzfC0@z>
 
-is_compat_task() is the wrong check for audit arch; the check should
-be is_ia32_task(): x32 syscalls should be AUDIT_ARCH_X86_64, not
-AUDIT_ARCH_I386.
+On Thu, 2014-09-04 at 21:06 -0700, Paul E. McKenney wrote:
+> On Thu, Sep 04, 2014 at 10:47:24PM -0400, Peter Hurley wrote:
+> > Hi James,
+> > 
+> > On 09/04/2014 10:11 PM, James Bottomley wrote:
+> > > On Thu, 2014-09-04 at 17:17 -0700, Paul E. McKenney wrote:
+> > >> +And there are anti-guarantees:
+> > >> +
+> > >> + (*) These guarantees do not apply to bitfields, because compilers often
+> > >> +     generate code to modify these using non-atomic read-modify-write
+> > >> +     sequences.  Do not attempt to use bitfields to synchronize parallel
+> > >> +     algorithms.
+> > >> +
+> > >> + (*) Even in cases where bitfields are protected by locks, all fields
+> > >> +     in a given bitfield must be protected by one lock.  If two fields
+> > >> +     in a given bitfield are protected by different locks, the compiler's
+> > >> +     non-atomic read-modify-write sequences can cause an update to one
+> > >> +     field to corrupt the value of an adjacent field.
+> > >> +
+> > >> + (*) These guarantees apply only to properly aligned and sized scalar
+> > >> +     variables.  "Properly sized" currently means "int" and "long",
+> > >> +     because some CPU families do not support loads and stores of
+> > >> +     other sizes.  ("Some CPU families" is currently believed to
+> > >> +     be only Alpha 21064.  If this is actually the case, a different
+> > >> +     non-guarantee is likely to be formulated.)
+> > > 
+> > > This is a bit unclear.  Presumably you're talking about definiteness of
+> > > the outcome (as in what's seen after multiple stores to the same
+> > > variable).
+> > 
+> > No, the last conditions refers to adjacent byte stores from different
+> > cpu contexts (either interrupt or SMP).
+> > 
+> > > The guarantees are only for natural width on Parisc as well,
+> > > so you would get a mess if you did byte stores to adjacent memory
+> > > locations.
+> > 
+> > For a simple test like:
+> > 
+> > struct x {
+> > 	long a;
+> > 	char b;
+> > 	char c;
+> > 	char d;
+> > 	char e;
+> > };
+> > 
+> > void store_bc(struct x *p) {
+> > 	p->b = 1;
+> > 	p->c = 2;
+> > }
+> > 
+> > on parisc, gcc generates separate byte stores
+> > 
+> > void store_bc(struct x *p) {
+> >    0:	34 1c 00 02 	ldi 1,ret0
+> >    4:	0f 5c 12 08 	stb ret0,4(r26)
+> >    8:	34 1c 00 04 	ldi 2,ret0
+> >    c:	e8 40 c0 00 	bv r0(rp)
+> >   10:	0f 5c 12 0a 	stb ret0,5(r26)
+> > 
+> > which appears to confirm that on parisc adjacent byte data
+> > is safe from corruption by concurrent cpu updates; that is,
+> > 
+> > CPU 0                | CPU 1
+> >                      |
+> > p->b = 1             | p->c = 2
+> >                      |
+> > 
+> > will result in p->b == 1 && p->c == 2 (assume both values
+> > were 0 before the call to store_bc()).
+> 
+> What Peter said.  I would ask for suggestions for better wording, but
+> I would much rather be able to say that single-byte reads and writes
+> are atomic and that aligned-short reads and writes are also atomic.
+> 
+> Thus far, it looks like we lose only very old Alpha systems, so unless
+> I hear otherwise, I update my patch to outlaw these very old systems.
 
-CONFIG_AUDITSYSCALL is currently incompatible with x32, so this has
-no visible effect.
+This isn't universally true according to the architecture manual.  The
+PARISC CPU can make byte to long word stores atomic against the memory
+bus but not against the I/O bus for instance.  Atomicity is a property
+of the underlying substrate, not of the CPU.  Implying that atomicity is
+a CPU property is incorrect.
 
-Signed-off-by: Andy Lutomirski <luto@amacapital.net>
----
- arch/x86/kernel/ptrace.c | 11 +----------
- 1 file changed, 1 insertion(+), 10 deletions(-)
+James
 
-diff --git a/arch/x86/kernel/ptrace.c b/arch/x86/kernel/ptrace.c
-index 93c182a00506..39296d25708c 100644
---- a/arch/x86/kernel/ptrace.c
-+++ b/arch/x86/kernel/ptrace.c
-@@ -1441,15 +1441,6 @@ void send_sigtrap(struct task_struct *tsk, struct pt_regs *regs,
- 	force_sig_info(SIGTRAP, &info, tsk);
- }
- 
--
--#ifdef CONFIG_X86_32
--# define IS_IA32	1
--#elif defined CONFIG_IA32_EMULATION
--# define IS_IA32	is_compat_task()
--#else
--# define IS_IA32	0
--#endif
--
- /*
-  * We must return the syscall number to actually look up in the table.
-  * This can be -1L to skip running any syscall at all.
-@@ -1487,7 +1478,7 @@ long syscall_trace_enter(struct pt_regs *regs)
- 	if (unlikely(test_thread_flag(TIF_SYSCALL_TRACEPOINT)))
- 		trace_sys_enter(regs, regs->orig_ax);
- 
--	if (IS_IA32)
-+	if (is_ia32_task())
- 		audit_syscall_entry(AUDIT_ARCH_I386,
- 				    regs->orig_ax,
- 				    regs->bx, regs->cx,
--- 
-1.9.3
 
