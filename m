@@ -1,114 +1,112 @@
-From: Andy Lutomirski <luto@amacapital.net>
-Subject: [PATCH v5 4/5] x86_64,entry: Treat regs->ax the same in fastpath and slowpath syscalls
-Date: Fri,  5 Sep 2014 15:13:55 -0700
-Message-ID: <01218b493f12ae2f98034b78c9ae085e38e94350.1409954077.git.luto@amacapital.net>
-References: <cover.1409954077.git.luto@amacapital.net>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <cover.1409954077.git.luto@amacapital.net>
-In-Reply-To: <cover.1409954077.git.luto@amacapital.net>
-References: <cover.1409954077.git.luto@amacapital.net>
-Sender: linux-kernel-owner@vger.kernel.org
-To: linux-kernel@vger.kernel.org, Kees Cook <keescook@chromium.org>, Will Drewry <wad@chromium.org>, Oleg Nesterov <oleg@redhat.com>
-Cc: x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-mips@linux-mips.org, linux-arch@vger.kernel.org, linux-security-module@vger.kernel.org, Alexei Starovoitov <ast@plumgrid.com>, hpa@zytor.com, Frederic Weisbecker <fweisbec@gmail.com>, Andy Lutomirski <luto@amacapital.net>
+From: James Bottomley <James.Bottomley@HansenPartnership.com>
+Subject: Re: bit fields && data tearing
+Date: Sat, 06 Sep 2014 22:07:22 -0700
+Message-ID: <1410066442.12512.13.camel@jarvis.lan>
+References: <54079B70.4050200@hurleysoftware.com>
+	 <1409785893.30640.118.camel@pasglop>
+	 <21512.10628.412205.873477@gargle.gargle.HOWL>
+	 <20140904090952.GW17454@tucnak.redhat.com>
+	 <540859EC.5000407@hurleysoftware.com>
+	 <20140904175044.4697aee4@alan.etchedpixels.co.uk>
+	 <5408C0AB.6050801@hurleysoftware.com>
+	 <20140905001751.GL5001@linux.vnet.ibm.com>
+	 <1409883098.5078.14.camel@jarvis.lan> <5409243C.4080704@hurleysoftware.com>
+	 <20140905040645.GO5001@linux.vnet.ibm.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-ia64-owner@vger.kernel.org>
+In-Reply-To: <20140905040645.GO5001@linux.vnet.ibm.com>
+Sender: linux-ia64-owner@vger.kernel.org
+To: paulmck@linux.vnet.ibm.com
+Cc: Peter Hurley <peter@hurleysoftware.com>, "H. Peter Anvin" <hpa@zytor.com>, One Thousand Gnomes <gnomes@lxorguk.ukuu.org.uk>, Jakub Jelinek <jakub@redhat.com>, Mikael Pettersson <mikpelinux@gmail.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Richard Henderson <rth@twiddle.net>, Oleg Nesterov <oleg@redhat.com>, Miroslav Franc <mfranc@redhat.com>, Paul Mackerras <paulus@samba.org>, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Tony Luck <tony.luck@intel.com>, linux-ia64@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-For slowpath syscalls, we initialize regs->ax to -ENOSYS and stick
-the syscall number into regs->orig_ax prior to any possible tracing
-and syscall execution.  This is user-visible ABI used by ptrace
-syscall emulation and seccomp.
+On Thu, 2014-09-04 at 21:06 -0700, Paul E. McKenney wrote:
+> On Thu, Sep 04, 2014 at 10:47:24PM -0400, Peter Hurley wrote:
+> > Hi James,
+> > 
+> > On 09/04/2014 10:11 PM, James Bottomley wrote:
+> > > On Thu, 2014-09-04 at 17:17 -0700, Paul E. McKenney wrote:
+> > >> +And there are anti-guarantees:
+> > >> +
+> > >> + (*) These guarantees do not apply to bitfields, because compilers often
+> > >> +     generate code to modify these using non-atomic read-modify-write
+> > >> +     sequences.  Do not attempt to use bitfields to synchronize parallel
+> > >> +     algorithms.
+> > >> +
+> > >> + (*) Even in cases where bitfields are protected by locks, all fields
+> > >> +     in a given bitfield must be protected by one lock.  If two fields
+> > >> +     in a given bitfield are protected by different locks, the compiler's
+> > >> +     non-atomic read-modify-write sequences can cause an update to one
+> > >> +     field to corrupt the value of an adjacent field.
+> > >> +
+> > >> + (*) These guarantees apply only to properly aligned and sized scalar
+> > >> +     variables.  "Properly sized" currently means "int" and "long",
+> > >> +     because some CPU families do not support loads and stores of
+> > >> +     other sizes.  ("Some CPU families" is currently believed to
+> > >> +     be only Alpha 21064.  If this is actually the case, a different
+> > >> +     non-guarantee is likely to be formulated.)
+> > > 
+> > > This is a bit unclear.  Presumably you're talking about definiteness of
+> > > the outcome (as in what's seen after multiple stores to the same
+> > > variable).
+> > 
+> > No, the last conditions refers to adjacent byte stores from different
+> > cpu contexts (either interrupt or SMP).
+> > 
+> > > The guarantees are only for natural width on Parisc as well,
+> > > so you would get a mess if you did byte stores to adjacent memory
+> > > locations.
+> > 
+> > For a simple test like:
+> > 
+> > struct x {
+> > 	long a;
+> > 	char b;
+> > 	char c;
+> > 	char d;
+> > 	char e;
+> > };
+> > 
+> > void store_bc(struct x *p) {
+> > 	p->b = 1;
+> > 	p->c = 2;
+> > }
+> > 
+> > on parisc, gcc generates separate byte stores
+> > 
+> > void store_bc(struct x *p) {
+> >    0:	34 1c 00 02 	ldi 1,ret0
+> >    4:	0f 5c 12 08 	stb ret0,4(r26)
+> >    8:	34 1c 00 04 	ldi 2,ret0
+> >    c:	e8 40 c0 00 	bv r0(rp)
+> >   10:	0f 5c 12 0a 	stb ret0,5(r26)
+> > 
+> > which appears to confirm that on parisc adjacent byte data
+> > is safe from corruption by concurrent cpu updates; that is,
+> > 
+> > CPU 0                | CPU 1
+> >                      |
+> > p->b = 1             | p->c = 2
+> >                      |
+> > 
+> > will result in p->b == 1 && p->c == 2 (assume both values
+> > were 0 before the call to store_bc()).
+> 
+> What Peter said.  I would ask for suggestions for better wording, but
+> I would much rather be able to say that single-byte reads and writes
+> are atomic and that aligned-short reads and writes are also atomic.
+> 
+> Thus far, it looks like we lose only very old Alpha systems, so unless
+> I hear otherwise, I update my patch to outlaw these very old systems.
 
-For fastpath syscalls, there's no good reason not to do the same
-thing.  It's even slightly simpler than what we're currently doing.
-It probably has no measureable performance impact.  It should have
-no user-visible effect.
+This isn't universally true according to the architecture manual.  The
+PARISC CPU can make byte to long word stores atomic against the memory
+bus but not against the I/O bus for instance.  Atomicity is a property
+of the underlying substrate, not of the CPU.  Implying that atomicity is
+a CPU property is incorrect.
 
-The purpose of this patch is to prepare for two-phase syscall
-tracing, in which the first phase might modify the saved RAX without
-leaving the fast path.  This change is just subtle enough that I'm
-keeping it separate.
+James
 
-Signed-off-by: Andy Lutomirski <luto@amacapital.net>
----
- arch/x86/include/asm/calling.h |  6 +++++-
- arch/x86/kernel/entry_64.S     | 13 ++++---------
- 2 files changed, 9 insertions(+), 10 deletions(-)
 
-diff --git a/arch/x86/include/asm/calling.h b/arch/x86/include/asm/calling.h
-index cb4c73bfeb48..76659b67fd11 100644
---- a/arch/x86/include/asm/calling.h
-+++ b/arch/x86/include/asm/calling.h
-@@ -85,7 +85,7 @@ For 32-bit we have the following conventions - kernel is built with
- #define ARGOFFSET	R11
- #define SWFRAME		ORIG_RAX
- 
--	.macro SAVE_ARGS addskip=0, save_rcx=1, save_r891011=1
-+	.macro SAVE_ARGS addskip=0, save_rcx=1, save_r891011=1, rax_enosys=0
- 	subq  $9*8+\addskip, %rsp
- 	CFI_ADJUST_CFA_OFFSET	9*8+\addskip
- 	movq_cfi rdi, 8*8
-@@ -96,7 +96,11 @@ For 32-bit we have the following conventions - kernel is built with
- 	movq_cfi rcx, 5*8
- 	.endif
- 
-+	.if \rax_enosys
-+	movq $-ENOSYS, 4*8(%rsp)
-+	.else
- 	movq_cfi rax, 4*8
-+	.endif
- 
- 	.if \save_r891011
- 	movq_cfi r8,  3*8
-diff --git a/arch/x86/kernel/entry_64.S b/arch/x86/kernel/entry_64.S
-index 2fac1343a90b..0bd6d3c28064 100644
---- a/arch/x86/kernel/entry_64.S
-+++ b/arch/x86/kernel/entry_64.S
-@@ -404,8 +404,8 @@ GLOBAL(system_call_after_swapgs)
- 	 * and short:
- 	 */
- 	ENABLE_INTERRUPTS(CLBR_NONE)
--	SAVE_ARGS 8,0
--	movq  %rax,ORIG_RAX-ARGOFFSET(%rsp)
-+	SAVE_ARGS 8, 0, rax_enosys=1
-+	movq_cfi rax,(ORIG_RAX-ARGOFFSET)
- 	movq  %rcx,RIP-ARGOFFSET(%rsp)
- 	CFI_REL_OFFSET rip,RIP-ARGOFFSET
- 	testl $_TIF_WORK_SYSCALL_ENTRY,TI_flags+THREAD_INFO(%rsp,RIP-ARGOFFSET)
-@@ -417,7 +417,7 @@ system_call_fastpath:
- 	andl $__SYSCALL_MASK,%eax
- 	cmpl $__NR_syscall_max,%eax
- #endif
--	ja badsys
-+	ja ret_from_sys_call  /* and return regs->ax */
- 	movq %r10,%rcx
- 	call *sys_call_table(,%rax,8)  # XXX:	 rip relative
- 	movq %rax,RAX-ARGOFFSET(%rsp)
-@@ -476,10 +476,6 @@ sysret_signal:
- 	FIXUP_TOP_OF_STACK %r11, -ARGOFFSET
- 	jmp int_check_syscall_exit_work
- 
--badsys:
--	movq $-ENOSYS,RAX-ARGOFFSET(%rsp)
--	jmp ret_from_sys_call
--
- #ifdef CONFIG_AUDITSYSCALL
- 	/*
- 	 * Fast path for syscall audit without full syscall trace.
-@@ -519,7 +515,6 @@ tracesys:
- 	jz auditsys
- #endif
- 	SAVE_REST
--	movq $-ENOSYS,RAX(%rsp) /* ptrace can change this for a bad syscall */
- 	FIXUP_TOP_OF_STACK %rdi
- 	movq %rsp,%rdi
- 	call syscall_trace_enter
-@@ -536,7 +531,7 @@ tracesys:
- 	andl $__SYSCALL_MASK,%eax
- 	cmpl $__NR_syscall_max,%eax
- #endif
--	ja   int_ret_from_sys_call	/* RAX(%rsp) set to -ENOSYS above */
-+	ja   int_ret_from_sys_call	/* RAX(%rsp) is already set */
- 	movq %r10,%rcx	/* fixup for C */
- 	call *sys_call_table(,%rax,8)
- 	movq %rax,RAX-ARGOFFSET(%rsp)
--- 
-1.9.3
