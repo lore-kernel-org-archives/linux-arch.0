@@ -1,9 +1,9 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:59168 "EHLO mail.zytor.com"
+Received: from terminus.zytor.com ([198.137.202.10]:59210 "EHLO mail.zytor.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753963AbaIHTQD (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 8 Sep 2014 15:16:03 -0400
-Message-ID: <540DFFB2.4000509@zytor.com>
+	id S1753983AbaIHTSg (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 8 Sep 2014 15:18:36 -0400
+Message-ID: <540DFFB2.9040101@zytor.com>
 Date: Mon, 08 Sep 2014 12:12:50 -0700
 From: "H. Peter Anvin" <hpa@zytor.com>
 MIME-Version: 1.0
@@ -16,7 +16,7 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: James Bottomley <James.Bottomley@HansenPartnership.com>
 Cc: paulmck@linux.vnet.ibm.com, Peter Hurley <peter@hurleysoftware.com>, One Thousand Gnomes <gnomes@lxorguk.ukuu.org.uk>, Jakub Jelinek <jakub@redhat.com>, Mikael Pettersson <mikpelinux@gmail.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Richard Henderson <rth@twiddle.net>, Oleg Nesterov <oleg@redhat.com>, Miroslav Franc <mfranc@redhat.com>, Paul Mackerras <paulus@samba.org>, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Tony Luck <tony.luck@intel.com>, linux-ia64@vger.kernel.org
-Message-ID: <20140908191250.AwYsxcFqdzgIxTBwLyaXSRLRcujxIaZ7G97BSx0ZDLA@z>
+Message-ID: <20140908191250.LPn_Xj38S2DIwIEPfmPliVHIunAy93LhRHMKMscaFIU@z>
 
 On 09/08/2014 12:09 PM, James Bottomley wrote:
 > 
