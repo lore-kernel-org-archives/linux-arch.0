@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bn1bon0095.outbound.protection.outlook.com ([157.56.111.95]:5294
-	"EHLO na01-bn1-obe.outbound.protection.outlook.com"
+Received: from mail-bl2on0081.outbound.protection.outlook.com ([65.55.169.81]:38656
+	"EHLO na01-bl2-obe.outbound.protection.outlook.com"
 	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1753049AbaIHJiB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 8 Sep 2014 05:38:01 -0400
+	id S1753315AbaIHJi2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 8 Sep 2014 05:38:28 -0400
 From: Ley Foon Tan <lftan@altera.com>
-Subject: [PATCH v3 16/29] nios2: ELF definitions
-Date: Mon, 8 Sep 2014 17:22:27 +0800
-Message-ID: <1410168160-3624-17-git-send-email-lftan@altera.com>
+Subject: [PATCH v3 07/29] nios2: I/O Mapping
+Date: Mon, 8 Sep 2014 17:22:18 +0800
+Message-ID: <1410168160-3624-8-git-send-email-lftan@altera.com>
 In-Reply-To: <1410168160-3624-1-git-send-email-lftan@altera.com>
 References: <1410168160-3624-1-git-send-email-lftan@altera.com>
 MIME-Version: 1.0
@@ -16,198 +16,446 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org
 Cc: Ley Foon Tan <lftan@altera.com>, lftan.linux@gmail.com, cltang@codesourcery.com
-Message-ID: <20140908092227.2zlBDep3PLZrNyjMdC4Fm9UCHCgnz9br9mBTqEgbnNc@z>
+Message-ID: <20140908092218.HuEpx2tgdrsi3ID3VgtEA5M-XkhgtZCPneEXEfLjXFA@z>
 
-This patch adds definitions for the ELF format
+This patch adds several definitions for I/O accessors and ioremap().
 
 Signed-off-by: Ley Foon Tan <lftan@altera.com>
 ---
- arch/nios2/include/asm/elf.h      | 101 ++++++++++++++++++++++++++++++++++++++
- arch/nios2/include/uapi/asm/elf.h |  67 +++++++++++++++++++++++++
- 2 files changed, 168 insertions(+)
- create mode 100644 arch/nios2/include/asm/elf.h
- create mode 100644 arch/nios2/include/uapi/asm/elf.h
+ arch/nios2/include/asm/io.h |  84 ++++++++++++++++++++
+ arch/nios2/lib/io.c         | 138 ++++++++++++++++++++++++++++++++
+ arch/nios2/mm/ioremap.c     | 186 ++++++++++++++++++++++++++++++++++++++++++++
+ 3 files changed, 408 insertions(+)
+ create mode 100644 arch/nios2/include/asm/io.h
+ create mode 100644 arch/nios2/lib/io.c
+ create mode 100644 arch/nios2/mm/ioremap.c
 
-diff --git a/arch/nios2/include/asm/elf.h b/arch/nios2/include/asm/elf.h
+diff --git a/arch/nios2/include/asm/io.h b/arch/nios2/include/asm/io.h
 new file mode 100644
-index 0000000..b7d655d
+index 0000000..c629226
 --- /dev/null
-+++ b/arch/nios2/include/asm/elf.h
-@@ -0,0 +1,101 @@
++++ b/arch/nios2/include/asm/io.h
+@@ -0,0 +1,84 @@
 +/*
-+ * Copyright (C) 2011 Tobias Klauser <tklauser@distanz.ch>
++ * Copyright (C) 2014 Altera Corporation
++ * Copyright (C) 2010 Tobias Klauser <tklauser@distanz.ch>
++ * Copyright (C) 2004 Microtronix Datacom Ltd.
 + *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License as published by
-+ * the Free Software Foundation; either version 2 of the License, or
-+ * (at your option) any later version.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
-+ *
++ * This file is subject to the terms and conditions of the GNU General Public
++ * License. See the file "COPYING" in the main directory of this archive
++ * for more details.
 + */
 +
-+#ifndef _ASM_NIOS2_ELF_H
-+#define _ASM_NIOS2_ELF_H
++#ifndef _ASM_NIOS2_IO_H
++#define _ASM_NIOS2_IO_H
 +
-+#include <uapi/asm/elf.h>
++#include <asm/pgtable-bits.h>
++
++/* PCI is not supported in nios2, set this to 0. */
++#define IO_SPACE_LIMIT 0
++
++extern void outsb(unsigned long addr, const void *buf, int len);
++extern void outsw(unsigned long addr, const void *buf, int len);
++extern void outsl(unsigned long addr, const void *buf, int len);
++extern void insb(unsigned long addr, void *buf, int len);
++extern void insw(unsigned long addr, void *buf, int len);
++extern void insl(unsigned long addr, void *buf, int len);
++#define outsb outsb
++#define outsw outsw
++#define outsl outsl
++#define insb insb
++#define insw insw
++#define insl insl
++
++#define readb_relaxed(addr)	readb(addr)
++#define readw_relaxed(addr)	readw(addr)
++#define readl_relaxed(addr)	readl(addr)
++
++#define writeb_relaxed(x, addr)	writeb(x, addr)
++#define writew_relaxed(x, addr)	writew(x, addr)
++#define writel_relaxed(x, addr)	writel(x, addr)
++
++#include <asm-generic/io.h>
 +
 +/*
-+ * This is used to ensure we don't load something for the wrong architecture.
++ * PCI is not enabled in nios2. Provide dummy implementation to get 'allyesconfig'
++ * to build successfully.
 + */
-+#define elf_check_arch(x) ((x)->e_machine == EM_ALTERA_NIOS2)
++#define inb(addr)	({ 0; })
++#define inw(addr)	({ 0; })
++#define inl(addr)	({ 0; })
++#define outb(x, addr)	do { } while (0)
++#define outw(x, addr)	do { } while (0)
++#define outl(x, addr)	do { } while (0)
 +
-+#define ELF_PLAT_INIT(_r, load_addr)
++extern void __iomem *__ioremap(unsigned long physaddr, unsigned long size,
++			unsigned long cacheflag);
++extern void __iounmap(void __iomem *addr);
 +
-+#define CORE_DUMP_USE_REGSET
-+#define ELF_EXEC_PAGESIZE	4096
++static inline void __iomem *ioremap(unsigned long physaddr, unsigned long size)
++{
++	return __ioremap(physaddr, size, 0);
++}
 +
-+/* This is the location that an ET_DYN program is loaded if exec'ed.  Typical
-+   use of this is to invoke "./ld.so someprog" to test out a new version of
-+   the loader.  We need to make sure that it is out of the way of the program
-+   that it will "exec", and that there is sufficient room for the brk.  */
++static inline void __iomem *ioremap_nocache(unsigned long physaddr,
++						unsigned long size)
++{
++	return __ioremap(physaddr, size, 0);
++}
 +
-+#define ELF_ET_DYN_BASE		0xD0000000UL
++static inline void iounmap(void __iomem *addr)
++{
++	__iounmap(addr);
++}
 +
-+/* regs is struct pt_regs, pr_reg is elf_gregset_t (which is
-+   now struct_user_regs, they are different) */
++/* Pages to physical address... */
++# define page_to_phys(page)	virt_to_phys(page_to_virt(page))
++# define page_to_bus(page)	page_to_virt(page)
 +
-+#define ARCH_HAS_SETUP_ADDITIONAL_PAGES	1
-+struct linux_binprm;
-+extern int arch_setup_additional_pages(struct linux_binprm *bprm,
-+	int uses_interp);
-+#define ELF_CORE_COPY_REGS(pr_reg, regs)				\
-+{ do {									\
-+	/* Bleech. */							\
-+	pr_reg[0]  = regs->r8;						\
-+	pr_reg[1]  = regs->r9;						\
-+	pr_reg[2]  = regs->r10;						\
-+	pr_reg[3]  = regs->r11;						\
-+	pr_reg[4]  = regs->r12;						\
-+	pr_reg[5]  = regs->r13;						\
-+	pr_reg[6]  = regs->r14;						\
-+	pr_reg[7]  = regs->r15;						\
-+	pr_reg[8]  = regs->r1;						\
-+	pr_reg[9]  = regs->r2;						\
-+	pr_reg[10] = regs->r3;						\
-+	pr_reg[11] = regs->r4;						\
-+	pr_reg[12] = regs->r5;						\
-+	pr_reg[13] = regs->r6;						\
-+	pr_reg[14] = regs->r7;						\
-+	pr_reg[15] = regs->orig_r2;					\
-+	pr_reg[16] = regs->ra;						\
-+	pr_reg[17] = regs->fp;						\
-+	pr_reg[18] = regs->sp;						\
-+	pr_reg[19] = regs->gp;						\
-+	pr_reg[20] = regs->estatus;					\
-+	pr_reg[21] = regs->ea;						\
-+	pr_reg[22] = regs->orig_r7;					\
-+	{								\
-+		struct switch_stack *sw = ((struct switch_stack *)regs) - 1; \
-+		pr_reg[23] = sw->r16;					\
-+		pr_reg[24] = sw->r17;					\
-+		pr_reg[25] = sw->r18;					\
-+		pr_reg[26] = sw->r19;					\
-+		pr_reg[27] = sw->r20;					\
-+		pr_reg[28] = sw->r21;					\
-+		pr_reg[29] = sw->r22;					\
-+		pr_reg[30] = sw->r23;					\
-+		pr_reg[31] = sw->fp;					\
-+		pr_reg[32] = sw->gp;					\
-+		pr_reg[33] = sw->ra;					\
-+	}								\
-+} while (0); }
++/* Macros used for converting between virtual and physical mappings. */
++# define phys_to_virt(vaddr)	\
++	((void *)((unsigned long)(vaddr) | CONFIG_NIOS2_KERNEL_REGION_BASE))
++/* Clear top 3 bits */
++# define virt_to_phys(vaddr)	\
++	((unsigned long)((unsigned long)(vaddr) & ~0xE0000000))
 +
-+/* This yields a mask that user programs can use to figure out what
-+   instruction set this cpu supports.  */
-+
-+#define ELF_HWCAP	(0)
-+
-+/* This yields a string that ld.so will use to load implementation
-+   specific libraries for optimization.  This is more specific in
-+   intent than poking at uname or /proc/cpuinfo.  */
-+
-+#define ELF_PLATFORM  (NULL)
-+
-+#endif /* _ASM_NIOS2_ELF_H */
-diff --git a/arch/nios2/include/uapi/asm/elf.h b/arch/nios2/include/uapi/asm/elf.h
++#endif /* _ASM_NIOS2_IO_H */
+diff --git a/arch/nios2/lib/io.c b/arch/nios2/lib/io.c
 new file mode 100644
-index 0000000..a5b91ae
+index 0000000..94db593
 --- /dev/null
-+++ b/arch/nios2/include/uapi/asm/elf.h
-@@ -0,0 +1,67 @@
++++ b/arch/nios2/lib/io.c
+@@ -0,0 +1,138 @@
 +/*
-+ * Copyright (C) 2011 Tobias Klauser <tklauser@distanz.ch>
++ * Copyright (C) 2014 Altera Corporation
++ * Copyright (C) 2010 Tobias Klauser <tklauser@distanz.ch>
++ * Copyright (C) 2004 Microtronix Datacom Ltd.
 + *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License as published by
-+ * the Free Software Foundation; either version 2 of the License, or
-+ * (at your option) any later version.
++ * This file is subject to the terms and conditions of the GNU General Public
++ * License. See the file "COPYING" in the main directory of this archive
++ * for more details.
++ */
++#include <linux/types.h>
++#include <asm/io.h>
++
++
++#ifndef CONFIG_CC_OPTIMIZE_FOR_SIZE
++#define __IO_USE_DUFFS
++#endif
++
++#ifdef __IO_USE_DUFFS
++
++/* Use "Duff's Device" to unroll the loops. */
++#define __IO_OUT_LOOP(a, b, l)				\
++	do {						\
++		if (l > 0) {				\
++			int _n = (l + 7) / 8;		\
++			switch (l % 8) {		\
++			case 0:				\
++				do {			\
++					*a = *b++;	\
++			case 7:				\
++					*a = *b++;	\
++			case 6:				\
++					*a = *b++;	\
++			case 5:				\
++					*a = *b++;	\
++			case 4:				\
++					*a = *b++;	\
++			case 3:				\
++					*a = *b++;	\
++			case 2:				\
++					*a = *b++;	\
++			case 1:				\
++					*a = *b++;	\
++				} while (--_n > 0);	\
++			}				\
++		}					\
++	} while (0)
++
++#define __IO_IN_LOOP(a, b, l)				\
++	do {						\
++		if (l > 0) {				\
++			int _n = (l + 7) / 8;		\
++			switch (l % 8) {		\
++			case 0:				\
++				do {			\
++					*b++ = *a;	\
++			case 7:				\
++					*b++ = *a;	\
++			case 6:				\
++					*b++ = *a;	\
++			case 5:				\
++					*b++ = *a;	\
++			case 4:				\
++					*b++ = *a;	\
++			case 3:				\
++					*b++ = *a;	\
++			case 2:				\
++					*b++ = *a;	\
++			case 1:				\
++					*b++ = *a;	\
++				} while (--_n > 0);	\
++			}				\
++		}					\
++	} while (0)
++
++#else /* __IO_USE_DUFFS */
++
++/* Use simple loops. */
++#define __IO_OUT_LOOP(a, b, l)				\
++	do {						\
++		while (l--)				\
++			*a = *b++;			\
++	} while (0)
++
++#define __IO_IN_LOOP(a, b, l)				\
++	do {						\
++		while (l--)				\
++			*b++ = *a;			\
++	} while (0)
++
++#endif /* __IO_USE_DUFFS */
++
++void outsb(unsigned long addr, const void *buf, int len)
++{
++	volatile unsigned char *ap = (volatile unsigned char *)addr;
++	unsigned char *bp = (unsigned char *)buf;
++	__IO_OUT_LOOP(ap, bp, len);
++}
++EXPORT_SYMBOL(outsb);
++
++void outsw(unsigned long addr, const void *buf, int len)
++{
++	volatile unsigned short *ap = (volatile unsigned short *)addr;
++	unsigned short *bp = (unsigned short *)buf;
++	__IO_OUT_LOOP(ap, bp, len);
++}
++EXPORT_SYMBOL(outsw);
++
++void outsl(unsigned long addr, const void *buf, int len)
++{
++	volatile unsigned int *ap = (volatile unsigned int *)addr;
++	unsigned int *bp = (unsigned int *)buf;
++	__IO_OUT_LOOP(ap, bp, len);
++}
++EXPORT_SYMBOL(outsl);
++
++void insb(unsigned long addr, void *buf, int len)
++{
++	volatile unsigned char *ap = (volatile unsigned char *)addr;
++	unsigned char *bp = (unsigned char *)buf;
++	__IO_IN_LOOP(ap, bp, len);
++}
++EXPORT_SYMBOL(insb);
++
++void insw(unsigned long addr, void *buf, int len)
++{
++	volatile unsigned short *ap = (volatile unsigned short *)addr;
++	unsigned short *bp = (unsigned short *)buf;
++	__IO_IN_LOOP(ap, bp, len);
++}
++EXPORT_SYMBOL(insw);
++
++void insl(unsigned long addr, void *buf, int len)
++{
++	volatile unsigned int *ap = (volatile unsigned int *)addr;
++	unsigned int *bp = (unsigned int *)buf;
++	__IO_IN_LOOP(ap, bp, len);
++}
++EXPORT_SYMBOL(insl);
+diff --git a/arch/nios2/mm/ioremap.c b/arch/nios2/mm/ioremap.c
+new file mode 100644
+index 0000000..a46bccf
+--- /dev/null
++++ b/arch/nios2/mm/ioremap.c
+@@ -0,0 +1,186 @@
++/*
++ * Copyright (C) 2010 Tobias Klauser <tklauser@distanz.ch>
++ * Copyright (C) 2009 Wind River Systems Inc
++ *   Implemented by fredrik.markstrom@gmail.com and ivarholmqvist@gmail.com
++ * Copyright (C) 2004 Microtronix Datacom Ltd.
 + *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
-+ *
++ * This file is subject to the terms and conditions of the GNU General Public
++ * License. See the file "COPYING" in the main directory of this archive
++ * for more details.
 + */
 +
++#include <linux/export.h>
++#include <linux/sched.h>
++#include <linux/mm.h>
++#include <linux/slab.h>
++#include <linux/vmalloc.h>
++#include <linux/io.h>
 +
-+#ifndef _UAPI_ASM_NIOS2_ELF_H
-+#define _UAPI_ASM_NIOS2_ELF_H
++#include <asm/cacheflush.h>
++#include <asm/tlbflush.h>
 +
-+#include <linux/ptrace.h>
++static inline void remap_area_pte(pte_t *pte, unsigned long address,
++				unsigned long size, unsigned long phys_addr,
++				unsigned long flags)
++{
++	unsigned long end;
++	unsigned long pfn;
++	pgprot_t pgprot = __pgprot(_PAGE_GLOBAL | _PAGE_PRESENT | _PAGE_READ
++				| _PAGE_WRITE | flags);
 +
-+/* Relocation types */
-+#define R_NIOS2_NONE		0
-+#define R_NIOS2_S16		1
-+#define R_NIOS2_U16		2
-+#define R_NIOS2_PCREL16		3
-+#define R_NIOS2_CALL26		4
-+#define R_NIOS2_IMM5		5
-+#define R_NIOS2_CACHE_OPX	6
-+#define R_NIOS2_IMM6		7
-+#define R_NIOS2_IMM8		8
-+#define R_NIOS2_HI16		9
-+#define R_NIOS2_LO16		10
-+#define R_NIOS2_HIADJ16		11
-+#define R_NIOS2_BFD_RELOC_32	12
-+#define R_NIOS2_BFD_RELOC_16	13
-+#define R_NIOS2_BFD_RELOC_8	14
-+#define R_NIOS2_GPREL		15
-+#define R_NIOS2_GNU_VTINHERIT	16
-+#define R_NIOS2_GNU_VTENTRY	17
-+#define R_NIOS2_UJMP		18
-+#define R_NIOS2_CJMP		19
-+#define R_NIOS2_CALLR		20
-+#define R_NIOS2_ALIGN		21
-+/* Keep this the last entry.  */
-+#define R_NIOS2_NUM		22
++	address &= ~PMD_MASK;
++	end = address + size;
++	if (end > PMD_SIZE)
++		end = PMD_SIZE;
++	if (address >= end)
++		BUG();
++	pfn = PFN_DOWN(phys_addr);
++	do {
++		if (!pte_none(*pte)) {
++			pr_err("remap_area_pte: page already exists\n");
++			BUG();
++		}
++		set_pte(pte, pfn_pte(pfn, pgprot));
++		address += PAGE_SIZE;
++		pfn++;
++		pte++;
++	} while (address && (address < end));
++}
 +
-+typedef unsigned long elf_greg_t;
++static inline int remap_area_pmd(pmd_t *pmd, unsigned long address,
++				unsigned long size, unsigned long phys_addr,
++				unsigned long flags)
++{
++	unsigned long end;
 +
-+#define ELF_NGREG	\
-+	((sizeof(struct pt_regs) + sizeof(struct switch_stack)) /	\
-+		sizeof(elf_greg_t))
-+typedef elf_greg_t elf_gregset_t[ELF_NGREG];
++	address &= ~PGDIR_MASK;
++	end = address + size;
++	if (end > PGDIR_SIZE)
++		end = PGDIR_SIZE;
++	phys_addr -= address;
++	if (address >= end)
++		BUG();
++	do {
++		pte_t *pte = pte_alloc_kernel(pmd, address);
++		if (!pte)
++			return -ENOMEM;
++		remap_area_pte(pte, address, end - address, address + phys_addr,
++			flags);
++		address = (address + PMD_SIZE) & PMD_MASK;
++		pmd++;
++	} while (address && (address < end));
++	return 0;
++}
 +
-+typedef unsigned long elf_fpregset_t;
++static int remap_area_pages(unsigned long address, unsigned long phys_addr,
++				unsigned long size, unsigned long flags)
++{
++	int error;
++	pgd_t *dir;
++	unsigned long end = address + size;
++
++	phys_addr -= address;
++	dir = pgd_offset(&init_mm, address);
++	flush_cache_all();
++	if (address >= end)
++		BUG();
++	do {
++		pud_t *pud;
++		pmd_t *pmd;
++
++		error = -ENOMEM;
++		pud = pud_alloc(&init_mm, dir, address);
++		if (!pud)
++			break;
++		pmd = pmd_alloc(&init_mm, pud, address);
++		if (!pmd)
++			break;
++		if (remap_area_pmd(pmd, address, end - address,
++			phys_addr + address, flags))
++			break;
++		error = 0;
++		address = (address + PGDIR_SIZE) & PGDIR_MASK;
++		dir++;
++	} while (address && (address < end));
++	flush_tlb_all();
++	return error;
++}
++
++#define IS_MAPPABLE_UNCACHEABLE(addr) (addr < 0x20000000UL)
 +
 +/*
-+ * These are used to set parameters in the core dumps.
++ * Map some physical address range into the kernel address space.
 + */
-+#define ELF_CLASS	ELFCLASS32
-+#define ELF_DATA	ELFDATA2LSB
-+#define ELF_ARCH	EM_ALTERA_NIOS2
++void __iomem *__ioremap(unsigned long phys_addr, unsigned long size,
++			unsigned long cacheflag)
++{
++	struct vm_struct *area;
++	unsigned long offset;
++	unsigned long last_addr;
++	void *addr;
 +
-+#endif /* _UAPI_ASM_NIOS2_ELF_H */
++	/* Don't allow wraparound or zero size */
++	last_addr = phys_addr + size - 1;
++
++	if (!size || last_addr < phys_addr)
++		return NULL;
++
++	/* Don't allow anybody to remap normal RAM that we're using */
++	if (phys_addr > PHYS_OFFSET && phys_addr < virt_to_phys(high_memory)) {
++		char *t_addr, *t_end;
++		struct page *page;
++
++		t_addr = __va(phys_addr);
++		t_end = t_addr + (size - 1);
++		for (page = virt_to_page(t_addr);
++			page <= virt_to_page(t_end); page++)
++			if (!PageReserved(page))
++				return NULL;
++	}
++
++	/*
++	 * Map uncached objects in the low part of address space to
++	 * CONFIG_NIOS2_IO_REGION_BASE
++	 */
++	if (IS_MAPPABLE_UNCACHEABLE(phys_addr) &&
++	    IS_MAPPABLE_UNCACHEABLE(last_addr) &&
++	    !(cacheflag & _PAGE_CACHED))
++		return (void __iomem *)(CONFIG_NIOS2_IO_REGION_BASE + phys_addr);
++
++	/* Mappings have to be page-aligned */
++	offset = phys_addr & ~PAGE_MASK;
++	phys_addr &= PAGE_MASK;
++	size = PAGE_ALIGN(last_addr + 1) - phys_addr;
++
++	/* Ok, go for it */
++	area = get_vm_area(size, VM_IOREMAP);
++	if (!area)
++		return NULL;
++	addr = area->addr;
++	if (remap_area_pages((unsigned long) addr, phys_addr, size,
++		cacheflag)) {
++		vunmap(addr);
++		return NULL;
++	}
++	return (void __iomem *) (offset + (char *)addr);
++}
++EXPORT_SYMBOL(__ioremap);
++
++/*
++ * __iounmap unmaps nearly everything, so be careful
++ * it doesn't free currently pointer/page tables anymore but it
++ * wasn't used anyway and might be added later.
++ */
++void __iounmap(void __iomem *addr)
++{
++	struct vm_struct *p;
++
++	if ((unsigned long) addr > CONFIG_NIOS2_IO_REGION_BASE)
++		return;
++
++	p = remove_vm_area((void *) (PAGE_MASK & (unsigned long __force) addr));
++	if (!p)
++		pr_err("iounmap: bad address %p\n", addr);
++	kfree(p);
++}
++EXPORT_SYMBOL(__iounmap);
 -- 
 1.8.2.1
 
