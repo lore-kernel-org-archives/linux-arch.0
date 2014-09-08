@@ -1,7 +1,7 @@
 From: Ley Foon Tan <lftan@altera.com>
-Subject: [PATCH v3 17/29] nios2: System calls handling
-Date: Mon, 8 Sep 2014 17:22:28 +0800
-Message-ID: <1410168160-3624-18-git-send-email-lftan@altera.com>
+Subject: [PATCH v3 24/29] nios2: Nios2 registers
+Date: Mon, 8 Sep 2014 17:22:35 +0800
+Message-ID: <1410168160-3624-25-git-send-email-lftan@altera.com>
 References: <1410168160-3624-1-git-send-email-lftan@altera.com>
 Mime-Version: 1.0
 Content-Type: text/plain
@@ -12,337 +12,91 @@ To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-doc@vger.ker
 Cc: Ley Foon Tan <lftan@altera.com>, lftan.linux@gmail.com, cltang@codesourcery.com
 List-Id: linux-arch.vger.kernel.org
 
-This patch adds support for system calls from userspaces. It uses the
-asm-generic/unistd.h definitions with architecture spcific syscall. The sys_call_table
-is just an array defined in a C file and it contains pointers to the syscall functions.
+This file contains constants for the instruction macros, cpu registers, fields and bits.
 
 Signed-off-by: Ley Foon Tan <lftan@altera.com>
 ---
- arch/nios2/include/asm/syscall.h     | 138 +++++++++++++++++++++++++++++++++++
- arch/nios2/include/asm/syscalls.h    |  25 +++++++
- arch/nios2/include/uapi/asm/unistd.h |  25 +++++++
- arch/nios2/kernel/sys_nios2.c        |  66 +++++++++++++++++
- arch/nios2/kernel/syscall_table.c    |  29 ++++++++
- 5 files changed, 283 insertions(+)
- create mode 100644 arch/nios2/include/asm/syscall.h
- create mode 100644 arch/nios2/include/asm/syscalls.h
- create mode 100644 arch/nios2/include/uapi/asm/unistd.h
- create mode 100644 arch/nios2/kernel/sys_nios2.c
- create mode 100644 arch/nios2/kernel/syscall_table.c
+ arch/nios2/include/asm/registers.h | 71 ++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 71 insertions(+)
+ create mode 100644 arch/nios2/include/asm/registers.h
 
-diff --git a/arch/nios2/include/asm/syscall.h b/arch/nios2/include/asm/syscall.h
+diff --git a/arch/nios2/include/asm/registers.h b/arch/nios2/include/asm/registers.h
 new file mode 100644
-index 0000000..9de2208
+index 0000000..615bce1
 --- /dev/null
-+++ b/arch/nios2/include/asm/syscall.h
-@@ -0,0 +1,138 @@
++++ b/arch/nios2/include/asm/registers.h
+@@ -0,0 +1,71 @@
 +/*
-+ * Copyright Altera Corporation (C) <2014>. All rights reserved
++ * Copyright (C) 2011 Tobias Klauser <tklauser@distanz.ch>
 + *
-+ * This program is free software; you can redistribute it and/or modify it
-+ * under the terms and conditions of the GNU General Public License,
-+ * version 2, as published by the Free Software Foundation.
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
 + *
-+ * This program is distributed in the hope it will be useful, but WITHOUT
-+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
-+ * more details.
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
 + *
-+ * You should have received a copy of the GNU General Public License along with
-+ * this program.  If not, see <http://www.gnu.org/licenses/>.
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ *
 + */
 +
-+#ifndef __ASM_NIOS2_SYSCALL_H__
-+#define __ASM_NIOS2_SYSCALL_H__
++#ifndef _ASM_NIOS2_REGISTERS_H
++#define _ASM_NIOS2_REGISTERS_H
 +
-+#include <linux/err.h>
-+#include <linux/sched.h>
-+
-+static inline int syscall_get_nr(struct task_struct *task, struct pt_regs *regs)
-+{
-+	return regs->r2;
-+}
-+
-+static inline void syscall_rollback(struct task_struct *task,
-+				struct pt_regs *regs)
-+{
-+	regs->r2 = regs->orig_r2;
-+	regs->r7 = regs->orig_r7;
-+}
-+
-+static inline long syscall_get_error(struct task_struct *task,
-+				struct pt_regs *regs)
-+{
-+	return regs->r7 ? regs->r2 : 0;
-+}
-+
-+static inline long syscall_get_return_value(struct task_struct *task,
-+	struct pt_regs *regs)
-+{
-+	return regs->r2;
-+}
-+
-+static inline void syscall_set_return_value(struct task_struct *task,
-+	struct pt_regs *regs, int error, long val)
-+{
-+	if (error) {
-+		/* error < 0, but nios2 uses > 0 return value */
-+		regs->r2 = -error;
-+		regs->r7 = 1;
-+	} else {
-+		regs->r2 = val;
-+		regs->r7 = 0;
-+	}
-+}
-+
-+static inline void syscall_get_arguments(struct task_struct *task,
-+	struct pt_regs *regs, unsigned int i, unsigned int n,
-+	unsigned long *args)
-+{
-+	BUG_ON(i + n > 6);
-+
-+	switch (i) {
-+	case 0:
-+		if (!n--)
-+			break;
-+		*args++ = regs->r4;
-+	case 1:
-+		if (!n--)
-+			break;
-+		*args++ = regs->r5;
-+	case 2:
-+		if (!n--)
-+			break;
-+		*args++ = regs->r6;
-+	case 3:
-+		if (!n--)
-+			break;
-+		*args++ = regs->r7;
-+	case 4:
-+		if (!n--)
-+			break;
-+		*args++ = regs->r8;
-+	case 5:
-+		if (!n--)
-+			break;
-+		*args++ = regs->r9;
-+	case 6:
-+		if (!n--)
-+			break;
-+	default:
-+		BUG();
-+	}
-+}
-+
-+static inline void syscall_set_arguments(struct task_struct *task,
-+	struct pt_regs *regs, unsigned int i, unsigned int n,
-+	const unsigned long *args)
-+{
-+	BUG_ON(i + n > 6);
-+
-+	switch (i) {
-+	case 0:
-+		if (!n--)
-+			break;
-+		regs->r4 = *args++;
-+	case 1:
-+		if (!n--)
-+			break;
-+		regs->r5 = *args++;
-+	case 2:
-+		if (!n--)
-+			break;
-+		regs->r6 = *args++;
-+	case 3:
-+		if (!n--)
-+			break;
-+		regs->r7 = *args++;
-+	case 4:
-+		if (!n--)
-+			break;
-+		regs->r8 = *args++;
-+	case 5:
-+		if (!n--)
-+			break;
-+		regs->r9 = *args++;
-+	case 6:
-+		if (!n)
-+			break;
-+	default:
-+		BUG();
-+	}
-+}
-+
++#ifndef __ASSEMBLY__
++#include <asm/cpuinfo.h>
 +#endif
-diff --git a/arch/nios2/include/asm/syscalls.h b/arch/nios2/include/asm/syscalls.h
-new file mode 100644
-index 0000000..0245d78
---- /dev/null
-+++ b/arch/nios2/include/asm/syscalls.h
-@@ -0,0 +1,25 @@
-+/*
-+ * Copyright Altera Corporation (C) 2013. All rights reserved
-+ *
-+ * This program is free software; you can redistribute it and/or modify it
-+ * under the terms and conditions of the GNU General Public License,
-+ * version 2, as published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope it will be useful, but WITHOUT
-+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
-+ * more details.
-+ *
-+ * You should have received a copy of the GNU General Public License along with
-+ * this program.  If not, see <http://www.gnu.org/licenses/>.
-+ *
-+ */
-+#ifndef __ASM_NIOS2_SYSCALLS_H
-+#define __ASM_NIOS2_SYSCALLS_H
 +
-+int sys_cacheflush(unsigned long addr, unsigned long len,
-+				unsigned int op);
++/* control register numbers */
++#define CTL_STATUS	0
++#define CTL_ESTATUS	1
++#define CTL_BSTATUS	2
++#define CTL_IENABLE	3
++#define CTL_IPENDING	4
++#define CTL_CPUID	5
++#define CTL_RSV1	6
++#define CTL_EXCEPTION	7
++#define CTL_PTEADDR	8
++#define CTL_TLBACC	9
++#define CTL_TLBMISC	10
++#define CTL_RSV2	11
++#define CTL_BADADDR	12
++#define CTL_CONFIG	13
++#define CTL_MPUBASE	14
++#define CTL_MPUACC	15
 +
-+#include <asm-generic/syscalls.h>
++/* access control registers using GCC builtins */
++#define RDCTL(r)	__builtin_rdctl(r)
++#define WRCTL(r, v)	__builtin_wrctl(r, v)
 +
-+#endif /* __ASM_NIOS2_SYSCALLS_H */
-diff --git a/arch/nios2/include/uapi/asm/unistd.h b/arch/nios2/include/uapi/asm/unistd.h
-new file mode 100644
-index 0000000..c4bf795
---- /dev/null
-+++ b/arch/nios2/include/uapi/asm/unistd.h
-@@ -0,0 +1,25 @@
-+/*
-+ * Copyright (C) 2013 Altera Corporation
-+ *
-+ * This program is free software; you can redistribute it and/or modify it
-+ * under the terms and conditions of the GNU General Public License,
-+ * version 2, as published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope it will be useful, but WITHOUT
-+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
-+ * more details.
-+ *
-+ * You should have received a copy of the GNU General Public License along with
-+ * this program.  If not, see <http://www.gnu.org/licenses/>.
-+ *
-+ */
++/* status register bits */
++#define STATUS_PIE	(1 << 0)	/* processor interrupt enable */
++#define STATUS_U	(1 << 1)	/* user mode */
++#define STATUS_EH	(1 << 2)	/* Exception mode */
 +
-+ #define sys_mmap2 sys_mmap_pgoff
++/* estatus register bits */
++#define ESTATUS_EPIE	(1 << 0)	/* processor interrupt enable */
++#define ESTATUS_EU	(1 << 1)	/* user mode */
++#define ESTATUS_EH	(1 << 2)	/* Exception mode */
 +
-+/* Use the standard ABI for syscalls */
-+#include <asm-generic/unistd.h>
++/* tlbmisc register bits */
++#define TLBMISC_PID_SHIFT	4
++#ifndef __ASSEMBLY__
++#define TLBMISC_PID_MASK	((1UL << cpuinfo.tlb_pid_num_bits) - 1)
++#endif
++#define TLBMISC_WAY_MASK	0xf
++#define TLBMISC_WAY_SHIFT	20
 +
-+/* Additional Nios II specific syscalls. */
-+#define __NR_cacheflush (__NR_arch_specific_syscall)
-+__SYSCALL(__NR_cacheflush, sys_cacheflush)
-diff --git a/arch/nios2/kernel/sys_nios2.c b/arch/nios2/kernel/sys_nios2.c
-new file mode 100644
-index 0000000..a32d7f3
---- /dev/null
-+++ b/arch/nios2/kernel/sys_nios2.c
-@@ -0,0 +1,66 @@
-+/*
-+ * Copyright (C) 2013 Altera Corporation
-+ * Copyright (C) 2011-2012 Tobias Klauser <tklauser@distanz.ch>
-+ * Copyright (C) 2004 Microtronix Datacom Ltd.
-+ *
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License.  See the file "COPYING" in the main directory of this archive
-+ * for more details.
-+ */
++#define TLBMISC_PID	(TLBMISC_PID_MASK << TLBMISC_PID_SHIFT)	/* TLB PID */
++#define TLBMISC_WE	(1 << 18)	/* TLB write enable */
++#define TLBMISC_RD	(1 << 19)	/* TLB read */
++#define TLBMISC_WAY	(TLBMISC_WAY_MASK << TLBMISC_WAY_SHIFT) /* TLB way */
 +
-+#include <linux/export.h>
-+#include <linux/file.h>
-+#include <linux/fs.h>
-+#include <linux/slab.h>
-+#include <linux/syscalls.h>
-+
-+#include <asm/cacheflush.h>
-+#include <asm/traps.h>
-+
-+/* sys_cacheflush -- flush the processor cache. */
-+asmlinkage int sys_cacheflush(unsigned long addr, unsigned long len,
-+				unsigned int op)
-+{
-+	struct vm_area_struct *vma;
-+
-+	if (len == 0)
-+		return 0;
-+
-+	/* We only support op 0 now, return error if op is non-zero.*/
-+	if (op)
-+		return -EINVAL;
-+
-+	/* Check for overflow */
-+	if (addr + len < addr)
-+		return -EFAULT;
-+
-+	/*
-+	 * Verify that the specified address region actually belongs
-+	 * to this process.
-+	 */
-+	vma = find_vma(current->mm, addr);
-+	if (vma == NULL || addr < vma->vm_start || addr + len > vma->vm_end)
-+		return -EFAULT;
-+
-+	flush_cache_range(vma, addr, addr + len);
-+
-+	return 0;
-+}
-+
-+asmlinkage int sys_getpagesize(void)
-+{
-+	return PAGE_SIZE;
-+}
-+
-+#if defined(CONFIG_FB) || defined(CONFIG_FB_MODULE)
-+#include <linux/fb.h>
-+unsigned long get_fb_unmapped_area(struct file *filp, unsigned long orig_addr,
-+		unsigned long len, unsigned long pgoff, unsigned long flags)
-+{
-+
-+	struct fb_info *info = filp->private_data;
-+
-+	return (unsigned long)info->screen_base;
-+}
-+EXPORT_SYMBOL(get_fb_unmapped_area);
-+#endif /* CONFIG_FB */
-diff --git a/arch/nios2/kernel/syscall_table.c b/arch/nios2/kernel/syscall_table.c
-new file mode 100644
-index 0000000..06e6ac1
---- /dev/null
-+++ b/arch/nios2/kernel/syscall_table.c
-@@ -0,0 +1,29 @@
-+/*
-+ * Copyright Altera Corporation (C) 2013. All rights reserved
-+ *
-+ * This program is free software; you can redistribute it and/or modify it
-+ * under the terms and conditions of the GNU General Public License,
-+ * version 2, as published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope it will be useful, but WITHOUT
-+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
-+ * more details.
-+ *
-+ * You should have received a copy of the GNU General Public License along with
-+ * this program.  If not, see <http://www.gnu.org/licenses/>.
-+ *
-+ */
-+
-+#include <linux/syscalls.h>
-+#include <linux/signal.h>
-+#include <linux/unistd.h>
-+
-+#include <asm/syscalls.h>
-+
-+#undef __SYSCALL
-+#define __SYSCALL(nr, call) [nr] = (call),
-+
-+void *sys_call_table[__NR_syscalls] = {
-+#include <asm/unistd.h>
-+};
++#endif /* _ASM_NIOS2_REGISTERS_H */
 -- 
 1.8.2.1
 
