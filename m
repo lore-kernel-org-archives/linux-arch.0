@@ -1,155 +1,140 @@
 From: Liviu Dudau <Liviu.Dudau@arm.com>
-Subject: Re: [PATCH v9 06/12] ARM: integrator: Correct usage of
- of_pci_range_to_resource()
-Date: Mon, 8 Sep 2014 13:25:49 +0100
-Message-ID: <20140908122549.GI27864@e106497-lin.cambridge.arm.com>
-References: <1407860725-25202-1-git-send-email-Liviu.Dudau@arm.com>
- <1407860725-25202-7-git-send-email-Liviu.Dudau@arm.com>
- <20140905220820.GI8080@google.com>
+Subject: [PATCH v10 06/10] PCI: Introduce generic domain handling for PCI
+ busses.
+Date: Mon,  8 Sep 2014 14:54:28 +0100
+Message-ID: <1410184472-17630-7-git-send-email-Liviu.Dudau@arm.com>
+References: <1410184472-17630-1-git-send-email-Liviu.Dudau@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from service87.mimecast.com ([91.220.42.44]:33775 "EHLO
-	service87.mimecast.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753311AbaIHMZy convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 8 Sep 2014 08:25:54 -0400
-In-Reply-To: <20140905220820.GI8080@google.com>
-Content-Disposition: inline
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Bjorn Helgaas <bhelgaas@google.com>
-Cc: Catalin Marinas <Catalin.Marinas@arm.com>, Will Deacon <Will.Deacon@arm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@arm.linux.org.uk>, Tanmay Inamdar <tinamdar@apm.com>, Grant Likely <grant.likely@secretlab.ca>, Sinan Kaya <okaya@codeaurora.org>, Jingoo Han <jg1.han@samsung.com>, Kukjin Kim <kgene.kim@samsung.com>, Suravee Suthikulanit <suravee.suthikulpanit@amd.com>, linux-pci <linux-pci@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Device Tree ML <devicetree@vger.kernel.org>, LAKML <linux-arm-kernel@lists.infradead.org>, Linus Walleij <linus.walleij@linaro.org>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+In-Reply-To: <1410184472-17630-1-git-send-email-Liviu.Dudau@arm.com>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+To: Bjorn Helgaas <bhelgaas@google.com>, Arnd Bergmann <arnd@arndb.de>, Rob Herring <robh+dt@kernel.org>, Jason Gunthorpe <jgunthorpe@obsidianresearch.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <Will.Deacon@arm.com>, Russell King <linux@arm.linux.org.uk>, linux-pci <linux-pci@vger.kernel.org>, Linus Walleij <linus.walleij@linaro.org>
+Cc: linux-arch <linux-arch@vger.kernel.org>, Sinan Kaya <okaya@codeaurora.org>, Kukjin Kim <kgene.kim@samsung.com>, Device Tree ML <devicetree@vger.kernel.org>, Catalin Marinas <Catalin.Marinas@arm.com>, Jingoo Han <jg1.han@samsung.com>, LKML <linux-kernel@vger.kernel.org>, Grant Likely <grant.likely@secretlab.ca>, Tanmay Inamdar <tinamdar@apm.com>, Suravee Suthikulanit <suravee.suthikulpanit@amd.com>, LAKML <linux-arm-kernel@lists.infradead.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Fri, Sep 05, 2014 at 11:08:20PM +0100, Bjorn Helgaas wrote:
-> [+cc Linus]
->=20
-> On Tue, Aug 12, 2014 at 05:25:19PM +0100, Liviu Dudau wrote:
-> > Previously, of_pci_range_to_resource() would return a resource
-> > that contained physical addresses of the IO space even if the
-> > IORESOURCE_IO flags mandate a logical port set of values. Now
-> > that the function has been fixed we need to update the drivers
-> > that were taking advantage of the old behaviour.
-> >=20
-> > Cc: Linus Walleij <linus.walleij@linaro.org>
-> > Cc: Arnd Bergmann <arnd@arndb.de>
-> > Cc: Rob Herring <robh+dt@kernel.org>
-> > Cc: Russell King <linux@arm.linux.org.uk>
-> > Signed-off-by: Liviu Dudau <Liviu.Dudau@arm.com>
->=20
-> Something's wrong with the CC: list.  You list Linus here in the chan=
-gelog,
-> but I don't see him in the CC: headers.
+The handling of PCI domains (or PCI segments in ACPI speak) is
+usually a straightforward affair but its implementation is
+currently left to the architectural code, with pci_domain_nr(b)
+querying the value of the domain associated with bus b.
 
-Yes, turns out one of my .git/config directories had supresscc=3Dall.
+This patch introduces CONFIG_PCI_DOMAINS_GENERIC as an
+option that can be selected if an architecture want a
+simple implementation where the value of the domain
+associated with a bus is stored in struct pci_bus.
 
-Best regards,
-Liviu
+The architectures that select CONFIG_PCI_DOMAINS_GENERIC will
+then have to implement pci_bus_assign_domain_nr() as a way
+of setting the domain number associated with a root bus.
+All child busses except the root bus will inherit the domain_nr
+value from their parent.
 
->=20
-> > ---
-> >  arch/arm/mach-integrator/pci_v3.c | 24 +++++++++++++-----------
-> >  1 file changed, 13 insertions(+), 11 deletions(-)
-> >=20
-> > diff --git a/arch/arm/mach-integrator/pci_v3.c b/arch/arm/mach-inte=
-grator/pci_v3.c
-> > index 05e1f73..193b7f8 100644
-> > --- a/arch/arm/mach-integrator/pci_v3.c
-> > +++ b/arch/arm/mach-integrator/pci_v3.c
-> > @@ -660,6 +660,7 @@ static void __init pci_v3_preinit(void)
-> >  {
-> >  	unsigned long flags;
-> >  	unsigned int temp;
-> > +	phys_addr_t io_address =3D pci_pio_to_address(io_mem.start);
-> > =20
-> >  	pcibios_min_mem =3D 0x00100000;
-> > =20
-> > @@ -701,7 +702,7 @@ static void __init pci_v3_preinit(void)
-> >  	/*
-> >  	 * Setup window 2 - PCI IO
-> >  	 */
-> > -	v3_writel(V3_LB_BASE2, v3_addr_to_lb_base2(io_mem.start) |
-> > +	v3_writel(V3_LB_BASE2, v3_addr_to_lb_base2(io_address) |
-> >  			V3_LB_BASE_ENABLE);
-> >  	v3_writew(V3_LB_MAP2, v3_addr_to_lb_map2(0));
-> > =20
-> > @@ -742,6 +743,7 @@ static void __init pci_v3_preinit(void)
-> >  static void __init pci_v3_postinit(void)
-> >  {
-> >  	unsigned int pci_cmd;
-> > +	phys_addr_t io_address =3D pci_pio_to_address(io_mem.start);
-> > =20
-> >  	pci_cmd =3D PCI_COMMAND_MEMORY |
-> >  		  PCI_COMMAND_MASTER | PCI_COMMAND_INVALIDATE;
-> > @@ -758,7 +760,7 @@ static void __init pci_v3_postinit(void)
-> >  		       "interrupt: %d\n", ret);
-> >  #endif
-> > =20
-> > -	register_isa_ports(non_mem.start, io_mem.start, 0);
-> > +	register_isa_ports(non_mem.start, io_address, 0);
-> >  }
-> > =20
-> >  /*
-> > @@ -867,33 +869,33 @@ static int __init pci_v3_probe(struct platfor=
-m_device *pdev)
-> > =20
-> >  	for_each_of_pci_range(&parser, &range) {
-> >  		if (!range.flags) {
-> > -			of_pci_range_to_resource(&range, np, &conf_mem);
-> > +			ret =3D of_pci_range_to_resource(&range, np, &conf_mem);
-> >  			conf_mem.name =3D "PCIv3 config";
-> >  		}
-> >  		if (range.flags & IORESOURCE_IO) {
-> > -			of_pci_range_to_resource(&range, np, &io_mem);
-> > +			ret =3D of_pci_range_to_resource(&range, np, &io_mem);
-> > +			dev_info(&pdev->dev, "IO PCI range converted\n");
-> >  			io_mem.name =3D "PCIv3 I/O";
-> >  		}
-> >  		if ((range.flags & IORESOURCE_MEM) &&
-> >  			!(range.flags & IORESOURCE_PREFETCH)) {
-> >  			non_mem_pci =3D range.pci_addr;
-> >  			non_mem_pci_sz =3D range.size;
-> > -			of_pci_range_to_resource(&range, np, &non_mem);
-> > +			ret =3D of_pci_range_to_resource(&range, np, &non_mem);
-> >  			non_mem.name =3D "PCIv3 non-prefetched mem";
-> >  		}
-> >  		if ((range.flags & IORESOURCE_MEM) &&
-> >  			(range.flags & IORESOURCE_PREFETCH)) {
-> >  			pre_mem_pci =3D range.pci_addr;
-> >  			pre_mem_pci_sz =3D range.size;
-> > -			of_pci_range_to_resource(&range, np, &pre_mem);
-> > +			ret =3D of_pci_range_to_resource(&range, np, &pre_mem);
-> >  			pre_mem.name =3D "PCIv3 prefetched mem";
-> >  		}
-> > -	}
-> > =20
-> > -	if (!conf_mem.start || !io_mem.start ||
-> > -	    !non_mem.start || !pre_mem.start) {
-> > -		dev_err(&pdev->dev, "missing ranges in device node\n");
-> > -		return -EINVAL;
-> > +		if (ret < 0) {
-> > +			dev_err(&pdev->dev, "missing ranges in device node\n");
-> > +			return -EINVAL;
-> > +		}
-> >  	}
-> > =20
-> >  	pci_v3.map_irq =3D of_irq_parse_and_map_pci;
-> > --=20
-> > 2.0.4
-> >=20
-> --
-> To unsubscribe from this list: send the line "unsubscribe linux-pci" =
-in
-> the body of a message to majordomo@vger.kernel.org
-> More majordomo info at  http://vger.kernel.org/majordomo-info.html
->=20
+Cc: Bjorn Helgaas <bhelgaas@google.com>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Signed-off-by: Catalin Marinas <Catalin.Marinas@arm.com>
+[Renamed pci_set_domain_nr() to pci_bus_assign_domain_nr()]
+Signed-off-by: Liviu Dudau <Liviu.Dudau@arm.com>
+---
+ drivers/pci/probe.c | 11 ++++++++---
+ include/linux/pci.h | 21 +++++++++++++++++++++
+ 2 files changed, 29 insertions(+), 3 deletions(-)
 
---=20
-=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D
-| I would like to |
-| fix the world,  |
-| but they're not |
-| giving me the   |
- \ source code!  /
-  ---------------
-    =C2=AF\_(=E3=83=84)_/=C2=AF
+diff --git a/drivers/pci/probe.c b/drivers/pci/probe.c
+index 5ff72ec..ef891d2 100644
+--- a/drivers/pci/probe.c
++++ b/drivers/pci/probe.c
+@@ -485,7 +485,7 @@ void pci_read_bridge_bases(struct pci_bus *child)
+ 	}
+ }
+ 
+-static struct pci_bus *pci_alloc_bus(void)
++static struct pci_bus *pci_alloc_bus(struct pci_bus *parent)
+ {
+ 	struct pci_bus *b;
+ 
+@@ -500,6 +500,10 @@ static struct pci_bus *pci_alloc_bus(void)
+ 	INIT_LIST_HEAD(&b->resources);
+ 	b->max_bus_speed = PCI_SPEED_UNKNOWN;
+ 	b->cur_bus_speed = PCI_SPEED_UNKNOWN;
++#ifdef CONFIG_PCI_DOMAINS_GENERIC
++	if (parent)
++		b->domain_nr = parent->domain_nr;
++#endif
+ 	return b;
+ }
+ 
+@@ -672,7 +676,7 @@ static struct pci_bus *pci_alloc_child_bus(struct pci_bus *parent,
+ 	/*
+ 	 * Allocate a new bus, and inherit stuff from the parent..
+ 	 */
+-	child = pci_alloc_bus();
++	child = pci_alloc_bus(parent);
+ 	if (!child)
+ 		return NULL;
+ 
+@@ -1768,13 +1772,14 @@ struct pci_bus *pci_create_root_bus(struct device *parent, int bus,
+ 
+ 	bridge->dev.parent = parent;
+ 
+-	b = pci_alloc_bus();
++	b = pci_alloc_bus(NULL);
+ 	if (!b)
+ 		goto err_out;
+ 
+ 	b->sysdata = sysdata;
+ 	b->ops = ops;
+ 	b->number = b->busn_res.start = bus;
++	pci_bus_assign_domain_nr(b, parent);
+ 	b2 = pci_find_bus(pci_domain_nr(b), bus);
+ 	if (b2) {
+ 		/* If we already got to this bus through a different bridge, ignore it */
+diff --git a/include/linux/pci.h b/include/linux/pci.h
+index 61978a4..a494e5d 100644
+--- a/include/linux/pci.h
++++ b/include/linux/pci.h
+@@ -456,6 +456,9 @@ struct pci_bus {
+ 	unsigned char	primary;	/* number of primary bridge */
+ 	unsigned char	max_bus_speed;	/* enum pci_bus_speed */
+ 	unsigned char	cur_bus_speed;	/* enum pci_bus_speed */
++#ifdef CONFIG_PCI_DOMAINS_GENERIC
++	int		domain_nr;
++#endif
+ 
+ 	char		name[48];
+ 
+@@ -1288,6 +1291,24 @@ static inline int pci_domain_nr(struct pci_bus *bus) { return 0; }
+ static inline int pci_proc_domain(struct pci_bus *bus) { return 0; }
+ #endif /* CONFIG_PCI_DOMAINS */
+ 
++/*
++ * Generic implementation for PCI domain support. If your
++ * architecture does not need custom management of PCI
++ * domains then this implementation will be used
++ */
++#ifdef CONFIG_PCI_DOMAINS_GENERIC
++static inline int pci_domain_nr(struct pci_bus *bus)
++{
++	return bus->domain_nr;
++}
++void pci_bus_assign_domain_nr(struct pci_bus *bus, struct device *parent);
++#else
++static inline void pci_bus_assign_domain_nr(struct pci_bus *bus,
++					struct device *parent)
++{
++}
++#endif
++
+ /* some architectures require additional setup to direct VGA traffic */
+ typedef int (*arch_set_vga_state_t)(struct pci_dev *pdev, bool decode,
+ 		      unsigned int command_bits, u32 flags);
+-- 
+2.0.4
