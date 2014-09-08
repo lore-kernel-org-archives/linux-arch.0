@@ -1,99 +1,38 @@
 From: Ley Foon Tan <lftan@altera.com>
-Subject: [PATCH v3 21/29] nios2: Time keeping
-Date: Mon, 8 Sep 2014 17:22:32 +0800
-Message-ID: <1410168160-3624-22-git-send-email-lftan@altera.com>
+Subject: [PATCH v3 12/29] nios2: TLB handling
+Date: Mon, 8 Sep 2014 17:22:23 +0800
+Message-ID: <1410168160-3624-13-git-send-email-lftan@altera.com>
 References: <1410168160-3624-1-git-send-email-lftan@altera.com>
 Mime-Version: 1.0
 Content-Type: text/plain
-Return-path: <linux-doc-owner@vger.kernel.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1410168160-3624-1-git-send-email-lftan@altera.com>
-Sender: linux-doc-owner@vger.kernel.org
+Sender: linux-kernel-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org
 Cc: Ley Foon Tan <lftan@altera.com>, lftan.linux@gmail.com, cltang@codesourcery.com
 List-Id: linux-arch.vger.kernel.org
 
-Add time keeping code for nios2.
+This patch adds the TLB maintenance functions.
 
 Signed-off-by: Ley Foon Tan <lftan@altera.com>
 ---
- arch/nios2/include/asm/delay.h |  21 +++
- arch/nios2/include/asm/timex.h |  26 ++++
- arch/nios2/kernel/time.c       | 318 +++++++++++++++++++++++++++++++++++++++++
- arch/nios2/lib/delay.c         |  52 +++++++
- 4 files changed, 417 insertions(+)
- create mode 100644 arch/nios2/include/asm/delay.h
- create mode 100644 arch/nios2/include/asm/timex.h
- create mode 100644 arch/nios2/kernel/time.c
- create mode 100644 arch/nios2/lib/delay.c
+ arch/nios2/include/asm/tlb.h      |  34 +++++
+ arch/nios2/include/asm/tlbflush.h |  46 +++++++
+ arch/nios2/mm/tlb.c               | 274 ++++++++++++++++++++++++++++++++++++++
+ 3 files changed, 354 insertions(+)
+ create mode 100644 arch/nios2/include/asm/tlb.h
+ create mode 100644 arch/nios2/include/asm/tlbflush.h
+ create mode 100644 arch/nios2/mm/tlb.c
 
-diff --git a/arch/nios2/include/asm/delay.h b/arch/nios2/include/asm/delay.h
+diff --git a/arch/nios2/include/asm/tlb.h b/arch/nios2/include/asm/tlb.h
 new file mode 100644
-index 0000000..098e49b
+index 0000000..d3bc648
 --- /dev/null
-+++ b/arch/nios2/include/asm/delay.h
-@@ -0,0 +1,21 @@
++++ b/arch/nios2/include/asm/tlb.h
+@@ -0,0 +1,34 @@
 +/*
-+ * Copyright (C) 2014 Altera Corporation
-+ * Copyright (C) 2004 Microtronix Datacom Ltd
-+ *
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License.  See the file "COPYING" in the main directory of this archive
-+ * for more details.
-+ */
-+
-+#ifndef _ASM_NIOS2_DELAY_H
-+#define _ASM_NIOS2_DELAY_H
-+
-+#include <asm-generic/delay.h>
-+
-+/* Undefined functions to get compile-time errors */
-+extern void __bad_udelay(void);
-+extern void __bad_ndelay(void);
-+
-+extern unsigned long loops_per_jiffy;
-+
-+#endif /* _ASM_NIOS2_DELAY_H */
-diff --git a/arch/nios2/include/asm/timex.h b/arch/nios2/include/asm/timex.h
-new file mode 100644
-index 0000000..8996106
---- /dev/null
-+++ b/arch/nios2/include/asm/timex.h
-@@ -0,0 +1,26 @@
-+/* Copyright Altera Corporation (C) 2014. All rights reserved.
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License, version 2,
-+ * as published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
-+ *
-+ */
-+
-+#ifndef _ASM_NIOS2_TIMEX_H
-+#define _ASM_NIOS2_TIMEX_H
-+
-+typedef unsigned long cycles_t;
-+
-+extern cycles_t get_cycles(void);
-+
-+#define ARCH_HAS_READ_CURRENT_TIMER
-+
-+#endif
-diff --git a/arch/nios2/kernel/time.c b/arch/nios2/kernel/time.c
-new file mode 100644
-index 0000000..ca51f08
---- /dev/null
-+++ b/arch/nios2/kernel/time.c
-@@ -0,0 +1,318 @@
-+/*
-+ * Copyright (C) 2013-2014 Altera Corporation
 + * Copyright (C) 2010 Tobias Klauser <tklauser@distanz.ch>
++ * Copyright (C) 2009 Wind River Systems Inc
 + * Copyright (C) 2004 Microtronix Datacom Ltd.
 + *
 + * This file is subject to the terms and conditions of the GNU General Public
@@ -101,325 +40,43 @@ index 0000000..ca51f08
 + * for more details.
 + */
 +
-+#include <linux/interrupt.h>
-+#include <linux/clockchips.h>
-+#include <linux/clocksource.h>
-+#include <linux/of.h>
-+#include <linux/of_address.h>
-+#include <linux/of_irq.h>
-+#include <linux/io.h>
-+#include <linux/slab.h>
++#ifndef _ASM_NIOS2_TLB_H
++#define _ASM_NIOS2_TLB_H
 +
-+#define ALTERA_TIMER_STATUS_REG		0
-+#define ALTERA_TIMER_CONTROL_REG	4
-+#define ALTERA_TIMER_PERIODL_REG	8
-+#define ALTERA_TIMER_PERIODH_REG	12
-+#define ALTERA_TIMER_SNAPL_REG		16
-+#define ALTERA_TIMER_SNAPH_REG		20
++#define tlb_flush(tlb)	flush_tlb_mm((tlb)->mm)
 +
-+#define ALTERA_TIMER_CONTROL_ITO_MSK	(0x1)
-+#define ALTERA_TIMER_CONTROL_CONT_MSK	(0x2)
-+#define ALTERA_TIMER_CONTROL_START_MSK	(0x4)
-+#define ALTERA_TIMER_CONTROL_STOP_MSK	(0x8)
++extern void set_mmu_pid(unsigned long pid);
 +
-+struct nios2_timer {
-+	void __iomem *base;
-+	unsigned long freq;
-+	int irq;
-+};
++/*
++ * NiosII doesn't need any special per-pte or per-vma handling, except
++ * we need to flush cache for the area to be unmapped.
++ */
++#define tlb_start_vma(tlb, vma)					\
++	do {							\
++		if (!tlb->fullmm)				\
++			flush_cache_range(vma, vma->vm_start, vma->vm_end); \
++	}  while (0)
 +
-+struct nios2_clockevent_dev {
-+	struct nios2_timer timer;
-+	struct clock_event_device ced;
-+	struct irqaction irqaction;
-+};
++#define tlb_end_vma(tlb, vma)	do { } while (0)
++#define __tlb_remove_tlb_entry(tlb, ptep, address)	do { } while (0)
 +
-+struct nios2_clocksource {
-+	struct nios2_timer timer;
-+	struct clocksource cs;
-+};
++#include <linux/pagemap.h>
++#include <asm-generic/tlb.h>
 +
-+struct nios2_clocksource *nios2_cs;
-+
-+static inline struct nios2_clockevent_dev *
-+	to_nios2_clkevent(struct clock_event_device *evt)
-+{
-+	return container_of(evt, struct nios2_clockevent_dev, ced);
-+}
-+
-+static inline struct nios2_clocksource *
-+	to_nios2_clksource(struct clocksource *cs)
-+{
-+	return container_of(cs, struct nios2_clocksource, cs);
-+}
-+
-+static u16 timer_readw(struct nios2_timer *timer, u32 offs)
-+{
-+	return readw(timer->base + offs);
-+}
-+
-+static void timer_writew(struct nios2_timer *timer, u16 val, u32 offs)
-+{
-+	writew(val, timer->base + offs);
-+}
-+
-+static inline unsigned long read_timersnapshot(struct nios2_timer *timer)
-+{
-+	unsigned long count;
-+
-+	timer_writew(timer, 0, ALTERA_TIMER_SNAPL_REG);
-+	count = timer_readw(timer, ALTERA_TIMER_SNAPH_REG) << 16 |
-+		timer_readw(timer, ALTERA_TIMER_SNAPL_REG);
-+
-+	return count;
-+}
-+
-+static cycle_t nios2_timer_read(struct clocksource *cs)
-+{
-+	struct nios2_clocksource *nios2_cs = to_nios2_clksource(cs);
-+	unsigned long flags;
-+	u32 count;
-+
-+	local_irq_save(flags);
-+	count = read_timersnapshot(&nios2_cs->timer);
-+	local_irq_restore(flags);
-+
-+	/* Counter is counting down */
-+	return ~count;
-+}
-+
-+cycles_t get_cycles(void)
-+{
-+	return nios2_timer_read(&nios2_cs->cs);
-+}
-+
-+int read_current_timer(unsigned long *timer_val)
-+{
-+	*timer_val = (unsigned long) get_cycles();
-+	return 0;
-+}
-+
-+static void nios2_timer_start(struct nios2_timer *timer)
-+{
-+	u16 ctrl;
-+
-+	ctrl = timer_readw(timer, ALTERA_TIMER_CONTROL_REG);
-+	ctrl |= ALTERA_TIMER_CONTROL_START_MSK;
-+	timer_writew(timer, ctrl, ALTERA_TIMER_CONTROL_REG);
-+}
-+
-+static void nios2_timer_stop(struct nios2_timer *timer)
-+{
-+	u16 ctrl;
-+
-+	ctrl = timer_readw(timer, ALTERA_TIMER_CONTROL_REG);
-+	ctrl |= ALTERA_TIMER_CONTROL_STOP_MSK;
-+	timer_writew(timer, ctrl, ALTERA_TIMER_CONTROL_REG);
-+}
-+
-+static void nios2_timer_config(struct nios2_timer *timer, unsigned long period,
-+	enum clock_event_mode mode)
-+{
-+	u16 ctrl;
-+
-+	/* The timer's actual period is one cycle greater than the value
-+	 * stored in the period register. */
-+	if (period)
-+		period--;
-+
-+	ctrl = timer_readw(timer, ALTERA_TIMER_CONTROL_REG);
-+	/* stop counter */
-+	timer_writew(timer, ctrl | ALTERA_TIMER_CONTROL_STOP_MSK,
-+		ALTERA_TIMER_CONTROL_REG);
-+
-+	/* write new count */
-+	timer_writew(timer, period, ALTERA_TIMER_PERIODL_REG);
-+	timer_writew(timer, period >> 16, ALTERA_TIMER_PERIODH_REG);
-+
-+	ctrl |= ALTERA_TIMER_CONTROL_START_MSK | ALTERA_TIMER_CONTROL_ITO_MSK;
-+	if (mode == CLOCK_EVT_MODE_PERIODIC)
-+		ctrl |= ALTERA_TIMER_CONTROL_CONT_MSK;
-+	else
-+		ctrl &= ~ALTERA_TIMER_CONTROL_CONT_MSK;
-+	timer_writew(timer, ctrl, ALTERA_TIMER_CONTROL_REG);
-+}
-+
-+static int nios2_timer_set_next_event(unsigned long delta,
-+	struct clock_event_device *evt)
-+{
-+	struct nios2_clockevent_dev *nios2_ced = to_nios2_clkevent(evt);
-+
-+	nios2_timer_config(&nios2_ced->timer, delta, evt->mode);
-+
-+	return 0;
-+}
-+
-+static void nios2_timer_set_mode(enum clock_event_mode mode,
-+	struct clock_event_device *evt)
-+{
-+	unsigned long period;
-+	struct nios2_clockevent_dev *nios2_ced = to_nios2_clkevent(evt);
-+	struct nios2_timer *timer = &nios2_ced->timer;
-+
-+	switch (mode) {
-+	case CLOCK_EVT_MODE_PERIODIC:
-+		period = DIV_ROUND_UP(timer->freq, HZ);
-+		nios2_timer_config(timer, period, CLOCK_EVT_MODE_PERIODIC);
-+		break;
-+	case CLOCK_EVT_MODE_ONESHOT:
-+		nios2_timer_config(timer, ULONG_MAX, CLOCK_EVT_MODE_ONESHOT);
-+		break;
-+	case CLOCK_EVT_MODE_UNUSED:
-+	case CLOCK_EVT_MODE_SHUTDOWN:
-+		nios2_timer_stop(timer);
-+		break;
-+	case CLOCK_EVT_MODE_RESUME:
-+		nios2_timer_start(timer);
-+		break;
-+	}
-+}
-+
-+irqreturn_t timer_interrupt(int irq, void *dev_id)
-+{
-+	struct clock_event_device *evt = (struct clock_event_device *) dev_id;
-+	struct nios2_clockevent_dev *nios2_ced = to_nios2_clkevent(evt);
-+
-+	/* Clear the interrupt condition */
-+	timer_writew(&nios2_ced->timer, 0, ALTERA_TIMER_STATUS_REG);
-+	evt->event_handler(evt);
-+
-+	return IRQ_HANDLED;
-+}
-+
-+static void __init nios2_timer_get_base_and_freq(struct device_node *np,
-+				    void __iomem **base, u32 *freq)
-+{
-+	*base = of_iomap(np, 0);
-+	if (!*base)
-+		panic("Unable to map reg for %s\n", np->name);
-+
-+	if (of_property_read_u32(np, "clock-frequency", freq))
-+		panic("Unable to get %s clock frequency\n", np->name);
-+}
-+
-+static __init void nios2_clockevent_init(struct device_node *timer)
-+{
-+	struct nios2_clockevent_dev *ce;
-+	void __iomem *iobase;
-+	u32 freq;
-+	int irq;
-+
-+	ce = kzalloc(sizeof(*ce), GFP_KERNEL);
-+	if (!ce)
-+		panic("Failed to allocate memory for %s\n", timer->name);
-+
-+	nios2_timer_get_base_and_freq(timer, &iobase, &freq);
-+
-+	irq = irq_of_parse_and_map(timer, 0);
-+	if (irq < 0)
-+		panic("Unable to parse timer irq\n");
-+
-+	ce->timer.base = iobase;
-+	ce->timer.irq = irq;
-+	ce->timer.freq = freq;
-+
-+	ce->ced.name = timer->name;
-+	ce->ced.features = CLOCK_EVT_FEAT_PERIODIC | CLOCK_EVT_FEAT_ONESHOT;
-+	ce->ced.rating = 250;
-+	ce->ced.shift = 32;
-+	ce->ced.set_next_event = nios2_timer_set_next_event;
-+	ce->ced.set_mode = nios2_timer_set_mode;
-+	ce->ced.cpumask = cpumask_of(0);
-+	ce->ced.irq = irq;
-+
-+	ce->irqaction.name = timer->name;
-+	ce->irqaction.handler = timer_interrupt;
-+	ce->irqaction.dev_id = &ce->ced;
-+	ce->irqaction.irq = irq;
-+	ce->irqaction.flags = IRQF_TIMER;
-+
-+	nios2_timer_stop(&ce->timer);
-+	/* clear pending interrupt */
-+	timer_writew(&ce->timer, 0, ALTERA_TIMER_STATUS_REG);
-+
-+	if (setup_irq(irq, &ce->irqaction))
-+		panic("Unable to setup timer irq\n");
-+
-+	clockevents_config_and_register(&ce->ced, freq, 1, ULONG_MAX);
-+}
-+
-+static __init void nios2_clocksource_init(struct device_node *timer)
-+{
-+	unsigned int ctrl;
-+	void __iomem *iobase;
-+	u32 freq;
-+
-+	nios2_cs = kzalloc(sizeof(*nios2_cs), GFP_KERNEL);
-+	if (!nios2_cs)
-+		panic("Failed to allocate memory for %s\n", timer->name);
-+
-+	nios2_timer_get_base_and_freq(timer, &iobase, &freq);
-+
-+	nios2_cs->timer.base = iobase;
-+	nios2_cs->timer.freq = freq;
-+
-+	nios2_cs->cs.name = timer->name;
-+	nios2_cs->cs.rating = 250;
-+	nios2_cs->cs.read = nios2_timer_read;
-+	nios2_cs->cs.mask = CLOCKSOURCE_MASK(32);
-+	nios2_cs->cs.flags = CLOCK_SOURCE_IS_CONTINUOUS;
-+
-+	clocksource_register_hz(&nios2_cs->cs, freq);
-+
-+	timer_writew(&nios2_cs->timer, USHRT_MAX, ALTERA_TIMER_PERIODL_REG);
-+	timer_writew(&nios2_cs->timer, USHRT_MAX, ALTERA_TIMER_PERIODH_REG);
-+
-+	/* interrupt disable + continuous + start */
-+	ctrl = ALTERA_TIMER_CONTROL_CONT_MSK | ALTERA_TIMER_CONTROL_START_MSK;
-+	timer_writew(&nios2_cs->timer, ctrl, ALTERA_TIMER_CONTROL_REG);
-+}
-+
-+
-+static int num_called;
-+static void __init nios2_time_init(struct device_node *timer)
-+{
-+	switch (num_called) {
-+	case 0:
-+		nios2_clockevent_init(timer);
-+		break;
-+	case 1:
-+		nios2_clocksource_init(timer);
-+		break;
-+	default:
-+		break;
-+	}
-+
-+	num_called++;
-+}
-+
-+void read_persistent_clock(struct timespec *ts)
-+{
-+	ts->tv_sec = mktime(2007, 1, 1, 0, 0, 0);
-+	ts->tv_nsec = 0;
-+}
-+
-+void __init time_init(void)
-+{
-+	clocksource_of_init();
-+}
-+
-+CLOCKSOURCE_OF_DECLARE(nios2_timer, "altr,timer-1.0", nios2_time_init);
-diff --git a/arch/nios2/lib/delay.c b/arch/nios2/lib/delay.c
++#endif /* _ASM_NIOS2_TLB_H */
+diff --git a/arch/nios2/include/asm/tlbflush.h b/arch/nios2/include/asm/tlbflush.h
 new file mode 100644
-index 0000000..088119c
+index 0000000..e19652f
 --- /dev/null
-+++ b/arch/nios2/lib/delay.c
-@@ -0,0 +1,52 @@
-+/* Copyright Altera Corporation (C) 2014. All rights reserved.
++++ b/arch/nios2/include/asm/tlbflush.h
+@@ -0,0 +1,46 @@
++/*
++ * Copyright (C) 2010 Tobias Klauser <tklauser@distanz.ch>
 + *
 + * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License, version 2,
-+ * as published by the Free Software Foundation.
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
 + *
 + * This program is distributed in the hope that it will be useful,
 + * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -431,42 +88,313 @@ index 0000000..088119c
 + *
 + */
 +
-+#include <linux/module.h>
-+#include <asm/delay.h>
-+#include <asm/param.h>
-+#include <asm/processor.h>
-+#include <asm/timex.h>
++#ifndef _ASM_NIOS2_TLBFLUSH_H
++#define _ASM_NIOS2_TLBFLUSH_H
 +
-+void __delay(unsigned long cycles)
++struct mm_struct;
++
++/*
++ * TLB flushing:
++ *
++ *  - flush_tlb_all() flushes all processes TLB entries
++ *  - flush_tlb_mm(mm) flushes the specified mm context TLB entries
++ *  - flush_tlb_page(vma, vmaddr) flushes one page
++ *  - flush_tlb_range(vma, start, end) flushes a range of pages
++ *  - flush_tlb_kernel_range(start, end) flushes a range of kernel pages
++ */
++extern void flush_tlb_all(void);
++extern void flush_tlb_mm(struct mm_struct *mm);
++extern void flush_tlb_range(struct vm_area_struct *vma, unsigned long start,
++			    unsigned long end);
++extern void flush_tlb_kernel_range(unsigned long start, unsigned long end);
++extern void flush_tlb_one(unsigned long vaddr);
++
++static inline void flush_tlb_page(struct vm_area_struct *vma,
++				unsigned long addr)
 +{
-+	cycles_t start = get_cycles();
-+
-+	while ((get_cycles() - start) < cycles)
-+		cpu_relax();
++	flush_tlb_one(addr);
 +}
-+EXPORT_SYMBOL(__delay);
 +
-+void __const_udelay(unsigned long xloops)
++#endif /* _ASM_NIOS2_TLBFLUSH_H */
+diff --git a/arch/nios2/mm/tlb.c b/arch/nios2/mm/tlb.c
+new file mode 100644
+index 0000000..642b6df
+--- /dev/null
++++ b/arch/nios2/mm/tlb.c
+@@ -0,0 +1,274 @@
++/*
++ * Nios2 TLB handling
++ *
++ * Copyright (C) 2009, Wind River Systems Inc
++ *   Implemented by fredrik.markstrom@gmail.com and ivarholmqvist@gmail.com
++ *
++ * This file is subject to the terms and conditions of the GNU General Public
++ * License.  See the file "COPYING" in the main directory of this archive
++ * for more details.
++ */
++
++#include <linux/init.h>
++#include <linux/sched.h>
++#include <linux/mm.h>
++#include <linux/pagemap.h>
++
++#include <asm/tlb.h>
++#include <asm/mmu_context.h>
++#include <asm/pgtable.h>
++#include <asm/cpuinfo.h>
++
++#define TLB_INDEX_MASK		\
++	((((1UL << (cpuinfo.tlb_ptr_sz - cpuinfo.tlb_num_ways_log2))) - 1) \
++		<< PAGE_SHIFT)
++
++/* Used as illegal PHYS_ADDR for TLB mappings
++ */
++#define MAX_PHYS_ADDR 0
++
++static void get_misc_and_pid(unsigned long *misc, unsigned long *pid)
 +{
-+	u64 loops;
-+
-+	loops = (u64)xloops * loops_per_jiffy * HZ;
-+
-+	__delay(loops >> 32);
++	*misc  = RDCTL(CTL_TLBMISC);
++	*misc &= (TLBMISC_PID | TLBMISC_WAY);
++	*pid  = *misc & TLBMISC_PID;
 +}
-+EXPORT_SYMBOL(__const_udelay);
 +
-+void __udelay(unsigned long usecs)
++/*
++ * All entries common to a mm share an asid.  To effectively flush these
++ * entries, we just bump the asid.
++ */
++void flush_tlb_mm(struct mm_struct *mm)
 +{
-+	__const_udelay(usecs * 0x10C7UL); /* 2**32 / 1000000 (rounded up) */
++	if (current->mm == mm)
++		flush_tlb_all();
++	else
++		memset(&mm->context, 0, sizeof(mm_context_t));
 +}
-+EXPORT_SYMBOL(__udelay);
 +
-+void __ndelay(unsigned long nsecs)
++/*
++ * This one is only used for pages with the global bit set so we don't care
++ * much about the ASID.
++ */
++void flush_tlb_one_pid(unsigned long addr, unsigned long mmu_pid)
 +{
-+	__const_udelay(nsecs * 0x5UL); /* 2**32 / 1000000000 (rounded up) */
++	unsigned int way;
++	unsigned long org_misc, pid_misc;
++
++	pr_debug("Flush tlb-entry for vaddr=%#lx\n", addr);
++
++	/* remember pid/way until we return. */
++	get_misc_and_pid(&org_misc, &pid_misc);
++
++	WRCTL(CTL_PTEADDR, (addr >> PAGE_SHIFT) << 2);
++
++	for (way = 0; way < cpuinfo.tlb_num_ways; way++) {
++		unsigned long pteaddr;
++		unsigned long tlbmisc;
++		unsigned long pid;
++
++		tlbmisc = pid_misc | TLBMISC_RD | (way << TLBMISC_WAY_SHIFT);
++		WRCTL(CTL_TLBMISC, tlbmisc);
++		pteaddr = RDCTL(CTL_PTEADDR);
++		tlbmisc = RDCTL(CTL_TLBMISC);
++		pid = (tlbmisc >> TLBMISC_PID_SHIFT) & TLBMISC_PID_MASK;
++		if (((((pteaddr >> 2) & 0xfffff)) == (addr >> PAGE_SHIFT)) &&
++				pid == mmu_pid) {
++			unsigned long vaddr = CONFIG_NIOS2_IO_REGION_BASE +
++				((PAGE_SIZE * cpuinfo.tlb_num_lines) * way) +
++				(addr & TLB_INDEX_MASK);
++			pr_debug("Flush entry by writing %#lx way=%dl pid=%ld\n",
++				vaddr, way, (pid_misc >> TLBMISC_PID_SHIFT));
++
++			WRCTL(CTL_PTEADDR, (vaddr >> 12) << 2);
++			tlbmisc = pid_misc | TLBMISC_WE |
++				(way << TLBMISC_WAY_SHIFT);
++			WRCTL(CTL_TLBMISC, tlbmisc);
++			WRCTL(CTL_TLBACC, (MAX_PHYS_ADDR >> PAGE_SHIFT));
++		}
++	}
++
++	WRCTL(CTL_TLBMISC, org_misc);
 +}
-+EXPORT_SYMBOL(__ndelay);
++
++void flush_tlb_range(struct vm_area_struct *vma, unsigned long start,
++			unsigned long end)
++{
++	unsigned long mmu_pid = get_pid_from_context(&vma->vm_mm->context);
++
++	while (start < end) {
++		flush_tlb_one_pid(start, mmu_pid);
++		start += PAGE_SIZE;
++	}
++}
++
++void flush_tlb_kernel_range(unsigned long start, unsigned long end)
++{
++	while (start < end) {
++		flush_tlb_one(start);
++		start += PAGE_SIZE;
++	}
++}
++
++/*
++ * This one is only used for pages with the global bit set so we don't care
++ * much about the ASID.
++ */
++void flush_tlb_one(unsigned long addr)
++{
++	unsigned int way;
++	unsigned long org_misc, pid_misc;
++
++	pr_debug("Flush tlb-entry for vaddr=%#lx\n", addr);
++
++	/* remember pid/way until we return. */
++	get_misc_and_pid(&org_misc, &pid_misc);
++
++	WRCTL(CTL_PTEADDR, (addr >> PAGE_SHIFT) << 2);
++
++	for (way = 0; way < cpuinfo.tlb_num_ways; way++) {
++		unsigned long pteaddr;
++		unsigned long tlbmisc;
++
++		tlbmisc = pid_misc | TLBMISC_RD | (way << TLBMISC_WAY_SHIFT);
++		WRCTL(CTL_TLBMISC, tlbmisc);
++		pteaddr = RDCTL(CTL_PTEADDR);
++		tlbmisc = RDCTL(CTL_TLBMISC);
++
++		if ((((pteaddr >> 2) & 0xfffff)) == (addr >> PAGE_SHIFT)) {
++			unsigned long vaddr = CONFIG_NIOS2_IO_REGION_BASE +
++				((PAGE_SIZE * cpuinfo.tlb_num_lines) * way) +
++				(addr & TLB_INDEX_MASK);
++
++			pr_debug("Flush entry by writing %#lx way=%dl pid=%ld\n",
++				vaddr, way, (pid_misc >> TLBMISC_PID_SHIFT));
++
++			tlbmisc = pid_misc | TLBMISC_WE |
++				(way << TLBMISC_WAY_SHIFT);
++			WRCTL(CTL_PTEADDR, (vaddr >> 12) << 2);
++			WRCTL(CTL_TLBMISC, tlbmisc);
++			WRCTL(CTL_TLBACC, (MAX_PHYS_ADDR >> PAGE_SHIFT));
++		}
++	}
++
++	WRCTL(CTL_TLBMISC, org_misc);
++}
++
++void dump_tlb_line(unsigned long line)
++{
++	unsigned int way;
++	unsigned long org_misc;
++
++	pr_debug("dump tlb-entries for line=%#lx (addr %08lx)\n", line,
++		line << (PAGE_SHIFT + cpuinfo.tlb_num_ways_log2));
++
++	/* remember pid/way until we return */
++	org_misc = (RDCTL(CTL_TLBMISC) & (TLBMISC_PID | TLBMISC_WAY));
++
++	WRCTL(CTL_PTEADDR, line << 2);
++
++	for (way = 0; way < cpuinfo.tlb_num_ways; way++) {
++		unsigned long pteaddr;
++		unsigned long tlbmisc;
++		unsigned long tlbacc;
++
++		WRCTL(CTL_TLBMISC, TLBMISC_RD | (way << TLBMISC_WAY_SHIFT));
++		pteaddr = RDCTL(CTL_PTEADDR);
++		tlbmisc = RDCTL(CTL_TLBMISC);
++		tlbacc = RDCTL(CTL_TLBACC);
++
++		if ((tlbacc << PAGE_SHIFT) != (MAX_PHYS_ADDR & PAGE_MASK)) {
++			pr_debug("-- way:%02x vpn:0x%08lx phys:0x%08lx pid:0x%02lx flags:%c%c%c%c%c\n",
++				way,
++				(pteaddr << (PAGE_SHIFT-2)),
++				(tlbacc << PAGE_SHIFT),
++				((tlbmisc >> TLBMISC_PID_SHIFT) &
++				TLBMISC_PID_MASK),
++				(tlbacc & _PAGE_READ ? 'r' : '-'),
++				(tlbacc & _PAGE_WRITE ? 'w' : '-'),
++				(tlbacc & _PAGE_EXEC ? 'x' : '-'),
++				(tlbacc & _PAGE_GLOBAL ? 'g' : '-'),
++				(tlbacc & _PAGE_CACHED ? 'c' : '-'));
++		}
++	}
++
++	WRCTL(CTL_TLBMISC, org_misc);
++}
++
++void dump_tlb(void)
++{
++	unsigned int i;
++	for (i = 0; i < cpuinfo.tlb_num_lines; i++)
++		dump_tlb_line(i);
++}
++
++void flush_tlb_pid(unsigned long pid)
++{
++	unsigned int line;
++	unsigned int way;
++	unsigned long org_misc, pid_misc;
++
++	/* remember pid/way until we return */
++	get_misc_and_pid(&org_misc, &pid_misc);
++
++	for (line = 0; line < cpuinfo.tlb_num_lines; line++) {
++		WRCTL(CTL_PTEADDR, line << 2);
++
++		for (way = 0; way < cpuinfo.tlb_num_ways; way++) {
++			unsigned long pteaddr;
++			unsigned long tlbmisc;
++			unsigned long tlbacc;
++
++			tlbmisc = pid_misc | TLBMISC_RD |
++				(way << TLBMISC_WAY_SHIFT);
++			WRCTL(CTL_TLBMISC, tlbmisc);
++			pteaddr = RDCTL(CTL_PTEADDR);
++			tlbmisc = RDCTL(CTL_TLBMISC);
++			tlbacc = RDCTL(CTL_TLBACC);
++
++			if (((tlbmisc>>TLBMISC_PID_SHIFT) & TLBMISC_PID_MASK)
++				== pid) {
++				tlbmisc = pid_misc | TLBMISC_WE |
++					(way << TLBMISC_WAY_SHIFT);
++				WRCTL(CTL_TLBMISC, tlbmisc);
++				WRCTL(CTL_TLBACC,
++					(MAX_PHYS_ADDR >> PAGE_SHIFT));
++			}
++		}
++
++		WRCTL(CTL_TLBMISC, org_misc);
++	}
++}
++
++void flush_tlb_all(void)
++{
++	int i;
++	unsigned long vaddr = CONFIG_NIOS2_IO_REGION_BASE;
++	unsigned int way;
++	unsigned long org_misc, pid_misc, tlbmisc;
++
++	/* remember pid/way until we return */
++	get_misc_and_pid(&org_misc, &pid_misc);
++	pid_misc |= TLBMISC_WE;
++
++	/* Map each TLB entry to physcal address 0 with no-access and a
++	   bad ptbase */
++	for (way = 0; way < cpuinfo.tlb_num_ways; way++) {
++		tlbmisc = pid_misc | (way << TLBMISC_WAY_SHIFT);
++		for (i = 0; i < cpuinfo.tlb_num_lines; i++) {
++			WRCTL(CTL_PTEADDR, ((vaddr) >> PAGE_SHIFT) << 2);
++			WRCTL(CTL_TLBMISC, tlbmisc);
++			WRCTL(CTL_TLBACC, (MAX_PHYS_ADDR >> PAGE_SHIFT));
++			vaddr += 1UL << 12;
++		}
++	}
++
++	/* restore pid/way */
++	WRCTL(CTL_TLBMISC, org_misc);
++}
++
++void set_mmu_pid(unsigned long pid)
++{
++	WRCTL(CTL_TLBMISC, (RDCTL(CTL_TLBMISC) & TLBMISC_WAY) |
++		((pid & TLBMISC_PID_MASK) << TLBMISC_PID_SHIFT));
++}
 -- 
 1.8.2.1
-
