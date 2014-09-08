@@ -1,74 +1,303 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wg0-f45.google.com ([74.125.82.45]:54335 "EHLO
-	mail-wg0-f45.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753125AbaIHJGh (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 8 Sep 2014 05:06:37 -0400
-Received: by mail-wg0-f45.google.com with SMTP id z12so766859wgg.4
-        for <linux-arch@vger.kernel.org>; Mon, 08 Sep 2014 02:06:36 -0700 (PDT)
-Date: Mon, 8 Sep 2014 10:06:27 +0100
-From: Steve Capper <steve.capper@linaro.org>
-Subject: Re: [PATCH V3 0/6] RCU get_user_pages_fast and __get_user_pages_fast
-Message-ID: <20140908090626.GA14634@linaro.org>
-References: <1409237107-24228-1-git-send-email-steve.capper@linaro.org>
- <20140828152320.GN22580@arm.com>
- <CAPvkgC0YVhPEBqbWSDnGyZBUn3+8Kv7-yx1-_n0Jx+giKzOqmw@mail.gmail.com>
+Received: from mail-bn1on0082.outbound.protection.outlook.com ([157.56.110.82]:29760
+	"EHLO na01-bn1-obe.outbound.protection.outlook.com"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1752784AbaIHJhI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 8 Sep 2014 05:37:08 -0400
+From: Ley Foon Tan <lftan@altera.com>
+Subject: [PATCH v3 00/29] nios2 Linux kernel port
+Date: Mon, 8 Sep 2014 17:22:11 +0800
+Message-ID: <1410168160-3624-1-git-send-email-lftan@altera.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <CAPvkgC0YVhPEBqbWSDnGyZBUn3+8Kv7-yx1-_n0Jx+giKzOqmw@mail.gmail.com>
+Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "linux-mm@kvack.org" <linux-mm@kvack.org>, Will Deacon <will.deacon@arm.com>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>
-Cc: "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Catalin Marinas <Catalin.Marinas@arm.com>, "linux@arm.linux.org.uk" <linux@arm.linux.org.uk>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "gary.robertson@linaro.org" <gary.robertson@linaro.org>, "christoffer.dall@linaro.org" <christoffer.dall@linaro.org>, "peterz@infradead.org" <peterz@infradead.org>, "anders.roxell@linaro.org" <anders.roxell@linaro.org>, "dann.frazier@canonical.com" <dann.frazier@canonical.com>, Mark Rutland <Mark.Rutland@arm.com>, "mgorman@suse.de" <mgorman@suse.de>
-Message-ID: <20140908090627.9XWS49mQ9ABuWh-eupfg7wGjY7H1G2OBwU5PP_ybE3Q@z>
+To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org
+Cc: Ley Foon Tan <lftan@altera.com>, lftan.linux@gmail.com, cltang@codesourcery.com
+Message-ID: <20140908092211.Xsup6Rzp4-LQFePZ5J8hDOKaWtr_uMAo6NeIGLLsEuY@z>
 
-On Mon, Sep 01, 2014 at 12:43:06PM +0100, Steve Capper wrote:
-> On 28 August 2014 16:23, Will Deacon <will.deacon@arm.com> wrote:
-> > On Thu, Aug 28, 2014 at 03:45:01PM +0100, Steve Capper wrote:
-> >> I would like to get this series into 3.18 as it fixes quite a big problem
-> >> with THP on arm and arm64. This series is split into a core mm part, an
-> >> arm part and an arm64 part.
-> >>
-> >> Could somebody please take patch #1 (if it looks okay)?
-> >> Russell, would you be happy with patches #2, #3, #4? (if we get #1 merged)
-> >> Catalin, would you be happy taking patches #5, #6? (if we get #1 merged)
-> >
-> > Pretty sure we're happy to take the arm64 bits once you've got the core
-> > changes sorted out. Failing that, Catalin's acked them so they could go via
-> > an mm tree if it's easier.
-> >
-> 
-> Hello,
-> 
-> Are any mm maintainers willing to take the first patch from this
-> series into their tree for merging into 3.18?
->   mm: Introduce a general RCU get_user_pages_fast.
-> 
-> (or please let me know if there are any issues with the patch that
-> need addressing).
-> 
-> As Will has stated, Catalin's already acked the arm64 patches, and
-> these can also go in via an mm tree if that makes things easier:
->   arm64: mm: Enable HAVE_RCU_TABLE_FREE logic
->   arm64: mm: Enable RCU fast_gup
-> 
-> Thanks,
-> --
-> Steve
+This is the 3rd version of patchset adds the Linux kernel port for Nios II processor from
+Altera. All of the feedback from v2 patchseries has been addressed. Thanks to all who
+provided feedback on the previous version.
 
-Hi,
-Just a ping on this.
+About Nios II Cores
+-------------------
+Nios II is a 32-bit embedded-processor architecture designed specifically for the
+Altera family of FPGAs.
+More information is available  at http://www.altera.com/devices/processor/nios2/ni2-index.html
 
-I was wondering if the first patch in this series:
+Instruction set and architecture overview documents can be found on the
+following page:
+http://www.altera.com/literature/lit-nio2.jsp
 
-[PATCH V3 1/6] mm: Introduce a general RCU get_user_pages_fast.
-http://marc.info/?l=linux-mm&m=140923713202355&w=2
+Nios2 GCC port is in mainline and will be in the FSF 4.9 release.
 
-could be merged into 3.18 via an mm tree, or if there are any issues
-with the patch that I should fix?
+The patchset are based on v3.17-rc3 and can also be found in the following git tree:
+git://git.rocketboards.org/linux-socfpga-next.git  nios2-upstream
 
-Acks or flames from the mm maintainers would be greatly appreciated!
+v3:
+* asm-generic: add generic futex for !CONFIG_SMP
+* dma: empty function for dma_cache_sync()
+* dma: rework for _for_device() and _for_cpu()
+* irq: Enable SPARSE_IRQ and remove NR_IRQS
+* irq: remove NO_IRQ
+* io: move __IO_OUT[IN]_LOOP to C file
+* io: add dummy implementation for in{b}{w}{l} and out{b}{w}{l}
+* io: drop ioremap_writethrough() and drop ioremap_writethrough()
+* signal: change to use set_current_blocked()
+* signal: add error handling in setup_rt_frame()
+* time: rework timer driver and use clockevent framework
+* time: port to use asm-generic delay.h
+* time: change __delay to use timer
+* Kconfig: add define ARCH_HAS_READ_CURRENT_TIME
+* change to use of_platform_populate() and default of_default_bus_match_table
+* remove module_arch_cleanup
+* add comment to module_alloc
+* remove gpio.h, pci.h and use generic pci.h
+* remove stat.h and statfs.h, use generic version.
+* remove CLOCK_TICK_RATE
+* update Makefile
+* clean up uapi Kbuild file
+* add install.sh
+* remove nommu comment from license header
 
-Cheers,
+patchset history
+-----------------
+[v1] : https://lkml.org/lkml/2014/4/18/216
+[v2] : https://lkml.org/lkml/2014/7/15/120
+
+Ley Foon Tan (29):
+  asm-generic: add generic futex for !CONFIG_SMP
+  nios2: Assembly macros and definitions
+  nios2: Kernel booting and initialization
+  nios2: Exception handling
+  nios2: Traps exception handling
+  nios2: Memory management
+  nios2: I/O Mapping
+  nios2: MMU Fault handling
+  nios2: Page table management
+  nios2: Process management
+  nios2: Cache handling
+  nios2: TLB handling
+  nios2: Interrupt handling
+  nios2: DMA mapping API
+  Add ELF machine define for Nios2
+  nios2: ELF definitions
+  nios2: System calls handling
+  nios2: Signal handling support
+  nios2: Library functions
+  nios2: Device tree support
+  nios2: Time keeping
+  nios2: Cpuinfo handling
+  nios2: Miscellaneous header files
+  nios2: Nios2 registers
+  nios2: Module support
+  nios2: ptrace support
+  MAINTAINERS: Add nios2 maintainer
+  Documentation: Add documentation for Nios2 architecture
+  nios2: Build infrastructure
+
+ Documentation/devicetree/bindings/nios2/nios2.txt |  62 +++
+ Documentation/devicetree/bindings/nios2/timer.txt |  19 +
+ Documentation/nios2/README                        |  23 +
+ MAINTAINERS                                       |   7 +
+ arch/nios2/Kconfig                                | 201 ++++++++
+ arch/nios2/Kconfig.debug                          |  17 +
+ arch/nios2/Makefile                               |  73 +++
+ arch/nios2/boot/Makefile                          |  52 ++
+ arch/nios2/boot/dts/3c120_devboard.dts            | 164 ++++++
+ arch/nios2/boot/install.sh                        |  52 ++
+ arch/nios2/boot/linked_dtb.S                      |  19 +
+ arch/nios2/configs/3c120_defconfig                |  77 +++
+ arch/nios2/include/asm/Kbuild                     |  63 +++
+ arch/nios2/include/asm/asm-macros.h               | 309 +++++++++++
+ arch/nios2/include/asm/asm-offsets.h              |  20 +
+ arch/nios2/include/asm/cache.h                    |  36 ++
+ arch/nios2/include/asm/cacheflush.h               |  52 ++
+ arch/nios2/include/asm/checksum.h                 |  78 +++
+ arch/nios2/include/asm/cmpxchg.h                  |  61 +++
+ arch/nios2/include/asm/cpuinfo.h                  |  57 +++
+ arch/nios2/include/asm/delay.h                    |  21 +
+ arch/nios2/include/asm/dma-mapping.h              | 130 +++++
+ arch/nios2/include/asm/elf.h                      | 101 ++++
+ arch/nios2/include/asm/entry.h                    | 120 +++++
+ arch/nios2/include/asm/io.h                       |  84 +++
+ arch/nios2/include/asm/irq.h                      |  28 +
+ arch/nios2/include/asm/irqflags.h                 |  69 +++
+ arch/nios2/include/asm/linkage.h                  |  25 +
+ arch/nios2/include/asm/mmu.h                      |  16 +
+ arch/nios2/include/asm/mmu_context.h              |  66 +++
+ arch/nios2/include/asm/mutex.h                    |   1 +
+ arch/nios2/include/asm/page.h                     | 111 ++++
+ arch/nios2/include/asm/pgalloc.h                  |  86 ++++
+ arch/nios2/include/asm/pgtable-bits.h             |  35 ++
+ arch/nios2/include/asm/pgtable.h                  | 305 +++++++++++
+ arch/nios2/include/asm/processor.h                | 103 ++++
+ arch/nios2/include/asm/ptrace.h                   |  33 ++
+ arch/nios2/include/asm/registers.h                |  71 +++
+ arch/nios2/include/asm/setup.h                    |  38 ++
+ arch/nios2/include/asm/signal.h                   |  22 +
+ arch/nios2/include/asm/string.h                   |  24 +
+ arch/nios2/include/asm/switch_to.h                |  31 ++
+ arch/nios2/include/asm/syscall.h                  | 138 +++++
+ arch/nios2/include/asm/syscalls.h                 |  25 +
+ arch/nios2/include/asm/thread_info.h              | 120 +++++
+ arch/nios2/include/asm/timex.h                    |  26 +
+ arch/nios2/include/asm/tlb.h                      |  34 ++
+ arch/nios2/include/asm/tlbflush.h                 |  46 ++
+ arch/nios2/include/asm/traps.h                    |  19 +
+ arch/nios2/include/asm/uaccess.h                  | 231 +++++++++
+ arch/nios2/include/asm/ucontext.h                 |  32 ++
+ arch/nios2/include/uapi/asm/Kbuild                |   6 +
+ arch/nios2/include/uapi/asm/byteorder.h           |  22 +
+ arch/nios2/include/uapi/asm/elf.h                 |  67 +++
+ arch/nios2/include/uapi/asm/ptrace.h              | 120 +++++
+ arch/nios2/include/uapi/asm/sigcontext.h          |  28 +
+ arch/nios2/include/uapi/asm/signal.h              |  23 +
+ arch/nios2/include/uapi/asm/swab.h                |  37 ++
+ arch/nios2/include/uapi/asm/unistd.h              |  25 +
+ arch/nios2/kernel/Makefile                        |  24 +
+ arch/nios2/kernel/asm-offsets.c                   |  88 ++++
+ arch/nios2/kernel/cpuinfo.c                       | 201 ++++++++
+ arch/nios2/kernel/entry.S                         | 548 ++++++++++++++++++++
+ arch/nios2/kernel/head.S                          | 175 +++++++
+ arch/nios2/kernel/insnemu.S                       | 592 ++++++++++++++++++++++
+ arch/nios2/kernel/irq.c                           |  93 ++++
+ arch/nios2/kernel/misaligned.c                    | 255 ++++++++++
+ arch/nios2/kernel/module.c                        | 137 +++++
+ arch/nios2/kernel/nios2_ksyms.c                   |  35 ++
+ arch/nios2/kernel/process.c                       | 257 ++++++++++
+ arch/nios2/kernel/prom.c                          |  66 +++
+ arch/nios2/kernel/ptrace.c                        | 176 +++++++
+ arch/nios2/kernel/setup.c                         | 220 ++++++++
+ arch/nios2/kernel/signal.c                        | 315 ++++++++++++
+ arch/nios2/kernel/sys_nios2.c                     |  66 +++
+ arch/nios2/kernel/syscall_table.c                 |  29 ++
+ arch/nios2/kernel/time.c                          | 318 ++++++++++++
+ arch/nios2/kernel/traps.c                         | 185 +++++++
+ arch/nios2/kernel/vmlinux.lds.S                   |  75 +++
+ arch/nios2/lib/Makefile                           |   9 +
+ arch/nios2/lib/delay.c                            |  52 ++
+ arch/nios2/lib/io.c                               | 138 +++++
+ arch/nios2/lib/memcpy.c                           | 199 ++++++++
+ arch/nios2/lib/memmove.c                          |  82 +++
+ arch/nios2/lib/memset.c                           |  81 +++
+ arch/nios2/mm/Makefile                            |  14 +
+ arch/nios2/mm/cacheflush.c                        | 270 ++++++++++
+ arch/nios2/mm/dma-mapping.c                       | 185 +++++++
+ arch/nios2/mm/extable.c                           |  25 +
+ arch/nios2/mm/fault.c                             | 251 +++++++++
+ arch/nios2/mm/init.c                              | 142 ++++++
+ arch/nios2/mm/ioremap.c                           | 186 +++++++
+ arch/nios2/mm/mmu_context.c                       | 116 +++++
+ arch/nios2/mm/pgtable.c                           |  73 +++
+ arch/nios2/mm/tlb.c                               | 274 ++++++++++
+ arch/nios2/mm/uaccess.c                           | 162 ++++++
+ arch/nios2/platform/Kconfig.platform              | 129 +++++
+ arch/nios2/platform/Makefile                      |   1 +
+ arch/nios2/platform/platform.c                    |  46 ++
+ include/asm-generic/futex.h                       |  82 +++
+ include/uapi/linux/elf-em.h                       |   1 +
+ 101 files changed, 10334 insertions(+)
+ create mode 100644 Documentation/devicetree/bindings/nios2/nios2.txt
+ create mode 100644 Documentation/devicetree/bindings/nios2/timer.txt
+ create mode 100644 Documentation/nios2/README
+ create mode 100644 arch/nios2/Kconfig
+ create mode 100644 arch/nios2/Kconfig.debug
+ create mode 100644 arch/nios2/Makefile
+ create mode 100644 arch/nios2/boot/Makefile
+ create mode 100644 arch/nios2/boot/dts/3c120_devboard.dts
+ create mode 100644 arch/nios2/boot/install.sh
+ create mode 100644 arch/nios2/boot/linked_dtb.S
+ create mode 100644 arch/nios2/configs/3c120_defconfig
+ create mode 100644 arch/nios2/include/asm/Kbuild
+ create mode 100644 arch/nios2/include/asm/asm-macros.h
+ create mode 100644 arch/nios2/include/asm/asm-offsets.h
+ create mode 100644 arch/nios2/include/asm/cache.h
+ create mode 100644 arch/nios2/include/asm/cacheflush.h
+ create mode 100644 arch/nios2/include/asm/checksum.h
+ create mode 100644 arch/nios2/include/asm/cmpxchg.h
+ create mode 100644 arch/nios2/include/asm/cpuinfo.h
+ create mode 100644 arch/nios2/include/asm/delay.h
+ create mode 100644 arch/nios2/include/asm/dma-mapping.h
+ create mode 100644 arch/nios2/include/asm/elf.h
+ create mode 100644 arch/nios2/include/asm/entry.h
+ create mode 100644 arch/nios2/include/asm/io.h
+ create mode 100644 arch/nios2/include/asm/irq.h
+ create mode 100644 arch/nios2/include/asm/irqflags.h
+ create mode 100644 arch/nios2/include/asm/linkage.h
+ create mode 100644 arch/nios2/include/asm/mmu.h
+ create mode 100644 arch/nios2/include/asm/mmu_context.h
+ create mode 100644 arch/nios2/include/asm/mutex.h
+ create mode 100644 arch/nios2/include/asm/page.h
+ create mode 100644 arch/nios2/include/asm/pgalloc.h
+ create mode 100644 arch/nios2/include/asm/pgtable-bits.h
+ create mode 100644 arch/nios2/include/asm/pgtable.h
+ create mode 100644 arch/nios2/include/asm/processor.h
+ create mode 100644 arch/nios2/include/asm/ptrace.h
+ create mode 100644 arch/nios2/include/asm/registers.h
+ create mode 100644 arch/nios2/include/asm/setup.h
+ create mode 100644 arch/nios2/include/asm/signal.h
+ create mode 100644 arch/nios2/include/asm/string.h
+ create mode 100644 arch/nios2/include/asm/switch_to.h
+ create mode 100644 arch/nios2/include/asm/syscall.h
+ create mode 100644 arch/nios2/include/asm/syscalls.h
+ create mode 100644 arch/nios2/include/asm/thread_info.h
+ create mode 100644 arch/nios2/include/asm/timex.h
+ create mode 100644 arch/nios2/include/asm/tlb.h
+ create mode 100644 arch/nios2/include/asm/tlbflush.h
+ create mode 100644 arch/nios2/include/asm/traps.h
+ create mode 100644 arch/nios2/include/asm/uaccess.h
+ create mode 100644 arch/nios2/include/asm/ucontext.h
+ create mode 100644 arch/nios2/include/uapi/asm/Kbuild
+ create mode 100644 arch/nios2/include/uapi/asm/byteorder.h
+ create mode 100644 arch/nios2/include/uapi/asm/elf.h
+ create mode 100644 arch/nios2/include/uapi/asm/ptrace.h
+ create mode 100644 arch/nios2/include/uapi/asm/sigcontext.h
+ create mode 100644 arch/nios2/include/uapi/asm/signal.h
+ create mode 100644 arch/nios2/include/uapi/asm/swab.h
+ create mode 100644 arch/nios2/include/uapi/asm/unistd.h
+ create mode 100644 arch/nios2/kernel/Makefile
+ create mode 100644 arch/nios2/kernel/asm-offsets.c
+ create mode 100644 arch/nios2/kernel/cpuinfo.c
+ create mode 100644 arch/nios2/kernel/entry.S
+ create mode 100644 arch/nios2/kernel/head.S
+ create mode 100644 arch/nios2/kernel/insnemu.S
+ create mode 100644 arch/nios2/kernel/irq.c
+ create mode 100644 arch/nios2/kernel/misaligned.c
+ create mode 100644 arch/nios2/kernel/module.c
+ create mode 100644 arch/nios2/kernel/nios2_ksyms.c
+ create mode 100644 arch/nios2/kernel/process.c
+ create mode 100644 arch/nios2/kernel/prom.c
+ create mode 100644 arch/nios2/kernel/ptrace.c
+ create mode 100644 arch/nios2/kernel/setup.c
+ create mode 100644 arch/nios2/kernel/signal.c
+ create mode 100644 arch/nios2/kernel/sys_nios2.c
+ create mode 100644 arch/nios2/kernel/syscall_table.c
+ create mode 100644 arch/nios2/kernel/time.c
+ create mode 100644 arch/nios2/kernel/traps.c
+ create mode 100644 arch/nios2/kernel/vmlinux.lds.S
+ create mode 100644 arch/nios2/lib/Makefile
+ create mode 100644 arch/nios2/lib/delay.c
+ create mode 100644 arch/nios2/lib/io.c
+ create mode 100644 arch/nios2/lib/memcpy.c
+ create mode 100644 arch/nios2/lib/memmove.c
+ create mode 100644 arch/nios2/lib/memset.c
+ create mode 100644 arch/nios2/mm/Makefile
+ create mode 100644 arch/nios2/mm/cacheflush.c
+ create mode 100644 arch/nios2/mm/dma-mapping.c
+ create mode 100644 arch/nios2/mm/extable.c
+ create mode 100644 arch/nios2/mm/fault.c
+ create mode 100644 arch/nios2/mm/init.c
+ create mode 100644 arch/nios2/mm/ioremap.c
+ create mode 100644 arch/nios2/mm/mmu_context.c
+ create mode 100644 arch/nios2/mm/pgtable.c
+ create mode 100644 arch/nios2/mm/tlb.c
+ create mode 100644 arch/nios2/mm/uaccess.c
+ create mode 100644 arch/nios2/platform/Kconfig.platform
+ create mode 100644 arch/nios2/platform/Makefile
+ create mode 100644 arch/nios2/platform/platform.c
+
 -- 
-Steve
+1.8.2.1
+
