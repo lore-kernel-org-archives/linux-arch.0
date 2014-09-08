@@ -1,114 +1,179 @@
 From: Liviu Dudau <Liviu.Dudau@arm.com>
-Subject: [PATCH v10 10/10] PCI: Introduce pci_remap_iospace() for remapping
- PCI I/O bus resources into CPU space
-Date: Mon,  8 Sep 2014 14:54:32 +0100
-Message-ID: <1410184472-17630-11-git-send-email-Liviu.Dudau@arm.com>
+Subject: [PATCH v10 08/10] OF: PCI: Add support for parsing PCI host bridge resources from DT
+Date: Mon,  8 Sep 2014 14:54:30 +0100
+Message-ID: <1410184472-17630-9-git-send-email-Liviu.Dudau@arm.com>
 References: <1410184472-17630-1-git-send-email-Liviu.Dudau@arm.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1410184472-17630-1-git-send-email-Liviu.Dudau@arm.com>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+Sender: linux-kernel-owner@vger.kernel.org
 To: Bjorn Helgaas <bhelgaas@google.com>, Arnd Bergmann <arnd@arndb.de>, Rob Herring <robh+dt@kernel.org>, Jason Gunthorpe <jgunthorpe@obsidianresearch.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <Will.Deacon@arm.com>, Russell King <linux@arm.linux.org.uk>, linux-pci <linux-pci@vger.kernel.org>, Linus Walleij <linus.walleij@linaro.org>
-Cc: linux-arch <linux-arch@vger.kernel.org>, Sinan Kaya <okaya@codeaurora.org>, Kukjin Kim <kgene.kim@samsung.com>, Device Tree ML <devicetree@vger.kernel.org>, Jingoo Han <jg1.han@samsung.com>, LKML <linux-kernel@vger.kernel.org>, Grant Likely <grant.likely@secretlab.ca>, Tanmay Inamdar <tinamdar@apm.com>, Suravee Suthikulanit <suravee.suthikulpanit@amd.com>, LAKML <linux-arm-kernel@lists.infradead.org>
+Cc: Tanmay Inamdar <tinamdar@apm.com>, Grant Likely <grant.likely@secretlab.ca>, Sinan Kaya <okaya@codeaurora.org>, Jingoo Han <jg1.han@samsung.com>, Kukjin Kim <kgene.kim@samsung.com>, Suravee Suthikulanit <suravee.suthikulpanit@amd.com>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Device Tree ML <devicetree@vger.kernel.org>, LAKML <linux-arm-kernel@lists.infradead.org>, Grant Likely <grant.likely@linaro.org>
 List-Id: linux-arch.vger.kernel.org
 
-Introduce a default implementation for remapping PCI bus I/O resources
-onto the CPU address space. Architectures with special needs may
-provide their own version, but most should be able to use this one.
+Provide a function to parse the PCI DT ranges that can be used to
+create a pci_host_bridge structure together with its associated
+bus.
 
 Cc: Bjorn Helgaas <bhelgaas@google.com>
 Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: Grant Likely <grant.likely@linaro.org>
 Cc: Rob Herring <robh+dt@kernel.org>
-Reviewed-by: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Catalin Marinas <catalin.marinas@arm.com>
 Signed-off-by: Liviu Dudau <Liviu.Dudau@arm.com>
 ---
- drivers/pci/pci.c             | 33 +++++++++++++++++++++++++++++++++
- include/asm-generic/pgtable.h |  4 ++++
- include/linux/pci.h           |  3 +++
- 3 files changed, 40 insertions(+)
+ drivers/of/of_pci.c    | 102 +++++++++++++++++++++++++++++++++++++++++++++++++
+ include/linux/of_pci.h |  11 ++++++
+ 2 files changed, 113 insertions(+)
 
-diff --git a/drivers/pci/pci.c b/drivers/pci/pci.c
-index 2c9ac70..654b44c 100644
---- a/drivers/pci/pci.c
-+++ b/drivers/pci/pci.c
-@@ -2704,6 +2704,39 @@ int pci_request_regions_exclusive(struct pci_dev *pdev, const char *res_name)
+diff --git a/drivers/of/of_pci.c b/drivers/of/of_pci.c
+index a107edb..36701da 100644
+--- a/drivers/of/of_pci.c
++++ b/drivers/of/of_pci.c
+@@ -1,7 +1,9 @@
+ #include <linux/kernel.h>
+ #include <linux/export.h>
+ #include <linux/of.h>
++#include <linux/of_address.h>
+ #include <linux/of_pci.h>
++#include <linux/slab.h>
+ 
+ static inline int __of_pci_pci_compare(struct device_node *node,
+ 				       unsigned int data)
+@@ -123,6 +125,106 @@ int of_pci_get_domain_nr(struct device_node *node, bool allocate_if_missing)
  }
- EXPORT_SYMBOL(pci_request_regions_exclusive);
+ EXPORT_SYMBOL_GPL(of_pci_get_domain_nr);
  
 +/**
-+ *	pci_remap_iospace - Remap the memory mapped I/O space
-+ *	@res: Resource describing the I/O space
-+ *	@phys_addr: physical address where the range will be mapped.
++ * of_pci_get_host_bridge_resources - Parse PCI host bridge resources from DT
++ * @dev: device node of the host bridge having the range property
++ * @busno: bus number associated with the bridge root bus
++ * @bus_max: maximum number of busses for this bridge
++ * @resources: list where the range of resources will be added after DT parsing
++ * @io_base: pointer to a variable that will contain on return the physical
++ * address for the start of the I/O range.
 + *
-+ *	Remap the memory mapped I/O space described by the @res
-+ *	into the CPU physical address space. Only architectures
-+ *	that have memory mapped IO defined (and hence PCI_IOBASE)
-+ *	should call this function.
++ * It is the callers job to free the @resources list.
++ *
++ * This function will parse the "ranges" property of a PCI host bridge device
++ * node and setup the resource mapping based on its content. It is expected
++ * that the property conforms with the Power ePAPR document.
++ *
 + */
-+int __weak pci_remap_iospace(const struct resource *res, phys_addr_t phys_addr)
++int of_pci_get_host_bridge_resources(struct device_node *dev,
++			unsigned char busno, unsigned char bus_max,
++			struct list_head *resources, resource_size_t *io_base)
 +{
-+	int err = -ENODEV;
++	struct resource *res;
++	struct resource *bus_range;
++	struct of_pci_range range;
++	struct of_pci_range_parser parser;
++	char range_type[4];
++	int err;
 +
-+#ifdef PCI_IOBASE
-+	if (!(res->flags & IORESOURCE_IO))
-+		return -EINVAL;
++	bus_range = kzalloc(sizeof(*bus_range), GFP_KERNEL);
++	if (!bus_range)
++		return -ENOMEM;
 +
-+	if (res->end > IO_SPACE_LIMIT)
-+		return -EINVAL;
++	pr_info("PCI host bridge %s ranges:\n", dev->full_name);
 +
-+	err = ioremap_page_range(res->start + (unsigned long)PCI_IOBASE,
-+				res->end + 1 + (unsigned long)PCI_IOBASE,
-+				phys_addr, pgprot_device(PAGE_KERNEL));
-+#else
-+	/* this architecture does not have memory mapped I/O space,
-+	   so this function should never be called */
-+	WARN_ON(1);
-+#endif
++	err = of_pci_parse_bus_range(dev, bus_range);
++	if (err) {
++		bus_range->start = busno;
++		bus_range->end = bus_max;
++		bus_range->flags = IORESOURCE_BUS;
++		pr_info("  No bus range found for %s, using %pR\n",
++			dev->full_name, &bus_range);
++	} else {
++		if (bus_range->end > bus_range->start + bus_max)
++			bus_range->end = bus_range->start + bus_max;
++	}
++	pci_add_resource(resources, bus_range);
 +
++	/* Check for ranges property */
++	err = of_pci_range_parser_init(&parser, dev);
++	if (err)
++		goto parse_failed;
++
++	pr_debug("Parsing ranges property...\n");
++	for_each_of_pci_range(&parser, &range) {
++		/* Read next ranges element */
++		if ((range.flags & IORESOURCE_TYPE_BITS) == IORESOURCE_IO)
++			snprintf(range_type, 4, " IO");
++		else if ((range.flags & IORESOURCE_TYPE_BITS) == IORESOURCE_MEM)
++			snprintf(range_type, 4, "MEM");
++		else
++			snprintf(range_type, 4, "err");
++		pr_info("  %s %#010llx..%#010llx -> %#010llx\n", range_type,
++			range.cpu_addr, range.cpu_addr + range.size - 1,
++			range.pci_addr);
++
++		/*
++		 * If we failed translation or got a zero-sized region
++		 * then skip this range
++		 */
++		if (range.cpu_addr == OF_BAD_ADDR || range.size == 0)
++			continue;
++
++		res = kzalloc(sizeof(struct resource), GFP_KERNEL);
++		if (!res) {
++			err = -ENOMEM;
++			goto parse_failed;
++		}
++
++		err = of_pci_range_to_resource(&range, dev, res);
++		if (err) {
++			kfree(res);
++			goto parse_failed;
++		}
++
++		if (resource_type(res) == IORESOURCE_IO) {
++			if (*io_base)
++				pr_warn("More than one I/O resource converted. CPU offset for old range lost!\n");
++			*io_base = range.cpu_addr;
++		}
++
++		pci_add_resource_offset(resources, res,	res->start - range.pci_addr);
++	}
++
++	return 0;
++
++parse_failed:
++	pci_free_resource_list(resources);
 +	return err;
 +}
++EXPORT_SYMBOL_GPL(of_pci_get_host_bridge_resources);
 +
- static void __pci_set_master(struct pci_dev *dev, bool enable)
+ #ifdef CONFIG_PCI_MSI
+ 
+ static LIST_HEAD(of_pci_msi_chip_list);
+diff --git a/include/linux/of_pci.h b/include/linux/of_pci.h
+index 3a3824c..a4b8a85 100644
+--- a/include/linux/of_pci.h
++++ b/include/linux/of_pci.h
+@@ -16,6 +16,10 @@ int of_pci_get_devfn(struct device_node *np);
+ int of_irq_parse_and_map_pci(const struct pci_dev *dev, u8 slot, u8 pin);
+ int of_pci_parse_bus_range(struct device_node *node, struct resource *res);
+ int of_pci_get_domain_nr(struct device_node *node, bool allocate_if_missing);
++int of_pci_get_host_bridge_resources(struct device_node *dev,
++			unsigned char busno, unsigned char bus_max,
++			struct list_head *resources, resource_size_t *io_base);
++
+ #else
+ static inline int of_irq_parse_pci(const struct pci_dev *pdev, struct of_phandle_args *out_irq)
  {
- 	u16 old_cmd, cmd;
-diff --git a/include/asm-generic/pgtable.h b/include/asm-generic/pgtable.h
-index 53b2acc..977e545 100644
---- a/include/asm-generic/pgtable.h
-+++ b/include/asm-generic/pgtable.h
-@@ -249,6 +249,10 @@ static inline int pmd_same(pmd_t pmd_a, pmd_t pmd_b)
- #define pgprot_writecombine pgprot_noncached
+@@ -50,6 +54,13 @@ of_pci_get_domain_nr(struct device_node *node, bool allocate_if_missing)
+ {
+ 	return -1;
+ }
++
++int of_pci_get_host_bridge_resources(struct device_node *dev,
++			unsigned char busno, unsigned char bus_max,
++			struct list_head *resources, resource_size_t *io_base);
++{
++	return -EINVAL;
++}
  #endif
  
-+#ifndef pgprot_device
-+#define pgprot_device pgprot_noncached
-+#endif
-+
- /*
-  * When walking page tables, get the address of the next boundary,
-  * or the end address of the range if that comes earlier.  Although no
-diff --git a/include/linux/pci.h b/include/linux/pci.h
-index a494e5d..fc8c529 100644
---- a/include/linux/pci.h
-+++ b/include/linux/pci.h
-@@ -1100,6 +1100,9 @@ int __must_check pci_bus_alloc_resource(struct pci_bus *bus,
- 						  resource_size_t),
- 			void *alignf_data);
- 
-+
-+int pci_remap_iospace(const struct resource *res, phys_addr_t phys_addr);
-+
- static inline dma_addr_t pci_bus_address(struct pci_dev *pdev, int bar)
- {
- 	struct pci_bus_region region;
+ #if defined(CONFIG_OF) && defined(CONFIG_PCI_MSI)
 -- 
 2.0.4
