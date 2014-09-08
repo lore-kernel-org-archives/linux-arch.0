@@ -1,7 +1,7 @@
 From: Ley Foon Tan <lftan@altera.com>
-Subject: [PATCH v3 08/29] nios2: MMU Fault handling
-Date: Mon, 8 Sep 2014 17:22:19 +0800
-Message-ID: <1410168160-3624-9-git-send-email-lftan@altera.com>
+Subject: [PATCH v3 16/29] nios2: ELF definitions
+Date: Mon, 8 Sep 2014 17:22:27 +0800
+Message-ID: <1410168160-3624-17-git-send-email-lftan@altera.com>
 References: <1410168160-3624-1-git-send-email-lftan@altera.com>
 Mime-Version: 1.0
 Content-Type: text/plain
@@ -12,304 +12,195 @@ To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-doc@vger.ker
 Cc: Ley Foon Tan <lftan@altera.com>, lftan.linux@gmail.com, cltang@codesourcery.com
 List-Id: linux-arch.vger.kernel.org
 
-This patch adds support for the handling of the MMU faults (exception
-entry code introduced by a previous patch, kernel/entry.S).
+This patch adds definitions for the ELF format
 
 Signed-off-by: Ley Foon Tan <lftan@altera.com>
 ---
- arch/nios2/mm/extable.c |  25 +++++
- arch/nios2/mm/fault.c   | 251 ++++++++++++++++++++++++++++++++++++++++++++++++
- 2 files changed, 276 insertions(+)
- create mode 100644 arch/nios2/mm/extable.c
- create mode 100644 arch/nios2/mm/fault.c
+ arch/nios2/include/asm/elf.h      | 101 ++++++++++++++++++++++++++++++++++++++
+ arch/nios2/include/uapi/asm/elf.h |  67 +++++++++++++++++++++++++
+ 2 files changed, 168 insertions(+)
+ create mode 100644 arch/nios2/include/asm/elf.h
+ create mode 100644 arch/nios2/include/uapi/asm/elf.h
 
-diff --git a/arch/nios2/mm/extable.c b/arch/nios2/mm/extable.c
+diff --git a/arch/nios2/include/asm/elf.h b/arch/nios2/include/asm/elf.h
 new file mode 100644
-index 0000000..4d2fc5a
+index 0000000..b7d655d
 --- /dev/null
-+++ b/arch/nios2/mm/extable.c
-@@ -0,0 +1,25 @@
++++ b/arch/nios2/include/asm/elf.h
+@@ -0,0 +1,101 @@
 +/*
-+ * Copyright (C) 2010, Tobias Klauser <tklauser@distanz.ch>
-+ * Copyright (C) 2009, Wind River Systems Inc
-+ *   Implemented by fredrik.markstrom@gmail.com and ivarholmqvist@gmail.com
++ * Copyright (C) 2011 Tobias Klauser <tklauser@distanz.ch>
 + *
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License.  See the file "COPYING" in the main directory of this archive
-+ * for more details.
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ *
 + */
 +
-+#include <linux/module.h>
-+#include <linux/uaccess.h>
++#ifndef _ASM_NIOS2_ELF_H
++#define _ASM_NIOS2_ELF_H
 +
-+int fixup_exception(struct pt_regs *regs)
-+{
-+	const struct exception_table_entry *fixup;
++#include <uapi/asm/elf.h>
 +
-+	fixup = search_exception_tables(regs->ea);
-+	if (fixup) {
-+		regs->ea = fixup->fixup;
-+		return 1;
-+	}
++/*
++ * This is used to ensure we don't load something for the wrong architecture.
++ */
++#define elf_check_arch(x) ((x)->e_machine == EM_ALTERA_NIOS2)
 +
-+	return 0;
-+}
-diff --git a/arch/nios2/mm/fault.c b/arch/nios2/mm/fault.c
++#define ELF_PLAT_INIT(_r, load_addr)
++
++#define CORE_DUMP_USE_REGSET
++#define ELF_EXEC_PAGESIZE	4096
++
++/* This is the location that an ET_DYN program is loaded if exec'ed.  Typical
++   use of this is to invoke "./ld.so someprog" to test out a new version of
++   the loader.  We need to make sure that it is out of the way of the program
++   that it will "exec", and that there is sufficient room for the brk.  */
++
++#define ELF_ET_DYN_BASE		0xD0000000UL
++
++/* regs is struct pt_regs, pr_reg is elf_gregset_t (which is
++   now struct_user_regs, they are different) */
++
++#define ARCH_HAS_SETUP_ADDITIONAL_PAGES	1
++struct linux_binprm;
++extern int arch_setup_additional_pages(struct linux_binprm *bprm,
++	int uses_interp);
++#define ELF_CORE_COPY_REGS(pr_reg, regs)				\
++{ do {									\
++	/* Bleech. */							\
++	pr_reg[0]  = regs->r8;						\
++	pr_reg[1]  = regs->r9;						\
++	pr_reg[2]  = regs->r10;						\
++	pr_reg[3]  = regs->r11;						\
++	pr_reg[4]  = regs->r12;						\
++	pr_reg[5]  = regs->r13;						\
++	pr_reg[6]  = regs->r14;						\
++	pr_reg[7]  = regs->r15;						\
++	pr_reg[8]  = regs->r1;						\
++	pr_reg[9]  = regs->r2;						\
++	pr_reg[10] = regs->r3;						\
++	pr_reg[11] = regs->r4;						\
++	pr_reg[12] = regs->r5;						\
++	pr_reg[13] = regs->r6;						\
++	pr_reg[14] = regs->r7;						\
++	pr_reg[15] = regs->orig_r2;					\
++	pr_reg[16] = regs->ra;						\
++	pr_reg[17] = regs->fp;						\
++	pr_reg[18] = regs->sp;						\
++	pr_reg[19] = regs->gp;						\
++	pr_reg[20] = regs->estatus;					\
++	pr_reg[21] = regs->ea;						\
++	pr_reg[22] = regs->orig_r7;					\
++	{								\
++		struct switch_stack *sw = ((struct switch_stack *)regs) - 1; \
++		pr_reg[23] = sw->r16;					\
++		pr_reg[24] = sw->r17;					\
++		pr_reg[25] = sw->r18;					\
++		pr_reg[26] = sw->r19;					\
++		pr_reg[27] = sw->r20;					\
++		pr_reg[28] = sw->r21;					\
++		pr_reg[29] = sw->r22;					\
++		pr_reg[30] = sw->r23;					\
++		pr_reg[31] = sw->fp;					\
++		pr_reg[32] = sw->gp;					\
++		pr_reg[33] = sw->ra;					\
++	}								\
++} while (0); }
++
++/* This yields a mask that user programs can use to figure out what
++   instruction set this cpu supports.  */
++
++#define ELF_HWCAP	(0)
++
++/* This yields a string that ld.so will use to load implementation
++   specific libraries for optimization.  This is more specific in
++   intent than poking at uname or /proc/cpuinfo.  */
++
++#define ELF_PLATFORM  (NULL)
++
++#endif /* _ASM_NIOS2_ELF_H */
+diff --git a/arch/nios2/include/uapi/asm/elf.h b/arch/nios2/include/uapi/asm/elf.h
 new file mode 100644
-index 0000000..15a0bb5
+index 0000000..a5b91ae
 --- /dev/null
-+++ b/arch/nios2/mm/fault.c
-@@ -0,0 +1,251 @@
++++ b/arch/nios2/include/uapi/asm/elf.h
+@@ -0,0 +1,67 @@
 +/*
-+ * Copyright (C) 2009 Wind River Systems Inc
-+ *   Implemented by fredrik.markstrom@gmail.com and ivarholmqvist@gmail.com
++ * Copyright (C) 2011 Tobias Klauser <tklauser@distanz.ch>
 + *
-+ * based on arch/mips/mm/fault.c which is:
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
 + *
-+ * Copyright (C) 1995-2000 Ralf Baechle
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
 + *
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License.  See the file "COPYING" in the main directory of this archive
-+ * for more details.
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ *
 + */
 +
-+#include <linux/signal.h>
-+#include <linux/sched.h>
-+#include <linux/interrupt.h>
-+#include <linux/kernel.h>
-+#include <linux/errno.h>
-+#include <linux/string.h>
-+#include <linux/types.h>
-+#include <linux/ptrace.h>
-+#include <linux/mman.h>
-+#include <linux/mm.h>
-+#include <linux/module.h>
-+#include <linux/uaccess.h>
++
++#ifndef _UAPI_ASM_NIOS2_ELF_H
++#define _UAPI_ASM_NIOS2_ELF_H
++
 +#include <linux/ptrace.h>
 +
-+#include <asm/mmu_context.h>
-+#include <asm/traps.h>
++/* Relocation types */
++#define R_NIOS2_NONE		0
++#define R_NIOS2_S16		1
++#define R_NIOS2_U16		2
++#define R_NIOS2_PCREL16		3
++#define R_NIOS2_CALL26		4
++#define R_NIOS2_IMM5		5
++#define R_NIOS2_CACHE_OPX	6
++#define R_NIOS2_IMM6		7
++#define R_NIOS2_IMM8		8
++#define R_NIOS2_HI16		9
++#define R_NIOS2_LO16		10
++#define R_NIOS2_HIADJ16		11
++#define R_NIOS2_BFD_RELOC_32	12
++#define R_NIOS2_BFD_RELOC_16	13
++#define R_NIOS2_BFD_RELOC_8	14
++#define R_NIOS2_GPREL		15
++#define R_NIOS2_GNU_VTINHERIT	16
++#define R_NIOS2_GNU_VTENTRY	17
++#define R_NIOS2_UJMP		18
++#define R_NIOS2_CJMP		19
++#define R_NIOS2_CALLR		20
++#define R_NIOS2_ALIGN		21
++/* Keep this the last entry.  */
++#define R_NIOS2_NUM		22
 +
-+#define EXC_SUPERV_INSN_ACCESS	9  /* Supervisor only instruction address */
-+#define EXC_SUPERV_DATA_ACCESS	11 /* Supervisor only data address */
-+#define EXC_X_PROTECTION_FAULT	13 /* TLB permission violation (x) */
-+#define EXC_R_PROTECTION_FAULT	14 /* TLB permission violation (r) */
-+#define EXC_W_PROTECTION_FAULT	15 /* TLB permission violation (w) */
++typedef unsigned long elf_greg_t;
 +
-+/*
-+ * This routine handles page faults.  It determines the address,
-+ * and the problem, and then passes it off to one of the appropriate
-+ * routines.
-+ */
-+asmlinkage void do_page_fault(struct pt_regs *regs, unsigned long cause,
-+				unsigned long address)
-+{
-+	struct vm_area_struct *vma = NULL;
-+	struct task_struct *tsk = current;
-+	struct mm_struct *mm = tsk->mm;
-+	int code = SEGV_MAPERR;
-+	int fault;
-+	unsigned int flags = 0;
++#define ELF_NGREG	\
++	((sizeof(struct pt_regs) + sizeof(struct switch_stack)) /	\
++		sizeof(elf_greg_t))
++typedef elf_greg_t elf_gregset_t[ELF_NGREG];
 +
-+	cause >>= 2;
-+
-+	/* Restart the instruction */
-+	regs->ea -= 4;
-+
-+	/*
-+	 * We fault-in kernel-space virtual memory on-demand. The
-+	 * 'reference' page table is init_mm.pgd.
-+	 *
-+	 * NOTE! We MUST NOT take any locks for this case. We may
-+	 * be in an interrupt or a critical region, and should
-+	 * only copy the information from the master page table,
-+	 * nothing more.
-+	 */
-+	if (unlikely(address >= VMALLOC_START && address <= VMALLOC_END)) {
-+		if (user_mode(regs))
-+			goto bad_area_nosemaphore;
-+		else
-+			goto vmalloc_fault;
-+	}
-+
-+	if (unlikely(address >= TASK_SIZE))
-+		goto bad_area_nosemaphore;
-+
-+	/*
-+	 * If we're in an interrupt or have no user
-+	 * context, we must not take the fault..
-+	 */
-+	if (in_atomic() || !mm)
-+		goto bad_area_nosemaphore;
-+
-+	if (user_mode(regs))
-+		flags |= FAULT_FLAG_USER;
-+
-+	if (!down_read_trylock(&mm->mmap_sem)) {
-+		if (!user_mode(regs) && !search_exception_tables(regs->ea))
-+			goto bad_area_nosemaphore;
-+		down_read(&mm->mmap_sem);
-+	}
-+
-+	vma = find_vma(mm, address);
-+	if (!vma)
-+		goto bad_area;
-+	if (vma->vm_start <= address)
-+		goto good_area;
-+	if (!(vma->vm_flags & VM_GROWSDOWN))
-+		goto bad_area;
-+	if (expand_stack(vma, address))
-+		goto bad_area;
-+/*
-+ * Ok, we have a good vm_area for this memory access, so
-+ * we can handle it..
-+ */
-+good_area:
-+	code = SEGV_ACCERR;
-+
-+	switch (cause) {
-+	case EXC_SUPERV_INSN_ACCESS:
-+		goto bad_area;
-+	case EXC_SUPERV_DATA_ACCESS:
-+		goto bad_area;
-+	case EXC_X_PROTECTION_FAULT:
-+		if (!(vma->vm_flags & VM_EXEC))
-+			goto bad_area;
-+		break;
-+	case EXC_R_PROTECTION_FAULT:
-+		if (!(vma->vm_flags & VM_READ))
-+			goto bad_area;
-+		break;
-+	case EXC_W_PROTECTION_FAULT:
-+		if (!(vma->vm_flags & VM_WRITE))
-+			goto bad_area;
-+		flags = FAULT_FLAG_WRITE;
-+		break;
-+	}
-+
-+survive:
-+	/*
-+	 * If for any reason at all we couldn't handle the fault,
-+	 * make sure we exit gracefully rather than endlessly redo
-+	 * the fault.
-+	 */
-+	fault = handle_mm_fault(mm, vma, address, flags);
-+	if (unlikely(fault & VM_FAULT_ERROR)) {
-+		if (fault & VM_FAULT_OOM)
-+			goto out_of_memory;
-+		else if (fault & VM_FAULT_SIGBUS)
-+			goto do_sigbus;
-+		BUG();
-+	}
-+	if (fault & VM_FAULT_MAJOR)
-+		tsk->maj_flt++;
-+	else
-+		tsk->min_flt++;
-+
-+	up_read(&mm->mmap_sem);
-+	return;
++typedef unsigned long elf_fpregset_t;
 +
 +/*
-+ * Something tried to access memory that isn't in our memory map..
-+ * Fix it, but check if it's kernel or user first..
++ * These are used to set parameters in the core dumps.
 + */
-+bad_area:
-+	up_read(&mm->mmap_sem);
++#define ELF_CLASS	ELFCLASS32
++#define ELF_DATA	ELFDATA2LSB
++#define ELF_ARCH	EM_ALTERA_NIOS2
 +
-+bad_area_nosemaphore:
-+	/* User mode accesses just cause a SIGSEGV */
-+	if (user_mode(regs)) {
-+		pr_alert("%s: unhandled page fault (%d) at 0x%08lx, "
-+			"cause %ld\n", current->comm, SIGSEGV, address, cause);
-+		show_regs(regs);
-+		_exception(SIGSEGV, regs, code, address);
-+		return;
-+	}
-+
-+no_context:
-+	/* Are we prepared to handle this kernel fault? */
-+	if (fixup_exception(regs))
-+		return;
-+
-+	/*
-+	 * Oops. The kernel tried to access some bad page. We'll have to
-+	 * terminate things with extreme prejudice.
-+	 */
-+	bust_spinlocks(1);
-+
-+	pr_alert("Unable to handle kernel %s at virtual address %08lx",
-+		address < PAGE_SIZE ? "NULL pointer dereference" :
-+		"paging request", address);
-+	pr_alert("ea = %08lx, ra = %08lx, cause = %ld\n", regs->ea, regs->ra,
-+		cause);
-+	panic("Oops");
-+	return;
-+
-+/*
-+ * We ran out of memory, or some other thing happened to us that made
-+ * us unable to handle the page fault gracefully.
-+ */
-+out_of_memory:
-+	up_read(&mm->mmap_sem);
-+	if (is_global_init(tsk)) {
-+		yield();
-+		down_read(&mm->mmap_sem);
-+		goto survive;
-+	}
-+	if (!user_mode(regs))
-+		goto no_context;
-+	pagefault_out_of_memory();
-+	return;
-+
-+do_sigbus:
-+	up_read(&mm->mmap_sem);
-+
-+	/* Kernel mode? Handle exceptions or die */
-+	if (!user_mode(regs))
-+		goto no_context;
-+
-+	_exception(SIGBUS, regs, BUS_ADRERR, address);
-+	return;
-+
-+vmalloc_fault:
-+	{
-+		/*
-+		 * Synchronize this task's top level page-table
-+		 * with the 'reference' page table.
-+		 *
-+		 * Do _not_ use "tsk" here. We might be inside
-+		 * an interrupt in the middle of a task switch..
-+		 */
-+		int offset = pgd_index(address);
-+		pgd_t *pgd, *pgd_k;
-+		pud_t *pud, *pud_k;
-+		pmd_t *pmd, *pmd_k;
-+		pte_t *pte_k;
-+
-+		pgd = pgd_current + offset;
-+		pgd_k = init_mm.pgd + offset;
-+
-+		if (!pgd_present(*pgd_k))
-+			goto no_context;
-+		set_pgd(pgd, *pgd_k);
-+
-+		pud = pud_offset(pgd, address);
-+		pud_k = pud_offset(pgd_k, address);
-+		if (!pud_present(*pud_k))
-+			goto no_context;
-+		pmd = pmd_offset(pud, address);
-+		pmd_k = pmd_offset(pud_k, address);
-+		if (!pmd_present(*pmd_k))
-+			goto no_context;
-+		set_pmd(pmd, *pmd_k);
-+
-+		pte_k = pte_offset_kernel(pmd_k, address);
-+		if (!pte_present(*pte_k))
-+			goto no_context;
-+
-+		flush_tlb_one(address);
-+		return;
-+	}
-+}
++#endif /* _UAPI_ASM_NIOS2_ELF_H */
 -- 
 1.8.2.1
