@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bn1on0057.outbound.protection.outlook.com ([157.56.110.57]:44575
-	"EHLO na01-bn1-obe.outbound.protection.outlook.com"
+Received: from mail-by2on0085.outbound.protection.outlook.com ([207.46.100.85]:31362
+	"EHLO na01-by2-obe.outbound.protection.outlook.com"
 	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1753315AbaIHJiW (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 8 Sep 2014 05:38:22 -0400
+	id S1753315AbaIHJih (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 8 Sep 2014 05:38:37 -0400
 From: Ley Foon Tan <lftan@altera.com>
-Subject: [PATCH v3 18/29] nios2: Signal handling support
-Date: Mon, 8 Sep 2014 17:22:29 +0800
-Message-ID: <1410168160-3624-19-git-send-email-lftan@altera.com>
+Subject: [PATCH v3 02/29] nios2: Assembly macros and definitions
+Date: Mon, 8 Sep 2014 17:22:13 +0800
+Message-ID: <1410168160-3624-3-git-send-email-lftan@altera.com>
 In-Reply-To: <1410168160-3624-1-git-send-email-lftan@altera.com>
 References: <1410168160-3624-1-git-send-email-lftan@altera.com>
 MIME-Version: 1.0
@@ -16,98 +16,33 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org
 Cc: Ley Foon Tan <lftan@altera.com>, lftan.linux@gmail.com, cltang@codesourcery.com
-Message-ID: <20140908092229.ZgR4puoJhcJHfJcesaGrc_-jYaQYEblpL8Os0LuUFJc@z>
+Message-ID: <20140908092213.OPPm-TURN0BK4q4AelpTEZXL-np8V7U_yAQjo_g4Ckg@z>
 
-This patch adds support for signal handling.
+This patch add assembly macros and definitions used in
+the .S files across arch/nios2/ and together with asm-offsets.c.
 
 Signed-off-by: Ley Foon Tan <lftan@altera.com>
 ---
- arch/nios2/include/asm/signal.h          |  22 +++
- arch/nios2/include/asm/ucontext.h        |  32 ++++
- arch/nios2/include/uapi/asm/sigcontext.h |  28 +++
- arch/nios2/include/uapi/asm/signal.h     |  23 +++
- arch/nios2/kernel/signal.c               | 315 +++++++++++++++++++++++++++++++
- 5 files changed, 420 insertions(+)
- create mode 100644 arch/nios2/include/asm/signal.h
- create mode 100644 arch/nios2/include/asm/ucontext.h
- create mode 100644 arch/nios2/include/uapi/asm/sigcontext.h
- create mode 100644 arch/nios2/include/uapi/asm/signal.h
- create mode 100644 arch/nios2/kernel/signal.c
+ arch/nios2/include/asm/asm-macros.h  | 309 +++++++++++++++++++++++++++++++++++
+ arch/nios2/include/asm/asm-offsets.h |  20 +++
+ arch/nios2/kernel/asm-offsets.c      |  88 ++++++++++
+ 3 files changed, 417 insertions(+)
+ create mode 100644 arch/nios2/include/asm/asm-macros.h
+ create mode 100644 arch/nios2/include/asm/asm-offsets.h
+ create mode 100644 arch/nios2/kernel/asm-offsets.c
 
-diff --git a/arch/nios2/include/asm/signal.h b/arch/nios2/include/asm/signal.h
+diff --git a/arch/nios2/include/asm/asm-macros.h b/arch/nios2/include/asm/asm-macros.h
 new file mode 100644
-index 0000000..bbcf11e
+index 0000000..29fa2e4
 --- /dev/null
-+++ b/arch/nios2/include/asm/signal.h
-@@ -0,0 +1,22 @@
++++ b/arch/nios2/include/asm/asm-macros.h
+@@ -0,0 +1,309 @@
 +/*
-+ * Copyright Altera Corporation (C) 2013. All rights reserved
++ * Macro used to simplify coding multi-line assembler.
++ * Some of the bit test macro can simplify down to one line
++ * depending on the mask value.
 + *
-+ * This program is free software; you can redistribute it and/or modify it
-+ * under the terms and conditions of the GNU General Public License,
-+ * version 2, as published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope it will be useful, but WITHOUT
-+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
-+ * more details.
-+ *
-+ * You should have received a copy of the GNU General Public License along with
-+ * this program.  If not, see <http://www.gnu.org/licenses/>.
-+ *
-+ */
-+#ifndef _NIOS2_SIGNAL_H
-+#define _NIOS2_SIGNAL_H
-+
-+#include <uapi/asm/signal.h>
-+
-+#endif	/* _NIOS2_SIGNAL_H */
-diff --git a/arch/nios2/include/asm/ucontext.h b/arch/nios2/include/asm/ucontext.h
-new file mode 100644
-index 0000000..2c87614
---- /dev/null
-+++ b/arch/nios2/include/asm/ucontext.h
-@@ -0,0 +1,32 @@
-+/*
-+ * Copyright (C) 2010 Tobias Klauser <tklauser@distanz.ch>
-+ * Copyright (C) 2004 Microtronix Datacom Ltd
-+ *
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License.  See the file "COPYING" in the main directory of this archive
-+ * for more details.
-+ */
-+
-+#ifndef _ASM_NIOS2_UCONTEXT_H
-+#define _ASM_NIOS2_UCONTEXT_H
-+
-+typedef int greg_t;
-+#define NGREG 32
-+typedef greg_t gregset_t[NGREG];
-+
-+struct mcontext {
-+	int version;
-+	gregset_t gregs;
-+};
-+
-+#define MCONTEXT_VERSION 2
-+
-+struct ucontext {
-+	unsigned long	  uc_flags;
-+	struct ucontext  *uc_link;
-+	stack_t		  uc_stack;
-+	struct mcontext	  uc_mcontext;
-+	sigset_t	  uc_sigmask;	/* mask last for extensibility */
-+};
-+
-+#endif
-diff --git a/arch/nios2/include/uapi/asm/sigcontext.h b/arch/nios2/include/uapi/asm/sigcontext.h
-new file mode 100644
-index 0000000..7b8bb41
---- /dev/null
-+++ b/arch/nios2/include/uapi/asm/sigcontext.h
-@@ -0,0 +1,28 @@
-+/*
-+ * Copyright (C) 2004, Microtronix Datacom Ltd.
++ * Copyright (C) 2004 Microtronix Datacom Ltd.
 + *
 + * All rights reserved.
 + *
@@ -121,368 +56,415 @@ index 0000000..7b8bb41
 + * MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE, GOOD TITLE or
 + * NON INFRINGEMENT.  See the GNU General Public License for more
 + * details.
++ *
 + */
-+
-+#ifndef _ASM_NIOS2_SIGCONTEXT_H
-+#define _ASM_NIOS2_SIGCONTEXT_H
-+
-+#include <asm/ptrace.h>
-+
-+struct sigcontext {
-+	struct pt_regs regs;
-+	unsigned long  sc_mask;	/* old sigmask */
-+};
-+
-+#endif
-diff --git a/arch/nios2/include/uapi/asm/signal.h b/arch/nios2/include/uapi/asm/signal.h
-new file mode 100644
-index 0000000..f29ee63
---- /dev/null
-+++ b/arch/nios2/include/uapi/asm/signal.h
-@@ -0,0 +1,23 @@
++#ifndef _ASM_NIOS2_ASMMACROS_H
++#define _ASM_NIOS2_ASMMACROS_H
 +/*
-+ * Copyright Altera Corporation (C) 2013. All rights reserved
++ * ANDs reg2 with mask and places the result in reg1.
 + *
-+ * This program is free software; you can redistribute it and/or modify it
-+ * under the terms and conditions of the GNU General Public License,
-+ * version 2, as published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope it will be useful, but WITHOUT
-+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
-+ * more details.
-+ *
-+ * You should have received a copy of the GNU General Public License along with
-+ * this program.  If not, see <http://www.gnu.org/licenses/>.
-+ *
++ * You cannnot use the same register for reg1 & reg2.
 + */
-+#ifndef _ASM_NIOS2_SIGNAL_H
-+#define _ASM_NIOS2_SIGNAL_H
 +
-+#define SA_RESTORER 0x04000000
-+#include <asm-generic/signal.h>
++.macro ANDI32	reg1, reg2, mask
++.if \mask & 0xffff
++	.if \mask & 0xffff0000
++		movhi	\reg1, %hi(\mask)
++		movui	\reg1, %lo(\mask)
++		and	\reg1, \reg1, \reg2
++	.else
++		andi	\reg1, \reg2, %lo(\mask)
++	.endif
++.else
++	andhi	\reg1, \reg2, %hi(\mask)
++.endif
++.endm
 +
-+#endif /* _ASM_NIOS2_SIGNAL_H */
-diff --git a/arch/nios2/kernel/signal.c b/arch/nios2/kernel/signal.c
-new file mode 100644
-index 0000000..d074f85
---- /dev/null
-+++ b/arch/nios2/kernel/signal.c
-@@ -0,0 +1,315 @@
 +/*
-+ * Copyright (C) 2013 Altera Corporation
-+ * Copyright (C) 2011-2012 Tobias Klauser <tklauser@distanz.ch>
-+ * Copyright (C) 2004 Microtronix Datacom Ltd
-+ * Copyright (C) 1991, 1992 Linus Torvalds
++ * ORs reg2 with mask and places the result in reg1.
 + *
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License.  See the file COPYING in the main directory of this archive
-+ * for more details.
++ * It is safe to use the same register for reg1 & reg2.
 + */
 +
-+#include <linux/signal.h>
-+#include <linux/errno.h>
++.macro ORI32	reg1, reg2, mask
++.if \mask & 0xffff
++	.if \mask & 0xffff0000
++		orhi	\reg1, \reg2, %hi(\mask)
++		ori	\reg1, \reg2, %lo(\mask)
++	.else
++		ori	\reg1, \reg2, %lo(\mask)
++	.endif
++.else
++	orhi	\reg1, \reg2, %hi(\mask)
++.endif
++.endm
++
++/*
++ * XORs reg2 with mask and places the result in reg1.
++ *
++ * It is safe to use the same register for reg1 & reg2.
++ */
++
++.macro XORI32	reg1, reg2, mask
++.if \mask & 0xffff
++	.if \mask & 0xffff0000
++		xorhi	\reg1, \reg2, %hi(\mask)
++		xori	\reg1, \reg1, %lo(\mask)
++	.else
++		xori	\reg1, \reg2, %lo(\mask)
++	.endif
++.else
++	xorhi	\reg1, \reg2, %hi(\mask)
++.endif
++.endm
++
++/*
++ * This is a support macro for BTBZ & BTBNZ.  It checks
++ * the bit to make sure it is valid 32 value.
++ *
++ * It is safe to use the same register for reg1 & reg2.
++ */
++
++.macro BT	reg1, reg2, bit
++.if \bit > 31
++	.err
++.else
++	.if \bit < 16
++		andi	\reg1, \reg2, (1 << \bit)
++	.else
++		andhi	\reg1, \reg2, (1 << (\bit - 16))
++	.endif
++.endif
++.endm
++
++/*
++ * Tests the bit in reg2 and branches to label if the
++ * bit is zero.  The result of the bit test is stored in reg1.
++ *
++ * It is safe to use the same register for reg1 & reg2.
++ */
++
++.macro BTBZ	reg1, reg2, bit, label
++	BT	\reg1, \reg2, \bit
++	beq	\reg1, r0, \label
++.endm
++
++/*
++ * Tests the bit in reg2 and branches to label if the
++ * bit is non-zero.  The result of the bit test is stored in reg1.
++ *
++ * It is safe to use the same register for reg1 & reg2.
++ */
++
++.macro BTBNZ	reg1, reg2, bit, label
++	BT	\reg1, \reg2, \bit
++	bne	\reg1, r0, \label
++.endm
++
++/*
++ * Tests the bit in reg2 and then compliments the bit in reg2.
++ * The result of the bit test is stored in reg1.
++ *
++ * It is NOT safe to use the same register for reg1 & reg2.
++ */
++
++.macro BTC	reg1, reg2, bit
++.if \bit > 31
++	.err
++.else
++	.if \bit < 16
++		andi	\reg1, \reg2, (1 << \bit)
++		xori	\reg2, \reg2, (1 << \bit)
++	.else
++		andhi	\reg1, \reg2, (1 << (\bit - 16))
++		xorhi	\reg2, \reg2, (1 << (\bit - 16))
++	.endif
++.endif
++.endm
++
++/*
++ * Tests the bit in reg2 and then sets the bit in reg2.
++ * The result of the bit test is stored in reg1.
++ *
++ * It is NOT safe to use the same register for reg1 & reg2.
++ */
++
++.macro BTS	reg1, reg2, bit
++.if \bit > 31
++	.err
++.else
++	.if \bit < 16
++		andi	\reg1, \reg2, (1 << \bit)
++		ori	\reg2, \reg2, (1 << \bit)
++	.else
++		andhi	\reg1, \reg2, (1 << (\bit - 16))
++		orhi	\reg2, \reg2, (1 << (\bit - 16))
++	.endif
++.endif
++.endm
++
++/*
++ * Tests the bit in reg2 and then resets the bit in reg2.
++ * The result of the bit test is stored in reg1.
++ *
++ * It is NOT safe to use the same register for reg1 & reg2.
++ */
++
++.macro BTR	reg1, reg2, bit
++.if \bit > 31
++	.err
++.else
++	.if \bit < 16
++		andi	\reg1, \reg2, (1 << \bit)
++		andi	\reg2, \reg2, %lo(~(1 << \bit))
++	.else
++		andhi	\reg1, \reg2, (1 << (\bit - 16))
++		andhi	\reg2, \reg2, %lo(~(1 << (\bit - 16)))
++	.endif
++.endif
++.endm
++
++/*
++ * Tests the bit in reg2 and then compliments the bit in reg2.
++ * The result of the bit test is stored in reg1.  If the
++ * original bit was zero it branches to label.
++ *
++ * It is NOT safe to use the same register for reg1 & reg2.
++ */
++
++.macro BTCBZ	reg1, reg2, bit, label
++	BTC	\reg1, \reg2, \bit
++	beq	\reg1, r0, \label
++.endm
++
++/*
++ * Tests the bit in reg2 and then compliments the bit in reg2.
++ * The result of the bit test is stored in reg1.  If the
++ * original bit was non-zero it branches to label.
++ *
++ * It is NOT safe to use the same register for reg1 & reg2.
++ */
++
++.macro BTCBNZ	reg1, reg2, bit, label
++	BTC	\reg1, \reg2, \bit
++	bne	\reg1, r0, \label
++.endm
++
++/*
++ * Tests the bit in reg2 and then sets the bit in reg2.
++ * The result of the bit test is stored in reg1.  If the
++ * original bit was zero it branches to label.
++ *
++ * It is NOT safe to use the same register for reg1 & reg2.
++ */
++
++.macro BTSBZ	reg1, reg2, bit, label
++	BTS	\reg1, \reg2, \bit
++	beq	\reg1, r0, \label
++.endm
++
++/*
++ * Tests the bit in reg2 and then sets the bit in reg2.
++ * The result of the bit test is stored in reg1.  If the
++ * original bit was non-zero it branches to label.
++ *
++ * It is NOT safe to use the same register for reg1 & reg2.
++ */
++
++.macro BTSBNZ	reg1, reg2, bit, label
++	BTS	\reg1, \reg2, \bit
++	bne	\reg1, r0, \label
++.endm
++
++/*
++ * Tests the bit in reg2 and then resets the bit in reg2.
++ * The result of the bit test is stored in reg1.  If the
++ * original bit was zero it branches to label.
++ *
++ * It is NOT safe to use the same register for reg1 & reg2.
++ */
++
++.macro BTRBZ	reg1, reg2, bit, label
++	BTR	\reg1, \reg2, \bit
++	bne	\reg1, r0, \label
++.endm
++
++/*
++ * Tests the bit in reg2 and then resets the bit in reg2.
++ * The result of the bit test is stored in reg1.  If the
++ * original bit was non-zero it branches to label.
++ *
++ * It is NOT safe to use the same register for reg1 & reg2.
++ */
++
++.macro BTRBNZ	reg1, reg2, bit, label
++	BTR	\reg1, \reg2, \bit
++	bne	\reg1, r0, \label
++.endm
++
++/*
++ * Tests the bits in mask against reg2 stores the result in reg1.
++ * If the all the bits in the mask are zero it branches to label.
++ *
++ * It is safe to use the same register for reg1 & reg2.
++ */
++
++.macro TSTBZ	reg1, reg2, mask, label
++	ANDI32	\reg1, \reg2, \mask
++	beq	\reg1, r0, \label
++.endm
++
++/*
++ * Tests the bits in mask against reg2 stores the result in reg1.
++ * If the any of the bits in the mask are 1 it branches to label.
++ *
++ * It is safe to use the same register for reg1 & reg2.
++ */
++
++.macro TSTBNZ	reg1, reg2, mask, label
++	ANDI32	\reg1, \reg2, \mask
++	bne	\reg1, r0, \label
++.endm
++
++/*
++ * Pushes reg onto the stack.
++ */
++
++.macro PUSH	reg
++	addi	sp, sp, -4
++	stw	\reg, 0(sp)
++.endm
++
++/*
++ * Pops the top of the stack into reg.
++ */
++
++.macro POP	reg
++	ldw	\reg, 0(sp)
++	addi	sp, sp, 4
++.endm
++
++
++#endif /* _ASM_NIOS2_ASMMACROS_H */
+diff --git a/arch/nios2/include/asm/asm-offsets.h b/arch/nios2/include/asm/asm-offsets.h
+new file mode 100644
+index 0000000..5b9f5e0
+--- /dev/null
++++ b/arch/nios2/include/asm/asm-offsets.h
+@@ -0,0 +1,20 @@
++/*
++ *  Copyright (C) 2010 Tobias Klauser <tklauser@distanz.ch>
++ *  Copyright (C) 2009 Thomas Chou <thomas@wytron.com.tw>
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ *
++ */
++
++#include <generated/asm-offsets.h>
+diff --git a/arch/nios2/kernel/asm-offsets.c b/arch/nios2/kernel/asm-offsets.c
+new file mode 100644
+index 0000000..3852f5c
+--- /dev/null
++++ b/arch/nios2/kernel/asm-offsets.c
+@@ -0,0 +1,88 @@
++/*
++ * Copyright (C) 2011 Tobias Klauser <tklauser@distanz.ch>
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ *
++ */
++
++#include <linux/stddef.h>
++#include <linux/sched.h>
++#include <linux/kernel_stat.h>
 +#include <linux/ptrace.h>
-+#include <linux/uaccess.h>
-+#include <linux/unistd.h>
-+#include <linux/personality.h>
-+#include <linux/tracehook.h>
++#include <linux/hardirq.h>
++#include <linux/thread_info.h>
++#include <linux/kbuild.h>
 +
-+#include <asm/ucontext.h>
-+#include <asm/cacheflush.h>
-+
-+#define _BLOCKABLE (~(sigmask(SIGKILL) | sigmask(SIGSTOP)))
-+
-+/*
-+ * Do a signal return; undo the signal stack.
-+ *
-+ * Keep the return code on the stack quadword aligned!
-+ * That makes the cache flush below easier.
-+ */
-+
-+struct rt_sigframe {
-+	struct siginfo info;
-+	struct ucontext uc;
-+};
-+
-+static inline int rt_restore_ucontext(struct pt_regs *regs,
-+					struct switch_stack *sw,
-+					struct ucontext *uc, int *pr2)
++int main(void)
 +{
-+	int temp;
-+	greg_t *gregs = uc->uc_mcontext.gregs;
-+	int err;
++	/* struct task_struct */
++	OFFSET(TASK_THREAD, task_struct, thread);
++	BLANK();
 +
-+	err = __get_user(temp, &uc->uc_mcontext.version);
-+	if (temp != MCONTEXT_VERSION)
-+		goto badframe;
-+	/* restore passed registers */
-+	err |= __get_user(regs->r1, &gregs[0]);
-+	err |= __get_user(regs->r2, &gregs[1]);
-+	err |= __get_user(regs->r3, &gregs[2]);
-+	err |= __get_user(regs->r4, &gregs[3]);
-+	err |= __get_user(regs->r5, &gregs[4]);
-+	err |= __get_user(regs->r6, &gregs[5]);
-+	err |= __get_user(regs->r7, &gregs[6]);
-+	err |= __get_user(regs->r8, &gregs[7]);
-+	err |= __get_user(regs->r9, &gregs[8]);
-+	err |= __get_user(regs->r10, &gregs[9]);
-+	err |= __get_user(regs->r11, &gregs[10]);
-+	err |= __get_user(regs->r12, &gregs[11]);
-+	err |= __get_user(regs->r13, &gregs[12]);
-+	err |= __get_user(regs->r14, &gregs[13]);
-+	err |= __get_user(regs->r15, &gregs[14]);
-+	err |= __get_user(sw->r16, &gregs[15]);
-+	err |= __get_user(sw->r17, &gregs[16]);
-+	err |= __get_user(sw->r18, &gregs[17]);
-+	err |= __get_user(sw->r19, &gregs[18]);
-+	err |= __get_user(sw->r20, &gregs[19]);
-+	err |= __get_user(sw->r21, &gregs[20]);
-+	err |= __get_user(sw->r22, &gregs[21]);
-+	err |= __get_user(sw->r23, &gregs[22]);
-+	/* gregs[23] is handled below */
-+	err |= __get_user(sw->fp, &gregs[24]);  /* Verify, should this be
-+							settable */
-+	err |= __get_user(sw->gp, &gregs[25]);  /* Verify, should this be
-+							settable */
++	/* struct thread_struct */
++	OFFSET(THREAD_KSP, thread_struct, ksp);
++	OFFSET(THREAD_KPSR, thread_struct, kpsr);
++	BLANK();
 +
-+	err |= __get_user(temp, &gregs[26]);  /* Not really necessary no user
-+							settable bits */
-+	err |= __get_user(regs->ea, &gregs[27]);
++	/* struct pt_regs */
++	OFFSET(PT_ORIG_R2, pt_regs, orig_r2);
++	OFFSET(PT_ORIG_R7, pt_regs, orig_r7);
 +
-+	err |= __get_user(regs->ra, &gregs[23]);
-+	err |= __get_user(regs->sp, &gregs[28]);
++	OFFSET(PT_R1, pt_regs, r1);
++	OFFSET(PT_R2, pt_regs, r2);
++	OFFSET(PT_R3, pt_regs, r3);
++	OFFSET(PT_R4, pt_regs, r4);
++	OFFSET(PT_R5, pt_regs, r5);
++	OFFSET(PT_R6, pt_regs, r6);
++	OFFSET(PT_R7, pt_regs, r7);
++	OFFSET(PT_R8, pt_regs, r8);
++	OFFSET(PT_R9, pt_regs, r9);
++	OFFSET(PT_R10, pt_regs, r10);
++	OFFSET(PT_R11, pt_regs, r11);
++	OFFSET(PT_R12, pt_regs, r12);
++	OFFSET(PT_R13, pt_regs, r13);
++	OFFSET(PT_R14, pt_regs, r14);
++	OFFSET(PT_R15, pt_regs, r15);
++	OFFSET(PT_EA, pt_regs, ea);
++	OFFSET(PT_RA, pt_regs, ra);
++	OFFSET(PT_FP, pt_regs, fp);
++	OFFSET(PT_SP, pt_regs, sp);
++	OFFSET(PT_GP, pt_regs, gp);
++	OFFSET(PT_ESTATUS, pt_regs, estatus);
++	DEFINE(PT_REGS_SIZE, sizeof(struct pt_regs));
++	BLANK();
 +
-+	regs->estatus = (regs->estatus & 0xffffffff);
-+	regs->orig_r2 = -1;		/* disable syscall checks */
++	/* struct switch_stack */
++	OFFSET(SW_R16, switch_stack, r16);
++	OFFSET(SW_R17, switch_stack, r17);
++	OFFSET(SW_R18, switch_stack, r18);
++	OFFSET(SW_R19, switch_stack, r19);
++	OFFSET(SW_R20, switch_stack, r20);
++	OFFSET(SW_R21, switch_stack, r21);
++	OFFSET(SW_R22, switch_stack, r22);
++	OFFSET(SW_R23, switch_stack, r23);
++	OFFSET(SW_FP, switch_stack, fp);
++	OFFSET(SW_GP, switch_stack, gp);
++	OFFSET(SW_RA, switch_stack, ra);
++	DEFINE(SWITCH_STACK_SIZE, sizeof(struct switch_stack));
++	BLANK();
 +
-+	err |= restore_altstack(&uc->uc_stack);
-+	if (err)
-+		goto badframe;
-+
-+	*pr2 = regs->r2;
-+	return err;
-+
-+badframe:
-+	return 1;
-+}
-+
-+asmlinkage int do_rt_sigreturn(struct switch_stack *sw)
-+{
-+	struct pt_regs *regs = (struct pt_regs *)(sw + 1);
-+	/* Verify, can we follow the stack back */
-+	struct rt_sigframe *frame = (struct rt_sigframe *) regs->sp;
-+	sigset_t set;
-+	int rval;
-+
-+	if (!access_ok(VERIFY_READ, frame, sizeof(*frame)))
-+		goto badframe;
-+
-+	if (__copy_from_user(&set, &frame->uc.uc_sigmask, sizeof(set)))
-+		goto badframe;
-+
-+	set_current_blocked(&set);
-+
-+	if (rt_restore_ucontext(regs, sw, &frame->uc, &rval))
-+		goto badframe;
-+
-+	return rval;
-+
-+badframe:
-+	force_sig(SIGSEGV, current);
-+	return 0;
-+}
-+
-+static inline int rt_setup_ucontext(struct ucontext *uc, struct pt_regs *regs)
-+{
-+	struct switch_stack *sw = (struct switch_stack *)regs - 1;
-+	greg_t *gregs = uc->uc_mcontext.gregs;
-+	int err = 0;
-+
-+	err |= __put_user(MCONTEXT_VERSION, &uc->uc_mcontext.version);
-+	err |= __put_user(regs->r1, &gregs[0]);
-+	err |= __put_user(regs->r2, &gregs[1]);
-+	err |= __put_user(regs->r3, &gregs[2]);
-+	err |= __put_user(regs->r4, &gregs[3]);
-+	err |= __put_user(regs->r5, &gregs[4]);
-+	err |= __put_user(regs->r6, &gregs[5]);
-+	err |= __put_user(regs->r7, &gregs[6]);
-+	err |= __put_user(regs->r8, &gregs[7]);
-+	err |= __put_user(regs->r9, &gregs[8]);
-+	err |= __put_user(regs->r10, &gregs[9]);
-+	err |= __put_user(regs->r11, &gregs[10]);
-+	err |= __put_user(regs->r12, &gregs[11]);
-+	err |= __put_user(regs->r13, &gregs[12]);
-+	err |= __put_user(regs->r14, &gregs[13]);
-+	err |= __put_user(regs->r15, &gregs[14]);
-+	err |= __put_user(sw->r16, &gregs[15]);
-+	err |= __put_user(sw->r17, &gregs[16]);
-+	err |= __put_user(sw->r18, &gregs[17]);
-+	err |= __put_user(sw->r19, &gregs[18]);
-+	err |= __put_user(sw->r20, &gregs[19]);
-+	err |= __put_user(sw->r21, &gregs[20]);
-+	err |= __put_user(sw->r22, &gregs[21]);
-+	err |= __put_user(sw->r23, &gregs[22]);
-+	err |= __put_user(regs->ra, &gregs[23]);
-+	err |= __put_user(sw->fp, &gregs[24]);
-+	err |= __put_user(sw->gp, &gregs[25]);
-+	err |= __put_user(regs->ea, &gregs[27]);
-+	err |= __put_user(regs->sp, &gregs[28]);
-+	return err;
-+}
-+
-+static inline void push_cache(unsigned long vaddr)
-+{
-+	flush_dcache_range(vaddr, vaddr + 12);
-+	flush_icache_range(vaddr, vaddr + 12);
-+}
-+
-+static inline void *get_sigframe(struct ksignal *ksig, struct pt_regs *regs,
-+				 size_t frame_size)
-+{
-+	unsigned long usp;
-+
-+	/* Default to using normal stack.  */
-+	usp = regs->sp;
-+
-+	/* This is the X/Open sanctioned signal stack switching.  */
-+	usp = sigsp(usp, ksig);
-+
-+	/* Verify, is it 32 or 64 bit aligned */
-+	return (void *)((usp - frame_size) & -8UL);
-+}
-+
-+static int setup_rt_frame(struct ksignal *ksig, sigset_t *set,
-+			  struct pt_regs *regs)
-+{
-+	struct rt_sigframe *frame;
-+	int err = 0;
-+
-+	frame = get_sigframe(ksig, regs, sizeof(*frame));
-+
-+	if (ksig->ka.sa.sa_flags & SA_SIGINFO)
-+		err |= copy_siginfo_to_user(&frame->info, &ksig->info);
-+
-+	/* Create the ucontext.  */
-+	err |= __put_user(0, &frame->uc.uc_flags);
-+	err |= __put_user(0, &frame->uc.uc_link);
-+	err |= __save_altstack(&frame->uc.uc_stack, regs->sp);
-+	err |= rt_setup_ucontext(&frame->uc, regs);
-+	err |= copy_to_user(&frame->uc.uc_sigmask, set, sizeof(*set));
-+
-+	if (err)
-+		goto give_sigsegv;
-+
-+	/* Set up to return from userspace; jump to fixed address sigreturn
-+	   trampoline on kuser page.  */
-+	regs->ra = (unsigned long) (0x1040);
-+
-+	/* Set up registers for signal handler */
-+	regs->sp = (unsigned long) frame;
-+	regs->r4 = (unsigned long) ksig->sig;
-+	regs->r5 = (unsigned long) &frame->info;
-+	regs->r6 = (unsigned long) &frame->uc;
-+	regs->ea = (unsigned long) ksig->ka.sa.sa_handler;
-+	return 0;
-+
-+give_sigsegv:
-+	force_sigsegv(ksig->sig, current);
-+	return -EFAULT;
-+}
-+
-+static inline void handle_restart(struct pt_regs *regs, struct k_sigaction *ka,
-+				  int has_handler)
-+{
-+	switch (regs->r2) {
-+	case ERESTART_RESTARTBLOCK:
-+	case ERESTARTNOHAND:
-+		regs->r2 = EINTR;
-+		regs->r7 = 1;
-+		break;
-+	case ERESTARTSYS:
-+		if (has_handler && !(ka->sa.sa_flags & SA_RESTART)) {
-+			regs->r2 = EINTR;
-+			regs->r7 = 1;
-+			break;
-+		}
-+	/* fallthrough */
-+	case ERESTARTNOINTR:
-+		regs->r2 = regs->orig_r2;
-+		regs->r7 = regs->orig_r7;
-+		regs->ea -= 4;
-+		break;
-+	}
-+}
-+
-+/*
-+ * OK, we're invoking a handler
-+ */
-+static void handle_signal(struct ksignal *ksig, struct pt_regs *regs)
-+{
-+	int ret;
-+	sigset_t *oldset = sigmask_to_save();
-+
-+	/* set up the stack frame */
-+	ret = setup_rt_frame(ksig, oldset, regs);
-+
-+	signal_setup_done(ret, ksig, 0);
-+}
-+
-+static int do_signal(struct pt_regs *regs, int in_syscall)
-+{
-+	struct ksignal ksig;
-+
-+	current->thread.kregs = regs;
-+
-+	if (get_signal(&ksig)) {
-+		/*
-+		 * Are we from a system call? If so, check system call
-+		 * restarting.
-+		 */
-+		if (in_syscall)
-+			handle_restart(regs, &ksig.ka, 1);
-+		/* Whee!  Actually deliver the signal.  */
-+		handle_signal(&ksig, regs);
-+		return 1;
-+	}
-+
-+	/*
-+	 * No signal to deliver to the process - restart the syscall.
-+	 */
-+	if (in_syscall) {
-+		/* Did the syscall return an error code */
-+		if (regs->r7 == 1) {
-+			if (regs->r2 == ERESTARTNOHAND ||
-+				regs->r2 == ERESTARTSYS ||
-+				regs->r2 == ERESTARTNOINTR) {
-+				regs->r2 = regs->orig_r2;
-+				regs->r7 = regs->orig_r7;
-+				regs->ea -= 4;
-+			} else if (regs->r2 == ERESTART_RESTARTBLOCK) {
-+				regs->r2 = __NR_restart_syscall;
-+				regs->ea -= 4;
-+			}
-+		}
-+	}
++	/* struct thread_info */
++	OFFSET(TI_TASK, thread_info, task);
++	OFFSET(TI_FLAGS, thread_info, flags);
++	OFFSET(TI_PREEMPT_COUNT, thread_info, preempt_count);
++	BLANK();
 +
 +	return 0;
-+}
-+
-+asmlinkage void do_notify_resume(struct pt_regs *regs, int in_syscall)
-+{
-+	/*
-+	 * We want the common case to go fast, which is why we may in certain
-+	 * cases get here from kernel mode. Just return without doing anything
-+	 * if so.
-+	 */
-+	if (!user_mode(regs))
-+		return;
-+
-+	if (test_thread_flag(TIF_SIGPENDING))
-+		do_signal(regs, in_syscall);
-+
-+	if (test_and_clear_thread_flag(TIF_NOTIFY_RESUME))
-+		tracehook_notify_resume(regs);
 +}
 -- 
 1.8.2.1
