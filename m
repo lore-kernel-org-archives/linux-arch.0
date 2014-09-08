@@ -1,59 +1,52 @@
-From: Jason Gunthorpe <jgunthorpe@obsidianresearch.com>
-Subject: Re: [PATCH v10 07/10] OF: Introduce helper function for getting PCI
- domain_nr
-Date: Mon, 8 Sep 2014 10:39:05 -0600
-Message-ID: <20140908163905.GC29679@obsidianresearch.com>
-References: <1410184472-17630-1-git-send-email-Liviu.Dudau@arm.com>
- <1410184472-17630-8-git-send-email-Liviu.Dudau@arm.com>
- <CAL_JsqJi8k1Goc3UmXhuxf9v7=4gJrYG_Di7v574PxS8TsJaXw@mail.gmail.com>
- <20140908145459.GO27864@e106497-lin.cambridge.arm.com>
- <CAL_JsqJdGKDVwJOpPp19OkVPGzR7Zqv3nh+ONHHaYnPLYTYoYg@mail.gmail.com>
- <20140908155931.GP27864@e106497-lin.cambridge.arm.com>
+From: One Thousand Gnomes <gnomes@lxorguk.ukuu.org.uk>
+Subject: Re: bit fields && data tearing
+Date: Mon, 8 Sep 2014 18:52:40 +0100
+Message-ID: <20140908185240.21f52ca0@alan.etchedpixels.co.uk>
+References: <20140712181328.GA8738@redhat.com>
+	<54079B70.4050200@hurleysoftware.com>
+	<1409785893.30640.118.camel@pasglop>
+	<063D6719AE5E284EB5DD2968C1650D6D17487172@AcuExch.aculab.com>
+	<1409824374.4246.62.camel@pasglop>
+	<5408E458.3@zytor.com>
+	<54090AF4.7060406@hurleysoftware.com>
+	<54091B30.7080100@zytor.com>
+	<5409D76D.2070203@hurleysoftware.com>
+	<5409D9C0.7030403@zytor.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from quartz.orcorp.ca ([184.70.90.242]:50948 "EHLO quartz.orcorp.ca"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754461AbaIHQjc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 8 Sep 2014 12:39:32 -0400
-Content-Disposition: inline
-In-Reply-To: <20140908155931.GP27864@e106497-lin.cambridge.arm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Liviu Dudau <Liviu.Dudau@arm.com>
-Cc: Rob Herring <robherring2@gmail.com>, Bjorn Helgaas <bhelgaas@google.com>, Arnd Bergmann <arnd@arndb.de>, Rob Herring <robh+dt@kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Catalin Marinas <Catalin.Marinas@arm.com>, Will Deacon <Will.Deacon@arm.com>, Russell King <linux@arm.linux.org.uk>, linux-pci <linux-pci@vger.kernel.org>, Linus Walleij <linus.walleij@linaro.org>, Tanmay Inamdar <tinamdar@apm.com>, Grant Likely <grant.likely@secretlab.ca>, Sinan Kaya <okaya@codeaurora.org>, Jingoo Han <jg1.han@samsung.com>, Kukjin Kim <kgene.kim@samsung.com>, Suravee Suthikulanit <suravee.suthikulpanit@amd.com>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Device Tree ML <devicetree@vger.kernel.org>, LAKML <linux-arm-kernel@lists.infradead.org>, "grant.likely@linaro.org" <grant.likely@linaro.org>
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-alpha-owner@vger.kernel.org>
+In-Reply-To: <5409D9C0.7030403@zytor.com>
+Sender: linux-alpha-owner@vger.kernel.org
+To: "H. Peter Anvin" <hpa@zytor.com>
+Cc: Peter Hurley <peter@hurleysoftware.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Laight <David.Laight@ACULAB.COM>, Jakub Jelinek <jakub@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Tony Luck <tony.luck@intel.com>, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, Oleg Nesterov <oleg@redhat.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Paul Mackerras <paulus@samba.org>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, "linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>, Miroslav Franc <mfranc@redhat.com>, Richard Henderson <rth@twiddle.net>, linux-alpha@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Mon, Sep 08, 2014 at 04:59:31PM +0100, Liviu Dudau wrote:
+On Fri, 05 Sep 2014 08:41:52 -0700
+"H. Peter Anvin" <hpa@zytor.com> wrote:
 
-> > I don't really understand how domains are used so it's hard to provide
-> > a recommendation here. Do domains even belong in the DT?
+> On 09/05/2014 08:31 AM, Peter Hurley wrote:
+> > 
+> > Which is a bit ironic because I remember when Digital had a team
+> > working on emulating native x86 apps on Alpha/NT.
+> > 
 > 
-> ACPI calls them segments and the way Bjorn explained it to me at some moment was
-> that it was an attempt to split up a bus in different groups (or alternatively,
-> merge a few busses together). To be honest I haven't seen systems where the domain
-> is anything other than zero, but JasonG (or maybe Benjamin) were floating an
-> idea of using the domain number to identify physical slots.
+> Right, because the x86 architecture was obsolete and would never scale...
 
-A PCI domain qualifies the bus:device.function addressing so that we
-can have duplicate BDFs in the system.
+Talking about "not scaling" can anyone explain how a "you need to use
+set_bit() and friends" bug report scaled into a hundred message plus
+discussion about ambiguous properties of processors (and nobody has
+audited all the embedded platforms we support yet, or the weirder ARMs)
+and a propsal to remove Alpha support.
 
-So, yes, they belong in DT - each 'top level' PCI node naturally
-represents a unique set of BDF addressing below it, and could alias
-other top level nodes. The first step to resolve a BDF to a DT node is
-to find the correct 'top level' by mapping the domain number.
+Wouldn't it be *much* simpler to do what I suggested in the first place
+and use the existing intended for purpose, deliberately put there,
+functions for atomic bitops, because they are fast on sane processors and
+they work on everything else.
 
-In an ideal world no small scale system should ever have domains. They
-were primarily introduced for large scale NUMA system that actually
-have more than 256 PCI busses.
+I think the whole "removing Alpha EV5" support is basically bonkers. Just
+use set_bit in the tty layer. Alpha will continue to work as well as it
+always has done and you won't design out support for any future processor
+that turns out not to do byte aligned stores.
 
-However, from a DT prespective, we've been saying that if the SOC
-presents a PCI-E root port that shares nothing with other root ports
-(ie aperture, driver instance, config space) then those ports must be
-represented by unique 'top level' DT nodes, and each DT node must be
-assigned to a Linux PCI domain.
-
-IMHO, designing such a SOC ignores the API guidelines provides by the
-PCI-E spec itself, and I hope such a thing won't be considered SBSA
-compatible..
-
-Jason
+Alan
