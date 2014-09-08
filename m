@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bl2on0096.outbound.protection.outlook.com ([65.55.169.96]:30448
+Received: from mail-bl2on0068.outbound.protection.outlook.com ([65.55.169.68]:58084
 	"EHLO na01-bl2-obe.outbound.protection.outlook.com"
 	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1753974AbaIHJjY (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 8 Sep 2014 05:39:24 -0400
+	id S1753288AbaIHJj2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 8 Sep 2014 05:39:28 -0400
 From: Ley Foon Tan <lftan@altera.com>
-Subject: [PATCH v3 26/29] nios2: ptrace support
-Date: Mon, 8 Sep 2014 17:22:37 +0800
-Message-ID: <1410168160-3624-27-git-send-email-lftan@altera.com>
+Subject: [PATCH v3 12/29] nios2: TLB handling
+Date: Mon, 8 Sep 2014 17:22:23 +0800
+Message-ID: <1410168160-3624-13-git-send-email-lftan@altera.com>
 In-Reply-To: <1410168160-3624-1-git-send-email-lftan@altera.com>
 References: <1410168160-3624-1-git-send-email-lftan@altera.com>
 MIME-Version: 1.0
@@ -16,366 +16,391 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org
 Cc: Ley Foon Tan <lftan@altera.com>, lftan.linux@gmail.com, cltang@codesourcery.com
-Message-ID: <20140908092237.KwFiWcrdQprssijtM_vQXJg3Bsdx5fW-apsJdhmJ9KY@z>
+Message-ID: <20140908092223.4wS2I8RiHp_f2jyKZUBy3SLROX8TyB66dLpB0yGaegs@z>
 
-Add ptrace support for nios2.
+This patch adds the TLB maintenance functions.
 
 Signed-off-by: Ley Foon Tan <lftan@altera.com>
 ---
- arch/nios2/include/asm/ptrace.h      |  33 +++++++
- arch/nios2/include/uapi/asm/ptrace.h | 120 ++++++++++++++++++++++++
- arch/nios2/kernel/ptrace.c           | 176 +++++++++++++++++++++++++++++++++++
- 3 files changed, 329 insertions(+)
- create mode 100644 arch/nios2/include/asm/ptrace.h
- create mode 100644 arch/nios2/include/uapi/asm/ptrace.h
- create mode 100644 arch/nios2/kernel/ptrace.c
+ arch/nios2/include/asm/tlb.h      |  34 +++++
+ arch/nios2/include/asm/tlbflush.h |  46 +++++++
+ arch/nios2/mm/tlb.c               | 274 ++++++++++++++++++++++++++++++++++++++
+ 3 files changed, 354 insertions(+)
+ create mode 100644 arch/nios2/include/asm/tlb.h
+ create mode 100644 arch/nios2/include/asm/tlbflush.h
+ create mode 100644 arch/nios2/mm/tlb.c
 
-diff --git a/arch/nios2/include/asm/ptrace.h b/arch/nios2/include/asm/ptrace.h
+diff --git a/arch/nios2/include/asm/tlb.h b/arch/nios2/include/asm/tlb.h
 new file mode 100644
-index 0000000..20fb1cf
+index 0000000..d3bc648
 --- /dev/null
-+++ b/arch/nios2/include/asm/ptrace.h
-@@ -0,0 +1,33 @@
++++ b/arch/nios2/include/asm/tlb.h
+@@ -0,0 +1,34 @@
 +/*
-+ * Copyright (C) 2013 Altera Corporation
 + * Copyright (C) 2010 Tobias Klauser <tklauser@distanz.ch>
-+ * Copyright (C) 2004 Microtronix Datacom Ltd
++ * Copyright (C) 2009 Wind River Systems Inc
++ * Copyright (C) 2004 Microtronix Datacom Ltd.
 + *
-+ * based on m68k asm/processor.h
++ * This file is subject to the terms and conditions of the GNU General Public
++ * License. See the file "COPYING" in the main directory of this archive
++ * for more details.
++ */
++
++#ifndef _ASM_NIOS2_TLB_H
++#define _ASM_NIOS2_TLB_H
++
++#define tlb_flush(tlb)	flush_tlb_mm((tlb)->mm)
++
++extern void set_mmu_pid(unsigned long pid);
++
++/*
++ * NiosII doesn't need any special per-pte or per-vma handling, except
++ * we need to flush cache for the area to be unmapped.
++ */
++#define tlb_start_vma(tlb, vma)					\
++	do {							\
++		if (!tlb->fullmm)				\
++			flush_cache_range(vma, vma->vm_start, vma->vm_end); \
++	}  while (0)
++
++#define tlb_end_vma(tlb, vma)	do { } while (0)
++#define __tlb_remove_tlb_entry(tlb, ptep, address)	do { } while (0)
++
++#include <linux/pagemap.h>
++#include <asm-generic/tlb.h>
++
++#endif /* _ASM_NIOS2_TLB_H */
+diff --git a/arch/nios2/include/asm/tlbflush.h b/arch/nios2/include/asm/tlbflush.h
+new file mode 100644
+index 0000000..e19652f
+--- /dev/null
++++ b/arch/nios2/include/asm/tlbflush.h
+@@ -0,0 +1,46 @@
++/*
++ * Copyright (C) 2010 Tobias Klauser <tklauser@distanz.ch>
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ *
++ */
++
++#ifndef _ASM_NIOS2_TLBFLUSH_H
++#define _ASM_NIOS2_TLBFLUSH_H
++
++struct mm_struct;
++
++/*
++ * TLB flushing:
++ *
++ *  - flush_tlb_all() flushes all processes TLB entries
++ *  - flush_tlb_mm(mm) flushes the specified mm context TLB entries
++ *  - flush_tlb_page(vma, vmaddr) flushes one page
++ *  - flush_tlb_range(vma, start, end) flushes a range of pages
++ *  - flush_tlb_kernel_range(start, end) flushes a range of kernel pages
++ */
++extern void flush_tlb_all(void);
++extern void flush_tlb_mm(struct mm_struct *mm);
++extern void flush_tlb_range(struct vm_area_struct *vma, unsigned long start,
++			    unsigned long end);
++extern void flush_tlb_kernel_range(unsigned long start, unsigned long end);
++extern void flush_tlb_one(unsigned long vaddr);
++
++static inline void flush_tlb_page(struct vm_area_struct *vma,
++				unsigned long addr)
++{
++	flush_tlb_one(addr);
++}
++
++#endif /* _ASM_NIOS2_TLBFLUSH_H */
+diff --git a/arch/nios2/mm/tlb.c b/arch/nios2/mm/tlb.c
+new file mode 100644
+index 0000000..642b6df
+--- /dev/null
++++ b/arch/nios2/mm/tlb.c
+@@ -0,0 +1,274 @@
++/*
++ * Nios2 TLB handling
++ *
++ * Copyright (C) 2009, Wind River Systems Inc
++ *   Implemented by fredrik.markstrom@gmail.com and ivarholmqvist@gmail.com
 + *
 + * This file is subject to the terms and conditions of the GNU General Public
 + * License.  See the file "COPYING" in the main directory of this archive
 + * for more details.
 + */
 +
-+#ifndef _ASM_NIOS2_PTRACE_H
-+#define _ASM_NIOS2_PTRACE_H
-+
-+#include <uapi/asm/ptrace.h>
-+
-+#ifndef __ASSEMBLY__
-+#define user_mode(regs)	(((regs)->estatus & ESTATUS_EU))
-+
-+#define instruction_pointer(regs)	((regs)->ra)
-+#define profile_pc(regs)		instruction_pointer(regs)
-+#define user_stack_pointer(regs)	((regs)->sp)
-+extern void show_regs(struct pt_regs *);
-+
-+#define current_pt_regs() \
-+	((struct pt_regs *)((unsigned long)current_thread_info() + THREAD_SIZE)\
-+		- 1)
-+
-+int do_syscall_trace_enter(void);
-+void do_syscall_trace_exit(void);
-+#endif /* __ASSEMBLY__ */
-+#endif /* _ASM_NIOS2_PTRACE_H */
-diff --git a/arch/nios2/include/uapi/asm/ptrace.h b/arch/nios2/include/uapi/asm/ptrace.h
-new file mode 100644
-index 0000000..e83a7c9
---- /dev/null
-+++ b/arch/nios2/include/uapi/asm/ptrace.h
-@@ -0,0 +1,120 @@
-+/*
-+ * Copyright (C) 2010 Tobias Klauser <tklauser@distanz.ch>
-+ * Copyright (C) 2004 Microtronix Datacom Ltd
-+ *
-+ * based on m68k asm/processor.h
-+ *
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License.  See the file "COPYING" in the main directory of this archive
-+ * for more details.
-+ */
-+
-+#ifndef _UAPI_ASM_NIOS2_PTRACE_H
-+#define _UAPI_ASM_NIOS2_PTRACE_H
-+
-+#ifndef __ASSEMBLY__
-+
-+/*
-+ * Register numbers used by 'ptrace' system call interface.
-+ */
-+
-+/* GP registers */
-+#define PTR_R0		0
-+#define PTR_R1		1
-+#define PTR_R2		2
-+#define PTR_R3		3
-+#define PTR_R4		4
-+#define PTR_R5		5
-+#define PTR_R6		6
-+#define PTR_R7		7
-+#define PTR_R8		8
-+#define PTR_R9		9
-+#define PTR_R10		10
-+#define PTR_R11		11
-+#define PTR_R12		12
-+#define PTR_R13		13
-+#define PTR_R14		14
-+#define PTR_R15		15
-+#define PTR_R16		16
-+#define PTR_R17		17
-+#define PTR_R18		18
-+#define PTR_R19		19
-+#define PTR_R20		20
-+#define PTR_R21		21
-+#define PTR_R22		22
-+#define PTR_R23		23
-+#define PTR_R24		24
-+#define PTR_R25		25
-+#define PTR_GP		26
-+#define PTR_SP		27
-+#define PTR_FP		28
-+#define PTR_EA		29
-+#define PTR_BA		30
-+#define PTR_RA		31
-+/* Control registers */
-+#define PTR_PC		32
-+#define PTR_STATUS	33
-+#define PTR_ESTATUS	34
-+#define PTR_BSTATUS	35
-+#define PTR_IENABLE	36
-+#define PTR_IPENDING	37
-+#define PTR_CPUID	38
-+#define PTR_CTL6	39
-+#define PTR_CTL7	40
-+#define PTR_PTEADDR	41
-+#define PTR_TLBACC	42
-+#define PTR_TLBMISC	43
-+
-+#define NUM_PTRACE_REG (PTR_TLBMISC + 1)
-+
-+/* this struct defines the way the registers are stored on the
-+   stack during a system call.
-+
-+   There is a fake_regs in setup.c that has to match pt_regs.*/
-+
-+struct pt_regs {
-+	unsigned long  r8;		/* r8-r15 Caller-saved GP registers */
-+	unsigned long  r9;
-+	unsigned long  r10;
-+	unsigned long  r11;
-+	unsigned long  r12;
-+	unsigned long  r13;
-+	unsigned long  r14;
-+	unsigned long  r15;
-+	unsigned long  r1;		/* Assembler temporary */
-+	unsigned long  r2;		/* Retval LS 32bits */
-+	unsigned long  r3;		/* Retval MS 32bits */
-+	unsigned long  r4;		/* r4-r7 Register arguments */
-+	unsigned long  r5;
-+	unsigned long  r6;
-+	unsigned long  r7;
-+	unsigned long  orig_r2;		/* Copy of r2 ?? */
-+	unsigned long  ra;		/* Return address */
-+	unsigned long  fp;		/* Frame pointer */
-+	unsigned long  sp;		/* Stack pointer */
-+	unsigned long  gp;		/* Global pointer */
-+	unsigned long  estatus;
-+	unsigned long  ea;		/* Exception return address (pc) */
-+	unsigned long  orig_r7;
-+};
-+
-+/*
-+ * This is the extended stack used by signal handlers and the context
-+ * switcher: it's pushed after the normal "struct pt_regs".
-+ */
-+struct switch_stack {
-+	unsigned long  r16;		/* r16-r23 Callee-saved GP registers */
-+	unsigned long  r17;
-+	unsigned long  r18;
-+	unsigned long  r19;
-+	unsigned long  r20;
-+	unsigned long  r21;
-+	unsigned long  r22;
-+	unsigned long  r23;
-+	unsigned long  fp;
-+	unsigned long  gp;
-+	unsigned long  ra;
-+};
-+
-+#endif /* __ASSEMBLY__ */
-+#endif /* _UAPI_ASM_NIOS2_PTRACE_H */
-diff --git a/arch/nios2/kernel/ptrace.c b/arch/nios2/kernel/ptrace.c
-new file mode 100644
-index 0000000..bcbf748
---- /dev/null
-+++ b/arch/nios2/kernel/ptrace.c
-@@ -0,0 +1,176 @@
-+/*
-+ * Copyright (C) 2014 Altera Corporation
-+ * Copyright (C) 2010 Tobias Klauser <tklauser@distanz.ch>
-+ *
-+ * This file is subject to the terms and conditions of the GNU General
-+ * Public License.  See the file COPYING in the main directory of this
-+ * archive for more details.
-+ */
-+
-+#include <linux/elf.h>
-+#include <linux/errno.h>
-+#include <linux/kernel.h>
-+#include <linux/mm.h>
-+#include <linux/ptrace.h>
-+#include <linux/regset.h>
++#include <linux/init.h>
 +#include <linux/sched.h>
-+#include <linux/tracehook.h>
-+#include <linux/uaccess.h>
-+#include <linux/user.h>
++#include <linux/mm.h>
++#include <linux/pagemap.h>
 +
-+static int genregs_get(struct task_struct *target,
-+		       const struct user_regset *regset,
-+		       unsigned int pos, unsigned int count,
-+		       void *kbuf, void __user * ubuf)
++#include <asm/tlb.h>
++#include <asm/mmu_context.h>
++#include <asm/pgtable.h>
++#include <asm/cpuinfo.h>
++
++#define TLB_INDEX_MASK		\
++	((((1UL << (cpuinfo.tlb_ptr_sz - cpuinfo.tlb_num_ways_log2))) - 1) \
++		<< PAGE_SHIFT)
++
++/* Used as illegal PHYS_ADDR for TLB mappings
++ */
++#define MAX_PHYS_ADDR 0
++
++static void get_misc_and_pid(unsigned long *misc, unsigned long *pid)
 +{
-+	const struct pt_regs *regs = task_pt_regs(target);
-+	const struct switch_stack *sw = (struct switch_stack *)regs - 1;
-+	int ret = 0;
-+
-+#define REG_O_ZERO_RANGE(START, END)		\
-+	if (!ret)					\
-+		ret = user_regset_copyout_zero(&pos, &count, &kbuf, &ubuf, \
-+			START * 4, (END * 4) + 4);
-+
-+#define REG_O_ONE(PTR, LOC)	\
-+	if (!ret)			\
-+		ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf, PTR, \
-+			LOC * 4, (LOC * 4) + 4);
-+
-+#define REG_O_RANGE(PTR, START, END)	\
-+	if (!ret)				\
-+		ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf, PTR, \
-+			START * 4, (END * 4) + 4);
-+
-+	REG_O_ZERO_RANGE(PTR_R0, PTR_R0);
-+	REG_O_RANGE(&regs->r1,PTR_R1, PTR_R7);
-+	REG_O_RANGE(&regs->r8,PTR_R8, PTR_R15);
-+	REG_O_RANGE(sw, PTR_R16, PTR_R23);
-+	REG_O_ZERO_RANGE(PTR_R24, PTR_R25); /* et and bt */
-+	REG_O_ONE(&regs->gp, PTR_GP);
-+	REG_O_ONE(&regs->sp, PTR_SP);
-+	REG_O_ONE(&regs->fp, PTR_FP);
-+	REG_O_ONE(&regs->ea, PTR_EA);
-+	REG_O_ZERO_RANGE(PTR_BA, PTR_BA);
-+	REG_O_ONE(&regs->ra, PTR_RA);
-+	REG_O_ONE(&regs->ea, PTR_PC); /* use ea for PC */
-+	if (!ret)
-+		ret = user_regset_copyout_zero(&pos, &count, &kbuf, &ubuf,
-+					 PTR_STATUS * 4, -1);
-+
-+	return ret;
++	*misc  = RDCTL(CTL_TLBMISC);
++	*misc &= (TLBMISC_PID | TLBMISC_WAY);
++	*pid  = *misc & TLBMISC_PID;
 +}
 +
 +/*
-+ * Set the thread state from a regset passed in via ptrace
++ * All entries common to a mm share an asid.  To effectively flush these
++ * entries, we just bump the asid.
 + */
-+static int genregs_set(struct task_struct *target,
-+		       const struct user_regset *regset,
-+		       unsigned int pos, unsigned int count,
-+		       const void *kbuf, const void __user * ubuf)
++void flush_tlb_mm(struct mm_struct *mm)
 +{
-+	struct pt_regs *regs = task_pt_regs(target);
-+	const struct switch_stack *sw = (struct switch_stack *)regs - 1;
-+	int ret = 0;
-+
-+#define REG_IGNORE_RANGE(START, END)		\
-+	if (!ret)					\
-+		ret = user_regset_copyin_ignore(&pos, &count, &kbuf, &ubuf, \
-+			START * 4, (END * 4) + 4);
-+
-+#define REG_IN_ONE(PTR, LOC)	\
-+	if (!ret)			\
-+		ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf, \
-+			(void *)(PTR), LOC * 4, (LOC * 4) + 4);
-+
-+#define REG_IN_RANGE(PTR, START, END)	\
-+	if (!ret)				\
-+		ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf, \
-+			(void *)(PTR), START * 4, (END * 4) + 4);
-+
-+	REG_IGNORE_RANGE(PTR_R0, PTR_R0);
-+	REG_IN_RANGE(&regs->r1,PTR_R1, PTR_R7);
-+	REG_IN_RANGE(&regs->r8,PTR_R8, PTR_R15);
-+	REG_IN_RANGE(sw, PTR_R16, PTR_R23);
-+	REG_IGNORE_RANGE(PTR_R24, PTR_R25); /* et and bt */
-+	REG_IN_ONE(&regs->gp, PTR_GP);
-+	REG_IN_ONE(&regs->sp, PTR_SP);
-+	REG_IN_ONE(&regs->fp, PTR_FP);
-+	REG_IN_ONE(&regs->ea, PTR_EA);
-+	REG_IGNORE_RANGE(PTR_BA, PTR_BA);
-+	REG_IN_ONE(&regs->ra, PTR_RA);
-+	REG_IN_ONE(&regs->ea, PTR_PC); /* use ea for PC */
-+	if (!ret)
-+		ret = user_regset_copyin_ignore(&pos, &count, &kbuf, &ubuf,
-+					 PTR_STATUS * 4, -1);
-+
-+	return ret;
++	if (current->mm == mm)
++		flush_tlb_all();
++	else
++		memset(&mm->context, 0, sizeof(mm_context_t));
 +}
 +
 +/*
-+ * Define the register sets available on Nios2 under Linux
++ * This one is only used for pages with the global bit set so we don't care
++ * much about the ASID.
 + */
-+enum nios2_regset {
-+	REGSET_GENERAL,
-+};
-+
-+static const struct user_regset nios2_regsets[] = {
-+	[REGSET_GENERAL] = {
-+		.core_note_type = NT_PRSTATUS,
-+		.n = NUM_PTRACE_REG,
-+		.size = sizeof(unsigned long),
-+		.align = sizeof(unsigned long),
-+		.get = genregs_get,
-+		.set = genregs_set,
-+	}
-+};
-+
-+static const struct user_regset_view nios2_user_view = {
-+	.name = "nios2",
-+	.e_machine = ELF_ARCH,
-+	.ei_osabi = ELF_OSABI,
-+	.regsets = nios2_regsets,
-+	.n = ARRAY_SIZE(nios2_regsets)
-+};
-+
-+const struct user_regset_view *task_user_regset_view(struct task_struct *task)
++void flush_tlb_one_pid(unsigned long addr, unsigned long mmu_pid)
 +{
-+	return &nios2_user_view;
-+}
++	unsigned int way;
++	unsigned long org_misc, pid_misc;
 +
-+void ptrace_disable(struct task_struct *child)
-+{
++	pr_debug("Flush tlb-entry for vaddr=%#lx\n", addr);
 +
-+}
++	/* remember pid/way until we return. */
++	get_misc_and_pid(&org_misc, &pid_misc);
 +
-+long arch_ptrace(struct task_struct *child, long request, unsigned long addr,
-+		 unsigned long data)
-+{
-+	int ret = -EIO;
++	WRCTL(CTL_PTEADDR, (addr >> PAGE_SHIFT) << 2);
 +
-+	pr_debug("REQ=%ld: ADDR =0x%lx, DATA=0x%lx)\n", request, addr, data);
++	for (way = 0; way < cpuinfo.tlb_num_ways; way++) {
++		unsigned long pteaddr;
++		unsigned long tlbmisc;
++		unsigned long pid;
 +
-+	switch (request) {
-+	default:
-+		ret = ptrace_request(child, request, addr, data);
-+		break;
++		tlbmisc = pid_misc | TLBMISC_RD | (way << TLBMISC_WAY_SHIFT);
++		WRCTL(CTL_TLBMISC, tlbmisc);
++		pteaddr = RDCTL(CTL_PTEADDR);
++		tlbmisc = RDCTL(CTL_TLBMISC);
++		pid = (tlbmisc >> TLBMISC_PID_SHIFT) & TLBMISC_PID_MASK;
++		if (((((pteaddr >> 2) & 0xfffff)) == (addr >> PAGE_SHIFT)) &&
++				pid == mmu_pid) {
++			unsigned long vaddr = CONFIG_NIOS2_IO_REGION_BASE +
++				((PAGE_SIZE * cpuinfo.tlb_num_lines) * way) +
++				(addr & TLB_INDEX_MASK);
++			pr_debug("Flush entry by writing %#lx way=%dl pid=%ld\n",
++				vaddr, way, (pid_misc >> TLBMISC_PID_SHIFT));
++
++			WRCTL(CTL_PTEADDR, (vaddr >> 12) << 2);
++			tlbmisc = pid_misc | TLBMISC_WE |
++				(way << TLBMISC_WAY_SHIFT);
++			WRCTL(CTL_TLBMISC, tlbmisc);
++			WRCTL(CTL_TLBACC, (MAX_PHYS_ADDR >> PAGE_SHIFT));
++		}
 +	}
 +
-+	return ret;
++	WRCTL(CTL_TLBMISC, org_misc);
 +}
 +
-+asmlinkage int do_syscall_trace_enter(void)
++void flush_tlb_range(struct vm_area_struct *vma, unsigned long start,
++			unsigned long end)
 +{
-+	int ret = 0;
++	unsigned long mmu_pid = get_pid_from_context(&vma->vm_mm->context);
 +
-+	if (test_thread_flag(TIF_SYSCALL_TRACE))
-+		ret = tracehook_report_syscall_entry(task_pt_regs(current));
-+
-+	return ret;
++	while (start < end) {
++		flush_tlb_one_pid(start, mmu_pid);
++		start += PAGE_SIZE;
++	}
 +}
 +
-+asmlinkage void do_syscall_trace_exit(void)
++void flush_tlb_kernel_range(unsigned long start, unsigned long end)
 +{
-+	if (test_thread_flag(TIF_SYSCALL_TRACE))
-+		tracehook_report_syscall_exit(task_pt_regs(current), 0);
++	while (start < end) {
++		flush_tlb_one(start);
++		start += PAGE_SIZE;
++	}
++}
++
++/*
++ * This one is only used for pages with the global bit set so we don't care
++ * much about the ASID.
++ */
++void flush_tlb_one(unsigned long addr)
++{
++	unsigned int way;
++	unsigned long org_misc, pid_misc;
++
++	pr_debug("Flush tlb-entry for vaddr=%#lx\n", addr);
++
++	/* remember pid/way until we return. */
++	get_misc_and_pid(&org_misc, &pid_misc);
++
++	WRCTL(CTL_PTEADDR, (addr >> PAGE_SHIFT) << 2);
++
++	for (way = 0; way < cpuinfo.tlb_num_ways; way++) {
++		unsigned long pteaddr;
++		unsigned long tlbmisc;
++
++		tlbmisc = pid_misc | TLBMISC_RD | (way << TLBMISC_WAY_SHIFT);
++		WRCTL(CTL_TLBMISC, tlbmisc);
++		pteaddr = RDCTL(CTL_PTEADDR);
++		tlbmisc = RDCTL(CTL_TLBMISC);
++
++		if ((((pteaddr >> 2) & 0xfffff)) == (addr >> PAGE_SHIFT)) {
++			unsigned long vaddr = CONFIG_NIOS2_IO_REGION_BASE +
++				((PAGE_SIZE * cpuinfo.tlb_num_lines) * way) +
++				(addr & TLB_INDEX_MASK);
++
++			pr_debug("Flush entry by writing %#lx way=%dl pid=%ld\n",
++				vaddr, way, (pid_misc >> TLBMISC_PID_SHIFT));
++
++			tlbmisc = pid_misc | TLBMISC_WE |
++				(way << TLBMISC_WAY_SHIFT);
++			WRCTL(CTL_PTEADDR, (vaddr >> 12) << 2);
++			WRCTL(CTL_TLBMISC, tlbmisc);
++			WRCTL(CTL_TLBACC, (MAX_PHYS_ADDR >> PAGE_SHIFT));
++		}
++	}
++
++	WRCTL(CTL_TLBMISC, org_misc);
++}
++
++void dump_tlb_line(unsigned long line)
++{
++	unsigned int way;
++	unsigned long org_misc;
++
++	pr_debug("dump tlb-entries for line=%#lx (addr %08lx)\n", line,
++		line << (PAGE_SHIFT + cpuinfo.tlb_num_ways_log2));
++
++	/* remember pid/way until we return */
++	org_misc = (RDCTL(CTL_TLBMISC) & (TLBMISC_PID | TLBMISC_WAY));
++
++	WRCTL(CTL_PTEADDR, line << 2);
++
++	for (way = 0; way < cpuinfo.tlb_num_ways; way++) {
++		unsigned long pteaddr;
++		unsigned long tlbmisc;
++		unsigned long tlbacc;
++
++		WRCTL(CTL_TLBMISC, TLBMISC_RD | (way << TLBMISC_WAY_SHIFT));
++		pteaddr = RDCTL(CTL_PTEADDR);
++		tlbmisc = RDCTL(CTL_TLBMISC);
++		tlbacc = RDCTL(CTL_TLBACC);
++
++		if ((tlbacc << PAGE_SHIFT) != (MAX_PHYS_ADDR & PAGE_MASK)) {
++			pr_debug("-- way:%02x vpn:0x%08lx phys:0x%08lx pid:0x%02lx flags:%c%c%c%c%c\n",
++				way,
++				(pteaddr << (PAGE_SHIFT-2)),
++				(tlbacc << PAGE_SHIFT),
++				((tlbmisc >> TLBMISC_PID_SHIFT) &
++				TLBMISC_PID_MASK),
++				(tlbacc & _PAGE_READ ? 'r' : '-'),
++				(tlbacc & _PAGE_WRITE ? 'w' : '-'),
++				(tlbacc & _PAGE_EXEC ? 'x' : '-'),
++				(tlbacc & _PAGE_GLOBAL ? 'g' : '-'),
++				(tlbacc & _PAGE_CACHED ? 'c' : '-'));
++		}
++	}
++
++	WRCTL(CTL_TLBMISC, org_misc);
++}
++
++void dump_tlb(void)
++{
++	unsigned int i;
++	for (i = 0; i < cpuinfo.tlb_num_lines; i++)
++		dump_tlb_line(i);
++}
++
++void flush_tlb_pid(unsigned long pid)
++{
++	unsigned int line;
++	unsigned int way;
++	unsigned long org_misc, pid_misc;
++
++	/* remember pid/way until we return */
++	get_misc_and_pid(&org_misc, &pid_misc);
++
++	for (line = 0; line < cpuinfo.tlb_num_lines; line++) {
++		WRCTL(CTL_PTEADDR, line << 2);
++
++		for (way = 0; way < cpuinfo.tlb_num_ways; way++) {
++			unsigned long pteaddr;
++			unsigned long tlbmisc;
++			unsigned long tlbacc;
++
++			tlbmisc = pid_misc | TLBMISC_RD |
++				(way << TLBMISC_WAY_SHIFT);
++			WRCTL(CTL_TLBMISC, tlbmisc);
++			pteaddr = RDCTL(CTL_PTEADDR);
++			tlbmisc = RDCTL(CTL_TLBMISC);
++			tlbacc = RDCTL(CTL_TLBACC);
++
++			if (((tlbmisc>>TLBMISC_PID_SHIFT) & TLBMISC_PID_MASK)
++				== pid) {
++				tlbmisc = pid_misc | TLBMISC_WE |
++					(way << TLBMISC_WAY_SHIFT);
++				WRCTL(CTL_TLBMISC, tlbmisc);
++				WRCTL(CTL_TLBACC,
++					(MAX_PHYS_ADDR >> PAGE_SHIFT));
++			}
++		}
++
++		WRCTL(CTL_TLBMISC, org_misc);
++	}
++}
++
++void flush_tlb_all(void)
++{
++	int i;
++	unsigned long vaddr = CONFIG_NIOS2_IO_REGION_BASE;
++	unsigned int way;
++	unsigned long org_misc, pid_misc, tlbmisc;
++
++	/* remember pid/way until we return */
++	get_misc_and_pid(&org_misc, &pid_misc);
++	pid_misc |= TLBMISC_WE;
++
++	/* Map each TLB entry to physcal address 0 with no-access and a
++	   bad ptbase */
++	for (way = 0; way < cpuinfo.tlb_num_ways; way++) {
++		tlbmisc = pid_misc | (way << TLBMISC_WAY_SHIFT);
++		for (i = 0; i < cpuinfo.tlb_num_lines; i++) {
++			WRCTL(CTL_PTEADDR, ((vaddr) >> PAGE_SHIFT) << 2);
++			WRCTL(CTL_TLBMISC, tlbmisc);
++			WRCTL(CTL_TLBACC, (MAX_PHYS_ADDR >> PAGE_SHIFT));
++			vaddr += 1UL << 12;
++		}
++	}
++
++	/* restore pid/way */
++	WRCTL(CTL_TLBMISC, org_misc);
++}
++
++void set_mmu_pid(unsigned long pid)
++{
++	WRCTL(CTL_TLBMISC, (RDCTL(CTL_TLBMISC) & TLBMISC_WAY) |
++		((pid & TLBMISC_PID_MASK) << TLBMISC_PID_SHIFT));
 +}
 -- 
 1.8.2.1
