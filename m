@@ -1,185 +1,237 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from fw-tnat.cambridge.arm.com ([217.140.96.21]:53527 "EHLO
+Received: from fw-tnat.cambridge.arm.com ([217.140.96.21]:54791 "EHLO
 	cam-smtp0.cambridge.arm.com" rhost-flags-OK-OK-OK-FAIL)
-	by vger.kernel.org with ESMTP id S1752973AbaIHN4W (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 8 Sep 2014 09:56:22 -0400
+	by vger.kernel.org with ESMTP id S1753015AbaIHOCB (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 8 Sep 2014 10:02:01 -0400
 From: Liviu Dudau <Liviu.Dudau@arm.com>
-Subject: [PATCH v10 08/10] OF: PCI: Add support for parsing PCI host bridge resources from DT
-Date: Mon,  8 Sep 2014 14:54:30 +0100
-Message-ID: <1410184472-17630-9-git-send-email-Liviu.Dudau@arm.com>
-In-Reply-To: <1410184472-17630-1-git-send-email-Liviu.Dudau@arm.com>
-References: <1410184472-17630-1-git-send-email-Liviu.Dudau@arm.com>
+Subject: [PATCH v10] arm64: Add architectural support for PCIe
+Date: Mon,  8 Sep 2014 14:55:49 +0100
+Message-ID: <1410184549-17690-2-git-send-email-Liviu.Dudau@arm.com>
+In-Reply-To: <1410184549-17690-1-git-send-email-Liviu.Dudau@arm.com>
+References: <1410184549-17690-1-git-send-email-Liviu.Dudau@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Bjorn Helgaas <bhelgaas@google.com>, Arnd Bergmann <arnd@arndb.de>, Rob Herring <robh+dt@kernel.org>, Jason Gunthorpe <jgunthorpe@obsidianresearch.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <Will.Deacon@arm.com>, Russell King <linux@arm.linux.org.uk>, linux-pci <linux-pci@vger.kernel.org>, Linus Walleij <linus.walleij@linaro.org>
-Cc: Tanmay Inamdar <tinamdar@apm.com>, Grant Likely <grant.likely@secretlab.ca>, Sinan Kaya <okaya@codeaurora.org>, Jingoo Han <jg1.han@samsung.com>, Kukjin Kim <kgene.kim@samsung.com>, Suravee Suthikulanit <suravee.suthikulpanit@amd.com>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Device Tree ML <devicetree@vger.kernel.org>, LAKML <linux-arm-kernel@lists.infradead.org>, Grant Likely <grant.likely@linaro.org>
-Message-ID: <20140908135430.Yup8ZIj0vhEN9fdy-LJ2ELpN8chCR8xn6WuckKWOFms@z>
+Cc: Tanmay Inamdar <tinamdar@apm.com>, Grant Likely <grant.likely@secretlab.ca>, Sinan Kaya <okaya@codeaurora.org>, Jingoo Han <jg1.han@samsung.com>, Kukjin Kim <kgene.kim@samsung.com>, Suravee Suthikulanit <suravee.suthikulpanit@amd.com>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Device Tree ML <devicetree@vger.kernel.org>, LAKML <linux-arm-kernel@lists.infradead.org>
+Message-ID: <20140908135549.czO94cXagpEVNO4ZWAcOzQhgS3fGvD9tV_aDA8hz2ZQ@z>
 
-Provide a function to parse the PCI DT ranges that can be used to
-create a pci_host_bridge structure together with its associated
-bus.
+Use the generic PCI domain and OF functions
+to provide support for PCI Express on arm64.
 
-Cc: Bjorn Helgaas <bhelgaas@google.com>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: Grant Likely <grant.likely@linaro.org>
-Cc: Rob Herring <robh+dt@kernel.org>
-Cc: Catalin Marinas <catalin.marinas@arm.com>
 Signed-off-by: Liviu Dudau <Liviu.Dudau@arm.com>
+[Generic PCI domain support]
+Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
 ---
- drivers/of/of_pci.c    | 102 +++++++++++++++++++++++++++++++++++++++++++++++++
- include/linux/of_pci.h |  11 ++++++
- 2 files changed, 113 insertions(+)
+ arch/arm64/Kconfig               | 22 ++++++++++++++-
+ arch/arm64/include/asm/Kbuild    |  1 +
+ arch/arm64/include/asm/io.h      |  3 +-
+ arch/arm64/include/asm/pci.h     | 37 +++++++++++++++++++++++++
+ arch/arm64/include/asm/pgtable.h |  2 ++
+ arch/arm64/kernel/Makefile       |  1 +
+ arch/arm64/kernel/pci.c          | 59 ++++++++++++++++++++++++++++++++++++++++
+ 7 files changed, 123 insertions(+), 2 deletions(-)
+ create mode 100644 arch/arm64/include/asm/pci.h
+ create mode 100644 arch/arm64/kernel/pci.c
 
-diff --git a/drivers/of/of_pci.c b/drivers/of/of_pci.c
-index a107edb..36701da 100644
---- a/drivers/of/of_pci.c
-+++ b/drivers/of/of_pci.c
-@@ -1,7 +1,9 @@
- #include <linux/kernel.h>
- #include <linux/export.h>
- #include <linux/of.h>
-+#include <linux/of_address.h>
- #include <linux/of_pci.h>
+diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
+index fd4e81a..6b01df9 100644
+--- a/arch/arm64/Kconfig
++++ b/arch/arm64/Kconfig
+@@ -81,7 +81,7 @@ config MMU
+ 	def_bool y
+ 
+ config NO_IOPORT_MAP
+-	def_bool y
++	def_bool y if !PCI
+ 
+ config STACKTRACE_SUPPORT
+ 	def_bool y
+@@ -156,6 +156,26 @@ menu "Bus support"
+ config ARM_AMBA
+ 	bool
+ 
++config PCI
++	bool "PCI support"
++	help
++	  This feature enables support for PCIe bus system. If you say Y
++	  here, the kernel will include drivers and infrastructure code
++	  to support PCIe bus devices.
++
++config PCI_DOMAINS
++	def_bool PCI
++
++config PCI_DOMAINS_GENERIC
++	def_bool PCI
++
++config PCI_SYSCALL
++	def_bool PCI
++
++source "drivers/pci/Kconfig"
++source "drivers/pci/pcie/Kconfig"
++source "drivers/pci/hotplug/Kconfig"
++
+ endmenu
+ 
+ menu "Kernel Features"
+diff --git a/arch/arm64/include/asm/Kbuild b/arch/arm64/include/asm/Kbuild
+index 0b3fcf8..07cb417 100644
+--- a/arch/arm64/include/asm/Kbuild
++++ b/arch/arm64/include/asm/Kbuild
+@@ -29,6 +29,7 @@ generic-y += mman.h
+ generic-y += msgbuf.h
+ generic-y += mutex.h
+ generic-y += pci.h
++generic-y += pci-bridge.h
+ generic-y += poll.h
+ generic-y += preempt.h
+ generic-y += resource.h
+diff --git a/arch/arm64/include/asm/io.h b/arch/arm64/include/asm/io.h
+index e0ecdcf..f998d90 100644
+--- a/arch/arm64/include/asm/io.h
++++ b/arch/arm64/include/asm/io.h
+@@ -121,7 +121,8 @@ static inline u64 __raw_readq(const volatile void __iomem *addr)
+ /*
+  *  I/O port access primitives.
+  */
+-#define IO_SPACE_LIMIT		0xffff
++#define arch_has_dev_port()	(1)
++#define IO_SPACE_LIMIT		(SZ_32M - 1)
+ #define PCI_IOBASE		((void __iomem *)(MODULES_VADDR - SZ_32M))
+ 
+ static inline u8 inb(unsigned long addr)
+diff --git a/arch/arm64/include/asm/pci.h b/arch/arm64/include/asm/pci.h
+new file mode 100644
+index 0000000..872ba93
+--- /dev/null
++++ b/arch/arm64/include/asm/pci.h
+@@ -0,0 +1,37 @@
++#ifndef __ASM_PCI_H
++#define __ASM_PCI_H
++#ifdef __KERNEL__
++
++#include <linux/types.h>
 +#include <linux/slab.h>
++#include <linux/dma-mapping.h>
++
++#include <asm/io.h>
++#include <asm-generic/pci-bridge.h>
++#include <asm-generic/pci-dma-compat.h>
++
++#define PCIBIOS_MIN_IO		0x1000
++#define PCIBIOS_MIN_MEM		0
++
++/*
++ * Set to 1 if the kernel should re-assign all PCI bus numbers
++ */
++#define pcibios_assign_all_busses() \
++	(pci_has_flag(PCI_REASSIGN_ALL_BUS))
++
++/*
++ * PCI address space differs from physical memory address space
++ */
++#define PCI_DMA_BUS_IS_PHYS	(0)
++
++extern int isa_dma_bridge_buggy;
++
++#ifdef CONFIG_PCI
++static inline int pci_proc_domain(struct pci_bus *bus)
++{
++	return 1;
++}
++#endif  /* CONFIG_PCI */
++
++#endif  /* __KERNEL__ */
++#endif  /* __ASM_PCI_H */
+diff --git a/arch/arm64/include/asm/pgtable.h b/arch/arm64/include/asm/pgtable.h
+index ffe1ba0..a968523 100644
+--- a/arch/arm64/include/asm/pgtable.h
++++ b/arch/arm64/include/asm/pgtable.h
+@@ -296,6 +296,8 @@ static inline int has_transparent_hugepage(void)
+ 	__pgprot_modify(prot, PTE_ATTRINDX_MASK, PTE_ATTRINDX(MT_DEVICE_nGnRnE) | PTE_PXN | PTE_UXN)
+ #define pgprot_writecombine(prot) \
+ 	__pgprot_modify(prot, PTE_ATTRINDX_MASK, PTE_ATTRINDX(MT_NORMAL_NC) | PTE_PXN | PTE_UXN)
++#define pgprot_device(prot) \
++	__pgprot_modify(prot, PTE_ATTRINDX_MASK, PTE_ATTRINDX(MT_DEVICE_nGnRE) | PTE_PXN | PTE_UXN)
+ #define __HAVE_PHYS_MEM_ACCESS_PROT
+ struct file;
+ extern pgprot_t phys_mem_access_prot(struct file *file, unsigned long pfn,
+diff --git a/arch/arm64/kernel/Makefile b/arch/arm64/kernel/Makefile
+index df7ef87..1ed5a06 100644
+--- a/arch/arm64/kernel/Makefile
++++ b/arch/arm64/kernel/Makefile
+@@ -29,6 +29,7 @@ arm64-obj-$(CONFIG_ARM64_CPU_SUSPEND)	+= sleep.o suspend.o
+ arm64-obj-$(CONFIG_JUMP_LABEL)		+= jump_label.o
+ arm64-obj-$(CONFIG_KGDB)		+= kgdb.o
+ arm64-obj-$(CONFIG_EFI)			+= efi.o efi-stub.o efi-entry.o
++arm64-obj-$(CONFIG_PCI)			+= pci.o
  
- static inline int __of_pci_pci_compare(struct device_node *node,
- 				       unsigned int data)
-@@ -123,6 +125,106 @@ int of_pci_get_domain_nr(struct device_node *node, bool allocate_if_missing)
- }
- EXPORT_SYMBOL_GPL(of_pci_get_domain_nr);
- 
-+/**
-+ * of_pci_get_host_bridge_resources - Parse PCI host bridge resources from DT
-+ * @dev: device node of the host bridge having the range property
-+ * @busno: bus number associated with the bridge root bus
-+ * @bus_max: maximum number of busses for this bridge
-+ * @resources: list where the range of resources will be added after DT parsing
-+ * @io_base: pointer to a variable that will contain on return the physical
-+ * address for the start of the I/O range.
+ obj-y					+= $(arm64-obj-y) vdso/
+ obj-m					+= $(arm64-obj-m)
+diff --git a/arch/arm64/kernel/pci.c b/arch/arm64/kernel/pci.c
+new file mode 100644
+index 0000000..0d755d6
+--- /dev/null
++++ b/arch/arm64/kernel/pci.c
+@@ -0,0 +1,59 @@
++/*
++ * Code borrowed from powerpc/kernel/pci-common.c
 + *
-+ * It is the callers job to free the @resources list.
++ * Copyright (C) 2003 Anton Blanchard <anton@au.ibm.com>, IBM
++ * Copyright (C) 2014 ARM Ltd.
 + *
-+ * This function will parse the "ranges" property of a PCI host bridge device
-+ * node and setup the resource mapping based on its content. It is expected
-+ * that the property conforms with the Power ePAPR document.
++ * This program is free software; you can redistribute it and/or
++ * modify it under the terms of the GNU General Public License
++ * version 2 as published by the Free Software Foundation.
 + *
 + */
-+int of_pci_get_host_bridge_resources(struct device_node *dev,
-+			unsigned char busno, unsigned char bus_max,
-+			struct list_head *resources, resource_size_t *io_base)
++
++#include <linux/init.h>
++#include <linux/io.h>
++#include <linux/kernel.h>
++#include <linux/mm.h>
++#include <linux/of_pci.h>
++#include <linux/of_platform.h>
++#include <linux/slab.h>
++
++#include <asm/pci-bridge.h>
++
++/*
++ * Called after each bus is probed, but before its children are examined
++ */
++void pcibios_fixup_bus(struct pci_bus *bus)
 +{
-+	struct resource *res;
-+	struct resource *bus_range;
-+	struct of_pci_range range;
-+	struct of_pci_range_parser parser;
-+	char range_type[4];
-+	int err;
++	/* nothing to do, expected to be removed in the future */
++}
 +
-+	bus_range = kzalloc(sizeof(*bus_range), GFP_KERNEL);
-+	if (!bus_range)
-+		return -ENOMEM;
++/*
++ * We don't have to worry about legacy ISA devices, so nothing to do here
++ */
++resource_size_t pcibios_align_resource(void *data, const struct resource *res,
++				resource_size_t size, resource_size_t align)
++{
++	return res->start;
++}
 +
-+	pr_info("PCI host bridge %s ranges:\n", dev->full_name);
-+
-+	err = of_pci_parse_bus_range(dev, bus_range);
-+	if (err) {
-+		bus_range->start = busno;
-+		bus_range->end = bus_max;
-+		bus_range->flags = IORESOURCE_BUS;
-+		pr_info("  No bus range found for %s, using %pR\n",
-+			dev->full_name, &bus_range);
-+	} else {
-+		if (bus_range->end > bus_range->start + bus_max)
-+			bus_range->end = bus_range->start + bus_max;
-+	}
-+	pci_add_resource(resources, bus_range);
-+
-+	/* Check for ranges property */
-+	err = of_pci_range_parser_init(&parser, dev);
-+	if (err)
-+		goto parse_failed;
-+
-+	pr_debug("Parsing ranges property...\n");
-+	for_each_of_pci_range(&parser, &range) {
-+		/* Read next ranges element */
-+		if ((range.flags & IORESOURCE_TYPE_BITS) == IORESOURCE_IO)
-+			snprintf(range_type, 4, " IO");
-+		else if ((range.flags & IORESOURCE_TYPE_BITS) == IORESOURCE_MEM)
-+			snprintf(range_type, 4, "MEM");
-+		else
-+			snprintf(range_type, 4, "err");
-+		pr_info("  %s %#010llx..%#010llx -> %#010llx\n", range_type,
-+			range.cpu_addr, range.cpu_addr + range.size - 1,
-+			range.pci_addr);
-+
-+		/*
-+		 * If we failed translation or got a zero-sized region
-+		 * then skip this range
-+		 */
-+		if (range.cpu_addr == OF_BAD_ADDR || range.size == 0)
-+			continue;
-+
-+		res = kzalloc(sizeof(struct resource), GFP_KERNEL);
-+		if (!res) {
-+			err = -ENOMEM;
-+			goto parse_failed;
-+		}
-+
-+		err = of_pci_range_to_resource(&range, dev, res);
-+		if (err) {
-+			kfree(res);
-+			goto parse_failed;
-+		}
-+
-+		if (resource_type(res) == IORESOURCE_IO) {
-+			if (*io_base)
-+				pr_warn("More than one I/O resource converted. CPU offset for old range lost!\n");
-+			*io_base = range.cpu_addr;
-+		}
-+
-+		pci_add_resource_offset(resources, res,	res->start - range.pci_addr);
-+	}
++/*
++ * Try to assign the IRQ number from DT when adding a new device
++ */
++int pcibios_add_device(struct pci_dev *dev)
++{
++	dev->irq = of_irq_parse_and_map_pci(dev, 0, 0);
 +
 +	return 0;
-+
-+parse_failed:
-+	pci_free_resource_list(resources);
-+	return err;
 +}
-+EXPORT_SYMBOL_GPL(of_pci_get_host_bridge_resources);
 +
- #ifdef CONFIG_PCI_MSI
- 
- static LIST_HEAD(of_pci_msi_chip_list);
-diff --git a/include/linux/of_pci.h b/include/linux/of_pci.h
-index 3a3824c..a4b8a85 100644
---- a/include/linux/of_pci.h
-+++ b/include/linux/of_pci.h
-@@ -16,6 +16,10 @@ int of_pci_get_devfn(struct device_node *np);
- int of_irq_parse_and_map_pci(const struct pci_dev *dev, u8 slot, u8 pin);
- int of_pci_parse_bus_range(struct device_node *node, struct resource *res);
- int of_pci_get_domain_nr(struct device_node *node, bool allocate_if_missing);
-+int of_pci_get_host_bridge_resources(struct device_node *dev,
-+			unsigned char busno, unsigned char bus_max,
-+			struct list_head *resources, resource_size_t *io_base);
 +
- #else
- static inline int of_irq_parse_pci(const struct pci_dev *pdev, struct of_phandle_args *out_irq)
- {
-@@ -50,6 +54,13 @@ of_pci_get_domain_nr(struct device_node *node, bool allocate_if_missing)
- {
- 	return -1;
- }
-+
-+int of_pci_get_host_bridge_resources(struct device_node *dev,
-+			unsigned char busno, unsigned char bus_max,
-+			struct list_head *resources, resource_size_t *io_base);
++#ifdef CONFIG_PCI_DOMAINS_GENERIC
++void pci_bus_assign_domain_nr(struct pci_bus *bus, struct device *parent)
 +{
-+	return -EINVAL;
++	int domain = of_pci_get_domain_nr(parent->of_node, true);
++
++	if (domain >= 0)
++		bus->domain_nr = domain;
 +}
- #endif
- 
- #if defined(CONFIG_OF) && defined(CONFIG_PCI_MSI)
++#endif
 -- 
 2.0.4
 
