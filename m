@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bn1on0079.outbound.protection.outlook.com ([157.56.110.79]:53531
+Received: from mail-bn1on0074.outbound.protection.outlook.com ([157.56.110.74]:53556
 	"EHLO na01-bn1-obe.outbound.protection.outlook.com"
 	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1753260AbaIHJiW (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 8 Sep 2014 05:38:22 -0400
+	id S1753380AbaIHJhf (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 8 Sep 2014 05:37:35 -0400
 From: Ley Foon Tan <lftan@altera.com>
-Subject: [PATCH v3 13/29] nios2: Interrupt handling
-Date: Mon, 8 Sep 2014 17:22:24 +0800
-Message-ID: <1410168160-3624-14-git-send-email-lftan@altera.com>
+Subject: [PATCH v3 08/29] nios2: MMU Fault handling
+Date: Mon, 8 Sep 2014 17:22:19 +0800
+Message-ID: <1410168160-3624-9-git-send-email-lftan@altera.com>
 In-Reply-To: <1410168160-3624-1-git-send-email-lftan@altera.com>
 References: <1410168160-3624-1-git-send-email-lftan@altera.com>
 MIME-Version: 1.0
@@ -16,227 +16,306 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org
 Cc: Ley Foon Tan <lftan@altera.com>, lftan.linux@gmail.com, cltang@codesourcery.com
-Message-ID: <20140908092224._BQEKSuQMgp5UEHDrOmk_0t2FxHy5O1HuSEekmxdzk4@z>
+Message-ID: <20140908092219.pgZ8Y368DOhnb8Q09Hw7xPwrKF91dX7P2L1DwhiVGwY@z>
 
-This patch adds the support for IRQ handling.
+This patch adds support for the handling of the MMU faults (exception
+entry code introduced by a previous patch, kernel/entry.S).
 
 Signed-off-by: Ley Foon Tan <lftan@altera.com>
 ---
- arch/nios2/include/asm/irq.h      | 28 ++++++++++++
- arch/nios2/include/asm/irqflags.h | 69 +++++++++++++++++++++++++++++
- arch/nios2/kernel/irq.c           | 93 +++++++++++++++++++++++++++++++++++++++
- 3 files changed, 190 insertions(+)
- create mode 100644 arch/nios2/include/asm/irq.h
- create mode 100644 arch/nios2/include/asm/irqflags.h
- create mode 100644 arch/nios2/kernel/irq.c
+ arch/nios2/mm/extable.c |  25 +++++
+ arch/nios2/mm/fault.c   | 251 ++++++++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 276 insertions(+)
+ create mode 100644 arch/nios2/mm/extable.c
+ create mode 100644 arch/nios2/mm/fault.c
 
-diff --git a/arch/nios2/include/asm/irq.h b/arch/nios2/include/asm/irq.h
+diff --git a/arch/nios2/mm/extable.c b/arch/nios2/mm/extable.c
 new file mode 100644
-index 0000000..8e40fd9
+index 0000000..4d2fc5a
 --- /dev/null
-+++ b/arch/nios2/include/asm/irq.h
-@@ -0,0 +1,28 @@
++++ b/arch/nios2/mm/extable.c
+@@ -0,0 +1,25 @@
 +/*
-+ * Copyright (C) 2013 Altera Corporation
-+ * Copyright (C) 2011 Tobias Klauser <tklauser@distanz.ch>
++ * Copyright (C) 2010, Tobias Klauser <tklauser@distanz.ch>
++ * Copyright (C) 2009, Wind River Systems Inc
++ *   Implemented by fredrik.markstrom@gmail.com and ivarholmqvist@gmail.com
 + *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License as published by
-+ * the Free Software Foundation; either version 2 of the License, or
-+ * (at your option) any later version.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
-+ *
++ * This file is subject to the terms and conditions of the GNU General Public
++ * License.  See the file "COPYING" in the main directory of this archive
++ * for more details.
 + */
 +
-+#ifndef _ASM_NIOS2_IRQ_H
-+#define _ASM_NIOS2_IRQ_H
++#include <linux/module.h>
++#include <linux/uaccess.h>
 +
-+#define NIOS2_CPU_NR_IRQS	32
-+
-+#include <asm-generic/irq.h>
-+#include <linux/irqdomain.h>
-+
-+#endif
-diff --git a/arch/nios2/include/asm/irqflags.h b/arch/nios2/include/asm/irqflags.h
-new file mode 100644
-index 0000000..e91f4f0
---- /dev/null
-+++ b/arch/nios2/include/asm/irqflags.h
-@@ -0,0 +1,69 @@
-+/*
-+ * Copyright (C) 2010 Thomas Chou <thomas@wytron.com.tw>
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License as published by
-+ * the Free Software Foundation; either version 2 of the License, or
-+ * (at your option) any later version.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
-+ *
-+ */
-+#ifndef _ASM_IRQFLAGS_H
-+#define _ASM_IRQFLAGS_H
-+
-+#include <asm/registers.h>
-+
-+static inline unsigned long arch_local_save_flags(void)
++int fixup_exception(struct pt_regs *regs)
 +{
-+	return RDCTL(CTL_STATUS);
-+}
++	const struct exception_table_entry *fixup;
 +
-+/*
-+ * This will restore ALL status register flags, not only the interrupt
-+ * mask flag.
-+ */
-+static inline void arch_local_irq_restore(unsigned long flags)
-+{
-+	WRCTL(CTL_STATUS, flags);
-+}
-+
-+static inline void arch_local_irq_disable(void)
-+{
-+	unsigned long flags;
-+	flags = arch_local_save_flags();
-+	arch_local_irq_restore(flags & ~STATUS_PIE);
-+}
-+
-+static inline void arch_local_irq_enable(void)
-+{
-+	unsigned long flags;
-+	flags = arch_local_save_flags();
-+	arch_local_irq_restore(flags | STATUS_PIE);
-+}
-+
-+static inline int arch_irqs_disabled_flags(unsigned long flags)
-+{
-+	return (flags & STATUS_PIE) == 0;
-+}
-+
-+static inline int arch_irqs_disabled(void)
-+{
-+	return arch_irqs_disabled_flags(arch_local_save_flags());
-+}
-+
-+static inline unsigned long arch_local_irq_save(void)
-+{
-+	unsigned long flags;
-+	flags = arch_local_save_flags();
-+	arch_local_irq_restore(flags & ~STATUS_PIE);
-+	return flags;
-+}
-+
-+#endif /* _ASM_IRQFLAGS_H */
-diff --git a/arch/nios2/kernel/irq.c b/arch/nios2/kernel/irq.c
-new file mode 100644
-index 0000000..560cdf6
---- /dev/null
-+++ b/arch/nios2/kernel/irq.c
-@@ -0,0 +1,93 @@
-+/*
-+ * Copyright (C) 2013 Altera Corporation
-+ * Copyright (C) 2011 Tobias Klauser <tklauser@distanz.ch>
-+ * Copyright (C) 2008 Thomas Chou <thomas@wytron.com.tw>
-+ *
-+ * based on irq.c from m68k which is:
-+ *
-+ * Copyright (C) 2007 Greg Ungerer <gerg@snapgear.com>
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License as published by
-+ * the Free Software Foundation; either version 2 of the License, or
-+ * (at your option) any later version.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
-+ *
-+ */
-+
-+#include <linux/init.h>
-+#include <linux/interrupt.h>
-+#include <linux/of.h>
-+
-+static u32 ienable;
-+
-+asmlinkage void do_IRQ(int hwirq, struct pt_regs *regs)
-+{
-+	struct pt_regs *oldregs = set_irq_regs(regs);
-+	int irq;
-+
-+	irq_enter();
-+	irq = irq_find_mapping(NULL, hwirq);
-+	generic_handle_irq(irq);
-+	irq_exit();
-+
-+	set_irq_regs(oldregs);
-+}
-+
-+static void chip_unmask(struct irq_data *d)
-+{
-+	ienable |= (1 << d->hwirq);
-+	WRCTL(CTL_IENABLE, ienable);
-+}
-+
-+static void chip_mask(struct irq_data *d)
-+{
-+	ienable &= ~(1 << d->hwirq);
-+	WRCTL(CTL_IENABLE, ienable);
-+}
-+
-+static struct irq_chip m_irq_chip = {
-+	.name		= "NIOS2-INTC",
-+	.irq_unmask	= chip_unmask,
-+	.irq_mask	= chip_mask,
-+};
-+
-+static int irq_map(struct irq_domain *h, unsigned int virq,
-+				irq_hw_number_t hw_irq_num)
-+{
-+	irq_set_chip_and_handler(virq, &m_irq_chip, handle_level_irq);
++	fixup = search_exception_tables(regs->ea);
++	if (fixup) {
++		regs->ea = fixup->fixup;
++		return 1;
++	}
 +
 +	return 0;
 +}
+diff --git a/arch/nios2/mm/fault.c b/arch/nios2/mm/fault.c
+new file mode 100644
+index 0000000..15a0bb5
+--- /dev/null
++++ b/arch/nios2/mm/fault.c
+@@ -0,0 +1,251 @@
++/*
++ * Copyright (C) 2009 Wind River Systems Inc
++ *   Implemented by fredrik.markstrom@gmail.com and ivarholmqvist@gmail.com
++ *
++ * based on arch/mips/mm/fault.c which is:
++ *
++ * Copyright (C) 1995-2000 Ralf Baechle
++ *
++ * This file is subject to the terms and conditions of the GNU General Public
++ * License.  See the file "COPYING" in the main directory of this archive
++ * for more details.
++ */
 +
-+static struct irq_domain_ops irq_ops = {
-+	.map	= irq_map,
-+	.xlate	= irq_domain_xlate_onecell,
-+};
++#include <linux/signal.h>
++#include <linux/sched.h>
++#include <linux/interrupt.h>
++#include <linux/kernel.h>
++#include <linux/errno.h>
++#include <linux/string.h>
++#include <linux/types.h>
++#include <linux/ptrace.h>
++#include <linux/mman.h>
++#include <linux/mm.h>
++#include <linux/module.h>
++#include <linux/uaccess.h>
++#include <linux/ptrace.h>
 +
-+void __init init_IRQ(void)
++#include <asm/mmu_context.h>
++#include <asm/traps.h>
++
++#define EXC_SUPERV_INSN_ACCESS	9  /* Supervisor only instruction address */
++#define EXC_SUPERV_DATA_ACCESS	11 /* Supervisor only data address */
++#define EXC_X_PROTECTION_FAULT	13 /* TLB permission violation (x) */
++#define EXC_R_PROTECTION_FAULT	14 /* TLB permission violation (r) */
++#define EXC_W_PROTECTION_FAULT	15 /* TLB permission violation (w) */
++
++/*
++ * This routine handles page faults.  It determines the address,
++ * and the problem, and then passes it off to one of the appropriate
++ * routines.
++ */
++asmlinkage void do_page_fault(struct pt_regs *regs, unsigned long cause,
++				unsigned long address)
 +{
-+	struct irq_domain *domain;
-+	struct device_node *node;
++	struct vm_area_struct *vma = NULL;
++	struct task_struct *tsk = current;
++	struct mm_struct *mm = tsk->mm;
++	int code = SEGV_MAPERR;
++	int fault;
++	unsigned int flags = 0;
 +
-+	node = of_find_compatible_node(NULL, NULL, "altr,nios2-1.0");
-+	if (!node)
-+		node = of_find_compatible_node(NULL, NULL, "altr,nios2-1.1");
++	cause >>= 2;
 +
-+	BUG_ON(!node);
++	/* Restart the instruction */
++	regs->ea -= 4;
 +
-+	domain = irq_domain_add_linear(node, NIOS2_CPU_NR_IRQS, &irq_ops, NULL);
-+	BUG_ON(!domain);
++	/*
++	 * We fault-in kernel-space virtual memory on-demand. The
++	 * 'reference' page table is init_mm.pgd.
++	 *
++	 * NOTE! We MUST NOT take any locks for this case. We may
++	 * be in an interrupt or a critical region, and should
++	 * only copy the information from the master page table,
++	 * nothing more.
++	 */
++	if (unlikely(address >= VMALLOC_START && address <= VMALLOC_END)) {
++		if (user_mode(regs))
++			goto bad_area_nosemaphore;
++		else
++			goto vmalloc_fault;
++	}
 +
-+	irq_set_default_host(domain);
-+	of_node_put(node);
-+	/* Load the intial ienable value */
-+	ienable = RDCTL(CTL_IENABLE);
++	if (unlikely(address >= TASK_SIZE))
++		goto bad_area_nosemaphore;
++
++	/*
++	 * If we're in an interrupt or have no user
++	 * context, we must not take the fault..
++	 */
++	if (in_atomic() || !mm)
++		goto bad_area_nosemaphore;
++
++	if (user_mode(regs))
++		flags |= FAULT_FLAG_USER;
++
++	if (!down_read_trylock(&mm->mmap_sem)) {
++		if (!user_mode(regs) && !search_exception_tables(regs->ea))
++			goto bad_area_nosemaphore;
++		down_read(&mm->mmap_sem);
++	}
++
++	vma = find_vma(mm, address);
++	if (!vma)
++		goto bad_area;
++	if (vma->vm_start <= address)
++		goto good_area;
++	if (!(vma->vm_flags & VM_GROWSDOWN))
++		goto bad_area;
++	if (expand_stack(vma, address))
++		goto bad_area;
++/*
++ * Ok, we have a good vm_area for this memory access, so
++ * we can handle it..
++ */
++good_area:
++	code = SEGV_ACCERR;
++
++	switch (cause) {
++	case EXC_SUPERV_INSN_ACCESS:
++		goto bad_area;
++	case EXC_SUPERV_DATA_ACCESS:
++		goto bad_area;
++	case EXC_X_PROTECTION_FAULT:
++		if (!(vma->vm_flags & VM_EXEC))
++			goto bad_area;
++		break;
++	case EXC_R_PROTECTION_FAULT:
++		if (!(vma->vm_flags & VM_READ))
++			goto bad_area;
++		break;
++	case EXC_W_PROTECTION_FAULT:
++		if (!(vma->vm_flags & VM_WRITE))
++			goto bad_area;
++		flags = FAULT_FLAG_WRITE;
++		break;
++	}
++
++survive:
++	/*
++	 * If for any reason at all we couldn't handle the fault,
++	 * make sure we exit gracefully rather than endlessly redo
++	 * the fault.
++	 */
++	fault = handle_mm_fault(mm, vma, address, flags);
++	if (unlikely(fault & VM_FAULT_ERROR)) {
++		if (fault & VM_FAULT_OOM)
++			goto out_of_memory;
++		else if (fault & VM_FAULT_SIGBUS)
++			goto do_sigbus;
++		BUG();
++	}
++	if (fault & VM_FAULT_MAJOR)
++		tsk->maj_flt++;
++	else
++		tsk->min_flt++;
++
++	up_read(&mm->mmap_sem);
++	return;
++
++/*
++ * Something tried to access memory that isn't in our memory map..
++ * Fix it, but check if it's kernel or user first..
++ */
++bad_area:
++	up_read(&mm->mmap_sem);
++
++bad_area_nosemaphore:
++	/* User mode accesses just cause a SIGSEGV */
++	if (user_mode(regs)) {
++		pr_alert("%s: unhandled page fault (%d) at 0x%08lx, "
++			"cause %ld\n", current->comm, SIGSEGV, address, cause);
++		show_regs(regs);
++		_exception(SIGSEGV, regs, code, address);
++		return;
++	}
++
++no_context:
++	/* Are we prepared to handle this kernel fault? */
++	if (fixup_exception(regs))
++		return;
++
++	/*
++	 * Oops. The kernel tried to access some bad page. We'll have to
++	 * terminate things with extreme prejudice.
++	 */
++	bust_spinlocks(1);
++
++	pr_alert("Unable to handle kernel %s at virtual address %08lx",
++		address < PAGE_SIZE ? "NULL pointer dereference" :
++		"paging request", address);
++	pr_alert("ea = %08lx, ra = %08lx, cause = %ld\n", regs->ea, regs->ra,
++		cause);
++	panic("Oops");
++	return;
++
++/*
++ * We ran out of memory, or some other thing happened to us that made
++ * us unable to handle the page fault gracefully.
++ */
++out_of_memory:
++	up_read(&mm->mmap_sem);
++	if (is_global_init(tsk)) {
++		yield();
++		down_read(&mm->mmap_sem);
++		goto survive;
++	}
++	if (!user_mode(regs))
++		goto no_context;
++	pagefault_out_of_memory();
++	return;
++
++do_sigbus:
++	up_read(&mm->mmap_sem);
++
++	/* Kernel mode? Handle exceptions or die */
++	if (!user_mode(regs))
++		goto no_context;
++
++	_exception(SIGBUS, regs, BUS_ADRERR, address);
++	return;
++
++vmalloc_fault:
++	{
++		/*
++		 * Synchronize this task's top level page-table
++		 * with the 'reference' page table.
++		 *
++		 * Do _not_ use "tsk" here. We might be inside
++		 * an interrupt in the middle of a task switch..
++		 */
++		int offset = pgd_index(address);
++		pgd_t *pgd, *pgd_k;
++		pud_t *pud, *pud_k;
++		pmd_t *pmd, *pmd_k;
++		pte_t *pte_k;
++
++		pgd = pgd_current + offset;
++		pgd_k = init_mm.pgd + offset;
++
++		if (!pgd_present(*pgd_k))
++			goto no_context;
++		set_pgd(pgd, *pgd_k);
++
++		pud = pud_offset(pgd, address);
++		pud_k = pud_offset(pgd_k, address);
++		if (!pud_present(*pud_k))
++			goto no_context;
++		pmd = pmd_offset(pud, address);
++		pmd_k = pmd_offset(pud_k, address);
++		if (!pmd_present(*pmd_k))
++			goto no_context;
++		set_pmd(pmd, *pmd_k);
++
++		pte_k = pte_offset_kernel(pmd_k, address);
++		if (!pte_present(*pte_k))
++			goto no_context;
++
++		flush_tlb_one(address);
++		return;
++	}
 +}
 -- 
 1.8.2.1
