@@ -1,31 +1,38 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:59487 "EHLO mail.zytor.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754246AbaIHTul (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 8 Sep 2014 15:50:41 -0400
-Message-ID: <540E0860.2030600@zytor.com>
-Date: Mon, 08 Sep 2014 12:49:52 -0700
-From: "H. Peter Anvin" <hpa@zytor.com>
+Received: from usmamail.tilera.com ([12.216.194.151]:49754 "EHLO
+	USMAMAIL.TILERA.COM" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754122AbaIHUqA (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 8 Sep 2014 16:46:00 -0400
+Message-ID: <540E1587.3060108@tilera.com>
+Date: Mon, 8 Sep 2014 16:45:59 -0400
+From: Chris Metcalf <cmetcalf@tilera.com>
 MIME-Version: 1.0
-Subject: Re: [PATCH v5 0/5] x86: two-phase syscall tracing and seccomp fastpath
-References: <cover.1409954077.git.luto@amacapital.net> <CAGXu5jJpxzbpZfxXoBvDm6W-ogq3d5njRa2ir0text3evJT+QQ@mail.gmail.com>
-In-Reply-To: <CAGXu5jJpxzbpZfxXoBvDm6W-ogq3d5njRa2ir0text3evJT+QQ@mail.gmail.com>
-Content-Type: text/plain; charset=UTF-8
+Subject: Re: bit fields && data tearing
+References: <21512.10628.412205.873477@gargle.gargle.HOWL>		 <20140904090952.GW17454@tucnak.redhat.com>		 <540859EC.5000407@hurleysoftware.com>		 <20140904175044.4697aee4@alan.etchedpixels.co.uk>		 <5408C0AB.6050801@hurleysoftware.com>		 <20140905001751.GL5001@linux.vnet.ibm.com>		 <1409883098.5078.14.camel@jarvis.lan>	 <5409243C.4080704@hurleysoftware.com>		 <20140905040645.GO5001@linux.vnet.ibm.com>		 <1410066442.12512.13.camel@jarvis.lan>		 <20140907162146.GK5001@linux.vnet.ibm.com>	 <1410116687.2027.19.camel@jarvis.lan> <540CC305.8010407@hurleysoftware.com> <1410155407.2027.29.camel@jarvis.lan>
+In-Reply-To: <1410155407.2027.29.camel@jarvis.lan>
+Content-Type: text/plain; charset="UTF-8"; format=flowed
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Kees Cook <keescook@chromium.org>, Andy Lutomirski <luto@amacapital.net>
-Cc: LKML <linux-kernel@vger.kernel.org>, Will Drewry <wad@chromium.org>, Oleg Nesterov <oleg@redhat.com>, "x86@kernel.org" <x86@kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Linux MIPS Mailing List <linux-mips@linux-mips.org>, linux-arch <linux-arch@vger.kernel.org>, linux-security-module <linux-security-module@vger.kernel.org>, Alexei Starovoitov <ast@plumgrid.com>, Frederic Weisbecker <fweisbec@gmail.com>
-Message-ID: <20140908194952.j9Ah7J1okr6VoAaFaVqQ-_oTmlvOxkwv72q7GlAirzI@z>
+To: James Bottomley <James.Bottomley@HansenPartnership.com>, Peter Hurley <peter@hurleysoftware.com>
+Cc: paulmck@linux.vnet.ibm.com, "H. Peter Anvin" <hpa@zytor.com>, One Thousand Gnomes <gnomes@lxorguk.ukuu.org.uk>, Jakub Jelinek <jakub@redhat.com>, Mikael Pettersson <mikpelinux@gmail.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Richard Henderson <rth@twiddle.net>, Oleg Nesterov <oleg@redhat.com>, Miroslav Franc <mfranc@redhat.com>, Paul Mackerras <paulus@samba.org>, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Tony Luck <tony.luck@intel.com>, linux-ia64@vger.kernel.org
+Message-ID: <20140908204559._kB0XtE5YtFO3A1Sl6qpsD55wuh0yVN-wF6nlaYsZIs@z>
 
-On 09/08/2014 12:29 PM, Kees Cook wrote:
-> 
-> As far as doing pulls, Peter, can you take the seccomp change from my
-> tree as well? It makes sense to land all of this together.
-> 
+On 9/8/2014 1:50 AM, James Bottomley wrote:
+> Actual alignment is pretty irrelevant.  That's why all architectures
+> which require alignment also have to implement misaligned traps ... this
+> is a fundamental requirement of the networking code, for instance.
 
-That is the plan.
+Can you clarify what you think the requirement is?  The tile architecture
+doesn't support misaligned load/store in general, but we do support it for
+userspace (using a nifty JIT approach with a direct-map hash table kept
+in userspace), and also for get_user/put_user.  But that's it, and,
+the networking subsystem works fine for us.
 
-	-hpa
+Occasionally we report bugs for driver code that doesn't use the
+get_unaligned_xxx() macros and friends, and our fixes are generally taken
+upstream.
 
-
+-- 
+Chris Metcalf, Tilera Corp.
+http://www.tilera.com
