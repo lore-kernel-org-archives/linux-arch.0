@@ -1,33 +1,152 @@
 From: Ley Foon Tan <lftan@altera.com>
-Subject: [PATCH v3 24/29] nios2: Nios2 registers
-Date: Mon, 8 Sep 2014 17:22:35 +0800
-Message-ID: <1410168160-3624-25-git-send-email-lftan@altera.com>
+Subject: [PATCH v3 23/29] nios2: Miscellaneous header files
+Date: Mon, 8 Sep 2014 17:22:34 +0800
+Message-ID: <1410168160-3624-24-git-send-email-lftan@altera.com>
 References: <1410168160-3624-1-git-send-email-lftan@altera.com>
 Mime-Version: 1.0
 Content-Type: text/plain
-Return-path: <linux-doc-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-bn1on0089.outbound.protection.outlook.com ([157.56.110.89]:54176
+	"EHLO na01-bn1-obe.outbound.protection.outlook.com"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1753125AbaIHJjy (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 8 Sep 2014 05:39:54 -0400
 In-Reply-To: <1410168160-3624-1-git-send-email-lftan@altera.com>
-Sender: linux-doc-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org
 Cc: Ley Foon Tan <lftan@altera.com>, lftan.linux@gmail.com, cltang@codesourcery.com
-List-Id: linux-arch.vger.kernel.org
 
-This file contains constants for the instruction macros, cpu registers, fields and bits.
+This patch introduces a few nios2-specific header files.
 
 Signed-off-by: Ley Foon Tan <lftan@altera.com>
 ---
- arch/nios2/include/asm/registers.h | 71 ++++++++++++++++++++++++++++++++++++++
- 1 file changed, 71 insertions(+)
- create mode 100644 arch/nios2/include/asm/registers.h
+ arch/nios2/include/asm/cmpxchg.h        | 61 +++++++++++++++++++++++++++++++++
+ arch/nios2/include/asm/linkage.h        | 25 ++++++++++++++
+ arch/nios2/include/asm/mutex.h          |  1 +
+ arch/nios2/include/uapi/asm/byteorder.h | 22 ++++++++++++
+ arch/nios2/include/uapi/asm/swab.h      | 37 ++++++++++++++++++++
+ 5 files changed, 146 insertions(+)
+ create mode 100644 arch/nios2/include/asm/cmpxchg.h
+ create mode 100644 arch/nios2/include/asm/linkage.h
+ create mode 100644 arch/nios2/include/asm/mutex.h
+ create mode 100644 arch/nios2/include/uapi/asm/byteorder.h
+ create mode 100644 arch/nios2/include/uapi/asm/swab.h
 
-diff --git a/arch/nios2/include/asm/registers.h b/arch/nios2/include/asm/registers.h
+diff --git a/arch/nios2/include/asm/cmpxchg.h b/arch/nios2/include/asm/cmpxchg.h
 new file mode 100644
-index 0000000..615bce1
+index 0000000..8593871
 --- /dev/null
-+++ b/arch/nios2/include/asm/registers.h
-@@ -0,0 +1,71 @@
++++ b/arch/nios2/include/asm/cmpxchg.h
+@@ -0,0 +1,61 @@
 +/*
-+ * Copyright (C) 2011 Tobias Klauser <tklauser@distanz.ch>
++ * Copyright (C) 2004 Microtronix Datacom Ltd.
++ *
++ * This file is subject to the terms and conditions of the GNU General Public
++ * License. See the file "COPYING" in the main directory of this archive
++ * for more details.
++ */
++
++#ifndef _ASM_NIOS2_CMPXCHG_H
++#define _ASM_NIOS2_CMPXCHG_H
++
++#include <linux/irqflags.h>
++
++#define xchg(ptr, x)	\
++	((__typeof__(*(ptr)))__xchg((unsigned long)(x), (ptr), sizeof(*(ptr))))
++
++struct __xchg_dummy { unsigned long a[100]; };
++#define __xg(x)		((volatile struct __xchg_dummy *)(x))
++
++static inline unsigned long __xchg(unsigned long x, volatile void *ptr,
++					int size)
++{
++	unsigned long tmp, flags;
++
++	local_irq_save(flags);
++
++	switch (size) {
++	case 1:
++		__asm__ __volatile__(
++			"ldb	%0, %2\n"
++			"stb	%1, %2\n"
++			: "=&r" (tmp)
++			: "r" (x), "m" (*__xg(ptr))
++			: "memory");
++		break;
++	case 2:
++		__asm__ __volatile__(
++			"ldh	%0, %2\n"
++			"sth	%1, %2\n"
++			: "=&r" (tmp)
++			: "r" (x), "m" (*__xg(ptr))
++			: "memory");
++		break;
++	case 4:
++		__asm__ __volatile__(
++			"ldw	%0, %2\n"
++			"stw	%1, %2\n"
++			: "=&r" (tmp)
++			: "r" (x), "m" (*__xg(ptr))
++			: "memory");
++		break;
++	}
++
++	local_irq_restore(flags);
++	return tmp;
++}
++
++#include <asm-generic/cmpxchg.h>
++#include <asm-generic/cmpxchg-local.h>
++
++#endif /* _ASM_NIOS2_CMPXCHG_H */
+diff --git a/arch/nios2/include/asm/linkage.h b/arch/nios2/include/asm/linkage.h
+new file mode 100644
+index 0000000..e0c6dec
+--- /dev/null
++++ b/arch/nios2/include/asm/linkage.h
+@@ -0,0 +1,25 @@
++/*
++ * Copyright (C) 2009 Thomas Chou <thomas@wytron.com.tw>
++ *
++ * All rights reserved.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful, but
++ * WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE, GOOD TITLE or
++ * NON INFRINGEMENT.  See the GNU General Public License for more
++ * details.
++ */
++
++#ifndef _ASM_NIOS2_LINKAGE_H
++#define _ASM_NIOS2_LINKAGE_H
++
++/* This file is required by include/linux/linkage.h */
++#define __ALIGN .align 4
++#define __ALIGN_STR ".align 4"
++
++#endif
+diff --git a/arch/nios2/include/asm/mutex.h b/arch/nios2/include/asm/mutex.h
+new file mode 100644
+index 0000000..ff6101a
+--- /dev/null
++++ b/arch/nios2/include/asm/mutex.h
+@@ -0,0 +1 @@
++#include <asm-generic/mutex-dec.h>
+diff --git a/arch/nios2/include/uapi/asm/byteorder.h b/arch/nios2/include/uapi/asm/byteorder.h
+new file mode 100644
+index 0000000..3ab5dc2
+--- /dev/null
++++ b/arch/nios2/include/uapi/asm/byteorder.h
+@@ -0,0 +1,22 @@
++/*
++ * Copyright (C) 2009   Thomas Chou <thomas@wytron.com.tw>
++ * Copyright (C) 2004   Microtronix Datacom Ltd
 + *
 + * This program is free software; you can redistribute it and/or modify
 + * it under the terms of the GNU General Public License as published by
@@ -39,64 +158,56 @@ index 0000000..615bce1
 + * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 + * GNU General Public License for more details.
 + *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
-+ *
 + */
 +
-+#ifndef _ASM_NIOS2_REGISTERS_H
-+#define _ASM_NIOS2_REGISTERS_H
++#ifndef _ASM_NIOS2_BYTEORDER_H
++#define _ASM_NIOS2_BYTEORDER_H
 +
-+#ifndef __ASSEMBLY__
-+#include <asm/cpuinfo.h>
++#include <linux/byteorder/little_endian.h>
++
 +#endif
+diff --git a/arch/nios2/include/uapi/asm/swab.h b/arch/nios2/include/uapi/asm/swab.h
+new file mode 100644
+index 0000000..b4e22eb
+--- /dev/null
++++ b/arch/nios2/include/uapi/asm/swab.h
+@@ -0,0 +1,37 @@
++/*
++ * Copyright (C) 2012 Tobias Klauser <tklauser@distanz.ch>
++ * Copyright (C) 2011 Pyramid Technical Consultants, Inc.
++ *
++ * This file is subject to the terms and conditions of the GNU General
++ * Public License. See the file COPYING in the main directory of this
++ * archive for more details.
++ */
 +
-+/* control register numbers */
-+#define CTL_STATUS	0
-+#define CTL_ESTATUS	1
-+#define CTL_BSTATUS	2
-+#define CTL_IENABLE	3
-+#define CTL_IPENDING	4
-+#define CTL_CPUID	5
-+#define CTL_RSV1	6
-+#define CTL_EXCEPTION	7
-+#define CTL_PTEADDR	8
-+#define CTL_TLBACC	9
-+#define CTL_TLBMISC	10
-+#define CTL_RSV2	11
-+#define CTL_BADADDR	12
-+#define CTL_CONFIG	13
-+#define CTL_MPUBASE	14
-+#define CTL_MPUACC	15
++#ifndef _ASM_NIOS2_SWAB_H
++#define _ASM_NIOS2_SWAB_H
 +
-+/* access control registers using GCC builtins */
-+#define RDCTL(r)	__builtin_rdctl(r)
-+#define WRCTL(r, v)	__builtin_wrctl(r, v)
++#include <linux/types.h>
++#include <asm-generic/swab.h>
 +
-+/* status register bits */
-+#define STATUS_PIE	(1 << 0)	/* processor interrupt enable */
-+#define STATUS_U	(1 << 1)	/* user mode */
-+#define STATUS_EH	(1 << 2)	/* Exception mode */
++#ifdef CONFIG_NIOS2_CI_SWAB_SUPPORT
++#ifdef __GNUC__
 +
-+/* estatus register bits */
-+#define ESTATUS_EPIE	(1 << 0)	/* processor interrupt enable */
-+#define ESTATUS_EU	(1 << 1)	/* user mode */
-+#define ESTATUS_EH	(1 << 2)	/* Exception mode */
++#define __nios2_swab(x)		\
++	__builtin_custom_ini(CONFIG_NIOS2_CI_SWAB_NO, (x))
 +
-+/* tlbmisc register bits */
-+#define TLBMISC_PID_SHIFT	4
-+#ifndef __ASSEMBLY__
-+#define TLBMISC_PID_MASK	((1UL << cpuinfo.tlb_pid_num_bits) - 1)
-+#endif
-+#define TLBMISC_WAY_MASK	0xf
-+#define TLBMISC_WAY_SHIFT	20
++static inline __attribute__((const)) __u16 __arch_swab16(__u16 x)
++{
++	return (__u16) __nios2_swab(((__u32) x) << 16);
++}
++#define __arch_swab16 __arch_swab16
 +
-+#define TLBMISC_PID	(TLBMISC_PID_MASK << TLBMISC_PID_SHIFT)	/* TLB PID */
-+#define TLBMISC_WE	(1 << 18)	/* TLB write enable */
-+#define TLBMISC_RD	(1 << 19)	/* TLB read */
-+#define TLBMISC_WAY	(TLBMISC_WAY_MASK << TLBMISC_WAY_SHIFT) /* TLB way */
++static inline __attribute__((const)) __u32 __arch_swab32(__u32 x)
++{
++	return (__u32) __nios2_swab(x);
++}
++#define __arch_swab32 __arch_swab32
 +
-+#endif /* _ASM_NIOS2_REGISTERS_H */
++#endif /* __GNUC__ */
++#endif /* CONFIG_NIOS2_CI_SWAB_SUPPORT */
++
++#endif /* _ASM_NIOS2_SWAB_H */
 -- 
 1.8.2.1
-
