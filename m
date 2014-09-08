@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bn1on0094.outbound.protection.outlook.com ([157.56.110.94]:22916
-	"EHLO na01-bn1-obe.outbound.protection.outlook.com"
+Received: from mail-bl2on0096.outbound.protection.outlook.com ([65.55.169.96]:30448
+	"EHLO na01-bl2-obe.outbound.protection.outlook.com"
 	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1753907AbaIHJjO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 8 Sep 2014 05:39:14 -0400
+	id S1753974AbaIHJjY (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 8 Sep 2014 05:39:24 -0400
 From: Ley Foon Tan <lftan@altera.com>
-Subject: [PATCH v3 11/29] nios2: Cache handling
-Date: Mon, 8 Sep 2014 17:22:22 +0800
-Message-ID: <1410168160-3624-12-git-send-email-lftan@altera.com>
+Subject: [PATCH v3 26/29] nios2: ptrace support
+Date: Mon, 8 Sep 2014 17:22:37 +0800
+Message-ID: <1410168160-3624-27-git-send-email-lftan@altera.com>
 In-Reply-To: <1410168160-3624-1-git-send-email-lftan@altera.com>
 References: <1410168160-3624-1-git-send-email-lftan@altera.com>
 MIME-Version: 1.0
@@ -16,395 +16,366 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org
 Cc: Ley Foon Tan <lftan@altera.com>, lftan.linux@gmail.com, cltang@codesourcery.com
-Message-ID: <20140908092222.mQTvz8C4z3lVMAP_jLYrFrRvfN2Rjv9pSmBo5qbNU58@z>
+Message-ID: <20140908092237.KwFiWcrdQprssijtM_vQXJg3Bsdx5fW-apsJdhmJ9KY@z>
 
-This patch adds functionality required for cache maintenance.
+Add ptrace support for nios2.
 
 Signed-off-by: Ley Foon Tan <lftan@altera.com>
 ---
- arch/nios2/include/asm/cache.h      |  36 +++++
- arch/nios2/include/asm/cacheflush.h |  52 +++++++
- arch/nios2/mm/cacheflush.c          | 270 ++++++++++++++++++++++++++++++++++++
- 3 files changed, 358 insertions(+)
- create mode 100644 arch/nios2/include/asm/cache.h
- create mode 100644 arch/nios2/include/asm/cacheflush.h
- create mode 100644 arch/nios2/mm/cacheflush.c
+ arch/nios2/include/asm/ptrace.h      |  33 +++++++
+ arch/nios2/include/uapi/asm/ptrace.h | 120 ++++++++++++++++++++++++
+ arch/nios2/kernel/ptrace.c           | 176 +++++++++++++++++++++++++++++++++++
+ 3 files changed, 329 insertions(+)
+ create mode 100644 arch/nios2/include/asm/ptrace.h
+ create mode 100644 arch/nios2/include/uapi/asm/ptrace.h
+ create mode 100644 arch/nios2/kernel/ptrace.c
 
-diff --git a/arch/nios2/include/asm/cache.h b/arch/nios2/include/asm/cache.h
+diff --git a/arch/nios2/include/asm/ptrace.h b/arch/nios2/include/asm/ptrace.h
 new file mode 100644
-index 0000000..2293cf5
+index 0000000..20fb1cf
 --- /dev/null
-+++ b/arch/nios2/include/asm/cache.h
-@@ -0,0 +1,36 @@
++++ b/arch/nios2/include/asm/ptrace.h
+@@ -0,0 +1,33 @@
 +/*
-+ * Copyright (C) 2004 Microtronix Datacom Ltd.
++ * Copyright (C) 2013 Altera Corporation
++ * Copyright (C) 2010 Tobias Klauser <tklauser@distanz.ch>
++ * Copyright (C) 2004 Microtronix Datacom Ltd
 + *
-+ * All rights reserved.
++ * based on m68k asm/processor.h
 + *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License as published by
-+ * the Free Software Foundation; either version 2 of the License, or
-+ * (at your option) any later version.
-+ *
-+ * This program is distributed in the hope that it will be useful, but
-+ * WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE, GOOD TITLE or
-+ * NON INFRINGEMENT.  See the GNU General Public License for more
-+ * details.
-+ */
-+
-+#ifndef _ASM_NIOS2_CACHE_H
-+#define _ASM_NIOS2_CACHE_H
-+
-+#define NIOS2_DCACHE_SIZE	CONFIG_NIOS2_DCACHE_SIZE
-+#define NIOS2_ICACHE_SIZE	CONFIG_NIOS2_ICACHE_SIZE
-+#define NIOS2_DCACHE_LINE_SIZE	CONFIG_NIOS2_DCACHE_LINE_SIZE
-+#define NIOS2_ICACHE_LINE_SHIFT	5
-+#define NIOS2_ICACHE_LINE_SIZE	(1 << NIOS2_ICACHE_LINE_SHIFT)
-+
-+/* bytes per L1 cache line */
-+#define L1_CACHE_SHIFT		NIOS2_ICACHE_LINE_SHIFT
-+#define L1_CACHE_BYTES		NIOS2_ICACHE_LINE_SIZE
-+
-+#define ARCH_DMA_MINALIGN	L1_CACHE_BYTES
-+
-+#define __cacheline_aligned
-+#define ____cacheline_aligned
-+
-+#endif
-diff --git a/arch/nios2/include/asm/cacheflush.h b/arch/nios2/include/asm/cacheflush.h
-new file mode 100644
-index 0000000..52abba9
---- /dev/null
-+++ b/arch/nios2/include/asm/cacheflush.h
-@@ -0,0 +1,52 @@
-+/*
-+ * Copyright (C) 2003 Microtronix Datacom Ltd.
-+ * Copyright (C) 2000-2002 Greg Ungerer <gerg@snapgear.com>
-+ *
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License. See the file "COPYING" in the main directory of this archive
-+ * for more details.
-+ */
-+
-+#ifndef _ASM_NIOS2_CACHEFLUSH_H
-+#define _ASM_NIOS2_CACHEFLUSH_H
-+
-+#include <linux/mm_types.h>
-+
-+/*
-+ * This flag is used to indicate that the page pointed to by a pte is clean
-+ * and does not require cleaning before returning it to the user.
-+ */
-+#define PG_dcache_clean PG_arch_1
-+
-+struct mm_struct;
-+
-+extern void flush_cache_all(void);
-+extern void flush_cache_mm(struct mm_struct *mm);
-+extern void flush_cache_dup_mm(struct mm_struct *mm);
-+extern void flush_cache_range(struct vm_area_struct *vma, unsigned long start,
-+	unsigned long end);
-+extern void flush_cache_page(struct vm_area_struct *vma, unsigned long vmaddr,
-+	unsigned long pfn);
-+#define ARCH_IMPLEMENTS_FLUSH_DCACHE_PAGE 1
-+extern void flush_dcache_page(struct page *page);
-+
-+extern void flush_icache_range(unsigned long start, unsigned long end);
-+extern void flush_icache_page(struct vm_area_struct *vma, struct page *page);
-+
-+#define flush_cache_vmap(start, end)		flush_dcache_range(start, end)
-+#define flush_cache_vunmap(start, end)		flush_dcache_range(start, end)
-+
-+extern void copy_to_user_page(struct vm_area_struct *vma, struct page *page,
-+				unsigned long user_vaddr,
-+				void *dst, void *src, int len);
-+extern void copy_from_user_page(struct vm_area_struct *vma, struct page *page,
-+				unsigned long user_vaddr,
-+				void *dst, void *src, int len);
-+
-+extern void flush_dcache_range(unsigned long start, unsigned long end);
-+extern void invalidate_dcache_range(unsigned long start, unsigned long end);
-+
-+#define flush_dcache_mmap_lock(mapping)		do { } while (0)
-+#define flush_dcache_mmap_unlock(mapping)	do { } while (0)
-+
-+#endif /* _ASM_NIOS2_CACHEFLUSH_H */
-diff --git a/arch/nios2/mm/cacheflush.c b/arch/nios2/mm/cacheflush.c
-new file mode 100644
-index 0000000..cf06a00
---- /dev/null
-+++ b/arch/nios2/mm/cacheflush.c
-@@ -0,0 +1,270 @@
-+/*
 + * This file is subject to the terms and conditions of the GNU General Public
 + * License.  See the file "COPYING" in the main directory of this archive
 + * for more details.
-+ *
-+ * Copyright (C) 2009, Wind River Systems Inc
-+ * Implemented by fredrik.markstrom@gmail.com and ivarholmqvist@gmail.com
 + */
 +
-+#include <linux/export.h>
-+#include <linux/sched.h>
++#ifndef _ASM_NIOS2_PTRACE_H
++#define _ASM_NIOS2_PTRACE_H
++
++#include <uapi/asm/ptrace.h>
++
++#ifndef __ASSEMBLY__
++#define user_mode(regs)	(((regs)->estatus & ESTATUS_EU))
++
++#define instruction_pointer(regs)	((regs)->ra)
++#define profile_pc(regs)		instruction_pointer(regs)
++#define user_stack_pointer(regs)	((regs)->sp)
++extern void show_regs(struct pt_regs *);
++
++#define current_pt_regs() \
++	((struct pt_regs *)((unsigned long)current_thread_info() + THREAD_SIZE)\
++		- 1)
++
++int do_syscall_trace_enter(void);
++void do_syscall_trace_exit(void);
++#endif /* __ASSEMBLY__ */
++#endif /* _ASM_NIOS2_PTRACE_H */
+diff --git a/arch/nios2/include/uapi/asm/ptrace.h b/arch/nios2/include/uapi/asm/ptrace.h
+new file mode 100644
+index 0000000..e83a7c9
+--- /dev/null
++++ b/arch/nios2/include/uapi/asm/ptrace.h
+@@ -0,0 +1,120 @@
++/*
++ * Copyright (C) 2010 Tobias Klauser <tklauser@distanz.ch>
++ * Copyright (C) 2004 Microtronix Datacom Ltd
++ *
++ * based on m68k asm/processor.h
++ *
++ * This file is subject to the terms and conditions of the GNU General Public
++ * License.  See the file "COPYING" in the main directory of this archive
++ * for more details.
++ */
++
++#ifndef _UAPI_ASM_NIOS2_PTRACE_H
++#define _UAPI_ASM_NIOS2_PTRACE_H
++
++#ifndef __ASSEMBLY__
++
++/*
++ * Register numbers used by 'ptrace' system call interface.
++ */
++
++/* GP registers */
++#define PTR_R0		0
++#define PTR_R1		1
++#define PTR_R2		2
++#define PTR_R3		3
++#define PTR_R4		4
++#define PTR_R5		5
++#define PTR_R6		6
++#define PTR_R7		7
++#define PTR_R8		8
++#define PTR_R9		9
++#define PTR_R10		10
++#define PTR_R11		11
++#define PTR_R12		12
++#define PTR_R13		13
++#define PTR_R14		14
++#define PTR_R15		15
++#define PTR_R16		16
++#define PTR_R17		17
++#define PTR_R18		18
++#define PTR_R19		19
++#define PTR_R20		20
++#define PTR_R21		21
++#define PTR_R22		22
++#define PTR_R23		23
++#define PTR_R24		24
++#define PTR_R25		25
++#define PTR_GP		26
++#define PTR_SP		27
++#define PTR_FP		28
++#define PTR_EA		29
++#define PTR_BA		30
++#define PTR_RA		31
++/* Control registers */
++#define PTR_PC		32
++#define PTR_STATUS	33
++#define PTR_ESTATUS	34
++#define PTR_BSTATUS	35
++#define PTR_IENABLE	36
++#define PTR_IPENDING	37
++#define PTR_CPUID	38
++#define PTR_CTL6	39
++#define PTR_CTL7	40
++#define PTR_PTEADDR	41
++#define PTR_TLBACC	42
++#define PTR_TLBMISC	43
++
++#define NUM_PTRACE_REG (PTR_TLBMISC + 1)
++
++/* this struct defines the way the registers are stored on the
++   stack during a system call.
++
++   There is a fake_regs in setup.c that has to match pt_regs.*/
++
++struct pt_regs {
++	unsigned long  r8;		/* r8-r15 Caller-saved GP registers */
++	unsigned long  r9;
++	unsigned long  r10;
++	unsigned long  r11;
++	unsigned long  r12;
++	unsigned long  r13;
++	unsigned long  r14;
++	unsigned long  r15;
++	unsigned long  r1;		/* Assembler temporary */
++	unsigned long  r2;		/* Retval LS 32bits */
++	unsigned long  r3;		/* Retval MS 32bits */
++	unsigned long  r4;		/* r4-r7 Register arguments */
++	unsigned long  r5;
++	unsigned long  r6;
++	unsigned long  r7;
++	unsigned long  orig_r2;		/* Copy of r2 ?? */
++	unsigned long  ra;		/* Return address */
++	unsigned long  fp;		/* Frame pointer */
++	unsigned long  sp;		/* Stack pointer */
++	unsigned long  gp;		/* Global pointer */
++	unsigned long  estatus;
++	unsigned long  ea;		/* Exception return address (pc) */
++	unsigned long  orig_r7;
++};
++
++/*
++ * This is the extended stack used by signal handlers and the context
++ * switcher: it's pushed after the normal "struct pt_regs".
++ */
++struct switch_stack {
++	unsigned long  r16;		/* r16-r23 Callee-saved GP registers */
++	unsigned long  r17;
++	unsigned long  r18;
++	unsigned long  r19;
++	unsigned long  r20;
++	unsigned long  r21;
++	unsigned long  r22;
++	unsigned long  r23;
++	unsigned long  fp;
++	unsigned long  gp;
++	unsigned long  ra;
++};
++
++#endif /* __ASSEMBLY__ */
++#endif /* _UAPI_ASM_NIOS2_PTRACE_H */
+diff --git a/arch/nios2/kernel/ptrace.c b/arch/nios2/kernel/ptrace.c
+new file mode 100644
+index 0000000..bcbf748
+--- /dev/null
++++ b/arch/nios2/kernel/ptrace.c
+@@ -0,0 +1,176 @@
++/*
++ * Copyright (C) 2014 Altera Corporation
++ * Copyright (C) 2010 Tobias Klauser <tklauser@distanz.ch>
++ *
++ * This file is subject to the terms and conditions of the GNU General
++ * Public License.  See the file COPYING in the main directory of this
++ * archive for more details.
++ */
++
++#include <linux/elf.h>
++#include <linux/errno.h>
++#include <linux/kernel.h>
 +#include <linux/mm.h>
-+#include <linux/fs.h>
++#include <linux/ptrace.h>
++#include <linux/regset.h>
++#include <linux/sched.h>
++#include <linux/tracehook.h>
++#include <linux/uaccess.h>
++#include <linux/user.h>
 +
-+#include <asm/cacheflush.h>
-+#include <asm/cpuinfo.h>
-+
-+static void __flush_dcache(unsigned long start, unsigned long end)
++static int genregs_get(struct task_struct *target,
++		       const struct user_regset *regset,
++		       unsigned int pos, unsigned int count,
++		       void *kbuf, void __user * ubuf)
 +{
-+	unsigned long addr;
++	const struct pt_regs *regs = task_pt_regs(target);
++	const struct switch_stack *sw = (struct switch_stack *)regs - 1;
++	int ret = 0;
 +
-+	start &= ~(cpuinfo.dcache_line_size - 1);
-+	end += (cpuinfo.dcache_line_size - 1);
-+	end &= ~(cpuinfo.dcache_line_size - 1);
++#define REG_O_ZERO_RANGE(START, END)		\
++	if (!ret)					\
++		ret = user_regset_copyout_zero(&pos, &count, &kbuf, &ubuf, \
++			START * 4, (END * 4) + 4);
 +
-+	if (end > start + cpuinfo.dcache_size)
-+		end = start + cpuinfo.dcache_size;
++#define REG_O_ONE(PTR, LOC)	\
++	if (!ret)			\
++		ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf, PTR, \
++			LOC * 4, (LOC * 4) + 4);
 +
-+	for (addr = start; addr < end; addr += cpuinfo.dcache_line_size) {
-+		__asm__ __volatile__ ("   flushda 0(%0)\n"
-+					: /* Outputs */
-+					: /* Inputs  */ "r"(addr)
-+					/* : No clobber */);
++#define REG_O_RANGE(PTR, START, END)	\
++	if (!ret)				\
++		ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf, PTR, \
++			START * 4, (END * 4) + 4);
++
++	REG_O_ZERO_RANGE(PTR_R0, PTR_R0);
++	REG_O_RANGE(&regs->r1,PTR_R1, PTR_R7);
++	REG_O_RANGE(&regs->r8,PTR_R8, PTR_R15);
++	REG_O_RANGE(sw, PTR_R16, PTR_R23);
++	REG_O_ZERO_RANGE(PTR_R24, PTR_R25); /* et and bt */
++	REG_O_ONE(&regs->gp, PTR_GP);
++	REG_O_ONE(&regs->sp, PTR_SP);
++	REG_O_ONE(&regs->fp, PTR_FP);
++	REG_O_ONE(&regs->ea, PTR_EA);
++	REG_O_ZERO_RANGE(PTR_BA, PTR_BA);
++	REG_O_ONE(&regs->ra, PTR_RA);
++	REG_O_ONE(&regs->ea, PTR_PC); /* use ea for PC */
++	if (!ret)
++		ret = user_regset_copyout_zero(&pos, &count, &kbuf, &ubuf,
++					 PTR_STATUS * 4, -1);
++
++	return ret;
++}
++
++/*
++ * Set the thread state from a regset passed in via ptrace
++ */
++static int genregs_set(struct task_struct *target,
++		       const struct user_regset *regset,
++		       unsigned int pos, unsigned int count,
++		       const void *kbuf, const void __user * ubuf)
++{
++	struct pt_regs *regs = task_pt_regs(target);
++	const struct switch_stack *sw = (struct switch_stack *)regs - 1;
++	int ret = 0;
++
++#define REG_IGNORE_RANGE(START, END)		\
++	if (!ret)					\
++		ret = user_regset_copyin_ignore(&pos, &count, &kbuf, &ubuf, \
++			START * 4, (END * 4) + 4);
++
++#define REG_IN_ONE(PTR, LOC)	\
++	if (!ret)			\
++		ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf, \
++			(void *)(PTR), LOC * 4, (LOC * 4) + 4);
++
++#define REG_IN_RANGE(PTR, START, END)	\
++	if (!ret)				\
++		ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf, \
++			(void *)(PTR), START * 4, (END * 4) + 4);
++
++	REG_IGNORE_RANGE(PTR_R0, PTR_R0);
++	REG_IN_RANGE(&regs->r1,PTR_R1, PTR_R7);
++	REG_IN_RANGE(&regs->r8,PTR_R8, PTR_R15);
++	REG_IN_RANGE(sw, PTR_R16, PTR_R23);
++	REG_IGNORE_RANGE(PTR_R24, PTR_R25); /* et and bt */
++	REG_IN_ONE(&regs->gp, PTR_GP);
++	REG_IN_ONE(&regs->sp, PTR_SP);
++	REG_IN_ONE(&regs->fp, PTR_FP);
++	REG_IN_ONE(&regs->ea, PTR_EA);
++	REG_IGNORE_RANGE(PTR_BA, PTR_BA);
++	REG_IN_ONE(&regs->ra, PTR_RA);
++	REG_IN_ONE(&regs->ea, PTR_PC); /* use ea for PC */
++	if (!ret)
++		ret = user_regset_copyin_ignore(&pos, &count, &kbuf, &ubuf,
++					 PTR_STATUS * 4, -1);
++
++	return ret;
++}
++
++/*
++ * Define the register sets available on Nios2 under Linux
++ */
++enum nios2_regset {
++	REGSET_GENERAL,
++};
++
++static const struct user_regset nios2_regsets[] = {
++	[REGSET_GENERAL] = {
++		.core_note_type = NT_PRSTATUS,
++		.n = NUM_PTRACE_REG,
++		.size = sizeof(unsigned long),
++		.align = sizeof(unsigned long),
++		.get = genregs_get,
++		.set = genregs_set,
 +	}
++};
++
++static const struct user_regset_view nios2_user_view = {
++	.name = "nios2",
++	.e_machine = ELF_ARCH,
++	.ei_osabi = ELF_OSABI,
++	.regsets = nios2_regsets,
++	.n = ARRAY_SIZE(nios2_regsets)
++};
++
++const struct user_regset_view *task_user_regset_view(struct task_struct *task)
++{
++	return &nios2_user_view;
 +}
 +
-+static void __flush_dcache_all(unsigned long start, unsigned long end)
++void ptrace_disable(struct task_struct *child)
 +{
-+	unsigned long addr;
 +
-+	start &= ~(cpuinfo.dcache_line_size - 1);
-+	end += (cpuinfo.dcache_line_size - 1);
-+	end &= ~(cpuinfo.dcache_line_size - 1);
++}
 +
-+	if (end > start + cpuinfo.dcache_size)
-+		end = start + cpuinfo.dcache_size;
++long arch_ptrace(struct task_struct *child, long request, unsigned long addr,
++		 unsigned long data)
++{
++	int ret = -EIO;
 +
-+	for (addr = start; addr < end; addr += cpuinfo.dcache_line_size) {
-+		__asm__ __volatile__ ("   flushd 0(%0)\n"
-+					: /* Outputs */
-+					: /* Inputs  */ "r"(addr)
-+					/* : No clobber */);
++	pr_debug("REQ=%ld: ADDR =0x%lx, DATA=0x%lx)\n", request, addr, data);
++
++	switch (request) {
++	default:
++		ret = ptrace_request(child, request, addr, data);
++		break;
 +	}
++
++	return ret;
 +}
 +
-+static void __invalidate_dcache(unsigned long start, unsigned long end)
++asmlinkage int do_syscall_trace_enter(void)
 +{
-+	unsigned long addr;
++	int ret = 0;
 +
-+	start &= ~(cpuinfo.dcache_line_size - 1);
-+	end += (cpuinfo.dcache_line_size - 1);
-+	end &= ~(cpuinfo.dcache_line_size - 1);
++	if (test_thread_flag(TIF_SYSCALL_TRACE))
++		ret = tracehook_report_syscall_entry(task_pt_regs(current));
 +
-+	if (end > start + cpuinfo.dcache_size)
-+		end = start + cpuinfo.dcache_size;
-+
-+	for (addr = start; addr < end; addr += cpuinfo.dcache_line_size) {
-+		__asm__ __volatile__ ("   initda 0(%0)\n"
-+					: /* Outputs */
-+					: /* Inputs  */ "r"(addr)
-+					/* : No clobber */);
-+	}
++	return ret;
 +}
 +
-+static void __flush_icache(unsigned long start, unsigned long end)
++asmlinkage void do_syscall_trace_exit(void)
 +{
-+	unsigned long addr;
-+
-+	start &= ~(cpuinfo.icache_line_size - 1);
-+	end += (cpuinfo.icache_line_size - 1);
-+	end &= ~(cpuinfo.icache_line_size - 1);
-+
-+	if (end > start + cpuinfo.icache_size)
-+		end = start + cpuinfo.icache_size;
-+
-+	for (addr = start; addr < end; addr += cpuinfo.icache_line_size) {
-+		__asm__ __volatile__ ("   flushi %0\n"
-+					: /* Outputs */
-+					: /* Inputs  */ "r"(addr)
-+					/* : No clobber */);
-+	}
-+	__asm__ __volatile(" flushp\n");
-+}
-+
-+static void flush_aliases(struct address_space *mapping, struct page *page)
-+{
-+	struct mm_struct *mm = current->active_mm;
-+	struct vm_area_struct *mpnt;
-+	pgoff_t pgoff;
-+
-+	pgoff = page->index;
-+
-+	flush_dcache_mmap_lock(mapping);
-+	vma_interval_tree_foreach(mpnt, &mapping->i_mmap, pgoff, pgoff) {
-+		unsigned long offset;
-+
-+		if (mpnt->vm_mm != mm)
-+			continue;
-+		if (!(mpnt->vm_flags & VM_MAYSHARE))
-+			continue;
-+
-+		offset = (pgoff - mpnt->vm_pgoff) << PAGE_SHIFT;
-+		flush_cache_page(mpnt, mpnt->vm_start + offset,
-+			page_to_pfn(page));
-+	}
-+	flush_dcache_mmap_unlock(mapping);
-+}
-+
-+void flush_cache_all(void)
-+{
-+	__flush_dcache_all(0, cpuinfo.dcache_size);
-+	__flush_icache(0, cpuinfo.icache_size);
-+}
-+
-+void flush_cache_mm(struct mm_struct *mm)
-+{
-+	flush_cache_all();
-+}
-+
-+void flush_cache_dup_mm(struct mm_struct *mm)
-+{
-+	flush_cache_all();
-+}
-+
-+void flush_icache_range(unsigned long start, unsigned long end)
-+{
-+	__flush_icache(start, end);
-+}
-+
-+void flush_dcache_range(unsigned long start, unsigned long end)
-+{
-+	__flush_dcache(start, end);
-+}
-+EXPORT_SYMBOL(flush_dcache_range);
-+
-+void invalidate_dcache_range(unsigned long start, unsigned long end)
-+{
-+	__invalidate_dcache(start, end);
-+}
-+EXPORT_SYMBOL(invalidate_dcache_range);
-+
-+void flush_cache_range(struct vm_area_struct *vma, unsigned long start,
-+			unsigned long end)
-+{
-+	__flush_dcache(start, end);
-+	if (vma == NULL || (vma->vm_flags & VM_EXEC))
-+		__flush_icache(start, end);
-+}
-+
-+void flush_icache_page(struct vm_area_struct *vma, struct page *page)
-+{
-+	unsigned long start = (unsigned long) page_address(page);
-+	unsigned long end = start + PAGE_SIZE;
-+
-+	__flush_icache(start, end);
-+}
-+
-+void flush_cache_page(struct vm_area_struct *vma, unsigned long vmaddr,
-+			unsigned long pfn)
-+{
-+	unsigned long start = vmaddr;
-+	unsigned long end = start + PAGE_SIZE;
-+
-+	__flush_dcache(start, end);
-+	if (vma->vm_flags & VM_EXEC)
-+		__flush_icache(start, end);
-+}
-+
-+void flush_dcache_page(struct page *page)
-+{
-+	struct address_space *mapping;
-+
-+	/*
-+	 * The zero page is never written to, so never has any dirty
-+	 * cache lines, and therefore never needs to be flushed.
-+	 */
-+	if (page == ZERO_PAGE(0))
-+		return;
-+
-+	mapping = page_mapping(page);
-+
-+	/* Flush this page if there are aliases. */
-+	if (mapping && !mapping_mapped(mapping)) {
-+		clear_bit(PG_dcache_clean, &page->flags);
-+	} else {
-+		unsigned long start = (unsigned long)page_address(page);
-+		__flush_dcache_all(start, start + PAGE_SIZE);
-+		if (mapping)
-+			flush_aliases(mapping,  page);
-+		set_bit(PG_dcache_clean, &page->flags);
-+	}
-+}
-+EXPORT_SYMBOL(flush_dcache_page);
-+
-+void update_mmu_cache(struct vm_area_struct *vma,
-+		      unsigned long address, pte_t *pte)
-+{
-+	unsigned long pfn = pte_pfn(*pte);
-+	struct page *page;
-+
-+	if (!pfn_valid(pfn))
-+		return;
-+
-+	/*
-+	* The zero page is never written to, so never has any dirty
-+	* cache lines, and therefore never needs to be flushed.
-+	*/
-+	page = pfn_to_page(pfn);
-+	if (page == ZERO_PAGE(0))
-+		return;
-+
-+	if (!PageReserved(page) &&
-+	     !test_and_set_bit(PG_dcache_clean, &page->flags)) {
-+		unsigned long start = page_to_virt(page);
-+		struct address_space *mapping;
-+
-+		__flush_dcache(start, start + PAGE_SIZE);
-+
-+		mapping = page_mapping(page);
-+		if (mapping)
-+			flush_aliases(mapping, page);
-+	}
-+}
-+
-+void copy_user_page(void *vto, void *vfrom, unsigned long vaddr,
-+		    struct page *to)
-+{
-+	__flush_dcache(vaddr, vaddr + PAGE_SIZE);
-+	copy_page(vto, vfrom);
-+	__flush_dcache((unsigned long)vto, (unsigned long)vto + PAGE_SIZE);
-+}
-+
-+void clear_user_page(void *addr, unsigned long vaddr, struct page *page)
-+{
-+	__flush_dcache(vaddr, vaddr + PAGE_SIZE);
-+	clear_page(addr);
-+	__flush_dcache((unsigned long)addr, (unsigned long)addr + PAGE_SIZE);
-+}
-+
-+void copy_from_user_page(struct vm_area_struct *vma, struct page *page,
-+			unsigned long user_vaddr,
-+			void *dst, void *src, int len)
-+{
-+	flush_cache_page(vma, user_vaddr, page_to_pfn(page));
-+	memcpy(dst, src, len);
-+	__flush_dcache((unsigned long)src, (unsigned long)src + len);
-+	if (vma->vm_flags & VM_EXEC)
-+		__flush_icache((unsigned long)src, (unsigned long)src + len);
-+}
-+
-+void copy_to_user_page(struct vm_area_struct *vma, struct page *page,
-+			unsigned long user_vaddr,
-+			void *dst, void *src, int len)
-+{
-+	flush_cache_page(vma, user_vaddr, page_to_pfn(page));
-+	memcpy(dst, src, len);
-+	__flush_dcache((unsigned long)dst, (unsigned long)dst + len);
-+	if (vma->vm_flags & VM_EXEC)
-+		__flush_icache((unsigned long)dst, (unsigned long)dst + len);
++	if (test_thread_flag(TIF_SYSCALL_TRACE))
++		tracehook_report_syscall_exit(task_pt_regs(current), 0);
 +}
 -- 
 1.8.2.1
