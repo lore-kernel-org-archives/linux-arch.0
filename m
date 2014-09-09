@@ -1,42 +1,125 @@
 From: Aaron Lu <aaron.lu@intel.com>
-Subject: [PATCH 0/2] Support CrystalCove PMIC ACPI operation region
-Date: Tue,  9 Sep 2014 10:26:00 +0800
-Message-ID: <1410229562-11507-1-git-send-email-aaron.lu@intel.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mga01.intel.com ([192.55.52.88]:37975 "EHLO mga01.intel.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754439AbaIIC0H (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 8 Sep 2014 22:26:07 -0400
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Subject: [PATCH 1/2] gpio / CrystalCove: support virtual GPIO
+Date: Tue,  9 Sep 2014 10:26:01 +0800
+Message-ID: <1410229562-11507-2-git-send-email-aaron.lu@intel.com>
+References: <1410229562-11507-1-git-send-email-aaron.lu@intel.com>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1410229562-11507-1-git-send-email-aaron.lu@intel.com>
+Sender: linux-kernel-owner@vger.kernel.org
 To: Linus Walleij <linus.walleij@linaro.org>, Alexandre Courbot <gnurou@gmail.com>, Samuel Ortiz <sameo@linux.intel.com>, Lee Jones <lee.jones@linaro.org>, Arnd Bergmann <arnd@arndb.de>
 Cc: linux-gpio@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Jacob Pan <jacob.jun.pan@linux.intel.com>, Lejun Zhu <lejun.zhu@intel.com>, Radivoje Jovanovic <radivoje.jovanovic@intel.com>, =?UTF-8?q?Daniel=20Gl=C3=B6ckner?= <dg@emlix.com>
+List-Id: linux-arch.vger.kernel.org
 
-The two patches add support for CrystalCove PMIC ACPI operation region.
-The PMIC chip has two customized operation regions: one for power rail
-manipulation and one for thermal purpose: sensor temperature reading
-and trip point value reading/setting.
+The virtual GPIO introduced in ACPI table of Baytrail-T based system is
+used to solve a problem under Windows. We do not have such problems
+under Linux so we do not actually need them. But we have to tell GPIO
+library that the Crystal Cove GPIO chip has this many GPIO pins or the
+common GPIO handler will refuse any access to those high number GPIO
+pins, which will resulted in a failure evaluation of every ACPI control
+method that is used to turn on/off power resource and/or report sensor
+temperatures.
 
-For an example ASL code on ASUS T100 with CrystalCove PMIC, see here:
-https://gist.github.com/aaronlu/f5f65771a6c3251fae5d
+Due to the high number of virtual GPIOs, the value of ARCH_NR_GPIOS is
+bumped from 256 to 512 to avoid failures on platforms that have various
+GPIO controllers.
 
-Aaron Lu (2):
-  gpio / CrystalCove: support virtual GPIO
-  PMIC / opregion: support PMIC customized operation region for
-    CrystalCove
+Signed-off-by: Aaron Lu <aaron.lu@intel.com>
+---
+ drivers/gpio/gpio-crystalcove.c | 19 ++++++++++++++++---
+ include/asm-generic/gpio.h      |  2 +-
+ 2 files changed, 17 insertions(+), 4 deletions(-)
 
- drivers/gpio/gpio-crystalcove.c           |  19 +-
- drivers/mfd/Kconfig                       |  11 +
- drivers/mfd/Makefile                      |   1 +
- drivers/mfd/intel_soc_pmic_crc.c          |   3 +
- drivers/mfd/intel_soc_pmic_crc_opregion.c | 229 +++++++++++++++++++
- drivers/mfd/intel_soc_pmic_opregion.c     | 350 ++++++++++++++++++++++++++++++
- drivers/mfd/intel_soc_pmic_opregion.h     |  35 +++
- include/asm-generic/gpio.h                |   2 +-
- 8 files changed, 646 insertions(+), 4 deletions(-)
- create mode 100644 drivers/mfd/intel_soc_pmic_crc_opregion.c
- create mode 100644 drivers/mfd/intel_soc_pmic_opregion.c
- create mode 100644 drivers/mfd/intel_soc_pmic_opregion.h
-
+diff --git a/drivers/gpio/gpio-crystalcove.c b/drivers/gpio/gpio-crystalcove.c
+index 934462f5bd22..a8daada67aa4 100644
+--- a/drivers/gpio/gpio-crystalcove.c
++++ b/drivers/gpio/gpio-crystalcove.c
+@@ -24,6 +24,7 @@
+ #include <linux/mfd/intel_soc_pmic.h>
+ 
+ #define CRYSTALCOVE_GPIO_NUM	16
++#define CRYSTALCOVE_VGPIO_NUM	0x5e
+ 
+ #define UPDATE_IRQ_TYPE		BIT(0)
+ #define UPDATE_IRQ_MASK		BIT(1)
+@@ -130,6 +131,9 @@ static int crystalcove_gpio_dir_in(struct gpio_chip *chip, unsigned gpio)
+ {
+ 	struct crystalcove_gpio *cg = to_cg(chip);
+ 
++	if (gpio > CRYSTALCOVE_VGPIO_NUM)
++		return 0;
++
+ 	return regmap_write(cg->regmap, to_reg(gpio, CTRL_OUT),
+ 			    CTLO_INPUT_SET);
+ }
+@@ -139,6 +143,9 @@ static int crystalcove_gpio_dir_out(struct gpio_chip *chip, unsigned gpio,
+ {
+ 	struct crystalcove_gpio *cg = to_cg(chip);
+ 
++	if (gpio > CRYSTALCOVE_VGPIO_NUM)
++		return 0;
++
+ 	return regmap_write(cg->regmap, to_reg(gpio, CTRL_OUT),
+ 			    CTLO_OUTPUT_SET | value);
+ }
+@@ -149,6 +156,9 @@ static int crystalcove_gpio_get(struct gpio_chip *chip, unsigned gpio)
+ 	int ret;
+ 	unsigned int val;
+ 
++	if (gpio > CRYSTALCOVE_VGPIO_NUM)
++		return 0;
++
+ 	ret = regmap_read(cg->regmap, to_reg(gpio, CTRL_IN), &val);
+ 	if (ret)
+ 		return ret;
+@@ -161,6 +171,9 @@ static void crystalcove_gpio_set(struct gpio_chip *chip,
+ {
+ 	struct crystalcove_gpio *cg = to_cg(chip);
+ 
++	if (gpio > CRYSTALCOVE_VGPIO_NUM)
++		return;
++
+ 	if (value)
+ 		regmap_update_bits(cg->regmap, to_reg(gpio, CTRL_OUT), 1, 1);
+ 	else
+@@ -256,7 +269,7 @@ static irqreturn_t crystalcove_gpio_irq_handler(int irq, void *data)
+ 
+ 	pending = p0 | p1 << 8;
+ 
+-	for (gpio = 0; gpio < cg->chip.ngpio; gpio++) {
++	for (gpio = 0; gpio < CRYSTALCOVE_GPIO_NUM; gpio++) {
+ 		if (pending & BIT(gpio)) {
+ 			virq = irq_find_mapping(cg->chip.irqdomain, gpio);
+ 			generic_handle_irq(virq);
+@@ -273,7 +286,7 @@ static void crystalcove_gpio_dbg_show(struct seq_file *s,
+ 	int gpio, offset;
+ 	unsigned int ctlo, ctli, mirqs0, mirqsx, irq;
+ 
+-	for (gpio = 0; gpio < cg->chip.ngpio; gpio++) {
++	for (gpio = 0; gpio < CRYSTALCOVE_GPIO_NUM; gpio++) {
+ 		regmap_read(cg->regmap, to_reg(gpio, CTRL_OUT), &ctlo);
+ 		regmap_read(cg->regmap, to_reg(gpio, CTRL_IN), &ctli);
+ 		regmap_read(cg->regmap, gpio < 8 ? MGPIO0IRQS0 : MGPIO1IRQS0,
+@@ -320,7 +333,7 @@ static int crystalcove_gpio_probe(struct platform_device *pdev)
+ 	cg->chip.get = crystalcove_gpio_get;
+ 	cg->chip.set = crystalcove_gpio_set;
+ 	cg->chip.base = -1;
+-	cg->chip.ngpio = CRYSTALCOVE_GPIO_NUM;
++	cg->chip.ngpio = CRYSTALCOVE_VGPIO_NUM;
+ 	cg->chip.can_sleep = true;
+ 	cg->chip.dev = dev;
+ 	cg->chip.dbg_show = crystalcove_gpio_dbg_show;
+diff --git a/include/asm-generic/gpio.h b/include/asm-generic/gpio.h
+index c1d4105e1c1d..383ade1a211b 100644
+--- a/include/asm-generic/gpio.h
++++ b/include/asm-generic/gpio.h
+@@ -27,7 +27,7 @@
+  */
+ 
+ #ifndef ARCH_NR_GPIOS
+-#define ARCH_NR_GPIOS		256
++#define ARCH_NR_GPIOS		512
+ #endif
+ 
+ /*
 -- 
 1.9.3
