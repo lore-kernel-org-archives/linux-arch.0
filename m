@@ -1,131 +1,45 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga09.intel.com ([134.134.136.24]:9501 "EHLO mga09.intel.com"
+Received: from terminus.zytor.com ([198.137.202.10]:34514 "EHLO mail.zytor.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753681AbaIICcz (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 8 Sep 2014 22:32:55 -0400
-From: Aaron Lu <aaron.lu@intel.com>
-Subject: [PATCH 1/2] gpio / CrystalCove: support virtual GPIO
-Date: Tue,  9 Sep 2014 10:32:47 +0800
-Message-ID: <1410229968-11638-2-git-send-email-aaron.lu@intel.com>
-In-Reply-To: <1410229968-11638-1-git-send-email-aaron.lu@intel.com>
-References: <1410229968-11638-1-git-send-email-aaron.lu@intel.com>
+	id S1752923AbaIICfy (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 8 Sep 2014 22:35:54 -0400
+Message-ID: <540E6645.6040209@zytor.com>
+Date: Mon, 08 Sep 2014 19:30:29 -0700
+From: "H. Peter Anvin" <hpa@zytor.com>
+MIME-Version: 1.0
+Subject: Re: bit fields && data tearing
+References: <5408C0AB.6050801@hurleysoftware.com>			 <20140905001751.GL5001@linux.vnet.ibm.com>			 <1409883098.5078.14.camel@jarvis.lan>		 <5409243C.4080704@hurleysoftware.com>			 <20140905040645.GO5001@linux.vnet.ibm.com>			 <1410066442.12512.13.camel@jarvis.lan>			 <20140907162146.GK5001@linux.vnet.ibm.com>			 <1410116687.2027.19.camel@jarvis.lan>			 <20140907230019.GO5001@linux.vnet.ibm.com>			 <6092b453-e0c9-4f6d-922b-48bce988f774@email.android.com>			 <20140907233655.GR5001@linux.vnet.ibm.com>			 <154b540a-df47-4f3e-bdda-ab5d2e72723a@email.android.com>		 <1410155802.2027.36.camel@jarvis.lan> <540DF17C.9080509@zytor.com>	 <1410203369.2027.56.camel@jarvis.lan> <540DFFB2.4000509@zytor.com> <1410215994.2027.86.camel@jarvis.lan>
+In-Reply-To: <1410215994.2027.86.camel@jarvis.lan>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Walleij <linus.walleij@linaro.org>, Alexandre Courbot <gnurou@gmail.com>, Samuel Ortiz <sameo@linux.intel.com>, Lee Jones <lee.jones@linaro.org>, Arnd Bergmann <arnd@arndb.de>
-Cc: linux-gpio@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Jacob Pan <jacob.jun.pan@linux.intel.com>, Lejun Zhu <lejun.zhu@intel.com>, Radivoje Jovanovic <radivoje.jovanovic@intel.com>, =?UTF-8?q?Daniel=20Gl=C3=B6ckner?= <dg@emlix.com>, linux-acpi@vger.kernel.org, "Rafael J. Wysocki" <rjw@rjwysocki.net>
-Message-ID: <20140909023247.Xc7dh3m9q-dg_5u--1u6li1Ir1o5s0HU1Q2a_sVOyL4@z>
+To: James Bottomley <James.Bottomley@HansenPartnership.com>
+Cc: paulmck@linux.vnet.ibm.com, Peter Hurley <peter@hurleysoftware.com>, One Thousand Gnomes <gnomes@lxorguk.ukuu.org.uk>, Jakub Jelinek <jakub@redhat.com>, Mikael Pettersson <mikpelinux@gmail.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Richard Henderson <rth@twiddle.net>, Oleg Nesterov <oleg@redhat.com>, Miroslav Franc <mfranc@redhat.com>, Paul Mackerras <paulus@samba.org>, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Tony Luck <tony.luck@intel.com>, linux-ia64@vger.kernel.org
+Message-ID: <20140909023029.jLnk80lwZQp1wgVy25H4fxiwFEUvSIRQUnSt4Sl8Dkc@z>
 
-The virtual GPIO introduced in ACPI table of Baytrail-T based system is
-used to solve a problem under Windows. We do not have such problems
-under Linux so we do not actually need them. But we have to tell GPIO
-library that the Crystal Cove GPIO chip has this many GPIO pins or the
-common GPIO handler will refuse any access to those high number GPIO
-pins, which will resulted in a failure evaluation of every ACPI control
-method that is used to turn on/off power resource and/or report sensor
-temperatures.
+On 09/08/2014 03:39 PM, James Bottomley wrote:
+> 
+> I don't understand what you mean by "pass each other".  Atomicity
+> guarantees are not ordering guarantees in a SMP environment.  The
+> guarantee is that if you follow the rules when two CPUs update the same
+> natural width aligned object simultaneously using the same primitive,
+> the result is either one or the other of their updates.  Which one wins
+> (the ordering) isn't defined.
+> 
 
-Due to the high number of virtual GPIOs, the value of ARCH_NR_GPIOS is
-bumped from 256 to 512 to avoid failures on platforms that have various
-GPIO controllers.
+I'm trying to figure out why it would possibly make a difference in any
+kind of sane system if gcc fuses accesses.
 
-Signed-off-by: Aaron Lu <aaron.lu@intel.com>
----
- drivers/gpio/gpio-crystalcove.c | 19 ++++++++++++++++---
- include/asm-generic/gpio.h      |  2 +-
- 2 files changed, 17 insertions(+), 4 deletions(-)
+Assuming bigendian for the moment, I would expect that if CPU 1 does a
+write of 0x01020304 to address 0 and CPU 2 does a write of 0x0506 to
+address 2, that the end result would be either 0x01020304 or 0x01020506.
+ Similarly, I would expect that if these operations are both done on the
+same CPU in that order, that the result would unambiguously be 0x01020506.
 
-diff --git a/drivers/gpio/gpio-crystalcove.c b/drivers/gpio/gpio-crystalcove.c
-index 934462f5bd22..a8daada67aa4 100644
---- a/drivers/gpio/gpio-crystalcove.c
-+++ b/drivers/gpio/gpio-crystalcove.c
-@@ -24,6 +24,7 @@
- #include <linux/mfd/intel_soc_pmic.h>
- 
- #define CRYSTALCOVE_GPIO_NUM	16
-+#define CRYSTALCOVE_VGPIO_NUM	0x5e
- 
- #define UPDATE_IRQ_TYPE		BIT(0)
- #define UPDATE_IRQ_MASK		BIT(1)
-@@ -130,6 +131,9 @@ static int crystalcove_gpio_dir_in(struct gpio_chip *chip, unsigned gpio)
- {
- 	struct crystalcove_gpio *cg = to_cg(chip);
- 
-+	if (gpio > CRYSTALCOVE_VGPIO_NUM)
-+		return 0;
-+
- 	return regmap_write(cg->regmap, to_reg(gpio, CTRL_OUT),
- 			    CTLO_INPUT_SET);
- }
-@@ -139,6 +143,9 @@ static int crystalcove_gpio_dir_out(struct gpio_chip *chip, unsigned gpio,
- {
- 	struct crystalcove_gpio *cg = to_cg(chip);
- 
-+	if (gpio > CRYSTALCOVE_VGPIO_NUM)
-+		return 0;
-+
- 	return regmap_write(cg->regmap, to_reg(gpio, CTRL_OUT),
- 			    CTLO_OUTPUT_SET | value);
- }
-@@ -149,6 +156,9 @@ static int crystalcove_gpio_get(struct gpio_chip *chip, unsigned gpio)
- 	int ret;
- 	unsigned int val;
- 
-+	if (gpio > CRYSTALCOVE_VGPIO_NUM)
-+		return 0;
-+
- 	ret = regmap_read(cg->regmap, to_reg(gpio, CTRL_IN), &val);
- 	if (ret)
- 		return ret;
-@@ -161,6 +171,9 @@ static void crystalcove_gpio_set(struct gpio_chip *chip,
- {
- 	struct crystalcove_gpio *cg = to_cg(chip);
- 
-+	if (gpio > CRYSTALCOVE_VGPIO_NUM)
-+		return;
-+
- 	if (value)
- 		regmap_update_bits(cg->regmap, to_reg(gpio, CTRL_OUT), 1, 1);
- 	else
-@@ -256,7 +269,7 @@ static irqreturn_t crystalcove_gpio_irq_handler(int irq, void *data)
- 
- 	pending = p0 | p1 << 8;
- 
--	for (gpio = 0; gpio < cg->chip.ngpio; gpio++) {
-+	for (gpio = 0; gpio < CRYSTALCOVE_GPIO_NUM; gpio++) {
- 		if (pending & BIT(gpio)) {
- 			virq = irq_find_mapping(cg->chip.irqdomain, gpio);
- 			generic_handle_irq(virq);
-@@ -273,7 +286,7 @@ static void crystalcove_gpio_dbg_show(struct seq_file *s,
- 	int gpio, offset;
- 	unsigned int ctlo, ctli, mirqs0, mirqsx, irq;
- 
--	for (gpio = 0; gpio < cg->chip.ngpio; gpio++) {
-+	for (gpio = 0; gpio < CRYSTALCOVE_GPIO_NUM; gpio++) {
- 		regmap_read(cg->regmap, to_reg(gpio, CTRL_OUT), &ctlo);
- 		regmap_read(cg->regmap, to_reg(gpio, CTRL_IN), &ctli);
- 		regmap_read(cg->regmap, gpio < 8 ? MGPIO0IRQS0 : MGPIO1IRQS0,
-@@ -320,7 +333,7 @@ static int crystalcove_gpio_probe(struct platform_device *pdev)
- 	cg->chip.get = crystalcove_gpio_get;
- 	cg->chip.set = crystalcove_gpio_set;
- 	cg->chip.base = -1;
--	cg->chip.ngpio = CRYSTALCOVE_GPIO_NUM;
-+	cg->chip.ngpio = CRYSTALCOVE_VGPIO_NUM;
- 	cg->chip.can_sleep = true;
- 	cg->chip.dev = dev;
- 	cg->chip.dbg_show = crystalcove_gpio_dbg_show;
-diff --git a/include/asm-generic/gpio.h b/include/asm-generic/gpio.h
-index c1d4105e1c1d..383ade1a211b 100644
---- a/include/asm-generic/gpio.h
-+++ b/include/asm-generic/gpio.h
-@@ -27,7 +27,7 @@
-  */
- 
- #ifndef ARCH_NR_GPIOS
--#define ARCH_NR_GPIOS		256
-+#define ARCH_NR_GPIOS		512
- #endif
- 
- /*
--- 
-1.9.3
+I would strongly suspect an architecture which does not provide those
+guarantees is an outlier.
+
+	-hpa
+
 
