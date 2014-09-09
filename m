@@ -1,52 +1,87 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:45257 "EHLO
-	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753681AbaIICCa (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 8 Sep 2014 22:02:30 -0400
-Date: Tue, 9 Sep 2014 03:02:25 +0100
-From: Al Viro <viro@ZenIV.linux.org.uk>
-Subject: Re: [PATCH v3 00/29] nios2 Linux kernel port
-Message-ID: <20140909020225.GW7996@ZenIV.linux.org.uk>
-References: <1410168160-3624-1-git-send-email-lftan@altera.com>
+Received: from szxga02-in.huawei.com ([119.145.14.65]:47241 "EHLO
+	szxga02-in.huawei.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755683AbaIICIe (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 8 Sep 2014 22:08:34 -0400
+Message-ID: <540E6095.8030409@huawei.com>
+Date: Tue, 9 Sep 2014 10:06:13 +0800
+From: Yijing Wang <wangyijing@huawei.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1410168160-3624-1-git-send-email-lftan@altera.com>
+Subject: Re: [Xen-devel] [PATCH v1 08/21] x86/xen/MSI: Use MSI chip framework
+ to configure MSI/MSI-X irq
+References: <1409911806-10519-1-git-send-email-wangyijing@huawei.com> <1409911806-10519-9-git-send-email-wangyijing@huawei.com> <5409C8C0.8020200@citrix.com>
+In-Reply-To: <5409C8C0.8020200@citrix.com>
+Content-Type: text/plain; charset="ISO-8859-1"
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ley Foon Tan <lftan@altera.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, lftan.linux@gmail.com, cltang@codesourcery.com
-Message-ID: <20140909020225.l8jXseGYE6kS1HN4tnVs_yqwTgX_Eu0F8nD9m8tkfG8@z>
+To: David Vrabel <david.vrabel@citrix.com>, Bjorn Helgaas <bhelgaas@google.com>
+Cc: linux-mips@linux-mips.org, linux-ia64@vger.kernel.org, linux-pci@vger.kernel.org, Bharat.Bhushan@freescale.com, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, Russell King <linux@arm.linux.org.uk>, Joerg Roedel <joro@8bytes.org>, x86@kernel.org, Sebastian Ott <sebott@linux.vnet.ibm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, xen-devel@lists.xenproject.org, arnab.basu@freescale.com, Arnd Bergmann <arnd@arndb.de>, Chris Metcalf <cmetcalf@tilera.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arm-kernel@lists.infradead.org, Xinwei Hu <huxinwei@huawei.com>, Tony Luck <tony.luck@intel.com>, Ralf Baechle <ralf@linux-mips.org>, iommu@lists.linux-foundation.org, Wuyun <wuyun.wu@huawei.com>, linuxppc-dev@lists.ozlabs.org, "David S. Miller" <davem@davemloft.net>
+Message-ID: <20140909020613.Kgwri7VIqzfRE_MPi1ZcXXVPcbdB9n8Idgu5XDBZgZY@z>
 
-On Mon, Sep 08, 2014 at 05:22:11PM +0800, Ley Foon Tan wrote:
-> This is the 3rd version of patchset adds the Linux kernel port for Nios II processor from
-> Altera. All of the feedback from v2 patchseries has been addressed. Thanks to all who
-> provided feedback on the previous version.
+On 2014/9/5 22:29, David Vrabel wrote:
+> On 05/09/14 11:09, Yijing Wang wrote:
+>> Use MSI chip framework instead of arch MSI functions to configure
+>> MSI/MSI-X irq. So we can manage MSI/MSI-X irq in a unified framework.
+> [...]
+>> --- a/arch/x86/pci/xen.c
+>> +++ b/arch/x86/pci/xen.c
+> [...]
+>> @@ -418,9 +430,9 @@ int __init pci_xen_init(void)
+>>  #endif
+>>  
+>>  #ifdef CONFIG_PCI_MSI
+>> -	x86_msi.setup_msi_irqs = xen_setup_msi_irqs;
+>> -	x86_msi.teardown_msi_irq = xen_teardown_msi_irq;
+>> -	x86_msi.teardown_msi_irqs = xen_teardown_msi_irqs;
+>> +	xen_msi_chip.setup_irqs = xen_setup_msi_irqs;
+>> +	xen_msi_chip.teardown_irqs = xen_teardown_msi_irqs;
+>> +	x86_msi_chip = &xen_msi_chip;
+>>  	msi_chip.irq_mask = xen_nop_msi_mask;
+>>  	msi_chip.irq_unmask = xen_nop_msi_mask;
+> 
+> Why have these not been changed to set the x86_msi_chip.mask/unmask
+> fields instead?
 
-a) signal caught in rt_sigreturn() (e.g. from change of the set of blocked
-signals) should *NOT* trigger syscall restart.  IOW, wrt syscall restart
-logics, rt_sigreturn() acts as exception, not as a syscall.  You are
-setting ->orig_r2 to -1, but that doesn't affect your syscall restart
-logics.
+Hi David, x86_msi_chip here is struct msi_chip data type, used to configure MSI/MSI-X
+irq. msi_chip above is struct irq_chip data type, represent the MSI irq controller. They are
+not the same object. Their name easily confusing people.
 
-As the matter of fact, your 'in_syscall' argument is bogus - it's always
-1.  For return from interrupt as well as that from syscall.  And syscall
-restart logics _really_ shouldn't apply to return from interrupts - it's
-not only wrong, but very hard to debug.
+Defined in arch/x86/kernel/apic/io_apic.c
+/*
+ * IRQ Chip for MSI PCI/PCI-X/PCI-Express Devices,
+ * which implement the MSI or MSI-X Capability Structure.
+ */
+static struct irq_chip msi_chip = {
+	.name			= "PCI-MSI",
+	.irq_unmask		= unmask_msi_irq,
+	.irq_mask		= mask_msi_irq,
+	.irq_ack		= ack_apic_edge,
+	.irq_set_affinity	= msi_set_affinity,
+	.irq_retrigger		= ioapic_retrigger_irq,
+};
 
-b) multiple pending signals should be all handled before return to
-userland.  Only the first one might have syscall restart logics triggered.
-The effect should be identical to what you'd get if e.g. a timer interrupt
-had hit just as you were returning to userland (possibly into handler)
-after handling the first one, etc.  At the absolute least, SIGSEGV from
-failing attempt to build a sigframe should be handled before returning
-to userland.
 
-c) rt_sigreturn() should reset ->restart_block.fn to do_no_restart_syscall
+Defined in arch/x86/kernel/apic/io_apic.c, introduced in patch 7/21
+struct msi_chip apic_msi_chip = {
+	.setup_irqs = native_setup_msi_irqs,
+	.teardown_irq = native_teardown_msi_irq,
+};
+[...]
+struct msi_chip *x86_msi_chip = &apic_msi_chip;
 
-d) what's
-+       regs->estatus = (regs->estatus & 0xffffffff);
-in rt_restore_ucontext() about?
 
-e) restart in handlerless case is better off without leaving the kernel
-mode.  See what e.g. arm and s390 are doing.
+Thanks!
+Yijing.
+
+> 
+> David
+> 
+> .
+> 
+
+
+-- 
+Thanks!
+Yijing
+
