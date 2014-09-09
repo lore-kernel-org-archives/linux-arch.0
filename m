@@ -1,177 +1,122 @@
-From: Liviu Dudau <Liviu.Dudau@arm.com>
-Subject: Re: [PATCH v10 07/10] OF: Introduce helper function for getting PCI
- domain_nr
-Date: Tue, 9 Sep 2014 15:11:22 +0100
-Message-ID: <20140909141122.GY27864@e106497-lin.cambridge.arm.com>
-References: <1410184472-17630-1-git-send-email-Liviu.Dudau@arm.com>
- <1410184472-17630-8-git-send-email-Liviu.Dudau@arm.com>
- <CAL_JsqJi8k1Goc3UmXhuxf9v7=4gJrYG_Di7v574PxS8TsJaXw@mail.gmail.com>
- <20140908145459.GO27864@e106497-lin.cambridge.arm.com>
- <CAL_JsqJdGKDVwJOpPp19OkVPGzR7Zqv3nh+ONHHaYnPLYTYoYg@mail.gmail.com>
- <20140908155931.GP27864@e106497-lin.cambridge.arm.com>
- <540E960D.7080408@huawei.com>
- <20140909084621.GS27864@e106497-lin.cambridge.arm.com>
- <540EC8CB.7010106@huawei.com>
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [PATCH] asm-generic/io.h: Implement read[bwlq]_relaxed()
+Date: Tue, 9 Sep 2014 15:15:13 +0100
+Message-ID: <20140909141513.GW4790@arm.com>
+References: <1410264760-29756-1-git-send-email-daniel.thompson@linaro.org>
+ <20140909122818.GI1754@arm.com>
+ <540EFA94.1010905@linaro.org>
+ <540EFD4E.50804@linaro.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=utf-8
 Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from service87.mimecast.com ([91.220.42.44]:51015 "EHLO
-	service87.mimecast.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751798AbaIIOLa convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 9 Sep 2014 10:11:30 -0400
-In-Reply-To: <540EC8CB.7010106@huawei.com>
+Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:43735 "EHLO
+	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1751172AbaIIOPT (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 9 Sep 2014 10:15:19 -0400
 Content-Disposition: inline
+In-Reply-To: <540EFD4E.50804@linaro.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Yijing Wang <wangyijing@huawei.com>
-Cc: Rob Herring <robherring2@gmail.com>, Bjorn Helgaas <bhelgaas@google.com>, Arnd Bergmann <arnd@arndb.de>, Rob Herring <robh+dt@kernel.org>, Jason Gunthorpe <jgunthorpe@obsidianresearch.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Catalin Marinas <Catalin.Marinas@arm.com>, Will Deacon <Will.Deacon@arm.com>, Russell King <linux@arm.linux.org.uk>, linux-pci <linux-pci@vger.kernel.org>, Linus Walleij <linus.walleij@linaro.org>, Tanmay Inamdar <tinamdar@apm.com>, Grant Likely <grant.likely@secretlab.ca>, Sinan Kaya <okaya@codeaurora.org>, Jingoo Han <jg1.han@samsung.com>, Kukjin Kim <kgene.kim@samsung.com>, Suravee Suthikulanit <suravee.suthikulpanit@amd.com>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Device Tree ML <devicetree@vger.kernel.org>, LAKML <linux-arm-kernel@lists.infradead.org>"grant.likely@linaro.org" <gran>
+To: Daniel Thompson <daniel.thompson@linaro.org>
+Cc: Arnd Bergmann <arnd@arndb.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "patches@linaro.org" <patches@linaro.org>, "linaro-kernel@lists.linaro.org" <linaro-kernel@lists.linaro.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
 
-On Tue, Sep 09, 2014 at 10:30:51AM +0100, Yijing Wang wrote:
-> On 2014/9/9 16:46, Liviu Dudau wrote:
-> > On Tue, Sep 09, 2014 at 06:54:21AM +0100, Yijing Wang wrote:
-> >>>>> on new requests. This function gets called quite a lot and I'm =
-trying not to
-> >>>>> make it too heavy weight.
-> >>>>
-> >>>> Generally, nothing should be accessing the same DT value frequen=
-tly.
-> >>>> It should get cached somewhere.
-> >>>>
-> >>>
-> >>> The problem appears for DTs that don't have the pci-domain info. =
-Then the cached
-> >>> value is left at the default non-valid value and attempts to resc=
-an the DT will
-> >>> be made every time the function is called.
-> >>>
-> >>>> I don't really understand how domains are used so it's hard to p=
-rovide
-> >>>> a recommendation here. Do domains even belong in the DT?
-> >>>
-> >>> ACPI calls them segments and the way Bjorn explained it to me at =
-some moment was
-> >>> that it was an attempt to split up a bus in different groups (or =
-alternatively,
-> >>> merge a few busses together). To be honest I haven't seen systems=
- where the domain
-> >>> is anything other than zero, but JasonG (or maybe Benjamin) were =
-floating an
-> >>> idea of using the domain number to identify physical slots.
-> >>
-> >> PCI domain(or named segment) is provided by firmware, in ACPI syst=
-em, we evaluated it
-> >> by method "_SEG". in IA64 with ACPI, PCI hostbridge driver retriev=
-es the domain from ACPI,
-> >> if it's absent, the default domain is zero. So I wonder why in DTS=
-, if it's absent, we get
-> >> a auto increment domain value.
+On Tue, Sep 09, 2014 at 02:14:54PM +0100, Daniel Thompson wrote:
+> On 09/09/14 14:03, Daniel Thompson wrote:
+> > On 09/09/14 13:28, Will Deacon wrote:
+> >> I have a larger series adding these (and the write equivalents) to=
+ all
+> >> architectures that I periodically post and then fail to get on top=
+ of.
 > >=20
-> > Because you can have more than one hostbridge (rare, but not imposs=
-ible) and unless you
-> > want to join the two segments, you might want to give it a differen=
-t domain.
->=20
-> OK. Sorry, I have one last question, because domain will be used to c=
-alculate the address used to
-> access PCI hardware config registers. So if DTS file doesn't report t=
-he domain, how do we know
-> we would access the right registers when we use the auto increment do=
-main vaule ?
+> > That's why you're on Cc:...
 
-That's a good question and sides with Arnd's suggestion to try to manda=
-te the presence of the PCI
-domain in the DTS. However, by grepping through the source code, it loo=
-ks like the architectures
-that use the domain number for reading config registers (x86-based) are=
- non-DT architectures,
-while DT-aware arches seem to ignore the domain number except when prin=
-ting out messages. Is that
-another confirmation that most DT-aware architectures have only run wit=
-h domain_nr =3D 0?
+Ok, so why not just pick the asm-generic patch out of my series?
 
-
-> Has there a mechanism to make sure system can access the correct regi=
-sters by the domain ?
-
-Not as such if you look with x86 glasses. With the exception of powerpc=
- all other architecures
-seem to happily assume domain_nr =3D 0 and ignore it in the computation=
- of configuration registers
-offsets.
-
-Best regards,
-Liviu
-
->=20
-> Thanks!
-> Yijing.
->=20
+> >> The key part you're missing is defining some generic semantics for=
+ these
+> >> accessors. Without those, I don't think it makes sense to put them=
+ into
+> >> asm-generic, because drivers can't safely infer any meaning from t=
+he relaxed
+> >> definition.
 > >=20
-> > Best regards,
-> > Liviu
+> > Currently the semantics are described as:
+> > --- cut here ---
+> > PCI ordering rules also guarantee that PIO read responses arrive af=
+ter
+> > any outstanding DMA writes from that bus, since for some devices th=
+e
+> > result of a readb call may signal to the driver that a DMA transact=
+ion
+> > is complete. In many cases, however, the driver may want to indicat=
+e
+> > that the next readb call has no relation to any previous DMA writes
+> > performed by the device. The driver can use readb_relaxed for these
+> > cases, although only some platforms will honor the relaxed semantic=
+s.
+> > Using the relaxed read functions will provide significant performan=
+ce
+> > benefits on platforms that support it. The qla2xxx driver provides
+> > examples of how to use readX_relaxed . In many cases, a majority of=
+ the
+> > driver=E2=80=99s readX calls can safely be converted to readX_relax=
+ed calls,
+> > since only a few will indicate or depend on DMA completion.
+> > --- cut here ---
 > >=20
-> >>
-> >> PCI get domain by ACPI "_SEG" in IA64(drivers/acpi/pci_root.c)
-> >> ......
-> >> 	status =3D acpi_evaluate_integer(handle, METHOD_NAME__SEG, NULL,
-> >> 				       &segment);
-> >> 	if (ACPI_FAILURE(status) && status !=3D AE_NOT_FOUND) {
-> >> 		dev_err(&device->dev,  "can't evaluate _SEG\n");
-> >> 		result =3D -ENODEV;
-> >> 		goto end;
-> >> 	}
-> >> .......
-> >>
-> >> Thanks!
-> >> Yijing.
-> >>
-> >>>
-> >>>> This function
-> >>>> is just a weird mixture of data retrieval and allocation. I thin=
-k you
-> >>>> need to separate it into 2 functions.
-> >>>
-> >>> It is meant to do allocation with the retrieval being a short-cut=
- (or fine
-> >>> control if you want).
-> >>>
-> >>> I need to think a bit more for a better solution.
-> >>>
-> >>> Best regards,
-> >>> Liviu
-> >>>
-> >>>>
-> >>>> Rob
-> >>>>
-> >>>
-> >>
-> >>
-> >> --=20
-> >> Thanks!
-> >> Yijing
-> >>
-> >>
-> >=20
->=20
->=20
-> --=20
-> Thanks!
-> Yijing
->=20
-> --
-> To unsubscribe from this list: send the line "unsubscribe linux-pci" =
-in
-> the body of a message to majordomo@vger.kernel.org
-> More majordomo info at  http://vger.kernel.org/majordomo-info.html
->=20
+> > The implementation provided in the patch trivially meets this defin=
+ition
+> > (by not honouring the relaxedness).
 
---=20
-=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D
-| I would like to |
-| fix the world,  |
-| but they're not |
-| giving me the   |
- \ source code!  /
-  ---------------
-    =C2=AF\_(=E3=83=84)_/=C2=AF
+I still think we need to mention ordering of relaxed reads against each
+other and also against spinlocks.
+
+> >> Ben and I agreed on something back in May:
+> >>
+> >>   https://lkml.org/lkml/2014/5/22/468
+> >=20
+> > ... and didn't you also conclude with hpa that the very relaxed x86
+> > implementation of readl_relaxed() already meets this definition (as=
+ do
+> > these changes to asm-generic/io.h).
+>=20
+> Sorry. "very relaxed" is always a very stupid thing to say about x86
+> (especially to an arm guy).
+>=20
+> More exactly I was referring to the absence of memory clobber in x86
+> readl_relaxed().
+
+Yeah, my series just adds the relaxed write accessors for x86.
+
+> > Thus allowing its use to perculate more widely really shouldn't do =
+an harm.
+> >=20
+> >=20
+> >> but I need to send a new version including:
+> >>
+> >>   - ioreadX_relaxed and iowriteX_relaxed
+> >>   - Strengthening non-relaxed I/O accessors on architectures with =
+non-empty
+> >>     mmiowb()
+> >>
+> >> I'll bump it up the list. In the meantime, you can have a look at =
+my io
+> >> branch on kernel.org
+> >=20
+> > I'd really like to see your work included (which I spotted after I =
+wrote
+> > the patch and when it occured to me to visit
+> > https://www.google.com/search?q=3Dasm-generic+readl_relaxed to see =
+if
+> > there was a well known reason not to make this change).
+> >=20
+> > However... I really can't see why we should delay introducing an al=
+ready
+> > documented function to the remaining architectures.
+
+I'd just rather fix the interface once instead of churning it about. Ho=
+w
+about I dust off the series again?
+
+Will
