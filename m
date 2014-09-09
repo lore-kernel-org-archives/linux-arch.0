@@ -1,37 +1,75 @@
-From: Peter Hurley <peter@hurleysoftware.com>
-Subject: Re: bit fields && data tearing
-Date: Tue, 09 Sep 2014 07:18:22 -0400
-Message-ID: <540EE1FE.3090706@hurleysoftware.com>
-References: <20140712181328.GA8738@redhat.com>	<54079B70.4050200@hurleysoftware.com>	<1409785893.30640.118.camel@pasglop>	<063D6719AE5E284EB5DD2968C1650D6D17487172@AcuExch.aculab.com>	<1409824374.4246.62.camel@pasglop>	<5408E458.3@zytor.com>	<54090AF4.7060406@hurleysoftware.com>	<54091B30.7080100@zytor.com>	<5409D76D.2070203@hurleysoftware.com>	<5409D9C0.7030403@zytor.com>	<20140908185240.21f52ca0@alan.etchedpixels.co.uk>	<540DEE6C.2060904@zytor.com> <20140908201722.66bc6492@alan.etchedpixels.co.uk>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-alpha-owner@vger.kernel.org>
-In-Reply-To: <20140908201722.66bc6492@alan.etchedpixels.co.uk>
-Sender: linux-alpha-owner@vger.kernel.org
-To: One Thousand Gnomes <gnomes@lxorguk.ukuu.org.uk>, "H. Peter Anvin" <hpa@zytor.com>
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Laight <David.Laight@ACULAB.COM>, Jakub Jelinek <jakub@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Tony Luck <tony.luck@intel.com>, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, Oleg Nesterov <oleg@redhat.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Paul Mackerras <paulus@samba.org>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, "linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>, Miroslav Franc <mfranc@redhat.com>, Richard Henderson <rth@twiddle.net>, linux-alpha@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+From: Daniel Thompson <daniel.thompson@linaro.org>
+Subject: [PATCH] asm-generic/io.h: Implement read[bwlq]_relaxed()
+Date: Tue,  9 Sep 2014 13:12:40 +0100
+Message-ID: <1410264760-29756-1-git-send-email-daniel.thompson@linaro.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-we0-f179.google.com ([74.125.82.179]:36156 "EHLO
+	mail-we0-f179.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756481AbaIIMNL (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 9 Sep 2014 08:13:11 -0400
+Received: by mail-we0-f179.google.com with SMTP id u56so2860846wes.24
+        for <linux-arch@vger.kernel.org>; Tue, 09 Sep 2014 05:13:09 -0700 (PDT)
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Daniel Thompson <daniel.thompson@linaro.org>, linux-kernel@vger.kernel.org, patches@linaro.org, linaro-kernel@lists.linaro.org, Will Deacon <will.deacon@arm.com>, linux-arch@vger.kernel.org
 
-On 09/08/2014 03:17 PM, One Thousand Gnomes wrote:
->>> I think the whole "removing Alpha EV5" support is basically bonkers. Just
->>> use set_bit in the tty layer. Alpha will continue to work as well as it
->>> always has done and you won't design out support for any future processor
->>> that turns out not to do byte aligned stores.
->>>
->>> Alan
->>>
->>
->> Is *that* what we are talking about?  I was added to this conversation
->> in the middle where it had already generalized, so I had no idea.
->>
->> 	-hpa
-> 
-> Yes there are some flags in the tty layer that are vulnerable to this
-> (although they've been vulnerable to it and missing a lock since last
-> century with no known ill effects).
+Currently the read[bwlq]_relaxed() family are implemented on every
+architecture except blackfin, m68k[1], metag, openrisc, s390[2] and
+score. Increasingly drivers are being optimized to exploit relaxed
+reads putting these architectures at risk of compilation failures for
+shared drivers.
 
-That observation cuts both ways; I'm willing to leave it vulnerable with
-'no known ill effects' on the Alpha.
- 
+This patch addresses this by providing implementations of
+read[bwlq]_relaxed() that are identical to the equivalent read[bwlq]().
+All the above architectures include asm-generic/io.h .
 
+Note that currently only eight architectures (alpha, arm, arm64, avr32,
+hexagon, microblaze, mips and sh) implement write[bwlq]_relaxed() meaning
+these functions are deliberately not included in this patch.
+
+[1] m68k includes the relaxed family only when configured *without* MMU.
+[2] s390 requires CONFIG_PCI to include the relaxed family.
+
+Signed-off-by: Daniel Thompson <daniel.thompson@linaro.org>
+Cc: Will Deacon <will.deacon@arm.com>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch@vger.kernel.org
+---
+ include/asm-generic/io.h | 14 ++++++++++++++
+ 1 file changed, 14 insertions(+)
+
+diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
+index 975e1cc..85ea117 100644
+--- a/include/asm-generic/io.h
++++ b/include/asm-generic/io.h
+@@ -66,6 +66,16 @@ static inline u32 readl(const volatile void __iomem *addr)
+ 	return __le32_to_cpu(__raw_readl(addr));
+ }
+
++#ifndef readb_relaxed
++#define readb_relaxed __raw_readb
++#endif
++#ifndef readw_relaxed
++#define readw_relaxed readw
++#endif
++#ifndef readl_relaxed
++#define readl_relaxed readl
++#endif
++
+ #ifndef __raw_writeb
+ static inline void __raw_writeb(u8 b, volatile void __iomem *addr)
+ {
+@@ -105,6 +115,10 @@ static inline u64 readq(const volatile void __iomem *addr)
+ 	return __le64_to_cpu(__raw_readq(addr));
+ }
+
++#ifndef readq_relaxed
++#define readq_relaxed readq
++#endif
++
+ #ifndef __raw_writeq
+ static inline void __raw_writeq(u64 b, volatile void __iomem *addr)
+ {
+--
+1.9.3
