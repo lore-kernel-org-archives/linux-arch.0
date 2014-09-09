@@ -1,81 +1,44 @@
-From: Yijing Wang <wangyijing@huawei.com>
-Subject: Re: [PATCH v10 07/10] OF: Introduce helper function for getting PCI
- domain_nr
-Date: Tue, 9 Sep 2014 13:54:21 +0800
-Message-ID: <540E960D.7080408@huawei.com>
-References: <1410184472-17630-1-git-send-email-Liviu.Dudau@arm.com> <1410184472-17630-8-git-send-email-Liviu.Dudau@arm.com> <CAL_JsqJi8k1Goc3UmXhuxf9v7=4gJrYG_Di7v574PxS8TsJaXw@mail.gmail.com> <20140908145459.GO27864@e106497-lin.cambridge.arm.com> <CAL_JsqJdGKDVwJOpPp19OkVPGzR7Zqv3nh+ONHHaYnPLYTYoYg@mail.gmail.com> <20140908155931.GP27864@e106497-lin.cambridge.arm.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: bit fields && data tearing
+Date: Tue, 09 Sep 2014 10:11:39 +0200
+Message-ID: <2998968.X0xyWHN7fU@wuerfel>
+References: <21512.10628.412205.873477@gargle.gargle.HOWL> <1410216228.2027.88.camel@jarvis.lan> <540E6582.9020403@zytor.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7Bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from szxga02-in.huawei.com ([119.145.14.65]:34756 "EHLO
-	szxga02-in.huawei.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755322AbaIIF5U (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 9 Sep 2014 01:57:20 -0400
-In-Reply-To: <20140908155931.GP27864@e106497-lin.cambridge.arm.com>
+Received: from mout.kundenserver.de ([212.227.17.13]:56748 "EHLO
+	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753366AbaIIIMS (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 9 Sep 2014 04:12:18 -0400
+In-Reply-To: <540E6582.9020403@zytor.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Liviu Dudau <Liviu.Dudau@arm.com>, Rob Herring <robherring2@gmail.com>
-Cc: Bjorn Helgaas <bhelgaas@google.com>, Arnd Bergmann <arnd@arndb.de>, Rob Herring <robh+dt@kernel.org>, Jason Gunthorpe <jgunthorpe@obsidianresearch.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Catalin Marinas <Catalin.Marinas@arm.com>, Will Deacon <Will.Deacon@arm.com>, Russell King <linux@arm.linux.org.uk>, linux-pci <linux-pci@vger.kernel.org>, Linus Walleij <linus.walleij@linaro.org>, Tanmay Inamdar <tinamdar@apm.com>, Grant Likely <grant.likely@secretlab.ca>, Sinan Kaya <okaya@codeaurora.org>, Jingoo Han <jg1.han@samsung.com>, Kukjin Kim <kgene.kim@samsung.com>, Suravee Suthikulanit <suravee.suthikulpanit@amd.com>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Device Tree ML <devicetree@vger.kernel.org>, LAKML <linux-arm-kernel@lists.infradead.org>, "grant.likely@linaro.org" <grant.likely@linaro.org>
+To: "H. Peter Anvin" <hpa@zytor.com>
+Cc: James Bottomley <James.Bottomley@hansenpartnership.com>, Chris Metcalf <cmetcalf@tilera.com>, Peter Hurley <peter@hurleysoftware.com>, paulmck@linux.vnet.ibm.com, One Thousand Gnomes <gnomes@lxorguk.ukuu.org.uk>, Jakub Jelinek <jakub@redhat.com>, Mikael Pettersson <mikpelinux@gmail.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Richard Henderson <rth@twiddle.net>, Oleg Nesterov <oleg@redhat.com>, Miroslav Franc <mfranc@redhat.com>, Paul Mackerras <paulus@samba.org>, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Tony Luck <tony.luck@intel.com>, linux-ia64@vger.kernel.org
 
->>> on new requests. This function gets called quite a lot and I'm trying not to
->>> make it too heavy weight.
->>
->> Generally, nothing should be accessing the same DT value frequently.
->> It should get cached somewhere.
->>
-> 
-> The problem appears for DTs that don't have the pci-domain info. Then the cached
-> value is left at the default non-valid value and attempts to rescan the DT will
-> be made every time the function is called.
-> 
->> I don't really understand how domains are used so it's hard to provide
->> a recommendation here. Do domains even belong in the DT?
-> 
-> ACPI calls them segments and the way Bjorn explained it to me at some moment was
-> that it was an attempt to split up a bus in different groups (or alternatively,
-> merge a few busses together). To be honest I haven't seen systems where the domain
-> is anything other than zero, but JasonG (or maybe Benjamin) were floating an
-> idea of using the domain number to identify physical slots.
+On Monday 08 September 2014 19:27:14 H. Peter Anvin wrote:
+> On 09/08/2014 03:43 PM, James Bottomley wrote:
+> > 
+> > This was years ago (possibly decades).  We had to implement in-kernel
+> > unaligned traps for the networking layer because it could access short
+> > and int fields that weren't of the correct alignment when processing
+> > packets.  It that's all corrected now, we wouldn't really notice (except
+> > a bit of a speed up since an unaligned trap effectively places the
+> > broken out instructions into the bit stream).
 
-PCI domain(or named segment) is provided by firmware, in ACPI system, we evaluated it
-by method "_SEG". in IA64 with ACPI, PCI hostbridge driver retrieves the domain from ACPI,
-if it's absent, the default domain is zero. So I wonder why in DTS, if it's absent, we get
-a auto increment domain value.
+I believe the current line of thinking is to consider it a bug in
+the device driver. Those bugs may still exist in some rare legacy
+drivers, but anything you'd see in practice should not require unaligned
+access any more.
 
-PCI get domain by ACPI "_SEG" in IA64(drivers/acpi/pci_root.c)
-......
-	status = acpi_evaluate_integer(handle, METHOD_NAME__SEG, NULL,
-				       &segment);
-	if (ACPI_FAILURE(status) && status != AE_NOT_FOUND) {
-		dev_err(&device->dev,  "can't evaluate _SEG\n");
-		result = -ENODEV;
-		goto end;
-	}
-.......
+> Well, ARM doesn't trap, it just silently gives garbage on unaligned
+> memory references.
 
-Thanks!
-Yijing.
+ARMv6/v7 (anything that really matters these days) has efficient unaligned
+accesses that work. Older CPUs are normally set to trap on unaligned
+access, originally for the reason James mentions above, but there are
+some even older machines that rely on abusing unaligned accesses to do
+byte swapping.
 
-> 
->> This function
->> is just a weird mixture of data retrieval and allocation. I think you
->> need to separate it into 2 functions.
-> 
-> It is meant to do allocation with the retrieval being a short-cut (or fine
-> control if you want).
-> 
-> I need to think a bit more for a better solution.
-> 
-> Best regards,
-> Liviu
-> 
->>
->> Rob
->>
-> 
-
-
--- 
-Thanks!
-Yijing
+	Arnd
