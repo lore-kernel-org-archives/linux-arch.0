@@ -1,125 +1,81 @@
-From: "H. Peter Anvin" <hpa@zytor.com>
-Subject: Re: bit fields && data tearing
-Date: Mon, 8 Sep 2014 21:30:22 -0700
-Message-ID: <DD9D3F53-E3FF-4C13-B419-1200E934C530@zytor.com>
-References: <21512.10628.412205.873477@gargle.gargle.HOWL>
- <20140904090952.GW17454@tucnak.redhat.com>
- <540859EC.5000407@hurleysoftware.com>
- <20140904175044.4697aee4@alan.etchedpixels.co.uk>
- <5408C0AB.6050801@hurleysoftware.com>
- <20140905001751.GL5001@linux.vnet.ibm.com>
- <1409883098.5078.14.camel@jarvis.lan> <5409243C.4080704@hurleysoftware.com>
- <20140905040645.GO5001@linux.vnet.ibm.com>
- <1410066442.12512.13.camel@jarvis.lan>
- <20140907162146.GK5001@linux.vnet.ibm.com>
- <1410116687.2027.19.camel@jarvis.lan> <540CC305.8010407@hurleysoftware.com>
- <1410155407.2027.29.camel@jarvis.lan> <540E3BFF.7080307@hurleysoftware.com>
- <1410231392.2028.15.camel@jarvis.lan>
-Mime-Version: 1.0 (1.0)
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <linuxppc-dev-bounces+glppd-linuxppc64-dev=m.gmane.org@lists.ozlabs.org>
-In-Reply-To: <1410231392.2028.15.camel@jarvis.lan>
-List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
-List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
-List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
-List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
-List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
-Errors-To: linuxppc-dev-bounces+glppd-linuxppc64-dev=m.gmane.org@lists.ozlabs.org
-Sender: "Linuxppc-dev"
- <linuxppc-dev-bounces+glppd-linuxppc64-dev=m.gmane.org@lists.ozlabs.org>
-To: James Bottomley <James.Bottomley@HansenPartnership.com>
-Cc: Jakub Jelinek <jakub@redhat.com>, One Thousand Gnomes <gnomes@lxorguk.ukuu.org.uk>, Tony Luck <tony.luck@intel.com>, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, Peter Hurley <peter@hurleysoftware.com>, Mikael Pettersson <mikpelinux@gmail.com>, Oleg Nesterov <oleg@redhat.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Paul Mackerras <paulus@samba.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>, "linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>, Miroslav Franc <mfranc@redhat.com>, Richard Henderson <rth@twiddle.net>
-List-Id: linux-arch.vger.kernel.org
+From: Yijing Wang <wangyijing@huawei.com>
+Subject: Re: [PATCH v10 07/10] OF: Introduce helper function for getting PCI
+ domain_nr
+Date: Tue, 9 Sep 2014 13:54:21 +0800
+Message-ID: <540E960D.7080408@huawei.com>
+References: <1410184472-17630-1-git-send-email-Liviu.Dudau@arm.com> <1410184472-17630-8-git-send-email-Liviu.Dudau@arm.com> <CAL_JsqJi8k1Goc3UmXhuxf9v7=4gJrYG_Di7v574PxS8TsJaXw@mail.gmail.com> <20140908145459.GO27864@e106497-lin.cambridge.arm.com> <CAL_JsqJdGKDVwJOpPp19OkVPGzR7Zqv3nh+ONHHaYnPLYTYoYg@mail.gmail.com> <20140908155931.GP27864@e106497-lin.cambridge.arm.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from szxga02-in.huawei.com ([119.145.14.65]:34756 "EHLO
+	szxga02-in.huawei.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755322AbaIIF5U (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 9 Sep 2014 01:57:20 -0400
+In-Reply-To: <20140908155931.GP27864@e106497-lin.cambridge.arm.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Liviu Dudau <Liviu.Dudau@arm.com>, Rob Herring <robherring2@gmail.com>
+Cc: Bjorn Helgaas <bhelgaas@google.com>, Arnd Bergmann <arnd@arndb.de>, Rob Herring <robh+dt@kernel.org>, Jason Gunthorpe <jgunthorpe@obsidianresearch.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Catalin Marinas <Catalin.Marinas@arm.com>, Will Deacon <Will.Deacon@arm.com>, Russell King <linux@arm.linux.org.uk>, linux-pci <linux-pci@vger.kernel.org>, Linus Walleij <linus.walleij@linaro.org>, Tanmay Inamdar <tinamdar@apm.com>, Grant Likely <grant.likely@secretlab.ca>, Sinan Kaya <okaya@codeaurora.org>, Jingoo Han <jg1.han@samsung.com>, Kukjin Kim <kgene.kim@samsung.com>, Suravee Suthikulanit <suravee.suthikulpanit@amd.com>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Device Tree ML <devicetree@vger.kernel.org>, LAKML <linux-arm-kernel@lists.infradead.org>, "grant.likely@linaro.org" <grant.likely@linaro.org>
 
-QWRkIGEgc2hvcnQgbWVtYmVyIGZvciBwcm9wZXIgYWxpZ25tZW50IGFuZCBvbmUgd2lsbCBwcm9i
-YWJseSBwb3Agb3V0LgoKU2VudCBmcm9tIG15IHRhYmxldCwgcGFyZG9uIGFueSBmb3JtYXR0aW5n
-IHByb2JsZW1zLgoKPiBPbiBTZXAgOCwgMjAxNCwgYXQgMTk6NTYsIEphbWVzIEJvdHRvbWxleSA8
-SmFtZXMuQm90dG9tbGV5QEhhbnNlblBhcnRuZXJzaGlwLmNvbT4gd3JvdGU6Cj4gCj4+IE9uIE1v
-biwgMjAxNC0wOS0wOCBhdCAxOTozMCAtMDQwMCwgUGV0ZXIgSHVybGV5IHdyb3RlOgo+PiBPbiAw
-OS8wOC8yMDE0IDAxOjUwIEFNLCBKYW1lcyBCb3R0b21sZXkgd3JvdGU6Cj4+Pj4gVHdvIHRoaW5n
-czogSSB0aGluayB0aGF0IGdjYyBoYXMgZ2l2ZW4gdXAgb24gY29tYmluaW5nIGFkamFjZW50IHdy
-aXRlcywKPj4+PiBwZXJoYXBzIGJlY2F1c2UgdW5hbGlnbmVkIHdyaXRlcyBvbiBzb21lIGFyY2hl
-cyBhcmUgcHJvaGliaXRpdmUsIHNvCj4+Pj4gd2hhdGV2ZXIgbWlub3Igb3B0aW1pemF0aW9uIHdh
-cyBiZWxpZXZlZCB0byBiZSBnYWluZWQgd2FzIHF1aWNrbHkgbG9zdCwKPj4+PiBtdWx0aS1mb2xk
-LiAoQWx0aG91Z2ggdGhpcyBtaWdodCBub3QgYmUgdGhlIHJlYXNvbiBzaW5jZSBvbmUgd291bGQK
-Pj4+PiBleHBlY3QgdGhhdCBnY2Mgd291bGQga25vdyB0aGUgYWxpZ25tZW50IG9mIHRoZSBwcm9t
-b3RlZCBzdG9yZSkuCj4+PiAKPj4+IFVtLCBnY2MgYXNzdW1lcyBhcmNoaXRlY3R1cmFsbHkgY29y
-cmVjdCBhbGlnbm1lbnQ7IHRoYXQncyB3aHkgaXQgcGFkcwo+Pj4gc3RydWN0dXJlcy4gIE9ubHkg
-d2hlbiBhY2Nlc3NpbmcgcGFja2VkIHN0cnVjdHVyZXMgd2lsbCBpdCB1c2UgdGhlCj4+PiBsb3dl
-c3QgdW5pdCBsb2FkL3N0b3JlLgo+Pj4gCj4+PiBpZiB5b3UgaGF2ZSBhIHN0cnVjdCB7IGNoYXIg
-YSwgY2hhciBiIH07IGFuZCBsb2FkIGZpcnN0IGEgdGhlbiBiIHdpdGggYQo+Pj4gY29uc3RhbnQg
-Z2NjIHdpbGwgb2JsaWdpbmdseSBvcHRpbWlzZSB0byBhIHNob3J0IHN0b3JlLgo+PiAKPj4gVW0s
-IHBsZWFzZSByZS1sb29rIGF0IHRoZSB0ZXN0IGFib3ZlLiBUaGUgZXhhY3QgdGVzdCB5b3UgZGVz
-Y3JpYmUgaXMKPj4gY29kZWQgYWJvdmUgYW5kIGNvbXBpbGVkIHdpdGggZ2NjIDQuNi4zIGNyb3Nz
-LWNvbXBpbGVyIGZvciBwYXJpc2MgdXNpbmcKPj4gdGhlIGtlcm5lbCBjb21waWxlciBvcHRpb25z
-Lgo+PiAKPj4gSW4gdGhlIGdlbmVyYXRlZCBjb2RlLCBwbGVhc2Ugbm90ZSB0aGUgX2Fic2VuY2Vf
-IG9mIGEgY29tYmluZWQgd3JpdGUKPj4gdG8gdHdvIGFkamFjZW50IGJ5dGUgc3RvcmVzLgo+IAo+
-IFNvIG9uZSB2ZXJzaW9uIG9mIGdjYyBkb2Vzbid0IGRvIGl0LiAgT3RoZXJzIGRvIGJlY2F1c2Ug
-SSd2ZSBiZWVuCj4gc3VycHJpc2VkIHNlZWluZyBpdCBpbiBhc3NlbWJseS4KPiAKPj4+PiBCdXQg
-YWRkaXRpb25hbGx5LCBldmVuIGlmIGdjYyBjb21iaW5lcyBhZGphY2VudCB3cml0ZXMgX3RoYXQg
-YXJlIHBhcnQKPj4+PiBvZiB0aGUgcHJvZ3JhbSBmbG93XyB0aGVuIEkgYmVsaWV2ZSB0aGUgc2l0
-dWF0aW9uIGlzIG5vIHdvcnNlIHRoYW4KPj4+PiB3b3VsZCBvdGhlcndpc2UgZXhpc3QuCj4+Pj4g
-Cj4+Pj4gRm9yIGluc3RhbmNlLCBnaXZlbiB0aGUgZm9sbG93aW5nOgo+Pj4+IAo+Pj4+IHN0cnVj
-dCB4IHsKPj4+PiAgICBzcGlubG9ja190IGxvY2s7Cj4+Pj4gICAgbG9uZyBhOwo+Pj4+ICAgIGJ5
-dGUgYjsKPj4+PiAgICBieXRlIGM7Cj4+Pj4gfTsKPj4+PiAKPj4+PiB2b2lkIGxvY2tlZF9zdG9y
-ZV9iKHN0cnVjdCB4ICpwKQo+Pj4+IHsKPj4+PiAgICBzcGluX2xvY2soJnAtPmxvY2spOwo+Pj4+
-ICAgIHAtPmIgPSAxOwo+Pj4+ICAgIHNwaW5fdW5sb2NrKCZwLT5sb2NrKTsKPj4+PiAgICBwLT5j
-ID0gMjsKPj4+PiB9Cj4+Pj4gCj4+Pj4gR3JhbnRlZCwgdGhlIGF1dGhvciBwcm9iYWJseSBleHBl
-Y3RzIG9yZGVyZWQgd3JpdGVzIG9mCj4+Pj4gICAgU1RPUkUgQgo+Pj4+ICAgIFNUT1JFIEMKPj4+
-PiBidXQgdGhhdCdzIG5vdCBndWFyYW50ZWVkIGJlY2F1c2UgdGhlcmUgaXMgbm8gbWVtb3J5IGJh
-cnJpZXIKPj4+PiBvcmRlcmluZyBCIGJlZm9yZSBDLgo+Pj4gCj4+PiBZZXMsIHRoZXJlIGlzOiBs
-b2FkcyBhbmQgc3RvcmVzIG1heSBub3QgbWlncmF0ZSBpbnRvIG9yIG91dCBvZiBjcml0aWNhbAo+
-Pj4gc2VjdGlvbnMuCj4+IAo+PiBUaGF0J3MgYSBjb21tb24gbWlzY29uY2VwdGlvbi4KPj4gCj4+
-IFRoZSBwcm9jZXNzb3IgaXMgZnJlZSB0byByZS1vcmRlciB0aGlzIHRvOgo+PiAKPj4gICAgU1RP
-UkUgQwo+PiAgICBTVE9SRSBCCj4+ICAgIFVOTE9DSwo+PiAKPj4gVGhhdCdzIGJlY2F1c2UgdGhl
-IHVubG9jaygpIG9ubHkgZ3VhcmFudGVlcyB0aGF0Ogo+PiAKPj4gU3RvcmVzIGJlZm9yZSB0aGUg
-dW5sb2NrIGluIHByb2dyYW0gb3JkZXIgYXJlIGd1YXJhbnRlZWQgdG8gY29tcGxldGUKPj4gYmVm
-b3JlIHRoZSB1bmxvY2sgY29tcGxldGVzLiBTdG9yZXMgYWZ0ZXIgdGhlIHVubG9jayBfbWF5XyBj
-b21wbGV0ZQo+PiBiZWZvcmUgdGhlIHVubG9jayBjb21wbGV0ZXMuCj4+IAo+PiBNeSBwb2ludCB3
-YXMgdGhhdCBldmVuIGlmIGNvbXBpbGVyIGJhcnJpZXJzIGhhZCB0aGUgc2FtZSBzZW1hbnRpY3MK
-Pj4gYXMgbWVtb3J5IGJhcnJpZXJzLCB0aGUgc2l0dWF0aW9uIHdvdWxkIGJlIG5vIHdvcnNlLiBU
-aGF0IGlzLCBjb2RlCj4+IHRoYXQgaXMgc2Vuc2l0aXZlIHRvIG1lbW9yeSBiYXJyaWVycyAobGlr
-ZSB0aGUgZXhhbXBsZSBJIGdhdmUgYWJvdmUpCj4+IHdvdWxkIG1lcmVseSBoYXZlIHRoZSBzYW1l
-IGZyYWdpbGl0eSB3aXRoIG9uZS13YXkgY29tcGlsZXIgYmFycmllcnMKPj4gKHdpdGggcmVzcGVj
-dCB0byB0aGUgY29tcGlsZXIgY29tYmluaW5nIHdyaXRlcykuCj4+IAo+PiBUaGF0J3Mgd2hhdCBJ
-IG1lYW50IGJ5ICJubyB3b3JzZSB0aGFuIHdvdWxkIG90aGVyd2lzZSBleGlzdCIuCj4gCj4gQWN0
-dWFsbHksIHRoYXQncyBub3QgY29ycmVjdC4gIFRoaXMgaXMgYWN0dWFsbHkgZGVqYSB2dSB3aXRo
-IG1lIG9uIHRoZQo+IG90aGVyIHNpZGUgb2YgdGhlIGFyZ3VtZW50LiAgV2hlbiB3ZSBmaXJzdCBk
-aWQgc3BpbmxvY2tzIG9uIFBBLCBJIGFyZ3VlZAo+IGFzIHlvdSBkaWQ6IGxvY2sgb25seSBhIGJh
-cnJpZXIgZm9yIGNvZGUgYWZ0ZXIgYW5kIHVubG9jayBmb3IgY29kZQo+IGJlZm9yZS4gIFRoZSBm
-YWlsaW5nIGNhc2UgaXMgdGhhdCB5b3UgY2FuIGhhdmUgYSBjcml0aWNhbCBzZWN0aW9uIHdoaWNo
-Cj4gcGVyZm9ybXMgYW4gYXRvbWljYWxseSByZXF1aXJlZCBvcGVyYXRpb24gYW5kIGEgZm9sbG93
-aW5nIHVuaXQgd2hpY2gKPiBkZXBlbmRzIG9uIGl0IGJlaW5nIHBlcmZvcm1lZC4gIElmIHlvdSBi
-ZWdpbiB0aGUgZm9sbG93aW5nIHVuaXQgYmVmb3JlCj4gdGhlIGF0b21pYyByZXF1aXJlbWVudCwg
-eW91IG1heSBlbmQgdXAgbG9zaW5nLiAgSXQgdHVybnMgb3V0IHRoaXMga2luZAo+IG9mIHBhdHRl
-cm4gaXMgaW5oZXJlbnQgaW4gYSBsb3Qgb2YgbWFpbCBib3ggZGV2aWNlIGRyaXZlcnM6IHlvdSBu
-ZWVkIHRvCj4gc2V0IHVwIHRoZSBtYWlsYm94IGF0b21pY2FsbHkgdGhlbiBwb2tlIGl0LiAgU2V0
-dXAgaXMgdXN1YWxseSBhdG9taWMsCj4gZGVjaWRpbmcgd2hpY2ggbWFpbGJveCB0byBwcmltZSBh
-bmQgYWN0dWFsbHkgcG9raW5nIGl0IGlzIGluIHRoZQo+IGZvbGxvd2luZyB1bml0LiAgUHJpbWlu
-ZyBvZnRlbiBpbnZvbHZlcyBhbiBJL08gYnVzIHRyYW5zYWN0aW9uIGFuZCBpZgo+IHlvdSBwb2tl
-IGJlZm9yZSBwcmltaW5nLCB5b3UgZ2V0IGEgbWlzZmlyZS4KPiAKPj4+PiBJIHNlZSBubyBwcm9i
-bGVtIHdpdGggZ2NjIHdyaXRlLWNvbWJpbmluZyBpbiB0aGUgYWJzZW5jZSBvZgo+Pj4+IG1lbW9y
-eSBiYXJyaWVycyAoYXMgbG9uZyBhcyBhbGlnbm1lbnQgaXMgc3RpbGwgcmVzcGVjdGVkLAo+Pj4+
-IGllLiwgdGhlIHNpemUtcHJvbW90ZWQgd3JpdGUgaXMgc3RpbGwgbmF0dXJhbGx5IGFsaWduZWQp
-LiBUaGUKPj4+PiBjb21iaW5lZCB3cml0ZSBpcyBzdGlsbCBhdG9taWMuCj4+PiAKPj4+IEFjdHVh
-bCBhbGlnbm1lbnQgaXMgcHJldHR5IGlycmVsZXZhbnQuICBUaGF0J3Mgd2h5IGFsbCBhcmNoaXRl
-Y3R1cmVzCj4+PiB3aGljaCByZXF1aXJlIGFsaWdubWVudCBhbHNvIGhhdmUgdG8gaW1wbGVtZW50
-IG1pc2FsaWduZWQgdHJhcHMgLi4uIHRoaXMKPj4+IGlzIGEgZnVuZGFtZW50YWwgcmVxdWlyZW1l
-bnQgb2YgdGhlIG5ldHdvcmtpbmcgY29kZSwgZm9yIGluc3RhbmNlLgo+Pj4gCj4+PiBUaGUgbWFp
-biBwcm9ibGVtIGlzIGdjYyB0aGlua2luZyB0aGVyZSdzIGEgbWlzYWxpZ25tZW50IChvciBhIHBh
-Y2tlZAo+Pj4gc3RydWN0dXJlKS4gIFRoYXQgY2F1c2VzIHNwbGl0dGluZyBvZiBsb2FkcyBhbmQg
-c3RvcmVzIGFuZCB0aGF0IGRlc3Ryb3lzCj4+PiBhdG9taWNpdHkuCj4+IAo+PiBZZWFoLCB0aGUg
-ZXh0cmEgcmVxdWlyZW1lbnQgSSBhZGRlZCBpcyBiYXNpY2FsbHkgbm9uc2Vuc2UsIHNpbmNlIHRo
-ZQo+PiBvbmx5IGlzc3VlIGlzIHdoYXQgaW5zdHJ1Y3Rpb25zIHRoZSBjb21waWxlciBpcyBlbWl0
-dGluZy4gU28gaWYgY29tcGlsZXIKPj4gdGhpbmtzIHRoZSBhbGlnbm1lbnQgaXMgbmF0dXJhbCBh
-bmQgY29tYmluZXMgdGhlIHdyaXRlcyAtLSBvay4gSWYgdGhlCj4+IGNvbXBpbGVyIHRoaW5rcyB0
-aGUgYWxpZ25tZW50IGlzIG9mZiBhbmQgZG9lc24ndCBjb21iaW5lIHRoZSB3cml0ZXMgLS0KPj4g
-YWxzbyBvay4KPiAKPiBZZXMsIEkgdGhpbmsgSSBjYW4gYWdyZWUgdGhhdCB0aGUgb25seSByZWFs
-IHByb2JsZW0gaXMgZ2NjIHRoaW5raW5nIHRoZQo+IHN0b3JlIG9yIGxvYWQgbmVlZHMgc3BsaXR0
-aW5nLgo+IAo+IEphbWVzCj4gCj4gCl9fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19f
-X19fX19fX19fX19fCkxpbnV4cHBjLWRldiBtYWlsaW5nIGxpc3QKTGludXhwcGMtZGV2QGxpc3Rz
-Lm96bGFicy5vcmcKaHR0cHM6Ly9saXN0cy5vemxhYnMub3JnL2xpc3RpbmZvL2xpbnV4cHBjLWRl
-dg==
+>>> on new requests. This function gets called quite a lot and I'm trying not to
+>>> make it too heavy weight.
+>>
+>> Generally, nothing should be accessing the same DT value frequently.
+>> It should get cached somewhere.
+>>
+> 
+> The problem appears for DTs that don't have the pci-domain info. Then the cached
+> value is left at the default non-valid value and attempts to rescan the DT will
+> be made every time the function is called.
+> 
+>> I don't really understand how domains are used so it's hard to provide
+>> a recommendation here. Do domains even belong in the DT?
+> 
+> ACPI calls them segments and the way Bjorn explained it to me at some moment was
+> that it was an attempt to split up a bus in different groups (or alternatively,
+> merge a few busses together). To be honest I haven't seen systems where the domain
+> is anything other than zero, but JasonG (or maybe Benjamin) were floating an
+> idea of using the domain number to identify physical slots.
+
+PCI domain(or named segment) is provided by firmware, in ACPI system, we evaluated it
+by method "_SEG". in IA64 with ACPI, PCI hostbridge driver retrieves the domain from ACPI,
+if it's absent, the default domain is zero. So I wonder why in DTS, if it's absent, we get
+a auto increment domain value.
+
+PCI get domain by ACPI "_SEG" in IA64(drivers/acpi/pci_root.c)
+......
+	status = acpi_evaluate_integer(handle, METHOD_NAME__SEG, NULL,
+				       &segment);
+	if (ACPI_FAILURE(status) && status != AE_NOT_FOUND) {
+		dev_err(&device->dev,  "can't evaluate _SEG\n");
+		result = -ENODEV;
+		goto end;
+	}
+.......
+
+Thanks!
+Yijing.
+
+> 
+>> This function
+>> is just a weird mixture of data retrieval and allocation. I think you
+>> need to separate it into 2 functions.
+> 
+> It is meant to do allocation with the retrieval being a short-cut (or fine
+> control if you want).
+> 
+> I need to think a bit more for a better solution.
+> 
+> Best regards,
+> Liviu
+> 
+>>
+>> Rob
+>>
+> 
+
+
+-- 
+Thanks!
+Yijing
