@@ -1,91 +1,42 @@
-From: Yijing Wang <wangyijing@huawei.com>
-Subject: Re: [Xen-devel] [PATCH v1 08/21] x86/xen/MSI: Use MSI chip framework
- to configure MSI/MSI-X irq
-Date: Tue, 9 Sep 2014 10:06:13 +0800
-Message-ID: <540E6095.8030409@huawei.com>
-References: <1409911806-10519-1-git-send-email-wangyijing@huawei.com>
- <1409911806-10519-9-git-send-email-wangyijing@huawei.com>
- <5409C8C0.8020200@citrix.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-In-Reply-To: <5409C8C0.8020200@citrix.com>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: David Vrabel <david.vrabel@citrix.com>, Bjorn Helgaas <bhelgaas@google.com>
-Cc: linux-mips@linux-mips.org, linux-ia64@vger.kernel.org, linux-pci@vger.kernel.org, Xinwei Hu <huxinwei@huawei.com>, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, Russell King <linux@arm.linux.org.uk>, Joerg Roedel <joro@8bytes.org>, x86@kernel.org, Sebastian Ott <sebott@linux.vnet.ibm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, xen-devel@lists.xenproject.org, arnab.basu@freescale.com, Arnd Bergmann <arnd@arndb.de>, Chris Metcalf <cmetcalf@tilera.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arm-kernel@lists.infradead.org, Bharat.Bhushan@freescale.com, Tony Luck <tony.luck@intel.com>, Ralf Baechle <ralf@linux-mips.org>, iommu@lists.linux-foundation.org, Wuyun <wuyun.wu@huawei.com>, linuxppc-dev@lists.ozlabs.org, "David S. Miller" <davem@davemloft.net>
-List-Id: linux-arch.vger.kernel.org
+From: Aaron Lu <aaron.lu@intel.com>
+Subject: [PATCH 0/2] Support CrystalCove PMIC ACPI operation region
+Date: Tue,  9 Sep 2014 10:26:00 +0800
+Message-ID: <1410229562-11507-1-git-send-email-aaron.lu@intel.com>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mga01.intel.com ([192.55.52.88]:37975 "EHLO mga01.intel.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1754439AbaIIC0H (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 8 Sep 2014 22:26:07 -0400
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Linus Walleij <linus.walleij@linaro.org>, Alexandre Courbot <gnurou@gmail.com>, Samuel Ortiz <sameo@linux.intel.com>, Lee Jones <lee.jones@linaro.org>, Arnd Bergmann <arnd@arndb.de>
+Cc: linux-gpio@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Jacob Pan <jacob.jun.pan@linux.intel.com>, Lejun Zhu <lejun.zhu@intel.com>, Radivoje Jovanovic <radivoje.jovanovic@intel.com>, =?UTF-8?q?Daniel=20Gl=C3=B6ckner?= <dg@emlix.com>
 
-On 2014/9/5 22:29, David Vrabel wrote:
-> On 05/09/14 11:09, Yijing Wang wrote:
->> Use MSI chip framework instead of arch MSI functions to configure
->> MSI/MSI-X irq. So we can manage MSI/MSI-X irq in a unified framework.
-> [...]
->> --- a/arch/x86/pci/xen.c
->> +++ b/arch/x86/pci/xen.c
-> [...]
->> @@ -418,9 +430,9 @@ int __init pci_xen_init(void)
->>  #endif
->>  
->>  #ifdef CONFIG_PCI_MSI
->> -	x86_msi.setup_msi_irqs = xen_setup_msi_irqs;
->> -	x86_msi.teardown_msi_irq = xen_teardown_msi_irq;
->> -	x86_msi.teardown_msi_irqs = xen_teardown_msi_irqs;
->> +	xen_msi_chip.setup_irqs = xen_setup_msi_irqs;
->> +	xen_msi_chip.teardown_irqs = xen_teardown_msi_irqs;
->> +	x86_msi_chip = &xen_msi_chip;
->>  	msi_chip.irq_mask = xen_nop_msi_mask;
->>  	msi_chip.irq_unmask = xen_nop_msi_mask;
-> 
-> Why have these not been changed to set the x86_msi_chip.mask/unmask
-> fields instead?
+The two patches add support for CrystalCove PMIC ACPI operation region.
+The PMIC chip has two customized operation regions: one for power rail
+manipulation and one for thermal purpose: sensor temperature reading
+and trip point value reading/setting.
 
-Hi David, x86_msi_chip here is struct msi_chip data type, used to configure MSI/MSI-X
-irq. msi_chip above is struct irq_chip data type, represent the MSI irq controller. They are
-not the same object. Their name easily confusing people.
+For an example ASL code on ASUS T100 with CrystalCove PMIC, see here:
+https://gist.github.com/aaronlu/f5f65771a6c3251fae5d
 
-Defined in arch/x86/kernel/apic/io_apic.c
-/*
- * IRQ Chip for MSI PCI/PCI-X/PCI-Express Devices,
- * which implement the MSI or MSI-X Capability Structure.
- */
-static struct irq_chip msi_chip = {
-	.name			= "PCI-MSI",
-	.irq_unmask		= unmask_msi_irq,
-	.irq_mask		= mask_msi_irq,
-	.irq_ack		= ack_apic_edge,
-	.irq_set_affinity	= msi_set_affinity,
-	.irq_retrigger		= ioapic_retrigger_irq,
-};
+Aaron Lu (2):
+  gpio / CrystalCove: support virtual GPIO
+  PMIC / opregion: support PMIC customized operation region for
+    CrystalCove
 
-
-Defined in arch/x86/kernel/apic/io_apic.c, introduced in patch 7/21
-struct msi_chip apic_msi_chip = {
-	.setup_irqs = native_setup_msi_irqs,
-	.teardown_irq = native_teardown_msi_irq,
-};
-[...]
-struct msi_chip *x86_msi_chip = &apic_msi_chip;
-
-
-Thanks!
-Yijing.
-
-> 
-> David
-> 
-> .
-> 
-
+ drivers/gpio/gpio-crystalcove.c           |  19 +-
+ drivers/mfd/Kconfig                       |  11 +
+ drivers/mfd/Makefile                      |   1 +
+ drivers/mfd/intel_soc_pmic_crc.c          |   3 +
+ drivers/mfd/intel_soc_pmic_crc_opregion.c | 229 +++++++++++++++++++
+ drivers/mfd/intel_soc_pmic_opregion.c     | 350 ++++++++++++++++++++++++++++++
+ drivers/mfd/intel_soc_pmic_opregion.h     |  35 +++
+ include/asm-generic/gpio.h                |   2 +-
+ 8 files changed, 646 insertions(+), 4 deletions(-)
+ create mode 100644 drivers/mfd/intel_soc_pmic_crc_opregion.c
+ create mode 100644 drivers/mfd/intel_soc_pmic_opregion.c
+ create mode 100644 drivers/mfd/intel_soc_pmic_opregion.h
 
 -- 
-Thanks!
-Yijing
+1.9.3
