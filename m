@@ -1,45 +1,64 @@
-From: Jason Gunthorpe <jgunthorpe@obsidianresearch.com>
-Subject: Re: [PATCH v10 07/10] OF: Introduce helper function for getting PCI
- domain_nr
-Date: Tue, 9 Sep 2014 09:41:23 -0600
-Message-ID: <20140909154123.GA12906@obsidianresearch.com>
-References: <1410184472-17630-1-git-send-email-Liviu.Dudau@arm.com>
- <1410184472-17630-8-git-send-email-Liviu.Dudau@arm.com>
- <CAL_JsqJi8k1Goc3UmXhuxf9v7=4gJrYG_Di7v574PxS8TsJaXw@mail.gmail.com>
- <20140908145459.GO27864@e106497-lin.cambridge.arm.com>
- <CAL_JsqJdGKDVwJOpPp19OkVPGzR7Zqv3nh+ONHHaYnPLYTYoYg@mail.gmail.com>
- <20140908155931.GP27864@e106497-lin.cambridge.arm.com>
- <540E960D.7080408@huawei.com>
- <20140909084621.GS27864@e106497-lin.cambridge.arm.com>
- <540EC8CB.7010106@huawei.com>
- <CAErSpo4cAfom2=07NYDRfTCdHO22M0v+ueiaZuG6v2Xd18wEnQ@mail.gmail.com>
+From: Valdis.Kletnieks@vt.edu
+Subject: Re: [PATCH v3 25/29] nios2: Module support
+Date: Tue, 09 Sep 2014 17:25:58 -0400
+Message-ID: <75377.1410297958@turing-police.cc.vt.edu>
+References: <1410168160-3624-1-git-send-email-lftan@altera.com>
+            <1410168160-3624-26-git-send-email-lftan@altera.com>
 Mime-Version: 1.0
+Content-Type: multipart/signed; boundary="==_Exmh_1410297958_3387P";
+	 micalg=pgp-sha1; protocol="application/pgp-signature"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from omr2.cc.vt.edu ([198.82.141.100]:49840 "EHLO omr2.cc.vt.edu"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751176AbaIIV0N (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 9 Sep 2014 17:26:13 -0400
+In-Reply-To: Your message of "Mon, 08 Sep 2014 17:22:36 +0800."
+             <1410168160-3624-26-git-send-email-lftan@altera.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Ley Foon Tan <lftan@altera.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, lftan.linux@gmail.com, cltang@codesourcery.com
+
+--==_Exmh_1410297958_3387P
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <CAErSpo4cAfom2=07NYDRfTCdHO22M0v+ueiaZuG6v2Xd18wEnQ@mail.gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Bjorn Helgaas <bhelgaas@google.com>
-Cc: Yijing Wang <wangyijing@huawei.com>, Liviu Dudau <Liviu.Dudau@arm.com>, Rob Herring <robherring2@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Rob Herring <robh+dt@kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Catalin Marinas <Catalin.Marinas@arm.com>, Will Deacon <Will.Deacon@arm.com>, Russell King <linux@arm.linux.org.uk>, linux-pci <linux-pci@vger.kernel.org>, Linus Walleij <linus.walleij@linaro.org>, Tanmay Inamdar <tinamdar@apm.com>, Grant Likely <grant.likely@secretlab.ca>, Sinan Kaya <okaya@codeaurora.org>, Jingoo Han <jg1.han@samsung.com>, Kukjin Kim <kgene.kim@samsung.com>, Suravee Suthikulanit <suravee.suthikulpanit@amd.com>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Device Tree ML <devicetree@vger.kernel.org>, LAKML <linux-arm-kernel@lists.infradead.org>, "grant.likely@linaro.org" <grant.likely@linaro.>
-List-Id: linux-arch.vger.kernel.org
 
-On Tue, Sep 09, 2014 at 08:26:19AM -0600, Bjorn Helgaas wrote:
+On Mon, 08 Sep 2014 17:22:36 +0800, Ley Foon Tan said:
+> This patch adds support for loadable modules.
+>
+> Signed-off-by: Ley Foon Tan <lftan@altera.com>
 
-> So as long as the DT tells you the ECAM information for each host
-> bridge, that should be sufficient.  The domain number is then just a
-> Linux convenience and is not tied to the platform as it is on ia64.
+> +/*
+> + * Modules should NOT be allocated with kmalloc for (obvious) reasons.
+> + * But we do it for now to avoid relocation issues. CALL26/PCREL26 cannot reach
+> + * from 0x80000000 (vmalloc area) to 0xc00000000 (kernel) (kmalloc returns
+> + * addresses in 0xc0000000)
+> + */
 
-I think this is right for DT systems - the domain is purely internal
-to the kernel and userspace, it is used to locate the proper host
-bridge driver instance, which contains the proper config accessor (and
-register bases, etc).
+That's a nice scary comment to see. :)
 
-AFAIK the main reason to have a DT alias to learn the domain number is
-to make it stable so things like udev/etc can reliably match on the
-PCI location.
+What's the long-term plan here?
 
-This is similar to i2c, etc that use the alias scheme, so IMHO
-whatever they do to assign ID's to drivers should be copied for domain
-numbers.
+--==_Exmh_1410297958_3387P
+Content-Type: application/pgp-signature
 
-Jason
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1
+Comment: Exmh version 2.5 07/13/2001
+
+iQIVAwUBVA9wZgdmEQWDXROgAQLPnhAAnAPmjPRb6kVb+COoyqcTT8eU2H2FC1N+
+a4YnhzT1D+VI9MBar4uWi/kXi9KNonJZpG06UF6/z9hTfkD8NzL++MMRY1PP7qMJ
+uJM3NCMRnXtZFUv2v0vlBB3aEDcHcCK6pG/GeSe6tzeFXXMfBnKggavq/xmg3mq0
+qutlKnVa4gRAJ6MgmB0sbtt1exbQ2yr5Jb1pCP4/RlApOXn+EmzriO6A+jP3EZjr
+j1+B6LgixOetZ44RhNLLB3Zi0xe0h5bt0bDjjMJhWB9obMbN9iPAcO1zZogxGkKF
+SdGiNue1swoqUkvpk/B4LfJnaFkSTfvZqXAm4WfnKMMZeZKq/Fs0Uj1jnssXtzMT
+xu9RFVJhdcf1vcK60prLMttk6P+CKreU9c74GGX/j3LeaRwscRsW9x1qeD0r6Ztx
+uQcGb8znX4jWm+EAAgrdCR8jkQ3KmmrwknG47V3zrdiAh5Yzs+ubpIGGgieYoIrv
+LkZEYksd+BB79361ihzfryzm6gleb3iZOp+KLnE97D+PoSPU8AjKbwjL4bcf0QzG
+iTZXlLhSPwViA5+5RDit+E53td80wAmi7FSU2+U5wXFFj/Mh60yScwgtyJOiGpF/
+x0B11XsyDlcoNyp+60tVT9whMh5t4z/DutWERGa3FJI5DO3pqtAeKgNJOXHM4ChS
+NWKSbTNkKiA=
+=5sxg
+-----END PGP SIGNATURE-----
+
+--==_Exmh_1410297958_3387P--
