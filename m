@@ -1,142 +1,110 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:35479 "EHLO mail.zytor.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751499AbaIIEbL convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 9 Sep 2014 00:31:11 -0400
-Content-Type: text/plain;
-	charset=us-ascii
-Mime-Version: 1.0 (1.0)
-Subject: Re: bit fields && data tearing
-From: "H. Peter Anvin" <hpa@zytor.com>
-In-Reply-To: <1410231392.2028.15.camel@jarvis.lan>
-Date: Mon, 8 Sep 2014 21:30:22 -0700
+Received: from service87.mimecast.com ([91.220.42.44]:38403 "EHLO
+	service87.mimecast.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756071AbaIIIq2 convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 9 Sep 2014 04:46:28 -0400
+Date: Tue, 9 Sep 2014 09:46:21 +0100
+From: Liviu Dudau <Liviu.Dudau@arm.com>
+Subject: Re: [PATCH v10 07/10] OF: Introduce helper function for getting PCI
+ domain_nr
+Message-ID: <20140909084621.GS27864@e106497-lin.cambridge.arm.com>
+References: <1410184472-17630-1-git-send-email-Liviu.Dudau@arm.com>
+ <1410184472-17630-8-git-send-email-Liviu.Dudau@arm.com>
+ <CAL_JsqJi8k1Goc3UmXhuxf9v7=4gJrYG_Di7v574PxS8TsJaXw@mail.gmail.com>
+ <20140908145459.GO27864@e106497-lin.cambridge.arm.com>
+ <CAL_JsqJdGKDVwJOpPp19OkVPGzR7Zqv3nh+ONHHaYnPLYTYoYg@mail.gmail.com>
+ <20140908155931.GP27864@e106497-lin.cambridge.arm.com>
+ <540E960D.7080408@huawei.com>
+MIME-Version: 1.0
+In-Reply-To: <540E960D.7080408@huawei.com>
+Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8BIT
-Message-ID: <DD9D3F53-E3FF-4C13-B419-1200E934C530@zytor.com>
-References: <21512.10628.412205.873477@gargle.gargle.HOWL> <20140904090952.GW17454@tucnak.redhat.com> <540859EC.5000407@hurleysoftware.com> <20140904175044.4697aee4@alan.etchedpixels.co.uk> <5408C0AB.6050801@hurleysoftware.com> <20140905001751.GL5001@linux.vnet.ibm.com> <1409883098.5078.14.camel@jarvis.lan> <5409243C.4080704@hurleysoftware.com> <20140905040645.GO5001@linux.vnet.ibm.com> <1410066442.12512.13.camel@jarvis.lan> <20140907162146.GK5001@linux.vnet.ibm.com> <1410116687.2027.19.camel@jarvis.lan> <540CC305.8010407@hurleysoftware.com> <1410155407.2027.29.camel@jarvis.lan> <540E3BFF.7080307@hurleysoftware.com> <1410231392.2028.15.camel@jarvis.lan>
+Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: James Bottomley <James.Bottomley@HansenPartnership.com>
-Cc: Peter Hurley <peter@hurleysoftware.com>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>, One Thousand Gnomes <gnomes@lxorguk.ukuu.org.uk>, Jakub Jelinek <jakub@redhat.com>, Mikael Pettersson <mikpelinux@gmail.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Richard Henderson <rth@twiddle.net>, Oleg Nesterov <oleg@redhat.com>, Miroslav Franc <mfranc@redhat.com>, Paul Mackerras <paulus@samba.org>, "linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Tony Luck <tony.luck@intel.com>, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>
-Message-ID: <20140909043022.RNgCzSGZyK9_cvQfwqeEOk8sjUgc-Jv8I3fmZNibCJs@z>
+To: Yijing Wang <wangyijing@huawei.com>
+Cc: Rob Herring <robherring2@gmail.com>, Bjorn Helgaas <bhelgaas@google.com>, Arnd Bergmann <arnd@arndb.de>, Rob Herring <robh+dt@kernel.org>, Jason Gunthorpe <jgunthorpe@obsidianresearch.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Catalin Marinas <Catalin.Marinas@arm.com>, Will Deacon <Will.Deacon@arm.com>, Russell King <linux@arm.linux.org.uk>, linux-pci <linux-pci@vger.kernel.org>, Linus Walleij <linus.walleij@linaro.org>, Tanmay Inamdar <tinamdar@apm.com>, Grant Likely <grant.likely@secretlab.ca>, Sinan Kaya <okaya@codeaurora.org>, Jingoo Han <jg1.han@samsung.com>, Kukjin Kim <kgene.kim@samsung.com>, Suravee Suthikulanit <suravee.suthikulpanit@amd.com>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Device Tree ML <devicetree@vger.kernel.org>, LAKML <linux-arm-kernel@lists.infradead.org>, "grant.likely@linaro.org" <grant.likely@linaro.org>
+Message-ID: <20140909084621.mFIWlG_7OWPM1nF4DfhasJpLltmuWkvvmwMdL7oCuU8@z>
 
-Add a short member for proper alignment and one will probably pop out.
+On Tue, Sep 09, 2014 at 06:54:21AM +0100, Yijing Wang wrote:
+> >>> on new requests. This function gets called quite a lot and I'm trying not to
+> >>> make it too heavy weight.
+> >>
+> >> Generally, nothing should be accessing the same DT value frequently.
+> >> It should get cached somewhere.
+> >>
+> > 
+> > The problem appears for DTs that don't have the pci-domain info. Then the cached
+> > value is left at the default non-valid value and attempts to rescan the DT will
+> > be made every time the function is called.
+> > 
+> >> I don't really understand how domains are used so it's hard to provide
+> >> a recommendation here. Do domains even belong in the DT?
+> > 
+> > ACPI calls them segments and the way Bjorn explained it to me at some moment was
+> > that it was an attempt to split up a bus in different groups (or alternatively,
+> > merge a few busses together). To be honest I haven't seen systems where the domain
+> > is anything other than zero, but JasonG (or maybe Benjamin) were floating an
+> > idea of using the domain number to identify physical slots.
+> 
+> PCI domain(or named segment) is provided by firmware, in ACPI system, we evaluated it
+> by method "_SEG". in IA64 with ACPI, PCI hostbridge driver retrieves the domain from ACPI,
+> if it's absent, the default domain is zero. So I wonder why in DTS, if it's absent, we get
+> a auto increment domain value.
 
-Sent from my tablet, pardon any formatting problems.
+Because you can have more than one hostbridge (rare, but not impossible) and unless you
+want to join the two segments, you might want to give it a different domain.
 
-> On Sep 8, 2014, at 19:56, James Bottomley <James.Bottomley@HansenPartnership.com> wrote:
+Best regards,
+Liviu
+
 > 
->> On Mon, 2014-09-08 at 19:30 -0400, Peter Hurley wrote:
->> On 09/08/2014 01:50 AM, James Bottomley wrote:
->>>> Two things: I think that gcc has given up on combining adjacent writes,
->>>> perhaps because unaligned writes on some arches are prohibitive, so
->>>> whatever minor optimization was believed to be gained was quickly lost,
->>>> multi-fold. (Although this might not be the reason since one would
->>>> expect that gcc would know the alignment of the promoted store).
->>> 
->>> Um, gcc assumes architecturally correct alignment; that's why it pads
->>> structures.  Only when accessing packed structures will it use the
->>> lowest unit load/store.
->>> 
->>> if you have a struct { char a, char b }; and load first a then b with a
->>> constant gcc will obligingly optimise to a short store.
->> 
->> Um, please re-look at the test above. The exact test you describe is
->> coded above and compiled with gcc 4.6.3 cross-compiler for parisc using
->> the kernel compiler options.
->> 
->> In the generated code, please note the _absence_ of a combined write
->> to two adjacent byte stores.
+> PCI get domain by ACPI "_SEG" in IA64(drivers/acpi/pci_root.c)
+> ......
+> 	status = acpi_evaluate_integer(handle, METHOD_NAME__SEG, NULL,
+> 				       &segment);
+> 	if (ACPI_FAILURE(status) && status != AE_NOT_FOUND) {
+> 		dev_err(&device->dev,  "can't evaluate _SEG\n");
+> 		result = -ENODEV;
+> 		goto end;
+> 	}
+> .......
 > 
-> So one version of gcc doesn't do it.  Others do because I've been
-> surprised seeing it in assembly.
+> Thanks!
+> Yijing.
 > 
->>>> But additionally, even if gcc combines adjacent writes _that are part
->>>> of the program flow_ then I believe the situation is no worse than
->>>> would otherwise exist.
->>>> 
->>>> For instance, given the following:
->>>> 
->>>> struct x {
->>>>    spinlock_t lock;
->>>>    long a;
->>>>    byte b;
->>>>    byte c;
->>>> };
->>>> 
->>>> void locked_store_b(struct x *p)
->>>> {
->>>>    spin_lock(&p->lock);
->>>>    p->b = 1;
->>>>    spin_unlock(&p->lock);
->>>>    p->c = 2;
->>>> }
->>>> 
->>>> Granted, the author probably expects ordered writes of
->>>>    STORE B
->>>>    STORE C
->>>> but that's not guaranteed because there is no memory barrier
->>>> ordering B before C.
->>> 
->>> Yes, there is: loads and stores may not migrate into or out of critical
->>> sections.
->> 
->> That's a common misconception.
->> 
->> The processor is free to re-order this to:
->> 
->>    STORE C
->>    STORE B
->>    UNLOCK
->> 
->> That's because the unlock() only guarantees that:
->> 
->> Stores before the unlock in program order are guaranteed to complete
->> before the unlock completes. Stores after the unlock _may_ complete
->> before the unlock completes.
->> 
->> My point was that even if compiler barriers had the same semantics
->> as memory barriers, the situation would be no worse. That is, code
->> that is sensitive to memory barriers (like the example I gave above)
->> would merely have the same fragility with one-way compiler barriers
->> (with respect to the compiler combining writes).
->> 
->> That's what I meant by "no worse than would otherwise exist".
-> 
-> Actually, that's not correct.  This is actually deja vu with me on the
-> other side of the argument.  When we first did spinlocks on PA, I argued
-> as you did: lock only a barrier for code after and unlock for code
-> before.  The failing case is that you can have a critical section which
-> performs an atomically required operation and a following unit which
-> depends on it being performed.  If you begin the following unit before
-> the atomic requirement, you may end up losing.  It turns out this kind
-> of pattern is inherent in a lot of mail box device drivers: you need to
-> set up the mailbox atomically then poke it.  Setup is usually atomic,
-> deciding which mailbox to prime and actually poking it is in the
-> following unit.  Priming often involves an I/O bus transaction and if
-> you poke before priming, you get a misfire.
-> 
->>>> I see no problem with gcc write-combining in the absence of
->>>> memory barriers (as long as alignment is still respected,
->>>> ie., the size-promoted write is still naturally aligned). The
->>>> combined write is still atomic.
->>> 
->>> Actual alignment is pretty irrelevant.  That's why all architectures
->>> which require alignment also have to implement misaligned traps ... this
->>> is a fundamental requirement of the networking code, for instance.
->>> 
->>> The main problem is gcc thinking there's a misalignment (or a packed
->>> structure).  That causes splitting of loads and stores and that destroys
->>> atomicity.
->> 
->> Yeah, the extra requirement I added is basically nonsense, since the
->> only issue is what instructions the compiler is emitting. So if compiler
->> thinks the alignment is natural and combines the writes -- ok. If the
->> compiler thinks the alignment is off and doesn't combine the writes --
->> also ok.
-> 
-> Yes, I think I can agree that the only real problem is gcc thinking the
-> store or load needs splitting.
-> 
-> James
+> > 
+> >> This function
+> >> is just a weird mixture of data retrieval and allocation. I think you
+> >> need to separate it into 2 functions.
+> > 
+> > It is meant to do allocation with the retrieval being a short-cut (or fine
+> > control if you want).
+> > 
+> > I need to think a bit more for a better solution.
+> > 
+> > Best regards,
+> > Liviu
+> > 
+> >>
+> >> Rob
+> >>
+> > 
 > 
 > 
+> -- 
+> Thanks!
+> Yijing
+> 
+> 
+
+-- 
+====================
+| I would like to |
+| fix the world,  |
+| but they're not |
+| giving me the   |
+ \ source code!  /
+  ---------------
+    ¯\_(ツ)_/¯
+
