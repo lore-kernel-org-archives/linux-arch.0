@@ -1,122 +1,40 @@
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [PATCH] asm-generic/io.h: Implement read[bwlq]_relaxed()
-Date: Tue, 9 Sep 2014 15:15:13 +0100
-Message-ID: <20140909141513.GW4790@arm.com>
-References: <1410264760-29756-1-git-send-email-daniel.thompson@linaro.org>
- <20140909122818.GI1754@arm.com>
- <540EFA94.1010905@linaro.org>
- <540EFD4E.50804@linaro.org>
+From: Bjorn Helgaas <bhelgaas@google.com>
+Subject: Re: [PATCH v10 07/10] OF: Introduce helper function for getting PCI domain_nr
+Date: Tue, 9 Sep 2014 08:17:50 -0600
+Message-ID: <CAErSpo5ZyanUNiVnkt0q1m-HhMpTN+ZUVL59o70THyL_hKZAdg@mail.gmail.com>
+References: <1410184472-17630-1-git-send-email-Liviu.Dudau@arm.com>
+ <540E960D.7080408@huawei.com> <20140909084621.GS27864@e106497-lin.cambridge.arm.com>
+ <3780051.0eHpCN6UC9@wuerfel>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:43735 "EHLO
-	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1751172AbaIIOPT (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 9 Sep 2014 10:15:19 -0400
-Content-Disposition: inline
-In-Reply-To: <540EFD4E.50804@linaro.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Daniel Thompson <daniel.thompson@linaro.org>
-Cc: Arnd Bergmann <arnd@arndb.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "patches@linaro.org" <patches@linaro.org>, "linaro-kernel@lists.linaro.org" <linaro-kernel@lists.linaro.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+Content-Type: text/plain; charset=UTF-8
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <3780051.0eHpCN6UC9@wuerfel>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Liviu Dudau <Liviu.Dudau@arm.com>, Yijing Wang <wangyijing@huawei.com>, Rob Herring <robherring2@gmail.com>, Rob Herring <robh+dt@kernel.org>, Jason Gunthorpe <jgunthorpe@obsidianresearch.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Catalin Marinas <Catalin.Marinas@arm.com>, Will Deacon <Will.Deacon@arm.com>, Russell King <linux@arm.linux.org.uk>, linux-pci <linux-pci@vger.kernel.org>, Linus Walleij <linus.walleij@linaro.org>, Tanmay Inamdar <tinamdar@apm.com>, Grant Likely <grant.likely@secretlab.ca>, Sinan Kaya <okaya@codeaurora.org>, Jingoo Han <jg1.han@samsung.com>, Kukjin Kim <kgene.kim@samsung.com>, Suravee Suthikulanit <suravee.suthikulpanit@amd.com>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Device Tree ML <devicetree@vger.kernel.org>, LAKML <linux-arm-kernel@lists.infradead.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, Sep 09, 2014 at 02:14:54PM +0100, Daniel Thompson wrote:
-> On 09/09/14 14:03, Daniel Thompson wrote:
-> > On 09/09/14 13:28, Will Deacon wrote:
-> >> I have a larger series adding these (and the write equivalents) to=
- all
-> >> architectures that I periodically post and then fail to get on top=
- of.
-> >=20
-> > That's why you're on Cc:...
+On Tue, Sep 9, 2014 at 3:16 AM, Arnd Bergmann <arnd@arndb.de> wrote:
+> On Tuesday 09 September 2014 09:46:21 Liviu Dudau wrote:
+>> On Tue, Sep 09, 2014 at 06:54:21AM +0100, Yijing Wang wrote:
+>> > PCI domain(or named segment) is provided by firmware, in ACPI system, we evaluated it
+>> > by method "_SEG". in IA64 with ACPI, PCI hostbridge driver retrieves the domain from ACPI,
+>> > if it's absent, the default domain is zero. So I wonder why in DTS, if it's absent, we get
+>> > a auto increment domain value.
+>>
+>> Because you can have more than one hostbridge (rare, but not impossible) and unless you
+>> want to join the two segments, you might want to give it a different domain.
+>
+> I think you misunderstood the question. The difference is that in ACPI you
+> are required to specify the domain, while in DT it is optional with your
+> implementation.
 
-Ok, so why not just pick the asm-generic patch out of my series?
+_SEG is actually optional, but the spec (ACPI r5.0, sec 6.5.6) says to
+assume domain 0 if _SEG is absent.
 
-> >> The key part you're missing is defining some generic semantics for=
- these
-> >> accessors. Without those, I don't think it makes sense to put them=
- into
-> >> asm-generic, because drivers can't safely infer any meaning from t=
-he relaxed
-> >> definition.
-> >=20
-> > Currently the semantics are described as:
-> > --- cut here ---
-> > PCI ordering rules also guarantee that PIO read responses arrive af=
-ter
-> > any outstanding DMA writes from that bus, since for some devices th=
-e
-> > result of a readb call may signal to the driver that a DMA transact=
-ion
-> > is complete. In many cases, however, the driver may want to indicat=
-e
-> > that the next readb call has no relation to any previous DMA writes
-> > performed by the device. The driver can use readb_relaxed for these
-> > cases, although only some platforms will honor the relaxed semantic=
-s.
-> > Using the relaxed read functions will provide significant performan=
-ce
-> > benefits on platforms that support it. The qla2xxx driver provides
-> > examples of how to use readX_relaxed . In many cases, a majority of=
- the
-> > driver=E2=80=99s readX calls can safely be converted to readX_relax=
-ed calls,
-> > since only a few will indicate or depend on DMA completion.
-> > --- cut here ---
-> >=20
-> > The implementation provided in the patch trivially meets this defin=
-ition
-> > (by not honouring the relaxedness).
+Yijing mentioned ia64, which is relevant because PCI config accesses
+on ia64 are done via a firmware (SAL) interface, and the domain is
+part of that interface, so the kernel is actually required to supply
+the correct domain number (0 or _SEG value) for each host bridge.
 
-I still think we need to mention ordering of relaxed reads against each
-other and also against spinlocks.
-
-> >> Ben and I agreed on something back in May:
-> >>
-> >>   https://lkml.org/lkml/2014/5/22/468
-> >=20
-> > ... and didn't you also conclude with hpa that the very relaxed x86
-> > implementation of readl_relaxed() already meets this definition (as=
- do
-> > these changes to asm-generic/io.h).
->=20
-> Sorry. "very relaxed" is always a very stupid thing to say about x86
-> (especially to an arm guy).
->=20
-> More exactly I was referring to the absence of memory clobber in x86
-> readl_relaxed().
-
-Yeah, my series just adds the relaxed write accessors for x86.
-
-> > Thus allowing its use to perculate more widely really shouldn't do =
-an harm.
-> >=20
-> >=20
-> >> but I need to send a new version including:
-> >>
-> >>   - ioreadX_relaxed and iowriteX_relaxed
-> >>   - Strengthening non-relaxed I/O accessors on architectures with =
-non-empty
-> >>     mmiowb()
-> >>
-> >> I'll bump it up the list. In the meantime, you can have a look at =
-my io
-> >> branch on kernel.org
-> >=20
-> > I'd really like to see your work included (which I spotted after I =
-wrote
-> > the patch and when it occured to me to visit
-> > https://www.google.com/search?q=3Dasm-generic+readl_relaxed to see =
-if
-> > there was a well known reason not to make this change).
-> >=20
-> > However... I really can't see why we should delay introducing an al=
-ready
-> > documented function to the remaining architectures.
-
-I'd just rather fix the interface once instead of churning it about. Ho=
-w
-about I dust off the series again?
-
-Will
+Bjorn
