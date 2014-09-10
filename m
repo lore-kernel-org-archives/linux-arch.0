@@ -1,66 +1,36 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from service87.mimecast.com ([91.220.42.44]:43978 "EHLO
-	service87.mimecast.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752911AbaIJRGr convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 10 Sep 2014 13:06:47 -0400
-Date: Wed, 10 Sep 2014 18:06:41 +0100
-From: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
-Subject: Re: [PATCH v10 08/10] OF: PCI: Add support for parsing PCI host
- bridge resources from DT
-Message-ID: <20140910170641.GC19662@e102568-lin.cambridge.arm.com>
-References: <1410184472-17630-1-git-send-email-Liviu.Dudau@arm.com>
- <1410184472-17630-9-git-send-email-Liviu.Dudau@arm.com>
- <20140909133546.GB2636@e102568-lin.cambridge.arm.com>
- <20140910142241.GD27864@e106497-lin.cambridge.arm.com>
- <20140910151026.GB11640@e102568-lin.cambridge.arm.com>
- <20140910153233.GG27864@e106497-lin.cambridge.arm.com>
- <20140910163746.GB19662@e102568-lin.cambridge.arm.com>
- <20140910165347.GJ27864@e106497-lin.cambridge.arm.com>
+Received: from mout.kundenserver.de ([212.227.126.131]:60820 "EHLO
+	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751263AbaIJSUi (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 10 Sep 2014 14:20:38 -0400
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH v10 07/10] OF: Introduce helper function for getting PCI domain_nr
+Date: Wed, 10 Sep 2014 20:19:52 +0200
+Message-ID: <2908259.jgJNuDxCCa@wuerfel>
+In-Reply-To: <20140909112054.GD29639@arm.com>
+References: <1410184472-17630-1-git-send-email-Liviu.Dudau@arm.com> <3780051.0eHpCN6UC9@wuerfel> <20140909112054.GD29639@arm.com>
 MIME-Version: 1.0
-In-Reply-To: <20140910165347.GJ27864@e106497-lin.cambridge.arm.com>
-Content-Type: text/plain; charset=WINDOWS-1252
-Content-Transfer-Encoding: 8BIT
-Content-Disposition: inline
+Content-Transfer-Encoding: 7Bit
+Content-Type: text/plain; charset="us-ascii"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Liviu Dudau <Liviu.Dudau@arm.com>
-Cc: Bjorn Helgaas <bhelgaas@google.com>, Arnd Bergmann <arnd@arndb.de>, Rob Herring <robh+dt@kernel.org>, Jason Gunthorpe <jgunthorpe@obsidianresearch.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Catalin Marinas <Catalin.Marinas@arm.com>, Will Deacon <Will.Deacon@arm.com>, Russell King <linux@arm.linux.org.uk>, linux-pci <linux-pci@vger.kernel.org>, Linus Walleij <linus.walleij@linaro.org>, Tanmay Inamdar <tinamdar@apm.com>, Grant Likely <grant.likely@secretlab.ca>, Sinan Kaya <okaya@codeaurora.org>, Jingoo Han <jg1.han@samsung.com>, Kukjin Kim <kgene.kim@samsung.com>, Suravee Suthikulanit <suravee.suthikulpanit@amd.com>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Device Tree ML <devicetree@vger.kernel.org>, LAKML <linux-arm-kernel@lists.infradead.org>, "grant.likely@linaro.org" <grant.likely@linaro.org>
-Message-ID: <20140910170641.9Hq_LrsNk8W5rdOnkfK26LYqvnKUKrY3Q-bC46XieCc@z>
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Liviu Dudau <Liviu.Dudau@arm.com>, Yijing Wang <wangyijing@huawei.com>, Rob Herring <robherring2@gmail.com>, Bjorn Helgaas <bhelgaas@google.com>, Rob Herring <robh+dt@kernel.org>, Jason Gunthorpe <jgunthorpe@obsidianresearch.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Will Deacon <Will.Deacon@arm.com>, Russell King <linux@arm.linux.org.uk>, linux-pci <linux-pci@vger.kernel.org>, Linus Walleij <linus.walleij@linaro.org>, Tanmay Inamdar <tinamdar@apm.com>, Grant Likely <grant.likely@secretlab.ca>, Sinan Kaya <okaya@codeaurora.org>, Jingoo Han <jg1.han@samsung.com>, Kukjin Kim <kgene.kim@samsung.com>, Suravee Suthikulanit <suravee.suthikulpanit@amd.com>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Device Tree ML <devicetree@vger.kernel.org>, LAKML <linux-arm-kernel@lists.infradead.org>, "grant.likely@linaro.org" <grant.likely@linaro.org>
+Message-ID: <20140910181952.18GibK9_6YRL1qNtE2u7tYkaFteDZFBLCzoX6Qv4hGg@z>
 
-On Wed, Sep 10, 2014 at 05:53:47PM +0100, Liviu Dudau wrote:
-
-[...]
-
-> > > > > > > +		if (resource_type(res) == IORESOURCE_IO) {
-> > > > > > > +			if (*io_base)
-> > > > > > 
-> > > > > > You do not zero io_base in the first place so you should ask the API
-> > > > > > user to do that. Is 0 a valid value BTW ? If it is you've got to resort
-> > > > > > to something else to detect multiple IO resources.
-> > > 
-> > > No, zero is not a valid value. It is the cpu_addr value from the IO range, I'm
-> > > hopying that no one is crazy enough to map PCI address space at CPU address zero.
-> > > Thanks for spotting the lack of initialisation though, I need to fix it.
-> > 
-> > Mmm...wasn't a trick question sorry :D
-> > 
-> > PCI host bridge /pci ranges:
-> >    IO 0x00000000..0x0000ffff -> 0x00000000
-> >    More than one I/O resource converted. CPU offset for old range lost!
-> >      MEM 0x41000000..0x7fffffff -> 0x41000000
-> >      pci-host-generic 40000000.pci: PCI host bridge to bus 0000:00
-> >      pci_bus 0000:00: root bus resource [bu-01]
-> >      pci_bus 0000:00: root bus resource [io  0x0000-0xffff]
-> >      pci_bus 0000:00: root bus resource [mem 0x41000000-0x7fffffff]
-> > 
+On Tuesday 09 September 2014 12:20:54 Catalin Marinas wrote:
 > 
-> Your DT puts the IO space at CPU address zero? Could you copy the relevant
-> host bridge node from DT here?
+> We can assume that if a domain is not specified and there is a single
+> top level PCIe node, the domain defaults to 0. Are there any arm32
+> platforms that require multiple domains (and do not specify a number in
+> the DT)?
 
-It is kvmtools generated dts, may not be representative of real HW but
-that's what it is. For the whole story:
+In theory, I think all of them could work with a single domain, but then
+you need to partition the bus number space between the host controllers,
+so you have the exact same situation that you either need to make up
+random bus numbers or put them in DT.
 
-http://comments.gmane.org/gmane.linux.kernel.pci/29199
+Using multiple domains is way cleaner for this, even if we have to
+make up the numbers.
 
-Lorenzo
-
+	Arnd
