@@ -1,31 +1,35 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH v10 07/10] OF: Introduce helper function for getting PCI domain_nr
-Date: Wed, 10 Sep 2014 20:19:52 +0200
-Message-ID: <2908259.jgJNuDxCCa@wuerfel>
-References: <1410184472-17630-1-git-send-email-Liviu.Dudau@arm.com> <3780051.0eHpCN6UC9@wuerfel> <20140909112054.GD29639@arm.com>
+From: "H. Peter Anvin" <hpa@zytor.com>
+Subject: Re: bit fields && data tearing
+Date: Wed, 10 Sep 2014 13:18:06 -0700
+Message-ID: <5410B1FE.9090504@zytor.com>
+References: <20140712181328.GA8738@redhat.com>	<54079B70.4050200@hurleysoftware.com>	<1409785893.30640.118.camel@pasglop>	<063D6719AE5E284EB5DD2968C1650D6D17487172@AcuExch.aculab.com>	<1409824374.4246.62.camel@pasglop>	<5408E458.3@zytor.com>	<54090AF4.7060406@hurleysoftware.com>	<54091B30.7080100@zytor.com>	<5409D76D.2070203@hurleysoftware.com>	<5409D9C0.7030403@zytor.com> <20140908185240.21f52ca0@alan.etchedpixels.co.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7Bit
-Return-path: <linux-pci-owner@vger.kernel.org>
-In-Reply-To: <20140909112054.GD29639@arm.com>
-Sender: linux-pci-owner@vger.kernel.org
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Liviu Dudau <Liviu.Dudau@arm.com>, Yijing Wang <wangyijing@huawei.com>, Rob Herring <robherring2@gmail.com>, Bjorn Helgaas <bhelgaas@google.com>, Rob Herring <robh+dt@kernel.org>, Jason Gunthorpe <jgunthorpe@obsidianresearch.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Will Deacon <Will.Deacon@arm.com>, Russell King <linux@arm.linux.org.uk>, linux-pci <linux-pci@vger.kernel.org>, Linus Walleij <linus.walleij@linaro.org>, Tanmay Inamdar <tinamdar@apm.com>, Grant Likely <grant.likely@secretlab.ca>, Sinan Kaya <okaya@codeaurora.org>, Jingoo Han <jg1.han@samsung.com>, Kukjin Kim <kgene.kim@samsung.com>, Suravee Suthikulanit <suravee.suthikulpanit@amd.com>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Device Tree ML <devicetree@vger.kernel.org>, LAKML <linux-arm-kernel@lists.infradead.org>"grant.likely@linaro.org" <grant.>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from terminus.zytor.com ([198.137.202.10]:57518 "EHLO mail.zytor.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752446AbaIJUSv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 10 Sep 2014 16:18:51 -0400
+In-Reply-To: <20140908185240.21f52ca0@alan.etchedpixels.co.uk>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: One Thousand Gnomes <gnomes@lxorguk.ukuu.org.uk>
+Cc: Peter Hurley <peter@hurleysoftware.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Laight <David.Laight@ACULAB.COM>, Jakub Jelinek <jakub@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Tony Luck <tony.luck@intel.com>, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, Oleg Nesterov <oleg@redhat.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Paul Mackerras <paulus@samba.org>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, "linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>, Miroslav Franc <mfranc@redhat.com>, Richard Henderson <rth@twiddle.net>, linux-alpha@vger.kernel.org
 
-On Tuesday 09 September 2014 12:20:54 Catalin Marinas wrote:
+On 09/08/2014 10:52 AM, One Thousand Gnomes wrote:
 > 
-> We can assume that if a domain is not specified and there is a single
-> top level PCIe node, the domain defaults to 0. Are there any arm32
-> platforms that require multiple domains (and do not specify a number in
-> the DT)?
+> I think the whole "removing Alpha EV5" support is basically bonkers. Just
+> use set_bit in the tty layer. Alpha will continue to work as well as it
+> always has done and you won't design out support for any future processor
+> that turns out not to do byte aligned stores.
+> 
 
-In theory, I think all of them could work with a single domain, but then
-you need to partition the bus number space between the host controllers,
-so you have the exact same situation that you either need to make up
-random bus numbers or put them in DT.
+I think it's pretty safe to say such a processor is unlikely to ever be
+created, for the same reason there weren't any 48-bit computers when
+32-bit computers ran out of steam: it caused more problems than it
+solved, and Alpha pretty much proved that.  The engineering advantages
+would have to be so overwhelmingly in favor for someone to want to walk
+down that road again.
 
-Using multiple domains is way cleaner for this, even if we have to
-make up the numbers.
-
-	Arnd
+	-hpa
