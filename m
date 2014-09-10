@@ -1,55 +1,147 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.citrix.com ([66.165.176.89]:23337 "EHLO SMTP.CITRIX.COM"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751627AbaIJMic (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 10 Sep 2014 08:38:32 -0400
-Message-ID: <54104641.7020007@citrix.com>
-Date: Wed, 10 Sep 2014 13:38:25 +0100
-From: David Vrabel <david.vrabel@citrix.com>
+Received: from service87.mimecast.com ([91.220.42.44]:48568 "EHLO
+	service87.mimecast.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751260AbaIJNEk (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 10 Sep 2014 09:04:40 -0400
+Date: Wed, 10 Sep 2014 14:04:32 +0100
+From: Liviu Dudau <Liviu.Dudau@arm.com>
+Subject: Re: [PATCH v10 07/10] OF: Introduce helper function for getting PCI
+ domain_nr
+Message-ID: <20140910130432.GB27864@e106497-lin.cambridge.arm.com>
+References: <1410184472-17630-1-git-send-email-Liviu.Dudau@arm.com>
+ <1410184472-17630-8-git-send-email-Liviu.Dudau@arm.com>
+ <CAL_JsqJi8k1Goc3UmXhuxf9v7=4gJrYG_Di7v574PxS8TsJaXw@mail.gmail.com>
+ <20140908145459.GO27864@e106497-lin.cambridge.arm.com>
+ <CAL_JsqJdGKDVwJOpPp19OkVPGzR7Zqv3nh+ONHHaYnPLYTYoYg@mail.gmail.com>
+ <20140908155931.GP27864@e106497-lin.cambridge.arm.com>
 MIME-Version: 1.0
-Subject: Re: [Xen-devel] [PATCH v1 08/21] x86/xen/MSI: Use MSI chip framework
- to configure MSI/MSI-X irq
-References: <1409911806-10519-1-git-send-email-wangyijing@huawei.com>	<1409911806-10519-9-git-send-email-wangyijing@huawei.com>	<5409C8C0.8020200@citrix.com> <540E6095.8030409@huawei.com>
-In-Reply-To: <540E6095.8030409@huawei.com>
-Content-Type: text/plain; charset="ISO-8859-1"
-Content-Transfer-Encoding: 7bit
+In-Reply-To: <20140908155931.GP27864@e106497-lin.cambridge.arm.com>
+Content-Type: multipart/mixed; boundary="d6Gm4EdcadzBjdND"
+Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Yijing Wang <wangyijing@huawei.com>, David Vrabel <david.vrabel@citrix.com>, Bjorn Helgaas <bhelgaas@google.com>
-Cc: linux-mips@linux-mips.org, linux-ia64@vger.kernel.org, linux-pci@vger.kernel.org, Xinwei Hu <huxinwei@huawei.com>, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, Russell King <linux@arm.linux.org.uk>, Joerg Roedel <joro@8bytes.org>, x86@kernel.org, Sebastian Ott <sebott@linux.vnet.ibm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, xen-devel@lists.xenproject.org, arnab.basu@freescale.com, Arnd Bergmann <arnd@arndb.de>, Chris Metcalf <cmetcalf@tilera.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arm-kernel@lists.infradead.org, Bharat.Bhushan@freescale.com, Tony Luck <tony.luck@intel.com>, Ralf Baechle <ralf@linux-mips.org>, iommu@lists.linux-foundation.org, Wuyun <wuyun.wu@huawei.com>, linuxppc-dev@lists.ozlabs.org, "David S. Miller" <davem@davemloft.net>
-Message-ID: <20140910123825.FJwcJBT21-s0jqLMpvWJbL8wmaKucBtOPRi00RHdyy4@z>
+To: Rob Herring <robherring2@gmail.com>
+Cc: Bjorn Helgaas <bhelgaas@google.com>, Arnd Bergmann <arnd@arndb.de>, Rob Herring <robh+dt@kernel.org>, Jason Gunthorpe <jgunthorpe@obsidianresearch.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Catalin Marinas <Catalin.Marinas@arm.com>, Will Deacon <Will.Deacon@arm.com>, Russell King <linux@arm.linux.org.uk>, linux-pci <linux-pci@vger.kernel.org>, Linus Walleij <linus.walleij@linaro.org>, Tanmay Inamdar <tinamdar@apm.com>, Grant Likely <grant.likely@secretlab.ca>, Sinan Kaya <okaya@codeaurora.org>, Jingoo Han <jg1.han@samsung.com>, Kukjin Kim <kgene.kim@samsung.com>, Suravee Suthikulanit <suravee.suthikulpanit@amd.com>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Device Tree ML <devicetree@vger.kernel.org>, LAKML <linux-arm-kernel@lists.infradead.org>, "grant.likely@linaro.org" <grant.likely@linaro.org>
+Message-ID: <20140910130432.pN9lIBSIoDPl9U7rlO63kInm6LM_b47HVySbrbj19j4@z>
 
-On 09/09/14 03:06, Yijing Wang wrote:
-> On 2014/9/5 22:29, David Vrabel wrote:
->> On 05/09/14 11:09, Yijing Wang wrote:
->>> Use MSI chip framework instead of arch MSI functions to configure
->>> MSI/MSI-X irq. So we can manage MSI/MSI-X irq in a unified framework.
->> [...]
->>> --- a/arch/x86/pci/xen.c
->>> +++ b/arch/x86/pci/xen.c
->> [...]
->>> @@ -418,9 +430,9 @@ int __init pci_xen_init(void)
->>>  #endif
->>>  
->>>  #ifdef CONFIG_PCI_MSI
->>> -	x86_msi.setup_msi_irqs = xen_setup_msi_irqs;
->>> -	x86_msi.teardown_msi_irq = xen_teardown_msi_irq;
->>> -	x86_msi.teardown_msi_irqs = xen_teardown_msi_irqs;
->>> +	xen_msi_chip.setup_irqs = xen_setup_msi_irqs;
->>> +	xen_msi_chip.teardown_irqs = xen_teardown_msi_irqs;
->>> +	x86_msi_chip = &xen_msi_chip;
->>>  	msi_chip.irq_mask = xen_nop_msi_mask;
->>>  	msi_chip.irq_unmask = xen_nop_msi_mask;
->>
->> Why have these not been changed to set the x86_msi_chip.mask/unmask
->> fields instead?
-> 
-> Hi David, x86_msi_chip here is struct msi_chip data type, used to configure MSI/MSI-X
-> irq. msi_chip above is struct irq_chip data type, represent the MSI irq controller. They are
-> not the same object. Their name easily confusing people.
 
-Ok, it all makes sense now.
+--d6Gm4EdcadzBjdND
+Content-Type: text/plain; charset=UTF-8
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
 
-Acked-by: David Vrabel <david.vrabel@citrix.com>
+On Mon, Sep 08, 2014 at 04:59:31PM +0100, Liviu Dudau wrote:
+> On Mon, Sep 08, 2014 at 04:27:36PM +0100, Rob Herring wrote:
+> > On Mon, Sep 8, 2014 at 9:54 AM, Liviu Dudau <Liviu.Dudau@arm.com> wrote=
+:
+> > > On Mon, Sep 08, 2014 at 03:27:56PM +0100, Rob Herring wrote:
+> > >> On Mon, Sep 8, 2014 at 8:54 AM, Liviu Dudau <Liviu.Dudau@arm.com> wr=
+ote:
+> > >> > Add of_pci_get_domain_nr() to retrieve the PCI domain number
+> > >> > of a given device from DT. If the information is not present,
+> > >> > the function can be requested to allocate a new domain number.
+> > >> >
+> > >> > Cc: Bjorn Helgaas <bhelgaas@google.com>
+> > >> > Cc: Arnd Bergmann <arnd@arndb.de>
+> > >> > Cc: Grant Likely <grant.likely@linaro.org>
+> > >> > Cc: Rob Herring <robh+dt@kernel.org>
+> > >> > Reviewed-by: Catalin Marinas <catalin.marinas@arm.com>
+> > >> > Signed-off-by: Liviu Dudau <Liviu.Dudau@arm.com>
+> > >> > ---
+> > >> >  drivers/of/of_pci.c    | 34 ++++++++++++++++++++++++++++++++++
+> > >> >  include/linux/of_pci.h |  7 +++++++
+> > >> >  2 files changed, 41 insertions(+)
+> > >> >
+> > >> > diff --git a/drivers/of/of_pci.c b/drivers/of/of_pci.c
+> > >> > index 8481996..a107edb 100644
+> > >> > --- a/drivers/of/of_pci.c
+> > >> > +++ b/drivers/of/of_pci.c
+> > >> > @@ -89,6 +89,40 @@ int of_pci_parse_bus_range(struct device_node *=
+node, struct resource *res)
+> > >> >  }
+> > >> >  EXPORT_SYMBOL_GPL(of_pci_parse_bus_range);
+> > >> >
+> > >> > +static atomic_t of_domain_nr =3D ATOMIC_INIT(-1);
+> > >> > +
+> > >> > +/**
+> > >> > + * This function will try to obtain the host bridge domain number=
+ by
+> > >> > + * using of_alias_get_id() call with "pci-domain" as a stem. If t=
+hat
+> > >> > + * fails, a local allocator will be used. The local allocator can
+> > >> > + * be requested to return a new domain_nr if the information is m=
+issing
+> > >> > + * from the device tree.
+> > >> > + *
+> > >> > + * @node: device tree node with the domain information
+> > >> > + * @allocate_if_missing: if DT lacks information about the domain=
+ nr,
+> > >> > + * allocate a new number.
+> > >> > + *
+> > >> > + * Returns the associated domain number from DT, or a new domain =
+number
+> > >> > + * if DT information is missing and @allocate_if_missing is true.=
+ If
+> > >> > + * @allocate_if_missing is false then the last allocated domain n=
+umber
+> > >> > + * will be returned.
+> > >> > + */
+> > >> > +int of_pci_get_domain_nr(struct device_node *node, bool allocate_=
+if_missing)
+> > >> > +{
+> > >> > +       int domain;
+> > >> > +
+> > >> > +       domain =3D of_alias_get_id(node, "pci-domain");
+> > >> > +       if (domain =3D=3D -ENODEV) {
+> > >> > +               if (allocate_if_missing)
+> > >> > +                       domain =3D atomic_inc_return(&of_domain_nr=
+);
+> > >> > +               else
+> > >> > +                       domain =3D atomic_read(&of_domain_nr);
+> > >>
+> > >> This function seems a bit broken to me. It is overloaded with too ma=
+ny
+> > >> different outcomes. Think about how this would work if you have
+> > >> multiple PCI buses and a mixture of having pci-domain aliases or not=
+.
+> > >> Aren't domain numbers global? Allocation should then start outside o=
+f
+> > >> the range of alias ids.
+> > >>
+> > >> Rob
+> > >>
+> > >
+> > > Rob,
+> > >
+> > > Would this version make more sense?
+> >=20
+> > No.
+> >=20
 
-David
+Hi Rob,
+
+Here is an updated version of the patch. I have implemented a separate func=
+tion
+for getting the max domain number from the device tree and use the result a=
+s
+the start value + 1 for the allocator.
+
+Best regards,
+Liviu
+
+--=20
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D
+| I would like to |
+| fix the world,  |
+| but they're not |
+| giving me the   |
+ \ source code!  /
+  ---------------
+    =C2=AF\_(=E3=83=84)_/=C2=AF
+--d6Gm4EdcadzBjdND
+Content-Type: text/x-diff; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
+Content-Disposition: attachment; filename="0001-OF-Introduce-helper-function-for-getting-PCI-domain_.patch"
+
+
+--d6Gm4EdcadzBjdND--
