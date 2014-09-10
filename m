@@ -1,48 +1,38 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from relay1.mentorg.com ([192.94.38.131]:39600 "EHLO
-	relay1.mentorg.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750937AbaIJH3b (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 10 Sep 2014 03:29:31 -0400
-Message-ID: <540FFDD5.8000403@mentor.com>
-Date: Wed, 10 Sep 2014 15:29:25 +0800
-From: Chung-Lin Tang <chunglin_tang@mentor.com>
+Received: from smtp02.citrix.com ([66.165.176.63]:38309 "EHLO
+	SMTP02.CITRIX.COM" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751320AbaIJMgr (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 10 Sep 2014 08:36:47 -0400
+Message-ID: <541045BE.9050804@citrix.com>
+Date: Wed, 10 Sep 2014 13:36:14 +0100
+From: David Vrabel <david.vrabel@citrix.com>
 MIME-Version: 1.0
-Subject: Re: [PATCH v3 25/29] nios2: Module support
-References: <1410168160-3624-1-git-send-email-lftan@altera.com>            <1410168160-3624-26-git-send-email-lftan@altera.com> <75377.1410297958@turing-police.cc.vt.edu>
-In-Reply-To: <75377.1410297958@turing-police.cc.vt.edu>
-Content-Type: text/plain; charset="UTF-8"
+Subject: Re: [Xen-devel] [PATCH v1 04/21] x86/xen/MSI: Eliminate arch_msix_mask_irq()
+ and arch_msi_mask_irq()
+References: <1409911806-10519-1-git-send-email-wangyijing@huawei.com> <1409911806-10519-5-git-send-email-wangyijing@huawei.com>
+In-Reply-To: <1409911806-10519-5-git-send-email-wangyijing@huawei.com>
+Content-Type: text/plain; charset="ISO-8859-1"
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Valdis.Kletnieks@vt.edu, Ley Foon Tan <lftan@altera.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, lftan.linux@gmail.com, cltang@codesourcery.com
-Message-ID: <20140910072925.YF3JBWizs6DaATY4hOwjIGhdRJ-vOoV-gZpEciKTvv4@z>
+To: Yijing Wang <wangyijing@huawei.com>, Bjorn Helgaas <bhelgaas@google.com>
+Cc: linux-mips@linux-mips.org, linux-ia64@vger.kernel.org, linux-pci@vger.kernel.org, Bharat.Bhushan@freescale.com, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, Russell King <linux@arm.linux.org.uk>, Joerg Roedel <joro@8bytes.org>, x86@kernel.org, Sebastian Ott <sebott@linux.vnet.ibm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, xen-devel@lists.xenproject.org, arnab.basu@freescale.com, Arnd Bergmann <arnd@arndb.de>, Chris Metcalf <cmetcalf@tilera.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arm-kernel@lists.infradead.org, Xinwei Hu <huxinwei@huawei.com>, Tony Luck <tony.luck@intel.com>, Ralf Baechle <ralf@linux-mips.org>, iommu@lists.linux-foundation.org, Wuyun <wuyun.wu@huawei.com>, linuxppc-dev@lists.ozlabs.org, "David S. Miller" <davem@davemloft.net>
+Message-ID: <20140910123614.whXOE-9wftx2EAh0K3kln762UvI0JlRSGWJg3UCLZK4@z>
 
-On 14/9/10 5:25 AM, Valdis.Kletnieks@vt.edu wrote:
-> On Mon, 08 Sep 2014 17:22:36 +0800, Ley Foon Tan said:
->> This patch adds support for loadable modules.
->>
->> Signed-off-by: Ley Foon Tan <lftan@altera.com>
-> 
->> +/*
->> + * Modules should NOT be allocated with kmalloc for (obvious) reasons.
->> + * But we do it for now to avoid relocation issues. CALL26/PCREL26 cannot reach
->> + * from 0x80000000 (vmalloc area) to 0xc00000000 (kernel) (kmalloc returns
->> + * addresses in 0xc0000000)
->> + */
-> 
-> That's a nice scary comment to see. :)
-> 
-> What's the long-term plan here?
-> 
+On 05/09/14 11:09, Yijing Wang wrote:
+> Commit 0e4ccb150 added two __weak arch functions arch_msix_mask_irq()
+> and arch_msi_mask_irq() to fix a bug found when running xen in x86.
+> Introduced these two funcntions make MSI code complex. And mask/unmask
+> is the irq actions related to interrupt controller, should not use
+> weak arch functions to override mask/unmask interfaces. This patch
+> reverted commit 0e4ccb150 and export struct irq_chip msi_chip, modify
+> msi_chip->irq_mask/irq_unmask() in xen init functions to fix this
+> bug for simplicity. Also this is preparation for using struct
+> msi_chip instead of weak arch MSI functions in all platforms.
 
-We would probably need to add the ability to add trampolines in some
-way, though this of course impairs a little performance. Or if the
-default region of vmalloc can be configured to use the same 256MB region
-as the kernel.
+Acked-by: David Vrabel <david.vrabel@citrix.com>
 
-I wonder how MIPS (which has similar same-region call/jump instructions)
-deals with this?
+But I wonder if it would be better the Xen subsystem to provide its own
+struct irq_chip instead of adjusting the fields in the generic x86 one.
 
-Chung-Lin
-
+David
