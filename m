@@ -1,110 +1,50 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from szxga03-in.huawei.com ([119.145.14.66]:64930 "EHLO
+Received: from szxga03-in.huawei.com ([119.145.14.66]:10079 "EHLO
 	szxga03-in.huawei.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752623AbaIJBqp (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 9 Sep 2014 21:46:45 -0400
-Message-ID: <540FAD13.9030502@huawei.com>
-Date: Wed, 10 Sep 2014 09:44:51 +0800
+	with ESMTP id S1751236AbaIJCBe (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 9 Sep 2014 22:01:34 -0400
+Message-ID: <540FAFA4.1080008@huawei.com>
+Date: Wed, 10 Sep 2014 09:55:48 +0800
 From: Yijing Wang <wangyijing@huawei.com>
 MIME-Version: 1.0
 Subject: Re: [PATCH v10 07/10] OF: Introduce helper function for getting PCI
  domain_nr
-References: <1410184472-17630-1-git-send-email-Liviu.Dudau@arm.com> <1410184472-17630-8-git-send-email-Liviu.Dudau@arm.com> <CAL_JsqJi8k1Goc3UmXhuxf9v7=4gJrYG_Di7v574PxS8TsJaXw@mail.gmail.com> <20140908145459.GO27864@e106497-lin.cambridge.arm.com> <CAL_JsqJdGKDVwJOpPp19OkVPGzR7Zqv3nh+ONHHaYnPLYTYoYg@mail.gmail.com> <20140908155931.GP27864@e106497-lin.cambridge.arm.com> <540E960D.7080408@huawei.com> <20140909084621.GS27864@e106497-lin.cambridge.arm.com> <540EC8CB.7010106@huawei.com> <20140909141122.GY27864@e106497-lin.cambridge.arm.com>
-In-Reply-To: <20140909141122.GY27864@e106497-lin.cambridge.arm.com>
+References: <1410184472-17630-1-git-send-email-Liviu.Dudau@arm.com> <1410184472-17630-8-git-send-email-Liviu.Dudau@arm.com> <CAL_JsqJi8k1Goc3UmXhuxf9v7=4gJrYG_Di7v574PxS8TsJaXw@mail.gmail.com> <20140908145459.GO27864@e106497-lin.cambridge.arm.com> <CAL_JsqJdGKDVwJOpPp19OkVPGzR7Zqv3nh+ONHHaYnPLYTYoYg@mail.gmail.com> <20140908155931.GP27864@e106497-lin.cambridge.arm.com> <540E960D.7080408@huawei.com> <20140909084621.GS27864@e106497-lin.cambridge.arm.com> <540EC8CB.7010106@huawei.com> <CAErSpo4cAfom2=07NYDRfTCdHO22M0v+ueiaZuG6v2Xd18wEnQ@mail.gmail.com>
+In-Reply-To: <CAErSpo4cAfom2=07NYDRfTCdHO22M0v+ueiaZuG6v2Xd18wEnQ@mail.gmail.com>
 Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Liviu Dudau <Liviu.Dudau@arm.com>
-Cc: Rob Herring <robherring2@gmail.com>, Bjorn Helgaas <bhelgaas@google.com>, Arnd Bergmann <arnd@arndb.de>, Rob Herring <robh+dt@kernel.org>, Jason Gunthorpe <jgunthorpe@obsidianresearch.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Catalin Marinas <Catalin.Marinas@arm.com>, Will Deacon <Will.Deacon@arm.com>, Russell King <linux@arm.linux.org.uk>, linux-pci <linux-pci@vger.kernel.org>, Linus Walleij <linus.walleij@linaro.org>, Tanmay Inamdar <tinamdar@apm.com>, Grant Likely <grant.likely@secretlab.ca>, Sinan Kaya <okaya@codeaurora.org>, Jingoo Han <jg1.han@samsung.com>, Kukjin Kim <kgene.kim@samsung.com>, Suravee Suthikulanit <suravee.suthikulpanit@amd.com>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Device Tree ML <devicetree@vger.kernel.org>, LAKML <linux-arm-kernel@lists.infradead.org>, "grant.likely@linaro.org" <grant.likely@linaro.org>
-Message-ID: <20140910014451.FKRjjbBpI7h7D0AD-1lh68pG-ESuFaPVvRqlkUeKT9w@z>
+To: Bjorn Helgaas <bhelgaas@google.com>
+Cc: Liviu Dudau <Liviu.Dudau@arm.com>, Rob Herring <robherring2@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Rob Herring <robh+dt@kernel.org>, Jason Gunthorpe <jgunthorpe@obsidianresearch.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Catalin Marinas <Catalin.Marinas@arm.com>, Will Deacon <Will.Deacon@arm.com>, Russell King <linux@arm.linux.org.uk>, linux-pci <linux-pci@vger.kernel.org>, Linus Walleij <linus.walleij@linaro.org>, Tanmay Inamdar <tinamdar@apm.com>, Grant Likely <grant.likely@secretlab.ca>, Sinan Kaya <okaya@codeaurora.org>, Jingoo Han <jg1.han@samsung.com>, Kukjin Kim <kgene.kim@samsung.com>, Suravee Suthikulanit <suravee.suthikulpanit@amd.com>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Device Tree ML <devicetree@vger.kernel.org>, LAKML <linux-arm-kernel@lists.infradead.org>, "grant.likely@linaro.org" <grant.likely@linaro.org>
+Message-ID: <20140910015548.rCI276ujETb_n8qion9b-_ifTWEz5eGcstSH6VrVYP4@z>
 
 >> OK. Sorry, I have one last question, because domain will be used to calculate the address used to
 >> access PCI hardware config registers. So if DTS file doesn't report the domain, how do we know
 >> we would access the right registers when we use the auto increment domain vaule ?
+>> Has there a mechanism to make sure system can access the correct registers by the domain ?
 > 
-> That's a good question and sides with Arnd's suggestion to try to mandate the presence of the PCI
-> domain in the DTS. However, by grepping through the source code, it looks like the architectures
-> that use the domain number for reading config registers (x86-based) are non-DT architectures,
-> while DT-aware arches seem to ignore the domain number except when printing out messages. Is that
-> another confirmation that most DT-aware architectures have only run with domain_nr = 0?
+> I think you're referring to config access via ECAM (PCIe r3.0, sec
+> 7.2.2).  In that case, I don't think the domain should be used to
+> compute the memory-mapped configuration address.  Each host bridge is
+> in exactly one domain, and each host bridge has an associated ECAM
+> area base.  The address calculation uses the bus number, device
+> number, function number, and register number to compute an offset into
+> the ECAM area.
 > 
+> So as long as the DT tells you the ECAM information for each host
+> bridge, that should be sufficient.  The domain number is then just a
+> Linux convenience and is not tied to the platform as it is on ia64.
 
-Arnd's suggestion is make sense to me, thanks for Bjorn's detailed explanation, now I know domain_nr
-is purely internal to kernel in DT-aware platform, it's not needed when access PCI config space.
+Hi Bjorn, you are right, thanks for your detailed explanation! :)
 
 Thanks!
 Yijing.
 
 > 
->> Has there a mechanism to make sure system can access the correct registers by the domain ?
+> Bjorn
 > 
-> Not as such if you look with x86 glasses. With the exception of powerpc all other architecures
-> seem to happily assume domain_nr = 0 and ignore it in the computation of configuration registers
-> offsets.
-> 
-> Best regards,
-> Liviu
-> 
->>
->> Thanks!
->> Yijing.
->>
->>>
->>> Best regards,
->>> Liviu
->>>
->>>>
->>>> PCI get domain by ACPI "_SEG" in IA64(drivers/acpi/pci_root.c)
->>>> ......
->>>> 	status = acpi_evaluate_integer(handle, METHOD_NAME__SEG, NULL,
->>>> 				       &segment);
->>>> 	if (ACPI_FAILURE(status) && status != AE_NOT_FOUND) {
->>>> 		dev_err(&device->dev,  "can't evaluate _SEG\n");
->>>> 		result = -ENODEV;
->>>> 		goto end;
->>>> 	}
->>>> .......
->>>>
->>>> Thanks!
->>>> Yijing.
->>>>
->>>>>
->>>>>> This function
->>>>>> is just a weird mixture of data retrieval and allocation. I think you
->>>>>> need to separate it into 2 functions.
->>>>>
->>>>> It is meant to do allocation with the retrieval being a short-cut (or fine
->>>>> control if you want).
->>>>>
->>>>> I need to think a bit more for a better solution.
->>>>>
->>>>> Best regards,
->>>>> Liviu
->>>>>
->>>>>>
->>>>>> Rob
->>>>>>
->>>>>
->>>>
->>>>
->>>> -- 
->>>> Thanks!
->>>> Yijing
->>>>
->>>>
->>>
->>
->>
->> -- 
->> Thanks!
->> Yijing
->>
->> --
->> To unsubscribe from this list: send the line "unsubscribe linux-pci" in
->> the body of a message to majordomo@vger.kernel.org
->> More majordomo info at  http://vger.kernel.org/majordomo-info.html
->>
+> .
 > 
 
 
