@@ -1,210 +1,75 @@
-From: Liviu Dudau <Liviu.Dudau@arm.com>
-Subject: Re: [PATCH v10 08/10] OF: PCI: Add support for parsing PCI host
- bridge resources from DT
-Date: Wed, 10 Sep 2014 15:22:41 +0100
-Message-ID: <20140910142241.GD27864@e106497-lin.cambridge.arm.com>
-References: <1410184472-17630-1-git-send-email-Liviu.Dudau@arm.com>
- <1410184472-17630-9-git-send-email-Liviu.Dudau@arm.com>
- <20140909133546.GB2636@e102568-lin.cambridge.arm.com>
+From: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
+Subject: Re: [Xen-devel] [PATCH v1 08/21] x86/xen/MSI: Use MSI chip framework
+ to configure MSI/MSI-X irq
+Date: Wed, 10 Sep 2014 10:59:57 -0400
+Message-ID: <20140910145957.GD12893@laptop.dumpdata.com>
+References: <1409911806-10519-1-git-send-email-wangyijing@huawei.com>
+ <1409911806-10519-9-git-send-email-wangyijing@huawei.com>
+ <5409C8C0.8020200@citrix.com>
+ <540E6095.8030409@huawei.com>
+ <54104641.7020007@citrix.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20140909133546.GB2636@e102568-lin.cambridge.arm.com>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-mips-bounce@linux-mips.org>
 Content-Disposition: inline
-Sender: linux-kernel-owner@vger.kernel.org
-To: Lorenzo Pieralisi <Lorenzo.Pieralisi@arm.com>
-Cc: Bjorn Helgaas <bhelgaas@google.com>, Arnd Bergmann <arnd@arndb.de>, Rob Herring <robh+dt@kernel.org>, Jason Gunthorpe <jgunthorpe@obsidianresearch.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Catalin Marinas <Catalin.Marinas@arm.com>, Will Deacon <Will.Deacon@arm.com>, Russell King <linux@arm.linux.org.uk>, linux-pci <linux-pci@vger.kernel.org>, Linus Walleij <linus.walleij@linaro.org>, Tanmay Inamdar <tinamdar@apm.com>, Grant Likely <grant.likely@secretlab.ca>, Sinan Kaya <okaya@codeaurora.org>, Jingoo Han <jg1.han@samsung.com>, Kukjin Kim <kgene.kim@samsung.com>, Suravee Suthikulanit <suravee.suthikulpanit@amd.com>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Device Tree ML <devicetree@vger.kernel.org>, LAKML <linux-arm-kernel@lists.infradead.org>, "grant.likely@linaro.org" <grant.likely@linaro.org>
+In-Reply-To: <54104641.7020007@citrix.com>
+Sender: linux-mips-bounce@linux-mips.org
+Errors-to: linux-mips-bounce@linux-mips.org
+List-help: <mailto:ecartis@linux-mips.org?Subject=help>
+List-unsubscribe: <mailto:ecartis@linux-mips.org?subject=unsubscribe%20linux-mips>
+List-software: Ecartis version 1.0.0
+List-subscribe: <mailto:ecartis@linux-mips.org?subject=subscribe%20linux-mips>
+List-owner: <mailto:ralf@linux-mips.org>
+List-post: <mailto:linux-mips@linux-mips.org>
+List-archive: <http://www.linux-mips.org/archives/linux-mips/>
+To: David Vrabel <david.vrabel@citrix.com>
+Cc: Yijing Wang <wangyijing@huawei.com>, Bjorn Helgaas <bhelgaas@google.com>, linux-mips@linux-mips.org, linux-ia64@vger.kernel.org, linux-pci@vger.kernel.org, Xinwei Hu <huxinwei@huawei.com>, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, Russell King <linux@arm.linux.org.uk>, Joerg Roedel <joro@8bytes.org>, x86@kernel.org, Sebastian Ott <sebott@linux.vnet.ibm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, xen-devel@lists.xenproject.org, arnab.basu@freescale.com, Arnd Bergmann <arnd@arndb.de>, Chris Metcalf <cmetcalf@tilera.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arm-kernel@lists.infradead.org, Bharat.Bhushan@freescale.com, Tony Luck <tony.luck@intel.com>, Ralf Baechle <ralf@linux-mips.org>, iommu@lists.l
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Sep 09, 2014 at 02:35:46PM +0100, Lorenzo Pieralisi wrote:
-> On Mon, Sep 08, 2014 at 02:54:30PM +0100, Liviu Dudau wrote:
-> > Provide a function to parse the PCI DT ranges that can be used to
-> > create a pci_host_bridge structure together with its associated
-> > bus.
-> >=20
-> > Cc: Bjorn Helgaas <bhelgaas@google.com>
-> > Cc: Arnd Bergmann <arnd@arndb.de>
-> > Cc: Grant Likely <grant.likely@linaro.org>
-> > Cc: Rob Herring <robh+dt@kernel.org>
-> > Cc: Catalin Marinas <catalin.marinas@arm.com>
-> > Signed-off-by: Liviu Dudau <Liviu.Dudau@arm.com>
-> > ---
-> >  drivers/of/of_pci.c    | 102 +++++++++++++++++++++++++++++++++++++=
-++++++++++++
-> >  include/linux/of_pci.h |  11 ++++++
-> >  2 files changed, 113 insertions(+)
-> >=20
-> > diff --git a/drivers/of/of_pci.c b/drivers/of/of_pci.c
-> > index a107edb..36701da 100644
-> > --- a/drivers/of/of_pci.c
-> > +++ b/drivers/of/of_pci.c
-> > @@ -1,7 +1,9 @@
-> >  #include <linux/kernel.h>
-> >  #include <linux/export.h>
-> >  #include <linux/of.h>
-> > +#include <linux/of_address.h>
-> >  #include <linux/of_pci.h>
-> > +#include <linux/slab.h>
-> > =20
-> >  static inline int __of_pci_pci_compare(struct device_node *node,
-> >  				       unsigned int data)
-> > @@ -123,6 +125,106 @@ int of_pci_get_domain_nr(struct device_node *=
-node, bool allocate_if_missing)
-> >  }
-> >  EXPORT_SYMBOL_GPL(of_pci_get_domain_nr);
-> > =20
-> > +/**
-> > + * of_pci_get_host_bridge_resources - Parse PCI host bridge resour=
-ces from DT
-> > + * @dev: device node of the host bridge having the range property
-> > + * @busno: bus number associated with the bridge root bus
-> > + * @bus_max: maximum number of busses for this bridge
-> > + * @resources: list where the range of resources will be added aft=
-er DT parsing
-> > + * @io_base: pointer to a variable that will contain on return the=
- physical
-> > + * address for the start of the I/O range.
-> > + *
-> > + * It is the callers job to free the @resources list.
-> > + *
-> > + * This function will parse the "ranges" property of a PCI host br=
-idge device
-> > + * node and setup the resource mapping based on its content. It is=
- expected
-> > + * that the property conforms with the Power ePAPR document.
->=20
-> You should also define what it returns and when.
+On Wed, Sep 10, 2014 at 01:38:25PM +0100, David Vrabel wrote:
+> On 09/09/14 03:06, Yijing Wang wrote:
+> > On 2014/9/5 22:29, David Vrabel wrote:
+> >> On 05/09/14 11:09, Yijing Wang wrote:
+> >>> Use MSI chip framework instead of arch MSI functions to configure
+> >>> MSI/MSI-X irq. So we can manage MSI/MSI-X irq in a unified framework.
+> >> [...]
+> >>> --- a/arch/x86/pci/xen.c
+> >>> +++ b/arch/x86/pci/xen.c
+> >> [...]
+> >>> @@ -418,9 +430,9 @@ int __init pci_xen_init(void)
+> >>>  #endif
+> >>>  
+> >>>  #ifdef CONFIG_PCI_MSI
+> >>> -	x86_msi.setup_msi_irqs = xen_setup_msi_irqs;
+> >>> -	x86_msi.teardown_msi_irq = xen_teardown_msi_irq;
+> >>> -	x86_msi.teardown_msi_irqs = xen_teardown_msi_irqs;
+> >>> +	xen_msi_chip.setup_irqs = xen_setup_msi_irqs;
+> >>> +	xen_msi_chip.teardown_irqs = xen_teardown_msi_irqs;
+> >>> +	x86_msi_chip = &xen_msi_chip;
+> >>>  	msi_chip.irq_mask = xen_nop_msi_mask;
+> >>>  	msi_chip.irq_unmask = xen_nop_msi_mask;
+> >>
+> >> Why have these not been changed to set the x86_msi_chip.mask/unmask
+> >> fields instead?
+> > 
+> > Hi David, x86_msi_chip here is struct msi_chip data type, used to configure MSI/MSI-X
+> > irq. msi_chip above is struct irq_chip data type, represent the MSI irq controller. They are
+> > not the same object. Their name easily confusing people.
+> 
+> Ok, it all makes sense now.
+> 
+> Acked-by: David Vrabel <david.vrabel@citrix.com>
 
-Thanks, will do.
+You can also add 'Tested-by: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>'
 
->=20
-> > + *
-> > + */
-> > +int of_pci_get_host_bridge_resources(struct device_node *dev,
-> > +			unsigned char busno, unsigned char bus_max,
-> > +			struct list_head *resources, resource_size_t *io_base)
-> > +{
-> > +	struct resource *res;
-> > +	struct resource *bus_range;
-> > +	struct of_pci_range range;
-> > +	struct of_pci_range_parser parser;
-> > +	char range_type[4];
-> > +	int err;
-> > +
-> > +	bus_range =3D kzalloc(sizeof(*bus_range), GFP_KERNEL);
-> > +	if (!bus_range)
-> > +		return -ENOMEM;
-> > +
-> > +	pr_info("PCI host bridge %s ranges:\n", dev->full_name);
-> > +
-> > +	err =3D of_pci_parse_bus_range(dev, bus_range);
-> > +	if (err) {
-> > +		bus_range->start =3D busno;
-> > +		bus_range->end =3D bus_max;
-> > +		bus_range->flags =3D IORESOURCE_BUS;
-> > +		pr_info("  No bus range found for %s, using %pR\n",
-> > +			dev->full_name, &bus_range);
-> > +	} else {
-> > +		if (bus_range->end > bus_range->start + bus_max)
-> > +			bus_range->end =3D bus_range->start + bus_max;
-> > +	}
-> > +	pci_add_resource(resources, bus_range);
->=20
-> This means that eg in the PCI generic host controller I cannot "filte=
-r"
-> the bus resource, unless I remove it, "filter" it, and add it again.
+on the whole series - I ran it through on Xen and on baremetal with a mix of 32/64 builds.
 
-I'm not sure what you mean. Why do you have to remove the bus resource =
-and
-add it again? What you get back from of_pci_get_host_bridge_resources()=
- is
-a list of resources as they have been parsed from DT. You now have the =
-option
-of doing any filtering that you might have done pre-v10 in the
-pcibios_fixup_bridge_ranges() but that is only on the list that was ret=
-urned
-from of_pci_get_host_bridge_resources(). At this moment no root bus or
-host bridge structure has been created so no resource was added to thos=
-e.
-With the filtered list you can use it to call pci_scan_root_bus() and *=
-then*
-it gets added to the pci_host_bridge structure.
+Oh, and also Reviewed-by: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com> the Xen parts.
 
->=20
-> I certainly can't filter a resource that has been already added witho=
-ut
-> removing it first.
->=20
-> Thoughts ?
-
-Hope I have explained what happens. Please let me know if you have any =
-other
-comments.
-
-Best regards,
-Liviu
-
->=20
-> > +
-> > +	/* Check for ranges property */
-> > +	err =3D of_pci_range_parser_init(&parser, dev);
-> > +	if (err)
-> > +		goto parse_failed;
-> > +
-> > +	pr_debug("Parsing ranges property...\n");
-> > +	for_each_of_pci_range(&parser, &range) {
-> > +		/* Read next ranges element */
-> > +		if ((range.flags & IORESOURCE_TYPE_BITS) =3D=3D IORESOURCE_IO)
-> > +			snprintf(range_type, 4, " IO");
-> > +		else if ((range.flags & IORESOURCE_TYPE_BITS) =3D=3D IORESOURCE_=
-MEM)
-> > +			snprintf(range_type, 4, "MEM");
-> > +		else
-> > +			snprintf(range_type, 4, "err");
-> > +		pr_info("  %s %#010llx..%#010llx -> %#010llx\n", range_type,
-> > +			range.cpu_addr, range.cpu_addr + range.size - 1,
-> > +			range.pci_addr);
-> > +
-> > +		/*
-> > +		 * If we failed translation or got a zero-sized region
-> > +		 * then skip this range
-> > +		 */
-> > +		if (range.cpu_addr =3D=3D OF_BAD_ADDR || range.size =3D=3D 0)
-> > +			continue;
-> > +
-> > +		res =3D kzalloc(sizeof(struct resource), GFP_KERNEL);
-> > +		if (!res) {
-> > +			err =3D -ENOMEM;
-> > +			goto parse_failed;
-> > +		}
-> > +
-> > +		err =3D of_pci_range_to_resource(&range, dev, res);
-> > +		if (err) {
-> > +			kfree(res);
->=20
-> You might want to add a label to free res to make things more uniform=
-=2E
->=20
-> > +			goto parse_failed;
-> > +		}
-> > +
-> > +		if (resource_type(res) =3D=3D IORESOURCE_IO) {
-> > +			if (*io_base)
->=20
-> You do not zero io_base in the first place so you should ask the API
-> user to do that. Is 0 a valid value BTW ? If it is you've got to reso=
-rt
-> to something else to detect multiple IO resources.
->=20
-> Lorenzo
-
---=20
-=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D
-| I would like to |
-| fix the world,  |
-| but they're not |
-| giving me the   |
- \ source code!  /
-  ---------------
-    =C2=AF\_(=E3=83=84)_/=C2=AF
+> 
+> David
+> 
+> _______________________________________________
+> Xen-devel mailing list
+> Xen-devel@lists.xen.org
+> http://lists.xen.org/xen-devel
