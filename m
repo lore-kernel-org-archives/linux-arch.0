@@ -1,41 +1,85 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH v10 07/10] OF: Introduce helper function for getting PCI domain_nr
-Date: Thu, 11 Sep 2014 16:49:56 +0200
-Message-ID: <15029597.7ylOekBBOx@wuerfel>
-References: <1410184472-17630-1-git-send-email-Liviu.Dudau@arm.com> <2908259.jgJNuDxCCa@wuerfel> <ae98d68652f1495a857f081c3a6aecb2@HKXPR06MB168.apcprd06.prod.outlook.com>
+From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Subject: Re: bit fields && data tearing
+Date: Thu, 11 Sep 2014 09:16:53 -0700
+Message-ID: <20140911161653.GA4775@linux.vnet.ibm.com>
+References: <1409824374.4246.62.camel@pasglop>
+ <5408E458.3@zytor.com>
+ <54090AF4.7060406@hurleysoftware.com>
+ <54091B30.7080100@zytor.com>
+ <5409D76D.2070203@hurleysoftware.com>
+ <5409D9C0.7030403@zytor.com>
+ <20140908185240.21f52ca0@alan.etchedpixels.co.uk>
+ <540DEE6C.2060904@zytor.com>
+ <540E3207.7090007@hurleysoftware.com>
+ <20140911110411.2de01944@alan.etchedpixels.co.uk>
+Reply-To: paulmck@linux.vnet.ibm.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7Bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <ae98d68652f1495a857f081c3a6aecb2@HKXPR06MB168.apcprd06.prod.outlook.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Phil Edworthy <phil.edworthy@renesas.com>
-Cc: Catalin Marinas <catalin.marinas@arm.com>, Liviu Dudau <Liviu.Dudau@arm.com>, Yijing Wang <wangyijing@huawei.com>, Rob Herring <robherring2@gmail.com>, Bjorn Helgaas <bhelgaas@google.com>, Rob Herring <robh+dt@kernel.org>, Jason Gunthorpe <jgunthorpe@obsidianresearch.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Will Deacon <Will.Deacon@arm.com>, Russell King <linux@arm.linux.org.uk>, linux-pci <linux-pci@vger.kernel.org>, Linus Walleij <linus.walleij@linaro.org>, Tanmay Inamdar <tinamdar@apm.com>, Grant Likely <grant.likely@secretlab.ca>, Sinan Kaya <okaya@codeaurora.org>, Jingoo Han <jg1.han@samsung.com>, Kukjin Kim <kgene.kim@samsung.com>, Suravee Suthikulanit <suravee.suthikulpanit@amd.com>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Device Tree ML <devicetree@vger.kernel.org>, LAKML <linux-arm-kernel@lists.infrad>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from e32.co.us.ibm.com ([32.97.110.150]:46679 "EHLO
+	e32.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753619AbaIKQWY (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 11 Sep 2014 12:22:24 -0400
+Received: from /spool/local
+	by e32.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
+	Thu, 11 Sep 2014 10:22:23 -0600
+Content-Disposition: inline
+In-Reply-To: <20140911110411.2de01944@alan.etchedpixels.co.uk>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: One Thousand Gnomes <gnomes@lxorguk.ukuu.org.uk>
+Cc: Peter Hurley <peter@hurleysoftware.com>, "H. Peter Anvin" <hpa@zytor.com>, David Laight <David.Laight@ACULAB.COM>, Jakub Jelinek <jakub@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Tony Luck <tony.luck@intel.com>, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, Oleg Nesterov <oleg@redhat.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Paul Mackerras <paulus@samba.org>, "linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>, Miroslav Franc <mfranc@redhat.com>, Richard Henderson <rth@twiddle.net>, linux-alpha@vger.kernel.org
 
-On Thursday 11 September 2014 14:11:05 Phil Edworthy wrote:
-> On 10 September 2014 19:20, Arnd wrote:
-> > On Tuesday 09 September 2014 12:20:54 Catalin Marinas wrote:
-> > >
-> > > We can assume that if a domain is not specified and there is a single
-> > > top level PCIe node, the domain defaults to 0. Are there any arm32
-> > > platforms that require multiple domains (and do not specify a number in
-> > > the DT)?
+On Thu, Sep 11, 2014 at 11:04:11AM +0100, One Thousand Gnomes wrote:
+> > > Is *that* what we are talking about?  I was added to this conversation
+> > > in the middle where it had already generalized, so I had no idea.
 > > 
-> > In theory, I think all of them could work with a single domain, but then
-> > you need to partition the bus number space between the host controllers,
-> > so you have the exact same situation that you either need to make up
-> > random bus numbers or put them in DT.
-> > 
-> > Using multiple domains is way cleaner for this, even if we have to
-> > make up the numbers.
+> > No, this is just what brought this craziness to my attention.
 > 
-> Maybe this is a stupid question, but why would you want to specify the domain
-> in the DT at all? Doesn't every instance of a driver imply a separate domain?
+> None of it is craziness. It's the real world leaking into the crazy
+> delusional world of sequential programming. Machines are going to get
+> more not less parallel.
 
-See Jason Gunthorpe's latest reply on the topic. In short, the domain is
-visible to user space and we want it to be stable across boots when
-user configuration refers to devices by domain:bus:device:function
-numbers.
+Amen to that!!!
 
-	Arnd
+> > For example, byte- and short-sized circular buffers could not possibly
+> > be safe either, when the head nears the tail.
+> > 
+> > Who has audited global storage and ensured that _every_ byte-sized write
+> > doesn't happen to be adjacent to some other storage that may not happen
+> > to be protected by the same (or any) lock?
+> 
+> Thats a meaningless question. Have you audited it all for correctness of
+> any other form. Have you mathematically verified the functionality as a
+> set of formal proofs ? If you can't prove its formally mathematically
+> functionally correct why are you worried about this ?
+> 
+> Alpha works, maybe it has a near theoretical race on that point. It's not
+> any worse than it was 15 years ago and nobody has really hit a problem
+> with it. So from that you can usefully infer that those buffer cases are
+> not proving a real problem.
+
+Fair enough, I guess.
+
+But Alpha's limitations were given as a reason to restrict
+smp_store_release() and smp_load_acquire() from providing one-byte and
+two-byte variants.  Of course, I am OK "probabilistically supporting"
+pre-EV56 Alpha CPUs, but only if they don't get in the way of us doing
+smp_store_release() and smp_load_acquire() on chars and shorts.  So if
+pre-EV56 support has to go in order to allow smp_store_release() and
+smp_load_acquire() on small data types, then pre-EV56 support simply
+has to go.
+
+Alternatively, one way to support this old hardware on a more
+deterministic basis is to make the compiler use ll/sc sequences to do
+byte and short accesses.  That would be fine as well.
+
+						Thanx, Paul
+
+> The tty locks together on the other hand are asking to hit it, and the
+> problem you were trying to fix were the ones that need set_bit() to make
+> the guarantees.
+> 
+> Alan
+> 
