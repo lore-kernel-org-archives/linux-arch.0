@@ -1,46 +1,86 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.126.130]:59830 "EHLO
-	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751507AbaIKOuX (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 11 Sep 2014 10:50:23 -0400
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH v10 07/10] OF: Introduce helper function for getting PCI domain_nr
-Date: Thu, 11 Sep 2014 16:49:56 +0200
-Message-ID: <15029597.7ylOekBBOx@wuerfel>
-In-Reply-To: <ae98d68652f1495a857f081c3a6aecb2@HKXPR06MB168.apcprd06.prod.outlook.com>
-References: <1410184472-17630-1-git-send-email-Liviu.Dudau@arm.com> <2908259.jgJNuDxCCa@wuerfel> <ae98d68652f1495a857f081c3a6aecb2@HKXPR06MB168.apcprd06.prod.outlook.com>
+Received: from mailout32.mail01.mtsvc.net ([216.70.64.70]:35982 "EHLO
+	n23.mail01.mtsvc.net" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1756272AbaIKUCI (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 11 Sep 2014 16:02:08 -0400
+Message-ID: <5411FFB6.2080702@hurleysoftware.com>
+Date: Thu, 11 Sep 2014 16:01:58 -0400
+From: Peter Hurley <peter@hurleysoftware.com>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 7Bit
-Content-Type: text/plain; charset="us-ascii"
+Subject: Re: bit fields && data tearing
+References: <20140712181328.GA8738@redhat.com>	<54079B70.4050200@hurleysoftware.com>	<1409785893.30640.118.camel@pasglop>	<063D6719AE5E284EB5DD2968C1650D6D17487172@AcuExch.aculab.com>	<1409824374.4246.62.camel@pasglop>	<5408E458.3@zytor.com>	<54090AF4.7060406@hurleysoftware.com>	<54091B30.7080100@zytor.com>	<5409D76D.2070203@hurleysoftware.com>	<5409D9C0.7030403@zytor.com>	<20140908185240.21f52ca0@alan.etchedpixels.co.uk>	<540DEE6C.2060904@zytor.com>	<540E3207.7090007@hurleysoftware.com> <20140911110411.2de01944@alan.etchedpixels.co.uk>
+In-Reply-To: <20140911110411.2de01944@alan.etchedpixels.co.uk>
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Phil Edworthy <phil.edworthy@renesas.com>
-Cc: Catalin Marinas <catalin.marinas@arm.com>, Liviu Dudau <Liviu.Dudau@arm.com>, Yijing Wang <wangyijing@huawei.com>, Rob Herring <robherring2@gmail.com>, Bjorn Helgaas <bhelgaas@google.com>, Rob Herring <robh+dt@kernel.org>, Jason Gunthorpe <jgunthorpe@obsidianresearch.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Will Deacon <Will.Deacon@arm.com>, Russell King <linux@arm.linux.org.uk>, linux-pci <linux-pci@vger.kernel.org>, Linus Walleij <linus.walleij@linaro.org>, Tanmay Inamdar <tinamdar@apm.com>, Grant Likely <grant.likely@secretlab.ca>, Sinan Kaya <okaya@codeaurora.org>, Jingoo Han <jg1.han@samsung.com>, Kukjin Kim <kgene.kim@samsung.com>, Suravee Suthikulanit <suravee.suthikulpanit@amd.com>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Device Tree ML <devicetree@vger.kernel.org>, LAKML <linux-arm-kernel@lists.infradead.org>, "grant.likely@linaro.org" <grant.likely@linaro.org>
-Message-ID: <20140911144956.fgbK3AyP5e03jPVp5v-99271vq6amLUpUaKvFXeVU9g@z>
+To: One Thousand Gnomes <gnomes@lxorguk.ukuu.org.uk>
+Cc: "H. Peter Anvin" <hpa@zytor.com>, David Laight <David.Laight@ACULAB.COM>, Jakub Jelinek <jakub@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Tony Luck <tony.luck@intel.com>, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, Oleg Nesterov <oleg@redhat.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Paul Mackerras <paulus@samba.org>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, "linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>, Miroslav Franc <mfranc@redhat.com>, Richard Henderson <rth@twiddle.net>, linux-alpha@vger.kernel.org
+Message-ID: <20140911200158.fFg8mYBYIAHIbDjkrKG_fdfXZaVyxL1pFuY8y-XnUK0@z>
 
-On Thursday 11 September 2014 14:11:05 Phil Edworthy wrote:
-> On 10 September 2014 19:20, Arnd wrote:
-> > On Tuesday 09 September 2014 12:20:54 Catalin Marinas wrote:
-> > >
-> > > We can assume that if a domain is not specified and there is a single
-> > > top level PCIe node, the domain defaults to 0. Are there any arm32
-> > > platforms that require multiple domains (and do not specify a number in
-> > > the DT)?
-> > 
-> > In theory, I think all of them could work with a single domain, but then
-> > you need to partition the bus number space between the host controllers,
-> > so you have the exact same situation that you either need to make up
-> > random bus numbers or put them in DT.
-> > 
-> > Using multiple domains is way cleaner for this, even if we have to
-> > make up the numbers.
+On 09/11/2014 06:04 AM, One Thousand Gnomes wrote:
+>>> Is *that* what we are talking about?  I was added to this conversation
+>>> in the middle where it had already generalized, so I had no idea.
+>>
+>> No, this is just what brought this craziness to my attention.
 > 
-> Maybe this is a stupid question, but why would you want to specify the domain
-> in the DT at all? Doesn't every instance of a driver imply a separate domain?
+> None of it is craziness. It's the real world leaking into the crazy
+> delusional world of sequential programming. Machines are going to get
+> more not less parallel.
+> 
+>> For example, byte- and short-sized circular buffers could not possibly
+>> be safe either, when the head nears the tail.
+>>
+>> Who has audited global storage and ensured that _every_ byte-sized write
+>> doesn't happen to be adjacent to some other storage that may not happen
+>> to be protected by the same (or any) lock?
+> 
+> Thats a meaningless question. Have you audited it all for correctness of
+> any other form. Have you mathematically verified the functionality as a
+> set of formal proofs ? If you can't prove its formally mathematically
+> functionally correct why are you worried about this ?
+> 
+> Alpha works, maybe it has a near theoretical race on that point. It's not
+> any worse than it was 15 years ago and nobody has really hit a problem
+> with it. So from that you can usefully infer that those buffer cases are
+> not proving a real problem.
+>
+> The tty locks together on the other hand are asking to hit it, and the
+> problem you were trying to fix were the ones that need set_bit() to make
+> the guarantees.
 
-See Jason Gunthorpe's latest reply on the topic. In short, the domain is
-visible to user space and we want it to be stable across boots when
-user configuration refers to devices by domain:bus:device:function
-numbers.
+So a problem that no one has ever complained about on _any_ arch is suddenly
+a problem on a subset of Alpha cpus, but a problem I know exists on Alpha
+isn't important because no one's filed a bug about it?
 
-	Arnd
+The only Alpha person in this discussion has come out clearly in favor
+of dropping EV4/5 support.
+
+The fact is that the kernel itself is much more parallel than it was
+15 years ago, and that trend is going to continue. Paired with the fact
+that the Alpha is the least-parallel-friendly arch, makes improving
+parallelism and correctness even harder within kernel subsystems; harder
+than it has to be and harder than it should be.
+
+Linus has repeatedly stated that non-arch code should be as
+arch-independent as possible, so I believe that working around problems
+created by a cpu from 1995 _which no other arch exhibits_ is ludicrous.
+Especially in generic kernel code.
+
+That said, if the Alpha community wants to keep _actively_ supporting
+the Alpha arch, fine. They could be working toward solutions for
+making Alpha workarounds in generic kernel code unnecessary. If that means
+compiler changes, ok. If that means arch-independent macros, well, they
+can float that idea.
+
+Or if they're comfortable with the status quo, also fine. By that, I mean
+the Alpha arch gets no workarounds in generic kernel code, and if something
+goes a little sideways only on Alpha, that's to be expected.
+
+As Paul pointed out, a good first step would be for the Alpha community
+to contribute byte and short versions of smp_load_acquire() and
+smp_store_release() so that the rest of the kernel community can make
+forward progress on more parallelism without Alpha-only limitations.
+
+Regards,
+Peter Hurley
