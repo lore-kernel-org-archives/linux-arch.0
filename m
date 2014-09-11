@@ -1,46 +1,48 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp02.citrix.com ([66.165.176.63]:33179 "EHLO
-	SMTP02.CITRIX.COM" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756645AbaIKNJ4 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 11 Sep 2014 09:09:56 -0400
-Message-ID: <54119ED2.3070802@citrix.com>
-Date: Thu, 11 Sep 2014 14:08:34 +0100
-From: David Vrabel <david.vrabel@citrix.com>
+Received: from relmlor3.renesas.com ([210.160.252.173]:49200 "EHLO
+	relmlie2.idc.renesas.com" rhost-flags-OK-OK-OK-FAIL)
+	by vger.kernel.org with ESMTP id S1755174AbaIKOLN convert rfc822-to-8bit
+	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 11 Sep 2014 10:11:13 -0400
+From: Phil Edworthy <phil.edworthy@renesas.com>
+Subject: RE: [PATCH v10 07/10] OF: Introduce helper function for getting PCI
+ domain_nr
+Date: Thu, 11 Sep 2014 14:11:05 +0000
+Message-ID: <ae98d68652f1495a857f081c3a6aecb2@HKXPR06MB168.apcprd06.prod.outlook.com>
+References: <1410184472-17630-1-git-send-email-Liviu.Dudau@arm.com>
+ <3780051.0eHpCN6UC9@wuerfel> <20140909112054.GD29639@arm.com>
+ <2908259.jgJNuDxCCa@wuerfel>
+In-Reply-To: <2908259.jgJNuDxCCa@wuerfel>
+Content-Language: en-US
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 8BIT
 MIME-Version: 1.0
-Subject: Re: [Xen-devel] [PATCH v1 04/21] x86/xen/MSI: Eliminate arch_msix_mask_irq()
- and arch_msi_mask_irq()
-References: <1409911806-10519-1-git-send-email-wangyijing@huawei.com>	<1409911806-10519-5-git-send-email-wangyijing@huawei.com>	<541045BE.9050804@citrix.com> <5410F955.80609@huawei.com>
-In-Reply-To: <5410F955.80609@huawei.com>
-Content-Type: text/plain; charset="ISO-8859-1"
-Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Yijing Wang <wangyijing@huawei.com>, David Vrabel <david.vrabel@citrix.com>, Bjorn Helgaas <bhelgaas@google.com>
-Cc: linux-mips@linux-mips.org, linux-ia64@vger.kernel.org, linux-pci@vger.kernel.org, Xinwei Hu <huxinwei@huawei.com>, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, Russell King <linux@arm.linux.org.uk>, Joerg Roedel <joro@8bytes.org>, x86@kernel.org, Sebastian Ott <sebott@linux.vnet.ibm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, xen-devel@lists.xenproject.org, arnab.basu@freescale.com, Arnd Bergmann <arnd@arndb.de>, Chris Metcalf <cmetcalf@tilera.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arm-kernel@lists.infradead.org, Bharat.Bhushan@freescale.com, Tony Luck <tony.luck@intel.com>, Ralf Baechle <ralf@linux-mips.org>, iommu@lists.linux-foundation.org, Wuyun <wuyun.wu@huawei.com>, linuxppc-dev@lists.ozlabs.org, "David S. Miller" <davem@davemloft.net>
-Message-ID: <20140911130834.uHk0SDHbKvpfH0yDjq1LA_T1GqxCPscV_hnDTl6di24@z>
+To: Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, Liviu Dudau <Liviu.Dudau@arm.com>
+Cc: Yijing Wang <wangyijing@huawei.com>, Rob Herring <robherring2@gmail.com>, Bjorn Helgaas <bhelgaas@google.com>, Rob Herring <robh+dt@kernel.org>, Jason Gunthorpe <jgunthorpe@obsidianresearch.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Will Deacon <Will.Deacon@arm.com>, Russell King <linux@arm.linux.org.uk>, linux-pci <linux-pci@vger.kernel.org>, Linus Walleij <linus.walleij@linaro.org>, Tanmay Inamdar <tinamdar@apm.com>, Grant Likely <grant.likely@secretlab.ca>, Sinan Kaya <okaya@codeaurora.org>, Jingoo Han <jg1.han@samsung.com>, Kukjin Kim <kgene.kim@samsung.com>, Suravee Suthikulanit <suravee.suthikulpanit@amd.com>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Device Tree ML <devicetree@vger.kernel.org>, LAKML <linux-arm-kernel@lists.infradead.org>, "grant.likely@linaro.org" <grant.likely@linaro.org>
+Message-ID: <20140911141105.n6hL4FWilaMc2CWZR0cbqhUMZT9FTpOVxHMzrXvJ874@z>
 
-On 11/09/14 02:22, Yijing Wang wrote:
-> On 2014/9/10 20:36, David Vrabel wrote:
->> On 05/09/14 11:09, Yijing Wang wrote:
->>> Commit 0e4ccb150 added two __weak arch functions arch_msix_mask_irq()
->>> and arch_msi_mask_irq() to fix a bug found when running xen in x86.
->>> Introduced these two funcntions make MSI code complex. And mask/unmask
->>> is the irq actions related to interrupt controller, should not use
->>> weak arch functions to override mask/unmask interfaces. This patch
->>> reverted commit 0e4ccb150 and export struct irq_chip msi_chip, modify
->>> msi_chip->irq_mask/irq_unmask() in xen init functions to fix this
->>> bug for simplicity. Also this is preparation for using struct
->>> msi_chip instead of weak arch MSI functions in all platforms.
->>
->> Acked-by: David Vrabel <david.vrabel@citrix.com>
->>
->> But I wonder if it would be better the Xen subsystem to provide its own
->> struct irq_chip instead of adjusting the fields in the generic x86 one.
+Hi,
+
+On 10 September 2014 19:20, Arnd wrote:
+> On Tuesday 09 September 2014 12:20:54 Catalin Marinas wrote:
+> >
+> > We can assume that if a domain is not specified and there is a single
+> > top level PCIe node, the domain defaults to 0. Are there any arm32
+> > platforms that require multiple domains (and do not specify a number in
+> > the DT)?
 > 
-> Thanks! Currently, Xen and the bare x86 system only have the different irq_chip->irq_mask/irq_unmask.
-> So I chose to override the two ops of bare x86 irq_chip in xen. Konrad Rzeszutek Wilk has been tested it
-> ok in his platform, so I think we could use its own irq_chip for xen later if the difference become large.
+> In theory, I think all of them could work with a single domain, but then
+> you need to partition the bus number space between the host controllers,
+> so you have the exact same situation that you either need to make up
+> random bus numbers or put them in DT.
+> 
+> Using multiple domains is way cleaner for this, even if we have to
+> make up the numbers.
 
-This sounds reasonable.
+Maybe this is a stupid question, but why would you want to specify the domain
+in the DT at all? Doesn't every instance of a driver imply a separate domain?
 
-David
+Thanks
+Phil 
