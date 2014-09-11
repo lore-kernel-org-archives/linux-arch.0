@@ -1,89 +1,62 @@
-From: Yijing Wang <wangyijing@huawei.com>
-Subject: Re: [Xen-devel] [PATCH v1 08/21] x86/xen/MSI: Use MSI chip framework
- to configure MSI/MSI-X irq
-Date: Thu, 11 Sep 2014 09:28:57 +0800
-Message-ID: <5410FAD9.40702@huawei.com>
-References: <1409911806-10519-1-git-send-email-wangyijing@huawei.com>
- <1409911806-10519-9-git-send-email-wangyijing@huawei.com>
- <5409C8C0.8020200@citrix.com> <540E6095.8030409@huawei.com>
- <54104641.7020007@citrix.com> <20140910145957.GD12893@laptop.dumpdata.com>
+From: One Thousand Gnomes <gnomes@lxorguk.ukuu.org.uk>
+Subject: Re: bit fields && data tearing
+Date: Thu, 11 Sep 2014 11:04:11 +0100
+Message-ID: <20140911110411.2de01944@alan.etchedpixels.co.uk>
+References: <20140712181328.GA8738@redhat.com>
+	<54079B70.4050200@hurleysoftware.com>
+	<1409785893.30640.118.camel@pasglop>
+	<063D6719AE5E284EB5DD2968C1650D6D17487172@AcuExch.aculab.com>
+	<1409824374.4246.62.camel@pasglop>
+	<5408E458.3@zytor.com>
+	<54090AF4.7060406@hurleysoftware.com>
+	<54091B30.7080100@zytor.com>
+	<5409D76D.2070203@hurleysoftware.com>
+	<5409D9C0.7030403@zytor.com>
+	<20140908185240.21f52ca0@alan.etchedpixels.co.uk>
+	<540DEE6C.2060904@zytor.com>
+	<540E3207.7090007@hurleysoftware.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
+Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-In-Reply-To: <20140910145957.GD12893@laptop.dumpdata.com>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, David Vrabel <david.vrabel@citrix.com>
-Cc: linux-mips@linux-mips.org, linux-ia64@vger.kernel.org, linux-pci@vger.kernel.org, Xinwei Hu <huxinwei@huawei.com>, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, Russell King <linux@arm.linux.org.uk>, Joerg Roedel <joro@8bytes.org>, x86@kernel.org, Sebastian Ott <sebott@linux.vnet.ibm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, xen-devel@lists.xenproject.org, arnab.basu@freescale.com, Arnd Bergmann <arnd@arndb.de>, Chris Metcalf <cmetcalf@tilera.com>, Bjorn Helgaas <bhelgaas@google.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arm-kernel@lists.infradead.org, Bharat.Bhushan@freescale.com, Tony Luck <tony.luck@intel.com>, Ralf Baechle <ralf@linux-mips.org>, iommu@lists.linux-foundation.org, Wuyun <wuyun.wu@huawei.com>, linuxppc-dev@lists.ozlabs.org, "David S. Miller" <davem@davemloft.net>
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from 251.110.2.81.in-addr.arpa ([81.2.110.251]:41859 "EHLO
+	lxorguk.ukuu.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753915AbaIKKEz (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 11 Sep 2014 06:04:55 -0400
+In-Reply-To: <540E3207.7090007@hurleysoftware.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Peter Hurley <peter@hurleysoftware.com>
+Cc: "H. Peter Anvin" <hpa@zytor.com>, David Laight <David.Laight@ACULAB.COM>, Jakub Jelinek <jakub@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Tony Luck <tony.luck@intel.com>, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, Oleg Nesterov <oleg@redhat.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Paul Mackerras <paulus@samba.org>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, "linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>, Miroslav Franc <mfranc@redhat.com>, Richard Henderson <rth@twiddle.net>, linux-alpha@vger.kernel.org
 
-On 2014/9/10 22:59, Konrad Rzeszutek Wilk wrote:
-> On Wed, Sep 10, 2014 at 01:38:25PM +0100, David Vrabel wrote:
->> On 09/09/14 03:06, Yijing Wang wrote:
->>> On 2014/9/5 22:29, David Vrabel wrote:
->>>> On 05/09/14 11:09, Yijing Wang wrote:
->>>>> Use MSI chip framework instead of arch MSI functions to configure
->>>>> MSI/MSI-X irq. So we can manage MSI/MSI-X irq in a unified framework.
->>>> [...]
->>>>> --- a/arch/x86/pci/xen.c
->>>>> +++ b/arch/x86/pci/xen.c
->>>> [...]
->>>>> @@ -418,9 +430,9 @@ int __init pci_xen_init(void)
->>>>>  #endif
->>>>>  
->>>>>  #ifdef CONFIG_PCI_MSI
->>>>> -	x86_msi.setup_msi_irqs = xen_setup_msi_irqs;
->>>>> -	x86_msi.teardown_msi_irq = xen_teardown_msi_irq;
->>>>> -	x86_msi.teardown_msi_irqs = xen_teardown_msi_irqs;
->>>>> +	xen_msi_chip.setup_irqs = xen_setup_msi_irqs;
->>>>> +	xen_msi_chip.teardown_irqs = xen_teardown_msi_irqs;
->>>>> +	x86_msi_chip = &xen_msi_chip;
->>>>>  	msi_chip.irq_mask = xen_nop_msi_mask;
->>>>>  	msi_chip.irq_unmask = xen_nop_msi_mask;
->>>>
->>>> Why have these not been changed to set the x86_msi_chip.mask/unmask
->>>> fields instead?
->>>
->>> Hi David, x86_msi_chip here is struct msi_chip data type, used to configure MSI/MSI-X
->>> irq. msi_chip above is struct irq_chip data type, represent the MSI irq controller. They are
->>> not the same object. Their name easily confusing people.
->>
->> Ok, it all makes sense now.
->>
->> Acked-by: David Vrabel <david.vrabel@citrix.com>
+> > Is *that* what we are talking about?  I was added to this conversation
+> > in the middle where it had already generalized, so I had no idea.
 > 
-> You can also add 'Tested-by: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>'
-> 
-> on the whole series - I ran it through on Xen and on baremetal with a mix of 32/64 builds.
-> 
-> Oh, and also Reviewed-by: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com> the Xen parts.
+> No, this is just what brought this craziness to my attention.
 
-Thanks very much for your test and review!
+None of it is craziness. It's the real world leaking into the crazy
+delusional world of sequential programming. Machines are going to get
+more not less parallel.
 
-Thanks!
-Yijing.
-
+> For example, byte- and short-sized circular buffers could not possibly
+> be safe either, when the head nears the tail.
 > 
->>
->> David
->>
->> _______________________________________________
->> Xen-devel mailing list
->> Xen-devel@lists.xen.org
->> http://lists.xen.org/xen-devel
-> 
-> .
-> 
+> Who has audited global storage and ensured that _every_ byte-sized write
+> doesn't happen to be adjacent to some other storage that may not happen
+> to be protected by the same (or any) lock?
 
+Thats a meaningless question. Have you audited it all for correctness of
+any other form. Have you mathematically verified the functionality as a
+set of formal proofs ? If you can't prove its formally mathematically
+functionally correct why are you worried about this ?
 
--- 
-Thanks!
-Yijing
+Alpha works, maybe it has a near theoretical race on that point. It's not
+any worse than it was 15 years ago and nobody has really hit a problem
+with it. So from that you can usefully infer that those buffer cases are
+not proving a real problem.
+
+The tty locks together on the other hand are asking to hit it, and the
+problem you were trying to fix were the ones that need set_bit() to make
+the guarantees.
+
+Alan
