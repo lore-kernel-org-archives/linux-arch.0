@@ -1,79 +1,50 @@
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: bit fields && data tearing
-Date: Thu, 11 Sep 2014 11:23:56 +0100
-Message-ID: <20140911102356.GA6158@arm.com>
-References: <20140905040645.GO5001@linux.vnet.ibm.com>
- <1410066442.12512.13.camel@jarvis.lan>
- <20140907162146.GK5001@linux.vnet.ibm.com>
- <1410116687.2027.19.camel@jarvis.lan>
- <540CC305.8010407@hurleysoftware.com>
- <1410155407.2027.29.camel@jarvis.lan>
- <540E3BFF.7080307@hurleysoftware.com>
- <1410231392.2028.15.camel@jarvis.lan>
- <540ED929.5040305@hurleysoftware.com>
- <1410385686.28237.5.camel@jarvis>
+From: David Vrabel <david.vrabel-Sxgqhf6Nn4DQT0dZR+AlfA@public.gmane.org>
+Subject: Re: [Xen-devel] [PATCH v1 04/21] x86/xen/MSI: Eliminate
+	arch_msix_mask_irq() and arch_msi_mask_irq()
+Date: Thu, 11 Sep 2014 14:08:34 +0100
+Message-ID: <54119ED2.3070802@citrix.com>
+References: <1409911806-10519-1-git-send-email-wangyijing@huawei.com>	<1409911806-10519-5-git-send-email-wangyijing@huawei.com>	<541045BE.9050804@citrix.com>
+	<5410F955.80609@huawei.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <1410385686.28237.5.camel@jarvis>
-Sender: linux-kernel-owner@vger.kernel.org
-To: James Bottomley <James.Bottomley@HansenPartnership.com>
-Cc: Peter Hurley <peter@hurleysoftware.com>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>, "H. Peter Anvin" <hpa@zytor.com>, One Thousand Gnomes <gnomes@lxorguk.ukuu.org.uk>, Jakub Jelinek <jakub@redhat.com>, Mikael Pettersson <mikpelinux@gmail.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Richard Henderson <rth@twiddle.net>, Oleg Nesterov <oleg@redhat.com>, Miroslav Franc <mfranc@redhat.com>, Paul Mackerras <paulus@samba.org>, "linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Tony Luck <tony.luck@intel.com>, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+In-Reply-To: <5410F955.80609-hv44wF8Li93QT0dZR+AlfA@public.gmane.org>
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
+	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
+List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
+	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
+Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+To: Yijing Wang <wangyijing-hv44wF8Li93QT0dZR+AlfA@public.gmane.org>, David Vrabel <david.vrabel-Sxgqhf6Nn4DQT0dZR+AlfA@public.gmane.org>, Bjorn Helgaas <bhelgaas-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>
+Cc: linux-mips-6z/3iImG2C8G8FEW9MqTrA@public.gmane.org, linux-ia64-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-pci-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Xinwei Hu <huxinwei-hv44wF8Li93QT0dZR+AlfA@public.gmane.org>, sparclinux-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-s390-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Russell King <linux-lFZ/pmaqli7XmaaqVzeoHQ@public.gmane.org>, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, Sebastian Ott <sebott-23VcF4HTsmIX0ybBhKVfKdBPR1lH4CV8@public.gmane.org>, Benjamin Herrenschmidt <benh-XVmvHMARGAS8U2dJNN8I7kB+6BGkLq7r@public.gmane.org>, xen-devel-GuqFBffKawtpuQazS67q72D2FQJk+8+b@public.gmane.org, arnab.basu-KZfg59tc24xl57MIdRCFDg@public.gmane.org, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Chris Metcalf <cmetcalf-kv+TWInifGbQT0dZR+AlfA@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, Tony Luck <tony.luck-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org>, Ralf Baechle <ralf-6z/3iImG2C8G8FEW9MqTrA@public.gmane.org>, iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org, Wuyun <wuyun.wu-hv44wF8Li93QT0dZR+AlfA@public.gmane.org>, linuxppc-dev-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org, "David S. Miller" <davem-fT/PcQaiUtIeIZ0/mPfg9Q@public.gmane.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Sep 10, 2014 at 10:48:06PM +0100, James Bottomley wrote:
-> On Tue, 2014-09-09 at 06:40 -0400, Peter Hurley wrote:
-> > >> The processor is free to re-order this to:
-> > >>
-> > >> 	STORE C
-> > >> 	STORE B
-> > >> 	UNLOCK
-> > >>
-> > >> That's because the unlock() only guarantees that:
-> > >>
-> > >> Stores before the unlock in program order are guaranteed to complete
-> > >> before the unlock completes. Stores after the unlock _may_ complete
-> > >> before the unlock completes.
-> > >>
-> > >> My point was that even if compiler barriers had the same semantics
-> > >> as memory barriers, the situation would be no worse. That is, code
-> > >> that is sensitive to memory barriers (like the example I gave above)
-> > >> would merely have the same fragility with one-way compiler barriers
-> > >> (with respect to the compiler combining writes).
-> > >>
-> > >> That's what I meant by "no worse than would otherwise exist".
-> > > 
-> > > Actually, that's not correct.  This is actually deja vu with me on the
-> > > other side of the argument.  When we first did spinlocks on PA, I argued
-> > > as you did: lock only a barrier for code after and unlock for code
-> > > before.  The failing case is that you can have a critical section which
-> > > performs an atomically required operation and a following unit which
-> > > depends on it being performed.  If you begin the following unit before
-> > > the atomic requirement, you may end up losing.  It turns out this kind
-> > > of pattern is inherent in a lot of mail box device drivers: you need to
-> > > set up the mailbox atomically then poke it.  Setup is usually atomic,
-> > > deciding which mailbox to prime and actually poking it is in the
-> > > following unit.  Priming often involves an I/O bus transaction and if
-> > > you poke before priming, you get a misfire.
-> > 
-> > Take it up with the man because this was discussed extensively last
-> > year and it was decided that unlocks would not be full barriers.
-> > Thus the changes to memory-barriers.txt that explicitly note this
-> > and the addition of smp_mb__after_unlock_lock() (for two different
-> > locks; an unlock followed by a lock on the same lock is a full barrier).
-> > 
-> > Code that expects ordered writes after an unlock needs to explicitly
-> > add the memory barrier.
+On 11/09/14 02:22, Yijing Wang wrote:
+> On 2014/9/10 20:36, David Vrabel wrote:
+>> On 05/09/14 11:09, Yijing Wang wrote:
+>>> Commit 0e4ccb150 added two __weak arch functions arch_msix_mask_irq()
+>>> and arch_msi_mask_irq() to fix a bug found when running xen in x86.
+>>> Introduced these two funcntions make MSI code complex. And mask/unmask
+>>> is the irq actions related to interrupt controller, should not use
+>>> weak arch functions to override mask/unmask interfaces. This patch
+>>> reverted commit 0e4ccb150 and export struct irq_chip msi_chip, modify
+>>> msi_chip->irq_mask/irq_unmask() in xen init functions to fix this
+>>> bug for simplicity. Also this is preparation for using struct
+>>> msi_chip instead of weak arch MSI functions in all platforms.
+>>
+>> Acked-by: David Vrabel <david.vrabel-Sxgqhf6Nn4DQT0dZR+AlfA@public.gmane.org>
+>>
+>> But I wonder if it would be better the Xen subsystem to provide its own
+>> struct irq_chip instead of adjusting the fields in the generic x86 one.
 > 
-> I don't really care what ARM does; spin locks are full barriers on
-> architectures that need them.  The driver problem we had that detected
-> our semi permeable spinlocks was an LSI 53c875 which is enterprise class
-> PCI, so presumably not relevant to ARM anyway.
+> Thanks! Currently, Xen and the bare x86 system only have the different irq_chip->irq_mask/irq_unmask.
+> So I chose to override the two ops of bare x86 irq_chip in xen. Konrad Rzeszutek Wilk has been tested it
+> ok in his platform, so I think we could use its own irq_chip for xen later if the difference become large.
 
-FWIW, unlock is always fully ordered against non-relaxed IO accesses. We
-have pretty heavy barriers in readX/writeX to ensure this on ARM/arm64.
+This sounds reasonable.
 
-PPC do tricks in their unlock to avoid the overhead on each IO access.
-
-Will
+David
