@@ -1,84 +1,85 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from szxga02-in.huawei.com ([119.145.14.65]:35618 "EHLO
-	szxga02-in.huawei.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751475AbaIKBbT (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 10 Sep 2014 21:31:19 -0400
-Message-ID: <5410FAD9.40702@huawei.com>
-Date: Thu, 11 Sep 2014 09:28:57 +0800
-From: Yijing Wang <wangyijing@huawei.com>
+Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:49839 "EHLO
+	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1754294AbaIKKZM (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Thu, 11 Sep 2014 06:25:12 -0400
+Date: Thu, 11 Sep 2014 11:23:56 +0100
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: bit fields && data tearing
+Message-ID: <20140911102356.GA6158@arm.com>
+References: <20140905040645.GO5001@linux.vnet.ibm.com>
+ <1410066442.12512.13.camel@jarvis.lan>
+ <20140907162146.GK5001@linux.vnet.ibm.com>
+ <1410116687.2027.19.camel@jarvis.lan>
+ <540CC305.8010407@hurleysoftware.com>
+ <1410155407.2027.29.camel@jarvis.lan>
+ <540E3BFF.7080307@hurleysoftware.com>
+ <1410231392.2028.15.camel@jarvis.lan>
+ <540ED929.5040305@hurleysoftware.com>
+ <1410385686.28237.5.camel@jarvis>
 MIME-Version: 1.0
-Subject: Re: [Xen-devel] [PATCH v1 08/21] x86/xen/MSI: Use MSI chip framework
- to configure MSI/MSI-X irq
-References: <1409911806-10519-1-git-send-email-wangyijing@huawei.com> <1409911806-10519-9-git-send-email-wangyijing@huawei.com> <5409C8C0.8020200@citrix.com> <540E6095.8030409@huawei.com> <54104641.7020007@citrix.com> <20140910145957.GD12893@laptop.dumpdata.com>
-In-Reply-To: <20140910145957.GD12893@laptop.dumpdata.com>
-Content-Type: text/plain; charset="ISO-8859-1"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1410385686.28237.5.camel@jarvis>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, David Vrabel <david.vrabel@citrix.com>
-Cc: Bjorn Helgaas <bhelgaas@google.com>, linux-mips@linux-mips.org, linux-ia64@vger.kernel.org, linux-pci@vger.kernel.org, Xinwei Hu <huxinwei@huawei.com>, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, Russell King <linux@arm.linux.org.uk>, Joerg Roedel <joro@8bytes.org>, x86@kernel.org, Sebastian Ott <sebott@linux.vnet.ibm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, xen-devel@lists.xenproject.org, arnab.basu@freescale.com, Arnd Bergmann <arnd@arndb.de>, Chris Metcalf <cmetcalf@tilera.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arm-kernel@lists.infradead.org, Bharat.Bhushan@freescale.com, Tony Luck <tony.luck@intel.com>, Ralf Baechle <ralf@linux-mips.org>, iommu@lists.linux-foundation.org, Wuyun <wuyun.wu@huawei.com>, linuxppc-dev@lists.ozlabs.org, "David S. Miller" <davem@davemloft.net>
-Message-ID: <20140911012857.ZMd0RyDY31eH_ZkJhTzYMD3Y8LOJljze71lXgnIG5eE@z>
+To: James Bottomley <James.Bottomley@HansenPartnership.com>
+Cc: Peter Hurley <peter@hurleysoftware.com>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>, "H. Peter Anvin" <hpa@zytor.com>, One Thousand Gnomes <gnomes@lxorguk.ukuu.org.uk>, Jakub Jelinek <jakub@redhat.com>, Mikael Pettersson <mikpelinux@gmail.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Richard Henderson <rth@twiddle.net>, Oleg Nesterov <oleg@redhat.com>, Miroslav Franc <mfranc@redhat.com>, Paul Mackerras <paulus@samba.org>, "linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Tony Luck <tony.luck@intel.com>, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>
+Message-ID: <20140911102356.iOF0ItLgbjH1HdGCKJSrw_dJvj-GcI5pYdW4OqHzaUg@z>
 
-On 2014/9/10 22:59, Konrad Rzeszutek Wilk wrote:
-> On Wed, Sep 10, 2014 at 01:38:25PM +0100, David Vrabel wrote:
->> On 09/09/14 03:06, Yijing Wang wrote:
->>> On 2014/9/5 22:29, David Vrabel wrote:
->>>> On 05/09/14 11:09, Yijing Wang wrote:
->>>>> Use MSI chip framework instead of arch MSI functions to configure
->>>>> MSI/MSI-X irq. So we can manage MSI/MSI-X irq in a unified framework.
->>>> [...]
->>>>> --- a/arch/x86/pci/xen.c
->>>>> +++ b/arch/x86/pci/xen.c
->>>> [...]
->>>>> @@ -418,9 +430,9 @@ int __init pci_xen_init(void)
->>>>>  #endif
->>>>>  
->>>>>  #ifdef CONFIG_PCI_MSI
->>>>> -	x86_msi.setup_msi_irqs = xen_setup_msi_irqs;
->>>>> -	x86_msi.teardown_msi_irq = xen_teardown_msi_irq;
->>>>> -	x86_msi.teardown_msi_irqs = xen_teardown_msi_irqs;
->>>>> +	xen_msi_chip.setup_irqs = xen_setup_msi_irqs;
->>>>> +	xen_msi_chip.teardown_irqs = xen_teardown_msi_irqs;
->>>>> +	x86_msi_chip = &xen_msi_chip;
->>>>>  	msi_chip.irq_mask = xen_nop_msi_mask;
->>>>>  	msi_chip.irq_unmask = xen_nop_msi_mask;
->>>>
->>>> Why have these not been changed to set the x86_msi_chip.mask/unmask
->>>> fields instead?
->>>
->>> Hi David, x86_msi_chip here is struct msi_chip data type, used to configure MSI/MSI-X
->>> irq. msi_chip above is struct irq_chip data type, represent the MSI irq controller. They are
->>> not the same object. Their name easily confusing people.
->>
->> Ok, it all makes sense now.
->>
->> Acked-by: David Vrabel <david.vrabel@citrix.com>
+On Wed, Sep 10, 2014 at 10:48:06PM +0100, James Bottomley wrote:
+> On Tue, 2014-09-09 at 06:40 -0400, Peter Hurley wrote:
+> > >> The processor is free to re-order this to:
+> > >>
+> > >> 	STORE C
+> > >> 	STORE B
+> > >> 	UNLOCK
+> > >>
+> > >> That's because the unlock() only guarantees that:
+> > >>
+> > >> Stores before the unlock in program order are guaranteed to complete
+> > >> before the unlock completes. Stores after the unlock _may_ complete
+> > >> before the unlock completes.
+> > >>
+> > >> My point was that even if compiler barriers had the same semantics
+> > >> as memory barriers, the situation would be no worse. That is, code
+> > >> that is sensitive to memory barriers (like the example I gave above)
+> > >> would merely have the same fragility with one-way compiler barriers
+> > >> (with respect to the compiler combining writes).
+> > >>
+> > >> That's what I meant by "no worse than would otherwise exist".
+> > > 
+> > > Actually, that's not correct.  This is actually deja vu with me on the
+> > > other side of the argument.  When we first did spinlocks on PA, I argued
+> > > as you did: lock only a barrier for code after and unlock for code
+> > > before.  The failing case is that you can have a critical section which
+> > > performs an atomically required operation and a following unit which
+> > > depends on it being performed.  If you begin the following unit before
+> > > the atomic requirement, you may end up losing.  It turns out this kind
+> > > of pattern is inherent in a lot of mail box device drivers: you need to
+> > > set up the mailbox atomically then poke it.  Setup is usually atomic,
+> > > deciding which mailbox to prime and actually poking it is in the
+> > > following unit.  Priming often involves an I/O bus transaction and if
+> > > you poke before priming, you get a misfire.
+> > 
+> > Take it up with the man because this was discussed extensively last
+> > year and it was decided that unlocks would not be full barriers.
+> > Thus the changes to memory-barriers.txt that explicitly note this
+> > and the addition of smp_mb__after_unlock_lock() (for two different
+> > locks; an unlock followed by a lock on the same lock is a full barrier).
+> > 
+> > Code that expects ordered writes after an unlock needs to explicitly
+> > add the memory barrier.
 > 
-> You can also add 'Tested-by: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>'
-> 
-> on the whole series - I ran it through on Xen and on baremetal with a mix of 32/64 builds.
-> 
-> Oh, and also Reviewed-by: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com> the Xen parts.
+> I don't really care what ARM does; spin locks are full barriers on
+> architectures that need them.  The driver problem we had that detected
+> our semi permeable spinlocks was an LSI 53c875 which is enterprise class
+> PCI, so presumably not relevant to ARM anyway.
 
-Thanks very much for your test and review!
+FWIW, unlock is always fully ordered against non-relaxed IO accesses. We
+have pretty heavy barriers in readX/writeX to ensure this on ARM/arm64.
 
-Thanks!
-Yijing.
+PPC do tricks in their unlock to avoid the overhead on each IO access.
 
-> 
->>
->> David
->>
->> _______________________________________________
->> Xen-devel mailing list
->> Xen-devel@lists.xen.org
->> http://lists.xen.org/xen-devel
-> 
-> .
-> 
-
-
--- 
-Thanks!
-Yijing
-
+Will
