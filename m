@@ -1,125 +1,68 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from service87.mimecast.com ([91.220.42.44]:56448 "EHLO
-	service87.mimecast.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752337AbaILJaX convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 12 Sep 2014 05:30:23 -0400
-Date: Fri, 12 Sep 2014 10:30:18 +0100
-From: Liviu Dudau <Liviu.Dudau@arm.com>
-Subject: Re: [PATCH v10 00/10] Support for creating generic PCI host bridges
- from DT
-Message-ID: <20140912093018.GX27864@e106497-lin.cambridge.arm.com>
-References: <1410184472-17630-1-git-send-email-Liviu.Dudau@arm.com>
- <5412ADE9.2050708@amd.com>
+Received: from mail-by2on0142.outbound.protection.outlook.com ([207.46.100.142]:35968
+	"EHLO na01-by2-obe.outbound.protection.outlook.com"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1751091AbaILKOX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 12 Sep 2014 06:14:23 -0400
+Message-ID: <5412C75F.30207@amd.com>
+Date: Fri, 12 Sep 2014 05:13:51 -0500
+From: Suravee Suthikulpanit <suravee.suthikulpanit@amd.com>
 MIME-Version: 1.0
-In-Reply-To: <5412ADE9.2050708@amd.com>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8BIT
-Content-Disposition: inline
+Subject: Re: [PATCH v10 09/10] PCI: Assign unassigned bus resources in pci_scan_root_bus()
+References: <1410184472-17630-1-git-send-email-Liviu.Dudau@arm.com>
+ <1410184472-17630-10-git-send-email-Liviu.Dudau@arm.com>
+In-Reply-To: <1410184472-17630-10-git-send-email-Liviu.Dudau@arm.com>
+Content-Type: text/plain; charset="windows-1252"; format=flowed
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Suravee Suthikulpanit <suravee.suthikulpanit@amd.com>
-Cc: Bjorn Helgaas <bhelgaas@google.com>, Arnd Bergmann <arnd@arndb.de>, Rob Herring <robh+dt@kernel.org>, Jason Gunthorpe <jgunthorpe@obsidianresearch.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Catalin Marinas <Catalin.Marinas@arm.com>, Will Deacon <Will.Deacon@arm.com>, Russell King <linux@arm.linux.org.uk>, linux-pci <linux-pci@vger.kernel.org>, Linus Walleij <linus.walleij@linaro.org>, Tanmay Inamdar <tinamdar@apm.com>, Grant Likely <grant.likely@secretlab.ca>, Sinan Kaya <okaya@codeaurora.org>, Jingoo Han <jg1.han@samsung.com>, Kukjin Kim <kgene.kim@samsung.com>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Device Tree ML <devicetree@vger.kernel.org>, LAKML <linux-arm-kernel@lists.infradead.org>
-Message-ID: <20140912093018.W0Gy_WxqWo0uQvM8OTBLtvCAFxBjQdpsUGqxP0WHRUI@z>
+To: Liviu Dudau <Liviu.Dudau@arm.com>, Bjorn Helgaas <bhelgaas@google.com>, Arnd Bergmann <arnd@arndb.de>, Rob Herring <robh+dt@kernel.org>, Jason Gunthorpe <jgunthorpe@obsidianresearch.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <Will.Deacon@arm.com>, Russell King <linux@arm.linux.org.uk>, linux-pci <linux-pci@vger.kernel.org>, Linus Walleij <linus.walleij@linaro.org>
+Cc: Tanmay Inamdar <tinamdar@apm.com>, Grant Likely <grant.likely@secretlab.ca>, Sinan Kaya <okaya@codeaurora.org>, Jingoo Han <jg1.han@samsung.com>, Kukjin Kim <kgene.kim@samsung.com>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Device Tree ML <devicetree@vger.kernel.org>, LAKML <linux-arm-kernel@lists.infradead.org>
+Message-ID: <20140912101351.Pe2j8fzvf3cEyCNZaaObIIviHGfb1X7w0sbN-o1iT1I@z>
 
-On Fri, Sep 12, 2014 at 09:25:13AM +0100, Suravee Suthikulpanit wrote:
-> On 9/8/2014 8:54 AM, Liviu Dudau wrote:
-> > This is my version 10 of the attempt at adding support for generic PCI host
-> > bridge controllers that make use of device tree information to
-> > configure themselves. This version reverses v9's attempt to create one function
-> > to drive the whole process of extracting the host bridge ranges, setup the
-> > host bridge driver and then scan the root bus behind the host bridge. While it
-> > would've been quite user friendly, I agree that it would've caused a lot of pain
-> > in the future.
-> >
-> > I would like to get ACKs for the remaining patches as I would like to integrate
-> > this into -next in the following week.
-> >
-> > This version marks an implementation break with the previous versions as
-> > of_create_pci_host_bridge() is now gone. It gets replaced by
-> > of_pci_get_host_bridge_resources() that only parses the DT and extracts the
-> > relevant ranges and converts them to resources. The updated host bridge drivers
-> > will have to follow the guidelines in this example code:
-> >
-> > static int foohb_probe(struct platform_device *pdev)
-> > {
-> > 	struct device_node *dn = pdev->dev.of_node;
-> > 	struct foohb_drv *drv;
-> > 	resource_size_t io_base = 0;  /* phys address for start of IO */
-> > 	struct pci_bus *bus;
-> > 	int err = 0;
-> > 	LIST_HEAD(res);
-> >
-> > 	.....
-> > 	err = of_pci_get_host_bridge_resources(dn, 0, 255, &res, &io_base);
-> > 	if (err)
-> > 		goto err_handling;
-> > 	err = foohb_setup(drv, ...., &res, &io_base);
-> > 	if (err)
-> > 		goto err_handling;
+On 9/8/2014 8:54 AM, Liviu Dudau wrote:
+> If the firmware has not assigned all the bus resources and
+> we are not just probing the PCIe busses, it makes sense to
+> assign the unassigned resources in pci_scan_root_bus().
+>
+> Cc: Bjorn Helgaas <bhelgaas@google.com>
+> Cc: Arnd Bergmann <arnd@arndb.de>
+> Cc: Jason Gunthorpe <jgunthorpe@obsidianresearch.com>
+> Cc: Rob Herring <robh+dt@kernel.org>
+> Signed-off-by: Liviu Dudau <Liviu.Dudau@arm.com>
+> ---
+>   drivers/pci/probe.c | 3 +++
+>   1 file changed, 3 insertions(+)
+>
+> diff --git a/drivers/pci/probe.c b/drivers/pci/probe.c
+> index ef891d2..508cf61 100644
+> --- a/drivers/pci/probe.c
+> +++ b/drivers/pci/probe.c
+> @@ -1953,6 +1953,9 @@ struct pci_bus *pci_scan_root_bus(struct device *parent, int bus,
+>   	if (!found)
+>   		pci_bus_update_busn_res_end(b, max);
+>
+> +	if (!pci_has_flag(PCI_PROBE_ONLY))
+> +		pci_assign_unassigned_bus_resources(b);
+> +
+>   	pci_bus_add_devices(b);
+>   	return b;
+>   }
+>
 
-Hi Suravee,
+Liviu,
 
-> 
-> My understanding is that the "foohb_setup" above is supposed to be equivalent
-> to the "int (*setup)(struct pci_host_bridge *, resource_size_t)" in V9 that was
-> passed in as an argument of "of_create_pci_hot_bridge()".
+Besides the check for PCI_PROBE_ONLY here, I think we also need to avoid calling
+"pci_enable_resources()" in the "driver/pci/pci.c: pcibios_enable_device()" for
+PCI_PROBE_ONLY mode since the resource is not assigned by Linux. Otherwise, the
+"drivers/pci/setup-res.c: pci_enable_resource()" would fail w/ error:
 
-Correct. Parameters are probably different, but it is internal to your driver so
-you can do whatever you want there.
+     can't enable device: BAR ..... not assigned
 
-> 
-> The problem I have is I need an intermediate step between "pci_create_root_bus()"
-> and "pci_scan_child_bus()" in order to update the information such as the "pci_bus->msi"
-> before this is propagate down to the child bus during the "pci_scan_child_bus"
-> which is also called in the pci_scan_root_bus() function.
+Actually, in "arch/arm/kernel/bios32.c:", the weak "pcibios_enable_device()" function
+also has the check for PCI_PROBE_ONLY mode before calling pci_enable_resources().
 
-How did that work with my v9 patchset? How does it work for other MSI-aware platforms?
-Are they not using pci_scan_child_bus()?
+Thanks,
 
-> 
-> Does this mean that I should not be calling the pci_scan_root_bus(), and tries to
-> re-implement the same logic in my driver?
-
-Bjorn can comment here, but there seems to be a long standing desire to make
-pci_scan_root_bus() more useful. If your change is generic enough, how about proposing
-a patch for pci_scan_root_bus() and see what feedback you get.
-
-Judging by the complete silence I'm getting on my change (patch 9/10) of the same function,
-we might be lucky enough and no one will notice ;) (Bjorn, I'm kidding and I know you
-are busy).
-
-Best regards,
-Liviu
-
-> 
-> Thanks,
-> 
-> Suravee
-> 
-> > 	.....
-> > 	pci_add_flags(....);
-> > 	bus = pci_scan_root_bus(&pdev->dev, 0, &foohb_ops, drv, &res);
-> > 	if (!bus)
-> > 		goto err_handling;
-> > 	....
-> > 	return 0;
-> >
-> > err_handling:
-> > 	......
-> > 	return err;
-> > }
-> >
-> 
-> 
-> 
-
--- 
-====================
-| I would like to |
-| fix the world,  |
-| but they're not |
-| giving me the   |
- \ source code!  /
-  ---------------
-    ¯\_(ツ)_/¯
+Suravee
 
