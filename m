@@ -1,86 +1,125 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mailout32.mail01.mtsvc.net ([216.70.64.70]:35982 "EHLO
-	n23.mail01.mtsvc.net" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1756272AbaIKUCI (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 11 Sep 2014 16:02:08 -0400
-Message-ID: <5411FFB6.2080702@hurleysoftware.com>
-Date: Thu, 11 Sep 2014 16:01:58 -0400
-From: Peter Hurley <peter@hurleysoftware.com>
+Received: from service87.mimecast.com ([91.220.42.44]:56448 "EHLO
+	service87.mimecast.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752337AbaILJaX convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 12 Sep 2014 05:30:23 -0400
+Date: Fri, 12 Sep 2014 10:30:18 +0100
+From: Liviu Dudau <Liviu.Dudau@arm.com>
+Subject: Re: [PATCH v10 00/10] Support for creating generic PCI host bridges
+ from DT
+Message-ID: <20140912093018.GX27864@e106497-lin.cambridge.arm.com>
+References: <1410184472-17630-1-git-send-email-Liviu.Dudau@arm.com>
+ <5412ADE9.2050708@amd.com>
 MIME-Version: 1.0
-Subject: Re: bit fields && data tearing
-References: <20140712181328.GA8738@redhat.com>	<54079B70.4050200@hurleysoftware.com>	<1409785893.30640.118.camel@pasglop>	<063D6719AE5E284EB5DD2968C1650D6D17487172@AcuExch.aculab.com>	<1409824374.4246.62.camel@pasglop>	<5408E458.3@zytor.com>	<54090AF4.7060406@hurleysoftware.com>	<54091B30.7080100@zytor.com>	<5409D76D.2070203@hurleysoftware.com>	<5409D9C0.7030403@zytor.com>	<20140908185240.21f52ca0@alan.etchedpixels.co.uk>	<540DEE6C.2060904@zytor.com>	<540E3207.7090007@hurleysoftware.com> <20140911110411.2de01944@alan.etchedpixels.co.uk>
-In-Reply-To: <20140911110411.2de01944@alan.etchedpixels.co.uk>
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
+In-Reply-To: <5412ADE9.2050708@amd.com>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8BIT
+Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: One Thousand Gnomes <gnomes@lxorguk.ukuu.org.uk>
-Cc: "H. Peter Anvin" <hpa@zytor.com>, David Laight <David.Laight@ACULAB.COM>, Jakub Jelinek <jakub@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Tony Luck <tony.luck@intel.com>, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, Oleg Nesterov <oleg@redhat.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Paul Mackerras <paulus@samba.org>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, "linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>, Miroslav Franc <mfranc@redhat.com>, Richard Henderson <rth@twiddle.net>, linux-alpha@vger.kernel.org
-Message-ID: <20140911200158.fFg8mYBYIAHIbDjkrKG_fdfXZaVyxL1pFuY8y-XnUK0@z>
+To: Suravee Suthikulpanit <suravee.suthikulpanit@amd.com>
+Cc: Bjorn Helgaas <bhelgaas@google.com>, Arnd Bergmann <arnd@arndb.de>, Rob Herring <robh+dt@kernel.org>, Jason Gunthorpe <jgunthorpe@obsidianresearch.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Catalin Marinas <Catalin.Marinas@arm.com>, Will Deacon <Will.Deacon@arm.com>, Russell King <linux@arm.linux.org.uk>, linux-pci <linux-pci@vger.kernel.org>, Linus Walleij <linus.walleij@linaro.org>, Tanmay Inamdar <tinamdar@apm.com>, Grant Likely <grant.likely@secretlab.ca>, Sinan Kaya <okaya@codeaurora.org>, Jingoo Han <jg1.han@samsung.com>, Kukjin Kim <kgene.kim@samsung.com>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Device Tree ML <devicetree@vger.kernel.org>, LAKML <linux-arm-kernel@lists.infradead.org>
+Message-ID: <20140912093018.W0Gy_WxqWo0uQvM8OTBLtvCAFxBjQdpsUGqxP0WHRUI@z>
 
-On 09/11/2014 06:04 AM, One Thousand Gnomes wrote:
->>> Is *that* what we are talking about?  I was added to this conversation
->>> in the middle where it had already generalized, so I had no idea.
->>
->> No, this is just what brought this craziness to my attention.
+On Fri, Sep 12, 2014 at 09:25:13AM +0100, Suravee Suthikulpanit wrote:
+> On 9/8/2014 8:54 AM, Liviu Dudau wrote:
+> > This is my version 10 of the attempt at adding support for generic PCI host
+> > bridge controllers that make use of device tree information to
+> > configure themselves. This version reverses v9's attempt to create one function
+> > to drive the whole process of extracting the host bridge ranges, setup the
+> > host bridge driver and then scan the root bus behind the host bridge. While it
+> > would've been quite user friendly, I agree that it would've caused a lot of pain
+> > in the future.
+> >
+> > I would like to get ACKs for the remaining patches as I would like to integrate
+> > this into -next in the following week.
+> >
+> > This version marks an implementation break with the previous versions as
+> > of_create_pci_host_bridge() is now gone. It gets replaced by
+> > of_pci_get_host_bridge_resources() that only parses the DT and extracts the
+> > relevant ranges and converts them to resources. The updated host bridge drivers
+> > will have to follow the guidelines in this example code:
+> >
+> > static int foohb_probe(struct platform_device *pdev)
+> > {
+> > 	struct device_node *dn = pdev->dev.of_node;
+> > 	struct foohb_drv *drv;
+> > 	resource_size_t io_base = 0;  /* phys address for start of IO */
+> > 	struct pci_bus *bus;
+> > 	int err = 0;
+> > 	LIST_HEAD(res);
+> >
+> > 	.....
+> > 	err = of_pci_get_host_bridge_resources(dn, 0, 255, &res, &io_base);
+> > 	if (err)
+> > 		goto err_handling;
+> > 	err = foohb_setup(drv, ...., &res, &io_base);
+> > 	if (err)
+> > 		goto err_handling;
+
+Hi Suravee,
+
 > 
-> None of it is craziness. It's the real world leaking into the crazy
-> delusional world of sequential programming. Machines are going to get
-> more not less parallel.
+> My understanding is that the "foohb_setup" above is supposed to be equivalent
+> to the "int (*setup)(struct pci_host_bridge *, resource_size_t)" in V9 that was
+> passed in as an argument of "of_create_pci_hot_bridge()".
+
+Correct. Parameters are probably different, but it is internal to your driver so
+you can do whatever you want there.
+
 > 
->> For example, byte- and short-sized circular buffers could not possibly
->> be safe either, when the head nears the tail.
->>
->> Who has audited global storage and ensured that _every_ byte-sized write
->> doesn't happen to be adjacent to some other storage that may not happen
->> to be protected by the same (or any) lock?
+> The problem I have is I need an intermediate step between "pci_create_root_bus()"
+> and "pci_scan_child_bus()" in order to update the information such as the "pci_bus->msi"
+> before this is propagate down to the child bus during the "pci_scan_child_bus"
+> which is also called in the pci_scan_root_bus() function.
+
+How did that work with my v9 patchset? How does it work for other MSI-aware platforms?
+Are they not using pci_scan_child_bus()?
+
 > 
-> Thats a meaningless question. Have you audited it all for correctness of
-> any other form. Have you mathematically verified the functionality as a
-> set of formal proofs ? If you can't prove its formally mathematically
-> functionally correct why are you worried about this ?
+> Does this mean that I should not be calling the pci_scan_root_bus(), and tries to
+> re-implement the same logic in my driver?
+
+Bjorn can comment here, but there seems to be a long standing desire to make
+pci_scan_root_bus() more useful. If your change is generic enough, how about proposing
+a patch for pci_scan_root_bus() and see what feedback you get.
+
+Judging by the complete silence I'm getting on my change (patch 9/10) of the same function,
+we might be lucky enough and no one will notice ;) (Bjorn, I'm kidding and I know you
+are busy).
+
+Best regards,
+Liviu
+
 > 
-> Alpha works, maybe it has a near theoretical race on that point. It's not
-> any worse than it was 15 years ago and nobody has really hit a problem
-> with it. So from that you can usefully infer that those buffer cases are
-> not proving a real problem.
->
-> The tty locks together on the other hand are asking to hit it, and the
-> problem you were trying to fix were the ones that need set_bit() to make
-> the guarantees.
+> Thanks,
+> 
+> Suravee
+> 
+> > 	.....
+> > 	pci_add_flags(....);
+> > 	bus = pci_scan_root_bus(&pdev->dev, 0, &foohb_ops, drv, &res);
+> > 	if (!bus)
+> > 		goto err_handling;
+> > 	....
+> > 	return 0;
+> >
+> > err_handling:
+> > 	......
+> > 	return err;
+> > }
+> >
+> 
+> 
+> 
 
-So a problem that no one has ever complained about on _any_ arch is suddenly
-a problem on a subset of Alpha cpus, but a problem I know exists on Alpha
-isn't important because no one's filed a bug about it?
+-- 
+====================
+| I would like to |
+| fix the world,  |
+| but they're not |
+| giving me the   |
+ \ source code!  /
+  ---------------
+    ¯\_(ツ)_/¯
 
-The only Alpha person in this discussion has come out clearly in favor
-of dropping EV4/5 support.
-
-The fact is that the kernel itself is much more parallel than it was
-15 years ago, and that trend is going to continue. Paired with the fact
-that the Alpha is the least-parallel-friendly arch, makes improving
-parallelism and correctness even harder within kernel subsystems; harder
-than it has to be and harder than it should be.
-
-Linus has repeatedly stated that non-arch code should be as
-arch-independent as possible, so I believe that working around problems
-created by a cpu from 1995 _which no other arch exhibits_ is ludicrous.
-Especially in generic kernel code.
-
-That said, if the Alpha community wants to keep _actively_ supporting
-the Alpha arch, fine. They could be working toward solutions for
-making Alpha workarounds in generic kernel code unnecessary. If that means
-compiler changes, ok. If that means arch-independent macros, well, they
-can float that idea.
-
-Or if they're comfortable with the status quo, also fine. By that, I mean
-the Alpha arch gets no workarounds in generic kernel code, and if something
-goes a little sideways only on Alpha, that's to be expected.
-
-As Paul pointed out, a good first step would be for the Alpha community
-to contribute byte and short versions of smp_load_acquire() and
-smp_store_release() so that the rest of the kernel community can make
-forward progress on more parallelism without Alpha-only limitations.
-
-Regards,
-Peter Hurley
