@@ -1,98 +1,74 @@
-From: Liviu Dudau <Liviu.Dudau@arm.com>
-Subject: Re: [PATCH v10 09/10] PCI: Assign unassigned bus resources in
- pci_scan_root_bus()
-Date: Fri, 12 Sep 2014 11:34:29 +0100
-Message-ID: <20140912103429.GA1994@e106497-lin.cambridge.arm.com>
-References: <1410184472-17630-1-git-send-email-Liviu.Dudau@arm.com>
- <1410184472-17630-10-git-send-email-Liviu.Dudau@arm.com>
- <5412C75F.30207@amd.com>
+From: One Thousand Gnomes <gnomes@lxorguk.ukuu.org.uk>
+Subject: Re: bit fields && data tearing
+Date: Mon, 15 Sep 2014 00:24:27 +0100
+Message-ID: <20140915002427.6ce18965@alan.etchedpixels.co.uk>
+References: <20140712181328.GA8738@redhat.com>
+	<54079B70.4050200@hurleysoftware.com>
+	<1409785893.30640.118.camel@pasglop>
+	<063D6719AE5E284EB5DD2968C1650D6D17487172@AcuExch.aculab.com>
+	<1409824374.4246.62.camel@pasglop>
+	<5408E458.3@zytor.com>
+	<54090AF4.7060406@hurleysoftware.com>
+	<54091B30.7080100@zytor.com>
+	<5409D76D.2070203@hurleysoftware.com>
+	<5409D9C0.7030403@zytor.com>
+	<20140908185240.21f52ca0@alan.etchedpixels.co.uk>
+	<540DEE6C.2060904@zytor.com>
+	<540E3207.7090007@hurleysoftware.com>
+	<20140911110411.2de01944@alan.etchedpixels.co.uk>
+	<5411FFB6.2080702@hurleysoftware.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: QUOTED-PRINTABLE
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from service87.mimecast.com ([91.220.42.44]:55128 "EHLO
-	service87.mimecast.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753343AbaILKef convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 12 Sep 2014 06:34:35 -0400
-In-Reply-To: <5412C75F.30207@amd.com>
-Content-Disposition: inline
+Received: from 251.110.2.81.in-addr.arpa ([81.2.110.251]:49224 "EHLO
+	lxorguk.ukuu.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752998AbaINXZK (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 14 Sep 2014 19:25:10 -0400
+In-Reply-To: <5411FFB6.2080702@hurleysoftware.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Suravee Suthikulpanit <suravee.suthikulpanit@amd.com>
-Cc: Bjorn Helgaas <bhelgaas@google.com>, Arnd Bergmann <arnd@arndb.de>, Rob Herring <robh+dt@kernel.org>, Jason Gunthorpe <jgunthorpe@obsidianresearch.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Catalin Marinas <Catalin.Marinas@arm.com>, Will Deacon <Will.Deacon@arm.com>, Russell King <linux@arm.linux.org.uk>, linux-pci <linux-pci@vger.kernel.org>, Linus Walleij <linus.walleij@linaro.org>, Tanmay Inamdar <tinamdar@apm.com>, Grant Likely <grant.likely@secretlab.ca>, Sinan Kaya <okaya@codeaurora.org>, Jingoo Han <jg1.han@samsung.com>, Kukjin Kim <kgene.kim@samsung.com>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Device Tree ML <devicetree@vger.kernel.org>, LAKML <linux-arm-kernel@lists.infradead.org>
+To: Peter Hurley <peter@hurleysoftware.com>
+Cc: "H. Peter Anvin" <hpa@zytor.com>, David Laight <David.Laight@ACULAB.COM>, Jakub Jelinek <jakub@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Tony Luck <tony.luck@intel.com>, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, Oleg Nesterov <oleg@redhat.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Paul Mackerras <paulus@samba.org>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, "linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>, Miroslav Franc <mfranc@redhat.com>, Richard Henderson <rth@twiddle.net>, linux-alpha@vger.kernel.org
 
-On Fri, Sep 12, 2014 at 11:13:51AM +0100, Suravee Suthikulpanit wrote:
-> On 9/8/2014 8:54 AM, Liviu Dudau wrote:
-> > If the firmware has not assigned all the bus resources and
-> > we are not just probing the PCIe busses, it makes sense to
-> > assign the unassigned resources in pci_scan_root_bus().
-> >
-> > Cc: Bjorn Helgaas <bhelgaas@google.com>
-> > Cc: Arnd Bergmann <arnd@arndb.de>
-> > Cc: Jason Gunthorpe <jgunthorpe@obsidianresearch.com>
-> > Cc: Rob Herring <robh+dt@kernel.org>
-> > Signed-off-by: Liviu Dudau <Liviu.Dudau@arm.com>
-> > ---
-> >   drivers/pci/probe.c | 3 +++
-> >   1 file changed, 3 insertions(+)
-> >
-> > diff --git a/drivers/pci/probe.c b/drivers/pci/probe.c
-> > index ef891d2..508cf61 100644
-> > --- a/drivers/pci/probe.c
-> > +++ b/drivers/pci/probe.c
-> > @@ -1953,6 +1953,9 @@ struct pci_bus *pci_scan_root_bus(struct devi=
-ce *parent, int bus,
-> >   	if (!found)
-> >   		pci_bus_update_busn_res_end(b, max);
-> >
-> > +	if (!pci_has_flag(PCI_PROBE_ONLY))
-> > +		pci_assign_unassigned_bus_resources(b);
-> > +
-> >   	pci_bus_add_devices(b);
-> >   	return b;
-> >   }
-> >
->=20
-> Liviu,
->=20
-> Besides the check for PCI_PROBE_ONLY here, I think we also need to av=
-oid calling
-> "pci_enable_resources()" in the "driver/pci/pci.c: pcibios_enable_dev=
-ice()" for
-> PCI_PROBE_ONLY mode since the resource is not assigned by Linux. Othe=
-rwise, the
-> "drivers/pci/setup-res.c: pci_enable_resource()" would fail w/ error:
->=20
->      can't enable device: BAR ..... not assigned
+> So a problem that no one has ever complained about on _any_ arch is suddenly
+> a problem on a subset of Alpha cpus, but a problem I know exists on Alpha
+> isn't important because no one's filed a bug about it?
 
-Hmm, are you sure that is not because the host bridge resources have no=
-t been
-requested? pci-host-generic.c uses PCI_PROBE_ONLY and yet it works with=
- the series as
-is. But it does request_resource() for the host bridge resources inside=
- the driver.
+Yes - because if you think about it that tells you that nobody is hitting
+it with the old code and it probably doesn't matter.
+ 
+> The only Alpha person in this discussion has come out clearly in favor
+> of dropping EV4/5 support.
 
-Best regards,
-Liviu
+That's not a statistically valid sample size btw
 
->=20
-> Actually, in "arch/arm/kernel/bios32.c:", the weak "pcibios_enable_de=
-vice()" function
-> also has the check for PCI_PROBE_ONLY mode before calling pci_enable_=
-resources().
->=20
-> Thanks,
->=20
-> Suravee
->=20
->=20
+Plus as I pointed out (and you ignored) you are shutting out any future
+processors with this kind of oddity, and you have not audited all the
+embedded devices we support or may support in future.
+ 
+> The fact is that the kernel itself is much more parallel than it was
+> 15 years ago, and that trend is going to continue. Paired with the fact
+> that the Alpha is the least-parallel-friendly arch, makes improving
+> parallelism and correctness even harder within kernel subsystems; harder
+> than it has to be and harder than it should be.
+> 
+> Linus has repeatedly stated that non-arch code should be as
+> arch-independent as possible
 
---=20
-=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D
-| I would like to |
-| fix the world,  |
-| but they're not |
-| giving me the   |
- \ source code!  /
-  ---------------
-    =C2=AF\_(=E3=83=84)_/=C2=AF
+That's why many many years ago we added set_bit() and the other bit
+functions. On sane processors they are very fast. On insane ones they
+work. They understand byte tearing, they understand store ordering (which
+a simple variable does not so you've got to audit all your memory
+barriers too). In many cases they are faster than using memory barriers
+to guide the compiler because they invalidate less and allow the compiler
+more freedom.
+
+All this started because I suggested you use set_bit and friends and for
+some reason you've decided to try and find another way to do it. We have
+the bit operations for a reason. On x86 they are very very fast, on
+uniprocessor anything they are very fast, on multiprocessor in general
+they are very fast, or you are dealing with boxes that have sanity
+problems of other kinds.
+
+Alan
