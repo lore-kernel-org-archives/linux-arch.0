@@ -1,16 +1,16 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from metis.ext.pengutronix.de ([92.198.50.35]:50379 "EHLO
+Received: from metis.ext.pengutronix.de ([92.198.50.35]:50429 "EHLO
 	metis.ext.pengutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751847AbaIOOnH (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 15 Sep 2014 10:43:07 -0400
-Message-ID: <1410792154.3314.7.camel@pengutronix.de>
-Subject: Re: [PATCH v1 05/21] PCI/MSI: Introduce weak arch_find_msi_chip()
- to find MSI chip
+	with ESMTP id S1752778AbaIOOol (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 15 Sep 2014 10:44:41 -0400
+Message-ID: <1410792261.3314.9.camel@pengutronix.de>
+Subject: Re: [PATCH v1 06/21] PCI/MSI: Refactor struct msi_chip to make it
+ become more common
 From: Lucas Stach <l.stach@pengutronix.de>
-Date: Mon, 15 Sep 2014 16:42:34 +0200
-In-Reply-To: <1409911806-10519-6-git-send-email-wangyijing@huawei.com>
+Date: Mon, 15 Sep 2014 16:44:21 +0200
+In-Reply-To: <1409911806-10519-7-git-send-email-wangyijing@huawei.com>
 References: <1409911806-10519-1-git-send-email-wangyijing@huawei.com>
-	 <1409911806-10519-6-git-send-email-wangyijing@huawei.com>
+	 <1409911806-10519-7-git-send-email-wangyijing@huawei.com>
 Content-Type: text/plain; charset="UTF-8"
 Mime-Version: 1.0
 Content-Transfer-Encoding: 7bit
@@ -18,55 +18,81 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Yijing Wang <wangyijing@huawei.com>
 Cc: Bjorn Helgaas <bhelgaas@google.com>, Xinwei Hu <huxinwei@huawei.com>, Wuyun <wuyun.wu@huawei.com>, linux-pci@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Russell King <linux@arm.linux.org.uk>, linux-arch@vger.kernel.org, arnab.basu@freescale.com, Bharat.Bhushan@freescale.com, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, Thomas Gleixner <tglx@linutronix.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, xen-devel@lists.xenproject.org, Joerg Roedel <joro@8bytes.org>, iommu@lists.linux-foundation.org, linux-mips@linux-mips.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, Sebastian Ott <sebott@linux.vnet.ibm.com>, Tony Luck <tony.luck@intel.com>, linux-ia64@vger.kernel.org, "David S. Miller" <davem@davemloft.net>, sparclinux@vger.kernel.org, Chris Metcalf <cmetcalf@tilera.com>, Ralf Baechle <ralf@linux-mips.org>
-Message-ID: <20140915144234.GhpEwhhYO0vqPTzDCue16rO2uxd73_5wDx8Gndc31O0@z>
+Message-ID: <20140915144421.q_bwZyxHBtH5fJbajTYr3ycI3cK8oZXb1XbYcOi4BXc@z>
 
 Am Freitag, den 05.09.2014, 18:09 +0800 schrieb Yijing Wang:
-> Introduce weak arch_find_msi_chip() to find the match msi_chip.
-> Currently, MSI chip associates pci bus to msi_chip. Because in
-> ARM platform, there may be more than one MSI controller in system.
-> Associate pci bus to msi_chip help pci device to find the match
-> msi_chip and setup MSI/MSI-X irq correctly. But in other platform,
-> like in x86. we only need one MSI chip, because all device use
-> the same MSI address/data and irq etc. So it's no need to associate
-> pci bus to MSI chip, just use a arch function, arch_find_msi_chip()
-> to return the MSI chip for simplicity. The default weak
-> arch_find_msi_chip() used in ARM platform, find the MSI chip
-> by pci bus.
+> Now there are a lot of __weak arch functions in MSI code.
+> These functions make MSI driver complex. Thierry Reding Introduced
+> a new MSI chip framework to configure MSI/MSI-X irq in ARM. Use
+> the new MSI chip framework to refactor all other platform MSI
+> arch code to eliminate weak arch MSI functions. This patch add
+> .restore_irq() and .setup_irqs() to make it become more common.
 > 
-Hm, while one weak function sounds much better than the plethora we have
-now, I wonder how much work it would be to associate the msi_chip with
-the pci bus on other arches the same way as done on ARM. This way we
-could kill this calling into arch specific functions which would make
-things a bit clearer to follow I think.
-
-Regards,
-Lucas
-
 > Signed-off-by: Yijing Wang <wangyijing@huawei.com>
+
+This change looks good to me:
+Reviewed-by: Lucas Stach <l.stach@pengutronix.de>
+
 > ---
->  drivers/pci/msi.c |    7 ++++++-
->  1 files changed, 6 insertions(+), 1 deletions(-)
+>  drivers/pci/msi.c   |   15 +++++++++++++++
+>  include/linux/msi.h |    3 +++
+>  2 files changed, 18 insertions(+), 0 deletions(-)
 > 
 > diff --git a/drivers/pci/msi.c b/drivers/pci/msi.c
-> index a77e7f7..539c11d 100644
+> index 539c11d..d78d637 100644
 > --- a/drivers/pci/msi.c
 > +++ b/drivers/pci/msi.c
-> @@ -29,9 +29,14 @@ static int pci_msi_enable = 1;
->  
->  /* Arch hooks */
->  
-> +struct msi_chip * __weak arch_find_msi_chip(struct pci_dev *dev)
-> +{
-> +	return dev->bus->msi;
-> +}
-> +
->  int __weak arch_setup_msi_irq(struct pci_dev *dev, struct msi_desc *desc)
+> @@ -63,6 +63,11 @@ int __weak arch_setup_msi_irqs(struct pci_dev *dev, int nvec, int type)
 >  {
-> -	struct msi_chip *chip = dev->bus->msi;
-> +	struct msi_chip *chip = arch_find_msi_chip(dev);
->  	int err;
+>  	struct msi_desc *entry;
+>  	int ret;
+> +	struct msi_chip *chip;
+> +
+> +	chip = arch_find_msi_chip(dev);
+> +	if (chip && chip->setup_irqs)
+> +		return chip->setup_irqs(dev, nvec, type);
 >  
->  	if (!chip || !chip->setup_irq)
+>  	/*
+>  	 * If an architecture wants to support multiple MSI, it needs to
+> @@ -105,6 +110,11 @@ void default_teardown_msi_irqs(struct pci_dev *dev)
+>  
+>  void __weak arch_teardown_msi_irqs(struct pci_dev *dev)
+>  {
+> +	struct msi_chip *chip = arch_find_msi_chip(dev);
+> +
+> +	if (chip && chip->teardown_irqs)
+> +		return chip->teardown_irqs(dev);
+> +
+>  	return default_teardown_msi_irqs(dev);
+>  }
+>  
+> @@ -128,6 +138,11 @@ static void default_restore_msi_irq(struct pci_dev *dev, int irq)
+>  
+>  void __weak arch_restore_msi_irqs(struct pci_dev *dev)
+>  {
+> +	struct msi_chip *chip = arch_find_msi_chip(dev);
+> +
+> +	if (chip && chip->restore_irqs)
+> +		return chip->restore_irqs(dev);
+> +
+>  	return default_restore_msi_irqs(dev);
+>  }
+>  
+> diff --git a/include/linux/msi.h b/include/linux/msi.h
+> index 5650848..92a51e7 100644
+> --- a/include/linux/msi.h
+> +++ b/include/linux/msi.h
+> @@ -72,7 +72,10 @@ struct msi_chip {
+>  	struct list_head list;
+>  
+>  	int (*setup_irq)(struct pci_dev *dev, struct msi_desc *desc);
+> +	int (*setup_irqs)(struct pci_dev *dev, int nvec, int type);
+>  	void (*teardown_irq)(unsigned int irq);
+> +	void (*teardown_irqs)(struct pci_dev *dev);
+> +	void (*restore_irqs)(struct pci_dev *dev);
+>  };
+>  
+>  #endif /* LINUX_MSI_H */
 
 -- 
 Pengutronix e.K.             | Lucas Stach                 |
