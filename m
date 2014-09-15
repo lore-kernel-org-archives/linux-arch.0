@@ -1,88 +1,64 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from [157.56.110.102] ([157.56.110.102]:24099 "EHLO
-	na01-bn1-obe.outbound.protection.outlook.com"
-	rhost-flags-FAIL-FAIL-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1754067AbaILLCE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 12 Sep 2014 07:02:04 -0400
-Message-ID: <5412ADE9.2050708@amd.com>
-Date: Fri, 12 Sep 2014 03:25:13 -0500
-From: Suravee Suthikulpanit <suravee.suthikulpanit@amd.com>
+Received: from mail-pd0-f180.google.com ([209.85.192.180]:59460 "EHLO
+	mail-pd0-f180.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753273AbaIOC5n (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 14 Sep 2014 22:57:43 -0400
+Date: Mon, 15 Sep 2014 10:57:29 +0800
+From: Aaron Lu <aaron.lu@intel.com>
+Subject: Re: [PATCH 0/2] Support CrystalCove PMIC ACPI operation region
+Message-ID: <20140915025727.GA14730@aaronlu.sh.intel.com>
+References: <1410229968-11638-1-git-send-email-aaron.lu@intel.com>
 MIME-Version: 1.0
-Subject: Re: [PATCH v10 00/10] Support for creating generic PCI host bridges
- from DT
-References: <1410184472-17630-1-git-send-email-Liviu.Dudau@arm.com>
-In-Reply-To: <1410184472-17630-1-git-send-email-Liviu.Dudau@arm.com>
-Content-Type: text/plain; charset="windows-1252"; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1410229968-11638-1-git-send-email-aaron.lu@intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Liviu Dudau <Liviu.Dudau@arm.com>, Bjorn Helgaas <bhelgaas@google.com>, Arnd Bergmann <arnd@arndb.de>, Rob Herring <robh+dt@kernel.org>, Jason Gunthorpe <jgunthorpe@obsidianresearch.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <Will.Deacon@arm.com>, Russell King <linux@arm.linux.org.uk>, linux-pci <linux-pci@vger.kernel.org>, Linus Walleij <linus.walleij@linaro.org>
-Cc: Tanmay Inamdar <tinamdar@apm.com>, Grant Likely <grant.likely@secretlab.ca>, Sinan Kaya <okaya@codeaurora.org>, Jingoo Han <jg1.han@samsung.com>, Kukjin Kim <kgene.kim@samsung.com>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Device Tree ML <devicetree@vger.kernel.org>, LAKML <linux-arm-kernel@lists.infradead.org>
-Message-ID: <20140912082513.M_N6viaJecj_tV2RPPInUUusSJNb1XXH9FYuIZaih_0@z>
+To: Linus Walleij <linus.walleij@linaro.org>, Alexandre Courbot <gnurou@gmail.com>, Samuel Ortiz <sameo@linux.intel.com>, Lee Jones <lee.jones@linaro.org>, Arnd Bergmann <arnd@arndb.de>
+Cc: linux-gpio@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Jacob Pan <jacob.jun.pan@linux.intel.com>, Lejun Zhu <lejun.zhu@intel.com>, Radivoje Jovanovic <radivoje.jovanovic@intel.com>, Daniel =?iso-8859-1?Q?Gl=F6ckner?= <dg@emlix.com>, linux-acpi@vger.kernel.org, "Rafael J. Wysocki" <rjw@rjwysocki.net>
+Message-ID: <20140915025729.U2PZXXoxkHKTHRlnQbpMrtNVHatHi7bc_0Cqw_E0zGw@z>
 
-On 9/8/2014 8:54 AM, Liviu Dudau wrote:
-> This is my version 10 of the attempt at adding support for generic PCI host
-> bridge controllers that make use of device tree information to
-> configure themselves. This version reverses v9's attempt to create one function
-> to drive the whole process of extracting the host bridge ranges, setup the
-> host bridge driver and then scan the root bus behind the host bridge. While it
-> would've been quite user friendly, I agree that it would've caused a lot of pain
-> in the future.
->
-> I would like to get ACKs for the remaining patches as I would like to integrate
-> this into -next in the following week.
->
-> This version marks an implementation break with the previous versions as
-> of_create_pci_host_bridge() is now gone. It gets replaced by
-> of_pci_get_host_bridge_resources() that only parses the DT and extracts the
-> relevant ranges and converts them to resources. The updated host bridge drivers
-> will have to follow the guidelines in this example code:
->
-> static int foohb_probe(struct platform_device *pdev)
-> {
-> 	struct device_node *dn = pdev->dev.of_node;
-> 	struct foohb_drv *drv;
-> 	resource_size_t io_base = 0;  /* phys address for start of IO */
-> 	struct pci_bus *bus;
-> 	int err = 0;
-> 	LIST_HEAD(res);
->
-> 	.....
-> 	err = of_pci_get_host_bridge_resources(dn, 0, 255, &res, &io_base);
-> 	if (err)
-> 		goto err_handling;
-> 	err = foohb_setup(drv, ...., &res, &io_base);
-> 	if (err)
-> 		goto err_handling;
+I wonder if anyone has looked at this?
 
-My understanding is that the "foohb_setup" above is supposed to be equivalent
-to the "int (*setup)(struct pci_host_bridge *, resource_size_t)" in V9 that was
-passed in as an argument of "of_create_pci_hot_bridge()".
+Note that this is for CrystalCove PMIC operation region support and the
+CrystalCove driver is already in mainline, not for the DollarCove PMIC
+driver that Jacob is currently upstreaming, so the patch doesn't have
+any dependency.
 
-The problem I have is I need an intermediate step between "pci_create_root_bus()"
-and "pci_scan_child_bus()" in order to update the information such as the "pci_bus->msi"
-before this is propagate down to the child bus during the "pci_scan_child_bus"
-which is also called in the pci_scan_root_bus() function.
+Regards,
+Aaron
 
-Does this mean that I should not be calling the pci_scan_root_bus(), and tries to
-re-implement the same logic in my driver?
-
-Thanks,
-
-Suravee
-
-> 	.....
-> 	pci_add_flags(....);
-> 	bus = pci_scan_root_bus(&pdev->dev, 0, &foohb_ops, drv, &res);
-> 	if (!bus)
-> 		goto err_handling;
-> 	....
-> 	return 0;
->
-> err_handling:
-> 	......
-> 	return err;
-> }
->
-
-
+On Tue, Sep 09, 2014 at 10:32:46AM +0800, Aaron Lu wrote:
+> The two patches add support for CrystalCove PMIC ACPI operation region.
+> The PMIC chip has two customized operation regions: one for power rail
+> manipulation and one for thermal purpose: sensor temperature reading
+> and trip point value reading/setting.
+> 
+> For an example ASL code on ASUS T100 with CrystalCove PMIC, see here:
+> https://gist.github.com/aaronlu/f5f65771a6c3251fae5d
+> 
+> Aaron Lu (2):
+>   gpio / CrystalCove: support virtual GPIO
+>   PMIC / opregion: support PMIC customized operation region for
+>     CrystalCove
+> 
+>  drivers/gpio/gpio-crystalcove.c           |  19 +-
+>  drivers/mfd/Kconfig                       |  11 +
+>  drivers/mfd/Makefile                      |   1 +
+>  drivers/mfd/intel_soc_pmic_crc.c          |   3 +
+>  drivers/mfd/intel_soc_pmic_crc_opregion.c | 229 +++++++++++++++++++
+>  drivers/mfd/intel_soc_pmic_opregion.c     | 350 ++++++++++++++++++++++++++++++
+>  drivers/mfd/intel_soc_pmic_opregion.h     |  35 +++
+>  include/asm-generic/gpio.h                |   2 +-
+>  8 files changed, 646 insertions(+), 4 deletions(-)
+>  create mode 100644 drivers/mfd/intel_soc_pmic_crc_opregion.c
+>  create mode 100644 drivers/mfd/intel_soc_pmic_opregion.c
+>  create mode 100644 drivers/mfd/intel_soc_pmic_opregion.h
+> 
+> -- 
+> 1.9.3
+> 
+> --
+> To unsubscribe from this list: send the line "unsubscribe linux-acpi" in
+> the body of a message to majordomo@vger.kernel.org
+> More majordomo info at  http://vger.kernel.org/majordomo-info.html
