@@ -1,74 +1,59 @@
-From: One Thousand Gnomes <gnomes@lxorguk.ukuu.org.uk>
-Subject: Re: bit fields && data tearing
-Date: Mon, 15 Sep 2014 00:24:27 +0100
-Message-ID: <20140915002427.6ce18965@alan.etchedpixels.co.uk>
-References: <20140712181328.GA8738@redhat.com>
-	<54079B70.4050200@hurleysoftware.com>
-	<1409785893.30640.118.camel@pasglop>
-	<063D6719AE5E284EB5DD2968C1650D6D17487172@AcuExch.aculab.com>
-	<1409824374.4246.62.camel@pasglop>
-	<5408E458.3@zytor.com>
-	<54090AF4.7060406@hurleysoftware.com>
-	<54091B30.7080100@zytor.com>
-	<5409D76D.2070203@hurleysoftware.com>
-	<5409D9C0.7030403@zytor.com>
-	<20140908185240.21f52ca0@alan.etchedpixels.co.uk>
-	<540DEE6C.2060904@zytor.com>
-	<540E3207.7090007@hurleysoftware.com>
-	<20140911110411.2de01944@alan.etchedpixels.co.uk>
-	<5411FFB6.2080702@hurleysoftware.com>
+From: Aaron Lu <aaron.lu@intel.com>
+Subject: Re: [PATCH 0/2] Support CrystalCove PMIC ACPI operation region
+Date: Mon, 15 Sep 2014 10:57:29 +0800
+Message-ID: <20140915025727.GA14730@aaronlu.sh.intel.com>
+References: <1410229968-11638-1-git-send-email-aaron.lu@intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 251.110.2.81.in-addr.arpa ([81.2.110.251]:49224 "EHLO
-	lxorguk.ukuu.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752998AbaINXZK (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 14 Sep 2014 19:25:10 -0400
-In-Reply-To: <5411FFB6.2080702@hurleysoftware.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Peter Hurley <peter@hurleysoftware.com>
-Cc: "H. Peter Anvin" <hpa@zytor.com>, David Laight <David.Laight@ACULAB.COM>, Jakub Jelinek <jakub@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Tony Luck <tony.luck@intel.com>, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, Oleg Nesterov <oleg@redhat.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Paul Mackerras <paulus@samba.org>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, "linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>, Miroslav Franc <mfranc@redhat.com>, Richard Henderson <rth@twiddle.net>, linux-alpha@vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-gpio-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <1410229968-11638-1-git-send-email-aaron.lu@intel.com>
+Sender: linux-gpio-owner@vger.kernel.org
+To: Linus Walleij <linus.walleij@linaro.org>, Alexandre Courbot <gnurou@gmail.com>, Samuel Ortiz <sameo@linux.intel.com>, Lee Jones <lee.jones@linaro.org>, Arnd Bergmann <arnd@arndb.de>
+Cc: linux-gpio@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Jacob Pan <jacob.jun.pan@linux.intel.com>, Lejun Zhu <lejun.zhu@intel.com>, Radivoje Jovanovic <radivoje.jovanovic@intel.com>, Daniel =?iso-8859-1?Q?Gl=F6ckner?= <dg@emlix.com>, linux-acpi@vger.kernel.org, "Rafael J. Wysocki" <rjw@rjwysocki.net>
+List-Id: linux-arch.vger.kernel.org
 
-> So a problem that no one has ever complained about on _any_ arch is suddenly
-> a problem on a subset of Alpha cpus, but a problem I know exists on Alpha
-> isn't important because no one's filed a bug about it?
+I wonder if anyone has looked at this?
 
-Yes - because if you think about it that tells you that nobody is hitting
-it with the old code and it probably doesn't matter.
- 
-> The only Alpha person in this discussion has come out clearly in favor
-> of dropping EV4/5 support.
+Note that this is for CrystalCove PMIC operation region support and the
+CrystalCove driver is already in mainline, not for the DollarCove PMIC
+driver that Jacob is currently upstreaming, so the patch doesn't have
+any dependency.
 
-That's not a statistically valid sample size btw
+Regards,
+Aaron
 
-Plus as I pointed out (and you ignored) you are shutting out any future
-processors with this kind of oddity, and you have not audited all the
-embedded devices we support or may support in future.
- 
-> The fact is that the kernel itself is much more parallel than it was
-> 15 years ago, and that trend is going to continue. Paired with the fact
-> that the Alpha is the least-parallel-friendly arch, makes improving
-> parallelism and correctness even harder within kernel subsystems; harder
-> than it has to be and harder than it should be.
+On Tue, Sep 09, 2014 at 10:32:46AM +0800, Aaron Lu wrote:
+> The two patches add support for CrystalCove PMIC ACPI operation region.
+> The PMIC chip has two customized operation regions: one for power rail
+> manipulation and one for thermal purpose: sensor temperature reading
+> and trip point value reading/setting.
 > 
-> Linus has repeatedly stated that non-arch code should be as
-> arch-independent as possible
-
-That's why many many years ago we added set_bit() and the other bit
-functions. On sane processors they are very fast. On insane ones they
-work. They understand byte tearing, they understand store ordering (which
-a simple variable does not so you've got to audit all your memory
-barriers too). In many cases they are faster than using memory barriers
-to guide the compiler because they invalidate less and allow the compiler
-more freedom.
-
-All this started because I suggested you use set_bit and friends and for
-some reason you've decided to try and find another way to do it. We have
-the bit operations for a reason. On x86 they are very very fast, on
-uniprocessor anything they are very fast, on multiprocessor in general
-they are very fast, or you are dealing with boxes that have sanity
-problems of other kinds.
-
-Alan
+> For an example ASL code on ASUS T100 with CrystalCove PMIC, see here:
+> https://gist.github.com/aaronlu/f5f65771a6c3251fae5d
+> 
+> Aaron Lu (2):
+>   gpio / CrystalCove: support virtual GPIO
+>   PMIC / opregion: support PMIC customized operation region for
+>     CrystalCove
+> 
+>  drivers/gpio/gpio-crystalcove.c           |  19 +-
+>  drivers/mfd/Kconfig                       |  11 +
+>  drivers/mfd/Makefile                      |   1 +
+>  drivers/mfd/intel_soc_pmic_crc.c          |   3 +
+>  drivers/mfd/intel_soc_pmic_crc_opregion.c | 229 +++++++++++++++++++
+>  drivers/mfd/intel_soc_pmic_opregion.c     | 350 ++++++++++++++++++++++++++++++
+>  drivers/mfd/intel_soc_pmic_opregion.h     |  35 +++
+>  include/asm-generic/gpio.h                |   2 +-
+>  8 files changed, 646 insertions(+), 4 deletions(-)
+>  create mode 100644 drivers/mfd/intel_soc_pmic_crc_opregion.c
+>  create mode 100644 drivers/mfd/intel_soc_pmic_opregion.c
+>  create mode 100644 drivers/mfd/intel_soc_pmic_opregion.h
+> 
+> -- 
+> 1.9.3
+> 
+> --
+> To unsubscribe from this list: send the line "unsubscribe linux-acpi" in
+> the body of a message to majordomo@vger.kernel.org
+> More majordomo info at  http://vger.kernel.org/majordomo-info.html
