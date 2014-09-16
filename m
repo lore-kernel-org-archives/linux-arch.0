@@ -1,63 +1,86 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from sym2.noone.org ([178.63.92.236]:60262 "EHLO sym2.noone.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753350AbaIPJn1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 16 Sep 2014 05:43:27 -0400
-Date: Tue, 16 Sep 2014 11:43:21 +0200
-From: Tobias Klauser <tklauser@distanz.ch>
-Subject: Re: [PATCH v3 26/29] nios2: ptrace support
-Message-ID: <20140916094321.GA4610@distanz.ch>
-References: <1410168160-3624-1-git-send-email-lftan@altera.com>
- <1410168160-3624-27-git-send-email-lftan@altera.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1410168160-3624-27-git-send-email-lftan@altera.com>
+Received: from metis.ext.pengutronix.de ([92.198.50.35]:47226 "EHLO
+	metis.ext.pengutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752851AbaIPK3v (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 16 Sep 2014 06:29:51 -0400
+Message-ID: <1410863349.2746.5.camel@pengutronix.de>
+Subject: Re: [PATCH v1 03/21] MSI: Remove the redundant irq_set_chip_data()
+From: Lucas Stach <l.stach@pengutronix.de>
+Date: Tue, 16 Sep 2014 12:29:09 +0200
+In-Reply-To: <541792C0.9090303@huawei.com>
+References: <1409911806-10519-1-git-send-email-wangyijing@huawei.com>
+		 <1409911806-10519-4-git-send-email-wangyijing@huawei.com>
+	 <1410789648.3314.5.camel@pengutronix.de> <541792C0.9090303@huawei.com>
+Content-Type: text/plain; charset="UTF-8"
+Mime-Version: 1.0
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ley Foon Tan <lftan@altera.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, lftan.linux@gmail.com, cltang@codesourcery.com
-Message-ID: <20140916094321.fvoj6cxghGAiXu5CajV0A_2mFeJwYFJic-ebFozK454@z>
+To: Yijing Wang <wangyijing@huawei.com>
+Cc: Bjorn Helgaas <bhelgaas@google.com>, Xinwei Hu <huxinwei@huawei.com>, Wuyun <wuyun.wu@huawei.com>, linux-pci@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Russell King <linux@arm.linux.org.uk>, linux-arch@vger.kernel.org, arnab.basu@freescale.com, Bharat.Bhushan@freescale.com, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, Thomas Gleixner <tglx@linutronix.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, xen-devel@lists.xenproject.org, Joerg Roedel <joro@8bytes.org>, iommu@lists.linux-foundation.org, linux-mips@linux-mips.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, Sebastian Ott <sebott@linux.vnet.ibm.com>, Tony Luck <tony.luck@intel.com>, linux-ia64@vger.kernel.org, "David S. Miller" <davem@davemloft.net>, sparclinux@vger.kernel.org, Chris Metcalf <cmetcalf@tilera.com>, Ralf Baechle <ralf@linux-mips.org>
+Message-ID: <20140916102909.wQRiSMvYUNiBk9PQZ1u8CTeCFVi_Q-WA3EkiTueXbbU@z>
 
-On 2014-09-08 at 11:22:37 +0200, Ley Foon Tan <lftan@altera.com> wrote:
-> Add ptrace support for nios2.
+Am Dienstag, den 16.09.2014, 09:30 +0800 schrieb Yijing Wang:
+> On 2014/9/15 22:00, Lucas Stach wrote:
+> > Am Freitag, den 05.09.2014, 18:09 +0800 schrieb Yijing Wang:
+> >> Currently, pcie-designware, pcie-rcar, pci-tegra drivers
+> >> use irq chip_data to save the msi_chip pointer. They
+> >> already call irq_set_chip_data() in their own MSI irq map
+> >> functions. So irq_set_chip_data() in arch_setup_msi_irq()
+> >> is useless.
+> >>
+> >> Signed-off-by: Yijing Wang <wangyijing@huawei.com>
+> >> ---
+> >>  drivers/pci/msi.c |    2 --
+> >>  1 files changed, 0 insertions(+), 2 deletions(-)
+> >>
+> >> diff --git a/drivers/pci/msi.c b/drivers/pci/msi.c
+> >> index f6cb317..d547f7f 100644
+> >> --- a/drivers/pci/msi.c
+> >> +++ b/drivers/pci/msi.c
+> >> @@ -41,8 +41,6 @@ int __weak arch_setup_msi_irq(struct pci_dev *dev, struct msi_desc *desc)
+> >>  	if (err < 0)
+> >>  		return err;
+> >>  
+> >> -	irq_set_chip_data(desc->irq, chip);
+> >> -
+> >>  	return 0;
+> >>  }
+> >>  
+> > 
+> > arch_teardown_msi_irq() expects to find the msi_chip in the irq
+> > chip_data field. As this means drivers don't have any reasonable other
+> > possibility to stuff things into this field, I think it would make sense
+> > to do the cleanup the other way around: keep the irq_set_chip_data
+> > arch_setup_msi_irq() and rip it out of the individual drivers.
 > 
-> Signed-off-by: Ley Foon Tan <lftan@altera.com>
-> ---
->  arch/nios2/include/asm/ptrace.h      |  33 +++++++
->  arch/nios2/include/uapi/asm/ptrace.h | 120 ++++++++++++++++++++++++
->  arch/nios2/kernel/ptrace.c           | 176 +++++++++++++++++++++++++++++++++++
->  3 files changed, 329 insertions(+)
->  create mode 100644 arch/nios2/include/asm/ptrace.h
->  create mode 100644 arch/nios2/include/uapi/asm/ptrace.h
->  create mode 100644 arch/nios2/kernel/ptrace.c
-[...]
-> diff --git a/arch/nios2/kernel/ptrace.c b/arch/nios2/kernel/ptrace.c
-> new file mode 100644
-> index 0000000..bcbf748
-> --- /dev/null
-> +++ b/arch/nios2/kernel/ptrace.c
-[...]
-> +long arch_ptrace(struct task_struct *child, long request, unsigned long addr,
-> +		 unsigned long data)
-> +{
-> +	int ret = -EIO;
-> +
-> +	pr_debug("REQ=%ld: ADDR =0x%lx, DATA=0x%lx)\n", request, addr, data);
-> +
-> +	switch (request) {
-> +	default:
-> +		ret = ptrace_request(child, request, addr, data);
-> +		break;
-> +	}
-> +
-> +	return ret;
-> +}
+> Hi Lucas, thanks for your review and comments!
+> irq_set_chip_data() should not be placed in MSI core functions, because other arch like x86,
+> use irq_data->chip_data to stores irq_cfg. So how to set the chip_data is arch dependent.
+> And this series is mainly to use MSI chip framework in all platforms.
+> Currently, only ARM platform MSI drivers use the chip_data to store msi_chip, and the drivers call
+> irq_set_chip_data() in their driver already. So I thought we should clean up it in MSI core code.
+> 
+Okay I see your point, so the cleanup done this way is okay.
 
-This could be simplified to:
+But then this still introduces a problem: arch_teardown_msi_irq()
+expects to find the msi_chip in the chip_data field, which is okay for
+all ARM PCI host drivers, but not for other arch MSI chips.
 
-long arch_ptrace(struct task_struct *child, long request, unsigned long addr,
-		 unsigned long data)
-{
-	return ptrace_request(child, request, addr, data);
-}
+You fix this by completely removing arch_teardown_msi_irq() at the end
+of the series, but this still has the potential to introduce issues for
+other arches than ARM within the series. So this patch should include a
+change to replace the line
+
+struct msi_chip *chip = irq_get_chip_data(irq);
+
+with something that doesn't rely on the msi_chip being in the irq
+chip_data field.
+
+Regards,
+Lucas
+
+-- 
+Pengutronix e.K.             | Lucas Stach                 |
+Industrial Linux Solutions   | http://www.pengutronix.de/  |
+
