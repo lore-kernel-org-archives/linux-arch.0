@@ -1,68 +1,74 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ig0-f173.google.com ([209.85.213.173]:33884 "EHLO
-	mail-ig0-f173.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755340AbaIOWnV (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 15 Sep 2014 18:43:21 -0400
-Received: by mail-ig0-f173.google.com with SMTP id l13so4812799iga.0
-        for <linux-arch@vger.kernel.org>; Mon, 15 Sep 2014 15:43:20 -0700 (PDT)
-Date: Mon, 15 Sep 2014 23:43:17 +0100
-From: Lee Jones <lee.jones@linaro.org>
-Subject: Re: [PATCH 0/2] Support CrystalCove PMIC ACPI operation region
-Message-ID: <20140915224317.GF25162@lee--X1>
-References: <1410229968-11638-1-git-send-email-aaron.lu@intel.com>
- <20140915025727.GA14730@aaronlu.sh.intel.com>
+Received: from szxga01-in.huawei.com ([119.145.14.64]:13046 "EHLO
+	szxga01-in.huawei.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755424AbaIPBbs (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 15 Sep 2014 21:31:48 -0400
+Message-ID: <541792C0.9090303@huawei.com>
+Date: Tue, 16 Sep 2014 09:30:40 +0800
+From: Yijing Wang <wangyijing@huawei.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-Content-Transfer-Encoding: 8bit
-In-Reply-To: <20140915025727.GA14730@aaronlu.sh.intel.com>
+Subject: Re: [PATCH v1 03/21] MSI: Remove the redundant irq_set_chip_data()
+References: <1409911806-10519-1-git-send-email-wangyijing@huawei.com>	 <1409911806-10519-4-git-send-email-wangyijing@huawei.com> <1410789648.3314.5.camel@pengutronix.de>
+In-Reply-To: <1410789648.3314.5.camel@pengutronix.de>
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Aaron Lu <aaron.lu@intel.com>
-Cc: Linus Walleij <linus.walleij@linaro.org>, Alexandre Courbot <gnurou@gmail.com>, Samuel Ortiz <sameo@linux.intel.com>, Arnd Bergmann <arnd@arndb.de>, linux-gpio@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Jacob Pan <jacob.jun.pan@linux.intel.com>, Lejun Zhu <lejun.zhu@intel.com>, Radivoje Jovanovic <radivoje.jovanovic@intel.com>, Daniel =?iso-8859-1?Q?Gl=F6ckner?= <dg@emlix.com>, linux-acpi@vger.kernel.org, "Rafael J. Wysocki" <rjw@rjwysocki.net>
-Message-ID: <20140915224317.cc3ARwyb7WW3t6vSY82-LTzT2YN1umXKBF7a1-omXuc@z>
+To: Lucas Stach <l.stach@pengutronix.de>
+Cc: Bjorn Helgaas <bhelgaas@google.com>, Xinwei Hu <huxinwei@huawei.com>, Wuyun <wuyun.wu@huawei.com>, linux-pci@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Russell King <linux@arm.linux.org.uk>, linux-arch@vger.kernel.org, arnab.basu@freescale.com, Bharat.Bhushan@freescale.com, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, Thomas Gleixner <tglx@linutronix.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, xen-devel@lists.xenproject.org, Joerg Roedel <joro@8bytes.org>, iommu@lists.linux-foundation.org, linux-mips@linux-mips.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, Sebastian Ott <sebott@linux.vnet.ibm.com>, Tony Luck <tony.luck@intel.com>, linux-ia64@vger.kernel.org, "David S. Miller" <davem@davemloft.net>, sparclinux@vger.kernel.org, Chris Metcalf <cmetcalf@tilera.com>, Ralf Baechle <ralf@linux-mips.org>
+Message-ID: <20140916013040.nl5U-weLciAt9SXV2SkQH0zHnKCtSVFAxrbm9fYl3RY@z>
 
-On Mon, 15 Sep 2014, Aaron Lu wrote:
-
-> I wonder if anyone has looked at this?
+On 2014/9/15 22:00, Lucas Stach wrote:
+> Am Freitag, den 05.09.2014, 18:09 +0800 schrieb Yijing Wang:
+>> Currently, pcie-designware, pcie-rcar, pci-tegra drivers
+>> use irq chip_data to save the msi_chip pointer. They
+>> already call irq_set_chip_data() in their own MSI irq map
+>> functions. So irq_set_chip_data() in arch_setup_msi_irq()
+>> is useless.
+>>
+>> Signed-off-by: Yijing Wang <wangyijing@huawei.com>
+>> ---
+>>  drivers/pci/msi.c |    2 --
+>>  1 files changed, 0 insertions(+), 2 deletions(-)
+>>
+>> diff --git a/drivers/pci/msi.c b/drivers/pci/msi.c
+>> index f6cb317..d547f7f 100644
+>> --- a/drivers/pci/msi.c
+>> +++ b/drivers/pci/msi.c
+>> @@ -41,8 +41,6 @@ int __weak arch_setup_msi_irq(struct pci_dev *dev, struct msi_desc *desc)
+>>  	if (err < 0)
+>>  		return err;
+>>  
+>> -	irq_set_chip_data(desc->irq, chip);
+>> -
+>>  	return 0;
+>>  }
+>>  
 > 
-> Note that this is for CrystalCove PMIC operation region support and the
-> CrystalCove driver is already in mainline, not for the DollarCove PMIC
-> driver that Jacob is currently upstreaming, so the patch doesn't have
-> any dependency.
+> arch_teardown_msi_irq() expects to find the msi_chip in the irq
+> chip_data field. As this means drivers don't have any reasonable other
+> possibility to stuff things into this field, I think it would make sense
+> to do the cleanup the other way around: keep the irq_set_chip_data
+> arch_setup_msi_irq() and rip it out of the individual drivers.
 
-Not yet.  It is on my list of TODOs though.
+Hi Lucas, thanks for your review and comments!
+irq_set_chip_data() should not be placed in MSI core functions, because other arch like x86,
+use irq_data->chip_data to stores irq_cfg. So how to set the chip_data is arch dependent.
+And this series is mainly to use MSI chip framework in all platforms.
+Currently, only ARM platform MSI drivers use the chip_data to store msi_chip, and the drivers call
+irq_set_chip_data() in their driver already. So I thought we should clean up it in MSI core code.
 
-> On Tue, Sep 09, 2014 at 10:32:46AM +0800, Aaron Lu wrote:
-> > The two patches add support for CrystalCove PMIC ACPI operation region.
-> > The PMIC chip has two customized operation regions: one for power rail
-> > manipulation and one for thermal purpose: sensor temperature reading
-> > and trip point value reading/setting.
-> > 
-> > For an example ASL code on ASUS T100 with CrystalCove PMIC, see here:
-> > https://gist.github.com/aaronlu/f5f65771a6c3251fae5d
-> > 
-> > Aaron Lu (2):
-> >   gpio / CrystalCove: support virtual GPIO
-> >   PMIC / opregion: support PMIC customized operation region for
-> >     CrystalCove
-> > 
-> >  drivers/gpio/gpio-crystalcove.c           |  19 +-
-> >  drivers/mfd/Kconfig                       |  11 +
-> >  drivers/mfd/Makefile                      |   1 +
-> >  drivers/mfd/intel_soc_pmic_crc.c          |   3 +
-> >  drivers/mfd/intel_soc_pmic_crc_opregion.c | 229 +++++++++++++++++++
-> >  drivers/mfd/intel_soc_pmic_opregion.c     | 350 ++++++++++++++++++++++++++++++
-> >  drivers/mfd/intel_soc_pmic_opregion.h     |  35 +++
-> >  include/asm-generic/gpio.h                |   2 +-
-> >  8 files changed, 646 insertions(+), 4 deletions(-)
-> >  create mode 100644 drivers/mfd/intel_soc_pmic_crc_opregion.c
-> >  create mode 100644 drivers/mfd/intel_soc_pmic_opregion.c
-> >  create mode 100644 drivers/mfd/intel_soc_pmic_opregion.h
-> > 
+Thanks!
+Yijing.
+
+
+> 
+> Regards,
+> Lucas
+> 
+
 
 -- 
-Lee Jones
-Linaro STMicroelectronics Landing Team Lead
-Linaro.org │ Open source software for ARM SoCs
-Follow Linaro: Facebook | Twitter | Blog
+Thanks!
+Yijing
+
