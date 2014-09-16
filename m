@@ -1,47 +1,63 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from szxga03-in.huawei.com ([119.145.14.66]:32793 "EHLO
-	szxga03-in.huawei.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751087AbaIPFmj (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 16 Sep 2014 01:42:39 -0400
-Message-ID: <5417CD50.7010803@huawei.com>
-Date: Tue, 16 Sep 2014 13:40:32 +0800
-From: Yijing Wang <wangyijing@huawei.com>
+Received: from sym2.noone.org ([178.63.92.236]:60262 "EHLO sym2.noone.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1753350AbaIPJn1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 16 Sep 2014 05:43:27 -0400
+Date: Tue, 16 Sep 2014 11:43:21 +0200
+From: Tobias Klauser <tklauser@distanz.ch>
+Subject: Re: [PATCH v3 26/29] nios2: ptrace support
+Message-ID: <20140916094321.GA4610@distanz.ch>
+References: <1410168160-3624-1-git-send-email-lftan@altera.com>
+ <1410168160-3624-27-git-send-email-lftan@altera.com>
 MIME-Version: 1.0
-Subject: Re: [PATCH v1 15/21] Powerpc/MSI: Use MSI chip framework to configure
- MSI/MSI-X irq
-References: <1409911806-10519-1-git-send-email-wangyijing@huawei.com>	 <1409911806-10519-16-git-send-email-wangyijing@huawei.com> <1410845317.12488.2.camel@concordia>
-In-Reply-To: <1410845317.12488.2.camel@concordia>
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1410168160-3624-27-git-send-email-lftan@altera.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Michael Ellerman <mpe@ellerman.id.au>
-Cc: Bjorn Helgaas <bhelgaas@google.com>, linux-mips@linux-mips.org, linux-ia64@vger.kernel.org, linux-pci@vger.kernel.org, Bharat.Bhushan@freescale.com, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, Russell King <linux@arm.linux.org.uk>, Joerg Roedel <joro@8bytes.org>, x86@kernel.org, Sebastian Ott <sebott@linux.vnet.ibm.com>, xen-devel@lists.xenproject.org, arnab.basu@freescale.com, Arnd Bergmann <arnd@arndb.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Chris Metcalf <cmetcalf@tilera.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arm-kernel@lists.infradead.org, Xinwei Hu <huxinwei@huawei.com>, Tony Luck <tony.luck@intel.com>, Ralf Baechle <ralf@linux-mips.org>, iommu@lists.linux-foundation.org, Wuyun <wuyun.wu@huawei.com>, linuxppc-dev@lists.ozlabs.org, "David S. Miller" <davem@davemloft.net>
-Message-ID: <20140916054032.iMxbSodX2-Qw-N8MiX3ZZcP1jFymBHOJLKb3RgjVmMU@z>
+To: Ley Foon Tan <lftan@altera.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, lftan.linux@gmail.com, cltang@codesourcery.com
+Message-ID: <20140916094321.fvoj6cxghGAiXu5CajV0A_2mFeJwYFJic-ebFozK454@z>
 
-On 2014/9/16 13:28, Michael Ellerman wrote:
-> On Fri, 2014-09-05 at 18:10 +0800, Yijing Wang wrote:
->> Use MSI chip framework instead of arch MSI functions to configure
->> MSI/MSI-X irq. So we can manage MSI/MSI-X irq in a unified framework.
->>
->> Signed-off-by: Yijing Wang <wangyijing@huawei.com>
+On 2014-09-08 at 11:22:37 +0200, Ley Foon Tan <lftan@altera.com> wrote:
+> Add ptrace support for nios2.
 > 
-> This looks fine and seems to boot OK.
-> 
-> Acked-by: Michael Ellerman <mpe@ellerman.id.au> (powerpc)
+> Signed-off-by: Ley Foon Tan <lftan@altera.com>
+> ---
+>  arch/nios2/include/asm/ptrace.h      |  33 +++++++
+>  arch/nios2/include/uapi/asm/ptrace.h | 120 ++++++++++++++++++++++++
+>  arch/nios2/kernel/ptrace.c           | 176 +++++++++++++++++++++++++++++++++++
+>  3 files changed, 329 insertions(+)
+>  create mode 100644 arch/nios2/include/asm/ptrace.h
+>  create mode 100644 arch/nios2/include/uapi/asm/ptrace.h
+>  create mode 100644 arch/nios2/kernel/ptrace.c
+[...]
+> diff --git a/arch/nios2/kernel/ptrace.c b/arch/nios2/kernel/ptrace.c
+> new file mode 100644
+> index 0000000..bcbf748
+> --- /dev/null
+> +++ b/arch/nios2/kernel/ptrace.c
+[...]
+> +long arch_ptrace(struct task_struct *child, long request, unsigned long addr,
+> +		 unsigned long data)
+> +{
+> +	int ret = -EIO;
+> +
+> +	pr_debug("REQ=%ld: ADDR =0x%lx, DATA=0x%lx)\n", request, addr, data);
+> +
+> +	switch (request) {
+> +	default:
+> +		ret = ptrace_request(child, request, addr, data);
+> +		break;
+> +	}
+> +
+> +	return ret;
+> +}
 
-Thanks very much!
+This could be simplified to:
 
-> 
-> cheers
-> 
-> 
-> 
-> .
-> 
-
-
--- 
-Thanks!
-Yijing
-
+long arch_ptrace(struct task_struct *child, long request, unsigned long addr,
+		 unsigned long data)
+{
+	return ptrace_request(child, request, addr, data);
+}
