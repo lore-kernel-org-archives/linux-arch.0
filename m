@@ -1,192 +1,121 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from fw-tnat.cambridge.arm.com ([217.140.96.21]:54535 "EHLO
+Received: from fw-tnat.cambridge.arm.com ([217.140.96.21]:54523 "EHLO
 	cam-smtp0.cambridge.arm.com" rhost-flags-OK-OK-OK-FAIL)
-	by vger.kernel.org with ESMTP id S1757245AbaIRBcJ (ORCPT
+	by vger.kernel.org with ESMTP id S1756264AbaIRBcF (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 17 Sep 2014 21:32:09 -0400
+	Wed, 17 Sep 2014 21:32:05 -0400
 From: Liviu Dudau <Liviu.Dudau@arm.com>
-Subject: [PATCH v11 08/10] OF: PCI: Add support for parsing PCI host bridge resources from DT
-Date: Thu, 18 Sep 2014 02:30:23 +0100
-Message-ID: <1411003825-21521-9-git-send-email-Liviu.Dudau@arm.com>
-In-Reply-To: <1411003825-21521-1-git-send-email-Liviu.Dudau@arm.com>
-References: <1411003825-21521-1-git-send-email-Liviu.Dudau@arm.com>
+Subject: [PATCH v11 00/10] Support for creating generic PCI host bridges from DT
+Date: Thu, 18 Sep 2014 02:30:15 +0100
+Message-ID: <1411003825-21521-1-git-send-email-Liviu.Dudau@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Bjorn Helgaas <bhelgaas@google.com>, Arnd Bergmann <arnd@arndb.de>, Rob Herring <robh+dt@kernel.org>, Jason Gunthorpe <jgunthorpe@obsidianresearch.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <Will.Deacon@arm.com>, Russell King <linux@arm.linux.org.uk>, linux-pci <linux-pci@vger.kernel.org>, Linus Walleij <linus.walleij@linaro.org>
-Cc: Tanmay Inamdar <tinamdar@apm.com>, Grant Likely <grant.likely@secretlab.ca>, Sinan Kaya <okaya@codeaurora.org>, Jingoo Han <jg1.han@samsung.com>, Kukjin Kim <kgene.kim@samsung.com>, Suravee Suthikulanit <suravee.suthikulpanit@amd.com>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Device Tree ML <devicetree@vger.kernel.org>, LAKML <linux-arm-kernel@lists.infradead.org>, Grant Likely <grant.likely@linaro.org>
-Message-ID: <20140918013023.sX2Bifkcy9DCIXpxUmIXLg_jiVQIq6MPHVqLX8qdJE0@z>
+Cc: Tanmay Inamdar <tinamdar@apm.com>, Grant Likely <grant.likely@secretlab.ca>, Sinan Kaya <okaya@codeaurora.org>, Jingoo Han <jg1.han@samsung.com>, Kukjin Kim <kgene.kim@samsung.com>, Suravee Suthikulanit <suravee.suthikulpanit@amd.com>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Device Tree ML <devicetree@vger.kernel.org>, LAKML <linux-arm-kernel@lists.infradead.org>
+Message-ID: <20140918013015.SyNWv4WiBqSJlw-x9S0AJXWZNiafdJ6JOdYV7FkVzmU@z>
 
-Provide a function to parse the PCI DT ranges that can be used to
-create a pci_host_bridge structure together with its associated
-bus.
+This is my version 11 of the attempt at adding support for generic PCI host
+bridge controllers that make use of device tree information to
+configure themselves. It contains minor cleanups compared with v10 to address
+the existing comments.
 
-Cc: Bjorn Helgaas <bhelgaas@google.com>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: Grant Likely <grant.likely@linaro.org>
-Cc: Rob Herring <robh+dt@kernel.org>
-Cc: Catalin Marinas <catalin.marinas@arm.com>
-Signed-off-by: Liviu Dudau <Liviu.Dudau@arm.com>
----
- drivers/of/of_pci.c    | 108 +++++++++++++++++++++++++++++++++++++++++++++++++
- include/linux/of_pci.h |  11 +++++
- 2 files changed, 119 insertions(+)
+I'm going to ask for this series to be included in -next.
 
-diff --git a/drivers/of/of_pci.c b/drivers/of/of_pci.c
-index 7eaeac2..c18b8da 100644
---- a/drivers/of/of_pci.c
-+++ b/drivers/of/of_pci.c
-@@ -1,7 +1,9 @@
- #include <linux/kernel.h>
- #include <linux/export.h>
- #include <linux/of.h>
-+#include <linux/of_address.h>
- #include <linux/of_pci.h>
-+#include <linux/slab.h>
- 
- #include "of_private.h"
- 
-@@ -151,6 +153,112 @@ int of_pci_get_domain_nr(struct device_node *node, bool allocate_if_missing)
- }
- EXPORT_SYMBOL_GPL(of_pci_get_domain_nr);
- 
-+/**
-+ * of_pci_get_host_bridge_resources - Parse PCI host bridge resources from DT
-+ * @dev: device node of the host bridge having the range property
-+ * @busno: bus number associated with the bridge root bus
-+ * @bus_max: maximum number of busses for this bridge
-+ * @resources: list where the range of resources will be added after DT parsing
-+ * @io_base: pointer to a variable that will contain on return the physical
-+ * address for the start of the I/O range.
-+ *
-+ * It is the callers job to free the @resources list.
-+ *
-+ * This function will parse the "ranges" property of a PCI host bridge device
-+ * node and setup the resource mapping based on its content. It is expected
-+ * that the property conforms with the Power ePAPR document.
-+ *
-+ * It returns zero if the range parsing has been successful or a standard error
-+ * value if it failed.
-+ */
-+int of_pci_get_host_bridge_resources(struct device_node *dev,
-+			unsigned char busno, unsigned char bus_max,
-+			struct list_head *resources, resource_size_t *io_base)
-+{
-+	struct resource *res;
-+	struct resource *bus_range;
-+	struct of_pci_range range;
-+	struct of_pci_range_parser parser;
-+	char range_type[4];
-+	int err;
-+
-+	if (!io_base)
-+		return -EINVAL;
-+	*io_base = OF_BAD_ADDR;
-+
-+	bus_range = kzalloc(sizeof(*bus_range), GFP_KERNEL);
-+	if (!bus_range)
-+		return -ENOMEM;
-+
-+	pr_info("PCI host bridge %s ranges:\n", dev->full_name);
-+
-+	err = of_pci_parse_bus_range(dev, bus_range);
-+	if (err) {
-+		bus_range->start = busno;
-+		bus_range->end = bus_max;
-+		bus_range->flags = IORESOURCE_BUS;
-+		pr_info("  No bus range found for %s, using %pR\n",
-+			dev->full_name, &bus_range);
-+	} else {
-+		if (bus_range->end > bus_range->start + bus_max)
-+			bus_range->end = bus_range->start + bus_max;
-+	}
-+	pci_add_resource(resources, bus_range);
-+
-+	/* Check for ranges property */
-+	err = of_pci_range_parser_init(&parser, dev);
-+	if (err)
-+		goto parse_failed;
-+
-+	pr_debug("Parsing ranges property...\n");
-+	for_each_of_pci_range(&parser, &range) {
-+		/* Read next ranges element */
-+		if ((range.flags & IORESOURCE_TYPE_BITS) == IORESOURCE_IO)
-+			snprintf(range_type, 4, " IO");
-+		else if ((range.flags & IORESOURCE_TYPE_BITS) == IORESOURCE_MEM)
-+			snprintf(range_type, 4, "MEM");
-+		else
-+			snprintf(range_type, 4, "err");
-+		pr_info("  %s %#010llx..%#010llx -> %#010llx\n", range_type,
-+			range.cpu_addr, range.cpu_addr + range.size - 1,
-+			range.pci_addr);
-+
-+		/*
-+		 * If we failed translation or got a zero-sized region
-+		 * then skip this range
-+		 */
-+		if (range.cpu_addr == OF_BAD_ADDR || range.size == 0)
-+			continue;
-+
-+		res = kzalloc(sizeof(struct resource), GFP_KERNEL);
-+		if (!res) {
-+			err = -ENOMEM;
-+			goto parse_failed;
-+		}
-+
-+		err = of_pci_range_to_resource(&range, dev, res);
-+		if (err) {
-+			kfree(res);
-+			goto parse_failed;
-+		}
-+
-+		if (resource_type(res) == IORESOURCE_IO) {
-+			if (*io_base != OF_BAD_ADDR)
-+				pr_warn("More than one I/O resource converted. CPU offset for old range lost!\n");
-+			*io_base = range.cpu_addr;
-+		}
-+
-+		pci_add_resource_offset(resources, res,	res->start - range.pci_addr);
-+	}
-+
-+	return 0;
-+
-+parse_failed:
-+	pci_free_resource_list(resources);
-+	return err;
-+}
-+EXPORT_SYMBOL_GPL(of_pci_get_host_bridge_resources);
-+
- #ifdef CONFIG_PCI_MSI
- 
- static LIST_HEAD(of_pci_msi_chip_list);
-diff --git a/include/linux/of_pci.h b/include/linux/of_pci.h
-index 3a3824c..a4b8a85 100644
---- a/include/linux/of_pci.h
-+++ b/include/linux/of_pci.h
-@@ -16,6 +16,10 @@ int of_pci_get_devfn(struct device_node *np);
- int of_irq_parse_and_map_pci(const struct pci_dev *dev, u8 slot, u8 pin);
- int of_pci_parse_bus_range(struct device_node *node, struct resource *res);
- int of_pci_get_domain_nr(struct device_node *node, bool allocate_if_missing);
-+int of_pci_get_host_bridge_resources(struct device_node *dev,
-+			unsigned char busno, unsigned char bus_max,
-+			struct list_head *resources, resource_size_t *io_base);
-+
- #else
- static inline int of_irq_parse_pci(const struct pci_dev *pdev, struct of_phandle_args *out_irq)
- {
-@@ -50,6 +54,13 @@ of_pci_get_domain_nr(struct device_node *node, bool allocate_if_missing)
- {
- 	return -1;
- }
-+
-+int of_pci_get_host_bridge_resources(struct device_node *dev,
-+			unsigned char busno, unsigned char bus_max,
-+			struct list_head *resources, resource_size_t *io_base);
-+{
-+	return -EINVAL;
-+}
- #endif
- 
- #if defined(CONFIG_OF) && defined(CONFIG_PCI_MSI)
+Example on how a host bridge driver can use the series:
+
+static int foohb_probe(struct platform_device *pdev)
+{
+	struct device_node *dn = pdev->dev.of_node;
+	struct foohb_drv *drv;
+	resource_size_t io_base = 0;  /* phys address for start of IO */
+	struct pci_bus *bus;
+	int err = 0;
+	LIST_HEAD(res);
+
+	.....
+	err = of_pci_get_host_bridge_resources(dn, 0, 255, &res, &io_base);
+	if (err)
+		goto err_handling;
+	err = foohb_setup(drv, ...., &res, &io_base);
+	if (err)
+		goto err_handling;
+	.....
+	pci_add_flags(....);
+	bus = pci_scan_root_bus(&pdev->dev, 0, &foohb_ops, drv, &res);
+	if (!bus)
+		goto err_handling;
+	....
+	return 0;
+
+err_handling:
+	......
+	return err;
+}
+
+Changes from v10:
+ - Addressed Lorenzo's comments wrt io_base not being initialised inside the
+   function that is supposed to modify it and also updated the comments to
+   explain the values returned by the function
+ - Updated pci_domain_nr helper function to split the allocation of the domain
+   number from the parsing of the device tree to find maximum defined domain
+   value
+ - Fixed up the commit author for commit 6/10
+
+Changes from v9:
+ - Moved the DT parsing and assigning of IRQ patch from this series into arm64
+   specific patch. This keeps existing pcibios_add_device() unchanged and adds
+   an arch-specific version that can later be expanded to cater for dma_ops.
+ - Incorporated the fix for users of of_pci_range_to_resources() into the patch
+   that changes the behaviour for easier bisection.
+ - Added fixes for tegra and rcar host drivers in their usage of
+   of_pci_range_to_resources()
+ - Broke up of_create_pci_host_bridge() to remove the callback function. The
+   function left has been renamed into of_pci_get_host_bridge_resources(). The
+   added benefit of that is that the architectural hook for fixing up host bridge
+   resources now dissappears.
+ - Reshuffled the way pgprot_device gets introduced. It is now part of the patch
+   that adds pci_remap_iospace() function. The arm64 specific override is moved
+   into the arm64 patchset.
+ - Added a patch to pci_scan_root_bus() to assign unassigned resources if PCI
+   flags are not PCI_PROBE_ONLY
+
+v10 thread here: https://lkml.org/lkml/2014/9/8/333
+v9 thread here, with links to previous threads: https://lkml.org/lkml/2014/8/12/361
+
+Best regards,
+Liviu
+
+Catalin Marinas (1):
+  PCI: Introduce generic domain handling for PCI busses.
+
+Liviu Dudau (9):
+  Fix ioport_map() for !CONFIG_GENERIC_IOMAP cases.
+  PCI: Introduce helper functions to deal with PCI I/O ranges.
+  ARM: Define PCI_IOBASE as the base of virtual PCI IO space.
+  PCI: OF: Fix the conversion of IO ranges into IO resources.
+  PCI: Create pci_host_bridge before its associated bus in
+    pci_create_root_bus.
+  OF: Introduce helper function for getting PCI domain_nr
+  OF: PCI: Add support for parsing PCI host bridge resources from DT
+  PCI: Assign unassigned bus resources in pci_scan_root_bus()
+  PCI: Introduce pci_remap_iospace() for remapping PCI I/O bus resources
+    into CPU space
+
+ arch/arm/include/asm/io.h         |   1 +
+ arch/arm/mach-integrator/pci_v3.c |  23 +++---
+ drivers/of/address.c              | 146 ++++++++++++++++++++++++++++++++
+ drivers/of/of_pci.c               | 170 ++++++++++++++++++++++++++++++++++++++
+ drivers/pci/host/pci-tegra.c      |  10 ++-
+ drivers/pci/host/pcie-rcar.c      |  21 +++--
+ drivers/pci/pci.c                 |  33 ++++++++
+ drivers/pci/probe.c               |  46 +++++++----
+ include/asm-generic/io.h          |   2 +-
+ include/asm-generic/pgtable.h     |   4 +
+ include/linux/of_address.h        |  15 +---
+ include/linux/of_pci.h            |  18 ++++
+ include/linux/pci.h               |  24 ++++++
+ 13 files changed, 463 insertions(+), 50 deletions(-)
+
 -- 
 2.1.0
 
