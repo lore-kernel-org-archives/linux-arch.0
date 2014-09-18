@@ -1,14 +1,12 @@
 From: Liviu Dudau <Liviu.Dudau@arm.com>
-Subject: [PATCH v11 06/10] PCI: Introduce generic domain handling for PCI
- busses.
-Date: Thu, 18 Sep 2014 02:30:21 +0100
-Message-ID: <1411003825-21521-7-git-send-email-Liviu.Dudau@arm.com>
-References: <1411003825-21521-1-git-send-email-Liviu.Dudau@arm.com>
+Subject: [PATCH v11 00/10] Support for creating generic PCI host bridges from
+ DT
+Date: Thu, 18 Sep 2014 02:30:15 +0100
+Message-ID: <1411003825-21521-1-git-send-email-Liviu.Dudau@arm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-In-Reply-To: <1411003825-21521-1-git-send-email-Liviu.Dudau@arm.com>
 List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
  <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
 List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
@@ -19,124 +17,110 @@ List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
 Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
 Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
 To: Bjorn Helgaas <bhelgaas@google.com>, Arnd Bergmann <arnd@arndb.de>, Rob Herring <robh+dt@kernel.org>, Jason Gunthorpe <jgunthorpe@obsidianresearch.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <Will.Deacon@arm.com>, Russell King <linux@arm.linux.org.uk>, linux-pci <linux-pci@vger.kernel.org>, Linus Walleij <linus.walleij@linaro.org>
-Cc: linux-arch <linux-arch@vger.kernel.org>, Sinan Kaya <okaya@codeaurora.org>, Kukjin Kim <kgene.kim@samsung.com>, Device Tree ML <devicetree@vger.kernel.org>, Catalin Marinas <Catalin.Marinas@arm.com>, Jingoo Han <jg1.han@samsung.com>, LKML <linux-kernel@vger.kernel.org>, Grant Likely <grant.likely@secretlab.ca>, Tanmay Inamdar <tinamdar@apm.com>, Suravee Suthikulanit <suravee.suthikulpanit@amd.com>, LAKML <linux-arm-kernel@lists.infradead.org>
+Cc: linux-arch <linux-arch@vger.kernel.org>, Sinan Kaya <okaya@codeaurora.org>, Kukjin Kim <kgene.kim@samsung.com>, Device Tree ML <devicetree@vger.kernel.org>, Jingoo Han <jg1.han@samsung.com>, LKML <linux-kernel@vger.kernel.org>, Grant Likely <grant.likely@secretlab.ca>, Tanmay Inamdar <tinamdar@apm.com>, Suravee Suthikulanit <suravee.suthikulpanit@amd.com>, LAKML <linux-arm-kernel@lists.infradead.org>
 List-Id: linux-arch.vger.kernel.org
 
-From: Catalin Marinas <catalin.marinas@arm.com>
+This is my version 11 of the attempt at adding support for generic PCI host
+bridge controllers that make use of device tree information to
+configure themselves. It contains minor cleanups compared with v10 to address
+the existing comments.
 
-The handling of PCI domains (or PCI segments in ACPI speak) is
-usually a straightforward affair but its implementation is
-currently left to the architectural code, with pci_domain_nr(b)
-querying the value of the domain associated with bus b.
+I'm going to ask for this series to be included in -next.
 
-This patch introduces CONFIG_PCI_DOMAINS_GENERIC as an
-option that can be selected if an architecture want a
-simple implementation where the value of the domain
-associated with a bus is stored in struct pci_bus.
+Example on how a host bridge driver can use the series:
 
-The architectures that select CONFIG_PCI_DOMAINS_GENERIC will
-then have to implement pci_bus_assign_domain_nr() as a way
-of setting the domain number associated with a root bus.
-All child busses except the root bus will inherit the domain_nr
-value from their parent.
+static int foohb_probe(struct platform_device *pdev)
+{
+	struct device_node *dn = pdev->dev.of_node;
+	struct foohb_drv *drv;
+	resource_size_t io_base = 0;  /* phys address for start of IO */
+	struct pci_bus *bus;
+	int err = 0;
+	LIST_HEAD(res);
 
-Cc: Bjorn Helgaas <bhelgaas@google.com>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Signed-off-by: Catalin Marinas <Catalin.Marinas@arm.com>
-[Renamed pci_set_domain_nr() to pci_bus_assign_domain_nr()]
-Signed-off-by: Liviu Dudau <Liviu.Dudau@arm.com>
----
- drivers/pci/probe.c | 11 ++++++++---
- include/linux/pci.h | 21 +++++++++++++++++++++
- 2 files changed, 29 insertions(+), 3 deletions(-)
+	.....
+	err = of_pci_get_host_bridge_resources(dn, 0, 255, &res, &io_base);
+	if (err)
+		goto err_handling;
+	err = foohb_setup(drv, ...., &res, &io_base);
+	if (err)
+		goto err_handling;
+	.....
+	pci_add_flags(....);
+	bus = pci_scan_root_bus(&pdev->dev, 0, &foohb_ops, drv, &res);
+	if (!bus)
+		goto err_handling;
+	....
+	return 0;
 
-diff --git a/drivers/pci/probe.c b/drivers/pci/probe.c
-index 5ff72ec..ef891d2 100644
---- a/drivers/pci/probe.c
-+++ b/drivers/pci/probe.c
-@@ -485,7 +485,7 @@ void pci_read_bridge_bases(struct pci_bus *child)
- 	}
- }
- 
--static struct pci_bus *pci_alloc_bus(void)
-+static struct pci_bus *pci_alloc_bus(struct pci_bus *parent)
- {
- 	struct pci_bus *b;
- 
-@@ -500,6 +500,10 @@ static struct pci_bus *pci_alloc_bus(void)
- 	INIT_LIST_HEAD(&b->resources);
- 	b->max_bus_speed = PCI_SPEED_UNKNOWN;
- 	b->cur_bus_speed = PCI_SPEED_UNKNOWN;
-+#ifdef CONFIG_PCI_DOMAINS_GENERIC
-+	if (parent)
-+		b->domain_nr = parent->domain_nr;
-+#endif
- 	return b;
- }
- 
-@@ -672,7 +676,7 @@ static struct pci_bus *pci_alloc_child_bus(struct pci_bus *parent,
- 	/*
- 	 * Allocate a new bus, and inherit stuff from the parent..
- 	 */
--	child = pci_alloc_bus();
-+	child = pci_alloc_bus(parent);
- 	if (!child)
- 		return NULL;
- 
-@@ -1768,13 +1772,14 @@ struct pci_bus *pci_create_root_bus(struct device *parent, int bus,
- 
- 	bridge->dev.parent = parent;
- 
--	b = pci_alloc_bus();
-+	b = pci_alloc_bus(NULL);
- 	if (!b)
- 		goto err_out;
- 
- 	b->sysdata = sysdata;
- 	b->ops = ops;
- 	b->number = b->busn_res.start = bus;
-+	pci_bus_assign_domain_nr(b, parent);
- 	b2 = pci_find_bus(pci_domain_nr(b), bus);
- 	if (b2) {
- 		/* If we already got to this bus through a different bridge, ignore it */
-diff --git a/include/linux/pci.h b/include/linux/pci.h
-index 61978a4..a494e5d 100644
---- a/include/linux/pci.h
-+++ b/include/linux/pci.h
-@@ -456,6 +456,9 @@ struct pci_bus {
- 	unsigned char	primary;	/* number of primary bridge */
- 	unsigned char	max_bus_speed;	/* enum pci_bus_speed */
- 	unsigned char	cur_bus_speed;	/* enum pci_bus_speed */
-+#ifdef CONFIG_PCI_DOMAINS_GENERIC
-+	int		domain_nr;
-+#endif
- 
- 	char		name[48];
- 
-@@ -1288,6 +1291,24 @@ static inline int pci_domain_nr(struct pci_bus *bus) { return 0; }
- static inline int pci_proc_domain(struct pci_bus *bus) { return 0; }
- #endif /* CONFIG_PCI_DOMAINS */
- 
-+/*
-+ * Generic implementation for PCI domain support. If your
-+ * architecture does not need custom management of PCI
-+ * domains then this implementation will be used
-+ */
-+#ifdef CONFIG_PCI_DOMAINS_GENERIC
-+static inline int pci_domain_nr(struct pci_bus *bus)
-+{
-+	return bus->domain_nr;
-+}
-+void pci_bus_assign_domain_nr(struct pci_bus *bus, struct device *parent);
-+#else
-+static inline void pci_bus_assign_domain_nr(struct pci_bus *bus,
-+					struct device *parent)
-+{
-+}
-+#endif
-+
- /* some architectures require additional setup to direct VGA traffic */
- typedef int (*arch_set_vga_state_t)(struct pci_dev *pdev, bool decode,
- 		      unsigned int command_bits, u32 flags);
+err_handling:
+	......
+	return err;
+}
+
+Changes from v10:
+ - Addressed Lorenzo's comments wrt io_base not being initialised inside the
+   function that is supposed to modify it and also updated the comments to
+   explain the values returned by the function
+ - Updated pci_domain_nr helper function to split the allocation of the domain
+   number from the parsing of the device tree to find maximum defined domain
+   value
+ - Fixed up the commit author for commit 6/10
+
+Changes from v9:
+ - Moved the DT parsing and assigning of IRQ patch from this series into arm64
+   specific patch. This keeps existing pcibios_add_device() unchanged and adds
+   an arch-specific version that can later be expanded to cater for dma_ops.
+ - Incorporated the fix for users of of_pci_range_to_resources() into the patch
+   that changes the behaviour for easier bisection.
+ - Added fixes for tegra and rcar host drivers in their usage of
+   of_pci_range_to_resources()
+ - Broke up of_create_pci_host_bridge() to remove the callback function. The
+   function left has been renamed into of_pci_get_host_bridge_resources(). The
+   added benefit of that is that the architectural hook for fixing up host bridge
+   resources now dissappears.
+ - Reshuffled the way pgprot_device gets introduced. It is now part of the patch
+   that adds pci_remap_iospace() function. The arm64 specific override is moved
+   into the arm64 patchset.
+ - Added a patch to pci_scan_root_bus() to assign unassigned resources if PCI
+   flags are not PCI_PROBE_ONLY
+
+v10 thread here: https://lkml.org/lkml/2014/9/8/333
+v9 thread here, with links to previous threads: https://lkml.org/lkml/2014/8/12/361
+
+Best regards,
+Liviu
+
+Catalin Marinas (1):
+  PCI: Introduce generic domain handling for PCI busses.
+
+Liviu Dudau (9):
+  Fix ioport_map() for !CONFIG_GENERIC_IOMAP cases.
+  PCI: Introduce helper functions to deal with PCI I/O ranges.
+  ARM: Define PCI_IOBASE as the base of virtual PCI IO space.
+  PCI: OF: Fix the conversion of IO ranges into IO resources.
+  PCI: Create pci_host_bridge before its associated bus in
+    pci_create_root_bus.
+  OF: Introduce helper function for getting PCI domain_nr
+  OF: PCI: Add support for parsing PCI host bridge resources from DT
+  PCI: Assign unassigned bus resources in pci_scan_root_bus()
+  PCI: Introduce pci_remap_iospace() for remapping PCI I/O bus resources
+    into CPU space
+
+ arch/arm/include/asm/io.h         |   1 +
+ arch/arm/mach-integrator/pci_v3.c |  23 +++---
+ drivers/of/address.c              | 146 ++++++++++++++++++++++++++++++++
+ drivers/of/of_pci.c               | 170 ++++++++++++++++++++++++++++++++++++++
+ drivers/pci/host/pci-tegra.c      |  10 ++-
+ drivers/pci/host/pcie-rcar.c      |  21 +++--
+ drivers/pci/pci.c                 |  33 ++++++++
+ drivers/pci/probe.c               |  46 +++++++----
+ include/asm-generic/io.h          |   2 +-
+ include/asm-generic/pgtable.h     |   4 +
+ include/linux/of_address.h        |  15 +---
+ include/linux/of_pci.h            |  18 ++++
+ include/linux/pci.h               |  24 ++++++
+ 13 files changed, 463 insertions(+), 50 deletions(-)
+
 -- 
 2.1.0
