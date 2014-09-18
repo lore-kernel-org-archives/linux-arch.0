@@ -1,141 +1,119 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from fw-tnat.cambridge.arm.com ([217.140.96.21]:54528 "EHLO
+Received: from fw-tnat.cambridge.arm.com ([217.140.96.21]:54522 "EHLO
 	cam-smtp0.cambridge.arm.com" rhost-flags-OK-OK-OK-FAIL)
-	by vger.kernel.org with ESMTP id S1757220AbaIRBcH (ORCPT
+	by vger.kernel.org with ESMTP id S1756174AbaIRBcE (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 17 Sep 2014 21:32:07 -0400
+	Wed, 17 Sep 2014 21:32:04 -0400
 From: Liviu Dudau <Liviu.Dudau@arm.com>
-Subject: [PATCH v11 07/10] OF: Introduce helper function for getting PCI domain_nr
-Date: Thu, 18 Sep 2014 02:30:22 +0100
-Message-ID: <1411003825-21521-8-git-send-email-Liviu.Dudau@arm.com>
+Subject: [PATCH v11 05/10] PCI: Create pci_host_bridge before its associated bus in pci_create_root_bus.
+Date: Thu, 18 Sep 2014 02:30:20 +0100
+Message-ID: <1411003825-21521-6-git-send-email-Liviu.Dudau@arm.com>
 In-Reply-To: <1411003825-21521-1-git-send-email-Liviu.Dudau@arm.com>
 References: <1411003825-21521-1-git-send-email-Liviu.Dudau@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Bjorn Helgaas <bhelgaas@google.com>, Arnd Bergmann <arnd@arndb.de>, Rob Herring <robh+dt@kernel.org>, Jason Gunthorpe <jgunthorpe@obsidianresearch.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <Will.Deacon@arm.com>, Russell King <linux@arm.linux.org.uk>, linux-pci <linux-pci@vger.kernel.org>, Linus Walleij <linus.walleij@linaro.org>
-Cc: Tanmay Inamdar <tinamdar@apm.com>, Grant Likely <grant.likely@secretlab.ca>, Sinan Kaya <okaya@codeaurora.org>, Jingoo Han <jg1.han@samsung.com>, Kukjin Kim <kgene.kim@samsung.com>, Suravee Suthikulanit <suravee.suthikulpanit@amd.com>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Device Tree ML <devicetree@vger.kernel.org>, LAKML <linux-arm-kernel@lists.infradead.org>, Grant Likely <grant.likely@linaro.org>
-Message-ID: <20140918013022.2fYCa6NxwjDXij6hsra_nRuDR0_fKlS0gMk0q5oN7kM@z>
+Cc: Tanmay Inamdar <tinamdar@apm.com>, Grant Likely <grant.likely@secretlab.ca>, Sinan Kaya <okaya@codeaurora.org>, Jingoo Han <jg1.han@samsung.com>, Kukjin Kim <kgene.kim@samsung.com>, Suravee Suthikulanit <suravee.suthikulpanit@amd.com>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Device Tree ML <devicetree@vger.kernel.org>, LAKML <linux-arm-kernel@lists.infradead.org>
+Message-ID: <20140918013020.oNT_Z0JU4_B-naDZ1dNjve82rQ6_KnaRreqZ_t7F4J8@z>
 
-Add of_pci_get_domain_nr() to retrieve the PCI domain number
-of a given device from DT. If the information is not present,
-the function can be requested to allocate a new domain number.
+Before commit 7b5436635800 the pci_host_bridge was created before the root bus.
+As that commit has added a needless dependency on the bus for pci_alloc_host_bridge()
+the creation order has been changed for no good reason. Revert the order of
+creation as we are going to depend on the pci_host_bridge structure to retrieve the
+domain number of the root bus.
 
 Cc: Bjorn Helgaas <bhelgaas@google.com>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: Grant Likely <grant.likely@linaro.org>
-Cc: Rob Herring <robh+dt@kernel.org>
-Reviewed-by: Catalin Marinas <catalin.marinas@arm.com>
 Signed-off-by: Liviu Dudau <Liviu.Dudau@arm.com>
+Acked-by: Grant Likely <grant.likely@linaro.org>
+Reviewed-by: Catalin Marinas <catalin.marinas@arm.com>
+Tested-by: Tanmay Inamdar <tinamdar@apm.com>
 ---
- drivers/of/of_pci.c    | 62 ++++++++++++++++++++++++++++++++++++++++++++++++++
- include/linux/of_pci.h |  7 ++++++
- 2 files changed, 69 insertions(+)
+ drivers/pci/probe.c | 32 +++++++++++++++++---------------
+ 1 file changed, 17 insertions(+), 15 deletions(-)
 
-diff --git a/drivers/of/of_pci.c b/drivers/of/of_pci.c
-index 8481996..7eaeac2 100644
---- a/drivers/of/of_pci.c
-+++ b/drivers/of/of_pci.c
-@@ -3,6 +3,8 @@
- #include <linux/of.h>
- #include <linux/of_pci.h>
- 
-+#include "of_private.h"
-+
- static inline int __of_pci_pci_compare(struct device_node *node,
- 				       unsigned int data)
- {
-@@ -89,6 +91,66 @@ int of_pci_parse_bus_range(struct device_node *node, struct resource *res)
+diff --git a/drivers/pci/probe.c b/drivers/pci/probe.c
+index e3cf8a2..5ff72ec 100644
+--- a/drivers/pci/probe.c
++++ b/drivers/pci/probe.c
+@@ -515,7 +515,7 @@ static void pci_release_host_bridge_dev(struct device *dev)
+ 	kfree(bridge);
  }
- EXPORT_SYMBOL_GPL(of_pci_parse_bus_range);
  
-+static atomic_t of_domain_nr = ATOMIC_INIT(-1);
-+
-+/*
-+ * Get the maximum value for a domain number from the device tree
-+ */
-+static int of_get_max_pci_domain_nr(void)
-+{
-+	struct alias_prop *app;
-+	int max_domain = -1;
-+
-+	mutex_lock(&of_mutex);
-+	list_for_each_entry(app, &aliases_lookup, link) {
-+		if (strncmp(app->stem, "pci-domain", 10) != 0)
-+			continue;
-+
-+		max_domain = max(max_domain, app->id);
-+	}
-+	mutex_unlock(&of_mutex);
-+
-+	return max_domain;
-+}
-+
-+/**
-+ * This function will try to obtain the host bridge domain number by
-+ * using of_alias_get_id() call with "pci-domain" as a stem. If that
-+ * fails, a local allocator will be used. The local allocator can
-+ * be requested to return a new domain_nr if the information is missing
-+ * from the device tree.
-+ *
-+ * @node: device tree node with the domain information
-+ * @allocate_if_missing: if DT lacks information about the domain nr,
-+ * allocate a new number.
-+ *
-+ * Returns the associated domain number from DT, or a new domain number
-+ * if DT information is missing and @allocate_if_missing is true. If
-+ * @allocate_if_missing is false then the last allocated domain number
-+ * will be returned.
-+ */
-+int of_pci_get_domain_nr(struct device_node *node, bool allocate_if_missing)
-+{
-+	int domain;
-+
-+	domain = atomic_read(&of_domain_nr);
-+	if (domain == -1) {
-+		/* first run, get max defined domain nr in device tree */
-+		domain = of_get_max_pci_domain_nr();
-+		/* then set the start value for allocator to be max + 1 */
-+		atomic_set(&of_domain_nr, domain + 1);
-+	}
-+	domain = of_alias_get_id(node, "pci-domain");
-+	if (domain == -ENODEV) {
-+		domain = atomic_read(&of_domain_nr);
-+		if (allocate_if_missing)
-+			atomic_inc(&of_domain_nr);
-+	}
-+
-+	return domain;
-+}
-+EXPORT_SYMBOL_GPL(of_pci_get_domain_nr);
-+
- #ifdef CONFIG_PCI_MSI
+-static struct pci_host_bridge *pci_alloc_host_bridge(struct pci_bus *b)
++static struct pci_host_bridge *pci_alloc_host_bridge(void)
+ {
+ 	struct pci_host_bridge *bridge;
  
- static LIST_HEAD(of_pci_msi_chip_list);
-diff --git a/include/linux/of_pci.h b/include/linux/of_pci.h
-index dde3a4a..3a3824c 100644
---- a/include/linux/of_pci.h
-+++ b/include/linux/of_pci.h
-@@ -15,6 +15,7 @@ struct device_node *of_pci_find_child_device(struct device_node *parent,
- int of_pci_get_devfn(struct device_node *np);
- int of_irq_parse_and_map_pci(const struct pci_dev *dev, u8 slot, u8 pin);
- int of_pci_parse_bus_range(struct device_node *node, struct resource *res);
-+int of_pci_get_domain_nr(struct device_node *node, bool allocate_if_missing);
- #else
- static inline int of_irq_parse_pci(const struct pci_dev *pdev, struct of_phandle_args *out_irq)
- {
-@@ -43,6 +44,12 @@ of_pci_parse_bus_range(struct device_node *node, struct resource *res)
- {
- 	return -EINVAL;
+@@ -524,7 +524,8 @@ static struct pci_host_bridge *pci_alloc_host_bridge(struct pci_bus *b)
+ 		return NULL;
+ 
+ 	INIT_LIST_HEAD(&bridge->windows);
+-	bridge->bus = b;
++	bridge->dev.release = pci_release_host_bridge_dev;
++
+ 	return bridge;
  }
-+
-+static inline int
-+of_pci_get_domain_nr(struct device_node *node, bool allocate_if_missing)
-+{
-+	return -1;
-+}
- #endif
  
- #if defined(CONFIG_OF) && defined(CONFIG_PCI_MSI)
+@@ -1761,9 +1762,15 @@ struct pci_bus *pci_create_root_bus(struct device *parent, int bus,
+ 	char bus_addr[64];
+ 	char *fmt;
+ 
++	bridge = pci_alloc_host_bridge();
++	if (!bridge)
++		return NULL;
++
++	bridge->dev.parent = parent;
++
+ 	b = pci_alloc_bus();
+ 	if (!b)
+-		return NULL;
++		goto err_out;
+ 
+ 	b->sysdata = sysdata;
+ 	b->ops = ops;
+@@ -1772,26 +1779,19 @@ struct pci_bus *pci_create_root_bus(struct device *parent, int bus,
+ 	if (b2) {
+ 		/* If we already got to this bus through a different bridge, ignore it */
+ 		dev_dbg(&b2->dev, "bus already known\n");
+-		goto err_out;
++		goto err_bus_out;
+ 	}
+ 
+-	bridge = pci_alloc_host_bridge(b);
+-	if (!bridge)
+-		goto err_out;
+-
+-	bridge->dev.parent = parent;
+-	bridge->dev.release = pci_release_host_bridge_dev;
++	bridge->bus = b;
+ 	dev_set_name(&bridge->dev, "pci%04x:%02x", pci_domain_nr(b), bus);
+ 	error = pcibios_root_bridge_prepare(bridge);
+-	if (error) {
+-		kfree(bridge);
++	if (error)
+ 		goto err_out;
+-	}
+ 
+ 	error = device_register(&bridge->dev);
+ 	if (error) {
+ 		put_device(&bridge->dev);
+-		goto err_out;
++		goto err_bus_out;
+ 	}
+ 	b->bridge = get_device(&bridge->dev);
+ 	device_enable_async_suspend(b->bridge);
+@@ -1848,8 +1848,10 @@ struct pci_bus *pci_create_root_bus(struct device *parent, int bus,
+ class_dev_reg_err:
+ 	put_device(&bridge->dev);
+ 	device_unregister(&bridge->dev);
+-err_out:
++err_bus_out:
+ 	kfree(b);
++err_out:
++	kfree(bridge);
+ 	return NULL;
+ }
+ 
 -- 
 2.1.0
 
