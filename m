@@ -1,178 +1,185 @@
 From: Liviu Dudau <Liviu.Dudau@arm.com>
-Subject: [PATCH v11 02/10] PCI: Introduce helper functions to deal with PCI I/O ranges.
-Date: Thu, 18 Sep 2014 02:30:17 +0100
-Message-ID: <1411003825-21521-3-git-send-email-Liviu.Dudau@arm.com>
+Subject: [PATCH v11 08/10] OF: PCI: Add support for parsing PCI host bridge resources from DT
+Date: Thu, 18 Sep 2014 02:30:23 +0100
+Message-ID: <1411003825-21521-9-git-send-email-Liviu.Dudau@arm.com>
 References: <1411003825-21521-1-git-send-email-Liviu.Dudau@arm.com>
-Return-path: <linux-pci-owner@vger.kernel.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1411003825-21521-1-git-send-email-Liviu.Dudau@arm.com>
-Sender: linux-pci-owner@vger.kernel.org
+Sender: linux-kernel-owner@vger.kernel.org
 To: Bjorn Helgaas <bhelgaas@google.com>, Arnd Bergmann <arnd@arndb.de>, Rob Herring <robh+dt@kernel.org>, Jason Gunthorpe <jgunthorpe@obsidianresearch.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <Will.Deacon@arm.com>, Russell King <linux@arm.linux.org.uk>, linux-pci <linux-pci@vger.kernel.org>, Linus Walleij <linus.walleij@linaro.org>
 Cc: Tanmay Inamdar <tinamdar@apm.com>, Grant Likely <grant.likely@secretlab.ca>, Sinan Kaya <okaya@codeaurora.org>, Jingoo Han <jg1.han@samsung.com>, Kukjin Kim <kgene.kim@samsung.com>, Suravee Suthikulanit <suravee.suthikulpanit@amd.com>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Device Tree ML <devicetree@vger.kernel.org>, LAKML <linux-arm-kernel@lists.infradead.org>, Grant Likely <grant.likely@linaro.org>
 List-Id: linux-arch.vger.kernel.org
 
-Some architectures do not have a simple view of the PCI I/O space
-and instead use a range of CPU addresses that map to bus addresses.
-For some architectures these ranges will be expressed by OF bindings
-in a device tree file.
+Provide a function to parse the PCI DT ranges that can be used to
+create a pci_host_bridge structure together with its associated
+bus.
 
-This patch introduces a pci_register_io_range() helper function with
-a generic implementation that can be used by such architectures to
-keep track of the I/O ranges described by the PCI bindings. If the
-PCI_IOBASE macro is not defined that signals lack of support for PCI
-and we return an error.
-
-In order to retrieve the CPU address associated with an I/O port, a
-new helper function pci_pio_to_address() is introduced. This will
-search in the list of ranges registered with pci_register_io_range()
-and return the CPU address that corresponds to the given port.
-
-Cc: Grant Likely <grant.likely@linaro.org>
+Cc: Bjorn Helgaas <bhelgaas@google.com>
 Cc: Arnd Bergmann <arnd@arndb.de>
-Reviewed-by: Catalin Marinas <catalin.marinas@arm.com>
-Acked-by: Rob Herring <robh@kernel.org>
+Cc: Grant Likely <grant.likely@linaro.org>
+Cc: Rob Herring <robh+dt@kernel.org>
+Cc: Catalin Marinas <catalin.marinas@arm.com>
 Signed-off-by: Liviu Dudau <Liviu.Dudau@arm.com>
 ---
- drivers/of/address.c       | 100 +++++++++++++++++++++++++++++++++++++++++++++
- include/linux/of_address.h |   2 +
- 2 files changed, 102 insertions(+)
+ drivers/of/of_pci.c    | 108 +++++++++++++++++++++++++++++++++++++++++++++++++
+ include/linux/of_pci.h |  11 +++++
+ 2 files changed, 119 insertions(+)
 
-diff --git a/drivers/of/address.c b/drivers/of/address.c
-index e371825..2373a92 100644
---- a/drivers/of/address.c
-+++ b/drivers/of/address.c
-@@ -5,6 +5,7 @@
- #include <linux/module.h>
- #include <linux/of_address.h>
- #include <linux/pci_regs.h>
+diff --git a/drivers/of/of_pci.c b/drivers/of/of_pci.c
+index 7eaeac2..c18b8da 100644
+--- a/drivers/of/of_pci.c
++++ b/drivers/of/of_pci.c
+@@ -1,7 +1,9 @@
+ #include <linux/kernel.h>
+ #include <linux/export.h>
+ #include <linux/of.h>
++#include <linux/of_address.h>
+ #include <linux/of_pci.h>
 +#include <linux/slab.h>
- #include <linux/string.h>
  
- /* Max address size we deal with */
-@@ -601,12 +602,111 @@ const __be32 *of_get_address(struct device_node *dev, int index, u64 *size,
+ #include "of_private.h"
+ 
+@@ -151,6 +153,112 @@ int of_pci_get_domain_nr(struct device_node *node, bool allocate_if_missing)
  }
- EXPORT_SYMBOL(of_get_address);
+ EXPORT_SYMBOL_GPL(of_pci_get_domain_nr);
  
-+#ifdef PCI_IOBASE
-+struct io_range {
-+	struct list_head list;
-+	phys_addr_t start;
-+	resource_size_t size;
-+};
-+
-+static LIST_HEAD(io_range_list);
-+static DEFINE_SPINLOCK(io_range_lock);
-+#endif
-+
-+/*
-+ * Record the PCI IO range (expressed as CPU physical address + size).
-+ * Return a negative value if an error has occured, zero otherwise
++/**
++ * of_pci_get_host_bridge_resources - Parse PCI host bridge resources from DT
++ * @dev: device node of the host bridge having the range property
++ * @busno: bus number associated with the bridge root bus
++ * @bus_max: maximum number of busses for this bridge
++ * @resources: list where the range of resources will be added after DT parsing
++ * @io_base: pointer to a variable that will contain on return the physical
++ * address for the start of the I/O range.
++ *
++ * It is the callers job to free the @resources list.
++ *
++ * This function will parse the "ranges" property of a PCI host bridge device
++ * node and setup the resource mapping based on its content. It is expected
++ * that the property conforms with the Power ePAPR document.
++ *
++ * It returns zero if the range parsing has been successful or a standard error
++ * value if it failed.
 + */
-+int __weak pci_register_io_range(phys_addr_t addr, resource_size_t size)
++int of_pci_get_host_bridge_resources(struct device_node *dev,
++			unsigned char busno, unsigned char bus_max,
++			struct list_head *resources, resource_size_t *io_base)
 +{
-+#ifdef PCI_IOBASE
-+	struct io_range *range;
-+	resource_size_t allocated_size = 0;
++	struct resource *res;
++	struct resource *bus_range;
++	struct of_pci_range range;
++	struct of_pci_range_parser parser;
++	char range_type[4];
++	int err;
 +
-+	/* check if the range hasn't been previously recorded */
-+	spin_lock(&io_range_lock);
-+	list_for_each_entry(range, &io_range_list, list) {
-+		if (addr >= range->start && addr + size <= range->start + size)
-+			return 0;
-+		allocated_size += range->size;
-+	}
-+	spin_unlock(&io_range_lock);
++	if (!io_base)
++		return -EINVAL;
++	*io_base = OF_BAD_ADDR;
 +
-+	/* range not registed yet, check for available space */
-+	if (allocated_size + size - 1 > IO_SPACE_LIMIT) {
-+		/* if it's too big check if 64K space can be reserved */
-+		if (allocated_size + SZ_64K - 1 > IO_SPACE_LIMIT)
-+			return -E2BIG;
-+
-+		size = SZ_64K;
-+		pr_warn("Requested IO range too big, new size set to 64K\n");
-+	}
-+
-+	/* add the range to the list */
-+	range = kzalloc(sizeof(*range), GFP_KERNEL);
-+	if (!range)
++	bus_range = kzalloc(sizeof(*bus_range), GFP_KERNEL);
++	if (!bus_range)
 +		return -ENOMEM;
 +
-+	range->start = addr;
-+	range->size = size;
++	pr_info("PCI host bridge %s ranges:\n", dev->full_name);
 +
-+	spin_lock(&io_range_lock);
-+	list_add_tail(&range->list, &io_range_list);
-+	spin_unlock(&io_range_lock);
-+#endif
++	err = of_pci_parse_bus_range(dev, bus_range);
++	if (err) {
++		bus_range->start = busno;
++		bus_range->end = bus_max;
++		bus_range->flags = IORESOURCE_BUS;
++		pr_info("  No bus range found for %s, using %pR\n",
++			dev->full_name, &bus_range);
++	} else {
++		if (bus_range->end > bus_range->start + bus_max)
++			bus_range->end = bus_range->start + bus_max;
++	}
++	pci_add_resource(resources, bus_range);
++
++	/* Check for ranges property */
++	err = of_pci_range_parser_init(&parser, dev);
++	if (err)
++		goto parse_failed;
++
++	pr_debug("Parsing ranges property...\n");
++	for_each_of_pci_range(&parser, &range) {
++		/* Read next ranges element */
++		if ((range.flags & IORESOURCE_TYPE_BITS) == IORESOURCE_IO)
++			snprintf(range_type, 4, " IO");
++		else if ((range.flags & IORESOURCE_TYPE_BITS) == IORESOURCE_MEM)
++			snprintf(range_type, 4, "MEM");
++		else
++			snprintf(range_type, 4, "err");
++		pr_info("  %s %#010llx..%#010llx -> %#010llx\n", range_type,
++			range.cpu_addr, range.cpu_addr + range.size - 1,
++			range.pci_addr);
++
++		/*
++		 * If we failed translation or got a zero-sized region
++		 * then skip this range
++		 */
++		if (range.cpu_addr == OF_BAD_ADDR || range.size == 0)
++			continue;
++
++		res = kzalloc(sizeof(struct resource), GFP_KERNEL);
++		if (!res) {
++			err = -ENOMEM;
++			goto parse_failed;
++		}
++
++		err = of_pci_range_to_resource(&range, dev, res);
++		if (err) {
++			kfree(res);
++			goto parse_failed;
++		}
++
++		if (resource_type(res) == IORESOURCE_IO) {
++			if (*io_base != OF_BAD_ADDR)
++				pr_warn("More than one I/O resource converted. CPU offset for old range lost!\n");
++			*io_base = range.cpu_addr;
++		}
++
++		pci_add_resource_offset(resources, res,	res->start - range.pci_addr);
++	}
 +
 +	return 0;
++
++parse_failed:
++	pci_free_resource_list(resources);
++	return err;
 +}
++EXPORT_SYMBOL_GPL(of_pci_get_host_bridge_resources);
 +
-+phys_addr_t pci_pio_to_address(unsigned long pio)
-+{
-+	phys_addr_t address = (phys_addr_t)OF_BAD_ADDR;
+ #ifdef CONFIG_PCI_MSI
+ 
+ static LIST_HEAD(of_pci_msi_chip_list);
+diff --git a/include/linux/of_pci.h b/include/linux/of_pci.h
+index 3a3824c..a4b8a85 100644
+--- a/include/linux/of_pci.h
++++ b/include/linux/of_pci.h
+@@ -16,6 +16,10 @@ int of_pci_get_devfn(struct device_node *np);
+ int of_irq_parse_and_map_pci(const struct pci_dev *dev, u8 slot, u8 pin);
+ int of_pci_parse_bus_range(struct device_node *node, struct resource *res);
+ int of_pci_get_domain_nr(struct device_node *node, bool allocate_if_missing);
++int of_pci_get_host_bridge_resources(struct device_node *dev,
++			unsigned char busno, unsigned char bus_max,
++			struct list_head *resources, resource_size_t *io_base);
 +
-+#ifdef PCI_IOBASE
-+	struct io_range *range;
-+	resource_size_t allocated_size = 0;
-+
-+	if (pio > IO_SPACE_LIMIT)
-+		return address;
-+
-+	spin_lock(&io_range_lock);
-+	list_for_each_entry(range, &io_range_list, list) {
-+		if (pio >= allocated_size && pio < allocated_size + range->size) {
-+			address = range->start + pio - allocated_size;
-+			break;
-+		}
-+		allocated_size += range->size;
-+	}
-+	spin_unlock(&io_range_lock);
-+#endif
-+
-+	return address;
-+}
-+
- unsigned long __weak pci_address_to_pio(phys_addr_t address)
+ #else
+ static inline int of_irq_parse_pci(const struct pci_dev *pdev, struct of_phandle_args *out_irq)
  {
-+#ifdef PCI_IOBASE
-+	struct io_range *res;
-+	resource_size_t offset = 0;
-+	unsigned long addr = -1;
-+
-+	spin_lock(&io_range_lock);
-+	list_for_each_entry(res, &io_range_list, list) {
-+		if (address >= res->start && address < res->start + res->size) {
-+			addr = res->start - address + offset;
-+			break;
-+		}
-+		offset += res->size;
-+	}
-+	spin_unlock(&io_range_lock);
-+
-+	return addr;
-+#else
- 	if (address > IO_SPACE_LIMIT)
- 		return (unsigned long)-1;
- 
- 	return (unsigned long) address;
-+#endif
+@@ -50,6 +54,13 @@ of_pci_get_domain_nr(struct device_node *node, bool allocate_if_missing)
+ {
+ 	return -1;
  }
++
++int of_pci_get_host_bridge_resources(struct device_node *dev,
++			unsigned char busno, unsigned char bus_max,
++			struct list_head *resources, resource_size_t *io_base);
++{
++	return -EINVAL;
++}
+ #endif
  
- static int __of_address_to_resource(struct device_node *dev,
-diff --git a/include/linux/of_address.h b/include/linux/of_address.h
-index fb7b722..f8cc7da 100644
---- a/include/linux/of_address.h
-+++ b/include/linux/of_address.h
-@@ -55,7 +55,9 @@ extern void __iomem *of_iomap(struct device_node *device, int index);
- extern const __be32 *of_get_address(struct device_node *dev, int index,
- 			   u64 *size, unsigned int *flags);
- 
-+extern int pci_register_io_range(phys_addr_t addr, resource_size_t size);
- extern unsigned long pci_address_to_pio(phys_addr_t addr);
-+extern phys_addr_t pci_pio_to_address(unsigned long pio);
- 
- extern int of_pci_range_parser_init(struct of_pci_range_parser *parser,
- 			struct device_node *node);
+ #if defined(CONFIG_OF) && defined(CONFIG_PCI_MSI)
 -- 
 2.1.0
