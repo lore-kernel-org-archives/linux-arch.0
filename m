@@ -1,137 +1,47 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from fw-tnat.cambridge.arm.com ([217.140.96.21]:54510 "EHLO
+Received: from fw-tnat.cambridge.arm.com ([217.140.96.21]:54524 "EHLO
 	cam-smtp0.cambridge.arm.com" rhost-flags-OK-OK-OK-FAIL)
-	by vger.kernel.org with ESMTP id S1754253AbaIRBcC (ORCPT
+	by vger.kernel.org with ESMTP id S1756983AbaIRBcF (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 17 Sep 2014 21:32:02 -0400
+	Wed, 17 Sep 2014 21:32:05 -0400
 From: Liviu Dudau <Liviu.Dudau@arm.com>
-Subject: [PATCH v11 06/10] PCI: Introduce generic domain handling for PCI busses.
-Date: Thu, 18 Sep 2014 02:30:21 +0100
-Message-ID: <1411003825-21521-7-git-send-email-Liviu.Dudau@arm.com>
+Subject: [PATCH v11 01/10] Fix ioport_map() for !CONFIG_GENERIC_IOMAP cases.
+Date: Thu, 18 Sep 2014 02:30:16 +0100
+Message-ID: <1411003825-21521-2-git-send-email-Liviu.Dudau@arm.com>
 In-Reply-To: <1411003825-21521-1-git-send-email-Liviu.Dudau@arm.com>
 References: <1411003825-21521-1-git-send-email-Liviu.Dudau@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Bjorn Helgaas <bhelgaas@google.com>, Arnd Bergmann <arnd@arndb.de>, Rob Herring <robh+dt@kernel.org>, Jason Gunthorpe <jgunthorpe@obsidianresearch.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <Will.Deacon@arm.com>, Russell King <linux@arm.linux.org.uk>, linux-pci <linux-pci@vger.kernel.org>, Linus Walleij <linus.walleij@linaro.org>
-Cc: Tanmay Inamdar <tinamdar@apm.com>, Grant Likely <grant.likely@secretlab.ca>, Sinan Kaya <okaya@codeaurora.org>, Jingoo Han <jg1.han@samsung.com>, Kukjin Kim <kgene.kim@samsung.com>, Suravee Suthikulanit <suravee.suthikulpanit@amd.com>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Device Tree ML <devicetree@vger.kernel.org>, LAKML <linux-arm-kernel@lists.infradead.org>, Catalin Marinas <Catalin.Marinas@arm.com>
-Message-ID: <20140918013021.0FtRsHzDy9V6jEJ3ynIBb2Na6vfMbK1EwpbPJowjQd8@z>
+Cc: Tanmay Inamdar <tinamdar@apm.com>, Grant Likely <grant.likely@secretlab.ca>, Sinan Kaya <okaya@codeaurora.org>, Jingoo Han <jg1.han@samsung.com>, Kukjin Kim <kgene.kim@samsung.com>, Suravee Suthikulanit <suravee.suthikulpanit@amd.com>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Device Tree ML <devicetree@vger.kernel.org>, LAKML <linux-arm-kernel@lists.infradead.org>
+Message-ID: <20140918013016.jQWKpQuBS0oqTCLsGHU0kF84uekVw_01_VfJXwcoRCQ@z>
 
-From: Catalin Marinas <catalin.marinas@arm.com>
+The inline version of ioport_map() that gets used when !CONFIG_GENERIC_IOMAP
+is wrong. It returns a mapped (i.e. virtual) address that can start from
+zero and completely ignores the PCI_IOBASE and IO_SPACE_LIMIT that most
+architectures that use !CONFIG_GENERIC_MAP define.
 
-The handling of PCI domains (or PCI segments in ACPI speak) is
-usually a straightforward affair but its implementation is
-currently left to the architectural code, with pci_domain_nr(b)
-querying the value of the domain associated with bus b.
-
-This patch introduces CONFIG_PCI_DOMAINS_GENERIC as an
-option that can be selected if an architecture want a
-simple implementation where the value of the domain
-associated with a bus is stored in struct pci_bus.
-
-The architectures that select CONFIG_PCI_DOMAINS_GENERIC will
-then have to implement pci_bus_assign_domain_nr() as a way
-of setting the domain number associated with a root bus.
-All child busses except the root bus will inherit the domain_nr
-value from their parent.
-
-Cc: Bjorn Helgaas <bhelgaas@google.com>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Signed-off-by: Catalin Marinas <Catalin.Marinas@arm.com>
-[Renamed pci_set_domain_nr() to pci_bus_assign_domain_nr()]
 Signed-off-by: Liviu Dudau <Liviu.Dudau@arm.com>
+Reviewed-by: Catalin Marinas <catalin.marinas@arm.com>
+Acked-by: Arnd Bergmann <arnd@arndb.de>
+Tested-by: Tanmay Inamdar <tinamdar@apm.com>
 ---
- drivers/pci/probe.c | 11 ++++++++---
- include/linux/pci.h | 21 +++++++++++++++++++++
- 2 files changed, 29 insertions(+), 3 deletions(-)
+ include/asm-generic/io.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/drivers/pci/probe.c b/drivers/pci/probe.c
-index 5ff72ec..ef891d2 100644
---- a/drivers/pci/probe.c
-+++ b/drivers/pci/probe.c
-@@ -485,7 +485,7 @@ void pci_read_bridge_bases(struct pci_bus *child)
- 	}
- }
- 
--static struct pci_bus *pci_alloc_bus(void)
-+static struct pci_bus *pci_alloc_bus(struct pci_bus *parent)
+diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
+index 975e1cc..2e2161b 100644
+--- a/include/asm-generic/io.h
++++ b/include/asm-generic/io.h
+@@ -331,7 +331,7 @@ static inline void iounmap(void __iomem *addr)
+ #ifndef CONFIG_GENERIC_IOMAP
+ static inline void __iomem *ioport_map(unsigned long port, unsigned int nr)
  {
- 	struct pci_bus *b;
- 
-@@ -500,6 +500,10 @@ static struct pci_bus *pci_alloc_bus(void)
- 	INIT_LIST_HEAD(&b->resources);
- 	b->max_bus_speed = PCI_SPEED_UNKNOWN;
- 	b->cur_bus_speed = PCI_SPEED_UNKNOWN;
-+#ifdef CONFIG_PCI_DOMAINS_GENERIC
-+	if (parent)
-+		b->domain_nr = parent->domain_nr;
-+#endif
- 	return b;
+-	return (void __iomem *) port;
++	return (void __iomem *)(PCI_IOBASE + (port & IO_SPACE_LIMIT));
  }
  
-@@ -672,7 +676,7 @@ static struct pci_bus *pci_alloc_child_bus(struct pci_bus *parent,
- 	/*
- 	 * Allocate a new bus, and inherit stuff from the parent..
- 	 */
--	child = pci_alloc_bus();
-+	child = pci_alloc_bus(parent);
- 	if (!child)
- 		return NULL;
- 
-@@ -1768,13 +1772,14 @@ struct pci_bus *pci_create_root_bus(struct device *parent, int bus,
- 
- 	bridge->dev.parent = parent;
- 
--	b = pci_alloc_bus();
-+	b = pci_alloc_bus(NULL);
- 	if (!b)
- 		goto err_out;
- 
- 	b->sysdata = sysdata;
- 	b->ops = ops;
- 	b->number = b->busn_res.start = bus;
-+	pci_bus_assign_domain_nr(b, parent);
- 	b2 = pci_find_bus(pci_domain_nr(b), bus);
- 	if (b2) {
- 		/* If we already got to this bus through a different bridge, ignore it */
-diff --git a/include/linux/pci.h b/include/linux/pci.h
-index 61978a4..a494e5d 100644
---- a/include/linux/pci.h
-+++ b/include/linux/pci.h
-@@ -456,6 +456,9 @@ struct pci_bus {
- 	unsigned char	primary;	/* number of primary bridge */
- 	unsigned char	max_bus_speed;	/* enum pci_bus_speed */
- 	unsigned char	cur_bus_speed;	/* enum pci_bus_speed */
-+#ifdef CONFIG_PCI_DOMAINS_GENERIC
-+	int		domain_nr;
-+#endif
- 
- 	char		name[48];
- 
-@@ -1288,6 +1291,24 @@ static inline int pci_domain_nr(struct pci_bus *bus) { return 0; }
- static inline int pci_proc_domain(struct pci_bus *bus) { return 0; }
- #endif /* CONFIG_PCI_DOMAINS */
- 
-+/*
-+ * Generic implementation for PCI domain support. If your
-+ * architecture does not need custom management of PCI
-+ * domains then this implementation will be used
-+ */
-+#ifdef CONFIG_PCI_DOMAINS_GENERIC
-+static inline int pci_domain_nr(struct pci_bus *bus)
-+{
-+	return bus->domain_nr;
-+}
-+void pci_bus_assign_domain_nr(struct pci_bus *bus, struct device *parent);
-+#else
-+static inline void pci_bus_assign_domain_nr(struct pci_bus *bus,
-+					struct device *parent)
-+{
-+}
-+#endif
-+
- /* some architectures require additional setup to direct VGA traffic */
- typedef int (*arch_set_vga_state_t)(struct pci_dev *pdev, bool decode,
- 		      unsigned int command_bits, u32 flags);
+ static inline void ioport_unmap(void __iomem *p)
 -- 
 2.1.0
 
