@@ -1,185 +1,109 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from fw-tnat.cambridge.arm.com ([217.140.96.21]:54534 "EHLO
+Received: from fw-tnat.cambridge.arm.com ([217.140.96.21]:54529 "EHLO
 	cam-smtp0.cambridge.arm.com" rhost-flags-OK-OK-OK-FAIL)
-	by vger.kernel.org with ESMTP id S1757236AbaIRBcJ (ORCPT
+	by vger.kernel.org with ESMTP id S1757229AbaIRBcH (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 17 Sep 2014 21:32:09 -0400
+	Wed, 17 Sep 2014 21:32:07 -0400
 From: Liviu Dudau <Liviu.Dudau@arm.com>
-Subject: [PATCH v11 02/10] PCI: Introduce helper functions to deal with PCI I/O ranges.
-Date: Thu, 18 Sep 2014 02:30:17 +0100
-Message-ID: <1411003825-21521-3-git-send-email-Liviu.Dudau@arm.com>
+Subject: [PATCH v11 10/10] PCI: Introduce pci_remap_iospace() for remapping PCI I/O bus resources into CPU space
+Date: Thu, 18 Sep 2014 02:30:25 +0100
+Message-ID: <1411003825-21521-11-git-send-email-Liviu.Dudau@arm.com>
 In-Reply-To: <1411003825-21521-1-git-send-email-Liviu.Dudau@arm.com>
 References: <1411003825-21521-1-git-send-email-Liviu.Dudau@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Bjorn Helgaas <bhelgaas@google.com>, Arnd Bergmann <arnd@arndb.de>, Rob Herring <robh+dt@kernel.org>, Jason Gunthorpe <jgunthorpe@obsidianresearch.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <Will.Deacon@arm.com>, Russell King <linux@arm.linux.org.uk>, linux-pci <linux-pci@vger.kernel.org>, Linus Walleij <linus.walleij@linaro.org>
-Cc: Tanmay Inamdar <tinamdar@apm.com>, Grant Likely <grant.likely@secretlab.ca>, Sinan Kaya <okaya@codeaurora.org>, Jingoo Han <jg1.han@samsung.com>, Kukjin Kim <kgene.kim@samsung.com>, Suravee Suthikulanit <suravee.suthikulpanit@amd.com>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Device Tree ML <devicetree@vger.kernel.org>, LAKML <linux-arm-kernel@lists.infradead.org>, Grant Likely <grant.likely@linaro.org>
-Message-ID: <20140918013017._f-BzXUxWdIAj2aQx2nQEmV1VVYDdovvglUZMiomAWw@z>
+Cc: Tanmay Inamdar <tinamdar@apm.com>, Grant Likely <grant.likely@secretlab.ca>, Sinan Kaya <okaya@codeaurora.org>, Jingoo Han <jg1.han@samsung.com>, Kukjin Kim <kgene.kim@samsung.com>, Suravee Suthikulanit <suravee.suthikulpanit@amd.com>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Device Tree ML <devicetree@vger.kernel.org>, LAKML <linux-arm-kernel@lists.infradead.org>
+Message-ID: <20140918013025._PFrN7eTJJkDBObMQCgZ7SwCiRZLO_-nWQJCWK6LKaU@z>
 
-Some architectures do not have a simple view of the PCI I/O space
-and instead use a range of CPU addresses that map to bus addresses.
-For some architectures these ranges will be expressed by OF bindings
-in a device tree file.
+Introduce a default implementation for remapping PCI bus I/O resources
+onto the CPU address space. Architectures with special needs may
+provide their own version, but most should be able to use this one.
 
-This patch introduces a pci_register_io_range() helper function with
-a generic implementation that can be used by such architectures to
-keep track of the I/O ranges described by the PCI bindings. If the
-PCI_IOBASE macro is not defined that signals lack of support for PCI
-and we return an error.
-
-In order to retrieve the CPU address associated with an I/O port, a
-new helper function pci_pio_to_address() is introduced. This will
-search in the list of ranges registered with pci_register_io_range()
-and return the CPU address that corresponds to the given port.
-
-Cc: Grant Likely <grant.likely@linaro.org>
+Cc: Bjorn Helgaas <bhelgaas@google.com>
 Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: Rob Herring <robh+dt@kernel.org>
 Reviewed-by: Catalin Marinas <catalin.marinas@arm.com>
-Acked-by: Rob Herring <robh@kernel.org>
 Signed-off-by: Liviu Dudau <Liviu.Dudau@arm.com>
 ---
- drivers/of/address.c       | 100 +++++++++++++++++++++++++++++++++++++++++++++
- include/linux/of_address.h |   2 +
- 2 files changed, 102 insertions(+)
+ drivers/pci/pci.c             | 33 +++++++++++++++++++++++++++++++++
+ include/asm-generic/pgtable.h |  4 ++++
+ include/linux/pci.h           |  3 +++
+ 3 files changed, 40 insertions(+)
 
-diff --git a/drivers/of/address.c b/drivers/of/address.c
-index e371825..2373a92 100644
---- a/drivers/of/address.c
-+++ b/drivers/of/address.c
-@@ -5,6 +5,7 @@
- #include <linux/module.h>
- #include <linux/of_address.h>
- #include <linux/pci_regs.h>
-+#include <linux/slab.h>
- #include <linux/string.h>
- 
- /* Max address size we deal with */
-@@ -601,12 +602,111 @@ const __be32 *of_get_address(struct device_node *dev, int index, u64 *size,
+diff --git a/drivers/pci/pci.c b/drivers/pci/pci.c
+index 2c9ac70..654b44c 100644
+--- a/drivers/pci/pci.c
++++ b/drivers/pci/pci.c
+@@ -2704,6 +2704,39 @@ int pci_request_regions_exclusive(struct pci_dev *pdev, const char *res_name)
  }
- EXPORT_SYMBOL(of_get_address);
+ EXPORT_SYMBOL(pci_request_regions_exclusive);
  
-+#ifdef PCI_IOBASE
-+struct io_range {
-+	struct list_head list;
-+	phys_addr_t start;
-+	resource_size_t size;
-+};
-+
-+static LIST_HEAD(io_range_list);
-+static DEFINE_SPINLOCK(io_range_lock);
-+#endif
-+
-+/*
-+ * Record the PCI IO range (expressed as CPU physical address + size).
-+ * Return a negative value if an error has occured, zero otherwise
++/**
++ *	pci_remap_iospace - Remap the memory mapped I/O space
++ *	@res: Resource describing the I/O space
++ *	@phys_addr: physical address where the range will be mapped.
++ *
++ *	Remap the memory mapped I/O space described by the @res
++ *	into the CPU physical address space. Only architectures
++ *	that have memory mapped IO defined (and hence PCI_IOBASE)
++ *	should call this function.
 + */
-+int __weak pci_register_io_range(phys_addr_t addr, resource_size_t size)
++int __weak pci_remap_iospace(const struct resource *res, phys_addr_t phys_addr)
 +{
-+#ifdef PCI_IOBASE
-+	struct io_range *range;
-+	resource_size_t allocated_size = 0;
-+
-+	/* check if the range hasn't been previously recorded */
-+	spin_lock(&io_range_lock);
-+	list_for_each_entry(range, &io_range_list, list) {
-+		if (addr >= range->start && addr + size <= range->start + size)
-+			return 0;
-+		allocated_size += range->size;
-+	}
-+	spin_unlock(&io_range_lock);
-+
-+	/* range not registed yet, check for available space */
-+	if (allocated_size + size - 1 > IO_SPACE_LIMIT) {
-+		/* if it's too big check if 64K space can be reserved */
-+		if (allocated_size + SZ_64K - 1 > IO_SPACE_LIMIT)
-+			return -E2BIG;
-+
-+		size = SZ_64K;
-+		pr_warn("Requested IO range too big, new size set to 64K\n");
-+	}
-+
-+	/* add the range to the list */
-+	range = kzalloc(sizeof(*range), GFP_KERNEL);
-+	if (!range)
-+		return -ENOMEM;
-+
-+	range->start = addr;
-+	range->size = size;
-+
-+	spin_lock(&io_range_lock);
-+	list_add_tail(&range->list, &io_range_list);
-+	spin_unlock(&io_range_lock);
-+#endif
-+
-+	return 0;
-+}
-+
-+phys_addr_t pci_pio_to_address(unsigned long pio)
-+{
-+	phys_addr_t address = (phys_addr_t)OF_BAD_ADDR;
++	int err = -ENODEV;
 +
 +#ifdef PCI_IOBASE
-+	struct io_range *range;
-+	resource_size_t allocated_size = 0;
++	if (!(res->flags & IORESOURCE_IO))
++		return -EINVAL;
 +
-+	if (pio > IO_SPACE_LIMIT)
-+		return address;
++	if (res->end > IO_SPACE_LIMIT)
++		return -EINVAL;
 +
-+	spin_lock(&io_range_lock);
-+	list_for_each_entry(range, &io_range_list, list) {
-+		if (pio >= allocated_size && pio < allocated_size + range->size) {
-+			address = range->start + pio - allocated_size;
-+			break;
-+		}
-+		allocated_size += range->size;
-+	}
-+	spin_unlock(&io_range_lock);
-+#endif
-+
-+	return address;
-+}
-+
- unsigned long __weak pci_address_to_pio(phys_addr_t address)
- {
-+#ifdef PCI_IOBASE
-+	struct io_range *res;
-+	resource_size_t offset = 0;
-+	unsigned long addr = -1;
-+
-+	spin_lock(&io_range_lock);
-+	list_for_each_entry(res, &io_range_list, list) {
-+		if (address >= res->start && address < res->start + res->size) {
-+			addr = res->start - address + offset;
-+			break;
-+		}
-+		offset += res->size;
-+	}
-+	spin_unlock(&io_range_lock);
-+
-+	return addr;
++	err = ioremap_page_range(res->start + (unsigned long)PCI_IOBASE,
++				res->end + 1 + (unsigned long)PCI_IOBASE,
++				phys_addr, pgprot_device(PAGE_KERNEL));
 +#else
- 	if (address > IO_SPACE_LIMIT)
- 		return (unsigned long)-1;
- 
- 	return (unsigned long) address;
++	/* this architecture does not have memory mapped I/O space,
++	   so this function should never be called */
++	WARN_ON(1);
 +#endif
- }
++
++	return err;
++}
++
+ static void __pci_set_master(struct pci_dev *dev, bool enable)
+ {
+ 	u16 old_cmd, cmd;
+diff --git a/include/asm-generic/pgtable.h b/include/asm-generic/pgtable.h
+index 53b2acc..977e545 100644
+--- a/include/asm-generic/pgtable.h
++++ b/include/asm-generic/pgtable.h
+@@ -249,6 +249,10 @@ static inline int pmd_same(pmd_t pmd_a, pmd_t pmd_b)
+ #define pgprot_writecombine pgprot_noncached
+ #endif
  
- static int __of_address_to_resource(struct device_node *dev,
-diff --git a/include/linux/of_address.h b/include/linux/of_address.h
-index fb7b722..f8cc7da 100644
---- a/include/linux/of_address.h
-+++ b/include/linux/of_address.h
-@@ -55,7 +55,9 @@ extern void __iomem *of_iomap(struct device_node *device, int index);
- extern const __be32 *of_get_address(struct device_node *dev, int index,
- 			   u64 *size, unsigned int *flags);
++#ifndef pgprot_device
++#define pgprot_device pgprot_noncached
++#endif
++
+ /*
+  * When walking page tables, get the address of the next boundary,
+  * or the end address of the range if that comes earlier.  Although no
+diff --git a/include/linux/pci.h b/include/linux/pci.h
+index a494e5d..fc8c529 100644
+--- a/include/linux/pci.h
++++ b/include/linux/pci.h
+@@ -1100,6 +1100,9 @@ int __must_check pci_bus_alloc_resource(struct pci_bus *bus,
+ 						  resource_size_t),
+ 			void *alignf_data);
  
-+extern int pci_register_io_range(phys_addr_t addr, resource_size_t size);
- extern unsigned long pci_address_to_pio(phys_addr_t addr);
-+extern phys_addr_t pci_pio_to_address(unsigned long pio);
- 
- extern int of_pci_range_parser_init(struct of_pci_range_parser *parser,
- 			struct device_node *node);
++
++int pci_remap_iospace(const struct resource *res, phys_addr_t phys_addr);
++
+ static inline dma_addr_t pci_bus_address(struct pci_dev *pdev, int bar)
+ {
+ 	struct pci_bus_region region;
 -- 
 2.1.0
 
