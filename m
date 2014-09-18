@@ -1,109 +1,141 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from fw-tnat.cambridge.arm.com ([217.140.96.21]:54529 "EHLO
+Received: from fw-tnat.cambridge.arm.com ([217.140.96.21]:54528 "EHLO
 	cam-smtp0.cambridge.arm.com" rhost-flags-OK-OK-OK-FAIL)
-	by vger.kernel.org with ESMTP id S1757229AbaIRBcH (ORCPT
+	by vger.kernel.org with ESMTP id S1757220AbaIRBcH (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
 	Wed, 17 Sep 2014 21:32:07 -0400
 From: Liviu Dudau <Liviu.Dudau@arm.com>
-Subject: [PATCH v11 10/10] PCI: Introduce pci_remap_iospace() for remapping PCI I/O bus resources into CPU space
-Date: Thu, 18 Sep 2014 02:30:25 +0100
-Message-ID: <1411003825-21521-11-git-send-email-Liviu.Dudau@arm.com>
+Subject: [PATCH v11 07/10] OF: Introduce helper function for getting PCI domain_nr
+Date: Thu, 18 Sep 2014 02:30:22 +0100
+Message-ID: <1411003825-21521-8-git-send-email-Liviu.Dudau@arm.com>
 In-Reply-To: <1411003825-21521-1-git-send-email-Liviu.Dudau@arm.com>
 References: <1411003825-21521-1-git-send-email-Liviu.Dudau@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Bjorn Helgaas <bhelgaas@google.com>, Arnd Bergmann <arnd@arndb.de>, Rob Herring <robh+dt@kernel.org>, Jason Gunthorpe <jgunthorpe@obsidianresearch.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <Will.Deacon@arm.com>, Russell King <linux@arm.linux.org.uk>, linux-pci <linux-pci@vger.kernel.org>, Linus Walleij <linus.walleij@linaro.org>
-Cc: Tanmay Inamdar <tinamdar@apm.com>, Grant Likely <grant.likely@secretlab.ca>, Sinan Kaya <okaya@codeaurora.org>, Jingoo Han <jg1.han@samsung.com>, Kukjin Kim <kgene.kim@samsung.com>, Suravee Suthikulanit <suravee.suthikulpanit@amd.com>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Device Tree ML <devicetree@vger.kernel.org>, LAKML <linux-arm-kernel@lists.infradead.org>
-Message-ID: <20140918013025._PFrN7eTJJkDBObMQCgZ7SwCiRZLO_-nWQJCWK6LKaU@z>
+Cc: Tanmay Inamdar <tinamdar@apm.com>, Grant Likely <grant.likely@secretlab.ca>, Sinan Kaya <okaya@codeaurora.org>, Jingoo Han <jg1.han@samsung.com>, Kukjin Kim <kgene.kim@samsung.com>, Suravee Suthikulanit <suravee.suthikulpanit@amd.com>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Device Tree ML <devicetree@vger.kernel.org>, LAKML <linux-arm-kernel@lists.infradead.org>, Grant Likely <grant.likely@linaro.org>
+Message-ID: <20140918013022.2fYCa6NxwjDXij6hsra_nRuDR0_fKlS0gMk0q5oN7kM@z>
 
-Introduce a default implementation for remapping PCI bus I/O resources
-onto the CPU address space. Architectures with special needs may
-provide their own version, but most should be able to use this one.
+Add of_pci_get_domain_nr() to retrieve the PCI domain number
+of a given device from DT. If the information is not present,
+the function can be requested to allocate a new domain number.
 
 Cc: Bjorn Helgaas <bhelgaas@google.com>
 Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: Grant Likely <grant.likely@linaro.org>
 Cc: Rob Herring <robh+dt@kernel.org>
 Reviewed-by: Catalin Marinas <catalin.marinas@arm.com>
 Signed-off-by: Liviu Dudau <Liviu.Dudau@arm.com>
 ---
- drivers/pci/pci.c             | 33 +++++++++++++++++++++++++++++++++
- include/asm-generic/pgtable.h |  4 ++++
- include/linux/pci.h           |  3 +++
- 3 files changed, 40 insertions(+)
+ drivers/of/of_pci.c    | 62 ++++++++++++++++++++++++++++++++++++++++++++++++++
+ include/linux/of_pci.h |  7 ++++++
+ 2 files changed, 69 insertions(+)
 
-diff --git a/drivers/pci/pci.c b/drivers/pci/pci.c
-index 2c9ac70..654b44c 100644
---- a/drivers/pci/pci.c
-+++ b/drivers/pci/pci.c
-@@ -2704,6 +2704,39 @@ int pci_request_regions_exclusive(struct pci_dev *pdev, const char *res_name)
- }
- EXPORT_SYMBOL(pci_request_regions_exclusive);
+diff --git a/drivers/of/of_pci.c b/drivers/of/of_pci.c
+index 8481996..7eaeac2 100644
+--- a/drivers/of/of_pci.c
++++ b/drivers/of/of_pci.c
+@@ -3,6 +3,8 @@
+ #include <linux/of.h>
+ #include <linux/of_pci.h>
  
-+/**
-+ *	pci_remap_iospace - Remap the memory mapped I/O space
-+ *	@res: Resource describing the I/O space
-+ *	@phys_addr: physical address where the range will be mapped.
-+ *
-+ *	Remap the memory mapped I/O space described by the @res
-+ *	into the CPU physical address space. Only architectures
-+ *	that have memory mapped IO defined (and hence PCI_IOBASE)
-+ *	should call this function.
++#include "of_private.h"
++
+ static inline int __of_pci_pci_compare(struct device_node *node,
+ 				       unsigned int data)
+ {
+@@ -89,6 +91,66 @@ int of_pci_parse_bus_range(struct device_node *node, struct resource *res)
+ }
+ EXPORT_SYMBOL_GPL(of_pci_parse_bus_range);
+ 
++static atomic_t of_domain_nr = ATOMIC_INIT(-1);
++
++/*
++ * Get the maximum value for a domain number from the device tree
 + */
-+int __weak pci_remap_iospace(const struct resource *res, phys_addr_t phys_addr)
++static int of_get_max_pci_domain_nr(void)
 +{
-+	int err = -ENODEV;
++	struct alias_prop *app;
++	int max_domain = -1;
 +
-+#ifdef PCI_IOBASE
-+	if (!(res->flags & IORESOURCE_IO))
-+		return -EINVAL;
++	mutex_lock(&of_mutex);
++	list_for_each_entry(app, &aliases_lookup, link) {
++		if (strncmp(app->stem, "pci-domain", 10) != 0)
++			continue;
 +
-+	if (res->end > IO_SPACE_LIMIT)
-+		return -EINVAL;
++		max_domain = max(max_domain, app->id);
++	}
++	mutex_unlock(&of_mutex);
 +
-+	err = ioremap_page_range(res->start + (unsigned long)PCI_IOBASE,
-+				res->end + 1 + (unsigned long)PCI_IOBASE,
-+				phys_addr, pgprot_device(PAGE_KERNEL));
-+#else
-+	/* this architecture does not have memory mapped I/O space,
-+	   so this function should never be called */
-+	WARN_ON(1);
-+#endif
-+
-+	return err;
++	return max_domain;
 +}
 +
- static void __pci_set_master(struct pci_dev *dev, bool enable)
++/**
++ * This function will try to obtain the host bridge domain number by
++ * using of_alias_get_id() call with "pci-domain" as a stem. If that
++ * fails, a local allocator will be used. The local allocator can
++ * be requested to return a new domain_nr if the information is missing
++ * from the device tree.
++ *
++ * @node: device tree node with the domain information
++ * @allocate_if_missing: if DT lacks information about the domain nr,
++ * allocate a new number.
++ *
++ * Returns the associated domain number from DT, or a new domain number
++ * if DT information is missing and @allocate_if_missing is true. If
++ * @allocate_if_missing is false then the last allocated domain number
++ * will be returned.
++ */
++int of_pci_get_domain_nr(struct device_node *node, bool allocate_if_missing)
++{
++	int domain;
++
++	domain = atomic_read(&of_domain_nr);
++	if (domain == -1) {
++		/* first run, get max defined domain nr in device tree */
++		domain = of_get_max_pci_domain_nr();
++		/* then set the start value for allocator to be max + 1 */
++		atomic_set(&of_domain_nr, domain + 1);
++	}
++	domain = of_alias_get_id(node, "pci-domain");
++	if (domain == -ENODEV) {
++		domain = atomic_read(&of_domain_nr);
++		if (allocate_if_missing)
++			atomic_inc(&of_domain_nr);
++	}
++
++	return domain;
++}
++EXPORT_SYMBOL_GPL(of_pci_get_domain_nr);
++
+ #ifdef CONFIG_PCI_MSI
+ 
+ static LIST_HEAD(of_pci_msi_chip_list);
+diff --git a/include/linux/of_pci.h b/include/linux/of_pci.h
+index dde3a4a..3a3824c 100644
+--- a/include/linux/of_pci.h
++++ b/include/linux/of_pci.h
+@@ -15,6 +15,7 @@ struct device_node *of_pci_find_child_device(struct device_node *parent,
+ int of_pci_get_devfn(struct device_node *np);
+ int of_irq_parse_and_map_pci(const struct pci_dev *dev, u8 slot, u8 pin);
+ int of_pci_parse_bus_range(struct device_node *node, struct resource *res);
++int of_pci_get_domain_nr(struct device_node *node, bool allocate_if_missing);
+ #else
+ static inline int of_irq_parse_pci(const struct pci_dev *pdev, struct of_phandle_args *out_irq)
  {
- 	u16 old_cmd, cmd;
-diff --git a/include/asm-generic/pgtable.h b/include/asm-generic/pgtable.h
-index 53b2acc..977e545 100644
---- a/include/asm-generic/pgtable.h
-+++ b/include/asm-generic/pgtable.h
-@@ -249,6 +249,10 @@ static inline int pmd_same(pmd_t pmd_a, pmd_t pmd_b)
- #define pgprot_writecombine pgprot_noncached
+@@ -43,6 +44,12 @@ of_pci_parse_bus_range(struct device_node *node, struct resource *res)
+ {
+ 	return -EINVAL;
+ }
++
++static inline int
++of_pci_get_domain_nr(struct device_node *node, bool allocate_if_missing)
++{
++	return -1;
++}
  #endif
  
-+#ifndef pgprot_device
-+#define pgprot_device pgprot_noncached
-+#endif
-+
- /*
-  * When walking page tables, get the address of the next boundary,
-  * or the end address of the range if that comes earlier.  Although no
-diff --git a/include/linux/pci.h b/include/linux/pci.h
-index a494e5d..fc8c529 100644
---- a/include/linux/pci.h
-+++ b/include/linux/pci.h
-@@ -1100,6 +1100,9 @@ int __must_check pci_bus_alloc_resource(struct pci_bus *bus,
- 						  resource_size_t),
- 			void *alignf_data);
- 
-+
-+int pci_remap_iospace(const struct resource *res, phys_addr_t phys_addr);
-+
- static inline dma_addr_t pci_bus_address(struct pci_dev *pdev, int bar)
- {
- 	struct pci_bus_region region;
+ #if defined(CONFIG_OF) && defined(CONFIG_PCI_MSI)
 -- 
 2.1.0
 
