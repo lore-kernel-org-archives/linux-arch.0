@@ -1,146 +1,230 @@
 From: Liviu Dudau <Liviu.Dudau@arm.com>
-Subject: [PATCH v11 07/10] OF: Introduce helper function for getting PCI
- domain_nr
-Date: Thu, 18 Sep 2014 02:30:22 +0100
-Message-ID: <1411003825-21521-8-git-send-email-Liviu.Dudau@arm.com>
-References: <1411003825-21521-1-git-send-email-Liviu.Dudau@arm.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-In-Reply-To: <1411003825-21521-1-git-send-email-Liviu.Dudau@arm.com>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+Subject: [PATCH v11] arm64: Add architectural support for PCIe
+Date: Thu, 18 Sep 2014 02:31:13 +0100
+Message-ID: <1411003873-21574-2-git-send-email-Liviu.Dudau@arm.com>
+References: <1411003873-21574-1-git-send-email-Liviu.Dudau@arm.com>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1411003873-21574-1-git-send-email-Liviu.Dudau@arm.com>
+Sender: linux-kernel-owner@vger.kernel.org
 To: Bjorn Helgaas <bhelgaas@google.com>, Arnd Bergmann <arnd@arndb.de>, Rob Herring <robh+dt@kernel.org>, Jason Gunthorpe <jgunthorpe@obsidianresearch.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <Will.Deacon@arm.com>, Russell King <linux@arm.linux.org.uk>, linux-pci <linux-pci@vger.kernel.org>, Linus Walleij <linus.walleij@linaro.org>
-Cc: linux-arch <linux-arch@vger.kernel.org>, Sinan Kaya <okaya@codeaurora.org>, Kukjin Kim <kgene.kim@samsung.com>, Device Tree ML <devicetree@vger.kernel.org>, Jingoo Han <jg1.han@samsung.com>, LKML <linux-kernel@vger.kernel.org>, Grant Likely <grant.likely@secretlab.ca>, Tanmay Inamdar <tinamdar@apm.com>, Suravee Suthikulanit <suravee.suthikulpanit@amd.com>, Grant Likely <grant.likely@linaro.org>, LAKML <linux-arm-kernel@lists.infradead.org>
+Cc: Tanmay Inamdar <tinamdar@apm.com>, Grant Likely <grant.likely@secretlab.ca>, Sinan Kaya <okaya@codeaurora.org>, Jingoo Han <jg1.han@samsung.com>, Kukjin Kim <kgene.kim@samsung.com>, Suravee Suthikulanit <suravee.suthikulpanit@amd.com>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Device Tree ML <devicetree@vger.kernel.org>, LAKML <linux-arm-kernel@lists.infradead.org>
 List-Id: linux-arch.vger.kernel.org
 
-Add of_pci_get_domain_nr() to retrieve the PCI domain number
-of a given device from DT. If the information is not present,
-the function can be requested to allocate a new domain number.
+Use the generic PCI domain and OF functions
+to provide support for PCI Express on arm64.
 
-Cc: Bjorn Helgaas <bhelgaas@google.com>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: Grant Likely <grant.likely@linaro.org>
-Cc: Rob Herring <robh+dt@kernel.org>
-Reviewed-by: Catalin Marinas <catalin.marinas@arm.com>
+Acked-by: Catalin Marinas <catalin.marinas@arm.com>
 Signed-off-by: Liviu Dudau <Liviu.Dudau@arm.com>
 ---
- drivers/of/of_pci.c    | 62 ++++++++++++++++++++++++++++++++++++++++++++++++++
- include/linux/of_pci.h |  7 ++++++
- 2 files changed, 69 insertions(+)
+ arch/arm64/Kconfig               | 22 ++++++++++++++-
+ arch/arm64/include/asm/Kbuild    |  1 +
+ arch/arm64/include/asm/io.h      |  3 +-
+ arch/arm64/include/asm/pci.h     | 37 +++++++++++++++++++++++++
+ arch/arm64/include/asm/pgtable.h |  2 ++
+ arch/arm64/kernel/Makefile       |  1 +
+ arch/arm64/kernel/pci.c          | 59 ++++++++++++++++++++++++++++++++++++++++
+ 7 files changed, 123 insertions(+), 2 deletions(-)
+ create mode 100644 arch/arm64/include/asm/pci.h
+ create mode 100644 arch/arm64/kernel/pci.c
 
-diff --git a/drivers/of/of_pci.c b/drivers/of/of_pci.c
-index 8481996..7eaeac2 100644
---- a/drivers/of/of_pci.c
-+++ b/drivers/of/of_pci.c
-@@ -3,6 +3,8 @@
- #include <linux/of.h>
- #include <linux/of_pci.h>
+diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
+index fd4e81a..6b01df9 100644
+--- a/arch/arm64/Kconfig
++++ b/arch/arm64/Kconfig
+@@ -81,7 +81,7 @@ config MMU
+ 	def_bool y
  
-+#include "of_private.h"
+ config NO_IOPORT_MAP
+-	def_bool y
++	def_bool y if !PCI
+ 
+ config STACKTRACE_SUPPORT
+ 	def_bool y
+@@ -156,6 +156,26 @@ menu "Bus support"
+ config ARM_AMBA
+ 	bool
+ 
++config PCI
++	bool "PCI support"
++	help
++	  This feature enables support for PCIe bus system. If you say Y
++	  here, the kernel will include drivers and infrastructure code
++	  to support PCIe bus devices.
 +
- static inline int __of_pci_pci_compare(struct device_node *node,
- 				       unsigned int data)
- {
-@@ -89,6 +91,66 @@ int of_pci_parse_bus_range(struct device_node *node, struct resource *res)
- }
- EXPORT_SYMBOL_GPL(of_pci_parse_bus_range);
++config PCI_DOMAINS
++	def_bool PCI
++
++config PCI_DOMAINS_GENERIC
++	def_bool PCI
++
++config PCI_SYSCALL
++	def_bool PCI
++
++source "drivers/pci/Kconfig"
++source "drivers/pci/pcie/Kconfig"
++source "drivers/pci/hotplug/Kconfig"
++
+ endmenu
  
-+static atomic_t of_domain_nr = ATOMIC_INIT(-1);
+ menu "Kernel Features"
+diff --git a/arch/arm64/include/asm/Kbuild b/arch/arm64/include/asm/Kbuild
+index 0b3fcf8..07cb417 100644
+--- a/arch/arm64/include/asm/Kbuild
++++ b/arch/arm64/include/asm/Kbuild
+@@ -29,6 +29,7 @@ generic-y += mman.h
+ generic-y += msgbuf.h
+ generic-y += mutex.h
+ generic-y += pci.h
++generic-y += pci-bridge.h
+ generic-y += poll.h
+ generic-y += preempt.h
+ generic-y += resource.h
+diff --git a/arch/arm64/include/asm/io.h b/arch/arm64/include/asm/io.h
+index e0ecdcf..f998d90 100644
+--- a/arch/arm64/include/asm/io.h
++++ b/arch/arm64/include/asm/io.h
+@@ -121,7 +121,8 @@ static inline u64 __raw_readq(const volatile void __iomem *addr)
+ /*
+  *  I/O port access primitives.
+  */
+-#define IO_SPACE_LIMIT		0xffff
++#define arch_has_dev_port()	(1)
++#define IO_SPACE_LIMIT		(SZ_32M - 1)
+ #define PCI_IOBASE		((void __iomem *)(MODULES_VADDR - SZ_32M))
+ 
+ static inline u8 inb(unsigned long addr)
+diff --git a/arch/arm64/include/asm/pci.h b/arch/arm64/include/asm/pci.h
+new file mode 100644
+index 0000000..872ba93
+--- /dev/null
++++ b/arch/arm64/include/asm/pci.h
+@@ -0,0 +1,37 @@
++#ifndef __ASM_PCI_H
++#define __ASM_PCI_H
++#ifdef __KERNEL__
++
++#include <linux/types.h>
++#include <linux/slab.h>
++#include <linux/dma-mapping.h>
++
++#include <asm/io.h>
++#include <asm-generic/pci-bridge.h>
++#include <asm-generic/pci-dma-compat.h>
++
++#define PCIBIOS_MIN_IO		0x1000
++#define PCIBIOS_MIN_MEM		0
 +
 +/*
-+ * Get the maximum value for a domain number from the device tree
++ * Set to 1 if the kernel should re-assign all PCI bus numbers
 + */
-+static int of_get_max_pci_domain_nr(void)
-+{
-+	struct alias_prop *app;
-+	int max_domain = -1;
++#define pcibios_assign_all_busses() \
++	(pci_has_flag(PCI_REASSIGN_ALL_BUS))
 +
-+	mutex_lock(&of_mutex);
-+	list_for_each_entry(app, &aliases_lookup, link) {
-+		if (strncmp(app->stem, "pci-domain", 10) != 0)
-+			continue;
-+
-+		max_domain = max(max_domain, app->id);
-+	}
-+	mutex_unlock(&of_mutex);
-+
-+	return max_domain;
-+}
-+
-+/**
-+ * This function will try to obtain the host bridge domain number by
-+ * using of_alias_get_id() call with "pci-domain" as a stem. If that
-+ * fails, a local allocator will be used. The local allocator can
-+ * be requested to return a new domain_nr if the information is missing
-+ * from the device tree.
-+ *
-+ * @node: device tree node with the domain information
-+ * @allocate_if_missing: if DT lacks information about the domain nr,
-+ * allocate a new number.
-+ *
-+ * Returns the associated domain number from DT, or a new domain number
-+ * if DT information is missing and @allocate_if_missing is true. If
-+ * @allocate_if_missing is false then the last allocated domain number
-+ * will be returned.
++/*
++ * PCI address space differs from physical memory address space
 + */
-+int of_pci_get_domain_nr(struct device_node *node, bool allocate_if_missing)
++#define PCI_DMA_BUS_IS_PHYS	(0)
++
++extern int isa_dma_bridge_buggy;
++
++#ifdef CONFIG_PCI
++static inline int pci_proc_domain(struct pci_bus *bus)
 +{
-+	int domain;
-+
-+	domain = atomic_read(&of_domain_nr);
-+	if (domain == -1) {
-+		/* first run, get max defined domain nr in device tree */
-+		domain = of_get_max_pci_domain_nr();
-+		/* then set the start value for allocator to be max + 1 */
-+		atomic_set(&of_domain_nr, domain + 1);
-+	}
-+	domain = of_alias_get_id(node, "pci-domain");
-+	if (domain == -ENODEV) {
-+		domain = atomic_read(&of_domain_nr);
-+		if (allocate_if_missing)
-+			atomic_inc(&of_domain_nr);
-+	}
-+
-+	return domain;
++	return 1;
 +}
-+EXPORT_SYMBOL_GPL(of_pci_get_domain_nr);
++#endif  /* CONFIG_PCI */
 +
- #ifdef CONFIG_PCI_MSI
++#endif  /* __KERNEL__ */
++#endif  /* __ASM_PCI_H */
+diff --git a/arch/arm64/include/asm/pgtable.h b/arch/arm64/include/asm/pgtable.h
+index ffe1ba0..a968523 100644
+--- a/arch/arm64/include/asm/pgtable.h
++++ b/arch/arm64/include/asm/pgtable.h
+@@ -296,6 +296,8 @@ static inline int has_transparent_hugepage(void)
+ 	__pgprot_modify(prot, PTE_ATTRINDX_MASK, PTE_ATTRINDX(MT_DEVICE_nGnRnE) | PTE_PXN | PTE_UXN)
+ #define pgprot_writecombine(prot) \
+ 	__pgprot_modify(prot, PTE_ATTRINDX_MASK, PTE_ATTRINDX(MT_NORMAL_NC) | PTE_PXN | PTE_UXN)
++#define pgprot_device(prot) \
++	__pgprot_modify(prot, PTE_ATTRINDX_MASK, PTE_ATTRINDX(MT_DEVICE_nGnRE) | PTE_PXN | PTE_UXN)
+ #define __HAVE_PHYS_MEM_ACCESS_PROT
+ struct file;
+ extern pgprot_t phys_mem_access_prot(struct file *file, unsigned long pfn,
+diff --git a/arch/arm64/kernel/Makefile b/arch/arm64/kernel/Makefile
+index df7ef87..1ed5a06 100644
+--- a/arch/arm64/kernel/Makefile
++++ b/arch/arm64/kernel/Makefile
+@@ -29,6 +29,7 @@ arm64-obj-$(CONFIG_ARM64_CPU_SUSPEND)	+= sleep.o suspend.o
+ arm64-obj-$(CONFIG_JUMP_LABEL)		+= jump_label.o
+ arm64-obj-$(CONFIG_KGDB)		+= kgdb.o
+ arm64-obj-$(CONFIG_EFI)			+= efi.o efi-stub.o efi-entry.o
++arm64-obj-$(CONFIG_PCI)			+= pci.o
  
- static LIST_HEAD(of_pci_msi_chip_list);
-diff --git a/include/linux/of_pci.h b/include/linux/of_pci.h
-index dde3a4a..3a3824c 100644
---- a/include/linux/of_pci.h
-+++ b/include/linux/of_pci.h
-@@ -15,6 +15,7 @@ struct device_node *of_pci_find_child_device(struct device_node *parent,
- int of_pci_get_devfn(struct device_node *np);
- int of_irq_parse_and_map_pci(const struct pci_dev *dev, u8 slot, u8 pin);
- int of_pci_parse_bus_range(struct device_node *node, struct resource *res);
-+int of_pci_get_domain_nr(struct device_node *node, bool allocate_if_missing);
- #else
- static inline int of_irq_parse_pci(const struct pci_dev *pdev, struct of_phandle_args *out_irq)
- {
-@@ -43,6 +44,12 @@ of_pci_parse_bus_range(struct device_node *node, struct resource *res)
- {
- 	return -EINVAL;
- }
+ obj-y					+= $(arm64-obj-y) vdso/
+ obj-m					+= $(arm64-obj-m)
+diff --git a/arch/arm64/kernel/pci.c b/arch/arm64/kernel/pci.c
+new file mode 100644
+index 0000000..0d755d6
+--- /dev/null
++++ b/arch/arm64/kernel/pci.c
+@@ -0,0 +1,59 @@
++/*
++ * Code borrowed from powerpc/kernel/pci-common.c
++ *
++ * Copyright (C) 2003 Anton Blanchard <anton@au.ibm.com>, IBM
++ * Copyright (C) 2014 ARM Ltd.
++ *
++ * This program is free software; you can redistribute it and/or
++ * modify it under the terms of the GNU General Public License
++ * version 2 as published by the Free Software Foundation.
++ *
++ */
 +
-+static inline int
-+of_pci_get_domain_nr(struct device_node *node, bool allocate_if_missing)
++#include <linux/init.h>
++#include <linux/io.h>
++#include <linux/kernel.h>
++#include <linux/mm.h>
++#include <linux/of_pci.h>
++#include <linux/of_platform.h>
++#include <linux/slab.h>
++
++#include <asm/pci-bridge.h>
++
++/*
++ * Called after each bus is probed, but before its children are examined
++ */
++void pcibios_fixup_bus(struct pci_bus *bus)
 +{
-+	return -1;
++	/* nothing to do, expected to be removed in the future */
 +}
- #endif
- 
- #if defined(CONFIG_OF) && defined(CONFIG_PCI_MSI)
++
++/*
++ * We don't have to worry about legacy ISA devices, so nothing to do here
++ */
++resource_size_t pcibios_align_resource(void *data, const struct resource *res,
++				resource_size_t size, resource_size_t align)
++{
++	return res->start;
++}
++
++/*
++ * Try to assign the IRQ number from DT when adding a new device
++ */
++int pcibios_add_device(struct pci_dev *dev)
++{
++	dev->irq = of_irq_parse_and_map_pci(dev, 0, 0);
++
++	return 0;
++}
++
++
++#ifdef CONFIG_PCI_DOMAINS_GENERIC
++void pci_bus_assign_domain_nr(struct pci_bus *bus, struct device *parent)
++{
++	int domain = of_pci_get_domain_nr(parent->of_node, true);
++
++	if (domain >= 0)
++		bus->domain_nr = domain;
++}
++#endif
 -- 
 2.1.0
