@@ -1,96 +1,129 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wi0-f182.google.com ([209.85.212.182]:61346 "EHLO
-	mail-wi0-f182.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757607AbaISS2S (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 19 Sep 2014 14:28:18 -0400
-Received: by mail-wi0-f182.google.com with SMTP id d1so34043wiv.15
-        for <linux-arch@vger.kernel.org>; Fri, 19 Sep 2014 11:28:17 -0700 (PDT)
-Date: Fri, 19 Sep 2014 19:28:09 +0100
-From: Steve Capper <steve.capper@linaro.org>
-Subject: Re: [PATCH V3 0/6] RCU get_user_pages_fast and __get_user_pages_fast
-Message-ID: <20140919182808.GA22622@linaro.org>
-References: <1409237107-24228-1-git-send-email-steve.capper@linaro.org>
- <20140828152320.GN22580@arm.com>
- <CAPvkgC0YVhPEBqbWSDnGyZBUn3+8Kv7-yx1-_n0Jx+giKzOqmw@mail.gmail.com>
- <20140908090626.GA14634@linaro.org>
+Received: from mail-pa0-f54.google.com ([209.85.220.54]:64979 "EHLO
+	mail-pa0-f54.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1757732AbaISUsX (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 19 Sep 2014 16:48:23 -0400
+Received: by mail-pa0-f54.google.com with SMTP id fb1so812004pad.41
+        for <linux-arch@vger.kernel.org>; Fri, 19 Sep 2014 13:48:23 -0700 (PDT)
+Date: Fri, 19 Sep 2014 14:48:17 -0600
+From: Bjorn Helgaas <bhelgaas@google.com>
+Subject: Re: [PATCH v11 02/10] PCI: Introduce helper functions to deal with
+ PCI I/O ranges.
+Message-ID: <20140919204817.GF19374@google.com>
+References: <1411003825-21521-1-git-send-email-Liviu.Dudau@arm.com>
+ <1411003825-21521-3-git-send-email-Liviu.Dudau@arm.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20140908090626.GA14634@linaro.org>
+In-Reply-To: <1411003825-21521-3-git-send-email-Liviu.Dudau@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "linux-mm@kvack.org" <linux-mm@kvack.org>, Will Deacon <will.deacon@arm.com>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>
-Cc: "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Catalin Marinas <Catalin.Marinas@arm.com>, "linux@arm.linux.org.uk" <linux@arm.linux.org.uk>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "gary.robertson@linaro.org" <gary.robertson@linaro.org>, "christoffer.dall@linaro.org" <christoffer.dall@linaro.org>, "peterz@infradead.org" <peterz@infradead.org>, "anders.roxell@linaro.org" <anders.roxell@linaro.org>, "dann.frazier@canonical.com" <dann.frazier@canonical.com>, Mark Rutland <Mark.Rutland@arm.com>, "mgorman@suse.de" <mgorman@suse.de>, hughd@google.com
-Message-ID: <20140919182809.fRj84ZJD3KMxygg-45o0tKNhBpgkxhAawQS64pX4YLo@z>
+To: Liviu Dudau <Liviu.Dudau@arm.com>
+Cc: Arnd Bergmann <arnd@arndb.de>, Rob Herring <robh+dt@kernel.org>, Jason Gunthorpe <jgunthorpe@obsidianresearch.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <Will.Deacon@arm.com>, Russell King <linux@arm.linux.org.uk>, linux-pci <linux-pci@vger.kernel.org>, Linus Walleij <linus.walleij@linaro.org>, Tanmay Inamdar <tinamdar@apm.com>, Grant Likely <grant.likely@secretlab.ca>, Sinan Kaya <okaya@codeaurora.org>, Jingoo Han <jg1.han@samsung.com>, Kukjin Kim <kgene.kim@samsung.com>, Suravee Suthikulanit <suravee.suthikulpanit@amd.com>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Device Tree ML <devicetree@vger.kernel.org>, LAKML <linux-arm-kernel@lists.infradead.org>, Grant Likely <grant.likely@linaro.org>
+Message-ID: <20140919204817.KUtbxNVHbC0F0bDJZOn0buHseXo3U28nVX6oP9d48hs@z>
 
-On Mon, Sep 08, 2014 at 10:06:27AM +0100, Steve Capper wrote:
-> On Mon, Sep 01, 2014 at 12:43:06PM +0100, Steve Capper wrote:
-> > On 28 August 2014 16:23, Will Deacon <will.deacon@arm.com> wrote:
-> > > On Thu, Aug 28, 2014 at 03:45:01PM +0100, Steve Capper wrote:
-> > >> I would like to get this series into 3.18 as it fixes quite a big problem
-> > >> with THP on arm and arm64. This series is split into a core mm part, an
-> > >> arm part and an arm64 part.
-> > >>
-> > >> Could somebody please take patch #1 (if it looks okay)?
-> > >> Russell, would you be happy with patches #2, #3, #4? (if we get #1 merged)
-> > >> Catalin, would you be happy taking patches #5, #6? (if we get #1 merged)
-> > >
-> > > Pretty sure we're happy to take the arm64 bits once you've got the core
-> > > changes sorted out. Failing that, Catalin's acked them so they could go via
-> > > an mm tree if it's easier.
-> > >
-> > 
-> > Hello,
-> > 
-> > Are any mm maintainers willing to take the first patch from this
-> > series into their tree for merging into 3.18?
-> >   mm: Introduce a general RCU get_user_pages_fast.
-> > 
-> > (or please let me know if there are any issues with the patch that
-> > need addressing).
-> > 
-> > As Will has stated, Catalin's already acked the arm64 patches, and
-> > these can also go in via an mm tree if that makes things easier:
-> >   arm64: mm: Enable HAVE_RCU_TABLE_FREE logic
-> >   arm64: mm: Enable RCU fast_gup
-> > 
-> > Thanks,
-> > --
-> > Steve
+On Thu, Sep 18, 2014 at 02:30:17AM +0100, Liviu Dudau wrote:
+> Some architectures do not have a simple view of the PCI I/O space
+> and instead use a range of CPU addresses that map to bus addresses.
+> For some architectures these ranges will be expressed by OF bindings
+> in a device tree file.
 > 
-> Hi,
-> Just a ping on this.
+> This patch introduces a pci_register_io_range() helper function with
+> a generic implementation that can be used by such architectures to
+> keep track of the I/O ranges described by the PCI bindings. If the
+> PCI_IOBASE macro is not defined that signals lack of support for PCI
+> and we return an error.
 > 
-> I was wondering if the first patch in this series:
+> In order to retrieve the CPU address associated with an I/O port, a
+> new helper function pci_pio_to_address() is introduced. This will
+> search in the list of ranges registered with pci_register_io_range()
+> and return the CPU address that corresponds to the given port.
 > 
-> [PATCH V3 1/6] mm: Introduce a general RCU get_user_pages_fast.
-> http://marc.info/?l=linux-mm&m=140923713202355&w=2
+> Cc: Grant Likely <grant.likely@linaro.org>
+> Cc: Arnd Bergmann <arnd@arndb.de>
+> Reviewed-by: Catalin Marinas <catalin.marinas@arm.com>
+> Acked-by: Rob Herring <robh@kernel.org>
+> Signed-off-by: Liviu Dudau <Liviu.Dudau@arm.com>
+> ---
+>  drivers/of/address.c       | 100 +++++++++++++++++++++++++++++++++++++++++++++
+>  include/linux/of_address.h |   2 +
+>  2 files changed, 102 insertions(+)
 > 
-> could be merged into 3.18 via an mm tree, or if there are any issues
-> with the patch that I should fix?
-> 
-> Acks or flames from the mm maintainers would be greatly appreciated!
-> 
-> Cheers,
-> -- 
-> Steve
+> diff --git a/drivers/of/address.c b/drivers/of/address.c
+> index e371825..2373a92 100644
+> --- a/drivers/of/address.c
+> +++ b/drivers/of/address.c
+> @@ -5,6 +5,7 @@
+>  #include <linux/module.h>
+>  #include <linux/of_address.h>
+>  #include <linux/pci_regs.h>
+> +#include <linux/slab.h>
+>  #include <linux/string.h>
+>  
+>  /* Max address size we deal with */
+> @@ -601,12 +602,111 @@ const __be32 *of_get_address(struct device_node *dev, int index, u64 *size,
+>  }
+>  EXPORT_SYMBOL(of_get_address);
+>  
+> +#ifdef PCI_IOBASE
+> +struct io_range {
+> +	struct list_head list;
+> +	phys_addr_t start;
+> +	resource_size_t size;
+> +};
+> +
+> +static LIST_HEAD(io_range_list);
+> +static DEFINE_SPINLOCK(io_range_lock);
+> +#endif
+> +
+> +/*
+> + * Record the PCI IO range (expressed as CPU physical address + size).
+> + * Return a negative value if an error has occured, zero otherwise
+> + */
+> +int __weak pci_register_io_range(phys_addr_t addr, resource_size_t size)
+> +{
+> +#ifdef PCI_IOBASE
+> +	struct io_range *range;
+> +	resource_size_t allocated_size = 0;
+> +
+> +	/* check if the range hasn't been previously recorded */
+> +	spin_lock(&io_range_lock);
+> +	list_for_each_entry(range, &io_range_list, list) {
+> +		if (addr >= range->start && addr + size <= range->start + size)
+> +			return 0;
 
+This returns while holding io_range_lock.
 
-Hello,
-Apologies for being a pest, but we're really keen to get this into 3.18,
-as it fixes a THP problem with arm/arm64.
+> +		allocated_size += range->size;
+> +	}
+> +	spin_unlock(&io_range_lock);
 
-I need mm folk to either ack or flame the first patch in the series in
-order to proceed. (All the patches in the series have been
-acked/reviewed, but not by any mm folk.):
- [PATCH V3 1/6] mm: Introduce a general RCU get_user_pages_fast.
+I think this is racy; because you drop the lock between (1) checking
+whether the range is already recorded and (2) adding the range to the list,
+it's still possible for two callers to add the same range.
 
-If it puts people's minds at rest regarding the testing...
-On top of the ltp tests, and futex tests, we also ran these patches on
-the arm64 Debian buildd's. With THP set to always, just under 8000
-Debian packages have been built (and unit tested) without any kernel
-issues for arm64.
-
-Cheers,
--- 
-Steve
+> +	/* range not registed yet, check for available space */
+> +	if (allocated_size + size - 1 > IO_SPACE_LIMIT) {
+> +		/* if it's too big check if 64K space can be reserved */
+> +		if (allocated_size + SZ_64K - 1 > IO_SPACE_LIMIT)
+> +			return -E2BIG;
+> +
+> +		size = SZ_64K;
+> +		pr_warn("Requested IO range too big, new size set to 64K\n");
+> +	}
+> +
+> +	/* add the range to the list */
+> +	range = kzalloc(sizeof(*range), GFP_KERNEL);
+> +	if (!range)
+> +		return -ENOMEM;
+> +
+> +	range->start = addr;
+> +	range->size = size;
+> +
+> +	spin_lock(&io_range_lock);
+> +	list_add_tail(&range->list, &io_range_list);
+> +	spin_unlock(&io_range_lock);
+> +#endif
+> +
+> +	return 0;
+> +}
