@@ -1,59 +1,63 @@
-From: Bjorn Helgaas <bhelgaas@google.com>
-Subject: Re: [PATCH v11 00/10] Support for creating generic PCI host bridges
- from DT
-Date: Fri, 19 Sep 2014 15:59:05 -0600
-Message-ID: <20140919215905.GB30239@google.com>
-References: <1411003825-21521-1-git-send-email-Liviu.Dudau@arm.com>
+From: Rob Herring <robherring2@gmail.com>
+Subject: Re: [PATCH v11 08/10] OF: PCI: Add support for parsing PCI host bridge
+ resources from DT
+Date: Fri, 19 Sep 2014 19:28:38 -0500
+Message-ID: <541CCA36.8010606@gmail.com>
+References: <1411003825-21521-1-git-send-email-Liviu.Dudau@arm.com> <1411003825-21521-9-git-send-email-Liviu.Dudau@arm.com> <20140919210610.GI19374@google.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-pci-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <1411003825-21521-1-git-send-email-Liviu.Dudau@arm.com>
-Sender: linux-pci-owner@vger.kernel.org
-To: Liviu Dudau <Liviu.Dudau@arm.com>
-Cc: Arnd Bergmann <arnd@arndb.de>, Rob Herring <robh+dt@kernel.org>, Jason Gunthorpe <jgunthorpe@obsidianresearch.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <Will.Deacon@arm.com>, Russell King <linux@arm.linux.org.uk>, linux-pci <linux-pci@vger.kernel.org>, Linus Walleij <linus.walleij@linaro.org>, Tanmay Inamdar <tinamdar@apm.com>, Grant Likely <grant.likely@secretlab.ca>, Sinan Kaya <okaya@codeaurora.org>, Jingoo Han <jg1.han@samsung.com>, Kukjin Kim <kgene.kim@samsung.com>, Suravee Suthikulanit <suravee.suthikulpanit@amd.com>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Device Tree ML <devicetree@vger.kernel.org>, LAKML <linux-arm-kernel@lists.infradead.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=windows-1252
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-pd0-f172.google.com ([209.85.192.172]:53810 "EHLO
+	mail-pd0-f172.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753883AbaITA2r (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 19 Sep 2014 20:28:47 -0400
+In-Reply-To: <20140919210610.GI19374@google.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Bjorn Helgaas <bhelgaas@google.com>, Liviu Dudau <Liviu.Dudau@arm.com>
+Cc: Arnd Bergmann <arnd@arndb.de>, Rob Herring <robh+dt@kernel.org>, Jason Gunthorpe <jgunthorpe@obsidianresearch.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <Will.Deacon@arm.com>, Russell King <linux@arm.linux.org.uk>, linux-pci <linux-pci@vger.kernel.org>, Linus Walleij <linus.walleij@linaro.org>, Tanmay Inamdar <tinamdar@apm.com>, Grant Likely <grant.likely@secretlab.ca>, Sinan Kaya <okaya@codeaurora.org>, Jingoo Han <jg1.han@samsung.com>, Kukjin Kim <kgene.kim@samsung.com>, Suravee Suthikulanit <suravee.suthikulpanit@amd.com>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Device Tree ML <devicetree@vger.kernel.org>, LAKML <linux-arm-kernel@lists.infradead.org>, Grant Likely <grant.likely@linaro.org>
 
-On Thu, Sep 18, 2014 at 02:30:15AM +0100, Liviu Dudau wrote:
-> This is my version 11 of the attempt at adding support for generic PCI host
-> bridge controllers that make use of device tree information to
-> configure themselves. It contains minor cleanups compared with v10 to address
-> the existing comments.
-> ...
-> Catalin Marinas (1):
->   PCI: Introduce generic domain handling for PCI busses.
-> 
-> Liviu Dudau (9):
->   Fix ioport_map() for !CONFIG_GENERIC_IOMAP cases.
->   PCI: Introduce helper functions to deal with PCI I/O ranges.
->   ARM: Define PCI_IOBASE as the base of virtual PCI IO space.
->   PCI: OF: Fix the conversion of IO ranges into IO resources.
->   PCI: Create pci_host_bridge before its associated bus in
->     pci_create_root_bus.
->   OF: Introduce helper function for getting PCI domain_nr
->   OF: PCI: Add support for parsing PCI host bridge resources from DT
->   PCI: Assign unassigned bus resources in pci_scan_root_bus()
->   PCI: Introduce pci_remap_iospace() for remapping PCI I/O bus resources
->     into CPU space
-> 
->  arch/arm/include/asm/io.h         |   1 +
->  arch/arm/mach-integrator/pci_v3.c |  23 +++---
->  drivers/of/address.c              | 146 ++++++++++++++++++++++++++++++++
->  drivers/of/of_pci.c               | 170 ++++++++++++++++++++++++++++++++++++++
->  drivers/pci/host/pci-tegra.c      |  10 ++-
->  drivers/pci/host/pcie-rcar.c      |  21 +++--
->  drivers/pci/pci.c                 |  33 ++++++++
->  drivers/pci/probe.c               |  46 +++++++----
->  include/asm-generic/io.h          |   2 +-
->  include/asm-generic/pgtable.h     |   4 +
->  include/linux/of_address.h        |  15 +---
->  include/linux/of_pci.h            |  18 ++++
->  include/linux/pci.h               |  24 ++++++
->  13 files changed, 463 insertions(+), 50 deletions(-)
+On 09/19/2014 04:06 PM, Bjorn Helgaas wrote:
+> On Thu, Sep 18, 2014 at 02:30:23AM +0100, Liviu Dudau wrote:
+>> Provide a function to parse the PCI DT ranges that can be used to
+>> create a pci_host_bridge structure together with its associated
+>> bus.
+>>
+>> Cc: Bjorn Helgaas <bhelgaas@google.com>
+>> Cc: Arnd Bergmann <arnd@arndb.de>
+>> Cc: Grant Likely <grant.likely@linaro.org>
+>> Cc: Rob Herring <robh+dt@kernel.org>
+>> Cc: Catalin Marinas <catalin.marinas@arm.com>
+>> Signed-off-by: Liviu Dudau <Liviu.Dudau@arm.com>
+>> ---
 
-I put this on a pci/liviu-generic-v11 branch.  I mentioned a couple things
-in response to the individual patches, so I'm hoping you can send me
-incremental patches to address them.  Then I'll update this branch, rename
-it, and get it into linux-next.
+[...]
 
-Bjorn
+>> +int of_pci_get_host_bridge_resources(struct device_node *dev,
+>> +			unsigned char busno, unsigned char bus_max,
+>> +			struct list_head *resources, resource_size_t *io_base)
+>> +{
+>> +	struct resource *res;
+>> +	struct resource *bus_range;
+>> +	struct of_pci_range range;
+>> +	struct of_pci_range_parser parser;
+>> +	char range_type[4];
+>> +	int err;
+>> +
+>> +	if (!io_base)
+>> +		return -EINVAL;
+>> +	*io_base = OF_BAD_ADDR;
+>> +
+>> +	bus_range = kzalloc(sizeof(*bus_range), GFP_KERNEL);
+
+This function does a lot of kalloc's but there is not an easy way to
+undo those allocations. Hot unplug of a host bridge or probe error
+handling would leak memory.
+
+You could pass in struct device and use the devm_ variant (also
+addressing Bjorn's comment), but not having an uninit/remove function
+make what clean-up drivers have to do error prone. For example, on
+uninit a driver needs to call pci_free_resource_list.
+
+Rob
