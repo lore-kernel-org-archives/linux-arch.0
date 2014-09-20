@@ -1,63 +1,78 @@
 From: Rob Herring <robherring2@gmail.com>
-Subject: Re: [PATCH v11 08/10] OF: PCI: Add support for parsing PCI host bridge
- resources from DT
-Date: Fri, 19 Sep 2014 19:28:38 -0500
-Message-ID: <541CCA36.8010606@gmail.com>
-References: <1411003825-21521-1-git-send-email-Liviu.Dudau@arm.com> <1411003825-21521-9-git-send-email-Liviu.Dudau@arm.com> <20140919210610.GI19374@google.com>
+Subject: Re: [PATCH v11 10/10] PCI: Introduce pci_remap_iospace() for remapping
+ PCI I/O bus resources into CPU space
+Date: Fri, 19 Sep 2014 19:34:48 -0500
+Message-ID: <541CCBA8.8030406@gmail.com>
+References: <1411003825-21521-1-git-send-email-Liviu.Dudau@arm.com> <1411003825-21521-11-git-send-email-Liviu.Dudau@arm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=windows-1252
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pd0-f172.google.com ([209.85.192.172]:53810 "EHLO
-	mail-pd0-f172.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753883AbaITA2r (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 19 Sep 2014 20:28:47 -0400
-In-Reply-To: <20140919210610.GI19374@google.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Bjorn Helgaas <bhelgaas@google.com>, Liviu Dudau <Liviu.Dudau@arm.com>
-Cc: Arnd Bergmann <arnd@arndb.de>, Rob Herring <robh+dt@kernel.org>, Jason Gunthorpe <jgunthorpe@obsidianresearch.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <Will.Deacon@arm.com>, Russell King <linux@arm.linux.org.uk>, linux-pci <linux-pci@vger.kernel.org>, Linus Walleij <linus.walleij@linaro.org>, Tanmay Inamdar <tinamdar@apm.com>, Grant Likely <grant.likely@secretlab.ca>, Sinan Kaya <okaya@codeaurora.org>, Jingoo Han <jg1.han@samsung.com>, Kukjin Kim <kgene.kim@samsung.com>, Suravee Suthikulanit <suravee.suthikulpanit@amd.com>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Device Tree ML <devicetree@vger.kernel.org>, LAKML <linux-arm-kernel@lists.infradead.org>, Grant Likely <grant.likely@linaro.org>
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-pci-owner@vger.kernel.org>
+In-Reply-To: <1411003825-21521-11-git-send-email-Liviu.Dudau@arm.com>
+Sender: linux-pci-owner@vger.kernel.org
+To: Liviu Dudau <Liviu.Dudau@arm.com>, Bjorn Helgaas <bhelgaas@google.com>, Arnd Bergmann <arnd@arndb.de>, Rob Herring <robh+dt@kernel.org>, Jason Gunthorpe <jgunthorpe@obsidianresearch.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <Will.Deacon@arm.com>, Russell King <linux@arm.linux.org.uk>, linux-pci <linux-pci@vger.kernel.org>, Linus Walleij <linus.walleij@linaro.org>
+Cc: Tanmay Inamdar <tinamdar@apm.com>, Grant Likely <grant.likely@secretlab.ca>, Sinan Kaya <okaya@codeaurora.org>, Jingoo Han <jg1.han@samsung.com>, Kukjin Kim <kgene.kim@samsung.com>, Suravee Suthikulanit <suravee.suthikulpanit@amd.com>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Device Tree ML <devicetree@vger.kernel.org>, LAKML <linux-arm-kernel@lists.infradead.org>
+List-Id: linux-arch.vger.kernel.org
 
-On 09/19/2014 04:06 PM, Bjorn Helgaas wrote:
-> On Thu, Sep 18, 2014 at 02:30:23AM +0100, Liviu Dudau wrote:
->> Provide a function to parse the PCI DT ranges that can be used to
->> create a pci_host_bridge structure together with its associated
->> bus.
->>
->> Cc: Bjorn Helgaas <bhelgaas@google.com>
->> Cc: Arnd Bergmann <arnd@arndb.de>
->> Cc: Grant Likely <grant.likely@linaro.org>
->> Cc: Rob Herring <robh+dt@kernel.org>
->> Cc: Catalin Marinas <catalin.marinas@arm.com>
->> Signed-off-by: Liviu Dudau <Liviu.Dudau@arm.com>
->> ---
+On 09/17/2014 08:30 PM, Liviu Dudau wrote:
+> Introduce a default implementation for remapping PCI bus I/O resources
+> onto the CPU address space. Architectures with special needs may
+> provide their own version, but most should be able to use this one.
+> 
+> Cc: Bjorn Helgaas <bhelgaas@google.com>
+> Cc: Arnd Bergmann <arnd@arndb.de>
+> Cc: Rob Herring <robh+dt@kernel.org>
+> Reviewed-by: Catalin Marinas <catalin.marinas@arm.com>
+> Signed-off-by: Liviu Dudau <Liviu.Dudau@arm.com>
 
-[...]
+One nit below, otherwise:
 
->> +int of_pci_get_host_bridge_resources(struct device_node *dev,
->> +			unsigned char busno, unsigned char bus_max,
->> +			struct list_head *resources, resource_size_t *io_base)
->> +{
->> +	struct resource *res;
->> +	struct resource *bus_range;
->> +	struct of_pci_range range;
->> +	struct of_pci_range_parser parser;
->> +	char range_type[4];
->> +	int err;
->> +
->> +	if (!io_base)
->> +		return -EINVAL;
->> +	*io_base = OF_BAD_ADDR;
->> +
->> +	bus_range = kzalloc(sizeof(*bus_range), GFP_KERNEL);
+Reviewed-by: Rob Herring <robh@kernel.org>
 
-This function does a lot of kalloc's but there is not an easy way to
-undo those allocations. Hot unplug of a host bridge or probe error
-handling would leak memory.
+> ---
+>  drivers/pci/pci.c             | 33 +++++++++++++++++++++++++++++++++
+>  include/asm-generic/pgtable.h |  4 ++++
+>  include/linux/pci.h           |  3 +++
+>  3 files changed, 40 insertions(+)
+> 
+> diff --git a/drivers/pci/pci.c b/drivers/pci/pci.c
+> index 2c9ac70..654b44c 100644
+> --- a/drivers/pci/pci.c
+> +++ b/drivers/pci/pci.c
+> @@ -2704,6 +2704,39 @@ int pci_request_regions_exclusive(struct pci_dev *pdev, const char *res_name)
+>  }
+>  EXPORT_SYMBOL(pci_request_regions_exclusive);
+>  
+> +/**
+> + *	pci_remap_iospace - Remap the memory mapped I/O space
+> + *	@res: Resource describing the I/O space
+> + *	@phys_addr: physical address where the range will be mapped.
+> + *
+> + *	Remap the memory mapped I/O space described by the @res
+> + *	into the CPU physical address space. Only architectures
+> + *	that have memory mapped IO defined (and hence PCI_IOBASE)
+> + *	should call this function.
+> + */
+> +int __weak pci_remap_iospace(const struct resource *res, phys_addr_t phys_addr)
+> +{
+> +	int err = -ENODEV;
+> +
+> +#ifdef PCI_IOBASE
+> +	if (!(res->flags & IORESOURCE_IO))
+> +		return -EINVAL;
+> +
+> +	if (res->end > IO_SPACE_LIMIT)
+> +		return -EINVAL;
+> +
+> +	err = ioremap_page_range(res->start + (unsigned long)PCI_IOBASE,
+> +				res->end + 1 + (unsigned long)PCI_IOBASE,
+> +				phys_addr, pgprot_device(PAGE_KERNEL));
+> +#else
+> +	/* this architecture does not have memory mapped I/O space,
+> +	   so this function should never be called */
+> +	WARN_ON(1);
 
-You could pass in struct device and use the devm_ variant (also
-addressing Bjorn's comment), but not having an uninit/remove function
-make what clean-up drivers have to do error prone. For example, on
-uninit a driver needs to call pci_free_resource_list.
+Printing what the comment says in the warning would be better than
+making the user look-up why they got a warning.
 
 Rob
