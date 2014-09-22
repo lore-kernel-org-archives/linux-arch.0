@@ -1,76 +1,82 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from service87.mimecast.com ([91.220.42.44]:44790 "EHLO
-	service87.mimecast.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753967AbaIVPdR convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 22 Sep 2014 11:33:17 -0400
-Date: Mon, 22 Sep 2014 16:33:12 +0100
-From: Liviu Dudau <Liviu.Dudau@arm.com>
-Subject: Re: [PATCH v11 07/10] OF: Introduce helper function for getting PCI
- domain_nr
-Message-ID: <20140922153311.GB1994@e106497-lin.cambridge.arm.com>
-References: <1411003825-21521-1-git-send-email-Liviu.Dudau@arm.com>
- <1411003825-21521-8-git-send-email-Liviu.Dudau@arm.com>
- <20140919210313.GH19374@google.com>
- <20140922110522.GK1994@e106497-lin.cambridge.arm.com>
- <CAErSpo7bnOFo4-uZmVsMqNpVQS+dQaMNedjmJ=sH_d9Kp2fGPg@mail.gmail.com>
+Received: from mail-lb0-f169.google.com ([209.85.217.169]:38326 "EHLO
+	mail-lb0-f169.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754051AbaIVRTF (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 22 Sep 2014 13:19:05 -0400
 MIME-Version: 1.0
-In-Reply-To: <CAErSpo7bnOFo4-uZmVsMqNpVQS+dQaMNedjmJ=sH_d9Kp2fGPg@mail.gmail.com>
+In-Reply-To: <20140922153207.GA1994@e106497-lin.cambridge.arm.com>
+References: <1411003825-21521-1-git-send-email-Liviu.Dudau@arm.com>
+ <1411003825-21521-5-git-send-email-Liviu.Dudau@arm.com> <541DBA57.2000903@gmail.com>
+ <20140922153207.GA1994@e106497-lin.cambridge.arm.com>
+From: Rob Herring <robherring2@gmail.com>
+Date: Mon, 22 Sep 2014 12:18:42 -0500
+Message-ID: <CAL_JsqL9heHCEyXV5e4pOS3iWN51Q7KAQ-FxW_rzcWudqjwcdQ@mail.gmail.com>
+Subject: Re: [PATCH v11 04/10] PCI: OF: Fix the conversion of IO ranges into
+ IO resources.
 Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8BIT
-Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Bjorn Helgaas <bhelgaas@google.com>
-Cc: Arnd Bergmann <arnd@arndb.de>, Rob Herring <robh+dt@kernel.org>, Jason Gunthorpe <jgunthorpe@obsidianresearch.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Catalin Marinas <Catalin.Marinas@arm.com>, Will Deacon <Will.Deacon@arm.com>, Russell King <linux@arm.linux.org.uk>, linux-pci <linux-pci@vger.kernel.org>, Linus Walleij <linus.walleij@linaro.org>, Tanmay Inamdar <tinamdar@apm.com>, Grant Likely <grant.likely@secretlab.ca>, Sinan Kaya <okaya@codeaurora.org>, Jingoo Han <jg1.han@samsung.com>, Kukjin Kim <kgene.kim@samsung.com>, Suravee Suthikulanit <suravee.suthikulpanit@amd.com>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Device Tree ML <devicetree@vger.kernel.org>, LAKML <linux-arm-kernel@lists.infradead.org>, "grant.likely@linaro.org" <grant.likely@linaro.org>
-Message-ID: <20140922153312.u8Zf6RvBhs6dpWhGDz3WQLX0OwoX68Ph5u6nNaLPcEI@z>
+To: Liviu Dudau <Liviu.Dudau@arm.com>
+Cc: Bjorn Helgaas <bhelgaas@google.com>, Arnd Bergmann <arnd@arndb.de>, Rob Herring <robh+dt@kernel.org>, Jason Gunthorpe <jgunthorpe@obsidianresearch.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Catalin Marinas <Catalin.Marinas@arm.com>, Will Deacon <Will.Deacon@arm.com>, Russell King <linux@arm.linux.org.uk>, linux-pci <linux-pci@vger.kernel.org>, Linus Walleij <linus.walleij@linaro.org>, Tanmay Inamdar <tinamdar@apm.com>, Grant Likely <grant.likely@secretlab.ca>, Sinan Kaya <okaya@codeaurora.org>, Jingoo Han <jg1.han@samsung.com>, Kukjin Kim <kgene.kim@samsung.com>, Suravee Suthikulanit <suravee.suthikulpanit@amd.com>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Device Tree ML <devicetree@vger.kernel.org>, LAKML <linux-arm-kernel@lists.infradead.org>, "grant.likely@linaro.org" <grant.likely@linaro.org>, Thierry Reding <thierry.reding@gmail.com>, Simon Horman <horms@verge.net.au>
+Message-ID: <20140922171842.9ZQlXojWPky3YXIkZ7Bk6xMsuQBJx7NbvoEIM-aDriE@z>
 
-On Mon, Sep 22, 2014 at 04:25:13PM +0100, Bjorn Helgaas wrote:
-> On Mon, Sep 22, 2014 at 5:05 AM, Liviu Dudau <Liviu.Dudau@arm.com> wrote:
-> > On Fri, Sep 19, 2014 at 10:03:13PM +0100, Bjorn Helgaas wrote:
-> >> On Thu, Sep 18, 2014 at 02:30:22AM +0100, Liviu Dudau wrote:
-> >> > Add of_pci_get_domain_nr() to retrieve the PCI domain number
-> >> > of a given device from DT. If the information is not present,
-> >> > the function can be requested to allocate a new domain number.
-> >>
-> >> Is of_pci_get_domain_nr() used somewhere?  If the use is in some future
-> >> series, please mention it explicitly.  I'm just trying to avoid merging
-> >> unused code.
-> >
-> > It is used in the arm64 specific patch that I have dropped out of my
-> > pull request. After discussions with Catalin I will add the patch back
-> > into the tree that you've pulled from as he is OK with your tree carrying
-> > the whole package.
-> >
-> > I need to ask for some guidance here: for addressing some of your comments
-> > and Rob's I can add more patches in my v11 branch and you can pull them
-> > when you think they are ready. But one of your comments was requesting
-> > splitting a patch into two blocks - one that moves of_pci_range_to_resource()
-> > into drivers/of/address.c and one that fixes it's behaviour - and I don't
-> > know how you would like that handled. Should I revert the original patch
-> > and add the new ones, or should I rebase the whole series into a different
-> > branch that you can pull from?
-> 
-> I guess the easiest thing is probably just to send a v12 series.  I
-> was hoping we were close enough for me to just hand-integrate minor
-> tweaks into my branch, but I think that will just create more
-> confusion.
+On Mon, Sep 22, 2014 at 10:32 AM, Liviu Dudau <Liviu.Dudau@arm.com> wrote:
+> On Sat, Sep 20, 2014 at 06:33:11PM +0100, Rob Herring wrote:
+>> On 09/17/2014 08:30 PM, Liviu Dudau wrote:
+>> > The ranges property for a host bridge controller in DT describes
+>> > the mapping between the PCI bus address and the CPU physical address.
+>> > The resources framework however expects that the IO resources start
+>> > at a pseudo "port" address 0 (zero) and have a maximum size of IO_SPACE_LIMIT.
+>> > The conversion from pci ranges to resources failed to take that into account.
 
-OK, I will send v12 then with all the acquired ACKs and fixes.
+[...]
 
-Best regards,
-Liviu
+>> >               if ((range.flags & IORESOURCE_MEM) &&
+>> >                       (range.flags & IORESOURCE_PREFETCH)) {
+>> >                       pre_mem_pci = range.pci_addr;
+>> >                       pre_mem_pci_sz = range.size;
+>> > -                     of_pci_range_to_resource(&range, np, &pre_mem);
+>> > +                     ret = of_pci_range_to_resource(&range, np, &pre_mem);
+>> >                       pre_mem.name = "PCIv3 prefetched mem";
+>> >               }
+>> > -     }
+>> >
+>> > -     if (!conf_mem.start || !io_mem.start ||
+>> > -         !non_mem.start || !pre_mem.start) {
+>> > -             dev_err(&pdev->dev, "missing ranges in device node\n");
+>> > -             return -EINVAL;
+>> > +             if (ret < 0) {
+>> > +                     dev_err(&pdev->dev, "missing ranges in device node\n");
+>> > +                     return -EINVAL;
+>>
+>> You should return ret rather than potentially changing the return value.
+>
+> I was trying to keep the existing behaviour, which was to return -EINVAL if the
+> parsing has failed. But I can return ret and propagate the original error code.
 
-> 
-> Bjorn
-> 
+A valid concern, but I checked and I believe the return from
+of_pci_range_to_resource is currently -EINVAL.
 
--- 
-====================
-| I would like to |
-| fix the world,  |
-| but they're not |
-| giving me the   |
- \ source code!  /
-  ---------------
-    ¯\_(ツ)_/¯
+>> > +int of_pci_range_to_resource(struct of_pci_range *range,
+>> > +     struct device_node *np, struct resource *res)
+>> > +{
+>> > +     int err;
+>> > +     res->flags = range->flags;
+>> > +     res->parent = res->child = res->sibling = NULL;
+>> > +     res->name = np->full_name;
+>> > +
+>> > +     if (res->flags & IORESOURCE_IO) {
+>> > +             unsigned long port = -1;
+>>
+>> Assigning a signed value to unsigned...
+>
+> Ooops, sorry about that. Removed the initialisation now.
+>
+>>
+>> Does port need to be 64-bit on 64-bit hosts?
+>
+> I'm following existing APIs. Basically my function is a variant of __of_address_to_resource()
 
+Okay.
+
+Rob
