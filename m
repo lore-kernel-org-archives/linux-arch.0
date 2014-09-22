@@ -1,63 +1,56 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from service87.mimecast.com ([91.220.42.44]:49566 "EHLO
+Received: from service87.mimecast.com ([91.220.42.44]:40695 "EHLO
 	service87.mimecast.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753572AbaIVNhA convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 22 Sep 2014 09:37:00 -0400
-Date: Mon, 22 Sep 2014 14:36:55 +0100
+	with ESMTP id S1753953AbaIVPUz convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 22 Sep 2014 11:20:55 -0400
+Date: Mon, 22 Sep 2014 16:20:48 +0100
 From: Liviu Dudau <Liviu.Dudau@arm.com>
-Subject: Re: [PATCH v9 06/12] ARM: integrator: Correct usage of
- of_pci_range_to_resource()
-Message-ID: <20140922133655.GR1994@e106497-lin.cambridge.arm.com>
-References: <1407860725-25202-1-git-send-email-Liviu.Dudau@arm.com>
- <1407860725-25202-7-git-send-email-Liviu.Dudau@arm.com>
- <CACRpkdanh8vb2-jxVvhmYLXEcvaEKv+BCiom8sPkT3uX_dhG6g@mail.gmail.com>
+Subject: Re: [PATCH v11 07/10] OF: Introduce helper function for getting PCI
+ domain_nr
+Message-ID: <20140922152048.GZ1994@e106497-lin.cambridge.arm.com>
+References: <1411003825-21521-1-git-send-email-Liviu.Dudau@arm.com>
+ <1411003825-21521-8-git-send-email-Liviu.Dudau@arm.com>
+ <201409200424.20538.arnd@arndb.de>
 MIME-Version: 1.0
-In-Reply-To: <CACRpkdanh8vb2-jxVvhmYLXEcvaEKv+BCiom8sPkT3uX_dhG6g@mail.gmail.com>
+In-Reply-To: <201409200424.20538.arnd@arndb.de>
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8BIT
 Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Walleij <linus.walleij@linaro.org>
-Cc: Bjorn Helgaas <bhelgaas@google.com>, Catalin Marinas <Catalin.Marinas@arm.com>, Will Deacon <Will.Deacon@arm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Arnd Bergmann <arnd@arndb.de>, Russell King <linux@arm.linux.org.uk>, Tanmay Inamdar <tinamdar@apm.com>, Grant Likely <grant.likely@secretlab.ca>, Sinan Kaya <okaya@codeaurora.org>, Jingoo Han <jg1.han@samsung.com>, Kukjin Kim <kgene.kim@samsung.com>, Suravee Suthikulanit <suravee.suthikulpanit@amd.com>, linux-pci <linux-pci@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Device Tree ML <devicetree@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, LAKML <linux-arm-kernel@lists.infradead.org>
-Message-ID: <20140922133655.cpN7aBfAc6kRclM-30NTUgHEqNAFC4JxcAmnk-GTa-U@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Bjorn Helgaas <bhelgaas@google.com>, Rob Herring <robh+dt@kernel.org>, Jason Gunthorpe <jgunthorpe@obsidianresearch.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Catalin Marinas <Catalin.Marinas@arm.com>, Will Deacon <Will.Deacon@arm.com>, Russell King <linux@arm.linux.org.uk>, linux-pci <linux-pci@vger.kernel.org>, Linus Walleij <linus.walleij@linaro.org>, Tanmay Inamdar <tinamdar@apm.com>, Grant Likely <grant.likely@secretlab.ca>, Sinan Kaya <okaya@codeaurora.org>, Jingoo Han <jg1.han@samsung.com>, Kukjin Kim <kgene.kim@samsung.com>, Suravee Suthikulanit <suravee.suthikulpanit@amd.com>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Device Tree ML <devicetree@vger.kernel.org>, LAKML <linux-arm-kernel@lists.infradead.org>, "grant.likely@linaro.org" <grant.likely@linaro.org>
+Message-ID: <20140922152048.6zsTFl7efNMbK5m3va5daDClyS9VljSAreeM1dS0oLE@z>
 
-On Mon, Sep 22, 2014 at 01:47:16PM +0100, Linus Walleij wrote:
-> On Tue, Aug 12, 2014 at 6:25 PM, Liviu Dudau <Liviu.Dudau@arm.com> wrote:
-> 
-> > Previously, of_pci_range_to_resource() would return a resource
-> > that contained physical addresses of the IO space even if the
-> > IORESOURCE_IO flags mandate a logical port set of values. Now
-> > that the function has been fixed we need to update the drivers
-> > that were taking advantage of the old behaviour.
-> >
-> > Cc: Linus Walleij <linus.walleij@linaro.org>
+On Sat, Sep 20, 2014 at 03:24:20AM +0100, Arnd Bergmann wrote:
+> On Thursday 18 September 2014, Liviu Dudau wrote:
+> > 
+> > Add of_pci_get_domain_nr() to retrieve the PCI domain number
+> > of a given device from DT. If the information is not present,
+> > the function can be requested to allocate a new domain number.
+> > 
+> > Cc: Bjorn Helgaas <bhelgaas@google.com>
 > > Cc: Arnd Bergmann <arnd@arndb.de>
+> > Cc: Grant Likely <grant.likely@linaro.org>
 > > Cc: Rob Herring <robh+dt@kernel.org>
-> > Cc: Russell King <linux@arm.linux.org.uk>
+> > Reviewed-by: Catalin Marinas <catalin.marinas@arm.com>
 > > Signed-off-by: Liviu Dudau <Liviu.Dudau@arm.com>
 > 
-> I guess you know what you're doing so:
-
-I hope so :)
-
-> Acked-by: Linus Walleij <linus.walleij@linaro.org>
-
-Thanks!
-
+> This is more elaborate than I remember it, and while the simpler
+> version (which potentially resulted in a conflict for inconsistent
+> DTs) was fine, this one also seems ok.
 > 
-> I expect this patch to go through the PCI tree or so? Or do you
-> expect me to funnel it?
+> Acked-by: Arnd Bergmann <arnd@arndb.de>
 
-It will go through PCI tree together with the patch that "fixes"
-the existing functionality.
+Thanks Arnd!
 
 Best regards,
-Liviu 
+Liviu
 
-> 
-> Yours,
-> Linus Walleij
+> --
+> To unsubscribe from this list: send the line "unsubscribe linux-pci" in
+> the body of a message to majordomo@vger.kernel.org
+> More majordomo info at  http://vger.kernel.org/majordomo-info.html
 > 
 
 -- 
