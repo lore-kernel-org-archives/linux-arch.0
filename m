@@ -1,82 +1,41 @@
-From: Rob Herring <robherring2@gmail.com>
-Subject: Re: [PATCH v11 07/10] OF: Introduce helper function for getting PCI
- domain_nr
-Date: Sat, 20 Sep 2014 12:52:44 -0500
-Message-ID: <541DBEEC.6010305@gmail.com>
-References: <1411003825-21521-1-git-send-email-Liviu.Dudau@arm.com> <1411003825-21521-8-git-send-email-Liviu.Dudau@arm.com>
+From: "Benjamin Siaka" <siajaka@gmail.com>
+Subject: HOW ARE YOU?
+Date: Mon, 22 Sep 2014 01:16:44 +0000
+Message-ID: <20140922011655.449FA3AE86CB@studentsvm0.itb.ac.id>
+Reply-To: bensiaka@she.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset=windows-1252
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7BIT
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ob0-f171.google.com ([209.85.214.171]:36644 "EHLO
-	mail-ob0-f171.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757324AbaITRws (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 20 Sep 2014 13:52:48 -0400
-In-Reply-To: <1411003825-21521-8-git-send-email-Liviu.Dudau@arm.com>
+Received: from mx2.itb.ac.id ([167.205.23.7]:15707 "EHLO mx2.itb.ac.id"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1753053AbaIVB1w convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 21 Sep 2014 21:27:52 -0400
+Received: from av1.itb.ac.id (av1.itb.ac.id [167.205.1.71])
+	by mx2.itb.ac.id (Postfix) with ESMTP id 3j1SRp23mGz4fYsy
+	for <linux-arch@vger.kernel.org>; Mon, 22 Sep 2014 08:17:10 +0700 (WIT)
+Received: from mx2.itb.ac.id ([167.205.1.67])
+	by av1.itb.ac.id (av1.itb.ac.id [167.205.1.73]) (amavisd-new, port 10002)
+	with ESMTP id iCPq3qbDqn_Y for <linux-arch@vger.kernel.org>;
+	Mon, 22 Sep 2014 08:20:04 +0700 (WIT)
+Received: from studentsvm0.itb.ac.id (unknown [167.205.50.87])
+	by mx2.itb.ac.id (Postfix) with ESMTP id 3j1SRn28wSz4fcvc
+	for <linux-arch@vger.kernel.org>; Mon, 22 Sep 2014 08:17:09 +0700 (WIT)
+Received: from [10.200.21.4] (unknown [79.142.73.220])
+	by studentsvm0.itb.ac.id (Postfix) with ESMTPSA id 449FA3AE86CB
+	for <linux-arch@vger.kernel.org>; Mon, 22 Sep 2014 08:16:54 +0700 (WIB)
+Content-Description: Mail message body
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Liviu Dudau <Liviu.Dudau@arm.com>, Bjorn Helgaas <bhelgaas@google.com>, Arnd Bergmann <arnd@arndb.de>, Rob Herring <robh+dt@kernel.org>, Jason Gunthorpe <jgunthorpe@obsidianresearch.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <Will.Deacon@arm.com>, Russell King <linux@arm.linux.org.uk>, linux-pci <linux-pci@vger.kernel.org>, Linus Walleij <linus.walleij@linaro.org>
-Cc: Tanmay Inamdar <tinamdar@apm.com>, Grant Likely <grant.likely@secretlab.ca>, Sinan Kaya <okaya@codeaurora.org>, Jingoo Han <jg1.han@samsung.com>, Kukjin Kim <kgene.kim@samsung.com>, Suravee Suthikulanit <suravee.suthikulpanit@amd.com>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Device Tree ML <devicetree@vger.kernel.org>, LAKML <linux-arm-kernel@lists.infradead.org>, Grant Likely <grant.likely@linaro.org>
+To: linux-arch@vger.kernel.org
 
-On 09/17/2014 08:30 PM, Liviu Dudau wrote:
-> Add of_pci_get_domain_nr() to retrieve the PCI domain number
-> of a given device from DT. If the information is not present,
-> the function can be requested to allocate a new domain number.
-> 
-> Cc: Bjorn Helgaas <bhelgaas@google.com>
-> Cc: Arnd Bergmann <arnd@arndb.de>
-> Cc: Grant Likely <grant.likely@linaro.org>
-> Cc: Rob Herring <robh+dt@kernel.org>
-> Reviewed-by: Catalin Marinas <catalin.marinas@arm.com>
-> Signed-off-by: Liviu Dudau <Liviu.Dudau@arm.com>
-> ---
+Hello my Dear,
 
-[...]
+I will greatly appreciate my correspondence meets you in good health condition.
 
-> +/**
-> + * This function will try to obtain the host bridge domain number by
-> + * using of_alias_get_id() call with "pci-domain" as a stem. If that
-> + * fails, a local allocator will be used. The local allocator can
-> + * be requested to return a new domain_nr if the information is missing
-> + * from the device tree.
-> + *
-> + * @node: device tree node with the domain information
-> + * @allocate_if_missing: if DT lacks information about the domain nr,
-> + * allocate a new number.
-> + *
-> + * Returns the associated domain number from DT, or a new domain number
-> + * if DT information is missing and @allocate_if_missing is true. If
-> + * @allocate_if_missing is false then the last allocated domain number
-> + * will be returned.
-> + */
-> +int of_pci_get_domain_nr(struct device_node *node, bool allocate_if_missing)
-> +{
-> +	int domain;
-> +
-> +	domain = atomic_read(&of_domain_nr);
-> +	if (domain == -1) {
-> +		/* first run, get max defined domain nr in device tree */
-> +		domain = of_get_max_pci_domain_nr();
-> +		/* then set the start value for allocator to be max + 1 */
-> +		atomic_set(&of_domain_nr, domain + 1);
+My name is Mr. Benjamin Siaka. I am seeking for your co-operation for investment partnership in your Country. I shall provide the FUND for the investment. When you acknowledged the receipt of this correspondence, thereafter I will give you the Full Details of my investment proposal.
 
-atomic_read followed by atomic_set is not an atomic operation.
+I await your response in earliest.
 
-As I previously said, I don't like how this function is a mixture of
-data retrieval and domian # allocation. I think we need 2 functions.
-
-> +	}
-> +	domain = of_alias_get_id(node, "pci-domain");
-
-I still do not like using aliases here. Just put pci-domain or
-linux,pci-domain into the PCI node.
-
-I think we should assume all PCI root buses either have a domain
-property or they don't and a mixture is an error. I'm not sure if that
-simplifies the code or not though.
-
-In the interest of merging, I think you should just do a simple
-allocation and add the DT domain handling as a second step. You will
-also need to document the DT part.
-
-Rob
+My regards,
+Mr. Benjamin Siaka.
