@@ -1,90 +1,134 @@
 From: Liviu Dudau <Liviu.Dudau@arm.com>
-Subject: Re: [PATCH v11 00/10] Support for creating generic PCI host bridges
- from DT
-Date: Mon, 22 Sep 2014 12:35:23 +0100
-Message-ID: <20140922113523.GM1994@e106497-lin.cambridge.arm.com>
+Subject: Re: [PATCH v11 08/10] OF: PCI: Add support for parsing PCI host
+ bridge resources from DT
+Date: Mon, 22 Sep 2014 12:43:17 +0100
+Message-ID: <20140922114317.GN1994@e106497-lin.cambridge.arm.com>
 References: <1411003825-21521-1-git-send-email-Liviu.Dudau@arm.com>
- <20140919215905.GB30239@google.com>
+ <1411003825-21521-9-git-send-email-Liviu.Dudau@arm.com>
+ <20140922093228.GA20256@rric.localhost>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from service87.mimecast.com ([91.220.42.44]:59029 "EHLO
+Received: from service87.mimecast.com ([91.220.42.44]:52507 "EHLO
 	service87.mimecast.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753588AbaIVLf3 convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 22 Sep 2014 07:35:29 -0400
-In-Reply-To: <20140919215905.GB30239@google.com>
+	with ESMTP id S1752856AbaIVLnW convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 22 Sep 2014 07:43:22 -0400
+In-Reply-To: <20140922093228.GA20256@rric.localhost>
 Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Bjorn Helgaas <bhelgaas@google.com>
-Cc: Arnd Bergmann <arnd@arndb.de>, Rob Herring <robh+dt@kernel.org>, Jason Gunthorpe <jgunthorpe@obsidianresearch.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Catalin Marinas <Catalin.Marinas@arm.com>, Will Deacon <Will.Deacon@arm.com>, Russell King <linux@arm.linux.org.uk>, linux-pci <linux-pci@vger.kernel.org>, Linus Walleij <linus.walleij@linaro.org>, Tanmay Inamdar <tinamdar@apm.com>, Grant Likely <grant.likely@secretlab.ca>, Sinan Kaya <okaya@codeaurora.org>, Jingoo Han <jg1.han@samsung.com>, Kukjin Kim <kgene.kim@samsung.com>, Suravee Suthikulanit <suravee.suthikulpanit@amd.com>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Device Tree ML <devicetree@vger.kernel.org>, LAKML <linux-arm-kernel@lists.infradead.org>
+To: Robert Richter <rric@kernel.org>
+Cc: Bjorn Helgaas <bhelgaas@google.com>, Arnd Bergmann <arnd@arndb.de>, Rob Herring <robh+dt@kernel.org>, Jason Gunthorpe <jgunthorpe@obsidianresearch.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Catalin Marinas <Catalin.Marinas@arm.com>, Will Deacon <Will.Deacon@arm.com>, Russell King <linux@arm.linux.org.uk>, linux-pci <linux-pci@vger.kernel.org>, Linus Walleij <linus.walleij@linaro.org>, Tanmay Inamdar <tinamdar@apm.com>, Grant Likely <grant.likely@secretlab.ca>, Sinan Kaya <okaya@codeaurora.org>, Jingoo Han <jg1.han@samsung.com>, Kukjin Kim <kgene.kim@samsung.com>, Suravee Suthikulanit <suravee.suthikulpanit@amd.com>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Device Tree ML <devicetree@vger.kernel.org>, LAKML <linux-arm-kernel@lists.infradead.org>, "grant.likely@linaro.org" <grant.likely@linaro.org>Sunil Goutham <s>
 
-On Fri, Sep 19, 2014 at 10:59:05PM +0100, Bjorn Helgaas wrote:
-> On Thu, Sep 18, 2014 at 02:30:15AM +0100, Liviu Dudau wrote:
-> > This is my version 11 of the attempt at adding support for generic =
-PCI host
-> > bridge controllers that make use of device tree information to
-> > configure themselves. It contains minor cleanups compared with v10 =
-to address
-> > the existing comments.
-> > ...
-> > Catalin Marinas (1):
-> >   PCI: Introduce generic domain handling for PCI busses.
-> >=20
-> > Liviu Dudau (9):
-> >   Fix ioport_map() for !CONFIG_GENERIC_IOMAP cases.
-> >   PCI: Introduce helper functions to deal with PCI I/O ranges.
-> >   ARM: Define PCI_IOBASE as the base of virtual PCI IO space.
-> >   PCI: OF: Fix the conversion of IO ranges into IO resources.
-> >   PCI: Create pci_host_bridge before its associated bus in
-> >     pci_create_root_bus.
-> >   OF: Introduce helper function for getting PCI domain_nr
-> >   OF: PCI: Add support for parsing PCI host bridge resources from D=
-T
-> >   PCI: Assign unassigned bus resources in pci_scan_root_bus()
-> >   PCI: Introduce pci_remap_iospace() for remapping PCI I/O bus reso=
-urces
-> >     into CPU space
-> >=20
-> >  arch/arm/include/asm/io.h         |   1 +
-> >  arch/arm/mach-integrator/pci_v3.c |  23 +++---
-> >  drivers/of/address.c              | 146 ++++++++++++++++++++++++++=
-++++++
-> >  drivers/of/of_pci.c               | 170 ++++++++++++++++++++++++++=
-++++++++++++
-> >  drivers/pci/host/pci-tegra.c      |  10 ++-
-> >  drivers/pci/host/pcie-rcar.c      |  21 +++--
-> >  drivers/pci/pci.c                 |  33 ++++++++
-> >  drivers/pci/probe.c               |  46 +++++++----
-> >  include/asm-generic/io.h          |   2 +-
-> >  include/asm-generic/pgtable.h     |   4 +
-> >  include/linux/of_address.h        |  15 +---
-> >  include/linux/of_pci.h            |  18 ++++
-> >  include/linux/pci.h               |  24 ++++++
-> >  13 files changed, 463 insertions(+), 50 deletions(-)
+On Mon, Sep 22, 2014 at 10:32:28AM +0100, Robert Richter wrote:
+> On 18.09.14 02:30:23, Liviu Dudau wrote:
+> > +int of_pci_get_host_bridge_resources(struct device_node *dev,
+> > +			unsigned char busno, unsigned char bus_max,
+> > +			struct list_head *resources, resource_size_t *io_base)
+> > +{
+> > +	struct resource *res;
+> > +	struct resource *bus_range;
+> > +	struct of_pci_range range;
+> > +	struct of_pci_range_parser parser;
+> > +	char range_type[4];
+> > +	int err;
+> > +
+> > +	if (!io_base)
+> > +		return -EINVAL;
+> > +	*io_base =3D OF_BAD_ADDR;
 >=20
-> I put this on a pci/liviu-generic-v11 branch.  I mentioned a couple t=
-hings
-> in response to the individual patches, so I'm hoping you can send me
-> incremental patches to address them.  Then I'll update this branch, r=
-ename
-> it, and get it into linux-next.
 
-Thanks a lot for that!
+Hi Robert,
 
-As I've mentioned in the other email, I can send incremental patches fo=
-r most
-of the comments (and Acks?). Don't know how to handle the split of=20
-"[PATH v11 4/10] PCI: OF: Fix the conversion of IO ranges into IO resou=
-rces."
-that you are asking for.
+> This breaks for mem-mapped pci host controllers. The patch below fixe=
+s
+> this.
+
+I think you mean PCI host controller that have only memory mapped range=
+s,
+am I right? Initially I've read your reply as to mean that the host
+controller is accessed through some memory mapped area, which I believe=
+ is
+the case for all host controllers.
+
+>=20
+> This series was tested with the fix on top for Cavium Thunder.
+>=20
+> Tested-by: Robert Richter <rrichter@cavium.com>
+
+Thanks for that!
+
+>=20
+> -Robert
+>=20
+>=20
+>=20
+> From e798af4fc2f664d1aff7e863489b8298f90e716e Mon Sep 17 00:00:00 200=
+1
+> From: Robert Richter <rrichter@cavium.com>
+> Date: Mon, 22 Sep 2014 10:46:01 +0200
+> Subject: [PATCH] OF: PCI: Fix creation of mem-mapped pci host bridges
+>=20
+> The pci host bridge was not created if io_base was not set when
+> calling of_pci_get_host_bridge_resources(). This is esp. the case for
+> mem-mapped io (IORESOURCE_MEM). This patch fixes this. Function
+> parameter io_base is optional now.
+
+I think the message is misleading. What you want to do is make io_base
+optional for the case where the PCI host bridge only expects to have on=
+ly
+IORESOURCE_MEM ranges and doesn't care about IORESOURCE_IO ones.
+
+As I'm going to touch this area again to address a comment from Bjorn,
+do you mind if I roll this patch into mine with your Signed-off-by and
+the mention that you have made io_base optional?
 
 Best regards,
 Liviu
 
 >=20
-> Bjorn
+> Signed-off-by: Robert Richter <rrichter@cavium.com>
+> ---
+>  drivers/of/of_pci.c | 7 +++----
+>  1 file changed, 3 insertions(+), 4 deletions(-)
+>=20
+> diff --git a/drivers/of/of_pci.c b/drivers/of/of_pci.c
+> index ffdb45ed8682..1f0e7c2505ee 100644
+> --- a/drivers/of/of_pci.c
+> +++ b/drivers/of/of_pci.c
+> @@ -182,9 +182,8 @@ int of_pci_get_host_bridge_resources(struct devic=
+e_node *dev,
+>  	char range_type[4];
+>  	int err;
+> =20
+> -	if (!io_base)
+> -		return -EINVAL;
+> -	*io_base =3D OF_BAD_ADDR;
+> +	if (io_base)
+> +		*io_base =3D OF_BAD_ADDR;
+> =20
+>  	bus_range =3D kzalloc(sizeof(*bus_range), GFP_KERNEL);
+>  	if (!bus_range)
+> @@ -242,7 +241,7 @@ int of_pci_get_host_bridge_resources(struct devic=
+e_node *dev,
+>  			goto parse_failed;
+>  		}
+> =20
+> -		if (resource_type(res) =3D=3D IORESOURCE_IO) {
+> +		if (io_base && resource_type(res) =3D=3D IORESOURCE_IO) {
+>  			if (*io_base !=3D OF_BAD_ADDR)
+>  				pr_warn("More than one I/O resource converted. CPU offset for ol=
+d range lost!\n");
+>  			*io_base =3D range.cpu_addr;
+> --=20
+> 2.1.0
+>=20
+> --
+> To unsubscribe from this list: send the line "unsubscribe linux-pci" =
+in
+> the body of a message to majordomo@vger.kernel.org
+> More majordomo info at  http://vger.kernel.org/majordomo-info.html
 >=20
 
 --=20
