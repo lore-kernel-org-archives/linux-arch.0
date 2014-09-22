@@ -1,82 +1,95 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-lb0-f169.google.com ([209.85.217.169]:38326 "EHLO
-	mail-lb0-f169.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754051AbaIVRTF (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 22 Sep 2014 13:19:05 -0400
-MIME-Version: 1.0
-In-Reply-To: <20140922153207.GA1994@e106497-lin.cambridge.arm.com>
+Received: from service87.mimecast.com ([91.220.42.44]:57862 "EHLO
+	service87.mimecast.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754068AbaIVRzL convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 22 Sep 2014 13:55:11 -0400
+Date: Mon, 22 Sep 2014 18:55:06 +0100
+From: Liviu Dudau <Liviu.Dudau@arm.com>
+Subject: Re: [PATCH v11 08/10] OF: PCI: Add support for parsing PCI host
+ bridge resources from DT
+Message-ID: <20140922175505.GH1994@e106497-lin.cambridge.arm.com>
 References: <1411003825-21521-1-git-send-email-Liviu.Dudau@arm.com>
- <1411003825-21521-5-git-send-email-Liviu.Dudau@arm.com> <541DBA57.2000903@gmail.com>
- <20140922153207.GA1994@e106497-lin.cambridge.arm.com>
-From: Rob Herring <robherring2@gmail.com>
-Date: Mon, 22 Sep 2014 12:18:42 -0500
-Message-ID: <CAL_JsqL9heHCEyXV5e4pOS3iWN51Q7KAQ-FxW_rzcWudqjwcdQ@mail.gmail.com>
-Subject: Re: [PATCH v11 04/10] PCI: OF: Fix the conversion of IO ranges into
- IO resources.
+ <1411003825-21521-9-git-send-email-Liviu.Dudau@arm.com>
+ <20140919210610.GI19374@google.com>
+ <541CCA36.8010606@gmail.com>
+MIME-Version: 1.0
+In-Reply-To: <541CCA36.8010606@gmail.com>
 Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8BIT
+Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Liviu Dudau <Liviu.Dudau@arm.com>
-Cc: Bjorn Helgaas <bhelgaas@google.com>, Arnd Bergmann <arnd@arndb.de>, Rob Herring <robh+dt@kernel.org>, Jason Gunthorpe <jgunthorpe@obsidianresearch.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Catalin Marinas <Catalin.Marinas@arm.com>, Will Deacon <Will.Deacon@arm.com>, Russell King <linux@arm.linux.org.uk>, linux-pci <linux-pci@vger.kernel.org>, Linus Walleij <linus.walleij@linaro.org>, Tanmay Inamdar <tinamdar@apm.com>, Grant Likely <grant.likely@secretlab.ca>, Sinan Kaya <okaya@codeaurora.org>, Jingoo Han <jg1.han@samsung.com>, Kukjin Kim <kgene.kim@samsung.com>, Suravee Suthikulanit <suravee.suthikulpanit@amd.com>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Device Tree ML <devicetree@vger.kernel.org>, LAKML <linux-arm-kernel@lists.infradead.org>, "grant.likely@linaro.org" <grant.likely@linaro.org>, Thierry Reding <thierry.reding@gmail.com>, Simon Horman <horms@verge.net.au>
-Message-ID: <20140922171842.9ZQlXojWPky3YXIkZ7Bk6xMsuQBJx7NbvoEIM-aDriE@z>
+To: Rob Herring <robherring2@gmail.com>
+Cc: Bjorn Helgaas <bhelgaas@google.com>, Arnd Bergmann <arnd@arndb.de>, Rob Herring <robh+dt@kernel.org>, Jason Gunthorpe <jgunthorpe@obsidianresearch.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Catalin Marinas <Catalin.Marinas@arm.com>, Will Deacon <Will.Deacon@arm.com>, Russell King <linux@arm.linux.org.uk>, linux-pci <linux-pci@vger.kernel.org>, Linus Walleij <linus.walleij@linaro.org>, Tanmay Inamdar <tinamdar@apm.com>, Grant Likely <grant.likely@secretlab.ca>, Sinan Kaya <okaya@codeaurora.org>, Jingoo Han <jg1.han@samsung.com>, Kukjin Kim <kgene.kim@samsung.com>, Suravee Suthikulanit <suravee.suthikulpanit@amd.com>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Device Tree ML <devicetree@vger.kernel.org>, LAKML <linux-arm-kernel@lists.infradead.org>, "grant.likely@linaro.org" <grant.likely@linaro.org>
+Message-ID: <20140922175506.8YO7Hg70FqyqKFOJz3kWMzk0KYKTosDiA4rGXMa42zM@z>
 
-On Mon, Sep 22, 2014 at 10:32 AM, Liviu Dudau <Liviu.Dudau@arm.com> wrote:
-> On Sat, Sep 20, 2014 at 06:33:11PM +0100, Rob Herring wrote:
->> On 09/17/2014 08:30 PM, Liviu Dudau wrote:
->> > The ranges property for a host bridge controller in DT describes
->> > the mapping between the PCI bus address and the CPU physical address.
->> > The resources framework however expects that the IO resources start
->> > at a pseudo "port" address 0 (zero) and have a maximum size of IO_SPACE_LIMIT.
->> > The conversion from pci ranges to resources failed to take that into account.
+On Sat, Sep 20, 2014 at 01:28:38AM +0100, Rob Herring wrote:
+> On 09/19/2014 04:06 PM, Bjorn Helgaas wrote:
+> > On Thu, Sep 18, 2014 at 02:30:23AM +0100, Liviu Dudau wrote:
+> >> Provide a function to parse the PCI DT ranges that can be used to
+> >> create a pci_host_bridge structure together with its associated
+> >> bus.
+> >>
+> >> Cc: Bjorn Helgaas <bhelgaas@google.com>
+> >> Cc: Arnd Bergmann <arnd@arndb.de>
+> >> Cc: Grant Likely <grant.likely@linaro.org>
+> >> Cc: Rob Herring <robh+dt@kernel.org>
+> >> Cc: Catalin Marinas <catalin.marinas@arm.com>
+> >> Signed-off-by: Liviu Dudau <Liviu.Dudau@arm.com>
+> >> ---
+> 
+> [...]
+> 
+> >> +int of_pci_get_host_bridge_resources(struct device_node *dev,
+> >> +			unsigned char busno, unsigned char bus_max,
+> >> +			struct list_head *resources, resource_size_t *io_base)
+> >> +{
+> >> +	struct resource *res;
+> >> +	struct resource *bus_range;
+> >> +	struct of_pci_range range;
+> >> +	struct of_pci_range_parser parser;
+> >> +	char range_type[4];
+> >> +	int err;
+> >> +
+> >> +	if (!io_base)
+> >> +		return -EINVAL;
+> >> +	*io_base = OF_BAD_ADDR;
+> >> +
+> >> +	bus_range = kzalloc(sizeof(*bus_range), GFP_KERNEL);
+> 
+> This function does a lot of kalloc's but there is not an easy way to
+> undo those allocations. Hot unplug of a host bridge or probe error
+> handling would leak memory.
+> 
+> You could pass in struct device and use the devm_ variant (also
+> addressing Bjorn's comment), but not having an uninit/remove function
+> make what clean-up drivers have to do error prone. For example, on
+> uninit a driver needs to call pci_free_resource_list.
 
-[...]
+If the function fails to parse the ranges for whatever reason it will
+call pci_free_resource_list on the resources that have been added already
+and it will clean up. If it is successful, then it is the job of the caller
+to free the list, as mentioned in the comment associated with the function.
 
->> >               if ((range.flags & IORESOURCE_MEM) &&
->> >                       (range.flags & IORESOURCE_PREFETCH)) {
->> >                       pre_mem_pci = range.pci_addr;
->> >                       pre_mem_pci_sz = range.size;
->> > -                     of_pci_range_to_resource(&range, np, &pre_mem);
->> > +                     ret = of_pci_range_to_resource(&range, np, &pre_mem);
->> >                       pre_mem.name = "PCIv3 prefetched mem";
->> >               }
->> > -     }
->> >
->> > -     if (!conf_mem.start || !io_mem.start ||
->> > -         !non_mem.start || !pre_mem.start) {
->> > -             dev_err(&pdev->dev, "missing ranges in device node\n");
->> > -             return -EINVAL;
->> > +             if (ret < 0) {
->> > +                     dev_err(&pdev->dev, "missing ranges in device node\n");
->> > +                     return -EINVAL;
->>
->> You should return ret rather than potentially changing the return value.
->
-> I was trying to keep the existing behaviour, which was to return -EINVAL if the
-> parsing has failed. But I can return ret and propagate the original error code.
+The reason why I am reluctant to use devm_ here is that the ranges are only
+parsed here, no filtering is applied. Architectures and/or host bridge
+drivers can/could impose additional restrictions to the list before passing
+it to pci_scan_root_bus() for example.
 
-A valid concern, but I checked and I believe the return from
-of_pci_range_to_resource is currently -EINVAL.
+Best regards,
+Liviu
 
->> > +int of_pci_range_to_resource(struct of_pci_range *range,
->> > +     struct device_node *np, struct resource *res)
->> > +{
->> > +     int err;
->> > +     res->flags = range->flags;
->> > +     res->parent = res->child = res->sibling = NULL;
->> > +     res->name = np->full_name;
->> > +
->> > +     if (res->flags & IORESOURCE_IO) {
->> > +             unsigned long port = -1;
->>
->> Assigning a signed value to unsigned...
->
-> Ooops, sorry about that. Removed the initialisation now.
->
->>
->> Does port need to be 64-bit on 64-bit hosts?
->
-> I'm following existing APIs. Basically my function is a variant of __of_address_to_resource()
+> 
+> Rob
+> 
 
-Okay.
+-- 
+====================
+| I would like to |
+| fix the world,  |
+| but they're not |
+| giving me the   |
+ \ source code!  /
+  ---------------
+    ¯\_(ツ)_/¯
 
-Rob
