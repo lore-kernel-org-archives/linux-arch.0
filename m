@@ -1,25 +1,26 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ie0-f170.google.com ([209.85.223.170]:41362 "EHLO
-	mail-ie0-f170.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757067AbaIWVyk (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 23 Sep 2014 17:54:40 -0400
-Received: by mail-ie0-f170.google.com with SMTP id x19so7531400ier.15
-        for <linux-arch@vger.kernel.org>; Tue, 23 Sep 2014 14:54:39 -0700 (PDT)
-Date: Tue, 23 Sep 2014 15:54:35 -0600
-From: Bjorn Helgaas <bhelgaas@google.com>
+Received: from dliviu.plus.com ([80.229.23.120]:57974 "EHLO smtp.dudau.co.uk"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1755443AbaIWWwh (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 23 Sep 2014 18:52:37 -0400
+Received: from localhost (localhost.localdomain [127.0.0.1])
+	by smtp.dudau.co.uk (Postfix) with SMTP id 514B3FFD79
+	for <linux-arch@vger.kernel.org>; Tue, 23 Sep 2014 23:52:35 +0100 (BST)
+Date: Tue, 23 Sep 2014 23:49:57 +0100
+From: Liviu Dudau <liviu@dudau.co.uk>
 Subject: Re: [PATCH v12 00/12] Support for creating generic PCI host bridges
  from DT
-Message-ID: <20140923215435.GD27117@google.com>
+Message-ID: <20140923224957.GB32643@bart.dudau.co.uk>
 References: <1411498874-9864-1-git-send-email-Liviu.Dudau@arm.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=utf-8
 Content-Disposition: inline
 In-Reply-To: <1411498874-9864-1-git-send-email-Liviu.Dudau@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Liviu Dudau <Liviu.Dudau@arm.com>
-Cc: Arnd Bergmann <arnd@arndb.de>, Rob Herring <robh+dt@kernel.org>, Jason Gunthorpe <jgunthorpe@obsidianresearch.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <Will.Deacon@arm.com>, Russell King <linux@arm.linux.org.uk>, linux-pci <linux-pci@vger.kernel.org>, Linus Walleij <linus.walleij@linaro.org>, Tanmay Inamdar <tinamdar@apm.com>, Grant Likely <grant.likely@secretlab.ca>, Sinan Kaya <okaya@codeaurora.org>, Jingoo Han <jg1.han@samsung.com>, Kukjin Kim <kgene.kim@samsung.com>, Suravee Suthikulanit <suravee.suthikulpanit@amd.com>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Device Tree ML <devicetree@vger.kernel.org>, LAKML <linux-arm-kernel@lists.infradead.org>
-Message-ID: <20140923215435.dTUJc2xX8hYFGpnNEUKj4ElbiYrTTGfdOFNUqiWjnpE@z>
+Cc: Bjorn Helgaas <bhelgaas@google.com>, Arnd Bergmann <arnd@arndb.de>, Rob Herring <robh+dt@kernel.org>, Jason Gunthorpe <jgunthorpe@obsidianresearch.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <Will.Deacon@arm.com>, Russell King <linux@arm.linux.org.uk>, linux-pci <linux-pci@vger.kernel.org>, Linus Walleij <linus.walleij@linaro.org>, Tanmay Inamdar <tinamdar@apm.com>, Grant Likely <grant.likely@secretlab.ca>, Sinan Kaya <okaya@codeaurora.org>, Jingoo Han <jg1.han@samsung.com>, Kukjin Kim <kgene.kim@samsung.com>, Suravee Suthikulanit <suravee.suthikulpanit@amd.com>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Device Tree ML <devicetree@vger.kernel.org>, LAKML <linux-arm-kernel@lists.infradead.org>
+Message-ID: <20140923224957.gHMxiwHy2dX3vd3IspMUNjM4eTaXlCqHqqMDW0_77v0@z>
 
 On Tue, Sep 23, 2014 at 08:01:02PM +0100, Liviu Dudau wrote:
 > This is my version 12 of the attempt at adding support for generic PCI host
@@ -84,6 +85,13 @@ On Tue, Sep 23, 2014 at 08:01:02PM +0100, Liviu Dudau wrote:
 > v11 thread here: https://lkml.org/lkml/2014/9/17/732
 > v10 thread here: https://lkml.org/lkml/2014/9/8/333
 > v9 thread here, with links to previous threads: https://lkml.org/lkml/2014/8/12/361
+
+Something of a bad habit of mine, I keep forgetting to post details about the
+git tree: git://linux-arm.org/linux-ld.git for-upstream/pci_v12
+
+Best regards,
+Liviu
+
 > 
 > Best regards,
 > Liviu
@@ -127,7 +135,25 @@ On Tue, Sep 23, 2014 at 08:01:02PM +0100, Liviu Dudau wrote:
 >  20 files changed, 596 insertions(+), 52 deletions(-)
 >  create mode 100644 arch/arm64/include/asm/pci.h
 >  create mode 100644 arch/arm64/kernel/pci.c
+> 
+> -- 
+> 2.1.0
+> 
+> --
+> To unsubscribe from this list: send the line "unsubscribe linux-pci" in
+> the body of a message to majordomo@vger.kernel.org
+> More majordomo info at  http://vger.kernel.org/majordomo-info.html
+> 
 
-Applied to pci/host-generic, headed for v3.18, thanks!
+-- 
+-------------------
+   .oooO
+   (   )
+    \ (  Oooo.
+     \_) (   )
+          ) /
+         (_/
 
-Bjorn
+ One small step
+   for me ...
+
