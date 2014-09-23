@@ -1,77 +1,48 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from 251.110.2.81.in-addr.arpa ([81.2.110.251]:42021 "EHLO
-	lxorguk.ukuu.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751735AbaIWSkl (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 23 Sep 2014 14:40:41 -0400
-Date: Tue, 23 Sep 2014 19:39:55 +0100
-From: One Thousand Gnomes <gnomes@lxorguk.ukuu.org.uk>
-Subject: Re: bit fields && data tearing
-Message-ID: <20140923193955.2fb9cb14@alan.etchedpixels.co.uk>
-In-Reply-To: <5421B9A6.5020408@hurleysoftware.com>
-References: <20140712181328.GA8738@redhat.com>
-	<54079B70.4050200@hurleysoftware.com>
-	<1409785893.30640.118.camel@pasglop>
-	<063D6719AE5E284EB5DD2968C1650D6D17487172@AcuExch.aculab.com>
-	<1409824374.4246.62.camel@pasglop>
-	<5408E458.3@zytor.com>
-	<54090AF4.7060406@hurleysoftware.com>
-	<54091B30.7080100@zytor.com>
-	<5409D76D.2070203@hurleysoftware.com>
-	<5409D9C0.7030403@zytor.com>
-	<20140908185240.21f52ca0@alan.etchedpixels.co.uk>
-	<540DEE6C.2060904@zytor.com>
-	<540E3207.7090007@hurleysoftware.com>
-	<20140911110411.2de01944@alan.etchedpixels.co.uk>
-	<5411FFB6.2080702@hurleysoftware.com>
-	<20140915002427.6ce18965@alan.etchedpixels.co.uk>
-	<5421B9A6.5020408@hurleysoftware.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Received: from fw-tnat.cambridge.arm.com ([217.140.96.21]:53963 "EHLO
+	cam-smtp0.cambridge.arm.com" rhost-flags-OK-OK-OK-FAIL)
+	by vger.kernel.org with ESMTP id S1751307AbaIWT6q (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Tue, 23 Sep 2014 15:58:46 -0400
+From: Liviu Dudau <Liviu.Dudau@arm.com>
+Subject: [PATCH v12 10/12] PCI: Assign unassigned bus resources in pci_scan_root_bus()
+Date: Tue, 23 Sep 2014 20:01:12 +0100
+Message-ID: <1411498874-9864-11-git-send-email-Liviu.Dudau@arm.com>
+In-Reply-To: <1411498874-9864-1-git-send-email-Liviu.Dudau@arm.com>
+References: <1411498874-9864-1-git-send-email-Liviu.Dudau@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Hurley <peter@hurleysoftware.com>
-Cc: "H. Peter Anvin" <hpa@zytor.com>, David Laight <David.Laight@ACULAB.COM>, Jakub Jelinek <jakub@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Tony Luck <tony.luck@intel.com>, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, Oleg Nesterov <oleg@redhat.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Paul Mackerras <paulus@samba.org>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, "linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>, Miroslav Franc <mfranc@redhat.com>, Richard Henderson <rth@twiddle.net>, linux-alpha@vger.kernel.org
-Message-ID: <20140923183955.Rt9q6KFM3hQEalbKxv6TAaY9LO3K6HcErJWFG_s2x5I@z>
+To: Bjorn Helgaas <bhelgaas@google.com>, Arnd Bergmann <arnd@arndb.de>, Rob Herring <robh+dt@kernel.org>, Jason Gunthorpe <jgunthorpe@obsidianresearch.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <Will.Deacon@arm.com>, Russell King <linux@arm.linux.org.uk>, linux-pci <linux-pci@vger.kernel.org>, Linus Walleij <linus.walleij@linaro.org>
+Cc: Tanmay Inamdar <tinamdar@apm.com>, Grant Likely <grant.likely@secretlab.ca>, Sinan Kaya <okaya@codeaurora.org>, Jingoo Han <jg1.han@samsung.com>, Kukjin Kim <kgene.kim@samsung.com>, Suravee Suthikulanit <suravee.suthikulpanit@amd.com>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Device Tree ML <devicetree@vger.kernel.org>, LAKML <linux-arm-kernel@lists.infradead.org>
+Message-ID: <20140923190112.WMQISlown9lG0SJnLOqUKNpwPs7gS10aI22rr-LusTQ@z>
 
-> > Yes - because if you think about it that tells you that nobody is hitting
-> > it with the old code and it probably doesn't matter.
-> 
-> I don't understand this reply.
+If the firmware has not assigned all the bus resources and
+we are not just probing the PCIe busses, it makes sense to
+assign the unassigned resources in pci_scan_root_bus().
 
-It's a matter of priorities. There are hundreds of potential security
-holes turned up by scanners, 2,500+ filed bugs in kernel bugzilla alone.
+Cc: Bjorn Helgaas <bhelgaas@google.com>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: Jason Gunthorpe <jgunthorpe@obsidianresearch.com>
+Cc: Rob Herring <robh+dt@kernel.org>
+Signed-off-by: Liviu Dudau <Liviu.Dudau@arm.com>
+---
+ drivers/pci/probe.c | 3 +++
+ 1 file changed, 3 insertions(+)
 
-Which matters more - fixing the bugs people hit or the ones that they
-don't and which have a very high cost impact on other users ?
-
-> Likewise, I'm pointing that byte-sized circular buffers will also be 
-> corrupted under certain circumstances (when the head comes near the tail).
-
-Yes. I believe the classic wording is "this problem has not been observed
-in the field"
+diff --git a/drivers/pci/probe.c b/drivers/pci/probe.c
+index ef891d2..508cf61 100644
+--- a/drivers/pci/probe.c
++++ b/drivers/pci/probe.c
+@@ -1953,6 +1953,9 @@ struct pci_bus *pci_scan_root_bus(struct device *parent, int bus,
+ 	if (!found)
+ 		pci_bus_update_busn_res_end(b, max);
  
-> 2. I'm not sure where you arrived at the conclusion that set_bit() et.al. is
-> fast on x86. Besides the heavy-duty instructions (lgdt, mov cr0, etc), the
-> bus-locked bit instructions are among the most expensive instructions in the
-> kernel.
++	if (!pci_has_flag(PCI_PROBE_ONLY))
++		pci_assign_unassigned_bus_resources(b);
++
+ 	pci_bus_add_devices(b);
+ 	return b;
+ }
+-- 
+2.1.0
 
-> I've attached a smoke test I use for lightweight validation of pty slave reads.
-> If you run this smoke test under perf, almost every high-value hit is a
-> bus-locked bit instruction. Check out canon_copy_from_read_buf() which performs
-> the actual copy of data from the line discipline input buffer to the __user
-> buffer; the clear_bit() is the performance hit. Check out cpu_idle_loop()...
-
-And then go and instrument whether its the bit instructions or the cache
-misses ?
-
-
-If there is a significant performance improvement by spacing the fields
-carefully, and you don't have other ordering problems as a result
-(remembering that the compiler has a lot of re-ordering options provided
-the re-ordering cannot be observed)
-
-If that's the case then fine - submit a patch with numbers and the fields
-spaced and quote the performance data.
-
-Alan
