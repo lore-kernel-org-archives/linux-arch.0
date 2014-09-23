@@ -1,70 +1,59 @@
-From: One Thousand Gnomes <gnomes@lxorguk.ukuu.org.uk>
-Subject: Re: bit fields && data tearing
-Date: Tue, 23 Sep 2014 19:39:55 +0100
-Message-ID: <20140923193955.2fb9cb14@alan.etchedpixels.co.uk>
-References: <20140712181328.GA8738@redhat.com>
- <54079B70.4050200@hurleysoftware.com>
- <1409785893.30640.118.camel@pasglop>
- <063D6719AE5E284EB5DD2968C1650D6D17487172@AcuExch.aculab.com>
- <1409824374.4246.62.camel@pasglop> <5408E458.3@zytor.com>
- <54090AF4.7060406@hurleysoftware.com> <54091B30.7080100@zytor.com>
- <5409D76D.2070203@hurleysoftware.com> <5409D9C0.7030403@zytor.com>
- <20140908185240.21f52ca0@alan.etchedpixels.co.uk>
- <540DEE6C.2060904@zytor.com> <540E3207.7090007@hurleysoftware.com>
- <20140911110411.2de01944@alan.etchedpixels.co.uk>
- <5411FFB6.2080702@hurleysoftware.com>
- <20140915002427.6ce18965@alan.etchedpixels.co.uk>
- <5421B9A6.5020408@hurleysoftware.com>
+From: Hans-Christian Egtvedt <egtvedt@samfundet.no>
+Subject: Re: [PATCH] atomic_read: Use ACCESS_ONCE() instead of cast to
+ volatile
+Date: Tue, 23 Sep 2014 21:43:27 +0200
+Message-ID: <20140923194327.GA5940@samfundet.no>
+References: <1411482607-20948-1-git-send-email-bobby.prani@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
-In-Reply-To: <5421B9A6.5020408@hurleysoftware.com>
-List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
-List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
-List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
-List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
-List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
-Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
-Sender: "Linuxppc-dev"
- <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
-To: Peter Hurley <peter@hurleysoftware.com>
-Cc: Jakub Jelinek <jakub@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Tony Luck <tony.luck@intel.com>, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, linux-alpha@vger.kernel.org, Oleg Nesterov <oleg@redhat.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, David Laight <David.Laight@ACULAB.COM>, Paul Mackerras <paulus@samba.org>, "H. Peter Anvin" <hpa@zytor.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, "linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>, Miroslav Franc <mfranc@redhat.com>, Richard Henderson <rth@twiddle.net>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-mips-bounce@linux-mips.org>
+Content-Disposition: inline
+In-Reply-To: <1411482607-20948-1-git-send-email-bobby.prani@gmail.com>
+Sender: linux-mips-bounce@linux-mips.org
+Errors-to: linux-mips-bounce@linux-mips.org
+List-help: <mailto:ecartis@linux-mips.org?Subject=help>
+List-unsubscribe: <mailto:ecartis@linux-mips.org?subject=unsubscribe%20linux-mips>
+List-software: Ecartis version 1.0.0
+List-subscribe: <mailto:ecartis@linux-mips.org?subject=subscribe%20linux-mips>
+List-owner: <mailto:ralf@linux-mips.org>
+List-post: <mailto:linux-mips@linux-mips.org>
+List-archive: <http://www.linux-mips.org/archives/linux-mips/>
+To: Pranith Kumar <bobby.prani@gmail.com>
+Cc: Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Russell King <linux@arm.linux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Haavard Skinnemoen <hskinnemoen@gmail.com>, Mikael Starvik <starvik@axis.com>, Jesper Nilsson <jesper.nilsson@axis.com>, David Howells <dhowells@redhat.com>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Hirokazu Takata <takata@linux-m32r.org>, Geert Uytterhoeven <geert@linux-m68k.org>, Ralf Baechle <ralf@linux-mips.org>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, "David S. Miller" <davem@davemloft.net>, Thomas Gleixner <tglx@linutronix.de>, Ingo
 List-Id: linux-arch.vger.kernel.org
 
-PiA+IFllcyAtIGJlY2F1c2UgaWYgeW91IHRoaW5rIGFib3V0IGl0IHRoYXQgdGVsbHMgeW91IHRo
-YXQgbm9ib2R5IGlzIGhpdHRpbmcKPiA+IGl0IHdpdGggdGhlIG9sZCBjb2RlIGFuZCBpdCBwcm9i
-YWJseSBkb2Vzbid0IG1hdHRlci4KPiAKPiBJIGRvbid0IHVuZGVyc3RhbmQgdGhpcyByZXBseS4K
-Ckl0J3MgYSBtYXR0ZXIgb2YgcHJpb3JpdGllcy4gVGhlcmUgYXJlIGh1bmRyZWRzIG9mIHBvdGVu
-dGlhbCBzZWN1cml0eQpob2xlcyB0dXJuZWQgdXAgYnkgc2Nhbm5lcnMsIDIsNTAwKyBmaWxlZCBi
-dWdzIGluIGtlcm5lbCBidWd6aWxsYSBhbG9uZS4KCldoaWNoIG1hdHRlcnMgbW9yZSAtIGZpeGlu
-ZyB0aGUgYnVncyBwZW9wbGUgaGl0IG9yIHRoZSBvbmVzIHRoYXQgdGhleQpkb24ndCBhbmQgd2hp
-Y2ggaGF2ZSBhIHZlcnkgaGlnaCBjb3N0IGltcGFjdCBvbiBvdGhlciB1c2VycyA/Cgo+IExpa2V3
-aXNlLCBJJ20gcG9pbnRpbmcgdGhhdCBieXRlLXNpemVkIGNpcmN1bGFyIGJ1ZmZlcnMgd2lsbCBh
-bHNvIGJlIAo+IGNvcnJ1cHRlZCB1bmRlciBjZXJ0YWluIGNpcmN1bXN0YW5jZXMgKHdoZW4gdGhl
-IGhlYWQgY29tZXMgbmVhciB0aGUgdGFpbCkuCgpZZXMuIEkgYmVsaWV2ZSB0aGUgY2xhc3NpYyB3
-b3JkaW5nIGlzICJ0aGlzIHByb2JsZW0gaGFzIG5vdCBiZWVuIG9ic2VydmVkCmluIHRoZSBmaWVs
-ZCIKIAo+IDIuIEknbSBub3Qgc3VyZSB3aGVyZSB5b3UgYXJyaXZlZCBhdCB0aGUgY29uY2x1c2lv
-biB0aGF0IHNldF9iaXQoKSBldC5hbC4gaXMKPiBmYXN0IG9uIHg4Ni4gQmVzaWRlcyB0aGUgaGVh
-dnktZHV0eSBpbnN0cnVjdGlvbnMgKGxnZHQsIG1vdiBjcjAsIGV0YyksIHRoZQo+IGJ1cy1sb2Nr
-ZWQgYml0IGluc3RydWN0aW9ucyBhcmUgYW1vbmcgdGhlIG1vc3QgZXhwZW5zaXZlIGluc3RydWN0
-aW9ucyBpbiB0aGUKPiBrZXJuZWwuCgo+IEkndmUgYXR0YWNoZWQgYSBzbW9rZSB0ZXN0IEkgdXNl
-IGZvciBsaWdodHdlaWdodCB2YWxpZGF0aW9uIG9mIHB0eSBzbGF2ZSByZWFkcy4KPiBJZiB5b3Ug
-cnVuIHRoaXMgc21va2UgdGVzdCB1bmRlciBwZXJmLCBhbG1vc3QgZXZlcnkgaGlnaC12YWx1ZSBo
-aXQgaXMgYQo+IGJ1cy1sb2NrZWQgYml0IGluc3RydWN0aW9uLiBDaGVjayBvdXQgY2Fub25fY29w
-eV9mcm9tX3JlYWRfYnVmKCkgd2hpY2ggcGVyZm9ybXMKPiB0aGUgYWN0dWFsIGNvcHkgb2YgZGF0
-YSBmcm9tIHRoZSBsaW5lIGRpc2NpcGxpbmUgaW5wdXQgYnVmZmVyIHRvIHRoZSBfX3VzZXIKPiBi
-dWZmZXI7IHRoZSBjbGVhcl9iaXQoKSBpcyB0aGUgcGVyZm9ybWFuY2UgaGl0LiBDaGVjayBvdXQg
-Y3B1X2lkbGVfbG9vcCgpLi4uCgpBbmQgdGhlbiBnbyBhbmQgaW5zdHJ1bWVudCB3aGV0aGVyIGl0
-cyB0aGUgYml0IGluc3RydWN0aW9ucyBvciB0aGUgY2FjaGUKbWlzc2VzID8KCgpJZiB0aGVyZSBp
-cyBhIHNpZ25pZmljYW50IHBlcmZvcm1hbmNlIGltcHJvdmVtZW50IGJ5IHNwYWNpbmcgdGhlIGZp
-ZWxkcwpjYXJlZnVsbHksIGFuZCB5b3UgZG9uJ3QgaGF2ZSBvdGhlciBvcmRlcmluZyBwcm9ibGVt
-cyBhcyBhIHJlc3VsdAoocmVtZW1iZXJpbmcgdGhhdCB0aGUgY29tcGlsZXIgaGFzIGEgbG90IG9m
-IHJlLW9yZGVyaW5nIG9wdGlvbnMgcHJvdmlkZWQKdGhlIHJlLW9yZGVyaW5nIGNhbm5vdCBiZSBv
-YnNlcnZlZCkKCklmIHRoYXQncyB0aGUgY2FzZSB0aGVuIGZpbmUgLSBzdWJtaXQgYSBwYXRjaCB3
-aXRoIG51bWJlcnMgYW5kIHRoZSBmaWVsZHMKc3BhY2VkIGFuZCBxdW90ZSB0aGUgcGVyZm9ybWFu
-Y2UgZGF0YS4KCkFsYW4KX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19f
-X19fX18KTGludXhwcGMtZGV2IG1haWxpbmcgbGlzdApMaW51eHBwYy1kZXZAbGlzdHMub3psYWJz
-Lm9yZwpodHRwczovL2xpc3RzLm96bGFicy5vcmcvbGlzdGluZm8vbGludXhwcGMtZGV2
+Around Tue 23 Sep 2014 10:29:50 -0400 or thereabout, Pranith Kumar wrote:
+> Use the much reader friendly ACCESS_ONCE() instead of the cast to volatile. This
+> is purely a style change.
+> 
+> Signed-off-by: Pranith Kumar <bobby.prani@gmail.com>
+> ---
+>  arch/alpha/include/asm/atomic.h    | 4 ++--
+>  arch/arm/include/asm/atomic.h      | 2 +-
+>  arch/arm64/include/asm/atomic.h    | 4 ++--
+>  arch/avr32/include/asm/atomic.h    | 2 +-
+
+For the AVR32 related part.
+
+Acked-by: Hans-Christian Egtvedt <egtvedt@samfundet.no>
+
+>  arch/cris/include/asm/atomic.h     | 2 +-
+>  arch/frv/include/asm/atomic.h      | 2 +-
+>  arch/ia64/include/asm/atomic.h     | 4 ++--
+>  arch/m32r/include/asm/atomic.h     | 2 +-
+>  arch/m68k/include/asm/atomic.h     | 2 +-
+>  arch/mips/include/asm/atomic.h     | 4 ++--
+>  arch/parisc/include/asm/atomic.h   | 4 ++--
+>  arch/sh/include/asm/atomic.h       | 2 +-
+>  arch/sparc/include/asm/atomic_32.h | 2 +-
+>  arch/sparc/include/asm/atomic_64.h | 4 ++--
+>  arch/x86/include/asm/atomic.h      | 2 +-
+>  arch/x86/include/asm/atomic64_64.h | 2 +-
+>  arch/xtensa/include/asm/atomic.h   | 2 +-
+>  include/asm-generic/atomic.h       | 2 +-
+>  18 files changed, 24 insertions(+), 24 deletions(-)
+
+<snipp diff>
+
+-- 
+BR, HcE
