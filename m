@@ -1,47 +1,46 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from fw-tnat.cambridge.arm.com ([217.140.96.21]:54448 "EHLO
+Received: from fw-tnat.cambridge.arm.com ([217.140.96.21]:54215 "EHLO
 	cam-smtp0.cambridge.arm.com" rhost-flags-OK-OK-OK-FAIL)
-	by vger.kernel.org with ESMTP id S1754279AbaIWUAv (ORCPT
+	by vger.kernel.org with ESMTP id S1753540AbaIWT7s (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 23 Sep 2014 16:00:51 -0400
+	Tue, 23 Sep 2014 15:59:48 -0400
 From: Liviu Dudau <Liviu.Dudau@arm.com>
-Subject: [PATCH v12 01/12] Fix ioport_map() for !CONFIG_GENERIC_IOMAP cases.
-Date: Tue, 23 Sep 2014 20:01:03 +0100
-Message-ID: <1411498874-9864-2-git-send-email-Liviu.Dudau@arm.com>
+Subject: [PATCH v12 03/12] ARM: Define PCI_IOBASE as the base of virtual PCI IO space.
+Date: Tue, 23 Sep 2014 20:01:05 +0100
+Message-ID: <1411498874-9864-4-git-send-email-Liviu.Dudau@arm.com>
 In-Reply-To: <1411498874-9864-1-git-send-email-Liviu.Dudau@arm.com>
 References: <1411498874-9864-1-git-send-email-Liviu.Dudau@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Bjorn Helgaas <bhelgaas@google.com>, Arnd Bergmann <arnd@arndb.de>, Rob Herring <robh+dt@kernel.org>, Jason Gunthorpe <jgunthorpe@obsidianresearch.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <Will.Deacon@arm.com>, Russell King <linux@arm.linux.org.uk>, linux-pci <linux-pci@vger.kernel.org>, Linus Walleij <linus.walleij@linaro.org>
 Cc: Tanmay Inamdar <tinamdar@apm.com>, Grant Likely <grant.likely@secretlab.ca>, Sinan Kaya <okaya@codeaurora.org>, Jingoo Han <jg1.han@samsung.com>, Kukjin Kim <kgene.kim@samsung.com>, Suravee Suthikulanit <suravee.suthikulpanit@amd.com>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Device Tree ML <devicetree@vger.kernel.org>, LAKML <linux-arm-kernel@lists.infradead.org>
-Message-ID: <20140923190103.UwC8FCBM6xqqOgym3nghk5DNUkpCORvOZgMsz00ANBw@z>
+Message-ID: <20140923190105.-vMUM62JRZ8GlUzbaznEk-99P55OutO6Ru6iChOIR2c@z>
 
-The inline version of ioport_map() that gets used when !CONFIG_GENERIC_IOMAP
-is wrong. It returns a mapped (i.e. virtual) address that can start from
-zero and completely ignores the PCI_IOBASE and IO_SPACE_LIMIT that most
-architectures that use !CONFIG_GENERIC_MAP define.
+This is needed for calls into OF code that parses PCI ranges.
+It signals support for memory mapped PCI I/O accesses that
+are described be device trees.
 
-Signed-off-by: Liviu Dudau <Liviu.Dudau@arm.com>
+Cc: Russell King <linux@arm.linux.org.uk>
+Cc: Rob Herring <robh+dt@kernel.org>
 Reviewed-by: Catalin Marinas <catalin.marinas@arm.com>
 Acked-by: Arnd Bergmann <arnd@arndb.de>
-Tested-by: Tanmay Inamdar <tinamdar@apm.com>
+Signed-off-by: Liviu Dudau <Liviu.Dudau@arm.com>
 ---
- include/asm-generic/io.h | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ arch/arm/include/asm/io.h | 1 +
+ 1 file changed, 1 insertion(+)
 
-diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
-index 975e1cc..2e2161b 100644
---- a/include/asm-generic/io.h
-+++ b/include/asm-generic/io.h
-@@ -331,7 +331,7 @@ static inline void iounmap(void __iomem *addr)
- #ifndef CONFIG_GENERIC_IOMAP
- static inline void __iomem *ioport_map(unsigned long port, unsigned int nr)
- {
--	return (void __iomem *) port;
-+	return (void __iomem *)(PCI_IOBASE + (port & IO_SPACE_LIMIT));
- }
+diff --git a/arch/arm/include/asm/io.h b/arch/arm/include/asm/io.h
+index 3d23418..22b7529 100644
+--- a/arch/arm/include/asm/io.h
++++ b/arch/arm/include/asm/io.h
+@@ -178,6 +178,7 @@ static inline void __iomem *__typesafe_io(unsigned long addr)
  
- static inline void ioport_unmap(void __iomem *p)
+ /* PCI fixed i/o mapping */
+ #define PCI_IO_VIRT_BASE	0xfee00000
++#define PCI_IOBASE		PCI_IO_VIRT_BASE
+ 
+ #if defined(CONFIG_PCI)
+ void pci_ioremap_set_mem_type(int mem_type);
 -- 
 2.1.0
 
