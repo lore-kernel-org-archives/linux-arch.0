@@ -1,94 +1,32 @@
-From: Liviu Dudau <Liviu.Dudau@arm.com>
-Subject: Re: [PATCH v11 08/10] OF: PCI: Add support for parsing PCI host
- bridge resources from DT
-Date: Tue, 23 Sep 2014 14:58:28 +0100
-Message-ID: <20140923135828.GS1994@e106497-lin.cambridge.arm.com>
-References: <1411003825-21521-1-git-send-email-Liviu.Dudau@arm.com>
- <20140922093228.GA20256@rric.localhost>
- <20140922114317.GN1994@e106497-lin.cambridge.arm.com>
- <8687285.EH4RPBeOB5@wuerfel>
- <CAL_JsqK3yH-uf++haBovWdX6er1PtzeiZ-2-yT1TRfYPxAjFow@mail.gmail.com>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH] atomic_read: Use ACCESS_ONCE() instead of cast to
+ volatile
+Date: Tue, 23 Sep 2014 17:15:09 +0200
+Message-ID: <20140923151509.GI3312@worktop.programming.kicks-ass.net>
+References: <1411482607-20948-1-git-send-email-bobby.prani@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from service87.mimecast.com ([91.220.42.44]:51316 "EHLO
-	service87.mimecast.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755451AbaIWN6g convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 23 Sep 2014 09:58:36 -0400
-In-Reply-To: <CAL_JsqK3yH-uf++haBovWdX6er1PtzeiZ-2-yT1TRfYPxAjFow@mail.gmail.com>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-mips-bounce@linux-mips.org>
 Content-Disposition: inline
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Rob Herring <robherring2@gmail.com>
-Cc: Arnd Bergmann <arnd@arndb.de>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Robert Richter <rric@kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linux-pci <linux-pci@vger.kernel.org>, Linus Walleij <linus.walleij@linaro.org>, Will Deacon <Will.Deacon@arm.com>, Grant Likely <grant.likely@secretlab.ca>, Tanmay Inamdar <tinamdar@apm.com>, linux-arch <linux-arch@vger.kernel.org>, Kukjin Kim <kgene.kim@samsung.com>, Russell King <linux@arm.linux.org.uk>, Jingoo Han <jg1.han@samsung.com>, Jason Gunthorpe <jgunthorpe@obsidianresearch.com>, Catalin Marinas <Catalin.Marinas@arm.com>, "grant.likely@linaro.org" <grant.likely@linaro.org>, Device Tree ML <devicetree@vger.kernel.org>, Rob Herring <robh+dt@kernel.org>, Bjorn Helgaas <bhelgaas@google.com>, Sinan Kaya <okaya@codeaurora.org>, Sunil Goutham <sunil.goutham@caviumnet>
+In-Reply-To: <1411482607-20948-1-git-send-email-bobby.prani@gmail.com>
+Sender: linux-mips-bounce@linux-mips.org
+Errors-to: linux-mips-bounce@linux-mips.org
+List-help: <mailto:ecartis@linux-mips.org?Subject=help>
+List-unsubscribe: <mailto:ecartis@linux-mips.org?subject=unsubscribe%20linux-mips>
+List-software: Ecartis version 1.0.0
+List-subscribe: <mailto:ecartis@linux-mips.org?subject=subscribe%20linux-mips>
+List-owner: <mailto:ralf@linux-mips.org>
+List-post: <mailto:linux-mips@linux-mips.org>
+List-archive: <http://www.linux-mips.org/archives/linux-mips/>
+To: Pranith Kumar <bobby.prani@gmail.com>
+Cc: Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Russell King <linux@arm.linux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Haavard Skinnemoen <hskinnemoen@gmail.com>, Hans-Christian Egtvedt <egtvedt@samfundet.no>, Mikael Starvik <starvik@axis.com>, Jesper Nilsson <jesper.nilsson@axis.com>, David Howells <dhowells@redhat.com>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Hirokazu Takata <takata@linux-m32r.org>, Geert Uytterhoeven <geert@linux-m68k.org>, Ralf Baechle <ralf@linux-mips.org>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, "David S. Miller" <davem@davemloft.net>
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, Sep 23, 2014 at 02:30:08PM +0100, Rob Herring wrote:
-> On Tue, Sep 23, 2014 at 2:56 AM, Arnd Bergmann <arnd@arndb.de> wrote:
-> > On Monday 22 September 2014 12:43:17 Liviu Dudau wrote:
-> >> >
-> >> > From e798af4fc2f664d1aff7e863489b8298f90e716e Mon Sep 17 00:00:0=
-0 2001
-> >> > From: Robert Richter <rrichter@cavium.com>
-> >> > Date: Mon, 22 Sep 2014 10:46:01 +0200
-> >> > Subject: [PATCH] OF: PCI: Fix creation of mem-mapped pci host br=
-idges
-> >> >
-> >> > The pci host bridge was not created if io_base was not set when
-> >> > calling of_pci_get_host_bridge_resources(). This is esp. the cas=
-e for
-> >> > mem-mapped io (IORESOURCE_MEM). This patch fixes this. Function
-> >> > parameter io_base is optional now.
-> >>
-> >> I think the message is misleading. What you want to do is make io_=
-base
-> >> optional for the case where the PCI host bridge only expects to ha=
-ve only
-> >> IORESOURCE_MEM ranges and doesn't care about IORESOURCE_IO ones.
-> >>
-> >> As I'm going to touch this area again to address a comment from Bj=
-orn,
-> >> do you mind if I roll this patch into mine with your Signed-off-by=
- and
-> >> the mention that you have made io_base optional?
-> >
-> > I think the best way to deal with this is to move the check for
-> > io_base down into the place where it is used: As long as the DT onl=
-y
-> > specifies IORESOURCE_MEM windows, we don't need to look at io_base,
-> > but if the host controller driver does not support IORESOURCE_IO
-> > while the DT specifies it, I guess it would be nice to return an
-> > error.
->=20
-> The DT may specify it, but the h/w could be broken in some way so the
-> host driver chooses to ignore it. I don't think we should force the
-> host driver to provide a pointer in that case. Also, would we want it
-> added to the resource list if it is not going to be used?
+On Tue, Sep 23, 2014 at 10:29:50AM -0400, Pranith Kumar wrote:
+> Use the much reader friendly ACCESS_ONCE() instead of the cast to volatile. This
+> is purely a style change.
+> 
+> Signed-off-by: Pranith Kumar <bobby.prani@gmail.com>
 
-This is only for scanning the DT ranges. If the hardware is broken and
-the driver knows about that then it can filter out the I/O ranges
-before it passes them on to pci_scan_root_bus() or pci_create_root_bus(=
-).
-
-Lets not complicate this function any further. If you get an I/O range
-it should be expected to also pass an io_base pointer to store the
-CPU address of the range, otherwise it will get lost in the conversion
-to an IORESOURCE_IO resource. You want later to discard the resource
-and forget the CPU address, then don't use it!
-
-Best regards,
-Liviu
-
->=20
-> Rob
->=20
-
---=20
-=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D
-| I would like to |
-| fix the world,  |
-| but they're not |
-| giving me the   |
- \ source code!  /
-  ---------------
-    =C2=AF\_(=E3=83=84)_/=C2=AF
+Looks good to me; I can route it through the locking tree if there's no
+objections.
