@@ -1,100 +1,152 @@
 From: Liviu Dudau <Liviu.Dudau@arm.com>
-Subject: [PATCH v12 04/12] PCI: OF: Move of_pci_range_to_resources() into address.c
-Date: Tue, 23 Sep 2014 20:01:06 +0100
-Message-ID: <1411498874-9864-5-git-send-email-Liviu.Dudau@arm.com>
+Subject: [PATCH v12 08/12] PCI: OF: Introduce helper function for retrieving PCI domain numbers
+Date: Tue, 23 Sep 2014 20:01:10 +0100
+Message-ID: <1411498874-9864-9-git-send-email-Liviu.Dudau@arm.com>
 References: <1411498874-9864-1-git-send-email-Liviu.Dudau@arm.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from fw-tnat.cambridge.arm.com ([217.140.96.21]:51667 "EHLO
+Received: from fw-tnat.cambridge.arm.com ([217.140.96.21]:51829 "EHLO
 	cam-smtp0.cambridge.arm.com" rhost-flags-OK-OK-OK-FAIL)
-	by vger.kernel.org with ESMTP id S1756582AbaIWULz (ORCPT
+	by vger.kernel.org with ESMTP id S1753090AbaIWUMz (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 23 Sep 2014 16:11:55 -0400
+	Tue, 23 Sep 2014 16:12:55 -0400
 In-Reply-To: <1411498874-9864-1-git-send-email-Liviu.Dudau@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Bjorn Helgaas <bhelgaas@google.com>, Arnd Bergmann <arnd@arndb.de>, Rob Herring <robh+dt@kernel.org>, Jason Gunthorpe <jgunthorpe@obsidianresearch.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <Will.Deacon@arm.com>, Russell King <linux@arm.linux.org.uk>, linux-pci <linux-pci@vger.kernel.org>, Linus Walleij <linus.walleij@linaro.org>
 Cc: Tanmay Inamdar <tinamdar@apm.com>, Grant Likely <grant.likely@secretlab.ca>, Sinan Kaya <okaya@codeaurora.org>, Jingoo Han <jg1.han@samsung.com>, Kukjin Kim <kgene.kim@samsung.com>, Suravee Suthikulanit <suravee.suthikulpanit@amd.com>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Device Tree ML <devicetree@vger.kernel.org>, LAKML <linux-arm-kernel@lists.infradead.org>, Grant Likely <grant.likely@linaro.org>
 
-The ranges property for a host bridge controller in DT describes
-the mapping between the PCI bus address and the CPU physical address.
-The resources framework however expects that the IO resources start
-at a pseudo "port" address 0 (zero) and have a maximum size of IO_SPACE_LIMIT.
-The conversion from pci ranges to resources failed to take that into account.
+Add pci_get_new_domain_nr() to allocate a new domain number
+and of_get_pci_domain_nr() to retrieve the PCI domain number
+of a given device from DT. Host bridge drivers or architecture
+specific code can choose to implement their PCI domain number
+policy using these two functions.
 
-In preparation for fixing this of_pci_range_to_resources(), move it into
-drivers/of/address.c.
+Using of_get_pci_domain_nr() guarantees a stable PCI domain
+number on every boot provided that all host bridge controllers
+are assigned a number in the device tree using "linux,pci-domain"
+property. Mix use of pci_get_new_domain_nr() and of_get_pci_domain_nr()
+is not recommended as it can lead to potentially conflicting
+domain numbers being assigned to root busses behind different
+host bridges.
 
+Cc: Bjorn Helgaas <bhelgaas@google.com>
+Cc: Arnd Bergmann <arnd@arndb.de>
 Cc: Grant Likely <grant.likely@linaro.org>
 Cc: Rob Herring <robh+dt@kernel.org>
-Cc: Arnd Bergmann <arnd@arndb.de>
 Cc: Catalin Marinas <catalin.marinas@arm.com>
 Signed-off-by: Liviu Dudau <Liviu.Dudau@arm.com>
 ---
- drivers/of/address.c       | 10 ++++++++++
- include/linux/of_address.h | 19 ++++++++-----------
- 2 files changed, 18 insertions(+), 11 deletions(-)
+ drivers/of/of_pci.c    | 25 +++++++++++++++++++++++++
+ drivers/pci/pci.c      |  9 +++++++++
+ include/linux/of_pci.h |  7 +++++++
+ include/linux/pci.h    |  3 +++
+ 4 files changed, 44 insertions(+)
 
-diff --git a/drivers/of/address.c b/drivers/of/address.c
-index 758d4f0..86c1055 100644
---- a/drivers/of/address.c
-+++ b/drivers/of/address.c
-@@ -956,3 +956,13 @@ bool of_dma_is_coherent(struct device_node *np)
- 	return false;
+diff --git a/drivers/of/of_pci.c b/drivers/of/of_pci.c
+index 8481996..82d172f 100644
+--- a/drivers/of/of_pci.c
++++ b/drivers/of/of_pci.c
+@@ -89,6 +89,31 @@ int of_pci_parse_bus_range(struct device_node *node, struct resource *res)
  }
- EXPORT_SYMBOL_GPL(of_dma_is_coherent);
-+
-+void of_pci_range_to_resource(struct of_pci_range *range,
-+	struct device_node *np,	struct resource *res)
-+{
-+	res->flags = range->flags;
-+	res->start = range->cpu_addr;
-+	res->end = range->cpu_addr + range->size - 1;
-+	res->parent = res->child = res->sibling = NULL;
-+	res->name = np->full_name;
-+}
-diff --git a/include/linux/of_address.h b/include/linux/of_address.h
-index f8cc7da..ac28338 100644
---- a/include/linux/of_address.h
-+++ b/include/linux/of_address.h
-@@ -23,17 +23,6 @@ struct of_pci_range {
- #define for_each_of_pci_range(parser, range) \
- 	for (; of_pci_range_parser_one(parser, range);)
+ EXPORT_SYMBOL_GPL(of_pci_parse_bus_range);
  
--static inline void of_pci_range_to_resource(struct of_pci_range *range,
--					    struct device_node *np,
--					    struct resource *res)
--{
--	res->flags = range->flags;
--	res->start = range->cpu_addr;
--	res->end = range->cpu_addr + range->size - 1;
--	res->parent = res->child = res->sibling = NULL;
--	res->name = np->full_name;
--}
--
- /* Translate a DMA address from device space to CPU space */
- extern u64 of_translate_dma_address(struct device_node *dev,
- 				    const __be32 *in_addr);
-@@ -42,6 +31,9 @@ extern u64 of_translate_dma_address(struct device_node *dev,
- extern u64 of_translate_address(struct device_node *np, const __be32 *addr);
- extern int of_address_to_resource(struct device_node *dev, int index,
- 				  struct resource *r);
-+extern void of_pci_range_to_resource(struct of_pci_range *range,
-+		struct device_node *np, struct resource *res);
-+
- extern struct device_node *of_find_matching_node_by_address(
- 					struct device_node *from,
- 					const struct of_device_id *matches,
-@@ -68,6 +60,11 @@ extern int of_dma_get_range(struct device_node *np, u64 *dma_addr,
- 				u64 *paddr, u64 *size);
- extern bool of_dma_is_coherent(struct device_node *np);
- #else /* CONFIG_OF_ADDRESS */
-+static inline void of_pci_range_to_resource(struct of_pci_range *range,
-+		struct device_node *np, struct resource *res)
++/**
++ * This function will try to obtain the host bridge domain number by
++ * finding a property called "linux,pci-domain" of the given device node.
++ *
++ * @node: device tree node with the domain information
++ *
++ * Returns the associated domain number from DT in the range [0-0xffff], or
++ * a negative value if the required property is not found.
++ */
++int of_get_pci_domain_nr(struct device_node *node)
 +{
-+}
++	const __be32 *value;
++	int len;
++	u16 domain;
 +
- static inline struct device_node *of_find_matching_node_by_address(
- 					struct device_node *from,
- 					const struct of_device_id *matches,
++	value = of_get_property(node, "linux,pci-domain", &len);
++	if (!value || len < sizeof(*value))
++		return -EINVAL;
++
++	domain = (u16)be32_to_cpup(value);
++
++	return domain;
++}
++EXPORT_SYMBOL_GPL(of_get_pci_domain_nr);
++
+ #ifdef CONFIG_PCI_MSI
+ 
+ static LIST_HEAD(of_pci_msi_chip_list);
+diff --git a/drivers/pci/pci.c b/drivers/pci/pci.c
+index 2c9ac70..d36f35f 100644
+--- a/drivers/pci/pci.c
++++ b/drivers/pci/pci.c
+@@ -4406,6 +4406,15 @@ static void pci_no_domains(void)
+ #endif
+ }
+ 
++#ifdef CONFIG_PCI_DOMAINS
++static atomic_t __domain_nr = ATOMIC_INIT(-1);
++
++int pci_get_new_domain_nr(void)
++{
++	return atomic_inc_return(&__domain_nr);
++}
++#endif
++
+ /**
+  * pci_ext_cfg_avail - can we access extended PCI config space?
+  *
+diff --git a/include/linux/of_pci.h b/include/linux/of_pci.h
+index dde3a4a..71062e9 100644
+--- a/include/linux/of_pci.h
++++ b/include/linux/of_pci.h
+@@ -15,6 +15,7 @@ struct device_node *of_pci_find_child_device(struct device_node *parent,
+ int of_pci_get_devfn(struct device_node *np);
+ int of_irq_parse_and_map_pci(const struct pci_dev *dev, u8 slot, u8 pin);
+ int of_pci_parse_bus_range(struct device_node *node, struct resource *res);
++int of_get_pci_domain_nr(struct device_node *node);
+ #else
+ static inline int of_irq_parse_pci(const struct pci_dev *pdev, struct of_phandle_args *out_irq)
+ {
+@@ -43,6 +44,12 @@ of_pci_parse_bus_range(struct device_node *node, struct resource *res)
+ {
+ 	return -EINVAL;
+ }
++
++static inline int
++of_get_pci_domain_nr(struct device_node *node)
++{
++	return -1;
++}
+ #endif
+ 
+ #if defined(CONFIG_OF) && defined(CONFIG_PCI_MSI)
+diff --git a/include/linux/pci.h b/include/linux/pci.h
+index a494e5d..150da2d 100644
+--- a/include/linux/pci.h
++++ b/include/linux/pci.h
+@@ -1285,10 +1285,12 @@ void pci_cfg_access_unlock(struct pci_dev *dev);
+  */
+ #ifdef CONFIG_PCI_DOMAINS
+ extern int pci_domains_supported;
++int pci_get_new_domain_nr(void);
+ #else
+ enum { pci_domains_supported = 0 };
+ static inline int pci_domain_nr(struct pci_bus *bus) { return 0; }
+ static inline int pci_proc_domain(struct pci_bus *bus) { return 0; }
++static inline int pci_get_new_domain_nr(void) { return -ENOSYS; }
+ #endif /* CONFIG_PCI_DOMAINS */
+ 
+ /*
+@@ -1417,6 +1419,7 @@ static inline struct pci_dev *pci_get_bus_and_slot(unsigned int bus,
+ 
+ static inline int pci_domain_nr(struct pci_bus *bus) { return 0; }
+ static inline struct pci_dev *pci_dev_get(struct pci_dev *dev) { return NULL; }
++static inline int pci_get_new_domain_nr(void) { return -ENOSYS; }
+ 
+ #define dev_is_pci(d) (false)
+ #define dev_is_pf(d) (false)
 -- 
 2.1.0
