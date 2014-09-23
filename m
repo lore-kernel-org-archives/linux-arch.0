@@ -1,87 +1,77 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from service87.mimecast.com ([91.220.42.44]:51316 "EHLO
-	service87.mimecast.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755451AbaIWN6g convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 23 Sep 2014 09:58:36 -0400
-Date: Tue, 23 Sep 2014 14:58:28 +0100
-From: Liviu Dudau <Liviu.Dudau@arm.com>
-Subject: Re: [PATCH v11 08/10] OF: PCI: Add support for parsing PCI host
- bridge resources from DT
-Message-ID: <20140923135828.GS1994@e106497-lin.cambridge.arm.com>
-References: <1411003825-21521-1-git-send-email-Liviu.Dudau@arm.com>
- <20140922093228.GA20256@rric.localhost>
- <20140922114317.GN1994@e106497-lin.cambridge.arm.com>
- <8687285.EH4RPBeOB5@wuerfel>
- <CAL_JsqK3yH-uf++haBovWdX6er1PtzeiZ-2-yT1TRfYPxAjFow@mail.gmail.com>
+Received: from 251.110.2.81.in-addr.arpa ([81.2.110.251]:42021 "EHLO
+	lxorguk.ukuu.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751735AbaIWSkl (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 23 Sep 2014 14:40:41 -0400
+Date: Tue, 23 Sep 2014 19:39:55 +0100
+From: One Thousand Gnomes <gnomes@lxorguk.ukuu.org.uk>
+Subject: Re: bit fields && data tearing
+Message-ID: <20140923193955.2fb9cb14@alan.etchedpixels.co.uk>
+In-Reply-To: <5421B9A6.5020408@hurleysoftware.com>
+References: <20140712181328.GA8738@redhat.com>
+	<54079B70.4050200@hurleysoftware.com>
+	<1409785893.30640.118.camel@pasglop>
+	<063D6719AE5E284EB5DD2968C1650D6D17487172@AcuExch.aculab.com>
+	<1409824374.4246.62.camel@pasglop>
+	<5408E458.3@zytor.com>
+	<54090AF4.7060406@hurleysoftware.com>
+	<54091B30.7080100@zytor.com>
+	<5409D76D.2070203@hurleysoftware.com>
+	<5409D9C0.7030403@zytor.com>
+	<20140908185240.21f52ca0@alan.etchedpixels.co.uk>
+	<540DEE6C.2060904@zytor.com>
+	<540E3207.7090007@hurleysoftware.com>
+	<20140911110411.2de01944@alan.etchedpixels.co.uk>
+	<5411FFB6.2080702@hurleysoftware.com>
+	<20140915002427.6ce18965@alan.etchedpixels.co.uk>
+	<5421B9A6.5020408@hurleysoftware.com>
 MIME-Version: 1.0
-In-Reply-To: <CAL_JsqK3yH-uf++haBovWdX6er1PtzeiZ-2-yT1TRfYPxAjFow@mail.gmail.com>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8BIT
-Content-Disposition: inline
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Rob Herring <robherring2@gmail.com>
-Cc: Arnd Bergmann <arnd@arndb.de>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Robert Richter <rric@kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linux-pci <linux-pci@vger.kernel.org>, Linus Walleij <linus.walleij@linaro.org>, Will Deacon <Will.Deacon@arm.com>, Grant Likely <grant.likely@secretlab.ca>, Tanmay Inamdar <tinamdar@apm.com>, linux-arch <linux-arch@vger.kernel.org>, Kukjin Kim <kgene.kim@samsung.com>, Russell King <linux@arm.linux.org.uk>, Jingoo Han <jg1.han@samsung.com>, Jason Gunthorpe <jgunthorpe@obsidianresearch.com>, Catalin Marinas <Catalin.Marinas@arm.com>, "grant.likely@linaro.org" <grant.likely@linaro.org>, Device Tree ML <devicetree@vger.kernel.org>, Rob Herring <robh+dt@kernel.org>, Bjorn Helgaas <bhelgaas@google.com>, Sinan Kaya <okaya@codeaurora.org>, Sunil Goutham <sunil.goutham@caviumnetworks.com>, LKML <linux-kernel@vger.kernel.org>, Suravee Suthikulanit <suravee.suthikulpanit@amd.com>
-Message-ID: <20140923135828.eaSvdtoQx9krkORqjqTEXWfEnmAGoiIZLY3QSkw4coc@z>
+To: Peter Hurley <peter@hurleysoftware.com>
+Cc: "H. Peter Anvin" <hpa@zytor.com>, David Laight <David.Laight@ACULAB.COM>, Jakub Jelinek <jakub@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Tony Luck <tony.luck@intel.com>, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, Oleg Nesterov <oleg@redhat.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Paul Mackerras <paulus@samba.org>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, "linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>, Miroslav Franc <mfranc@redhat.com>, Richard Henderson <rth@twiddle.net>, linux-alpha@vger.kernel.org
+Message-ID: <20140923183955.Rt9q6KFM3hQEalbKxv6TAaY9LO3K6HcErJWFG_s2x5I@z>
 
-On Tue, Sep 23, 2014 at 02:30:08PM +0100, Rob Herring wrote:
-> On Tue, Sep 23, 2014 at 2:56 AM, Arnd Bergmann <arnd@arndb.de> wrote:
-> > On Monday 22 September 2014 12:43:17 Liviu Dudau wrote:
-> >> >
-> >> > From e798af4fc2f664d1aff7e863489b8298f90e716e Mon Sep 17 00:00:00 2001
-> >> > From: Robert Richter <rrichter@cavium.com>
-> >> > Date: Mon, 22 Sep 2014 10:46:01 +0200
-> >> > Subject: [PATCH] OF: PCI: Fix creation of mem-mapped pci host bridges
-> >> >
-> >> > The pci host bridge was not created if io_base was not set when
-> >> > calling of_pci_get_host_bridge_resources(). This is esp. the case for
-> >> > mem-mapped io (IORESOURCE_MEM). This patch fixes this. Function
-> >> > parameter io_base is optional now.
-> >>
-> >> I think the message is misleading. What you want to do is make io_base
-> >> optional for the case where the PCI host bridge only expects to have only
-> >> IORESOURCE_MEM ranges and doesn't care about IORESOURCE_IO ones.
-> >>
-> >> As I'm going to touch this area again to address a comment from Bjorn,
-> >> do you mind if I roll this patch into mine with your Signed-off-by and
-> >> the mention that you have made io_base optional?
-> >
-> > I think the best way to deal with this is to move the check for
-> > io_base down into the place where it is used: As long as the DT only
-> > specifies IORESOURCE_MEM windows, we don't need to look at io_base,
-> > but if the host controller driver does not support IORESOURCE_IO
-> > while the DT specifies it, I guess it would be nice to return an
-> > error.
+> > Yes - because if you think about it that tells you that nobody is hitting
+> > it with the old code and it probably doesn't matter.
 > 
-> The DT may specify it, but the h/w could be broken in some way so the
-> host driver chooses to ignore it. I don't think we should force the
-> host driver to provide a pointer in that case. Also, would we want it
-> added to the resource list if it is not going to be used?
+> I don't understand this reply.
 
-This is only for scanning the DT ranges. If the hardware is broken and
-the driver knows about that then it can filter out the I/O ranges
-before it passes them on to pci_scan_root_bus() or pci_create_root_bus().
+It's a matter of priorities. There are hundreds of potential security
+holes turned up by scanners, 2,500+ filed bugs in kernel bugzilla alone.
 
-Lets not complicate this function any further. If you get an I/O range
-it should be expected to also pass an io_base pointer to store the
-CPU address of the range, otherwise it will get lost in the conversion
-to an IORESOURCE_IO resource. You want later to discard the resource
-and forget the CPU address, then don't use it!
+Which matters more - fixing the bugs people hit or the ones that they
+don't and which have a very high cost impact on other users ?
 
-Best regards,
-Liviu
+> Likewise, I'm pointing that byte-sized circular buffers will also be 
+> corrupted under certain circumstances (when the head comes near the tail).
 
-> 
-> Rob
-> 
+Yes. I believe the classic wording is "this problem has not been observed
+in the field"
+ 
+> 2. I'm not sure where you arrived at the conclusion that set_bit() et.al. is
+> fast on x86. Besides the heavy-duty instructions (lgdt, mov cr0, etc), the
+> bus-locked bit instructions are among the most expensive instructions in the
+> kernel.
 
--- 
-====================
-| I would like to |
-| fix the world,  |
-| but they're not |
-| giving me the   |
- \ source code!  /
-  ---------------
-    ¯\_(ツ)_/¯
+> I've attached a smoke test I use for lightweight validation of pty slave reads.
+> If you run this smoke test under perf, almost every high-value hit is a
+> bus-locked bit instruction. Check out canon_copy_from_read_buf() which performs
+> the actual copy of data from the line discipline input buffer to the __user
+> buffer; the clear_bit() is the performance hit. Check out cpu_idle_loop()...
 
+And then go and instrument whether its the bit instructions or the cache
+misses ?
+
+
+If there is a significant performance improvement by spacing the fields
+carefully, and you don't have other ordering problems as a result
+(remembering that the compiler has a lot of re-ordering options provided
+the re-ordering cannot be observed)
+
+If that's the case then fine - submit a patch with numbers and the fields
+spaced and quote the performance data.
+
+Alan
