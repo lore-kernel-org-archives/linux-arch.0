@@ -1,46 +1,136 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ig0-f181.google.com ([209.85.213.181]:39601 "EHLO
-	mail-ig0-f181.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754622AbaIWKN4 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 23 Sep 2014 06:13:56 -0400
-Received: by mail-ig0-f181.google.com with SMTP id h18so4262404igc.14
-        for <linux-arch@vger.kernel.org>; Tue, 23 Sep 2014 03:13:55 -0700 (PDT)
+Received: from mail-lb0-f171.google.com ([209.85.217.171]:56029 "EHLO
+	mail-lb0-f171.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754797AbaIWKUK (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 23 Sep 2014 06:20:10 -0400
 MIME-Version: 1.0
-In-Reply-To: <1410229968-11638-2-git-send-email-aaron.lu@intel.com>
-References: <1410229968-11638-1-git-send-email-aaron.lu@intel.com>
-	<1410229968-11638-2-git-send-email-aaron.lu@intel.com>
-Date: Tue, 23 Sep 2014 12:13:55 +0200
-Message-ID: <CACRpkdZZ-8MAXQ_T2CYyUb0pcdS707G+NCWTc0oHJ2eqr-dcUA@mail.gmail.com>
-Subject: Re: [PATCH 1/2] gpio / CrystalCove: support virtual GPIO
-From: Linus Walleij <linus.walleij@linaro.org>
+In-Reply-To: <1410168160-3624-2-git-send-email-lftan@altera.com>
+References: <1410168160-3624-1-git-send-email-lftan@altera.com>
+	<1410168160-3624-2-git-send-email-lftan@altera.com>
+Date: Tue, 23 Sep 2014 18:20:08 +0800
+Message-ID: <CAFiDJ5-b_P7aWFXYP4GcgTUb3t_j6dZCsjeGZwVUs+7qo0v-GA@mail.gmail.com>
+Subject: Re: [PATCH v3 01/29] asm-generic: add generic futex for !CONFIG_SMP
+From: "LF.Tan" <lftan.linux@gmail.com>
 Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Aaron Lu <aaron.lu@intel.com>, Mika Westerberg <mika.westerberg@linux.intel.com>, Darren Hart <dvhart@linux.intel.com>
-Cc: Alexandre Courbot <gnurou@gmail.com>, Samuel Ortiz <sameo@linux.intel.com>, Lee Jones <lee.jones@linaro.org>, Arnd Bergmann <arnd@arndb.de>, "linux-gpio@vger.kernel.org" <linux-gpio@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Jacob Pan <jacob.jun.pan@linux.intel.com>, Lejun Zhu <lejun.zhu@intel.com>, Radivoje Jovanovic <radivoje.jovanovic@intel.com>, =?UTF-8?Q?Daniel_Gl=C3=B6ckner?= <dg@emlix.com>, ACPI Devel Maling List <linux-acpi@vger.kernel.org>, "Rafael J. Wysocki" <rjw@rjwysocki.net>
-Message-ID: <20140923101355.MO53Zo8WGRis8IEsLcI22egJkPFvExvCqEdEMZ_9d5M@z>
+To: Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>
+Cc: Ley Foon Tan <lftan@altera.com>, LeyFoon Tan <lftan.linux@gmail.com>, Chung-Lin Tang <cltang@codesourcery.com>
+Message-ID: <20140923102008.MNS-pIJRWdJlrTCUQqDUzeAgzEpf69-ex0YdvDPxRdw@z>
 
-On Tue, Sep 9, 2014 at 4:32 AM, Aaron Lu <aaron.lu@intel.com> wrote:
-
-> The virtual GPIO introduced in ACPI table of Baytrail-T based system is
-> used to solve a problem under Windows. We do not have such problems
-> under Linux so we do not actually need them. But we have to tell GPIO
-> library that the Crystal Cove GPIO chip has this many GPIO pins or the
-> common GPIO handler will refuse any access to those high number GPIO
-> pins, which will resulted in a failure evaluation of every ACPI control
-> method that is used to turn on/off power resource and/or report sensor
-> temperatures.
+On Mon, Sep 8, 2014 at 5:22 PM, Ley Foon Tan <lftan@altera.com> wrote:
+> Follow m68k futex implementation for !CONFIG_SMP.
 >
-> Due to the high number of virtual GPIOs, the value of ARCH_NR_GPIOS is
-> bumped from 256 to 512 to avoid failures on platforms that have various
-> GPIO controllers.
+> Signed-off-by: Ley Foon Tan <lftan@altera.com>
+> ---
+>  include/asm-generic/futex.h | 82 +++++++++++++++++++++++++++++++++++++++++++++
+>  1 file changed, 82 insertions(+)
 >
-> Signed-off-by: Aaron Lu <aaron.lu@intel.com>
+> diff --git a/include/asm-generic/futex.h b/include/asm-generic/futex.h
+> index 01f227e..f5650a5 100644
+> --- a/include/asm-generic/futex.h
+> +++ b/include/asm-generic/futex.h
+> @@ -5,6 +5,87 @@
+>  #include <linux/uaccess.h>
+>  #include <asm/errno.h>
+>
+> +#ifndef CONFIG_SMP
+> +static inline int
+> +futex_atomic_op_inuser(int encoded_op, u32 __user *uaddr)
+> +{
+> +       int op = (encoded_op >> 28) & 7;
+> +       int cmp = (encoded_op >> 24) & 15;
+> +       int oparg = (encoded_op << 8) >> 20;
+> +       int cmparg = (encoded_op << 20) >> 20;
+> +       int oldval, ret;
+> +       u32 tmp;
+> +
+> +       if (encoded_op & (FUTEX_OP_OPARG_SHIFT << 28))
+> +               oparg = 1 << oparg;
+> +
+> +       pagefault_disable();    /* implies preempt_disable() */
+> +
+> +       ret = -EFAULT;
+> +       if (unlikely(get_user(oldval, uaddr) != 0))
+> +               goto out_pagefault_enable;
+> +
+> +       ret = 0;
+> +       tmp = oldval;
+> +
+> +       switch (op) {
+> +       case FUTEX_OP_SET:
+> +               tmp = oparg;
+> +               break;
+> +       case FUTEX_OP_ADD:
+> +               tmp += oparg;
+> +               break;
+> +       case FUTEX_OP_OR:
+> +               tmp |= oparg;
+> +               break;
+> +       case FUTEX_OP_ANDN:
+> +               tmp &= ~oparg;
+> +               break;
+> +       case FUTEX_OP_XOR:
+> +               tmp ^= oparg;
+> +               break;
+> +       default:
+> +               ret = -ENOSYS;
+> +       }
+> +
+> +       if (ret == 0 && unlikely(put_user(tmp, uaddr) != 0))
+> +               ret = -EFAULT;
+> +
+> +out_pagefault_enable:
+> +       pagefault_enable();     /* subsumes preempt_enable() */
+> +
+> +       if (ret == 0) {
+> +               switch (cmp) {
+> +               case FUTEX_OP_CMP_EQ: ret = (oldval == cmparg); break;
+> +               case FUTEX_OP_CMP_NE: ret = (oldval != cmparg); break;
+> +               case FUTEX_OP_CMP_LT: ret = (oldval < cmparg); break;
+> +               case FUTEX_OP_CMP_GE: ret = (oldval >= cmparg); break;
+> +               case FUTEX_OP_CMP_LE: ret = (oldval <= cmparg); break;
+> +               case FUTEX_OP_CMP_GT: ret = (oldval > cmparg); break;
+> +               default: ret = -ENOSYS;
+> +               }
+> +       }
+> +       return ret;
+> +}
+> +
+> +static inline int
+> +futex_atomic_cmpxchg_inatomic(u32 *uval, u32 __user *uaddr,
+> +                             u32 oldval, u32 newval)
+> +{
+> +       u32 val;
+> +
+> +       if (unlikely(get_user(val, uaddr) != 0))
+> +               return -EFAULT;
+> +
+> +       if (val == oldval && unlikely(put_user(newval, uaddr) != 0))
+> +               return -EFAULT;
+> +
+> +       *uval = val;
+> +
+> +       return 0;
+> +}
+> +
+> +#else
+>  static inline int
+>  futex_atomic_op_inuser (int encoded_op, u32 __user *uaddr)
+>  {
+> @@ -54,4 +135,5 @@ futex_atomic_cmpxchg_inatomic(u32 *uval, u32 __user *uaddr,
+>         return -ENOSYS;
+>  }
+>
+> +#endif /* CONFIG_SMP */
+>  #endif
+> --
+> 1.8.2.1
+>
 
-I have some other patch pending increasing the default GPIO# to
-512, but anyhow: this needs review from someone. Where is
-Lejun? Mika also reviewed last time. Someone I trust to understand
-ACPI need to be involved, Rafael, Darren....
+Hi Arnd
 
-Yours,
-Linus Walleij
+Are you okay with this generic futex in asm-generic?
+
+Regards
+Ley Foon
