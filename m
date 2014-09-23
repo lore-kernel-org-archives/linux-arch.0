@@ -1,119 +1,125 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from fw-tnat.cambridge.arm.com ([217.140.96.21]:54638 "EHLO
+Received: from fw-tnat.cambridge.arm.com ([217.140.96.21]:50315 "EHLO
 	cam-smtp0.cambridge.arm.com" rhost-flags-OK-OK-OK-FAIL)
-	by vger.kernel.org with ESMTP id S1755830AbaIWUBx (ORCPT
+	by vger.kernel.org with ESMTP id S1751307AbaIWUE5 (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 23 Sep 2014 16:01:53 -0400
+	Tue, 23 Sep 2014 16:04:57 -0400
 From: Liviu Dudau <Liviu.Dudau@arm.com>
-Subject: [PATCH v12 06/12] PCI: Create pci_host_bridge before its associated bus in pci_create_root_bus.
-Date: Tue, 23 Sep 2014 20:01:08 +0100
-Message-ID: <1411498874-9864-7-git-send-email-Liviu.Dudau@arm.com>
-In-Reply-To: <1411498874-9864-1-git-send-email-Liviu.Dudau@arm.com>
-References: <1411498874-9864-1-git-send-email-Liviu.Dudau@arm.com>
+Subject: [PATCH v12 00/12] Support for creating generic PCI host bridges from DT
+Date: Tue, 23 Sep 2014 20:01:02 +0100
+Message-ID: <1411498874-9864-1-git-send-email-Liviu.Dudau@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Bjorn Helgaas <bhelgaas@google.com>, Arnd Bergmann <arnd@arndb.de>, Rob Herring <robh+dt@kernel.org>, Jason Gunthorpe <jgunthorpe@obsidianresearch.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <Will.Deacon@arm.com>, Russell King <linux@arm.linux.org.uk>, linux-pci <linux-pci@vger.kernel.org>, Linus Walleij <linus.walleij@linaro.org>
 Cc: Tanmay Inamdar <tinamdar@apm.com>, Grant Likely <grant.likely@secretlab.ca>, Sinan Kaya <okaya@codeaurora.org>, Jingoo Han <jg1.han@samsung.com>, Kukjin Kim <kgene.kim@samsung.com>, Suravee Suthikulanit <suravee.suthikulpanit@amd.com>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Device Tree ML <devicetree@vger.kernel.org>, LAKML <linux-arm-kernel@lists.infradead.org>
-Message-ID: <20140923190108.26uZNL6NV5WglOevDPsA_83qFEU5ulkzhIHu0R2z92c@z>
+Message-ID: <20140923190102.4T8V5sHeMOM3a7_FRNMHkd0t-2ubbNv8X-AWehfHEYY@z>
 
-Before commit 7b5436635800 the pci_host_bridge was created before the root bus.
-As that commit has added a needless dependency on the bus for pci_alloc_host_bridge()
-the creation order has been changed for no good reason. Revert the order of
-creation as we are going to depend on the pci_host_bridge structure to retrieve the
-domain number of the root bus.
+This is my version 12 of the attempt at adding support for generic PCI host
+bridge controllers that make use of device tree information to
+configure themselves. It contains cleanups to address comments posted for v11.
 
-Cc: Bjorn Helgaas <bhelgaas@google.com>
-Signed-off-by: Liviu Dudau <Liviu.Dudau@arm.com>
-Acked-by: Grant Likely <grant.likely@linaro.org>
-Reviewed-by: Catalin Marinas <catalin.marinas@arm.com>
-Tested-by: Tanmay Inamdar <tinamdar@apm.com>
----
- drivers/pci/probe.c | 32 +++++++++++++++++---------------
- 1 file changed, 17 insertions(+), 15 deletions(-)
+Bjorn intends to pull this series into his tree and send it to linux-next if
+no major issues arise.
 
-diff --git a/drivers/pci/probe.c b/drivers/pci/probe.c
-index e3cf8a2..5ff72ec 100644
---- a/drivers/pci/probe.c
-+++ b/drivers/pci/probe.c
-@@ -515,7 +515,7 @@ static void pci_release_host_bridge_dev(struct device *dev)
- 	kfree(bridge);
- }
- 
--static struct pci_host_bridge *pci_alloc_host_bridge(struct pci_bus *b)
-+static struct pci_host_bridge *pci_alloc_host_bridge(void)
- {
- 	struct pci_host_bridge *bridge;
- 
-@@ -524,7 +524,8 @@ static struct pci_host_bridge *pci_alloc_host_bridge(struct pci_bus *b)
- 		return NULL;
- 
- 	INIT_LIST_HEAD(&bridge->windows);
--	bridge->bus = b;
-+	bridge->dev.release = pci_release_host_bridge_dev;
-+
- 	return bridge;
- }
- 
-@@ -1761,9 +1762,15 @@ struct pci_bus *pci_create_root_bus(struct device *parent, int bus,
- 	char bus_addr[64];
- 	char *fmt;
- 
-+	bridge = pci_alloc_host_bridge();
-+	if (!bridge)
-+		return NULL;
-+
-+	bridge->dev.parent = parent;
-+
- 	b = pci_alloc_bus();
- 	if (!b)
--		return NULL;
-+		goto err_out;
- 
- 	b->sysdata = sysdata;
- 	b->ops = ops;
-@@ -1772,26 +1779,19 @@ struct pci_bus *pci_create_root_bus(struct device *parent, int bus,
- 	if (b2) {
- 		/* If we already got to this bus through a different bridge, ignore it */
- 		dev_dbg(&b2->dev, "bus already known\n");
--		goto err_out;
-+		goto err_bus_out;
- 	}
- 
--	bridge = pci_alloc_host_bridge(b);
--	if (!bridge)
--		goto err_out;
--
--	bridge->dev.parent = parent;
--	bridge->dev.release = pci_release_host_bridge_dev;
-+	bridge->bus = b;
- 	dev_set_name(&bridge->dev, "pci%04x:%02x", pci_domain_nr(b), bus);
- 	error = pcibios_root_bridge_prepare(bridge);
--	if (error) {
--		kfree(bridge);
-+	if (error)
- 		goto err_out;
--	}
- 
- 	error = device_register(&bridge->dev);
- 	if (error) {
- 		put_device(&bridge->dev);
--		goto err_out;
-+		goto err_bus_out;
- 	}
- 	b->bridge = get_device(&bridge->dev);
- 	device_enable_async_suspend(b->bridge);
-@@ -1848,8 +1848,10 @@ struct pci_bus *pci_create_root_bus(struct device *parent, int bus,
- class_dev_reg_err:
- 	put_device(&bridge->dev);
- 	device_unregister(&bridge->dev);
--err_out:
-+err_bus_out:
- 	kfree(b);
-+err_out:
-+	kfree(bridge);
- 	return NULL;
- }
- 
+
+Changes from v11:
+ - fixed race condition in pci_register_io_range() and bug where the function
+   would return with the io_range_lock held.
+ - split patch 4/10 that fixes the convertion of IO ranges into resources into
+   two patches. The new 4/12 just moves the function into drivers/of/address.c
+   and 5/12 makes the functional changes.
+ - Added Linus Walleij ACK on 5/12 for the arch/arm/mach-integrator/pci_v3.c
+   part
+ - Removed the old PCI domain number parser and allocator and split the code
+   into two independent functions: 'int pci_get_new_domain_nr(void)' will
+   always return a new domain number when called while 'of_get_pci_domain_nr()'
+   will parse the DT and try to find a property of the given node called
+   'linux,pci-domain'. The property value, if found, will be truncated to
+   16-bit value and returned, or a negative value if an error occurs.
+ - Made the io_base pointer parameter that gets passed to
+   of_pci_get_host_bridge_resources() optional (thanks Robert Richter) and
+   be explicit when detecting multiple IO ranges about the device used.
+ - Fixed comments on commits to explain who uses pci_remap_iospace() as well
+   as making clear that the value used inside the function is a virtual address
+   and not a physical one. Also be explicit in the warning generated when
+   architectures without memory mapped IO support make use of this function
+ - Merged the arm64 patch into this series as Bjorn is going to pull it
+   into his tree.
+
+Changes from v10:
+ - Addressed Lorenzo's comments wrt io_base not being initialised inside the
+   function that is supposed to modify it and also updated the comments to
+   explain the values returned by the function
+ - Updated pci_domain_nr helper function to split the allocation of the domain
+   number from the parsing of the device tree to find maximum defined domain
+   value
+ - Fixed up the commit author for commit 6/10
+
+Changes from v9:
+ - Moved the DT parsing and assigning of IRQ patch from this series into arm64
+   specific patch. This keeps existing pcibios_add_device() unchanged and adds
+   an arch-specific version that can later be expanded to cater for dma_ops.
+ - Incorporated the fix for users of of_pci_range_to_resources() into the patch
+   that changes the behaviour for easier bisection.
+ - Added fixes for tegra and rcar host drivers in their usage of
+   of_pci_range_to_resources()
+ - Broke up of_create_pci_host_bridge() to remove the callback function. The
+   function left has been renamed into of_pci_get_host_bridge_resources(). The
+   added benefit of that is that the architectural hook for fixing up host bridge
+   resources now dissappears.
+ - Reshuffled the way pgprot_device gets introduced. It is now part of the patch
+   that adds pci_remap_iospace() function. The arm64 specific override is moved
+   into the arm64 patchset.
+ - Added a patch to pci_scan_root_bus() to assign unassigned resources if PCI
+   flags are not PCI_PROBE_ONLY
+
+v11 thread here: https://lkml.org/lkml/2014/9/17/732
+v10 thread here: https://lkml.org/lkml/2014/9/8/333
+v9 thread here, with links to previous threads: https://lkml.org/lkml/2014/8/12/361
+
+Best regards,
+Liviu
+
+Catalin Marinas (1):
+  PCI: Introduce generic domain handling for PCI busses.
+
+Liviu Dudau (11):
+  Fix ioport_map() for !CONFIG_GENERIC_IOMAP cases.
+  PCI: Introduce helper functions to deal with PCI I/O ranges.
+  ARM: Define PCI_IOBASE as the base of virtual PCI IO space.
+  PCI: OF: Move of_pci_range_to_resources() into address.c
+  PCI: OF: Fix the conversion of IO ranges into IO resources.
+  PCI: Create pci_host_bridge before its associated bus in pci_create_root_bus.
+  PCI: OF: Introduce helper function for retrieving PCI domain numbers
+  OF: PCI: Add support for parsing PCI host bridge resources from DT
+  PCI: Assign unassigned bus resources in pci_scan_root_bus()
+  PCI: Introduce pci_remap_iospace() for remapping PCI I/O bus resources into CPU space
+  arm64: Add architectural support for PCIe
+
+ arch/arm/include/asm/io.h         |   1 +
+ arch/arm/mach-integrator/pci_v3.c |  23 +++---
+ arch/arm64/Kconfig                |  22 +++++-
+ arch/arm64/include/asm/Kbuild     |   1 +
+ arch/arm64/include/asm/io.h       |   3 +-
+ arch/arm64/include/asm/pci.h      |  37 +++++++++
+ arch/arm64/include/asm/pgtable.h  |   2 +
+ arch/arm64/kernel/Makefile        |   1 +
+ arch/arm64/kernel/pci.c           |  70 +++++++++++++++++
+ drivers/of/address.c              | 155 ++++++++++++++++++++++++++++++++++++++
+ drivers/of/of_pci.c               | 140 ++++++++++++++++++++++++++++++++++
+ drivers/pci/host/pci-tegra.c      |  10 ++-
+ drivers/pci/host/pcie-rcar.c      |  21 ++++--
+ drivers/pci/pci.c                 |  43 +++++++++++
+ drivers/pci/probe.c               |  46 ++++++-----
+ include/asm-generic/io.h          |   2 +-
+ include/asm-generic/pgtable.h     |   4 +
+ include/linux/of_address.h        |  22 +++---
+ include/linux/of_pci.h            |  18 +++++
+ include/linux/pci.h               |  27 +++++++
+ 20 files changed, 596 insertions(+), 52 deletions(-)
+ create mode 100644 arch/arm64/include/asm/pci.h
+ create mode 100644 arch/arm64/kernel/pci.c
+
 -- 
 2.1.0
 
