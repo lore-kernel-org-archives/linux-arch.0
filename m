@@ -1,79 +1,43 @@
-From: Rob Herring <robherring2@gmail.com>
-Subject: Re: [PATCH v11 08/10] OF: PCI: Add support for parsing PCI host
- bridge resources from DT
-Date: Mon, 22 Sep 2014 17:11:29 -0500
-Message-ID: <CAL_JsqKw-KSdDGgFuHytONKA-53-z+QtQd+0JzLhW+Xs0+knsQ@mail.gmail.com>
-References: <1411003825-21521-1-git-send-email-Liviu.Dudau@arm.com>
- <1411003825-21521-9-git-send-email-Liviu.Dudau@arm.com> <20140919210610.GI19374@google.com>
- <541CCA36.8010606@gmail.com> <20140922175505.GH1994@e106497-lin.cambridge.arm.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH v11 08/10] OF: PCI: Add support for parsing PCI host bridge resources from DT
+Date: Tue, 23 Sep 2014 09:56:37 +0200
+Message-ID: <8687285.EH4RPBeOB5@wuerfel>
+References: <1411003825-21521-1-git-send-email-Liviu.Dudau@arm.com> <20140922093228.GA20256@rric.localhost> <20140922114317.GN1994@e106497-lin.cambridge.arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-lb0-f176.google.com ([209.85.217.176]:54157 "EHLO
-	mail-lb0-f176.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754487AbaIVWLv (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 22 Sep 2014 18:11:51 -0400
-In-Reply-To: <20140922175505.GH1994@e106497-lin.cambridge.arm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Liviu Dudau <Liviu.Dudau@arm.com>
-Cc: Bjorn Helgaas <bhelgaas@google.com>, Arnd Bergmann <arnd@arndb.de>, Rob Herring <robh+dt@kernel.org>, Jason Gunthorpe <jgunthorpe@obsidianresearch.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Catalin Marinas <Catalin.Marinas@arm.com>, Will Deacon <Will.Deacon@arm.com>, Russell King <linux@arm.linux.org.uk>, linux-pci <linux-pci@vger.kernel.org>, Linus Walleij <linus.walleij@linaro.org>, Tanmay Inamdar <tinamdar@apm.com>, Grant Likely <grant.likely@secretlab.ca>, Sinan Kaya <okaya@codeaurora.org>, Jingoo Han <jg1.han@samsung.com>, Kukjin Kim <kgene.kim@samsung.com>, Suravee Suthikulanit <suravee.suthikulpanit@amd.com>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Device Tree ML <devicetree@vger.kernel.org>, LAKML <linux-arm-kernel@lists.infradead.org>, "grant.likely@linaro.org" <grant.likely@linaro.org>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7Bit
+Return-path: <linux-pci-owner@vger.kernel.org>
+In-Reply-To: <20140922114317.GN1994@e106497-lin.cambridge.arm.com>
+Sender: linux-pci-owner@vger.kernel.org
+To: linux-arm-kernel@lists.infradead.org
+Cc: Liviu Dudau <Liviu.Dudau@arm.com>, Robert Richter <rric@kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linux-pci <linux-pci@vger.kernel.org>, Linus Walleij <linus.walleij@linaro.org>, Will Deacon <Will.Deacon@arm.com>, Grant Likely <grant.likely@secretlab.ca>, Tanmay Inamdar <tinamdar@apm.com>, linux-arch <linux-arch@vger.kernel.org>, Kukjin Kim <kgene.kim@samsung.com>, Russell King <linux@arm.linux.org.uk>, Jingoo Han <jg1.han@samsung.com>, Jason Gunthorpe <jgunthorpe@obsidianresearch.com>, Catalin Marinas <Catalin.Marinas@arm.com>, "grant.likely@linaro.org" <grant.likely@linaro.org>, Device Tree ML <devicetree@vger.kernel.org>, Rob Herring <robh+dt@kernel.org>, Bjorn Helgaas <bhelgaas@google.com>, Sinan Kaya <okaya@codeaurora.org>, Sunil Goutham <sunil.goutham@caviumnetworks.com>, LKML <linux-kernel@vger.kernel.org>, Suravee Suthikulanit <surav>
+List-Id: linux-arch.vger.kernel.org
 
-On Mon, Sep 22, 2014 at 12:55 PM, Liviu Dudau <Liviu.Dudau@arm.com> wrote:
-> On Sat, Sep 20, 2014 at 01:28:38AM +0100, Rob Herring wrote:
->> On 09/19/2014 04:06 PM, Bjorn Helgaas wrote:
->> > On Thu, Sep 18, 2014 at 02:30:23AM +0100, Liviu Dudau wrote:
->> >> Provide a function to parse the PCI DT ranges that can be used to
->> >> create a pci_host_bridge structure together with its associated
->> >> bus.
->> >>
->> >> Cc: Bjorn Helgaas <bhelgaas@google.com>
->> >> Cc: Arnd Bergmann <arnd@arndb.de>
->> >> Cc: Grant Likely <grant.likely@linaro.org>
->> >> Cc: Rob Herring <robh+dt@kernel.org>
->> >> Cc: Catalin Marinas <catalin.marinas@arm.com>
->> >> Signed-off-by: Liviu Dudau <Liviu.Dudau@arm.com>
->> >> ---
->>
->> [...]
->>
->> >> +int of_pci_get_host_bridge_resources(struct device_node *dev,
->> >> +                  unsigned char busno, unsigned char bus_max,
->> >> +                  struct list_head *resources, resource_size_t *io_base)
->> >> +{
->> >> +  struct resource *res;
->> >> +  struct resource *bus_range;
->> >> +  struct of_pci_range range;
->> >> +  struct of_pci_range_parser parser;
->> >> +  char range_type[4];
->> >> +  int err;
->> >> +
->> >> +  if (!io_base)
->> >> +          return -EINVAL;
->> >> +  *io_base = OF_BAD_ADDR;
->> >> +
->> >> +  bus_range = kzalloc(sizeof(*bus_range), GFP_KERNEL);
->>
->> This function does a lot of kalloc's but there is not an easy way to
->> undo those allocations. Hot unplug of a host bridge or probe error
->> handling would leak memory.
->>
->> You could pass in struct device and use the devm_ variant (also
->> addressing Bjorn's comment), but not having an uninit/remove function
->> make what clean-up drivers have to do error prone. For example, on
->> uninit a driver needs to call pci_free_resource_list.
->
-> If the function fails to parse the ranges for whatever reason it will
-> call pci_free_resource_list on the resources that have been added already
-> and it will clean up. If it is successful, then it is the job of the caller
-> to free the list, as mentioned in the comment associated with the function.
->
-> The reason why I am reluctant to use devm_ here is that the ranges are only
-> parsed here, no filtering is applied. Architectures and/or host bridge
-> drivers can/could impose additional restrictions to the list before passing
-> it to pci_scan_root_bus() for example.
+On Monday 22 September 2014 12:43:17 Liviu Dudau wrote:
+> > 
+> > From e798af4fc2f664d1aff7e863489b8298f90e716e Mon Sep 17 00:00:00 2001
+> > From: Robert Richter <rrichter@cavium.com>
+> > Date: Mon, 22 Sep 2014 10:46:01 +0200
+> > Subject: [PATCH] OF: PCI: Fix creation of mem-mapped pci host bridges
+> > 
+> > The pci host bridge was not created if io_base was not set when
+> > calling of_pci_get_host_bridge_resources(). This is esp. the case for
+> > mem-mapped io (IORESOURCE_MEM). This patch fixes this. Function
+> > parameter io_base is optional now.
+> 
+> I think the message is misleading. What you want to do is make io_base
+> optional for the case where the PCI host bridge only expects to have only
+> IORESOURCE_MEM ranges and doesn't care about IORESOURCE_IO ones.
+> 
+> As I'm going to touch this area again to address a comment from Bjorn,
+> do you mind if I roll this patch into mine with your Signed-off-by and
+> the mention that you have made io_base optional?
 
-Okay, as long as the caller has a single clean-up responsibility, I
-guess it is fine.
+I think the best way to deal with this is to move the check for 
+io_base down into the place where it is used: As long as the DT only
+specifies IORESOURCE_MEM windows, we don't need to look at io_base,
+but if the host controller driver does not support IORESOURCE_IO
+while the DT specifies it, I guess it would be nice to return an
+error.
 
-Rob
+	Arnd
