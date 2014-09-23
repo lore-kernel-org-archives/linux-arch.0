@@ -1,37 +1,50 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ie0-f169.google.com ([209.85.223.169]:36466 "EHLO
-	mail-ie0-f169.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932300AbaIWVJk (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 23 Sep 2014 17:09:40 -0400
-Received: by mail-ie0-f169.google.com with SMTP id rp18so8305050iec.14
-        for <linux-arch@vger.kernel.org>; Tue, 23 Sep 2014 14:09:39 -0700 (PDT)
-Date: Tue, 23 Sep 2014 15:09:36 -0600
-From: Bjorn Helgaas <bhelgaas@google.com>
-Subject: Re: [PATCH v1 00/21] Use MSI chip to configure MSI/MSI-X in all
- platforms
-Message-ID: <20140923210936.GC27117@google.com>
-References: <1409911806-10519-1-git-send-email-wangyijing@huawei.com>
+Received: from www.linutronix.de ([62.245.132.108]:50257 "EHLO
+	Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756593AbaIWVsE (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 23 Sep 2014 17:48:04 -0400
+Date: Tue, 23 Sep 2014 23:47:59 +0200 (CEST)
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: Re: [PATCH v3 01/29] asm-generic: add generic futex for
+ !CONFIG_SMP
+In-Reply-To: <CAFiDJ5-b_P7aWFXYP4GcgTUb3t_j6dZCsjeGZwVUs+7qo0v-GA@mail.gmail.com>
+Message-ID: <alpine.DEB.2.10.1409232335500.4604@nanos>
+References: <1410168160-3624-1-git-send-email-lftan@altera.com> <1410168160-3624-2-git-send-email-lftan@altera.com> <CAFiDJ5-b_P7aWFXYP4GcgTUb3t_j6dZCsjeGZwVUs+7qo0v-GA@mail.gmail.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1409911806-10519-1-git-send-email-wangyijing@huawei.com>
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Yijing Wang <wangyijing@huawei.com>
-Cc: Xinwei Hu <huxinwei@huawei.com>, Wuyun <wuyun.wu@huawei.com>, linux-pci@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Russell King <linux@arm.linux.org.uk>, linux-arch@vger.kernel.org, arnab.basu@freescale.com, Bharat.Bhushan@freescale.com, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, Thomas Gleixner <tglx@linutronix.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, xen-devel@lists.xenproject.org, Joerg Roedel <joro@8bytes.org>, iommu@lists.linux-foundation.org, linux-mips@linux-mips.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, Sebastian Ott <sebott@linux.vnet.ibm.com>, Tony Luck <tony.luck@intel.com>, linux-ia64@vger.kernel.org, "David S. Miller" <davem@davemloft.net>, sparclinux@vger.kernel.org, Chris Metcalf <cmetcalf@tilera.com>, Ralf Baechle <ralf@linux-mips.org>
-Message-ID: <20140923210936.-Jm-H3fOwlu7_sTgbeBGzSI5rJWxLCdpjamyAVS5MEc@z>
+To: "LF.Tan" <lftan.linux@gmail.com>
+Cc: Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Ley Foon Tan <lftan@altera.com>, Chung-Lin Tang <cltang@codesourcery.com>
+Message-ID: <20140923214759.Qgm82WcGpYpT7nAJ3m_VAz15o1geod0YnPgXbcqpgwA@z>
 
-On Fri, Sep 05, 2014 at 06:09:45PM +0800, Yijing Wang wrote:
-> This series is based Bjorn's pci-next branch + Alexander Gordeev's two patches
-> "Remove arch_msi_check_device()" link: https://lkml.org/lkml/2014/7/12/41
-> 
-> Currently, there are a lot of weak arch functions in MSI code.
-> Thierry Reding Introduced MSI chip framework to configure MSI/MSI-X in arm.
-> This series use MSI chip framework to refactor MSI code across all platforms
-> to eliminate weak arch functions. It has been tested fine in x86(with or without
-> irq remap).
+On Tue, 23 Sep 2014, LF.Tan wrote:
+> On Mon, Sep 8, 2014 at 5:22 PM, Ley Foon Tan <lftan@altera.com> wrote:
+> > Follow m68k futex implementation for !CONFIG_SMP.
 
-I see you plan some updates, so I'll look for a v2 posting after v3.17 releases.
-It will be great to get rid of some of those weak functions!
+Great. Follow arch/random implementation blindly and copy all the bugs
+in it.
 
-Bjorn
+> > +static inline int
+> > +futex_atomic_cmpxchg_inatomic(u32 *uval, u32 __user *uaddr,
+> > +                             u32 oldval, u32 newval)
+> > +{
+> > +       u32 val;
+> > +
+> > +       if (unlikely(get_user(val, uaddr) != 0))
+> > +               return -EFAULT;
+> > +
+> > +       if (val == oldval && unlikely(put_user(newval, uaddr) != 0))
+> > +               return -EFAULT;
+> > +
+> > +       *uval = val;
+> > +
+> > +       return 0;
+> > +}
+
+Care to explain how this works reliably and resembles proper cmpxchg
+semantics under all circumstances?
+
+Thanks,
+
+	tglx
