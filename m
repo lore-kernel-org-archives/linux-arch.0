@@ -1,131 +1,26 @@
-From: "LF.Tan" <lftan.linux@gmail.com>
+From: Arnd Bergmann <arnd@arndb.de>
 Subject: Re: [PATCH v3 01/29] asm-generic: add generic futex for !CONFIG_SMP
-Date: Tue, 23 Sep 2014 18:20:08 +0800
-Message-ID: <CAFiDJ5-b_P7aWFXYP4GcgTUb3t_j6dZCsjeGZwVUs+7qo0v-GA@mail.gmail.com>
-References: <1410168160-3624-1-git-send-email-lftan@altera.com>
-	<1410168160-3624-2-git-send-email-lftan@altera.com>
+Date: Tue, 23 Sep 2014 12:40:54 +0200
+Message-ID: <13000968.l0laEvMsix@wuerfel>
+References: <1410168160-3624-1-git-send-email-lftan@altera.com> <1410168160-3624-2-git-send-email-lftan@altera.com> <CAFiDJ5-b_P7aWFXYP4GcgTUb3t_j6dZCsjeGZwVUs+7qo0v-GA@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1410168160-3624-2-git-send-email-lftan@altera.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>
-Cc: Ley Foon Tan <lftan@altera.com>, LeyFoon Tan <lftan.linux@gmail.com>, Chung-Lin Tang <cltang@codesourcery.com>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7Bit
+Return-path: <linux-doc-owner@vger.kernel.org>
+In-Reply-To: <CAFiDJ5-b_P7aWFXYP4GcgTUb3t_j6dZCsjeGZwVUs+7qo0v-GA@mail.gmail.com>
+Sender: linux-doc-owner@vger.kernel.org
+To: "LF.Tan" <lftan.linux@gmail.com>
+Cc: Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Ley Foon Tan <lftan@altera.com>, Chung-Lin Tang <cltang@codesourcery.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, Sep 8, 2014 at 5:22 PM, Ley Foon Tan <lftan@altera.com> wrote:
-> Follow m68k futex implementation for !CONFIG_SMP.
->
-> Signed-off-by: Ley Foon Tan <lftan@altera.com>
-> ---
->  include/asm-generic/futex.h | 82 +++++++++++++++++++++++++++++++++++++++++++++
->  1 file changed, 82 insertions(+)
->
-> diff --git a/include/asm-generic/futex.h b/include/asm-generic/futex.h
-> index 01f227e..f5650a5 100644
-> --- a/include/asm-generic/futex.h
-> +++ b/include/asm-generic/futex.h
-> @@ -5,6 +5,87 @@
->  #include <linux/uaccess.h>
->  #include <asm/errno.h>
->
-> +#ifndef CONFIG_SMP
-> +static inline int
-> +futex_atomic_op_inuser(int encoded_op, u32 __user *uaddr)
-> +{
-> +       int op = (encoded_op >> 28) & 7;
-> +       int cmp = (encoded_op >> 24) & 15;
-> +       int oparg = (encoded_op << 8) >> 20;
-> +       int cmparg = (encoded_op << 20) >> 20;
-> +       int oldval, ret;
-> +       u32 tmp;
-> +
-> +       if (encoded_op & (FUTEX_OP_OPARG_SHIFT << 28))
-> +               oparg = 1 << oparg;
-> +
-> +       pagefault_disable();    /* implies preempt_disable() */
-> +
-> +       ret = -EFAULT;
-> +       if (unlikely(get_user(oldval, uaddr) != 0))
-> +               goto out_pagefault_enable;
-> +
-> +       ret = 0;
-> +       tmp = oldval;
-> +
-> +       switch (op) {
-> +       case FUTEX_OP_SET:
-> +               tmp = oparg;
-> +               break;
-> +       case FUTEX_OP_ADD:
-> +               tmp += oparg;
-> +               break;
-> +       case FUTEX_OP_OR:
-> +               tmp |= oparg;
-> +               break;
-> +       case FUTEX_OP_ANDN:
-> +               tmp &= ~oparg;
-> +               break;
-> +       case FUTEX_OP_XOR:
-> +               tmp ^= oparg;
-> +               break;
-> +       default:
-> +               ret = -ENOSYS;
-> +       }
-> +
-> +       if (ret == 0 && unlikely(put_user(tmp, uaddr) != 0))
-> +               ret = -EFAULT;
-> +
-> +out_pagefault_enable:
-> +       pagefault_enable();     /* subsumes preempt_enable() */
-> +
-> +       if (ret == 0) {
-> +               switch (cmp) {
-> +               case FUTEX_OP_CMP_EQ: ret = (oldval == cmparg); break;
-> +               case FUTEX_OP_CMP_NE: ret = (oldval != cmparg); break;
-> +               case FUTEX_OP_CMP_LT: ret = (oldval < cmparg); break;
-> +               case FUTEX_OP_CMP_GE: ret = (oldval >= cmparg); break;
-> +               case FUTEX_OP_CMP_LE: ret = (oldval <= cmparg); break;
-> +               case FUTEX_OP_CMP_GT: ret = (oldval > cmparg); break;
-> +               default: ret = -ENOSYS;
-> +               }
-> +       }
-> +       return ret;
-> +}
-> +
-> +static inline int
-> +futex_atomic_cmpxchg_inatomic(u32 *uval, u32 __user *uaddr,
-> +                             u32 oldval, u32 newval)
-> +{
-> +       u32 val;
-> +
-> +       if (unlikely(get_user(val, uaddr) != 0))
-> +               return -EFAULT;
-> +
-> +       if (val == oldval && unlikely(put_user(newval, uaddr) != 0))
-> +               return -EFAULT;
-> +
-> +       *uval = val;
-> +
-> +       return 0;
-> +}
-> +
-> +#else
->  static inline int
->  futex_atomic_op_inuser (int encoded_op, u32 __user *uaddr)
->  {
-> @@ -54,4 +135,5 @@ futex_atomic_cmpxchg_inatomic(u32 *uval, u32 __user *uaddr,
->         return -ENOSYS;
->  }
->
-> +#endif /* CONFIG_SMP */
->  #endif
-> --
-> 1.8.2.1
->
+On Tuesday 23 September 2014 18:20:08 LF.Tan wrote:
+> Hi Arnd
+> 
+> Are you okay with this generic futex in asm-generic?
+> 
 
-Hi Arnd
+Yes, this looks good. Remind me again who need this, would it make
+sense to merge this through an architecture-specific tree for
+whichever architecture can benefit from it?
 
-Are you okay with this generic futex in asm-generic?
-
-Regards
-Ley Foon
+	Arnd
