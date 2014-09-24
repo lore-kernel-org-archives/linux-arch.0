@@ -1,7 +1,7 @@
 From: Will Deacon <will.deacon@arm.com>
-Subject: [PATCH v3 14/17] tile: io: implement dummy relaxed accessor macros for writes
-Date: Wed, 24 Sep 2014 18:17:33 +0100
-Message-ID: <1411579056-16966-15-git-send-email-will.deacon@arm.com>
+Subject: [PATCH v3 11/17] parisc: io: implement dummy relaxed accessor macros for writes
+Date: Wed, 24 Sep 2014 18:17:30 +0100
+Message-ID: <1411579056-16966-12-git-send-email-will.deacon@arm.com>
 References: <1411579056-16966-1-git-send-email-will.deacon@arm.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1411579056-16966-1-git-send-email-will.deacon@arm.com>
@@ -14,29 +14,37 @@ write{b,w,l,q}_relaxed are implemented by some architectures in order to
 permit memory-mapped I/O accesses with weaker barrier semantics than the
 non-relaxed variants.
 
-This patch adds dummy macros for the write accessors to tile, in the
+This patch adds dummy macros for the write accessors to parisc, in the
 same vein as the dummy definitions for the relaxed read accessors.
 
-Acked-by: Chris Metcalf <cmetcalf@tilera.com>
+Cc: Helge Deller <deller@gmx.de>
 Signed-off-by: Will Deacon <will.deacon@arm.com>
 ---
- arch/tile/include/asm/io.h | 4 ++++
- 1 file changed, 4 insertions(+)
+ arch/parisc/include/asm/io.h | 12 ++++++++----
+ 1 file changed, 8 insertions(+), 4 deletions(-)
 
-diff --git a/arch/tile/include/asm/io.h b/arch/tile/include/asm/io.h
-index 9fe434969fab..d372641054d9 100644
---- a/arch/tile/include/asm/io.h
-+++ b/arch/tile/include/asm/io.h
-@@ -241,6 +241,10 @@ static inline void writeq(u64 val, unsigned long addr)
- #define readw_relaxed readw
- #define readl_relaxed readl
- #define readq_relaxed readq
-+#define writeb_relaxed writeb
-+#define writew_relaxed writew
-+#define writel_relaxed writel
-+#define writeq_relaxed writeq
+diff --git a/arch/parisc/include/asm/io.h b/arch/parisc/include/asm/io.h
+index 1f6d2ae7aba5..8cd0abf28ffb 100644
+--- a/arch/parisc/include/asm/io.h
++++ b/arch/parisc/include/asm/io.h
+@@ -217,10 +217,14 @@ static inline void writeq(unsigned long long q, volatile void __iomem *addr)
+ #define writel	writel
+ #define writeq	writeq
  
- #define ioread8 readb
- #define ioread16 readw
+-#define readb_relaxed(addr) readb(addr)
+-#define readw_relaxed(addr) readw(addr)
+-#define readl_relaxed(addr) readl(addr)
+-#define readq_relaxed(addr) readq(addr)
++#define readb_relaxed(addr)	readb(addr)
++#define readw_relaxed(addr)	readw(addr)
++#define readl_relaxed(addr)	readl(addr)
++#define readq_relaxed(addr)	readq(addr)
++#define writeb_relaxed(b, addr)	writeb(b, addr)
++#define writew_relaxed(w, addr)	writew(w, addr)
++#define writel_relaxed(l, addr)	writel(l, addr)
++#define writeq_relaxed(q, addr)	writeq(q, addr)
+ 
+ #define mmiowb() do { } while (0)
+ 
 -- 
 2.1.0
