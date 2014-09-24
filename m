@@ -1,49 +1,49 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:41159 "EHLO
+Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:41657 "EHLO
 	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1753839AbaIXQy3 (ORCPT
+	by vger.kernel.org with ESMTP id S1751883AbaIXRUg (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 24 Sep 2014 12:54:29 -0400
-Date: Wed, 24 Sep 2014 17:54:06 +0100
+	Wed, 24 Sep 2014 13:20:36 -0400
 From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [PATCH 00/20] arch atomic 'cleanup'
-Message-ID: <20140924165405.GJ16244@arm.com>
-References: <20140508135840.956784204@infradead.org>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20140508135840.956784204@infradead.org>
+Subject: [PATCH v3 10/17] mn10300: io: implement dummy relaxed accessor macros for writes
+Date: Wed, 24 Sep 2014 18:17:29 +0100
+Message-ID: <1411579056-16966-11-git-send-email-will.deacon@arm.com>
+In-Reply-To: <1411579056-16966-1-git-send-email-will.deacon@arm.com>
+References: <1411579056-16966-1-git-send-email-will.deacon@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "torvalds@linux-foundation.org" <torvalds@linux-foundation.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>
-Message-ID: <20140924165406.nspS5H10HVtcds7BqusU9yZX9VwPZO7kxyzHVw8EU5k@z>
+To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Cc: arnd@arndb.de, benh@kernel.crashing.org, chris@zankel.net, cmetcalf@tilera.com, davem@davemloft.net, deller@gmx.de, dhowells@redhat.com, geert@linux-m68k.org, heiko.carstens@de.ibm.com, hpa@zytor.com, jcmvbkbc@gmail.com, jesper.nilsson@axis.com, mingo@redhat.com, monstr@monstr.eu, paulmck@linux.vnet.ibm.com, rdunlap@infradead.org, sam@ravnborg.org, schwidefsky@de.ibm.com, starvik@axis.com, takata@linux-m32r.org, tglx@linutronix.de, tony.luck@intel.com, daniel.thompson@linaro.org, broonie@linaro.org, linux@arm.linux.org.uk, Will Deacon <will.deacon@arm.com>
+Message-ID: <20140924171729.CdKI3Z4gfjzWiit_MdsbiCX9vusGkzsg0_OTdRaDl1c@z>
 
-Hi Peter,
+write{b,w,l}_relaxed are implemented by some architectures in order to
+permit memory-mapped I/O accesses with weaker barrier semantics than the
+non-relaxed variants.
 
-On Thu, May 08, 2014 at 02:58:40PM +0100, Peter Zijlstra wrote:
-> This series continues the arch atomic rework started with the smp_mb__
-> interface cleanup.
-> 
-> In this series we (mostly) reduce the atomic implementations by eliminating
-> repetition through use of CPP macros.
-> 
-> A future series will use these macros to implement more atomic ops. With these
-> macros we can end up with more atomic ops while the total LoC still shrinks.
-> 
-> Furthermore, rewrite the asm-generic/atomic implementations to require less and
-> provide more.
-> 
-> This series is compile tested on a number of archs, but only boot tested on
-> x86_64.
+This patch adds dummy macros for the write accessors to mn10300, in the
+same vein as the dummy definitions for the relaxed read accessors.
 
-What's the status on this series? I'm currently fleshing out an extension to
-the atomic API that allows more flexible acquire/release semantics and it
-doesn't make sense for me to copy-paste a bunch of code when I could build
-it on top of this instead.
+Cc: David Howells <dhowells@redhat.com>
+Signed-off-by: Will Deacon <will.deacon@arm.com>
+---
+ arch/mn10300/include/asm/io.h | 4 ++++
+ 1 file changed, 4 insertions(+)
 
-Also, do you have any other patches pending in this area? I've lost track...
+diff --git a/arch/mn10300/include/asm/io.h b/arch/mn10300/include/asm/io.h
+index e6ed0d897ccc..897ba3c12b32 100644
+--- a/arch/mn10300/include/asm/io.h
++++ b/arch/mn10300/include/asm/io.h
+@@ -67,6 +67,10 @@ static inline void writel(u32 b, volatile void __iomem *addr)
+ #define __raw_writew writew
+ #define __raw_writel writel
+ 
++#define writeb_relaxed writeb
++#define writew_relaxed writew
++#define writel_relaxed writel
++
+ /*****************************************************************************/
+ /*
+  * traditional input/output functions
+-- 
+2.1.0
 
-Cheers,
-
-Will
