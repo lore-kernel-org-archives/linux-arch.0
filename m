@@ -1,34 +1,37 @@
-From: Linus Walleij <linus.walleij@linaro.org>
-Subject: Re: [PATCH 1/2] gpio / CrystalCove: support virtual GPIO
-Date: Wed, 24 Sep 2014 13:18:52 +0200
-Message-ID: <CACRpkdaJjqs9WNcVvjsSWhzLD2QpcyR11MVm4xhm4GqB28eOCA@mail.gmail.com>
-References: <1410229968-11638-1-git-send-email-aaron.lu@intel.com>
-	<1410229968-11638-2-git-send-email-aaron.lu@intel.com>
+From: Rob Herring <robherring2@gmail.com>
+Subject: Re: [PATCH v12 00/12] Support for creating generic PCI host bridges
+ from DT
+Date: Wed, 24 Sep 2014 08:30:37 -0500
+Message-ID: <CAL_Jsq+U=1JT0qqZgb=aR66Q4NYDyzOogspOmmpsp61pE+aCUg@mail.gmail.com>
+References: <1411498874-9864-1-git-send-email-Liviu.Dudau@arm.com>
+ <20140923215435.GD27117@google.com> <20140923224810.GA32643@bart.dudau.co.uk> <CAErSpo5PBXSUeU_LP2m=9jxibmqxreL4tEeHBsc5To7D=_bAJA@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-acpi-owner@vger.kernel.org>
-In-Reply-To: <1410229968-11638-2-git-send-email-aaron.lu@intel.com>
-Sender: linux-acpi-owner@vger.kernel.org
-To: Aaron Lu <aaron.lu@intel.com>
-Cc: Alexandre Courbot <gnurou@gmail.com>, Samuel Ortiz <sameo@linux.intel.com>, Lee Jones <lee.jones@linaro.org>, Arnd Bergmann <arnd@arndb.de>, "linux-gpio@vger.kernel.org" <linux-gpio@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Jacob Pan <jacob.jun.pan@linux.intel.com>, Lejun Zhu <lejun.zhu@intel.com>, Radivoje Jovanovic <radivoje.jovanovic@intel.com>, =?UTF-8?Q?Daniel_Gl=C3=B6ckner?= <dg@emlix.com>, ACPI Devel Maling List <linux-acpi@vger.kernel.org>, "Rafael J. Wysocki" <rjw@rjwysocki.net>
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-la0-f50.google.com ([209.85.215.50]:37037 "EHLO
+	mail-la0-f50.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753828AbaIXNa7 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 24 Sep 2014 09:30:59 -0400
+In-Reply-To: <CAErSpo5PBXSUeU_LP2m=9jxibmqxreL4tEeHBsc5To7D=_bAJA@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Bjorn Helgaas <bhelgaas@google.com>
+Cc: Liviu Dudau <liviu@dudau.co.uk>, Liviu Dudau <Liviu.Dudau@arm.com>, Arnd Bergmann <arnd@arndb.de>, Rob Herring <robh+dt@kernel.org>, Jason Gunthorpe <jgunthorpe@obsidianresearch.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <Will.Deacon@arm.com>, Russell King <linux@arm.linux.org.uk>, linux-pci <linux-pci@vger.kernel.org>, Linus Walleij <linus.walleij@linaro.org>, Tanmay Inamdar <tinamdar@apm.com>, Grant Likely <grant.likely@secretlab.ca>, Sinan Kaya <okaya@codeaurora.org>, Jingoo Han <jg1.han@samsung.com>, Kukjin Kim <kgene.kim@samsung.com>, Suravee Suthikulanit <suravee.suthikulpanit@amd.com>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Device Tree ML <devicetree@vger.kernel.org>, LAKML <linux-arm-kernel@lists.infradead.org>
 
-On Tue, Sep 9, 2014 at 4:32 AM, Aaron Lu <aaron.lu@intel.com> wrote:
-
-> diff --git a/include/asm-generic/gpio.h b/include/asm-generic/gpio.h
-> index c1d4105e1c1d..383ade1a211b 100644
-> --- a/include/asm-generic/gpio.h
-> +++ b/include/asm-generic/gpio.h
-> @@ -27,7 +27,7 @@
->   */
+On Tue, Sep 23, 2014 at 6:00 PM, Bjorn Helgaas <bhelgaas@google.com> wrote:
+> On Tue, Sep 23, 2014 at 4:48 PM, Liviu Dudau <liviu@dudau.co.uk> wrote:
+>> ...
+>> While the next immediate target is converting pci-host-generic.c, pci-imx6.c
+>> and probably pcie-designware.c to my series, I would like to ask you what
+>> is your longer term plan. Now that I have got my head full of PCI code,
+>> I have some ideas but feel that meeting with you and all those involved
+>> in core PCI support would be a better venue than sending emails back and
+>> forth. When is your next plan to attend a Linux conference?
 >
->  #ifndef ARCH_NR_GPIOS
-> -#define ARCH_NR_GPIOS          256
-> +#define ARCH_NR_GPIOS          512
->  #endif
+> That would be nice.  Unfortunately, I don't know what the next
+> conference will be yet.
 
-I have applied another patch from Mika for this, so remove this
-hunk of the patch.
+Perhaps an irc meeting or Google hangout. These have been happening on
+several areas like DT and ARM KVM.
 
-Yours,
-Linus Walleij
+Rob
