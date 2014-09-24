@@ -1,60 +1,61 @@
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [PATCH v12 09/12] OF: PCI: Add support for parsing PCI host
- bridge resources from DT
-Date: Wed, 24 Sep 2014 19:01:19 +0100
-Message-ID: <20140924180119.GN16244@arm.com>
-References: <1411498874-9864-1-git-send-email-Liviu.Dudau@arm.com>
- <1411498874-9864-10-git-send-email-Liviu.Dudau@arm.com>
- <20140924164304.GF1994@e106497-lin.cambridge.arm.com>
- <20140924173109.GA20416@google.com>
- <20140924175330.GI1994@e106497-lin.cambridge.arm.com>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH 00/20] arch atomic 'cleanup'
+Date: Wed, 24 Sep 2014 20:06:23 +0200
+Message-ID: <20140924180623.GY6758@twins.programming.kicks-ass.net>
+References: <20140508135840.956784204@infradead.org>
+ <20140924165405.GJ16244@arm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:42856 "EHLO
-	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1751110AbaIXSBR (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 24 Sep 2014 14:01:17 -0400
+Received: from casper.infradead.org ([85.118.1.10]:42766 "EHLO
+	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751505AbaIXSGb (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 24 Sep 2014 14:06:31 -0400
 Content-Disposition: inline
-In-Reply-To: <20140924175330.GI1994@e106497-lin.cambridge.arm.com>
+In-Reply-To: <20140924165405.GJ16244@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Liviu Dudau <Liviu.Dudau@arm.com>
-Cc: Bjorn Helgaas <bhelgaas@google.com>, Arnd Bergmann <arnd@arndb.de>, Rob Herring <robh+dt@kernel.org>, Jason Gunthorpe <jgunthorpe@obsidianresearch.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Catalin Marinas <Catalin.Marinas@arm.com>, Russell King <linux@arm.linux.org.uk>, linux-pci <linux-pci@vger.kernel.org>, Linus Walleij <linus.walleij@linaro.org>, Tanmay Inamdar <tinamdar@apm.com>, Grant Likely <grant.likely@secretlab.ca>, Sinan Kaya <okaya@codeaurora.org>, Jingoo Han <jg1.han@samsung.com>, Kukjin Kim <kgene.kim@samsung.com>, Suravee Suthikulanit <suravee.suthikulpanit@amd.com>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Device Tree ML <devicetree@vger.kernel.org>, LAKML <linux-arm-kernel@lists.infradead.org>, "grant.likely@linaro.org" <grant.likely@linaro.org>, Robert Richter <rrichter@cavium.com>
+To: Will Deacon <will.deacon@arm.com>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "torvalds@linux-foundation.org" <torvalds@linux-foundation.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>
 
-On Wed, Sep 24, 2014 at 06:53:31PM +0100, Liviu Dudau wrote:
-> On Wed, Sep 24, 2014 at 06:31:09PM +0100, Bjorn Helgaas wrote:
-> > On Wed, Sep 24, 2014 at 05:43:04PM +0100, Liviu Dudau wrote:
-> > > Provide a function to parse the PCI DT ranges that can be used to
-> > > create a pci_host_bridge structure together with its associated
-> > > bus.
-> > > 
-> > > Cc: Bjorn Helgaas <bhelgaas@google.com>
-> > > Cc: Arnd Bergmann <arnd@arndb.de>
-> > > Cc: Grant Likely <grant.likely@linaro.org>
-> > > Cc: Rob Herring <robh+dt@kernel.org>
-> > > Cc: Catalin Marinas <catalin.marinas@arm.com>
-> > > Signed-off-by: Liviu Dudau <Liviu.Dudau@arm.com>
-> > > [make io_base parameter optional]
-> > > Signed-off-by: Robert Richter <rrichter@cavium.com>
-> > > ---
-> > > Hi Bjorn,
-> > > 
-> > > I have fixed the compilation error that this patch was triggering. I
-> > > have validated that the patch applies to your pci/host-generic branch
-> > > as well as to my series.
-> > 
-> > I applied this to pci/host-generic along with the following patches and
-> > pushed the branch, thanks!
+On Wed, Sep 24, 2014 at 05:54:06PM +0100, Will Deacon wrote:
+> Hi Peter,
 > 
-> Thanks again and sorry for lack of thorough testing. I still haven't managed
-> to get a cross compiler for sparc and as I don't run Ubuntu or debian the
-> make.cross script doesn't work for me.
+> On Thu, May 08, 2014 at 02:58:40PM +0100, Peter Zijlstra wrote:
+> > This series continues the arch atomic rework started with the smp_mb__
+> > interface cleanup.
+> > 
+> > In this series we (mostly) reduce the atomic implementations by eliminating
+> > repetition through use of CPP macros.
+> > 
+> > A future series will use these macros to implement more atomic ops. With these
+> > macros we can end up with more atomic ops while the total LoC still shrinks.
+> > 
+> > Furthermore, rewrite the asm-generic/atomic implementations to require less and
+> > provide more.
+> > 
+> > This series is compile tested on a number of archs, but only boot tested on
+> > x86_64.
+> 
+> What's the status on this series? I'm currently fleshing out an extension to
+> the atomic API that allows more flexible acquire/release semantics and it
+> doesn't make sense for me to copy-paste a bunch of code when I could build
+> it on top of this instead.
 
-  https://www.kernel.org/pub/tools/crosstool/
+Its in tip/locking/arch and I suppose its headed for the next merge
+window.
 
-No libc, but good enough for building the kernel. I've asked for an aarch64
-compiler there for a while, but it didn't materialise for some reason.
+> Also, do you have any other patches pending in this area? I've lost track...
 
-Will
+I do, I have (hopefully) one more series sweeping all archs introducing:
+atomic_{or,and,xor,nand}() and then a few patches killing
+atomic_{set,clear}_mask(). I just need to find time to write changelogs
+and compile test them..
+
+After that I need to go write that gcc-ll/sc proposal so we can pretend
+to do generic composite atomic ops in C.
+
+Oh, and like you pointed out, we need to do an audit of the barrier
+semantics on some of our atomic functions like add_unless etc.
+
+In other word, plenty to keep entertained.
