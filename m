@@ -1,53 +1,41 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.17.10]:53861 "EHLO
-	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750725AbaIXLKG (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 24 Sep 2014 07:10:06 -0400
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH v3 01/29] asm-generic: add generic futex for !CONFIG_SMP
-Date: Wed, 24 Sep 2014 13:10 +0200
-Message-ID: <3608975.MxU44B73lk@wuerfel>
-In-Reply-To: <CAFiDJ5-bo_WOz6JockX_BaX0_O0D=+8PjKx7gys-ySKA2KMOaw@mail.gmail.com>
-References: <1410168160-3624-1-git-send-email-lftan@altera.com> <12538756.JybTPMqFHj@wuerfel> <CAFiDJ5-bo_WOz6JockX_BaX0_O0D=+8PjKx7gys-ySKA2KMOaw@mail.gmail.com>
+Received: from mail-ig0-f169.google.com ([209.85.213.169]:62097 "EHLO
+	mail-ig0-f169.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750885AbaIXLSw (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 24 Sep 2014 07:18:52 -0400
+Received: by mail-ig0-f169.google.com with SMTP id l13so6856534iga.2
+        for <linux-arch@vger.kernel.org>; Wed, 24 Sep 2014 04:18:52 -0700 (PDT)
 MIME-Version: 1.0
-Content-Transfer-Encoding: 7Bit
-Content-Type: text/plain; charset="us-ascii"
+In-Reply-To: <1410229968-11638-2-git-send-email-aaron.lu@intel.com>
+References: <1410229968-11638-1-git-send-email-aaron.lu@intel.com>
+	<1410229968-11638-2-git-send-email-aaron.lu@intel.com>
+Date: Wed, 24 Sep 2014 13:18:52 +0200
+Message-ID: <CACRpkdaJjqs9WNcVvjsSWhzLD2QpcyR11MVm4xhm4GqB28eOCA@mail.gmail.com>
+Subject: Re: [PATCH 1/2] gpio / CrystalCove: support virtual GPIO
+From: Linus Walleij <linus.walleij@linaro.org>
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ley Foon Tan <lftan@altera.com>
-Cc: Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Chung-Lin Tang <cltang@codesourcery.com>, Thomas Gleixner <tglx@linutronix.de>
-Message-ID: <20140924111000.M4iSx8U4CX9Ryh7El5_N3bEmDoygMa2TxbLdFUQ9CoU@z>
+To: Aaron Lu <aaron.lu@intel.com>
+Cc: Alexandre Courbot <gnurou@gmail.com>, Samuel Ortiz <sameo@linux.intel.com>, Lee Jones <lee.jones@linaro.org>, Arnd Bergmann <arnd@arndb.de>, "linux-gpio@vger.kernel.org" <linux-gpio@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Jacob Pan <jacob.jun.pan@linux.intel.com>, Lejun Zhu <lejun.zhu@intel.com>, Radivoje Jovanovic <radivoje.jovanovic@intel.com>, =?UTF-8?Q?Daniel_Gl=C3=B6ckner?= <dg@emlix.com>, ACPI Devel Maling List <linux-acpi@vger.kernel.org>, "Rafael J. Wysocki" <rjw@rjwysocki.net>
+Message-ID: <20140924111852.TOZCVtpq3noHJ_efW-LBKOUvm0Cehe5ED59elKzMufo@z>
 
-On Wednesday 24 September 2014 18:57:54 Ley Foon Tan wrote:
-> On Wed, Sep 24, 2014 at 6:40 PM, Arnd Bergmann <arnd@arndb.de> wrote:
-> > On Wednesday 24 September 2014 18:18:50 Ley Foon Tan wrote:
-> >> On Tue, Sep 23, 2014 at 6:40 PM, Arnd Bergmann <arnd@arndb.de> wrote:
-> >> > On Tuesday 23 September 2014 18:20:08 LF.Tan wrote:
-> >> >> Hi Arnd
-> >> >>
-> >> >> Are you okay with this generic futex in asm-generic?
-> >> >>
-> >> >
-> >> > Yes, this looks good. Remind me again who need this, would it make
-> >> > sense to merge this through an architecture-specific tree for
-> >> > whichever architecture can benefit from it?
-> >> What is the common practice for this?
-> >> Do you mean merge with nios2 or other arch, eg m68k?
-> >
-> > I mean do it as part of the nios2 patches.
-> I am okay with this.
-> Do I need to get ACK for all patches in order for nios2 merge into mainline?
-> Thanks.
-> 
+On Tue, Sep 9, 2014 at 4:32 AM, Aaron Lu <aaron.lu@intel.com> wrote:
 
-Please add my 'Acked-by: Arnd Bergmann <arnd@arndb.de>' to this patch
-once Thomas is ok with it. I think we had concluded already that it
-was correct when we talked about it last time, but he doesn't seem
-convinced yet so I want to wait for his reply.
+> diff --git a/include/asm-generic/gpio.h b/include/asm-generic/gpio.h
+> index c1d4105e1c1d..383ade1a211b 100644
+> --- a/include/asm-generic/gpio.h
+> +++ b/include/asm-generic/gpio.h
+> @@ -27,7 +27,7 @@
+>   */
+>
+>  #ifndef ARCH_NR_GPIOS
+> -#define ARCH_NR_GPIOS          256
+> +#define ARCH_NR_GPIOS          512
+>  #endif
 
-You definitely need an Ack for all patches touching code outside of
-arch/nios2, from the respective maintainers. For the nios2 code,
-having as many acks as you can helps, and I should probably take
-a last look so I can ack the pull request when you send it.
+I have applied another patch from Mika for this, so remove this
+hunk of the patch.
 
-	Arnd
+Yours,
+Linus Walleij
