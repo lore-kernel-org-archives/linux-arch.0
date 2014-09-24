@@ -1,51 +1,32 @@
-From: Ley Foon Tan <lftan@altera.com>
+From: Arnd Bergmann <arnd@arndb.de>
 Subject: Re: [PATCH v3 01/29] asm-generic: add generic futex for !CONFIG_SMP
-Date: Wed, 24 Sep 2014 18:29:27 +0800
-Message-ID: <CAFiDJ5-quwwfG9LuouwWqawB6LyG57R2v7murCLVa0oC+zg2aA@mail.gmail.com>
-References: <1410168160-3624-1-git-send-email-lftan@altera.com>
-	<1410168160-3624-2-git-send-email-lftan@altera.com>
-	<CAFiDJ5-b_P7aWFXYP4GcgTUb3t_j6dZCsjeGZwVUs+7qo0v-GA@mail.gmail.com>
-	<alpine.DEB.2.10.1409232335500.4604@nanos>
+Date: Wed, 24 Sep 2014 12:40:42 +0200
+Message-ID: <12538756.JybTPMqFHj@wuerfel>
+References: <1410168160-3624-1-git-send-email-lftan@altera.com> <13000968.l0laEvMsix@wuerfel> <CAFiDJ582-Bb2=s+AGsAeTHJMwBkUCUEoEbP770MJgTDkvev0yg@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <alpine.DEB.2.10.1409232335500.4604@nanos>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Chung-Lin Tang <cltang@codesourcery.com>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7Bit
+Return-path: <linux-doc-owner@vger.kernel.org>
+In-Reply-To: <CAFiDJ582-Bb2=s+AGsAeTHJMwBkUCUEoEbP770MJgTDkvev0yg@mail.gmail.com>
+Sender: linux-doc-owner@vger.kernel.org
+To: Ley Foon Tan <lftan@altera.com>
+Cc: Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Chung-Lin Tang <cltang@codesourcery.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Sep 24, 2014 at 5:47 AM, Thomas Gleixner <tglx@linutronix.de> wrote:
-> On Tue, 23 Sep 2014, LF.Tan wrote:
->> On Mon, Sep 8, 2014 at 5:22 PM, Ley Foon Tan <lftan@altera.com> wrote:
->> > Follow m68k futex implementation for !CONFIG_SMP.
->
-> Great. Follow arch/random implementation blindly and copy all the bugs
-> in it.
->
->> > +static inline int
->> > +futex_atomic_cmpxchg_inatomic(u32 *uval, u32 __user *uaddr,
->> > +                             u32 oldval, u32 newval)
->> > +{
->> > +       u32 val;
->> > +
->> > +       if (unlikely(get_user(val, uaddr) != 0))
->> > +               return -EFAULT;
->> > +
->> > +       if (val == oldval && unlikely(put_user(newval, uaddr) != 0))
->> > +               return -EFAULT;
->> > +
->> > +       *uval = val;
->> > +
->> > +       return 0;
->> > +}
->
-> Care to explain how this works reliably and resembles proper cmpxchg
-> semantics under all circumstances?
+On Wednesday 24 September 2014 18:18:50 Ley Foon Tan wrote:
+> On Tue, Sep 23, 2014 at 6:40 PM, Arnd Bergmann <arnd@arndb.de> wrote:
+> > On Tuesday 23 September 2014 18:20:08 LF.Tan wrote:
+> >> Hi Arnd
+> >>
+> >> Are you okay with this generic futex in asm-generic?
+> >>
+> >
+> > Yes, this looks good. Remind me again who need this, would it make
+> > sense to merge this through an architecture-specific tree for
+> > whichever architecture can benefit from it?
+> What is the common practice for this?
+> Do you mean merge with nios2 or other arch, eg m68k?
 
-kernel/futex.c:cmpxchg_futex_value_locked() is already called to
-pagefault_disable() before call to futex_atomic_cmpxchg_inatomic().
-For UP kernel and pagefault_disable() also means there is no preemption.
+I mean do it as part of the nios2 patches.
 
-Regards
-Ley Foon
+	Arnd
