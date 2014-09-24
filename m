@@ -1,48 +1,50 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:41644 "EHLO
+Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:41664 "EHLO
 	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1751883AbaIXRUc (ORCPT
+	by vger.kernel.org with ESMTP id S1753858AbaIXRUh (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 24 Sep 2014 13:20:32 -0400
+	Wed, 24 Sep 2014 13:20:37 -0400
 From: Will Deacon <will.deacon@arm.com>
-Subject: [PATCH v3 05/17] frv: io: implement dummy relaxed accessor macros for writes
-Date: Wed, 24 Sep 2014 18:17:24 +0100
-Message-ID: <1411579056-16966-6-git-send-email-will.deacon@arm.com>
+Subject: [PATCH v3 07/17] ia64: io: implement dummy relaxed accessor macros for writes
+Date: Wed, 24 Sep 2014 18:17:26 +0100
+Message-ID: <1411579056-16966-8-git-send-email-will.deacon@arm.com>
 In-Reply-To: <1411579056-16966-1-git-send-email-will.deacon@arm.com>
 References: <1411579056-16966-1-git-send-email-will.deacon@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 Cc: arnd@arndb.de, benh@kernel.crashing.org, chris@zankel.net, cmetcalf@tilera.com, davem@davemloft.net, deller@gmx.de, dhowells@redhat.com, geert@linux-m68k.org, heiko.carstens@de.ibm.com, hpa@zytor.com, jcmvbkbc@gmail.com, jesper.nilsson@axis.com, mingo@redhat.com, monstr@monstr.eu, paulmck@linux.vnet.ibm.com, rdunlap@infradead.org, sam@ravnborg.org, schwidefsky@de.ibm.com, starvik@axis.com, takata@linux-m32r.org, tglx@linutronix.de, tony.luck@intel.com, daniel.thompson@linaro.org, broonie@linaro.org, linux@arm.linux.org.uk, Will Deacon <will.deacon@arm.com>
-Message-ID: <20140924171724.ImywMmjcAgtT14taY23NymM54m4n76SFPhqpeevxaEc@z>
+Message-ID: <20140924171726.eet36f-sQQz-LaeoMuc0jqi4a8ohxIIZARaWYH-jsJ0@z>
 
-write{b,w,l}_relaxed are implemented by some architectures in order to
+write{b,w,l,q}_relaxed are implemented by some architectures in order to
 permit memory-mapped I/O accesses with weaker barrier semantics than the
 non-relaxed variants.
 
-This patch adds dummy macros for the write accessors to frv, in the same
-vein as the dummy definitions for the relaxed read accessors.
+This patch adds dummy macros for the write accessors to ia64, which may
+be able to be optimised in a similar manner to the relaxed read
+accessors at a later date.
 
-Cc: David Howells <dhowells@redhat.com>
+Cc: Tony Luck <tony.luck@intel.com>
 Signed-off-by: Will Deacon <will.deacon@arm.com>
 ---
- arch/frv/include/asm/io.h | 3 +++
- 1 file changed, 3 insertions(+)
+ arch/ia64/include/asm/io.h | 4 ++++
+ 1 file changed, 4 insertions(+)
 
-diff --git a/arch/frv/include/asm/io.h b/arch/frv/include/asm/io.h
-index 8cb50a2fbcb2..99bb7efaf9b7 100644
---- a/arch/frv/include/asm/io.h
-+++ b/arch/frv/include/asm/io.h
-@@ -243,6 +243,9 @@ static inline void writel(uint32_t datum, volatile void __iomem *addr)
- 		__flush_PCI_writes();
- }
- 
-+#define writeb_relaxed writeb
-+#define writew_relaxed writew
-+#define writel_relaxed writel
- 
- /* Values for nocacheflag and cmode */
- #define IOMAP_FULL_CACHING		0
+diff --git a/arch/ia64/include/asm/io.h b/arch/ia64/include/asm/io.h
+index bee0acd52f7e..80a7e34be009 100644
+--- a/arch/ia64/include/asm/io.h
++++ b/arch/ia64/include/asm/io.h
+@@ -393,6 +393,10 @@ __writeq (unsigned long val, volatile void __iomem *addr)
+ #define writew(v,a)	__writew((v), (a))
+ #define writel(v,a)	__writel((v), (a))
+ #define writeq(v,a)	__writeq((v), (a))
++#define writeb_relaxed(v,a)	__writeb((v), (a))
++#define writew_relaxed(v,a)	__writew((v), (a))
++#define writel_relaxed(v,a)	__writel((v), (a))
++#define writeq_relaxed(v,a)	__writeq((v), (a))
+ #define __raw_writeb	writeb
+ #define __raw_writew	writew
+ #define __raw_writel	writel
 -- 
 2.1.0
 
