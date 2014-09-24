@@ -1,61 +1,66 @@
-From: Peter Zijlstra <peterz@infradead.org>
+From: Will Deacon <will.deacon@arm.com>
 Subject: Re: [PATCH 00/20] arch atomic 'cleanup'
-Date: Wed, 24 Sep 2014 20:06:23 +0200
-Message-ID: <20140924180623.GY6758@twins.programming.kicks-ass.net>
+Date: Wed, 24 Sep 2014 19:09:47 +0100
+Message-ID: <20140924180947.GQ16244@arm.com>
 References: <20140508135840.956784204@infradead.org>
  <20140924165405.GJ16244@arm.com>
+ <20140924180623.GY6758@twins.programming.kicks-ass.net>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from casper.infradead.org ([85.118.1.10]:42766 "EHLO
-	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751505AbaIXSGb (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 24 Sep 2014 14:06:31 -0400
+Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20140924165405.GJ16244@arm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will.deacon@arm.com>
+In-Reply-To: <20140924180623.GY6758@twins.programming.kicks-ass.net>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Peter Zijlstra <peterz@infradead.org>
 Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "torvalds@linux-foundation.org" <torvalds@linux-foundation.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, Sep 24, 2014 at 05:54:06PM +0100, Will Deacon wrote:
-> Hi Peter,
+On Wed, Sep 24, 2014 at 07:06:23PM +0100, Peter Zijlstra wrote:
+> On Wed, Sep 24, 2014 at 05:54:06PM +0100, Will Deacon wrote:
+> > On Thu, May 08, 2014 at 02:58:40PM +0100, Peter Zijlstra wrote:
+> > > This series continues the arch atomic rework started with the smp_mb__
+> > > interface cleanup.
+> > > 
+> > > In this series we (mostly) reduce the atomic implementations by eliminating
+> > > repetition through use of CPP macros.
+> > > 
+> > > A future series will use these macros to implement more atomic ops. With these
+> > > macros we can end up with more atomic ops while the total LoC still shrinks.
+> > > 
+> > > Furthermore, rewrite the asm-generic/atomic implementations to require less and
+> > > provide more.
+> > > 
+> > > This series is compile tested on a number of archs, but only boot tested on
+> > > x86_64.
+> > 
+> > What's the status on this series? I'm currently fleshing out an extension to
+> > the atomic API that allows more flexible acquire/release semantics and it
+> > doesn't make sense for me to copy-paste a bunch of code when I could build
+> > it on top of this instead.
 > 
-> On Thu, May 08, 2014 at 02:58:40PM +0100, Peter Zijlstra wrote:
-> > This series continues the arch atomic rework started with the smp_mb__
-> > interface cleanup.
-> > 
-> > In this series we (mostly) reduce the atomic implementations by eliminating
-> > repetition through use of CPP macros.
-> > 
-> > A future series will use these macros to implement more atomic ops. With these
-> > macros we can end up with more atomic ops while the total LoC still shrinks.
-> > 
-> > Furthermore, rewrite the asm-generic/atomic implementations to require less and
-> > provide more.
-> > 
-> > This series is compile tested on a number of archs, but only boot tested on
-> > x86_64.
+> Its in tip/locking/arch and I suppose its headed for the next merge
+> window.
+
+Cracking, thanks for that.
+
+> > Also, do you have any other patches pending in this area? I've lost track...
 > 
-> What's the status on this series? I'm currently fleshing out an extension to
-> the atomic API that allows more flexible acquire/release semantics and it
-> doesn't make sense for me to copy-paste a bunch of code when I could build
-> it on top of this instead.
+> I do, I have (hopefully) one more series sweeping all archs introducing:
+> atomic_{or,and,xor,nand}() and then a few patches killing
+> atomic_{set,clear}_mask(). I just need to find time to write changelogs
+> and compile test them..
+> 
+> After that I need to go write that gcc-ll/sc proposal so we can pretend
+> to do generic composite atomic ops in C.
+> 
+> Oh, and like you pointed out, we need to do an audit of the barrier
+> semantics on some of our atomic functions like add_unless etc.
+> 
+> In other word, plenty to keep entertained.
 
-Its in tip/locking/arch and I suppose its headed for the next merge
-window.
+Yup. If you need a hand, please shout and we can probably divide some of
+this between us.
 
-> Also, do you have any other patches pending in this area? I've lost track...
+Cheers,
 
-I do, I have (hopefully) one more series sweeping all archs introducing:
-atomic_{or,and,xor,nand}() and then a few patches killing
-atomic_{set,clear}_mask(). I just need to find time to write changelogs
-and compile test them..
-
-After that I need to go write that gcc-ll/sc proposal so we can pretend
-to do generic composite atomic ops in C.
-
-Oh, and like you pointed out, we need to do an audit of the barrier
-semantics on some of our atomic functions like add_unless etc.
-
-In other word, plenty to keep entertained.
+Will
