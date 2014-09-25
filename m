@@ -1,46 +1,53 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [PATCH v3 09/17] m68k: io: implement dummy relaxed accessor
- macros for writes
-Date: Thu, 25 Sep 2014 11:51:10 +0200
-Message-ID: <CAMuHMdVpCs2RtsdDpdN3tp9_Xa1TzDMM3Z5+pP07B7Y3He2hLA@mail.gmail.com>
-References: <1411579056-16966-1-git-send-email-will.deacon@arm.com>
-	<1411579056-16966-10-git-send-email-will.deacon@arm.com>
-	<54236A67.90001@uclinux.org>
-	<20140925093309.GG20043@arm.com>
+From: Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>
+Subject: Re: [PATCH v2 01/22] PCI/MSI: Clean up struct msi_chip argument
+Date: Thu, 25 Sep 2014 12:20:20 +0200 (CEST)
+Message-ID: <alpine.DEB.2.10.1409251208420.4604@nanos>
+References: <1411614872-4009-1-git-send-email-wangyijing@huawei.com>
+	<1411614872-4009-2-git-send-email-wangyijing@huawei.com>
+	<20140925071536.GG12423@ulmo>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-la0-f51.google.com ([209.85.215.51]:39334 "EHLO
-	mail-la0-f51.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751537AbaIYJvM (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 25 Sep 2014 05:51:12 -0400
-In-Reply-To: <20140925093309.GG20043@arm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will.deacon@arm.com>
-Cc: Greg Ungerer <gerg@uclinux.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "arnd@arndb.de" <arnd@arndb.de>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, "chris@zankel.net" <chris@zankel.net>, "cmetcalf@tilera.com" <cmetcalf@tilera.com>, "davem@davemloft.net" <davem@davemloft.net>, "deller@gmx.de" <deller@gmx.de>, "dhowells@redhat.com" <dhowells@redhat.com>, "heiko.carstens@de.ibm.com" <heiko.carstens@de.ibm.com>, "hpa@zytor.com" <hpa@zytor.com>, "jcmvbkbc@gmail.com" <jcmvbkbc@gmail.com>, "jesper.nilsson@axis.com" <jesper.nilsson@axis.com>, "mingo@redhat.com" <mingo@redhat.com>, "monstr@monstr.eu" <monstr@monstr.eu>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>, "rdunlap@infradead.org" <rdunlap@infradead.org>, "sam@ravnborg.org" <sam@ravnborg.org>, schwidefsky@de.
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+In-Reply-To: <20140925071536.GG12423@ulmo>
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
+	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
+List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
+	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
+Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+To: Thierry Reding <thierry.reding-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
+Cc: linux-mips-6z/3iImG2C8G8FEW9MqTrA@public.gmane.org, linux-ia64-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-pci-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, sparclinux-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-s390-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Russell King <linux-lFZ/pmaqli7XmaaqVzeoHQ@public.gmane.org>, Michael Ellerman <mpe-Gsx/Oe8HsFggBc27wqDAHg@public.gmane.org>, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, Sebastian Ott <sebott-23VcF4HTsmIX0ybBhKVfKdBPR1lH4CV8@public.gmane.org>, Benjamin Herrenschmidt <benh-XVmvHMARGAS8U2dJNN8I7kB+6BGkLq7r@public.gmane.org>, xen-devel-GuqFBffKawtpuQazS67q72D2FQJk+8+b@public.gmane.org, arnab.basu-KZfg59tc24xl57MIdRCFDg@public.gmane.org, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Chris Metcalf <cmetcalf-kv+TWInifGbQT0dZR+AlfA@public.gmane.org>, Bjorn Helgaas <bhelgaas-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, Thomas Petazzoni <thomas.petazzoni-wi1+55ScJUtKEb57/3fJTNBPR1lH4CV8@public.gmane.org>, Xinwei Hu <huxinwei-hv44wF8Li93QT0dZR+AlfA@public.gmane.org>, Tony Luck <tony.luck-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org>, Sergei Shtylyov <sergei.shtylyov-M4DtvfQ/ZS1MRgGoP+s0PdBPR1lH4CV8@public.gmane.org>, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Ralf Baechle <ralf-6z/3iImG2C8G8FEW9MqTrA@public.gmane.org>, iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org, David Vrabel <david.vrabel-Sxgqhf6Nn4DQT0dZR+AlfA@public.gmane.org>, Wuyun <wuy>
+List-Id: linux-arch.vger.kernel.org
 
-On Thu, Sep 25, 2014 at 11:33 AM, Will Deacon <will.deacon@arm.com> wrote:
->> Putting them here means they won't have any multiple include protection
->> (there is no "#ifndef _IO_H" around them). Doesn't seem to lead to
->> any problems in practice. Just flagging it...
->
-> That's easy enough to fix, and actually, we should have __KERNEL__ checks
-> here too. Fixup below.
+On Thu, 25 Sep 2014, Thierry Reding wrote:
 
-Why do we need __KERNEL__ checks? <asm/io.h> is not exported.
-BTW, it seems there are many __KERNEL__ checks in arch/*/include/asm/
-we don't need.
+> On Thu, Sep 25, 2014 at 11:14:11AM +0800, Yijing Wang wrote:
+> > Msi_chip functions setup_irq/teardown_irq rarely use msi_chip
+> > argument.
+> 
+> That's not true. Out of the four drivers that you modify two use the
+> parameter. And the two that don't probably should be using it too.
+> 
+> 50% is not "rarely". =)
+> 
+> >           We can look up msi_chip pointer by the device pointer
+> > or irq number, so clean up msi_chip argument.
+> 
+> I don't like this particular change. The idea was to keep the API object
+> oriented so that drivers wouldn't have to know where to get the MSI chip
+> from. It also makes it more resilient against code reorganizations since
+> the core code is the only place that needs to know where to get the chip
+> from.
 
-Or do I need more coffee?
+Right. We have the same thing in the irq_chip callbacks. All of them
+take "struct irq_data", because it's already available in the core
+code and it gives easy access to all information (chip, chipdata ...)
+which is necessary for the callback implementations.
 
-Gr{oetje,eeting}s,
+Thanks,
 
-                        Geert
-
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+	tglx
