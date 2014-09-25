@@ -1,69 +1,111 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-we0-f172.google.com ([74.125.82.172]:52510 "EHLO
-	mail-we0-f172.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750977AbaIYH0X (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 25 Sep 2014 03:26:23 -0400
-Date: Thu, 25 Sep 2014 09:26:20 +0200
+Received: from mail-we0-f174.google.com ([74.125.82.174]:56277 "EHLO
+	mail-we0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751328AbaIYHel (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 25 Sep 2014 03:34:41 -0400
+Date: Thu, 25 Sep 2014 09:34:36 +0200
 From: Thierry Reding <thierry.reding@gmail.com>
-Subject: Re: [PATCH v2 06/22] PCI/MSI: Introduce weak arch_find_msi_chip() to
- find MSI chip
-Message-ID: <20140925072619.GI12423@ulmo>
+Subject: Re: [PATCH v2 12/22] MIPS/Octeon/MSI: Use MSI chip framework to
+ configure MSI/MSI-X irq
+Message-ID: <20140925073435.GJ12423@ulmo>
 References: <1411614872-4009-1-git-send-email-wangyijing@huawei.com>
- <1411614872-4009-7-git-send-email-wangyijing@huawei.com>
+ <1411614872-4009-13-git-send-email-wangyijing@huawei.com>
 MIME-Version: 1.0
 Content-Type: multipart/signed; micalg=pgp-sha1;
-	protocol="application/pgp-signature"; boundary="wZdghQXYJzyo6AGC"
+	protocol="application/pgp-signature"; boundary="rwgQ89ZNnFUwFHTC"
 Content-Disposition: inline
-In-Reply-To: <1411614872-4009-7-git-send-email-wangyijing@huawei.com>
+In-Reply-To: <1411614872-4009-13-git-send-email-wangyijing@huawei.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Yijing Wang <wangyijing@huawei.com>
 Cc: Bjorn Helgaas <bhelgaas@google.com>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, Xinwei Hu <huxinwei@huawei.com>, Wuyun <wuyun.wu@huawei.com>, linux-arm-kernel@lists.infradead.org, Russell King <linux@arm.linux.org.uk>, linux-arch@vger.kernel.org, arnab.basu@freescale.com, Bharat.Bhushan@freescale.com, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, Thomas Gleixner <tglx@linutronix.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, xen-devel@lists.xenproject.org, Joerg Roedel <joro@8bytes.org>, iommu@lists.linux-foundation.org, linux-mips@linux-mips.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, Sebastian Ott <sebott@linux.vnet.ibm.com>, Tony Luck <tony.luck@intel.com>, linux-ia64@vger.kernel.org, "David S. Miller" <davem@davemloft.net>, sparclinux@vger.kernel.org, Chris Metcalf <cmetcalf@tilera.com>, Ralf Baechle <ralf@linux-mips.org>, Lucas Stach <l.stach@pengutronix.de>, David Vrabel <david.vrabel@citrix.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, Michael Ellerman <mpe@ellerman.id.au>, Thomas Petazzoni <thomas.petazzoni@free-electrons.com>
-Message-ID: <20140925072620.JME-RKkkdTFq7fQ7oI0rLcTJvBV5m8TqFbehAc0KOLM@z>
+Message-ID: <20140925073436.FSUOh65UPDj0jKDQv7ER15sHZJOmfkjJwc9vapfilZg@z>
 
 
---wZdghQXYJzyo6AGC
+--rwgQ89ZNnFUwFHTC
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
 
-On Thu, Sep 25, 2014 at 11:14:16AM +0800, Yijing Wang wrote:
-> Introduce weak arch_find_msi_chip() to find the match msi_chip.
-> Currently, MSI chip associates pci bus to msi_chip. Because in
-> ARM platform, there may be more than one MSI controller in system.
-> Associate pci bus to msi_chip help pci device to find the match
-> msi_chip and setup MSI/MSI-X irq correctly. But in other platform,
-> like in x86. we only need one MSI chip, because all device use
-> the same MSI address/data and irq etc. So it's no need to associate
-> pci bus to MSI chip, just use a arch function, arch_find_msi_chip()
-> to return the MSI chip for simplicity. The default weak
-> arch_find_msi_chip() used in ARM platform, find the MSI chip
-> by pci bus.
+On Thu, Sep 25, 2014 at 11:14:22AM +0800, Yijing Wang wrote:
+[...]
+> diff --git a/arch/mips/pci/msi-octeon.c b/arch/mips/pci/msi-octeon.c
+[...]
+> @@ -132,12 +132,12 @@ msi_irq_allocated:
+>  	/* Make sure the search for available interrupts didn't fail */
+>  	if (irq >=3D 64) {
+>  		if (request_private_bits) {
+> -			pr_err("arch_setup_msi_irq: Unable to find %d free interrupts, trying=
+ just one",
+> +			pr_err("octeon_setup_msi_irq: Unable to find %d free interrupts, tryi=
+ng just one",
+>  			       1 << request_private_bits);
 
-Can't x86 simply set the bus' .msi field anyway? It would seem to be
-easy to do and unifies the code rather than driving it further apart
-using even more of the __weak functions.
+Perhaps while at it make this (and other similar changes in this patch):
+
+	pr_err("%s(): Unable to ...", __func__, ...);
+
+So that it becomes more resilient against this kind of rename?
+
+>  			request_private_bits =3D 0;
+>  			goto try_only_one;
+>  		} else
+> -			panic("arch_setup_msi_irq: Unable to find a free MSI interrupt");
+> +			panic("octeon_setup_msi_irq: Unable to find a free MSI interrupt");
+
+> @@ -210,14 +210,13 @@ int arch_setup_msi_irqs(struct pci_dev *dev, int nv=
+ec, int type)
+> =20
+>  	return 0;
+>  }
+> -
+
+This...
+
+> @@ -240,7 +239,7 @@ void arch_teardown_msi_irq(unsigned int irq)
+>  	 */
+>  	number_irqs =3D 0;
+>  	while ((irq0 + number_irqs < 64) &&
+> -	       (msi_multiple_irq_bitmask[index]
+> +		(msi_multiple_irq_bitmask[index]
+
+=2E.. and this seem like unrelated whitespace changes.
+
+>  		& (1ull << (irq0 + number_irqs))))
+>  		number_irqs++;
+>  	number_irqs++;
+> @@ -249,8 +248,8 @@ void arch_teardown_msi_irq(unsigned int irq)
+>  	/* Shift the mask to the correct bit location */
+>  	bitmask <<=3D irq0;
+>  	if ((msi_free_irq_bitmask[index] & bitmask) !=3D bitmask)
+> -		panic("arch_teardown_msi_irq: Attempted to teardown MSI "
+> -		      "interrupt (%d) not in use", irq);
+> +		panic("octeon_teardown_msi_irq: Attempted to teardown MSI "
+> +			"interrupt (%d) not in use", irq);
+
+And the second line here also needlessly changes the indentation.
 
 Thierry
 
---wZdghQXYJzyo6AGC
+--rwgQ89ZNnFUwFHTC
 Content-Type: application/pgp-signature
 
 -----BEGIN PGP SIGNATURE-----
 Version: GnuPG v2
 
-iQIcBAEBAgAGBQJUI8ObAAoJEN0jrNd/PrOhuC4P/jIBmvnDAEtAA8p9/uMyo4ub
-35EbcR8vyvkUOhtovW5OYqkxRnKAfsYNHAbYYijRRWopeBkmqYj1EiW8F3M3MbKT
-FD+87Kx/0mNqy1mNdoPnIttpaCyY9igbhmeWhE5gFFqI4L715gT4AVg7tG79gsas
-BObGQrGqdsEcdHsMae9wIm6X46Q2HcECiOp5T619C7P6/4DRXoQ6CreiwtWgh8GN
-HdDemrevFvVZI72ceWPPPSY813vykzLhvxbiMhjhiYtZSbtqmYJoNQBbeQIlhfYV
-mdIBuGWQlSAyy4+IZq/IBJ/lO4BtU4zevDvSCOnKhCUlHAZ7qNpxLtDXaZmxRQ1W
-/9BeZHt+IDeev7rXTA97oQXAwzbAabafN1FWyCUWZEq28xIYmAqQZeFA9+KKRQQm
-QMs10F3xpcayjlUXPNp7pLoWgcffcb0g8YocMo4DdMgMFQ9Pnx7jIrQ9Z46n4o+i
-u2Qb275YAwisvL1ol3S2lZ+19CdVEwp+ly/66aYviHzVYeDm2C11myPCbfCbNcPg
-M/qS6KwZzn+LyyCiLT0dmcm90UTIPZ7uw0sbwcVbq80skjhZxLT5NS7xHYnP/znG
-62a/6pxngsPcnk+b7pv2htjbxkKDjJkpn8kXGiR6sGwun0b7HheNwzanLbDPs/7B
-3QkCbl7txteq7GjETQqt
-=LNzZ
+iQIcBAEBAgAGBQJUI8WLAAoJEN0jrNd/PrOhp2MQAK6S7hsneW6O97w/t1chjlGR
+ug1JLAxeP84A0Vj4I6KwfrHjux8rDqoByI5bDhH+ywcRQuf90Dx9+L9QEfWlzkcC
+K1qT+twZDUqVFhCIJtuEtNVJbEXb0NlPK74W/6cUubFdAKbY1+MZe66Z0BZlBl36
+bjxEyTh6uZkemh8PLwP45mJQCTD/d5/lNGDCrgzKgurE1HIHXV1r0FoD9zLJZpfA
+UATpp5rQYfePlynE1mCT+G0QXcfo+zf8kp49jLxeciX5QZYs8DbZ2IwbhG4ov2je
+p8SHV5T+c8D1+Q7UjNbXpDGHz12Ctpby/bLd3+FGsmeIZJbE4o5NcE5pChZfI52v
+Rgl0wLOlswsM2xoSGdhA1x51QEHqFxShBf/+FwbxLA7shNWELd6gRpv9mcYSv6oy
+MgALA5tV5r18NZyBm+SsvwUrgAF7e1ndIU/UYhAH1lIz3CMtqTnZ2AZIpXoJeKLo
+rtzWB2MThJnnZXUpW3Umj3UWoZkcAy6zQSWBGV40hC+t3dkr1US9bOgGIrO6huyy
+qTqNG+A20dRO85W7LoslDg5CO401jS8JRiHbYQW9g+QhHkWLpROgcrCoK1dz+Q2B
+QjaLp2fjuM7wyyYXRLcQo68i7Y9AUv2R+k1fidvlfuWXfvzbeK6x0BHSx8nhBec6
+SU2aBh+SOaTeNEFZjRFv
+=dRXg
 -----END PGP SIGNATURE-----
 
---wZdghQXYJzyo6AGC--
+--rwgQ89ZNnFUwFHTC--
