@@ -1,111 +1,77 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-we0-f174.google.com ([74.125.82.174]:56277 "EHLO
-	mail-we0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751328AbaIYHel (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 25 Sep 2014 03:34:41 -0400
-Date: Thu, 25 Sep 2014 09:34:36 +0200
+Received: from mail-wi0-f169.google.com ([209.85.212.169]:51449 "EHLO
+	mail-wi0-f169.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750984AbaIYHgN (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 25 Sep 2014 03:36:13 -0400
+Date: Thu, 25 Sep 2014 09:36:09 +0200
 From: Thierry Reding <thierry.reding@gmail.com>
-Subject: Re: [PATCH v2 12/22] MIPS/Octeon/MSI: Use MSI chip framework to
+Subject: Re: [PATCH v2 14/22] MIPS/Xlp/MSI: Use MSI chip framework to
  configure MSI/MSI-X irq
-Message-ID: <20140925073435.GJ12423@ulmo>
+Message-ID: <20140925073608.GK12423@ulmo>
 References: <1411614872-4009-1-git-send-email-wangyijing@huawei.com>
- <1411614872-4009-13-git-send-email-wangyijing@huawei.com>
+ <1411614872-4009-15-git-send-email-wangyijing@huawei.com>
 MIME-Version: 1.0
 Content-Type: multipart/signed; micalg=pgp-sha1;
-	protocol="application/pgp-signature"; boundary="rwgQ89ZNnFUwFHTC"
+	protocol="application/pgp-signature"; boundary="6K2R/cS9K4qvcBNq"
 Content-Disposition: inline
-In-Reply-To: <1411614872-4009-13-git-send-email-wangyijing@huawei.com>
+In-Reply-To: <1411614872-4009-15-git-send-email-wangyijing@huawei.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Yijing Wang <wangyijing@huawei.com>
 Cc: Bjorn Helgaas <bhelgaas@google.com>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, Xinwei Hu <huxinwei@huawei.com>, Wuyun <wuyun.wu@huawei.com>, linux-arm-kernel@lists.infradead.org, Russell King <linux@arm.linux.org.uk>, linux-arch@vger.kernel.org, arnab.basu@freescale.com, Bharat.Bhushan@freescale.com, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, Thomas Gleixner <tglx@linutronix.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, xen-devel@lists.xenproject.org, Joerg Roedel <joro@8bytes.org>, iommu@lists.linux-foundation.org, linux-mips@linux-mips.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, Sebastian Ott <sebott@linux.vnet.ibm.com>, Tony Luck <tony.luck@intel.com>, linux-ia64@vger.kernel.org, "David S. Miller" <davem@davemloft.net>, sparclinux@vger.kernel.org, Chris Metcalf <cmetcalf@tilera.com>, Ralf Baechle <ralf@linux-mips.org>, Lucas Stach <l.stach@pengutronix.de>, David Vrabel <david.vrabel@citrix.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, Michael Ellerman <mpe@ellerman.id.au>, Thomas Petazzoni <thomas.petazzoni@free-electrons.com>
-Message-ID: <20140925073436.FSUOh65UPDj0jKDQv7ER15sHZJOmfkjJwc9vapfilZg@z>
+Message-ID: <20140925073609.ha_DV-DiRtx_m9UJBhiMWGZG2tzEOSvE1ec8SCQYcLE@z>
 
 
---rwgQ89ZNnFUwFHTC
+--6K2R/cS9K4qvcBNq
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
 Content-Transfer-Encoding: quoted-printable
 
-On Thu, Sep 25, 2014 at 11:14:22AM +0800, Yijing Wang wrote:
-[...]
-> diff --git a/arch/mips/pci/msi-octeon.c b/arch/mips/pci/msi-octeon.c
-[...]
-> @@ -132,12 +132,12 @@ msi_irq_allocated:
->  	/* Make sure the search for available interrupts didn't fail */
->  	if (irq >=3D 64) {
->  		if (request_private_bits) {
-> -			pr_err("arch_setup_msi_irq: Unable to find %d free interrupts, trying=
- just one",
-> +			pr_err("octeon_setup_msi_irq: Unable to find %d free interrupts, tryi=
-ng just one",
->  			       1 << request_private_bits);
+On Thu, Sep 25, 2014 at 11:14:24AM +0800, Yijing Wang wrote:
+> Use MSI chip framework instead of arch MSI functions to configure
+> MSI/MSI-X irq. So we can manage MSI/MSI-X irq in a unified framework.
 
-Perhaps while at it make this (and other similar changes in this patch):
+Nit: s/irq/IRQ/ in the above.
 
-	pr_err("%s(): Unable to ...", __func__, ...);
-
-So that it becomes more resilient against this kind of rename?
-
->  			request_private_bits =3D 0;
->  			goto try_only_one;
->  		} else
-> -			panic("arch_setup_msi_irq: Unable to find a free MSI interrupt");
-> +			panic("octeon_setup_msi_irq: Unable to find a free MSI interrupt");
-
-> @@ -210,14 +210,13 @@ int arch_setup_msi_irqs(struct pci_dev *dev, int nv=
-ec, int type)
+> Signed-off-by: Yijing Wang <wangyijing@huawei.com>
+> ---
+>  arch/mips/pci/msi-xlp.c |   14 ++++++++++++--
+>  1 files changed, 12 insertions(+), 2 deletions(-)
+>=20
+> diff --git a/arch/mips/pci/msi-xlp.c b/arch/mips/pci/msi-xlp.c
+> index e469dc7..6b791ef 100644
+> --- a/arch/mips/pci/msi-xlp.c
+> +++ b/arch/mips/pci/msi-xlp.c
+> @@ -245,7 +245,7 @@ static struct irq_chip xlp_msix_chip =3D {
+>  	.irq_unmask	=3D unmask_msi_irq,
+>  };
 > =20
->  	return 0;
->  }
-> -
+> -void arch_teardown_msi_irq(unsigned int irq)
+> +void xlp_teardown_msi_irq(unsigned int irq)
 
-This...
-
-> @@ -240,7 +239,7 @@ void arch_teardown_msi_irq(unsigned int irq)
->  	 */
->  	number_irqs =3D 0;
->  	while ((irq0 + number_irqs < 64) &&
-> -	       (msi_multiple_irq_bitmask[index]
-> +		(msi_multiple_irq_bitmask[index]
-
-=2E.. and this seem like unrelated whitespace changes.
-
->  		& (1ull << (irq0 + number_irqs))))
->  		number_irqs++;
->  	number_irqs++;
-> @@ -249,8 +248,8 @@ void arch_teardown_msi_irq(unsigned int irq)
->  	/* Shift the mask to the correct bit location */
->  	bitmask <<=3D irq0;
->  	if ((msi_free_irq_bitmask[index] & bitmask) !=3D bitmask)
-> -		panic("arch_teardown_msi_irq: Attempted to teardown MSI "
-> -		      "interrupt (%d) not in use", irq);
-> +		panic("octeon_teardown_msi_irq: Attempted to teardown MSI "
-> +			"interrupt (%d) not in use", irq);
-
-And the second line here also needlessly changes the indentation.
+Should this not be static now as well?
 
 Thierry
 
---rwgQ89ZNnFUwFHTC
+--6K2R/cS9K4qvcBNq
 Content-Type: application/pgp-signature
 
 -----BEGIN PGP SIGNATURE-----
 Version: GnuPG v2
 
-iQIcBAEBAgAGBQJUI8WLAAoJEN0jrNd/PrOhp2MQAK6S7hsneW6O97w/t1chjlGR
-ug1JLAxeP84A0Vj4I6KwfrHjux8rDqoByI5bDhH+ywcRQuf90Dx9+L9QEfWlzkcC
-K1qT+twZDUqVFhCIJtuEtNVJbEXb0NlPK74W/6cUubFdAKbY1+MZe66Z0BZlBl36
-bjxEyTh6uZkemh8PLwP45mJQCTD/d5/lNGDCrgzKgurE1HIHXV1r0FoD9zLJZpfA
-UATpp5rQYfePlynE1mCT+G0QXcfo+zf8kp49jLxeciX5QZYs8DbZ2IwbhG4ov2je
-p8SHV5T+c8D1+Q7UjNbXpDGHz12Ctpby/bLd3+FGsmeIZJbE4o5NcE5pChZfI52v
-Rgl0wLOlswsM2xoSGdhA1x51QEHqFxShBf/+FwbxLA7shNWELd6gRpv9mcYSv6oy
-MgALA5tV5r18NZyBm+SsvwUrgAF7e1ndIU/UYhAH1lIz3CMtqTnZ2AZIpXoJeKLo
-rtzWB2MThJnnZXUpW3Umj3UWoZkcAy6zQSWBGV40hC+t3dkr1US9bOgGIrO6huyy
-qTqNG+A20dRO85W7LoslDg5CO401jS8JRiHbYQW9g+QhHkWLpROgcrCoK1dz+Q2B
-QjaLp2fjuM7wyyYXRLcQo68i7Y9AUv2R+k1fidvlfuWXfvzbeK6x0BHSx8nhBec6
-SU2aBh+SOaTeNEFZjRFv
-=dRXg
+iQIcBAEBAgAGBQJUI8XoAAoJEN0jrNd/PrOhrs4P/Rg10uO2/sCyBwOPDpHaskVO
+8blYsnipag0xv7pyGtAeiEVLgpzcQpv+zjXPmti+R1qI1OVkUXblvYhNtz/CDMvg
+AN6CaoZI3llRg3fZwiayj3m/i1HpiXTPqYPK3sWanCUMmZJe73eUj8zMt6bH7yPG
+WsuUwWTrc2hcscIDucigcNopQ0fuh0vLYLWgiZe+qJdJIrvGkvGN4h0pHuqIkk0o
+DUyMUme8HOL1irxSWYnnmkTPx3TOAWDn7VJVxJgpIKEG0A/X1GCi/4wCkMMxtuxH
+1V0aRu/k9AsOR5BVDROfyZCHvuTVLZeXP54ehWxAyA1GwS55Z36FNsl/JLtZ2WhO
+95CX6ac9NMDLgmGr9W19SAffXn47Yy/1fvK5zq0F+taK005ajIxufmnoSVrzZsH8
+dS8MoFslKB8B2EKW5874CFVUKGx5hZTARp12WWvTfJehLTYfJNpSpdjRdI7LBggj
+/PNzvpDkiwwSVzXcJUU45wOZvaS0ImoH3Xn2GF91D/kO+jfFc52lI8Tv8Ixw7Hgl
+pJObojrzrQJe20K2NJP9xuCNXUXiI0/EbfwZf/MxE5u/FSxigS8vajMY8CFMlQ5N
+4sSi2qWsKa2ZrGMo5dyDfblWSjy1U1O752LQXn+8ddng18wDV/tk/tzZU0Xsywy6
+jGgaMyNaRi22AESZhUqv
+=xvjk
 -----END PGP SIGNATURE-----
 
---rwgQ89ZNnFUwFHTC--
+--6K2R/cS9K4qvcBNq--
