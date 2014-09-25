@@ -1,47 +1,101 @@
 From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [PATCH v12 09/12] OF: PCI: Add support for parsing PCI host
- bridge resources from DT
-Date: Thu, 25 Sep 2014 10:04:06 +0100
-Message-ID: <20140925090406.GD20043@arm.com>
-References: <1411498874-9864-1-git-send-email-Liviu.Dudau@arm.com>
- <1411498874-9864-10-git-send-email-Liviu.Dudau@arm.com>
- <20140924164304.GF1994@e106497-lin.cambridge.arm.com>
- <20140924173109.GA20416@google.com>
- <20140924175330.GI1994@e106497-lin.cambridge.arm.com>
- <20140924180119.GN16244@arm.com>
- <20140925085432.GL1994@e106497-lin.cambridge.arm.com>
+Subject: Re: [PATCH v3 09/17] m68k: io: implement dummy relaxed accessor
+ macros for writes
+Date: Thu, 25 Sep 2014 10:33:09 +0100
+Message-ID: <20140925093309.GG20043@arm.com>
+References: <1411579056-16966-1-git-send-email-will.deacon@arm.com>
+ <1411579056-16966-10-git-send-email-will.deacon@arm.com>
+ <54236A67.90001@uclinux.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:55425 "EHLO
+Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:55982 "EHLO
 	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1752777AbaIYJEC (ORCPT
+	by vger.kernel.org with ESMTP id S1751985AbaIYJeL (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 25 Sep 2014 05:04:02 -0400
+	Thu, 25 Sep 2014 05:34:11 -0400
 Content-Disposition: inline
-In-Reply-To: <20140925085432.GL1994@e106497-lin.cambridge.arm.com>
+In-Reply-To: <54236A67.90001@uclinux.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Liviu Dudau <Liviu.Dudau@arm.com>
-Cc: Bjorn Helgaas <bhelgaas@google.com>, Arnd Bergmann <arnd@arndb.de>, Rob Herring <robh+dt@kernel.org>, Jason Gunthorpe <jgunthorpe@obsidianresearch.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Catalin Marinas <Catalin.Marinas@arm.com>, Russell King <linux@arm.linux.org.uk>, linux-pci <linux-pci@vger.kernel.org>, Linus Walleij <linus.walleij@linaro.org>, Tanmay Inamdar <tinamdar@apm.com>, Grant Likely <grant.likely@secretlab.ca>, Sinan Kaya <okaya@codeaurora.org>, Jingoo Han <jg1.han@samsung.com>, Kukjin Kim <kgene.kim@samsung.com>, Suravee Suthikulanit <suravee.suthikulpanit@amd.com>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Device Tree ML <devicetree@vger.kernel.org>, LAKML <linux-arm-kernel@lists.infradead.org>, "grant.likely@linaro.org" <grant.likely@linaro.org>, Robert Richter <rrichter@cavium.com>
+To: Greg Ungerer <gerg@uclinux.org>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "arnd@arndb.de" <arnd@arndb.de>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, "chris@zankel.net" <chris@zankel.net>, "cmetcalf@tilera.com" <cmetcalf@tilera.com>, "davem@davemloft.net" <davem@davemloft.net>, "deller@gmx.de" <deller@gmx.de>, "dhowells@redhat.com" <dhowells@redhat.com>, "geert@linux-m68k.org" <geert@linux-m68k.org>, "heiko.carstens@de.ibm.com" <heiko.carstens@de.ibm.com>, "hpa@zytor.com" <hpa@zytor.com>, "jcmvbkbc@gmail.com" <jcmvbkbc@gmail.com>, "jesper.nilsson@axis.com" <jesper.nilsson@axis.com>, "mingo@redhat.com" <mingo@redhat.com>, "monstr@monstr.eu" <monstr@monstr.eu>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>, "rdunlap@infradead.org" <rdunlap@infradead.org>, "sam@ravnborg.org" <sam@ravnborg.org>s
 
-On Thu, Sep 25, 2014 at 09:54:32AM +0100, Liviu Dudau wrote:
-> On Wed, Sep 24, 2014 at 07:01:19PM +0100, Will Deacon wrote:
-> > On Wed, Sep 24, 2014 at 06:53:31PM +0100, Liviu Dudau wrote:
-> > > Thanks again and sorry for lack of thorough testing. I still haven't managed
-> > > to get a cross compiler for sparc and as I don't run Ubuntu or debian the
-> > > make.cross script doesn't work for me.
+On Thu, Sep 25, 2014 at 02:05:43AM +0100, Greg Ungerer wrote:
+> Hi Will
+
+Hi Greg,
+
+Thanks for taking a look.
+
+> On 25/09/14 03:17, Will Deacon wrote:
+> > write{b,w,l}_relaxed are implemented by some architectures in order to
+> > permit memory-mapped I/O accesses with weaker barrier semantics than the
+> > non-relaxed variants.
 > > 
-> >   https://www.kernel.org/pub/tools/crosstool/
+> > This patch adds dummy macros for the write accessors to m68k, in the
+> > same vein as the dummy definitions for the relaxed read accessors.
+> > Additionally, the existing relaxed read accessors are moved into
+> > asm/io.h, so that they can be used by m68k targets with an MMU.
 > > 
-> > No libc, but good enough for building the kernel. I've asked for an aarch64
-> > compiler there for a while, but it didn't materialise for some reason.
+> > Acked-by: Geert Uytterhoeven <geert@linux-m68k.org>
+> > Signed-off-by: Will Deacon <will.deacon@arm.com>
+> > ---
+> >  arch/m68k/include/asm/io.h    | 8 ++++++++
+> >  arch/m68k/include/asm/io_no.h | 4 ----
+> >  2 files changed, 8 insertions(+), 4 deletions(-)
+> > 
+> > diff --git a/arch/m68k/include/asm/io.h b/arch/m68k/include/asm/io.h
+> > index c70cc9155003..bccd5a914eb6 100644
+> > --- a/arch/m68k/include/asm/io.h
+> > +++ b/arch/m68k/include/asm/io.h
+> > @@ -3,3 +3,11 @@
+> >  #else
+> >  #include <asm/io_mm.h>
+> >  #endif
+> > +
+> > +#define readb_relaxed(addr)	readb(addr)
+> > +#define readw_relaxed(addr)	readw(addr)
+> > +#define readl_relaxed(addr)	readl(addr)
+> > +
+> > +#define writeb_relaxed(b, addr)	writeb(b, addr)
+> > +#define writew_relaxed(b, addr)	writew(b, addr)
+> > +#define writel_relaxed(b, addr)	writel(b, addr)
 > 
-> I'm familiar with crosstool and busybox uses a variant of crosstool-ng, but
-> it currently fails with "configure: error: cannot compute suffix of object files: cannot compile"
-> on the stage2 of the compilation.
+> Putting them here means they won't have any multiple include protection
+> (there is no "#ifndef _IO_H" around them). Doesn't seem to lead to
+> any problems in practice. Just flagging it...
 
-Did you even follow the link? There are binary toolchains hosted there --
-you don't have to build anything yourself if you don't want to.
+That's easy enough to fix, and actually, we should have __KERNEL__ checks
+here too. Fixup below.
 
 Will
+
+--->8
+
+diff --git a/arch/m68k/include/asm/io.h b/arch/m68k/include/asm/io.h
+index bccd5a914eb6..ded201916560 100644
+--- a/arch/m68k/include/asm/io.h
++++ b/arch/m68k/include/asm/io.h
+@@ -1,9 +1,14 @@
++#ifndef _M68K_IO_H
++#define _M68K_IO_H
++
+ #ifdef __uClinux__
+ #include <asm/io_no.h>
+ #else
+ #include <asm/io_mm.h>
+ #endif
+ 
++#ifdef __KERNEL__
++
+ #define readb_relaxed(addr)    readb(addr)
+ #define readw_relaxed(addr)    readw(addr)
+ #define readl_relaxed(addr)    readl(addr)
+@@ -11,3 +16,6 @@
+ #define writeb_relaxed(b, addr)        writeb(b, addr)
+ #define writew_relaxed(b, addr)        writew(b, addr)
+ #define writel_relaxed(b, addr)        writel(b, addr)
++
++#endif /* __KERNEL__ */
++#endif /* _M68K_IO_H */
