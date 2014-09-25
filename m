@@ -1,55 +1,52 @@
-From: Mika Westerberg <mika.westerberg@linux.intel.com>
-Subject: Re: [PATCH v2 1/2] gpio / CrystalCove: support virtual GPIO
-Date: Thu, 25 Sep 2014 14:15:55 +0300
-Message-ID: <20140925111555.GG1786@lahna.fi.intel.com>
-References: <1410229968-11638-1-git-send-email-aaron.lu@intel.com>
- <1410229968-11638-2-git-send-email-aaron.lu@intel.com>
- <CACRpkdaJjqs9WNcVvjsSWhzLD2QpcyR11MVm4xhm4GqB28eOCA@mail.gmail.com>
- <54238496.70505@intel.com>
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [PATCH v3 01/17] asm-generic: io: implement relaxed accessor
+ macros as conditional wrappers
+Date: Thu, 25 Sep 2014 12:44:17 +0100
+Message-ID: <20140925114417.GJ20043@arm.com>
+References: <1411579056-16966-1-git-send-email-will.deacon@arm.com>
+ <4501051.vdxhyhkTWv@wuerfel>
+ <20140925103846.GI20043@arm.com>
+ <14780144.KRcmhp8YbE@wuerfel>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mga01.intel.com ([192.55.52.88]:37908 "EHLO mga01.intel.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751496AbaIYLQE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 25 Sep 2014 07:16:04 -0400
+Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <54238496.70505@intel.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Aaron Lu <aaron.lu@intel.com>
-Cc: Linus Walleij <linus.walleij@linaro.org>, Alexandre Courbot <gnurou@gmail.com>, Samuel Ortiz <sameo@linux.intel.com>, Lee Jones <lee.jones@linaro.org>, Arnd Bergmann <arnd@arndb.de>, "linux-gpio@vger.kernel.org" <linux-gpio@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Jacob Pan <jacob.jun.pan@linux.intel.com>, Lejun Zhu <lejun.zhu@intel.com>, Radivoje Jovanovic <radivoje.jovanovic@intel.com>, Daniel =?iso-8859-1?Q?Gl=F6ckner?= <dg@emlix.com>, ACPI Devel Maling List <linux-acpi@vger.kernel.org>, "Rafael J. Wysocki" <rjw@rjwysocki.net>
+In-Reply-To: <14780144.KRcmhp8YbE@wuerfel>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, "chris@zankel.net" <chris@zankel.net>, "cmetcalf@tilera.com" <cmetcalf@tilera.com>, "davem@davemloft.net" <davem@davemloft.net>, "deller@gmx.de" <deller@gmx.de>, "dhowells@redhat.com" <dhowells@redhat.com>, "geert@linux-m68k.org" <geert@linux-m68k.org>, "heiko.carstens@de.ibm.com" <heiko.carstens@de.ibm.com>, "hpa@zytor.com" <hpa@zytor.com>, "jcmvbkbc@gmail.com" <jcmvbkbc@gmail.com>, "jesper.nilsson@axis.com" <jesper.nilsson@axis.com>, "mingo@redhat.com" <mingo@redhat.com>, "monstr@monstr.eu" <monstr@monstr.eu>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>, "rdunlap@infradead.org" <rdunlap@infradead.org>, "sam@ravnborg.org" <sam@ravnborg.org>, "schwidefsky@de.ibm.com" <schwidefsk>
+List-Id: linux-arch.vger.kernel.org
 
-On Thu, Sep 25, 2014 at 10:57:26AM +0800, Aaron Lu wrote:
-> The virtual GPIO introduced in ACPI table of Baytrail-T based system is
-> used to solve a problem under Windows. We do not have such problems
-> under Linux so we do not actually need them. But we have to tell GPIO
-> library that the Crystal Cove GPIO chip has this many GPIO pins or the
-> common GPIO handler will refuse any access to those high number GPIO
-> pins, which will resulted in a failure evaluation of every ACPI control
-> method that is used to turn on/off power resource and/or report sensor
-> temperatures.
+On Thu, Sep 25, 2014 at 11:43:41AM +0100, Arnd Bergmann wrote:
+> On Thursday 25 September 2014 11:38:46 Will Deacon wrote:
+> > On Thu, Sep 25, 2014 at 11:32:00AM +0100, Arnd Bergmann wrote:
+> > > On Wednesday 24 September 2014 18:17:20 Will Deacon wrote:
+> > > > {read,write}{b,w,l,q}_relaxed are implemented by some architectures in
+> > > > order to permit memory-mapped I/O accesses with weaker barrier semantics
+> > > > than the non-relaxed variants.
+> > > > 
+> > > > This patch adds wrappers to asm-generic so that drivers can rely on the
+> > > > relaxed accessors being available, even if they don't always provide
+> > > > weaker ordering guarantees. Since some architectures both include
+> > > > asm-generic/io.h and define some relaxed accessors, the definitions here
+> > > > are conditional for the time being.
+> > > > 
+> > > > Cc: Arnd Bergmann <arnd@arndb.de>
+> > > > Signed-off-by: Will Deacon <will.deacon@arm.com>
+> > > > ---
+> > > >  include/asm-generic/io.h | 26 ++++++++++++++++++++++++++
+> > > >  1 file changed, 26 insertions(+)
+> > > > 
+> > > 
+> > > Acked-by: Arnd Bergmann <arnd@arndb.de>
+> > 
+> > Thanks, Arnd. Do you have other patches queued for asm-generic, or shall I
+> > take this patch (on its own) via the arm64 tree?
 > 
-> Signed-off-by: Aaron Lu <aaron.lu@intel.com>
+> I don't have other patches queued up yet, but Thierry has another patch
+> for asm-generic/io.h that I want to merge, so this time I'd prefer to
+> take it through my tree in case there are conflicts.
 
-Reviewed-by: Mika Westerberg <mika.westerberg@linux.intel.com>
+Ok, suits me. I'll drop this from my series when it hits mainline.
 
-A minor nit, see below:
-
-> ---
-> v2: remove the hunk to increase NR_GPIO to 512.
-> 
->  drivers/gpio/gpio-crystalcove.c | 19 ++++++++++++++++---
->  1 file changed, 16 insertions(+), 3 deletions(-)
-> 
-> diff --git a/drivers/gpio/gpio-crystalcove.c b/drivers/gpio/gpio-crystalcove.c
-> index e3712f0e51ab..186b76ef71a1 100644
-> --- a/drivers/gpio/gpio-crystalcove.c
-> +++ b/drivers/gpio/gpio-crystalcove.c
-> @@ -24,6 +24,7 @@
->  #include <linux/mfd/intel_soc_pmic.h>
->  
->  #define CRYSTALCOVE_GPIO_NUM	16
-> +#define CRYSTALCOVE_VGPIO_NUM	0x5e
-
-I would rather see this spelled in decimal base.
+Will
