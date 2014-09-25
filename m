@@ -1,49 +1,55 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH v3 01/29] asm-generic: add generic futex for !CONFIG_SMP
-Date: Thu, 25 Sep 2014 12:54:49 +0200
-Message-ID: <11277081.DWgcnnZv54@wuerfel>
-References: <1410168160-3624-1-git-send-email-lftan@altera.com> <3608975.MxU44B73lk@wuerfel> <CAFiDJ58h4VKrr-wHe6iD+aPB8QU=xLo03kW5k6QDpLW5Et0DGw@mail.gmail.com>
+From: Mika Westerberg <mika.westerberg@linux.intel.com>
+Subject: Re: [PATCH v2 1/2] gpio / CrystalCove: support virtual GPIO
+Date: Thu, 25 Sep 2014 14:15:55 +0300
+Message-ID: <20140925111555.GG1786@lahna.fi.intel.com>
+References: <1410229968-11638-1-git-send-email-aaron.lu@intel.com>
+ <1410229968-11638-2-git-send-email-aaron.lu@intel.com>
+ <CACRpkdaJjqs9WNcVvjsSWhzLD2QpcyR11MVm4xhm4GqB28eOCA@mail.gmail.com>
+ <54238496.70505@intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7Bit
-Return-path: <linux-doc-owner@vger.kernel.org>
-In-Reply-To: <CAFiDJ58h4VKrr-wHe6iD+aPB8QU=xLo03kW5k6QDpLW5Et0DGw@mail.gmail.com>
-Sender: linux-doc-owner@vger.kernel.org
-To: Ley Foon Tan <lftan@altera.com>
-Cc: Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Chung-Lin Tang <cltang@codesourcery.com>, Thomas Gleixner <tglx@linutronix.de>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mga01.intel.com ([192.55.52.88]:37908 "EHLO mga01.intel.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751496AbaIYLQE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 25 Sep 2014 07:16:04 -0400
+Content-Disposition: inline
+In-Reply-To: <54238496.70505@intel.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Aaron Lu <aaron.lu@intel.com>
+Cc: Linus Walleij <linus.walleij@linaro.org>, Alexandre Courbot <gnurou@gmail.com>, Samuel Ortiz <sameo@linux.intel.com>, Lee Jones <lee.jones@linaro.org>, Arnd Bergmann <arnd@arndb.de>, "linux-gpio@vger.kernel.org" <linux-gpio@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Jacob Pan <jacob.jun.pan@linux.intel.com>, Lejun Zhu <lejun.zhu@intel.com>, Radivoje Jovanovic <radivoje.jovanovic@intel.com>, Daniel =?iso-8859-1?Q?Gl=F6ckner?= <dg@emlix.com>, ACPI Devel Maling List <linux-acpi@vger.kernel.org>, "Rafael J. Wysocki" <rjw@rjwysocki.net>
 
-On Thursday 25 September 2014 16:33:33 Ley Foon Tan wrote:
-> There are 4 patches that touching code outside of arch/nios2,
-> including this patch.
-> Do we have maintainers for common files for patch #15, #27 and #28
-> below? Can't find this info from MAINTAINERS file.
-> It is good if you can take a look this v3 patchset so I can send pull
-> request if no further issue. Thanks!
+On Thu, Sep 25, 2014 at 10:57:26AM +0800, Aaron Lu wrote:
+> The virtual GPIO introduced in ACPI table of Baytrail-T based system is
+> used to solve a problem under Windows. We do not have such problems
+> under Linux so we do not actually need them. But we have to tell GPIO
+> library that the Crystal Cove GPIO chip has this many GPIO pins or the
+> common GPIO handler will refuse any access to those high number GPIO
+> pins, which will resulted in a failure evaluation of every ACPI control
+> method that is used to turn on/off power resource and/or report sensor
+> temperatures.
 > 
-> [PATCH v3 01/29] asm-generic: add generic futex for !CONFIG_SMP
+> Signed-off-by: Aaron Lu <aaron.lu@intel.com>
 
-You already have my Ack, which is sufficient here.
+Reviewed-by: Mika Westerberg <mika.westerberg@linux.intel.com>
 
-> [PATCH v3 15/29] Add ELF machine define for Nios2
+A minor nit, see below:
 
-I'm not maintaining this one, but it looks very obvious, please
-add my Ack as well. I don't think you need to wait for anybody's
-input here.
+> ---
+> v2: remove the hunk to increase NR_GPIO to 512.
+> 
+>  drivers/gpio/gpio-crystalcove.c | 19 ++++++++++++++++---
+>  1 file changed, 16 insertions(+), 3 deletions(-)
+> 
+> diff --git a/drivers/gpio/gpio-crystalcove.c b/drivers/gpio/gpio-crystalcove.c
+> index e3712f0e51ab..186b76ef71a1 100644
+> --- a/drivers/gpio/gpio-crystalcove.c
+> +++ b/drivers/gpio/gpio-crystalcove.c
+> @@ -24,6 +24,7 @@
+>  #include <linux/mfd/intel_soc_pmic.h>
+>  
+>  #define CRYSTALCOVE_GPIO_NUM	16
+> +#define CRYSTALCOVE_VGPIO_NUM	0x5e
 
-> [PATCH v3 27/29] MAINTAINERS: Add nios2 maintainer
-
-This one is fine to go in. You basically own the entry though, so if
-anybody wants to change the text for nios2 later, they should ask
-for your Ack.
-
-> [PATCH v3 28/29] Documentation: Add documentation for Nios2 architecture
-
-Randy Dunlap <rdunlap@infradead.org> is the maintainer listed for
-Documentation, and I see you already have linux-doc@vger.kernel.org
-on Cc here. Please make sure that Randy is on Cc for the documentation
-patches as well. A lot of documentation patches go in without his
-Ack, which I think is fine as long as someone else (i.e. you) is
-responsible for maintaining that documentation later.
-
-	Arnd
+I would rather see this spelled in decimal base.
