@@ -1,72 +1,91 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:42989 "EHLO
-	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1751284AbaIXSKP (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 24 Sep 2014 14:10:15 -0400
-Date: Wed, 24 Sep 2014 19:09:47 +0100
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [PATCH 00/20] arch atomic 'cleanup'
-Message-ID: <20140924180947.GQ16244@arm.com>
-References: <20140508135840.956784204@infradead.org>
- <20140924165405.GJ16244@arm.com>
- <20140924180623.GY6758@twins.programming.kicks-ass.net>
+Received: from szxga03-in.huawei.com ([119.145.14.66]:61829 "EHLO
+	szxga03-in.huawei.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751272AbaIYCut (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 24 Sep 2014 22:50:49 -0400
+From: Yijing Wang <wangyijing@huawei.com>
+Subject: [PATCH v2 07/22] PCI/MSI: Refactor struct msi_chip to make it become more common
+Date: Thu, 25 Sep 2014 11:14:17 +0800
+Message-ID: <1411614872-4009-8-git-send-email-wangyijing@huawei.com>
+In-Reply-To: <1411614872-4009-1-git-send-email-wangyijing@huawei.com>
+References: <1411614872-4009-1-git-send-email-wangyijing@huawei.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20140924180623.GY6758@twins.programming.kicks-ass.net>
+Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "torvalds@linux-foundation.org" <torvalds@linux-foundation.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>
-Message-ID: <20140924180947.J0Id7pBeiSv-nx09X0E79R1nxpGicMLBsIXH__fWtRk@z>
+To: Bjorn Helgaas <bhelgaas@google.com>
+Cc: linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, Xinwei Hu <huxinwei@huawei.com>, Wuyun <wuyun.wu@huawei.com>, linux-arm-kernel@lists.infradead.org, Russell King <linux@arm.linux.org.uk>, linux-arch@vger.kernel.org, arnab.basu@freescale.com, Bharat.Bhushan@freescale.com, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, Thomas Gleixner <tglx@linutronix.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, xen-devel@lists.xenproject.org, Joerg Roedel <joro@8bytes.org>, iommu@lists.linux-foundation.org, linux-mips@linux-mips.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, Sebastian Ott <sebott@linux.vnet.ibm.com>, Tony Luck <tony.luck@intel.com>, linux-ia64@vger.kernel.org, "David S. Miller" <davem@davemloft.net>, sparclinux@vger.kernel.org, Chris Metcalf <cmetcalf@tilera.com>, Ralf Baechle <ralf@linux-mips.org>, Lucas Stach <l.stach@pengutronix.de>, David Vrabel <david.vrabel@citrix.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, Michael Ellerman <mpe@ellerman.id.au>, Thierry Reding <thierry.reding@gmail.com>, Thomas Petazzoni <thomas.petazzoni@free-electrons.com>, Yijing Wang <wangyijing@huawei.com>
+Message-ID: <20140925031417.Kbpt8j5SM-pvG0FENHexW1zps6gDjyJmcBdh71iJJfI@z>
 
-On Wed, Sep 24, 2014 at 07:06:23PM +0100, Peter Zijlstra wrote:
-> On Wed, Sep 24, 2014 at 05:54:06PM +0100, Will Deacon wrote:
-> > On Thu, May 08, 2014 at 02:58:40PM +0100, Peter Zijlstra wrote:
-> > > This series continues the arch atomic rework started with the smp_mb__
-> > > interface cleanup.
-> > > 
-> > > In this series we (mostly) reduce the atomic implementations by eliminating
-> > > repetition through use of CPP macros.
-> > > 
-> > > A future series will use these macros to implement more atomic ops. With these
-> > > macros we can end up with more atomic ops while the total LoC still shrinks.
-> > > 
-> > > Furthermore, rewrite the asm-generic/atomic implementations to require less and
-> > > provide more.
-> > > 
-> > > This series is compile tested on a number of archs, but only boot tested on
-> > > x86_64.
-> > 
-> > What's the status on this series? I'm currently fleshing out an extension to
-> > the atomic API that allows more flexible acquire/release semantics and it
-> > doesn't make sense for me to copy-paste a bunch of code when I could build
-> > it on top of this instead.
-> 
-> Its in tip/locking/arch and I suppose its headed for the next merge
-> window.
+Now there are a lot of __weak arch functions in MSI code.
+These functions make MSI driver complex. Thierry Reding Introduced
+a new MSI chip framework to configure MSI/MSI-X irq in ARM. Use
+the new MSI chip framework to refactor all other platform MSI
+arch code to eliminate weak arch MSI functions. This patch add
+.restore_irq() and .setup_irqs() to make it become more common.
 
-Cracking, thanks for that.
+Signed-off-by: Yijing Wang <wangyijing@huawei.com>
+Reviewed-by: Lucas Stach <l.stach@pengutronix.de>
+---
+ drivers/pci/msi.c   |   15 +++++++++++++++
+ include/linux/msi.h |    3 +++
+ 2 files changed, 18 insertions(+), 0 deletions(-)
 
-> > Also, do you have any other patches pending in this area? I've lost track...
-> 
-> I do, I have (hopefully) one more series sweeping all archs introducing:
-> atomic_{or,and,xor,nand}() and then a few patches killing
-> atomic_{set,clear}_mask(). I just need to find time to write changelogs
-> and compile test them..
-> 
-> After that I need to go write that gcc-ll/sc proposal so we can pretend
-> to do generic composite atomic ops in C.
-> 
-> Oh, and like you pointed out, we need to do an audit of the barrier
-> semantics on some of our atomic functions like add_unless etc.
-> 
-> In other word, plenty to keep entertained.
+diff --git a/drivers/pci/msi.c b/drivers/pci/msi.c
+index 3acbe65..d10edee 100644
+--- a/drivers/pci/msi.c
++++ b/drivers/pci/msi.c
+@@ -64,6 +64,11 @@ int __weak arch_setup_msi_irqs(struct pci_dev *dev, int nvec, int type)
+ {
+ 	struct msi_desc *entry;
+ 	int ret;
++	struct msi_chip *chip;
++
++	chip = arch_find_msi_chip(dev);
++	if (chip && chip->setup_irqs)
++		return chip->setup_irqs(dev, nvec, type);
+ 
+ 	/*
+ 	 * If an architecture wants to support multiple MSI, it needs to
+@@ -106,6 +111,11 @@ void default_teardown_msi_irqs(struct pci_dev *dev)
+ 
+ void __weak arch_teardown_msi_irqs(struct pci_dev *dev)
+ {
++	struct msi_chip *chip = arch_find_msi_chip(dev);
++
++	if (chip && chip->teardown_irqs)
++		return chip->teardown_irqs(dev);
++
+ 	return default_teardown_msi_irqs(dev);
+ }
+ 
+@@ -129,6 +139,11 @@ static void default_restore_msi_irq(struct pci_dev *dev, int irq)
+ 
+ void __weak arch_restore_msi_irqs(struct pci_dev *dev)
+ {
++	struct msi_chip *chip = arch_find_msi_chip(dev);
++
++	if (chip && chip->restore_irqs)
++		return chip->restore_irqs(dev);
++
+ 	return default_restore_msi_irqs(dev);
+ }
+ 
+diff --git a/include/linux/msi.h b/include/linux/msi.h
+index 6fdc5c6..4cf1f31 100644
+--- a/include/linux/msi.h
++++ b/include/linux/msi.h
+@@ -69,7 +69,10 @@ struct msi_chip {
+ 	struct list_head list;
+ 
+ 	int (*setup_irq)(struct pci_dev *dev, struct msi_desc *desc);
++	int (*setup_irqs)(struct pci_dev *dev, int nvec, int type);
+ 	void (*teardown_irq)(unsigned int irq);
++	void (*teardown_irqs)(struct pci_dev *dev);
++	void (*restore_irqs)(struct pci_dev *dev);
+ };
+ 
+ #endif /* LINUX_MSI_H */
+-- 
+1.7.1
 
-Yup. If you need a hand, please shout and we can probably divide some of
-this between us.
-
-Cheers,
-
-Will
