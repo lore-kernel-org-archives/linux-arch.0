@@ -1,47 +1,47 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-la0-f51.google.com ([209.85.215.51]:39334 "EHLO
-	mail-la0-f51.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751537AbaIYJvM (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 25 Sep 2014 05:51:12 -0400
+Received: from www.linutronix.de ([62.245.132.108]:60927 "EHLO
+	Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751537AbaIYKVi (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 25 Sep 2014 06:21:38 -0400
+Date: Thu, 25 Sep 2014 12:20:20 +0200 (CEST)
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: Re: [PATCH v2 01/22] PCI/MSI: Clean up struct msi_chip argument
+In-Reply-To: <20140925071536.GG12423@ulmo>
+Message-ID: <alpine.DEB.2.10.1409251208420.4604@nanos>
+References: <1411614872-4009-1-git-send-email-wangyijing@huawei.com> <1411614872-4009-2-git-send-email-wangyijing@huawei.com> <20140925071536.GG12423@ulmo>
 MIME-Version: 1.0
-In-Reply-To: <20140925093309.GG20043@arm.com>
-References: <1411579056-16966-1-git-send-email-will.deacon@arm.com>
-	<1411579056-16966-10-git-send-email-will.deacon@arm.com>
-	<54236A67.90001@uclinux.org>
-	<20140925093309.GG20043@arm.com>
-Date: Thu, 25 Sep 2014 11:51:10 +0200
-Message-ID: <CAMuHMdVpCs2RtsdDpdN3tp9_Xa1TzDMM3Z5+pP07B7Y3He2hLA@mail.gmail.com>
-Subject: Re: [PATCH v3 09/17] m68k: io: implement dummy relaxed accessor
- macros for writes
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Content-Type: text/plain; charset=UTF-8
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will.deacon@arm.com>
-Cc: Greg Ungerer <gerg@uclinux.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "arnd@arndb.de" <arnd@arndb.de>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, "chris@zankel.net" <chris@zankel.net>, "cmetcalf@tilera.com" <cmetcalf@tilera.com>, "davem@davemloft.net" <davem@davemloft.net>, "deller@gmx.de" <deller@gmx.de>, "dhowells@redhat.com" <dhowells@redhat.com>, "heiko.carstens@de.ibm.com" <heiko.carstens@de.ibm.com>, "hpa@zytor.com" <hpa@zytor.com>, "jcmvbkbc@gmail.com" <jcmvbkbc@gmail.com>, "jesper.nilsson@axis.com" <jesper.nilsson@axis.com>, "mingo@redhat.com" <mingo@redhat.com>, "monstr@monstr.eu" <monstr@monstr.eu>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>, "rdunlap@infradead.org" <rdunlap@infradead.org>, "sam@ravnborg.org" <sam@ravnborg.org>, "schwidefsky@de.ibm.com" <schwidefsky@de.ibm.com>, "starvik@axis.com" <starvik@axis.com>, "takata@linux-m32r.org" <takata@linux-m32r.org>, "tglx@linutronix.de" <tglx@linutronix.de>, "tony.luck@intel.com" <tony.luck@intel.com>, "daniel.thompson@linaro.org" <daniel.thompson@linaro.org>, "broonie@linaro.org" <broonie@linaro.org>, "linux@arm.linux.org.uk" <linux@arm.linux.org.uk>
-Message-ID: <20140925095110.AI4Iag__1ltgnbYGn7PhqM_7aceIV4zBSEb255486_8@z>
+To: Thierry Reding <thierry.reding@gmail.com>
+Cc: Yijing Wang <wangyijing@huawei.com>, Bjorn Helgaas <bhelgaas@google.com>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, Xinwei Hu <huxinwei@huawei.com>, Wuyun <wuyun.wu@huawei.com>, linux-arm-kernel@lists.infradead.org, Russell King <linux@arm.linux.org.uk>, linux-arch@vger.kernel.org, arnab.basu@freescale.com, Bharat.Bhushan@freescale.com, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, xen-devel@lists.xenproject.org, Joerg Roedel <joro@8bytes.org>, iommu@lists.linux-foundation.org, linux-mips@linux-mips.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, Sebastian Ott <sebott@linux.vnet.ibm.com>, Tony Luck <tony.luck@intel.com>, linux-ia64@vger.kernel.org, "David S. Miller" <davem@davemloft.net>, sparclinux@vger.kernel.org, Chris Metcalf <cmetcalf@tilera.com>, Ralf Baechle <ralf@linux-mips.org>, Lucas Stach <l.stach@pengutronix.de>, David Vrabel <david.vrabel@citrix.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, Michael Ellerman <mpe@ellerman.id.au>, Thomas Petazzoni <thomas.petazzoni@free-electrons.com>
+Message-ID: <20140925102020.SiJqVJVgVVwFK4no49yonIqlKQsvPh5PiFZ7-snYl1g@z>
 
-On Thu, Sep 25, 2014 at 11:33 AM, Will Deacon <will.deacon@arm.com> wrote:
->> Putting them here means they won't have any multiple include protection
->> (there is no "#ifndef _IO_H" around them). Doesn't seem to lead to
->> any problems in practice. Just flagging it...
->
-> That's easy enough to fix, and actually, we should have __KERNEL__ checks
-> here too. Fixup below.
+On Thu, 25 Sep 2014, Thierry Reding wrote:
 
-Why do we need __KERNEL__ checks? <asm/io.h> is not exported.
-BTW, it seems there are many __KERNEL__ checks in arch/*/include/asm/
-we don't need.
+> On Thu, Sep 25, 2014 at 11:14:11AM +0800, Yijing Wang wrote:
+> > Msi_chip functions setup_irq/teardown_irq rarely use msi_chip
+> > argument.
+> 
+> That's not true. Out of the four drivers that you modify two use the
+> parameter. And the two that don't probably should be using it too.
+> 
+> 50% is not "rarely". =)
+> 
+> >           We can look up msi_chip pointer by the device pointer
+> > or irq number, so clean up msi_chip argument.
+> 
+> I don't like this particular change. The idea was to keep the API object
+> oriented so that drivers wouldn't have to know where to get the MSI chip
+> from. It also makes it more resilient against code reorganizations since
+> the core code is the only place that needs to know where to get the chip
+> from.
 
-Or do I need more coffee?
+Right. We have the same thing in the irq_chip callbacks. All of them
+take "struct irq_data", because it's already available in the core
+code and it gives easy access to all information (chip, chipdata ...)
+which is necessary for the callback implementations.
 
-Gr{oetje,eeting}s,
+Thanks,
 
-                        Geert
-
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+	tglx
