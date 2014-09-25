@@ -1,54 +1,58 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.17.24]:62566 "EHLO
-	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751110AbaIYKzD (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 25 Sep 2014 06:55:03 -0400
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH v3 01/29] asm-generic: add generic futex for !CONFIG_SMP
-Date: Thu, 25 Sep 2014 12:54:49 +0200
-Message-ID: <11277081.DWgcnnZv54@wuerfel>
-In-Reply-To: <CAFiDJ58h4VKrr-wHe6iD+aPB8QU=xLo03kW5k6QDpLW5Et0DGw@mail.gmail.com>
-References: <1410168160-3624-1-git-send-email-lftan@altera.com> <3608975.MxU44B73lk@wuerfel> <CAFiDJ58h4VKrr-wHe6iD+aPB8QU=xLo03kW5k6QDpLW5Et0DGw@mail.gmail.com>
+Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:57646 "EHLO
+	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1750864AbaIYLpS (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Thu, 25 Sep 2014 07:45:18 -0400
+Date: Thu, 25 Sep 2014 12:44:17 +0100
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [PATCH v3 01/17] asm-generic: io: implement relaxed accessor
+ macros as conditional wrappers
+Message-ID: <20140925114417.GJ20043@arm.com>
+References: <1411579056-16966-1-git-send-email-will.deacon@arm.com>
+ <4501051.vdxhyhkTWv@wuerfel>
+ <20140925103846.GI20043@arm.com>
+ <14780144.KRcmhp8YbE@wuerfel>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 7Bit
-Content-Type: text/plain; charset="us-ascii"
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <14780144.KRcmhp8YbE@wuerfel>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ley Foon Tan <lftan@altera.com>
-Cc: Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Chung-Lin Tang <cltang@codesourcery.com>, Thomas Gleixner <tglx@linutronix.de>
-Message-ID: <20140925105449.3ZyCjcHdrWevDVmdugp_tur7Dc9ZZzpW4fe_aBbo_eM@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, "chris@zankel.net" <chris@zankel.net>, "cmetcalf@tilera.com" <cmetcalf@tilera.com>, "davem@davemloft.net" <davem@davemloft.net>, "deller@gmx.de" <deller@gmx.de>, "dhowells@redhat.com" <dhowells@redhat.com>, "geert@linux-m68k.org" <geert@linux-m68k.org>, "heiko.carstens@de.ibm.com" <heiko.carstens@de.ibm.com>, "hpa@zytor.com" <hpa@zytor.com>, "jcmvbkbc@gmail.com" <jcmvbkbc@gmail.com>, "jesper.nilsson@axis.com" <jesper.nilsson@axis.com>, "mingo@redhat.com" <mingo@redhat.com>, "monstr@monstr.eu" <monstr@monstr.eu>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>, "rdunlap@infradead.org" <rdunlap@infradead.org>, "sam@ravnborg.org" <sam@ravnborg.org>, "schwidefsky@de.ibm.com" <schwidefsky@de.ibm.com>, "starvik@axis.com" <starvik@axis.com>, "takata@linux-m32r.org" <takata@linux-m32r.org>, "tglx@linutronix.de" <tglx@linutronix.de>, "tony.luck@intel.com" <tony.luck@intel.com>, "daniel.thompson@linaro.org" <daniel.thompson@linaro.org>, "broonie@linaro.org" <broonie@linaro.org>, "linux@arm.linux.org.uk" <linux@arm.linux.org.uk>
+Message-ID: <20140925114417.Et3J-3msuex7oiAlJ6Qd0Y4IPFkhVSKAJVqScc2TnKk@z>
 
-On Thursday 25 September 2014 16:33:33 Ley Foon Tan wrote:
-> There are 4 patches that touching code outside of arch/nios2,
-> including this patch.
-> Do we have maintainers for common files for patch #15, #27 and #28
-> below? Can't find this info from MAINTAINERS file.
-> It is good if you can take a look this v3 patchset so I can send pull
-> request if no further issue. Thanks!
+On Thu, Sep 25, 2014 at 11:43:41AM +0100, Arnd Bergmann wrote:
+> On Thursday 25 September 2014 11:38:46 Will Deacon wrote:
+> > On Thu, Sep 25, 2014 at 11:32:00AM +0100, Arnd Bergmann wrote:
+> > > On Wednesday 24 September 2014 18:17:20 Will Deacon wrote:
+> > > > {read,write}{b,w,l,q}_relaxed are implemented by some architectures in
+> > > > order to permit memory-mapped I/O accesses with weaker barrier semantics
+> > > > than the non-relaxed variants.
+> > > > 
+> > > > This patch adds wrappers to asm-generic so that drivers can rely on the
+> > > > relaxed accessors being available, even if they don't always provide
+> > > > weaker ordering guarantees. Since some architectures both include
+> > > > asm-generic/io.h and define some relaxed accessors, the definitions here
+> > > > are conditional for the time being.
+> > > > 
+> > > > Cc: Arnd Bergmann <arnd@arndb.de>
+> > > > Signed-off-by: Will Deacon <will.deacon@arm.com>
+> > > > ---
+> > > >  include/asm-generic/io.h | 26 ++++++++++++++++++++++++++
+> > > >  1 file changed, 26 insertions(+)
+> > > > 
+> > > 
+> > > Acked-by: Arnd Bergmann <arnd@arndb.de>
+> > 
+> > Thanks, Arnd. Do you have other patches queued for asm-generic, or shall I
+> > take this patch (on its own) via the arm64 tree?
 > 
-> [PATCH v3 01/29] asm-generic: add generic futex for !CONFIG_SMP
+> I don't have other patches queued up yet, but Thierry has another patch
+> for asm-generic/io.h that I want to merge, so this time I'd prefer to
+> take it through my tree in case there are conflicts.
 
-You already have my Ack, which is sufficient here.
+Ok, suits me. I'll drop this from my series when it hits mainline.
 
-> [PATCH v3 15/29] Add ELF machine define for Nios2
-
-I'm not maintaining this one, but it looks very obvious, please
-add my Ack as well. I don't think you need to wait for anybody's
-input here.
-
-> [PATCH v3 27/29] MAINTAINERS: Add nios2 maintainer
-
-This one is fine to go in. You basically own the entry though, so if
-anybody wants to change the text for nios2 later, they should ask
-for your Ack.
-
-> [PATCH v3 28/29] Documentation: Add documentation for Nios2 architecture
-
-Randy Dunlap <rdunlap@infradead.org> is the maintainer listed for
-Documentation, and I see you already have linux-doc@vger.kernel.org
-on Cc here. Please make sure that Randy is on Cc for the documentation
-patches as well. A lot of documentation patches go in without his
-Ack, which I think is fine as long as someone else (i.e. you) is
-responsible for maintaining that documentation later.
-
-	Arnd
+Will
