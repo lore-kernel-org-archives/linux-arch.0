@@ -1,51 +1,48 @@
-From: Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>
-Subject: Re: [PATCH v2 06/22] PCI/MSI: Introduce weak arch_find_msi_chip()
-	to find MSI chip
-Date: Thu, 25 Sep 2014 12:38:34 +0200 (CEST)
-Message-ID: <alpine.DEB.2.10.1409251220570.4604@nanos>
-References: <1411614872-4009-1-git-send-email-wangyijing@huawei.com>
-	<1411614872-4009-7-git-send-email-wangyijing@huawei.com>
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [PATCH v3 01/17] asm-generic: io: implement relaxed accessor
+ macros as conditional wrappers
+Date: Thu, 25 Sep 2014 11:38:46 +0100
+Message-ID: <20140925103846.GI20043@arm.com>
+References: <1411579056-16966-1-git-send-email-will.deacon@arm.com>
+ <1411579056-16966-2-git-send-email-will.deacon@arm.com>
+ <4501051.vdxhyhkTWv@wuerfel>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-In-Reply-To: <1411614872-4009-7-git-send-email-wangyijing-hv44wF8Li93QT0dZR+AlfA@public.gmane.org>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
-List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
-Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-To: Yijing Wang <wangyijing-hv44wF8Li93QT0dZR+AlfA@public.gmane.org>
-Cc: linux-mips-6z/3iImG2C8G8FEW9MqTrA@public.gmane.org, linux-ia64-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-pci-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Thierry Reding <thierry.reding-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, sparclinux-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-s390-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Russell King <linux-lFZ/pmaqli7XmaaqVzeoHQ@public.gmane.org>, Michael Ellerman <mpe-Gsx/Oe8HsFggBc27wqDAHg@public.gmane.org>, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, Sebastian Ott <sebott-23VcF4HTsmIX0ybBhKVfKdBPR1lH4CV8@public.gmane.org>, Benjamin Herrenschmidt <benh-XVmvHMARGAS8U2dJNN8I7kB+6BGkLq7r@public.gmane.org>, xen-devel-GuqFBffKawtpuQazS67q72D2FQJk+8+b@public.gmane.org, arnab.basu-KZfg59tc24xl57MIdRCFDg@public.gmane.org, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Chris Metcalf <cmetcalf-kv+TWInifGbQT0dZR+AlfA@public.gmane.org>, Bjorn Helgaas <bhelgaas-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, Thomas Petazzoni <thomas.petazzoni-wi1+55ScJUtKEb57/3fJTNBPR1lH4CV8@public.gmane.org>, Xinwei Hu <huxinwei-hv44wF8Li93QT0dZR+AlfA@public.gmane.org>, Tony Luck <tony.luck-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org>, Sergei Shtylyov <sergei.shtylyov-M4DtvfQ/ZS1MRgGoP+s0PdBPR1lH4CV8@public.gmane.org>, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Ralf Baechle <ralf-6z/3iImG2C8G8FEW9MqTrA@public.gmane.org>, iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org, David
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:56723 "EHLO
+	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1751414AbaIYKjq (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Thu, 25 Sep 2014 06:39:46 -0400
+Content-Disposition: inline
+In-Reply-To: <4501051.vdxhyhkTWv@wuerfel>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, "chris@zankel.net" <chris@zankel.net>, "cmetcalf@tilera.com" <cmetcalf@tilera.com>, "davem@davemloft.net" <davem@davemloft.net>, "deller@gmx.de" <deller@gmx.de>, "dhowells@redhat.com" <dhowells@redhat.com>, "geert@linux-m68k.org" <geert@linux-m68k.org>, "heiko.carstens@de.ibm.com" <heiko.carstens@de.ibm.com>, "hpa@zytor.com" <hpa@zytor.com>, "jcmvbkbc@gmail.com" <jcmvbkbc@gmail.com>, "jesper.nilsson@axis.com" <jesper.nilsson@axis.com>, "mingo@redhat.com" <mingo@redhat.com>, "monstr@monstr.eu" <monstr@monstr.eu>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>, "rdunlap@infradead.org" <rdunlap@infradead.org>, "sam@ravnborg.org" <sam@ravnborg.org>, "schwidefsky@de.ibm.com" <schwidefsk>
 
-On Thu, 25 Sep 2014, Yijing Wang wrote:
+On Thu, Sep 25, 2014 at 11:32:00AM +0100, Arnd Bergmann wrote:
+> On Wednesday 24 September 2014 18:17:20 Will Deacon wrote:
+> > {read,write}{b,w,l,q}_relaxed are implemented by some architectures in
+> > order to permit memory-mapped I/O accesses with weaker barrier semantics
+> > than the non-relaxed variants.
+> > 
+> > This patch adds wrappers to asm-generic so that drivers can rely on the
+> > relaxed accessors being available, even if they don't always provide
+> > weaker ordering guarantees. Since some architectures both include
+> > asm-generic/io.h and define some relaxed accessors, the definitions here
+> > are conditional for the time being.
+> > 
+> > Cc: Arnd Bergmann <arnd@arndb.de>
+> > Signed-off-by: Will Deacon <will.deacon@arm.com>
+> > ---
+> >  include/asm-generic/io.h | 26 ++++++++++++++++++++++++++
+> >  1 file changed, 26 insertions(+)
+> > 
+> 
+> Acked-by: Arnd Bergmann <arnd@arndb.de>
 
-> Introduce weak arch_find_msi_chip() to find the match msi_chip.
-> Currently, MSI chip associates pci bus to msi_chip. Because in
-> ARM platform, there may be more than one MSI controller in system.
-> Associate pci bus to msi_chip help pci device to find the match
-> msi_chip and setup MSI/MSI-X irq correctly. But in other platform,
-> like in x86. we only need one MSI chip, because all device use
-> the same MSI address/data and irq etc. So it's no need to associate
-> pci bus to MSI chip, just use a arch function, arch_find_msi_chip()
-> to return the MSI chip for simplicity. The default weak
-> arch_find_msi_chip() used in ARM platform, find the MSI chip
-> by pci bus.
+Thanks, Arnd. Do you have other patches queued for asm-generic, or shall I
+take this patch (on its own) via the arm64 tree?
 
-This is really backwards. On one hand you try to get rid of the weak
-arch functions zoo and then you invent new ones for no good
-reason. Why can't x86 store the chip in the pci bus?
-
-Looking deeper, I'm questioning the whole notion of different
-msi_chips. Are this really different MSI controllers with a different
-feature set or are this defacto multiple instances of the same
-controller which just need a different data set?
-
-Thanks,
-
-	tglx
+Will
