@@ -1,82 +1,86 @@
-From: Greg Ungerer <gerg@uclinux.org>
-Subject: Re: [PATCH v3 09/17] m68k: io: implement dummy relaxed accessor macros
- for writes
-Date: Thu, 25 Sep 2014 11:05:43 +1000
-Message-ID: <54236A67.90001@uclinux.org>
-References: <1411579056-16966-1-git-send-email-will.deacon@arm.com> <1411579056-16966-10-git-send-email-will.deacon@arm.com>
+From: Yijing Wang <wangyijing@huawei.com>
+Subject: [PATCH v2 07/22] PCI/MSI: Refactor struct msi_chip to make it become more common
+Date: Thu, 25 Sep 2014 11:14:17 +0800
+Message-ID: <1411614872-4009-8-git-send-email-wangyijing@huawei.com>
+References: <1411614872-4009-1-git-send-email-wangyijing@huawei.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="windows-1252"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from hub027-ca-8.exch027.serverdata.net ([64.78.52.15]:23766 "EHLO
-	hub027-ca-8.exch027.serverdata.net" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1751175AbaIYBNl (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 24 Sep 2014 21:13:41 -0400
-In-Reply-To: <1411579056-16966-10-git-send-email-will.deacon@arm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will.deacon@arm.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: arnd@arndb.de, benh@kernel.crashing.org, chris@zankel.net, cmetcalf@tilera.com, davem@davemloft.net, deller@gmx.de, dhowells@redhat.com, geert@linux-m68k.org, heiko.carstens@de.ibm.com, hpa@zytor.com, jcmvbkbc@gmail.com, jesper.nilsson@axis.com, mingo@redhat.com, monstr@monstr.eu, paulmck@linux.vnet.ibm.com, rdunlap@infradead.org, sam@ravnborg.org, schwidefsky@de.ibm.com, starvik@axis.com, takata@linux-m32r.org, tglx@linutronix.de, tony.luck@intel.com, daniel.thompson@linaro.org, broonie@linaro.org, linux@arm.linux.org.uk
+Content-Type: text/plain
+Return-path: <linux-ia64-owner@vger.kernel.org>
+In-Reply-To: <1411614872-4009-1-git-send-email-wangyijing@huawei.com>
+Sender: linux-ia64-owner@vger.kernel.org
+To: Bjorn Helgaas <bhelgaas@google.com>
+Cc: linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, Xinwei Hu <huxinwei@huawei.com>, Wuyun <wuyun.wu@huawei.com>, linux-arm-kernel@lists.infradead.org, Russell King <linux@arm.linux.org.uk>, linux-arch@vger.kernel.org, arnab.basu@freescale.com, Bharat.Bhushan@freescale.com, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, Thomas Gleixner <tglx@linutronix.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, xen-devel@lists.xenproject.org, Joerg Roedel <joro@8bytes.org>, iommu@lists.linux-foundation.org, linux-mips@linux-mips.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, Sebastian Ott <sebott@linux.vnet.ibm.com>, Tony Luck <tony.luck@intel.com>, linux-ia64@vger.kernel.org, "David S. Miller" <davem@davemloft.net>, sparclinux@vger.kernel.org, Chris Metcalf <cmetcalf@til>
+List-Id: linux-arch.vger.kernel.org
 
-Hi Will
+Now there are a lot of __weak arch functions in MSI code.
+These functions make MSI driver complex. Thierry Reding Introduced
+a new MSI chip framework to configure MSI/MSI-X irq in ARM. Use
+the new MSI chip framework to refactor all other platform MSI
+arch code to eliminate weak arch MSI functions. This patch add
+.restore_irq() and .setup_irqs() to make it become more common.
 
-On 25/09/14 03:17, Will Deacon wrote:
-> write{b,w,l}_relaxed are implemented by some architectures in order to
-> permit memory-mapped I/O accesses with weaker barrier semantics than the
-> non-relaxed variants.
-> 
-> This patch adds dummy macros for the write accessors to m68k, in the
-> same vein as the dummy definitions for the relaxed read accessors.
-> Additionally, the existing relaxed read accessors are moved into
-> asm/io.h, so that they can be used by m68k targets with an MMU.
-> 
-> Acked-by: Geert Uytterhoeven <geert@linux-m68k.org>
-> Signed-off-by: Will Deacon <will.deacon@arm.com>
-> ---
->  arch/m68k/include/asm/io.h    | 8 ++++++++
->  arch/m68k/include/asm/io_no.h | 4 ----
->  2 files changed, 8 insertions(+), 4 deletions(-)
-> 
-> diff --git a/arch/m68k/include/asm/io.h b/arch/m68k/include/asm/io.h
-> index c70cc9155003..bccd5a914eb6 100644
-> --- a/arch/m68k/include/asm/io.h
-> +++ b/arch/m68k/include/asm/io.h
-> @@ -3,3 +3,11 @@
->  #else
->  #include <asm/io_mm.h>
->  #endif
-> +
-> +#define readb_relaxed(addr)	readb(addr)
-> +#define readw_relaxed(addr)	readw(addr)
-> +#define readl_relaxed(addr)	readl(addr)
-> +
-> +#define writeb_relaxed(b, addr)	writeb(b, addr)
-> +#define writew_relaxed(b, addr)	writew(b, addr)
-> +#define writel_relaxed(b, addr)	writel(b, addr)
+Signed-off-by: Yijing Wang <wangyijing@huawei.com>
+Reviewed-by: Lucas Stach <l.stach@pengutronix.de>
+---
+ drivers/pci/msi.c   |   15 +++++++++++++++
+ include/linux/msi.h |    3 +++
+ 2 files changed, 18 insertions(+), 0 deletions(-)
 
-Putting them here means they won't have any multiple include protection
-(there is no "#ifndef _IO_H" around them). Doesn't seem to lead to
-any problems in practice. Just flagging it...
+diff --git a/drivers/pci/msi.c b/drivers/pci/msi.c
+index 3acbe65..d10edee 100644
+--- a/drivers/pci/msi.c
++++ b/drivers/pci/msi.c
+@@ -64,6 +64,11 @@ int __weak arch_setup_msi_irqs(struct pci_dev *dev, int nvec, int type)
+ {
+ 	struct msi_desc *entry;
+ 	int ret;
++	struct msi_chip *chip;
++
++	chip = arch_find_msi_chip(dev);
++	if (chip && chip->setup_irqs)
++		return chip->setup_irqs(dev, nvec, type);
+ 
+ 	/*
+ 	 * If an architecture wants to support multiple MSI, it needs to
+@@ -106,6 +111,11 @@ void default_teardown_msi_irqs(struct pci_dev *dev)
+ 
+ void __weak arch_teardown_msi_irqs(struct pci_dev *dev)
+ {
++	struct msi_chip *chip = arch_find_msi_chip(dev);
++
++	if (chip && chip->teardown_irqs)
++		return chip->teardown_irqs(dev);
++
+ 	return default_teardown_msi_irqs(dev);
+ }
+ 
+@@ -129,6 +139,11 @@ static void default_restore_msi_irq(struct pci_dev *dev, int irq)
+ 
+ void __weak arch_restore_msi_irqs(struct pci_dev *dev)
+ {
++	struct msi_chip *chip = arch_find_msi_chip(dev);
++
++	if (chip && chip->restore_irqs)
++		return chip->restore_irqs(dev);
++
+ 	return default_restore_msi_irqs(dev);
+ }
+ 
+diff --git a/include/linux/msi.h b/include/linux/msi.h
+index 6fdc5c6..4cf1f31 100644
+--- a/include/linux/msi.h
++++ b/include/linux/msi.h
+@@ -69,7 +69,10 @@ struct msi_chip {
+ 	struct list_head list;
+ 
+ 	int (*setup_irq)(struct pci_dev *dev, struct msi_desc *desc);
++	int (*setup_irqs)(struct pci_dev *dev, int nvec, int type);
+ 	void (*teardown_irq)(unsigned int irq);
++	void (*teardown_irqs)(struct pci_dev *dev);
++	void (*restore_irqs)(struct pci_dev *dev);
+ };
+ 
+ #endif /* LINUX_MSI_H */
+-- 
+1.7.1
 
-Regards
-Greg
-
-
-
-> diff --git a/arch/m68k/include/asm/io_no.h b/arch/m68k/include/asm/io_no.h
-> index 52f7e8499172..19c237c63dc2 100644
-> --- a/arch/m68k/include/asm/io_no.h
-> +++ b/arch/m68k/include/asm/io_no.h
-> @@ -40,10 +40,6 @@ static inline unsigned int _swapl(volatile unsigned long v)
->  #define readl(addr) \
->      ({ unsigned int __v = (*(volatile unsigned int *) (addr)); __v; })
->  
-> -#define readb_relaxed(addr) readb(addr)
-> -#define readw_relaxed(addr) readw(addr)
-> -#define readl_relaxed(addr) readl(addr)
-> -
->  #define writeb(b,addr) (void)((*(volatile unsigned char *) (addr)) = (b))
->  #define writew(b,addr) (void)((*(volatile unsigned short *) (addr)) = (b))
->  #define writel(b,addr) (void)((*(volatile unsigned int *) (addr)) = (b))
-> 
