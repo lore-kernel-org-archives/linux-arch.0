@@ -1,71 +1,80 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from dliviu.plus.com ([80.229.23.120]:40572 "EHLO smtp.dudau.co.uk"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752574AbaIYOuZ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 25 Sep 2014 10:50:25 -0400
-Received: from localhost (localhost.localdomain [127.0.0.1])
-	by smtp.dudau.co.uk (Postfix) with SMTP id 0D74BFFDD1
-	for <linux-arch@vger.kernel.org>; Thu, 25 Sep 2014 15:50:24 +0100 (BST)
-Date: Thu, 25 Sep 2014 15:48:55 +0100
-From: Liviu Dudau <liviu@dudau.co.uk>
-Subject: Re: [PATCH v2 00/22] Use MSI chip framework to configure MSI/MSI-X
- in all platforms
-Message-ID: <20140925144855.GB31157@bart.dudau.co.uk>
-References: <1411614872-4009-1-git-send-email-wangyijing@huawei.com>
- <20140925074235.GN12423@ulmo>
+Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:60437 "EHLO
+	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1752130AbaIYO4g (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Thu, 25 Sep 2014 10:56:36 -0400
+Date: Thu, 25 Sep 2014 15:55:38 +0100
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [PATCH v3 00/17] Cross-architecture definitions of relaxed MMIO
+ accessors
+Message-ID: <20140925145538.GN20043@arm.com>
+References: <1411579056-16966-1-git-send-email-will.deacon@arm.com>
+ <2811016.mhqlsl6pTS@wuerfel>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20140925074235.GN12423@ulmo>
+In-Reply-To: <2811016.mhqlsl6pTS@wuerfel>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Thierry Reding <thierry.reding@gmail.com>
-Cc: Yijing Wang <wangyijing@huawei.com>, Bjorn Helgaas <bhelgaas@google.com>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, Xinwei Hu <huxinwei@huawei.com>, Wuyun <wuyun.wu@huawei.com>, linux-arm-kernel@lists.infradead.org, Russell King <linux@arm.linux.org.uk>, linux-arch@vger.kernel.org, arnab.basu@freescale.com, Bharat.Bhushan@freescale.com, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, Thomas Gleixner <tglx@linutronix.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, xen-devel@lists.xenproject.org, Joerg Roedel <joro@8bytes.org>, iommu@lists.linux-foundation.org, linux-mips@linux-mips.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, Sebastian Ott <sebott@linux.vnet.ibm.com>, Tony Luck <tony.luck@intel.com>, linux-ia64@vger.kernel.org, "David S. Miller" <davem@davemloft.net>, sparclinux@vger.kernel.org, Chris Metcalf <cmetcalf@tilera.com>, Ralf Baechle <ralf@linux-mips.org>, Lucas Stach <l.stach@pengutronix.de>, David Vrabel <david.vrabel@citrix.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, Michael Ellerman <mpe@ellerman.id.au>, Thomas Petazzoni <thomas.petazzoni@free-electrons.com>
-Message-ID: <20140925144855.kTdhBNMaaB53zEo7EFMVxEzznqjSxypAGD2GXerdwXs@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, "chris@zankel.net" <chris@zankel.net>, "cmetcalf@tilera.com" <cmetcalf@tilera.com>, "davem@davemloft.net" <davem@davemloft.net>, "deller@gmx.de" <deller@gmx.de>, "dhowells@redhat.com" <dhowells@redhat.com>, "geert@linux-m68k.org" <geert@linux-m68k.org>, "heiko.carstens@de.ibm.com" <heiko.carstens@de.ibm.com>, "hpa@zytor.com" <hpa@zytor.com>, "jcmvbkbc@gmail.com" <jcmvbkbc@gmail.com>, "jesper.nilsson@axis.com" <jesper.nilsson@axis.com>, "mingo@redhat.com" <mingo@redhat.com>, "monstr@monstr.eu" <monstr@monstr.eu>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>, "rdunlap@infradead.org" <rdunlap@infradead.org>, "sam@ravnborg.org" <sam@ravnborg.org>, "schwidefsky@de.ibm.com" <schwidefsky@de.ibm.com>, "starvik@axis.com" <starvik@axis.com>, "takata@linux-m32r.org" <takata@linux-m32r.org>, "tglx@linutronix.de" <tglx@linutronix.de>, "tony.luck@intel.com" <tony.luck@intel.com>, "daniel.thompson@linaro.org" <daniel.thompson@linaro.org>, "broonie@linaro.org" <broonie@linaro.org>, "linux@arm.linux.org.uk" <linux@arm.linux.org.uk>, "thierry.reding@gmail.com" <thierry.reding@gmail.com>
+Message-ID: <20140925145538.WMcdR3PhtKDYxUvfzyi3lWUmJfoP7RAhDzNEXVXE1mk@z>
 
-On Thu, Sep 25, 2014 at 09:42:36AM +0200, Thierry Reding wrote:
-> On Thu, Sep 25, 2014 at 11:14:10AM +0800, Yijing Wang wrote:
-> > This series is based Bjorn's pci/msi branch
-> > git://git.kernel.org/pub/scm/linux/kernel/git/helgaas/pci.git pci/msi
+On Thu, Sep 25, 2014 at 02:15:10PM +0100, Arnd Bergmann wrote:
+> On Wednesday 24 September 2014 18:17:19 Will Deacon wrote:
+> > This is version three of the series I've originally posted here:
 > > 
-> > Currently, there are a lot of weak arch functions in MSI code.
-> > Thierry Reding Introduced MSI chip framework to configure MSI/MSI-X in arm.
-> > This series use MSI chip framework to refactor MSI code across all platforms
-> > to eliminate weak arch functions. Then all MSI irqs will be managed in a 
-> > unified framework. Because this series changed a lot of ARCH MSI code,
-> > so tests in the platforms which MSI code modified are warmly welcomed!
+> >   v1: https://lkml.org/lkml/2014/4/17/269
+> >   v2: https://lkml.org/lkml/2014/5/22/468
+> > 
+> > This is basically just a rebase on top of 3.17-rc6, minus the alpha patch
+> > (which was merged into mainline).
+> > 
+> > I looked at reworking the non-relaxed accessors to imply mmiowb, but it
+> > quickly got messy as some architectures (e.g. mips) deliberately keep
+> > mmiowb and readX/writeX separate whilst others (e.g. powerpc) don't trust
+> > drivers to get mmiowb correct, so add barriers to both. Given that
+> > arm/arm64/x86 don't care about mmiowb, I've left that as an exercise for
+> > an architecture that does care.
+> > 
+> > In order to get this lot merged, we probably want to merge the asm-generic
+> > patch (1/17) first, so Acks would be much appreciated on the architecture
+> > bits.
+> > 
+> > As before, I've included the original cover letter below, as that describes
+> > what I'm trying to do in more detail.
+> > 
 > 
-> Apart from the comments to the individual patches I very much like where
-> this is going. Thanks for taking care of this.
+> I've now applied the parts of your series that are required to have
+> every architecture provide all the 'relaxed' accessors to the
+> asm-generic tree, on top of Thierry's series.
+
+Brill, thanks Arnd! I'll repost what's left during the next cycle, however
+I think you also need to pick the microblaze patch as it includes
+<asm-generic/io.h> before defining its relaxed accessors, so I think
+you'll get a redefinition warning from the preprocessor.
+
+> I had to change your first patch significantly because all the context
+> changed in his patches. See below for the new version. Thierry, can
+> you also confirm that this matches up with the intention of your
+> series? Since that now adds a separate #ifdef for each symbol, I
+> ended up putting the #ifdef for the relaxed version inside of the
+> #ifdef for the non-relaxed version, but it could alternatively
+> be defined outside of it as well.
+
+I think both work, as I can't find any architectures that define the
+relaxed variants but not the non-relaxed versions.
+
+> The entire series of both Thierry's and Will's changes is now in
+> git://git.kernel.org/pub/scm/linux/kernel/git/arnd/asm-generic.git
+> and should show up in linux-next tomorrow. There are currently
+> no conflicts against anything else in linux-next.
 > 
-> Thierry
+> Since we're rather close to the merge window, I'd probably leave
+> this in linux-next for a while longer and submit it all for inclusion
+> in 3.18 in the second week after 3.17.
 
-I am actually in disagreement with you, Thierry. I don't like the general direction
-of the patches, or at least I don't like the fact that we don't have a portable
-way of setting up the msi_chip without having to rely on weak architectural hooks.
-I'm surprised no one considers the case of a platform having more than one host
-bridge and possibly more than one MSI unit. With the current proposed patchset I
-can't see how that would work.
+Makes sense.
 
-What I would like to see is a way of creating the pci_host_bridge structure outside
-the pci_create_root_bus(). That would then allow us to pass this sort of platform
-details like associated msi_chip into the host bridge and the child busses will
-have an easy way of finding the information needed by finding the root bus and then
-the host bridge structure. Then the generic pci_scan_root_bus() can be used by (mostly)
-everyone and the drivers can remove their kludges that try to work around the
-current limitations.
-
-Best regards,
-Liviu
-
----------------------
-   .oooO
-   (   )
-    \ (  Oooo.
-     \_) (   )
-          ) /
-         (_/
-
- One small step
-   for me ...
-
+Will
