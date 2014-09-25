@@ -1,46 +1,49 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from www.linutronix.de ([62.245.132.108]:32800 "EHLO
-	Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751237AbaIYKjK (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 25 Sep 2014 06:39:10 -0400
-Date: Thu, 25 Sep 2014 12:38:34 +0200 (CEST)
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [PATCH v2 06/22] PCI/MSI: Introduce weak arch_find_msi_chip()
- to find MSI chip
-In-Reply-To: <1411614872-4009-7-git-send-email-wangyijing@huawei.com>
-Message-ID: <alpine.DEB.2.10.1409251220570.4604@nanos>
-References: <1411614872-4009-1-git-send-email-wangyijing@huawei.com> <1411614872-4009-7-git-send-email-wangyijing@huawei.com>
+Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:56723 "EHLO
+	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1751414AbaIYKjq (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Thu, 25 Sep 2014 06:39:46 -0400
+Date: Thu, 25 Sep 2014 11:38:46 +0100
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [PATCH v3 01/17] asm-generic: io: implement relaxed accessor
+ macros as conditional wrappers
+Message-ID: <20140925103846.GI20043@arm.com>
+References: <1411579056-16966-1-git-send-email-will.deacon@arm.com>
+ <1411579056-16966-2-git-send-email-will.deacon@arm.com>
+ <4501051.vdxhyhkTWv@wuerfel>
 MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <4501051.vdxhyhkTWv@wuerfel>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Yijing Wang <wangyijing@huawei.com>
-Cc: Bjorn Helgaas <bhelgaas@google.com>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, Xinwei Hu <huxinwei@huawei.com>, Wuyun <wuyun.wu@huawei.com>, linux-arm-kernel@lists.infradead.org, Russell King <linux@arm.linux.org.uk>, linux-arch@vger.kernel.org, arnab.basu@freescale.com, Bharat.Bhushan@freescale.com, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, xen-devel@lists.xenproject.org, Joerg Roedel <joro@8bytes.org>, iommu@lists.linux-foundation.org, linux-mips@linux-mips.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, Sebastian Ott <sebott@linux.vnet.ibm.com>, Tony Luck <tony.luck@intel.com>, linux-ia64@vger.kernel.org, "David S. Miller" <davem@davemloft.net>, sparclinux@vger.kernel.org, Chris Metcalf <cmetcalf@tilera.com>, Ralf Baechle <ralf@linux-mips.org>, Lucas Stach <l.stach@pengutronix.de>, David Vrabel <david.vrabel@citrix.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, Michael Ellerman <mpe@ellerman.id.au>, Thierry Reding <thierry.reding@gmail.com>, Thomas Petazzoni <thomas.petazzoni@free-electrons.com>
-Message-ID: <20140925103834.yeMSMiQoE0WgdfmO7_o_pYpu8RGUG9MpKT6SBY3LUy8@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, "chris@zankel.net" <chris@zankel.net>, "cmetcalf@tilera.com" <cmetcalf@tilera.com>, "davem@davemloft.net" <davem@davemloft.net>, "deller@gmx.de" <deller@gmx.de>, "dhowells@redhat.com" <dhowells@redhat.com>, "geert@linux-m68k.org" <geert@linux-m68k.org>, "heiko.carstens@de.ibm.com" <heiko.carstens@de.ibm.com>, "hpa@zytor.com" <hpa@zytor.com>, "jcmvbkbc@gmail.com" <jcmvbkbc@gmail.com>, "jesper.nilsson@axis.com" <jesper.nilsson@axis.com>, "mingo@redhat.com" <mingo@redhat.com>, "monstr@monstr.eu" <monstr@monstr.eu>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>, "rdunlap@infradead.org" <rdunlap@infradead.org>, "sam@ravnborg.org" <sam@ravnborg.org>, "schwidefsky@de.ibm.com" <schwidefsky@de.ibm.com>, "starvik@axis.com" <starvik@axis.com>, "takata@linux-m32r.org" <takata@linux-m32r.org>, "tglx@linutronix.de" <tglx@linutronix.de>, "tony.luck@intel.com" <tony.luck@intel.com>, "daniel.thompson@linaro.org" <daniel.thompson@linaro.org>, "broonie@linaro.org" <broonie@linaro.org>, "linux@arm.linux.org.uk" <linux@arm.linux.org.uk>
+Message-ID: <20140925103846.xVZERdgnR8NahhvwoBEIBNDorkFqjAHKkIcFZKLOIRA@z>
 
-On Thu, 25 Sep 2014, Yijing Wang wrote:
+On Thu, Sep 25, 2014 at 11:32:00AM +0100, Arnd Bergmann wrote:
+> On Wednesday 24 September 2014 18:17:20 Will Deacon wrote:
+> > {read,write}{b,w,l,q}_relaxed are implemented by some architectures in
+> > order to permit memory-mapped I/O accesses with weaker barrier semantics
+> > than the non-relaxed variants.
+> > 
+> > This patch adds wrappers to asm-generic so that drivers can rely on the
+> > relaxed accessors being available, even if they don't always provide
+> > weaker ordering guarantees. Since some architectures both include
+> > asm-generic/io.h and define some relaxed accessors, the definitions here
+> > are conditional for the time being.
+> > 
+> > Cc: Arnd Bergmann <arnd@arndb.de>
+> > Signed-off-by: Will Deacon <will.deacon@arm.com>
+> > ---
+> >  include/asm-generic/io.h | 26 ++++++++++++++++++++++++++
+> >  1 file changed, 26 insertions(+)
+> > 
+> 
+> Acked-by: Arnd Bergmann <arnd@arndb.de>
 
-> Introduce weak arch_find_msi_chip() to find the match msi_chip.
-> Currently, MSI chip associates pci bus to msi_chip. Because in
-> ARM platform, there may be more than one MSI controller in system.
-> Associate pci bus to msi_chip help pci device to find the match
-> msi_chip and setup MSI/MSI-X irq correctly. But in other platform,
-> like in x86. we only need one MSI chip, because all device use
-> the same MSI address/data and irq etc. So it's no need to associate
-> pci bus to MSI chip, just use a arch function, arch_find_msi_chip()
-> to return the MSI chip for simplicity. The default weak
-> arch_find_msi_chip() used in ARM platform, find the MSI chip
-> by pci bus.
+Thanks, Arnd. Do you have other patches queued for asm-generic, or shall I
+take this patch (on its own) via the arm64 tree?
 
-This is really backwards. On one hand you try to get rid of the weak
-arch functions zoo and then you invent new ones for no good
-reason. Why can't x86 store the chip in the pci bus?
-
-Looking deeper, I'm questioning the whole notion of different
-msi_chips. Are this really different MSI controllers with a different
-feature set or are this defacto multiple instances of the same
-controller which just need a different data set?
-
-Thanks,
-
-	tglx
+Will
