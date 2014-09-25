@@ -1,85 +1,37 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.126.131]:60712 "EHLO
-	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753028AbaIYPR5 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 25 Sep 2014 11:17:57 -0400
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH v3 00/17] Cross-architecture definitions of relaxed MMIO accessors
-Date: Thu, 25 Sep 2014 17:15:14 +0200
-Message-ID: <4240583.SJ4jiIW6Zy@wuerfel>
-In-Reply-To: <3361270.4SkjDs5lox@wuerfel>
-References: <1411579056-16966-1-git-send-email-will.deacon@arm.com> <20140925145538.GN20043@arm.com> <3361270.4SkjDs5lox@wuerfel>
+Received: from mail-oi0-f44.google.com ([209.85.218.44]:50940 "EHLO
+	mail-oi0-f44.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751921AbaIYPWr (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 25 Sep 2014 11:22:47 -0400
 MIME-Version: 1.0
-Content-Transfer-Encoding: 7Bit
-Content-Type: text/plain; charset="us-ascii"
+In-Reply-To: <1411579056-16966-5-git-send-email-will.deacon@arm.com>
+References: <1411579056-16966-1-git-send-email-will.deacon@arm.com>
+	<1411579056-16966-5-git-send-email-will.deacon@arm.com>
+Date: Thu, 25 Sep 2014 19:22:46 +0400
+Message-ID: <CAMo8BfJN0VJXsCa92b156KXiX_LbbXGr+mDEokEqH9pwGxKr4g@mail.gmail.com>
+Subject: Re: [PATCH v3 04/17] xtensa: io: remove dummy relaxed accessor macros
+ for reads
+From: Max Filippov <jcmvbkbc@gmail.com>
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Will Deacon <will.deacon@arm.com>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, "chris@zankel.net" <chris@zankel.net>, "cmetcalf@tilera.com" <cmetcalf@tilera.com>, "davem@davemloft.net" <davem@davemloft.net>, "deller@gmx.de" <deller@gmx.de>, "dhowells@redhat.com" <dhowells@redhat.com>, "geert@linux-m68k.org" <geert@linux-m68k.org>, "heiko.carstens@de.ibm.com" <heiko.carstens@de.ibm.com>, "hpa@zytor.com" <hpa@zytor.com>, "jcmvbkbc@gmail.com" <jcmvbkbc@gmail.com>, "jesper.nilsson@axis.com" <jesper.nilsson@axis.com>, "mingo@redhat.com" <mingo@redhat.com>, "monstr@monstr.eu" <monstr@monstr.eu>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>, "rdunlap@infradead.org" <rdunlap@infradead.org>, "sam@ravnborg.org" <sam@ravnborg.org>, "schwidefsky@de.ibm.com" <schwidefsky@de.ibm.com>, "starvik@axis.com" <starvik@axis.com>, "takata@linux-m32r.org" <takata@linux-m32r.org>, "tglx@linutronix.de" <tglx@linutronix.de>, "tony.luck@intel.com" <tony.luck@intel.com>, "daniel.thompson@linaro.org" <daniel.thompson@linaro.org>, "broonie@linaro.org" <broonie@linaro.org>, "linux@arm.linux.org.uk" <linux@arm.linux.org.uk>, "thierry.reding@gmail.com" <thierry.reding@gmail.com>
-Message-ID: <20140925151514.b7_0MbOAe98EuzWXY8cH2SAYpUdP-QuLpZ-aqK4rLlA@z>
+Cc: Linux-Arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Chris Zankel <chris@zankel.net>, Chris Metcalf <cmetcalf@tilera.com>, "David S. Miller" <davem@davemloft.net>, Helge Deller <deller@gmx.de>, David Howells <dhowells@redhat.com>, Geert Uytterhoeven <geert@linux-m68k.org>, heiko.carstens@de.ibm.com, "H. Peter Anvin" <hpa@zytor.com>, Jesper Nilsson <jesper.nilsson@axis.com>, Ingo Molnar <mingo@redhat.com>, Michal Simek <monstr@monstr.eu>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Randy Dunlap <rdunlap@infradead.org>, Sam Ravnborg <sam@ravnborg.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Mikael Starvik <starvik@axis.com>, Hirokazu Takata <takata@linux-m32r.org>, Thomas Gleixner <tglx@linutronix.de>, Tony Luck <tony.luck@intel.com>, daniel.thompson@linaro.org, Mark Brown <broonie@linaro.org>, Russell King <linux@arm.linux.org.uk>
+Message-ID: <20140925152246.JK2FsYXLXo4X4y-uLmiRBDmgNhR2s0NqQRtLT_fb0c8@z>
 
-On Thursday 25 September 2014 17:07:47 Arnd Bergmann wrote:
+On Wed, Sep 24, 2014 at 9:17 PM, Will Deacon <will.deacon@arm.com> wrote:
+> These are now defined by asm-generic/io.h, so we don't need the private
+> definitions anymore.
+>
+> Cc: Chris Zankel <chris@zankel.net>
+> Cc: Max Filippov <jcmvbkbc@gmail.com>
+> Signed-off-by: Will Deacon <will.deacon@arm.com>
+> ---
+>  arch/xtensa/include/asm/io.h | 7 -------
+>  1 file changed, 7 deletions(-)
 
-> The current version doesn't let you do that, so I'll keel the #ifdef
-> sections separate. This also means that I won't apply your patch 17:
-> we will keep needing the #ifdef to support all three relevant combinations:
-> 
-> a) architectures that provide neither and want to get the defaults
->    from asm-generic
-> b) architectures that provide the non-relaxed versions and want tog
->    to get just the relaxed version from asm-generic
-> c) architectures that provide both
-> 
+Acked-by: Max Filippov <jcmvbkbc@gmail.com>
 
-And here is the new version I applied:
-
-diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
-index 508a57257de5..3e976be3bdd4 100644
---- a/include/asm-generic/io.h
-+++ b/include/asm-generic/io.h
-@@ -174,6 +174,43 @@ static inline void writeq(u64 value, void __iomem *addr)
- #endif /* CONFIG_64BIT */
- 
- /*
-+ * {read,write}{b,w,l,q}_relaxed() are like the regular version, but
-+ * are not guaranteed to provide ordering against spinlocks or memory
-+ * accesses.
-+ */
-+#ifndef readb_relaxed
-+#define readb_relaxed readb
-+#endif
-+
-+#ifndef readw_relaxed
-+#define readw_relaxed readw
-+#endif
-+
-+#ifndef readl_relaxed
-+#define readl_relaxed readl
-+#endif
-+
-+#ifndef readq_relaxed
-+#define readq_relaxed readq
-+#endif
-+
-+#ifndef writeb_relaxed
-+#define writeb_relaxed writeb
-+#endif
-+
-+#ifndef writew_relaxed
-+#define writew_relaxed writew
-+#endif
-+
-+#ifndef writel_relaxed
-+#define writel_relaxed writel
-+#endif
-+
-+#ifndef writeq_relaxed
-+#define writeq_relaxed writeq
-+#endif
-+
-+/*
-  * {read,write}s{b,w,l,q}() repeatedly access the same memory address in
-  * native endianness in 8-, 16-, 32- or 64-bit chunks (@count times).
-  */
-
-
+-- 
+Thanks.
+-- Max
