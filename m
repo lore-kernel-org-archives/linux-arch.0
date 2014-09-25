@@ -1,53 +1,34 @@
-From: Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>
-Subject: Re: [PATCH v2 01/22] PCI/MSI: Clean up struct msi_chip argument
-Date: Thu, 25 Sep 2014 12:20:20 +0200 (CEST)
-Message-ID: <alpine.DEB.2.10.1409251208420.4604@nanos>
-References: <1411614872-4009-1-git-send-email-wangyijing@huawei.com>
-	<1411614872-4009-2-git-send-email-wangyijing@huawei.com>
-	<20140925071536.GG12423@ulmo>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH v3 01/17] asm-generic: io: implement relaxed accessor macros as conditional wrappers
+Date: Thu, 25 Sep 2014 12:32 +0200
+Message-ID: <4501051.vdxhyhkTWv@wuerfel>
+References: <1411579056-16966-1-git-send-email-will.deacon@arm.com> <1411579056-16966-2-git-send-email-will.deacon@arm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-In-Reply-To: <20140925071536.GG12423@ulmo>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
-List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
-Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-To: Thierry Reding <thierry.reding-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
-Cc: linux-mips-6z/3iImG2C8G8FEW9MqTrA@public.gmane.org, linux-ia64-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-pci-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, sparclinux-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-s390-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Russell King <linux-lFZ/pmaqli7XmaaqVzeoHQ@public.gmane.org>, Michael Ellerman <mpe-Gsx/Oe8HsFggBc27wqDAHg@public.gmane.org>, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, Sebastian Ott <sebott-23VcF4HTsmIX0ybBhKVfKdBPR1lH4CV8@public.gmane.org>, Benjamin Herrenschmidt <benh-XVmvHMARGAS8U2dJNN8I7kB+6BGkLq7r@public.gmane.org>, xen-devel-GuqFBffKawtpuQazS67q72D2FQJk+8+b@public.gmane.org, arnab.basu-KZfg59tc24xl57MIdRCFDg@public.gmane.org, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Chris Metcalf <cmetcalf-kv+TWInifGbQT0dZR+AlfA@public.gmane.org>, Bjorn Helgaas <bhelgaas-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, Thomas Petazzoni <thomas.petazzoni-wi1+55ScJUtKEb57/3fJTNBPR1lH4CV8@public.gmane.org>, Xinwei Hu <huxinwei-hv44wF8Li93QT0dZR+AlfA@public.gmane.org>, Tony Luck <tony.luck-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org>, Sergei Shtylyov <sergei.shtylyov-M4DtvfQ/ZS1MRgGoP+s0PdBPR1lH4CV8@public.gmane.org>, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Ralf Baechle <ralf-6z/3iImG2C8G8FEW9MqTrA@public.gmane.org>, iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org, David Vrabel <david.vrabel-Sxgqhf6Nn4DQT0dZR+AlfA@public.gmane.org>, Wuyun <wuy>
+Content-Transfer-Encoding: 7Bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1411579056-16966-2-git-send-email-will.deacon@arm.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Will Deacon <will.deacon@arm.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, benh@kernel.crashing.org, chris@zankel.net, cmetcalf@tilera.com, davem@davemloft.net, deller@gmx.de, dhowells@redhat.com, geert@linux-m68k.org, heiko.carstens@de.ibm.com, hpa@zytor.com, jcmvbkbc@gmail.com, jesper.nilsson@axis.com, mingo@redhat.com, monstr@monstr.eu, paulmck@linux.vnet.ibm.com, rdunlap@infradead.org, sam@ravnborg.org, schwidefsky@de.ibm.com, starvik@axis.com, takata@linux-m32r.org, tglx@linutronix.de, tony.luck@intel.com, daniel.thompson@linaro.org, broonie@linaro.org, linux@arm.linux.org.uk
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, 25 Sep 2014, Thierry Reding wrote:
-
-> On Thu, Sep 25, 2014 at 11:14:11AM +0800, Yijing Wang wrote:
-> > Msi_chip functions setup_irq/teardown_irq rarely use msi_chip
-> > argument.
+On Wednesday 24 September 2014 18:17:20 Will Deacon wrote:
+> {read,write}{b,w,l,q}_relaxed are implemented by some architectures in
+> order to permit memory-mapped I/O accesses with weaker barrier semantics
+> than the non-relaxed variants.
 > 
-> That's not true. Out of the four drivers that you modify two use the
-> parameter. And the two that don't probably should be using it too.
+> This patch adds wrappers to asm-generic so that drivers can rely on the
+> relaxed accessors being available, even if they don't always provide
+> weaker ordering guarantees. Since some architectures both include
+> asm-generic/io.h and define some relaxed accessors, the definitions here
+> are conditional for the time being.
 > 
-> 50% is not "rarely". =)
+> Cc: Arnd Bergmann <arnd@arndb.de>
+> Signed-off-by: Will Deacon <will.deacon@arm.com>
+> ---
+>  include/asm-generic/io.h | 26 ++++++++++++++++++++++++++
+>  1 file changed, 26 insertions(+)
 > 
-> >           We can look up msi_chip pointer by the device pointer
-> > or irq number, so clean up msi_chip argument.
-> 
-> I don't like this particular change. The idea was to keep the API object
-> oriented so that drivers wouldn't have to know where to get the MSI chip
-> from. It also makes it more resilient against code reorganizations since
-> the core code is the only place that needs to know where to get the chip
-> from.
 
-Right. We have the same thing in the irq_chip callbacks. All of them
-take "struct irq_data", because it's already available in the core
-code and it gives easy access to all information (chip, chipdata ...)
-which is necessary for the callback implementations.
-
-Thanks,
-
-	tglx
+Acked-by: Arnd Bergmann <arnd@arndb.de>
