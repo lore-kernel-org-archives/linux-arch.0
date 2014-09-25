@@ -1,116 +1,137 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from dliviu.plus.com ([80.229.23.120]:41095 "EHLO smtp.dudau.co.uk"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753320AbaIYRRS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 25 Sep 2014 13:17:18 -0400
-Received: from localhost (localhost.localdomain [127.0.0.1])
-	by smtp.dudau.co.uk (Postfix) with SMTP id 1CA07FFDBD
-	for <linux-arch@vger.kernel.org>; Thu, 25 Sep 2014 18:17:16 +0100 (BST)
-Date: Thu, 25 Sep 2014 18:16:12 +0100
-From: Liviu Dudau <liviu@dudau.co.uk>
-Subject: Re: [PATCH v2 00/22] Use MSI chip framework to configure MSI/MSI-X
- in all platforms
-Message-ID: <20140925171612.GC31157@bart.dudau.co.uk>
-References: <1411614872-4009-1-git-send-email-wangyijing@huawei.com>
- <20140925074235.GN12423@ulmo>
- <20140925144855.GB31157@bart.dudau.co.uk>
- <20140925164937.GB30382@ulmo>
+Received: from mail-ig0-f181.google.com ([209.85.213.181]:42184 "EHLO
+	mail-ig0-f181.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752130AbaIYSPC (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 25 Sep 2014 14:15:02 -0400
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-In-Reply-To: <20140925164937.GB30382@ulmo>
+In-Reply-To: <1411498874-9864-7-git-send-email-Liviu.Dudau@arm.com>
+References: <1411498874-9864-1-git-send-email-Liviu.Dudau@arm.com>
+	<1411498874-9864-7-git-send-email-Liviu.Dudau@arm.com>
+Date: Thu, 25 Sep 2014 11:15:01 -0700
+Message-ID: <CAE9FiQXuJZnj74dwTbKJCQNJ+OdEbjSB0fpwqh92+WZ_XGnrxQ@mail.gmail.com>
+Subject: Re: [PATCH v12 06/12] PCI: Create pci_host_bridge before its
+ associated bus in pci_create_root_bus.
+From: Yinghai Lu <yinghai@kernel.org>
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Thierry Reding <thierry.reding@gmail.com>
-Cc: Yijing Wang <wangyijing@huawei.com>, Bjorn Helgaas <bhelgaas@google.com>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, Xinwei Hu <huxinwei@huawei.com>, Wuyun <wuyun.wu@huawei.com>, linux-arm-kernel@lists.infradead.org, Russell King <linux@arm.linux.org.uk>, linux-arch@vger.kernel.org, arnab.basu@freescale.com, Bharat.Bhushan@freescale.com, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, Thomas Gleixner <tglx@linutronix.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, xen-devel@lists.xenproject.org, Joerg Roedel <joro@8bytes.org>, iommu@lists.linux-foundation.org, linux-mips@linux-mips.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, Sebastian Ott <sebott@linux.vnet.ibm.com>, Tony Luck <tony.luck@intel.com>, linux-ia64@vger.kernel.org, "David S. Miller" <davem@davemloft.net>, sparclinux@vger.kernel.org, Chris Metcalf <cmetcalf@tilera.com>, Ralf Baechle <ralf@linux-mips.org>, Lucas Stach <l.stach@pengutronix.de>, David Vrabel <david.vrabel@citrix.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, Michael Ellerman <mpe@ellerman.id.au>, Thomas Petazzoni <thomas.petazzoni@free-electrons.com>
-Message-ID: <20140925171612.1xLGqrzliPaqkmA20mIHZND1p5WnotBACsGgA8cmgW4@z>
+To: Liviu Dudau <Liviu.Dudau@arm.com>
+Cc: Bjorn Helgaas <bhelgaas@google.com>, Arnd Bergmann <arnd@arndb.de>, Rob Herring <robh+dt@kernel.org>, Jason Gunthorpe <jgunthorpe@obsidianresearch.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <Will.Deacon@arm.com>, Russell King <linux@arm.linux.org.uk>, linux-pci <linux-pci@vger.kernel.org>, Linus Walleij <linus.walleij@linaro.org>, Tanmay Inamdar <tinamdar@apm.com>, Grant Likely <grant.likely@secretlab.ca>, Sinan Kaya <okaya@codeaurora.org>, Jingoo Han <jg1.han@samsung.com>, Kukjin Kim <kgene.kim@samsung.com>, Suravee Suthikulanit <suravee.suthikulpanit@amd.com>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Device Tree ML <devicetree@vger.kernel.org>, LAKML <linux-arm-kernel@lists.infradead.org>
+Message-ID: <20140925181501.xT7qUGR7cwAZEsT8w-WTeQl5gKkQUZ6yfKHn9pvxNv0@z>
 
-On Thu, Sep 25, 2014 at 06:49:38PM +0200, Thierry Reding wrote:
-> On Thu, Sep 25, 2014 at 03:48:55PM +0100, Liviu Dudau wrote:
-> > On Thu, Sep 25, 2014 at 09:42:36AM +0200, Thierry Reding wrote:
-> > > On Thu, Sep 25, 2014 at 11:14:10AM +0800, Yijing Wang wrote:
-> > > > This series is based Bjorn's pci/msi branch
-> > > > git://git.kernel.org/pub/scm/linux/kernel/git/helgaas/pci.git pci/msi
-> > > > 
-> > > > Currently, there are a lot of weak arch functions in MSI code.
-> > > > Thierry Reding Introduced MSI chip framework to configure MSI/MSI-X in arm.
-> > > > This series use MSI chip framework to refactor MSI code across all platforms
-> > > > to eliminate weak arch functions. Then all MSI irqs will be managed in a 
-> > > > unified framework. Because this series changed a lot of ARCH MSI code,
-> > > > so tests in the platforms which MSI code modified are warmly welcomed!
-> > > 
-> > > Apart from the comments to the individual patches I very much like where
-> > > this is going. Thanks for taking care of this.
-> > > 
-> > > Thierry
-> > 
-> > I am actually in disagreement with you, Thierry. I don't like the general direction
-> > of the patches, or at least I don't like the fact that we don't have a portable
-> > way of setting up the msi_chip without having to rely on weak architectural hooks.
-> 
-> Oh, good. That's actually one of the things I said I wasn't happy with
-> either. =)
-> 
-> > I'm surprised no one considers the case of a platform having more than one host
-> > bridge and possibly more than one MSI unit. With the current proposed patchset I
-> > can't see how that would work.
-> 
-> The PCI core can already deal with that. An MSI chip can be set per bus
-> and the weak pcibios_add_bus() can be used to set that. Often it might
-> not even be necessary to do it via pcibios_add_bus() if you create the
-> root bus directly, since you can attach the MSI chip at that time.
+On Tue, Sep 23, 2014 at 12:01 PM, Liviu Dudau <Liviu.Dudau@arm.com> wrote:
+> Before commit 7b5436635800 the pci_host_bridge was created before the root bus.
+> As that commit has added a needless dependency on the bus for pci_alloc_host_bridge()
+> the creation order has been changed for no good reason. Revert the order of
+> creation as we are going to depend on the pci_host_bridge structure to retrieve the
+> domain number of the root bus.
+>
+> Cc: Bjorn Helgaas <bhelgaas@google.com>
+> Signed-off-by: Liviu Dudau <Liviu.Dudau@arm.com>
+> Acked-by: Grant Likely <grant.likely@linaro.org>
+> Reviewed-by: Catalin Marinas <catalin.marinas@arm.com>
+> Tested-by: Tanmay Inamdar <tinamdar@apm.com>
+> ---
+>  drivers/pci/probe.c | 32 +++++++++++++++++---------------
+>  1 file changed, 17 insertions(+), 15 deletions(-)
+>
+> diff --git a/drivers/pci/probe.c b/drivers/pci/probe.c
+> index e3cf8a2..5ff72ec 100644
+> --- a/drivers/pci/probe.c
+> +++ b/drivers/pci/probe.c
+> @@ -515,7 +515,7 @@ static void pci_release_host_bridge_dev(struct device *dev)
+>         kfree(bridge);
+>  }
+>
+> -static struct pci_host_bridge *pci_alloc_host_bridge(struct pci_bus *b)
+> +static struct pci_host_bridge *pci_alloc_host_bridge(void)
+>  {
+>         struct pci_host_bridge *bridge;
+>
+> @@ -524,7 +524,8 @@ static struct pci_host_bridge *pci_alloc_host_bridge(struct pci_bus *b)
+>                 return NULL;
+>
+>         INIT_LIST_HEAD(&bridge->windows);
+> -       bridge->bus = b;
+> +       bridge->dev.release = pci_release_host_bridge_dev;
+> +
+>         return bridge;
+>  }
+>
+> @@ -1761,9 +1762,15 @@ struct pci_bus *pci_create_root_bus(struct device *parent, int bus,
+>         char bus_addr[64];
+>         char *fmt;
+>
+> +       bridge = pci_alloc_host_bridge();
+> +       if (!bridge)
+> +               return NULL;
+> +
+> +       bridge->dev.parent = parent;
+> +
+>         b = pci_alloc_bus();
+>         if (!b)
+> -               return NULL;
+> +               goto err_out;
+>
+>         b->sysdata = sysdata;
+>         b->ops = ops;
+> @@ -1772,26 +1779,19 @@ struct pci_bus *pci_create_root_bus(struct device *parent, int bus,
+>         if (b2) {
+>                 /* If we already got to this bus through a different bridge, ignore it */
+>                 dev_dbg(&b2->dev, "bus already known\n");
+> -               goto err_out;
+> +               goto err_bus_out;
+>         }
+>
+> -       bridge = pci_alloc_host_bridge(b);
+> -       if (!bridge)
+> -               goto err_out;
+> -
+> -       bridge->dev.parent = parent;
+> -       bridge->dev.release = pci_release_host_bridge_dev;
+> +       bridge->bus = b;
+>         dev_set_name(&bridge->dev, "pci%04x:%02x", pci_domain_nr(b), bus);
+>         error = pcibios_root_bridge_prepare(bridge);
+> -       if (error) {
+> -               kfree(bridge);
+> +       if (error)
+>                 goto err_out;
+> -       }
+>
+>         error = device_register(&bridge->dev);
+>         if (error) {
+>                 put_device(&bridge->dev);
+> -               goto err_out;
+> +               goto err_bus_out;
+>         }
+>         b->bridge = get_device(&bridge->dev);
+>         device_enable_async_suspend(b->bridge);
+> @@ -1848,8 +1848,10 @@ struct pci_bus *pci_create_root_bus(struct device *parent, int bus,
+>  class_dev_reg_err:
+>         put_device(&bridge->dev);
+>         device_unregister(&bridge->dev);
+> -err_out:
+> +err_bus_out:
+>         kfree(b);
+> +err_out:
+> +       kfree(bridge);
+>         return NULL;
+>  }
 
-But I'm thinking that we need to move away from pcibios_add_bus() interface to do
-something that should be generic. You don't need to be called for every bus when all
-you want is just the root bus in order to add the MSI chip. Also, from looking at
-the current patchset, a lot of architectures would set the MSI chip to a global
-variable, which means you don't have an option to choose the MSI chip based on the
-bus.
+Hi Bjorn,
 
-> 
-> > What I would like to see is a way of creating the pci_host_bridge structure outside
-> > the pci_create_root_bus(). That would then allow us to pass this sort of platform
-> > details like associated msi_chip into the host bridge and the child busses will
-> > have an easy way of finding the information needed by finding the root bus and then
-> > the host bridge structure. Then the generic pci_scan_root_bus() can be used by (mostly)
-> > everyone and the drivers can remove their kludges that try to work around the
-> > current limitations.
-> 
-> I think both issues are orthogonal. Last time I checked a lot of work
-> was still necessary to unify host bridges enough so that it could be
-> shared across architectures. But perhaps some of that work has
-> happened in the meantime.
+Noticed that you put this one into pci/next.
 
-Breaking out the host bridge creation from root bus creation is not difficult, just not
-agree upon. That would be the first step in making the generic host brige structure
-useful for sharing, specially if used as a sort of "parent" structure that you can
-wrap with your actual host bridge structure.
+This patch has problem for the class_dev_reg_err path.
+as device_unregister(&bridge->dev) will trigger pci_release_host_bridge_dev.
+So will have double free for bridge or else.
 
-> 
-> But like I said, when you create the root bus, you can easily attach the
-> MSI chip to it.
+Please drop this patch from pci/next.
 
-Not if you want to use the generic pci_scan_root_bus() function. One needs to copy the code
-and add their own needed modifications. Which makes it hard to fix bugs and prevents code
-reuse.
+Also looks strange that the patch have long CC list, but just omit me
+and Jiang Liu that
+touched those code before.
 
-Best regards,
-Liviu
+Thanks
 
-> 
-> Thierry
-
-
-
--- 
--------------------
-   .oooO
-   (   )
-    \ (  Oooo.
-     \_) (   )
-          ) /
-         (_/
-
- One small step
-   for me ...
-
+Yinghai
