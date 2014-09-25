@@ -1,87 +1,102 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from service87.mimecast.com ([91.220.42.44]:59731 "EHLO
-	service87.mimecast.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753007AbaIYIyj convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 25 Sep 2014 04:54:39 -0400
-Date: Thu, 25 Sep 2014 09:54:32 +0100
-From: Liviu Dudau <Liviu.Dudau@arm.com>
-Subject: Re: [PATCH v12 09/12] OF: PCI: Add support for parsing PCI host
- bridge resources from DT
-Message-ID: <20140925085432.GL1994@e106497-lin.cambridge.arm.com>
-References: <1411498874-9864-1-git-send-email-Liviu.Dudau@arm.com>
- <1411498874-9864-10-git-send-email-Liviu.Dudau@arm.com>
- <20140924164304.GF1994@e106497-lin.cambridge.arm.com>
- <20140924173109.GA20416@google.com>
- <20140924175330.GI1994@e106497-lin.cambridge.arm.com>
- <20140924180119.GN16244@arm.com>
+Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:55982 "EHLO
+	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1751985AbaIYJeL (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Thu, 25 Sep 2014 05:34:11 -0400
+Date: Thu, 25 Sep 2014 10:33:09 +0100
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [PATCH v3 09/17] m68k: io: implement dummy relaxed accessor
+ macros for writes
+Message-ID: <20140925093309.GG20043@arm.com>
+References: <1411579056-16966-1-git-send-email-will.deacon@arm.com>
+ <1411579056-16966-10-git-send-email-will.deacon@arm.com>
+ <54236A67.90001@uclinux.org>
 MIME-Version: 1.0
-In-Reply-To: <20140924180119.GN16244@arm.com>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8BIT
+Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
+In-Reply-To: <54236A67.90001@uclinux.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will.deacon@arm.com>
-Cc: Bjorn Helgaas <bhelgaas@google.com>, Arnd Bergmann <arnd@arndb.de>, Rob Herring <robh+dt@kernel.org>, Jason Gunthorpe <jgunthorpe@obsidianresearch.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Catalin Marinas <Catalin.Marinas@arm.com>, Russell King <linux@arm.linux.org.uk>, linux-pci <linux-pci@vger.kernel.org>, Linus Walleij <linus.walleij@linaro.org>, Tanmay Inamdar <tinamdar@apm.com>, Grant Likely <grant.likely@secretlab.ca>, Sinan Kaya <okaya@codeaurora.org>, Jingoo Han <jg1.han@samsung.com>, Kukjin Kim <kgene.kim@samsung.com>, Suravee Suthikulanit <suravee.suthikulpanit@amd.com>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Device Tree ML <devicetree@vger.kernel.org>, LAKML <linux-arm-kernel@lists.infradead.org>, "grant.likely@linaro.org" <grant.likely@linaro.org>, Robert Richter <rrichter@cavium.com>
-Message-ID: <20140925085432.8Hd7YB1fJZyn0nCHrwqnnLOS_1gC4MqZ5p5i9TfLf6U@z>
+To: Greg Ungerer <gerg@uclinux.org>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "arnd@arndb.de" <arnd@arndb.de>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, "chris@zankel.net" <chris@zankel.net>, "cmetcalf@tilera.com" <cmetcalf@tilera.com>, "davem@davemloft.net" <davem@davemloft.net>, "deller@gmx.de" <deller@gmx.de>, "dhowells@redhat.com" <dhowells@redhat.com>, "geert@linux-m68k.org" <geert@linux-m68k.org>, "heiko.carstens@de.ibm.com" <heiko.carstens@de.ibm.com>, "hpa@zytor.com" <hpa@zytor.com>, "jcmvbkbc@gmail.com" <jcmvbkbc@gmail.com>, "jesper.nilsson@axis.com" <jesper.nilsson@axis.com>, "mingo@redhat.com" <mingo@redhat.com>, "monstr@monstr.eu" <monstr@monstr.eu>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>, "rdunlap@infradead.org" <rdunlap@infradead.org>, "sam@ravnborg.org" <sam@ravnborg.org>, "schwidefsky@de.ibm.com" <schwidefsky@de.ibm.com>, "starvik@axis.com" <starvik@axis.com>, "takata@linux-m32r.org" <takata@linux-m32r.org>, "tglx@linutronix.de" <tglx@linutronix.de>, "tony.luck@intel.com" <tony.luck@intel.com>, "daniel.thompson@linaro.org" <daniel.thompson@linaro.org>, "broonie@linaro.org" <broonie@linaro.org>, "linux@arm.linux.org.uk" <linux@arm.linux.org.uk>
+Message-ID: <20140925093309.0cjqwUet3VGitp7FqEthv29whOkcLTVBd2rHXMFmLd8@z>
 
-On Wed, Sep 24, 2014 at 07:01:19PM +0100, Will Deacon wrote:
-> On Wed, Sep 24, 2014 at 06:53:31PM +0100, Liviu Dudau wrote:
-> > On Wed, Sep 24, 2014 at 06:31:09PM +0100, Bjorn Helgaas wrote:
-> > > On Wed, Sep 24, 2014 at 05:43:04PM +0100, Liviu Dudau wrote:
-> > > > Provide a function to parse the PCI DT ranges that can be used to
-> > > > create a pci_host_bridge structure together with its associated
-> > > > bus.
-> > > > 
-> > > > Cc: Bjorn Helgaas <bhelgaas@google.com>
-> > > > Cc: Arnd Bergmann <arnd@arndb.de>
-> > > > Cc: Grant Likely <grant.likely@linaro.org>
-> > > > Cc: Rob Herring <robh+dt@kernel.org>
-> > > > Cc: Catalin Marinas <catalin.marinas@arm.com>
-> > > > Signed-off-by: Liviu Dudau <Liviu.Dudau@arm.com>
-> > > > [make io_base parameter optional]
-> > > > Signed-off-by: Robert Richter <rrichter@cavium.com>
-> > > > ---
-> > > > Hi Bjorn,
-> > > > 
-> > > > I have fixed the compilation error that this patch was triggering. I
-> > > > have validated that the patch applies to your pci/host-generic branch
-> > > > as well as to my series.
-> > > 
-> > > I applied this to pci/host-generic along with the following patches and
-> > > pushed the branch, thanks!
+On Thu, Sep 25, 2014 at 02:05:43AM +0100, Greg Ungerer wrote:
+> Hi Will
+
+Hi Greg,
+
+Thanks for taking a look.
+
+> On 25/09/14 03:17, Will Deacon wrote:
+> > write{b,w,l}_relaxed are implemented by some architectures in order to
+> > permit memory-mapped I/O accesses with weaker barrier semantics than the
+> > non-relaxed variants.
 > > 
-> > Thanks again and sorry for lack of thorough testing. I still haven't managed
-> > to get a cross compiler for sparc and as I don't run Ubuntu or debian the
-> > make.cross script doesn't work for me.
+> > This patch adds dummy macros for the write accessors to m68k, in the
+> > same vein as the dummy definitions for the relaxed read accessors.
+> > Additionally, the existing relaxed read accessors are moved into
+> > asm/io.h, so that they can be used by m68k targets with an MMU.
+> > 
+> > Acked-by: Geert Uytterhoeven <geert@linux-m68k.org>
+> > Signed-off-by: Will Deacon <will.deacon@arm.com>
+> > ---
+> >  arch/m68k/include/asm/io.h    | 8 ++++++++
+> >  arch/m68k/include/asm/io_no.h | 4 ----
+> >  2 files changed, 8 insertions(+), 4 deletions(-)
+> > 
+> > diff --git a/arch/m68k/include/asm/io.h b/arch/m68k/include/asm/io.h
+> > index c70cc9155003..bccd5a914eb6 100644
+> > --- a/arch/m68k/include/asm/io.h
+> > +++ b/arch/m68k/include/asm/io.h
+> > @@ -3,3 +3,11 @@
+> >  #else
+> >  #include <asm/io_mm.h>
+> >  #endif
+> > +
+> > +#define readb_relaxed(addr)	readb(addr)
+> > +#define readw_relaxed(addr)	readw(addr)
+> > +#define readl_relaxed(addr)	readl(addr)
+> > +
+> > +#define writeb_relaxed(b, addr)	writeb(b, addr)
+> > +#define writew_relaxed(b, addr)	writew(b, addr)
+> > +#define writel_relaxed(b, addr)	writel(b, addr)
 > 
->   https://www.kernel.org/pub/tools/crosstool/
-> 
-> No libc, but good enough for building the kernel. I've asked for an aarch64
-> compiler there for a while, but it didn't materialise for some reason.
+> Putting them here means they won't have any multiple include protection
+> (there is no "#ifndef _IO_H" around them). Doesn't seem to lead to
+> any problems in practice. Just flagging it...
 
-I'm familiar with crosstool and busybox uses a variant of crosstool-ng, but
-it currently fails with "configure: error: cannot compute suffix of object files: cannot compile"
-on the stage2 of the compilation.
+That's easy enough to fix, and actually, we should have __KERNEL__ checks
+here too. Fixup below.
 
-Best regards,
-Liviu
+Will
 
-> 
-> Will
-> --
-> To unsubscribe from this list: send the line "unsubscribe linux-pci" in
-> the body of a message to majordomo@vger.kernel.org
-> More majordomo info at  http://vger.kernel.org/majordomo-info.html
-> 
+--->8
 
--- 
-====================
-| I would like to |
-| fix the world,  |
-| but they're not |
-| giving me the   |
- \ source code!  /
-  ---------------
-    ¯\_(ツ)_/¯
-
+diff --git a/arch/m68k/include/asm/io.h b/arch/m68k/include/asm/io.h
+index bccd5a914eb6..ded201916560 100644
+--- a/arch/m68k/include/asm/io.h
++++ b/arch/m68k/include/asm/io.h
+@@ -1,9 +1,14 @@
++#ifndef _M68K_IO_H
++#define _M68K_IO_H
++
+ #ifdef __uClinux__
+ #include <asm/io_no.h>
+ #else
+ #include <asm/io_mm.h>
+ #endif
+ 
++#ifdef __KERNEL__
++
+ #define readb_relaxed(addr)    readb(addr)
+ #define readw_relaxed(addr)    readw(addr)
+ #define readl_relaxed(addr)    readl(addr)
+@@ -11,3 +16,6 @@
+ #define writeb_relaxed(b, addr)        writeb(b, addr)
+ #define writew_relaxed(b, addr)        writew(b, addr)
+ #define writel_relaxed(b, addr)        writel(b, addr)
++
++#endif /* __KERNEL__ */
++#endif /* _M68K_IO_H */
