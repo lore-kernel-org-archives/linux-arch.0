@@ -1,47 +1,39 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from www.linutronix.de ([62.245.132.108]:60927 "EHLO
-	Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751537AbaIYKVi (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 25 Sep 2014 06:21:38 -0400
-Date: Thu, 25 Sep 2014 12:20:20 +0200 (CEST)
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [PATCH v2 01/22] PCI/MSI: Clean up struct msi_chip argument
-In-Reply-To: <20140925071536.GG12423@ulmo>
-Message-ID: <alpine.DEB.2.10.1409251208420.4604@nanos>
-References: <1411614872-4009-1-git-send-email-wangyijing@huawei.com> <1411614872-4009-2-git-send-email-wangyijing@huawei.com> <20140925071536.GG12423@ulmo>
+Received: from mout.kundenserver.de ([212.227.126.130]:59581 "EHLO
+	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751895AbaIYKdI (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 25 Sep 2014 06:33:08 -0400
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH v3 01/17] asm-generic: io: implement relaxed accessor macros as conditional wrappers
+Date: Thu, 25 Sep 2014 12:32 +0200
+Message-ID: <4501051.vdxhyhkTWv@wuerfel>
+In-Reply-To: <1411579056-16966-2-git-send-email-will.deacon@arm.com>
+References: <1411579056-16966-1-git-send-email-will.deacon@arm.com> <1411579056-16966-2-git-send-email-will.deacon@arm.com>
 MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Transfer-Encoding: 7Bit
+Content-Type: text/plain; charset="us-ascii"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Thierry Reding <thierry.reding@gmail.com>
-Cc: Yijing Wang <wangyijing@huawei.com>, Bjorn Helgaas <bhelgaas@google.com>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, Xinwei Hu <huxinwei@huawei.com>, Wuyun <wuyun.wu@huawei.com>, linux-arm-kernel@lists.infradead.org, Russell King <linux@arm.linux.org.uk>, linux-arch@vger.kernel.org, arnab.basu@freescale.com, Bharat.Bhushan@freescale.com, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, xen-devel@lists.xenproject.org, Joerg Roedel <joro@8bytes.org>, iommu@lists.linux-foundation.org, linux-mips@linux-mips.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, Sebastian Ott <sebott@linux.vnet.ibm.com>, Tony Luck <tony.luck@intel.com>, linux-ia64@vger.kernel.org, "David S. Miller" <davem@davemloft.net>, sparclinux@vger.kernel.org, Chris Metcalf <cmetcalf@tilera.com>, Ralf Baechle <ralf@linux-mips.org>, Lucas Stach <l.stach@pengutronix.de>, David Vrabel <david.vrabel@citrix.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, Michael Ellerman <mpe@ellerman.id.au>, Thomas Petazzoni <thomas.petazzoni@free-electrons.com>
-Message-ID: <20140925102020.SiJqVJVgVVwFK4no49yonIqlKQsvPh5PiFZ7-snYl1g@z>
+To: Will Deacon <will.deacon@arm.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, benh@kernel.crashing.org, chris@zankel.net, cmetcalf@tilera.com, davem@davemloft.net, deller@gmx.de, dhowells@redhat.com, geert@linux-m68k.org, heiko.carstens@de.ibm.com, hpa@zytor.com, jcmvbkbc@gmail.com, jesper.nilsson@axis.com, mingo@redhat.com, monstr@monstr.eu, paulmck@linux.vnet.ibm.com, rdunlap@infradead.org, sam@ravnborg.org, schwidefsky@de.ibm.com, starvik@axis.com, takata@linux-m32r.org, tglx@linutronix.de, tony.luck@intel.com, daniel.thompson@linaro.org, broonie@linaro.org, linux@arm.linux.org.uk
+Message-ID: <20140925103200.bR89kUvHnnCG70JbXNv4S35ZaxkedppsI5CwSE5937w@z>
 
-On Thu, 25 Sep 2014, Thierry Reding wrote:
-
-> On Thu, Sep 25, 2014 at 11:14:11AM +0800, Yijing Wang wrote:
-> > Msi_chip functions setup_irq/teardown_irq rarely use msi_chip
-> > argument.
+On Wednesday 24 September 2014 18:17:20 Will Deacon wrote:
+> {read,write}{b,w,l,q}_relaxed are implemented by some architectures in
+> order to permit memory-mapped I/O accesses with weaker barrier semantics
+> than the non-relaxed variants.
 > 
-> That's not true. Out of the four drivers that you modify two use the
-> parameter. And the two that don't probably should be using it too.
+> This patch adds wrappers to asm-generic so that drivers can rely on the
+> relaxed accessors being available, even if they don't always provide
+> weaker ordering guarantees. Since some architectures both include
+> asm-generic/io.h and define some relaxed accessors, the definitions here
+> are conditional for the time being.
 > 
-> 50% is not "rarely". =)
+> Cc: Arnd Bergmann <arnd@arndb.de>
+> Signed-off-by: Will Deacon <will.deacon@arm.com>
+> ---
+>  include/asm-generic/io.h | 26 ++++++++++++++++++++++++++
+>  1 file changed, 26 insertions(+)
 > 
-> >           We can look up msi_chip pointer by the device pointer
-> > or irq number, so clean up msi_chip argument.
-> 
-> I don't like this particular change. The idea was to keep the API object
-> oriented so that drivers wouldn't have to know where to get the MSI chip
-> from. It also makes it more resilient against code reorganizations since
-> the core code is the only place that needs to know where to get the chip
-> from.
 
-Right. We have the same thing in the irq_chip callbacks. All of them
-take "struct irq_data", because it's already available in the core
-code and it gives easy access to all information (chip, chipdata ...)
-which is necessary for the callback implementations.
-
-Thanks,
-
-	tglx
+Acked-by: Arnd Bergmann <arnd@arndb.de>
