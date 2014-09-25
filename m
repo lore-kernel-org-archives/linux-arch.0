@@ -1,66 +1,46 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:56637 "EHLO
-	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1750889AbaIYKej (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 25 Sep 2014 06:34:39 -0400
-Date: Thu, 25 Sep 2014 11:33:37 +0100
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [PATCH v3 09/17] m68k: io: implement dummy relaxed accessor
- macros for writes
-Message-ID: <20140925103337.GH20043@arm.com>
-References: <1411579056-16966-1-git-send-email-will.deacon@arm.com>
- <1411579056-16966-10-git-send-email-will.deacon@arm.com>
- <54236A67.90001@uclinux.org>
- <20140925093309.GG20043@arm.com>
- <CAMuHMdVpCs2RtsdDpdN3tp9_Xa1TzDMM3Z5+pP07B7Y3He2hLA@mail.gmail.com>
+Received: from www.linutronix.de ([62.245.132.108]:32800 "EHLO
+	Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751237AbaIYKjK (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 25 Sep 2014 06:39:10 -0400
+Date: Thu, 25 Sep 2014 12:38:34 +0200 (CEST)
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: Re: [PATCH v2 06/22] PCI/MSI: Introduce weak arch_find_msi_chip()
+ to find MSI chip
+In-Reply-To: <1411614872-4009-7-git-send-email-wangyijing@huawei.com>
+Message-ID: <alpine.DEB.2.10.1409251220570.4604@nanos>
+References: <1411614872-4009-1-git-send-email-wangyijing@huawei.com> <1411614872-4009-7-git-send-email-wangyijing@huawei.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <CAMuHMdVpCs2RtsdDpdN3tp9_Xa1TzDMM3Z5+pP07B7Y3He2hLA@mail.gmail.com>
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Greg Ungerer <gerg@uclinux.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "arnd@arndb.de" <arnd@arndb.de>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, "chris@zankel.net" <chris@zankel.net>, "cmetcalf@tilera.com" <cmetcalf@tilera.com>, "davem@davemloft.net" <davem@davemloft.net>, "deller@gmx.de" <deller@gmx.de>, "dhowells@redhat.com" <dhowells@redhat.com>, "heiko.carstens@de.ibm.com" <heiko.carstens@de.ibm.com>, "hpa@zytor.com" <hpa@zytor.com>, "jcmvbkbc@gmail.com" <jcmvbkbc@gmail.com>, "jesper.nilsson@axis.com" <jesper.nilsson@axis.com>, "mingo@redhat.com" <mingo@redhat.com>, "monstr@monstr.eu" <monstr@monstr.eu>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>, "rdunlap@infradead.org" <rdunlap@infradead.org>, "sam@ravnborg.org" <sam@ravnborg.org>, "schwidefsky@de.ibm.com" <schwidefsky@de.ibm.com>, "starvik@axis.com" <starvik@axis.com>, "takata@linux-m32r.org" <takata@linux-m32r.org>, "tglx@linutronix.de" <tglx@linutronix.de>, "tony.luck@intel.com" <tony.luck@intel.com>, "daniel.thompson@linaro.org" <daniel.thompson@linaro.org>, "broonie@linaro.org" <broonie@linaro.org>, "linux@arm.linux.org.uk" <linux@arm.linux.org.uk>
-Message-ID: <20140925103337.fbpVhMk71Qlazgs2oZ3lgaUgpXCBtKc3lMKw2Wwy22U@z>
+To: Yijing Wang <wangyijing@huawei.com>
+Cc: Bjorn Helgaas <bhelgaas@google.com>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, Xinwei Hu <huxinwei@huawei.com>, Wuyun <wuyun.wu@huawei.com>, linux-arm-kernel@lists.infradead.org, Russell King <linux@arm.linux.org.uk>, linux-arch@vger.kernel.org, arnab.basu@freescale.com, Bharat.Bhushan@freescale.com, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, xen-devel@lists.xenproject.org, Joerg Roedel <joro@8bytes.org>, iommu@lists.linux-foundation.org, linux-mips@linux-mips.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, Sebastian Ott <sebott@linux.vnet.ibm.com>, Tony Luck <tony.luck@intel.com>, linux-ia64@vger.kernel.org, "David S. Miller" <davem@davemloft.net>, sparclinux@vger.kernel.org, Chris Metcalf <cmetcalf@tilera.com>, Ralf Baechle <ralf@linux-mips.org>, Lucas Stach <l.stach@pengutronix.de>, David Vrabel <david.vrabel@citrix.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, Michael Ellerman <mpe@ellerman.id.au>, Thierry Reding <thierry.reding@gmail.com>, Thomas Petazzoni <thomas.petazzoni@free-electrons.com>
+Message-ID: <20140925103834.yeMSMiQoE0WgdfmO7_o_pYpu8RGUG9MpKT6SBY3LUy8@z>
 
-On Thu, Sep 25, 2014 at 10:51:10AM +0100, Geert Uytterhoeven wrote:
-> On Thu, Sep 25, 2014 at 11:33 AM, Will Deacon <will.deacon@arm.com> wrote:
-> >> Putting them here means they won't have any multiple include protection
-> >> (there is no "#ifndef _IO_H" around them). Doesn't seem to lead to
-> >> any problems in practice. Just flagging it...
-> >
-> > That's easy enough to fix, and actually, we should have __KERNEL__ checks
-> > here too. Fixup below.
-> 
-> Why do we need __KERNEL__ checks? <asm/io.h> is not exported.
-> BTW, it seems there are many __KERNEL__ checks in arch/*/include/asm/
-> we don't need.
-> 
-> Or do I need more coffee?
+On Thu, 25 Sep 2014, Yijing Wang wrote:
 
-No, I think you're quite right. I just saw the __KERNEL__ checks in io_no.h
-and io_mm.h -- the latter even has some code outside of the guards:
+> Introduce weak arch_find_msi_chip() to find the match msi_chip.
+> Currently, MSI chip associates pci bus to msi_chip. Because in
+> ARM platform, there may be more than one MSI controller in system.
+> Associate pci bus to msi_chip help pci device to find the match
+> msi_chip and setup MSI/MSI-X irq correctly. But in other platform,
+> like in x86. we only need one MSI chip, because all device use
+> the same MSI address/data and irq etc. So it's no need to associate
+> pci bus to MSI chip, just use a arch function, arch_find_msi_chip()
+> to return the MSI chip for simplicity. The default weak
+> arch_find_msi_chip() used in ARM platform, find the MSI chip
+> by pci bus.
 
+This is really backwards. On one hand you try to get rid of the weak
+arch functions zoo and then you invent new ones for no good
+reason. Why can't x86 store the chip in the pci bus?
 
-#endif /* __KERNEL__ */
+Looking deeper, I'm questioning the whole notion of different
+msi_chips. Are this really different MSI controllers with a different
+feature set or are this defacto multiple instances of the same
+controller which just need a different data set?
 
-#define __ARCH_HAS_NO_PAGE_ZERO_MAPPED		1
+Thanks,
 
-/*
- * Convert a physical pointer to a virtual kernel pointer for /dev/mem
- * access
- */
-#define xlate_dev_mem_ptr(p)	__va(p)
-
-/*
- * Convert a virtual cached pointer to an uncached pointer
- */
-#define xlate_dev_kmem_ptr(p)	p
-
-#define ioport_map(port, nr)	((void __iomem *)(port))
-
-#endif /* _IO_H */
-
-
-Will
+	tglx
