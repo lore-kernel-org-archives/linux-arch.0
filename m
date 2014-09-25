@@ -1,137 +1,42 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ig0-f181.google.com ([209.85.213.181]:42184 "EHLO
-	mail-ig0-f181.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752130AbaIYSPC (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 25 Sep 2014 14:15:02 -0400
+Received: from mout.kundenserver.de ([212.227.126.130]:56066 "EHLO
+	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751755AbaIYTTv (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 25 Sep 2014 15:19:51 -0400
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH v3 00/17] Cross-architecture definitions of relaxed MMIO accessors
+Date: Thu, 25 Sep 2014 21:17:19 +0200
+References: <1411579056-16966-1-git-send-email-will.deacon@arm.com> <4240583.SJ4jiIW6Zy@wuerfel> <54243395.902@linaro.org>
+In-Reply-To: <54243395.902@linaro.org>
 MIME-Version: 1.0
-In-Reply-To: <1411498874-9864-7-git-send-email-Liviu.Dudau@arm.com>
-References: <1411498874-9864-1-git-send-email-Liviu.Dudau@arm.com>
-	<1411498874-9864-7-git-send-email-Liviu.Dudau@arm.com>
-Date: Thu, 25 Sep 2014 11:15:01 -0700
-Message-ID: <CAE9FiQXuJZnj74dwTbKJCQNJ+OdEbjSB0fpwqh92+WZ_XGnrxQ@mail.gmail.com>
-Subject: Re: [PATCH v12 06/12] PCI: Create pci_host_bridge before its
- associated bus in pci_create_root_bus.
-From: Yinghai Lu <yinghai@kernel.org>
-Content-Type: text/plain; charset=UTF-8
+Content-Type: Text/Plain;
+  charset="windows-1252"
+Content-Transfer-Encoding: 7bit
+Message-ID: <201409252117.19754.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Liviu Dudau <Liviu.Dudau@arm.com>
-Cc: Bjorn Helgaas <bhelgaas@google.com>, Arnd Bergmann <arnd@arndb.de>, Rob Herring <robh+dt@kernel.org>, Jason Gunthorpe <jgunthorpe@obsidianresearch.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <Will.Deacon@arm.com>, Russell King <linux@arm.linux.org.uk>, linux-pci <linux-pci@vger.kernel.org>, Linus Walleij <linus.walleij@linaro.org>, Tanmay Inamdar <tinamdar@apm.com>, Grant Likely <grant.likely@secretlab.ca>, Sinan Kaya <okaya@codeaurora.org>, Jingoo Han <jg1.han@samsung.com>, Kukjin Kim <kgene.kim@samsung.com>, Suravee Suthikulanit <suravee.suthikulpanit@amd.com>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Device Tree ML <devicetree@vger.kernel.org>, LAKML <linux-arm-kernel@lists.infradead.org>
-Message-ID: <20140925181501.xT7qUGR7cwAZEsT8w-WTeQl5gKkQUZ6yfKHn9pvxNv0@z>
+To: Daniel Thompson <daniel.thompson@linaro.org>
+Cc: Will Deacon <will.deacon@arm.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, "chris@zankel.net" <chris@zankel.net>, "cmetcalf@tilera.com" <cmetcalf@tilera.com>, "davem@davemloft.net" <davem@davemloft.net>, "deller@gmx.de" <deller@gmx.de>, "dhowells@redhat.com" <dhowells@redhat.com>, "geert@linux-m68k.org" <geert@linux-m68k.org>, "heiko.carstens@de.ibm.com" <heiko.carstens@de.ibm.com>, "hpa@zytor.com" <hpa@zytor.com>, "jcmvbkbc@gmail.com" <jcmvbkbc@gmail.com>, "jesper.nilsson@axis.com" <jesper.nilsson@axis.com>, "mingo@redhat.com" <mingo@redhat.com>, "monstr@monstr.eu" <monstr@monstr.eu>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>, "rdunlap@infradead.org" <rdunlap@infradead.org>, "sam@ravnborg.org" <sam@ravnborg.org>, "schwidefsky@de.ibm.com" <schwidefsky@de.ibm.com>, "starvik@axis.com" <starvik@axis.com>, "takata@linux-m32r.org" <takata@linux-m32r.org>, "tglx@linutronix.de" <tglx@linutronix.de>, "tony.luck@intel.com" <tony.luck@intel.com>, "broonie@linaro.org" <broonie@linaro.org>, "linux@arm.linux.org.uk" <linux@arm.linux.org.uk>, "thierry.reding@gmail.com" <thierry.reding@gmail.com>
+Message-ID: <20140925191719.ASK2nF9QmD7cSabk9g4pt-YUA5euh-3kpb3nkEI1eHs@z>
 
-On Tue, Sep 23, 2014 at 12:01 PM, Liviu Dudau <Liviu.Dudau@arm.com> wrote:
-> Before commit 7b5436635800 the pci_host_bridge was created before the root bus.
-> As that commit has added a needless dependency on the bus for pci_alloc_host_bridge()
-> the creation order has been changed for no good reason. Revert the order of
-> creation as we are going to depend on the pci_host_bridge structure to retrieve the
-> domain number of the root bus.
->
-> Cc: Bjorn Helgaas <bhelgaas@google.com>
-> Signed-off-by: Liviu Dudau <Liviu.Dudau@arm.com>
-> Acked-by: Grant Likely <grant.likely@linaro.org>
-> Reviewed-by: Catalin Marinas <catalin.marinas@arm.com>
-> Tested-by: Tanmay Inamdar <tinamdar@apm.com>
-> ---
->  drivers/pci/probe.c | 32 +++++++++++++++++---------------
->  1 file changed, 17 insertions(+), 15 deletions(-)
->
-> diff --git a/drivers/pci/probe.c b/drivers/pci/probe.c
-> index e3cf8a2..5ff72ec 100644
-> --- a/drivers/pci/probe.c
-> +++ b/drivers/pci/probe.c
-> @@ -515,7 +515,7 @@ static void pci_release_host_bridge_dev(struct device *dev)
->         kfree(bridge);
->  }
->
-> -static struct pci_host_bridge *pci_alloc_host_bridge(struct pci_bus *b)
-> +static struct pci_host_bridge *pci_alloc_host_bridge(void)
->  {
->         struct pci_host_bridge *bridge;
->
-> @@ -524,7 +524,8 @@ static struct pci_host_bridge *pci_alloc_host_bridge(struct pci_bus *b)
->                 return NULL;
->
->         INIT_LIST_HEAD(&bridge->windows);
-> -       bridge->bus = b;
-> +       bridge->dev.release = pci_release_host_bridge_dev;
-> +
->         return bridge;
->  }
->
-> @@ -1761,9 +1762,15 @@ struct pci_bus *pci_create_root_bus(struct device *parent, int bus,
->         char bus_addr[64];
->         char *fmt;
->
-> +       bridge = pci_alloc_host_bridge();
-> +       if (!bridge)
-> +               return NULL;
-> +
-> +       bridge->dev.parent = parent;
-> +
->         b = pci_alloc_bus();
->         if (!b)
-> -               return NULL;
-> +               goto err_out;
->
->         b->sysdata = sysdata;
->         b->ops = ops;
-> @@ -1772,26 +1779,19 @@ struct pci_bus *pci_create_root_bus(struct device *parent, int bus,
->         if (b2) {
->                 /* If we already got to this bus through a different bridge, ignore it */
->                 dev_dbg(&b2->dev, "bus already known\n");
-> -               goto err_out;
-> +               goto err_bus_out;
->         }
->
-> -       bridge = pci_alloc_host_bridge(b);
-> -       if (!bridge)
-> -               goto err_out;
-> -
-> -       bridge->dev.parent = parent;
-> -       bridge->dev.release = pci_release_host_bridge_dev;
-> +       bridge->bus = b;
->         dev_set_name(&bridge->dev, "pci%04x:%02x", pci_domain_nr(b), bus);
->         error = pcibios_root_bridge_prepare(bridge);
-> -       if (error) {
-> -               kfree(bridge);
-> +       if (error)
->                 goto err_out;
-> -       }
->
->         error = device_register(&bridge->dev);
->         if (error) {
->                 put_device(&bridge->dev);
-> -               goto err_out;
-> +               goto err_bus_out;
->         }
->         b->bridge = get_device(&bridge->dev);
->         device_enable_async_suspend(b->bridge);
-> @@ -1848,8 +1848,10 @@ struct pci_bus *pci_create_root_bus(struct device *parent, int bus,
->  class_dev_reg_err:
->         put_device(&bridge->dev);
->         device_unregister(&bridge->dev);
-> -err_out:
-> +err_bus_out:
->         kfree(b);
-> +err_out:
-> +       kfree(bridge);
->         return NULL;
->  }
+On Thursday 25 September 2014, Daniel Thompson wrote:
+> > +
+> > +#ifndef readq_relaxed
+> > +#define readq_relaxed readq
+> > +#endif
+> 
+> Not really sure if it matters but this gives a rather surprising
+> behaviour to #ifdef readq_relaxed given that readq may not be defined.
+> 
 
-Hi Bjorn,
+It was intentional. I could have written this as
 
-Noticed that you put this one into pci/next.
+#if !defined(readq_relaxed) && defined(readq)
 
-This patch has problem for the class_dev_reg_err path.
-as device_unregister(&bridge->dev) will trigger pci_release_host_bridge_dev.
-So will have double free for bridge or else.
+but the effect would be almost the same, and the version I picked looks
+simpler. Note that 32-bit architectures could provide readq, it's just
+the generic code that doesn't, because most you typically don't get
+atomic 64-bit accesses from dereferencing a 64-bit pointer as the
+generic readq() function does.
 
-Please drop this patch from pci/next.
-
-Also looks strange that the patch have long CC list, but just omit me
-and Jiang Liu that
-touched those code before.
-
-Thanks
-
-Yinghai
+	Arnd
