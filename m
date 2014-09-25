@@ -1,60 +1,66 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wi0-f177.google.com ([209.85.212.177]:52029 "EHLO
-	mail-wi0-f177.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750864AbaIYFDH (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 25 Sep 2014 01:03:07 -0400
-Date: Thu, 25 Sep 2014 07:03:01 +0200
-From: Ingo Molnar <mingo@kernel.org>
-Subject: Re: [PATCH 00/20] arch atomic 'cleanup'
-Message-ID: <20140925050301.GC20431@gmail.com>
-References: <20140508135840.956784204@infradead.org>
- <20140924165405.GJ16244@arm.com>
- <20140924180623.GY6758@twins.programming.kicks-ass.net>
+Received: from mail-wg0-f42.google.com ([74.125.82.42]:45152 "EHLO
+	mail-wg0-f42.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751940AbaIYHGF (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 25 Sep 2014 03:06:05 -0400
+Date: Thu, 25 Sep 2014 09:06:01 +0200
+From: Thierry Reding <thierry.reding@gmail.com>
+Subject: Re: [PATCH v2 02/22] PCI/MSI: Remove useless bus->msi assignment
+Message-ID: <20140925070601.GF12423@ulmo>
+References: <1411614872-4009-1-git-send-email-wangyijing@huawei.com>
+ <1411614872-4009-3-git-send-email-wangyijing@huawei.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: multipart/signed; micalg=pgp-sha1;
+	protocol="application/pgp-signature"; boundary="kbCYTQG2MZjuOjyn"
 Content-Disposition: inline
-In-Reply-To: <20140924180623.GY6758@twins.programming.kicks-ass.net>
+In-Reply-To: <1411614872-4009-3-git-send-email-wangyijing@huawei.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Will Deacon <will.deacon@arm.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "torvalds@linux-foundation.org" <torvalds@linux-foundation.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>
-Message-ID: <20140925050301.Q7nELzbpCcl072VkUngpFkLUF74QuROsUbV9IbDYv9Y@z>
+To: Yijing Wang <wangyijing@huawei.com>
+Cc: Bjorn Helgaas <bhelgaas@google.com>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, Xinwei Hu <huxinwei@huawei.com>, Wuyun <wuyun.wu@huawei.com>, linux-arm-kernel@lists.infradead.org, Russell King <linux@arm.linux.org.uk>, linux-arch@vger.kernel.org, arnab.basu@freescale.com, Bharat.Bhushan@freescale.com, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, Thomas Gleixner <tglx@linutronix.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, xen-devel@lists.xenproject.org, Joerg Roedel <joro@8bytes.org>, iommu@lists.linux-foundation.org, linux-mips@linux-mips.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, Sebastian Ott <sebott@linux.vnet.ibm.com>, Tony Luck <tony.luck@intel.com>, linux-ia64@vger.kernel.org, "David S. Miller" <davem@davemloft.net>, sparclinux@vger.kernel.org, Chris Metcalf <cmetcalf@tilera.com>, Ralf Baechle <ralf@linux-mips.org>, Lucas Stach <l.stach@pengutronix.de>, David Vrabel <david.vrabel@citrix.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, Michael Ellerman <mpe@ellerman.id.au>, Thomas Petazzoni <thomas.petazzoni@free-electrons.com>
+Message-ID: <20140925070601.4gyRz-1LY-1vzx8Zu6ZcQk1Zbx4cbNqBACw-DIPcQKc@z>
 
 
-* Peter Zijlstra <peterz@infradead.org> wrote:
+--kbCYTQG2MZjuOjyn
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
 
-> On Wed, Sep 24, 2014 at 05:54:06PM +0100, Will Deacon wrote:
-> > Hi Peter,
-> > 
-> > On Thu, May 08, 2014 at 02:58:40PM +0100, Peter Zijlstra wrote:
-> > > This series continues the arch atomic rework started with the smp_mb__
-> > > interface cleanup.
-> > > 
-> > > In this series we (mostly) reduce the atomic implementations by eliminating
-> > > repetition through use of CPP macros.
-> > > 
-> > > A future series will use these macros to implement more atomic ops. With these
-> > > macros we can end up with more atomic ops while the total LoC still shrinks.
-> > > 
-> > > Furthermore, rewrite the asm-generic/atomic implementations to require less and
-> > > provide more.
-> > > 
-> > > This series is compile tested on a number of archs, but only boot tested on
-> > > x86_64.
-> > 
-> > What's the status on this series? I'm currently fleshing out 
-> > an extension to the atomic API that allows more flexible 
-> > acquire/release semantics and it doesn't make sense for me to 
-> > copy-paste a bunch of code when I could build it on top of 
-> > this instead.
-> 
-> Its in tip/locking/arch and I suppose its headed for the next 
-> merge window.
+On Thu, Sep 25, 2014 at 11:14:12AM +0800, Yijing Wang wrote:
+> Currently, PCI drivers will initialize bus->msi in
+> pcibios_add_bus(). pcibios_add_bus() will be called
+> in every pci bus initialization. So the bus->msi
+> assignment in pci_alloc_child_bus() is useless.
 
-Correct, there are no known regressions with the tip:locking/arch 
-tree so I plan to send those changes to Linus in the merge 
-window.
+I think this should be the other way around. The default should be to
+inherit bus->msi from the parent. That way drivers don't typically have
+to do it, yet they can still opt to override it if they need to.
 
-Thanks,
+For Tegra for example I think it would work if we assigned the MSI chip
+to the root bus (in tegra_pcie_scan_bus()) and then have it propagated
+to child busses in pci_alloc_child_bus() so that tegra_pcie_add_bus()
+can be removed altogether.
 
-	Ingo
+Thierry
+
+--kbCYTQG2MZjuOjyn
+Content-Type: application/pgp-signature
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v2
+
+iQIcBAEBAgAGBQJUI77YAAoJEN0jrNd/PrOhZ/IQAMCSt26z+T6Q8TozfHBY40d1
+VjyfIqF++JMHsJp9JBnJk7W/SdKcW+ClXvgZjtR4hqvTRlYUBPk6Sn3JWpi3RslY
+GHt/y1pNGzk05qLADjlA8CAGVjq0Vspw5WO5SLjzu10gfvcddAX7YKRcWz5vW9uv
+TcG+NFcDyGRaNg+ATkJ8Ep4rVN3eIkh9te9CE/pG5zQAV+NEZkaN4v9hRFubWIPy
+HUXyDu+8aTJ3YUyhrXkbGR23i0lLzcWsqhrcjbbbQj0swxngijMgBbzJU2jJ0rxx
+5CjTbs0mgvqKfsX1WQ3Df61rSN/krlMiZeD66YuMTuWdlzZkGJqpHCDkKdx2rITZ
+o2IXg6faK1OARr8JfubrXil2utfpJkvBJR2fWmH0j37ZkEb249skTCAnb2yroyhJ
+Mz3BmS+nAgPJkQUTTVZigeR+90KASb/WQrFPZhvOPK/ioMy0UyGy6uvNYm4rLXK+
+gWN2TjIaniEFM60xJLFPgsVuf9XXKUZ0REybeTiDM65mofLUSkxtMbK/mrcBdHgF
+kdO+JJ93hN6vnnqpqA/QjKNJebZm0PUjSTZvXIlzBs/v+gOh4bWewATJLbcgll/g
+w85vBMPaceGBcjBIBul927T7Uf+2pLOmJHmM+eCzXSdxAyQ8qx75Su9uWOY3sX3Q
+JDxVrWb34Dj7sIqL36a3
+=f2MC
+-----END PGP SIGNATURE-----
+
+--kbCYTQG2MZjuOjyn--
