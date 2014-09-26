@@ -1,81 +1,89 @@
-From: =?utf-8?B?5bCP6b6a?= <zhaopin@sanfu.com>
-Subject: =?utf-8?B?55So5LqG5LiA5qyh5L2g5bCx5Lya6KeJ5b6X5piv5pyA5aW955qE55+t5L+h5Y+R6YCB5bmz5Y+wIA==?=
-	=?utf-8?B?ICAgICAgICAgICAgICAgICAgICA=?=
-	=?utf-8?B?ICAgICAgICAgICAgICAgICAgICA=?=
-	=?utf-8?B?ICAgICAgICAgICAgICAgICAgICA=?=
-	=?utf-8?B?ICAgICAgICAxaQ==?=
-Date: Fri, 26 Sep 2014 13:56:37 +0800
-Message-ID: <20140926135645436583@sanfu.com>
-Reply-To: <dingxj8@aliyun.com>
+From: Yijing Wang <wangyijing@huawei.com>
+Subject: Re: [PATCH v2 00/22] Use MSI chip framework to configure MSI/MSI-X
+ in all platforms
+Date: Fri, 26 Sep 2014 14:20:35 +0800
+Message-ID: <542505B3.7040208@huawei.com>
+References: <1411614872-4009-1-git-send-email-wangyijing@huawei.com> <20140925074235.GN12423@ulmo> <20140925144855.GB31157@bart.dudau.co.uk> <20140925164937.GB30382@ulmo> <20140925171612.GC31157@bart.dudau.co.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.sanfu.co ([222.77.189.194]:9635 "EHLO mail.sanfu.com.cn"
-	rhost-flags-OK-FAIL-OK-OK) by vger.kernel.org with ESMTP
-	id S1752941AbaIZGEQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 26 Sep 2014 02:04:16 -0400
+Received: from szxga03-in.huawei.com ([119.145.14.66]:18240 "EHLO
+	szxga03-in.huawei.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753465AbaIZGVL (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 26 Sep 2014 02:21:11 -0400
+In-Reply-To: <20140925171612.GC31157@bart.dudau.co.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org, linux-c-programming@vger.kernel.org, linux-can@vger.kernel.org, linux-cobalt@googlegroups.com
+To: Liviu Dudau <liviu@dudau.co.uk>, Thierry Reding <thierry.reding@gmail.com>
+Cc: Bjorn Helgaas <bhelgaas@google.com>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, Xinwei Hu <huxinwei@huawei.com>, Wuyun <wuyun.wu@huawei.com>, linux-arm-kernel@lists.infradead.org, Russell King <linux@arm.linux.org.uk>, linux-arch@vger.kernel.org, arnab.basu@freescale.com, Bharat.Bhushan@freescale.com, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, Thomas Gleixner <tglx@linutronix.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, xen-devel@lists.xenproject.org, Joerg Roedel <joro@8bytes.org>, iommu@lists.linux-foundation.org, linux-mips@linux-mips.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, Sebastian Ott <sebott@linux.vnet.ibm.com>, Tony Luck <tony.luck@intel.com>, linux-ia64@vger.kernel.org, "David S. Miller" <davem@davemloft.net>, sparclinux@vger.ke
 
-DQogIOi/meS4quefreS/oeWPkemAgeW5s+WPsOWunuWcqOaYr+WkquWlveeUqOS6hu+8jOWGjeS5
-n+S4jeaEgeaJvuS4jeWIsOWlveeahOW5s+WPsOS6hu+8jOWPquimgeaYr+S9oOWPkeeahOWGheWu
-ueaYr+ato+inhOeahO+8jOi9u+advuWwseWPr+S7peWPkemAgeWHuuWOu+OAguWKoFFRMTkzOTg5
-NzI15YW35L2T5ZKo6K+i77yM5Y+v5Lul5byA6LSm5Y+35rWL5pWI5p6c44CCDQoNCg0KDQoNCg0K
-IA0KDQoNCg0KDQoNCg0KDQoNCg0KDQoNCg0KDQoNCg0KDQoNCg0KDQoNCg0KDQoNCg0KDQoNCg0K
-DQoNCg0KDQoNCg0KDQoNCg0KDQoNCg0KDQoNCg0KDQoNCg0KDQoNCg0KDQoNCg0KDQoNCg0KDQoN
-Cg0KDQoNCg0KDQoNCg0KDQoNCg0KDQoNCg0KDQoNCg0KDQoNCg0KDQoNCg0KDQoNCg0KDQoNCg0K
-DQoNCg0KDQoNCg0KDQoNCg0KDQoNCg0KDQoNCg0KDQoNCg0KDQoNCuiDvemdoOiHquW3seeahOiD
-veWKm+WSjOWPjOaJi+i1mumSse+8jOWvueWlueadpeivtOiDveiOt+W+l+S4gOenjemavuW+l+ea
-hOa7oei2s+aEn+OAgiAgICDigJzlkrHkuZ/kuI3ljZblpJrotLXvvIzlsLHmsYLkuIDkuKrigJjo
-p4TmqKHmlYjlupTigJnvvIzlkrHku6zljbDph4/lpJrngrnvvIznurjlvKDlsLHog73kvr/lrpzv
-vIzlgJjoi6XljZXni6zljbDkuIDlpZfmiJHku6znmoTnrJTorrDopoHoirHkupTlnZfmjIHpnaLl
-rZDkuIrnmoTkurLlr4bml6Dpl7TvvIzmmK/ouqvlnKjlrpjlnLrogYzlnLrnmoTmnIDln7rmnKzo
-poHmsYLjgIIgICAg5L2V6K+X6Z+154K55LqG54K55aS077yM5Y+I6Iyr54S25Zyw5pGH5LqG5pGH
-5aS077yM6IuP57ub5ZSH5oSP5ZGz5rex6ZW/5Zyw55yL5LqG5aSP5bCP5rSb5LiA55y877yM5aSP
-5bCP5rSb6Z2i5peg6KGo5oOF55qE5LiA6IS45peg6L6c44CCICAgIOiLj+e7m+WUh+W/g+mBk++8
-jOmdoOS4jeS9j+i/mOS7gOS5iOi/mO+8n+S9oOeVmeedgOWQp+OAguKAnSAgICDigJzkvaDkuI3n
-nIvnnIvlpJrmtarotLnvvIzlho3or7TkuobvvIzkuabpnZ7lgJ/kuI3og73or7vkuZ/vvIzov5nm
-oLflj6/ku6XnnaPkv4PmiJHlv6vngrnor7vlrozjgILigJ0gICAg55Sw5Yek5omN552A5oCl6KaB
-6LWw77yM5LuW6L+Y6KaB5oqK6YKj6L6G6Ieq6KGM6L2m6aqR5Zue5Y6777yM5aSP5bCP5rSb6YGT
-77ya4oCc5oiR6YCB6YCB5L2g44CC4oCdICAgIOa0m+mHjeeUn+WJjeiZveeEtuaYr+mHkeiejeS4
-muS7juS4muS6uuWRmO+8jOayoeacieWcqOS4k+S4mueahOeUn+S6p+aAp+S8geS4muW3peS9nOi/
-h++8jOWPr+aYr++8jOS7luS7rOivgeWKteWFrOWPuOS5n+imgee7j+W4uOWOu+W+iOWkmueUn+S6
-p+aAp+eahOS4iuW4guWFrOWPuOS6huino+aDheWGteOAgeayn+mAmuS/oeaBr++8jOa1geawtOe6
-v+OAgeagh+WHhuWMlueUn+S6p+S7luS5n+ingeW+l+WkmuS6hu+8jOS+neiRq+iKpuaJi+azleaJ
-mOS9j+aJreS8pOeahOmCo+WPquiEmueahOWwj+iFv++8jOWPpuS4gOWPquaJi+iEseWOu+S6huWl
-ueeahOmrmOi3n+mei++8jOS4gOWPquengOawlOeahOe+jui2s+WxleeOsOWcqOS7lumdouWJje+8
-jOiCieiJsuaYr+S4neiinO+8jOiuqeiEmui4neaYvuW+l+aXoOavlOWchua2puOAgiAgICDku5bo
-vbvovbvmkrjkuIvlpbnnmoTkuJ3oopzjgIIgICAg6YKj576O6Laz5aaC5ZCM576O546J6ZuV55Ci
-5LiA5qC355qE5LiA5qC377yM5LuW5qC55pys5rKh5oqK6ZKx5b2T5Zue5LqL77yM6Zmk6Z2e5ZuK
-5Lit576e5rap55qE5pe25YCZ5omN5Y+R546w77yM5oiR6I2J77yM6L+Z6ZKx5pyJ54K55bCR5LqG
-44CCICAgIOWkj+Wwj+a0m+i2tOWIsOiHquW3seavjeS6suiAs+i+uemBk++8muKAnOWmiO+8jOS9
-oOefpemBk+aIkeS7rOS4uuS7gOS5iOS8mui1mumSseS5iO+8n+KAnSAgICDigJzkuLrllaXvvJ/i
-gJ0gICAg4oCc5Zug5Li66ZKx5bGA6ZW/CQ0K5pe26Ze05ZCs6K+05LuW5Zyo5Yid5Lit5Y2H6auY
-5Lit6ICD5LqG5Liq5YWo5Y6/56ys5LiJ77yM6ICM5LiU6L+Y5pCe5LuA5LmI562+5ZCN5ZSu5Lmm
-4oCm4oCmICAgIOWkj+Wwj+a0m+W+iOekvOiyjOWcsOmeoOi6rO+8jOmBk++8muKAnOiDoeWPlOWP
-lOWlve+8jOaIkeeahOS4u+aEj+S5n+S4jeS4gOWumuWlveeUqO+8jOWmguaenOS4jeihjO+8jOS9
-oOWwseW9k+aIkeaYr+WcqOaUvuWxgeOAguKAnSAgICDog6HluKbnnYDmtZPph43nmoTkuK3ljp/l
-j6Ppn7PjgIIgICAg5aSP5bCP5rSb5Lmf5Lii5o6J6K+05LqG5aSa5bCR5bm055qE5pmu6YCa6K+d
-77yM55So5Lit5Y6f6K+d6YGT77ya4oCc5L+65Y+r5aSP5bCP5rSb77yM6L+Z6Ze65aWz5Y+r5L2V
-6K+X6Z+144CC4oCd5Lit5Y6f6K+d56ew5aeR5aiY5Li64oCc6Ze65aWz5YS/4oCd77yM55S35a2p
-5Li64oCc56C05bCP5a2Q4oCd44CCICAgIOS9leivl+mfteWQrOS7luagh+WHhueahOS4reWQjue7
-k+WpmuS6hu+8jOe7iOS6juS7juiAjea1geawk+WPmOaIkOS6huWQiOazleiAjea1geawk+OAgiAg
-ICDlnKjkvJfkurrnvqHmhZXnmoTnnLzlhYnkuK3vvIzljaLljZfljY7kuIDnmLjkuIDmi5DlnLDo
-tbDkuIrovabvvIzmnInkuobov5novobniZvlj4nnmoTkuLDnlLDnmoflhqDkvZzkuLrlnZDpqpHv
-vIzov5nkuIDnmLjkuIDmi5Dpg73mmL7lvpfmvYfmtJLml6Dmr5TjgIIgICAg5ZSJ77yM55yf5piv
-54mp6LSo5Z+656GA5piO5LmW5ben77yM55+l6YGT54i25Lqy5Zyo5a6Y5Zy65LiK77yM5b6I5aSa
-5LqL5oOF6Lqr5LiN55Sx5bex77yM57qi552A55y85ZyI54K55LqG54K55aS044CCICAgIOS9leS6
-rOeUn+adpeS5i+WJje+8jOmhvuiLseW3sue7j+eCueS6huWlveS6huiPnOOAgiAgICDov5nkvJrl
-hL/lpbnlh7rljrvlj6vkuobkuIvpoobnj63kuIroj5zvvIzmnI3liqHlkZjnqb/moq3mnaXlm57v
-vIzkuI3kuIDkvJroj5zlsLHkuIrpvZDkuobjgIIgIOS7luiDveeyvuWHhuWcsOWIpOaWreeKr+e9
-quWIhuWtkOeahOeyvuelnueKtuaAgeOAgiAgICDliY3lh6DlpKnku5blt7Lnu4/mhJ/op4nliLDo
-kaPkuZ3mmJ/nmoTlv4PnkIbpmLLnur/lt7Lnu4/lpITkuo7ltKnmuoPnmoTovrnnvJjvvIzkvYbm
-mK/ku4rlpKnnm67lhYnljbTmmL7lvpfpnZ7luLjoh6rkv6HjgIIgICAg5raI5oGv5Lyg5Yiw5L2V
-5Lqs55Sf6YKj6YeM77yM5L2V5Lqs55Sf5q2j5LiN5Y6M5YW254Om5Zyw5Zue552A5pyJ5LqG6K6h
-6L6D4oCU4oCU6L+Z5bCP5a2Q77yM5LiN5piv5Y+I5p2l6KaB6ZKx5ZCn77yM5b6X5oqK6ZKx6KKL
-5a2Q5o2C57Sn5LqG44CCICAgIOenmOS5puiRm+S8n+WFieWImuaDs+i/h+adpee7meWkj+i/keS4
-nOWAkuawtO+8jOS9leS6rOeUn+S4gOaMpeaJi+iuqeS7luWHuuWOu+S6huOAgiAgICDku5bnrJHl
-mLvlmLvlnLDpgZPvvJrigJzogIHlpI/vvIzmnaXllp3mna/msLTvvIzmiJHkurLoh6rnu5nkvaDl
-gJLigKbigKYJDQo=
+>> The PCI core can already deal with that. An MSI chip can be set per bus
+>> and the weak pcibios_add_bus() can be used to set that. Often it might
+>> not even be necessary to do it via pcibios_add_bus() if you create the
+>> root bus directly, since you can attach the MSI chip at that time.
+> 
+> But I'm thinking that we need to move away from pcibios_add_bus() interface to do
+> something that should be generic. You don't need to be called for every bus when all
+> you want is just the root bus in order to add the MSI chip. Also, from looking at
+> the current patchset, a lot of architectures would set the MSI chip to a global
+> variable, which means you don't have an option to choose the MSI chip based on the
+> bus.
+
+I also agree to remove the pcibios_add_bus() in arm which call .add_bus() to associate msi_chip
+and PCI bus.
+
+In my opinions, all PCI devices under the same PCI hostbridge must share same msi chip, right ?
+So if we can associate msi chip and PCI hostbridge, every PCI device can find correct msi chip.
+PCI hostbridge private attributes can be saved in PCI sysdata, and this data will be propagate to
+PCI root bus and its child buses.
+
+> 
+>>
+>>> What I would like to see is a way of creating the pci_host_bridge structure outside
+>>> the pci_create_root_bus(). That would then allow us to pass this sort of platform
+>>> details like associated msi_chip into the host bridge and the child busses will
+>>> have an easy way of finding the information needed by finding the root bus and then
+>>> the host bridge structure. Then the generic pci_scan_root_bus() can be used by (mostly)
+>>> everyone and the drivers can remove their kludges that try to work around the
+>>> current limitations.
+>>
+>> I think both issues are orthogonal. Last time I checked a lot of work
+>> was still necessary to unify host bridges enough so that it could be
+>> shared across architectures. But perhaps some of that work has
+>> happened in the meantime.
+> 
+> Breaking out the host bridge creation from root bus creation is not difficult, just not
+> agree upon. That would be the first step in making the generic host brige structure
+> useful for sharing, specially if used as a sort of "parent" structure that you can
+> wrap with your actual host bridge structure.
+
+Breaking out the host bridge creation is a good idea, but there need a lot of changes, we can
+do it in another series. And if we save msi chip in pci sysdata now, it will be easy to
+move it to generic pci host bridge. We can also move the pci domain number and other common info to it.
+
+Thanks!
+Yijing.
+
+> 
+>>
+>> But like I said, when you create the root bus, you can easily attach the
+>> MSI chip to it.
+> 
+> Not if you want to use the generic pci_scan_root_bus() function. One needs to copy the code
+> and add their own needed modifications. Which makes it hard to fix bugs and prevents code
+> reuse.
+> 
+> Best regards,
+> Liviu
+> 
+>>
+>> Thierry
+> 
+> 
+> 
+
+
+-- 
+Thanks!
+Yijing
