@@ -1,67 +1,57 @@
-From: Yijing Wang <wangyijing@huawei.com>
-Subject: Re: [PATCH v2 00/22] Use MSI chip framework to configure MSI/MSI-X
- in all platforms
-Date: Fri, 26 Sep 2014 11:42:23 +0800
-Message-ID: <5424E09F.50701@huawei.com>
-References: <1411614872-4009-1-git-send-email-wangyijing@huawei.com> <20140925074235.GN12423@ulmo> <20140925144855.GB31157@bart.dudau.co.uk> <20140925164937.GB30382@ulmo>
+From: Aaron Lu <aaron.lu@intel.com>
+Subject: Re: [PATCH v2 1/2] gpio / CrystalCove: support virtual GPIO
+Date: Fri, 26 Sep 2014 13:21:56 +0800
+Message-ID: <5424F7F4.5040106@intel.com>
+References: <1410229968-11638-1-git-send-email-aaron.lu@intel.com> <1410229968-11638-2-git-send-email-aaron.lu@intel.com> <CACRpkdaJjqs9WNcVvjsSWhzLD2QpcyR11MVm4xhm4GqB28eOCA@mail.gmail.com> <54238496.70505@intel.com> <20140925111555.GG1786@lahna.fi.intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="ISO-8859-1"
+Content-Type: text/plain; charset=windows-1252
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-ia64-owner@vger.kernel.org>
-In-Reply-To: <20140925164937.GB30382@ulmo>
-Sender: linux-ia64-owner@vger.kernel.org
-To: Thierry Reding <thierry.reding@gmail.com>, Liviu Dudau <liviu@dudau.co.uk>
-Cc: Bjorn Helgaas <bhelgaas@google.com>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, Xinwei Hu <huxinwei@huawei.com>, Wuyun <wuyun.wu@huawei.com>, linux-arm-kernel@lists.infradead.org, Russell King <linux@arm.linux.org.uk>, linux-arch@vger.kernel.org, arnab.basu@freescale.com, Bharat.Bhushan@freescale.com, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, Thomas Gleixner <tglx@linutronix.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, xen-devel@lists.xenproject.org, Joerg Roedel <joro@8bytes.org>, iommu@lists.linux-foundation.org, linux-mips@linux-mips.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, Sebastian Ott <sebott@linux.vnet.ibm.com>, Tony Luck <tony.luck@intel.com>, linux-ia64@vger.kernel.org, "David S. Miller" <davem@davemloft.net>, sparclinux@vger.ke
+Return-path: <linux-acpi-owner@vger.kernel.org>
+In-Reply-To: <20140925111555.GG1786@lahna.fi.intel.com>
+Sender: linux-acpi-owner@vger.kernel.org
+To: Mika Westerberg <mika.westerberg@linux.intel.com>
+Cc: Linus Walleij <linus.walleij@linaro.org>, Alexandre Courbot <gnurou@gmail.com>, Samuel Ortiz <sameo@linux.intel.com>, Lee Jones <lee.jones@linaro.org>, Arnd Bergmann <arnd@arndb.de>, "linux-gpio@vger.kernel.org" <linux-gpio@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Jacob Pan <jacob.jun.pan@linux.intel.com>, Lejun Zhu <lejun.zhu@intel.com>, Radivoje Jovanovic <radivoje.jovanovic@intel.com>, =?windows-1252?Q?Daniel_Gl=F6ckner?= <dg@emlix.com>, ACPI Devel Maling List <linux-acpi@vger.kernel.org>, "Rafael J. Wysocki" <rjw@rjwysocki.net>
 List-Id: linux-arch.vger.kernel.org
 
->> I am actually in disagreement with you, Thierry. I don't like the general direction
->> of the patches, or at least I don't like the fact that we don't have a portable
->> way of setting up the msi_chip without having to rely on weak architectural hooks.
+On 09/25/2014 07:15 PM, Mika Westerberg wrote:
+> On Thu, Sep 25, 2014 at 10:57:26AM +0800, Aaron Lu wrote:
+>> The virtual GPIO introduced in ACPI table of Baytrail-T based system is
+>> used to solve a problem under Windows. We do not have such problems
+>> under Linux so we do not actually need them. But we have to tell GPIO
+>> library that the Crystal Cove GPIO chip has this many GPIO pins or the
+>> common GPIO handler will refuse any access to those high number GPIO
+>> pins, which will resulted in a failure evaluation of every ACPI control
+>> method that is used to turn on/off power resource and/or report sensor
+>> temperatures.
+>>
+>> Signed-off-by: Aaron Lu <aaron.lu@intel.com>
 > 
-> Oh, good. That's actually one of the things I said I wasn't happy with
-> either. =)
+> Reviewed-by: Mika Westerberg <mika.westerberg@linux.intel.com>
 
-Hm, I decide to drop weak arch_find_msi_chip(), no one likes it.
-Let's find a better solution :)
+Thanks for the review!
 
-> 
->> I'm surprised no one considers the case of a platform having more than one host
->> bridge and possibly more than one MSI unit. With the current proposed patchset I
->> can't see how that would work.
-> 
-> The PCI core can already deal with that. An MSI chip can be set per bus
-> and the weak pcibios_add_bus() can be used to set that. Often it might
-> not even be necessary to do it via pcibios_add_bus() if you create the
-> root bus directly, since you can attach the MSI chip at that time.
-
-Yes, PCI hostbridge driver find the matched msi chip during its initialization,
-and assign the msi chip to PCI bus in pcibios_add_bus().
+Regards,
+Aaron
 
 > 
->> What I would like to see is a way of creating the pci_host_bridge structure outside
->> the pci_create_root_bus(). That would then allow us to pass this sort of platform
->> details like associated msi_chip into the host bridge and the child busses will
->> have an easy way of finding the information needed by finding the root bus and then
->> the host bridge structure. Then the generic pci_scan_root_bus() can be used by (mostly)
->> everyone and the drivers can remove their kludges that try to work around the
->> current limitations.
-
-So I think maybe save msi chip in PCI arch sysdata is a good candidate.
-
+> A minor nit, see below:
 > 
-> I think both issues are orthogonal. Last time I checked a lot of work
-> was still necessary to unify host bridges enough so that it could be
-> shared across architectures. But perhaps some of that work has
-> happened in the meantime.
+>> ---
+>> v2: remove the hunk to increase NR_GPIO to 512.
+>>
+>>  drivers/gpio/gpio-crystalcove.c | 19 ++++++++++++++++---
+>>  1 file changed, 16 insertions(+), 3 deletions(-)
+>>
+>> diff --git a/drivers/gpio/gpio-crystalcove.c b/drivers/gpio/gpio-crystalcove.c
+>> index e3712f0e51ab..186b76ef71a1 100644
+>> --- a/drivers/gpio/gpio-crystalcove.c
+>> +++ b/drivers/gpio/gpio-crystalcove.c
+>> @@ -24,6 +24,7 @@
+>>  #include <linux/mfd/intel_soc_pmic.h>
+>>  
+>>  #define CRYSTALCOVE_GPIO_NUM	16
+>> +#define CRYSTALCOVE_VGPIO_NUM	0x5e
 > 
-> But like I said, when you create the root bus, you can easily attach the
-> MSI chip to it.
+> I would rather see this spelled in decimal base.
 > 
-> Thierry
-> 
-
-
--- 
-Thanks!
-Yijing
 
