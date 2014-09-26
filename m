@@ -1,43 +1,81 @@
-From: Aaron Lu <aaron.lu@intel.com>
-Subject: Re: [PATCH v2 1/2] gpio / CrystalCove: support virtual GPIO
-Date: Fri, 26 Sep 2014 13:22:21 +0800
-Message-ID: <5424F80D.9070400@intel.com>
-References: <1410229968-11638-1-git-send-email-aaron.lu@intel.com>	<1410229968-11638-2-git-send-email-aaron.lu@intel.com>	<CACRpkdaJjqs9WNcVvjsSWhzLD2QpcyR11MVm4xhm4GqB28eOCA@mail.gmail.com>	<54238496.70505@intel.com> <CACRpkdYeOfsx-PpEKaJY14sUqQ2VRiNmXnn_m-mrMzpBtcuBpg@mail.gmail.com>
+From: =?utf-8?B?5bCP6b6a?= <zhaopin@sanfu.com>
+Subject: =?utf-8?B?55So5LqG5LiA5qyh5L2g5bCx5Lya6KeJ5b6X5piv5pyA5aW955qE55+t5L+h5Y+R6YCB5bmz5Y+wIA==?=
+	=?utf-8?B?ICAgICAgICAgICAgICAgICAgICA=?=
+	=?utf-8?B?ICAgICAgICAgICAgICAgICAgICA=?=
+	=?utf-8?B?ICAgICAgICAgICAgICAgICAgICA=?=
+	=?utf-8?B?ICAgICAgICAxaQ==?=
+Date: Fri, 26 Sep 2014 13:56:37 +0800
+Message-ID: <20140926135645436583@sanfu.com>
+Reply-To: <dingxj8@aliyun.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=windows-1252
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-gpio-owner@vger.kernel.org>
-In-Reply-To: <CACRpkdYeOfsx-PpEKaJY14sUqQ2VRiNmXnn_m-mrMzpBtcuBpg@mail.gmail.com>
-Sender: linux-gpio-owner@vger.kernel.org
-To: Linus Walleij <linus.walleij@linaro.org>
-Cc: Alexandre Courbot <gnurou@gmail.com>, Samuel Ortiz <sameo@linux.intel.com>, Lee Jones <lee.jones@linaro.org>, Arnd Bergmann <arnd@arndb.de>, "linux-gpio@vger.kernel.org" <linux-gpio@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Jacob Pan <jacob.jun.pan@linux.intel.com>, Lejun Zhu <lejun.zhu@intel.com>, Radivoje Jovanovic <radivoje.jovanovic@intel.com>, =?windows-1252?Q?Dani?= =?windows-1252?Q?el_Gl=F6ckner?= <dg@emlix.com>, ACPI Devel Maling List <linux-acpi@vger.kernel.org>, "Rafael J. Wysocki" <rjw@rjwysocki.net>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail.sanfu.co ([222.77.189.194]:9635 "EHLO mail.sanfu.com.cn"
+	rhost-flags-OK-FAIL-OK-OK) by vger.kernel.org with ESMTP
+	id S1752941AbaIZGEQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 26 Sep 2014 02:04:16 -0400
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linux-arch@vger.kernel.org, linux-c-programming@vger.kernel.org, linux-can@vger.kernel.org, linux-cobalt@googlegroups.com
 
-On 09/25/2014 09:16 PM, Linus Walleij wrote:
-> On Thu, Sep 25, 2014 at 4:57 AM, Aaron Lu <aaron.lu@intel.com> wrote:
-> 
->> The virtual GPIO introduced in ACPI table of Baytrail-T based system is
->> used to solve a problem under Windows. We do not have such problems
->> under Linux so we do not actually need them. But we have to tell GPIO
->> library that the Crystal Cove GPIO chip has this many GPIO pins or the
->> common GPIO handler will refuse any access to those high number GPIO
->> pins, which will resulted in a failure evaluation of every ACPI control
->> method that is used to turn on/off power resource and/or report sensor
->> temperatures.
->>
->> Signed-off-by: Aaron Lu <aaron.lu@intel.com>
->> ---
->> v2: remove the hunk to increase NR_GPIO to 512.
-> 
-> Patch applied with Mika's ACK, also renumbered 0x5e to 94.
-
-Thanks for taking care of this.
-
-Regards,
-Aaron
-
-> 
-> Yours,
-> Linus Walleij
-> 
-
+DQogIOi/meS4quefreS/oeWPkemAgeW5s+WPsOWunuWcqOaYr+WkquWlveeUqOS6hu+8jOWGjeS5
+n+S4jeaEgeaJvuS4jeWIsOWlveeahOW5s+WPsOS6hu+8jOWPquimgeaYr+S9oOWPkeeahOWGheWu
+ueaYr+ato+inhOeahO+8jOi9u+advuWwseWPr+S7peWPkemAgeWHuuWOu+OAguWKoFFRMTkzOTg5
+NzI15YW35L2T5ZKo6K+i77yM5Y+v5Lul5byA6LSm5Y+35rWL5pWI5p6c44CCDQoNCg0KDQoNCg0K
+IA0KDQoNCg0KDQoNCg0KDQoNCg0KDQoNCg0KDQoNCg0KDQoNCg0KDQoNCg0KDQoNCg0KDQoNCg0K
+DQoNCg0KDQoNCg0KDQoNCg0KDQoNCg0KDQoNCg0KDQoNCg0KDQoNCg0KDQoNCg0KDQoNCg0KDQoN
+Cg0KDQoNCg0KDQoNCg0KDQoNCg0KDQoNCg0KDQoNCg0KDQoNCg0KDQoNCg0KDQoNCg0KDQoNCg0K
+DQoNCg0KDQoNCg0KDQoNCg0KDQoNCg0KDQoNCg0KDQoNCg0KDQoNCuiDvemdoOiHquW3seeahOiD
+veWKm+WSjOWPjOaJi+i1mumSse+8jOWvueWlueadpeivtOiDveiOt+W+l+S4gOenjemavuW+l+ea
+hOa7oei2s+aEn+OAgiAgICDigJzlkrHkuZ/kuI3ljZblpJrotLXvvIzlsLHmsYLkuIDkuKrigJjo
+p4TmqKHmlYjlupTigJnvvIzlkrHku6zljbDph4/lpJrngrnvvIznurjlvKDlsLHog73kvr/lrpzv
+vIzlgJjoi6XljZXni6zljbDkuIDlpZfmiJHku6znmoTnrJTorrDopoHoirHkupTlnZfmjIHpnaLl
+rZDkuIrnmoTkurLlr4bml6Dpl7TvvIzmmK/ouqvlnKjlrpjlnLrogYzlnLrnmoTmnIDln7rmnKzo
+poHmsYLjgIIgICAg5L2V6K+X6Z+154K55LqG54K55aS077yM5Y+I6Iyr54S25Zyw5pGH5LqG5pGH
+5aS077yM6IuP57ub5ZSH5oSP5ZGz5rex6ZW/5Zyw55yL5LqG5aSP5bCP5rSb5LiA55y877yM5aSP
+5bCP5rSb6Z2i5peg6KGo5oOF55qE5LiA6IS45peg6L6c44CCICAgIOiLj+e7m+WUh+W/g+mBk++8
+jOmdoOS4jeS9j+i/mOS7gOS5iOi/mO+8n+S9oOeVmeedgOWQp+OAguKAnSAgICDigJzkvaDkuI3n
+nIvnnIvlpJrmtarotLnvvIzlho3or7TkuobvvIzkuabpnZ7lgJ/kuI3og73or7vkuZ/vvIzov5nm
+oLflj6/ku6XnnaPkv4PmiJHlv6vngrnor7vlrozjgILigJ0gICAg55Sw5Yek5omN552A5oCl6KaB
+6LWw77yM5LuW6L+Y6KaB5oqK6YKj6L6G6Ieq6KGM6L2m6aqR5Zue5Y6777yM5aSP5bCP5rSb6YGT
+77ya4oCc5oiR6YCB6YCB5L2g44CC4oCdICAgIOa0m+mHjeeUn+WJjeiZveeEtuaYr+mHkeiejeS4
+muS7juS4muS6uuWRmO+8jOayoeacieWcqOS4k+S4mueahOeUn+S6p+aAp+S8geS4muW3peS9nOi/
+h++8jOWPr+aYr++8jOS7luS7rOivgeWKteWFrOWPuOS5n+imgee7j+W4uOWOu+W+iOWkmueUn+S6
+p+aAp+eahOS4iuW4guWFrOWPuOS6huino+aDheWGteOAgeayn+mAmuS/oeaBr++8jOa1geawtOe6
+v+OAgeagh+WHhuWMlueUn+S6p+S7luS5n+ingeW+l+WkmuS6hu+8jOS+neiRq+iKpuaJi+azleaJ
+mOS9j+aJreS8pOeahOmCo+WPquiEmueahOWwj+iFv++8jOWPpuS4gOWPquaJi+iEseWOu+S6huWl
+ueeahOmrmOi3n+mei++8jOS4gOWPquengOawlOeahOe+jui2s+WxleeOsOWcqOS7lumdouWJje+8
+jOiCieiJsuaYr+S4neiinO+8jOiuqeiEmui4neaYvuW+l+aXoOavlOWchua2puOAgiAgICDku5bo
+vbvovbvmkrjkuIvlpbnnmoTkuJ3oopzjgIIgICAg6YKj576O6Laz5aaC5ZCM576O546J6ZuV55Ci
+5LiA5qC355qE5LiA5qC377yM5LuW5qC55pys5rKh5oqK6ZKx5b2T5Zue5LqL77yM6Zmk6Z2e5ZuK
+5Lit576e5rap55qE5pe25YCZ5omN5Y+R546w77yM5oiR6I2J77yM6L+Z6ZKx5pyJ54K55bCR5LqG
+44CCICAgIOWkj+Wwj+a0m+i2tOWIsOiHquW3seavjeS6suiAs+i+uemBk++8muKAnOWmiO+8jOS9
+oOefpemBk+aIkeS7rOS4uuS7gOS5iOS8mui1mumSseS5iO+8n+KAnSAgICDigJzkuLrllaXvvJ/i
+gJ0gICAg4oCc5Zug5Li66ZKx5bGA6ZW/CQ0K5pe26Ze05ZCs6K+05LuW5Zyo5Yid5Lit5Y2H6auY
+5Lit6ICD5LqG5Liq5YWo5Y6/56ys5LiJ77yM6ICM5LiU6L+Y5pCe5LuA5LmI562+5ZCN5ZSu5Lmm
+4oCm4oCmICAgIOWkj+Wwj+a0m+W+iOekvOiyjOWcsOmeoOi6rO+8jOmBk++8muKAnOiDoeWPlOWP
+lOWlve+8jOaIkeeahOS4u+aEj+S5n+S4jeS4gOWumuWlveeUqO+8jOWmguaenOS4jeihjO+8jOS9
+oOWwseW9k+aIkeaYr+WcqOaUvuWxgeOAguKAnSAgICDog6HluKbnnYDmtZPph43nmoTkuK3ljp/l
+j6Ppn7PjgIIgICAg5aSP5bCP5rSb5Lmf5Lii5o6J6K+05LqG5aSa5bCR5bm055qE5pmu6YCa6K+d
+77yM55So5Lit5Y6f6K+d6YGT77ya4oCc5L+65Y+r5aSP5bCP5rSb77yM6L+Z6Ze65aWz5Y+r5L2V
+6K+X6Z+144CC4oCd5Lit5Y6f6K+d56ew5aeR5aiY5Li64oCc6Ze65aWz5YS/4oCd77yM55S35a2p
+5Li64oCc56C05bCP5a2Q4oCd44CCICAgIOS9leivl+mfteWQrOS7luagh+WHhueahOS4reWQjue7
+k+WpmuS6hu+8jOe7iOS6juS7juiAjea1geawk+WPmOaIkOS6huWQiOazleiAjea1geawk+OAgiAg
+ICDlnKjkvJfkurrnvqHmhZXnmoTnnLzlhYnkuK3vvIzljaLljZfljY7kuIDnmLjkuIDmi5DlnLDo
+tbDkuIrovabvvIzmnInkuobov5novobniZvlj4nnmoTkuLDnlLDnmoflhqDkvZzkuLrlnZDpqpHv
+vIzov5nkuIDnmLjkuIDmi5Dpg73mmL7lvpfmvYfmtJLml6Dmr5TjgIIgICAg5ZSJ77yM55yf5piv
+54mp6LSo5Z+656GA5piO5LmW5ben77yM55+l6YGT54i25Lqy5Zyo5a6Y5Zy65LiK77yM5b6I5aSa
+5LqL5oOF6Lqr5LiN55Sx5bex77yM57qi552A55y85ZyI54K55LqG54K55aS044CCICAgIOS9leS6
+rOeUn+adpeS5i+WJje+8jOmhvuiLseW3sue7j+eCueS6huWlveS6huiPnOOAgiAgICDov5nkvJrl
+hL/lpbnlh7rljrvlj6vkuobkuIvpoobnj63kuIroj5zvvIzmnI3liqHlkZjnqb/moq3mnaXlm57v
+vIzkuI3kuIDkvJroj5zlsLHkuIrpvZDkuobjgIIgIOS7luiDveeyvuWHhuWcsOWIpOaWreeKr+e9
+quWIhuWtkOeahOeyvuelnueKtuaAgeOAgiAgICDliY3lh6DlpKnku5blt7Lnu4/mhJ/op4nliLDo
+kaPkuZ3mmJ/nmoTlv4PnkIbpmLLnur/lt7Lnu4/lpITkuo7ltKnmuoPnmoTovrnnvJjvvIzkvYbm
+mK/ku4rlpKnnm67lhYnljbTmmL7lvpfpnZ7luLjoh6rkv6HjgIIgICAg5raI5oGv5Lyg5Yiw5L2V
+5Lqs55Sf6YKj6YeM77yM5L2V5Lqs55Sf5q2j5LiN5Y6M5YW254Om5Zyw5Zue552A5pyJ5LqG6K6h
+6L6D4oCU4oCU6L+Z5bCP5a2Q77yM5LiN5piv5Y+I5p2l6KaB6ZKx5ZCn77yM5b6X5oqK6ZKx6KKL
+5a2Q5o2C57Sn5LqG44CCICAgIOenmOS5puiRm+S8n+WFieWImuaDs+i/h+adpee7meWkj+i/keS4
+nOWAkuawtO+8jOS9leS6rOeUn+S4gOaMpeaJi+iuqeS7luWHuuWOu+S6huOAgiAgICDku5bnrJHl
+mLvlmLvlnLDpgZPvvJrigJzogIHlpI/vvIzmnaXllp3mna/msLTvvIzmiJHkurLoh6rnu5nkvaDl
+gJLigKbigKYJDQo=
