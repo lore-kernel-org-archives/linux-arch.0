@@ -1,40 +1,102 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.17.13]:54682 "EHLO
-	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755881AbaIZVhz (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 26 Sep 2014 17:37:55 -0400
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH v3 00/17] Cross-architecture definitions of relaxed MMIO accessors
-Date: Fri, 26 Sep 2014 23:36:13 +0200
-Message-ID: <3359318.XmOCYLZHTV@wuerfel>
-In-Reply-To: <20140926134608.GT5182@n2100.arm.linux.org.uk>
-References: <1411579056-16966-1-git-send-email-will.deacon@arm.com> <9197976.uQdLmtvIl1@wuerfel> <20140926134608.GT5182@n2100.arm.linux.org.uk>
+Received: from mail-la0-f45.google.com ([209.85.215.45]:63058 "EHLO
+	mail-la0-f45.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755683AbaIZVxs (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 26 Sep 2014 17:53:48 -0400
 MIME-Version: 1.0
-Content-Transfer-Encoding: 7Bit
-Content-Type: text/plain; charset="us-ascii"
+In-Reply-To: <20140926212052.GA6030@borg.dudau.co.uk>
+References: <1411498874-9864-1-git-send-email-Liviu.Dudau@arm.com>
+ <1411498874-9864-9-git-send-email-Liviu.Dudau@arm.com> <CAL_Jsq+j40Xf208wCf4as3H=cDU=htJ-JWinB0DjpcORjatNXQ@mail.gmail.com>
+ <20140926212052.GA6030@borg.dudau.co.uk>
+From: Rob Herring <robherring2@gmail.com>
+Date: Fri, 26 Sep 2014 16:53:26 -0500
+Message-ID: <CAL_JsqKJ6bfPuOofo4grVm3qW_WOpUzcS1juZvHxZdFyyF_19A@mail.gmail.com>
+Subject: Re: [PATCH v12 08/12] PCI: OF: Introduce helper function for
+ retrieving PCI domain numbers
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Russell King - ARM Linux <linux@arm.linux.org.uk>
-Cc: Thierry Reding <thierry.reding@gmail.com>, Will Deacon <will.deacon@arm.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, "chris@zankel.net" <chris@zankel.net>, "cmetcalf@tilera.com" <cmetcalf@tilera.com>, "davem@davemloft.net" <davem@davemloft.net>, "deller@gmx.de" <deller@gmx.de>, "dhowells@redhat.com" <dhowells@redhat.com>, "geert@linux-m68k.org" <geert@linux-m68k.org>, "heiko.carstens@de.ibm.com" <heiko.carstens@de.ibm.com>, "hpa@zytor.com" <hpa@zytor.com>, "jcmvbkbc@gmail.com" <jcmvbkbc@gmail.com>, "jesper.nilsson@axis.com" <jesper.nilsson@axis.com>, "mingo@redhat.com" <mingo@redhat.com>, "monstr@monstr.eu" <monstr@monstr.eu>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>, "rdunlap@infradead.org" <rdunlap@infradead.org>, "sam@ravnborg.org" <sam@ravnborg.org>, "schwidefsky@de.ibm.com" <schwidefsky@de.ibm.com>, "starvik@axis.com" <starvik@axis.com>, "takata@linux-m32r.org" <takata@linux-m32r.org>, "tglx@linutronix.de" <tglx@linutronix.de>, "tony.luck@intel.com" <tony.luck@intel.com>, "daniel.thompson@linaro.org" <daniel.thompson@linaro.org>, "broonie@linaro.org" <broonie@linaro.org>
-Message-ID: <20140926213613.r9f3Ey8ktSX4uIx7NabO4wrRrjtoLKZLuO4E6Wg5grk@z>
+To: Rob Herring <robherring2@gmail.com>, Liviu Dudau <Liviu.Dudau@arm.com>, Bjorn Helgaas <bhelgaas@google.com>, Arnd Bergmann <arnd@arndb.de>, Rob Herring <robh+dt@kernel.org>, Jason Gunthorpe <jgunthorpe@obsidianresearch.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <Will.Deacon@arm.com>, Russell King <linux@arm.linux.org.uk>, linux-pci <linux-pci@vger.kernel.org>, Linus Walleij <linus.walleij@linaro.org>, Tanmay Inamdar <tinamdar@apm.com>, Grant Likely <grant.likely@secretlab.ca>, Sinan Kaya <okaya@codeaurora.org>, Jingoo Han <jg1.han@samsung.com>, Kukjin Kim <kgene.kim@samsung.com>, Suravee Suthikulanit <suravee.suthikulpanit@amd.com>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Device Tree ML <devicetree@vger.kernel.org>, LAKML <linux-arm-kernel@lists.infradead.org>, Grant Likely <grant.likely@linaro.org>
+Message-ID: <20140926215326.u4dfl7V1LLAqetaUdKXTabwAQTslVU8Y7e1uPs2tBnE@z>
 
-On Friday 26 September 2014 14:46:08 Russell King - ARM Linux wrote:
-> 
-> Obviously, this does nothing for the:
-> 
-> include/asm-generic/io.h:804:29: error: redefinition of 'virt_to_bus'
-> include/asm-generic/io.h:809:21: error: redefinition of 'bus_to_virt'
-> 
-> errors which are also reported in Olof's build system.
-> 
-> Given how close we are to the merge window, I'd suggest this stuff gets
-> reverted so that it can have a better period of testing, rather than
-> stuffing it into -next at such a critical time.
+On Fri, Sep 26, 2014 at 4:20 PM,  <liviu@dudau.co.uk> wrote:
+> On Fri, Sep 26, 2014 at 01:20:39PM -0500, Rob Herring wrote:
+>> On Tue, Sep 23, 2014 at 2:01 PM, Liviu Dudau <Liviu.Dudau@arm.com> wrote:
+>> > Add pci_get_new_domain_nr() to allocate a new domain number
+>> > and of_get_pci_domain_nr() to retrieve the PCI domain number
+>> > of a given device from DT. Host bridge drivers or architecture
+>> > specific code can choose to implement their PCI domain number
+>> > policy using these two functions.
+>> >
+>> > Using of_get_pci_domain_nr() guarantees a stable PCI domain
+>> > number on every boot provided that all host bridge controllers
+>> > are assigned a number in the device tree using "linux,pci-domain"
+>> > property. Mix use of pci_get_new_domain_nr() and of_get_pci_domain_nr()
+>> > is not recommended as it can lead to potentially conflicting
+>> > domain numbers being assigned to root busses behind different
+>> > host bridges.
+>> >
+>> > Cc: Bjorn Helgaas <bhelgaas@google.com>
+>> > Cc: Arnd Bergmann <arnd@arndb.de>
+>> > Cc: Grant Likely <grant.likely@linaro.org>
+>> > Cc: Rob Herring <robh+dt@kernel.org>
+>> > Cc: Catalin Marinas <catalin.marinas@arm.com>
+>> > Signed-off-by: Liviu Dudau <Liviu.Dudau@arm.com>
+>>
+>> Looks pretty good, but a couple of comments that can be addressed as
+>> follow-up patches.
+>>
+>> > ---
+>> >  drivers/of/of_pci.c    | 25 +++++++++++++++++++++++++
+>> >  drivers/pci/pci.c      |  9 +++++++++
+>> >  include/linux/of_pci.h |  7 +++++++
+>> >  include/linux/pci.h    |  3 +++
+>> >  4 files changed, 44 insertions(+)
+>> >
+>> > diff --git a/drivers/of/of_pci.c b/drivers/of/of_pci.c
+>> > index 8481996..82d172f 100644
+>> > --- a/drivers/of/of_pci.c
+>> > +++ b/drivers/of/of_pci.c
+>> > @@ -89,6 +89,31 @@ int of_pci_parse_bus_range(struct device_node *node, struct resource *res)
+>> >  }
+>> >  EXPORT_SYMBOL_GPL(of_pci_parse_bus_range);
+>> >
+>> > +/**
+>> > + * This function will try to obtain the host bridge domain number by
+>> > + * finding a property called "linux,pci-domain" of the given device node.
+>> > + *
+>> > + * @node: device tree node with the domain information
+>> > + *
+>> > + * Returns the associated domain number from DT in the range [0-0xffff], or
+>> > + * a negative value if the required property is not found.
+>> > + */
+>> > +int of_get_pci_domain_nr(struct device_node *node)
+>> > +{
+>> > +       const __be32 *value;
+>> > +       int len;
+>> > +       u16 domain;
+>> > +
+>> > +       value = of_get_property(node, "linux,pci-domain", &len);
+>>
+>> This needs to be documented.
+>
+> I would say needs agreed on *and* documented.
 
-Right, I've fixed these all up locally, but then found new warnings on
-allmodconfig builds that I haven't been able to track down yet.
+I thought Bjorn already applied the series. Who's agreement are you
+waiting for specifically.
 
-I've dropped everything from the asm-generic tree now, so we can get
-a clean linux-next tree.
+>>
+>> > +       if (!value || len < sizeof(*value))
+>> > +               return -EINVAL;
+>> > +
+>> > +       domain = (u16)be32_to_cpup(value);
+>>
+>> of_property_read_u32 would not work here?
+>
+> It should, I guess, but I want to limit the domain number range to 16 bits.
 
-	Arnd
+Okay, but it would still be fewer lines to use of_property_read_u32
+and then cast it. You could use the u16 variant and make the property
+be defined to be 16-bit in the documentation.
+
+Rob
