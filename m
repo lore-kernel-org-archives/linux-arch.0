@@ -1,69 +1,65 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from szxga03-in.huawei.com ([119.145.14.66]:31038 "EHLO
-	szxga03-in.huawei.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752794AbaIZCQJ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 25 Sep 2014 22:16:09 -0400
-Message-ID: <5424CC54.1040507@huawei.com>
-Date: Fri, 26 Sep 2014 10:15:48 +0800
-From: Yijing Wang <wangyijing@huawei.com>
+Received: from mail-lb0-f177.google.com ([209.85.217.177]:49959 "EHLO
+	mail-lb0-f177.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753195AbaIZCWw (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 25 Sep 2014 22:22:52 -0400
 MIME-Version: 1.0
-Subject: Re: [PATCH v2 01/22] PCI/MSI: Clean up struct msi_chip argument
-References: <1411614872-4009-1-git-send-email-wangyijing@huawei.com> <1411614872-4009-2-git-send-email-wangyijing@huawei.com> <20140925071536.GG12423@ulmo> <alpine.DEB.2.10.1409251208420.4604@nanos>
-In-Reply-To: <alpine.DEB.2.10.1409251208420.4604@nanos>
-Content-Type: text/plain; charset="ISO-8859-1"
-Content-Transfer-Encoding: 7bit
+In-Reply-To: <11277081.DWgcnnZv54@wuerfel>
+References: <1410168160-3624-1-git-send-email-lftan@altera.com>
+	<3608975.MxU44B73lk@wuerfel>
+	<CAFiDJ58h4VKrr-wHe6iD+aPB8QU=xLo03kW5k6QDpLW5Et0DGw@mail.gmail.com>
+	<11277081.DWgcnnZv54@wuerfel>
+Date: Fri, 26 Sep 2014 10:22:50 +0800
+Message-ID: <CAFiDJ58Y1iQhkkS-OVwMBdowJnXKKbYfHttQibmBh_qa5vgOmQ@mail.gmail.com>
+Subject: Re: [PATCH v3 01/29] asm-generic: add generic futex for !CONFIG_SMP
+From: Ley Foon Tan <lftan@altera.com>
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Thomas Gleixner <tglx@linutronix.de>, Thierry Reding <thierry.reding@gmail.com>
-Cc: Bjorn Helgaas <bhelgaas@google.com>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, Xinwei Hu <huxinwei@huawei.com>, Wuyun <wuyun.wu@huawei.com>, linux-arm-kernel@lists.infradead.org, Russell King <linux@arm.linux.org.uk>, linux-arch@vger.kernel.org, arnab.basu@freescale.com, Bharat.Bhushan@freescale.com, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, xen-devel@lists.xenproject.org, Joerg Roedel <joro@8bytes.org>, iommu@lists.linux-foundation.org, linux-mips@linux-mips.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, Sebastian Ott <sebott@linux.vnet.ibm.com>, Tony Luck <tony.luck@intel.com>, linux-ia64@vger.kernel.org, "David S. Miller" <davem@davemloft.net>, sparclinux@vger.kernel.org, Chris Metcalf <cmetcalf@tilera.com>, Ralf Baechle <ralf@linux-mips.org>, Lucas Stach <l.stach@pengutronix.de>, David Vrabel <david.vrabel@citrix.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, Michael Ellerman <mpe@ellerman.id.au>, Thomas Petazzoni <thomas.petazzoni@free-electrons.com>
-Message-ID: <20140926021548.yD5rKYQaLDKEUoW5_w7ZAQi4CXe75nPwjG0b3iZKcwc@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Chung-Lin Tang <cltang@codesourcery.com>, Thomas Gleixner <tglx@linutronix.de>
+Message-ID: <20140926022250.Vefr7L3BCqMfygn6plQVGY1mqxTjPjQKoQvWbvHl1X8@z>
 
-On 2014/9/25 18:20, Thomas Gleixner wrote:
-> On Thu, 25 Sep 2014, Thierry Reding wrote:
-> 
->> On Thu, Sep 25, 2014 at 11:14:11AM +0800, Yijing Wang wrote:
->>> Msi_chip functions setup_irq/teardown_irq rarely use msi_chip
->>> argument.
+On Thu, Sep 25, 2014 at 6:54 PM, Arnd Bergmann <arnd@arndb.de> wrote:
+> On Thursday 25 September 2014 16:33:33 Ley Foon Tan wrote:
+>> There are 4 patches that touching code outside of arch/nios2,
+>> including this patch.
+>> Do we have maintainers for common files for patch #15, #27 and #28
+>> below? Can't find this info from MAINTAINERS file.
+>> It is good if you can take a look this v3 patchset so I can send pull
+>> request if no further issue. Thanks!
 >>
->> That's not true. Out of the four drivers that you modify two use the
->> parameter. And the two that don't probably should be using it too.
->>
->> 50% is not "rarely". =)
->>
->>>           We can look up msi_chip pointer by the device pointer
->>> or irq number, so clean up msi_chip argument.
->>
->> I don't like this particular change. The idea was to keep the API object
->> oriented so that drivers wouldn't have to know where to get the MSI chip
->> from. It also makes it more resilient against code reorganizations since
->> the core code is the only place that needs to know where to get the chip
->> from.
-> 
-> Right. We have the same thing in the irq_chip callbacks. All of them
-> take "struct irq_data", because it's already available in the core
-> code and it gives easy access to all information (chip, chipdata ...)
-> which is necessary for the callback implementations.
-
-OK, I will drop this change, tglx, thanks for your review and comments!
-
-Thanks!
-Yijing.
-
-
-> 
-> Thanks,
-> 
-> 	tglx
-> --
-> To unsubscribe from this list: send the line "unsubscribe linux-pci" in
-> the body of a message to majordomo@vger.kernel.org
-> More majordomo info at  http://vger.kernel.org/majordomo-info.html
-> 
-> .
-> 
+>> [PATCH v3 01/29] asm-generic: add generic futex for !CONFIG_SMP
+>
+> You already have my Ack, which is sufficient here.
+Okay, thanks.
+>
+>> [PATCH v3 15/29] Add ELF machine define for Nios2
+>
+> I'm not maintaining this one, but it looks very obvious, please
+> add my Ack as well. I don't think you need to wait for anybody's
+> input here.
+Will add your ACK.
+>
+>> [PATCH v3 27/29] MAINTAINERS: Add nios2 maintainer
+>
+> This one is fine to go in. You basically own the entry though, so if
+> anybody wants to change the text for nios2 later, they should ask
+> for your Ack.
+Okay.
+>
+>> [PATCH v3 28/29] Documentation: Add documentation for Nios2 architecture
+>
+> Randy Dunlap <rdunlap@infradead.org> is the maintainer listed for
+> Documentation, and I see you already have linux-doc@vger.kernel.org
+> on Cc here. Please make sure that Randy is on Cc for the documentation
+> patches as well. A lot of documentation patches go in without his
+> Ack, which I think is fine as long as someone else (i.e. you) is
+> responsible for maintaining that documentation later.
+Okay, will add Randy to CC list for Documentation patch.
 
 
--- 
-Thanks!
-Yijing
+Let me know if you done the review for v3 patchset. Thanks.
 
+Regards
+Ley Foon
