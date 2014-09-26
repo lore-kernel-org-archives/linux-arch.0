@@ -1,69 +1,60 @@
-From: Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>
-Subject: Re: [PATCH v2 06/22] PCI/MSI: Introduce weak arch_find_msi_chip()
-	to find MSI chip
-Date: Fri, 26 Sep 2014 12:38:26 +0200 (CEST)
-Message-ID: <alpine.DEB.2.11.1409261236160.4567@nanos>
-References: <1411614872-4009-1-git-send-email-wangyijing@huawei.com>
-	<1411614872-4009-7-git-send-email-wangyijing@huawei.com>
-	<alpine.DEB.2.10.1409251220570.4604@nanos>
-	<5424D30A.6040900@huawei.com>
+From: Tobias Klauser <tklauser@distanz.ch>
+Subject: Re: [PATCH v3 01/29] asm-generic: add generic futex for !CONFIG_SMP
+Date: Fri, 26 Sep 2014 15:17:46 +0200
+Message-ID: <20140926131746.GA3279@distanz.ch>
+References: <1410168160-3624-1-git-send-email-lftan@altera.com>
+ <12538756.JybTPMqFHj@wuerfel>
+ <CAFiDJ5-bo_WOz6JockX_BaX0_O0D=+8PjKx7gys-ySKA2KMOaw@mail.gmail.com>
+ <3608975.MxU44B73lk@wuerfel>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-In-Reply-To: <5424D30A.6040900-hv44wF8Li93QT0dZR+AlfA@public.gmane.org>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
-List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
-Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-To: Yijing Wang <wangyijing-hv44wF8Li93QT0dZR+AlfA@public.gmane.org>
-Cc: linux-mips-6z/3iImG2C8G8FEW9MqTrA@public.gmane.org, linux-ia64-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-pci-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Thierry Reding <thierry.reding-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, sparclinux-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-s390-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Russell King <linux-lFZ/pmaqli7XmaaqVzeoHQ@public.gmane.org>, Michael Ellerman <mpe-Gsx/Oe8HsFggBc27wqDAHg@public.gmane.org>, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, Sebastian Ott <sebott-23VcF4HTsmIX0ybBhKVfKdBPR1lH4CV8@public.gmane.org>, Benjamin Herrenschmidt <benh-XVmvHMARGAS8U2dJNN8I7kB+6BGkLq7r@public.gmane.org>, xen-devel-GuqFBffKawtpuQazS67q72D2FQJk+8+b@public.gmane.org, arnab.basu-KZfg59tc24xl57MIdRCFDg@public.gmane.org, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Chris Metcalf <cmetcalf-kv+TWInifGbQT0dZR+AlfA@public.gmane.org>, Bjorn Helgaas <bhelgaas-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, Thomas Petazzoni <thomas.petazzoni-wi1+55ScJUtKEb57/3fJTNBPR1lH4CV8@public.gmane.org>, Xinwei Hu <huxinwei-hv44wF8Li93QT0dZR+AlfA@public.gmane.org>, Tony Luck <tony.luck-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org>, Sergei Shtylyov <sergei.shtylyov-M4DtvfQ/ZS1MRgGoP+s0PdBPR1lH4CV8@public.gmane.org>, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Ralf Baechle <ralf-6z/3iImG2C8G8FEW9MqTrA@public.gmane.org>, iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org, David
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <3608975.MxU44B73lk@wuerfel>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Ley Foon Tan <lftan@altera.com>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Chung-Lin Tang <cltang@codesourcery.com>, Thomas Gleixner <tglx@linutronix.de>
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, 26 Sep 2014, Yijing Wang wrote:
-> On 2014/9/25 18:38, Thomas Gleixner wrote:
-> > On Thu, 25 Sep 2014, Yijing Wang wrote:
+On 2014-09-24 at 13:10:00 +0200, Arnd Bergmann <arnd@arndb.de> wrote:
+> On Wednesday 24 September 2014 18:57:54 Ley Foon Tan wrote:
+> > On Wed, Sep 24, 2014 at 6:40 PM, Arnd Bergmann <arnd@arndb.de> wrote:
+> > > On Wednesday 24 September 2014 18:18:50 Ley Foon Tan wrote:
+> > >> On Tue, Sep 23, 2014 at 6:40 PM, Arnd Bergmann <arnd@arndb.de> wrote:
+> > >> > On Tuesday 23 September 2014 18:20:08 LF.Tan wrote:
+> > >> >> Hi Arnd
+> > >> >>
+> > >> >> Are you okay with this generic futex in asm-generic?
+> > >> >>
+> > >> >
+> > >> > Yes, this looks good. Remind me again who need this, would it make
+> > >> > sense to merge this through an architecture-specific tree for
+> > >> > whichever architecture can benefit from it?
+> > >> What is the common practice for this?
+> > >> Do you mean merge with nios2 or other arch, eg m68k?
+> > >
+> > > I mean do it as part of the nios2 patches.
+> > I am okay with this.
+> > Do I need to get ACK for all patches in order for nios2 merge into mainline?
+> > Thanks.
 > > 
-> >> Introduce weak arch_find_msi_chip() to find the match msi_chip.
-> >> Currently, MSI chip associates pci bus to msi_chip. Because in
-> >> ARM platform, there may be more than one MSI controller in system.
-> >> Associate pci bus to msi_chip help pci device to find the match
-> >> msi_chip and setup MSI/MSI-X irq correctly. But in other platform,
-> >> like in x86. we only need one MSI chip, because all device use
-> >> the same MSI address/data and irq etc. So it's no need to associate
-> >> pci bus to MSI chip, just use a arch function, arch_find_msi_chip()
-> >> to return the MSI chip for simplicity. The default weak
-> >> arch_find_msi_chip() used in ARM platform, find the MSI chip
-> >> by pci bus.
-> > 
-> > This is really backwards. On one hand you try to get rid of the weak
-> > arch functions zoo and then you invent new ones for no good
-> > reason. Why can't x86 store the chip in the pci bus?
-> > 
-> > Looking deeper, I'm questioning the whole notion of different
-> > msi_chips. Are this really different MSI controllers with a different
-> > feature set or are this defacto multiple instances of the same
-> > controller which just need a different data set?
 > 
-> MSI chip in this series is to setup MSI irq, including IRQ allocation, Map,
-> compose MSI msg ..., in different platform, many arch specific MSI irq details in it.
-> It's difficult to extract the common data and code.
+> Please add my 'Acked-by: Arnd Bergmann <arnd@arndb.de>' to this patch
+> once Thomas is ok with it. I think we had concluded already that it
+> was correct when we talked about it last time, but he doesn't seem
+> convinced yet so I want to wait for his reply.
 > 
-> I have a plan to rework MSI related irq_chips in kernel, PCI and Non-PCI, currently,
-> HPET, DMAR and PCI have their own irq_chip and MSI related functions, write_msi_msg(),
-> mask_msi_irq(), etc... I want to extract the common data set for that, so we can
-> remove lots of unnecessary MSI code.
+> You definitely need an Ack for all patches touching code outside of
+> arch/nios2, from the respective maintainers. For the nios2 code,
+> having as many acks as you can helps, and I should probably take
+> a last look so I can ack the pull request when you send it.
 
-That makes sense. Can you please make sure that this does not conflict
-with the ongoing work Jiang is doing in the x86 irq area with
-hierarchical irqdomains to distangle layered levels like MSI from the
-underlying vector/irqremap mechanics.
+Speaking of the nios2 part: I'm the author of some parts of this code,
+but now also reviewed this series (or rather, intend to do so for the
+few remaining patches I didn't review yet).
 
-Thanks,
+What is the appropriate way to account for this? Is Reviewed-By still OK? I
+guess I won't be considered an entirely neutral reviewer ;)
 
-	tglx
+Cheers
+Tobias
