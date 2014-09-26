@@ -1,63 +1,107 @@
-From: Russell King - ARM Linux <linux@arm.linux.org.uk>
-Subject: Re: [PATCH v3 00/17] Cross-architecture definitions of relaxed
-	MMIO accessors
-Date: Fri, 26 Sep 2014 14:46:08 +0100
-Message-ID: <20140926134608.GT5182@n2100.arm.linux.org.uk>
-References: <1411579056-16966-1-git-send-email-will.deacon@arm.com> <4240583.SJ4jiIW6Zy@wuerfel> <20140926080551.GD31106@ulmo> <9197976.uQdLmtvIl1@wuerfel>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from gw-1.arm.linux.org.uk ([78.32.30.217]:44052 "EHLO
-	pandora.arm.linux.org.uk" rhost-flags-OK-OK-OK-FAIL)
-	by vger.kernel.org with ESMTP id S1753803AbaIZNqf (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Fri, 26 Sep 2014 09:46:35 -0400
-Content-Disposition: inline
-In-Reply-To: <9197976.uQdLmtvIl1@wuerfel>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Thierry Reding <thierry.reding@gmail.com>, Will Deacon <will.deacon@arm.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, "chris@zankel.net" <chris@zankel.net>, "cmetcalf@tilera.com" <cmetcalf@tilera.com>, "davem@davemloft.net" <davem@davemloft.net>, "deller@gmx.de" <deller@gmx.de>, "dhowells@redhat.com" <dhowells@redhat.com>, "geert@linux-m68k.org" <geert@linux-m68k.org>, "heiko.carstens@de.ibm.com" <heiko.carstens@de.ibm.com>, "hpa@zytor.com" <hpa@zytor.com>, "jcmvbkbc@gmail.com" <jcmvbkbc@gmail.com>, "jesper.nilsson@axis.com" <jesper.nilsson@axis.com>, "mingo@redhat.com" <mingo@redhat.com>, "monstr@monstr.eu" <monstr@monstr.eu>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>, "rdunlap@infradead.org" <rdunlap@infradead.org>
+From: Steve Capper <steve.capper@linaro.org>
+Subject: [PATCH V4 0/6] RCU get_user_pages_fast and __get_user_pages_fast
+Date: Fri, 26 Sep 2014 15:03:47 +0100
+Message-ID: <1411740233-28038-1-git-send-email-steve.capper@linaro.org>
+Return-path: <owner-linux-mm@kvack.org>
+Sender: owner-linux-mm@kvack.org
+To: linux-arm-kernel@lists.infradead.org, catalin.marinas@arm.com, linux@arm.linux.org.uk, linux-arch@vger.kernel.org, linux-mm@kvack.org
+Cc: will.deacon@arm.com, gary.robertson@linaro.org, christoffer.dall@linaro.org, peterz@infradead.org, anders.roxell@linaro.org, akpm@linux-foundation.org, dann.frazier@canonical.com, mark.rutland@arm.com, mgorman@suse.de, hughd@google.com, Steve Capper <steve.capper@linaro.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Fri, Sep 26, 2014 at 03:39:49PM +0200, Arnd Bergmann wrote:
-> On Friday 26 September 2014 10:05:52 Thierry Reding wrote:
-> 
-> > My original patch to consolidate the read*/write*() and friends
-> > explicitly avoided the use of macros to do this. The reason was that if
-> > we have static inline functions in asm-generic/io.h it defines the
-> > canonical prototype of these functions, so that architectures that want
-> > to override them can just copy the prototype from there.
-> > 
-> > So for consistency the above would become:
-> > 
-> > 	#ifndef readb_relaxed
-> > 	#define readb_relaxed readb_relaxed
-> > 	static inline u8 readb_relaxed(const void __iomem *addr)
-> > 	{
-> > 		return readb(addr);
-> > 	}
-> > 	#endif
-> > 
-> > And analogously for the others. For the *_relaxed variants it's perhaps
-> > not as important because the signature is the same as for the plain
-> > variants, so I'm not objecting very strongly to the plain macros.
-> 
-> Ok. I'd prefer the brief version I think.
-> 
-> Russell found a number of other bugs with the series, the patch below
-> contains the fixes I've had to do so far.
+Hello,
+This series implements general forms of get_user_pages_fast and
+__get_user_pages_fast in core code and activates them for arm and arm64.
 
-Obviously, this does nothing for the:
+These are required for Transparent HugePages to function correctly, as
+a futex on a THP tail will otherwise result in an infinite loop (due to
+the core implementation of __get_user_pages_fast always returning 0).
 
-include/asm-generic/io.h:804:29: error: redefinition of 'virt_to_bus'
-include/asm-generic/io.h:809:21: error: redefinition of 'bus_to_virt'
+Unfortunately, a futex on THP tail can be quite common for certain
+workloads; thus THP is unreliable without a __get_user_pages_fast
+implementation.
 
-errors which are also reported in Olof's build system.
+This series may also be beneficial for direct-IO heavy workloads and
+certain KVM workloads.
 
-Given how close we are to the merge window, I'd suggest this stuff gets
-reverted so that it can have a better period of testing, rather than
-stuffing it into -next at such a critical time.
+I appreciate that the merge window is coming very soon, and am posting
+this revision on the off-chance that it gets the nod for 3.18. (The changes
+thus far have been minimal and the feedback I've got has been mainly
+positive).
+
+Changes since PATCH V3 are
+(mainly addressing comments from Hugh Dickins):
+ * Added pte_numa and pmd_numa calls.
+ * Added comments to clarify what assumptions are being made by the
+   implementation.
+ * Cleaned up formatting for checkpatch.
+ * As these changes are mainly cosmetic, I've retained the Tested-by
+   and Reviewed-by tags.
+
+Changes since PATCH V2 are:
+ * spelt `PATCH' correctly in the subject prefix this time. :-(
+ * Added acks, tested-bys and reviewed-bys.
+ * Cleanup of patch #6 with pud_pte and pud_pmd helpers.
+ * Switched config option from HAVE_RCU_GUP to HAVE_GENERIC_RCU_GUP.
+
+Changes since PATCH V1 are:
+ * Rebase to 3.17-rc1
+ * Switched to kick_all_cpus_sync as suggested by Mark Rutland.
+
+The main changes since RFC V5 are:
+ * Rebased against 3.16-rc1.
+ * pmd_present no longer tested for by gup_huge_pmd and gup_huge_pud,
+   because the entry must be present for these leaf functions to be
+   called. 
+ * Rather than assume puds can be re-cast as pmds, a separate
+   function pud_write is instead used by the core gup.
+ * ARM activation logic changed, now it will only activate
+   RCU_TABLE_FREE and RCU_GUP when running with LPAE.
+
+The main changes since RFC V4 are:
+ * corrected the arm64 logic so it now correctly rcu-frees page
+   table backing pages.
+ * rcu free logic relaxed for pre-ARMv7 ARM as we need an IPI to
+   invalidate TLBs anyway.
+ * rebased to 3.15-rc3 (some minor changes were needed to allow it to merge).
+ * dropped Catalin's mmu_gather patch as that's been merged already.
+
+This series has been tested with LTP mm tests and some custom futex tests
+that exacerbate the futex on THP tail case; on both an Arndale board and
+a Juno board. Also debug counters were temporarily employed to ensure that
+the RCU_TABLE_FREE logic was behaving as expected.
+
+Cheers,
+--
+Steve
+
+
+Steve Capper (6):
+  mm: Introduce a general RCU get_user_pages_fast.
+  arm: mm: Introduce special ptes for LPAE
+  arm: mm: Enable HAVE_RCU_TABLE_FREE logic
+  arm: mm: Enable RCU fast_gup
+  arm64: mm: Enable HAVE_RCU_TABLE_FREE logic
+  arm64: mm: Enable RCU fast_gup
+
+ arch/arm/Kconfig                      |   5 +
+ arch/arm/include/asm/pgtable-2level.h |   2 +
+ arch/arm/include/asm/pgtable-3level.h |  15 ++
+ arch/arm/include/asm/pgtable.h        |   6 +-
+ arch/arm/include/asm/tlb.h            |  38 +++-
+ arch/arm/mm/flush.c                   |  15 ++
+ arch/arm64/Kconfig                    |   4 +
+ arch/arm64/include/asm/pgtable.h      |  21 +-
+ arch/arm64/include/asm/tlb.h          |  20 +-
+ arch/arm64/mm/flush.c                 |  15 ++
+ mm/Kconfig                            |   3 +
+ mm/gup.c                              | 354 ++++++++++++++++++++++++++++++++++
+ 12 files changed, 488 insertions(+), 10 deletions(-)
 
 -- 
-FTTC broadband for 0.8mile line: currently at 9.5Mbps down 400kbps up
-according to speedtest.net.
+1.9.3
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
