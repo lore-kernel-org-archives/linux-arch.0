@@ -1,91 +1,59 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-we0-f178.google.com ([74.125.82.178]:47235 "EHLO
-	mail-we0-f178.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753321AbaIZIJx (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 26 Sep 2014 04:09:53 -0400
-Date: Fri, 26 Sep 2014 10:09:49 +0200
-From: Thierry Reding <thierry.reding@gmail.com>
-Subject: Re: [PATCH v2 03/22] MSI: Remove the redundant irq_set_chip_data()
-Message-ID: <20140926080949.GF31106@ulmo>
-References: <1411614872-4009-1-git-send-email-wangyijing@huawei.com>
- <1411614872-4009-4-git-send-email-wangyijing@huawei.com>
+Received: from gw-1.arm.linux.org.uk ([78.32.30.217]:43592 "EHLO
+	pandora.arm.linux.org.uk" rhost-flags-OK-OK-OK-FAIL)
+	by vger.kernel.org with ESMTP id S1754353AbaIZIkw (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Fri, 26 Sep 2014 04:40:52 -0400
+Date: Fri, 26 Sep 2014 09:40:19 +0100
+From: Russell King - ARM Linux <linux@arm.linux.org.uk>
+Subject: Re: [PATCH v3 00/17] Cross-architecture definitions of relaxed
+	MMIO accessors
+Message-ID: <20140926084019.GJ5182@n2100.arm.linux.org.uk>
+References: <1411579056-16966-1-git-send-email-will.deacon@arm.com> <4240583.SJ4jiIW6Zy@wuerfel> <54243395.902@linaro.org> <201409252117.19754.arnd@arndb.de>
 MIME-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha1;
-	protocol="application/pgp-signature"; boundary="5CUMAwwhRxlRszMD"
-Content-Disposition: inline
-In-Reply-To: <1411614872-4009-4-git-send-email-wangyijing@huawei.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Yijing Wang <wangyijing@huawei.com>
-Cc: Bjorn Helgaas <bhelgaas@google.com>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, Xinwei Hu <huxinwei@huawei.com>, Wuyun <wuyun.wu@huawei.com>, linux-arm-kernel@lists.infradead.org, Russell King <linux@arm.linux.org.uk>, linux-arch@vger.kernel.org, arnab.basu@freescale.com, Bharat.Bhushan@freescale.com, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, Thomas Gleixner <tglx@linutronix.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, xen-devel@lists.xenproject.org, Joerg Roedel <joro@8bytes.org>, iommu@lists.linux-foundation.org, linux-mips@linux-mips.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, Sebastian Ott <sebott@linux.vnet.ibm.com>, Tony Luck <tony.luck@intel.com>, linux-ia64@vger.kernel.org, "David S. Miller" <davem@davemloft.net>, sparclinux@vger.kernel.org, Chris Metcalf <cmetcalf@tilera.com>, Ralf Baechle <ralf@linux-mips.org>, Lucas Stach <l.stach@pengutronix.de>, David Vrabel <david.vrabel@citrix.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, Michael Ellerman <mpe@ellerman.id.au>, Thomas Petazzoni <thomas.petazzoni@free-electrons.com>
-Message-ID: <20140926080949.H1QMtT72Ync66YW9pYc0K1oHlig5ZtNcM2AdTWLxQEI@z>
-
-
---5CUMAwwhRxlRszMD
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+In-Reply-To: <201409252117.19754.arnd@arndb.de>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Daniel Thompson <daniel.thompson@linaro.org>, Will Deacon <will.deacon@arm.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, "chris@zankel.net" <chris@zankel.net>, "cmetcalf@tilera.com" <cmetcalf@tilera.com>, "davem@davemloft.net" <davem@davemloft.net>, "deller@gmx.de" <deller@gmx.de>, "dhowells@redhat.com" <dhowells@redhat.com>, "geert@linux-m68k.org" <geert@linux-m68k.org>, "heiko.carstens@de.ibm.com" <heiko.carstens@de.ibm.com>, "hpa@zytor.com" <hpa@zytor.com>, "jcmvbkbc@gmail.com" <jcmvbkbc@gmail.com>, "jesper.nilsson@axis.com" <jesper.nilsson@axis.com>, "mingo@redhat.com" <mingo@redhat.com>, "monstr@monstr.eu" <monstr@monstr.eu>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>, "rdunlap@infradead.org" <rdunlap@infradead.org>, "sam@ravnborg.org" <sam@ravnborg.org>, "schwidefsky@de.ibm.com" <schwidefsky@de.ibm.com>, "starvik@axis.com" <starvik@axis.com>, "takata@linux-m32r.org" <takata@linux-m32r.org>, "tglx@linutronix.de" <tglx@linutronix.de>, "tony.luck@intel.com" <tony.luck@intel.com>, "broonie@linaro.org" <broonie@linaro.org>, "thierry.reding@gmail.com" <thierry.reding@gmail.com>
+Message-ID: <20140926084019.2W9oF-seB59oEYs2_k0QFIzN3lOI7Ily9jxw9egd090@z>
 
-On Thu, Sep 25, 2014 at 11:14:13AM +0800, Yijing Wang wrote:
-> Currently, pcie-designware, pcie-rcar, pci-tegra drivers
-> use irq chip_data to save the msi_chip pointer. They
-> already call irq_set_chip_data() in their own MSI irq map
-> functions. So irq_set_chip_data() in arch_setup_msi_irq()
-> is useless.
->=20
-> Signed-off-by: Yijing Wang <wangyijing@huawei.com>
-> ---
->  drivers/pci/msi.c |    5 ++---
->  1 files changed, 2 insertions(+), 3 deletions(-)
+On Thu, Sep 25, 2014 at 09:17:19PM +0200, Arnd Bergmann wrote:
+> On Thursday 25 September 2014, Daniel Thompson wrote:
+> > > +
+> > > +#ifndef readq_relaxed
+> > > +#define readq_relaxed readq
+> > > +#endif
+> > 
+> > Not really sure if it matters but this gives a rather surprising
+> > behaviour to #ifdef readq_relaxed given that readq may not be defined.
+> > 
+> 
+> It was intentional. I could have written this as
+> 
+> #if !defined(readq_relaxed) && defined(readq)
+> 
+> but the effect would be almost the same, and the version I picked looks
+> simpler. Note that 32-bit architectures could provide readq, it's just
+> the generic code that doesn't, because most you typically don't get
+> atomic 64-bit accesses from dereferencing a 64-bit pointer as the
+> generic readq() function does.
 
-Reviewed-by: Thierry Reding <treding@nvidia.com>
+32-bit architectures should *not* provide readq().  Remember, we are
+talking about devices here, and reading registers on devices *may* have
+side effects.
 
->=20
-> diff --git a/drivers/pci/msi.c b/drivers/pci/msi.c
-> index 51d7e62..50f67a3 100644
-> --- a/drivers/pci/msi.c
-> +++ b/drivers/pci/msi.c
-> @@ -41,14 +41,13 @@ int __weak arch_setup_msi_irq(struct pci_dev *dev, st=
-ruct msi_desc *desc)
->  	if (err < 0)
->  		return err;
-> =20
-> -	irq_set_chip_data(desc->irq, chip);
-> -
->  	return 0;
->  }
-> =20
->  void __weak arch_teardown_msi_irq(unsigned int irq)
->  {
-> -	struct msi_chip *chip =3D irq_get_chip_data(irq);
-> +	struct msi_desc *entry =3D irq_get_msi_desc(irq);
-> +	struct msi_chip *chip =3D entry->dev->bus->msi;
-> =20
->  	if (!chip || !chip->teardown_irq)
->  		return;
-> --=20
-> 1.7.1
->=20
+Side effects such as clearing the pending interrupt status.
 
---5CUMAwwhRxlRszMD
-Content-Type: application/pgp-signature
+How would a 32-bit architecture know whether it should read the least
+significant 32-bit or the most significant 32-bit part of the 64-bit
+register first.  What would be right for one driver may not ben correct
+for another.  Hence, this decision should only be made by the driver
+wanting the accessor, and not having the accessor symbol defined should
+be the trigger for the driver to handle the problem themselves.
 
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v2
-
-iQIcBAEBAgAGBQJUJR9NAAoJEN0jrNd/PrOh5cAP/2aYAkwGt796/z3rQsXfEXhG
-hPI6dXwueP4Re7P03WrSfn6JEowEsDYFLqLJJYQLwlDQa96WTd85jidBUhQRniqy
-GPHoUY+c4qiQjJak+b2y4jMMNqJnWoLw57Wd1Nmy2g2pocWKwiKA1VEem2ZZPaxR
-QxhYqhwK8IxOu092oPpVV8m2GtFSUzbuOoE0a3muYP+gExweDN6v485fm+PKfIVU
-rmCMnmkkT9oUVNYUlQDSf0xXb+t0PNJDbGZHPM3rKQFQA45Xhadzs2D/nk1CSwoj
-7EO8sq/qkfHnyXvxpvazxq2V1xsGkG63RTRmhIzP2VGDj/AI6G9AlM5dFOzPctSf
-8v8FNLESIHmHKyp9IKT1pCWg6jbRHFlhL9be5+uudiDYgvXiGjtco4Jta1hlgHNk
-Qd7zRsH6Y+ocewQ2sqDMrwkOEzetOfnGmjjtb3q6VaeahtwPdRKWhQcjfO//zIW3
-83yoON4lx7AS1aDMRywNXbk8A6ja8ndVS2amfm6TJCbIVy6A78AnCRx4n/ShluFl
-WD1TekKOyh2u2JtRagRSb0xxFwwsqzlYrOElj00zxCZJAKihIzjMf4ogfxnj2OOn
-ZEF1WTMpjTpy+QB7r22R0qFX9yVBBCgRM8heGbQXeVMPD/AvmVhx803Ry2r6SmcU
-iefPiqiqqocKKcpN4rMB
-=jw7p
------END PGP SIGNATURE-----
-
---5CUMAwwhRxlRszMD--
+-- 
+FTTC broadband for 0.8mile line: currently at 9.5Mbps down 400kbps up
+according to speedtest.net.
