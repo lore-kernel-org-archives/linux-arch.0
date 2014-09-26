@@ -1,61 +1,43 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from [119.145.14.64] ([119.145.14.64]:41736 "EHLO
-	szxga01-in.huawei.com" rhost-flags-FAIL-FAIL-OK-OK) by vger.kernel.org
-	with ESMTP id S1752792AbaIZCFm (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 25 Sep 2014 22:05:42 -0400
-Message-ID: <5424C9BD.3040506@huawei.com>
-Date: Fri, 26 Sep 2014 10:04:45 +0800
+Received: from szxga01-in.huawei.com ([119.145.14.64]:44975 "EHLO
+	szxga01-in.huawei.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752964AbaIZCKp (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 25 Sep 2014 22:10:45 -0400
+Message-ID: <5424CB0F.2030406@huawei.com>
+Date: Fri, 26 Sep 2014 10:10:23 +0800
 From: Yijing Wang <wangyijing@huawei.com>
 MIME-Version: 1.0
-Subject: Re: [PATCH v2 03/22] MSI: Remove the redundant irq_set_chip_data()
-References: <1411614872-4009-1-git-send-email-wangyijing@huawei.com> <1411614872-4009-4-git-send-email-wangyijing@huawei.com> <20140925071919.GH12423@ulmo>
-In-Reply-To: <20140925071919.GH12423@ulmo>
+Subject: Re: [PATCH v2 06/22] PCI/MSI: Introduce weak arch_find_msi_chip()
+ to find MSI chip
+References: <1411614872-4009-1-git-send-email-wangyijing@huawei.com> <1411614872-4009-7-git-send-email-wangyijing@huawei.com> <20140925072619.GI12423@ulmo>
+In-Reply-To: <20140925072619.GI12423@ulmo>
 Content-Type: text/plain; charset="ISO-8859-1"
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Thierry Reding <thierry.reding@gmail.com>
 Cc: Bjorn Helgaas <bhelgaas@google.com>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, Xinwei Hu <huxinwei@huawei.com>, Wuyun <wuyun.wu@huawei.com>, linux-arm-kernel@lists.infradead.org, Russell King <linux@arm.linux.org.uk>, linux-arch@vger.kernel.org, arnab.basu@freescale.com, Bharat.Bhushan@freescale.com, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, Thomas Gleixner <tglx@linutronix.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, xen-devel@lists.xenproject.org, Joerg Roedel <joro@8bytes.org>, iommu@lists.linux-foundation.org, linux-mips@linux-mips.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, Sebastian Ott <sebott@linux.vnet.ibm.com>, Tony Luck <tony.luck@intel.com>, linux-ia64@vger.kernel.org, "David S. Miller" <davem@davemloft.net>, sparclinux@vger.kernel.org, Chris Metcalf <cmetcalf@tilera.com>, Ralf Baechle <ralf@linux-mips.org>, Lucas Stach <l.stach@pengutronix.de>, David Vrabel <david.vrabel@citrix.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, Michael Ellerman <mpe@ellerman.id.au>, Thomas Petazzoni <thomas.petazzoni@free-electrons.com>
-Message-ID: <20140926020445.d3nOkW_AvP3ZsHe8nCANHCM7zIq6NUsctFrmNeiS16k@z>
+Message-ID: <20140926021023.UTng9J5ANbaCp8JMjeik8ZHWvEH1Zhlbh1auuhbWJb0@z>
 
-On 2014/9/25 15:19, Thierry Reding wrote:
-> On Thu, Sep 25, 2014 at 11:14:13AM +0800, Yijing Wang wrote:
->> Currently, pcie-designware, pcie-rcar, pci-tegra drivers
->> use irq chip_data to save the msi_chip pointer. They
->> already call irq_set_chip_data() in their own MSI irq map
->> functions. So irq_set_chip_data() in arch_setup_msi_irq()
->> is useless.
+On 2014/9/25 15:26, Thierry Reding wrote:
+> On Thu, Sep 25, 2014 at 11:14:16AM +0800, Yijing Wang wrote:
+>> Introduce weak arch_find_msi_chip() to find the match msi_chip.
+>> Currently, MSI chip associates pci bus to msi_chip. Because in
+>> ARM platform, there may be more than one MSI controller in system.
+>> Associate pci bus to msi_chip help pci device to find the match
+>> msi_chip and setup MSI/MSI-X irq correctly. But in other platform,
+>> like in x86. we only need one MSI chip, because all device use
+>> the same MSI address/data and irq etc. So it's no need to associate
+>> pci bus to MSI chip, just use a arch function, arch_find_msi_chip()
+>> to return the MSI chip for simplicity. The default weak
+>> arch_find_msi_chip() used in ARM platform, find the MSI chip
+>> by pci bus.
 > 
-> Again, I think this should be the other way around. If drivers do
-> something that's already handled by the core, then the duplicate code
-> should be dropped from the drivers.
+> Can't x86 simply set the bus' .msi field anyway? It would seem to be
+> easy to do and unifies the code rather than driving it further apart
+> using even more of the __weak functions.
 
-Hi Thierry, this is different thing, because chip_data is specific to IRQ
-controller, and in other platform, like in x86, chip_data is used to save irq_cfg.
-So we can not call irq_set_chip_data() in core code.
-
-x86 irq piece code
-
-int arch_setup_hwirq(unsigned int irq, int node)
-{
-	struct irq_cfg *cfg;
-	unsigned long flags;
-	int ret;
-
-	cfg = alloc_irq_cfg(irq, node);
-	if (!cfg)
-		return -ENOMEM;
-
-	raw_spin_lock_irqsave(&vector_lock, flags);
-	ret = __assign_irq_vector(irq, cfg, apic->target_cpus());
-	raw_spin_unlock_irqrestore(&vector_lock, flags);
-
-	if (!ret)
-		irq_set_chip_data(irq, cfg);  ------------->Save irq_cfg
-	else
-		free_irq_cfg(irq, cfg);
-	return ret;
-}
+As mentioned in the first reply, I will rework this one when we find a better solution.
 
 Thanks!
 Yijing.
