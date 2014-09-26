@@ -1,64 +1,53 @@
-From: Ley Foon Tan <lftan@altera.com>
-Subject: Re: [PATCH v3 28/29] Documentation: Add documentation for Nios2 architecture
-Date: Fri, 26 Sep 2014 16:31:49 +0800
-Message-ID: <CAFiDJ5_nNGSGEhTFOOMmrXy_N4_2uhcapagUg6Hmc2r_KmRkQg@mail.gmail.com>
-References: <1410168160-3624-1-git-send-email-lftan@altera.com>
-	<1410168160-3624-29-git-send-email-lftan@altera.com>
-	<CAFiDJ5_J0a0OWkX6FV=Gqz6J6BWcyYYOvZyAS9oRqvMaq4Nftw@mail.gmail.com>
+From: Russell King - ARM Linux <linux@arm.linux.org.uk>
+Subject: Re: [PATCH v3 00/17] Cross-architecture definitions of relaxed
+	MMIO accessors
+Date: Fri, 26 Sep 2014 09:40:19 +0100
+Message-ID: <20140926084019.GJ5182@n2100.arm.linux.org.uk>
+References: <1411579056-16966-1-git-send-email-will.deacon@arm.com> <4240583.SJ4jiIW6Zy@wuerfel> <54243395.902@linaro.org> <201409252117.19754.arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-la0-f46.google.com ([209.85.215.46]:34956 "EHLO
-	mail-la0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753321AbaIZIbx (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 26 Sep 2014 04:31:53 -0400
-In-Reply-To: <CAFiDJ5_J0a0OWkX6FV=Gqz6J6BWcyYYOvZyAS9oRqvMaq4Nftw@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>
-Cc: Ley Foon Tan <lftan@altera.com>, LeyFoon Tan <lftan.linux@gmail.com>, Chung-Lin Tang <cltang@codesourcery.com>, rdunlap@infradead.org, jkosina@suse.cz
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <201409252117.19754.arnd@arndb.de>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Daniel Thompson <daniel.thompson@linaro.org>, Will Deacon <will.deacon@arm.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, "chris@zankel.net" <chris@zankel.net>, "cmetcalf@tilera.com" <cmetcalf@tilera.com>, "davem@davemloft.net" <davem@davemloft.net>, "deller@gmx.de" <deller@gmx.de>, "dhowells@redhat.com" <dhowells@redhat.com>, "geert@linux-m68k.org" <geert@linux-m68k.org>, "heiko.carstens@de.ibm.com" <heiko.carstens@de.ibm.com>, "hpa@zytor.com" <hpa@zytor.com>, "jcmvbkbc@gmail.com" <jcmvbkbc@gmail.com>, "jesper.nilsson@axis.com" <jesper.nilsson@axis.com>, "mingo@redhat.com" <mingo@redhat.com>, "monstr@monstr.eu" <monstr@monstr.eu>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>, "rdunlap@infradead.org" <rdunlap@infradead.>
+List-Id: linux-arch.vger.kernel.org
 
-On Fri, Sep 26, 2014 at 10:27 AM, Ley Foon Tan <lftan@altera.com> wrote:
-> On Mon, Sep 8, 2014 at 5:22 PM, Ley Foon Tan <lftan@altera.com> wrote:
->> Signed-off-by: Ley Foon Tan <lftan@altera.com>
->> ---
->>  Documentation/nios2/README | 23 +++++++++++++++++++++++
->>  1 file changed, 23 insertions(+)
->>  create mode 100644 Documentation/nios2/README
->>
->> diff --git a/Documentation/nios2/README b/Documentation/nios2/README
->> new file mode 100644
->> index 0000000..054a67d
->> --- /dev/null
->> +++ b/Documentation/nios2/README
->> @@ -0,0 +1,23 @@
->> +Linux on the Nios II architecture
->> +=================================
->> +
->> +This is a port of Linux to Nios II (nios2) processor.
->> +
->> +In order to compile for Nios II, you need a version of GCC with support for the generic
->> +system call ABI. Please see this link for more information on how compiling and booting
->> +software for the Nios II platform:
->> +http://www.rocketboards.org/foswiki/Documentation/NiosIILinuxUserManual
->> +
->> +For reference, please see the following link:
->> +http://www.altera.com/literature/lit-nio2.jsp
->> +
->> +What is Nios II?
->> +================
->> +Nios II is a 32-bit embedded-processor architecture designed specifically for the
->> +Altera family of FPGAs. In order to support Linux, Nios II needs to be configured
->> +with MMU and hardware multiplier enabled.
->> +
->> +Nios II ABI
->> +===========
->> +Please refer to chapter "Application Binary Interface" in Nios II Processor Reference
->> +Handbook.
->> --
->> 1.8.2.1
->>
->
-> Add Randy to CC list.
+On Thu, Sep 25, 2014 at 09:17:19PM +0200, Arnd Bergmann wrote:
+> On Thursday 25 September 2014, Daniel Thompson wrote:
+> > > +
+> > > +#ifndef readq_relaxed
+> > > +#define readq_relaxed readq
+> > > +#endif
+> > 
+> > Not really sure if it matters but this gives a rather surprising
+> > behaviour to #ifdef readq_relaxed given that readq may not be defined.
+> > 
+> 
+> It was intentional. I could have written this as
+> 
+> #if !defined(readq_relaxed) && defined(readq)
+> 
+> but the effect would be almost the same, and the version I picked looks
+> simpler. Note that 32-bit architectures could provide readq, it's just
+> the generic code that doesn't, because most you typically don't get
+> atomic 64-bit accesses from dereferencing a 64-bit pointer as the
+> generic readq() function does.
 
-CC new Documentation maintainer, Jiri.
+32-bit architectures should *not* provide readq().  Remember, we are
+talking about devices here, and reading registers on devices *may* have
+side effects.
+
+Side effects such as clearing the pending interrupt status.
+
+How would a 32-bit architecture know whether it should read the least
+significant 32-bit or the most significant 32-bit part of the 64-bit
+register first.  What would be right for one driver may not ben correct
+for another.  Hence, this decision should only be made by the driver
+wanting the accessor, and not having the accessor symbol defined should
+be the trigger for the driver to handle the problem themselves.
+
+-- 
+FTTC broadband for 0.8mile line: currently at 9.5Mbps down 400kbps up
+according to speedtest.net.
