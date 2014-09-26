@@ -1,108 +1,113 @@
-From: Thierry Reding <thierry.reding@gmail.com>
-Subject: Re: [PATCH v3 00/17] Cross-architecture definitions of relaxed MMIO
- accessors
-Date: Fri, 26 Sep 2014 10:05:52 +0200
-Message-ID: <20140926080551.GD31106@ulmo>
-References: <1411579056-16966-1-git-send-email-will.deacon@arm.com>
- <20140925145538.GN20043@arm.com>
- <3361270.4SkjDs5lox@wuerfel>
- <4240583.SJ4jiIW6Zy@wuerfel>
+From: Thierry Reding <thierry.reding-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
+Subject: Re: [PATCH v2 03/22] MSI: Remove the redundant irq_set_chip_data()
+Date: Fri, 26 Sep 2014 10:09:22 +0200
+Message-ID: <20140926080921.GE31106@ulmo>
+References: <1411614872-4009-1-git-send-email-wangyijing@huawei.com>
+	<1411614872-4009-4-git-send-email-wangyijing@huawei.com>
+	<20140925071919.GH12423@ulmo> <5424C9BD.3040506@huawei.com>
 Mime-Version: 1.0
+Content-Type: multipart/mixed; boundary="===============0355141641407555745=="
+Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+In-Reply-To: <5424C9BD.3040506-hv44wF8Li93QT0dZR+AlfA@public.gmane.org>
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
+	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
+List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
+	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
+Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+To: Yijing Wang <wangyijing-hv44wF8Li93QT0dZR+AlfA@public.gmane.org>
+Cc: linux-mips-6z/3iImG2C8G8FEW9MqTrA@public.gmane.org, linux-ia64-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-pci-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, sparclinux-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-s390-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Russell King <linux-lFZ/pmaqli7XmaaqVzeoHQ@public.gmane.org>, Michael Ellerman <mpe-Gsx/Oe8HsFggBc27wqDAHg@public.gmane.org>, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, Sebastian Ott <sebott-23VcF4HTsmIX0ybBhKVfKdBPR1lH4CV8@public.gmane.org>, Benjamin Herrenschmidt <benh-XVmvHMARGAS8U2dJNN8I7kB+6BGkLq7r@public.gmane.org>, xen-devel-GuqFBffKawtpuQazS67q72D2FQJk+8+b@public.gmane.org, arnab.basu-KZfg59tc24xl57MIdRCFDg@public.gmane.org, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Chris Metcalf <cmetcalf-kv+TWInifGbQT0dZR+AlfA@public.gmane.org>, Bjorn Helgaas <bhelgaas-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, Thomas Petazzoni <thomas.petazzoni-wi1+55ScJUtKEb57/3fJTNBPR1lH4CV8@public.gmane.org>, Xinwei Hu <huxinwei-hv44wF8Li93QT0dZR+AlfA@public.gmane.org>, Tony Luck <tony.luck-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org>, Sergei Shtylyov <sergei.shtylyov-M4DtvfQ/ZS1MRgGoP+s0PdBPR1lH4CV8@public.gmane.org>, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Ralf Baechle <ralf-6z/3iImG2C8G8FEW9MqTrA@public.gmane.org>, iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org, David
+List-Id: linux-arch.vger.kernel.org
+
+
+--===============0355141641407555745==
 Content-Type: multipart/signed; micalg=pgp-sha1;
-	protocol="application/pgp-signature"; boundary="Hf61M2y+wYpnELGG"
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-we0-f172.google.com ([74.125.82.172]:54542 "EHLO
-	mail-we0-f172.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753785AbaIZIF4 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 26 Sep 2014 04:05:56 -0400
+	protocol="application/pgp-signature"; boundary="2qXFWqzzG3v1+95a"
 Content-Disposition: inline
-In-Reply-To: <4240583.SJ4jiIW6Zy@wuerfel>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Will Deacon <will.deacon@arm.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, "chris@zankel.net" <chris@zankel.net>, "cmetcalf@tilera.com" <cmetcalf@tilera.com>, "davem@davemloft.net" <davem@davemloft.net>, "deller@gmx.de" <deller@gmx.de>, "dhowells@redhat.com" <dhowells@redhat.com>, "geert@linux-m68k.org" <geert@linux-m68k.org>, "heiko.carstens@de.ibm.com" <heiko.carstens@de.ibm.com>, "hpa@zytor.com" <hpa@zytor.com>, "jcmvbkbc@gmail.com" <jcmvbkbc@gmail.com>, "jesper.nilsson@axis.com" <jesper.nilsson@axis.com>, "mingo@redhat.com" <mingo@redhat.com>, "monstr@monstr.eu" <monstr@monstr.eu>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>, "rdunlap@infradead.org" <rdunlap@infradead.org>, "sam@ravnborg.org" <sam@ravnborg.org>
 
 
---Hf61M2y+wYpnELGG
+--2qXFWqzzG3v1+95a
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
 Content-Transfer-Encoding: quoted-printable
 
-On Thu, Sep 25, 2014 at 05:15:14PM +0200, Arnd Bergmann wrote:
-> On Thursday 25 September 2014 17:07:47 Arnd Bergmann wrote:
->=20
-> > The current version doesn't let you do that, so I'll keel the #ifdef
-> > sections separate. This also means that I won't apply your patch 17:
-> > we will keep needing the #ifdef to support all three relevant combinati=
-ons:
+On Fri, Sep 26, 2014 at 10:04:45AM +0800, Yijing Wang wrote:
+> On 2014/9/25 15:19, Thierry Reding wrote:
+> > On Thu, Sep 25, 2014 at 11:14:13AM +0800, Yijing Wang wrote:
+> >> Currently, pcie-designware, pcie-rcar, pci-tegra drivers
+> >> use irq chip_data to save the msi_chip pointer. They
+> >> already call irq_set_chip_data() in their own MSI irq map
+> >> functions. So irq_set_chip_data() in arch_setup_msi_irq()
+> >> is useless.
 > >=20
-> > a) architectures that provide neither and want to get the defaults
-> >    from asm-generic
-> > b) architectures that provide the non-relaxed versions and want tog
-> >    to get just the relaxed version from asm-generic
-> > c) architectures that provide both
-> >=20
+> > Again, I think this should be the other way around. If drivers do
+> > something that's already handled by the core, then the duplicate code
+> > should be dropped from the drivers.
 >=20
-> And here is the new version I applied:
+> Hi Thierry, this is different thing, because chip_data is specific to IRQ
+> controller, and in other platform, like in x86, chip_data is used to save=
+ irq_cfg.
+> So we can not call irq_set_chip_data() in core code.
 >=20
-> diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
-> index 508a57257de5..3e976be3bdd4 100644
-> --- a/include/asm-generic/io.h
-> +++ b/include/asm-generic/io.h
-> @@ -174,6 +174,43 @@ static inline void writeq(u64 value, void __iomem *a=
-ddr)
->  #endif /* CONFIG_64BIT */
-> =20
->  /*
-> + * {read,write}{b,w,l,q}_relaxed() are like the regular version, but
-> + * are not guaranteed to provide ordering against spinlocks or memory
-> + * accesses.
-> + */
-> +#ifndef readb_relaxed
-> +#define readb_relaxed readb
-> +#endif
+> x86 irq piece code
+>=20
+> int arch_setup_hwirq(unsigned int irq, int node)
+> {
+> 	struct irq_cfg *cfg;
+> 	unsigned long flags;
+> 	int ret;
+>=20
+> 	cfg =3D alloc_irq_cfg(irq, node);
+> 	if (!cfg)
+> 		return -ENOMEM;
+>=20
+> 	raw_spin_lock_irqsave(&vector_lock, flags);
+> 	ret =3D __assign_irq_vector(irq, cfg, apic->target_cpus());
+> 	raw_spin_unlock_irqrestore(&vector_lock, flags);
+>=20
+> 	if (!ret)
+> 		irq_set_chip_data(irq, cfg);  ------------->Save irq_cfg
+> 	else
+> 		free_irq_cfg(irq, cfg);
+> 	return ret;
+> }
 
-My original patch to consolidate the read*/write*() and friends
-explicitly avoided the use of macros to do this. The reason was that if
-we have static inline functions in asm-generic/io.h it defines the
-canonical prototype of these functions, so that architectures that want
-to override them can just copy the prototype from there.
-
-So for consistency the above would become:
-
-	#ifndef readb_relaxed
-	#define readb_relaxed readb_relaxed
-	static inline u8 readb_relaxed(const void __iomem *addr)
-	{
-		return readb(addr);
-	}
-	#endif
-
-And analogously for the others. For the *_relaxed variants it's perhaps
-not as important because the signature is the same as for the plain
-variants, so I'm not objecting very strongly to the plain macros.
+Okay, makes sense to keep irq_set_chip_data() for driver-specific data
+then.
 
 Thierry
 
---Hf61M2y+wYpnELGG
+--2qXFWqzzG3v1+95a
 Content-Type: application/pgp-signature
 
 -----BEGIN PGP SIGNATURE-----
 Version: GnuPG v2
 
-iQIcBAEBAgAGBQJUJR5fAAoJEN0jrNd/PrOhXDEQAJASuQ1ZZOpReq+GOvsG1PVd
-g7cPitKlomR1SIi8YZIwg/04kgxegXJDvJarh+Xm4EhsQQTcQQB/7vDZ45mKA276
-G6nQyc9+gvglI3qaX6450dRDnYS12h5yM1TWAXCMwYOLV0etfiUDzYG6FJinWU01
-T9KLWXkOB9UaKgaS5d75kKJ1v9IgPZ0JlGqp0WcODYvl1NR9w7K5sTYeevPRE67Y
-/Y1IZe3dzc8E3AEU4sBPt0BP9gEzehEoj9fd/31CHtuy3PGD+WlOOiYtmYq/CwCn
-bMbxJqJh5EKVPgbRObD6IMNCFpvIyUoZx0JBkqdhfR8P2G4juFYudv7Mea5qk9FZ
-g0OjZ/nE32qliI0hPSWG+iVjTxBIDjEpPr1gUD+JApwc8VGM0nznaHgGwz2usNA0
-MvJOLl6HoFDw0AOWhm3Dq4qywtzJyAqvfyJ1Ed41sJiHrnUbRlm0cdOEGXDOBAN0
-kUrvxDsMhnpjod/DktHP9q3ac00sN2H4h0lZDnKduMwNH1xtwdEVKu5/gtz9LfYa
-Nw3AA3KOwk3nDePm8LBpCH+c0HTh5aynIMsXxPEZ8bA/bDS4e/L23KsEuEshd4Y/
-7ioprLVjOY8Xwn0Ea2sbJAVCvPsiyb9mpQ/Es9U9J/hsqyEeph8pmV7y2SSBkEKB
-cI29kXD4/20UJ/h+OdgX
-=nICm
+iQIcBAEBAgAGBQJUJR8xAAoJEN0jrNd/PrOhmZMP/0tFUjT9MXPrTuCEiBWtia+2
+ElYucD565UV4FjK6aINM4dHtmn0wUW+dDXB2YDSkAp10Ku534Tfi0zNfQd/xSe6M
+SLBNIW/EK67YANcL5AvN2W1wSUn/t24SBwWJIvsoZfNJbsAcETvYySMnmLZJ2L05
+k1v9mR+KAR52QhCs9nwga/dePFV/DBQ2bFrblq6Rxu/+hxki9EqgM9JtkRXS0F7d
+DU1BqMERPy9AtP+oX5Wih6+8P15JALo4n/SETOfeeToDkhN2Zbh8Y3AoAmVAL1l1
+ym3t6fPW7CFvJIX+Qpt02+wVvFu1amMpY8mXfzQmi18VccvTqQ9ylkaaVQ+ZsK/a
+M/8qEyiKUc4T8obwUr8qb484vw7QxAlFynvU5A6AX1zlHU+yUVEklTBlVY9Av5jj
+EW6MzXAPrhro6KKqu3m8h+P0O72K+oSZOT5bPri9/MfRfW3JCzMsCNIjeGXZ50fr
+Komek7HKSPDIaIoavV7Fym7j9zddKbLvAj8DfkztLT7jmQ7i8EVb6eHwy8uMDXI7
+cds9cH4RKRvE3ArNaHaOyEomxAD1fyAsQ3SPM2vuf92pJtiwoXpGc5qgrRusMjHw
+ZfggWh7lVNYq9TP1fXQalqNmFvATMz3s1HW7lCsIf8AeuNvDkAm3pQRojX1vKPvc
+uRsheVegzi0JliNoFkzC
+=m1fq
 -----END PGP SIGNATURE-----
 
---Hf61M2y+wYpnELGG--
+--2qXFWqzzG3v1+95a--
+
+--===============0355141641407555745==
+Content-Type: text/plain; charset="us-ascii"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7bit
+Content-Disposition: inline
+
+
+--===============0355141641407555745==--
