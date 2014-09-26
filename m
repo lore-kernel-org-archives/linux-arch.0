@@ -1,59 +1,102 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from gw-1.arm.linux.org.uk ([78.32.30.217]:43592 "EHLO
-	pandora.arm.linux.org.uk" rhost-flags-OK-OK-OK-FAIL)
-	by vger.kernel.org with ESMTP id S1754353AbaIZIkw (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Fri, 26 Sep 2014 04:40:52 -0400
-Date: Fri, 26 Sep 2014 09:40:19 +0100
-From: Russell King - ARM Linux <linux@arm.linux.org.uk>
-Subject: Re: [PATCH v3 00/17] Cross-architecture definitions of relaxed
-	MMIO accessors
-Message-ID: <20140926084019.GJ5182@n2100.arm.linux.org.uk>
-References: <1411579056-16966-1-git-send-email-will.deacon@arm.com> <4240583.SJ4jiIW6Zy@wuerfel> <54243395.902@linaro.org> <201409252117.19754.arnd@arndb.de>
+Received: from dliviu.plus.com ([80.229.23.120]:45201 "EHLO smtp.dudau.co.uk"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1753187AbaIZIvz (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 26 Sep 2014 04:51:55 -0400
+Received: from localhost (localhost.localdomain [127.0.0.1])
+	by smtp.dudau.co.uk (Postfix) with SMTP id 49BB1FFDDE
+	for <linux-arch@vger.kernel.org>; Fri, 26 Sep 2014 09:51:53 +0100 (BST)
+Date: Fri, 26 Sep 2014 09:50:30 +0100
+From: Liviu Dudau <liviu@dudau.co.uk>
+Subject: Re: [PATCH v2 00/22] Use MSI chip framework to configure MSI/MSI-X
+ in all platforms
+Message-ID: <20140926085030.GE31157@bart.dudau.co.uk>
+References: <1411614872-4009-1-git-send-email-wangyijing@huawei.com>
+ <20140925074235.GN12423@ulmo>
+ <20140925144855.GB31157@bart.dudau.co.uk>
+ <20140925164937.GB30382@ulmo>
+ <5424E09F.50701@huawei.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=utf-8
 Content-Disposition: inline
-In-Reply-To: <201409252117.19754.arnd@arndb.de>
+In-Reply-To: <5424E09F.50701@huawei.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Daniel Thompson <daniel.thompson@linaro.org>, Will Deacon <will.deacon@arm.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, "chris@zankel.net" <chris@zankel.net>, "cmetcalf@tilera.com" <cmetcalf@tilera.com>, "davem@davemloft.net" <davem@davemloft.net>, "deller@gmx.de" <deller@gmx.de>, "dhowells@redhat.com" <dhowells@redhat.com>, "geert@linux-m68k.org" <geert@linux-m68k.org>, "heiko.carstens@de.ibm.com" <heiko.carstens@de.ibm.com>, "hpa@zytor.com" <hpa@zytor.com>, "jcmvbkbc@gmail.com" <jcmvbkbc@gmail.com>, "jesper.nilsson@axis.com" <jesper.nilsson@axis.com>, "mingo@redhat.com" <mingo@redhat.com>, "monstr@monstr.eu" <monstr@monstr.eu>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>, "rdunlap@infradead.org" <rdunlap@infradead.org>, "sam@ravnborg.org" <sam@ravnborg.org>, "schwidefsky@de.ibm.com" <schwidefsky@de.ibm.com>, "starvik@axis.com" <starvik@axis.com>, "takata@linux-m32r.org" <takata@linux-m32r.org>, "tglx@linutronix.de" <tglx@linutronix.de>, "tony.luck@intel.com" <tony.luck@intel.com>, "broonie@linaro.org" <broonie@linaro.org>, "thierry.reding@gmail.com" <thierry.reding@gmail.com>
-Message-ID: <20140926084019.2W9oF-seB59oEYs2_k0QFIzN3lOI7Ily9jxw9egd090@z>
+To: Yijing Wang <wangyijing@huawei.com>
+Cc: Thierry Reding <thierry.reding@gmail.com>, Bjorn Helgaas <bhelgaas@google.com>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, Xinwei Hu <huxinwei@huawei.com>, Wuyun <wuyun.wu@huawei.com>, linux-arm-kernel@lists.infradead.org, Russell King <linux@arm.linux.org.uk>, linux-arch@vger.kernel.org, arnab.basu@freescale.com, Bharat.Bhushan@freescale.com, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, Thomas Gleixner <tglx@linutronix.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, xen-devel@lists.xenproject.org, Joerg Roedel <joro@8bytes.org>, iommu@lists.linux-foundation.org, linux-mips@linux-mips.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, Sebastian Ott <sebott@linux.vnet.ibm.com>, Tony Luck <tony.luck@intel.com>, linux-ia64@vger.kernel.org, "David S. Miller" <davem@davemloft.net>, sparclinux@vger.kernel.org, Chris Metcalf <cmetcalf@tilera.com>, Ralf Baechle <ralf@linux-mips.org>, Lucas Stach <l.stach@pengutronix.de>, David Vrabel <david.vrabel@citrix.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, Michael Ellerman <mpe@ellerman.id.au>, Thomas Petazzoni <thomas.petazzoni@free-electrons.com>
+Message-ID: <20140926085030.B0x01EeZD9RwO-Wl7QmzAeZeDq5uZD8XyGFO6PERPxo@z>
 
-On Thu, Sep 25, 2014 at 09:17:19PM +0200, Arnd Bergmann wrote:
-> On Thursday 25 September 2014, Daniel Thompson wrote:
-> > > +
-> > > +#ifndef readq_relaxed
-> > > +#define readq_relaxed readq
-> > > +#endif
+On Fri, Sep 26, 2014 at 11:42:23AM +0800, Yijing Wang wrote:
+> >> I am actually in disagreement with you, Thierry. I don't like the general direction
+> >> of the patches, or at least I don't like the fact that we don't have a portable
+> >> way of setting up the msi_chip without having to rely on weak architectural hooks.
 > > 
-> > Not really sure if it matters but this gives a rather surprising
-> > behaviour to #ifdef readq_relaxed given that readq may not be defined.
+> > Oh, good. That's actually one of the things I said I wasn't happy with
+> > either. =)
+> 
+> Hm, I decide to drop weak arch_find_msi_chip(), no one likes it.
+> Let's find a better solution :)
+> 
+> > 
+> >> I'm surprised no one considers the case of a platform having more than one host
+> >> bridge and possibly more than one MSI unit. With the current proposed patchset I
+> >> can't see how that would work.
+> > 
+> > The PCI core can already deal with that. An MSI chip can be set per bus
+> > and the weak pcibios_add_bus() can be used to set that. Often it might
+> > not even be necessary to do it via pcibios_add_bus() if you create the
+> > root bus directly, since you can attach the MSI chip at that time.
+> 
+> Yes, PCI hostbridge driver find the matched msi chip during its initialization,
+> and assign the msi chip to PCI bus in pcibios_add_bus().
+> 
+> > 
+> >> What I would like to see is a way of creating the pci_host_bridge structure outside
+> >> the pci_create_root_bus(). That would then allow us to pass this sort of platform
+> >> details like associated msi_chip into the host bridge and the child busses will
+> >> have an easy way of finding the information needed by finding the root bus and then
+> >> the host bridge structure. Then the generic pci_scan_root_bus() can be used by (mostly)
+> >> everyone and the drivers can remove their kludges that try to work around the
+> >> current limitations.
+> 
+> So I think maybe save msi chip in PCI arch sysdata is a good candidate.
+
+Except that arch sysdata at the moment is an opaque pointer. I am all in favour in
+changing the type of sysdata from void* into pci_host_bridge* and arches can wrap their old
+sysdata around the pci_host_bridge*.
+
+Best regards,
+Liviu
+
+> 
+> > 
+> > I think both issues are orthogonal. Last time I checked a lot of work
+> > was still necessary to unify host bridges enough so that it could be
+> > shared across architectures. But perhaps some of that work has
+> > happened in the meantime.
+> > 
+> > But like I said, when you create the root bus, you can easily attach the
+> > MSI chip to it.
+> > 
+> > Thierry
 > > 
 > 
-> It was intentional. I could have written this as
 > 
-> #if !defined(readq_relaxed) && defined(readq)
+> -- 
+> Thanks!
+> Yijing
 > 
-> but the effect would be almost the same, and the version I picked looks
-> simpler. Note that 32-bit architectures could provide readq, it's just
-> the generic code that doesn't, because most you typically don't get
-> atomic 64-bit accesses from dereferencing a 64-bit pointer as the
-> generic readq() function does.
-
-32-bit architectures should *not* provide readq().  Remember, we are
-talking about devices here, and reading registers on devices *may* have
-side effects.
-
-Side effects such as clearing the pending interrupt status.
-
-How would a 32-bit architecture know whether it should read the least
-significant 32-bit or the most significant 32-bit part of the 64-bit
-register first.  What would be right for one driver may not ben correct
-for another.  Hence, this decision should only be made by the driver
-wanting the accessor, and not having the accessor symbol defined should
-be the trigger for the driver to handle the problem themselves.
+> 
 
 -- 
-FTTC broadband for 0.8mile line: currently at 9.5Mbps down 400kbps up
-according to speedtest.net.
+-------------------
+   .oooO
+   (   )
+    \ (  Oooo.
+     \_) (   )
+          ) /
+         (_/
+
+ One small step
+   for me ...
+
