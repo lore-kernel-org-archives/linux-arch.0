@@ -1,43 +1,61 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from szxga03-in.huawei.com ([119.145.14.66]:20069 "EHLO
-	szxga03-in.huawei.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753187AbaIZB7L (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 25 Sep 2014 21:59:11 -0400
-Message-ID: <5424C85E.4090006@huawei.com>
-Date: Fri, 26 Sep 2014 09:58:54 +0800
+Received: from [119.145.14.64] ([119.145.14.64]:41736 "EHLO
+	szxga01-in.huawei.com" rhost-flags-FAIL-FAIL-OK-OK) by vger.kernel.org
+	with ESMTP id S1752792AbaIZCFm (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 25 Sep 2014 22:05:42 -0400
+Message-ID: <5424C9BD.3040506@huawei.com>
+Date: Fri, 26 Sep 2014 10:04:45 +0800
 From: Yijing Wang <wangyijing@huawei.com>
 MIME-Version: 1.0
-Subject: Re: [PATCH v2 01/22] PCI/MSI: Clean up struct msi_chip argument
-References: <1411614872-4009-1-git-send-email-wangyijing@huawei.com> <1411614872-4009-2-git-send-email-wangyijing@huawei.com> <20140925071536.GG12423@ulmo>
-In-Reply-To: <20140925071536.GG12423@ulmo>
+Subject: Re: [PATCH v2 03/22] MSI: Remove the redundant irq_set_chip_data()
+References: <1411614872-4009-1-git-send-email-wangyijing@huawei.com> <1411614872-4009-4-git-send-email-wangyijing@huawei.com> <20140925071919.GH12423@ulmo>
+In-Reply-To: <20140925071919.GH12423@ulmo>
 Content-Type: text/plain; charset="ISO-8859-1"
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Thierry Reding <thierry.reding@gmail.com>
 Cc: Bjorn Helgaas <bhelgaas@google.com>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, Xinwei Hu <huxinwei@huawei.com>, Wuyun <wuyun.wu@huawei.com>, linux-arm-kernel@lists.infradead.org, Russell King <linux@arm.linux.org.uk>, linux-arch@vger.kernel.org, arnab.basu@freescale.com, Bharat.Bhushan@freescale.com, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, Thomas Gleixner <tglx@linutronix.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, xen-devel@lists.xenproject.org, Joerg Roedel <joro@8bytes.org>, iommu@lists.linux-foundation.org, linux-mips@linux-mips.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, Sebastian Ott <sebott@linux.vnet.ibm.com>, Tony Luck <tony.luck@intel.com>, linux-ia64@vger.kernel.org, "David S. Miller" <davem@davemloft.net>, sparclinux@vger.kernel.org, Chris Metcalf <cmetcalf@tilera.com>, Ralf Baechle <ralf@linux-mips.org>, Lucas Stach <l.stach@pengutronix.de>, David Vrabel <david.vrabel@citrix.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, Michael Ellerman <mpe@ellerman.id.au>, Thomas Petazzoni <thomas.petazzoni@free-electrons.com>
-Message-ID: <20140926015854.OWmRYCOqgXvtUMo14DZK1bTo8oEXB6BxGIRge-9Hk_k@z>
+Message-ID: <20140926020445.d3nOkW_AvP3ZsHe8nCANHCM7zIq6NUsctFrmNeiS16k@z>
 
-On 2014/9/25 15:15, Thierry Reding wrote:
-> On Thu, Sep 25, 2014 at 11:14:11AM +0800, Yijing Wang wrote:
->> Msi_chip functions setup_irq/teardown_irq rarely use msi_chip
->> argument.
+On 2014/9/25 15:19, Thierry Reding wrote:
+> On Thu, Sep 25, 2014 at 11:14:13AM +0800, Yijing Wang wrote:
+>> Currently, pcie-designware, pcie-rcar, pci-tegra drivers
+>> use irq chip_data to save the msi_chip pointer. They
+>> already call irq_set_chip_data() in their own MSI irq map
+>> functions. So irq_set_chip_data() in arch_setup_msi_irq()
+>> is useless.
 > 
-> That's not true. Out of the four drivers that you modify two use the
-> parameter. And the two that don't probably should be using it too.
-> 
-> 50% is not "rarely". =)
-> 
->>           We can look up msi_chip pointer by the device pointer
->> or irq number, so clean up msi_chip argument.
-> 
-> I don't like this particular change. The idea was to keep the API object
-> oriented so that drivers wouldn't have to know where to get the MSI chip
-> from. It also makes it more resilient against code reorganizations since
-> the core code is the only place that needs to know where to get the chip
-> from.
+> Again, I think this should be the other way around. If drivers do
+> something that's already handled by the core, then the duplicate code
+> should be dropped from the drivers.
 
-Hm, ok, Thomas also don't like this change, I will drop this one, thanks.
+Hi Thierry, this is different thing, because chip_data is specific to IRQ
+controller, and in other platform, like in x86, chip_data is used to save irq_cfg.
+So we can not call irq_set_chip_data() in core code.
+
+x86 irq piece code
+
+int arch_setup_hwirq(unsigned int irq, int node)
+{
+	struct irq_cfg *cfg;
+	unsigned long flags;
+	int ret;
+
+	cfg = alloc_irq_cfg(irq, node);
+	if (!cfg)
+		return -ENOMEM;
+
+	raw_spin_lock_irqsave(&vector_lock, flags);
+	ret = __assign_irq_vector(irq, cfg, apic->target_cpus());
+	raw_spin_unlock_irqrestore(&vector_lock, flags);
+
+	if (!ret)
+		irq_set_chip_data(irq, cfg);  ------------->Save irq_cfg
+	else
+		free_irq_cfg(irq, cfg);
+	return ret;
+}
 
 Thanks!
 Yijing.
