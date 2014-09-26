@@ -1,79 +1,112 @@
 From: Steve Capper <steve.capper@linaro.org>
-Subject: [PATCH V4 4/6] arm: mm: Enable RCU fast_gup
-Date: Fri, 26 Sep 2014 15:03:51 +0100
-Message-ID: <1411740233-28038-5-git-send-email-steve.capper@linaro.org>
+Subject: [PATCH V4 6/6] arm64: mm: Enable RCU fast_gup
+Date: Fri, 26 Sep 2014 15:03:53 +0100
+Message-ID: <1411740233-28038-7-git-send-email-steve.capper@linaro.org>
 References: <1411740233-28038-1-git-send-email-steve.capper@linaro.org>
-Return-path: <owner-linux-mm@kvack.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-wg0-f44.google.com ([74.125.82.44]:37692 "EHLO
+	mail-wg0-f44.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755218AbaIZOET (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 26 Sep 2014 10:04:19 -0400
+Received: by mail-wg0-f44.google.com with SMTP id m15so1355855wgh.15
+        for <linux-arch@vger.kernel.org>; Fri, 26 Sep 2014 07:04:17 -0700 (PDT)
 In-Reply-To: <1411740233-28038-1-git-send-email-steve.capper@linaro.org>
-Sender: owner-linux-mm@kvack.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: linux-arm-kernel@lists.infradead.org, catalin.marinas@arm.com, linux@arm.linux.org.uk, linux-arch@vger.kernel.org, linux-mm@kvack.org
 Cc: will.deacon@arm.com, gary.robertson@linaro.org, christoffer.dall@linaro.org, peterz@infradead.org, anders.roxell@linaro.org, akpm@linux-foundation.org, dann.frazier@canonical.com, mark.rutland@arm.com, mgorman@suse.de, hughd@google.com, Steve Capper <steve.capper@linaro.org>
-List-Id: linux-arch.vger.kernel.org
 
-Activate the RCU fast_gup for ARM. We also need to force THP splits to
-broadcast an IPI s.t. we block in the fast_gup page walker. As THP
+Activate the RCU fast_gup for ARM64. We also need to force THP splits
+to broadcast an IPI s.t. we block in the fast_gup page walker. As THP
 splits are comparatively rare, this should not lead to a noticeable
 performance degradation.
 
 Some pre-requisite functions pud_write and pud_page are also added.
 
 Signed-off-by: Steve Capper <steve.capper@linaro.org>
-Reviewed-by: Catalin Marinas <catalin.marinas@arm.com>
+Tested-by: Dann Frazier <dann.frazier@canonical.com>
+Acked-by: Catalin Marinas <catalin.marinas@arm.com>
 ---
- arch/arm/Kconfig                      |  4 ++++
- arch/arm/include/asm/pgtable-3level.h |  8 ++++++++
- arch/arm/mm/flush.c                   | 15 +++++++++++++++
- 3 files changed, 27 insertions(+)
+ arch/arm64/Kconfig               |  3 +++
+ arch/arm64/include/asm/pgtable.h | 21 ++++++++++++++++++++-
+ arch/arm64/mm/flush.c            | 15 +++++++++++++++
+ 3 files changed, 38 insertions(+), 1 deletion(-)
 
-diff --git a/arch/arm/Kconfig b/arch/arm/Kconfig
-index cc740d2..0e5b47f 100644
---- a/arch/arm/Kconfig
-+++ b/arch/arm/Kconfig
-@@ -1645,6 +1645,10 @@ config ARCH_SELECT_MEMORY_MODEL
- config HAVE_ARCH_PFN_VALID
- 	def_bool ARCH_HAS_HOLES_MEMORYMODEL || !SPARSEMEM
+diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
+index ce9062b..435305e 100644
+--- a/arch/arm64/Kconfig
++++ b/arch/arm64/Kconfig
+@@ -108,6 +108,9 @@ config GENERIC_CALIBRATE_DELAY
+ config ZONE_DMA
+ 	def_bool y
  
 +config HAVE_GENERIC_RCU_GUP
 +	def_bool y
-+	depends on ARM_LPAE
 +
- config HIGHMEM
- 	bool "High Memory Support"
- 	depends on MMU
-diff --git a/arch/arm/include/asm/pgtable-3level.h b/arch/arm/include/asm/pgtable-3level.h
-index 16122d4..a31ecdad 100644
---- a/arch/arm/include/asm/pgtable-3level.h
-+++ b/arch/arm/include/asm/pgtable-3level.h
-@@ -224,6 +224,8 @@ static inline pte_t pte_mkspecial(pte_t pte)
- #define __HAVE_ARCH_PMD_WRITE
- #define pmd_write(pmd)		(pmd_isclear((pmd), L_PMD_SECT_RDONLY))
- #define pmd_dirty(pmd)		(pmd_isset((pmd), L_PMD_SECT_DIRTY))
-+#define pud_page(pud)		pmd_page(__pmd(pud_val(pud)))
-+#define pud_write(pud)		pmd_write(__pmd(pud_val(pud)))
+ config ARCH_DMA_ADDR_T_64BIT
+ 	def_bool y
  
- #define pmd_hugewillfault(pmd)	(!pmd_young(pmd) || !pmd_write(pmd))
- #define pmd_thp_or_huge(pmd)	(pmd_huge(pmd) || pmd_trans_huge(pmd))
-@@ -231,6 +233,12 @@ static inline pte_t pte_mkspecial(pte_t pte)
- #ifdef CONFIG_TRANSPARENT_HUGEPAGE
- #define pmd_trans_huge(pmd)	(pmd_val(pmd) && !pmd_table(pmd))
- #define pmd_trans_splitting(pmd) (pmd_isset((pmd), L_PMD_SECT_SPLITTING))
+diff --git a/arch/arm64/include/asm/pgtable.h b/arch/arm64/include/asm/pgtable.h
+index ffe1ba0..6d81471 100644
+--- a/arch/arm64/include/asm/pgtable.h
++++ b/arch/arm64/include/asm/pgtable.h
+@@ -239,6 +239,16 @@ static inline void set_pte_at(struct mm_struct *mm, unsigned long addr,
+ 
+ #define __HAVE_ARCH_PTE_SPECIAL
+ 
++static inline pte_t pud_pte(pud_t pud)
++{
++	return __pte(pud_val(pud));
++}
 +
++static inline pmd_t pud_pmd(pud_t pud)
++{
++	return __pmd(pud_val(pud));
++}
++
+ static inline pte_t pmd_pte(pmd_t pmd)
+ {
+ 	return __pte(pmd_val(pmd));
+@@ -256,7 +266,13 @@ static inline pmd_t pte_pmd(pte_t pte)
+ #ifdef CONFIG_TRANSPARENT_HUGEPAGE
+ #define pmd_trans_huge(pmd)	(pmd_val(pmd) && !(pmd_val(pmd) & PMD_TABLE_BIT))
+ #define pmd_trans_splitting(pmd)	pte_special(pmd_pte(pmd))
+-#endif
 +#ifdef CONFIG_HAVE_RCU_TABLE_FREE
 +#define __HAVE_ARCH_PMDP_SPLITTING_FLUSH
++struct vm_area_struct;
 +void pmdp_splitting_flush(struct vm_area_struct *vma, unsigned long address,
 +			  pmd_t *pmdp);
-+#endif
- #endif
++#endif /* CONFIG_HAVE_RCU_TABLE_FREE */
++#endif /* CONFIG_TRANSPARENT_HUGEPAGE */
  
- #define PMD_BIT_FUNC(fn,op) \
-diff --git a/arch/arm/mm/flush.c b/arch/arm/mm/flush.c
-index 43d54f5..265b836 100644
---- a/arch/arm/mm/flush.c
-+++ b/arch/arm/mm/flush.c
-@@ -400,3 +400,18 @@ void __flush_anon_page(struct vm_area_struct *vma, struct page *page, unsigned l
- 	 */
- 	__cpuc_flush_dcache_area(page_address(page), PAGE_SIZE);
+ #define pmd_young(pmd)		pte_young(pmd_pte(pmd))
+ #define pmd_wrprotect(pmd)	pte_pmd(pte_wrprotect(pmd_pte(pmd)))
+@@ -277,6 +293,7 @@ static inline pmd_t pte_pmd(pte_t pte)
+ #define mk_pmd(page,prot)	pfn_pmd(page_to_pfn(page),prot)
+ 
+ #define pmd_page(pmd)           pfn_to_page(__phys_to_pfn(pmd_val(pmd) & PHYS_MASK))
++#define pud_write(pud)		pte_write(pud_pte(pud))
+ #define pud_pfn(pud)		(((pud_val(pud) & PUD_MASK) & PHYS_MASK) >> PAGE_SHIFT)
+ 
+ #define set_pmd_at(mm, addr, pmdp, pmd)	set_pte_at(mm, addr, (pte_t *)pmdp, pmd_pte(pmd))
+@@ -376,6 +393,8 @@ static inline pmd_t *pmd_offset(pud_t *pud, unsigned long addr)
+ 	return (pmd_t *)pud_page_vaddr(*pud) + pmd_index(addr);
  }
+ 
++#define pud_page(pud)           pmd_page(pud_pmd(pud))
++
+ #endif	/* CONFIG_ARM64_PGTABLE_LEVELS > 2 */
+ 
+ #if CONFIG_ARM64_PGTABLE_LEVELS > 3
+diff --git a/arch/arm64/mm/flush.c b/arch/arm64/mm/flush.c
+index 0d64089..2d5fd47 100644
+--- a/arch/arm64/mm/flush.c
++++ b/arch/arm64/mm/flush.c
+@@ -104,3 +104,18 @@ EXPORT_SYMBOL(flush_dcache_page);
+  */
+ EXPORT_SYMBOL(flush_cache_all);
+ EXPORT_SYMBOL(flush_icache_range);
 +
 +#ifdef CONFIG_TRANSPARENT_HUGEPAGE
 +#ifdef CONFIG_HAVE_RCU_TABLE_FREE
@@ -91,9 +124,3 @@ index 43d54f5..265b836 100644
 +#endif /* CONFIG_TRANSPARENT_HUGEPAGE */
 -- 
 1.9.3
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
