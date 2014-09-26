@@ -1,138 +1,50 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-we0-f175.google.com ([74.125.82.175]:49351 "EHLO
-	mail-we0-f175.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752966AbaIZJFn (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 26 Sep 2014 05:05:43 -0400
-Date: Fri, 26 Sep 2014 11:05:38 +0200
-From: Thierry Reding <thierry.reding@gmail.com>
-Subject: Re: [PATCH v2 00/22] Use MSI chip framework to configure MSI/MSI-X
- in all platforms
-Message-ID: <20140926090537.GH31106@ulmo>
-References: <1411614872-4009-1-git-send-email-wangyijing@huawei.com>
- <20140925074235.GN12423@ulmo>
- <20140925144855.GB31157@bart.dudau.co.uk>
- <20140925164937.GB30382@ulmo>
- <20140925171612.GC31157@bart.dudau.co.uk>
- <542505B3.7040208@huawei.com>
- <20140926085430.GG31106@ulmo>
+Received: from mout.kundenserver.de ([212.227.17.13]:49528 "EHLO
+	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753275AbaIZJ32 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 26 Sep 2014 05:29:28 -0400
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH v3 00/17] Cross-architecture definitions of relaxed MMIO accessors
+Date: Fri, 26 Sep 2014 11:28:38 +0200
+Message-ID: <2497501.Mvb1tbCjLR@wuerfel>
+In-Reply-To: <20140926084019.GJ5182@n2100.arm.linux.org.uk>
+References: <1411579056-16966-1-git-send-email-will.deacon@arm.com> <201409252117.19754.arnd@arndb.de> <20140926084019.GJ5182@n2100.arm.linux.org.uk>
 MIME-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha1;
-	protocol="application/pgp-signature"; boundary="mhOzvPhkurUs4vA9"
-Content-Disposition: inline
-In-Reply-To: <20140926085430.GG31106@ulmo>
+Content-Transfer-Encoding: 7Bit
+Content-Type: text/plain; charset="us-ascii"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Yijing Wang <wangyijing@huawei.com>
-Cc: Liviu Dudau <liviu@dudau.co.uk>, Bjorn Helgaas <bhelgaas@google.com>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, Xinwei Hu <huxinwei@huawei.com>, Wuyun <wuyun.wu@huawei.com>, linux-arm-kernel@lists.infradead.org, Russell King <linux@arm.linux.org.uk>, linux-arch@vger.kernel.org, arnab.basu@freescale.com, Bharat.Bhushan@freescale.com, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, Thomas Gleixner <tglx@linutronix.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, xen-devel@lists.xenproject.org, Joerg Roedel <joro@8bytes.org>, iommu@lists.linux-foundation.org, linux-mips@linux-mips.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, Sebastian Ott <sebott@linux.vnet.ibm.com>, Tony Luck <tony.luck@intel.com>, linux-ia64@vger.kernel.org, "David S. Miller" <davem@davemloft.net>, sparclinux@vger.kernel.org, Chris Metcalf <cmetcalf@tilera.com>, Ralf Baechle <ralf@linux-mips.org>, Lucas Stach <l.stach@pengutronix.de>, David Vrabel <david.vrabel@citrix.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, Michael Ellerman <mpe@ellerman.id.au>, Thomas Petazzoni <thomas.petazzoni@free-electrons.com>
-Message-ID: <20140926090538.j6nkilEZBGk72pPAPbw8mnqVOM0BUHm14lwNB55FD_w@z>
+To: Russell King - ARM Linux <linux@arm.linux.org.uk>
+Cc: Daniel Thompson <daniel.thompson@linaro.org>, Will Deacon <will.deacon@arm.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, "chris@zankel.net" <chris@zankel.net>, "cmetcalf@tilera.com" <cmetcalf@tilera.com>, "davem@davemloft.net" <davem@davemloft.net>, "deller@gmx.de" <deller@gmx.de>, "dhowells@redhat.com" <dhowells@redhat.com>, "geert@linux-m68k.org" <geert@linux-m68k.org>, "heiko.carstens@de.ibm.com" <heiko.carstens@de.ibm.com>, "hpa@zytor.com" <hpa@zytor.com>, "jcmvbkbc@gmail.com" <jcmvbkbc@gmail.com>, "jesper.nilsson@axis.com" <jesper.nilsson@axis.com>, "mingo@redhat.com" <mingo@redhat.com>, "monstr@monstr.eu" <monstr@monstr.eu>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>, "rdunlap@infradead.org" <rdunlap@infradead.org>, "sam@ravnborg.org" <sam@ravnborg.org>, "schwidefsky@de.ibm.com" <schwidefsky@de.ibm.com>, "starvik@axis.com" <starvik@axis.com>, "takata@linux-m32r.org" <takata@linux-m32r.org>, "tglx@linutronix.de" <tglx@linutronix.de>, "tony.luck@intel.com" <tony.luck@intel.com>, "broonie@linaro.org" <broonie@linaro.org>, "thierry.reding@gmail.com" <thierry.reding@gmail.com>
+Message-ID: <20140926092838.bwvr5zx2fMq98UxbY1UzwW4QUs-knlmUjkDCJ2OCqqY@z>
 
+On Friday 26 September 2014 09:40:19 Russell King - ARM Linux wrote:
+> 
+> How would a 32-bit architecture know whether it should read the least
+> significant 32-bit or the most significant 32-bit part of the 64-bit
+> register first.  What would be right for one driver may not ben correct
+> for another.  Hence, this decision should only be made by the driver
+> wanting the accessor, and not having the accessor symbol defined should
+> be the trigger for the driver to handle the problem themselves.
 
---mhOzvPhkurUs4vA9
-Content-Type: multipart/mixed; boundary="7J16OGEJ/mt06A90"
-Content-Disposition: inline
+Some 32-bit architectures can trigger 64-bit bus cycles using well
+defined accesses using register pairs. Meta seems to fit into this
+category:
 
+static inline u64 __raw_readq(const volatile void __iomem *addr)
+{
+       u64 ret;
+       asm volatile("GETL %0,%t0,[%1]"
+                    : "=da" (ret)
+                    : "da" (addr)
+                    : "memory");
+       return ret;
+}
 
---7J16OGEJ/mt06A90
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
+Most other architectures I think cannot do this however, and would
+turn the access into two separate bus cycles, which in addition to
+the problem you mentioned could also result in side-effects from
+doing an access at the wrong offset, so we definitely can't rely
+on having these functions.
 
-On Fri, Sep 26, 2014 at 10:54:32AM +0200, Thierry Reding wrote:
-[...]
-> At least for Tegra it's trivial to just hook it up in tegra_pcie_scan_bus()
-> directly (patch attached).
-
-Really attached this time.
-
-Thierry
-
---7J16OGEJ/mt06A90
-Content-Type: text/x-diff; charset=us-ascii
-Content-Disposition: inline; filename="0001-PCI-tegra-Remove-.add_bus-callback.patch"
-Content-Transfer-Encoding: quoted-printable
-
-=46rom 2cedfcf38cdfe21688d1363659f28e271ce43358 Mon Sep 17 00:00:00 2001
-=46rom: Thierry Reding <treding@nvidia.com>
-Date: Fri, 26 Sep 2014 10:35:47 +0200
-Subject: [PATCH] PCI: tegra: Remove .add_bus() callback
-
-The .add_bus() callback is called for every bus and used to associate an
-MSI chip with each bus. However the PCI core code already propagates the
-root bus' MSI chip to child busses, so it is enough to associate the MSI
-chip with the root bus upon creation. Conveniently the Tegra PCIe host
-bridge driver creates the root bus directly, so the association can be
-done at the same time.
-
-Signed-off-by: Thierry Reding <treding@nvidia.com>
----
- drivers/pci/host/pci-tegra.c | 13 +++----------
- 1 file changed, 3 insertions(+), 10 deletions(-)
-
-diff --git a/drivers/pci/host/pci-tegra.c b/drivers/pci/host/pci-tegra.c
-index 3d43874319be..d314e549ac0c 100644
---- a/drivers/pci/host/pci-tegra.c
-+++ b/drivers/pci/host/pci-tegra.c
-@@ -694,15 +694,6 @@ static int tegra_pcie_map_irq(const struct pci_dev *pd=
-ev, u8 slot, u8 pin)
- 	return irq;
- }
-=20
--static void tegra_pcie_add_bus(struct pci_bus *bus)
--{
--	if (IS_ENABLED(CONFIG_PCI_MSI)) {
--		struct tegra_pcie *pcie =3D sys_to_pcie(bus->sysdata);
--
--		bus->msi =3D &pcie->msi.chip;
--	}
--}
--
- static struct pci_bus *tegra_pcie_scan_bus(int nr, struct pci_sys_data *sy=
-s)
- {
- 	struct tegra_pcie *pcie =3D sys_to_pcie(sys);
-@@ -713,6 +704,9 @@ static struct pci_bus *tegra_pcie_scan_bus(int nr, stru=
-ct pci_sys_data *sys)
- 	if (!bus)
- 		return NULL;
-=20
-+	if (IS_ENABLED(CONFIG_PCI_MSI))
-+		bus->msi =3D &pcie->msi.chip;
-+
- 	pci_scan_child_bus(bus);
-=20
- 	return bus;
-@@ -1885,7 +1879,6 @@ static int tegra_pcie_enable(struct tegra_pcie *pcie)
- 	hw.private_data =3D (void **)&pcie;
- 	hw.setup =3D tegra_pcie_setup;
- 	hw.map_irq =3D tegra_pcie_map_irq;
--	hw.add_bus =3D tegra_pcie_add_bus;
- 	hw.scan =3D tegra_pcie_scan_bus;
- 	hw.ops =3D &tegra_pcie_ops;
-=20
---=20
-2.1.0
-
-
---7J16OGEJ/mt06A90--
-
---mhOzvPhkurUs4vA9
-Content-Type: application/pgp-signature
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v2
-
-iQIcBAEBAgAGBQJUJSxhAAoJEN0jrNd/PrOhoLsQAMJ5GxCoND9IRjKBHBmrC/51
-EfiGjh/v0yQqfkGFBzV41mV+tCThGSuHsefr0h7ItMMzGSclLZNdT2VKt/KaFqem
-Q6V+CwdSlDiMMLcpCjAGvp4hdDi+0XDCy7Y8jkC2W03El4vSRXMuLEqqwrFdK0gB
-05H6NYD2ozSZkLSz6kKZzDriAmV7soM2oCUtQ+lBTeYuz7dHFV0KFUtmka5mK5Hw
-WRmES6tba2YsjZcBnVOuEkrGOcXmV7rSG/Q4VI45Dcq0xyQIIoMbk5StAhi3htzg
-zmNTj58VhrHnqJeicxjD9PAwm2Pil1eAb97Rp/jTkGc7h8gdjHPjRiN4D2Hzv+3u
-POIs9Wnw/B7Nu+cbah6VrwbhkZJ6ONOdO969FwEKVqUAgrYQNOlpb764IfsNqWSd
-4SrBJxcX6Rf49cDgpeVdMu2M+y3JrSx8B34Y2Jvrjqfu7+Fqg1oUmaiIraZTw7Mx
-2L+r9XOSjoImov5pWFOQK6TQLFAQxg/Jzc3VbQW/Asthgh9J1IdnaawQ1tUmd7X3
-2SkPbFifpMXG/q4Kzo7ziNHEChdugUtgjqSedknGrxRhTgYMcoFuvmqg11yv5giF
-cQ4aiPTi7iwKtIUJ6der5Ypyym8WH6g9McEkXHr8MHTPwy5VwjoOIa5f9h8c0DF3
-JVw7pOJIyEgFtmcvn4p1
-=YM+j
------END PGP SIGNATURE-----
-
---mhOzvPhkurUs4vA9--
+	Arnd
