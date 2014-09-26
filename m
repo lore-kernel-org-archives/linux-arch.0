@@ -1,62 +1,65 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from www.linutronix.de ([62.245.132.108]:39354 "EHLO
-	Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754672AbaIZKjT (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 26 Sep 2014 06:39:19 -0400
-Date: Fri, 26 Sep 2014 12:38:26 +0200 (CEST)
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [PATCH v2 06/22] PCI/MSI: Introduce weak arch_find_msi_chip()
- to find MSI chip
-In-Reply-To: <5424D30A.6040900@huawei.com>
-Message-ID: <alpine.DEB.2.11.1409261236160.4567@nanos>
-References: <1411614872-4009-1-git-send-email-wangyijing@huawei.com> <1411614872-4009-7-git-send-email-wangyijing@huawei.com> <alpine.DEB.2.10.1409251220570.4604@nanos> <5424D30A.6040900@huawei.com>
+Received: from sym2.noone.org ([178.63.92.236]:38512 "EHLO sym2.noone.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1754671AbaIZNRt (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 26 Sep 2014 09:17:49 -0400
+Date: Fri, 26 Sep 2014 15:17:46 +0200
+From: Tobias Klauser <tklauser@distanz.ch>
+Subject: Re: [PATCH v3 01/29] asm-generic: add generic futex for !CONFIG_SMP
+Message-ID: <20140926131746.GA3279@distanz.ch>
+References: <1410168160-3624-1-git-send-email-lftan@altera.com>
+ <12538756.JybTPMqFHj@wuerfel>
+ <CAFiDJ5-bo_WOz6JockX_BaX0_O0D=+8PjKx7gys-ySKA2KMOaw@mail.gmail.com>
+ <3608975.MxU44B73lk@wuerfel>
 MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <3608975.MxU44B73lk@wuerfel>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Yijing Wang <wangyijing@huawei.com>
-Cc: Bjorn Helgaas <bhelgaas@google.com>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, Xinwei Hu <huxinwei@huawei.com>, Wuyun <wuyun.wu@huawei.com>, linux-arm-kernel@lists.infradead.org, Russell King <linux@arm.linux.org.uk>, linux-arch@vger.kernel.org, arnab.basu@freescale.com, Bharat.Bhushan@freescale.com, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, xen-devel@lists.xenproject.org, Joerg Roedel <joro@8bytes.org>, iommu@lists.linux-foundation.org, linux-mips@linux-mips.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, Sebastian Ott <sebott@linux.vnet.ibm.com>, Tony Luck <tony.luck@intel.com>, linux-ia64@vger.kernel.org, "David S. Miller" <davem@davemloft.net>, sparclinux@vger.kernel.org, Chris Metcalf <cmetcalf@tilera.com>, Ralf Baechle <ralf@linux-mips.org>, Lucas Stach <l.stach@pengutronix.de>, David Vrabel <david.vrabel@citrix.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, Michael Ellerman <mpe@ellerman.id.au>, Thierry Reding <thierry.reding@gmail.com>, Thomas Petazzoni <thomas.petazzoni@free-electrons.com>
-Message-ID: <20140926103826.iQ_jvgSPvM3ufFUOCjIyscT_GVGfAtmfprdMJJ4Tjgs@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Ley Foon Tan <lftan@altera.com>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Chung-Lin Tang <cltang@codesourcery.com>, Thomas Gleixner <tglx@linutronix.de>
+Message-ID: <20140926131746.D4f-26O8Ai-7Ui7vuvdwpTtDwDOkV61PayhDVnNEnKc@z>
 
-On Fri, 26 Sep 2014, Yijing Wang wrote:
-> On 2014/9/25 18:38, Thomas Gleixner wrote:
-> > On Thu, 25 Sep 2014, Yijing Wang wrote:
+On 2014-09-24 at 13:10:00 +0200, Arnd Bergmann <arnd@arndb.de> wrote:
+> On Wednesday 24 September 2014 18:57:54 Ley Foon Tan wrote:
+> > On Wed, Sep 24, 2014 at 6:40 PM, Arnd Bergmann <arnd@arndb.de> wrote:
+> > > On Wednesday 24 September 2014 18:18:50 Ley Foon Tan wrote:
+> > >> On Tue, Sep 23, 2014 at 6:40 PM, Arnd Bergmann <arnd@arndb.de> wrote:
+> > >> > On Tuesday 23 September 2014 18:20:08 LF.Tan wrote:
+> > >> >> Hi Arnd
+> > >> >>
+> > >> >> Are you okay with this generic futex in asm-generic?
+> > >> >>
+> > >> >
+> > >> > Yes, this looks good. Remind me again who need this, would it make
+> > >> > sense to merge this through an architecture-specific tree for
+> > >> > whichever architecture can benefit from it?
+> > >> What is the common practice for this?
+> > >> Do you mean merge with nios2 or other arch, eg m68k?
+> > >
+> > > I mean do it as part of the nios2 patches.
+> > I am okay with this.
+> > Do I need to get ACK for all patches in order for nios2 merge into mainline?
+> > Thanks.
 > > 
-> >> Introduce weak arch_find_msi_chip() to find the match msi_chip.
-> >> Currently, MSI chip associates pci bus to msi_chip. Because in
-> >> ARM platform, there may be more than one MSI controller in system.
-> >> Associate pci bus to msi_chip help pci device to find the match
-> >> msi_chip and setup MSI/MSI-X irq correctly. But in other platform,
-> >> like in x86. we only need one MSI chip, because all device use
-> >> the same MSI address/data and irq etc. So it's no need to associate
-> >> pci bus to MSI chip, just use a arch function, arch_find_msi_chip()
-> >> to return the MSI chip for simplicity. The default weak
-> >> arch_find_msi_chip() used in ARM platform, find the MSI chip
-> >> by pci bus.
-> > 
-> > This is really backwards. On one hand you try to get rid of the weak
-> > arch functions zoo and then you invent new ones for no good
-> > reason. Why can't x86 store the chip in the pci bus?
-> > 
-> > Looking deeper, I'm questioning the whole notion of different
-> > msi_chips. Are this really different MSI controllers with a different
-> > feature set or are this defacto multiple instances of the same
-> > controller which just need a different data set?
 > 
-> MSI chip in this series is to setup MSI irq, including IRQ allocation, Map,
-> compose MSI msg ..., in different platform, many arch specific MSI irq details in it.
-> It's difficult to extract the common data and code.
+> Please add my 'Acked-by: Arnd Bergmann <arnd@arndb.de>' to this patch
+> once Thomas is ok with it. I think we had concluded already that it
+> was correct when we talked about it last time, but he doesn't seem
+> convinced yet so I want to wait for his reply.
 > 
-> I have a plan to rework MSI related irq_chips in kernel, PCI and Non-PCI, currently,
-> HPET, DMAR and PCI have their own irq_chip and MSI related functions, write_msi_msg(),
-> mask_msi_irq(), etc... I want to extract the common data set for that, so we can
-> remove lots of unnecessary MSI code.
+> You definitely need an Ack for all patches touching code outside of
+> arch/nios2, from the respective maintainers. For the nios2 code,
+> having as many acks as you can helps, and I should probably take
+> a last look so I can ack the pull request when you send it.
 
-That makes sense. Can you please make sure that this does not conflict
-with the ongoing work Jiang is doing in the x86 irq area with
-hierarchical irqdomains to distangle layered levels like MSI from the
-underlying vector/irqremap mechanics.
+Speaking of the nios2 part: I'm the author of some parts of this code,
+but now also reviewed this series (or rather, intend to do so for the
+few remaining patches I didn't review yet).
 
-Thanks,
+What is the appropriate way to account for this? Is Reviewed-By still OK? I
+guess I won't be considered an entirely neutral reviewer ;)
 
-	tglx
+Cheers
+Tobias
