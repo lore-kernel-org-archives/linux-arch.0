@@ -1,189 +1,39 @@
-From: liviu@dudau.co.uk
-Subject: Re: [PATCH v12 08/12] PCI: OF: Introduce helper function for
- retrieving PCI domain numbers
-Date: Fri, 26 Sep 2014 22:20:53 +0100
-Message-ID: <20140926212052.GA6030@borg.dudau.co.uk>
-References: <1411498874-9864-1-git-send-email-Liviu.Dudau@arm.com>
- <1411498874-9864-9-git-send-email-Liviu.Dudau@arm.com>
- <CAL_Jsq+j40Xf208wCf4as3H=cDU=htJ-JWinB0DjpcORjatNXQ@mail.gmail.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH v3 00/17] Cross-architecture definitions of relaxed MMIO accessors
+Date: Fri, 26 Sep 2014 23:36:13 +0200
+Message-ID: <3359318.XmOCYLZHTV@wuerfel>
+References: <1411579056-16966-1-git-send-email-will.deacon@arm.com> <9197976.uQdLmtvIl1@wuerfel> <20140926134608.GT5182@n2100.arm.linux.org.uk>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-Content-Disposition: inline
-In-Reply-To: <CAL_Jsq+j40Xf208wCf4as3H=cDU=htJ-JWinB0DjpcORjatNXQ@mail.gmail.com>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: Rob Herring <robherring2@gmail.com>
-Cc: Catalin Marinas <catalin.marinas@arm.com>, linux-pci <linux-pci@vger.kernel.org>, Linus Walleij <linus.walleij@linaro.org>, Liviu Dudau <Liviu.Dudau@arm.com>, Grant Likely <grant.likely@secretlab.ca>, Tanmay Inamdar <tinamdar@apm.com>, linux-arch <linux-arch@vger.kernel.org>, Kukjin Kim <kgene.kim@samsung.com>, Russell King <linux@arm.linux.org.uk>, Jingoo Han <jg1.han@samsung.com>, Jason Gunthorpe <jgunthorpe@obsidianresearch.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Grant Likely <grant.likely@linaro.org>, Device Tree ML <devicetree@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Will Deacon <Will.Deacon@arm.com>, Rob Herring <robh+dt@kernel.org>, Bjorn Helgaas <bhelgaas@google.com>, LAKML <linux-arm-kernel@lists.infradead.org>, Sinan Kaya <okaya@codeaurora.org>, LKML <linux-kernel@vger.kernel.org>, Suravee Suthikulanit <suravee.suthikulpanit@amd.com>
-List-Id: linux-arch.vger.kernel.org
+Content-Transfer-Encoding: 7Bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mout.kundenserver.de ([212.227.17.13]:54682 "EHLO
+	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755881AbaIZVhz (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 26 Sep 2014 17:37:55 -0400
+In-Reply-To: <20140926134608.GT5182@n2100.arm.linux.org.uk>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Russell King - ARM Linux <linux@arm.linux.org.uk>
+Cc: Thierry Reding <thierry.reding@gmail.com>, Will Deacon <will.deacon@arm.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, "chris@zankel.net" <chris@zankel.net>, "cmetcalf@tilera.com" <cmetcalf@tilera.com>, "davem@davemloft.net" <davem@davemloft.net>, "deller@gmx.de" <deller@gmx.de>, "dhowells@redhat.com" <dhowells@redhat.com>, "geert@linux-m68k.org" <geert@linux-m68k.org>, "heiko.carstens@de.ibm.com" <heiko.carstens@de.ibm.com>, "hpa@zytor.com" <hpa@zytor.com>, "jcmvbkbc@gmail.com" <jcmvbkbc@gmail.com>, "jesper.nilsson@axis.com" <jesper.nilsson@axis.com>, "mingo@redhat.com" <mingo@redhat.com>, "monstr@monstr.eu" <monstr@monstr.eu>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>, "rdunlap@infradead.org" <rdunlap@infradead.org>
 
-On Fri, Sep 26, 2014 at 01:20:39PM -0500, Rob Herring wrote:
-> On Tue, Sep 23, 2014 at 2:01 PM, Liviu Dudau <Liviu.Dudau@arm.com> wrote:
-> > Add pci_get_new_domain_nr() to allocate a new domain number
-> > and of_get_pci_domain_nr() to retrieve the PCI domain number
-> > of a given device from DT. Host bridge drivers or architecture
-> > specific code can choose to implement their PCI domain number
-> > policy using these two functions.
-> >
-> > Using of_get_pci_domain_nr() guarantees a stable PCI domain
-> > number on every boot provided that all host bridge controllers
-> > are assigned a number in the device tree using "linux,pci-domain"
-> > property. Mix use of pci_get_new_domain_nr() and of_get_pci_domain_nr()
-> > is not recommended as it can lead to potentially conflicting
-> > domain numbers being assigned to root busses behind different
-> > host bridges.
-> >
-> > Cc: Bjorn Helgaas <bhelgaas@google.com>
-> > Cc: Arnd Bergmann <arnd@arndb.de>
-> > Cc: Grant Likely <grant.likely@linaro.org>
-> > Cc: Rob Herring <robh+dt@kernel.org>
-> > Cc: Catalin Marinas <catalin.marinas@arm.com>
-> > Signed-off-by: Liviu Dudau <Liviu.Dudau@arm.com>
+On Friday 26 September 2014 14:46:08 Russell King - ARM Linux wrote:
 > 
-> Looks pretty good, but a couple of comments that can be addressed as
-> follow-up patches.
+> Obviously, this does nothing for the:
 > 
-> > ---
-> >  drivers/of/of_pci.c    | 25 +++++++++++++++++++++++++
-> >  drivers/pci/pci.c      |  9 +++++++++
-> >  include/linux/of_pci.h |  7 +++++++
-> >  include/linux/pci.h    |  3 +++
-> >  4 files changed, 44 insertions(+)
-> >
-> > diff --git a/drivers/of/of_pci.c b/drivers/of/of_pci.c
-> > index 8481996..82d172f 100644
-> > --- a/drivers/of/of_pci.c
-> > +++ b/drivers/of/of_pci.c
-> > @@ -89,6 +89,31 @@ int of_pci_parse_bus_range(struct device_node *node, struct resource *res)
-> >  }
-> >  EXPORT_SYMBOL_GPL(of_pci_parse_bus_range);
-> >
-> > +/**
-> > + * This function will try to obtain the host bridge domain number by
-> > + * finding a property called "linux,pci-domain" of the given device node.
-> > + *
-> > + * @node: device tree node with the domain information
-> > + *
-> > + * Returns the associated domain number from DT in the range [0-0xffff], or
-> > + * a negative value if the required property is not found.
-> > + */
-> > +int of_get_pci_domain_nr(struct device_node *node)
-> > +{
-> > +       const __be32 *value;
-> > +       int len;
-> > +       u16 domain;
-> > +
-> > +       value = of_get_property(node, "linux,pci-domain", &len);
+> include/asm-generic/io.h:804:29: error: redefinition of 'virt_to_bus'
+> include/asm-generic/io.h:809:21: error: redefinition of 'bus_to_virt'
 > 
-> This needs to be documented.
+> errors which are also reported in Olof's build system.
+> 
+> Given how close we are to the merge window, I'd suggest this stuff gets
+> reverted so that it can have a better period of testing, rather than
+> stuffing it into -next at such a critical time.
 
-I would say needs agreed on *and* documented.
+Right, I've fixed these all up locally, but then found new warnings on
+allmodconfig builds that I haven't been able to track down yet.
 
-> 
-> > +       if (!value || len < sizeof(*value))
-> > +               return -EINVAL;
-> > +
-> > +       domain = (u16)be32_to_cpup(value);
-> 
-> of_property_read_u32 would not work here?
+I've dropped everything from the asm-generic tree now, so we can get
+a clean linux-next tree.
 
-It should, I guess, but I want to limit the domain number range to 16 bits.
-
-Best regards,
-Liviu
-
-> 
-> > +
-> > +       return domain;
-> > +}
-> > +EXPORT_SYMBOL_GPL(of_get_pci_domain_nr);
-> > +
-> >  #ifdef CONFIG_PCI_MSI
-> >
-> >  static LIST_HEAD(of_pci_msi_chip_list);
-> > diff --git a/drivers/pci/pci.c b/drivers/pci/pci.c
-> > index 2c9ac70..d36f35f 100644
-> > --- a/drivers/pci/pci.c
-> > +++ b/drivers/pci/pci.c
-> > @@ -4406,6 +4406,15 @@ static void pci_no_domains(void)
-> >  #endif
-> >  }
-> >
-> > +#ifdef CONFIG_PCI_DOMAINS
-> > +static atomic_t __domain_nr = ATOMIC_INIT(-1);
-> > +
-> > +int pci_get_new_domain_nr(void)
-> > +{
-> > +       return atomic_inc_return(&__domain_nr);
-> > +}
-> > +#endif
-> > +
-> >  /**
-> >   * pci_ext_cfg_avail - can we access extended PCI config space?
-> >   *
-> > diff --git a/include/linux/of_pci.h b/include/linux/of_pci.h
-> > index dde3a4a..71062e9 100644
-> > --- a/include/linux/of_pci.h
-> > +++ b/include/linux/of_pci.h
-> > @@ -15,6 +15,7 @@ struct device_node *of_pci_find_child_device(struct device_node *parent,
-> >  int of_pci_get_devfn(struct device_node *np);
-> >  int of_irq_parse_and_map_pci(const struct pci_dev *dev, u8 slot, u8 pin);
-> >  int of_pci_parse_bus_range(struct device_node *node, struct resource *res);
-> > +int of_get_pci_domain_nr(struct device_node *node);
-> >  #else
-> >  static inline int of_irq_parse_pci(const struct pci_dev *pdev, struct of_phandle_args *out_irq)
-> >  {
-> > @@ -43,6 +44,12 @@ of_pci_parse_bus_range(struct device_node *node, struct resource *res)
-> >  {
-> >         return -EINVAL;
-> >  }
-> > +
-> > +static inline int
-> > +of_get_pci_domain_nr(struct device_node *node)
-> > +{
-> > +       return -1;
-> > +}
-> >  #endif
-> >
-> >  #if defined(CONFIG_OF) && defined(CONFIG_PCI_MSI)
-> > diff --git a/include/linux/pci.h b/include/linux/pci.h
-> > index a494e5d..150da2d 100644
-> > --- a/include/linux/pci.h
-> > +++ b/include/linux/pci.h
-> > @@ -1285,10 +1285,12 @@ void pci_cfg_access_unlock(struct pci_dev *dev);
-> >   */
-> >  #ifdef CONFIG_PCI_DOMAINS
-> >  extern int pci_domains_supported;
-> > +int pci_get_new_domain_nr(void);
-> >  #else
-> >  enum { pci_domains_supported = 0 };
-> >  static inline int pci_domain_nr(struct pci_bus *bus) { return 0; }
-> >  static inline int pci_proc_domain(struct pci_bus *bus) { return 0; }
-> > +static inline int pci_get_new_domain_nr(void) { return -ENOSYS; }
-> >  #endif /* CONFIG_PCI_DOMAINS */
-> >
-> >  /*
-> > @@ -1417,6 +1419,7 @@ static inline struct pci_dev *pci_get_bus_and_slot(unsigned int bus,
-> >
-> >  static inline int pci_domain_nr(struct pci_bus *bus) { return 0; }
-> >  static inline struct pci_dev *pci_dev_get(struct pci_dev *dev) { return NULL; }
-> > +static inline int pci_get_new_domain_nr(void) { return -ENOSYS; }
-> >
-> >  #define dev_is_pci(d) (false)
-> >  #define dev_is_pf(d) (false)
-> > --
-> > 2.1.0
-> >
-> --
-> To unsubscribe from this list: send the line "unsubscribe linux-pci" in
-> the body of a message to majordomo@vger.kernel.org
-> More majordomo info at  http://vger.kernel.org/majordomo-info.html
-> 
+	Arnd
