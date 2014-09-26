@@ -1,49 +1,69 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH v3 00/17] Cross-architecture definitions of relaxed MMIO accessors
-Date: Fri, 26 Sep 2014 11:28:38 +0200
-Message-ID: <2497501.Mvb1tbCjLR@wuerfel>
-References: <1411579056-16966-1-git-send-email-will.deacon@arm.com> <201409252117.19754.arnd@arndb.de> <20140926084019.GJ5182@n2100.arm.linux.org.uk>
+From: Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>
+Subject: Re: [PATCH v2 06/22] PCI/MSI: Introduce weak arch_find_msi_chip()
+	to find MSI chip
+Date: Fri, 26 Sep 2014 12:38:26 +0200 (CEST)
+Message-ID: <alpine.DEB.2.11.1409261236160.4567@nanos>
+References: <1411614872-4009-1-git-send-email-wangyijing@huawei.com>
+	<1411614872-4009-7-git-send-email-wangyijing@huawei.com>
+	<alpine.DEB.2.10.1409251220570.4604@nanos>
+	<5424D30A.6040900@huawei.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7Bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.17.13]:49528 "EHLO
-	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753275AbaIZJ32 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 26 Sep 2014 05:29:28 -0400
-In-Reply-To: <20140926084019.GJ5182@n2100.arm.linux.org.uk>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Russell King - ARM Linux <linux@arm.linux.org.uk>
-Cc: Daniel Thompson <daniel.thompson@linaro.org>, Will Deacon <will.deacon@arm.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, "chris@zankel.net" <chris@zankel.net>, "cmetcalf@tilera.com" <cmetcalf@tilera.com>, "davem@davemloft.net" <davem@davemloft.net>, "deller@gmx.de" <deller@gmx.de>, "dhowells@redhat.com" <dhowells@redhat.com>, "geert@linux-m68k.org" <geert@linux-m68k.org>, "heiko.carstens@de.ibm.com" <heiko.carstens@de.ibm.com>, "hpa@zytor.com" <hpa@zytor.com>, "jcmvbkbc@gmail.com" <jcmvbkbc@gmail.com>, "jesper.nilsson@axis.com" <jesper.nilsson@axis.com>, "mingo@redhat.com" <mingo@redhat.com>, "monstr@monstr.eu" <monstr@monstr.eu>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>, "rdunlap@infradead.org" <rdunlap@infradead.>
+Content-Transfer-Encoding: 7bit
+Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+In-Reply-To: <5424D30A.6040900-hv44wF8Li93QT0dZR+AlfA@public.gmane.org>
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
+	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
+List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
+	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
+Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+To: Yijing Wang <wangyijing-hv44wF8Li93QT0dZR+AlfA@public.gmane.org>
+Cc: linux-mips-6z/3iImG2C8G8FEW9MqTrA@public.gmane.org, linux-ia64-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-pci-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Thierry Reding <thierry.reding-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, sparclinux-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-s390-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Russell King <linux-lFZ/pmaqli7XmaaqVzeoHQ@public.gmane.org>, Michael Ellerman <mpe-Gsx/Oe8HsFggBc27wqDAHg@public.gmane.org>, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, Sebastian Ott <sebott-23VcF4HTsmIX0ybBhKVfKdBPR1lH4CV8@public.gmane.org>, Benjamin Herrenschmidt <benh-XVmvHMARGAS8U2dJNN8I7kB+6BGkLq7r@public.gmane.org>, xen-devel-GuqFBffKawtpuQazS67q72D2FQJk+8+b@public.gmane.org, arnab.basu-KZfg59tc24xl57MIdRCFDg@public.gmane.org, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Chris Metcalf <cmetcalf-kv+TWInifGbQT0dZR+AlfA@public.gmane.org>, Bjorn Helgaas <bhelgaas-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, Thomas Petazzoni <thomas.petazzoni-wi1+55ScJUtKEb57/3fJTNBPR1lH4CV8@public.gmane.org>, Xinwei Hu <huxinwei-hv44wF8Li93QT0dZR+AlfA@public.gmane.org>, Tony Luck <tony.luck-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org>, Sergei Shtylyov <sergei.shtylyov-M4DtvfQ/ZS1MRgGoP+s0PdBPR1lH4CV8@public.gmane.org>, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Ralf Baechle <ralf-6z/3iImG2C8G8FEW9MqTrA@public.gmane.org>, iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org, David
+List-Id: linux-arch.vger.kernel.org
 
-On Friday 26 September 2014 09:40:19 Russell King - ARM Linux wrote:
+On Fri, 26 Sep 2014, Yijing Wang wrote:
+> On 2014/9/25 18:38, Thomas Gleixner wrote:
+> > On Thu, 25 Sep 2014, Yijing Wang wrote:
+> > 
+> >> Introduce weak arch_find_msi_chip() to find the match msi_chip.
+> >> Currently, MSI chip associates pci bus to msi_chip. Because in
+> >> ARM platform, there may be more than one MSI controller in system.
+> >> Associate pci bus to msi_chip help pci device to find the match
+> >> msi_chip and setup MSI/MSI-X irq correctly. But in other platform,
+> >> like in x86. we only need one MSI chip, because all device use
+> >> the same MSI address/data and irq etc. So it's no need to associate
+> >> pci bus to MSI chip, just use a arch function, arch_find_msi_chip()
+> >> to return the MSI chip for simplicity. The default weak
+> >> arch_find_msi_chip() used in ARM platform, find the MSI chip
+> >> by pci bus.
+> > 
+> > This is really backwards. On one hand you try to get rid of the weak
+> > arch functions zoo and then you invent new ones for no good
+> > reason. Why can't x86 store the chip in the pci bus?
+> > 
+> > Looking deeper, I'm questioning the whole notion of different
+> > msi_chips. Are this really different MSI controllers with a different
+> > feature set or are this defacto multiple instances of the same
+> > controller which just need a different data set?
 > 
-> How would a 32-bit architecture know whether it should read the least
-> significant 32-bit or the most significant 32-bit part of the 64-bit
-> register first.  What would be right for one driver may not ben correct
-> for another.  Hence, this decision should only be made by the driver
-> wanting the accessor, and not having the accessor symbol defined should
-> be the trigger for the driver to handle the problem themselves.
+> MSI chip in this series is to setup MSI irq, including IRQ allocation, Map,
+> compose MSI msg ..., in different platform, many arch specific MSI irq details in it.
+> It's difficult to extract the common data and code.
+> 
+> I have a plan to rework MSI related irq_chips in kernel, PCI and Non-PCI, currently,
+> HPET, DMAR and PCI have their own irq_chip and MSI related functions, write_msi_msg(),
+> mask_msi_irq(), etc... I want to extract the common data set for that, so we can
+> remove lots of unnecessary MSI code.
 
-Some 32-bit architectures can trigger 64-bit bus cycles using well
-defined accesses using register pairs. Meta seems to fit into this
-category:
+That makes sense. Can you please make sure that this does not conflict
+with the ongoing work Jiang is doing in the x86 irq area with
+hierarchical irqdomains to distangle layered levels like MSI from the
+underlying vector/irqremap mechanics.
 
-static inline u64 __raw_readq(const volatile void __iomem *addr)
-{
-       u64 ret;
-       asm volatile("GETL %0,%t0,[%1]"
-                    : "=da" (ret)
-                    : "da" (addr)
-                    : "memory");
-       return ret;
-}
+Thanks,
 
-Most other architectures I think cannot do this however, and would
-turn the access into two separate bus cycles, which in addition to
-the problem you mentioned could also result in side-effects from
-doing an access at the wrong offset, so we definitely can't rely
-on having these functions.
-
-	Arnd
+	tglx
