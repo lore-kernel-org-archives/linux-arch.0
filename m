@@ -1,107 +1,43 @@
-From: Thierry Reding <thierry.reding-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
-Subject: Re: [PATCH v2 03/22] MSI: Remove the redundant irq_set_chip_data()
-Date: Fri, 26 Sep 2014 10:09:49 +0200
-Message-ID: <20140926080949.GF31106@ulmo>
-References: <1411614872-4009-1-git-send-email-wangyijing@huawei.com>
-	<1411614872-4009-4-git-send-email-wangyijing@huawei.com>
+From: Ley Foon Tan <lftan@altera.com>
+Subject: Re: [PATCH v3 01/29] asm-generic: add generic futex for !CONFIG_SMP
+Date: Fri, 26 Sep 2014 16:30:17 +0800
+Message-ID: <CAFiDJ5-GGitbYY29=zu=nxTMZFaS1x4-5Mt4W2828vFgQf59qA@mail.gmail.com>
+References: <1410168160-3624-1-git-send-email-lftan@altera.com>
+	<3608975.MxU44B73lk@wuerfel>
+	<CAFiDJ58h4VKrr-wHe6iD+aPB8QU=xLo03kW5k6QDpLW5Et0DGw@mail.gmail.com>
+	<11277081.DWgcnnZv54@wuerfel>
+	<CAFiDJ58Y1iQhkkS-OVwMBdowJnXKKbYfHttQibmBh_qa5vgOmQ@mail.gmail.com>
+	<CAMuHMdX8MD9vynbehHjgVKryfUVAMJduhXjd2XBt58U=djO11Q@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: multipart/mixed; boundary="===============2634855006759927908=="
-Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-In-Reply-To: <1411614872-4009-4-git-send-email-wangyijing-hv44wF8Li93QT0dZR+AlfA@public.gmane.org>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
-List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
-Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-To: Yijing Wang <wangyijing-hv44wF8Li93QT0dZR+AlfA@public.gmane.org>
-Cc: linux-mips-6z/3iImG2C8G8FEW9MqTrA@public.gmane.org, linux-ia64-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-pci-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, sparclinux-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-s390-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Russell King <linux-lFZ/pmaqli7XmaaqVzeoHQ@public.gmane.org>, Michael Ellerman <mpe-Gsx/Oe8HsFggBc27wqDAHg@public.gmane.org>, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, Sebastian Ott <sebott-23VcF4HTsmIX0ybBhKVfKdBPR1lH4CV8@public.gmane.org>, Benjamin Herrenschmidt <benh-XVmvHMARGAS8U2dJNN8I7kB+6BGkLq7r@public.gmane.org>, xen-devel-GuqFBffKawtpuQazS67q72D2FQJk+8+b@public.gmane.org, arnab.basu-KZfg59tc24xl57MIdRCFDg@public.gmane.org, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Chris Metcalf <cmetcalf-kv+TWInifGbQT0dZR+AlfA@public.gmane.org>, Bjorn Helgaas <bhelgaas-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, Thomas Petazzoni <thomas.petazzoni-wi1+55ScJUtKEb57/3fJTNBPR1lH4CV8@public.gmane.org>, Xinwei Hu <huxinwei-hv44wF8Li93QT0dZR+AlfA@public.gmane.org>, Tony Luck <tony.luck-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org>, Sergei Shtylyov <sergei.shtylyov-M4DtvfQ/ZS1MRgGoP+s0PdBPR1lH4CV8@public.gmane.org>, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Ralf Baechle <ralf-6z/3iImG2C8G8FEW9MqTrA@public.gmane.org>, iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org, David
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=UTF-8
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-lb0-f179.google.com ([209.85.217.179]:35458 "EHLO
+	mail-lb0-f179.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753321AbaIZIaU (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 26 Sep 2014 04:30:20 -0400
+In-Reply-To: <CAMuHMdX8MD9vynbehHjgVKryfUVAMJduhXjd2XBt58U=djO11Q@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Arnd Bergmann <arnd@arndb.de>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Chung-Lin Tang <cltang@codesourcery.com>, Thomas Gleixner <tglx@linutronix.de>
 
+On Fri, Sep 26, 2014 at 2:41 PM, Geert Uytterhoeven
+<geert@linux-m68k.org> wrote:
+> On Fri, Sep 26, 2014 at 4:22 AM, Ley Foon Tan <lftan@altera.com> wrote:
+>>> Randy Dunlap <rdunlap@infradead.org> is the maintainer listed for
+>>> Documentation, and I see you already have linux-doc@vger.kernel.org
+>>> on Cc here. Please make sure that Randy is on Cc for the documentation
+>>> patches as well. A lot of documentation patches go in without his
+>>> Ack, which I think is fine as long as someone else (i.e. you) is
+>>> responsible for maintaining that documentation later.
+>> Okay, will add Randy to CC list for Documentation patch.
+>
+> Please change that to Jiri Kosina:
+>
+> http://git.kernel.org/cgit/linux/kernel/git/torvalds/linux.git/commit/?id=d671e42457e1fef70ad0df07084207078633a9e8
+>
+Oh, okay. Will CC new maintainer.
+Thanks.
 
---===============2634855006759927908==
-Content-Type: multipart/signed; micalg=pgp-sha1;
-	protocol="application/pgp-signature"; boundary="5CUMAwwhRxlRszMD"
-Content-Disposition: inline
-
-
---5CUMAwwhRxlRszMD
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
-
-On Thu, Sep 25, 2014 at 11:14:13AM +0800, Yijing Wang wrote:
-> Currently, pcie-designware, pcie-rcar, pci-tegra drivers
-> use irq chip_data to save the msi_chip pointer. They
-> already call irq_set_chip_data() in their own MSI irq map
-> functions. So irq_set_chip_data() in arch_setup_msi_irq()
-> is useless.
->=20
-> Signed-off-by: Yijing Wang <wangyijing-hv44wF8Li93QT0dZR+AlfA@public.gmane.org>
-> ---
->  drivers/pci/msi.c |    5 ++---
->  1 files changed, 2 insertions(+), 3 deletions(-)
-
-Reviewed-by: Thierry Reding <treding-DDmLM1+adcrQT0dZR+AlfA@public.gmane.org>
-
->=20
-> diff --git a/drivers/pci/msi.c b/drivers/pci/msi.c
-> index 51d7e62..50f67a3 100644
-> --- a/drivers/pci/msi.c
-> +++ b/drivers/pci/msi.c
-> @@ -41,14 +41,13 @@ int __weak arch_setup_msi_irq(struct pci_dev *dev, st=
-ruct msi_desc *desc)
->  	if (err < 0)
->  		return err;
-> =20
-> -	irq_set_chip_data(desc->irq, chip);
-> -
->  	return 0;
->  }
-> =20
->  void __weak arch_teardown_msi_irq(unsigned int irq)
->  {
-> -	struct msi_chip *chip =3D irq_get_chip_data(irq);
-> +	struct msi_desc *entry =3D irq_get_msi_desc(irq);
-> +	struct msi_chip *chip =3D entry->dev->bus->msi;
-> =20
->  	if (!chip || !chip->teardown_irq)
->  		return;
-> --=20
-> 1.7.1
->=20
-
---5CUMAwwhRxlRszMD
-Content-Type: application/pgp-signature
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v2
-
-iQIcBAEBAgAGBQJUJR9NAAoJEN0jrNd/PrOh5cAP/2aYAkwGt796/z3rQsXfEXhG
-hPI6dXwueP4Re7P03WrSfn6JEowEsDYFLqLJJYQLwlDQa96WTd85jidBUhQRniqy
-GPHoUY+c4qiQjJak+b2y4jMMNqJnWoLw57Wd1Nmy2g2pocWKwiKA1VEem2ZZPaxR
-QxhYqhwK8IxOu092oPpVV8m2GtFSUzbuOoE0a3muYP+gExweDN6v485fm+PKfIVU
-rmCMnmkkT9oUVNYUlQDSf0xXb+t0PNJDbGZHPM3rKQFQA45Xhadzs2D/nk1CSwoj
-7EO8sq/qkfHnyXvxpvazxq2V1xsGkG63RTRmhIzP2VGDj/AI6G9AlM5dFOzPctSf
-8v8FNLESIHmHKyp9IKT1pCWg6jbRHFlhL9be5+uudiDYgvXiGjtco4Jta1hlgHNk
-Qd7zRsH6Y+ocewQ2sqDMrwkOEzetOfnGmjjtb3q6VaeahtwPdRKWhQcjfO//zIW3
-83yoON4lx7AS1aDMRywNXbk8A6ja8ndVS2amfm6TJCbIVy6A78AnCRx4n/ShluFl
-WD1TekKOyh2u2JtRagRSb0xxFwwsqzlYrOElj00zxCZJAKihIzjMf4ogfxnj2OOn
-ZEF1WTMpjTpy+QB7r22R0qFX9yVBBCgRM8heGbQXeVMPD/AvmVhx803Ry2r6SmcU
-iefPiqiqqocKKcpN4rMB
-=jw7p
------END PGP SIGNATURE-----
-
---5CUMAwwhRxlRszMD--
-
---===============2634855006759927908==
-Content-Type: text/plain; charset="us-ascii"
-MIME-Version: 1.0
-Content-Transfer-Encoding: 7bit
-Content-Disposition: inline
-
-
---===============2634855006759927908==--
+Regards
+Ley Foon
