@@ -1,61 +1,69 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-lb0-f171.google.com ([209.85.217.171]:36356 "EHLO
-	mail-lb0-f171.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753350AbaIZC1e (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 25 Sep 2014 22:27:34 -0400
+Received: from szxga02-in.huawei.com ([119.145.14.65]:7739 "EHLO
+	szxga02-in.huawei.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753041AbaIZCeJ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 25 Sep 2014 22:34:09 -0400
+Message-ID: <5424D074.60102@huawei.com>
+Date: Fri, 26 Sep 2014 10:33:24 +0800
+From: Yijing Wang <wangyijing@huawei.com>
 MIME-Version: 1.0
-In-Reply-To: <1410168160-3624-29-git-send-email-lftan@altera.com>
-References: <1410168160-3624-1-git-send-email-lftan@altera.com>
-	<1410168160-3624-29-git-send-email-lftan@altera.com>
-Date: Fri, 26 Sep 2014 10:27:32 +0800
-Message-ID: <CAFiDJ5_J0a0OWkX6FV=Gqz6J6BWcyYYOvZyAS9oRqvMaq4Nftw@mail.gmail.com>
-Subject: Re: [PATCH v3 28/29] Documentation: Add documentation for Nios2 architecture
-From: Ley Foon Tan <lftan@altera.com>
-Content-Type: text/plain; charset=UTF-8
+Subject: Re: [PATCH v2 06/22] PCI/MSI: Introduce weak arch_find_msi_chip()
+ to find MSI chip
+References: <1411614872-4009-1-git-send-email-wangyijing@huawei.com> <1411614872-4009-7-git-send-email-wangyijing@huawei.com> <alpine.DEB.2.10.1409251220570.4604@nanos>
+In-Reply-To: <alpine.DEB.2.10.1409251220570.4604@nanos>
+Content-Type: text/plain; charset="ISO-8859-1"
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>
-Cc: Ley Foon Tan <lftan@altera.com>, LeyFoon Tan <lftan.linux@gmail.com>, Chung-Lin Tang <cltang@codesourcery.com>, rdunlap@infradead.org
-Message-ID: <20140926022732.c7stZ49ICcwR5eQGVmp9_6K_WMdRfhytodtwNeqRvw8@z>
+To: Thomas Gleixner <tglx@linutronix.de>
+Cc: Bjorn Helgaas <bhelgaas@google.com>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, Xinwei Hu <huxinwei@huawei.com>, Wuyun <wuyun.wu@huawei.com>, linux-arm-kernel@lists.infradead.org, Russell King <linux@arm.linux.org.uk>, linux-arch@vger.kernel.org, arnab.basu@freescale.com, Bharat.Bhushan@freescale.com, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, xen-devel@lists.xenproject.org, Joerg Roedel <joro@8bytes.org>, iommu@lists.linux-foundation.org, linux-mips@linux-mips.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, Sebastian Ott <sebott@linux.vnet.ibm.com>, Tony Luck <tony.luck@intel.com>, linux-ia64@vger.kernel.org, "David S. Miller" <davem@davemloft.net>, sparclinux@vger.kernel.org, Chris Metcalf <cmetcalf@tilera.com>, Ralf Baechle <ralf@linux-mips.org>, Lucas Stach <l.stach@pengutronix.de>, David Vrabel <david.vrabel@citrix.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, Michael Ellerman <mpe@ellerman.id.au>, Thierry Reding <thierry.reding@gmail.com>, Thomas Petazzoni <thomas.petazzoni@free-electrons.com>
+Message-ID: <20140926023324.ehpOutRlC6y0wopnCQOmVPQxTJqRuL23UQGYnmAco2o@z>
 
-On Mon, Sep 8, 2014 at 5:22 PM, Ley Foon Tan <lftan@altera.com> wrote:
-> Signed-off-by: Ley Foon Tan <lftan@altera.com>
-> ---
->  Documentation/nios2/README | 23 +++++++++++++++++++++++
->  1 file changed, 23 insertions(+)
->  create mode 100644 Documentation/nios2/README
->
-> diff --git a/Documentation/nios2/README b/Documentation/nios2/README
-> new file mode 100644
-> index 0000000..054a67d
-> --- /dev/null
-> +++ b/Documentation/nios2/README
-> @@ -0,0 +1,23 @@
-> +Linux on the Nios II architecture
-> +=================================
-> +
-> +This is a port of Linux to Nios II (nios2) processor.
-> +
-> +In order to compile for Nios II, you need a version of GCC with support for the generic
-> +system call ABI. Please see this link for more information on how compiling and booting
-> +software for the Nios II platform:
-> +http://www.rocketboards.org/foswiki/Documentation/NiosIILinuxUserManual
-> +
-> +For reference, please see the following link:
-> +http://www.altera.com/literature/lit-nio2.jsp
-> +
-> +What is Nios II?
-> +================
-> +Nios II is a 32-bit embedded-processor architecture designed specifically for the
-> +Altera family of FPGAs. In order to support Linux, Nios II needs to be configured
-> +with MMU and hardware multiplier enabled.
-> +
-> +Nios II ABI
-> +===========
-> +Please refer to chapter "Application Binary Interface" in Nios II Processor Reference
-> +Handbook.
-> --
-> 1.8.2.1
->
+On 2014/9/25 18:38, Thomas Gleixner wrote:
+> On Thu, 25 Sep 2014, Yijing Wang wrote:
+> 
+>> Introduce weak arch_find_msi_chip() to find the match msi_chip.
+>> Currently, MSI chip associates pci bus to msi_chip. Because in
+>> ARM platform, there may be more than one MSI controller in system.
+>> Associate pci bus to msi_chip help pci device to find the match
+>> msi_chip and setup MSI/MSI-X irq correctly. But in other platform,
+>> like in x86. we only need one MSI chip, because all device use
+>> the same MSI address/data and irq etc. So it's no need to associate
+>> pci bus to MSI chip, just use a arch function, arch_find_msi_chip()
+>> to return the MSI chip for simplicity. The default weak
+>> arch_find_msi_chip() used in ARM platform, find the MSI chip
+>> by pci bus.
+> 
+> This is really backwards. On one hand you try to get rid of the weak
+> arch functions zoo and then you invent new ones for no good
+> reason. Why can't x86 store the chip in the pci bus?
 
-Add Randy to CC list.
+Hi Thomas, I introduced this weak function , because I thought all platforms
+except arm always have only one msi chip, and I hoped to provide a simplest
+solution, less code changes. I consider several solutions to associate msi chip
+and PCI device. In my reply to Thierry in first reply,
+http://marc.info/?l=linux-pci&m=141169658208255&w=2
+Could you give me some advices ?
+
+Thanks!
+Yijing.
+
+
+> 
+> Looking deeper, I'm questioning the whole notion of different
+> msi_chips. Are this really different MSI controllers with a different
+> feature set or are this defacto multiple instances of the same
+> controller which just need a different data set?
+> 
+> Thanks,
+> 
+> 	tglx
+> 
+> .
+> 
+
+
+-- 
+Thanks!
+Yijing
+
