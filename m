@@ -1,66 +1,80 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-lb0-f181.google.com ([209.85.217.181]:39215 "EHLO
-	mail-lb0-f181.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750876AbaIYURM (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 25 Sep 2014 16:17:12 -0400
+Received: from szxga03-in.huawei.com ([119.145.14.66]:18447 "EHLO
+	szxga03-in.huawei.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752986AbaIZBzu (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 25 Sep 2014 21:55:50 -0400
+Message-ID: <5424C77B.2060807@huawei.com>
+Date: Fri, 26 Sep 2014 09:55:07 +0800
+From: Yijing Wang <wangyijing@huawei.com>
 MIME-Version: 1.0
-In-Reply-To: <201409252117.19754.arnd@arndb.de>
-References: <1411579056-16966-1-git-send-email-will.deacon@arm.com>
-	<4240583.SJ4jiIW6Zy@wuerfel>
-	<54243395.902@linaro.org>
-	<201409252117.19754.arnd@arndb.de>
-Date: Thu, 25 Sep 2014 22:17:10 +0200
-Message-ID: <CAMuHMdWwOVjnhhqkdDUpfzrNTreNMds_k7svmUFaLPBbWL4BMQ@mail.gmail.com>
-Subject: Re: [PATCH v3 00/17] Cross-architecture definitions of relaxed MMIO accessors
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Content-Type: text/plain; charset=UTF-8
+Subject: Re: [PATCH v2 02/22] PCI/MSI: Remove useless bus->msi assignment
+References: <1411614872-4009-1-git-send-email-wangyijing@huawei.com> <1411614872-4009-3-git-send-email-wangyijing@huawei.com> <20140925070601.GF12423@ulmo>
+In-Reply-To: <20140925070601.GF12423@ulmo>
+Content-Type: text/plain; charset="ISO-8859-1"
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Daniel Thompson <daniel.thompson@linaro.org>, Will Deacon <will.deacon@arm.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, "chris@zankel.net" <chris@zankel.net>, "cmetcalf@tilera.com" <cmetcalf@tilera.com>, "davem@davemloft.net" <davem@davemloft.net>, "deller@gmx.de" <deller@gmx.de>, "dhowells@redhat.com" <dhowells@redhat.com>, "heiko.carstens@de.ibm.com" <heiko.carstens@de.ibm.com>, "hpa@zytor.com" <hpa@zytor.com>, "jcmvbkbc@gmail.com" <jcmvbkbc@gmail.com>, "jesper.nilsson@axis.com" <jesper.nilsson@axis.com>, "mingo@redhat.com" <mingo@redhat.com>, "monstr@monstr.eu" <monstr@monstr.eu>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>, "rdunlap@infradead.org" <rdunlap@infradead.org>, "sam@ravnborg.org" <sam@ravnborg.org>, "schwidefsky@de.ibm.com" <schwidefsky@de.ibm.com>, "starvik@axis.com" <starvik@axis.com>, "takata@linux-m32r.org" <takata@linux-m32r.org>, "tglx@linutronix.de" <tglx@linutronix.de>, "tony.luck@intel.com" <tony.luck@intel.com>, "broonie@linaro.org" <broonie@linaro.org>, "linux@arm.linux.org.uk" <linux@arm.linux.org.uk>, "thierry.reding@gmail.com" <thierry.reding@gmail.com>
-Message-ID: <20140925201710.wE_pEHWsJ_AeDezV0QBo0hgWtJ1GngkQ6HvP2ZojHlM@z>
+To: Thierry Reding <thierry.reding@gmail.com>
+Cc: Bjorn Helgaas <bhelgaas@google.com>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, Xinwei Hu <huxinwei@huawei.com>, Wuyun <wuyun.wu@huawei.com>, linux-arm-kernel@lists.infradead.org, Russell King <linux@arm.linux.org.uk>, linux-arch@vger.kernel.org, arnab.basu@freescale.com, Bharat.Bhushan@freescale.com, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, Thomas Gleixner <tglx@linutronix.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, xen-devel@lists.xenproject.org, Joerg Roedel <joro@8bytes.org>, iommu@lists.linux-foundation.org, linux-mips@linux-mips.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, Sebastian Ott <sebott@linux.vnet.ibm.com>, Tony Luck <tony.luck@intel.com>, linux-ia64@vger.kernel.org, "David S. Miller" <davem@davemloft.net>, sparclinux@vger.kernel.org, Chris Metcalf <cmetcalf@tilera.com>, Ralf Baechle <ralf@linux-mips.org>, Lucas Stach <l.stach@pengutronix.de>, David Vrabel <david.vrabel@citrix.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, Michael Ellerman <mpe@ellerman.id.au>, Thomas Petazzoni <thomas.petazzoni@free-electrons.com>, Liviu Dudau <Liviu.Dudau@arm.com>
+Message-ID: <20140926015507.HEnOKHNIcuhrJK07Qg-D6bq4KZPNsJ8c1N2DJHP9_U8@z>
 
-Hi Arnd,
+On 2014/9/25 15:06, Thierry Reding wrote:
+> On Thu, Sep 25, 2014 at 11:14:12AM +0800, Yijing Wang wrote:
+>> Currently, PCI drivers will initialize bus->msi in
+>> pcibios_add_bus(). pcibios_add_bus() will be called
+>> in every pci bus initialization. So the bus->msi
+>> assignment in pci_alloc_child_bus() is useless.
+> 
+> I think this should be the other way around. The default should be to
+> inherit bus->msi from the parent. That way drivers don't typically have
+> to do it, yet they can still opt to override it if they need to.
+> 
+> For Tegra for example I think it would work if we assigned the MSI chip
+> to the root bus (in tegra_pcie_scan_bus()) and then have it propagated
+> to child busses in pci_alloc_child_bus() so that tegra_pcie_add_bus()
+> can be removed altogether.
 
-On Thu, Sep 25, 2014 at 9:17 PM, Arnd Bergmann <arnd@arndb.de> wrote:
-> On Thursday 25 September 2014, Daniel Thompson wrote:
->> > +
->> > +#ifndef readq_relaxed
->> > +#define readq_relaxed readq
->> > +#endif
->>
->> Not really sure if it matters but this gives a rather surprising
->> behaviour to #ifdef readq_relaxed given that readq may not be defined.
->
-> It was intentional. I could have written this as
->
-> #if !defined(readq_relaxed) && defined(readq)
->
-> but the effect would be almost the same, and the version I picked looks
-> simpler.
+Hi Thierry, thanks very much for your review and comments!
 
-However, as soon as a driver has code like
+Because pcibios_add_bus() and "child->msi = parent->msi;" in pci_alloc_child_bus()
+do the same thing. So I think we should use one and remove another. I like
+the latter.
 
-#ifdef readq_relaxed
-        do something using readq_relaxed
-#else
-...
-#endif
+In addition, I consider several solutions to associate msi chip and PCI device.
 
-this will fail if readq is not defined.
+1. Add a msi_chip member in PCI arch sysdata to store the msi_chip pointer. Because
+all PCI devices under a PCI hostbridge always share the same msi chip, so every PCI device
+can find the msi chip by pci_bus->sysdata, but in this solution, we also need to add
+ARCH specific functions to extract msi chip from PCI arch sysdata, like pci_domain_nr().
+Then we can remove .add_bus() like tegra_pcie_add_bus() and the msi assignment in  pci_alloc_child_bus().
 
-Currently no code has such an #ifdef, though.
-There are #ifdefs for checking for the presence of readq.
+2. Remove .add_bus() functions, associate PCI root bus and msi chip after PCI root bus created,
+as you mentioned above. In this solution we need to associate PCI root bus and msi chip in all PCI
+hostbridge drivers, like in tegra_pcie_scan_bus().
 
-The same is true for writeq_relaxed.
 
-Gr{oetje,eeting}s,
+3. Introduce a global msi chip list, currently, only in arm, there maybe more than one type MSI chip,
+but in arm, we can find msi chip by PCI hostbridge platform device's of_node, Eg. use "msi-parent" property
+to find it. Or msi chip is integrated into PCI hostbridge, we can find msi chip by compare msi_chip->dev and
+PCI hostbridge's platform device's struct device *dev pointer. And because PCI hostbridge platform device pass
+to pci_create_root_bus() as the parent device, so every PCI devices can first find the platform device, then
+to find the msi chip, this solution looks a bit ugly, but we only associate pci hostbridge and msi chip, PCI child
+buses and devices do not have to know the msi chip details.
 
-                        Geert
+4. Last, in this series, introduced weak arch function arch_find_msi_chip(), it's the simplest one, because all platforms
+except arm, only one msi chip will exist in system.
 
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+What do you think about this ?
 
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+Thanks!
+Yijing.
+
+> 
+> Thierry
+> 
+
+
+-- 
+Thanks!
+Yijing
+
