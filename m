@@ -1,90 +1,51 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from szxga02-in.huawei.com ([119.145.14.65]:59574 "EHLO
-	szxga02-in.huawei.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752913AbaIZCMw (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 25 Sep 2014 22:12:52 -0400
-Message-ID: <5424CB70.9020800@huawei.com>
-Date: Fri, 26 Sep 2014 10:12:00 +0800
+Received: from szxga03-in.huawei.com ([119.145.14.66]:29316 "EHLO
+	szxga03-in.huawei.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752942AbaIZCNm (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 25 Sep 2014 22:13:42 -0400
+Message-ID: <5424CBC1.8080702@huawei.com>
+Date: Fri, 26 Sep 2014 10:13:21 +0800
 From: Yijing Wang <wangyijing@huawei.com>
 MIME-Version: 1.0
-Subject: Re: [PATCH v2 12/22] MIPS/Octeon/MSI: Use MSI chip framework to configure
+Subject: Re: [PATCH v2 14/22] MIPS/Xlp/MSI: Use MSI chip framework to configure
  MSI/MSI-X irq
-References: <1411614872-4009-1-git-send-email-wangyijing@huawei.com> <1411614872-4009-13-git-send-email-wangyijing@huawei.com> <20140925073435.GJ12423@ulmo>
-In-Reply-To: <20140925073435.GJ12423@ulmo>
+References: <1411614872-4009-1-git-send-email-wangyijing@huawei.com> <1411614872-4009-15-git-send-email-wangyijing@huawei.com> <20140925073608.GK12423@ulmo>
+In-Reply-To: <20140925073608.GK12423@ulmo>
 Content-Type: text/plain; charset="ISO-8859-1"
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Thierry Reding <thierry.reding@gmail.com>
 Cc: Bjorn Helgaas <bhelgaas@google.com>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, Xinwei Hu <huxinwei@huawei.com>, Wuyun <wuyun.wu@huawei.com>, linux-arm-kernel@lists.infradead.org, Russell King <linux@arm.linux.org.uk>, linux-arch@vger.kernel.org, arnab.basu@freescale.com, Bharat.Bhushan@freescale.com, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, Thomas Gleixner <tglx@linutronix.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, xen-devel@lists.xenproject.org, Joerg Roedel <joro@8bytes.org>, iommu@lists.linux-foundation.org, linux-mips@linux-mips.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, Sebastian Ott <sebott@linux.vnet.ibm.com>, Tony Luck <tony.luck@intel.com>, linux-ia64@vger.kernel.org, "David S. Miller" <davem@davemloft.net>, sparclinux@vger.kernel.org, Chris Metcalf <cmetcalf@tilera.com>, Ralf Baechle <ralf@linux-mips.org>, Lucas Stach <l.stach@pengutronix.de>, David Vrabel <david.vrabel@citrix.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, Michael Ellerman <mpe@ellerman.id.au>, Thomas Petazzoni <thomas.petazzoni@free-electrons.com>
-Message-ID: <20140926021200.7p5i7BZt4tBoTguqt-ytxLASHJbFlDzCkARISk-YWFw@z>
+Message-ID: <20140926021321.5rdkHeSIvnf-cnOHF4D427LsgYPu7A0-8WBBkqTydTc@z>
 
-On 2014/9/25 15:34, Thierry Reding wrote:
-> On Thu, Sep 25, 2014 at 11:14:22AM +0800, Yijing Wang wrote:
-> [...]
->> diff --git a/arch/mips/pci/msi-octeon.c b/arch/mips/pci/msi-octeon.c
-> [...]
->> @@ -132,12 +132,12 @@ msi_irq_allocated:
->>  	/* Make sure the search for available interrupts didn't fail */
->>  	if (irq >= 64) {
->>  		if (request_private_bits) {
->> -			pr_err("arch_setup_msi_irq: Unable to find %d free interrupts, trying just one",
->> +			pr_err("octeon_setup_msi_irq: Unable to find %d free interrupts, trying just one",
->>  			       1 << request_private_bits);
+On 2014/9/25 15:36, Thierry Reding wrote:
+> On Thu, Sep 25, 2014 at 11:14:24AM +0800, Yijing Wang wrote:
+>> Use MSI chip framework instead of arch MSI functions to configure
+>> MSI/MSI-X irq. So we can manage MSI/MSI-X irq in a unified framework.
 > 
-> Perhaps while at it make this (and other similar changes in this patch):
+> Nit: s/irq/IRQ/ in the above.
 > 
-> 	pr_err("%s(): Unable to ...", __func__, ...);
-
-Will update it, thanks!
-
-> 
-> So that it becomes more resilient against this kind of rename?
-> 
->>  			request_private_bits = 0;
->>  			goto try_only_one;
->>  		} else
->> -			panic("arch_setup_msi_irq: Unable to find a free MSI interrupt");
->> +			panic("octeon_setup_msi_irq: Unable to find a free MSI interrupt");
-> 
->> @@ -210,14 +210,13 @@ int arch_setup_msi_irqs(struct pci_dev *dev, int nvec, int type)
+>> Signed-off-by: Yijing Wang <wangyijing@huawei.com>
+>> ---
+>>  arch/mips/pci/msi-xlp.c |   14 ++++++++++++--
+>>  1 files changed, 12 insertions(+), 2 deletions(-)
+>>
+>> diff --git a/arch/mips/pci/msi-xlp.c b/arch/mips/pci/msi-xlp.c
+>> index e469dc7..6b791ef 100644
+>> --- a/arch/mips/pci/msi-xlp.c
+>> +++ b/arch/mips/pci/msi-xlp.c
+>> @@ -245,7 +245,7 @@ static struct irq_chip xlp_msix_chip = {
+>>  	.irq_unmask	= unmask_msi_irq,
+>>  };
 >>  
->>  	return 0;
->>  }
->> -
+>> -void arch_teardown_msi_irq(unsigned int irq)
+>> +void xlp_teardown_msi_irq(unsigned int irq)
 > 
-> This...
+> Should this not be static now as well?
 
-OK
+Yes, Will update.
 
-> 
->> @@ -240,7 +239,7 @@ void arch_teardown_msi_irq(unsigned int irq)
->>  	 */
->>  	number_irqs = 0;
->>  	while ((irq0 + number_irqs < 64) &&
->> -	       (msi_multiple_irq_bitmask[index]
->> +		(msi_multiple_irq_bitmask[index]
-> 
-> ... and this seem like unrelated whitespace changes.
-
-OK
-
-> 
->>  		& (1ull << (irq0 + number_irqs))))
->>  		number_irqs++;
->>  	number_irqs++;
->> @@ -249,8 +248,8 @@ void arch_teardown_msi_irq(unsigned int irq)
->>  	/* Shift the mask to the correct bit location */
->>  	bitmask <<= irq0;
->>  	if ((msi_free_irq_bitmask[index] & bitmask) != bitmask)
->> -		panic("arch_teardown_msi_irq: Attempted to teardown MSI "
->> -		      "interrupt (%d) not in use", irq);
->> +		panic("octeon_teardown_msi_irq: Attempted to teardown MSI "
->> +			"interrupt (%d) not in use", irq);
-> 
-> And the second line here also needlessly changes the indentation.
-
-OK
 > 
 > Thierry
 > 
