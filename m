@@ -1,109 +1,201 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wi0-f178.google.com ([209.85.212.178]:34279 "EHLO
-	mail-wi0-f178.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754327AbaIZOEH (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 26 Sep 2014 10:04:07 -0400
-Received: by mail-wi0-f178.google.com with SMTP id z2so11628894wiv.11
-        for <linux-arch@vger.kernel.org>; Fri, 26 Sep 2014 07:04:06 -0700 (PDT)
-From: Steve Capper <steve.capper@linaro.org>
-Subject: [PATCH V4 0/6] RCU get_user_pages_fast and __get_user_pages_fast
-Date: Fri, 26 Sep 2014 15:03:47 +0100
-Message-ID: <1411740233-28038-1-git-send-email-steve.capper@linaro.org>
+Received: from service87.mimecast.com ([91.220.42.44]:43122 "EHLO
+	service87.mimecast.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755281AbaIZO7A convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 26 Sep 2014 10:59:00 -0400
+Date: Fri, 26 Sep 2014 15:58:54 +0100
+From: Liviu Dudau <Liviu.Dudau@arm.com>
+Subject: Re: [PATCH v12 06/12] PCI: Create pci_host_bridge before its
+ associated bus in pci_create_root_bus.
+Message-ID: <20140926145854.GS841@e106497-lin.cambridge.arm.com>
+References: <1411498874-9864-1-git-send-email-Liviu.Dudau@arm.com>
+ <1411498874-9864-7-git-send-email-Liviu.Dudau@arm.com>
+ <CAE9FiQXuJZnj74dwTbKJCQNJ+OdEbjSB0fpwqh92+WZ_XGnrxQ@mail.gmail.com>
+ <CAErSpo6eUEV81n1rFjjvRcFVmsFkeUxhdL6JauTmx_Et6XdBuQ@mail.gmail.com>
+MIME-Version: 1.0
+In-Reply-To: <CAErSpo6eUEV81n1rFjjvRcFVmsFkeUxhdL6JauTmx_Et6XdBuQ@mail.gmail.com>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8BIT
+Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arm-kernel@lists.infradead.org, catalin.marinas@arm.com, linux@arm.linux.org.uk, linux-arch@vger.kernel.org, linux-mm@kvack.org
-Cc: will.deacon@arm.com, gary.robertson@linaro.org, christoffer.dall@linaro.org, peterz@infradead.org, anders.roxell@linaro.org, akpm@linux-foundation.org, dann.frazier@canonical.com, mark.rutland@arm.com, mgorman@suse.de, hughd@google.com, Steve Capper <steve.capper@linaro.org>
-Message-ID: <20140926140347.2JcJfp7HQk9_9N1h0G2YQfQ2Yu7fPbuygzh5Qfdtn6k@z>
+To: Bjorn Helgaas <bhelgaas@google.com>
+Cc: Yinghai Lu <yinghai@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Rob Herring <robh+dt@kernel.org>, Jason Gunthorpe <jgunthorpe@obsidianresearch.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Catalin Marinas <Catalin.Marinas@arm.com>, Will Deacon <Will.Deacon@arm.com>, Russell King <linux@arm.linux.org.uk>, linux-pci <linux-pci@vger.kernel.org>, Linus Walleij <linus.walleij@linaro.org>, Tanmay Inamdar <tinamdar@apm.com>, Grant Likely <grant.likely@secretlab.ca>, Sinan Kaya <okaya@codeaurora.org>, Jingoo Han <jg1.han@samsung.com>, Kukjin Kim <kgene.kim@samsung.com>, Suravee Suthikulanit <suravee.suthikulpanit@amd.com>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Device Tree ML <devicetree@vger.kernel.org>, LAKML <linux-arm-kernel@lists.infradead.org>
+Message-ID: <20140926145854.ZnL4Bj78BzxdsqoUHo9lUFjeAqIkbA7_2S5zdeah9q8@z>
 
-Hello,
-This series implements general forms of get_user_pages_fast and
-__get_user_pages_fast in core code and activates them for arm and arm64.
+On Thu, Sep 25, 2014 at 08:59:26PM +0100, Bjorn Helgaas wrote:
+> On Thu, Sep 25, 2014 at 12:15 PM, Yinghai Lu <yinghai@kernel.org> wrote:
+> > On Tue, Sep 23, 2014 at 12:01 PM, Liviu Dudau <Liviu.Dudau@arm.com> wrote:
+> >> Before commit 7b5436635800 the pci_host_bridge was created before the root bus.
+> >> As that commit has added a needless dependency on the bus for pci_alloc_host_bridge()
+> >> the creation order has been changed for no good reason. Revert the order of
+> >> creation as we are going to depend on the pci_host_bridge structure to retrieve the
+> >> domain number of the root bus.
+> >>
+> >> Cc: Bjorn Helgaas <bhelgaas@google.com>
+> >> Signed-off-by: Liviu Dudau <Liviu.Dudau@arm.com>
+> >> Acked-by: Grant Likely <grant.likely@linaro.org>
+> >> Reviewed-by: Catalin Marinas <catalin.marinas@arm.com>
+> >> Tested-by: Tanmay Inamdar <tinamdar@apm.com>
+> >> ---
+> >>  drivers/pci/probe.c | 32 +++++++++++++++++---------------
+> >>  1 file changed, 17 insertions(+), 15 deletions(-)
+> >>
+> >> diff --git a/drivers/pci/probe.c b/drivers/pci/probe.c
+> >> index e3cf8a2..5ff72ec 100644
+> >> --- a/drivers/pci/probe.c
+> >> +++ b/drivers/pci/probe.c
+> >> @@ -515,7 +515,7 @@ static void pci_release_host_bridge_dev(struct device *dev)
+> >>         kfree(bridge);
+> >>  }
+> >>
+> >> -static struct pci_host_bridge *pci_alloc_host_bridge(struct pci_bus *b)
+> >> +static struct pci_host_bridge *pci_alloc_host_bridge(void)
+> >>  {
+> >>         struct pci_host_bridge *bridge;
+> >>
+> >> @@ -524,7 +524,8 @@ static struct pci_host_bridge *pci_alloc_host_bridge(struct pci_bus *b)
+> >>                 return NULL;
+> >>
+> >>         INIT_LIST_HEAD(&bridge->windows);
+> >> -       bridge->bus = b;
+> >> +       bridge->dev.release = pci_release_host_bridge_dev;
+> >> +
+> >>         return bridge;
+> >>  }
+> >>
+> >> @@ -1761,9 +1762,15 @@ struct pci_bus *pci_create_root_bus(struct device *parent, int bus,
+> >>         char bus_addr[64];
+> >>         char *fmt;
+> >>
+> >> +       bridge = pci_alloc_host_bridge();
+> >> +       if (!bridge)
+> >> +               return NULL;
+> >> +
+> >> +       bridge->dev.parent = parent;
+> >> +
+> >>         b = pci_alloc_bus();
+> >>         if (!b)
+> >> -               return NULL;
+> >> +               goto err_out;
+> >>
+> >>         b->sysdata = sysdata;
+> >>         b->ops = ops;
+> >> @@ -1772,26 +1779,19 @@ struct pci_bus *pci_create_root_bus(struct device *parent, int bus,
+> >>         if (b2) {
+> >>                 /* If we already got to this bus through a different bridge, ignore it */
+> >>                 dev_dbg(&b2->dev, "bus already known\n");
+> >> -               goto err_out;
+> >> +               goto err_bus_out;
+> >>         }
+> >>
+> >> -       bridge = pci_alloc_host_bridge(b);
+> >> -       if (!bridge)
+> >> -               goto err_out;
+> >> -
+> >> -       bridge->dev.parent = parent;
+> >> -       bridge->dev.release = pci_release_host_bridge_dev;
+> >> +       bridge->bus = b;
+> >>         dev_set_name(&bridge->dev, "pci%04x:%02x", pci_domain_nr(b), bus);
+> >>         error = pcibios_root_bridge_prepare(bridge);
+> >> -       if (error) {
+> >> -               kfree(bridge);
+> >> +       if (error)
+> >>                 goto err_out;
+> >> -       }
+> >>
+> >>         error = device_register(&bridge->dev);
+> >>         if (error) {
+> >>                 put_device(&bridge->dev);
+> >> -               goto err_out;
+> >> +               goto err_bus_out;
+> >>         }
+> >>         b->bridge = get_device(&bridge->dev);
+> >>         device_enable_async_suspend(b->bridge);
+> >> @@ -1848,8 +1848,10 @@ struct pci_bus *pci_create_root_bus(struct device *parent, int bus,
+> >>  class_dev_reg_err:
+> >>         put_device(&bridge->dev);
+> >>         device_unregister(&bridge->dev);
+> >> -err_out:
+> >> +err_bus_out:
+> >>         kfree(b);
+> >> +err_out:
+> >> +       kfree(bridge);
+> >>         return NULL;
+> >>  }
+> >
+> > Hi Bjorn,
+> >
+> > Noticed that you put this one into pci/next.
+> >
+> > This patch has problem for the class_dev_reg_err path.
+> > as device_unregister(&bridge->dev) will trigger pci_release_host_bridge_dev.
+> > So will have double free for bridge or else.
+> >
+> > Please drop this patch from pci/next.
+> >
+> > Also looks strange that the patch have long CC list, but just omit me
+> > and Jiang Liu that
+> > touched those code before.
+> 
+> Thanks for noticing that.  I was concerned, but couldn't remember the details.
+> 
+> I dropped this patch and the subsequent ones from pci/host and rebased
+> my "next" branch.
+> 
+> Sorry I didn't notice you weren't on the CC list.
+> 
+> Bjorn
+> 
 
-These are required for Transparent HugePages to function correctly, as
-a futex on a THP tail will otherwise result in an infinite loop (due to
-the core implementation of __get_user_pages_fast always returning 0).
+Bjorn,
 
-Unfortunately, a futex on THP tail can be quite common for certain
-workloads; thus THP is unreliable without a __get_user_pages_fast
-implementation.
+I have refreshed/rebuilt the series from what was on 25th in linux-next and I have
+dropped this patch. I have pushed the series into 
 
-This series may also be beneficial for direct-IO heavy workloads and
-certain KVM workloads.
+git://linux-arm.org/linux-ld.git for-upstream/pci-next
 
-I appreciate that the merge window is coming very soon, and am posting
-this revision on the off-chance that it gets the nod for 3.18. (The changes
-thus far have been minimal and the feedback I've got has been mainly
-positive).
+I hope that I've carried all your Sign-off-bys correctly, but I would like to ask you
+to double check that I haven't screwed up things.
 
-Changes since PATCH V3 are
-(mainly addressing comments from Hugh Dickins):
- * Added pte_numa and pmd_numa calls.
- * Added comments to clarify what assumptions are being made by the
-   implementation.
- * Cleaned up formatting for checkpatch.
- * As these changes are mainly cosmetic, I've retained the Tested-by
-   and Reviewed-by tags.
+This patch dates from the times I was trying to add the domain number information
+into the pci_host_bridge structure. Now, with Catalin's patch that adds the data in
+the pci_bus structure, this is not needed, so it is safe to drop. I did try to fix
+the patch but I've realised how intricately linked pci_host_bridge and root bus are,
+which to my opinion is a strong hint that the creation of the two should be split
+into separate functions.
 
-Changes since PATCH V2 are:
- * spelt `PATCH' correctly in the subject prefix this time. :-(
- * Added acks, tested-bys and reviewed-bys.
- * Cleanup of patch #6 with pud_pte and pud_pmd helpers.
- * Switched config option from HAVE_RCU_GUP to HAVE_GENERIC_RCU_GUP.
+I can send an official v13 patchset to the mailing list if you want, but if not, here
+is the changelog:
 
-Changes since PATCH V1 are:
- * Rebase to 3.17-rc1
- * Switched to kick_all_cpus_sync as suggested by Mark Rutland.
+- updated "[PATCH 01/12] asm-generic/io.h: Fix ioport_map() for !CONFIG_GENERIC_IOMAP" to match
+  the patch that Thierry Reding has submitted through the asm-generic branch. If his
+  series lands first upstream this patch will be skipped.
+- updated "[PATCH 03/12] ARM: Define PCI_IOBASE as the base of virtual PCI IO space" to
+  cast the PCI_IOBASE value to (void __iomem *) as is the case with most #defined versions
+- dropped the patch that was changing the order of initialisation between pci_host_bridge
+  and root bus in pci_create_root_bus()
+- fixed "[PATCH 07/12] PCI: Add generic domain handling" to account for the previous patch
+  being removed
+- fixed the title of commit 08/12 to reflect the name of the functions that are actually
+  added (s/of_pci_get_domain_nr/pci_get_new_domain_nr/)
 
-The main changes since RFC V5 are:
- * Rebased against 3.16-rc1.
- * pmd_present no longer tested for by gup_huge_pmd and gup_huge_pud,
-   because the entry must be present for these leaf functions to be
-   called. 
- * Rather than assume puds can be re-cast as pmds, a separate
-   function pud_write is instead used by the core gup.
- * ARM activation logic changed, now it will only activate
-   RCU_TABLE_FREE and RCU_GUP when running with LPAE.
+I've compiled tested the series on sparc, microblaze (no)mmu_defconfig, arm omap2plus_defconfig
+and multi_v7_defconfig and arm64. I've also tested the series on my Juno (arm64) board.
 
-The main changes since RFC V4 are:
- * corrected the arm64 logic so it now correctly rcu-frees page
-   table backing pages.
- * rcu free logic relaxed for pre-ARMv7 ARM as we need an IPI to
-   invalidate TLBs anyway.
- * rebased to 3.15-rc3 (some minor changes were needed to allow it to merge).
- * dropped Catalin's mmu_gather patch as that's been merged already.
+Sorry for causing this amount of churn! And to Yinghai Lu and Jiang Liu: appologies for not
+including you in the Cc list, I'm still getting the grip on the whole submission process.
 
-This series has been tested with LTP mm tests and some custom futex tests
-that exacerbate the futex on THP tail case; on both an Arndale board and
-a Juno board. Also debug counters were temporarily employed to ensure that
-the RCU_TABLE_FREE logic was behaving as expected.
-
-Cheers,
---
-Steve
-
-
-Steve Capper (6):
-  mm: Introduce a general RCU get_user_pages_fast.
-  arm: mm: Introduce special ptes for LPAE
-  arm: mm: Enable HAVE_RCU_TABLE_FREE logic
-  arm: mm: Enable RCU fast_gup
-  arm64: mm: Enable HAVE_RCU_TABLE_FREE logic
-  arm64: mm: Enable RCU fast_gup
-
- arch/arm/Kconfig                      |   5 +
- arch/arm/include/asm/pgtable-2level.h |   2 +
- arch/arm/include/asm/pgtable-3level.h |  15 ++
- arch/arm/include/asm/pgtable.h        |   6 +-
- arch/arm/include/asm/tlb.h            |  38 +++-
- arch/arm/mm/flush.c                   |  15 ++
- arch/arm64/Kconfig                    |   4 +
- arch/arm64/include/asm/pgtable.h      |  21 +-
- arch/arm64/include/asm/tlb.h          |  20 +-
- arch/arm64/mm/flush.c                 |  15 ++
- mm/Kconfig                            |   3 +
- mm/gup.c                              | 354 ++++++++++++++++++++++++++++++++++
- 12 files changed, 488 insertions(+), 10 deletions(-)
+Best regards,
+Liviu
 
 -- 
-1.9.3
+====================
+| I would like to |
+| fix the world,  |
+| but they're not |
+| giving me the   |
+ \ source code!  /
+  ---------------
+    ¯\_(ツ)_/¯
 
