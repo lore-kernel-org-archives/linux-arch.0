@@ -1,41 +1,64 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qa0-f43.google.com ([209.85.216.43]:48204 "EHLO
-	mail-qa0-f43.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751855AbaI0UTQ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 27 Sep 2014 16:19:16 -0400
-Received: by mail-qa0-f43.google.com with SMTP id i13so7313085qae.30
-        for <linux-arch@vger.kernel.org>; Sat, 27 Sep 2014 13:19:15 -0700 (PDT)
+Received: from mx11.pku.edu.cn ([162.105.129.174]:36090 "EHLO mail.pku.edu.cn"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1752921AbaI1B6U convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 27 Sep 2014 21:58:20 -0400
+Date: Sun, 28 Sep 2014 09:49:29 +0800 (CST)
+From: =?gbk?B?WHVldGFvIEd1YW4g?= <gxt@pku.edu.cn>
+Message-ID: <1373895763.5110.1411868969556.JavaMail.root@bj-mail03.pku.edu.cn>
+In-Reply-To: <1411586033.19525.34.camel@x220>
+Subject: =?gbk?B?UmU6IFtQQVRDSF0gdW5pY29yZTMyOiBSZW1vdmUgdW5uZWVkZWQgS2NvbmZpZyBlbnRyeSBOT19JT1BPUlRfTUFQ?=
 MIME-Version: 1.0
-In-Reply-To: <20140926224752.GB22030@e106497-lin.cambridge.arm.com>
-References: <1411498874-9864-1-git-send-email-Liviu.Dudau@arm.com>
- <1411498874-9864-9-git-send-email-Liviu.Dudau@arm.com> <CAL_Jsq+j40Xf208wCf4as3H=cDU=htJ-JWinB0DjpcORjatNXQ@mail.gmail.com>
- <20140926212052.GA6030@borg.dudau.co.uk> <CAL_JsqKJ6bfPuOofo4grVm3qW_WOpUzcS1juZvHxZdFyyF_19A@mail.gmail.com>
- <20140926224752.GB22030@e106497-lin.cambridge.arm.com>
-From: Bjorn Helgaas <bhelgaas@google.com>
-Date: Sat, 27 Sep 2014 14:18:55 -0600
-Message-ID: <CAErSpo5Q-gZaeV91+UeMjmnUt7jqGndDY6zfZqsDWJUNh+Gm6A@mail.gmail.com>
-Subject: Re: [PATCH v12 08/12] PCI: OF: Introduce helper function for
- retrieving PCI domain numbers
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Liviu Dudau <Liviu.Dudau@arm.com>
-Cc: Rob Herring <robherring2@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Rob Herring <robh+dt@kernel.org>, Jason Gunthorpe <jgunthorpe@obsidianresearch.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Catalin Marinas <Catalin.Marinas@arm.com>, Will Deacon <Will.Deacon@arm.com>, Russell King <linux@arm.linux.org.uk>, linux-pci <linux-pci@vger.kernel.org>, Linus Walleij <linus.walleij@linaro.org>, Tanmay Inamdar <tinamdar@apm.com>, Grant Likely <grant.likely@secretlab.ca>, Sinan Kaya <okaya@codeaurora.org>, Jingoo Han <jg1.han@samsung.com>, Kukjin Kim <kgene.kim@samsung.com>, Suravee Suthikulanit <suravee.suthikulpanit@amd.com>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Device Tree ML <devicetree@vger.kernel.org>, LAKML <linux-arm-kernel@lists.infradead.org>, "grant.likely@linaro.org" <grant.likely@linaro.org>, Yinghai Lu <yinghai@kernel.org>
-Message-ID: <20140927201855.RhvsuJsox8_f5stOJxDrajxchp9iwF3GHStx5T8GMWc@z>
+To: Paul Bolle <pebolle@tiscali.nl>
+Cc: Guan Xuetao <gxt@mprc.pku.edu.cn>, linux-kernel@vger.kernel.org, linux-arch <linux-arch@vger.kernel.org>
+Message-ID: <20140928014929.TNQB-X_dEap52oI-uCSsJJevYE4iBdSyuJGoQJaSSNk@z>
 
-[+cc Yinghai]
+Sorry for late reply.
 
-On Fri, Sep 26, 2014 at 4:47 PM, Liviu Dudau <Liviu.Dudau@arm.com> wrote:
-> On Fri, Sep 26, 2014 at 10:53:26PM +0100, Rob Herring wrote:
+I checked this config, and it's only used for HAS_IOPORT_MAP in lib/Kconfig
+Sure, removing it means no different for .config file.
+I think a better way is reserving it or moving it into arch/Kconfig
 
->> I thought Bjorn already applied the series. Who's agreement are you
->> waiting for specifically.
->
-> Looks like he only applied about 60% of the series.
+Cc: linux-arch@vger.kernel.org
 
-I applied it all but Yinghai pointed out a problem with a patch in the
-middle, so I dropped that patch and everything after it because I didn't
-have time to work out whether the later patches depended on anything
-in the one I dropped.
+Xuetao Guan
 
-Bjorn
+----- Paul Bolle <pebolle@tiscali.nl> 写道：
+> Architectures only need a Kconfig entry for NO_IOPORT_MAP if it is
+> possible that its value will be 'y'. For unicore32 its value will always
+> be 'n', making it pointless. Remove it.
+> 
+> Signed-off-by: Paul Bolle <pebolle@tiscali.nl>
+> ---
+> Tested by playing with arch/unicore32/configs/unicore32_defconfig. This
+> patch made no difference whatsoever to the generated .config file.
+> Please note that it has
+>     CONFIG_HAS_IOPORT_MAP=y
+> 
+> set after invoking "make oldconfig" both before and after this patch.
+> 
+>  arch/unicore32/Kconfig | 3 ---
+>  1 file changed, 3 deletions(-)
+> 
+> diff --git a/arch/unicore32/Kconfig b/arch/unicore32/Kconfig
+> index 928237a7b9ca..2322cc87e7cb 100644
+> --- a/arch/unicore32/Kconfig
+> +++ b/arch/unicore32/Kconfig
+> @@ -27,9 +27,6 @@ config UNICORE32
+>  config GENERIC_CSUM
+>  	def_bool y
+>  
+> -config NO_IOPORT_MAP
+> -	bool
+> -
+>  config STACKTRACE_SUPPORT
+>  	def_bool y
+>  
+> -- 
+> 1.9.3
+> 
+
