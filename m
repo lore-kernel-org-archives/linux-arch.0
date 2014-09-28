@@ -1,34 +1,62 @@
-From: Bjorn Helgaas <bhelgaas@google.com>
-Subject: Re: [PATCH v12 08/12] PCI: OF: Introduce helper function for
- retrieving PCI domain numbers
-Date: Sat, 27 Sep 2014 14:18:55 -0600
-Message-ID: <CAErSpo5Q-gZaeV91+UeMjmnUt7jqGndDY6zfZqsDWJUNh+Gm6A@mail.gmail.com>
-References: <1411498874-9864-1-git-send-email-Liviu.Dudau@arm.com>
- <1411498874-9864-9-git-send-email-Liviu.Dudau@arm.com> <CAL_Jsq+j40Xf208wCf4as3H=cDU=htJ-JWinB0DjpcORjatNXQ@mail.gmail.com>
- <20140926212052.GA6030@borg.dudau.co.uk> <CAL_JsqKJ6bfPuOofo4grVm3qW_WOpUzcS1juZvHxZdFyyF_19A@mail.gmail.com>
- <20140926224752.GB22030@e106497-lin.cambridge.arm.com>
+From: =?gbk?B?WHVldGFvIEd1YW4g?= <gxt@pku.edu.cn>
+Subject: =?gbk?B?UmU6IFtQQVRDSF0gdW5pY29yZTMyOiBSZW1vdmUgdW5uZWVkZWQgS2NvbmZpZyBlbnRyeSBOT19JT1BPUlRfTUFQ?=
+Date: Sun, 28 Sep 2014 09:49:29 +0800 (CST)
+Message-ID: <1373895763.5110.1411868969556.JavaMail.root@bj-mail03.pku.edu.cn>
+References: <1411586033.19525.34.camel@x220>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-pci-owner@vger.kernel.org>
-In-Reply-To: <20140926224752.GB22030@e106497-lin.cambridge.arm.com>
-Sender: linux-pci-owner@vger.kernel.org
-To: Liviu Dudau <Liviu.Dudau@arm.com>
-Cc: Rob Herring <robherring2@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Rob Herring <robh+dt@kernel.org>, Jason Gunthorpe <jgunthorpe@obsidianresearch.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Catalin Marinas <Catalin.Marinas@arm.com>, Will Deacon <Will.Deacon@arm.com>, Russell King <linux@arm.linux.org.uk>, linux-pci <linux-pci@vger.kernel.org>, Linus Walleij <linus.walleij@linaro.org>, Tanmay Inamdar <tinamdar@apm.com>, Grant Likely <grant.likely@secretlab.ca>, Sinan Kaya <okaya@codeaurora.org>, Jingoo Han <jg1.han@samsung.com>, Kukjin Kim <kgene.kim@samsung.com>, Suravee Suthikulanit <suravee.suthikulpanit@amd.com>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Device Tree ML <devicetree@vger.kernel.org>, LAKML <linux-arm-kernel@lists.infradead.org>, "grant.likely@linaro.org" <grant.likely@linaro.org>, Yinghai Lu <ying>
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1411586033.19525.34.camel@x220>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Paul Bolle <pebolle@tiscali.nl>
+Cc: Guan Xuetao <gxt@mprc.pku.edu.cn>, linux-kernel@vger.kernel.org, linux-arch <linux-arch@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-[+cc Yinghai]
+Sorry for late reply.
 
-On Fri, Sep 26, 2014 at 4:47 PM, Liviu Dudau <Liviu.Dudau@arm.com> wrote:
-> On Fri, Sep 26, 2014 at 10:53:26PM +0100, Rob Herring wrote:
+I checked this config, and it's only used for HAS_IOPORT_MAP in lib/Kco=
+nfig
+Sure, removing it means no different for .config file.
+I think a better way is reserving it or moving it into arch/Kconfig
 
->> I thought Bjorn already applied the series. Who's agreement are you
->> waiting for specifically.
->
-> Looks like he only applied about 60% of the series.
+Cc: linux-arch@vger.kernel.org
 
-I applied it all but Yinghai pointed out a problem with a patch in the
-middle, so I dropped that patch and everything after it because I didn't
-have time to work out whether the later patches depended on anything
-in the one I dropped.
+Xuetao Guan
 
-Bjorn
+----- Paul Bolle <pebolle@tiscali.nl> =E5=86=99=E9=81=93=EF=BC=9A
+> Architectures only need a Kconfig entry for NO_IOPORT_MAP if it is
+> possible that its value will be 'y'. For unicore32 its value will alw=
+ays
+> be 'n', making it pointless. Remove it.
+>=20
+> Signed-off-by: Paul Bolle <pebolle@tiscali.nl>
+> ---
+> Tested by playing with arch/unicore32/configs/unicore32_defconfig. Th=
+is
+> patch made no difference whatsoever to the generated .config file.
+> Please note that it has
+>     CONFIG_HAS_IOPORT_MAP=3Dy
+>=20
+> set after invoking "make oldconfig" both before and after this patch.
+>=20
+>  arch/unicore32/Kconfig | 3 ---
+>  1 file changed, 3 deletions(-)
+>=20
+> diff --git a/arch/unicore32/Kconfig b/arch/unicore32/Kconfig
+> index 928237a7b9ca..2322cc87e7cb 100644
+> --- a/arch/unicore32/Kconfig
+> +++ b/arch/unicore32/Kconfig
+> @@ -27,9 +27,6 @@ config UNICORE32
+>  config GENERIC_CSUM
+>  	def_bool y
+> =20
+> -config NO_IOPORT_MAP
+> -	bool
+> -
+>  config STACKTRACE_SUPPORT
+>  	def_bool y
+> =20
+> --=20
+> 1.9.3
+>=20
