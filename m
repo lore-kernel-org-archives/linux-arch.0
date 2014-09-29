@@ -1,47 +1,39 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from fw-tnat.cambridge.arm.com ([217.140.96.21]:50474 "EHLO
-	cam-smtp0.cambridge.arm.com" rhost-flags-OK-OK-OK-FAIL)
-	by vger.kernel.org with ESMTP id S1753411AbaI2ObH (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Mon, 29 Sep 2014 10:31:07 -0400
-From: Liviu Dudau <Liviu.Dudau@arm.com>
-Subject: [PATCH v13 03/12] ARM: Define PCI_IOBASE as the base of virtual PCI IO space
-Date: Mon, 29 Sep 2014 15:29:22 +0100
-Message-ID: <1412000971-9242-4-git-send-email-Liviu.Dudau@arm.com>
-In-Reply-To: <1412000971-9242-1-git-send-email-Liviu.Dudau@arm.com>
-References: <1412000971-9242-1-git-send-email-Liviu.Dudau@arm.com>
+Received: from mout.kundenserver.de ([212.227.17.24]:49240 "EHLO
+	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752538AbaI2STA (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 29 Sep 2014 14:19:00 -0400
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH v12 10/12] PCI: Assign unassigned bus resources in pci_scan_root_bus()
+Date: Mon, 29 Sep 2014 20:18:02 +0200
+Message-ID: <6332476.od04BfvKGr@wuerfel>
+In-Reply-To: <54287AA5.3060408@amd.com>
+References: <1411498874-9864-1-git-send-email-Liviu.Dudau@arm.com> <CAErSpo5DR+TPYXBWGKRj9SRPjsbJ6kjZmAH1AXT12txEjGdZGQ@mail.gmail.com> <54287AA5.3060408@amd.com>
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7Bit
+Content-Type: text/plain; charset="us-ascii"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Bjorn Helgaas <bhelgaas@google.com>, Arnd Bergmann <arnd@arndb.de>, Rob Herring <robh+dt@kernel.org>, Jason Gunthorpe <jgunthorpe@obsidianresearch.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <Will.Deacon@arm.com>, Russell King <linux@arm.linux.org.uk>, linux-pci <linux-pci@vger.kernel.org>, Linus Walleij <linus.walleij@linaro.org>
-Cc: Tanmay Inamdar <tinamdar@apm.com>, Grant Likely <grant.likely@secretlab.ca>, Sinan Kaya <okaya@codeaurora.org>, Jingoo Han <jg1.han@samsung.com>, Kukjin Kim <kgene.kim@samsung.com>, Suravee Suthikulanit <suravee.suthikulpanit@amd.com>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Device Tree ML <devicetree@vger.kernel.org>, LAKML <linux-arm-kernel@lists.infradead.org>, Yinghai Lu <yinghai@kernel.org>, Jiang Liu <jiang.liu@linux.intel.com>
-Message-ID: <20140929142922.Fb3Ov0szzGjkbQDCkvZA2A14dUjLoe9e8lHYutH2l00@z>
+To: linux-arm-kernel@lists.infradead.org
+Cc: Suravee Suthikulpanit <Suravee.Suthikulpanit@amd.com>, Bjorn Helgaas <bhelgaas@google.com>, Liviu Dudau <liviu@dudau.co.uk>, linux-arch <linux-arch@vger.kernel.org>, Grant Likely <grant.likely@secretlab.ca>, Kukjin Kim <kgene.kim@samsung.com>, Russell King <linux@arm.linux.org.uk>, Device Tree ML <devicetree@vger.kernel.org>, linux-pci <linux-pci@vger.kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Linus Walleij <linus.walleij@linaro.org>, Jingoo Han <jg1.han@samsung.com>, Liviu Dudau <Liviu.Dudau@arm.com>, LKML <linux-kernel@vger.kernel.org>, Will Deacon <Will.Deacon@arm.com>, Jason Gunthorpe <jgunthorpe@obsidianresearch.com>, Rob Herring <robh+dt@kernel.org>, Tanmay Inamdar <tinamdar@apm.com>, Catalin Marinas <catalin.marinas@arm.com>, Sinan Kaya <okaya@codeaurora.org>
+Message-ID: <20140929181802.tAvGtzbuu9P6U4JYf22plMVzfXKvBlukikManjBP8LQ@z>
 
-This is needed for calls into OF code that parses PCI ranges.  It signals
-support for memory mapped PCI I/O accesses that are described by device
-trees.
+On Sunday 28 September 2014 16:16:21 Suravee Suthikulpanit wrote:
+> >
+> > I'm not opposed to it, but I have the same question as for setting up
+> > the domain: how does pci_scan_root_bus() learn what to assign to
+> > bus->msi?  It currently only gets a "void *sysdata" so there's no
+> > obvious place to put it there.  You could add a pcibios interface to
+> > retrieve it, I suppose, but I'm starting to get uncomfortable with
+> > adding more of those because we have such a mess of them already.
+> >
+> 
+> [Suravee] Liviu and I had a talk during Linaro Connect, and we came up
+> with a new binding for the pcie controller called "msi-parent" which is
+> supposed to contain phandle to the corresponded msi-controller.
 
-Signed-off-by: Liviu Dudau <Liviu.Dudau@arm.com>
-Signed-off-by: Bjorn Helgaas <bhelgaas@google.com>
-Reviewed-by: Catalin Marinas <catalin.marinas@arm.com>
-Acked-by: Arnd Bergmann <arnd@arndb.de>
-CC: Russell King <linux@arm.linux.org.uk>
-CC: Rob Herring <robh+dt@kernel.org>
----
- arch/arm/include/asm/io.h | 1 +
- 1 file changed, 1 insertion(+)
+Is this based on the property that we have in the pci-mvebu driver?
 
-diff --git a/arch/arm/include/asm/io.h b/arch/arm/include/asm/io.h
-index 3d23418..1805674 100644
---- a/arch/arm/include/asm/io.h
-+++ b/arch/arm/include/asm/io.h
-@@ -178,6 +178,7 @@ static inline void __iomem *__typesafe_io(unsigned long addr)
- 
- /* PCI fixed i/o mapping */
- #define PCI_IO_VIRT_BASE	0xfee00000
-+#define PCI_IOBASE		((void __iomem *)PCI_IO_VIRT_BASE)
- 
- #if defined(CONFIG_PCI)
- void pci_ioremap_set_mem_type(int mem_type);
--- 
-2.1.1
+I hope this is meant to be compatible so we can share the implementation.
 
+	Arnd
