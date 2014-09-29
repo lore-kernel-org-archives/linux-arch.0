@@ -1,83 +1,86 @@
 From: Liviu Dudau <Liviu.Dudau@arm.com>
-Subject: [PATCH v13 04/12] of/pci: Define of_pci_range_to_resource() only when
- CONFIG_PCI=y
-Date: Mon, 29 Sep 2014 15:29:23 +0100
-Message-ID: <1412000971-9242-5-git-send-email-Liviu.Dudau@arm.com>
-References: <1412000971-9242-1-git-send-email-Liviu.Dudau@arm.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-In-Reply-To: <1412000971-9242-1-git-send-email-Liviu.Dudau@arm.com>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+Subject: [PATCH v13 00/12] Support for creating generic PCI host bridges from DT
+Date: Mon, 29 Sep 2014 15:29:19 +0100
+Message-ID: <1412000971-9242-1-git-send-email-Liviu.Dudau@arm.com>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: Bjorn Helgaas <bhelgaas@google.com>, Arnd Bergmann <arnd@arndb.de>, Rob Herring <robh+dt@kernel.org>, Jason Gunthorpe <jgunthorpe@obsidianresearch.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <Will.Deacon@arm.com>, Russell King <linux@arm.linux.org.uk>, linux-pci <linux-pci@vger.kernel.org>, Linus Walleij <linus.walleij@linaro.org>
-Cc: linux-arch <linux-arch@vger.kernel.org>, Sinan Kaya <okaya@codeaurora.org>, Kukjin Kim <kgene.kim@samsung.com>, Device Tree ML <devicetree@vger.kernel.org>, Jingoo Han <jg1.han@samsung.com>, LKML <linux-kernel@vger.kernel.org>, Grant Likely <grant.likely@secretlab.ca>, Tanmay Inamdar <tinamdar@apm.com>, Suravee Suthikulanit <suravee.suthikulpanit@amd.com>, Yinghai Lu <yinghai@kernel.org>, Jiang Liu <jiang.liu@linux.intel.com>, LAKML <linux-arm-kernel@lists.infradead.org>
+Cc: Tanmay Inamdar <tinamdar@apm.com>, Grant Likely <grant.likely@secretlab.ca>, Sinan Kaya <okaya@codeaurora.org>, Jingoo Han <jg1.han@samsung.com>, Kukjin Kim <kgene.kim@samsung.com>, Suravee Suthikulanit <suravee.suthikulpanit@amd.com>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Device Tree ML <devicetree@vger.kernel.org>, LAKML <linux-arm-kernel@lists.infradead.org>, Yinghai Lu <yinghai@kernel.org>, Jiang Liu <jiang.liu@linux.intel.com>
 List-Id: linux-arch.vger.kernel.org
 
-From: Bjorn Helgaas <bhelgaas@google.com>
+This is my version 13 of the attempt at adding support for generic PCI host
+bridge controllers. It contains only cleanups to make it play nice with the
+linux-next tree as of 09/25. If Bjorn deems it safe, now that it looks like
+asm-generic is going to revert some of its more aggresive patches, he has the
+choice of queueing it into linux-next again.
 
-of_pci_range_to_resource() was previously defined always, but it's only
-used by PCI code, so move the definition inside the CONFIG_OF_ADDRESS &&
-CONFIG_PCI block.
+Changes from v12:
+- refreshed the whole series based on what Bjorn has submitted into linux-next.
+  He has added Signed-off-bys and change the title of some commits, plus
+  reworked the patches that move of_pci_range_to_resource() from of_address.h into
+  address.c.
+- updated "[PATCH 01/12] asm-generic/io.h: Fix ioport_map() for !CONFIG_GENERIC_IOMAP"
+  to match the patch that Thierry Reding has submitted through the asm-generic branch.
+  If his series lands first upstream this patch will be skipped.
+- updated "[PATCH 03/12] ARM: Define PCI_IOBASE as the base of virtual PCI IO space" to
+  cast the PCI_IOBASE value to (void __iomem *) as is the case with most #defined versions
+- dropped the patch that was changing the order of initialisation between pci_host_bridge
+  and root bus in pci_create_root_bus()
+- fixed "[PATCH 07/12] PCI: Add generic domain handling" to account for the previous patch
+  being removed
+- fixed the title of commit 08/12 to reflect the name of the functions that are actually
+  added (s/of_pci_get_domain_nr/pci_get_new_domain_nr/)
 
-Signed-off-by: Bjorn Helgaas <bhelgaas@google.com>
----
- include/linux/of_address.h | 24 ++++++++++++------------
- 1 file changed, 12 insertions(+), 12 deletions(-)
+v12 thread here: https://lkml.org/lkml/2014/9/23/852
+v11 thread here: https://lkml.org/lkml/2014/9/17/732
+v10 thread here: https://lkml.org/lkml/2014/9/8/333
+v9 thread here, with links to previous threads: https://lkml.org/lkml/2014/8/12/361
 
-diff --git a/include/linux/of_address.h b/include/linux/of_address.h
-index f8cc7da..ecf913c 100644
---- a/include/linux/of_address.h
-+++ b/include/linux/of_address.h
-@@ -23,17 +23,6 @@ struct of_pci_range {
- #define for_each_of_pci_range(parser, range) \
- 	for (; of_pci_range_parser_one(parser, range);)
- 
--static inline void of_pci_range_to_resource(struct of_pci_range *range,
--					    struct device_node *np,
--					    struct resource *res)
--{
--	res->flags = range->flags;
--	res->start = range->cpu_addr;
--	res->end = range->cpu_addr + range->size - 1;
--	res->parent = res->child = res->sibling = NULL;
--	res->name = np->full_name;
--}
--
- /* Translate a DMA address from device space to CPU space */
- extern u64 of_translate_dma_address(struct device_node *dev,
- 				    const __be32 *in_addr);
-@@ -140,6 +129,18 @@ extern const __be32 *of_get_pci_address(struct device_node *dev, int bar_no,
- 			       u64 *size, unsigned int *flags);
- extern int of_pci_address_to_resource(struct device_node *dev, int bar,
- 				      struct resource *r);
-+
-+static inline void of_pci_range_to_resource(struct of_pci_range *range,
-+					    struct device_node *np,
-+					    struct resource *res)
-+{
-+	res->flags = range->flags;
-+	res->start = range->cpu_addr;
-+	res->end = range->cpu_addr + range->size - 1;
-+	res->parent = res->child = res->sibling = NULL;
-+	res->name = np->full_name;
-+}
-+
- #else /* CONFIG_OF_ADDRESS && CONFIG_PCI */
- static inline int of_pci_address_to_resource(struct device_node *dev, int bar,
- 				             struct resource *r)
-@@ -155,4 +156,3 @@ static inline const __be32 *of_get_pci_address(struct device_node *dev,
- #endif /* CONFIG_OF_ADDRESS && CONFIG_PCI */
- 
- #endif /* __OF_ADDRESS_H */
--
+Best regards,
+Liviu
+
+
+Bjorn Helgaas (1):
+  of/pci: Define of_pci_range_to_resource() only when CONFIG_PCI=y
+
+Catalin Marinas (1):
+  PCI: Add generic domain handling
+
+Liviu Dudau (10):
+  asm-generic/io.h: Fix ioport_map() for !CONFIG_GENERIC_IOMAP
+  of/pci: Add pci_register_io_range() and pci_pio_to_address()
+  ARM: Define PCI_IOBASE as the base of virtual PCI IO space
+  of/pci: Move of_pci_range_to_resources() to of/address.c
+  of/pci: Fix the conversion of IO ranges into IO resources
+  of/pci: Add pci_get_new_domain_nr() and of_get_pci_domain_nr()
+  of/pci: Add support for parsing PCI host bridge resources from DT
+  PCI: Assign unassigned bus resources in pci_scan_root_bus()
+  PCI: Add pci_remap_iospace() to map bus I/O resources
+  arm64: Add architectural support for PCI
+
+ arch/arm/include/asm/io.h         |   1 +
+ arch/arm/mach-integrator/pci_v3.c |  23 +++---
+ arch/arm64/Kconfig                |  22 +++++-
+ arch/arm64/include/asm/Kbuild     |   1 +
+ arch/arm64/include/asm/io.h       |   3 +-
+ arch/arm64/include/asm/pci.h      |  37 +++++++++
+ arch/arm64/include/asm/pgtable.h  |   2 +
+ arch/arm64/kernel/Makefile        |   1 +
+ arch/arm64/kernel/pci.c           |  70 +++++++++++++++++
+ drivers/of/address.c              | 154 ++++++++++++++++++++++++++++++++++++++
+ drivers/of/of_pci.c               | 142 +++++++++++++++++++++++++++++++++++
+ drivers/pci/host/pci-tegra.c      |  10 ++-
+ drivers/pci/host/pcie-rcar.c      |  21 ++++--
+ drivers/pci/pci.c                 |  40 ++++++++++
+ drivers/pci/probe.c               |  14 +++-
+ include/asm-generic/io.h          |   2 +-
+ include/asm-generic/pgtable.h     |   4 +
+ include/linux/of_address.h        |  17 ++---
+ include/linux/of_pci.h            |  13 ++++
+ include/linux/pci.h               |  27 +++++++
+ 20 files changed, 566 insertions(+), 38 deletions(-)
+ create mode 100644 arch/arm64/include/asm/pci.h
+ create mode 100644 arch/arm64/kernel/pci.c
+
 -- 
 2.1.1
