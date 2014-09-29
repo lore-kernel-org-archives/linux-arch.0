@@ -1,165 +1,77 @@
-From: Yijing Wang <wangyijing@huawei.com>
-Subject: Re: [PATCH v2 00/22] Use MSI chip framework to configure MSI/MSI-X
- in all platforms
-Date: Mon, 29 Sep 2014 09:44:17 +0800
-Message-ID: <5428B971.50101@huawei.com>
-References: <1411614872-4009-1-git-send-email-wangyijing@huawei.com> <20140925074235.GN12423@ulmo> <20140925144855.GB31157@bart.dudau.co.uk> <20140925164937.GB30382@ulmo> <5424E09F.50701@huawei.com> <20140926085030.GE31157@bart.dudau.co.uk> <54276F6C.5010705@huawei.com> <20140928112144.GA4671@bart.dudau.co.uk>
+From: =?utf-8?B?5bCP6LS6?= <uspark@ttgst.ac.kr>
+Subject: =?utf-8?B?55So5LqG5LiA5qyh5L2g5bCx5Lya6KeJ5b6X5piv5pyA5aW955qE55+t5L+h5Y+R6YCB5bmz5Y+wIA==?=
+	=?utf-8?B?ICAgICAgICAgICAgICAgICAgICA=?=
+	=?utf-8?B?ICAgICAgICAgICAgICAgICAgICA=?=
+	=?utf-8?B?ICAgICAgICAgICAgICAgICAgICA=?=
+	=?utf-8?B?ICAgICAgICB0aDk=?=
+Date: Mon, 29 Sep 2014 11:03:09 +0800
+Message-ID: <20140929110315087468@ttgst.ac.kr>
+Reply-To: <dingxj8@aliyun.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from szxga01-in.huawei.com ([119.145.14.64]:18324 "EHLO
-	szxga01-in.huawei.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754102AbaI2Boy (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 28 Sep 2014 21:44:54 -0400
-In-Reply-To: <20140928112144.GA4671@bart.dudau.co.uk>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Liviu Dudau <liviu@dudau.co.uk>
-Cc: Thierry Reding <thierry.reding@gmail.com>, Bjorn Helgaas <bhelgaas@google.com>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, Xinwei Hu <huxinwei@huawei.com>, Wuyun <wuyun.wu@huawei.com>, linux-arm-kernel@lists.infradead.org, Russell King <linux@arm.linux.org.uk>, linux-arch@vger.kernel.org, arnab.basu@freescale.com, Bharat.Bhushan@freescale.com, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, Thomas Gleixner <tglx@linutronix.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, xen-devel@lists.xenproject.org, Joerg Roedel <joro@8bytes.org>, iommu@lists.linux-foundation.org, linux-mips@linux-mips.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, Sebastian Ott <sebott@linux.vnet.ibm.com>, Tony Luck <tony.luck@intel.com>, linux-ia64@vger.kernel.org, David S. Miller
+Content-Type: text/plain;
+	charset="utf-8"
+Content-Transfer-Encoding: base64
+Return-path: <linux-arm-msm-owner@vger.kernel.org>
+Sender: linux-arm-msm-owner@vger.kernel.org
+To: linuwe@sina.com, linux-arch@vger.kernel.org, linux-arm-msm@vger.kernel.org, linux-assembly-owner@yahoogroups.com
+List-Id: linux-arch.vger.kernel.org
 
-On 2014/9/28 19:21, Liviu Dudau wrote:
-> On Sun, Sep 28, 2014 at 10:16:12AM +0800, Yijing Wang wrote:
->>>>>> What I would like to see is a way of creating the pci_host_bridge structure outside
->>>>>> the pci_create_root_bus(). That would then allow us to pass this sort of platform
->>>>>> details like associated msi_chip into the host bridge and the child busses will
->>>>>> have an easy way of finding the information needed by finding the root bus and then
->>>>>> the host bridge structure. Then the generic pci_scan_root_bus() can be used by (mostly)
->>>>>> everyone and the drivers can remove their kludges that try to work around the
->>>>>> current limitations.
->>>>
->>>> So I think maybe save msi chip in PCI arch sysdata is a good candidate.
->>>
->>> Except that arch sysdata at the moment is an opaque pointer. I am all in favour in
->>> changing the type of sysdata from void* into pci_host_bridge* and arches can wrap their old
->>> sysdata around the pci_host_bridge*.
->>
->> I inspected every arch and found there are almost no common stuff,
-> 
-> I will disagree here. Most (all?) of the structures that are passed as sysdata argument to
-
-Most.
-
-> pci_create_root_bus() or pci_scan_root_bus() have a set of resources for storing the MEM and
-> IO ranges, which struct pci_host_bridge already has. So that can be factored out of the
-> arch code. Same for pci_domain_nr. Then there are some variables that are used for communication
-> with the platform code due to convoluted way(s) in which PCI code gets instantiated.
-
-Yes, currently some archs store MEM and IO resource in pci sysdata, and others not, move the MEM and IO
-resource to pci_host_bride could make code become simple, we can clean up the resource list argument in
-pci scan functions.
-
-> 
-> What I am arguing here is not that the arch equivalent of pci_host_bridge structure is already
-> common, but that by moving the members that are common out of arch sysdata into pci_host_bridge
-> we will have more commonality and it will be easier to re-factor the code.
-
-Now, I got it, thanks!
-
-> 
->> and generic data struct should
->> be created in generic PCI code.
-> 
-> Not necessarily. What I have in mind is something like this:
-
-This is a good idea, what I'm worried is this series is already large, so I think we need to post
-another series to do it.
-
-
-> 
->  - drivers/pci/ exports pci_init_host_bridge() that does the initialisation of bridge->windows
->    and anything else that is needed (like find_pci_host_bridge() function).
->  - arch code does:
-> 
-> 	struct pci_controller {
-> 		struct pci_host_bridge bridge;
-> 		.....
-> 	};
-> 
-> 	#define to_pci_controller(bridge)	container_of(bridge, struct pci_controller, bridge)
-> 
-> 	static inline struct pci_controller *get_host_controller(const struct pci_bus *bus)
-> 	{
-> 		struct pci_host_bridge *bridge = find_pci_host_bridge(bus);
-> 		if (bridge)
-> 			return to_pci_controller(bridge);
-> 
-> 		return NULL;
-> 	}
-> 
-> 	int arch_pci_init(....)
-> 	{
-> 		struct pci_controller *hose;
-> 		....
-> 		hose = kzalloc(sizeof(*hose), GFP_KERNEL);
-> 		pci_init_host_bridge(&hose->bridge);
-> 		....
-> 		pci_scan_root_bus(...., &hose->bridge, &resources);
-> 		....
-> 		return 0;
-> 	}
-> 
-> Then finding the right structure will be easy.
-> 
->> Another, I don't like associate msi chip and every PCI device, further more,
->> almost all platforms except arm have only one MSI controller, and currently, PCI enumerating code doesn't need
->> to know the MSI chip details, like for legacy IRQ, PCI device doesn't need to know which IRQ controller they
->> should deliver IRQ to. I would think more about it, and hope other PCI guys can give some comments, especially from Bjorn.
->>
-> 
-> I wasn't suggesing to associate an msi chip with every PCI device, but with the pci_host_bridge.
-> I don't expect a host bridge to have more than one msi chip, so that should be OK. Also, I'm
-> thinking that getting the associated msi chip should be some sort of pci_host_bridge ops function,
-> and for arches that don't care about MSI it doesn't get implemented.
-
-Currently, a property "msi-parent" was introduced in arm, and all msi chip integrated in irq chip controller will
-be added to of_pci_msi_chip_list. PCI host driver find the match msi chip by its of_node.
-
-Thanks!
-Yijing.
-
-> 
-> Best regards,
-> Liviu
-> 
->  
->> Thanks!
->> Yijing.
->>
->>>
->>> Best regards,
->>> Liviu
->>>
->>>>
->>>>>
->>>>> I think both issues are orthogonal. Last time I checked a lot of work
->>>>> was still necessary to unify host bridges enough so that it could be
->>>>> shared across architectures. But perhaps some of that work has
->>>>> happened in the meantime.
->>>>>
->>>>> But like I said, when you create the root bus, you can easily attach the
->>>>> MSI chip to it.
->>>>>
->>>>> Thierry
->>>>>
->>>>
->>>>
->>>> -- 
->>>> Thanks!
->>>> Yijing
->>>>
->>>>
->>>
->>
->>
->> -- 
->> Thanks!
->> Yijing
->>
->>
-> 
-
-
--- 
-Thanks!
-Yijing
+DQogIOi/meS4quefreS/oeWPkemAgeW5s+WPsOWunuWcqOaYr+WkquWlveeUqOS6hu+8jOWGjeS5
+n+S4jeaEgeaJvuS4jeWIsOWlveeahOW5s+WPsOS6hu+8jOWPquimgeaYr+S9oOWPkeeahOWGheWu
+ueaYr+ato+inhOeahO+8jOi9u+advuWwseWPr+S7peWPkemAgeWHuuWOu+OAguWKoFFRMTkzOTg5
+NzI15YW35L2T5ZKo6K+i77yM5Y+v5Lul5byA6LSm5Y+35rWL5pWI5p6c44CCDQoNCg0KDQoNCg0K
+IA0KDQoNCg0KDQoNCg0KDQoNCg0KDQoNCg0KDQoNCg0KDQoNCg0KDQoNCg0KDQoNCg0KDQoNCg0K
+DQoNCg0KDQoNCg0KDQoNCg0KDQoNCg0KDQoNCg0KDQoNCg0KDQoNCg0KDQoNCg0KDQoNCg0KDQoN
+Cg0KDQoNCg0KDQoNCg0KDQoNCg0KDQoNCg0KDQoNCg0KDQoNCg0KDQoNCg0KDQoNCg0KDQoNCg0K
+DQoNCg0KDQoNCg0KDQoNCg0KDQoNCg0KDQoNCg0KDQoNCg0KDQoNCueBv+eDguWcsOS4gOeske+8
+jOaMpOS6huS4gOS4i+ecvOedm++8jOiuqeWlueS4jeemgeW/g+WmguaSnum5v+OAgiAgICDnrYnl
+iLDlpbnkuozpm7bpm7blm5vlubTnnIvliLDpppnmuK/okZflkI3pu5HluK7nlLXlvbHjgIrml6Dp
+l7TpgZPjgIvnmoTml7blgJnvvIznnIvliLDmooHmnJ3kvJ/ooqvorablrpjlrabmoKHlvIDpmaTv
+vIzotbDlh7rmoKHpl6jvvIzlm57lpLTkuIDnrJHnmoTml7blgJnvvIzlpbnmiY3lj5HlkIPkuI3l
+lp3jgIIgICAg5q2j5ZCD552A5Zad552A77yM5bGI5bCP5YWD5bim552A5LiA5biu5Z2P5bCP5a2Q
+6L+H5p2l5LqG77yM5LiA6L+b6Zeo5bCx5aSn5Y+r77ya4oCc5aSP5bCP5rSb77yM5L2g5Lir5Zyo
+6L+Z5ZCD54us6aOf5ZGi77yM5Lmf5LiN5Y+r5LiK5oiR44CC4oCd5ou/6LW35LiA5Liq54yq6LmE
+5bCx5ZWD6LW35p2l5LqG77yM4oCc5aSP5bCP5rSb77yM5L2g5Y+R6LSi5LqG77yf4oCdICAgIOKA
+nOS9leivl+mftei/h+S6lOWRs++8jOmTgeWxgOmVv+aPkOWHuu+8muKAnOiAgeS9leWViu+8jOaI
+kemDveWcqOi/memHjOiAveivr+S6huS4pOWkqeS6hu+8jOWGjeS4jeaOpeWPl+W3peS9nO+8jOi/
+meaViOeOh+S5n+aYvuW+l+WkquS9juS6huKAnSAgICDkvZXkuqznlJ/igJzpnZ7luLjmirHmrYni
+gJ3lnLDlr7npk4HlsYDplb/or7TvvJrigJzpk4HlsYDplb/vvIzlrp7lnKjmmK/kuI3lpb3mhI/m
+gJ3vvIzkvaDnnIvvvIHigJ0gICAg6K+0552A5rSb56yR5Zi75Zi75Zyw6YGT77yM6K+05a6M5LuW
+5oSP5ZGz5ZCr5re35Zyw55yL5LqG54i25Lqy5LiA55y844CCICAgIOWkj+i/keS4nOWmguWQjOW+
+l+S6huaMh+eCueS4gOiIrO+8jOebruWFieeBvOeBvOWcsOebr+edgOS9leS6rOeUn+mBk++8muKA
+nOimgeS4je+8jOi/meS4quS6i+aDheaIkeadpeWBmuOAguKAnSAgICDpgqPmnKzmnaXpl7LkupHp
+h47puaTnmoTmsJTotKjmtojlpLHkuI3op4HkuobvvIzlj5bogIzku6PkuYvmmK/mu4vmtqbjgIIg
+ICAg5Y+q5ZCs5aSn6Zeo5Y+j5aSE5LiA6Zi16Ieq6KGM6L2m5oCl5L+D55qE5Yi56L2m5aOw4oCU
+4oCU6L2m5LiK55qE5Lq655So56m/552A5ouW6Z6L55qE6ISa5Lir5a2Q5pKR5Zyw77yM5Zyo5Zyw
+5LiK5YiS6L+H5LiA6YGT55m96Imy55qE55eV6L+577yM6aOe6YCf6KGM6am255qE6Ieq6KGM6L2m
+5r2H5rSS5peg5q+U5Zyw5YGc5LqG5LiL5p2l44CC5LiA5LiL77yM5Lmf5Y+v6K6p5a+55pa56ZuF
+5q2j44CC5oiR5Lus6L+Z5Liq5bCP5Y6/5Z+O77yM5oeC5paH5a2m55qE5LiN5aSa77yM5L2g5LuO
+5YyX5Lqs5p2l77yM5rC05bmz6IKv5a6a5L2O5LiN5LqG77yM6L+Y5pyb5L2g5LiN5ZCd6LWQ5pWZ
+44CC4oCdICAgIOi/meWHoOWPpeivneivtOW+l+aegeWFtuW+l+S9k++8jOWnv+aAgeS5n+aUvuW+
+l+aegeS9ju+8jOaKiuWImuaJjeWJkeaLlOW8qeW8oOeahOawm+WbtOWMluino+S6jgkNCuiHtOW/
+l+WcsOebkeiAg+i1t+adpe+8jOecvOedm+aJq+adpeaJq+WxiO+8jOS4gOS8mueci+i/meS4qu+8
+jOS4gOS8mueci+eci+mCo+S4quOAgiAgICDigJwxOTkw5bm05bqm5paw6Ziz5biC5Yid5Lit5Y2H
+6auY5Lit5YWl5a2m6ICD6K+V5pWw5a2m6K+V5Y234oCd5Yeg5Liq5aSn5a2X5pig5YWl55y85biY
+77yM5LuW5b+D6YeM5LiA6Zi15r+A5Yqo77yM5b+r6YCf5Zyw5oqK6K+V5Y2357uT5p6E5ZKM5Yeg
+5Liq55qE5omT5bel5LuU77yM6L+Z5Lya5a2m5LiA5LiL6YKj5Lqb5oyl6YeR5aaC5Zyf6LSl5a62
+55qE5a+M5LqM5Luj55qE57qo57uU6IyD5YS/77yM5Lqr5Y+X5LiA5LiL5Yir5Lq6576h5oWV55qE
+55uu5YWJ44CCICAgIOS7luS5i+WJjeS4gOebtOWPl+S6uuasuuWOi++8jOmavuW+l+aJrOecieWQ
+kOawlOS4gOS8mu+8jOWboOatpOi/memAvOijheW+l+aYr+WIhuWkluW9u+W6leOAgiAgICDlj6rl
+kKzkuIDlo7DlpKfllp3vvIzkvJflrrbkurrotbDljrvjgIIgICAg5bGI5bCP5YWD6L+Y5LiN5b+Y
+6K6w5Zue6L+H5aS05o+25o+E6buE6Iq56Iq55LiA5LiL77ya4oCc5L2g5YS/5a2Q5aW95YOP5rKh
+5pyJ6ICD5LiK56ys5LiA6auY5Lit77yM5LiN6L+H5oGB5a626YKj5LmI5pyJ6ZKx77yM5Lmf5LiN
+5Zyo5LmO6YKj54K56auY5Lu36LS544CC4oCdICAgIOS7lueahOivneW8leW+l+WbtOingueahOe+
+pOS8l+WTiOWTiOWkp+eske+8jOmXqOWNq+WGr+Wkp+eIt+ivtOaLjeiEkeiii++8jOmBk++8muKA
+nOW3rueCueW/mOS6hu+8geKAnSAgICDku5bov5nkuKrogIHliJHkvqbpg73msqHmnInmg7PliLDo
+v5nkuIDngrnvvIzkuI3npoHlv4PkuK3lkI7mgJXvvIzlv4PpgZPvvIzoi6XmmK/lnKjmtJvmsLTl
+jr/lrqHpl67vvIzmgZDmgJXov5jmsqHlvIDlp4vlrqHpl67vvIzokaPkuZ3mmJ/lt7Lnu4/lkozl
+jaLlhpvotoXkuIDkvJnpgJrkuIrnlLXor53kuobjgIIgICAg5L2V5Lqs55Sf5oyH552A5aSP55Om
+5oi/5piv5a625bGe6Zmi77yM5a625bGe6Zmi55qE5bCP54mH56m65Zyw5LiK6KKr5a625bGe5Lus
+6KeB57yd5o+S6ZKI5Zyw56eN5LqG5ZCE56eN6JSs6I+c44CCICAgIOivtOi1t+adpe+8jOmCo+S4
+quaXtuWAmeeahOS5oeW5sumDqOeahOeUn+a0u+WPr+avlOS4gOiIrOe+pOS8l+WlveWkmuS6hu+8
+jOS4jei/h+WcqOaVtOS9k+eJqei0qOWMruS5j+eahOW5tOS7o++8jOS7luS7rOS5n+WPquiDveWm
+guatpOadpea7oei2s+iHquermeWcqOS4remXtO+8jOaXoOaJgOS9nOS4uu+8jOmCo+S5iOS9oOWc
+qOS7luS7rOecvOmHjOWImeaYr+KAmOidmeidoOKAmeOAguKAnSAgICDigJzonZnonaDvvJ/ku4Dk
+uYjmhI/mgJ3vvJ/igJ0gICAg4oCc5YGH6K6+546L5L+K5Lyf5LiA5rS+5piv5YW957G777yM6ZKx
+5bGA6ZW/5piv6bif57G777yM5YCY6Iul5L2g5rKh5pyJ5Lu75L2V6KGM5Yqo77yM6YKj5LmI5Zyo
+546L55qE5rS+57O76L+Z5Lqb5Lq655qE55y86YeM77yMCQ0K
