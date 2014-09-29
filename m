@@ -1,8 +1,8 @@
 From: Liviu Dudau <Liviu.Dudau@arm.com>
-Subject: [PATCH v13 01/12] asm-generic/io.h: Fix ioport_map() for
- !CONFIG_GENERIC_IOMAP
-Date: Mon, 29 Sep 2014 15:29:20 +0100
-Message-ID: <1412000971-9242-2-git-send-email-Liviu.Dudau@arm.com>
+Subject: [PATCH v13 05/12] of/pci: Move of_pci_range_to_resources() to
+ of/address.c
+Date: Mon, 29 Sep 2014 15:29:24 +0100
+Message-ID: <1412000971-9242-6-git-send-email-Liviu.Dudau@arm.com>
 References: <1412000971-9242-1-git-send-email-Liviu.Dudau@arm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -19,35 +19,70 @@ List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
 Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
 Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
 To: Bjorn Helgaas <bhelgaas@google.com>, Arnd Bergmann <arnd@arndb.de>, Rob Herring <robh+dt@kernel.org>, Jason Gunthorpe <jgunthorpe@obsidianresearch.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <Will.Deacon@arm.com>, Russell King <linux@arm.linux.org.uk>, linux-pci <linux-pci@vger.kernel.org>, Linus Walleij <linus.walleij@linaro.org>
-Cc: linux-arch <linux-arch@vger.kernel.org>, Sinan Kaya <okaya@codeaurora.org>, Kukjin Kim <kgene.kim@samsung.com>, Device Tree ML <devicetree@vger.kernel.org>, Jingoo Han <jg1.han@samsung.com>, LKML <linux-kernel@vger.kernel.org>, Grant Likely <grant.likely@secretlab.ca>, Tanmay Inamdar <tinamdar@apm.com>, Suravee Suthikulanit <suravee.suthikulpanit@amd.com>, Yinghai Lu <yinghai@kernel.org>, Jiang Liu <jiang.liu@linux.intel.com>, LAKML <linux-arm-kernel@lists.infradead.org>
+Cc: linux-arch <linux-arch@vger.kernel.org>, Sinan Kaya <okaya@codeaurora.org>, Kukjin Kim <kgene.kim@samsung.com>, Device Tree ML <devicetree@vger.kernel.org>, Jingoo Han <jg1.han@samsung.com>, LKML <linux-kernel@vger.kernel.org>, Grant Likely <grant.likely@secretlab.ca>, Tanmay Inamdar <tinamdar@apm.com>, Suravee Suthikulanit <suravee.suthikulpanit@amd.com>, Grant Likely <grant.likely@linaro.org>, Yinghai Lu <yinghai@kernel.org>, Jiang Liu <jiang.liu@linux.intel.com>, LAKML <linux-arm-kernel@lists.infradead.org>
 List-Id: linux-arch.vger.kernel.org
 
-The !CONFIG_GENERIC_IOMAP version of ioport_map() is wrong.  It returns a
-mapped, i.e., virtual, address that can start from zero and completely
-ignores the PCI_IOBASE and IO_SPACE_LIMIT that most architectures that use
-!CONFIG_GENERIC_MAP define.
+We need to enhance of_pci_range_to_resources() enough that it won't make
+sense for it to be inline anymore.  Move it to drivers/of/address.c,
+keeping it under #ifdef CONFIG_PCI.
 
-Tested-by: Tanmay Inamdar <tinamdar@apm.com>
+[bhelgaas: drop extra detail from changelog, move def under CONFIG_PCI]
 Signed-off-by: Liviu Dudau <Liviu.Dudau@arm.com>
 Signed-off-by: Bjorn Helgaas <bhelgaas@google.com>
-Reviewed-by: Catalin Marinas <catalin.marinas@arm.com>
-Acked-by: Arnd Bergmann <arnd@arndb.de>
+CC: Grant Likely <grant.likely@linaro.org>
+CC: Rob Herring <robh+dt@kernel.org>
+CC: Arnd Bergmann <arnd@arndb.de>
+CC: Catalin Marinas <catalin.marinas@arm.com>
 ---
- include/asm-generic/io.h | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ drivers/of/address.c       |  9 +++++++++
+ include/linux/of_address.h | 15 +++------------
+ 2 files changed, 12 insertions(+), 12 deletions(-)
 
-diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
-index 975e1cc..b8fdc57 100644
---- a/include/asm-generic/io.h
-+++ b/include/asm-generic/io.h
-@@ -331,7 +331,7 @@ static inline void iounmap(void __iomem *addr)
- #ifndef CONFIG_GENERIC_IOMAP
- static inline void __iomem *ioport_map(unsigned long port, unsigned int nr)
- {
--	return (void __iomem *) port;
-+	return PCI_IOBASE + (port & IO_SPACE_LIMIT);
+diff --git a/drivers/of/address.c b/drivers/of/address.c
+index 758d4f0..327a574 100644
+--- a/drivers/of/address.c
++++ b/drivers/of/address.c
+@@ -295,6 +295,15 @@ struct of_pci_range *of_pci_range_parser_one(struct of_pci_range_parser *parser,
  }
+ EXPORT_SYMBOL_GPL(of_pci_range_parser_one);
  
- static inline void ioport_unmap(void __iomem *p)
++void of_pci_range_to_resource(struct of_pci_range *range,
++			      struct device_node *np, struct resource *res)
++{
++	res->flags = range->flags;
++	res->start = range->cpu_addr;
++	res->end = range->cpu_addr + range->size - 1;
++	res->parent = res->child = res->sibling = NULL;
++	res->name = np->full_name;
++}
+ #endif /* CONFIG_PCI */
+ 
+ /*
+diff --git a/include/linux/of_address.h b/include/linux/of_address.h
+index ecf913c..fa20aa1 100644
+--- a/include/linux/of_address.h
++++ b/include/linux/of_address.h
+@@ -129,18 +129,9 @@ extern const __be32 *of_get_pci_address(struct device_node *dev, int bar_no,
+ 			       u64 *size, unsigned int *flags);
+ extern int of_pci_address_to_resource(struct device_node *dev, int bar,
+ 				      struct resource *r);
+-
+-static inline void of_pci_range_to_resource(struct of_pci_range *range,
+-					    struct device_node *np,
+-					    struct resource *res)
+-{
+-	res->flags = range->flags;
+-	res->start = range->cpu_addr;
+-	res->end = range->cpu_addr + range->size - 1;
+-	res->parent = res->child = res->sibling = NULL;
+-	res->name = np->full_name;
+-}
+-
++extern void of_pci_range_to_resource(struct of_pci_range *range,
++				     struct device_node *np,
++				     struct resource *res);
+ #else /* CONFIG_OF_ADDRESS && CONFIG_PCI */
+ static inline int of_pci_address_to_resource(struct device_node *dev, int bar,
+ 				             struct resource *r)
 -- 
 2.1.1
