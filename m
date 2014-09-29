@@ -1,55 +1,37 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.126.187]:62423 "EHLO
+Received: from mout.kundenserver.de ([212.227.17.13]:58250 "EHLO
 	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750911AbaI2Juy (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 29 Sep 2014 05:50:54 -0400
+	with ESMTP id S1751037AbaI2Jwh (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 29 Sep 2014 05:52:37 -0400
 From: Arnd Bergmann <arnd@arndb.de>
 Subject: Re: [PATCH v3 00/17] Cross-architecture definitions of relaxed MMIO accessors
-Date: Mon, 29 Sep 2014 11:48:39 +0200
-Message-ID: <6706376.rlHA7RUC15@wuerfel>
-In-Reply-To: <20140929092510.GC20303@arm.com>
-References: <1411579056-16966-1-git-send-email-will.deacon@arm.com> <3359318.XmOCYLZHTV@wuerfel> <20140929092510.GC20303@arm.com>
+Date: Mon, 29 Sep 2014 11:50:13 +0200
+Message-ID: <2012641.4eaGXZM5vo@wuerfel>
+In-Reply-To: <20140929082323.GE12506@ulmo>
+References: <1411579056-16966-1-git-send-email-will.deacon@arm.com> <3359318.XmOCYLZHTV@wuerfel> <20140929082323.GE12506@ulmo>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 7Bit
 Content-Type: text/plain; charset="us-ascii"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will.deacon@arm.com>
-Cc: Russell King - ARM Linux <linux@arm.linux.org.uk>, Thierry Reding <thierry.reding@gmail.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, "chris@zankel.net" <chris@zankel.net>, "cmetcalf@tilera.com" <cmetcalf@tilera.com>, "davem@davemloft.net" <davem@davemloft.net>, "deller@gmx.de" <deller@gmx.de>, "dhowells@redhat.com" <dhowells@redhat.com>, "geert@linux-m68k.org" <geert@linux-m68k.org>, "heiko.carstens@de.ibm.com" <heiko.carstens@de.ibm.com>, "hpa@zytor.com" <hpa@zytor.com>, "jcmvbkbc@gmail.com" <jcmvbkbc@gmail.com>, "jesper.nilsson@axis.com" <jesper.nilsson@axis.com>, "mingo@redhat.com" <mingo@redhat.com>, "monstr@monstr.eu" <monstr@monstr.eu>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>, "rdunlap@infradead.org" <rdunlap@infradead.org>, "sam@ravnborg.org" <sam@ravnborg.org>, "schwidefsky@de.ibm.com" <schwidefsky@de.ibm.com>, "starvik@axis.com" <starvik@axis.com>, "takata@linux-m32r.org" <takata@linux-m32r.org>, "tglx@linutronix.de" <tglx@linutronix.de>, "tony.luck@intel.com" <tony.luck@intel.com>, "daniel.thompson@linaro.org" <daniel.thompson@linaro.org>, "broonie@linaro.org" <broonie@linaro.org>
-Message-ID: <20140929094839.kYaotFZY6d1h2r76YSfF0AVvLTqeRRhgoYUBwnNioOk@z>
+To: Thierry Reding <thierry.reding@gmail.com>
+Cc: Olof Johansson <olof@lixom.net>, Russell King - ARM Linux <linux@arm.linux.org.uk>, Will Deacon <will.deacon@arm.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, "chris@zankel.net" <chris@zankel.net>, "cmetcalf@tilera.com" <cmetcalf@tilera.com>, "davem@davemloft.net" <davem@davemloft.net>, "deller@gmx.de" <deller@gmx.de>, "dhowells@redhat.com" <dhowells@redhat.com>, "geert@linux-m68k.org" <geert@linux-m68k.org>, "heiko.carstens@de.ibm.com" <heiko.carstens@de.ibm.com>, "hpa@zytor.com" <hpa@zytor.com>, "jcmvbkbc@gmail.com" <jcmvbkbc@gmail.com>, "jesper.nilsson@axis.com" <jesper.nilsson@axis.com>, "mingo@redhat.com" <mingo@redhat.com>, "monstr@monstr.eu" <monstr@monstr.eu>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>, "rdunlap@infradead.org" <rdunlap@infradead.org>, "sam@ravnborg.org" <sam@ravnborg.org>, "schwidefsky@de.ibm.com" <schwidefsky@de.ibm.com>, "starvik@axis.com" <starvik@axis.com>, "takata@linux-m32r.org" <takata@linux-m32r.org>, "tglx@linutronix.de" <tglx@linutronix.de>, "tony.luck@intel.com" <tony.luck@intel.com>, "daniel.thompson@linaro.org" <daniel.thompson@linaro.org>, "broonie@linaro.org" <broonie@linaro.org>
+Message-ID: <20140929095013.CMKL4HaCgGKU5mLdhWpyDC0iCWay0c4tzxjVrkBdaVY@z>
 
-On Monday 29 September 2014 10:25:10 Will Deacon wrote:
-> On Fri, Sep 26, 2014 at 10:36:13PM +0100, Arnd Bergmann wrote:
-> > On Friday 26 September 2014 14:46:08 Russell King - ARM Linux wrote:
-> > > 
-> > > Obviously, this does nothing for the:
-> > > 
-> > > include/asm-generic/io.h:804:29: error: redefinition of 'virt_to_bus'
-> > > include/asm-generic/io.h:809:21: error: redefinition of 'bus_to_virt'
-> > > 
-> > > errors which are also reported in Olof's build system.
-> > > 
-> > > Given how close we are to the merge window, I'd suggest this stuff gets
-> > > reverted so that it can have a better period of testing, rather than
-> > > stuffing it into -next at such a critical time.
-> > 
-> > Right, I've fixed these all up locally, but then found new warnings on
-> > allmodconfig builds that I haven't been able to track down yet.
-> > 
-> > I've dropped everything from the asm-generic tree now, so we can get
-> > a clean linux-next tree.
+On Monday 29 September 2014 10:23:25 Thierry Reding wrote:
 > 
-> Did you actually see any failures due to the relaxed I/O stuff, or was this
-> all in the unrelated rework of the asm-generic/io.h file? If the latter, it
-> would be a pity to postpone the former series.
-> 
+> How about if I keep iterating this series? It seems like most failures
+> can be reproduced by doing ARM defconfig and allmodconfig builds, so
+> I'll do those and fix up any issues I find. Hopefully I can squash all
+> these before 3.18-rc1, then we can take it into linux-next early for
+> 3.19? In the meantime perhaps I can work with Olof to get a branch with
+> these patches tested on his builder? And perhaps on the 0-day builder in
+> addition?
 
-I believe all the problems I've seen were because of Thierry's series,
-I haven't tried separating the two again yet, which is something I'd
-probably try today.
+Yes, definitely!
 
-However, I saw a lot of different problems with the combined series
-and I have a patch to fix them up here, will post that once I see no
-new regressions.
+Note that I saw a lot of problems only in randconfig build tests but
+not in any of the default configurations. I'll send you the fixup patch
+soon so you can integrate that in your series.
 
 	Arnd
