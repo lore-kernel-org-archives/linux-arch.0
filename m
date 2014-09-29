@@ -1,8 +1,8 @@
 From: Liviu Dudau <Liviu.Dudau@arm.com>
-Subject: [PATCH v13 03/12] ARM: Define PCI_IOBASE as the base of virtual PCI
- IO space
-Date: Mon, 29 Sep 2014 15:29:22 +0100
-Message-ID: <1412000971-9242-4-git-send-email-Liviu.Dudau@arm.com>
+Subject: [PATCH v13 11/12] PCI: Add pci_remap_iospace() to map bus I/O
+ resources
+Date: Mon, 29 Sep 2014 15:29:30 +0100
+Message-ID: <1412000971-9242-12-git-send-email-Liviu.Dudau@arm.com>
 References: <1412000971-9242-1-git-send-email-Liviu.Dudau@arm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -22,31 +22,95 @@ To: Bjorn Helgaas <bhelgaas@google.com>, Arnd Bergmann <arnd@arndb.de>, Rob Herr
 Cc: linux-arch <linux-arch@vger.kernel.org>, Sinan Kaya <okaya@codeaurora.org>, Kukjin Kim <kgene.kim@samsung.com>, Device Tree ML <devicetree@vger.kernel.org>, Jingoo Han <jg1.han@samsung.com>, LKML <linux-kernel@vger.kernel.org>, Grant Likely <grant.likely@secretlab.ca>, Tanmay Inamdar <tinamdar@apm.com>, Suravee Suthikulanit <suravee.suthikulpanit@amd.com>, Yinghai Lu <yinghai@kernel.org>, Jiang Liu <jiang.liu@linux.intel.com>, LAKML <linux-arm-kernel@lists.infradead.org>
 List-Id: linux-arch.vger.kernel.org
 
-This is needed for calls into OF code that parses PCI ranges.  It signals
-support for memory mapped PCI I/O accesses that are described by device
-trees.
+Add pci_remap_iospace() to map bus I/O resources into the CPU virtual
+address space.  Architectures with special needs may provide their own
+version, but most should be able to use this one.
 
+This function is useful for PCI host bridge drivers that need to map the
+PCI I/O resources into virtual memory space.
+
+[bhelgaas: phys_addr description, drop temporary "err" variable]
 Signed-off-by: Liviu Dudau <Liviu.Dudau@arm.com>
 Signed-off-by: Bjorn Helgaas <bhelgaas@google.com>
+Reviewed-by: Rob Herring <robh@kernel.org>
 Reviewed-by: Catalin Marinas <catalin.marinas@arm.com>
-Acked-by: Arnd Bergmann <arnd@arndb.de>
-CC: Russell King <linux@arm.linux.org.uk>
-CC: Rob Herring <robh+dt@kernel.org>
+CC: Arnd Bergmann <arnd@arndb.de>
 ---
- arch/arm/include/asm/io.h | 1 +
- 1 file changed, 1 insertion(+)
+ drivers/pci/pci.c             | 31 +++++++++++++++++++++++++++++++
+ include/asm-generic/pgtable.h |  4 ++++
+ include/linux/pci.h           |  3 +++
+ 3 files changed, 38 insertions(+)
 
-diff --git a/arch/arm/include/asm/io.h b/arch/arm/include/asm/io.h
-index 3d23418..1805674 100644
---- a/arch/arm/include/asm/io.h
-+++ b/arch/arm/include/asm/io.h
-@@ -178,6 +178,7 @@ static inline void __iomem *__typesafe_io(unsigned long addr)
+diff --git a/drivers/pci/pci.c b/drivers/pci/pci.c
+index d36f35f..6e994fc 100644
+--- a/drivers/pci/pci.c
++++ b/drivers/pci/pci.c
+@@ -2704,6 +2704,37 @@ int pci_request_regions_exclusive(struct pci_dev *pdev, const char *res_name)
+ }
+ EXPORT_SYMBOL(pci_request_regions_exclusive);
  
- /* PCI fixed i/o mapping */
- #define PCI_IO_VIRT_BASE	0xfee00000
-+#define PCI_IOBASE		((void __iomem *)PCI_IO_VIRT_BASE)
++/**
++ *	pci_remap_iospace - Remap the memory mapped I/O space
++ *	@res: Resource describing the I/O space
++ *	@phys_addr: physical address of range to be mapped
++ *
++ *	Remap the memory mapped I/O space described by the @res
++ *	and the CPU physical address @phys_addr into virtual address space.
++ *	Only architectures that have memory mapped IO functions defined
++ *	(and the PCI_IOBASE value defined) should call this function.
++ */
++int __weak pci_remap_iospace(const struct resource *res, phys_addr_t phys_addr)
++{
++#if defined(PCI_IOBASE) && defined(CONFIG_MMU)
++	unsigned long vaddr = (unsigned long)PCI_IOBASE + res->start;
++
++	if (!(res->flags & IORESOURCE_IO))
++		return -EINVAL;
++
++	if (res->end > IO_SPACE_LIMIT)
++		return -EINVAL;
++
++	return ioremap_page_range(vaddr, vaddr + resource_size(res), phys_addr,
++				  pgprot_device(PAGE_KERNEL));
++#else
++	/* this architecture does not have memory mapped I/O space,
++	   so this function should never be called */
++	WARN_ONCE(1, "This architecture does not support memory mapped I/O\n");
++	return -ENODEV;
++#endif
++}
++
+ static void __pci_set_master(struct pci_dev *dev, bool enable)
+ {
+ 	u16 old_cmd, cmd;
+diff --git a/include/asm-generic/pgtable.h b/include/asm-generic/pgtable.h
+index 53b2acc..977e545 100644
+--- a/include/asm-generic/pgtable.h
++++ b/include/asm-generic/pgtable.h
+@@ -249,6 +249,10 @@ static inline int pmd_same(pmd_t pmd_a, pmd_t pmd_b)
+ #define pgprot_writecombine pgprot_noncached
+ #endif
  
- #if defined(CONFIG_PCI)
- void pci_ioremap_set_mem_type(int mem_type);
++#ifndef pgprot_device
++#define pgprot_device pgprot_noncached
++#endif
++
+ /*
+  * When walking page tables, get the address of the next boundary,
+  * or the end address of the range if that comes earlier.  Although no
+diff --git a/include/linux/pci.h b/include/linux/pci.h
+index 150da2d..b4995fd 100644
+--- a/include/linux/pci.h
++++ b/include/linux/pci.h
+@@ -1100,6 +1100,9 @@ int __must_check pci_bus_alloc_resource(struct pci_bus *bus,
+ 						  resource_size_t),
+ 			void *alignf_data);
+ 
++
++int pci_remap_iospace(const struct resource *res, phys_addr_t phys_addr);
++
+ static inline dma_addr_t pci_bus_address(struct pci_dev *pdev, int bar)
+ {
+ 	struct pci_bus_region region;
 -- 
 2.1.1
