@@ -1,77 +1,82 @@
-From: =?utf-8?B?5bCP6LS6?= <uspark@ttgst.ac.kr>
-Subject: =?utf-8?B?55So5LqG5LiA5qyh5L2g5bCx5Lya6KeJ5b6X5piv5pyA5aW955qE55+t5L+h5Y+R6YCB5bmz5Y+wIA==?=
-	=?utf-8?B?ICAgICAgICAgICAgICAgICAgICA=?=
-	=?utf-8?B?ICAgICAgICAgICAgICAgICAgICA=?=
-	=?utf-8?B?ICAgICAgICAgICAgICAgICAgICA=?=
-	=?utf-8?B?ICAgICAgICB0aDk=?=
-Date: Mon, 29 Sep 2014 11:03:09 +0800
-Message-ID: <20140929110315087468@ttgst.ac.kr>
-Reply-To: <dingxj8@aliyun.com>
+From: Thierry Reding <thierry.reding@gmail.com>
+Subject: Re: [PATCH v3 00/17] Cross-architecture definitions of relaxed MMIO
+ accessors
+Date: Mon, 29 Sep 2014 10:23:25 +0200
+Message-ID: <20140929082323.GE12506@ulmo>
+References: <1411579056-16966-1-git-send-email-will.deacon@arm.com>
+ <9197976.uQdLmtvIl1@wuerfel>
+ <20140926134608.GT5182@n2100.arm.linux.org.uk>
+ <3359318.XmOCYLZHTV@wuerfel>
 Mime-Version: 1.0
-Content-Type: text/plain;
-	charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <linux-arm-msm-owner@vger.kernel.org>
-Sender: linux-arm-msm-owner@vger.kernel.org
-To: linuwe@sina.com, linux-arch@vger.kernel.org, linux-arm-msm@vger.kernel.org, linux-assembly-owner@yahoogroups.com
-List-Id: linux-arch.vger.kernel.org
+Content-Type: multipart/signed; micalg=pgp-sha1;
+	protocol="application/pgp-signature"; boundary="cpvLTH7QU4gwfq3S"
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-we0-f176.google.com ([74.125.82.176]:41653 "EHLO
+	mail-we0-f176.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750911AbaI2IX2 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 29 Sep 2014 04:23:28 -0400
+Content-Disposition: inline
+In-Reply-To: <3359318.XmOCYLZHTV@wuerfel>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Arnd Bergmann <arnd@arndb.de>, Olof Johansson <olof@lixom.net>
+Cc: Russell King - ARM Linux <linux@arm.linux.org.uk>, Will Deacon <will.deacon@arm.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, "chris@zankel.net" <chris@zankel.net>, "cmetcalf@tilera.com" <cmetcalf@tilera.com>, "davem@davemloft.net" <davem@davemloft.net>, "deller@gmx.de" <deller@gmx.de>, "dhowells@redhat.com" <dhowells@redhat.com>, "geert@linux-m68k.org" <geert@linux-m68k.org>, "heiko.carstens@de.ibm.com" <heiko.carstens@de.ibm.com>, "hpa@zytor.com" <hpa@zytor.com>, "jcmvbkbc@gmail.com" <jcmvbkbc@gmail.com>, "jesper.nilsson@axis.com" <jesper.nilsson@axis.com>, "mingo@redhat.com" <mingo@redhat.com>, "monstr@monstr.eu" <monstr@monstr.eu>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>, "rdunlap@infradead.org" <rdunlap@infra>
 
-DQogIOi/meS4quefreS/oeWPkemAgeW5s+WPsOWunuWcqOaYr+WkquWlveeUqOS6hu+8jOWGjeS5
-n+S4jeaEgeaJvuS4jeWIsOWlveeahOW5s+WPsOS6hu+8jOWPquimgeaYr+S9oOWPkeeahOWGheWu
-ueaYr+ato+inhOeahO+8jOi9u+advuWwseWPr+S7peWPkemAgeWHuuWOu+OAguWKoFFRMTkzOTg5
-NzI15YW35L2T5ZKo6K+i77yM5Y+v5Lul5byA6LSm5Y+35rWL5pWI5p6c44CCDQoNCg0KDQoNCg0K
-IA0KDQoNCg0KDQoNCg0KDQoNCg0KDQoNCg0KDQoNCg0KDQoNCg0KDQoNCg0KDQoNCg0KDQoNCg0K
-DQoNCg0KDQoNCg0KDQoNCg0KDQoNCg0KDQoNCg0KDQoNCg0KDQoNCg0KDQoNCg0KDQoNCg0KDQoN
-Cg0KDQoNCg0KDQoNCg0KDQoNCg0KDQoNCg0KDQoNCg0KDQoNCg0KDQoNCg0KDQoNCg0KDQoNCg0K
-DQoNCg0KDQoNCg0KDQoNCg0KDQoNCg0KDQoNCg0KDQoNCg0KDQoNCueBv+eDguWcsOS4gOeske+8
-jOaMpOS6huS4gOS4i+ecvOedm++8jOiuqeWlueS4jeemgeW/g+WmguaSnum5v+OAgiAgICDnrYnl
-iLDlpbnkuozpm7bpm7blm5vlubTnnIvliLDpppnmuK/okZflkI3pu5HluK7nlLXlvbHjgIrml6Dp
-l7TpgZPjgIvnmoTml7blgJnvvIznnIvliLDmooHmnJ3kvJ/ooqvorablrpjlrabmoKHlvIDpmaTv
-vIzotbDlh7rmoKHpl6jvvIzlm57lpLTkuIDnrJHnmoTml7blgJnvvIzlpbnmiY3lj5HlkIPkuI3l
-lp3jgIIgICAg5q2j5ZCD552A5Zad552A77yM5bGI5bCP5YWD5bim552A5LiA5biu5Z2P5bCP5a2Q
-6L+H5p2l5LqG77yM5LiA6L+b6Zeo5bCx5aSn5Y+r77ya4oCc5aSP5bCP5rSb77yM5L2g5Lir5Zyo
-6L+Z5ZCD54us6aOf5ZGi77yM5Lmf5LiN5Y+r5LiK5oiR44CC4oCd5ou/6LW35LiA5Liq54yq6LmE
-5bCx5ZWD6LW35p2l5LqG77yM4oCc5aSP5bCP5rSb77yM5L2g5Y+R6LSi5LqG77yf4oCdICAgIOKA
-nOS9leivl+mftei/h+S6lOWRs++8jOmTgeWxgOmVv+aPkOWHuu+8muKAnOiAgeS9leWViu+8jOaI
-kemDveWcqOi/memHjOiAveivr+S6huS4pOWkqeS6hu+8jOWGjeS4jeaOpeWPl+W3peS9nO+8jOi/
-meaViOeOh+S5n+aYvuW+l+WkquS9juS6huKAnSAgICDkvZXkuqznlJ/igJzpnZ7luLjmirHmrYni
-gJ3lnLDlr7npk4HlsYDplb/or7TvvJrigJzpk4HlsYDplb/vvIzlrp7lnKjmmK/kuI3lpb3mhI/m
-gJ3vvIzkvaDnnIvvvIHigJ0gICAg6K+0552A5rSb56yR5Zi75Zi75Zyw6YGT77yM6K+05a6M5LuW
-5oSP5ZGz5ZCr5re35Zyw55yL5LqG54i25Lqy5LiA55y844CCICAgIOWkj+i/keS4nOWmguWQjOW+
-l+S6huaMh+eCueS4gOiIrO+8jOebruWFieeBvOeBvOWcsOebr+edgOS9leS6rOeUn+mBk++8muKA
-nOimgeS4je+8jOi/meS4quS6i+aDheaIkeadpeWBmuOAguKAnSAgICDpgqPmnKzmnaXpl7LkupHp
-h47puaTnmoTmsJTotKjmtojlpLHkuI3op4HkuobvvIzlj5bogIzku6PkuYvmmK/mu4vmtqbjgIIg
-ICAg5Y+q5ZCs5aSn6Zeo5Y+j5aSE5LiA6Zi16Ieq6KGM6L2m5oCl5L+D55qE5Yi56L2m5aOw4oCU
-4oCU6L2m5LiK55qE5Lq655So56m/552A5ouW6Z6L55qE6ISa5Lir5a2Q5pKR5Zyw77yM5Zyo5Zyw
-5LiK5YiS6L+H5LiA6YGT55m96Imy55qE55eV6L+577yM6aOe6YCf6KGM6am255qE6Ieq6KGM6L2m
-5r2H5rSS5peg5q+U5Zyw5YGc5LqG5LiL5p2l44CC5LiA5LiL77yM5Lmf5Y+v6K6p5a+55pa56ZuF
-5q2j44CC5oiR5Lus6L+Z5Liq5bCP5Y6/5Z+O77yM5oeC5paH5a2m55qE5LiN5aSa77yM5L2g5LuO
-5YyX5Lqs5p2l77yM5rC05bmz6IKv5a6a5L2O5LiN5LqG77yM6L+Y5pyb5L2g5LiN5ZCd6LWQ5pWZ
-44CC4oCdICAgIOi/meWHoOWPpeivneivtOW+l+aegeWFtuW+l+S9k++8jOWnv+aAgeS5n+aUvuW+
-l+aegeS9ju+8jOaKiuWImuaJjeWJkeaLlOW8qeW8oOeahOawm+WbtOWMluino+S6jgkNCuiHtOW/
-l+WcsOebkeiAg+i1t+adpe+8jOecvOedm+aJq+adpeaJq+WxiO+8jOS4gOS8mueci+i/meS4qu+8
-jOS4gOS8mueci+eci+mCo+S4quOAgiAgICDigJwxOTkw5bm05bqm5paw6Ziz5biC5Yid5Lit5Y2H
-6auY5Lit5YWl5a2m6ICD6K+V5pWw5a2m6K+V5Y234oCd5Yeg5Liq5aSn5a2X5pig5YWl55y85biY
-77yM5LuW5b+D6YeM5LiA6Zi15r+A5Yqo77yM5b+r6YCf5Zyw5oqK6K+V5Y2357uT5p6E5ZKM5Yeg
-5Liq55qE5omT5bel5LuU77yM6L+Z5Lya5a2m5LiA5LiL6YKj5Lqb5oyl6YeR5aaC5Zyf6LSl5a62
-55qE5a+M5LqM5Luj55qE57qo57uU6IyD5YS/77yM5Lqr5Y+X5LiA5LiL5Yir5Lq6576h5oWV55qE
-55uu5YWJ44CCICAgIOS7luS5i+WJjeS4gOebtOWPl+S6uuasuuWOi++8jOmavuW+l+aJrOecieWQ
-kOawlOS4gOS8mu+8jOWboOatpOi/memAvOijheW+l+aYr+WIhuWkluW9u+W6leOAgiAgICDlj6rl
-kKzkuIDlo7DlpKfllp3vvIzkvJflrrbkurrotbDljrvjgIIgICAg5bGI5bCP5YWD6L+Y5LiN5b+Y
-6K6w5Zue6L+H5aS05o+25o+E6buE6Iq56Iq55LiA5LiL77ya4oCc5L2g5YS/5a2Q5aW95YOP5rKh
-5pyJ6ICD5LiK56ys5LiA6auY5Lit77yM5LiN6L+H5oGB5a626YKj5LmI5pyJ6ZKx77yM5Lmf5LiN
-5Zyo5LmO6YKj54K56auY5Lu36LS544CC4oCdICAgIOS7lueahOivneW8leW+l+WbtOingueahOe+
-pOS8l+WTiOWTiOWkp+eske+8jOmXqOWNq+WGr+Wkp+eIt+ivtOaLjeiEkeiii++8jOmBk++8muKA
-nOW3rueCueW/mOS6hu+8geKAnSAgICDku5bov5nkuKrogIHliJHkvqbpg73msqHmnInmg7PliLDo
-v5nkuIDngrnvvIzkuI3npoHlv4PkuK3lkI7mgJXvvIzlv4PpgZPvvIzoi6XmmK/lnKjmtJvmsLTl
-jr/lrqHpl67vvIzmgZDmgJXov5jmsqHlvIDlp4vlrqHpl67vvIzokaPkuZ3mmJ/lt7Lnu4/lkozl
-jaLlhpvotoXkuIDkvJnpgJrkuIrnlLXor53kuobjgIIgICAg5L2V5Lqs55Sf5oyH552A5aSP55Om
-5oi/5piv5a625bGe6Zmi77yM5a625bGe6Zmi55qE5bCP54mH56m65Zyw5LiK6KKr5a625bGe5Lus
-6KeB57yd5o+S6ZKI5Zyw56eN5LqG5ZCE56eN6JSs6I+c44CCICAgIOivtOi1t+adpe+8jOmCo+S4
-quaXtuWAmeeahOS5oeW5sumDqOeahOeUn+a0u+WPr+avlOS4gOiIrOe+pOS8l+WlveWkmuS6hu+8
-jOS4jei/h+WcqOaVtOS9k+eJqei0qOWMruS5j+eahOW5tOS7o++8jOS7luS7rOS5n+WPquiDveWm
-guatpOadpea7oei2s+iHquermeWcqOS4remXtO+8jOaXoOaJgOS9nOS4uu+8jOmCo+S5iOS9oOWc
-qOS7luS7rOecvOmHjOWImeaYr+KAmOidmeidoOKAmeOAguKAnSAgICDigJzonZnonaDvvJ/ku4Dk
-uYjmhI/mgJ3vvJ/igJ0gICAg4oCc5YGH6K6+546L5L+K5Lyf5LiA5rS+5piv5YW957G777yM6ZKx
-5bGA6ZW/5piv6bif57G777yM5YCY6Iul5L2g5rKh5pyJ5Lu75L2V6KGM5Yqo77yM6YKj5LmI5Zyo
-546L55qE5rS+57O76L+Z5Lqb5Lq655qE55y86YeM77yMCQ0K
+
+--cpvLTH7QU4gwfq3S
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
+
+On Fri, Sep 26, 2014 at 11:36:13PM +0200, Arnd Bergmann wrote:
+> On Friday 26 September 2014 14:46:08 Russell King - ARM Linux wrote:
+> >=20
+> > Obviously, this does nothing for the:
+> >=20
+> > include/asm-generic/io.h:804:29: error: redefinition of 'virt_to_bus'
+> > include/asm-generic/io.h:809:21: error: redefinition of 'bus_to_virt'
+> >=20
+> > errors which are also reported in Olof's build system.
+> >=20
+> > Given how close we are to the merge window, I'd suggest this stuff gets
+> > reverted so that it can have a better period of testing, rather than
+> > stuffing it into -next at such a critical time.
+>=20
+> Right, I've fixed these all up locally, but then found new warnings on
+> allmodconfig builds that I haven't been able to track down yet.
+>=20
+> I've dropped everything from the asm-generic tree now, so we can get
+> a clean linux-next tree.
+
+How about if I keep iterating this series? It seems like most failures
+can be reproduced by doing ARM defconfig and allmodconfig builds, so
+I'll do those and fix up any issues I find. Hopefully I can squash all
+these before 3.18-rc1, then we can take it into linux-next early for
+3.19? In the meantime perhaps I can work with Olof to get a branch with
+these patches tested on his builder? And perhaps on the 0-day builder in
+addition?
+
+Thierry
+
+--cpvLTH7QU4gwfq3S
+Content-Type: application/pgp-signature
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v2
+
+iQIcBAEBAgAGBQJUKRb7AAoJEN0jrNd/PrOhshQP/RiSEwIi1Y4jQR6s76b28fz0
+JQ5L1MNGQE98LBHMJqd5nRkOhoTb91WrIVzhXtO4AsqyvuQZ75K7dP4u2v0PtRr4
+Qz7w1XuHU6z79nv9R82jOhWplQymANW/3pfgpNbmRNW9t2OxVvsdyvDDk8eRZJ8T
+NxYSW5AA76ZU2NbNaN+cd/UKm5BQB979v5Y1rv9UVGzdU7H9Y463VhWheIp4GuzF
+cjgN7skIOeo7nE/YKKsmzzXIaxZG0rF8KaMpc+0eCfTFR4gr5hgAf9iCpJ5es9JP
+z40zSojHMmBYGGBUFsG/fYcdVGkYk8ui5fB++9dGllI6Dk0juBOTOpNNQ3ewJWoj
+mjWln79ljJZgVxqZ6RMB0yd6yAqzZHl+v29hiwzXS5RKFKJ7IqUA/JQ2in4fz8MI
+q9z4/wrnH/YuClU26Ni7cuvXGSoN/hiDqBUeIujEM/rWQxT5XGjPWC7ez3+D5b/p
+AOWVI/uajUIazESUVe4Rr7hDcMB7u39ZhXG75VyQz/6O3gkf3RtM0iKEAa6KSM6+
+E8tvuV6Zoki1bj03XNM/d/QRvs+JLC+gqNptj1yU5d1RkH4TeNomtPr5tgkQ37zM
+w8to/JRjqt+sT/K8N8472XOXxNdJyw9pSEgUtYVvHDRW+d7vNTeI0C3zzM5/RDF2
+wCPg2Rovs0sGKhHCEAxU
+=+Hzh
+-----END PGP SIGNATURE-----
+
+--cpvLTH7QU4gwfq3S--
