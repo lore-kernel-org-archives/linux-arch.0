@@ -1,40 +1,51 @@
-From: Paul Bolle <pebolle@tiscali.nl>
-Subject: Re: [PATCH] unicore32: Remove unneeded Kconfig entry NO_IOPORT_MAP
-Date: Mon, 29 Sep 2014 11:00:07 +0200
-Message-ID: <1411981207.6334.6.camel@x220>
-References: <1373895763.5110.1411868969556.JavaMail.root@bj-mail03.pku.edu.cn>
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [PATCH v3 00/17] Cross-architecture definitions of relaxed MMIO
+ accessors
+Date: Mon, 29 Sep 2014 10:25:10 +0100
+Message-ID: <20140929092510.GC20303@arm.com>
+References: <1411579056-16966-1-git-send-email-will.deacon@arm.com>
+ <9197976.uQdLmtvIl1@wuerfel>
+ <20140926134608.GT5182@n2100.arm.linux.org.uk>
+ <3359318.XmOCYLZHTV@wuerfel>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from cpsmtpb-ews10.kpnxchange.com ([213.75.39.15]:50191 "EHLO
-	cpsmtpb-ews10.kpnxchange.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1751221AbaI2JAK (ORCPT
+Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:62280 "EHLO
+	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1750970AbaI2J0I (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Mon, 29 Sep 2014 05:00:10 -0400
-In-Reply-To: <1373895763.5110.1411868969556.JavaMail.root@bj-mail03.pku.edu.cn>
+	Mon, 29 Sep 2014 05:26:08 -0400
+Content-Disposition: inline
+In-Reply-To: <3359318.XmOCYLZHTV@wuerfel>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Xuetao Guan <gxt@pku.edu.cn>
-Cc: Guan Xuetao <gxt@mprc.pku.edu.cn>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Russell King - ARM Linux <linux@arm.linux.org.uk>, Thierry Reding <thierry.reding@gmail.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, "chris@zankel.net" <chris@zankel.net>, "cmetcalf@tilera.com" <cmetcalf@tilera.com>, "davem@davemloft.net" <davem@davemloft.net>, "deller@gmx.de" <deller@gmx.de>, "dhowells@redhat.com" <dhowells@redhat.com>, "geert@linux-m68k.org" <geert@linux-m68k.org>, "heiko.carstens@de.ibm.com" <heiko.carstens@de.ibm.com>, "hpa@zytor.com" <hpa@zytor.com>, "jcmvbkbc@gmail.com" <jcmvbkbc@gmail.com>, "jesper.nilsson@axis.com" <jesper.nilsson@axis.com>, "mingo@redhat.com" <mingo@redhat.com>, "monstr@monstr.eu" <monstr@monstr.eu>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>, "rdunlap@infradead.org" <rdunl>
 
-On Sun, 2014-09-28 at 09:49 +0800, Xuetao Guan wrote:
-> Sorry for late reply.
+Hi Arnd,
 
-You replied within four days. That's rather quick, actually.
+On Fri, Sep 26, 2014 at 10:36:13PM +0100, Arnd Bergmann wrote:
+> On Friday 26 September 2014 14:46:08 Russell King - ARM Linux wrote:
+> > 
+> > Obviously, this does nothing for the:
+> > 
+> > include/asm-generic/io.h:804:29: error: redefinition of 'virt_to_bus'
+> > include/asm-generic/io.h:809:21: error: redefinition of 'bus_to_virt'
+> > 
+> > errors which are also reported in Olof's build system.
+> > 
+> > Given how close we are to the merge window, I'd suggest this stuff gets
+> > reverted so that it can have a better period of testing, rather than
+> > stuffing it into -next at such a critical time.
+> 
+> Right, I've fixed these all up locally, but then found new warnings on
+> allmodconfig builds that I haven't been able to track down yet.
+> 
+> I've dropped everything from the asm-generic tree now, so we can get
+> a clean linux-next tree.
 
-> I checked this config, and it's only used for HAS_IOPORT_MAP in lib/Kconfig
-> Sure, removing it means no different for .config file.
-> I think a better way is reserving it
+Did you actually see any failures due to the relaxed I/O stuff, or was this
+all in the unrelated rework of the asm-generic/io.h file? If the latter, it
+would be a pity to postpone the former series.
 
-I'm not sure I get what you're saying here: what do mean with "reserving
-it"?
-
-> or moving it into arch/Kconfig
-
-Without a (treewide) patch I find it hard to say whether that's worth
-the trouble. But even if that move would be done, wouldn't it include
-dropping this entry from arch/unicore32 anyway?
-
-
-Paul Bolle
+Will
