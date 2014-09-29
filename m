@@ -1,36 +1,30 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH v3 00/17] Cross-architecture definitions of relaxed MMIO accessors
-Date: Mon, 29 Sep 2014 11:50:13 +0200
-Message-ID: <2012641.4eaGXZM5vo@wuerfel>
-References: <1411579056-16966-1-git-send-email-will.deacon@arm.com> <3359318.XmOCYLZHTV@wuerfel> <20140929082323.GE12506@ulmo>
+From: Yijing Wang <wangyijing@huawei.com>
+Subject: Re: [PATCH v2 00/22] Use MSI chip framework to configure MSI/MSI-X
+ in all platforms
+Date: Mon, 29 Sep 2014 18:12:26 +0800
+Message-ID: <5429308A.7030201@huawei.com>
+References: <1411614872-4009-1-git-send-email-wangyijing@huawei.com> <20140925074235.GN12423@ulmo> <20140925144855.GB31157@bart.dudau.co.uk> <20140925164937.GB30382@ulmo> <5424E09F.50701@huawei.com> <20140926085030.GE31157@bart.dudau.co.uk> <54276F6C.5010705@huawei.com> <20140928112144.GA4671@bart.dudau.co.uk> <5428B971.50101@huawei.com> <20140929092600.GA15854@bart.dudau.co.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7Bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.17.13]:58250 "EHLO
-	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751037AbaI2Jwh (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 29 Sep 2014 05:52:37 -0400
-In-Reply-To: <20140929082323.GE12506@ulmo>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Thierry Reding <thierry.reding@gmail.com>
-Cc: Olof Johansson <olof@lixom.net>, Russell King - ARM Linux <linux@arm.linux.org.uk>, Will Deacon <will.deacon@arm.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, "chris@zankel.net" <chris@zankel.net>, "cmetcalf@tilera.com" <cmetcalf@tilera.com>, "davem@davemloft.net" <davem@davemloft.net>, "deller@gmx.de" <deller@gmx.de>, "dhowells@redhat.com" <dhowells@redhat.com>, "geert@linux-m68k.org" <geert@linux-m68k.org>, "heiko.carstens@de.ibm.com" <heiko.carstens@de.ibm.com>, "hpa@zytor.com" <hpa@zytor.com>, "jcmvbkbc@gmail.com" <jcmvbkbc@gmail.com>, "jesper.nilsson@axis.com" <jesper.nilsson@axis.com>, "mingo@redhat.com" <mingo@redhat.com>, "monstr@monstr.eu" <monstr@monstr.eu>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>, rdu
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
+Return-path: <sparclinux-owner@vger.kernel.org>
+In-Reply-To: <20140929092600.GA15854@bart.dudau.co.uk>
+Sender: sparclinux-owner@vger.kernel.org
+To: Liviu Dudau <liviu@dudau.co.uk>
+Cc: Thierry Reding <thierry.reding@gmail.com>, Bjorn Helgaas <bhelgaas@google.com>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, Xinwei Hu <huxinwei@huawei.com>, Wuyun <wuyun.wu@huawei.com>, linux-arm-kernel@lists.infradead.org, Russell King <linux@arm.linux.org.uk>, linux-arch@vger.kernel.org, arnab.basu@freescale.com, Bharat.Bhushan@freescale.com, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, Thomas Gleixner <tglx@linutronix.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, xen-devel@lists.xenproject.org, Joerg Roedel <joro@8bytes.org>, iommu@lists.linux-foundation.org, linux-mips@linux-mips.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, Sebastian Ott <sebott@linux.vnet.ibm.com>, Tony Luck <tony.luck@intel.com>, linux-ia64@vger.kernel.org, David S. Miller
+List-Id: linux-arch.vger.kernel.org
 
-On Monday 29 September 2014 10:23:25 Thierry Reding wrote:
+>>> Not necessarily. What I have in mind is something like this:
+>>
+>> This is a good idea, what I'm worried is this series is already large, so I think we need to post
+>> another series to do it.
 > 
-> How about if I keep iterating this series? It seems like most failures
-> can be reproduced by doing ARM defconfig and allmodconfig builds, so
-> I'll do those and fix up any issues I find. Hopefully I can squash all
-> these before 3.18-rc1, then we can take it into linux-next early for
-> 3.19? In the meantime perhaps I can work with Olof to get a branch with
-> these patches tested on his builder? And perhaps on the 0-day builder in
-> addition?
+> I wasn't asking to do it here, I was just offering a suggestion (and sharing some experience) when
+> it comes to handling msi chip in an arch independent way.
 
-Yes, definitely!
+It's a good suggestion, thanks! :)
 
-Note that I saw a lot of problems only in randconfig build tests but
-not in any of the default configurations. I'll send you the fixup patch
-soon so you can integrate that in your series.
+> 
+>>
+>>
 
-	Arnd
