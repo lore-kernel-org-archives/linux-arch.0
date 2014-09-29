@@ -1,53 +1,133 @@
-From: Yijing Wang <wangyijing@huawei.com>
-Subject: Re: [PATCH v2 00/22] Use MSI chip framework to configure MSI/MSI-X
- in all platforms
-Date: Mon, 29 Sep 2014 18:13:17 +0800
-Message-ID: <542930BD.2090907@huawei.com>
-References: <1411614872-4009-1-git-send-email-wangyijing@huawei.com>	 <20140925074235.GN12423@ulmo> <20140925144855.GB31157@bart.dudau.co.uk>	 <20140925164937.GB30382@ulmo> <20140925171612.GC31157@bart.dudau.co.uk>	 <542505B3.7040208@huawei.com> <20140926085430.GG31106@ulmo>	 <20140926090537.GH31106@ulmo> <54277327.6070500@huawei.com>	 <5427A6A0.5040703@huawei.com> <1411979850.2625.7.camel@pengutronix.de>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-ia64-owner@vger.kernel.org>
-In-Reply-To: <1411979850.2625.7.camel@pengutronix.de>
-Sender: linux-ia64-owner@vger.kernel.org
-To: Lucas Stach <l.stach@pengutronix.de>
-Cc: Thierry Reding <thierry.reding@gmail.com>, Liviu Dudau <liviu@dudau.co.uk>, Bjorn Helgaas <bhelgaas@google.com>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, Xinwei Hu <huxinwei@huawei.com>, Wuyun <wuyun.wu@huawei.com>, linux-arm-kernel@lists.infradead.org, Russell King <linux@arm.linux.org.uk>, linux-arch@vger.kernel.org, arnab.basu@freescale.com, Bharat.Bhushan@freescale.com, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, Thomas Gleixner <tglx@linutronix.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, xen-devel@lists.xenproject.org, Joerg Roedel <joro@8bytes.org>, iommu@lists.linux-foundation.org, linux-mips@linux-mips.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, Sebastian Ott <sebott@linux.vnet.ibm.com>, Tony Luck <tony.luck@intel.com>, linux-ia64@vg
-List-Id: linux-arch.vger.kernel.org
+From: Liviu Dudau <Liviu.Dudau@arm.com>
+Subject: [PATCH v13 07/12] PCI: Add generic domain handling
+Date: Mon, 29 Sep 2014 15:29:26 +0100
+Message-ID: <1412000971-9242-8-git-send-email-Liviu.Dudau@arm.com>
+References: <1412000971-9242-1-git-send-email-Liviu.Dudau@arm.com>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from fw-tnat.cambridge.arm.com ([217.140.96.21]:50437 "EHLO
+	cam-smtp0.cambridge.arm.com" rhost-flags-OK-OK-OK-FAIL)
+	by vger.kernel.org with ESMTP id S1752540AbaI2ObF (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Mon, 29 Sep 2014 10:31:05 -0400
+In-Reply-To: <1412000971-9242-1-git-send-email-Liviu.Dudau@arm.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Bjorn Helgaas <bhelgaas@google.com>, Arnd Bergmann <arnd@arndb.de>, Rob Herring <robh+dt@kernel.org>, Jason Gunthorpe <jgunthorpe@obsidianresearch.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <Will.Deacon@arm.com>, Russell King <linux@arm.linux.org.uk>, linux-pci <linux-pci@vger.kernel.org>, Linus Walleij <linus.walleij@linaro.org>
+Cc: Tanmay Inamdar <tinamdar@apm.com>, Grant Likely <grant.likely@secretlab.ca>, Sinan Kaya <okaya@codeaurora.org>, Jingoo Han <jg1.han@samsung.com>, Kukjin Kim <kgene.kim@samsung.com>, Suravee Suthikulanit <suravee.suthikulpanit@amd.com>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Device Tree ML <devicetree@vger.kernel.org>, LAKML <linux-arm-kernel@lists.infradead.org>, Yinghai Lu <yinghai@kernel.org>, Jiang Liu <jiang.liu@linux.intel.com>, Catalin Marinas <Catalin.Marinas@arm.com>
 
-On 2014/9/29 16:37, Lucas Stach wrote:
-> Am Sonntag, den 28.09.2014, 14:11 +0800 schrieb Yijing Wang:
->> On 2014/9/28 10:32, Yijing Wang wrote:
->>> On 2014/9/26 17:05, Thierry Reding wrote:
->>>> On Fri, Sep 26, 2014 at 10:54:32AM +0200, Thierry Reding wrote:
->>>> [...]
->>>>> At least for Tegra it's trivial to just hook it up in tegra_pcie_scan_bus()
->>>>> directly (patch attached).
->>>>
->>>> Really attached this time.
->>>>
->>>> Thierry
->>>>
->>>
->>> It looks good to me, so I will update the arm pci hostbridge driver to assign
->>> pci root bus the msi chip instead of current pcibios_add_bus(). But for other
->>> platforms which only have a one msi chip, I will kept the arch_find_msi_chip()
->>> temporarily for more comments, especially from Bjorn.
->>
->> Oh, sorry, I found designware and rcar use pci_scan_root_bus(), so we can not simply
->> assign msi chip to root bus in all host drivers's scan functions.
-> 
-> Designware will switch away from pci_scan_root_bus() in the 3.18 cycle
-> and I would think it would be no problem to to the same with rcar.
+From: Catalin Marinas <catalin.marinas@arm.com>
 
-Good.
+The handling of PCI domains (or PCI segments in ACPI speak) is usually a
+straightforward affair but its implementation is currently left to the
+architectural code, with pci_domain_nr(b) querying the value of the domain
+associated with bus b.
 
-> 
-> Regards,
-> Lucas
-> 
+This patch introduces CONFIG_PCI_DOMAINS_GENERIC as an option that can be
+selected if an architecture wants a simple implementation where the value
+of the domain associated with a bus is stored in struct pci_bus.
 
+The architectures that select CONFIG_PCI_DOMAINS_GENERIC will then have to
+implement pci_bus_assign_domain_nr() as a way of setting the domain number
+associated with a root bus.  All child buses except the root bus will
+inherit the domain_nr value from their parent.
 
+Signed-off-by: Catalin Marinas <Catalin.Marinas@arm.com>
+[Renamed pci_set_domain_nr() to pci_bus_assign_domain_nr()]
+Signed-off-by: Liviu Dudau <Liviu.Dudau@arm.com>
+Signed-off-by: Bjorn Helgaas <bhelgaas@google.com>
+CC: Arnd Bergmann <arnd@arndb.de>
+---
+ drivers/pci/probe.c | 11 ++++++++---
+ include/linux/pci.h | 21 +++++++++++++++++++++
+ 2 files changed, 29 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/pci/probe.c b/drivers/pci/probe.c
+index e3cf8a2..636d1c9 100644
+--- a/drivers/pci/probe.c
++++ b/drivers/pci/probe.c
+@@ -485,7 +485,7 @@ void pci_read_bridge_bases(struct pci_bus *child)
+ 	}
+ }
+ 
+-static struct pci_bus *pci_alloc_bus(void)
++static struct pci_bus *pci_alloc_bus(struct pci_bus *parent)
+ {
+ 	struct pci_bus *b;
+ 
+@@ -500,6 +500,10 @@ static struct pci_bus *pci_alloc_bus(void)
+ 	INIT_LIST_HEAD(&b->resources);
+ 	b->max_bus_speed = PCI_SPEED_UNKNOWN;
+ 	b->cur_bus_speed = PCI_SPEED_UNKNOWN;
++#ifdef CONFIG_PCI_DOMAINS_GENERIC
++	if (parent)
++		b->domain_nr = parent->domain_nr;
++#endif
+ 	return b;
+ }
+ 
+@@ -671,7 +675,7 @@ static struct pci_bus *pci_alloc_child_bus(struct pci_bus *parent,
+ 	/*
+ 	 * Allocate a new bus, and inherit stuff from the parent..
+ 	 */
+-	child = pci_alloc_bus();
++	child = pci_alloc_bus(parent);
+ 	if (!child)
+ 		return NULL;
+ 
+@@ -1761,13 +1765,14 @@ struct pci_bus *pci_create_root_bus(struct device *parent, int bus,
+ 	char bus_addr[64];
+ 	char *fmt;
+ 
+-	b = pci_alloc_bus();
++	b = pci_alloc_bus(NULL);
+ 	if (!b)
+ 		return NULL;
+ 
+ 	b->sysdata = sysdata;
+ 	b->ops = ops;
+ 	b->number = b->busn_res.start = bus;
++	pci_bus_assign_domain_nr(b, parent);
+ 	b2 = pci_find_bus(pci_domain_nr(b), bus);
+ 	if (b2) {
+ 		/* If we already got to this bus through a different bridge, ignore it */
+diff --git a/include/linux/pci.h b/include/linux/pci.h
+index 61978a4..a494e5d 100644
+--- a/include/linux/pci.h
++++ b/include/linux/pci.h
+@@ -456,6 +456,9 @@ struct pci_bus {
+ 	unsigned char	primary;	/* number of primary bridge */
+ 	unsigned char	max_bus_speed;	/* enum pci_bus_speed */
+ 	unsigned char	cur_bus_speed;	/* enum pci_bus_speed */
++#ifdef CONFIG_PCI_DOMAINS_GENERIC
++	int		domain_nr;
++#endif
+ 
+ 	char		name[48];
+ 
+@@ -1288,6 +1291,24 @@ static inline int pci_domain_nr(struct pci_bus *bus) { return 0; }
+ static inline int pci_proc_domain(struct pci_bus *bus) { return 0; }
+ #endif /* CONFIG_PCI_DOMAINS */
+ 
++/*
++ * Generic implementation for PCI domain support. If your
++ * architecture does not need custom management of PCI
++ * domains then this implementation will be used
++ */
++#ifdef CONFIG_PCI_DOMAINS_GENERIC
++static inline int pci_domain_nr(struct pci_bus *bus)
++{
++	return bus->domain_nr;
++}
++void pci_bus_assign_domain_nr(struct pci_bus *bus, struct device *parent);
++#else
++static inline void pci_bus_assign_domain_nr(struct pci_bus *bus,
++					struct device *parent)
++{
++}
++#endif
++
+ /* some architectures require additional setup to direct VGA traffic */
+ typedef int (*arch_set_vga_state_t)(struct pci_dev *pdev, bool decode,
+ 		      unsigned int command_bits, u32 flags);
 -- 
-Thanks!
-Yijing
-
+2.1.1
