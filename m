@@ -1,84 +1,52 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wi0-f173.google.com ([209.85.212.173]:45308 "EHLO
-	mail-wi0-f173.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750970AbaI2I7N (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 29 Sep 2014 04:59:13 -0400
-Date: Mon, 29 Sep 2014 10:59:09 +0200
-From: Thierry Reding <thierry.reding@gmail.com>
-Subject: Re: [PATCH v4 6/8] asm-generic/io.h: Implement generic
- {read,write}s*()
-Message-ID: <20140929085908.GI12506@ulmo>
-References: <1407925738-26170-1-git-send-email-thierry.reding@gmail.com>
- <1407925738-26170-7-git-send-email-thierry.reding@gmail.com>
- <CAMuHMdW4emoma3nRUGna985tE17yPh5pNjMb-jxe5yc5UVr=cw@mail.gmail.com>
+Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:62280 "EHLO
+	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1750970AbaI2J0I (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Mon, 29 Sep 2014 05:26:08 -0400
+Date: Mon, 29 Sep 2014 10:25:10 +0100
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [PATCH v3 00/17] Cross-architecture definitions of relaxed MMIO
+ accessors
+Message-ID: <20140929092510.GC20303@arm.com>
+References: <1411579056-16966-1-git-send-email-will.deacon@arm.com>
+ <9197976.uQdLmtvIl1@wuerfel>
+ <20140926134608.GT5182@n2100.arm.linux.org.uk>
+ <3359318.XmOCYLZHTV@wuerfel>
 MIME-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha1;
-	protocol="application/pgp-signature"; boundary="j+MD90OnwjQyWNYt"
-Content-Disposition: inline
-In-Reply-To: <CAMuHMdW4emoma3nRUGna985tE17yPh5pNjMb-jxe5yc5UVr=cw@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Arnd Bergmann <arnd@arndb.de>, Linux-Arch <linux-arch@vger.kernel.org>, linux-s390 <linux-s390@vger.kernel.org>, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, the arch/x86 maintainers <x86@kernel.org>, Stephen Boyd <sboyd@codeaurora.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-serial@vger.kernel.org, sparclinux <sparclinux@vger.kernel.org>, Russell King <linux@arm.linux.org.uk>, Sam Ravnborg <sam@ravnborg.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
-Message-ID: <20140929085909.CQ0xgWFZIfL2ns3mWfXiUPiY9NkUv535YFoMhc2-utc@z>
-
-
---j+MD90OnwjQyWNYt
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+In-Reply-To: <3359318.XmOCYLZHTV@wuerfel>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Russell King - ARM Linux <linux@arm.linux.org.uk>, Thierry Reding <thierry.reding@gmail.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, "chris@zankel.net" <chris@zankel.net>, "cmetcalf@tilera.com" <cmetcalf@tilera.com>, "davem@davemloft.net" <davem@davemloft.net>, "deller@gmx.de" <deller@gmx.de>, "dhowells@redhat.com" <dhowells@redhat.com>, "geert@linux-m68k.org" <geert@linux-m68k.org>, "heiko.carstens@de.ibm.com" <heiko.carstens@de.ibm.com>, "hpa@zytor.com" <hpa@zytor.com>, "jcmvbkbc@gmail.com" <jcmvbkbc@gmail.com>, "jesper.nilsson@axis.com" <jesper.nilsson@axis.com>, "mingo@redhat.com" <mingo@redhat.com>, "monstr@monstr.eu" <monstr@monstr.eu>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>, "rdunlap@infradead.org" <rdunlap@infradead.org>, "sam@ravnborg.org" <sam@ravnborg.org>, "schwidefsky@de.ibm.com" <schwidefsky@de.ibm.com>, "starvik@axis.com" <starvik@axis.com>, "takata@linux-m32r.org" <takata@linux-m32r.org>, "tglx@linutronix.de" <tglx@linutronix.de>, "tony.luck@intel.com" <tony.luck@intel.com>, "daniel.thompson@linaro.org" <daniel.thompson@linaro.org>, "broonie@linaro.org" <broonie@linaro.org>
+Message-ID: <20140929092510.Dfq-w7ufZvBQ9k0LU3xbye7qptYRVbW0WTTpvjyNvIc@z>
 
-On Mon, Sep 29, 2014 at 10:54:34AM +0200, Geert Uytterhoeven wrote:
-> On Wed, Aug 13, 2014 at 12:28 PM, Thierry Reding
-> <thierry.reding@gmail.com> wrote:
-> > #ifndef memset_io
-> > -#define memset_io(a, b, c)     memset(__io_virt(a), (b), (c))
-> > +#define memset_io memset_io
-> > +static inline void memset_io(void __iomem *addr, int value, size_t siz=
-e)
-> > +{
-> > +       memset(__io_virt(addr), value, size);
-> > +}
-> >  #endif
->=20
-> xtensa/allmodconfig:
->=20
-> include/asm-generic/io.h:820:2: error: implicit declaration of
-> function 'memset' [-Werror=3Dimplicit-function-declaration]
-> include/asm-generic/io.h:829:2: error: implicit declaration of
-> function 'memcpy' [-Werror=3Dimplicit-function-declaration]
-> arch/xtensa/include/asm/string.h:110:14: error: conflicting types for 'me=
-mset'
-> arch/xtensa/include/asm/string.h:113:14: error: conflicting types for 'me=
-mcpy'
->=20
-> http://kisskb.ellerman.id.au/kisskb/buildresult/12028900/
+Hi Arnd,
 
-I think this can be fixed by including linux/string.h for memset() and
-memcpy() in include/asm-generic/io.h.
+On Fri, Sep 26, 2014 at 10:36:13PM +0100, Arnd Bergmann wrote:
+> On Friday 26 September 2014 14:46:08 Russell King - ARM Linux wrote:
+> > 
+> > Obviously, this does nothing for the:
+> > 
+> > include/asm-generic/io.h:804:29: error: redefinition of 'virt_to_bus'
+> > include/asm-generic/io.h:809:21: error: redefinition of 'bus_to_virt'
+> > 
+> > errors which are also reported in Olof's build system.
+> > 
+> > Given how close we are to the merge window, I'd suggest this stuff gets
+> > reverted so that it can have a better period of testing, rather than
+> > stuffing it into -next at such a critical time.
+> 
+> Right, I've fixed these all up locally, but then found new warnings on
+> allmodconfig builds that I haven't been able to track down yet.
+> 
+> I've dropped everything from the asm-generic tree now, so we can get
+> a clean linux-next tree.
 
-Thanks,
-Thierry
+Did you actually see any failures due to the relaxed I/O stuff, or was this
+all in the unrelated rework of the asm-generic/io.h file? If the latter, it
+would be a pity to postpone the former series.
 
---j+MD90OnwjQyWNYt
-Content-Type: application/pgp-signature
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v2
-
-iQIcBAEBAgAGBQJUKR9cAAoJEN0jrNd/PrOhASUP/RvBIHM071cnw1PJ7yxsJ3L9
-Ye2u9bLq3ieMzN64dyKlZ0WDnlL0Zqian8oSeGFdff3yRUHaL54OA/U7AuOFX6D5
-PWltAOtP0gdrxIllmD+5mAORzTq+/4nE90FsKYKaF00CLdHe03PrrNCSoQL8AjKM
-LOLlyM7FK0zSpu8fX888PxFSbmWRrtvN5pRgW6FuDg7CFB6ngMguZ8Ez8vGlQBJp
-a/9c4FKxzJSxnmyKsV9jXSfLMTGNach+gtU99i86nTiDCoJvmx8C8nLOr9eCYmet
-YgpAiyZY0lDR5TZu9PmDum5UwQWD/0GUU5nSa98GrevvLk+TRVIbKCXVpxeos7Pb
-d872N+plfgUX4Pyy3RotpRvvwdNckKiPS+T6uYL/7oAlu/zuuOQ+XFNs7UGw9a0Z
-rVOkIUdud+hVuS//oqzu3z2SRPItcT00d7TZDcGcQdFNx8uIYi1df0elBVYYrgGN
-EWe+AWDuBvwBRFWz6w8TQpsRjzs44OP3FfEKtOAqzhyjVNuVZaH7yBNiVILdpzop
-/iLGFJ4mQk0wV3w/Sszf+LFV7RRq7cjbwbp4fqKRCKQmcSpJ5xnA71ONHiACQ61h
-H0jJjja1A2/0lTM2N27vWT70y2lUay60FG2Y6k5uD9LfsQB0GamL90u4wgpiH8zm
-nDA3G2WCAde4Al0seiYx
-=bajY
------END PGP SIGNATURE-----
-
---j+MD90OnwjQyWNYt--
+Will
