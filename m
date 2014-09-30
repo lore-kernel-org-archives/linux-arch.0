@@ -1,8 +1,8 @@
 From: Liviu Dudau <Liviu.Dudau@arm.com>
 Subject: Re: [PATCH v13 00/12] Support for creating generic PCI host bridges
  from DT
-Date: Tue, 30 Sep 2014 17:45:04 +0100
-Message-ID: <20140930164504.GT841@e106497-lin.cambridge.arm.com>
+Date: Tue, 30 Sep 2014 17:54:31 +0100
+Message-ID: <20140930165431.GV841@e106497-lin.cambridge.arm.com>
 References: <1412000971-9242-1-git-send-email-Liviu.Dudau@arm.com>
  <20140929194335.GA13747@google.com>
  <20140930103942.GO841@e106497-lin.cambridge.arm.com>
@@ -10,13 +10,17 @@ References: <1412000971-9242-1-git-send-email-Liviu.Dudau@arm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-pci-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from service87.mimecast.com ([91.220.42.44]:54279 "EHLO
+	service87.mimecast.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751909AbaI3Qyg convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 30 Sep 2014 12:54:36 -0400
 In-Reply-To: <20140930161805.GB5625@google.com>
 Content-Disposition: inline
-Sender: linux-pci-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Bjorn Helgaas <bhelgaas@google.com>
 Cc: Arnd Bergmann <arnd@arndb.de>, Rob Herring <robh+dt@kernel.org>, Jason Gunthorpe <jgunthorpe@obsidianresearch.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Catalin Marinas <Catalin.Marinas@arm.com>, Will Deacon <Will.Deacon@arm.com>, Russell King <linux@arm.linux.org.uk>, linux-pci <linux-pci@vger.kernel.org>, Linus Walleij <linus.walleij@linaro.org>, Tanmay Inamdar <tinamdar@apm.com>, Grant Likely <grant.likely@secretlab.ca>, Sinan Kaya <okaya@codeaurora.org>, Jingoo Han <jg1.han@samsung.com>, Kukjin Kim <kgene.kim@samsung.com>, Suravee Suthikulanit <suravee.suthikulpanit@amd.com>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Device Tree ML <devicetree@vger.kernel.org>, LAKML <linux-arm-kernel@lists.infradead.org>, Yinghai Lu <yinghai@kernel.org>, Jiang Liu <jiang.liu@linux.intel.com>
-List-Id: linux-arch.vger.kernel.org
 
 On Tue, Sep 30, 2014 at 05:18:05PM +0100, Bjorn Helgaas wrote:
 > On Tue, Sep 30, 2014 at 11:39:42AM +0100, Liviu Dudau wrote:
@@ -107,11 +111,10 @@ he root bus.
 > patches + Arnd's build fix for pci_pio_to_address() in !CONFIG_OF con=
 figs.
 
-A big gesture of gratitude towards you!!
-
-I'm hoping the rest of the preparations for v3.18 will go smoothly with=
-out having
-to take any more of your time.
+Something went wrong with the integration, patch 02 adds another defini=
+tion of=20
+of_pci_range_to_resource() before it is moved out of the header file fo=
+r some reason.
 
 Best regards,
 Liviu
