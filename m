@@ -1,31 +1,113 @@
-From: Max Filippov <jcmvbkbc@gmail.com>
-Subject: Re: [PATCH v4 6/8] asm-generic/io.h: Implement generic {read,write}s*()
-Date: Tue, 30 Sep 2014 14:26:20 +0400
-Message-ID: <CAMo8Bf+u8er_KF4nJPSPNf9OmKZHu4y0x3Pcb7DU17y5ocBJqw@mail.gmail.com>
-References: <1407925738-26170-1-git-send-email-thierry.reding@gmail.com>
-	<1407925738-26170-7-git-send-email-thierry.reding@gmail.com>
-	<CAMuHMdW4emoma3nRUGna985tE17yPh5pNjMb-jxe5yc5UVr=cw@mail.gmail.com>
-	<20140929085908.GI12506@ulmo>
-	<CAMo8BfJ9VJ24zsn_6VwNrAntmDqdJu11O79OyMd8eThv3UaaUw@mail.gmail.com>
+From: Liviu Dudau <Liviu.Dudau@arm.com>
+Subject: Re: [PATCH v13 00/12] Support for creating generic PCI host bridges
+ from DT
+Date: Tue, 30 Sep 2014 11:39:42 +0100
+Message-ID: <20140930103942.GO841@e106497-lin.cambridge.arm.com>
+References: <1412000971-9242-1-git-send-email-Liviu.Dudau@arm.com>
+ <20140929194335.GA13747@google.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CAMo8BfJ9VJ24zsn_6VwNrAntmDqdJu11O79OyMd8eThv3UaaUw@mail.gmail.com>
+In-Reply-To: <20140929194335.GA13747@google.com>
+Content-Disposition: inline
 Sender: linux-kernel-owner@vger.kernel.org
-To: Thierry Reding <thierry.reding@gmail.com>
-Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Arnd Bergmann <arnd@arndb.de>, Linux-Arch <linux-arch@vger.kernel.org>, linux-s390 <linux-s390@vger.kernel.org>, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, the arch/x86 maintainers <x86@kernel.org>, Stephen Boyd <sboyd@codeaurora.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-serial@vger.kernel.org, sparclinux <sparclinux@vger.kernel.org>, Russell King <linux@arm.linux.org.uk>, Sam Ravnborg <sam@ravnborg.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
+To: Bjorn Helgaas <bhelgaas@google.com>
+Cc: Arnd Bergmann <arnd@arndb.de>, Rob Herring <robh+dt@kernel.org>, Jason Gunthorpe <jgunthorpe@obsidianresearch.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Catalin Marinas <Catalin.Marinas@arm.com>, Will Deacon <Will.Deacon@arm.com>, Russell King <linux@arm.linux.org.uk>, linux-pci <linux-pci@vger.kernel.org>, Linus Walleij <linus.walleij@linaro.org>, Tanmay Inamdar <tinamdar@apm.com>, Grant Likely <grant.likely@secretlab.ca>, Sinan Kaya <okaya@codeaurora.org>, Jingoo Han <jg1.han@samsung.com>, Kukjin Kim <kgene.kim@samsung.com>, Suravee Suthikulanit <suravee.suthikulpanit@amd.com>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Device Tree ML <devicetree@vger.kernel.org>, LAKML <linux-arm-kernel@lists.infradead.org>, Yinghai Lu <yinghai@kernel.org>, Jiang Liu <jiang.liu@linux.intel.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Sep 30, 2014 at 2:22 PM, Max Filippov <jcmvbkbc@gmail.com> wrote:
-> Hi Thierry,
->
->> I think this can be fixed by including linux/string.h for memset() and
->> memcpy() in include/asm-generic/io.h.
->
-> Will you send that fix or do I need to do it?
+On Mon, Sep 29, 2014 at 08:43:35PM +0100, Bjorn Helgaas wrote:
+> On Mon, Sep 29, 2014 at 03:29:19PM +0100, Liviu Dudau wrote:
+> > This is my version 13 of the attempt at adding support for generic =
+PCI host
+> > bridge controllers. It contains only cleanups to make it play nice =
+with the
+> > linux-next tree as of 09/25. If Bjorn deems it safe, now that it lo=
+oks like
+> > asm-generic is going to revert some of its more aggresive patches, =
+he has the
+> > choice of queueing it into linux-next again.
+> > ...
+>=20
+> These patches above were already on my pci/host-generic branch and in
+> linux-next:
+>=20
+>    asm-generic/io.h: Fix ioport_map() for !CONFIG_GENERIC_IOMAP
+This ^ ...
 
-Never mind, found that it's fixed in today's next.
+>    of/pci: Add pci_register_io_range() and pci_pio_to_address()
+>    ARM: Define PCI_IOBASE as the base of virtual PCI IO space
 
--- 
-Thanks.
--- Max
+and this ^ need to be refreshed from my series otherwise we will get co=
+nflicts with
+asm-generic branch (either now or in the future). While the asm-generic=
+/io.h
+cast is arguably superflous, we need to define PCI_IOBASE as a void __i=
+omem* to
+match all other standard declarations of PCI_IOBASE.
+
+>    of/pci: Define of_pci_range_to_resource() only when CONFIG_PCI=3Dy
+>    of/pci: Move of_pci_range_to_resources() to of/address.c
+>    of/pci: Fix the conversion of IO ranges into IO resources
+>=20
+> I added these three patches to my pci/host-generic branch:
+>=20
+>    PCI: Add generic domain handling
+>    of/pci: Add pci_get_new_domain_nr() and of_get_pci_domain_nr()
+>    of/pci: Add support for parsing PCI host bridge resources from DT
+
+I can see these patches added to pci/host-generic but not on pci/next.
+
+>=20
+> Yinghai pointed out a problem with this one, so I omitted it:
+>=20
+>    PCI: Assign unassigned bus resources in pci_scan_root_bus()
+
+Thats fine, host bridge drivers will have to work around pci_scan_root_=
+bus() reduced
+functionality for now.
+
+
+>=20
+> I added this one to my pci/host-generic branch:
+>=20
+>    PCI: Add pci_remap_iospace() to map bus I/O resources
+>=20
+> I assume this depends on the pci_scan_root_bus() change (if not, let =
+me
+> know), so I omitted this one:
+>=20
+>    arm64: Add architectural support for PCI
+
+No, there is no dependency there on pci_scan_root_bus(), it can go in t=
+he series.
+The only thing that depends on a feature rich pci_scan_root_bus() is th=
+e host
+bridge driver in order to be able to use only one line to process the r=
+oot bus.
+
+Thanks for huge support in getting these patches in and I do hope I'm n=
+ot being
+too much of a burden to you.
+
+Best regards,
+Liviu
+
+>=20
+> Bjorn
+> --
+> To unsubscribe from this list: send the line "unsubscribe linux-pci" =
+in
+> the body of a message to majordomo@vger.kernel.org
+> More majordomo info at  http://vger.kernel.org/majordomo-info.html
+>=20
+
+--=20
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D
+| I would like to |
+| fix the world,  |
+| but they're not |
+| giving me the   |
+ \ source code!  /
+  ---------------
+    =C2=AF\_(=E3=83=84)_/=C2=AF
