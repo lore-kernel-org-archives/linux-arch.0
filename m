@@ -1,43 +1,50 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss-mx-na.foss.arm.com ([217.140.108.86]:39994 "EHLO
-	foss-mx-na.foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750959AbaJALLj (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 1 Oct 2014 07:11:39 -0400
-Date: Wed, 1 Oct 2014 12:11:28 +0100
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH V4 1/6] mm: Introduce a general RCU get_user_pages_fast.
-Message-ID: <20141001111127.GG12702@e104818-lin.cambridge.arm.com>
-References: <1411740233-28038-1-git-send-email-steve.capper@linaro.org>
- <1411740233-28038-2-git-send-email-steve.capper@linaro.org>
- <alpine.LSU.2.11.1409291443210.2800@eggly.anvils>
+Received: from mx10.pku.edu.cn ([162.105.129.173]:59936 "EHLO mail.pku.edu.cn"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1751469AbaJAOjQ convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 1 Oct 2014 10:39:16 -0400
+Date: Wed, 1 Oct 2014 22:38:59 +0800 (CST)
+From: =?gbk?B?WHVldGFvIEd1YW4g?= <gxt@pku.edu.cn>
+Message-ID: <1890664630.35241.1412174339749.JavaMail.root@bj-mail03.pku.edu.cn>
+In-Reply-To: <1411981207.6334.6.camel@x220>
+Subject: =?utf-8?Q?=E5=9B=9E=E5=A4=8D=EF=BC=9A_Re:_[PATCH]_unicore32:_Remove_u?=
+ =?utf-8?Q?nneeded_Kconfig_entry_NO=5FIOPORT=5FMAP?=
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <alpine.LSU.2.11.1409291443210.2800@eggly.anvils>
-Content-Language: en-US
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Hugh Dickins <hughd@google.com>
-Cc: Steve Capper <steve.capper@linaro.org>, Andrew Morton <akpm@linux-foundation.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux@arm.linux.org.uk" <linux@arm.linux.org.uk>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, Will Deacon <Will.Deacon@arm.com>, "gary.robertson@linaro.org" <gary.robertson@linaro.org>, "christoffer.dall@linaro.org" <christoffer.dall@linaro.org>, "peterz@infradead.org" <peterz@infradead.org>, "anders.roxell@linaro.org" <anders.roxell@linaro.org>, "dann.frazier@canonical.com" <dann.frazier@canonical.com>, Mark Rutland <Mark.Rutland@arm.com>, "mgorman@suse.de" <mgorman@suse.de>
-Message-ID: <20141001111128.ggOgtLuyLGdx7dlZgjvasNaSxTPLjpFFkWGbjJDdXa0@z>
+To: Paul Bolle <pebolle@tiscali.nl>
+Cc: Guan Xuetao <gxt@mprc.pku.edu.cn>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20141001143859.a_67hNfCSFXNrMjv8lUK0sJv6x8AgETYYL0MEh2GWmg@z>
 
-On Mon, Sep 29, 2014 at 10:51:25PM +0100, Hugh Dickins wrote:
-> On Fri, 26 Sep 2014, Steve Capper wrote:
-> > This patch provides a general RCU implementation of get_user_pages_fast
-> > that can be used by architectures that perform hardware broadcast of
-> > TLB invalidations.
-> >
-> > It is based heavily on the PowerPC implementation by Nick Piggin.
-> >
-> > Signed-off-by: Steve Capper <steve.capper@linaro.org>
-> > Tested-by: Dann Frazier <dann.frazier@canonical.com>
-> > Reviewed-by: Catalin Marinas <catalin.marinas@arm.com>
+
+----- Paul Bolle <pebolle@tiscali.nl> 写道：
+> On Sun, 2014-09-28 at 09:49 +0800, Xuetao Guan wrote:
+> > Sorry for late reply.
 > 
-> Acked-by: Hugh Dickins <hughd@google.com>
+> You replied within four days. That's rather quick, actually.
 > 
-> Thanks for making all those clarifications, Steve: this looks very
-> good to me now.  I'm not sure which tree you're hoping will take this
-> and the arm+arm64 patches 2-6: although this one would normally go
-> through akpm, I expect it's easier for you to synchronize if it goes
-> in along with the arm+arm64 2-6 - would that be okay with you, Andrew?
-> I see no clash with what's currently in mmotm.
+> > I checked this config, and it's only used for HAS_IOPORT_MAP in lib/Kconfig
+> > Sure, removing it means no different for .config file.
+> > I think a better way is reserving it
+> 
+> I'm not sure I get what you're saying here: what do mean with "reserving
+> it"?
+
+I mean, it's better to keep the code unchanged.
+
+> 
+> > or moving it into arch/Kconfig
+> 
+> Without a (treewide) patch I find it hard to say whether that's worth
+> the trouble. But even if that move would be done, wouldn't it include
+> dropping this entry from arch/unicore32 anyway?
+
+IMHO, this config could be removed from kernel code.
+
+> 
+> 
+> Paul Bolle
+> 
+
