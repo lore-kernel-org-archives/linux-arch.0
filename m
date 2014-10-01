@@ -1,134 +1,50 @@
-From: Liviu Dudau <Liviu.Dudau@arm.com>
-Subject: Re: [PATCH v13 00/12] Support for creating generic PCI host bridges
- from DT
-Date: Tue, 30 Sep 2014 17:54:31 +0100
-Message-ID: <20140930165431.GV841@e106497-lin.cambridge.arm.com>
-References: <1412000971-9242-1-git-send-email-Liviu.Dudau@arm.com>
- <20140929194335.GA13747@google.com>
- <20140930103942.GO841@e106497-lin.cambridge.arm.com>
- <20140930161805.GB5625@google.com>
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [PATCH V4 1/6] mm: Introduce a general RCU get_user_pages_fast.
+Date: Wed, 1 Oct 2014 12:11:28 +0100
+Message-ID: <20141001111127.GG12702@e104818-lin.cambridge.arm.com>
+References: <1411740233-28038-1-git-send-email-steve.capper@linaro.org>
+ <1411740233-28038-2-git-send-email-steve.capper@linaro.org>
+ <alpine.LSU.2.11.1409291443210.2800@eggly.anvils>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: QUOTED-PRINTABLE
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from service87.mimecast.com ([91.220.42.44]:54279 "EHLO
-	service87.mimecast.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751909AbaI3Qyg convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 30 Sep 2014 12:54:36 -0400
-In-Reply-To: <20140930161805.GB5625@google.com>
+Received: from foss-mx-na.foss.arm.com ([217.140.108.86]:39994 "EHLO
+	foss-mx-na.foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750959AbaJALLj (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 1 Oct 2014 07:11:39 -0400
 Content-Disposition: inline
+In-Reply-To: <alpine.LSU.2.11.1409291443210.2800@eggly.anvils>
+Content-Language: en-US
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Bjorn Helgaas <bhelgaas@google.com>
-Cc: Arnd Bergmann <arnd@arndb.de>, Rob Herring <robh+dt@kernel.org>, Jason Gunthorpe <jgunthorpe@obsidianresearch.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Catalin Marinas <Catalin.Marinas@arm.com>, Will Deacon <Will.Deacon@arm.com>, Russell King <linux@arm.linux.org.uk>, linux-pci <linux-pci@vger.kernel.org>, Linus Walleij <linus.walleij@linaro.org>, Tanmay Inamdar <tinamdar@apm.com>, Grant Likely <grant.likely@secretlab.ca>, Sinan Kaya <okaya@codeaurora.org>, Jingoo Han <jg1.han@samsung.com>, Kukjin Kim <kgene.kim@samsung.com>, Suravee Suthikulanit <suravee.suthikulpanit@amd.com>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Device Tree ML <devicetree@vger.kernel.org>, LAKML <linux-arm-kernel@lists.infradead.org>, Yinghai Lu <yinghai@kernel.org>, Jiang Liu <jiang.liu@linux.intel.com>
+To: Hugh Dickins <hughd@google.com>
+Cc: Steve Capper <steve.capper@linaro.org>, Andrew Morton <akpm@linux-foundation.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux@arm.linux.org.uk" <linux@arm.linux.org.uk>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, Will Deacon <Will.Deacon@arm.com>, "gary.robertson@linaro.org" <gary.robertson@linaro.org>, "christoffer.dall@linaro.org" <christoffer.dall@linaro.org>, "peterz@infradead.org" <peterz@infradead.org>, "anders.roxell@linaro.org" <anders.roxell@linaro.org>, "dann.frazier@canonical.com" <dann.frazier@canonical.com>, Mark Rutland <Mark.Rutland@arm.com>, "mgorman@suse.de" <mgorman@suse.de>
 
-On Tue, Sep 30, 2014 at 05:18:05PM +0100, Bjorn Helgaas wrote:
-> On Tue, Sep 30, 2014 at 11:39:42AM +0100, Liviu Dudau wrote:
-> > On Mon, Sep 29, 2014 at 08:43:35PM +0100, Bjorn Helgaas wrote:
-> > > On Mon, Sep 29, 2014 at 03:29:19PM +0100, Liviu Dudau wrote:
-> > > > This is my version 13 of the attempt at adding support for gene=
-ric PCI host
-> > > > bridge controllers. It contains only cleanups to make it play n=
-ice with the
-> > > > linux-next tree as of 09/25. If Bjorn deems it safe, now that i=
-t looks like
-> > > > asm-generic is going to revert some of its more aggresive patch=
-es, he has the
-> > > > choice of queueing it into linux-next again.
-> > > > ...
-> > >=20
-> > > These patches above were already on my pci/host-generic branch an=
-d in
-> > > linux-next:
-> > >=20
-> > >    asm-generic/io.h: Fix ioport_map() for !CONFIG_GENERIC_IOMAP
-> > This ^ ...
-> >=20
-> > >    of/pci: Add pci_register_io_range() and pci_pio_to_address()
-> > >    ARM: Define PCI_IOBASE as the base of virtual PCI IO space
-> >=20
-> > and this ^ need to be refreshed from my series otherwise we will ge=
-t conflicts with
-> > asm-generic branch (either now or in the future). While the asm-gen=
-eric/io.h
-> > cast is arguably superflous, we need to define PCI_IOBASE as a void=
- __iomem* to
-> > match all other standard declarations of PCI_IOBASE.
-> >=20
-> > >    of/pci: Define of_pci_range_to_resource() only when CONFIG_PCI=
-=3Dy
-> > >    of/pci: Move of_pci_range_to_resources() to of/address.c
-> > >    of/pci: Fix the conversion of IO ranges into IO resources
-> > >=20
-> > > I added these three patches to my pci/host-generic branch:
-> > >=20
-> > >    PCI: Add generic domain handling
-> > >    of/pci: Add pci_get_new_domain_nr() and of_get_pci_domain_nr()
-> > >    of/pci: Add support for parsing PCI host bridge resources from=
- DT
-> >=20
-> > I can see these patches added to pci/host-generic but not on pci/ne=
-xt.
->=20
-> Right.  I leave things on topic branches for a day or two to give a c=
-hance
-> for Fengguang's auto-builder to find problems before I merge them int=
-o the
-> more public "next" or "for-linus" branches.
->=20
-> > > Yinghai pointed out a problem with this one, so I omitted it:
-> > >=20
-> > >    PCI: Assign unassigned bus resources in pci_scan_root_bus()
-> >=20
-> > Thats fine, host bridge drivers will have to work around pci_scan_r=
-oot_bus() reduced
-> > functionality for now.
->=20
-> Well, it's not really "reduced functionality."  It is unchanged by th=
-is
-> series and host bridge drivers can continue using it the same way the=
-y have
-> in the past.  It's just that we'd like to make it smarter someday.
->=20
-> > > I added this one to my pci/host-generic branch:
-> > >=20
-> > >    PCI: Add pci_remap_iospace() to map bus I/O resources
-> > >=20
-> > > I assume this depends on the pci_scan_root_bus() change (if not, =
-let me
-> > > know), so I omitted this one:
-> > >=20
-> > >    arm64: Add architectural support for PCI
-> >=20
-> > No, there is no dependency there on pci_scan_root_bus(), it can go =
-in the series.
-> > The only thing that depends on a feature rich pci_scan_root_bus() i=
-s the host
-> > bridge driver in order to be able to use only one line to process t=
-he root bus.
->=20
-> OK, I rebuilt pci/host-generic from scratch.  It consists of your v13
-> patches + Arnd's build fix for pci_pio_to_address() in !CONFIG_OF con=
-figs.
+On Mon, Sep 29, 2014 at 10:51:25PM +0100, Hugh Dickins wrote:
+> On Fri, 26 Sep 2014, Steve Capper wrote:
+> > This patch provides a general RCU implementation of get_user_pages_fast
+> > that can be used by architectures that perform hardware broadcast of
+> > TLB invalidations.
+> >
+> > It is based heavily on the PowerPC implementation by Nick Piggin.
+> >
+> > Signed-off-by: Steve Capper <steve.capper@linaro.org>
+> > Tested-by: Dann Frazier <dann.frazier@canonical.com>
+> > Reviewed-by: Catalin Marinas <catalin.marinas@arm.com>
+> 
+> Acked-by: Hugh Dickins <hughd@google.com>
+> 
+> Thanks for making all those clarifications, Steve: this looks very
+> good to me now.  I'm not sure which tree you're hoping will take this
+> and the arm+arm64 patches 2-6: although this one would normally go
+> through akpm, I expect it's easier for you to synchronize if it goes
+> in along with the arm+arm64 2-6 - would that be okay with you, Andrew?
+> I see no clash with what's currently in mmotm.
 
-Something went wrong with the integration, patch 02 adds another defini=
-tion of=20
-of_pci_range_to_resource() before it is moved out of the header file fo=
-r some reason.
+From an arm64 perspective, I'm more than happy for Andrew to pick up the
+entire series. I already reviewed the patches.
 
-Best regards,
-Liviu
+Thanks.
 
->=20
-> Bjorn
->=20
-
---=20
-=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D
-| I would like to |
-| fix the world,  |
-| but they're not |
-| giving me the   |
- \ source code!  /
-  ---------------
-    =C2=AF\_(=E3=83=84)_/=C2=AF
+-- 
+Catalin
