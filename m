@@ -1,57 +1,74 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:22259 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751437AbaJBMUQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 2 Oct 2014 08:20:16 -0400
-Date: Thu, 2 Oct 2014 14:19:03 +0200
-From: Andrea Arcangeli <aarcange@redhat.com>
-Subject: Re: [PATCH V4 1/6] mm: Introduce a general RCU get_user_pages_fast.
-Message-ID: <20141002121902.GA2342@redhat.com>
-References: <1411740233-28038-1-git-send-email-steve.capper@linaro.org>
- <1411740233-28038-2-git-send-email-steve.capper@linaro.org>
+Received: from mail-yh0-f44.google.com ([209.85.213.44]:65066 "EHLO
+	mail-yh0-f44.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754126AbaJBQAn (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 2 Oct 2014 12:00:43 -0400
+Received: by mail-yh0-f44.google.com with SMTP id i57so801339yha.17
+        for <linux-arch@vger.kernel.org>; Thu, 02 Oct 2014 09:00:43 -0700 (PDT)
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1411740233-28038-2-git-send-email-steve.capper@linaro.org>
+In-Reply-To: <alpine.LSU.2.11.1409291443210.2800@eggly.anvils>
+References: <1411740233-28038-1-git-send-email-steve.capper@linaro.org>
+	<1411740233-28038-2-git-send-email-steve.capper@linaro.org>
+	<alpine.LSU.2.11.1409291443210.2800@eggly.anvils>
+Date: Thu, 2 Oct 2014 23:00:43 +0700
+Message-ID: <CAPvkgC1RcgeraaUyHLs0qA=G-mMoNFEneypkvUiPWEjZWWExfA@mail.gmail.com>
+Subject: Re: [PATCH V4 1/6] mm: Introduce a general RCU get_user_pages_fast.
+From: Steve Capper <steve.capper@linaro.org>
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Steve Capper <steve.capper@linaro.org>
-Cc: linux-arm-kernel@lists.infradead.org, catalin.marinas@arm.com, linux@arm.linux.org.uk, linux-arch@vger.kernel.org, linux-mm@kvack.org, will.deacon@arm.com, gary.robertson@linaro.org, christoffer.dall@linaro.org, peterz@infradead.org, anders.roxell@linaro.org, akpm@linux-foundation.org, dann.frazier@canonical.com, mark.rutland@arm.com, mgorman@suse.de, hughd@google.com
-Message-ID: <20141002121903.q1a_QPSV7mnz4kwJG6YUXpu7nfdZb27jbsg6vFRc420@z>
+To: Hugh Dickins <hughd@google.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Catalin Marinas <catalin.marinas@arm.com>, "linux@arm.linux.org.uk" <linux@arm.linux.org.uk>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, Will Deacon <will.deacon@arm.com>, Gary Robertson <gary.robertson@linaro.org>, Christoffer Dall <christoffer.dall@linaro.org>, Peter Zijlstra <peterz@infradead.org>, Anders Roxell <anders.roxell@linaro.org>, Dann Frazier <dann.frazier@canonical.com>, Mark Rutland <mark.rutland@arm.com>, Mel Gorman <mgorman@suse.de>
+Message-ID: <20141002160043.MdqvDXzs68XKMyE2fhkko_SjsY5UDG7dTmmpQENSYHg@z>
 
-Hi Steve,
+On 30 September 2014 04:51, Hugh Dickins <hughd@google.com> wrote:
+> On Fri, 26 Sep 2014, Steve Capper wrote:
+>
+>> get_user_pages_fast attempts to pin user pages by walking the page
+>> tables directly and avoids taking locks. Thus the walker needs to be
+>> protected from page table pages being freed from under it, and needs
+>> to block any THP splits.
+>>
+>> One way to achieve this is to have the walker disable interrupts, and
+>> rely on IPIs from the TLB flushing code blocking before the page table
+>> pages are freed.
+>>
+>> On some platforms we have hardware broadcast of TLB invalidations, thus
+>> the TLB flushing code doesn't necessarily need to broadcast IPIs; and
+>> spuriously broadcasting IPIs can hurt system performance if done too
+>> often.
+>>
+>> This problem has been solved on PowerPC and Sparc by batching up page
+>> table pages belonging to more than one mm_user, then scheduling an
+>> rcu_sched callback to free the pages. This RCU page table free logic
+>> has been promoted to core code and is activated when one enables
+>> HAVE_RCU_TABLE_FREE. Unfortunately, these architectures implement
+>> their own get_user_pages_fast routines.
+>>
+>> The RCU page table free logic coupled with a an IPI broadcast on THP
+>> split (which is a rare event), allows one to protect a page table
+>> walker by merely disabling the interrupts during the walk.
+>>
+>> This patch provides a general RCU implementation of get_user_pages_fast
+>> that can be used by architectures that perform hardware broadcast of
+>> TLB invalidations.
+>>
+>> It is based heavily on the PowerPC implementation by Nick Piggin.
+>>
+>> Signed-off-by: Steve Capper <steve.capper@linaro.org>
+>> Tested-by: Dann Frazier <dann.frazier@canonical.com>
+>> Reviewed-by: Catalin Marinas <catalin.marinas@arm.com>
+>
+> Acked-by: Hugh Dickins <hughd@google.com>
+>
 
-On Fri, Sep 26, 2014 at 03:03:48PM +0100, Steve Capper wrote:
-> This patch provides a general RCU implementation of get_user_pages_fast
-> that can be used by architectures that perform hardware broadcast of
-> TLB invalidations.
-> 
-> It is based heavily on the PowerPC implementation by Nick Piggin.
+Thanks Hugh!
 
-It'd be nice if you could also at the same time apply it to sparc and
-powerpc in this same patchset to show the effectiveness of having a
-generic version. Because if it's not a trivial drop-in replacement,
-then this should go in arch/arm* instead of mm/gup.c...
+> Thanks for making all those clarifications, Steve: this looks very
+> good to me now.  I'm not sure which tree you're hoping will take this
+> and the arm+arm64 patches 2-6: although this one would normally go
+> through akpm, I expect it's easier for you to synchronize if it goes
+> in along with the arm+arm64 2-6 - would that be okay with you, Andrew?
+> I see no clash with what's currently in mmotm.
 
-Also I wonder if it wouldn't be better to add it to mm/util.c along
-with the __weak gup_fast but then this is ok too. I'm just saying
-because we never had sings of gup_fast code in mm/gup.c so far but
-then this isn't exactly a __weak version of it... so I don't mind
-either ways.
-
-> +		down_read(&mm->mmap_sem);
-> +		ret = get_user_pages(current, mm, start,
-> +				     nr_pages - nr, write, 0, pages, NULL);
-> +		up_read(&mm->mmap_sem);
-
-This has a collision with a patchset I posted, but it's trivial to
-solve, the above three lines need to be replaced with:
-
-+		ret = get_user_pages_unlocked(current, mm, start,
-+				     nr_pages - nr, write, 0, pages);
-
-And then arm gup_fast will also page fault with FOLL_FAULT_ALLOW_RETRY
-the first time to release the mmap_sem before I/O.
-
-Thanks,
-Andrea
+I see it's gone into mmotm.
