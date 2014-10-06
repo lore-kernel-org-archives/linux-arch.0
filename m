@@ -1,40 +1,91 @@
-From: Andrea Arcangeli <aarcange@redhat.com>
-Subject: Re: [PATCH V4 1/6] mm: Introduce a general RCU get_user_pages_fast.
-Date: Thu, 2 Oct 2014 18:54:30 +0200
-Message-ID: <20141002165430.GK2342@redhat.com>
-References: <1411740233-28038-1-git-send-email-steve.capper@linaro.org>
- <1411740233-28038-2-git-send-email-steve.capper@linaro.org>
- <20141002121902.GA2342@redhat.com>
- <CAPvkgC3VkmctmD9dROqkAEwi-Njm9zQqVx1=Byttr5_n-J7wYw@mail.gmail.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <owner-linux-mm@kvack.org>
-Content-Disposition: inline
-In-Reply-To: <CAPvkgC3VkmctmD9dROqkAEwi-Njm9zQqVx1=Byttr5_n-J7wYw@mail.gmail.com>
-Sender: owner-linux-mm@kvack.org
-To: Steve Capper <steve.capper@linaro.org>
-Cc: "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Catalin Marinas <catalin.marinas@arm.com>, "linux@arm.linux.org.uk" <linux@arm.linux.org.uk>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, Will Deacon <will.deacon@arm.com>, Gary Robertson <gary.robertson@linaro.org>, Christoffer Dall <christoffer.dall@linaro.org>, Peter Zijlstra <peterz@infradead.org>, Anders Roxell <anders.roxell@linaro.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, Dann Frazier <dann.frazier@canonical.com>, Mark Rutland <mark.rutland@arm.com>, Mel Gorman <mgorman@suse.de>, Hugh Dickins <hughd@google.com>
-List-Id: linux-arch.vger.kernel.org
+From: Thierry Reding <thierry.reding@gmail.com>
+Subject: [PATCH v5 0/9] asm-generic/io.h overhaul
+Date: Mon,  6 Oct 2014 15:52:32 +0200
+Message-ID: <1412603561-27653-1-git-send-email-thierry.reding@gmail.com>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-wi0-f169.google.com ([209.85.212.169]:39389 "EHLO
+	mail-wi0-f169.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752656AbaJFNwt (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 6 Oct 2014 09:52:49 -0400
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Arnd Bergmann <arnd@arndb.de>, Olof Johansson <olof@lixom.net>, Fengguang Wu <fengguang.wu@intel.com>
+Cc: Russell King <linux@arm.linux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Stephen Boyd <sboyd@codeaurora.org>, Sam Ravnborg <sam@ravnborg.org>, linux-arm-kernel@lists.infradead.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, x86@kernel.org, linux-serial@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-On Thu, Oct 02, 2014 at 11:18:00PM +0700, Steve Capper wrote:
-> mm/gup.c was recently created?
-> It may even make sense to move the weak version in a future patch?
+From: Thierry Reding <treding@nvidia.com>
 
-I think the __weak stuff tends to go in lib, that's probably why it's
-there. I don't mind either ways.
+Hi,
 
-> I'm currently on holiday and have very limited access to email, I'd
-> appreciate it if someone can keep an eye out for this during the merge
-> window if this conflict arises?
+Here is the fifth version of a series that started out as an attempt to
+provide string versions of the read*() and write*() accessors to more
+architectures so that drivers can use them portably. The series has
+since evolved into a more general cleanup of asm-generic/io.h and the
+functions defined therein.
 
-No problem, I assume Andrew will merge your patchset first, so I can
-resubmit against -mm patching the gup_fast_rcu too.
+Patch 1 is trivial and removes a redundant redefinition of PCI_IOBASE
+from the asm/io.h header on ARC. Patches 2 and 3 remove unnecessary
+volatile keywoards from some functions, which is a prerequisite to clean
+up some of the functions in subsequent patches.
 
-Thanks,
-Andrea
+The xlate_dev_{kmem,mem}_ptr() functions are used to map memory when the
+/dev/mem device is accessed. Patches 4 and 5 use more consistent data
+types for these functions, which will get a "standard" prototype in the
+asm-generic/io.h header in a subsequent patch.
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+Patch 6 is the bulk of this series. It cleans up various parts of the
+asm-generic/io.h header file. Macros are converted to static inline
+functions for better type checking. Overriding generic implementations
+in architectures is handled more consistently.
+
+Patch 7 implements the string variants of the read*() and write*()
+accessors.
+
+Patches 8 and 9, finally, make use of the asm-generic/io.h header on the
+32-bit and 64-bit ARM architectures.
+
+This is compile- and runtime-tested on 32-bit and 64-bit ARM and compile
+tested on IA64, Microblaze, s390, SPARC, x86 and Xtensa. For ARC,
+Blackfin, Metag, OpenRISC, Score and Unicore32 which also use
+asm-generic/io.h I couldn't find or build a cross-compiler that would
+run on my system. But by code inspection they shouldn't break with this
+patch.
+
+I'm sending this to Olof and Fengguang in the hopes that they can help
+in getting more compile coverage of the series. I've uploaded the series
+to a branch here[0]. Are there instructions somewhere on how to submit a
+branch to your builder? If possible it would also be nice to get the
+series tested for possible bisectability issues.
+
+[0]: https://github.com/thierryreding/linux.git#asm-generic-io
+
+Thierry
+
+Thierry Reding (8):
+  ARC: Remove redundant PCI_IOBASE declaration
+  serial: sunzilog: Remove unnecessary volatile keyword
+  sparc: Remove unnecessary volatile usage
+  [IA64] Change xlate_dev_{kmem,mem}_ptr() prototypes
+  /dev/mem: Use more consistent data types
+  asm-generic/io.h: Implement generic {read,write}s*()
+  ARM: Use include/asm-generic/io.h
+  arm64: Use include/asm-generic/io.h
+
+ arch/arc/include/asm/io.h       |   2 -
+ arch/arm/include/asm/io.h       |  75 ++---
+ arch/arm/include/asm/memory.h   |   2 +
+ arch/arm64/Kconfig              |   1 -
+ arch/arm64/include/asm/io.h     | 122 ++-----
+ arch/arm64/include/asm/memory.h |   2 +
+ arch/ia64/include/asm/uaccess.h |  16 +-
+ arch/s390/include/asm/io.h      |   5 +-
+ arch/s390/mm/maccess.c          |   4 +-
+ arch/sparc/include/asm/io_32.h  |  18 +-
+ arch/x86/include/asm/io.h       |   4 +-
+ arch/x86/mm/ioremap.c           |   4 +-
+ drivers/char/mem.c              |  13 +-
+ drivers/tty/serial/sunzilog.h   |   8 +-
+ include/asm-generic/io.h        | 683 ++++++++++++++++++++++++++++++++--------
+ 15 files changed, 647 insertions(+), 312 deletions(-)
+
+-- 
+2.0.4
