@@ -1,42 +1,75 @@
-From: Robert Richter <rric-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>
-Subject: Re: [PATCH v13 00/12] Support for creating generic PCI host bridges
- from DT
-Date: Wed, 8 Oct 2014 12:36:00 +0200
-Message-ID: <20141008103600.GS20170@rric.localhost>
-References: <1412000971-9242-1-git-send-email-Liviu.Dudau@arm.com>
- <20140929194335.GA13747@google.com>
- <20140930103942.GO841@e106497-lin.cambridge.arm.com>
- <20140930161805.GB5625@google.com>
- <20140930165431.GV841@e106497-lin.cambridge.arm.com>
- <20141008074428.GD20256@rric.localhost>
- <20141008091321.GC4652@e106497-lin.cambridge.arm.com>
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: Re: [PATCH v4 21/29] nios2: Time keeping
+Date: Wed, 8 Oct 2014 12:44:32 +0200 (CEST)
+Message-ID: <alpine.DEB.2.11.1410081240110.4292@nanos>
+References: <1412760595-3935-1-git-send-email-lftan@altera.com> <1412760595-3935-22-git-send-email-lftan@altera.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <devicetree-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-Content-Disposition: inline
-In-Reply-To: <20141008091321.GC4652-2JSQmVVBSi7ZROr8t4l/smS4ubULX0JqMm0uRHvK7Nw@public.gmane.org>
-Sender: devicetree-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: Liviu Dudau <Liviu.Dudau-5wv7dgnIgG8@public.gmane.org>
-Cc: Bjorn Helgaas <bhelgaas-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Rob Herring <robh+dt-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Jason Gunthorpe <jgunthorpe-ePGOBjL8dl3ta4EC/59zMFaTQe2KTcn/@public.gmane.org>, Benjamin Herrenschmidt <benh-XVmvHMARGAS8U2dJNN8I7kB+6BGkLq7r@public.gmane.org>, Catalin Marinas <Catalin.Marinas-5wv7dgnIgG8@public.gmane.org>, Will Deacon <Will.Deacon-5wv7dgnIgG8@public.gmane.org>, Russell King <linux-lFZ/pmaqli7XmaaqVzeoHQ@public.gmane.org>, linux-pci <linux-pci-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Linus Walleij <linus.walleij-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>, Tanmay Inamdar <tinamdar-qTEPVZfXA3Y@public.gmane.org>, Grant Likely <grant.likely-s3s/WqlpOiPyB63q8FvJNQ@public.gmane.org>, Sinan Kaya <okaya-sgV2jX0FEOL9JmXXK+q4OQ@public.gmane.org>, Jingoo Han <jg1.han-Sze3O3UU22JBDgjK7y7TUQ@public.gmane.org>, Kukjin Kim <kgene.kim-Sze3O3UU22JBDgjK7y7TUQ@public.gmane.org>, Suravee Suthikulanit <suravee.suthikulpanit-5C7GfCeVMHo@public.gmane.org>, linux-arch <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, LKML <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Device Tree ML <devicetree-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, LAKML <linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org>, Yinghai Lu <yinghai-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Jiang Liu <jiang.liu-VuQAYsv1563Yd54FQh9/CA@public.gmane.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: TEXT/PLAIN; charset=US-ASCII
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from www.linutronix.de ([62.245.132.108]:37223 "EHLO
+	Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754192AbaJHKoh (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 8 Oct 2014 06:44:37 -0400
+In-Reply-To: <1412760595-3935-22-git-send-email-lftan@altera.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Ley Foon Tan <lftan@altera.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, lftan.linux@gmail.com, cltang@codesourcery.com
 
-On 08.10.14 10:13:21, Liviu Dudau wrote:
-> On Wed, Oct 08, 2014 at 08:44:28AM +0100, Robert Richter wrote:
-> > I assume pci/host-generic is the latest now with this issue fixed as
-> > the commit date is 2014-10-01 past you message above, right? So is it
-> > ok to rebase our host controller driver onto pci/host-generic or will
-> > there be further updates or any other branch that is newer?
-> 
-> You can rebase either on top of Bjorn's next branch or use linux-next. Hope to
-> see it in v3.18 soon.
+On Wed, 8 Oct 2014, Ley Foon Tan wrote:
+> +static void nios2_timer_set_mode(enum clock_event_mode mode,
+> +	struct clock_event_device *evt)
+> +{
+> +	unsigned long period;
+> +	struct nios2_clockevent_dev *nios2_ced = to_nios2_clkevent(evt);
+> +	struct nios2_timer *timer = &nios2_ced->timer;
+> +
+> +	switch (mode) {
+> +	case CLOCK_EVT_MODE_PERIODIC:
+> +		period = DIV_ROUND_UP(timer->freq, HZ);
+> +		nios2_timer_config(timer, period, CLOCK_EVT_MODE_PERIODIC);
+> +		break;
+> +	case CLOCK_EVT_MODE_ONESHOT:
+> +		nios2_timer_config(timer, ULONG_MAX, CLOCK_EVT_MODE_ONESHOT);
 
-Thanks Liviu. So I will use pci/host-generic which is what is in
-pci/next:
+What's the point of this? This should simply stop the timer.
 
- d1e6dc91b532 arm64: Add architectural support for PCI
+> +		break;
+> +	case CLOCK_EVT_MODE_UNUSED:
+> +	case CLOCK_EVT_MODE_SHUTDOWN:
+> +		nios2_timer_stop(timer);
+> +		break;
+> +	case CLOCK_EVT_MODE_RESUME:
+> +		nios2_timer_start(timer);
+> +		break;
+> +	}
+> +}
 
--Robert
---
-To unsubscribe from this list: send the line "unsubscribe devicetree" in
-the body of a message to majordomo-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-More majordomo info at  http://vger.kernel.org/majordomo-info.html
+> +static int num_called;
+> +static void __init nios2_time_init(struct device_node *timer)
+> +{
+> +	switch (num_called) {
+> +	case 0:
+> +		nios2_clockevent_init(timer);
+> +		break;
+> +	case 1:
+> +		nios2_clocksource_init(timer);
+> +		break;
+> +	default:
+> +		break;
+> +	}
+> +
+> +	num_called++;
+> +}
+
+Eew. So this depends on the DT ordering. If thats wrong, then stuff
+will be initialized in the wrong oder. 
+
+> +CLOCKSOURCE_OF_DECLARE(nios2_timer, "altr,timer-1.0", nios2_time_init);
+
+Why can't you have separate match entries with where one calls
+nios2_clockevent_init and the other nios2_clocksource_init?
+
+Thanks,
+
+	tglx
