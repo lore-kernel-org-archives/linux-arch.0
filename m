@@ -1,65 +1,215 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from service87.mimecast.com ([91.220.42.44]:37614 "EHLO
-	service87.mimecast.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755023AbaJHJN1 convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 8 Oct 2014 05:13:27 -0400
-Date: Wed, 8 Oct 2014 10:13:21 +0100
-From: Liviu Dudau <Liviu.Dudau@arm.com>
-Subject: Re: [PATCH v13 00/12] Support for creating generic PCI host bridges
- from DT
-Message-ID: <20141008091321.GC4652@e106497-lin.cambridge.arm.com>
-References: <1412000971-9242-1-git-send-email-Liviu.Dudau@arm.com>
- <20140929194335.GA13747@google.com>
- <20140930103942.GO841@e106497-lin.cambridge.arm.com>
- <20140930161805.GB5625@google.com>
- <20140930165431.GV841@e106497-lin.cambridge.arm.com>
- <20141008074428.GD20256@rric.localhost>
+Received: from mail-bn1on0090.outbound.protection.outlook.com ([157.56.110.90]:39808
+	"EHLO na01-bn1-obe.outbound.protection.outlook.com"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S932170AbaJHJbw (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 8 Oct 2014 05:31:52 -0400
+From: Ley Foon Tan <lftan@altera.com>
+Subject: [PATCH v4 23/29] nios2: Miscellaneous header files
+Date: Wed, 8 Oct 2014 17:29:49 +0800
+Message-ID: <1412760595-3935-24-git-send-email-lftan@altera.com>
+In-Reply-To: <1412760595-3935-1-git-send-email-lftan@altera.com>
+References: <1412760595-3935-1-git-send-email-lftan@altera.com>
 MIME-Version: 1.0
-In-Reply-To: <20141008074428.GD20256@rric.localhost>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8BIT
-Content-Disposition: inline
+Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Robert Richter <rric@kernel.org>
-Cc: Bjorn Helgaas <bhelgaas@google.com>, Arnd Bergmann <arnd@arndb.de>, Rob Herring <robh+dt@kernel.org>, Jason Gunthorpe <jgunthorpe@obsidianresearch.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Catalin Marinas <Catalin.Marinas@arm.com>, Will Deacon <Will.Deacon@arm.com>, Russell King <linux@arm.linux.org.uk>, linux-pci <linux-pci@vger.kernel.org>, Linus Walleij <linus.walleij@linaro.org>, Tanmay Inamdar <tinamdar@apm.com>, Grant Likely <grant.likely@secretlab.ca>, Sinan Kaya <okaya@codeaurora.org>, Jingoo Han <jg1.han@samsung.com>, Kukjin Kim <kgene.kim@samsung.com>, Suravee Suthikulanit <suravee.suthikulpanit@amd.com>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Device Tree ML <devicetree@vger.kernel.org>, LAKML <linux-arm-kernel@lists.infradead.org>, Yinghai Lu <yinghai@kernel.org>, Jiang Liu <jiang.liu@linux.intel.com>
-Message-ID: <20141008091321.Ym8ypE1SM0z2EQzs9OFV2X7ORASdNd--2gd_d9QRXIc@z>
+To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org
+Cc: Arnd Bergmann <arnd@arndb.de>, Ley Foon Tan <lftan@altera.com>, lftan.linux@gmail.com, cltang@codesourcery.com
+Message-ID: <20141008092949.UfGYJm6ZaUG7LQ_3i8bmiYqvWPhjbxWz2rS-19rfNB4@z>
 
-On Wed, Oct 08, 2014 at 08:44:28AM +0100, Robert Richter wrote:
-> Liviu, Bjorn,
-> 
-> On 30.09.14 17:54:31, Liviu Dudau wrote:
-> > On Tue, Sep 30, 2014 at 05:18:05PM +0100, Bjorn Helgaas wrote:
-> > > OK, I rebuilt pci/host-generic from scratch.  It consists of your v13
-> > > patches + Arnd's build fix for pci_pio_to_address() in !CONFIG_OF configs.
-> > 
-> > Something went wrong with the integration, patch 02 adds another definition of 
-> > of_pci_range_to_resource() before it is moved out of the header file for some reason.
-> 
-> I assume pci/host-generic is the latest now with this issue fixed as
-> the commit date is 2014-10-01 past you message above, right? So is it
-> ok to rebase our host controller driver onto pci/host-generic or will
-> there be further updates or any other branch that is newer?
+This patch introduces a few nios2-specific header files.
 
-You can rebase either on top of Bjorn's next branch or use linux-next. Hope to
-see it in v3.18 soon.
+Signed-off-by: Ley Foon Tan <lftan@altera.com>
+---
+ arch/nios2/include/asm/cmpxchg.h        |   61 +++++++++++++++++++++++++++++++
+ arch/nios2/include/asm/linkage.h        |   25 +++++++++++++
+ arch/nios2/include/asm/mutex.h          |    1 +
+ arch/nios2/include/uapi/asm/byteorder.h |   22 +++++++++++
+ arch/nios2/include/uapi/asm/swab.h      |   37 +++++++++++++++++++
+ 5 files changed, 146 insertions(+), 0 deletions(-)
+ create mode 100644 arch/nios2/include/asm/cmpxchg.h
+ create mode 100644 arch/nios2/include/asm/linkage.h
+ create mode 100644 arch/nios2/include/asm/mutex.h
+ create mode 100644 arch/nios2/include/uapi/asm/byteorder.h
+ create mode 100644 arch/nios2/include/uapi/asm/swab.h
 
-Best regards,
-Liviu
-
-> 
-> Thanks,
-> 
-> -Robert
-> 
-
+diff --git a/arch/nios2/include/asm/cmpxchg.h b/arch/nios2/include/asm/cmpxchg.h
+new file mode 100644
+index 0000000..8593871
+--- /dev/null
++++ b/arch/nios2/include/asm/cmpxchg.h
+@@ -0,0 +1,61 @@
++/*
++ * Copyright (C) 2004 Microtronix Datacom Ltd.
++ *
++ * This file is subject to the terms and conditions of the GNU General Public
++ * License. See the file "COPYING" in the main directory of this archive
++ * for more details.
++ */
++
++#ifndef _ASM_NIOS2_CMPXCHG_H
++#define _ASM_NIOS2_CMPXCHG_H
++
++#include <linux/irqflags.h>
++
++#define xchg(ptr, x)	\
++	((__typeof__(*(ptr)))__xchg((unsigned long)(x), (ptr), sizeof(*(ptr))))
++
++struct __xchg_dummy { unsigned long a[100]; };
++#define __xg(x)		((volatile struct __xchg_dummy *)(x))
++
++static inline unsigned long __xchg(unsigned long x, volatile void *ptr,
++					int size)
++{
++	unsigned long tmp, flags;
++
++	local_irq_save(flags);
++
++	switch (size) {
++	case 1:
++		__asm__ __volatile__(
++			"ldb	%0, %2\n"
++			"stb	%1, %2\n"
++			: "=&r" (tmp)
++			: "r" (x), "m" (*__xg(ptr))
++			: "memory");
++		break;
++	case 2:
++		__asm__ __volatile__(
++			"ldh	%0, %2\n"
++			"sth	%1, %2\n"
++			: "=&r" (tmp)
++			: "r" (x), "m" (*__xg(ptr))
++			: "memory");
++		break;
++	case 4:
++		__asm__ __volatile__(
++			"ldw	%0, %2\n"
++			"stw	%1, %2\n"
++			: "=&r" (tmp)
++			: "r" (x), "m" (*__xg(ptr))
++			: "memory");
++		break;
++	}
++
++	local_irq_restore(flags);
++	return tmp;
++}
++
++#include <asm-generic/cmpxchg.h>
++#include <asm-generic/cmpxchg-local.h>
++
++#endif /* _ASM_NIOS2_CMPXCHG_H */
+diff --git a/arch/nios2/include/asm/linkage.h b/arch/nios2/include/asm/linkage.h
+new file mode 100644
+index 0000000..e0c6dec
+--- /dev/null
++++ b/arch/nios2/include/asm/linkage.h
+@@ -0,0 +1,25 @@
++/*
++ * Copyright (C) 2009 Thomas Chou <thomas@wytron.com.tw>
++ *
++ * All rights reserved.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful, but
++ * WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE, GOOD TITLE or
++ * NON INFRINGEMENT.  See the GNU General Public License for more
++ * details.
++ */
++
++#ifndef _ASM_NIOS2_LINKAGE_H
++#define _ASM_NIOS2_LINKAGE_H
++
++/* This file is required by include/linux/linkage.h */
++#define __ALIGN .align 4
++#define __ALIGN_STR ".align 4"
++
++#endif
+diff --git a/arch/nios2/include/asm/mutex.h b/arch/nios2/include/asm/mutex.h
+new file mode 100644
+index 0000000..ff6101a
+--- /dev/null
++++ b/arch/nios2/include/asm/mutex.h
+@@ -0,0 +1 @@
++#include <asm-generic/mutex-dec.h>
+diff --git a/arch/nios2/include/uapi/asm/byteorder.h b/arch/nios2/include/uapi/asm/byteorder.h
+new file mode 100644
+index 0000000..3ab5dc2
+--- /dev/null
++++ b/arch/nios2/include/uapi/asm/byteorder.h
+@@ -0,0 +1,22 @@
++/*
++ * Copyright (C) 2009   Thomas Chou <thomas@wytron.com.tw>
++ * Copyright (C) 2004   Microtronix Datacom Ltd
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ */
++
++#ifndef _ASM_NIOS2_BYTEORDER_H
++#define _ASM_NIOS2_BYTEORDER_H
++
++#include <linux/byteorder/little_endian.h>
++
++#endif
+diff --git a/arch/nios2/include/uapi/asm/swab.h b/arch/nios2/include/uapi/asm/swab.h
+new file mode 100644
+index 0000000..b4e22eb
+--- /dev/null
++++ b/arch/nios2/include/uapi/asm/swab.h
+@@ -0,0 +1,37 @@
++/*
++ * Copyright (C) 2012 Tobias Klauser <tklauser@distanz.ch>
++ * Copyright (C) 2011 Pyramid Technical Consultants, Inc.
++ *
++ * This file is subject to the terms and conditions of the GNU General
++ * Public License. See the file COPYING in the main directory of this
++ * archive for more details.
++ */
++
++#ifndef _ASM_NIOS2_SWAB_H
++#define _ASM_NIOS2_SWAB_H
++
++#include <linux/types.h>
++#include <asm-generic/swab.h>
++
++#ifdef CONFIG_NIOS2_CI_SWAB_SUPPORT
++#ifdef __GNUC__
++
++#define __nios2_swab(x)		\
++	__builtin_custom_ini(CONFIG_NIOS2_CI_SWAB_NO, (x))
++
++static inline __attribute__((const)) __u16 __arch_swab16(__u16 x)
++{
++	return (__u16) __nios2_swab(((__u32) x) << 16);
++}
++#define __arch_swab16 __arch_swab16
++
++static inline __attribute__((const)) __u32 __arch_swab32(__u32 x)
++{
++	return (__u32) __nios2_swab(x);
++}
++#define __arch_swab32 __arch_swab32
++
++#endif /* __GNUC__ */
++#endif /* CONFIG_NIOS2_CI_SWAB_SUPPORT */
++
++#endif /* _ASM_NIOS2_SWAB_H */
 -- 
-====================
-| I would like to |
-| fix the world,  |
-| but they're not |
-| giving me the   |
- \ source code!  /
-  ---------------
-    ¯\_(ツ)_/¯
+1.7.7.4
 
