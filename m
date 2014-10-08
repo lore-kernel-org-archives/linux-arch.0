@@ -1,129 +1,43 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bl2on0097.outbound.protection.outlook.com ([65.55.169.97]:7328
-	"EHLO na01-bl2-obe.outbound.protection.outlook.com"
-	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1755217AbaJHJaS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 8 Oct 2014 05:30:18 -0400
-From: Ley Foon Tan <lftan@altera.com>
-Subject: [PATCH v4 01/29] asm-generic: add generic futex for !CONFIG_SMP
-Date: Wed, 8 Oct 2014 17:29:27 +0800
-Message-ID: <1412760595-3935-2-git-send-email-lftan@altera.com>
-In-Reply-To: <1412760595-3935-1-git-send-email-lftan@altera.com>
-References: <1412760595-3935-1-git-send-email-lftan@altera.com>
+Received: from mail-wi0-f172.google.com ([209.85.212.172]:55204 "EHLO
+	mail-wi0-f172.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754192AbaJHKgH (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 8 Oct 2014 06:36:07 -0400
+Date: Wed, 8 Oct 2014 12:36:00 +0200
+From: Robert Richter <rric@kernel.org>
+Subject: Re: [PATCH v13 00/12] Support for creating generic PCI host bridges
+ from DT
+Message-ID: <20141008103600.GS20170@rric.localhost>
+References: <1412000971-9242-1-git-send-email-Liviu.Dudau@arm.com>
+ <20140929194335.GA13747@google.com>
+ <20140930103942.GO841@e106497-lin.cambridge.arm.com>
+ <20140930161805.GB5625@google.com>
+ <20140930165431.GV841@e106497-lin.cambridge.arm.com>
+ <20141008074428.GD20256@rric.localhost>
+ <20141008091321.GC4652@e106497-lin.cambridge.arm.com>
 MIME-Version: 1.0
-Content-Type: text/plain
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20141008091321.GC4652@e106497-lin.cambridge.arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org
-Cc: Arnd Bergmann <arnd@arndb.de>, Ley Foon Tan <lftan@altera.com>, lftan.linux@gmail.com, cltang@codesourcery.com
-Message-ID: <20141008092927.eF9opm4ieyMcJZiciw_POdbeW_p3uXIdZ8yCi-ltSK0@z>
+To: Liviu Dudau <Liviu.Dudau@arm.com>
+Cc: Bjorn Helgaas <bhelgaas@google.com>, Arnd Bergmann <arnd@arndb.de>, Rob Herring <robh+dt@kernel.org>, Jason Gunthorpe <jgunthorpe@obsidianresearch.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Catalin Marinas <Catalin.Marinas@arm.com>, Will Deacon <Will.Deacon@arm.com>, Russell King <linux@arm.linux.org.uk>, linux-pci <linux-pci@vger.kernel.org>, Linus Walleij <linus.walleij@linaro.org>, Tanmay Inamdar <tinamdar@apm.com>, Grant Likely <grant.likely@secretlab.ca>, Sinan Kaya <okaya@codeaurora.org>, Jingoo Han <jg1.han@samsung.com>, Kukjin Kim <kgene.kim@samsung.com>, Suravee Suthikulanit <suravee.suthikulpanit@amd.com>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Device Tree ML <devicetree@vger.kernel.org>, LAKML <linux-arm-kernel@lists.infradead.org>, Yinghai Lu <yinghai@kernel.org>, Jiang Liu <jiang.liu@linux.intel.com>
+Message-ID: <20141008103600.qdSHteHorufO0pSGQvJ2rayv8IxGBppAbTuvuIrQVMA@z>
 
-Follow m68k futex implementation for !CONFIG_SMP.
+On 08.10.14 10:13:21, Liviu Dudau wrote:
+> On Wed, Oct 08, 2014 at 08:44:28AM +0100, Robert Richter wrote:
+> > I assume pci/host-generic is the latest now with this issue fixed as
+> > the commit date is 2014-10-01 past you message above, right? So is it
+> > ok to rebase our host controller driver onto pci/host-generic or will
+> > there be further updates or any other branch that is newer?
+> 
+> You can rebase either on top of Bjorn's next branch or use linux-next. Hope to
+> see it in v3.18 soon.
 
-Signed-off-by: Ley Foon Tan <lftan@altera.com>
-Acked-by: Arnd Bergmann <arnd@arndb.de>
----
- include/asm-generic/futex.h |   82 +++++++++++++++++++++++++++++++++++++++++++
- 1 files changed, 82 insertions(+), 0 deletions(-)
+Thanks Liviu. So I will use pci/host-generic which is what is in
+pci/next:
 
-diff --git a/include/asm-generic/futex.h b/include/asm-generic/futex.h
-index 01f227e..f5650a5 100644
---- a/include/asm-generic/futex.h
-+++ b/include/asm-generic/futex.h
-@@ -5,6 +5,87 @@
- #include <linux/uaccess.h>
- #include <asm/errno.h>
- 
-+#ifndef CONFIG_SMP
-+static inline int
-+futex_atomic_op_inuser(int encoded_op, u32 __user *uaddr)
-+{
-+	int op = (encoded_op >> 28) & 7;
-+	int cmp = (encoded_op >> 24) & 15;
-+	int oparg = (encoded_op << 8) >> 20;
-+	int cmparg = (encoded_op << 20) >> 20;
-+	int oldval, ret;
-+	u32 tmp;
-+
-+	if (encoded_op & (FUTEX_OP_OPARG_SHIFT << 28))
-+		oparg = 1 << oparg;
-+
-+	pagefault_disable();	/* implies preempt_disable() */
-+
-+	ret = -EFAULT;
-+	if (unlikely(get_user(oldval, uaddr) != 0))
-+		goto out_pagefault_enable;
-+
-+	ret = 0;
-+	tmp = oldval;
-+
-+	switch (op) {
-+	case FUTEX_OP_SET:
-+		tmp = oparg;
-+		break;
-+	case FUTEX_OP_ADD:
-+		tmp += oparg;
-+		break;
-+	case FUTEX_OP_OR:
-+		tmp |= oparg;
-+		break;
-+	case FUTEX_OP_ANDN:
-+		tmp &= ~oparg;
-+		break;
-+	case FUTEX_OP_XOR:
-+		tmp ^= oparg;
-+		break;
-+	default:
-+		ret = -ENOSYS;
-+	}
-+
-+	if (ret == 0 && unlikely(put_user(tmp, uaddr) != 0))
-+		ret = -EFAULT;
-+
-+out_pagefault_enable:
-+	pagefault_enable();	/* subsumes preempt_enable() */
-+
-+	if (ret == 0) {
-+		switch (cmp) {
-+		case FUTEX_OP_CMP_EQ: ret = (oldval == cmparg); break;
-+		case FUTEX_OP_CMP_NE: ret = (oldval != cmparg); break;
-+		case FUTEX_OP_CMP_LT: ret = (oldval < cmparg); break;
-+		case FUTEX_OP_CMP_GE: ret = (oldval >= cmparg); break;
-+		case FUTEX_OP_CMP_LE: ret = (oldval <= cmparg); break;
-+		case FUTEX_OP_CMP_GT: ret = (oldval > cmparg); break;
-+		default: ret = -ENOSYS;
-+		}
-+	}
-+	return ret;
-+}
-+
-+static inline int
-+futex_atomic_cmpxchg_inatomic(u32 *uval, u32 __user *uaddr,
-+			      u32 oldval, u32 newval)
-+{
-+	u32 val;
-+
-+	if (unlikely(get_user(val, uaddr) != 0))
-+		return -EFAULT;
-+
-+	if (val == oldval && unlikely(put_user(newval, uaddr) != 0))
-+		return -EFAULT;
-+
-+	*uval = val;
-+
-+	return 0;
-+}
-+
-+#else
- static inline int
- futex_atomic_op_inuser (int encoded_op, u32 __user *uaddr)
- {
-@@ -54,4 +135,5 @@ futex_atomic_cmpxchg_inatomic(u32 *uval, u32 __user *uaddr,
- 	return -ENOSYS;
- }
- 
-+#endif /* CONFIG_SMP */
- #endif
--- 
-1.7.7.4
+ d1e6dc91b532 arm64: Add architectural support for PCI
 
+-Robert
