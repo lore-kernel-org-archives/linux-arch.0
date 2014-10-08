@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bn1on0072.outbound.protection.outlook.com ([157.56.110.72]:51760
+Received: from mail-bn1on0081.outbound.protection.outlook.com ([157.56.110.81]:61988
 	"EHLO na01-bn1-obe.outbound.protection.outlook.com"
 	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1755738AbaJHJbJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 8 Oct 2014 05:31:09 -0400
+	id S1755816AbaJHJb0 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 8 Oct 2014 05:31:26 -0400
 From: Ley Foon Tan <lftan@altera.com>
-Subject: [PATCH v4 13/29] nios2: Interrupt handling
-Date: Wed, 8 Oct 2014 17:29:39 +0800
-Message-ID: <1412760595-3935-14-git-send-email-lftan@altera.com>
+Subject: [PATCH v4 17/29] nios2: System calls handling
+Date: Wed, 8 Oct 2014 17:29:43 +0800
+Message-ID: <1412760595-3935-18-git-send-email-lftan@altera.com>
 In-Reply-To: <1412760595-3935-1-git-send-email-lftan@altera.com>
 References: <1412760595-3935-1-git-send-email-lftan@altera.com>
 MIME-Version: 1.0
@@ -16,228 +16,339 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org
 Cc: Arnd Bergmann <arnd@arndb.de>, Ley Foon Tan <lftan@altera.com>, lftan.linux@gmail.com, cltang@codesourcery.com
-Message-ID: <20141008092939.Fm2NBUzXeHaLcFyxGWKjFE4hNBfnR-dtzfDznmUVfXM@z>
+Message-ID: <20141008092943.3QhUxmlck83nfb7csUL7iyHZwFYR40BszrT0IE4yKY0@z>
 
-This patch adds the support for IRQ handling.
+This patch adds support for system calls from userspaces. It uses the
+asm-generic/unistd.h definitions with architecture spcific syscall. The sys_call_table
+is just an array defined in a C file and it contains pointers to the syscall functions.
 
 Signed-off-by: Ley Foon Tan <lftan@altera.com>
 ---
- arch/nios2/include/asm/irq.h      |   28 +++++++++++
- arch/nios2/include/asm/irqflags.h |   69 +++++++++++++++++++++++++++
- arch/nios2/kernel/irq.c           |   93 +++++++++++++++++++++++++++++++++++++
- 3 files changed, 190 insertions(+), 0 deletions(-)
- create mode 100644 arch/nios2/include/asm/irq.h
- create mode 100644 arch/nios2/include/asm/irqflags.h
- create mode 100644 arch/nios2/kernel/irq.c
+ arch/nios2/include/asm/syscall.h     |  138 ++++++++++++++++++++++++++++++++++
+ arch/nios2/include/asm/syscalls.h    |   25 ++++++
+ arch/nios2/include/uapi/asm/unistd.h |   25 ++++++
+ arch/nios2/kernel/sys_nios2.c        |   66 ++++++++++++++++
+ arch/nios2/kernel/syscall_table.c    |   29 +++++++
+ 5 files changed, 283 insertions(+), 0 deletions(-)
+ create mode 100644 arch/nios2/include/asm/syscall.h
+ create mode 100644 arch/nios2/include/asm/syscalls.h
+ create mode 100644 arch/nios2/include/uapi/asm/unistd.h
+ create mode 100644 arch/nios2/kernel/sys_nios2.c
+ create mode 100644 arch/nios2/kernel/syscall_table.c
 
-diff --git a/arch/nios2/include/asm/irq.h b/arch/nios2/include/asm/irq.h
+diff --git a/arch/nios2/include/asm/syscall.h b/arch/nios2/include/asm/syscall.h
 new file mode 100644
-index 0000000..8e40fd9
+index 0000000..9de2208
 --- /dev/null
-+++ b/arch/nios2/include/asm/irq.h
-@@ -0,0 +1,28 @@
++++ b/arch/nios2/include/asm/syscall.h
+@@ -0,0 +1,138 @@
 +/*
-+ * Copyright (C) 2013 Altera Corporation
-+ * Copyright (C) 2011 Tobias Klauser <tklauser@distanz.ch>
++ * Copyright Altera Corporation (C) <2014>. All rights reserved
 + *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License as published by
-+ * the Free Software Foundation; either version 2 of the License, or
-+ * (at your option) any later version.
++ * This program is free software; you can redistribute it and/or modify it
++ * under the terms and conditions of the GNU General Public License,
++ * version 2, as published by the Free Software Foundation.
 + *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
++ * This program is distributed in the hope it will be useful, but WITHOUT
++ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
++ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
++ * more details.
 + *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
-+ *
++ * You should have received a copy of the GNU General Public License along with
++ * this program.  If not, see <http://www.gnu.org/licenses/>.
 + */
 +
-+#ifndef _ASM_NIOS2_IRQ_H
-+#define _ASM_NIOS2_IRQ_H
++#ifndef __ASM_NIOS2_SYSCALL_H__
++#define __ASM_NIOS2_SYSCALL_H__
 +
-+#define NIOS2_CPU_NR_IRQS	32
++#include <linux/err.h>
++#include <linux/sched.h>
 +
-+#include <asm-generic/irq.h>
-+#include <linux/irqdomain.h>
++static inline int syscall_get_nr(struct task_struct *task, struct pt_regs *regs)
++{
++	return regs->r2;
++}
++
++static inline void syscall_rollback(struct task_struct *task,
++				struct pt_regs *regs)
++{
++	regs->r2 = regs->orig_r2;
++	regs->r7 = regs->orig_r7;
++}
++
++static inline long syscall_get_error(struct task_struct *task,
++				struct pt_regs *regs)
++{
++	return regs->r7 ? regs->r2 : 0;
++}
++
++static inline long syscall_get_return_value(struct task_struct *task,
++	struct pt_regs *regs)
++{
++	return regs->r2;
++}
++
++static inline void syscall_set_return_value(struct task_struct *task,
++	struct pt_regs *regs, int error, long val)
++{
++	if (error) {
++		/* error < 0, but nios2 uses > 0 return value */
++		regs->r2 = -error;
++		regs->r7 = 1;
++	} else {
++		regs->r2 = val;
++		regs->r7 = 0;
++	}
++}
++
++static inline void syscall_get_arguments(struct task_struct *task,
++	struct pt_regs *regs, unsigned int i, unsigned int n,
++	unsigned long *args)
++{
++	BUG_ON(i + n > 6);
++
++	switch (i) {
++	case 0:
++		if (!n--)
++			break;
++		*args++ = regs->r4;
++	case 1:
++		if (!n--)
++			break;
++		*args++ = regs->r5;
++	case 2:
++		if (!n--)
++			break;
++		*args++ = regs->r6;
++	case 3:
++		if (!n--)
++			break;
++		*args++ = regs->r7;
++	case 4:
++		if (!n--)
++			break;
++		*args++ = regs->r8;
++	case 5:
++		if (!n--)
++			break;
++		*args++ = regs->r9;
++	case 6:
++		if (!n--)
++			break;
++	default:
++		BUG();
++	}
++}
++
++static inline void syscall_set_arguments(struct task_struct *task,
++	struct pt_regs *regs, unsigned int i, unsigned int n,
++	const unsigned long *args)
++{
++	BUG_ON(i + n > 6);
++
++	switch (i) {
++	case 0:
++		if (!n--)
++			break;
++		regs->r4 = *args++;
++	case 1:
++		if (!n--)
++			break;
++		regs->r5 = *args++;
++	case 2:
++		if (!n--)
++			break;
++		regs->r6 = *args++;
++	case 3:
++		if (!n--)
++			break;
++		regs->r7 = *args++;
++	case 4:
++		if (!n--)
++			break;
++		regs->r8 = *args++;
++	case 5:
++		if (!n--)
++			break;
++		regs->r9 = *args++;
++	case 6:
++		if (!n)
++			break;
++	default:
++		BUG();
++	}
++}
 +
 +#endif
-diff --git a/arch/nios2/include/asm/irqflags.h b/arch/nios2/include/asm/irqflags.h
+diff --git a/arch/nios2/include/asm/syscalls.h b/arch/nios2/include/asm/syscalls.h
 new file mode 100644
-index 0000000..e91f4f0
+index 0000000..0245d78
 --- /dev/null
-+++ b/arch/nios2/include/asm/irqflags.h
-@@ -0,0 +1,69 @@
++++ b/arch/nios2/include/asm/syscalls.h
+@@ -0,0 +1,25 @@
 +/*
-+ * Copyright (C) 2010 Thomas Chou <thomas@wytron.com.tw>
++ * Copyright Altera Corporation (C) 2013. All rights reserved
 + *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License as published by
-+ * the Free Software Foundation; either version 2 of the License, or
-+ * (at your option) any later version.
++ * This program is free software; you can redistribute it and/or modify it
++ * under the terms and conditions of the GNU General Public License,
++ * version 2, as published by the Free Software Foundation.
 + *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
++ * This program is distributed in the hope it will be useful, but WITHOUT
++ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
++ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
++ * more details.
 + *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ * You should have received a copy of the GNU General Public License along with
++ * this program.  If not, see <http://www.gnu.org/licenses/>.
 + *
 + */
-+#ifndef _ASM_IRQFLAGS_H
-+#define _ASM_IRQFLAGS_H
++#ifndef __ASM_NIOS2_SYSCALLS_H
++#define __ASM_NIOS2_SYSCALLS_H
 +
-+#include <asm/registers.h>
++int sys_cacheflush(unsigned long addr, unsigned long len,
++				unsigned int op);
 +
-+static inline unsigned long arch_local_save_flags(void)
-+{
-+	return RDCTL(CTL_STATUS);
-+}
++#include <asm-generic/syscalls.h>
 +
-+/*
-+ * This will restore ALL status register flags, not only the interrupt
-+ * mask flag.
-+ */
-+static inline void arch_local_irq_restore(unsigned long flags)
-+{
-+	WRCTL(CTL_STATUS, flags);
-+}
-+
-+static inline void arch_local_irq_disable(void)
-+{
-+	unsigned long flags;
-+	flags = arch_local_save_flags();
-+	arch_local_irq_restore(flags & ~STATUS_PIE);
-+}
-+
-+static inline void arch_local_irq_enable(void)
-+{
-+	unsigned long flags;
-+	flags = arch_local_save_flags();
-+	arch_local_irq_restore(flags | STATUS_PIE);
-+}
-+
-+static inline int arch_irqs_disabled_flags(unsigned long flags)
-+{
-+	return (flags & STATUS_PIE) == 0;
-+}
-+
-+static inline int arch_irqs_disabled(void)
-+{
-+	return arch_irqs_disabled_flags(arch_local_save_flags());
-+}
-+
-+static inline unsigned long arch_local_irq_save(void)
-+{
-+	unsigned long flags;
-+	flags = arch_local_save_flags();
-+	arch_local_irq_restore(flags & ~STATUS_PIE);
-+	return flags;
-+}
-+
-+#endif /* _ASM_IRQFLAGS_H */
-diff --git a/arch/nios2/kernel/irq.c b/arch/nios2/kernel/irq.c
++#endif /* __ASM_NIOS2_SYSCALLS_H */
+diff --git a/arch/nios2/include/uapi/asm/unistd.h b/arch/nios2/include/uapi/asm/unistd.h
 new file mode 100644
-index 0000000..560cdf6
+index 0000000..c4bf795
 --- /dev/null
-+++ b/arch/nios2/kernel/irq.c
-@@ -0,0 +1,93 @@
++++ b/arch/nios2/include/uapi/asm/unistd.h
+@@ -0,0 +1,25 @@
 +/*
 + * Copyright (C) 2013 Altera Corporation
-+ * Copyright (C) 2011 Tobias Klauser <tklauser@distanz.ch>
-+ * Copyright (C) 2008 Thomas Chou <thomas@wytron.com.tw>
 + *
-+ * based on irq.c from m68k which is:
++ * This program is free software; you can redistribute it and/or modify it
++ * under the terms and conditions of the GNU General Public License,
++ * version 2, as published by the Free Software Foundation.
 + *
-+ * Copyright (C) 2007 Greg Ungerer <gerg@snapgear.com>
++ * This program is distributed in the hope it will be useful, but WITHOUT
++ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
++ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
++ * more details.
 + *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License as published by
-+ * the Free Software Foundation; either version 2 of the License, or
-+ * (at your option) any later version.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ * You should have received a copy of the GNU General Public License along with
++ * this program.  If not, see <http://www.gnu.org/licenses/>.
 + *
 + */
 +
-+#include <linux/init.h>
-+#include <linux/interrupt.h>
-+#include <linux/of.h>
++ #define sys_mmap2 sys_mmap_pgoff
 +
-+static u32 ienable;
++/* Use the standard ABI for syscalls */
++#include <asm-generic/unistd.h>
 +
-+asmlinkage void do_IRQ(int hwirq, struct pt_regs *regs)
++/* Additional Nios II specific syscalls. */
++#define __NR_cacheflush (__NR_arch_specific_syscall)
++__SYSCALL(__NR_cacheflush, sys_cacheflush)
+diff --git a/arch/nios2/kernel/sys_nios2.c b/arch/nios2/kernel/sys_nios2.c
+new file mode 100644
+index 0000000..a32d7f3
+--- /dev/null
++++ b/arch/nios2/kernel/sys_nios2.c
+@@ -0,0 +1,66 @@
++/*
++ * Copyright (C) 2013 Altera Corporation
++ * Copyright (C) 2011-2012 Tobias Klauser <tklauser@distanz.ch>
++ * Copyright (C) 2004 Microtronix Datacom Ltd.
++ *
++ * This file is subject to the terms and conditions of the GNU General Public
++ * License.  See the file "COPYING" in the main directory of this archive
++ * for more details.
++ */
++
++#include <linux/export.h>
++#include <linux/file.h>
++#include <linux/fs.h>
++#include <linux/slab.h>
++#include <linux/syscalls.h>
++
++#include <asm/cacheflush.h>
++#include <asm/traps.h>
++
++/* sys_cacheflush -- flush the processor cache. */
++asmlinkage int sys_cacheflush(unsigned long addr, unsigned long len,
++				unsigned int op)
 +{
-+	struct pt_regs *oldregs = set_irq_regs(regs);
-+	int irq;
++	struct vm_area_struct *vma;
 +
-+	irq_enter();
-+	irq = irq_find_mapping(NULL, hwirq);
-+	generic_handle_irq(irq);
-+	irq_exit();
++	if (len == 0)
++		return 0;
 +
-+	set_irq_regs(oldregs);
-+}
++	/* We only support op 0 now, return error if op is non-zero.*/
++	if (op)
++		return -EINVAL;
 +
-+static void chip_unmask(struct irq_data *d)
-+{
-+	ienable |= (1 << d->hwirq);
-+	WRCTL(CTL_IENABLE, ienable);
-+}
++	/* Check for overflow */
++	if (addr + len < addr)
++		return -EFAULT;
 +
-+static void chip_mask(struct irq_data *d)
-+{
-+	ienable &= ~(1 << d->hwirq);
-+	WRCTL(CTL_IENABLE, ienable);
-+}
++	/*
++	 * Verify that the specified address region actually belongs
++	 * to this process.
++	 */
++	vma = find_vma(current->mm, addr);
++	if (vma == NULL || addr < vma->vm_start || addr + len > vma->vm_end)
++		return -EFAULT;
 +
-+static struct irq_chip m_irq_chip = {
-+	.name		= "NIOS2-INTC",
-+	.irq_unmask	= chip_unmask,
-+	.irq_mask	= chip_mask,
-+};
-+
-+static int irq_map(struct irq_domain *h, unsigned int virq,
-+				irq_hw_number_t hw_irq_num)
-+{
-+	irq_set_chip_and_handler(virq, &m_irq_chip, handle_level_irq);
++	flush_cache_range(vma, addr, addr + len);
 +
 +	return 0;
 +}
 +
-+static struct irq_domain_ops irq_ops = {
-+	.map	= irq_map,
-+	.xlate	= irq_domain_xlate_onecell,
-+};
-+
-+void __init init_IRQ(void)
++asmlinkage int sys_getpagesize(void)
 +{
-+	struct irq_domain *domain;
-+	struct device_node *node;
-+
-+	node = of_find_compatible_node(NULL, NULL, "altr,nios2-1.0");
-+	if (!node)
-+		node = of_find_compatible_node(NULL, NULL, "altr,nios2-1.1");
-+
-+	BUG_ON(!node);
-+
-+	domain = irq_domain_add_linear(node, NIOS2_CPU_NR_IRQS, &irq_ops, NULL);
-+	BUG_ON(!domain);
-+
-+	irq_set_default_host(domain);
-+	of_node_put(node);
-+	/* Load the intial ienable value */
-+	ienable = RDCTL(CTL_IENABLE);
++	return PAGE_SIZE;
 +}
++
++#if defined(CONFIG_FB) || defined(CONFIG_FB_MODULE)
++#include <linux/fb.h>
++unsigned long get_fb_unmapped_area(struct file *filp, unsigned long orig_addr,
++		unsigned long len, unsigned long pgoff, unsigned long flags)
++{
++
++	struct fb_info *info = filp->private_data;
++
++	return (unsigned long)info->screen_base;
++}
++EXPORT_SYMBOL(get_fb_unmapped_area);
++#endif /* CONFIG_FB */
+diff --git a/arch/nios2/kernel/syscall_table.c b/arch/nios2/kernel/syscall_table.c
+new file mode 100644
+index 0000000..06e6ac1
+--- /dev/null
++++ b/arch/nios2/kernel/syscall_table.c
+@@ -0,0 +1,29 @@
++/*
++ * Copyright Altera Corporation (C) 2013. All rights reserved
++ *
++ * This program is free software; you can redistribute it and/or modify it
++ * under the terms and conditions of the GNU General Public License,
++ * version 2, as published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope it will be useful, but WITHOUT
++ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
++ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
++ * more details.
++ *
++ * You should have received a copy of the GNU General Public License along with
++ * this program.  If not, see <http://www.gnu.org/licenses/>.
++ *
++ */
++
++#include <linux/syscalls.h>
++#include <linux/signal.h>
++#include <linux/unistd.h>
++
++#include <asm/syscalls.h>
++
++#undef __SYSCALL
++#define __SYSCALL(nr, call) [nr] = (call),
++
++void *sys_call_table[__NR_syscalls] = {
++#include <asm/unistd.h>
++};
 -- 
 1.7.7.4
 
