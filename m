@@ -1,104 +1,68 @@
-From: Jacob Pan <jacob.jun.pan@linux.intel.com>
+From: Mark Brown <broonie@kernel.org>
 Subject: Re: [PATCH 2/2] PMIC / opregion: support PMIC customized operation
  region for CrystalCove
-Date: Wed, 8 Oct 2014 04:58:12 -0700
-Message-ID: <20141008045812.734a24db@ultegra>
+Date: Wed, 8 Oct 2014 13:54:29 +0100
+Message-ID: <20141008125429.GX4609@sirena.org.uk>
 References: <1410229968-11638-1-git-send-email-aaron.lu@intel.com>
-	<1410229968-11638-3-git-send-email-aaron.lu@intel.com>
-	<20141008080515.GC20647@lee--X1>
-	<CACRpkdaPFzq=Qya_UoZpxHom+VcynTwQL9EfdLb_Vpr=g6+Prg@mail.gmail.com>
+ <1410229968-11638-3-git-send-email-aaron.lu@intel.com>
+ <20141008080515.GC20647@lee--X1>
+ <CACRpkdaPFzq=Qya_UoZpxHom+VcynTwQL9EfdLb_Vpr=g6+Prg@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mga09.intel.com ([134.134.136.24]:49685 "EHLO mga09.intel.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755599AbaJHL6Q (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 8 Oct 2014 07:58:16 -0400
+Content-Type: multipart/signed; micalg=pgp-sha1;
+	protocol="application/pgp-signature"; boundary="WiuFC6bSmcjanUfV"
+Return-path: <linux-gpio-owner@vger.kernel.org>
+Content-Disposition: inline
 In-Reply-To: <CACRpkdaPFzq=Qya_UoZpxHom+VcynTwQL9EfdLb_Vpr=g6+Prg@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-gpio-owner@vger.kernel.org
 To: Linus Walleij <linus.walleij@linaro.org>
-Cc: Lee Jones <lee.jones@linaro.org>, Aaron Lu <aaron.lu@intel.com>, Alexandre Courbot <gnurou@gmail.com>, Samuel Ortiz <sameo@linux.intel.com>, Arnd Bergmann <arnd@arndb.de>, "linux-gpio@vger.kernel.org" <linux-gpio@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Lejun Zhu <lejun.zhu@intel.com>, Radivoje Jovanovic <radivoje.jovanovic@intel.com>, Daniel =?UTF-8?B?R2zDtmNrbmVy?= <dg@emlix.com>, ACPI Devel Maling List <linux-acpi@vger.kernel.org>, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Mark Brown <broonie@linaro.org>
+Cc: Lee Jones <lee.jones@linaro.org>, Aaron Lu <aaron.lu@intel.com>, Alexandre Courbot <gnurou@gmail.com>, Samuel Ortiz <sameo@linux.intel.com>, Arnd Bergmann <arnd@arndb.de>, "linux-gpio@vger.kernel.org" <linux-gpio@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Jacob Pan <jacob.jun.pan@linux.intel.com>, Lejun Zhu <lejun.zhu@intel.com>, Radivoje Jovanovic <radivoje.jovanovic@intel.com>, Daniel =?iso-8859-1?Q?Gl=F6ckner?= <dg@emlix.com>, ACPI Devel Maling List <linux-acpi@vger.kernel.org>, "Rafael J. Wysocki" <rjw@rjwysocki.net>
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, 8 Oct 2014 11:16:11 +0200
-Linus Walleij <linus.walleij@linaro.org> wrote:
 
-> On Wed, Oct 8, 2014 at 10:05 AM, Lee Jones <lee.jones@linaro.org>
-> wrote:
-> 
-> > With the influx of new same-chip devices, I think the MFD subsystem
-> > is fast becoming overloaded.  I think all of the PMIC handling
-> > should in fact either live in Regulators or have its own subsystem.
-> 
-> You have a valid point, and it's been raised before that MFD risk
-> being a dumping ground of the same kind that drivers/misc used to be
-> (is?).
-> 
-> PMIC (Power Management Integrated Circuit) is often not even a
-> correct name for the thing if it contains things like audio amplifiers
-> USB PHY intrerfaces or LED boosters as some do.
-> 
-> MSIC (Mixed-Signal Integrated Circuit) is the correct name for
-> silicon that is created as a one-stop shop for anything combining
-> digital and analog constructions, often in a higher micron node
-> (not as densely integrated) as a digital IC (the latter referred to
-> as SoCs, "baseband", "CPU" and whatnot).
-> 
+--WiuFC6bSmcjanUfV
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+
+On Wed, Oct 08, 2014 at 11:16:11AM +0200, Linus Walleij wrote:
+> On Wed, Oct 8, 2014 at 10:05 AM, Lee Jones <lee.jones@linaro.org> wrote:
+
+Please don't send upstream mail to my work account (which I've never
+used for upstream mail and isn't advertised in MAINTAINERS), it mostly
+gets deleted unread.
+
+> > With the influx of new same-chip devices, I think the MFD subsystem is
+> > fast becoming overloaded.  I think all of the PMIC handling should in
+> > fact either live in Regulators or have its own subsystem.
+
+> You have a valid point, and it's been raised before that MFD risk being
+> a dumping ground of the same kind that drivers/misc used to be (is?).
+
 > If they shall live in MFD the driver there should (IMHO) just be
 > an exchange station, multiplexing messages and spawning
 > MFD cells into platform devices for respective *real* subsystem,
 > various misc stuff should not be allowed to be shoehorned
 > into MFD just because there is no other place to put it.
-> 
-I agree since in most cases there are not much common code to
-consolidate among cell drivers. MFD is convenient as an exchange
-station as you pointed out but the same time, drivers can create their
-own platform devices without MFD. Perhaps we can add a set of MFD
-internal APIs for PMIC for the things are common, e.g.
-- regmap
-- irq chip
 
-> This driver clearly does not qualify, look:
-> 
-ACPI is kind of special since it is already an abstraction of the HW
-making it easy to consolidate code. Perhaps that is why Aaron provides
-the kind of callbacks for each PMIC.
-> > +static int intel_crc_pmic_update_power(struct regmap *regmap,
-> > +                                    struct pmic_pwr_reg *preg,
-> > bool on) +{
-> > +     int data;
-> > +
-> > +     if (regmap_read(regmap, preg->reg, &data))
-> > +             return -EIO;
-> > +
-> > +     if (on) {
-> > +             data |= PWR_SOURCE_SELECT | BIT(preg->bit);
-> > +     } else {
-> > +             data &= ~BIT(preg->bit);
-> > +             data |= PWR_SOURCE_SELECT;
-> > +     }
-> > +
-> > +     if (regmap_write(regmap, preg->reg, data))
-> > +             return -EIO;
-> > +     return 0;
-> > +}
-> 
-> Selecting power source? Isn't that something and MFD cell
-> spawned driver in either drivers/regulator or drivers/power should
-> be doing?
-> 
-The difference in this case is that opregion handler driver does not
-need the interfaces provided by sys/class/power_supply, or regulator
-etc. By moving them away from the opregion common code, you would need
-to export the APIs. I think we can have opregion code under
-drivers/acpi?
-> I know I have sinned in this regard in the past. But let's move
-> forward with defining what this subsystem should *REALLY*
-> be.
-> 
+Right, there's a very clear role for MFD in multiplexing the various
+functions of the device and dealing with any core behaviour it needs for
+bootstrapping or things like chip level suspend and resume.  Dumping
+that into some random subsystem doesn't seem to make any sense, but
+doing things that fall outside that remit also don't seem clever.
 
-> Yours,
-> Linus Walleij
+--WiuFC6bSmcjanUfV
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: Digital signature
 
-[Jacob Pan]
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v2
+
+iQEcBAEBAgAGBQJUNTQEAAoJECTWi3JdVIfQvqsH/R3Ib9aqPHFEIMXn4xjG5rIJ
+iLpASimgXCZZv/n9JJ7e1ajnKHmp0BnlT6R6EHjsRvKb5+r6yfUmfpo33xmHlkzh
+BDsD/6eWpi62TOxQl0r/bVW49OCvzsqy307In0a0uiUZqkhCTnpxwSV54QuT1kJC
+06Y95UlMmDLTaoLnwlU57VeCyfYhIAXyzxQRJpOz3pOJeqkaXQQeM5qU3JBPg5Se
+IowyiTlRanAv4rulyDfxYhghQxw+fKP+nEFgEgjK8Vsyx9YlcUTMBREHo7VsQec6
+Gj+Uxo5wU3V8yZxdvVrWW4hJ6JLLiwyXqCILyi3MF1uuJohDbGg2DTSncKZ9eMg=
+=8Q4j
+-----END PGP SIGNATURE-----
+
+--WiuFC6bSmcjanUfV--
