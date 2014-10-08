@@ -1,17 +1,31 @@
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [PATCH v4 13/29] nios2: Interrupt handling
-Date: Wed, 8 Oct 2014 12:59:21 +0200 (CEST)
-Message-ID: <alpine.DEB.2.11.1410081259040.4292@nanos>
-References: <1412760595-3935-1-git-send-email-lftan@altera.com> <1412760595-3935-14-git-send-email-lftan@altera.com>
+From: Richard Weinberger <richard.weinberger@gmail.com>
+Subject: Re: [PATCH v4 18/29] nios2: Signal handling support
+Date: Wed, 8 Oct 2014 13:29:33 +0200
+Message-ID: <CAFLxGvyjd8kA=QwFEju4zWG-ntYsRHnk6p4Sh6Rf_GJQuDR1tw@mail.gmail.com>
+References: <1412760595-3935-1-git-send-email-lftan@altera.com>
+	<1412760595-3935-19-git-send-email-lftan@altera.com>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-doc-owner@vger.kernel.org>
-In-Reply-To: <1412760595-3935-14-git-send-email-lftan@altera.com>
+In-Reply-To: <1412760595-3935-19-git-send-email-lftan@altera.com>
 Sender: linux-doc-owner@vger.kernel.org
 To: Ley Foon Tan <lftan@altera.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, lftan.linux@gmail.com, cltang@codesourcery.com
+Cc: Linux-Arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, LeyFoon Tan <lftan.linux@gmail.com>, cltang@codesourcery.com
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, 8 Oct 2014, Ley Foon Tan wrote:
+On Wed, Oct 8, 2014 at 11:29 AM, Ley Foon Tan <lftan@altera.com> wrote:
+> This patch adds support for signal handling.
+>
+> Signed-off-by: Ley Foon Tan <lftan@altera.com>
 
-Reviewed-by: Thomas Gleixner <tglx@linutronix.de>
+Maybe I'm misreading your code but where do you check for multiple
+pending signals?
+It looks like you're handling only exact one signal before retuning to
+userspace.
+This is a serious issue, if you post a SIGSEGV i.e. in
+do_rt_sigreturn() you need to handle it later
+instead of directly returning to userspace.
+
+-- 
+Thanks,
+//richard
