@@ -1,44 +1,43 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wg0-f41.google.com ([74.125.82.41]:37186 "EHLO
-	mail-wg0-f41.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752677AbaJFNwv (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 6 Oct 2014 09:52:51 -0400
-From: Thierry Reding <thierry.reding@gmail.com>
-Subject: [PATCH 1/9] ARC: Remove redundant PCI_IOBASE declaration
-Date: Mon,  6 Oct 2014 15:52:33 +0200
-Message-ID: <1412603561-27653-2-git-send-email-thierry.reding@gmail.com>
-In-Reply-To: <1412603561-27653-1-git-send-email-thierry.reding@gmail.com>
-References: <1412603561-27653-1-git-send-email-thierry.reding@gmail.com>
+Received: from mail-wg0-f43.google.com ([74.125.82.43]:33747 "EHLO
+	mail-wg0-f43.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753326AbaJHHog (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 8 Oct 2014 03:44:36 -0400
+Date: Wed, 8 Oct 2014 09:44:28 +0200
+From: Robert Richter <rric@kernel.org>
+Subject: Re: [PATCH v13 00/12] Support for creating generic PCI host bridges
+ from DT
+Message-ID: <20141008074428.GD20256@rric.localhost>
+References: <1412000971-9242-1-git-send-email-Liviu.Dudau@arm.com>
+ <20140929194335.GA13747@google.com>
+ <20140930103942.GO841@e106497-lin.cambridge.arm.com>
+ <20140930161805.GB5625@google.com>
+ <20140930165431.GV841@e106497-lin.cambridge.arm.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20140930165431.GV841@e106497-lin.cambridge.arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>, Olof Johansson <olof@lixom.net>, Fengguang Wu <fengguang.wu@intel.com>
-Cc: Russell King <linux@arm.linux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Stephen Boyd <sboyd@codeaurora.org>, Sam Ravnborg <sam@ravnborg.org>, linux-arm-kernel@lists.infradead.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, x86@kernel.org, linux-serial@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20141006135233.ZhXLlcFm3Zp5fsNJnfGjVDsPrKzEyQKrTNraVjtMKUo@z>
+To: Liviu Dudau <Liviu.Dudau@arm.com>, Bjorn Helgaas <bhelgaas@google.com>
+Cc: Arnd Bergmann <arnd@arndb.de>, Rob Herring <robh+dt@kernel.org>, Jason Gunthorpe <jgunthorpe@obsidianresearch.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Catalin Marinas <Catalin.Marinas@arm.com>, Will Deacon <Will.Deacon@arm.com>, Russell King <linux@arm.linux.org.uk>, linux-pci <linux-pci@vger.kernel.org>, Linus Walleij <linus.walleij@linaro.org>, Tanmay Inamdar <tinamdar@apm.com>, Grant Likely <grant.likely@secretlab.ca>, Sinan Kaya <okaya@codeaurora.org>, Jingoo Han <jg1.han@samsung.com>, Kukjin Kim <kgene.kim@samsung.com>, Suravee Suthikulanit <suravee.suthikulpanit@amd.com>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Device Tree ML <devicetree@vger.kernel.org>, LAKML <linux-arm-kernel@lists.infradead.org>, Yinghai Lu <yinghai@kernel.org>, Jiang Liu <jiang.liu@linux.intel.com>
+Message-ID: <20141008074428.uxzpXYFzdwT2Uhqc4lNH-UFYoZBl7d-0VKrKMWWaiIY@z>
 
-From: Thierry Reding <treding@nvidia.com>
+Liviu, Bjorn,
 
-ARC's asm/io.h includes the asm-generic/io.h which already defines the
-PCI_IOBASE variable in exactly the same way, so it can be dropped from
-the architecture specific header.
+On 30.09.14 17:54:31, Liviu Dudau wrote:
+> On Tue, Sep 30, 2014 at 05:18:05PM +0100, Bjorn Helgaas wrote:
+> > OK, I rebuilt pci/host-generic from scratch.  It consists of your v13
+> > patches + Arnd's build fix for pci_pio_to_address() in !CONFIG_OF configs.
+> 
+> Something went wrong with the integration, patch 02 adds another definition of 
+> of_pci_range_to_resource() before it is moved out of the header file for some reason.
 
-Signed-off-by: Thierry Reding <treding@nvidia.com>
----
- arch/arc/include/asm/io.h | 2 --
- 1 file changed, 2 deletions(-)
+I assume pci/host-generic is the latest now with this issue fixed as
+the commit date is 2014-10-01 past you message above, right? So is it
+ok to rebase our host controller driver onto pci/host-generic or will
+there be further updates or any other branch that is newer?
 
-diff --git a/arch/arc/include/asm/io.h b/arch/arc/include/asm/io.h
-index 334ce7017a18..cabd518cb253 100644
---- a/arch/arc/include/asm/io.h
-+++ b/arch/arc/include/asm/io.h
-@@ -13,8 +13,6 @@
- #include <asm/byteorder.h>
- #include <asm/page.h>
- 
--#define PCI_IOBASE ((void __iomem *)0)
--
- extern void __iomem *ioremap(unsigned long physaddr, unsigned long size);
- extern void __iomem *ioremap_prot(phys_addr_t offset, unsigned long size,
- 				  unsigned long flags);
--- 
-2.1.0
+Thanks,
 
+-Robert
