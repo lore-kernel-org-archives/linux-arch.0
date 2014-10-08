@@ -1,7 +1,7 @@
 From: Ley Foon Tan <lftan@altera.com>
-Subject: [PATCH v4 18/29] nios2: Signal handling support
-Date: Wed, 8 Oct 2014 17:29:44 +0800
-Message-ID: <1412760595-3935-19-git-send-email-lftan@altera.com>
+Subject: [PATCH v4 21/29] nios2: Time keeping
+Date: Wed, 8 Oct 2014 17:29:47 +0800
+Message-ID: <1412760595-3935-22-git-send-email-lftan@altera.com>
 References: <1412760595-3935-1-git-send-email-lftan@altera.com>
 Mime-Version: 1.0
 Content-Type: text/plain
@@ -12,58 +12,28 @@ To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-doc@vger.ker
 Cc: Arnd Bergmann <arnd@arndb.de>, Ley Foon Tan <lftan@altera.com>, lftan.linux@gmail.com, cltang@codesourcery.com
 List-Id: linux-arch.vger.kernel.org
 
-This patch adds support for signal handling.
+Add time keeping code for nios2.
 
 Signed-off-by: Ley Foon Tan <lftan@altera.com>
 ---
- arch/nios2/include/asm/signal.h          |   22 ++
- arch/nios2/include/asm/ucontext.h        |   32 +++
- arch/nios2/include/uapi/asm/sigcontext.h |   28 +++
- arch/nios2/include/uapi/asm/signal.h     |   23 +++
- arch/nios2/kernel/signal.c               |  320 ++++++++++++++++++++++++++++++
- 5 files changed, 425 insertions(+), 0 deletions(-)
- create mode 100644 arch/nios2/include/asm/signal.h
- create mode 100644 arch/nios2/include/asm/ucontext.h
- create mode 100644 arch/nios2/include/uapi/asm/sigcontext.h
- create mode 100644 arch/nios2/include/uapi/asm/signal.h
- create mode 100644 arch/nios2/kernel/signal.c
+ arch/nios2/include/asm/delay.h |   21 +++
+ arch/nios2/include/asm/timex.h |   26 ++++
+ arch/nios2/kernel/time.c       |  318 ++++++++++++++++++++++++++++++++++++++++
+ arch/nios2/lib/delay.c         |   52 +++++++
+ 4 files changed, 417 insertions(+), 0 deletions(-)
+ create mode 100644 arch/nios2/include/asm/delay.h
+ create mode 100644 arch/nios2/include/asm/timex.h
+ create mode 100644 arch/nios2/kernel/time.c
+ create mode 100644 arch/nios2/lib/delay.c
 
-diff --git a/arch/nios2/include/asm/signal.h b/arch/nios2/include/asm/signal.h
+diff --git a/arch/nios2/include/asm/delay.h b/arch/nios2/include/asm/delay.h
 new file mode 100644
-index 0000000..bbcf11e
+index 0000000..098e49b
 --- /dev/null
-+++ b/arch/nios2/include/asm/signal.h
-@@ -0,0 +1,22 @@
++++ b/arch/nios2/include/asm/delay.h
+@@ -0,0 +1,21 @@
 +/*
-+ * Copyright Altera Corporation (C) 2013. All rights reserved
-+ *
-+ * This program is free software; you can redistribute it and/or modify it
-+ * under the terms and conditions of the GNU General Public License,
-+ * version 2, as published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope it will be useful, but WITHOUT
-+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
-+ * more details.
-+ *
-+ * You should have received a copy of the GNU General Public License along with
-+ * this program.  If not, see <http://www.gnu.org/licenses/>.
-+ *
-+ */
-+#ifndef _NIOS2_SIGNAL_H
-+#define _NIOS2_SIGNAL_H
-+
-+#include <uapi/asm/signal.h>
-+
-+#endif	/* _NIOS2_SIGNAL_H */
-diff --git a/arch/nios2/include/asm/ucontext.h b/arch/nios2/include/asm/ucontext.h
-new file mode 100644
-index 0000000..2c87614
---- /dev/null
-+++ b/arch/nios2/include/asm/ucontext.h
-@@ -0,0 +1,32 @@
-+/*
-+ * Copyright (C) 2010 Tobias Klauser <tklauser@distanz.ch>
++ * Copyright (C) 2014 Altera Corporation
 + * Copyright (C) 2004 Microtronix Datacom Ltd
 + *
 + * This file is subject to the terms and conditions of the GNU General Public
@@ -71,417 +41,431 @@ index 0000000..2c87614
 + * for more details.
 + */
 +
-+#ifndef _ASM_NIOS2_UCONTEXT_H
-+#define _ASM_NIOS2_UCONTEXT_H
++#ifndef _ASM_NIOS2_DELAY_H
++#define _ASM_NIOS2_DELAY_H
 +
-+typedef int greg_t;
-+#define NGREG 32
-+typedef greg_t gregset_t[NGREG];
++#include <asm-generic/delay.h>
 +
-+struct mcontext {
-+	int version;
-+	gregset_t gregs;
-+};
++/* Undefined functions to get compile-time errors */
++extern void __bad_udelay(void);
++extern void __bad_ndelay(void);
 +
-+#define MCONTEXT_VERSION 2
++extern unsigned long loops_per_jiffy;
 +
-+struct ucontext {
-+	unsigned long	  uc_flags;
-+	struct ucontext  *uc_link;
-+	stack_t		  uc_stack;
-+	struct mcontext	  uc_mcontext;
-+	sigset_t	  uc_sigmask;	/* mask last for extensibility */
-+};
-+
-+#endif
-diff --git a/arch/nios2/include/uapi/asm/sigcontext.h b/arch/nios2/include/uapi/asm/sigcontext.h
++#endif /* _ASM_NIOS2_DELAY_H */
+diff --git a/arch/nios2/include/asm/timex.h b/arch/nios2/include/asm/timex.h
 new file mode 100644
-index 0000000..7b8bb41
+index 0000000..8996106
 --- /dev/null
-+++ b/arch/nios2/include/uapi/asm/sigcontext.h
-@@ -0,0 +1,28 @@
-+/*
-+ * Copyright (C) 2004, Microtronix Datacom Ltd.
-+ *
-+ * All rights reserved.
++++ b/arch/nios2/include/asm/timex.h
+@@ -0,0 +1,26 @@
++/* Copyright Altera Corporation (C) 2014. All rights reserved.
 + *
 + * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License as published by
-+ * the Free Software Foundation; either version 2 of the License, or
-+ * (at your option) any later version.
++ * it under the terms of the GNU General Public License, version 2,
++ * as published by the Free Software Foundation.
 + *
-+ * This program is distributed in the hope that it will be useful, but
-+ * WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE, GOOD TITLE or
-+ * NON INFRINGEMENT.  See the GNU General Public License for more
-+ * details.
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ *
 + */
 +
-+#ifndef _ASM_NIOS2_SIGCONTEXT_H
-+#define _ASM_NIOS2_SIGCONTEXT_H
++#ifndef _ASM_NIOS2_TIMEX_H
++#define _ASM_NIOS2_TIMEX_H
 +
-+#include <asm/ptrace.h>
++typedef unsigned long cycles_t;
 +
-+struct sigcontext {
-+	struct pt_regs regs;
-+	unsigned long  sc_mask;	/* old sigmask */
-+};
++extern cycles_t get_cycles(void);
++
++#define ARCH_HAS_READ_CURRENT_TIMER
 +
 +#endif
-diff --git a/arch/nios2/include/uapi/asm/signal.h b/arch/nios2/include/uapi/asm/signal.h
+diff --git a/arch/nios2/kernel/time.c b/arch/nios2/kernel/time.c
 new file mode 100644
-index 0000000..f29ee63
+index 0000000..ca51f08
 --- /dev/null
-+++ b/arch/nios2/include/uapi/asm/signal.h
-@@ -0,0 +1,23 @@
-+/*
-+ * Copyright Altera Corporation (C) 2013. All rights reserved
-+ *
-+ * This program is free software; you can redistribute it and/or modify it
-+ * under the terms and conditions of the GNU General Public License,
-+ * version 2, as published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope it will be useful, but WITHOUT
-+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
-+ * more details.
-+ *
-+ * You should have received a copy of the GNU General Public License along with
-+ * this program.  If not, see <http://www.gnu.org/licenses/>.
-+ *
-+ */
-+#ifndef _ASM_NIOS2_SIGNAL_H
-+#define _ASM_NIOS2_SIGNAL_H
-+
-+#define SA_RESTORER 0x04000000
-+#include <asm-generic/signal.h>
-+
-+#endif /* _ASM_NIOS2_SIGNAL_H */
-diff --git a/arch/nios2/kernel/signal.c b/arch/nios2/kernel/signal.c
-new file mode 100644
-index 0000000..21eefcc
---- /dev/null
-+++ b/arch/nios2/kernel/signal.c
-@@ -0,0 +1,320 @@
++++ b/arch/nios2/kernel/time.c
+@@ -0,0 +1,318 @@
 +/*
 + * Copyright (C) 2013-2014 Altera Corporation
-+ * Copyright (C) 2011-2012 Tobias Klauser <tklauser@distanz.ch>
-+ * Copyright (C) 2004 Microtronix Datacom Ltd
-+ * Copyright (C) 1991, 1992 Linus Torvalds
++ * Copyright (C) 2010 Tobias Klauser <tklauser@distanz.ch>
++ * Copyright (C) 2004 Microtronix Datacom Ltd.
 + *
 + * This file is subject to the terms and conditions of the GNU General Public
-+ * License.  See the file COPYING in the main directory of this archive
++ * License. See the file "COPYING" in the main directory of this archive
 + * for more details.
 + */
 +
-+#include <linux/signal.h>
-+#include <linux/errno.h>
-+#include <linux/ptrace.h>
-+#include <linux/uaccess.h>
-+#include <linux/unistd.h>
-+#include <linux/personality.h>
-+#include <linux/tracehook.h>
++#include <linux/interrupt.h>
++#include <linux/clockchips.h>
++#include <linux/clocksource.h>
++#include <linux/of.h>
++#include <linux/of_address.h>
++#include <linux/of_irq.h>
++#include <linux/io.h>
++#include <linux/slab.h>
 +
-+#include <asm/ucontext.h>
-+#include <asm/cacheflush.h>
++#define ALTERA_TIMER_STATUS_REG		0
++#define ALTERA_TIMER_CONTROL_REG	4
++#define ALTERA_TIMER_PERIODL_REG	8
++#define ALTERA_TIMER_PERIODH_REG	12
++#define ALTERA_TIMER_SNAPL_REG		16
++#define ALTERA_TIMER_SNAPH_REG		20
 +
-+#define _BLOCKABLE (~(sigmask(SIGKILL) | sigmask(SIGSTOP)))
++#define ALTERA_TIMER_CONTROL_ITO_MSK	(0x1)
++#define ALTERA_TIMER_CONTROL_CONT_MSK	(0x2)
++#define ALTERA_TIMER_CONTROL_START_MSK	(0x4)
++#define ALTERA_TIMER_CONTROL_STOP_MSK	(0x8)
 +
-+/*
-+ * Do a signal return; undo the signal stack.
-+ *
-+ * Keep the return code on the stack quadword aligned!
-+ * That makes the cache flush below easier.
-+ */
-+
-+struct rt_sigframe {
-+	struct siginfo info;
-+	struct ucontext uc;
++struct nios2_timer {
++	void __iomem *base;
++	unsigned long freq;
++	int irq;
 +};
 +
-+static inline int rt_restore_ucontext(struct pt_regs *regs,
-+					struct switch_stack *sw,
-+					struct ucontext *uc, int *pr2)
++struct nios2_clockevent_dev {
++	struct nios2_timer timer;
++	struct clock_event_device ced;
++	struct irqaction irqaction;
++};
++
++struct nios2_clocksource {
++	struct nios2_timer timer;
++	struct clocksource cs;
++};
++
++struct nios2_clocksource *nios2_cs;
++
++static inline struct nios2_clockevent_dev *
++	to_nios2_clkevent(struct clock_event_device *evt)
 +{
-+	int temp;
-+	greg_t *gregs = uc->uc_mcontext.gregs;
-+	int err;
-+
-+	/* Always make any pending restarted system calls return -EINTR */
-+	current_thread_info()->restart_block.fn = do_no_restart_syscall;
-+
-+	err = __get_user(temp, &uc->uc_mcontext.version);
-+	if (temp != MCONTEXT_VERSION)
-+		goto badframe;
-+	/* restore passed registers */
-+	err |= __get_user(regs->r1, &gregs[0]);
-+	err |= __get_user(regs->r2, &gregs[1]);
-+	err |= __get_user(regs->r3, &gregs[2]);
-+	err |= __get_user(regs->r4, &gregs[3]);
-+	err |= __get_user(regs->r5, &gregs[4]);
-+	err |= __get_user(regs->r6, &gregs[5]);
-+	err |= __get_user(regs->r7, &gregs[6]);
-+	err |= __get_user(regs->r8, &gregs[7]);
-+	err |= __get_user(regs->r9, &gregs[8]);
-+	err |= __get_user(regs->r10, &gregs[9]);
-+	err |= __get_user(regs->r11, &gregs[10]);
-+	err |= __get_user(regs->r12, &gregs[11]);
-+	err |= __get_user(regs->r13, &gregs[12]);
-+	err |= __get_user(regs->r14, &gregs[13]);
-+	err |= __get_user(regs->r15, &gregs[14]);
-+	err |= __get_user(sw->r16, &gregs[15]);
-+	err |= __get_user(sw->r17, &gregs[16]);
-+	err |= __get_user(sw->r18, &gregs[17]);
-+	err |= __get_user(sw->r19, &gregs[18]);
-+	err |= __get_user(sw->r20, &gregs[19]);
-+	err |= __get_user(sw->r21, &gregs[20]);
-+	err |= __get_user(sw->r22, &gregs[21]);
-+	err |= __get_user(sw->r23, &gregs[22]);
-+	/* gregs[23] is handled below */
-+	err |= __get_user(sw->fp, &gregs[24]);  /* Verify, should this be
-+							settable */
-+	err |= __get_user(sw->gp, &gregs[25]);  /* Verify, should this be
-+							settable */
-+
-+	err |= __get_user(temp, &gregs[26]);  /* Not really necessary no user
-+							settable bits */
-+	err |= __get_user(regs->ea, &gregs[27]);
-+
-+	err |= __get_user(regs->ra, &gregs[23]);
-+	err |= __get_user(regs->sp, &gregs[28]);
-+
-+	regs->orig_r2 = -1;		/* disable syscall checks */
-+
-+	err |= restore_altstack(&uc->uc_stack);
-+	if (err)
-+		goto badframe;
-+
-+	*pr2 = regs->r2;
-+	return err;
-+
-+badframe:
-+	return 1;
++	return container_of(evt, struct nios2_clockevent_dev, ced);
 +}
 +
-+asmlinkage int do_rt_sigreturn(struct switch_stack *sw)
++static inline struct nios2_clocksource *
++	to_nios2_clksource(struct clocksource *cs)
 +{
-+	struct pt_regs *regs = (struct pt_regs *)(sw + 1);
-+	/* Verify, can we follow the stack back */
-+	struct rt_sigframe *frame = (struct rt_sigframe *) regs->sp;
-+	sigset_t set;
-+	int rval;
++	return container_of(cs, struct nios2_clocksource, cs);
++}
 +
-+	if (!access_ok(VERIFY_READ, frame, sizeof(*frame)))
-+		goto badframe;
++static u16 timer_readw(struct nios2_timer *timer, u32 offs)
++{
++	return readw(timer->base + offs);
++}
 +
-+	if (__copy_from_user(&set, &frame->uc.uc_sigmask, sizeof(set)))
-+		goto badframe;
++static void timer_writew(struct nios2_timer *timer, u16 val, u32 offs)
++{
++	writew(val, timer->base + offs);
++}
 +
-+	set_current_blocked(&set);
++static inline unsigned long read_timersnapshot(struct nios2_timer *timer)
++{
++	unsigned long count;
 +
-+	if (rt_restore_ucontext(regs, sw, &frame->uc, &rval))
-+		goto badframe;
++	timer_writew(timer, 0, ALTERA_TIMER_SNAPL_REG);
++	count = timer_readw(timer, ALTERA_TIMER_SNAPH_REG) << 16 |
++		timer_readw(timer, ALTERA_TIMER_SNAPL_REG);
 +
-+	return rval;
++	return count;
++}
 +
-+badframe:
-+	force_sig(SIGSEGV, current);
++static cycle_t nios2_timer_read(struct clocksource *cs)
++{
++	struct nios2_clocksource *nios2_cs = to_nios2_clksource(cs);
++	unsigned long flags;
++	u32 count;
++
++	local_irq_save(flags);
++	count = read_timersnapshot(&nios2_cs->timer);
++	local_irq_restore(flags);
++
++	/* Counter is counting down */
++	return ~count;
++}
++
++cycles_t get_cycles(void)
++{
++	return nios2_timer_read(&nios2_cs->cs);
++}
++
++int read_current_timer(unsigned long *timer_val)
++{
++	*timer_val = (unsigned long) get_cycles();
 +	return 0;
 +}
 +
-+static inline int rt_setup_ucontext(struct ucontext *uc, struct pt_regs *regs)
++static void nios2_timer_start(struct nios2_timer *timer)
 +{
-+	struct switch_stack *sw = (struct switch_stack *)regs - 1;
-+	greg_t *gregs = uc->uc_mcontext.gregs;
-+	int err = 0;
++	u16 ctrl;
 +
-+	err |= __put_user(MCONTEXT_VERSION, &uc->uc_mcontext.version);
-+	err |= __put_user(regs->r1, &gregs[0]);
-+	err |= __put_user(regs->r2, &gregs[1]);
-+	err |= __put_user(regs->r3, &gregs[2]);
-+	err |= __put_user(regs->r4, &gregs[3]);
-+	err |= __put_user(regs->r5, &gregs[4]);
-+	err |= __put_user(regs->r6, &gregs[5]);
-+	err |= __put_user(regs->r7, &gregs[6]);
-+	err |= __put_user(regs->r8, &gregs[7]);
-+	err |= __put_user(regs->r9, &gregs[8]);
-+	err |= __put_user(regs->r10, &gregs[9]);
-+	err |= __put_user(regs->r11, &gregs[10]);
-+	err |= __put_user(regs->r12, &gregs[11]);
-+	err |= __put_user(regs->r13, &gregs[12]);
-+	err |= __put_user(regs->r14, &gregs[13]);
-+	err |= __put_user(regs->r15, &gregs[14]);
-+	err |= __put_user(sw->r16, &gregs[15]);
-+	err |= __put_user(sw->r17, &gregs[16]);
-+	err |= __put_user(sw->r18, &gregs[17]);
-+	err |= __put_user(sw->r19, &gregs[18]);
-+	err |= __put_user(sw->r20, &gregs[19]);
-+	err |= __put_user(sw->r21, &gregs[20]);
-+	err |= __put_user(sw->r22, &gregs[21]);
-+	err |= __put_user(sw->r23, &gregs[22]);
-+	err |= __put_user(regs->ra, &gregs[23]);
-+	err |= __put_user(sw->fp, &gregs[24]);
-+	err |= __put_user(sw->gp, &gregs[25]);
-+	err |= __put_user(regs->ea, &gregs[27]);
-+	err |= __put_user(regs->sp, &gregs[28]);
-+	return err;
++	ctrl = timer_readw(timer, ALTERA_TIMER_CONTROL_REG);
++	ctrl |= ALTERA_TIMER_CONTROL_START_MSK;
++	timer_writew(timer, ctrl, ALTERA_TIMER_CONTROL_REG);
 +}
 +
-+static inline void *get_sigframe(struct ksignal *ksig, struct pt_regs *regs,
-+				 size_t frame_size)
++static void nios2_timer_stop(struct nios2_timer *timer)
 +{
-+	unsigned long usp;
++	u16 ctrl;
 +
-+	/* Default to using normal stack.  */
-+	usp = regs->sp;
-+
-+	/* This is the X/Open sanctioned signal stack switching.  */
-+	usp = sigsp(usp, ksig);
-+
-+	/* Verify, is it 32 or 64 bit aligned */
-+	return (void *)((usp - frame_size) & -8UL);
++	ctrl = timer_readw(timer, ALTERA_TIMER_CONTROL_REG);
++	ctrl |= ALTERA_TIMER_CONTROL_STOP_MSK;
++	timer_writew(timer, ctrl, ALTERA_TIMER_CONTROL_REG);
 +}
 +
-+static int setup_rt_frame(struct ksignal *ksig, sigset_t *set,
-+			  struct pt_regs *regs)
++static void nios2_timer_config(struct nios2_timer *timer, unsigned long period,
++	enum clock_event_mode mode)
 +{
-+	struct rt_sigframe *frame;
-+	int err = 0;
++	u16 ctrl;
 +
-+	frame = get_sigframe(ksig, regs, sizeof(*frame));
++	/* The timer's actual period is one cycle greater than the value
++	 * stored in the period register. */
++	if (period)
++		period--;
 +
-+	if (ksig->ka.sa.sa_flags & SA_SIGINFO)
-+		err |= copy_siginfo_to_user(&frame->info, &ksig->info);
++	ctrl = timer_readw(timer, ALTERA_TIMER_CONTROL_REG);
++	/* stop counter */
++	timer_writew(timer, ctrl | ALTERA_TIMER_CONTROL_STOP_MSK,
++		ALTERA_TIMER_CONTROL_REG);
 +
-+	/* Create the ucontext.  */
-+	err |= __put_user(0, &frame->uc.uc_flags);
-+	err |= __put_user(0, &frame->uc.uc_link);
-+	err |= __save_altstack(&frame->uc.uc_stack, regs->sp);
-+	err |= rt_setup_ucontext(&frame->uc, regs);
-+	err |= copy_to_user(&frame->uc.uc_sigmask, set, sizeof(*set));
++	/* write new count */
++	timer_writew(timer, period, ALTERA_TIMER_PERIODL_REG);
++	timer_writew(timer, period >> 16, ALTERA_TIMER_PERIODH_REG);
 +
-+	if (err)
-+		goto give_sigsegv;
++	ctrl |= ALTERA_TIMER_CONTROL_START_MSK | ALTERA_TIMER_CONTROL_ITO_MSK;
++	if (mode == CLOCK_EVT_MODE_PERIODIC)
++		ctrl |= ALTERA_TIMER_CONTROL_CONT_MSK;
++	else
++		ctrl &= ~ALTERA_TIMER_CONTROL_CONT_MSK;
++	timer_writew(timer, ctrl, ALTERA_TIMER_CONTROL_REG);
++}
 +
-+	/* Set up to return from userspace; jump to fixed address sigreturn
-+	   trampoline on kuser page.  */
-+	regs->ra = (unsigned long) (0x1040);
++static int nios2_timer_set_next_event(unsigned long delta,
++	struct clock_event_device *evt)
++{
++	struct nios2_clockevent_dev *nios2_ced = to_nios2_clkevent(evt);
 +
-+	/* Set up registers for signal handler */
-+	regs->sp = (unsigned long) frame;
-+	regs->r4 = (unsigned long) ksig->sig;
-+	regs->r5 = (unsigned long) &frame->info;
-+	regs->r6 = (unsigned long) &frame->uc;
-+	regs->ea = (unsigned long) ksig->ka.sa.sa_handler;
++	nios2_timer_config(&nios2_ced->timer, delta, evt->mode);
++
 +	return 0;
-+
-+give_sigsegv:
-+	force_sigsegv(ksig->sig, current);
-+	return -EFAULT;
 +}
 +
-+/*
-+ * OK, we're invoking a handler
++static void nios2_timer_set_mode(enum clock_event_mode mode,
++	struct clock_event_device *evt)
++{
++	unsigned long period;
++	struct nios2_clockevent_dev *nios2_ced = to_nios2_clkevent(evt);
++	struct nios2_timer *timer = &nios2_ced->timer;
++
++	switch (mode) {
++	case CLOCK_EVT_MODE_PERIODIC:
++		period = DIV_ROUND_UP(timer->freq, HZ);
++		nios2_timer_config(timer, period, CLOCK_EVT_MODE_PERIODIC);
++		break;
++	case CLOCK_EVT_MODE_ONESHOT:
++		nios2_timer_config(timer, ULONG_MAX, CLOCK_EVT_MODE_ONESHOT);
++		break;
++	case CLOCK_EVT_MODE_UNUSED:
++	case CLOCK_EVT_MODE_SHUTDOWN:
++		nios2_timer_stop(timer);
++		break;
++	case CLOCK_EVT_MODE_RESUME:
++		nios2_timer_start(timer);
++		break;
++	}
++}
++
++irqreturn_t timer_interrupt(int irq, void *dev_id)
++{
++	struct clock_event_device *evt = (struct clock_event_device *) dev_id;
++	struct nios2_clockevent_dev *nios2_ced = to_nios2_clkevent(evt);
++
++	/* Clear the interrupt condition */
++	timer_writew(&nios2_ced->timer, 0, ALTERA_TIMER_STATUS_REG);
++	evt->event_handler(evt);
++
++	return IRQ_HANDLED;
++}
++
++static void __init nios2_timer_get_base_and_freq(struct device_node *np,
++				    void __iomem **base, u32 *freq)
++{
++	*base = of_iomap(np, 0);
++	if (!*base)
++		panic("Unable to map reg for %s\n", np->name);
++
++	if (of_property_read_u32(np, "clock-frequency", freq))
++		panic("Unable to get %s clock frequency\n", np->name);
++}
++
++static __init void nios2_clockevent_init(struct device_node *timer)
++{
++	struct nios2_clockevent_dev *ce;
++	void __iomem *iobase;
++	u32 freq;
++	int irq;
++
++	ce = kzalloc(sizeof(*ce), GFP_KERNEL);
++	if (!ce)
++		panic("Failed to allocate memory for %s\n", timer->name);
++
++	nios2_timer_get_base_and_freq(timer, &iobase, &freq);
++
++	irq = irq_of_parse_and_map(timer, 0);
++	if (irq < 0)
++		panic("Unable to parse timer irq\n");
++
++	ce->timer.base = iobase;
++	ce->timer.irq = irq;
++	ce->timer.freq = freq;
++
++	ce->ced.name = timer->name;
++	ce->ced.features = CLOCK_EVT_FEAT_PERIODIC | CLOCK_EVT_FEAT_ONESHOT;
++	ce->ced.rating = 250;
++	ce->ced.shift = 32;
++	ce->ced.set_next_event = nios2_timer_set_next_event;
++	ce->ced.set_mode = nios2_timer_set_mode;
++	ce->ced.cpumask = cpumask_of(0);
++	ce->ced.irq = irq;
++
++	ce->irqaction.name = timer->name;
++	ce->irqaction.handler = timer_interrupt;
++	ce->irqaction.dev_id = &ce->ced;
++	ce->irqaction.irq = irq;
++	ce->irqaction.flags = IRQF_TIMER;
++
++	nios2_timer_stop(&ce->timer);
++	/* clear pending interrupt */
++	timer_writew(&ce->timer, 0, ALTERA_TIMER_STATUS_REG);
++
++	if (setup_irq(irq, &ce->irqaction))
++		panic("Unable to setup timer irq\n");
++
++	clockevents_config_and_register(&ce->ced, freq, 1, ULONG_MAX);
++}
++
++static __init void nios2_clocksource_init(struct device_node *timer)
++{
++	unsigned int ctrl;
++	void __iomem *iobase;
++	u32 freq;
++
++	nios2_cs = kzalloc(sizeof(*nios2_cs), GFP_KERNEL);
++	if (!nios2_cs)
++		panic("Failed to allocate memory for %s\n", timer->name);
++
++	nios2_timer_get_base_and_freq(timer, &iobase, &freq);
++
++	nios2_cs->timer.base = iobase;
++	nios2_cs->timer.freq = freq;
++
++	nios2_cs->cs.name = timer->name;
++	nios2_cs->cs.rating = 250;
++	nios2_cs->cs.read = nios2_timer_read;
++	nios2_cs->cs.mask = CLOCKSOURCE_MASK(32);
++	nios2_cs->cs.flags = CLOCK_SOURCE_IS_CONTINUOUS;
++
++	clocksource_register_hz(&nios2_cs->cs, freq);
++
++	timer_writew(&nios2_cs->timer, USHRT_MAX, ALTERA_TIMER_PERIODL_REG);
++	timer_writew(&nios2_cs->timer, USHRT_MAX, ALTERA_TIMER_PERIODH_REG);
++
++	/* interrupt disable + continuous + start */
++	ctrl = ALTERA_TIMER_CONTROL_CONT_MSK | ALTERA_TIMER_CONTROL_START_MSK;
++	timer_writew(&nios2_cs->timer, ctrl, ALTERA_TIMER_CONTROL_REG);
++}
++
++
++static int num_called;
++static void __init nios2_time_init(struct device_node *timer)
++{
++	switch (num_called) {
++	case 0:
++		nios2_clockevent_init(timer);
++		break;
++	case 1:
++		nios2_clocksource_init(timer);
++		break;
++	default:
++		break;
++	}
++
++	num_called++;
++}
++
++void read_persistent_clock(struct timespec *ts)
++{
++	ts->tv_sec = mktime(2007, 1, 1, 0, 0, 0);
++	ts->tv_nsec = 0;
++}
++
++void __init time_init(void)
++{
++	clocksource_of_init();
++}
++
++CLOCKSOURCE_OF_DECLARE(nios2_timer, "altr,timer-1.0", nios2_time_init);
+diff --git a/arch/nios2/lib/delay.c b/arch/nios2/lib/delay.c
+new file mode 100644
+index 0000000..088119c
+--- /dev/null
++++ b/arch/nios2/lib/delay.c
+@@ -0,0 +1,52 @@
++/* Copyright Altera Corporation (C) 2014. All rights reserved.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License, version 2,
++ * as published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ *
 + */
-+static void handle_signal(struct ksignal *ksig, struct pt_regs *regs)
++
++#include <linux/module.h>
++#include <asm/delay.h>
++#include <asm/param.h>
++#include <asm/processor.h>
++#include <asm/timex.h>
++
++void __delay(unsigned long cycles)
 +{
-+	int ret;
-+	sigset_t *oldset = sigmask_to_save();
++	cycles_t start = get_cycles();
 +
-+	/* set up the stack frame */
-+	ret = setup_rt_frame(ksig, oldset, regs);
-+
-+	signal_setup_done(ret, ksig, 0);
++	while ((get_cycles() - start) < cycles)
++		cpu_relax();
 +}
++EXPORT_SYMBOL(__delay);
 +
-+static int do_signal(struct pt_regs *regs)
++void __const_udelay(unsigned long xloops)
 +{
-+	unsigned int retval = 0, continue_addr = 0, restart_addr = 0;
-+	int restart = 0;
-+	struct ksignal ksig;
++	u64 loops;
 +
-+	current->thread.kregs = regs;
++	loops = (u64)xloops * loops_per_jiffy * HZ;
 +
-+	/*
-+	 * If we were from a system call, check for system call restarting...
-+	 */
-+	if (regs->orig_r2 >= 0) {
-+		continue_addr = regs->ea;
-+		restart_addr = continue_addr - 4;
-+		retval = regs->r2;
-+
-+		/*
-+		 * Prepare for system call restart. We do this here so that a
-+		 * debugger will see the already changed PC.
-+		 */
-+		switch (retval) {
-+		case ERESTART_RESTARTBLOCK:
-+			restart = -2;
-+		case ERESTARTNOHAND:
-+		case ERESTARTSYS:
-+		case ERESTARTNOINTR:
-+			restart++;
-+			regs->ea = restart_addr;
-+			break;
-+		}
-+	}
-+
-+	if (get_signal(&ksig)) {
-+		/* handler */
-+		if (unlikely(restart && regs->ea == restart_addr)) {
-+			if (retval == ERESTARTNOHAND ||
-+			    retval == ERESTART_RESTARTBLOCK ||
-+			     (retval == ERESTARTSYS
-+				&& !(ksig.ka.sa.sa_flags & SA_RESTART))) {
-+				regs->r2 = EINTR;
-+				regs->r7 = 1;
-+				regs->ea = continue_addr;
-+			}
-+		}
-+		handle_signal(&ksig, regs);
-+		return 0;
-+	}
-+
-+	/*
-+	 * No handler present
-+	 */
-+	if (unlikely(restart) && regs->ea == restart_addr) {
-+		regs->ea = continue_addr;
-+		regs->r2 = __NR_restart_syscall;
-+	}
-+
-+	/*
-+	* If there's no signal to deliver, we just put the saved sigmask back.
-+	*/
-+	restore_saved_sigmask();
-+
-+	return restart;
++	__delay(loops >> 32);
 +}
++EXPORT_SYMBOL(__const_udelay);
 +
-+asmlinkage int do_notify_resume(struct pt_regs *regs)
++void __udelay(unsigned long usecs)
 +{
-+	/*
-+	 * We want the common case to go fast, which is why we may in certain
-+	 * cases get here from kernel mode. Just return without doing anything
-+	 * if so.
-+	 */
-+	if (!user_mode(regs))
-+		return 0;
-+
-+	if (test_thread_flag(TIF_SIGPENDING)) {
-+		int restart = do_signal(regs);
-+		if (unlikely(restart)) {
-+			/*
-+			 * Restart without handlers.
-+			 * Deal with it without leaving
-+			 * the kernel space.
-+			 */
-+			return restart;
-+		}
-+	} else if (test_and_clear_thread_flag(TIF_NOTIFY_RESUME))
-+		tracehook_notify_resume(regs);
-+
-+	return 0;
++	__const_udelay(usecs * 0x10C7UL); /* 2**32 / 1000000 (rounded up) */
 +}
++EXPORT_SYMBOL(__udelay);
++
++void __ndelay(unsigned long nsecs)
++{
++	__const_udelay(nsecs * 0x5UL); /* 2**32 / 1000000000 (rounded up) */
++}
++EXPORT_SYMBOL(__ndelay);
 -- 
 1.7.7.4
