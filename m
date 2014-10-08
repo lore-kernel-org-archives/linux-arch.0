@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bl2on0058.outbound.protection.outlook.com ([65.55.169.58]:46048
-	"EHLO na01-bl2-obe.outbound.protection.outlook.com"
+Received: from mail-bn1on0085.outbound.protection.outlook.com ([157.56.110.85]:7520
+	"EHLO na01-bn1-obe.outbound.protection.outlook.com"
 	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1755826AbaJHJcG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 8 Oct 2014 05:32:06 -0400
+	id S932213AbaJHJb6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 8 Oct 2014 05:31:58 -0400
 From: Ley Foon Tan <lftan@altera.com>
-Subject: [PATCH v4 26/29] nios2: ptrace support
-Date: Wed, 8 Oct 2014 17:29:52 +0800
-Message-ID: <1412760595-3935-27-git-send-email-lftan@altera.com>
+Subject: [PATCH v4 24/29] nios2: Nios2 registers
+Date: Wed, 8 Oct 2014 17:29:50 +0800
+Message-ID: <1412760595-3935-25-git-send-email-lftan@altera.com>
 In-Reply-To: <1412760595-3935-1-git-send-email-lftan@altera.com>
 References: <1412760595-3935-1-git-send-email-lftan@altera.com>
 MIME-Version: 1.0
@@ -16,357 +16,93 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org
 Cc: Arnd Bergmann <arnd@arndb.de>, Ley Foon Tan <lftan@altera.com>, lftan.linux@gmail.com, cltang@codesourcery.com
-Message-ID: <20141008092952.rspJawsML4B-umpkd-M2lNEOpIx4J-H2n9d7u7H7-NU@z>
+Message-ID: <20141008092950.Y9KZqXpqCuxBG98GCvl0MBeYQm6VCovq3eQAaH5-Qvo@z>
 
-Add ptrace support for nios2.
+This file contains constants for the instruction macros, cpu registers, fields and bits.
 
 Signed-off-by: Ley Foon Tan <lftan@altera.com>
 ---
- arch/nios2/include/asm/ptrace.h      |   33 +++++++
- arch/nios2/include/uapi/asm/ptrace.h |  120 ++++++++++++++++++++++++
- arch/nios2/kernel/ptrace.c           |  166 ++++++++++++++++++++++++++++++++++
- 3 files changed, 319 insertions(+), 0 deletions(-)
- create mode 100644 arch/nios2/include/asm/ptrace.h
- create mode 100644 arch/nios2/include/uapi/asm/ptrace.h
- create mode 100644 arch/nios2/kernel/ptrace.c
+ arch/nios2/include/asm/registers.h |   71 ++++++++++++++++++++++++++++++++++++
+ 1 files changed, 71 insertions(+), 0 deletions(-)
+ create mode 100644 arch/nios2/include/asm/registers.h
 
-diff --git a/arch/nios2/include/asm/ptrace.h b/arch/nios2/include/asm/ptrace.h
+diff --git a/arch/nios2/include/asm/registers.h b/arch/nios2/include/asm/registers.h
 new file mode 100644
-index 0000000..20fb1cf
+index 0000000..615bce1
 --- /dev/null
-+++ b/arch/nios2/include/asm/ptrace.h
-@@ -0,0 +1,33 @@
++++ b/arch/nios2/include/asm/registers.h
+@@ -0,0 +1,71 @@
 +/*
-+ * Copyright (C) 2013 Altera Corporation
-+ * Copyright (C) 2010 Tobias Klauser <tklauser@distanz.ch>
-+ * Copyright (C) 2004 Microtronix Datacom Ltd
++ * Copyright (C) 2011 Tobias Klauser <tklauser@distanz.ch>
 + *
-+ * based on m68k asm/processor.h
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
 + *
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License.  See the file "COPYING" in the main directory of this archive
-+ * for more details.
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ *
 + */
 +
-+#ifndef _ASM_NIOS2_PTRACE_H
-+#define _ASM_NIOS2_PTRACE_H
-+
-+#include <uapi/asm/ptrace.h>
++#ifndef _ASM_NIOS2_REGISTERS_H
++#define _ASM_NIOS2_REGISTERS_H
 +
 +#ifndef __ASSEMBLY__
-+#define user_mode(regs)	(((regs)->estatus & ESTATUS_EU))
++#include <asm/cpuinfo.h>
++#endif
 +
-+#define instruction_pointer(regs)	((regs)->ra)
-+#define profile_pc(regs)		instruction_pointer(regs)
-+#define user_stack_pointer(regs)	((regs)->sp)
-+extern void show_regs(struct pt_regs *);
++/* control register numbers */
++#define CTL_STATUS	0
++#define CTL_ESTATUS	1
++#define CTL_BSTATUS	2
++#define CTL_IENABLE	3
++#define CTL_IPENDING	4
++#define CTL_CPUID	5
++#define CTL_RSV1	6
++#define CTL_EXCEPTION	7
++#define CTL_PTEADDR	8
++#define CTL_TLBACC	9
++#define CTL_TLBMISC	10
++#define CTL_RSV2	11
++#define CTL_BADADDR	12
++#define CTL_CONFIG	13
++#define CTL_MPUBASE	14
++#define CTL_MPUACC	15
 +
-+#define current_pt_regs() \
-+	((struct pt_regs *)((unsigned long)current_thread_info() + THREAD_SIZE)\
-+		- 1)
++/* access control registers using GCC builtins */
++#define RDCTL(r)	__builtin_rdctl(r)
++#define WRCTL(r, v)	__builtin_wrctl(r, v)
 +
-+int do_syscall_trace_enter(void);
-+void do_syscall_trace_exit(void);
-+#endif /* __ASSEMBLY__ */
-+#endif /* _ASM_NIOS2_PTRACE_H */
-diff --git a/arch/nios2/include/uapi/asm/ptrace.h b/arch/nios2/include/uapi/asm/ptrace.h
-new file mode 100644
-index 0000000..e83a7c9
---- /dev/null
-+++ b/arch/nios2/include/uapi/asm/ptrace.h
-@@ -0,0 +1,120 @@
-+/*
-+ * Copyright (C) 2010 Tobias Klauser <tklauser@distanz.ch>
-+ * Copyright (C) 2004 Microtronix Datacom Ltd
-+ *
-+ * based on m68k asm/processor.h
-+ *
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License.  See the file "COPYING" in the main directory of this archive
-+ * for more details.
-+ */
++/* status register bits */
++#define STATUS_PIE	(1 << 0)	/* processor interrupt enable */
++#define STATUS_U	(1 << 1)	/* user mode */
++#define STATUS_EH	(1 << 2)	/* Exception mode */
 +
-+#ifndef _UAPI_ASM_NIOS2_PTRACE_H
-+#define _UAPI_ASM_NIOS2_PTRACE_H
++/* estatus register bits */
++#define ESTATUS_EPIE	(1 << 0)	/* processor interrupt enable */
++#define ESTATUS_EU	(1 << 1)	/* user mode */
++#define ESTATUS_EH	(1 << 2)	/* Exception mode */
 +
++/* tlbmisc register bits */
++#define TLBMISC_PID_SHIFT	4
 +#ifndef __ASSEMBLY__
++#define TLBMISC_PID_MASK	((1UL << cpuinfo.tlb_pid_num_bits) - 1)
++#endif
++#define TLBMISC_WAY_MASK	0xf
++#define TLBMISC_WAY_SHIFT	20
 +
-+/*
-+ * Register numbers used by 'ptrace' system call interface.
-+ */
++#define TLBMISC_PID	(TLBMISC_PID_MASK << TLBMISC_PID_SHIFT)	/* TLB PID */
++#define TLBMISC_WE	(1 << 18)	/* TLB write enable */
++#define TLBMISC_RD	(1 << 19)	/* TLB read */
++#define TLBMISC_WAY	(TLBMISC_WAY_MASK << TLBMISC_WAY_SHIFT) /* TLB way */
 +
-+/* GP registers */
-+#define PTR_R0		0
-+#define PTR_R1		1
-+#define PTR_R2		2
-+#define PTR_R3		3
-+#define PTR_R4		4
-+#define PTR_R5		5
-+#define PTR_R6		6
-+#define PTR_R7		7
-+#define PTR_R8		8
-+#define PTR_R9		9
-+#define PTR_R10		10
-+#define PTR_R11		11
-+#define PTR_R12		12
-+#define PTR_R13		13
-+#define PTR_R14		14
-+#define PTR_R15		15
-+#define PTR_R16		16
-+#define PTR_R17		17
-+#define PTR_R18		18
-+#define PTR_R19		19
-+#define PTR_R20		20
-+#define PTR_R21		21
-+#define PTR_R22		22
-+#define PTR_R23		23
-+#define PTR_R24		24
-+#define PTR_R25		25
-+#define PTR_GP		26
-+#define PTR_SP		27
-+#define PTR_FP		28
-+#define PTR_EA		29
-+#define PTR_BA		30
-+#define PTR_RA		31
-+/* Control registers */
-+#define PTR_PC		32
-+#define PTR_STATUS	33
-+#define PTR_ESTATUS	34
-+#define PTR_BSTATUS	35
-+#define PTR_IENABLE	36
-+#define PTR_IPENDING	37
-+#define PTR_CPUID	38
-+#define PTR_CTL6	39
-+#define PTR_CTL7	40
-+#define PTR_PTEADDR	41
-+#define PTR_TLBACC	42
-+#define PTR_TLBMISC	43
-+
-+#define NUM_PTRACE_REG (PTR_TLBMISC + 1)
-+
-+/* this struct defines the way the registers are stored on the
-+   stack during a system call.
-+
-+   There is a fake_regs in setup.c that has to match pt_regs.*/
-+
-+struct pt_regs {
-+	unsigned long  r8;		/* r8-r15 Caller-saved GP registers */
-+	unsigned long  r9;
-+	unsigned long  r10;
-+	unsigned long  r11;
-+	unsigned long  r12;
-+	unsigned long  r13;
-+	unsigned long  r14;
-+	unsigned long  r15;
-+	unsigned long  r1;		/* Assembler temporary */
-+	unsigned long  r2;		/* Retval LS 32bits */
-+	unsigned long  r3;		/* Retval MS 32bits */
-+	unsigned long  r4;		/* r4-r7 Register arguments */
-+	unsigned long  r5;
-+	unsigned long  r6;
-+	unsigned long  r7;
-+	unsigned long  orig_r2;		/* Copy of r2 ?? */
-+	unsigned long  ra;		/* Return address */
-+	unsigned long  fp;		/* Frame pointer */
-+	unsigned long  sp;		/* Stack pointer */
-+	unsigned long  gp;		/* Global pointer */
-+	unsigned long  estatus;
-+	unsigned long  ea;		/* Exception return address (pc) */
-+	unsigned long  orig_r7;
-+};
-+
-+/*
-+ * This is the extended stack used by signal handlers and the context
-+ * switcher: it's pushed after the normal "struct pt_regs".
-+ */
-+struct switch_stack {
-+	unsigned long  r16;		/* r16-r23 Callee-saved GP registers */
-+	unsigned long  r17;
-+	unsigned long  r18;
-+	unsigned long  r19;
-+	unsigned long  r20;
-+	unsigned long  r21;
-+	unsigned long  r22;
-+	unsigned long  r23;
-+	unsigned long  fp;
-+	unsigned long  gp;
-+	unsigned long  ra;
-+};
-+
-+#endif /* __ASSEMBLY__ */
-+#endif /* _UAPI_ASM_NIOS2_PTRACE_H */
-diff --git a/arch/nios2/kernel/ptrace.c b/arch/nios2/kernel/ptrace.c
-new file mode 100644
-index 0000000..0d3e7e3
---- /dev/null
-+++ b/arch/nios2/kernel/ptrace.c
-@@ -0,0 +1,166 @@
-+/*
-+ * Copyright (C) 2014 Altera Corporation
-+ * Copyright (C) 2010 Tobias Klauser <tklauser@distanz.ch>
-+ *
-+ * This file is subject to the terms and conditions of the GNU General
-+ * Public License.  See the file COPYING in the main directory of this
-+ * archive for more details.
-+ */
-+
-+#include <linux/elf.h>
-+#include <linux/errno.h>
-+#include <linux/kernel.h>
-+#include <linux/mm.h>
-+#include <linux/ptrace.h>
-+#include <linux/regset.h>
-+#include <linux/sched.h>
-+#include <linux/tracehook.h>
-+#include <linux/uaccess.h>
-+#include <linux/user.h>
-+
-+static int genregs_get(struct task_struct *target,
-+		       const struct user_regset *regset,
-+		       unsigned int pos, unsigned int count,
-+		       void *kbuf, void __user * ubuf)
-+{
-+	const struct pt_regs *regs = task_pt_regs(target);
-+	const struct switch_stack *sw = (struct switch_stack *)regs - 1;
-+	int ret = 0;
-+
-+#define REG_O_ZERO_RANGE(START, END)		\
-+	if (!ret)					\
-+		ret = user_regset_copyout_zero(&pos, &count, &kbuf, &ubuf, \
-+			START * 4, (END * 4) + 4);
-+
-+#define REG_O_ONE(PTR, LOC)	\
-+	if (!ret)			\
-+		ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf, PTR, \
-+			LOC * 4, (LOC * 4) + 4);
-+
-+#define REG_O_RANGE(PTR, START, END)	\
-+	if (!ret)				\
-+		ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf, PTR, \
-+			START * 4, (END * 4) + 4);
-+
-+	REG_O_ZERO_RANGE(PTR_R0, PTR_R0);
-+	REG_O_RANGE(&regs->r1,PTR_R1, PTR_R7);
-+	REG_O_RANGE(&regs->r8,PTR_R8, PTR_R15);
-+	REG_O_RANGE(sw, PTR_R16, PTR_R23);
-+	REG_O_ZERO_RANGE(PTR_R24, PTR_R25); /* et and bt */
-+	REG_O_ONE(&regs->gp, PTR_GP);
-+	REG_O_ONE(&regs->sp, PTR_SP);
-+	REG_O_ONE(&regs->fp, PTR_FP);
-+	REG_O_ONE(&regs->ea, PTR_EA);
-+	REG_O_ZERO_RANGE(PTR_BA, PTR_BA);
-+	REG_O_ONE(&regs->ra, PTR_RA);
-+	REG_O_ONE(&regs->ea, PTR_PC); /* use ea for PC */
-+	if (!ret)
-+		ret = user_regset_copyout_zero(&pos, &count, &kbuf, &ubuf,
-+					 PTR_STATUS * 4, -1);
-+
-+	return ret;
-+}
-+
-+/*
-+ * Set the thread state from a regset passed in via ptrace
-+ */
-+static int genregs_set(struct task_struct *target,
-+		       const struct user_regset *regset,
-+		       unsigned int pos, unsigned int count,
-+		       const void *kbuf, const void __user * ubuf)
-+{
-+	struct pt_regs *regs = task_pt_regs(target);
-+	const struct switch_stack *sw = (struct switch_stack *)regs - 1;
-+	int ret = 0;
-+
-+#define REG_IGNORE_RANGE(START, END)		\
-+	if (!ret)					\
-+		ret = user_regset_copyin_ignore(&pos, &count, &kbuf, &ubuf, \
-+			START * 4, (END * 4) + 4);
-+
-+#define REG_IN_ONE(PTR, LOC)	\
-+	if (!ret)			\
-+		ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf, \
-+			(void *)(PTR), LOC * 4, (LOC * 4) + 4);
-+
-+#define REG_IN_RANGE(PTR, START, END)	\
-+	if (!ret)				\
-+		ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf, \
-+			(void *)(PTR), START * 4, (END * 4) + 4);
-+
-+	REG_IGNORE_RANGE(PTR_R0, PTR_R0);
-+	REG_IN_RANGE(&regs->r1,PTR_R1, PTR_R7);
-+	REG_IN_RANGE(&regs->r8,PTR_R8, PTR_R15);
-+	REG_IN_RANGE(sw, PTR_R16, PTR_R23);
-+	REG_IGNORE_RANGE(PTR_R24, PTR_R25); /* et and bt */
-+	REG_IN_ONE(&regs->gp, PTR_GP);
-+	REG_IN_ONE(&regs->sp, PTR_SP);
-+	REG_IN_ONE(&regs->fp, PTR_FP);
-+	REG_IN_ONE(&regs->ea, PTR_EA);
-+	REG_IGNORE_RANGE(PTR_BA, PTR_BA);
-+	REG_IN_ONE(&regs->ra, PTR_RA);
-+	REG_IN_ONE(&regs->ea, PTR_PC); /* use ea for PC */
-+	if (!ret)
-+		ret = user_regset_copyin_ignore(&pos, &count, &kbuf, &ubuf,
-+					 PTR_STATUS * 4, -1);
-+
-+	return ret;
-+}
-+
-+/*
-+ * Define the register sets available on Nios2 under Linux
-+ */
-+enum nios2_regset {
-+	REGSET_GENERAL,
-+};
-+
-+static const struct user_regset nios2_regsets[] = {
-+	[REGSET_GENERAL] = {
-+		.core_note_type = NT_PRSTATUS,
-+		.n = NUM_PTRACE_REG,
-+		.size = sizeof(unsigned long),
-+		.align = sizeof(unsigned long),
-+		.get = genregs_get,
-+		.set = genregs_set,
-+	}
-+};
-+
-+static const struct user_regset_view nios2_user_view = {
-+	.name = "nios2",
-+	.e_machine = ELF_ARCH,
-+	.ei_osabi = ELF_OSABI,
-+	.regsets = nios2_regsets,
-+	.n = ARRAY_SIZE(nios2_regsets)
-+};
-+
-+const struct user_regset_view *task_user_regset_view(struct task_struct *task)
-+{
-+	return &nios2_user_view;
-+}
-+
-+void ptrace_disable(struct task_struct *child)
-+{
-+
-+}
-+
-+long arch_ptrace(struct task_struct *child, long request, unsigned long addr,
-+		 unsigned long data)
-+{
-+	return ptrace_request(child, request, addr, data);
-+}
-+
-+asmlinkage int do_syscall_trace_enter(void)
-+{
-+	int ret = 0;
-+
-+	if (test_thread_flag(TIF_SYSCALL_TRACE))
-+		ret = tracehook_report_syscall_entry(task_pt_regs(current));
-+
-+	return ret;
-+}
-+
-+asmlinkage void do_syscall_trace_exit(void)
-+{
-+	if (test_thread_flag(TIF_SYSCALL_TRACE))
-+		tracehook_report_syscall_exit(task_pt_regs(current), 0);
-+}
++#endif /* _ASM_NIOS2_REGISTERS_H */
 -- 
 1.7.7.4
 
