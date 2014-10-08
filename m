@@ -1,64 +1,73 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from service87.mimecast.com ([91.220.42.44]:33747 "EHLO
-	service87.mimecast.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756736AbaJHLqL convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 8 Oct 2014 07:46:11 -0400
-Date: Wed, 8 Oct 2014 12:46:07 +0100
-From: Liviu Dudau <Liviu.Dudau@arm.com>
-Subject: Re: [PATCH v13 00/12] Support for creating generic PCI host bridges
- from DT
-Message-ID: <20141008114606.GG4652@e106497-lin.cambridge.arm.com>
-References: <1412000971-9242-1-git-send-email-Liviu.Dudau@arm.com>
- <20140929194335.GA13747@google.com>
- <20140930103942.GO841@e106497-lin.cambridge.arm.com>
- <20140930161805.GB5625@google.com>
- <20140930165431.GV841@e106497-lin.cambridge.arm.com>
- <20141008074428.GD20256@rric.localhost>
- <20141008091321.GC4652@e106497-lin.cambridge.arm.com>
- <20141008103600.GS20170@rric.localhost>
+Received: from mezzanine.sirena.org.uk ([106.187.55.193]:40626 "EHLO
+	mezzanine.sirena.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753758AbaJHMzM (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 8 Oct 2014 08:55:12 -0400
+Date: Wed, 8 Oct 2014 13:54:29 +0100
+From: Mark Brown <broonie@kernel.org>
+Message-ID: <20141008125429.GX4609@sirena.org.uk>
+References: <1410229968-11638-1-git-send-email-aaron.lu@intel.com>
+ <1410229968-11638-3-git-send-email-aaron.lu@intel.com>
+ <20141008080515.GC20647@lee--X1>
+ <CACRpkdaPFzq=Qya_UoZpxHom+VcynTwQL9EfdLb_Vpr=g6+Prg@mail.gmail.com>
 MIME-Version: 1.0
-In-Reply-To: <20141008103600.GS20170@rric.localhost>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8BIT
+Content-Type: multipart/signed; micalg=pgp-sha1;
+	protocol="application/pgp-signature"; boundary="WiuFC6bSmcjanUfV"
 Content-Disposition: inline
+In-Reply-To: <CACRpkdaPFzq=Qya_UoZpxHom+VcynTwQL9EfdLb_Vpr=g6+Prg@mail.gmail.com>
+Subject: Re: [PATCH 2/2] PMIC / opregion: support PMIC customized operation
+ region for CrystalCove
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Robert Richter <rric@kernel.org>
-Cc: Bjorn Helgaas <bhelgaas@google.com>, Arnd Bergmann <arnd@arndb.de>, Rob Herring <robh+dt@kernel.org>, Jason Gunthorpe <jgunthorpe@obsidianresearch.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Catalin Marinas <Catalin.Marinas@arm.com>, Will Deacon <Will.Deacon@arm.com>, Russell King <linux@arm.linux.org.uk>, linux-pci <linux-pci@vger.kernel.org>, Linus Walleij <linus.walleij@linaro.org>, Tanmay Inamdar <tinamdar@apm.com>, Grant Likely <grant.likely@secretlab.ca>, Sinan Kaya <okaya@codeaurora.org>, Jingoo Han <jg1.han@samsung.com>, Kukjin Kim <kgene.kim@samsung.com>, Suravee Suthikulanit <suravee.suthikulpanit@amd.com>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Device Tree ML <devicetree@vger.kernel.org>, LAKML <linux-arm-kernel@lists.infradead.org>, Yinghai Lu <yinghai@kernel.org>, Jiang Liu <jiang.liu@linux.intel.com>
-Message-ID: <20141008114607.PqbrWNmLIBScU3sOu0c8fRoQk2U9j_6BXd5K3u0Y0D4@z>
+To: Linus Walleij <linus.walleij@linaro.org>
+Cc: Lee Jones <lee.jones@linaro.org>, Aaron Lu <aaron.lu@intel.com>, Alexandre Courbot <gnurou@gmail.com>, Samuel Ortiz <sameo@linux.intel.com>, Arnd Bergmann <arnd@arndb.de>, "linux-gpio@vger.kernel.org" <linux-gpio@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Jacob Pan <jacob.jun.pan@linux.intel.com>, Lejun Zhu <lejun.zhu@intel.com>, Radivoje Jovanovic <radivoje.jovanovic@intel.com>, Daniel =?iso-8859-1?Q?Gl=F6ckner?= <dg@emlix.com>, ACPI Devel Maling List <linux-acpi@vger.kernel.org>, "Rafael J. Wysocki" <rjw@rjwysocki.net>
+Message-ID: <20141008125429.z6xHRP6XZaOvjQDPt50NWH5TanCY_FYID5CQHVEX9_o@z>
 
-On Wed, Oct 08, 2014 at 11:36:00AM +0100, Robert Richter wrote:
-> On 08.10.14 10:13:21, Liviu Dudau wrote:
-> > On Wed, Oct 08, 2014 at 08:44:28AM +0100, Robert Richter wrote:
-> > > I assume pci/host-generic is the latest now with this issue fixed as
-> > > the commit date is 2014-10-01 past you message above, right? So is it
-> > > ok to rebase our host controller driver onto pci/host-generic or will
-> > > there be further updates or any other branch that is newer?
-> > 
-> > You can rebase either on top of Bjorn's next branch or use linux-next. Hope to
-> > see it in v3.18 soon.
-> 
-> Thanks Liviu. So I will use pci/host-generic which is what is in
-> pci/next:
-> 
->  d1e6dc91b532 arm64: Add architectural support for PCI
 
-Yes, that's the one.
+--WiuFC6bSmcjanUfV
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
 
-Best regards,
-Liviu
+On Wed, Oct 08, 2014 at 11:16:11AM +0200, Linus Walleij wrote:
+> On Wed, Oct 8, 2014 at 10:05 AM, Lee Jones <lee.jones@linaro.org> wrote:
 
-> 
-> -Robert
-> 
+Please don't send upstream mail to my work account (which I've never
+used for upstream mail and isn't advertised in MAINTAINERS), it mostly
+gets deleted unread.
 
--- 
-====================
-| I would like to |
-| fix the world,  |
-| but they're not |
-| giving me the   |
- \ source code!  /
-  ---------------
-    ¯\_(ツ)_/¯
+> > With the influx of new same-chip devices, I think the MFD subsystem is
+> > fast becoming overloaded.  I think all of the PMIC handling should in
+> > fact either live in Regulators or have its own subsystem.
 
+> You have a valid point, and it's been raised before that MFD risk being
+> a dumping ground of the same kind that drivers/misc used to be (is?).
+
+> If they shall live in MFD the driver there should (IMHO) just be
+> an exchange station, multiplexing messages and spawning
+> MFD cells into platform devices for respective *real* subsystem,
+> various misc stuff should not be allowed to be shoehorned
+> into MFD just because there is no other place to put it.
+
+Right, there's a very clear role for MFD in multiplexing the various
+functions of the device and dealing with any core behaviour it needs for
+bootstrapping or things like chip level suspend and resume.  Dumping
+that into some random subsystem doesn't seem to make any sense, but
+doing things that fall outside that remit also don't seem clever.
+
+--WiuFC6bSmcjanUfV
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: Digital signature
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v2
+
+iQEcBAEBAgAGBQJUNTQEAAoJECTWi3JdVIfQvqsH/R3Ib9aqPHFEIMXn4xjG5rIJ
+iLpASimgXCZZv/n9JJ7e1ajnKHmp0BnlT6R6EHjsRvKb5+r6yfUmfpo33xmHlkzh
+BDsD/6eWpi62TOxQl0r/bVW49OCvzsqy307In0a0uiUZqkhCTnpxwSV54QuT1kJC
+06Y95UlMmDLTaoLnwlU57VeCyfYhIAXyzxQRJpOz3pOJeqkaXQQeM5qU3JBPg5Se
+IowyiTlRanAv4rulyDfxYhghQxw+fKP+nEFgEgjK8Vsyx9YlcUTMBREHo7VsQec6
+Gj+Uxo5wU3V8yZxdvVrWW4hJ6JLLiwyXqCILyi3MF1uuJohDbGg2DTSncKZ9eMg=
+=8Q4j
+-----END PGP SIGNATURE-----
+
+--WiuFC6bSmcjanUfV--
