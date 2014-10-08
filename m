@@ -1,7 +1,7 @@
 From: Ley Foon Tan <lftan@altera.com>
-Subject: [PATCH v4 21/29] nios2: Time keeping
-Date: Wed, 8 Oct 2014 17:29:47 +0800
-Message-ID: <1412760595-3935-22-git-send-email-lftan@altera.com>
+Subject: [PATCH v4 25/29] nios2: Module support
+Date: Wed, 8 Oct 2014 17:29:51 +0800
+Message-ID: <1412760595-3935-26-git-send-email-lftan@altera.com>
 References: <1412760595-3935-1-git-send-email-lftan@altera.com>
 Mime-Version: 1.0
 Content-Type: text/plain
@@ -12,460 +12,156 @@ To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-doc@vger.ker
 Cc: Arnd Bergmann <arnd@arndb.de>, Ley Foon Tan <lftan@altera.com>, lftan.linux@gmail.com, cltang@codesourcery.com
 List-Id: linux-arch.vger.kernel.org
 
-Add time keeping code for nios2.
+This patch adds support for loadable modules.
 
 Signed-off-by: Ley Foon Tan <lftan@altera.com>
 ---
- arch/nios2/include/asm/delay.h |   21 +++
- arch/nios2/include/asm/timex.h |   26 ++++
- arch/nios2/kernel/time.c       |  318 ++++++++++++++++++++++++++++++++++++++++
- arch/nios2/lib/delay.c         |   52 +++++++
- 4 files changed, 417 insertions(+), 0 deletions(-)
- create mode 100644 arch/nios2/include/asm/delay.h
- create mode 100644 arch/nios2/include/asm/timex.h
- create mode 100644 arch/nios2/kernel/time.c
- create mode 100644 arch/nios2/lib/delay.c
+ arch/nios2/kernel/module.c |  137 ++++++++++++++++++++++++++++++++++++++++++++
+ 1 files changed, 137 insertions(+), 0 deletions(-)
+ create mode 100644 arch/nios2/kernel/module.c
 
-diff --git a/arch/nios2/include/asm/delay.h b/arch/nios2/include/asm/delay.h
+diff --git a/arch/nios2/kernel/module.c b/arch/nios2/kernel/module.c
 new file mode 100644
-index 0000000..098e49b
+index 0000000..aeebc7f
 --- /dev/null
-+++ b/arch/nios2/include/asm/delay.h
-@@ -0,0 +1,21 @@
++++ b/arch/nios2/kernel/module.c
+@@ -0,0 +1,137 @@
 +/*
-+ * Copyright (C) 2014 Altera Corporation
-+ * Copyright (C) 2004 Microtronix Datacom Ltd
++ * Kernel module support for Nios II.
 + *
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License.  See the file "COPYING" in the main directory of this archive
-+ * for more details.
-+ */
-+
-+#ifndef _ASM_NIOS2_DELAY_H
-+#define _ASM_NIOS2_DELAY_H
-+
-+#include <asm-generic/delay.h>
-+
-+/* Undefined functions to get compile-time errors */
-+extern void __bad_udelay(void);
-+extern void __bad_ndelay(void);
-+
-+extern unsigned long loops_per_jiffy;
-+
-+#endif /* _ASM_NIOS2_DELAY_H */
-diff --git a/arch/nios2/include/asm/timex.h b/arch/nios2/include/asm/timex.h
-new file mode 100644
-index 0000000..8996106
---- /dev/null
-+++ b/arch/nios2/include/asm/timex.h
-@@ -0,0 +1,26 @@
-+/* Copyright Altera Corporation (C) 2014. All rights reserved.
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License, version 2,
-+ * as published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
-+ *
-+ */
-+
-+#ifndef _ASM_NIOS2_TIMEX_H
-+#define _ASM_NIOS2_TIMEX_H
-+
-+typedef unsigned long cycles_t;
-+
-+extern cycles_t get_cycles(void);
-+
-+#define ARCH_HAS_READ_CURRENT_TIMER
-+
-+#endif
-diff --git a/arch/nios2/kernel/time.c b/arch/nios2/kernel/time.c
-new file mode 100644
-index 0000000..ca51f08
---- /dev/null
-+++ b/arch/nios2/kernel/time.c
-@@ -0,0 +1,318 @@
-+/*
-+ * Copyright (C) 2013-2014 Altera Corporation
-+ * Copyright (C) 2010 Tobias Klauser <tklauser@distanz.ch>
 + * Copyright (C) 2004 Microtronix Datacom Ltd.
++ *   Written by Wentao Xu <xuwentao@microtronix.com>
++ * Copyright (C) 2001, 2003 Rusty Russell
 + *
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License. See the file "COPYING" in the main directory of this archive
-+ * for more details.
++ * This file is subject to the terms and conditions of the GNU General
++ * Public License.  See the file COPYING in the main directory of this
++ * archive for more details.
 + */
 +
-+#include <linux/interrupt.h>
-+#include <linux/clockchips.h>
-+#include <linux/clocksource.h>
-+#include <linux/of.h>
-+#include <linux/of_address.h>
-+#include <linux/of_irq.h>
-+#include <linux/io.h>
++#include <linux/moduleloader.h>
++#include <linux/elf.h>
++#include <linux/mm.h>
++#include <linux/vmalloc.h>
 +#include <linux/slab.h>
++#include <linux/fs.h>
++#include <linux/string.h>
++#include <linux/kernel.h>
 +
-+#define ALTERA_TIMER_STATUS_REG		0
-+#define ALTERA_TIMER_CONTROL_REG	4
-+#define ALTERA_TIMER_PERIODL_REG	8
-+#define ALTERA_TIMER_PERIODH_REG	12
-+#define ALTERA_TIMER_SNAPL_REG		16
-+#define ALTERA_TIMER_SNAPH_REG		20
++#include <asm/pgtable.h>
++#include <asm/cacheflush.h>
 +
-+#define ALTERA_TIMER_CONTROL_ITO_MSK	(0x1)
-+#define ALTERA_TIMER_CONTROL_CONT_MSK	(0x2)
-+#define ALTERA_TIMER_CONTROL_START_MSK	(0x4)
-+#define ALTERA_TIMER_CONTROL_STOP_MSK	(0x8)
-+
-+struct nios2_timer {
-+	void __iomem *base;
-+	unsigned long freq;
-+	int irq;
-+};
-+
-+struct nios2_clockevent_dev {
-+	struct nios2_timer timer;
-+	struct clock_event_device ced;
-+	struct irqaction irqaction;
-+};
-+
-+struct nios2_clocksource {
-+	struct nios2_timer timer;
-+	struct clocksource cs;
-+};
-+
-+struct nios2_clocksource *nios2_cs;
-+
-+static inline struct nios2_clockevent_dev *
-+	to_nios2_clkevent(struct clock_event_device *evt)
-+{
-+	return container_of(evt, struct nios2_clockevent_dev, ced);
-+}
-+
-+static inline struct nios2_clocksource *
-+	to_nios2_clksource(struct clocksource *cs)
-+{
-+	return container_of(cs, struct nios2_clocksource, cs);
-+}
-+
-+static u16 timer_readw(struct nios2_timer *timer, u32 offs)
-+{
-+	return readw(timer->base + offs);
-+}
-+
-+static void timer_writew(struct nios2_timer *timer, u16 val, u32 offs)
-+{
-+	writew(val, timer->base + offs);
-+}
-+
-+static inline unsigned long read_timersnapshot(struct nios2_timer *timer)
-+{
-+	unsigned long count;
-+
-+	timer_writew(timer, 0, ALTERA_TIMER_SNAPL_REG);
-+	count = timer_readw(timer, ALTERA_TIMER_SNAPH_REG) << 16 |
-+		timer_readw(timer, ALTERA_TIMER_SNAPL_REG);
-+
-+	return count;
-+}
-+
-+static cycle_t nios2_timer_read(struct clocksource *cs)
-+{
-+	struct nios2_clocksource *nios2_cs = to_nios2_clksource(cs);
-+	unsigned long flags;
-+	u32 count;
-+
-+	local_irq_save(flags);
-+	count = read_timersnapshot(&nios2_cs->timer);
-+	local_irq_restore(flags);
-+
-+	/* Counter is counting down */
-+	return ~count;
-+}
-+
-+cycles_t get_cycles(void)
-+{
-+	return nios2_timer_read(&nios2_cs->cs);
-+}
-+
-+int read_current_timer(unsigned long *timer_val)
-+{
-+	*timer_val = (unsigned long) get_cycles();
-+	return 0;
-+}
-+
-+static void nios2_timer_start(struct nios2_timer *timer)
-+{
-+	u16 ctrl;
-+
-+	ctrl = timer_readw(timer, ALTERA_TIMER_CONTROL_REG);
-+	ctrl |= ALTERA_TIMER_CONTROL_START_MSK;
-+	timer_writew(timer, ctrl, ALTERA_TIMER_CONTROL_REG);
-+}
-+
-+static void nios2_timer_stop(struct nios2_timer *timer)
-+{
-+	u16 ctrl;
-+
-+	ctrl = timer_readw(timer, ALTERA_TIMER_CONTROL_REG);
-+	ctrl |= ALTERA_TIMER_CONTROL_STOP_MSK;
-+	timer_writew(timer, ctrl, ALTERA_TIMER_CONTROL_REG);
-+}
-+
-+static void nios2_timer_config(struct nios2_timer *timer, unsigned long period,
-+	enum clock_event_mode mode)
-+{
-+	u16 ctrl;
-+
-+	/* The timer's actual period is one cycle greater than the value
-+	 * stored in the period register. */
-+	if (period)
-+		period--;
-+
-+	ctrl = timer_readw(timer, ALTERA_TIMER_CONTROL_REG);
-+	/* stop counter */
-+	timer_writew(timer, ctrl | ALTERA_TIMER_CONTROL_STOP_MSK,
-+		ALTERA_TIMER_CONTROL_REG);
-+
-+	/* write new count */
-+	timer_writew(timer, period, ALTERA_TIMER_PERIODL_REG);
-+	timer_writew(timer, period >> 16, ALTERA_TIMER_PERIODH_REG);
-+
-+	ctrl |= ALTERA_TIMER_CONTROL_START_MSK | ALTERA_TIMER_CONTROL_ITO_MSK;
-+	if (mode == CLOCK_EVT_MODE_PERIODIC)
-+		ctrl |= ALTERA_TIMER_CONTROL_CONT_MSK;
-+	else
-+		ctrl &= ~ALTERA_TIMER_CONTROL_CONT_MSK;
-+	timer_writew(timer, ctrl, ALTERA_TIMER_CONTROL_REG);
-+}
-+
-+static int nios2_timer_set_next_event(unsigned long delta,
-+	struct clock_event_device *evt)
-+{
-+	struct nios2_clockevent_dev *nios2_ced = to_nios2_clkevent(evt);
-+
-+	nios2_timer_config(&nios2_ced->timer, delta, evt->mode);
-+
-+	return 0;
-+}
-+
-+static void nios2_timer_set_mode(enum clock_event_mode mode,
-+	struct clock_event_device *evt)
-+{
-+	unsigned long period;
-+	struct nios2_clockevent_dev *nios2_ced = to_nios2_clkevent(evt);
-+	struct nios2_timer *timer = &nios2_ced->timer;
-+
-+	switch (mode) {
-+	case CLOCK_EVT_MODE_PERIODIC:
-+		period = DIV_ROUND_UP(timer->freq, HZ);
-+		nios2_timer_config(timer, period, CLOCK_EVT_MODE_PERIODIC);
-+		break;
-+	case CLOCK_EVT_MODE_ONESHOT:
-+		nios2_timer_config(timer, ULONG_MAX, CLOCK_EVT_MODE_ONESHOT);
-+		break;
-+	case CLOCK_EVT_MODE_UNUSED:
-+	case CLOCK_EVT_MODE_SHUTDOWN:
-+		nios2_timer_stop(timer);
-+		break;
-+	case CLOCK_EVT_MODE_RESUME:
-+		nios2_timer_start(timer);
-+		break;
-+	}
-+}
-+
-+irqreturn_t timer_interrupt(int irq, void *dev_id)
-+{
-+	struct clock_event_device *evt = (struct clock_event_device *) dev_id;
-+	struct nios2_clockevent_dev *nios2_ced = to_nios2_clkevent(evt);
-+
-+	/* Clear the interrupt condition */
-+	timer_writew(&nios2_ced->timer, 0, ALTERA_TIMER_STATUS_REG);
-+	evt->event_handler(evt);
-+
-+	return IRQ_HANDLED;
-+}
-+
-+static void __init nios2_timer_get_base_and_freq(struct device_node *np,
-+				    void __iomem **base, u32 *freq)
-+{
-+	*base = of_iomap(np, 0);
-+	if (!*base)
-+		panic("Unable to map reg for %s\n", np->name);
-+
-+	if (of_property_read_u32(np, "clock-frequency", freq))
-+		panic("Unable to get %s clock frequency\n", np->name);
-+}
-+
-+static __init void nios2_clockevent_init(struct device_node *timer)
-+{
-+	struct nios2_clockevent_dev *ce;
-+	void __iomem *iobase;
-+	u32 freq;
-+	int irq;
-+
-+	ce = kzalloc(sizeof(*ce), GFP_KERNEL);
-+	if (!ce)
-+		panic("Failed to allocate memory for %s\n", timer->name);
-+
-+	nios2_timer_get_base_and_freq(timer, &iobase, &freq);
-+
-+	irq = irq_of_parse_and_map(timer, 0);
-+	if (irq < 0)
-+		panic("Unable to parse timer irq\n");
-+
-+	ce->timer.base = iobase;
-+	ce->timer.irq = irq;
-+	ce->timer.freq = freq;
-+
-+	ce->ced.name = timer->name;
-+	ce->ced.features = CLOCK_EVT_FEAT_PERIODIC | CLOCK_EVT_FEAT_ONESHOT;
-+	ce->ced.rating = 250;
-+	ce->ced.shift = 32;
-+	ce->ced.set_next_event = nios2_timer_set_next_event;
-+	ce->ced.set_mode = nios2_timer_set_mode;
-+	ce->ced.cpumask = cpumask_of(0);
-+	ce->ced.irq = irq;
-+
-+	ce->irqaction.name = timer->name;
-+	ce->irqaction.handler = timer_interrupt;
-+	ce->irqaction.dev_id = &ce->ced;
-+	ce->irqaction.irq = irq;
-+	ce->irqaction.flags = IRQF_TIMER;
-+
-+	nios2_timer_stop(&ce->timer);
-+	/* clear pending interrupt */
-+	timer_writew(&ce->timer, 0, ALTERA_TIMER_STATUS_REG);
-+
-+	if (setup_irq(irq, &ce->irqaction))
-+		panic("Unable to setup timer irq\n");
-+
-+	clockevents_config_and_register(&ce->ced, freq, 1, ULONG_MAX);
-+}
-+
-+static __init void nios2_clocksource_init(struct device_node *timer)
-+{
-+	unsigned int ctrl;
-+	void __iomem *iobase;
-+	u32 freq;
-+
-+	nios2_cs = kzalloc(sizeof(*nios2_cs), GFP_KERNEL);
-+	if (!nios2_cs)
-+		panic("Failed to allocate memory for %s\n", timer->name);
-+
-+	nios2_timer_get_base_and_freq(timer, &iobase, &freq);
-+
-+	nios2_cs->timer.base = iobase;
-+	nios2_cs->timer.freq = freq;
-+
-+	nios2_cs->cs.name = timer->name;
-+	nios2_cs->cs.rating = 250;
-+	nios2_cs->cs.read = nios2_timer_read;
-+	nios2_cs->cs.mask = CLOCKSOURCE_MASK(32);
-+	nios2_cs->cs.flags = CLOCK_SOURCE_IS_CONTINUOUS;
-+
-+	clocksource_register_hz(&nios2_cs->cs, freq);
-+
-+	timer_writew(&nios2_cs->timer, USHRT_MAX, ALTERA_TIMER_PERIODL_REG);
-+	timer_writew(&nios2_cs->timer, USHRT_MAX, ALTERA_TIMER_PERIODH_REG);
-+
-+	/* interrupt disable + continuous + start */
-+	ctrl = ALTERA_TIMER_CONTROL_CONT_MSK | ALTERA_TIMER_CONTROL_START_MSK;
-+	timer_writew(&nios2_cs->timer, ctrl, ALTERA_TIMER_CONTROL_REG);
-+}
-+
-+
-+static int num_called;
-+static void __init nios2_time_init(struct device_node *timer)
-+{
-+	switch (num_called) {
-+	case 0:
-+		nios2_clockevent_init(timer);
-+		break;
-+	case 1:
-+		nios2_clocksource_init(timer);
-+		break;
-+	default:
-+		break;
-+	}
-+
-+	num_called++;
-+}
-+
-+void read_persistent_clock(struct timespec *ts)
-+{
-+	ts->tv_sec = mktime(2007, 1, 1, 0, 0, 0);
-+	ts->tv_nsec = 0;
-+}
-+
-+void __init time_init(void)
-+{
-+	clocksource_of_init();
-+}
-+
-+CLOCKSOURCE_OF_DECLARE(nios2_timer, "altr,timer-1.0", nios2_time_init);
-diff --git a/arch/nios2/lib/delay.c b/arch/nios2/lib/delay.c
-new file mode 100644
-index 0000000..088119c
---- /dev/null
-+++ b/arch/nios2/lib/delay.c
-@@ -0,0 +1,52 @@
-+/* Copyright Altera Corporation (C) 2014. All rights reserved.
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License, version 2,
-+ * as published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
-+ *
++/*
++ * Modules should NOT be allocated with kmalloc for (obvious) reasons.
++ * But we do it for now to avoid relocation issues. CALL26/PCREL26 cannot reach
++ * from 0x80000000 (vmalloc area) to 0xc00000000 (kernel) (kmalloc returns
++ * addresses in 0xc0000000)
 + */
-+
-+#include <linux/module.h>
-+#include <asm/delay.h>
-+#include <asm/param.h>
-+#include <asm/processor.h>
-+#include <asm/timex.h>
-+
-+void __delay(unsigned long cycles)
++void *module_alloc(unsigned long size)
 +{
-+	cycles_t start = get_cycles();
-+
-+	while ((get_cycles() - start) < cycles)
-+		cpu_relax();
++	if (size == 0)
++		return NULL;
++	return kmalloc(size, GFP_KERNEL);
 +}
-+EXPORT_SYMBOL(__delay);
 +
-+void __const_udelay(unsigned long xloops)
++/* Free memory returned from module_alloc */
++void module_free(struct module *mod, void *module_region)
 +{
-+	u64 loops;
-+
-+	loops = (u64)xloops * loops_per_jiffy * HZ;
-+
-+	__delay(loops >> 32);
++	kfree(module_region);
 +}
-+EXPORT_SYMBOL(__const_udelay);
 +
-+void __udelay(unsigned long usecs)
++int apply_relocate_add(Elf32_Shdr *sechdrs, const char *strtab,
++			unsigned int symindex, unsigned int relsec,
++			struct module *mod)
 +{
-+	__const_udelay(usecs * 0x10C7UL); /* 2**32 / 1000000 (rounded up) */
-+}
-+EXPORT_SYMBOL(__udelay);
++	unsigned int i;
++	Elf32_Rela *rela = (void *)sechdrs[relsec].sh_addr;
 +
-+void __ndelay(unsigned long nsecs)
-+{
-+	__const_udelay(nsecs * 0x5UL); /* 2**32 / 1000000000 (rounded up) */
++	pr_debug("Applying relocate section %u to %u\n", relsec,
++		 sechdrs[relsec].sh_info);
++
++	for (i = 0; i < sechdrs[relsec].sh_size / sizeof(*rela); i++) {
++		/* This is where to make the change */
++		uint32_t word;
++		uint32_t *loc
++			= ((void *)sechdrs[sechdrs[relsec].sh_info].sh_addr
++			   + rela[i].r_offset);
++		/* This is the symbol it is referring to.  Note that all
++		   undefined symbols have been resolved.  */
++		Elf32_Sym *sym
++			= ((Elf32_Sym *)sechdrs[symindex].sh_addr
++				+ ELF32_R_SYM(rela[i].r_info));
++		uint32_t v = sym->st_value + rela[i].r_addend;
++		pr_debug("reltype %d 0x%x name:<%s>\n",
++			ELF32_R_TYPE(rela[i].r_info),
++			rela[i].r_offset, strtab + sym->st_name);
++
++		switch (ELF32_R_TYPE(rela[i].r_info)) {
++		case R_NIOS2_NONE:
++			break;
++		case R_NIOS2_BFD_RELOC_32:
++			*loc += v;
++			break;
++		case R_NIOS2_PCREL16:
++			v -= (uint32_t)loc + 4;
++			if ((int32_t)v > 0x7fff ||
++				(int32_t)v < -(int32_t)0x8000) {
++				pr_err("module %s: relocation overflow\n",
++					mod->name);
++				return -ENOEXEC;
++			}
++			word = *loc;
++			*loc = ((((word >> 22) << 16) | (v & 0xffff)) << 6) |
++				(word & 0x3f);
++			break;
++		case R_NIOS2_CALL26:
++			if (v & 3) {
++				pr_err("module %s: dangerous relocation\n",
++					mod->name);
++				return -ENOEXEC;
++			}
++			if ((v >> 28) != ((uint32_t)loc >> 28)) {
++				pr_err("module %s: relocation overflow\n",
++					mod->name);
++				return -ENOEXEC;
++			}
++			*loc = (*loc & 0x3f) | ((v >> 2) << 6);
++			break;
++		case R_NIOS2_HI16:
++			word = *loc;
++			*loc = ((((word >> 22) << 16) |
++				((v >> 16) & 0xffff)) << 6) | (word & 0x3f);
++			break;
++		case R_NIOS2_LO16:
++			word = *loc;
++			*loc = ((((word >> 22) << 16) | (v & 0xffff)) << 6) |
++					(word & 0x3f);
++			break;
++		case R_NIOS2_HIADJ16:
++			{
++				Elf32_Addr word2;
++
++				word = *loc;
++				word2 = ((v >> 16) + ((v >> 15) & 1)) & 0xffff;
++				*loc = ((((word >> 22) << 16) | word2) << 6) |
++						(word & 0x3f);
++			}
++			break;
++
++		default:
++			pr_err("module %s: Unknown reloc: %u\n",
++				mod->name, ELF32_R_TYPE(rela[i].r_info));
++			return -ENOEXEC;
++		}
++	}
++
++	return 0;
 +}
-+EXPORT_SYMBOL(__ndelay);
++
++int module_finalize(const Elf_Ehdr *hdr, const Elf_Shdr *sechdrs,
++			struct module *me)
++{
++	flush_cache_all();
++	return 0;
++}
 -- 
 1.7.7.4
