@@ -1,43 +1,22 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wi0-f172.google.com ([209.85.212.172]:55204 "EHLO
-	mail-wi0-f172.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754192AbaJHKgH (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 8 Oct 2014 06:36:07 -0400
-Date: Wed, 8 Oct 2014 12:36:00 +0200
-From: Robert Richter <rric@kernel.org>
-Subject: Re: [PATCH v13 00/12] Support for creating generic PCI host bridges
- from DT
-Message-ID: <20141008103600.GS20170@rric.localhost>
-References: <1412000971-9242-1-git-send-email-Liviu.Dudau@arm.com>
- <20140929194335.GA13747@google.com>
- <20140930103942.GO841@e106497-lin.cambridge.arm.com>
- <20140930161805.GB5625@google.com>
- <20140930165431.GV841@e106497-lin.cambridge.arm.com>
- <20141008074428.GD20256@rric.localhost>
- <20141008091321.GC4652@e106497-lin.cambridge.arm.com>
+Received: from www.linutronix.de ([62.245.132.108]:37310 "EHLO
+	Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755059AbaJHK7Z (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 8 Oct 2014 06:59:25 -0400
+Date: Wed, 8 Oct 2014 12:59:21 +0200 (CEST)
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: Re: [PATCH v4 13/29] nios2: Interrupt handling
+In-Reply-To: <1412760595-3935-14-git-send-email-lftan@altera.com>
+Message-ID: <alpine.DEB.2.11.1410081259040.4292@nanos>
+References: <1412760595-3935-1-git-send-email-lftan@altera.com> <1412760595-3935-14-git-send-email-lftan@altera.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20141008091321.GC4652@e106497-lin.cambridge.arm.com>
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Liviu Dudau <Liviu.Dudau@arm.com>
-Cc: Bjorn Helgaas <bhelgaas@google.com>, Arnd Bergmann <arnd@arndb.de>, Rob Herring <robh+dt@kernel.org>, Jason Gunthorpe <jgunthorpe@obsidianresearch.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Catalin Marinas <Catalin.Marinas@arm.com>, Will Deacon <Will.Deacon@arm.com>, Russell King <linux@arm.linux.org.uk>, linux-pci <linux-pci@vger.kernel.org>, Linus Walleij <linus.walleij@linaro.org>, Tanmay Inamdar <tinamdar@apm.com>, Grant Likely <grant.likely@secretlab.ca>, Sinan Kaya <okaya@codeaurora.org>, Jingoo Han <jg1.han@samsung.com>, Kukjin Kim <kgene.kim@samsung.com>, Suravee Suthikulanit <suravee.suthikulpanit@amd.com>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Device Tree ML <devicetree@vger.kernel.org>, LAKML <linux-arm-kernel@lists.infradead.org>, Yinghai Lu <yinghai@kernel.org>, Jiang Liu <jiang.liu@linux.intel.com>
-Message-ID: <20141008103600.qdSHteHorufO0pSGQvJ2rayv8IxGBppAbTuvuIrQVMA@z>
+To: Ley Foon Tan <lftan@altera.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, lftan.linux@gmail.com, cltang@codesourcery.com
+Message-ID: <20141008105921.bk3TB1THGsFyzZ5Zx15DZyXgXb_1qfEmjA686R8y8a8@z>
 
-On 08.10.14 10:13:21, Liviu Dudau wrote:
-> On Wed, Oct 08, 2014 at 08:44:28AM +0100, Robert Richter wrote:
-> > I assume pci/host-generic is the latest now with this issue fixed as
-> > the commit date is 2014-10-01 past you message above, right? So is it
-> > ok to rebase our host controller driver onto pci/host-generic or will
-> > there be further updates or any other branch that is newer?
-> 
-> You can rebase either on top of Bjorn's next branch or use linux-next. Hope to
-> see it in v3.18 soon.
+On Wed, 8 Oct 2014, Ley Foon Tan wrote:
 
-Thanks Liviu. So I will use pci/host-generic which is what is in
-pci/next:
-
- d1e6dc91b532 arm64: Add architectural support for PCI
-
--Robert
+Reviewed-by: Thomas Gleixner <tglx@linutronix.de>
