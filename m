@@ -1,48 +1,57 @@
-From: Al Viro <viro@ZenIV.linux.org.uk>
-Subject: Re: [PATCH v4 04/29] nios2: Exception handling
-Date: Wed, 8 Oct 2014 23:27:22 +0100
-Message-ID: <20141008222722.GJ7996@ZenIV.linux.org.uk>
+From: Tobias Klauser <tklauser@distanz.ch>
+Subject: Re: [PATCH v4 17/29] nios2: System calls handling
+Date: Thu, 9 Oct 2014 09:47:29 +0200
+Message-ID: <20141009074729.GN3279@distanz.ch>
 References: <1412760595-3935-1-git-send-email-lftan@altera.com>
- <1412760595-3935-5-git-send-email-lftan@altera.com>
+ <1412760595-3935-18-git-send-email-lftan@altera.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:49282 "EHLO
-	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754233AbaJHW11 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 8 Oct 2014 18:27:27 -0400
+Return-path: <linux-doc-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <1412760595-3935-5-git-send-email-lftan@altera.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+In-Reply-To: <1412760595-3935-18-git-send-email-lftan@altera.com>
+Sender: linux-doc-owner@vger.kernel.org
 To: Ley Foon Tan <lftan@altera.com>
 Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, lftan.linux@gmail.com, cltang@codesourcery.com
+List-Id: linux-arch.vger.kernel.org
 
-
-> +Lsignal_return:
-> +	ANDI32	r1, r10, _TIF_SIGPENDING | _TIF_NOTIFY_RESUME
-> +	beq	r1, r0, restore_all
-> +	mov	r4, sp			/* pt_regs */
-> +	SAVE_SWITCH_STACK
-> +	call	do_notify_resume
-> +	beq	r2, r0, no_work_pending
-> +	RESTORE_SWITCH_STACK
-> +	/* prepare restart syscall here without leaving kernel */
-> +	ldw	r2, PT_R2(sp)	/* reload syscall number in r2 */
-> +	ldw 	r4, PT_R4(sp)	/* reload syscall arguments r4-r9 */
-> +	ldw 	r5, PT_R5(sp)
-> +	ldw 	r6, PT_R6(sp)
-> +	ldw 	r7, PT_R7(sp)
-> +	ldw 	r8, PT_R8(sp)
-> +	ldw 	r9, PT_R9(sp)
-> +	br	local_restart	/* restart syscall */
+On 2014-10-08 at 11:29:43 +0200, Ley Foon Tan <lftan@altera.com> wrote:
+> This patch adds support for system calls from userspaces. It uses the
+> asm-generic/unistd.h definitions with architecture spcific syscall. The sys_call_table
+> is just an array defined in a C file and it contains pointers to the syscall functions.
+> 
+> Signed-off-by: Ley Foon Tan <lftan@altera.com>
+> ---
+>  arch/nios2/include/asm/syscall.h     |  138 ++++++++++++++++++++++++++++++++++
+>  arch/nios2/include/asm/syscalls.h    |   25 ++++++
+>  arch/nios2/include/uapi/asm/unistd.h |   25 ++++++
+>  arch/nios2/kernel/sys_nios2.c        |   66 ++++++++++++++++
+>  arch/nios2/kernel/syscall_table.c    |   29 +++++++
+>  5 files changed, 283 insertions(+), 0 deletions(-)
+>  create mode 100644 arch/nios2/include/asm/syscall.h
+>  create mode 100644 arch/nios2/include/asm/syscalls.h
+>  create mode 100644 arch/nios2/include/uapi/asm/unistd.h
+>  create mode 100644 arch/nios2/kernel/sys_nios2.c
+>  create mode 100644 arch/nios2/kernel/syscall_table.c
+[...]
+> diff --git a/arch/nios2/kernel/sys_nios2.c b/arch/nios2/kernel/sys_nios2.c
+> new file mode 100644
+> index 0000000..a32d7f3
+> --- /dev/null
+> +++ b/arch/nios2/kernel/sys_nios2.c
+[...]
+> +#if defined(CONFIG_FB) || defined(CONFIG_FB_MODULE)
+> +#include <linux/fb.h>
+> +unsigned long get_fb_unmapped_area(struct file *filp, unsigned long orig_addr,
+> +		unsigned long len, unsigned long pgoff, unsigned long flags)
+> +{
 > +
-> +no_work_pending:
-> +	RESTORE_SWITCH_STACK
-> +	br	restore_all
+> +	struct fb_info *info = filp->private_data;
+> +
+> +	return (unsigned long)info->screen_base;
+> +}
+> +EXPORT_SYMBOL(get_fb_unmapped_area);
 
-Umm...  Branch to no_work_pending will be usuall taken.  How well does
-branch predictor on that processor cope with such things?
-
-Another thing is the point Richard made - multiple pending signals need to be
-handled.  IOW, that should be a branch to ret_from_exception, not restore_all.
+get_fb_unmapped_area only used if HAVE_ARCH_FB_UNMAPPED_AREA is defined,
+but this isn't the case for nios2. AFAICS the altfb driver has been
+broken on nios2 for a long time anyway, so I'd suggest to just remove
+this function for now.
