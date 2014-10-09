@@ -1,86 +1,62 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from www.linutronix.de ([62.245.132.108]:38518 "EHLO
-	Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752583AbaJHQT5 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 8 Oct 2014 12:19:57 -0400
-Date: Wed, 8 Oct 2014 18:19:52 +0200 (CEST)
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [PATCH v4 21/29] nios2: Time keeping
-In-Reply-To: <2785501.FjgXQVl8Ik@wuerfel>
-Message-ID: <alpine.DEB.2.11.1410081814380.4292@nanos>
-References: <1412760595-3935-1-git-send-email-lftan@altera.com> <3820417.zXtDk8QPj1@wuerfel> <alpine.DEB.2.11.1410081719340.4292@nanos> <2785501.FjgXQVl8Ik@wuerfel>
+Received: from sym2.noone.org ([178.63.92.236]:60190 "EHLO sym2.noone.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1750839AbaJIHrc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 9 Oct 2014 03:47:32 -0400
+Date: Thu, 9 Oct 2014 09:47:29 +0200
+From: Tobias Klauser <tklauser@distanz.ch>
+Subject: Re: [PATCH v4 17/29] nios2: System calls handling
+Message-ID: <20141009074729.GN3279@distanz.ch>
+References: <1412760595-3935-1-git-send-email-lftan@altera.com>
+ <1412760595-3935-18-git-send-email-lftan@altera.com>
 MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1412760595-3935-18-git-send-email-lftan@altera.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Ley Foon Tan <lftan@altera.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, lftan.linux@gmail.com, cltang@codesourcery.com
-Message-ID: <20141008161952.TCTpsrIgm_RqLwzdDX6HUhzc2paWZxevoaIf8nWKTN8@z>
+To: Ley Foon Tan <lftan@altera.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, lftan.linux@gmail.com, cltang@codesourcery.com
+Message-ID: <20141009074729.b3XKUx23FlKGF7sLnXMTjjVtYp_vfkETnKisRLFdL_8@z>
 
-On Wed, 8 Oct 2014, Arnd Bergmann wrote:
-> On Wednesday 08 October 2014 17:20:44 Thomas Gleixner wrote:
-> > On Wed, 8 Oct 2014, Arnd Bergmann wrote:
-> > > On Wednesday 08 October 2014 12:44:32 Thomas Gleixner wrote:
-> > > > > +static int num_called;
-> > > > > +static void __init nios2_time_init(struct device_node *timer)
-> > > > > +{
-> > > > > +     switch (num_called) {
-> > > > > +     case 0:
-> > > > > +             nios2_clockevent_init(timer);
-> > > > > +             break;
-> > > > > +     case 1:
-> > > > > +             nios2_clocksource_init(timer);
-> > > > > +             break;
-> > > > > +     default:
-> > > > > +             break;
-> > > > > +     }
-> > > > > +
-> > > > > +     num_called++;
-> > > > > +}
-> > > > 
-> > > > Eew. So this depends on the DT ordering. If thats wrong, then stuff
-> > > > will be initialized in the wrong oder. 
-> > > > 
-> > > > > +CLOCKSOURCE_OF_DECLARE(nios2_timer, "altr,timer-1.0", nios2_time_init);
-> > > > 
-> > > > Why can't you have separate match entries with where one calls
-> > > > nios2_clockevent_init and the other nios2_clocksource_init?
-> > > 
-> > > I believe we have the same logic in other drivers as well, the intention
-> > > being that if you have multiple identical timers, the first one will
-> > > be used as clockevent and the second one (if there is more than one)
-> > > becomes the clocksource.
-> > > 
-> > > If the hardware is really identical, I would argue that the comaptible
-> > > string ought to be the same as well, as the DT is not supposed to
-> > > care about what the timers are used for in Linux.
-> > 
-> > So why do we need two calls at all if we have one piece of hardware
-> > which has two functions? We know that already, don't we?
+On 2014-10-08 at 11:29:43 +0200, Ley Foon Tan <lftan@altera.com> wrote:
+> This patch adds support for system calls from userspaces. It uses the
+> asm-generic/unistd.h definitions with architecture spcific syscall. The sys_call_table
+> is just an array defined in a C file and it contains pointers to the syscall functions.
 > 
-> It's not one piece of hardware with two functions, but multiple (n >= 1)
-> pieces of identical hardware at different register locations.
-> 
-> The usual case is that you have one hardware block that may exist in
-> any number of instances, but each instance can only be used for
-> either clockevent or clocksource but not both.
-> 
-> If we have only one instance in an FPGA, the code above will use
-> it as a clockevent. If there are two or more instances, the second
-> one gets used as clocksource and all others are unused, until we
-> change the kernel to come up with a third use case.
+> Signed-off-by: Ley Foon Tan <lftan@altera.com>
+> ---
+>  arch/nios2/include/asm/syscall.h     |  138 ++++++++++++++++++++++++++++++++++
+>  arch/nios2/include/asm/syscalls.h    |   25 ++++++
+>  arch/nios2/include/uapi/asm/unistd.h |   25 ++++++
+>  arch/nios2/kernel/sys_nios2.c        |   66 ++++++++++++++++
+>  arch/nios2/kernel/syscall_table.c    |   29 +++++++
+>  5 files changed, 283 insertions(+), 0 deletions(-)
+>  create mode 100644 arch/nios2/include/asm/syscall.h
+>  create mode 100644 arch/nios2/include/asm/syscalls.h
+>  create mode 100644 arch/nios2/include/uapi/asm/unistd.h
+>  create mode 100644 arch/nios2/kernel/sys_nios2.c
+>  create mode 100644 arch/nios2/kernel/syscall_table.c
+[...]
+> diff --git a/arch/nios2/kernel/sys_nios2.c b/arch/nios2/kernel/sys_nios2.c
+> new file mode 100644
+> index 0000000..a32d7f3
+> --- /dev/null
+> +++ b/arch/nios2/kernel/sys_nios2.c
+[...]
+> +#if defined(CONFIG_FB) || defined(CONFIG_FB_MODULE)
+> +#include <linux/fb.h>
+> +unsigned long get_fb_unmapped_area(struct file *filp, unsigned long orig_addr,
+> +		unsigned long len, unsigned long pgoff, unsigned long flags)
+> +{
+> +
+> +	struct fb_info *info = filp->private_data;
+> +
+> +	return (unsigned long)info->screen_base;
+> +}
+> +EXPORT_SYMBOL(get_fb_unmapped_area);
 
-Ok, got it. It does not change the fact that the above function is
-butt ugly and completely non intuitive.
-
-I also do not agree, that the DT should not tell which of the timers
-should be used as a clockevent device and which one as a
-clocksource. If you have a better suited clockevent device in your
-FPGA, you cannot use a single instance of the timer thingy as it will
-be registered as a clockevent and not as a clocksource. So explicit
-match values for particular hardware instances would be more flexible,
-but I don't have strong feelings about it either.
-
-Thanks,
-
-	tglx
+get_fb_unmapped_area only used if HAVE_ARCH_FB_UNMAPPED_AREA is defined,
+but this isn't the case for nios2. AFAICS the altfb driver has been
+broken on nios2 for a long time anyway, so I'd suggest to just remove
+this function for now.
