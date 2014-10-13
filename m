@@ -1,51 +1,52 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.126.130]:58963 "EHLO
-	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751966AbaJIL5w (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 9 Oct 2014 07:57:52 -0400
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH v4 21/29] nios2: Time keeping
-Date: Thu, 09 Oct 2014 13:57:36 +0200
-Message-ID: <8312001.XfVQ0Jf4Rn@wuerfel>
-In-Reply-To: <alpine.DEB.2.11.1410081814380.4292@nanos>
-References: <1412760595-3935-1-git-send-email-lftan@altera.com> <2785501.FjgXQVl8Ik@wuerfel> <alpine.DEB.2.11.1410081814380.4292@nanos>
-MIME-Version: 1.0
-Content-Transfer-Encoding: 7Bit
-Content-Type: text/plain; charset="us-ascii"
+Received: from shards.monkeyblade.net ([149.20.54.216]:56244 "EHLO
+	shards.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751271AbaJMFVx (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 13 Oct 2014 01:21:53 -0400
+Date: Mon, 13 Oct 2014 01:21:46 -0400 (EDT)
+Message-ID: <20141013.012146.992477977260812742.davem@davemloft.net>
+Subject: Re: [PATCH V4 1/6] mm: Introduce a general RCU get_user_pages_fast.
+From: David Miller <davem@davemloft.net>
+In-Reply-To: <87d29w1rf7.fsf@linux.vnet.ibm.com>
+References: <1411740233-28038-2-git-send-email-steve.capper@linaro.org>
+	<20141002121902.GA2342@redhat.com>
+	<87d29w1rf7.fsf@linux.vnet.ibm.com>
+Mime-Version: 1.0
+Content-Type: Text/Plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: Ley Foon Tan <lftan@altera.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, lftan.linux@gmail.com, cltang@codesourcery.com
-Message-ID: <20141009115736.4D012KlgrI-rS_bbl1VQv0-0xK9GKUzdTfwm8xN_9qY@z>
+To: aneesh.kumar@linux.vnet.ibm.com
+Cc: aarcange@redhat.com, steve.capper@linaro.org, linux-arm-kernel@lists.infradead.org, catalin.marinas@arm.com, linux@arm.linux.org.uk, linux-arch@vger.kernel.org, linux-mm@kvack.org, will.deacon@arm.com, gary.robertson@linaro.org, christoffer.dall@linaro.org, peterz@infradead.org, anders.roxell@linaro.org, akpm@linux-foundation.org, dann.frazier@canonical.com, mark.rutland@arm.com, mgorman@suse.de, hughd@google.com
+Message-ID: <20141013052146.-oXZeumcYIe0ZEAdehHXbXPjAGaDQtK6reG-EYirkSI@z>
 
-On Wednesday 08 October 2014 18:19:52 Thomas Gleixner wrote:
-> Ok, got it. It does not change the fact that the above function is
-> butt ugly and completely non intuitive.
+From: "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>
+Date: Mon, 13 Oct 2014 10:45:24 +0530
 
-Agreed, it could at least use a comment to explain the logic behind it.
+> Andrea Arcangeli <aarcange@redhat.com> writes:
+> 
+>> Hi Steve,
+>>
+>> On Fri, Sep 26, 2014 at 03:03:48PM +0100, Steve Capper wrote:
+>>> This patch provides a general RCU implementation of get_user_pages_fast
+>>> that can be used by architectures that perform hardware broadcast of
+>>> TLB invalidations.
+>>> 
+>>> It is based heavily on the PowerPC implementation by Nick Piggin.
+>>
+>> It'd be nice if you could also at the same time apply it to sparc and
+>> powerpc in this same patchset to show the effectiveness of having a
+>> generic version. Because if it's not a trivial drop-in replacement,
+>> then this should go in arch/arm* instead of mm/gup.c...
+> 
+> on ppc64 we have one challenge, we do need to support hugepd. At the pmd
+> level we can have hugepte, normal pmd pointer or a pointer to hugepage
+> directory which is used in case of some sub-architectures/platforms. ie,
+> the below part of gup implementation in ppc64
+> 
+> else if (is_hugepd(pmdp)) {
+> 	if (!gup_hugepd((hugepd_t *)pmdp, PMD_SHIFT,
+> 			addr, next, write, pages, nr))
+> 		return 0;
 
-> I also do not agree, that the DT should not tell which of the timers
-> should be used as a clockevent device and which one as a
-> clocksource. If you have a better suited clockevent device in your
-> FPGA, you cannot use a single instance of the timer thingy as it will
-> be registered as a clockevent and not as a clocksource. So explicit
-> match values for particular hardware instances would be more flexible,
-> but I don't have strong feelings about it either.
-
-Right, things can get arbitrarily complicated when this is combined
-with other (optional) timer hardware, as we've seen on ARM before.
-I think we have discussed the issue for some ARM timers in length
-before and not found a good solution.
-
-The clps711x driver has tried to work around this problem by using
-aliases, and it has been discussed for other drivers before.
-
-The main problem with encoding the use of the timer blocks in DT
-is that it gets really ugly if we ever want to use a third timer
-hardware block in the kernel, e.g. to separate the timer wheel
-from the hrtimer, if we decide to expose a particular HW
-timer to in-kernel or userland interfaces, or if someone wants
-to run an OS on the same hardware that uses the timer hardware
-in a completely different way.
-
-	Arnd
+Sparc has to deal with the same issue.
