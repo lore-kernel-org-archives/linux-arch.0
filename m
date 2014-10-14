@@ -1,103 +1,46 @@
-From: "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>
-Subject: Re: [PATCH 1/2] mm: Introduce a general RCU get_user_pages_fast.
-Date: Tue, 14 Oct 2014 19:12:15 +0530
-Message-ID: <87zjcyn4y0.fsf@linux.vnet.ibm.com>
-References: <1413284274-13521-1-git-send-email-aneesh.kumar@linux.vnet.ibm.com> <20141014115854.GA32351@linaro.org> <8738aqonuc.fsf@linux.vnet.ibm.com> <20141014122922.GA763@linaro.org>
+From: David Miller <davem@davemloft.net>
+Subject: Re: [PATCH V4 1/6] mm: Introduce a general RCU get_user_pages_fast.
+Date: Tue, 14 Oct 2014 12:30:05 -0400 (EDT)
+Message-ID: <20141014.123005.1217065336505722315.davem@davemloft.net>
+References: <20141013114428.GA28113@linaro.org>
+	<20141013.120618.1470323732942174784.davem@davemloft.net>
+	<20141014123834.GA1110@linaro.org>
 Mime-Version: 1.0
-Content-Type: text/plain
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e23smtp01.au.ibm.com ([202.81.31.143]:36305 "EHLO
-	e23smtp01.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755275AbaJNNmZ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 14 Oct 2014 09:42:25 -0400
-Received: from /spool/local
-	by e23smtp01.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <aneesh.kumar@linux.vnet.ibm.com>;
-	Tue, 14 Oct 2014 23:42:22 +1000
-In-Reply-To: <20141014122922.GA763@linaro.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Steve Capper <steve.capper@linaro.org>
-Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
+Content-Type: Text/Plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <20141014123834.GA1110@linaro.org>
+Sender: owner-linux-mm@kvack.org
+To: steve.capper@linaro.org
+Cc: aneesh.kumar@linux.vnet.ibm.com, aarcange@redhat.com, linux-arm-kernel@lists.infradead.org, catalin.marinas@arm.com, linux@arm.linux.org.uk, linux-arch@vger.kernel.org, linux-mm@kvack.org, will.deacon@arm.com, gary.robertson@linaro.org, christoffer.dall@linaro.org, peterz@infradead.org, anders.roxell@linaro.org, akpm@linux-foundation.org, dann.frazier@canonical.com, mark.rutland@arm.com, mgorman@suse.de, hughd@google.com
+List-Id: linux-arch.vger.kernel.org
 
-Steve Capper <steve.capper@linaro.org> writes:
+From: Steve Capper <steve.capper@linaro.org>
+Date: Tue, 14 Oct 2014 13:38:34 +0100
 
-> On Tue, Oct 14, 2014 at 05:38:43PM +0530, Aneesh Kumar K.V wrote:
->> Steve Capper <steve.capper@linaro.org> writes:
+> On Mon, Oct 13, 2014 at 12:06:18PM -0400, David Miller wrote:
+>> From: Steve Capper <steve.capper@linaro.org>
+>> Date: Mon, 13 Oct 2014 12:44:28 +0100
 >> 
->> > On Tue, Oct 14, 2014 at 04:27:53PM +0530, Aneesh Kumar K.V wrote:
->> >> get_user_pages_fast attempts to pin user pages by walking the page
->> >> tables directly and avoids taking locks. Thus the walker needs to be
->> >> protected from page table pages being freed from under it, and needs
->> >> to block any THP splits.
->> >> 
->> >> One way to achieve this is to have the walker disable interrupts, and
->> >> rely on IPIs from the TLB flushing code blocking before the page table
->> >> pages are freed.
->> >> 
->> >> On some platforms we have hardware broadcast of TLB invalidations, thus
->> >> the TLB flushing code doesn't necessarily need to broadcast IPIs; and
->> >> spuriously broadcasting IPIs can hurt system performance if done too
->> >> often.
->> >> 
->> >> This problem has been solved on PowerPC and Sparc by batching up page
->> >> table pages belonging to more than one mm_user, then scheduling an
->> >> rcu_sched callback to free the pages. This RCU page table free logic
->> >> has been promoted to core code and is activated when one enables
->> >> HAVE_RCU_TABLE_FREE. Unfortunately, these architectures implement
->> >> their own get_user_pages_fast routines.
->> >> 
->> >> The RCU page table free logic coupled with a an IPI broadcast on THP
->> >> split (which is a rare event), allows one to protect a page table
->> >> walker by merely disabling the interrupts during the walk.
->> >> 
->> >> This patch provides a general RCU implementation of get_user_pages_fast
->> >> that can be used by architectures that perform hardware broadcast of
->> >> TLB invalidations.
->> >> 
->> >> It is based heavily on the PowerPC implementation.
->> >> 
->> >> Signed-off-by: Aneesh Kumar K.V <aneesh.kumar@linux.vnet.ibm.com>
->> >> ---
->> >> 
->> >> NOTE: I kept the description of patch as it is and also retained the documentation.
->> >> I also dropped the tested-by and other SOB, because i was not sure whether they want
->> >> to be blamed for the bugs here. Please feel free to update.
->> >
->> > Hi Aneesh,
->> > Thank you for coding this up.
->> >
->> > I've compiled and briefly tested this on arm (with and without LPAE),
->> > and arm64. I ran a custom futex on THP tail test, and this passed.
->> > I'll test this a little more aggressively with ltp.
->> >
->> > I think Linus has already pulled in the RCU gup I posted, could you
->> > please instead write a patch against?
+>> > Also, as a heads up for Sparc. I don't see any definition of
+>> > __get_user_pages_fast. Does this mean that a futex on THP tail page
+>> > can cause an infinite loop?
 >> 
->> Will do that. 
->> 
->> > 2667f50 mm: introduce a general RCU get_user_pages_fast()
->> 
->> In that patch don't you need to check the _PAGE_PRESENT details in case
->> of gup_huge_pmd ?
->> 
->
-> Before calling gup_huge_pmd we check for pmd_none. On ARM we have:
-> #define pmd_none(pmd)		(!pmd_val(pmd))
-> #define pmd_present(pmd)	(pmd_val(pmd))
->
-> So we know when we enter gup_huge_pmd that "orig" represents a pmd that
-> is present.
->
-> On PowerPC I see the definitions are a little different for
-> pgtable-ppc32.h:
-> #define pmd_present(pmd)	(pmd_val(pmd) & _PMD_PRESENT_MASK)
->
-> A pmd_present() could be added to the beginning of gup_huge_pmd safely
-> if this is needed for PowerPC.
->
+>> I have no idea, I didn't realize this was required to be implemented.
+> 
+> In get_futex_key, a call is made to __get_user_pages_fast to handle the
+> case where a THP tail page needs to be pinned for the futex. There is a
+> stock implementation of __get_user_pages_fast, but this is just an
+> empty function that returns 0. Unfortunately this will provoke a goto
+> to "again:" and end up in an infinite loop. The process will appear
+> to hang with a high system cpu usage.
 
-for the huge pmd case, that is pte in pmd we may really want to check
-_PAGE_PRESENT bit right ?
+I'd rather the build fail and force me to implement the interface for
+my architecture than have a default implementation that causes issues
+like that.
 
--aneesh
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
