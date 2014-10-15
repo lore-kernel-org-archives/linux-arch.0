@@ -1,61 +1,63 @@
 From: Yijing Wang <wangyijing@huawei.com>
-Subject: [PATCH v3 06/27] PCI: designware: Save msi chip in pci_sys_data
-Date: Wed, 15 Oct 2014 11:06:54 +0800
-Message-ID: <1413342435-7876-7-git-send-email-wangyijing@huawei.com>
+Subject: [PATCH v3 08/27] PCI: mvebu: Save msi chip in pci_sys_data
+Date: Wed, 15 Oct 2014 11:06:56 +0800
+Message-ID: <1413342435-7876-9-git-send-email-wangyijing@huawei.com>
 References: <1413342435-7876-1-git-send-email-wangyijing@huawei.com>
 Mime-Version: 1.0
 Content-Type: text/plain
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from szxga02-in.huawei.com ([119.145.14.65]:39153 "EHLO
+	szxga02-in.huawei.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932675AbaJOCZr (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 14 Oct 2014 22:25:47 -0400
 In-Reply-To: <1413342435-7876-1-git-send-email-wangyijing@huawei.com>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Bjorn Helgaas <bhelgaas@google.com>
 Cc: linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, Xinwei Hu <huxinwei@huawei.com>, Wuyun <wuyun.wu@huawei.com>, linux-arm-kernel@lists.infradead.org, Russell King <linux@arm.linux.org.uk>, linux-arch@vger.kernel.org, arnab.basu@freescale.com, Bharat.Bhushan@freescale.com, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, Thomas Gleixner <tglx@linutronix.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, xen-devel@lists.xenproject.org, Joerg Roedel <joro@8bytes.org>, iommu@lists.linux-foundation.org, linux-mips@linux-mips.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, Sebastian Ott <sebott@linux.vnet.ibm.com>, Tony Luck <tony.luck@intel.com>, linux-ia64@vger.kernel.org, "David S. Miller" <davem@davemloft.net>, sparclinux@vger.kernel.org, Chris Metcalf <cmetcalf@til>
-List-Id: linux-arch.vger.kernel.org
 
 Save msi chip in pci_sys_data instead of assign
 msi chip to every pci bus in .add_bus().
 
 Signed-off-by: Yijing Wang <wangyijing@huawei.com>
 ---
- drivers/pci/host/pcie-designware.c |   15 ++++-----------
- 1 files changed, 4 insertions(+), 11 deletions(-)
+ drivers/pci/host/pci-mvebu.c |   10 +++-------
+ 1 files changed, 3 insertions(+), 7 deletions(-)
 
-diff --git a/drivers/pci/host/pcie-designware.c b/drivers/pci/host/pcie-designware.c
-index dfed00a..56fa8ab 100644
---- a/drivers/pci/host/pcie-designware.c
-+++ b/drivers/pci/host/pcie-designware.c
-@@ -498,6 +498,10 @@ int __init dw_pcie_host_init(struct pcie_port *pp)
- 	val |= PORT_LOGIC_SPEED_CHANGE;
- 	dw_pcie_wr_own_conf(pp, PCIE_LINK_WIDTH_SPEED_CONTROL, 4, val);
- 
-+#ifdef CONFIG_PCI_MSI
-+	dw_pcie_msi_chip.dev = pp->dev;
-+	dw_pci.msi_chip = &dw_pcie_msi_chip;
-+#endif
- 	dw_pci.nr_controllers = 1;
- 	dw_pci.private_data = (void **)&pp;
- 
-@@ -747,21 +751,10 @@ static int dw_pcie_map_irq(const struct pci_dev *dev, u8 slot, u8 pin)
- 	return irq;
+diff --git a/drivers/pci/host/pci-mvebu.c b/drivers/pci/host/pci-mvebu.c
+index b1315e1..f8e9c6c 100644
+--- a/drivers/pci/host/pci-mvebu.c
++++ b/drivers/pci/host/pci-mvebu.c
+@@ -774,12 +774,6 @@ static struct pci_bus *mvebu_pcie_scan_bus(int nr, struct pci_sys_data *sys)
+ 	return bus;
  }
  
--static void dw_pcie_add_bus(struct pci_bus *bus)
+-static void mvebu_pcie_add_bus(struct pci_bus *bus)
 -{
--	if (IS_ENABLED(CONFIG_PCI_MSI)) {
--		struct pcie_port *pp = sys_to_pcie(bus->sysdata);
--
--		dw_pcie_msi_chip.dev = pp->dev;
--		bus->msi = &dw_pcie_msi_chip;
--	}
+-	struct mvebu_pcie *pcie = sys_to_pcie(bus->sysdata);
+-	bus->msi = pcie->msi;
 -}
 -
- static struct hw_pci dw_pci = {
- 	.setup		= dw_pcie_setup,
- 	.scan		= dw_pcie_scan_bus,
- 	.map_irq	= dw_pcie_map_irq,
--	.add_bus	= dw_pcie_add_bus,
- };
+ static resource_size_t mvebu_pcie_align_resource(struct pci_dev *dev,
+ 						 const struct resource *res,
+ 						 resource_size_t start,
+@@ -816,6 +810,9 @@ static void mvebu_pcie_enable(struct mvebu_pcie *pcie)
  
- void dw_pcie_setup_rc(struct pcie_port *pp)
+ 	memset(&hw, 0, sizeof(hw));
+ 
++#ifdef CONFIG_PCI_MSI
++	hw.msi_chip = pcie->msi;
++#endif
+ 	hw.nr_controllers = 1;
+ 	hw.private_data   = (void **)&pcie;
+ 	hw.setup          = mvebu_pcie_setup;
+@@ -823,7 +820,6 @@ static void mvebu_pcie_enable(struct mvebu_pcie *pcie)
+ 	hw.map_irq        = of_irq_parse_and_map_pci;
+ 	hw.ops            = &mvebu_pcie_ops;
+ 	hw.align_resource = mvebu_pcie_align_resource;
+-	hw.add_bus        = mvebu_pcie_add_bus;
+ 
+ 	pci_common_init(&hw);
+ }
 -- 
 1.7.1
