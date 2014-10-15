@@ -1,7 +1,7 @@
 From: Yijing Wang <wangyijing@huawei.com>
-Subject: [PATCH v3 10/27] PCI/MSI: Remove useless bus->msi assignment
-Date: Wed, 15 Oct 2014 11:06:58 +0800
-Message-ID: <1413342435-7876-11-git-send-email-wangyijing@huawei.com>
+Subject: [PATCH v3 07/27] PCI: rcar: Save msi chip in pci_sys_data
+Date: Wed, 15 Oct 2014 11:06:55 +0800
+Message-ID: <1413342435-7876-8-git-send-email-wangyijing@huawei.com>
 References: <1413342435-7876-1-git-send-email-wangyijing@huawei.com>
 Mime-Version: 1.0
 Content-Type: text/plain
@@ -12,28 +12,48 @@ To: Bjorn Helgaas <bhelgaas@google.com>
 Cc: linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, Xinwei Hu <huxinwei@huawei.com>, Wuyun <wuyun.wu@huawei.com>, linux-arm-kernel@lists.infradead.org, Russell King <linux@arm.linux.org.uk>, linux-arch@vger.kernel.org, arnab.basu@freescale.com, Bharat.Bhushan@freescale.com, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, Thomas Gleixner <tglx@linutronix.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, xen-devel@lists.xenproject.org, Joerg Roedel <joro@8bytes.org>, iommu@lists.linux-foundation.org, linux-mips@linux-mips.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, Sebastian Ott <sebott@linux.vnet.ibm.com>, Tony Luck <tony.luck@intel.com>, linux-ia64@vger.kernel.org, "David S. Miller" <davem@davemloft.net>, sparclinux@vger.kernel.org, Chris Metcalf <cmetcalf@til>
 List-Id: linux-arch.vger.kernel.org
 
-Now msi chip is saved in pci_sys_data in arm,
-we could clean the bus->msi assignment in
-pci core.
+Save msi chip in pci_sys_data instead of assign
+msi chip to every pci bus in .add_bus().
 
 Signed-off-by: Yijing Wang <wangyijing@huawei.com>
-CC: Thierry Reding <thierry.reding@gmail.com>
-CC: Thomas Petazzoni <thomas.petazzoni@free-electrons.com>
 ---
- drivers/pci/probe.c |    1 -
- 1 files changed, 0 insertions(+), 1 deletions(-)
+ drivers/pci/host/pcie-rcar.c |   13 +++----------
+ 1 files changed, 3 insertions(+), 10 deletions(-)
 
-diff --git a/drivers/pci/probe.c b/drivers/pci/probe.c
-index efa48dc..98bf4c3 100644
---- a/drivers/pci/probe.c
-+++ b/drivers/pci/probe.c
-@@ -682,7 +682,6 @@ static struct pci_bus *pci_alloc_child_bus(struct pci_bus *parent,
+diff --git a/drivers/pci/host/pcie-rcar.c b/drivers/pci/host/pcie-rcar.c
+index 61158e0..c999c7e 100644
+--- a/drivers/pci/host/pcie-rcar.c
++++ b/drivers/pci/host/pcie-rcar.c
+@@ -380,20 +380,10 @@ static int rcar_pcie_setup(int nr, struct pci_sys_data *sys)
+ 	return 1;
+ }
  
- 	child->parent = parent;
- 	child->ops = parent->ops;
--	child->msi = parent->msi;
- 	child->sysdata = parent->sysdata;
- 	child->bus_flags = parent->bus_flags;
+-static void rcar_pcie_add_bus(struct pci_bus *bus)
+-{
+-	if (IS_ENABLED(CONFIG_PCI_MSI)) {
+-		struct rcar_pcie *pcie = sys_to_pcie(bus->sysdata);
+-
+-		bus->msi = &pcie->msi.chip;
+-	}
+-}
+-
+ struct hw_pci rcar_pci = {
+ 	.setup          = rcar_pcie_setup,
+ 	.map_irq        = of_irq_parse_and_map_pci,
+ 	.ops            = &rcar_pcie_ops,
+-	.add_bus        = rcar_pcie_add_bus,
+ };
  
+ static void rcar_pcie_enable(struct rcar_pcie *pcie)
+@@ -402,6 +392,9 @@ static void rcar_pcie_enable(struct rcar_pcie *pcie)
+ 
+ 	rcar_pci.nr_controllers = 1;
+ 	rcar_pci.private_data = (void **)&pcie;
++#ifdef CONFIG_PCI_MSI
++	rcar_pci.msi_chip = &pcie->msi.chip;
++#endif
+ 
+ 	pci_common_init_dev(&pdev->dev, &rcar_pci);
+ #ifdef CONFIG_PCI_DOMAINS
 -- 
 1.7.1
