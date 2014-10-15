@@ -1,45 +1,65 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from shards.monkeyblade.net ([149.20.54.216]:42352 "EHLO
-	shards.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753635AbaJNQaO (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 14 Oct 2014 12:30:14 -0400
-Date: Tue, 14 Oct 2014 12:30:05 -0400 (EDT)
-Message-ID: <20141014.123005.1217065336505722315.davem@davemloft.net>
-Subject: Re: [PATCH V4 1/6] mm: Introduce a general RCU get_user_pages_fast.
-From: David Miller <davem@davemloft.net>
-In-Reply-To: <20141014123834.GA1110@linaro.org>
-References: <20141013114428.GA28113@linaro.org>
-	<20141013.120618.1470323732942174784.davem@davemloft.net>
-	<20141014123834.GA1110@linaro.org>
-Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
+Received: from szxga02-in.huawei.com ([119.145.14.65]:39153 "EHLO
+	szxga02-in.huawei.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932675AbaJOCZr (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 14 Oct 2014 22:25:47 -0400
+From: Yijing Wang <wangyijing@huawei.com>
+Subject: [PATCH v3 08/27] PCI: mvebu: Save msi chip in pci_sys_data
+Date: Wed, 15 Oct 2014 11:06:56 +0800
+Message-ID: <1413342435-7876-9-git-send-email-wangyijing@huawei.com>
+In-Reply-To: <1413342435-7876-1-git-send-email-wangyijing@huawei.com>
+References: <1413342435-7876-1-git-send-email-wangyijing@huawei.com>
+MIME-Version: 1.0
+Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: steve.capper@linaro.org
-Cc: aneesh.kumar@linux.vnet.ibm.com, aarcange@redhat.com, linux-arm-kernel@lists.infradead.org, catalin.marinas@arm.com, linux@arm.linux.org.uk, linux-arch@vger.kernel.org, linux-mm@kvack.org, will.deacon@arm.com, gary.robertson@linaro.org, christoffer.dall@linaro.org, peterz@infradead.org, anders.roxell@linaro.org, akpm@linux-foundation.org, dann.frazier@canonical.com, mark.rutland@arm.com, mgorman@suse.de, hughd@google.com
-Message-ID: <20141014163005.Rp5MOSqOLaFCEFLgSFkHWGk3L0ZmZ3bdeP_SvpUihUk@z>
+To: Bjorn Helgaas <bhelgaas@google.com>
+Cc: linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, Xinwei Hu <huxinwei@huawei.com>, Wuyun <wuyun.wu@huawei.com>, linux-arm-kernel@lists.infradead.org, Russell King <linux@arm.linux.org.uk>, linux-arch@vger.kernel.org, arnab.basu@freescale.com, Bharat.Bhushan@freescale.com, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, Thomas Gleixner <tglx@linutronix.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, xen-devel@lists.xenproject.org, Joerg Roedel <joro@8bytes.org>, iommu@lists.linux-foundation.org, linux-mips@linux-mips.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, Sebastian Ott <sebott@linux.vnet.ibm.com>, Tony Luck <tony.luck@intel.com>, linux-ia64@vger.kernel.org, "David S. Miller" <davem@davemloft.net>, sparclinux@vger.kernel.org, Chris Metcalf <cmetcalf@tilera.com>, Ralf Baechle <ralf@linux-mips.org>, Lucas Stach <l.stach@pengutronix.de>, David Vrabel <david.vrabel@citrix.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, Michael Ellerman <mpe@ellerman.id.au>, Thierry Reding <thierry.reding@gmail.com>, Thomas Petazzoni <thomas.petazzoni@free-electrons.com>, Liviu Dudau <liviu@dudau.co.uk>, Yijing Wang <wangyijing@huawei.com>
+Message-ID: <20141015030656.18j90nVj3i9Tn6iShczvysn1vW0M91EMFdw9KMsZeNU@z>
 
-From: Steve Capper <steve.capper@linaro.org>
-Date: Tue, 14 Oct 2014 13:38:34 +0100
+Save msi chip in pci_sys_data instead of assign
+msi chip to every pci bus in .add_bus().
 
-> On Mon, Oct 13, 2014 at 12:06:18PM -0400, David Miller wrote:
->> From: Steve Capper <steve.capper@linaro.org>
->> Date: Mon, 13 Oct 2014 12:44:28 +0100
->> 
->> > Also, as a heads up for Sparc. I don't see any definition of
->> > __get_user_pages_fast. Does this mean that a futex on THP tail page
->> > can cause an infinite loop?
->> 
->> I have no idea, I didn't realize this was required to be implemented.
-> 
-> In get_futex_key, a call is made to __get_user_pages_fast to handle the
-> case where a THP tail page needs to be pinned for the futex. There is a
-> stock implementation of __get_user_pages_fast, but this is just an
-> empty function that returns 0. Unfortunately this will provoke a goto
-> to "again:" and end up in an infinite loop. The process will appear
-> to hang with a high system cpu usage.
+Signed-off-by: Yijing Wang <wangyijing@huawei.com>
+---
+ drivers/pci/host/pci-mvebu.c |   10 +++-------
+ 1 files changed, 3 insertions(+), 7 deletions(-)
 
-I'd rather the build fail and force me to implement the interface for
-my architecture than have a default implementation that causes issues
-like that.
+diff --git a/drivers/pci/host/pci-mvebu.c b/drivers/pci/host/pci-mvebu.c
+index b1315e1..f8e9c6c 100644
+--- a/drivers/pci/host/pci-mvebu.c
++++ b/drivers/pci/host/pci-mvebu.c
+@@ -774,12 +774,6 @@ static struct pci_bus *mvebu_pcie_scan_bus(int nr, struct pci_sys_data *sys)
+ 	return bus;
+ }
+ 
+-static void mvebu_pcie_add_bus(struct pci_bus *bus)
+-{
+-	struct mvebu_pcie *pcie = sys_to_pcie(bus->sysdata);
+-	bus->msi = pcie->msi;
+-}
+-
+ static resource_size_t mvebu_pcie_align_resource(struct pci_dev *dev,
+ 						 const struct resource *res,
+ 						 resource_size_t start,
+@@ -816,6 +810,9 @@ static void mvebu_pcie_enable(struct mvebu_pcie *pcie)
+ 
+ 	memset(&hw, 0, sizeof(hw));
+ 
++#ifdef CONFIG_PCI_MSI
++	hw.msi_chip = pcie->msi;
++#endif
+ 	hw.nr_controllers = 1;
+ 	hw.private_data   = (void **)&pcie;
+ 	hw.setup          = mvebu_pcie_setup;
+@@ -823,7 +820,6 @@ static void mvebu_pcie_enable(struct mvebu_pcie *pcie)
+ 	hw.map_irq        = of_irq_parse_and_map_pci;
+ 	hw.ops            = &mvebu_pcie_ops;
+ 	hw.align_resource = mvebu_pcie_align_resource;
+-	hw.add_bus        = mvebu_pcie_add_bus;
+ 
+ 	pci_common_init(&hw);
+ }
+-- 
+1.7.1
+
