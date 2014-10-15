@@ -1,46 +1,39 @@
-From: David Miller <davem@davemloft.net>
-Subject: Re: [PATCH V4 1/6] mm: Introduce a general RCU get_user_pages_fast.
-Date: Tue, 14 Oct 2014 12:30:05 -0400 (EDT)
-Message-ID: <20141014.123005.1217065336505722315.davem@davemloft.net>
-References: <20141013114428.GA28113@linaro.org>
-	<20141013.120618.1470323732942174784.davem@davemloft.net>
-	<20141014123834.GA1110@linaro.org>
+From: Yijing Wang <wangyijing@huawei.com>
+Subject: [PATCH v3 10/27] PCI/MSI: Remove useless bus->msi assignment
+Date: Wed, 15 Oct 2014 11:06:58 +0800
+Message-ID: <1413342435-7876-11-git-send-email-wangyijing@huawei.com>
+References: <1413342435-7876-1-git-send-email-wangyijing@huawei.com>
 Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <20141014123834.GA1110@linaro.org>
-Sender: owner-linux-mm@kvack.org
-To: steve.capper@linaro.org
-Cc: aneesh.kumar@linux.vnet.ibm.com, aarcange@redhat.com, linux-arm-kernel@lists.infradead.org, catalin.marinas@arm.com, linux@arm.linux.org.uk, linux-arch@vger.kernel.org, linux-mm@kvack.org, will.deacon@arm.com, gary.robertson@linaro.org, christoffer.dall@linaro.org, peterz@infradead.org, anders.roxell@linaro.org, akpm@linux-foundation.org, dann.frazier@canonical.com, mark.rutland@arm.com, mgorman@suse.de, hughd@google.com
+Content-Type: text/plain
+Return-path: <linux-pci-owner@vger.kernel.org>
+In-Reply-To: <1413342435-7876-1-git-send-email-wangyijing@huawei.com>
+Sender: linux-pci-owner@vger.kernel.org
+To: Bjorn Helgaas <bhelgaas@google.com>
+Cc: linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, Xinwei Hu <huxinwei@huawei.com>, Wuyun <wuyun.wu@huawei.com>, linux-arm-kernel@lists.infradead.org, Russell King <linux@arm.linux.org.uk>, linux-arch@vger.kernel.org, arnab.basu@freescale.com, Bharat.Bhushan@freescale.com, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, Thomas Gleixner <tglx@linutronix.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, xen-devel@lists.xenproject.org, Joerg Roedel <joro@8bytes.org>, iommu@lists.linux-foundation.org, linux-mips@linux-mips.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, Sebastian Ott <sebott@linux.vnet.ibm.com>, Tony Luck <tony.luck@intel.com>, linux-ia64@vger.kernel.org, "David S. Miller" <davem@davemloft.net>, sparclinux@vger.kernel.org, Chris Metcalf <cmetcalf@til>
 List-Id: linux-arch.vger.kernel.org
 
-From: Steve Capper <steve.capper@linaro.org>
-Date: Tue, 14 Oct 2014 13:38:34 +0100
+Now msi chip is saved in pci_sys_data in arm,
+we could clean the bus->msi assignment in
+pci core.
 
-> On Mon, Oct 13, 2014 at 12:06:18PM -0400, David Miller wrote:
->> From: Steve Capper <steve.capper@linaro.org>
->> Date: Mon, 13 Oct 2014 12:44:28 +0100
->> 
->> > Also, as a heads up for Sparc. I don't see any definition of
->> > __get_user_pages_fast. Does this mean that a futex on THP tail page
->> > can cause an infinite loop?
->> 
->> I have no idea, I didn't realize this was required to be implemented.
-> 
-> In get_futex_key, a call is made to __get_user_pages_fast to handle the
-> case where a THP tail page needs to be pinned for the futex. There is a
-> stock implementation of __get_user_pages_fast, but this is just an
-> empty function that returns 0. Unfortunately this will provoke a goto
-> to "again:" and end up in an infinite loop. The process will appear
-> to hang with a high system cpu usage.
+Signed-off-by: Yijing Wang <wangyijing@huawei.com>
+CC: Thierry Reding <thierry.reding@gmail.com>
+CC: Thomas Petazzoni <thomas.petazzoni@free-electrons.com>
+---
+ drivers/pci/probe.c |    1 -
+ 1 files changed, 0 insertions(+), 1 deletions(-)
 
-I'd rather the build fail and force me to implement the interface for
-my architecture than have a default implementation that causes issues
-like that.
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+diff --git a/drivers/pci/probe.c b/drivers/pci/probe.c
+index efa48dc..98bf4c3 100644
+--- a/drivers/pci/probe.c
++++ b/drivers/pci/probe.c
+@@ -682,7 +682,6 @@ static struct pci_bus *pci_alloc_child_bus(struct pci_bus *parent,
+ 
+ 	child->parent = parent;
+ 	child->ops = parent->ops;
+-	child->msi = parent->msi;
+ 	child->sysdata = parent->sysdata;
+ 	child->bus_flags = parent->bus_flags;
+ 
+-- 
+1.7.1
