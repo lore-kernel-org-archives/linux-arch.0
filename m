@@ -1,170 +1,146 @@
-From: Yijing Wang <wangyijing-hv44wF8Li93QT0dZR+AlfA@public.gmane.org>
-Subject: [PATCH v3 17/27] MIPS/Octeon/MSI: Use MSI chip framework to configure
-	MSI/MSI-X irq
-Date: Wed, 15 Oct 2014 11:07:05 +0800
-Message-ID: <1413342435-7876-18-git-send-email-wangyijing@huawei.com>
+From: Yijing Wang <wangyijing@huawei.com>
+Subject: [PATCH v3 04/27] arm/MSI: Save MSI chip in pci_sys_data
+Date: Wed, 15 Oct 2014 11:06:52 +0800
+Message-ID: <1413342435-7876-5-git-send-email-wangyijing@huawei.com>
 References: <1413342435-7876-1-git-send-email-wangyijing@huawei.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-In-Reply-To: <1413342435-7876-1-git-send-email-wangyijing-hv44wF8Li93QT0dZR+AlfA@public.gmane.org>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
-List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
-Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-To: Bjorn Helgaas <bhelgaas-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>
-Cc: linux-mips-6z/3iImG2C8G8FEW9MqTrA@public.gmane.org, linux-ia64-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-pci-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Thierry Reding <thierry.reding-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, sparclinux-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-s390-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Russell King <linux-lFZ/pmaqli7XmaaqVzeoHQ@public.gmane.org>, Michael Ellerman <mpe-Gsx/Oe8HsFggBc27wqDAHg@public.gmane.org>, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, Sebastian Ott <sebott-23VcF4HTsmIX0ybBhKVfKdBPR1lH4CV8@public.gmane.org>, Benjamin Herrenschmidt <benh-XVmvHMARGAS8U2dJNN8I7kB+6BGkLq7r@public.gmane.org>, xen-devel-GuqFBffKawtpuQazS67q72D2FQJk+8+b@public.gmane.org, arnab.basu-KZfg59tc24xl57MIdRCFDg@public.gmane.org, Liviu Dudau <liviu-I3yL/QOVVjH10XsdtD+oqA@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Chris Metcalf <cmetcalf-kv+TWInifGbQT0dZR+AlfA@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, Thomas Petazzoni <thomas.petazzoni-wi1+55ScJUtKEb57/3fJTNBPR1lH4CV8@public.gmane.org>, Xinwei Hu <huxinwei-hv44wF8Li93QT0dZR+AlfA@public.gmane.org>, Tony Luck <tony.luck-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org>, Sergei Shtylyov <sergei.shtylyov-M4DtvfQ/ZS1MRgGoP+s0PdBPR1lH4CV8@public.gmane.org>, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Ralf Baechle <ralf-6z/3iImG2C8G8FEW9MqTrA@public.gmane.org>, iommu@l
+Content-Type: text/plain
+Return-path: <linux-mips-bounce@linux-mips.org>
+In-Reply-To: <1413342435-7876-1-git-send-email-wangyijing@huawei.com>
+Sender: linux-mips-bounce@linux-mips.org
+Errors-to: linux-mips-bounce@linux-mips.org
+List-help: <mailto:ecartis@linux-mips.org?Subject=help>
+List-unsubscribe: <mailto:ecartis@linux-mips.org?subject=unsubscribe%20linux-mips>
+List-software: Ecartis version 1.0.0
+List-subscribe: <mailto:ecartis@linux-mips.org?subject=subscribe%20linux-mips>
+List-owner: <mailto:ralf@linux-mips.org>
+List-post: <mailto:linux-mips@linux-mips.org>
+List-archive: <http://www.linux-mips.org/archives/linux-mips/>
+To: Bjorn Helgaas <bhelgaas@google.com>
+Cc: linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, Xinwei Hu <huxinwei@huawei.com>, Wuyun <wuyun.wu@huawei.com>, linux-arm-kernel@lists.infradead.org, Russell King <linux@arm.linux.org.uk>, linux-arch@vger.kernel.org, arnab.basu@freescale.com, Bharat.Bhushan@freescale.com, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, Thomas Gleixner <tglx@linutronix.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, xen-devel@lists.xenproject.org, Joerg Roedel <joro@8bytes.org>, iommu@lists.linux-foundation.org, linux-mips@linux-mips.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, Sebastian Ott <sebott@linux.vnet.ibm.com>, Tony Luck <tony.luck@intel.com>, linux-ia64@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Use MSI chip framework instead of arch MSI functions to configure
-MSI/MSI-X irq. So we can manage MSI/MSI-X irq in a unified framework.
+Saving msi chip in pci_sys_data can make pci bus and
+devices don't need to know msi chip detail, it also
+make pci enumeration code be decoupled from msi chip.
+In fact, all pci devices under the same pci hostbridge
+share same msi chip. So msi chip should be seen as one
+of resources or attributes to be initialized in pci host
+bridge driver. Currently, pci hostbridge drivers create
+pci_host_bridge in pci_create_root_bus(), and pass arch
+specific pci sysdata to core pci scan functions. So pci
+arch sysdata is good place to save msi chip.
 
-Signed-off-by: Yijing Wang <wangyijing-hv44wF8Li93QT0dZR+AlfA@public.gmane.org>
+Signed-off-by: Yijing Wang <wangyijing@huawei.com>
 ---
- arch/mips/include/asm/octeon/pci-octeon.h |    4 +++
- arch/mips/pci/msi-octeon.c                |   31 ++++++++++++++++------------
- arch/mips/pci/pci-octeon.c                |    3 ++
- 3 files changed, 25 insertions(+), 13 deletions(-)
+ arch/arm/include/asm/mach/pci.h |    6 ++++++
+ arch/arm/include/asm/pci.h      |    9 +++++++++
+ arch/arm/kernel/bios32.c        |    3 +++
+ drivers/pci/msi.c               |    6 ++++++
+ include/linux/pci.h             |    9 +++++++++
+ 5 files changed, 33 insertions(+), 0 deletions(-)
 
-diff --git a/arch/mips/include/asm/octeon/pci-octeon.h b/arch/mips/include/asm/octeon/pci-octeon.h
-index 64ba56a..27ffe42 100644
---- a/arch/mips/include/asm/octeon/pci-octeon.h
-+++ b/arch/mips/include/asm/octeon/pci-octeon.h
-@@ -66,4 +66,8 @@ enum octeon_dma_bar_type {
-  */
- extern enum octeon_dma_bar_type octeon_dma_bar_type;
- 
-+#ifdef CONFIG_PCI_MSI
-+extern struct msi_chip octeon_msi_chip;
-+#endif
-+
+diff --git a/arch/arm/include/asm/mach/pci.h b/arch/arm/include/asm/mach/pci.h
+index 7fc4278..59b0d87 100644
+--- a/arch/arm/include/asm/mach/pci.h
++++ b/arch/arm/include/asm/mach/pci.h
+@@ -22,6 +22,9 @@ struct hw_pci {
+ #ifdef CONFIG_PCI_DOMAINS
+ 	int		domain;
  #endif
-diff --git a/arch/mips/pci/msi-octeon.c b/arch/mips/pci/msi-octeon.c
-index 63bbe07..fd4d698 100644
---- a/arch/mips/pci/msi-octeon.c
-+++ b/arch/mips/pci/msi-octeon.c
-@@ -57,7 +57,7 @@ static int msi_irq_size;
-  *
-  * Returns 0 on success.
-  */
--int arch_setup_msi_irq(struct pci_dev *dev, struct msi_desc *desc)
-+static int octeon_setup_msi_irq(struct pci_dev *dev, struct msi_desc *desc)
- {
- 	struct msi_msg msg;
- 	u16 control;
-@@ -132,12 +132,12 @@ msi_irq_allocated:
- 	/* Make sure the search for available interrupts didn't fail */
- 	if (irq >= 64) {
- 		if (request_private_bits) {
--			pr_err("arch_setup_msi_irq: Unable to find %d free interrupts, trying just one",
--			       1 << request_private_bits);
-+			pr_err("%s: Unable to find %d free interrupts, trying just one",
-+			       __func__, 1 << request_private_bits);
- 			request_private_bits = 0;
- 			goto try_only_one;
- 		} else
--			panic("arch_setup_msi_irq: Unable to find a free MSI interrupt");
-+			panic("%s: Unable to find a free MSI interrupt", __func__);
- 	}
- 
- 	/* MSI interrupts start at logical IRQ OCTEON_IRQ_MSI_BIT0 */
-@@ -168,7 +168,7 @@ msi_irq_allocated:
- 		msg.address_hi = (0 + CVMX_SLI_PCIE_MSI_RCV) >> 32;
- 		break;
- 	default:
--		panic("arch_setup_msi_irq: Invalid octeon_dma_bar_type");
-+		panic("%s: Invalid octeon_dma_bar_type", __func__);
- 	}
- 	msg.data = irq - OCTEON_IRQ_MSI_BIT0;
- 
-@@ -182,7 +182,8 @@ msi_irq_allocated:
- 	return 0;
- }
- 
--int arch_setup_msi_irqs(struct pci_dev *dev, int nvec, int type)
-+static int octeon_setup_msi_irqs(struct msi_chip *chip, struct pci_dev *dev,
-+		int nvec, int type)
- {
- 	struct msi_desc *entry;
- 	int ret;
-@@ -201,7 +202,7 @@ int arch_setup_msi_irqs(struct pci_dev *dev, int nvec, int type)
- 		return 1;
- 
- 	list_for_each_entry(entry, &dev->msi_list, list) {
--		ret = arch_setup_msi_irq(dev, entry);
-+		ret = octeon_setup_msi_irq(dev, entry);
- 		if (ret < 0)
- 			return ret;
- 		if (ret > 0)
-@@ -210,14 +211,13 @@ int arch_setup_msi_irqs(struct pci_dev *dev, int nvec, int type)
- 
- 	return 0;
- }
--
- /**
-  * Called when a device no longer needs its MSI interrupts. All
-  * MSI interrupts for the device are freed.
-  *
-  * @irq:    The devices first irq number. There may be multple in sequence.
-  */
--void arch_teardown_msi_irq(unsigned int irq)
-+static void octeon_teardown_msi_irq(struct msi_chip *chip, unsigned int irq)
- {
- 	int number_irqs;
- 	u64 bitmask;
-@@ -226,8 +226,8 @@ void arch_teardown_msi_irq(unsigned int irq)
- 
- 	if ((irq < OCTEON_IRQ_MSI_BIT0)
- 		|| (irq > msi_irq_size + OCTEON_IRQ_MSI_BIT0))
--		panic("arch_teardown_msi_irq: Attempted to teardown illegal "
--		      "MSI interrupt (%d)", irq);
-+		panic("%s: Attempted to teardown illegal "
-+			"MSI interrupt (%d)", __func__, irq);
- 
- 	irq -= OCTEON_IRQ_MSI_BIT0;
- 	index = irq / 64;
-@@ -249,8 +249,8 @@ void arch_teardown_msi_irq(unsigned int irq)
- 	/* Shift the mask to the correct bit location */
- 	bitmask <<= irq0;
- 	if ((msi_free_irq_bitmask[index] & bitmask) != bitmask)
--		panic("arch_teardown_msi_irq: Attempted to teardown MSI "
--		      "interrupt (%d) not in use", irq);
-+		panic("%s: Attempted to teardown MSI "
-+			"interrupt (%d) not in use", __func__, irq);
- 
- 	/* Checks are done, update the in use bitmask */
- 	spin_lock(&msi_free_irq_bitmask_lock);
-@@ -259,6 +259,11 @@ void arch_teardown_msi_irq(unsigned int irq)
- 	spin_unlock(&msi_free_irq_bitmask_lock);
- }
- 
-+struct msi_chip octeon_msi_chip = {
-+	.setup_irqs = octeon_setup_msi_irqs,
-+	.teardown_irq = octeon_teardown_msi_irq,
-+};
-+
- static DEFINE_RAW_SPINLOCK(octeon_irq_msi_lock);
- 
- static u64 msi_rcv_reg[4];
-diff --git a/arch/mips/pci/pci-octeon.c b/arch/mips/pci/pci-octeon.c
-index 59cccd9..aefaa8a 100644
---- a/arch/mips/pci/pci-octeon.c
-+++ b/arch/mips/pci/pci-octeon.c
-@@ -356,6 +356,9 @@ static struct pci_controller octeon_pci_controller = {
- 	.io_resource = &octeon_pci_io_resource,
- 	.io_offset = 0,
- 	.io_map_base = OCTEON_PCI_IOSPACE_BASE,
 +#ifdef CONFIG_PCI_MSI
-+	.msi_chip = &octeon_msi_chip,
++	struct msi_chip *msi_chip;
 +#endif
- };
+ 	struct pci_ops	*ops;
+ 	int		nr_controllers;
+ 	void		**private_data;
+@@ -47,6 +50,9 @@ struct pci_sys_data {
+ #ifdef CONFIG_PCI_DOMAINS
+ 	int		domain;
+ #endif
++#ifdef CONFIG_PCI_MSI
++	struct msi_chip *msi_chip;
++#endif
+ 	struct list_head node;
+ 	int		busnr;		/* primary bus number			*/
+ 	u64		mem_offset;	/* bus->cpu memory mapping offset	*/
+diff --git a/arch/arm/include/asm/pci.h b/arch/arm/include/asm/pci.h
+index 7e95d85..b562c09 100644
+--- a/arch/arm/include/asm/pci.h
++++ b/arch/arm/include/asm/pci.h
+@@ -31,6 +31,15 @@ static inline int pci_proc_domain(struct pci_bus *bus)
+ }
+ #endif /* CONFIG_PCI_DOMAINS */
  
++#ifdef CONFIG_PCI_MSI
++static inline struct msi_chip *pci_msi_chip(struct pci_bus *bus)
++{
++	struct pci_sys_data *root = bus->sysdata;
++
++	return root->msi_chip;
++}
++#endif
++
+ /*
+  * The PCI address space does equal the physical memory address space.
+  * The networking and block device layers use this boolean for bounce
+diff --git a/arch/arm/kernel/bios32.c b/arch/arm/kernel/bios32.c
+index 17a26c1..a19038d 100644
+--- a/arch/arm/kernel/bios32.c
++++ b/arch/arm/kernel/bios32.c
+@@ -471,6 +471,9 @@ static void pcibios_init_hw(struct device *parent, struct hw_pci *hw,
+ #ifdef CONFIG_PCI_DOMAINS
+ 		sys->domain  = hw->domain;
+ #endif
++#ifdef CONFIG_PCI_MSI
++		sys->msi_chip = hw->msi_chip;
++#endif
+ 		sys->busnr   = busnr;
+ 		sys->swizzle = hw->swizzle;
+ 		sys->map_irq = hw->map_irq;
+diff --git a/drivers/pci/msi.c b/drivers/pci/msi.c
+index 22e413c..f11108c 100644
+--- a/drivers/pci/msi.c
++++ b/drivers/pci/msi.c
+@@ -35,6 +35,9 @@ int __weak arch_setup_msi_irq(struct pci_dev *dev, struct msi_desc *desc)
+ 	struct msi_chip *chip = dev->bus->msi;
+ 	int err;
  
++	if (!chip)
++		chip = pci_msi_chip(dev->bus);
++
+ 	if (!chip || !chip->setup_irq)
+ 		return -EINVAL;
+ 
+@@ -50,6 +53,9 @@ void __weak arch_teardown_msi_irq(unsigned int irq)
+ 	struct msi_desc *entry = irq_get_msi_desc(irq);
+ 	struct msi_chip *chip = entry->dev->bus->msi;
+ 
++	if (!chip)
++		chip = pci_msi_chip(entry->dev->bus);
++
+ 	if (!chip || !chip->teardown_irq)
+ 		return;
+ 
+diff --git a/include/linux/pci.h b/include/linux/pci.h
+index 9cd2721..7a48b40 100644
+--- a/include/linux/pci.h
++++ b/include/linux/pci.h
+@@ -1433,6 +1433,15 @@ static inline int pci_get_new_domain_nr(void) { return -ENOSYS; }
+ 
+ #include <asm/pci.h>
+ 
++/* Just avoid compile error, will be clean up later */
++#ifdef CONFIG_PCI_MSI
++
++#ifndef pci_msi_chip
++#define pci_msi_chip(bus)	NULL
++#endif
++
++#endif
++
+ /* these helpers provide future and backwards compatibility
+  * for accessing popular PCI BAR info */
+ #define pci_resource_start(dev, bar)	((dev)->resource[(bar)].start)
 -- 
 1.7.1
