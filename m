@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from szxga03-in.huawei.com ([119.145.14.66]:56328 "EHLO
-	szxga03-in.huawei.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932771AbaJOC0F (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 14 Oct 2014 22:26:05 -0400
+Received: from szxga02-in.huawei.com ([119.145.14.65]:39160 "EHLO
+	szxga02-in.huawei.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932669AbaJOCZr (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 14 Oct 2014 22:25:47 -0400
 From: Yijing Wang <wangyijing@huawei.com>
-Subject: [PATCH v3 20/27] MIPS/Xlr/MSI: Use MSI chip framework to configure MSI/MSI-X irq
-Date: Wed, 15 Oct 2014 11:07:08 +0800
-Message-ID: <1413342435-7876-21-git-send-email-wangyijing@huawei.com>
+Subject: [PATCH v3 09/27] arm/PCI: Clean unused pcibios_add_bus() and pcibios_remove_bus()
+Date: Wed, 15 Oct 2014 11:06:57 +0800
+Message-ID: <1413342435-7876-10-git-send-email-wangyijing@huawei.com>
 In-Reply-To: <1413342435-7876-1-git-send-email-wangyijing@huawei.com>
 References: <1413342435-7876-1-git-send-email-wangyijing@huawei.com>
 MIME-Version: 1.0
@@ -15,68 +15,107 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Bjorn Helgaas <bhelgaas@google.com>
 Cc: linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, Xinwei Hu <huxinwei@huawei.com>, Wuyun <wuyun.wu@huawei.com>, linux-arm-kernel@lists.infradead.org, Russell King <linux@arm.linux.org.uk>, linux-arch@vger.kernel.org, arnab.basu@freescale.com, Bharat.Bhushan@freescale.com, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, Thomas Gleixner <tglx@linutronix.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, xen-devel@lists.xenproject.org, Joerg Roedel <joro@8bytes.org>, iommu@lists.linux-foundation.org, linux-mips@linux-mips.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, Sebastian Ott <sebott@linux.vnet.ibm.com>, Tony Luck <tony.luck@intel.com>, linux-ia64@vger.kernel.org, "David S. Miller" <davem@davemloft.net>, sparclinux@vger.kernel.org, Chris Metcalf <cmetcalf@tilera.com>, Ralf Baechle <ralf@linux-mips.org>, Lucas Stach <l.stach@pengutronix.de>, David Vrabel <david.vrabel@citrix.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, Michael Ellerman <mpe@ellerman.id.au>, Thierry Reding <thierry.reding@gmail.com>, Thomas Petazzoni <thomas.petazzoni@free-electrons.com>, Liviu Dudau <liviu@dudau.co.uk>, Yijing Wang <wangyijing@huawei.com>
-Message-ID: <20141015030708.19QrWJHzI_SfZhG0G_HYRarvJ34zzQA4pvBvKXEoGwc@z>
+Message-ID: <20141015030657.4DLkkTVGSsZE7nDcqe2EJnR-Awc83h76oDgzmlmW9rQ@z>
 
-Use MSI chip framework instead of arch MSI functions to configure
-MSI/MSI-X irq. So we can manage MSI/MSI-X irq in a unified framework.
+MSI chip will be saved in pci_sys_data, now we can
+clean up pcibios_add_bus() and pcibios_remove_bus()
+in arm, and use pci_find_msi_chip() to get msi chip
+in core MSI code.
 
 Signed-off-by: Yijing Wang <wangyijing@huawei.com>
 ---
- arch/mips/pci/pci-xlr.c |   17 +++++++++++++++--
- 1 files changed, 15 insertions(+), 2 deletions(-)
+ arch/arm/include/asm/mach/pci.h |    4 ----
+ arch/arm/kernel/bios32.c        |   16 ----------------
+ drivers/pci/msi.c               |   11 +++--------
+ 3 files changed, 3 insertions(+), 28 deletions(-)
 
-diff --git a/arch/mips/pci/pci-xlr.c b/arch/mips/pci/pci-xlr.c
-index 0dde803..0e611de 100644
---- a/arch/mips/pci/pci-xlr.c
-+++ b/arch/mips/pci/pci-xlr.c
-@@ -149,6 +149,8 @@ static struct resource nlm_pci_io_resource = {
- 	.flags		= IORESOURCE_IO,
- };
- 
-+static struct msi_chip xlr_msi_chip;
-+
- struct pci_controller nlm_pci_controller = {
- 	.index		= 0,
- 	.pci_ops	= &nlm_pci_ops,
-@@ -156,6 +158,9 @@ struct pci_controller nlm_pci_controller = {
- 	.mem_offset	= 0x00000000UL,
- 	.io_resource	= &nlm_pci_io_resource,
- 	.io_offset	= 0x00000000UL,
-+#ifdef CONFIG_PCI_MSI
-+	.msi_chip = &xlr_msi_chip,
-+#endif
+diff --git a/arch/arm/include/asm/mach/pci.h b/arch/arm/include/asm/mach/pci.h
+index 59b0d87..230b2c9 100644
+--- a/arch/arm/include/asm/mach/pci.h
++++ b/arch/arm/include/asm/mach/pci.h
+@@ -39,8 +39,6 @@ struct hw_pci {
+ 					  resource_size_t start,
+ 					  resource_size_t size,
+ 					  resource_size_t align);
+-	void		(*add_bus)(struct pci_bus *bus);
+-	void		(*remove_bus)(struct pci_bus *bus);
  };
  
  /*
-@@ -214,11 +219,13 @@ static int get_irq_vector(const struct pci_dev *dev)
- }
+@@ -71,8 +69,6 @@ struct pci_sys_data {
+ 					  resource_size_t start,
+ 					  resource_size_t size,
+ 					  resource_size_t align);
+-	void		(*add_bus)(struct pci_bus *bus);
+-	void		(*remove_bus)(struct pci_bus *bus);
+ 	void		*private_data;	/* platform controller private data	*/
+ };
  
- #ifdef CONFIG_PCI_MSI
--void arch_teardown_msi_irq(unsigned int irq)
-+static void xlr_teardown_msi_irq(struct msi_chip *chip,
-+		unsigned int irq)
+diff --git a/arch/arm/kernel/bios32.c b/arch/arm/kernel/bios32.c
+index a19038d..b1b872e 100644
+--- a/arch/arm/kernel/bios32.c
++++ b/arch/arm/kernel/bios32.c
+@@ -360,20 +360,6 @@ void pcibios_fixup_bus(struct pci_bus *bus)
+ }
+ EXPORT_SYMBOL(pcibios_fixup_bus);
+ 
+-void pcibios_add_bus(struct pci_bus *bus)
+-{
+-	struct pci_sys_data *sys = bus->sysdata;
+-	if (sys->add_bus)
+-		sys->add_bus(bus);
+-}
+-
+-void pcibios_remove_bus(struct pci_bus *bus)
+-{
+-	struct pci_sys_data *sys = bus->sysdata;
+-	if (sys->remove_bus)
+-		sys->remove_bus(bus);
+-}
+-
+ /*
+  * Swizzle the device pin each time we cross a bridge.  If a platform does
+  * not provide a swizzle function, we perform the standard PCI swizzling.
+@@ -478,8 +464,6 @@ static void pcibios_init_hw(struct device *parent, struct hw_pci *hw,
+ 		sys->swizzle = hw->swizzle;
+ 		sys->map_irq = hw->map_irq;
+ 		sys->align_resource = hw->align_resource;
+-		sys->add_bus = hw->add_bus;
+-		sys->remove_bus = hw->remove_bus;
+ 		INIT_LIST_HEAD(&sys->resources);
+ 
+ 		if (hw->private_data)
+diff --git a/drivers/pci/msi.c b/drivers/pci/msi.c
+index f11108c..56e54ad 100644
+--- a/drivers/pci/msi.c
++++ b/drivers/pci/msi.c
+@@ -32,12 +32,10 @@ int pci_msi_ignore_mask;
+ 
+ int __weak arch_setup_msi_irq(struct pci_dev *dev, struct msi_desc *desc)
  {
- }
+-	struct msi_chip *chip = dev->bus->msi;
++	struct msi_chip *chip;
+ 	int err;
  
--int arch_setup_msi_irq(struct pci_dev *dev, struct msi_desc *desc)
-+static int xlr_setup_msi_irq(struct msi_chip *chip,
-+		struct pci_dev *dev, struct msi_desc *desc)
+-	if (!chip)
+-		chip = pci_msi_chip(dev->bus);
+-
++	chip = pci_msi_chip(dev->bus);
+ 	if (!chip || !chip->setup_irq)
+ 		return -EINVAL;
+ 
+@@ -51,10 +49,7 @@ int __weak arch_setup_msi_irq(struct pci_dev *dev, struct msi_desc *desc)
+ void __weak arch_teardown_msi_irq(unsigned int irq)
  {
- 	struct msi_msg msg;
- 	struct pci_dev *lnk;
-@@ -263,6 +270,12 @@ int arch_setup_msi_irq(struct pci_dev *dev, struct msi_desc *desc)
- 	write_msi_msg(irq, &msg);
- 	return 0;
- }
-+
-+static struct msi_chip xlr_msi_chip = {
-+	.setup_irq = xlr_setup_msi_irq,
-+	.teardown_irq = xlr_teardown_msi_irq,
-+};
-+
- #endif
+ 	struct msi_desc *entry = irq_get_msi_desc(irq);
+-	struct msi_chip *chip = entry->dev->bus->msi;
+-
+-	if (!chip)
+-		chip = pci_msi_chip(entry->dev->bus);
++	struct msi_chip *chip = pci_msi_chip(entry->dev->bus);
  
- /* Extra ACK needed for XLR on chip PCI controller */
+ 	if (!chip || !chip->teardown_irq)
+ 		return;
 -- 
 1.7.1
 
