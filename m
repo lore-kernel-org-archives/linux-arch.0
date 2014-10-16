@@ -1,120 +1,123 @@
-From: Sebastian Ott <sebott-23VcF4HTsmIX0ybBhKVfKdBPR1lH4CV8@public.gmane.org>
-Subject: Re: [PATCH v3 22/27] s390/MSI: Use MSI chip framework to configure
-	MSI/MSI-X irq
-Date: Thu, 16 Oct 2014 14:13:20 +0200 (CEST)
-Message-ID: <alpine.LFD.2.11.1410161411340.1575@denkbrett>
-References: <1413342435-7876-1-git-send-email-wangyijing@huawei.com>
-	<1413342435-7876-23-git-send-email-wangyijing@huawei.com>
+From: "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>
+Subject: Re: [PATCH 1/2] mm: Update generic gup implementation to handle hugepage directory
+Date: Thu, 16 Oct 2014 20:48:20 +0530
+Message-ID: <871tq8kpqb.fsf@linux.vnet.ibm.com>
+References: <1413390888-4934-1-git-send-email-aneesh.kumar@linux.vnet.ibm.com> <20141016092529.GA1524@linaro.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-In-Reply-To: <1413342435-7876-23-git-send-email-wangyijing-hv44wF8Li93QT0dZR+AlfA@public.gmane.org>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
-List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
-Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-To: Yijing Wang <wangyijing-hv44wF8Li93QT0dZR+AlfA@public.gmane.org>
-Cc: linux-mips-6z/3iImG2C8G8FEW9MqTrA@public.gmane.org, linux-ia64-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-pci-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Thierry Reding <thierry.reding-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, sparclinux-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-s390-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Russell King <linux-lFZ/pmaqli7XmaaqVzeoHQ@public.gmane.org>, Michael Ellerman <mpe-Gsx/Oe8HsFggBc27wqDAHg@public.gmane.org>, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, Benjamin Herrenschmidt <benh-XVmvHMARGAS8U2dJNN8I7kB+6BGkLq7r@public.gmane.org>, xen-devel-GuqFBffKawtpuQazS67q72D2FQJk+8+b@public.gmane.org, arnab.basu-KZfg59tc24xl57MIdRCFDg@public.gmane.org, Liviu Dudau <liviu-I3yL/QOVVjH10XsdtD+oqA@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Chris Metcalf <cmetcalf-kv+TWInifGbQT0dZR+AlfA@public.gmane.org>, Bjorn Helgaas <bhelgaas-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, Thomas Petazzoni <thomas.petazzoni-wi1+55ScJUtKEb57/3fJTNBPR1lH4CV8@public.gmane.org>, Xinwei Hu <huxinwei-hv44wF8Li93QT0dZR+AlfA@public.gmane.org>, Tony Luck <tony.luck-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org>, Sergei Shtylyov <sergei.shtylyov-M4DtvfQ/ZS1MRgGoP+s0PdBPR1lH4CV8@public.gmane.org>, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Ralf Baechle <ralf-6z/3iImG2C8G8FEW9MqTrA@public.gmane.org>, iommu-cunTk1MwBs8@public.gmane.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from e23smtp04.au.ibm.com ([202.81.31.146]:43073 "EHLO
+	e23smtp04.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751160AbaJPPSs (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 16 Oct 2014 11:18:48 -0400
+Received: from /spool/local
+	by e23smtp04.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <aneesh.kumar@linux.vnet.ibm.com>;
+	Fri, 17 Oct 2014 01:18:46 +1000
+In-Reply-To: <20141016092529.GA1524@linaro.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Steve Capper <steve.capper@linaro.org>
+Cc: akpm@linux-foundation.org, Andrea Arcangeli <aarcange@redhat.com>, benh@kernel.crashing.org, mpe@ellerman.id.au, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-arch@vger.kernel.org, will.deacon@arm.com, catalin.marinas@arm.com, linux@arm.linux.org.uk
 
-On Wed, 15 Oct 2014, Yijing Wang wrote:
-> Use MSI chip framework instead of arch MSI functions to configure
-> MSI/MSI-X irq. So we can manage MSI/MSI-X irq in a unified framework.
-> 
-> Signed-off-by: Yijing Wang <wangyijing-hv44wF8Li93QT0dZR+AlfA@public.gmane.org>
-> ---
-> Hi Sebastian,
->    I dropped the Acked-by , because this version has a
-> lot changes compared to last. So, I guess you may want to check it again.
+Steve Capper <steve.capper@linaro.org> writes:
 
-I did and I agree with that one too.
-
-Regards,
-Sebastian
-
-> ---
->  arch/s390/include/asm/pci.h |    9 +++++++++
->  arch/s390/pci/pci.c         |   12 ++++++++++--
->  2 files changed, 19 insertions(+), 2 deletions(-)
-> 
-> diff --git a/arch/s390/include/asm/pci.h b/arch/s390/include/asm/pci.h
-> index c030900..4d41f08 100644
-> --- a/arch/s390/include/asm/pci.h
-> +++ b/arch/s390/include/asm/pci.h
-> @@ -88,6 +88,8 @@ struct zpci_dev {
->  	u32 uid;			/* user defined id */
->  	u8 util_str[CLP_UTIL_STR_LEN];	/* utility string */
-> 
-> +	struct msi_chip *msi_chip;
-> +
->  	/* IRQ stuff */
->  	u64		msi_addr;	/* MSI address */
->  	struct airq_iv *aibv;		/* adapter interrupt bit vector */
-> @@ -121,6 +123,13 @@ struct zpci_dev {
->  	struct dentry	*debugfs_perf;
->  };
-> 
-> +static inline struct msi_chip *pci_msi_chip(struct pci_bus *bus)
-> +{
-> +	struct zpci_dev *zpci = bus->sysdata;
-> +
-> +	return zpci->msi_chip;
-> +}
-> +
->  static inline bool zdev_enabled(struct zpci_dev *zdev)
->  {
->  	return (zdev->fh & (1UL << 31)) ? true : false;
-> diff --git a/arch/s390/pci/pci.c b/arch/s390/pci/pci.c
-> index 552b990..bf6732f 100644
-> --- a/arch/s390/pci/pci.c
-> +++ b/arch/s390/pci/pci.c
-> @@ -358,7 +358,8 @@ static void zpci_irq_handler(struct airq_struct *airq)
->  	}
->  }
-> 
-> -int arch_setup_msi_irqs(struct pci_dev *pdev, int nvec, int type)
-> +static int zpci_setup_msi_irqs(struct msi_chip *chip,
-> +		struct pci_dev *pdev, int nvec, int type)
->  {
->  	struct zpci_dev *zdev = get_zdev(pdev);
->  	unsigned int hwirq, msi_vecs;
-> @@ -434,7 +435,8 @@ out:
->  	return rc;
->  }
-> 
-> -void arch_teardown_msi_irqs(struct pci_dev *pdev)
-> +static void zpci_teardown_msi_irqs(struct msi_chip *chip,
-> +		struct pci_dev *pdev)
->  {
->  	struct zpci_dev *zdev = get_zdev(pdev);
->  	struct msi_desc *msi;
-> @@ -464,6 +466,11 @@ void arch_teardown_msi_irqs(struct pci_dev *pdev)
->  	airq_iv_free_bit(zpci_aisb_iv, zdev->aisb);
->  }
-> 
-> +static struct msi_chip zpci_msi_chip = {
-> +	.setup_irqs = zpci_setup_msi_irqs,
-> +	.teardown_irqs = zpci_teardown_msi_irqs,
-> +};
-> +
->  static void zpci_map_resources(struct zpci_dev *zdev)
->  {
->  	struct pci_dev *pdev = zdev->pdev;
-> @@ -749,6 +756,7 @@ static int zpci_scan_bus(struct zpci_dev *zdev)
->  	if (ret)
->  		return ret;
-> 
-> +	zdev->msi_chip = &zpci_msi_chip;
->  	zdev->bus = pci_scan_root_bus(NULL, ZPCI_BUS_NR, &pci_root_ops,
->  				      zdev, &resources);
->  	if (!zdev->bus) {
+> On Wed, Oct 15, 2014 at 10:04:47PM +0530, Aneesh Kumar K.V wrote:
+>> Update generic gup implementation with powerpc specific details.
+>> On powerpc at pmd level we can have hugepte, normal pmd pointer
+>> or a pointer to the hugepage directory.
+>> 
+>> Signed-off-by: Aneesh Kumar K.V <aneesh.kumar@linux.vnet.ibm.com>
+>
+> Hi,
+> This patch causes compiler errors on arm and arm64 due to pgd_huge
+> being undefined. I've attached a fixup below, this fixup will require
+> that #define pgd_huge(pgd) 0 be added back into:
+> arch/powerpc/include/asm/page.h
+> For the second patch in this series.
+>
+> Another avenue would be to do something like:
+> #ifndef pgd_huge
+> #define pgd_huge(pgd)	(0)
+> #endif
+>
+> Then no changes would be required to arm and arm64 (or other
+> architectures).
+>
+> To help with bisectability, could we please have a suitable fix applied
+> to the two patches in the -mm tree:
+> http://ozlabs.org/~akpm/mmots/broken-out/mm-update-generic-gup-implementation-to-handle-hugepage-directory.patch
+> http://ozlabs.org/~akpm/mmots/broken-out/arch-powerpc-switch-to-generic-rcu-get_user_pages_fast.patch
+>
+> rather than applied afterwards?
+>
+> With pgd_huge(x) defined, this patch passes my futex test on arm
+> (Arndale platform) and arm64(Juno).
+>
+> Cheers,
 > -- 
-> 1.7.1
-> 
-> 
+> Steve
+>
+>
+>
+> From 2fb7b0308f0aca94c50611257ba82d656abb0768 Mon Sep 17 00:00:00 2001
+> From: Steve Capper <steve.capper@linaro.org>
+> Date: Thu, 16 Oct 2014 09:09:48 +0100
+> Subject: [PATCH] Fixup for Update generic gup implementation
+>
+> The patch:
+> mm: Update generic gup implementation to handle hugepage directory
+>
+> will not compile for arm or arm64 due to pgd_huge being undefined.
+>
+> Signed-off-by: Steve Capper <steve.capper@linaro.org>
+> ---
+>  arch/arm/include/asm/pgtable.h   | 2 ++
+>  arch/arm64/include/asm/pgtable.h | 2 ++
+>  include/linux/hugetlb.h          | 1 -
+>  3 files changed, 4 insertions(+), 1 deletion(-)
+>
+> diff --git a/arch/arm/include/asm/pgtable.h b/arch/arm/include/asm/pgtable.h
+> index 90aa4583..46f81fb 100644
+> --- a/arch/arm/include/asm/pgtable.h
+> +++ b/arch/arm/include/asm/pgtable.h
+> @@ -181,6 +181,8 @@ extern pgd_t swapper_pg_dir[PTRS_PER_PGD];
+>  /* to find an entry in a kernel page-table-directory */
+>  #define pgd_offset_k(addr)	pgd_offset(&init_mm, addr)
+>
+> +#define pgd_huge(pgd)		(0)
+> +
+>  #define pmd_none(pmd)		(!pmd_val(pmd))
+>  #define pmd_present(pmd)	(pmd_val(pmd))
+>
+> diff --git a/arch/arm64/include/asm/pgtable.h b/arch/arm64/include/asm/pgtable.h
+> index 464c5ce..d4462ca 100644
+> --- a/arch/arm64/include/asm/pgtable.h
+> +++ b/arch/arm64/include/asm/pgtable.h
+> @@ -462,6 +462,8 @@ static inline pmd_t pmd_modify(pmd_t pmd, pgprot_t newprot)
+>  extern pgd_t swapper_pg_dir[PTRS_PER_PGD];
+>  extern pgd_t idmap_pg_dir[PTRS_PER_PGD];
+>
+> +#define pgd_huge(pgd)		(0)
+> +
+>  /*
+>   * Encode and decode a swap entry:
+>   *	bits 0-1:	present (must be zero)
+> diff --git a/include/linux/hugetlb.h b/include/linux/hugetlb.h
+> index 65e12a2..6e6d338 100644
+> --- a/include/linux/hugetlb.h
+> +++ b/include/linux/hugetlb.h
+> @@ -138,7 +138,6 @@ static inline void hugetlb_show_meminfo(void)
+>  #define prepare_hugepage_range(file, addr, len)	(-EINVAL)
+>  #define pmd_huge(x)	0
+>  #define pud_huge(x)	0
+> -#define pgd_huge(x)	0
+>  #define is_hugepage_only_range(mm, addr, len)	0
+>  #define hugetlb_free_pgd_range(tlb, addr, end, floor, ceiling) ({BUG(); 0; })
+>  #define hugetlb_fault(mm, vma, addr, flags)	({ BUG(); 0; })
+
+don't do the last hunk, that will result in build failures on sub
+platforms on ppc64. can you do the arm patch without making the change
+to hugetlb.h ?
+
+-aneesh
