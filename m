@@ -1,120 +1,179 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e06smtp16.uk.ibm.com ([195.75.94.112]:59407 "EHLO
-	e06smtp16.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750993AbaJPMNn (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 16 Oct 2014 08:13:43 -0400
-Received: from /spool/local
-	by e06smtp16.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <sebott@linux.vnet.ibm.com>;
-	Thu, 16 Oct 2014 13:13:41 +0100
-Date: Thu, 16 Oct 2014 14:13:20 +0200 (CEST)
-From: Sebastian Ott <sebott@linux.vnet.ibm.com>
-Subject: Re: [PATCH v3 22/27] s390/MSI: Use MSI chip framework to configure
- MSI/MSI-X irq
-In-Reply-To: <1413342435-7876-23-git-send-email-wangyijing@huawei.com>
-Message-ID: <alpine.LFD.2.11.1410161411340.1575@denkbrett>
-References: <1413342435-7876-1-git-send-email-wangyijing@huawei.com> <1413342435-7876-23-git-send-email-wangyijing@huawei.com>
-MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Received: from g9t1613g.houston.hp.com ([15.240.0.71]:50320 "EHLO
+	g9t1613g.houston.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751636AbaJPSKy (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 16 Oct 2014 14:10:54 -0400
+From: Waiman Long <Waiman.Long@hp.com>
+Subject: [PATCH v12 00/11] qspinlock: a 4-byte queue spinlock with PV support
+Date: Thu, 16 Oct 2014 14:10:29 -0400
+Message-ID: <1413483040-58399-1-git-send-email-Waiman.Long@hp.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Yijing Wang <wangyijing@huawei.com>
-Cc: Bjorn Helgaas <bhelgaas@google.com>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, Xinwei Hu <huxinwei@huawei.com>, Wuyun <wuyun.wu@huawei.com>, linux-arm-kernel@lists.infradead.org, Russell King <linux@arm.linux.org.uk>, linux-arch@vger.kernel.org, arnab.basu@freescale.com, Bharat.Bhushan@freescale.com, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, Thomas Gleixner <tglx@linutronix.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, xen-devel@lists.xenproject.org, Joerg Roedel <joro@8bytes.org>, iommu@lists.linux-foundation.org, linux-mips@linux-mips.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, Tony Luck <tony.luck@intel.com>, linux-ia64@vger.kernel.org, "David S. Miller" <davem@davemloft.net>, sparclinux@vger.kernel.org, Chris Metcalf <cmetcalf@tilera.com>, Ralf Baechle <ralf@linux-mips.org>, Lucas Stach <l.stach@pengutronix.de>, David Vrabel <david.vrabel@citrix.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, Michael Ellerman <mpe@ellerman.id.au>, Thierry Reding <thierry.reding@gmail.com>, Thomas Petazzoni <thomas.petazzoni@free-electrons.com>, Liviu Dudau <liviu@dudau.co.uk>
-Message-ID: <20141016121320.Z2o6KWul8v8puJqSFxz9b5pyeXYLuDBk6n3zBVRk7QI@z>
+To: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Peter Zijlstra <peterz@infradead.org>
+Cc: linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Rik van Riel <riel@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, David Vrabel <david.vrabel@citrix.com>, Oleg Nesterov <oleg@redhat.com>, Scott J Norton <scott.norton@hp.com>, Douglas Hatch <doug.hatch@hp.com>, Waiman Long <Waiman.Long@hp.com>
+Message-ID: <20141016181029.olTDwXmHOG2cnOPyXc7wRj1qgAJI51SWI_wwji857V4@z>
 
-On Wed, 15 Oct 2014, Yijing Wang wrote:
-> Use MSI chip framework instead of arch MSI functions to configure
-> MSI/MSI-X irq. So we can manage MSI/MSI-X irq in a unified framework.
-> 
-> Signed-off-by: Yijing Wang <wangyijing@huawei.com>
-> ---
-> Hi Sebastian,
->    I dropped the Acked-by , because this version has a
-> lot changes compared to last. So, I guess you may want to check it again.
+v11->v12:
+ - Based on PeterZ's version of the qspinlock patch
+   (https://lkml.org/lkml/2014/6/15/63).
+ - Incorporated many of the review comments from Konrad Wilk and
+   Paolo Bonzini.
+ - The pvqspinlock code is largely from my previous version with
+   PeterZ's way of going from queue tail to head and his idea of
+   using callee saved calls to KVM and XEN codes.
 
-I did and I agree with that one too.
+v10->v11:
+  - Use a simple test-and-set unfair lock to simplify the code,
+    but performance may suffer a bit for large guest with many CPUs.
+  - Take out Raghavendra KT's test results as the unfair lock changes
+    may render some of his results invalid.
+  - Add PV support without increasing the size of the core queue node
+    structure.
+  - Other minor changes to address some of the feedback comments.
 
-Regards,
-Sebastian
+v9->v10:
+  - Make some minor changes to qspinlock.c to accommodate review feedback.
+  - Change author to PeterZ for 2 of the patches.
+  - Include Raghavendra KT's test results in patch 18.
 
-> ---
->  arch/s390/include/asm/pci.h |    9 +++++++++
->  arch/s390/pci/pci.c         |   12 ++++++++++--
->  2 files changed, 19 insertions(+), 2 deletions(-)
-> 
-> diff --git a/arch/s390/include/asm/pci.h b/arch/s390/include/asm/pci.h
-> index c030900..4d41f08 100644
-> --- a/arch/s390/include/asm/pci.h
-> +++ b/arch/s390/include/asm/pci.h
-> @@ -88,6 +88,8 @@ struct zpci_dev {
->  	u32 uid;			/* user defined id */
->  	u8 util_str[CLP_UTIL_STR_LEN];	/* utility string */
-> 
-> +	struct msi_chip *msi_chip;
-> +
->  	/* IRQ stuff */
->  	u64		msi_addr;	/* MSI address */
->  	struct airq_iv *aibv;		/* adapter interrupt bit vector */
-> @@ -121,6 +123,13 @@ struct zpci_dev {
->  	struct dentry	*debugfs_perf;
->  };
-> 
-> +static inline struct msi_chip *pci_msi_chip(struct pci_bus *bus)
-> +{
-> +	struct zpci_dev *zpci = bus->sysdata;
-> +
-> +	return zpci->msi_chip;
-> +}
-> +
->  static inline bool zdev_enabled(struct zpci_dev *zdev)
->  {
->  	return (zdev->fh & (1UL << 31)) ? true : false;
-> diff --git a/arch/s390/pci/pci.c b/arch/s390/pci/pci.c
-> index 552b990..bf6732f 100644
-> --- a/arch/s390/pci/pci.c
-> +++ b/arch/s390/pci/pci.c
-> @@ -358,7 +358,8 @@ static void zpci_irq_handler(struct airq_struct *airq)
->  	}
->  }
-> 
-> -int arch_setup_msi_irqs(struct pci_dev *pdev, int nvec, int type)
-> +static int zpci_setup_msi_irqs(struct msi_chip *chip,
-> +		struct pci_dev *pdev, int nvec, int type)
->  {
->  	struct zpci_dev *zdev = get_zdev(pdev);
->  	unsigned int hwirq, msi_vecs;
-> @@ -434,7 +435,8 @@ out:
->  	return rc;
->  }
-> 
-> -void arch_teardown_msi_irqs(struct pci_dev *pdev)
-> +static void zpci_teardown_msi_irqs(struct msi_chip *chip,
-> +		struct pci_dev *pdev)
->  {
->  	struct zpci_dev *zdev = get_zdev(pdev);
->  	struct msi_desc *msi;
-> @@ -464,6 +466,11 @@ void arch_teardown_msi_irqs(struct pci_dev *pdev)
->  	airq_iv_free_bit(zpci_aisb_iv, zdev->aisb);
->  }
-> 
-> +static struct msi_chip zpci_msi_chip = {
-> +	.setup_irqs = zpci_setup_msi_irqs,
-> +	.teardown_irqs = zpci_teardown_msi_irqs,
-> +};
-> +
->  static void zpci_map_resources(struct zpci_dev *zdev)
->  {
->  	struct pci_dev *pdev = zdev->pdev;
-> @@ -749,6 +756,7 @@ static int zpci_scan_bus(struct zpci_dev *zdev)
->  	if (ret)
->  		return ret;
-> 
-> +	zdev->msi_chip = &zpci_msi_chip;
->  	zdev->bus = pci_scan_root_bus(NULL, ZPCI_BUS_NR, &pci_root_ops,
->  				      zdev, &resources);
->  	if (!zdev->bus) {
-> -- 
-> 1.7.1
-> 
-> 
+v8->v9:
+  - Integrate PeterZ's version of the queue spinlock patch with some
+    modification:
+    http://lkml.kernel.org/r/20140310154236.038181843@infradead.org
+  - Break the more complex patches into smaller ones to ease review effort.
+  - Fix a racing condition in the PV qspinlock code.
+
+v7->v8:
+  - Remove one unneeded atomic operation from the slowpath, thus
+    improving performance.
+  - Simplify some of the codes and add more comments.
+  - Test for X86_FEATURE_HYPERVISOR CPU feature bit to enable/disable
+    unfair lock.
+  - Reduce unfair lock slowpath lock stealing frequency depending
+    on its distance from the queue head.
+  - Add performance data for IvyBridge-EX CPU.
+
+v6->v7:
+  - Remove an atomic operation from the 2-task contending code
+  - Shorten the names of some macros
+  - Make the queue waiter to attempt to steal lock when unfair lock is
+    enabled.
+  - Remove lock holder kick from the PV code and fix a race condition
+  - Run the unfair lock & PV code on overcommitted KVM guests to collect
+    performance data.
+
+v5->v6:
+ - Change the optimized 2-task contending code to make it fairer at the
+   expense of a bit of performance.
+ - Add a patch to support unfair queue spinlock for Xen.
+ - Modify the PV qspinlock code to follow what was done in the PV
+   ticketlock.
+ - Add performance data for the unfair lock as well as the PV
+   support code.
+
+v4->v5:
+ - Move the optimized 2-task contending code to the generic file to
+   enable more architectures to use it without code duplication.
+ - Address some of the style-related comments by PeterZ.
+ - Allow the use of unfair queue spinlock in a real para-virtualized
+   execution environment.
+ - Add para-virtualization support to the qspinlock code by ensuring
+   that the lock holder and queue head stay alive as much as possible.
+
+v3->v4:
+ - Remove debugging code and fix a configuration error
+ - Simplify the qspinlock structure and streamline the code to make it
+   perform a bit better
+ - Add an x86 version of asm/qspinlock.h for holding x86 specific
+   optimization.
+ - Add an optimized x86 code path for 2 contending tasks to improve
+   low contention performance.
+
+v2->v3:
+ - Simplify the code by using numerous mode only without an unfair option.
+ - Use the latest smp_load_acquire()/smp_store_release() barriers.
+ - Move the queue spinlock code to kernel/locking.
+ - Make the use of queue spinlock the default for x86-64 without user
+   configuration.
+ - Additional performance tuning.
+
+v1->v2:
+ - Add some more comments to document what the code does.
+ - Add a numerous CPU mode to support >= 16K CPUs
+ - Add a configuration option to allow lock stealing which can further
+   improve performance in many cases.
+ - Enable wakeup of queue head CPU at unlock time for non-numerous
+   CPU mode.
+
+This patch set has 3 different sections:
+ 1) Patches 1-6: Introduces a queue-based spinlock implementation that
+    can replace the default ticket spinlock without increasing the
+    size of the spinlock data structure. As a result, critical kernel
+    data structures that embed spinlock won't increase in size and
+    break data alignments.
+ 2) Patch 7: Enables the use of unfair lock in a virtual guest. This
+    can resolve some of the locking related performance issues due to
+    the fact that the next CPU to get the lock may have been scheduled
+    out for a period of time.
+ 3) Patches 8-11: Enable qspinlock para-virtualization support by
+    halting the waiting CPUs after spinning for a certain amount of
+    time. The unlock code will detect the a sleeping waiter and wake it
+    up. This is essentially the same logic as the PV ticketlock code.
+
+The queue spinlock has slightly better performance than the ticket
+spinlock in uncontended case. Its performance can be much better
+with moderate to heavy contention.  This patch has the potential of
+improving the performance of all the workloads that have moderate to
+heavy spinlock contention.
+
+The queue spinlock is especially suitable for NUMA machines with
+at least 2 sockets. Though even at the 2-socket level, there can
+be significant speedup depending on the workload. I got report that
+the queue spinlock patch can improve the performance of an I/O and
+interrupt intensive stress test with a lot of spinlock contention on
+a 2-socket system by up to 20%.
+
+The purpose of this patch set is not to solve any particular spinlock
+contention problems. Those need to be solved by refactoring the code
+to make more efficient use of the lock or finer granularity ones. The
+main purpose is to make the lock contention problems more tolerable
+until someone can spend the time and effort to fix them.
+
+Peter Zijlstra (3):
+  qspinlock: Add pending bit
+  qspinlock: Optimize for smaller NR_CPUS
+  qspinlock: Revert to test-and-set on hypervisors
+
+Waiman Long (8):
+  qspinlock: A simple generic 4-byte queue spinlock
+  qspinlock, x86: Enable x86-64 to use queue spinlock
+  qspinlock: Extract out code snippets for the next patch
+  qspinlock: Use a simple write to grab the lock
+  qspinlock, x86: Rename paravirt_ticketlocks_enabled
+  pvqspinlock, x86: Add para-virtualization support
+  pvqspinlock, x86: Enable PV qspinlock for KVM
+  pvqspinlock, x86: Enable PV qspinlock for XEN
+
+ arch/x86/Kconfig                      |    1 +
+ arch/x86/include/asm/paravirt.h       |   20 ++
+ arch/x86/include/asm/paravirt_types.h |   20 ++
+ arch/x86/include/asm/pvqspinlock.h    |  403 ++++++++++++++++++++++++++++
+ arch/x86/include/asm/qspinlock.h      |   77 ++++++
+ arch/x86/include/asm/spinlock.h       |    9 +-
+ arch/x86/include/asm/spinlock_types.h |    4 +
+ arch/x86/kernel/kvm.c                 |  140 ++++++++++-
+ arch/x86/kernel/paravirt-spinlocks.c  |   10 +-
+ arch/x86/xen/spinlock.c               |  151 ++++++++++-
+ include/asm-generic/qspinlock.h       |  125 +++++++++
+ include/asm-generic/qspinlock_types.h |   79 ++++++
+ kernel/Kconfig.locks                  |    7 +
+ kernel/locking/Makefile               |    1 +
+ kernel/locking/mcs_spinlock.h         |    1 +
+ kernel/locking/qspinlock.c            |  476 +++++++++++++++++++++++++++++++++
+ 16 files changed, 1512 insertions(+), 12 deletions(-)
+ create mode 100644 arch/x86/include/asm/pvqspinlock.h
+ create mode 100644 arch/x86/include/asm/qspinlock.h
+ create mode 100644 include/asm-generic/qspinlock.h
+ create mode 100644 include/asm-generic/qspinlock_types.h
+ create mode 100644 kernel/locking/qspinlock.c
 
