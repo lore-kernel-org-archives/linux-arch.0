@@ -1,254 +1,133 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from g9t1613g.houston.hp.com ([15.240.0.71]:50337 "EHLO
-	g9t1613g.houston.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752543AbaJPSLI (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 16 Oct 2014 14:11:08 -0400
-From: Waiman Long <Waiman.Long@hp.com>
-Subject: [PATCH v12 03/11] qspinlock: Add pending bit
-Date: Thu, 16 Oct 2014 14:10:32 -0400
-Message-ID: <1413483040-58399-4-git-send-email-Waiman.Long@hp.com>
-In-Reply-To: <1413483040-58399-1-git-send-email-Waiman.Long@hp.com>
-References: <1413483040-58399-1-git-send-email-Waiman.Long@hp.com>
+Received: from szxga01-in.huawei.com ([119.145.14.64]:60200 "EHLO
+	szxga01-in.huawei.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751322AbaJQBFL (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 16 Oct 2014 21:05:11 -0400
+Message-ID: <54406B06.4020401@huawei.com>
+Date: Fri, 17 Oct 2014 09:04:06 +0800
+From: Yijing Wang <wangyijing@huawei.com>
+MIME-Version: 1.0
+Subject: Re: [PATCH v3 22/27] s390/MSI: Use MSI chip framework to configure
+ MSI/MSI-X irq
+References: <1413342435-7876-1-git-send-email-wangyijing@huawei.com> <1413342435-7876-23-git-send-email-wangyijing@huawei.com> <alpine.LFD.2.11.1410161411340.1575@denkbrett>
+In-Reply-To: <alpine.LFD.2.11.1410161411340.1575@denkbrett>
+Content-Type: text/plain; charset="ISO-8859-1"
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Peter Zijlstra <peterz@infradead.org>
-Cc: linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Rik van Riel <riel@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, David Vrabel <david.vrabel@citrix.com>, Oleg Nesterov <oleg@redhat.com>, Scott J Norton <scott.norton@hp.com>, Douglas Hatch <doug.hatch@hp.com>, Waiman Long <Waiman.Long@hp.com>
-Message-ID: <20141016181032.5YAhrWw-QpiY-YRnfZCh06lUfwVVqbjMU0uhvJXdqys@z>
+To: Sebastian Ott <sebott@linux.vnet.ibm.com>
+Cc: Bjorn Helgaas <bhelgaas@google.com>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, Xinwei Hu <huxinwei@huawei.com>, Wuyun <wuyun.wu@huawei.com>, linux-arm-kernel@lists.infradead.org, Russell King <linux@arm.linux.org.uk>, linux-arch@vger.kernel.org, arnab.basu@freescale.com, Bharat.Bhushan@freescale.com, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, Thomas Gleixner <tglx@linutronix.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, xen-devel@lists.xenproject.org, Joerg Roedel <joro@8bytes.org>, iommu@lists.linux-foundation.org, linux-mips@linux-mips.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, Tony Luck <tony.luck@intel.com>, linux-ia64@vger.kernel.org, "David S. Miller" <davem@davemloft.net>, sparclinux@vger.kernel.org, Chris Metcalf <cmetcalf@tilera.com>, Ralf Baechle <ralf@linux-mips.org>, Lucas Stach <l.stach@pengutronix.de>, David Vrabel <david.vrabel@citrix.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, Michael Ellerman <mpe@ellerman.id.au>, Thierry Reding <thierry.reding@gmail.com>, Thomas Petazzoni <thomas.petazzoni@free-electrons.com>, Liviu Dudau <liviu@dudau.co.uk>
+Message-ID: <20141017010406.q9WzlX_FkMJEYjO5UjUnsc5YvsMkMXOl61QjKMMd9OM@z>
 
-From: Peter Zijlstra <peterz@infradead.org>
+On 2014/10/16 20:13, Sebastian Ott wrote:
+> On Wed, 15 Oct 2014, Yijing Wang wrote:
+>> Use MSI chip framework instead of arch MSI functions to configure
+>> MSI/MSI-X irq. So we can manage MSI/MSI-X irq in a unified framework.
+>>
+>> Signed-off-by: Yijing Wang <wangyijing@huawei.com>
+>> ---
+>> Hi Sebastian,
+>>    I dropped the Acked-by , because this version has a
+>> lot changes compared to last. So, I guess you may want to check it again.
+> 
+> I did and I agree with that one too.
 
-Because the qspinlock needs to touch a second cacheline (the per-cpu
-mcs_nodes[]); add a pending bit and allow a single in-word spinner
-before we punt to the second cacheline.
+Thanks very much!
 
-It is possible so observe the pending bit without the locked bit when
-the last owner has just released but the pending owner has not yet
-taken ownership.
+Thanks!
+Yijing.
 
-In this case we would normally queue -- because the pending bit is
-already taken. However, in this case the pending bit is guaranteed
-to be released 'soon', therefore wait for it and avoid queueing.
+> 
+> Regards,
+> Sebastian
+> 
+>> ---
+>>  arch/s390/include/asm/pci.h |    9 +++++++++
+>>  arch/s390/pci/pci.c         |   12 ++++++++++--
+>>  2 files changed, 19 insertions(+), 2 deletions(-)
+>>
+>> diff --git a/arch/s390/include/asm/pci.h b/arch/s390/include/asm/pci.h
+>> index c030900..4d41f08 100644
+>> --- a/arch/s390/include/asm/pci.h
+>> +++ b/arch/s390/include/asm/pci.h
+>> @@ -88,6 +88,8 @@ struct zpci_dev {
+>>  	u32 uid;			/* user defined id */
+>>  	u8 util_str[CLP_UTIL_STR_LEN];	/* utility string */
+>>
+>> +	struct msi_chip *msi_chip;
+>> +
+>>  	/* IRQ stuff */
+>>  	u64		msi_addr;	/* MSI address */
+>>  	struct airq_iv *aibv;		/* adapter interrupt bit vector */
+>> @@ -121,6 +123,13 @@ struct zpci_dev {
+>>  	struct dentry	*debugfs_perf;
+>>  };
+>>
+>> +static inline struct msi_chip *pci_msi_chip(struct pci_bus *bus)
+>> +{
+>> +	struct zpci_dev *zpci = bus->sysdata;
+>> +
+>> +	return zpci->msi_chip;
+>> +}
+>> +
+>>  static inline bool zdev_enabled(struct zpci_dev *zdev)
+>>  {
+>>  	return (zdev->fh & (1UL << 31)) ? true : false;
+>> diff --git a/arch/s390/pci/pci.c b/arch/s390/pci/pci.c
+>> index 552b990..bf6732f 100644
+>> --- a/arch/s390/pci/pci.c
+>> +++ b/arch/s390/pci/pci.c
+>> @@ -358,7 +358,8 @@ static void zpci_irq_handler(struct airq_struct *airq)
+>>  	}
+>>  }
+>>
+>> -int arch_setup_msi_irqs(struct pci_dev *pdev, int nvec, int type)
+>> +static int zpci_setup_msi_irqs(struct msi_chip *chip,
+>> +		struct pci_dev *pdev, int nvec, int type)
+>>  {
+>>  	struct zpci_dev *zdev = get_zdev(pdev);
+>>  	unsigned int hwirq, msi_vecs;
+>> @@ -434,7 +435,8 @@ out:
+>>  	return rc;
+>>  }
+>>
+>> -void arch_teardown_msi_irqs(struct pci_dev *pdev)
+>> +static void zpci_teardown_msi_irqs(struct msi_chip *chip,
+>> +		struct pci_dev *pdev)
+>>  {
+>>  	struct zpci_dev *zdev = get_zdev(pdev);
+>>  	struct msi_desc *msi;
+>> @@ -464,6 +466,11 @@ void arch_teardown_msi_irqs(struct pci_dev *pdev)
+>>  	airq_iv_free_bit(zpci_aisb_iv, zdev->aisb);
+>>  }
+>>
+>> +static struct msi_chip zpci_msi_chip = {
+>> +	.setup_irqs = zpci_setup_msi_irqs,
+>> +	.teardown_irqs = zpci_teardown_msi_irqs,
+>> +};
+>> +
+>>  static void zpci_map_resources(struct zpci_dev *zdev)
+>>  {
+>>  	struct pci_dev *pdev = zdev->pdev;
+>> @@ -749,6 +756,7 @@ static int zpci_scan_bus(struct zpci_dev *zdev)
+>>  	if (ret)
+>>  		return ret;
+>>
+>> +	zdev->msi_chip = &zpci_msi_chip;
+>>  	zdev->bus = pci_scan_root_bus(NULL, ZPCI_BUS_NR, &pci_root_ops,
+>>  				      zdev, &resources);
+>>  	if (!zdev->bus) {
+>> -- 
+>> 1.7.1
+>>
+>>
+> 
+> 
+> .
+> 
 
-Signed-off-by: Peter Zijlstra <peterz@infradead.org>
-Signed-off-by: Waiman Long <Waiman.Long@hp.com>
----
- include/asm-generic/qspinlock_types.h |   12 +++-
- kernel/locking/qspinlock.c            |  119 +++++++++++++++++++++++++++------
- 2 files changed, 107 insertions(+), 24 deletions(-)
 
-diff --git a/include/asm-generic/qspinlock_types.h b/include/asm-generic/qspinlock_types.h
-index 67a2110..4196694 100644
---- a/include/asm-generic/qspinlock_types.h
-+++ b/include/asm-generic/qspinlock_types.h
-@@ -36,8 +36,9 @@ typedef struct qspinlock {
-  * Bitfields in the atomic value:
-  *
-  *  0- 7: locked byte
-- *  8- 9: tail index
-- * 10-31: tail cpu (+1)
-+ *     8: pending
-+ *  9-10: tail index
-+ * 11-31: tail cpu (+1)
-  */
- #define	_Q_SET_MASK(type)	(((1U << _Q_ ## type ## _BITS) - 1)\
- 				      << _Q_ ## type ## _OFFSET)
-@@ -45,7 +46,11 @@ typedef struct qspinlock {
- #define _Q_LOCKED_BITS		8
- #define _Q_LOCKED_MASK		_Q_SET_MASK(LOCKED)
- 
--#define _Q_TAIL_IDX_OFFSET	(_Q_LOCKED_OFFSET + _Q_LOCKED_BITS)
-+#define _Q_PENDING_OFFSET	(_Q_LOCKED_OFFSET + _Q_LOCKED_BITS)
-+#define _Q_PENDING_BITS		1
-+#define _Q_PENDING_MASK		_Q_SET_MASK(PENDING)
-+
-+#define _Q_TAIL_IDX_OFFSET	(_Q_PENDING_OFFSET + _Q_PENDING_BITS)
- #define _Q_TAIL_IDX_BITS	2
- #define _Q_TAIL_IDX_MASK	_Q_SET_MASK(TAIL_IDX)
- 
-@@ -54,5 +59,6 @@ typedef struct qspinlock {
- #define _Q_TAIL_CPU_MASK	_Q_SET_MASK(TAIL_CPU)
- 
- #define _Q_LOCKED_VAL		(1U << _Q_LOCKED_OFFSET)
-+#define _Q_PENDING_VAL		(1U << _Q_PENDING_OFFSET)
- 
- #endif /* __ASM_GENERIC_QSPINLOCK_TYPES_H */
-diff --git a/kernel/locking/qspinlock.c b/kernel/locking/qspinlock.c
-index c114076..226b11d 100644
---- a/kernel/locking/qspinlock.c
-+++ b/kernel/locking/qspinlock.c
-@@ -92,24 +92,28 @@ static inline struct mcs_spinlock *decode_tail(u32 tail)
- 	return per_cpu_ptr(&mcs_nodes[idx], cpu);
- }
- 
-+#define _Q_LOCKED_PENDING_MASK (_Q_LOCKED_MASK | _Q_PENDING_MASK)
-+
- /**
-  * queue_spin_lock_slowpath - acquire the queue spinlock
-  * @lock: Pointer to queue spinlock structure
-  * @val: Current value of the queue spinlock 32-bit word
-  *
-- * (queue tail, lock value)
-- *
-- *              fast      :    slow                                  :    unlock
-- *                        :                                          :
-- * uncontended  (0,0)   --:--> (0,1) --------------------------------:--> (*,0)
-- *                        :       | ^--------.                    /  :
-- *                        :       v           \                   |  :
-- * uncontended            :    (n,x) --+--> (n,0)                 |  :
-- *   queue                :       | ^--'                          |  :
-- *                        :       v                               |  :
-- * contended              :    (*,x) --+--> (*,0) -----> (*,1) ---'  :
-- *   queue                :         ^--'                             :
-+ * (queue tail, pending bit, lock value)
-  *
-+ *              fast     :    slow                                  :    unlock
-+ *                       :                                          :
-+ * uncontended  (0,0,0) -:--> (0,0,1) ------------------------------:--> (*,*,0)
-+ *                       :       | ^--------.------.             /  :
-+ *                       :       v           \      \            |  :
-+ * pending               :    (0,1,1) +--> (0,1,0)   \           |  :
-+ *                       :       | ^--'              |           |  :
-+ *                       :       v                   |           |  :
-+ * uncontended           :    (n,x,y) +--> (n,0,0) --'           |  :
-+ *   queue               :       | ^--'                          |  :
-+ *                       :       v                               |  :
-+ * contended             :    (*,x,y) +--> (*,0,0) ---> (*,0,1) -'  :
-+ *   queue               :         ^--'                             :
-  */
- void queue_spin_lock_slowpath(struct qspinlock *lock, u32 val)
- {
-@@ -119,6 +123,75 @@ void queue_spin_lock_slowpath(struct qspinlock *lock, u32 val)
- 
- 	BUILD_BUG_ON(CONFIG_NR_CPUS >= (1U << _Q_TAIL_CPU_BITS));
- 
-+	/*
-+	 * wait for in-progress pending->locked hand-overs
-+	 *
-+	 * 0,1,0 -> 0,0,1
-+	 */
-+	if (val == _Q_PENDING_VAL) {
-+		while ((val = atomic_read(&lock->val)) == _Q_PENDING_VAL)
-+			cpu_relax();
-+	}
-+
-+	/*
-+	 * trylock || pending
-+	 *
-+	 * 0,0,0 -> 0,0,1 ; trylock
-+	 * 0,0,1 -> 0,1,1 ; pending
-+	 */
-+	for (;;) {
-+		/*
-+		 * If we observe any contention; queue.
-+		 */
-+		if (val & ~_Q_LOCKED_MASK)
-+			goto queue;
-+
-+		new = _Q_LOCKED_VAL;
-+		if (val == new)
-+			new |= _Q_PENDING_VAL;
-+
-+		old = atomic_cmpxchg(&lock->val, val, new);
-+		if (old == val)
-+			break;
-+
-+		val = old;
-+	}
-+
-+	/*
-+	 * we won the trylock
-+	 */
-+	if (new == _Q_LOCKED_VAL)
-+		return;
-+
-+	/*
-+	 * we're pending, wait for the owner to go away.
-+	 *
-+	 * *,1,1 -> *,1,0
-+	 */
-+	while ((val = atomic_read(&lock->val)) & _Q_LOCKED_MASK)
-+		cpu_relax();
-+
-+	/*
-+	 * take ownership and clear the pending bit.
-+	 *
-+	 * *,1,0 -> *,0,1
-+	 */
-+	for (;;) {
-+		new = (val & ~_Q_PENDING_MASK) | _Q_LOCKED_VAL;
-+
-+		old = atomic_cmpxchg(&lock->val, val, new);
-+		if (old == val)
-+			break;
-+
-+		val = old;
-+	}
-+	return;
-+
-+	/*
-+	 * End of pending bit optimistic spinning and beginning of MCS
-+	 * queuing.
-+	 */
-+queue:
- 	node = this_cpu_ptr(&mcs_nodes[0]);
- 	idx = node->count++;
- 	tail = encode_tail(smp_processor_id(), idx);
-@@ -128,15 +201,18 @@ void queue_spin_lock_slowpath(struct qspinlock *lock, u32 val)
- 	node->next = NULL;
- 
- 	/*
-+	 * We have already touched the queueing cacheline; don't bother with
-+	 * pending stuff.
-+	 *
- 	 * trylock || xchg(lock, node)
- 	 *
--	 * 0,0 -> 0,1 ; no tail, not locked -> no tail, locked.
--	 * p,x -> n,x ; tail was p -> tail is n; preserving locked.
-+	 * 0,0,0 -> 0,0,1 ; no tail, not locked -> no tail, locked.
-+	 * p,y,x -> n,y,x ; tail was p -> tail is n; preserving locked.
- 	 */
- 	for (;;) {
- 		new = _Q_LOCKED_VAL;
- 		if (val)
--			new = tail | (val & _Q_LOCKED_MASK);
-+			new = tail | (val & _Q_LOCKED_PENDING_MASK);
- 
- 		old = atomic_cmpxchg(&lock->val, val, new);
- 		if (old == val)
-@@ -155,7 +231,7 @@ void queue_spin_lock_slowpath(struct qspinlock *lock, u32 val)
- 	 * if there was a previous node; link it and wait until reaching the
- 	 * head of the waitqueue.
- 	 */
--	if (old & ~_Q_LOCKED_MASK) {
-+	if (old & ~_Q_LOCKED_PENDING_MASK) {
- 		prev = decode_tail(old);
- 		ACCESS_ONCE(prev->next) = node;
- 
-@@ -163,18 +239,19 @@ void queue_spin_lock_slowpath(struct qspinlock *lock, u32 val)
- 	}
- 
- 	/*
--	 * we're at the head of the waitqueue, wait for the owner to go away.
-+	 * we're at the head of the waitqueue, wait for the owner & pending to
-+	 * go away.
- 	 *
--	 * *,x -> *,0
-+	 * *,x,y -> *,0,0
- 	 */
--	while ((val = atomic_read(&lock->val)) & _Q_LOCKED_MASK)
-+	while ((val = atomic_read(&lock->val)) & _Q_LOCKED_PENDING_MASK)
- 		cpu_relax();
- 
- 	/*
- 	 * claim the lock:
- 	 *
--	 * n,0 -> 0,1 : lock, uncontended
--	 * *,0 -> *,1 : lock, contended
-+	 * n,0,0 -> 0,0,1 : lock, uncontended
-+	 * *,0,0 -> *,0,1 : lock, contended
- 	 */
- 	for (;;) {
- 		new = _Q_LOCKED_VAL;
 -- 
-1.7.1
+Thanks!
+Yijing
 
