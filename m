@@ -1,83 +1,79 @@
-From: Andy Lutomirski <luto@amacapital.net>
+From: David Drysdale <drysdale-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>
 Subject: Re: [PATCHv4 RESEND 0/3] syscalls,x86: Add execveat() system call
-Date: Sun, 19 Oct 2014 16:35:05 -0700
-Message-ID: <CALCETrW1bWcRZxJcKS0tdCxy++Y=ndoxeh5HuZrLMLHnk+i5NA@mail.gmail.com>
+Date: Mon, 20 Oct 2014 14:48:45 +0100
+Message-ID: <CAHse=S-Xyk7CFn=tAGzo+tuUFt+04aBw+mGQmi=kWAaBJGALBw@mail.gmail.com>
 References: <1401975635-6162-1-git-send-email-drysdale@google.com>
- <CALCETrVraoD+r4zxBoGd+BV5P275AXcRV_R00SSr8fjQzRHnUg@mail.gmail.com>
- <20141019202034.GH7996@ZenIV.linux.org.uk> <CALCETrVZUW2iPtfFJtGnWd2RsYLwjGRGYuujrVqcOsO5oBB8Cg@mail.gmail.com>
- <20141019212921.GI7996@ZenIV.linux.org.uk> <CALCETrVTiO6YKRYAAe-eBgQvpUqrtE0=KrKJj2T_XJ9iSRDtmA@mail.gmail.com>
- <20141019224251.GJ7996@ZenIV.linux.org.uk>
+ <CALCETrVraoD+r4zxBoGd+BV5P275AXcRV_R00SSr8fjQzRHnUg@mail.gmail.com> <87zjcszz8y.fsf@x220.int.ebiederm.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20141019224251.GJ7996@ZenIV.linux.org.uk>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Al Viro <viro@zeniv.linux.org.uk>
-Cc: David Drysdale <drysdale@google.com>, "Eric W. Biederman" <ebiederm@xmission.com>, Meredydd Luff <meredydd@senatehouse.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, X86 ML <x86@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>
+Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+In-Reply-To: <87zjcszz8y.fsf-JOvCrm2gF+uungPnsOpG7nhyD016LWXt@public.gmane.org>
+Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: "Eric W. Biederman" <ebiederm-aS9lmoZGLiVWk0Htik3J/w@public.gmane.org>
+Cc: Andy Lutomirski <luto-kltTT9wpgjJwATOyAt5JVQ@public.gmane.org>, Alexander Viro <viro-RmSDqhL/yNMiFSDQTTA3OLVCufUGDwFn@public.gmane.org>, Meredydd Luff <meredydd-zPN50pYk8eUaUu29zAJCuw@public.gmane.org>, "linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, Ingo Molnar <mingo-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>, Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, Kees Cook <keescook-F7+t8E8rja9g9hUCZPvPmw@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, X86 ML <x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, linux-arch <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Linux API <linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Sun, Oct 19, 2014 at 3:42 PM, Al Viro <viro@zeniv.linux.org.uk> wrote:
-> On Sun, Oct 19, 2014 at 03:16:03PM -0700, Andy Lutomirski wrote:
+On Sun, Oct 19, 2014 at 1:20 AM, Eric W. Biederman
+<ebiederm-aS9lmoZGLiVWk0Htik3J/w@public.gmane.org> wrote:
+> Andy Lutomirski <luto-kltTT9wpgjJwATOyAt5JVQ@public.gmane.org> writes:
 >
->> Oh, you mean that #!/usr/bin/make -f would turn into /usr/bin/make
->> /dev/fd/3?  That could be interesting, although I can imagine it
->> breaking things, especially if /dev/fd/3 isn't set up like that, e.g.
->> early in boot.
+>> [Added Eric Biederman, since I think your tree might be a reasonable
+>> route forward for these patches.]
+>>
+>> On Thu, Jun 5, 2014 at 6:40 AM, David Drysdale <drysdale-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org> wrote:
+>>> Resending, adding cc:linux-api.
+>>>
+>>> Also, it may help to add a little more background -- this patch is
+>>> needed as a (small) part of implementing Capsicum in the Linux kernel.
+>>>
+>>> Capsicum is a security framework that has been present in FreeBSD since
+>>> version 9.0 (Jan 2012), and is based on concepts from object-capability
+>>> security [1].
+>>>
+>>> One of the features of Capsicum is capability mode, which locks down
+>>> access to global namespaces such as the filesystem hierarchy.  In
+>>> capability mode, /proc is thus inaccessible and so fexecve(3) doesn't
+>>> work -- hence the need for a kernel-space
+>>
+>> I just found myself wanting this syscall for another reason: injecting
+>> programs into sandboxes or otherwise heavily locked-down namespaces.
+>>
+>> For example, I want to be able to reliably do something like nsenter
+>> --namespace-flags-here toybox sh.  Toybox's shell is unusual in that
+>> it is more or less fully functional, so this should Just Work (tm),
+>> except that the toybox binary might not exist in the namespace being
+>> entered.  If execveat were available, I could rig nsenter or a similar
+>> tool to open it with O_CLOEXEC, enter the namespace, and then call
+>> execveat.
+>>
+>> Is there any reason that these patches can't be merged more or less as
+>> is for 3.19?
 >
-> Sigh...  What I mean is that fexecve(fd, ...) would have to put _something_
-> into argv when it execs the interpreter of #! file.  Simply because the
-> interpreter (which can be anything whatsoever) has no fscking idea what
-> to do with some descriptor it has before execve().  Hell, it doesn't have
-> any idea *which* descriptor had it been.
+> Yes.  There is a silliness in how it implements fexecve.  The fexecve
+> case should be use the empty string "" not a NULL pointer to indication
+> that.  That change will then harmonize execveat with the other ...at
+> system calls and simplify the code and remove a special case.  I believe
+> using the empty string "" requires implementing the AT_EMPTY_PATH flag.
+
+Good point -- I'll shift to "" + AT_EMPTY_PATH.
+
+> For sandboxes execveat seems to make a great deal of sense.  I can
+> get the same functionality by passing in a directory file descriptor
+> calling fchdir and execve so this should not introduce any new security
+> holes.  And using the final file descriptor removes a race.
 >
-> You need to put some pathname that would yield your script upon open(2).
-> If you bothered to read those patches, you'd see that they do supply
-> one, generating it with d_path().  Which isn't particulary reliable.
+> AT_SYMLINK_NOFOLLOW seems to have some limited utility as well, although
+> for exec I don't know what problems it can solve.
 >
-> I'm not sure there's any point putting any of that in the kernel - if
-> you *do* have that pathname, you can just pass it.
+> Until I am done moving I won't have time to pick this up, and the code
+> clearly needs another revision but I will be happy to work to see that
+> we get a sane execveat implemented.
 
-Hmm.
+If it helps, I can push out another revision in the next couple of days.
 
-This issue certainly makes fexecve or execveat less attractive, at
-least in cases where d_path won't work.
-
-On the other hand, if you want to run a static binary on a cloexec fd
-(or, for that matter, a dynamic binary if you trust the interpreter to
-close the extra copy of the fd it gets) in a namespace or chroot where
-the binary is invisible, then you need kernel help.
-
-It's too bad that script interpreters don't have a mechanism to open
-their scripts by fd.
-
+> Eric
 >
->> Aside from the general scariness of allowing one process to actually
->> dup another process's fds, I feel like this is asking for trouble wrt
->> the various types of file locks.
+> p.s.  I don't believe there are any namespaces issues where doing
+> something with execveat flags make sense.
 >
-> Who said anything about another process's fds?  That, indeed, would be
-> a recipe for serious trouble.  It's a filesystem with one directory,
-> not with one directory for each process...
 >
-
-This still has issues with locks if you pass an fd to a child process,
-but I guess that you get what you ask for if you do that.
-
-> FWIW, they (Plan 9) do have procfs and there they have /proc/<pid>/fd.
-> Which is a regular file, with contents consisting of \n-terminated
-> lines (one per descriptor in <pid>'s descriptor table>) in the same
-> format as in *ctl (they put descriptor number as the first field in
-> those).
->
-> Unlike our solution, they do not allow to get to any process' files via
-> procfs.  They do allow /dev/stdin-style access to your own files via
-> dupfs.  And yes, for /dev/stdin and friends dup-style semantics is better -
-> you get consistent behaviours for pipes and redirects from file that way.
-> See the example I've posted upthread.  Besides, for things like sockets
-> our semantics simply fails - they really depend on having only one
-> struct file for given socket; it's dup or nothing there.  The same goes
-> for a lot of things like eventfd, etc.
-
-Fair enough.
-
---Andy
