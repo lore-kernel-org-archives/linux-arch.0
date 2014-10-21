@@ -1,183 +1,138 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from szxga01-in.huawei.com ([119.145.14.64]:12680 "EHLO
-	szxga01-in.huawei.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751490AbaJUBc7 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 20 Oct 2014 21:32:59 -0400
-Message-ID: <5445B794.30601@huawei.com>
-Date: Tue, 21 Oct 2014 09:32:04 +0800
-From: Yijing Wang <wangyijing@huawei.com>
+Received: from out02.mta.xmission.com ([166.70.13.232]:59564 "EHLO
+	out02.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754409AbaJUEaN (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Oct 2014 00:30:13 -0400
+From: ebiederm@xmission.com (Eric W. Biederman)
+References: <1401975635-6162-1-git-send-email-drysdale@google.com>
+	<CALCETrVraoD+r4zxBoGd+BV5P275AXcRV_R00SSr8fjQzRHnUg@mail.gmail.com>
+	<87zjcszz8y.fsf@x220.int.ebiederm.org>
+	<CAHse=S-Xyk7CFn=tAGzo+tuUFt+04aBw+mGQmi=kWAaBJGALBw@mail.gmail.com>
+	<CALCETrXBjLZTWVJfcsE4NA-JP9zSSgn=6ND0=cZ9BTy=CoN7pA@mail.gmail.com>
+Date: Mon, 20 Oct 2014 21:29:25 -0700
+In-Reply-To: <CALCETrXBjLZTWVJfcsE4NA-JP9zSSgn=6ND0=cZ9BTy=CoN7pA@mail.gmail.com>
+	(Andy Lutomirski's message of "Mon, 20 Oct 2014 15:48:06 -0700")
+Message-ID: <87ioje2ggq.fsf@x220.int.ebiederm.org>
 MIME-Version: 1.0
-Subject: Re: [PATCH v3 04/27] arm/MSI: Save MSI chip in pci_sys_data
-References: <1413342435-7876-1-git-send-email-wangyijing@huawei.com> <1413342435-7876-5-git-send-email-wangyijing@huawei.com> <20141020172158.GA8017@e102568-lin.cambridge.arm.com>
-In-Reply-To: <20141020172158.GA8017@e102568-lin.cambridge.arm.com>
-Content-Type: text/plain; charset="windows-1252"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain
+Subject: Re: [PATCHv4 RESEND 0/3] syscalls,x86: Add execveat() system call
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
-Cc: Bjorn Helgaas <bhelgaas@google.com>, "linux-pci@vger.kernel.org" <linux-pci@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "huxinwei@huawei.com" <huxinwei@huawei.com>, Wuyun <wuyun.wu@huawei.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Russell King <linux@arm.linux.org.uk>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "arnab.basu@freescale.com" <arnab.basu@freescale.com>, "Bharat.Bhushan@freescale.com" <Bharat.Bhushan@freescale.com>, "x86@kernel.org" <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Thomas Gleixner <tglx@linutronix.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, "xen-devel@lists.xenproject.org" <xen-devel@lists.xenproject.org>, Joerg Roedel <joro@8bytes.org>, "iommu@lists.linux-foundation.org" <iommu@lists.linux-foundation.org>, "linux-mips@linux-mips.org" <linux-mips@linux-mips.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, "linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>, "linux-s390@vger.kernel.org" <linux-s390@vger.kernel.org>, Sebastian Ott <sebott@linux.vnet.ibm.com>, Tony Luck <tony.luck@intel.com>, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, "David S. Miller" <davem@davemloft.net>, "sparclinux@vger.kernel.org" <sparclinux@vger.kernel.org>, Chris Metcalf <cmetcalf@tilera.com>, Ralf Baechle <ralf@linux-mips.org>, Lucas Stach <l.stach@pengutronix.de>, David Vrabel <david.vrabel@citrix.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, Michael Ellerman <mpe@ellerman.id.au>, Thierry Reding <thierry.reding@gmail.com>, Thomas Petazzoni <thomas.petazzoni@free-electrons.com>, Liviu Dudau <liviu@dudau.co.uk>
-Message-ID: <20141021013204.Prgh2v6-HpYKJkuxwcrYOM74fZl-0l96BP0i9oNfVlc@z>
+To: Andy Lutomirski <luto@amacapital.net>
+Cc: David Drysdale <drysdale@google.com>, Alexander Viro <viro@zeniv.linux.org.uk>, Meredydd Luff <meredydd@senatehouse.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, X86 ML <x86@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>
+Message-ID: <20141021042925.L2Ftmf0SA7MlV24B2PWvjSVbYkjYHHsBaB2K1V9Qxjc@z>
 
-On 2014/10/21 1:21, Lorenzo Pieralisi wrote:
-> On Wed, Oct 15, 2014 at 04:06:52AM +0100, Yijing Wang wrote:
->> Saving msi chip in pci_sys_data can make pci bus and
->> devices don't need to know msi chip detail, it also
->> make pci enumeration code be decoupled from msi chip.
->> In fact, all pci devices under the same pci hostbridge
->> share same msi chip. So msi chip should be seen as one
->> of resources or attributes to be initialized in pci host
->> bridge driver. Currently, pci hostbridge drivers create
->> pci_host_bridge in pci_create_root_bus(), and pass arch
->> specific pci sysdata to core pci scan functions. So pci
->> arch sysdata is good place to save msi chip.
+Andy Lutomirski <luto@amacapital.net> writes:
+
+> On Mon, Oct 20, 2014 at 6:48 AM, David Drysdale <drysdale@google.com> wrote:
+>> On Sun, Oct 19, 2014 at 1:20 AM, Eric W. Biederman
+>> <ebiederm@xmission.com> wrote:
+>>> Andy Lutomirski <luto@amacapital.net> writes:
+>>>
+>>>> [Added Eric Biederman, since I think your tree might be a reasonable
+>>>> route forward for these patches.]
+>>>>
+>>>> On Thu, Jun 5, 2014 at 6:40 AM, David Drysdale <drysdale@google.com> wrote:
+>>>>> Resending, adding cc:linux-api.
+>>>>>
+>>>>> Also, it may help to add a little more background -- this patch is
+>>>>> needed as a (small) part of implementing Capsicum in the Linux kernel.
+>>>>>
+>>>>> Capsicum is a security framework that has been present in FreeBSD since
+>>>>> version 9.0 (Jan 2012), and is based on concepts from object-capability
+>>>>> security [1].
+>>>>>
+>>>>> One of the features of Capsicum is capability mode, which locks down
+>>>>> access to global namespaces such as the filesystem hierarchy.  In
+>>>>> capability mode, /proc is thus inaccessible and so fexecve(3) doesn't
+>>>>> work -- hence the need for a kernel-space
+>>>>
+>>>> I just found myself wanting this syscall for another reason: injecting
+>>>> programs into sandboxes or otherwise heavily locked-down namespaces.
+>>>>
+>>>> For example, I want to be able to reliably do something like nsenter
+>>>> --namespace-flags-here toybox sh.  Toybox's shell is unusual in that
+>>>> it is more or less fully functional, so this should Just Work (tm),
+>>>> except that the toybox binary might not exist in the namespace being
+>>>> entered.  If execveat were available, I could rig nsenter or a similar
+>>>> tool to open it with O_CLOEXEC, enter the namespace, and then call
+>>>> execveat.
+>>>>
+>>>> Is there any reason that these patches can't be merged more or less as
+>>>> is for 3.19?
+>>>
+>>> Yes.  There is a silliness in how it implements fexecve.  The fexecve
+>>> case should be use the empty string "" not a NULL pointer to indication
+>>> that.  That change will then harmonize execveat with the other ...at
+>>> system calls and simplify the code and remove a special case.  I believe
+>>> using the empty string "" requires implementing the AT_EMPTY_PATH flag.
 >>
->> Signed-off-by: Yijing Wang <wangyijing@huawei.com>
->> ---
->>  arch/arm/include/asm/mach/pci.h |    6 ++++++
->>  arch/arm/include/asm/pci.h      |    9 +++++++++
->>  arch/arm/kernel/bios32.c        |    3 +++
->>  drivers/pci/msi.c               |    6 ++++++
->>  include/linux/pci.h             |    9 +++++++++
->>  5 files changed, 33 insertions(+), 0 deletions(-)
->>
->> diff --git a/arch/arm/include/asm/mach/pci.h b/arch/arm/include/asm/mach/pci.h
->> index 7fc4278..59b0d87 100644
->> --- a/arch/arm/include/asm/mach/pci.h
->> +++ b/arch/arm/include/asm/mach/pci.h
->> @@ -22,6 +22,9 @@ struct hw_pci {
->>  #ifdef CONFIG_PCI_DOMAINS
->>  	int		domain;
->>  #endif
->> +#ifdef CONFIG_PCI_MSI
->> +	struct msi_chip *msi_chip;
->> +#endif
->>  	struct pci_ops	*ops;
->>  	int		nr_controllers;
->>  	void		**private_data;
->> @@ -47,6 +50,9 @@ struct pci_sys_data {
->>  #ifdef CONFIG_PCI_DOMAINS
->>  	int		domain;
->>  #endif
->> +#ifdef CONFIG_PCI_MSI
->> +	struct msi_chip *msi_chip;
->> +#endif
-> 
-> This struct is defined for ARM only. We are trying to remove dependency on it
-> so that we can have a single driver for ARM32 and ARM64 systems without
-> pcibios dependency. Why can't we add this msi chip data to the host
-> bridge struct instead ? I understand it is all a matter of how to pass
-> the pointer to pci_scan_root_bus(), where the bridge is created.
-> We could initialize the msi chip on the bridge through the bus pointer
-> returned by the pci_scan_root_bus() function.
+>> Good point -- I'll shift to "" + AT_EMPTY_PATH.
+>
+> Pending a better idea, I would also see if the patches can be changed
+> to return an error if d_path ends up with an "(unreachable)" thing
+> rather than failing inexplicably later on.
 
-As mentioned in Patch 0, I will refactor generic pci hostbridge in another series,
-We need not only save msi_chip into pci_host_bridge, and other common info, like domain_nr,
-resources.
+For my reference we are talking about  
 
-Thanks!
-Yijing.
+> @@ -1489,7 +1524,21 @@ static int do_execve_common(struct filename *filename,
+>  	sched_exec();
+> 
+>  	bprm->file = file;
+> -	bprm->filename = bprm->interp = filename->name;
+> +	if (filename && fd == AT_FDCWD) {
+> +		bprm->filename = filename->name;
+> +	} else {
+> +		pathbuf = kmalloc(PATH_MAX, GFP_TEMPORARY);
+> +		if (!pathbuf) {
+> +			retval = -ENOMEM;
+> +			goto out_unmark;
+> +		}
+> +		bprm->filename = d_path(&file->f_path, pathbuf, PATH_MAX);
+> +		if (IS_ERR(bprm->filename)) {
+> +			retval = PTR_ERR(bprm->filename);
+> +			goto out_unmark;
+> +		}
+> +	}
+> +	bprm->interp = bprm->filename;
+> 
+>  	retval = bprm_mm_init(bprm);
+>  	if (retval)
 
-> 
-> Thanks,
-> Lorenzo
-> 
->>  	struct list_head node;
->>  	int		busnr;		/* primary bus number			*/
->>  	u64		mem_offset;	/* bus->cpu memory mapping offset	*/
->> diff --git a/arch/arm/include/asm/pci.h b/arch/arm/include/asm/pci.h
->> index 7e95d85..b562c09 100644
->> --- a/arch/arm/include/asm/pci.h
->> +++ b/arch/arm/include/asm/pci.h
->> @@ -31,6 +31,15 @@ static inline int pci_proc_domain(struct pci_bus *bus)
->>  }
->>  #endif /* CONFIG_PCI_DOMAINS */
->>  
->> +#ifdef CONFIG_PCI_MSI
->> +static inline struct msi_chip *pci_msi_chip(struct pci_bus *bus)
->> +{
->> +	struct pci_sys_data *root = bus->sysdata;
->> +
->> +	return root->msi_chip;
->> +}
->> +#endif
->> +
->>  /*
->>   * The PCI address space does equal the physical memory address space.
->>   * The networking and block device layers use this boolean for bounce
->> diff --git a/arch/arm/kernel/bios32.c b/arch/arm/kernel/bios32.c
->> index 17a26c1..a19038d 100644
->> --- a/arch/arm/kernel/bios32.c
->> +++ b/arch/arm/kernel/bios32.c
->> @@ -471,6 +471,9 @@ static void pcibios_init_hw(struct device *parent, struct hw_pci *hw,
->>  #ifdef CONFIG_PCI_DOMAINS
->>  		sys->domain  = hw->domain;
->>  #endif
->> +#ifdef CONFIG_PCI_MSI
->> +		sys->msi_chip = hw->msi_chip;
->> +#endif
->>  		sys->busnr   = busnr;
->>  		sys->swizzle = hw->swizzle;
->>  		sys->map_irq = hw->map_irq;
->> diff --git a/drivers/pci/msi.c b/drivers/pci/msi.c
->> index 22e413c..f11108c 100644
->> --- a/drivers/pci/msi.c
->> +++ b/drivers/pci/msi.c
->> @@ -35,6 +35,9 @@ int __weak arch_setup_msi_irq(struct pci_dev *dev, struct msi_desc *desc)
->>  	struct msi_chip *chip = dev->bus->msi;
->>  	int err;
->>  
->> +	if (!chip)
->> +		chip = pci_msi_chip(dev->bus);
->> +
->>  	if (!chip || !chip->setup_irq)
->>  		return -EINVAL;
->>  
->> @@ -50,6 +53,9 @@ void __weak arch_teardown_msi_irq(unsigned int irq)
->>  	struct msi_desc *entry = irq_get_msi_desc(irq);
->>  	struct msi_chip *chip = entry->dev->bus->msi;
->>  
->> +	if (!chip)
->> +		chip = pci_msi_chip(entry->dev->bus);
->> +
->>  	if (!chip || !chip->teardown_irq)
->>  		return;
->>  
->> diff --git a/include/linux/pci.h b/include/linux/pci.h
->> index 9cd2721..7a48b40 100644
->> --- a/include/linux/pci.h
->> +++ b/include/linux/pci.h
->> @@ -1433,6 +1433,15 @@ static inline int pci_get_new_domain_nr(void) { return -ENOSYS; }
->>  
->>  #include <asm/pci.h>
->>  
->> +/* Just avoid compile error, will be clean up later */
->> +#ifdef CONFIG_PCI_MSI
->> +
->> +#ifndef pci_msi_chip
->> +#define pci_msi_chip(bus)	NULL
->> +#endif
->> +
->> +#endif
->> +
->>  /* these helpers provide future and backwards compatibility
->>   * for accessing popular PCI BAR info */
->>  #define pci_resource_start(dev, bar)	((dev)->resource[(bar)].start)
->> -- 
->> 1.7.1
->>
->> --
->> To unsubscribe from this list: send the line "unsubscribe linux-kernel" in
->> the body of a message to majordomo@vger.kernel.org
->> More majordomo info at  http://vger.kernel.org/majordomo-info.html
->> Please read the FAQ at  http://www.tux.org/lkml/
->>
-> 
-> 
-> .
-> 
+The interesting case for fexecve is when we either don't know what files
+are present or we don't want to depend on which files are present.
 
+As Al pointed out d_path really isn't the right solution.  It fails when
+printing /proc/self/fd/${fd}/${filename->name} would work, and the
+"(deleted)" or "(unreachable)" strings are wrong.
 
--- 
-Thanks!
-Yijing
+The test for today's cases should be:
+if ((filename->name[0] == '/') || fd == AT_FDCWD) {
+	bprm->filename = filename->name;
+} 
+
+To handle the case where the file descriptor is relevant.
+
+For the case where the file descriptor is relevant let me suggest
+setting bprm->filename and bprm->interp to:
+
+/dev/fd/${fd}/${filename->name}
+
+It is more a description of what we have done but as a magic string it
+is descriptive.  Documetation/devices.txt documents that /dev/fd/ should
+exist, making it an unambiguous path.  Further these days the kernel
+sets the device naming policy in dev, so I think we are strongly safe in
+using that path in any event.
+
+I think execveat is interesting in the kernel because the motivating
+cases are the cases where anything except a static executable is
+uninteresting.
+
+Now it has been suggested creating a dupfs or a mini-proc.  I think that
+sounds like a nice companion, to the concept of a locked down root.
+But I don't think it removes the need for execveat (because we still
+have the case where we don't want to care what is mounted, and are happy
+to use static executables). 
+
+Eric
 
