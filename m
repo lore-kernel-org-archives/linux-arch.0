@@ -1,116 +1,141 @@
-From: Andrew Morton <akpm@linux-foundation.org>
-Subject: Re: [PATCH V2 1/2] mm: Update generic gup implementation to handle
- hugepage directory
-Date: Wed, 22 Oct 2014 16:02:24 -0700
-Message-ID: <20141022160224.9c2268795e55d5a2eff5b94d@linux-foundation.org>
-References: <1413520687-31729-1-git-send-email-aneesh.kumar@linux.vnet.ibm.com>
+From: Bjorn Helgaas <bhelgaas-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>
+Subject: Re: [PATCH v3 24/27] IA64/MSI: Use MSI chip framework to configure
+	MSI/MSI-X irq
+Date: Wed, 22 Oct 2014 17:53:45 -0600
+Message-ID: <20141022235345.GE4795@google.com>
+References: <1413342435-7876-1-git-send-email-wangyijing@huawei.com>
+	<1413342435-7876-25-git-send-email-wangyijing@huawei.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <1413520687-31729-1-git-send-email-aneesh.kumar@linux.vnet.ibm.com>
-Sender: owner-linux-mm@kvack.org
-To: "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>
-Cc: Steve Capper <steve.capper@linaro.org>, Andrea Arcangeli <aarcange@redhat.com>, benh@kernel.crashing.org, mpe@ellerman.id.au, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-arch@vger.kernel.org
+Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+Content-Disposition: inline
+In-Reply-To: <1413342435-7876-25-git-send-email-wangyijing-hv44wF8Li93QT0dZR+AlfA@public.gmane.org>
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
+	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
+List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
+	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
+Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+To: Yijing Wang <wangyijing-hv44wF8Li93QT0dZR+AlfA@public.gmane.org>
+Cc: linux-mips-6z/3iImG2C8G8FEW9MqTrA@public.gmane.org, linux-ia64-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-pci-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Thierry Reding <thierry.reding-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, sparclinux-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-s390-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Russell King <linux-lFZ/pmaqli7XmaaqVzeoHQ@public.gmane.org>, Michael Ellerman <mpe-Gsx/Oe8HsFggBc27wqDAHg@public.gmane.org>, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, Sebastian Ott <sebott-23VcF4HTsmIX0ybBhKVfKdBPR1lH4CV8@public.gmane.org>, Benjamin Herrenschmidt <benh-XVmvHMARGAS8U2dJNN8I7kB+6BGkLq7r@public.gmane.org>, xen-devel-GuqFBffKawtpuQazS67q72D2FQJk+8+b@public.gmane.org, arnab.basu-KZfg59tc24xl57MIdRCFDg@public.gmane.org, Liviu Dudau <liviu-I3yL/QOVVjH10XsdtD+oqA@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Chris Metcalf <cmetcalf-kv+TWInifGbQT0dZR+AlfA@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, Thomas Petazzoni <thomas.petazzoni-wi1+55ScJUtKEb57/3fJTNBPR1lH4CV8@public.gmane.org>, Xinwei Hu <huxinwei-hv44wF8Li93QT0dZR+AlfA@public.gmane.org>, Tony Luck <tony.luck-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org>, Sergei Shtylyov <sergei.shtylyov-M4DtvfQ/ZS1MRgGoP+s0PdBPR1lH4CV8@public.gmane.org>, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Ralf Baechle <ralf-6z/3iImG2C8G8FEW9MqTrA@public.gmane.org>, iommu@l
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, 17 Oct 2014 10:08:06 +0530 "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com> wrote:
+On Wed, Oct 15, 2014 at 11:07:12AM +0800, Yijing Wang wrote:
+> Use MSI chip framework instead of arch MSI functions to configure
+> MSI/MSI-X irq. So we can manage MSI/MSI-X irq in a unified framework.
 
-> Update generic gup implementation with powerpc specific details.
-> On powerpc at pmd level we can have hugepte, normal pmd pointer
-> or a pointer to the hugepage directory.
+This needs slightly more detail.  You're using the MSI chip framework
+"instead of arch MSI functions".  Well, there are still arch-specific
+functions, i.e., arch_ia64_setup_msi_irq() and
+arch_ia64_teardown_msi_irq().
+
+We used to have arch_setup_msi_irq() which had a weak default
+implementation, and a strong arch-specific implementation here, and you're
+replacing that model with the new "msi-ops" model.  I don't know how you
+want to write that, but it's not that you're getting rid of the
+arch-specific code; you're keeping arch-specific code but structuring it
+differently.
+
+> Signed-off-by: Yijing Wang <wangyijing-hv44wF8Li93QT0dZR+AlfA@public.gmane.org>
+> ---
+>  arch/ia64/include/asm/pci.h |   10 ++++++++++
+>  arch/ia64/kernel/msi_ia64.c |   14 ++++++++++----
+>  arch/ia64/pci/pci.c         |    1 +
+>  3 files changed, 21 insertions(+), 4 deletions(-)
 > 
-> ...
->
-> --- a/arch/arm/include/asm/pgtable.h
-> +++ b/arch/arm/include/asm/pgtable.h
-> @@ -181,6 +181,8 @@ extern pgd_t swapper_pg_dir[PTRS_PER_PGD];
->  /* to find an entry in a kernel page-table-directory */
->  #define pgd_offset_k(addr)	pgd_offset(&init_mm, addr)
+> diff --git a/arch/ia64/include/asm/pci.h b/arch/ia64/include/asm/pci.h
+> index 52af5ed..907dcba 100644
+> --- a/arch/ia64/include/asm/pci.h
+> +++ b/arch/ia64/include/asm/pci.h
+> @@ -94,6 +94,7 @@ struct pci_controller {
+>  	int segment;
+>  	int node;		/* nearest node with memory or NUMA_NO_NODE for global allocation */
 >  
-> +#define pgd_huge(pgd)		(0)
-> +
->  #define pmd_none(pmd)		(!pmd_val(pmd))
->  #define pmd_present(pmd)	(pmd_val(pmd))
+> +	struct msi_chip *msi_chip;
+>  	void *platform_data;
+>  };
 >  
-> diff --git a/arch/arm64/include/asm/pgtable.h b/arch/arm64/include/asm/pgtable.h
-> index cefd3e825612..ed8f42497ac4 100644
-> --- a/arch/arm64/include/asm/pgtable.h
-> +++ b/arch/arm64/include/asm/pgtable.h
-> @@ -464,6 +464,8 @@ static inline pmd_t pmd_modify(pmd_t pmd, pgprot_t newprot)
->  extern pgd_t swapper_pg_dir[PTRS_PER_PGD];
->  extern pgd_t idmap_pg_dir[PTRS_PER_PGD];
+> @@ -101,6 +102,15 @@ struct pci_controller {
+>  #define PCI_CONTROLLER(busdev) ((struct pci_controller *) busdev->sysdata)
+>  #define pci_domain_nr(busdev)    (PCI_CONTROLLER(busdev)->segment)
 >  
-> +#define pgd_huge(pgd)		(0)
-> +
+> +extern struct msi_chip chip;
 
-So only arm, arm64 and powerpc implement CONFIG_HAVE_GENERIC_RCU_GUP
-and only powerpc impements pgd_huge().
+Please make this name more descriptive.  "chip" is way too generic for a
+global name.
 
-Could we get a bit of documentation in place for pgd_huge() so that
-people who aren't familiar with powerpc can understand what's going on?
-
->  /*
->   * Encode and decode a swap entry:
->   *	bits 0-1:	present (must be zero)
-> diff --git a/include/linux/mm.h b/include/linux/mm.h
-> index 02d11ee7f19d..f97732412cb4 100644
-> --- a/include/linux/mm.h
-> +++ b/include/linux/mm.h
-> @@ -1219,6 +1219,32 @@ long get_user_pages(struct task_struct *tsk, struct mm_struct *mm,
->  		    struct vm_area_struct **vmas);
->  int get_user_pages_fast(unsigned long start, int nr_pages, int write,
->  			struct page **pages);
-> +
-> +#ifdef CONFIG_HAVE_GENERIC_RCU_GUP
-> +#ifndef is_hugepd
-
-And is_hugepd is a bit of a mystery.  Let's get some description in
-place for this as well?  Why it exists, what its role is.  Also,
-specifically which arch header file is responsible for defining it.
-
-It takes a hugepd_t argument, but hugepd_t is defined later in this
-header file.  This is weird because any preceding implementation of
-is_hugepd() can't actually be implemented because it hasn't seen the
-hugepd_t definition yet!  So any is_hugepd() implementation is forced
-to be a simple macro which punts to a C function which *has* seen the
-hugepd_t definition.  What a twisty maze.
-
-It all seems messy, confusing and poorly documented.  Can we clean this
-up?
-
-> +/*
-> + * Some architectures support hugepage directory format that is
-> + * required to support different hugetlbfs sizes.
-> + */
-> +typedef struct { unsigned long pd; } hugepd_t;
-> +#define is_hugepd(hugepd) (0)
-> +#define __hugepd(x) ((hugepd_t) { (x) })
-
-What's this.
-
-> +static inline int gup_hugepd(hugepd_t hugepd, unsigned long addr,
-> +			     unsigned pdshift, unsigned long end,
-> +			     int write, struct page **pages, int *nr)
+> +static inline struct msi_chip *pci_msi_chip(struct pci_bus *bus)
 > +{
-> +	return 0;
-> +}
-> +#else
-> +extern int gup_hugepd(hugepd_t hugepd, unsigned long addr,
-> +		      unsigned pdshift, unsigned long end,
-> +		      int write, struct page **pages, int *nr);
-> +#endif
-> +extern int gup_huge_pte(pte_t orig, pte_t *ptep, unsigned long addr,
-> +			unsigned long sz, unsigned long end, int write,
-> +			struct page **pages, int *nr);
-> +#endif
+> +	struct pci_controller *ctrl = bus->sysdata;
 > +
->
-> ...
->
+> +	return ctrl->msi_chip;
+> +}
+> +
+>  extern struct pci_ops pci_root_ops;
+>  
+>  static inline int pci_proc_domain(struct pci_bus *bus)
+> diff --git a/arch/ia64/kernel/msi_ia64.c b/arch/ia64/kernel/msi_ia64.c
+> index 8c3730c..401fc98 100644
+> --- a/arch/ia64/kernel/msi_ia64.c
+> +++ b/arch/ia64/kernel/msi_ia64.c
+> @@ -112,15 +112,16 @@ static struct irq_chip ia64_msi_chip = {
+>  };
+>  
+>  
+> -int arch_setup_msi_irq(struct pci_dev *pdev, struct msi_desc *desc)
+> +static int arch_ia64_setup_msi_irq(struct msi_chip *chip,
+> +		struct pci_dev *dev, struct msi_desc *desc)
+>  {
+>  	if (platform_setup_msi_irq)
+> -		return platform_setup_msi_irq(pdev, desc);
+> +		return platform_setup_msi_irq(dev, desc);
+>  
+> -	return ia64_setup_msi_irq(pdev, desc);
+> +	return ia64_setup_msi_irq(dev, desc);
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+Please don't make gratuitous changes ("pdev" -> "dev") at the same time,
+especially since the rest of the file still uses "pdev".
+
+>  }
+>  
+> -void arch_teardown_msi_irq(unsigned int irq)
+> +static void arch_ia64_teardown_msi_irq(struct msi_chip *chip, unsigned int irq)
+>  {
+>  	if (platform_teardown_msi_irq)
+>  		return platform_teardown_msi_irq(irq);
+> @@ -128,6 +129,11 @@ void arch_teardown_msi_irq(unsigned int irq)
+>  	return ia64_teardown_msi_irq(irq);
+>  }
+>  
+> +struct msi_chip chip = {
+> +	.setup_irq = arch_ia64_setup_msi_irq,
+> +	.teardown_irq = arch_ia64_teardown_msi_irq,
+> +};
+> +
+>  #ifdef CONFIG_INTEL_IOMMU
+>  #ifdef CONFIG_SMP
+>  static int dmar_msi_set_affinity(struct irq_data *data,
+> diff --git a/arch/ia64/pci/pci.c b/arch/ia64/pci/pci.c
+> index 291a582..299b67d 100644
+> --- a/arch/ia64/pci/pci.c
+> +++ b/arch/ia64/pci/pci.c
+> @@ -437,6 +437,7 @@ struct pci_bus *pci_acpi_scan_root(struct acpi_pci_root *root)
+>  
+>  	controller->companion = device;
+>  	controller->node = acpi_get_node(device->handle);
+> +	controller->msi_chip = &chip;
+>  
+>  	info = kzalloc(sizeof(*info), GFP_KERNEL);
+>  	if (!info) {
+> -- 
+> 1.7.1
+> 
+> --
+> To unsubscribe from this list: send the line "unsubscribe linux-kernel" in
+> the body of a message to majordomo-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+> More majordomo info at  http://vger.kernel.org/majordomo-info.html
+> Please read the FAQ at  http://www.tux.org/lkml/
