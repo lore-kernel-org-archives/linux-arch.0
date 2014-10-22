@@ -1,169 +1,179 @@
 From: ebiederm@xmission.com (Eric W. Biederman)
-Subject: Re: [PATCHv4 RESEND 0/3] syscalls,x86: Add execveat() system call
-Date: Wed, 22 Oct 2014 12:40:25 -0500
-Message-ID: <87wq7shuk6.fsf@x220.int.ebiederm.org>
-References: <1401975635-6162-1-git-send-email-drysdale@google.com>
-	<CALCETrVraoD+r4zxBoGd+BV5P275AXcRV_R00SSr8fjQzRHnUg@mail.gmail.com>
-	<87zjcszz8y.fsf@x220.int.ebiederm.org>
-	<CAHse=S-Xyk7CFn=tAGzo+tuUFt+04aBw+mGQmi=kWAaBJGALBw@mail.gmail.com>
-	<CALCETrXBjLZTWVJfcsE4NA-JP9zSSgn=6ND0=cZ9BTy=CoN7pA@mail.gmail.com>
-	<87ioje2ggq.fsf@x220.int.ebiederm.org>
-	<CAHse=S_dpm8Do-H01Bo49a9TdYw+pSDzYomLOrBsYEcdO=Pytw@mail.gmail.com>
+Subject: Re: [PATCHv5 man-pages 3/3] execveat.2: initial man page for execveat(2)
+Date: Wed, 22 Oct 2014 12:55:34 -0500
+Message-ID: <87wq7sgfah.fsf@x220.int.ebiederm.org>
+References: <1413978269-17274-1-git-send-email-drysdale@google.com>
+	<1413978269-17274-4-git-send-email-drysdale@google.com>
 Mime-Version: 1.0
 Content-Type: text/plain
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from out01.mta.xmission.com ([166.70.13.231]:52259 "EHLO
-	out01.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752287AbaJVRlS (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 22 Oct 2014 13:41:18 -0400
-In-Reply-To: <CAHse=S_dpm8Do-H01Bo49a9TdYw+pSDzYomLOrBsYEcdO=Pytw@mail.gmail.com>
-	(David Drysdale's message of "Wed, 22 Oct 2014 12:08:17 +0100")
+Received: from out02.mta.xmission.com ([166.70.13.232]:38817 "EHLO
+	out02.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754325AbaJVR4X (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 22 Oct 2014 13:56:23 -0400
+In-Reply-To: <1413978269-17274-4-git-send-email-drysdale@google.com> (David
+	Drysdale's message of "Wed, 22 Oct 2014 12:44:29 +0100")
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: David Drysdale <drysdale@google.com>
-Cc: Andy Lutomirski <luto@amacapital.net>, Alexander Viro <viro@zeniv.linux.org.uk>, Meredydd Luff <meredydd@senatehouse.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, X86 ML <x86@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>
+Cc: Andy Lutomirski <luto@amacapital.net>, Alexander Viro <viro@zeniv.linux.org.uk>, Meredydd Luff <meredydd@senatehouse.org>, linux-kernel@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, x86@kernel.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
 
 David Drysdale <drysdale@google.com> writes:
 
-> On Tue, Oct 21, 2014 at 5:29 AM, Eric W. Biederman
-> <ebiederm@xmission.com> wrote:
->> Andy Lutomirski <luto@amacapital.net> writes:
->>
->>> On Mon, Oct 20, 2014 at 6:48 AM, David Drysdale <drysdale@google.com> wrote:
->>>> On Sun, Oct 19, 2014 at 1:20 AM, Eric W. Biederman
->>>> <ebiederm@xmission.com> wrote:
->>>>> Andy Lutomirski <luto@amacapital.net> writes:
->>>>>
->>>>>> [Added Eric Biederman, since I think your tree might be a reasonable
->>>>>> route forward for these patches.]
->>>>>>
->>>>>> On Thu, Jun 5, 2014 at 6:40 AM, David Drysdale <drysdale@google.com> wrote:
->>>>>>> Resending, adding cc:linux-api.
->>>>>>>
->>>>>>> Also, it may help to add a little more background -- this patch is
->>>>>>> needed as a (small) part of implementing Capsicum in the Linux kernel.
->>>>>>>
->>>>>>> Capsicum is a security framework that has been present in FreeBSD since
->>>>>>> version 9.0 (Jan 2012), and is based on concepts from object-capability
->>>>>>> security [1].
->>>>>>>
->>>>>>> One of the features of Capsicum is capability mode, which locks down
->>>>>>> access to global namespaces such as the filesystem hierarchy.  In
->>>>>>> capability mode, /proc is thus inaccessible and so fexecve(3) doesn't
->>>>>>> work -- hence the need for a kernel-space
->>>>>>
->>>>>> I just found myself wanting this syscall for another reason: injecting
->>>>>> programs into sandboxes or otherwise heavily locked-down namespaces.
->>>>>>
->>>>>> For example, I want to be able to reliably do something like nsenter
->>>>>> --namespace-flags-here toybox sh.  Toybox's shell is unusual in that
->>>>>> it is more or less fully functional, so this should Just Work (tm),
->>>>>> except that the toybox binary might not exist in the namespace being
->>>>>> entered.  If execveat were available, I could rig nsenter or a similar
->>>>>> tool to open it with O_CLOEXEC, enter the namespace, and then call
->>>>>> execveat.
->>>>>>
->>>>>> Is there any reason that these patches can't be merged more or less as
->>>>>> is for 3.19?
->>>>>
->>>>> Yes.  There is a silliness in how it implements fexecve.  The fexecve
->>>>> case should be use the empty string "" not a NULL pointer to indication
->>>>> that.  That change will then harmonize execveat with the other ...at
->>>>> system calls and simplify the code and remove a special case.  I believe
->>>>> using the empty string "" requires implementing the AT_EMPTY_PATH flag.
->>>>
->>>> Good point -- I'll shift to "" + AT_EMPTY_PATH.
->>>
->>> Pending a better idea, I would also see if the patches can be changed
->>> to return an error if d_path ends up with an "(unreachable)" thing
->>> rather than failing inexplicably later on.
->>
->> For my reference we are talking about
->>
->>> @@ -1489,7 +1524,21 @@ static int do_execve_common(struct filename *filename,
->>>       sched_exec();
->>>
->>>       bprm->file = file;
->>> -     bprm->filename = bprm->interp = filename->name;
->>> +     if (filename && fd == AT_FDCWD) {
->>> +             bprm->filename = filename->name;
->>> +     } else {
->>> +             pathbuf = kmalloc(PATH_MAX, GFP_TEMPORARY);
->>> +             if (!pathbuf) {
->>> +                     retval = -ENOMEM;
->>> +                     goto out_unmark;
->>> +             }
->>> +             bprm->filename = d_path(&file->f_path, pathbuf, PATH_MAX);
->>> +             if (IS_ERR(bprm->filename)) {
->>> +                     retval = PTR_ERR(bprm->filename);
->>> +                     goto out_unmark;
->>> +             }
->>> +     }
->>> +     bprm->interp = bprm->filename;
->>>
->>>       retval = bprm_mm_init(bprm);
->>>       if (retval)
->>
->> The interesting case for fexecve is when we either don't know what files
->> are present or we don't want to depend on which files are present.
->>
->> As Al pointed out d_path really isn't the right solution.  It fails when
->> printing /proc/self/fd/${fd}/${filename->name} would work, and the
->> "(deleted)" or "(unreachable)" strings are wrong.
->>
->> The test for today's cases should be:
->> if ((filename->name[0] == '/') || fd == AT_FDCWD) {
->>         bprm->filename = filename->name;
->> }
->>
->> To handle the case where the file descriptor is relevant.
-> (s/relevant/irrelevant)
+> Signed-off-by: David Drysdale <drysdale@google.com>
+> ---
+>  man2/execveat.2 | 144 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+>  1 file changed, 144 insertions(+)
+>  create mode 100644 man2/execveat.2
 >
-> Yep, good spot.
->
->> For the case where the file descriptor is relevant let me suggest
->> setting bprm->filename and bprm->interp to:
->>
->> /dev/fd/${fd}/${filename->name}
->
-> I'll send out an updated patchset with this approach, but I have a slight
-> reservation. Given that /dev/fd is a symlink to /proc/self/fd, this approach
-> means that script invocations will always fail on a /proc-less system,
-> where the previous iteration might have worked.
->
-> (As it happens, this isn't a restriction that affects the things I'm
-> working on, as Capsicum wouldn't allow script invocation anyway.
-> However, scenarios without /proc were nominally one of the motivating
-> factors for execveat in the first place...)
-
-Which is where's Al Viro's and Peter Anvin's conversation about a
-minimal filesystem that can serve the needs of /proc/self/fd comes in.
-
-There are uses for execveat with static executables, so I think execveat
-is justified.  But having a dupfs that we could potentially mount on
-/dev/fd would be interesting.   As it is much less of a security
-concern than /proc with all of the interfaces it provides.
-
->> It is more a description of what we have done but as a magic string it
->> is descriptive.  Documetation/devices.txt documents that /dev/fd/ should
->> exist, making it an unambiguous path.  Further these days the kernel
->> sets the device naming policy in dev, so I think we are strongly safe in
->> using that path in any event.
->>
->> I think execveat is interesting in the kernel because the motivating
->> cases are the cases where anything except a static executable is
->> uninteresting.
->
-> FYI, there is potential in the future for something other than static
-> executables -- the FreeBSD Capsicum implementation includes changes
-> to the dynamic linker to get its search path as a list of pre-opened dfds
-> (in LD_LIBRARY_PATH_FDS) rather than paths.
-
-Which still leaves open the question how do you find the dynamic
-linker.  Is that also a pre-opened dfd?
-
-Using /dev/fd/$N is also the kind of thing that a shell or a script
-interpret could special case instead relying on a filesystem node
-to exist.
-
-Eric
+> diff --git a/man2/execveat.2 b/man2/execveat.2
+> new file mode 100644
+> index 000000000000..d19571a3eb9d
+> --- /dev/null
+> +++ b/man2/execveat.2
+> @@ -0,0 +1,144 @@
+> +.\" Copyright (c) 2014 Google, Inc.
+> +.\"
+> +.\" %%%LICENSE_START(VERBATIM)
+> +.\" Permission is granted to make and distribute verbatim copies of this
+> +.\" manual provided the copyright notice and this permission notice are
+> +.\" preserved on all copies.
+> +.\"
+> +.\" Permission is granted to copy and distribute modified versions of this
+> +.\" manual under the conditions for verbatim copying, provided that the
+> +.\" entire resulting derived work is distributed under the terms of a
+> +.\" permission notice identical to this one.
+> +.\"
+> +.\" Since the Linux kernel and libraries are constantly changing, this
+> +.\" manual page may be incorrect or out-of-date.  The author(s) assume no
+> +.\" responsibility for errors or omissions, or for damages resulting from
+> +.\" the use of the information contained herein.  The author(s) may not
+> +.\" have taken the same level of care in the production of this manual,
+> +.\" which is licensed free of charge, as they might when working
+> +.\" professionally.
+> +.\"
+> +.\" Formatted or processed versions of this manual, if unaccompanied by
+> +.\" the source, must acknowledge the copyright and authors of this work.
+> +.\" %%%LICENSE_END
+> +.\"
+> +.TH EXECVEAT 2 2014-04-02 "Linux" "Linux Programmer's Manual"
+> +.SH NAME
+> +execveat \- execute program relative to a directory file descriptor
+> +.SH SYNOPSIS
+> +.B #include <unistd.h>
+> +.sp
+> +.BI "int execve(int " fd ", const char *" pathname ","
+            ^^^^^^ That needs to be execveat
+> +.br
+> +.BI "           char *const " argv "[],  char *const " envp "[],"
+> +.br
+> +.BI "           int " flags);
+> +.SH DESCRIPTION
+> +The
+> +.BR execveat ()
+> +system call executes the program pointed to by the combination of \fIfd\fP and \fIpathname\fP.
+> +The
+> +.BR execveat ()
+> +system call operates in exactly the same way as
+> +.BR execve (2),
+> +except for the differences described in this manual page.
+> +
+> +If the pathname given in
+> +.I pathname
+> +is relative, then it is interpreted relative to the directory
+> +referred to by the file descriptor
+> +.I fd
+> +(rather than relative to the current working directory of
+> +the calling process, as is done by
+> +.BR execve (2)
+> +for a relative pathname).
+> +
+> +If
+> +.I pathname
+> +is relative and
+> +.I fd
+> +is the special value
+> +.BR AT_FDCWD ,
+> +then
+> +.I pathname
+> +is interpreted relative to the current working
+> +directory of the calling process (like
+> +.BR execve (2)).
+> +
+> +If
+> +.I pathname
+> +is absolute, then
+> +.I fd
+> +is ignored.
+> +
+> +If
+> +.I pathname
+> +is an empty string and the
+> +.BR AT_EMPTY_PATH
+> +flag is specified, then the file descriptor
+> +.I fd
+> +specifies the file to be executed.
+> +
+> +.I flags
+> +can either be 0, or include the following flags:
+> +.TP
+> +.BR AT_EMPTY_PATH
+> +If
+> +.I pathname
+> +is an empty string, operate on the file referred to by
+> +.IR fd
+> +(which may have been obtained using the
+> +.BR open (2)
+> +.B O_PATH
+> +flag).
+> +.TP
+> +.B AT_SYMLINK_NOFOLLOW
+> +If the file identified by
+> +.I fd
+> +and a non-NULL
+> +.I pathname
+> +is a symbolic link, then the call fails with the error
+> +.BR EINVAL .
+> +.SH "RETURN VALUE"
+> +On success,
+> +.BR execveat ()
+> +does not return. On error \-1 is returned, and
+> +.I errno
+> +is set appropriately.
+> +.SH ERRORS
+> +The same errors that occur for
+> +.BR execve (2)
+> +can also occur for
+> +.BR execveat ().
+> +The following additional errors can occur for
+> +.BR execveat ():
+> +.TP
+> +.B EBADF
+> +.I fd
+> +is not a valid file descriptor.
+> +.TP
+> +.B EINVAL
+> +Invalid flag specified in
+> +.IR flags .
+> +.TP
+> +.B ENOTDIR
+> +.I pathname
+> +is relative and
+> +.I fd
+> +is a file descriptor referring to a file other than a directory.
+> +.SH VERSIONS
+> +.BR execveat ()
+> +was added to Linux in kernel 3.???.
+> +.SH NOTES
+> +In addition to the reasons explained in
+> +.BR openat (2),
+> +the
+> +.BR execveat ()
+> +system call is also needed to allow
+> +.BR fexecve (3)
+> +to be implemented on systems that do not have the
+> +.I /proc
+> +filesystem mounted.
+> +.SH SEE ALSO
+> +.BR execve (2),
+> +.BR fexecve (3)
