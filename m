@@ -1,178 +1,58 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-la0-f74.google.com ([209.85.215.74]:51220 "EHLO
-	mail-la0-f74.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932865AbaJVMMc (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 22 Oct 2014 08:12:32 -0400
-Received: by mail-la0-f74.google.com with SMTP id s18so263083lam.5
-        for <linux-arch@vger.kernel.org>; Wed, 22 Oct 2014 05:12:30 -0700 (PDT)
-From: David Drysdale <drysdale@google.com>
-Subject: [PATCHv5 man-pages 3/3] execveat.2: initial man page for execveat(2)
-Date: Wed, 22 Oct 2014 12:44:29 +0100
-Message-ID: <1413978269-17274-4-git-send-email-drysdale@google.com>
-In-Reply-To: <1413978269-17274-1-git-send-email-drysdale@google.com>
-References: <1413978269-17274-1-git-send-email-drysdale@google.com>
+Received: from mail-la0-f44.google.com ([209.85.215.44]:47136 "EHLO
+	mail-la0-f44.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753462AbaJVSov (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 22 Oct 2014 14:44:51 -0400
+Received: by mail-la0-f44.google.com with SMTP id hs14so3538306lab.3
+        for <linux-arch@vger.kernel.org>; Wed, 22 Oct 2014 11:44:49 -0700 (PDT)
+MIME-Version: 1.0
+In-Reply-To: <1413978269-17274-2-git-send-email-drysdale@google.com>
+References: <1413978269-17274-1-git-send-email-drysdale@google.com> <1413978269-17274-2-git-send-email-drysdale@google.com>
+From: Andy Lutomirski <luto@amacapital.net>
+Date: Wed, 22 Oct 2014 11:44:29 -0700
+Message-ID: <CALCETrWbj=BTDyKqtbSKteANj3J3UFZnrvWv9DMosCoEZaSoeA@mail.gmail.com>
+Subject: Re: [PATCHv5 1/3] syscalls,x86: implement execveat() system call
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Eric W. Biederman" <ebiederm@xmission.com>, Andy Lutomirski <luto@amacapital.net>, Alexander Viro <viro@zeniv.linux.org.uk>, Meredydd Luff <meredydd@senatehouse.org>, linux-kernel@vger.kernel.org
-Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, x86@kernel.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, David Drysdale <drysdale@google.com>
-Message-ID: <20141022114429.Y5p9HSN_K4UcCD32wCJR9iL_Bah7_xJ6DIsbret4wJQ@z>
+To: David Drysdale <drysdale@google.com>
+Cc: "Eric W. Biederman" <ebiederm@xmission.com>, Alexander Viro <viro@zeniv.linux.org.uk>, Meredydd Luff <meredydd@senatehouse.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, X86 ML <x86@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>
+Message-ID: <20141022184429.yu66oL2E9e0GaQJBqdThSlLDjbTUiXMPeXl63QDefQQ@z>
 
-Signed-off-by: David Drysdale <drysdale@google.com>
----
- man2/execveat.2 | 144 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 144 insertions(+)
- create mode 100644 man2/execveat.2
+On Wed, Oct 22, 2014 at 4:44 AM, David Drysdale <drysdale@google.com> wrote:
+> Add a new system execveat(2) syscall. execveat() is to execve() as
+> openat() is to open(): it takes a file descriptor that refers to a
+> directory, and resolves the filename relative to that.
+>
 
-diff --git a/man2/execveat.2 b/man2/execveat.2
-new file mode 100644
-index 000000000000..d19571a3eb9d
---- /dev/null
-+++ b/man2/execveat.2
-@@ -0,0 +1,144 @@
-+.\" Copyright (c) 2014 Google, Inc.
-+.\"
-+.\" %%%LICENSE_START(VERBATIM)
-+.\" Permission is granted to make and distribute verbatim copies of this
-+.\" manual provided the copyright notice and this permission notice are
-+.\" preserved on all copies.
-+.\"
-+.\" Permission is granted to copy and distribute modified versions of this
-+.\" manual under the conditions for verbatim copying, provided that the
-+.\" entire resulting derived work is distributed under the terms of a
-+.\" permission notice identical to this one.
-+.\"
-+.\" Since the Linux kernel and libraries are constantly changing, this
-+.\" manual page may be incorrect or out-of-date.  The author(s) assume no
-+.\" responsibility for errors or omissions, or for damages resulting from
-+.\" the use of the information contained herein.  The author(s) may not
-+.\" have taken the same level of care in the production of this manual,
-+.\" which is licensed free of charge, as they might when working
-+.\" professionally.
-+.\"
-+.\" Formatted or processed versions of this manual, if unaccompanied by
-+.\" the source, must acknowledge the copyright and authors of this work.
-+.\" %%%LICENSE_END
-+.\"
-+.TH EXECVEAT 2 2014-04-02 "Linux" "Linux Programmer's Manual"
-+.SH NAME
-+execveat \- execute program relative to a directory file descriptor
-+.SH SYNOPSIS
-+.B #include <unistd.h>
-+.sp
-+.BI "int execve(int " fd ", const char *" pathname ","
-+.br
-+.BI "           char *const " argv "[],  char *const " envp "[],"
-+.br
-+.BI "           int " flags);
-+.SH DESCRIPTION
-+The
-+.BR execveat ()
-+system call executes the program pointed to by the combination of \fIfd\fP and \fIpathname\fP.
-+The
-+.BR execveat ()
-+system call operates in exactly the same way as
-+.BR execve (2),
-+except for the differences described in this manual page.
-+
-+If the pathname given in
-+.I pathname
-+is relative, then it is interpreted relative to the directory
-+referred to by the file descriptor
-+.I fd
-+(rather than relative to the current working directory of
-+the calling process, as is done by
-+.BR execve (2)
-+for a relative pathname).
-+
-+If
-+.I pathname
-+is relative and
-+.I fd
-+is the special value
-+.BR AT_FDCWD ,
-+then
-+.I pathname
-+is interpreted relative to the current working
-+directory of the calling process (like
-+.BR execve (2)).
-+
-+If
-+.I pathname
-+is absolute, then
-+.I fd
-+is ignored.
-+
-+If
-+.I pathname
-+is an empty string and the
-+.BR AT_EMPTY_PATH
-+flag is specified, then the file descriptor
-+.I fd
-+specifies the file to be executed.
-+
-+.I flags
-+can either be 0, or include the following flags:
-+.TP
-+.BR AT_EMPTY_PATH
-+If
-+.I pathname
-+is an empty string, operate on the file referred to by
-+.IR fd
-+(which may have been obtained using the
-+.BR open (2)
-+.B O_PATH
-+flag).
-+.TP
-+.B AT_SYMLINK_NOFOLLOW
-+If the file identified by
-+.I fd
-+and a non-NULL
-+.I pathname
-+is a symbolic link, then the call fails with the error
-+.BR EINVAL .
-+.SH "RETURN VALUE"
-+On success,
-+.BR execveat ()
-+does not return. On error \-1 is returned, and
-+.I errno
-+is set appropriately.
-+.SH ERRORS
-+The same errors that occur for
-+.BR execve (2)
-+can also occur for
-+.BR execveat ().
-+The following additional errors can occur for
-+.BR execveat ():
-+.TP
-+.B EBADF
-+.I fd
-+is not a valid file descriptor.
-+.TP
-+.B EINVAL
-+Invalid flag specified in
-+.IR flags .
-+.TP
-+.B ENOTDIR
-+.I pathname
-+is relative and
-+.I fd
-+is a file descriptor referring to a file other than a directory.
-+.SH VERSIONS
-+.BR execveat ()
-+was added to Linux in kernel 3.???.
-+.SH NOTES
-+In addition to the reasons explained in
-+.BR openat (2),
-+the
-+.BR execveat ()
-+system call is also needed to allow
-+.BR fexecve (3)
-+to be implemented on systems that do not have the
-+.I /proc
-+filesystem mounted.
-+.SH SEE ALSO
-+.BR execve (2),
-+.BR fexecve (3)
--- 
-2.1.0.rc2.206.gedb03e5
+>         bprm->file = file;
+> -       bprm->filename = bprm->interp = filename->name;
+> +       if (fd == AT_FDCWD || filename->name[0] == '/') {
+> +               bprm->filename = filename->name;
+> +       } else {
+> +               /*
+> +                * Build a pathname that reflects how we got to the file,
+> +                * either "/dev/fd/<fd>" (for an empty filename) or
+> +                * "/dev/fd/<fd>/<filename>".
+> +                */
+> +               pathbuf = kmalloc(PATH_MAX, GFP_TEMPORARY);
+> +               if (!pathbuf) {
+> +                       retval = -ENOMEM;
+> +                       goto out_unmark;
+> +               }
+> +               bprm->filename = pathbuf;
+> +               if (filename->name[0] == '\0')
+> +                       sprintf(pathbuf, "/dev/fd/%d", fd);
 
+If the fd is O_CLOEXEC, then this will result in a confused child
+process.  Should we fail exec attempts like that for non-static
+programs?  (E.g. set filename to "" or something and fix up the binfmt
+drivers to handle that?)
+
+> +               else
+> +                       snprintf(pathbuf, PATH_MAX,
+> +                                "/dev/fd/%d/%s", fd, filename->name);
+
+Does this need to handle the case where the result exceeds PATH_MAX?
+
+--Andy
