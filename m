@@ -1,75 +1,54 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from szxga02-in.huawei.com ([119.145.14.65]:33886 "EHLO
-	szxga02-in.huawei.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750930AbaJWGj6 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 23 Oct 2014 02:39:58 -0400
-Message-ID: <5448A2A7.9090407@huawei.com>
-Date: Thu, 23 Oct 2014 14:39:35 +0800
+Received: from szxga03-in.huawei.com ([119.145.14.66]:50496 "EHLO
+	szxga03-in.huawei.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751282AbaJWGlQ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 23 Oct 2014 02:41:16 -0400
+Message-ID: <5448A2F2.7060001@huawei.com>
+Date: Thu, 23 Oct 2014 14:40:50 +0800
 From: Yijing Wang <wangyijing@huawei.com>
 MIME-Version: 1.0
-Subject: Re: [PATCH v3 09/27] arm/PCI: Clean unused pcibios_add_bus() and
- pcibios_remove_bus()
-References: <1413342435-7876-1-git-send-email-wangyijing@huawei.com> <1413342435-7876-10-git-send-email-wangyijing@huawei.com> <20141023053858.GD11770@google.com>
-In-Reply-To: <20141023053858.GD11770@google.com>
+Subject: Re: [PATCH v3 10/27] PCI/MSI: Remove useless bus->msi assignment
+References: <1413342435-7876-1-git-send-email-wangyijing@huawei.com> <1413342435-7876-11-git-send-email-wangyijing@huawei.com> <20141023054121.GE11770@google.com>
+In-Reply-To: <20141023054121.GE11770@google.com>
 Content-Type: text/plain; charset="ISO-8859-1"
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Bjorn Helgaas <bhelgaas@google.com>
 Cc: linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, Xinwei Hu <huxinwei@huawei.com>, Wuyun <wuyun.wu@huawei.com>, linux-arm-kernel@lists.infradead.org, Russell King <linux@arm.linux.org.uk>, linux-arch@vger.kernel.org, arnab.basu@freescale.com, Bharat.Bhushan@freescale.com, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, Thomas Gleixner <tglx@linutronix.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, xen-devel@lists.xenproject.org, Joerg Roedel <joro@8bytes.org>, iommu@lists.linux-foundation.org, linux-mips@linux-mips.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, Sebastian Ott <sebott@linux.vnet.ibm.com>, Tony Luck <tony.luck@intel.com>, linux-ia64@vger.kernel.org, "David S. Miller" <davem@davemloft.net>, sparclinux@vger.kernel.org, Chris Metcalf <cmetcalf@tilera.com>, Ralf Baechle <ralf@linux-mips.org>, Lucas Stach <l.stach@pengutronix.de>, David Vrabel <david.vrabel@citrix.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, Michael Ellerman <mpe@ellerman.id.au>, Thierry Reding <thierry.reding@gmail.com>, Thomas Petazzoni <thomas.petazzoni@free-electrons.com>, Liviu Dudau <liviu@dudau.co.uk>
-Message-ID: <20141023063935.t1FQQX3zVRBk4keeoOKfD9XdCzCDGm9egL7NhHtmnfY@z>
+Message-ID: <20141023064050.plEya0dfputoGTJjLzAjlLv_CY1wxdKCC6uRpsr6MPo@z>
 
->>  /*
->>   * Swizzle the device pin each time we cross a bridge.  If a platform does
->>   * not provide a swizzle function, we perform the standard PCI swizzling.
->> @@ -478,8 +464,6 @@ static void pcibios_init_hw(struct device *parent, struct hw_pci *hw,
->>  		sys->swizzle = hw->swizzle;
->>  		sys->map_irq = hw->map_irq;
->>  		sys->align_resource = hw->align_resource;
->> -		sys->add_bus = hw->add_bus;
->> -		sys->remove_bus = hw->remove_bus;
->>  		INIT_LIST_HEAD(&sys->resources);
+On 2014/10/23 13:41, Bjorn Helgaas wrote:
+> On Wed, Oct 15, 2014 at 11:06:58AM +0800, Yijing Wang wrote:
+>> Now msi chip is saved in pci_sys_data in arm,
+>> we could clean the bus->msi assignment in
+>> pci core.
+>>
+>> Signed-off-by: Yijing Wang <wangyijing@huawei.com>
+>> CC: Thierry Reding <thierry.reding@gmail.com>
+>> CC: Thomas Petazzoni <thomas.petazzoni@free-electrons.com>
+>> ---
+>>  drivers/pci/probe.c |    1 -
+>>  1 files changed, 0 insertions(+), 1 deletions(-)
+>>
+>> diff --git a/drivers/pci/probe.c b/drivers/pci/probe.c
+>> index efa48dc..98bf4c3 100644
+>> --- a/drivers/pci/probe.c
+>> +++ b/drivers/pci/probe.c
+>> @@ -682,7 +682,6 @@ static struct pci_bus *pci_alloc_child_bus(struct pci_bus *parent,
 >>  
->>  		if (hw->private_data)
+>>  	child->parent = parent;
+>>  	child->ops = parent->ops;
+>> -	child->msi = parent->msi;
 > 
-> What do the core changes below have to do with the ARM changes above?
-> They should be a separate patch unless they can't be separated.
+> This needs an explanation of why ARM was the only arch to depend on this.
 
-Hm, it's not the thing have to do, because the changes below is only used by arm arch, so I put it here
-together. It's ok to split the core changes out to another one.
+OK, will add explanation in next version.
 
 > 
->> diff --git a/drivers/pci/msi.c b/drivers/pci/msi.c
->> index f11108c..56e54ad 100644
->> --- a/drivers/pci/msi.c
->> +++ b/drivers/pci/msi.c
->> @@ -32,12 +32,10 @@ int pci_msi_ignore_mask;
+>>  	child->sysdata = parent->sysdata;
+>>  	child->bus_flags = parent->bus_flags;
 >>  
->>  int __weak arch_setup_msi_irq(struct pci_dev *dev, struct msi_desc *desc)
->>  {
->> -	struct msi_chip *chip = dev->bus->msi;
->> +	struct msi_chip *chip;
->>  	int err;
->>  
->> -	if (!chip)
->> -		chip = pci_msi_chip(dev->bus);
->> -
->> +	chip = pci_msi_chip(dev->bus);
->>  	if (!chip || !chip->setup_irq)
->>  		return -EINVAL;
->>  
->> @@ -51,10 +49,7 @@ int __weak arch_setup_msi_irq(struct pci_dev *dev, struct msi_desc *desc)
->>  void __weak arch_teardown_msi_irq(unsigned int irq)
->>  {
->>  	struct msi_desc *entry = irq_get_msi_desc(irq);
->> -	struct msi_chip *chip = entry->dev->bus->msi;
->> -
->> -	if (!chip)
->> -		chip = pci_msi_chip(entry->dev->bus);
->> +	struct msi_chip *chip = pci_msi_chip(entry->dev->bus);
->>  
->>  	if (!chip || !chip->teardown_irq)
->>  		return;
 >> -- 
 >> 1.7.1
 >>
