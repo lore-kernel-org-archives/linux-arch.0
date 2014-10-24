@@ -1,48 +1,75 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-la0-f47.google.com ([209.85.215.47]:47911 "EHLO
-	mail-la0-f47.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751729AbaJXJKi (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 24 Oct 2014 05:10:38 -0400
+Received: from g4t3425.houston.hp.com ([15.201.208.53]:18205 "EHLO
+	g4t3425.houston.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752682AbaJXUxe (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 24 Oct 2014 16:53:34 -0400
+Message-ID: <544ABC47.2000700@hp.com>
+Date: Fri, 24 Oct 2014 16:53:27 -0400
+From: Waiman Long <waiman.long@hp.com>
 MIME-Version: 1.0
-In-Reply-To: <1414139071-3818-30-git-send-email-lftan@altera.com>
-References: <1414139071-3818-1-git-send-email-lftan@altera.com>
-	<1414139071-3818-30-git-send-email-lftan@altera.com>
-Date: Fri, 24 Oct 2014 11:10:36 +0200
-Message-ID: <CAMuHMdXTg3s_ZKL5M+=LwiNBa4gL8Z=eOchocD3qjvp-d=gW_Q@mail.gmail.com>
-Subject: Re: [PATCH v5 29/29] nios2: Build infrastructure
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Content-Type: text/plain; charset=UTF-8
+Subject: Re: [PATCH v12 09/11] pvqspinlock, x86: Add para-virtualization support
+References: <1413483040-58399-1-git-send-email-Waiman.Long@hp.com> <1413483040-58399-10-git-send-email-Waiman.Long@hp.com> <20141024084738.GU21513@worktop.programming.kicks-ass.net>
+In-Reply-To: <20141024084738.GU21513@worktop.programming.kicks-ass.net>
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ley Foon Tan <lftan@altera.com>
-Cc: Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, LeyFoon Tan <lftan.linux@gmail.com>, Chung-Lin Tang <cltang@codesourcery.com>
-Message-ID: <20141024091036.eKD5nsAp39hc42SXoZwStAwraFFMn21IuXyB3rP_9lE@z>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Rik van Riel <riel@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, David Vrabel <david.vrabel@citrix.com>, Oleg Nesterov <oleg@redhat.com>, Scott J Norton <scott.norton@hp.com>, Douglas Hatch <doug.hatch@hp.com>
+Message-ID: <20141024205327.klevrfbYseebIQ3FRk2PbKc0Sh4V9LrKyWPtW1i-Rq4@z>
 
-On Fri, Oct 24, 2014 at 10:24 AM, Ley Foon Tan <lftan@altera.com> wrote:
-> --- /dev/null
-> +++ b/arch/nios2/boot/install.sh
-> @@ -0,0 +1,52 @@
-> +#!/bin/sh
-> +#
-> +# This file is subject to the terms and conditions of the GNU General Public
-> +# License.  See the file "COPYING" in the main directory of this archive
-> +# for more details.
-> +#
-> +# Copyright (C) 1995 by Linus Torvalds
-> +#
-> +# Adapted from code in arch/i386/boot/Makefile by H. Peter Anvin
-> +#
-> +# "make install" script for m68k architecture
+On 10/24/2014 04:47 AM, Peter Zijlstra wrote:
+> On Thu, Oct 16, 2014 at 02:10:38PM -0400, Waiman Long wrote:
+>> +static inline void pv_init_node(struct mcs_spinlock *node)
+>> +{
+>> +	struct pv_qnode *pn = (struct pv_qnode *)node;
+>> +
+>> +	BUILD_BUG_ON(sizeof(struct pv_qnode)>  5*sizeof(struct mcs_spinlock));
+>> +
+>> +	if (!pv_enabled())
+>> +		return;
+>> +
+>> +	pn->cpustate = PV_CPU_ACTIVE;
+>> +	pn->mayhalt  = false;
+>> +	pn->mycpu    = smp_processor_id();
+>> +	pn->head     = PV_INVALID_HEAD;
+>> +}
+>
+>> @@ -333,6 +393,7 @@ queue:
+>>   	node += idx;
+>>   	node->locked = 0;
+>>   	node->next = NULL;
+>> +	pv_init_node(node);
+>>
+>>   	/*
+>>   	 * We touched a (possibly) cold cacheline in the per-cpu queue node;
+>
+> So even if !pv_enabled() the compiler will still have to emit the code
+> for that inline, which will generate additional register pressure,
+> icache pressure and lovely stuff like that.
+>
+> The patch I had used pv-ops for these things that would turn into NOPs
+> in the regular case and callee-saved function calls for the PV case.
+>
+> That still does not entirely eliminate cost, but does reduce it
+> significant. Please consider using that.
 
-You probably want to s/m68k/nios2/ here.
+The additional register pressure may just cause a few more register 
+moves which should be negligible in the overall performance . The 
+additional icache pressure, however, may have some impact on 
+performance. I was trying to balance the performance of the pv and 
+non-pv versions so that we won't penalize the pv code too much for a bit 
+more performance in the non-pv code. Doing it your way will add a lot of 
+function call and register saving/restoring to the pv code.
 
-Gr{oetje,eeting}s,
+Another alternative that I can think of is to generate 2 versions of the 
+slowpath code - one pv and one non-pv out of the same source code. The 
+non-pv code will call into the pv code once if pv is enabled. In this 
+way, it won't increase the icache and register pressure of the non-pv 
+code. However, this may make the source code a bit harder to read.
 
-                        Geert
+Please let me know your thought on this alternate approach.
 
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+-Longman
 
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+
