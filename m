@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-by2on0078.outbound.protection.outlook.com ([207.46.100.78]:60896
-	"EHLO na01-by2-obe.outbound.protection.outlook.com"
+Received: from mail-bn1on0076.outbound.protection.outlook.com ([157.56.110.76]:52144
+	"EHLO na01-bn1-obe.outbound.protection.outlook.com"
 	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1750964AbaJXIYp (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 24 Oct 2014 04:24:45 -0400
+	id S933037AbaJXI1E (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 24 Oct 2014 04:27:04 -0400
 From: Ley Foon Tan <lftan@altera.com>
-Subject: [PATCH v5 01/29] asm-generic: add generic futex for !CONFIG_SMP
-Date: Fri, 24 Oct 2014 16:24:03 +0800
-Message-ID: <1414139071-3818-2-git-send-email-lftan@altera.com>
+Subject: [PATCH v5 28/29] Documentation: Add documentation for Nios2 architecture
+Date: Fri, 24 Oct 2014 16:24:30 +0800
+Message-ID: <1414139071-3818-29-git-send-email-lftan@altera.com>
 In-Reply-To: <1414139071-3818-1-git-send-email-lftan@altera.com>
 References: <1414139071-3818-1-git-send-email-lftan@altera.com>
 MIME-Version: 1.0
@@ -16,114 +16,43 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org
 Cc: Arnd Bergmann <arnd@arndb.de>, Ley Foon Tan <lftan@altera.com>, lftan.linux@gmail.com, cltang@codesourcery.com
-Message-ID: <20141024082403.v8LSdZtHxPaTKzJSsqSeTzozXZ3CrsCKZEQq9Nt7FlA@z>
-
-Follow m68k futex implementation for !CONFIG_SMP.
+Message-ID: <20141024082430.OHNiJbrfYrbEG1j-n_8rGSvXIDfaXtjYYNM7oQCmVRc@z>
 
 Signed-off-by: Ley Foon Tan <lftan@altera.com>
-Acked-by: Arnd Bergmann <arnd@arndb.de>
 ---
- include/asm-generic/futex.h | 82 +++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 82 insertions(+)
+ Documentation/nios2/README | 23 +++++++++++++++++++++++
+ 1 file changed, 23 insertions(+)
+ create mode 100644 Documentation/nios2/README
 
-diff --git a/include/asm-generic/futex.h b/include/asm-generic/futex.h
-index 01f227e..f5650a5 100644
---- a/include/asm-generic/futex.h
-+++ b/include/asm-generic/futex.h
-@@ -5,6 +5,87 @@
- #include <linux/uaccess.h>
- #include <asm/errno.h>
- 
-+#ifndef CONFIG_SMP
-+static inline int
-+futex_atomic_op_inuser(int encoded_op, u32 __user *uaddr)
-+{
-+	int op = (encoded_op >> 28) & 7;
-+	int cmp = (encoded_op >> 24) & 15;
-+	int oparg = (encoded_op << 8) >> 20;
-+	int cmparg = (encoded_op << 20) >> 20;
-+	int oldval, ret;
-+	u32 tmp;
+diff --git a/Documentation/nios2/README b/Documentation/nios2/README
+new file mode 100644
+index 0000000..054a67d
+--- /dev/null
++++ b/Documentation/nios2/README
+@@ -0,0 +1,23 @@
++Linux on the Nios II architecture
++=================================
 +
-+	if (encoded_op & (FUTEX_OP_OPARG_SHIFT << 28))
-+		oparg = 1 << oparg;
++This is a port of Linux to Nios II (nios2) processor.
 +
-+	pagefault_disable();	/* implies preempt_disable() */
++In order to compile for Nios II, you need a version of GCC with support for the generic
++system call ABI. Please see this link for more information on how compiling and booting
++software for the Nios II platform:
++http://www.rocketboards.org/foswiki/Documentation/NiosIILinuxUserManual
 +
-+	ret = -EFAULT;
-+	if (unlikely(get_user(oldval, uaddr) != 0))
-+		goto out_pagefault_enable;
++For reference, please see the following link:
++http://www.altera.com/literature/lit-nio2.jsp
 +
-+	ret = 0;
-+	tmp = oldval;
++What is Nios II?
++================
++Nios II is a 32-bit embedded-processor architecture designed specifically for the
++Altera family of FPGAs. In order to support Linux, Nios II needs to be configured
++with MMU and hardware multiplier enabled.
 +
-+	switch (op) {
-+	case FUTEX_OP_SET:
-+		tmp = oparg;
-+		break;
-+	case FUTEX_OP_ADD:
-+		tmp += oparg;
-+		break;
-+	case FUTEX_OP_OR:
-+		tmp |= oparg;
-+		break;
-+	case FUTEX_OP_ANDN:
-+		tmp &= ~oparg;
-+		break;
-+	case FUTEX_OP_XOR:
-+		tmp ^= oparg;
-+		break;
-+	default:
-+		ret = -ENOSYS;
-+	}
-+
-+	if (ret == 0 && unlikely(put_user(tmp, uaddr) != 0))
-+		ret = -EFAULT;
-+
-+out_pagefault_enable:
-+	pagefault_enable();	/* subsumes preempt_enable() */
-+
-+	if (ret == 0) {
-+		switch (cmp) {
-+		case FUTEX_OP_CMP_EQ: ret = (oldval == cmparg); break;
-+		case FUTEX_OP_CMP_NE: ret = (oldval != cmparg); break;
-+		case FUTEX_OP_CMP_LT: ret = (oldval < cmparg); break;
-+		case FUTEX_OP_CMP_GE: ret = (oldval >= cmparg); break;
-+		case FUTEX_OP_CMP_LE: ret = (oldval <= cmparg); break;
-+		case FUTEX_OP_CMP_GT: ret = (oldval > cmparg); break;
-+		default: ret = -ENOSYS;
-+		}
-+	}
-+	return ret;
-+}
-+
-+static inline int
-+futex_atomic_cmpxchg_inatomic(u32 *uval, u32 __user *uaddr,
-+			      u32 oldval, u32 newval)
-+{
-+	u32 val;
-+
-+	if (unlikely(get_user(val, uaddr) != 0))
-+		return -EFAULT;
-+
-+	if (val == oldval && unlikely(put_user(newval, uaddr) != 0))
-+		return -EFAULT;
-+
-+	*uval = val;
-+
-+	return 0;
-+}
-+
-+#else
- static inline int
- futex_atomic_op_inuser (int encoded_op, u32 __user *uaddr)
- {
-@@ -54,4 +135,5 @@ futex_atomic_cmpxchg_inatomic(u32 *uval, u32 __user *uaddr,
- 	return -ENOSYS;
- }
- 
-+#endif /* CONFIG_SMP */
- #endif
++Nios II ABI
++===========
++Please refer to chapter "Application Binary Interface" in Nios II Processor Reference
++Handbook.
 -- 
 1.8.2.1
 
