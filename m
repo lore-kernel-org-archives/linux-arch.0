@@ -1,80 +1,79 @@
-From: James Bottomley <James.Bottomley@HansenPartnership.com>
-Subject: Re: [PATCH V2 1/2] mm: Update generic gup implementation to handle
- hugepage directory
-Date: Fri, 24 Oct 2014 09:22:41 -0700
-Message-ID: <1414167761.19984.17.camel@jarvis.lan>
-References: <1413520687-31729-1-git-send-email-aneesh.kumar@linux.vnet.ibm.com>
-	 <20141022160224.9c2268795e55d5a2eff5b94d@linux-foundation.org>
-	 <20141023.184035.388557314666522484.davem@davemloft.net>
-	 <1414107635.364.91.camel@pasglop>
+From: Waiman Long <waiman.long@hp.com>
+Subject: Re: [PATCH v12 09/11] pvqspinlock,
+	x86: Add para-virtualization support
+Date: Fri, 24 Oct 2014 16:53:27 -0400
+Message-ID: <544ABC47.2000700@hp.com>
+References: <1413483040-58399-1-git-send-email-Waiman.Long@hp.com>
+	<1413483040-58399-10-git-send-email-Waiman.Long@hp.com>
+	<20141024084738.GU21513@worktop.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset="us-ascii"; Format="flowed"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from bedivere.hansenpartnership.com ([66.63.167.143]:58498 "EHLO
-	bedivere.hansenpartnership.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1751510AbaJXQWn (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Fri, 24 Oct 2014 12:22:43 -0400
-In-Reply-To: <1414107635.364.91.camel@pasglop>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: David Miller <davem@davemloft.net>, akpm@linux-foundation.org, aneesh.kumar@linux.vnet.ibm.com, steve.capper@linaro.org, aarcange@redhat.com, mpe@ellerman.id.au, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-arch@vger.kernel.org, hannes@cmpxchg.org
+Return-path: <virtualization-bounces@lists.linux-foundation.org>
+In-Reply-To: <20141024084738.GU21513@worktop.programming.kicks-ass.net>
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
+List-Post: <mailto:virtualization@lists.linux-foundation.org>
+List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
+Sender: virtualization-bounces@lists.linux-foundation.org
+Errors-To: virtualization-bounces@lists.linux-foundation.org
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: linux-arch@vger.kernel.org, Rik van Riel <riel@redhat.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, Oleg Nesterov <oleg@redhat.com>, kvm@vger.kernel.org, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Scott J Norton <scott.norton@hp.com>, x86@kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, Ingo Molnar <mingo@redhat.com>, David Vrabel <david.vrabel@citrix.com>, "H. Peter Anvin" <hpa@zytor.com>, xen-devel@lists.xenproject.org, Thomas Gleixner <tglx@linutronix.de>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Douglas Hatch <doug.hatch@hp.com>
+List-Id: linux-arch.vger.kernel.org
 
-On Fri, 2014-10-24 at 10:40 +1100, Benjamin Herrenschmidt wrote:
-> On Thu, 2014-10-23 at 18:40 -0400, David Miller wrote:
-> > Hey guys, was looking over the generic GUP while working on a sparc64
-> > issue and I noticed that you guys do speculative page gets, and after
-> > talking with Johannes Weiner (CC:'d) about this we don't see how it
-> > could be necessary.
-> > 
-> > If interrupts are disabled during the page table scan (which they
-> > are), no IPI tlb flushes can arrive.  Therefore any removal from the
-> > page tables is guarded by interrupts being re-enabled.  And as a
-> > result, page counts of pages we see in the page tables must always
-> > have a count > 0.
-> > 
-> > x86 does direct atomic_add() on &page->_count because of this
-> > invariant and I would rather see the generic version do this too.
-> 
-> This is of course only true of archs who use IPIs for TLB flushes, so if
-> we are going down the path of not being speculative, powerpc would have
-> to go back to doing its own since our broadcast TLB flush means we
-> aren't protected (we are only protected vs. the page tables themselves
-> being freed since we do that via sched RCU).
-> 
-> AFAIK, ARM also broadcasts TLB flushes...
+On 10/24/2014 04:47 AM, Peter Zijlstra wrote:
+> On Thu, Oct 16, 2014 at 02:10:38PM -0400, Waiman Long wrote:
+>> +static inline void pv_init_node(struct mcs_spinlock *node)
+>> +{
+>> +	struct pv_qnode *pn = (struct pv_qnode *)node;
+>> +
+>> +	BUILD_BUG_ON(sizeof(struct pv_qnode)>  5*sizeof(struct mcs_spinlock));
+>> +
+>> +	if (!pv_enabled())
+>> +		return;
+>> +
+>> +	pn->cpustate = PV_CPU_ACTIVE;
+>> +	pn->mayhalt  = false;
+>> +	pn->mycpu    = smp_processor_id();
+>> +	pn->head     = PV_INVALID_HEAD;
+>> +}
+>
+>> @@ -333,6 +393,7 @@ queue:
+>>   	node += idx;
+>>   	node->locked = 0;
+>>   	node->next = NULL;
+>> +	pv_init_node(node);
+>>
+>>   	/*
+>>   	 * We touched a (possibly) cold cacheline in the per-cpu queue node;
+>
+> So even if !pv_enabled() the compiler will still have to emit the code
+> for that inline, which will generate additional register pressure,
+> icache pressure and lovely stuff like that.
+>
+> The patch I had used pv-ops for these things that would turn into NOPs
+> in the regular case and callee-saved function calls for the PV case.
+>
+> That still does not entirely eliminate cost, but does reduce it
+> significant. Please consider using that.
 
-Parisc does this.  As soon as one CPU issues a TLB purge, it's broadcast
-to all the CPUs on the inter-CPU bus.  The next instruction isn't
-executed until they respond.
+The additional register pressure may just cause a few more register 
+moves which should be negligible in the overall performance . The 
+additional icache pressure, however, may have some impact on 
+performance. I was trying to balance the performance of the pv and 
+non-pv versions so that we won't penalize the pv code too much for a bit 
+more performance in the non-pv code. Doing it your way will add a lot of 
+function call and register saving/restoring to the pv code.
 
-But this is only for our CPU TLB.  There's no other external
-consequence, so removal from the page tables isn't effected by this TLB
-flush, therefore the theory on which Dave bases the change to
-atomic_add() should work for us (of course, atomic_add is lock add
-unlock on our CPU, so it's not going to be of much benefit).
+Another alternative that I can think of is to generate 2 versions of the 
+slowpath code - one pv and one non-pv out of the same source code. The 
+non-pv code will call into the pv code once if pv is enabled. In this 
+way, it won't increase the icache and register pressure of the non-pv 
+code. However, this may make the source code a bit harder to read.
 
-James
+Please let me know your thought on this alternate approach.
 
-> Another option would be to make the generic code use something defined
-> by the arch to decide whether to use speculative get or
-> not. I like the idea of keeping the bulk of that code generic...
-> 
-> Cheers,
-> Ben.
-> 
-> > --
-> > To unsubscribe, send a message with 'unsubscribe linux-mm' in
-> > the body to majordomo@kvack.org.  For more info on Linux MM,
-> > see: http://www.linux-mm.org/ .
-> > Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
-> 
-> 
-> --
-> To unsubscribe, send a message with 'unsubscribe linux-mm' in
-> the body to majordomo@kvack.org.  For more info on Linux MM,
-> see: http://www.linux-mm.org/ .
-> Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
-> 
+-Longman
