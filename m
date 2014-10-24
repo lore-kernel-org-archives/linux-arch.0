@@ -1,35 +1,59 @@
 From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [PATCH v5 29/29] nios2: Build infrastructure
-Date: Fri, 24 Oct 2014 11:10:36 +0200
-Message-ID: <CAMuHMdXTg3s_ZKL5M+=LwiNBa4gL8Z=eOchocD3qjvp-d=gW_Q@mail.gmail.com>
+Subject: Re: [PATCH v5 04/29] nios2: Exception handling
+Date: Fri, 24 Oct 2014 11:15:30 +0200
+Message-ID: <CAMuHMdVb8k_6zHm0deAWUKcKNfTpt2VL3RkJuv-99SCRwtUQEQ@mail.gmail.com>
 References: <1414139071-3818-1-git-send-email-lftan@altera.com>
-	<1414139071-3818-30-git-send-email-lftan@altera.com>
+	<1414139071-3818-5-git-send-email-lftan@altera.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-doc-owner@vger.kernel.org>
-In-Reply-To: <1414139071-3818-30-git-send-email-lftan@altera.com>
-Sender: linux-doc-owner@vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-lb0-f174.google.com ([209.85.217.174]:55821 "EHLO
+	mail-lb0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750862AbaJXJPd (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 24 Oct 2014 05:15:33 -0400
+In-Reply-To: <1414139071-3818-5-git-send-email-lftan@altera.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Ley Foon Tan <lftan@altera.com>
 Cc: Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, LeyFoon Tan <lftan.linux@gmail.com>, Chung-Lin Tang <cltang@codesourcery.com>
-List-Id: linux-arch.vger.kernel.org
 
 On Fri, Oct 24, 2014 at 10:24 AM, Ley Foon Tan <lftan@altera.com> wrote:
 > --- /dev/null
-> +++ b/arch/nios2/boot/install.sh
-> @@ -0,0 +1,52 @@
-> +#!/bin/sh
-> +#
-> +# This file is subject to the terms and conditions of the GNU General Public
-> +# License.  See the file "COPYING" in the main directory of this archive
-> +# for more details.
-> +#
-> +# Copyright (C) 1995 by Linus Torvalds
-> +#
-> +# Adapted from code in arch/i386/boot/Makefile by H. Peter Anvin
-> +#
-> +# "make install" script for m68k architecture
+> +++ b/arch/nios2/kernel/entry.S
+> @@ -0,0 +1,559 @@
+> +/*
+> + * linux/arch/nios2/kernel/entry.S
+> + *
+> + * Copyright (C) 2013-2014  Altera Corporation
+> + * Copyright (C) 2009, Wind River Systems Inc
+> + *
+> + * Implemented by fredrik.markstrom@gmail.com and ivarholmqvist@gmail.com
+> + *
+> + * Based on:
+> + *
+> + * linux/arch/nios2/kernel/entry.S
 
-You probably want to s/m68k/nios2/ here.
+And here you did one s/m68k/nios2/ too much ;-)
+
+As this doesn't seem to come from a single file
+"Based on the various m68k entry.S files"?
+
+> + *  Copyright (C) 1999-2002, Greg Ungerer (gerg@snapgear.com)
+> + *  Copyright (C) 1998  D. Jeff Dionne <jeff@lineo.ca>,
+> + *                      Kenneth Albanowski <kjahds@kjahds.com>,
+> + *  Copyright (C) 2000  Lineo Inc. (www.lineo.com)
+> + *  Copyright (C) 2004  Microtronix Datacom Ltd.
+> + *
+> + * This file is subject to the terms and conditions of the GNU General Public
+> + * License.  See the file "COPYING" in the main directory of this archive
+> + * for more details.
+> + *
+> + * Linux/m68k support by Hamish Macdonald
+> + *
+> + * 68060 fixes by Jesper Skov
+> + * ColdFire support by Greg Ungerer (gerg@snapgear.com)
+> + * 5307 fixes by David W. Miller
+> + * linux 2.4 support David McCullough <davidm@snapgear.com>
 
 Gr{oetje,eeting}s,
 
