@@ -1,67 +1,80 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [PATCH v5 04/29] nios2: Exception handling
-Date: Fri, 24 Oct 2014 11:15:30 +0200
-Message-ID: <CAMuHMdVb8k_6zHm0deAWUKcKNfTpt2VL3RkJuv-99SCRwtUQEQ@mail.gmail.com>
-References: <1414139071-3818-1-git-send-email-lftan@altera.com>
-	<1414139071-3818-5-git-send-email-lftan@altera.com>
+From: James Bottomley <James.Bottomley@HansenPartnership.com>
+Subject: Re: [PATCH V2 1/2] mm: Update generic gup implementation to handle
+ hugepage directory
+Date: Fri, 24 Oct 2014 09:22:41 -0700
+Message-ID: <1414167761.19984.17.camel@jarvis.lan>
+References: <1413520687-31729-1-git-send-email-aneesh.kumar@linux.vnet.ibm.com>
+	 <20141022160224.9c2268795e55d5a2eff5b94d@linux-foundation.org>
+	 <20141023.184035.388557314666522484.davem@davemloft.net>
+	 <1414107635.364.91.camel@pasglop>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-lb0-f174.google.com ([209.85.217.174]:55821 "EHLO
-	mail-lb0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750862AbaJXJPd (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 24 Oct 2014 05:15:33 -0400
-In-Reply-To: <1414139071-3818-5-git-send-email-lftan@altera.com>
+Received: from bedivere.hansenpartnership.com ([66.63.167.143]:58498 "EHLO
+	bedivere.hansenpartnership.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1751510AbaJXQWn (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Fri, 24 Oct 2014 12:22:43 -0400
+In-Reply-To: <1414107635.364.91.camel@pasglop>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ley Foon Tan <lftan@altera.com>
-Cc: Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, LeyFoon Tan <lftan.linux@gmail.com>, Chung-Lin Tang <cltang@codesourcery.com>
+To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: David Miller <davem@davemloft.net>, akpm@linux-foundation.org, aneesh.kumar@linux.vnet.ibm.com, steve.capper@linaro.org, aarcange@redhat.com, mpe@ellerman.id.au, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-arch@vger.kernel.org, hannes@cmpxchg.org
 
-On Fri, Oct 24, 2014 at 10:24 AM, Ley Foon Tan <lftan@altera.com> wrote:
-> --- /dev/null
-> +++ b/arch/nios2/kernel/entry.S
-> @@ -0,0 +1,559 @@
-> +/*
-> + * linux/arch/nios2/kernel/entry.S
-> + *
-> + * Copyright (C) 2013-2014  Altera Corporation
-> + * Copyright (C) 2009, Wind River Systems Inc
-> + *
-> + * Implemented by fredrik.markstrom@gmail.com and ivarholmqvist@gmail.com
-> + *
-> + * Based on:
-> + *
-> + * linux/arch/nios2/kernel/entry.S
+On Fri, 2014-10-24 at 10:40 +1100, Benjamin Herrenschmidt wrote:
+> On Thu, 2014-10-23 at 18:40 -0400, David Miller wrote:
+> > Hey guys, was looking over the generic GUP while working on a sparc64
+> > issue and I noticed that you guys do speculative page gets, and after
+> > talking with Johannes Weiner (CC:'d) about this we don't see how it
+> > could be necessary.
+> > 
+> > If interrupts are disabled during the page table scan (which they
+> > are), no IPI tlb flushes can arrive.  Therefore any removal from the
+> > page tables is guarded by interrupts being re-enabled.  And as a
+> > result, page counts of pages we see in the page tables must always
+> > have a count > 0.
+> > 
+> > x86 does direct atomic_add() on &page->_count because of this
+> > invariant and I would rather see the generic version do this too.
+> 
+> This is of course only true of archs who use IPIs for TLB flushes, so if
+> we are going down the path of not being speculative, powerpc would have
+> to go back to doing its own since our broadcast TLB flush means we
+> aren't protected (we are only protected vs. the page tables themselves
+> being freed since we do that via sched RCU).
+> 
+> AFAIK, ARM also broadcasts TLB flushes...
 
-And here you did one s/m68k/nios2/ too much ;-)
+Parisc does this.  As soon as one CPU issues a TLB purge, it's broadcast
+to all the CPUs on the inter-CPU bus.  The next instruction isn't
+executed until they respond.
 
-As this doesn't seem to come from a single file
-"Based on the various m68k entry.S files"?
+But this is only for our CPU TLB.  There's no other external
+consequence, so removal from the page tables isn't effected by this TLB
+flush, therefore the theory on which Dave bases the change to
+atomic_add() should work for us (of course, atomic_add is lock add
+unlock on our CPU, so it's not going to be of much benefit).
 
-> + *  Copyright (C) 1999-2002, Greg Ungerer (gerg@snapgear.com)
-> + *  Copyright (C) 1998  D. Jeff Dionne <jeff@lineo.ca>,
-> + *                      Kenneth Albanowski <kjahds@kjahds.com>,
-> + *  Copyright (C) 2000  Lineo Inc. (www.lineo.com)
-> + *  Copyright (C) 2004  Microtronix Datacom Ltd.
-> + *
-> + * This file is subject to the terms and conditions of the GNU General Public
-> + * License.  See the file "COPYING" in the main directory of this archive
-> + * for more details.
-> + *
-> + * Linux/m68k support by Hamish Macdonald
-> + *
-> + * 68060 fixes by Jesper Skov
-> + * ColdFire support by Greg Ungerer (gerg@snapgear.com)
-> + * 5307 fixes by David W. Miller
-> + * linux 2.4 support David McCullough <davidm@snapgear.com>
+James
 
-Gr{oetje,eeting}s,
-
-                        Geert
-
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+> Another option would be to make the generic code use something defined
+> by the arch to decide whether to use speculative get or
+> not. I like the idea of keeping the bulk of that code generic...
+> 
+> Cheers,
+> Ben.
+> 
+> > --
+> > To unsubscribe, send a message with 'unsubscribe linux-mm' in
+> > the body to majordomo@kvack.org.  For more info on Linux MM,
+> > see: http://www.linux-mm.org/ .
+> > Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+> 
+> 
+> --
+> To unsubscribe, send a message with 'unsubscribe linux-mm' in
+> the body to majordomo@kvack.org.  For more info on Linux MM,
+> see: http://www.linux-mm.org/ .
+> Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+> 
