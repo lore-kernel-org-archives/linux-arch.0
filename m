@@ -1,471 +1,72 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bn1bn0100.outbound.protection.outlook.com ([157.56.110.100]:32384
-	"EHLO na01-bn1-obe.outbound.protection.outlook.com"
-	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1750888AbaJXIYt (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 24 Oct 2014 04:24:49 -0400
-From: Ley Foon Tan <lftan@altera.com>
-Subject: [PATCH v5 02/29] nios2: Assembly macros and definitions
-Date: Fri, 24 Oct 2014 16:24:04 +0800
-Message-ID: <1414139071-3818-3-git-send-email-lftan@altera.com>
-In-Reply-To: <1414139071-3818-1-git-send-email-lftan@altera.com>
-References: <1414139071-3818-1-git-send-email-lftan@altera.com>
+Received: from bombadil.infradead.org ([198.137.202.9]:33966 "EHLO
+	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750909AbaJXIys (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 24 Oct 2014 04:54:48 -0400
+Date: Fri, 24 Oct 2014 10:54:37 +0200
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH v12 09/11] pvqspinlock, x86: Add para-virtualization
+ support
+Message-ID: <20141024085437.GV21513@worktop.programming.kicks-ass.net>
+References: <1413483040-58399-1-git-send-email-Waiman.Long@hp.com>
+ <1413483040-58399-10-git-send-email-Waiman.Long@hp.com>
 MIME-Version: 1.0
-Content-Type: text/plain
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1413483040-58399-10-git-send-email-Waiman.Long@hp.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org
-Cc: Arnd Bergmann <arnd@arndb.de>, Ley Foon Tan <lftan@altera.com>, lftan.linux@gmail.com, cltang@codesourcery.com
-Message-ID: <20141024082404.IGsRSHB94AxoiM2d-Ai3Ugo9IGT1V2ua-BL5Z8B5NRs@z>
+To: Waiman Long <Waiman.Long@hp.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Rik van Riel <riel@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, David Vrabel <david.vrabel@citrix.com>, Oleg Nesterov <oleg@redhat.com>, Scott J Norton <scott.norton@hp.com>, Douglas Hatch <doug.hatch@hp.com>
+Message-ID: <20141024085437.B90LQ_jL0fb_ujnv1qDYgbUWq0TQ8Fp34x8y3jYe_Fg@z>
 
-This patch add assembly macros and definitions used in
-the .S files across arch/nios2/ and together with asm-offsets.c.
+On Thu, Oct 16, 2014 at 02:10:38PM -0400, Waiman Long wrote:
 
-Signed-off-by: Ley Foon Tan <lftan@altera.com>
----
- arch/nios2/include/asm/asm-macros.h  | 309 +++++++++++++++++++++++++++++++++++
- arch/nios2/include/asm/asm-offsets.h |  20 +++
- arch/nios2/kernel/asm-offsets.c      |  88 ++++++++++
- 3 files changed, 417 insertions(+)
- create mode 100644 arch/nios2/include/asm/asm-macros.h
- create mode 100644 arch/nios2/include/asm/asm-offsets.h
- create mode 100644 arch/nios2/kernel/asm-offsets.c
+> Since enabling paravirt spinlock will disable unlock function inlining,
+> a jump label can be added to the unlock function without adding patch
+> sites all over the kernel.
 
-diff --git a/arch/nios2/include/asm/asm-macros.h b/arch/nios2/include/asm/asm-macros.h
-new file mode 100644
-index 0000000..29fa2e4
---- /dev/null
-+++ b/arch/nios2/include/asm/asm-macros.h
-@@ -0,0 +1,309 @@
-+/*
-+ * Macro used to simplify coding multi-line assembler.
-+ * Some of the bit test macro can simplify down to one line
-+ * depending on the mask value.
-+ *
-+ * Copyright (C) 2004 Microtronix Datacom Ltd.
-+ *
-+ * All rights reserved.
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License as published by
-+ * the Free Software Foundation; either version 2 of the License, or
-+ * (at your option) any later version.
-+ *
-+ * This program is distributed in the hope that it will be useful, but
-+ * WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE, GOOD TITLE or
-+ * NON INFRINGEMENT.  See the GNU General Public License for more
-+ * details.
-+ *
-+ */
-+#ifndef _ASM_NIOS2_ASMMACROS_H
-+#define _ASM_NIOS2_ASMMACROS_H
-+/*
-+ * ANDs reg2 with mask and places the result in reg1.
-+ *
-+ * You cannnot use the same register for reg1 & reg2.
-+ */
-+
-+.macro ANDI32	reg1, reg2, mask
-+.if \mask & 0xffff
-+	.if \mask & 0xffff0000
-+		movhi	\reg1, %hi(\mask)
-+		movui	\reg1, %lo(\mask)
-+		and	\reg1, \reg1, \reg2
-+	.else
-+		andi	\reg1, \reg2, %lo(\mask)
-+	.endif
-+.else
-+	andhi	\reg1, \reg2, %hi(\mask)
-+.endif
-+.endm
-+
-+/*
-+ * ORs reg2 with mask and places the result in reg1.
-+ *
-+ * It is safe to use the same register for reg1 & reg2.
-+ */
-+
-+.macro ORI32	reg1, reg2, mask
-+.if \mask & 0xffff
-+	.if \mask & 0xffff0000
-+		orhi	\reg1, \reg2, %hi(\mask)
-+		ori	\reg1, \reg2, %lo(\mask)
-+	.else
-+		ori	\reg1, \reg2, %lo(\mask)
-+	.endif
-+.else
-+	orhi	\reg1, \reg2, %hi(\mask)
-+.endif
-+.endm
-+
-+/*
-+ * XORs reg2 with mask and places the result in reg1.
-+ *
-+ * It is safe to use the same register for reg1 & reg2.
-+ */
-+
-+.macro XORI32	reg1, reg2, mask
-+.if \mask & 0xffff
-+	.if \mask & 0xffff0000
-+		xorhi	\reg1, \reg2, %hi(\mask)
-+		xori	\reg1, \reg1, %lo(\mask)
-+	.else
-+		xori	\reg1, \reg2, %lo(\mask)
-+	.endif
-+.else
-+	xorhi	\reg1, \reg2, %hi(\mask)
-+.endif
-+.endm
-+
-+/*
-+ * This is a support macro for BTBZ & BTBNZ.  It checks
-+ * the bit to make sure it is valid 32 value.
-+ *
-+ * It is safe to use the same register for reg1 & reg2.
-+ */
-+
-+.macro BT	reg1, reg2, bit
-+.if \bit > 31
-+	.err
-+.else
-+	.if \bit < 16
-+		andi	\reg1, \reg2, (1 << \bit)
-+	.else
-+		andhi	\reg1, \reg2, (1 << (\bit - 16))
-+	.endif
-+.endif
-+.endm
-+
-+/*
-+ * Tests the bit in reg2 and branches to label if the
-+ * bit is zero.  The result of the bit test is stored in reg1.
-+ *
-+ * It is safe to use the same register for reg1 & reg2.
-+ */
-+
-+.macro BTBZ	reg1, reg2, bit, label
-+	BT	\reg1, \reg2, \bit
-+	beq	\reg1, r0, \label
-+.endm
-+
-+/*
-+ * Tests the bit in reg2 and branches to label if the
-+ * bit is non-zero.  The result of the bit test is stored in reg1.
-+ *
-+ * It is safe to use the same register for reg1 & reg2.
-+ */
-+
-+.macro BTBNZ	reg1, reg2, bit, label
-+	BT	\reg1, \reg2, \bit
-+	bne	\reg1, r0, \label
-+.endm
-+
-+/*
-+ * Tests the bit in reg2 and then compliments the bit in reg2.
-+ * The result of the bit test is stored in reg1.
-+ *
-+ * It is NOT safe to use the same register for reg1 & reg2.
-+ */
-+
-+.macro BTC	reg1, reg2, bit
-+.if \bit > 31
-+	.err
-+.else
-+	.if \bit < 16
-+		andi	\reg1, \reg2, (1 << \bit)
-+		xori	\reg2, \reg2, (1 << \bit)
-+	.else
-+		andhi	\reg1, \reg2, (1 << (\bit - 16))
-+		xorhi	\reg2, \reg2, (1 << (\bit - 16))
-+	.endif
-+.endif
-+.endm
-+
-+/*
-+ * Tests the bit in reg2 and then sets the bit in reg2.
-+ * The result of the bit test is stored in reg1.
-+ *
-+ * It is NOT safe to use the same register for reg1 & reg2.
-+ */
-+
-+.macro BTS	reg1, reg2, bit
-+.if \bit > 31
-+	.err
-+.else
-+	.if \bit < 16
-+		andi	\reg1, \reg2, (1 << \bit)
-+		ori	\reg2, \reg2, (1 << \bit)
-+	.else
-+		andhi	\reg1, \reg2, (1 << (\bit - 16))
-+		orhi	\reg2, \reg2, (1 << (\bit - 16))
-+	.endif
-+.endif
-+.endm
-+
-+/*
-+ * Tests the bit in reg2 and then resets the bit in reg2.
-+ * The result of the bit test is stored in reg1.
-+ *
-+ * It is NOT safe to use the same register for reg1 & reg2.
-+ */
-+
-+.macro BTR	reg1, reg2, bit
-+.if \bit > 31
-+	.err
-+.else
-+	.if \bit < 16
-+		andi	\reg1, \reg2, (1 << \bit)
-+		andi	\reg2, \reg2, %lo(~(1 << \bit))
-+	.else
-+		andhi	\reg1, \reg2, (1 << (\bit - 16))
-+		andhi	\reg2, \reg2, %lo(~(1 << (\bit - 16)))
-+	.endif
-+.endif
-+.endm
-+
-+/*
-+ * Tests the bit in reg2 and then compliments the bit in reg2.
-+ * The result of the bit test is stored in reg1.  If the
-+ * original bit was zero it branches to label.
-+ *
-+ * It is NOT safe to use the same register for reg1 & reg2.
-+ */
-+
-+.macro BTCBZ	reg1, reg2, bit, label
-+	BTC	\reg1, \reg2, \bit
-+	beq	\reg1, r0, \label
-+.endm
-+
-+/*
-+ * Tests the bit in reg2 and then compliments the bit in reg2.
-+ * The result of the bit test is stored in reg1.  If the
-+ * original bit was non-zero it branches to label.
-+ *
-+ * It is NOT safe to use the same register for reg1 & reg2.
-+ */
-+
-+.macro BTCBNZ	reg1, reg2, bit, label
-+	BTC	\reg1, \reg2, \bit
-+	bne	\reg1, r0, \label
-+.endm
-+
-+/*
-+ * Tests the bit in reg2 and then sets the bit in reg2.
-+ * The result of the bit test is stored in reg1.  If the
-+ * original bit was zero it branches to label.
-+ *
-+ * It is NOT safe to use the same register for reg1 & reg2.
-+ */
-+
-+.macro BTSBZ	reg1, reg2, bit, label
-+	BTS	\reg1, \reg2, \bit
-+	beq	\reg1, r0, \label
-+.endm
-+
-+/*
-+ * Tests the bit in reg2 and then sets the bit in reg2.
-+ * The result of the bit test is stored in reg1.  If the
-+ * original bit was non-zero it branches to label.
-+ *
-+ * It is NOT safe to use the same register for reg1 & reg2.
-+ */
-+
-+.macro BTSBNZ	reg1, reg2, bit, label
-+	BTS	\reg1, \reg2, \bit
-+	bne	\reg1, r0, \label
-+.endm
-+
-+/*
-+ * Tests the bit in reg2 and then resets the bit in reg2.
-+ * The result of the bit test is stored in reg1.  If the
-+ * original bit was zero it branches to label.
-+ *
-+ * It is NOT safe to use the same register for reg1 & reg2.
-+ */
-+
-+.macro BTRBZ	reg1, reg2, bit, label
-+	BTR	\reg1, \reg2, \bit
-+	bne	\reg1, r0, \label
-+.endm
-+
-+/*
-+ * Tests the bit in reg2 and then resets the bit in reg2.
-+ * The result of the bit test is stored in reg1.  If the
-+ * original bit was non-zero it branches to label.
-+ *
-+ * It is NOT safe to use the same register for reg1 & reg2.
-+ */
-+
-+.macro BTRBNZ	reg1, reg2, bit, label
-+	BTR	\reg1, \reg2, \bit
-+	bne	\reg1, r0, \label
-+.endm
-+
-+/*
-+ * Tests the bits in mask against reg2 stores the result in reg1.
-+ * If the all the bits in the mask are zero it branches to label.
-+ *
-+ * It is safe to use the same register for reg1 & reg2.
-+ */
-+
-+.macro TSTBZ	reg1, reg2, mask, label
-+	ANDI32	\reg1, \reg2, \mask
-+	beq	\reg1, r0, \label
-+.endm
-+
-+/*
-+ * Tests the bits in mask against reg2 stores the result in reg1.
-+ * If the any of the bits in the mask are 1 it branches to label.
-+ *
-+ * It is safe to use the same register for reg1 & reg2.
-+ */
-+
-+.macro TSTBNZ	reg1, reg2, mask, label
-+	ANDI32	\reg1, \reg2, \mask
-+	bne	\reg1, r0, \label
-+.endm
-+
-+/*
-+ * Pushes reg onto the stack.
-+ */
-+
-+.macro PUSH	reg
-+	addi	sp, sp, -4
-+	stw	\reg, 0(sp)
-+.endm
-+
-+/*
-+ * Pops the top of the stack into reg.
-+ */
-+
-+.macro POP	reg
-+	ldw	\reg, 0(sp)
-+	addi	sp, sp, 4
-+.endm
-+
-+
-+#endif /* _ASM_NIOS2_ASMMACROS_H */
-diff --git a/arch/nios2/include/asm/asm-offsets.h b/arch/nios2/include/asm/asm-offsets.h
-new file mode 100644
-index 0000000..5b9f5e0
---- /dev/null
-+++ b/arch/nios2/include/asm/asm-offsets.h
-@@ -0,0 +1,20 @@
-+/*
-+ *  Copyright (C) 2010 Tobias Klauser <tklauser@distanz.ch>
-+ *  Copyright (C) 2009 Thomas Chou <thomas@wytron.com.tw>
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License as published by
-+ * the Free Software Foundation; either version 2 of the License, or
-+ * (at your option) any later version.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
-+ *
-+ */
-+
-+#include <generated/asm-offsets.h>
-diff --git a/arch/nios2/kernel/asm-offsets.c b/arch/nios2/kernel/asm-offsets.c
-new file mode 100644
-index 0000000..3852f5c
---- /dev/null
-+++ b/arch/nios2/kernel/asm-offsets.c
-@@ -0,0 +1,88 @@
-+/*
-+ * Copyright (C) 2011 Tobias Klauser <tklauser@distanz.ch>
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License as published by
-+ * the Free Software Foundation; either version 2 of the License, or
-+ * (at your option) any later version.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
-+ *
-+ */
-+
-+#include <linux/stddef.h>
-+#include <linux/sched.h>
-+#include <linux/kernel_stat.h>
-+#include <linux/ptrace.h>
-+#include <linux/hardirq.h>
-+#include <linux/thread_info.h>
-+#include <linux/kbuild.h>
-+
-+int main(void)
-+{
-+	/* struct task_struct */
-+	OFFSET(TASK_THREAD, task_struct, thread);
-+	BLANK();
-+
-+	/* struct thread_struct */
-+	OFFSET(THREAD_KSP, thread_struct, ksp);
-+	OFFSET(THREAD_KPSR, thread_struct, kpsr);
-+	BLANK();
-+
-+	/* struct pt_regs */
-+	OFFSET(PT_ORIG_R2, pt_regs, orig_r2);
-+	OFFSET(PT_ORIG_R7, pt_regs, orig_r7);
-+
-+	OFFSET(PT_R1, pt_regs, r1);
-+	OFFSET(PT_R2, pt_regs, r2);
-+	OFFSET(PT_R3, pt_regs, r3);
-+	OFFSET(PT_R4, pt_regs, r4);
-+	OFFSET(PT_R5, pt_regs, r5);
-+	OFFSET(PT_R6, pt_regs, r6);
-+	OFFSET(PT_R7, pt_regs, r7);
-+	OFFSET(PT_R8, pt_regs, r8);
-+	OFFSET(PT_R9, pt_regs, r9);
-+	OFFSET(PT_R10, pt_regs, r10);
-+	OFFSET(PT_R11, pt_regs, r11);
-+	OFFSET(PT_R12, pt_regs, r12);
-+	OFFSET(PT_R13, pt_regs, r13);
-+	OFFSET(PT_R14, pt_regs, r14);
-+	OFFSET(PT_R15, pt_regs, r15);
-+	OFFSET(PT_EA, pt_regs, ea);
-+	OFFSET(PT_RA, pt_regs, ra);
-+	OFFSET(PT_FP, pt_regs, fp);
-+	OFFSET(PT_SP, pt_regs, sp);
-+	OFFSET(PT_GP, pt_regs, gp);
-+	OFFSET(PT_ESTATUS, pt_regs, estatus);
-+	DEFINE(PT_REGS_SIZE, sizeof(struct pt_regs));
-+	BLANK();
-+
-+	/* struct switch_stack */
-+	OFFSET(SW_R16, switch_stack, r16);
-+	OFFSET(SW_R17, switch_stack, r17);
-+	OFFSET(SW_R18, switch_stack, r18);
-+	OFFSET(SW_R19, switch_stack, r19);
-+	OFFSET(SW_R20, switch_stack, r20);
-+	OFFSET(SW_R21, switch_stack, r21);
-+	OFFSET(SW_R22, switch_stack, r22);
-+	OFFSET(SW_R23, switch_stack, r23);
-+	OFFSET(SW_FP, switch_stack, fp);
-+	OFFSET(SW_GP, switch_stack, gp);
-+	OFFSET(SW_RA, switch_stack, ra);
-+	DEFINE(SWITCH_STACK_SIZE, sizeof(struct switch_stack));
-+	BLANK();
-+
-+	/* struct thread_info */
-+	OFFSET(TI_TASK, thread_info, task);
-+	OFFSET(TI_FLAGS, thread_info, flags);
-+	OFFSET(TI_PREEMPT_COUNT, thread_info, preempt_count);
-+	BLANK();
-+
-+	return 0;
-+}
--- 
-1.8.2.1
+But you don't have to. My patches allowed for the inline to remain,
+again reducing the overhead of enabling PV spinlocks while running on a
+real machine.
 
+Look at: 
+
+  http://lkml.kernel.org/r/20140615130154.213923590@chello.nl
+
+In particular this hunk:
+
+Index: linux-2.6/arch/x86/kernel/paravirt_patch_64.c
+===================================================================
+--- linux-2.6.orig/arch/x86/kernel/paravirt_patch_64.c
++++ linux-2.6/arch/x86/kernel/paravirt_patch_64.c
+@@ -22,6 +22,10 @@ DEF_NATIVE(pv_cpu_ops, swapgs, "swapgs")
+ DEF_NATIVE(, mov32, "mov %edi, %eax");
+ DEF_NATIVE(, mov64, "mov %rdi, %rax");
+
++#if defined(CONFIG_PARAVIRT_SPINLOCKS) && defined(CONFIG_QUEUE_SPINLOCK)
++DEF_NATIVE(pv_lock_ops, queue_unlock, "movb $0, (%rdi)");
++#endif
++ 
+ unsigned paravirt_patch_ident_32(void *insnbuf, unsigned len)
+ {
+        return paravirt_patch_insns(insnbuf, len,
+@@ -61,6 +65,9 @@ unsigned native_patch(u8 type, u16 clobb
+                PATCH_SITE(pv_cpu_ops, clts);
+                PATCH_SITE(pv_mmu_ops, flush_tlb_single);
+                PATCH_SITE(pv_cpu_ops, wbinvd);
++#if defined(CONFIG_PARAVIRT_SPINLOCKS) && defined(CONFIG_QUEUE_SPINLOCK)
++               PATCH_SITE(pv_lock_ops, queue_unlock);
++#endif
+
+        patch_site:
+                ret = paravirt_patch_insns(ibuf, len, start, end);
+
+
+That makes sure to overwrite the callee-saved call to the
+pv_lock_ops::queue_unlock with the immediate asm "movb $0, (%rdi)".
+
+
+Therefore you can retain the inlined unlock with hardly (there might be
+some NOP padding) any overhead at all. On PV it reverts to a callee
+saved function call.
