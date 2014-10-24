@@ -1,206 +1,67 @@
-From: Ley Foon Tan <lftan@altera.com>
-Subject: [PATCH v5 16/29] nios2: ELF definitions
-Date: Fri, 24 Oct 2014 16:24:18 +0800
-Message-ID: <1414139071-3818-17-git-send-email-lftan@altera.com>
-References: <1414139071-3818-1-git-send-email-lftan@altera.com>
+From: Steve Capper <steve.capper@linaro.org>
+Subject: Re: [PATCH V2 1/2] mm: Update generic gup implementation to handle
+ hugepage directory
+Date: Fri, 24 Oct 2014 09:33:17 +0100
+Message-ID: <CAPvkgC0myFkGjv=L7XMhjfOSyB=3VAMHzkY9JGwwo_x7i=k0Kw@mail.gmail.com>
+References: <1413520687-31729-1-git-send-email-aneesh.kumar@linux.vnet.ibm.com>
+	<20141022160224.9c2268795e55d5a2eff5b94d@linux-foundation.org>
+	<20141023.184035.388557314666522484.davem@davemloft.net>
+	<1414107635.364.91.camel@pasglop>
 Mime-Version: 1.0
-Content-Type: text/plain
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1414139071-3818-1-git-send-email-lftan@altera.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org
-Cc: Arnd Bergmann <arnd@arndb.de>, Ley Foon Tan <lftan@altera.com>, lftan.linux@gmail.com, cltang@codesourcery.com
+Content-Type: text/plain; charset=UTF-8
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <1414107635.364.91.camel@pasglop>
+Sender: owner-linux-mm@kvack.org
+To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: David Miller <davem@davemloft.net>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>, Andrea Arcangeli <aarcange@redhat.com>, mpe@ellerman.id.au, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linuxppc-dev@lists.ozlabs.org, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Johannes Weiner <hannes@cmpxchg.org>
 List-Id: linux-arch.vger.kernel.org
 
-This patch adds definitions for the ELF format
+On 24 October 2014 00:40, Benjamin Herrenschmidt
+<benh@kernel.crashing.org> wrote:
+> On Thu, 2014-10-23 at 18:40 -0400, David Miller wrote:
+>> Hey guys, was looking over the generic GUP while working on a sparc64
+>> issue and I noticed that you guys do speculative page gets, and after
+>> talking with Johannes Weiner (CC:'d) about this we don't see how it
+>> could be necessary.
+>>
+>> If interrupts are disabled during the page table scan (which they
+>> are), no IPI tlb flushes can arrive.  Therefore any removal from the
+>> page tables is guarded by interrupts being re-enabled.  And as a
+>> result, page counts of pages we see in the page tables must always
+>> have a count > 0.
+>>
+>> x86 does direct atomic_add() on &page->_count because of this
+>> invariant and I would rather see the generic version do this too.
+>
+> This is of course only true of archs who use IPIs for TLB flushes, so if
+> we are going down the path of not being speculative, powerpc would have
+> to go back to doing its own since our broadcast TLB flush means we
+> aren't protected (we are only protected vs. the page tables themselves
+> being freed since we do that via sched RCU).
+>
+> AFAIK, ARM also broadcasts TLB flushes...
 
-Signed-off-by: Ley Foon Tan <lftan@altera.com>
----
- arch/nios2/include/asm/elf.h      | 101 ++++++++++++++++++++++++++++++++++++++
- arch/nios2/include/uapi/asm/elf.h |  67 +++++++++++++++++++++++++
- 2 files changed, 168 insertions(+)
- create mode 100644 arch/nios2/include/asm/elf.h
- create mode 100644 arch/nios2/include/uapi/asm/elf.h
+Indeed, for most ARM cores we have hardware TLB broadcasts, thus we
+need the speculative path.
 
-diff --git a/arch/nios2/include/asm/elf.h b/arch/nios2/include/asm/elf.h
-new file mode 100644
-index 0000000..b7d655d
---- /dev/null
-+++ b/arch/nios2/include/asm/elf.h
-@@ -0,0 +1,101 @@
-+/*
-+ * Copyright (C) 2011 Tobias Klauser <tklauser@distanz.ch>
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License as published by
-+ * the Free Software Foundation; either version 2 of the License, or
-+ * (at your option) any later version.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
-+ *
-+ */
-+
-+#ifndef _ASM_NIOS2_ELF_H
-+#define _ASM_NIOS2_ELF_H
-+
-+#include <uapi/asm/elf.h>
-+
-+/*
-+ * This is used to ensure we don't load something for the wrong architecture.
-+ */
-+#define elf_check_arch(x) ((x)->e_machine == EM_ALTERA_NIOS2)
-+
-+#define ELF_PLAT_INIT(_r, load_addr)
-+
-+#define CORE_DUMP_USE_REGSET
-+#define ELF_EXEC_PAGESIZE	4096
-+
-+/* This is the location that an ET_DYN program is loaded if exec'ed.  Typical
-+   use of this is to invoke "./ld.so someprog" to test out a new version of
-+   the loader.  We need to make sure that it is out of the way of the program
-+   that it will "exec", and that there is sufficient room for the brk.  */
-+
-+#define ELF_ET_DYN_BASE		0xD0000000UL
-+
-+/* regs is struct pt_regs, pr_reg is elf_gregset_t (which is
-+   now struct_user_regs, they are different) */
-+
-+#define ARCH_HAS_SETUP_ADDITIONAL_PAGES	1
-+struct linux_binprm;
-+extern int arch_setup_additional_pages(struct linux_binprm *bprm,
-+	int uses_interp);
-+#define ELF_CORE_COPY_REGS(pr_reg, regs)				\
-+{ do {									\
-+	/* Bleech. */							\
-+	pr_reg[0]  = regs->r8;						\
-+	pr_reg[1]  = regs->r9;						\
-+	pr_reg[2]  = regs->r10;						\
-+	pr_reg[3]  = regs->r11;						\
-+	pr_reg[4]  = regs->r12;						\
-+	pr_reg[5]  = regs->r13;						\
-+	pr_reg[6]  = regs->r14;						\
-+	pr_reg[7]  = regs->r15;						\
-+	pr_reg[8]  = regs->r1;						\
-+	pr_reg[9]  = regs->r2;						\
-+	pr_reg[10] = regs->r3;						\
-+	pr_reg[11] = regs->r4;						\
-+	pr_reg[12] = regs->r5;						\
-+	pr_reg[13] = regs->r6;						\
-+	pr_reg[14] = regs->r7;						\
-+	pr_reg[15] = regs->orig_r2;					\
-+	pr_reg[16] = regs->ra;						\
-+	pr_reg[17] = regs->fp;						\
-+	pr_reg[18] = regs->sp;						\
-+	pr_reg[19] = regs->gp;						\
-+	pr_reg[20] = regs->estatus;					\
-+	pr_reg[21] = regs->ea;						\
-+	pr_reg[22] = regs->orig_r7;					\
-+	{								\
-+		struct switch_stack *sw = ((struct switch_stack *)regs) - 1; \
-+		pr_reg[23] = sw->r16;					\
-+		pr_reg[24] = sw->r17;					\
-+		pr_reg[25] = sw->r18;					\
-+		pr_reg[26] = sw->r19;					\
-+		pr_reg[27] = sw->r20;					\
-+		pr_reg[28] = sw->r21;					\
-+		pr_reg[29] = sw->r22;					\
-+		pr_reg[30] = sw->r23;					\
-+		pr_reg[31] = sw->fp;					\
-+		pr_reg[32] = sw->gp;					\
-+		pr_reg[33] = sw->ra;					\
-+	}								\
-+} while (0); }
-+
-+/* This yields a mask that user programs can use to figure out what
-+   instruction set this cpu supports.  */
-+
-+#define ELF_HWCAP	(0)
-+
-+/* This yields a string that ld.so will use to load implementation
-+   specific libraries for optimization.  This is more specific in
-+   intent than poking at uname or /proc/cpuinfo.  */
-+
-+#define ELF_PLATFORM  (NULL)
-+
-+#endif /* _ASM_NIOS2_ELF_H */
-diff --git a/arch/nios2/include/uapi/asm/elf.h b/arch/nios2/include/uapi/asm/elf.h
-new file mode 100644
-index 0000000..a5b91ae
---- /dev/null
-+++ b/arch/nios2/include/uapi/asm/elf.h
-@@ -0,0 +1,67 @@
-+/*
-+ * Copyright (C) 2011 Tobias Klauser <tklauser@distanz.ch>
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License as published by
-+ * the Free Software Foundation; either version 2 of the License, or
-+ * (at your option) any later version.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
-+ *
-+ */
-+
-+
-+#ifndef _UAPI_ASM_NIOS2_ELF_H
-+#define _UAPI_ASM_NIOS2_ELF_H
-+
-+#include <linux/ptrace.h>
-+
-+/* Relocation types */
-+#define R_NIOS2_NONE		0
-+#define R_NIOS2_S16		1
-+#define R_NIOS2_U16		2
-+#define R_NIOS2_PCREL16		3
-+#define R_NIOS2_CALL26		4
-+#define R_NIOS2_IMM5		5
-+#define R_NIOS2_CACHE_OPX	6
-+#define R_NIOS2_IMM6		7
-+#define R_NIOS2_IMM8		8
-+#define R_NIOS2_HI16		9
-+#define R_NIOS2_LO16		10
-+#define R_NIOS2_HIADJ16		11
-+#define R_NIOS2_BFD_RELOC_32	12
-+#define R_NIOS2_BFD_RELOC_16	13
-+#define R_NIOS2_BFD_RELOC_8	14
-+#define R_NIOS2_GPREL		15
-+#define R_NIOS2_GNU_VTINHERIT	16
-+#define R_NIOS2_GNU_VTENTRY	17
-+#define R_NIOS2_UJMP		18
-+#define R_NIOS2_CJMP		19
-+#define R_NIOS2_CALLR		20
-+#define R_NIOS2_ALIGN		21
-+/* Keep this the last entry.  */
-+#define R_NIOS2_NUM		22
-+
-+typedef unsigned long elf_greg_t;
-+
-+#define ELF_NGREG	\
-+	((sizeof(struct pt_regs) + sizeof(struct switch_stack)) /	\
-+		sizeof(elf_greg_t))
-+typedef elf_greg_t elf_gregset_t[ELF_NGREG];
-+
-+typedef unsigned long elf_fpregset_t;
-+
-+/*
-+ * These are used to set parameters in the core dumps.
-+ */
-+#define ELF_CLASS	ELFCLASS32
-+#define ELF_DATA	ELFDATA2LSB
-+#define ELF_ARCH	EM_ALTERA_NIOS2
-+
-+#endif /* _UAPI_ASM_NIOS2_ELF_H */
+>
+> Another option would be to make the generic code use something defined
+> by the arch to decide whether to use speculative get or
+> not. I like the idea of keeping the bulk of that code generic...
+
+It would be nice to have the code generalised further.
+In addition to the speculative/atomic helpers the implementation would
+need to be renamed from GENERIC_RCU_GUP to GENERIC_GUP.
+The other noteworthy assumption made in the RCU GUP is that pte's can
+be read atomically. For x86 this isn't true when running with 64-bit
+pte's, thus a helper would be needed.
+
+Cheers,
 -- 
-1.8.2.1
+Steve
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
