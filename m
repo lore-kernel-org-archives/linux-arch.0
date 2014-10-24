@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bn1bon0080.outbound.protection.outlook.com ([157.56.111.80]:60889
+Received: from mail-bn1on0093.outbound.protection.outlook.com ([157.56.110.93]:13184
 	"EHLO na01-bn1-obe.outbound.protection.outlook.com"
 	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1755743AbaJXIZV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 24 Oct 2014 04:25:21 -0400
+	id S1750964AbaJXIY5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 24 Oct 2014 04:24:57 -0400
 From: Ley Foon Tan <lftan@altera.com>
-Subject: [PATCH v5 09/29] nios2: Page table management
-Date: Fri, 24 Oct 2014 16:24:11 +0800
-Message-ID: <1414139071-3818-10-git-send-email-lftan@altera.com>
+Subject: [PATCH v5 03/29] nios2: Kernel booting and initialization
+Date: Fri, 24 Oct 2014 16:24:05 +0800
+Message-ID: <1414139071-3818-4-git-send-email-lftan@altera.com>
 In-Reply-To: <1414139071-3818-1-git-send-email-lftan@altera.com>
 References: <1414139071-3818-1-git-send-email-lftan@altera.com>
 MIME-Version: 1.0
@@ -16,544 +16,596 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org
 Cc: Arnd Bergmann <arnd@arndb.de>, Ley Foon Tan <lftan@altera.com>, lftan.linux@gmail.com, cltang@codesourcery.com
-Message-ID: <20141024082411.4svTu-krk0bAXUUYyiMLWvCHzPbfsBk3FEMOl2_2dWc@z>
+Message-ID: <20141024082405.fxxpoLLSJx1Lr6J4phOTNbqCG3RVz2aHXj400sq7qEY@z>
 
-This patch adds support for page table management.
+This patch adds the kernel booting and the initial setup code.
 
 Signed-off-by: Ley Foon Tan <lftan@altera.com>
 ---
- arch/nios2/include/asm/pgalloc.h      |  86 ++++++++++
- arch/nios2/include/asm/pgtable-bits.h |  35 ++++
- arch/nios2/include/asm/pgtable.h      | 305 ++++++++++++++++++++++++++++++++++
- arch/nios2/mm/pgtable.c               |  73 ++++++++
- 4 files changed, 499 insertions(+)
- create mode 100644 arch/nios2/include/asm/pgalloc.h
- create mode 100644 arch/nios2/include/asm/pgtable-bits.h
- create mode 100644 arch/nios2/include/asm/pgtable.h
- create mode 100644 arch/nios2/mm/pgtable.c
+ arch/nios2/include/asm/entry.h | 120 +++++++++++++++++++++++
+ arch/nios2/include/asm/setup.h |  38 +++++++
+ arch/nios2/kernel/head.S       | 175 +++++++++++++++++++++++++++++++++
+ arch/nios2/kernel/setup.c      | 218 +++++++++++++++++++++++++++++++++++++++++
+ 4 files changed, 551 insertions(+)
+ create mode 100644 arch/nios2/include/asm/entry.h
+ create mode 100644 arch/nios2/include/asm/setup.h
+ create mode 100644 arch/nios2/kernel/head.S
+ create mode 100644 arch/nios2/kernel/setup.c
 
-diff --git a/arch/nios2/include/asm/pgalloc.h b/arch/nios2/include/asm/pgalloc.h
+diff --git a/arch/nios2/include/asm/entry.h b/arch/nios2/include/asm/entry.h
 new file mode 100644
-index 0000000..6e2985e
+index 0000000..cf37f55
 --- /dev/null
-+++ b/arch/nios2/include/asm/pgalloc.h
-@@ -0,0 +1,86 @@
++++ b/arch/nios2/include/asm/entry.h
+@@ -0,0 +1,120 @@
 +/*
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License.  See the file "COPYING" in the main directory of this archive
-+ * for more details.
++ * Copyright (C) 2010 Tobias Klauser <tklauser@distanz.ch>
++ * Copyright (C) 2004 Microtronix Datacom Ltd.
 + *
-+ * Copyright (C) 1994 - 2001, 2003 by Ralf Baechle
-+ * Copyright (C) 1999, 2000, 2001 Silicon Graphics, Inc.
++ * This file is subject to the terms and conditions of the GNU General Public
++ * License. See the file "COPYING" in the main directory of this archive
++ * for more details.
 + */
 +
-+#ifndef _ASM_NIOS2_PGALLOC_H
-+#define _ASM_NIOS2_PGALLOC_H
++#ifndef _ASM_NIOS2_ENTRY_H
++#define _ASM_NIOS2_ENTRY_H
 +
-+#include <linux/mm.h>
++#ifdef __ASSEMBLY__
 +
-+static inline void pmd_populate_kernel(struct mm_struct *mm, pmd_t *pmd,
-+	pte_t *pte)
-+{
-+	set_pmd(pmd, __pmd((unsigned long)pte));
-+}
-+
-+static inline void pmd_populate(struct mm_struct *mm, pmd_t *pmd,
-+	pgtable_t pte)
-+{
-+	set_pmd(pmd, __pmd((unsigned long)page_address(pte)));
-+}
-+#define pmd_pgtable(pmd) pmd_page(pmd)
++#include <asm/processor.h>
++#include <asm/registers.h>
++#include <asm/asm-offsets.h>
 +
 +/*
-+ * Initialize a new pmd table with invalid pointers.
++ * Standard Nios2 interrupt entry and exit macros.
++ * Must be called with interrupts disabled.
 + */
-+extern void pmd_init(unsigned long page, unsigned long pagetable);
++.macro SAVE_ALL
++	rdctl	r24, estatus
++	andi	r24, r24, ESTATUS_EU
++	beq	r24, r0, 1f /* In supervisor mode, already on kernel stack */
 +
-+extern pgd_t *pgd_alloc(struct mm_struct *mm);
++	movia	r24, _current_thread	/* Switch to current kernel stack */
++	ldw	r24, 0(r24)		/* using the thread_info */
++	addi	r24, r24, THREAD_SIZE-PT_REGS_SIZE
++	stw	sp, PT_SP(r24)		/* Save user stack before changing */
++	mov	sp, r24
++	br	2f
 +
-+static inline void pgd_free(struct mm_struct *mm, pgd_t *pgd)
-+{
-+	free_pages((unsigned long)pgd, PGD_ORDER);
-+}
++1 :	mov	r24, sp
++	addi	sp, sp, -PT_REGS_SIZE	/* Backup the kernel stack pointer */
++	stw	r24, PT_SP(sp)
++2 :	stw	r1, PT_R1(sp)
++	stw	r2, PT_R2(sp)
++	stw	r3, PT_R3(sp)
++	stw	r4, PT_R4(sp)
++	stw	r5, PT_R5(sp)
++	stw	r6, PT_R6(sp)
++	stw	r7, PT_R7(sp)
++	stw	r8, PT_R8(sp)
++	stw	r9, PT_R9(sp)
++	stw	r10, PT_R10(sp)
++	stw	r11, PT_R11(sp)
++	stw	r12, PT_R12(sp)
++	stw	r13, PT_R13(sp)
++	stw	r14, PT_R14(sp)
++	stw	r15, PT_R15(sp)
++	stw	r2, PT_ORIG_R2(sp)
++	stw	r7, PT_ORIG_R7(sp)
 +
-+static inline pte_t *pte_alloc_one_kernel(struct mm_struct *mm,
-+	unsigned long address)
-+{
-+	pte_t *pte;
++	stw	ra, PT_RA(sp)
++	stw	fp, PT_FP(sp)
++	stw	gp, PT_GP(sp)
++	rdctl	r24, estatus
++	stw	r24, PT_ESTATUS(sp)
++	stw	ea, PT_EA(sp)
++.endm
 +
-+	pte = (pte_t *) __get_free_pages(GFP_KERNEL|__GFP_REPEAT|__GFP_ZERO,
-+					PTE_ORDER);
++.macro RESTORE_ALL
++	ldw	r1, PT_R1(sp)		/* Restore registers */
++	ldw	r2, PT_R2(sp)
++	ldw	r3, PT_R3(sp)
++	ldw	r4, PT_R4(sp)
++	ldw	r5, PT_R5(sp)
++	ldw	r6, PT_R6(sp)
++	ldw	r7, PT_R7(sp)
++	ldw	r8, PT_R8(sp)
++	ldw	r9, PT_R9(sp)
++	ldw	r10, PT_R10(sp)
++	ldw	r11, PT_R11(sp)
++	ldw	r12, PT_R12(sp)
++	ldw	r13, PT_R13(sp)
++	ldw	r14, PT_R14(sp)
++	ldw	r15, PT_R15(sp)
++	ldw	ra, PT_RA(sp)
++	ldw	fp, PT_FP(sp)
++	ldw	gp, PT_GP(sp)
++	ldw	r24, PT_ESTATUS(sp)
++	wrctl	estatus, r24
++	ldw	ea, PT_EA(sp)
++	ldw	sp, PT_SP(sp)		/* Restore sp last */
++.endm
 +
-+	return pte;
-+}
++.macro	SAVE_SWITCH_STACK
++	addi	sp, sp, -SWITCH_STACK_SIZE
++	stw	r16, SW_R16(sp)
++	stw	r17, SW_R17(sp)
++	stw	r18, SW_R18(sp)
++	stw	r19, SW_R19(sp)
++	stw	r20, SW_R20(sp)
++	stw	r21, SW_R21(sp)
++	stw	r22, SW_R22(sp)
++	stw	r23, SW_R23(sp)
++	stw	fp, SW_FP(sp)
++	stw	gp, SW_GP(sp)
++	stw	ra, SW_RA(sp)
++.endm
 +
-+static inline pgtable_t pte_alloc_one(struct mm_struct *mm,
-+	unsigned long address)
-+{
-+	struct page *pte;
++.macro	RESTORE_SWITCH_STACK
++	ldw	r16, SW_R16(sp)
++	ldw	r17, SW_R17(sp)
++	ldw	r18, SW_R18(sp)
++	ldw	r19, SW_R19(sp)
++	ldw	r20, SW_R20(sp)
++	ldw	r21, SW_R21(sp)
++	ldw	r22, SW_R22(sp)
++	ldw	r23, SW_R23(sp)
++	ldw	fp, SW_FP(sp)
++	ldw	gp, SW_GP(sp)
++	ldw	ra, SW_RA(sp)
++	addi	sp, sp, SWITCH_STACK_SIZE
++.endm
 +
-+	pte = alloc_pages(GFP_KERNEL | __GFP_REPEAT, PTE_ORDER);
-+	if (pte) {
-+		if (!pgtable_page_ctor(pte)) {
-+			__free_page(pte);
-+			return NULL;
-+		}
-+		clear_highpage(pte);
-+	}
-+	return pte;
-+}
-+
-+static inline void pte_free_kernel(struct mm_struct *mm, pte_t *pte)
-+{
-+	free_pages((unsigned long)pte, PTE_ORDER);
-+}
-+
-+static inline void pte_free(struct mm_struct *mm, struct page *pte)
-+{
-+	pgtable_page_dtor(pte);
-+	__free_pages(pte, PTE_ORDER);
-+}
-+
-+#define __pte_free_tlb(tlb, pte, addr)				\
-+	do {							\
-+		pgtable_page_dtor(pte);				\
-+		tlb_remove_page((tlb), (pte));			\
-+	} while (0)
-+
-+#define check_pgt_cache()	do { } while (0)
-+
-+#endif /* _ASM_NIOS2_PGALLOC_H */
-diff --git a/arch/nios2/include/asm/pgtable-bits.h b/arch/nios2/include/asm/pgtable-bits.h
++#endif /* __ASSEMBLY__ */
++#endif /* _ASM_NIOS2_ENTRY_H */
+diff --git a/arch/nios2/include/asm/setup.h b/arch/nios2/include/asm/setup.h
 new file mode 100644
-index 0000000..ce9e706
+index 0000000..a3e05a7
 --- /dev/null
-+++ b/arch/nios2/include/asm/pgtable-bits.h
-@@ -0,0 +1,35 @@
++++ b/arch/nios2/include/asm/setup.h
+@@ -0,0 +1,38 @@
 +/*
 + * Copyright (C) 2011 Tobias Klauser <tklauser@distanz.ch>
-+ * Copyright (C) 2009 Wind River Systems Inc
 + *
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License.  See the file "COPYING" in the main directory of this archive
-+ * for more details.
-+ */
-+
-+#ifndef _ASM_NIOS2_PGTABLE_BITS_H
-+#define _ASM_NIOS2_PGTABLE_BITS_H
-+
-+/*
-+ * These are actual hardware defined protection bits in the tlbacc register
-+ * which looks like this:
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
 + *
-+ * 31 30 ... 26 25 24 23 22 21 20 19 18 ...  1  0
-+ * ignored........  C  R  W  X  G PFN............
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ *
 + */
-+#define _PAGE_GLOBAL	(1<<20)
-+#define _PAGE_EXEC	(1<<21)
-+#define _PAGE_WRITE	(1<<22)
-+#define _PAGE_READ	(1<<23)
-+#define _PAGE_CACHED	(1<<24)	/* C: data access cacheable */
 +
-+/*
-+ * Software defined bits. They are ignored by the hardware and always read back
-+ * as zero, but can be written as non-zero.
-+ */
-+#define _PAGE_PRESENT	(1<<25)	/* PTE contains a translation */
-+#define _PAGE_ACCESSED	(1<<26)	/* page referenced */
-+#define _PAGE_DIRTY	(1<<27)	/* dirty page */
-+#define _PAGE_FILE	(1<<28)	/* PTE used for file mapping or swap */
++#ifndef _ASM_NIOS2_SETUP_H
++#define _ASM_NIOS2_SETUP_H
 +
-+#endif /* _ASM_NIOS2_PGTABLE_BITS_H */
-diff --git a/arch/nios2/include/asm/pgtable.h b/arch/nios2/include/asm/pgtable.h
++#include <asm-generic/setup.h>
++
++#ifndef __ASSEMBLY__
++# ifdef __KERNEL__
++
++extern char exception_handler_hook[];
++extern char fast_handler[];
++extern char fast_handler_end[];
++
++extern void pagetable_init(void);
++
++extern void setup_early_printk(void);
++
++# endif/* __KERNEL__ */
++#endif /* __ASSEMBLY__ */
++
++#endif /* _ASM_NIOS2_SETUP_H */
+diff --git a/arch/nios2/kernel/head.S b/arch/nios2/kernel/head.S
 new file mode 100644
-index 0000000..ec85481
+index 0000000..372ce4a
 --- /dev/null
-+++ b/arch/nios2/include/asm/pgtable.h
-@@ -0,0 +1,305 @@
-+/*
-+ * Copyright (C) 2011 Tobias Klauser <tklauser@distanz.ch>
-+ * Copyright (C) 2009 Wind River Systems Inc
-+ *
-+ * Based on asm/pgtable-32.h from mips which is:
-+ *
-+ * Copyright (C) 1994, 95, 96, 97, 98, 99, 2000, 2003 Ralf Baechle
-+ * Copyright (C) 1999, 2000, 2001 Silicon Graphics, Inc.
-+ *
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License.  See the file "COPYING" in the main directory of this archive
-+ * for more details.
-+ */
-+
-+#ifndef _ASM_NIOS2_PGTABLE_H
-+#define _ASM_NIOS2_PGTABLE_H
-+
-+#include <linux/io.h>
-+#include <linux/bug.h>
-+#include <asm/page.h>
-+#include <asm/cacheflush.h>
-+#include <asm/tlbflush.h>
-+
-+#include <asm/pgtable-bits.h>
-+#include <asm-generic/pgtable-nopmd.h>
-+
-+#define FIRST_USER_ADDRESS	0
-+
-+#define VMALLOC_START		CONFIG_NIOS2_KERNEL_MMU_REGION_BASE
-+#define VMALLOC_END		(CONFIG_NIOS2_KERNEL_REGION_BASE - 1)
-+
-+struct mm_struct;
-+
-+/* Helper macro */
-+#define MKP(x, w, r) __pgprot(_PAGE_PRESENT | _PAGE_CACHED |		\
-+				((x) ? _PAGE_EXEC : 0) |		\
-+				((r) ? _PAGE_READ : 0) |		\
-+				((w) ? _PAGE_WRITE : 0))
-+/*
-+ * These are the macros that generic kernel code needs
-+ * (to populate protection_map[])
-+ */
-+
-+/* Remove W bit on private pages for COW support */
-+#define __P000	MKP(0, 0, 0)
-+#define __P001	MKP(0, 0, 1)
-+#define __P010	MKP(0, 0, 0)	/* COW */
-+#define __P011	MKP(0, 0, 1)	/* COW */
-+#define __P100	MKP(1, 0, 0)
-+#define __P101	MKP(1, 0, 1)
-+#define __P110	MKP(1, 0, 0)	/* COW */
-+#define __P111	MKP(1, 0, 1)	/* COW */
-+
-+/* Shared pages can have exact HW mapping */
-+#define __S000	MKP(0, 0, 0)
-+#define __S001	MKP(0, 0, 1)
-+#define __S010	MKP(0, 1, 0)
-+#define __S011	MKP(0, 1, 1)
-+#define __S100	MKP(1, 0, 0)
-+#define __S101	MKP(1, 0, 1)
-+#define __S110	MKP(1, 1, 0)
-+#define __S111	MKP(1, 1, 1)
-+
-+/* Used all over the kernel */
-+#define PAGE_KERNEL __pgprot(_PAGE_PRESENT | _PAGE_CACHED | _PAGE_READ | \
-+			     _PAGE_WRITE | _PAGE_EXEC | _PAGE_GLOBAL)
-+
-+#define PAGE_COPY MKP(0, 0, 1)
-+
-+#define PGD_ORDER	0
-+#define PTE_ORDER	0
-+
-+#define PTRS_PER_PGD	((PAGE_SIZE << PGD_ORDER) / sizeof(pgd_t))
-+#define PTRS_PER_PTE	((PAGE_SIZE << PTE_ORDER) / sizeof(pte_t))
-+
-+#define USER_PTRS_PER_PGD	\
-+	(CONFIG_NIOS2_KERNEL_MMU_REGION_BASE / PGDIR_SIZE)
-+
-+#define PGDIR_SHIFT	22
-+#define PGDIR_SIZE	(1UL << PGDIR_SHIFT)
-+#define PGDIR_MASK	(~(PGDIR_SIZE-1))
-+
-+/*
-+ * ZERO_PAGE is a global shared page that is always zero: used
-+ * for zero-mapped memory areas etc..
-+ */
-+extern unsigned long empty_zero_page[PAGE_SIZE / sizeof(unsigned long)];
-+#define ZERO_PAGE(vaddr)	(virt_to_page(empty_zero_page))
-+
-+extern pgd_t swapper_pg_dir[PTRS_PER_PGD];
-+extern pte_t invalid_pte_table[PAGE_SIZE/sizeof(pte_t)];
-+
-+/*
-+ * (pmds are folded into puds so this doesn't get actually called,
-+ * but the define is needed for a generic inline function.)
-+ */
-+static inline void set_pmd(pmd_t *pmdptr, pmd_t pmdval)
-+{
-+	pmdptr->pud.pgd.pgd = pmdval.pud.pgd.pgd;
-+}
-+
-+/* to find an entry in a page-table-directory */
-+#define pgd_index(addr)		(((addr) >> PGDIR_SHIFT) & (PTRS_PER_PGD - 1))
-+#define pgd_offset(mm, addr)	((mm)->pgd + pgd_index(addr))
-+
-+static inline int pte_write(pte_t pte)		\
-+	{ return pte_val(pte) & _PAGE_WRITE; }
-+static inline int pte_dirty(pte_t pte)		\
-+	{ return pte_val(pte) & _PAGE_DIRTY; }
-+static inline int pte_young(pte_t pte)		\
-+	{ return pte_val(pte) & _PAGE_ACCESSED; }
-+static inline int pte_file(pte_t pte)		\
-+	{ return pte_val(pte) & _PAGE_FILE; }
-+static inline int pte_special(pte_t pte)	{ return 0; }
-+
-+#define pgprot_noncached pgprot_noncached
-+
-+static inline pgprot_t pgprot_noncached(pgprot_t _prot)
-+{
-+	unsigned long prot = pgprot_val(_prot);
-+
-+	prot &= ~_PAGE_CACHED;
-+
-+	return __pgprot(prot);
-+}
-+
-+static inline int pte_none(pte_t pte)
-+{
-+	return !(pte_val(pte) & ~(_PAGE_GLOBAL|0xf));
-+}
-+
-+static inline int pte_present(pte_t pte)	\
-+	{ return pte_val(pte) & _PAGE_PRESENT; }
-+
-+/*
-+ * The following only work if pte_present() is true.
-+ * Undefined behaviour if not..
-+ */
-+static inline pte_t pte_wrprotect(pte_t pte)
-+{
-+	pte_val(pte) &= ~_PAGE_WRITE;
-+	return pte;
-+}
-+
-+static inline pte_t pte_mkclean(pte_t pte)
-+{
-+	pte_val(pte) &= ~_PAGE_DIRTY;
-+	return pte;
-+}
-+
-+static inline pte_t pte_mkold(pte_t pte)
-+{
-+	pte_val(pte) &= ~_PAGE_ACCESSED;
-+	return pte;
-+}
-+
-+static inline pte_t pte_mkwrite(pte_t pte)
-+{
-+	pte_val(pte) |= _PAGE_WRITE;
-+	return pte;
-+}
-+
-+static inline pte_t pte_mkdirty(pte_t pte)
-+{
-+	pte_val(pte) |= _PAGE_DIRTY;
-+	return pte;
-+}
-+
-+static inline pte_t pte_mkspecial(pte_t pte)	{ return pte; }
-+
-+static inline pte_t pte_mkyoung(pte_t pte)
-+{
-+	pte_val(pte) |= _PAGE_ACCESSED;
-+	return pte;
-+}
-+
-+static inline pte_t pte_modify(pte_t pte, pgprot_t newprot)
-+{
-+	const unsigned long mask = _PAGE_READ | _PAGE_WRITE | _PAGE_EXEC;
-+	pte_val(pte) = (pte_val(pte) & ~mask) | (pgprot_val(newprot) & mask);
-+	return pte;
-+}
-+
-+static inline int pmd_present(pmd_t pmd)
-+{
-+	return (pmd_val(pmd) != (unsigned long) invalid_pte_table)
-+			&& (pmd_val(pmd) != 0UL);
-+}
-+
-+static inline void pmd_clear(pmd_t *pmdp)
-+{
-+	pmd_val(*pmdp) = (unsigned long) invalid_pte_table;
-+}
-+
-+#define pte_pfn(pte)		(pte_val(pte) & 0xfffff)
-+#define pfn_pte(pfn, prot)	(__pte(pfn | pgprot_val(prot)))
-+#define pte_page(pte)		(pfn_to_page(pte_pfn(pte)))
-+
-+/*
-+ * Store a linux PTE into the linux page table.
-+ */
-+static inline void set_pte(pte_t *ptep, pte_t pteval)
-+{
-+	*ptep = pteval;
-+}
-+
-+static inline void set_pte_at(struct mm_struct *mm, unsigned long addr,
-+			      pte_t *ptep, pte_t pteval)
-+{
-+	unsigned long paddr = page_to_virt(pte_page(pteval));
-+	flush_dcache_range(paddr, paddr + PAGE_SIZE);
-+	set_pte(ptep, pteval);
-+}
-+
-+static inline int pmd_none(pmd_t pmd)
-+{
-+	return (pmd_val(pmd) ==
-+		(unsigned long) invalid_pte_table) || (pmd_val(pmd) == 0UL);
-+}
-+
-+#define pmd_bad(pmd)	(pmd_val(pmd) & ~PAGE_MASK)
-+
-+static inline void pte_clear(struct mm_struct *mm,
-+				unsigned long addr, pte_t *ptep)
-+{
-+	pte_t null;
-+
-+	pte_val(null) = (addr >> PAGE_SHIFT) & 0xf;
-+
-+	set_pte_at(mm, addr, ptep, null);
-+	flush_tlb_one(addr);
-+}
-+
-+/*
-+ * Conversion functions: convert a page and protection to a page entry,
-+ * and a page entry and page directory to the page they refer to.
-+ */
-+#define mk_pte(page, prot)	(pfn_pte(page_to_pfn(page), prot))
-+
-+#define pte_unmap(pte)	do { } while (0)
-+
-+/*
-+ * Conversion functions: convert a page and protection to a page entry,
-+ * and a page entry and page directory to the page they refer to.
-+ */
-+#define pmd_phys(pmd)		virt_to_phys((void *)pmd_val(pmd))
-+#define pmd_page(pmd)		(pfn_to_page(pmd_phys(pmd) >> PAGE_SHIFT))
-+#define pmd_page_vaddr(pmd)	pmd_val(pmd)
-+
-+#define pte_offset_map(dir, addr)			\
-+	((pte_t *) page_address(pmd_page(*dir)) +	\
-+	 (((addr) >> PAGE_SHIFT) & (PTRS_PER_PTE - 1)))
-+
-+/* to find an entry in a kernel page-table-directory */
-+#define pgd_offset_k(addr)	pgd_offset(&init_mm, addr)
-+
-+/* Get the address to the PTE for a vaddr in specfic directory */
-+#define pte_offset_kernel(dir, addr)			\
-+	((pte_t *) pmd_page_vaddr(*(dir)) +		\
-+	 (((addr) >> PAGE_SHIFT) & (PTRS_PER_PTE - 1)))
-+
-+#define pte_ERROR(e) \
-+	pr_err("%s:%d: bad pte %08lx.\n", \
-+		__FILE__, __LINE__, pte_val(e))
-+#define pgd_ERROR(e) \
-+	pr_err("%s:%d: bad pgd %08lx.\n", \
-+		__FILE__, __LINE__, pgd_val(e))
-+
-+/*
-+ * Encode and decode a swap entry (must be !pte_none(pte) && !pte_present(pte)
-+ * && !pte_file(pte)):
-+ *
-+ * 31 30 29 28 27 26 25 24 23 22 21 20 19 18 ...  1  0
-+ *  0  0  0  0 type.  0  0  0  0  0  0 offset.........
-+ *
-+ * This gives us up to 2**2 = 4 swap files and 2**20 * 4K = 4G per swap file.
-+ *
-+ * Note that the offset field is always non-zero, thus !pte_none(pte) is always
-+ * true.
-+ */
-+#define __swp_type(swp)		(((swp).val >> 26) & 0x3)
-+#define __swp_offset(swp)	((swp).val & 0xfffff)
-+#define __swp_entry(type, off)	((swp_entry_t) { (((type) & 0x3) << 26) \
-+						 | ((off) & 0xfffff) })
-+#define __swp_entry_to_pte(swp)	((pte_t) { (swp).val })
-+#define __pte_to_swp_entry(pte)	((swp_entry_t) { pte_val(pte) })
-+
-+/* Encode and decode a nonlinear file mapping entry */
-+#define PTE_FILE_MAX_BITS	25
-+#define pte_to_pgoff(pte)	(pte_val(pte) & 0x1ffffff)
-+#define pgoff_to_pte(off)	__pte(((off) & 0x1ffffff) | _PAGE_FILE)
-+
-+#define kern_addr_valid(addr)		(1)
-+
-+#include <asm-generic/pgtable.h>
-+
-+#define pgtable_cache_init()		do { } while (0)
-+
-+extern void __init paging_init(void);
-+extern void __init mmu_init(void);
-+
-+extern void update_mmu_cache(struct vm_area_struct *vma,
-+			     unsigned long address, pte_t *pte);
-+
-+#endif /* _ASM_NIOS2_PGTABLE_H */
-diff --git a/arch/nios2/mm/pgtable.c b/arch/nios2/mm/pgtable.c
-new file mode 100644
-index 0000000..21e865f
---- /dev/null
-+++ b/arch/nios2/mm/pgtable.c
-@@ -0,0 +1,73 @@
++++ b/arch/nios2/kernel/head.S
+@@ -0,0 +1,175 @@
 +/*
 + * Copyright (C) 2009 Wind River Systems Inc
 + *   Implemented by fredrik.markstrom@gmail.com and ivarholmqvist@gmail.com
++ * Copyright (C) 2004 Microtronix Datacom Ltd
++ * Copyright (C) 2001 Vic Phillips, Microtronix Datacom Ltd.
++ *
++ * Based on head.S for Altera's Excalibur development board with nios processor
++ *
++ * Based on the following from the Excalibur sdk distribution:
++ *	NA_MemoryMap.s, NR_JumpToStart.s, NR_Setup.s, NR_CWPManager.s
 + *
 + * This file is subject to the terms and conditions of the GNU General Public
-+ * License.  See the file "COPYING" in the main directory of this archive
++ * License. See the file "COPYING" in the main directory of this archive
 + * for more details.
 + */
 +
-+#include <linux/mm.h>
-+#include <linux/sched.h>
++#include <linux/init.h>
++#include <linux/linkage.h>
++#include <asm/thread_info.h>
++#include <asm/processor.h>
++#include <asm/cache.h>
++#include <asm/page.h>
++#include <asm/asm-offsets.h>
++#include <asm/asm-macros.h>
 +
-+#include <asm/pgtable.h>
-+#include <asm/cpuinfo.h>
++/*
++ * ZERO_PAGE is a special page that is used for zero-initialized
++ * data and COW.
++ */
++.data
++.global empty_zero_page
++.align 12
++empty_zero_page:
++	.space	PAGE_SIZE
 +
-+/* pteaddr:
-+ *   ptbase | vpn* | zero
-+ *   31-22  | 21-2 | 1-0
-+ *
-+ *   *vpn is preserved on double fault
-+ *
-+ * tlbacc:
-+ *   IG   |*flags| pfn
-+ *   31-25|24-20 | 19-0
-+ *
-+ *   *crwxg
-+ *
-+ * tlbmisc:
-+ *   resv  |way   |rd | we|pid |dbl|bad|perm|d
-+ *   31-24 |23-20 |19 | 20|17-4|3  |2  |1   |0
-+ *
++/*
++ * This global variable is used as an extension to the nios'
++ * STATUS register to emulate a user/supervisor mode.
++ */
++	.data
++	.align	2
++	.set noat
++
++	.global _current_thread
++_current_thread:
++	.long	0
++/*
++ * Input(s): passed from u-boot
++ *   r4 - Optional pointer to a board information structure.
++ *   r5 - Optional pointer to the physical starting address of the init RAM
++ *        disk.
++ *   r6 - Optional pointer to the physical ending address of the init RAM
++ *        disk.
++ *   r7 - Optional pointer to the physical starting address of any kernel
++ *        command-line parameters.
 + */
 +
 +/*
-+ * Initialize a new pgd / pmd table with invalid pointers.
++ * First executable code - detected and jumped to by the ROM bootstrap
++ * if the code resides in flash (looks for "Nios" at offset 0x0c from
++ * the potential executable image).
 + */
-+static void pgd_init(pgd_t *pgd)
-+{
-+	unsigned long *p = (unsigned long *) pgd;
-+	int i;
++	__HEAD
++ENTRY(_start)
++	wrctl	status, r0		/* Disable interrupts */
 +
-+	for (i = 0; i < USER_PTRS_PER_PGD; i += 8) {
-+		p[i + 0] = (unsigned long) invalid_pte_table;
-+		p[i + 1] = (unsigned long) invalid_pte_table;
-+		p[i + 2] = (unsigned long) invalid_pte_table;
-+		p[i + 3] = (unsigned long) invalid_pte_table;
-+		p[i + 4] = (unsigned long) invalid_pte_table;
-+		p[i + 5] = (unsigned long) invalid_pte_table;
-+		p[i + 6] = (unsigned long) invalid_pte_table;
-+		p[i + 7] = (unsigned long) invalid_pte_table;
++	/* Initialize all cache lines within the instruction cache */
++	movia	r1, NIOS2_ICACHE_SIZE
++	movui	r2, NIOS2_ICACHE_LINE_SIZE
++
++icache_init:
++	initi	r1
++	sub	r1, r1, r2
++	bgt	r1, r0, icache_init
++	br	1f
++
++	/*
++	 * This is the default location for the exception handler. Code in jump
++	 * to our handler
++	 */
++ENTRY(exception_handler_hook)
++	movia	r24, inthandler
++	jmp	r24
++
++ENTRY(fast_handler)
++	nextpc et
++helper:
++	stw	r3, r3save - helper(et)
++
++	rdctl	r3 , pteaddr
++	srli	r3, r3, 12
++	slli	r3, r3, 2
++	movia	et, pgd_current
++
++	ldw	et, 0(et)
++	add	r3, et, r3
++	ldw	et, 0(r3)
++
++	rdctl	r3, pteaddr
++	andi	r3, r3, 0xfff
++	add	et, r3, et
++	ldw	et, 0(et)
++	wrctl	tlbacc, et
++	nextpc	et
++helper2:
++	ldw	r3, r3save - helper2(et)
++	subi	ea, ea, 4
++	eret
++r3save:
++	.word 0x0
++ENTRY(fast_handler_end)
++
++1:
++	/*
++	 * After the instruction cache is initialized, the data cache must
++	 * also be initialized.
++	 */
++	movia	r1, NIOS2_DCACHE_SIZE
++	movui	r2, NIOS2_DCACHE_LINE_SIZE
++
++dcache_init:
++	initd	0(r1)
++	sub	r1, r1, r2
++	bgt	r1, r0, dcache_init
++
++	nextpc	r1			/* Find out where we are */
++chkadr:
++	movia	r2, chkadr
++	beq	r1, r2,finish_move	/* We are running in RAM done */
++	addi	r1, r1,(_start - chkadr)	/* Source */
++	movia	r2, _start		/* Destination */
++	movia	r3, __bss_start		/* End of copy */
++
++loop_move:				/* r1: src, r2: dest, r3: last dest */
++	ldw	r8, 0(r1)		/* load a word from [r1] */
++	stw	r8, 0(r2)		/* store a word to dest [r2] */
++	flushd	0(r2)			/* Flush cache for safety */
++	addi 	r1, r1, 4		/* inc the src addr */
++	addi	r2, r2, 4		/* inc the dest addr */
++	blt	r2, r3, loop_move
++
++	movia	r1, finish_move		/* VMA(_start)->l1 */
++	jmp	r1			/* jmp to _start */
++
++finish_move:
++
++	/* Mask off all possible interrupts */
++	wrctl	ienable, r0
++
++	/* Clear .bss */
++	movia	r2, __bss_start
++	movia	r1, __bss_stop
++1:
++	stb	r0, 0(r2)
++	addi	r2, r2, 1
++	bne	r1, r2, 1b
++
++	movia	r1, init_thread_union	/* set stack at top of the task union */
++	addi	sp, r1, THREAD_SIZE
++	movia	r2, _current_thread	/* Remember current thread */
++	stw	r1, 0(r2)
++
++	movia	r1, nios2_boot_init	/* save args r4-r7 passed from u-boot */
++	callr	r1
++
++	movia	r1, start_kernel	/* call start_kernel as a subroutine */
++	callr	r1
++
++	/* If we return from start_kernel, break to the oci debugger and
++	 * buggered we are.
++	 */
++	break
++
++	/* End of startup code */
++.set at
+diff --git a/arch/nios2/kernel/setup.c b/arch/nios2/kernel/setup.c
+new file mode 100644
+index 0000000..cb3121f
+--- /dev/null
++++ b/arch/nios2/kernel/setup.c
+@@ -0,0 +1,218 @@
++/*
++ * Nios2-specific parts of system setup
++ *
++ * Copyright (C) 2010 Tobias Klauser <tklauser@distanz.ch>
++ * Copyright (C) 2004 Microtronix Datacom Ltd.
++ * Copyright (C) 2001 Vic Phillips <vic@microtronix.com>
++ *
++ * This file is subject to the terms and conditions of the GNU General Public
++ * License. See the file "COPYING" in the main directory of this archive
++ * for more details.
++ */
++
++#include <linux/export.h>
++#include <linux/kernel.h>
++#include <linux/mm.h>
++#include <linux/sched.h>
++#include <linux/console.h>
++#include <linux/bootmem.h>
++#include <linux/initrd.h>
++#include <linux/of_fdt.h>
++
++#include <asm/mmu_context.h>
++#include <asm/sections.h>
++#include <asm/setup.h>
++#include <asm/cpuinfo.h>
++
++unsigned long memory_start;
++EXPORT_SYMBOL(memory_start);
++
++unsigned long memory_end;
++EXPORT_SYMBOL(memory_end);
++
++unsigned long memory_size;
++
++static struct pt_regs fake_regs = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
++					0, 0, 0, 0, 0, 0,
++					0};
++
++/* Copy a short hook instruction sequence to the exception address */
++static inline void copy_exception_handler(unsigned int addr)
++{
++	unsigned int start = (unsigned int) exception_handler_hook;
++	volatile unsigned int tmp = 0;
++
++	if (start == addr) {
++		/* The CPU exception address already points to the handler. */
++		return;
 +	}
++
++	__asm__ __volatile__ (
++		"ldw	%2,0(%0)\n"
++		"stw	%2,0(%1)\n"
++		"ldw	%2,4(%0)\n"
++		"stw	%2,4(%1)\n"
++		"ldw	%2,8(%0)\n"
++		"stw	%2,8(%1)\n"
++		"flushd	0(%1)\n"
++		"flushd	4(%1)\n"
++		"flushd	8(%1)\n"
++		"flushi %1\n"
++		"addi	%1,%1,4\n"
++		"flushi %1\n"
++		"addi	%1,%1,4\n"
++		"flushi %1\n"
++		"flushp\n"
++		: /* no output registers */
++		: "r" (start), "r" (addr), "r" (tmp)
++		: "memory"
++	);
 +}
 +
-+pgd_t *pgd_alloc(struct mm_struct *mm)
++/* Copy the fast TLB miss handler */
++static inline void copy_fast_tlb_miss_handler(unsigned int addr)
 +{
-+	pgd_t *ret, *init;
-+	ret = (pgd_t *) __get_free_pages(GFP_KERNEL, PGD_ORDER);
-+	if (ret) {
-+		init = pgd_offset(&init_mm, 0UL);
-+		pgd_init(ret);
-+		memcpy(ret + USER_PTRS_PER_PGD, init + USER_PTRS_PER_PGD,
-+		       (PTRS_PER_PGD - USER_PTRS_PER_PGD) * sizeof(pgd_t));
-+	}
++	unsigned int start = (unsigned int) fast_handler;
++	unsigned int end = (unsigned int) fast_handler_end;
++	volatile unsigned int tmp = 0;
 +
-+	return ret;
++	__asm__ __volatile__ (
++		"1:\n"
++		"	ldw	%3,0(%0)\n"
++		"	stw	%3,0(%1)\n"
++		"	flushd	0(%1)\n"
++		"	flushi	%1\n"
++		"	flushp\n"
++		"	addi	%0,%0,4\n"
++		"	addi	%1,%1,4\n"
++		"	bne	%0,%2,1b\n"
++		: /* no output registers */
++		: "r" (start), "r" (addr), "r" (end), "r" (tmp)
++		: "memory"
++	);
 +}
 +
-+void __init pagetable_init(void)
++/*
++ * save args passed from u-boot, called from head.S
++ *
++ * @r4: NIOS magic
++ * @r5: initrd start
++ * @r6: initrd end or fdt
++ * @r7: kernel command line
++ */
++asmlinkage void __init nios2_boot_init(unsigned r4, unsigned r5, unsigned r6,
++				       unsigned r7)
 +{
-+	/* Initialize the entire pgd.  */
-+	pgd_init(swapper_pg_dir);
-+	pgd_init(swapper_pg_dir + USER_PTRS_PER_PGD);
++	unsigned dtb_passed = 0;
++	char cmdline_passed[COMMAND_LINE_SIZE] = { 0, };
++
++#if defined(CONFIG_NIOS2_PASS_CMDLINE)
++	if (r4 == 0x534f494e) { /* r4 is magic NIOS */
++#if defined(CONFIG_BLK_DEV_INITRD)
++		if (r5) { /* initramfs */
++			initrd_start = r5;
++			initrd_end = r6;
++		}
++#endif /* CONFIG_BLK_DEV_INITRD */
++		dtb_passed = r6;
++
++		if (r7)
++			strncpy(cmdline_passed, (char *)r7, COMMAND_LINE_SIZE);
++	}
++#endif
++
++	early_init_devtree((void *)dtb_passed);
++
++#ifndef CONFIG_CMDLINE_FORCE
++	if (cmdline_passed[0])
++		strncpy(boot_command_line, cmdline_passed, COMMAND_LINE_SIZE);
++#ifdef CONFIG_NIOS2_CMDLINE_IGNORE_DTB
++	else
++		strncpy(boot_command_line, CONFIG_CMDLINE, COMMAND_LINE_SIZE);
++#endif
++#endif
++}
++
++void __init setup_arch(char **cmdline_p)
++{
++	int bootmap_size;
++
++	console_verbose();
++
++	memory_start = PAGE_ALIGN((unsigned long)__pa(_end));
++	memory_end = (unsigned long) CONFIG_NIOS2_MEM_BASE + memory_size;
++
++	init_mm.start_code = (unsigned long) _stext;
++	init_mm.end_code = (unsigned long) _etext;
++	init_mm.end_data = (unsigned long) _edata;
++	init_mm.brk = (unsigned long) _end;
++	init_task.thread.kregs = &fake_regs;
++
++	/* Keep a copy of command line */
++	*cmdline_p = boot_command_line;
++
++	min_low_pfn = PFN_UP(memory_start);
++	max_low_pfn = PFN_DOWN(memory_end);
++	max_mapnr = max_low_pfn;
++
++	/*
++	 * give all the memory to the bootmap allocator,  tell it to put the
++	 * boot mem_map at the start of memory
++	 */
++	pr_debug("init_bootmem_node(?,%#lx, %#x, %#lx)\n",
++		min_low_pfn, PFN_DOWN(PHYS_OFFSET), max_low_pfn);
++	bootmap_size = init_bootmem_node(NODE_DATA(0),
++					min_low_pfn, PFN_DOWN(PHYS_OFFSET),
++					max_low_pfn);
++
++	/*
++	 * free the usable memory,  we have to make sure we do not free
++	 * the bootmem bitmap so we then reserve it after freeing it :-)
++	 */
++	pr_debug("free_bootmem(%#lx, %#lx)\n",
++		memory_start, memory_end - memory_start);
++	free_bootmem(memory_start, memory_end - memory_start);
++
++	/*
++	 * Reserve the bootmem bitmap itself as well. We do this in two
++	 * steps (first step was init_bootmem()) because this catches
++	 * the (very unlikely) case of us accidentally initializing the
++	 * bootmem allocator with an invalid RAM area.
++	 *
++	 * Arguments are start, size
++	 */
++	pr_debug("reserve_bootmem(%#lx, %#x)\n", memory_start, bootmap_size);
++	reserve_bootmem(memory_start, bootmap_size, BOOTMEM_DEFAULT);
++
++#ifdef CONFIG_BLK_DEV_INITRD
++	if (initrd_start) {
++		reserve_bootmem(virt_to_phys((void *)initrd_start),
++				initrd_end - initrd_start, BOOTMEM_DEFAULT);
++	}
++#endif /* CONFIG_BLK_DEV_INITRD */
++
++	unflatten_and_copy_device_tree();
++
++	setup_cpuinfo();
++
++	copy_exception_handler(cpuinfo.exception_addr);
++
++	mmu_init();
++
++	copy_fast_tlb_miss_handler(cpuinfo.fast_tlb_miss_exc_addr);
++
++	/*
++	 * Initialize MMU context handling here because data from cpuinfo is
++	 * needed for this.
++	 */
++	mmu_context_init();
++
++	/*
++	 * get kmalloc into gear
++	 */
++	paging_init();
++
++#if defined(CONFIG_VT) && defined(CONFIG_DUMMY_CONSOLE)
++	conswitchp = &dummy_con;
++#endif
 +}
 -- 
 1.8.2.1
