@@ -1,407 +1,68 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-by2on0065.outbound.protection.outlook.com ([207.46.100.65]:36696
-	"EHLO na01-by2-obe.outbound.protection.outlook.com"
-	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1755752AbaJXIZf (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 24 Oct 2014 04:25:35 -0400
-From: Ley Foon Tan <lftan@altera.com>
-Subject: [PATCH v5 12/29] nios2: TLB handling
-Date: Fri, 24 Oct 2014 16:24:14 +0800
-Message-ID: <1414139071-3818-13-git-send-email-lftan@altera.com>
-In-Reply-To: <1414139071-3818-1-git-send-email-lftan@altera.com>
-References: <1414139071-3818-1-git-send-email-lftan@altera.com>
+Received: from mail-yh0-f44.google.com ([209.85.213.44]:60230 "EHLO
+	mail-yh0-f44.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752608AbaJXIdS (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 24 Oct 2014 04:33:18 -0400
+Received: by mail-yh0-f44.google.com with SMTP id i57so3604683yha.3
+        for <linux-arch@vger.kernel.org>; Fri, 24 Oct 2014 01:33:17 -0700 (PDT)
 MIME-Version: 1.0
-Content-Type: text/plain
+In-Reply-To: <1414107635.364.91.camel@pasglop>
+References: <1413520687-31729-1-git-send-email-aneesh.kumar@linux.vnet.ibm.com>
+	<20141022160224.9c2268795e55d5a2eff5b94d@linux-foundation.org>
+	<20141023.184035.388557314666522484.davem@davemloft.net>
+	<1414107635.364.91.camel@pasglop>
+Date: Fri, 24 Oct 2014 09:33:17 +0100
+Message-ID: <CAPvkgC0myFkGjv=L7XMhjfOSyB=3VAMHzkY9JGwwo_x7i=k0Kw@mail.gmail.com>
+Subject: Re: [PATCH V2 1/2] mm: Update generic gup implementation to handle
+ hugepage directory
+From: Steve Capper <steve.capper@linaro.org>
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org
-Cc: Arnd Bergmann <arnd@arndb.de>, Ley Foon Tan <lftan@altera.com>, lftan.linux@gmail.com, cltang@codesourcery.com
-Message-ID: <20141024082414.-GPKX6PM-0YQSj2mZz863cvJi-GRbDl3nSB0OXtQenU@z>
+To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: David Miller <davem@davemloft.net>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>, Andrea Arcangeli <aarcange@redhat.com>, mpe@ellerman.id.au, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linuxppc-dev@lists.ozlabs.org, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Johannes Weiner <hannes@cmpxchg.org>
+Message-ID: <20141024083317.v31-wM-2FxyKOlm9PcfQyUm197yUW-kU3MIJM_kUWGQ@z>
 
-This patch adds the TLB maintenance functions.
+On 24 October 2014 00:40, Benjamin Herrenschmidt
+<benh@kernel.crashing.org> wrote:
+> On Thu, 2014-10-23 at 18:40 -0400, David Miller wrote:
+>> Hey guys, was looking over the generic GUP while working on a sparc64
+>> issue and I noticed that you guys do speculative page gets, and after
+>> talking with Johannes Weiner (CC:'d) about this we don't see how it
+>> could be necessary.
+>>
+>> If interrupts are disabled during the page table scan (which they
+>> are), no IPI tlb flushes can arrive.  Therefore any removal from the
+>> page tables is guarded by interrupts being re-enabled.  And as a
+>> result, page counts of pages we see in the page tables must always
+>> have a count > 0.
+>>
+>> x86 does direct atomic_add() on &page->_count because of this
+>> invariant and I would rather see the generic version do this too.
+>
+> This is of course only true of archs who use IPIs for TLB flushes, so if
+> we are going down the path of not being speculative, powerpc would have
+> to go back to doing its own since our broadcast TLB flush means we
+> aren't protected (we are only protected vs. the page tables themselves
+> being freed since we do that via sched RCU).
+>
+> AFAIK, ARM also broadcasts TLB flushes...
 
-Signed-off-by: Ley Foon Tan <lftan@altera.com>
----
- arch/nios2/include/asm/tlb.h      |  34 +++++
- arch/nios2/include/asm/tlbflush.h |  46 +++++++
- arch/nios2/mm/tlb.c               | 274 ++++++++++++++++++++++++++++++++++++++
- 3 files changed, 354 insertions(+)
- create mode 100644 arch/nios2/include/asm/tlb.h
- create mode 100644 arch/nios2/include/asm/tlbflush.h
- create mode 100644 arch/nios2/mm/tlb.c
+Indeed, for most ARM cores we have hardware TLB broadcasts, thus we
+need the speculative path.
 
-diff --git a/arch/nios2/include/asm/tlb.h b/arch/nios2/include/asm/tlb.h
-new file mode 100644
-index 0000000..d3bc648
---- /dev/null
-+++ b/arch/nios2/include/asm/tlb.h
-@@ -0,0 +1,34 @@
-+/*
-+ * Copyright (C) 2010 Tobias Klauser <tklauser@distanz.ch>
-+ * Copyright (C) 2009 Wind River Systems Inc
-+ * Copyright (C) 2004 Microtronix Datacom Ltd.
-+ *
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License. See the file "COPYING" in the main directory of this archive
-+ * for more details.
-+ */
-+
-+#ifndef _ASM_NIOS2_TLB_H
-+#define _ASM_NIOS2_TLB_H
-+
-+#define tlb_flush(tlb)	flush_tlb_mm((tlb)->mm)
-+
-+extern void set_mmu_pid(unsigned long pid);
-+
-+/*
-+ * NiosII doesn't need any special per-pte or per-vma handling, except
-+ * we need to flush cache for the area to be unmapped.
-+ */
-+#define tlb_start_vma(tlb, vma)					\
-+	do {							\
-+		if (!tlb->fullmm)				\
-+			flush_cache_range(vma, vma->vm_start, vma->vm_end); \
-+	}  while (0)
-+
-+#define tlb_end_vma(tlb, vma)	do { } while (0)
-+#define __tlb_remove_tlb_entry(tlb, ptep, address)	do { } while (0)
-+
-+#include <linux/pagemap.h>
-+#include <asm-generic/tlb.h>
-+
-+#endif /* _ASM_NIOS2_TLB_H */
-diff --git a/arch/nios2/include/asm/tlbflush.h b/arch/nios2/include/asm/tlbflush.h
-new file mode 100644
-index 0000000..e19652f
---- /dev/null
-+++ b/arch/nios2/include/asm/tlbflush.h
-@@ -0,0 +1,46 @@
-+/*
-+ * Copyright (C) 2010 Tobias Klauser <tklauser@distanz.ch>
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License as published by
-+ * the Free Software Foundation; either version 2 of the License, or
-+ * (at your option) any later version.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
-+ *
-+ */
-+
-+#ifndef _ASM_NIOS2_TLBFLUSH_H
-+#define _ASM_NIOS2_TLBFLUSH_H
-+
-+struct mm_struct;
-+
-+/*
-+ * TLB flushing:
-+ *
-+ *  - flush_tlb_all() flushes all processes TLB entries
-+ *  - flush_tlb_mm(mm) flushes the specified mm context TLB entries
-+ *  - flush_tlb_page(vma, vmaddr) flushes one page
-+ *  - flush_tlb_range(vma, start, end) flushes a range of pages
-+ *  - flush_tlb_kernel_range(start, end) flushes a range of kernel pages
-+ */
-+extern void flush_tlb_all(void);
-+extern void flush_tlb_mm(struct mm_struct *mm);
-+extern void flush_tlb_range(struct vm_area_struct *vma, unsigned long start,
-+			    unsigned long end);
-+extern void flush_tlb_kernel_range(unsigned long start, unsigned long end);
-+extern void flush_tlb_one(unsigned long vaddr);
-+
-+static inline void flush_tlb_page(struct vm_area_struct *vma,
-+				unsigned long addr)
-+{
-+	flush_tlb_one(addr);
-+}
-+
-+#endif /* _ASM_NIOS2_TLBFLUSH_H */
-diff --git a/arch/nios2/mm/tlb.c b/arch/nios2/mm/tlb.c
-new file mode 100644
-index 0000000..642b6df
---- /dev/null
-+++ b/arch/nios2/mm/tlb.c
-@@ -0,0 +1,274 @@
-+/*
-+ * Nios2 TLB handling
-+ *
-+ * Copyright (C) 2009, Wind River Systems Inc
-+ *   Implemented by fredrik.markstrom@gmail.com and ivarholmqvist@gmail.com
-+ *
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License.  See the file "COPYING" in the main directory of this archive
-+ * for more details.
-+ */
-+
-+#include <linux/init.h>
-+#include <linux/sched.h>
-+#include <linux/mm.h>
-+#include <linux/pagemap.h>
-+
-+#include <asm/tlb.h>
-+#include <asm/mmu_context.h>
-+#include <asm/pgtable.h>
-+#include <asm/cpuinfo.h>
-+
-+#define TLB_INDEX_MASK		\
-+	((((1UL << (cpuinfo.tlb_ptr_sz - cpuinfo.tlb_num_ways_log2))) - 1) \
-+		<< PAGE_SHIFT)
-+
-+/* Used as illegal PHYS_ADDR for TLB mappings
-+ */
-+#define MAX_PHYS_ADDR 0
-+
-+static void get_misc_and_pid(unsigned long *misc, unsigned long *pid)
-+{
-+	*misc  = RDCTL(CTL_TLBMISC);
-+	*misc &= (TLBMISC_PID | TLBMISC_WAY);
-+	*pid  = *misc & TLBMISC_PID;
-+}
-+
-+/*
-+ * All entries common to a mm share an asid.  To effectively flush these
-+ * entries, we just bump the asid.
-+ */
-+void flush_tlb_mm(struct mm_struct *mm)
-+{
-+	if (current->mm == mm)
-+		flush_tlb_all();
-+	else
-+		memset(&mm->context, 0, sizeof(mm_context_t));
-+}
-+
-+/*
-+ * This one is only used for pages with the global bit set so we don't care
-+ * much about the ASID.
-+ */
-+void flush_tlb_one_pid(unsigned long addr, unsigned long mmu_pid)
-+{
-+	unsigned int way;
-+	unsigned long org_misc, pid_misc;
-+
-+	pr_debug("Flush tlb-entry for vaddr=%#lx\n", addr);
-+
-+	/* remember pid/way until we return. */
-+	get_misc_and_pid(&org_misc, &pid_misc);
-+
-+	WRCTL(CTL_PTEADDR, (addr >> PAGE_SHIFT) << 2);
-+
-+	for (way = 0; way < cpuinfo.tlb_num_ways; way++) {
-+		unsigned long pteaddr;
-+		unsigned long tlbmisc;
-+		unsigned long pid;
-+
-+		tlbmisc = pid_misc | TLBMISC_RD | (way << TLBMISC_WAY_SHIFT);
-+		WRCTL(CTL_TLBMISC, tlbmisc);
-+		pteaddr = RDCTL(CTL_PTEADDR);
-+		tlbmisc = RDCTL(CTL_TLBMISC);
-+		pid = (tlbmisc >> TLBMISC_PID_SHIFT) & TLBMISC_PID_MASK;
-+		if (((((pteaddr >> 2) & 0xfffff)) == (addr >> PAGE_SHIFT)) &&
-+				pid == mmu_pid) {
-+			unsigned long vaddr = CONFIG_NIOS2_IO_REGION_BASE +
-+				((PAGE_SIZE * cpuinfo.tlb_num_lines) * way) +
-+				(addr & TLB_INDEX_MASK);
-+			pr_debug("Flush entry by writing %#lx way=%dl pid=%ld\n",
-+				vaddr, way, (pid_misc >> TLBMISC_PID_SHIFT));
-+
-+			WRCTL(CTL_PTEADDR, (vaddr >> 12) << 2);
-+			tlbmisc = pid_misc | TLBMISC_WE |
-+				(way << TLBMISC_WAY_SHIFT);
-+			WRCTL(CTL_TLBMISC, tlbmisc);
-+			WRCTL(CTL_TLBACC, (MAX_PHYS_ADDR >> PAGE_SHIFT));
-+		}
-+	}
-+
-+	WRCTL(CTL_TLBMISC, org_misc);
-+}
-+
-+void flush_tlb_range(struct vm_area_struct *vma, unsigned long start,
-+			unsigned long end)
-+{
-+	unsigned long mmu_pid = get_pid_from_context(&vma->vm_mm->context);
-+
-+	while (start < end) {
-+		flush_tlb_one_pid(start, mmu_pid);
-+		start += PAGE_SIZE;
-+	}
-+}
-+
-+void flush_tlb_kernel_range(unsigned long start, unsigned long end)
-+{
-+	while (start < end) {
-+		flush_tlb_one(start);
-+		start += PAGE_SIZE;
-+	}
-+}
-+
-+/*
-+ * This one is only used for pages with the global bit set so we don't care
-+ * much about the ASID.
-+ */
-+void flush_tlb_one(unsigned long addr)
-+{
-+	unsigned int way;
-+	unsigned long org_misc, pid_misc;
-+
-+	pr_debug("Flush tlb-entry for vaddr=%#lx\n", addr);
-+
-+	/* remember pid/way until we return. */
-+	get_misc_and_pid(&org_misc, &pid_misc);
-+
-+	WRCTL(CTL_PTEADDR, (addr >> PAGE_SHIFT) << 2);
-+
-+	for (way = 0; way < cpuinfo.tlb_num_ways; way++) {
-+		unsigned long pteaddr;
-+		unsigned long tlbmisc;
-+
-+		tlbmisc = pid_misc | TLBMISC_RD | (way << TLBMISC_WAY_SHIFT);
-+		WRCTL(CTL_TLBMISC, tlbmisc);
-+		pteaddr = RDCTL(CTL_PTEADDR);
-+		tlbmisc = RDCTL(CTL_TLBMISC);
-+
-+		if ((((pteaddr >> 2) & 0xfffff)) == (addr >> PAGE_SHIFT)) {
-+			unsigned long vaddr = CONFIG_NIOS2_IO_REGION_BASE +
-+				((PAGE_SIZE * cpuinfo.tlb_num_lines) * way) +
-+				(addr & TLB_INDEX_MASK);
-+
-+			pr_debug("Flush entry by writing %#lx way=%dl pid=%ld\n",
-+				vaddr, way, (pid_misc >> TLBMISC_PID_SHIFT));
-+
-+			tlbmisc = pid_misc | TLBMISC_WE |
-+				(way << TLBMISC_WAY_SHIFT);
-+			WRCTL(CTL_PTEADDR, (vaddr >> 12) << 2);
-+			WRCTL(CTL_TLBMISC, tlbmisc);
-+			WRCTL(CTL_TLBACC, (MAX_PHYS_ADDR >> PAGE_SHIFT));
-+		}
-+	}
-+
-+	WRCTL(CTL_TLBMISC, org_misc);
-+}
-+
-+void dump_tlb_line(unsigned long line)
-+{
-+	unsigned int way;
-+	unsigned long org_misc;
-+
-+	pr_debug("dump tlb-entries for line=%#lx (addr %08lx)\n", line,
-+		line << (PAGE_SHIFT + cpuinfo.tlb_num_ways_log2));
-+
-+	/* remember pid/way until we return */
-+	org_misc = (RDCTL(CTL_TLBMISC) & (TLBMISC_PID | TLBMISC_WAY));
-+
-+	WRCTL(CTL_PTEADDR, line << 2);
-+
-+	for (way = 0; way < cpuinfo.tlb_num_ways; way++) {
-+		unsigned long pteaddr;
-+		unsigned long tlbmisc;
-+		unsigned long tlbacc;
-+
-+		WRCTL(CTL_TLBMISC, TLBMISC_RD | (way << TLBMISC_WAY_SHIFT));
-+		pteaddr = RDCTL(CTL_PTEADDR);
-+		tlbmisc = RDCTL(CTL_TLBMISC);
-+		tlbacc = RDCTL(CTL_TLBACC);
-+
-+		if ((tlbacc << PAGE_SHIFT) != (MAX_PHYS_ADDR & PAGE_MASK)) {
-+			pr_debug("-- way:%02x vpn:0x%08lx phys:0x%08lx pid:0x%02lx flags:%c%c%c%c%c\n",
-+				way,
-+				(pteaddr << (PAGE_SHIFT-2)),
-+				(tlbacc << PAGE_SHIFT),
-+				((tlbmisc >> TLBMISC_PID_SHIFT) &
-+				TLBMISC_PID_MASK),
-+				(tlbacc & _PAGE_READ ? 'r' : '-'),
-+				(tlbacc & _PAGE_WRITE ? 'w' : '-'),
-+				(tlbacc & _PAGE_EXEC ? 'x' : '-'),
-+				(tlbacc & _PAGE_GLOBAL ? 'g' : '-'),
-+				(tlbacc & _PAGE_CACHED ? 'c' : '-'));
-+		}
-+	}
-+
-+	WRCTL(CTL_TLBMISC, org_misc);
-+}
-+
-+void dump_tlb(void)
-+{
-+	unsigned int i;
-+	for (i = 0; i < cpuinfo.tlb_num_lines; i++)
-+		dump_tlb_line(i);
-+}
-+
-+void flush_tlb_pid(unsigned long pid)
-+{
-+	unsigned int line;
-+	unsigned int way;
-+	unsigned long org_misc, pid_misc;
-+
-+	/* remember pid/way until we return */
-+	get_misc_and_pid(&org_misc, &pid_misc);
-+
-+	for (line = 0; line < cpuinfo.tlb_num_lines; line++) {
-+		WRCTL(CTL_PTEADDR, line << 2);
-+
-+		for (way = 0; way < cpuinfo.tlb_num_ways; way++) {
-+			unsigned long pteaddr;
-+			unsigned long tlbmisc;
-+			unsigned long tlbacc;
-+
-+			tlbmisc = pid_misc | TLBMISC_RD |
-+				(way << TLBMISC_WAY_SHIFT);
-+			WRCTL(CTL_TLBMISC, tlbmisc);
-+			pteaddr = RDCTL(CTL_PTEADDR);
-+			tlbmisc = RDCTL(CTL_TLBMISC);
-+			tlbacc = RDCTL(CTL_TLBACC);
-+
-+			if (((tlbmisc>>TLBMISC_PID_SHIFT) & TLBMISC_PID_MASK)
-+				== pid) {
-+				tlbmisc = pid_misc | TLBMISC_WE |
-+					(way << TLBMISC_WAY_SHIFT);
-+				WRCTL(CTL_TLBMISC, tlbmisc);
-+				WRCTL(CTL_TLBACC,
-+					(MAX_PHYS_ADDR >> PAGE_SHIFT));
-+			}
-+		}
-+
-+		WRCTL(CTL_TLBMISC, org_misc);
-+	}
-+}
-+
-+void flush_tlb_all(void)
-+{
-+	int i;
-+	unsigned long vaddr = CONFIG_NIOS2_IO_REGION_BASE;
-+	unsigned int way;
-+	unsigned long org_misc, pid_misc, tlbmisc;
-+
-+	/* remember pid/way until we return */
-+	get_misc_and_pid(&org_misc, &pid_misc);
-+	pid_misc |= TLBMISC_WE;
-+
-+	/* Map each TLB entry to physcal address 0 with no-access and a
-+	   bad ptbase */
-+	for (way = 0; way < cpuinfo.tlb_num_ways; way++) {
-+		tlbmisc = pid_misc | (way << TLBMISC_WAY_SHIFT);
-+		for (i = 0; i < cpuinfo.tlb_num_lines; i++) {
-+			WRCTL(CTL_PTEADDR, ((vaddr) >> PAGE_SHIFT) << 2);
-+			WRCTL(CTL_TLBMISC, tlbmisc);
-+			WRCTL(CTL_TLBACC, (MAX_PHYS_ADDR >> PAGE_SHIFT));
-+			vaddr += 1UL << 12;
-+		}
-+	}
-+
-+	/* restore pid/way */
-+	WRCTL(CTL_TLBMISC, org_misc);
-+}
-+
-+void set_mmu_pid(unsigned long pid)
-+{
-+	WRCTL(CTL_TLBMISC, (RDCTL(CTL_TLBMISC) & TLBMISC_WAY) |
-+		((pid & TLBMISC_PID_MASK) << TLBMISC_PID_SHIFT));
-+}
+>
+> Another option would be to make the generic code use something defined
+> by the arch to decide whether to use speculative get or
+> not. I like the idea of keeping the bulk of that code generic...
+
+It would be nice to have the code generalised further.
+In addition to the speculative/atomic helpers the implementation would
+need to be renamed from GENERIC_RCU_GUP to GENERIC_GUP.
+The other noteworthy assumption made in the RCU GUP is that pte's can
+be read atomically. For x86 this isn't true when running with 64-bit
+pte's, thus a helper would be needed.
+
+Cheers,
 -- 
-1.8.2.1
-
+Steve
