@@ -1,459 +1,315 @@
 From: Ley Foon Tan <lftan@altera.com>
-Subject: [PATCH v5 07/29] nios2: I/O Mapping
-Date: Fri, 24 Oct 2014 16:24:09 +0800
-Message-ID: <1414139071-3818-8-git-send-email-lftan@altera.com>
+Subject: [PATCH v5 08/29] nios2: MMU Fault handling
+Date: Fri, 24 Oct 2014 16:24:10 +0800
+Message-ID: <1414139071-3818-9-git-send-email-lftan@altera.com>
 References: <1414139071-3818-1-git-send-email-lftan@altera.com>
 Mime-Version: 1.0
 Content-Type: text/plain
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bl2on0067.outbound.protection.outlook.com ([65.55.169.67]:27840
-	"EHLO na01-bl2-obe.outbound.protection.outlook.com"
-	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S932290AbaJXIZQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 24 Oct 2014 04:25:16 -0400
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1414139071-3818-1-git-send-email-lftan@altera.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org
 Cc: Arnd Bergmann <arnd@arndb.de>, Ley Foon Tan <lftan@altera.com>, lftan.linux@gmail.com, cltang@codesourcery.com
+List-Id: linux-arch.vger.kernel.org
 
-This patch adds several definitions for I/O accessors and ioremap().
+This patch adds support for the handling of the MMU faults (exception
+entry code introduced by a previous patch, kernel/entry.S).
 
 Signed-off-by: Ley Foon Tan <lftan@altera.com>
 ---
- arch/nios2/include/asm/io.h |  84 ++++++++++++++++++++
- arch/nios2/lib/io.c         | 138 ++++++++++++++++++++++++++++++++
- arch/nios2/mm/ioremap.c     | 186 ++++++++++++++++++++++++++++++++++++++++++++
- 3 files changed, 408 insertions(+)
- create mode 100644 arch/nios2/include/asm/io.h
- create mode 100644 arch/nios2/lib/io.c
- create mode 100644 arch/nios2/mm/ioremap.c
+ arch/nios2/mm/extable.c |  25 +++++
+ arch/nios2/mm/fault.c   | 251 ++++++++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 276 insertions(+)
+ create mode 100644 arch/nios2/mm/extable.c
+ create mode 100644 arch/nios2/mm/fault.c
 
-diff --git a/arch/nios2/include/asm/io.h b/arch/nios2/include/asm/io.h
+diff --git a/arch/nios2/mm/extable.c b/arch/nios2/mm/extable.c
 new file mode 100644
-index 0000000..c629226
+index 0000000..4d2fc5a
 --- /dev/null
-+++ b/arch/nios2/include/asm/io.h
-@@ -0,0 +1,84 @@
++++ b/arch/nios2/mm/extable.c
+@@ -0,0 +1,25 @@
 +/*
-+ * Copyright (C) 2014 Altera Corporation
-+ * Copyright (C) 2010 Tobias Klauser <tklauser@distanz.ch>
-+ * Copyright (C) 2004 Microtronix Datacom Ltd.
-+ *
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License. See the file "COPYING" in the main directory of this archive
-+ * for more details.
-+ */
-+
-+#ifndef _ASM_NIOS2_IO_H
-+#define _ASM_NIOS2_IO_H
-+
-+#include <asm/pgtable-bits.h>
-+
-+/* PCI is not supported in nios2, set this to 0. */
-+#define IO_SPACE_LIMIT 0
-+
-+extern void outsb(unsigned long addr, const void *buf, int len);
-+extern void outsw(unsigned long addr, const void *buf, int len);
-+extern void outsl(unsigned long addr, const void *buf, int len);
-+extern void insb(unsigned long addr, void *buf, int len);
-+extern void insw(unsigned long addr, void *buf, int len);
-+extern void insl(unsigned long addr, void *buf, int len);
-+#define outsb outsb
-+#define outsw outsw
-+#define outsl outsl
-+#define insb insb
-+#define insw insw
-+#define insl insl
-+
-+#define readb_relaxed(addr)	readb(addr)
-+#define readw_relaxed(addr)	readw(addr)
-+#define readl_relaxed(addr)	readl(addr)
-+
-+#define writeb_relaxed(x, addr)	writeb(x, addr)
-+#define writew_relaxed(x, addr)	writew(x, addr)
-+#define writel_relaxed(x, addr)	writel(x, addr)
-+
-+#include <asm-generic/io.h>
-+
-+/*
-+ * PCI is not enabled in nios2. Provide dummy implementation to get 'allyesconfig'
-+ * to build successfully.
-+ */
-+#define inb(addr)	({ 0; })
-+#define inw(addr)	({ 0; })
-+#define inl(addr)	({ 0; })
-+#define outb(x, addr)	do { } while (0)
-+#define outw(x, addr)	do { } while (0)
-+#define outl(x, addr)	do { } while (0)
-+
-+extern void __iomem *__ioremap(unsigned long physaddr, unsigned long size,
-+			unsigned long cacheflag);
-+extern void __iounmap(void __iomem *addr);
-+
-+static inline void __iomem *ioremap(unsigned long physaddr, unsigned long size)
-+{
-+	return __ioremap(physaddr, size, 0);
-+}
-+
-+static inline void __iomem *ioremap_nocache(unsigned long physaddr,
-+						unsigned long size)
-+{
-+	return __ioremap(physaddr, size, 0);
-+}
-+
-+static inline void iounmap(void __iomem *addr)
-+{
-+	__iounmap(addr);
-+}
-+
-+/* Pages to physical address... */
-+# define page_to_phys(page)	virt_to_phys(page_to_virt(page))
-+# define page_to_bus(page)	page_to_virt(page)
-+
-+/* Macros used for converting between virtual and physical mappings. */
-+# define phys_to_virt(vaddr)	\
-+	((void *)((unsigned long)(vaddr) | CONFIG_NIOS2_KERNEL_REGION_BASE))
-+/* Clear top 3 bits */
-+# define virt_to_phys(vaddr)	\
-+	((unsigned long)((unsigned long)(vaddr) & ~0xE0000000))
-+
-+#endif /* _ASM_NIOS2_IO_H */
-diff --git a/arch/nios2/lib/io.c b/arch/nios2/lib/io.c
-new file mode 100644
-index 0000000..94db593
---- /dev/null
-+++ b/arch/nios2/lib/io.c
-@@ -0,0 +1,138 @@
-+/*
-+ * Copyright (C) 2014 Altera Corporation
-+ * Copyright (C) 2010 Tobias Klauser <tklauser@distanz.ch>
-+ * Copyright (C) 2004 Microtronix Datacom Ltd.
-+ *
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License. See the file "COPYING" in the main directory of this archive
-+ * for more details.
-+ */
-+#include <linux/types.h>
-+#include <asm/io.h>
-+
-+
-+#ifndef CONFIG_CC_OPTIMIZE_FOR_SIZE
-+#define __IO_USE_DUFFS
-+#endif
-+
-+#ifdef __IO_USE_DUFFS
-+
-+/* Use "Duff's Device" to unroll the loops. */
-+#define __IO_OUT_LOOP(a, b, l)				\
-+	do {						\
-+		if (l > 0) {				\
-+			int _n = (l + 7) / 8;		\
-+			switch (l % 8) {		\
-+			case 0:				\
-+				do {			\
-+					*a = *b++;	\
-+			case 7:				\
-+					*a = *b++;	\
-+			case 6:				\
-+					*a = *b++;	\
-+			case 5:				\
-+					*a = *b++;	\
-+			case 4:				\
-+					*a = *b++;	\
-+			case 3:				\
-+					*a = *b++;	\
-+			case 2:				\
-+					*a = *b++;	\
-+			case 1:				\
-+					*a = *b++;	\
-+				} while (--_n > 0);	\
-+			}				\
-+		}					\
-+	} while (0)
-+
-+#define __IO_IN_LOOP(a, b, l)				\
-+	do {						\
-+		if (l > 0) {				\
-+			int _n = (l + 7) / 8;		\
-+			switch (l % 8) {		\
-+			case 0:				\
-+				do {			\
-+					*b++ = *a;	\
-+			case 7:				\
-+					*b++ = *a;	\
-+			case 6:				\
-+					*b++ = *a;	\
-+			case 5:				\
-+					*b++ = *a;	\
-+			case 4:				\
-+					*b++ = *a;	\
-+			case 3:				\
-+					*b++ = *a;	\
-+			case 2:				\
-+					*b++ = *a;	\
-+			case 1:				\
-+					*b++ = *a;	\
-+				} while (--_n > 0);	\
-+			}				\
-+		}					\
-+	} while (0)
-+
-+#else /* __IO_USE_DUFFS */
-+
-+/* Use simple loops. */
-+#define __IO_OUT_LOOP(a, b, l)				\
-+	do {						\
-+		while (l--)				\
-+			*a = *b++;			\
-+	} while (0)
-+
-+#define __IO_IN_LOOP(a, b, l)				\
-+	do {						\
-+		while (l--)				\
-+			*b++ = *a;			\
-+	} while (0)
-+
-+#endif /* __IO_USE_DUFFS */
-+
-+void outsb(unsigned long addr, const void *buf, int len)
-+{
-+	volatile unsigned char *ap = (volatile unsigned char *)addr;
-+	unsigned char *bp = (unsigned char *)buf;
-+	__IO_OUT_LOOP(ap, bp, len);
-+}
-+EXPORT_SYMBOL(outsb);
-+
-+void outsw(unsigned long addr, const void *buf, int len)
-+{
-+	volatile unsigned short *ap = (volatile unsigned short *)addr;
-+	unsigned short *bp = (unsigned short *)buf;
-+	__IO_OUT_LOOP(ap, bp, len);
-+}
-+EXPORT_SYMBOL(outsw);
-+
-+void outsl(unsigned long addr, const void *buf, int len)
-+{
-+	volatile unsigned int *ap = (volatile unsigned int *)addr;
-+	unsigned int *bp = (unsigned int *)buf;
-+	__IO_OUT_LOOP(ap, bp, len);
-+}
-+EXPORT_SYMBOL(outsl);
-+
-+void insb(unsigned long addr, void *buf, int len)
-+{
-+	volatile unsigned char *ap = (volatile unsigned char *)addr;
-+	unsigned char *bp = (unsigned char *)buf;
-+	__IO_IN_LOOP(ap, bp, len);
-+}
-+EXPORT_SYMBOL(insb);
-+
-+void insw(unsigned long addr, void *buf, int len)
-+{
-+	volatile unsigned short *ap = (volatile unsigned short *)addr;
-+	unsigned short *bp = (unsigned short *)buf;
-+	__IO_IN_LOOP(ap, bp, len);
-+}
-+EXPORT_SYMBOL(insw);
-+
-+void insl(unsigned long addr, void *buf, int len)
-+{
-+	volatile unsigned int *ap = (volatile unsigned int *)addr;
-+	unsigned int *bp = (unsigned int *)buf;
-+	__IO_IN_LOOP(ap, bp, len);
-+}
-+EXPORT_SYMBOL(insl);
-diff --git a/arch/nios2/mm/ioremap.c b/arch/nios2/mm/ioremap.c
-new file mode 100644
-index 0000000..a46bccf
---- /dev/null
-+++ b/arch/nios2/mm/ioremap.c
-@@ -0,0 +1,186 @@
-+/*
-+ * Copyright (C) 2010 Tobias Klauser <tklauser@distanz.ch>
-+ * Copyright (C) 2009 Wind River Systems Inc
++ * Copyright (C) 2010, Tobias Klauser <tklauser@distanz.ch>
++ * Copyright (C) 2009, Wind River Systems Inc
 + *   Implemented by fredrik.markstrom@gmail.com and ivarholmqvist@gmail.com
-+ * Copyright (C) 2004 Microtronix Datacom Ltd.
 + *
 + * This file is subject to the terms and conditions of the GNU General Public
-+ * License. See the file "COPYING" in the main directory of this archive
++ * License.  See the file "COPYING" in the main directory of this archive
 + * for more details.
 + */
 +
-+#include <linux/export.h>
-+#include <linux/sched.h>
-+#include <linux/mm.h>
-+#include <linux/slab.h>
-+#include <linux/vmalloc.h>
-+#include <linux/io.h>
++#include <linux/module.h>
++#include <linux/uaccess.h>
 +
-+#include <asm/cacheflush.h>
-+#include <asm/tlbflush.h>
-+
-+static inline void remap_area_pte(pte_t *pte, unsigned long address,
-+				unsigned long size, unsigned long phys_addr,
-+				unsigned long flags)
++int fixup_exception(struct pt_regs *regs)
 +{
-+	unsigned long end;
-+	unsigned long pfn;
-+	pgprot_t pgprot = __pgprot(_PAGE_GLOBAL | _PAGE_PRESENT | _PAGE_READ
-+				| _PAGE_WRITE | flags);
++	const struct exception_table_entry *fixup;
 +
-+	address &= ~PMD_MASK;
-+	end = address + size;
-+	if (end > PMD_SIZE)
-+		end = PMD_SIZE;
-+	if (address >= end)
-+		BUG();
-+	pfn = PFN_DOWN(phys_addr);
-+	do {
-+		if (!pte_none(*pte)) {
-+			pr_err("remap_area_pte: page already exists\n");
-+			BUG();
-+		}
-+		set_pte(pte, pfn_pte(pfn, pgprot));
-+		address += PAGE_SIZE;
-+		pfn++;
-+		pte++;
-+	} while (address && (address < end));
-+}
++	fixup = search_exception_tables(regs->ea);
++	if (fixup) {
++		regs->ea = fixup->fixup;
++		return 1;
++	}
 +
-+static inline int remap_area_pmd(pmd_t *pmd, unsigned long address,
-+				unsigned long size, unsigned long phys_addr,
-+				unsigned long flags)
-+{
-+	unsigned long end;
-+
-+	address &= ~PGDIR_MASK;
-+	end = address + size;
-+	if (end > PGDIR_SIZE)
-+		end = PGDIR_SIZE;
-+	phys_addr -= address;
-+	if (address >= end)
-+		BUG();
-+	do {
-+		pte_t *pte = pte_alloc_kernel(pmd, address);
-+		if (!pte)
-+			return -ENOMEM;
-+		remap_area_pte(pte, address, end - address, address + phys_addr,
-+			flags);
-+		address = (address + PMD_SIZE) & PMD_MASK;
-+		pmd++;
-+	} while (address && (address < end));
 +	return 0;
 +}
+diff --git a/arch/nios2/mm/fault.c b/arch/nios2/mm/fault.c
+new file mode 100644
+index 0000000..15a0bb5
+--- /dev/null
++++ b/arch/nios2/mm/fault.c
+@@ -0,0 +1,251 @@
++/*
++ * Copyright (C) 2009 Wind River Systems Inc
++ *   Implemented by fredrik.markstrom@gmail.com and ivarholmqvist@gmail.com
++ *
++ * based on arch/mips/mm/fault.c which is:
++ *
++ * Copyright (C) 1995-2000 Ralf Baechle
++ *
++ * This file is subject to the terms and conditions of the GNU General Public
++ * License.  See the file "COPYING" in the main directory of this archive
++ * for more details.
++ */
 +
-+static int remap_area_pages(unsigned long address, unsigned long phys_addr,
-+				unsigned long size, unsigned long flags)
-+{
-+	int error;
-+	pgd_t *dir;
-+	unsigned long end = address + size;
++#include <linux/signal.h>
++#include <linux/sched.h>
++#include <linux/interrupt.h>
++#include <linux/kernel.h>
++#include <linux/errno.h>
++#include <linux/string.h>
++#include <linux/types.h>
++#include <linux/ptrace.h>
++#include <linux/mman.h>
++#include <linux/mm.h>
++#include <linux/module.h>
++#include <linux/uaccess.h>
++#include <linux/ptrace.h>
 +
-+	phys_addr -= address;
-+	dir = pgd_offset(&init_mm, address);
-+	flush_cache_all();
-+	if (address >= end)
-+		BUG();
-+	do {
-+		pud_t *pud;
-+		pmd_t *pmd;
++#include <asm/mmu_context.h>
++#include <asm/traps.h>
 +
-+		error = -ENOMEM;
-+		pud = pud_alloc(&init_mm, dir, address);
-+		if (!pud)
-+			break;
-+		pmd = pmd_alloc(&init_mm, pud, address);
-+		if (!pmd)
-+			break;
-+		if (remap_area_pmd(pmd, address, end - address,
-+			phys_addr + address, flags))
-+			break;
-+		error = 0;
-+		address = (address + PGDIR_SIZE) & PGDIR_MASK;
-+		dir++;
-+	} while (address && (address < end));
-+	flush_tlb_all();
-+	return error;
-+}
-+
-+#define IS_MAPPABLE_UNCACHEABLE(addr) (addr < 0x20000000UL)
++#define EXC_SUPERV_INSN_ACCESS	9  /* Supervisor only instruction address */
++#define EXC_SUPERV_DATA_ACCESS	11 /* Supervisor only data address */
++#define EXC_X_PROTECTION_FAULT	13 /* TLB permission violation (x) */
++#define EXC_R_PROTECTION_FAULT	14 /* TLB permission violation (r) */
++#define EXC_W_PROTECTION_FAULT	15 /* TLB permission violation (w) */
 +
 +/*
-+ * Map some physical address range into the kernel address space.
++ * This routine handles page faults.  It determines the address,
++ * and the problem, and then passes it off to one of the appropriate
++ * routines.
 + */
-+void __iomem *__ioremap(unsigned long phys_addr, unsigned long size,
-+			unsigned long cacheflag)
++asmlinkage void do_page_fault(struct pt_regs *regs, unsigned long cause,
++				unsigned long address)
 +{
-+	struct vm_struct *area;
-+	unsigned long offset;
-+	unsigned long last_addr;
-+	void *addr;
++	struct vm_area_struct *vma = NULL;
++	struct task_struct *tsk = current;
++	struct mm_struct *mm = tsk->mm;
++	int code = SEGV_MAPERR;
++	int fault;
++	unsigned int flags = 0;
 +
-+	/* Don't allow wraparound or zero size */
-+	last_addr = phys_addr + size - 1;
++	cause >>= 2;
 +
-+	if (!size || last_addr < phys_addr)
-+		return NULL;
-+
-+	/* Don't allow anybody to remap normal RAM that we're using */
-+	if (phys_addr > PHYS_OFFSET && phys_addr < virt_to_phys(high_memory)) {
-+		char *t_addr, *t_end;
-+		struct page *page;
-+
-+		t_addr = __va(phys_addr);
-+		t_end = t_addr + (size - 1);
-+		for (page = virt_to_page(t_addr);
-+			page <= virt_to_page(t_end); page++)
-+			if (!PageReserved(page))
-+				return NULL;
-+	}
++	/* Restart the instruction */
++	regs->ea -= 4;
 +
 +	/*
-+	 * Map uncached objects in the low part of address space to
-+	 * CONFIG_NIOS2_IO_REGION_BASE
++	 * We fault-in kernel-space virtual memory on-demand. The
++	 * 'reference' page table is init_mm.pgd.
++	 *
++	 * NOTE! We MUST NOT take any locks for this case. We may
++	 * be in an interrupt or a critical region, and should
++	 * only copy the information from the master page table,
++	 * nothing more.
 +	 */
-+	if (IS_MAPPABLE_UNCACHEABLE(phys_addr) &&
-+	    IS_MAPPABLE_UNCACHEABLE(last_addr) &&
-+	    !(cacheflag & _PAGE_CACHED))
-+		return (void __iomem *)(CONFIG_NIOS2_IO_REGION_BASE + phys_addr);
-+
-+	/* Mappings have to be page-aligned */
-+	offset = phys_addr & ~PAGE_MASK;
-+	phys_addr &= PAGE_MASK;
-+	size = PAGE_ALIGN(last_addr + 1) - phys_addr;
-+
-+	/* Ok, go for it */
-+	area = get_vm_area(size, VM_IOREMAP);
-+	if (!area)
-+		return NULL;
-+	addr = area->addr;
-+	if (remap_area_pages((unsigned long) addr, phys_addr, size,
-+		cacheflag)) {
-+		vunmap(addr);
-+		return NULL;
++	if (unlikely(address >= VMALLOC_START && address <= VMALLOC_END)) {
++		if (user_mode(regs))
++			goto bad_area_nosemaphore;
++		else
++			goto vmalloc_fault;
 +	}
-+	return (void __iomem *) (offset + (char *)addr);
-+}
-+EXPORT_SYMBOL(__ioremap);
++
++	if (unlikely(address >= TASK_SIZE))
++		goto bad_area_nosemaphore;
++
++	/*
++	 * If we're in an interrupt or have no user
++	 * context, we must not take the fault..
++	 */
++	if (in_atomic() || !mm)
++		goto bad_area_nosemaphore;
++
++	if (user_mode(regs))
++		flags |= FAULT_FLAG_USER;
++
++	if (!down_read_trylock(&mm->mmap_sem)) {
++		if (!user_mode(regs) && !search_exception_tables(regs->ea))
++			goto bad_area_nosemaphore;
++		down_read(&mm->mmap_sem);
++	}
++
++	vma = find_vma(mm, address);
++	if (!vma)
++		goto bad_area;
++	if (vma->vm_start <= address)
++		goto good_area;
++	if (!(vma->vm_flags & VM_GROWSDOWN))
++		goto bad_area;
++	if (expand_stack(vma, address))
++		goto bad_area;
++/*
++ * Ok, we have a good vm_area for this memory access, so
++ * we can handle it..
++ */
++good_area:
++	code = SEGV_ACCERR;
++
++	switch (cause) {
++	case EXC_SUPERV_INSN_ACCESS:
++		goto bad_area;
++	case EXC_SUPERV_DATA_ACCESS:
++		goto bad_area;
++	case EXC_X_PROTECTION_FAULT:
++		if (!(vma->vm_flags & VM_EXEC))
++			goto bad_area;
++		break;
++	case EXC_R_PROTECTION_FAULT:
++		if (!(vma->vm_flags & VM_READ))
++			goto bad_area;
++		break;
++	case EXC_W_PROTECTION_FAULT:
++		if (!(vma->vm_flags & VM_WRITE))
++			goto bad_area;
++		flags = FAULT_FLAG_WRITE;
++		break;
++	}
++
++survive:
++	/*
++	 * If for any reason at all we couldn't handle the fault,
++	 * make sure we exit gracefully rather than endlessly redo
++	 * the fault.
++	 */
++	fault = handle_mm_fault(mm, vma, address, flags);
++	if (unlikely(fault & VM_FAULT_ERROR)) {
++		if (fault & VM_FAULT_OOM)
++			goto out_of_memory;
++		else if (fault & VM_FAULT_SIGBUS)
++			goto do_sigbus;
++		BUG();
++	}
++	if (fault & VM_FAULT_MAJOR)
++		tsk->maj_flt++;
++	else
++		tsk->min_flt++;
++
++	up_read(&mm->mmap_sem);
++	return;
 +
 +/*
-+ * __iounmap unmaps nearly everything, so be careful
-+ * it doesn't free currently pointer/page tables anymore but it
-+ * wasn't used anyway and might be added later.
++ * Something tried to access memory that isn't in our memory map..
++ * Fix it, but check if it's kernel or user first..
 + */
-+void __iounmap(void __iomem *addr)
-+{
-+	struct vm_struct *p;
++bad_area:
++	up_read(&mm->mmap_sem);
 +
-+	if ((unsigned long) addr > CONFIG_NIOS2_IO_REGION_BASE)
++bad_area_nosemaphore:
++	/* User mode accesses just cause a SIGSEGV */
++	if (user_mode(regs)) {
++		pr_alert("%s: unhandled page fault (%d) at 0x%08lx, "
++			"cause %ld\n", current->comm, SIGSEGV, address, cause);
++		show_regs(regs);
++		_exception(SIGSEGV, regs, code, address);
++		return;
++	}
++
++no_context:
++	/* Are we prepared to handle this kernel fault? */
++	if (fixup_exception(regs))
 +		return;
 +
-+	p = remove_vm_area((void *) (PAGE_MASK & (unsigned long __force) addr));
-+	if (!p)
-+		pr_err("iounmap: bad address %p\n", addr);
-+	kfree(p);
++	/*
++	 * Oops. The kernel tried to access some bad page. We'll have to
++	 * terminate things with extreme prejudice.
++	 */
++	bust_spinlocks(1);
++
++	pr_alert("Unable to handle kernel %s at virtual address %08lx",
++		address < PAGE_SIZE ? "NULL pointer dereference" :
++		"paging request", address);
++	pr_alert("ea = %08lx, ra = %08lx, cause = %ld\n", regs->ea, regs->ra,
++		cause);
++	panic("Oops");
++	return;
++
++/*
++ * We ran out of memory, or some other thing happened to us that made
++ * us unable to handle the page fault gracefully.
++ */
++out_of_memory:
++	up_read(&mm->mmap_sem);
++	if (is_global_init(tsk)) {
++		yield();
++		down_read(&mm->mmap_sem);
++		goto survive;
++	}
++	if (!user_mode(regs))
++		goto no_context;
++	pagefault_out_of_memory();
++	return;
++
++do_sigbus:
++	up_read(&mm->mmap_sem);
++
++	/* Kernel mode? Handle exceptions or die */
++	if (!user_mode(regs))
++		goto no_context;
++
++	_exception(SIGBUS, regs, BUS_ADRERR, address);
++	return;
++
++vmalloc_fault:
++	{
++		/*
++		 * Synchronize this task's top level page-table
++		 * with the 'reference' page table.
++		 *
++		 * Do _not_ use "tsk" here. We might be inside
++		 * an interrupt in the middle of a task switch..
++		 */
++		int offset = pgd_index(address);
++		pgd_t *pgd, *pgd_k;
++		pud_t *pud, *pud_k;
++		pmd_t *pmd, *pmd_k;
++		pte_t *pte_k;
++
++		pgd = pgd_current + offset;
++		pgd_k = init_mm.pgd + offset;
++
++		if (!pgd_present(*pgd_k))
++			goto no_context;
++		set_pgd(pgd, *pgd_k);
++
++		pud = pud_offset(pgd, address);
++		pud_k = pud_offset(pgd_k, address);
++		if (!pud_present(*pud_k))
++			goto no_context;
++		pmd = pmd_offset(pud, address);
++		pmd_k = pmd_offset(pud_k, address);
++		if (!pmd_present(*pmd_k))
++			goto no_context;
++		set_pmd(pmd, *pmd_k);
++
++		pte_k = pte_offset_kernel(pmd_k, address);
++		if (!pte_present(*pte_k))
++			goto no_context;
++
++		flush_tlb_one(address);
++		return;
++	}
 +}
-+EXPORT_SYMBOL(__iounmap);
 -- 
 1.8.2.1
