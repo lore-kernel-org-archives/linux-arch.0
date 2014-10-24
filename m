@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bn1on0055.outbound.protection.outlook.com ([157.56.110.55]:39264
-	"EHLO na01-bn1-obe.outbound.protection.outlook.com"
+Received: from mail-bl2on0088.outbound.protection.outlook.com ([65.55.169.88]:64128
+	"EHLO na01-bl2-obe.outbound.protection.outlook.com"
 	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S932690AbaJXI0G (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 24 Oct 2014 04:26:06 -0400
+	id S932762AbaJXI0L (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 24 Oct 2014 04:26:11 -0400
 From: Ley Foon Tan <lftan@altera.com>
-Subject: [PATCH v5 19/29] nios2: Library functions
-Date: Fri, 24 Oct 2014 16:24:21 +0800
-Message-ID: <1414139071-3818-20-git-send-email-lftan@altera.com>
+Subject: [PATCH v5 20/29] nios2: Device tree support
+Date: Fri, 24 Oct 2014 16:24:22 +0800
+Message-ID: <1414139071-3818-21-git-send-email-lftan@altera.com>
 In-Reply-To: <1414139071-3818-1-git-send-email-lftan@altera.com>
 References: <1414139071-3818-1-git-send-email-lftan@altera.com>
 MIME-Version: 1.0
@@ -16,518 +16,438 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org
 Cc: Arnd Bergmann <arnd@arndb.de>, Ley Foon Tan <lftan@altera.com>, lftan.linux@gmail.com, cltang@codesourcery.com
-Message-ID: <20141024082421.bSRKcJ5QxYN-IfXVqiiVqXpp1VVRRazVA4CSjPW2V1U@z>
+Message-ID: <20141024082422.YJSKT5j9Wf61PuVGD7E0YX_gcatumS5pikOn9BZZey0@z>
 
-Add optimised library functions for nios2.
+Add device tree support to arch/nios2.
 
 Signed-off-by: Ley Foon Tan <lftan@altera.com>
 ---
- arch/nios2/include/asm/checksum.h |  78 +++++++++++++++
- arch/nios2/include/asm/string.h   |  24 +++++
- arch/nios2/lib/memcpy.c           | 199 ++++++++++++++++++++++++++++++++++++++
- arch/nios2/lib/memmove.c          |  82 ++++++++++++++++
- arch/nios2/lib/memset.c           |  81 ++++++++++++++++
- 5 files changed, 464 insertions(+)
- create mode 100644 arch/nios2/include/asm/checksum.h
- create mode 100644 arch/nios2/include/asm/string.h
- create mode 100644 arch/nios2/lib/memcpy.c
- create mode 100644 arch/nios2/lib/memmove.c
- create mode 100644 arch/nios2/lib/memset.c
+ Documentation/devicetree/bindings/nios2/nios2.txt |  62 ++++++++
+ Documentation/devicetree/bindings/nios2/timer.txt |  19 +++
+ arch/nios2/boot/dts/3c120_devboard.dts            | 164 ++++++++++++++++++++++
+ arch/nios2/boot/linked_dtb.S                      |  19 +++
+ arch/nios2/kernel/prom.c                          |  66 +++++++++
+ arch/nios2/platform/platform.c                    |  46 ++++++
+ 6 files changed, 376 insertions(+)
+ create mode 100644 Documentation/devicetree/bindings/nios2/nios2.txt
+ create mode 100644 Documentation/devicetree/bindings/nios2/timer.txt
+ create mode 100644 arch/nios2/boot/dts/3c120_devboard.dts
+ create mode 100644 arch/nios2/boot/linked_dtb.S
+ create mode 100644 arch/nios2/kernel/prom.c
+ create mode 100644 arch/nios2/platform/platform.c
 
-diff --git a/arch/nios2/include/asm/checksum.h b/arch/nios2/include/asm/checksum.h
+diff --git a/Documentation/devicetree/bindings/nios2/nios2.txt b/Documentation/devicetree/bindings/nios2/nios2.txt
 new file mode 100644
-index 0000000..6bc1f0d
+index 0000000..d6d0a94
 --- /dev/null
-+++ b/arch/nios2/include/asm/checksum.h
-@@ -0,0 +1,78 @@
++++ b/Documentation/devicetree/bindings/nios2/nios2.txt
+@@ -0,0 +1,62 @@
++* Nios II Processor Binding
++
++This binding specifies what properties available in the device tree
++representation of a Nios II Processor Core.
++
++Users can use sopc2dts tool for generating device tree sources (dts) from a
++Qsys system. See more detail in: http://www.alterawiki.com/wiki/Sopc2dts
++
++Required properties:
++
++- compatible: Compatible property value should be "altr,nios2-1.0".
++- reg: Contains CPU index.
++- interrupt-controller: Specifies that the node is an interrupt controller
++- #interrupt-cells: Specifies the number of cells needed to encode an
++		interrupt source, should be 1.
++- clock-frequency: Contains the clock frequency for CPU, in Hz.
++- dcache-line-size: Contains data cache line size.
++- icache-line-size: Contains instruction line size.
++- dcache-size: Contains data cache size.
++- icache-size: Contains instruction cache size.
++- altr,pid-num-bits: Specifies the number of bits to use to represent the process
++		identifier (PID).
++- altr,tlb-num-ways: Specifies the number of set-associativity ways in the TLB.
++- altr,tlb-num-entries: Specifies the number of entries in the TLB.
++- altr,tlb-ptr-sz: Specifies size of TLB pointer.
++- altr,has-mul: Specifies CPU hardware multipy support, should be 1.
++- altr,has-mmu: Specifies CPU support MMU support, should be 1.
++- altr,has-initda: Specifies CPU support initda instruction, should be 1.
++- altr,reset-addr: Specifies CPU reset address
++- altr,fast-tlb-miss-addr: Specifies CPU fast TLB miss exception address
++- altr,exception-addr: Specifies CPU exception address
++
++Optional properties:
++- altr,has-div: Specifies CPU hardware divide support
++- altr,implementation: Nios II core implementation, this should be "fast";
++
++Example:
++
++cpu@0x0 {
++	device_type = "cpu";
++	compatible = "altr,nios2-1.0";
++	reg = <0>;
++	interrupt-controller;
++	#interrupt-cells = <1>;
++	clock-frequency = <125000000>;
++	dcache-line-size = <32>;
++	icache-line-size = <32>;
++	dcache-size = <32768>;
++	icache-size = <32768>;
++	altr,implementation = "fast";
++	altr,pid-num-bits = <8>;
++	altr,tlb-num-ways = <16>;
++	altr,tlb-num-entries = <128>;
++	altr,tlb-ptr-sz = <7>;
++	altr,has-div = <1>;
++	altr,has-mul = <1>;
++	altr,reset-addr = <0xc2800000>;
++	altr,fast-tlb-miss-addr = <0xc7fff400>;
++	altr,exception-addr = <0xd0000020>;
++	altr,has-initda = <1>;
++	altr,has-mmu = <1>;
++};
+diff --git a/Documentation/devicetree/bindings/nios2/timer.txt b/Documentation/devicetree/bindings/nios2/timer.txt
+new file mode 100644
+index 0000000..904a584
+--- /dev/null
++++ b/Documentation/devicetree/bindings/nios2/timer.txt
+@@ -0,0 +1,19 @@
++Altera Timer
++
++Required properties:
++
++- compatible : should be "altr,timer-1.0"
++- reg : Specifies base physical address and size of the registers.
++- interrupt-parent: phandle of the interrupt controller
++- interrupts : Should contain the timer interrupt number
++- clock-frequency : The frequency of the clock that drives the counter, in Hz.
++
++Example:
++
++timer {
++	compatible = "altr,timer-1.0";
++	reg = <0x00400000 0x00000020>;
++	interrupt-parent = <&cpu>;
++	interrupts = <11>;
++	clock-frequency = <125000000>;
++};
+diff --git a/arch/nios2/boot/dts/3c120_devboard.dts b/arch/nios2/boot/dts/3c120_devboard.dts
+new file mode 100644
+index 0000000..31c51f9
+--- /dev/null
++++ b/arch/nios2/boot/dts/3c120_devboard.dts
+@@ -0,0 +1,164 @@
 +/*
-+ * Copyright (C) 2010 Tobias Klauser <tklauser@distanz.ch>
-+ * Copyright (C) 2004 Microtronix Datacom Ltd.
++ *  Copyright (C) 2013 Altera Corporation
 + *
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License. See the file "COPYING" in the main directory of this archive
-+ * for more details.
-+ */
-+
-+#ifndef _ASM_NIOS_CHECKSUM_H
-+#define _ASM_NIOS_CHECKSUM_H
-+
-+/* Take these from lib/checksum.c */
-+extern __wsum csum_partial(const void *buff, int len, __wsum sum);
-+extern __wsum csum_partial_copy(const void *src, void *dst, int len,
-+				__wsum sum);
-+extern __wsum csum_partial_copy_from_user(const void __user *src, void *dst,
-+					int len, __wsum sum, int *csum_err);
-+#define csum_partial_copy_nocheck(src, dst, len, sum)	\
-+	csum_partial_copy((src), (dst), (len), (sum))
-+
-+extern __sum16 ip_fast_csum(const void *iph, unsigned int ihl);
-+extern __sum16 ip_compute_csum(const void *buff, int len);
-+
-+/*
-+ * Fold a partial checksum
-+ */
-+static inline __sum16 csum_fold(__wsum sum)
-+{
-+	__asm__ __volatile__(
-+		"add	%0, %1, %0\n"
-+		"cmpltu	r8, %0, %1\n"
-+		"srli	%0, %0, 16\n"
-+		"add	%0, %0, r8\n"
-+		"nor	%0, %0, %0\n"
-+		: "=r" (sum)
-+		: "r" (sum << 16), "0" (sum)
-+		: "r8");
-+	return (__force __sum16) sum;
-+}
-+
-+/*
-+ * computes the checksum of the TCP/UDP pseudo-header
-+ * returns a 16-bit checksum, already complemented
-+ */
-+#define csum_tcpudp_nofold csum_tcpudp_nofold
-+static inline __wsum csum_tcpudp_nofold(__be32 saddr, __be32 daddr,
-+					unsigned short len,
-+					unsigned short proto,
-+					__wsum sum)
-+{
-+	__asm__ __volatile__(
-+		"add	%0, %1, %0\n"
-+		"cmpltu	r8, %0, %1\n"
-+		"add	%0, %0, r8\n"	/* add carry */
-+		"add	%0, %2, %0\n"
-+		"cmpltu	r8, %0, %2\n"
-+		"add	%0, %0, r8\n"	/* add carry */
-+		"add	%0, %3, %0\n"
-+		"cmpltu	r8, %0, %3\n"
-+		"add	%0, %0, r8\n"	/* add carry */
-+		: "=r" (sum), "=r" (saddr)
-+		: "r" (daddr), "r" ((ntohs(len) << 16) + (proto * 256)),
-+		  "0" (sum),
-+		  "1" (saddr)
-+		: "r8");
-+
-+	return sum;
-+}
-+
-+static inline __sum16 csum_tcpudp_magic(__be32 saddr, __be32 daddr,
-+					unsigned short len,
-+					unsigned short proto, __wsum sum)
-+{
-+	return csum_fold(csum_tcpudp_nofold(saddr, daddr, len, proto, sum));
-+}
-+
-+#endif /* _ASM_NIOS_CHECKSUM_H */
-diff --git a/arch/nios2/include/asm/string.h b/arch/nios2/include/asm/string.h
-new file mode 100644
-index 0000000..14dd570
---- /dev/null
-+++ b/arch/nios2/include/asm/string.h
-@@ -0,0 +1,24 @@
-+/*
-+ * Copyright (C) 2004 Microtronix Datacom Ltd
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
 + *
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License.  See the file "COPYING" in the main directory of this archive
-+ * for more details.
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ *
++ * This file is generated by sopc2dts.
 + */
 +
-+#ifndef _ASM_NIOS2_STRING_H
-+#define _ASM_NIOS2_STRING_H
++/dts-v1/;
 +
-+#ifdef __KERNEL__
++/ {
++	model = "altr,qsys_ghrd_3c120";
++	compatible = "altr,qsys_ghrd_3c120";
++	#address-cells = <1>;
++	#size-cells = <1>;
 +
-+#define __HAVE_ARCH_MEMSET
-+#define __HAVE_ARCH_MEMCPY
-+#define __HAVE_ARCH_MEMMOVE
++	cpus {
++		#address-cells = <1>;
++		#size-cells = <0>;
 +
-+extern void *memset(void *s, int c, size_t count);
-+extern void *memcpy(void *d, const void *s, size_t count);
-+extern void *memmove(void *d, const void *s, size_t count);
++		cpu: cpu@0x0 {
++			device_type = "cpu";
++			compatible = "altr,nios2-1.0";
++			reg = <0x00000000>;
++			interrupt-controller;
++			#interrupt-cells = <1>;
++			clock-frequency = <125000000>;
++			dcache-line-size = <32>;
++			icache-line-size = <32>;
++			dcache-size = <32768>;
++			icache-size = <32768>;
++			altr,implementation = "fast";
++			altr,pid-num-bits = <8>;
++			altr,tlb-num-ways = <16>;
++			altr,tlb-num-entries = <128>;
++			altr,tlb-ptr-sz = <7>;
++			altr,has-div = <1>;
++			altr,has-mul = <1>;
++			altr,reset-addr = <0xc2800000>;
++			altr,fast-tlb-miss-addr = <0xc7fff400>;
++			altr,exception-addr = <0xd0000020>;
++			altr,has-initda = <1>;
++			altr,has-mmu = <1>;
++		};
++	};
 +
-+#endif /* __KERNEL__ */
++	memory@0 {
++		device_type = "memory";
++		reg = <0x10000000 0x08000000>,
++			<0x07fff400 0x00000400>;
++	};
 +
-+#endif /* _ASM_NIOS2_STRING_H */
-diff --git a/arch/nios2/lib/memcpy.c b/arch/nios2/lib/memcpy.c
++	sopc@0 {
++		device_type = "soc";
++		ranges;
++		#address-cells = <1>;
++		#size-cells = <1>;
++		compatible = "altr,avalon", "simple-bus";
++		bus-frequency = <125000000>;
++
++		pb_cpu_to_io: bridge@0x8000000 {
++			compatible = "simple-bus";
++			reg = <0x08000000 0x00800000>;
++			#address-cells = <1>;
++			#size-cells = <1>;
++			ranges = <0x00002000 0x08002000 0x00002000>,
++				<0x00004000 0x08004000 0x00000400>,
++				<0x00004400 0x08004400 0x00000040>,
++				<0x00004800 0x08004800 0x00000040>,
++				<0x00004c80 0x08004c80 0x00000020>,
++				<0x00004d50 0x08004d50 0x00000008>,
++				<0x00008000 0x08008000 0x00000020>,
++				<0x00400000 0x08400000 0x00000020>;
++
++			timer_1ms: timer@0x400000 {
++				compatible = "altr,timer-1.0";
++				reg = <0x00400000 0x00000020>;
++				interrupt-parent = <&cpu>;
++				interrupts = <11>;
++				clock-frequency = <125000000>;
++			};
++
++			timer_0: timer@0x8000 {
++				compatible = "altr,timer-1.0";
++				reg = < 0x00008000 0x00000020 >;
++				interrupt-parent = < &cpu >;
++				interrupts = < 5 >;
++				clock-frequency = < 125000000 >;
++			};
++
++			jtag_uart: serial@0x4d50 {
++				compatible = "altr,juart-1.0";
++				reg = <0x00004d50 0x00000008>;
++				interrupt-parent = <&cpu>;
++				interrupts = <1>;
++			};
++
++			tse_mac: ethernet@0x4000 {
++				compatible = "altr,tse-1.0";
++				reg = <0x00004000 0x00000400>,
++					<0x00004400 0x00000040>,
++					<0x00004800 0x00000040>,
++					<0x00002000 0x00002000>;
++				reg-names = "control_port", "rx_csr", "tx_csr", "s1";
++				interrupt-parent = <&cpu>;
++				interrupts = <2 3>;
++				interrupt-names = "rx_irq", "tx_irq";
++				rx-fifo-depth = <8192>;
++				tx-fifo-depth = <8192>;
++				max-frame-size = <1518>;
++				local-mac-address = [ 00 00 00 00 00 00 ];
++				phy-mode = "rgmii-id";
++				phy-handle = <&phy0>;
++				tse_mac_mdio: mdio {
++					compatible = "altr,tse-mdio";
++					#address-cells = <1>;
++					#size-cells = <0>;
++					phy0: ethernet-phy@18 {
++						reg = <18>;
++						device_type = "ethernet-phy";
++					};
++				};
++			};
++
++			uart: serial@0x4c80 {
++				compatible = "altr,uart-1.0";
++				reg = <0x00004c80 0x00000020>;
++				interrupt-parent = <&cpu>;
++				interrupts = <10>;
++				current-speed = <115200>;
++				clock-frequency = <62500000>;
++			};
++		};
++
++		cfi_flash_64m: flash@0x0 {
++			compatible = "cfi-flash";
++			reg = <0x00000000 0x04000000>;
++			bank-width = <2>;
++			device-width = <1>;
++			#address-cells = <1>;
++			#size-cells = <1>;
++
++			partition@800000 {
++				reg = <0x00800000 0x01e00000>;
++				label = "JFFS2 Filesystem";
++			};
++		};
++	};
++
++	chosen {
++		bootargs = "debug console=ttyJ0,115200";
++	};
++};
+diff --git a/arch/nios2/boot/linked_dtb.S b/arch/nios2/boot/linked_dtb.S
 new file mode 100644
-index 0000000..ac7eec4
+index 0000000..071f922
 --- /dev/null
-+++ b/arch/nios2/lib/memcpy.c
-@@ -0,0 +1,199 @@
-+/* Extracted from GLIBC memcpy.c and memcopy.h, which is:
-+   Copyright (C) 1991, 1992, 1993, 1997, 2004 Free Software Foundation, Inc.
-+   This file is part of the GNU C Library.
-+   Contributed by Torbjorn Granlund (tege@sics.se).
++++ b/arch/nios2/boot/linked_dtb.S
+@@ -0,0 +1,19 @@
++/*
++ * Copyright (C) 2011 Thomas Chou <thomas@wytron.com.tw>
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ *
++ */
++.section .dtb.init.rodata,"a"
++.incbin "arch/nios2/boot/system.dtb"
+diff --git a/arch/nios2/kernel/prom.c b/arch/nios2/kernel/prom.c
+new file mode 100644
+index 0000000..8b1ac14
+--- /dev/null
++++ b/arch/nios2/kernel/prom.c
+@@ -0,0 +1,66 @@
++/*
++ * Device tree support
++ *
++ * Copyright (C) 2013 Altera Corporation
++ * Copyright (C) 2010 Thomas Chou <thomas@wytron.com.tw>
++ *
++ * Based on MIPS support for CONFIG_OF device tree support
++ *
++ * Copyright (C) 2010 Cisco Systems Inc. <dediao@cisco.com>
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ *
++ */
 +
-+   The GNU C Library is free software; you can redistribute it and/or
-+   modify it under the terms of the GNU Lesser General Public
-+   License as published by the Free Software Foundation; either
-+   version 2.1 of the License, or (at your option) any later version.
-+
-+   The GNU C Library is distributed in the hope that it will be useful,
-+   but WITHOUT ANY WARRANTY; without even the implied warranty of
-+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-+   Lesser General Public License for more details.
-+
-+   You should have received a copy of the GNU Lesser General Public
-+   License along with the GNU C Library; if not, see
-+   <http://www.gnu.org/licenses/>.  */
-+
++#include <linux/init.h>
 +#include <linux/types.h>
++#include <linux/bootmem.h>
++#include <linux/of.h>
++#include <linux/of_fdt.h>
++#include <linux/io.h>
 +
-+/* Type to use for aligned memory operations.
-+   This should normally be the biggest type supported by a single load
-+   and store.  */
-+#define	op_t	unsigned long int
-+#define OPSIZ	(sizeof(op_t))
++#include <asm/sections.h>
 +
-+/* Optimal type for storing bytes in registers.  */
-+#define	reg_char	char
-+
-+#define MERGE(w0, sh_1, w1, sh_2) (((w0) >> (sh_1)) | ((w1) << (sh_2)))
-+
-+/* Copy exactly NBYTES bytes from SRC_BP to DST_BP,
-+   without any assumptions about alignment of the pointers.  */
-+#define BYTE_COPY_FWD(dst_bp, src_bp, nbytes)				\
-+do {									\
-+	size_t __nbytes = (nbytes);					\
-+	while (__nbytes > 0) {						\
-+		unsigned char __x = ((unsigned char *) src_bp)[0];	\
-+		src_bp += 1;						\
-+		__nbytes -= 1;						\
-+		((unsigned char *) dst_bp)[0] = __x;			\
-+		dst_bp += 1;						\
-+	}								\
-+} while (0)
-+
-+/* Copy *up to* NBYTES bytes from SRC_BP to DST_BP, with
-+   the assumption that DST_BP is aligned on an OPSIZ multiple.  If
-+   not all bytes could be easily copied, store remaining number of bytes
-+   in NBYTES_LEFT, otherwise store 0.  */
-+/* extern void _wordcopy_fwd_aligned __P ((long int, long int, size_t)); */
-+/* extern void _wordcopy_fwd_dest_aligned __P ((long int, long int, size_t)); */
-+#define WORD_COPY_FWD(dst_bp, src_bp, nbytes_left, nbytes)		\
-+do {									\
-+	if (src_bp % OPSIZ == 0)					\
-+		_wordcopy_fwd_aligned(dst_bp, src_bp, (nbytes) / OPSIZ);\
-+	else								\
-+		_wordcopy_fwd_dest_aligned(dst_bp, src_bp, (nbytes) / OPSIZ);\
-+	src_bp += (nbytes) & -OPSIZ;					\
-+	dst_bp += (nbytes) & -OPSIZ;					\
-+	(nbytes_left) = (nbytes) % OPSIZ;				\
-+} while (0)
-+
-+
-+/* Threshold value for when to enter the unrolled loops.  */
-+#define	OP_T_THRES	16
-+
-+/* _wordcopy_fwd_aligned -- Copy block beginning at SRCP to
-+   block beginning at DSTP with LEN `op_t' words (not LEN bytes!).
-+   Both SRCP and DSTP should be aligned for memory operations on `op_t's.  */
-+/* stream-lined (read x8 + write x8) */
-+static void _wordcopy_fwd_aligned(long int dstp, long int srcp, size_t len)
++void __init early_init_dt_add_memory_arch(u64 base, u64 size)
 +{
-+	while (len > 7) {
-+		register op_t a0, a1, a2, a3, a4, a5, a6, a7;
-+		a0 = ((op_t *) srcp)[0];
-+		a1 = ((op_t *) srcp)[1];
-+		a2 = ((op_t *) srcp)[2];
-+		a3 = ((op_t *) srcp)[3];
-+		a4 = ((op_t *) srcp)[4];
-+		a5 = ((op_t *) srcp)[5];
-+		a6 = ((op_t *) srcp)[6];
-+		a7 = ((op_t *) srcp)[7];
-+		((op_t *) dstp)[0] = a0;
-+		((op_t *) dstp)[1] = a1;
-+		((op_t *) dstp)[2] = a2;
-+		((op_t *) dstp)[3] = a3;
-+		((op_t *) dstp)[4] = a4;
-+		((op_t *) dstp)[5] = a5;
-+		((op_t *) dstp)[6] = a6;
-+		((op_t *) dstp)[7] = a7;
++	u64 kernel_start = (u64)virt_to_phys(_text);
 +
-+		srcp += 8 * OPSIZ;
-+		dstp += 8 * OPSIZ;
-+		len -= 8;
-+	}
-+	while (len > 0) {
-+		*(op_t *)dstp = *(op_t *)srcp;
++	if (!memory_size &&
++	    (kernel_start >= base) && (kernel_start < (base + size)))
++		memory_size = size;
 +
-+		srcp += OPSIZ;
-+		dstp += OPSIZ;
-+		len -= 1;
-+	}
++	return;
 +}
 +
-+/* _wordcopy_fwd_dest_aligned -- Copy block beginning at SRCP to
-+   block beginning at DSTP with LEN `op_t' words (not LEN bytes!).
-+   DSTP should be aligned for memory operations on `op_t's, but SRCP must
-+   *not* be aligned.  */
-+/* stream-lined (read x4 + write x4) */
-+static void _wordcopy_fwd_dest_aligned(long int dstp, long int srcp,
-+					size_t len)
++void * __init early_init_dt_alloc_memory_arch(u64 size, u64 align)
 +{
-+	op_t ap;
-+	int sh_1, sh_2;
-+
-+	/* Calculate how to shift a word read at the memory operation
-+	aligned srcp to make it aligned for copy. */
-+
-+	sh_1 = 8 * (srcp % OPSIZ);
-+	sh_2 = 8 * OPSIZ - sh_1;
-+
-+	/* Make SRCP aligned by rounding it down to the beginning of the `op_t'
-+	it points in the middle of. */
-+	srcp &= -OPSIZ;
-+	ap = ((op_t *) srcp)[0];
-+	srcp += OPSIZ;
-+
-+	while (len > 3) {
-+		op_t a0, a1, a2, a3;
-+		a0 = ((op_t *) srcp)[0];
-+		a1 = ((op_t *) srcp)[1];
-+		a2 = ((op_t *) srcp)[2];
-+		a3 = ((op_t *) srcp)[3];
-+		((op_t *) dstp)[0] = MERGE(ap, sh_1, a0, sh_2);
-+		((op_t *) dstp)[1] = MERGE(a0, sh_1, a1, sh_2);
-+		((op_t *) dstp)[2] = MERGE(a1, sh_1, a2, sh_2);
-+		((op_t *) dstp)[3] = MERGE(a2, sh_1, a3, sh_2);
-+
-+		ap = a3;
-+		srcp += 4 * OPSIZ;
-+		dstp += 4 * OPSIZ;
-+		len -= 4;
-+	}
-+	while (len > 0) {
-+		register op_t a0;
-+		a0 = ((op_t *) srcp)[0];
-+		((op_t *) dstp)[0] = MERGE(ap, sh_1, a0, sh_2);
-+
-+		ap = a0;
-+		srcp += OPSIZ;
-+		dstp += OPSIZ;
-+		len -= 1;
-+	}
++	return alloc_bootmem_align(size, align);
 +}
 +
-+void *memcpy(void *dstpp, const void *srcpp, size_t len)
++void __init early_init_devtree(void *params)
 +{
-+	unsigned long int dstp = (long int) dstpp;
-+	unsigned long int srcp = (long int) srcpp;
-+
-+	/* Copy from the beginning to the end.  */
-+
-+	/* If there not too few bytes to copy, use word copy.  */
-+	if (len >= OP_T_THRES) {
-+		/* Copy just a few bytes to make DSTP aligned.  */
-+		len -= (-dstp) % OPSIZ;
-+		BYTE_COPY_FWD(dstp, srcp, (-dstp) % OPSIZ);
-+
-+		/* Copy whole pages from SRCP to DSTP by virtual address
-+		   manipulation, as much as possible.  */
-+
-+		/* PAGE_COPY_FWD_MAYBE (dstp, srcp, len, len); */
-+
-+		/* Copy from SRCP to DSTP taking advantage of the known
-+		   alignment of DSTP. Number of bytes remaining is put in the
-+		   third argument, i.e. in LEN.  This number may vary from
-+		   machine to machine. */
-+
-+		WORD_COPY_FWD(dstp, srcp, len, len);
-+
-+		/* Fall out and copy the tail. */
++	__be32 *dtb = (u32*)__dtb_start;
++#if defined(CONFIG_NIOS2_DTB_AT_PHYS_ADDR)
++	if (be32_to_cpup((__be32 *)CONFIG_NIOS2_DTB_PHYS_ADDR) ==
++		 OF_DT_HEADER) {
++		params = (void *)CONFIG_NIOS2_DTB_PHYS_ADDR;
++		early_init_dt_scan(params);
++		return;
 +	}
++#endif
++	if (be32_to_cpu((__be32) *dtb) == OF_DT_HEADER)
++		params = (void *)__dtb_start;
 +
-+	/* There are just a few bytes to copy.  Use byte memory operations. */
-+	BYTE_COPY_FWD(dstp, srcp, len);
-+
-+	return dstpp;
++	early_init_dt_scan(params);
 +}
-+
-+void *memcpyb(void *dstpp, const void *srcpp, unsigned len)
-+{
-+	unsigned long int dstp = (long int) dstpp;
-+	unsigned long int srcp = (long int) srcpp;
-+
-+	BYTE_COPY_FWD(dstp, srcp, len);
-+
-+	return dstpp;
-+}
-diff --git a/arch/nios2/lib/memmove.c b/arch/nios2/lib/memmove.c
+diff --git a/arch/nios2/platform/platform.c b/arch/nios2/platform/platform.c
 new file mode 100644
-index 0000000..c65ef51
+index 0000000..d478773
 --- /dev/null
-+++ b/arch/nios2/lib/memmove.c
-@@ -0,0 +1,82 @@
++++ b/arch/nios2/platform/platform.c
+@@ -0,0 +1,46 @@
 +/*
-+ * Copyright (C) 2011 Tobias Klauser <tklauser@distanz.ch>
-+ * Copyright (C) 2004 Microtronix Datacom Ltd
++ * Copyright (C) 2013 Altera Corporation
++ * Copyright (C) 2011 Thomas Chou
++ * Copyright (C) 2011 Walter Goossens
 + *
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License.  See the file "COPYING" in the main directory of this archive
-+ * for more details.
++ * This file is subject to the terms and conditions of the GNU General
++ * Public License. See the file COPYING in the main directory of this
++ * archive for more details.
 + */
 +
-+#include <linux/types.h>
-+#include <linux/string.h>
++#include <linux/init.h>
++#include <linux/of_platform.h>
++#include <linux/of_address.h>
++#include <linux/of_fdt.h>
++#include <linux/err.h>
++#include <linux/slab.h>
++#include <linux/sys_soc.h>
++#include <linux/io.h>
 +
-+#ifdef __HAVE_ARCH_MEMMOVE
-+void *memmove(void *d, const void *s, size_t count)
++static int __init nios2_soc_device_init(void)
 +{
-+	unsigned long dst, src;
++	struct soc_device *soc_dev;
++	struct soc_device_attribute *soc_dev_attr;
++	const char *machine;
 +
-+	if (!count)
-+		return d;
++	soc_dev_attr = kzalloc(sizeof(*soc_dev_attr), GFP_KERNEL);
++	if (soc_dev_attr) {
++		machine = of_flat_dt_get_machine_name();
++		if (machine)
++			soc_dev_attr->machine = kasprintf(GFP_KERNEL, "%s",
++						machine);
 +
-+	if (d < s) {
-+		dst = (unsigned long) d;
-+		src = (unsigned long) s;
++		soc_dev_attr->family = "Nios II";
 +
-+		if ((count < 8) || ((dst ^ src) & 3))
-+			goto restup;
-+
-+		if (dst & 1) {
-+			*(char *)dst++ = *(char *)src++;
-+			count--;
-+		}
-+		if (dst & 2) {
-+			*(short *)dst = *(short *)src;
-+			src += 2;
-+			dst += 2;
-+			count -= 2;
-+		}
-+		while (count > 3) {
-+			*(long *)dst = *(long *)src;
-+			src += 4;
-+			dst += 4;
-+			count -= 4;
-+		}
-+restup:
-+		while (count--)
-+			*(char *)dst++ = *(char *)src++;
-+	} else {
-+		dst = (unsigned long) d + count;
-+		src = (unsigned long) s + count;
-+
-+		if ((count < 8) || ((dst ^ src) & 3))
-+			goto restdown;
-+
-+		if (dst & 1) {
-+			src--;
-+			dst--;
-+			count--;
-+			*(char *)dst = *(char *)src;
-+		}
-+		if (dst & 2) {
-+			src -= 2;
-+			dst -= 2;
-+			count -= 2;
-+			*(short *)dst = *(short *)src;
-+		}
-+		while (count > 3) {
-+			src -= 4;
-+			dst -= 4;
-+			count -= 4;
-+			*(long *)dst = *(long *)src;
-+		}
-+restdown:
-+		while (count--) {
-+			src--;
-+			dst--;
-+			*(char *)dst = *(char *)src;
++		soc_dev = soc_device_register(soc_dev_attr);
++		if (IS_ERR(soc_dev)) {
++			kfree(soc_dev_attr->machine);
++			kfree(soc_dev_attr);
 +		}
 +	}
 +
-+	return d;
++	return of_platform_populate(NULL, of_default_bus_match_table,
++		NULL, NULL);
 +}
-+#endif /* __HAVE_ARCH_MEMMOVE */
-diff --git a/arch/nios2/lib/memset.c b/arch/nios2/lib/memset.c
-new file mode 100644
-index 0000000..65e9780
---- /dev/null
-+++ b/arch/nios2/lib/memset.c
-@@ -0,0 +1,81 @@
-+/*
-+ * Copyright (C) 2011 Tobias Klauser <tklauser@distanz.ch>
-+ * Copyright (C) 2004 Microtronix Datacom Ltd
-+ *
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License.  See the file "COPYING" in the main directory of this archive
-+ * for more details.
-+ */
 +
-+#include <linux/types.h>
-+#include <linux/string.h>
-+
-+#ifdef __HAVE_ARCH_MEMSET
-+void *memset(void *s, int c, size_t count)
-+{
-+	int destptr, charcnt, dwordcnt, fill8reg, wrkrega;
-+
-+	if (!count)
-+		return s;
-+
-+	c &= 0xFF;
-+
-+	if (count <= 8) {
-+		char *xs = (char *) s;
-+
-+		while (count--)
-+			*xs++ = c;
-+		return s;
-+	}
-+
-+	__asm__ __volatile__ (
-+		/* fill8 %3, %5 (c & 0xff) */
-+		"	slli	%4, %5, 8\n"
-+		"	or	%4, %4, %5\n"
-+		"	slli    %3, %4, 16\n"
-+		"	or	%3, %3, %4\n"
-+		/* Word-align %0 (s) if necessary */
-+		"	andi	%4, %0, 0x01\n"
-+		"	beq	%4, zero, 1f\n"
-+		"	addi	%1, %1, -1\n"
-+		"	stb	%3, 0(%0)\n"
-+		"	addi	%0, %0, 1\n"
-+		"1:	mov	%2, %1\n"
-+		/* Dword-align %0 (s) if necessary */
-+		"	andi	%4, %0, 0x02\n"
-+		"	beq	%4, zero, 2f\n"
-+		"	addi	%1, %1, -2\n"
-+		"	sth	%3, 0(%0)\n"
-+		"	addi	%0, %0, 2\n"
-+		"	mov	%2, %1\n"
-+		/* %1 and %2 are how many more bytes to set */
-+		"2:	srli	%2, %2, 2\n"
-+		/* %2 is how many dwords to set */
-+		"3:	stw	%3, 0(%0)\n"
-+		"	addi	%0, %0, 4\n"
-+		"	addi    %2, %2, -1\n"
-+		"	bne	%2, zero, 3b\n"
-+		/* store residual word and/or byte if necessary */
-+		"	andi	%4, %1, 0x02\n"
-+		"	beq	%4, zero, 4f\n"
-+		"	sth	%3, 0(%0)\n"
-+		"	addi	%0, %0, 2\n"
-+		/* store residual byte if necessary */
-+		"4:	andi	%4, %1, 0x01\n"
-+		"	beq	%4, zero, 5f\n"
-+		"	stb	%3, 0(%0)\n"
-+		"5:\n"
-+		: "=r" (destptr),	/* %0  Output */
-+		  "=r" (charcnt),	/* %1  Output */
-+		  "=r" (dwordcnt),	/* %2  Output */
-+		  "=r" (fill8reg),	/* %3  Output */
-+		  "=r" (wrkrega)	/* %4  Output */
-+		: "r" (c),		/* %5  Input */
-+		  "0" (s),		/* %0  Input/Output */
-+		  "1" (count)		/* %1  Input/Output */
-+		: "memory"		/* clobbered */
-+	);
-+
-+	return s;
-+}
-+#endif /* __HAVE_ARCH_MEMSET */
++device_initcall(nios2_soc_device_init);
 -- 
 1.8.2.1
 
