@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bn1on0098.outbound.protection.outlook.com ([157.56.110.98]:11298
+Received: from mail-bn1bon0097.outbound.protection.outlook.com ([157.56.111.97]:28288
 	"EHLO na01-bn1-obe.outbound.protection.outlook.com"
 	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S932421AbaJXIZ3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 24 Oct 2014 04:25:29 -0400
+	id S1755488AbaJXIZh (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 24 Oct 2014 04:25:37 -0400
 From: Ley Foon Tan <lftan@altera.com>
-Subject: [PATCH v5 11/29] nios2: Cache handling
-Date: Fri, 24 Oct 2014 16:24:13 +0800
-Message-ID: <1414139071-3818-12-git-send-email-lftan@altera.com>
+Subject: [PATCH v5 13/29] nios2: Interrupt handling
+Date: Fri, 24 Oct 2014 16:24:15 +0800
+Message-ID: <1414139071-3818-14-git-send-email-lftan@altera.com>
 In-Reply-To: <1414139071-3818-1-git-send-email-lftan@altera.com>
 References: <1414139071-3818-1-git-send-email-lftan@altera.com>
 MIME-Version: 1.0
@@ -16,395 +16,228 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org
 Cc: Arnd Bergmann <arnd@arndb.de>, Ley Foon Tan <lftan@altera.com>, lftan.linux@gmail.com, cltang@codesourcery.com
-Message-ID: <20141024082413.9JxyBB9Kh9C0msoAgqCmi5jkqZuWd3ZZMX-ef57pKBc@z>
+Message-ID: <20141024082415.7GaUm_Gut4TrOLyq_ThvGbEteefY5iy3UF-Dhb7upXo@z>
 
-This patch adds functionality required for cache maintenance.
+This patch adds the support for IRQ handling.
 
 Signed-off-by: Ley Foon Tan <lftan@altera.com>
+Reviewed-by: Thomas Gleixner <tglx@linutronix.de>
 ---
- arch/nios2/include/asm/cache.h      |  36 +++++
- arch/nios2/include/asm/cacheflush.h |  52 +++++++
- arch/nios2/mm/cacheflush.c          | 270 ++++++++++++++++++++++++++++++++++++
- 3 files changed, 358 insertions(+)
- create mode 100644 arch/nios2/include/asm/cache.h
- create mode 100644 arch/nios2/include/asm/cacheflush.h
- create mode 100644 arch/nios2/mm/cacheflush.c
+ arch/nios2/include/asm/irq.h      | 28 ++++++++++++
+ arch/nios2/include/asm/irqflags.h | 69 +++++++++++++++++++++++++++++
+ arch/nios2/kernel/irq.c           | 93 +++++++++++++++++++++++++++++++++++++++
+ 3 files changed, 190 insertions(+)
+ create mode 100644 arch/nios2/include/asm/irq.h
+ create mode 100644 arch/nios2/include/asm/irqflags.h
+ create mode 100644 arch/nios2/kernel/irq.c
 
-diff --git a/arch/nios2/include/asm/cache.h b/arch/nios2/include/asm/cache.h
+diff --git a/arch/nios2/include/asm/irq.h b/arch/nios2/include/asm/irq.h
 new file mode 100644
-index 0000000..2293cf5
+index 0000000..8e40fd9
 --- /dev/null
-+++ b/arch/nios2/include/asm/cache.h
-@@ -0,0 +1,36 @@
++++ b/arch/nios2/include/asm/irq.h
+@@ -0,0 +1,28 @@
 +/*
-+ * Copyright (C) 2004 Microtronix Datacom Ltd.
-+ *
-+ * All rights reserved.
++ * Copyright (C) 2013 Altera Corporation
++ * Copyright (C) 2011 Tobias Klauser <tklauser@distanz.ch>
 + *
 + * This program is free software; you can redistribute it and/or modify
 + * it under the terms of the GNU General Public License as published by
 + * the Free Software Foundation; either version 2 of the License, or
 + * (at your option) any later version.
 + *
-+ * This program is distributed in the hope that it will be useful, but
-+ * WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE, GOOD TITLE or
-+ * NON INFRINGEMENT.  See the GNU General Public License for more
-+ * details.
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ *
 + */
 +
-+#ifndef _ASM_NIOS2_CACHE_H
-+#define _ASM_NIOS2_CACHE_H
++#ifndef _ASM_NIOS2_IRQ_H
++#define _ASM_NIOS2_IRQ_H
 +
-+#define NIOS2_DCACHE_SIZE	CONFIG_NIOS2_DCACHE_SIZE
-+#define NIOS2_ICACHE_SIZE	CONFIG_NIOS2_ICACHE_SIZE
-+#define NIOS2_DCACHE_LINE_SIZE	CONFIG_NIOS2_DCACHE_LINE_SIZE
-+#define NIOS2_ICACHE_LINE_SHIFT	5
-+#define NIOS2_ICACHE_LINE_SIZE	(1 << NIOS2_ICACHE_LINE_SHIFT)
++#define NIOS2_CPU_NR_IRQS	32
 +
-+/* bytes per L1 cache line */
-+#define L1_CACHE_SHIFT		NIOS2_ICACHE_LINE_SHIFT
-+#define L1_CACHE_BYTES		NIOS2_ICACHE_LINE_SIZE
-+
-+#define ARCH_DMA_MINALIGN	L1_CACHE_BYTES
-+
-+#define __cacheline_aligned
-+#define ____cacheline_aligned
++#include <asm-generic/irq.h>
++#include <linux/irqdomain.h>
 +
 +#endif
-diff --git a/arch/nios2/include/asm/cacheflush.h b/arch/nios2/include/asm/cacheflush.h
+diff --git a/arch/nios2/include/asm/irqflags.h b/arch/nios2/include/asm/irqflags.h
 new file mode 100644
-index 0000000..52abba9
+index 0000000..e91f4f0
 --- /dev/null
-+++ b/arch/nios2/include/asm/cacheflush.h
-@@ -0,0 +1,52 @@
++++ b/arch/nios2/include/asm/irqflags.h
+@@ -0,0 +1,69 @@
 +/*
-+ * Copyright (C) 2003 Microtronix Datacom Ltd.
-+ * Copyright (C) 2000-2002 Greg Ungerer <gerg@snapgear.com>
++ * Copyright (C) 2010 Thomas Chou <thomas@wytron.com.tw>
 + *
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License. See the file "COPYING" in the main directory of this archive
-+ * for more details.
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ *
 + */
++#ifndef _ASM_IRQFLAGS_H
++#define _ASM_IRQFLAGS_H
 +
-+#ifndef _ASM_NIOS2_CACHEFLUSH_H
-+#define _ASM_NIOS2_CACHEFLUSH_H
++#include <asm/registers.h>
 +
-+#include <linux/mm_types.h>
++static inline unsigned long arch_local_save_flags(void)
++{
++	return RDCTL(CTL_STATUS);
++}
 +
 +/*
-+ * This flag is used to indicate that the page pointed to by a pte is clean
-+ * and does not require cleaning before returning it to the user.
++ * This will restore ALL status register flags, not only the interrupt
++ * mask flag.
 + */
-+#define PG_dcache_clean PG_arch_1
++static inline void arch_local_irq_restore(unsigned long flags)
++{
++	WRCTL(CTL_STATUS, flags);
++}
 +
-+struct mm_struct;
++static inline void arch_local_irq_disable(void)
++{
++	unsigned long flags;
++	flags = arch_local_save_flags();
++	arch_local_irq_restore(flags & ~STATUS_PIE);
++}
 +
-+extern void flush_cache_all(void);
-+extern void flush_cache_mm(struct mm_struct *mm);
-+extern void flush_cache_dup_mm(struct mm_struct *mm);
-+extern void flush_cache_range(struct vm_area_struct *vma, unsigned long start,
-+	unsigned long end);
-+extern void flush_cache_page(struct vm_area_struct *vma, unsigned long vmaddr,
-+	unsigned long pfn);
-+#define ARCH_IMPLEMENTS_FLUSH_DCACHE_PAGE 1
-+extern void flush_dcache_page(struct page *page);
++static inline void arch_local_irq_enable(void)
++{
++	unsigned long flags;
++	flags = arch_local_save_flags();
++	arch_local_irq_restore(flags | STATUS_PIE);
++}
 +
-+extern void flush_icache_range(unsigned long start, unsigned long end);
-+extern void flush_icache_page(struct vm_area_struct *vma, struct page *page);
++static inline int arch_irqs_disabled_flags(unsigned long flags)
++{
++	return (flags & STATUS_PIE) == 0;
++}
 +
-+#define flush_cache_vmap(start, end)		flush_dcache_range(start, end)
-+#define flush_cache_vunmap(start, end)		flush_dcache_range(start, end)
++static inline int arch_irqs_disabled(void)
++{
++	return arch_irqs_disabled_flags(arch_local_save_flags());
++}
 +
-+extern void copy_to_user_page(struct vm_area_struct *vma, struct page *page,
-+				unsigned long user_vaddr,
-+				void *dst, void *src, int len);
-+extern void copy_from_user_page(struct vm_area_struct *vma, struct page *page,
-+				unsigned long user_vaddr,
-+				void *dst, void *src, int len);
++static inline unsigned long arch_local_irq_save(void)
++{
++	unsigned long flags;
++	flags = arch_local_save_flags();
++	arch_local_irq_restore(flags & ~STATUS_PIE);
++	return flags;
++}
 +
-+extern void flush_dcache_range(unsigned long start, unsigned long end);
-+extern void invalidate_dcache_range(unsigned long start, unsigned long end);
-+
-+#define flush_dcache_mmap_lock(mapping)		do { } while (0)
-+#define flush_dcache_mmap_unlock(mapping)	do { } while (0)
-+
-+#endif /* _ASM_NIOS2_CACHEFLUSH_H */
-diff --git a/arch/nios2/mm/cacheflush.c b/arch/nios2/mm/cacheflush.c
++#endif /* _ASM_IRQFLAGS_H */
+diff --git a/arch/nios2/kernel/irq.c b/arch/nios2/kernel/irq.c
 new file mode 100644
-index 0000000..cf06a00
+index 0000000..560cdf6
 --- /dev/null
-+++ b/arch/nios2/mm/cacheflush.c
-@@ -0,0 +1,270 @@
++++ b/arch/nios2/kernel/irq.c
+@@ -0,0 +1,93 @@
 +/*
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License.  See the file "COPYING" in the main directory of this archive
-+ * for more details.
++ * Copyright (C) 2013 Altera Corporation
++ * Copyright (C) 2011 Tobias Klauser <tklauser@distanz.ch>
++ * Copyright (C) 2008 Thomas Chou <thomas@wytron.com.tw>
 + *
-+ * Copyright (C) 2009, Wind River Systems Inc
-+ * Implemented by fredrik.markstrom@gmail.com and ivarholmqvist@gmail.com
++ * based on irq.c from m68k which is:
++ *
++ * Copyright (C) 2007 Greg Ungerer <gerg@snapgear.com>
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ *
 + */
 +
-+#include <linux/export.h>
-+#include <linux/sched.h>
-+#include <linux/mm.h>
-+#include <linux/fs.h>
++#include <linux/init.h>
++#include <linux/interrupt.h>
++#include <linux/of.h>
 +
-+#include <asm/cacheflush.h>
-+#include <asm/cpuinfo.h>
++static u32 ienable;
 +
-+static void __flush_dcache(unsigned long start, unsigned long end)
++asmlinkage void do_IRQ(int hwirq, struct pt_regs *regs)
 +{
-+	unsigned long addr;
++	struct pt_regs *oldregs = set_irq_regs(regs);
++	int irq;
 +
-+	start &= ~(cpuinfo.dcache_line_size - 1);
-+	end += (cpuinfo.dcache_line_size - 1);
-+	end &= ~(cpuinfo.dcache_line_size - 1);
++	irq_enter();
++	irq = irq_find_mapping(NULL, hwirq);
++	generic_handle_irq(irq);
++	irq_exit();
 +
-+	if (end > start + cpuinfo.dcache_size)
-+		end = start + cpuinfo.dcache_size;
-+
-+	for (addr = start; addr < end; addr += cpuinfo.dcache_line_size) {
-+		__asm__ __volatile__ ("   flushda 0(%0)\n"
-+					: /* Outputs */
-+					: /* Inputs  */ "r"(addr)
-+					/* : No clobber */);
-+	}
++	set_irq_regs(oldregs);
 +}
 +
-+static void __flush_dcache_all(unsigned long start, unsigned long end)
++static void chip_unmask(struct irq_data *d)
 +{
-+	unsigned long addr;
-+
-+	start &= ~(cpuinfo.dcache_line_size - 1);
-+	end += (cpuinfo.dcache_line_size - 1);
-+	end &= ~(cpuinfo.dcache_line_size - 1);
-+
-+	if (end > start + cpuinfo.dcache_size)
-+		end = start + cpuinfo.dcache_size;
-+
-+	for (addr = start; addr < end; addr += cpuinfo.dcache_line_size) {
-+		__asm__ __volatile__ ("   flushd 0(%0)\n"
-+					: /* Outputs */
-+					: /* Inputs  */ "r"(addr)
-+					/* : No clobber */);
-+	}
++	ienable |= (1 << d->hwirq);
++	WRCTL(CTL_IENABLE, ienable);
 +}
 +
-+static void __invalidate_dcache(unsigned long start, unsigned long end)
++static void chip_mask(struct irq_data *d)
 +{
-+	unsigned long addr;
-+
-+	start &= ~(cpuinfo.dcache_line_size - 1);
-+	end += (cpuinfo.dcache_line_size - 1);
-+	end &= ~(cpuinfo.dcache_line_size - 1);
-+
-+	if (end > start + cpuinfo.dcache_size)
-+		end = start + cpuinfo.dcache_size;
-+
-+	for (addr = start; addr < end; addr += cpuinfo.dcache_line_size) {
-+		__asm__ __volatile__ ("   initda 0(%0)\n"
-+					: /* Outputs */
-+					: /* Inputs  */ "r"(addr)
-+					/* : No clobber */);
-+	}
++	ienable &= ~(1 << d->hwirq);
++	WRCTL(CTL_IENABLE, ienable);
 +}
 +
-+static void __flush_icache(unsigned long start, unsigned long end)
++static struct irq_chip m_irq_chip = {
++	.name		= "NIOS2-INTC",
++	.irq_unmask	= chip_unmask,
++	.irq_mask	= chip_mask,
++};
++
++static int irq_map(struct irq_domain *h, unsigned int virq,
++				irq_hw_number_t hw_irq_num)
 +{
-+	unsigned long addr;
++	irq_set_chip_and_handler(virq, &m_irq_chip, handle_level_irq);
 +
-+	start &= ~(cpuinfo.icache_line_size - 1);
-+	end += (cpuinfo.icache_line_size - 1);
-+	end &= ~(cpuinfo.icache_line_size - 1);
-+
-+	if (end > start + cpuinfo.icache_size)
-+		end = start + cpuinfo.icache_size;
-+
-+	for (addr = start; addr < end; addr += cpuinfo.icache_line_size) {
-+		__asm__ __volatile__ ("   flushi %0\n"
-+					: /* Outputs */
-+					: /* Inputs  */ "r"(addr)
-+					/* : No clobber */);
-+	}
-+	__asm__ __volatile(" flushp\n");
++	return 0;
 +}
 +
-+static void flush_aliases(struct address_space *mapping, struct page *page)
++static struct irq_domain_ops irq_ops = {
++	.map	= irq_map,
++	.xlate	= irq_domain_xlate_onecell,
++};
++
++void __init init_IRQ(void)
 +{
-+	struct mm_struct *mm = current->active_mm;
-+	struct vm_area_struct *mpnt;
-+	pgoff_t pgoff;
++	struct irq_domain *domain;
++	struct device_node *node;
 +
-+	pgoff = page->index;
++	node = of_find_compatible_node(NULL, NULL, "altr,nios2-1.0");
++	if (!node)
++		node = of_find_compatible_node(NULL, NULL, "altr,nios2-1.1");
 +
-+	flush_dcache_mmap_lock(mapping);
-+	vma_interval_tree_foreach(mpnt, &mapping->i_mmap, pgoff, pgoff) {
-+		unsigned long offset;
++	BUG_ON(!node);
 +
-+		if (mpnt->vm_mm != mm)
-+			continue;
-+		if (!(mpnt->vm_flags & VM_MAYSHARE))
-+			continue;
++	domain = irq_domain_add_linear(node, NIOS2_CPU_NR_IRQS, &irq_ops, NULL);
++	BUG_ON(!domain);
 +
-+		offset = (pgoff - mpnt->vm_pgoff) << PAGE_SHIFT;
-+		flush_cache_page(mpnt, mpnt->vm_start + offset,
-+			page_to_pfn(page));
-+	}
-+	flush_dcache_mmap_unlock(mapping);
-+}
-+
-+void flush_cache_all(void)
-+{
-+	__flush_dcache_all(0, cpuinfo.dcache_size);
-+	__flush_icache(0, cpuinfo.icache_size);
-+}
-+
-+void flush_cache_mm(struct mm_struct *mm)
-+{
-+	flush_cache_all();
-+}
-+
-+void flush_cache_dup_mm(struct mm_struct *mm)
-+{
-+	flush_cache_all();
-+}
-+
-+void flush_icache_range(unsigned long start, unsigned long end)
-+{
-+	__flush_icache(start, end);
-+}
-+
-+void flush_dcache_range(unsigned long start, unsigned long end)
-+{
-+	__flush_dcache(start, end);
-+}
-+EXPORT_SYMBOL(flush_dcache_range);
-+
-+void invalidate_dcache_range(unsigned long start, unsigned long end)
-+{
-+	__invalidate_dcache(start, end);
-+}
-+EXPORT_SYMBOL(invalidate_dcache_range);
-+
-+void flush_cache_range(struct vm_area_struct *vma, unsigned long start,
-+			unsigned long end)
-+{
-+	__flush_dcache(start, end);
-+	if (vma == NULL || (vma->vm_flags & VM_EXEC))
-+		__flush_icache(start, end);
-+}
-+
-+void flush_icache_page(struct vm_area_struct *vma, struct page *page)
-+{
-+	unsigned long start = (unsigned long) page_address(page);
-+	unsigned long end = start + PAGE_SIZE;
-+
-+	__flush_icache(start, end);
-+}
-+
-+void flush_cache_page(struct vm_area_struct *vma, unsigned long vmaddr,
-+			unsigned long pfn)
-+{
-+	unsigned long start = vmaddr;
-+	unsigned long end = start + PAGE_SIZE;
-+
-+	__flush_dcache(start, end);
-+	if (vma->vm_flags & VM_EXEC)
-+		__flush_icache(start, end);
-+}
-+
-+void flush_dcache_page(struct page *page)
-+{
-+	struct address_space *mapping;
-+
-+	/*
-+	 * The zero page is never written to, so never has any dirty
-+	 * cache lines, and therefore never needs to be flushed.
-+	 */
-+	if (page == ZERO_PAGE(0))
-+		return;
-+
-+	mapping = page_mapping(page);
-+
-+	/* Flush this page if there are aliases. */
-+	if (mapping && !mapping_mapped(mapping)) {
-+		clear_bit(PG_dcache_clean, &page->flags);
-+	} else {
-+		unsigned long start = (unsigned long)page_address(page);
-+		__flush_dcache_all(start, start + PAGE_SIZE);
-+		if (mapping)
-+			flush_aliases(mapping,  page);
-+		set_bit(PG_dcache_clean, &page->flags);
-+	}
-+}
-+EXPORT_SYMBOL(flush_dcache_page);
-+
-+void update_mmu_cache(struct vm_area_struct *vma,
-+		      unsigned long address, pte_t *pte)
-+{
-+	unsigned long pfn = pte_pfn(*pte);
-+	struct page *page;
-+
-+	if (!pfn_valid(pfn))
-+		return;
-+
-+	/*
-+	* The zero page is never written to, so never has any dirty
-+	* cache lines, and therefore never needs to be flushed.
-+	*/
-+	page = pfn_to_page(pfn);
-+	if (page == ZERO_PAGE(0))
-+		return;
-+
-+	if (!PageReserved(page) &&
-+	     !test_and_set_bit(PG_dcache_clean, &page->flags)) {
-+		unsigned long start = page_to_virt(page);
-+		struct address_space *mapping;
-+
-+		__flush_dcache(start, start + PAGE_SIZE);
-+
-+		mapping = page_mapping(page);
-+		if (mapping)
-+			flush_aliases(mapping, page);
-+	}
-+}
-+
-+void copy_user_page(void *vto, void *vfrom, unsigned long vaddr,
-+		    struct page *to)
-+{
-+	__flush_dcache(vaddr, vaddr + PAGE_SIZE);
-+	copy_page(vto, vfrom);
-+	__flush_dcache((unsigned long)vto, (unsigned long)vto + PAGE_SIZE);
-+}
-+
-+void clear_user_page(void *addr, unsigned long vaddr, struct page *page)
-+{
-+	__flush_dcache(vaddr, vaddr + PAGE_SIZE);
-+	clear_page(addr);
-+	__flush_dcache((unsigned long)addr, (unsigned long)addr + PAGE_SIZE);
-+}
-+
-+void copy_from_user_page(struct vm_area_struct *vma, struct page *page,
-+			unsigned long user_vaddr,
-+			void *dst, void *src, int len)
-+{
-+	flush_cache_page(vma, user_vaddr, page_to_pfn(page));
-+	memcpy(dst, src, len);
-+	__flush_dcache((unsigned long)src, (unsigned long)src + len);
-+	if (vma->vm_flags & VM_EXEC)
-+		__flush_icache((unsigned long)src, (unsigned long)src + len);
-+}
-+
-+void copy_to_user_page(struct vm_area_struct *vma, struct page *page,
-+			unsigned long user_vaddr,
-+			void *dst, void *src, int len)
-+{
-+	flush_cache_page(vma, user_vaddr, page_to_pfn(page));
-+	memcpy(dst, src, len);
-+	__flush_dcache((unsigned long)dst, (unsigned long)dst + len);
-+	if (vma->vm_flags & VM_EXEC)
-+		__flush_icache((unsigned long)dst, (unsigned long)dst + len);
++	irq_set_default_host(domain);
++	of_node_put(node);
++	/* Load the intial ienable value */
++	ienable = RDCTL(CTL_IENABLE);
 +}
 -- 
 1.8.2.1
