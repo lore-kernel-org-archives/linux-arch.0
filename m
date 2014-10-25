@@ -1,76 +1,93 @@
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [PATCH v5 01/29] asm-generic: add generic futex for
- !CONFIG_SMP
-Date: Sat, 25 Oct 2014 22:50:28 +0200 (CEST)
-Message-ID: <alpine.DEB.2.11.1410252243110.5308@nanos>
-References: <1414139071-3818-1-git-send-email-lftan@altera.com> <1414139071-3818-2-git-send-email-lftan@altera.com>
+Subject: Re: [PATCH v5 21/29] nios2: Time keeping
+Date: Sat, 25 Oct 2014 23:10:34 +0200 (CEST)
+Message-ID: <alpine.DEB.2.11.1410252258570.5308@nanos>
+References: <1414139071-3818-1-git-send-email-lftan@altera.com> <1414139071-3818-22-git-send-email-lftan@altera.com>
 Mime-Version: 1.0
 Content-Type: TEXT/PLAIN; charset=US-ASCII
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from www.linutronix.de ([62.245.132.108]:51156 "EHLO
-	Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751019AbaJYUud (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 25 Oct 2014 16:50:33 -0400
-In-Reply-To: <1414139071-3818-2-git-send-email-lftan@altera.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1414139071-3818-22-git-send-email-lftan@altera.com>
+Sender: linux-kernel-owner@vger.kernel.org
 To: Ley Foon Tan <lftan@altera.com>
-Cc: linux-arch@vger.kernel.org, LKML <linux-kernel@vger.kernel.org>, linux-doc@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, lftan.linux@gmail.com, cltang@codesourcery.com, Peter Zijlstra <peterz@infradead.org>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, lftan.linux@gmail.com, cltang@codesourcery.com
+List-Id: linux-arch.vger.kernel.org
 
-B1;2802;0cOn Fri, 24 Oct 2014, Ley Foon Tan wrote:
-> +#ifndef CONFIG_SMP
-> +static inline int
-> +futex_atomic_op_inuser(int encoded_op, u32 __user *uaddr)
+On Fri, 24 Oct 2014, Ley Foon Tan wrote:
+> +#ifndef _ASM_NIOS2_TIMEX_H
+> +#define _ASM_NIOS2_TIMEX_H
+> +
+> +typedef unsigned long cycles_t;
+> +
+> +extern cycles_t get_cycles(void);
+> +
+> +#define ARCH_HAS_READ_CURRENT_TIMER
 
-If we add this to the generic code we want to have a proper docbook
-comment describing the function.
+Why does NIOS need that? Does it have a hardware implementation
+dependent clock frequency which needs to be calibrated at boot time?
 
+> +struct nios2_clockevent_dev {
+> +	struct nios2_timer timer;
+> +	struct clock_event_device ced;
+> +	struct irqaction irqaction;
+> +};
+
+Why does this need its private irqaction? Timers are setup after the
+interrupt subsystem, so request_irq() is good enough.
+
+> +static void nios2_timer_config(struct nios2_timer *timer, unsigned long period,
+> +	enum clock_event_mode mode)
 > +{
-> +	int op = (encoded_op >> 28) & 7;
-> +	int cmp = (encoded_op >> 24) & 15;
-> +	int oparg = (encoded_op << 8) >> 20;
-> +	int cmparg = (encoded_op << 20) >> 20;
-> +	int oldval, ret;
-> +	u32 tmp;
+> +	u16 ctrl;
 > +
-> +	if (encoded_op & (FUTEX_OP_OPARG_SHIFT << 28))
-> +		oparg = 1 << oparg;
-> +
-> +	pagefault_disable();	/* implies preempt_disable() */
+> +	/* The timer's actual period is one cycle greater than the value
+> +	 * stored in the period register. */
+> +	if (period)
+> +		period--;
 
-Now this mindlessly copied comment does not have any real value.
+Pointless conditional. Set ce->min_delta_ticks to 1, so the core code
+will never call this with period == 0 and you can unconditionally
+decrement period.
 
-1) That pagefault_disable() implies preempt_disable() is an
-   implementation detail which is not guaranteed to be true forever.
-
-2) It's not telling at all, that this code really relies on both
-   pagefault AND preemption being disabled.
-
-> +
-> +static inline int
-> +futex_atomic_cmpxchg_inatomic(u32 *uval, u32 __user *uaddr,
-> +			      u32 oldval, u32 newval)
+> +static __init void nios2_clockevent_init(struct device_node *timer)
 > +{
+> +	struct nios2_clockevent_dev *ce;
+> +	void __iomem *iobase;
+> +	u32 freq;
+> +	int irq;
+> +
+> +	ce = kzalloc(sizeof(*ce), GFP_KERNEL);
+> +	if (!ce)
+> +		panic("Failed to allocate memory for %s\n", timer->name);
 
-Docbook comment missing as well. But what's worse is, that it does not
-explain what the calling convention for this function is.
+What's the point of this allocation? You only install one of those, so
+you can really make that whole thing statically allocated and
+initialized. Or do you expect systems which use a different timer IP
+for this?
 
-As above it requires both pagefault AND preemption being disabled. The
-fact that both are the same are again just an implementation detail of
-todays code ....
+> +static __init void nios2_clocksource_init(struct device_node *timer)
+> +{
+> +	unsigned int ctrl;
+> +	void __iomem *iobase;
+> +	u32 freq;
+> +
+> +	nios2_cs = kzalloc(sizeof(*nios2_cs), GFP_KERNEL);
+> +	if (!nios2_cs)
+> +		panic("Failed to allocate memory for %s\n", timer->name);
 
-> +	u32 val;
-> +
-> +	if (unlikely(get_user(val, uaddr) != 0))
-> +		return -EFAULT;
-> +
-> +	if (val == oldval && unlikely(put_user(newval, uaddr) != 0))
-> +		return -EFAULT;
-> +
-> +	*uval = val;
-> +
-> +	return 0;
-> +}
+Ditto.
+
+> +/*
+> + * The first timer instance will use as a clockevent. If there are two or
+> + * more instances, the second one gets used as clocksource and all
+> + * others are unused.
+> +*/
+> +static int num_called;
+
+This thing, horrible as it is, wants to be at least inside the
+nios2_time_init() function. It has no other scope and should go away
+after init along with the function itself.
+
+> +static void __init nios2_time_init(struct device_node *timer)
 
 Thanks,
 
