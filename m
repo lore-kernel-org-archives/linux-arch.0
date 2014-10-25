@@ -1,36 +1,25 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.9]:55302 "EHLO
-	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755126AbaJXWEe (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 24 Oct 2014 18:04:34 -0400
-Date: Sat, 25 Oct 2014 00:04:23 +0200
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v12 09/11] pvqspinlock, x86: Add para-virtualization
- support
-Message-ID: <20141024220423.GB10501@worktop.programming.kicks-ass.net>
-References: <1413483040-58399-1-git-send-email-Waiman.Long@hp.com>
- <1413483040-58399-10-git-send-email-Waiman.Long@hp.com>
- <20141024084738.GU21513@worktop.programming.kicks-ass.net>
- <544ABC47.2000700@hp.com>
+Received: from eddie.linux-mips.org ([148.251.95.138]:44491 "EHLO
+	cvs.linux-mips.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750935AbaJYScv (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 25 Oct 2014 14:32:51 -0400
+Date: Sat, 25 Oct 2014 15:11:15 +0200
+From: Ralf Baechle <ralf@linux-mips.org>
+Subject: Re: [PATCH v3 18/27] MIPS/Xlp: Remove the dead function
+ destroy_irq() to fix build error
+Message-ID: <20141025131115.GE16738@linux-mips.org>
+References: <1413342435-7876-1-git-send-email-wangyijing@huawei.com>
+ <1413342435-7876-19-git-send-email-wangyijing@huawei.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <544ABC47.2000700@hp.com>
+In-Reply-To: <1413342435-7876-19-git-send-email-wangyijing@huawei.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Waiman Long <waiman.long@hp.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Rik van Riel <riel@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, David Vrabel <david.vrabel@citrix.com>, Oleg Nesterov <oleg@redhat.com>, Scott J Norton <scott.norton@hp.com>, Douglas Hatch <doug.hatch@hp.com>
-Message-ID: <20141024220423.2nZkdEjYRQ6qivuvKy_V6vlpM2u5g_F_uQxLl98MWlM@z>
+To: Yijing Wang <wangyijing@huawei.com>
+Cc: Bjorn Helgaas <bhelgaas@google.com>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, Xinwei Hu <huxinwei@huawei.com>, Wuyun <wuyun.wu@huawei.com>, linux-arm-kernel@lists.infradead.org, Russell King <linux@arm.linux.org.uk>, linux-arch@vger.kernel.org, arnab.basu@freescale.com, Bharat.Bhushan@freescale.com, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, Thomas Gleixner <tglx@linutronix.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, xen-devel@lists.xenproject.org, Joerg Roedel <joro@8bytes.org>, iommu@lists.linux-foundation.org, linux-mips@linux-mips.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, Sebastian Ott <sebott@linux.vnet.ibm.com>, Tony Luck <tony.luck@intel.com>, linux-ia64@vger.kernel.org, "David S. Miller" <davem@davemloft.net>, sparclinux@vger.kernel.org, Chris Metcalf <cmetcalf@tilera.com>, Lucas Stach <l.stach@pengutronix.de>, David Vrabel <david.vrabel@citrix.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, Michael Ellerman <mpe@ellerman.id.au>, Thierry Reding <thierry.reding@gmail.com>, Thomas Petazzoni <thomas.petazzoni@free-electrons.com>, Liviu Dudau <liviu@dudau.co.uk>
+Message-ID: <20141025131115.CckEkmGczpJRk8Vjt8XkhDOgFMSawm5cydNJOI7ADyk@z>
 
-On Fri, Oct 24, 2014 at 04:53:27PM -0400, Waiman Long wrote:
-> The additional register pressure may just cause a few more register moves
-> which should be negligible in the overall performance . The additional
-> icache pressure, however, may have some impact on performance. I was trying
-> to balance the performance of the pv and non-pv versions so that we won't
-> penalize the pv code too much for a bit more performance in the non-pv code.
-> Doing it your way will add a lot of function call and register
-> saving/restoring to the pv code.
+Applied, thanks.
 
-If people care about performance they should not be using virt crap :-)
-
-I only really care about bare metal.
+  Ralf
