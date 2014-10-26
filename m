@@ -1,57 +1,90 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from asavdk3.altibox.net ([109.247.116.14]:60325 "EHLO
-	asavdk3.altibox.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751372AbaJZSrl (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 26 Oct 2014 14:47:41 -0400
-Date: Sun, 26 Oct 2014 19:38:27 +0100
-From: Sam Ravnborg <sam@ravnborg.org>
-Subject: Re: [PATCH] all arches, signal: Move restart_block to struct
- task_struct
-Message-ID: <20141026183826.GA18348@ravnborg.org>
-References: <90d5683679179df27ffeef18c3e1010ed4e72695.1414342681.git.luto@amacapital.net>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <90d5683679179df27ffeef18c3e1010ed4e72695.1414342681.git.luto@amacapital.net>
+Received: from gate.crashing.org ([63.228.1.57]:48373 "EHLO gate.crashing.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751539AbaJZVsL (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 26 Oct 2014 17:48:11 -0400
+Message-ID: <1414356641.364.142.camel@pasglop>
+Subject: Re: [PATCH V2 1/2] mm: Update generic gup implementation to handle
+ hugepage directory
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Date: Mon, 27 Oct 2014 07:50:41 +1100
+In-Reply-To: <1414167761.19984.17.camel@jarvis.lan>
+References: <1413520687-31729-1-git-send-email-aneesh.kumar@linux.vnet.ibm.com>
+	 <20141022160224.9c2268795e55d5a2eff5b94d@linux-foundation.org>
+	 <20141023.184035.388557314666522484.davem@davemloft.net>
+	 <1414107635.364.91.camel@pasglop> <1414167761.19984.17.camel@jarvis.lan>
+Content-Type: text/plain; charset="UTF-8"
+Mime-Version: 1.0
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andy Lutomirski <luto@amacapital.net>
-Cc: Richard Weinberger <richard.weinberger@gmail.com>, linux-kernel@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Kees Cook <keescook@chromium.org>, linux-arch <linux-arch@vger.kernel.org>, Ingo Molnar <mingo@kernel.org>, hpa@zytor.com
-Message-ID: <20141026183827.ShIJU9zBBAjfDq7z3bjFzVPLVyl6W2lqyxrskYsDT6Q@z>
+To: James Bottomley <James.Bottomley@HansenPartnership.com>
+Cc: David Miller <davem@davemloft.net>, akpm@linux-foundation.org, aneesh.kumar@linux.vnet.ibm.com, steve.capper@linaro.org, aarcange@redhat.com, mpe@ellerman.id.au, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-arch@vger.kernel.org, hannes@cmpxchg.org
+Message-ID: <20141026205041.KN_SJjrAdnG3YojM28V0QGPEqrPocSiJrIxXVqMQfpc@z>
 
-sparc/include/asm/thread_info_32.h b/arch/sparc/include/asm/thread_info_32.h
-> index 025c98446b1e..88719dbb12f5 100644
-> --- a/arch/sparc/include/asm/thread_info_32.h
-> +++ b/arch/sparc/include/asm/thread_info_32.h
-> @@ -62,9 +62,6 @@ struct thread_info {
->  	.flags		=	0,			\
->  	.cpu		=	0,			\
->  	.preempt_count	=	INIT_PREEMPT_COUNT,	\
-> -	.restart_block	= {				\
-> -		.fn	=	do_no_restart_syscall,	\
-> -	},						\
->  }
-If this is deleted then the corresponding TI_RESTART_BLOCK should go as well
+On Fri, 2014-10-24 at 09:22 -0700, James Bottomley wrote:
+
+> Parisc does this.  As soon as one CPU issues a TLB purge, it's broadcast
+> to all the CPUs on the inter-CPU bus.  The next instruction isn't
+> executed until they respond.
+> 
+> But this is only for our CPU TLB.  There's no other external
+> consequence, so removal from the page tables isn't effected by this TLB
+> flush, therefore the theory on which Dave bases the change to
+> atomic_add() should work for us (of course, atomic_add is lock add
+> unlock on our CPU, so it's not going to be of much benefit).
+
+I'm not sure I follow you here.
+
+Do you or do you now perform an IPI to do TLB flushes ? If you don't
+(for example because you have HW broadcast), then you need the
+speculative get_page(). If you do (and can read a PTE atomically), you
+can get away with atomic_add().
+
+The reason is that if you remember how zap_pte_range works, we perform
+the flush before we get rid of the page.
+
+So if your using IPIs for the flush, the fact that gup_fast has
+interrupts disabled will delay the IPI response and thus effectively
+prevent the pages from being actually freed, allowing us to simply do
+the atomic_add() on x86.
+
+But if we don't use IPIs because we have HW broadcast of TLB
+invalidations, then we don't have that synchronization. atomic_add won't
+work, we need get_page_speculative() because the page could be
+concurrently being freed.
+
+Cheers,
+Ben.
+
+> James
+> 
+> > Another option would be to make the generic code use something defined
+> > by the arch to decide whether to use speculative get or
+> > not. I like the idea of keeping the bulk of that code generic...
+> > 
+> > Cheers,
+> > Ben.
+> > 
+> > > --
+> > > To unsubscribe, send a message with 'unsubscribe linux-mm' in
+> > > the body to majordomo@kvack.org.  For more info on Linux MM,
+> > > see: http://www.linux-mm.org/ .
+> > > Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+> > 
+> > 
+> > --
+> > To unsubscribe, send a message with 'unsubscribe linux-mm' in
+> > the body to majordomo@kvack.org.  For more info on Linux MM,
+> > see: http://www.linux-mm.org/ .
+> > Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+> > 
+> 
+> 
+> --
+> To unsubscribe from this list: send the line "unsubscribe linux-kernel" in
+> the body of a message to majordomo@vger.kernel.org
+> More majordomo info at  http://vger.kernel.org/majordomo-info.html
+> Please read the FAQ at  http://www.tux.org/lkml/
 
 
->  
->  #define init_thread_info	(init_thread_union.thread_info)
-> diff --git a/arch/sparc/include/asm/thread_info_64.h b/arch/sparc/include/asm/thread_info_64.h
-> index 798f0279a4b5..a11f1e551a58 100644
-> --- a/arch/sparc/include/asm/thread_info_64.h
-> +++ b/arch/sparc/include/asm/thread_info_64.h
-> @@ -124,9 +124,6 @@ struct thread_info {
->  	.current_ds	=	ASI_P,			\
->  	.exec_domain	=	&default_exec_domain,	\
->  	.preempt_count	=	INIT_PREEMPT_COUNT,	\
-> -	.restart_block	= {				\
-> -		.fn	=	do_no_restart_syscall,	\
-> -	},						\
->  }
-When thread_info is modified the relevant TI_ constants needs to be updated.
-And TI_RESTART_BLOCK shold be killed as it is no longer relevant.
-
-This stuff is caught only at run-time - and not at build time which would
-have been better.
-
-	Sam
