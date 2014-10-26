@@ -1,43 +1,57 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-lb0-f172.google.com ([209.85.217.172]:41966 "EHLO
-	mail-lb0-f172.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751461AbaJZRhH (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 26 Oct 2014 13:37:07 -0400
-Received: by mail-lb0-f172.google.com with SMTP id n15so795056lbi.31
-        for <linux-arch@vger.kernel.org>; Sun, 26 Oct 2014 10:37:05 -0700 (PDT)
-MIME-Version: 1.0
-In-Reply-To: <20141026171819.GQ7996@ZenIV.linux.org.uk>
+Received: from asavdk3.altibox.net ([109.247.116.14]:60325 "EHLO
+	asavdk3.altibox.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751372AbaJZSrl (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 26 Oct 2014 14:47:41 -0400
+Date: Sun, 26 Oct 2014 19:38:27 +0100
+From: Sam Ravnborg <sam@ravnborg.org>
+Subject: Re: [PATCH] all arches, signal: Move restart_block to struct
+ task_struct
+Message-ID: <20141026183826.GA18348@ravnborg.org>
 References: <90d5683679179df27ffeef18c3e1010ed4e72695.1414342681.git.luto@amacapital.net>
- <20141026171819.GQ7996@ZenIV.linux.org.uk>
-From: Andy Lutomirski <luto@amacapital.net>
-Date: Sun, 26 Oct 2014 10:36:45 -0700
-Message-ID: <CALCETrW0pqGznCOEoFT3ttEkmqNmpZVaNu-FPb=RUB3D7k+aQg@mail.gmail.com>
-Subject: Re: [PATCH] all arches, signal: Move restart_block to struct task_struct
-Content-Type: text/plain; charset=UTF-8
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <90d5683679179df27ffeef18c3e1010ed4e72695.1414342681.git.luto@amacapital.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Al Viro <viro@zeniv.linux.org.uk>
-Cc: Richard Weinberger <richard.weinberger@gmail.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Kees Cook <keescook@chromium.org>, linux-arch <linux-arch@vger.kernel.org>, Ingo Molnar <mingo@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>
-Message-ID: <20141026173645.s2DzOgEEk3repvP4AJDxlVzVkG6jkXEAOAwvY3RV4LU@z>
+To: Andy Lutomirski <luto@amacapital.net>
+Cc: Richard Weinberger <richard.weinberger@gmail.com>, linux-kernel@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Kees Cook <keescook@chromium.org>, linux-arch <linux-arch@vger.kernel.org>, Ingo Molnar <mingo@kernel.org>, hpa@zytor.com
+Message-ID: <20141026183827.ShIJU9zBBAjfDq7z3bjFzVPLVyl6W2lqyxrskYsDT6Q@z>
 
-On Sun, Oct 26, 2014 at 10:18 AM, Al Viro <viro@zeniv.linux.org.uk> wrote:
-> On Sun, Oct 26, 2014 at 10:02:16AM -0700, Andy Lutomirski wrote:
->> If an attacker can cause a controlled kernel stack overflow,
->> overwriting the restart block is a very juicy exploit target.
->> Moving the restart block to struct task_struct prevents this type of
->> exploit.
->
-> The hell it does.  In a _lot_ of cases current is current_thread_info()->task,
-> which makes your variant just as vulnerable, in addition to being (slightly)
-> more costly.
+sparc/include/asm/thread_info_32.h b/arch/sparc/include/asm/thread_info_32.h
+> index 025c98446b1e..88719dbb12f5 100644
+> --- a/arch/sparc/include/asm/thread_info_32.h
+> +++ b/arch/sparc/include/asm/thread_info_32.h
+> @@ -62,9 +62,6 @@ struct thread_info {
+>  	.flags		=	0,			\
+>  	.cpu		=	0,			\
+>  	.preempt_count	=	INIT_PREEMPT_COUNT,	\
+> -	.restart_block	= {				\
+> -		.fn	=	do_no_restart_syscall,	\
+> -	},						\
+>  }
+If this is deleted then the corresponding TI_RESTART_BLOCK should go as well
 
-I never said it was the *only* juicy target, but we can fix the rest,
-too.  Also, I suspect that overwriting task could be harder to
-exploit.  First, you need to avoid crashing, and second, on systems
-with SMAP or similar protection, you need to make task point somewhere
-that contains a useful exploit payload.
 
-We could probably get rid of thread_info's task pointer on x86, too --
-it's not used by get_current() any more.
+>  
+>  #define init_thread_info	(init_thread_union.thread_info)
+> diff --git a/arch/sparc/include/asm/thread_info_64.h b/arch/sparc/include/asm/thread_info_64.h
+> index 798f0279a4b5..a11f1e551a58 100644
+> --- a/arch/sparc/include/asm/thread_info_64.h
+> +++ b/arch/sparc/include/asm/thread_info_64.h
+> @@ -124,9 +124,6 @@ struct thread_info {
+>  	.current_ds	=	ASI_P,			\
+>  	.exec_domain	=	&default_exec_domain,	\
+>  	.preempt_count	=	INIT_PREEMPT_COUNT,	\
+> -	.restart_block	= {				\
+> -		.fn	=	do_no_restart_syscall,	\
+> -	},						\
+>  }
+When thread_info is modified the relevant TI_ constants needs to be updated.
+And TI_RESTART_BLOCK shold be killed as it is no longer relevant.
 
---Andy
+This stuff is caught only at run-time - and not at build time which would
+have been better.
+
+	Sam
