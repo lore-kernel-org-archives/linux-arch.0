@@ -1,36 +1,51 @@
-From: Andy Lutomirski <luto@amacapital.net>
-Subject: Re: [PATCH] all arches, signal: Move restart_block to struct task_struct
-Date: Sun, 26 Oct 2014 10:36:45 -0700
-Message-ID: <CALCETrW0pqGznCOEoFT3ttEkmqNmpZVaNu-FPb=RUB3D7k+aQg@mail.gmail.com>
+From: Al Viro <viro@ZenIV.linux.org.uk>
+Subject: Re: [PATCH] all arches, signal: Move restart_block to struct
+ task_struct
+Date: Sun, 26 Oct 2014 18:09:39 +0000
+Message-ID: <20141026180938.GR7996@ZenIV.linux.org.uk>
 References: <90d5683679179df27ffeef18c3e1010ed4e72695.1414342681.git.luto@amacapital.net>
  <20141026171819.GQ7996@ZenIV.linux.org.uk>
+ <CALCETrW0pqGznCOEoFT3ttEkmqNmpZVaNu-FPb=RUB3D7k+aQg@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20141026171819.GQ7996@ZenIV.linux.org.uk>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Al Viro <viro@zeniv.linux.org.uk>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from zeniv.linux.org.uk ([195.92.253.2]:42772 "EHLO
+	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751372AbaJZSJm (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 26 Oct 2014 14:09:42 -0400
+Content-Disposition: inline
+In-Reply-To: <CALCETrW0pqGznCOEoFT3ttEkmqNmpZVaNu-FPb=RUB3D7k+aQg@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Andy Lutomirski <luto@amacapital.net>
 Cc: Richard Weinberger <richard.weinberger@gmail.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Kees Cook <keescook@chromium.org>, linux-arch <linux-arch@vger.kernel.org>, Ingo Molnar <mingo@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>
-List-Id: linux-arch.vger.kernel.org
 
-On Sun, Oct 26, 2014 at 10:18 AM, Al Viro <viro@zeniv.linux.org.uk> wrote:
-> On Sun, Oct 26, 2014 at 10:02:16AM -0700, Andy Lutomirski wrote:
->> If an attacker can cause a controlled kernel stack overflow,
->> overwriting the restart block is a very juicy exploit target.
->> Moving the restart block to struct task_struct prevents this type of
->> exploit.
->
-> The hell it does.  In a _lot_ of cases current is current_thread_info()->task,
-> which makes your variant just as vulnerable, in addition to being (slightly)
-> more costly.
+On Sun, Oct 26, 2014 at 10:36:45AM -0700, Andy Lutomirski wrote:
 
-I never said it was the *only* juicy target, but we can fix the rest,
-too.  Also, I suspect that overwriting task could be harder to
-exploit.  First, you need to avoid crashing, and second, on systems
-with SMAP or similar protection, you need to make task point somewhere
-that contains a useful exploit payload.
+> I never said it was the *only* juicy target, but we can fix the rest,
+> too.  Also, I suspect that overwriting task could be harder to
+> exploit.  First, you need to avoid crashing, and second, on systems
+> with SMAP or similar protection, you need to make task point somewhere
+> that contains a useful exploit payload.
+> 
+> We could probably get rid of thread_info's task pointer on x86, too --
+> it's not used by get_current() any more.
 
-We could probably get rid of thread_info's task pointer on x86, too --
-it's not used by get_current() any more.
+Huh?  If you can overwrite that pointer, you can bloody well overwrite
+->task itself, making it point into the overwritten part of stack right
+next to thread_info.
 
---Andy
+Again, on most of the architectures the _only_ way to reach task_struct
+is via thread_info:
+	* everything that uses asm-generic/current.h - arm, arm64, blackfin,
+c6x, hexagon, metag, mips, openrisc, sh, um, unicore32
+	* everything that should be using it - alpha, avr32, cris, m32r,
+parisc, score, tile.  These guys can simply add generic-y += current.h
+into their asm/Kbuild and remove asm/current.h.
+	* nearly the same situation - xtensa (there's an asm variant of
+the same thing + copy of asm-generic/current.h for C)
+	* sparc32
+	* m68k-noMMU
+	* mn10300-SMP
+
+It's a strong majority.  Check arch/*/asm/current.h and see for yourself.
