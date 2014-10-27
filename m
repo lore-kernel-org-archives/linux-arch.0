@@ -1,42 +1,47 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from szxga03-in.huawei.com ([119.145.14.66]:48073 "EHLO
-	szxga03-in.huawei.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751998AbaJ0BI4 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 26 Oct 2014 21:08:56 -0400
-Message-ID: <544D9A8E.6030607@huawei.com>
-Date: Mon, 27 Oct 2014 09:06:22 +0800
-From: Yijing Wang <wangyijing@huawei.com>
+Received: from mail-la0-f49.google.com ([209.85.215.49]:43874 "EHLO
+	mail-la0-f49.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750785AbaJ0Jnx (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 27 Oct 2014 05:43:53 -0400
 MIME-Version: 1.0
-Subject: Re: [PATCH v3 16/27] Mips/MSI: Save msi chip in pci sysdata
-References: <1413342435-7876-1-git-send-email-wangyijing@huawei.com> <1413342435-7876-17-git-send-email-wangyijing@huawei.com> <20141025130428.GD16738@linux-mips.org>
-In-Reply-To: <20141025130428.GD16738@linux-mips.org>
-Content-Type: text/plain; charset="ISO-8859-1"
-Content-Transfer-Encoding: 7bit
+In-Reply-To: <CAMuHMdVb8k_6zHm0deAWUKcKNfTpt2VL3RkJuv-99SCRwtUQEQ@mail.gmail.com>
+References: <1414139071-3818-1-git-send-email-lftan@altera.com>
+	<1414139071-3818-5-git-send-email-lftan@altera.com>
+	<CAMuHMdVb8k_6zHm0deAWUKcKNfTpt2VL3RkJuv-99SCRwtUQEQ@mail.gmail.com>
+Date: Mon, 27 Oct 2014 17:43:50 +0800
+Message-ID: <CAFiDJ5_mwgtqsXN1oQ=FGNWZbB+escVFqEPYkuOPOVDTuWev2A@mail.gmail.com>
+Subject: Re: [PATCH v5 04/29] nios2: Exception handling
+From: Ley Foon Tan <lftan@altera.com>
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ralf Baechle <ralf@linux-mips.org>
-Cc: Bjorn Helgaas <bhelgaas@google.com>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, Xinwei Hu <huxinwei@huawei.com>, Wuyun <wuyun.wu@huawei.com>, linux-arm-kernel@lists.infradead.org, Russell King <linux@arm.linux.org.uk>, linux-arch@vger.kernel.org, arnab.basu@freescale.com, Bharat.Bhushan@freescale.com, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, Thomas Gleixner <tglx@linutronix.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, xen-devel@lists.xenproject.org, Joerg Roedel <joro@8bytes.org>, iommu@lists.linux-foundation.org, linux-mips@linux-mips.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, Sebastian Ott <sebott@linux.vnet.ibm.com>, Tony Luck <tony.luck@intel.com>, linux-ia64@vger.kernel.org, "David S. Miller" <davem@davemloft.net>, sparclinux@vger.kernel.org, Chris Metcalf <cmetcalf@tilera.com>, Lucas Stach <l.stach@pengutronix.de>, David Vrabel <david.vrabel@citrix.com>, Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>, Michael Ellerman <mpe@ellerman.id.au>, Thierry Reding <thierry.reding@gmail.com>, Thomas Petazzoni <thomas.petazzoni@free-electrons.com>, Liviu Dudau <liviu@dudau.co.uk>
-Message-ID: <20141027010622.roR4N-YgnYqF4jxFJmfD8Xpaubs48bwLe0wwscFtkUc@z>
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Chung-Lin Tang <cltang@codesourcery.com>
+Message-ID: <20141027094350.6Cd5CPm7JSGAfji8U7Fr2hDYGh5ES_FbALFTmpC1L7g@z>
 
-On 2014/10/25 21:04, Ralf Baechle wrote:
-> On Wed, Oct 15, 2014 at 11:07:04AM +0800, Yijing Wang wrote:
-> 
->> +static inline struct msi_chip *pci_msi_chip(struct pci_bus *bus)
->> +{
->> +	struct pci_controller *control = (struct pci_controller *)bus->sysdata;
-> 
-> bus->sysdata is void * so this cast is unnecessary.
+On Fri, Oct 24, 2014 at 5:15 PM, Geert Uytterhoeven
+<geert@linux-m68k.org> wrote:
+> On Fri, Oct 24, 2014 at 10:24 AM, Ley Foon Tan <lftan@altera.com> wrote:
+>> --- /dev/null
+>> +++ b/arch/nios2/kernel/entry.S
+>> @@ -0,0 +1,559 @@
+>> +/*
+>> + * linux/arch/nios2/kernel/entry.S
+>> + *
+>> + * Copyright (C) 2013-2014  Altera Corporation
+>> + * Copyright (C) 2009, Wind River Systems Inc
+>> + *
+>> + * Implemented by fredrik.markstrom@gmail.com and ivarholmqvist@gmail.com
+>> + *
+>> + * Based on:
+>> + *
+>> + * linux/arch/nios2/kernel/entry.S
+>
+> And here you did one s/m68k/nios2/ too much ;-)
+>
+> As this doesn't seem to come from a single file
+> "Based on the various m68k entry.S files"?
+Good catch. Will remove this line.
 
-Yes, will update it, thanks!
-
-> 
->   Ralf
-> 
-> .
-> 
-
-
--- 
-Thanks!
-Yijing
-
+Regards
+Ley Foon
