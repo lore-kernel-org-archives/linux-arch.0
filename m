@@ -1,60 +1,51 @@
-From: Waiman Long <waiman.long@hp.com>
-Subject: Re: [PATCH v12 00/11] qspinlock: a 4-byte queue spinlock with PV
-	support
-Date: Mon, 27 Oct 2014 14:00:38 -0400
-Message-ID: <544E8846.9030003@hp.com>
-References: <1413483040-58399-1-git-send-email-Waiman.Long@hp.com>
-	<20141024085659.GW21513@worktop.programming.kicks-ass.net>
+From: David Drysdale <drysdale@google.com>
+Subject: Re: [PATCHv4 RESEND 0/3] syscalls,x86: Add execveat() system call
+Date: Mon, 27 Oct 2014 18:01:10 +0000
+Message-ID: <CAHse=S8qDS5z+Ac7TVY0QE2W9oNUaaaiZE0Vuytv15d7aFLEWw@mail.gmail.com>
+References: <1401975635-6162-1-git-send-email-drysdale@google.com>
+ <CALCETrVraoD+r4zxBoGd+BV5P275AXcRV_R00SSr8fjQzRHnUg@mail.gmail.com>
+ <87zjcszz8y.fsf@x220.int.ebiederm.org> <CAHse=S-Xyk7CFn=tAGzo+tuUFt+04aBw+mGQmi=kWAaBJGALBw@mail.gmail.com>
+ <CALCETrXBjLZTWVJfcsE4NA-JP9zSSgn=6ND0=cZ9BTy=CoN7pA@mail.gmail.com>
+ <87ioje2ggq.fsf@x220.int.ebiederm.org> <CAHse=S_dpm8Do-H01Bo49a9TdYw+pSDzYomLOrBsYEcdO=Pytw@mail.gmail.com>
+ <87wq7shuk6.fsf@x220.int.ebiederm.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"; Format="flowed"
-Content-Transfer-Encoding: 7bit
-Return-path: <virtualization-bounces@lists.linux-foundation.org>
-In-Reply-To: <20141024085659.GW21513@worktop.programming.kicks-ass.net>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
-List-Post: <mailto:virtualization@lists.linux-foundation.org>
-List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
-Sender: virtualization-bounces@lists.linux-foundation.org
-Errors-To: virtualization-bounces@lists.linux-foundation.org
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: linux-arch@vger.kernel.org, Rik van Riel <riel@redhat.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, Oleg Nesterov <oleg@redhat.com>, kvm@vger.kernel.org, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Scott J Norton <scott.norton@hp.com>, x86@kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, Ingo Molnar <mingo@redhat.com>, David Vrabel <david.vrabel@citrix.com>, "H. Peter Anvin" <hpa@zytor.com>, xen-devel@lists.xenproject.org, Thomas Gleixner <tglx@linutronix.de>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Douglas Hatch <doug.hatch@hp.com>
+Content-Type: text/plain; charset=UTF-8
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <87wq7shuk6.fsf@x220.int.ebiederm.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: "Eric W. Biederman" <ebiederm@xmission.com>
+Cc: Andy Lutomirski <luto@amacapital.net>, Alexander Viro <viro@zeniv.linux.org.uk>, Meredydd Luff <meredydd@senatehouse.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, X86 ML <x86@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-On 10/24/2014 04:57 AM, Peter Zijlstra wrote:
-> On Thu, Oct 16, 2014 at 02:10:29PM -0400, Waiman Long wrote:
->> v11->v12:
->>   - Based on PeterZ's version of the qspinlock patch
->>     (https://lkml.org/lkml/2014/6/15/63).
->>   - Incorporated many of the review comments from Konrad Wilk and
->>     Paolo Bonzini.
->>   - The pvqspinlock code is largely from my previous version with
->>     PeterZ's way of going from queue tail to head and his idea of
->>     using callee saved calls to KVM and XEN codes.
-> Thanks for taking the time to refresh this.. I would prefer you use a
-> little more of the PV techniques I outlined in my latest PV patch to
-> further reduce the overhead of PV enabled kernels on real hardware.
+On Wed, Oct 22, 2014 at 6:40 PM, Eric W. Biederman
+<ebiederm@xmission.com> wrote:
+> David Drysdale <drysdale@google.com> writes:
+>> On Tue, Oct 21, 2014 at 5:29 AM, Eric W. Biederman
+>> <ebiederm@xmission.com> wrote:
+>>> It is more a description of what we have done but as a magic string it
+>>> is descriptive.  Documetation/devices.txt documents that /dev/fd/ should
+>>> exist, making it an unambiguous path.  Further these days the kernel
+>>> sets the device naming policy in dev, so I think we are strongly safe in
+>>> using that path in any event.
+>>>
+>>> I think execveat is interesting in the kernel because the motivating
+>>> cases are the cases where anything except a static executable is
+>>> uninteresting.
+>>
+>> FYI, there is potential in the future for something other than static
+>> executables -- the FreeBSD Capsicum implementation includes changes
+>> to the dynamic linker to get its search path as a list of pre-opened dfds
+>> (in LD_LIBRARY_PATH_FDS) rather than paths.
 >
-> This is an important use case, because distro kernels will have to
-> enable PV support while their majority of installations will be on
-> physical hardware.
->
-> Other than that I see no reason not to move this forward.
+> Which still leaves open the question how do you find the dynamic
+> linker.  Is that also a pre-opened dfd?
 
-Thanks for reviewing the patch and agree to move forward. Currently, I 
-am thinking of separating out a PV and non-PV versions of the lock 
-slowpath functions as shown in my previous mail. That should also 
-minimize the performance impact on bare metal even more than what can be 
-done with the PV techniques used in your patch while not penalizing PV 
-performance.
+I *think* it's still effectively a path lookup of the INTERP header in
+the kernel (but the pathname is restricted to be one of a set of
+standard pre-registered interpreters).
 
-As for the unlock function, if the site patching function can handle all 
-the possible call sites of spin_unlock() without disabling function 
-inlining, I will be glad to use your way of handing unlock function. 
-Otherwise, I will prefer my current approach as it is simpler and more 
-easy to understand as well as similar to what has been done in the pv 
-ticket spinlock code.
+> Using /dev/fd/$N is also the kind of thing that a shell or a script
+> interpret could special case instead relying on a filesystem node
+> to exist.
 
--Longman
+True.
