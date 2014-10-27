@@ -1,71 +1,94 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:33680 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751633AbaJ0Slp (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 27 Oct 2014 14:41:45 -0400
-Date: Mon, 27 Oct 2014 19:41:15 +0100
-From: Andrea Arcangeli <aarcange@redhat.com>
-Subject: Re: [PATCH V2 1/2] mm: Update generic gup implementation to handle
- hugepage directory
-Message-ID: <20141027184115.GX6911@redhat.com>
-References: <1413520687-31729-1-git-send-email-aneesh.kumar@linux.vnet.ibm.com>
- <20141022160224.9c2268795e55d5a2eff5b94d@linux-foundation.org>
- <20141023.184035.388557314666522484.davem@davemloft.net>
- <1414107635.364.91.camel@pasglop>
- <1414167761.19984.17.camel@jarvis.lan>
- <1414356641.364.142.camel@pasglop>
- <20141027001842.GU6911@redhat.com>
- <87fve9xulq.fsf@linux.vnet.ibm.com>
+Received: from g4t3426.houston.hp.com ([15.201.208.54]:17983 "EHLO
+	g4t3426.houston.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752206AbaJ0Uuu (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 27 Oct 2014 16:50:50 -0400
+Message-ID: <544EB022.4070801@hp.com>
+Date: Mon, 27 Oct 2014 16:50:42 -0400
+From: Waiman Long <waiman.long@hp.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <87fve9xulq.fsf@linux.vnet.ibm.com>
+Subject: Re: [PATCH v12 09/11] pvqspinlock, x86: Add para-virtualization support
+References: <1413483040-58399-1-git-send-email-Waiman.Long@hp.com> <1413483040-58399-10-git-send-email-Waiman.Long@hp.com> <20141024084738.GU21513@worktop.programming.kicks-ass.net> <544ABC47.2000700@hp.com> <20141024220423.GB10501@worktop.programming.kicks-ass.net> <544E7DC9.5020903@hp.com> <20141027172719.GK3337@twins.programming.kicks-ass.net>
+In-Reply-To: <20141027172719.GK3337@twins.programming.kicks-ass.net>
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>, James Bottomley <James.Bottomley@HansenPartnership.com>, David Miller <davem@davemloft.net>, akpm@linux-foundation.org, steve.capper@linaro.org, mpe@ellerman.id.au, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-arch@vger.kernel.org, hannes@cmpxchg.org
-Message-ID: <20141027184115.N5skVlPOoi6tV65p1m-8D3Ry3S_CCapfemIpUv0o0ZU@z>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Rik van Riel <riel@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, David Vrabel <david.vrabel@citrix.com>, Oleg Nesterov <oleg@redhat.com>, Scott J Norton <scott.norton@hp.com>, Douglas Hatch <doug.hatch@hp.com>
+Message-ID: <20141027205042.hEOUitpNLWPQCTvNJsogsU2a-uKbJLg4SBc6C9JAgwo@z>
 
-Hi Aneesh,
+On 10/27/2014 01:27 PM, Peter Zijlstra wrote:
+> On Mon, Oct 27, 2014 at 01:15:53PM -0400, Waiman Long wrote:
+>> On 10/24/2014 06:04 PM, Peter Zijlstra wrote:
+>>> On Fri, Oct 24, 2014 at 04:53:27PM -0400, Waiman Long wrote:
+>>>> The additional register pressure may just cause a few more register moves
+>>>> which should be negligible in the overall performance . The additional
+>>>> icache pressure, however, may have some impact on performance. I was trying
+>>>> to balance the performance of the pv and non-pv versions so that we won't
+>>>> penalize the pv code too much for a bit more performance in the non-pv code.
+>>>> Doing it your way will add a lot of function call and register
+>>>> saving/restoring to the pv code.
+>>> If people care about performance they should not be using virt crap :-)
+>>>
+>>> I only really care about bare metal.
+>> Yes, I am aware of that. However, the whole point of doing PV spinlock is to
+>> improve performance in a virtual guest.
+> Anything that avoids the lock holder preemption nonsense is a _massive_
+> win for them, a few function calls should not even register on that
+> scale.
 
-On Mon, Oct 27, 2014 at 11:28:41PM +0530, Aneesh Kumar K.V wrote:
-> 	VM_BUG_ON(address & ~HPAGE_PMD_MASK);
-> 	if (pmd_trans_huge(*pmdp)) {
-> 		pmd = pmdp_get_and_clear(vma->vm_mm, address, pmdp);
-> 	} else {
+I would say all the PV stuffs are mostly useful for a over-committed 
+guest where a single CPU is shared in more than one guest. When the 
+guests are not overcommitted, the PV code seldom get triggered. In those 
+cases, the overhead of the extra function call and register 
+saving/restoring will show up.
 
-The only problematic path that needs IPI is the below one yes.
-
-> 		/*
-> 		 * khugepaged calls this for normal pmd
-> 		 */
-> 		pmd = *pmdp;
-> 		pmd_clear(pmdp);
-> 		/*
-> 		 * Wait for all pending hash_page to finish. This is needed
-> 		 * in case of subpage collapse. When we collapse normal pages
-> 		 * to hugepage, we first clear the pmd, then invalidate all
-> 		 * the PTE entries. The assumption here is that any low level
-> 		 * page fault will see a none pmd and take the slow path that
-> 		 * will wait on mmap_sem. But we could very well be in a
-> 		 * hash_page with local ptep pointer value. Such a hash page
-> 		 * can result in adding new HPTE entries for normal subpages.
-> 		 * That means we could be modifying the page content as we
-> 		 * copy them to a huge page. So wait for parallel hash_page
-> 		 * to finish before invalidating HPTE entries. We can do this
-> 		 * by sending an IPI to all the cpus and executing a dummy
-> 		 * function there.
-> 		 */
-> 		kick_all_cpus_sync();
+>> +#ifdef _GEN_PV_LOCK_SLOWPATH
+>> +static void pv_queue_spin_lock_slowpath(struct qspinlock *lock, u32 val)
+>> +#else
+>>   void queue_spin_lock_slowpath(struct qspinlock *lock, u32 val)
+>> +#endif
+> If you have two functions you might as well use the PV stuff to patch in
+> the right function call at the usage sites and avoid:
 >
-> We already do an IPI for ppc64.
+>> +       if (pv_enabled()) {
+>> +               pv_queue_spin_lock_slowpath(lock, val);
+>> +               return;
+>> +       }
+> this alltogether.
 
-Agreed, ppc64 is already covered.
+Good point! I will do some investigation on how to do this kind of 
+function address patching and eliminate the extra function call overhead.
 
-sparc/arm seem to be using the generic pmdp_clear_flush implementation
-instead, which just calls flush_tlb_range, so perhaps they aren't.
+>>          this_cpu_dec(mcs_nodes[0].count);
+>>   }
+>>   EXPORT_SYMBOL(queue_spin_lock_slowpath);
+>> +
+>> +#if !defined(_GEN_PV_LOCK_SLOWPATH)&&  defined(CONFIG_PARAVIRT_SPINLOCKS)
+>> +/*
+>> + * Generate the PV version of the queue_spin_lock_slowpath function
+>> + */
+>> +#undef pv_init_node
+>> +#undef pv_wait_check
+>> +#undef pv_link_and_wait_node
+>> +#undef pv_wait_head
+>> +#undef EXPORT_SYMBOL
+>> +#undef in_pv_code
+>> +
+>> +#define _GEN_PV_LOCK_SLOWPATH
+>> +#define EXPORT_SYMBOL(x)
+>> +#define in_pv_code     return_true
+>> +#define pv_enabled     return_false
+>> +
+>> +#include "qspinlock.c"
+>> +
+>> +#endif
+> That's properly disgusting :-) But a lot better than actually
+> duplicating everything I suppose.
 
-As above, the IPIs are only needed if the *pmd is not transhuge.
+I know you don't like this kind of preprocessor trick, but this is the 
+easiest way that I can think of to generate two separate functions from 
+the same source code.
 
-Thanks,
-Andrea
+-Longman
