@@ -1,58 +1,94 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qc0-f170.google.com ([209.85.216.170]:56399 "EHLO
-	mail-qc0-f170.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752419AbaJ0SBc (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 27 Oct 2014 14:01:32 -0400
-Received: by mail-qc0-f170.google.com with SMTP id l6so4270875qcy.15
-        for <linux-arch@vger.kernel.org>; Mon, 27 Oct 2014 11:01:31 -0700 (PDT)
+Received: from aserp1040.oracle.com ([141.146.126.69]:42780 "EHLO
+	aserp1040.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752538AbaJ0SDt (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 27 Oct 2014 14:03:49 -0400
+Date: Mon, 27 Oct 2014 14:02:52 -0400
+From: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
+Subject: Re: [PATCH v12 09/11] pvqspinlock, x86: Add para-virtualization
+ support
+Message-ID: <20141027180252.GC12989@laptop.dumpdata.com>
+References: <1413483040-58399-1-git-send-email-Waiman.Long@hp.com>
+ <1413483040-58399-10-git-send-email-Waiman.Long@hp.com>
+ <20141024085437.GV21513@worktop.programming.kicks-ass.net>
+ <544E830C.6070307@hp.com>
 MIME-Version: 1.0
-In-Reply-To: <87wq7shuk6.fsf@x220.int.ebiederm.org>
-References: <1401975635-6162-1-git-send-email-drysdale@google.com>
- <CALCETrVraoD+r4zxBoGd+BV5P275AXcRV_R00SSr8fjQzRHnUg@mail.gmail.com>
- <87zjcszz8y.fsf@x220.int.ebiederm.org> <CAHse=S-Xyk7CFn=tAGzo+tuUFt+04aBw+mGQmi=kWAaBJGALBw@mail.gmail.com>
- <CALCETrXBjLZTWVJfcsE4NA-JP9zSSgn=6ND0=cZ9BTy=CoN7pA@mail.gmail.com>
- <87ioje2ggq.fsf@x220.int.ebiederm.org> <CAHse=S_dpm8Do-H01Bo49a9TdYw+pSDzYomLOrBsYEcdO=Pytw@mail.gmail.com>
- <87wq7shuk6.fsf@x220.int.ebiederm.org>
-From: David Drysdale <drysdale@google.com>
-Date: Mon, 27 Oct 2014 18:01:10 +0000
-Message-ID: <CAHse=S8qDS5z+Ac7TVY0QE2W9oNUaaaiZE0Vuytv15d7aFLEWw@mail.gmail.com>
-Subject: Re: [PATCHv4 RESEND 0/3] syscalls,x86: Add execveat() system call
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <544E830C.6070307@hp.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Eric W. Biederman" <ebiederm@xmission.com>
-Cc: Andy Lutomirski <luto@amacapital.net>, Alexander Viro <viro@zeniv.linux.org.uk>, Meredydd Luff <meredydd@senatehouse.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, X86 ML <x86@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>
-Message-ID: <20141027180110.ool_CKwVQJ04NAndGlEp5NZoYu4gag6Ba3G4PGlYRp4@z>
+To: Waiman Long <waiman.long@hp.com>
+Cc: Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Rik van Riel <riel@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, David Vrabel <david.vrabel@citrix.com>, Oleg Nesterov <oleg@redhat.com>, Scott J Norton <scott.norton@hp.com>, Douglas Hatch <doug.hatch@hp.com>
+Message-ID: <20141027180252.2BVeTkw2BLpLA-VmRIJ-Eof5NCiwIqSluOlo2G7b5V0@z>
 
-On Wed, Oct 22, 2014 at 6:40 PM, Eric W. Biederman
-<ebiederm@xmission.com> wrote:
-> David Drysdale <drysdale@google.com> writes:
->> On Tue, Oct 21, 2014 at 5:29 AM, Eric W. Biederman
->> <ebiederm@xmission.com> wrote:
->>> It is more a description of what we have done but as a magic string it
->>> is descriptive.  Documetation/devices.txt documents that /dev/fd/ should
->>> exist, making it an unambiguous path.  Further these days the kernel
->>> sets the device naming policy in dev, so I think we are strongly safe in
->>> using that path in any event.
->>>
->>> I think execveat is interesting in the kernel because the motivating
->>> cases are the cases where anything except a static executable is
->>> uninteresting.
->>
->> FYI, there is potential in the future for something other than static
->> executables -- the FreeBSD Capsicum implementation includes changes
->> to the dynamic linker to get its search path as a list of pre-opened dfds
->> (in LD_LIBRARY_PATH_FDS) rather than paths.
->
-> Which still leaves open the question how do you find the dynamic
-> linker.  Is that also a pre-opened dfd?
+On Mon, Oct 27, 2014 at 01:38:20PM -0400, Waiman Long wrote:
+> On 10/24/2014 04:54 AM, Peter Zijlstra wrote:
+> >On Thu, Oct 16, 2014 at 02:10:38PM -0400, Waiman Long wrote:
+> >
+> >>Since enabling paravirt spinlock will disable unlock function inlining,
+> >>a jump label can be added to the unlock function without adding patch
+> >>sites all over the kernel.
+> >But you don't have to. My patches allowed for the inline to remain,
+> >again reducing the overhead of enabling PV spinlocks while running on a
+> >real machine.
+> >
+> >Look at:
+> >
+> >   http://lkml.kernel.org/r/20140615130154.213923590@chello.nl
+> >
+> >In particular this hunk:
+> >
+> >Index: linux-2.6/arch/x86/kernel/paravirt_patch_64.c
+> >===================================================================
+> >--- linux-2.6.orig/arch/x86/kernel/paravirt_patch_64.c
+> >+++ linux-2.6/arch/x86/kernel/paravirt_patch_64.c
+> >@@ -22,6 +22,10 @@ DEF_NATIVE(pv_cpu_ops, swapgs, "swapgs")
+> >  DEF_NATIVE(, mov32, "mov %edi, %eax");
+> >  DEF_NATIVE(, mov64, "mov %rdi, %rax");
+> >
+> >+#if defined(CONFIG_PARAVIRT_SPINLOCKS)&&  defined(CONFIG_QUEUE_SPINLOCK)
+> >+DEF_NATIVE(pv_lock_ops, queue_unlock, "movb $0, (%rdi)");
+> >+#endif
+> >+
+> >  unsigned paravirt_patch_ident_32(void *insnbuf, unsigned len)
+> >  {
+> >         return paravirt_patch_insns(insnbuf, len,
+> >@@ -61,6 +65,9 @@ unsigned native_patch(u8 type, u16 clobb
+> >                 PATCH_SITE(pv_cpu_ops, clts);
+> >                 PATCH_SITE(pv_mmu_ops, flush_tlb_single);
+> >                 PATCH_SITE(pv_cpu_ops, wbinvd);
+> >+#if defined(CONFIG_PARAVIRT_SPINLOCKS)&&  defined(CONFIG_QUEUE_SPINLOCK)
+> >+               PATCH_SITE(pv_lock_ops, queue_unlock);
+> >+#endif
+> >
+> >         patch_site:
+> >                 ret = paravirt_patch_insns(ibuf, len, start, end);
+> >
+> >
+> >That makes sure to overwrite the callee-saved call to the
+> >pv_lock_ops::queue_unlock with the immediate asm "movb $0, (%rdi)".
+> >
+> >
+> >Therefore you can retain the inlined unlock with hardly (there might be
+> >some NOP padding) any overhead at all. On PV it reverts to a callee
+> >saved function call.
+> 
+> My concern is that spin_unlock() can be called in many places, including
+> loadable kernel modules. Can the paravirt_patch_ident_32() function able to
+> patch all of them in reasonable time? How about a kernel module loaded later
+> at run time?
 
-I *think* it's still effectively a path lookup of the INTERP header in
-the kernel (but the pathname is restricted to be one of a set of
-standard pre-registered interpreters).
+It has too. When the modules are loaded the .paravirt symbols are exposed
+and the module loader patches that.
 
-> Using /dev/fd/$N is also the kind of thing that a shell or a script
-> interpret could special case instead relying on a filesystem node
-> to exist.
+And during bootup time (before modules are loaded) it also patches everything
+- when it only runs on one CPU.
+> 
+> So I think we may still need to disable unlock function inlining even if we
+> used your way kernel site patching.
 
-True.
+No need. Inline should (And is) working just fine.
+> 
+> Regards,
+> Longman
