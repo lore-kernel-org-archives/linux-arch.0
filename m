@@ -1,89 +1,28 @@
-From: Waiman Long <waiman.long@hp.com>
-Subject: Re: [PATCH v12 09/11] pvqspinlock, x86: Add para-virtualization support
-Date: Mon, 27 Oct 2014 17:22:38 -0400
-Message-ID: <544EB79E.6020200@hp.com>
-References: <1413483040-58399-1-git-send-email-Waiman.Long@hp.com> <1413483040-58399-10-git-send-email-Waiman.Long@hp.com> <20141024085437.GV21513@worktop.programming.kicks-ass.net> <544E830C.6070307@hp.com> <20141027180439.GL3337@twins.programming.kicks-ass.net>
+From: Andrew Morton <akpm@linux-foundation.org>
+Subject: Re: [PATCH V3 1/2] mm: Update generic gup implementation to handle
+ hugepage directory
+Date: Mon, 27 Oct 2014 16:06:12 -0700
+Message-ID: <20141027160612.b7fd0b1cc9d82faeaa674940@linux-foundation.org>
+References: <1414233860-7683-1-git-send-email-aneesh.kumar@linux.vnet.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from g2t2354.austin.hp.com ([15.217.128.53]:46955 "EHLO
-	g2t2354.austin.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752335AbaJ0VWn (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 27 Oct 2014 17:22:43 -0400
-In-Reply-To: <20141027180439.GL3337@twins.programming.kicks-ass.net>
+Received: from mail.linuxfoundation.org ([140.211.169.12]:41097 "EHLO
+	mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751515AbaJ0XGM (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 27 Oct 2014 19:06:12 -0400
+In-Reply-To: <1414233860-7683-1-git-send-email-aneesh.kumar@linux.vnet.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Rik van Riel <riel@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, David Vrabel <david.vrabel@citrix.com>, Oleg Nesterov <oleg@redhat.com>, Scott J Norton <scott.norton@hp.com>, Douglas Hatch <doug.hatch@hp.com>
+To: "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>
+Cc: Steve Capper <steve.capper@linaro.org>, Andrea Arcangeli <aarcange@redhat.com>, benh@kernel.crashing.org, mpe@ellerman.id.au, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-arch@vger.kernel.org
 
-On 10/27/2014 02:04 PM, Peter Zijlstra wrote:
-> On Mon, Oct 27, 2014 at 01:38:20PM -0400, Waiman Long wrote:
->> On 10/24/2014 04:54 AM, Peter Zijlstra wrote:
->>> On Thu, Oct 16, 2014 at 02:10:38PM -0400, Waiman Long wrote:
->>>
->>>> Since enabling paravirt spinlock will disable unlock function inlining,
->>>> a jump label can be added to the unlock function without adding patch
->>>> sites all over the kernel.
->>> But you don't have to. My patches allowed for the inline to remain,
->>> again reducing the overhead of enabling PV spinlocks while running on a
->>> real machine.
->>>
->>> Look at:
->>>
->>>    http://lkml.kernel.org/r/20140615130154.213923590@chello.nl
->>>
->>> In particular this hunk:
->>>
->>> Index: linux-2.6/arch/x86/kernel/paravirt_patch_64.c
->>> ===================================================================
->>> --- linux-2.6.orig/arch/x86/kernel/paravirt_patch_64.c
->>> +++ linux-2.6/arch/x86/kernel/paravirt_patch_64.c
->>> @@ -22,6 +22,10 @@ DEF_NATIVE(pv_cpu_ops, swapgs, "swapgs")
->>>   DEF_NATIVE(, mov32, "mov %edi, %eax");
->>>   DEF_NATIVE(, mov64, "mov %rdi, %rax");
->>>
->>> +#if defined(CONFIG_PARAVIRT_SPINLOCKS)&&   defined(CONFIG_QUEUE_SPINLOCK)
->>> +DEF_NATIVE(pv_lock_ops, queue_unlock, "movb $0, (%rdi)");
->>> +#endif
->>> +
->>>   unsigned paravirt_patch_ident_32(void *insnbuf, unsigned len)
->>>   {
->>>          return paravirt_patch_insns(insnbuf, len,
->>> @@ -61,6 +65,9 @@ unsigned native_patch(u8 type, u16 clobb
->>>                  PATCH_SITE(pv_cpu_ops, clts);
->>>                  PATCH_SITE(pv_mmu_ops, flush_tlb_single);
->>>                  PATCH_SITE(pv_cpu_ops, wbinvd);
->>> +#if defined(CONFIG_PARAVIRT_SPINLOCKS)&&   defined(CONFIG_QUEUE_SPINLOCK)
->>> +               PATCH_SITE(pv_lock_ops, queue_unlock);
->>> +#endif
->>>
->>>          patch_site:
->>>                  ret = paravirt_patch_insns(ibuf, len, start, end);
->>>
->>>
->>> That makes sure to overwrite the callee-saved call to the
->>> pv_lock_ops::queue_unlock with the immediate asm "movb $0, (%rdi)".
->>>
->>>
->>> Therefore you can retain the inlined unlock with hardly (there might be
->>> some NOP padding) any overhead at all. On PV it reverts to a callee
->>> saved function call.
->> My concern is that spin_unlock() can be called in many places, including
->> loadable kernel modules. Can the paravirt_patch_ident_32() function able to
->> patch all of them in reasonable time? How about a kernel module loaded later
->> at run time?
-> modules should be fine, see arch/x86/kernel/module.c:module_finalize()
-> ->  apply_paravirt().
->
-> Also note that the 'default' text is an indirect call into the paravirt
-> ops table which routes to the 'right' function, so even if the text
-> patching would be 'late' calls would 'work' as expected, just slower.
+On Sat, 25 Oct 2014 16:14:19 +0530 "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com> wrote:
 
-Thanks for letting me know about that. I have this concern because your 
-patch didn't change the current configuration of disabling unlock 
-inlining when paravirt_spinlock is enabled. With that, I think it is 
-worthwhile to reduce the performance delta between the PV and non-PV 
-kernel on bare metal.
+> Update generic gup implementation with powerpc specific details.
+> On powerpc at pmd level we can have hugepte, normal pmd pointer
+> or a pointer to the hugepage directory.
 
--Longman
+I grabbed these.  It would be better if they were merged into the powerpc
+tree where they'll get more testing than in linux-next alone.
