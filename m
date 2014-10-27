@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from aserp1040.oracle.com ([141.146.126.69]:42780 "EHLO
-	aserp1040.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752538AbaJ0SDt (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 27 Oct 2014 14:03:49 -0400
-Date: Mon, 27 Oct 2014 14:02:52 -0400
-From: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
+Received: from casper.infradead.org ([85.118.1.10]:50145 "EHLO
+	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751404AbaJ0SEv (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 27 Oct 2014 14:04:51 -0400
+Date: Mon, 27 Oct 2014 19:04:39 +0100
+From: Peter Zijlstra <peterz@infradead.org>
 Subject: Re: [PATCH v12 09/11] pvqspinlock, x86: Add para-virtualization
  support
-Message-ID: <20141027180252.GC12989@laptop.dumpdata.com>
+Message-ID: <20141027180439.GL3337@twins.programming.kicks-ass.net>
 References: <1413483040-58399-1-git-send-email-Waiman.Long@hp.com>
  <1413483040-58399-10-git-send-email-Waiman.Long@hp.com>
  <20141024085437.GV21513@worktop.programming.kicks-ass.net>
@@ -19,8 +19,8 @@ In-Reply-To: <544E830C.6070307@hp.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Waiman Long <waiman.long@hp.com>
-Cc: Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Rik van Riel <riel@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, David Vrabel <david.vrabel@citrix.com>, Oleg Nesterov <oleg@redhat.com>, Scott J Norton <scott.norton@hp.com>, Douglas Hatch <doug.hatch@hp.com>
-Message-ID: <20141027180252.2BVeTkw2BLpLA-VmRIJ-Eof5NCiwIqSluOlo2G7b5V0@z>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Rik van Riel <riel@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, David Vrabel <david.vrabel@citrix.com>, Oleg Nesterov <oleg@redhat.com>, Scott J Norton <scott.norton@hp.com>, Douglas Hatch <doug.hatch@hp.com>
+Message-ID: <20141027180439.cxTWYxGim7W3kJDwtHW9SqsKLWMlnjXqxuhbtycia40@z>
 
 On Mon, Oct 27, 2014 at 01:38:20PM -0400, Waiman Long wrote:
 > On 10/24/2014 04:54 AM, Peter Zijlstra wrote:
@@ -79,16 +79,9 @@ On Mon, Oct 27, 2014 at 01:38:20PM -0400, Waiman Long wrote:
 > patch all of them in reasonable time? How about a kernel module loaded later
 > at run time?
 
-It has too. When the modules are loaded the .paravirt symbols are exposed
-and the module loader patches that.
+modules should be fine, see arch/x86/kernel/module.c:module_finalize()
+-> apply_paravirt().
 
-And during bootup time (before modules are loaded) it also patches everything
-- when it only runs on one CPU.
-> 
-> So I think we may still need to disable unlock function inlining even if we
-> used your way kernel site patching.
-
-No need. Inline should (And is) working just fine.
-> 
-> Regards,
-> Longman
+Also note that the 'default' text is an indirect call into the paravirt
+ops table which routes to the 'right' function, so even if the text
+patching would be 'late' calls would 'work' as expected, just slower.
