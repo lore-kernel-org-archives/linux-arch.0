@@ -1,87 +1,70 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from casper.infradead.org ([85.118.1.10]:50145 "EHLO
-	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751404AbaJ0SEv (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 27 Oct 2014 14:04:51 -0400
-Date: Mon, 27 Oct 2014 19:04:39 +0100
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v12 09/11] pvqspinlock, x86: Add para-virtualization
- support
-Message-ID: <20141027180439.GL3337@twins.programming.kicks-ass.net>
-References: <1413483040-58399-1-git-send-email-Waiman.Long@hp.com>
- <1413483040-58399-10-git-send-email-Waiman.Long@hp.com>
- <20141024085437.GV21513@worktop.programming.kicks-ass.net>
- <544E830C.6070307@hp.com>
+Received: from mail-qa0-f49.google.com ([209.85.216.49]:48459 "EHLO
+	mail-qa0-f49.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752344AbaJ0SEF (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 27 Oct 2014 14:04:05 -0400
+Received: by mail-qa0-f49.google.com with SMTP id i13so2311922qae.36
+        for <linux-arch@vger.kernel.org>; Mon, 27 Oct 2014 11:04:04 -0700 (PDT)
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <544E830C.6070307@hp.com>
+In-Reply-To: <CALCETrWbj=BTDyKqtbSKteANj3J3UFZnrvWv9DMosCoEZaSoeA@mail.gmail.com>
+References: <1413978269-17274-1-git-send-email-drysdale@google.com>
+ <1413978269-17274-2-git-send-email-drysdale@google.com> <CALCETrWbj=BTDyKqtbSKteANj3J3UFZnrvWv9DMosCoEZaSoeA@mail.gmail.com>
+From: David Drysdale <drysdale@google.com>
+Date: Mon, 27 Oct 2014 18:03:43 +0000
+Message-ID: <CAHse=S-x6NKEn9EGFos6bS=asK-1mWCr0r9aji2a97_fgxU+Sg@mail.gmail.com>
+Subject: Re: [PATCHv5 1/3] syscalls,x86: implement execveat() system call
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Waiman Long <waiman.long@hp.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Rik van Riel <riel@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, David Vrabel <david.vrabel@citrix.com>, Oleg Nesterov <oleg@redhat.com>, Scott J Norton <scott.norton@hp.com>, Douglas Hatch <doug.hatch@hp.com>
-Message-ID: <20141027180439.cxTWYxGim7W3kJDwtHW9SqsKLWMlnjXqxuhbtycia40@z>
+To: Andy Lutomirski <luto@amacapital.net>
+Cc: "Eric W. Biederman" <ebiederm@xmission.com>, Alexander Viro <viro@zeniv.linux.org.uk>, Meredydd Luff <meredydd@senatehouse.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, X86 ML <x86@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>
+Message-ID: <20141027180343.Jk5k6vtkZoDwZTueags-t7yByqlmTTXAdNhMDXppvzs@z>
 
-On Mon, Oct 27, 2014 at 01:38:20PM -0400, Waiman Long wrote:
-> On 10/24/2014 04:54 AM, Peter Zijlstra wrote:
-> >On Thu, Oct 16, 2014 at 02:10:38PM -0400, Waiman Long wrote:
-> >
-> >>Since enabling paravirt spinlock will disable unlock function inlining,
-> >>a jump label can be added to the unlock function without adding patch
-> >>sites all over the kernel.
-> >But you don't have to. My patches allowed for the inline to remain,
-> >again reducing the overhead of enabling PV spinlocks while running on a
-> >real machine.
-> >
-> >Look at:
-> >
-> >   http://lkml.kernel.org/r/20140615130154.213923590@chello.nl
-> >
-> >In particular this hunk:
-> >
-> >Index: linux-2.6/arch/x86/kernel/paravirt_patch_64.c
-> >===================================================================
-> >--- linux-2.6.orig/arch/x86/kernel/paravirt_patch_64.c
-> >+++ linux-2.6/arch/x86/kernel/paravirt_patch_64.c
-> >@@ -22,6 +22,10 @@ DEF_NATIVE(pv_cpu_ops, swapgs, "swapgs")
-> >  DEF_NATIVE(, mov32, "mov %edi, %eax");
-> >  DEF_NATIVE(, mov64, "mov %rdi, %rax");
-> >
-> >+#if defined(CONFIG_PARAVIRT_SPINLOCKS)&&  defined(CONFIG_QUEUE_SPINLOCK)
-> >+DEF_NATIVE(pv_lock_ops, queue_unlock, "movb $0, (%rdi)");
-> >+#endif
-> >+
-> >  unsigned paravirt_patch_ident_32(void *insnbuf, unsigned len)
-> >  {
-> >         return paravirt_patch_insns(insnbuf, len,
-> >@@ -61,6 +65,9 @@ unsigned native_patch(u8 type, u16 clobb
-> >                 PATCH_SITE(pv_cpu_ops, clts);
-> >                 PATCH_SITE(pv_mmu_ops, flush_tlb_single);
-> >                 PATCH_SITE(pv_cpu_ops, wbinvd);
-> >+#if defined(CONFIG_PARAVIRT_SPINLOCKS)&&  defined(CONFIG_QUEUE_SPINLOCK)
-> >+               PATCH_SITE(pv_lock_ops, queue_unlock);
-> >+#endif
-> >
-> >         patch_site:
-> >                 ret = paravirt_patch_insns(ibuf, len, start, end);
-> >
-> >
-> >That makes sure to overwrite the callee-saved call to the
-> >pv_lock_ops::queue_unlock with the immediate asm "movb $0, (%rdi)".
-> >
-> >
-> >Therefore you can retain the inlined unlock with hardly (there might be
-> >some NOP padding) any overhead at all. On PV it reverts to a callee
-> >saved function call.
-> 
-> My concern is that spin_unlock() can be called in many places, including
-> loadable kernel modules. Can the paravirt_patch_ident_32() function able to
-> patch all of them in reasonable time? How about a kernel module loaded later
-> at run time?
+On Wed, Oct 22, 2014 at 7:44 PM, Andy Lutomirski <luto@amacapital.net> wrote:
+> On Wed, Oct 22, 2014 at 4:44 AM, David Drysdale <drysdale@google.com> wrote:
+>> Add a new system execveat(2) syscall. execveat() is to execve() as
+>> openat() is to open(): it takes a file descriptor that refers to a
+>> directory, and resolves the filename relative to that.
+>>
+>
+>>         bprm->file = file;
+>> -       bprm->filename = bprm->interp = filename->name;
+>> +       if (fd == AT_FDCWD || filename->name[0] == '/') {
+>> +               bprm->filename = filename->name;
+>> +       } else {
+>> +               /*
+>> +                * Build a pathname that reflects how we got to the file,
+>> +                * either "/dev/fd/<fd>" (for an empty filename) or
+>> +                * "/dev/fd/<fd>/<filename>".
+>> +                */
+>> +               pathbuf = kmalloc(PATH_MAX, GFP_TEMPORARY);
+>> +               if (!pathbuf) {
+>> +                       retval = -ENOMEM;
+>> +                       goto out_unmark;
+>> +               }
+>> +               bprm->filename = pathbuf;
+>> +               if (filename->name[0] == '\0')
+>> +                       sprintf(pathbuf, "/dev/fd/%d", fd);
+>
+> If the fd is O_CLOEXEC, then this will result in a confused child
+> process.  Should we fail exec attempts like that for non-static
+> programs?  (E.g. set filename to "" or something and fix up the binfmt
+> drivers to handle that?)
 
-modules should be fine, see arch/x86/kernel/module.c:module_finalize()
--> apply_paravirt().
+Isn't it just scripts that get confused here (as normal executables don't
+get to see brpm->filename)?
 
-Also note that the 'default' text is an indirect call into the paravirt
-ops table which routes to the 'right' function, so even if the text
-patching would be 'late' calls would 'work' as expected, just slower.
+Given that we don't know which we have at this point, I'd suggest
+carrying on regardless.  Or we could fall back to use the previous
+best-effort d_path() code for O_CLOEXEC fds.  Thoughts?
+
+>> +               else
+>> +                       snprintf(pathbuf, PATH_MAX,
+>> +                                "/dev/fd/%d/%s", fd, filename->name);
+>
+> Does this need to handle the case where the result exceeds PATH_MAX?
+
+I guess we could kmalloc(strlen(filename->name) + 19) to avoid the
+possibility of failure, but that just defers the inevitable -- the interpreter
+won't be able to open the script file anyway.  But it would at least then
+generate the appropriate error (ENAMETOOLONG rather than ENOENT).
