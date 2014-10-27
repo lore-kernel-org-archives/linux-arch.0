@@ -1,70 +1,71 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qa0-f49.google.com ([209.85.216.49]:48459 "EHLO
-	mail-qa0-f49.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752344AbaJ0SEF (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 27 Oct 2014 14:04:05 -0400
-Received: by mail-qa0-f49.google.com with SMTP id i13so2311922qae.36
-        for <linux-arch@vger.kernel.org>; Mon, 27 Oct 2014 11:04:04 -0700 (PDT)
+Received: from mx1.redhat.com ([209.132.183.28]:33680 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751633AbaJ0Slp (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 27 Oct 2014 14:41:45 -0400
+Date: Mon, 27 Oct 2014 19:41:15 +0100
+From: Andrea Arcangeli <aarcange@redhat.com>
+Subject: Re: [PATCH V2 1/2] mm: Update generic gup implementation to handle
+ hugepage directory
+Message-ID: <20141027184115.GX6911@redhat.com>
+References: <1413520687-31729-1-git-send-email-aneesh.kumar@linux.vnet.ibm.com>
+ <20141022160224.9c2268795e55d5a2eff5b94d@linux-foundation.org>
+ <20141023.184035.388557314666522484.davem@davemloft.net>
+ <1414107635.364.91.camel@pasglop>
+ <1414167761.19984.17.camel@jarvis.lan>
+ <1414356641.364.142.camel@pasglop>
+ <20141027001842.GU6911@redhat.com>
+ <87fve9xulq.fsf@linux.vnet.ibm.com>
 MIME-Version: 1.0
-In-Reply-To: <CALCETrWbj=BTDyKqtbSKteANj3J3UFZnrvWv9DMosCoEZaSoeA@mail.gmail.com>
-References: <1413978269-17274-1-git-send-email-drysdale@google.com>
- <1413978269-17274-2-git-send-email-drysdale@google.com> <CALCETrWbj=BTDyKqtbSKteANj3J3UFZnrvWv9DMosCoEZaSoeA@mail.gmail.com>
-From: David Drysdale <drysdale@google.com>
-Date: Mon, 27 Oct 2014 18:03:43 +0000
-Message-ID: <CAHse=S-x6NKEn9EGFos6bS=asK-1mWCr0r9aji2a97_fgxU+Sg@mail.gmail.com>
-Subject: Re: [PATCHv5 1/3] syscalls,x86: implement execveat() system call
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <87fve9xulq.fsf@linux.vnet.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andy Lutomirski <luto@amacapital.net>
-Cc: "Eric W. Biederman" <ebiederm@xmission.com>, Alexander Viro <viro@zeniv.linux.org.uk>, Meredydd Luff <meredydd@senatehouse.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, X86 ML <x86@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>
-Message-ID: <20141027180343.Jk5k6vtkZoDwZTueags-t7yByqlmTTXAdNhMDXppvzs@z>
+To: "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>, James Bottomley <James.Bottomley@HansenPartnership.com>, David Miller <davem@davemloft.net>, akpm@linux-foundation.org, steve.capper@linaro.org, mpe@ellerman.id.au, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-arch@vger.kernel.org, hannes@cmpxchg.org
+Message-ID: <20141027184115.N5skVlPOoi6tV65p1m-8D3Ry3S_CCapfemIpUv0o0ZU@z>
 
-On Wed, Oct 22, 2014 at 7:44 PM, Andy Lutomirski <luto@amacapital.net> wrote:
-> On Wed, Oct 22, 2014 at 4:44 AM, David Drysdale <drysdale@google.com> wrote:
->> Add a new system execveat(2) syscall. execveat() is to execve() as
->> openat() is to open(): it takes a file descriptor that refers to a
->> directory, and resolves the filename relative to that.
->>
+Hi Aneesh,
+
+On Mon, Oct 27, 2014 at 11:28:41PM +0530, Aneesh Kumar K.V wrote:
+> 	VM_BUG_ON(address & ~HPAGE_PMD_MASK);
+> 	if (pmd_trans_huge(*pmdp)) {
+> 		pmd = pmdp_get_and_clear(vma->vm_mm, address, pmdp);
+> 	} else {
+
+The only problematic path that needs IPI is the below one yes.
+
+> 		/*
+> 		 * khugepaged calls this for normal pmd
+> 		 */
+> 		pmd = *pmdp;
+> 		pmd_clear(pmdp);
+> 		/*
+> 		 * Wait for all pending hash_page to finish. This is needed
+> 		 * in case of subpage collapse. When we collapse normal pages
+> 		 * to hugepage, we first clear the pmd, then invalidate all
+> 		 * the PTE entries. The assumption here is that any low level
+> 		 * page fault will see a none pmd and take the slow path that
+> 		 * will wait on mmap_sem. But we could very well be in a
+> 		 * hash_page with local ptep pointer value. Such a hash page
+> 		 * can result in adding new HPTE entries for normal subpages.
+> 		 * That means we could be modifying the page content as we
+> 		 * copy them to a huge page. So wait for parallel hash_page
+> 		 * to finish before invalidating HPTE entries. We can do this
+> 		 * by sending an IPI to all the cpus and executing a dummy
+> 		 * function there.
+> 		 */
+> 		kick_all_cpus_sync();
 >
->>         bprm->file = file;
->> -       bprm->filename = bprm->interp = filename->name;
->> +       if (fd == AT_FDCWD || filename->name[0] == '/') {
->> +               bprm->filename = filename->name;
->> +       } else {
->> +               /*
->> +                * Build a pathname that reflects how we got to the file,
->> +                * either "/dev/fd/<fd>" (for an empty filename) or
->> +                * "/dev/fd/<fd>/<filename>".
->> +                */
->> +               pathbuf = kmalloc(PATH_MAX, GFP_TEMPORARY);
->> +               if (!pathbuf) {
->> +                       retval = -ENOMEM;
->> +                       goto out_unmark;
->> +               }
->> +               bprm->filename = pathbuf;
->> +               if (filename->name[0] == '\0')
->> +                       sprintf(pathbuf, "/dev/fd/%d", fd);
->
-> If the fd is O_CLOEXEC, then this will result in a confused child
-> process.  Should we fail exec attempts like that for non-static
-> programs?  (E.g. set filename to "" or something and fix up the binfmt
-> drivers to handle that?)
+> We already do an IPI for ppc64.
 
-Isn't it just scripts that get confused here (as normal executables don't
-get to see brpm->filename)?
+Agreed, ppc64 is already covered.
 
-Given that we don't know which we have at this point, I'd suggest
-carrying on regardless.  Or we could fall back to use the previous
-best-effort d_path() code for O_CLOEXEC fds.  Thoughts?
+sparc/arm seem to be using the generic pmdp_clear_flush implementation
+instead, which just calls flush_tlb_range, so perhaps they aren't.
 
->> +               else
->> +                       snprintf(pathbuf, PATH_MAX,
->> +                                "/dev/fd/%d/%s", fd, filename->name);
->
-> Does this need to handle the case where the result exceeds PATH_MAX?
+As above, the IPIs are only needed if the *pmd is not transhuge.
 
-I guess we could kmalloc(strlen(filename->name) + 19) to avoid the
-possibility of failure, but that just defers the inevitable -- the interpreter
-won't be able to open the script file anyway.  But it would at least then
-generate the appropriate error (ENAMETOOLONG rather than ENOENT).
+Thanks,
+Andrea
