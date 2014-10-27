@@ -1,210 +1,81 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from g4t3425.houston.hp.com ([15.201.208.53]:40266 "EHLO
-	g4t3425.houston.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751166AbaJ0RQD (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 27 Oct 2014 13:16:03 -0400
-Message-ID: <544E7DC9.5020903@hp.com>
-Date: Mon, 27 Oct 2014 13:15:53 -0400
+Received: from g9t1613g.houston.hp.com ([15.240.0.71]:52432 "EHLO
+	g9t1613g.houston.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751722AbaJ0Ri3 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 27 Oct 2014 13:38:29 -0400
+Message-ID: <544E830C.6070307@hp.com>
+Date: Mon, 27 Oct 2014 13:38:20 -0400
 From: Waiman Long <waiman.long@hp.com>
 MIME-Version: 1.0
 Subject: Re: [PATCH v12 09/11] pvqspinlock, x86: Add para-virtualization support
-References: <1413483040-58399-1-git-send-email-Waiman.Long@hp.com> <1413483040-58399-10-git-send-email-Waiman.Long@hp.com> <20141024084738.GU21513@worktop.programming.kicks-ass.net> <544ABC47.2000700@hp.com> <20141024220423.GB10501@worktop.programming.kicks-ass.net>
-In-Reply-To: <20141024220423.GB10501@worktop.programming.kicks-ass.net>
+References: <1413483040-58399-1-git-send-email-Waiman.Long@hp.com> <1413483040-58399-10-git-send-email-Waiman.Long@hp.com> <20141024085437.GV21513@worktop.programming.kicks-ass.net>
+In-Reply-To: <20141024085437.GV21513@worktop.programming.kicks-ass.net>
 Content-Type: text/plain; charset=ISO-8859-1; format=flowed
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Peter Zijlstra <peterz@infradead.org>
 Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Rik van Riel <riel@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, David Vrabel <david.vrabel@citrix.com>, Oleg Nesterov <oleg@redhat.com>, Scott J Norton <scott.norton@hp.com>, Douglas Hatch <doug.hatch@hp.com>
-Message-ID: <20141027171553.Z2e_11o7JAP8UNpSdP_gUoZraWvcfjwT9upYnQNu86k@z>
+Message-ID: <20141027173820.W_n8tPRmlK7P7pgYhz672lSJvTtFiNB702PAPK15NEI@z>
 
-On 10/24/2014 06:04 PM, Peter Zijlstra wrote:
-> On Fri, Oct 24, 2014 at 04:53:27PM -0400, Waiman Long wrote:
->> The additional register pressure may just cause a few more register moves
->> which should be negligible in the overall performance . The additional
->> icache pressure, however, may have some impact on performance. I was trying
->> to balance the performance of the pv and non-pv versions so that we won't
->> penalize the pv code too much for a bit more performance in the non-pv code.
->> Doing it your way will add a lot of function call and register
->> saving/restoring to the pv code.
-> If people care about performance they should not be using virt crap :-)
+On 10/24/2014 04:54 AM, Peter Zijlstra wrote:
+> On Thu, Oct 16, 2014 at 02:10:38PM -0400, Waiman Long wrote:
 >
-> I only really care about bare metal.
+>> Since enabling paravirt spinlock will disable unlock function inlining,
+>> a jump label can be added to the unlock function without adding patch
+>> sites all over the kernel.
+> But you don't have to. My patches allowed for the inline to remain,
+> again reducing the overhead of enabling PV spinlocks while running on a
+> real machine.
+>
+> Look at:
+>
+>    http://lkml.kernel.org/r/20140615130154.213923590@chello.nl
+>
+> In particular this hunk:
+>
+> Index: linux-2.6/arch/x86/kernel/paravirt_patch_64.c
+> ===================================================================
+> --- linux-2.6.orig/arch/x86/kernel/paravirt_patch_64.c
+> +++ linux-2.6/arch/x86/kernel/paravirt_patch_64.c
+> @@ -22,6 +22,10 @@ DEF_NATIVE(pv_cpu_ops, swapgs, "swapgs")
+>   DEF_NATIVE(, mov32, "mov %edi, %eax");
+>   DEF_NATIVE(, mov64, "mov %rdi, %rax");
+>
+> +#if defined(CONFIG_PARAVIRT_SPINLOCKS)&&  defined(CONFIG_QUEUE_SPINLOCK)
+> +DEF_NATIVE(pv_lock_ops, queue_unlock, "movb $0, (%rdi)");
+> +#endif
+> +
+>   unsigned paravirt_patch_ident_32(void *insnbuf, unsigned len)
+>   {
+>          return paravirt_patch_insns(insnbuf, len,
+> @@ -61,6 +65,9 @@ unsigned native_patch(u8 type, u16 clobb
+>                  PATCH_SITE(pv_cpu_ops, clts);
+>                  PATCH_SITE(pv_mmu_ops, flush_tlb_single);
+>                  PATCH_SITE(pv_cpu_ops, wbinvd);
+> +#if defined(CONFIG_PARAVIRT_SPINLOCKS)&&  defined(CONFIG_QUEUE_SPINLOCK)
+> +               PATCH_SITE(pv_lock_ops, queue_unlock);
+> +#endif
+>
+>          patch_site:
+>                  ret = paravirt_patch_insns(ibuf, len, start, end);
+>
+>
+> That makes sure to overwrite the callee-saved call to the
+> pv_lock_ops::queue_unlock with the immediate asm "movb $0, (%rdi)".
+>
+>
+> Therefore you can retain the inlined unlock with hardly (there might be
+> some NOP padding) any overhead at all. On PV it reverts to a callee
+> saved function call.
 
-Yes, I am aware of that. However, the whole point of doing PV spinlock 
-is to improve performance in a virtual guest.
+My concern is that spin_unlock() can be called in many places, including 
+loadable kernel modules. Can the paravirt_patch_ident_32() function able 
+to patch all of them in reasonable time? How about a kernel module 
+loaded later at run time?
 
-Anyway, I had done some measurements. In my test system, the 
-queue_spin_lock_slowpath() function has a text size of about 400 bytes 
-without PV, but 1120 bytes with PV. I made some changes to create 
-separate versions of PV and non-PV slowpath functions as shown by the 
-diff below. The text size is now about 430 bytes for the non-PV version 
-and 925 bytes for the PV version. The overall object size increases by a 
-bit more than 200 bytes, but the icache footprint should be reduced no 
-matter which version is used.
+So I think we may still need to disable unlock function inlining even if 
+we used your way kernel site patching.
 
--Longman
-
-----------------------------------------
-
-diff --git a/arch/x86/include/asm/pvqspinlock.h 
-b/arch/x86/include/asm/pvqspinlo
-index d424252..241bf30 100644
---- a/arch/x86/include/asm/pvqspinlock.h
-+++ b/arch/x86/include/asm/pvqspinlock.h
-@@ -79,9 +79,6 @@ static inline void pv_init_node(struct mcs_spinlock *node)
-
-         BUILD_BUG_ON(sizeof(struct pv_qnode) > 5*sizeof(struct 
-mcs_spinlock));
-
--       if (!pv_enabled())
--               return;
--
-         pn->cpustate = PV_CPU_ACTIVE;
-         pn->mayhalt  = false;
-         pn->mycpu    = smp_processor_id();
-@@ -132,9 +129,6 @@ static inline bool pv_link_and_wait_node(u32 old, 
-struct mcs
-         struct pv_qnode *ppn, *pn = (struct pv_qnode *)node;
-         unsigned int count;
-
--       if (!pv_enabled())
--               return false;
--
-         if (!(old & _Q_TAIL_MASK)) {
-                 node->locked = true;    /* At queue head now */
-                 goto ret;
-@@ -236,9 +230,6 @@ pv_wait_head(struct qspinlock *lock, struct 
-mcs_spinlock *no
-  {
-         struct pv_qnode *pn = (struct pv_qnode *)node;
-
--       if (!pv_enabled())
--               return smp_load_acquire(&lock->val.counter);
--
-         for (;;) {
-                 unsigned int count;
-                 s8 oldstate;
-@@ -328,8 +319,6 @@ static inline void pv_wait_check(struct qspinlock *lock,
-         struct pv_qnode *pnxt = (struct pv_qnode *)next;
-         struct pv_qnode *pcur = (struct pv_qnode *)node;
-
--       if (!pv_enabled())
--               return;
-         /*
-          * Clear the locked and head values of lock holder
-          */
-diff --git a/kernel/locking/qspinlock.c b/kernel/locking/qspinlock.c
-index 1662dbd..05aea57 100644
---- a/kernel/locking/qspinlock.c
-+++ b/kernel/locking/qspinlock.c
-@@ -16,6 +16,7 @@
-   * Authors: Waiman Long <waiman.long@hp.com>
-   *          Peter Zijlstra <pzijlstr@redhat.com>
-   */
-+#ifndef _GEN_PV_LOCK_SLOWPATH
-  #include <linux/smp.h>
-  #include <linux/bug.h>
-  #include <linux/cpumask.h>
-@@ -271,19 +272,37 @@ void queue_spin_unlock_slowpath(struct qspinlock 
-*lock)
-  }
-  EXPORT_SYMBOL(queue_spin_unlock_slowpath);
-
--#else
-+static void pv_queue_spin_lock_slowpath(struct qspinlock *lock, u32 val);
-+
-+#else  /* CONFIG_PARAVIRT_SPINLOCKS */
-+
-+static inline void pv_queue_spin_lock_slowpath(struct qspinlock *lock, 
-u32 val)
-+       { }
-
--static inline void pv_init_node(struct mcs_spinlock *node)     { }
--static inline void pv_wait_check(struct qspinlock *lock,
--                                struct mcs_spinlock *node,
--                                struct mcs_spinlock *next)     { }
--static inline bool pv_link_and_wait_node(u32 old, struct mcs_spinlock 
-*node)
-+#endif /* CONFIG_PARAVIRT_SPINLOCKS */
-+
-+/*
-+ * Dummy PV functions for bare-metal slowpath code
-+ */
-+static inline void nopv_init_node(struct mcs_spinlock *node)   { }
-+static inline void nopv_wait_check(struct qspinlock *lock,
-+                                  struct mcs_spinlock *node,
-+                                  struct mcs_spinlock *next)   { }
-+static inline bool nopv_link_and_wait_node(u32 old, struct mcs_spinlock 
-*node)
-                    { return false; }
--static inline int  pv_wait_head(struct qspinlock *lock,
-+static inline int  nopv_wait_head(struct qspinlock *lock,
-                                 struct mcs_spinlock *node)
-                    { return smp_load_acquire(&lock->val.counter); }
-+static inline bool return_true(void)   { return true;  }
-+static inline bool return_false(void)  { return false; }
-
--#endif /* CONFIG_PARAVIRT_SPINLOCKS */
-+#define pv_init_node           nopv_init_node
-+#define pv_wait_check          nopv_wait_check
-+#define pv_link_and_wait_node  nopv_link_and_wait_node
-+#define pv_wait_head           nopv_wait_head
-+#define in_pv_code             return_false
-+
-+#endif /* _GEN_PV_LOCK_SLOWPATH */
-
-  /**
-   * queue_spin_lock_slowpath - acquire the queue spinlock
-@@ -306,7 +325,11 @@ static inline int  pv_wait_head(struct qspinlock *lock,
-   * contended             :    (*,x,y) +--> (*,0,0) ---> (*,0,1) -'  :
-   *   queue               :         ^--'                             :
-   */
-+#ifdef _GEN_PV_LOCK_SLOWPATH
-+static void pv_queue_spin_lock_slowpath(struct qspinlock *lock, u32 val)
-+#else
-  void queue_spin_lock_slowpath(struct qspinlock *lock, u32 val)
-+#endif
-  {
-         struct mcs_spinlock *prev, *next, *node;
-         u32 new, old, tail;
-@@ -314,7 +337,12 @@ void queue_spin_lock_slowpath(struct qspinlock 
-*lock, u32 v
-
-         BUILD_BUG_ON(CONFIG_NR_CPUS >= (1U << _Q_TAIL_CPU_BITS));
-
--       if (pv_enabled())
-+       if (pv_enabled()) {
-+               pv_queue_spin_lock_slowpath(lock, val);
-+               return;
-+       }
-+
-+       if (in_pv_code())
-                 goto queue;
-
-         if (virt_queue_spin_lock(lock))
-@@ -474,3 +502,23 @@ release:
-         this_cpu_dec(mcs_nodes[0].count);
-  }
-  EXPORT_SYMBOL(queue_spin_lock_slowpath);
-+
-+#if !defined(_GEN_PV_LOCK_SLOWPATH) && defined(CONFIG_PARAVIRT_SPINLOCKS)
-+/*
-+ * Generate the PV version of the queue_spin_lock_slowpath function
-+ */
-+#undef pv_init_node
-+#undef pv_wait_check
-+#undef pv_link_and_wait_node
-+#undef pv_wait_head
-+#undef EXPORT_SYMBOL
-+#undef in_pv_code
-+
-+#define _GEN_PV_LOCK_SLOWPATH
-+#define EXPORT_SYMBOL(x)
-+#define in_pv_code     return_true
-+#define pv_enabled     return_false
-+
-+#include "qspinlock.c"
-+
-+#endif
-
+Regards,
+Longman
