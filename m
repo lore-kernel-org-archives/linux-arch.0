@@ -1,47 +1,44 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-la0-f49.google.com ([209.85.215.49]:43874 "EHLO
-	mail-la0-f49.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750785AbaJ0Jnx (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 27 Oct 2014 05:43:53 -0400
+Received: from mail-lb0-f173.google.com ([209.85.217.173]:45341 "EHLO
+	mail-lb0-f173.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751315AbaJ0Jo4 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 27 Oct 2014 05:44:56 -0400
 MIME-Version: 1.0
-In-Reply-To: <CAMuHMdVb8k_6zHm0deAWUKcKNfTpt2VL3RkJuv-99SCRwtUQEQ@mail.gmail.com>
+In-Reply-To: <CAMuHMdXTg3s_ZKL5M+=LwiNBa4gL8Z=eOchocD3qjvp-d=gW_Q@mail.gmail.com>
 References: <1414139071-3818-1-git-send-email-lftan@altera.com>
-	<1414139071-3818-5-git-send-email-lftan@altera.com>
-	<CAMuHMdVb8k_6zHm0deAWUKcKNfTpt2VL3RkJuv-99SCRwtUQEQ@mail.gmail.com>
-Date: Mon, 27 Oct 2014 17:43:50 +0800
-Message-ID: <CAFiDJ5_mwgtqsXN1oQ=FGNWZbB+escVFqEPYkuOPOVDTuWev2A@mail.gmail.com>
-Subject: Re: [PATCH v5 04/29] nios2: Exception handling
+	<1414139071-3818-30-git-send-email-lftan@altera.com>
+	<CAMuHMdXTg3s_ZKL5M+=LwiNBa4gL8Z=eOchocD3qjvp-d=gW_Q@mail.gmail.com>
+Date: Mon, 27 Oct 2014 17:44:53 +0800
+Message-ID: <CAFiDJ5_LKWB_iZc0mX2AYA8mqAHcskEE6TdOdz3YUKCV6QouRA@mail.gmail.com>
+Subject: Re: [PATCH v5 29/29] nios2: Build infrastructure
 From: Ley Foon Tan <lftan@altera.com>
 Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Geert Uytterhoeven <geert@linux-m68k.org>
 Cc: Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Chung-Lin Tang <cltang@codesourcery.com>
-Message-ID: <20141027094350.6Cd5CPm7JSGAfji8U7Fr2hDYGh5ES_FbALFTmpC1L7g@z>
+Message-ID: <20141027094453.BJNRjOCoEuF2UQv1cBaAx9EMK2_g5ND_I7L3jkTLR3g@z>
 
-On Fri, Oct 24, 2014 at 5:15 PM, Geert Uytterhoeven
+On Fri, Oct 24, 2014 at 5:10 PM, Geert Uytterhoeven
 <geert@linux-m68k.org> wrote:
 > On Fri, Oct 24, 2014 at 10:24 AM, Ley Foon Tan <lftan@altera.com> wrote:
 >> --- /dev/null
->> +++ b/arch/nios2/kernel/entry.S
->> @@ -0,0 +1,559 @@
->> +/*
->> + * linux/arch/nios2/kernel/entry.S
->> + *
->> + * Copyright (C) 2013-2014  Altera Corporation
->> + * Copyright (C) 2009, Wind River Systems Inc
->> + *
->> + * Implemented by fredrik.markstrom@gmail.com and ivarholmqvist@gmail.com
->> + *
->> + * Based on:
->> + *
->> + * linux/arch/nios2/kernel/entry.S
+>> +++ b/arch/nios2/boot/install.sh
+>> @@ -0,0 +1,52 @@
+>> +#!/bin/sh
+>> +#
+>> +# This file is subject to the terms and conditions of the GNU General Public
+>> +# License.  See the file "COPYING" in the main directory of this archive
+>> +# for more details.
+>> +#
+>> +# Copyright (C) 1995 by Linus Torvalds
+>> +#
+>> +# Adapted from code in arch/i386/boot/Makefile by H. Peter Anvin
+>> +#
+>> +# "make install" script for m68k architecture
 >
-> And here you did one s/m68k/nios2/ too much ;-)
->
-> As this doesn't seem to come from a single file
-> "Based on the various m68k entry.S files"?
-Good catch. Will remove this line.
+> You probably want to s/m68k/nios2/ here.
+Yes, will change this.
 
 Regards
 Ley Foon
