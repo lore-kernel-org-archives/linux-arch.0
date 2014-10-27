@@ -1,88 +1,104 @@
-From: Andy Lutomirski <luto@amacapital.net>
-Subject: Re: [PATCHv5 1/3] syscalls,x86: implement execveat() system call
-Date: Mon, 27 Oct 2014 11:47:27 -0700
-Message-ID: <CALCETrWN+bKj_PPRJy2pNDVCRd3xyd-=w7P+9khhd-XuJRXCyA@mail.gmail.com>
-References: <1413978269-17274-1-git-send-email-drysdale@google.com>
- <1413978269-17274-2-git-send-email-drysdale@google.com> <CALCETrWbj=BTDyKqtbSKteANj3J3UFZnrvWv9DMosCoEZaSoeA@mail.gmail.com>
- <CAHse=S-x6NKEn9EGFos6bS=asK-1mWCr0r9aji2a97_fgxU+Sg@mail.gmail.com>
+From: Waiman Long <waiman.long@hp.com>
+Subject: Re: [PATCH v12 09/11] pvqspinlock,
+	x86: Add para-virtualization support
+Date: Mon, 27 Oct 2014 16:50:42 -0400
+Message-ID: <544EB022.4070801@hp.com>
+References: <1413483040-58399-1-git-send-email-Waiman.Long@hp.com>
+	<1413483040-58399-10-git-send-email-Waiman.Long@hp.com>
+	<20141024084738.GU21513@worktop.programming.kicks-ass.net>
+	<544ABC47.2000700@hp.com>
+	<20141024220423.GB10501@worktop.programming.kicks-ass.net>
+	<544E7DC9.5020903@hp.com>
+	<20141027172719.GK3337@twins.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-la0-f41.google.com ([209.85.215.41]:47037 "EHLO
-	mail-la0-f41.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751461AbaJ0Srt (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 27 Oct 2014 14:47:49 -0400
-Received: by mail-la0-f41.google.com with SMTP id pn19so6380007lab.14
-        for <linux-arch@vger.kernel.org>; Mon, 27 Oct 2014 11:47:47 -0700 (PDT)
-In-Reply-To: <CAHse=S-x6NKEn9EGFos6bS=asK-1mWCr0r9aji2a97_fgxU+Sg@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: David Drysdale <drysdale@google.com>
-Cc: "Eric W. Biederman" <ebiederm@xmission.com>, Alexander Viro <viro@zeniv.linux.org.uk>, Meredydd Luff <meredydd@senatehouse.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, X86 ML <x86@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>
+Content-Type: text/plain; charset="us-ascii"; Format="flowed"
+Content-Transfer-Encoding: 7bit
+Return-path: <virtualization-bounces@lists.linux-foundation.org>
+In-Reply-To: <20141027172719.GK3337@twins.programming.kicks-ass.net>
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
+List-Post: <mailto:virtualization@lists.linux-foundation.org>
+List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
+Sender: virtualization-bounces@lists.linux-foundation.org
+Errors-To: virtualization-bounces@lists.linux-foundation.org
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: linux-arch@vger.kernel.org, Rik van Riel <riel@redhat.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, Oleg Nesterov <oleg@redhat.com>, kvm@vger.kernel.org, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Scott J Norton <scott.norton@hp.com>, x86@kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, Ingo Molnar <mingo@redhat.com>, David Vrabel <david.vrabel@citrix.com>, "H. Peter Anvin" <hpa@zytor.com>, xen-devel@lists.xenproject.org, Thomas Gleixner <tglx@linutronix.de>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Douglas Hatch <doug.hatch@hp.com>
+List-Id: linux-arch.vger.kernel.org
 
-On Mon, Oct 27, 2014 at 11:03 AM, David Drysdale <drysdale@google.com> wrote:
-> On Wed, Oct 22, 2014 at 7:44 PM, Andy Lutomirski <luto@amacapital.net> wrote:
->> On Wed, Oct 22, 2014 at 4:44 AM, David Drysdale <drysdale@google.com> wrote:
->>> Add a new system execveat(2) syscall. execveat() is to execve() as
->>> openat() is to open(): it takes a file descriptor that refers to a
->>> directory, and resolves the filename relative to that.
+On 10/27/2014 01:27 PM, Peter Zijlstra wrote:
+> On Mon, Oct 27, 2014 at 01:15:53PM -0400, Waiman Long wrote:
+>> On 10/24/2014 06:04 PM, Peter Zijlstra wrote:
+>>> On Fri, Oct 24, 2014 at 04:53:27PM -0400, Waiman Long wrote:
+>>>> The additional register pressure may just cause a few more register moves
+>>>> which should be negligible in the overall performance . The additional
+>>>> icache pressure, however, may have some impact on performance. I was trying
+>>>> to balance the performance of the pv and non-pv versions so that we won't
+>>>> penalize the pv code too much for a bit more performance in the non-pv code.
+>>>> Doing it your way will add a lot of function call and register
+>>>> saving/restoring to the pv code.
+>>> If people care about performance they should not be using virt crap :-)
 >>>
->>
->>>         bprm->file = file;
->>> -       bprm->filename = bprm->interp = filename->name;
->>> +       if (fd == AT_FDCWD || filename->name[0] == '/') {
->>> +               bprm->filename = filename->name;
->>> +       } else {
->>> +               /*
->>> +                * Build a pathname that reflects how we got to the file,
->>> +                * either "/dev/fd/<fd>" (for an empty filename) or
->>> +                * "/dev/fd/<fd>/<filename>".
->>> +                */
->>> +               pathbuf = kmalloc(PATH_MAX, GFP_TEMPORARY);
->>> +               if (!pathbuf) {
->>> +                       retval = -ENOMEM;
->>> +                       goto out_unmark;
->>> +               }
->>> +               bprm->filename = pathbuf;
->>> +               if (filename->name[0] == '\0')
->>> +                       sprintf(pathbuf, "/dev/fd/%d", fd);
->>
->> If the fd is O_CLOEXEC, then this will result in a confused child
->> process.  Should we fail exec attempts like that for non-static
->> programs?  (E.g. set filename to "" or something and fix up the binfmt
->> drivers to handle that?)
+>>> I only really care about bare metal.
+>> Yes, I am aware of that. However, the whole point of doing PV spinlock is to
+>> improve performance in a virtual guest.
+> Anything that avoids the lock holder preemption nonsense is a _massive_
+> win for them, a few function calls should not even register on that
+> scale.
+
+I would say all the PV stuffs are mostly useful for a over-committed 
+guest where a single CPU is shared in more than one guest. When the 
+guests are not overcommitted, the PV code seldom get triggered. In those 
+cases, the overhead of the extra function call and register 
+saving/restoring will show up.
+
+>> +#ifdef _GEN_PV_LOCK_SLOWPATH
+>> +static void pv_queue_spin_lock_slowpath(struct qspinlock *lock, u32 val)
+>> +#else
+>>   void queue_spin_lock_slowpath(struct qspinlock *lock, u32 val)
+>> +#endif
+> If you have two functions you might as well use the PV stuff to patch in
+> the right function call at the usage sites and avoid:
 >
-> Isn't it just scripts that get confused here (as normal executables don't
-> get to see brpm->filename)?
->
-> Given that we don't know which we have at this point, I'd suggest
-> carrying on regardless.  Or we could fall back to use the previous
-> best-effort d_path() code for O_CLOEXEC fds.  Thoughts?
+>> +       if (pv_enabled()) {
+>> +               pv_queue_spin_lock_slowpath(lock, val);
+>> +               return;
+>> +       }
+> this alltogether.
 
-How hard would it be to mark the bprm as not having a path for the
-binary?  Then we could fail later on if and when we actually need the
-path.
+Good point! I will do some investigation on how to do this kind of 
+function address patching and eliminate the extra function call overhead.
 
-I don't really have a strong opinion here, though.  I do prefer
-actually failing the execveat call over succeeding but invoking a
-script interpreter than can't possibly work.
+>>          this_cpu_dec(mcs_nodes[0].count);
+>>   }
+>>   EXPORT_SYMBOL(queue_spin_lock_slowpath);
+>> +
+>> +#if !defined(_GEN_PV_LOCK_SLOWPATH)&&  defined(CONFIG_PARAVIRT_SPINLOCKS)
+>> +/*
+>> + * Generate the PV version of the queue_spin_lock_slowpath function
+>> + */
+>> +#undef pv_init_node
+>> +#undef pv_wait_check
+>> +#undef pv_link_and_wait_node
+>> +#undef pv_wait_head
+>> +#undef EXPORT_SYMBOL
+>> +#undef in_pv_code
+>> +
+>> +#define _GEN_PV_LOCK_SLOWPATH
+>> +#define EXPORT_SYMBOL(x)
+>> +#define in_pv_code     return_true
+>> +#define pv_enabled     return_false
+>> +
+>> +#include "qspinlock.c"
+>> +
+>> +#endif
+> That's properly disgusting :-) But a lot better than actually
+> duplicating everything I suppose.
 
->
->>> +               else
->>> +                       snprintf(pathbuf, PATH_MAX,
->>> +                                "/dev/fd/%d/%s", fd, filename->name);
->>
->> Does this need to handle the case where the result exceeds PATH_MAX?
->
-> I guess we could kmalloc(strlen(filename->name) + 19) to avoid the
-> possibility of failure, but that just defers the inevitable -- the interpreter
-> won't be able to open the script file anyway.  But it would at least then
-> generate the appropriate error (ENAMETOOLONG rather than ENOENT).
+I know you don't like this kind of preprocessor trick, but this is the 
+easiest way that I can think of to generate two separate functions from 
+the same source code.
 
-Depends whether anyone cares about bprm->filename.  But I think the
-code should either return an error or allocate enough space.
-
-
--- 
-Andy Lutomirski
-AMA Capital Management, LLC
+-Longman
