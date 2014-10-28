@@ -1,40 +1,109 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.linuxfoundation.org ([140.211.169.12]:42932 "EHLO
-	mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751541AbaJ1BcY (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 27 Oct 2014 21:32:24 -0400
-Date: Mon, 27 Oct 2014 18:32:41 -0700
-From: Andrew Morton <akpm@linux-foundation.org>
-Subject: Re: [PATCH V3 1/2] mm: Update generic gup implementation to handle
- hugepage directory
-Message-ID: <20141027183241.a5339085.akpm@linux-foundation.org>
-In-Reply-To: <1414459229.31711.0.camel@concordia>
-References: <1414233860-7683-1-git-send-email-aneesh.kumar@linux.vnet.ibm.com>
-	<20141027160612.b7fd0b1cc9d82faeaa674940@linux-foundation.org>
-	<1414459229.31711.0.camel@concordia>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Received: from mail-la0-f45.google.com ([209.85.215.45]:52675 "EHLO
+	mail-la0-f45.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752559AbaJ1Cqb (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 27 Oct 2014 22:46:31 -0400
+MIME-Version: 1.0
+In-Reply-To: <alpine.DEB.2.11.1410252258570.5308@nanos>
+References: <1414139071-3818-1-git-send-email-lftan@altera.com>
+	<1414139071-3818-22-git-send-email-lftan@altera.com>
+	<alpine.DEB.2.11.1410252258570.5308@nanos>
+Date: Tue, 28 Oct 2014 10:46:29 +0800
+Message-ID: <CAFiDJ5_zsyQ92W4iYG2Ria12TKpkFa8Au5noos1=gtq6_aPyjg@mail.gmail.com>
+Subject: Re: [PATCH v5 21/29] nios2: Time keeping
+From: Ley Foon Tan <lftan@altera.com>
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Michael Ellerman <mpe@ellerman.id.au>
-Cc: "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>, Steve Capper <steve.capper@linaro.org>, Andrea Arcangeli <aarcange@redhat.com>, benh@kernel.crashing.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-arch@vger.kernel.org
-Message-ID: <20141028013241.tvJE-nUTm7YDIyJKw3SOBepydmM0GJxfsgeuC2L4Q-4@z>
+To: Thomas Gleixner <tglx@linutronix.de>
+Cc: Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Chung-Lin Tang <cltang@codesourcery.com>
+Message-ID: <20141028024629.IqOzhuuDNvRh3cr_XNCXRO3PLTXGYYu_SU0eLJVixdE@z>
 
-On Tue, 28 Oct 2014 12:20:29 +1100 Michael Ellerman <mpe@ellerman.id.au> wrote:
+On Sun, Oct 26, 2014 at 5:10 AM, Thomas Gleixner <tglx@linutronix.de> wrote:
+> On Fri, 24 Oct 2014, Ley Foon Tan wrote:
+>> +#ifndef _ASM_NIOS2_TIMEX_H
+>> +#define _ASM_NIOS2_TIMEX_H
+>> +
+>> +typedef unsigned long cycles_t;
+>> +
+>> +extern cycles_t get_cycles(void);
+>> +
+>> +#define ARCH_HAS_READ_CURRENT_TIMER
+>
+> Why does NIOS need that? Does it have a hardware implementation
+> dependent clock frequency which needs to be calibrated at boot time?
+This is suggestion from Arnd to use read_current_timer instead of using
+expensive delay loop calibration during boot.
+>
+>> +struct nios2_clockevent_dev {
+>> +     struct nios2_timer timer;
+>> +     struct clock_event_device ced;
+>> +     struct irqaction irqaction;
+>> +};
+>
+> Why does this need its private irqaction? Timers are setup after the
+> interrupt subsystem, so request_irq() is good enough.
+Noted.
+>
+>> +static void nios2_timer_config(struct nios2_timer *timer, unsigned long period,
+>> +     enum clock_event_mode mode)
+>> +{
+>> +     u16 ctrl;
+>> +
+>> +     /* The timer's actual period is one cycle greater than the value
+>> +      * stored in the period register. */
+>> +     if (period)
+>> +             period--;
+>
+> Pointless conditional. Set ce->min_delta_ticks to 1, so the core code
+> will never call this with period == 0 and you can unconditionally
+> decrement period.
+Noted.
+>
+>> +static __init void nios2_clockevent_init(struct device_node *timer)
+>> +{
+>> +     struct nios2_clockevent_dev *ce;
+>> +     void __iomem *iobase;
+>> +     u32 freq;
+>> +     int irq;
+>> +
+>> +     ce = kzalloc(sizeof(*ce), GFP_KERNEL);
+>> +     if (!ce)
+>> +             panic("Failed to allocate memory for %s\n", timer->name);
+>
+> What's the point of this allocation? You only install one of those, so
+> you can really make that whole thing statically allocated and
+> initialized. Or do you expect systems which use a different timer IP
+> for this?
+Yes, we can make this statically allocated and initialized.
 
-> On Mon, 2014-10-27 at 16:06 -0700, Andrew Morton wrote:
-> > On Sat, 25 Oct 2014 16:14:19 +0530 "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com> wrote:
-> > 
-> > > Update generic gup implementation with powerpc specific details.
-> > > On powerpc at pmd level we can have hugepte, normal pmd pointer
-> > > or a pointer to the hugepage directory.
-> > 
-> > I grabbed these.  It would be better if they were merged into the powerpc
-> > tree where they'll get more testing than in linux-next alone.
->  
-> Fine by me. Can I get an ack from you and/or someone else on CC?
-> 
+>
+>> +static __init void nios2_clocksource_init(struct device_node *timer)
+>> +{
+>> +     unsigned int ctrl;
+>> +     void __iomem *iobase;
+>> +     u32 freq;
+>> +
+>> +     nios2_cs = kzalloc(sizeof(*nios2_cs), GFP_KERNEL);
+>> +     if (!nios2_cs)
+>> +             panic("Failed to allocate memory for %s\n", timer->name);
+>
+> Ditto.
+Same for this.
+>
+>> +/*
+>> + * The first timer instance will use as a clockevent. If there are two or
+>> + * more instances, the second one gets used as clocksource and all
+>> + * others are unused.
+>> +*/
+>> +static int num_called;
+>
+> This thing, horrible as it is, wants to be at least inside the
+> nios2_time_init() function. It has no other scope and should go away
+> after init along with the function itself.
+Okay, will move into nios2_time_init().
 
-Only arm and arm64 use this code.  Steve, could you please look it over
-and check that arm is still happy?
+Thanks.
+
+Regards
+Ley Foon
