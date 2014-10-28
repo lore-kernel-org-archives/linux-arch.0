@@ -1,19 +1,22 @@
-From: Arnd Bergmann <arnd@arndb.de>
+From: Thomas Gleixner <tglx@linutronix.de>
 Subject: Re: [PATCH v5 21/29] nios2: Time keeping
-Date: Tue, 28 Oct 2014 14:39:46 +0100
-Message-ID: <2258102.tG8NmIz9Bk@wuerfel>
-References: <1414139071-3818-1-git-send-email-lftan@altera.com> <1806277.3CF96bVORX@wuerfel> <1414492984.2295.8.camel@leyfoon-vm>
+Date: Tue, 28 Oct 2014 16:15:48 +0100 (CET)
+Message-ID: <alpine.DEB.2.11.1410281614390.5308@nanos>
+References: <1414139071-3818-1-git-send-email-lftan@altera.com>  <alpine.DEB.2.11.1410252258570.5308@nanos>  <CAFiDJ5_zsyQ92W4iYG2Ria12TKpkFa8Au5noos1=gtq6_aPyjg@mail.gmail.com>  <1806277.3CF96bVORX@wuerfel> <1414492984.2295.8.camel@leyfoon-vm>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7Bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Type: TEXT/PLAIN; charset=US-ASCII
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from www.linutronix.de ([62.245.132.108]:49263 "EHLO
+	Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750925AbaJ1PPx (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 28 Oct 2014 11:15:53 -0400
 In-Reply-To: <1414492984.2295.8.camel@leyfoon-vm>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Ley Foon Tan <lftan@altera.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Chung-Lin Tang <cltang@codesourcery.com>
-List-Id: linux-arch.vger.kernel.org
+Cc: Arnd Bergmann <arnd@arndb.de>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Chung-Lin Tang <cltang@codesourcery.com>
 
-On Tuesday 28 October 2014 18:43:04 Ley Foon Tan wrote:
+On Tue, 28 Oct 2014, Ley Foon Tan wrote:
 > On Sel, 2014-10-28 at 10:23 +0100, Arnd Bergmann wrote:
 > > On Tuesday 28 October 2014 10:46:29 Ley Foon Tan wrote:
 > > > On Sun, Oct 26, 2014 at 5:10 AM, Thomas Gleixner <tglx@linutronix.de> wrote:
@@ -40,19 +43,9 @@ On Tuesday 28 October 2014 18:43:04 Ley Foon Tan wrote:
 > calibrate_delay_is_known() as well. We can just set "lpj_fine" variable,
 > arm64 uses this.
 
-Right, that works too.
+Please do so and resend the result so I can have another look and add
+my reviewed tag then.
 
-> BTW, do you have further comment for other patches in this series? Only
-> few minor updates since v4 patches and would like to get it into the
-> v3.18 merge window if possible. What's your opinion? 
+Thanks,
 
-The 3.18 merge window is closed, we already have 3.18-rc2 now.
-
-I have taken another look over the series now, I only had
-a few additional comments. Please fix those along with the comments
-you got from other reviewers and then ask Stephen Rothwell to
-include your tree in linux-next (if it isn't already).
-
-When 3.18 is released, you can then send a pull request to Linus.
-
-	Arnd
+	tglx
