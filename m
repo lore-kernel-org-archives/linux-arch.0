@@ -1,55 +1,53 @@
-From: Ley Foon Tan <lftan@altera.com>
-Subject: Re: [PATCH v5 21/29] nios2: Time keeping
-Date: Tue, 28 Oct 2014 18:43:04 +0800
-Message-ID: <1414492984.2295.8.camel@leyfoon-vm>
-References: <1414139071-3818-1-git-send-email-lftan@altera.com>
-	 <alpine.DEB.2.11.1410252258570.5308@nanos>
-	 <CAFiDJ5_zsyQ92W4iYG2Ria12TKpkFa8Au5noos1=gtq6_aPyjg@mail.gmail.com>
-	 <1806277.3CF96bVORX@wuerfel>
+From: Steve Capper <steve.capper@linaro.org>
+Subject: Re: [PATCH V3 1/2] mm: Update generic gup implementation to handle
+ hugepage directory
+Date: Tue, 28 Oct 2014 10:44:52 +0000
+Message-ID: <20141028104451.GB4187@linaro.org>
+References: <1414233860-7683-1-git-send-email-aneesh.kumar@linux.vnet.ibm.com>
+ <20141027160612.b7fd0b1cc9d82faeaa674940@linux-foundation.org>
+ <1414459229.31711.0.camel@concordia>
+ <20141027183241.a5339085.akpm@linux-foundation.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 8BIT
-Return-path: <linux-doc-owner@vger.kernel.org>
-In-Reply-To: <1806277.3CF96bVORX@wuerfel>
-Sender: linux-doc-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Chung-Lin Tang <cltang@codesourcery.com>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <owner-linux-mm@kvack.org>
+Content-Disposition: inline
+In-Reply-To: <20141027183241.a5339085.akpm@linux-foundation.org>
+Sender: owner-linux-mm@kvack.org
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Michael Ellerman <mpe@ellerman.id.au>, "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>, Andrea Arcangeli <aarcange@redhat.com>, benh@kernel.crashing.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Sel, 2014-10-28 at 10:23 +0100, Arnd Bergmann wrote:
-> On Tuesday 28 October 2014 10:46:29 Ley Foon Tan wrote:
-> > On Sun, Oct 26, 2014 at 5:10 AM, Thomas Gleixner <tglx@linutronix.de> wrote:
-> > > On Fri, 24 Oct 2014, Ley Foon Tan wrote:
-> > >> +#ifndef _ASM_NIOS2_TIMEX_H
-> > >> +#define _ASM_NIOS2_TIMEX_H
-> > >> +
-> > >> +typedef unsigned long cycles_t;
-> > >> +
-> > >> +extern cycles_t get_cycles(void);
-> > >> +
-> > >> +#define ARCH_HAS_READ_CURRENT_TIMER
-> > >
-> > > Why does NIOS need that? Does it have a hardware implementation
-> > > dependent clock frequency which needs to be calibrated at boot time?
-> > This is suggestion from Arnd to use read_current_timer instead of using
-> > expensive delay loop calibration during boot.
+On Mon, Oct 27, 2014 at 06:32:41PM -0700, Andrew Morton wrote:
+> On Tue, 28 Oct 2014 12:20:29 +1100 Michael Ellerman <mpe@ellerman.id.au> wrote:
 > 
-> My mistake, sorry. I think the right way is to define
-> calibrate_delay_is_known() rather than read_current_timer(), I was
-> getting confused by the ARM implementation that does both.
-Hi Arnd,
-No problem, I can change that. But, seem that we don't need to have
-calibrate_delay_is_known() as well. We can just set "lpj_fine" variable,
-arm64 uses this.
+> > On Mon, 2014-10-27 at 16:06 -0700, Andrew Morton wrote:
+> > > On Sat, 25 Oct 2014 16:14:19 +0530 "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com> wrote:
+> > > 
+> > > > Update generic gup implementation with powerpc specific details.
+> > > > On powerpc at pmd level we can have hugepte, normal pmd pointer
+> > > > or a pointer to the hugepage directory.
+> > > 
+> > > I grabbed these.  It would be better if they were merged into the powerpc
+> > > tree where they'll get more testing than in linux-next alone.
+> >  
+> > Fine by me. Can I get an ack from you and/or someone else on CC?
+> > 
+> 
+> Only arm and arm64 use this code.  Steve, could you please look it over
+> and check that arm is still happy?
 
-BTW, do you have further comment for other patches in this series? Only
-few minor updates since v4 patches and would like to get it into the
-v3.18 merge window if possible. What's your opinion? 
+Hi Andrew,
+I've tested it and posted some comments on it.
 
-Thanks.
+If the arch/arm and arch/arm64 changes are removed and a comment about
+an assumption made by the new gup_huge_pte code is added then I'm happy.
 
-Regards
-Ley Foon
+Cheers,
+-- 
+Steve
 
-
-
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
