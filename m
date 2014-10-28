@@ -1,109 +1,42 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-la0-f45.google.com ([209.85.215.45]:52675 "EHLO
-	mail-la0-f45.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752559AbaJ1Cqb (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 27 Oct 2014 22:46:31 -0400
-MIME-Version: 1.0
-In-Reply-To: <alpine.DEB.2.11.1410252258570.5308@nanos>
-References: <1414139071-3818-1-git-send-email-lftan@altera.com>
-	<1414139071-3818-22-git-send-email-lftan@altera.com>
-	<alpine.DEB.2.11.1410252258570.5308@nanos>
-Date: Tue, 28 Oct 2014 10:46:29 +0800
-Message-ID: <CAFiDJ5_zsyQ92W4iYG2Ria12TKpkFa8Au5noos1=gtq6_aPyjg@mail.gmail.com>
+Received: from mout.kundenserver.de ([212.227.126.187]:58683 "EHLO
+	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750824AbaJ1JXn (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 28 Oct 2014 05:23:43 -0400
+From: Arnd Bergmann <arnd@arndb.de>
 Subject: Re: [PATCH v5 21/29] nios2: Time keeping
-From: Ley Foon Tan <lftan@altera.com>
-Content-Type: text/plain; charset=UTF-8
+Date: Tue, 28 Oct 2014 10:23:37 +0100
+Message-ID: <1806277.3CF96bVORX@wuerfel>
+In-Reply-To: <CAFiDJ5_zsyQ92W4iYG2Ria12TKpkFa8Au5noos1=gtq6_aPyjg@mail.gmail.com>
+References: <1414139071-3818-1-git-send-email-lftan@altera.com> <alpine.DEB.2.11.1410252258570.5308@nanos> <CAFiDJ5_zsyQ92W4iYG2Ria12TKpkFa8Au5noos1=gtq6_aPyjg@mail.gmail.com>
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7Bit
+Content-Type: text/plain; charset="us-ascii"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Chung-Lin Tang <cltang@codesourcery.com>
-Message-ID: <20141028024629.IqOzhuuDNvRh3cr_XNCXRO3PLTXGYYu_SU0eLJVixdE@z>
+To: Ley Foon Tan <lftan@altera.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Chung-Lin Tang <cltang@codesourcery.com>
+Message-ID: <20141028092337.hDm-h6TPu97Ewv0RgRLTKQOD2-CCmrX0jur-pcOgcfU@z>
 
-On Sun, Oct 26, 2014 at 5:10 AM, Thomas Gleixner <tglx@linutronix.de> wrote:
-> On Fri, 24 Oct 2014, Ley Foon Tan wrote:
->> +#ifndef _ASM_NIOS2_TIMEX_H
->> +#define _ASM_NIOS2_TIMEX_H
->> +
->> +typedef unsigned long cycles_t;
->> +
->> +extern cycles_t get_cycles(void);
->> +
->> +#define ARCH_HAS_READ_CURRENT_TIMER
->
-> Why does NIOS need that? Does it have a hardware implementation
-> dependent clock frequency which needs to be calibrated at boot time?
-This is suggestion from Arnd to use read_current_timer instead of using
-expensive delay loop calibration during boot.
->
->> +struct nios2_clockevent_dev {
->> +     struct nios2_timer timer;
->> +     struct clock_event_device ced;
->> +     struct irqaction irqaction;
->> +};
->
-> Why does this need its private irqaction? Timers are setup after the
-> interrupt subsystem, so request_irq() is good enough.
-Noted.
->
->> +static void nios2_timer_config(struct nios2_timer *timer, unsigned long period,
->> +     enum clock_event_mode mode)
->> +{
->> +     u16 ctrl;
->> +
->> +     /* The timer's actual period is one cycle greater than the value
->> +      * stored in the period register. */
->> +     if (period)
->> +             period--;
->
-> Pointless conditional. Set ce->min_delta_ticks to 1, so the core code
-> will never call this with period == 0 and you can unconditionally
-> decrement period.
-Noted.
->
->> +static __init void nios2_clockevent_init(struct device_node *timer)
->> +{
->> +     struct nios2_clockevent_dev *ce;
->> +     void __iomem *iobase;
->> +     u32 freq;
->> +     int irq;
->> +
->> +     ce = kzalloc(sizeof(*ce), GFP_KERNEL);
->> +     if (!ce)
->> +             panic("Failed to allocate memory for %s\n", timer->name);
->
-> What's the point of this allocation? You only install one of those, so
-> you can really make that whole thing statically allocated and
-> initialized. Or do you expect systems which use a different timer IP
-> for this?
-Yes, we can make this statically allocated and initialized.
+On Tuesday 28 October 2014 10:46:29 Ley Foon Tan wrote:
+> On Sun, Oct 26, 2014 at 5:10 AM, Thomas Gleixner <tglx@linutronix.de> wrote:
+> > On Fri, 24 Oct 2014, Ley Foon Tan wrote:
+> >> +#ifndef _ASM_NIOS2_TIMEX_H
+> >> +#define _ASM_NIOS2_TIMEX_H
+> >> +
+> >> +typedef unsigned long cycles_t;
+> >> +
+> >> +extern cycles_t get_cycles(void);
+> >> +
+> >> +#define ARCH_HAS_READ_CURRENT_TIMER
+> >
+> > Why does NIOS need that? Does it have a hardware implementation
+> > dependent clock frequency which needs to be calibrated at boot time?
+> This is suggestion from Arnd to use read_current_timer instead of using
+> expensive delay loop calibration during boot.
 
->
->> +static __init void nios2_clocksource_init(struct device_node *timer)
->> +{
->> +     unsigned int ctrl;
->> +     void __iomem *iobase;
->> +     u32 freq;
->> +
->> +     nios2_cs = kzalloc(sizeof(*nios2_cs), GFP_KERNEL);
->> +     if (!nios2_cs)
->> +             panic("Failed to allocate memory for %s\n", timer->name);
->
-> Ditto.
-Same for this.
->
->> +/*
->> + * The first timer instance will use as a clockevent. If there are two or
->> + * more instances, the second one gets used as clocksource and all
->> + * others are unused.
->> +*/
->> +static int num_called;
->
-> This thing, horrible as it is, wants to be at least inside the
-> nios2_time_init() function. It has no other scope and should go away
-> after init along with the function itself.
-Okay, will move into nios2_time_init().
+My mistake, sorry. I think the right way is to define
+calibrate_delay_is_known() rather than read_current_timer(), I was
+getting confused by the ARM implementation that does both.
 
-Thanks.
-
-Regards
-Ley Foon
+	Arnd
