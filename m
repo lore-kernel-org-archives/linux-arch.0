@@ -1,19 +1,11 @@
-From: Waiman Long <waiman.long@hp.com>
-Subject: Re: [PATCH v12 09/11] pvqspinlock,
-	x86: Add para-virtualization support
-Date: Wed, 29 Oct 2014 15:05:52 -0400
-Message-ID: <54513A90.3080108@hp.com>
-References: <1413483040-58399-1-git-send-email-Waiman.Long@hp.com>
-	<1413483040-58399-10-git-send-email-Waiman.Long@hp.com>
-	<20141024085437.GV21513@worktop.programming.kicks-ass.net>
-	<544E830C.6070307@hp.com>
-	<20141027180439.GL3337@twins.programming.kicks-ass.net>
-	<544EB79E.6020200@hp.com>
+From: Waiman Long <Waiman.Long@hp.com>
+Subject: [PATCH v13 00/11] qspinlock: a 4-byte queue spinlock with PV support
+Date: Wed, 29 Oct 2014 16:19:00 -0400
+Message-ID: <1414613951-32532-1-git-send-email-Waiman.Long@hp.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"; Format="flowed"
+Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 Return-path: <virtualization-bounces@lists.linux-foundation.org>
-In-Reply-To: <544EB79E.6020200@hp.com>
 List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
 	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
 List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
@@ -23,96 +15,175 @@ List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualizati
 	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
 Sender: virtualization-bounces@lists.linux-foundation.org
 Errors-To: virtualization-bounces@lists.linux-foundation.org
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: linux-arch@vger.kernel.org, Rik van Riel <riel@redhat.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, Oleg Nesterov <oleg@redhat.com>, kvm@vger.kernel.org, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Scott J Norton <scott.norton@hp.com>, x86@kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, Ingo Molnar <mingo@redhat.com>, David Vrabel <david.vrabel@citrix.com>, "H. Peter Anvin" <hpa@zytor.com>, xen-devel@lists.xenproject.org, Thomas Gleixner <tglx@linutronix.de>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Douglas Hatch <doug.hatch@hp.com>
+To: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Peter Zijlstra <peterz@infradead.org>
+Cc: linux-arch@vger.kernel.org, Waiman Long <Waiman.Long@hp.com>, Rik van Riel <riel@redhat.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, kvm@vger.kernel.org, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Scott J Norton <scott.norton@hp.com>, x86@kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, David Vrabel <david.vrabel@citrix.com>, Oleg Nesterov <oleg@redhat.com>, xen-devel@lists.xenproject.org, Boris Ostrovsky <boris.ostrovsky@oracle.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Douglas Hatch <doug.hatch@hp.com>
 List-Id: linux-arch.vger.kernel.org
 
-On 10/27/2014 05:22 PM, Waiman Long wrote:
-> On 10/27/2014 02:04 PM, Peter Zijlstra wrote:
->> On Mon, Oct 27, 2014 at 01:38:20PM -0400, Waiman Long wrote:
->>> On 10/24/2014 04:54 AM, Peter Zijlstra wrote:
->>>> On Thu, Oct 16, 2014 at 02:10:38PM -0400, Waiman Long wrote:
->>>>
->>>>> Since enabling paravirt spinlock will disable unlock function 
->>>>> inlining,
->>>>> a jump label can be added to the unlock function without adding patch
->>>>> sites all over the kernel.
->>>> But you don't have to. My patches allowed for the inline to remain,
->>>> again reducing the overhead of enabling PV spinlocks while running 
->>>> on a
->>>> real machine.
->>>>
->>>> Look at:
->>>>
->>>>    http://lkml.kernel.org/r/20140615130154.213923590@chello.nl
->>>>
->>>> In particular this hunk:
->>>>
->>>> Index: linux-2.6/arch/x86/kernel/paravirt_patch_64.c
->>>> ===================================================================
->>>> --- linux-2.6.orig/arch/x86/kernel/paravirt_patch_64.c
->>>> +++ linux-2.6/arch/x86/kernel/paravirt_patch_64.c
->>>> @@ -22,6 +22,10 @@ DEF_NATIVE(pv_cpu_ops, swapgs, "swapgs")
->>>>   DEF_NATIVE(, mov32, "mov %edi, %eax");
->>>>   DEF_NATIVE(, mov64, "mov %rdi, %rax");
->>>>
->>>> +#if defined(CONFIG_PARAVIRT_SPINLOCKS)&&   
->>>> defined(CONFIG_QUEUE_SPINLOCK)
->>>> +DEF_NATIVE(pv_lock_ops, queue_unlock, "movb $0, (%rdi)");
->>>> +#endif
->>>> +
->>>>   unsigned paravirt_patch_ident_32(void *insnbuf, unsigned len)
->>>>   {
->>>>          return paravirt_patch_insns(insnbuf, len,
->>>> @@ -61,6 +65,9 @@ unsigned native_patch(u8 type, u16 clobb
->>>>                  PATCH_SITE(pv_cpu_ops, clts);
->>>>                  PATCH_SITE(pv_mmu_ops, flush_tlb_single);
->>>>                  PATCH_SITE(pv_cpu_ops, wbinvd);
->>>> +#if defined(CONFIG_PARAVIRT_SPINLOCKS)&&   
->>>> defined(CONFIG_QUEUE_SPINLOCK)
->>>> +               PATCH_SITE(pv_lock_ops, queue_unlock);
->>>> +#endif
->>>>
->>>>          patch_site:
->>>>                  ret = paravirt_patch_insns(ibuf, len, start, end);
->>>>
->>>>
->>>> That makes sure to overwrite the callee-saved call to the
->>>> pv_lock_ops::queue_unlock with the immediate asm "movb $0, (%rdi)".
->>>>
->>>>
->>>> Therefore you can retain the inlined unlock with hardly (there 
->>>> might be
->>>> some NOP padding) any overhead at all. On PV it reverts to a callee
->>>> saved function call.
->>> My concern is that spin_unlock() can be called in many places, 
->>> including
->>> loadable kernel modules. Can the paravirt_patch_ident_32() function 
->>> able to
->>> patch all of them in reasonable time? How about a kernel module 
->>> loaded later
->>> at run time?
->> modules should be fine, see arch/x86/kernel/module.c:module_finalize()
->> ->  apply_paravirt().
->>
->> Also note that the 'default' text is an indirect call into the paravirt
->> ops table which routes to the 'right' function, so even if the text
->> patching would be 'late' calls would 'work' as expected, just slower.
->
-> Thanks for letting me know about that. I have this concern because 
-> your patch didn't change the current configuration of disabling unlock 
-> inlining when paravirt_spinlock is enabled. With that, I think it is 
-> worthwhile to reduce the performance delta between the PV and non-PV 
-> kernel on bare metal.
+v12->v13:
+ - Change patch 9 to generate separate versions of the
+   queue_spin_lock_slowpath functions for bare metal and PV guest. This
+   reduces the performance impact of the PV code on bare metal systems.
 
-I am sorry that the unlock call sites patching code doesn't work in a 
-virtual guest. Your pvqspinlock patch did an unconditional patching even 
-in a virtual guest. I added check for the paravirt_spinlocks_enabled, 
-but it turned out that some spin_unlock() seemed to be called before 
-paravirt_spinlocks_enabled is set. As a result, some call sites were 
-still patched resulting in missed wake up's and system hang.
+v11->v12:
+ - Based on PeterZ's version of the qspinlock patch
+   (https://lkml.org/lkml/2014/6/15/63).
+ - Incorporated many of the review comments from Konrad Wilk and
+   Paolo Bonzini.
+ - The pvqspinlock code is largely from my previous version with
+   PeterZ's way of going from queue tail to head and his idea of
+   using callee saved calls to KVM and XEN codes.
 
-At this point, I am going to leave out that change from my patch set 
-until we can figure out a better way of doing that.
+v10->v11:
+  - Use a simple test-and-set unfair lock to simplify the code,
+    but performance may suffer a bit for large guest with many CPUs.
+  - Take out Raghavendra KT's test results as the unfair lock changes
+    may render some of his results invalid.
+  - Add PV support without increasing the size of the core queue node
+    structure.
+  - Other minor changes to address some of the feedback comments.
 
--Longman
+v9->v10:
+  - Make some minor changes to qspinlock.c to accommodate review feedback.
+  - Change author to PeterZ for 2 of the patches.
+  - Include Raghavendra KT's test results in patch 18.
+
+v8->v9:
+  - Integrate PeterZ's version of the queue spinlock patch with some
+    modification:
+    http://lkml.kernel.org/r/20140310154236.038181843@infradead.org
+  - Break the more complex patches into smaller ones to ease review effort.
+  - Fix a racing condition in the PV qspinlock code.
+
+v7->v8:
+  - Remove one unneeded atomic operation from the slowpath, thus
+    improving performance.
+  - Simplify some of the codes and add more comments.
+  - Test for X86_FEATURE_HYPERVISOR CPU feature bit to enable/disable
+    unfair lock.
+  - Reduce unfair lock slowpath lock stealing frequency depending
+    on its distance from the queue head.
+  - Add performance data for IvyBridge-EX CPU.
+
+v6->v7:
+  - Remove an atomic operation from the 2-task contending code
+  - Shorten the names of some macros
+  - Make the queue waiter to attempt to steal lock when unfair lock is
+    enabled.
+  - Remove lock holder kick from the PV code and fix a race condition
+  - Run the unfair lock & PV code on overcommitted KVM guests to collect
+    performance data.
+
+v5->v6:
+ - Change the optimized 2-task contending code to make it fairer at the
+   expense of a bit of performance.
+ - Add a patch to support unfair queue spinlock for Xen.
+ - Modify the PV qspinlock code to follow what was done in the PV
+   ticketlock.
+ - Add performance data for the unfair lock as well as the PV
+   support code.
+
+v4->v5:
+ - Move the optimized 2-task contending code to the generic file to
+   enable more architectures to use it without code duplication.
+ - Address some of the style-related comments by PeterZ.
+ - Allow the use of unfair queue spinlock in a real para-virtualized
+   execution environment.
+ - Add para-virtualization support to the qspinlock code by ensuring
+   that the lock holder and queue head stay alive as much as possible.
+
+v3->v4:
+ - Remove debugging code and fix a configuration error
+ - Simplify the qspinlock structure and streamline the code to make it
+   perform a bit better
+ - Add an x86 version of asm/qspinlock.h for holding x86 specific
+   optimization.
+ - Add an optimized x86 code path for 2 contending tasks to improve
+   low contention performance.
+
+v2->v3:
+ - Simplify the code by using numerous mode only without an unfair option.
+ - Use the latest smp_load_acquire()/smp_store_release() barriers.
+ - Move the queue spinlock code to kernel/locking.
+ - Make the use of queue spinlock the default for x86-64 without user
+   configuration.
+ - Additional performance tuning.
+
+v1->v2:
+ - Add some more comments to document what the code does.
+ - Add a numerous CPU mode to support >= 16K CPUs
+ - Add a configuration option to allow lock stealing which can further
+   improve performance in many cases.
+ - Enable wakeup of queue head CPU at unlock time for non-numerous
+   CPU mode.
+
+This patch set has 3 different sections:
+ 1) Patches 1-6: Introduces a queue-based spinlock implementation that
+    can replace the default ticket spinlock without increasing the
+    size of the spinlock data structure. As a result, critical kernel
+    data structures that embed spinlock won't increase in size and
+    break data alignments.
+ 2) Patch 7: Enables the use of unfair lock in a virtual guest. This
+    can resolve some of the locking related performance issues due to
+    the fact that the next CPU to get the lock may have been scheduled
+    out for a period of time.
+ 3) Patches 8-11: Enable qspinlock para-virtualization support by
+    halting the waiting CPUs after spinning for a certain amount of
+    time. The unlock code will detect the a sleeping waiter and wake it
+    up. This is essentially the same logic as the PV ticketlock code.
+
+The queue spinlock has slightly better performance than the ticket
+spinlock in uncontended case. Its performance can be much better
+with moderate to heavy contention.  This patch has the potential of
+improving the performance of all the workloads that have moderate to
+heavy spinlock contention.
+
+The queue spinlock is especially suitable for NUMA machines with
+at least 2 sockets. Though even at the 2-socket level, there can
+be significant speedup depending on the workload. I got report that
+the queue spinlock patch can improve the performance of an I/O and
+interrupt intensive stress test with a lot of spinlock contention on
+a 2-socket system by up to 20%.
+
+The purpose of this patch set is not to solve any particular spinlock
+contention problems. Those need to be solved by refactoring the code
+to make more efficient use of the lock or finer granularity ones. The
+main purpose is to make the lock contention problems more tolerable
+until someone can spend the time and effort to fix them.
+
+Peter Zijlstra (3):
+  qspinlock: Add pending bit
+  qspinlock: Optimize for smaller NR_CPUS
+  qspinlock: Revert to test-and-set on hypervisors
+
+Waiman Long (8):
+  qspinlock: A simple generic 4-byte queue spinlock
+  qspinlock, x86: Enable x86-64 to use queue spinlock
+  qspinlock: Extract out code snippets for the next patch
+  qspinlock: Use a simple write to grab the lock
+  qspinlock, x86: Rename paravirt_ticketlocks_enabled
+  pvqspinlock, x86: Add para-virtualization support
+  pvqspinlock, x86: Enable PV qspinlock for KVM
+  pvqspinlock, x86: Enable PV qspinlock for XEN
+
+ arch/x86/Kconfig                      |    1 +
+ arch/x86/include/asm/paravirt.h       |   19 ++
+ arch/x86/include/asm/paravirt_types.h |   20 ++
+ arch/x86/include/asm/pvqspinlock.h    |  411 ++++++++++++++++++++++++++++
+ arch/x86/include/asm/qspinlock.h      |  104 +++++++
+ arch/x86/include/asm/spinlock.h       |    9 +-
+ arch/x86/include/asm/spinlock_types.h |    4 +
+ arch/x86/kernel/kvm.c                 |  140 ++++++++++-
+ arch/x86/kernel/paravirt-spinlocks.c  |   10 +-
+ arch/x86/xen/spinlock.c               |  151 ++++++++++-
+ include/asm-generic/qspinlock.h       |  127 +++++++++
+ include/asm-generic/qspinlock_types.h |   79 ++++++
+ kernel/Kconfig.locks                  |    7 +
+ kernel/locking/Makefile               |    1 +
+ kernel/locking/mcs_spinlock.h         |    1 +
+ kernel/locking/qspinlock.c            |  473 +++++++++++++++++++++++++++++++++
+ 16 files changed, 1545 insertions(+), 12 deletions(-)
+ create mode 100644 arch/x86/include/asm/pvqspinlock.h
+ create mode 100644 arch/x86/include/asm/qspinlock.h
+ create mode 100644 include/asm-generic/qspinlock.h
+ create mode 100644 include/asm-generic/qspinlock_types.h
+ create mode 100644 kernel/locking/qspinlock.c
