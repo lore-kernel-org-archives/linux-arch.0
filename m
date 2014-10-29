@@ -1,54 +1,148 @@
-From: Michael Ellerman <mpe@ellerman.id.au>
-Subject: Re: [PATCH V3 1/2] mm: Update generic gup implementation to handle
- hugepage directory
-Date: Wed, 29 Oct 2014 15:46:48 +1100
-Message-ID: <1414558008.7417.2.camel@concordia>
-References: <1414233860-7683-1-git-send-email-aneesh.kumar@linux.vnet.ibm.com>
-	 <20141027160612.b7fd0b1cc9d82faeaa674940@linux-foundation.org>
-	 <1414459229.31711.0.camel@concordia>
-	 <20141027183241.a5339085.akpm@linux-foundation.org>
-	 <20141028104451.GB4187@linaro.org>
+From: Ley Foon Tan <lftan@altera.com>
+Subject: Re: [PATCH v5 07/29] nios2: I/O Mapping
+Date: Wed, 29 Oct 2014 15:00:09 +0800
+Message-ID: <CAFiDJ586rgsSYzTvKsn4SSTQ9PJ3u3AQ-op28BgUy-D7BYbStw@mail.gmail.com>
+References: <1414139071-3818-1-git-send-email-lftan@altera.com>
+	<1414139071-3818-8-git-send-email-lftan@altera.com>
+	<3089586.phhm8NvmXk@wuerfel>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from ozlabs.org ([103.22.144.67]:56061 "EHLO ozlabs.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751963AbaJ2Eqx (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 29 Oct 2014 00:46:53 -0400
-In-Reply-To: <20141028104451.GB4187@linaro.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Steve Capper <steve.capper@linaro.org>
-Cc: Andrew Morton <akpm@linux-foundation.org>, "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>, Andrea Arcangeli <aarcange@redhat.com>, benh@kernel.crashing.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-arch@vger.kernel.org
+Content-Type: text/plain; charset=UTF-8
+Return-path: <linux-doc-owner@vger.kernel.org>
+In-Reply-To: <3089586.phhm8NvmXk@wuerfel>
+Sender: linux-doc-owner@vger.kernel.org
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Chung-Lin Tang <cltang@codesourcery.com>
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, 2014-10-28 at 10:44 +0000, Steve Capper wrote:
-> On Mon, Oct 27, 2014 at 06:32:41PM -0700, Andrew Morton wrote:
-> > On Tue, 28 Oct 2014 12:20:29 +1100 Michael Ellerman <mpe@ellerman.id.au> wrote:
-> > 
-> > > On Mon, 2014-10-27 at 16:06 -0700, Andrew Morton wrote:
-> > > > On Sat, 25 Oct 2014 16:14:19 +0530 "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com> wrote:
-> > > > 
-> > > > > Update generic gup implementation with powerpc specific details.
-> > > > > On powerpc at pmd level we can have hugepte, normal pmd pointer
-> > > > > or a pointer to the hugepage directory.
-> > > > 
-> > > > I grabbed these.  It would be better if they were merged into the powerpc
-> > > > tree where they'll get more testing than in linux-next alone.
-> > >  
-> > > Fine by me. Can I get an ack from you and/or someone else on CC?
-> > 
-> > Only arm and arm64 use this code.  Steve, could you please look it over
-> > and check that arm is still happy?
-> 
-> Hi Andrew,
-> I've tested it and posted some comments on it.
-> 
-> If the arch/arm and arch/arm64 changes are removed and a comment about
-> an assumption made by the new gup_huge_pte code is added then I'm happy.
+On Tue, Oct 28, 2014 at 9:30 PM, Arnd Bergmann <arnd@arndb.de> wrote:
+> On Friday 24 October 2014 16:24:09 Ley Foon Tan wrote:
+>
+>> +/* PCI is not supported in nios2, set this to 0. */
+>> +#define IO_SPACE_LIMIT 0
+>> +
+>> +extern void outsb(unsigned long addr, const void *buf, int len);
+>> +extern void outsw(unsigned long addr, const void *buf, int len);
+>> +extern void outsl(unsigned long addr, const void *buf, int len);
+>> +extern void insb(unsigned long addr, void *buf, int len);
+>> +extern void insw(unsigned long addr, void *buf, int len);
+>> +extern void insl(unsigned long addr, void *buf, int len);
+>> +#define outsb outsb
+>> +#define outsw outsw
+>> +#define outsl outsl
+>> +#define insb insb
+>> +#define insw insw
+>> +#define insl insl
+>
+> You don't have inb/outb, so you shouldn't have these either.
+Okay, will remove.
+>
+>> +/*
+>> + * PCI is not enabled in nios2. Provide dummy implementation to get 'allyesconfig'
+>> + * to build successfully.
+>> + */
+>> +#define inb(addr)    ({ 0; })
+>> +#define inw(addr)    ({ 0; })
+>> +#define inl(addr)    ({ 0; })
+>> +#define outb(x, addr)        do { } while (0)
+>> +#define outw(x, addr)        do { } while (0)
+>> +#define outl(x, addr)        do { } while (0)
+>
+> What fails if you take these out?
+Seem good, will remove this as well.
+>
+>> +
+>> +/* Use "Duff's Device" to unroll the loops. */
+>> +#define __IO_OUT_LOOP(a, b, l)                               \
+>> +     do {                                            \
+>> +             if (l > 0) {                            \
+>> +                     int _n = (l + 7) / 8;           \
+>> +                     switch (l % 8) {                \
+>> +                     case 0:                         \
+>> +                             do {                    \
+>> +                                     *a = *b++;      \
+>> +                     case 7:                         \
+>> +                                     *a = *b++;      \
+>> +                     case 6:                         \
+>> +                                     *a = *b++;      \
+>> +                     case 5:                         \
+>> +                                     *a = *b++;      \
+>> +                     case 4:                         \
+>> +                                     *a = *b++;      \
+>> +                     case 3:                         \
+>> +                                     *a = *b++;      \
+>> +                     case 2:                         \
+>> +                                     *a = *b++;      \
+>> +                     case 1:                         \
+>> +                                     *a = *b++;      \
+>> +                             } while (--_n > 0);     \
+>> +                     }                               \
+>> +             }                                       \
+>> +     } while (0)
+>> +
+>> +#define __IO_IN_LOOP(a, b, l)                                \
+>> +     do {                                            \
+>> +             if (l > 0) {                            \
+>> +                     int _n = (l + 7) / 8;           \
+>> +                     switch (l % 8) {                \
+>> +                     case 0:                         \
+>> +                             do {                    \
+>> +                                     *b++ = *a;      \
+>> +                     case 7:                         \
+>> +                                     *b++ = *a;      \
+>> +                     case 6:                         \
+>> +                                     *b++ = *a;      \
+>> +                     case 5:                         \
+>> +                                     *b++ = *a;      \
+>> +                     case 4:                         \
+>> +                                     *b++ = *a;      \
+>> +                     case 3:                         \
+>> +                                     *b++ = *a;      \
+>> +                     case 2:                         \
+>> +                                     *b++ = *a;      \
+>> +                     case 1:                         \
+>> +                                     *b++ = *a;      \
+>> +                             } while (--_n > 0);     \
+>> +                     }                               \
+>> +             }                                       \
+>> +     } while (0)
+>> +
+>> +#else /* __IO_USE_DUFFS */
+>> +
+>> +/* Use simple loops. */
+>> +#define __IO_OUT_LOOP(a, b, l)                               \
+>> +     do {                                            \
+>> +             while (l--)                             \
+>> +                     *a = *b++;                      \
+>> +     } while (0)
+>> +
+>> +#define __IO_IN_LOOP(a, b, l)                                \
+>> +     do {                                            \
+>> +             while (l--)                             \
+>> +                     *b++ = *a;                      \
+>> +     } while (0)
+>> +
+>> +#endif /* __IO_USE_DUFFS */
+>> +
+>> +void outsb(unsigned long addr, const void *buf, int len)
+>> +{
+>> +     volatile unsigned char *ap = (volatile unsigned char *)addr;
+>> +     unsigned char *bp = (unsigned char *)buf;
+>> +     __IO_OUT_LOOP(ap, bp, len);
+>> +}
+>> +EXPORT_SYMBOL(outsb);
+>> +
+>> +void outsw(unsigned long addr, const void *buf, int len)
+>> +{
+>> +     volatile unsigned short *ap = (volatile unsigned short *)addr;
+>> +     unsigned short *bp = (unsigned short *)buf;
+>> +     __IO_OUT_LOOP(ap, bp, len);
+>> +}
+>> +EXPORT_SYMBOL(outsw);
+>
+> This implementation makes no sense, so definitely remove them.
+Okay.
 
-OK thanks Steve.
+Thanks.
 
-Aneesh can you do those changes and resend and I'll put it in powerpc next.
-
-cheers
+Regards
+Ley Foon
