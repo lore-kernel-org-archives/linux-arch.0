@@ -1,35 +1,40 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wi0-f176.google.com ([209.85.212.176]:38522 "EHLO
-	mail-wi0-f176.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932260AbaJ2J0J (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 29 Oct 2014 05:26:09 -0400
-Received: by mail-wi0-f176.google.com with SMTP id h11so1085889wiw.3
-        for <linux-arch@vger.kernel.org>; Wed, 29 Oct 2014 02:26:08 -0700 (PDT)
-Date: Wed, 29 Oct 2014 09:25:58 +0000
-From: Steve Capper <steve.capper@linaro.org>
-Subject: Re: [PATCH V4 1/2] mm: Update generic gup implementation to handle
- hugepage directory
-Message-ID: <20141029092557.GA3440@linaro.org>
-References: <1414570785-18966-1-git-send-email-aneesh.kumar@linux.vnet.ibm.com>
+Received: from www.linutronix.de ([62.245.132.108]:58067 "EHLO
+	Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750712AbaJ2SNC (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 29 Oct 2014 14:13:02 -0400
+Date: Wed, 29 Oct 2014 19:12:57 +0100 (CET)
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: Re: [PATCH v2] all arches, signal: Move restart_block to struct
+ task_struct
+In-Reply-To: <43c88012a4959cd427ab634906e697fbc524e847.1414604015.git.luto@amacapital.net>
+Message-ID: <alpine.DEB.2.11.1410291908290.5308@nanos>
+References: <43c88012a4959cd427ab634906e697fbc524e847.1414604015.git.luto@amacapital.net>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1414570785-18966-1-git-send-email-aneesh.kumar@linux.vnet.ibm.com>
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>
-Cc: akpm@linux-foundation.org, Andrea Arcangeli <aarcange@redhat.com>, benh@kernel.crashing.org, mpe@ellerman.id.au, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-arch@vger.kernel.org
-Message-ID: <20141029092558.FZorZ6ghSbmKwGROL50Pa-XopzAkiN7_hwUEe_PfC4Q@z>
+To: Andy Lutomirski <luto@amacapital.net>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, linux-arch <linux-arch@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, Richard Weinberger <richard.weinberger@gmail.com>, "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@kernel.org>, Kees Cook <keescook@chromium.org>
+Message-ID: <20141029181257.PS33yYGo4U2cWo72yML8I2O2IEvpg_ZarK-CTMOLZ_A@z>
 
-On Wed, Oct 29, 2014 at 01:49:44PM +0530, Aneesh Kumar K.V wrote:
-> Update generic gup implementation with powerpc specific details.
-> On powerpc at pmd level we can have hugepte, normal pmd pointer
-> or a pointer to the hugepage directory.
+On Wed, 29 Oct 2014, Andy Lutomirski wrote:
+
+> If an attacker can cause a controlled kernel stack overflow,
+> overwriting the restart block is a very juicy exploit target.
+> Moving the restart block to struct task_struct prevents this
+> exploit.
 > 
-> Signed-off-by: Aneesh Kumar K.V <aneesh.kumar@linux.vnet.ibm.com>
+> Note that there are other fields in thread_info that are also easy
+> targets, at least on some architectures.
+> 
+> It's also a decent simplification, since the restart code is more or
+> less identical on all architectures.
 
-Acked-by: Steve Capper <steve.capper@linaro.org>
+I think that's the most important change. Moving common stuff into
+common code. The side effect of slightly reducing the attack surface
+is nice, but as Al pointed out not really the big win here.
+ 
+Thanks,
 
-Thanks Aneesh,
---
-Steve
+	tglx
