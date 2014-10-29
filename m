@@ -1,491 +1,325 @@
-From: "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>
-Subject: [PATCH V4 2/2] arch/powerpc: Switch to generic RCU get_user_pages_fast
-Date: Wed, 29 Oct 2014 13:49:45 +0530
-Message-ID: <1414570785-18966-2-git-send-email-aneesh.kumar@linux.vnet.ibm.com>
-References: <1414570785-18966-1-git-send-email-aneesh.kumar@linux.vnet.ibm.com>
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <1414570785-18966-1-git-send-email-aneesh.kumar@linux.vnet.ibm.com>
-Sender: owner-linux-mm@kvack.org
-To: akpm@linux-foundation.org, Steve Capper <steve.capper@linaro.org>, Andrea Arcangeli <aarcange@redhat.com>, benh@kernel.crashing.org, mpe@ellerman.id.au
-Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-arch@vger.kernel.org, "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>
-List-Id: linux-arch.vger.kernel.org
+From: Fengwei Yin <yfw.kernel@gmail.com>
+Subject: Re: [PATCH v2] smaps should deal with huge zero page exactly same as
+ normal zero page.
+Date: Thu, 30 Oct 2014 00:54:34 +0800
+Message-ID: <20141029165434.GA16983@gmail.com>
+References: <1414422133-7929-1-git-send-email-yfw.kernel@gmail.com>
+ <20141027151748.3901b18abcb65426e7ed50b0@linux-foundation.org>
+ <20141028150944.GA13840@gmail.com>
+ <20141028131810.GB9768@node.dhcp.inet.fi>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-pd0-f175.google.com ([209.85.192.175]:53424 "EHLO
+	mail-pd0-f175.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755630AbaJ2I6P (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 29 Oct 2014 04:58:15 -0400
+Received: by mail-pd0-f175.google.com with SMTP id y13so2569496pdi.6
+        for <linux-arch@vger.kernel.org>; Wed, 29 Oct 2014 01:58:15 -0700 (PDT)
+Content-Disposition: inline
+In-Reply-To: <20141028131810.GB9768@node.dhcp.inet.fi>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: "Kirill A. Shutemov" <kirill@shutemov.name>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Dave Hansen <dave.hansen@intel.com>, Fengguang Wu <fengguang.wu@intel.com>, Linux Memory Management List <linux-mm@kvack.org>, Naoya Horiguchi <n-horiguchi@ah.jp.nec.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, "David S. Miller" <davem@davemloft.net>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org
 
-This patch switch the ppc arch to use the generic RCU based
-gup implementation.
+On Tue, Oct 28, 2014 at 03:18:10PM +0200, Kirill A. Shutemov wrote:
+> On Tue, Oct 28, 2014 at 11:18:38PM +0800, Fengwei Yin wrote:
+> > On Mon, Oct 27, 2014 at 03:17:48PM -0700, Andrew Morton wrote:
+> > > On Mon, 27 Oct 2014 23:02:13 +0800 Fengwei Yin <yfw.kernel@gmail.com> wrote:
+> > > 
+> > > > We could see following memory info in /proc/xxxx/smaps with THP enabled.
+> > > >   7bea458b3000-7fea458b3000 r--p 00000000 00:13 39989  /dev/zero
+> > > >   Size:           4294967296 kB
+> > > >   Rss:            10612736 kB
+> > > >   Pss:            10612736 kB
+> > > >   Shared_Clean:          0 kB
+> > > >   Shared_Dirty:          0 kB
+> > > >   Private_Clean:  10612736 kB
+> > > >   Private_Dirty:         0 kB
+> > > >   Referenced:     10612736 kB
+> > > >   Anonymous:             0 kB
+> > > >   AnonHugePages:  10612736 kB
+> > > >   Swap:                  0 kB
+> > > >   KernelPageSize:        4 kB
+> > > >   MMUPageSize:           4 kB
+> > > >   Locked:                0 kB
+> > > >   VmFlags: rd mr mw me
+> > > > which is wrong becuase just huge_zero_page/normal_zero_page is used for
+> > > > /dev/zero. Most of the value should be 0.
+> > > > 
+> > > > This patch detects huge_zero_page (original implementation just detect
+> > > > normal_zero_page) and avoids to update the wrong value for huge_zero_page.
+> > > > 
+> > > > ...
+> > > >
+> > > > --- a/mm/memory.c
+> > > > +++ b/mm/memory.c
+> > > > @@ -41,6 +41,7 @@
+> > > >  #include <linux/kernel_stat.h>
+> > > >  #include <linux/mm.h>
+> > > >  #include <linux/hugetlb.h>
+> > > > +#include <linux/huge_mm.h>
+> > > >  #include <linux/mman.h>
+> > > >  #include <linux/swap.h>
+> > > >  #include <linux/highmem.h>
+> > > > @@ -787,6 +788,9 @@ check_pfn:
+> > > >  		return NULL;
+> > > >  	}
+> > > >  
+> > > > +	if (is_huge_zero_pfn(pfn))
+> > > > +		return NULL;
+> > > > +
+> > > 
+> > > Why this change?
+> > > 
+> > I suppose the huge zero page should have same behavior as normal zero
+> > page. vm_normal_page will return NULL if the pte is for normal zero
+> > page. This change make it return NULL for huge zero page.
+> > 
+> > > What effect does it have upon vm_normal_page()'s many existing callers?
+> > This is good question. I suppose it will not impact existing caller.
+> 
+> vm_normal_page() is designed to handle pte. We only get there due hack
+> with pmd to pte cast in smaps_pte_range(). Let's try to get rid of it
+> instead.
+> 
+> Could you test the patch below? I think it's a better fix.
+I will test the patch tomorrow and let you know the result. Thanks.
 
-Signed-off-by: Aneesh Kumar K.V <aneesh.kumar@linux.vnet.ibm.com>
----
- arch/powerpc/Kconfig                     |   1 +
- arch/powerpc/include/asm/hugetlb.h       |   8 +-
- arch/powerpc/include/asm/page.h          |   3 +-
- arch/powerpc/include/asm/pgtable-ppc64.h |   1 -
- arch/powerpc/include/asm/pgtable.h       |   5 -
- arch/powerpc/mm/Makefile                 |   2 +-
- arch/powerpc/mm/gup.c                    | 235 -------------------------------
- arch/powerpc/mm/hugetlbpage.c            |  27 ++--
- 8 files changed, 21 insertions(+), 261 deletions(-)
- delete mode 100644 arch/powerpc/mm/gup.c
-
-diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
-index 88eace4e28c3..7af887dc6aed 100644
---- a/arch/powerpc/Kconfig
-+++ b/arch/powerpc/Kconfig
-@@ -148,6 +148,7 @@ config PPC
- 	select HAVE_ARCH_AUDITSYSCALL
- 	select ARCH_SUPPORTS_ATOMIC_RMW
- 	select DCACHE_WORD_ACCESS if PPC64 && CPU_LITTLE_ENDIAN
-+	select HAVE_GENERIC_RCU_GUP
- 
- config GENERIC_CSUM
- 	def_bool CPU_LITTLE_ENDIAN
-diff --git a/arch/powerpc/include/asm/hugetlb.h b/arch/powerpc/include/asm/hugetlb.h
-index 766b77d527ac..1d53a65b4ec1 100644
---- a/arch/powerpc/include/asm/hugetlb.h
-+++ b/arch/powerpc/include/asm/hugetlb.h
-@@ -48,7 +48,7 @@ static inline unsigned int hugepd_shift(hugepd_t hpd)
- #endif /* CONFIG_PPC_BOOK3S_64 */
- 
- 
--static inline pte_t *hugepte_offset(hugepd_t *hpdp, unsigned long addr,
-+static inline pte_t *hugepte_offset(hugepd_t hpd, unsigned long addr,
- 				    unsigned pdshift)
- {
- 	/*
-@@ -58,9 +58,9 @@ static inline pte_t *hugepte_offset(hugepd_t *hpdp, unsigned long addr,
- 	 */
- 	unsigned long idx = 0;
- 
--	pte_t *dir = hugepd_page(*hpdp);
-+	pte_t *dir = hugepd_page(hpd);
- #ifndef CONFIG_PPC_FSL_BOOK3E
--	idx = (addr & ((1UL << pdshift) - 1)) >> hugepd_shift(*hpdp);
-+	idx = (addr & ((1UL << pdshift) - 1)) >> hugepd_shift(hpd);
- #endif
- 
- 	return dir + idx;
-@@ -193,7 +193,7 @@ static inline void flush_hugetlb_page(struct vm_area_struct *vma,
- }
- 
- #define hugepd_shift(x) 0
--static inline pte_t *hugepte_offset(hugepd_t *hpdp, unsigned long addr,
-+static inline pte_t *hugepte_offset(hugepd_t hpd, unsigned long addr,
- 				    unsigned pdshift)
- {
- 	return 0;
-diff --git a/arch/powerpc/include/asm/page.h b/arch/powerpc/include/asm/page.h
-index f973fce73a43..69c059887a2c 100644
---- a/arch/powerpc/include/asm/page.h
-+++ b/arch/powerpc/include/asm/page.h
-@@ -379,13 +379,14 @@ static inline int hugepd_ok(hugepd_t hpd)
- }
- #endif
- 
--#define is_hugepd(pdep)               (hugepd_ok(*((hugepd_t *)(pdep))))
-+#define is_hugepd(hpd)               (hugepd_ok(hpd))
- #define pgd_huge pgd_huge
- int pgd_huge(pgd_t pgd);
- #else /* CONFIG_HUGETLB_PAGE */
- #define is_hugepd(pdep)			0
- #define pgd_huge(pgd)			0
- #endif /* CONFIG_HUGETLB_PAGE */
-+#define __hugepd(x) ((hugepd_t) { (x) })
- 
- struct page;
- extern void clear_user_page(void *page, unsigned long vaddr, struct page *pg);
-diff --git a/arch/powerpc/include/asm/pgtable-ppc64.h b/arch/powerpc/include/asm/pgtable-ppc64.h
-index ae153c40ab7c..29c36242cc6a 100644
---- a/arch/powerpc/include/asm/pgtable-ppc64.h
-+++ b/arch/powerpc/include/asm/pgtable-ppc64.h
-@@ -575,6 +575,5 @@ static inline int pmd_move_must_withdraw(struct spinlock *new_pmd_ptl,
- 	 */
- 	return true;
- }
--
- #endif /* __ASSEMBLY__ */
- #endif /* _ASM_POWERPC_PGTABLE_PPC64_H_ */
-diff --git a/arch/powerpc/include/asm/pgtable.h b/arch/powerpc/include/asm/pgtable.h
-index 316f9a5da173..4a67c1ddb91b 100644
---- a/arch/powerpc/include/asm/pgtable.h
-+++ b/arch/powerpc/include/asm/pgtable.h
-@@ -274,11 +274,6 @@ extern void paging_init(void);
-  */
- extern void update_mmu_cache(struct vm_area_struct *, unsigned long, pte_t *);
- 
--extern int gup_hugepd(hugepd_t *hugepd, unsigned pdshift, unsigned long addr,
--		      unsigned long end, int write, struct page **pages, int *nr);
--
--extern int gup_hugepte(pte_t *ptep, unsigned long sz, unsigned long addr,
--		       unsigned long end, int write, struct page **pages, int *nr);
- #ifndef CONFIG_TRANSPARENT_HUGEPAGE
- #define pmd_large(pmd)		0
- #define has_transparent_hugepage() 0
-diff --git a/arch/powerpc/mm/Makefile b/arch/powerpc/mm/Makefile
-index 325e861616a1..438dcd3fd0d1 100644
---- a/arch/powerpc/mm/Makefile
-+++ b/arch/powerpc/mm/Makefile
-@@ -6,7 +6,7 @@ subdir-ccflags-$(CONFIG_PPC_WERROR) := -Werror
- 
- ccflags-$(CONFIG_PPC64)	:= $(NO_MINIMAL_TOC)
- 
--obj-y				:= fault.o mem.o pgtable.o gup.o mmap.o \
-+obj-y				:= fault.o mem.o pgtable.o mmap.o \
- 				   init_$(CONFIG_WORD_SIZE).o \
- 				   pgtable_$(CONFIG_WORD_SIZE).o
- obj-$(CONFIG_PPC_MMU_NOHASH)	+= mmu_context_nohash.o tlb_nohash.o \
-diff --git a/arch/powerpc/mm/gup.c b/arch/powerpc/mm/gup.c
-deleted file mode 100644
-index d8746684f606..000000000000
---- a/arch/powerpc/mm/gup.c
-+++ /dev/null
-@@ -1,235 +0,0 @@
--/*
-- * Lockless get_user_pages_fast for powerpc
-- *
-- * Copyright (C) 2008 Nick Piggin
-- * Copyright (C) 2008 Novell Inc.
-- */
--#undef DEBUG
--
--#include <linux/sched.h>
--#include <linux/mm.h>
--#include <linux/hugetlb.h>
--#include <linux/vmstat.h>
--#include <linux/pagemap.h>
--#include <linux/rwsem.h>
--#include <asm/pgtable.h>
--
--#ifdef __HAVE_ARCH_PTE_SPECIAL
--
--/*
-- * The performance critical leaf functions are made noinline otherwise gcc
-- * inlines everything into a single function which results in too much
-- * register pressure.
-- */
--static noinline int gup_pte_range(pmd_t pmd, unsigned long addr,
--		unsigned long end, int write, struct page **pages, int *nr)
--{
--	unsigned long mask, result;
--	pte_t *ptep;
--
--	result = _PAGE_PRESENT|_PAGE_USER;
--	if (write)
--		result |= _PAGE_RW;
--	mask = result | _PAGE_SPECIAL;
--
--	ptep = pte_offset_kernel(&pmd, addr);
--	do {
--		pte_t pte = ACCESS_ONCE(*ptep);
--		struct page *page;
--		/*
--		 * Similar to the PMD case, NUMA hinting must take slow path
--		 */
--		if (pte_numa(pte))
--			return 0;
--
--		if ((pte_val(pte) & mask) != result)
--			return 0;
--		VM_BUG_ON(!pfn_valid(pte_pfn(pte)));
--		page = pte_page(pte);
--		if (!page_cache_get_speculative(page))
--			return 0;
--		if (unlikely(pte_val(pte) != pte_val(*ptep))) {
--			put_page(page);
--			return 0;
--		}
--		pages[*nr] = page;
--		(*nr)++;
--
--	} while (ptep++, addr += PAGE_SIZE, addr != end);
--
--	return 1;
--}
--
--static int gup_pmd_range(pud_t pud, unsigned long addr, unsigned long end,
--		int write, struct page **pages, int *nr)
--{
--	unsigned long next;
--	pmd_t *pmdp;
--
--	pmdp = pmd_offset(&pud, addr);
--	do {
--		pmd_t pmd = ACCESS_ONCE(*pmdp);
--
--		next = pmd_addr_end(addr, end);
--		/*
--		 * If we find a splitting transparent hugepage we
--		 * return zero. That will result in taking the slow
--		 * path which will call wait_split_huge_page()
--		 * if the pmd is still in splitting state
--		 */
--		if (pmd_none(pmd) || pmd_trans_splitting(pmd))
--			return 0;
--		if (pmd_huge(pmd) || pmd_large(pmd)) {
--			/*
--			 * NUMA hinting faults need to be handled in the GUP
--			 * slowpath for accounting purposes and so that they
--			 * can be serialised against THP migration.
--			 */
--			if (pmd_numa(pmd))
--				return 0;
--
--			if (!gup_hugepte((pte_t *)pmdp, PMD_SIZE, addr, next,
--					 write, pages, nr))
--				return 0;
--		} else if (is_hugepd(pmdp)) {
--			if (!gup_hugepd((hugepd_t *)pmdp, PMD_SHIFT,
--					addr, next, write, pages, nr))
--				return 0;
--		} else if (!gup_pte_range(pmd, addr, next, write, pages, nr))
--			return 0;
--	} while (pmdp++, addr = next, addr != end);
--
--	return 1;
--}
--
--static int gup_pud_range(pgd_t pgd, unsigned long addr, unsigned long end,
--		int write, struct page **pages, int *nr)
--{
--	unsigned long next;
--	pud_t *pudp;
--
--	pudp = pud_offset(&pgd, addr);
--	do {
--		pud_t pud = ACCESS_ONCE(*pudp);
--
--		next = pud_addr_end(addr, end);
--		if (pud_none(pud))
--			return 0;
--		if (pud_huge(pud)) {
--			if (!gup_hugepte((pte_t *)pudp, PUD_SIZE, addr, next,
--					 write, pages, nr))
--				return 0;
--		} else if (is_hugepd(pudp)) {
--			if (!gup_hugepd((hugepd_t *)pudp, PUD_SHIFT,
--					addr, next, write, pages, nr))
--				return 0;
--		} else if (!gup_pmd_range(pud, addr, next, write, pages, nr))
--			return 0;
--	} while (pudp++, addr = next, addr != end);
--
--	return 1;
--}
--
--int __get_user_pages_fast(unsigned long start, int nr_pages, int write,
--			  struct page **pages)
--{
--	struct mm_struct *mm = current->mm;
--	unsigned long addr, len, end;
--	unsigned long next;
--	unsigned long flags;
--	pgd_t *pgdp;
--	int nr = 0;
--
--	pr_devel("%s(%lx,%x,%s)\n", __func__, start, nr_pages, write ? "write" : "read");
--
--	start &= PAGE_MASK;
--	addr = start;
--	len = (unsigned long) nr_pages << PAGE_SHIFT;
--	end = start + len;
--
--	if (unlikely(!access_ok(write ? VERIFY_WRITE : VERIFY_READ,
--					start, len)))
--		return 0;
--
--	pr_devel("  aligned: %lx .. %lx\n", start, end);
--
--	/*
--	 * XXX: batch / limit 'nr', to avoid large irq off latency
--	 * needs some instrumenting to determine the common sizes used by
--	 * important workloads (eg. DB2), and whether limiting the batch size
--	 * will decrease performance.
--	 *
--	 * It seems like we're in the clear for the moment. Direct-IO is
--	 * the main guy that batches up lots of get_user_pages, and even
--	 * they are limited to 64-at-a-time which is not so many.
--	 */
--	/*
--	 * This doesn't prevent pagetable teardown, but does prevent
--	 * the pagetables from being freed on powerpc.
--	 *
--	 * So long as we atomically load page table pointers versus teardown,
--	 * we can follow the address down to the the page and take a ref on it.
--	 */
--	local_irq_save(flags);
--
--	pgdp = pgd_offset(mm, addr);
--	do {
--		pgd_t pgd = ACCESS_ONCE(*pgdp);
--
--		pr_devel("  %016lx: normal pgd %p\n", addr,
--			 (void *)pgd_val(pgd));
--		next = pgd_addr_end(addr, end);
--		if (pgd_none(pgd))
--			break;
--		if (pgd_huge(pgd)) {
--			if (!gup_hugepte((pte_t *)pgdp, PGDIR_SIZE, addr, next,
--					 write, pages, &nr))
--				break;
--		} else if (is_hugepd(pgdp)) {
--			if (!gup_hugepd((hugepd_t *)pgdp, PGDIR_SHIFT,
--					addr, next, write, pages, &nr))
--				break;
--		} else if (!gup_pud_range(pgd, addr, next, write, pages, &nr))
--			break;
--	} while (pgdp++, addr = next, addr != end);
--
--	local_irq_restore(flags);
--
--	return nr;
--}
--
--int get_user_pages_fast(unsigned long start, int nr_pages, int write,
--			struct page **pages)
--{
--	struct mm_struct *mm = current->mm;
--	int nr, ret;
--
--	start &= PAGE_MASK;
--	nr = __get_user_pages_fast(start, nr_pages, write, pages);
--	ret = nr;
--
--	if (nr < nr_pages) {
--		pr_devel("  slow path ! nr = %d\n", nr);
--
--		/* Try to get the remaining pages with get_user_pages */
--		start += nr << PAGE_SHIFT;
--		pages += nr;
--
--		down_read(&mm->mmap_sem);
--		ret = get_user_pages(current, mm, start,
--				     nr_pages - nr, write, 0, pages, NULL);
--		up_read(&mm->mmap_sem);
--
--		/* Have to be a bit careful with return values */
--		if (nr > 0) {
--			if (ret < 0)
--				ret = nr;
--			else
--				ret += nr;
--		}
--	}
--
--	return ret;
--}
--
--#endif /* __HAVE_ARCH_PTE_SPECIAL */
-diff --git a/arch/powerpc/mm/hugetlbpage.c b/arch/powerpc/mm/hugetlbpage.c
-index 7e70ae968e5f..03342df3c895 100644
---- a/arch/powerpc/mm/hugetlbpage.c
-+++ b/arch/powerpc/mm/hugetlbpage.c
-@@ -230,7 +230,7 @@ pte_t *huge_pte_alloc(struct mm_struct *mm, unsigned long addr, unsigned long sz
- 	if (hugepd_none(*hpdp) && __hugepte_alloc(mm, hpdp, addr, pdshift, pshift))
- 		return NULL;
- 
--	return hugepte_offset(hpdp, addr, pdshift);
-+	return hugepte_offset(*hpdp, addr, pdshift);
- }
- 
- #else
-@@ -270,7 +270,7 @@ pte_t *huge_pte_alloc(struct mm_struct *mm, unsigned long addr, unsigned long sz
- 	if (hugepd_none(*hpdp) && __hugepte_alloc(mm, hpdp, addr, pdshift, pshift))
- 		return NULL;
- 
--	return hugepte_offset(hpdp, addr, pdshift);
-+	return hugepte_offset(*hpdp, addr, pdshift);
- }
- #endif
- 
-@@ -538,7 +538,7 @@ static void hugetlb_free_pmd_range(struct mmu_gather *tlb, pud_t *pud,
- 	do {
- 		pmd = pmd_offset(pud, addr);
- 		next = pmd_addr_end(addr, end);
--		if (!is_hugepd(pmd)) {
-+		if (!is_hugepd(__hugepd(pmd_val(*pmd)))) {
- 			/*
- 			 * if it is not hugepd pointer, we should already find
- 			 * it cleared.
-@@ -587,7 +587,7 @@ static void hugetlb_free_pud_range(struct mmu_gather *tlb, pgd_t *pgd,
- 	do {
- 		pud = pud_offset(pgd, addr);
- 		next = pud_addr_end(addr, end);
--		if (!is_hugepd(pud)) {
-+		if (!is_hugepd(__hugepd(pud_val(*pud)))) {
- 			if (pud_none_or_clear_bad(pud))
- 				continue;
- 			hugetlb_free_pmd_range(tlb, pud, addr, next, floor,
-@@ -653,7 +653,7 @@ void hugetlb_free_pgd_range(struct mmu_gather *tlb,
- 	do {
- 		next = pgd_addr_end(addr, end);
- 		pgd = pgd_offset(tlb->mm, addr);
--		if (!is_hugepd(pgd)) {
-+		if (!is_hugepd(__hugepd(pgd_val(*pgd)))) {
- 			if (pgd_none_or_clear_bad(pgd))
- 				continue;
- 			hugetlb_free_pud_range(tlb, pgd, addr, next, floor, ceiling);
-@@ -713,18 +713,17 @@ static unsigned long hugepte_addr_end(unsigned long addr, unsigned long end,
- 	return (__boundary - 1 < end - 1) ? __boundary : end;
- }
- 
--int gup_hugepd(hugepd_t *hugepd, unsigned pdshift,
--	       unsigned long addr, unsigned long end,
--	       int write, struct page **pages, int *nr)
-+int gup_huge_pd(hugepd_t hugepd, unsigned long addr, unsigned pdshift,
-+		unsigned long end, int write, struct page **pages, int *nr)
- {
- 	pte_t *ptep;
--	unsigned long sz = 1UL << hugepd_shift(*hugepd);
-+	unsigned long sz = 1UL << hugepd_shift(hugepd);
- 	unsigned long next;
- 
- 	ptep = hugepte_offset(hugepd, addr, pdshift);
- 	do {
- 		next = hugepte_addr_end(addr, end, sz);
--		if (!gup_hugepte(ptep, sz, addr, end, write, pages, nr))
-+		if (!gup_huge_pte(*ptep, ptep, addr, sz, end, write, pages, nr))
- 			return 0;
- 	} while (ptep++, addr = next, addr != end);
- 
-@@ -961,7 +960,7 @@ pte_t *find_linux_pte_or_hugepte(pgd_t *pgdir, unsigned long ea, unsigned *shift
- 	else if (pgd_huge(pgd)) {
- 		ret_pte = (pte_t *) pgdp;
- 		goto out;
--	} else if (is_hugepd(&pgd))
-+	} else if (is_hugepd(__hugepd(pgd_val(pgd))))
- 		hpdp = (hugepd_t *)&pgd;
- 	else {
- 		/*
-@@ -978,7 +977,7 @@ pte_t *find_linux_pte_or_hugepte(pgd_t *pgdir, unsigned long ea, unsigned *shift
- 		else if (pud_huge(pud)) {
- 			ret_pte = (pte_t *) pudp;
- 			goto out;
--		} else if (is_hugepd(&pud))
-+		} else if (is_hugepd(__hugepd(pud_val(pud))))
- 			hpdp = (hugepd_t *)&pud;
- 		else {
- 			pdshift = PMD_SHIFT;
-@@ -999,7 +998,7 @@ pte_t *find_linux_pte_or_hugepte(pgd_t *pgdir, unsigned long ea, unsigned *shift
- 			if (pmd_huge(pmd) || pmd_large(pmd)) {
- 				ret_pte = (pte_t *) pmdp;
- 				goto out;
--			} else if (is_hugepd(&pmd))
-+			} else if (is_hugepd(__hugepd(pmd_val(pmd))))
- 				hpdp = (hugepd_t *)&pmd;
- 			else
- 				return pte_offset_kernel(&pmd, ea);
-@@ -1008,7 +1007,7 @@ pte_t *find_linux_pte_or_hugepte(pgd_t *pgdir, unsigned long ea, unsigned *shift
- 	if (!hpdp)
- 		return NULL;
- 
--	ret_pte = hugepte_offset(hpdp, ea, pdshift);
-+	ret_pte = hugepte_offset(*hpdp, ea, pdshift);
- 	pdshift = hugepd_shift(*hpdp);
- out:
- 	if (shift)
--- 
-2.1.0
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+> 
+> From 592a7e789128d92e7f5165b583558443e82c88fd Mon Sep 17 00:00:00 2001
+> From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+> Date: Tue, 28 Oct 2014 14:51:31 +0200
+> Subject: [PATCH] mm: fix huge zero page accounting in smaps report
+> 
+> As a small zero page, huge zero page should not be accounted in smaps
+> report as normal page.
+> 
+> For small pages we rely on vm_normal_page() to filter out zero page, but
+> vm_normal_page() is not designed to handle pmds. We only get here due
+> hackish cast pmd to pte in smaps_pte_range() -- pte and pmd format is
+> not necessary compatible on each and every architecture.
+> 
+> Let's add separate codepath to handle pmds. follow_trans_huge_pmd() will
+> detect huge zero page for us.
+> 
+> We would need pmd_dirty() helper to do this properly. The patch adds it
+> to THP-enabled architectures which don't yet have one.
+> 
+> Reported-by: Fengguang Wu <fengguang.wu@intel.com>
+> Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
+> ---
+>  arch/arm64/include/asm/pgtable.h         |   1 +
+>  arch/powerpc/include/asm/pgtable-ppc64.h |   1 +
+>  arch/sparc/include/asm/pgtable_64.h      |   7 +++
+>  arch/x86/include/asm/pgtable.h           |   5 ++
+>  fs/proc/task_mmu.c                       | 101 ++++++++++++++++++++-----------
+>  5 files changed, 79 insertions(+), 36 deletions(-)
+> 
+> diff --git a/arch/arm64/include/asm/pgtable.h b/arch/arm64/include/asm/pgtable.h
+> index 41a43bf26492..df22314f57cf 100644
+> --- a/arch/arm64/include/asm/pgtable.h
+> +++ b/arch/arm64/include/asm/pgtable.h
+> @@ -279,6 +279,7 @@ void pmdp_splitting_flush(struct vm_area_struct *vma, unsigned long address,
+>  #endif /* CONFIG_HAVE_RCU_TABLE_FREE */
+>  #endif /* CONFIG_TRANSPARENT_HUGEPAGE */
+>  
+> +#define pmd_dirty(pmd)		pte_dirty(pmd_pte(pmd))
+>  #define pmd_young(pmd)		pte_young(pmd_pte(pmd))
+>  #define pmd_wrprotect(pmd)	pte_pmd(pte_wrprotect(pmd_pte(pmd)))
+>  #define pmd_mksplitting(pmd)	pte_pmd(pte_mkspecial(pmd_pte(pmd)))
+> diff --git a/arch/powerpc/include/asm/pgtable-ppc64.h b/arch/powerpc/include/asm/pgtable-ppc64.h
+> index ae153c40ab7c..9b4b1904efae 100644
+> --- a/arch/powerpc/include/asm/pgtable-ppc64.h
+> +++ b/arch/powerpc/include/asm/pgtable-ppc64.h
+> @@ -467,6 +467,7 @@ static inline pte_t *pmdp_ptep(pmd_t *pmd)
+>  }
+>  
+>  #define pmd_pfn(pmd)		pte_pfn(pmd_pte(pmd))
+> +#define pmd_dirty(pmd)		pte_dirty(pmd_pte(pmd))
+>  #define pmd_young(pmd)		pte_young(pmd_pte(pmd))
+>  #define pmd_mkold(pmd)		pte_pmd(pte_mkold(pmd_pte(pmd)))
+>  #define pmd_wrprotect(pmd)	pte_pmd(pte_wrprotect(pmd_pte(pmd)))
+> diff --git a/arch/sparc/include/asm/pgtable_64.h b/arch/sparc/include/asm/pgtable_64.h
+> index bfeb626085ac..90af17ee6184 100644
+> --- a/arch/sparc/include/asm/pgtable_64.h
+> +++ b/arch/sparc/include/asm/pgtable_64.h
+> @@ -667,6 +667,13 @@ static inline unsigned long pmd_pfn(pmd_t pmd)
+>  }
+>  
+>  #ifdef CONFIG_TRANSPARENT_HUGEPAGE
+> +static inline pmd_t pmd_dirty(pmd_t pmd)
+> +{
+> +	pte_t pte = __pte(pmd_val(pmd));
+> +
+> +	return pte_dirty(pte);
+> +}
+> +
+>  static inline unsigned long pmd_young(pmd_t pmd)
+>  {
+>  	pte_t pte = __pte(pmd_val(pmd));
+> diff --git a/arch/x86/include/asm/pgtable.h b/arch/x86/include/asm/pgtable.h
+> index aa97a070f09f..081d6f45e006 100644
+> --- a/arch/x86/include/asm/pgtable.h
+> +++ b/arch/x86/include/asm/pgtable.h
+> @@ -99,6 +99,11 @@ static inline int pte_young(pte_t pte)
+>  	return pte_flags(pte) & _PAGE_ACCESSED;
+>  }
+>  
+> +static inline int pmd_dirty(pmd_t pmd)
+> +{
+> +	return pmd_flags(pmd) & _PAGE_DIRTY;
+> +}
+> +
+>  static inline int pmd_young(pmd_t pmd)
+>  {
+>  	return pmd_flags(pmd) & _PAGE_ACCESSED;
+> diff --git a/fs/proc/task_mmu.c b/fs/proc/task_mmu.c
+> index 4e0388cffe3d..2ab200d429be 100644
+> --- a/fs/proc/task_mmu.c
+> +++ b/fs/proc/task_mmu.c
+> @@ -447,58 +447,88 @@ struct mem_size_stats {
+>  	u64 pss;
+>  };
+>  
+> +static void smaps_account(struct mem_size_stats *mss, struct page *page,
+> +		unsigned long size, bool young, bool dirty)
+> +{
+> +	int mapcount;
+> +
+> +	if (PageAnon(page))
+> +		mss->anonymous += size;
+>  
+> -static void smaps_pte_entry(pte_t ptent, unsigned long addr,
+> -		unsigned long ptent_size, struct mm_walk *walk)
+> +	mss->resident += size;
+> +	/* Accumulate the size in pages that have been accessed. */
+> +	if (young || PageReferenced(page))
+> +		mss->referenced += size;
+> +	mapcount = page_mapcount(page);
+> +	if (mapcount >= 2) {
+> +		if (dirty || PageDirty(page))
+> +			mss->shared_dirty += size;
+> +		else
+> +			mss->shared_clean += size;
+> +		mss->pss += (size << PSS_SHIFT) / mapcount;
+> +	} else {
+> +		if (dirty || PageDirty(page))
+> +			mss->private_dirty += size;
+> +		else
+> +			mss->private_clean += size;
+> +		mss->pss += (size << PSS_SHIFT);
+> +	}
+> +}
+> +
+> +
+> +static void smaps_pte_entry(pte_t *pte, unsigned long addr,
+> +		struct mm_walk *walk)
+>  {
+>  	struct mem_size_stats *mss = walk->private;
+>  	struct vm_area_struct *vma = mss->vma;
+>  	pgoff_t pgoff = linear_page_index(vma, addr);
+>  	struct page *page = NULL;
+> -	int mapcount;
+>  
+> -	if (pte_present(ptent)) {
+> -		page = vm_normal_page(vma, addr, ptent);
+> -	} else if (is_swap_pte(ptent)) {
+> -		swp_entry_t swpent = pte_to_swp_entry(ptent);
+> +	if (pte_present(*pte)) {
+> +		page = vm_normal_page(vma, addr, *pte);
+> +	} else if (is_swap_pte(*pte)) {
+> +		swp_entry_t swpent = pte_to_swp_entry(*pte);
+>  
+>  		if (!non_swap_entry(swpent))
+> -			mss->swap += ptent_size;
+> +			mss->swap += PAGE_SIZE;
+>  		else if (is_migration_entry(swpent))
+>  			page = migration_entry_to_page(swpent);
+> -	} else if (pte_file(ptent)) {
+> -		if (pte_to_pgoff(ptent) != pgoff)
+> -			mss->nonlinear += ptent_size;
+> +	} else if (pte_file(*pte)) {
+> +		if (pte_to_pgoff(*pte) != pgoff)
+> +			mss->nonlinear += PAGE_SIZE;
+>  	}
+>  
+>  	if (!page)
+>  		return;
+>  
+> -	if (PageAnon(page))
+> -		mss->anonymous += ptent_size;
+> -
+>  	if (page->index != pgoff)
+> -		mss->nonlinear += ptent_size;
+> +		mss->nonlinear += PAGE_SIZE;
+>  
+> -	mss->resident += ptent_size;
+> -	/* Accumulate the size in pages that have been accessed. */
+> -	if (pte_young(ptent) || PageReferenced(page))
+> -		mss->referenced += ptent_size;
+> -	mapcount = page_mapcount(page);
+> -	if (mapcount >= 2) {
+> -		if (pte_dirty(ptent) || PageDirty(page))
+> -			mss->shared_dirty += ptent_size;
+> -		else
+> -			mss->shared_clean += ptent_size;
+> -		mss->pss += (ptent_size << PSS_SHIFT) / mapcount;
+> -	} else {
+> -		if (pte_dirty(ptent) || PageDirty(page))
+> -			mss->private_dirty += ptent_size;
+> -		else
+> -			mss->private_clean += ptent_size;
+> -		mss->pss += (ptent_size << PSS_SHIFT);
+> -	}
+> +	smaps_account(mss, page, PAGE_SIZE, pte_young(*pte), pte_dirty(*pte));
+> +}
+> +
+> +#ifdef CONFIG_TRANSPARENT_HUGEPAGE
+> +static void smaps_pmd_entry(pmd_t *pmd, unsigned long addr,
+> +		struct mm_walk *walk)
+> +{
+> +	struct mem_size_stats *mss = walk->private;
+> +	struct vm_area_struct *vma = mss->vma;
+> +	struct page *page;
+> +
+> +	/* FOLL_DUMP will return -EFAULT on huge zero page */
+> +	page = follow_trans_huge_pmd(vma, addr, pmd, FOLL_DUMP);
+> +	if (IS_ERR_OR_NULL(page))
+> +		return;
+> +	mss->anonymous_thp += HPAGE_PMD_SIZE;
+> +	smaps_account(mss, page, HPAGE_PMD_SIZE,
+> +			pmd_young(*pmd), pmd_dirty(*pmd));
+>  }
+> +#else
+> +static void smaps_pmd_entry(pmd_t *pmd, unsigned long addr,
+> +		struct mm_walk *walk)
+> +{
+> +}
+> +#endif
+>  
+>  static int smaps_pte_range(pmd_t *pmd, unsigned long addr, unsigned long end,
+>  			   struct mm_walk *walk)
+> @@ -509,9 +539,8 @@ static int smaps_pte_range(pmd_t *pmd, unsigned long addr, unsigned long end,
+>  	spinlock_t *ptl;
+>  
+>  	if (pmd_trans_huge_lock(pmd, vma, &ptl) == 1) {
+> -		smaps_pte_entry(*(pte_t *)pmd, addr, HPAGE_PMD_SIZE, walk);
+> +		smaps_pmd_entry(pmd, addr, walk);
+>  		spin_unlock(ptl);
+> -		mss->anonymous_thp += HPAGE_PMD_SIZE;
+>  		return 0;
+>  	}
+>  
+> @@ -524,7 +553,7 @@ static int smaps_pte_range(pmd_t *pmd, unsigned long addr, unsigned long end,
+>  	 */
+>  	pte = pte_offset_map_lock(vma->vm_mm, pmd, addr, &ptl);
+>  	for (; addr != end; pte++, addr += PAGE_SIZE)
+> -		smaps_pte_entry(*pte, addr, PAGE_SIZE, walk);
+> +		smaps_pte_entry(pte, addr, walk);
+>  	pte_unmap_unlock(pte - 1, ptl);
+>  	cond_resched();
+>  	return 0;
+> -- 
+>  Kirill A. Shutemov
