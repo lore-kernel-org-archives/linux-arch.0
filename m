@@ -1,37 +1,19 @@
-From: Thomas Gleixner <tglx@linutronix.de>
+From: Arnd Bergmann <arnd@arndb.de>
 Subject: Re: [PATCH v5 29/29] nios2: Build infrastructure
-Date: Thu, 30 Oct 2014 11:49:19 +0100 (CET)
-Message-ID: <alpine.DEB.2.11.1410301148080.5308@nanos>
-References: <1414139071-3818-1-git-send-email-lftan@altera.com> <1414139071-3818-30-git-send-email-lftan@altera.com> <2095416.INZmt8AD1y@wuerfel> <CAFiDJ59LZSwKBzVuuzfH_5772-BR74EH=d=FeBbWvEXjfpisug@mail.gmail.com>
+Date: Thu, 30 Oct 2014 12:33:38 +0100
+Message-ID: <11875981.eJaWCbGJJT@wuerfel>
+References: <1414139071-3818-1-git-send-email-lftan@altera.com> <2095416.INZmt8AD1y@wuerfel> <CAFiDJ59LZSwKBzVuuzfH_5772-BR74EH=d=FeBbWvEXjfpisug@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from www.linutronix.de ([62.245.132.108]:34054 "EHLO
-	Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756976AbaJ3KtX (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 30 Oct 2014 06:49:23 -0400
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7Bit
+Return-path: <linux-doc-owner@vger.kernel.org>
 In-Reply-To: <CAFiDJ59LZSwKBzVuuzfH_5772-BR74EH=d=FeBbWvEXjfpisug@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-doc-owner@vger.kernel.org
 To: Ley Foon Tan <lftan@altera.com>
-Cc: Arnd Bergmann <arnd@arndb.de>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Chung-Lin Tang <cltang@codesourcery.com>
+Cc: Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Chung-Lin Tang <cltang@codesourcery.com>
+List-Id: linux-arch.vger.kernel.org
 
-On Thu, 30 Oct 2014, Ley Foon Tan wrote:
-
-> On Tue, Oct 28, 2014 at 9:38 PM, Arnd Bergmann <arnd@arndb.de> wrote:
-> > On Friday 24 October 2014 16:24:31 Ley Foon Tan wrote:
-> >> +DECLARE_EXPORT(__gcc_bcmp);
-> >> +DECLARE_EXPORT(__divdi3);
-> >> +DECLARE_EXPORT(__divsi3);
-> >> +DECLARE_EXPORT(__moddi3);
-> >> +DECLARE_EXPORT(__modsi3);
-> >> +DECLARE_EXPORT(__udivdi3);
-> >> +DECLARE_EXPORT(__udivmoddi4);
-> >> +DECLARE_EXPORT(__udivsi3);
-> >> +DECLARE_EXPORT(__umoddi3);
-> >> +DECLARE_EXPORT(__umodsi3);
-> >> +DECLARE_EXPORT(__muldi3);
-> >>
+On Thursday 30 October 2014 18:44:37 Ley Foon Tan wrote:
 > >
 > > I don't remember what all of these are, but at least some of them seem
 > > to be concerned with 64-bit division. By convention, we don't provide those
@@ -40,20 +22,8 @@ On Thu, 30 Oct 2014, Ley Foon Tan wrote:
 > Do you mean kernel doesn't support 64 bit division result for a 32-bit
 > architecture? Because do_div() only support 32-bit division result for
 > 32-bit architecture.
-> Compiler will auto generate call to __divdi3() for the following
-> example code. This means loadable module will have compilation error
-> if we don't export symbol for __divdi3, but built-in module is fine.
-> Is this an expectation? Or we can keep 64-bit division symbols here
-> since they are no harm (they are software emulation when without
-> hardware divider).
-> 
-> long long a, b, c;
-> a = b / c;
 
-We have proper helper functions for this:
+Correct. If you need a full 64-bit division on a 32-bit kernel, the
+assumption is that your driver has a bug.
 
-See include/linux/math.h
-
-Thanks,
-
-	tglx
+	Arnd
