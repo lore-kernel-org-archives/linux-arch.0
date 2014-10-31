@@ -1,60 +1,40 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.17.10]:50449 "EHLO
-	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932072AbaJ3UF4 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 30 Oct 2014 16:05:56 -0400
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH v3 00/17] Cross-architecture definitions of relaxed MMIO accessors
-Date: Thu, 30 Oct 2014 21:04:54 +0100
-Message-ID: <6420333.oMJU1UYt9n@wuerfel>
-In-Reply-To: <20141030165907.GK32589@arm.com>
-References: <1411579056-16966-1-git-send-email-will.deacon@arm.com> <2811016.mhqlsl6pTS@wuerfel> <20141030165907.GK32589@arm.com>
+Received: from mail-la0-f43.google.com ([209.85.215.43]:51327 "EHLO
+	mail-la0-f43.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1759601AbaJaB2b (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 30 Oct 2014 21:28:31 -0400
 MIME-Version: 1.0
-Content-Transfer-Encoding: 7Bit
-Content-Type: text/plain; charset="us-ascii"
+In-Reply-To: <11875981.eJaWCbGJJT@wuerfel>
+References: <1414139071-3818-1-git-send-email-lftan@altera.com>
+	<2095416.INZmt8AD1y@wuerfel>
+	<CAFiDJ59LZSwKBzVuuzfH_5772-BR74EH=d=FeBbWvEXjfpisug@mail.gmail.com>
+	<11875981.eJaWCbGJJT@wuerfel>
+Date: Fri, 31 Oct 2014 09:28:29 +0800
+Message-ID: <CAFiDJ58AmQuXnziuxtK6b9Ywm8NqDRwTNt3h+V6sXqSjpqD8XQ@mail.gmail.com>
+Subject: Re: [PATCH v5 29/29] nios2: Build infrastructure
+From: Ley Foon Tan <lftan@altera.com>
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will.deacon@arm.com>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, "chris@zankel.net" <chris@zankel.net>, "cmetcalf@tilera.com" <cmetcalf@tilera.com>, "davem@davemloft.net" <davem@davemloft.net>, "deller@gmx.de" <deller@gmx.de>, "dhowells@redhat.com" <dhowells@redhat.com>, "geert@linux-m68k.org" <geert@linux-m68k.org>, "heiko.carstens@de.ibm.com" <heiko.carstens@de.ibm.com>, "hpa@zytor.com" <hpa@zytor.com>, "jcmvbkbc@gmail.com" <jcmvbkbc@gmail.com>, "jesper.nilsson@axis.com" <jesper.nilsson@axis.com>, "mingo@redhat.com" <mingo@redhat.com>, "monstr@monstr.eu" <monstr@monstr.eu>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>, "rdunlap@infradead.org" <rdunlap@infradead.org>, "sam@ravnborg.org" <sam@ravnborg.org>, "schwidefsky@de.ibm.com" <schwidefsky@de.ibm.com>, "starvik@axis.com" <starvik@axis.com>, "takata@linux-m32r.org" <takata@linux-m32r.org>, "tglx@linutronix.de" <tglx@linutronix.de>, "tony.luck@intel.com" <tony.luck@intel.com>, "daniel.thompson@linaro.org" <daniel.thompson@linaro.org>, "broonie@linaro.org" <broonie@linaro.org>, "linux@arm.linux.org.uk" <linux@arm.linux.org.uk>, "thierry.reding@gmail.com" <thierry.reding@gmail.com>
-Message-ID: <20141030200454.VZ4sF3dSRNs_11PiE1PEGqf7YkXQy0OVcOSgDimtvr8@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Chung-Lin Tang <cltang@codesourcery.com>
+Message-ID: <20141031012829.hvR0g4qSIOBF2DX1cRS7DKVFCQLrAZWVLHL29aqN7Uc@z>
 
-On Thursday 30 October 2014 16:59:07 Will Deacon wrote:
-> On Thu, Sep 25, 2014 at 02:15:10PM +0100, Arnd Bergmann wrote:
-> > On Wednesday 24 September 2014 18:17:19 Will Deacon wrote:
-> > > Hello everybody,
-> > > 
-> > > This is version three of the series I've originally posted here:
-> > > 
-> > >   v1: https://lkml.org/lkml/2014/4/17/269
-> > >   v2: https://lkml.org/lkml/2014/5/22/468
-> > > 
-> > > This is basically just a rebase on top of 3.17-rc6, minus the alpha patch
-> > > (which was merged into mainline).
-> > > 
-> > > I looked at reworking the non-relaxed accessors to imply mmiowb, but it
-> > > quickly got messy as some architectures (e.g. mips) deliberately keep
-> > > mmiowb and readX/writeX separate whilst others (e.g. powerpc) don't trust
-> > > drivers to get mmiowb correct, so add barriers to both. Given that
-> > > arm/arm64/x86 don't care about mmiowb, I've left that as an exercise for
-> > > an architecture that does care.
-> > > 
-> > > In order to get this lot merged, we probably want to merge the asm-generic
-> > > patch (1/17) first, so Acks would be much appreciated on the architecture
-> > > bits.
-> > > 
-> > > As before, I've included the original cover letter below, as that describes
-> > > what I'm trying to do in more detail.
-> > > 
-> > 
-> > I've now applied the parts of your series that are required to have
-> > every architecture provide all the 'relaxed' accessors to the
-> > asm-generic tree, on top of Thierry's series.
-> 
-> Since these didn't make it for 3.18, would you like me to repost the series,
-> or do you already have a branch suitable for 3.19?
+On Thu, Oct 30, 2014 at 7:33 PM, Arnd Bergmann <arnd@arndb.de> wrote:
+> On Thursday 30 October 2014 18:44:37 Ley Foon Tan wrote:
+>> >
+>> > I don't remember what all of these are, but at least some of them seem
+>> > to be concerned with 64-bit division. By convention, we don't provide those
+>> > in the Linux kernel but instead require all code to use the do_div()
+>> > macro instead.
+>> Do you mean kernel doesn't support 64 bit division result for a 32-bit
+>> architecture? Because do_div() only support 32-bit division result for
+>> 32-bit architecture.
+>
+> Correct. If you need a full 64-bit division on a 32-bit kernel, the
+> assumption is that your driver has a bug.
+>
+Okay, will remove 64 bit division.
 
-I still need to figure out how to do this right in combination with Thierry's
-patches. Last time I had his patches first and yours on top, and I didn't
-manage to rebase your series when his broke.
-
-	Arnd
+Regards
+Ley Foon
