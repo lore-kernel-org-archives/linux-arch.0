@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bl2on0057.outbound.protection.outlook.com ([65.55.169.57]:62784
-	"EHLO na01-bl2-obe.outbound.protection.outlook.com"
+Received: from mail-by2on0074.outbound.protection.outlook.com ([207.46.100.74]:10862
+	"EHLO na01-by2-obe.outbound.protection.outlook.com"
 	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1752332AbaKCKyS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 3 Nov 2014 05:54:18 -0500
+	id S1752355AbaKCKyX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 3 Nov 2014 05:54:23 -0500
 From: Ley Foon Tan <lftan@altera.com>
-Subject: [PATCH v6 13/29] nios2: Interrupt handling
-Date: Mon, 3 Nov 2014 18:52:09 +0800
-Message-ID: <1415011945-3297-14-git-send-email-lftan@altera.com>
+Subject: [PATCH v6 14/29] nios2: DMA mapping API
+Date: Mon, 3 Nov 2014 18:52:10 +0800
+Message-ID: <1415011945-3297-15-git-send-email-lftan@altera.com>
 In-Reply-To: <1415011945-3297-1-git-send-email-lftan@altera.com>
 References: <1415011945-3297-1-git-send-email-lftan@altera.com>
 MIME-Version: 1.0
@@ -16,232 +16,356 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org
 Cc: Arnd Bergmann <arnd@arndb.de>, Ley Foon Tan <lftan@altera.com>, lftan.linux@gmail.com, cltang@codesourcery.com
-Message-ID: <20141103105209.gW8YB8EGx-QYlkMdic3ka9w5XkTbGgooDycb9J19CVg@z>
+Message-ID: <20141103105210.PYEzdmrori3iHYc-52JOsxGbGmsMASxNLTuazB3jJlg@z>
 
-This patch adds the support for IRQ handling.
+This patch adds support for the DMA mapping API.
 
 Signed-off-by: Ley Foon Tan <lftan@altera.com>
-Reviewed-by: Thomas Gleixner <tglx@linutronix.de>
 ---
- arch/nios2/include/asm/irq.h      | 28 ++++++++++++
- arch/nios2/include/asm/irqflags.h | 72 ++++++++++++++++++++++++++++++
- arch/nios2/kernel/irq.c           | 93 +++++++++++++++++++++++++++++++++++++++
- 3 files changed, 193 insertions(+)
- create mode 100644 arch/nios2/include/asm/irq.h
- create mode 100644 arch/nios2/include/asm/irqflags.h
- create mode 100644 arch/nios2/kernel/irq.c
+ arch/nios2/include/asm/dma-mapping.h | 140 ++++++++++++++++++++++++++
+ arch/nios2/mm/dma-mapping.c          | 186 +++++++++++++++++++++++++++++++++++
+ 2 files changed, 326 insertions(+)
+ create mode 100644 arch/nios2/include/asm/dma-mapping.h
+ create mode 100644 arch/nios2/mm/dma-mapping.c
 
-diff --git a/arch/nios2/include/asm/irq.h b/arch/nios2/include/asm/irq.h
+diff --git a/arch/nios2/include/asm/dma-mapping.h b/arch/nios2/include/asm/dma-mapping.h
 new file mode 100644
-index 0000000..8e40fd9
+index 0000000..b556723
 --- /dev/null
-+++ b/arch/nios2/include/asm/irq.h
-@@ -0,0 +1,28 @@
++++ b/arch/nios2/include/asm/dma-mapping.h
+@@ -0,0 +1,140 @@
 +/*
-+ * Copyright (C) 2013 Altera Corporation
 + * Copyright (C) 2011 Tobias Klauser <tklauser@distanz.ch>
++ * Copyright (C) 2009 Wind River Systems Inc
 + *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License as published by
-+ * the Free Software Foundation; either version 2 of the License, or
-+ * (at your option) any later version.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
-+ *
++ * This file is subject to the terms and conditions of the GNU General
++ * Public License.  See the file COPYING in the main directory of this
++ * archive for more details.
 + */
 +
-+#ifndef _ASM_NIOS2_IRQ_H
-+#define _ASM_NIOS2_IRQ_H
++#ifndef _ASM_NIOS2_DMA_MAPPING_H
++#define _ASM_NIOS2_DMA_MAPPING_H
 +
-+#define NIOS2_CPU_NR_IRQS	32
++#include <linux/scatterlist.h>
++#include <linux/cache.h>
++#include <asm/cacheflush.h>
 +
-+#include <asm-generic/irq.h>
-+#include <linux/irqdomain.h>
-+
-+#endif
-diff --git a/arch/nios2/include/asm/irqflags.h b/arch/nios2/include/asm/irqflags.h
-new file mode 100644
-index 0000000..75ab92e
---- /dev/null
-+++ b/arch/nios2/include/asm/irqflags.h
-@@ -0,0 +1,72 @@
-+/*
-+ * Copyright (C) 2010 Thomas Chou <thomas@wytron.com.tw>
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License as published by
-+ * the Free Software Foundation; either version 2 of the License, or
-+ * (at your option) any later version.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
-+ *
-+ */
-+#ifndef _ASM_IRQFLAGS_H
-+#define _ASM_IRQFLAGS_H
-+
-+#include <asm/registers.h>
-+
-+static inline unsigned long arch_local_save_flags(void)
++static inline void __dma_sync_for_device(void *vaddr, size_t size,
++			      enum dma_data_direction direction)
 +{
-+	return RDCTL(CTL_STATUS);
++	switch (direction) {
++	case DMA_FROM_DEVICE:
++		invalidate_dcache_range((unsigned long)vaddr,
++			(unsigned long)(vaddr + size));
++		break;
++	case DMA_TO_DEVICE:
++		/*
++		 * We just need to flush the caches here , but Nios2 flush
++		 * instruction will do both writeback and invalidate.
++		 */
++	case DMA_BIDIRECTIONAL: /* flush and invalidate */
++		flush_dcache_range((unsigned long)vaddr,
++			(unsigned long)(vaddr + size));
++		break;
++	default:
++		BUG();
++	}
 +}
 +
-+/*
-+ * This will restore ALL status register flags, not only the interrupt
-+ * mask flag.
-+ */
-+static inline void arch_local_irq_restore(unsigned long flags)
++static inline void __dma_sync_for_cpu(void *vaddr, size_t size,
++			      enum dma_data_direction direction)
 +{
-+	WRCTL(CTL_STATUS, flags);
++	switch (direction) {
++	case DMA_BIDIRECTIONAL:
++	case DMA_FROM_DEVICE:
++		invalidate_dcache_range((unsigned long)vaddr,
++			(unsigned long)(vaddr + size));
++		break;
++	case DMA_TO_DEVICE:
++		break;
++	default:
++		BUG();
++	}
 +}
 +
-+static inline void arch_local_irq_disable(void)
-+{
-+	unsigned long flags;
++#define dma_alloc_noncoherent(d, s, h, f) dma_alloc_coherent(d, s, h, f)
++#define dma_free_noncoherent(d, s, v, h) dma_free_coherent(d, s, v, h)
 +
-+	flags = arch_local_save_flags();
-+	arch_local_irq_restore(flags & ~STATUS_PIE);
++void *dma_alloc_coherent(struct device *dev, size_t size,
++			   dma_addr_t *dma_handle, gfp_t flag);
++
++void dma_free_coherent(struct device *dev, size_t size,
++			 void *vaddr, dma_addr_t dma_handle);
++
++static inline dma_addr_t dma_map_single(struct device *dev, void *ptr,
++					size_t size,
++					enum dma_data_direction direction)
++{
++	BUG_ON(!valid_dma_direction(direction));
++	__dma_sync_for_device(ptr, size, direction);
++	return virt_to_phys(ptr);
 +}
 +
-+static inline void arch_local_irq_enable(void)
++static inline void dma_unmap_single(struct device *dev, dma_addr_t dma_addr,
++				size_t size, enum dma_data_direction direction)
 +{
-+	unsigned long flags;
-+
-+	flags = arch_local_save_flags();
-+	arch_local_irq_restore(flags | STATUS_PIE);
 +}
 +
-+static inline int arch_irqs_disabled_flags(unsigned long flags)
++extern int dma_map_sg(struct device *dev, struct scatterlist *sg, int nents,
++	enum dma_data_direction direction);
++extern dma_addr_t dma_map_page(struct device *dev, struct page *page,
++	unsigned long offset, size_t size, enum dma_data_direction direction);
++extern void dma_unmap_page(struct device *dev, dma_addr_t dma_address,
++	size_t size, enum dma_data_direction direction);
++extern void dma_unmap_sg(struct device *dev, struct scatterlist *sg,
++	int nhwentries, enum dma_data_direction direction);
++extern void dma_sync_single_for_cpu(struct device *dev, dma_addr_t dma_handle,
++	size_t size, enum dma_data_direction direction);
++extern void dma_sync_single_for_device(struct device *dev,
++	dma_addr_t dma_handle, size_t size, enum dma_data_direction direction);
++extern void dma_sync_single_range_for_cpu(struct device *dev,
++	dma_addr_t dma_handle, unsigned long offset, size_t size,
++	enum dma_data_direction direction);
++extern void dma_sync_single_range_for_device(struct device *dev,
++	dma_addr_t dma_handle, unsigned long offset, size_t size,
++	enum dma_data_direction direction);
++extern void dma_sync_sg_for_cpu(struct device *dev, struct scatterlist *sg,
++	int nelems, enum dma_data_direction direction);
++extern void dma_sync_sg_for_device(struct device *dev, struct scatterlist *sg,
++	int nelems, enum dma_data_direction direction);
++
++static inline int dma_supported(struct device *dev, u64 mask)
 +{
-+	return (flags & STATUS_PIE) == 0;
++	return 1;
 +}
 +
-+static inline int arch_irqs_disabled(void)
++static inline int dma_set_mask(struct device *dev, u64 mask)
 +{
-+	return arch_irqs_disabled_flags(arch_local_save_flags());
-+}
++	if (!dev->dma_mask || !dma_supported(dev, mask))
++		return -EIO;
 +
-+static inline unsigned long arch_local_irq_save(void)
-+{
-+	unsigned long flags;
-+
-+	flags = arch_local_save_flags();
-+	arch_local_irq_restore(flags & ~STATUS_PIE);
-+	return flags;
-+}
-+
-+#endif /* _ASM_IRQFLAGS_H */
-diff --git a/arch/nios2/kernel/irq.c b/arch/nios2/kernel/irq.c
-new file mode 100644
-index 0000000..f5b74ae
---- /dev/null
-+++ b/arch/nios2/kernel/irq.c
-@@ -0,0 +1,93 @@
-+/*
-+ * Copyright (C) 2013 Altera Corporation
-+ * Copyright (C) 2011 Tobias Klauser <tklauser@distanz.ch>
-+ * Copyright (C) 2008 Thomas Chou <thomas@wytron.com.tw>
-+ *
-+ * based on irq.c from m68k which is:
-+ *
-+ * Copyright (C) 2007 Greg Ungerer <gerg@snapgear.com>
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License as published by
-+ * the Free Software Foundation; either version 2 of the License, or
-+ * (at your option) any later version.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
-+ *
-+ */
-+
-+#include <linux/init.h>
-+#include <linux/interrupt.h>
-+#include <linux/of.h>
-+
-+static u32 ienable;
-+
-+asmlinkage void do_IRQ(int hwirq, struct pt_regs *regs)
-+{
-+	struct pt_regs *oldregs = set_irq_regs(regs);
-+	int irq;
-+
-+	irq_enter();
-+	irq = irq_find_mapping(NULL, hwirq);
-+	generic_handle_irq(irq);
-+	irq_exit();
-+
-+	set_irq_regs(oldregs);
-+}
-+
-+static void chip_unmask(struct irq_data *d)
-+{
-+	ienable |= (1 << d->hwirq);
-+	WRCTL(CTL_IENABLE, ienable);
-+}
-+
-+static void chip_mask(struct irq_data *d)
-+{
-+	ienable &= ~(1 << d->hwirq);
-+	WRCTL(CTL_IENABLE, ienable);
-+}
-+
-+static struct irq_chip m_irq_chip = {
-+	.name		= "NIOS2-INTC",
-+	.irq_unmask	= chip_unmask,
-+	.irq_mask	= chip_mask,
-+};
-+
-+static int irq_map(struct irq_domain *h, unsigned int virq,
-+				irq_hw_number_t hw_irq_num)
-+{
-+	irq_set_chip_and_handler(virq, &m_irq_chip, handle_level_irq);
++	*dev->dma_mask = mask;
 +
 +	return 0;
 +}
 +
-+static struct irq_domain_ops irq_ops = {
-+	.map	= irq_map,
-+	.xlate	= irq_domain_xlate_onecell,
-+};
-+
-+void __init init_IRQ(void)
++static inline int dma_mapping_error(struct device *dev, dma_addr_t dma_addr)
 +{
-+	struct irq_domain *domain;
-+	struct device_node *node;
-+
-+	node = of_find_compatible_node(NULL, NULL, "altr,nios2-1.0");
-+	if (!node)
-+		node = of_find_compatible_node(NULL, NULL, "altr,nios2-1.1");
-+
-+	BUG_ON(!node);
-+
-+	domain = irq_domain_add_linear(node, NIOS2_CPU_NR_IRQS, &irq_ops, NULL);
-+	BUG_ON(!domain);
-+
-+	irq_set_default_host(domain);
-+	of_node_put(node);
-+	/* Load the initial ienable value */
-+	ienable = RDCTL(CTL_IENABLE);
++	return 0;
 +}
++
++/*
++* dma_alloc_noncoherent() returns non-cacheable memory, so there's no need to
++* do any flushing here.
++*/
++static inline void dma_cache_sync(struct device *dev, void *vaddr, size_t size,
++				  enum dma_data_direction direction)
++{
++}
++
++/* drivers/base/dma-mapping.c */
++extern int dma_common_mmap(struct device *dev, struct vm_area_struct *vma,
++		void *cpu_addr, dma_addr_t dma_addr, size_t size);
++extern int dma_common_get_sgtable(struct device *dev, struct sg_table *sgt,
++		void *cpu_addr, dma_addr_t dma_addr,
++		size_t size);
++
++#define dma_mmap_coherent(d, v, c, h, s) dma_common_mmap(d, v, c, h, s)
++#define dma_get_sgtable(d, t, v, h, s) dma_common_get_sgtable(d, t, v, h, s)
++
++#endif /* _ASM_NIOS2_DMA_MAPPING_H */
+diff --git a/arch/nios2/mm/dma-mapping.c b/arch/nios2/mm/dma-mapping.c
+new file mode 100644
+index 0000000..ac5da75
+--- /dev/null
++++ b/arch/nios2/mm/dma-mapping.c
+@@ -0,0 +1,186 @@
++/*
++ * Copyright (C) 2011 Tobias Klauser <tklauser@distanz.ch>
++ * Copyright (C) 2009 Wind River Systems Inc
++ *  Implemented by fredrik.markstrom@gmail.com and ivarholmqvist@gmail.com
++ *
++ * Based on DMA code from MIPS.
++ *
++ * This file is subject to the terms and conditions of the GNU General Public
++ * License.  See the file "COPYING" in the main directory of this archive
++ * for more details.
++ */
++
++#include <linux/types.h>
++#include <linux/mm.h>
++#include <linux/export.h>
++#include <linux/string.h>
++#include <linux/scatterlist.h>
++#include <linux/dma-mapping.h>
++#include <linux/io.h>
++#include <linux/cache.h>
++#include <asm/cacheflush.h>
++
++
++void *dma_alloc_coherent(struct device *dev, size_t size,
++			    dma_addr_t *dma_handle, gfp_t gfp)
++{
++	void *ret;
++
++	/* ignore region specifiers */
++	gfp &= ~(__GFP_DMA | __GFP_HIGHMEM);
++
++	/* optimized page clearing */
++	gfp |= __GFP_ZERO;
++
++	if (dev == NULL || (dev->coherent_dma_mask < 0xffffffff))
++		gfp |= GFP_DMA;
++
++	ret = (void *) __get_free_pages(gfp, get_order(size));
++	if (ret != NULL) {
++		*dma_handle = virt_to_phys(ret);
++		flush_dcache_range((unsigned long) ret,
++			(unsigned long) ret + size);
++		ret = UNCAC_ADDR(ret);
++	}
++
++	return ret;
++}
++EXPORT_SYMBOL(dma_alloc_coherent);
++
++void dma_free_coherent(struct device *dev, size_t size, void *vaddr,
++			dma_addr_t dma_handle)
++{
++	unsigned long addr = (unsigned long) CAC_ADDR((unsigned long) vaddr);
++
++	free_pages(addr, get_order(size));
++}
++EXPORT_SYMBOL(dma_free_coherent);
++
++int dma_map_sg(struct device *dev, struct scatterlist *sg, int nents,
++		enum dma_data_direction direction)
++{
++	int i;
++
++	BUG_ON(!valid_dma_direction(direction));
++
++	for_each_sg(sg, sg, nents, i) {
++		void *addr;
++
++		addr = sg_virt(sg);
++		if (addr) {
++			__dma_sync_for_device(addr, sg->length, direction);
++			sg->dma_address = sg_phys(sg);
++		}
++	}
++
++	return nents;
++}
++EXPORT_SYMBOL(dma_map_sg);
++
++dma_addr_t dma_map_page(struct device *dev, struct page *page,
++			unsigned long offset, size_t size,
++			enum dma_data_direction direction)
++{
++	void *addr;
++
++	BUG_ON(!valid_dma_direction(direction));
++
++	addr = page_address(page) + offset;
++	__dma_sync_for_device(addr, size, direction);
++
++	return page_to_phys(page) + offset;
++}
++EXPORT_SYMBOL(dma_map_page);
++
++void dma_unmap_page(struct device *dev, dma_addr_t dma_address, size_t size,
++		    enum dma_data_direction direction)
++{
++	BUG_ON(!valid_dma_direction(direction));
++
++	__dma_sync_for_cpu(phys_to_virt(dma_address), size, direction);
++}
++EXPORT_SYMBOL(dma_unmap_page);
++
++void dma_unmap_sg(struct device *dev, struct scatterlist *sg, int nhwentries,
++		  enum dma_data_direction direction)
++{
++	void *addr;
++	int i;
++
++	BUG_ON(!valid_dma_direction(direction));
++
++	if (direction == DMA_TO_DEVICE)
++		return;
++
++	for_each_sg(sg, sg, nhwentries, i) {
++		addr = sg_virt(sg);
++		if (addr)
++			__dma_sync_for_cpu(addr, sg->length, direction);
++	}
++}
++EXPORT_SYMBOL(dma_unmap_sg);
++
++void dma_sync_single_for_cpu(struct device *dev, dma_addr_t dma_handle,
++			     size_t size, enum dma_data_direction direction)
++{
++	BUG_ON(!valid_dma_direction(direction));
++
++	__dma_sync_for_cpu(phys_to_virt(dma_handle), size, direction);
++}
++EXPORT_SYMBOL(dma_sync_single_for_cpu);
++
++void dma_sync_single_for_device(struct device *dev, dma_addr_t dma_handle,
++				size_t size, enum dma_data_direction direction)
++{
++	BUG_ON(!valid_dma_direction(direction));
++
++	__dma_sync_for_device(phys_to_virt(dma_handle), size, direction);
++}
++EXPORT_SYMBOL(dma_sync_single_for_device);
++
++void dma_sync_single_range_for_cpu(struct device *dev, dma_addr_t dma_handle,
++					unsigned long offset, size_t size,
++					enum dma_data_direction direction)
++{
++	BUG_ON(!valid_dma_direction(direction));
++
++	__dma_sync_for_cpu(phys_to_virt(dma_handle), size, direction);
++}
++EXPORT_SYMBOL(dma_sync_single_range_for_cpu);
++
++void dma_sync_single_range_for_device(struct device *dev, dma_addr_t dma_handle,
++					unsigned long offset, size_t size,
++					enum dma_data_direction direction)
++{
++	BUG_ON(!valid_dma_direction(direction));
++
++	__dma_sync_for_device(phys_to_virt(dma_handle), size, direction);
++}
++EXPORT_SYMBOL(dma_sync_single_range_for_device);
++
++void dma_sync_sg_for_cpu(struct device *dev, struct scatterlist *sg, int nelems,
++			 enum dma_data_direction direction)
++{
++	int i;
++
++	BUG_ON(!valid_dma_direction(direction));
++
++	/* Make sure that gcc doesn't leave the empty loop body.  */
++	for_each_sg(sg, sg, nelems, i)
++		__dma_sync_for_cpu(sg_virt(sg), sg->length, direction);
++}
++EXPORT_SYMBOL(dma_sync_sg_for_cpu);
++
++void dma_sync_sg_for_device(struct device *dev, struct scatterlist *sg,
++				int nelems, enum dma_data_direction direction)
++{
++	int i;
++
++	BUG_ON(!valid_dma_direction(direction));
++
++	/* Make sure that gcc doesn't leave the empty loop body.  */
++	for_each_sg(sg, sg, nelems, i)
++		__dma_sync_for_device(sg_virt(sg), sg->length, direction);
++
++}
++EXPORT_SYMBOL(dma_sync_sg_for_device);
 -- 
 1.8.2.1
 
