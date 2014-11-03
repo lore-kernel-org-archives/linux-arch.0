@@ -1,213 +1,168 @@
 From: Ley Foon Tan <lftan@altera.com>
-Subject: [PATCH v6 23/29] nios2: Miscellaneous header files
-Date: Mon, 3 Nov 2014 18:52:19 +0800
-Message-ID: <1415011945-3297-24-git-send-email-lftan@altera.com>
+Subject: [PATCH v6 25/29] nios2: Module support
+Date: Mon, 3 Nov 2014 18:52:21 +0800
+Message-ID: <1415011945-3297-26-git-send-email-lftan@altera.com>
 References: <1415011945-3297-1-git-send-email-lftan@altera.com>
 Mime-Version: 1.0
 Content-Type: text/plain
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bn1bon0080.outbound.protection.outlook.com ([157.56.111.80]:34040
-	"EHLO na01-bn1-obe.outbound.protection.outlook.com"
-	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1751460AbaKCKzA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 3 Nov 2014 05:55:00 -0500
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1415011945-3297-1-git-send-email-lftan@altera.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org
 Cc: Arnd Bergmann <arnd@arndb.de>, Ley Foon Tan <lftan@altera.com>, lftan.linux@gmail.com, cltang@codesourcery.com
+List-Id: linux-arch.vger.kernel.org
 
-This patch introduces a few nios2-specific header files.
+This patch adds support for loadable modules.
 
 Signed-off-by: Ley Foon Tan <lftan@altera.com>
 ---
- arch/nios2/include/asm/cmpxchg.h        | 61 +++++++++++++++++++++++++++++++++
- arch/nios2/include/asm/linkage.h        | 25 ++++++++++++++
- arch/nios2/include/asm/mutex.h          |  1 +
- arch/nios2/include/uapi/asm/byteorder.h | 22 ++++++++++++
- arch/nios2/include/uapi/asm/swab.h      | 37 ++++++++++++++++++++
- 5 files changed, 146 insertions(+)
- create mode 100644 arch/nios2/include/asm/cmpxchg.h
- create mode 100644 arch/nios2/include/asm/linkage.h
- create mode 100644 arch/nios2/include/asm/mutex.h
- create mode 100644 arch/nios2/include/uapi/asm/byteorder.h
- create mode 100644 arch/nios2/include/uapi/asm/swab.h
+ arch/nios2/kernel/module.c | 138 +++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 138 insertions(+)
+ create mode 100644 arch/nios2/kernel/module.c
 
-diff --git a/arch/nios2/include/asm/cmpxchg.h b/arch/nios2/include/asm/cmpxchg.h
+diff --git a/arch/nios2/kernel/module.c b/arch/nios2/kernel/module.c
 new file mode 100644
-index 0000000..8593871
+index 0000000..cc924a3
 --- /dev/null
-+++ b/arch/nios2/include/asm/cmpxchg.h
-@@ -0,0 +1,61 @@
++++ b/arch/nios2/kernel/module.c
+@@ -0,0 +1,138 @@
 +/*
++ * Kernel module support for Nios II.
++ *
 + * Copyright (C) 2004 Microtronix Datacom Ltd.
-+ *
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License. See the file "COPYING" in the main directory of this archive
-+ * for more details.
-+ */
-+
-+#ifndef _ASM_NIOS2_CMPXCHG_H
-+#define _ASM_NIOS2_CMPXCHG_H
-+
-+#include <linux/irqflags.h>
-+
-+#define xchg(ptr, x)	\
-+	((__typeof__(*(ptr)))__xchg((unsigned long)(x), (ptr), sizeof(*(ptr))))
-+
-+struct __xchg_dummy { unsigned long a[100]; };
-+#define __xg(x)		((volatile struct __xchg_dummy *)(x))
-+
-+static inline unsigned long __xchg(unsigned long x, volatile void *ptr,
-+					int size)
-+{
-+	unsigned long tmp, flags;
-+
-+	local_irq_save(flags);
-+
-+	switch (size) {
-+	case 1:
-+		__asm__ __volatile__(
-+			"ldb	%0, %2\n"
-+			"stb	%1, %2\n"
-+			: "=&r" (tmp)
-+			: "r" (x), "m" (*__xg(ptr))
-+			: "memory");
-+		break;
-+	case 2:
-+		__asm__ __volatile__(
-+			"ldh	%0, %2\n"
-+			"sth	%1, %2\n"
-+			: "=&r" (tmp)
-+			: "r" (x), "m" (*__xg(ptr))
-+			: "memory");
-+		break;
-+	case 4:
-+		__asm__ __volatile__(
-+			"ldw	%0, %2\n"
-+			"stw	%1, %2\n"
-+			: "=&r" (tmp)
-+			: "r" (x), "m" (*__xg(ptr))
-+			: "memory");
-+		break;
-+	}
-+
-+	local_irq_restore(flags);
-+	return tmp;
-+}
-+
-+#include <asm-generic/cmpxchg.h>
-+#include <asm-generic/cmpxchg-local.h>
-+
-+#endif /* _ASM_NIOS2_CMPXCHG_H */
-diff --git a/arch/nios2/include/asm/linkage.h b/arch/nios2/include/asm/linkage.h
-new file mode 100644
-index 0000000..e0c6dec
---- /dev/null
-+++ b/arch/nios2/include/asm/linkage.h
-@@ -0,0 +1,25 @@
-+/*
-+ * Copyright (C) 2009 Thomas Chou <thomas@wytron.com.tw>
-+ *
-+ * All rights reserved.
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License as published by
-+ * the Free Software Foundation; either version 2 of the License, or
-+ * (at your option) any later version.
-+ *
-+ * This program is distributed in the hope that it will be useful, but
-+ * WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE, GOOD TITLE or
-+ * NON INFRINGEMENT.  See the GNU General Public License for more
-+ * details.
-+ */
-+
-+#ifndef _ASM_NIOS2_LINKAGE_H
-+#define _ASM_NIOS2_LINKAGE_H
-+
-+/* This file is required by include/linux/linkage.h */
-+#define __ALIGN .align 4
-+#define __ALIGN_STR ".align 4"
-+
-+#endif
-diff --git a/arch/nios2/include/asm/mutex.h b/arch/nios2/include/asm/mutex.h
-new file mode 100644
-index 0000000..ff6101a
---- /dev/null
-+++ b/arch/nios2/include/asm/mutex.h
-@@ -0,0 +1 @@
-+#include <asm-generic/mutex-dec.h>
-diff --git a/arch/nios2/include/uapi/asm/byteorder.h b/arch/nios2/include/uapi/asm/byteorder.h
-new file mode 100644
-index 0000000..3ab5dc2
---- /dev/null
-+++ b/arch/nios2/include/uapi/asm/byteorder.h
-@@ -0,0 +1,22 @@
-+/*
-+ * Copyright (C) 2009   Thomas Chou <thomas@wytron.com.tw>
-+ * Copyright (C) 2004   Microtronix Datacom Ltd
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License as published by
-+ * the Free Software Foundation; either version 2 of the License, or
-+ * (at your option) any later version.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ */
-+
-+#ifndef _ASM_NIOS2_BYTEORDER_H
-+#define _ASM_NIOS2_BYTEORDER_H
-+
-+#include <linux/byteorder/little_endian.h>
-+
-+#endif
-diff --git a/arch/nios2/include/uapi/asm/swab.h b/arch/nios2/include/uapi/asm/swab.h
-new file mode 100644
-index 0000000..b4e22eb
---- /dev/null
-+++ b/arch/nios2/include/uapi/asm/swab.h
-@@ -0,0 +1,37 @@
-+/*
-+ * Copyright (C) 2012 Tobias Klauser <tklauser@distanz.ch>
-+ * Copyright (C) 2011 Pyramid Technical Consultants, Inc.
++ *   Written by Wentao Xu <xuwentao@microtronix.com>
++ * Copyright (C) 2001, 2003 Rusty Russell
 + *
 + * This file is subject to the terms and conditions of the GNU General
-+ * Public License. See the file COPYING in the main directory of this
++ * Public License.  See the file COPYING in the main directory of this
 + * archive for more details.
 + */
 +
-+#ifndef _ASM_NIOS2_SWAB_H
-+#define _ASM_NIOS2_SWAB_H
++#include <linux/moduleloader.h>
++#include <linux/elf.h>
++#include <linux/mm.h>
++#include <linux/vmalloc.h>
++#include <linux/slab.h>
++#include <linux/fs.h>
++#include <linux/string.h>
++#include <linux/kernel.h>
 +
-+#include <linux/types.h>
-+#include <asm-generic/swab.h>
++#include <asm/pgtable.h>
++#include <asm/cacheflush.h>
 +
-+#ifdef CONFIG_NIOS2_CI_SWAB_SUPPORT
-+#ifdef __GNUC__
-+
-+#define __nios2_swab(x)		\
-+	__builtin_custom_ini(CONFIG_NIOS2_CI_SWAB_NO, (x))
-+
-+static inline __attribute__((const)) __u16 __arch_swab16(__u16 x)
++/*
++ * Modules should NOT be allocated with kmalloc for (obvious) reasons.
++ * But we do it for now to avoid relocation issues. CALL26/PCREL26 cannot reach
++ * from 0x80000000 (vmalloc area) to 0xc00000000 (kernel) (kmalloc returns
++ * addresses in 0xc0000000)
++ */
++void *module_alloc(unsigned long size)
 +{
-+	return (__u16) __nios2_swab(((__u32) x) << 16);
++	if (size == 0)
++		return NULL;
++	return kmalloc(size, GFP_KERNEL);
 +}
-+#define __arch_swab16 __arch_swab16
 +
-+static inline __attribute__((const)) __u32 __arch_swab32(__u32 x)
++/* Free memory returned from module_alloc */
++void module_free(struct module *mod, void *module_region)
 +{
-+	return (__u32) __nios2_swab(x);
++	kfree(module_region);
 +}
-+#define __arch_swab32 __arch_swab32
 +
-+#endif /* __GNUC__ */
-+#endif /* CONFIG_NIOS2_CI_SWAB_SUPPORT */
++int apply_relocate_add(Elf32_Shdr *sechdrs, const char *strtab,
++			unsigned int symindex, unsigned int relsec,
++			struct module *mod)
++{
++	unsigned int i;
++	Elf32_Rela *rela = (void *)sechdrs[relsec].sh_addr;
 +
-+#endif /* _ASM_NIOS2_SWAB_H */
++	pr_debug("Applying relocate section %u to %u\n", relsec,
++		 sechdrs[relsec].sh_info);
++
++	for (i = 0; i < sechdrs[relsec].sh_size / sizeof(*rela); i++) {
++		/* This is where to make the change */
++		uint32_t word;
++		uint32_t *loc
++			= ((void *)sechdrs[sechdrs[relsec].sh_info].sh_addr
++			   + rela[i].r_offset);
++		/* This is the symbol it is referring to.  Note that all
++		   undefined symbols have been resolved.  */
++		Elf32_Sym *sym
++			= ((Elf32_Sym *)sechdrs[symindex].sh_addr
++				+ ELF32_R_SYM(rela[i].r_info));
++		uint32_t v = sym->st_value + rela[i].r_addend;
++
++		pr_debug("reltype %d 0x%x name:<%s>\n",
++			ELF32_R_TYPE(rela[i].r_info),
++			rela[i].r_offset, strtab + sym->st_name);
++
++		switch (ELF32_R_TYPE(rela[i].r_info)) {
++		case R_NIOS2_NONE:
++			break;
++		case R_NIOS2_BFD_RELOC_32:
++			*loc += v;
++			break;
++		case R_NIOS2_PCREL16:
++			v -= (uint32_t)loc + 4;
++			if ((int32_t)v > 0x7fff ||
++				(int32_t)v < -(int32_t)0x8000) {
++				pr_err("module %s: relocation overflow\n",
++					mod->name);
++				return -ENOEXEC;
++			}
++			word = *loc;
++			*loc = ((((word >> 22) << 16) | (v & 0xffff)) << 6) |
++				(word & 0x3f);
++			break;
++		case R_NIOS2_CALL26:
++			if (v & 3) {
++				pr_err("module %s: dangerous relocation\n",
++					mod->name);
++				return -ENOEXEC;
++			}
++			if ((v >> 28) != ((uint32_t)loc >> 28)) {
++				pr_err("module %s: relocation overflow\n",
++					mod->name);
++				return -ENOEXEC;
++			}
++			*loc = (*loc & 0x3f) | ((v >> 2) << 6);
++			break;
++		case R_NIOS2_HI16:
++			word = *loc;
++			*loc = ((((word >> 22) << 16) |
++				((v >> 16) & 0xffff)) << 6) | (word & 0x3f);
++			break;
++		case R_NIOS2_LO16:
++			word = *loc;
++			*loc = ((((word >> 22) << 16) | (v & 0xffff)) << 6) |
++					(word & 0x3f);
++			break;
++		case R_NIOS2_HIADJ16:
++			{
++				Elf32_Addr word2;
++
++				word = *loc;
++				word2 = ((v >> 16) + ((v >> 15) & 1)) & 0xffff;
++				*loc = ((((word >> 22) << 16) | word2) << 6) |
++						(word & 0x3f);
++			}
++			break;
++
++		default:
++			pr_err("module %s: Unknown reloc: %u\n",
++				mod->name, ELF32_R_TYPE(rela[i].r_info));
++			return -ENOEXEC;
++		}
++	}
++
++	return 0;
++}
++
++int module_finalize(const Elf_Ehdr *hdr, const Elf_Shdr *sechdrs,
++			struct module *me)
++{
++	flush_cache_all();
++	return 0;
++}
 -- 
 1.8.2.1
