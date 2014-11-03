@@ -1,290 +1,301 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bl2on0068.outbound.protection.outlook.com ([65.55.169.68]:64644
+Received: from mail-bl2on0055.outbound.protection.outlook.com ([65.55.169.55]:50496
 	"EHLO na01-bl2-obe.outbound.protection.outlook.com"
 	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1751114AbaKCKxV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 3 Nov 2014 05:53:21 -0500
+	id S1752555AbaKCKy5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 3 Nov 2014 05:54:57 -0500
 From: Ley Foon Tan <lftan@altera.com>
-Subject: [PATCH v6 00/29] nios2 Linux kernel port
-Date: Mon, 3 Nov 2014 18:51:56 +0800
-Message-ID: <1415011945-3297-1-git-send-email-lftan@altera.com>
+Subject: [PATCH v6 22/29] nios2: Cpuinfo handling
+Date: Mon, 3 Nov 2014 18:52:18 +0800
+Message-ID: <1415011945-3297-23-git-send-email-lftan@altera.com>
+In-Reply-To: <1415011945-3297-1-git-send-email-lftan@altera.com>
+References: <1415011945-3297-1-git-send-email-lftan@altera.com>
 MIME-Version: 1.0
 Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org
 Cc: Arnd Bergmann <arnd@arndb.de>, Ley Foon Tan <lftan@altera.com>, lftan.linux@gmail.com, cltang@codesourcery.com
-Message-ID: <20141103105156.IXN7xSCQzCuSDnY-DQpxiwduCRMombDoNz0P9MolcIs@z>
+Message-ID: <20141103105218.g9FFAH-HmU_Gulf2iW3VpVjBszKzzSTItqSMiZULyWg@z>
 
-This is the 6th version of patchset adds the Linux kernel port for Nios II
-processor from Altera. All of the feedback from v5 patchseries has been
-addressed. Note, only patch #1, #7 and #21 have non-trivial changes. 
-Thanks to all who provided feedback on the previous version.
-
-About Nios II Cores
--------------------
-Nios II is a 32-bit embedded-processor architecture designed specifically for the
-Altera family of FPGAs.
-More information is available  at http://www.altera.com/devices/processor/nios2/ni2-index.html
-
-Instruction set and architecture overview documents can be found on the
-following page:
-http://www.altera.com/literature/lit-nio2.jsp
-
-Nios2 GCC port is in mainline and will be in the FSF 4.9 release.
-
-The patchset are based on v3.18-rc3 and can also be found in the following git tree:
-git://git.rocketboards.org/linux-socfpga-next.git  nios2-upstream
-
-v6:
-* time: change from setup_irq to request_irq
-* time: move num_called to nios2_time_init()
-* time: remove checking for period==0
-* time: change to use statically allocation for nios2 clock structures
-* time: remove ARCH_HAS_READ_CURRENT_TIMER and use lpj_fine
-* io: remove unused outs{b,w,l}, ins{b,w,l}, out{b,w,l} and in{b,w,l}
-* remove __divdi3 and __udivdi3 sysmbol export
-* add description to futex.h
-
-
-patchset history
------------------
-[v1] : https://lkml.org/lkml/2014/4/18/216
-[v2] : https://lkml.org/lkml/2014/7/15/120
-[v3] : https://lkml.org/lkml/2014/9/8/139
-[v4] : https://lkml.org/lkml/2014/10/8/141
-[v5] : https://lkml.org/lkml/2014/10/24/104
-
-Ley Foon Tan (29):
-  asm-generic: add generic futex for !CONFIG_SMP
-  nios2: Assembly macros and definitions
-  nios2: Kernel booting and initialization
-  nios2: Exception handling
-  nios2: Traps exception handling
-  nios2: Memory management
-  nios2: I/O Mapping
-  nios2: MMU Fault handling
-  nios2: Page table management
-  nios2: Process management
-  nios2: Cache handling
-  nios2: TLB handling
-  nios2: Interrupt handling
-  nios2: DMA mapping API
-  Add ELF machine define for Nios2
-  nios2: ELF definitions
-  nios2: System calls handling
-  nios2: Signal handling support
-  nios2: Library functions
-  nios2: Device tree support
-  nios2: Time keeping
-  nios2: Cpuinfo handling
-  nios2: Miscellaneous header files
-  nios2: Nios2 registers
-  nios2: Module support
-  nios2: ptrace support
-  MAINTAINERS: Add nios2 maintainer
-  Documentation: Add documentation for Nios2 architecture
-  nios2: Build infrastructure
-
- Documentation/devicetree/bindings/nios2/nios2.txt |  62 +++
- Documentation/devicetree/bindings/nios2/timer.txt |  19 +
- Documentation/nios2/README                        |  23 +
- MAINTAINERS                                       |   7 +
- arch/nios2/Kconfig                                | 201 ++++++++
- arch/nios2/Kconfig.debug                          |  17 +
- arch/nios2/Makefile                               |  73 +++
- arch/nios2/boot/Makefile                          |  52 ++
- arch/nios2/boot/dts/3c120_devboard.dts            | 164 ++++++
- arch/nios2/boot/install.sh                        |  52 ++
- arch/nios2/boot/linked_dtb.S                      |  19 +
- arch/nios2/configs/3c120_defconfig                |  77 +++
- arch/nios2/include/asm/Kbuild                     |  66 +++
- arch/nios2/include/asm/asm-macros.h               | 309 +++++++++++
- arch/nios2/include/asm/asm-offsets.h              |  20 +
- arch/nios2/include/asm/cache.h                    |  36 ++
- arch/nios2/include/asm/cacheflush.h               |  52 ++
- arch/nios2/include/asm/checksum.h                 |  78 +++
- arch/nios2/include/asm/cmpxchg.h                  |  61 +++
- arch/nios2/include/asm/cpuinfo.h                  |  57 +++
- arch/nios2/include/asm/delay.h                    |  21 +
- arch/nios2/include/asm/dma-mapping.h              | 140 +++++
- arch/nios2/include/asm/elf.h                      | 101 ++++
- arch/nios2/include/asm/entry.h                    | 120 +++++
- arch/nios2/include/asm/io.h                       |  61 +++
- arch/nios2/include/asm/irq.h                      |  28 +
- arch/nios2/include/asm/irqflags.h                 |  72 +++
- arch/nios2/include/asm/linkage.h                  |  25 +
- arch/nios2/include/asm/mmu.h                      |  16 +
- arch/nios2/include/asm/mmu_context.h              |  66 +++
- arch/nios2/include/asm/mutex.h                    |   1 +
- arch/nios2/include/asm/page.h                     | 111 ++++
- arch/nios2/include/asm/pgalloc.h                  |  86 ++++
- arch/nios2/include/asm/pgtable-bits.h             |  35 ++
- arch/nios2/include/asm/pgtable.h                  | 310 +++++++++++
- arch/nios2/include/asm/processor.h                | 103 ++++
- arch/nios2/include/asm/ptrace.h                   |  33 ++
- arch/nios2/include/asm/registers.h                |  71 +++
- arch/nios2/include/asm/setup.h                    |  38 ++
- arch/nios2/include/asm/signal.h                   |  22 +
- arch/nios2/include/asm/string.h                   |  24 +
- arch/nios2/include/asm/switch_to.h                |  31 ++
- arch/nios2/include/asm/syscall.h                  | 138 +++++
- arch/nios2/include/asm/syscalls.h                 |  25 +
- arch/nios2/include/asm/thread_info.h              | 120 +++++
- arch/nios2/include/asm/timex.h                    |  24 +
- arch/nios2/include/asm/tlb.h                      |  34 ++
- arch/nios2/include/asm/tlbflush.h                 |  46 ++
- arch/nios2/include/asm/traps.h                    |  19 +
- arch/nios2/include/asm/uaccess.h                  | 231 +++++++++
- arch/nios2/include/asm/ucontext.h                 |  32 ++
- arch/nios2/include/uapi/asm/Kbuild                |   4 +
- arch/nios2/include/uapi/asm/byteorder.h           |  22 +
- arch/nios2/include/uapi/asm/elf.h                 |  67 +++
- arch/nios2/include/uapi/asm/ptrace.h              | 120 +++++
- arch/nios2/include/uapi/asm/sigcontext.h          |  28 +
- arch/nios2/include/uapi/asm/signal.h              |  23 +
- arch/nios2/include/uapi/asm/swab.h                |  37 ++
- arch/nios2/include/uapi/asm/unistd.h              |  25 +
- arch/nios2/kernel/Makefile                        |  24 +
- arch/nios2/kernel/asm-offsets.c                   |  88 ++++
- arch/nios2/kernel/cpuinfo.c                       | 201 ++++++++
- arch/nios2/kernel/entry.S                         | 555 ++++++++++++++++++++
- arch/nios2/kernel/head.S                          | 175 +++++++
- arch/nios2/kernel/insnemu.S                       | 592 ++++++++++++++++++++++
- arch/nios2/kernel/irq.c                           |  93 ++++
- arch/nios2/kernel/misaligned.c                    | 256 ++++++++++
- arch/nios2/kernel/module.c                        | 138 +++++
- arch/nios2/kernel/nios2_ksyms.c                   |  33 ++
- arch/nios2/kernel/process.c                       | 258 ++++++++++
- arch/nios2/kernel/prom.c                          |  65 +++
- arch/nios2/kernel/ptrace.c                        | 166 ++++++
- arch/nios2/kernel/setup.c                         | 218 ++++++++
- arch/nios2/kernel/signal.c                        | 323 ++++++++++++
- arch/nios2/kernel/sys_nios2.c                     |  53 ++
- arch/nios2/kernel/syscall_table.c                 |  29 ++
- arch/nios2/kernel/time.c                          | 310 +++++++++++
- arch/nios2/kernel/traps.c                         | 185 +++++++
- arch/nios2/kernel/vmlinux.lds.S                   |  75 +++
- arch/nios2/lib/Makefile                           |   8 +
- arch/nios2/lib/delay.c                            |  52 ++
- arch/nios2/lib/memcpy.c                           | 202 ++++++++
- arch/nios2/lib/memmove.c                          |  82 +++
- arch/nios2/lib/memset.c                           |  81 +++
- arch/nios2/mm/Makefile                            |  14 +
- arch/nios2/mm/cacheflush.c                        | 271 ++++++++++
- arch/nios2/mm/dma-mapping.c                       | 186 +++++++
- arch/nios2/mm/extable.c                           |  25 +
- arch/nios2/mm/fault.c                             | 251 +++++++++
- arch/nios2/mm/init.c                              | 142 ++++++
- arch/nios2/mm/ioremap.c                           | 187 +++++++
- arch/nios2/mm/mmu_context.c                       | 116 +++++
- arch/nios2/mm/pgtable.c                           |  74 +++
- arch/nios2/mm/tlb.c                               | 275 ++++++++++
- arch/nios2/mm/uaccess.c                           | 163 ++++++
- arch/nios2/platform/Kconfig.platform              | 129 +++++
- arch/nios2/platform/Makefile                      |   1 +
- arch/nios2/platform/platform.c                    |  46 ++
- include/asm-generic/futex.h                       | 114 +++++
- include/uapi/linux/elf-em.h                       |   1 +
- 100 files changed, 10212 insertions(+)
- create mode 100644 Documentation/devicetree/bindings/nios2/nios2.txt
- create mode 100644 Documentation/devicetree/bindings/nios2/timer.txt
- create mode 100644 Documentation/nios2/README
- create mode 100644 arch/nios2/Kconfig
- create mode 100644 arch/nios2/Kconfig.debug
- create mode 100644 arch/nios2/Makefile
- create mode 100644 arch/nios2/boot/Makefile
- create mode 100644 arch/nios2/boot/dts/3c120_devboard.dts
- create mode 100644 arch/nios2/boot/install.sh
- create mode 100644 arch/nios2/boot/linked_dtb.S
- create mode 100644 arch/nios2/configs/3c120_defconfig
- create mode 100644 arch/nios2/include/asm/Kbuild
- create mode 100644 arch/nios2/include/asm/asm-macros.h
- create mode 100644 arch/nios2/include/asm/asm-offsets.h
- create mode 100644 arch/nios2/include/asm/cache.h
- create mode 100644 arch/nios2/include/asm/cacheflush.h
- create mode 100644 arch/nios2/include/asm/checksum.h
- create mode 100644 arch/nios2/include/asm/cmpxchg.h
+Signed-off-by: Ley Foon Tan <lftan@altera.com>
+---
+ arch/nios2/include/asm/cpuinfo.h |  57 +++++++++++
+ arch/nios2/kernel/cpuinfo.c      | 201 +++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 258 insertions(+)
  create mode 100644 arch/nios2/include/asm/cpuinfo.h
- create mode 100644 arch/nios2/include/asm/delay.h
- create mode 100644 arch/nios2/include/asm/dma-mapping.h
- create mode 100644 arch/nios2/include/asm/elf.h
- create mode 100644 arch/nios2/include/asm/entry.h
- create mode 100644 arch/nios2/include/asm/io.h
- create mode 100644 arch/nios2/include/asm/irq.h
- create mode 100644 arch/nios2/include/asm/irqflags.h
- create mode 100644 arch/nios2/include/asm/linkage.h
- create mode 100644 arch/nios2/include/asm/mmu.h
- create mode 100644 arch/nios2/include/asm/mmu_context.h
- create mode 100644 arch/nios2/include/asm/mutex.h
- create mode 100644 arch/nios2/include/asm/page.h
- create mode 100644 arch/nios2/include/asm/pgalloc.h
- create mode 100644 arch/nios2/include/asm/pgtable-bits.h
- create mode 100644 arch/nios2/include/asm/pgtable.h
- create mode 100644 arch/nios2/include/asm/processor.h
- create mode 100644 arch/nios2/include/asm/ptrace.h
- create mode 100644 arch/nios2/include/asm/registers.h
- create mode 100644 arch/nios2/include/asm/setup.h
- create mode 100644 arch/nios2/include/asm/signal.h
- create mode 100644 arch/nios2/include/asm/string.h
- create mode 100644 arch/nios2/include/asm/switch_to.h
- create mode 100644 arch/nios2/include/asm/syscall.h
- create mode 100644 arch/nios2/include/asm/syscalls.h
- create mode 100644 arch/nios2/include/asm/thread_info.h
- create mode 100644 arch/nios2/include/asm/timex.h
- create mode 100644 arch/nios2/include/asm/tlb.h
- create mode 100644 arch/nios2/include/asm/tlbflush.h
- create mode 100644 arch/nios2/include/asm/traps.h
- create mode 100644 arch/nios2/include/asm/uaccess.h
- create mode 100644 arch/nios2/include/asm/ucontext.h
- create mode 100644 arch/nios2/include/uapi/asm/Kbuild
- create mode 100644 arch/nios2/include/uapi/asm/byteorder.h
- create mode 100644 arch/nios2/include/uapi/asm/elf.h
- create mode 100644 arch/nios2/include/uapi/asm/ptrace.h
- create mode 100644 arch/nios2/include/uapi/asm/sigcontext.h
- create mode 100644 arch/nios2/include/uapi/asm/signal.h
- create mode 100644 arch/nios2/include/uapi/asm/swab.h
- create mode 100644 arch/nios2/include/uapi/asm/unistd.h
- create mode 100644 arch/nios2/kernel/Makefile
- create mode 100644 arch/nios2/kernel/asm-offsets.c
  create mode 100644 arch/nios2/kernel/cpuinfo.c
- create mode 100644 arch/nios2/kernel/entry.S
- create mode 100644 arch/nios2/kernel/head.S
- create mode 100644 arch/nios2/kernel/insnemu.S
- create mode 100644 arch/nios2/kernel/irq.c
- create mode 100644 arch/nios2/kernel/misaligned.c
- create mode 100644 arch/nios2/kernel/module.c
- create mode 100644 arch/nios2/kernel/nios2_ksyms.c
- create mode 100644 arch/nios2/kernel/process.c
- create mode 100644 arch/nios2/kernel/prom.c
- create mode 100644 arch/nios2/kernel/ptrace.c
- create mode 100644 arch/nios2/kernel/setup.c
- create mode 100644 arch/nios2/kernel/signal.c
- create mode 100644 arch/nios2/kernel/sys_nios2.c
- create mode 100644 arch/nios2/kernel/syscall_table.c
- create mode 100644 arch/nios2/kernel/time.c
- create mode 100644 arch/nios2/kernel/traps.c
- create mode 100644 arch/nios2/kernel/vmlinux.lds.S
- create mode 100644 arch/nios2/lib/Makefile
- create mode 100644 arch/nios2/lib/delay.c
- create mode 100644 arch/nios2/lib/memcpy.c
- create mode 100644 arch/nios2/lib/memmove.c
- create mode 100644 arch/nios2/lib/memset.c
- create mode 100644 arch/nios2/mm/Makefile
- create mode 100644 arch/nios2/mm/cacheflush.c
- create mode 100644 arch/nios2/mm/dma-mapping.c
- create mode 100644 arch/nios2/mm/extable.c
- create mode 100644 arch/nios2/mm/fault.c
- create mode 100644 arch/nios2/mm/init.c
- create mode 100644 arch/nios2/mm/ioremap.c
- create mode 100644 arch/nios2/mm/mmu_context.c
- create mode 100644 arch/nios2/mm/pgtable.c
- create mode 100644 arch/nios2/mm/tlb.c
- create mode 100644 arch/nios2/mm/uaccess.c
- create mode 100644 arch/nios2/platform/Kconfig.platform
- create mode 100644 arch/nios2/platform/Makefile
- create mode 100644 arch/nios2/platform/platform.c
 
+diff --git a/arch/nios2/include/asm/cpuinfo.h b/arch/nios2/include/asm/cpuinfo.h
+new file mode 100644
+index 0000000..e88fcae
+--- /dev/null
++++ b/arch/nios2/include/asm/cpuinfo.h
+@@ -0,0 +1,57 @@
++/*
++ * Copyright (C) 2011 Tobias Klauser <tklauser@distanz.ch>
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ *
++ */
++
++#ifndef _ASM_NIOS2_CPUINFO_H
++#define _ASM_NIOS2_CPUINFO_H
++
++#include <linux/types.h>
++
++struct cpuinfo {
++	/* Core CPU configuration */
++	char cpu_impl[12];
++	u32 cpu_clock_freq;
++	u32 mmu;
++	u32 has_div;
++	u32 has_mul;
++	u32 has_mulx;
++
++	/* CPU caches */
++	u32 icache_line_size;
++	u32 icache_size;
++	u32 dcache_line_size;
++	u32 dcache_size;
++
++	/* TLB */
++	u32 tlb_pid_num_bits;	/* number of bits used for the PID in TLBMISC */
++	u32 tlb_num_ways;
++	u32 tlb_num_ways_log2;
++	u32 tlb_num_entries;
++	u32 tlb_num_lines;
++	u32 tlb_ptr_sz;
++
++	/* Addresses */
++	u32 reset_addr;
++	u32 exception_addr;
++	u32 fast_tlb_miss_exc_addr;
++};
++
++extern struct cpuinfo cpuinfo;
++
++extern void setup_cpuinfo(void);
++
++#endif /* _ASM_NIOS2_CPUINFO_H */
+diff --git a/arch/nios2/kernel/cpuinfo.c b/arch/nios2/kernel/cpuinfo.c
+new file mode 100644
+index 0000000..b8081c5
+--- /dev/null
++++ b/arch/nios2/kernel/cpuinfo.c
+@@ -0,0 +1,201 @@
++/*
++ * Copyright (C) 2013 Altera Corporation
++ * Copyright (C) 2011 Tobias Klauser <tklauser@distanz.ch>
++ *
++ * Based on cpuinfo.c from microblaze
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ *
++ */
++
++#include <linux/kernel.h>
++#include <linux/init.h>
++#include <linux/delay.h>
++#include <linux/seq_file.h>
++#include <linux/string.h>
++#include <linux/of.h>
++#include <asm/cpuinfo.h>
++
++struct cpuinfo cpuinfo;
++
++#define err_cpu(x) \
++	pr_err("ERROR: Nios II " x " different for kernel and DTS\n")
++
++static inline u32 fcpu(struct device_node *cpu, const char *n)
++{
++	u32 val = 0;
++
++	of_property_read_u32(cpu, n, &val);
++
++	return val;
++}
++
++static inline u32 fcpu_has(struct device_node *cpu, const char *n)
++{
++	return of_get_property(cpu, n, NULL) ? 1 : 0;
++}
++
++void __init setup_cpuinfo(void)
++{
++	struct device_node *cpu;
++	const char *str;
++	int len;
++
++	cpu = of_find_node_by_type(NULL, "cpu");
++	if (!cpu)
++		panic("%s: No CPU found in devicetree!\n", __func__);
++
++	if (!fcpu_has(cpu, "altr,has-initda"))
++		panic("initda instruction is unimplemented. Please update your "
++			"hardware system to have more than 4-byte line data "
++			"cache\n");
++
++	cpuinfo.cpu_clock_freq = fcpu(cpu, "clock-frequency");
++
++	str = of_get_property(cpu, "altr,implementation", &len);
++	if (str)
++		strlcpy(cpuinfo.cpu_impl, str, sizeof(cpuinfo.cpu_impl));
++	else
++		strcpy(cpuinfo.cpu_impl, "<unknown>");
++
++	cpuinfo.has_div = fcpu_has(cpu, "altr,has-div");
++	cpuinfo.has_mul = fcpu_has(cpu, "altr,has-mul");
++	cpuinfo.has_mulx = fcpu_has(cpu, "altr,has-mulx");
++
++#ifdef CONFIG_NIOS2_HW_DIV_SUPPORT
++	if (!cpuinfo.has_div)
++		err_cpu("DIV");
++#endif
++#ifdef CONFIG_NIOS2_HW_MUL_SUPPORT
++	if (!cpuinfo.has_mul)
++		err_cpu("MUL");
++#endif
++#ifdef CONFIG_NIOS2_HW_MULX_SUPPORT
++	if (!cpuinfo.has_mulx)
++		err_cpu("MULX");
++#endif
++
++	cpuinfo.tlb_num_ways = fcpu(cpu, "altr,tlb-num-ways");
++	if (!cpuinfo.tlb_num_ways)
++		panic("altr,tlb-num-ways can't be 0. Please check your hardware "
++			"system\n");
++	cpuinfo.icache_line_size = fcpu(cpu, "icache-line-size");
++	cpuinfo.icache_size = fcpu(cpu, "icache-size");
++	if (CONFIG_NIOS2_ICACHE_SIZE != cpuinfo.icache_size)
++		pr_warn("Warning: icache size configuration mismatch "
++		"(0x%x vs 0x%x) of CONFIG_NIOS2_ICACHE_SIZE vs "
++		"device tree icache-size\n",
++		CONFIG_NIOS2_ICACHE_SIZE, cpuinfo.icache_size);
++
++	cpuinfo.dcache_line_size = fcpu(cpu, "dcache-line-size");
++	if (CONFIG_NIOS2_DCACHE_LINE_SIZE != cpuinfo.dcache_line_size)
++		pr_warn("Warning: dcache line size configuration mismatch "
++		"(0x%x vs 0x%x) of CONFIG_NIOS2_DCACHE_LINE_SIZE vs "
++		"device tree dcache-line-size\n",
++		CONFIG_NIOS2_DCACHE_LINE_SIZE, cpuinfo.dcache_line_size);
++	cpuinfo.dcache_size = fcpu(cpu, "dcache-size");
++	if (CONFIG_NIOS2_DCACHE_SIZE != cpuinfo.dcache_size)
++		pr_warn("Warning: dcache size configuration mismatch "
++			"(0x%x vs 0x%x) of CONFIG_NIOS2_DCACHE_SIZE vs "
++			"device tree dcache-size\n",
++			CONFIG_NIOS2_DCACHE_SIZE, cpuinfo.dcache_size);
++
++	cpuinfo.tlb_pid_num_bits = fcpu(cpu, "altr,pid-num-bits");
++	cpuinfo.tlb_num_ways_log2 = ilog2(cpuinfo.tlb_num_ways);
++	cpuinfo.tlb_num_entries = fcpu(cpu, "altr,tlb-num-entries");
++	cpuinfo.tlb_num_lines = cpuinfo.tlb_num_entries / cpuinfo.tlb_num_ways;
++	cpuinfo.tlb_ptr_sz = fcpu(cpu, "altr,tlb-ptr-sz");
++
++	cpuinfo.reset_addr = fcpu(cpu, "altr,reset-addr");
++	cpuinfo.exception_addr = fcpu(cpu, "altr,exception-addr");
++	cpuinfo.fast_tlb_miss_exc_addr = fcpu(cpu, "altr,fast-tlb-miss-addr");
++}
++
++#ifdef CONFIG_PROC_FS
++
++/*
++ * Get CPU information for use by the procfs.
++ */
++static int show_cpuinfo(struct seq_file *m, void *v)
++{
++	int count = 0;
++	const u32 clockfreq = cpuinfo.cpu_clock_freq;
++
++	count = seq_printf(m,
++			"CPU:\t\tNios II/%s\n"
++			"MMU:\t\t%s\n"
++			"FPU:\t\tnone\n"
++			"Clocking:\t%u.%02u MHz\n"
++			"BogoMips:\t%lu.%02lu\n"
++			"Calibration:\t%lu loops\n",
++			cpuinfo.cpu_impl,
++			cpuinfo.mmu ? "present" : "none",
++			clockfreq / 1000000, (clockfreq / 100000) % 10,
++			(loops_per_jiffy * HZ) / 500000,
++			((loops_per_jiffy * HZ) / 5000) % 100,
++			(loops_per_jiffy * HZ));
++
++	count += seq_printf(m,
++			"HW:\n"
++			" MUL:\t\t%s\n"
++			" MULX:\t\t%s\n"
++			" DIV:\t\t%s\n",
++			cpuinfo.has_mul ? "yes" : "no",
++			cpuinfo.has_mulx ? "yes" : "no",
++			cpuinfo.has_div ? "yes" : "no");
++
++	count += seq_printf(m,
++			"Icache:\t\t%ukB, line length: %u\n",
++			cpuinfo.icache_size >> 10,
++			cpuinfo.icache_line_size);
++
++	count += seq_printf(m,
++			"Dcache:\t\t%ukB, line length: %u\n",
++			cpuinfo.dcache_size >> 10,
++			cpuinfo.dcache_line_size);
++
++	count += seq_printf(m,
++			"TLB:\t\t%u ways, %u entries, %u PID bits\n",
++			cpuinfo.tlb_num_ways,
++			cpuinfo.tlb_num_entries,
++			cpuinfo.tlb_pid_num_bits);
++
++	return 0;
++}
++
++static void *cpuinfo_start(struct seq_file *m, loff_t *pos)
++{
++	unsigned long i = *pos;
++
++	return i < num_possible_cpus() ? (void *) (i + 1) : NULL;
++}
++
++static void *cpuinfo_next(struct seq_file *m, void *v, loff_t *pos)
++{
++	++*pos;
++	return cpuinfo_start(m, pos);
++}
++
++static void cpuinfo_stop(struct seq_file *m, void *v)
++{
++}
++
++const struct seq_operations cpuinfo_op = {
++	.start	= cpuinfo_start,
++	.next	= cpuinfo_next,
++	.stop	= cpuinfo_stop,
++	.show	= show_cpuinfo
++};
++
++#endif /* CONFIG_PROC_FS */
 -- 
 1.8.2.1
 
