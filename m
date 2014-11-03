@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bl2on0061.outbound.protection.outlook.com ([65.55.169.61]:63824
-	"EHLO na01-bl2-obe.outbound.protection.outlook.com"
+Received: from mail-by2on0056.outbound.protection.outlook.com ([207.46.100.56]:30751
+	"EHLO na01-by2-obe.outbound.protection.outlook.com"
 	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1751230AbaKCKxy (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 3 Nov 2014 05:53:54 -0500
+	id S1751230AbaKCKxd (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 3 Nov 2014 05:53:33 -0500
 From: Ley Foon Tan <lftan@altera.com>
-Subject: [PATCH v6 08/29] nios2: MMU Fault handling
-Date: Mon, 3 Nov 2014 18:52:04 +0800
-Message-ID: <1415011945-3297-9-git-send-email-lftan@altera.com>
+Subject: [PATCH v6 01/29] asm-generic: add generic futex for !CONFIG_SMP
+Date: Mon, 3 Nov 2014 18:51:57 +0800
+Message-ID: <1415011945-3297-2-git-send-email-lftan@altera.com>
 In-Reply-To: <1415011945-3297-1-git-send-email-lftan@altera.com>
 References: <1415011945-3297-1-git-send-email-lftan@altera.com>
 MIME-Version: 1.0
@@ -16,307 +16,146 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org
 Cc: Arnd Bergmann <arnd@arndb.de>, Ley Foon Tan <lftan@altera.com>, lftan.linux@gmail.com, cltang@codesourcery.com
-Message-ID: <20141103105204.wMK8uc00UKAkdW1hsK2TgpXwZHgsf1Sbfi-r2LWL1c4@z>
+Message-ID: <20141103105157.dMcasTdnZD1SAWKh9Gb5jdsopX38o01Tqau3QblWajc@z>
 
-This patch adds support for the handling of the MMU faults (exception
-entry code introduced by a previous patch, kernel/entry.S).
+Follow m68k futex implementation for !CONFIG_SMP.
 
 Signed-off-by: Ley Foon Tan <lftan@altera.com>
+Acked-by: Arnd Bergmann <arnd@arndb.de>
 ---
- arch/nios2/mm/extable.c |  25 +++++
- arch/nios2/mm/fault.c   | 251 ++++++++++++++++++++++++++++++++++++++++++++++++
- 2 files changed, 276 insertions(+)
- create mode 100644 arch/nios2/mm/extable.c
- create mode 100644 arch/nios2/mm/fault.c
+ include/asm-generic/futex.h | 114 ++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 114 insertions(+)
 
-diff --git a/arch/nios2/mm/extable.c b/arch/nios2/mm/extable.c
-new file mode 100644
-index 0000000..4d2fc5a
---- /dev/null
-+++ b/arch/nios2/mm/extable.c
-@@ -0,0 +1,25 @@
+diff --git a/include/asm-generic/futex.h b/include/asm-generic/futex.h
+index 01f227e..b59b5a5 100644
+--- a/include/asm-generic/futex.h
++++ b/include/asm-generic/futex.h
+@@ -5,6 +5,119 @@
+ #include <linux/uaccess.h>
+ #include <asm/errno.h>
+ 
++#ifndef CONFIG_SMP
 +/*
-+ * Copyright (C) 2010, Tobias Klauser <tklauser@distanz.ch>
-+ * Copyright (C) 2009, Wind River Systems Inc
-+ *   Implemented by fredrik.markstrom@gmail.com and ivarholmqvist@gmail.com
++ * The following implementation only for uniprocessor machines.
++ * For UP, it's relies on the fact that pagefault_disable() also disables
++ * preemption to ensure mutual exclusion.
 + *
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License.  See the file "COPYING" in the main directory of this archive
-+ * for more details.
 + */
 +
-+#include <linux/module.h>
-+#include <linux/uaccess.h>
-+
-+int fixup_exception(struct pt_regs *regs)
++/**
++ * futex_atomic_op_inuser() - Atomic arithmetic operation with constant
++ *			  argument and comparison of the previous
++ *			  futex value with another constant.
++ *
++ * @encoded_op:	encoded operation to execute
++ * @uaddr:	pointer to user space address
++ *
++ * Return:
++ * 0 - On success
++ * <0 - On error
++ */
++static inline int
++futex_atomic_op_inuser(int encoded_op, u32 __user *uaddr)
 +{
-+	const struct exception_table_entry *fixup;
++	int op = (encoded_op >> 28) & 7;
++	int cmp = (encoded_op >> 24) & 15;
++	int oparg = (encoded_op << 8) >> 20;
++	int cmparg = (encoded_op << 20) >> 20;
++	int oldval, ret;
++	u32 tmp;
 +
-+	fixup = search_exception_tables(regs->ea);
-+	if (fixup) {
-+		regs->ea = fixup->fixup;
-+		return 1;
++	if (encoded_op & (FUTEX_OP_OPARG_SHIFT << 28))
++		oparg = 1 << oparg;
++
++	pagefault_disable();
++
++	ret = -EFAULT;
++	if (unlikely(get_user(oldval, uaddr) != 0))
++		goto out_pagefault_enable;
++
++	ret = 0;
++	tmp = oldval;
++
++	switch (op) {
++	case FUTEX_OP_SET:
++		tmp = oparg;
++		break;
++	case FUTEX_OP_ADD:
++		tmp += oparg;
++		break;
++	case FUTEX_OP_OR:
++		tmp |= oparg;
++		break;
++	case FUTEX_OP_ANDN:
++		tmp &= ~oparg;
++		break;
++	case FUTEX_OP_XOR:
++		tmp ^= oparg;
++		break;
++	default:
++		ret = -ENOSYS;
 +	}
++
++	if (ret == 0 && unlikely(put_user(tmp, uaddr) != 0))
++		ret = -EFAULT;
++
++out_pagefault_enable:
++	pagefault_enable();
++
++	if (ret == 0) {
++		switch (cmp) {
++		case FUTEX_OP_CMP_EQ: ret = (oldval == cmparg); break;
++		case FUTEX_OP_CMP_NE: ret = (oldval != cmparg); break;
++		case FUTEX_OP_CMP_LT: ret = (oldval < cmparg); break;
++		case FUTEX_OP_CMP_GE: ret = (oldval >= cmparg); break;
++		case FUTEX_OP_CMP_LE: ret = (oldval <= cmparg); break;
++		case FUTEX_OP_CMP_GT: ret = (oldval > cmparg); break;
++		default: ret = -ENOSYS;
++		}
++	}
++	return ret;
++}
++
++/**
++ * futex_atomic_cmpxchg_inatomic() - Compare and exchange the content of the
++ *				uaddr with newval if the current value is
++ *				oldval.
++ * @uval:	pointer to store content of @uaddr
++ * @uaddr:	pointer to user space address
++ * @oldval:	old value
++ * @newval:	new value to store to @uaddr
++ *
++ * Return:
++ * 0 - On success
++ * <0 - On error
++ */
++static inline int
++futex_atomic_cmpxchg_inatomic(u32 *uval, u32 __user *uaddr,
++			      u32 oldval, u32 newval)
++{
++	u32 val;
++
++	if (unlikely(get_user(val, uaddr) != 0))
++		return -EFAULT;
++
++	if (val == oldval && unlikely(put_user(newval, uaddr) != 0))
++		return -EFAULT;
++
++	*uval = val;
 +
 +	return 0;
 +}
-diff --git a/arch/nios2/mm/fault.c b/arch/nios2/mm/fault.c
-new file mode 100644
-index 0000000..15a0bb5
---- /dev/null
-+++ b/arch/nios2/mm/fault.c
-@@ -0,0 +1,251 @@
-+/*
-+ * Copyright (C) 2009 Wind River Systems Inc
-+ *   Implemented by fredrik.markstrom@gmail.com and ivarholmqvist@gmail.com
-+ *
-+ * based on arch/mips/mm/fault.c which is:
-+ *
-+ * Copyright (C) 1995-2000 Ralf Baechle
-+ *
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License.  See the file "COPYING" in the main directory of this archive
-+ * for more details.
-+ */
 +
-+#include <linux/signal.h>
-+#include <linux/sched.h>
-+#include <linux/interrupt.h>
-+#include <linux/kernel.h>
-+#include <linux/errno.h>
-+#include <linux/string.h>
-+#include <linux/types.h>
-+#include <linux/ptrace.h>
-+#include <linux/mman.h>
-+#include <linux/mm.h>
-+#include <linux/module.h>
-+#include <linux/uaccess.h>
-+#include <linux/ptrace.h>
-+
-+#include <asm/mmu_context.h>
-+#include <asm/traps.h>
-+
-+#define EXC_SUPERV_INSN_ACCESS	9  /* Supervisor only instruction address */
-+#define EXC_SUPERV_DATA_ACCESS	11 /* Supervisor only data address */
-+#define EXC_X_PROTECTION_FAULT	13 /* TLB permission violation (x) */
-+#define EXC_R_PROTECTION_FAULT	14 /* TLB permission violation (r) */
-+#define EXC_W_PROTECTION_FAULT	15 /* TLB permission violation (w) */
-+
-+/*
-+ * This routine handles page faults.  It determines the address,
-+ * and the problem, and then passes it off to one of the appropriate
-+ * routines.
-+ */
-+asmlinkage void do_page_fault(struct pt_regs *regs, unsigned long cause,
-+				unsigned long address)
-+{
-+	struct vm_area_struct *vma = NULL;
-+	struct task_struct *tsk = current;
-+	struct mm_struct *mm = tsk->mm;
-+	int code = SEGV_MAPERR;
-+	int fault;
-+	unsigned int flags = 0;
-+
-+	cause >>= 2;
-+
-+	/* Restart the instruction */
-+	regs->ea -= 4;
-+
-+	/*
-+	 * We fault-in kernel-space virtual memory on-demand. The
-+	 * 'reference' page table is init_mm.pgd.
-+	 *
-+	 * NOTE! We MUST NOT take any locks for this case. We may
-+	 * be in an interrupt or a critical region, and should
-+	 * only copy the information from the master page table,
-+	 * nothing more.
-+	 */
-+	if (unlikely(address >= VMALLOC_START && address <= VMALLOC_END)) {
-+		if (user_mode(regs))
-+			goto bad_area_nosemaphore;
-+		else
-+			goto vmalloc_fault;
-+	}
-+
-+	if (unlikely(address >= TASK_SIZE))
-+		goto bad_area_nosemaphore;
-+
-+	/*
-+	 * If we're in an interrupt or have no user
-+	 * context, we must not take the fault..
-+	 */
-+	if (in_atomic() || !mm)
-+		goto bad_area_nosemaphore;
-+
-+	if (user_mode(regs))
-+		flags |= FAULT_FLAG_USER;
-+
-+	if (!down_read_trylock(&mm->mmap_sem)) {
-+		if (!user_mode(regs) && !search_exception_tables(regs->ea))
-+			goto bad_area_nosemaphore;
-+		down_read(&mm->mmap_sem);
-+	}
-+
-+	vma = find_vma(mm, address);
-+	if (!vma)
-+		goto bad_area;
-+	if (vma->vm_start <= address)
-+		goto good_area;
-+	if (!(vma->vm_flags & VM_GROWSDOWN))
-+		goto bad_area;
-+	if (expand_stack(vma, address))
-+		goto bad_area;
-+/*
-+ * Ok, we have a good vm_area for this memory access, so
-+ * we can handle it..
-+ */
-+good_area:
-+	code = SEGV_ACCERR;
-+
-+	switch (cause) {
-+	case EXC_SUPERV_INSN_ACCESS:
-+		goto bad_area;
-+	case EXC_SUPERV_DATA_ACCESS:
-+		goto bad_area;
-+	case EXC_X_PROTECTION_FAULT:
-+		if (!(vma->vm_flags & VM_EXEC))
-+			goto bad_area;
-+		break;
-+	case EXC_R_PROTECTION_FAULT:
-+		if (!(vma->vm_flags & VM_READ))
-+			goto bad_area;
-+		break;
-+	case EXC_W_PROTECTION_FAULT:
-+		if (!(vma->vm_flags & VM_WRITE))
-+			goto bad_area;
-+		flags = FAULT_FLAG_WRITE;
-+		break;
-+	}
-+
-+survive:
-+	/*
-+	 * If for any reason at all we couldn't handle the fault,
-+	 * make sure we exit gracefully rather than endlessly redo
-+	 * the fault.
-+	 */
-+	fault = handle_mm_fault(mm, vma, address, flags);
-+	if (unlikely(fault & VM_FAULT_ERROR)) {
-+		if (fault & VM_FAULT_OOM)
-+			goto out_of_memory;
-+		else if (fault & VM_FAULT_SIGBUS)
-+			goto do_sigbus;
-+		BUG();
-+	}
-+	if (fault & VM_FAULT_MAJOR)
-+		tsk->maj_flt++;
-+	else
-+		tsk->min_flt++;
-+
-+	up_read(&mm->mmap_sem);
-+	return;
-+
-+/*
-+ * Something tried to access memory that isn't in our memory map..
-+ * Fix it, but check if it's kernel or user first..
-+ */
-+bad_area:
-+	up_read(&mm->mmap_sem);
-+
-+bad_area_nosemaphore:
-+	/* User mode accesses just cause a SIGSEGV */
-+	if (user_mode(regs)) {
-+		pr_alert("%s: unhandled page fault (%d) at 0x%08lx, "
-+			"cause %ld\n", current->comm, SIGSEGV, address, cause);
-+		show_regs(regs);
-+		_exception(SIGSEGV, regs, code, address);
-+		return;
-+	}
-+
-+no_context:
-+	/* Are we prepared to handle this kernel fault? */
-+	if (fixup_exception(regs))
-+		return;
-+
-+	/*
-+	 * Oops. The kernel tried to access some bad page. We'll have to
-+	 * terminate things with extreme prejudice.
-+	 */
-+	bust_spinlocks(1);
-+
-+	pr_alert("Unable to handle kernel %s at virtual address %08lx",
-+		address < PAGE_SIZE ? "NULL pointer dereference" :
-+		"paging request", address);
-+	pr_alert("ea = %08lx, ra = %08lx, cause = %ld\n", regs->ea, regs->ra,
-+		cause);
-+	panic("Oops");
-+	return;
-+
-+/*
-+ * We ran out of memory, or some other thing happened to us that made
-+ * us unable to handle the page fault gracefully.
-+ */
-+out_of_memory:
-+	up_read(&mm->mmap_sem);
-+	if (is_global_init(tsk)) {
-+		yield();
-+		down_read(&mm->mmap_sem);
-+		goto survive;
-+	}
-+	if (!user_mode(regs))
-+		goto no_context;
-+	pagefault_out_of_memory();
-+	return;
-+
-+do_sigbus:
-+	up_read(&mm->mmap_sem);
-+
-+	/* Kernel mode? Handle exceptions or die */
-+	if (!user_mode(regs))
-+		goto no_context;
-+
-+	_exception(SIGBUS, regs, BUS_ADRERR, address);
-+	return;
-+
-+vmalloc_fault:
-+	{
-+		/*
-+		 * Synchronize this task's top level page-table
-+		 * with the 'reference' page table.
-+		 *
-+		 * Do _not_ use "tsk" here. We might be inside
-+		 * an interrupt in the middle of a task switch..
-+		 */
-+		int offset = pgd_index(address);
-+		pgd_t *pgd, *pgd_k;
-+		pud_t *pud, *pud_k;
-+		pmd_t *pmd, *pmd_k;
-+		pte_t *pte_k;
-+
-+		pgd = pgd_current + offset;
-+		pgd_k = init_mm.pgd + offset;
-+
-+		if (!pgd_present(*pgd_k))
-+			goto no_context;
-+		set_pgd(pgd, *pgd_k);
-+
-+		pud = pud_offset(pgd, address);
-+		pud_k = pud_offset(pgd_k, address);
-+		if (!pud_present(*pud_k))
-+			goto no_context;
-+		pmd = pmd_offset(pud, address);
-+		pmd_k = pmd_offset(pud_k, address);
-+		if (!pmd_present(*pmd_k))
-+			goto no_context;
-+		set_pmd(pmd, *pmd_k);
-+
-+		pte_k = pte_offset_kernel(pmd_k, address);
-+		if (!pte_present(*pte_k))
-+			goto no_context;
-+
-+		flush_tlb_one(address);
-+		return;
-+	}
-+}
++#else
+ static inline int
+ futex_atomic_op_inuser (int encoded_op, u32 __user *uaddr)
+ {
+@@ -54,4 +167,5 @@ futex_atomic_cmpxchg_inatomic(u32 *uval, u32 __user *uaddr,
+ 	return -ENOSYS;
+ }
+ 
++#endif /* CONFIG_SMP */
+ #endif
 -- 
 1.8.2.1
 
