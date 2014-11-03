@@ -1,151 +1,290 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from casper.infradead.org ([85.118.1.10]:55616 "EHLO
-	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751130AbaKCKfP (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 3 Nov 2014 05:35:15 -0500
-Date: Mon, 3 Nov 2014 11:35:05 +0100
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v13 09/11] pvqspinlock, x86: Add para-virtualization
- support
-Message-ID: <20141103103505.GZ23531@worktop.programming.kicks-ass.net>
-References: <1414613951-32532-1-git-send-email-Waiman.Long@hp.com>
- <1414613951-32532-10-git-send-email-Waiman.Long@hp.com>
+Received: from mail-bl2on0068.outbound.protection.outlook.com ([65.55.169.68]:64644
+	"EHLO na01-bl2-obe.outbound.protection.outlook.com"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1751114AbaKCKxV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 3 Nov 2014 05:53:21 -0500
+From: Ley Foon Tan <lftan@altera.com>
+Subject: [PATCH v6 00/29] nios2 Linux kernel port
+Date: Mon, 3 Nov 2014 18:51:56 +0800
+Message-ID: <1415011945-3297-1-git-send-email-lftan@altera.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1414613951-32532-10-git-send-email-Waiman.Long@hp.com>
+Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Waiman Long <Waiman.Long@hp.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Rik van Riel <riel@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, David Vrabel <david.vrabel@citrix.com>, Oleg Nesterov <oleg@redhat.com>, Scott J Norton <scott.norton@hp.com>, Douglas Hatch <doug.hatch@hp.com>
-Message-ID: <20141103103505.rMj3LbdM9z6C172tYDivjcIa3hhfTRXMJBSlZ6wRnXY@z>
+To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org
+Cc: Arnd Bergmann <arnd@arndb.de>, Ley Foon Tan <lftan@altera.com>, lftan.linux@gmail.com, cltang@codesourcery.com
+Message-ID: <20141103105156.IXN7xSCQzCuSDnY-DQpxiwduCRMombDoNz0P9MolcIs@z>
 
-On Wed, Oct 29, 2014 at 04:19:09PM -0400, Waiman Long wrote:
->  arch/x86/include/asm/pvqspinlock.h    |  411 +++++++++++++++++++++++++++++++++
+This is the 6th version of patchset adds the Linux kernel port for Nios II
+processor from Altera. All of the feedback from v5 patchseries has been
+addressed. Note, only patch #1, #7 and #21 have non-trivial changes. 
+Thanks to all who provided feedback on the previous version.
 
-I do wonder why all this needs to live in x86..
+About Nios II Cores
+-------------------
+Nios II is a 32-bit embedded-processor architecture designed specifically for the
+Altera family of FPGAs.
+More information is available  at http://www.altera.com/devices/processor/nios2/ni2-index.html
 
->  
-> +#ifdef CONFIG_QUEUE_SPINLOCK
-> +
-> +static __always_inline void pv_kick_cpu(int cpu)
-> +{
-> +	PVOP_VCALLEE1(pv_lock_ops.kick_cpu, cpu);
-> +}
-> +
-> +static __always_inline void pv_lockwait(u8 *lockbyte)
-> +{
-> +	PVOP_VCALLEE1(pv_lock_ops.lockwait, lockbyte);
-> +}
-> +
-> +static __always_inline void pv_lockstat(enum pv_lock_stats type)
-> +{
-> +	PVOP_VCALLEE1(pv_lock_ops.lockstat, type);
-> +}
+Instruction set and architecture overview documents can be found on the
+following page:
+http://www.altera.com/literature/lit-nio2.jsp
 
-Why are any of these PV ops? they're only called from other pv_*()
-functions. What's the point of pv ops you only call from pv code?
+Nios2 GCC port is in mainline and will be in the FSF 4.9 release.
 
-> +/*
-> + *	Queue Spinlock Para-Virtualization (PV) Support
-> + *
-> + * The PV support code for queue spinlock is roughly the same as that
-> + * of the ticket spinlock.
+The patchset are based on v3.18-rc3 and can also be found in the following git tree:
+git://git.rocketboards.org/linux-socfpga-next.git  nios2-upstream
 
-Relative comments are bad, esp. since we'll make the ticket code go away
-if this works, at which point this is a reference into a black hole.
-
->                             Each CPU waiting for the lock will spin until it
-> + * reaches a threshold. When that happens, it will put itself to a halt state
-> + * so that the hypervisor can reuse the CPU cycles in some other guests as
-> + * well as returning other hold-up CPUs faster.
+v6:
+* time: change from setup_irq to request_irq
+* time: move num_called to nios2_time_init()
+* time: remove checking for period==0
+* time: change to use statically allocation for nios2 clock structures
+* time: remove ARCH_HAS_READ_CURRENT_TIMER and use lpj_fine
+* io: remove unused outs{b,w,l}, ins{b,w,l}, out{b,w,l} and in{b,w,l}
+* remove __divdi3 and __udivdi3 sysmbol export
+* add description to futex.h
 
 
+patchset history
+-----------------
+[v1] : https://lkml.org/lkml/2014/4/18/216
+[v2] : https://lkml.org/lkml/2014/7/15/120
+[v3] : https://lkml.org/lkml/2014/9/8/139
+[v4] : https://lkml.org/lkml/2014/10/8/141
+[v5] : https://lkml.org/lkml/2014/10/24/104
 
+Ley Foon Tan (29):
+  asm-generic: add generic futex for !CONFIG_SMP
+  nios2: Assembly macros and definitions
+  nios2: Kernel booting and initialization
+  nios2: Exception handling
+  nios2: Traps exception handling
+  nios2: Memory management
+  nios2: I/O Mapping
+  nios2: MMU Fault handling
+  nios2: Page table management
+  nios2: Process management
+  nios2: Cache handling
+  nios2: TLB handling
+  nios2: Interrupt handling
+  nios2: DMA mapping API
+  Add ELF machine define for Nios2
+  nios2: ELF definitions
+  nios2: System calls handling
+  nios2: Signal handling support
+  nios2: Library functions
+  nios2: Device tree support
+  nios2: Time keeping
+  nios2: Cpuinfo handling
+  nios2: Miscellaneous header files
+  nios2: Nios2 registers
+  nios2: Module support
+  nios2: ptrace support
+  MAINTAINERS: Add nios2 maintainer
+  Documentation: Add documentation for Nios2 architecture
+  nios2: Build infrastructure
 
-> +/**
-> + * queue_spin_lock - acquire a queue spinlock
-> + * @lock: Pointer to queue spinlock structure
-> + *
-> + * N.B. INLINE_SPIN_LOCK should not be enabled when PARAVIRT_SPINLOCK is on.
+ Documentation/devicetree/bindings/nios2/nios2.txt |  62 +++
+ Documentation/devicetree/bindings/nios2/timer.txt |  19 +
+ Documentation/nios2/README                        |  23 +
+ MAINTAINERS                                       |   7 +
+ arch/nios2/Kconfig                                | 201 ++++++++
+ arch/nios2/Kconfig.debug                          |  17 +
+ arch/nios2/Makefile                               |  73 +++
+ arch/nios2/boot/Makefile                          |  52 ++
+ arch/nios2/boot/dts/3c120_devboard.dts            | 164 ++++++
+ arch/nios2/boot/install.sh                        |  52 ++
+ arch/nios2/boot/linked_dtb.S                      |  19 +
+ arch/nios2/configs/3c120_defconfig                |  77 +++
+ arch/nios2/include/asm/Kbuild                     |  66 +++
+ arch/nios2/include/asm/asm-macros.h               | 309 +++++++++++
+ arch/nios2/include/asm/asm-offsets.h              |  20 +
+ arch/nios2/include/asm/cache.h                    |  36 ++
+ arch/nios2/include/asm/cacheflush.h               |  52 ++
+ arch/nios2/include/asm/checksum.h                 |  78 +++
+ arch/nios2/include/asm/cmpxchg.h                  |  61 +++
+ arch/nios2/include/asm/cpuinfo.h                  |  57 +++
+ arch/nios2/include/asm/delay.h                    |  21 +
+ arch/nios2/include/asm/dma-mapping.h              | 140 +++++
+ arch/nios2/include/asm/elf.h                      | 101 ++++
+ arch/nios2/include/asm/entry.h                    | 120 +++++
+ arch/nios2/include/asm/io.h                       |  61 +++
+ arch/nios2/include/asm/irq.h                      |  28 +
+ arch/nios2/include/asm/irqflags.h                 |  72 +++
+ arch/nios2/include/asm/linkage.h                  |  25 +
+ arch/nios2/include/asm/mmu.h                      |  16 +
+ arch/nios2/include/asm/mmu_context.h              |  66 +++
+ arch/nios2/include/asm/mutex.h                    |   1 +
+ arch/nios2/include/asm/page.h                     | 111 ++++
+ arch/nios2/include/asm/pgalloc.h                  |  86 ++++
+ arch/nios2/include/asm/pgtable-bits.h             |  35 ++
+ arch/nios2/include/asm/pgtable.h                  | 310 +++++++++++
+ arch/nios2/include/asm/processor.h                | 103 ++++
+ arch/nios2/include/asm/ptrace.h                   |  33 ++
+ arch/nios2/include/asm/registers.h                |  71 +++
+ arch/nios2/include/asm/setup.h                    |  38 ++
+ arch/nios2/include/asm/signal.h                   |  22 +
+ arch/nios2/include/asm/string.h                   |  24 +
+ arch/nios2/include/asm/switch_to.h                |  31 ++
+ arch/nios2/include/asm/syscall.h                  | 138 +++++
+ arch/nios2/include/asm/syscalls.h                 |  25 +
+ arch/nios2/include/asm/thread_info.h              | 120 +++++
+ arch/nios2/include/asm/timex.h                    |  24 +
+ arch/nios2/include/asm/tlb.h                      |  34 ++
+ arch/nios2/include/asm/tlbflush.h                 |  46 ++
+ arch/nios2/include/asm/traps.h                    |  19 +
+ arch/nios2/include/asm/uaccess.h                  | 231 +++++++++
+ arch/nios2/include/asm/ucontext.h                 |  32 ++
+ arch/nios2/include/uapi/asm/Kbuild                |   4 +
+ arch/nios2/include/uapi/asm/byteorder.h           |  22 +
+ arch/nios2/include/uapi/asm/elf.h                 |  67 +++
+ arch/nios2/include/uapi/asm/ptrace.h              | 120 +++++
+ arch/nios2/include/uapi/asm/sigcontext.h          |  28 +
+ arch/nios2/include/uapi/asm/signal.h              |  23 +
+ arch/nios2/include/uapi/asm/swab.h                |  37 ++
+ arch/nios2/include/uapi/asm/unistd.h              |  25 +
+ arch/nios2/kernel/Makefile                        |  24 +
+ arch/nios2/kernel/asm-offsets.c                   |  88 ++++
+ arch/nios2/kernel/cpuinfo.c                       | 201 ++++++++
+ arch/nios2/kernel/entry.S                         | 555 ++++++++++++++++++++
+ arch/nios2/kernel/head.S                          | 175 +++++++
+ arch/nios2/kernel/insnemu.S                       | 592 ++++++++++++++++++++++
+ arch/nios2/kernel/irq.c                           |  93 ++++
+ arch/nios2/kernel/misaligned.c                    | 256 ++++++++++
+ arch/nios2/kernel/module.c                        | 138 +++++
+ arch/nios2/kernel/nios2_ksyms.c                   |  33 ++
+ arch/nios2/kernel/process.c                       | 258 ++++++++++
+ arch/nios2/kernel/prom.c                          |  65 +++
+ arch/nios2/kernel/ptrace.c                        | 166 ++++++
+ arch/nios2/kernel/setup.c                         | 218 ++++++++
+ arch/nios2/kernel/signal.c                        | 323 ++++++++++++
+ arch/nios2/kernel/sys_nios2.c                     |  53 ++
+ arch/nios2/kernel/syscall_table.c                 |  29 ++
+ arch/nios2/kernel/time.c                          | 310 +++++++++++
+ arch/nios2/kernel/traps.c                         | 185 +++++++
+ arch/nios2/kernel/vmlinux.lds.S                   |  75 +++
+ arch/nios2/lib/Makefile                           |   8 +
+ arch/nios2/lib/delay.c                            |  52 ++
+ arch/nios2/lib/memcpy.c                           | 202 ++++++++
+ arch/nios2/lib/memmove.c                          |  82 +++
+ arch/nios2/lib/memset.c                           |  81 +++
+ arch/nios2/mm/Makefile                            |  14 +
+ arch/nios2/mm/cacheflush.c                        | 271 ++++++++++
+ arch/nios2/mm/dma-mapping.c                       | 186 +++++++
+ arch/nios2/mm/extable.c                           |  25 +
+ arch/nios2/mm/fault.c                             | 251 +++++++++
+ arch/nios2/mm/init.c                              | 142 ++++++
+ arch/nios2/mm/ioremap.c                           | 187 +++++++
+ arch/nios2/mm/mmu_context.c                       | 116 +++++
+ arch/nios2/mm/pgtable.c                           |  74 +++
+ arch/nios2/mm/tlb.c                               | 275 ++++++++++
+ arch/nios2/mm/uaccess.c                           | 163 ++++++
+ arch/nios2/platform/Kconfig.platform              | 129 +++++
+ arch/nios2/platform/Makefile                      |   1 +
+ arch/nios2/platform/platform.c                    |  46 ++
+ include/asm-generic/futex.h                       | 114 +++++
+ include/uapi/linux/elf-em.h                       |   1 +
+ 100 files changed, 10212 insertions(+)
+ create mode 100644 Documentation/devicetree/bindings/nios2/nios2.txt
+ create mode 100644 Documentation/devicetree/bindings/nios2/timer.txt
+ create mode 100644 Documentation/nios2/README
+ create mode 100644 arch/nios2/Kconfig
+ create mode 100644 arch/nios2/Kconfig.debug
+ create mode 100644 arch/nios2/Makefile
+ create mode 100644 arch/nios2/boot/Makefile
+ create mode 100644 arch/nios2/boot/dts/3c120_devboard.dts
+ create mode 100644 arch/nios2/boot/install.sh
+ create mode 100644 arch/nios2/boot/linked_dtb.S
+ create mode 100644 arch/nios2/configs/3c120_defconfig
+ create mode 100644 arch/nios2/include/asm/Kbuild
+ create mode 100644 arch/nios2/include/asm/asm-macros.h
+ create mode 100644 arch/nios2/include/asm/asm-offsets.h
+ create mode 100644 arch/nios2/include/asm/cache.h
+ create mode 100644 arch/nios2/include/asm/cacheflush.h
+ create mode 100644 arch/nios2/include/asm/checksum.h
+ create mode 100644 arch/nios2/include/asm/cmpxchg.h
+ create mode 100644 arch/nios2/include/asm/cpuinfo.h
+ create mode 100644 arch/nios2/include/asm/delay.h
+ create mode 100644 arch/nios2/include/asm/dma-mapping.h
+ create mode 100644 arch/nios2/include/asm/elf.h
+ create mode 100644 arch/nios2/include/asm/entry.h
+ create mode 100644 arch/nios2/include/asm/io.h
+ create mode 100644 arch/nios2/include/asm/irq.h
+ create mode 100644 arch/nios2/include/asm/irqflags.h
+ create mode 100644 arch/nios2/include/asm/linkage.h
+ create mode 100644 arch/nios2/include/asm/mmu.h
+ create mode 100644 arch/nios2/include/asm/mmu_context.h
+ create mode 100644 arch/nios2/include/asm/mutex.h
+ create mode 100644 arch/nios2/include/asm/page.h
+ create mode 100644 arch/nios2/include/asm/pgalloc.h
+ create mode 100644 arch/nios2/include/asm/pgtable-bits.h
+ create mode 100644 arch/nios2/include/asm/pgtable.h
+ create mode 100644 arch/nios2/include/asm/processor.h
+ create mode 100644 arch/nios2/include/asm/ptrace.h
+ create mode 100644 arch/nios2/include/asm/registers.h
+ create mode 100644 arch/nios2/include/asm/setup.h
+ create mode 100644 arch/nios2/include/asm/signal.h
+ create mode 100644 arch/nios2/include/asm/string.h
+ create mode 100644 arch/nios2/include/asm/switch_to.h
+ create mode 100644 arch/nios2/include/asm/syscall.h
+ create mode 100644 arch/nios2/include/asm/syscalls.h
+ create mode 100644 arch/nios2/include/asm/thread_info.h
+ create mode 100644 arch/nios2/include/asm/timex.h
+ create mode 100644 arch/nios2/include/asm/tlb.h
+ create mode 100644 arch/nios2/include/asm/tlbflush.h
+ create mode 100644 arch/nios2/include/asm/traps.h
+ create mode 100644 arch/nios2/include/asm/uaccess.h
+ create mode 100644 arch/nios2/include/asm/ucontext.h
+ create mode 100644 arch/nios2/include/uapi/asm/Kbuild
+ create mode 100644 arch/nios2/include/uapi/asm/byteorder.h
+ create mode 100644 arch/nios2/include/uapi/asm/elf.h
+ create mode 100644 arch/nios2/include/uapi/asm/ptrace.h
+ create mode 100644 arch/nios2/include/uapi/asm/sigcontext.h
+ create mode 100644 arch/nios2/include/uapi/asm/signal.h
+ create mode 100644 arch/nios2/include/uapi/asm/swab.h
+ create mode 100644 arch/nios2/include/uapi/asm/unistd.h
+ create mode 100644 arch/nios2/kernel/Makefile
+ create mode 100644 arch/nios2/kernel/asm-offsets.c
+ create mode 100644 arch/nios2/kernel/cpuinfo.c
+ create mode 100644 arch/nios2/kernel/entry.S
+ create mode 100644 arch/nios2/kernel/head.S
+ create mode 100644 arch/nios2/kernel/insnemu.S
+ create mode 100644 arch/nios2/kernel/irq.c
+ create mode 100644 arch/nios2/kernel/misaligned.c
+ create mode 100644 arch/nios2/kernel/module.c
+ create mode 100644 arch/nios2/kernel/nios2_ksyms.c
+ create mode 100644 arch/nios2/kernel/process.c
+ create mode 100644 arch/nios2/kernel/prom.c
+ create mode 100644 arch/nios2/kernel/ptrace.c
+ create mode 100644 arch/nios2/kernel/setup.c
+ create mode 100644 arch/nios2/kernel/signal.c
+ create mode 100644 arch/nios2/kernel/sys_nios2.c
+ create mode 100644 arch/nios2/kernel/syscall_table.c
+ create mode 100644 arch/nios2/kernel/time.c
+ create mode 100644 arch/nios2/kernel/traps.c
+ create mode 100644 arch/nios2/kernel/vmlinux.lds.S
+ create mode 100644 arch/nios2/lib/Makefile
+ create mode 100644 arch/nios2/lib/delay.c
+ create mode 100644 arch/nios2/lib/memcpy.c
+ create mode 100644 arch/nios2/lib/memmove.c
+ create mode 100644 arch/nios2/lib/memset.c
+ create mode 100644 arch/nios2/mm/Makefile
+ create mode 100644 arch/nios2/mm/cacheflush.c
+ create mode 100644 arch/nios2/mm/dma-mapping.c
+ create mode 100644 arch/nios2/mm/extable.c
+ create mode 100644 arch/nios2/mm/fault.c
+ create mode 100644 arch/nios2/mm/init.c
+ create mode 100644 arch/nios2/mm/ioremap.c
+ create mode 100644 arch/nios2/mm/mmu_context.c
+ create mode 100644 arch/nios2/mm/pgtable.c
+ create mode 100644 arch/nios2/mm/tlb.c
+ create mode 100644 arch/nios2/mm/uaccess.c
+ create mode 100644 arch/nios2/platform/Kconfig.platform
+ create mode 100644 arch/nios2/platform/Makefile
+ create mode 100644 arch/nios2/platform/platform.c
 
-One should write a compile time fail for that, not a comment.
+-- 
+1.8.2.1
 
-> + */
-> +static __always_inline void queue_spin_lock(struct qspinlock *lock)
-> +{
-> +	u32 val;
-> +
-> +	val = atomic_cmpxchg(&lock->val, 0, _Q_LOCKED_VAL);
-> +	if (likely(val == 0))
-> +		return;
-> +	if (static_key_false(&paravirt_spinlocks_enabled))
-> +		pv_queue_spin_lock_slowpath(lock, val);
-> +	else
-> +		queue_spin_lock_slowpath(lock, val);
-> +}
-
-No, this is just vile.. _that_ is what we have PV ops for. And at that
-point its the same function it was before the PV stuff, so that whole
-inline thing is then gone.
-
-> +extern void queue_spin_unlock_slowpath(struct qspinlock *lock);
-> +
->  /**
->   * queue_spin_unlock - release a queue spinlock
->   * @lock : Pointer to queue spinlock structure
->   *
->   * An effective smp_store_release() on the least-significant byte.
-> + *
-> + * Inlining of the unlock function is disabled when CONFIG_PARAVIRT_SPINLOCKS
-> + * is defined. So _raw_spin_unlock() will be the only call site that will
-> + * have to be patched.
-
-again if you hard rely on the not inlining make a build fail not a
-comment.
-
->   */
->  static inline void queue_spin_unlock(struct qspinlock *lock)
->  {
->  	barrier();
-> +	if (!static_key_false(&paravirt_spinlocks_enabled)) {
-> +		native_spin_unlock(lock);
-> +		return;
-> +	}
->  
-> +	/*
-> +	 * Need to atomically clear the lock byte to avoid racing with
-> +	 * queue head waiter trying to set _QLOCK_LOCKED_SLOWPATH.
-> +	 */
-> +	if (unlikely(cmpxchg((u8 *)lock, _Q_LOCKED_VAL, 0) != _Q_LOCKED_VAL))
-> +		queue_spin_unlock_slowpath(lock);
-> +}
-
-Idem, that static key stuff is wrong, use PV ops to switch between
-unlock paths.
-
-> @@ -354,7 +394,7 @@ queue:
->  	 * if there was a previous node; link it and wait until reaching the
->  	 * head of the waitqueue.
->  	 */
-> -	if (old & _Q_TAIL_MASK) {
-> +	if (!pv_link_and_wait_node(old, node) && (old & _Q_TAIL_MASK)) {
->  		prev = decode_tail(old);
->  		ACCESS_ONCE(prev->next) = node;
-> @@ -369,9 +409,11 @@ queue:
->  	 *
->  	 * *,x,y -> *,0,0
->  	 */
-> -	while ((val = smp_load_acquire(&lock->val.counter)) &
-> -			_Q_LOCKED_PENDING_MASK)
-> +	val = pv_wait_head(lock, node);
-> +	while (val & _Q_LOCKED_PENDING_MASK) {
->  		cpu_relax();
-> +		val = smp_load_acquire(&lock->val.counter);
-> +	}
->  
->  	/*
->  	 * claim the lock:
-
-Please make the pv_*() calls return void and reduce to NOPs. This keeps
-the logic invariant of the pv stuff.
