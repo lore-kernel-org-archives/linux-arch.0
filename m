@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bl2on0078.outbound.protection.outlook.com ([65.55.169.78]:43136
+Received: from mail-bl2on0098.outbound.protection.outlook.com ([65.55.169.98]:35880
 	"EHLO na01-bl2-obe.outbound.protection.outlook.com"
 	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1751460AbaKCKzO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 3 Nov 2014 05:55:14 -0500
+	id S1751343AbaKCKyw (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 3 Nov 2014 05:54:52 -0500
 From: Ley Foon Tan <lftan@altera.com>
-Subject: [PATCH v6 26/29] nios2: ptrace support
-Date: Mon, 3 Nov 2014 18:52:22 +0800
-Message-ID: <1415011945-3297-27-git-send-email-lftan@altera.com>
+Subject: [PATCH v6 21/29] nios2: Time keeping
+Date: Mon, 3 Nov 2014 18:52:17 +0800
+Message-ID: <1415011945-3297-22-git-send-email-lftan@altera.com>
 In-Reply-To: <1415011945-3297-1-git-send-email-lftan@altera.com>
 References: <1415011945-3297-1-git-send-email-lftan@altera.com>
 MIME-Version: 1.0
@@ -16,357 +16,453 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org
 Cc: Arnd Bergmann <arnd@arndb.de>, Ley Foon Tan <lftan@altera.com>, lftan.linux@gmail.com, cltang@codesourcery.com
-Message-ID: <20141103105222.W4udwpGEv8JBJTw2dsllEcVOCC-NsS42U7TeuufeF8Y@z>
+Message-ID: <20141103105217.vifyNOGf1rlsQcWcU_eXKQIL_yweUvCzhkpbQzK4kEI@z>
 
-Add ptrace support for nios2.
+Add time keeping code for nios2.
 
 Signed-off-by: Ley Foon Tan <lftan@altera.com>
 ---
- arch/nios2/include/asm/ptrace.h      |  33 +++++++
- arch/nios2/include/uapi/asm/ptrace.h | 120 +++++++++++++++++++++++++
- arch/nios2/kernel/ptrace.c           | 166 +++++++++++++++++++++++++++++++++++
- 3 files changed, 319 insertions(+)
- create mode 100644 arch/nios2/include/asm/ptrace.h
- create mode 100644 arch/nios2/include/uapi/asm/ptrace.h
- create mode 100644 arch/nios2/kernel/ptrace.c
+ arch/nios2/include/asm/delay.h |  21 +++
+ arch/nios2/include/asm/timex.h |  24 ++++
+ arch/nios2/kernel/time.c       | 310 +++++++++++++++++++++++++++++++++++++++++
+ arch/nios2/lib/delay.c         |  52 +++++++
+ 4 files changed, 407 insertions(+)
+ create mode 100644 arch/nios2/include/asm/delay.h
+ create mode 100644 arch/nios2/include/asm/timex.h
+ create mode 100644 arch/nios2/kernel/time.c
+ create mode 100644 arch/nios2/lib/delay.c
 
-diff --git a/arch/nios2/include/asm/ptrace.h b/arch/nios2/include/asm/ptrace.h
+diff --git a/arch/nios2/include/asm/delay.h b/arch/nios2/include/asm/delay.h
 new file mode 100644
-index 0000000..20fb1cf
+index 0000000..098e49b
 --- /dev/null
-+++ b/arch/nios2/include/asm/ptrace.h
-@@ -0,0 +1,33 @@
-+/*
-+ * Copyright (C) 2013 Altera Corporation
-+ * Copyright (C) 2010 Tobias Klauser <tklauser@distanz.ch>
-+ * Copyright (C) 2004 Microtronix Datacom Ltd
-+ *
-+ * based on m68k asm/processor.h
-+ *
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License.  See the file "COPYING" in the main directory of this archive
-+ * for more details.
-+ */
-+
-+#ifndef _ASM_NIOS2_PTRACE_H
-+#define _ASM_NIOS2_PTRACE_H
-+
-+#include <uapi/asm/ptrace.h>
-+
-+#ifndef __ASSEMBLY__
-+#define user_mode(regs)	(((regs)->estatus & ESTATUS_EU))
-+
-+#define instruction_pointer(regs)	((regs)->ra)
-+#define profile_pc(regs)		instruction_pointer(regs)
-+#define user_stack_pointer(regs)	((regs)->sp)
-+extern void show_regs(struct pt_regs *);
-+
-+#define current_pt_regs() \
-+	((struct pt_regs *)((unsigned long)current_thread_info() + THREAD_SIZE)\
-+		- 1)
-+
-+int do_syscall_trace_enter(void);
-+void do_syscall_trace_exit(void);
-+#endif /* __ASSEMBLY__ */
-+#endif /* _ASM_NIOS2_PTRACE_H */
-diff --git a/arch/nios2/include/uapi/asm/ptrace.h b/arch/nios2/include/uapi/asm/ptrace.h
-new file mode 100644
-index 0000000..e83a7c9
---- /dev/null
-+++ b/arch/nios2/include/uapi/asm/ptrace.h
-@@ -0,0 +1,120 @@
-+/*
-+ * Copyright (C) 2010 Tobias Klauser <tklauser@distanz.ch>
-+ * Copyright (C) 2004 Microtronix Datacom Ltd
-+ *
-+ * based on m68k asm/processor.h
-+ *
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License.  See the file "COPYING" in the main directory of this archive
-+ * for more details.
-+ */
-+
-+#ifndef _UAPI_ASM_NIOS2_PTRACE_H
-+#define _UAPI_ASM_NIOS2_PTRACE_H
-+
-+#ifndef __ASSEMBLY__
-+
-+/*
-+ * Register numbers used by 'ptrace' system call interface.
-+ */
-+
-+/* GP registers */
-+#define PTR_R0		0
-+#define PTR_R1		1
-+#define PTR_R2		2
-+#define PTR_R3		3
-+#define PTR_R4		4
-+#define PTR_R5		5
-+#define PTR_R6		6
-+#define PTR_R7		7
-+#define PTR_R8		8
-+#define PTR_R9		9
-+#define PTR_R10		10
-+#define PTR_R11		11
-+#define PTR_R12		12
-+#define PTR_R13		13
-+#define PTR_R14		14
-+#define PTR_R15		15
-+#define PTR_R16		16
-+#define PTR_R17		17
-+#define PTR_R18		18
-+#define PTR_R19		19
-+#define PTR_R20		20
-+#define PTR_R21		21
-+#define PTR_R22		22
-+#define PTR_R23		23
-+#define PTR_R24		24
-+#define PTR_R25		25
-+#define PTR_GP		26
-+#define PTR_SP		27
-+#define PTR_FP		28
-+#define PTR_EA		29
-+#define PTR_BA		30
-+#define PTR_RA		31
-+/* Control registers */
-+#define PTR_PC		32
-+#define PTR_STATUS	33
-+#define PTR_ESTATUS	34
-+#define PTR_BSTATUS	35
-+#define PTR_IENABLE	36
-+#define PTR_IPENDING	37
-+#define PTR_CPUID	38
-+#define PTR_CTL6	39
-+#define PTR_CTL7	40
-+#define PTR_PTEADDR	41
-+#define PTR_TLBACC	42
-+#define PTR_TLBMISC	43
-+
-+#define NUM_PTRACE_REG (PTR_TLBMISC + 1)
-+
-+/* this struct defines the way the registers are stored on the
-+   stack during a system call.
-+
-+   There is a fake_regs in setup.c that has to match pt_regs.*/
-+
-+struct pt_regs {
-+	unsigned long  r8;		/* r8-r15 Caller-saved GP registers */
-+	unsigned long  r9;
-+	unsigned long  r10;
-+	unsigned long  r11;
-+	unsigned long  r12;
-+	unsigned long  r13;
-+	unsigned long  r14;
-+	unsigned long  r15;
-+	unsigned long  r1;		/* Assembler temporary */
-+	unsigned long  r2;		/* Retval LS 32bits */
-+	unsigned long  r3;		/* Retval MS 32bits */
-+	unsigned long  r4;		/* r4-r7 Register arguments */
-+	unsigned long  r5;
-+	unsigned long  r6;
-+	unsigned long  r7;
-+	unsigned long  orig_r2;		/* Copy of r2 ?? */
-+	unsigned long  ra;		/* Return address */
-+	unsigned long  fp;		/* Frame pointer */
-+	unsigned long  sp;		/* Stack pointer */
-+	unsigned long  gp;		/* Global pointer */
-+	unsigned long  estatus;
-+	unsigned long  ea;		/* Exception return address (pc) */
-+	unsigned long  orig_r7;
-+};
-+
-+/*
-+ * This is the extended stack used by signal handlers and the context
-+ * switcher: it's pushed after the normal "struct pt_regs".
-+ */
-+struct switch_stack {
-+	unsigned long  r16;		/* r16-r23 Callee-saved GP registers */
-+	unsigned long  r17;
-+	unsigned long  r18;
-+	unsigned long  r19;
-+	unsigned long  r20;
-+	unsigned long  r21;
-+	unsigned long  r22;
-+	unsigned long  r23;
-+	unsigned long  fp;
-+	unsigned long  gp;
-+	unsigned long  ra;
-+};
-+
-+#endif /* __ASSEMBLY__ */
-+#endif /* _UAPI_ASM_NIOS2_PTRACE_H */
-diff --git a/arch/nios2/kernel/ptrace.c b/arch/nios2/kernel/ptrace.c
-new file mode 100644
-index 0000000..681dda9
---- /dev/null
-+++ b/arch/nios2/kernel/ptrace.c
-@@ -0,0 +1,166 @@
++++ b/arch/nios2/include/asm/delay.h
+@@ -0,0 +1,21 @@
 +/*
 + * Copyright (C) 2014 Altera Corporation
-+ * Copyright (C) 2010 Tobias Klauser <tklauser@distanz.ch>
++ * Copyright (C) 2004 Microtronix Datacom Ltd
 + *
-+ * This file is subject to the terms and conditions of the GNU General
-+ * Public License.  See the file COPYING in the main directory of this
-+ * archive for more details.
++ * This file is subject to the terms and conditions of the GNU General Public
++ * License.  See the file "COPYING" in the main directory of this archive
++ * for more details.
 + */
 +
-+#include <linux/elf.h>
-+#include <linux/errno.h>
-+#include <linux/kernel.h>
-+#include <linux/mm.h>
-+#include <linux/ptrace.h>
-+#include <linux/regset.h>
-+#include <linux/sched.h>
-+#include <linux/tracehook.h>
-+#include <linux/uaccess.h>
-+#include <linux/user.h>
++#ifndef _ASM_NIOS2_DELAY_H
++#define _ASM_NIOS2_DELAY_H
 +
-+static int genregs_get(struct task_struct *target,
-+		       const struct user_regset *regset,
-+		       unsigned int pos, unsigned int count,
-+		       void *kbuf, void __user *ubuf)
-+{
-+	const struct pt_regs *regs = task_pt_regs(target);
-+	const struct switch_stack *sw = (struct switch_stack *)regs - 1;
-+	int ret = 0;
++#include <asm-generic/delay.h>
 +
-+#define REG_O_ZERO_RANGE(START, END)		\
-+	if (!ret)					\
-+		ret = user_regset_copyout_zero(&pos, &count, &kbuf, &ubuf, \
-+			START * 4, (END * 4) + 4);
++/* Undefined functions to get compile-time errors */
++extern void __bad_udelay(void);
++extern void __bad_ndelay(void);
 +
-+#define REG_O_ONE(PTR, LOC)	\
-+	if (!ret)			\
-+		ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf, PTR, \
-+			LOC * 4, (LOC * 4) + 4);
++extern unsigned long loops_per_jiffy;
 +
-+#define REG_O_RANGE(PTR, START, END)	\
-+	if (!ret)				\
-+		ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf, PTR, \
-+			START * 4, (END * 4) + 4);
++#endif /* _ASM_NIOS2_DELAY_H */
+diff --git a/arch/nios2/include/asm/timex.h b/arch/nios2/include/asm/timex.h
+new file mode 100644
+index 0000000..2f2abb2
+--- /dev/null
++++ b/arch/nios2/include/asm/timex.h
+@@ -0,0 +1,24 @@
++/* Copyright Altera Corporation (C) 2014. All rights reserved.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License, version 2,
++ * as published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ *
++ */
 +
-+	REG_O_ZERO_RANGE(PTR_R0, PTR_R0);
-+	REG_O_RANGE(&regs->r1, PTR_R1, PTR_R7);
-+	REG_O_RANGE(&regs->r8, PTR_R8, PTR_R15);
-+	REG_O_RANGE(sw, PTR_R16, PTR_R23);
-+	REG_O_ZERO_RANGE(PTR_R24, PTR_R25); /* et and bt */
-+	REG_O_ONE(&regs->gp, PTR_GP);
-+	REG_O_ONE(&regs->sp, PTR_SP);
-+	REG_O_ONE(&regs->fp, PTR_FP);
-+	REG_O_ONE(&regs->ea, PTR_EA);
-+	REG_O_ZERO_RANGE(PTR_BA, PTR_BA);
-+	REG_O_ONE(&regs->ra, PTR_RA);
-+	REG_O_ONE(&regs->ea, PTR_PC); /* use ea for PC */
-+	if (!ret)
-+		ret = user_regset_copyout_zero(&pos, &count, &kbuf, &ubuf,
-+					 PTR_STATUS * 4, -1);
++#ifndef _ASM_NIOS2_TIMEX_H
++#define _ASM_NIOS2_TIMEX_H
 +
-+	return ret;
-+}
++typedef unsigned long cycles_t;
 +
++extern cycles_t get_cycles(void);
++
++#endif
+diff --git a/arch/nios2/kernel/time.c b/arch/nios2/kernel/time.c
+new file mode 100644
+index 0000000..d90ca1b
+--- /dev/null
++++ b/arch/nios2/kernel/time.c
+@@ -0,0 +1,310 @@
 +/*
-+ * Set the thread state from a regset passed in via ptrace
++ * Copyright (C) 2013-2014 Altera Corporation
++ * Copyright (C) 2010 Tobias Klauser <tklauser@distanz.ch>
++ * Copyright (C) 2004 Microtronix Datacom Ltd.
++ *
++ * This file is subject to the terms and conditions of the GNU General Public
++ * License. See the file "COPYING" in the main directory of this archive
++ * for more details.
 + */
-+static int genregs_set(struct task_struct *target,
-+		       const struct user_regset *regset,
-+		       unsigned int pos, unsigned int count,
-+		       const void *kbuf, const void __user *ubuf)
-+{
-+	struct pt_regs *regs = task_pt_regs(target);
-+	const struct switch_stack *sw = (struct switch_stack *)regs - 1;
-+	int ret = 0;
 +
-+#define REG_IGNORE_RANGE(START, END)		\
-+	if (!ret)					\
-+		ret = user_regset_copyin_ignore(&pos, &count, &kbuf, &ubuf, \
-+			START * 4, (END * 4) + 4);
++#include <linux/interrupt.h>
++#include <linux/clockchips.h>
++#include <linux/clocksource.h>
++#include <linux/delay.h>
++#include <linux/of.h>
++#include <linux/of_address.h>
++#include <linux/of_irq.h>
++#include <linux/io.h>
++#include <linux/slab.h>
 +
-+#define REG_IN_ONE(PTR, LOC)	\
-+	if (!ret)			\
-+		ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf, \
-+			(void *)(PTR), LOC * 4, (LOC * 4) + 4);
++#define ALTERA_TIMER_STATUS_REG		0
++#define ALTERA_TIMER_CONTROL_REG	4
++#define ALTERA_TIMER_PERIODL_REG	8
++#define ALTERA_TIMER_PERIODH_REG	12
++#define ALTERA_TIMER_SNAPL_REG		16
++#define ALTERA_TIMER_SNAPH_REG		20
 +
-+#define REG_IN_RANGE(PTR, START, END)	\
-+	if (!ret)				\
-+		ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf, \
-+			(void *)(PTR), START * 4, (END * 4) + 4);
++#define ALTERA_TIMER_CONTROL_ITO_MSK	(0x1)
++#define ALTERA_TIMER_CONTROL_CONT_MSK	(0x2)
++#define ALTERA_TIMER_CONTROL_START_MSK	(0x4)
++#define ALTERA_TIMER_CONTROL_STOP_MSK	(0x8)
 +
-+	REG_IGNORE_RANGE(PTR_R0, PTR_R0);
-+	REG_IN_RANGE(&regs->r1, PTR_R1, PTR_R7);
-+	REG_IN_RANGE(&regs->r8, PTR_R8, PTR_R15);
-+	REG_IN_RANGE(sw, PTR_R16, PTR_R23);
-+	REG_IGNORE_RANGE(PTR_R24, PTR_R25); /* et and bt */
-+	REG_IN_ONE(&regs->gp, PTR_GP);
-+	REG_IN_ONE(&regs->sp, PTR_SP);
-+	REG_IN_ONE(&regs->fp, PTR_FP);
-+	REG_IN_ONE(&regs->ea, PTR_EA);
-+	REG_IGNORE_RANGE(PTR_BA, PTR_BA);
-+	REG_IN_ONE(&regs->ra, PTR_RA);
-+	REG_IN_ONE(&regs->ea, PTR_PC); /* use ea for PC */
-+	if (!ret)
-+		ret = user_regset_copyin_ignore(&pos, &count, &kbuf, &ubuf,
-+					 PTR_STATUS * 4, -1);
-+
-+	return ret;
-+}
-+
-+/*
-+ * Define the register sets available on Nios2 under Linux
-+ */
-+enum nios2_regset {
-+	REGSET_GENERAL,
++struct nios2_timer {
++	void __iomem *base;
++	unsigned long freq;
++	int irq;
 +};
 +
-+static const struct user_regset nios2_regsets[] = {
-+	[REGSET_GENERAL] = {
-+		.core_note_type = NT_PRSTATUS,
-+		.n = NUM_PTRACE_REG,
-+		.size = sizeof(unsigned long),
-+		.align = sizeof(unsigned long),
-+		.get = genregs_get,
-+		.set = genregs_set,
++struct nios2_clockevent_dev {
++	struct nios2_timer timer;
++	struct clock_event_device ced;
++};
++
++struct nios2_clocksource {
++	struct nios2_timer timer;
++	struct clocksource cs;
++};
++
++static inline struct nios2_clockevent_dev *
++	to_nios2_clkevent(struct clock_event_device *evt)
++{
++	return container_of(evt, struct nios2_clockevent_dev, ced);
++}
++
++static inline struct nios2_clocksource *
++	to_nios2_clksource(struct clocksource *cs)
++{
++	return container_of(cs, struct nios2_clocksource, cs);
++}
++
++static u16 timer_readw(struct nios2_timer *timer, u32 offs)
++{
++	return readw(timer->base + offs);
++}
++
++static void timer_writew(struct nios2_timer *timer, u16 val, u32 offs)
++{
++	writew(val, timer->base + offs);
++}
++
++static inline unsigned long read_timersnapshot(struct nios2_timer *timer)
++{
++	unsigned long count;
++
++	timer_writew(timer, 0, ALTERA_TIMER_SNAPL_REG);
++	count = timer_readw(timer, ALTERA_TIMER_SNAPH_REG) << 16 |
++		timer_readw(timer, ALTERA_TIMER_SNAPL_REG);
++
++	return count;
++}
++
++static cycle_t nios2_timer_read(struct clocksource *cs)
++{
++	struct nios2_clocksource *nios2_cs = to_nios2_clksource(cs);
++	unsigned long flags;
++	u32 count;
++
++	local_irq_save(flags);
++	count = read_timersnapshot(&nios2_cs->timer);
++	local_irq_restore(flags);
++
++	/* Counter is counting down */
++	return ~count;
++}
++
++static struct nios2_clocksource nios2_cs = {
++	.cs = {
++		.name	= "nios2-clksrc",
++		.rating	= 250,
++		.read	= nios2_timer_read,
++		.mask	= CLOCKSOURCE_MASK(32),
++		.flags	= CLOCK_SOURCE_IS_CONTINUOUS,
++	},
++};
++
++cycles_t get_cycles(void)
++{
++	return nios2_timer_read(&nios2_cs.cs);
++}
++
++static void nios2_timer_start(struct nios2_timer *timer)
++{
++	u16 ctrl;
++
++	ctrl = timer_readw(timer, ALTERA_TIMER_CONTROL_REG);
++	ctrl |= ALTERA_TIMER_CONTROL_START_MSK;
++	timer_writew(timer, ctrl, ALTERA_TIMER_CONTROL_REG);
++}
++
++static void nios2_timer_stop(struct nios2_timer *timer)
++{
++	u16 ctrl;
++
++	ctrl = timer_readw(timer, ALTERA_TIMER_CONTROL_REG);
++	ctrl |= ALTERA_TIMER_CONTROL_STOP_MSK;
++	timer_writew(timer, ctrl, ALTERA_TIMER_CONTROL_REG);
++}
++
++static void nios2_timer_config(struct nios2_timer *timer, unsigned long period,
++	enum clock_event_mode mode)
++{
++	u16 ctrl;
++
++	/* The timer's actual period is one cycle greater than the value
++	 * stored in the period register. */
++	 period--;
++
++	ctrl = timer_readw(timer, ALTERA_TIMER_CONTROL_REG);
++	/* stop counter */
++	timer_writew(timer, ctrl | ALTERA_TIMER_CONTROL_STOP_MSK,
++		ALTERA_TIMER_CONTROL_REG);
++
++	/* write new count */
++	timer_writew(timer, period, ALTERA_TIMER_PERIODL_REG);
++	timer_writew(timer, period >> 16, ALTERA_TIMER_PERIODH_REG);
++
++	ctrl |= ALTERA_TIMER_CONTROL_START_MSK | ALTERA_TIMER_CONTROL_ITO_MSK;
++	if (mode == CLOCK_EVT_MODE_PERIODIC)
++		ctrl |= ALTERA_TIMER_CONTROL_CONT_MSK;
++	else
++		ctrl &= ~ALTERA_TIMER_CONTROL_CONT_MSK;
++	timer_writew(timer, ctrl, ALTERA_TIMER_CONTROL_REG);
++}
++
++static int nios2_timer_set_next_event(unsigned long delta,
++	struct clock_event_device *evt)
++{
++	struct nios2_clockevent_dev *nios2_ced = to_nios2_clkevent(evt);
++
++	nios2_timer_config(&nios2_ced->timer, delta, evt->mode);
++
++	return 0;
++}
++
++static void nios2_timer_set_mode(enum clock_event_mode mode,
++	struct clock_event_device *evt)
++{
++	unsigned long period;
++	struct nios2_clockevent_dev *nios2_ced = to_nios2_clkevent(evt);
++	struct nios2_timer *timer = &nios2_ced->timer;
++
++	switch (mode) {
++	case CLOCK_EVT_MODE_PERIODIC:
++		period = DIV_ROUND_UP(timer->freq, HZ);
++		nios2_timer_config(timer, period, CLOCK_EVT_MODE_PERIODIC);
++		break;
++	case CLOCK_EVT_MODE_ONESHOT:
++	case CLOCK_EVT_MODE_UNUSED:
++	case CLOCK_EVT_MODE_SHUTDOWN:
++		nios2_timer_stop(timer);
++		break;
++	case CLOCK_EVT_MODE_RESUME:
++		nios2_timer_start(timer);
++		break;
 +	}
++}
++
++irqreturn_t timer_interrupt(int irq, void *dev_id)
++{
++	struct clock_event_device *evt = (struct clock_event_device *) dev_id;
++	struct nios2_clockevent_dev *nios2_ced = to_nios2_clkevent(evt);
++
++	/* Clear the interrupt condition */
++	timer_writew(&nios2_ced->timer, 0, ALTERA_TIMER_STATUS_REG);
++	evt->event_handler(evt);
++
++	return IRQ_HANDLED;
++}
++
++static void __init nios2_timer_get_base_and_freq(struct device_node *np,
++				void __iomem **base, u32 *freq)
++{
++	*base = of_iomap(np, 0);
++	if (!*base)
++		panic("Unable to map reg for %s\n", np->name);
++
++	if (of_property_read_u32(np, "clock-frequency", freq))
++		panic("Unable to get %s clock frequency\n", np->name);
++}
++
++static struct nios2_clockevent_dev nios2_ce = {
++	.ced = {
++		.name = "nios2-clkevent",
++		.features = CLOCK_EVT_FEAT_PERIODIC | CLOCK_EVT_FEAT_ONESHOT,
++		.rating = 250,
++		.shift = 32,
++		.set_next_event = nios2_timer_set_next_event,
++		.set_mode = nios2_timer_set_mode,
++	},
 +};
 +
-+static const struct user_regset_view nios2_user_view = {
-+	.name = "nios2",
-+	.e_machine = ELF_ARCH,
-+	.ei_osabi = ELF_OSABI,
-+	.regsets = nios2_regsets,
-+	.n = ARRAY_SIZE(nios2_regsets)
-+};
-+
-+const struct user_regset_view *task_user_regset_view(struct task_struct *task)
++static __init void nios2_clockevent_init(struct device_node *timer)
 +{
-+	return &nios2_user_view;
++	void __iomem *iobase;
++	u32 freq;
++	int irq;
++
++	nios2_timer_get_base_and_freq(timer, &iobase, &freq);
++
++	irq = irq_of_parse_and_map(timer, 0);
++	if (irq < 0)
++		panic("Unable to parse timer irq\n");
++
++	nios2_ce.timer.base = iobase;
++	nios2_ce.timer.irq = irq;
++	nios2_ce.timer.freq = freq;
++
++	nios2_ce.ced.cpumask = cpumask_of(0);
++	nios2_ce.ced.irq = irq;
++
++	nios2_timer_stop(&nios2_ce.timer);
++	/* clear pending interrupt */
++	timer_writew(&nios2_ce.timer, 0, ALTERA_TIMER_STATUS_REG);
++
++	if (request_irq(irq, timer_interrupt, IRQF_TIMER, timer->name,
++		&nios2_ce.ced))
++		panic("Unable to setup timer irq\n");
++
++	clockevents_config_and_register(&nios2_ce.ced, freq, 1, ULONG_MAX);
 +}
 +
-+void ptrace_disable(struct task_struct *child)
++static __init void nios2_clocksource_init(struct device_node *timer)
 +{
++	unsigned int ctrl;
++	void __iomem *iobase;
++	u32 freq;
 +
++	nios2_timer_get_base_and_freq(timer, &iobase, &freq);
++
++	nios2_cs.timer.base = iobase;
++	nios2_cs.timer.freq = freq;
++
++	clocksource_register_hz(&nios2_cs.cs, freq);
++
++	timer_writew(&nios2_cs.timer, USHRT_MAX, ALTERA_TIMER_PERIODL_REG);
++	timer_writew(&nios2_cs.timer, USHRT_MAX, ALTERA_TIMER_PERIODH_REG);
++
++	/* interrupt disable + continuous + start */
++	ctrl = ALTERA_TIMER_CONTROL_CONT_MSK | ALTERA_TIMER_CONTROL_START_MSK;
++	timer_writew(&nios2_cs.timer, ctrl, ALTERA_TIMER_CONTROL_REG);
++
++	/* Calibrate the delay loop directly */
++	lpj_fine = freq / HZ;
 +}
 +
-+long arch_ptrace(struct task_struct *child, long request, unsigned long addr,
-+		 unsigned long data)
++/*
++ * The first timer instance will use as a clockevent. If there are two or
++ * more instances, the second one gets used as clocksource and all
++ * others are unused.
++*/
++static void __init nios2_time_init(struct device_node *timer)
 +{
-+	return ptrace_request(child, request, addr, data);
++	static int num_called;
++
++	switch (num_called) {
++	case 0:
++		nios2_clockevent_init(timer);
++		break;
++	case 1:
++		nios2_clocksource_init(timer);
++		break;
++	default:
++		break;
++	}
++
++	num_called++;
 +}
 +
-+asmlinkage int do_syscall_trace_enter(void)
++void read_persistent_clock(struct timespec *ts)
 +{
-+	int ret = 0;
-+
-+	if (test_thread_flag(TIF_SYSCALL_TRACE))
-+		ret = tracehook_report_syscall_entry(task_pt_regs(current));
-+
-+	return ret;
++	ts->tv_sec = mktime(2007, 1, 1, 0, 0, 0);
++	ts->tv_nsec = 0;
 +}
 +
-+asmlinkage void do_syscall_trace_exit(void)
++void __init time_init(void)
 +{
-+	if (test_thread_flag(TIF_SYSCALL_TRACE))
-+		tracehook_report_syscall_exit(task_pt_regs(current), 0);
++	clocksource_of_init();
 +}
++
++CLOCKSOURCE_OF_DECLARE(nios2_timer, "altr,timer-1.0", nios2_time_init);
+diff --git a/arch/nios2/lib/delay.c b/arch/nios2/lib/delay.c
+new file mode 100644
+index 0000000..088119c
+--- /dev/null
++++ b/arch/nios2/lib/delay.c
+@@ -0,0 +1,52 @@
++/* Copyright Altera Corporation (C) 2014. All rights reserved.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License, version 2,
++ * as published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ *
++ */
++
++#include <linux/module.h>
++#include <asm/delay.h>
++#include <asm/param.h>
++#include <asm/processor.h>
++#include <asm/timex.h>
++
++void __delay(unsigned long cycles)
++{
++	cycles_t start = get_cycles();
++
++	while ((get_cycles() - start) < cycles)
++		cpu_relax();
++}
++EXPORT_SYMBOL(__delay);
++
++void __const_udelay(unsigned long xloops)
++{
++	u64 loops;
++
++	loops = (u64)xloops * loops_per_jiffy * HZ;
++
++	__delay(loops >> 32);
++}
++EXPORT_SYMBOL(__const_udelay);
++
++void __udelay(unsigned long usecs)
++{
++	__const_udelay(usecs * 0x10C7UL); /* 2**32 / 1000000 (rounded up) */
++}
++EXPORT_SYMBOL(__udelay);
++
++void __ndelay(unsigned long nsecs)
++{
++	__const_udelay(nsecs * 0x5UL); /* 2**32 / 1000000000 (rounded up) */
++}
++EXPORT_SYMBOL(__ndelay);
 -- 
 1.8.2.1
 
