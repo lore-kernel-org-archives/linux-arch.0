@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bl2on0086.outbound.protection.outlook.com ([65.55.169.86]:63567
-	"EHLO na01-bl2-obe.outbound.protection.outlook.com"
+Received: from mail-by2on0078.outbound.protection.outlook.com ([207.46.100.78]:9312
+	"EHLO na01-by2-obe.outbound.protection.outlook.com"
 	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1752486AbaKCKyo (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 3 Nov 2014 05:54:44 -0500
+	id S1752208AbaKCKx7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 3 Nov 2014 05:53:59 -0500
 From: Ley Foon Tan <lftan@altera.com>
-Subject: [PATCH v6 19/29] nios2: Library functions
-Date: Mon, 3 Nov 2014 18:52:15 +0800
-Message-ID: <1415011945-3297-20-git-send-email-lftan@altera.com>
+Subject: [PATCH v6 09/29] nios2: Page table management
+Date: Mon, 3 Nov 2014 18:52:05 +0800
+Message-ID: <1415011945-3297-10-git-send-email-lftan@altera.com>
 In-Reply-To: <1415011945-3297-1-git-send-email-lftan@altera.com>
 References: <1415011945-3297-1-git-send-email-lftan@altera.com>
 MIME-Version: 1.0
@@ -16,521 +16,551 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org
 Cc: Arnd Bergmann <arnd@arndb.de>, Ley Foon Tan <lftan@altera.com>, lftan.linux@gmail.com, cltang@codesourcery.com
-Message-ID: <20141103105215.TtY0kqoDowUt7hJzwhjP2RQ8eHRsOAVqDQPDMw9fuqs@z>
+Message-ID: <20141103105205.WHEf2e7BicpKOlvO4QmZLaR87pgQfGbhtO-z-6VjcaI@z>
 
-Add optimised library functions for nios2.
+This patch adds support for page table management.
 
 Signed-off-by: Ley Foon Tan <lftan@altera.com>
 ---
- arch/nios2/include/asm/checksum.h |  78 +++++++++++++++
- arch/nios2/include/asm/string.h   |  24 +++++
- arch/nios2/lib/memcpy.c           | 202 ++++++++++++++++++++++++++++++++++++++
- arch/nios2/lib/memmove.c          |  82 ++++++++++++++++
- arch/nios2/lib/memset.c           |  81 +++++++++++++++
- 5 files changed, 467 insertions(+)
- create mode 100644 arch/nios2/include/asm/checksum.h
- create mode 100644 arch/nios2/include/asm/string.h
- create mode 100644 arch/nios2/lib/memcpy.c
- create mode 100644 arch/nios2/lib/memmove.c
- create mode 100644 arch/nios2/lib/memset.c
+ arch/nios2/include/asm/pgalloc.h      |  86 ++++++++++
+ arch/nios2/include/asm/pgtable-bits.h |  35 ++++
+ arch/nios2/include/asm/pgtable.h      | 310 ++++++++++++++++++++++++++++++++++
+ arch/nios2/mm/pgtable.c               |  74 ++++++++
+ 4 files changed, 505 insertions(+)
+ create mode 100644 arch/nios2/include/asm/pgalloc.h
+ create mode 100644 arch/nios2/include/asm/pgtable-bits.h
+ create mode 100644 arch/nios2/include/asm/pgtable.h
+ create mode 100644 arch/nios2/mm/pgtable.c
 
-diff --git a/arch/nios2/include/asm/checksum.h b/arch/nios2/include/asm/checksum.h
+diff --git a/arch/nios2/include/asm/pgalloc.h b/arch/nios2/include/asm/pgalloc.h
 new file mode 100644
-index 0000000..6bc1f0d
+index 0000000..6e2985e
 --- /dev/null
-+++ b/arch/nios2/include/asm/checksum.h
-@@ -0,0 +1,78 @@
++++ b/arch/nios2/include/asm/pgalloc.h
+@@ -0,0 +1,86 @@
 +/*
-+ * Copyright (C) 2010 Tobias Klauser <tklauser@distanz.ch>
-+ * Copyright (C) 2004 Microtronix Datacom Ltd.
-+ *
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License. See the file "COPYING" in the main directory of this archive
-+ * for more details.
-+ */
-+
-+#ifndef _ASM_NIOS_CHECKSUM_H
-+#define _ASM_NIOS_CHECKSUM_H
-+
-+/* Take these from lib/checksum.c */
-+extern __wsum csum_partial(const void *buff, int len, __wsum sum);
-+extern __wsum csum_partial_copy(const void *src, void *dst, int len,
-+				__wsum sum);
-+extern __wsum csum_partial_copy_from_user(const void __user *src, void *dst,
-+					int len, __wsum sum, int *csum_err);
-+#define csum_partial_copy_nocheck(src, dst, len, sum)	\
-+	csum_partial_copy((src), (dst), (len), (sum))
-+
-+extern __sum16 ip_fast_csum(const void *iph, unsigned int ihl);
-+extern __sum16 ip_compute_csum(const void *buff, int len);
-+
-+/*
-+ * Fold a partial checksum
-+ */
-+static inline __sum16 csum_fold(__wsum sum)
-+{
-+	__asm__ __volatile__(
-+		"add	%0, %1, %0\n"
-+		"cmpltu	r8, %0, %1\n"
-+		"srli	%0, %0, 16\n"
-+		"add	%0, %0, r8\n"
-+		"nor	%0, %0, %0\n"
-+		: "=r" (sum)
-+		: "r" (sum << 16), "0" (sum)
-+		: "r8");
-+	return (__force __sum16) sum;
-+}
-+
-+/*
-+ * computes the checksum of the TCP/UDP pseudo-header
-+ * returns a 16-bit checksum, already complemented
-+ */
-+#define csum_tcpudp_nofold csum_tcpudp_nofold
-+static inline __wsum csum_tcpudp_nofold(__be32 saddr, __be32 daddr,
-+					unsigned short len,
-+					unsigned short proto,
-+					__wsum sum)
-+{
-+	__asm__ __volatile__(
-+		"add	%0, %1, %0\n"
-+		"cmpltu	r8, %0, %1\n"
-+		"add	%0, %0, r8\n"	/* add carry */
-+		"add	%0, %2, %0\n"
-+		"cmpltu	r8, %0, %2\n"
-+		"add	%0, %0, r8\n"	/* add carry */
-+		"add	%0, %3, %0\n"
-+		"cmpltu	r8, %0, %3\n"
-+		"add	%0, %0, r8\n"	/* add carry */
-+		: "=r" (sum), "=r" (saddr)
-+		: "r" (daddr), "r" ((ntohs(len) << 16) + (proto * 256)),
-+		  "0" (sum),
-+		  "1" (saddr)
-+		: "r8");
-+
-+	return sum;
-+}
-+
-+static inline __sum16 csum_tcpudp_magic(__be32 saddr, __be32 daddr,
-+					unsigned short len,
-+					unsigned short proto, __wsum sum)
-+{
-+	return csum_fold(csum_tcpudp_nofold(saddr, daddr, len, proto, sum));
-+}
-+
-+#endif /* _ASM_NIOS_CHECKSUM_H */
-diff --git a/arch/nios2/include/asm/string.h b/arch/nios2/include/asm/string.h
-new file mode 100644
-index 0000000..14dd570
---- /dev/null
-+++ b/arch/nios2/include/asm/string.h
-@@ -0,0 +1,24 @@
-+/*
-+ * Copyright (C) 2004 Microtronix Datacom Ltd
-+ *
 + * This file is subject to the terms and conditions of the GNU General Public
 + * License.  See the file "COPYING" in the main directory of this archive
 + * for more details.
++ *
++ * Copyright (C) 1994 - 2001, 2003 by Ralf Baechle
++ * Copyright (C) 1999, 2000, 2001 Silicon Graphics, Inc.
 + */
 +
-+#ifndef _ASM_NIOS2_STRING_H
-+#define _ASM_NIOS2_STRING_H
++#ifndef _ASM_NIOS2_PGALLOC_H
++#define _ASM_NIOS2_PGALLOC_H
 +
-+#ifdef __KERNEL__
++#include <linux/mm.h>
 +
-+#define __HAVE_ARCH_MEMSET
-+#define __HAVE_ARCH_MEMCPY
-+#define __HAVE_ARCH_MEMMOVE
++static inline void pmd_populate_kernel(struct mm_struct *mm, pmd_t *pmd,
++	pte_t *pte)
++{
++	set_pmd(pmd, __pmd((unsigned long)pte));
++}
 +
-+extern void *memset(void *s, int c, size_t count);
-+extern void *memcpy(void *d, const void *s, size_t count);
-+extern void *memmove(void *d, const void *s, size_t count);
++static inline void pmd_populate(struct mm_struct *mm, pmd_t *pmd,
++	pgtable_t pte)
++{
++	set_pmd(pmd, __pmd((unsigned long)page_address(pte)));
++}
++#define pmd_pgtable(pmd) pmd_page(pmd)
 +
-+#endif /* __KERNEL__ */
++/*
++ * Initialize a new pmd table with invalid pointers.
++ */
++extern void pmd_init(unsigned long page, unsigned long pagetable);
 +
-+#endif /* _ASM_NIOS2_STRING_H */
-diff --git a/arch/nios2/lib/memcpy.c b/arch/nios2/lib/memcpy.c
++extern pgd_t *pgd_alloc(struct mm_struct *mm);
++
++static inline void pgd_free(struct mm_struct *mm, pgd_t *pgd)
++{
++	free_pages((unsigned long)pgd, PGD_ORDER);
++}
++
++static inline pte_t *pte_alloc_one_kernel(struct mm_struct *mm,
++	unsigned long address)
++{
++	pte_t *pte;
++
++	pte = (pte_t *) __get_free_pages(GFP_KERNEL|__GFP_REPEAT|__GFP_ZERO,
++					PTE_ORDER);
++
++	return pte;
++}
++
++static inline pgtable_t pte_alloc_one(struct mm_struct *mm,
++	unsigned long address)
++{
++	struct page *pte;
++
++	pte = alloc_pages(GFP_KERNEL | __GFP_REPEAT, PTE_ORDER);
++	if (pte) {
++		if (!pgtable_page_ctor(pte)) {
++			__free_page(pte);
++			return NULL;
++		}
++		clear_highpage(pte);
++	}
++	return pte;
++}
++
++static inline void pte_free_kernel(struct mm_struct *mm, pte_t *pte)
++{
++	free_pages((unsigned long)pte, PTE_ORDER);
++}
++
++static inline void pte_free(struct mm_struct *mm, struct page *pte)
++{
++	pgtable_page_dtor(pte);
++	__free_pages(pte, PTE_ORDER);
++}
++
++#define __pte_free_tlb(tlb, pte, addr)				\
++	do {							\
++		pgtable_page_dtor(pte);				\
++		tlb_remove_page((tlb), (pte));			\
++	} while (0)
++
++#define check_pgt_cache()	do { } while (0)
++
++#endif /* _ASM_NIOS2_PGALLOC_H */
+diff --git a/arch/nios2/include/asm/pgtable-bits.h b/arch/nios2/include/asm/pgtable-bits.h
 new file mode 100644
-index 0000000..1715f5d
+index 0000000..ce9e706
 --- /dev/null
-+++ b/arch/nios2/lib/memcpy.c
-@@ -0,0 +1,202 @@
-+/* Extracted from GLIBC memcpy.c and memcopy.h, which is:
-+   Copyright (C) 1991, 1992, 1993, 1997, 2004 Free Software Foundation, Inc.
-+   This file is part of the GNU C Library.
-+   Contributed by Torbjorn Granlund (tege@sics.se).
-+
-+   The GNU C Library is free software; you can redistribute it and/or
-+   modify it under the terms of the GNU Lesser General Public
-+   License as published by the Free Software Foundation; either
-+   version 2.1 of the License, or (at your option) any later version.
-+
-+   The GNU C Library is distributed in the hope that it will be useful,
-+   but WITHOUT ANY WARRANTY; without even the implied warranty of
-+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-+   Lesser General Public License for more details.
-+
-+   You should have received a copy of the GNU Lesser General Public
-+   License along with the GNU C Library; if not, see
-+   <http://www.gnu.org/licenses/>.  */
-+
-+#include <linux/types.h>
-+
-+/* Type to use for aligned memory operations.
-+   This should normally be the biggest type supported by a single load
-+   and store.  */
-+#define	op_t	unsigned long int
-+#define OPSIZ	(sizeof(op_t))
-+
-+/* Optimal type for storing bytes in registers.  */
-+#define	reg_char	char
-+
-+#define MERGE(w0, sh_1, w1, sh_2) (((w0) >> (sh_1)) | ((w1) << (sh_2)))
-+
-+/* Copy exactly NBYTES bytes from SRC_BP to DST_BP,
-+   without any assumptions about alignment of the pointers.  */
-+#define BYTE_COPY_FWD(dst_bp, src_bp, nbytes)				\
-+do {									\
-+	size_t __nbytes = (nbytes);					\
-+	while (__nbytes > 0) {						\
-+		unsigned char __x = ((unsigned char *) src_bp)[0];	\
-+		src_bp += 1;						\
-+		__nbytes -= 1;						\
-+		((unsigned char *) dst_bp)[0] = __x;			\
-+		dst_bp += 1;						\
-+	}								\
-+} while (0)
-+
-+/* Copy *up to* NBYTES bytes from SRC_BP to DST_BP, with
-+   the assumption that DST_BP is aligned on an OPSIZ multiple.  If
-+   not all bytes could be easily copied, store remaining number of bytes
-+   in NBYTES_LEFT, otherwise store 0.  */
-+/* extern void _wordcopy_fwd_aligned __P ((long int, long int, size_t)); */
-+/* extern void _wordcopy_fwd_dest_aligned __P ((long int, long int, size_t)); */
-+#define WORD_COPY_FWD(dst_bp, src_bp, nbytes_left, nbytes)		\
-+do {									\
-+	if (src_bp % OPSIZ == 0)					\
-+		_wordcopy_fwd_aligned(dst_bp, src_bp, (nbytes) / OPSIZ);\
-+	else								\
-+		_wordcopy_fwd_dest_aligned(dst_bp, src_bp, (nbytes) / OPSIZ);\
-+	src_bp += (nbytes) & -OPSIZ;					\
-+	dst_bp += (nbytes) & -OPSIZ;					\
-+	(nbytes_left) = (nbytes) % OPSIZ;				\
-+} while (0)
-+
-+
-+/* Threshold value for when to enter the unrolled loops.  */
-+#define	OP_T_THRES	16
-+
-+/* _wordcopy_fwd_aligned -- Copy block beginning at SRCP to
-+   block beginning at DSTP with LEN `op_t' words (not LEN bytes!).
-+   Both SRCP and DSTP should be aligned for memory operations on `op_t's.  */
-+/* stream-lined (read x8 + write x8) */
-+static void _wordcopy_fwd_aligned(long int dstp, long int srcp, size_t len)
-+{
-+	while (len > 7) {
-+		register op_t a0, a1, a2, a3, a4, a5, a6, a7;
-+
-+		a0 = ((op_t *) srcp)[0];
-+		a1 = ((op_t *) srcp)[1];
-+		a2 = ((op_t *) srcp)[2];
-+		a3 = ((op_t *) srcp)[3];
-+		a4 = ((op_t *) srcp)[4];
-+		a5 = ((op_t *) srcp)[5];
-+		a6 = ((op_t *) srcp)[6];
-+		a7 = ((op_t *) srcp)[7];
-+		((op_t *) dstp)[0] = a0;
-+		((op_t *) dstp)[1] = a1;
-+		((op_t *) dstp)[2] = a2;
-+		((op_t *) dstp)[3] = a3;
-+		((op_t *) dstp)[4] = a4;
-+		((op_t *) dstp)[5] = a5;
-+		((op_t *) dstp)[6] = a6;
-+		((op_t *) dstp)[7] = a7;
-+
-+		srcp += 8 * OPSIZ;
-+		dstp += 8 * OPSIZ;
-+		len -= 8;
-+	}
-+	while (len > 0) {
-+		*(op_t *)dstp = *(op_t *)srcp;
-+
-+		srcp += OPSIZ;
-+		dstp += OPSIZ;
-+		len -= 1;
-+	}
-+}
-+
-+/* _wordcopy_fwd_dest_aligned -- Copy block beginning at SRCP to
-+   block beginning at DSTP with LEN `op_t' words (not LEN bytes!).
-+   DSTP should be aligned for memory operations on `op_t's, but SRCP must
-+   *not* be aligned.  */
-+/* stream-lined (read x4 + write x4) */
-+static void _wordcopy_fwd_dest_aligned(long int dstp, long int srcp,
-+					size_t len)
-+{
-+	op_t ap;
-+	int sh_1, sh_2;
-+
-+	/* Calculate how to shift a word read at the memory operation
-+	aligned srcp to make it aligned for copy. */
-+
-+	sh_1 = 8 * (srcp % OPSIZ);
-+	sh_2 = 8 * OPSIZ - sh_1;
-+
-+	/* Make SRCP aligned by rounding it down to the beginning of the `op_t'
-+	it points in the middle of. */
-+	srcp &= -OPSIZ;
-+	ap = ((op_t *) srcp)[0];
-+	srcp += OPSIZ;
-+
-+	while (len > 3) {
-+		op_t a0, a1, a2, a3;
-+
-+		a0 = ((op_t *) srcp)[0];
-+		a1 = ((op_t *) srcp)[1];
-+		a2 = ((op_t *) srcp)[2];
-+		a3 = ((op_t *) srcp)[3];
-+		((op_t *) dstp)[0] = MERGE(ap, sh_1, a0, sh_2);
-+		((op_t *) dstp)[1] = MERGE(a0, sh_1, a1, sh_2);
-+		((op_t *) dstp)[2] = MERGE(a1, sh_1, a2, sh_2);
-+		((op_t *) dstp)[3] = MERGE(a2, sh_1, a3, sh_2);
-+
-+		ap = a3;
-+		srcp += 4 * OPSIZ;
-+		dstp += 4 * OPSIZ;
-+		len -= 4;
-+	}
-+	while (len > 0) {
-+		register op_t a0;
-+
-+		a0 = ((op_t *) srcp)[0];
-+		((op_t *) dstp)[0] = MERGE(ap, sh_1, a0, sh_2);
-+
-+		ap = a0;
-+		srcp += OPSIZ;
-+		dstp += OPSIZ;
-+		len -= 1;
-+	}
-+}
-+
-+void *memcpy(void *dstpp, const void *srcpp, size_t len)
-+{
-+	unsigned long int dstp = (long int) dstpp;
-+	unsigned long int srcp = (long int) srcpp;
-+
-+	/* Copy from the beginning to the end.  */
-+
-+	/* If there not too few bytes to copy, use word copy.  */
-+	if (len >= OP_T_THRES) {
-+		/* Copy just a few bytes to make DSTP aligned.  */
-+		len -= (-dstp) % OPSIZ;
-+		BYTE_COPY_FWD(dstp, srcp, (-dstp) % OPSIZ);
-+
-+		/* Copy whole pages from SRCP to DSTP by virtual address
-+		   manipulation, as much as possible.  */
-+
-+		/* PAGE_COPY_FWD_MAYBE (dstp, srcp, len, len); */
-+
-+		/* Copy from SRCP to DSTP taking advantage of the known
-+		   alignment of DSTP. Number of bytes remaining is put in the
-+		   third argument, i.e. in LEN.  This number may vary from
-+		   machine to machine. */
-+
-+		WORD_COPY_FWD(dstp, srcp, len, len);
-+
-+		/* Fall out and copy the tail. */
-+	}
-+
-+	/* There are just a few bytes to copy.  Use byte memory operations. */
-+	BYTE_COPY_FWD(dstp, srcp, len);
-+
-+	return dstpp;
-+}
-+
-+void *memcpyb(void *dstpp, const void *srcpp, unsigned len)
-+{
-+	unsigned long int dstp = (long int) dstpp;
-+	unsigned long int srcp = (long int) srcpp;
-+
-+	BYTE_COPY_FWD(dstp, srcp, len);
-+
-+	return dstpp;
-+}
-diff --git a/arch/nios2/lib/memmove.c b/arch/nios2/lib/memmove.c
-new file mode 100644
-index 0000000..c65ef51
---- /dev/null
-+++ b/arch/nios2/lib/memmove.c
-@@ -0,0 +1,82 @@
++++ b/arch/nios2/include/asm/pgtable-bits.h
+@@ -0,0 +1,35 @@
 +/*
 + * Copyright (C) 2011 Tobias Klauser <tklauser@distanz.ch>
-+ * Copyright (C) 2004 Microtronix Datacom Ltd
++ * Copyright (C) 2009 Wind River Systems Inc
 + *
 + * This file is subject to the terms and conditions of the GNU General Public
 + * License.  See the file "COPYING" in the main directory of this archive
 + * for more details.
 + */
 +
-+#include <linux/types.h>
-+#include <linux/string.h>
++#ifndef _ASM_NIOS2_PGTABLE_BITS_H
++#define _ASM_NIOS2_PGTABLE_BITS_H
 +
-+#ifdef __HAVE_ARCH_MEMMOVE
-+void *memmove(void *d, const void *s, size_t count)
-+{
-+	unsigned long dst, src;
++/*
++ * These are actual hardware defined protection bits in the tlbacc register
++ * which looks like this:
++ *
++ * 31 30 ... 26 25 24 23 22 21 20 19 18 ...  1  0
++ * ignored........  C  R  W  X  G PFN............
++ */
++#define _PAGE_GLOBAL	(1<<20)
++#define _PAGE_EXEC	(1<<21)
++#define _PAGE_WRITE	(1<<22)
++#define _PAGE_READ	(1<<23)
++#define _PAGE_CACHED	(1<<24)	/* C: data access cacheable */
 +
-+	if (!count)
-+		return d;
++/*
++ * Software defined bits. They are ignored by the hardware and always read back
++ * as zero, but can be written as non-zero.
++ */
++#define _PAGE_PRESENT	(1<<25)	/* PTE contains a translation */
++#define _PAGE_ACCESSED	(1<<26)	/* page referenced */
++#define _PAGE_DIRTY	(1<<27)	/* dirty page */
++#define _PAGE_FILE	(1<<28)	/* PTE used for file mapping or swap */
 +
-+	if (d < s) {
-+		dst = (unsigned long) d;
-+		src = (unsigned long) s;
-+
-+		if ((count < 8) || ((dst ^ src) & 3))
-+			goto restup;
-+
-+		if (dst & 1) {
-+			*(char *)dst++ = *(char *)src++;
-+			count--;
-+		}
-+		if (dst & 2) {
-+			*(short *)dst = *(short *)src;
-+			src += 2;
-+			dst += 2;
-+			count -= 2;
-+		}
-+		while (count > 3) {
-+			*(long *)dst = *(long *)src;
-+			src += 4;
-+			dst += 4;
-+			count -= 4;
-+		}
-+restup:
-+		while (count--)
-+			*(char *)dst++ = *(char *)src++;
-+	} else {
-+		dst = (unsigned long) d + count;
-+		src = (unsigned long) s + count;
-+
-+		if ((count < 8) || ((dst ^ src) & 3))
-+			goto restdown;
-+
-+		if (dst & 1) {
-+			src--;
-+			dst--;
-+			count--;
-+			*(char *)dst = *(char *)src;
-+		}
-+		if (dst & 2) {
-+			src -= 2;
-+			dst -= 2;
-+			count -= 2;
-+			*(short *)dst = *(short *)src;
-+		}
-+		while (count > 3) {
-+			src -= 4;
-+			dst -= 4;
-+			count -= 4;
-+			*(long *)dst = *(long *)src;
-+		}
-+restdown:
-+		while (count--) {
-+			src--;
-+			dst--;
-+			*(char *)dst = *(char *)src;
-+		}
-+	}
-+
-+	return d;
-+}
-+#endif /* __HAVE_ARCH_MEMMOVE */
-diff --git a/arch/nios2/lib/memset.c b/arch/nios2/lib/memset.c
++#endif /* _ASM_NIOS2_PGTABLE_BITS_H */
+diff --git a/arch/nios2/include/asm/pgtable.h b/arch/nios2/include/asm/pgtable.h
 new file mode 100644
-index 0000000..65e9780
+index 0000000..ccbaffd
 --- /dev/null
-+++ b/arch/nios2/lib/memset.c
-@@ -0,0 +1,81 @@
++++ b/arch/nios2/include/asm/pgtable.h
+@@ -0,0 +1,310 @@
 +/*
 + * Copyright (C) 2011 Tobias Klauser <tklauser@distanz.ch>
-+ * Copyright (C) 2004 Microtronix Datacom Ltd
++ * Copyright (C) 2009 Wind River Systems Inc
++ *
++ * Based on asm/pgtable-32.h from mips which is:
++ *
++ * Copyright (C) 1994, 95, 96, 97, 98, 99, 2000, 2003 Ralf Baechle
++ * Copyright (C) 1999, 2000, 2001 Silicon Graphics, Inc.
 + *
 + * This file is subject to the terms and conditions of the GNU General Public
 + * License.  See the file "COPYING" in the main directory of this archive
 + * for more details.
 + */
 +
-+#include <linux/types.h>
-+#include <linux/string.h>
++#ifndef _ASM_NIOS2_PGTABLE_H
++#define _ASM_NIOS2_PGTABLE_H
 +
-+#ifdef __HAVE_ARCH_MEMSET
-+void *memset(void *s, int c, size_t count)
++#include <linux/io.h>
++#include <linux/bug.h>
++#include <asm/page.h>
++#include <asm/cacheflush.h>
++#include <asm/tlbflush.h>
++
++#include <asm/pgtable-bits.h>
++#include <asm-generic/pgtable-nopmd.h>
++
++#define FIRST_USER_ADDRESS	0
++
++#define VMALLOC_START		CONFIG_NIOS2_KERNEL_MMU_REGION_BASE
++#define VMALLOC_END		(CONFIG_NIOS2_KERNEL_REGION_BASE - 1)
++
++struct mm_struct;
++
++/* Helper macro */
++#define MKP(x, w, r) __pgprot(_PAGE_PRESENT | _PAGE_CACHED |		\
++				((x) ? _PAGE_EXEC : 0) |		\
++				((r) ? _PAGE_READ : 0) |		\
++				((w) ? _PAGE_WRITE : 0))
++/*
++ * These are the macros that generic kernel code needs
++ * (to populate protection_map[])
++ */
++
++/* Remove W bit on private pages for COW support */
++#define __P000	MKP(0, 0, 0)
++#define __P001	MKP(0, 0, 1)
++#define __P010	MKP(0, 0, 0)	/* COW */
++#define __P011	MKP(0, 0, 1)	/* COW */
++#define __P100	MKP(1, 0, 0)
++#define __P101	MKP(1, 0, 1)
++#define __P110	MKP(1, 0, 0)	/* COW */
++#define __P111	MKP(1, 0, 1)	/* COW */
++
++/* Shared pages can have exact HW mapping */
++#define __S000	MKP(0, 0, 0)
++#define __S001	MKP(0, 0, 1)
++#define __S010	MKP(0, 1, 0)
++#define __S011	MKP(0, 1, 1)
++#define __S100	MKP(1, 0, 0)
++#define __S101	MKP(1, 0, 1)
++#define __S110	MKP(1, 1, 0)
++#define __S111	MKP(1, 1, 1)
++
++/* Used all over the kernel */
++#define PAGE_KERNEL __pgprot(_PAGE_PRESENT | _PAGE_CACHED | _PAGE_READ | \
++			     _PAGE_WRITE | _PAGE_EXEC | _PAGE_GLOBAL)
++
++#define PAGE_SHARED __pgprot(_PAGE_PRESENT | _PAGE_CACHED | _PAGE_READ | \
++			     _PAGE_WRITE | _PAGE_ACCESSED)
++
++#define PAGE_COPY MKP(0, 0, 1)
++
++#define PGD_ORDER	0
++#define PTE_ORDER	0
++
++#define PTRS_PER_PGD	((PAGE_SIZE << PGD_ORDER) / sizeof(pgd_t))
++#define PTRS_PER_PTE	((PAGE_SIZE << PTE_ORDER) / sizeof(pte_t))
++
++#define USER_PTRS_PER_PGD	\
++	(CONFIG_NIOS2_KERNEL_MMU_REGION_BASE / PGDIR_SIZE)
++
++#define PGDIR_SHIFT	22
++#define PGDIR_SIZE	(1UL << PGDIR_SHIFT)
++#define PGDIR_MASK	(~(PGDIR_SIZE-1))
++
++/*
++ * ZERO_PAGE is a global shared page that is always zero: used
++ * for zero-mapped memory areas etc..
++ */
++extern unsigned long empty_zero_page[PAGE_SIZE / sizeof(unsigned long)];
++#define ZERO_PAGE(vaddr)	(virt_to_page(empty_zero_page))
++
++extern pgd_t swapper_pg_dir[PTRS_PER_PGD];
++extern pte_t invalid_pte_table[PAGE_SIZE/sizeof(pte_t)];
++
++/*
++ * (pmds are folded into puds so this doesn't get actually called,
++ * but the define is needed for a generic inline function.)
++ */
++static inline void set_pmd(pmd_t *pmdptr, pmd_t pmdval)
 +{
-+	int destptr, charcnt, dwordcnt, fill8reg, wrkrega;
++	pmdptr->pud.pgd.pgd = pmdval.pud.pgd.pgd;
++}
 +
-+	if (!count)
-+		return s;
++/* to find an entry in a page-table-directory */
++#define pgd_index(addr)		(((addr) >> PGDIR_SHIFT) & (PTRS_PER_PGD - 1))
++#define pgd_offset(mm, addr)	((mm)->pgd + pgd_index(addr))
 +
-+	c &= 0xFF;
++static inline int pte_write(pte_t pte)		\
++	{ return pte_val(pte) & _PAGE_WRITE; }
++static inline int pte_dirty(pte_t pte)		\
++	{ return pte_val(pte) & _PAGE_DIRTY; }
++static inline int pte_young(pte_t pte)		\
++	{ return pte_val(pte) & _PAGE_ACCESSED; }
++static inline int pte_file(pte_t pte)		\
++	{ return pte_val(pte) & _PAGE_FILE; }
++static inline int pte_special(pte_t pte)	{ return 0; }
 +
-+	if (count <= 8) {
-+		char *xs = (char *) s;
++#define pgprot_noncached pgprot_noncached
 +
-+		while (count--)
-+			*xs++ = c;
-+		return s;
++static inline pgprot_t pgprot_noncached(pgprot_t _prot)
++{
++	unsigned long prot = pgprot_val(_prot);
++
++	prot &= ~_PAGE_CACHED;
++
++	return __pgprot(prot);
++}
++
++static inline int pte_none(pte_t pte)
++{
++	return !(pte_val(pte) & ~(_PAGE_GLOBAL|0xf));
++}
++
++static inline int pte_present(pte_t pte)	\
++	{ return pte_val(pte) & _PAGE_PRESENT; }
++
++/*
++ * The following only work if pte_present() is true.
++ * Undefined behaviour if not..
++ */
++static inline pte_t pte_wrprotect(pte_t pte)
++{
++	pte_val(pte) &= ~_PAGE_WRITE;
++	return pte;
++}
++
++static inline pte_t pte_mkclean(pte_t pte)
++{
++	pte_val(pte) &= ~_PAGE_DIRTY;
++	return pte;
++}
++
++static inline pte_t pte_mkold(pte_t pte)
++{
++	pte_val(pte) &= ~_PAGE_ACCESSED;
++	return pte;
++}
++
++static inline pte_t pte_mkwrite(pte_t pte)
++{
++	pte_val(pte) |= _PAGE_WRITE;
++	return pte;
++}
++
++static inline pte_t pte_mkdirty(pte_t pte)
++{
++	pte_val(pte) |= _PAGE_DIRTY;
++	return pte;
++}
++
++static inline pte_t pte_mkspecial(pte_t pte)	{ return pte; }
++
++static inline pte_t pte_mkyoung(pte_t pte)
++{
++	pte_val(pte) |= _PAGE_ACCESSED;
++	return pte;
++}
++
++static inline pte_t pte_modify(pte_t pte, pgprot_t newprot)
++{
++	const unsigned long mask = _PAGE_READ | _PAGE_WRITE | _PAGE_EXEC;
++
++	pte_val(pte) = (pte_val(pte) & ~mask) | (pgprot_val(newprot) & mask);
++	return pte;
++}
++
++static inline int pmd_present(pmd_t pmd)
++{
++	return (pmd_val(pmd) != (unsigned long) invalid_pte_table)
++			&& (pmd_val(pmd) != 0UL);
++}
++
++static inline void pmd_clear(pmd_t *pmdp)
++{
++	pmd_val(*pmdp) = (unsigned long) invalid_pte_table;
++}
++
++#define pte_pfn(pte)		(pte_val(pte) & 0xfffff)
++#define pfn_pte(pfn, prot)	(__pte(pfn | pgprot_val(prot)))
++#define pte_page(pte)		(pfn_to_page(pte_pfn(pte)))
++
++/*
++ * Store a linux PTE into the linux page table.
++ */
++static inline void set_pte(pte_t *ptep, pte_t pteval)
++{
++	*ptep = pteval;
++}
++
++static inline void set_pte_at(struct mm_struct *mm, unsigned long addr,
++			      pte_t *ptep, pte_t pteval)
++{
++	unsigned long paddr = page_to_virt(pte_page(pteval));
++
++	flush_dcache_range(paddr, paddr + PAGE_SIZE);
++	set_pte(ptep, pteval);
++}
++
++static inline int pmd_none(pmd_t pmd)
++{
++	return (pmd_val(pmd) ==
++		(unsigned long) invalid_pte_table) || (pmd_val(pmd) == 0UL);
++}
++
++#define pmd_bad(pmd)	(pmd_val(pmd) & ~PAGE_MASK)
++
++static inline void pte_clear(struct mm_struct *mm,
++				unsigned long addr, pte_t *ptep)
++{
++	pte_t null;
++
++	pte_val(null) = (addr >> PAGE_SHIFT) & 0xf;
++
++	set_pte_at(mm, addr, ptep, null);
++	flush_tlb_one(addr);
++}
++
++/*
++ * Conversion functions: convert a page and protection to a page entry,
++ * and a page entry and page directory to the page they refer to.
++ */
++#define mk_pte(page, prot)	(pfn_pte(page_to_pfn(page), prot))
++
++#define pte_unmap(pte)	do { } while (0)
++
++/*
++ * Conversion functions: convert a page and protection to a page entry,
++ * and a page entry and page directory to the page they refer to.
++ */
++#define pmd_phys(pmd)		virt_to_phys((void *)pmd_val(pmd))
++#define pmd_page(pmd)		(pfn_to_page(pmd_phys(pmd) >> PAGE_SHIFT))
++#define pmd_page_vaddr(pmd)	pmd_val(pmd)
++
++#define pte_offset_map(dir, addr)			\
++	((pte_t *) page_address(pmd_page(*dir)) +	\
++	 (((addr) >> PAGE_SHIFT) & (PTRS_PER_PTE - 1)))
++
++/* to find an entry in a kernel page-table-directory */
++#define pgd_offset_k(addr)	pgd_offset(&init_mm, addr)
++
++/* Get the address to the PTE for a vaddr in specific directory */
++#define pte_offset_kernel(dir, addr)			\
++	((pte_t *) pmd_page_vaddr(*(dir)) +		\
++	 (((addr) >> PAGE_SHIFT) & (PTRS_PER_PTE - 1)))
++
++#define pte_ERROR(e) \
++	pr_err("%s:%d: bad pte %08lx.\n", \
++		__FILE__, __LINE__, pte_val(e))
++#define pgd_ERROR(e) \
++	pr_err("%s:%d: bad pgd %08lx.\n", \
++		__FILE__, __LINE__, pgd_val(e))
++
++/*
++ * Encode and decode a swap entry (must be !pte_none(pte) && !pte_present(pte)
++ * && !pte_file(pte)):
++ *
++ * 31 30 29 28 27 26 25 24 23 22 21 20 19 18 ...  1  0
++ *  0  0  0  0 type.  0  0  0  0  0  0 offset.........
++ *
++ * This gives us up to 2**2 = 4 swap files and 2**20 * 4K = 4G per swap file.
++ *
++ * Note that the offset field is always non-zero, thus !pte_none(pte) is always
++ * true.
++ */
++#define __swp_type(swp)		(((swp).val >> 26) & 0x3)
++#define __swp_offset(swp)	((swp).val & 0xfffff)
++#define __swp_entry(type, off)	((swp_entry_t) { (((type) & 0x3) << 26) \
++						 | ((off) & 0xfffff) })
++#define __swp_entry_to_pte(swp)	((pte_t) { (swp).val })
++#define __pte_to_swp_entry(pte)	((swp_entry_t) { pte_val(pte) })
++
++/* Encode and decode a nonlinear file mapping entry */
++#define PTE_FILE_MAX_BITS	25
++#define pte_to_pgoff(pte)	(pte_val(pte) & 0x1ffffff)
++#define pgoff_to_pte(off)	__pte(((off) & 0x1ffffff) | _PAGE_FILE)
++
++#define kern_addr_valid(addr)		(1)
++
++#include <asm-generic/pgtable.h>
++
++#define pgtable_cache_init()		do { } while (0)
++
++extern void __init paging_init(void);
++extern void __init mmu_init(void);
++
++extern void update_mmu_cache(struct vm_area_struct *vma,
++			     unsigned long address, pte_t *pte);
++
++#endif /* _ASM_NIOS2_PGTABLE_H */
+diff --git a/arch/nios2/mm/pgtable.c b/arch/nios2/mm/pgtable.c
+new file mode 100644
+index 0000000..61e24a2
+--- /dev/null
++++ b/arch/nios2/mm/pgtable.c
+@@ -0,0 +1,74 @@
++/*
++ * Copyright (C) 2009 Wind River Systems Inc
++ *   Implemented by fredrik.markstrom@gmail.com and ivarholmqvist@gmail.com
++ *
++ * This file is subject to the terms and conditions of the GNU General Public
++ * License.  See the file "COPYING" in the main directory of this archive
++ * for more details.
++ */
++
++#include <linux/mm.h>
++#include <linux/sched.h>
++
++#include <asm/pgtable.h>
++#include <asm/cpuinfo.h>
++
++/* pteaddr:
++ *   ptbase | vpn* | zero
++ *   31-22  | 21-2 | 1-0
++ *
++ *   *vpn is preserved on double fault
++ *
++ * tlbacc:
++ *   IG   |*flags| pfn
++ *   31-25|24-20 | 19-0
++ *
++ *   *crwxg
++ *
++ * tlbmisc:
++ *   resv  |way   |rd | we|pid |dbl|bad|perm|d
++ *   31-24 |23-20 |19 | 20|17-4|3  |2  |1   |0
++ *
++ */
++
++/*
++ * Initialize a new pgd / pmd table with invalid pointers.
++ */
++static void pgd_init(pgd_t *pgd)
++{
++	unsigned long *p = (unsigned long *) pgd;
++	int i;
++
++	for (i = 0; i < USER_PTRS_PER_PGD; i += 8) {
++		p[i + 0] = (unsigned long) invalid_pte_table;
++		p[i + 1] = (unsigned long) invalid_pte_table;
++		p[i + 2] = (unsigned long) invalid_pte_table;
++		p[i + 3] = (unsigned long) invalid_pte_table;
++		p[i + 4] = (unsigned long) invalid_pte_table;
++		p[i + 5] = (unsigned long) invalid_pte_table;
++		p[i + 6] = (unsigned long) invalid_pte_table;
++		p[i + 7] = (unsigned long) invalid_pte_table;
++	}
++}
++
++pgd_t *pgd_alloc(struct mm_struct *mm)
++{
++	pgd_t *ret, *init;
++
++	ret = (pgd_t *) __get_free_pages(GFP_KERNEL, PGD_ORDER);
++	if (ret) {
++		init = pgd_offset(&init_mm, 0UL);
++		pgd_init(ret);
++		memcpy(ret + USER_PTRS_PER_PGD, init + USER_PTRS_PER_PGD,
++		       (PTRS_PER_PGD - USER_PTRS_PER_PGD) * sizeof(pgd_t));
 +	}
 +
-+	__asm__ __volatile__ (
-+		/* fill8 %3, %5 (c & 0xff) */
-+		"	slli	%4, %5, 8\n"
-+		"	or	%4, %4, %5\n"
-+		"	slli    %3, %4, 16\n"
-+		"	or	%3, %3, %4\n"
-+		/* Word-align %0 (s) if necessary */
-+		"	andi	%4, %0, 0x01\n"
-+		"	beq	%4, zero, 1f\n"
-+		"	addi	%1, %1, -1\n"
-+		"	stb	%3, 0(%0)\n"
-+		"	addi	%0, %0, 1\n"
-+		"1:	mov	%2, %1\n"
-+		/* Dword-align %0 (s) if necessary */
-+		"	andi	%4, %0, 0x02\n"
-+		"	beq	%4, zero, 2f\n"
-+		"	addi	%1, %1, -2\n"
-+		"	sth	%3, 0(%0)\n"
-+		"	addi	%0, %0, 2\n"
-+		"	mov	%2, %1\n"
-+		/* %1 and %2 are how many more bytes to set */
-+		"2:	srli	%2, %2, 2\n"
-+		/* %2 is how many dwords to set */
-+		"3:	stw	%3, 0(%0)\n"
-+		"	addi	%0, %0, 4\n"
-+		"	addi    %2, %2, -1\n"
-+		"	bne	%2, zero, 3b\n"
-+		/* store residual word and/or byte if necessary */
-+		"	andi	%4, %1, 0x02\n"
-+		"	beq	%4, zero, 4f\n"
-+		"	sth	%3, 0(%0)\n"
-+		"	addi	%0, %0, 2\n"
-+		/* store residual byte if necessary */
-+		"4:	andi	%4, %1, 0x01\n"
-+		"	beq	%4, zero, 5f\n"
-+		"	stb	%3, 0(%0)\n"
-+		"5:\n"
-+		: "=r" (destptr),	/* %0  Output */
-+		  "=r" (charcnt),	/* %1  Output */
-+		  "=r" (dwordcnt),	/* %2  Output */
-+		  "=r" (fill8reg),	/* %3  Output */
-+		  "=r" (wrkrega)	/* %4  Output */
-+		: "r" (c),		/* %5  Input */
-+		  "0" (s),		/* %0  Input/Output */
-+		  "1" (count)		/* %1  Input/Output */
-+		: "memory"		/* clobbered */
-+	);
-+
-+	return s;
++	return ret;
 +}
-+#endif /* __HAVE_ARCH_MEMSET */
++
++void __init pagetable_init(void)
++{
++	/* Initialize the entire pgd.  */
++	pgd_init(swapper_pg_dir);
++	pgd_init(swapper_pg_dir + USER_PTRS_PER_PGD);
++}
 -- 
 1.8.2.1
 
