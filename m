@@ -1,505 +1,301 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e23smtp09.au.ibm.com ([202.81.31.142]:37378 "EHLO
-	e23smtp09.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755171AbaKEQ2w (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 5 Nov 2014 11:28:52 -0500
-Received: from /spool/local
-	by e23smtp09.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <aneesh.kumar@linux.vnet.ibm.com>;
-	Thu, 6 Nov 2014 02:28:50 +1000
-From: "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>
-Subject: [PATCH V5 3/3] powerpc/mm: Switch to generic RCU get_user_pages_fast
-Date: Wed,  5 Nov 2014 21:57:41 +0530
-Message-ID: <1415204861-22016-3-git-send-email-aneesh.kumar@linux.vnet.ibm.com>
-In-Reply-To: <1415204861-22016-1-git-send-email-aneesh.kumar@linux.vnet.ibm.com>
-References: <1415204861-22016-1-git-send-email-aneesh.kumar@linux.vnet.ibm.com>
+Received: from mail-qa0-f41.google.com ([209.85.216.41]:55295 "EHLO
+	mail-qa0-f41.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751717AbaKEVPG (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 5 Nov 2014 16:15:06 -0500
+Received: by mail-qa0-f41.google.com with SMTP id s7so1167423qap.0
+        for <linux-arch@vger.kernel.org>; Wed, 05 Nov 2014 13:15:05 -0800 (PST)
+From: Milosz Tanski <milosz@adfin.com>
+Subject: [PATCH v5 4/7] vfs: RWF_NONBLOCK flag for preadv2
+Date: Wed,  5 Nov 2014 16:14:50 -0500
+Message-ID: <379c680ae1e6309e679ff83bc6cb55e1cf97d7f9.1415220890.git.milosz@adfin.com>
+In-Reply-To: <cover.1415220890.git.milosz@adfin.com>
+References: <cover.1415220890.git.milosz@adfin.com>
+In-Reply-To: <cover.1415220890.git.milosz@adfin.com>
+References: <cover.1415220890.git.milosz@adfin.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: akpm@linux-foundation.org, Steve Capper <steve.capper@linaro.org>, Andrea Arcangeli <aarcange@redhat.com>, benh@kernel.crashing.org, mpe@ellerman.id.au, David Miller <davem@davemloft.net>
-Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-arch@vger.kernel.org, "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>
-Message-ID: <20141105162741._cNQ7uWbwhp-mLNn5LV2liJc8p3lFG9EJ4_fChIkabE@z>
+To: linux-kernel@vger.kernel.org
+Cc: Christoph Hellwig <hch@infradead.org>, linux-fsdevel@vger.kernel.org, linux-aio@kvack.org, Mel Gorman <mgorman@suse.de>, Volker Lendecke <Volker.Lendecke@sernet.de>, Tejun Heo <tj@kernel.org>, Jeff Moyer <jmoyer@redhat.com>, Theodore Ts'o <tytso@mit.edu>, Al Viro <viro@zeniv.linux.org.uk>, linux-api@vger.kernel.org, Michael Kerrisk <mtk.manpages@gmail.com>, linux-arch@vger.kernel.org, ceph-devel@vger.kernel.org, linux-cifs@vger.kernel.org, samba-technical@lists.samba.org, linux-nfs@vger.kernel.org, linux-xfs@vger.kernel.org, ocfs2-devel@oss.oracle.com, linux-mm@kvack.org
+Message-ID: <20141105211450.JWMCggWBTVMoI8qFH6E9lfE-rCmagUEdqhoPJhq1yQA@z>
 
-This patch switch the ppc arch to use the generic RCU based
-gup implementation.
+generic_file_read_iter() supports a new flag RWF_NONBLOCK which says that we
+only want to read the data if it's already in the page cache.
 
-Signed-off-by: Aneesh Kumar K.V <aneesh.kumar@linux.vnet.ibm.com>
+Additionally, there are a few filesystems that we have to specifically
+bail early if RWF_NONBLOCK because the op would block. Christoph Hellwig
+contributed this code.
+
+Signed-off-by: Milosz Tanski <milosz@adfin.com>
+Reviewed-by: Christoph Hellwig <hch@lst.de>
+Reviewed-by: Jeff Moyer <jmoyer@redhat.com>
 ---
- arch/powerpc/Kconfig                     |   1 +
- arch/powerpc/include/asm/hugetlb.h       |   8 +-
- arch/powerpc/include/asm/page.h          |   3 +-
- arch/powerpc/include/asm/pgtable-ppc64.h |   1 -
- arch/powerpc/include/asm/pgtable.h       |   6 +-
- arch/powerpc/mm/Makefile                 |   2 +-
- arch/powerpc/mm/gup.c                    | 235 -------------------------------
- arch/powerpc/mm/hugetlbpage.c            |  33 ++---
- 8 files changed, 22 insertions(+), 267 deletions(-)
- delete mode 100644 arch/powerpc/mm/gup.c
+ fs/ceph/file.c     |  2 ++
+ fs/cifs/file.c     |  6 ++++++
+ fs/nfs/file.c      |  5 ++++-
+ fs/ocfs2/file.c    |  6 ++++++
+ fs/pipe.c          |  3 ++-
+ fs/read_write.c    | 38 +++++++++++++++++++++++++-------------
+ fs/xfs/xfs_file.c  |  4 ++++
+ include/linux/fs.h |  3 +++
+ mm/filemap.c       | 18 ++++++++++++++++++
+ mm/shmem.c         |  4 ++++
+ 10 files changed, 74 insertions(+), 15 deletions(-)
 
-diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
-index 88eace4e28c3..7af887dc6aed 100644
---- a/arch/powerpc/Kconfig
-+++ b/arch/powerpc/Kconfig
-@@ -148,6 +148,7 @@ config PPC
- 	select HAVE_ARCH_AUDITSYSCALL
- 	select ARCH_SUPPORTS_ATOMIC_RMW
- 	select DCACHE_WORD_ACCESS if PPC64 && CPU_LITTLE_ENDIAN
-+	select HAVE_GENERIC_RCU_GUP
+diff --git a/fs/ceph/file.c b/fs/ceph/file.c
+index d7e0da8..b798b5c 100644
+--- a/fs/ceph/file.c
++++ b/fs/ceph/file.c
+@@ -822,6 +822,8 @@ again:
+ 	if ((got & (CEPH_CAP_FILE_CACHE|CEPH_CAP_FILE_LAZYIO)) == 0 ||
+ 	    (iocb->ki_filp->f_flags & O_DIRECT) ||
+ 	    (fi->flags & CEPH_F_SYNC)) {
++		if (iocb->ki_rwflags & O_NONBLOCK)
++			return -EAGAIN;
  
- config GENERIC_CSUM
- 	def_bool CPU_LITTLE_ENDIAN
-diff --git a/arch/powerpc/include/asm/hugetlb.h b/arch/powerpc/include/asm/hugetlb.h
-index 766b77d527ac..1d53a65b4ec1 100644
---- a/arch/powerpc/include/asm/hugetlb.h
-+++ b/arch/powerpc/include/asm/hugetlb.h
-@@ -48,7 +48,7 @@ static inline unsigned int hugepd_shift(hugepd_t hpd)
- #endif /* CONFIG_PPC_BOOK3S_64 */
+ 		dout("aio_sync_read %p %llx.%llx %llu~%u got cap refs on %s\n",
+ 		     inode, ceph_vinop(inode), iocb->ki_pos, (unsigned)len,
+diff --git a/fs/cifs/file.c b/fs/cifs/file.c
+index 3e4d00a..c485afa 100644
+--- a/fs/cifs/file.c
++++ b/fs/cifs/file.c
+@@ -3005,6 +3005,9 @@ ssize_t cifs_user_readv(struct kiocb *iocb, struct iov_iter *to)
+ 	struct cifs_readdata *rdata, *tmp;
+ 	struct list_head rdata_list;
  
- 
--static inline pte_t *hugepte_offset(hugepd_t *hpdp, unsigned long addr,
-+static inline pte_t *hugepte_offset(hugepd_t hpd, unsigned long addr,
- 				    unsigned pdshift)
- {
- 	/*
-@@ -58,9 +58,9 @@ static inline pte_t *hugepte_offset(hugepd_t *hpdp, unsigned long addr,
- 	 */
- 	unsigned long idx = 0;
- 
--	pte_t *dir = hugepd_page(*hpdp);
-+	pte_t *dir = hugepd_page(hpd);
- #ifndef CONFIG_PPC_FSL_BOOK3E
--	idx = (addr & ((1UL << pdshift) - 1)) >> hugepd_shift(*hpdp);
-+	idx = (addr & ((1UL << pdshift) - 1)) >> hugepd_shift(hpd);
- #endif
- 
- 	return dir + idx;
-@@ -193,7 +193,7 @@ static inline void flush_hugetlb_page(struct vm_area_struct *vma,
- }
- 
- #define hugepd_shift(x) 0
--static inline pte_t *hugepte_offset(hugepd_t *hpdp, unsigned long addr,
-+static inline pte_t *hugepte_offset(hugepd_t hpd, unsigned long addr,
- 				    unsigned pdshift)
- {
- 	return 0;
-diff --git a/arch/powerpc/include/asm/page.h b/arch/powerpc/include/asm/page.h
-index f973fce73a43..69c059887a2c 100644
---- a/arch/powerpc/include/asm/page.h
-+++ b/arch/powerpc/include/asm/page.h
-@@ -379,13 +379,14 @@ static inline int hugepd_ok(hugepd_t hpd)
- }
- #endif
- 
--#define is_hugepd(pdep)               (hugepd_ok(*((hugepd_t *)(pdep))))
-+#define is_hugepd(hpd)               (hugepd_ok(hpd))
- #define pgd_huge pgd_huge
- int pgd_huge(pgd_t pgd);
- #else /* CONFIG_HUGETLB_PAGE */
- #define is_hugepd(pdep)			0
- #define pgd_huge(pgd)			0
- #endif /* CONFIG_HUGETLB_PAGE */
-+#define __hugepd(x) ((hugepd_t) { (x) })
- 
- struct page;
- extern void clear_user_page(void *page, unsigned long vaddr, struct page *pg);
-diff --git a/arch/powerpc/include/asm/pgtable-ppc64.h b/arch/powerpc/include/asm/pgtable-ppc64.h
-index d12092420560..5600e434332f 100644
---- a/arch/powerpc/include/asm/pgtable-ppc64.h
-+++ b/arch/powerpc/include/asm/pgtable-ppc64.h
-@@ -600,6 +600,5 @@ static inline int pmd_move_must_withdraw(struct spinlock *new_pmd_ptl,
- 	 */
- 	return true;
- }
--
- #endif /* __ASSEMBLY__ */
- #endif /* _ASM_POWERPC_PGTABLE_PPC64_H_ */
-diff --git a/arch/powerpc/include/asm/pgtable.h b/arch/powerpc/include/asm/pgtable.h
-index 316f9a5da173..a8805fee0df9 100644
---- a/arch/powerpc/include/asm/pgtable.h
-+++ b/arch/powerpc/include/asm/pgtable.h
-@@ -274,11 +274,9 @@ extern void paging_init(void);
-  */
- extern void update_mmu_cache(struct vm_area_struct *, unsigned long, pte_t *);
- 
--extern int gup_hugepd(hugepd_t *hugepd, unsigned pdshift, unsigned long addr,
--		      unsigned long end, int write, struct page **pages, int *nr);
--
- extern int gup_hugepte(pte_t *ptep, unsigned long sz, unsigned long addr,
--		       unsigned long end, int write, struct page **pages, int *nr);
-+		       unsigned long end, int write,
-+		       struct page **pages, int *nr);
- #ifndef CONFIG_TRANSPARENT_HUGEPAGE
- #define pmd_large(pmd)		0
- #define has_transparent_hugepage() 0
-diff --git a/arch/powerpc/mm/Makefile b/arch/powerpc/mm/Makefile
-index 325e861616a1..438dcd3fd0d1 100644
---- a/arch/powerpc/mm/Makefile
-+++ b/arch/powerpc/mm/Makefile
-@@ -6,7 +6,7 @@ subdir-ccflags-$(CONFIG_PPC_WERROR) := -Werror
- 
- ccflags-$(CONFIG_PPC64)	:= $(NO_MINIMAL_TOC)
- 
--obj-y				:= fault.o mem.o pgtable.o gup.o mmap.o \
-+obj-y				:= fault.o mem.o pgtable.o mmap.o \
- 				   init_$(CONFIG_WORD_SIZE).o \
- 				   pgtable_$(CONFIG_WORD_SIZE).o
- obj-$(CONFIG_PPC_MMU_NOHASH)	+= mmu_context_nohash.o tlb_nohash.o \
-diff --git a/arch/powerpc/mm/gup.c b/arch/powerpc/mm/gup.c
-deleted file mode 100644
-index d8746684f606..000000000000
---- a/arch/powerpc/mm/gup.c
-+++ /dev/null
-@@ -1,235 +0,0 @@
--/*
-- * Lockless get_user_pages_fast for powerpc
-- *
-- * Copyright (C) 2008 Nick Piggin
-- * Copyright (C) 2008 Novell Inc.
-- */
--#undef DEBUG
--
--#include <linux/sched.h>
--#include <linux/mm.h>
--#include <linux/hugetlb.h>
--#include <linux/vmstat.h>
--#include <linux/pagemap.h>
--#include <linux/rwsem.h>
--#include <asm/pgtable.h>
--
--#ifdef __HAVE_ARCH_PTE_SPECIAL
--
--/*
-- * The performance critical leaf functions are made noinline otherwise gcc
-- * inlines everything into a single function which results in too much
-- * register pressure.
-- */
--static noinline int gup_pte_range(pmd_t pmd, unsigned long addr,
--		unsigned long end, int write, struct page **pages, int *nr)
--{
--	unsigned long mask, result;
--	pte_t *ptep;
--
--	result = _PAGE_PRESENT|_PAGE_USER;
--	if (write)
--		result |= _PAGE_RW;
--	mask = result | _PAGE_SPECIAL;
--
--	ptep = pte_offset_kernel(&pmd, addr);
--	do {
--		pte_t pte = ACCESS_ONCE(*ptep);
--		struct page *page;
--		/*
--		 * Similar to the PMD case, NUMA hinting must take slow path
--		 */
--		if (pte_numa(pte))
--			return 0;
--
--		if ((pte_val(pte) & mask) != result)
--			return 0;
--		VM_BUG_ON(!pfn_valid(pte_pfn(pte)));
--		page = pte_page(pte);
--		if (!page_cache_get_speculative(page))
--			return 0;
--		if (unlikely(pte_val(pte) != pte_val(*ptep))) {
--			put_page(page);
--			return 0;
--		}
--		pages[*nr] = page;
--		(*nr)++;
--
--	} while (ptep++, addr += PAGE_SIZE, addr != end);
--
--	return 1;
--}
--
--static int gup_pmd_range(pud_t pud, unsigned long addr, unsigned long end,
--		int write, struct page **pages, int *nr)
--{
--	unsigned long next;
--	pmd_t *pmdp;
--
--	pmdp = pmd_offset(&pud, addr);
--	do {
--		pmd_t pmd = ACCESS_ONCE(*pmdp);
--
--		next = pmd_addr_end(addr, end);
--		/*
--		 * If we find a splitting transparent hugepage we
--		 * return zero. That will result in taking the slow
--		 * path which will call wait_split_huge_page()
--		 * if the pmd is still in splitting state
--		 */
--		if (pmd_none(pmd) || pmd_trans_splitting(pmd))
--			return 0;
--		if (pmd_huge(pmd) || pmd_large(pmd)) {
--			/*
--			 * NUMA hinting faults need to be handled in the GUP
--			 * slowpath for accounting purposes and so that they
--			 * can be serialised against THP migration.
--			 */
--			if (pmd_numa(pmd))
--				return 0;
--
--			if (!gup_hugepte((pte_t *)pmdp, PMD_SIZE, addr, next,
--					 write, pages, nr))
--				return 0;
--		} else if (is_hugepd(pmdp)) {
--			if (!gup_hugepd((hugepd_t *)pmdp, PMD_SHIFT,
--					addr, next, write, pages, nr))
--				return 0;
--		} else if (!gup_pte_range(pmd, addr, next, write, pages, nr))
--			return 0;
--	} while (pmdp++, addr = next, addr != end);
--
--	return 1;
--}
--
--static int gup_pud_range(pgd_t pgd, unsigned long addr, unsigned long end,
--		int write, struct page **pages, int *nr)
--{
--	unsigned long next;
--	pud_t *pudp;
--
--	pudp = pud_offset(&pgd, addr);
--	do {
--		pud_t pud = ACCESS_ONCE(*pudp);
--
--		next = pud_addr_end(addr, end);
--		if (pud_none(pud))
--			return 0;
--		if (pud_huge(pud)) {
--			if (!gup_hugepte((pte_t *)pudp, PUD_SIZE, addr, next,
--					 write, pages, nr))
--				return 0;
--		} else if (is_hugepd(pudp)) {
--			if (!gup_hugepd((hugepd_t *)pudp, PUD_SHIFT,
--					addr, next, write, pages, nr))
--				return 0;
--		} else if (!gup_pmd_range(pud, addr, next, write, pages, nr))
--			return 0;
--	} while (pudp++, addr = next, addr != end);
--
--	return 1;
--}
--
--int __get_user_pages_fast(unsigned long start, int nr_pages, int write,
--			  struct page **pages)
--{
--	struct mm_struct *mm = current->mm;
--	unsigned long addr, len, end;
--	unsigned long next;
--	unsigned long flags;
--	pgd_t *pgdp;
--	int nr = 0;
--
--	pr_devel("%s(%lx,%x,%s)\n", __func__, start, nr_pages, write ? "write" : "read");
--
--	start &= PAGE_MASK;
--	addr = start;
--	len = (unsigned long) nr_pages << PAGE_SHIFT;
--	end = start + len;
--
--	if (unlikely(!access_ok(write ? VERIFY_WRITE : VERIFY_READ,
--					start, len)))
--		return 0;
--
--	pr_devel("  aligned: %lx .. %lx\n", start, end);
--
--	/*
--	 * XXX: batch / limit 'nr', to avoid large irq off latency
--	 * needs some instrumenting to determine the common sizes used by
--	 * important workloads (eg. DB2), and whether limiting the batch size
--	 * will decrease performance.
--	 *
--	 * It seems like we're in the clear for the moment. Direct-IO is
--	 * the main guy that batches up lots of get_user_pages, and even
--	 * they are limited to 64-at-a-time which is not so many.
--	 */
--	/*
--	 * This doesn't prevent pagetable teardown, but does prevent
--	 * the pagetables from being freed on powerpc.
--	 *
--	 * So long as we atomically load page table pointers versus teardown,
--	 * we can follow the address down to the the page and take a ref on it.
--	 */
--	local_irq_save(flags);
--
--	pgdp = pgd_offset(mm, addr);
--	do {
--		pgd_t pgd = ACCESS_ONCE(*pgdp);
--
--		pr_devel("  %016lx: normal pgd %p\n", addr,
--			 (void *)pgd_val(pgd));
--		next = pgd_addr_end(addr, end);
--		if (pgd_none(pgd))
--			break;
--		if (pgd_huge(pgd)) {
--			if (!gup_hugepte((pte_t *)pgdp, PGDIR_SIZE, addr, next,
--					 write, pages, &nr))
--				break;
--		} else if (is_hugepd(pgdp)) {
--			if (!gup_hugepd((hugepd_t *)pgdp, PGDIR_SHIFT,
--					addr, next, write, pages, &nr))
--				break;
--		} else if (!gup_pud_range(pgd, addr, next, write, pages, &nr))
--			break;
--	} while (pgdp++, addr = next, addr != end);
--
--	local_irq_restore(flags);
--
--	return nr;
--}
--
--int get_user_pages_fast(unsigned long start, int nr_pages, int write,
--			struct page **pages)
--{
--	struct mm_struct *mm = current->mm;
--	int nr, ret;
--
--	start &= PAGE_MASK;
--	nr = __get_user_pages_fast(start, nr_pages, write, pages);
--	ret = nr;
--
--	if (nr < nr_pages) {
--		pr_devel("  slow path ! nr = %d\n", nr);
--
--		/* Try to get the remaining pages with get_user_pages */
--		start += nr << PAGE_SHIFT;
--		pages += nr;
--
--		down_read(&mm->mmap_sem);
--		ret = get_user_pages(current, mm, start,
--				     nr_pages - nr, write, 0, pages, NULL);
--		up_read(&mm->mmap_sem);
--
--		/* Have to be a bit careful with return values */
--		if (nr > 0) {
--			if (ret < 0)
--				ret = nr;
--			else
--				ret += nr;
--		}
--	}
--
--	return ret;
--}
--
--#endif /* __HAVE_ARCH_PTE_SPECIAL */
-diff --git a/arch/powerpc/mm/hugetlbpage.c b/arch/powerpc/mm/hugetlbpage.c
-index 2e35b9a82929..d54d74ccdc5a 100644
---- a/arch/powerpc/mm/hugetlbpage.c
-+++ b/arch/powerpc/mm/hugetlbpage.c
-@@ -233,7 +233,7 @@ pte_t *huge_pte_alloc(struct mm_struct *mm, unsigned long addr, unsigned long sz
- 	if (hugepd_none(*hpdp) && __hugepte_alloc(mm, hpdp, addr, pdshift, pshift))
- 		return NULL;
- 
--	return hugepte_offset(hpdp, addr, pdshift);
-+	return hugepte_offset(*hpdp, addr, pdshift);
- }
- 
- #else
-@@ -273,7 +273,7 @@ pte_t *huge_pte_alloc(struct mm_struct *mm, unsigned long addr, unsigned long sz
- 	if (hugepd_none(*hpdp) && __hugepte_alloc(mm, hpdp, addr, pdshift, pshift))
- 		return NULL;
- 
--	return hugepte_offset(hpdp, addr, pdshift);
-+	return hugepte_offset(*hpdp, addr, pdshift);
- }
- #endif
- 
-@@ -541,7 +541,7 @@ static void hugetlb_free_pmd_range(struct mmu_gather *tlb, pud_t *pud,
- 	do {
- 		pmd = pmd_offset(pud, addr);
- 		next = pmd_addr_end(addr, end);
--		if (!is_hugepd(pmd)) {
-+		if (!is_hugepd(__hugepd(pmd_val(*pmd)))) {
- 			/*
- 			 * if it is not hugepd pointer, we should already find
- 			 * it cleared.
-@@ -590,7 +590,7 @@ static void hugetlb_free_pud_range(struct mmu_gather *tlb, pgd_t *pgd,
- 	do {
- 		pud = pud_offset(pgd, addr);
- 		next = pud_addr_end(addr, end);
--		if (!is_hugepd(pud)) {
-+		if (!is_hugepd(__hugepd(pud_val(*pud)))) {
- 			if (pud_none_or_clear_bad(pud))
- 				continue;
- 			hugetlb_free_pmd_range(tlb, pud, addr, next, floor,
-@@ -656,7 +656,7 @@ void hugetlb_free_pgd_range(struct mmu_gather *tlb,
- 	do {
- 		next = pgd_addr_end(addr, end);
- 		pgd = pgd_offset(tlb->mm, addr);
--		if (!is_hugepd(pgd)) {
-+		if (!is_hugepd(__hugepd(pgd_val(*pgd)))) {
- 			if (pgd_none_or_clear_bad(pgd))
- 				continue;
- 			hugetlb_free_pud_range(tlb, pgd, addr, next, floor, ceiling);
-@@ -716,12 +716,11 @@ static unsigned long hugepte_addr_end(unsigned long addr, unsigned long end,
- 	return (__boundary - 1 < end - 1) ? __boundary : end;
- }
- 
--int gup_hugepd(hugepd_t *hugepd, unsigned pdshift,
--	       unsigned long addr, unsigned long end,
--	       int write, struct page **pages, int *nr)
-+int gup_huge_pd(hugepd_t hugepd, unsigned long addr, unsigned pdshift,
-+		unsigned long end, int write, struct page **pages, int *nr)
- {
- 	pte_t *ptep;
--	unsigned long sz = 1UL << hugepd_shift(*hugepd);
-+	unsigned long sz = 1UL << hugepd_shift(hugepd);
- 	unsigned long next;
- 
- 	ptep = hugepte_offset(hugepd, addr, pdshift);
-@@ -964,7 +963,7 @@ pte_t *find_linux_pte_or_hugepte(pgd_t *pgdir, unsigned long ea, unsigned *shift
- 	else if (pgd_huge(pgd)) {
- 		ret_pte = (pte_t *) pgdp;
- 		goto out;
--	} else if (is_hugepd(&pgd))
-+	} else if (is_hugepd(__hugepd(pgd_val(pgd))))
- 		hpdp = (hugepd_t *)&pgd;
- 	else {
- 		/*
-@@ -981,7 +980,7 @@ pte_t *find_linux_pte_or_hugepte(pgd_t *pgdir, unsigned long ea, unsigned *shift
- 		else if (pud_huge(pud)) {
- 			ret_pte = (pte_t *) pudp;
- 			goto out;
--		} else if (is_hugepd(&pud))
-+		} else if (is_hugepd(__hugepd(pud_val(pud))))
- 			hpdp = (hugepd_t *)&pud;
- 		else {
- 			pdshift = PMD_SHIFT;
-@@ -1002,7 +1001,7 @@ pte_t *find_linux_pte_or_hugepte(pgd_t *pgdir, unsigned long ea, unsigned *shift
- 			if (pmd_huge(pmd) || pmd_large(pmd)) {
- 				ret_pte = (pte_t *) pmdp;
- 				goto out;
--			} else if (is_hugepd(&pmd))
-+			} else if (is_hugepd(__hugepd(pmd_val(pmd))))
- 				hpdp = (hugepd_t *)&pmd;
- 			else
- 				return pte_offset_kernel(&pmd, ea);
-@@ -1011,7 +1010,7 @@ pte_t *find_linux_pte_or_hugepte(pgd_t *pgdir, unsigned long ea, unsigned *shift
- 	if (!hpdp)
- 		return NULL;
- 
--	ret_pte = hugepte_offset(hpdp, ea, pdshift);
-+	ret_pte = hugepte_offset(*hpdp, ea, pdshift);
- 	pdshift = hugepd_shift(*hpdp);
- out:
- 	if (shift)
-@@ -1041,14 +1040,6 @@ int gup_hugepte(pte_t *ptep, unsigned long sz, unsigned long addr,
- 	if ((pte_val(pte) & mask) != mask)
++	if (iocb->ki_rwflags & RWF_NONBLOCK)
++		return -EAGAIN;
++
+ 	len = iov_iter_count(to);
+ 	if (!len)
  		return 0;
+@@ -3123,6 +3126,9 @@ cifs_strict_readv(struct kiocb *iocb, struct iov_iter *to)
+ 	    ((cifs_sb->mnt_cifs_flags & CIFS_MOUNT_NOPOSIXBRL) == 0))
+ 		return generic_file_read_iter(iocb, to);
  
--#ifdef CONFIG_TRANSPARENT_HUGEPAGE
--	/*
--	 * check for splitting here
--	 */
--	if (pmd_trans_splitting(pte_pmd(pte)))
--		return 0;
--#endif
--
- 	/* hugepages are never "special" */
- 	VM_BUG_ON(!pfn_valid(pte_pfn(pte)));
++	if (iocb->ki_rwflags & RWF_NONBLOCK)
++		return -EAGAIN;
++
+ 	/*
+ 	 * We need to hold the sem to be sure nobody modifies lock list
+ 	 * with a brlock that prevents reading.
+diff --git a/fs/nfs/file.c b/fs/nfs/file.c
+index 2ab6f00..aa9046f 100644
+--- a/fs/nfs/file.c
++++ b/fs/nfs/file.c
+@@ -171,8 +171,11 @@ nfs_file_read(struct kiocb *iocb, struct iov_iter *to)
+ 	struct inode *inode = file_inode(iocb->ki_filp);
+ 	ssize_t result;
  
+-	if (iocb->ki_filp->f_flags & O_DIRECT)
++	if (iocb->ki_filp->f_flags & O_DIRECT) {
++		if (iocb->ki_rwflags & O_NONBLOCK)
++			return -EAGAIN;
+ 		return nfs_file_direct_read(iocb, to, iocb->ki_pos);
++	}
+ 
+ 	dprintk("NFS: read(%pD2, %zu@%lu)\n",
+ 		iocb->ki_filp,
+diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
+index 324dc93..bb66ca4 100644
+--- a/fs/ocfs2/file.c
++++ b/fs/ocfs2/file.c
+@@ -2472,6 +2472,12 @@ static ssize_t ocfs2_file_read_iter(struct kiocb *iocb,
+ 			filp->f_path.dentry->d_name.name,
+ 			to->nr_segs);	/* GRRRRR */
+ 
++	/*
++	 * No non-blocking reads for ocfs2 for now.  Might be doable with
++	 * non-blocking cluster lock helpers.
++	 */
++	if (iocb->ki_rwflags & RWF_NONBLOCK)
++		return -EAGAIN;
+ 
+ 	if (!inode) {
+ 		ret = -EINVAL;
+diff --git a/fs/pipe.c b/fs/pipe.c
+index 21981e5..212bf68 100644
+--- a/fs/pipe.c
++++ b/fs/pipe.c
+@@ -302,7 +302,8 @@ pipe_read(struct kiocb *iocb, struct iov_iter *to)
+ 			 */
+ 			if (ret)
+ 				break;
+-			if (filp->f_flags & O_NONBLOCK) {
++			if ((filp->f_flags & O_NONBLOCK) ||
++			    (iocb->ki_rwflags & RWF_NONBLOCK)) {
+ 				ret = -EAGAIN;
+ 				break;
+ 			}
+diff --git a/fs/read_write.c b/fs/read_write.c
+index 907735c..cba7d4c 100644
+--- a/fs/read_write.c
++++ b/fs/read_write.c
+@@ -835,14 +835,19 @@ static ssize_t do_readv_writev(int type, struct file *file,
+ 		file_start_write(file);
+ 	}
+ 
+-	if (iter_fn)
++	if (iter_fn) {
+ 		ret = do_iter_readv_writev(file, type, iov, nr_segs, tot_len,
+ 						pos, iter_fn, flags);
+-	else if (fnv)
+-		ret = do_sync_readv_writev(file, iov, nr_segs, tot_len,
+-						pos, fnv);
+-	else
+-		ret = do_loop_readv_writev(file, iov, nr_segs, pos, fn);
++	} else {
++		if (type == READ && (flags & RWF_NONBLOCK))
++			return -EAGAIN;
++
++		if (fnv)
++			ret = do_sync_readv_writev(file, iov, nr_segs, tot_len,
++							pos, fnv);
++		else
++			ret = do_loop_readv_writev(file, iov, nr_segs, pos, fn);
++	}
+ 
+ 	if (type != READ)
+ 		file_end_write(file);
+@@ -866,8 +871,10 @@ ssize_t vfs_readv(struct file *file, const struct iovec __user *vec,
+ 		return -EBADF;
+ 	if (!(file->f_mode & FMODE_CAN_READ))
+ 		return -EINVAL;
+-	if (flags & ~0)
++	if (flags & ~RWF_NONBLOCK)
+ 		return -EINVAL;
++	if ((file->f_flags & O_DIRECT) && (flags & RWF_NONBLOCK))
++		return -EAGAIN;
+ 
+ 	return do_readv_writev(READ, file, vec, vlen, pos, flags);
+ }
+@@ -1069,14 +1076,19 @@ static ssize_t compat_do_readv_writev(int type, struct file *file,
+ 		file_start_write(file);
+ 	}
+ 
+-	if (iter_fn)
++	if (iter_fn) {
+ 		ret = do_iter_readv_writev(file, type, iov, nr_segs, tot_len,
+ 						pos, iter_fn, flags);
+-	else if (fnv)
+-		ret = do_sync_readv_writev(file, iov, nr_segs, tot_len,
+-						pos, fnv);
+-	else
+-		ret = do_loop_readv_writev(file, iov, nr_segs, pos, fn);
++	} else {
++		if (type == READ && (flags & RWF_NONBLOCK))
++			return -EAGAIN;
++
++		if (fnv)
++			ret = do_sync_readv_writev(file, iov, nr_segs, tot_len,
++							pos, fnv);
++		else
++			ret = do_loop_readv_writev(file, iov, nr_segs, pos, fn);
++	}
+ 
+ 	if (type != READ)
+ 		file_end_write(file);
+diff --git a/fs/xfs/xfs_file.c b/fs/xfs/xfs_file.c
+index eb596b4..b1f6334 100644
+--- a/fs/xfs/xfs_file.c
++++ b/fs/xfs/xfs_file.c
+@@ -246,6 +246,10 @@ xfs_file_read_iter(
+ 
+ 	XFS_STATS_INC(xs_read_calls);
+ 
++	/* XXX: need a non-blocking iolock helper, shouldn't be too hard */
++	if (iocb->ki_rwflags & RWF_NONBLOCK)
++		return -EAGAIN;
++
+ 	if (unlikely(file->f_flags & O_DIRECT))
+ 		ioflags |= XFS_IO_ISDIRECT;
+ 	if (file->f_mode & FMODE_NOCMTIME)
+diff --git a/include/linux/fs.h b/include/linux/fs.h
+index 9ed5711..eaebd99 100644
+--- a/include/linux/fs.h
++++ b/include/linux/fs.h
+@@ -1459,6 +1459,9 @@ struct block_device_operations;
+ #define HAVE_COMPAT_IOCTL 1
+ #define HAVE_UNLOCKED_IOCTL 1
+ 
++/* These flags are used for the readv/writev syscalls with flags. */
++#define RWF_NONBLOCK 0x00000001
++
+ struct iov_iter;
+ 
+ struct file_operations {
+diff --git a/mm/filemap.c b/mm/filemap.c
+index 530c263..09d3af3 100644
+--- a/mm/filemap.c
++++ b/mm/filemap.c
+@@ -1494,6 +1494,8 @@ static ssize_t do_generic_file_read(struct file *filp, loff_t *ppos,
+ find_page:
+ 		page = find_get_page(mapping, index);
+ 		if (!page) {
++			if (flags & RWF_NONBLOCK)
++				goto would_block;
+ 			page_cache_sync_readahead(mapping,
+ 					ra, filp,
+ 					index, last_index - index);
+@@ -1585,6 +1587,11 @@ page_ok:
+ 		continue;
+ 
+ page_not_up_to_date:
++		if (flags & RWF_NONBLOCK) {
++			page_cache_release(page);
++			goto would_block;
++		}
++
+ 		/* Get exclusive access to the page ... */
+ 		error = lock_page_killable(page);
+ 		if (unlikely(error))
+@@ -1604,6 +1611,12 @@ page_not_up_to_date_locked:
+ 			goto page_ok;
+ 		}
+ 
++		if (flags & RWF_NONBLOCK) {
++			unlock_page(page);
++			page_cache_release(page);
++			goto would_block;
++		}
++
+ readpage:
+ 		/*
+ 		 * A previous I/O error may have been due to temporary
+@@ -1674,6 +1687,8 @@ no_cached_page:
+ 		goto readpage;
+ 	}
+ 
++would_block:
++	error = -EAGAIN;
+ out:
+ 	ra->prev_pos = prev_index;
+ 	ra->prev_pos <<= PAGE_CACHE_SHIFT;
+@@ -1707,6 +1722,9 @@ generic_file_read_iter(struct kiocb *iocb, struct iov_iter *iter)
+ 		size_t count = iov_iter_count(iter);
+ 		loff_t size;
+ 
++		if (iocb->ki_rwflags & RWF_NONBLOCK)
++			return -EAGAIN;
++
+ 		if (!count)
+ 			goto out; /* skip atime */
+ 		size = i_size_read(inode);
+diff --git a/mm/shmem.c b/mm/shmem.c
+index cd6fc75..5c30f04 100644
+--- a/mm/shmem.c
++++ b/mm/shmem.c
+@@ -1531,6 +1531,10 @@ static ssize_t shmem_file_read_iter(struct kiocb *iocb, struct iov_iter *to)
+ 	ssize_t retval = 0;
+ 	loff_t *ppos = &iocb->ki_pos;
+ 
++	/* XXX: should be easily supportable */
++	if (iocb->ki_rwflags & RWF_NONBLOCK)
++		return -EAGAIN;
++
+ 	/*
+ 	 * Might this read be for a stacking filesystem?  Then when reading
+ 	 * holes of a sparse file, we actually need to allocate those pages,
 -- 
-2.1.0
+1.9.1
 
