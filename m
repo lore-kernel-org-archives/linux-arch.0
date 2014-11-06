@@ -1,38 +1,137 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-lb0-f171.google.com ([209.85.217.171]:59163 "EHLO
-	mail-lb0-f171.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751270AbaKFPqP (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 6 Nov 2014 10:46:15 -0500
-Received: by mail-lb0-f171.google.com with SMTP id b6so1132602lbj.16
-        for <linux-arch@vger.kernel.org>; Thu, 06 Nov 2014 07:46:13 -0800 (PST)
-MIME-Version: 1.0
-In-Reply-To: <20141106075641.GB15966@infradead.org>
-References: <cover.1415220890.git.milosz@adfin.com>
-	<20141106075641.GB15966@infradead.org>
-Date: Thu, 6 Nov 2014 10:46:13 -0500
-Message-ID: <CANP1eJEjpQ6Kbk-GENocte2Dqeo7C-E54c-MWEm-BnQ=pD+xuw@mail.gmail.com>
-Subject: Re: [PATCH v5 0/7] vfs: Non-blockling buffered fs read (page cache only)
-From: Milosz Tanski <milosz@adfin.com>
-Content-Type: text/plain; charset=UTF-8
+Received: from mail-lb0-f201.google.com ([209.85.217.201]:52505 "EHLO
+	mail-lb0-f201.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751264AbaKFQHm (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 6 Nov 2014 11:07:42 -0500
+Received: by mail-lb0-f201.google.com with SMTP id w7so132979lbi.0
+        for <linux-arch@vger.kernel.org>; Thu, 06 Nov 2014 08:07:41 -0800 (PST)
+From: David Drysdale <drysdale@google.com>
+Subject: [PATCHv6 RFC 0/3] syscalls,x86: Add execveat() system call
+Date: Thu,  6 Nov 2014 16:07:10 +0000
+Message-ID: <1415290033-15771-1-git-send-email-drysdale@google.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Hellwig <hch@infradead.org>
-Cc: LKML <linux-kernel@vger.kernel.org>, "linux-fsdevel@vger.kernel.org" <linux-fsdevel@vger.kernel.org>, "linux-aio@kvack.org" <linux-aio@kvack.org>, Mel Gorman <mgorman@suse.de>, Volker Lendecke <Volker.Lendecke@sernet.de>, Tejun Heo <tj@kernel.org>, Jeff Moyer <jmoyer@redhat.com>, Theodore Ts'o <tytso@mit.edu>, Al Viro <viro@zeniv.linux.org.uk>, Linux API <linux-api@vger.kernel.org>, Michael Kerrisk <mtk.manpages@gmail.com>, linux-arch@vger.kernel.org
-Message-ID: <20141106154613.dRXfStIhZo4v8Cb36EVz6X3BDHyH4wcfxFNc0WVyjfw@z>
+To: "Eric W. Biederman" <ebiederm@xmission.com>, Andy Lutomirski <luto@amacapital.net>, Alexander Viro <viro@zeniv.linux.org.uk>, Meredydd Luff <meredydd@senatehouse.org>, linux-kernel@vger.kernel.org
+Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Rich Felker <dalias@aerifal.cx>, Christoph Hellwig <hch@infradead.org>, x86@kernel.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, David Drysdale <drysdale@google.com>
+Message-ID: <20141106160710.Q3oZmZTEkuAZMPVCO8i_h38xeABvUQ_M_QxjsKn_DNI@z>
 
-On Thu, Nov 6, 2014 at 2:56 AM, Christoph Hellwig <hch@infradead.org> wrote:
-> This series looks good, do you also have a man page sniplet to document
-> the new syscalls?
->
+Here's another pass at this. Some things to discuss in particular:
 
-I just send out the two patches for the man pages, ran out of time
-yesterday to update it for RWF_ODSYNC.
+1) The current approach for interpreted execs (i.e. mostly "#!" scripts)
+   gives them an argv[1] filename like "/dev/fd/<fd>/<path>".  This
+   means that script execution in a /proc-less system isn't going to
+   work, at least until interpreters get smart enough to spot and
+   special-case the leading "/dev/fd/<fd>", or until there's something
+   to use in place of /dev/fd -> /proc/self/fd (e.g. Al's dupfs
+   suggestion, https://lkml.org/lkml/2014/10/19/141).
 
--- 
-Milosz Tanski
-CTO
-16 East 34th Street, 15th floor
-New York, NY 10016
+   So is an execveat(2) that (currently) only works for non-interpreted
+   programs still useful?
 
-p: 646-253-9055
-e: milosz@adfin.com
+2) I don't like having to add a new LOOKUP_EMPTY_NOPATH flag
+   just to prevent O_PATH fds from being fexecve()ed -- alternative
+   suggestions welcomed.  (More generally, I don't have a great
+   feel for what O_PATH is for; how bad would it be to just allow
+   them to be fexecve()ed?)
+
+.........
+
+This patch set adds execveat(2) for x86, and is derived from Meredydd
+Luff's patch from Sept 2012 (https://lkml.org/lkml/2012/9/11/528).
+
+The primary aim of adding an execveat syscall is to allow an
+implementation of fexecve(3) that does not rely on the /proc
+filesystem, at least for executables (rather than scripts).  The
+current glibc version of fexecve(3) is implemented via /proc, which
+causes problems in sandboxed or otherwise restricted environments.
+
+Given the desire for a /proc-free fexecve() implementation, HPA
+suggested (https://lkml.org/lkml/2006/7/11/556) that an execveat(2)
+syscall would be an appropriate generalization.
+
+Also, having a new syscall means that it can take a flags argument
+without back-compatibility concerns.  The current implementation just
+defines the AT_EMPTY_PATH and AT_SYMLINK_NOFOLLOW flags, but other
+flags could be added in future -- for example, flags for new namespaces
+(as suggested at https://lkml.org/lkml/2006/7/11/474).
+
+Related history:
+ - https://lkml.org/lkml/2006/12/27/123 is an example of someone
+   realizing that fexecve() is likely to fail in a chroot environment.
+ - http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=514043 covered
+   documenting the /proc requirement of fexecve(3) in its manpage, to
+   "prevent other people from wasting their time".
+ - https://bugzilla.kernel.org/show_bug.cgi?id=74481 documented that
+   it's not possible to fexecve() a file descriptor for a script with
+   close-on-exec set (which is possible with the implementation here).
+ - https://bugzilla.redhat.com/show_bug.cgi?id=241609 described a
+   problem where a process that did setuid() could not fexecve()
+   because it no longer had access to /proc/self/fd; this has since
+   been fixed.
+
+
+Changes since v5:
+ - Set new flag in bprm->interp_flags for O_CLOEXEC fds, so that binfmts
+   that invoke an interpreter fail the exec (as they will not be able
+   to access the invoked file). [Andy Lutomirski]
+ - Don't truncate long paths. [Andy Lutomirski]
+ - Commonize code to open the executed file. [Eric W. Biederman]
+ - Mark O_PATH file descriptors so they cannot be fexecve()ed.
+ - Make self-test more helpful, and add additional cases:
+     - file offset non-zero
+     - binary file without execute bit
+     - O_CLOEXEC fds
+
+Changes since v4, suggested by Eric W. Biederman:
+ - Use empty filename with AT_EMPTY_PATH flag rather than NULL
+   pathname to request fexecve-like behaviour.
+ - Build pathname as "/dev/fd/<fd>/<filename>" (or "/dev/fd/<fd>")
+   rather than using d_path().
+ - Patch against v3.17 (bfe01a5ba249)
+
+Changes since Meredydd's v3 patch:
+ - Added a selftest.
+ - Added a man page.
+ - Left open_exec() signature untouched to reduce patch impact
+   elsewhere (as suggested by Al Viro).
+ - Filled in bprm->filename with d_path() into a buffer, to avoid use
+   of potentially-ephemeral dentry->d_name.
+ - Patch against v3.14 (455c6fdbd21916).
+
+
+David Drysdale (2):
+  syscalls,x86: implement execveat() system call
+  syscalls,x86: add selftest for execveat(2)
+
+ arch/x86/ia32/audit.c                   |   1 +
+ arch/x86/ia32/ia32entry.S               |   1 +
+ arch/x86/kernel/audit_64.c              |   1 +
+ arch/x86/kernel/entry_64.S              |  28 +++
+ arch/x86/syscalls/syscall_32.tbl        |   1 +
+ arch/x86/syscalls/syscall_64.tbl        |   2 +
+ arch/x86/um/sys_call_table_64.c         |   1 +
+ fs/binfmt_em86.c                        |   4 +
+ fs/binfmt_misc.c                        |   4 +
+ fs/binfmt_script.c                      |  10 +
+ fs/exec.c                               | 115 ++++++++++--
+ fs/namei.c                              |   8 +-
+ include/linux/binfmts.h                 |   4 +
+ include/linux/compat.h                  |   3 +
+ include/linux/fs.h                      |   1 +
+ include/linux/namei.h                   |   1 +
+ include/linux/sched.h                   |   4 +
+ include/linux/syscalls.h                |   4 +
+ include/uapi/asm-generic/unistd.h       |   4 +-
+ kernel/sys_ni.c                         |   3 +
+ lib/audit.c                             |   3 +
+ tools/testing/selftests/Makefile        |   1 +
+ tools/testing/selftests/exec/.gitignore |   7 +
+ tools/testing/selftests/exec/Makefile   |  25 +++
+ tools/testing/selftests/exec/execveat.c | 321 ++++++++++++++++++++++++++++++++
+ 25 files changed, 542 insertions(+), 15 deletions(-)
+ create mode 100644 tools/testing/selftests/exec/.gitignore
+ create mode 100644 tools/testing/selftests/exec/Makefile
+ create mode 100644 tools/testing/selftests/exec/execveat.c
+
+--
+2.1.0.rc2.206.gedb03e5
