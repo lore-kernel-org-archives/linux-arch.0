@@ -1,417 +1,344 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wg0-f73.google.com ([74.125.82.73]:58822 "EHLO
-	mail-wg0-f73.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750963AbaKFQNL (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 6 Nov 2014 11:13:11 -0500
-Received: by mail-wg0-f73.google.com with SMTP id k14so132148wgh.2
-        for <linux-arch@vger.kernel.org>; Thu, 06 Nov 2014 08:13:09 -0800 (PST)
-From: David Drysdale <drysdale@google.com>
-Subject: [PATCHv6 2/3] syscalls,x86: add selftest for execveat(2)
-Date: Thu,  6 Nov 2014 16:07:12 +0000
-Message-ID: <1415290033-15771-3-git-send-email-drysdale@google.com>
-In-Reply-To: <1415290033-15771-1-git-send-email-drysdale@google.com>
-References: <1415290033-15771-1-git-send-email-drysdale@google.com>
+Received: from mail-lb0-f180.google.com ([209.85.217.180]:38752 "EHLO
+	mail-lb0-f180.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751246AbaKFQOc (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 6 Nov 2014 11:14:32 -0500
+Received: by mail-lb0-f180.google.com with SMTP id u10so1144910lbd.25
+        for <linux-arch@vger.kernel.org>; Thu, 06 Nov 2014 08:14:30 -0800 (PST)
+MIME-Version: 1.0
+In-Reply-To: <C2D0BFF1-14C7-47C0-A24D-0F54809EF5D0@cam.ac.uk>
+References: <cover.1415220890.git.milosz@adfin.com>
+	<5d53ede333de7cade713190e2b93e2dbadefa260.1415220890.git.milosz@adfin.com>
+	<C2D0BFF1-14C7-47C0-A24D-0F54809EF5D0@cam.ac.uk>
+Date: Thu, 6 Nov 2014 11:14:30 -0500
+Message-ID: <CANP1eJGeEOvLjy_pBKjjobYY1xja9Z4KfvmYfLK3KnswVZdaTA@mail.gmail.com>
+Subject: Re: [Linux-NTFS-Dev] [PATCH v5 6/7] fs: pass iocb to generic_write_sync
+From: Milosz Tanski <milosz@adfin.com>
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Eric W. Biederman" <ebiederm@xmission.com>, Andy Lutomirski <luto@amacapital.net>, Alexander Viro <viro@zeniv.linux.org.uk>, Meredydd Luff <meredydd@senatehouse.org>, linux-kernel@vger.kernel.org
-Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Rich Felker <dalias@aerifal.cx>, Christoph Hellwig <hch@infradead.org>, x86@kernel.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, David Drysdale <drysdale@google.com>
-Message-ID: <20141106160712.DiGwrPL4GESs2hQoFFvdDjUWSBrQLg7qlEOSMGUf-9I@z>
+To: Anton Altaparmakov <aia21@cam.ac.uk>
+Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, "linux-aio@kvack.org" <linux-aio@kvack.org>, Volker Lendecke <Volker.Lendecke@sernet.de>, Theodore Ts'o <tytso@mit.edu>, linux-xfs@vger.kernel.org, linux-cifs@vger.kernel.org, linux-ntfs-dev@lists.sourceforge.net, Linux API <linux-api@vger.kernel.org>, Christoph Hellwig <hch@infradead.org>, Tejun Heo <tj@kernel.org>, Jeff Moyer <jmoyer@redhat.com>, cluster-devel@redhat.com, Mel Gorman <mgorman@suse.de>, "linux-fsdevel@vger.kernel.org" <linux-fsdevel@vger.kernel.org>, Michael Kerrisk <mtk.manpages@gmail.com>, linux-ext4@vger.kernel.org, Christoph Hellwig <hch@lst.de>, linux-btrfs@vger.kernel.org, Al Viro <viro@zeniv.linux.org.uk>
+Message-ID: <20141106161430.lIfVJSKzw3E3D4ea8_YKizNzJ5MQjMO1xQbXdhAUIgA@z>
 
-Signed-off-by: David Drysdale <drysdale@google.com>
----
- tools/testing/selftests/Makefile        |   1 +
- tools/testing/selftests/exec/.gitignore |   7 +
- tools/testing/selftests/exec/Makefile   |  25 +++
- tools/testing/selftests/exec/execveat.c | 321 ++++++++++++++++++++++++++++++++
- 4 files changed, 354 insertions(+)
- create mode 100644 tools/testing/selftests/exec/.gitignore
- create mode 100644 tools/testing/selftests/exec/Makefile
- create mode 100644 tools/testing/selftests/exec/execveat.c
+On Thu, Nov 6, 2014 at 5:52 AM, Anton Altaparmakov <aia21@cam.ac.uk> wrote:
+> Hi,
+>
+>> On 5 Nov 2014, at 23:14, Milosz Tanski <milosz@adfin.com> wrote:
+>>
+>> From: Christoph Hellwig <hch@lst.de>
+>>
+>> Clean up the generic_write_sync by just passing an iocb and a bytes
+>> written / negative errno argument.  In addition to simplifying the
+>> callers this also prepares for passing a per-operation O_DSYNC
+>> flag.  Two callers didn't quite fit that scheme:
+>>
+>> - dio_complete didn't both to update ki_pos as we don't need it
+>>   on a iocb that is about to be freed, so we had to add it. Additionally
+>>   it also synced out written data in the error case, which has been
+>>   changed to operate like the other callers.
+>> - gfs2 also used generic_write_sync to implement a crude version
+>>   of fallocate.  It has been switched to use an open coded variant
+>>   instead.
+>>
+>> Signed-off-by: Christoph Hellwig <hch@lst.de>
+>> ---
+>> fs/block_dev.c     |  8 +-------
+>> fs/btrfs/file.c    |  7 ++-----
+>> fs/cifs/file.c     |  8 +-------
+>> fs/direct-io.c     |  8 ++------
+>> fs/ext4/file.c     |  8 +-------
+>> fs/gfs2/file.c     |  9 +++++++--
+>> fs/ntfs/file.c     |  8 ++------
+>> fs/udf/file.c      | 11 ++---------
+>> fs/xfs/xfs_file.c  |  8 +-------
+>> include/linux/fs.h |  8 +-------
+>> mm/filemap.c       | 30 ++++++++++++++++++++----------
+>> 11 files changed, 40 insertions(+), 73 deletions(-)
+>>
+>> diff --git a/fs/block_dev.c b/fs/block_dev.c
+>> index cc9d411..c529b1c 100644
+>> --- a/fs/block_dev.c
+>> +++ b/fs/block_dev.c
+>> @@ -1568,18 +1568,12 @@ static long block_ioctl(struct file *file, unsigned cmd, unsigned long arg)
+>>  */
+>> ssize_t blkdev_write_iter(struct kiocb *iocb, struct iov_iter *from)
+>> {
+>> -     struct file *file = iocb->ki_filp;
+>>       struct blk_plug plug;
+>>       ssize_t ret;
+>>
+>>       blk_start_plug(&plug);
+>>       ret = __generic_file_write_iter(iocb, from);
+>> -     if (ret > 0) {
+>> -             ssize_t err;
+>> -             err = generic_write_sync(file, iocb->ki_pos - ret, ret);
+>> -             if (err < 0)
+>> -                     ret = err;
+>> -     }
+>> +     ret = generic_write_sync(iocb, ret);
+>>       blk_finish_plug(&plug);
+>>       return ret;
+>> }
+>> diff --git a/fs/btrfs/file.c b/fs/btrfs/file.c
+>> index a18ceab..4f4a6f7 100644
+>> --- a/fs/btrfs/file.c
+>> +++ b/fs/btrfs/file.c
+>> @@ -1820,11 +1820,8 @@ static ssize_t btrfs_file_write_iter(struct kiocb *iocb,
+>>        */
+>>       BTRFS_I(inode)->last_trans = root->fs_info->generation + 1;
+>>       BTRFS_I(inode)->last_sub_trans = root->log_transid;
+>> -     if (num_written > 0) {
+>> -             err = generic_write_sync(file, pos, num_written);
+>> -             if (err < 0)
+>> -                     num_written = err;
+>> -     }
+>> +
+>> +     num_written = generic_write_sync(iocb, num_written);
+>>
+>>       if (sync)
+>>               atomic_dec(&BTRFS_I(inode)->sync_writers);
+>> diff --git a/fs/cifs/file.c b/fs/cifs/file.c
+>> index c485afa..32359de 100644
+>> --- a/fs/cifs/file.c
+>> +++ b/fs/cifs/file.c
+>> @@ -2706,13 +2706,7 @@ cifs_writev(struct kiocb *iocb, struct iov_iter *from)
+>>               rc = __generic_file_write_iter(iocb, from);
+>>               mutex_unlock(&inode->i_mutex);
+>>
+>> -             if (rc > 0) {
+>> -                     ssize_t err;
+>> -
+>> -                     err = generic_write_sync(file, iocb->ki_pos - rc, rc);
+>> -                     if (err < 0)
+>> -                             rc = err;
+>> -             }
+>> +             rc = generic_write_sync(iocb, rc);
+>>       } else {
+>>               mutex_unlock(&inode->i_mutex);
+>>       }
+>> diff --git a/fs/direct-io.c b/fs/direct-io.c
+>> index e181b6b..b72ac83 100644
+>> --- a/fs/direct-io.c
+>> +++ b/fs/direct-io.c
+>> @@ -257,12 +257,8 @@ static ssize_t dio_complete(struct dio *dio, loff_t offset, ssize_t ret,
+>>       inode_dio_done(dio->inode);
+>>       if (is_async) {
+>>               if (dio->rw & WRITE) {
+>> -                     int err;
+>> -
+>> -                     err = generic_write_sync(dio->iocb->ki_filp, offset,
+>> -                                              transferred);
+>> -                     if (err < 0 && ret > 0)
+>> -                             ret = err;
+>> +                     dio->iocb->ki_pos = offset + transferred;
+>> +                     ret = generic_write_sync(dio->iocb, ret);
+>>               }
+>>
+>>               aio_complete(dio->iocb, ret, 0);
+>> diff --git a/fs/ext4/file.c b/fs/ext4/file.c
+>> index aca7b24..79b000c 100644
+>> --- a/fs/ext4/file.c
+>> +++ b/fs/ext4/file.c
+>> @@ -175,13 +175,7 @@ ext4_file_write_iter(struct kiocb *iocb, struct iov_iter *from)
+>>       ret = __generic_file_write_iter(iocb, from);
+>>       mutex_unlock(&inode->i_mutex);
+>>
+>> -     if (ret > 0) {
+>> -             ssize_t err;
+>> -
+>> -             err = generic_write_sync(file, iocb->ki_pos - ret, ret);
+>> -             if (err < 0)
+>> -                     ret = err;
+>> -     }
+>> +     ret = generic_write_sync(iocb, ret);
+>>       if (o_direct)
+>>               blk_finish_plug(&plug);
+>>
+>> diff --git a/fs/gfs2/file.c b/fs/gfs2/file.c
+>> index 80dd44d..3fafeca 100644
+>> --- a/fs/gfs2/file.c
+>> +++ b/fs/gfs2/file.c
+>> @@ -895,8 +895,13 @@ retry:
+>>               gfs2_quota_unlock(ip);
+>>       }
+>>
+>> -     if (error == 0)
+>> -             error = generic_write_sync(file, pos, count);
+>> +     if (error)
+>> +             goto out_unlock;
+>> +
+>> +     if ((file->f_flags & O_DSYNC) || IS_SYNC(file->f_mapping->host)) {
+>> +             error = vfs_fsync_range(file, pos, pos + count - 1,
+>> +                            (file->f_flags & __O_SYNC) ? 0 : 1);
+>> +     }
+>>       goto out_unlock;
+>>
+>> out_trans_fail:
+>> diff --git a/fs/ntfs/file.c b/fs/ntfs/file.c
+>> index 643faa4..4f3d664 100644
+>> --- a/fs/ntfs/file.c
+>> +++ b/fs/ntfs/file.c
+>> @@ -2127,12 +2127,8 @@ static ssize_t ntfs_file_aio_write(struct kiocb *iocb, const struct iovec *iov,
+>>       mutex_lock(&inode->i_mutex);
+>>       ret = ntfs_file_aio_write_nolock(iocb, iov, nr_segs, &iocb->ki_pos);
+>>       mutex_unlock(&inode->i_mutex);
+>> -     if (ret > 0) {
+>> -             int err = generic_write_sync(file, iocb->ki_pos - ret, ret);
+>> -             if (err < 0)
+>> -                     ret = err;
+>> -     }
+>> -     return ret;
+>> +
+>> +     return generic_write_sync(iocb, ret);
+>> }
+>>
+>> /**
+>> diff --git a/fs/udf/file.c b/fs/udf/file.c
+>> index bb15771..1cdabd0 100644
+>> --- a/fs/udf/file.c
+>> +++ b/fs/udf/file.c
+>> @@ -155,16 +155,9 @@ static ssize_t udf_file_write_iter(struct kiocb *iocb, struct iov_iter *from)
+>>       retval = __generic_file_write_iter(iocb, from);
+>>       mutex_unlock(&inode->i_mutex);
+>>
+>> -     if (retval > 0) {
+>> -             ssize_t err;
+>> -
+>> +     if (retval > 0)
+>>               mark_inode_dirty(inode);
+>> -             err = generic_write_sync(file, iocb->ki_pos - retval, retval);
+>> -             if (err < 0)
+>> -                     retval = err;
+>> -     }
+>> -
+>> -     return retval;
+>> +     return generic_write_sync(iocb, retval);
+>> }
+>>
+>> long udf_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
+>> diff --git a/fs/xfs/xfs_file.c b/fs/xfs/xfs_file.c
+>> index 0655915..a8cab66 100644
+>> --- a/fs/xfs/xfs_file.c
+>> +++ b/fs/xfs/xfs_file.c
+>> @@ -792,14 +792,8 @@ xfs_file_write_iter(
+>>               ret = xfs_file_buffered_aio_write(iocb, from);
+>>
+>>       if (ret > 0) {
+>> -             ssize_t err;
+>> -
+>>               XFS_STATS_ADD(xs_write_bytes, ret);
+>> -
+>> -             /* Handle various SYNC-type writes */
+>> -             err = generic_write_sync(file, iocb->ki_pos - ret, ret);
+>> -             if (err < 0)
+>> -                     ret = err;
+>> +             ret = generic_write_sync(iocb, ret);
+>>       }
+>>       return ret;
+>> }
+>> diff --git a/include/linux/fs.h b/include/linux/fs.h
+>> index eaebd99..7d0e116 100644
+>> --- a/include/linux/fs.h
+>> +++ b/include/linux/fs.h
+>> @@ -2242,13 +2242,7 @@ extern int filemap_fdatawrite_range(struct address_space *mapping,
+>> extern int vfs_fsync_range(struct file *file, loff_t start, loff_t end,
+>>                          int datasync);
+>> extern int vfs_fsync(struct file *file, int datasync);
+>> -static inline int generic_write_sync(struct file *file, loff_t pos, loff_t count)
+>> -{
+>> -     if (!(file->f_flags & O_DSYNC) && !IS_SYNC(file->f_mapping->host))
+>> -             return 0;
+>> -     return vfs_fsync_range(file, pos, pos + count - 1,
+>> -                            (file->f_flags & __O_SYNC) ? 0 : 1);
+>> -}
+>> +extern int generic_write_sync(struct kiocb *iocb, loff_t count);
+>> extern void emergency_sync(void);
+>> extern void emergency_remount(void);
+>> #ifdef CONFIG_BLOCK
+>> diff --git a/mm/filemap.c b/mm/filemap.c
+>> index 09d3af3..6107058 100644
+>> --- a/mm/filemap.c
+>> +++ b/mm/filemap.c
+>> @@ -2664,6 +2664,24 @@ out:
+>> }
+>> EXPORT_SYMBOL(__generic_file_write_iter);
+>>
+>> +int generic_write_sync(struct kiocb *iocb, loff_t count)
+>> +{
+>> +     struct file *file = iocb->ki_filp;
+>> +
+>> +     if (count > 0 &&
+>> +         ((file->f_flags & O_DSYNC) || IS_SYNC(file->f_mapping->host))) {
+>> +             bool fdatasync = !(file->f_flags & __O_SYNC);
+>> +             ssize_t ret = 0;
+>
+> That "= 0" is pointless.  "ret" is overwritten unconditionally on the following line...
 
-diff --git a/tools/testing/selftests/Makefile b/tools/testing/selftests/Makefile
-index 36ff2e4c7b6f..210cf68b3511 100644
---- a/tools/testing/selftests/Makefile
-+++ b/tools/testing/selftests/Makefile
-@@ -14,6 +14,7 @@ TARGETS += powerpc
- TARGETS += user
- TARGETS += sysctl
- TARGETS += firmware
-+TARGETS += exec
- 
- TARGETS_HOTPLUG = cpu-hotplug
- TARGETS_HOTPLUG += memory-hotplug
-diff --git a/tools/testing/selftests/exec/.gitignore b/tools/testing/selftests/exec/.gitignore
-new file mode 100644
-index 000000000000..778147d01af9
---- /dev/null
-+++ b/tools/testing/selftests/exec/.gitignore
-@@ -0,0 +1,7 @@
-+subdir*
-+script*
-+execveat
-+execveat.symlink
-+execveat.moved
-+execveat.ephemeral
-+execveat.denatured
-\ No newline at end of file
-diff --git a/tools/testing/selftests/exec/Makefile b/tools/testing/selftests/exec/Makefile
-new file mode 100644
-index 000000000000..c97e0aaea02d
---- /dev/null
-+++ b/tools/testing/selftests/exec/Makefile
-@@ -0,0 +1,25 @@
-+CC = $(CROSS_COMPILE)gcc
-+CFLAGS = -Wall
-+BINARIES = execveat
-+DEPS = execveat.symlink execveat.denatured script subdir
-+all: $(BINARIES) $(DEPS)
-+
-+subdir:
-+	mkdir -p $@
-+script:
-+	echo '#!/bin/sh' > $@
-+	echo 'exit $$*' >> $@
-+	chmod +x $@
-+execveat.symlink: execveat
-+	ln -s -f $< $@
-+execveat.denatured: execveat
-+	cp $< $@
-+	chmod -x $@
-+%: %.c
-+	$(CC) $(CFLAGS) -o $@ $^
-+
-+run_tests: all
-+	./execveat
-+
-+clean:
-+	rm -rf $(BINARIES) $(DEPS) subdir.moved execveat.moved
-diff --git a/tools/testing/selftests/exec/execveat.c b/tools/testing/selftests/exec/execveat.c
-new file mode 100644
-index 000000000000..f6ea48176393
---- /dev/null
-+++ b/tools/testing/selftests/exec/execveat.c
-@@ -0,0 +1,321 @@
-+/*
-+ * Copyright (c) 2014 Google, Inc.
-+ *
-+ * Licensed under the terms of the GNU GPL License version 2
-+ *
-+ * Selftests for execveat(2).
-+ */
-+
-+#define _GNU_SOURCE  /* to get O_PATH, AT_EMPTY_PATH */
-+#include <sys/sendfile.h>
-+#include <sys/stat.h>
-+#include <sys/syscall.h>
-+#include <sys/types.h>
-+#include <sys/wait.h>
-+#include <errno.h>
-+#include <fcntl.h>
-+#include <limits.h>
-+#include <stdio.h>
-+#include <stdlib.h>
-+#include <string.h>
-+#include <unistd.h>
-+
-+static char *envp[] = { "IN_TEST=yes", NULL, NULL };
-+static char *argv[] = { "execveat", "99", NULL };
-+
-+static int execveat_(int fd, const char *path, char **argv, char **envp,
-+		     int flags)
-+{
-+#ifdef __NR_execveat
-+	return syscall(__NR_execveat, fd, path, argv, envp, flags);
-+#else
-+	errno = -ENOSYS;
-+	return -1;
-+#endif
-+}
-+
-+#define check_execveat_fail(fd, path, flags, errno)	\
-+	_check_execveat_fail(fd, path, flags, errno, #errno)
-+static int _check_execveat_fail(int fd, const char *path, int flags,
-+				int expected_errno, const char *errno_str)
-+{
-+	int rc;
-+
-+	errno = 0;
-+	printf("Check failure of execveat(%d, '%s', %d) with %s... ",
-+		fd, path?:"(null)", flags, errno_str);
-+	rc = execveat_(fd, path, argv, envp, flags);
-+
-+	if (rc > 0) {
-+		printf("[FAIL] (unexpected success from execveat(2))\n");
-+		return 1;
-+	}
-+	if (errno != expected_errno) {
-+		printf("[FAIL] (expected errno %d (%s) not %d (%s)\n",
-+			expected_errno, strerror(expected_errno),
-+			errno, strerror(errno));
-+		return 1;
-+	}
-+	printf("[OK]\n");
-+	return 0;
-+}
-+
-+static int check_execveat_invoked_rc(int fd, const char *path, int flags,
-+				     int expected_rc)
-+{
-+	int status;
-+	int rc;
-+	pid_t child;
-+
-+	printf("Check success of execveat(%d, '%s', %d)... ",
-+		fd, path?:"(null)", flags);
-+	child = fork();
-+	if (child < 0) {
-+		printf("[FAIL] (fork() failed)\n");
-+		return 1;
-+	}
-+	if (child == 0) {
-+		/* Child: do execveat(). */
-+		rc = execveat_(fd, path, argv, envp, flags);
-+		printf("[FAIL]: execveat() failed, rc=%d errno=%d (%s)\n",
-+			rc, errno, strerror(errno));
-+		exit(1);  /* should not reach here */
-+	}
-+	/* Parent: wait for & check child's exit status. */
-+	rc = waitpid(child, &status, 0);
-+	if (rc != child) {
-+		printf("[FAIL] (waitpid(%d,...) returned %d)\n", child, rc);
-+		return 1;
-+	}
-+	if (!WIFEXITED(status)) {
-+		printf("[FAIL] (child %d did not exit cleanly, status=%08x)\n",
-+			child, status);
-+		return 1;
-+	}
-+	if (WEXITSTATUS(status) != expected_rc) {
-+		printf("[FAIL] (child %d exited with %d not %d)\n",
-+			child, WEXITSTATUS(status), expected_rc);
-+		return 1;
-+	}
-+	printf("[OK]\n");
-+	return 0;
-+}
-+
-+static int check_execveat(int fd, const char *path, int flags)
-+{
-+	return check_execveat_invoked_rc(fd, path, flags, 99);
-+}
-+
-+static char *concat(const char *left, const char *right)
-+{
-+	char *result = malloc(strlen(left) + strlen(right) + 1);
-+
-+	strcpy(result, left);
-+	strcat(result, right);
-+	return result;
-+}
-+
-+static int open_or_die(const char *filename, int flags)
-+{
-+	int fd = open(filename, flags);
-+
-+	if (fd < 0) {
-+		printf("Failed to open '%s'; "
-+			"check prerequisites are available\n", filename);
-+		exit(1);
-+	}
-+	return fd;
-+}
-+
-+static int run_tests(void)
-+{
-+	int fail = 0;
-+	char *fullname = realpath("execveat", NULL);
-+	char *fullname_script = realpath("script", NULL);
-+	char *fullname_symlink = concat(fullname, ".symlink");
-+	int subdir_dfd = open_or_die("subdir", O_DIRECTORY|O_RDONLY);
-+	int subdir_dfd_ephemeral = open_or_die("subdir.ephemeral",
-+					       O_DIRECTORY|O_RDONLY);
-+	int dot_dfd = open_or_die(".", O_DIRECTORY|O_RDONLY);
-+	int dot_dfd_path = open_or_die(".", O_DIRECTORY|O_RDONLY|O_PATH);
-+	int dot_dfd_cloexec = open_or_die(".", O_DIRECTORY|O_RDONLY|O_CLOEXEC);
-+	int fd = open_or_die("execveat", O_RDONLY);
-+	int fd_path = open_or_die("execveat", O_RDONLY|O_PATH);
-+	int fd_symlink = open_or_die("execveat.symlink", O_RDONLY);
-+	int fd_denatured = open_or_die("execveat.denatured", O_RDONLY);
-+	int fd_script = open_or_die("script", O_RDONLY);
-+	int fd_ephemeral = open_or_die("execveat.ephemeral", O_RDONLY);
-+	int fd_script_ephemeral = open_or_die("script.ephemeral", O_RDONLY);
-+	int fd_cloexec = open_or_die("execveat", O_RDONLY|O_CLOEXEC);
-+	int fd_script_cloexec = open_or_die("script", O_RDONLY|O_CLOEXEC);
-+
-+	/* Change file position to confirm it doesn't affect anything */
-+	lseek(fd, 10, SEEK_SET);
-+
-+	/* Normal executable file: */
-+	/*   dfd + path */
-+	fail += check_execveat(subdir_dfd, "../execveat", 0);
-+	fail += check_execveat(dot_dfd, "execveat", 0);
-+	fail += check_execveat(dot_dfd_path, "execveat", 0);
-+	/*   absolute path */
-+	fail += check_execveat(AT_FDCWD, fullname, 0);
-+	/*   absolute path with nonsense dfd */
-+	fail += check_execveat(99, fullname, 0);
-+	/*   fd + no path */
-+	fail += check_execveat(fd, "", AT_EMPTY_PATH);
-+	/*   O_CLOEXEC fd + no path */
-+	fail += check_execveat(fd_cloexec, "", AT_EMPTY_PATH);
-+
-+	/* Mess with executable file that's already open: */
-+	/*   fd + no path to a file that's been renamed */
-+	rename("execveat.ephemeral", "execveat.moved");
-+	fail += check_execveat(fd_ephemeral, "", AT_EMPTY_PATH);
-+	/*   fd + no path to a file that's been deleted */
-+	unlink("execveat.moved"); /* remove the file now fd open */
-+	fail += check_execveat(fd_ephemeral, "", AT_EMPTY_PATH);
-+
-+	/* Invalid argument failures */
-+	fail += check_execveat_fail(fd, "", 0, ENOENT);
-+	fail += check_execveat_fail(fd, NULL, AT_EMPTY_PATH, EFAULT);
-+
-+	/* Symlink to executable file: */
-+	/*   dfd + path */
-+	fail += check_execveat(dot_dfd, "execveat.symlink", 0);
-+	fail += check_execveat(dot_dfd_path, "execveat.symlink", 0);
-+	/*   absolute path */
-+	fail += check_execveat(AT_FDCWD, fullname_symlink, 0);
-+	/*   fd + no path, even with AT_SYMLINK_NOFOLLOW (already followed) */
-+	fail += check_execveat(fd_symlink, "", AT_EMPTY_PATH);
-+	fail += check_execveat(fd_symlink, "",
-+			       AT_EMPTY_PATH|AT_SYMLINK_NOFOLLOW);
-+
-+	/* Symlink fails when AT_SYMLINK_NOFOLLOW set: */
-+	/*   dfd + path */
-+	fail += check_execveat_fail(dot_dfd, "execveat.symlink",
-+				    AT_SYMLINK_NOFOLLOW, ELOOP);
-+	fail += check_execveat_fail(dot_dfd_path, "execveat.symlink",
-+				    AT_SYMLINK_NOFOLLOW, ELOOP);
-+	/*   absolute path */
-+	fail += check_execveat_fail(AT_FDCWD, fullname_symlink,
-+				    AT_SYMLINK_NOFOLLOW, ELOOP);
-+
-+	/* Shell script wrapping executable file: */
-+	/*   dfd + path */
-+	fail += check_execveat(subdir_dfd, "../script", 0);
-+	fail += check_execveat(dot_dfd, "script", 0);
-+	fail += check_execveat(dot_dfd_path, "script", 0);
-+	/*   absolute path */
-+	fail += check_execveat(AT_FDCWD, fullname_script, 0);
-+	/*   fd + no path */
-+	fail += check_execveat(fd_script, "", AT_EMPTY_PATH);
-+	fail += check_execveat(fd_script, "",
-+			       AT_EMPTY_PATH|AT_SYMLINK_NOFOLLOW);
-+	/*   O_CLOEXEC fd fails for a script (as script file inaccessible) */
-+	fail += check_execveat_fail(fd_script_cloexec, "", AT_EMPTY_PATH,
-+				    ENOENT);
-+	fail += check_execveat_fail(dot_dfd_cloexec, "script", 0, ENOENT);
-+
-+	/* Mess with script file that's already open: */
-+	/*   fd + no path to a file that's been renamed */
-+	rename("script.ephemeral", "script.moved");
-+	fail += check_execveat(fd_script_ephemeral, "", AT_EMPTY_PATH);
-+	/*   fd + no path to a file that's been deleted */
-+	unlink("script.moved"); /* remove the file while fd open */
-+	fail += check_execveat(fd_script_ephemeral, "", AT_EMPTY_PATH);
-+
-+	/* Rename a subdirectory in the path: */
-+	rename("subdir.ephemeral", "subdir.moved");
-+	fail += check_execveat(subdir_dfd_ephemeral, "../script", 0);
-+	fail += check_execveat(subdir_dfd_ephemeral, "script", 0);
-+	/* Remove the subdir and its contents */
-+	unlink("subdir.moved/script");
-+	unlink("subdir.moved");
-+	/* Shell loads via deleted subdir OK because name starts with .. */
-+	fail += check_execveat(subdir_dfd_ephemeral, "../script", 0);
-+	fail += check_execveat_fail(subdir_dfd_ephemeral, "script", 0, ENOENT);
-+
-+	/* Flag values other than AT_SYMLINK_NOFOLLOW => EINVAL */
-+	fail += check_execveat_fail(dot_dfd, "execveat", 0xFFFF, EINVAL);
-+	/* Invalid path => ENOENT */
-+	fail += check_execveat_fail(dot_dfd, "no-such-file", 0, ENOENT);
-+	fail += check_execveat_fail(dot_dfd_path, "no-such-file", 0, ENOENT);
-+	fail += check_execveat_fail(AT_FDCWD, "no-such-file", 0, ENOENT);
-+	/* Attempt to execute directory => EACCES */
-+	fail += check_execveat_fail(dot_dfd, "", AT_EMPTY_PATH, EACCES);
-+	/* Attempt to execute non-executable => EACCES */
-+	fail += check_execveat_fail(dot_dfd, "Makefile", 0, EACCES);
-+	fail += check_execveat_fail(fd_denatured, "", AT_EMPTY_PATH, EACCES);
-+	/* Attempt to execute file opened with O_PATH => EBADF */
-+	fail += check_execveat_fail(fd_path, "", AT_EMPTY_PATH, EBADF);
-+	/* Attempt to execute nonsense FD => EBADF */
-+	fail += check_execveat_fail(99, "", AT_EMPTY_PATH, EBADF);
-+	fail += check_execveat_fail(99, "execveat", 0, EBADF);
-+	/* Attempt to execute relative to non-directory => ENOTDIR */
-+	fail += check_execveat_fail(fd, "execveat", 0, ENOTDIR);
-+
-+	return fail;
-+}
-+
-+static void exe_cp(const char *src, const char *dest)
-+{
-+	int in_fd = open_or_die(src, O_RDONLY);
-+	int out_fd = open(dest, O_RDWR|O_CREAT|O_TRUNC, 0755);
-+	struct stat info;
-+
-+	fstat(in_fd, &info);
-+	sendfile(out_fd, in_fd, NULL, info.st_size);
-+	close(in_fd);
-+	close(out_fd);
-+}
-+
-+static void prerequisites(void)
-+{
-+	int fd;
-+	const char *script = "#!/bin/sh\nexit $*\n";
-+
-+	/* Create ephemeral copies of files */
-+	exe_cp("execveat", "execveat.ephemeral");
-+	exe_cp("script", "script.ephemeral");
-+	mkdir("subdir.ephemeral", 0755);
-+
-+	fd = open("subdir.ephemeral/script", O_RDWR|O_CREAT|O_TRUNC, 0755);
-+	write(fd, script, strlen(script));
-+	close(fd);
-+}
-+
-+int main(int argc, char **argv)
-+{
-+	int ii;
-+	int rc;
-+	const char *verbose = getenv("VERBOSE");
-+
-+	if (argc >= 2) {
-+		/* If we are invoked with an argument, don't run tests. */
-+		const char *in_test = getenv("IN_TEST");
-+
-+		if (verbose) {
-+			printf("  invoked with:");
-+			for (ii = 0; ii < argc; ii++)
-+				printf(" [%d]='%s'", ii, argv[ii]);
-+			printf("\n");
-+		}
-+
-+		/* Check expected environment transferred. */
-+		if (!in_test || strcmp(in_test, "yes") != 0) {
-+			printf("[FAIL] (no IN_TEST=yes in env)\n");
-+			return 1;
-+		}
-+
-+		/* Use the final argument as an exit code. */
-+		rc = atoi(argv[argc - 1]);
-+		fflush(stdout);
-+	} else {
-+		prerequisites();
-+		if (verbose)
-+			envp[1] = "VERBOSE=1";
-+		rc = run_tests();
-+		if (rc > 0)
-+			printf("%d tests failed\n", rc);
-+	}
-+	return rc;
-+}
+I have fixed this change; it will be in the next patch series / pull
+request. The branch for the pull is at:
+https://bitbucket.org/adfin/linux-fs.git  read_call_6
+
+>
+> Other than that the NTFS bits are:
+>
+> Acked-by: Anton Altaparmakov <anton@tuxera.com>
+>
+> Best regards,
+>
+>         Anton
+>
+>> +
+>> +             ret = vfs_fsync_range(file, iocb->ki_pos - count,
+>> +                             iocb->ki_pos - 1, fdatasync);
+>> +             if (ret < 0)
+>> +                     return ret;
+>> +     }
+>> +     return count;
+>> +}
+>> +EXPORT_SYMBOL(generic_write_sync);
+>> +
+>> /**
+>>  * generic_file_write_iter - write data to a file
+>>  * @iocb:     IO state structure
+>> @@ -2675,22 +2693,14 @@ EXPORT_SYMBOL(__generic_file_write_iter);
+>>  */
+>> ssize_t generic_file_write_iter(struct kiocb *iocb, struct iov_iter *from)
+>> {
+>> -     struct file *file = iocb->ki_filp;
+>> -     struct inode *inode = file->f_mapping->host;
+>> +     struct inode *inode = iocb->ki_filp->f_mapping->host;
+>>       ssize_t ret;
+>>
+>>       mutex_lock(&inode->i_mutex);
+>>       ret = __generic_file_write_iter(iocb, from);
+>>       mutex_unlock(&inode->i_mutex);
+>>
+>> -     if (ret > 0) {
+>> -             ssize_t err;
+>> -
+>> -             err = generic_write_sync(file, iocb->ki_pos - ret, ret);
+>> -             if (err < 0)
+>> -                     ret = err;
+>> -     }
+>> -     return ret;
+>> +     return generic_write_sync(iocb, ret);
+>> }
+>> EXPORT_SYMBOL(generic_file_write_iter);
+>
+> --
+> Anton Altaparmakov <aia21 at cam.ac.uk> (replace at with @)
+> University of Cambridge Information Services, Roger Needham Building
+> 7 JJ Thomson Avenue, Cambridge, CB3 0RB, UK
+>
+
+
+
 -- 
-2.1.0.rc2.206.gedb03e5
+Milosz Tanski
+CTO
+16 East 34th Street, 15th floor
+New York, NY 10016
 
+p: 646-253-9055
+e: milosz@adfin.com
