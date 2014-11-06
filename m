@@ -1,344 +1,186 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-lb0-f180.google.com ([209.85.217.180]:38752 "EHLO
-	mail-lb0-f180.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751246AbaKFQOc (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 6 Nov 2014 11:14:32 -0500
-Received: by mail-lb0-f180.google.com with SMTP id u10so1144910lbd.25
-        for <linux-arch@vger.kernel.org>; Thu, 06 Nov 2014 08:14:30 -0800 (PST)
-MIME-Version: 1.0
-In-Reply-To: <C2D0BFF1-14C7-47C0-A24D-0F54809EF5D0@cam.ac.uk>
-References: <cover.1415220890.git.milosz@adfin.com>
-	<5d53ede333de7cade713190e2b93e2dbadefa260.1415220890.git.milosz@adfin.com>
-	<C2D0BFF1-14C7-47C0-A24D-0F54809EF5D0@cam.ac.uk>
-Date: Thu, 6 Nov 2014 11:14:30 -0500
-Message-ID: <CANP1eJGeEOvLjy_pBKjjobYY1xja9Z4KfvmYfLK3KnswVZdaTA@mail.gmail.com>
-Subject: Re: [Linux-NTFS-Dev] [PATCH v5 6/7] fs: pass iocb to generic_write_sync
-From: Milosz Tanski <milosz@adfin.com>
-Content-Type: text/plain; charset=UTF-8
+Received: from mail-wg0-f73.google.com ([74.125.82.73]:48566 "EHLO
+	mail-wg0-f73.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751660AbaKFQOu (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 6 Nov 2014 11:14:50 -0500
+Received: by mail-wg0-f73.google.com with SMTP id k14so131934wgh.4
+        for <linux-arch@vger.kernel.org>; Thu, 06 Nov 2014 08:14:48 -0800 (PST)
+From: David Drysdale <drysdale@google.com>
+Subject: [PATCHv6 man-pages 3/3] execveat.2: initial man page for execveat(2)
+Date: Thu,  6 Nov 2014 16:07:13 +0000
+Message-ID: <1415290033-15771-4-git-send-email-drysdale@google.com>
+In-Reply-To: <1415290033-15771-1-git-send-email-drysdale@google.com>
+References: <1415290033-15771-1-git-send-email-drysdale@google.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Anton Altaparmakov <aia21@cam.ac.uk>
-Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, "linux-aio@kvack.org" <linux-aio@kvack.org>, Volker Lendecke <Volker.Lendecke@sernet.de>, Theodore Ts'o <tytso@mit.edu>, linux-xfs@vger.kernel.org, linux-cifs@vger.kernel.org, linux-ntfs-dev@lists.sourceforge.net, Linux API <linux-api@vger.kernel.org>, Christoph Hellwig <hch@infradead.org>, Tejun Heo <tj@kernel.org>, Jeff Moyer <jmoyer@redhat.com>, cluster-devel@redhat.com, Mel Gorman <mgorman@suse.de>, "linux-fsdevel@vger.kernel.org" <linux-fsdevel@vger.kernel.org>, Michael Kerrisk <mtk.manpages@gmail.com>, linux-ext4@vger.kernel.org, Christoph Hellwig <hch@lst.de>, linux-btrfs@vger.kernel.org, Al Viro <viro@zeniv.linux.org.uk>
-Message-ID: <20141106161430.lIfVJSKzw3E3D4ea8_YKizNzJ5MQjMO1xQbXdhAUIgA@z>
+To: "Eric W. Biederman" <ebiederm@xmission.com>, Andy Lutomirski <luto@amacapital.net>, Alexander Viro <viro@zeniv.linux.org.uk>, Meredydd Luff <meredydd@senatehouse.org>, linux-kernel@vger.kernel.org
+Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Rich Felker <dalias@aerifal.cx>, Christoph Hellwig <hch@infradead.org>, x86@kernel.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, David Drysdale <drysdale@google.com>
+Message-ID: <20141106160713.Lhe-xs9jFS_XUTmlUidsnrbPTVEslmHdcSNEYEC3zVk@z>
 
-On Thu, Nov 6, 2014 at 5:52 AM, Anton Altaparmakov <aia21@cam.ac.uk> wrote:
-> Hi,
->
->> On 5 Nov 2014, at 23:14, Milosz Tanski <milosz@adfin.com> wrote:
->>
->> From: Christoph Hellwig <hch@lst.de>
->>
->> Clean up the generic_write_sync by just passing an iocb and a bytes
->> written / negative errno argument.  In addition to simplifying the
->> callers this also prepares for passing a per-operation O_DSYNC
->> flag.  Two callers didn't quite fit that scheme:
->>
->> - dio_complete didn't both to update ki_pos as we don't need it
->>   on a iocb that is about to be freed, so we had to add it. Additionally
->>   it also synced out written data in the error case, which has been
->>   changed to operate like the other callers.
->> - gfs2 also used generic_write_sync to implement a crude version
->>   of fallocate.  It has been switched to use an open coded variant
->>   instead.
->>
->> Signed-off-by: Christoph Hellwig <hch@lst.de>
->> ---
->> fs/block_dev.c     |  8 +-------
->> fs/btrfs/file.c    |  7 ++-----
->> fs/cifs/file.c     |  8 +-------
->> fs/direct-io.c     |  8 ++------
->> fs/ext4/file.c     |  8 +-------
->> fs/gfs2/file.c     |  9 +++++++--
->> fs/ntfs/file.c     |  8 ++------
->> fs/udf/file.c      | 11 ++---------
->> fs/xfs/xfs_file.c  |  8 +-------
->> include/linux/fs.h |  8 +-------
->> mm/filemap.c       | 30 ++++++++++++++++++++----------
->> 11 files changed, 40 insertions(+), 73 deletions(-)
->>
->> diff --git a/fs/block_dev.c b/fs/block_dev.c
->> index cc9d411..c529b1c 100644
->> --- a/fs/block_dev.c
->> +++ b/fs/block_dev.c
->> @@ -1568,18 +1568,12 @@ static long block_ioctl(struct file *file, unsigned cmd, unsigned long arg)
->>  */
->> ssize_t blkdev_write_iter(struct kiocb *iocb, struct iov_iter *from)
->> {
->> -     struct file *file = iocb->ki_filp;
->>       struct blk_plug plug;
->>       ssize_t ret;
->>
->>       blk_start_plug(&plug);
->>       ret = __generic_file_write_iter(iocb, from);
->> -     if (ret > 0) {
->> -             ssize_t err;
->> -             err = generic_write_sync(file, iocb->ki_pos - ret, ret);
->> -             if (err < 0)
->> -                     ret = err;
->> -     }
->> +     ret = generic_write_sync(iocb, ret);
->>       blk_finish_plug(&plug);
->>       return ret;
->> }
->> diff --git a/fs/btrfs/file.c b/fs/btrfs/file.c
->> index a18ceab..4f4a6f7 100644
->> --- a/fs/btrfs/file.c
->> +++ b/fs/btrfs/file.c
->> @@ -1820,11 +1820,8 @@ static ssize_t btrfs_file_write_iter(struct kiocb *iocb,
->>        */
->>       BTRFS_I(inode)->last_trans = root->fs_info->generation + 1;
->>       BTRFS_I(inode)->last_sub_trans = root->log_transid;
->> -     if (num_written > 0) {
->> -             err = generic_write_sync(file, pos, num_written);
->> -             if (err < 0)
->> -                     num_written = err;
->> -     }
->> +
->> +     num_written = generic_write_sync(iocb, num_written);
->>
->>       if (sync)
->>               atomic_dec(&BTRFS_I(inode)->sync_writers);
->> diff --git a/fs/cifs/file.c b/fs/cifs/file.c
->> index c485afa..32359de 100644
->> --- a/fs/cifs/file.c
->> +++ b/fs/cifs/file.c
->> @@ -2706,13 +2706,7 @@ cifs_writev(struct kiocb *iocb, struct iov_iter *from)
->>               rc = __generic_file_write_iter(iocb, from);
->>               mutex_unlock(&inode->i_mutex);
->>
->> -             if (rc > 0) {
->> -                     ssize_t err;
->> -
->> -                     err = generic_write_sync(file, iocb->ki_pos - rc, rc);
->> -                     if (err < 0)
->> -                             rc = err;
->> -             }
->> +             rc = generic_write_sync(iocb, rc);
->>       } else {
->>               mutex_unlock(&inode->i_mutex);
->>       }
->> diff --git a/fs/direct-io.c b/fs/direct-io.c
->> index e181b6b..b72ac83 100644
->> --- a/fs/direct-io.c
->> +++ b/fs/direct-io.c
->> @@ -257,12 +257,8 @@ static ssize_t dio_complete(struct dio *dio, loff_t offset, ssize_t ret,
->>       inode_dio_done(dio->inode);
->>       if (is_async) {
->>               if (dio->rw & WRITE) {
->> -                     int err;
->> -
->> -                     err = generic_write_sync(dio->iocb->ki_filp, offset,
->> -                                              transferred);
->> -                     if (err < 0 && ret > 0)
->> -                             ret = err;
->> +                     dio->iocb->ki_pos = offset + transferred;
->> +                     ret = generic_write_sync(dio->iocb, ret);
->>               }
->>
->>               aio_complete(dio->iocb, ret, 0);
->> diff --git a/fs/ext4/file.c b/fs/ext4/file.c
->> index aca7b24..79b000c 100644
->> --- a/fs/ext4/file.c
->> +++ b/fs/ext4/file.c
->> @@ -175,13 +175,7 @@ ext4_file_write_iter(struct kiocb *iocb, struct iov_iter *from)
->>       ret = __generic_file_write_iter(iocb, from);
->>       mutex_unlock(&inode->i_mutex);
->>
->> -     if (ret > 0) {
->> -             ssize_t err;
->> -
->> -             err = generic_write_sync(file, iocb->ki_pos - ret, ret);
->> -             if (err < 0)
->> -                     ret = err;
->> -     }
->> +     ret = generic_write_sync(iocb, ret);
->>       if (o_direct)
->>               blk_finish_plug(&plug);
->>
->> diff --git a/fs/gfs2/file.c b/fs/gfs2/file.c
->> index 80dd44d..3fafeca 100644
->> --- a/fs/gfs2/file.c
->> +++ b/fs/gfs2/file.c
->> @@ -895,8 +895,13 @@ retry:
->>               gfs2_quota_unlock(ip);
->>       }
->>
->> -     if (error == 0)
->> -             error = generic_write_sync(file, pos, count);
->> +     if (error)
->> +             goto out_unlock;
->> +
->> +     if ((file->f_flags & O_DSYNC) || IS_SYNC(file->f_mapping->host)) {
->> +             error = vfs_fsync_range(file, pos, pos + count - 1,
->> +                            (file->f_flags & __O_SYNC) ? 0 : 1);
->> +     }
->>       goto out_unlock;
->>
->> out_trans_fail:
->> diff --git a/fs/ntfs/file.c b/fs/ntfs/file.c
->> index 643faa4..4f3d664 100644
->> --- a/fs/ntfs/file.c
->> +++ b/fs/ntfs/file.c
->> @@ -2127,12 +2127,8 @@ static ssize_t ntfs_file_aio_write(struct kiocb *iocb, const struct iovec *iov,
->>       mutex_lock(&inode->i_mutex);
->>       ret = ntfs_file_aio_write_nolock(iocb, iov, nr_segs, &iocb->ki_pos);
->>       mutex_unlock(&inode->i_mutex);
->> -     if (ret > 0) {
->> -             int err = generic_write_sync(file, iocb->ki_pos - ret, ret);
->> -             if (err < 0)
->> -                     ret = err;
->> -     }
->> -     return ret;
->> +
->> +     return generic_write_sync(iocb, ret);
->> }
->>
->> /**
->> diff --git a/fs/udf/file.c b/fs/udf/file.c
->> index bb15771..1cdabd0 100644
->> --- a/fs/udf/file.c
->> +++ b/fs/udf/file.c
->> @@ -155,16 +155,9 @@ static ssize_t udf_file_write_iter(struct kiocb *iocb, struct iov_iter *from)
->>       retval = __generic_file_write_iter(iocb, from);
->>       mutex_unlock(&inode->i_mutex);
->>
->> -     if (retval > 0) {
->> -             ssize_t err;
->> -
->> +     if (retval > 0)
->>               mark_inode_dirty(inode);
->> -             err = generic_write_sync(file, iocb->ki_pos - retval, retval);
->> -             if (err < 0)
->> -                     retval = err;
->> -     }
->> -
->> -     return retval;
->> +     return generic_write_sync(iocb, retval);
->> }
->>
->> long udf_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
->> diff --git a/fs/xfs/xfs_file.c b/fs/xfs/xfs_file.c
->> index 0655915..a8cab66 100644
->> --- a/fs/xfs/xfs_file.c
->> +++ b/fs/xfs/xfs_file.c
->> @@ -792,14 +792,8 @@ xfs_file_write_iter(
->>               ret = xfs_file_buffered_aio_write(iocb, from);
->>
->>       if (ret > 0) {
->> -             ssize_t err;
->> -
->>               XFS_STATS_ADD(xs_write_bytes, ret);
->> -
->> -             /* Handle various SYNC-type writes */
->> -             err = generic_write_sync(file, iocb->ki_pos - ret, ret);
->> -             if (err < 0)
->> -                     ret = err;
->> +             ret = generic_write_sync(iocb, ret);
->>       }
->>       return ret;
->> }
->> diff --git a/include/linux/fs.h b/include/linux/fs.h
->> index eaebd99..7d0e116 100644
->> --- a/include/linux/fs.h
->> +++ b/include/linux/fs.h
->> @@ -2242,13 +2242,7 @@ extern int filemap_fdatawrite_range(struct address_space *mapping,
->> extern int vfs_fsync_range(struct file *file, loff_t start, loff_t end,
->>                          int datasync);
->> extern int vfs_fsync(struct file *file, int datasync);
->> -static inline int generic_write_sync(struct file *file, loff_t pos, loff_t count)
->> -{
->> -     if (!(file->f_flags & O_DSYNC) && !IS_SYNC(file->f_mapping->host))
->> -             return 0;
->> -     return vfs_fsync_range(file, pos, pos + count - 1,
->> -                            (file->f_flags & __O_SYNC) ? 0 : 1);
->> -}
->> +extern int generic_write_sync(struct kiocb *iocb, loff_t count);
->> extern void emergency_sync(void);
->> extern void emergency_remount(void);
->> #ifdef CONFIG_BLOCK
->> diff --git a/mm/filemap.c b/mm/filemap.c
->> index 09d3af3..6107058 100644
->> --- a/mm/filemap.c
->> +++ b/mm/filemap.c
->> @@ -2664,6 +2664,24 @@ out:
->> }
->> EXPORT_SYMBOL(__generic_file_write_iter);
->>
->> +int generic_write_sync(struct kiocb *iocb, loff_t count)
->> +{
->> +     struct file *file = iocb->ki_filp;
->> +
->> +     if (count > 0 &&
->> +         ((file->f_flags & O_DSYNC) || IS_SYNC(file->f_mapping->host))) {
->> +             bool fdatasync = !(file->f_flags & __O_SYNC);
->> +             ssize_t ret = 0;
->
-> That "= 0" is pointless.  "ret" is overwritten unconditionally on the following line...
+Signed-off-by: David Drysdale <drysdale@google.com>
+---
+ man2/execveat.2 | 153 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 153 insertions(+)
+ create mode 100644 man2/execveat.2
 
-I have fixed this change; it will be in the next patch series / pull
-request. The branch for the pull is at:
-https://bitbucket.org/adfin/linux-fs.git  read_call_6
-
->
-> Other than that the NTFS bits are:
->
-> Acked-by: Anton Altaparmakov <anton@tuxera.com>
->
-> Best regards,
->
->         Anton
->
->> +
->> +             ret = vfs_fsync_range(file, iocb->ki_pos - count,
->> +                             iocb->ki_pos - 1, fdatasync);
->> +             if (ret < 0)
->> +                     return ret;
->> +     }
->> +     return count;
->> +}
->> +EXPORT_SYMBOL(generic_write_sync);
->> +
->> /**
->>  * generic_file_write_iter - write data to a file
->>  * @iocb:     IO state structure
->> @@ -2675,22 +2693,14 @@ EXPORT_SYMBOL(__generic_file_write_iter);
->>  */
->> ssize_t generic_file_write_iter(struct kiocb *iocb, struct iov_iter *from)
->> {
->> -     struct file *file = iocb->ki_filp;
->> -     struct inode *inode = file->f_mapping->host;
->> +     struct inode *inode = iocb->ki_filp->f_mapping->host;
->>       ssize_t ret;
->>
->>       mutex_lock(&inode->i_mutex);
->>       ret = __generic_file_write_iter(iocb, from);
->>       mutex_unlock(&inode->i_mutex);
->>
->> -     if (ret > 0) {
->> -             ssize_t err;
->> -
->> -             err = generic_write_sync(file, iocb->ki_pos - ret, ret);
->> -             if (err < 0)
->> -                     ret = err;
->> -     }
->> -     return ret;
->> +     return generic_write_sync(iocb, ret);
->> }
->> EXPORT_SYMBOL(generic_file_write_iter);
->
-> --
-> Anton Altaparmakov <aia21 at cam.ac.uk> (replace at with @)
-> University of Cambridge Information Services, Roger Needham Building
-> 7 JJ Thomson Avenue, Cambridge, CB3 0RB, UK
->
-
-
-
--- 
-Milosz Tanski
-CTO
-16 East 34th Street, 15th floor
-New York, NY 10016
-
-p: 646-253-9055
-e: milosz@adfin.com
+diff --git a/man2/execveat.2 b/man2/execveat.2
+new file mode 100644
+index 000000000000..937d79e4c4f0
+--- /dev/null
++++ b/man2/execveat.2
+@@ -0,0 +1,153 @@
++.\" Copyright (c) 2014 Google, Inc.
++.\"
++.\" %%%LICENSE_START(VERBATIM)
++.\" Permission is granted to make and distribute verbatim copies of this
++.\" manual provided the copyright notice and this permission notice are
++.\" preserved on all copies.
++.\"
++.\" Permission is granted to copy and distribute modified versions of this
++.\" manual under the conditions for verbatim copying, provided that the
++.\" entire resulting derived work is distributed under the terms of a
++.\" permission notice identical to this one.
++.\"
++.\" Since the Linux kernel and libraries are constantly changing, this
++.\" manual page may be incorrect or out-of-date.  The author(s) assume no
++.\" responsibility for errors or omissions, or for damages resulting from
++.\" the use of the information contained herein.  The author(s) may not
++.\" have taken the same level of care in the production of this manual,
++.\" which is licensed free of charge, as they might when working
++.\" professionally.
++.\"
++.\" Formatted or processed versions of this manual, if unaccompanied by
++.\" the source, must acknowledge the copyright and authors of this work.
++.\" %%%LICENSE_END
++.\"
++.TH EXECVEAT 2 2014-04-02 "Linux" "Linux Programmer's Manual"
++.SH NAME
++execveat \- execute program relative to a directory file descriptor
++.SH SYNOPSIS
++.B #include <unistd.h>
++.sp
++.BI "int execveat(int " fd ", const char *" pathname ","
++.br
++.BI "             char *const " argv "[],  char *const " envp "[],"
++.br
++.BI "             int " flags);
++.SH DESCRIPTION
++The
++.BR execveat ()
++system call executes the program pointed to by the combination of \fIfd\fP and \fIpathname\fP.
++The
++.BR execveat ()
++system call operates in exactly the same way as
++.BR execve (2),
++except for the differences described in this manual page.
++
++If the pathname given in
++.I pathname
++is relative, then it is interpreted relative to the directory
++referred to by the file descriptor
++.I fd
++(rather than relative to the current working directory of
++the calling process, as is done by
++.BR execve (2)
++for a relative pathname).
++
++If
++.I pathname
++is relative and
++.I fd
++is the special value
++.BR AT_FDCWD ,
++then
++.I pathname
++is interpreted relative to the current working
++directory of the calling process (like
++.BR execve (2)).
++
++If
++.I pathname
++is absolute, then
++.I fd
++is ignored.
++
++If
++.I pathname
++is an empty string and the
++.BR AT_EMPTY_PATH
++flag is specified, then the file descriptor
++.I fd
++specifies the file to be executed.
++
++.I flags
++can either be 0, or include the following flags:
++.TP
++.BR AT_EMPTY_PATH
++If
++.I pathname
++is an empty string, operate on the file referred to by
++.IR fd
++(which may have been obtained using the
++.BR open (2)
++.B O_PATH
++flag).
++.TP
++.B AT_SYMLINK_NOFOLLOW
++If the file identified by
++.I fd
++and a non-NULL
++.I pathname
++is a symbolic link, then the call fails with the error
++.BR EINVAL .
++.SH "RETURN VALUE"
++On success,
++.BR execveat ()
++does not return. On error \-1 is returned, and
++.I errno
++is set appropriately.
++.SH ERRORS
++The same errors that occur for
++.BR execve (2)
++can also occur for
++.BR execveat ().
++The following additional errors can occur for
++.BR execveat ():
++.TP
++.B EBADF
++.I fd
++is not a valid file descriptor.
++.TP
++.B ENOENT
++The program identified by \fIfd\fP and \fIpathname\fP requires the
++use of an interpreter program (such as a script starting with
++"#!") but the file descriptor
++.I fd
++was opened with the
++.B O_CLOEXEC
++flag and so the program file is inaccessible to the launched interpreter.
++.TP
++.B EINVAL
++Invalid flag specified in
++.IR flags .
++.TP
++.B ENOTDIR
++.I pathname
++is relative and
++.I fd
++is a file descriptor referring to a file other than a directory.
++.SH VERSIONS
++.BR execveat ()
++was added to Linux in kernel 3.???.
++.SH NOTES
++In addition to the reasons explained in
++.BR openat (2),
++the
++.BR execveat ()
++system call is also needed to allow
++.BR fexecve (3)
++to be implemented on systems that do not have the
++.I /proc
++filesystem mounted.
++.SH SEE ALSO
++.BR execve (2),
++.BR fexecve (3)
+--
+2.1.0.rc2.206.gedb03e5
