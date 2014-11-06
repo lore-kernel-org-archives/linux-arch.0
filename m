@@ -1,195 +1,165 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-la0-f51.google.com ([209.85.215.51]:49713 "EHLO
-	mail-la0-f51.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751371AbaKFQQ3 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 6 Nov 2014 11:16:29 -0500
-Received: by mail-la0-f51.google.com with SMTP id q1so2868361lam.24
-        for <linux-arch@vger.kernel.org>; Thu, 06 Nov 2014 08:16:28 -0800 (PST)
+Received: from mail-lb0-f180.google.com ([209.85.217.180]:59505 "EHLO
+	mail-lb0-f180.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751369AbaKFQzd (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 6 Nov 2014 11:55:33 -0500
+Received: by mail-lb0-f180.google.com with SMTP id u10so1216464lbd.25
+        for <linux-arch@vger.kernel.org>; Thu, 06 Nov 2014 08:55:31 -0800 (PST)
 MIME-Version: 1.0
-In-Reply-To: <cover.1415220890.git.milosz@adfin.com>
-References: <cover.1415220890.git.milosz@adfin.com>
-Date: Thu, 6 Nov 2014 11:16:28 -0500
-Message-ID: <CANP1eJE3bgakuy2b-7ZKFjqGDeSqT-TX3gdGQKDsgY35-nFCzA@mail.gmail.com>
-Subject: Re: [PATCH v5 0/7] vfs: Non-blockling buffered fs read (page cache only)
-From: Milosz Tanski <milosz@adfin.com>
+In-Reply-To: <1415290033-15771-1-git-send-email-drysdale@google.com>
+References: <1415290033-15771-1-git-send-email-drysdale@google.com>
+From: Andy Lutomirski <luto@amacapital.net>
+Date: Thu, 6 Nov 2014 08:55:11 -0800
+Message-ID: <CALCETrXPVpiPp27Q08K2D=Vt66ZhUZn3GBNEcTvejVUZjy0kyQ@mail.gmail.com>
+Subject: Re: [PATCHv6 RFC 0/3] syscalls,x86: Add execveat() system call
 Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: LKML <linux-kernel@vger.kernel.org>
-Cc: Christoph Hellwig <hch@infradead.org>, "linux-fsdevel@vger.kernel.org" <linux-fsdevel@vger.kernel.org>, "linux-aio@kvack.org" <linux-aio@kvack.org>, Mel Gorman <mgorman@suse.de>, Volker Lendecke <Volker.Lendecke@sernet.de>, Tejun Heo <tj@kernel.org>, Jeff Moyer <jmoyer@redhat.com>, Theodore Ts'o <tytso@mit.edu>, Al Viro <viro@zeniv.linux.org.uk>, Linux API <linux-api@vger.kernel.org>, Michael Kerrisk <mtk.manpages@gmail.com>, linux-arch@vger.kernel.org
-Message-ID: <20141106161628.c7Las-GyyuhP_rWxEPiEs0W_M8FVZ7j7FejZxyxQ3L8@z>
+To: David Drysdale <drysdale@google.com>
+Cc: "Eric W. Biederman" <ebiederm@xmission.com>, Alexander Viro <viro@zeniv.linux.org.uk>, Meredydd Luff <meredydd@senatehouse.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Rich Felker <dalias@aerifal.cx>, Christoph Hellwig <hch@infradead.org>, X86 ML <x86@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>
+Message-ID: <20141106165511.00-rS4KyExl0BONdwjfZ_O_6O2MzEV8rzF_JuTvyiMY@z>
 
-The pull request for these changes is at:
+On Thu, Nov 6, 2014 at 8:07 AM, David Drysdale <drysdale@google.com> wrote:
+> Here's another pass at this. Some things to discuss in particular:
+>
+> 1) The current approach for interpreted execs (i.e. mostly "#!" scripts)
+>    gives them an argv[1] filename like "/dev/fd/<fd>/<path>".  This
+>    means that script execution in a /proc-less system isn't going to
+>    work, at least until interpreters get smart enough to spot and
+>    special-case the leading "/dev/fd/<fd>", or until there's something
+>    to use in place of /dev/fd -> /proc/self/fd (e.g. Al's dupfs
+>    suggestion, https://lkml.org/lkml/2014/10/19/141).
+>
+>    So is an execveat(2) that (currently) only works for non-interpreted
+>    programs still useful?
 
-https://bitbucket.org/adfin/linux-fs.git  read_call_6
+I think it is.  I would make sure to return a distinguishable error
+code in the event that the failure happens because of one of the
+unsupported cases.
 
-I've updated it so far with various Ack-by from different maintainers
-(and a small stylistic fix).
+>
+> 2) I don't like having to add a new LOOKUP_EMPTY_NOPATH flag
+>    just to prevent O_PATH fds from being fexecve()ed -- alternative
+>    suggestions welcomed.  (More generally, I don't have a great
+>    feel for what O_PATH is for; how bad would it be to just allow
+>    them to be fexecve()ed?)
 
-On Wed, Nov 5, 2014 at 4:14 PM, Milosz Tanski <milosz@adfin.com> wrote:
-> This patcheset introduces an ability to perform a non-blocking read from
-> regular files in buffered IO mode. This works by only for those filesystems
-> that have data in the page cache.
+If you fexecve an O_PATH fd, does it at least check that you have
+execute permission on the inode?  If so, it seems okay to allow it.
+
+--Andy
+
 >
-> It does this by introducing new syscalls new syscalls preadv2/pwritev2. These
-> new syscalls behave like the network sendmsg, recvmsg syscalls that accept an
-> extra flag argument (RWF_NONBLOCK).
+> .........
 >
-> It's a very common patern today (samba, libuv, etc..) use a large threadpool to
-> perform buffered IO operations. They submit the work form another thread
-> that performs network IO and epoll or other threads that perform CPU work. This
-> leads to increased latency for processing, esp. in the case of data that's
-> already cached in the page cache.
+> This patch set adds execveat(2) for x86, and is derived from Meredydd
+> Luff's patch from Sept 2012 (https://lkml.org/lkml/2012/9/11/528).
 >
-> With the new interface the applications will now be able to fetch the data in
-> their network / cpu bound thread(s) and only defer to a threadpool if it's not
-> there. In our own application (VLDB) we've observed a decrease in latency for
-> "fast" request by avoiding unnecessary queuing and having to swap out current
-> tasks in IO bound work threads.
+> The primary aim of adding an execveat syscall is to allow an
+> implementation of fexecve(3) that does not rely on the /proc
+> filesystem, at least for executables (rather than scripts).  The
+> current glibc version of fexecve(3) is implemented via /proc, which
+> causes problems in sandboxed or otherwise restricted environments.
 >
-> Version 5 highlight:
->  - XFS support for RWF_NONBLOCK. from Christoph.
->  - RWF_DSYNC flag and support for pwritev2, from Christoph.
->  - Implemented compat syscalls, per. Jeff.
->  - Missing nfs, ceph changes from older patchset.
+> Given the desire for a /proc-free fexecve() implementation, HPA
+> suggested (https://lkml.org/lkml/2006/7/11/556) that an execveat(2)
+> syscall would be an appropriate generalization.
 >
-> Version 4 highlight:
->  - Updated for 3.18-rc1.
->  - Performance data from our application.
->  - First stab at man page with Jeff's help. Patch is in-reply to.
+> Also, having a new syscall means that it can take a flags argument
+> without back-compatibility concerns.  The current implementation just
+> defines the AT_EMPTY_PATH and AT_SYMLINK_NOFOLLOW flags, but other
+> flags could be added in future -- for example, flags for new namespaces
+> (as suggested at https://lkml.org/lkml/2006/7/11/474).
 >
-> RFC Version 3 highlights:
->  - Down to 2 syscalls from 4; can user fp or argument position.
->  - RWF_NONBLOCK value flag is not the same O_NONBLOCK, per Jeff.
+> Related history:
+>  - https://lkml.org/lkml/2006/12/27/123 is an example of someone
+>    realizing that fexecve() is likely to fail in a chroot environment.
+>  - http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=514043 covered
+>    documenting the /proc requirement of fexecve(3) in its manpage, to
+>    "prevent other people from wasting their time".
+>  - https://bugzilla.kernel.org/show_bug.cgi?id=74481 documented that
+>    it's not possible to fexecve() a file descriptor for a script with
+>    close-on-exec set (which is possible with the implementation here).
+
+Confused.  How does it work for a close-on-exec script?  I understand
+how it works for a close-on-exec ELF binary.
+
+--Andy
+
+>  - https://bugzilla.redhat.com/show_bug.cgi?id=241609 described a
+>    problem where a process that did setuid() could not fexecve()
+>    because it no longer had access to /proc/self/fd; this has since
+>    been fixed.
 >
-> RFC Version 2 highlights:
->  - Put the flags argument into kiocb (less noise), per. Al Viro
->  - O_DIRECT checking early in the process, per. Jeff Moyer
->  - Resolved duplicate (c&p) code in syscall code, per. Jeff
->  - Included perf data in thread cover letter, per. Jeff
->  - Created a new flag (not O_NONBLOCK) for readv2, perf Jeff
+>
+> Changes since v5:
+>  - Set new flag in bprm->interp_flags for O_CLOEXEC fds, so that binfmts
+>    that invoke an interpreter fail the exec (as they will not be able
+>    to access the invoked file). [Andy Lutomirski]
+>  - Don't truncate long paths. [Andy Lutomirski]
+>  - Commonize code to open the executed file. [Eric W. Biederman]
+>  - Mark O_PATH file descriptors so they cannot be fexecve()ed.
+>  - Make self-test more helpful, and add additional cases:
+>      - file offset non-zero
+>      - binary file without execute bit
+>      - O_CLOEXEC fds
+>
+> Changes since v4, suggested by Eric W. Biederman:
+>  - Use empty filename with AT_EMPTY_PATH flag rather than NULL
+>    pathname to request fexecve-like behaviour.
+>  - Build pathname as "/dev/fd/<fd>/<filename>" (or "/dev/fd/<fd>")
+>    rather than using d_path().
+>  - Patch against v3.17 (bfe01a5ba249)
+>
+> Changes since Meredydd's v3 patch:
+>  - Added a selftest.
+>  - Added a man page.
+>  - Left open_exec() signature untouched to reduce patch impact
+>    elsewhere (as suggested by Al Viro).
+>  - Filled in bprm->filename with d_path() into a buffer, to avoid use
+>    of potentially-ephemeral dentry->d_name.
+>  - Patch against v3.14 (455c6fdbd21916).
 >
 >
-> Some perf data generated using fio comparing the posix aio engine to a version
-> of the posix AIO engine that attempts to performs "fast" reads before
-> submitting the operations to the queue. This workflow is on ext4 partition on
-> raid0 (test / build-rig.) Simulating our database access patern workload using
-> 16kb read accesses. Our database uses a home-spun posix aio like queue (samba
-> does the same thing.)
+> David Drysdale (2):
+>   syscalls,x86: implement execveat() system call
+>   syscalls,x86: add selftest for execveat(2)
 >
-> f1: ~73% rand read over mostly cached data (zipf med-size dataset)
-> f2: ~18% rand read over mostly un-cached data (uniform large-dataset)
-> f3: ~9% seq-read over large dataset
->
-> before:
->
-> f1:
->     bw (KB  /s): min=   11, max= 9088, per=0.56%, avg=969.54, stdev=827.99
->     lat (msec) : 50=0.01%, 100=1.06%, 250=5.88%, 500=4.08%, 750=12.48%
->     lat (msec) : 1000=17.27%, 2000=49.86%, >=2000=9.42%
-> f2:
->     bw (KB  /s): min=    2, max= 1882, per=0.16%, avg=273.28, stdev=220.26
->     lat (msec) : 250=5.65%, 500=3.31%, 750=15.64%, 1000=24.59%, 2000=46.56%
->     lat (msec) : >=2000=4.33%
-> f3:
->     bw (KB  /s): min=    0, max=265568, per=99.95%, avg=174575.10,
->                  stdev=34526.89
->     lat (usec) : 2=0.01%, 4=0.01%, 10=0.02%, 20=0.27%, 50=10.82%
->     lat (usec) : 100=50.34%, 250=5.05%, 500=7.12%, 750=6.60%, 1000=4.55%
->     lat (msec) : 2=8.73%, 4=3.49%, 10=1.83%, 20=0.89%, 50=0.22%
->     lat (msec) : 100=0.05%, 250=0.02%, 500=0.01%
-> total:
->    READ: io=102365MB, aggrb=174669KB/s, minb=240KB/s, maxb=173599KB/s,
->          mint=600001msec, maxt=600113msec
->
-> after (with fast read using preadv2 before submit):
->
-> f1:
->     bw (KB  /s): min=    3, max=14897, per=1.28%, avg=2276.69, stdev=2930.39
->     lat (usec) : 2=70.63%, 4=0.01%
->     lat (msec) : 250=0.20%, 500=2.26%, 750=1.18%, 2000=0.22%, >=2000=25.53%
-> f2:
->     bw (KB  /s): min=    2, max= 2362, per=0.14%, avg=249.83, stdev=222.00
->     lat (msec) : 250=6.35%, 500=1.78%, 750=9.29%, 1000=20.49%, 2000=52.18%
->     lat (msec) : >=2000=9.99%
-> f3:
->     bw (KB  /s): min=    1, max=245448, per=100.00%, avg=177366.50,
->                  stdev=35995.60
->     lat (usec) : 2=64.04%, 4=0.01%, 10=0.01%, 20=0.06%, 50=0.43%
->     lat (usec) : 100=0.20%, 250=1.27%, 500=2.93%, 750=3.93%, 1000=7.35%
->     lat (msec) : 2=14.27%, 4=2.88%, 10=1.54%, 20=0.81%, 50=0.22%
->     lat (msec) : 100=0.05%, 250=0.02%
-> total:
->    READ: io=103941MB, aggrb=177339KB/s, minb=213KB/s, maxb=176375KB/s,
->          mint=600020msec, maxt=600178msec
->
-> Interpreting the results you can see total bandwidth stays the same but overall
-> request latency is decreased in f1 (random, mostly cached) and f3 (sequential)
-> workloads. There is a slight bump in latency for since it's random data that's
-> unlikely to be cached but we're always trying "fast read".
->
-> In our application we have starting keeping track of "fast read" hits/misses
-> and for files / requests that have a lot hit ratio we don't do "fast reads"
-> mostly getting rid of extra latency in the uncached cases. In our real world
-> work load we were able to reduce average response time by 20 to 30% (depends
-> on amount of IO done by request).
->
-> I've performed other benchmarks and I have no observed any perf regressions in
-> any of the normal (old) code paths.
->
-> I have co-developed these changes with Christoph Hellwig.
->
-> Christoph Hellwig (3):
->   xfs: add RWF_NONBLOCK support
->   fs: pass iocb to generic_write_sync
->   fs: add a flag for per-operation O_DSYNC semantics
->
-> Milosz Tanski (4):
->   vfs: Prepare for adding a new preadv/pwritev with user flags.
->   vfs: Define new syscalls preadv2,pwritev2
->   x86: wire up preadv2 and pwritev2
->   vfs: RWF_NONBLOCK flag for preadv2
->
->  arch/x86/syscalls/syscall_32.tbl  |   2 +
->  arch/x86/syscalls/syscall_64.tbl  |   2 +
->  drivers/target/target_core_file.c |   6 +-
->  fs/block_dev.c                    |   8 +-
->  fs/btrfs/file.c                   |   7 +-
->  fs/ceph/file.c                    |   6 +-
->  fs/cifs/file.c                    |  14 +--
->  fs/direct-io.c                    |   8 +-
->  fs/ext4/file.c                    |   8 +-
->  fs/fuse/file.c                    |   2 +
->  fs/gfs2/file.c                    |   9 +-
->  fs/nfs/file.c                     |  15 ++-
->  fs/nfsd/vfs.c                     |   4 +-
->  fs/ntfs/file.c                    |   8 +-
->  fs/ocfs2/file.c                   |  12 +-
->  fs/pipe.c                         |   3 +-
->  fs/read_write.c                   | 239 +++++++++++++++++++++++++++++---------
->  fs/splice.c                       |   2 +-
->  fs/udf/file.c                     |  11 +-
->  fs/xfs/xfs_file.c                 |  36 ++++--
->  include/linux/aio.h               |   2 +
->  include/linux/compat.h            |   6 +
->  include/linux/fs.h                |  16 ++-
->  include/linux/syscalls.h          |   6 +
->  include/uapi/asm-generic/unistd.h |   6 +-
->  mm/filemap.c                      |  55 +++++++--
->  mm/shmem.c                        |   4 +
->  27 files changed, 346 insertions(+), 151 deletions(-)
+>  arch/x86/ia32/audit.c                   |   1 +
+>  arch/x86/ia32/ia32entry.S               |   1 +
+>  arch/x86/kernel/audit_64.c              |   1 +
+>  arch/x86/kernel/entry_64.S              |  28 +++
+>  arch/x86/syscalls/syscall_32.tbl        |   1 +
+>  arch/x86/syscalls/syscall_64.tbl        |   2 +
+>  arch/x86/um/sys_call_table_64.c         |   1 +
+>  fs/binfmt_em86.c                        |   4 +
+>  fs/binfmt_misc.c                        |   4 +
+>  fs/binfmt_script.c                      |  10 +
+>  fs/exec.c                               | 115 ++++++++++--
+>  fs/namei.c                              |   8 +-
+>  include/linux/binfmts.h                 |   4 +
+>  include/linux/compat.h                  |   3 +
+>  include/linux/fs.h                      |   1 +
+>  include/linux/namei.h                   |   1 +
+>  include/linux/sched.h                   |   4 +
+>  include/linux/syscalls.h                |   4 +
+>  include/uapi/asm-generic/unistd.h       |   4 +-
+>  kernel/sys_ni.c                         |   3 +
+>  lib/audit.c                             |   3 +
+>  tools/testing/selftests/Makefile        |   1 +
+>  tools/testing/selftests/exec/.gitignore |   7 +
+>  tools/testing/selftests/exec/Makefile   |  25 +++
+>  tools/testing/selftests/exec/execveat.c | 321 ++++++++++++++++++++++++++++++++
+>  25 files changed, 542 insertions(+), 15 deletions(-)
+>  create mode 100644 tools/testing/selftests/exec/.gitignore
+>  create mode 100644 tools/testing/selftests/exec/Makefile
+>  create mode 100644 tools/testing/selftests/exec/execveat.c
 >
 > --
-> 1.9.1
->
+> 2.1.0.rc2.206.gedb03e5
 
 
 
 -- 
-Milosz Tanski
-CTO
-16 East 34th Street, 15th floor
-New York, NY 10016
-
-p: 646-253-9055
-e: milosz@adfin.com
+Andy Lutomirski
+AMA Capital Management, LLC
