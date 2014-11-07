@@ -1,84 +1,118 @@
-From: Milosz Tanski <milosz@adfin.com>
-Subject: Re: [PATCH v5 2/7] vfs: Define new syscalls preadv2,pwritev2
-Date: Fri, 7 Nov 2014 11:28:17 -0500
-Message-ID: <CANP1eJG=nTB_jbOUY9nQfmsxbyAfO6KhmHm0jRVTyp09dseCxg@mail.gmail.com>
-References: <cover.1415220890.git.milosz@adfin.com>
-	<dcc7d998033bbd999bbd92ef9c2041bce0255a3e.1415220890.git.milosz@adfin.com>
-	<x49y4rn29oh.fsf@segfault.boston.devel.redhat.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <x49y4rn29oh.fsf@segfault.boston.devel.redhat.com>
-Sender: owner-linux-mm@kvack.org
-To: Jeff Moyer <jmoyer@redhat.com>
-Cc: LKML <linux-kernel@vger.kernel.org>, Christoph Hellwig <hch@infradead.org>, "linux-fsdevel@vger.kernel.org" <linux-fsdevel@vger.kernel.org>, "linux-aio@kvack.org" <linux-aio@kvack.org>, Mel Gorman <mgorman@suse.de>, Volker Lendecke <Volker.Lendecke@sernet.de>, Tejun Heo <tj@kernel.org>, Theodore Ts'o <tytso@mit.edu>, Al Viro <viro@zeniv.linux.org.uk>, Linux API <linux-api@vger.kernel.org>, Michael Kerrisk <mtk.manpages@gmail.com>, linux-arch@vger.kernel.org, linux-mm@kvack.org
-List-Id: linux-arch.vger.kernel.org
-
-On Thu, Nov 6, 2014 at 6:25 PM, Jeff Moyer <jmoyer@redhat.com> wrote:
-> Milosz Tanski <milosz@adfin.com> writes:
->
->> New syscalls that take an flag argument. This change does not add any specific
->> flags.
->>
->> Signed-off-by: Milosz Tanski <milosz@adfin.com>
->> Reviewed-by: Christoph Hellwig <hch@lst.de>
->> ---
->>  fs/read_write.c                   | 176 ++++++++++++++++++++++++++++++--------
->>  include/linux/compat.h            |   6 ++
->>  include/linux/syscalls.h          |   6 ++
->>  include/uapi/asm-generic/unistd.h |   6 +-
->>  mm/filemap.c                      |   5 +-
->>  5 files changed, 158 insertions(+), 41 deletions(-)
->>
->> diff --git a/fs/read_write.c b/fs/read_write.c
->> index 94b2d34..907735c 100644
->> --- a/fs/read_write.c
->> +++ b/fs/read_write.c
->> @@ -866,6 +866,8 @@ ssize_t vfs_readv(struct file *file, const struct iovec __user *vec,
->>               return -EBADF;
->>       if (!(file->f_mode & FMODE_CAN_READ))
->>               return -EINVAL;
->> +     if (flags & ~0)
->> +             return -EINVAL;
->>
->>       return do_readv_writev(READ, file, vec, vlen, pos, flags);
->>  }
->> @@ -879,21 +881,23 @@ ssize_t vfs_writev(struct file *file, const struct iovec __user *vec,
->>               return -EBADF;
->>       if (!(file->f_mode & FMODE_CAN_WRITE))
->>               return -EINVAL;
->> +     if (flags & ~0)
->> +             return -EINVAL;
->>
->>       return do_readv_writev(WRITE, file, vec, vlen, pos, flags);
->>  }
->
-> Hi, Milosz,
->
-> You've checked for invalid flags for the normal system calls, but not
-> for the compat variants.  Can you add that in, please?
->
-> Thanks!
-> Jeff
-
-That's a good catch Jeff I'll fix this and it'll be in the next
-version of the patch series.
-
-- M
+From: David Drysdale <drysdale@google.com>
+Subject: [PATCHv7 0/3] syscalls,x86: Add execveat() system call
+Date: Fri,  7 Nov 2014 17:01:01 +0000
+Message-ID: <1415379664-31555-1-git-send-email-drysdale@google.com>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-la0-f73.google.com ([209.85.215.73]:56981 "EHLO
+	mail-la0-f73.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751545AbaKGRBM (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 7 Nov 2014 12:01:12 -0500
+Received: by mail-la0-f73.google.com with SMTP id q1so468600lam.4
+        for <linux-arch@vger.kernel.org>; Fri, 07 Nov 2014 09:01:10 -0800 (PST)
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: "Eric W. Biederman" <ebiederm@xmission.com>, Andy Lutomirski <luto@amacapital.net>, Alexander Viro <viro@zeniv.linux.org.uk>, Meredydd Luff <meredydd@senatehouse.org>, linux-kernel@vger.kernel.org
+Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Rich Felker <dalias@aerifal.cx>, Christoph Hellwig <hch@infradead.org>, x86@kernel.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, David Drysdale <drysdale@google.com>
 
 
+This patch set adds execveat(2) for x86, and is derived from Meredydd
+Luff's patch from Sept 2012 (https://lkml.org/lkml/2012/9/11/528).
 
--- 
-Milosz Tanski
-CTO
-16 East 34th Street, 15th floor
-New York, NY 10016
+The primary aim of adding an execveat syscall is to allow an
+implementation of fexecve(3) that does not rely on the /proc
+filesystem, at least for executables (rather than scripts).  The
+current glibc version of fexecve(3) is implemented via /proc, which
+causes problems in sandboxed or otherwise restricted environments.
 
-p: 646-253-9055
-e: milosz@adfin.com
+Given the desire for a /proc-free fexecve() implementation, HPA
+suggested (https://lkml.org/lkml/2006/7/11/556) that an execveat(2)
+syscall would be an appropriate generalization.
+
+Also, having a new syscall means that it can take a flags argument
+without back-compatibility concerns.  The current implementation just
+defines the AT_EMPTY_PATH and AT_SYMLINK_NOFOLLOW flags, but other
+flags could be added in future -- for example, flags for new namespaces
+(as suggested at https://lkml.org/lkml/2006/7/11/474).
+
+Related history:
+ - https://lkml.org/lkml/2006/12/27/123 is an example of someone
+   realizing that fexecve() is likely to fail in a chroot environment.
+ - http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=514043 covered
+   documenting the /proc requirement of fexecve(3) in its manpage, to
+   "prevent other people from wasting their time".
+ - https://bugzilla.redhat.com/show_bug.cgi?id=241609 described a
+   problem where a process that did setuid() could not fexecve()
+   because it no longer had access to /proc/self/fd; this has since
+   been fixed.
+
+
+Changes since v6:
+ - Remove special case for O_PATH file descriptors [Andy Lutomirski]
+ - Use kasprintf rather than error-prone arithmetic [Kees Cook]
+ - Add test for long name [Kees Cook]
+ - Add test for non-executable O_PATH fd [Andy Lutomirski]
+
+Changes since v5:
+ - Set new flag in bprm->interp_flags for O_CLOEXEC fds, so that binfmts
+   that invoke an interpreter fail the exec (as they will not be able
+   to access the invoked file). [Andy Lutomirski]
+ - Don't truncate long paths. [Andy Lutomirski]
+ - Commonize code to open the executed file. [Eric W. Biederman]
+ - Mark O_PATH file descriptors so they cannot be fexecve()ed.
+ - Make self-test more helpful, and add additional cases:
+     - file offset non-zero
+     - binary file without execute bit
+     - O_CLOEXEC fds
+
+Changes since v4, suggested by Eric W. Biederman:
+ - Use empty filename with AT_EMPTY_PATH flag rather than NULL
+   pathname to request fexecve-like behaviour.
+ - Build pathname as "/dev/fd/<fd>/<filename>" (or "/dev/fd/<fd>")
+   rather than using d_path().
+ - Patch against v3.17 (bfe01a5ba249)
+
+Changes since Meredydd's v3 patch:
+ - Added a selftest.
+ - Added a man page.
+ - Left open_exec() signature untouched to reduce patch impact
+   elsewhere (as suggested by Al Viro).
+ - Filled in bprm->filename with d_path() into a buffer, to avoid use
+   of potentially-ephemeral dentry->d_name.
+ - Patch against v3.14 (455c6fdbd21916).
+
+
+David Drysdale (2):
+  syscalls,x86: implement execveat() system call
+  syscalls,x86: add selftest for execveat(2)
+
+ arch/x86/ia32/audit.c                   |   1 +
+ arch/x86/ia32/ia32entry.S               |   1 +
+ arch/x86/kernel/audit_64.c              |   1 +
+ arch/x86/kernel/entry_64.S              |  28 +++
+ arch/x86/syscalls/syscall_32.tbl        |   1 +
+ arch/x86/syscalls/syscall_64.tbl        |   2 +
+ arch/x86/um/sys_call_table_64.c         |   1 +
+ fs/binfmt_em86.c                        |   4 +
+ fs/binfmt_misc.c                        |   4 +
+ fs/binfmt_script.c                      |  10 +
+ fs/exec.c                               | 110 +++++++--
+ fs/namei.c                              |   2 +-
+ include/linux/binfmts.h                 |   4 +
+ include/linux/compat.h                  |   3 +
+ include/linux/fs.h                      |   1 +
+ include/linux/sched.h                   |   4 +
+ include/linux/syscalls.h                |   4 +
+ include/uapi/asm-generic/unistd.h       |   4 +-
+ kernel/sys_ni.c                         |   3 +
+ lib/audit.c                             |   3 +
+ tools/testing/selftests/Makefile        |   1 +
+ tools/testing/selftests/exec/.gitignore |   9 +
+ tools/testing/selftests/exec/Makefile   |  25 ++
+ tools/testing/selftests/exec/execveat.c | 397 ++++++++++++++++++++++++++++++++
+ 24 files changed, 608 insertions(+), 15 deletions(-)
+ create mode 100644 tools/testing/selftests/exec/.gitignore
+ create mode 100644 tools/testing/selftests/exec/Makefile
+ create mode 100644 tools/testing/selftests/exec/execveat.c
 
 --
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+2.1.0.rc2.206.gedb03e5
