@@ -1,55 +1,52 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ppsw-50.csi.cam.ac.uk ([131.111.8.150]:57315 "EHLO
-	ppsw-50.csi.cam.ac.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751225AbaKGEXE convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 6 Nov 2014 23:23:04 -0500
-Subject: Re: [PATCH v5 7/7] add a flag for per-operation O_DSYNC semantics
+Received: from ppsw-51.csi.cam.ac.uk ([131.111.8.151]:56719 "EHLO
+	ppsw-51.csi.cam.ac.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751334AbaKGGne convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 7 Nov 2014 01:43:34 -0500
+Subject: Re: [fuse-devel] [PATCH v5 7/7] add a flag for per-operation O_DSYNC semantics
 Mime-Version: 1.0 (Mac OS X Mail 8.0 \(1990.1\))
 Content-Type: text/plain; charset=us-ascii
 From: Anton Altaparmakov <aia21@cam.ac.uk>
-In-Reply-To: <x49r3xf28qn.fsf@segfault.boston.devel.redhat.com>
-Date: Fri, 7 Nov 2014 06:22:48 +0200
+In-Reply-To: <CAFboF2y2skt=H4crv54shfnXOmz23W-shYWtHWekK8ZUDkfP=A@mail.gmail.com>
+Date: Fri, 7 Nov 2014 08:43:00 +0200
 Content-Transfer-Encoding: 8BIT
-Message-ID: <BF30FAEC-D4D3-4079-9ECD-2743747279BD@cam.ac.uk>
-References: <cover.1415220890.git.milosz@adfin.com> <cover.1415220890.git.milosz@adfin.com> <c188b04ede700ce5f986b19de12fa617d158540f.1415220890.git.milosz@adfin.com> <x49r3xf28qn.fsf@segfault.boston.devel.redhat.com>
+Message-ID: <B92AEADD-B22C-4A4A-B64D-96E8869D3282@cam.ac.uk>
+References: <cover.1415220890.git.milosz@adfin.com> <c188b04ede700ce5f986b19de12fa617d158540f.1415220890.git.milosz@adfin.com> <x49r3xf28qn.fsf@segfault.boston.devel.redhat.com> <BF30FAEC-D4D3-4079-9ECD-2743747279BD@cam.ac.uk> <CAFboF2y2skt=H4crv54shfnXOmz23W-shYWtHWekK8ZUDkfP=A@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jeff Moyer <jmoyer@redhat.com>
-Cc: Milosz Tanski <milosz@adfin.com>, linux-kernel@vger.kernel.org, Christoph Hellwig <hch@lst.de>, Christoph Hellwig <hch@infradead.org>, linux-fsdevel@vger.kernel.org, linux-aio@kvack.org, Mel Gorman <mgorman@suse.de>, Volker Lendecke <Volker.Lendecke@sernet.de>, Tejun Heo <tj@kernel.org>, Theodore Ts'o <tytso@mit.edu>, Al Viro <viro@zeniv.linux.org.uk>, linux-api@vger.kernel.org, Michael Kerrisk <mtk.manpages@gmail.com>, linux-arch@vger.kernel.org, ceph-devel@vger.kernel.org, fuse-devel@lists.sourceforge.net, linux-nfs@vger.kernel.org, ocfs2-devel@oss.oracle.com, linux-mm@kvack.org
-Message-ID: <20141107042248.K2TOsOzz5GyZ4nO4Cd7xqDCgXwKxxk9IzqafWW7OxE8@z>
+To: Anand Avati <avati@gluster.org>
+Cc: Jeff Moyer <jmoyer@redhat.com>, linux-arch@vger.kernel.org, linux-aio@kvack.org, linux-nfs@vger.kernel.org, Volker Lendecke <Volker.Lendecke@sernet.de>, Theodore Ts'o <tytso@mit.edu>, linux-mm@kvack.org, "fuse-devel@lists.sourceforge.net" <fuse-devel@lists.sourceforge.net>, linux-api@vger.kernel.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, Christoph Hellwig <hch@infradead.org>, Tejun Heo <tj@kernel.org>, Milosz Tanski <milosz@adfin.com>, linux-fsdevel@vger.kernel.org, Michael Kerrisk <mtk.manpages@gmail.com>, ceph-devel@vger.kernel.org, Christoph Hellwig <hch@lst.de>, ocfs2-devel@oss.oracle.com, Mel Gorman <mgorman@suse.de>
+Message-ID: <20141107064300.P8JD3hh6fAM0jEfo_n5reW0Jh7OIbr_63pAjtPsa1hE@z>
 
-Hi Jeff,
+Hi,
 
-> On 7 Nov 2014, at 01:46, Jeff Moyer <jmoyer@redhat.com> wrote:
+> On 7 Nov 2014, at 07:52, Anand Avati <avati@gluster.org> wrote:
+> On Thu, Nov 6, 2014 at 8:22 PM, Anton Altaparmakov <aia21@cam.ac.uk> wrote:
+> > On 7 Nov 2014, at 01:46, Jeff Moyer <jmoyer@redhat.com> wrote:
+> > Minor nit, but I'd rather read something that looks like this:
+> >
+> >       if (type == READ && (flags & RWF_NONBLOCK))
+> >               return -EAGAIN;
+> >       else if (type == WRITE && (flags & RWF_DSYNC))
+> >               return -EINVAL;
 > 
-> Milosz Tanski <milosz@adfin.com> writes:
+> But your version is less logically efficient for the case where "type == READ" is true and "flags & RWF_NONBLOCK" is false because your version then has to do the "if (type == WRITE" check before discovering it does not need to take that branch either, whilst the original version does not have to do such a test at all.
 > 
->> -		if (type == READ && (flags & RWF_NONBLOCK))
->> -			return -EAGAIN;
->> +		if (type == READ) {
->> +			if (flags & RWF_NONBLOCK)
->> +				return -EAGAIN;
->> +		} else {
->> +			if (flags & RWF_DSYNC)
->> +				return -EINVAL;
->> +		}
-> 
-> Minor nit, but I'd rather read something that looks like this:
-> 
-> 	if (type == READ && (flags & RWF_NONBLOCK))
-> 		return -EAGAIN;
-> 	else if (type == WRITE && (flags & RWF_DSYNC))
-> 		return -EINVAL;
+> Seriously?
 
-But your version is less logically efficient for the case where "type == READ" is true and "flags & RWF_NONBLOCK" is false because your version then has to do the "if (type == WRITE" check before discovering it does not need to take that branch either, whilst the original version does not have to do such a test at all.
+Of course seriously.
+
+> Just focus on the code readability/maintainability which makes the code most easily understood/obvious to a new pair of eyes, and leave such micro-optimizations to the compiler..
+
+The original version is more readable (IMO) and this is not a micro-optimization.  It is people like you who are responsible for the fact that we need faster and faster computers to cope with the inefficient/poor code being written more and more...
+
+And I really wouldn't hedge my bets on gcc optimizing something like that.  The amount of crap assembly produced from gcc that I have seen over the years suggests that it is quite likely it will make a hash of it instead...
 
 Best regards,
 
 	Anton
 
-> I won't lose sleep over it, though.
-> 
-> Reviewed-by: Jeff Moyer <jmoyer@redhat.com>
+> Thanks
 
 -- 
 Anton Altaparmakov <aia21 at cam.ac.uk> (replace at with @)
