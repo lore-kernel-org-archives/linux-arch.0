@@ -1,66 +1,88 @@
-From: Ley Foon Tan <lftan@altera.com>
-Subject: Re: [PATCH v6 00/29] nios2 Linux kernel port
-Date: Fri, 7 Nov 2014 17:24:43 +0800
-Message-ID: <CAFiDJ5_opOE5g14y1A7X3mn3H0ZOGV0kLVhEJnSrt3n47Nn2bQ@mail.gmail.com>
-References: <1415011945-3297-1-git-send-email-lftan@altera.com>
-	<CAFiDJ5_6HOPH_g6+Z1GwE87qXaGtnyUZdPvFCbC7E3v0+7o3VA@mail.gmail.com>
+From: David Drysdale <drysdale-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>
+Subject: Re: [PATCHv6 1/3] syscalls,x86: implement execveat() system call
+Date: Fri, 7 Nov 2014 13:19:54 +0000
+Message-ID: <CAHse=S9sudiJnLTwd1yXK9jFCPfVq4uPLBjhUDqMFeh2UQ7xqQ@mail.gmail.com>
+References: <1415290033-15771-1-git-send-email-drysdale@google.com>
+ <1415290033-15771-2-git-send-email-drysdale@google.com> <CAGXu5jKp7wEKnoeOVGUGCeJ3Mv-kkOm+QpXiu4HdWuvQx99auw@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-doc-owner@vger.kernel.org>
-In-Reply-To: <CAFiDJ5_6HOPH_g6+Z1GwE87qXaGtnyUZdPvFCbC7E3v0+7o3VA@mail.gmail.com>
-Sender: linux-doc-owner@vger.kernel.org
-To: Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Stephen Rothwell <sfr@canb.auug.org.au>
-Cc: Arnd Bergmann <arnd@arndb.de>, Ley Foon Tan <lftan@altera.com>, LeyFoon Tan <lftan.linux@gmail.com>, Chung-Lin Tang <cltang@codesourcery.com>
+Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+In-Reply-To: <CAGXu5jKp7wEKnoeOVGUGCeJ3Mv-kkOm+QpXiu4HdWuvQx99auw-JsoAwUIsXosN+BqQ9rBEUg@public.gmane.org>
+Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: Kees Cook <keescook-F7+t8E8rja9g9hUCZPvPmw@public.gmane.org>
+Cc: "Eric W. Biederman" <ebiederm-aS9lmoZGLiVWk0Htik3J/w@public.gmane.org>, Andy Lutomirski <luto-kltTT9wpgjJwATOyAt5JVQ@public.gmane.org>, Alexander Viro <viro-RmSDqhL/yNMiFSDQTTA3OLVCufUGDwFn@public.gmane.org>, Meredydd Luff <meredydd-zPN50pYk8eUaUu29zAJCuw@public.gmane.org>, LKML <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, Ingo Molnar <mingo-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>, Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Rich Felker <dalias-/miJ2pyFWUyWIDz0JBNUog@public.gmane.org>, Christoph Hellwig <hch-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>, "x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org" <x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, linux-arch <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Linux API <linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, Nov 7, 2014 at 3:39 PM, LF.Tan <lftan.linux@gmail.com> wrote:
-> On Mon, Nov 3, 2014 at 6:51 PM, Ley Foon Tan <lftan@altera.com> wrote:
+On Thu, Nov 6, 2014 at 6:06 PM, Kees Cook <keescook-F7+t8E8rja9g9hUCZPvPmw@public.gmane.org> wrote:
+> On Thu, Nov 6, 2014 at 8:07 AM, David Drysdale <drysdale-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org> wrote:
+>> diff --git a/fs/exec.c b/fs/exec.c
+>> index a2b42a98c743..800d232c17bb 100644
+>> --- a/fs/exec.c
+>> +++ b/fs/exec.c
+>> @@ -1422,10 +1431,12 @@ static int exec_binprm(struct linux_binprm *bprm)
+>>  /*
+>>   * sys_execve() executes a new program.
+>>   */
+>> -static int do_execve_common(struct filename *filename,
+>> -                               struct user_arg_ptr argv,
+>> -                               struct user_arg_ptr envp)
+>> +static int do_execveat_common(int fd, struct filename *filename,
+>> +                             struct user_arg_ptr argv,
+>> +                             struct user_arg_ptr envp,
+>> +                             int flags)
+>>  {
+>> +       char *pathbuf = NULL;
+>>         struct linux_binprm *bprm;
+>>         struct file *file;
+>>         struct files_struct *displaced;
+>> @@ -1466,7 +1477,7 @@ static int do_execve_common(struct filename *filename,
+>>         check_unsafe_exec(bprm);
+>>         current->in_execve = 1;
 >>
->> This is the 6th version of patchset adds the Linux kernel port for Nios II
->> processor from Altera. All of the feedback from v5 patchseries has been
->> addressed. Note, only patch #1, #7 and #21 have non-trivial changes.
->> Thanks to all who provided feedback on the previous version.
+>> -       file = do_open_exec(filename);
+>> +       file = do_open_execat(fd, filename, flags);
+>>         retval = PTR_ERR(file);
+>>         if (IS_ERR(file))
+>>                 goto out_unmark;
+>> @@ -1474,7 +1485,30 @@ static int do_execve_common(struct filename *filename,
+>>         sched_exec();
 >>
->> About Nios II Cores
->> -------------------
->> Nios II is a 32-bit embedded-processor architecture designed specifically for the
->> Altera family of FPGAs.
->> More information is available  at http://www.altera.com/devices/processor/nios2/ni2-index.html
->>
->> Instruction set and architecture overview documents can be found on the
->> following page:
->> http://www.altera.com/literature/lit-nio2.jsp
->>
->> Nios2 GCC port is in mainline and will be in the FSF 4.9 release.
->>
->> The patchset are based on v3.18-rc3 and can also be found in the following git tree:
->> git://git.rocketboards.org/linux-socfpga-next.git  nios2-upstream
->>
+>>         bprm->file = file;
+>> -       bprm->filename = bprm->interp = filename->name;
+>> +       if (fd == AT_FDCWD || filename->name[0] == '/') {
+>> +               bprm->filename = filename->name;
+>> +       } else {
+>> +               /* "/dev/fd/2147483647/" + filename->name */
+>> +               int maxlen = 19 + strlen(filename->name);
 >
-> Hi Stephen
+> This should be 20 + strlen (to include the trailing NULL). However, I
+> think this whole bit of code could be replaced with kasprintf...
 >
-> Review for Nios2 port is completed and ready for upstream. Can you
-> please add nios2 patchset to linux-next?
-> Thanks.
+>> +
+>> +               pathbuf = kmalloc(maxlen, GFP_TEMPORARY);
+>> +               if (!pathbuf) {
+>> +                       retval = -ENOMEM;
+>> +                       goto out_unmark;
+>> +               }
+>> +               if (filename->name[0] == '\0')
+>> +                       sprintf(pathbuf, "/dev/fd/%d", fd);
+>> +               else
+>> +                       snprintf(pathbuf, maxlen,
+>> +                                "/dev/fd/%d/%s", fd, filename->name);
 >
+> Maybe something like this? A bit messy, so maybe your original if/else
+> would be more readable.
 >
-> The following changes since commit 0df1f2487d2f0d04703f142813d53615d62a1da4:
->
->   Linux 3.18-rc3 (2014-11-02 15:01:51 -0800)
->
-> are available in the git repository at:
->
->   http://git.rocketboards.org/linux-socfpga-next.git tags/nios2-for-linux-next
->
-> for you to fetch changes up to 1b9e67a57ac633f407de11b36d8f996c368a8c66:
->
->   nios2: Build infrastructure (2014-11-06 15:23:37 +0800)
->
-By the way, I also created "nios2-next" branch for you to add to linux-next.
+>     } else {
+>         pathbuf = kasprintf("/dev/fd/%d%s%s", fd,
+>                                        filename->name[0] == '\0' ? "" : "/",
+>                                        filename->name[0] == '\0' ? ""
+> : filename->name);
+>         if (!pathbuf) {
+>             retval = -ENOMEM;
+>             goto out_unmark;
+>         }
+>     }
 
-git://git.rocketboards.org/linux-socfpga-next.git nios2-next
-
-Thanks.
-
-Regards
-Ley Foon
+Ah, I didn't know about kasprintf(), that will make things much
+easier -- thanks!
