@@ -1,100 +1,101 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-lb0-f177.google.com ([209.85.217.177]:61638 "EHLO
-	mail-lb0-f177.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752534AbaKGT6r convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 7 Nov 2014 14:58:47 -0500
-Received: by mail-lb0-f177.google.com with SMTP id u10so8781lbd.8
-        for <linux-arch@vger.kernel.org>; Fri, 07 Nov 2014 11:58:46 -0800 (PST)
+Received: from ozlabs.org ([103.22.144.67]:52848 "EHLO ozlabs.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751456AbaKINNE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 9 Nov 2014 08:13:04 -0500
+Date: Mon, 10 Nov 2014 00:12:50 +1100
+From: Stephen Rothwell <sfr@canb.auug.org.au>
+Subject: Re: [PATCH v6 00/29] nios2 Linux kernel port
+Message-ID: <20141110001250.7fc64233@canb.auug.org.au>
+In-Reply-To: <CAFiDJ5_opOE5g14y1A7X3mn3H0ZOGV0kLVhEJnSrt3n47Nn2bQ@mail.gmail.com>
+References: <1415011945-3297-1-git-send-email-lftan@altera.com>
+	<CAFiDJ5_6HOPH_g6+Z1GwE87qXaGtnyUZdPvFCbC7E3v0+7o3VA@mail.gmail.com>
+	<CAFiDJ5_opOE5g14y1A7X3mn3H0ZOGV0kLVhEJnSrt3n47Nn2bQ@mail.gmail.com>
 MIME-Version: 1.0
-In-Reply-To: <1415370078.11083.511.camel@montana.filmlight.ltd.uk>
-References: <cover.1415220890.git.milosz@adfin.com>
-	<c188b04ede700ce5f986b19de12fa617d158540f.1415220890.git.milosz@adfin.com>
-	<x49r3xf28qn.fsf@segfault.boston.devel.redhat.com>
-	<BF30FAEC-D4D3-4079-9ECD-2743747279BD@cam.ac.uk>
-	<CAFboF2y2skt=H4crv54shfnXOmz23W-shYWtHWekK8ZUDkfP=A@mail.gmail.com>
-	<B92AEADD-B22C-4A4A-B64D-96E8869D3282@cam.ac.uk>
-	<1415370078.11083.511.camel@montana.filmlight.ltd.uk>
-Date: Fri, 7 Nov 2014 14:58:45 -0500
-Message-ID: <CANP1eJGK1XQUPsJsN1xyTjPZysvM_JR5r6jkiwRSaBYKQjYJPw@mail.gmail.com>
-Subject: Re: [fuse-devel] [PATCH v5 7/7] add a flag for per-operation O_DSYNC semantics
-From: Milosz Tanski <milosz@adfin.com>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8BIT
+Content-Type: multipart/signed; micalg=pgp-sha256;
+ boundary="Sig_/_.7ulH3/uPwo3YpSpOlPZFv"; protocol="application/pgp-signature"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Roger Willcocks <roger@filmlight.ltd.uk>
-Cc: Anton Altaparmakov <aia21@cam.ac.uk>, Anand Avati <avati@gluster.org>, linux-arch@vger.kernel.org, "linux-aio@kvack.org" <linux-aio@kvack.org>, linux-nfs@vger.kernel.org, Volker Lendecke <Volker.Lendecke@sernet.de>, Theodore Ts'o <tytso@mit.edu>, Mel Gorman <mgorman@suse.de>, "fuse-devel@lists.sourceforge.net" <fuse-devel@lists.sourceforge.net>, Linux API <linux-api@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Michael Kerrisk <mtk.manpages@gmail.com>, Christoph Hellwig <hch@infradead.org>, linux-mm@kvack.org, Jeff Moyer <jmoyer@redhat.com>, Al Viro <viro@zeniv.linux.org.uk>, Tejun Heo <tj@kernel.org>, "linux-fsdevel@vger.kernel.org" <linux-fsdevel@vger.kernel.org>, ceph-devel <ceph-devel@vger.kernel.org>, Christoph Hellwig <hch@lst.de>, ocfs2-devel@oss.oracle.com
-Message-ID: <20141107195845.oFVv3Ow3w_zn04KW_KFNfEYCyezBpEAYBLp-KE3R5Ug@z>
+To: Ley Foon Tan <lftan@altera.com>
+Cc: Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, LeyFoon Tan <lftan.linux@gmail.com>, Chung-Lin Tang <cltang@codesourcery.com>
+Message-ID: <20141109131250.H-9eeEVZuSxh_ycTvy0XIoPGUPV8DSsvBBpWBo-tyzQ@z>
 
-On Fri, Nov 7, 2014 at 9:21 AM, Roger Willcocks <roger@filmlight.ltd.uk> wrote:
->
-> On Fri, 2014-11-07 at 08:43 +0200, Anton Altaparmakov wrote:
->> Hi,
->>
->> > On 7 Nov 2014, at 07:52, Anand Avati <avati@gluster.org> wrote:
->> > On Thu, Nov 6, 2014 at 8:22 PM, Anton Altaparmakov <aia21@cam.ac.uk> wrote:
->> > > On 7 Nov 2014, at 01:46, Jeff Moyer <jmoyer@redhat.com> wrote:
->> > > Minor nit, but I'd rather read something that looks like this:
->> > >
->> > >       if (type == READ && (flags & RWF_NONBLOCK))
->> > >               return -EAGAIN;
->> > >       else if (type == WRITE && (flags & RWF_DSYNC))
->> > >               return -EINVAL;
->> >
->> > But your version is less logically efficient for the case where "type == READ" is true and "flags & RWF_NONBLOCK" is false because your version then has to do the "if (type == WRITE" check before discovering it does not need to take that branch either, whilst the original version does not have to do such a test at all.
->> >
->> > Seriously?
->>
->> Of course seriously.
->>
->> > Just focus on the code readability/maintainability which makes the code most easily understood/obvious to a new pair of eyes, and leave such micro-optimizations to the compiler..
->>
->> The original version is more readable (IMO) and this is not a micro-optimization.  It is people like you who are responsible for the fact that we need faster and faster computers to cope with the inefficient/poor code being written more and more...
->>
->
-> Your original version needs me to know that type can only be either READ
-> or WRITE (and not, for instance, READONLY or READWRITE or some other
-> random special case) and it rings alarm bells when I first see it. If
-> you want to keep the micro optimization, you need an assertion to
-> acknowledge the potential bug and a comment to make the code obvious:
->
->  +            assert(type == READ || type == WRITE);
->  +            if (type == READ) {
->  +                    if (flags & RWF_NONBLOCK)
->  +                            return -EAGAIN;
->  +            } else { /* WRITE */
->  +                    if (flags & RWF_DSYNC)
->  +                            return -EINVAL;
->  +            }
->
-> but since what's really happening here is two separate and independent
-> error checks, Jeff's version is still better, even if it does take an
-> extra couple of nanoseconds.
->
-> Actually I'd probably write:
->
->        if (type == READ && (flags & RWF_NONBLOCK))
->               return -EAGAIN;
->
->        if (type == WRITE && (flags & RWF_DSYNC))
->               return -EINVAL;
->
-> (no 'else' since the code will never be reached if the first test is
-> true).
->
->
-> --
-> Roger Willcocks <roger@filmlight.ltd.uk>
->
+--Sig_/_.7ulH3/uPwo3YpSpOlPZFv
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: quoted-printable
 
-This is what I changed it to (and will be sending that out for the
-next version).
+Hi,
 
--- 
-Milosz Tanski
-CTO
-16 East 34th Street, 15th floor
-New York, NY 10016
+On Fri, 7 Nov 2014 17:24:43 +0800 Ley Foon Tan <lftan@altera.com> wrote:
+>
+> On Fri, Nov 7, 2014 at 3:39 PM, LF.Tan <lftan.linux@gmail.com> wrote:
+> >
+> > Review for Nios2 port is completed and ready for upstream. Can you
+> > please add nios2 patchset to linux-next?
+> >
+> > The following changes since commit 0df1f2487d2f0d04703f142813d53615d62a=
+1da4:
+> >
+> >   Linux 3.18-rc3 (2014-11-02 15:01:51 -0800)
+> >
+> > are available in the git repository at:
+> >
+> >   http://git.rocketboards.org/linux-socfpga-next.git tags/nios2-for-lin=
+ux-next
+> >
+> > for you to fetch changes up to 1b9e67a57ac633f407de11b36d8f996c368a8c66:
+> >
+> >   nios2: Build infrastructure (2014-11-06 15:23:37 +0800)
+>
+> By the way, I also created "nios2-next" branch for you to add to linux-ne=
+xt.
+>=20
+> git://git.rocketboards.org/linux-socfpga-next.git nios2-next
 
-p: 646-253-9055
-e: milosz@adfin.com
+Added from Monday with just you as the contact.
+
+Thanks for adding your subsystem tree as a participant of linux-next.  As
+you may know, this is not a judgment of your code.  The purpose of
+linux-next is for integration testing and to lower the impact of
+conflicts between subsystems in the next merge window.=20
+
+You will need to ensure that the patches/commits in your tree/series have
+been:
+     * submitted under GPL v2 (or later) and include the Contributor's
+        Signed-off-by,
+     * posted to the relevant mailing list,
+     * reviewed by you (or another maintainer of your subsystem tree),
+     * successfully unit tested, and=20
+     * destined for the current or next Linux merge window.
+
+Basically, this should be just what you would send to Linus (or ask him
+to fetch).  It is allowed to be rebased if you deem it necessary.
+
+--=20
+Cheers,
+Stephen Rothwell=20
+sfr@canb.auug.org.au
+
+--Sig_/_.7ulH3/uPwo3YpSpOlPZFv
+Content-Type: application/pgp-signature
+Content-Description: OpenPGP digital signature
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v2
+
+iQIcBAEBCAAGBQJUX2haAAoJEMDTa8Ir7ZwVAdsP/2zth6cacJXydrKwZ9qhsbSi
+uq+Y6aM+ZK/7QqYWK4cKPZZgQeDjfPtAmSngVCHS7yL018u3hPWhbOwWDpeXvgMP
+seWwTW8E6isaN+Z4FgX5dN7PiOsgyXMYVefgyCpn3SmT+dXpbKv6iqw9rZnEXQud
+hmH3zOoJ0LLBAiRhwOZ49YkqyC37euJivG+ex+ubKsynW+8z0UW+bCHYq6Qsl4bR
+Fl9E0WMh50sbRbGF84pRwXDEY5b1JYn0k/6sNM43CndwVS5Ms/pUH9qSPpSu5IWm
+h7L+tnR7bPorXnAN+7FkwuVbtUTJU9quMaW6p9BHo4dJisHApXEeIPMg1VT6K1y5
+tSHRVR9y1jm8nsMEgSuzx8Pxy14ASz15GY1EhLaP9PyfNWdI+iP7y56Sbx0dx3p1
+mo75gYKeKzrIZ24bZ4KjW5vgEnXqGGKt/i3gH5b27LWNbpqGpY++gIhVUcNfppqh
+ta2prAuNOgGybKEJW5YH2YtorS39a/FT/g0DcVQX5Tl89rUelQ9aLOsV1Z7lCjwP
+6r4wOg15L0Kao5ao5SpEbUnLDYO+HrCIjPr49EeTVv9R6K7Qo8d2AKI3AcNx4RNA
+VrZP5+YXjUXKH02EUKJ9odfWtiwCDSERMY26iMWdCqniLsZ+aGK9OAdtST6GwVG2
+xZ8xbeLDxfuTb3WiZ3VX
+=lXGJ
+-----END PGP SIGNATURE-----
+
+--Sig_/_.7ulH3/uPwo3YpSpOlPZFv--
