@@ -1,101 +1,312 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ozlabs.org ([103.22.144.67]:52848 "EHLO ozlabs.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751456AbaKINNE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 9 Nov 2014 08:13:04 -0500
-Date: Mon, 10 Nov 2014 00:12:50 +1100
-From: Stephen Rothwell <sfr@canb.auug.org.au>
-Subject: Re: [PATCH v6 00/29] nios2 Linux kernel port
-Message-ID: <20141110001250.7fc64233@canb.auug.org.au>
-In-Reply-To: <CAFiDJ5_opOE5g14y1A7X3mn3H0ZOGV0kLVhEJnSrt3n47Nn2bQ@mail.gmail.com>
-References: <1415011945-3297-1-git-send-email-lftan@altera.com>
-	<CAFiDJ5_6HOPH_g6+Z1GwE87qXaGtnyUZdPvFCbC7E3v0+7o3VA@mail.gmail.com>
-	<CAFiDJ5_opOE5g14y1A7X3mn3H0ZOGV0kLVhEJnSrt3n47Nn2bQ@mail.gmail.com>
+Received: from cobra.newdream.net ([66.33.216.30]:46519 "EHLO
+	cobra.newdream.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751399AbaKJQHN (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 10 Nov 2014 11:07:13 -0500
+Date: Mon, 10 Nov 2014 08:07:12 -0800 (PST)
+From: Sage Weil <sage@newdream.net>
+Subject: Re: [PATCH v5 4/7] vfs: RWF_NONBLOCK flag for preadv2
+In-Reply-To: <379c680ae1e6309e679ff83bc6cb55e1cf97d7f9.1415220890.git.milosz@adfin.com>
+Message-ID: <alpine.DEB.2.00.1411100805590.11379@cobra.newdream.net>
+References: <cover.1415220890.git.milosz@adfin.com> <379c680ae1e6309e679ff83bc6cb55e1cf97d7f9.1415220890.git.milosz@adfin.com>
 MIME-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha256;
- boundary="Sig_/_.7ulH3/uPwo3YpSpOlPZFv"; protocol="application/pgp-signature"
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ley Foon Tan <lftan@altera.com>
-Cc: Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, LeyFoon Tan <lftan.linux@gmail.com>, Chung-Lin Tang <cltang@codesourcery.com>
-Message-ID: <20141109131250.H-9eeEVZuSxh_ycTvy0XIoPGUPV8DSsvBBpWBo-tyzQ@z>
+To: Milosz Tanski <milosz@adfin.com>
+Cc: linux-kernel@vger.kernel.org, Christoph Hellwig <hch@infradead.org>, linux-fsdevel@vger.kernel.org, linux-aio@kvack.org, Mel Gorman <mgorman@suse.de>, Volker Lendecke <Volker.Lendecke@sernet.de>, Tejun Heo <tj@kernel.org>, Jeff Moyer <jmoyer@redhat.com>, Theodore Ts'o <tytso@mit.edu>, Al Viro <viro@zeniv.linux.org.uk>, linux-api@vger.kernel.org, Michael Kerrisk <mtk.manpages@gmail.com>, linux-arch@vger.kernel.org, ceph-devel@vger.kernel.org, linux-cifs@vger.kernel.org, samba-technical@lists.samba.org, linux-nfs@vger.kernel.org, linux-xfs@vger.kernel.org, ocfs2-devel@oss.oracle.com, linux-mm@kvack.org
+Message-ID: <20141110160712.kcPp_BjG2XTejHHn5KGdu7jw_pS1ywMuzZPvrbc3f24@z>
 
---Sig_/_.7ulH3/uPwo3YpSpOlPZFv
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: quoted-printable
+On Wed, 5 Nov 2014, Milosz Tanski wrote:
+> generic_file_read_iter() supports a new flag RWF_NONBLOCK which says that we
+> only want to read the data if it's already in the page cache.
+> 
+> Additionally, there are a few filesystems that we have to specifically
+> bail early if RWF_NONBLOCK because the op would block. Christoph Hellwig
+> contributed this code.
+> 
+> Signed-off-by: Milosz Tanski <milosz@adfin.com>
+> Reviewed-by: Christoph Hellwig <hch@lst.de>
+> Reviewed-by: Jeff Moyer <jmoyer@redhat.com>
 
-Hi,
+Ceph bits
 
-On Fri, 7 Nov 2014 17:24:43 +0800 Ley Foon Tan <lftan@altera.com> wrote:
->
-> On Fri, Nov 7, 2014 at 3:39 PM, LF.Tan <lftan.linux@gmail.com> wrote:
-> >
-> > Review for Nios2 port is completed and ready for upstream. Can you
-> > please add nios2 patchset to linux-next?
-> >
-> > The following changes since commit 0df1f2487d2f0d04703f142813d53615d62a=
-1da4:
-> >
-> >   Linux 3.18-rc3 (2014-11-02 15:01:51 -0800)
-> >
-> > are available in the git repository at:
-> >
-> >   http://git.rocketboards.org/linux-socfpga-next.git tags/nios2-for-lin=
-ux-next
-> >
-> > for you to fetch changes up to 1b9e67a57ac633f407de11b36d8f996c368a8c66:
-> >
-> >   nios2: Build infrastructure (2014-11-06 15:23:37 +0800)
->
-> By the way, I also created "nios2-next" branch for you to add to linux-ne=
-xt.
->=20
-> git://git.rocketboards.org/linux-socfpga-next.git nios2-next
+Acked-by: Sage Weil <sage@redhat.com>
 
-Added from Monday with just you as the contact.
 
-Thanks for adding your subsystem tree as a participant of linux-next.  As
-you may know, this is not a judgment of your code.  The purpose of
-linux-next is for integration testing and to lower the impact of
-conflicts between subsystems in the next merge window.=20
-
-You will need to ensure that the patches/commits in your tree/series have
-been:
-     * submitted under GPL v2 (or later) and include the Contributor's
-        Signed-off-by,
-     * posted to the relevant mailing list,
-     * reviewed by you (or another maintainer of your subsystem tree),
-     * successfully unit tested, and=20
-     * destined for the current or next Linux merge window.
-
-Basically, this should be just what you would send to Linus (or ask him
-to fetch).  It is allowed to be rebased if you deem it necessary.
-
---=20
-Cheers,
-Stephen Rothwell=20
-sfr@canb.auug.org.au
-
---Sig_/_.7ulH3/uPwo3YpSpOlPZFv
-Content-Type: application/pgp-signature
-Content-Description: OpenPGP digital signature
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v2
-
-iQIcBAEBCAAGBQJUX2haAAoJEMDTa8Ir7ZwVAdsP/2zth6cacJXydrKwZ9qhsbSi
-uq+Y6aM+ZK/7QqYWK4cKPZZgQeDjfPtAmSngVCHS7yL018u3hPWhbOwWDpeXvgMP
-seWwTW8E6isaN+Z4FgX5dN7PiOsgyXMYVefgyCpn3SmT+dXpbKv6iqw9rZnEXQud
-hmH3zOoJ0LLBAiRhwOZ49YkqyC37euJivG+ex+ubKsynW+8z0UW+bCHYq6Qsl4bR
-Fl9E0WMh50sbRbGF84pRwXDEY5b1JYn0k/6sNM43CndwVS5Ms/pUH9qSPpSu5IWm
-h7L+tnR7bPorXnAN+7FkwuVbtUTJU9quMaW6p9BHo4dJisHApXEeIPMg1VT6K1y5
-tSHRVR9y1jm8nsMEgSuzx8Pxy14ASz15GY1EhLaP9PyfNWdI+iP7y56Sbx0dx3p1
-mo75gYKeKzrIZ24bZ4KjW5vgEnXqGGKt/i3gH5b27LWNbpqGpY++gIhVUcNfppqh
-ta2prAuNOgGybKEJW5YH2YtorS39a/FT/g0DcVQX5Tl89rUelQ9aLOsV1Z7lCjwP
-6r4wOg15L0Kao5ao5SpEbUnLDYO+HrCIjPr49EeTVv9R6K7Qo8d2AKI3AcNx4RNA
-VrZP5+YXjUXKH02EUKJ9odfWtiwCDSERMY26iMWdCqniLsZ+aGK9OAdtST6GwVG2
-xZ8xbeLDxfuTb3WiZ3VX
-=lXGJ
------END PGP SIGNATURE-----
-
---Sig_/_.7ulH3/uPwo3YpSpOlPZFv--
+> ---
+>  fs/ceph/file.c     |  2 ++
+>  fs/cifs/file.c     |  6 ++++++
+>  fs/nfs/file.c      |  5 ++++-
+>  fs/ocfs2/file.c    |  6 ++++++
+>  fs/pipe.c          |  3 ++-
+>  fs/read_write.c    | 38 +++++++++++++++++++++++++-------------
+>  fs/xfs/xfs_file.c  |  4 ++++
+>  include/linux/fs.h |  3 +++
+>  mm/filemap.c       | 18 ++++++++++++++++++
+>  mm/shmem.c         |  4 ++++
+>  10 files changed, 74 insertions(+), 15 deletions(-)
+> 
+> diff --git a/fs/ceph/file.c b/fs/ceph/file.c
+> index d7e0da8..b798b5c 100644
+> --- a/fs/ceph/file.c
+> +++ b/fs/ceph/file.c
+> @@ -822,6 +822,8 @@ again:
+>  	if ((got & (CEPH_CAP_FILE_CACHE|CEPH_CAP_FILE_LAZYIO)) == 0 ||
+>  	    (iocb->ki_filp->f_flags & O_DIRECT) ||
+>  	    (fi->flags & CEPH_F_SYNC)) {
+> +		if (iocb->ki_rwflags & O_NONBLOCK)
+> +			return -EAGAIN;
+>  
+>  		dout("aio_sync_read %p %llx.%llx %llu~%u got cap refs on %s\n",
+>  		     inode, ceph_vinop(inode), iocb->ki_pos, (unsigned)len,
+> diff --git a/fs/cifs/file.c b/fs/cifs/file.c
+> index 3e4d00a..c485afa 100644
+> --- a/fs/cifs/file.c
+> +++ b/fs/cifs/file.c
+> @@ -3005,6 +3005,9 @@ ssize_t cifs_user_readv(struct kiocb *iocb, struct iov_iter *to)
+>  	struct cifs_readdata *rdata, *tmp;
+>  	struct list_head rdata_list;
+>  
+> +	if (iocb->ki_rwflags & RWF_NONBLOCK)
+> +		return -EAGAIN;
+> +
+>  	len = iov_iter_count(to);
+>  	if (!len)
+>  		return 0;
+> @@ -3123,6 +3126,9 @@ cifs_strict_readv(struct kiocb *iocb, struct iov_iter *to)
+>  	    ((cifs_sb->mnt_cifs_flags & CIFS_MOUNT_NOPOSIXBRL) == 0))
+>  		return generic_file_read_iter(iocb, to);
+>  
+> +	if (iocb->ki_rwflags & RWF_NONBLOCK)
+> +		return -EAGAIN;
+> +
+>  	/*
+>  	 * We need to hold the sem to be sure nobody modifies lock list
+>  	 * with a brlock that prevents reading.
+> diff --git a/fs/nfs/file.c b/fs/nfs/file.c
+> index 2ab6f00..aa9046f 100644
+> --- a/fs/nfs/file.c
+> +++ b/fs/nfs/file.c
+> @@ -171,8 +171,11 @@ nfs_file_read(struct kiocb *iocb, struct iov_iter *to)
+>  	struct inode *inode = file_inode(iocb->ki_filp);
+>  	ssize_t result;
+>  
+> -	if (iocb->ki_filp->f_flags & O_DIRECT)
+> +	if (iocb->ki_filp->f_flags & O_DIRECT) {
+> +		if (iocb->ki_rwflags & O_NONBLOCK)
+> +			return -EAGAIN;
+>  		return nfs_file_direct_read(iocb, to, iocb->ki_pos);
+> +	}
+>  
+>  	dprintk("NFS: read(%pD2, %zu@%lu)\n",
+>  		iocb->ki_filp,
+> diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
+> index 324dc93..bb66ca4 100644
+> --- a/fs/ocfs2/file.c
+> +++ b/fs/ocfs2/file.c
+> @@ -2472,6 +2472,12 @@ static ssize_t ocfs2_file_read_iter(struct kiocb *iocb,
+>  			filp->f_path.dentry->d_name.name,
+>  			to->nr_segs);	/* GRRRRR */
+>  
+> +	/*
+> +	 * No non-blocking reads for ocfs2 for now.  Might be doable with
+> +	 * non-blocking cluster lock helpers.
+> +	 */
+> +	if (iocb->ki_rwflags & RWF_NONBLOCK)
+> +		return -EAGAIN;
+>  
+>  	if (!inode) {
+>  		ret = -EINVAL;
+> diff --git a/fs/pipe.c b/fs/pipe.c
+> index 21981e5..212bf68 100644
+> --- a/fs/pipe.c
+> +++ b/fs/pipe.c
+> @@ -302,7 +302,8 @@ pipe_read(struct kiocb *iocb, struct iov_iter *to)
+>  			 */
+>  			if (ret)
+>  				break;
+> -			if (filp->f_flags & O_NONBLOCK) {
+> +			if ((filp->f_flags & O_NONBLOCK) ||
+> +			    (iocb->ki_rwflags & RWF_NONBLOCK)) {
+>  				ret = -EAGAIN;
+>  				break;
+>  			}
+> diff --git a/fs/read_write.c b/fs/read_write.c
+> index 907735c..cba7d4c 100644
+> --- a/fs/read_write.c
+> +++ b/fs/read_write.c
+> @@ -835,14 +835,19 @@ static ssize_t do_readv_writev(int type, struct file *file,
+>  		file_start_write(file);
+>  	}
+>  
+> -	if (iter_fn)
+> +	if (iter_fn) {
+>  		ret = do_iter_readv_writev(file, type, iov, nr_segs, tot_len,
+>  						pos, iter_fn, flags);
+> -	else if (fnv)
+> -		ret = do_sync_readv_writev(file, iov, nr_segs, tot_len,
+> -						pos, fnv);
+> -	else
+> -		ret = do_loop_readv_writev(file, iov, nr_segs, pos, fn);
+> +	} else {
+> +		if (type == READ && (flags & RWF_NONBLOCK))
+> +			return -EAGAIN;
+> +
+> +		if (fnv)
+> +			ret = do_sync_readv_writev(file, iov, nr_segs, tot_len,
+> +							pos, fnv);
+> +		else
+> +			ret = do_loop_readv_writev(file, iov, nr_segs, pos, fn);
+> +	}
+>  
+>  	if (type != READ)
+>  		file_end_write(file);
+> @@ -866,8 +871,10 @@ ssize_t vfs_readv(struct file *file, const struct iovec __user *vec,
+>  		return -EBADF;
+>  	if (!(file->f_mode & FMODE_CAN_READ))
+>  		return -EINVAL;
+> -	if (flags & ~0)
+> +	if (flags & ~RWF_NONBLOCK)
+>  		return -EINVAL;
+> +	if ((file->f_flags & O_DIRECT) && (flags & RWF_NONBLOCK))
+> +		return -EAGAIN;
+>  
+>  	return do_readv_writev(READ, file, vec, vlen, pos, flags);
+>  }
+> @@ -1069,14 +1076,19 @@ static ssize_t compat_do_readv_writev(int type, struct file *file,
+>  		file_start_write(file);
+>  	}
+>  
+> -	if (iter_fn)
+> +	if (iter_fn) {
+>  		ret = do_iter_readv_writev(file, type, iov, nr_segs, tot_len,
+>  						pos, iter_fn, flags);
+> -	else if (fnv)
+> -		ret = do_sync_readv_writev(file, iov, nr_segs, tot_len,
+> -						pos, fnv);
+> -	else
+> -		ret = do_loop_readv_writev(file, iov, nr_segs, pos, fn);
+> +	} else {
+> +		if (type == READ && (flags & RWF_NONBLOCK))
+> +			return -EAGAIN;
+> +
+> +		if (fnv)
+> +			ret = do_sync_readv_writev(file, iov, nr_segs, tot_len,
+> +							pos, fnv);
+> +		else
+> +			ret = do_loop_readv_writev(file, iov, nr_segs, pos, fn);
+> +	}
+>  
+>  	if (type != READ)
+>  		file_end_write(file);
+> diff --git a/fs/xfs/xfs_file.c b/fs/xfs/xfs_file.c
+> index eb596b4..b1f6334 100644
+> --- a/fs/xfs/xfs_file.c
+> +++ b/fs/xfs/xfs_file.c
+> @@ -246,6 +246,10 @@ xfs_file_read_iter(
+>  
+>  	XFS_STATS_INC(xs_read_calls);
+>  
+> +	/* XXX: need a non-blocking iolock helper, shouldn't be too hard */
+> +	if (iocb->ki_rwflags & RWF_NONBLOCK)
+> +		return -EAGAIN;
+> +
+>  	if (unlikely(file->f_flags & O_DIRECT))
+>  		ioflags |= XFS_IO_ISDIRECT;
+>  	if (file->f_mode & FMODE_NOCMTIME)
+> diff --git a/include/linux/fs.h b/include/linux/fs.h
+> index 9ed5711..eaebd99 100644
+> --- a/include/linux/fs.h
+> +++ b/include/linux/fs.h
+> @@ -1459,6 +1459,9 @@ struct block_device_operations;
+>  #define HAVE_COMPAT_IOCTL 1
+>  #define HAVE_UNLOCKED_IOCTL 1
+>  
+> +/* These flags are used for the readv/writev syscalls with flags. */
+> +#define RWF_NONBLOCK 0x00000001
+> +
+>  struct iov_iter;
+>  
+>  struct file_operations {
+> diff --git a/mm/filemap.c b/mm/filemap.c
+> index 530c263..09d3af3 100644
+> --- a/mm/filemap.c
+> +++ b/mm/filemap.c
+> @@ -1494,6 +1494,8 @@ static ssize_t do_generic_file_read(struct file *filp, loff_t *ppos,
+>  find_page:
+>  		page = find_get_page(mapping, index);
+>  		if (!page) {
+> +			if (flags & RWF_NONBLOCK)
+> +				goto would_block;
+>  			page_cache_sync_readahead(mapping,
+>  					ra, filp,
+>  					index, last_index - index);
+> @@ -1585,6 +1587,11 @@ page_ok:
+>  		continue;
+>  
+>  page_not_up_to_date:
+> +		if (flags & RWF_NONBLOCK) {
+> +			page_cache_release(page);
+> +			goto would_block;
+> +		}
+> +
+>  		/* Get exclusive access to the page ... */
+>  		error = lock_page_killable(page);
+>  		if (unlikely(error))
+> @@ -1604,6 +1611,12 @@ page_not_up_to_date_locked:
+>  			goto page_ok;
+>  		}
+>  
+> +		if (flags & RWF_NONBLOCK) {
+> +			unlock_page(page);
+> +			page_cache_release(page);
+> +			goto would_block;
+> +		}
+> +
+>  readpage:
+>  		/*
+>  		 * A previous I/O error may have been due to temporary
+> @@ -1674,6 +1687,8 @@ no_cached_page:
+>  		goto readpage;
+>  	}
+>  
+> +would_block:
+> +	error = -EAGAIN;
+>  out:
+>  	ra->prev_pos = prev_index;
+>  	ra->prev_pos <<= PAGE_CACHE_SHIFT;
+> @@ -1707,6 +1722,9 @@ generic_file_read_iter(struct kiocb *iocb, struct iov_iter *iter)
+>  		size_t count = iov_iter_count(iter);
+>  		loff_t size;
+>  
+> +		if (iocb->ki_rwflags & RWF_NONBLOCK)
+> +			return -EAGAIN;
+> +
+>  		if (!count)
+>  			goto out; /* skip atime */
+>  		size = i_size_read(inode);
+> diff --git a/mm/shmem.c b/mm/shmem.c
+> index cd6fc75..5c30f04 100644
+> --- a/mm/shmem.c
+> +++ b/mm/shmem.c
+> @@ -1531,6 +1531,10 @@ static ssize_t shmem_file_read_iter(struct kiocb *iocb, struct iov_iter *to)
+>  	ssize_t retval = 0;
+>  	loff_t *ppos = &iocb->ki_pos;
+>  
+> +	/* XXX: should be easily supportable */
+> +	if (iocb->ki_rwflags & RWF_NONBLOCK)
+> +		return -EAGAIN;
+> +
+>  	/*
+>  	 * Might this read be for a stacking filesystem?  Then when reading
+>  	 * holes of a sparse file, we actually need to allocate those pages,
+> -- 
+> 1.9.1
+> 
+> --
+> To unsubscribe from this list: send the line "unsubscribe ceph-devel" in
+> the body of a message to majordomo@vger.kernel.org
+> More majordomo info at  http://vger.kernel.org/majordomo-info.html
+> 
+> 
