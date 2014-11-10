@@ -1,245 +1,96 @@
-From: Sage Weil <sage@newdream.net>
-Subject: Re: [PATCH v5 7/7] fs: add a flag for per-operation O_DSYNC
- semantics
-Date: Mon, 10 Nov 2014 08:07:58 -0800 (PST)
-Message-ID: <alpine.DEB.2.00.1411100807350.11379@cobra.newdream.net>
-References: <cover.1415220890.git.milosz@adfin.com> <c188b04ede700ce5f986b19de12fa617d158540f.1415220890.git.milosz@adfin.com>
+From: Thierry Reding <thierry.reding@gmail.com>
+Subject: [GIT PULL] asm-generic/io.h overhaul
+Date: Mon, 10 Nov 2014 17:25:23 +0100
+Message-ID: <20141110162520.GA3926@ulmo.nvidia.com>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <c188b04ede700ce5f986b19de12fa617d158540f.1415220890.git.milosz@adfin.com>
-Sender: owner-linux-mm@kvack.org
-To: Milosz Tanski <milosz@adfin.com>
-Cc: linux-kernel@vger.kernel.org, Christoph Hellwig <hch@lst.de>, Christoph Hellwig <hch@infradead.org>, linux-fsdevel@vger.kernel.org, linux-aio@kvack.org, Mel Gorman <mgorman@suse.de>, Volker Lendecke <Volker.Lendecke@sernet.de>, Tejun Heo <tj@kernel.org>, Jeff Moyer <jmoyer@redhat.com>, Theodore Ts'o <tytso@mit.edu>, Al Viro <viro@zeniv.linux.org.uk>, linux-api@vger.kernel.org, Michael Kerrisk <mtk.manpages@gmail.com>, linux-arch@vger.kernel.org, ceph-devel@vger.kernel.org, fuse-devel@lists.sourceforge.net, linux-nfs@vger.kernel.org, ocfs2-devel@oss.oracle.com, linux-mm@kvack.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: multipart/signed; micalg=pgp-sha1;
+	protocol="application/pgp-signature"; boundary="zhXaljGHf11kAtnf"
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-pa0-f46.google.com ([209.85.220.46]:42976 "EHLO
+	mail-pa0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751405AbaKJQZb (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 10 Nov 2014 11:25:31 -0500
+Content-Disposition: inline
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-On Wed, 5 Nov 2014, Milosz Tanski wrote:
-> From: Christoph Hellwig <hch@lst.de>
-> 
-> With the new read/write with flags syscalls we can support a flag
-> to enable O_DSYNC semantics on a per-operation basis.  This ?s
-> useful to implement protocols like SMB, NFS or SCSI that have such
-> per-operation flags.
-> 
-> Example program below:
-> 
-> cat > pwritev2.c << EOF
-> 
->         (off_t) val,                              \
->         (off_t) ((((uint64_t) (val)) >> (sizeof (long) * 4)) >> (sizeof (long) * 4))
-> 
-> static ssize_t
-> pwritev2(int fd, const struct iovec *iov, int iovcnt, off_t offset, int flags)
-> {
->         return syscall(__NR_pwritev2, fd, iov, iovcnt, LO_HI_LONG(offset),
-> 			 flags);
-> }
-> 
-> int main(int argc, char **argv)
-> {
-> 	int fd = open(argv[1], O_WRONLY|O_CREAT|O_TRUNC, 0666);
-> 	char buf[1024];
-> 	struct iovec iov = { .iov_base = buf, .iov_len = 1024 };
-> 	int ret;
-> 
->         if (fd < 0) {
->                 perror("open");
->                 return 0;
->         }
-> 
-> 	memset(buf, 0xfe, sizeof(buf));
-> 
-> 	ret = pwritev2(fd, &iov, 1, 0, RWF_DSYNC);
-> 	if (ret < 0)
-> 		perror("pwritev2");
-> 	else
-> 		printf("ret = %d\n", ret);
-> 
-> 	return 0;
-> }
-> EOF
-> 
-> Signed-off-by: Christoph Hellwig <hch@lst.de>
-> [milosz@adfin.com: added flag check to compat_do_readv_writev()]
-> Signed-off-by: Milosz Tanski <milosz@adfin.com>
 
-Ceph bits
+--zhXaljGHf11kAtnf
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
 
-Acked-by: Sage Weil <sage@redhat.com>
+Hi Arnd,
 
-> ---
->  fs/ceph/file.c     |  4 +++-
->  fs/fuse/file.c     |  2 ++
->  fs/nfs/file.c      | 10 ++++++----
->  fs/ocfs2/file.c    |  6 ++++--
->  fs/read_write.c    | 20 +++++++++++++++-----
->  include/linux/fs.h |  3 ++-
->  mm/filemap.c       |  4 +++-
->  7 files changed, 35 insertions(+), 14 deletions(-)
-> 
-> diff --git a/fs/ceph/file.c b/fs/ceph/file.c
-> index b798b5c..2d4e15a 100644
-> --- a/fs/ceph/file.c
-> +++ b/fs/ceph/file.c
-> @@ -983,7 +983,9 @@ retry_snap:
->  	ceph_put_cap_refs(ci, got);
->  
->  	if (written >= 0 &&
-> -	    ((file->f_flags & O_SYNC) || IS_SYNC(file->f_mapping->host) ||
-> +	    ((file->f_flags & O_SYNC) ||
-> +	     IS_SYNC(file->f_mapping->host) ||
-> +	     (iocb->ki_rwflags & RWF_DSYNC) ||
->  	     ceph_osdmap_flag(osdc->osdmap, CEPH_OSDMAP_NEARFULL))) {
->  		err = vfs_fsync_range(file, pos, pos + written - 1, 1);
->  		if (err < 0)
-> diff --git a/fs/fuse/file.c b/fs/fuse/file.c
-> index caa8d95..bb4fb23 100644
-> --- a/fs/fuse/file.c
-> +++ b/fs/fuse/file.c
-> @@ -1248,6 +1248,8 @@ static ssize_t fuse_file_write_iter(struct kiocb *iocb, struct iov_iter *from)
->  		written += written_buffered;
->  		iocb->ki_pos = pos + written_buffered;
->  	} else {
-> +		if (iocb->ki_rwflags & RWF_DSYNC)
-> +			return -EINVAL;
->  		written = fuse_perform_write(file, mapping, from, pos);
->  		if (written >= 0)
->  			iocb->ki_pos = pos + written;
-> diff --git a/fs/nfs/file.c b/fs/nfs/file.c
-> index aa9046f..c59b0b7 100644
-> --- a/fs/nfs/file.c
-> +++ b/fs/nfs/file.c
-> @@ -652,13 +652,15 @@ static const struct vm_operations_struct nfs_file_vm_ops = {
->  	.remap_pages = generic_file_remap_pages,
->  };
->  
-> -static int nfs_need_sync_write(struct file *filp, struct inode *inode)
-> +static int nfs_need_sync_write(struct kiocb *iocb, struct inode *inode)
->  {
->  	struct nfs_open_context *ctx;
->  
-> -	if (IS_SYNC(inode) || (filp->f_flags & O_DSYNC))
-> +	if (IS_SYNC(inode) ||
-> +	    (iocb->ki_filp->f_flags & O_DSYNC) ||
-> +	    (iocb->ki_rwflags & RWF_DSYNC))
->  		return 1;
-> -	ctx = nfs_file_open_context(filp);
-> +	ctx = nfs_file_open_context(iocb->ki_filp);
->  	if (test_bit(NFS_CONTEXT_ERROR_WRITE, &ctx->flags) ||
->  	    nfs_ctx_key_to_expire(ctx))
->  		return 1;
-> @@ -705,7 +707,7 @@ ssize_t nfs_file_write(struct kiocb *iocb, struct iov_iter *from)
->  		written = result;
->  
->  	/* Return error values for O_DSYNC and IS_SYNC() */
-> -	if (result >= 0 && nfs_need_sync_write(file, inode)) {
-> +	if (result >= 0 && nfs_need_sync_write(iocb, inode)) {
->  		int err = vfs_fsync(file, 0);
->  		if (err < 0)
->  			result = err;
-> diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
-> index bb66ca4..8f9a86b 100644
-> --- a/fs/ocfs2/file.c
-> +++ b/fs/ocfs2/file.c
-> @@ -2374,8 +2374,10 @@ out_dio:
->  	/* buffered aio wouldn't have proper lock coverage today */
->  	BUG_ON(ret == -EIOCBQUEUED && !(file->f_flags & O_DIRECT));
->  
-> -	if (((file->f_flags & O_DSYNC) && !direct_io) || IS_SYNC(inode) ||
-> -	    ((file->f_flags & O_DIRECT) && !direct_io)) {
-> +	if (((file->f_flags & O_DSYNC) && !direct_io) ||
-> +	    IS_SYNC(inode) ||
-> +	    ((file->f_flags & O_DIRECT) && !direct_io) ||
-> +	    (iocb->ki_rwflags & RWF_DSYNC)) {
->  		ret = filemap_fdatawrite_range(file->f_mapping, *ppos,
->  					       *ppos + count - 1);
->  		if (ret < 0)
-> diff --git a/fs/read_write.c b/fs/read_write.c
-> index cba7d4c..3443265 100644
-> --- a/fs/read_write.c
-> +++ b/fs/read_write.c
-> @@ -839,8 +839,13 @@ static ssize_t do_readv_writev(int type, struct file *file,
->  		ret = do_iter_readv_writev(file, type, iov, nr_segs, tot_len,
->  						pos, iter_fn, flags);
->  	} else {
-> -		if (type == READ && (flags & RWF_NONBLOCK))
-> -			return -EAGAIN;
-> +		if (type == READ) {
-> +			if (flags & RWF_NONBLOCK)
-> +				return -EAGAIN;
-> +		} else {
-> +			if (flags & RWF_DSYNC)
-> +				return -EINVAL;
-> +		}
->  
->  		if (fnv)
->  			ret = do_sync_readv_writev(file, iov, nr_segs, tot_len,
-> @@ -888,7 +893,7 @@ ssize_t vfs_writev(struct file *file, const struct iovec __user *vec,
->  		return -EBADF;
->  	if (!(file->f_mode & FMODE_CAN_WRITE))
->  		return -EINVAL;
-> -	if (flags & ~0)
-> +	if (flags & ~RWF_DSYNC)
->  		return -EINVAL;
->  
->  	return do_readv_writev(WRITE, file, vec, vlen, pos, flags);
-> @@ -1080,8 +1085,13 @@ static ssize_t compat_do_readv_writev(int type, struct file *file,
->  		ret = do_iter_readv_writev(file, type, iov, nr_segs, tot_len,
->  						pos, iter_fn, flags);
->  	} else {
-> -		if (type == READ && (flags & RWF_NONBLOCK))
-> -			return -EAGAIN;
-> +		if (type == READ) {
-> +			if (flags & RWF_NONBLOCK)
-> +				return -EAGAIN;
-> +		} else {
-> +			if (flags & RWF_DSYNC)
-> +				return -EINVAL;
-> +		}
->  
->  		if (fnv)
->  			ret = do_sync_readv_writev(file, iov, nr_segs, tot_len,
-> diff --git a/include/linux/fs.h b/include/linux/fs.h
-> index 7d0e116..7786b88 100644
-> --- a/include/linux/fs.h
-> +++ b/include/linux/fs.h
-> @@ -1460,7 +1460,8 @@ struct block_device_operations;
->  #define HAVE_UNLOCKED_IOCTL 1
->  
->  /* These flags are used for the readv/writev syscalls with flags. */
-> -#define RWF_NONBLOCK 0x00000001
-> +#define RWF_NONBLOCK	0x00000001
-> +#define RWF_DSYNC	0x00000002
->  
->  struct iov_iter;
->  
-> diff --git a/mm/filemap.c b/mm/filemap.c
-> index 6107058..4fbef99 100644
-> --- a/mm/filemap.c
-> +++ b/mm/filemap.c
-> @@ -2669,7 +2669,9 @@ int generic_write_sync(struct kiocb *iocb, loff_t count)
->  	struct file *file = iocb->ki_filp;
->  
->  	if (count > 0 &&
-> -	    ((file->f_flags & O_DSYNC) || IS_SYNC(file->f_mapping->host))) {
-> +	    ((file->f_flags & O_DSYNC) ||
-> +	     (iocb->ki_rwflags & RWF_DSYNC) ||
-> +	     IS_SYNC(file->f_mapping->host))) {
->  		bool fdatasync = !(file->f_flags & __O_SYNC);
->  		ssize_t ret = 0;
->  
-> -- 
-> 1.9.1
-> 
-> --
-> To unsubscribe from this list: send the line "unsubscribe ceph-devel" in
-> the body of a message to majordomo@vger.kernel.org
-> More majordomo info at  http://vger.kernel.org/majordomo-info.html
-> 
-> 
+The following changes since commit f114040e3ea6e07372334ade75d1ee0775c355e1:
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+  Linux 3.18-rc1 (2014-10-19 18:08:38 -0700)
+
+are available in the git repository at:
+
+  https://github.com/thierryreding/linux.git asm-generic-io
+
+for you to fetch changes up to 09a5723983e383e7d627fe3191366761722695bc:
+
+  arm64: Use include/asm-generic/io.h (2014-11-10 15:59:23 +0100)
+
+Thanks,
+Thierry
+
+----------------------------------------------------------------
+Arnd Bergmann (1):
+      ARM: ixp4xx: Fix build with IXP4XX_INDIRECT_PCI
+
+Thierry Reding (9):
+      ARC: Remove redundant PCI_IOBASE declaration
+      ARM: ebsa110: Properly override I/O accessors
+      ARM: ixp4xx: Properly override I/O accessors
+      Change xlate_dev_{kmem,mem}_ptr() prototypes
+      /dev/mem: Use more consistent data types
+      asm-generic/io.h: Reconcile I/O accessor overrides
+      asm-generic/io.h: Implement generic {read,write}s*()
+      ARM: Use include/asm-generic/io.h
+      arm64: Use include/asm-generic/io.h
+
+ arch/arc/include/asm/io.h               |   2 -
+ arch/arm/include/asm/io.h               |  89 ++++++--------
+ arch/arm/include/asm/memory.h           |   4 +
+ arch/arm/mach-ebsa110/include/mach/io.h |  25 ++--
+ arch/arm/mach-ebsa110/io.c              |  14 +--
+ arch/arm/mach-ixp4xx/common.c           |   2 +-
+ arch/arm/mach-ixp4xx/include/mach/io.h  |  28 ++++-
+ arch/arm64/Kconfig                      |   1 -
+ arch/arm64/include/asm/io.h             | 122 ++++---------------
+ arch/arm64/include/asm/memory.h         |   2 +
+ arch/ia64/include/asm/uaccess.h         |  16 +--
+ arch/s390/include/asm/io.h              |   5 +-
+ arch/s390/mm/maccess.c                  |   4 +-
+ arch/x86/include/asm/io.h               |   4 +-
+ arch/x86/mm/ioremap.c                   |   4 +-
+ drivers/char/mem.c                      |  13 +-
+ include/asm-generic/io.h                | 716 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++--------------------
+ 17 files changed, 730 insertions(+), 321 deletions(-)
+
+--zhXaljGHf11kAtnf
+Content-Type: application/pgp-signature
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v2
+
+iQIcBAEBAgAGBQJUYObwAAoJEN0jrNd/PrOhb/sQAI95hW/ByOGJe26pj0/Z9BbN
+9SWSZfl0l50AcwxKWgOrwVosyuXXsnqno3nrBuHjMfgb3HoB05FGCVCrxPHrAvWd
+O6clM0xorPKgzgghR/Q5qZnXUzxJZAqLA13loEqmPHJlIMnxOB+OLz6UIKjT/det
+aILw/5iqgdNTMISTC6mfUTGCao69S5wJgcO02U+zVznzSP6IzkDK3UIn7WMrjISQ
+dDBHd/FgA3EpyvKnoeYXb5YKh9PGmMNJL1UTmnRVMzY2RGDOcaaoBnQLv5O4l08Q
+PhzkltQpZe8tWpUGKozOaCBtgeGsNCyQsWtbCeSwVdcOVREdjgagOB8MEPazSGsu
+rQ3KkR9N201ztxEO9E2vo5GgZIETp/viYzGXgZESnEIw/07OIoXHb5AU/s6YCZCX
+ZXk49A2zpOn418oZdkuBXr7yan9izAPVte1AvA+2yMsxVOyg+TmEiDE2tcThOfoe
+z8ERe5QjH+Kr7+SH4IFVDZKgAjgVTGIUS0zCiLgsqAX/oWoMLJbI/E0B/HDoKb33
+AHkHFOwq40zU66pUvjctMR86D7mctHFYmzBnhYC1YJRodWaoIjGqtpbohvgiHTu4
+L84eaBUtpadhCThVGNFEs7yMpEoY45wFQXlewLvb4XSncfMGD+fgDQRRqK3h6Kxx
+NA1TdgTMgUI4ftYz5rDG
+=99DO
+-----END PGP SIGNATURE-----
+
+--zhXaljGHf11kAtnf--
