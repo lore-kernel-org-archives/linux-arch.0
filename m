@@ -1,54 +1,43 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ipmail04.adl6.internode.on.net ([150.101.137.141]:51868 "EHLO
-	ipmail04.adl6.internode.on.net" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1751398AbaKKGoV (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 11 Nov 2014 01:44:21 -0500
-Date: Tue, 11 Nov 2014 17:44:17 +1100
-From: Dave Chinner <david@fromorbit.com>
-Subject: Re: [PATCH v6 0/7] vfs: Non-blockling buffered fs read (page cache
- only)
-Message-ID: <20141111064417.GT23575@dastard>
-References: <cover.1415636409.git.milosz@adfin.com>
+Received: from foss-mx-na.foss.arm.com ([217.140.108.86]:56016 "EHLO
+	foss-mx-na.foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751484AbaKKLlE (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 11 Nov 2014 06:41:04 -0500
+Date: Tue, 11 Nov 2014 11:40:48 +0000
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [GIT PULL] asm-generic/io.h overhaul
+Message-ID: <20141111114047.GD16265@arm.com>
+References: <20141110162520.GA3926@ulmo.nvidia.com>
+ <7499625.xm054LhcvJ@wuerfel>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <cover.1415636409.git.milosz@adfin.com>
+In-Reply-To: <7499625.xm054LhcvJ@wuerfel>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Milosz Tanski <milosz@adfin.com>
-Cc: linux-kernel@vger.kernel.org, Christoph Hellwig <hch@infradead.org>, linux-fsdevel@vger.kernel.org, linux-aio@kvack.org, Mel Gorman <mgorman@suse.de>, Volker Lendecke <Volker.Lendecke@sernet.de>, Tejun Heo <tj@kernel.org>, Jeff Moyer <jmoyer@redhat.com>, Theodore Ts'o <tytso@mit.edu>, Al Viro <viro@zeniv.linux.org.uk>, linux-api@vger.kernel.org, Michael Kerrisk <mtk.manpages@gmail.com>, linux-arch@vger.kernel.org
-Message-ID: <20141111064417.2f0LpvkG33aOaV7fnV0K4N52-lXvGYGob_kTNbLDGLU@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Thierry Reding <thierry.reding@gmail.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
+Message-ID: <20141111114048.YstPyptHm-InPQIeGmfnmDro8CCuVlt4bbHv5pxXPt4@z>
 
-On Mon, Nov 10, 2014 at 11:40:23AM -0500, Milosz Tanski wrote:
-> This patcheset introduces an ability to perform a non-blocking read from
-> regular files in buffered IO mode. This works by only for those filesystems
-> that have data in the page cache.
+Hi Arnd,
+
+On Mon, Nov 10, 2014 at 05:01:27PM +0000, Arnd Bergmann wrote:
+> On Monday 10 November 2014 17:25:23 Thierry Reding wrote:
+> > The following changes since commit f114040e3ea6e07372334ade75d1ee0775c355e1:
+> > 
+> >   Linux 3.18-rc1 (2014-10-19 18:08:38 -0700)
+> > 
+> > are available in the git repository at:
+> > 
+> >   https://github.com/thierryreding/linux.git asm-generic-io
+> > 
+> > for you to fetch changes up to 09a5723983e383e7d627fe3191366761722695bc:
+> > 
+> >   arm64: Use include/asm-generic/io.h (2014-11-10 15:59:23 +0100)
 > 
-> It does this by introducing new syscalls new syscalls preadv2/pwritev2. These
-> new syscalls behave like the network sendmsg, recvmsg syscalls that accept an
-> extra flag argument (RWF_NONBLOCK).
-> 
-> It's a very common patern today (samba, libuv, etc..) use a large threadpool to
-> perform buffered IO operations. They submit the work form another thread
-> that performs network IO and epoll or other threads that perform CPU work. This
-> leads to increased latency for processing, esp. in the case of data that's
-> already cached in the page cache.
-> 
-> With the new interface the applications will now be able to fetch the data in
-> their network / cpu bound thread(s) and only defer to a threadpool if it's not
-> there. In our own application (VLDB) we've observed a decrease in latency for
-> "fast" request by avoiding unnecessary queuing and having to swap out current
-> tasks in IO bound work threads.
+> I've pulled this into my asm-generic branch again now, let's see if
+> anything breaks.
 
-Can you write a test (or set of) for fstests that exercises this new
-functionality? I'm not worried about performance, just
-correctness....
+Any chance you could try merging in the relaxed accessors too, please?
 
-Cheers,
-
-Dave.
-
--- 
-Dave Chinner
-david@fromorbit.com
+Will
