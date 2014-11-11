@@ -1,38 +1,84 @@
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [GIT PULL] asm-generic/io.h overhaul
-Date: Tue, 11 Nov 2014 11:40:48 +0000
-Message-ID: <20141111114047.GD16265@arm.com>
-References: <20141110162520.GA3926@ulmo.nvidia.com>
- <7499625.xm054LhcvJ@wuerfel>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <7499625.xm054LhcvJ@wuerfel>
-Sender: linux-kernel-owner@vger.kernel.org
+From: Thierry Reding <thierry.reding@gmail.com>
+Subject: [PATCH] ARM: sa11x0: Use void __iomem * in MMIO accessors
+Date: Tue, 11 Nov 2014 13:51:48 +0100
+Message-ID: <1415710308-29662-1-git-send-email-thierry.reding@gmail.com>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-wg0-f47.google.com ([74.125.82.47]:40598 "EHLO
+	mail-wg0-f47.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751306AbaKKMvv (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 11 Nov 2014 07:51:51 -0500
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Arnd Bergmann <arnd@arndb.de>
-Cc: Thierry Reding <thierry.reding@gmail.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
-List-Id: linux-arch.vger.kernel.org
+Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org
 
+From: Thierry Reding <treding@nvidia.com>
+
+MMIO accessors such as readl() and writel() want a void __iomem * for
+the address. Update the BSE nanoEngine PCI driver to pass such pointers
+instead of unsigned long in preparation to converting ARM to use generic
+and more rigidly typed accessors.
+
+Reported-by: kbuild test robot <fengguang.wu@intel.com>
+Signed-off-by: Thierry Reding <treding@nvidia.com>
+---
 Hi Arnd,
 
-On Mon, Nov 10, 2014 at 05:01:27PM +0000, Arnd Bergmann wrote:
-> On Monday 10 November 2014 17:25:23 Thierry Reding wrote:
-> > The following changes since commit f114040e3ea6e07372334ade75d1ee0775c355e1:
-> > 
-> >   Linux 3.18-rc1 (2014-10-19 18:08:38 -0700)
-> > 
-> > are available in the git repository at:
-> > 
-> >   https://github.com/thierryreding/linux.git asm-generic-io
-> > 
-> > for you to fetch changes up to 09a5723983e383e7d627fe3191366761722695bc:
-> > 
-> >   arm64: Use include/asm-generic/io.h (2014-11-10 15:59:23 +0100)
-> 
-> I've pulled this into my asm-generic branch again now, let's see if
-> anything breaks.
+This is a follow-up patch to the asm-generic/io.h overhaul series that
+fixes a couple of build warnings reported by Fengguang's build system.
+I've sorted this near the beginning of the series, like so:
 
-Any chance you could try merging in the relaxed accessors too, please?
+	ARM: ebsa110: Properly override I/O accessors
+	ARM: sa11x0: Use void __iomem * in MMIO accessors
+	ARC: Remove redundant PCI_IOBASE declaration
 
-Will
+But I think anywhere before commit
+
+	ARM: Use include/asm-generic/io.h
+
+should be fine, too.
+
+Thierry
+
+ arch/arm/mach-sa1100/pci-nanoengine.c | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/arch/arm/mach-sa1100/pci-nanoengine.c b/arch/arm/mach-sa1100/pci-nanoengine.c
+index ff02e2da99f2..b704433c529c 100644
+--- a/arch/arm/mach-sa1100/pci-nanoengine.c
++++ b/arch/arm/mach-sa1100/pci-nanoengine.c
+@@ -33,12 +33,12 @@
+ static DEFINE_SPINLOCK(nano_lock);
+ 
+ static int nanoengine_get_pci_address(struct pci_bus *bus,
+-	unsigned int devfn, int where, unsigned long *address)
++	unsigned int devfn, int where, void __iomem **address)
+ {
+ 	int ret = PCIBIOS_DEVICE_NOT_FOUND;
+ 	unsigned int busnr = bus->number;
+ 
+-	*address = NANO_PCI_CONFIG_SPACE_VIRT +
++	*address = (void __iomem *)NANO_PCI_CONFIG_SPACE_VIRT +
+ 		((bus->number << 16) | (devfn << 8) | (where & ~3));
+ 
+ 	ret = (busnr > 255 || devfn > 255 || where > 255) ?
+@@ -51,7 +51,7 @@ static int nanoengine_read_config(struct pci_bus *bus, unsigned int devfn, int w
+ 	int size, u32 *val)
+ {
+ 	int ret;
+-	unsigned long address;
++	void __iomem *address;
+ 	unsigned long flags;
+ 	u32 v;
+ 
+@@ -85,7 +85,7 @@ static int nanoengine_write_config(struct pci_bus *bus, unsigned int devfn, int
+ 	int size, u32 val)
+ {
+ 	int ret;
+-	unsigned long address;
++	void __iomem *address;
+ 	unsigned long flags;
+ 	unsigned shift;
+ 	u32 v;
+-- 
+2.1.3
