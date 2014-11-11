@@ -1,75 +1,54 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bn1on0072.outbound.protection.outlook.com ([157.56.110.72]:56384
-	"EHLO na01-bn1-obe.outbound.protection.outlook.com"
-	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1751293AbaKKDAW convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 10 Nov 2014 22:00:22 -0500
-Message-ID: <1415674805.2445.0.camel@leyfoon-vm>
-Subject: Re: [PATCH v6 00/29] nios2 Linux kernel port
-From: Ley Foon Tan <lftan@altera.com>
-Date: Tue, 11 Nov 2014 11:00:05 +0800
-In-Reply-To: <20141110001250.7fc64233@canb.auug.org.au>
-References: <1415011945-3297-1-git-send-email-lftan@altera.com>
-	 <CAFiDJ5_6HOPH_g6+Z1GwE87qXaGtnyUZdPvFCbC7E3v0+7o3VA@mail.gmail.com>
-	 <CAFiDJ5_opOE5g14y1A7X3mn3H0ZOGV0kLVhEJnSrt3n47Nn2bQ@mail.gmail.com>
-	 <20141110001250.7fc64233@canb.auug.org.au>
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 8BIT
+Received: from ipmail04.adl6.internode.on.net ([150.101.137.141]:51868 "EHLO
+	ipmail04.adl6.internode.on.net" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1751398AbaKKGoV (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Tue, 11 Nov 2014 01:44:21 -0500
+Date: Tue, 11 Nov 2014 17:44:17 +1100
+From: Dave Chinner <david@fromorbit.com>
+Subject: Re: [PATCH v6 0/7] vfs: Non-blockling buffered fs read (page cache
+ only)
+Message-ID: <20141111064417.GT23575@dastard>
+References: <cover.1415636409.git.milosz@adfin.com>
 MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <cover.1415636409.git.milosz@adfin.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Stephen Rothwell <sfr@canb.auug.org.au>
-Cc: Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, LeyFoon Tan <lftan.linux@gmail.com>, Chung-Lin Tang <cltang@codesourcery.com>
-Message-ID: <20141111030005._Nf_75bfUZ7kfb68tJdCW3EHqh-ZfJqFL3Z8T3uUYbI@z>
+To: Milosz Tanski <milosz@adfin.com>
+Cc: linux-kernel@vger.kernel.org, Christoph Hellwig <hch@infradead.org>, linux-fsdevel@vger.kernel.org, linux-aio@kvack.org, Mel Gorman <mgorman@suse.de>, Volker Lendecke <Volker.Lendecke@sernet.de>, Tejun Heo <tj@kernel.org>, Jeff Moyer <jmoyer@redhat.com>, Theodore Ts'o <tytso@mit.edu>, Al Viro <viro@zeniv.linux.org.uk>, linux-api@vger.kernel.org, Michael Kerrisk <mtk.manpages@gmail.com>, linux-arch@vger.kernel.org
+Message-ID: <20141111064417.2f0LpvkG33aOaV7fnV0K4N52-lXvGYGob_kTNbLDGLU@z>
 
-On Isn, 2014-11-10 at 00:12 +1100, Stephen Rothwell wrote:
-> Hi,
+On Mon, Nov 10, 2014 at 11:40:23AM -0500, Milosz Tanski wrote:
+> This patcheset introduces an ability to perform a non-blocking read from
+> regular files in buffered IO mode. This works by only for those filesystems
+> that have data in the page cache.
 > 
-> On Fri, 7 Nov 2014 17:24:43 +0800 Ley Foon Tan <lftan@altera.com> wrote:
-> >
-> > On Fri, Nov 7, 2014 at 3:39 PM, LF.Tan <lftan.linux@gmail.com> wrote:
-> > >
-> > > Review for Nios2 port is completed and ready for upstream. Can you
-> > > please add nios2 patchset to linux-next?
-> > >
-> > > The following changes since commit 0df1f2487d2f0d04703f142813d53615d62a1da4:
-> > >
-> > >   Linux 3.18-rc3 (2014-11-02 15:01:51 -0800)
-> > >
-> > > are available in the git repository at:
-> > >
-> > >   http://git.rocketboards.org/linux-socfpga-next.git tags/nios2-for-linux-next
-> > >
-> > > for you to fetch changes up to 1b9e67a57ac633f407de11b36d8f996c368a8c66:
-> > >
-> > >   nios2: Build infrastructure (2014-11-06 15:23:37 +0800)
-> >
-> > By the way, I also created "nios2-next" branch for you to add to linux-next.
-> > 
-> > git://git.rocketboards.org/linux-socfpga-next.git nios2-next
+> It does this by introducing new syscalls new syscalls preadv2/pwritev2. These
+> new syscalls behave like the network sendmsg, recvmsg syscalls that accept an
+> extra flag argument (RWF_NONBLOCK).
 > 
-> Added from Monday with just you as the contact.
+> It's a very common patern today (samba, libuv, etc..) use a large threadpool to
+> perform buffered IO operations. They submit the work form another thread
+> that performs network IO and epoll or other threads that perform CPU work. This
+> leads to increased latency for processing, esp. in the case of data that's
+> already cached in the page cache.
 > 
-> Thanks for adding your subsystem tree as a participant of linux-next.  As
-> you may know, this is not a judgment of your code.  The purpose of
-> linux-next is for integration testing and to lower the impact of
-> conflicts between subsystems in the next merge window. 
-> 
-> You will need to ensure that the patches/commits in your tree/series have
-> been:
->      * submitted under GPL v2 (or later) and include the Contributor's
->         Signed-off-by,
->      * posted to the relevant mailing list,
->      * reviewed by you (or another maintainer of your subsystem tree),
->      * successfully unit tested, and 
->      * destined for the current or next Linux merge window.
-> 
-> Basically, this should be just what you would send to Linus (or ask him
-> to fetch).  It is allowed to be rebased if you deem it necessary.
-Thanks. Saw it in linux-next.
+> With the new interface the applications will now be able to fetch the data in
+> their network / cpu bound thread(s) and only defer to a threadpool if it's not
+> there. In our own application (VLDB) we've observed a decrease in latency for
+> "fast" request by avoiding unnecessary queuing and having to swap out current
+> tasks in IO bound work threads.
 
-Regards
-Ley Foon
+Can you write a test (or set of) for fstests that exercises this new
+functionality? I'm not worried about performance, just
+correctness....
 
+Cheers,
 
+Dave.
 
+-- 
+Dave Chinner
+david@fromorbit.com
