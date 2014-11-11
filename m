@@ -1,69 +1,86 @@
-From: Ley Foon Tan <lftan@altera.com>
-Subject: Re: [PATCH v6 00/29] nios2 Linux kernel port
-Date: Tue, 11 Nov 2014 11:00:05 +0800
-Message-ID: <1415674805.2445.0.camel@leyfoon-vm>
-References: <1415011945-3297-1-git-send-email-lftan@altera.com>
-	 <CAFiDJ5_6HOPH_g6+Z1GwE87qXaGtnyUZdPvFCbC7E3v0+7o3VA@mail.gmail.com>
-	 <CAFiDJ5_opOE5g14y1A7X3mn3H0ZOGV0kLVhEJnSrt3n47Nn2bQ@mail.gmail.com>
-	 <20141110001250.7fc64233@canb.auug.org.au>
+From: Bjorn Helgaas <bhelgaas@google.com>
+Subject: Re: [PATCH] pci, add FW_BUG warning to pci= kernel option
+Date: Mon, 10 Nov 2014 20:59:02 -0700
+Message-ID: <20141111035902.GC28161@google.com>
+References: <1414865479-25792-1-git-send-email-prarit@redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 8BIT
-Return-path: <linux-doc-owner@vger.kernel.org>
-In-Reply-To: <20141110001250.7fc64233@canb.auug.org.au>
-Sender: linux-doc-owner@vger.kernel.org
-To: Stephen Rothwell <sfr@canb.auug.org.au>
-Cc: Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, LeyFoon Tan <lftan.linux@gmail.com>, Chung-Lin Tang <cltang@codesourcery.com>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-ig0-f169.google.com ([209.85.213.169]:36536 "EHLO
+	mail-ig0-f169.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751328AbaKKD7H (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 10 Nov 2014 22:59:07 -0500
+Received: by mail-ig0-f169.google.com with SMTP id hn18so461518igb.0
+        for <linux-arch@vger.kernel.org>; Mon, 10 Nov 2014 19:59:06 -0800 (PST)
+Content-Disposition: inline
+In-Reply-To: <1414865479-25792-1-git-send-email-prarit@redhat.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Prarit Bhargava <prarit@redhat.com>
+Cc: linux-pci@vger.kernel.org, Myron Stowe <mstowe@redhat.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>
 
-On Isn, 2014-11-10 at 00:12 +1100, Stephen Rothwell wrote:
-> Hi,
-> 
-> On Fri, 7 Nov 2014 17:24:43 +0800 Ley Foon Tan <lftan@altera.com> wrote:
-> >
-> > On Fri, Nov 7, 2014 at 3:39 PM, LF.Tan <lftan.linux@gmail.com> wrote:
-> > >
-> > > Review for Nios2 port is completed and ready for upstream. Can you
-> > > please add nios2 patchset to linux-next?
-> > >
-> > > The following changes since commit 0df1f2487d2f0d04703f142813d53615d62a1da4:
-> > >
-> > >   Linux 3.18-rc3 (2014-11-02 15:01:51 -0800)
-> > >
-> > > are available in the git repository at:
-> > >
-> > >   http://git.rocketboards.org/linux-socfpga-next.git tags/nios2-for-linux-next
-> > >
-> > > for you to fetch changes up to 1b9e67a57ac633f407de11b36d8f996c368a8c66:
-> > >
-> > >   nios2: Build infrastructure (2014-11-06 15:23:37 +0800)
-> >
-> > By the way, I also created "nios2-next" branch for you to add to linux-next.
-> > 
-> > git://git.rocketboards.org/linux-socfpga-next.git nios2-next
-> 
-> Added from Monday with just you as the contact.
-> 
-> Thanks for adding your subsystem tree as a participant of linux-next.  As
-> you may know, this is not a judgment of your code.  The purpose of
-> linux-next is for integration testing and to lower the impact of
-> conflicts between subsystems in the next merge window. 
-> 
-> You will need to ensure that the patches/commits in your tree/series have
-> been:
->      * submitted under GPL v2 (or later) and include the Contributor's
->         Signed-off-by,
->      * posted to the relevant mailing list,
->      * reviewed by you (or another maintainer of your subsystem tree),
->      * successfully unit tested, and 
->      * destined for the current or next Linux merge window.
-> 
-> Basically, this should be just what you would send to Linus (or ask him
-> to fetch).  It is allowed to be rebased if you deem it necessary.
-Thanks. Saw it in linux-next.
+[+cc lkml, linux-arch, Linus]
 
-Regards
-Ley Foon
+On Sat, Nov 01, 2014 at 02:11:19PM -0400, Prarit Bhargava wrote:
+> The kernel should boot PCI without the use of kernel parameters.  Display
+> a FW_BUG warning when pci= is used.
+> 
+> Cc: Myron Stowe <mstowe@redhat.com>
+> Cc: linux-pci@vger.kernel.org
+> Signed-off-by: Prarit Bhargava <prarit@redhat.com>
+> ---
+>  drivers/pci/pci.c |    2 ++
+>  1 file changed, 2 insertions(+)
+> 
+> diff --git a/drivers/pci/pci.c b/drivers/pci/pci.c
+> index 625a4ac..5172060b 100644
+> --- a/drivers/pci/pci.c
+> +++ b/drivers/pci/pci.c
+> @@ -4515,6 +4515,8 @@ static int __init pci_setup(char *str)
+>  		}
+>  		str = k;
+>  	}
+> +	add_taint(TAINT_FIRMWARE_WORKAROUND, LOCKDEP_STILL_OK);
+> +	pr_crit(FW_BUG "The PCI configuration has been overridden thorugh the use of pci=.  Please report the issue you are attempting to resolve to your hardware vendor.\n");
 
+My goal is to be able to boot without any "pci=" parameters, so from that
+perspective, I like this.
 
+When people have a problem booting Linux, they often try a variety of
+things like "pci=assign-busses", "pci=nocrs", "pci=nomsi", "pci=nommconf",
+"pci=noacpi", etc.  If they find something that works, there's a tendency
+to treat that as a "solution."  I'd rather that they report it, so we can
+try to fix the bug or add a quirk so the *next* person won't have to figure
+out the right parameters to use.
 
+My worry is that there are a few things where Linux isn't smart enough to
+do the right thing automatically, and I don't think we'll have a good
+solution in the near future.  For example:
+
+    pci=norom
+    pci=pcie_bus_perf,pcie_bus_safe,etc.
+    pci=cbiosize=...
+    pci=cbmemsize=...
+    pci=resource_alignment=...
+    pci=hpiosize=...
+    pci=hpmemsize=...
+    pci=realloc
+
+I don't like the fact that these options exist, but I suspect there are
+users that do depend on them and might find this warning too aggressive.
+
+So I'm interested in opinions on whether this is a good idea at all and
+whether we should exclude some options from the warning/tainting.
+
+Bjorn
+
+>  	return 0;
+>  }
+>  early_param("pci", pci_setup);
+> -- 
+> 1.7.9.3
+> 
+> --
+> To unsubscribe from this list: send the line "unsubscribe linux-pci" in
+> the body of a message to majordomo@vger.kernel.org
+> More majordomo info at  http://vger.kernel.org/majordomo-info.html
