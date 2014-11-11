@@ -1,84 +1,69 @@
-From: Thierry Reding <thierry.reding@gmail.com>
-Subject: [PATCH] ARM: sa11x0: Use void __iomem * in MMIO accessors
-Date: Tue, 11 Nov 2014 13:51:48 +0100
-Message-ID: <1415710308-29662-1-git-send-email-thierry.reding@gmail.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wg0-f47.google.com ([74.125.82.47]:40598 "EHLO
-	mail-wg0-f47.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751306AbaKKMvv (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 11 Nov 2014 07:51:51 -0500
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org
+From: Milosz Tanski <milosz@adfin.com>
+Subject: Re: [PATCH v6 0/7] vfs: Non-blockling buffered fs read (page cache only)
+Date: Tue, 11 Nov 2014 11:02:00 -0500
+Message-ID: <CANP1eJHfWT0Foe+weB1SJkJ10JnOge_g=E8CXBsQNPW7i2+4NA@mail.gmail.com>
+References: <cover.1415636409.git.milosz@adfin.com>
+	<20141111064417.GT23575@dastard>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Return-path: <owner-linux-aio@kvack.org>
+In-Reply-To: <20141111064417.GT23575@dastard>
+Sender: owner-linux-aio@kvack.org
+To: Dave Chinner <david@fromorbit.com>
+Cc: LKML <linux-kernel@vger.kernel.org>, Christoph Hellwig <hch@infradead.org>, "linux-fsdevel@vger.kernel.org" <linux-fsdevel@vger.kernel.org>, "linux-aio@kvack.org" <linux-aio@kvack.org>, Mel Gorman <mgorman@suse.de>, Volker Lendecke <Volker.Lendecke@sernet.de>, Tejun Heo <tj@kernel.org>, Jeff Moyer <jmoyer@redhat.com>, Theodore Ts'o <tytso@mit.edu>, Al Viro <viro@zeniv.linux.org.uk>, Linux API <linux-api@vger.kernel.org>, Michael Kerrisk <mtk.manpages@gmail.com>, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-From: Thierry Reding <treding@nvidia.com>
+On Tue, Nov 11, 2014 at 1:44 AM, Dave Chinner <david@fromorbit.com> wrote:
+> On Mon, Nov 10, 2014 at 11:40:23AM -0500, Milosz Tanski wrote:
+>> This patcheset introduces an ability to perform a non-blocking read from
+>> regular files in buffered IO mode. This works by only for those filesystems
+>> that have data in the page cache.
+>>
+>> It does this by introducing new syscalls new syscalls preadv2/pwritev2. These
+>> new syscalls behave like the network sendmsg, recvmsg syscalls that accept an
+>> extra flag argument (RWF_NONBLOCK).
+>>
+>> It's a very common patern today (samba, libuv, etc..) use a large threadpool to
+>> perform buffered IO operations. They submit the work form another thread
+>> that performs network IO and epoll or other threads that perform CPU work. This
+>> leads to increased latency for processing, esp. in the case of data that's
+>> already cached in the page cache.
+>>
+>> With the new interface the applications will now be able to fetch the data in
+>> their network / cpu bound thread(s) and only defer to a threadpool if it's not
+>> there. In our own application (VLDB) we've observed a decrease in latency for
+>> "fast" request by avoiding unnecessary queuing and having to swap out current
+>> tasks in IO bound work threads.
+>
+> Can you write a test (or set of) for fstests that exercises this new
+> functionality? I'm not worried about performance, just
+> correctness....
 
-MMIO accessors such as readl() and writel() want a void __iomem * for
-the address. Update the BSE nanoEngine PCI driver to pass such pointers
-instead of unsigned long in preparation to converting ARM to use generic
-and more rigidly typed accessors.
+Sure thing. Can you point me at the fstests repo? A quick google
+search reveals lots of projects named fstests, most of them abandoned.
 
-Reported-by: kbuild test robot <fengguang.wu@intel.com>
-Signed-off-by: Thierry Reding <treding@nvidia.com>
----
-Hi Arnd,
+>
+> Cheers,
+>
+> Dave.
+>
+> --
+> Dave Chinner
+> david@fromorbit.com
 
-This is a follow-up patch to the asm-generic/io.h overhaul series that
-fixes a couple of build warnings reported by Fengguang's build system.
-I've sorted this near the beginning of the series, like so:
 
-	ARM: ebsa110: Properly override I/O accessors
-	ARM: sa11x0: Use void __iomem * in MMIO accessors
-	ARC: Remove redundant PCI_IOBASE declaration
 
-But I think anywhere before commit
-
-	ARM: Use include/asm-generic/io.h
-
-should be fine, too.
-
-Thierry
-
- arch/arm/mach-sa1100/pci-nanoengine.c | 8 ++++----
- 1 file changed, 4 insertions(+), 4 deletions(-)
-
-diff --git a/arch/arm/mach-sa1100/pci-nanoengine.c b/arch/arm/mach-sa1100/pci-nanoengine.c
-index ff02e2da99f2..b704433c529c 100644
---- a/arch/arm/mach-sa1100/pci-nanoengine.c
-+++ b/arch/arm/mach-sa1100/pci-nanoengine.c
-@@ -33,12 +33,12 @@
- static DEFINE_SPINLOCK(nano_lock);
- 
- static int nanoengine_get_pci_address(struct pci_bus *bus,
--	unsigned int devfn, int where, unsigned long *address)
-+	unsigned int devfn, int where, void __iomem **address)
- {
- 	int ret = PCIBIOS_DEVICE_NOT_FOUND;
- 	unsigned int busnr = bus->number;
- 
--	*address = NANO_PCI_CONFIG_SPACE_VIRT +
-+	*address = (void __iomem *)NANO_PCI_CONFIG_SPACE_VIRT +
- 		((bus->number << 16) | (devfn << 8) | (where & ~3));
- 
- 	ret = (busnr > 255 || devfn > 255 || where > 255) ?
-@@ -51,7 +51,7 @@ static int nanoengine_read_config(struct pci_bus *bus, unsigned int devfn, int w
- 	int size, u32 *val)
- {
- 	int ret;
--	unsigned long address;
-+	void __iomem *address;
- 	unsigned long flags;
- 	u32 v;
- 
-@@ -85,7 +85,7 @@ static int nanoengine_write_config(struct pci_bus *bus, unsigned int devfn, int
- 	int size, u32 val)
- {
- 	int ret;
--	unsigned long address;
-+	void __iomem *address;
- 	unsigned long flags;
- 	unsigned shift;
- 	u32 v;
 -- 
-2.1.3
+Milosz Tanski
+CTO
+16 East 34th Street, 15th floor
+New York, NY 10016
+
+p: 646-253-9055
+e: milosz@adfin.com
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-aio' in
+the body to majordomo@kvack.org.  For more info on Linux AIO,
+see: http://www.kvack.org/aio/
+Don't email: <a href=mailto:"aart@kvack.org">aart@kvack.org</a>
