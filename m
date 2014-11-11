@@ -1,54 +1,51 @@
-From: Dave Chinner <david@fromorbit.com>
-Subject: Re: [PATCH v6 0/7] vfs: Non-blockling buffered fs read (page cache
- only)
-Date: Tue, 11 Nov 2014 17:44:17 +1100
-Message-ID: <20141111064417.GT23575@dastard>
-References: <cover.1415636409.git.milosz@adfin.com>
+From: Richard Weinberger <richard@nod.at>
+Subject: Re: [PATCH v2] all arches, signal: Move restart_block to struct task_struct
+Date: Tue, 11 Nov 2014 11:52:27 +0100
+Message-ID: <5461EA6B.9020305@nod.at>
+References: <43c88012a4959cd427ab634906e697fbc524e847.1414604015.git.luto@amacapital.net>	<alpine.DEB.2.11.1410291908290.5308@nanos>	<CALCETrWtBCFXzwCAh8fpeFv-EvPxYW20oRmFk1iCYwUvpft=Rw@mail.gmail.com> <20141110.211319.1983610686941713044.davem@davemloft.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <owner-linux-aio@kvack.org>
-Content-Disposition: inline
-In-Reply-To: <cover.1415636409.git.milosz@adfin.com>
-Sender: owner-linux-aio@kvack.org
-To: Milosz Tanski <milosz@adfin.com>
-Cc: linux-kernel@vger.kernel.org, Christoph Hellwig <hch@infradead.org>, linux-fsdevel@vger.kernel.org, linux-aio@kvack.org, Mel Gorman <mgorman@suse.de>, Volker Lendecke <Volker.Lendecke@sernet.de>, Tejun Heo <tj@kernel.org>, Jeff Moyer <jmoyer@redhat.com>, Theodore Ts'o <tytso@mit.edu>, Al Viro <viro@zeniv.linux.org.uk>, linux-api@vger.kernel.org, Michael Kerrisk <mtk.manpages@gmail.com>, linux-arch@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=windows-1252
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from a.ns.miles-group.at ([95.130.255.143]:65275 "EHLO radon.swed.at"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752326AbaKKKwd (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 11 Nov 2014 05:52:33 -0500
+In-Reply-To: <20141110.211319.1983610686941713044.davem@davemloft.net>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: David Miller <davem@davemloft.net>, luto@amacapital.net
+Cc: tglx@linutronix.de, linux-kernel@vger.kernel.org, akpm@linux-foundation.org, linux-arch@vger.kernel.org, viro@zeniv.linux.org.uk, richard.weinberger@gmail.com, hpa@zytor.com, mingo@kernel.org, keescook@chromium.org
 
-On Mon, Nov 10, 2014 at 11:40:23AM -0500, Milosz Tanski wrote:
-> This patcheset introduces an ability to perform a non-blocking read from
-> regular files in buffered IO mode. This works by only for those filesystems
-> that have data in the page cache.
+Am 11.11.2014 um 03:13 schrieb David Miller:
+> From: Andy Lutomirski <luto@amacapital.net>
+> Date: Mon, 10 Nov 2014 14:03:23 -0800
 > 
-> It does this by introducing new syscalls new syscalls preadv2/pwritev2. These
-> new syscalls behave like the network sendmsg, recvmsg syscalls that accept an
-> extra flag argument (RWF_NONBLOCK).
+>> On Wed, Oct 29, 2014 at 11:12 AM, Thomas Gleixner <tglx@linutronix.de> wrote:
+>>> On Wed, 29 Oct 2014, Andy Lutomirski wrote:
+>>>
+>>>> If an attacker can cause a controlled kernel stack overflow,
+>>>> overwriting the restart block is a very juicy exploit target.
+>>>> Moving the restart block to struct task_struct prevents this
+>>>> exploit.
+>>>>
+>>>> Note that there are other fields in thread_info that are also easy
+>>>> targets, at least on some architectures.
+>>>>
+>>>> It's also a decent simplification, since the restart code is more or
+>>>> less identical on all architectures.
+>>>
+>>> I think that's the most important change. Moving common stuff into
+>>> common code. The side effect of slightly reducing the attack surface
+>>> is nice, but as Al pointed out not really the big win here.
+>>
+>> Having gotten exactly zero feedback from any arch maintainer outside
+>> of x86, am I supposed to pester people further?
 > 
-> It's a very common patern today (samba, libuv, etc..) use a large threadpool to
-> perform buffered IO operations. They submit the work form another thread
-> that performs network IO and epoll or other threads that perform CPU work. This
-> leads to increased latency for processing, esp. in the case of data that's
-> already cached in the page cache.
-> 
-> With the new interface the applications will now be able to fetch the data in
-> their network / cpu bound thread(s) and only defer to a threadpool if it's not
-> there. In our own application (VLDB) we've observed a decrease in latency for
-> "fast" request by avoiding unnecessary queuing and having to swap out current
-> tasks in IO bound work threads.
+> No objections wrt. sparc and if things break I'll help fix it.
 
-Can you write a test (or set of) for fstests that exercises this new
-functionality? I'm not worried about performance, just
-correctness....
+Same for UML.
+Acked-by: Richard Weinberger <richard@nod.at>
 
-Cheers,
-
-Dave.
-
--- 
-Dave Chinner
-david@fromorbit.com
-
---
-To unsubscribe, send a message with 'unsubscribe linux-aio' in
-the body to majordomo@kvack.org.  For more info on Linux AIO,
-see: http://www.kvack.org/aio/
-Don't email: <a href=mailto:"aart@kvack.org">aart@kvack.org</a>
+Thanks,
+//richard
