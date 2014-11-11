@@ -1,51 +1,38 @@
-From: Richard Weinberger <richard@nod.at>
-Subject: Re: [PATCH v2] all arches, signal: Move restart_block to struct task_struct
-Date: Tue, 11 Nov 2014 11:52:27 +0100
-Message-ID: <5461EA6B.9020305@nod.at>
-References: <43c88012a4959cd427ab634906e697fbc524e847.1414604015.git.luto@amacapital.net>	<alpine.DEB.2.11.1410291908290.5308@nanos>	<CALCETrWtBCFXzwCAh8fpeFv-EvPxYW20oRmFk1iCYwUvpft=Rw@mail.gmail.com> <20141110.211319.1983610686941713044.davem@davemloft.net>
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [GIT PULL] asm-generic/io.h overhaul
+Date: Tue, 11 Nov 2014 11:40:48 +0000
+Message-ID: <20141111114047.GD16265@arm.com>
+References: <20141110162520.GA3926@ulmo.nvidia.com>
+ <7499625.xm054LhcvJ@wuerfel>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=windows-1252
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from a.ns.miles-group.at ([95.130.255.143]:65275 "EHLO radon.swed.at"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752326AbaKKKwd (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 11 Nov 2014 05:52:33 -0500
-In-Reply-To: <20141110.211319.1983610686941713044.davem@davemloft.net>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: David Miller <davem@davemloft.net>, luto@amacapital.net
-Cc: tglx@linutronix.de, linux-kernel@vger.kernel.org, akpm@linux-foundation.org, linux-arch@vger.kernel.org, viro@zeniv.linux.org.uk, richard.weinberger@gmail.com, hpa@zytor.com, mingo@kernel.org, keescook@chromium.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <7499625.xm054LhcvJ@wuerfel>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Thierry Reding <thierry.reding@gmail.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-Am 11.11.2014 um 03:13 schrieb David Miller:
-> From: Andy Lutomirski <luto@amacapital.net>
-> Date: Mon, 10 Nov 2014 14:03:23 -0800
+Hi Arnd,
+
+On Mon, Nov 10, 2014 at 05:01:27PM +0000, Arnd Bergmann wrote:
+> On Monday 10 November 2014 17:25:23 Thierry Reding wrote:
+> > The following changes since commit f114040e3ea6e07372334ade75d1ee0775c355e1:
+> > 
+> >   Linux 3.18-rc1 (2014-10-19 18:08:38 -0700)
+> > 
+> > are available in the git repository at:
+> > 
+> >   https://github.com/thierryreding/linux.git asm-generic-io
+> > 
+> > for you to fetch changes up to 09a5723983e383e7d627fe3191366761722695bc:
+> > 
+> >   arm64: Use include/asm-generic/io.h (2014-11-10 15:59:23 +0100)
 > 
->> On Wed, Oct 29, 2014 at 11:12 AM, Thomas Gleixner <tglx@linutronix.de> wrote:
->>> On Wed, 29 Oct 2014, Andy Lutomirski wrote:
->>>
->>>> If an attacker can cause a controlled kernel stack overflow,
->>>> overwriting the restart block is a very juicy exploit target.
->>>> Moving the restart block to struct task_struct prevents this
->>>> exploit.
->>>>
->>>> Note that there are other fields in thread_info that are also easy
->>>> targets, at least on some architectures.
->>>>
->>>> It's also a decent simplification, since the restart code is more or
->>>> less identical on all architectures.
->>>
->>> I think that's the most important change. Moving common stuff into
->>> common code. The side effect of slightly reducing the attack surface
->>> is nice, but as Al pointed out not really the big win here.
->>
->> Having gotten exactly zero feedback from any arch maintainer outside
->> of x86, am I supposed to pester people further?
-> 
-> No objections wrt. sparc and if things break I'll help fix it.
+> I've pulled this into my asm-generic branch again now, let's see if
+> anything breaks.
 
-Same for UML.
-Acked-by: Richard Weinberger <richard@nod.at>
+Any chance you could try merging in the relaxed accessors too, please?
 
-Thanks,
-//richard
+Will
