@@ -1,86 +1,54 @@
-From: Bjorn Helgaas <bhelgaas@google.com>
-Subject: Re: [PATCH] pci, add FW_BUG warning to pci= kernel option
-Date: Mon, 10 Nov 2014 20:59:02 -0700
-Message-ID: <20141111035902.GC28161@google.com>
-References: <1414865479-25792-1-git-send-email-prarit@redhat.com>
+From: Dave Chinner <david@fromorbit.com>
+Subject: Re: [PATCH v6 0/7] vfs: Non-blockling buffered fs read (page cache
+ only)
+Date: Tue, 11 Nov 2014 17:44:17 +1100
+Message-ID: <20141111064417.GT23575@dastard>
+References: <cover.1415636409.git.milosz@adfin.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ig0-f169.google.com ([209.85.213.169]:36536 "EHLO
-	mail-ig0-f169.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751328AbaKKD7H (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 10 Nov 2014 22:59:07 -0500
-Received: by mail-ig0-f169.google.com with SMTP id hn18so461518igb.0
-        for <linux-arch@vger.kernel.org>; Mon, 10 Nov 2014 19:59:06 -0800 (PST)
+Return-path: <owner-linux-aio@kvack.org>
 Content-Disposition: inline
-In-Reply-To: <1414865479-25792-1-git-send-email-prarit@redhat.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Prarit Bhargava <prarit@redhat.com>
-Cc: linux-pci@vger.kernel.org, Myron Stowe <mstowe@redhat.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>
+In-Reply-To: <cover.1415636409.git.milosz@adfin.com>
+Sender: owner-linux-aio@kvack.org
+To: Milosz Tanski <milosz@adfin.com>
+Cc: linux-kernel@vger.kernel.org, Christoph Hellwig <hch@infradead.org>, linux-fsdevel@vger.kernel.org, linux-aio@kvack.org, Mel Gorman <mgorman@suse.de>, Volker Lendecke <Volker.Lendecke@sernet.de>, Tejun Heo <tj@kernel.org>, Jeff Moyer <jmoyer@redhat.com>, Theodore Ts'o <tytso@mit.edu>, Al Viro <viro@zeniv.linux.org.uk>, linux-api@vger.kernel.org, Michael Kerrisk <mtk.manpages@gmail.com>, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-[+cc lkml, linux-arch, Linus]
-
-On Sat, Nov 01, 2014 at 02:11:19PM -0400, Prarit Bhargava wrote:
-> The kernel should boot PCI without the use of kernel parameters.  Display
-> a FW_BUG warning when pci= is used.
+On Mon, Nov 10, 2014 at 11:40:23AM -0500, Milosz Tanski wrote:
+> This patcheset introduces an ability to perform a non-blocking read from
+> regular files in buffered IO mode. This works by only for those filesystems
+> that have data in the page cache.
 > 
-> Cc: Myron Stowe <mstowe@redhat.com>
-> Cc: linux-pci@vger.kernel.org
-> Signed-off-by: Prarit Bhargava <prarit@redhat.com>
-> ---
->  drivers/pci/pci.c |    2 ++
->  1 file changed, 2 insertions(+)
+> It does this by introducing new syscalls new syscalls preadv2/pwritev2. These
+> new syscalls behave like the network sendmsg, recvmsg syscalls that accept an
+> extra flag argument (RWF_NONBLOCK).
 > 
-> diff --git a/drivers/pci/pci.c b/drivers/pci/pci.c
-> index 625a4ac..5172060b 100644
-> --- a/drivers/pci/pci.c
-> +++ b/drivers/pci/pci.c
-> @@ -4515,6 +4515,8 @@ static int __init pci_setup(char *str)
->  		}
->  		str = k;
->  	}
-> +	add_taint(TAINT_FIRMWARE_WORKAROUND, LOCKDEP_STILL_OK);
-> +	pr_crit(FW_BUG "The PCI configuration has been overridden thorugh the use of pci=.  Please report the issue you are attempting to resolve to your hardware vendor.\n");
-
-My goal is to be able to boot without any "pci=" parameters, so from that
-perspective, I like this.
-
-When people have a problem booting Linux, they often try a variety of
-things like "pci=assign-busses", "pci=nocrs", "pci=nomsi", "pci=nommconf",
-"pci=noacpi", etc.  If they find something that works, there's a tendency
-to treat that as a "solution."  I'd rather that they report it, so we can
-try to fix the bug or add a quirk so the *next* person won't have to figure
-out the right parameters to use.
-
-My worry is that there are a few things where Linux isn't smart enough to
-do the right thing automatically, and I don't think we'll have a good
-solution in the near future.  For example:
-
-    pci=norom
-    pci=pcie_bus_perf,pcie_bus_safe,etc.
-    pci=cbiosize=...
-    pci=cbmemsize=...
-    pci=resource_alignment=...
-    pci=hpiosize=...
-    pci=hpmemsize=...
-    pci=realloc
-
-I don't like the fact that these options exist, but I suspect there are
-users that do depend on them and might find this warning too aggressive.
-
-So I'm interested in opinions on whether this is a good idea at all and
-whether we should exclude some options from the warning/tainting.
-
-Bjorn
-
->  	return 0;
->  }
->  early_param("pci", pci_setup);
-> -- 
-> 1.7.9.3
+> It's a very common patern today (samba, libuv, etc..) use a large threadpool to
+> perform buffered IO operations. They submit the work form another thread
+> that performs network IO and epoll or other threads that perform CPU work. This
+> leads to increased latency for processing, esp. in the case of data that's
+> already cached in the page cache.
 > 
-> --
-> To unsubscribe from this list: send the line "unsubscribe linux-pci" in
-> the body of a message to majordomo@vger.kernel.org
-> More majordomo info at  http://vger.kernel.org/majordomo-info.html
+> With the new interface the applications will now be able to fetch the data in
+> their network / cpu bound thread(s) and only defer to a threadpool if it's not
+> there. In our own application (VLDB) we've observed a decrease in latency for
+> "fast" request by avoiding unnecessary queuing and having to swap out current
+> tasks in IO bound work threads.
+
+Can you write a test (or set of) for fstests that exercises this new
+functionality? I'm not worried about performance, just
+correctness....
+
+Cheers,
+
+Dave.
+
+-- 
+Dave Chinner
+david@fromorbit.com
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-aio' in
+the body to majordomo@kvack.org.  For more info on Linux AIO,
+see: http://www.kvack.org/aio/
+Don't email: <a href=mailto:"aart@kvack.org">aart@kvack.org</a>
