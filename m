@@ -1,52 +1,36 @@
 From: Peter Zijlstra <peterz@infradead.org>
 Subject: Re: [PATCH] arch: Introduce read_acquire()
-Date: Wed, 12 Nov 2014 11:10:52 +0100
-Message-ID: <20141112101052.GI29390@twins.programming.kicks-ass.net>
+Date: Wed, 12 Nov 2014 11:15:32 +0100
+Message-ID: <20141112101532.GJ29390@twins.programming.kicks-ass.net>
 References: <20141111185510.2181.75347.stgit@ahduyck-workstation.home>
- <CA+55aFwo9f3tWaRqN1Xam9UkWv1B5F4YnRP1Qx3T78E4o=8YJQ@mail.gmail.com>
- <54627563.5000400@redhat.com>
+ <20141111194734.GL16265@arm.com>
+ <54627BC0.4020705@redhat.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.9]:34719 "EHLO
-	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752063AbaKLKLe (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 12 Nov 2014 05:11:34 -0500
+Received: from casper.infradead.org ([85.118.1.10]:43072 "EHLO
+	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751954AbaKLKPt (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 12 Nov 2014 05:15:49 -0500
 Content-Disposition: inline
-In-Reply-To: <54627563.5000400@redhat.com>
+In-Reply-To: <54627BC0.4020705@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Alexander Duyck <alexander.h.duyck@redhat.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, alexander.duyck@gmail.com, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Michael Neuling <mikey@neuling.org>, Tony Luck <tony.luck@intel.com>, Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, Oleg Nesterov <oleg@redhat.com>, Will Deacon <will.deacon@arm.com>, Michael Ellerman <michael@ellerman.id.au>, Geert Uytterhoeven <geert@linux-m68k.org>, Frederic Weisbecker <fweisbec@gmail.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Russell King <linux@arm.linux.org.uk>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@kernel.org>
+Cc: Will Deacon <will.deacon@arm.com>, "alexander.duyck@gmail.com" <alexander.duyck@gmail.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Michael Neuling <mikey@neuling.org>, Tony Luck <tony.luck@intel.com>, Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, Oleg Nesterov <oleg@redhat.com>, Michael Ellerman <michael@ellerman.id.au>, Geert Uytterhoeven <geert@linux-m68k.org>, Frederic Weisbecker <fweisbec@gmail.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Russell King <linux@arm.linux.org.uk>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>
 
-On Tue, Nov 11, 2014 at 12:45:23PM -0800, Alexander Duyck wrote:
+On Tue, Nov 11, 2014 at 01:12:32PM -0800, Alexander Duyck wrote:
+> >Minor nit on naming, but load_acquire would match what we do with barriers,
+> >where you simply drop the smp_ prefix if you want the thing to work on UP
+> >systems too.
 > 
-> On 11/11/2014 11:40 AM, Linus Torvalds wrote:
-> >On Tue, Nov 11, 2014 at 10:57 AM,  <alexander.duyck@gmail.com> wrote:
-> >>
-> >>
-> >>On reviewing the documentation and code for smp_load_acquire() it occurred
-> >>to me that implementing something similar for CPU <-> device interaction
-> >>would be worth while.  This commit provides just the load/read side of this
-> >>in the form of read_acquire().
-> >
-> >So I don't hate the concept, but. there's a couple of reasons to think
-> >this is broken.
-> >
-> >One is just the name. Why do we have "smp_load_acquire()", but then
-> >call the non-smp version "read_acquire()"? That makes very little
-> >sense to me. Why did "load" become "read"?
-> 
-> The idea behind read vs load in the name was because smp_load_acquire is
-> using a full smp_mb() whereas this just falls back to rmb() for the cases it
-> is dealing with.  My main conern is that a full memory barrier would be more
-> expensive so I didn't want to give the idea that this is as completed as
-> smp_load_acquire().  The read_acquire() call is not strictly enforcing any
-> limitations on writes/stores, although there are a few cases where the
-> barriers used do leak that functionality over as a side-effect.
+> The problem is this is slightly different, load_acquire in my mind would use
+> a mb() call, I only use a rmb().  That is why I chose read_acquire as the
+> name.
 
-Then I object. We should not name it acquire if it does not in fact
-provides acquire semantics.
+acquire is not about rmb vs mb, do read up on
+Documentation/memory-barriers.txt. Its a distinctly different semantic.
+Some archs simply lack the means of implementing this semantics and have
+to revert to mb (stronger is always allowed).
 
-Memory ordering is hard enough, we don't need random weird semantics
-mixed in just because.
+Using the read vs load to wreck the acquire semantics is just insane.
