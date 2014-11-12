@@ -1,52 +1,81 @@
-From: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Subject: Re: compiler bug gcc4.6/4.7 with ACCESS_ONCE and workarounds
-Date: Wed, 12 Nov 2014 10:28:24 +0100
-Message-ID: <20141112102824.55a4c178@mschwide>
-References: <1415360716-9670-2-git-send-email-borntraeger@de.ibm.com>
-	<54611D86.4040306@de.ibm.com>
-	<CA+55aFyEigSL64RJH8AO86gFBBB84+dgk7eEUPx=CaLwJMcO_w@mail.gmail.com>
-	<54627CBF.2000704@de.ibm.com>
-	<CA+55aFz1oxCgZiY4oWu41fFUbKft9g5_gQXXzAKuW8+pnR72Vw@mail.gmail.com>
-	<CA+55aFw+cLJ6xW0Wk6nMbK+e1yr2KGCWN+-v2a7xK1u8zTtDtA@mail.gmail.com>
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [PATCH] arch: Introduce read_acquire()
+Date: Wed, 12 Nov 2014 10:10:51 +0000
+Message-ID: <20141112101051.GA26437@arm.com>
+References: <20141111185510.2181.75347.stgit@ahduyck-workstation.home>
+ <CA+55aFwo9f3tWaRqN1Xam9UkWv1B5F4YnRP1Qx3T78E4o=8YJQ@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CA+55aFw+cLJ6xW0Wk6nMbK+e1yr2KGCWN+-v2a7xK1u8zTtDtA@mail.gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from foss-mx-na.foss.arm.com ([217.140.108.86]:56648 "EHLO
+	foss-mx-na.foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751564AbaKLKLK (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 12 Nov 2014 05:11:10 -0500
+Content-Disposition: inline
+In-Reply-To: <CA+55aFwo9f3tWaRqN1Xam9UkWv1B5F4YnRP1Qx3T78E4o=8YJQ@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Christian Borntraeger <borntraeger@de.ibm.com>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, KVM <kvm@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, Andreas Krebbel <Andreas.Krebbel@de.ibm.com>, Cornelia Huck <cornelia.huck@de.ibm.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
-List-Id: linux-arch.vger.kernel.org
+Cc: "alexander.duyck@gmail.com" <alexander.duyck@gmail.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Michael Neuling <mikey@neuling.org>, Tony Luck <tony.luck@intel.com>, Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>, Alexander Duyck <alexander.h.duyck@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, Oleg Nesterov <oleg@redhat.com>, Michael Ellerman <michael@ellerman.id.au>, Geert Uytterhoeven <geert@linux-m68k.org>, Frederic Weisbecker <fweisbec@gmail.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Russell King <linux@arm.linux.org.uk>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@kernel.org>
 
-On Tue, 11 Nov 2014 16:36:06 -0800
-Linus Torvalds <torvalds@linux-foundation.org> wrote:
-
-> On Tue, Nov 11, 2014 at 4:33 PM, Linus Torvalds
-> <torvalds@linux-foundation.org> wrote:
-> >
-> > I guess as a workaround it is fine, as long as we don't lose sight of
-> > trying to eventually do a better job.
+On Tue, Nov 11, 2014 at 07:40:22PM +0000, Linus Torvalds wrote:
+> On Tue, Nov 11, 2014 at 10:57 AM,  <alexander.duyck@gmail.com> wrote:
+> > On reviewing the documentation and code for smp_load_acquire() it occured
+> > to me that implementing something similar for CPU <-> device interraction
+> > would be worth while.  This commit provides just the load/read side of this
+> > in the form of read_acquire().
 > 
-> Oh, and when it comes to the actual gcc bug - do you have any reason
-> to believe that it's somehow triggered more easily by something
-> particular in the arch/s390/kvm/gaccess.c code?
+> So I don't hate the concept, but. there's a couple of reasons to think
+> this is broken.
 > 
-> IOW, why does this problem not hit the x86 spinlocks that also use
-> volatile pointers to aggregate types? Or does it?
+> One is just the name. Why do we have "smp_load_acquire()", but then
+> call the non-smp version "read_acquire()"? That makes very little
+> sense to me. Why did "load" become "read"?
 
-This looks similiar to what we had on s390:
+[...]
 
-	old.tickets = ACCESS_ONCE(lock->tickets)
+> But we do have a very real difference between "smp_rmb()" (inter-cpu
+> cache coherency read barrier) and "rmb()" (full memory barrier that
+> synchronizes with IO).
+> 
+> And your patch is very confused about this. In *some* places you use
+> "rmb()", and in other places you just use "smp_load_acquire()". Have
+> you done extensive verification to check that this is actually ok?
+> Because the performance difference you quote very much seems to be
+> about your x86 testing now akipping the IO-synchronizing "rmb()", and
+> depending on DMA being ordered even without it.
+> 
+> And I'm pretty sure that's actually fine on x86. The real
+> IO-synchronizing rmb() (which translates into a lfence) is only needed
+> for when you have uncached accesses (ie mmio) on x86. So I don't think
+> your code is wrong, I just want to verify that everybody understands
+> the issues. I'm not even sure DMA can ever really have weaker memory
+> ordering (I really don't see how you'd be able to do a read barrier
+> without DMA stores being ordered natively), so maybe I worry too much,
+> but the ppc people in particular should look at this, because the ppc
+> memory ordering rules and serialization are some completely odd ad-hoc
+> black magic....
 
-In theory x86 should be affected as well. On s390 we have lots of
-instruction that operate on memory and the cost model of gcc makes
-the compiler more inclined to access memory multiple times. My
-guess would be that once the value is cached in a register the
-cost model for x86 will usually make sure that the value is not
-read a second time. But this is no guarantee.
+Right, so now I see what's going on here. This isn't actually anything
+to do with acquire/release (I don't know of any architectures that have
+a read-barrier-acquire instruction), it's all about DMA to main memory.
 
--- 
-blue skies,
-   Martin.
+If a device is DMA'ing data *and* control information (e.g. 'descriptor
+valid') to memory, then it must be maintaining order between those writes
+with respect to memory. In that case, using the usual MMIO barriers can
+be overkill because we really just want to enforce read-ordering on the CPU
+side. In fact, I think you could even do this with a fake address dependency
+on ARM (although I'm not actually suggesting we do that).
 
-"Reality continues to ruin my life." - Calvin.
+In light of that, it actually sounds like we want a new set of barrier
+macros that apply only to DMA buffer accesses by the CPU -- they wouldn't
+enforce ordering against things like MMIO registers. I wonder whether any
+architectures would implement them differently to the smp_* flavours?
+
+> But anything with non-cache-coherent DMA is obviously very suspect too.
+
+I think non-cache-coherent DMA should work too (at least, on ARM), but
+only for buffers mapped via dma_alloc_coherent (i.e. a non-cacheable
+mapping).
+
+Will
