@@ -1,99 +1,113 @@
 From: Alexander Duyck <alexander.h.duyck@redhat.com>
 Subject: Re: [PATCH] arch: Introduce read_acquire()
-Date: Wed, 12 Nov 2014 07:42:59 -0800
-Message-ID: <54638003.3070801@redhat.com>
-References: <20141111185510.2181.75347.stgit@ahduyck-workstation.home> <CA+55aFwo9f3tWaRqN1Xam9UkWv1B5F4YnRP1Qx3T78E4o=8YJQ@mail.gmail.com> <20141112101051.GA26437@arm.com>
+Date: Wed, 12 Nov 2014 11:24:56 -0800
+Message-ID: <5463B408.4000102@redhat.com>
+References: <20141111185510.2181.75347.stgit@ahduyck-workstation.home> <20141111194734.GL16265@arm.com> <54627BC0.4020705@redhat.com> <20141112101532.GJ29390@twins.programming.kicks-ass.net> <54637B6A.9070204@redhat.com> <20141112153740.GK29390@twins.programming.kicks-ass.net>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=windows-1252; format=flowed
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:42775 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:46779 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752881AbaKLPoL (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 12 Nov 2014 10:44:11 -0500
-In-Reply-To: <20141112101051.GA26437@arm.com>
+	id S1753151AbaKLT0F (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 12 Nov 2014 14:26:05 -0500
+In-Reply-To: <20141112153740.GK29390@twins.programming.kicks-ass.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will.deacon@arm.com>, Linus Torvalds <torvalds@linux-foundation.org>
-Cc: "alexander.duyck@gmail.com" <alexander.duyck@gmail.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Michael Neuling <mikey@neuling.org>, Tony Luck <tony.luck@intel.com>, Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>, Peter Zijlstra <peterz@infradead.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, Oleg Nesterov <oleg@redhat.com>, Michael Ellerman <michael@ellerman.id.au>, Geert Uytterhoeven <geert@linux-m68k.org>, Frederic Weisbecker <fweisbec@gmail.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Russell King <linux@arm.linux.org.uk>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@kernel.org>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Will Deacon <will.deacon@arm.com>, "alexander.duyck@gmail.com" <alexander.duyck@gmail.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Michael Neuling <mikey@neuling.org>, Tony Luck <tony.luck@intel.com>, Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, Oleg Nesterov <oleg@redhat.com>, Michael Ellerman <michael@ellerman.id.au>, Geert Uytterhoeven <geert@linux-m68k.org>, Frederic Weisbecker <fweisbec@gmail.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Russell King <linux@arm.linux.org.uk>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>
 
 
-On 11/12/2014 02:10 AM, Will Deacon wrote:
-> On Tue, Nov 11, 2014 at 07:40:22PM +0000, Linus Torvalds wrote:
->> On Tue, Nov 11, 2014 at 10:57 AM,  <alexander.duyck@gmail.com> wrote:
->>> On reviewing the documentation and code for smp_load_acquire() it occured
->>> to me that implementing something similar for CPU <-> device interraction
->>> would be worth while.  This commit provides just the load/read side of this
->>> in the form of read_acquire().
->> So I don't hate the concept, but. there's a couple of reasons to think
->> this is broken.
+
+On 11/12/2014 07:37 AM, Peter Zijlstra wrote:
+> On Wed, Nov 12, 2014 at 07:23:22AM -0800, Alexander Duyck wrote:
 >>
->> One is just the name. Why do we have "smp_load_acquire()", but then
->> call the non-smp version "read_acquire()"? That makes very little
->> sense to me. Why did "load" become "read"?
-> [...]
->
->> But we do have a very real difference between "smp_rmb()" (inter-cpu
->> cache coherency read barrier) and "rmb()" (full memory barrier that
->> synchronizes with IO).
+>> On 11/12/2014 02:15 AM, Peter Zijlstra wrote:
+>>> On Tue, Nov 11, 2014 at 01:12:32PM -0800, Alexander Duyck wrote:
+>>>>> Minor nit on naming, but load_acquire would match what we do with barriers,
+>>>>> where you simply drop the smp_ prefix if you want the thing to work on UP
+>>>>> systems too.
+>>>> The problem is this is slightly different, load_acquire in my mind would use
+>>>> a mb() call, I only use a rmb().  That is why I chose read_acquire as the
+>>>> name.
+>>> acquire is not about rmb vs mb, do read up on
+>>> Documentation/memory-barriers.txt. Its a distinctly different semantic.
+>>> Some archs simply lack the means of implementing this semantics and have
+>>> to revert to mb (stronger is always allowed).
+>>>
+>>> Using the read vs load to wreck the acquire semantics is just insane.
 >>
->> And your patch is very confused about this. In *some* places you use
->> "rmb()", and in other places you just use "smp_load_acquire()". Have
->> you done extensive verification to check that this is actually ok?
->> Because the performance difference you quote very much seems to be
->> about your x86 testing now akipping the IO-synchronizing "rmb()", and
->> depending on DMA being ordered even without it.
->>
->> And I'm pretty sure that's actually fine on x86. The real
->> IO-synchronizing rmb() (which translates into a lfence) is only needed
->> for when you have uncached accesses (ie mmio) on x86. So I don't think
->> your code is wrong, I just want to verify that everybody understands
->> the issues. I'm not even sure DMA can ever really have weaker memory
->> ordering (I really don't see how you'd be able to do a read barrier
->> without DMA stores being ordered natively), so maybe I worry too much,
->> but the ppc people in particular should look at this, because the ppc
->> memory ordering rules and serialization are some completely odd ad-hoc
->> black magic....
-> Right, so now I see what's going on here. This isn't actually anything
-> to do with acquire/release (I don't know of any architectures that have
-> a read-barrier-acquire instruction), it's all about DMA to main memory.
-
-Actually it is sort of, I just hadn't realized it until I read some of 
-the explanations of the C11 acquire/release memory order specifics, but 
-I believe most network drivers are engaged in acquire/release logic 
-because we are usually using something such as a lockless descriptor 
-ring to pass data back and forth between the device and the system.  The 
-net win for device drivers is that we can remove some of the 
-heavy-weight barriers that are having to be used by making use of 
-lighter barriers or primitives such as lwsync vs sync in PowerPC or ldar 
-vs dsb(ld) on arm64.
-
-> If a device is DMA'ing data *and* control information (e.g. 'descriptor
-> valid') to memory, then it must be maintaining order between those writes
-> with respect to memory. In that case, using the usual MMIO barriers can
-> be overkill because we really just want to enforce read-ordering on the CPU
-> side. In fact, I think you could even do this with a fake address dependency
-> on ARM (although I'm not actually suggesting we do that).
+>> Actually I have been reading up on it as I wasn't familiar with C11.
 >
-> In light of that, it actually sounds like we want a new set of barrier
-> macros that apply only to DMA buffer accesses by the CPU -- they wouldn't
-> enforce ordering against things like MMIO registers. I wonder whether any
-> architectures would implement them differently to the smp_* flavours?
+> C11 is _different_ although somewhat related.
 
-My concern would be the cost of the barriers vs the acquire/release 
-primitives.  In the case of arm64 I am assuming there is a reason for 
-wanting to use ldar vs dsb instructions.  I would imagine the devices 
-drivers would want to get the same kind of advantages.
+Honestly I find this quite confusing.  If you have some sort of other 
+documentation you can point me at it would be useful in terms of what 
+you are expecting for behaviour and names.
 
->> But anything with non-cache-coherent DMA is obviously very suspect too.
-> I think non-cache-coherent DMA should work too (at least, on ARM), but
-> only for buffers mapped via dma_alloc_coherent (i.e. a non-cacheable
-> mapping).
+>> Most
+>> of what I was doing was actually based on the documentation in barriers.txt
+>> which was referring to memory operations not loads/stores when referring to
+>> the acquire/release so I assumed the full memory barrier was required.  I
+>> wasn't aware that smp_load_acquire was only supposed to be ordering loads,
+>> or that smp_ store_release only applied to stores.
 >
-> Will
+> It does not.. an ACQUIRE is a semi-permeable barrier that doesn't allow
+> LOADs nor STOREs that are issued _after_ it to appear to happen _before_.
+> The RELEASE is the opposite number, it ensures LOADs and STOREs that are
+> issued _before_ cannot happen _after_.
+>
+> This typically matches locking, where a lock (mutex_lock, spin_lock
+> etc..) have ACQUIRE semantics and the unlock RELEASE. Such that:
+>
+> 	spin_lock();
+> 	a = 1;
+> 	b = x;
+> 	spin_unlock();
+>
+> guarantees all LOADs (x) and STORESs (a,b) happen _inside_ the lock
+> region. What they do not guarantee is:
+>
+>
+> 	y = 1;
+> 	spin_lock()
+> 	a = 1;
+> 	b = x;
+> 	spin_unlock()
+> 	z = 4;
+>
+> An order between y and z, both are allowed _into_ the region and can
+> cross there like:
+>
+> 	spin_lock();
+> 	...
+> 	z = 4;
+> 	y = 1;
+> 	...
+> 	spin_unlock();
+>
+>
+> The only 'open' issue at the moment is if RELEASE+ACQUIRE := MB.
+> Currently we say this is not so, but Will (and me) would very much like
+> this to be so -- PPC64 being the only arch that actually makes this
+> distinction.
 
-For now my plan is to focus on coherent memory only with this. 
-Specifically it is only really intended for use with dma_alloc_coherent.
+In the grand scheme of things I suppose it doesn't matter too much.  I 
+actually found a documentation that kind of explains subtle nuances of 
+things a bit.  Specifically Acquire represents the first row in the 
+table below, and Release represents the second column:
+
+Acquire -> 	LoadLoad	LoadStore
+		StoreLoad	StoreStore
+				^
+				|
+				Release
+
+The LoadStore bit was in question in a few different discussions I read, 
+however as it turns out on x86, sparc, s390, PowerPC, arm64, and ia64 
+they would give you that as a free benefit anyway.  I think that covers 
+a wide enough gamut that I don't really care if I take a performance hit 
+on the other architectures for implementing a full mb() versus a rmb().
 
 Thanks,
 
