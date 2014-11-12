@@ -1,35 +1,62 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-vc0-f171.google.com ([209.85.220.171]:61288 "EHLO
-	mail-vc0-f171.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752462AbaKLAdu (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 11 Nov 2014 19:33:50 -0500
-MIME-Version: 1.0
-In-Reply-To: <54627CBF.2000704@de.ibm.com>
+Received: from e06smtp11.uk.ibm.com ([195.75.94.107]:53525 "EHLO
+	e06smtp11.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752582AbaKLJ2b (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 12 Nov 2014 04:28:31 -0500
+Received: from /spool/local
+	by e06smtp11.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <schwidefsky@de.ibm.com>;
+	Wed, 12 Nov 2014 09:28:29 -0000
+Date: Wed, 12 Nov 2014 10:28:24 +0100
+From: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Subject: Re: compiler bug gcc4.6/4.7 with ACCESS_ONCE and workarounds
+Message-ID: <20141112102824.55a4c178@mschwide>
+In-Reply-To: <CA+55aFw+cLJ6xW0Wk6nMbK+e1yr2KGCWN+-v2a7xK1u8zTtDtA@mail.gmail.com>
 References: <1415360716-9670-2-git-send-email-borntraeger@de.ibm.com>
 	<54611D86.4040306@de.ibm.com>
 	<CA+55aFyEigSL64RJH8AO86gFBBB84+dgk7eEUPx=CaLwJMcO_w@mail.gmail.com>
 	<54627CBF.2000704@de.ibm.com>
-Date: Tue, 11 Nov 2014 16:33:49 -0800
-Message-ID: <CA+55aFz1oxCgZiY4oWu41fFUbKft9g5_gQXXzAKuW8+pnR72Vw@mail.gmail.com>
-Subject: Re: compiler bug gcc4.6/4.7 with ACCESS_ONCE and workarounds
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Content-Type: text/plain; charset=UTF-8
+	<CA+55aFz1oxCgZiY4oWu41fFUbKft9g5_gQXXzAKuW8+pnR72Vw@mail.gmail.com>
+	<CA+55aFw+cLJ6xW0Wk6nMbK+e1yr2KGCWN+-v2a7xK1u8zTtDtA@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christian Borntraeger <borntraeger@de.ibm.com>
-Cc: Paul McKenney <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, KVM <kvm@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, Andreas Krebbel <Andreas.Krebbel@de.ibm.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Cornelia Huck <cornelia.huck@de.ibm.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
-Message-ID: <20141112003349.CpZmT5II7W3oMbMOLESZ6sx4UYU8yoepUN6ttONId5w@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Christian Borntraeger <borntraeger@de.ibm.com>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, KVM <kvm@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, Andreas Krebbel <Andreas.Krebbel@de.ibm.com>, Cornelia Huck <cornelia.huck@de.ibm.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+Message-ID: <20141112092824.m9Z_U8vmbieISnSeVbec1TRLJH4a1n5NnXYua8rQGZ8@z>
 
-On Tue, Nov 11, 2014 at 1:16 PM, Christian Borntraeger
-<borntraeger@de.ibm.com> wrote:
->
-> Are you ok with the patch as is in kvm/next for the time being or shall
-> we revert that and replace it with the .val scheme?
+On Tue, 11 Nov 2014 16:36:06 -0800
+Linus Torvalds <torvalds@linux-foundation.org> wrote:
 
-Is that the one that was quoted at the beginning of the thread, that
-uses barrier()?
+> On Tue, Nov 11, 2014 at 4:33 PM, Linus Torvalds
+> <torvalds@linux-foundation.org> wrote:
+> >
+> > I guess as a workaround it is fine, as long as we don't lose sight of
+> > trying to eventually do a better job.
+> 
+> Oh, and when it comes to the actual gcc bug - do you have any reason
+> to believe that it's somehow triggered more easily by something
+> particular in the arch/s390/kvm/gaccess.c code?
+> 
+> IOW, why does this problem not hit the x86 spinlocks that also use
+> volatile pointers to aggregate types? Or does it?
 
-I guess as a workaround it is fine, as long as we don't lose sight of
-trying to eventually do a better job.
+This looks similiar to what we had on s390:
 
-                     Linus
+	old.tickets = ACCESS_ONCE(lock->tickets)
+
+In theory x86 should be affected as well. On s390 we have lots of
+instruction that operate on memory and the cost model of gcc makes
+the compiler more inclined to access memory multiple times. My
+guess would be that once the value is cached in a register the
+cost model for x86 will usually make sure that the value is not
+read a second time. But this is no guarantee.
+
+-- 
+blue skies,
+   Martin.
+
+"Reality continues to ruin my life." - Calvin.
+
