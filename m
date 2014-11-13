@@ -1,44 +1,72 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qg0-f49.google.com ([209.85.192.49]:54537 "EHLO
-	mail-qg0-f49.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S933056AbaKMOnU (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 13 Nov 2014 09:43:20 -0500
-Received: by mail-qg0-f49.google.com with SMTP id z60so10478988qgd.22
-        for <linux-arch@vger.kernel.org>; Thu, 13 Nov 2014 06:43:18 -0800 (PST)
+Received: from mx1.redhat.com ([209.132.183.28]:45279 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S933528AbaKMT2d (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 13 Nov 2014 14:28:33 -0500
+Subject: [PATCH 0/3] Introduce load_acquire() and store_release()
+From: Alexander Duyck <alexander.h.duyck@redhat.com>
+Date: Thu, 13 Nov 2014 11:27:10 -0800
+Message-ID: <20141113191250.12579.19694.stgit@ahduyck-server>
 MIME-Version: 1.0
-In-Reply-To: <20141112135009.5a887d200be262d94ba50495@linux-foundation.org>
-References: <1415379664-31555-1-git-send-email-drysdale@google.com> <20141112135009.5a887d200be262d94ba50495@linux-foundation.org>
-From: David Drysdale <drysdale@google.com>
-Date: Thu, 13 Nov 2014 14:42:58 +0000
-Message-ID: <CAHse=S_uQGmzz+umKDfJPOaT2+TAdzbtjZeVZaj1i4NBVWy35g@mail.gmail.com>
-Subject: Re: [PATCHv7 0/3] syscalls,x86: Add execveat() system call
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>, Christoph Hellwig <hch@infradead.org>, Rich Felker <dalias@aerifal.cx>
-Cc: "Eric W. Biederman" <ebiederm@xmission.com>, Andy Lutomirski <luto@amacapital.net>, Alexander Viro <viro@zeniv.linux.org.uk>, Meredydd Luff <meredydd@senatehouse.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, X86 ML <x86@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>
-Message-ID: <20141113144258.4qwaGM4G2p4sidTWRVz6nfSzxL6mn_P9hmHc6HayvFE@z>
+To: linux-arch@vger.kernel.org, netdev@vger.kernel.org, linux-kernel@vger.kernel.org
+Cc: mikey@neuling.org, tony.luck@intel.com, mathieu.desnoyers@polymtl.ca, donald.c.skidmore@intel.com, peterz@infradead.org, benh@kernel.crashing.org, heiko.carstens@de.ibm.com, oleg@redhat.com, will.deacon@arm.com, davem@davemloft.net, michael@ellerman.id.au, matthew.vick@intel.com, nic_swsd@realtek.com, geert@linux-m68k.org, jeffrey.t.kirsher@intel.com, fweisbec@gmail.com, schwidefsky@de.ibm.com, linux@arm.linux.org.uk, paulmck@linux.vnet.ibm.com, torvalds@linux-foundation.org, mingo@kernel.org
+Message-ID: <20141113192710.FndLplYMM0aZBcL2yWH2WRVHOsILc_N8fcw4trAMBK4@z>
 
-On Wed, Nov 12, 2014 at 9:50 PM, Andrew Morton
-<akpm@linux-foundation.org> wrote:
-> On Fri,  7 Nov 2014 17:01:01 +0000 David Drysdale <drysdale@google.com> wrote:
->
->> This patch set adds execveat(2) for x86, and is derived from Meredydd
->> Luff's patch from Sept 2012 (https://lkml.org/lkml/2012/9/11/528).
->>
->> The primary aim of adding an execveat syscall is to allow an
->> implementation of fexecve(3) that does not rely on the /proc
->> filesystem, at least for executables (rather than scripts).  The
->> current glibc version of fexecve(3) is implemented via /proc, which
->> causes problems in sandboxed or otherwise restricted environments.
->
-> Have the relevant glibc people seen/reviewed/liked this?
+These patches introduce uniprocessor or CPU<->device equivalents for
+smp_load_acquire() and smp_store_release().  These two new primitives are:
 
-I think it's been mentioned in passing but not explicitly discussed over there
-(https://sourceware.org/ml/libc-alpha/2014-10/msg00497.html,
-https://sourceware.org/ml/libc-alpha/2014-10/msg00509.html)
-and a couple of the participants in that thread (Christoph Hellwig, Rich Felker)
-were also cc:ed here.
+	load_acquire()
+	store_release()
 
-It sounded like execveat might be useful for another feature (O_EXEC) but
-I'm not sure whether that amounts to the relevant glibc folk liking this...
+The first patch adds the primitives for the applicable architectures and
+asm-generic.
+
+The second patch adds the primitives to r8169 which turns out to be a good
+example of where the new primitives might be useful as they have memory
+barriers ordering accesses to the descriptors and the DescOwn bit within the
+descriptors which follow acquire/release style semantics.
+
+The third patch adds support for load_acquire() to the Intel fm10k, igb,
+and ixgbe drivers.  Testing with the ixgbe driver has shown a processing
+time reduction of at least 7ns per 64B frame on a Core i7-4930K.
+
+This patch series is essentially the v2 for:
+	arch: Introduce read_acquire()
+
+The key changes in this patch series versus that patch are:
+	- Renamed read_acquire() to be consistent with smp_load_acquire()
+	- Changed barrier used to be consistent with smp_load_acquire()
+	- Updated PowerPC code to use __lwsync based on IBM article
+	- Added store_release() as this is a viable use case for drivers
+	- Added r8169 patch which is able to fully use primitives
+	- Added fm10k/igb/ixgbe patch which is able to test performance
+
+---
+
+Alexander Duyck (3):
+      arch: Introduce load_acquire() and store_release()
+      r8169: Use load_acquire() and store_release() to reduce memory barrier overhead
+      fm10k/igb/ixgbe: Use load_acquire on Rx descriptor
+
+
+ arch/arm/include/asm/barrier.h                |   15 ++++++
+ arch/arm64/include/asm/barrier.h              |   59 +++++++++++++------------
+ arch/ia64/include/asm/barrier.h               |    7 ++-
+ arch/metag/include/asm/barrier.h              |   15 ++++++
+ arch/mips/include/asm/barrier.h               |   15 ++++++
+ arch/powerpc/include/asm/barrier.h            |   24 ++++++++--
+ arch/s390/include/asm/barrier.h               |    7 ++-
+ arch/sparc/include/asm/barrier_64.h           |    6 ++-
+ arch/x86/include/asm/barrier.h                |   22 ++++++++-
+ drivers/net/ethernet/intel/fm10k/fm10k_main.c |    8 +--
+ drivers/net/ethernet/intel/igb/igb_main.c     |    8 +--
+ drivers/net/ethernet/intel/ixgbe/ixgbe_main.c |   11 ++---
+ drivers/net/ethernet/realtek/r8169.c          |   23 ++++------
+ include/asm-generic/barrier.h                 |   15 ++++++
+ 14 files changed, 163 insertions(+), 72 deletions(-)
+
+--
