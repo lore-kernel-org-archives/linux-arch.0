@@ -1,62 +1,44 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e06smtp11.uk.ibm.com ([195.75.94.107]:53525 "EHLO
-	e06smtp11.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752582AbaKLJ2b (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 12 Nov 2014 04:28:31 -0500
-Received: from /spool/local
-	by e06smtp11.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <schwidefsky@de.ibm.com>;
-	Wed, 12 Nov 2014 09:28:29 -0000
-Date: Wed, 12 Nov 2014 10:28:24 +0100
-From: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Subject: Re: compiler bug gcc4.6/4.7 with ACCESS_ONCE and workarounds
-Message-ID: <20141112102824.55a4c178@mschwide>
-In-Reply-To: <CA+55aFw+cLJ6xW0Wk6nMbK+e1yr2KGCWN+-v2a7xK1u8zTtDtA@mail.gmail.com>
-References: <1415360716-9670-2-git-send-email-borntraeger@de.ibm.com>
-	<54611D86.4040306@de.ibm.com>
-	<CA+55aFyEigSL64RJH8AO86gFBBB84+dgk7eEUPx=CaLwJMcO_w@mail.gmail.com>
-	<54627CBF.2000704@de.ibm.com>
-	<CA+55aFz1oxCgZiY4oWu41fFUbKft9g5_gQXXzAKuW8+pnR72Vw@mail.gmail.com>
-	<CA+55aFw+cLJ6xW0Wk6nMbK+e1yr2KGCWN+-v2a7xK1u8zTtDtA@mail.gmail.com>
+Received: from mail-qg0-f49.google.com ([209.85.192.49]:54537 "EHLO
+	mail-qg0-f49.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S933056AbaKMOnU (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 13 Nov 2014 09:43:20 -0500
+Received: by mail-qg0-f49.google.com with SMTP id z60so10478988qgd.22
+        for <linux-arch@vger.kernel.org>; Thu, 13 Nov 2014 06:43:18 -0800 (PST)
 MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+In-Reply-To: <20141112135009.5a887d200be262d94ba50495@linux-foundation.org>
+References: <1415379664-31555-1-git-send-email-drysdale@google.com> <20141112135009.5a887d200be262d94ba50495@linux-foundation.org>
+From: David Drysdale <drysdale@google.com>
+Date: Thu, 13 Nov 2014 14:42:58 +0000
+Message-ID: <CAHse=S_uQGmzz+umKDfJPOaT2+TAdzbtjZeVZaj1i4NBVWy35g@mail.gmail.com>
+Subject: Re: [PATCHv7 0/3] syscalls,x86: Add execveat() system call
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Christian Borntraeger <borntraeger@de.ibm.com>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, KVM <kvm@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, Andreas Krebbel <Andreas.Krebbel@de.ibm.com>, Cornelia Huck <cornelia.huck@de.ibm.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
-Message-ID: <20141112092824.m9Z_U8vmbieISnSeVbec1TRLJH4a1n5NnXYua8rQGZ8@z>
+To: Andrew Morton <akpm@linux-foundation.org>, Christoph Hellwig <hch@infradead.org>, Rich Felker <dalias@aerifal.cx>
+Cc: "Eric W. Biederman" <ebiederm@xmission.com>, Andy Lutomirski <luto@amacapital.net>, Alexander Viro <viro@zeniv.linux.org.uk>, Meredydd Luff <meredydd@senatehouse.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, X86 ML <x86@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>
+Message-ID: <20141113144258.4qwaGM4G2p4sidTWRVz6nfSzxL6mn_P9hmHc6HayvFE@z>
 
-On Tue, 11 Nov 2014 16:36:06 -0800
-Linus Torvalds <torvalds@linux-foundation.org> wrote:
+On Wed, Nov 12, 2014 at 9:50 PM, Andrew Morton
+<akpm@linux-foundation.org> wrote:
+> On Fri,  7 Nov 2014 17:01:01 +0000 David Drysdale <drysdale@google.com> wrote:
+>
+>> This patch set adds execveat(2) for x86, and is derived from Meredydd
+>> Luff's patch from Sept 2012 (https://lkml.org/lkml/2012/9/11/528).
+>>
+>> The primary aim of adding an execveat syscall is to allow an
+>> implementation of fexecve(3) that does not rely on the /proc
+>> filesystem, at least for executables (rather than scripts).  The
+>> current glibc version of fexecve(3) is implemented via /proc, which
+>> causes problems in sandboxed or otherwise restricted environments.
+>
+> Have the relevant glibc people seen/reviewed/liked this?
 
-> On Tue, Nov 11, 2014 at 4:33 PM, Linus Torvalds
-> <torvalds@linux-foundation.org> wrote:
-> >
-> > I guess as a workaround it is fine, as long as we don't lose sight of
-> > trying to eventually do a better job.
-> 
-> Oh, and when it comes to the actual gcc bug - do you have any reason
-> to believe that it's somehow triggered more easily by something
-> particular in the arch/s390/kvm/gaccess.c code?
-> 
-> IOW, why does this problem not hit the x86 spinlocks that also use
-> volatile pointers to aggregate types? Or does it?
+I think it's been mentioned in passing but not explicitly discussed over there
+(https://sourceware.org/ml/libc-alpha/2014-10/msg00497.html,
+https://sourceware.org/ml/libc-alpha/2014-10/msg00509.html)
+and a couple of the participants in that thread (Christoph Hellwig, Rich Felker)
+were also cc:ed here.
 
-This looks similiar to what we had on s390:
-
-	old.tickets = ACCESS_ONCE(lock->tickets)
-
-In theory x86 should be affected as well. On s390 we have lots of
-instruction that operate on memory and the cost model of gcc makes
-the compiler more inclined to access memory multiple times. My
-guess would be that once the value is cached in a register the
-cost model for x86 will usually make sure that the value is not
-read a second time. But this is no guarantee.
-
--- 
-blue skies,
-   Martin.
-
-"Reality continues to ruin my life." - Calvin.
-
+It sounded like execveat might be useful for another feature (O_EXEC) but
+I'm not sure whether that amounts to the relevant glibc folk liking this...
