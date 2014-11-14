@@ -1,105 +1,494 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:47052 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S965288AbaKNQBh (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 14 Nov 2014 11:01:37 -0500
-Message-ID: <54662705.9050603@redhat.com>
-Date: Fri, 14 Nov 2014 08:00:05 -0800
-From: Alexander Duyck <alexander.h.duyck@redhat.com>
-MIME-Version: 1.0
-Subject: Re: [PATCH 1/3] arch: Introduce load_acquire() and store_release()
-References: <20141113191250.12579.19694.stgit@ahduyck-server> <20141113192723.12579.25343.stgit@ahduyck-server> <20141114101902.GA27963@arm.com>
-In-Reply-To: <20141114101902.GA27963@arm.com>
-Content-Type: text/plain; charset=windows-1252; format=flowed
-Content-Transfer-Encoding: 7bit
+Received: from mail-lb0-f201.google.com ([209.85.217.201]:60809 "EHLO
+	mail-lb0-f201.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1161132AbaKNQXM (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 14 Nov 2014 11:23:12 -0500
+Received: by mail-lb0-f201.google.com with SMTP id b6so563783lbj.2
+        for <linux-arch@vger.kernel.org>; Fri, 14 Nov 2014 08:23:08 -0800 (PST)
+From: David Drysdale <drysdale@google.com>
+Subject: [PATCHv8 2/4] syscalls,x86: add selftest for execveat(2)
+Date: Fri, 14 Nov 2014 16:23:01 +0000
+Message-ID: <1415982183-20525-3-git-send-email-drysdale@google.com>
+In-Reply-To: <1415982183-20525-1-git-send-email-drysdale@google.com>
+References: <1415982183-20525-1-git-send-email-drysdale@google.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will.deacon@arm.com>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "netdev@vger.kernel.org" <netdev@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "mikey@neuling.org" <mikey@neuling.org>, "tony.luck@intel.com" <tony.luck@intel.com>, "mathieu.desnoyers@polymtl.ca" <mathieu.desnoyers@polymtl.ca>, "donald.c.skidmore@intel.com" <donald.c.skidmore@intel.com>, "peterz@infradead.org" <peterz@infradead.org>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, "heiko.carstens@de.ibm.com" <heiko.carstens@de.ibm.com>, "oleg@redhat.com" <oleg@redhat.com>, "davem@davemloft.net" <davem@davemloft.net>, "michael@ellerman.id.au" <michael@ellerman.id.au>, "matthew.vick@intel.com" <matthew.vick@intel.com>, "nic_swsd@realtek.com" <nic_swsd@realtek.com>, "geert@linux-m68k.org" <geert@linux-m68k.org>, "jeffrey.t.kirsher@intel.com" <jeffrey.t.kirsher@intel.com>, "fweisbec@gmail.com" <fweisbec@gmail.com>, "schwidefsky@de.ibm.com" <schwidefsky@de.ibm.com>, "linux@arm.linux.org.uk" <linux@arm.linux.org.uk>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>, "torvalds@linux-foundation.org" <torvalds@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>
-Message-ID: <20141114160005.x6BMPlxKaT7wVAUrX_stOUEdQdVxGNQOiRzGhoGw73M@z>
+To: "Eric W. Biederman" <ebiederm@xmission.com>, Andy Lutomirski <luto@amacapital.net>, Alexander Viro <viro@zeniv.linux.org.uk>, Meredydd Luff <meredydd@senatehouse.org>, linux-kernel@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>
+Cc: Oleg Nesterov <oleg@redhat.com>, Michael Kerrisk <mtk.manpages@gmail.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Rich Felker <dalias@aerifal.cx>, Christoph Hellwig <hch@infradead.org>, x86@kernel.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, sparclinux@vger.kernel.org, David Drysdale <drysdale@google.com>
+Message-ID: <20141114162301.8rn979xOW2SRTofJMQtidlzYCtjTYef3nwd3K_oZvQU@z>
 
+Signed-off-by: David Drysdale <drysdale@google.com>
+---
+ tools/testing/selftests/Makefile        |   1 +
+ tools/testing/selftests/exec/.gitignore |   9 +
+ tools/testing/selftests/exec/Makefile   |  25 ++
+ tools/testing/selftests/exec/execveat.c | 397 ++++++++++++++++++++++++++++++++
+ 4 files changed, 432 insertions(+)
+ create mode 100644 tools/testing/selftests/exec/.gitignore
+ create mode 100644 tools/testing/selftests/exec/Makefile
+ create mode 100644 tools/testing/selftests/exec/execveat.c
 
-On 11/14/2014 02:19 AM, Will Deacon wrote:
-> Hi Alex,
->
-> On Thu, Nov 13, 2014 at 07:27:23PM +0000, Alexander Duyck wrote:
->> It is common for device drivers to make use of acquire/release semantics
->> when dealing with descriptors stored in device memory.  On reviewing the
->> documentation and code for smp_load_acquire() and smp_store_release() as
->> well as reviewing an IBM website that goes over the use of PowerPC barriers
->> at http://www.ibm.com/developerworks/systems/articles/powerpc.html it
->> occurred to me that the same code could likely be applied to device drivers.
->>
->> As a result this patch introduces load_acquire() and store_release().  The
->> load_acquire() function can be used in the place of situations where a test
->> for ownership must be followed by a memory barrier.  The below example is
->> from ixgbe:
->>
->>          if (!rx_desc->wb.upper.status_error)
->>                  break;
->>
->>          /* This memory barrier is needed to keep us from reading
->>           * any other fields out of the rx_desc until we know the
->>           * descriptor has been written back
->>           */
->>          rmb();
->>
->> With load_acquire() this can be changed to:
->>
->>          if (!load_acquire(&rx_desc->wb.upper.status_error))
->>                  break;
-> I still don't think this is a good idea for the specific use-case you're
-> highlighting.
->
-> On ARM, an mb() can be *significantly* more expensive than an rmb() (since
-> we may have to drain store buffers on an outer L2 cache) and on arm64 it's
-> not at all clear that an LDAR is more efficient than an LDR; DMB LD
-> sequence. I can certainly imagine implementations where the latter would
-> be preferred.
+diff --git a/tools/testing/selftests/Makefile b/tools/testing/selftests/Makefile
+index 45f145c6f843..c14893b501a9 100644
+--- a/tools/testing/selftests/Makefile
++++ b/tools/testing/selftests/Makefile
+@@ -15,6 +15,7 @@ TARGETS += user
+ TARGETS += sysctl
+ TARGETS += firmware
+ TARGETS += ftrace
++TARGETS += exec
 
-Yeah, I am pretty sure I overdid it in using a mb() for arm.  I think 
-what I should probably be using is something like dmb(ish) which is used 
-for smp_mb() instead.  The general idea is to enforce memory-memory 
-accesses.  The memory-mmio accesses still should be using a full 
-rmb()/wmb() barrier.
-
-The alternative I am mulling over is creating something like a 
-lightweight set of memory barriers named lw_mb(), lw_rmb(), lw_wmb(), 
-that could be used instead.  The general idea is that on many 
-architectures a full mb/rmb/wmb is far too much for just guaranteeing 
-ordering for system memory only writes or reads.  I'm thinking I could 
-probably use the smp_ varieties as a template for them since I'm 
-thinking that in most cases this should be correct.
-
-Also, just to be clear I am not advocating replacing the wmb() in most 
-I/O setups where we have to sync the system memory before doing the MMIO 
-write.  This is for the case where the device descriptor ring has some 
-bit indicating ownership by either the device or the CPU.  So for 
-example on the r8169 they have to do a wmb() before writing the DescOwn 
-bit in the first descriptor of a given set of Tx descriptors to 
-guarantee the rest are written, then they set the DescOwn bit, then they 
-call wmb() again to flush that last bit before notifying the device it 
-can start fetching the descriptors. My goal is to deal with that first 
-wmb() and leave the second as it since it is correct.
-
-> So, whilst I'm perfectly fine to go along with mandatory acquire/release
-> macros (we should probably add a check to barf on __iomem pointers), I
-> don't agree with using them in preference to finer-grained read/write
-> barriers. Doing so will have a real impact on I/O performance.
-
-Couldn't that type of check be added to compiletime_assert_atomic_type?  
-That seems like that would be the best place for something like that.
-
-
-> Finally, do you know of any architectures where load_acquire/store_release
-> aren't implemented the same way as the smp_* variants on SMP kernels?
->
-> Will
-
-I should probably go back through and sort out the cases where mb() and 
-smp_mb() are not the same thing.  I think I probably went with too harsh 
-of a barrier in probably a couple of other cases.
-
-Thanks,
-
-Alex
+ TARGETS_HOTPLUG = cpu-hotplug
+ TARGETS_HOTPLUG += memory-hotplug
+diff --git a/tools/testing/selftests/exec/.gitignore b/tools/testing/selftests/exec/.gitignore
+new file mode 100644
+index 000000000000..64073e050c6a
+--- /dev/null
++++ b/tools/testing/selftests/exec/.gitignore
+@@ -0,0 +1,9 @@
++subdir*
++script*
++execveat
++execveat.symlink
++execveat.moved
++execveat.path.ephemeral
++execveat.ephemeral
++execveat.denatured
++xxxxxxxx*
+\ No newline at end of file
+diff --git a/tools/testing/selftests/exec/Makefile b/tools/testing/selftests/exec/Makefile
+new file mode 100644
+index 000000000000..66dfc2ce1788
+--- /dev/null
++++ b/tools/testing/selftests/exec/Makefile
+@@ -0,0 +1,25 @@
++CC = $(CROSS_COMPILE)gcc
++CFLAGS = -Wall
++BINARIES = execveat
++DEPS = execveat.symlink execveat.denatured script subdir
++all: $(BINARIES) $(DEPS)
++
++subdir:
++	mkdir -p $@
++script:
++	echo '#!/bin/sh' > $@
++	echo 'exit $$*' >> $@
++	chmod +x $@
++execveat.symlink: execveat
++	ln -s -f $< $@
++execveat.denatured: execveat
++	cp $< $@
++	chmod -x $@
++%: %.c
++	$(CC) $(CFLAGS) -o $@ $^
++
++run_tests: all
++	./execveat
++
++clean:
++	rm -rf $(BINARIES) $(DEPS) subdir.moved execveat.moved xxxxx*
+diff --git a/tools/testing/selftests/exec/execveat.c b/tools/testing/selftests/exec/execveat.c
+new file mode 100644
+index 000000000000..33a5c06d95ca
+--- /dev/null
++++ b/tools/testing/selftests/exec/execveat.c
+@@ -0,0 +1,397 @@
++/*
++ * Copyright (c) 2014 Google, Inc.
++ *
++ * Licensed under the terms of the GNU GPL License version 2
++ *
++ * Selftests for execveat(2).
++ */
++
++#define _GNU_SOURCE  /* to get O_PATH, AT_EMPTY_PATH */
++#include <sys/sendfile.h>
++#include <sys/stat.h>
++#include <sys/syscall.h>
++#include <sys/types.h>
++#include <sys/wait.h>
++#include <errno.h>
++#include <fcntl.h>
++#include <limits.h>
++#include <stdio.h>
++#include <stdlib.h>
++#include <string.h>
++#include <unistd.h>
++
++static char longpath[2 * PATH_MAX] = "";
++static char *envp[] = { "IN_TEST=yes", NULL, NULL };
++static char *argv[] = { "execveat", "99", NULL };
++
++static int execveat_(int fd, const char *path, char **argv, char **envp,
++		     int flags)
++{
++#ifdef __NR_execveat
++	return syscall(__NR_execveat, fd, path, argv, envp, flags);
++#else
++	errno = -ENOSYS;
++	return -1;
++#endif
++}
++
++#define check_execveat_fail(fd, path, flags, errno)	\
++	_check_execveat_fail(fd, path, flags, errno, #errno)
++static int _check_execveat_fail(int fd, const char *path, int flags,
++				int expected_errno, const char *errno_str)
++{
++	int rc;
++
++	errno = 0;
++	printf("Check failure of execveat(%d, '%s', %d) with %s... ",
++		fd, path?:"(null)", flags, errno_str);
++	rc = execveat_(fd, path, argv, envp, flags);
++
++	if (rc > 0) {
++		printf("[FAIL] (unexpected success from execveat(2))\n");
++		return 1;
++	}
++	if (errno != expected_errno) {
++		printf("[FAIL] (expected errno %d (%s) not %d (%s)\n",
++			expected_errno, strerror(expected_errno),
++			errno, strerror(errno));
++		return 1;
++	}
++	printf("[OK]\n");
++	return 0;
++}
++
++static int check_execveat_invoked_rc(int fd, const char *path, int flags,
++				     int expected_rc)
++{
++	int status;
++	int rc;
++	pid_t child;
++	int pathlen = path ? strlen(path) : 0;
++
++	if (pathlen > 40)
++		printf("Check success of execveat(%d, '%.20s...%s', %d)... ",
++			fd, path, (path + pathlen - 20), flags);
++	else
++		printf("Check success of execveat(%d, '%s', %d)... ",
++			fd, path?:"(null)", flags);
++	child = fork();
++	if (child < 0) {
++		printf("[FAIL] (fork() failed)\n");
++		return 1;
++	}
++	if (child == 0) {
++		/* Child: do execveat(). */
++		rc = execveat_(fd, path, argv, envp, flags);
++		printf("[FAIL]: execveat() failed, rc=%d errno=%d (%s)\n",
++			rc, errno, strerror(errno));
++		exit(1);  /* should not reach here */
++	}
++	/* Parent: wait for & check child's exit status. */
++	rc = waitpid(child, &status, 0);
++	if (rc != child) {
++		printf("[FAIL] (waitpid(%d,...) returned %d)\n", child, rc);
++		return 1;
++	}
++	if (!WIFEXITED(status)) {
++		printf("[FAIL] (child %d did not exit cleanly, status=%08x)\n",
++			child, status);
++		return 1;
++	}
++	if (WEXITSTATUS(status) != expected_rc) {
++		printf("[FAIL] (child %d exited with %d not %d)\n",
++			child, WEXITSTATUS(status), expected_rc);
++		return 1;
++	}
++	printf("[OK]\n");
++	return 0;
++}
++
++static int check_execveat(int fd, const char *path, int flags)
++{
++	return check_execveat_invoked_rc(fd, path, flags, 99);
++}
++
++static char *concat(const char *left, const char *right)
++{
++	char *result = malloc(strlen(left) + strlen(right) + 1);
++
++	strcpy(result, left);
++	strcat(result, right);
++	return result;
++}
++
++static int open_or_die(const char *filename, int flags)
++{
++	int fd = open(filename, flags);
++
++	if (fd < 0) {
++		printf("Failed to open '%s'; "
++			"check prerequisites are available\n", filename);
++		exit(1);
++	}
++	return fd;
++}
++
++static void exe_cp(const char *src, const char *dest)
++{
++	int in_fd = open_or_die(src, O_RDONLY);
++	int out_fd = open(dest, O_RDWR|O_CREAT|O_TRUNC, 0755);
++	struct stat info;
++
++	fstat(in_fd, &info);
++	sendfile(out_fd, in_fd, NULL, info.st_size);
++	close(in_fd);
++	close(out_fd);
++}
++
++#define XX_DIR_LEN 200
++static int check_execveat_pathmax(int dot_dfd, const char *src, int is_script)
++{
++	int fail = 0;
++	int ii, count, len;
++	char longname[XX_DIR_LEN + 1];
++	int fd;
++
++	if (*longpath == '\0') {
++		/* Create a filename close to PATH_MAX in length */
++		memset(longname, 'x', XX_DIR_LEN - 1);
++		longname[XX_DIR_LEN - 1] = '/';
++		longname[XX_DIR_LEN] = '\0';
++		count = (PATH_MAX - 3) / XX_DIR_LEN;
++		for (ii = 0; ii < count; ii++) {
++			strcat(longpath, longname);
++			mkdir(longpath, 0755);
++		}
++		len = (PATH_MAX - 3) - (count * XX_DIR_LEN);
++		if (len <= 0)
++			len = 1;
++		memset(longname, 'y', len);
++		longname[len] = '\0';
++		strcat(longpath, longname);
++	}
++	exe_cp(src, longpath);
++
++	/*
++	 * Execute as a pre-opened file descriptor, which works whether this is
++	 * a script or not (because the interpreter sees a filename like
++	 * "/dev/fd/20").
++	 */
++	fd = open(longpath, O_RDONLY);
++	if (fd > 0) {
++		printf("Invoke copy of '%s' via filename of length %lu:\n",
++			src, strlen(longpath));
++		fail += check_execveat(fd, "", AT_EMPTY_PATH);
++	} else {
++		printf("Failed to open length %lu filename, errno=%d (%s)\n",
++			strlen(longpath), errno, strerror(errno));
++		fail++;
++	}
++
++	/*
++	 * Execute as a long pathname relative to ".".  If this is a script,
++	 * the interpreter will launch but fail to open the script because its
++	 * name ("/dev/fd/5/xxx....") is bigger than PATH_MAX.
++	 */
++	if (is_script)
++		fail += check_execveat_invoked_rc(dot_dfd, longpath, 0, 127);
++	else
++		fail += check_execveat(dot_dfd, longpath, 0);
++
++	return fail;
++}
++
++static int run_tests(void)
++{
++	int fail = 0;
++	char *fullname = realpath("execveat", NULL);
++	char *fullname_script = realpath("script", NULL);
++	char *fullname_symlink = concat(fullname, ".symlink");
++	int subdir_dfd = open_or_die("subdir", O_DIRECTORY|O_RDONLY);
++	int subdir_dfd_ephemeral = open_or_die("subdir.ephemeral",
++					       O_DIRECTORY|O_RDONLY);
++	int dot_dfd = open_or_die(".", O_DIRECTORY|O_RDONLY);
++	int dot_dfd_path = open_or_die(".", O_DIRECTORY|O_RDONLY|O_PATH);
++	int dot_dfd_cloexec = open_or_die(".", O_DIRECTORY|O_RDONLY|O_CLOEXEC);
++	int fd = open_or_die("execveat", O_RDONLY);
++	int fd_path = open_or_die("execveat", O_RDONLY|O_PATH);
++	int fd_symlink = open_or_die("execveat.symlink", O_RDONLY);
++	int fd_denatured = open_or_die("execveat.denatured", O_RDONLY);
++	int fd_denatured_path = open_or_die("execveat.denatured",
++					    O_RDONLY|O_PATH);
++	int fd_script = open_or_die("script", O_RDONLY);
++	int fd_ephemeral = open_or_die("execveat.ephemeral", O_RDONLY);
++	int fd_ephemeral_path = open_or_die("execveat.path.ephemeral",
++					    O_RDONLY|O_PATH);
++	int fd_script_ephemeral = open_or_die("script.ephemeral", O_RDONLY);
++	int fd_cloexec = open_or_die("execveat", O_RDONLY|O_CLOEXEC);
++	int fd_script_cloexec = open_or_die("script", O_RDONLY|O_CLOEXEC);
++
++	/* Change file position to confirm it doesn't affect anything */
++	lseek(fd, 10, SEEK_SET);
++
++	/* Normal executable file: */
++	/*   dfd + path */
++	fail += check_execveat(subdir_dfd, "../execveat", 0);
++	fail += check_execveat(dot_dfd, "execveat", 0);
++	fail += check_execveat(dot_dfd_path, "execveat", 0);
++	/*   absolute path */
++	fail += check_execveat(AT_FDCWD, fullname, 0);
++	/*   absolute path with nonsense dfd */
++	fail += check_execveat(99, fullname, 0);
++	/*   fd + no path */
++	fail += check_execveat(fd, "", AT_EMPTY_PATH);
++	/*   O_CLOEXEC fd + no path */
++	fail += check_execveat(fd_cloexec, "", AT_EMPTY_PATH);
++	/*   O_PATH fd */
++	fail += check_execveat(fd_path, "", AT_EMPTY_PATH);
++
++	/* Mess with executable file that's already open: */
++	/*   fd + no path to a file that's been renamed */
++	rename("execveat.ephemeral", "execveat.moved");
++	fail += check_execveat(fd_ephemeral, "", AT_EMPTY_PATH);
++	/*   fd + no path to a file that's been deleted */
++	unlink("execveat.moved"); /* remove the file now fd open */
++	fail += check_execveat(fd_ephemeral, "", AT_EMPTY_PATH);
++
++	/* Mess with executable file that's already open with O_PATH */
++	/*   fd + no path to a file that's been deleted */
++	unlink("execveat.path.ephemeral");
++	fail += check_execveat(fd_ephemeral_path, "", AT_EMPTY_PATH);
++
++	/* Invalid argument failures */
++	fail += check_execveat_fail(fd, "", 0, ENOENT);
++	fail += check_execveat_fail(fd, NULL, AT_EMPTY_PATH, EFAULT);
++
++	/* Symlink to executable file: */
++	/*   dfd + path */
++	fail += check_execveat(dot_dfd, "execveat.symlink", 0);
++	fail += check_execveat(dot_dfd_path, "execveat.symlink", 0);
++	/*   absolute path */
++	fail += check_execveat(AT_FDCWD, fullname_symlink, 0);
++	/*   fd + no path, even with AT_SYMLINK_NOFOLLOW (already followed) */
++	fail += check_execveat(fd_symlink, "", AT_EMPTY_PATH);
++	fail += check_execveat(fd_symlink, "",
++			       AT_EMPTY_PATH|AT_SYMLINK_NOFOLLOW);
++
++	/* Symlink fails when AT_SYMLINK_NOFOLLOW set: */
++	/*   dfd + path */
++	fail += check_execveat_fail(dot_dfd, "execveat.symlink",
++				    AT_SYMLINK_NOFOLLOW, ELOOP);
++	fail += check_execveat_fail(dot_dfd_path, "execveat.symlink",
++				    AT_SYMLINK_NOFOLLOW, ELOOP);
++	/*   absolute path */
++	fail += check_execveat_fail(AT_FDCWD, fullname_symlink,
++				    AT_SYMLINK_NOFOLLOW, ELOOP);
++
++	/* Shell script wrapping executable file: */
++	/*   dfd + path */
++	fail += check_execveat(subdir_dfd, "../script", 0);
++	fail += check_execveat(dot_dfd, "script", 0);
++	fail += check_execveat(dot_dfd_path, "script", 0);
++	/*   absolute path */
++	fail += check_execveat(AT_FDCWD, fullname_script, 0);
++	/*   fd + no path */
++	fail += check_execveat(fd_script, "", AT_EMPTY_PATH);
++	fail += check_execveat(fd_script, "",
++			       AT_EMPTY_PATH|AT_SYMLINK_NOFOLLOW);
++	/*   O_CLOEXEC fd fails for a script (as script file inaccessible) */
++	fail += check_execveat_fail(fd_script_cloexec, "", AT_EMPTY_PATH,
++				    ENOENT);
++	fail += check_execveat_fail(dot_dfd_cloexec, "script", 0, ENOENT);
++
++	/* Mess with script file that's already open: */
++	/*   fd + no path to a file that's been renamed */
++	rename("script.ephemeral", "script.moved");
++	fail += check_execveat(fd_script_ephemeral, "", AT_EMPTY_PATH);
++	/*   fd + no path to a file that's been deleted */
++	unlink("script.moved"); /* remove the file while fd open */
++	fail += check_execveat(fd_script_ephemeral, "", AT_EMPTY_PATH);
++
++	/* Rename a subdirectory in the path: */
++	rename("subdir.ephemeral", "subdir.moved");
++	fail += check_execveat(subdir_dfd_ephemeral, "../script", 0);
++	fail += check_execveat(subdir_dfd_ephemeral, "script", 0);
++	/* Remove the subdir and its contents */
++	unlink("subdir.moved/script");
++	unlink("subdir.moved");
++	/* Shell loads via deleted subdir OK because name starts with .. */
++	fail += check_execveat(subdir_dfd_ephemeral, "../script", 0);
++	fail += check_execveat_fail(subdir_dfd_ephemeral, "script", 0, ENOENT);
++
++	/* Flag values other than AT_SYMLINK_NOFOLLOW => EINVAL */
++	fail += check_execveat_fail(dot_dfd, "execveat", 0xFFFF, EINVAL);
++	/* Invalid path => ENOENT */
++	fail += check_execveat_fail(dot_dfd, "no-such-file", 0, ENOENT);
++	fail += check_execveat_fail(dot_dfd_path, "no-such-file", 0, ENOENT);
++	fail += check_execveat_fail(AT_FDCWD, "no-such-file", 0, ENOENT);
++	/* Attempt to execute directory => EACCES */
++	fail += check_execveat_fail(dot_dfd, "", AT_EMPTY_PATH, EACCES);
++	/* Attempt to execute non-executable => EACCES */
++	fail += check_execveat_fail(dot_dfd, "Makefile", 0, EACCES);
++	fail += check_execveat_fail(fd_denatured, "", AT_EMPTY_PATH, EACCES);
++	fail += check_execveat_fail(fd_denatured_path, "", AT_EMPTY_PATH,
++				    EACCES);
++	/* Attempt to execute nonsense FD => EBADF */
++	fail += check_execveat_fail(99, "", AT_EMPTY_PATH, EBADF);
++	fail += check_execveat_fail(99, "execveat", 0, EBADF);
++	/* Attempt to execute relative to non-directory => ENOTDIR */
++	fail += check_execveat_fail(fd, "execveat", 0, ENOTDIR);
++
++	fail += check_execveat_pathmax(dot_dfd, "execveat", 0);
++	fail += check_execveat_pathmax(dot_dfd, "script", 1);
++	return fail;
++}
++
++static void prerequisites(void)
++{
++	int fd;
++	const char *script = "#!/bin/sh\nexit $*\n";
++
++	/* Create ephemeral copies of files */
++	exe_cp("execveat", "execveat.ephemeral");
++	exe_cp("execveat", "execveat.path.ephemeral");
++	exe_cp("script", "script.ephemeral");
++	mkdir("subdir.ephemeral", 0755);
++
++	fd = open("subdir.ephemeral/script", O_RDWR|O_CREAT|O_TRUNC, 0755);
++	write(fd, script, strlen(script));
++	close(fd);
++}
++
++int main(int argc, char **argv)
++{
++	int ii;
++	int rc;
++	const char *verbose = getenv("VERBOSE");
++
++	if (argc >= 2) {
++		/* If we are invoked with an argument, don't run tests. */
++		const char *in_test = getenv("IN_TEST");
++
++		if (verbose) {
++			printf("  invoked with:");
++			for (ii = 0; ii < argc; ii++)
++				printf(" [%d]='%s'", ii, argv[ii]);
++			printf("\n");
++		}
++
++		/* Check expected environment transferred. */
++		if (!in_test || strcmp(in_test, "yes") != 0) {
++			printf("[FAIL] (no IN_TEST=yes in env)\n");
++			return 1;
++		}
++
++		/* Use the final argument as an exit code. */
++		rc = atoi(argv[argc - 1]);
++		fflush(stdout);
++	} else {
++		prerequisites();
++		if (verbose)
++			envp[1] = "VERBOSE=1";
++		rc = run_tests();
++		if (rc > 0)
++			printf("%d tests failed\n", rc);
++	}
++	return rc;
++}
+--
+2.1.0.rc2.206.gedb03e5
