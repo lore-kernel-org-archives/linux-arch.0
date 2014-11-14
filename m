@@ -1,164 +1,105 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wi0-f170.google.com ([209.85.212.170]:33473 "EHLO
-	mail-wi0-f170.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S934512AbaKNLj2 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 14 Nov 2014 06:39:28 -0500
-Received: by mail-wi0-f170.google.com with SMTP id r20so4822669wiv.5
-        for <linux-arch@vger.kernel.org>; Fri, 14 Nov 2014 03:39:27 -0800 (PST)
-From: Michal Simek <michal.simek@xilinx.com>
-Subject: [RESENT PATCH] dma-mapping: Add BUG_ON for uninitialized dma_ops
-Date: Fri, 14 Nov 2014 12:39:24 +0100
-Message-ID: <385664132d1ef60c582b0045afaa36a1895685dc.1415965161.git.michal.simek@xilinx.com>
-Content-Type: multipart/signed;
-    boundary="=_mimegpg-monstr-desktop-15995-1415965164-0001";
-    micalg=pgp-sha1; protocol="application/pgp-signature"
+Received: from mx1.redhat.com ([209.132.183.28]:47052 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S965288AbaKNQBh (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 14 Nov 2014 11:01:37 -0500
+Message-ID: <54662705.9050603@redhat.com>
+Date: Fri, 14 Nov 2014 08:00:05 -0800
+From: Alexander Duyck <alexander.h.duyck@redhat.com>
+MIME-Version: 1.0
+Subject: Re: [PATCH 1/3] arch: Introduce load_acquire() and store_release()
+References: <20141113191250.12579.19694.stgit@ahduyck-server> <20141113192723.12579.25343.stgit@ahduyck-server> <20141114101902.GA27963@arm.com>
+In-Reply-To: <20141114101902.GA27963@arm.com>
+Content-Type: text/plain; charset=windows-1252; format=flowed
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>
-Cc: Michal Simek <monstr@monstr.eu>, Michal Simek <michal.simek@xilinx.com>, linux-arch@vger.kernel.org
-Message-ID: <20141114113924.0rhii7sQFFcVzyRdIrivN0bkxn1jnoINrrbYCsocIlE@z>
-
-This is a MIME GnuPG-signed message.  If you see this text, it means that
-your E-mail or Usenet software does not support MIME signed messages.
-The Internet standard for MIME PGP messages, RFC 2015, was published in 1996.
-To open this message correctly you will need to install E-mail or Usenet
-software that supports modern Internet standards.
-
---=_mimegpg-monstr-desktop-15995-1415965164-0001
-
-Check that dma_ops are initialized correctly.
-
-Signed-off-by: Michal Simek <michal.simek@xilinx.com>
----
-
-Functions dma_mmap_attrs(), dma_get_sgtable_attrs()
-already have this checking.
-
-The whole discussion was originally here:
-https://lkml.org/lkml/2013/6/3/255
-
-We have middle solution where some functions have this checking
-and some not. Based on get_maintainer scripts Arnd should do that decision
-to accept or reject this patch.
-
----
- include/asm-generic/dma-mapping-common.h | 12 ++++++++++++
- 1 file changed, 12 insertions(+)
-
-diff --git a/include/asm-generic/dma-mapping-common.h b/include/asm-generic/dma-mapping-common.h
-index de8bf89940f8..d430cabd2975 100644
---- a/include/asm-generic/dma-mapping-common.h
-+++ b/include/asm-generic/dma-mapping-common.h
-@@ -16,6 +16,7 @@ static inline dma_addr_t dma_map_single_attrs(struct device *dev, void *ptr,
- 	dma_addr_t addr;
-
- 	kmemcheck_mark_initialized(ptr, size);
-+	BUG_ON(!ops);
- 	BUG_ON(!valid_dma_direction(dir));
- 	addr = ops->map_page(dev, virt_to_page(ptr),
- 			     (unsigned long)ptr & ~PAGE_MASK, size,
-@@ -33,6 +34,7 @@ static inline void dma_unmap_single_attrs(struct device *dev, dma_addr_t addr,
- {
- 	struct dma_map_ops *ops = get_dma_ops(dev);
-
-+	BUG_ON(!ops);
- 	BUG_ON(!valid_dma_direction(dir));
- 	if (ops->unmap_page)
- 		ops->unmap_page(dev, addr, size, dir, attrs);
-@@ -49,6 +51,7 @@ static inline int dma_map_sg_attrs(struct device *dev, struct scatterlist *sg,
-
- 	for_each_sg(sg, s, nents, i)
- 		kmemcheck_mark_initialized(sg_virt(s), s->length);
-+	BUG_ON(!ops);
- 	BUG_ON(!valid_dma_direction(dir));
- 	ents = ops->map_sg(dev, sg, nents, dir, attrs);
- 	debug_dma_map_sg(dev, sg, nents, ents, dir);
-@@ -62,6 +65,7 @@ static inline void dma_unmap_sg_attrs(struct device *dev, struct scatterlist *sg
- {
- 	struct dma_map_ops *ops = get_dma_ops(dev);
-
-+	BUG_ON(!ops);
- 	BUG_ON(!valid_dma_direction(dir));
- 	debug_dma_unmap_sg(dev, sg, nents, dir);
- 	if (ops->unmap_sg)
-@@ -76,6 +80,7 @@ static inline dma_addr_t dma_map_page(struct device *dev, struct page *page,
- 	dma_addr_t addr;
-
- 	kmemcheck_mark_initialized(page_address(page) + offset, size);
-+	BUG_ON(!ops);
- 	BUG_ON(!valid_dma_direction(dir));
- 	addr = ops->map_page(dev, page, offset, size, dir, NULL);
- 	debug_dma_map_page(dev, page, offset, size, dir, addr, false);
-@@ -88,6 +93,7 @@ static inline void dma_unmap_page(struct device *dev, dma_addr_t addr,
- {
- 	struct dma_map_ops *ops = get_dma_ops(dev);
-
-+	BUG_ON(!ops);
- 	BUG_ON(!valid_dma_direction(dir));
- 	if (ops->unmap_page)
- 		ops->unmap_page(dev, addr, size, dir, NULL);
-@@ -100,6 +106,7 @@ static inline void dma_sync_single_for_cpu(struct device *dev, dma_addr_t addr,
- {
- 	struct dma_map_ops *ops = get_dma_ops(dev);
-
-+	BUG_ON(!ops);
- 	BUG_ON(!valid_dma_direction(dir));
- 	if (ops->sync_single_for_cpu)
- 		ops->sync_single_for_cpu(dev, addr, size, dir);
-@@ -112,6 +119,7 @@ static inline void dma_sync_single_for_device(struct device *dev,
- {
- 	struct dma_map_ops *ops = get_dma_ops(dev);
-
-+	BUG_ON(!ops);
- 	BUG_ON(!valid_dma_direction(dir));
- 	if (ops->sync_single_for_device)
- 		ops->sync_single_for_device(dev, addr, size, dir);
-@@ -126,6 +134,7 @@ static inline void dma_sync_single_range_for_cpu(struct device *dev,
- {
- 	const struct dma_map_ops *ops = get_dma_ops(dev);
-
-+	BUG_ON(!ops);
- 	BUG_ON(!valid_dma_direction(dir));
- 	if (ops->sync_single_for_cpu)
- 		ops->sync_single_for_cpu(dev, addr + offset, size, dir);
-@@ -140,6 +149,7 @@ static inline void dma_sync_single_range_for_device(struct device *dev,
- {
- 	const struct dma_map_ops *ops = get_dma_ops(dev);
-
-+	BUG_ON(!ops);
- 	BUG_ON(!valid_dma_direction(dir));
- 	if (ops->sync_single_for_device)
- 		ops->sync_single_for_device(dev, addr + offset, size, dir);
-@@ -152,6 +162,7 @@ dma_sync_sg_for_cpu(struct device *dev, struct scatterlist *sg,
- {
- 	struct dma_map_ops *ops = get_dma_ops(dev);
-
-+	BUG_ON(!ops);
- 	BUG_ON(!valid_dma_direction(dir));
- 	if (ops->sync_sg_for_cpu)
- 		ops->sync_sg_for_cpu(dev, sg, nelems, dir);
-@@ -164,6 +175,7 @@ dma_sync_sg_for_device(struct device *dev, struct scatterlist *sg,
- {
- 	struct dma_map_ops *ops = get_dma_ops(dev);
-
-+	BUG_ON(!ops);
- 	BUG_ON(!valid_dma_direction(dir));
- 	if (ops->sync_sg_for_device)
- 		ops->sync_sg_for_device(dev, sg, nelems, dir);
---
-1.8.2.3
+To: Will Deacon <will.deacon@arm.com>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "netdev@vger.kernel.org" <netdev@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "mikey@neuling.org" <mikey@neuling.org>, "tony.luck@intel.com" <tony.luck@intel.com>, "mathieu.desnoyers@polymtl.ca" <mathieu.desnoyers@polymtl.ca>, "donald.c.skidmore@intel.com" <donald.c.skidmore@intel.com>, "peterz@infradead.org" <peterz@infradead.org>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, "heiko.carstens@de.ibm.com" <heiko.carstens@de.ibm.com>, "oleg@redhat.com" <oleg@redhat.com>, "davem@davemloft.net" <davem@davemloft.net>, "michael@ellerman.id.au" <michael@ellerman.id.au>, "matthew.vick@intel.com" <matthew.vick@intel.com>, "nic_swsd@realtek.com" <nic_swsd@realtek.com>, "geert@linux-m68k.org" <geert@linux-m68k.org>, "jeffrey.t.kirsher@intel.com" <jeffrey.t.kirsher@intel.com>, "fweisbec@gmail.com" <fweisbec@gmail.com>, "schwidefsky@de.ibm.com" <schwidefsky@de.ibm.com>, "linux@arm.linux.org.uk" <linux@arm.linux.org.uk>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>, "torvalds@linux-foundation.org" <torvalds@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>
+Message-ID: <20141114160005.x6BMPlxKaT7wVAUrX_stOUEdQdVxGNQOiRzGhoGw73M@z>
 
 
---=_mimegpg-monstr-desktop-15995-1415965164-0001
-Content-Type: application/pgp-signature
-Content-Transfer-Encoding: 7bit
+On 11/14/2014 02:19 AM, Will Deacon wrote:
+> Hi Alex,
+>
+> On Thu, Nov 13, 2014 at 07:27:23PM +0000, Alexander Duyck wrote:
+>> It is common for device drivers to make use of acquire/release semantics
+>> when dealing with descriptors stored in device memory.  On reviewing the
+>> documentation and code for smp_load_acquire() and smp_store_release() as
+>> well as reviewing an IBM website that goes over the use of PowerPC barriers
+>> at http://www.ibm.com/developerworks/systems/articles/powerpc.html it
+>> occurred to me that the same code could likely be applied to device drivers.
+>>
+>> As a result this patch introduces load_acquire() and store_release().  The
+>> load_acquire() function can be used in the place of situations where a test
+>> for ownership must be followed by a memory barrier.  The below example is
+>> from ixgbe:
+>>
+>>          if (!rx_desc->wb.upper.status_error)
+>>                  break;
+>>
+>>          /* This memory barrier is needed to keep us from reading
+>>           * any other fields out of the rx_desc until we know the
+>>           * descriptor has been written back
+>>           */
+>>          rmb();
+>>
+>> With load_acquire() this can be changed to:
+>>
+>>          if (!load_acquire(&rx_desc->wb.upper.status_error))
+>>                  break;
+> I still don't think this is a good idea for the specific use-case you're
+> highlighting.
+>
+> On ARM, an mb() can be *significantly* more expensive than an rmb() (since
+> we may have to drain store buffers on an outer L2 cache) and on arm64 it's
+> not at all clear that an LDAR is more efficient than an LDR; DMB LD
+> sequence. I can certainly imagine implementations where the latter would
+> be preferred.
 
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.10 (GNU/Linux)
+Yeah, I am pretty sure I overdid it in using a mb() for arm.  I think 
+what I should probably be using is something like dmb(ish) which is used 
+for smp_mb() instead.  The general idea is to enforce memory-memory 
+accesses.  The memory-mmio accesses still should be using a full 
+rmb()/wmb() barrier.
 
-iEYEABECAAYFAlRl6ewACgkQykllyylKDCEV2QCfS9S4JfWn1VWnacuVle9Pdz6h
-c5MAoIVruEmyIHddrwyjZ3PHqcFoykad
-=q36d
------END PGP SIGNATURE-----
+The alternative I am mulling over is creating something like a 
+lightweight set of memory barriers named lw_mb(), lw_rmb(), lw_wmb(), 
+that could be used instead.  The general idea is that on many 
+architectures a full mb/rmb/wmb is far too much for just guaranteeing 
+ordering for system memory only writes or reads.  I'm thinking I could 
+probably use the smp_ varieties as a template for them since I'm 
+thinking that in most cases this should be correct.
 
---=_mimegpg-monstr-desktop-15995-1415965164-0001--
+Also, just to be clear I am not advocating replacing the wmb() in most 
+I/O setups where we have to sync the system memory before doing the MMIO 
+write.  This is for the case where the device descriptor ring has some 
+bit indicating ownership by either the device or the CPU.  So for 
+example on the r8169 they have to do a wmb() before writing the DescOwn 
+bit in the first descriptor of a given set of Tx descriptors to 
+guarantee the rest are written, then they set the DescOwn bit, then they 
+call wmb() again to flush that last bit before notifying the device it 
+can start fetching the descriptors. My goal is to deal with that first 
+wmb() and leave the second as it since it is correct.
+
+> So, whilst I'm perfectly fine to go along with mandatory acquire/release
+> macros (we should probably add a check to barf on __iomem pointers), I
+> don't agree with using them in preference to finer-grained read/write
+> barriers. Doing so will have a real impact on I/O performance.
+
+Couldn't that type of check be added to compiletime_assert_atomic_type?  
+That seems like that would be the best place for something like that.
+
+
+> Finally, do you know of any architectures where load_acquire/store_release
+> aren't implemented the same way as the smp_* variants on SMP kernels?
+>
+> Will
+
+I should probably go back through and sort out the cases where mb() and 
+smp_mb() are not the same thing.  I think I probably went with too harsh 
+of a barrier in probably a couple of other cases.
+
+Thanks,
+
+Alex
