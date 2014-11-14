@@ -1,104 +1,133 @@
-From: Alexander Duyck <alexander.h.duyck@redhat.com>
-Subject: Re: [PATCH 1/3] arch: Introduce load_acquire() and store_release()
-Date: Fri, 14 Nov 2014 08:00:05 -0800
-Message-ID: <54662705.9050603@redhat.com>
-References: <20141113191250.12579.19694.stgit@ahduyck-server> <20141113192723.12579.25343.stgit@ahduyck-server> <20141114101902.GA27963@arm.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=windows-1252; format=flowed
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:47052 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S965288AbaKNQBh (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 14 Nov 2014 11:01:37 -0500
-In-Reply-To: <20141114101902.GA27963@arm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will.deacon@arm.com>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "netdev@vger.kernel.org" <netdev@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "mikey@neuling.org" <mikey@neuling.org>, "tony.luck@intel.com" <tony.luck@intel.com>, "mathieu.desnoyers@polymtl.ca" <mathieu.desnoyers@polymtl.ca>, "donald.c.skidmore@intel.com" <donald.c.skidmore@intel.com>, "peterz@infradead.org" <peterz@infradead.org>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, "heiko.carstens@de.ibm.com" <heiko.carstens@de.ibm.com>, "oleg@redhat.com" <oleg@redhat.com>, "davem@davemloft.net" <davem@davemloft.net>, "michael@ellerman.id.au" <michael@ellerman.id.au>, "matthew.vick@intel.com" <matthew.vick@intel.com>, "nic_swsd@realtek.com" <nic_swsd@realtek.com>, "geert@linux-m68k.org" <geert@linux-m68k.org>, "jeffrey.t.kirsher@intel.com" <jeffrey.t.kirsher@intel.com>
+From: David Drysdale <drysdale-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>
+Subject: [PATCHv8 0/4] syscalls,x86,sparc: Add execveat() system call
+Date: Fri, 14 Nov 2014 16:22:59 +0000
+Message-ID: <1415982183-20525-1-git-send-email-drysdale@google.com>
+Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: "Eric W. Biederman" <ebiederm-aS9lmoZGLiVWk0Htik3J/w@public.gmane.org>, Andy Lutomirski <luto-kltTT9wpgjJwATOyAt5JVQ@public.gmane.org>, Alexander Viro <viro-RmSDqhL/yNMiFSDQTTA3OLVCufUGDwFn@public.gmane.org>, Meredydd Luff <meredydd-zPN50pYk8eUaUu29zAJCuw@public.gmane.org>, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, David Miller <davem-fT/PcQaiUtIeIZ0/mPfg9Q@public.gmane.org>
+Cc: Oleg Nesterov <oleg-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Michael Kerrisk <mtk.manpages-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, Ingo Molnar <mingo-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>, Kees Cook <keescook-F7+t8E8rja9g9hUCZPvPmw@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Rich Felker <dalias-/miJ2pyFWUyWIDz0JBNUog@public.gmane.org>, Christoph Hellwig <hch-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, sparclinux-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, David Drysdale <drysdale-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>
+List-Id: linux-arch.vger.kernel.org
+
+Sparc folks: the kbuild robots complained about sparc missing this
+syscall, so I've speculatively included an extra patch in this
+version for that.
+
+However, I've not run it (only cross-compiled it), so it may be best
+to skip the [3/4] patch and let the experts deal with other
+architectures later -- I'm not sure what's the best practice for adding
+a new syscall.
+
+.........
+
+This patch set adds execveat(2) for x86, and is derived from Meredydd
+Luff's patch from Sept 2012 (https://lkml.org/lkml/2012/9/11/528).
+
+The primary aim of adding an execveat syscall is to allow an
+implementation of fexecve(3) that does not rely on the /proc
+filesystem, at least for executables (rather than scripts).  The
+current glibc version of fexecve(3) is implemented via /proc, which
+causes problems in sandboxed or otherwise restricted environments.
+
+Given the desire for a /proc-free fexecve() implementation, HPA
+suggested (https://lkml.org/lkml/2006/7/11/556) that an execveat(2)
+syscall would be an appropriate generalization.
+
+Also, having a new syscall means that it can take a flags argument
+without back-compatibility concerns.  The current implementation just
+defines the AT_EMPTY_PATH and AT_SYMLINK_NOFOLLOW flags, but other
+flags could be added in future -- for example, flags for new namespaces
+(as suggested at https://lkml.org/lkml/2006/7/11/474).
+
+Related history:
+ - https://lkml.org/lkml/2006/12/27/123 is an example of someone
+   realizing that fexecve() is likely to fail in a chroot environment.
+ - http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=514043 covered
+   documenting the /proc requirement of fexecve(3) in its manpage, to
+   "prevent other people from wasting their time".
+ - https://bugzilla.redhat.com/show_bug.cgi?id=241609 described a
+   problem where a process that did setuid() could not fexecve()
+   because it no longer had access to /proc/self/fd; this has since
+   been fixed.
 
 
-On 11/14/2014 02:19 AM, Will Deacon wrote:
-> Hi Alex,
->
-> On Thu, Nov 13, 2014 at 07:27:23PM +0000, Alexander Duyck wrote:
->> It is common for device drivers to make use of acquire/release semantics
->> when dealing with descriptors stored in device memory.  On reviewing the
->> documentation and code for smp_load_acquire() and smp_store_release() as
->> well as reviewing an IBM website that goes over the use of PowerPC barriers
->> at http://www.ibm.com/developerworks/systems/articles/powerpc.html it
->> occurred to me that the same code could likely be applied to device drivers.
->>
->> As a result this patch introduces load_acquire() and store_release().  The
->> load_acquire() function can be used in the place of situations where a test
->> for ownership must be followed by a memory barrier.  The below example is
->> from ixgbe:
->>
->>          if (!rx_desc->wb.upper.status_error)
->>                  break;
->>
->>          /* This memory barrier is needed to keep us from reading
->>           * any other fields out of the rx_desc until we know the
->>           * descriptor has been written back
->>           */
->>          rmb();
->>
->> With load_acquire() this can be changed to:
->>
->>          if (!load_acquire(&rx_desc->wb.upper.status_error))
->>                  break;
-> I still don't think this is a good idea for the specific use-case you're
-> highlighting.
->
-> On ARM, an mb() can be *significantly* more expensive than an rmb() (since
-> we may have to drain store buffers on an outer L2 cache) and on arm64 it's
-> not at all clear that an LDAR is more efficient than an LDR; DMB LD
-> sequence. I can certainly imagine implementations where the latter would
-> be preferred.
+Changes since v7:
+ - Speculatively wire up sparc version of syscall (untested)
+ - Fix leak of pathbuf in mainline arm [Oleg Nesterov]
+ - Add rcu_dereference_raw() on fdt access [sparse kbuild robot]
+ - Realigned comment [Andrew Morton]
+ - Merged up to v3.18-rc4
 
-Yeah, I am pretty sure I overdid it in using a mb() for arm.  I think 
-what I should probably be using is something like dmb(ish) which is used 
-for smp_mb() instead.  The general idea is to enforce memory-memory 
-accesses.  The memory-mmio accesses still should be using a full 
-rmb()/wmb() barrier.
+Changes since v6:
+ - Remove special case for O_PATH file descriptors [Andy Lutomirski]
+ - Use kasprintf rather than error-prone arithmetic [Kees Cook]
+ - Add test for long name [Kees Cook]
+ - Add test for non-executable O_PATH fd [Andy Lutomirski]
 
-The alternative I am mulling over is creating something like a 
-lightweight set of memory barriers named lw_mb(), lw_rmb(), lw_wmb(), 
-that could be used instead.  The general idea is that on many 
-architectures a full mb/rmb/wmb is far too much for just guaranteeing 
-ordering for system memory only writes or reads.  I'm thinking I could 
-probably use the smp_ varieties as a template for them since I'm 
-thinking that in most cases this should be correct.
+Changes since v5:
+ - Set new flag in bprm->interp_flags for O_CLOEXEC fds, so that binfmts
+   that invoke an interpreter fail the exec (as they will not be able
+   to access the invoked file). [Andy Lutomirski]
+ - Don't truncate long paths. [Andy Lutomirski]
+ - Commonize code to open the executed file. [Eric W. Biederman]
+ - Mark O_PATH file descriptors so they cannot be fexecve()ed.
+ - Make self-test more helpful, and add additional cases:
+     - file offset non-zero
+     - binary file without execute bit
+     - O_CLOEXEC fds
 
-Also, just to be clear I am not advocating replacing the wmb() in most 
-I/O setups where we have to sync the system memory before doing the MMIO 
-write.  This is for the case where the device descriptor ring has some 
-bit indicating ownership by either the device or the CPU.  So for 
-example on the r8169 they have to do a wmb() before writing the DescOwn 
-bit in the first descriptor of a given set of Tx descriptors to 
-guarantee the rest are written, then they set the DescOwn bit, then they 
-call wmb() again to flush that last bit before notifying the device it 
-can start fetching the descriptors. My goal is to deal with that first 
-wmb() and leave the second as it since it is correct.
+Changes since v4, suggested by Eric W. Biederman:
+ - Use empty filename with AT_EMPTY_PATH flag rather than NULL
+   pathname to request fexecve-like behaviour.
+ - Build pathname as "/dev/fd/<fd>/<filename>" (or "/dev/fd/<fd>")
+   rather than using d_path().
+ - Patch against v3.17 (bfe01a5ba249)
 
-> So, whilst I'm perfectly fine to go along with mandatory acquire/release
-> macros (we should probably add a check to barf on __iomem pointers), I
-> don't agree with using them in preference to finer-grained read/write
-> barriers. Doing so will have a real impact on I/O performance.
-
-Couldn't that type of check be added to compiletime_assert_atomic_type?  
-That seems like that would be the best place for something like that.
+Changes since Meredydd's v3 patch:
+ - Added a selftest.
+ - Added a man page.
+ - Left open_exec() signature untouched to reduce patch impact
+   elsewhere (as suggested by Al Viro).
+ - Filled in bprm->filename with d_path() into a buffer, to avoid use
+   of potentially-ephemeral dentry->d_name.
+ - Patch against v3.14 (455c6fdbd21916).
 
 
-> Finally, do you know of any architectures where load_acquire/store_release
-> aren't implemented the same way as the smp_* variants on SMP kernels?
->
-> Will
+David Drysdale (3):
+  syscalls,x86: implement execveat() system call
+  syscalls,x86: add selftest for execveat(2)
+  sparc: Hook up execveat system call.
 
-I should probably go back through and sort out the cases where mb() and 
-smp_mb() are not the same thing.  I think I probably went with too harsh 
-of a barrier in probably a couple of other cases.
+ arch/sparc/include/uapi/asm/unistd.h    |   3 +-
+ arch/sparc/kernel/systbls_32.S          |   1 +
+ arch/sparc/kernel/systbls_64.S          |   2 +
+ arch/x86/ia32/audit.c                   |   1 +
+ arch/x86/ia32/ia32entry.S               |   1 +
+ arch/x86/kernel/audit_64.c              |   1 +
+ arch/x86/kernel/entry_64.S              |  28 +++
+ arch/x86/syscalls/syscall_32.tbl        |   1 +
+ arch/x86/syscalls/syscall_64.tbl        |   2 +
+ arch/x86/um/sys_call_table_64.c         |   1 +
+ fs/binfmt_em86.c                        |   4 +
+ fs/binfmt_misc.c                        |   4 +
+ fs/binfmt_script.c                      |  10 +
+ fs/exec.c                               | 113 +++++++--
+ fs/namei.c                              |   2 +-
+ include/linux/binfmts.h                 |   4 +
+ include/linux/compat.h                  |   3 +
+ include/linux/fs.h                      |   1 +
+ include/linux/sched.h                   |   4 +
+ include/linux/syscalls.h                |   5 +
+ include/uapi/asm-generic/unistd.h       |   4 +-
+ kernel/sys_ni.c                         |   3 +
+ lib/audit.c                             |   3 +
+ tools/testing/selftests/Makefile        |   1 +
+ tools/testing/selftests/exec/.gitignore |   9 +
+ tools/testing/selftests/exec/Makefile   |  25 ++
+ tools/testing/selftests/exec/execveat.c | 397 ++++++++++++++++++++++++++++++++
+ 27 files changed, 617 insertions(+), 16 deletions(-)
+ create mode 100644 tools/testing/selftests/exec/.gitignore
+ create mode 100644 tools/testing/selftests/exec/Makefile
+ create mode 100644 tools/testing/selftests/exec/execveat.c
 
-Thanks,
-
-Alex
+--
+2.1.0.rc2.206.gedb03e5
