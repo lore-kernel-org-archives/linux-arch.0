@@ -1,57 +1,164 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0.aculab.com ([213.249.233.131]:33219 "HELO mx0.aculab.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with SMTP
-	id S965115AbaKNKqK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 14 Nov 2014 05:46:10 -0500
-Received: from mx0.aculab.com ([127.0.0.1])
- by localhost (mx0.aculab.com [127.0.0.1]) (amavisd-new, port 10024) with SMTP
- id 25369-08 for <linux-arch@vger.kernel.org>;
- Fri, 14 Nov 2014 10:45:59 +0000 (GMT)
-From: David Laight <David.Laight@ACULAB.COM>
-Subject: RE: [PATCH 1/3] arch: Introduce load_acquire() and store_release()
-Date: Fri, 14 Nov 2014 10:45:41 +0000
-Message-ID: <063D6719AE5E284EB5DD2968C1650D6D1C9F0780@AcuExch.aculab.com>
-References: <20141113191250.12579.19694.stgit@ahduyck-server>
- <20141113192723.12579.25343.stgit@ahduyck-server>
-In-Reply-To: <20141113192723.12579.25343.stgit@ahduyck-server>
-Content-Language: en-US
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-MIME-Version: 1.0
+Received: from mail-wi0-f170.google.com ([209.85.212.170]:33473 "EHLO
+	mail-wi0-f170.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S934512AbaKNLj2 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 14 Nov 2014 06:39:28 -0500
+Received: by mail-wi0-f170.google.com with SMTP id r20so4822669wiv.5
+        for <linux-arch@vger.kernel.org>; Fri, 14 Nov 2014 03:39:27 -0800 (PST)
+From: Michal Simek <michal.simek@xilinx.com>
+Subject: [RESENT PATCH] dma-mapping: Add BUG_ON for uninitialized dma_ops
+Date: Fri, 14 Nov 2014 12:39:24 +0100
+Message-ID: <385664132d1ef60c582b0045afaa36a1895685dc.1415965161.git.michal.simek@xilinx.com>
+Content-Type: multipart/signed;
+    boundary="=_mimegpg-monstr-desktop-15995-1415965164-0001";
+    micalg=pgp-sha1; protocol="application/pgp-signature"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: 'Alexander Duyck' <alexander.h.duyck@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "netdev@vger.kernel.org" <netdev@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
-Cc: "mikey@neuling.org" <mikey@neuling.org>, "tony.luck@intel.com" <tony.luck@intel.com>, "mathieu.desnoyers@polymtl.ca" <mathieu.desnoyers@polymtl.ca>, "donald.c.skidmore@intel.com" <donald.c.skidmore@intel.com>, "peterz@infradead.org" <peterz@infradead.org>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, "heiko.carstens@de.ibm.com" <heiko.carstens@de.ibm.com>, "oleg@redhat.com" <oleg@redhat.com>, "will.deacon@arm.com" <will.deacon@arm.com>, "davem@davemloft.net" <davem@davemloft.net>, "michael@ellerman.id.au" <michael@ellerman.id.au>, "matthew.vick@intel.com" <matthew.vick@intel.com>, "nic_swsd@realtek.com" <nic_swsd@realtek.com>, "geert@linux-m68k.org" <geert@linux-m68k.org>, "jeffrey.t.kirsher@intel.com" <jeffrey.t.kirsher@intel.com>, "fweisbec@gmail.com" <fweisbec@gmail.com>, "schwidefsky@de.ibm.com" <schwidefsky@de.ibm.com>, "linux@arm.linux.org.uk" <linux@arm.linux.org.uk>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>, "torvalds@linux-foundation.org" <torvalds@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>
-Message-ID: <20141114104541.RkgxJADF-6jCV6N77OYXRlYXgt0XzsA92S2pkTjPOqI@z>
+To: linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>
+Cc: Michal Simek <monstr@monstr.eu>, Michal Simek <michal.simek@xilinx.com>, linux-arch@vger.kernel.org
+Message-ID: <20141114113924.0rhii7sQFFcVzyRdIrivN0bkxn1jnoINrrbYCsocIlE@z>
 
-RnJvbTogQWxleGFuZGVyIER1eWNrDQo+IEl0IGlzIGNvbW1vbiBmb3IgZGV2aWNlIGRyaXZlcnMg
-dG8gbWFrZSB1c2Ugb2YgYWNxdWlyZS9yZWxlYXNlIHNlbWFudGljcw0KPiB3aGVuIGRlYWxpbmcg
-d2l0aCBkZXNjcmlwdG9ycyBzdG9yZWQgaW4gZGV2aWNlIG1lbW9yeS4gIE9uIHJldmlld2luZyB0
-aGUNCj4gZG9jdW1lbnRhdGlvbiBhbmQgY29kZSBmb3Igc21wX2xvYWRfYWNxdWlyZSgpIGFuZCBz
-bXBfc3RvcmVfcmVsZWFzZSgpIGFzDQo+IHdlbGwgYXMgcmV2aWV3aW5nIGFuIElCTSB3ZWJzaXRl
-IHRoYXQgZ29lcyBvdmVyIHRoZSB1c2Ugb2YgUG93ZXJQQyBiYXJyaWVycw0KPiBhdCBodHRwOi8v
-d3d3LmlibS5jb20vZGV2ZWxvcGVyd29ya3Mvc3lzdGVtcy9hcnRpY2xlcy9wb3dlcnBjLmh0bWwg
-aXQNCj4gb2NjdXJyZWQgdG8gbWUgdGhhdCB0aGUgc2FtZSBjb2RlIGNvdWxkIGxpa2VseSBiZSBh
-cHBsaWVkIHRvIGRldmljZSBkcml2ZXJzLg0KPiANCj4gQXMgYSByZXN1bHQgdGhpcyBwYXRjaCBp
-bnRyb2R1Y2VzIGxvYWRfYWNxdWlyZSgpIGFuZCBzdG9yZV9yZWxlYXNlKCkuICBUaGUNCj4gbG9h
-ZF9hY3F1aXJlKCkgZnVuY3Rpb24gY2FuIGJlIHVzZWQgaW4gdGhlIHBsYWNlIG9mIHNpdHVhdGlv
-bnMgd2hlcmUgYSB0ZXN0DQo+IGZvciBvd25lcnNoaXAgbXVzdCBiZSBmb2xsb3dlZCBieSBhIG1l
-bW9yeSBiYXJyaWVyLiAgVGhlIGJlbG93IGV4YW1wbGUgaXMNCj4gZnJvbSBpeGdiZToNCj4gDQo+
-IAlpZiAoIXJ4X2Rlc2MtPndiLnVwcGVyLnN0YXR1c19lcnJvcikNCj4gCQlicmVhazsNCj4gDQo+
-IAkvKiBUaGlzIG1lbW9yeSBiYXJyaWVyIGlzIG5lZWRlZCB0byBrZWVwIHVzIGZyb20gcmVhZGlu
-Zw0KPiAJICogYW55IG90aGVyIGZpZWxkcyBvdXQgb2YgdGhlIHJ4X2Rlc2MgdW50aWwgd2Uga25v
-dyB0aGUNCj4gCSAqIGRlc2NyaXB0b3IgaGFzIGJlZW4gd3JpdHRlbiBiYWNrDQo+IAkgKi8NCj4g
-CXJtYigpOw0KPiANCj4gV2l0aCBsb2FkX2FjcXVpcmUoKSB0aGlzIGNhbiBiZSBjaGFuZ2VkIHRv
-Og0KPiANCj4gCWlmICghbG9hZF9hY3F1aXJlKCZyeF9kZXNjLT53Yi51cHBlci5zdGF0dXNfZXJy
-b3IpKQ0KPiAJCWJyZWFrOw0KDQpJZiBJJ20gcXVpY2tseSByZWFkaW5nIHRoZSAnbmV3JyBjb2Rl
-IEkgbmVlZCB0byBsb29rIHVwIHlldCBhbm90aGVyDQpmdW5jdGlvbiwgd2l0aCB0aGUgJ29sZCcg
-Y29kZSBJIGNhbiBlYXNpbHkgc2VlIHRoZSBsb2dpYy4NCg0KWW91J3ZlIGFsc28gYWRkZWQgYSBt
-ZW1vcnkgYmFycmllciB0byB0aGUgJ2JyZWFrJyBwYXRoIC0gd2hpY2ggaXNuJ3QgbmVlZGVkLg0K
-DQpUaGUgZHJpdmVyIG1pZ2h0IGFsc28gaGF2ZSBhZGRpdGlvbmFsIGNvZGUgdGhhdCBjYW4gYmUg
-YWRkZWQgYmVmb3JlIHRoZSBiYXJyaWVyDQpzbyByZWR1Y2luZyB0aGUgY29zdCBvZiB0aGUgYmFy
-cmllci4NCg0KVGhlIGRyaXZlciBtYXkgYWxzbyBiZSBhYmxlIHRvIHBlcmZvcm0gbXVsdGlwbGUg
-YWN0aW9ucyBiZWZvcmUgYSBiYXJyaWVyIGlzIG5lZWRlZC4NCg0KSGlkaW5nIGJhcnJpZXJzIGlz
-bid0IG5lY2Vzc2FyaWx5IGEgZ29vZCBpZGVhIGFueXdheS4NCklmIHlvdSBhcmUgd3JpdGluZyBh
-IGRyaXZlciB5b3UgbmVlZCB0byB1bmRlcnN0YW5kIHdoZW4gYW5kIHdoZXJlIHRoZXkgYXJlIG5l
-ZWRlZC4NCg0KTWF5YmUgeW91IG5lZWQgYSBuZXcgKHdlYWtlcikgYmFycmllciB0byByZXBsYWNl
-IHJtYigpIG9uIHNvbWUgYXJjaGl0ZWN0dXJlcy4NCg0KLi4uDQoNCg0KCURhdmlkDQoNCg==
+This is a MIME GnuPG-signed message.  If you see this text, it means that
+your E-mail or Usenet software does not support MIME signed messages.
+The Internet standard for MIME PGP messages, RFC 2015, was published in 1996.
+To open this message correctly you will need to install E-mail or Usenet
+software that supports modern Internet standards.
+
+--=_mimegpg-monstr-desktop-15995-1415965164-0001
+
+Check that dma_ops are initialized correctly.
+
+Signed-off-by: Michal Simek <michal.simek@xilinx.com>
+---
+
+Functions dma_mmap_attrs(), dma_get_sgtable_attrs()
+already have this checking.
+
+The whole discussion was originally here:
+https://lkml.org/lkml/2013/6/3/255
+
+We have middle solution where some functions have this checking
+and some not. Based on get_maintainer scripts Arnd should do that decision
+to accept or reject this patch.
+
+---
+ include/asm-generic/dma-mapping-common.h | 12 ++++++++++++
+ 1 file changed, 12 insertions(+)
+
+diff --git a/include/asm-generic/dma-mapping-common.h b/include/asm-generic/dma-mapping-common.h
+index de8bf89940f8..d430cabd2975 100644
+--- a/include/asm-generic/dma-mapping-common.h
++++ b/include/asm-generic/dma-mapping-common.h
+@@ -16,6 +16,7 @@ static inline dma_addr_t dma_map_single_attrs(struct device *dev, void *ptr,
+ 	dma_addr_t addr;
+
+ 	kmemcheck_mark_initialized(ptr, size);
++	BUG_ON(!ops);
+ 	BUG_ON(!valid_dma_direction(dir));
+ 	addr = ops->map_page(dev, virt_to_page(ptr),
+ 			     (unsigned long)ptr & ~PAGE_MASK, size,
+@@ -33,6 +34,7 @@ static inline void dma_unmap_single_attrs(struct device *dev, dma_addr_t addr,
+ {
+ 	struct dma_map_ops *ops = get_dma_ops(dev);
+
++	BUG_ON(!ops);
+ 	BUG_ON(!valid_dma_direction(dir));
+ 	if (ops->unmap_page)
+ 		ops->unmap_page(dev, addr, size, dir, attrs);
+@@ -49,6 +51,7 @@ static inline int dma_map_sg_attrs(struct device *dev, struct scatterlist *sg,
+
+ 	for_each_sg(sg, s, nents, i)
+ 		kmemcheck_mark_initialized(sg_virt(s), s->length);
++	BUG_ON(!ops);
+ 	BUG_ON(!valid_dma_direction(dir));
+ 	ents = ops->map_sg(dev, sg, nents, dir, attrs);
+ 	debug_dma_map_sg(dev, sg, nents, ents, dir);
+@@ -62,6 +65,7 @@ static inline void dma_unmap_sg_attrs(struct device *dev, struct scatterlist *sg
+ {
+ 	struct dma_map_ops *ops = get_dma_ops(dev);
+
++	BUG_ON(!ops);
+ 	BUG_ON(!valid_dma_direction(dir));
+ 	debug_dma_unmap_sg(dev, sg, nents, dir);
+ 	if (ops->unmap_sg)
+@@ -76,6 +80,7 @@ static inline dma_addr_t dma_map_page(struct device *dev, struct page *page,
+ 	dma_addr_t addr;
+
+ 	kmemcheck_mark_initialized(page_address(page) + offset, size);
++	BUG_ON(!ops);
+ 	BUG_ON(!valid_dma_direction(dir));
+ 	addr = ops->map_page(dev, page, offset, size, dir, NULL);
+ 	debug_dma_map_page(dev, page, offset, size, dir, addr, false);
+@@ -88,6 +93,7 @@ static inline void dma_unmap_page(struct device *dev, dma_addr_t addr,
+ {
+ 	struct dma_map_ops *ops = get_dma_ops(dev);
+
++	BUG_ON(!ops);
+ 	BUG_ON(!valid_dma_direction(dir));
+ 	if (ops->unmap_page)
+ 		ops->unmap_page(dev, addr, size, dir, NULL);
+@@ -100,6 +106,7 @@ static inline void dma_sync_single_for_cpu(struct device *dev, dma_addr_t addr,
+ {
+ 	struct dma_map_ops *ops = get_dma_ops(dev);
+
++	BUG_ON(!ops);
+ 	BUG_ON(!valid_dma_direction(dir));
+ 	if (ops->sync_single_for_cpu)
+ 		ops->sync_single_for_cpu(dev, addr, size, dir);
+@@ -112,6 +119,7 @@ static inline void dma_sync_single_for_device(struct device *dev,
+ {
+ 	struct dma_map_ops *ops = get_dma_ops(dev);
+
++	BUG_ON(!ops);
+ 	BUG_ON(!valid_dma_direction(dir));
+ 	if (ops->sync_single_for_device)
+ 		ops->sync_single_for_device(dev, addr, size, dir);
+@@ -126,6 +134,7 @@ static inline void dma_sync_single_range_for_cpu(struct device *dev,
+ {
+ 	const struct dma_map_ops *ops = get_dma_ops(dev);
+
++	BUG_ON(!ops);
+ 	BUG_ON(!valid_dma_direction(dir));
+ 	if (ops->sync_single_for_cpu)
+ 		ops->sync_single_for_cpu(dev, addr + offset, size, dir);
+@@ -140,6 +149,7 @@ static inline void dma_sync_single_range_for_device(struct device *dev,
+ {
+ 	const struct dma_map_ops *ops = get_dma_ops(dev);
+
++	BUG_ON(!ops);
+ 	BUG_ON(!valid_dma_direction(dir));
+ 	if (ops->sync_single_for_device)
+ 		ops->sync_single_for_device(dev, addr + offset, size, dir);
+@@ -152,6 +162,7 @@ dma_sync_sg_for_cpu(struct device *dev, struct scatterlist *sg,
+ {
+ 	struct dma_map_ops *ops = get_dma_ops(dev);
+
++	BUG_ON(!ops);
+ 	BUG_ON(!valid_dma_direction(dir));
+ 	if (ops->sync_sg_for_cpu)
+ 		ops->sync_sg_for_cpu(dev, sg, nelems, dir);
+@@ -164,6 +175,7 @@ dma_sync_sg_for_device(struct device *dev, struct scatterlist *sg,
+ {
+ 	struct dma_map_ops *ops = get_dma_ops(dev);
+
++	BUG_ON(!ops);
+ 	BUG_ON(!valid_dma_direction(dir));
+ 	if (ops->sync_sg_for_device)
+ 		ops->sync_sg_for_device(dev, sg, nelems, dir);
+--
+1.8.2.3
+
+
+--=_mimegpg-monstr-desktop-15995-1415965164-0001
+Content-Type: application/pgp-signature
+Content-Transfer-Encoding: 7bit
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.10 (GNU/Linux)
+
+iEYEABECAAYFAlRl6ewACgkQykllyylKDCEV2QCfS9S4JfWn1VWnacuVle9Pdz6h
+c5MAoIVruEmyIHddrwyjZ3PHqcFoykad
+=q36d
+-----END PGP SIGNATURE-----
+
+--=_mimegpg-monstr-desktop-15995-1415965164-0001--
