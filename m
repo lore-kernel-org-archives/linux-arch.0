@@ -1,74 +1,68 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from violet.fr.zoreil.com ([92.243.8.30]:48611 "EHLO
-	violet.fr.zoreil.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S934226AbaKMVd2 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 13 Nov 2014 16:33:28 -0500
-Date: Thu, 13 Nov 2014 22:30:49 +0100
-From: Francois Romieu <romieu@fr.zoreil.com>
-Subject: Re: [PATCH 2/3] r8169: Use load_acquire() and store_release() to
- reduce memory barrier overhead
-Message-ID: <20141113213049.GA12297@electric-eye.fr.zoreil.com>
+Received: from foss-mx-na.foss.arm.com ([217.140.108.86]:58045 "EHLO
+	foss-mx-na.foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S934386AbaKNKTJ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 14 Nov 2014 05:19:09 -0500
+Date: Fri, 14 Nov 2014 10:19:02 +0000
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [PATCH 1/3] arch: Introduce load_acquire() and store_release()
+Message-ID: <20141114101902.GA27963@arm.com>
 References: <20141113191250.12579.19694.stgit@ahduyck-server>
- <20141113192735.12579.22892.stgit@ahduyck-server>
+ <20141113192723.12579.25343.stgit@ahduyck-server>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20141113192735.12579.22892.stgit@ahduyck-server>
+In-Reply-To: <20141113192723.12579.25343.stgit@ahduyck-server>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Alexander Duyck <alexander.h.duyck@redhat.com>
-Cc: linux-arch@vger.kernel.org, netdev@vger.kernel.org, linux-kernel@vger.kernel.org, mikey@neuling.org, tony.luck@intel.com, mathieu.desnoyers@polymtl.ca, donald.c.skidmore@intel.com, peterz@infradead.org, benh@kernel.crashing.org, heiko.carstens@de.ibm.com, oleg@redhat.com, will.deacon@arm.com, davem@davemloft.net, michael@ellerman.id.au, matthew.vick@intel.com, nic_swsd@realtek.com, geert@linux-m68k.org, jeffrey.t.kirsher@intel.com, fweisbec@gmail.com, schwidefsky@de.ibm.com, linux@arm.linux.org.uk, paulmck@linux.vnet.ibm.com, torvalds@linux-foundation.org, mingo@kernel.org
-Message-ID: <20141113213049.RVFqBZryBXNb5ubPX4ecdyW8f_w0jCvDgDMwM1_wmwI@z>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "netdev@vger.kernel.org" <netdev@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "mikey@neuling.org" <mikey@neuling.org>, "tony.luck@intel.com" <tony.luck@intel.com>, "mathieu.desnoyers@polymtl.ca" <mathieu.desnoyers@polymtl.ca>, "donald.c.skidmore@intel.com" <donald.c.skidmore@intel.com>, "peterz@infradead.org" <peterz@infradead.org>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, "heiko.carstens@de.ibm.com" <heiko.carstens@de.ibm.com>, "oleg@redhat.com" <oleg@redhat.com>, "davem@davemloft.net" <davem@davemloft.net>, "michael@ellerman.id.au" <michael@ellerman.id.au>, "matthew.vick@intel.com" <matthew.vick@intel.com>, "nic_swsd@realtek.com" <nic_swsd@realtek.com>, "geert@linux-m68k.org" <geert@linux-m68k.org>, "jeffrey.t.kirsher@intel.com" <jeffrey.t.kirsher@intel.com>, "fweisbec@gmail.com" <fweisbec@gmail.com>, "schwidefsky@de.ibm.com" <schwidefsky@de.ibm.com>, "linux@arm.linux.org.uk" <linux@arm.linux.org.uk>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>, "torvalds@linux-foundation.org" <torvalds@linux-foundation.org>, "mingo@kernel.org" <mingo@kernel.org>
+Message-ID: <20141114101902.xsUapSrJGE9P3TjRolE8j4wIXCNfj3CQ9gYYyJbzvEs@z>
 
-Alexander Duyck <alexander.h.duyck@redhat.com> :
-[...]
-> In addition the r8169 uses a rmb() however I believe it is placed incorrectly
-> as I assume it supposed to be ordering descriptor reads after the check for
-> ownership.
+Hi Alex,
 
-Not exactly. It's a barrier against compiler optimization from 2004.
-It should not matter.
+On Thu, Nov 13, 2014 at 07:27:23PM +0000, Alexander Duyck wrote:
+> It is common for device drivers to make use of acquire/release semantics
+> when dealing with descriptors stored in device memory.  On reviewing the
+> documentation and code for smp_load_acquire() and smp_store_release() as
+> well as reviewing an IBM website that goes over the use of PowerPC barriers
+> at http://www.ibm.com/developerworks/systems/articles/powerpc.html it
+> occurred to me that the same code could likely be applied to device drivers.
+> 
+> As a result this patch introduces load_acquire() and store_release().  The
+> load_acquire() function can be used in the place of situations where a test
+> for ownership must be followed by a memory barrier.  The below example is
+> from ixgbe:
+> 
+>         if (!rx_desc->wb.upper.status_error)
+>                 break;
+> 
+>         /* This memory barrier is needed to keep us from reading
+>          * any other fields out of the rx_desc until we know the
+>          * descriptor has been written back
+>          */
+>         rmb();
+> 
+> With load_acquire() this can be changed to:
+> 
+>         if (!load_acquire(&rx_desc->wb.upper.status_error))
+>                 break;
 
-However I disagree with the change below:
+I still don't think this is a good idea for the specific use-case you're
+highlighting.
 
-> @@ -7284,11 +7280,11 @@ static int rtl_rx(struct net_device *dev, struct rtl8169_private *tp, u32 budget
->  		struct RxDesc *desc = tp->RxDescArray + entry;
->  		u32 status;
->  
-> -		rmb();
-> -		status = le32_to_cpu(desc->opts1) & tp->opts1_mask;
-> -
-> +		status = cpu_to_le32(load_acquire(&desc->opts1));
->  		if (status & DescOwn)
->  			break;
-> +
-> +		status &= tp->opts1_mask;
+On ARM, an mb() can be *significantly* more expensive than an rmb() (since
+we may have to drain store buffers on an outer L2 cache) and on arm64 it's
+not at all clear that an LDAR is more efficient than an LDR; DMB LD
+sequence. I can certainly imagine implementations where the latter would
+be preferred.
 
--> tp->opts1_mask is not __le32 tainted.
+So, whilst I'm perfectly fine to go along with mandatory acquire/release
+macros (we should probably add a check to barf on __iomem pointers), I
+don't agree with using them in preference to finer-grained read/write
+barriers. Doing so will have a real impact on I/O performance.
 
-Btw, should I consider the sketch above as a skeleton in my r8169 closet ?
+Finally, do you know of any architectures where load_acquire/store_release
+aren't implemented the same way as the smp_* variants on SMP kernels?
 
-           NIC                      CPU0                      CPU1
-| CPU | NIC | CPU | CPU | 
-
-                          | CPU | NIC | CPU | CPU |
-                                         ^ tx_dirty
-
-                                [start_xmit...
-
-| CPU | CPU | CPU | CPU |
-   (NIC did it's job)
-                                                           [rtl_tx...
-                          | ... | ... | NIC | NIC |
-                                  (ring update)
-                              (tx_dirty increases)
-
-                                                     | CPU | CPU | ??? | ??? |
-                                                           tx_dirty ?
-                                                     reaping about-to-be-sent
-                                                     buffers on some platforms ?
-                                ...start_xmit]
-
-
--- 
-Ueimor
+Will
