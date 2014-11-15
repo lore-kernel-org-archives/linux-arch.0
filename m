@@ -1,39 +1,56 @@
-From: Jeff Moyer <jmoyer@redhat.com>
-Subject: Re: [PATCH v6 0/7] vfs: Non-blockling buffered fs read (page cache only)
-Date: Fri, 14 Nov 2014 13:52:42 -0500
-Message-ID: <x49r3x5vclh.fsf@segfault.boston.devel.redhat.com>
-References: <cover.1415636409.git.milosz@adfin.com>
-	<20141111064417.GT23575@dastard>
-	<x49mw7tyc7e.fsf@segfault.boston.devel.redhat.com>
-	<20141114163912.GA23769@redhat.com>
-	<CANP1eJH6BNiJ8zwA2Ba4Dc-2NZ5s2TBE4NVg3Ydk_cvSdDQUFQ@mail.gmail.com>
+From: Francois Romieu <romieu@fr.zoreil.com>
+Subject: Re: [PATCH 2/3] r8169: Use load_acquire() and store_release() to
+ reduce memory barrier overhead
+Date: Sat, 15 Nov 2014 22:13:50 +0100
+Message-ID: <20141115211350.GA24817@electric-eye.fr.zoreil.com>
+References: <20141113191250.12579.19694.stgit@ahduyck-server>
+ <20141113192735.12579.22892.stgit@ahduyck-server>
+ <20141113213049.GA12297@electric-eye.fr.zoreil.com>
+ <54653ABF.3080400@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain
-Return-path: <owner-linux-aio@kvack.org>
-In-Reply-To: <CANP1eJH6BNiJ8zwA2Ba4Dc-2NZ5s2TBE4NVg3Ydk_cvSdDQUFQ@mail.gmail.com>
-	(Milosz Tanski's message of "Fri, 14 Nov 2014 13:45:02 -0500")
-Sender: owner-linux-aio@kvack.org
-To: Milosz Tanski <milosz@adfin.com>
-Cc: Dave Jones <davej@redhat.com>, Dave Chinner <david@fromorbit.com>, LKML <linux-kernel@vger.kernel.org>, Christoph Hellwig <hch@infradead.org>, "linux-fsdevel@vger.kernel.org" <linux-fsdevel@vger.kernel.org>, "linux-aio@kvack.org" <linux-aio@kvack.org>, Mel Gorman <mgorman@suse.de>, Volker Lendecke <Volker.Lendecke@sernet.de>, Tejun Heo <tj@kernel.org>, Theodore Ts'o <tytso@mit.edu>, Al Viro <viro@zeniv.linux.org.uk>, Linux API <linux-api@vger.kernel.org>, Michael Kerrisk <mtk.manpages@gmail.com>, linux-arch@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from violet.fr.zoreil.com ([92.243.8.30]:54063 "EHLO
+	violet.fr.zoreil.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754592AbaKOVQa (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 15 Nov 2014 16:16:30 -0500
+Content-Disposition: inline
+In-Reply-To: <54653ABF.3080400@gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Alexander Duyck <alexander.duyck@gmail.com>
+Cc: Alexander Duyck <alexander.h.duyck@redhat.com>, linux-arch@vger.kernel.org, netdev@vger.kernel.org, linux-kernel@vger.kernel.org, mikey@neuling.org, tony.luck@intel.com, mathieu.desnoyers@polymtl.ca, donald.c.skidmore@intel.com, peterz@infradead.org, benh@kernel.crashing.org, heiko.carstens@de.ibm.com, oleg@redhat.com, will.deacon@arm.com, davem@davemloft.net, michael@ellerman.id.au, matthew.vick@intel.com, nic_swsd@realtek.com, geert@linux-m68k.org, jeffrey.t.kirsher@intel.com, fweisbec@gmail.com, schwidefsky@de.ibm.com, linux@arm.linux.org.uk, paulmck@linux.vnet.ibm.com, torvalds@linux-foundation.org, mingo@kernel.org, Adam Nielsen <a.nielsen@shikadi.net>
 
-Milosz Tanski <milosz@adfin.com> writes:
+Alexander Duyck <alexander.duyck@gmail.com> :
+> On 11/13/2014 01:30 PM, Francois Romieu wrote:
+> > Alexander Duyck <alexander.h.duyck@redhat.com> :
+> > [...]
+> >> In addition the r8169 uses a rmb() however I believe it is placed incorrectly
+> >> as I assume it supposed to be ordering descriptor reads after the check for
+> >> ownership.
+> > Not exactly. It's a barrier against compiler optimization from 2004.
+> > It should not matter.
+> 
+> Okay.  Do you recall the kind of problem it was you were seeing ?
 
-> On a unrelated note I just back to figuring out how to add this to
-> xfstests. I got busy with other things the last few days. I'm still
-> not quite sure how to write a test using the framework, the
-> documentation (README) seams very XFS specific and otherwise the test
-> seam to be be split between many different files / directories / C
-> code / shell code. I might be me being slow... but it's just not
-> obvious for me how to glue the whole thing together.
+Mildly, I had to grep the local archives.
 
-I can help you get started with this.  I'll send email off-list.
+The relevant code used to be included in the irq handler at that time
+(napi support for this driver took place in may 2004). One did not want
+a runaway loop in the Tx reaper.
 
-Cheers,
-Jeff
+Compiler optimization was suggested by Manfred Spraul in the thread below:
+http://marc.info/?l=linux-kernel&m=108096868119004
 
---
-To unsubscribe, send a message with 'unsubscribe linux-aio' in
-the body to majordomo@kvack.org.  For more info on Linux AIO,
-see: http://www.kvack.org/aio/
-Don't email: <a href=mailto:"aart@kvack.org">aart@kvack.org</a>
+> The origin of the rmb() for the Intel drivers was a PowerPC issue in
+> which it was fetching the length of a buffer before it checked the DD
+> bit (equivalent of DescOwn).  I'm wondering if the issue you were seeing
+> was something similar where it had reordered reads in the descriptor to
+> cause that type of result.
+
+The problem was only reported on Intel 32 bit + slackware + gcc 3.2.3.
+
+Adam Nielsen - Cc: added - did not return for this bug.
+
+-- 
+Ueimor
