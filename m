@@ -1,38 +1,27 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:59469 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S965580AbaKNSxa (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 14 Nov 2014 13:53:30 -0500
-From: Jeff Moyer <jmoyer@redhat.com>
-Subject: Re: [PATCH v6 0/7] vfs: Non-blockling buffered fs read (page cache only)
-References: <cover.1415636409.git.milosz@adfin.com>
-	<20141111064417.GT23575@dastard>
-	<x49mw7tyc7e.fsf@segfault.boston.devel.redhat.com>
-	<20141114163912.GA23769@redhat.com>
-	<CANP1eJH6BNiJ8zwA2Ba4Dc-2NZ5s2TBE4NVg3Ydk_cvSdDQUFQ@mail.gmail.com>
-Date: Fri, 14 Nov 2014 13:52:42 -0500
-In-Reply-To: <CANP1eJH6BNiJ8zwA2Ba4Dc-2NZ5s2TBE4NVg3Ydk_cvSdDQUFQ@mail.gmail.com>
-	(Milosz Tanski's message of "Fri, 14 Nov 2014 13:45:02 -0500")
-Message-ID: <x49r3x5vclh.fsf@segfault.boston.devel.redhat.com>
-MIME-Version: 1.0
-Content-Type: text/plain
+Received: from shards.monkeyblade.net ([149.20.54.216]:37767 "EHLO
+	shards.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754199AbaKPTXJ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 16 Nov 2014 14:23:09 -0500
+Date: Sun, 16 Nov 2014 14:23:02 -0500 (EST)
+Message-ID: <20141116.142302.1012229415553740809.davem@davemloft.net>
+Subject: Re: [PATCHv8 3/4] sparc: Hook up execveat system call.
+From: David Miller <davem@davemloft.net>
+In-Reply-To: <1415982183-20525-4-git-send-email-drysdale@google.com>
+References: <1415982183-20525-1-git-send-email-drysdale@google.com>
+	<1415982183-20525-4-git-send-email-drysdale@google.com>
+Mime-Version: 1.0
+Content-Type: Text/Plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Milosz Tanski <milosz@adfin.com>
-Cc: Dave Jones <davej@redhat.com>, Dave Chinner <david@fromorbit.com>, LKML <linux-kernel@vger.kernel.org>, Christoph Hellwig <hch@infradead.org>, "linux-fsdevel@vger.kernel.org" <linux-fsdevel@vger.kernel.org>, "linux-aio@kvack.org" <linux-aio@kvack.org>, Mel Gorman <mgorman@suse.de>, Volker Lendecke <Volker.Lendecke@sernet.de>, Tejun Heo <tj@kernel.org>, Theodore Ts'o <tytso@mit.edu>, Al Viro <viro@zeniv.linux.org.uk>, Linux API <linux-api@vger.kernel.org>, Michael Kerrisk <mtk.manpages@gmail.com>, linux-arch@vger.kernel.org
-Message-ID: <20141114185242.QtJjxg9ugUWUHS6AlC-pKfQdEaP76zw4Yo6cG_sRlyA@z>
+To: drysdale@google.com
+Cc: ebiederm@xmission.com, luto@amacapital.net, viro@zeniv.linux.org.uk, meredydd@senatehouse.org, linux-kernel@vger.kernel.org, akpm@linux-foundation.org, oleg@redhat.com, mtk.manpages@gmail.com, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, keescook@chromium.org, arnd@arndb.de, dalias@aerifal.cx, hch@infradead.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, sparclinux@vger.kernel.org
+Message-ID: <20141116192302.xKusX5nABGQ-qlSKzQuuR5DkABR8qpOwEqCqkXrGBXc@z>
 
-Milosz Tanski <milosz@adfin.com> writes:
+From: David Drysdale <drysdale@google.com>
+Date: Fri, 14 Nov 2014 16:23:02 +0000
 
-> On a unrelated note I just back to figuring out how to add this to
-> xfstests. I got busy with other things the last few days. I'm still
-> not quite sure how to write a test using the framework, the
-> documentation (README) seams very XFS specific and otherwise the test
-> seam to be be split between many different files / directories / C
-> code / shell code. I might be me being slow... but it's just not
-> obvious for me how to glue the whole thing together.
+> Signed-off-by: David Drysdale <drysdale@google.com>
 
-I can help you get started with this.  I'll send email off-list.
-
-Cheers,
-Jeff
+Acked-by: David S. Miller <davem@davemloft.net>
