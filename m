@@ -1,56 +1,22 @@
-From: Francois Romieu <romieu@fr.zoreil.com>
-Subject: Re: [PATCH 2/3] r8169: Use load_acquire() and store_release() to
- reduce memory barrier overhead
-Date: Sat, 15 Nov 2014 22:13:50 +0100
-Message-ID: <20141115211350.GA24817@electric-eye.fr.zoreil.com>
-References: <20141113191250.12579.19694.stgit@ahduyck-server>
- <20141113192735.12579.22892.stgit@ahduyck-server>
- <20141113213049.GA12297@electric-eye.fr.zoreil.com>
- <54653ABF.3080400@gmail.com>
+From: David Miller <davem-fT/PcQaiUtIeIZ0/mPfg9Q@public.gmane.org>
+Subject: Re: [PATCHv8 3/4] sparc: Hook up execveat system call.
+Date: Sun, 16 Nov 2014 14:23:02 -0500 (EST)
+Message-ID: <20141116.142302.1012229415553740809.davem@davemloft.net>
+References: <1415982183-20525-1-git-send-email-drysdale@google.com>
+	<1415982183-20525-4-git-send-email-drysdale@google.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from violet.fr.zoreil.com ([92.243.8.30]:54063 "EHLO
-	violet.fr.zoreil.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754592AbaKOVQa (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 15 Nov 2014 16:16:30 -0500
-Content-Disposition: inline
-In-Reply-To: <54653ABF.3080400@gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Alexander Duyck <alexander.duyck@gmail.com>
-Cc: Alexander Duyck <alexander.h.duyck@redhat.com>, linux-arch@vger.kernel.org, netdev@vger.kernel.org, linux-kernel@vger.kernel.org, mikey@neuling.org, tony.luck@intel.com, mathieu.desnoyers@polymtl.ca, donald.c.skidmore@intel.com, peterz@infradead.org, benh@kernel.crashing.org, heiko.carstens@de.ibm.com, oleg@redhat.com, will.deacon@arm.com, davem@davemloft.net, michael@ellerman.id.au, matthew.vick@intel.com, nic_swsd@realtek.com, geert@linux-m68k.org, jeffrey.t.kirsher@intel.com, fweisbec@gmail.com, schwidefsky@de.ibm.com, linux@arm.linux.org.uk, paulmck@linux.vnet.ibm.com, torvalds@linux-foundation.org, mingo@kernel.org, Adam Nielsen <a.nielsen@shikadi.net>
+Content-Type: Text/Plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+In-Reply-To: <1415982183-20525-4-git-send-email-drysdale-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>
+Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: drysdale-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org
+Cc: ebiederm-aS9lmoZGLiVWk0Htik3J/w@public.gmane.org, luto-kltTT9wpgjJwATOyAt5JVQ@public.gmane.org, viro-RmSDqhL/yNMiFSDQTTA3OLVCufUGDwFn@public.gmane.org, meredydd-zPN50pYk8eUaUu29zAJCuw@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org, oleg-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org, mtk.manpages-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org, tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org, mingo-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org, hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org, keescook-F7+t8E8rja9g9hUCZPvPmw@public.gmane.org, arnd-r2nGTMty4D4@public.gmane.org, dalias-/miJ2pyFWUyWIDz0JBNUog@public.gmane.org, hch-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, sparclinux-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+List-Id: linux-arch.vger.kernel.org
 
-Alexander Duyck <alexander.duyck@gmail.com> :
-> On 11/13/2014 01:30 PM, Francois Romieu wrote:
-> > Alexander Duyck <alexander.h.duyck@redhat.com> :
-> > [...]
-> >> In addition the r8169 uses a rmb() however I believe it is placed incorrectly
-> >> as I assume it supposed to be ordering descriptor reads after the check for
-> >> ownership.
-> > Not exactly. It's a barrier against compiler optimization from 2004.
-> > It should not matter.
-> 
-> Okay.  Do you recall the kind of problem it was you were seeing ?
+From: David Drysdale <drysdale-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>
+Date: Fri, 14 Nov 2014 16:23:02 +0000
 
-Mildly, I had to grep the local archives.
+> Signed-off-by: David Drysdale <drysdale-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>
 
-The relevant code used to be included in the irq handler at that time
-(napi support for this driver took place in may 2004). One did not want
-a runaway loop in the Tx reaper.
-
-Compiler optimization was suggested by Manfred Spraul in the thread below:
-http://marc.info/?l=linux-kernel&m=108096868119004
-
-> The origin of the rmb() for the Intel drivers was a PowerPC issue in
-> which it was fetching the length of a buffer before it checked the DD
-> bit (equivalent of DescOwn).  I'm wondering if the issue you were seeing
-> was something similar where it had reordered reads in the descriptor to
-> cause that type of result.
-
-The problem was only reported on Intel 32 bit + slackware + gcc 3.2.3.
-
-Adam Nielsen - Cc: added - did not return for this bug.
-
--- 
-Ueimor
+Acked-by: David S. Miller <davem-fT/PcQaiUtIeIZ0/mPfg9Q@public.gmane.org>
