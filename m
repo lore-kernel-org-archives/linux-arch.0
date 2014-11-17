@@ -1,48 +1,63 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-vc0-f177.google.com ([209.85.220.177]:33880 "EHLO
-	mail-vc0-f177.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751541AbaKQUwS (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 17 Nov 2014 15:52:18 -0500
+Received: from mx1.redhat.com ([209.132.183.28]:52862 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752685AbaKQV4Y (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 17 Nov 2014 16:56:24 -0500
+Message-ID: <546A6EB2.6020304@redhat.com>
+Date: Mon, 17 Nov 2014 13:54:58 -0800
+From: Alexander Duyck <alexander.h.duyck@redhat.com>
 MIME-Version: 1.0
-In-Reply-To: <20141117171812.22333.90395.stgit@ahduyck-server>
-References: <20141117171005.22333.96544.stgit@ahduyck-server>
-	<20141117171812.22333.90395.stgit@ahduyck-server>
-Date: Mon, 17 Nov 2014 12:52:17 -0800
-Message-ID: <CA+55aFxZ9dhB074p3OAQLyQ53TuRjVOo33h6OOda1soh-9xxnQ@mail.gmail.com>
-Subject: Re: [PATCH 2/4] arch: Add lightweight memory barriers fast_rmb() and fast_wmb()
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Content-Type: text/plain; charset=UTF-8
+Subject: Re: [PATCH 2/4] arch: Add lightweight memory barriers fast_rmb()
+ and fast_wmb()
+References: <20141117171005.22333.96544.stgit@ahduyck-server>	<20141117171812.22333.90395.stgit@ahduyck-server> <CA+55aFxZ9dhB074p3OAQLyQ53TuRjVOo33h6OOda1soh-9xxnQ@mail.gmail.com>
+In-Reply-To: <CA+55aFxZ9dhB074p3OAQLyQ53TuRjVOo33h6OOda1soh-9xxnQ@mail.gmail.com>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Alexander Duyck <alexander.h.duyck@redhat.com>
+To: Linus Torvalds <torvalds@linux-foundation.org>
 Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Network Development <netdev@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>, Peter Zijlstra <peterz@infradead.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, Ingo Molnar <mingo@kernel.org>, Michael Neuling <mikey@neuling.org>, Russell King - ARM Linux <linux@arm.linux.org.uk>, donald.c.skidmore@intel.com, matthew.vick@intel.com, Geert Uytterhoeven <geert@linux-m68k.org>, Jeff Kirsher <jeffrey.t.kirsher@intel.com>, Francois Romieu <romieu@fr.zoreil.com>, Paul McKenney <paulmck@linux.vnet.ibm.com>, nic_swsd@realtek.com, Will Deacon <will.deacon@arm.com>, Michael Ellerman <michael@ellerman.id.au>, Tony Luck <tony.luck@intel.com>, Oleg Nesterov <oleg@redhat.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, =?UTF-8?B?RnLDqWTDqXJpYyBXZWlzYmVja2Vy?= <fweisbec@gmail.com>, David Miller <davem@davemloft.net>
-Message-ID: <20141117205217.zXEQbtSwye00gCuvf5liyZt7fyr7H3KNsZFpJv5A02Q@z>
+Message-ID: <20141117215458.NxQrQPJ-M2i2vFUylKL4BKiDQ7eO3S9xw3zZZl55VLk@z>
 
-On Mon, Nov 17, 2014 at 9:18 AM, Alexander Duyck
-<alexander.h.duyck@redhat.com> wrote:
-> There are a number of situations where the mandatory barriers rmb() and
-> wmb() are used to order memory/memory operations in the device drivers
-> and those barriers are much heavier than they actually need to be.
 
-Ugh. I absolutely despise the name.
+On 11/17/2014 12:52 PM, Linus Torvalds wrote:
+> On Mon, Nov 17, 2014 at 9:18 AM, Alexander Duyck
+> <alexander.h.duyck@redhat.com> wrote:
+>> There are a number of situations where the mandatory barriers rmb() and
+>> wmb() are used to order memory/memory operations in the device drivers
+>> and those barriers are much heavier than they actually need to be.
+> Ugh. I absolutely despise the name.
+>
+> It's not "fast". It's just limited. It's the same as "smp_*mb()", in
+> that it works on cacheable memory, but it actually stays around even
+> for non-SMP builds.
+>
+> So I think the name is actively misleading.
+>
+> Naming should be about what it does, not about some kind of PR thing
+> that confuses people into thinking it's "better".
+>
+> Maybe "dma_*mb()" would be acceptable, and ends up having the same
+> naming convention as "smb_*mb()", and explains what it's about.
 
-It's not "fast". It's just limited. It's the same as "smp_*mb()", in
-that it works on cacheable memory, but it actually stays around even
-for non-SMP builds.
+What would you think of the name "coherent_*mb()"?  I would prefer to 
+avoid dma in the name since, at least in my mind, that implies MMIO.
 
-So I think the name is actively misleading.
+It also ties in well with dma_alloc_coherent/dma_free_coherent which is 
+what would typically be used to allocate the memory we would be using 
+the barrier to protect anyway.
 
-Naming should be about what it does, not about some kind of PR thing
-that confuses people into thinking it's "better".
+> And yes, in the same spirit, it would probably be good to try to
+> eventually get rid of the plain "*mb()" functions, and perhaps call
+> them "mmio_*mb()" to clarify that they are about ordering memory wrt
+> mmio.
+>
+> Hmm?
+>
+>                          Linus
 
-Maybe "dma_*mb()" would be acceptable, and ends up having the same
-naming convention as "smb_*mb()", and explains what it's about.
+I will work on pulling all of the coherent barrier cases out of using 
+the plain "*mb()" calls first.  We need to sort that out before we could 
+look at renaming the plain barrier functions.
 
-And yes, in the same spirit, it would probably be good to try to
-eventually get rid of the plain "*mb()" functions, and perhaps call
-them "mmio_*mb()" to clarify that they are about ordering memory wrt
-mmio.
-
-Hmm?
-
-                        Linus
+- Alex
