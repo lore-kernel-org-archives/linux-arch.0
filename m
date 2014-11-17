@@ -1,63 +1,89 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:52862 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752685AbaKQV4Y (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 17 Nov 2014 16:56:24 -0500
-Message-ID: <546A6EB2.6020304@redhat.com>
-Date: Mon, 17 Nov 2014 13:54:58 -0800
-From: Alexander Duyck <alexander.h.duyck@redhat.com>
+Received: from mail-qa0-f44.google.com ([209.85.216.44]:42683 "EHLO
+	mail-qa0-f44.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752025AbaKQXnG (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 17 Nov 2014 18:43:06 -0500
+Received: by mail-qa0-f44.google.com with SMTP id i13so2093374qae.17
+        for <linux-arch@vger.kernel.org>; Mon, 17 Nov 2014 15:43:05 -0800 (PST)
 MIME-Version: 1.0
-Subject: Re: [PATCH 2/4] arch: Add lightweight memory barriers fast_rmb()
- and fast_wmb()
-References: <20141117171005.22333.96544.stgit@ahduyck-server>	<20141117171812.22333.90395.stgit@ahduyck-server> <CA+55aFxZ9dhB074p3OAQLyQ53TuRjVOo33h6OOda1soh-9xxnQ@mail.gmail.com>
-In-Reply-To: <CA+55aFxZ9dhB074p3OAQLyQ53TuRjVOo33h6OOda1soh-9xxnQ@mail.gmail.com>
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 7bit
+In-Reply-To: <20141111035902.GC28161@google.com>
+References: <1414865479-25792-1-git-send-email-prarit@redhat.com> <20141111035902.GC28161@google.com>
+From: Bjorn Helgaas <bhelgaas@google.com>
+Date: Mon, 17 Nov 2014 16:42:44 -0700
+Message-ID: <CAErSpo7q1U_HpEeB_pMWJPae3a+oysEwR660m2bV5KdZ7oCr0w@mail.gmail.com>
+Subject: Re: [PATCH] pci, add FW_BUG warning to pci= kernel option
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Network Development <netdev@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>, Peter Zijlstra <peterz@infradead.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, Ingo Molnar <mingo@kernel.org>, Michael Neuling <mikey@neuling.org>, Russell King - ARM Linux <linux@arm.linux.org.uk>, donald.c.skidmore@intel.com, matthew.vick@intel.com, Geert Uytterhoeven <geert@linux-m68k.org>, Jeff Kirsher <jeffrey.t.kirsher@intel.com>, Francois Romieu <romieu@fr.zoreil.com>, Paul McKenney <paulmck@linux.vnet.ibm.com>, nic_swsd@realtek.com, Will Deacon <will.deacon@arm.com>, Michael Ellerman <michael@ellerman.id.au>, Tony Luck <tony.luck@intel.com>, Oleg Nesterov <oleg@redhat.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, =?UTF-8?B?RnLDqWTDqXJpYyBXZWlzYmVja2Vy?= <fweisbec@gmail.com>, David Miller <davem@davemloft.net>
-Message-ID: <20141117215458.NxQrQPJ-M2i2vFUylKL4BKiDQ7eO3S9xw3zZZl55VLk@z>
+To: Prarit Bhargava <prarit@redhat.com>
+Cc: "linux-pci@vger.kernel.org" <linux-pci@vger.kernel.org>, Myron Stowe <mstowe@redhat.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>
+Message-ID: <20141117234244.DlkGn_1PUaeoHJcxfFB4Ov5utoijAi-VO_e5OPcTvPI@z>
 
-
-On 11/17/2014 12:52 PM, Linus Torvalds wrote:
-> On Mon, Nov 17, 2014 at 9:18 AM, Alexander Duyck
-> <alexander.h.duyck@redhat.com> wrote:
->> There are a number of situations where the mandatory barriers rmb() and
->> wmb() are used to order memory/memory operations in the device drivers
->> and those barriers are much heavier than they actually need to be.
-> Ugh. I absolutely despise the name.
+On Mon, Nov 10, 2014 at 8:59 PM, Bjorn Helgaas <bhelgaas@google.com> wrote:
+> [+cc lkml, linux-arch, Linus]
 >
-> It's not "fast". It's just limited. It's the same as "smp_*mb()", in
-> that it works on cacheable memory, but it actually stays around even
-> for non-SMP builds.
+> On Sat, Nov 01, 2014 at 02:11:19PM -0400, Prarit Bhargava wrote:
+>> The kernel should boot PCI without the use of kernel parameters.  Display
+>> a FW_BUG warning when pci= is used.
+>>
+>> Cc: Myron Stowe <mstowe@redhat.com>
+>> Cc: linux-pci@vger.kernel.org
+>> Signed-off-by: Prarit Bhargava <prarit@redhat.com>
+>> ---
+>>  drivers/pci/pci.c |    2 ++
+>>  1 file changed, 2 insertions(+)
+>>
+>> diff --git a/drivers/pci/pci.c b/drivers/pci/pci.c
+>> index 625a4ac..5172060b 100644
+>> --- a/drivers/pci/pci.c
+>> +++ b/drivers/pci/pci.c
+>> @@ -4515,6 +4515,8 @@ static int __init pci_setup(char *str)
+>>               }
+>>               str = k;
+>>       }
+>> +     add_taint(TAINT_FIRMWARE_WORKAROUND, LOCKDEP_STILL_OK);
+>> +     pr_crit(FW_BUG "The PCI configuration has been overridden thorugh the use of pci=.  Please report the issue you are attempting to resolve to your hardware vendor.\n");
 >
-> So I think the name is actively misleading.
+> My goal is to be able to boot without any "pci=" parameters, so from that
+> perspective, I like this.
 >
-> Naming should be about what it does, not about some kind of PR thing
-> that confuses people into thinking it's "better".
+> When people have a problem booting Linux, they often try a variety of
+> things like "pci=assign-busses", "pci=nocrs", "pci=nomsi", "pci=nommconf",
+> "pci=noacpi", etc.  If they find something that works, there's a tendency
+> to treat that as a "solution."  I'd rather that they report it, so we can
+> try to fix the bug or add a quirk so the *next* person won't have to figure
+> out the right parameters to use.
 >
-> Maybe "dma_*mb()" would be acceptable, and ends up having the same
-> naming convention as "smb_*mb()", and explains what it's about.
-
-What would you think of the name "coherent_*mb()"?  I would prefer to 
-avoid dma in the name since, at least in my mind, that implies MMIO.
-
-It also ties in well with dma_alloc_coherent/dma_free_coherent which is 
-what would typically be used to allocate the memory we would be using 
-the barrier to protect anyway.
-
-> And yes, in the same spirit, it would probably be good to try to
-> eventually get rid of the plain "*mb()" functions, and perhaps call
-> them "mmio_*mb()" to clarify that they are about ordering memory wrt
-> mmio.
+> My worry is that there are a few things where Linux isn't smart enough to
+> do the right thing automatically, and I don't think we'll have a good
+> solution in the near future.  For example:
 >
-> Hmm?
+>     pci=norom
+>     pci=pcie_bus_perf,pcie_bus_safe,etc.
+>     pci=cbiosize=...
+>     pci=cbmemsize=...
+>     pci=resource_alignment=...
+>     pci=hpiosize=...
+>     pci=hpmemsize=...
+>     pci=realloc
 >
->                          Linus
+> I don't like the fact that these options exist, but I suspect there are
+> users that do depend on them and might find this warning too aggressive.
+>
+> So I'm interested in opinions on whether this is a good idea at all and
+> whether we should exclude some options from the warning/tainting.
 
-I will work on pulling all of the coherent barrier cases out of using 
-the plain "*mb()" calls first.  We need to sort that out before we could 
-look at renaming the plain barrier functions.
+Hi Prarit,
 
-- Alex
+We didn't get any nibbles :)
+
+I don't think we can realistically taint the kernel for *all* "pci="
+options.  So if you want to pursue this, maybe you could enhance this
+so we can have a whitelist of options that we will support without
+tainting.  Then we can argue about what should be on the list and go
+from there.  Does that seem reasonable?
+
+This is a somewhat more aggressive use of tainting than we've had in
+the past, so we might have to iterate on this a bit.
+
+Bjorn
