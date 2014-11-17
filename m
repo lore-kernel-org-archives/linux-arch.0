@@ -1,27 +1,92 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from shards.monkeyblade.net ([149.20.54.216]:37767 "EHLO
-	shards.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754199AbaKPTXJ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 16 Nov 2014 14:23:09 -0500
-Date: Sun, 16 Nov 2014 14:23:02 -0500 (EST)
-Message-ID: <20141116.142302.1012229415553740809.davem@davemloft.net>
-Subject: Re: [PATCHv8 3/4] sparc: Hook up execveat system call.
-From: David Miller <davem@davemloft.net>
-In-Reply-To: <1415982183-20525-4-git-send-email-drysdale@google.com>
-References: <1415982183-20525-1-git-send-email-drysdale@google.com>
-	<1415982183-20525-4-git-send-email-drysdale@google.com>
-Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
+Received: from mx1.redhat.com ([209.132.183.28]:55186 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1750946AbaKQRVQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 17 Nov 2014 12:21:16 -0500
+Subject: [PATCH 0/4] Add lightweight memory barriers fast_rmb() and
+ fast_wmb()
+From: Alexander Duyck <alexander.h.duyck@redhat.com>
+Date: Mon, 17 Nov 2014 09:17:42 -0800
+Message-ID: <20141117171005.22333.96544.stgit@ahduyck-server>
+MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: drysdale@google.com
-Cc: ebiederm@xmission.com, luto@amacapital.net, viro@zeniv.linux.org.uk, meredydd@senatehouse.org, linux-kernel@vger.kernel.org, akpm@linux-foundation.org, oleg@redhat.com, mtk.manpages@gmail.com, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, keescook@chromium.org, arnd@arndb.de, dalias@aerifal.cx, hch@infradead.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, sparclinux@vger.kernel.org
-Message-ID: <20141116192302.xKusX5nABGQ-qlSKzQuuR5DkABR8qpOwEqCqkXrGBXc@z>
+To: linux-arch@vger.kernel.org, netdev@vger.kernel.org, linux-kernel@vger.kernel.org
+Cc: mathieu.desnoyers@polymtl.ca, peterz@infradead.org, benh@kernel.crashing.org, heiko.carstens@de.ibm.com, mingo@kernel.org, mikey@neuling.org, linux@arm.linux.org.uk, donald.c.skidmore@intel.com, matthew.vick@intel.com, geert@linux-m68k.org, jeffrey.t.kirsher@intel.com, romieu@fr.zoreil.com, paulmck@linux.vnet.ibm.com, nic_swsd@realtek.com, will.deacon@arm.com, michael@ellerman.id.au, tony.luck@intel.com, torvalds@linux-foundation.org, oleg@redhat.com, schwidefsky@de.ibm.com, fweisbec@gmail.com, davem@davemloft.net
+Message-ID: <20141117171742.sBvDHsh0iB4mqIigiYpyWwMoIyIlwUbgbODk14CMnBE@z>
 
-From: David Drysdale <drysdale@google.com>
-Date: Fri, 14 Nov 2014 16:23:02 +0000
+These patches introduce two new primitives for synchronizing cache-enabled
+memory writes and reads.  These two new primitives are:
 
-> Signed-off-by: David Drysdale <drysdale@google.com>
+	fast_rmb()
+	fast_wmb()
 
-Acked-by: David S. Miller <davem@davemloft.net>
+The first patch cleans up some unnecessary overhead related to the
+definition of read_barrier_depends, smp_read_barrier_depends, and comments
+related to read_barrier_depends.
+
+The second patch adds the primitives for the applicable architectures and
+asm-generic.  The names for the new primitives are based on the names of
+similar primitives that already exist in the mips and tile trees.
+
+The third patch adds the barriers to r8169 which turns out to be a good
+example of where the new barriers might be useful as they have full
+rmb()/wmb() barriers ordering accesses to the descriptors and the DescOwn
+bit.
+
+The fourth patch adds support for fast_rmb() to the Intel fm10k, igb, and
+ixgbe drivers.  Testing with the ixgbe driver has shown a processing
+time reduction of at least 7ns per 64B frame on a Core i7-4930K.
+
+This patch series is essentially the v3 for:
+	arch: Introduce load_acquire() and store_release()
+		or
+	arch: Introduce read_acquire()
+
+The key changes in this patch series versus the earlier patches are:
+v3:
+	- Added cleanup of read_barrier_depends
+	- Focus on rmb()/wmb() instead of acquire()/store()
+	- Added update to documentation with code example
+	- Added change in r8169 to fix cur_tx/DescOwn ordering
+	- Simplified changes to just replacing/moving barriers in r8169
+v2:
+	- Renamed read_acquire() to be consistent with smp_load_acquire()
+	- Changed barrier used to be consistent with smp_load_acquire()
+	- Updated PowerPC code to use __lwsync based on IBM article
+	- Added store_release() as this is a viable use case for drivers
+	- Added r8169 patch which is able to fully use primitives
+	- Added fm10k/igb/ixgbe patch which is able to test performance
+
+---
+
+Alexander Duyck (4):
+      arch: Cleanup read_barrier_depends() and comments
+      arch: Add lightweight memory barriers fast_rmb() and fast_wmb()
+      r8169: Use fast_rmb() and fast_wmb() for DescOwn checks
+      fm10k/igb/ixgbe: Use fast_rmb on Rx descriptor reads
+
+
+ Documentation/memory-barriers.txt             |   41 +++++++++++++++
+ arch/alpha/include/asm/barrier.h              |   51 ++++++++++++++++++
+ arch/arm/include/asm/barrier.h                |    4 +
+ arch/arm64/include/asm/barrier.h              |    3 +
+ arch/blackfin/include/asm/barrier.h           |   51 ++++++++++++++++++
+ arch/ia64/include/asm/barrier.h               |   25 ++++-----
+ arch/metag/include/asm/barrier.h              |   19 ++++---
+ arch/mips/include/asm/barrier.h               |   52 -------------------
+ arch/powerpc/include/asm/barrier.h            |   28 ++++++----
+ arch/s390/include/asm/barrier.h               |    7 ++-
+ arch/sparc/include/asm/barrier_64.h           |    7 ++-
+ arch/x86/include/asm/barrier.h                |   70 ++++---------------------
+ arch/x86/um/asm/barrier.h                     |   20 ++++---
+ drivers/net/ethernet/intel/fm10k/fm10k_main.c |    6 +-
+ drivers/net/ethernet/intel/igb/igb_main.c     |    6 +-
+ drivers/net/ethernet/intel/ixgbe/ixgbe_main.c |    9 +--
+ drivers/net/ethernet/realtek/r8169.c          |   29 ++++++++--
+ include/asm-generic/barrier.h                 |    8 +++
+ 18 files changed, 257 insertions(+), 179 deletions(-)
+
+--
