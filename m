@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:47279 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:34629 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754523AbaKRRbZ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 18 Nov 2014 12:31:25 -0500
-Subject: [PATCH v4 4/4] fm10k/igb/ixgbe: Use coherent_rmb on Rx descriptor
- reads
+	id S1754523AbaKRRbj (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 18 Nov 2014 12:31:39 -0500
+Subject: [PATCH v4 3/4] r8169: Use coherent_rmb() and coherent_wmb() for
+ DescOwn checks
 From: Alexander Duyck <alexander.h.duyck@redhat.com>
-Date: Tue, 18 Nov 2014 09:29:37 -0800
-Message-ID: <20141118172936.26303.66000.stgit@ahduyck-server>
+Date: Tue, 18 Nov 2014 09:29:25 -0800
+Message-ID: <20141118172924.26303.57.stgit@ahduyck-server>
 In-Reply-To: <20141118172644.26303.37688.stgit@ahduyck-server>
 References: <20141118172644.26303.37688.stgit@ahduyck-server>
 MIME-Version: 1.0
@@ -17,97 +17,121 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, netdev@vger.kernel.org, linux-kernel@vger.kernel.org
 Cc: mathieu.desnoyers@polymtl.ca, peterz@infradead.org, benh@kernel.crashing.org, heiko.carstens@de.ibm.com, mingo@kernel.org, mikey@neuling.org, linux@arm.linux.org.uk, donald.c.skidmore@intel.com, matthew.vick@intel.com, geert@linux-m68k.org, jeffrey.t.kirsher@intel.com, romieu@fr.zoreil.com, paulmck@linux.vnet.ibm.com, nic_swsd@realtek.com, will.deacon@arm.com, michael@ellerman.id.au, tony.luck@intel.com, torvalds@linux-foundation.org, oleg@redhat.com, schwidefsky@de.ibm.com, fweisbec@gmail.com, davem@davemloft.net
-Message-ID: <20141118172937.Hmc-DIxv16iSmQHMvUO1AdkDoHxgyBI8uuytt-LhSHA@z>
+Message-ID: <20141118172925.wEJJadbM6cxfLQDqT8L-QCJXQEs4S5YugjWurKzU-g8@z>
 
-This change makes it so that coherent_rmb is used when reading the Rx
-descriptor.  The advantage of coherent_rmb is that it allows for a much
-lower cost barrier on x86, powerpc, arm, and arm64 architectures than a
-traditional memory barrier when dealing with reads that only have to
-synchronize to coherent memory.
+The r8169 use a pair of wmb() calls when setting up the descriptor rings.
+The first is to synchronize the descriptor data with the descriptor status,
+and the second is to synchronize the descriptor status with the use of the
+MMIO doorbell to notify the device that descriptors are ready.  This can
+come at a heavy price on some systems, and is not really necessary on
+systems such as x86 as a simple barrier() would suffice to order store/store
+accesses.  As such we can replace the first memory barrier with
+coherent_wmb() to reduce the cost for these accesses.
 
-In addition I have updated the code so that it just checks to see if any
-bits have been set instead of just the DD bit since the DD bit will always
-be set as a part of a descriptor write-back so we just need to check for a
-non-zero value being present at that memory location rather than just
-checking for any specific bit.  This allows the code itself to appear much
-cleaner and allows the compiler more room to optimize.
+In addition the r8169 uses a rmb() to prevent compiler optimization in the
+cleanup paths, however by moving the barrier down a few lines and replacing
+it with a coherent_rmb() we should be able to use it to guarantee
+descriptor accesses do not occur until the device has updated the DescOwn
+bit from its end.
 
-Cc: Jeff Kirsher <jeffrey.t.kirsher@intel.com>
-Cc: Matthew Vick <matthew.vick@intel.com>
-Cc: Don Skidmore <donald.c.skidmore@intel.com>
+One last change I made is to move the update of cur_tx in the xmit path to
+after the wmb.  This way we can guarantee the device and all CPUs should
+see the DescOwn update before they see the cur_tx value update.
+
+Cc: Realtek linux nic maintainers <nic_swsd@realtek.com>
+Cc: Francois Romieu <romieu@fr.zoreil.com>
 Signed-off-by: Alexander Duyck <alexander.h.duyck@redhat.com>
 ---
- drivers/net/ethernet/intel/fm10k/fm10k_main.c |    6 +++---
- drivers/net/ethernet/intel/igb/igb_main.c     |    6 +++---
- drivers/net/ethernet/intel/ixgbe/ixgbe_main.c |    9 ++++-----
- 3 files changed, 10 insertions(+), 11 deletions(-)
+ drivers/net/ethernet/realtek/r8169.c |   29 +++++++++++++++++++++--------
+ 1 file changed, 21 insertions(+), 8 deletions(-)
 
-diff --git a/drivers/net/ethernet/intel/fm10k/fm10k_main.c b/drivers/net/ethernet/intel/fm10k/fm10k_main.c
-index e645af4..1819311 100644
---- a/drivers/net/ethernet/intel/fm10k/fm10k_main.c
-+++ b/drivers/net/ethernet/intel/fm10k/fm10k_main.c
-@@ -620,14 +620,14 @@ static bool fm10k_clean_rx_irq(struct fm10k_q_vector *q_vector,
+diff --git a/drivers/net/ethernet/realtek/r8169.c b/drivers/net/ethernet/realtek/r8169.c
+index cf154f7..2886c4a 100644
+--- a/drivers/net/ethernet/realtek/r8169.c
++++ b/drivers/net/ethernet/realtek/r8169.c
+@@ -6601,6 +6601,9 @@ static inline void rtl8169_mark_to_asic(struct RxDesc *desc, u32 rx_buf_sz)
+ {
+ 	u32 eor = le32_to_cpu(desc->opts1) & RingEnd;
  
- 		rx_desc = FM10K_RX_DESC(rx_ring, rx_ring->next_to_clean);
++	/* Force memory writes to complete before releasing descriptor */
++	coherent_wmb();
++
+ 	desc->opts1 = cpu_to_le32(DescOwn | eor | rx_buf_sz);
+ }
  
--		if (!fm10k_test_staterr(rx_desc, FM10K_RXD_STATUS_DD))
-+		if (!rx_desc->d.staterr)
+@@ -6608,7 +6611,6 @@ static inline void rtl8169_map_to_asic(struct RxDesc *desc, dma_addr_t mapping,
+ 				       u32 rx_buf_sz)
+ {
+ 	desc->addr = cpu_to_le64(mapping);
+-	wmb();
+ 	rtl8169_mark_to_asic(desc, rx_buf_sz);
+ }
+ 
+@@ -7077,16 +7079,18 @@ static netdev_tx_t rtl8169_start_xmit(struct sk_buff *skb,
+ 
+ 	skb_tx_timestamp(skb);
+ 
+-	wmb();
++	/* Force memory writes to complete before releasing descriptor */
++	coherent_wmb();
+ 
+ 	/* Anti gcc 2.95.3 bugware (sic) */
+ 	status = opts[0] | len | (RingEnd * !((entry + 1) % NUM_TX_DESC));
+ 	txd->opts1 = cpu_to_le32(status);
+ 
+-	tp->cur_tx += frags + 1;
+-
++	/* Force all memory writes to complete before notifying device */
+ 	wmb();
+ 
++	tp->cur_tx += frags + 1;
++
+ 	RTL_W8(TxPoll, NPQ);
+ 
+ 	mmiowb();
+@@ -7185,11 +7189,16 @@ static void rtl_tx(struct net_device *dev, struct rtl8169_private *tp)
+ 		struct ring_info *tx_skb = tp->tx_skb + entry;
+ 		u32 status;
+ 
+-		rmb();
+ 		status = le32_to_cpu(tp->TxDescArray[entry].opts1);
+ 		if (status & DescOwn)
  			break;
  
- 		/* This memory barrier is needed to keep us from reading
- 		 * any other fields out of the rx_desc until we know the
--		 * RXD_STATUS_DD bit is set
-+		 * descriptor has been written back
- 		 */
--		rmb();
++		/* This barrier is needed to keep us from reading
++		 * any other fields out of the Tx descriptor until
++		 * we know the status of DescOwn
++		 */
 +		coherent_rmb();
++
+ 		rtl8169_unmap_tx_skb(&tp->pci_dev->dev, tx_skb,
+ 				     tp->TxDescArray + entry);
+ 		if (status & LastFrag) {
+@@ -7284,11 +7293,16 @@ static int rtl_rx(struct net_device *dev, struct rtl8169_private *tp, u32 budget
+ 		struct RxDesc *desc = tp->RxDescArray + entry;
+ 		u32 status;
  
- 		/* retrieve a buffer from the ring */
- 		skb = fm10k_fetch_rx_buffer(rx_ring, rx_desc, skb);
-diff --git a/drivers/net/ethernet/intel/igb/igb_main.c b/drivers/net/ethernet/intel/igb/igb_main.c
-index a2d72a8..51cda23 100644
---- a/drivers/net/ethernet/intel/igb/igb_main.c
-+++ b/drivers/net/ethernet/intel/igb/igb_main.c
-@@ -6918,14 +6918,14 @@ static bool igb_clean_rx_irq(struct igb_q_vector *q_vector, const int budget)
- 
- 		rx_desc = IGB_RX_DESC(rx_ring, rx_ring->next_to_clean);
- 
--		if (!igb_test_staterr(rx_desc, E1000_RXD_STAT_DD))
-+		if (!rx_desc->wb.upper.status_error)
+-		rmb();
+ 		status = le32_to_cpu(desc->opts1) & tp->opts1_mask;
+-
+ 		if (status & DescOwn)
  			break;
- 
- 		/* This memory barrier is needed to keep us from reading
- 		 * any other fields out of the rx_desc until we know the
--		 * RXD_STAT_DD bit is set
-+		 * descriptor has been written back
- 		 */
--		rmb();
++
++		/* This barrier is needed to keep us from reading
++		 * any other fields out of the Rx descriptor until
++		 * we know the status of DescOwn
++		 */
 +		coherent_rmb();
++
+ 		if (unlikely(status & RxRES)) {
+ 			netif_info(tp, rx_err, dev, "Rx ERROR. status = %08x\n",
+ 				   status);
+@@ -7350,7 +7364,6 @@ process_pkt:
+ 		}
+ release_descriptor:
+ 		desc->opts2 = 0;
+-		wmb();
+ 		rtl8169_mark_to_asic(desc, rx_buf_sz);
+ 	}
  
- 		/* retrieve a buffer from the ring */
- 		skb = igb_fetch_rx_buffer(rx_ring, rx_desc, skb);
-diff --git a/drivers/net/ethernet/intel/ixgbe/ixgbe_main.c b/drivers/net/ethernet/intel/ixgbe/ixgbe_main.c
-index d2df4e3..fdb49c0 100644
---- a/drivers/net/ethernet/intel/ixgbe/ixgbe_main.c
-+++ b/drivers/net/ethernet/intel/ixgbe/ixgbe_main.c
-@@ -2003,15 +2003,14 @@ static int ixgbe_clean_rx_irq(struct ixgbe_q_vector *q_vector,
- 
- 		rx_desc = IXGBE_RX_DESC(rx_ring, rx_ring->next_to_clean);
- 
--		if (!ixgbe_test_staterr(rx_desc, IXGBE_RXD_STAT_DD))
-+		if (!rx_desc->wb.upper.status_error)
- 			break;
- 
--		/*
--		 * This memory barrier is needed to keep us from reading
-+		/* This memory barrier is needed to keep us from reading
- 		 * any other fields out of the rx_desc until we know the
--		 * RXD_STAT_DD bit is set
-+		 * descriptor has been written back
- 		 */
--		rmb();
-+		coherent_rmb();
- 
- 		/* retrieve a buffer from the ring */
- 		skb = ixgbe_fetch_rx_buffer(rx_ring, rx_desc);
 
