@@ -1,131 +1,178 @@
-From: Alexander Duyck <alexander.h.duyck@redhat.com>
-Subject: [PATCH v4 3/4] r8169: Use coherent_rmb() and coherent_wmb() for
- DescOwn checks
-Date: Tue, 18 Nov 2014 09:29:25 -0800
-Message-ID: <20141118172924.26303.57.stgit@ahduyck-server>
-References: <20141118172644.26303.37688.stgit@ahduyck-server>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: 7bit
-Return-path: <netdev-owner@vger.kernel.org>
-In-Reply-To: <20141118172644.26303.37688.stgit@ahduyck-server>
-Sender: netdev-owner@vger.kernel.org
-To: linux-arch@vger.kernel.org, netdev@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: mathieu.desnoyers@polymtl.ca, peterz@infradead.org, benh@kernel.crashing.org, heiko.carstens@de.ibm.com, mingo@kernel.org, mikey@neuling.org, linux@arm.linux.org.uk, donald.c.skidmore@intel.com, matthew.vick@intel.com, geert@linux-m68k.org, jeffrey.t.kirsher@intel.com, romieu@fr.zoreil.com, paulmck@linux.vnet.ibm.com, nic_swsd@realtek.com, will.deacon@arm.com, michael@ellerman.id.au, tony.luck@intel.com, torvalds@linux-foundation.org, oleg@redhat.com, schwidefsky@de.ibm.com, fweisbec@gmail.com, davem@davemloft.net
+From: Dave Hansen <dave@sr71.net>
+Subject: [PATCH 3/3] make arch_unmap()/etc... available to all architectures.
+Date: Tue, 18 Nov 2014 10:23:50 -0800
+Message-ID: <20141118182350.8B4AA2C2@viggo.jf.intel.com>
+References: <20141118182342.64D1B3A5@viggo.jf.intel.com>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20141118182342.64D1B3A5@viggo.jf.intel.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: tglx@linutronix.de
+Cc: x86@kernel.org, linux-kernel@vger.kernel.org, Dave Hansen <dave@sr71.net>, dave.hansen@linux.intel.com, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-The r8169 use a pair of wmb() calls when setting up the descriptor rings.
-The first is to synchronize the descriptor data with the descriptor status,
-and the second is to synchronize the descriptor status with the use of the
-MMIO doorbell to notify the device that descriptors are ready.  This can
-come at a heavy price on some systems, and is not really necessary on
-systems such as x86 as a simple barrier() would suffice to order store/store
-accesses.  As such we can replace the first memory barrier with
-coherent_wmb() to reduce the cost for these accesses.
 
-In addition the r8169 uses a rmb() to prevent compiler optimization in the
-cleanup paths, however by moving the barrier down a few lines and replacing
-it with a coherent_rmb() we should be able to use it to guarantee
-descriptor accesses do not occur until the device has updated the DescOwn
-bit from its end.
+From: Dave Hansen <dave.hansen@linux.intel.com>
 
-One last change I made is to move the update of cur_tx in the xmit path to
-after the wmb.  This way we can guarantee the device and all CPUs should
-see the DescOwn update before they see the cur_tx value update.
+The x86 MPX patch set calls arch_unmap() and arch_bprm_mm_init()
+from fs/exec.c, so we need at least a stub for them in all
+architectures.  They are only called under an #ifdef for
+CONFIG_MMU=y, so we can at least restict this to architectures
+with MMU support.
 
-Cc: Realtek linux nic maintainers <nic_swsd@realtek.com>
-Cc: Francois Romieu <romieu@fr.zoreil.com>
-Signed-off-by: Alexander Duyck <alexander.h.duyck@redhat.com>
+blackfin/c6x have no MMU support, so do not call arch_unmap().
+They also do not include mm_hooks.h or mmu_context.h at all and
+do not need to be touched.
+
+s390, um and unicore32 do not use asm-generic/mm_hooks.h, so got
+their own arch_unmap() versions.  (I also moved um's
+arch_dup_mmap() to be closer to the other mm_hooks.h functions).
+
+xtensa only includs mm_hooks when MMU=y, which should be fine
+since arch_unmap() is called only from MMU=y code.
+
+For the rest, we use the stub copies of these functions in
+asm-generic/mm_hook.h.
+
+I cross compiled defconfigs for cris (to check NOMMU) and s390
+to make sure that this works.  I also checked a 64-bit build
+of UML and all my normal x86 builds including PARAVIRT on and
+off.
+
+Signed-off-by: Dave Hansen <dave.hansen@linux.intel.com>
+Cc: linux-arch@vger.kernel.org
+Cc: x86@kernel.org
+Cc: Thomas Gleixner <tglx@linutronix.de>
 ---
- drivers/net/ethernet/realtek/r8169.c |   29 +++++++++++++++++++++--------
- 1 file changed, 21 insertions(+), 8 deletions(-)
 
-diff --git a/drivers/net/ethernet/realtek/r8169.c b/drivers/net/ethernet/realtek/r8169.c
-index cf154f7..2886c4a 100644
---- a/drivers/net/ethernet/realtek/r8169.c
-+++ b/drivers/net/ethernet/realtek/r8169.c
-@@ -6601,6 +6601,9 @@ static inline void rtl8169_mark_to_asic(struct RxDesc *desc, u32 rx_buf_sz)
+ b/arch/s390/include/asm/mmu_context.h      |   11 +++++++++++
+ b/arch/um/include/asm/mmu_context.h        |   24 +++++++++++++++++++-----
+ b/arch/unicore32/include/asm/mmu_context.h |   11 +++++++++++
+ b/include/asm-generic/mm_hooks.h           |   17 ++++++++++++++---
+ b/include/asm-generic/mmu_context.h        |    6 ------
+ 5 files changed, 55 insertions(+), 14 deletions(-)
+
+diff -puN arch/s390/include/asm/mmu_context.h~mm_hooks arch/s390/include/asm/mmu_context.h
+--- a/arch/s390/include/asm/mmu_context.h~mm_hooks	2014-11-18 09:14:19.914111506 -0800
++++ b/arch/s390/include/asm/mmu_context.h	2014-11-18 09:14:19.924111957 -0800
+@@ -120,4 +120,15 @@ static inline void arch_exit_mmap(struct
  {
- 	u32 eor = le32_to_cpu(desc->opts1) & RingEnd;
- 
-+	/* Force memory writes to complete before releasing descriptor */
-+	coherent_wmb();
-+
- 	desc->opts1 = cpu_to_le32(DescOwn | eor | rx_buf_sz);
  }
  
-@@ -6608,7 +6611,6 @@ static inline void rtl8169_map_to_asic(struct RxDesc *desc, dma_addr_t mapping,
- 				       u32 rx_buf_sz)
- {
- 	desc->addr = cpu_to_le64(mapping);
--	wmb();
- 	rtl8169_mark_to_asic(desc, rx_buf_sz);
- }
- 
-@@ -7077,16 +7079,18 @@ static netdev_tx_t rtl8169_start_xmit(struct sk_buff *skb,
- 
- 	skb_tx_timestamp(skb);
- 
--	wmb();
-+	/* Force memory writes to complete before releasing descriptor */
-+	coherent_wmb();
- 
- 	/* Anti gcc 2.95.3 bugware (sic) */
- 	status = opts[0] | len | (RingEnd * !((entry + 1) % NUM_TX_DESC));
- 	txd->opts1 = cpu_to_le32(status);
- 
--	tp->cur_tx += frags + 1;
--
-+	/* Force all memory writes to complete before notifying device */
- 	wmb();
- 
-+	tp->cur_tx += frags + 1;
++static inline void arch_unmap(struct mm_struct *mm,
++			struct vm_area_struct *vma,
++			unsigned long start, unsigned long end)
++{
++}
 +
- 	RTL_W8(TxPoll, NPQ);
- 
- 	mmiowb();
-@@ -7185,11 +7189,16 @@ static void rtl_tx(struct net_device *dev, struct rtl8169_private *tp)
- 		struct ring_info *tx_skb = tp->tx_skb + entry;
- 		u32 status;
- 
--		rmb();
- 		status = le32_to_cpu(tp->TxDescArray[entry].opts1);
- 		if (status & DescOwn)
- 			break;
- 
-+		/* This barrier is needed to keep us from reading
-+		 * any other fields out of the Tx descriptor until
-+		 * we know the status of DescOwn
-+		 */
-+		coherent_rmb();
++static inline void arch_bprm_mm_init(struct mm_struct *mm,
++				     struct vm_area_struct *vma)
++{
++}
 +
- 		rtl8169_unmap_tx_skb(&tp->pci_dev->dev, tx_skb,
- 				     tp->TxDescArray + entry);
- 		if (status & LastFrag) {
-@@ -7284,11 +7293,16 @@ static int rtl_rx(struct net_device *dev, struct rtl8169_private *tp, u32 budget
- 		struct RxDesc *desc = tp->RxDescArray + entry;
- 		u32 status;
+ #endif /* __S390_MMU_CONTEXT_H */
+diff -puN arch/um/include/asm/mmu_context.h~mm_hooks arch/um/include/asm/mmu_context.h
+--- a/arch/um/include/asm/mmu_context.h~mm_hooks	2014-11-18 09:14:19.916111596 -0800
++++ b/arch/um/include/asm/mmu_context.h	2014-11-18 09:14:19.924111957 -0800
+@@ -10,7 +10,26 @@
+ #include <asm/mmu.h>
  
--		rmb();
- 		status = le32_to_cpu(desc->opts1) & tp->opts1_mask;
--
- 		if (status & DescOwn)
- 			break;
-+
-+		/* This barrier is needed to keep us from reading
-+		 * any other fields out of the Rx descriptor until
-+		 * we know the status of DescOwn
-+		 */
-+		coherent_rmb();
-+
- 		if (unlikely(status & RxRES)) {
- 			netif_info(tp, rx_err, dev, "Rx ERROR. status = %08x\n",
- 				   status);
-@@ -7350,7 +7364,6 @@ process_pkt:
- 		}
- release_descriptor:
- 		desc->opts2 = 0;
--		wmb();
- 		rtl8169_mark_to_asic(desc, rx_buf_sz);
+ extern void uml_setup_stubs(struct mm_struct *mm);
++/*
++ * Needed since we do not use the asm-generic/mm_hooks.h:
++ */
++static inline void arch_dup_mmap(struct mm_struct *oldmm, struct mm_struct *mm)
++{
++	uml_setup_stubs(mm);
++}
+ extern void arch_exit_mmap(struct mm_struct *mm);
++static inline void arch_unmap(struct mm_struct *mm,
++			struct vm_area_struct *vma,
++			unsigned long start, unsigned long end)
++{
++}
++static inline void arch_bprm_mm_init(struct mm_struct *mm,
++				     struct vm_area_struct *vma)
++{
++}
++/*
++ * end asm-generic/mm_hooks.h functions
++ */
+ 
+ #define deactivate_mm(tsk,mm)	do { } while (0)
+ 
+@@ -41,11 +60,6 @@ static inline void switch_mm(struct mm_s
  	}
+ }
  
+-static inline void arch_dup_mmap(struct mm_struct *oldmm, struct mm_struct *mm)
+-{
+-	uml_setup_stubs(mm);
+-}
+-
+ static inline void enter_lazy_tlb(struct mm_struct *mm, 
+ 				  struct task_struct *tsk)
+ {
+diff -puN arch/unicore32/include/asm/mmu_context.h~mm_hooks arch/unicore32/include/asm/mmu_context.h
+--- a/arch/unicore32/include/asm/mmu_context.h~mm_hooks	2014-11-18 09:14:19.918111686 -0800
++++ b/arch/unicore32/include/asm/mmu_context.h	2014-11-18 09:14:19.924111957 -0800
+@@ -86,4 +86,15 @@ static inline void arch_dup_mmap(struct
+ {
+ }
+ 
++static inline void arch_unmap(struct mm_struct *mm,
++			struct vm_area_struct *vma,
++			unsigned long start, unsigned long end)
++{
++}
++
++static inline void arch_bprm_mm_init(struct mm_struct *mm,
++				     struct vm_area_struct *vma)
++{
++}
++
+ #endif
+diff -puN include/asm-generic/mm_hooks.h~mm_hooks include/asm-generic/mm_hooks.h
+--- a/include/asm-generic/mm_hooks.h~mm_hooks	2014-11-18 09:14:19.919111732 -0800
++++ b/include/asm-generic/mm_hooks.h	2014-11-18 09:14:19.925112002 -0800
+@@ -1,7 +1,7 @@
+ /*
+- * Define generic no-op hooks for arch_dup_mmap and arch_exit_mmap, to
+- * be included in asm-FOO/mmu_context.h for any arch FOO which doesn't
+- * need to hook these.
++ * Define generic no-op hooks for arch_dup_mmap, arch_exit_mmap
++ * and arch_unmap to be included in asm-FOO/mmu_context.h for any
++ * arch FOO which doesn't need to hook these.
+  */
+ #ifndef _ASM_GENERIC_MM_HOOKS_H
+ #define _ASM_GENERIC_MM_HOOKS_H
+@@ -15,4 +15,15 @@ static inline void arch_exit_mmap(struct
+ {
+ }
+ 
++static inline void arch_unmap(struct mm_struct *mm,
++			struct vm_area_struct *vma,
++			unsigned long start, unsigned long end)
++{
++}
++
++static inline void arch_bprm_mm_init(struct mm_struct *mm,
++				     struct vm_area_struct *vma)
++{
++}
++
+ #endif	/* _ASM_GENERIC_MM_HOOKS_H */
+diff -puN include/asm-generic/mmu_context.h~mm_hooks include/asm-generic/mmu_context.h
+--- a/include/asm-generic/mmu_context.h~mm_hooks	2014-11-18 09:14:19.921111822 -0800
++++ b/include/asm-generic/mmu_context.h	2014-11-18 09:14:19.925112002 -0800
+@@ -47,10 +47,4 @@ static inline void arch_bprm_mm_init(str
+ {
+ }
+ 
+-static inline void arch_unmap(struct mm_struct *mm,
+-			struct vm_area_struct *vma,
+-			unsigned long start, unsigned long end)
+-{
+-}
+-
+ #endif /* __ASM_GENERIC_MMU_CONTEXT_H */
+_
