@@ -1,183 +1,42 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga02.intel.com ([134.134.136.20]:29964 "EHLO mga02.intel.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753563AbaKRSXv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 18 Nov 2014 13:23:51 -0500
-Subject: [PATCH 3/3] make arch_unmap()/etc... available to all architectures.
-From: Dave Hansen <dave@sr71.net>
-Date: Tue, 18 Nov 2014 10:23:50 -0800
-References: <20141118182342.64D1B3A5@viggo.jf.intel.com>
-In-Reply-To: <20141118182342.64D1B3A5@viggo.jf.intel.com>
-Message-ID: <20141118182350.8B4AA2C2@viggo.jf.intel.com>
+Received: from mail-vc0-f171.google.com ([209.85.220.171]:44048 "EHLO
+	mail-vc0-f171.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754237AbaKRUxf (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 18 Nov 2014 15:53:35 -0500
+MIME-Version: 1.0
+In-Reply-To: <20141118172644.26303.37688.stgit@ahduyck-server>
+References: <20141118172644.26303.37688.stgit@ahduyck-server>
+Date: Tue, 18 Nov 2014 12:53:34 -0800
+Message-ID: <CA+55aFw3ygP8UEF1vidWdjBUEkqXOELCPkpjLMD-X=vXXQEGOQ@mail.gmail.com>
+Subject: Re: [PATCH v4 0/4] Add lightweight memory barriers for coherent
+ memory access
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: tglx@linutronix.de
-Cc: x86@kernel.org, linux-kernel@vger.kernel.org, Dave Hansen <dave@sr71.net>, dave.hansen@linux.intel.com, linux-arch@vger.kernel.org
-Message-ID: <20141118182350.DnB75dsatvPpdEmVkbK-CSRQcbrXWrSFXC1YYtNFbyw@z>
+To: Alexander Duyck <alexander.h.duyck@redhat.com>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Network Development <netdev@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>, Peter Zijlstra <peterz@infradead.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, Ingo Molnar <mingo@kernel.org>, Michael Neuling <mikey@neuling.org>, Russell King - ARM Linux <linux@arm.linux.org.uk>, donald.c.skidmore@intel.com, matthew.vick@intel.com, Geert Uytterhoeven <geert@linux-m68k.org>, Jeff Kirsher <jeffrey.t.kirsher@intel.com>, Francois Romieu <romieu@fr.zoreil.com>, Paul McKenney <paulmck@linux.vnet.ibm.com>, nic_swsd@realtek.com, Will Deacon <will.deacon@arm.com>, Michael Ellerman <michael@ellerman.id.au>, Tony Luck <tony.luck@intel.com>, Oleg Nesterov <oleg@redhat.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, =?UTF-8?B?RnLDqWTDqXJpYyBXZWlzYmVja2Vy?= <fweisbec@gmail.com>, David Miller <davem@davemloft.net>
+Message-ID: <20141118205334.ddvDrAg6bDhBj3VJ3Z9uUQxIKr511DvEUcqQhe1wmHU@z>
 
+On Tue, Nov 18, 2014 at 9:28 AM, Alexander Duyck
+<alexander.h.duyck@redhat.com> wrote:
+> These patches introduce two new primitives for synchronizing cache coherent
+> memory writes and reads.  These two new primitives are:
+>
+>         coherent_rmb()
+>         coherent_wmb()
 
-From: Dave Hansen <dave.hansen@linux.intel.com>
+So I'm still not convinced about the name. I don't hate it, but if you
+ever want to do "read_acquire", then that whole "coherent_" thing does
+make for a big mouthful. I don't see why "dma" isn't simpler and more
+to the point, and has the advantage of lining up (in documentation
+etc) with "smp".
 
-The x86 MPX patch set calls arch_unmap() and arch_bprm_mm_init()
-from fs/exec.c, so we need at least a stub for them in all
-architectures.  They are only called under an #ifdef for
-CONFIG_MMU=y, so we can at least restict this to architectures
-with MMU support.
+Why would you ever use "coherent_xyz()" on something that isn't about
+dma? If it's cache-coherent memory without DMA, you'd use "smp_xyz()",
+so I really do prefer that whole "dma-vs-smp" issue, because it talks
+about what is actually the important issue. All sane memory is
+coherent, after all (and if it isn't, you have other issues than
+memory ordering).
 
-blackfin/c6x have no MMU support, so do not call arch_unmap().
-They also do not include mm_hooks.h or mmu_context.h at all and
-do not need to be touched.
-
-s390, um and unicore32 do not use asm-generic/mm_hooks.h, so got
-their own arch_unmap() versions.  (I also moved um's
-arch_dup_mmap() to be closer to the other mm_hooks.h functions).
-
-xtensa only includs mm_hooks when MMU=y, which should be fine
-since arch_unmap() is called only from MMU=y code.
-
-For the rest, we use the stub copies of these functions in
-asm-generic/mm_hook.h.
-
-I cross compiled defconfigs for cris (to check NOMMU) and s390
-to make sure that this works.  I also checked a 64-bit build
-of UML and all my normal x86 builds including PARAVIRT on and
-off.
-
-Signed-off-by: Dave Hansen <dave.hansen@linux.intel.com>
-Cc: linux-arch@vger.kernel.org
-Cc: x86@kernel.org
-Cc: Thomas Gleixner <tglx@linutronix.de>
----
-
- b/arch/s390/include/asm/mmu_context.h      |   11 +++++++++++
- b/arch/um/include/asm/mmu_context.h        |   24 +++++++++++++++++++-----
- b/arch/unicore32/include/asm/mmu_context.h |   11 +++++++++++
- b/include/asm-generic/mm_hooks.h           |   17 ++++++++++++++---
- b/include/asm-generic/mmu_context.h        |    6 ------
- 5 files changed, 55 insertions(+), 14 deletions(-)
-
-diff -puN arch/s390/include/asm/mmu_context.h~mm_hooks arch/s390/include/asm/mmu_context.h
---- a/arch/s390/include/asm/mmu_context.h~mm_hooks	2014-11-18 09:14:19.914111506 -0800
-+++ b/arch/s390/include/asm/mmu_context.h	2014-11-18 09:14:19.924111957 -0800
-@@ -120,4 +120,15 @@ static inline void arch_exit_mmap(struct
- {
- }
- 
-+static inline void arch_unmap(struct mm_struct *mm,
-+			struct vm_area_struct *vma,
-+			unsigned long start, unsigned long end)
-+{
-+}
-+
-+static inline void arch_bprm_mm_init(struct mm_struct *mm,
-+				     struct vm_area_struct *vma)
-+{
-+}
-+
- #endif /* __S390_MMU_CONTEXT_H */
-diff -puN arch/um/include/asm/mmu_context.h~mm_hooks arch/um/include/asm/mmu_context.h
---- a/arch/um/include/asm/mmu_context.h~mm_hooks	2014-11-18 09:14:19.916111596 -0800
-+++ b/arch/um/include/asm/mmu_context.h	2014-11-18 09:14:19.924111957 -0800
-@@ -10,7 +10,26 @@
- #include <asm/mmu.h>
- 
- extern void uml_setup_stubs(struct mm_struct *mm);
-+/*
-+ * Needed since we do not use the asm-generic/mm_hooks.h:
-+ */
-+static inline void arch_dup_mmap(struct mm_struct *oldmm, struct mm_struct *mm)
-+{
-+	uml_setup_stubs(mm);
-+}
- extern void arch_exit_mmap(struct mm_struct *mm);
-+static inline void arch_unmap(struct mm_struct *mm,
-+			struct vm_area_struct *vma,
-+			unsigned long start, unsigned long end)
-+{
-+}
-+static inline void arch_bprm_mm_init(struct mm_struct *mm,
-+				     struct vm_area_struct *vma)
-+{
-+}
-+/*
-+ * end asm-generic/mm_hooks.h functions
-+ */
- 
- #define deactivate_mm(tsk,mm)	do { } while (0)
- 
-@@ -41,11 +60,6 @@ static inline void switch_mm(struct mm_s
- 	}
- }
- 
--static inline void arch_dup_mmap(struct mm_struct *oldmm, struct mm_struct *mm)
--{
--	uml_setup_stubs(mm);
--}
--
- static inline void enter_lazy_tlb(struct mm_struct *mm, 
- 				  struct task_struct *tsk)
- {
-diff -puN arch/unicore32/include/asm/mmu_context.h~mm_hooks arch/unicore32/include/asm/mmu_context.h
---- a/arch/unicore32/include/asm/mmu_context.h~mm_hooks	2014-11-18 09:14:19.918111686 -0800
-+++ b/arch/unicore32/include/asm/mmu_context.h	2014-11-18 09:14:19.924111957 -0800
-@@ -86,4 +86,15 @@ static inline void arch_dup_mmap(struct
- {
- }
- 
-+static inline void arch_unmap(struct mm_struct *mm,
-+			struct vm_area_struct *vma,
-+			unsigned long start, unsigned long end)
-+{
-+}
-+
-+static inline void arch_bprm_mm_init(struct mm_struct *mm,
-+				     struct vm_area_struct *vma)
-+{
-+}
-+
- #endif
-diff -puN include/asm-generic/mm_hooks.h~mm_hooks include/asm-generic/mm_hooks.h
---- a/include/asm-generic/mm_hooks.h~mm_hooks	2014-11-18 09:14:19.919111732 -0800
-+++ b/include/asm-generic/mm_hooks.h	2014-11-18 09:14:19.925112002 -0800
-@@ -1,7 +1,7 @@
- /*
-- * Define generic no-op hooks for arch_dup_mmap and arch_exit_mmap, to
-- * be included in asm-FOO/mmu_context.h for any arch FOO which doesn't
-- * need to hook these.
-+ * Define generic no-op hooks for arch_dup_mmap, arch_exit_mmap
-+ * and arch_unmap to be included in asm-FOO/mmu_context.h for any
-+ * arch FOO which doesn't need to hook these.
-  */
- #ifndef _ASM_GENERIC_MM_HOOKS_H
- #define _ASM_GENERIC_MM_HOOKS_H
-@@ -15,4 +15,15 @@ static inline void arch_exit_mmap(struct
- {
- }
- 
-+static inline void arch_unmap(struct mm_struct *mm,
-+			struct vm_area_struct *vma,
-+			unsigned long start, unsigned long end)
-+{
-+}
-+
-+static inline void arch_bprm_mm_init(struct mm_struct *mm,
-+				     struct vm_area_struct *vma)
-+{
-+}
-+
- #endif	/* _ASM_GENERIC_MM_HOOKS_H */
-diff -puN include/asm-generic/mmu_context.h~mm_hooks include/asm-generic/mmu_context.h
---- a/include/asm-generic/mmu_context.h~mm_hooks	2014-11-18 09:14:19.921111822 -0800
-+++ b/include/asm-generic/mmu_context.h	2014-11-18 09:14:19.925112002 -0800
-@@ -47,10 +47,4 @@ static inline void arch_bprm_mm_init(str
- {
- }
- 
--static inline void arch_unmap(struct mm_struct *mm,
--			struct vm_area_struct *vma,
--			unsigned long start, unsigned long end)
--{
--}
--
- #endif /* __ASM_GENERIC_MMU_CONTEXT_H */
-_
+                  Linus
