@@ -1,79 +1,104 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss-mx-na.foss.arm.com ([217.140.108.86]:60131 "EHLO
-	foss-mx-na.foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751699AbaKRL6k (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 18 Nov 2014 06:58:40 -0500
-Date: Tue, 18 Nov 2014 11:58:36 +0000
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [PATCH 2/4] arch: Add lightweight memory barriers fast_rmb() and
- fast_wmb()
-Message-ID: <20141118115836.GL18842@arm.com>
-References: <20141117171005.22333.96544.stgit@ahduyck-server>
- <20141117171812.22333.90395.stgit@ahduyck-server>
- <1416254687.18381.3.camel@kernel.crashing.org>
- <546A5968.1090201@gmail.com>
- <1416271167.18381.16.camel@kernel.crashing.org>
- <546AB959.1020602@redhat.com>
+Received: from mx1.redhat.com ([209.132.183.28]:49594 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1753660AbaKRMmT (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 18 Nov 2014 07:42:19 -0500
+Message-ID: <546B3EA1.90100@redhat.com>
+Date: Tue, 18 Nov 2014 07:42:09 -0500
+From: Prarit Bhargava <prarit@redhat.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <546AB959.1020602@redhat.com>
+Subject: Re: [PATCH] pci, add FW_BUG warning to pci= kernel option
+References: <1414865479-25792-1-git-send-email-prarit@redhat.com> <20141111035902.GC28161@google.com> <CAErSpo7q1U_HpEeB_pMWJPae3a+oysEwR660m2bV5KdZ7oCr0w@mail.gmail.com>
+In-Reply-To: <CAErSpo7q1U_HpEeB_pMWJPae3a+oysEwR660m2bV5KdZ7oCr0w@mail.gmail.com>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Alexander Duyck <alexander.h.duyck@redhat.com>
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Alexander Duyck <alexander.duyck@gmail.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "netdev@vger.kernel.org" <netdev@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "mathieu.desnoyers@polymtl.ca" <mathieu.desnoyers@polymtl.ca>, "peterz@infradead.org" <peterz@infradead.org>, "heiko.carstens@de.ibm.com" <heiko.carstens@de.ibm.com>, "mingo@kernel.org" <mingo@kernel.org>, "mikey@neuling.org" <mikey@neuling.org>, "linux@arm.linux.org.uk" <linux@arm.linux.org.uk>, "donald.c.skidmore@intel.com" <donald.c.skidmore@intel.com>, "matthew.vick@intel.com" <matthew.vick@intel.com>, "geert@linux-m68k.org" <geert@linux-m68k.org>, "jeffrey.t.kirsher@intel.com" <jeffrey.t.kirsher@intel.com>, "romieu@fr.zoreil.com" <romieu@fr.zoreil.com>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>, "nic_swsd@realtek.com" <nic_swsd@realtek.com>, "michael@ellerman.id.au" <michael@ellerman.id.au>, "tony.luck@intel.com" <tony.luck@intel.com>, "torvalds@linux-foundation.org" <torvalds@linux-foundation.org>, "oleg@redhat.com" <oleg@redhat.com>, "schwidefsky@de.ibm.com" <schwidefsky@de.ibm.com>, "fweisbec@gmail.com" <fweisbec@gmail.com>, "davem@davemloft.net" <davem@davemloft.net>
-Message-ID: <20141118115836.GFQFAE6iT4KEBqZdDJg9MSA2cMzYdzez_IoNShGFxBQ@z>
+To: Bjorn Helgaas <bhelgaas@google.com>
+Cc: "linux-pci@vger.kernel.org" <linux-pci@vger.kernel.org>, Myron Stowe <mstowe@redhat.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>
+Message-ID: <20141118124209.6i_LYM01G1ir0IREWI0bYWP6Erd83dvEK_GYVf_zvN0@z>
 
-On Tue, Nov 18, 2014 at 03:13:29AM +0000, Alexander Duyck wrote:
-> On 11/17/2014 04:39 PM, Benjamin Herrenschmidt wrote:
-> > On Mon, 2014-11-17 at 12:24 -0800, Alexander Duyck wrote:
-> >> Yes and no.  So for example on ARM I used the dmb() operation, however
-> >> I
-> >> have to use the barrier at the system level instead of just the inner
-> >> shared domain.  However on many other architectures they are just the
-> >> same as the smp_* variants.
-> >>
-> >> Basically the resultant code is somewhere between the smp and non-smp
-> >> barriers in terms of what they cover.
-> > There I don't quite follow you. You need to explain better especially in
-> > the documentation because otherwise people will get it wrong...
-> >
-> > If it's ordering in the coherent domain, I fail to see how a DMA agent
-> > is different than another processor when it comes to barriers, so I fail
-> > to see the difference with smp_*
-> >
-> > I understand the MMIO vs. memory issue, we do have the same on powerpc,
-> > but that other aspect eludes me.
-> >
+
+
+On 11/17/2014 06:42 PM, Bjorn Helgaas wrote:
+> On Mon, Nov 10, 2014 at 8:59 PM, Bjorn Helgaas <bhelgaas@google.com> wrote:
+>> [+cc lkml, linux-arch, Linus]
+>>
+>> On Sat, Nov 01, 2014 at 02:11:19PM -0400, Prarit Bhargava wrote:
+>>> The kernel should boot PCI without the use of kernel parameters.  Display
+>>> a FW_BUG warning when pci= is used.
+>>>
+>>> Cc: Myron Stowe <mstowe@redhat.com>
+>>> Cc: linux-pci@vger.kernel.org
+>>> Signed-off-by: Prarit Bhargava <prarit@redhat.com>
+>>> ---
+>>>  drivers/pci/pci.c |    2 ++
+>>>  1 file changed, 2 insertions(+)
+>>>
+>>> diff --git a/drivers/pci/pci.c b/drivers/pci/pci.c
+>>> index 625a4ac..5172060b 100644
+>>> --- a/drivers/pci/pci.c
+>>> +++ b/drivers/pci/pci.c
+>>> @@ -4515,6 +4515,8 @@ static int __init pci_setup(char *str)
+>>>               }
+>>>               str = k;
+>>>       }
+>>> +     add_taint(TAINT_FIRMWARE_WORKAROUND, LOCKDEP_STILL_OK);
+>>> +     pr_crit(FW_BUG "The PCI configuration has been overridden thorugh the use of pci=.  Please report the issue you are attempting to resolve to your hardware vendor.\n");
+>>
+>> My goal is to be able to boot without any "pci=" parameters, so from that
+>> perspective, I like this.
+>>
+>> When people have a problem booting Linux, they often try a variety of
+>> things like "pci=assign-busses", "pci=nocrs", "pci=nomsi", "pci=nommconf",
+>> "pci=noacpi", etc.  If they find something that works, there's a tendency
+>> to treat that as a "solution."  I'd rather that they report it, so we can
+>> try to fix the bug or add a quirk so the *next* person won't have to figure
+>> out the right parameters to use.
+>>
+>> My worry is that there are a few things where Linux isn't smart enough to
+>> do the right thing automatically, and I don't think we'll have a good
+>> solution in the near future.  For example:
+>>
+>>     pci=norom
+>>     pci=pcie_bus_perf,pcie_bus_safe,etc.
+>>     pci=cbiosize=...
+>>     pci=cbmemsize=...
+>>     pci=resource_alignment=...
+>>     pci=hpiosize=...
+>>     pci=hpmemsize=...
+>>     pci=realloc
+>>
+>> I don't like the fact that these options exist, but I suspect there are
+>> users that do depend on them and might find this warning too aggressive.
+>>
+>> So I'm interested in opinions on whether this is a good idea at all and
+>> whether we should exclude some options from the warning/tainting.
 > 
-> ARM adds some funky things.  They have two different types of 
-> primitives, a dmb() which is a data memory barrier, and a dsb() which is 
-> a data synchronization barrier.  Then with each of those they have the 
-> "domains" the barriers are effective within.
+> Hi Prarit,
 > 
-> So for example on ARM a rmb() is dsb(sy) which means it is a system wide 
-> synchronization barrier which stops execution on the CPU core until the 
-> read completes.  However the smp_rmb() is a dmb(ish) which means it is 
-> only a barrier as far as the inner shareable domain which I believe only 
-> goes as far as the local shared cache hierarchy and only guarantees read 
-> ordering without necessarily halting the CPU or stopping in-order 
-> speculative reads.  So what a coherent_rmb() would be in my setup is 
-> dmb(sy) which means the barrier runs all the way out to memory, and it 
-> is allowed to speculative read as long as it does it in order.
+> We didn't get any nibbles :)
 > 
-> If it is still unclear you might check out Will Deacon's talk on the 
-> topic at https://www.youtube.com/watch?v=6ORn6_35kKo, at about 7:00 in 
-> he explains the whole domains thing, and at 13:30 he explains dmb()/dsb().
+> I don't think we can realistically taint the kernel for *all* "pci="
+> options.  So if you want to pursue this, maybe you could enhance this
+> so we can have a whitelist of options that we will support without
+> tainting.  Then we can argue about what should be on the list and go
+> from there.  Does that seem reasonable?
 
-So actually, this is an interesting case where the barrier would like to
-know whether the memory returned by dma_alloc_coherent is h/w coherent
-(normal, cacheable) or s/w coherent (normal, non-cacheable). I think Ben
-is thinking of the h/w coherent case (i.e. actual snooping into the CPU
-caches by the DMA master).
+Sorry for the lower-case typing.  I broke my elbow and am down to one hand.
 
-For the former, we could use inner-shareable barriers. For the latter, we'd
-need to use outer-shareable barriers.
+bjorn, yep sounds reasonable.  i'll do this (slowly unfortunately because of my
+arm) ...
 
-If we can't tell, then these should be dmb(osh), which will work for both.
+P.
 
-Will
+> 
+> This is a somewhat more aggressive use of tainting than we've had in
+> the past, so we might have to iterate on this a bit.
+> 
+> Bjorn
+> --
+> To unsubscribe from this list: send the line "unsubscribe linux-pci" in
+> the body of a message to majordomo@vger.kernel.org
+> More majordomo info at  http://vger.kernel.org/majordomo-info.html
+> 
