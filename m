@@ -1,34 +1,50 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qc0-f174.google.com ([209.85.216.174]:47534 "EHLO
-	mail-qc0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753833AbaKROBE (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 18 Nov 2014 09:01:04 -0500
-Received: by mail-qc0-f174.google.com with SMTP id c9so7106682qcz.19
-        for <linux-arch@vger.kernel.org>; Tue, 18 Nov 2014 06:01:02 -0800 (PST)
+Received: from mx1.redhat.com ([209.132.183.28]:44647 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1753020AbaKRPpl (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 18 Nov 2014 10:45:41 -0500
+Message-ID: <546B694D.3080604@redhat.com>
+Date: Tue, 18 Nov 2014 07:44:13 -0800
+From: Alexander Duyck <alexander.h.duyck@redhat.com>
 MIME-Version: 1.0
-In-Reply-To: <546B3EA1.90100@redhat.com>
-References: <1414865479-25792-1-git-send-email-prarit@redhat.com>
- <20141111035902.GC28161@google.com> <CAErSpo7q1U_HpEeB_pMWJPae3a+oysEwR660m2bV5KdZ7oCr0w@mail.gmail.com>
- <546B3EA1.90100@redhat.com>
-From: Bjorn Helgaas <bhelgaas@google.com>
-Date: Tue, 18 Nov 2014 07:00:42 -0700
-Message-ID: <CAErSpo6Xy8OOxEDGe08C_h3VMYMw1CvjCeUdfP4CooixH=4mEQ@mail.gmail.com>
-Subject: Re: [PATCH] pci, add FW_BUG warning to pci= kernel option
-Content-Type: text/plain; charset=UTF-8
+Subject: Re: [PATCH 0/4] Add lightweight memory barriers fast_rmb() and fast_wmb()
+References: <20141117171005.22333.96544.stgit@ahduyck-server> <063D6719AE5E284EB5DD2968C1650D6D1C9F2930@AcuExch.aculab.com>
+In-Reply-To: <063D6719AE5E284EB5DD2968C1650D6D1C9F2930@AcuExch.aculab.com>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Prarit Bhargava <prarit@redhat.com>
-Cc: "linux-pci@vger.kernel.org" <linux-pci@vger.kernel.org>, Myron Stowe <mstowe@redhat.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>
-Message-ID: <20141118140042.7388iS_Y_cqakqj2e1QSRFjKgLm5kOLhEPhINMJIdb0@z>
+To: David Laight <David.Laight@ACULAB.COM>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "netdev@vger.kernel.org" <netdev@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
+Cc: "mathieu.desnoyers@polymtl.ca" <mathieu.desnoyers@polymtl.ca>, "peterz@infradead.org" <peterz@infradead.org>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, "heiko.carstens@de.ibm.com" <heiko.carstens@de.ibm.com>, "mingo@kernel.org" <mingo@kernel.org>, "mikey@neuling.org" <mikey@neuling.org>, "linux@arm.linux.org.uk" <linux@arm.linux.org.uk>, "donald.c.skidmore@intel.com" <donald.c.skidmore@intel.com>, "matthew.vick@intel.com" <matthew.vick@intel.com>, "geert@linux-m68k.org" <geert@linux-m68k.org>, "jeffrey.t.kirsher@intel.com" <jeffrey.t.kirsher@intel.com>, "romieu@fr.zoreil.com" <romieu@fr.zoreil.com>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>, "nic_swsd@realtek.com" <nic_swsd@realtek.com>, "will.deacon@arm.com" <will.deacon@arm.com>, "michael@ellerman.id.au" <michael@ellerman.id.au>, "tony.luck@intel.com" <tony.luck@intel.com>, "torvalds@linux-foundation.org" <torvalds@linux-foundation.org>, "oleg@redhat.com" <oleg@redhat.com>, "schwidefsky@de.ibm.com" <schwidefsky@de.ibm.com>, "fweisbec@gmail.com" <fweisbec@gmail.com>, "davem@davemloft.net" <davem@davemloft.net>
+Message-ID: <20141118154413.79WkTtjkKuT3YD0AMHKW_1aPP5pvtHLMDQFHsMMgeQQ@z>
 
-On Tue, Nov 18, 2014 at 5:42 AM, Prarit Bhargava <prarit@redhat.com> wrote:
 
-> Sorry for the lower-case typing.  I broke my elbow and am down to one hand.
+On 11/18/2014 01:57 AM, David Laight wrote:
+> From: Alexander Duyck
+>> These patches introduce two new primitives for synchronizing cache-enabled
+>> memory writes and reads.  These two new primitives are:
+>>
+>> 	fast_rmb()
+>> 	fast_wmb()
+> Not sure I like the names.
+> If the aim is to sync data into the local cache so that hardware
+> that is doing cache-snooping accesses sees the data then maybe
+> 	local_rmb() and local_wmb()
+
+Yeah, that is the general consensus.  I am planning to change them to 
+coherent_rmb() and coherent_wmb().
+
+> IIRC read_barrier_depends() is a nop on everything except alpha.
+> Maybe add the default if it isn't defined by the MD file?
 >
-> bjorn, yep sounds reasonable.  i'll do this (slowly unfortunately because of my
-> arm) ...
+> 	David
+>   
 
-Ouch, sorry to hear that.  We need to get working on that direct
-mind-computer interface :)  Hope your elbow heals well!
+ From my patch the only two I saw define it were alpha and blackfin. It 
+is already defined in asm-generic, the rest is just clean-up since I 
+suspect some of the arch tree barrier.h calls just borrowed from 
+asm-generic without sorting out what became redundancies.
 
-Bjorn
+Thanks,
+
+Alex
