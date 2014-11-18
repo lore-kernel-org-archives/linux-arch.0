@@ -1,398 +1,183 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:47339 "EHLO mx1.redhat.com"
+Received: from mga02.intel.com ([134.134.136.20]:29964 "EHLO mga02.intel.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754523AbaKRRbc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 18 Nov 2014 12:31:32 -0500
-Subject: [PATCH v4 2/4] arch: Add lightweight memory barriers coherent_rmb()
- and coherent_wmb()
-From: Alexander Duyck <alexander.h.duyck@redhat.com>
-Date: Tue, 18 Nov 2014 09:29:12 -0800
-Message-ID: <20141118172912.26303.82882.stgit@ahduyck-server>
-In-Reply-To: <20141118172644.26303.37688.stgit@ahduyck-server>
-References: <20141118172644.26303.37688.stgit@ahduyck-server>
-MIME-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: 7bit
+	id S1753563AbaKRSXv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 18 Nov 2014 13:23:51 -0500
+Subject: [PATCH 3/3] make arch_unmap()/etc... available to all architectures.
+From: Dave Hansen <dave@sr71.net>
+Date: Tue, 18 Nov 2014 10:23:50 -0800
+References: <20141118182342.64D1B3A5@viggo.jf.intel.com>
+In-Reply-To: <20141118182342.64D1B3A5@viggo.jf.intel.com>
+Message-ID: <20141118182350.8B4AA2C2@viggo.jf.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org, netdev@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: mathieu.desnoyers@polymtl.ca, peterz@infradead.org, benh@kernel.crashing.org, heiko.carstens@de.ibm.com, mingo@kernel.org, mikey@neuling.org, linux@arm.linux.org.uk, donald.c.skidmore@intel.com, matthew.vick@intel.com, geert@linux-m68k.org, jeffrey.t.kirsher@intel.com, romieu@fr.zoreil.com, paulmck@linux.vnet.ibm.com, nic_swsd@realtek.com, will.deacon@arm.com, michael@ellerman.id.au, tony.luck@intel.com, torvalds@linux-foundation.org, oleg@redhat.com, schwidefsky@de.ibm.com, fweisbec@gmail.com, davem@davemloft.net
-Message-ID: <20141118172912.mV8E74KCUI4ZMs3DxxKa21Bb6ebG6R8SzyEBd3s4bBU@z>
+To: tglx@linutronix.de
+Cc: x86@kernel.org, linux-kernel@vger.kernel.org, Dave Hansen <dave@sr71.net>, dave.hansen@linux.intel.com, linux-arch@vger.kernel.org
+Message-ID: <20141118182350.DnB75dsatvPpdEmVkbK-CSRQcbrXWrSFXC1YYtNFbyw@z>
 
-There are a number of situations where the mandatory barriers rmb() and
-wmb() are used to order memory/memory operations in the device drivers
-and those barriers are much heavier than they actually need to be.  For
-example in the case of PowerPC wmb() calls the heavy-weight sync
-instruction when for coherent memory operations all that is really needed
-is an lsync or eieio instruction.
 
-This commit adds a coherent only version of the mandatory memory barriers
-rmb() and wmb().  In most cases this should result in the barrier being the
-same as the SMP barriers for the SMP case, however in some cases we use a
-barrier that is somewhere in between rmb() and smp_rmb().  For example on
-ARM the rmb barriers break down as follows:
+From: Dave Hansen <dave.hansen@linux.intel.com>
 
-  Barrier        Call     Explanation
-  -------------- -------- ----------------------------------
-  rmb()          dsb()    Data synchronization barrier - system
-  coherent_rmb() dmb(osh) data memory barrier - outer sharable
-  smp_rmb()      dmb(ish) data memory barrier - inner sharable
+The x86 MPX patch set calls arch_unmap() and arch_bprm_mm_init()
+from fs/exec.c, so we need at least a stub for them in all
+architectures.  They are only called under an #ifdef for
+CONFIG_MMU=y, so we can at least restict this to architectures
+with MMU support.
 
-These new barriers are not as safe as the standard rmb() and wmb().
-Specifically they do not guarantee ordering between coherent and incoherent
-memories.  The primary use case for these would be to enforce ordering of
-reads and writes when accessing coherent memory that is shared between the
-CPU and a device.
+blackfin/c6x have no MMU support, so do not call arch_unmap().
+They also do not include mm_hooks.h or mmu_context.h at all and
+do not need to be touched.
 
-It may also be noted that there is no coherent_mb().  Most architectures
-don't provide a good mechanism for performing a coherent only full barrier
-without resorting to the same mechanism used in mb().  As such there isn't
-much to be gained in trying to define such a function.
+s390, um and unicore32 do not use asm-generic/mm_hooks.h, so got
+their own arch_unmap() versions.  (I also moved um's
+arch_dup_mmap() to be closer to the other mm_hooks.h functions).
 
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: Frederic Weisbecker <fweisbec@gmail.com>
-Cc: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
-Cc: Michael Ellerman <michael@ellerman.id.au>
-Cc: Michael Neuling <mikey@neuling.org>
-Cc: Russell King <linux@arm.linux.org.uk>
-Cc: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Cc: Tony Luck <tony.luck@intel.com>
-Cc: Oleg Nesterov <oleg@redhat.com>
-Cc: Will Deacon <will.deacon@arm.com>
-Cc: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Ingo Molnar <mingo@kernel.org>
-Cc: David Miller <davem@davemloft.net>
-Signed-off-by: Alexander Duyck <alexander.h.duyck@redhat.com>
+xtensa only includs mm_hooks when MMU=y, which should be fine
+since arch_unmap() is called only from MMU=y code.
+
+For the rest, we use the stub copies of these functions in
+asm-generic/mm_hook.h.
+
+I cross compiled defconfigs for cris (to check NOMMU) and s390
+to make sure that this works.  I also checked a 64-bit build
+of UML and all my normal x86 builds including PARAVIRT on and
+off.
+
+Signed-off-by: Dave Hansen <dave.hansen@linux.intel.com>
+Cc: linux-arch@vger.kernel.org
+Cc: x86@kernel.org
+Cc: Thomas Gleixner <tglx@linutronix.de>
 ---
- Documentation/memory-barriers.txt   |   41 +++++++++++++++++++++++++++++++++++
- arch/arm/include/asm/barrier.h      |    4 +++
- arch/arm64/include/asm/barrier.h    |    3 +++
- arch/ia64/include/asm/barrier.h     |    3 +++
- arch/metag/include/asm/barrier.h    |   14 ++++++------
- arch/mips/include/asm/barrier.h     |    9 ++++----
- arch/powerpc/include/asm/barrier.h  |   17 +++++++++------
- arch/s390/include/asm/barrier.h     |    2 ++
- arch/sparc/include/asm/barrier_64.h |    3 +++
- arch/x86/include/asm/barrier.h      |   11 ++++++---
- arch/x86/um/asm/barrier.h           |   13 ++++++-----
- include/asm-generic/barrier.h       |    8 +++++++
- 12 files changed, 100 insertions(+), 28 deletions(-)
 
-diff --git a/Documentation/memory-barriers.txt b/Documentation/memory-barriers.txt
-index 22a969c..d86cdc2 100644
---- a/Documentation/memory-barriers.txt
-+++ b/Documentation/memory-barriers.txt
-@@ -1615,6 +1615,47 @@ There are some more advanced barrier functions:
-      operations" subsection for information on where to use these.
+ b/arch/s390/include/asm/mmu_context.h      |   11 +++++++++++
+ b/arch/um/include/asm/mmu_context.h        |   24 +++++++++++++++++++-----
+ b/arch/unicore32/include/asm/mmu_context.h |   11 +++++++++++
+ b/include/asm-generic/mm_hooks.h           |   17 ++++++++++++++---
+ b/include/asm-generic/mmu_context.h        |    6 ------
+ 5 files changed, 55 insertions(+), 14 deletions(-)
+
+diff -puN arch/s390/include/asm/mmu_context.h~mm_hooks arch/s390/include/asm/mmu_context.h
+--- a/arch/s390/include/asm/mmu_context.h~mm_hooks	2014-11-18 09:14:19.914111506 -0800
++++ b/arch/s390/include/asm/mmu_context.h	2014-11-18 09:14:19.924111957 -0800
+@@ -120,4 +120,15 @@ static inline void arch_exit_mmap(struct
+ {
+ }
  
++static inline void arch_unmap(struct mm_struct *mm,
++			struct vm_area_struct *vma,
++			unsigned long start, unsigned long end)
++{
++}
++
++static inline void arch_bprm_mm_init(struct mm_struct *mm,
++				     struct vm_area_struct *vma)
++{
++}
++
+ #endif /* __S390_MMU_CONTEXT_H */
+diff -puN arch/um/include/asm/mmu_context.h~mm_hooks arch/um/include/asm/mmu_context.h
+--- a/arch/um/include/asm/mmu_context.h~mm_hooks	2014-11-18 09:14:19.916111596 -0800
++++ b/arch/um/include/asm/mmu_context.h	2014-11-18 09:14:19.924111957 -0800
+@@ -10,7 +10,26 @@
+ #include <asm/mmu.h>
  
-+ (*) coherent_wmb();
-+ (*) coherent_rmb();
-+
-+     These are for use with memory based device I/O to guarantee the ordering
-+     of cache coherent writes or reads with respect to other writes or reads
-+     to cache coherent memory.
-+
-+     For example, consider a device driver that shares memory with a device
-+     and uses a descriptor status value to indicate if the descriptor belongs
-+     to the device or the CPU, and a doorbell to notify it when new
-+     descriptors are available:
-+
-+	if (desc->status != DEVICE_OWN) {
-+		/* do not read data until we own descriptor */
-+		coherent_rmb();
-+
-+		/* read/modify data */
-+		read_data = desc->data;
-+		desc->data = write_data;
-+
-+		/* flush modifications before status update */
-+		coherent_wmb();
-+
-+		/* assign ownership */
-+		desc->status = DEVICE_OWN;
-+
-+		/* force memory to sync before notifying device via MMIO */
-+		wmb();
-+
-+		/* notify device of new descriptors */
-+		writel(DESC_NOTIFY, doorbell);
-+	}
-+
-+     The coherent_rmb() allows us guarantee the device has released ownership
-+     before we read the data from the descriptor, and he coherent_wmb() allows
-+     us to guarantee the data is written to the descriptor before the device
-+     can see it now has ownership.  The wmb() is needed to guarantee that the
-+     cache coherent memory writes have completed before attempting a write to
-+     the cache incoherent MMIO region.
-+
-+
- MMIO WRITE BARRIER
- ------------------
+ extern void uml_setup_stubs(struct mm_struct *mm);
++/*
++ * Needed since we do not use the asm-generic/mm_hooks.h:
++ */
++static inline void arch_dup_mmap(struct mm_struct *oldmm, struct mm_struct *mm)
++{
++	uml_setup_stubs(mm);
++}
+ extern void arch_exit_mmap(struct mm_struct *mm);
++static inline void arch_unmap(struct mm_struct *mm,
++			struct vm_area_struct *vma,
++			unsigned long start, unsigned long end)
++{
++}
++static inline void arch_bprm_mm_init(struct mm_struct *mm,
++				     struct vm_area_struct *vma)
++{
++}
++/*
++ * end asm-generic/mm_hooks.h functions
++ */
  
-diff --git a/arch/arm/include/asm/barrier.h b/arch/arm/include/asm/barrier.h
-index c6a3e73..8d33c9e 100644
---- a/arch/arm/include/asm/barrier.h
-+++ b/arch/arm/include/asm/barrier.h
-@@ -43,10 +43,14 @@
- #define mb()		do { dsb(); outer_sync(); } while (0)
- #define rmb()		dsb()
- #define wmb()		do { dsb(st); outer_sync(); } while (0)
-+#define coherent_rmb()	dmb(osh)
-+#define coherent_wmb()	dmb(oshst)
- #else
- #define mb()		barrier()
- #define rmb()		barrier()
- #define wmb()		barrier()
-+#define coherent_rmb()	barrier()
-+#define coherent_wmb()	barrier()
- #endif
+ #define deactivate_mm(tsk,mm)	do { } while (0)
  
- #ifndef CONFIG_SMP
-diff --git a/arch/arm64/include/asm/barrier.h b/arch/arm64/include/asm/barrier.h
-index 6389d60..d250ac4 100644
---- a/arch/arm64/include/asm/barrier.h
-+++ b/arch/arm64/include/asm/barrier.h
-@@ -32,6 +32,9 @@
- #define rmb()		dsb(ld)
- #define wmb()		dsb(st)
+@@ -41,11 +60,6 @@ static inline void switch_mm(struct mm_s
+ 	}
+ }
  
-+#define coherent_rmb()	dmb(oshld)
-+#define coherent_wmb()	dmb(oshst)
-+
- #ifndef CONFIG_SMP
- #define smp_mb()	barrier()
- #define smp_rmb()	barrier()
-diff --git a/arch/ia64/include/asm/barrier.h b/arch/ia64/include/asm/barrier.h
-index e8fffb0..ec4e652 100644
---- a/arch/ia64/include/asm/barrier.h
-+++ b/arch/ia64/include/asm/barrier.h
-@@ -39,6 +39,9 @@
- #define rmb()		mb()
- #define wmb()		mb()
- 
-+#define coherent_rmb()	mb()
-+#define coherent_wmb()	mb()
-+
- #ifdef CONFIG_SMP
- # define smp_mb()	mb()
- #else
-diff --git a/arch/metag/include/asm/barrier.h b/arch/metag/include/asm/barrier.h
-index 6d8b8c9..56999f3 100644
---- a/arch/metag/include/asm/barrier.h
-+++ b/arch/metag/include/asm/barrier.h
-@@ -4,8 +4,6 @@
- #include <asm/metag_mem.h>
- 
- #define nop()		asm volatile ("NOP")
--#define mb()		wmb()
--#define rmb()		barrier()
- 
- #ifdef CONFIG_METAG_META21
- 
-@@ -41,11 +39,13 @@ static inline void wr_fence(void)
- 
- #endif /* !CONFIG_METAG_META21 */
- 
--static inline void wmb(void)
+-static inline void arch_dup_mmap(struct mm_struct *oldmm, struct mm_struct *mm)
 -{
--	/* flush writes through the write combiner */
--	wr_fence();
+-	uml_setup_stubs(mm);
 -}
-+/* flush writes through the write combiner */
-+#define mb()		wr_fence()
-+#define rmb()		barrier()
-+#define wmb()		mb()
-+
-+#define coherent_rmb()	rmb()
-+#define coherent_wmb()	wmb()
- 
- #ifndef CONFIG_SMP
- #define fence()		do { } while (0)
-diff --git a/arch/mips/include/asm/barrier.h b/arch/mips/include/asm/barrier.h
-index 3d69aa8..2d54df7 100644
---- a/arch/mips/include/asm/barrier.h
-+++ b/arch/mips/include/asm/barrier.h
-@@ -75,20 +75,21 @@
- 
- #include <asm/wbflush.h>
- 
--#define wmb()		fast_wmb()
--#define rmb()		fast_rmb()
- #define mb()		wbflush()
- #define iob()		wbflush()
- 
- #else /* !CONFIG_CPU_HAS_WB */
- 
--#define wmb()		fast_wmb()
--#define rmb()		fast_rmb()
- #define mb()		fast_mb()
- #define iob()		fast_iob()
- 
- #endif /* !CONFIG_CPU_HAS_WB */
- 
-+#define wmb()		fast_wmb()
-+#define rmb()		fast_rmb()
-+#define coherent_wmb()	fast_wmb()
-+#define coherent_rmb()	fast_rmb()
-+
- #if defined(CONFIG_WEAK_ORDERING) && defined(CONFIG_SMP)
- # ifdef CONFIG_CPU_CAVIUM_OCTEON
- #  define smp_mb()	__sync()
-diff --git a/arch/powerpc/include/asm/barrier.h b/arch/powerpc/include/asm/barrier.h
-index cb6d66c..40c668b 100644
---- a/arch/powerpc/include/asm/barrier.h
-+++ b/arch/powerpc/include/asm/barrier.h
-@@ -36,8 +36,6 @@
- 
- #define set_mb(var, value)	do { var = value; mb(); } while (0)
- 
--#ifdef CONFIG_SMP
 -
- #ifdef __SUBARCH_HAS_LWSYNC
- #    define SMPWMB      LWSYNC
- #else
-@@ -45,12 +43,17 @@
- #endif
+ static inline void enter_lazy_tlb(struct mm_struct *mm, 
+ 				  struct task_struct *tsk)
+ {
+diff -puN arch/unicore32/include/asm/mmu_context.h~mm_hooks arch/unicore32/include/asm/mmu_context.h
+--- a/arch/unicore32/include/asm/mmu_context.h~mm_hooks	2014-11-18 09:14:19.918111686 -0800
++++ b/arch/unicore32/include/asm/mmu_context.h	2014-11-18 09:14:19.924111957 -0800
+@@ -86,4 +86,15 @@ static inline void arch_dup_mmap(struct
+ {
+ }
  
- #define __lwsync()	__asm__ __volatile__ (stringify_in_c(LWSYNC) : : :"memory")
-+#define coherent_rmb()	__lwsync()
-+#define coherent_wmb()	__asm__ __volatile__ (stringify_in_c(SMPWMB) : : :"memory")
++static inline void arch_unmap(struct mm_struct *mm,
++			struct vm_area_struct *vma,
++			unsigned long start, unsigned long end)
++{
++}
 +
-+#ifdef CONFIG_SMP
-+#define smp_lwsync()	__lwsync()
- 
- #define smp_mb()	mb()
--#define smp_rmb()	__lwsync()
--#define smp_wmb()	__asm__ __volatile__ (stringify_in_c(SMPWMB) : : :"memory")
-+#define smp_rmb()	coherent_rmb()
-+#define smp_wmb()	coherent_wmb()
- #else
--#define __lwsync()	barrier()
-+#define smp_lwsync()	barrier()
- 
- #define smp_mb()	barrier()
- #define smp_rmb()	barrier()
-@@ -72,7 +75,7 @@
- #define smp_store_release(p, v)						\
- do {									\
- 	compiletime_assert_atomic_type(*p);				\
--	__lwsync();							\
-+	smp_lwsync();							\
- 	ACCESS_ONCE(*p) = (v);						\
- } while (0)
- 
-@@ -80,7 +83,7 @@ do {									\
- ({									\
- 	typeof(*p) ___p1 = ACCESS_ONCE(*p);				\
- 	compiletime_assert_atomic_type(*p);				\
--	__lwsync();							\
-+	smp_lwsync();							\
- 	___p1;								\
- })
- 
-diff --git a/arch/s390/include/asm/barrier.h b/arch/s390/include/asm/barrier.h
-index 33d191d..a50117d 100644
---- a/arch/s390/include/asm/barrier.h
-+++ b/arch/s390/include/asm/barrier.h
-@@ -24,6 +24,8 @@
- 
- #define rmb()				mb()
- #define wmb()				mb()
-+#define coherent_rmb()			rmb()
-+#define coherent_wmb()			wmb()
- #define smp_mb()			mb()
- #define smp_rmb()			rmb()
- #define smp_wmb()			wmb()
-diff --git a/arch/sparc/include/asm/barrier_64.h b/arch/sparc/include/asm/barrier_64.h
-index 6c974c0..97bdcd4 100644
---- a/arch/sparc/include/asm/barrier_64.h
-+++ b/arch/sparc/include/asm/barrier_64.h
-@@ -37,6 +37,9 @@ do {	__asm__ __volatile__("ba,pt	%%xcc, 1f\n\t" \
- #define rmb()	__asm__ __volatile__("":::"memory")
- #define wmb()	__asm__ __volatile__("":::"memory")
- 
-+#define coherent_rmb()	rmb()
-+#define coherent_wmb()	wmb()
++static inline void arch_bprm_mm_init(struct mm_struct *mm,
++				     struct vm_area_struct *vma)
++{
++}
 +
- #define set_mb(__var, __value) \
- 	do { __var = __value; membar_safe("#StoreLoad"); } while(0)
- 
-diff --git a/arch/x86/include/asm/barrier.h b/arch/x86/include/asm/barrier.h
-index 5238000..340a7fe 100644
---- a/arch/x86/include/asm/barrier.h
-+++ b/arch/x86/include/asm/barrier.h
-@@ -24,13 +24,16 @@
- #define wmb()	asm volatile("sfence" ::: "memory")
  #endif
+diff -puN include/asm-generic/mm_hooks.h~mm_hooks include/asm-generic/mm_hooks.h
+--- a/include/asm-generic/mm_hooks.h~mm_hooks	2014-11-18 09:14:19.919111732 -0800
++++ b/include/asm-generic/mm_hooks.h	2014-11-18 09:14:19.925112002 -0800
+@@ -1,7 +1,7 @@
+ /*
+- * Define generic no-op hooks for arch_dup_mmap and arch_exit_mmap, to
+- * be included in asm-FOO/mmu_context.h for any arch FOO which doesn't
+- * need to hook these.
++ * Define generic no-op hooks for arch_dup_mmap, arch_exit_mmap
++ * and arch_unmap to be included in asm-FOO/mmu_context.h for any
++ * arch FOO which doesn't need to hook these.
+  */
+ #ifndef _ASM_GENERIC_MM_HOOKS_H
+ #define _ASM_GENERIC_MM_HOOKS_H
+@@ -15,4 +15,15 @@ static inline void arch_exit_mmap(struct
+ {
+ }
  
--#ifdef CONFIG_SMP
--#define smp_mb()	mb()
- #ifdef CONFIG_X86_PPRO_FENCE
--# define smp_rmb()	rmb()
-+#define coherent_rmb()	rmb()
- #else
--# define smp_rmb()	barrier()
-+#define coherent_rmb()	barrier()
- #endif
-+#define coherent_wmb()	barrier()
++static inline void arch_unmap(struct mm_struct *mm,
++			struct vm_area_struct *vma,
++			unsigned long start, unsigned long end)
++{
++}
 +
-+#ifdef CONFIG_SMP
-+#define smp_mb()	mb()
-+#define smp_rmb()	coherent_rmb()
- #define smp_wmb()	barrier()
- #define set_mb(var, value) do { (void)xchg(&var, value); } while (0)
- #else /* !SMP */
-diff --git a/arch/x86/um/asm/barrier.h b/arch/x86/um/asm/barrier.h
-index d6511d9..d4952e0 100644
---- a/arch/x86/um/asm/barrier.h
-+++ b/arch/x86/um/asm/barrier.h
-@@ -29,17 +29,18 @@
++static inline void arch_bprm_mm_init(struct mm_struct *mm,
++				     struct vm_area_struct *vma)
++{
++}
++
+ #endif	/* _ASM_GENERIC_MM_HOOKS_H */
+diff -puN include/asm-generic/mmu_context.h~mm_hooks include/asm-generic/mmu_context.h
+--- a/include/asm-generic/mmu_context.h~mm_hooks	2014-11-18 09:14:19.921111822 -0800
++++ b/include/asm-generic/mmu_context.h	2014-11-18 09:14:19.925112002 -0800
+@@ -47,10 +47,4 @@ static inline void arch_bprm_mm_init(str
+ {
+ }
  
- #endif /* CONFIG_X86_32 */
- 
--#ifdef CONFIG_SMP
+-static inline void arch_unmap(struct mm_struct *mm,
+-			struct vm_area_struct *vma,
+-			unsigned long start, unsigned long end)
+-{
+-}
 -
--#define smp_mb()	mb()
- #ifdef CONFIG_X86_PPRO_FENCE
--#define smp_rmb()	rmb()
-+#define coherent_rmb()	rmb()
- #else /* CONFIG_X86_PPRO_FENCE */
--#define smp_rmb()	barrier()
-+#define coherent_rmb()	barrier()
- #endif /* CONFIG_X86_PPRO_FENCE */
-+#define coherent_wmb()	barrier()
- 
--#define smp_wmb()	barrier()
-+#ifdef CONFIG_SMP
- 
-+#define smp_mb()	mb()
-+#define smp_rmb()	coherent_rmb()
-+#define smp_wmb()	coherent_wmb()
- #define set_mb(var, value) do { (void)xchg(&var, value); } while (0)
- 
- #else /* CONFIG_SMP */
-diff --git a/include/asm-generic/barrier.h b/include/asm-generic/barrier.h
-index 1402fa8..52a9a71 100644
---- a/include/asm-generic/barrier.h
-+++ b/include/asm-generic/barrier.h
-@@ -42,6 +42,14 @@
- #define wmb()	mb()
- #endif
- 
-+#ifndef coherent_rmb
-+#define coherent_rmb()	rmb()
-+#endif
-+
-+#ifndef coherent_wmb
-+#define coherent_wmb()	wmb()
-+#endif
-+
- #ifndef read_barrier_depends
- #define read_barrier_depends()		do { } while (0)
- #endif
-
+ #endif /* __ASM_GENERIC_MMU_CONTEXT_H */
+_
