@@ -1,104 +1,34 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:49594 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753660AbaKRMmT (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 18 Nov 2014 07:42:19 -0500
-Message-ID: <546B3EA1.90100@redhat.com>
-Date: Tue, 18 Nov 2014 07:42:09 -0500
-From: Prarit Bhargava <prarit@redhat.com>
+Received: from mail-qc0-f174.google.com ([209.85.216.174]:47534 "EHLO
+	mail-qc0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753833AbaKROBE (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 18 Nov 2014 09:01:04 -0500
+Received: by mail-qc0-f174.google.com with SMTP id c9so7106682qcz.19
+        for <linux-arch@vger.kernel.org>; Tue, 18 Nov 2014 06:01:02 -0800 (PST)
 MIME-Version: 1.0
+In-Reply-To: <546B3EA1.90100@redhat.com>
+References: <1414865479-25792-1-git-send-email-prarit@redhat.com>
+ <20141111035902.GC28161@google.com> <CAErSpo7q1U_HpEeB_pMWJPae3a+oysEwR660m2bV5KdZ7oCr0w@mail.gmail.com>
+ <546B3EA1.90100@redhat.com>
+From: Bjorn Helgaas <bhelgaas@google.com>
+Date: Tue, 18 Nov 2014 07:00:42 -0700
+Message-ID: <CAErSpo6Xy8OOxEDGe08C_h3VMYMw1CvjCeUdfP4CooixH=4mEQ@mail.gmail.com>
 Subject: Re: [PATCH] pci, add FW_BUG warning to pci= kernel option
-References: <1414865479-25792-1-git-send-email-prarit@redhat.com> <20141111035902.GC28161@google.com> <CAErSpo7q1U_HpEeB_pMWJPae3a+oysEwR660m2bV5KdZ7oCr0w@mail.gmail.com>
-In-Reply-To: <CAErSpo7q1U_HpEeB_pMWJPae3a+oysEwR660m2bV5KdZ7oCr0w@mail.gmail.com>
 Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Bjorn Helgaas <bhelgaas@google.com>
+To: Prarit Bhargava <prarit@redhat.com>
 Cc: "linux-pci@vger.kernel.org" <linux-pci@vger.kernel.org>, Myron Stowe <mstowe@redhat.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>
-Message-ID: <20141118124209.6i_LYM01G1ir0IREWI0bYWP6Erd83dvEK_GYVf_zvN0@z>
+Message-ID: <20141118140042.7388iS_Y_cqakqj2e1QSRFjKgLm5kOLhEPhINMJIdb0@z>
 
+On Tue, Nov 18, 2014 at 5:42 AM, Prarit Bhargava <prarit@redhat.com> wrote:
 
+> Sorry for the lower-case typing.  I broke my elbow and am down to one hand.
+>
+> bjorn, yep sounds reasonable.  i'll do this (slowly unfortunately because of my
+> arm) ...
 
-On 11/17/2014 06:42 PM, Bjorn Helgaas wrote:
-> On Mon, Nov 10, 2014 at 8:59 PM, Bjorn Helgaas <bhelgaas@google.com> wrote:
->> [+cc lkml, linux-arch, Linus]
->>
->> On Sat, Nov 01, 2014 at 02:11:19PM -0400, Prarit Bhargava wrote:
->>> The kernel should boot PCI without the use of kernel parameters.  Display
->>> a FW_BUG warning when pci= is used.
->>>
->>> Cc: Myron Stowe <mstowe@redhat.com>
->>> Cc: linux-pci@vger.kernel.org
->>> Signed-off-by: Prarit Bhargava <prarit@redhat.com>
->>> ---
->>>  drivers/pci/pci.c |    2 ++
->>>  1 file changed, 2 insertions(+)
->>>
->>> diff --git a/drivers/pci/pci.c b/drivers/pci/pci.c
->>> index 625a4ac..5172060b 100644
->>> --- a/drivers/pci/pci.c
->>> +++ b/drivers/pci/pci.c
->>> @@ -4515,6 +4515,8 @@ static int __init pci_setup(char *str)
->>>               }
->>>               str = k;
->>>       }
->>> +     add_taint(TAINT_FIRMWARE_WORKAROUND, LOCKDEP_STILL_OK);
->>> +     pr_crit(FW_BUG "The PCI configuration has been overridden thorugh the use of pci=.  Please report the issue you are attempting to resolve to your hardware vendor.\n");
->>
->> My goal is to be able to boot without any "pci=" parameters, so from that
->> perspective, I like this.
->>
->> When people have a problem booting Linux, they often try a variety of
->> things like "pci=assign-busses", "pci=nocrs", "pci=nomsi", "pci=nommconf",
->> "pci=noacpi", etc.  If they find something that works, there's a tendency
->> to treat that as a "solution."  I'd rather that they report it, so we can
->> try to fix the bug or add a quirk so the *next* person won't have to figure
->> out the right parameters to use.
->>
->> My worry is that there are a few things where Linux isn't smart enough to
->> do the right thing automatically, and I don't think we'll have a good
->> solution in the near future.  For example:
->>
->>     pci=norom
->>     pci=pcie_bus_perf,pcie_bus_safe,etc.
->>     pci=cbiosize=...
->>     pci=cbmemsize=...
->>     pci=resource_alignment=...
->>     pci=hpiosize=...
->>     pci=hpmemsize=...
->>     pci=realloc
->>
->> I don't like the fact that these options exist, but I suspect there are
->> users that do depend on them and might find this warning too aggressive.
->>
->> So I'm interested in opinions on whether this is a good idea at all and
->> whether we should exclude some options from the warning/tainting.
-> 
-> Hi Prarit,
-> 
-> We didn't get any nibbles :)
-> 
-> I don't think we can realistically taint the kernel for *all* "pci="
-> options.  So if you want to pursue this, maybe you could enhance this
-> so we can have a whitelist of options that we will support without
-> tainting.  Then we can argue about what should be on the list and go
-> from there.  Does that seem reasonable?
+Ouch, sorry to hear that.  We need to get working on that direct
+mind-computer interface :)  Hope your elbow heals well!
 
-Sorry for the lower-case typing.  I broke my elbow and am down to one hand.
-
-bjorn, yep sounds reasonable.  i'll do this (slowly unfortunately because of my
-arm) ...
-
-P.
-
-> 
-> This is a somewhat more aggressive use of tainting than we've had in
-> the past, so we might have to iterate on this a bit.
-> 
-> Bjorn
-> --
-> To unsubscribe from this list: send the line "unsubscribe linux-pci" in
-> the body of a message to majordomo@vger.kernel.org
-> More majordomo info at  http://vger.kernel.org/majordomo-info.html
-> 
+Bjorn
