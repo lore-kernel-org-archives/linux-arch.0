@@ -1,50 +1,94 @@
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [PATCH 2/4] arch: Add lightweight memory barriers fast_rmb() and
- fast_wmb()
-Date: Tue, 18 Nov 2014 16:48:27 +0000
-Message-ID: <20141118164827.GR18842@arm.com>
-References: <20141117171005.22333.96544.stgit@ahduyck-server>
- <20141117171812.22333.90395.stgit@ahduyck-server>
- <1416254687.18381.3.camel@kernel.crashing.org>
- <546A5968.1090201@gmail.com>
- <1416271167.18381.16.camel@kernel.crashing.org>
- <546AB959.1020602@redhat.com>
- <20141118115836.GL18842@arm.com>
- <546B71DE.4050506@redhat.com>
+From: Alexander Duyck <alexander.h.duyck@redhat.com>
+Subject: [PATCH v4 0/4] Add lightweight memory barriers for coherent memory
+ access
+Date: Tue, 18 Nov 2014 09:28:47 -0800
+Message-ID: <20141118172644.26303.37688.stgit@ahduyck-server>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <546B71DE.4050506@redhat.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Alexander Duyck <alexander.h.duyck@redhat.com>
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Alexander Duyck <alexander.duyck@gmail.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "netdev@vger.kernel.org" <netdev@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "mathieu.desnoyers@polymtl.ca" <mathieu.desnoyers@polymtl.ca>, "peterz@infradead.org" <peterz@infradead.org>, "heiko.carstens@de.ibm.com" <heiko.carstens@de.ibm.com>, "mingo@kernel.org" <mingo@kernel.org>, "mikey@neuling.org" <mikey@neuling.org>, "linux@arm.linux.org.uk" <linux@arm.linux.org.uk>, "donald.c.skidmore@intel.com" <donald.c.skidmore@intel.com>, "matthew.vick@intel.com" <matthew.vick@intel.com>, "geert@linux-m68k.org" <geert@linux-m68k.org>, "jeffrey.t.kirsher@intel.com" <jeffrey.t.kirsher@intel.com>, "romieu@fr.zoreil.com" <romieu@fr.zoreil.com>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vn>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mx1.redhat.com ([209.132.183.28]:39029 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1754413AbaKRRaU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 18 Nov 2014 12:30:20 -0500
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linux-arch@vger.kernel.org, netdev@vger.kernel.org, linux-kernel@vger.kernel.org
+Cc: mathieu.desnoyers@polymtl.ca, peterz@infradead.org, benh@kernel.crashing.org, heiko.carstens@de.ibm.com, mingo@kernel.org, mikey@neuling.org, linux@arm.linux.org.uk, donald.c.skidmore@intel.com, matthew.vick@intel.com, geert@linux-m68k.org, jeffrey.t.kirsher@intel.com, romieu@fr.zoreil.com, paulmck@linux.vnet.ibm.com, nic_swsd@realtek.com, will.deacon@arm.com, michael@ellerman.id.au, tony.luck@intel.com, torvalds@linux-foundation.org, oleg@redhat.com, schwidefsky@de.ibm.com, fweisbec@gmail.com, davem@davemloft.net
 
-On Tue, Nov 18, 2014 at 04:20:46PM +0000, Alexander Duyck wrote:
-> On 11/18/2014 03:58 AM, Will Deacon wrote:
-> > So actually, this is an interesting case where the barrier would like to
-> > know whether the memory returned by dma_alloc_coherent is h/w coherent
-> > (normal, cacheable) or s/w coherent (normal, non-cacheable). I think Ben
-> > is thinking of the h/w coherent case (i.e. actual snooping into the CPU
-> > caches by the DMA master).
-> >
-> > For the former, we could use inner-shareable barriers. For the latter, we'd
-> > need to use outer-shareable barriers.
-> >
-> > If we can't tell, then these should be dmb(osh), which will work for both.
-> >
-> 
-> Okay, so I will update the ARM portion of my patches to use osh and 
-> oshst then since it sounds like I was using too strong of barriers.
+These patches introduce two new primitives for synchronizing cache coherent
+memory writes and reads.  These two new primitives are:
 
-Sounds good. Another reason this is interesting is because the native
-acquire/release instructions on ARMv8 actually take into account the
-shareability domain of the virtual address, so using them would give you
-the shareability domain you want but slightly stronger ordering guarantees
-within that domain.
+	coherent_rmb()
+	coherent_wmb()
 
-Still, either of them will be a damn sight better than the dsb we currently
-have courtesy of the mandatory barriers.
+The first patch cleans up some unnecessary overhead related to the
+definition of read_barrier_depends, smp_read_barrier_depends, and comments
+related to the barrier.
 
-Will
+The second patch adds the primitives for the applicable architectures and
+asm-generic.
+
+The third patch adds the barriers to r8169 which turns out to be a good
+example of where the new barriers might be useful as they have full
+rmb()/wmb() barriers ordering accesses to the descriptors and the DescOwn
+bit.
+
+The fourth patch adds support for coherent_rmb() to the Intel fm10k, igb,
+and ixgbe drivers.  Testing with the ixgbe driver has shown a processing
+time reduction of at least 7ns per 64B frame on a Core i7-4930K.
+
+This patch series is essentially the v4 for:
+v3:	Add lightweight memory barriers fast_rmb() and fast_wmb()
+v2:	Introduce load_acquire() and store_release()
+v1:	Introduce read_acquire()
+
+The key changes in this patch series versus the earlier patches are:
+v4:
+	- Updated ARM barrier domains to outer shareable
+	- Renamed barriers coherent_rmb and coherent_wmb
+	- Added smp_lwsync for use in smp_load_acquire/smp_store_release
+v3:
+	- Moved away from acquire()/store() and instead focused on barriers
+	- Added cleanup of read_barrier_depends
+	- Added change in r8169 to fix cur_tx/DescOwn ordering
+	- Simplified changes to just replacing/moving barriers in r8169
+	- Added update to documentation with code example
+v2:
+	- Renamed read_acquire() to be consistent with smp_load_acquire()
+	- Changed barrier used to be consistent with smp_load_acquire()
+	- Updated PowerPC code to use __lwsync based on IBM article
+	- Added store_release() as this is a viable use case for drivers
+	- Added r8169 patch which is able to fully use primitives
+	- Added fm10k/igb/ixgbe patch which is able to test performance
+
+---
+
+Alexander Duyck (4):
+      arch: Cleanup read_barrier_depends() and comments
+      arch: Add lightweight memory barriers coherent_rmb() and coherent_wmb()
+      r8169: Use coherent_rmb() and coherent_wmb() for DescOwn checks
+      fm10k/igb/ixgbe: Use coherent_rmb on Rx descriptor reads
+
+
+ Documentation/memory-barriers.txt             |   41 +++++++++++++++
+ arch/alpha/include/asm/barrier.h              |   51 ++++++++++++++++++
+ arch/arm/include/asm/barrier.h                |    4 +
+ arch/arm64/include/asm/barrier.h              |    3 +
+ arch/blackfin/include/asm/barrier.h           |   51 ++++++++++++++++++
+ arch/ia64/include/asm/barrier.h               |   25 ++++-----
+ arch/metag/include/asm/barrier.h              |   19 ++++---
+ arch/mips/include/asm/barrier.h               |   61 ++--------------------
+ arch/powerpc/include/asm/barrier.h            |   23 +++++---
+ arch/s390/include/asm/barrier.h               |    7 ++-
+ arch/sparc/include/asm/barrier_64.h           |    7 ++-
+ arch/x86/include/asm/barrier.h                |   70 ++++---------------------
+ arch/x86/um/asm/barrier.h                     |   20 ++++---
+ drivers/net/ethernet/intel/fm10k/fm10k_main.c |    6 +-
+ drivers/net/ethernet/intel/igb/igb_main.c     |    6 +-
+ drivers/net/ethernet/intel/ixgbe/ixgbe_main.c |    9 +--
+ drivers/net/ethernet/realtek/r8169.c          |   29 ++++++++--
+ include/asm-generic/barrier.h                 |    8 +++
+ 18 files changed, 259 insertions(+), 181 deletions(-)
+
+--
