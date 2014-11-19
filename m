@@ -1,153 +1,75 @@
-From: David Drysdale <drysdale@google.com>
-Subject: [PATCHv9 2/5] x86: Hook up execveat system call.
-Date: Wed, 19 Nov 2014 17:27:49 +0000
-Message-ID: <1416418072-18639-3-git-send-email-drysdale@google.com>
+From: Stephen Rothwell <sfr@canb.auug.org.au>
+Subject: Re: [PATCHv9 4/5] sparc: Hook up execveat system call.
+Date: Thu, 20 Nov 2014 10:42:23 +1100
+Message-ID: <20141120104223.2cea8043@canb.auug.org.au>
 References: <1416418072-18639-1-git-send-email-drysdale@google.com>
+	<1416418072-18639-5-git-send-email-drysdale@google.com>
+Mime-Version: 1.0
+Content-Type: multipart/signed; micalg=pgp-sha256;
+ boundary="Sig_/RAw1y7OKVANSa1LBZY6zEbt"; protocol="application/pgp-signature"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-lb0-f201.google.com ([209.85.217.201]:65202 "EHLO
-	mail-lb0-f201.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756063AbaKSRgu (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 19 Nov 2014 12:36:50 -0500
-Received: by mail-lb0-f201.google.com with SMTP id b6so121232lbj.0
-        for <linux-arch@vger.kernel.org>; Wed, 19 Nov 2014 09:36:48 -0800 (PST)
-In-Reply-To: <1416418072-18639-1-git-send-email-drysdale@google.com>
+Received: from ozlabs.org ([103.22.144.67]:34052 "EHLO ozlabs.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751575AbaKSXmc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 19 Nov 2014 18:42:32 -0500
+In-Reply-To: <1416418072-18639-5-git-send-email-drysdale@google.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Eric W. Biederman" <ebiederm@xmission.com>, Andy Lutomirski <luto@amacapital.net>, Alexander Viro <viro@zeniv.linux.org.uk>, Meredydd Luff <meredydd@senatehouse.org>, linux-kernel@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Thomas Gleixner <tglx@linutronix.de>
-Cc: Oleg Nesterov <oleg@redhat.com>, Michael Kerrisk <mtk.manpages@gmail.com>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Rich Felker <dalias@aerifal.cx>, Christoph Hellwig <hch@infradead.org>, x86@kernel.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, sparclinux@vger.kernel.org, David Drysdale <drysdale@google.com>
+To: David Drysdale <drysdale@google.com>
+Cc: "Eric W. Biederman" <ebiederm@xmission.com>, Andy Lutomirski <luto@amacapital.net>, Alexander Viro <viro@zeniv.linux.org.uk>, Meredydd Luff <meredydd@senatehouse.org>, linux-kernel@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Thomas Gleixner <tglx@linutronix.de>, Oleg Nesterov <oleg@redhat.com>, Michael Kerrisk <mtk.manpages@gmail.com>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Rich Felker <dalias@aerifal.cx>, Christoph Hellwig <hch@infradead.org>, x86@kernel.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, sparclinux@vger.kernel.org
 
-Hook up x86-64, i386 and x32 ABIs.
+--Sig_/RAw1y7OKVANSa1LBZY6zEbt
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: quoted-printable
 
-Signed-off-by: David Drysdale <drysdale@google.com>
----
- arch/x86/ia32/audit.c            |  1 +
- arch/x86/ia32/ia32entry.S        |  1 +
- arch/x86/kernel/audit_64.c       |  1 +
- arch/x86/kernel/entry_64.S       | 28 ++++++++++++++++++++++++++++
- arch/x86/syscalls/syscall_32.tbl |  1 +
- arch/x86/syscalls/syscall_64.tbl |  2 ++
- arch/x86/um/sys_call_table_64.c  |  1 +
- 7 files changed, 35 insertions(+)
+Hi David,
 
-diff --git a/arch/x86/ia32/audit.c b/arch/x86/ia32/audit.c
-index 5d7b381da692..2eccc8932ae6 100644
---- a/arch/x86/ia32/audit.c
-+++ b/arch/x86/ia32/audit.c
-@@ -35,6 +35,7 @@ int ia32_classify_syscall(unsigned syscall)
- 	case __NR_socketcall:
- 		return 4;
- 	case __NR_execve:
-+	case __NR_execveat:
- 		return 5;
- 	default:
- 		return 1;
-diff --git a/arch/x86/ia32/ia32entry.S b/arch/x86/ia32/ia32entry.S
-index ffe71228fc10..82e8a1d44658 100644
---- a/arch/x86/ia32/ia32entry.S
-+++ b/arch/x86/ia32/ia32entry.S
-@@ -480,6 +480,7 @@ GLOBAL(\label)
- 	PTREGSCALL stub32_rt_sigreturn, sys32_rt_sigreturn
- 	PTREGSCALL stub32_sigreturn, sys32_sigreturn
- 	PTREGSCALL stub32_execve, compat_sys_execve
-+	PTREGSCALL stub32_execveat, compat_sys_execveat
- 	PTREGSCALL stub32_fork, sys_fork
- 	PTREGSCALL stub32_vfork, sys_vfork
- 
-diff --git a/arch/x86/kernel/audit_64.c b/arch/x86/kernel/audit_64.c
-index 06d3e5a14d9d..f3672508b249 100644
---- a/arch/x86/kernel/audit_64.c
-+++ b/arch/x86/kernel/audit_64.c
-@@ -50,6 +50,7 @@ int audit_classify_syscall(int abi, unsigned syscall)
- 	case __NR_openat:
- 		return 3;
- 	case __NR_execve:
-+	case __NR_execveat:
- 		return 5;
- 	default:
- 		return 0;
-diff --git a/arch/x86/kernel/entry_64.S b/arch/x86/kernel/entry_64.S
-index df088bb03fb3..40d893c60fcc 100644
---- a/arch/x86/kernel/entry_64.S
-+++ b/arch/x86/kernel/entry_64.S
-@@ -652,6 +652,20 @@ ENTRY(stub_execve)
- 	CFI_ENDPROC
- END(stub_execve)
- 
-+ENTRY(stub_execveat)
-+	CFI_STARTPROC
-+	addq $8, %rsp
-+	PARTIAL_FRAME 0
-+	SAVE_REST
-+	FIXUP_TOP_OF_STACK %r11
-+	call sys_execveat
-+	RESTORE_TOP_OF_STACK %r11
-+	movq %rax,RAX(%rsp)
-+	RESTORE_REST
-+	jmp int_ret_from_sys_call
-+	CFI_ENDPROC
-+END(stub_execveat)
-+
- /*
-  * sigreturn is special because it needs to restore all registers on return.
-  * This cannot be done with SYSRET, so use the IRET return path instead.
-@@ -697,6 +711,20 @@ ENTRY(stub_x32_execve)
- 	CFI_ENDPROC
- END(stub_x32_execve)
- 
-+ENTRY(stub_x32_execveat)
-+	CFI_STARTPROC
-+	addq $8, %rsp
-+	PARTIAL_FRAME 0
-+	SAVE_REST
-+	FIXUP_TOP_OF_STACK %r11
-+	call compat_sys_execveat
-+	RESTORE_TOP_OF_STACK %r11
-+	movq %rax,RAX(%rsp)
-+	RESTORE_REST
-+	jmp int_ret_from_sys_call
-+	CFI_ENDPROC
-+END(stub_x32_execveat)
-+
- #endif
- 
- /*
-diff --git a/arch/x86/syscalls/syscall_32.tbl b/arch/x86/syscalls/syscall_32.tbl
-index 9fe1b5d002f0..b3560ece1c9f 100644
---- a/arch/x86/syscalls/syscall_32.tbl
-+++ b/arch/x86/syscalls/syscall_32.tbl
-@@ -364,3 +364,4 @@
- 355	i386	getrandom		sys_getrandom
- 356	i386	memfd_create		sys_memfd_create
- 357	i386	bpf			sys_bpf
-+358	i386	execveat		sys_execveat			stub32_execveat
-diff --git a/arch/x86/syscalls/syscall_64.tbl b/arch/x86/syscalls/syscall_64.tbl
-index 281150b539a2..8d656fbb57aa 100644
---- a/arch/x86/syscalls/syscall_64.tbl
-+++ b/arch/x86/syscalls/syscall_64.tbl
-@@ -328,6 +328,7 @@
- 319	common	memfd_create		sys_memfd_create
- 320	common	kexec_file_load		sys_kexec_file_load
- 321	common	bpf			sys_bpf
-+322	64	execveat		stub_execveat
- 
- #
- # x32-specific system call numbers start at 512 to avoid cache impact
-@@ -366,3 +367,4 @@
- 542	x32	getsockopt		compat_sys_getsockopt
- 543	x32	io_setup		compat_sys_io_setup
- 544	x32	io_submit		compat_sys_io_submit
-+545	x32	execveat		stub_x32_execveat
-diff --git a/arch/x86/um/sys_call_table_64.c b/arch/x86/um/sys_call_table_64.c
-index f2f0723070ca..20c3649d0691 100644
---- a/arch/x86/um/sys_call_table_64.c
-+++ b/arch/x86/um/sys_call_table_64.c
-@@ -31,6 +31,7 @@
- #define stub_fork sys_fork
- #define stub_vfork sys_vfork
- #define stub_execve sys_execve
-+#define stub_execveat sys_execveat
- #define stub_rt_sigreturn sys_rt_sigreturn
- 
- #define __SYSCALL_COMMON(nr, sym, compat) __SYSCALL_64(nr, sym, compat)
--- 
-2.1.0.rc2.206.gedb03e5
+On Wed, 19 Nov 2014 17:27:51 +0000 David Drysdale <drysdale@google.com> wro=
+te:
+>
+> diff --git a/arch/sparc/kernel/systbls_64.S b/arch/sparc/kernel/systbls_6=
+4.S
+> index 580cde9370c9..15069cb35dac 100644
+> --- a/arch/sparc/kernel/systbls_64.S
+> +++ b/arch/sparc/kernel/systbls_64.S
+> @@ -88,6 +88,7 @@ sys_call_table32:
+>  	.word sys_syncfs, compat_sys_sendmmsg, sys_setns, compat_sys_process_vm=
+_readv, compat_sys_process_vm_writev
+>  /*340*/	.word sys_kern_features, sys_kcmp, sys_finit_module, sys_sched_s=
+etattr, sys_sched_getattr
+>  	.word sys32_renameat2, sys_seccomp, sys_getrandom, sys_memfd_create, sy=
+s_bpf
+> +/*350*/	.word sys_execveat
+
+Shouldn't this be compat_sys_execveat?
+
+> =20
+>  #endif /* CONFIG_COMPAT */
+
+--=20
+Cheers,
+Stephen Rothwell                    sfr@canb.auug.org.au
+
+--Sig_/RAw1y7OKVANSa1LBZY6zEbt
+Content-Type: application/pgp-signature
+Content-Description: OpenPGP digital signature
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v2
+
+iQIcBAEBCAAGBQJUbSrkAAoJEMDTa8Ir7ZwVoVoP/AlHLVTxaKtx1n9YHKSFO8T8
+/G7WwXkXbsm3fb5qBHJeHtjq+rc9tOA1DM/78qeeDbr9rt4eog0N6scoLXdPeSLK
+vZSKe+Z0i8z9hGUph0CXmuQI37XmG+V+HtIQCcdtC6PxijjNWzzCmADN+NToyDKr
+pmn/jQKHDTGOQHjhfEDhq6G55M3bKzBna5V7YDAd8+Utd/PmT+5lmKNEtuLT8Y/0
+MdnuXZUaX1dsh3SKI8y/l2sCmgc91L10OW0OV+k0Jlj78/lZDmg4mPQZs9h9uZQ2
+m9+Gw86XKKunUDKoynl0u9obZGWa2J4XMKX0cBWwvgZkXd+SBwZEyeKpwiHb66OF
+b6+YxrJdf5ciu+zMkRTpFPyLfwGxGDHnp8HQBvjZtrtHmFwTdLZpQavFwLQpurNv
+9Xh3GCg/wb8wTxlvRuMqSZjCH+Wniea0RnBfdVwfGAwFBA2Yzi+gZMVhi7EvAd0i
+yDBm5WnaNcDJ9AyvMiyierIweTVJBjCGhdvVSbFtjoFcGBrql+/4Zw9Ng+u360U3
+0PGLDNB7Tc18CKP0u3JDYlL23/mFeJhe2OA9OV9899i62QOF9YnJvkDNz+PwqAXC
+PuuU/YDA8L8y8E2QOrP8ry1VnC1bWhDzHTYmfBUWwbRPGZNVFfLyy23uSj+T1GHC
+03oLWeCX9F9iyjrlQ8Ko
+=41EX
+-----END PGP SIGNATURE-----
+
+--Sig_/RAw1y7OKVANSa1LBZY6zEbt--
