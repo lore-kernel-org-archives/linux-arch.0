@@ -1,81 +1,23 @@
-From: Jeff Kirsher <jeffrey.t.kirsher@intel.com>
-Subject: Re: [PATCH v5 4/4] fm10k/igb/ixgbe: Use dma_rmb on Rx descriptor
- reads
-Date: Tue, 18 Nov 2014 17:28:48 -0800
-Message-ID: <1416360528.2295.43.camel@jtkirshe-mobl>
-References: <20141119012205.9563.95544.stgit@ahduyck-server>
-	 <20141119012430.9563.58999.stgit@ahduyck-server>
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: Re: [PATCHv8 1/4] syscalls,x86: implement execveat() system call
+Date: Wed, 19 Nov 2014 13:40:58 +0100 (CET)
+Message-ID: <alpine.DEB.2.11.1411191249560.3909@nanos>
+References: <1415982183-20525-1-git-send-email-drysdale@google.com> <1415982183-20525-2-git-send-email-drysdale@google.com>
 Mime-Version: 1.0
-Content-Type: multipart/signed; micalg="pgp-sha512";
-	protocol="application/pgp-signature"; boundary="=-NZN48hSAI1ItKPhBN68o"
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mga01.intel.com ([192.55.52.88]:30270 "EHLO mga01.intel.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S932325AbaKSB2w (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 18 Nov 2014 20:28:52 -0500
-In-Reply-To: <20141119012430.9563.58999.stgit@ahduyck-server>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Alexander Duyck <alexander.h.duyck@redhat.com>
-Cc: linux-arch@vger.kernel.org, netdev@vger.kernel.org, linux-kernel@vger.kernel.org, mathieu.desnoyers@polymtl.ca, peterz@infradead.org, benh@kernel.crashing.org, heiko.carstens@de.ibm.com, mingo@kernel.org, mikey@neuling.org, linux@arm.linux.org.uk, donald.c.skidmore@intel.com, matthew.vick@intel.com, geert@linux-m68k.org, romieu@fr.zoreil.com, paulmck@linux.vnet.ibm.com, nic_swsd@realtek.com, will.deacon@arm.com, michael@ellerman.id.au, tony.luck@intel.com, torvalds@linux-foundation.org, oleg@redhat.com, schwidefsky@de.ibm.com, fweisbec@gmail.com, davem@davemloft.net
+Content-Type: TEXT/PLAIN; charset=US-ASCII
+Return-path: <sparclinux-owner@vger.kernel.org>
+In-Reply-To: <1415982183-20525-2-git-send-email-drysdale@google.com>
+Sender: sparclinux-owner@vger.kernel.org
+To: David Drysdale <drysdale@google.com>
+Cc: "Eric W. Biederman" <ebiederm@xmission.com>, Andy Lutomirski <luto@amacapital.net>, Alexander Viro <viro@zeniv.linux.org.uk>, Meredydd Luff <meredydd@senatehouse.org>, linux-kernel@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Oleg Nesterov <oleg@redhat.com>, Michael Kerrisk <mtk.manpages@gmail.com>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Rich Felker <dalias@aerifal.cx>, Christoph Hellwig <hch@infradead.org>, x86@kernel.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, sparclinux@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
+On Fri, 14 Nov 2014, David Drysdale wrote:
+> Only x86-64, i386 and x32 ABIs are supported in this patch.
 
---=-NZN48hSAI1ItKPhBN68o
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
+Can you please split this into the core/fs changes and the actual x86
+hookup?
+ 
+Thanks,
 
-On Tue, 2014-11-18 at 17:24 -0800, Alexander Duyck wrote:
-> This change makes it so that dma_rmb is used when reading the Rx
-> descriptor.  The advantage of dma_rmb is that it allows for a much
-> lower cost barrier on x86, powerpc, arm, and arm64 architectures than
-> a
-> traditional memory barrier when dealing with reads that only have to
-> synchronize to coherent memory.
->=20
-> In addition I have updated the code so that it just checks to see if
-> any
-> bits have been set instead of just the DD bit since the DD bit will
-> always
-> be set as a part of a descriptor write-back so we just need to check
-> for a
-> non-zero value being present at that memory location rather than just
-> checking for any specific bit.  This allows the code itself to appear
-> much
-> cleaner and allows the compiler more room to optimize.
->=20
-> Cc: Jeff Kirsher <jeffrey.t.kirsher@intel.com>
-> Cc: Matthew Vick <matthew.vick@intel.com>
-> Cc: Don Skidmore <donald.c.skidmore@intel.com>
-> Signed-off-by: Alexander Duyck <alexander.h.duyck@redhat.com>
-> ---
->  drivers/net/ethernet/intel/fm10k/fm10k_main.c |    6 +++---
->  drivers/net/ethernet/intel/igb/igb_main.c     |    6 +++---
->  drivers/net/ethernet/intel/ixgbe/ixgbe_main.c |    9 ++++-----
->  3 files changed, 10 insertions(+), 11 deletions(-)
-
-Acked-by: Jeff Kirsher <jeffrey.t.kirsher@intel.com>
-
---=-NZN48hSAI1ItKPhBN68o
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: This is a digitally signed message part
-Content-Transfer-Encoding: 7bit
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v2
-
-iQIcBAABCgAGBQJUa/JQAAoJEOVv75VaS+3Oz6IP/0oQ5zvlI81ZVcuheTYjcuXp
-NNZaHboQLelF6+SnZWjepLRedcCGtJmfXBydPAl/hji8uyRts2GA8yZEAb+cQoZK
-N08QkrguBBFZK+g8eiKczNBrSSvnv52z7/TnZI44npTjL6NQElrliKtsg06NG0e9
-f2CFAPnjX4A51IPXvMmkZTbN6QKaD6r73kDePb/xHtKvd/xequqsFfgS8+0MiWfU
-ktbmahiTQtbHXXH3V0DdMef3hmRBBaAzgNHnIoKpX0V3NAbt6ydDMZ74a68jUOd4
-txT4Wl69haF2OPrSrI1p8lUFDbTS4Ej7OsHDmS4cAgSkBFEApRj42eQyDdgIJBhl
-vMXyUUF9Wkr+gMNtZ6F0kxo1NmckBwaBulRszvTfKHkF2IeuVTusLzy2AXgxkVKd
-+/bEQ5K7PR3WeFw7IFCRFm+qqR9DXHwxUeGcBHrIOGxbdKPjzYBBrRot9WCU2zmH
-428kQjFz1s/FKPFle9n+foK90OGL0x9WzgRTfawLWvNwojGV6hQZbEHtRhIv0aS0
-M6ot1m7TIBDBGu7nCZ5E1bQ9Oc/vJswRiyqyYHinFEO7GfQVM9XevB2A+R3NOn9v
-Dux6Qtp8YknW01T/60MLKwc6Q4diucYfT2iZ4hVOWT1GIh8y3uK3TkgFk9RQlT3o
-sPCtuR+ICeN2DIHqamv+
-=d/US
------END PGP SIGNATURE-----
-
---=-NZN48hSAI1ItKPhBN68o--
+	tglx
