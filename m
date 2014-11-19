@@ -1,85 +1,98 @@
 From: Alexander Duyck <alexander.h.duyck@redhat.com>
-Subject: Re: [PATCH v4 0/4] Add lightweight memory barriers for coherent memory
- access
-Date: Tue, 18 Nov 2014 16:07:59 -0800
-Message-ID: <546BDF5F.2040400@redhat.com>
-References: <20141118172644.26303.37688.stgit@ahduyck-server>	<CA+55aFw3ygP8UEF1vidWdjBUEkqXOELCPkpjLMD-X=vXXQEGOQ@mail.gmail.com>	<546BCC73.3050903@redhat.com> <CA+55aFwHUQv+zBxyN41Y4MDyRXbQ84H8zc01O6O_eg9ZvoqYiQ@mail.gmail.com>
+Subject: [PATCH v5 0/4] arch: Add lightweight memory barriers for coherent
+ memory access
+Date: Tue, 18 Nov 2014 17:23:28 -0800
+Message-ID: <20141119012205.9563.95544.stgit@ahduyck-server>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:53989 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:39882 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S932660AbaKSAJU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 18 Nov 2014 19:09:20 -0500
-In-Reply-To: <CA+55aFwHUQv+zBxyN41Y4MDyRXbQ84H8zc01O6O_eg9ZvoqYiQ@mail.gmail.com>
+	id S1752917AbaKSBYx (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 18 Nov 2014 20:24:53 -0500
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Network Development <netdev@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>, Peter Zijlstra <peterz@infradead.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, Ingo Molnar <mingo@kernel.org>, Michael Neuling <mikey@neuling.org>, Russell King - ARM Linux <linux@arm.linux.org.uk>, donald.c.skidmore@intel.com, matthew.vick@intel.com, Geert Uytterhoeven <geert@linux-m68k.org>, Jeff Kirsher <jeffrey.t.kirsher@intel.com>, Francois Romieu <romieu@fr.zoreil.com>, Paul McKenney <paulmck@linux.vnet.ibm.com>, nic_swsd@realtek.com, Will Deacon <will.deacon@arm.com>, Michael Ellerman <michael@ellerman.id.au>, Tony Luck <tony.luck@intel.com>, Oleg Nesterov <oleg@redhat.com>
+To: linux-arch@vger.kernel.org, netdev@vger.kernel.org, linux-kernel@vger.kernel.org
+Cc: mathieu.desnoyers@polymtl.ca, peterz@infradead.org, benh@kernel.crashing.org, heiko.carstens@de.ibm.com, mingo@kernel.org, mikey@neuling.org, linux@arm.linux.org.uk, donald.c.skidmore@intel.com, matthew.vick@intel.com, geert@linux-m68k.org, jeffrey.t.kirsher@intel.com, romieu@fr.zoreil.com, paulmck@linux.vnet.ibm.com, nic_swsd@realtek.com, will.deacon@arm.com, michael@ellerman.id.au, tony.luck@intel.com, torvalds@linux-foundation.org, oleg@redhat.com, schwidefsky@de.ibm.com, fweisbec@gmail.com, davem@davemloft.net
+
+These patches introduce two new primitives for synchronizing cache coherent
+memory writes and reads.  These two new primitives are:
+
+	dma_rmb()
+	dma_wmb()
+
+The first patch cleans up some unnecessary overhead related to the
+definition of read_barrier_depends, smp_read_barrier_depends, and comments
+related to the barrier.
+
+The second patch adds the primitives for the applicable architectures and
+asm-generic.
+
+The third patch adds the barriers to r8169 which turns out to be a good
+example of where the new barriers might be useful as they have full
+rmb()/wmb() barriers ordering accesses to the descriptors and the DescOwn
+bit.
+
+The fourth patch adds support for coherent_rmb() to the Intel fm10k, igb,
+and ixgbe drivers.  Testing with the ixgbe driver has shown a processing
+time reduction of at least 7ns per 64B frame on a Core i7-4930K.
+
+This patch series is essentially the v4 for:
+v4:	Add lightweight memory barriers for coherent memory access
+v3:	Add lightweight memory barriers fast_rmb() and fast_wmb()
+v2:	Introduce load_acquire() and store_release()
+v1:	Introduce read_acquire()
+
+The key changes in this patch series versus the earlier patches are:
+v5:
+	- Renamed barriers dma_rmb and dma_wmb
+	- Undid smp_wmb changes in x86 and PowerPC
+	- Defined smp_rmb as __lwsync for SMP case on PowerPC
+v4:
+	- Renamed barriers coherent_rmb and coherent_wmb
+	- Added smp_lwsync for use in smp_load_acquire/smp_store_release
+v3:
+	- Moved away from acquire()/store() and instead focused on barriers
+	- Added cleanup of read_barrier_depends
+	- Added change in r8169 to fix cur_tx/DescOwn ordering
+	- Simplified changes to just replacing/moving barriers in r8169
+	- Added update to documentation with code example
+v2:
+	- Renamed read_acquire() to be consistent with smp_load_acquire()
+	- Changed barrier used to be consistent with smp_load_acquire()
+	- Updated PowerPC code to use __lwsync based on IBM article
+	- Added store_release() as this is a viable use case for drivers
+	- Added r8169 patch which is able to fully use primitives
+	- Added fm10k/igb/ixgbe patch which is able to test performance
+
+---
+
+Alexander Duyck (4):
+      arch: Cleanup read_barrier_depends() and comments
+      arch: Add lightweight memory barriers dma_rmb() and dma_wmb()
+      r8169: Use dma_rmb() and dma_wmb() for DescOwn checks
+      fm10k/igb/ixgbe: Use dma_rmb on Rx descriptor reads
 
 
+ Documentation/memory-barriers.txt             |   41 +++++++++++++++
+ arch/alpha/include/asm/barrier.h              |   51 ++++++++++++++++++
+ arch/arm/include/asm/barrier.h                |    4 +
+ arch/arm64/include/asm/barrier.h              |    3 +
+ arch/blackfin/include/asm/barrier.h           |   51 ++++++++++++++++++
+ arch/ia64/include/asm/barrier.h               |   25 ++++-----
+ arch/metag/include/asm/barrier.h              |   19 ++++---
+ arch/mips/include/asm/barrier.h               |   61 ++--------------------
+ arch/powerpc/include/asm/barrier.h            |   19 ++++---
+ arch/s390/include/asm/barrier.h               |    7 ++-
+ arch/sparc/include/asm/barrier_64.h           |    7 ++-
+ arch/x86/include/asm/barrier.h                |   70 ++++---------------------
+ arch/x86/um/asm/barrier.h                     |   20 ++++---
+ drivers/net/ethernet/intel/fm10k/fm10k_main.c |    6 +-
+ drivers/net/ethernet/intel/igb/igb_main.c     |    6 +-
+ drivers/net/ethernet/intel/ixgbe/ixgbe_main.c |    9 +--
+ drivers/net/ethernet/realtek/r8169.c          |   29 ++++++++--
+ include/asm-generic/barrier.h                 |    8 +++
+ 18 files changed, 257 insertions(+), 179 deletions(-)
 
-On 11/18/2014 03:06 PM, Linus Torvalds wrote:
-> On Tue, Nov 18, 2014 at 2:47 PM, Alexander Duyck
-> <alexander.h.duyck@redhat.com> wrote:
->>
->> The problem is DMA is a broad brush.  There are multiple cases I can think
->> of where DMA does not represent coherent memory.
->
-> .. and I already addressed that, in the thing you even included:
->
->>> about what is actually the important issue. All sane memory is
->>> coherent, after all (and if it isn't, you have other issues than
->>> memory ordering).
->
-> The thing is, if the DMA isn't coherent, nobody is going to care about
-> the memory barriers anyway. You have bigger issues.
->
-> And your argument is that "dma" is bigger than this issue. *MY*
-> argument is that "coherent" is bigger than this issue. There's tons of
-> coherent memory that is not about DMA, the same way that there is DMA
-> memory that isn't coherent.
->
-> See? The two are 100% equivalent. Except "dma" is just three letters,
-> and matches "smp" both visually and in use (SMP memory is "coherent"
-> too - yes, you can - and crap architectures do - have incoherent
-> caches due to virtual aliases etc, but exactly as with DMA, if you
-> have incoherent SMP, you have bigger issues than the barriers).
-
-Actually if anything maybe the crap architectures are a good reason for 
-changing the name.  If they can't even do coherent SMP memory then the 
-coherent_*mb() could be misleading since they would just be full 
-barriers anyway.
-
-> And yes, you could call it "coherent_dma_read_memory_barrier()", and
-> it would be very descriptive. It would also drive everybody crazy.
-
-No, I think "dma_wmb__before_coherent_write" would have been much more 
-descriptive.  You have to squeeze in that extra underscore somewhere. ;-)
-
-> So I argue for "dma_mb()" pairing with "smp_mb()" from a naming
-> standpoint. It just *describes* the problem better. Look at the
-> drivers, it's very much about the devices doing DMA to memory, and our
-> ordering.
->
-> To be even more clear: nobody sane cares about the "coherent" part,
-> because only insane horrible crap architectures have incoherent memory
-> in the first place, and sane people run away screaming from that
-> steaming pile of sh*t.
-
-I think that is part of my reluctance.  I didn't even want it implied 
-that the barriers could be used with that kind of stuff.
-
-> Just look at some of the drivers you actually *use* this in. They are
-> for intel hardware, they presumably would never even work in the first
-> place without cache-coherent DMA. Why do you think that "coherent" is
-> so important?
->
->                         Linus
-
-v5 should be up shortly after a quick pass with sed to do the 
-find/replace, clean up any whitespace issues, and a quick run through 
-some cross compiling scripts just to make sure I didn't screw anything up.
-
-- Alex
+--
