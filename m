@@ -1,70 +1,47 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qc0-f169.google.com ([209.85.216.169]:64094 "EHLO
-	mail-qc0-f169.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750958AbaKTL2n (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 20 Nov 2014 06:28:43 -0500
-Received: by mail-qc0-f169.google.com with SMTP id w7so1941456qcr.14
-        for <linux-arch@vger.kernel.org>; Thu, 20 Nov 2014 03:28:42 -0800 (PST)
+Received: from mail-qg0-f52.google.com ([209.85.192.52]:54760 "EHLO
+	mail-qg0-f52.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754716AbaKTUab (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 20 Nov 2014 15:30:31 -0500
 MIME-Version: 1.0
-In-Reply-To: <20141120104223.2cea8043@canb.auug.org.au>
-References: <1416418072-18639-1-git-send-email-drysdale@google.com>
- <1416418072-18639-5-git-send-email-drysdale@google.com> <20141120104223.2cea8043@canb.auug.org.au>
-From: David Drysdale <drysdale@google.com>
-Date: Thu, 20 Nov 2014 11:28:22 +0000
-Message-ID: <CAHse=S--yNmP5sTr2kg_7kb2V8Lh2FioTSH_o23MstVrdt4Wmw@mail.gmail.com>
-Subject: Re: [PATCHv9 4/5] sparc: Hook up execveat system call.
+In-Reply-To: <546DD2DE.9080405@de.ibm.com>
+References: <1415360716-9670-2-git-send-email-borntraeger@de.ibm.com>
+	<54611D86.4040306@de.ibm.com>
+	<CA+55aFyEigSL64RJH8AO86gFBBB84+dgk7eEUPx=CaLwJMcO_w@mail.gmail.com>
+	<546DD2DE.9080405@de.ibm.com>
+Date: Thu, 20 Nov 2014 12:30:30 -0800
+Message-ID: <CA+55aFzxSa0qM5iC-aM4mh=qni0r87_gHR3tN6Xzo0miYSrcgw@mail.gmail.com>
+Subject: Re: compiler bug gcc4.6/4.7 with ACCESS_ONCE and workarounds
+From: Linus Torvalds <torvalds@linux-foundation.org>
 Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Stephen Rothwell <sfr@canb.auug.org.au>, David Miller <davem@davemloft.net>
-Cc: "Eric W. Biederman" <ebiederm@xmission.com>, Andy Lutomirski <luto@amacapital.net>, Alexander Viro <viro@zeniv.linux.org.uk>, Meredydd Luff <meredydd@senatehouse.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, Oleg Nesterov <oleg@redhat.com>, Michael Kerrisk <mtk.manpages@gmail.com>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Rich Felker <dalias@aerifal.cx>, Christoph Hellwig <hch@infradead.org>, X86 ML <x86@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, sparclinux@vger.kernel.org
-Message-ID: <20141120112822.ag414gmT3PXQueUTNcNXksUZzzgOvf14q1JJ6KJ4eQk@z>
+To: Christian Borntraeger <borntraeger@de.ibm.com>
+Cc: Paul McKenney <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, KVM <kvm@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, Andreas Krebbel <Andreas.Krebbel@de.ibm.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Cornelia Huck <cornelia.huck@de.ibm.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+Message-ID: <20141120203030.fJ0ZcHeKFlxGoYkKPqiuqy--DRnKg1mAg-EQdgMXYAs@z>
 
-On Wed, Nov 19, 2014 at 11:42 PM, Stephen Rothwell <sfr@canb.auug.org.au> wrote:
-> Hi David,
+On Thu, Nov 20, 2014 at 3:39 AM, Christian Borntraeger
+<borntraeger@de.ibm.com> wrote:
 >
-> On Wed, 19 Nov 2014 17:27:51 +0000 David Drysdale <drysdale@google.com> wrote:
->>
->> diff --git a/arch/sparc/kernel/systbls_64.S b/arch/sparc/kernel/systbls_64.S
->> index 580cde9370c9..15069cb35dac 100644
->> --- a/arch/sparc/kernel/systbls_64.S
->> +++ b/arch/sparc/kernel/systbls_64.S
->> @@ -88,6 +88,7 @@ sys_call_table32:
->>       .word sys_syncfs, compat_sys_sendmmsg, sys_setns, compat_sys_process_vm_readv, compat_sys_process_vm_writev
->>  /*340*/      .word sys_kern_features, sys_kcmp, sys_finit_module, sys_sched_setattr, sys_sched_getattr
->>       .word sys32_renameat2, sys_seccomp, sys_getrandom, sys_memfd_create, sys_bpf
->> +/*350*/      .word sys_execveat
+> So It looks like we could make a change to ACCESS_ONCE. Would something like
 >
-> Shouldn't this be compat_sys_execveat?
+> CONFIG_ARCH_SCALAR_ACCESS_ONCE be a good start?
 
-Yeah, that would make sense -- thanks for spotting.
+No, if it's just a handful of places to be fixed, let's not add config
+options for broken cases.
 
-Looking at this more closely, I also wonder if we need a pair of wrappers
-analogous to sys(32|64)_execve -- they include a (pipeline-executed)
-flushw instruction after the jmpl to [compat_]sys_execve, which I guess
-might be needed.  So I could add something like the following to
-arch/sparc/kernel/syscalls.S:
+> This would boil down to
+> Patch1: Provide stricter ACCESS_ONCE if CONFIG_ARCH_SCALAR_ACCESS_ONCE is set + docu update + comments
+> Patch2: Change mm/* to barriers
+> Patch3: Change x86 locks
+> Patch4: Change x86 gup
+> Patch4: Enable CONFIG_ARCH_SCALAR_ACCESS_ONCE for s390x and x86
 
-  sys64_execveat:
-      set sys_execveat, %g1
-      jmpl %g1, %g0
-      flushw
-  #ifdef CONFIG_COMPAT
-  sys32_execveat:
-      set compat_sys_execveat, %g1
-      jmpl %g1, %g0
-      flushw
-  #endif
+Just do patches 2-4 first, and then patch 1 unconditionally.
 
-However, I don't speak SPARC and can't run the code -- any thoughts
-out there from someone who does & can?
+Obviously you'd need to spread the word on linux-arch to see how bad
+it is for other cases, but if other architectures are at all like x86
+and s390, and just require a few trivial patches, let's not make this
+some config option.
 
-Or maybe I should stop trying to be helpful with speculative patches, and
-just leave wiring up the sparc stuff to the experts...
-
->>
->>  #endif /* CONFIG_COMPAT */
->
-> --
-> Cheers,
-> Stephen Rothwell                    sfr@canb.auug.org.au
+                   Linus
