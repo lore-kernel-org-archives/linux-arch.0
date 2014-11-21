@@ -1,47 +1,75 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qg0-f52.google.com ([209.85.192.52]:54760 "EHLO
-	mail-qg0-f52.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754716AbaKTUab (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 20 Nov 2014 15:30:31 -0500
-MIME-Version: 1.0
-In-Reply-To: <546DD2DE.9080405@de.ibm.com>
-References: <1415360716-9670-2-git-send-email-borntraeger@de.ibm.com>
-	<54611D86.4040306@de.ibm.com>
-	<CA+55aFyEigSL64RJH8AO86gFBBB84+dgk7eEUPx=CaLwJMcO_w@mail.gmail.com>
-	<546DD2DE.9080405@de.ibm.com>
-Date: Thu, 20 Nov 2014 12:30:30 -0800
-Message-ID: <CA+55aFzxSa0qM5iC-aM4mh=qni0r87_gHR3tN6Xzo0miYSrcgw@mail.gmail.com>
-Subject: Re: compiler bug gcc4.6/4.7 with ACCESS_ONCE and workarounds
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Content-Type: text/plain; charset=UTF-8
+Received: from shards.monkeyblade.net ([149.20.54.216]:38348 "EHLO
+	shards.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751934AbaKUUIo (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 21 Nov 2014 15:08:44 -0500
+Date: Fri, 21 Nov 2014 15:08:36 -0500 (EST)
+Message-ID: <20141121.150836.687566774013830023.davem@davemloft.net>
+Subject: Re: [PATCHv9 4/5] sparc: Hook up execveat system call.
+From: David Miller <davem@davemloft.net>
+In-Reply-To: <CAHse=S--yNmP5sTr2kg_7kb2V8Lh2FioTSH_o23MstVrdt4Wmw@mail.gmail.com>
+References: <1416418072-18639-5-git-send-email-drysdale@google.com>
+	<20141120104223.2cea8043@canb.auug.org.au>
+	<CAHse=S--yNmP5sTr2kg_7kb2V8Lh2FioTSH_o23MstVrdt4Wmw@mail.gmail.com>
+Mime-Version: 1.0
+Content-Type: Text/Plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christian Borntraeger <borntraeger@de.ibm.com>
-Cc: Paul McKenney <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, KVM <kvm@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, Andreas Krebbel <Andreas.Krebbel@de.ibm.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Cornelia Huck <cornelia.huck@de.ibm.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
-Message-ID: <20141120203030.fJ0ZcHeKFlxGoYkKPqiuqy--DRnKg1mAg-EQdgMXYAs@z>
+To: drysdale@google.com
+Cc: sfr@canb.auug.org.au, ebiederm@xmission.com, luto@amacapital.net, viro@zeniv.linux.org.uk, meredydd@senatehouse.org, linux-kernel@vger.kernel.org, akpm@linux-foundation.org, tglx@linutronix.de, oleg@redhat.com, mtk.manpages@gmail.com, mingo@redhat.com, hpa@zytor.com, keescook@chromium.org, arnd@arndb.de, dalias@aerifal.cx, hch@infradead.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, sparclinux@vger.kernel.org
+Message-ID: <20141121200836.HLIJFc1XXKwBCy5NuWW0BkCAyQS9QsS3T8Webn_nEDU@z>
 
-On Thu, Nov 20, 2014 at 3:39 AM, Christian Borntraeger
-<borntraeger@de.ibm.com> wrote:
->
-> So It looks like we could make a change to ACCESS_ONCE. Would something like
->
-> CONFIG_ARCH_SCALAR_ACCESS_ONCE be a good start?
+From: David Drysdale <drysdale@google.com>
+Date: Thu, 20 Nov 2014 11:28:22 +0000
 
-No, if it's just a handful of places to be fixed, let's not add config
-options for broken cases.
+> On Wed, Nov 19, 2014 at 11:42 PM, Stephen Rothwell <sfr@canb.auug.org.au> wrote:
+>> Hi David,
+>>
+>> On Wed, 19 Nov 2014 17:27:51 +0000 David Drysdale <drysdale@google.com> wrote:
+>>>
+>>> diff --git a/arch/sparc/kernel/systbls_64.S b/arch/sparc/kernel/systbls_64.S
+>>> index 580cde9370c9..15069cb35dac 100644
+>>> --- a/arch/sparc/kernel/systbls_64.S
+>>> +++ b/arch/sparc/kernel/systbls_64.S
+>>> @@ -88,6 +88,7 @@ sys_call_table32:
+>>>       .word sys_syncfs, compat_sys_sendmmsg, sys_setns, compat_sys_process_vm_readv, compat_sys_process_vm_writev
+>>>  /*340*/      .word sys_kern_features, sys_kcmp, sys_finit_module, sys_sched_setattr, sys_sched_getattr
+>>>       .word sys32_renameat2, sys_seccomp, sys_getrandom, sys_memfd_create, sys_bpf
+>>> +/*350*/      .word sys_execveat
+>>
+>> Shouldn't this be compat_sys_execveat?
+> 
+> Yeah, that would make sense -- thanks for spotting.
+> 
+> Looking at this more closely, I also wonder if we need a pair of wrappers
+> analogous to sys(32|64)_execve -- they include a (pipeline-executed)
+> flushw instruction after the jmpl to [compat_]sys_execve, which I guess
+> might be needed.  So I could add something like the following to
+> arch/sparc/kernel/syscalls.S:
+> 
+>   sys64_execveat:
+>       set sys_execveat, %g1
+>       jmpl %g1, %g0
+>       flushw
+>   #ifdef CONFIG_COMPAT
+>   sys32_execveat:
+>       set compat_sys_execveat, %g1
+>       jmpl %g1, %g0
+>       flushw
+>   #endif
+> 
+> However, I don't speak SPARC and can't run the code -- any thoughts
+> out there from someone who does & can?
+> 
+> Or maybe I should stop trying to be helpful with speculative patches, and
+> just leave wiring up the sparc stuff to the experts...
 
-> This would boil down to
-> Patch1: Provide stricter ACCESS_ONCE if CONFIG_ARCH_SCALAR_ACCESS_ONCE is set + docu update + comments
-> Patch2: Change mm/* to barriers
-> Patch3: Change x86 locks
-> Patch4: Change x86 gup
-> Patch4: Enable CONFIG_ARCH_SCALAR_ACCESS_ONCE for s390x and x86
+You need wrappers for execve() like system calls yes, in order to flush all
+of the user register windows to the stack before the kill the address space.
 
-Just do patches 2-4 first, and then patch 1 unconditionally.
+I think your code snippet above is fine, except that you should indent
+the flushw by one space more because it is in the delay slot of a
+control transfer instruction.
 
-Obviously you'd need to spread the word on linux-arch to see how bad
-it is for other cases, but if other architectures are at all like x86
-and s390, and just require a few trivial patches, let's not make this
-some config option.
-
-                   Linus
+Thanks.
