@@ -1,68 +1,71 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e06smtp11.uk.ibm.com ([195.75.94.107]:53350 "EHLO
-	e06smtp11.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754738AbaKXTHL (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 24 Nov 2014 14:07:11 -0500
+Received: from e06smtp15.uk.ibm.com ([195.75.94.111]:57165 "EHLO
+	e06smtp15.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750975AbaKXU2O (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 24 Nov 2014 15:28:14 -0500
 Received: from /spool/local
-	by e06smtp11.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	by e06smtp15.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
 	for <linux-arch@vger.kernel.org> from <borntraeger@de.ibm.com>;
-	Mon, 24 Nov 2014 19:07:09 -0000
-Message-ID: <547381D7.2070404@de.ibm.com>
-Date: Mon, 24 Nov 2014 20:07:03 +0100
+	Mon, 24 Nov 2014 20:28:12 -0000
+Message-ID: <547394D5.4020301@de.ibm.com>
+Date: Mon, 24 Nov 2014 21:28:05 +0100
 From: Christian Borntraeger <borntraeger@de.ibm.com>
 MIME-Version: 1.0
 Subject: Re: [PATCH/RFC 7/7] kernel: Force ACCESS_ONCE to work only on scalar
  types
-References: <1416834210-61738-1-git-send-email-borntraeger@de.ibm.com> <1416834210-61738-8-git-send-email-borntraeger@de.ibm.com> <15567.1416835858@warthog.procyon.org.uk> <CAADnVQJQydX9OU_rem+BObR0eWc-jrrwirUYVKH9rnN=Z8LG6A@mail.gmail.com> <CA+55aFxc72VsGTw4yFdeC1Sq65RUjYLKPD1ORnXB2d18WBMzvg@mail.gmail.com>
-In-Reply-To: <CA+55aFxc72VsGTw4yFdeC1Sq65RUjYLKPD1ORnXB2d18WBMzvg@mail.gmail.com>
-Content-Type: text/plain; charset=utf-8
+References: <1416834210-61738-1-git-send-email-borntraeger@de.ibm.com> <1416834210-61738-8-git-send-email-borntraeger@de.ibm.com> <15567.1416835858@warthog.procyon.org.uk> <CAADnVQJQydX9OU_rem+BObR0eWc-jrrwirUYVKH9rnN=Z8LG6A@mail.gmail.com> <CA+55aFxc72VsGTw4yFdeC1Sq65RUjYLKPD1ORnXB2d18WBMzvg@mail.gmail.com> <547381D7.2070404@de.ibm.com> <CA+55aFy+dunTcdgB4-BXsYiLDk9pf8b_L74ky-dMixpbX3JQQA@mail.gmail.com> <20141124194200.GR5050@linux.vnet.ibm.com>
+In-Reply-To: <20141124194200.GR5050@linux.vnet.ibm.com>
+Content-Type: text/plain; charset=windows-1252
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>, Alexei Starovoitov <alexei.starovoitov@gmail.com>
-Cc: David Howells <dhowells@redhat.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux-mips <linux-mips@linux-mips.org>, linux-x86_64@vger.kernel.org, linux-s390 <linux-s390@vger.kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>
-Message-ID: <20141124190703.QLuUFxFMDwSBXva-JDa5YjvovBQ8RRK9L28Ja3dyc8k@z>
+To: paulmck@linux.vnet.ibm.com, Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Alexei Starovoitov <alexei.starovoitov@gmail.com>, David Howells <dhowells@redhat.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux-mips <linux-mips@linux-mips.org>, linux-x86_64@vger.kernel.org, linux-s390 <linux-s390@vger.kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, Ingo Molnar <mingo@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>
+Message-ID: <20141124202805.l-liYTDX1LzaMhVbk1_Iw6In3S8qmiFOJC5b08CBrZI@z>
 
-Am 24.11.2014 um 19:35 schrieb Linus Torvalds:
-> On Mon, Nov 24, 2014 at 10:02 AM, Alexei Starovoitov
-> <alexei.starovoitov@gmail.com> wrote:
+Am 24.11.2014 um 20:42 schrieb Paul E. McKenney:
+> On Mon, Nov 24, 2014 at 11:14:42AM -0800, Linus Torvalds wrote:
+>> On Mon, Nov 24, 2014 at 11:07 AM, Christian Borntraeger
+>> <borntraeger@de.ibm.com> wrote:
+>>>
+>>> Looks really nice, but does not work with ACCESS_ONCE is on the left-hand side:
 >>
->> If the goal is to catch non-scalar users, the following is shorter:
->> #define ACCESS_ONCE(x) (((typeof(x))0) + *(volatile typeof(x) *)&(x))
+>> Oh, I forgot about that. And that was indeed why I had done that whole
+>> helper macro originally, with ACCESS_ONCE() itself just being the
+>> dereference of the pointer.
 > 
-> Me likey. It probably works well in practice, although I think
+> OK, how about the following?
 > 
->  - the "(typeof(x))0)" seems unnecessary and wrong. Why not just "0"?
-> The typeof is not just longer, but it is incorrect for pointer types
-> (you can add 0 to a pointer, but you cannot add two pointers together)
-> 
->  - it does mean that the resulting type ends up being upgraded to
-> "int", for the usual C type reasons.
-> 
-> Note that the "upgraded to 'int'" is true with or without the
-> "(typeof(x))0". If you add two 'char' values, the addition is still
-> done in 'int'.
-> 
-> Maybe you *meant* that typeof to fix the second problem, like so:
-> 
->   (typeof(x)) (0 + *(volatile typeof(x) *)&(x))
-> 
-> Hmm? That casts the result of the addition, not the zero.
+> It complains if the variable is too large, for example, long long on
+> 32-bit systems or large structures.  It is OK loading from and storing
+> to small structures as well, which I am having a hard time thinking of
+> as a disadvantage.
 
-Looks really nice, but does not work with ACCESS_ONCE is on the left-hand side:
+Well, the motivation for this series was that gcc  4.6 and 4.7 might ignore volatile for
+such a case, see the original thread and this data structure
 
+union ipte_control {
+        unsigned long val;
+        struct {
+                unsigned long k  : 1;
+                unsigned long kh : 31;
+                unsigned long kg : 32;
+        };
+};
 
-include/linux/rculist.h: In function 'hlist_add_before_rcu':
-./arch/x86/include/asm/barrier.h:127:18: error: lvalue required as left operand of assignment
-  ACCESS_ONCE(*p) = (v);      \
+> ------------------------------------------------------------------------
+> 
+> #define get_scalar_volatile_pointer(x) ({ \
+> 	volatile typeof(x) *__vp = &(x); \
+> 	BUILD_BUG_ON(sizeof(*__vp) != sizeof(char) && \
+> 		     sizeof(*__vp) != sizeof(short) && \
+> 		     sizeof(*__vp) != sizeof(int) && \
+> 		     sizeof(*__vp) != sizeof(long)); \
+> 	__vp; })
+> #define ACCESS_ONCE(x) (*get_scalar_volatile_pointer(x))
+> 
 
-Alexei's variant is also broken:
-
-include/linux/cgroup.h: In function 'task_css':
-include/linux/compiler.h:381:40: error: invalid operands to binary + (have 'struct css_set *' and 'struct css_set * volatile')
- #define ACCESS_ONCE(x) (((typeof(x))0) + *(volatile typeof(x) *)&(x))
-
-Anyone with a new propopal? ;-)                                        ^
+This gives also several compiler errors when accessing u64 on a 32bit system. This is expected, but more widespread than expected - ouch.
 
 Christian
 
