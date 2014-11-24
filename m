@@ -1,15 +1,15 @@
 From: Christian Borntraeger <borntraeger@de.ibm.com>
-Subject: [PATCH/RFC 4/7] x86: Replace ACCESS_ONCE in gup with a barrier
-Date: Mon, 24 Nov 2014 14:03:27 +0100
-Message-ID: <1416834210-61738-5-git-send-email-borntraeger@de.ibm.com>
+Subject: [PATCH/RFC 7/7] kernel: Force ACCESS_ONCE to work only on scalar types
+Date: Mon, 24 Nov 2014 14:03:30 +0100
+Message-ID: <1416834210-61738-8-git-send-email-borntraeger@de.ibm.com>
 References: <1416834210-61738-1-git-send-email-borntraeger@de.ibm.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e06smtp14.uk.ibm.com ([195.75.94.110]:38719 "EHLO
-	e06smtp14.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753508AbaKXNDl (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 24 Nov 2014 08:03:41 -0500
+Received: from e06smtp17.uk.ibm.com ([195.75.94.113]:58606 "EHLO
+	e06smtp17.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753477AbaKXNDk (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 24 Nov 2014 08:03:40 -0500
 Received: from /spool/local
-	by e06smtp14.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	by e06smtp17.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
 	for <linux-arch@vger.kernel.org> from <borntraeger@de.ibm.com>;
 	Mon, 24 Nov 2014 13:03:39 -0000
 In-Reply-To: <1416834210-61738-1-git-send-email-borntraeger@de.ibm.com>
@@ -20,41 +20,40 @@ Cc: "linux-arch@vger.kernel.org, linux-mips@linux-mips.org, linux-x86_64@vger.ke
 
 ACCESS_ONCE does not work reliably on non-scalar types. For
 example gcc 4.6 and 4.7 might remove the volatile tag for such
-accesses during the SRA (scalar replacement of aggregates) step
-(https://gcc.gnu.org/bugzilla/show_bug.cgi?id=58145)
+accesses during the SRA (scalar replacement of aggregates) steps.
+see  https://gcc.gnu.org/bugzilla/show_bug.cgi?id=58145
 
-Let's use a barrier instead of ACCESS_ONCE to avoid that issue.
+This patch is based on an initial proof-of-concept from Linus
+Torvalds that causes compile errors for such accesses.
 
 Signed-off-by: Christian Borntraeger <borntraeger@de.ibm.com>
 ---
- arch/x86/mm/gup.c | 7 +++++--
- 1 file changed, 5 insertions(+), 2 deletions(-)
+ include/linux/compiler.h | 12 +++++++++++-
+ 1 file changed, 11 insertions(+), 1 deletion(-)
 
-diff --git a/arch/x86/mm/gup.c b/arch/x86/mm/gup.c
-index 207d9aef..35991f6 100644
---- a/arch/x86/mm/gup.c
-+++ b/arch/x86/mm/gup.c
-@@ -14,8 +14,12 @@
+diff --git a/include/linux/compiler.h b/include/linux/compiler.h
+index d5ad7b1..8a92c93 100644
+--- a/include/linux/compiler.h
++++ b/include/linux/compiler.h
+@@ -377,8 +377,18 @@ void ftrace_likely_update(struct ftrace_branch_data *f, int val, int expect);
+  * merging, or refetching absolutely anything at any time.  Its main intended
+  * use is to mediate communication between process-level code and irq/NMI
+  * handlers, all running on the same CPU.
++ *
++ * ACCESS_ONCE will only work on scalar types. For union types, ACCESS_ONCE
++ * on a union member will work as long as the size of the member matches the
++ * size of the union and the size is smaller than word size. See the x86
++ * spinlock implementation as an example. For other cases like page table
++ * structures, a barrier might be a good alternative.
+  */
+-#define ACCESS_ONCE(x) (*(volatile typeof(x) *)&(x))
++#define get_scalar_volatile_pointer(x) ({ \
++	typeof(x) *__p = &(x); \
++	volatile typeof(x) *__vp = __p; \
++	(void)(long)*__p; __vp; })
++#define ACCESS_ONCE(x) (*get_scalar_volatile_pointer(x))
  
- static inline pte_t gup_get_pte(pte_t *ptep)
- {
-+	pte_t pte;
-+
- #ifndef CONFIG_X86_PAE
--	return ACCESS_ONCE(*ptep);
-+	pte = *ptep;
-+	barrier();
-+	return pte;
- #else
- 	/*
- 	 * With get_user_pages_fast, we walk down the pagetables without taking
-@@ -49,7 +53,6 @@ static inline pte_t gup_get_pte(pte_t *ptep)
- 	 * very careful -- it does not atomically load the pte or anything that
- 	 * is likely to be useful for you.
- 	 */
--	pte_t pte;
- 
- retry:
- 	pte.pte_low = ptep->pte_low;
+ /* Ignore/forbid kprobes attach on very low level functions marked by this attribute: */
+ #ifdef CONFIG_KPROBES
 -- 
 1.9.3
