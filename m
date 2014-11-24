@@ -1,72 +1,58 @@
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [PATCHv10 2/5] x86: Hook up execveat system call.
-Date: Mon, 24 Nov 2014 19:53:03 +0100 (CET)
-Message-ID: <alpine.DEB.2.11.1411241950020.6439@nanos>
-References: <1416830039-21952-1-git-send-email-drysdale@google.com> <1416830039-21952-3-git-send-email-drysdale@google.com> <20141124170626.GA5316@mwanda>
+From: Christian Borntraeger <borntraeger@de.ibm.com>
+Subject: Re: [PATCH/RFC 7/7] kernel: Force ACCESS_ONCE to work only on scalar
+ types
+Date: Mon, 24 Nov 2014 20:07:03 +0100
+Message-ID: <547381D7.2070404@de.ibm.com>
+References: <1416834210-61738-1-git-send-email-borntraeger@de.ibm.com> <1416834210-61738-8-git-send-email-borntraeger@de.ibm.com> <15567.1416835858@warthog.procyon.org.uk> <CAADnVQJQydX9OU_rem+BObR0eWc-jrrwirUYVKH9rnN=Z8LG6A@mail.gmail.com> <CA+55aFxc72VsGTw4yFdeC1Sq65RUjYLKPD1ORnXB2d18WBMzvg@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: MULTIPART/MIXED; BOUNDARY="8323329-1221348284-1416855184=:6439"
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20141124170626.GA5316@mwanda>
+In-Reply-To: <CA+55aFxc72VsGTw4yFdeC1Sq65RUjYLKPD1ORnXB2d18WBMzvg@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Dan Carpenter <dan.carpenter@oracle.com>
-Cc: David Drysdale <drysdale@google.com>, "Eric W. Biederman" <ebiederm@xmission.com>, Andy Lutomirski <luto@amacapital.net>, Alexander Viro <viro@zeniv.linux.org.uk>, Meredydd Luff <meredydd@senatehouse.org>, linux-kernel@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Stephen Rothwell <sfr@canb.auug.org.au>, Oleg Nesterov <oleg@redhat.com>, Michael Kerrisk <mtk.manpages@gmail.com>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Rich Felker <dalias@aerifal.cx>, Christoph Hellwig <hch@infradead.org>, x86@kernel.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, sparclinux@vger.kernel.org
+To: Linus Torvalds <torvalds@linux-foundation.org>, Alexei Starovoitov <alexei.starovoitov@gmail.com>
+Cc: David Howells <dhowells@redhat.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux-mips <linux-mips@linux-mips.org>, linux-x86_64@vger.kernel.org, linux-s390 <linux-s390@vger.kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>
 List-Id: linux-arch.vger.kernel.org
 
-  This message is in MIME format.  The first part should be readable text,
-  while the remaining parts are likely unreadable without MIME-aware tools.
-
---8323329-1221348284-1416855184=:6439
-Content-Type: TEXT/PLAIN; charset=utf-8
-Content-Transfer-Encoding: 8BIT
-
-On Mon, 24 Nov 2014, Dan Carpenter wrote:
-
-> On Mon, Nov 24, 2014 at 11:53:56AM +0000, David Drysdale wrote:
-> > Hook up x86-64, i386 and x32 ABIs.
-> > 
-> > Signed-off-by: David Drysdale <drysdale@google.com>
+Am 24.11.2014 um 19:35 schrieb Linus Torvalds:
+> On Mon, Nov 24, 2014 at 10:02 AM, Alexei Starovoitov
+> <alexei.starovoitov@gmail.com> wrote:
+>>
+>> If the goal is to catch non-scalar users, the following is shorter:
+>> #define ACCESS_ONCE(x) (((typeof(x))0) + *(volatile typeof(x) *)&(x))
 > 
-> This one has been breaking my linux-next build for the past week.  I'm
-> not sure what's going on.  I build with a script:
+> Me likey. It probably works well in practice, although I think
 > 
-> make allmodconfig
+>  - the "(typeof(x))0)" seems unnecessary and wrong. Why not just "0"?
+> The typeof is not just longer, but it is incorrect for pointer types
+> (you can add 0 to a pointer, but you cannot add two pointers together)
 > 
-> cat << EOF >> .config
-> CONFIG_DYNAMIC_DEBUG=n
-> CONFIG_DEBUG_STRICT_USER_COPY_CHECKS=n
-> CONFIG_DYNAMIC_DEBUG=y
-> EOF
+>  - it does mean that the resulting type ends up being upgraded to
+> "int", for the usual C type reasons.
 > 
-> make oldconfig
+> Note that the "upgraded to 'int'" is true with or without the
+> "(typeof(x))0". If you add two 'char' values, the addition is still
+> done in 'int'.
 > 
-> Here are the errors:
+> Maybe you *meant* that typeof to fix the second problem, like so:
 > 
->   CHK     include/generated/compile.h
->   CHECK   arch/x86/ia32/audit.c
->   CC      arch/x86/ia32/audit.o
-> arch/x86/ia32/audit.c: In function ‘ia32_classify_syscall’:
-> arch/x86/ia32/audit.c:38:7: error: ‘__NR_execveat’ undeclared (first use in this function)
-> arch/x86/ia32/audit.c:38:7: note: each undeclared identifier is reported only once for each function it appears in
-> make[2]: *** [arch/x86/ia32/audit.o] Error 1
-> make[2]: Target `__build' not remade because of errors.
-> make[1]: *** [arch/x86/ia32] Error 2
->   CHECK   arch/x86/kernel/audit_64.c
->   CHK     kernel/config_data.h
->   CC      arch/x86/kernel/audit_64.o
-> arch/x86/kernel/audit_64.c: In function ‘audit_classify_syscall’:
-> arch/x86/kernel/audit_64.c:53:7: error: ‘__NR_execveat’ undeclared (first use in this function)
-> arch/x86/kernel/audit_64.c:53:7: note: each undeclared identifier is reported only once for each function it appears in
-> make[2]: *** [arch/x86/kernel/audit_64.o] Error 1
-> make[2]: Target `__build' not remade because of errors.
-> make[1]: *** [arch/x86/kernel] Error 2
-> make[1]: Target `__build' not remade because of errors.
+>   (typeof(x)) (0 + *(volatile typeof(x) *)&(x))
+> 
+> Hmm? That casts the result of the addition, not the zero.
 
-I don't know what you're doing.
+Looks really nice, but does not work with ACCESS_ONCE is on the left-hand side:
 
-Tried the above and it rebuilds the relevant unistd*.h files and
-compiles happily.
 
-Thanks,
+include/linux/rculist.h: In function 'hlist_add_before_rcu':
+./arch/x86/include/asm/barrier.h:127:18: error: lvalue required as left operand of assignment
+  ACCESS_ONCE(*p) = (v);      \
 
-	tglx
---8323329-1221348284-1416855184=:6439--
+Alexei's variant is also broken:
+
+include/linux/cgroup.h: In function 'task_css':
+include/linux/compiler.h:381:40: error: invalid operands to binary + (have 'struct css_set *' and 'struct css_set * volatile')
+ #define ACCESS_ONCE(x) (((typeof(x))0) + *(volatile typeof(x) *)&(x))
+
+Anyone with a new propopal? ;-)                                        ^
+
+Christian
