@@ -1,56 +1,21 @@
-From: Dave Hansen <dave@sr71.net>
-Subject: [PATCH] remove asm-generic arch_bprm_mm_init()
-Date: Sat, 22 Nov 2014 08:37:11 -0800
-Message-ID: <20141122163711.0F037EE6@viggo.jf.intel.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mga01.intel.com ([192.55.52.88]:22703 "EHLO mga01.intel.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750729AbaKVQhW (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sat, 22 Nov 2014 11:37:22 -0500
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: Dave Hansen <dave@sr71.net>, dave.hansen@linux.intel.com, linux-arch@vger.kernel.org, x86@kernel.org, tglx@linutronix.de
+From: Christoph Hellwig <hch-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>
+Subject: Re: [PATCH v6 0/7] vfs: Non-blockling buffered fs read (page cache
+ only)
+Date: Mon, 24 Nov 2014 01:53:36 -0800
+Message-ID: <20141124095336.GA17840@infradead.org>
+References: <cover.1415636409.git.milosz@adfin.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+Content-Disposition: inline
+In-Reply-To: <cover.1415636409.git.milosz-B5zB6C1i6pkAvxtiuMwx3w@public.gmane.org>
+Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: Milosz Tanski <milosz-B5zB6C1i6pkAvxtiuMwx3w@public.gmane.org>
+Cc: linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, linux-fsdevel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-aio-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, Mel Gorman <mgorman-l3A5Bk7waGM@public.gmane.org>, Volker Lendecke <Volker.Lendecke-3ekOc4rQMZmzQB+pC5nmwQ@public.gmane.org>, Tejun Heo <tj-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Jeff Moyer <jmoyer-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Theodore Ts'o <tytso-3s7WtUTddSA@public.gmane.org>, Al Viro <viro-RmSDqhL/yNMiFSDQTTA3OLVCufUGDwFn@public.gmane.org>, linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Michael Kerrisk <mtk.manpages-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+List-Id: linux-arch.vger.kernel.org
 
 
-From: Dave Hansen <dave.hansen@linux.intel.com>
+Al or Andrew,
 
-This is a follow-on to commit:
-
-https://git.kernel.org/cgit/linux/kernel/git/tip/tip.git/commit/?h=x86/mpx&id=62e88b1c00de9cb30d937841ed5debed871070b8
-
-I removed the asm-generic version of arch_unmap() in that patch,
-but missed arch_bprm_mm_init().  So this broke the build for
-architectures using asm-generic/mmu_context.h who actually have
-an MMU.
-
-This has been cross compiled for:
-	s390
-	arm
-	cris
-	microblaze
-
-Signed-off-by: Dave Hansen <dave.hansen@linux.intel.com>
-Cc: linux-arch@vger.kernel.org
-Cc: x86@kernel.org
-Cc: Thomas Gleixner <tglx@linutronix.de>
-
----
-
- b/include/asm-generic/mmu_context.h |    5 -----
- 1 file changed, 5 deletions(-)
-
-diff -puN include/asm-generic/mmu_context.h~remove-generic-arch_bprm_mm_init include/asm-generic/mmu_context.h
---- a/include/asm-generic/mmu_context.h~remove-generic-arch_bprm_mm_init	2014-11-20 14:39:38.191036388 -0800
-+++ b/include/asm-generic/mmu_context.h	2014-11-20 14:39:38.194036524 -0800
-@@ -42,9 +42,4 @@ static inline void activate_mm(struct mm
- {
- }
- 
--static inline void arch_bprm_mm_init(struct mm_struct *mm,
--			struct vm_area_struct *vma)
--{
--}
--
- #endif /* __ASM_GENERIC_MMU_CONTEXT_H */
-_
+can someone pick this up?  The end of the 3.19 merge window is near,
+and I'd really love to get this series in.
