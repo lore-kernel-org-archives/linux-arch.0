@@ -1,21 +1,60 @@
-From: Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>
-Subject: Re: [PATCHv10 2/5] x86: Hook up execveat system call.
-Date: Mon, 24 Nov 2014 13:45:57 +0100 (CET)
-Message-ID: <alpine.DEB.2.11.1411241345470.6439@nanos>
-References: <1416830039-21952-1-git-send-email-drysdale@google.com> <1416830039-21952-3-git-send-email-drysdale@google.com>
-Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
-Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <1416830039-21952-3-git-send-email-drysdale-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>
-Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: David Drysdale <drysdale-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>
-Cc: "Eric W. Biederman" <ebiederm-aS9lmoZGLiVWk0Htik3J/w@public.gmane.org>, Andy Lutomirski <luto-kltTT9wpgjJwATOyAt5JVQ@public.gmane.org>, Alexander Viro <viro-RmSDqhL/yNMiFSDQTTA3OLVCufUGDwFn@public.gmane.org>, Meredydd Luff <meredydd-zPN50pYk8eUaUu29zAJCuw@public.gmane.org>, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, David Miller <davem-fT/PcQaiUtIeIZ0/mPfg9Q@public.gmane.org>, Stephen Rothwell <sfr-3FnU+UHB4dNDw9hX6IcOSA@public.gmane.org>, Oleg Nesterov <oleg-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Michael Kerrisk <mtk.manpages-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Ingo Molnar <mingo-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>, Kees Cook <keescook-F7+t8E8rja9g9hUCZPvPmw@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Rich Felker <dalias-/miJ2pyFWUyWIDz0JBNUog@public.gmane.org>, Christoph Hellwig <hch-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, sparclinux-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-List-Id: linux-arch.vger.kernel.org
+From: Christian Borntraeger <borntraeger@de.ibm.com>
+Subject: [PATCH/RFC 4/7] x86: Replace ACCESS_ONCE in gup with a barrier
+Date: Mon, 24 Nov 2014 14:03:27 +0100
+Message-ID: <1416834210-61738-5-git-send-email-borntraeger@de.ibm.com>
+References: <1416834210-61738-1-git-send-email-borntraeger@de.ibm.com>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from e06smtp14.uk.ibm.com ([195.75.94.110]:38719 "EHLO
+	e06smtp14.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753508AbaKXNDl (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 24 Nov 2014 08:03:41 -0500
+Received: from /spool/local
+	by e06smtp14.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <borntraeger@de.ibm.com>;
+	Mon, 24 Nov 2014 13:03:39 -0000
+In-Reply-To: <1416834210-61738-1-git-send-email-borntraeger@de.ibm.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linux-kernel@vger.kernel.org
+Cc: "linux-arch@vger.kernel.org, linux-mips@linux-mips.org, linux-x86_64@vger.kernel.org, linux-s390"@vger.kernel.org, Paolo Bonzini <pbonzini@redhat.com>, paulmck@linux.vnet.ibm.com, mingo@kernel.org, torvalds@linux-foundation.org, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Christian Borntraeger <borntraeger@de.ibm.com>
 
-On Mon, 24 Nov 2014, David Drysdale wrote:
+ACCESS_ONCE does not work reliably on non-scalar types. For
+example gcc 4.6 and 4.7 might remove the volatile tag for such
+accesses during the SRA (scalar replacement of aggregates) step
+(https://gcc.gnu.org/bugzilla/show_bug.cgi?id=58145)
 
-> Hook up x86-64, i386 and x32 ABIs.
-> 
-> Signed-off-by: David Drysdale <drysdale-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>
+Let's use a barrier instead of ACCESS_ONCE to avoid that issue.
 
-Reviewed-by: Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>
+Signed-off-by: Christian Borntraeger <borntraeger@de.ibm.com>
+---
+ arch/x86/mm/gup.c | 7 +++++--
+ 1 file changed, 5 insertions(+), 2 deletions(-)
+
+diff --git a/arch/x86/mm/gup.c b/arch/x86/mm/gup.c
+index 207d9aef..35991f6 100644
+--- a/arch/x86/mm/gup.c
++++ b/arch/x86/mm/gup.c
+@@ -14,8 +14,12 @@
+ 
+ static inline pte_t gup_get_pte(pte_t *ptep)
+ {
++	pte_t pte;
++
+ #ifndef CONFIG_X86_PAE
+-	return ACCESS_ONCE(*ptep);
++	pte = *ptep;
++	barrier();
++	return pte;
+ #else
+ 	/*
+ 	 * With get_user_pages_fast, we walk down the pagetables without taking
+@@ -49,7 +53,6 @@ static inline pte_t gup_get_pte(pte_t *ptep)
+ 	 * very careful -- it does not atomically load the pte or anything that
+ 	 * is likely to be useful for you.
+ 	 */
+-	pte_t pte;
+ 
+ retry:
+ 	pte.pte_low = ptep->pte_low;
+-- 
+1.9.3
