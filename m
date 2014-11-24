@@ -1,26 +1,162 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from www.linutronix.de ([62.245.132.108]:38113 "EHLO
-	Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751329AbaKXMq4 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 24 Nov 2014 07:46:56 -0500
-Date: Mon, 24 Nov 2014 13:45:57 +0100 (CET)
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [PATCHv10 2/5] x86: Hook up execveat system call.
-In-Reply-To: <1416830039-21952-3-git-send-email-drysdale@google.com>
-Message-ID: <alpine.DEB.2.11.1411241345470.6439@nanos>
-References: <1416830039-21952-1-git-send-email-drysdale@google.com> <1416830039-21952-3-git-send-email-drysdale@google.com>
-MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Received: from e06smtp15.uk.ibm.com ([195.75.94.111]:47248 "EHLO
+	e06smtp15.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753563AbaKXNDo (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 24 Nov 2014 08:03:44 -0500
+Received: from /spool/local
+	by e06smtp15.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <borntraeger@de.ibm.com>;
+	Mon, 24 Nov 2014 13:03:42 -0000
+From: Christian Borntraeger <borntraeger@de.ibm.com>
+Subject: [PATCH 1/7] KVM: s390: Fix ipte locking
+Date: Mon, 24 Nov 2014 14:03:24 +0100
+Message-Id: <1416834210-61738-2-git-send-email-borntraeger@de.ibm.com>
+In-Reply-To: <1416834210-61738-1-git-send-email-borntraeger@de.ibm.com>
+References: <1416834210-61738-1-git-send-email-borntraeger@de.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Drysdale <drysdale@google.com>
-Cc: "Eric W. Biederman" <ebiederm@xmission.com>, Andy Lutomirski <luto@amacapital.net>, Alexander Viro <viro@zeniv.linux.org.uk>, Meredydd Luff <meredydd@senatehouse.org>, linux-kernel@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Stephen Rothwell <sfr@canb.auug.org.au>, Oleg Nesterov <oleg@redhat.com>, Michael Kerrisk <mtk.manpages@gmail.com>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Rich Felker <dalias@aerifal.cx>, Christoph Hellwig <hch@infradead.org>, x86@kernel.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, sparclinux@vger.kernel.org
-Message-ID: <20141124124557.aNXQouG9agMSXhfRnjxSZG6DxPL7oLXWmWMxxtpz6tY@z>
+To: linux-kernel@vger.kernel.org
+Cc: "linux-arch@vger.kernel.org, linux-mips@linux-mips.org, linux-x86_64@vger.kernel.org, linux-s390"@vger.kernel.org, Paolo Bonzini <pbonzini@redhat.com>, paulmck@linux.vnet.ibm.com, mingo@kernel.org, torvalds@linux-foundation.org, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Christian Borntraeger <borntraeger@de.ibm.com>, stable@vger.kernel.org, #@tuxmaker.boeblingen.de.ibm.com, v3.16+@tuxmaker.boeblingen.de.ibm.com
 
-On Mon, 24 Nov 2014, David Drysdale wrote:
+ipte_unlock_siif uses cmpxchg to replace the in-memory data of the ipte
+lock together with ACCESS_ONCE for the intial read.
 
-> Hook up x86-64, i386 and x32 ABIs.
-> 
-> Signed-off-by: David Drysdale <drysdale@google.com>
+union ipte_control {
+        unsigned long val;
+        struct {
+                unsigned long k  : 1;
+                unsigned long kh : 31;
+                unsigned long kg : 32;
+        };
+};
+[...]
+static void ipte_unlock_siif(struct kvm_vcpu *vcpu)
+{
+        union ipte_control old, new, *ic;
 
-Reviewed-by: Thomas Gleixner <tglx@linutronix.de>
+        ic = &vcpu->kvm->arch.sca->ipte_control;
+        do {
+                new = old = ACCESS_ONCE(*ic);
+                new.kh--;
+                if (!new.kh)
+                        new.k = 0;
+        } while (cmpxchg(&ic->val, old.val, new.val) != old.val);
+        if (!new.kh)
+                wake_up(&vcpu->kvm->arch.ipte_wq);
+}
+
+The new value, is loaded twice from memory with gcc 4.7.2 of
+fedora 18, despite the ACCESS_ONCE:
+
+--->
+
+l       %r4,0(%r3)      <--- load first 32 bit of lock (k and kh) in r4
+alfi    %r4,2147483647  <--- add -1 to r4
+llgtr   %r4,%r4         <--- zero out the sign bit of r4
+lg      %r1,0(%r3)      <--- load all 64 bit of lock into new
+lgr     %r2,%r1         <--- load the same into old
+risbg   %r1,%r4,1,31,32 <--- shift and insert r4 into the bits 1-31 of
+new
+llihf   %r4,2147483647
+ngrk    %r4,%r1,%r4
+jne     aa0 <ipte_unlock+0xf8>
+nihh    %r1,32767
+lgr     %r4,%r2
+csg     %r4,%r1,0(%r3)
+cgr     %r2,%r4
+jne     a70 <ipte_unlock+0xc8>
+
+If the memory value changes between the first load (l) and the second
+load (lg) we are broken. If that happens VCPU threads will hang
+(unkillable) in handle_ipte_interlock.
+
+Andreas Krebbel analyzed this and tracked it down to a compiler bug in
+that version:
+"while it is not that obvious the C99 standard basically forbids
+duplicating the memory access also in that case. For an argumentation of
+a similiar case please see:
+https://gcc.gnu.org/bugzilla/show_bug.cgi?id=22278#c43
+
+For the implementation-defined cases regarding volatile there are some
+GCC-specific clarifications which can be found here:
+https://gcc.gnu.org/onlinedocs/gcc/Volatiles.html#Volatiles
+
+I've tracked down the problem with a reduced testcase. The problem was
+that during a tree level optimization (SRA - scalar replacement of
+aggregates) the volatile marker is lost. And an RTL level optimizer (CSE
+- common subexpression elimination) then propagated the memory read into
+  its second use introducing another access to the memory location. So
+indeed Christian's suspicion that the union access has something to do
+with it is correct (since it triggered the SRA optimization).
+
+This issue has been reported and fixed in the GCC 4.8 development cycle:
+https://gcc.gnu.org/bugzilla/show_bug.cgi?id=58145"
+
+This patch replaces the ACCESS_ONCE scheme with a barrier() based scheme
+that should work for all supported compilers.
+
+Signed-off-by: Christian Borntraeger <borntraeger@de.ibm.com>
+Cc: stable@vger.kernel.org # v3.16+
+---
+ arch/s390/kvm/gaccess.c | 20 ++++++++++++++------
+ 1 file changed, 14 insertions(+), 6 deletions(-)
+
+diff --git a/arch/s390/kvm/gaccess.c b/arch/s390/kvm/gaccess.c
+index 0f961a1..6dc0ad9 100644
+--- a/arch/s390/kvm/gaccess.c
++++ b/arch/s390/kvm/gaccess.c
+@@ -229,10 +229,12 @@ static void ipte_lock_simple(struct kvm_vcpu *vcpu)
+ 		goto out;
+ 	ic = &vcpu->kvm->arch.sca->ipte_control;
+ 	do {
+-		old = ACCESS_ONCE(*ic);
++		old = *ic;
++		barrier();
+ 		while (old.k) {
+ 			cond_resched();
+-			old = ACCESS_ONCE(*ic);
++			old = *ic;
++			barrier();
+ 		}
+ 		new = old;
+ 		new.k = 1;
+@@ -251,7 +253,9 @@ static void ipte_unlock_simple(struct kvm_vcpu *vcpu)
+ 		goto out;
+ 	ic = &vcpu->kvm->arch.sca->ipte_control;
+ 	do {
+-		new = old = ACCESS_ONCE(*ic);
++		old = *ic;
++		barrier();
++		new = old;
+ 		new.k = 0;
+ 	} while (cmpxchg(&ic->val, old.val, new.val) != old.val);
+ 	wake_up(&vcpu->kvm->arch.ipte_wq);
+@@ -265,10 +269,12 @@ static void ipte_lock_siif(struct kvm_vcpu *vcpu)
+ 
+ 	ic = &vcpu->kvm->arch.sca->ipte_control;
+ 	do {
+-		old = ACCESS_ONCE(*ic);
++		old = *ic;
++		barrier();
+ 		while (old.kg) {
+ 			cond_resched();
+-			old = ACCESS_ONCE(*ic);
++			old = *ic;
++			barrier();
+ 		}
+ 		new = old;
+ 		new.k = 1;
+@@ -282,7 +288,9 @@ static void ipte_unlock_siif(struct kvm_vcpu *vcpu)
+ 
+ 	ic = &vcpu->kvm->arch.sca->ipte_control;
+ 	do {
+-		new = old = ACCESS_ONCE(*ic);
++		old = *ic;
++		barrier();
++		new = old;
+ 		new.kh--;
+ 		if (!new.kh)
+ 			new.k = 0;
+-- 
+1.9.3
+
