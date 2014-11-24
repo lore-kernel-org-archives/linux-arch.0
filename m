@@ -1,16 +1,16 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e06smtp12.uk.ibm.com ([195.75.94.108]:59925 "EHLO
-	e06smtp12.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753526AbaKXNDm (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 24 Nov 2014 08:03:42 -0500
+Received: from e06smtp16.uk.ibm.com ([195.75.94.112]:43719 "EHLO
+	e06smtp16.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753514AbaKXNDl (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 24 Nov 2014 08:03:41 -0500
 Received: from /spool/local
-	by e06smtp12.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	by e06smtp16.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
 	for <linux-arch@vger.kernel.org> from <borntraeger@de.ibm.com>;
 	Mon, 24 Nov 2014 13:03:40 -0000
 From: Christian Borntraeger <borntraeger@de.ibm.com>
-Subject: [PATCH/RFC 5/7] mips: Replace ACCESS_ONCE in gup with a barrier
-Date: Mon, 24 Nov 2014 14:03:28 +0100
-Message-Id: <1416834210-61738-6-git-send-email-borntraeger@de.ibm.com>
+Subject: [PATCH/RFC 6/7] arm64: Replace ACCESS_ONCE for spinlock code with barriers
+Date: Mon, 24 Nov 2014 14:03:29 +0100
+Message-Id: <1416834210-61738-7-git-send-email-borntraeger@de.ibm.com>
 In-Reply-To: <1416834210-61738-1-git-send-email-borntraeger@de.ibm.com>
 References: <1416834210-61738-1-git-send-email-borntraeger@de.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
@@ -21,40 +21,37 @@ Cc: "linux-arch@vger.kernel.org, linux-mips@linux-mips.org, linux-x86_64@vger.ke
 ACCESS_ONCE does not work reliably on non-scalar types. For
 example gcc 4.6 and 4.7 might remove the volatile tag for such
 accesses during the SRA (scalar replacement of aggregates) step
-https://gcc.gnu.org/bugzilla/show_bug.cgi?id=58145)
+(https://gcc.gnu.org/bugzilla/show_bug.cgi?id=58145)
 
-Let's use a barrier instead of ACCESS_ONCE to avoid that issue.
+Change the spinlock code to access the lock with a barrier.
 
 Signed-off-by: Christian Borntraeger <borntraeger@de.ibm.com>
 ---
- arch/mips/mm/gup.c | 6 ++++--
- 1 file changed, 4 insertions(+), 2 deletions(-)
+ arch/arm64/include/asm/spinlock.h | 7 +++++--
+ 1 file changed, 5 insertions(+), 2 deletions(-)
 
-diff --git a/arch/mips/mm/gup.c b/arch/mips/mm/gup.c
-index 06ce17c..cb2ca51 100644
---- a/arch/mips/mm/gup.c
-+++ b/arch/mips/mm/gup.c
-@@ -17,8 +17,8 @@
+diff --git a/arch/arm64/include/asm/spinlock.h b/arch/arm64/include/asm/spinlock.h
+index c45b7b1..f72dc64 100644
+--- a/arch/arm64/include/asm/spinlock.h
++++ b/arch/arm64/include/asm/spinlock.h
+@@ -99,12 +99,15 @@ static inline int arch_spin_value_unlocked(arch_spinlock_t lock)
  
- static inline pte_t gup_get_pte(pte_t *ptep)
+ static inline int arch_spin_is_locked(arch_spinlock_t *lock)
  {
--#if defined(CONFIG_64BIT_PHYS_ADDR) && defined(CONFIG_CPU_MIPS32)
- 	pte_t pte;
-+#if defined(CONFIG_64BIT_PHYS_ADDR) && defined(CONFIG_CPU_MIPS32)
- 
- retry:
- 	pte.pte_low = ptep->pte_low;
-@@ -30,7 +30,9 @@ retry:
- 
- 	return pte;
- #else
--	return ACCESS_ONCE(*ptep);
-+	pte = *ptep;
+-	return !arch_spin_value_unlocked(ACCESS_ONCE(*lock));
++	arch_spinlock_t lockval = *lock;
 +	barrier();
-+	return pte;
- #endif
++	return !arch_spin_value_unlocked(lockval);
  }
  
+ static inline int arch_spin_is_contended(arch_spinlock_t *lock)
+ {
+-	arch_spinlock_t lockval = ACCESS_ONCE(*lock);
++	arch_spinlock_t lockval = *lock;
++	barrier();
+ 	return (lockval.next - lockval.owner) > 1;
+ }
+ #define arch_spin_is_contended	arch_spin_is_contended
 -- 
 1.9.3
 
