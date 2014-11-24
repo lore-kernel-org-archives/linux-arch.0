@@ -1,7 +1,7 @@
 From: David Drysdale <drysdale@google.com>
-Subject: [PATCHv10 2/5] x86: Hook up execveat system call.
-Date: Mon, 24 Nov 2014 11:53:56 +0000
-Message-ID: <1416830039-21952-3-git-send-email-drysdale@google.com>
+Subject: [PATCHv10 man-pages 5/5] execveat.2: initial man page for execveat(2)
+Date: Mon, 24 Nov 2014 11:53:59 +0000
+Message-ID: <1416830039-21952-6-git-send-email-drysdale@google.com>
 References: <1416830039-21952-1-git-send-email-drysdale@google.com>
 Return-path: <sparclinux-owner@vger.kernel.org>
 In-Reply-To: <1416830039-21952-1-git-send-email-drysdale@google.com>
@@ -10,139 +10,170 @@ To: "Eric W. Biederman" <ebiederm@xmission.com>, Andy Lutomirski <luto@amacapita
 Cc: Stephen Rothwell <sfr@canb.auug.org.au>, Oleg Nesterov <oleg@redhat.com>, Michael Kerrisk <mtk.manpages@gmail.com>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Rich Felker <dalias@aerifal.cx>, Christoph Hellwig <hch@infradead.org>, x86@kernel.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, sparclinux@vger.kernel.org, David Drysdale <drysdale@google.com>
 List-Id: linux-arch.vger.kernel.org
 
-Hook up x86-64, i386 and x32 ABIs.
-
 Signed-off-by: David Drysdale <drysdale@google.com>
 ---
- arch/x86/ia32/audit.c            |  1 +
- arch/x86/ia32/ia32entry.S        |  1 +
- arch/x86/kernel/audit_64.c       |  1 +
- arch/x86/kernel/entry_64.S       | 28 ++++++++++++++++++++++++++++
- arch/x86/syscalls/syscall_32.tbl |  1 +
- arch/x86/syscalls/syscall_64.tbl |  2 ++
- arch/x86/um/sys_call_table_64.c  |  1 +
- 7 files changed, 35 insertions(+)
+ man2/execveat.2 | 153 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 153 insertions(+)
+ create mode 100644 man2/execveat.2
 
-diff --git a/arch/x86/ia32/audit.c b/arch/x86/ia32/audit.c
-index 5d7b381da692..2eccc8932ae6 100644
---- a/arch/x86/ia32/audit.c
-+++ b/arch/x86/ia32/audit.c
-@@ -35,6 +35,7 @@ int ia32_classify_syscall(unsigned syscall)
- 	case __NR_socketcall:
- 		return 4;
- 	case __NR_execve:
-+	case __NR_execveat:
- 		return 5;
- 	default:
- 		return 1;
-diff --git a/arch/x86/ia32/ia32entry.S b/arch/x86/ia32/ia32entry.S
-index ffe71228fc10..82e8a1d44658 100644
---- a/arch/x86/ia32/ia32entry.S
-+++ b/arch/x86/ia32/ia32entry.S
-@@ -480,6 +480,7 @@ GLOBAL(\label)
- 	PTREGSCALL stub32_rt_sigreturn, sys32_rt_sigreturn
- 	PTREGSCALL stub32_sigreturn, sys32_sigreturn
- 	PTREGSCALL stub32_execve, compat_sys_execve
-+	PTREGSCALL stub32_execveat, compat_sys_execveat
- 	PTREGSCALL stub32_fork, sys_fork
- 	PTREGSCALL stub32_vfork, sys_vfork
- 
-diff --git a/arch/x86/kernel/audit_64.c b/arch/x86/kernel/audit_64.c
-index 06d3e5a14d9d..f3672508b249 100644
---- a/arch/x86/kernel/audit_64.c
-+++ b/arch/x86/kernel/audit_64.c
-@@ -50,6 +50,7 @@ int audit_classify_syscall(int abi, unsigned syscall)
- 	case __NR_openat:
- 		return 3;
- 	case __NR_execve:
-+	case __NR_execveat:
- 		return 5;
- 	default:
- 		return 0;
-diff --git a/arch/x86/kernel/entry_64.S b/arch/x86/kernel/entry_64.S
-index df088bb03fb3..40d893c60fcc 100644
---- a/arch/x86/kernel/entry_64.S
-+++ b/arch/x86/kernel/entry_64.S
-@@ -652,6 +652,20 @@ ENTRY(stub_execve)
- 	CFI_ENDPROC
- END(stub_execve)
- 
-+ENTRY(stub_execveat)
-+	CFI_STARTPROC
-+	addq $8, %rsp
-+	PARTIAL_FRAME 0
-+	SAVE_REST
-+	FIXUP_TOP_OF_STACK %r11
-+	call sys_execveat
-+	RESTORE_TOP_OF_STACK %r11
-+	movq %rax,RAX(%rsp)
-+	RESTORE_REST
-+	jmp int_ret_from_sys_call
-+	CFI_ENDPROC
-+END(stub_execveat)
+diff --git a/man2/execveat.2 b/man2/execveat.2
+new file mode 100644
+index 000000000000..937d79e4c4f0
+--- /dev/null
++++ b/man2/execveat.2
+@@ -0,0 +1,153 @@
++.\" Copyright (c) 2014 Google, Inc.
++.\"
++.\" %%%LICENSE_START(VERBATIM)
++.\" Permission is granted to make and distribute verbatim copies of this
++.\" manual provided the copyright notice and this permission notice are
++.\" preserved on all copies.
++.\"
++.\" Permission is granted to copy and distribute modified versions of this
++.\" manual under the conditions for verbatim copying, provided that the
++.\" entire resulting derived work is distributed under the terms of a
++.\" permission notice identical to this one.
++.\"
++.\" Since the Linux kernel and libraries are constantly changing, this
++.\" manual page may be incorrect or out-of-date.  The author(s) assume no
++.\" responsibility for errors or omissions, or for damages resulting from
++.\" the use of the information contained herein.  The author(s) may not
++.\" have taken the same level of care in the production of this manual,
++.\" which is licensed free of charge, as they might when working
++.\" professionally.
++.\"
++.\" Formatted or processed versions of this manual, if unaccompanied by
++.\" the source, must acknowledge the copyright and authors of this work.
++.\" %%%LICENSE_END
++.\"
++.TH EXECVEAT 2 2014-04-02 "Linux" "Linux Programmer's Manual"
++.SH NAME
++execveat \- execute program relative to a directory file descriptor
++.SH SYNOPSIS
++.B #include <unistd.h>
++.sp
++.BI "int execveat(int " fd ", const char *" pathname ","
++.br
++.BI "             char *const " argv "[],  char *const " envp "[],"
++.br
++.BI "             int " flags);
++.SH DESCRIPTION
++The
++.BR execveat ()
++system call executes the program pointed to by the combination of \fIfd\fP and \fIpathname\fP.
++The
++.BR execveat ()
++system call operates in exactly the same way as
++.BR execve (2),
++except for the differences described in this manual page.
 +
- /*
-  * sigreturn is special because it needs to restore all registers on return.
-  * This cannot be done with SYSRET, so use the IRET return path instead.
-@@ -697,6 +711,20 @@ ENTRY(stub_x32_execve)
- 	CFI_ENDPROC
- END(stub_x32_execve)
- 
-+ENTRY(stub_x32_execveat)
-+	CFI_STARTPROC
-+	addq $8, %rsp
-+	PARTIAL_FRAME 0
-+	SAVE_REST
-+	FIXUP_TOP_OF_STACK %r11
-+	call compat_sys_execveat
-+	RESTORE_TOP_OF_STACK %r11
-+	movq %rax,RAX(%rsp)
-+	RESTORE_REST
-+	jmp int_ret_from_sys_call
-+	CFI_ENDPROC
-+END(stub_x32_execveat)
++If the pathname given in
++.I pathname
++is relative, then it is interpreted relative to the directory
++referred to by the file descriptor
++.I fd
++(rather than relative to the current working directory of
++the calling process, as is done by
++.BR execve (2)
++for a relative pathname).
 +
- #endif
- 
- /*
-diff --git a/arch/x86/syscalls/syscall_32.tbl b/arch/x86/syscalls/syscall_32.tbl
-index 9fe1b5d002f0..b3560ece1c9f 100644
---- a/arch/x86/syscalls/syscall_32.tbl
-+++ b/arch/x86/syscalls/syscall_32.tbl
-@@ -364,3 +364,4 @@
- 355	i386	getrandom		sys_getrandom
- 356	i386	memfd_create		sys_memfd_create
- 357	i386	bpf			sys_bpf
-+358	i386	execveat		sys_execveat			stub32_execveat
-diff --git a/arch/x86/syscalls/syscall_64.tbl b/arch/x86/syscalls/syscall_64.tbl
-index 281150b539a2..8d656fbb57aa 100644
---- a/arch/x86/syscalls/syscall_64.tbl
-+++ b/arch/x86/syscalls/syscall_64.tbl
-@@ -328,6 +328,7 @@
- 319	common	memfd_create		sys_memfd_create
- 320	common	kexec_file_load		sys_kexec_file_load
- 321	common	bpf			sys_bpf
-+322	64	execveat		stub_execveat
- 
- #
- # x32-specific system call numbers start at 512 to avoid cache impact
-@@ -366,3 +367,4 @@
- 542	x32	getsockopt		compat_sys_getsockopt
- 543	x32	io_setup		compat_sys_io_setup
- 544	x32	io_submit		compat_sys_io_submit
-+545	x32	execveat		stub_x32_execveat
-diff --git a/arch/x86/um/sys_call_table_64.c b/arch/x86/um/sys_call_table_64.c
-index f2f0723070ca..20c3649d0691 100644
---- a/arch/x86/um/sys_call_table_64.c
-+++ b/arch/x86/um/sys_call_table_64.c
-@@ -31,6 +31,7 @@
- #define stub_fork sys_fork
- #define stub_vfork sys_vfork
- #define stub_execve sys_execve
-+#define stub_execveat sys_execveat
- #define stub_rt_sigreturn sys_rt_sigreturn
- 
- #define __SYSCALL_COMMON(nr, sym, compat) __SYSCALL_64(nr, sym, compat)
--- 
++If
++.I pathname
++is relative and
++.I fd
++is the special value
++.BR AT_FDCWD ,
++then
++.I pathname
++is interpreted relative to the current working
++directory of the calling process (like
++.BR execve (2)).
++
++If
++.I pathname
++is absolute, then
++.I fd
++is ignored.
++
++If
++.I pathname
++is an empty string and the
++.BR AT_EMPTY_PATH
++flag is specified, then the file descriptor
++.I fd
++specifies the file to be executed.
++
++.I flags
++can either be 0, or include the following flags:
++.TP
++.BR AT_EMPTY_PATH
++If
++.I pathname
++is an empty string, operate on the file referred to by
++.IR fd
++(which may have been obtained using the
++.BR open (2)
++.B O_PATH
++flag).
++.TP
++.B AT_SYMLINK_NOFOLLOW
++If the file identified by
++.I fd
++and a non-NULL
++.I pathname
++is a symbolic link, then the call fails with the error
++.BR EINVAL .
++.SH "RETURN VALUE"
++On success,
++.BR execveat ()
++does not return. On error \-1 is returned, and
++.I errno
++is set appropriately.
++.SH ERRORS
++The same errors that occur for
++.BR execve (2)
++can also occur for
++.BR execveat ().
++The following additional errors can occur for
++.BR execveat ():
++.TP
++.B EBADF
++.I fd
++is not a valid file descriptor.
++.TP
++.B ENOENT
++The program identified by \fIfd\fP and \fIpathname\fP requires the
++use of an interpreter program (such as a script starting with
++"#!") but the file descriptor
++.I fd
++was opened with the
++.B O_CLOEXEC
++flag and so the program file is inaccessible to the launched interpreter.
++.TP
++.B EINVAL
++Invalid flag specified in
++.IR flags .
++.TP
++.B ENOTDIR
++.I pathname
++is relative and
++.I fd
++is a file descriptor referring to a file other than a directory.
++.SH VERSIONS
++.BR execveat ()
++was added to Linux in kernel 3.???.
++.SH NOTES
++In addition to the reasons explained in
++.BR openat (2),
++the
++.BR execveat ()
++system call is also needed to allow
++.BR fexecve (3)
++to be implemented on systems that do not have the
++.I /proc
++filesystem mounted.
++.SH SEE ALSO
++.BR execve (2),
++.BR fexecve (3)
+--
 2.1.0.rc2.206.gedb03e5
-
