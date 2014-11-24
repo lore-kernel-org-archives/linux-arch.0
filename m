@@ -1,80 +1,161 @@
 From: Christian Borntraeger <borntraeger@de.ibm.com>
-Subject: [PATCH/RFC 2/7] mm: replace page table access via ACCESS_ONCE with barriers
-Date: Mon, 24 Nov 2014 14:03:25 +0100
-Message-ID: <1416834210-61738-3-git-send-email-borntraeger@de.ibm.com>
+Subject: [PATCH 1/7] KVM: s390: Fix ipte locking
+Date: Mon, 24 Nov 2014 14:03:24 +0100
+Message-ID: <1416834210-61738-2-git-send-email-borntraeger__35188.1181392402$1416834304$gmane$org@de.ibm.com>
 References: <1416834210-61738-1-git-send-email-borntraeger@de.ibm.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e06smtp17.uk.ibm.com ([195.75.94.113]:58589 "EHLO
-	e06smtp17.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753386AbaKXNDk (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 24 Nov 2014 08:03:40 -0500
+Received: from e06smtp15.uk.ibm.com ([195.75.94.111]:47248 "EHLO
+	e06smtp15.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753563AbaKXNDo (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 24 Nov 2014 08:03:44 -0500
 Received: from /spool/local
-	by e06smtp17.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	by e06smtp15.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
 	for <linux-arch@vger.kernel.org> from <borntraeger@de.ibm.com>;
-	Mon, 24 Nov 2014 13:03:38 -0000
+	Mon, 24 Nov 2014 13:03:42 -0000
 In-Reply-To: <1416834210-61738-1-git-send-email-borntraeger@de.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: "linux-arch@vger.kernel.org, linux-mips@linux-mips.org, linux-x86_64@vger.kernel.org, linux-s390"@vger.kernel.org, Paolo Bonzini <pbonzini@redhat.com>, paulmck@linux.vnet.ibm.com, mingo@kernel.org, torvalds@linux-foundation.org, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Christian Borntraeger <borntraeger@de.ibm.com>
+Cc: "linux-arch@vger.kernel.org, linux-mips@linux-mips.org, linux-x86_64@vger.kernel.org, linux-s390"@vger.kernel.org, Paolo Bonzini <pbonzini@redhat.com>, paulmck@linux.vnet.ibm.com, mingo@kernel.org, torvalds@linux-foundation.org, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Christian Borntraeger <borntraeger@de.ibm.com>, stable@vger.kernel.org, #@tuxmaker.boeblingen.de.ibm.com, v3.16+@tuxmaker.boeblingen.de.ibm.com
 
-ACCESS_ONCE does not work reliably on non-scalar types. For
-example gcc 4.6 and 4.7 might remove the volatile tag for such
-accesses during the SRA (scalar replacement of aggregates) step
-(https://gcc.gnu.org/bugzilla/show_bug.cgi?id=58145)
+ipte_unlock_siif uses cmpxchg to replace the in-memory data of the ipte
+lock together with ACCESS_ONCE for the intial read.
 
-Let's change the code to access the page table elements with
-a barrier afterwards.
+union ipte_control {
+        unsigned long val;
+        struct {
+                unsigned long k  : 1;
+                unsigned long kh : 31;
+                unsigned long kg : 32;
+        };
+};
+[...]
+static void ipte_unlock_siif(struct kvm_vcpu *vcpu)
+{
+        union ipte_control old, new, *ic;
+
+        ic = &vcpu->kvm->arch.sca->ipte_control;
+        do {
+                new = old = ACCESS_ONCE(*ic);
+                new.kh--;
+                if (!new.kh)
+                        new.k = 0;
+        } while (cmpxchg(&ic->val, old.val, new.val) != old.val);
+        if (!new.kh)
+                wake_up(&vcpu->kvm->arch.ipte_wq);
+}
+
+The new value, is loaded twice from memory with gcc 4.7.2 of
+fedora 18, despite the ACCESS_ONCE:
+
+--->
+
+l       %r4,0(%r3)      <--- load first 32 bit of lock (k and kh) in r4
+alfi    %r4,2147483647  <--- add -1 to r4
+llgtr   %r4,%r4         <--- zero out the sign bit of r4
+lg      %r1,0(%r3)      <--- load all 64 bit of lock into new
+lgr     %r2,%r1         <--- load the same into old
+risbg   %r1,%r4,1,31,32 <--- shift and insert r4 into the bits 1-31 of
+new
+llihf   %r4,2147483647
+ngrk    %r4,%r1,%r4
+jne     aa0 <ipte_unlock+0xf8>
+nihh    %r1,32767
+lgr     %r4,%r2
+csg     %r4,%r1,0(%r3)
+cgr     %r2,%r4
+jne     a70 <ipte_unlock+0xc8>
+
+If the memory value changes between the first load (l) and the second
+load (lg) we are broken. If that happens VCPU threads will hang
+(unkillable) in handle_ipte_interlock.
+
+Andreas Krebbel analyzed this and tracked it down to a compiler bug in
+that version:
+"while it is not that obvious the C99 standard basically forbids
+duplicating the memory access also in that case. For an argumentation of
+a similiar case please see:
+https://gcc.gnu.org/bugzilla/show_bug.cgi?id=22278#c43
+
+For the implementation-defined cases regarding volatile there are some
+GCC-specific clarifications which can be found here:
+https://gcc.gnu.org/onlinedocs/gcc/Volatiles.html#Volatiles
+
+I've tracked down the problem with a reduced testcase. The problem was
+that during a tree level optimization (SRA - scalar replacement of
+aggregates) the volatile marker is lost. And an RTL level optimizer (CSE
+- common subexpression elimination) then propagated the memory read into
+  its second use introducing another access to the memory location. So
+indeed Christian's suspicion that the union access has something to do
+with it is correct (since it triggered the SRA optimization).
+
+This issue has been reported and fixed in the GCC 4.8 development cycle:
+https://gcc.gnu.org/bugzilla/show_bug.cgi?id=58145"
+
+This patch replaces the ACCESS_ONCE scheme with a barrier() based scheme
+that should work for all supported compilers.
 
 Signed-off-by: Christian Borntraeger <borntraeger@de.ibm.com>
+Cc: stable@vger.kernel.org # v3.16+
 ---
- mm/gup.c    | 4 +++-
- mm/memory.c | 3 ++-
- mm/rmap.c   | 3 ++-
- 3 files changed, 7 insertions(+), 3 deletions(-)
+ arch/s390/kvm/gaccess.c | 20 ++++++++++++++------
+ 1 file changed, 14 insertions(+), 6 deletions(-)
 
-diff --git a/mm/gup.c b/mm/gup.c
-index cd62c8c..e44af3c 100644
---- a/mm/gup.c
-+++ b/mm/gup.c
-@@ -917,7 +917,9 @@ static int gup_pud_range(pgd_t *pgdp, unsigned long addr, unsigned long end,
- 
- 	pudp = pud_offset(pgdp, addr);
+diff --git a/arch/s390/kvm/gaccess.c b/arch/s390/kvm/gaccess.c
+index 0f961a1..6dc0ad9 100644
+--- a/arch/s390/kvm/gaccess.c
++++ b/arch/s390/kvm/gaccess.c
+@@ -229,10 +229,12 @@ static void ipte_lock_simple(struct kvm_vcpu *vcpu)
+ 		goto out;
+ 	ic = &vcpu->kvm->arch.sca->ipte_control;
  	do {
--		pud_t pud = ACCESS_ONCE(*pudp);
-+		pud_t pud = *pudp;
-+
+-		old = ACCESS_ONCE(*ic);
++		old = *ic;
 +		barrier();
+ 		while (old.k) {
+ 			cond_resched();
+-			old = ACCESS_ONCE(*ic);
++			old = *ic;
++			barrier();
+ 		}
+ 		new = old;
+ 		new.k = 1;
+@@ -251,7 +253,9 @@ static void ipte_unlock_simple(struct kvm_vcpu *vcpu)
+ 		goto out;
+ 	ic = &vcpu->kvm->arch.sca->ipte_control;
+ 	do {
+-		new = old = ACCESS_ONCE(*ic);
++		old = *ic;
++		barrier();
++		new = old;
+ 		new.k = 0;
+ 	} while (cmpxchg(&ic->val, old.val, new.val) != old.val);
+ 	wake_up(&vcpu->kvm->arch.ipte_wq);
+@@ -265,10 +269,12 @@ static void ipte_lock_siif(struct kvm_vcpu *vcpu)
  
- 		next = pud_addr_end(addr, end);
- 		if (pud_none(pud))
-diff --git a/mm/memory.c b/mm/memory.c
-index 3e50383..d982e35 100644
---- a/mm/memory.c
-+++ b/mm/memory.c
-@@ -3202,7 +3202,8 @@ static int handle_pte_fault(struct mm_struct *mm,
- 	pte_t entry;
- 	spinlock_t *ptl;
+ 	ic = &vcpu->kvm->arch.sca->ipte_control;
+ 	do {
+-		old = ACCESS_ONCE(*ic);
++		old = *ic;
++		barrier();
+ 		while (old.kg) {
+ 			cond_resched();
+-			old = ACCESS_ONCE(*ic);
++			old = *ic;
++			barrier();
+ 		}
+ 		new = old;
+ 		new.k = 1;
+@@ -282,7 +288,9 @@ static void ipte_unlock_siif(struct kvm_vcpu *vcpu)
  
--	entry = ACCESS_ONCE(*pte);
-+	entry = *pte;
-+	barrier();
- 	if (!pte_present(entry)) {
- 		if (pte_none(entry)) {
- 			if (vma->vm_ops) {
-diff --git a/mm/rmap.c b/mm/rmap.c
-index 19886fb..1e54274 100644
---- a/mm/rmap.c
-+++ b/mm/rmap.c
-@@ -581,7 +581,8 @@ pmd_t *mm_find_pmd(struct mm_struct *mm, unsigned long address)
- 	 * without holding anon_vma lock for write.  So when looking for a
- 	 * genuine pmde (in which to find pte), test present and !THP together.
- 	 */
--	pmde = ACCESS_ONCE(*pmd);
-+	pmde = *pmd;
-+	barrier();
- 	if (!pmd_present(pmde) || pmd_trans_huge(pmde))
- 		pmd = NULL;
- out:
+ 	ic = &vcpu->kvm->arch.sca->ipte_control;
+ 	do {
+-		new = old = ACCESS_ONCE(*ic);
++		old = *ic;
++		barrier();
++		new = old;
+ 		new.kh--;
+ 		if (!new.kh)
+ 			new.k = 0;
 -- 
 1.9.3
