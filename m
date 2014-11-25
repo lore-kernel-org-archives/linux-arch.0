@@ -1,13 +1,14 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:41807 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:35548 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750726AbaKYShJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 25 Nov 2014 13:37:09 -0500
-Subject: [PATCH v6 0/5] arch: Add lightweight memory barriers for coherent
- memory access
+	id S1751032AbaKYTZ7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 25 Nov 2014 14:25:59 -0500
+Subject: [PATCH v6 5/5] patch to allow arm cross-compile
 From: Alexander Duyck <alexander.h.duyck@redhat.com>
-Date: Tue, 25 Nov 2014 10:32:25 -0800
-Message-ID: <20141125183009.1486.20845.stgit@ahduyck-server>
+Date: Tue, 25 Nov 2014 10:33:22 -0800
+Message-ID: <20141125183322.1486.90766.stgit@ahduyck-server>
+In-Reply-To: <20141125183009.1486.20845.stgit@ahduyck-server>
+References: <20141125183009.1486.20845.stgit@ahduyck-server>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
@@ -15,90 +16,26 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, netdev@vger.kernel.org, linux-kernel@vger.kernel.org
 Cc: mathieu.desnoyers@polymtl.ca, peterz@infradead.org, benh@kernel.crashing.org, heiko.carstens@de.ibm.com, mingo@kernel.org, mikey@neuling.org, linux@arm.linux.org.uk, donald.c.skidmore@intel.com, matthew.vick@intel.com, geert@linux-m68k.org, jeffrey.t.kirsher@intel.com, romieu@fr.zoreil.com, paulmck@linux.vnet.ibm.com, nic_swsd@realtek.com, arnd@arndb.de, will.deacon@arm.com, michael@ellerman.id.au, tony.luck@intel.com, torvalds@linux-foundation.org, oleg@redhat.com, schwidefsky@de.ibm.com, fweisbec@gmail.com, davem@davemloft.net
-Message-ID: <20141125183225.uvZ7vJITV0agawoW_7UKk3g3RxPB0MCE8drJi-ZjqZs@z>
+Message-ID: <20141125183322.BPNify4J7t6F9PR7G54zV366-e1MiR8wf0IbmMXqK5A@z>
 
-These patches introduce two new primitives for synchronizing cache coherent
-memory writes and reads.  These two new primitives are:
-
-	dma_rmb()
-	dma_wmb()
-
-The first patch cleans up some unnecessary overhead related to the
-definition of read_barrier_depends, smp_read_barrier_depends, and comments
-related to the barrier.
-
-The second patch adds the primitives for the applicable architectures and
-asm-generic.
-
-The third patch adds the barriers to r8169 which turns out to be a good
-example of where the new barriers might be useful as they have full
-rmb()/wmb() barriers ordering accesses to the descriptors and the DescOwn
-bit.
-
-The fourth patch adds support for coherent_rmb() to the Intel fm10k, igb,
-and ixgbe drivers.  Testing with the ixgbe driver has shown a processing
-time reduction of at least 7ns per 64B frame on a Core i7-4930K.
-
-This patch series is essentially the v6 for:
-v4,v5:	Add lightweight memory barriers for coherent memory access
-v3:	Add lightweight memory barriers fast_rmb() and fast_wmb()
-v2:	Introduce load_acquire() and store_release()
-v1:	Introduce read_acquire()
-
-The key changes in this patch series versus the earlier patches are:
-v6:
-	- Replaced "memory based device I/O" with "consistent memory" in docs
-	- Added reference to DMA-API.txt to explain consistent memory
-v5:
-	- Renamed barriers dma_rmb and dma_wmb
-	- Undid smp_wmb changes in x86 and PowerPC
-	- Defined smp_rmb as __lwsync for SMP case on PowerPC
-v4:
-	- Renamed barriers coherent_rmb and coherent_wmb
-	- Added smp_lwsync for use in smp_load_acquire/smp_store_release
-v3:
-	- Moved away from acquire()/store() and instead focused on barriers
-	- Added cleanup of read_barrier_depends
-	- Added change in r8169 to fix cur_tx/DescOwn ordering
-	- Simplified changes to just replacing/moving barriers in r8169
-	- Added update to documentation with code example
-v2:
-	- Renamed read_acquire() to be consistent with smp_load_acquire()
-	- Changed barrier used to be consistent with smp_load_acquire()
-	- Updated PowerPC code to use __lwsync based on IBM article
-	- Added store_release() as this is a viable use case for drivers
-	- Added r8169 patch which is able to fully use primitives
-	- Added fm10k/igb/ixgbe patch which is able to test performance
 
 ---
+ arch/arm/kernel/asm-offsets.c |    4 ----
+ 1 file changed, 4 deletions(-)
 
-Alexander Duyck (5):
-      arch: Cleanup read_barrier_depends() and comments
-      arch: Add lightweight memory barriers dma_rmb() and dma_wmb()
-      r8169: Use dma_rmb() and dma_wmb() for DescOwn checks
-      fm10k/igb/ixgbe: Use dma_rmb on Rx descriptor reads
-      patch to allow arm cross-compile
+diff --git a/arch/arm/kernel/asm-offsets.c b/arch/arm/kernel/asm-offsets.c
+index 2d2d608..6f8e79c 100644
+--- a/arch/arm/kernel/asm-offsets.c
++++ b/arch/arm/kernel/asm-offsets.c
+@@ -49,10 +49,6 @@
+ #error Your compiler is too buggy; it is known to miscompile kernels.
+ #error    Known good compilers: 3.3, 4.x
+ #endif
+-#if GCC_VERSION >= 40800 && GCC_VERSION < 40803
+-#error Your compiler is too buggy; it is known to miscompile kernels
+-#error and result in filesystem corruption and oopses.
+-#endif
+ #endif
+ 
+ int main(void)
 
-
- Documentation/memory-barriers.txt             |   42 +++++++++++++++
- arch/alpha/include/asm/barrier.h              |   51 ++++++++++++++++++
- arch/arm/include/asm/barrier.h                |    4 +
- arch/arm/kernel/asm-offsets.c                 |    4 -
- arch/arm64/include/asm/barrier.h              |    3 +
- arch/blackfin/include/asm/barrier.h           |   51 ++++++++++++++++++
- arch/ia64/include/asm/barrier.h               |   25 ++++-----
- arch/metag/include/asm/barrier.h              |   19 ++++---
- arch/mips/include/asm/barrier.h               |   61 ++--------------------
- arch/powerpc/include/asm/barrier.h            |   19 ++++---
- arch/s390/include/asm/barrier.h               |    7 ++-
- arch/sparc/include/asm/barrier_64.h           |    7 ++-
- arch/x86/include/asm/barrier.h                |   70 ++++---------------------
- arch/x86/um/asm/barrier.h                     |   20 ++++---
- drivers/net/ethernet/intel/fm10k/fm10k_main.c |    6 +-
- drivers/net/ethernet/intel/igb/igb_main.c     |    6 +-
- drivers/net/ethernet/intel/ixgbe/ixgbe_main.c |    9 +--
- drivers/net/ethernet/realtek/r8169.c          |   29 ++++++++--
- include/asm-generic/barrier.h                 |    8 +++
- 19 files changed, 258 insertions(+), 183 deletions(-)
-
---
