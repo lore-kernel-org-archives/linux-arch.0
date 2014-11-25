@@ -1,67 +1,397 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e33.co.us.ibm.com ([32.97.110.151]:35425 "EHLO
-	e33.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750910AbaKYRum (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 25 Nov 2014 12:50:42 -0500
-Received: from /spool/local
-	by e33.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-	Tue, 25 Nov 2014 10:50:41 -0700
-Date: Tue, 25 Nov 2014 09:50:36 -0800
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: Re: [PATCHv2 02/10] kernel: Provide READ_ONCE and ASSIGN_ONCE
-Message-ID: <20141125175036.GH5050@linux.vnet.ibm.com>
-Reply-To: paulmck@linux.vnet.ibm.com
-References: <1416919117-50652-1-git-send-email-borntraeger@de.ibm.com>
- <1416919117-50652-3-git-send-email-borntraeger@de.ibm.com>
- <20141125155943.GB5050@linux.vnet.ibm.com>
- <CA+55aFzY_LSLM8R2cbt=sZe8UeDtUZdX8zO6Bzf52EBg3H30qw@mail.gmail.com>
+Received: from mx1.redhat.com ([209.132.183.28]:56721 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1750891AbaKYSed (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 25 Nov 2014 13:34:33 -0500
+Subject: [PATCH v6 2/5] arch: Add lightweight memory barriers dma_rmb() and
+ dma_wmb()
+From: Alexander Duyck <alexander.h.duyck@redhat.com>
+Date: Tue, 25 Nov 2014 10:32:48 -0800
+Message-ID: <20141125183248.1486.86776.stgit@ahduyck-server>
+In-Reply-To: <20141125183009.1486.20845.stgit@ahduyck-server>
+References: <20141125183009.1486.20845.stgit@ahduyck-server>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <CA+55aFzY_LSLM8R2cbt=sZe8UeDtUZdX8zO6Bzf52EBg3H30qw@mail.gmail.com>
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Christian Borntraeger <borntraeger@de.ibm.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, Ingo Molnar <mingo@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Alexei Starovoitov <alexei.starovoitov@gmail.com>, David Howells <dhowells@redhat.com>, Russell King <linux@arm.linux.org.uk>
-Message-ID: <20141125175036.vtmgs6n8hr9uPaIxUkXblYVqekKO7jFmV-B0M9JkTwk@z>
+To: linux-arch@vger.kernel.org, netdev@vger.kernel.org, linux-kernel@vger.kernel.org
+Cc: mathieu.desnoyers@polymtl.ca, peterz@infradead.org, benh@kernel.crashing.org, heiko.carstens@de.ibm.com, mingo@kernel.org, mikey@neuling.org, linux@arm.linux.org.uk, donald.c.skidmore@intel.com, matthew.vick@intel.com, geert@linux-m68k.org, jeffrey.t.kirsher@intel.com, romieu@fr.zoreil.com, paulmck@linux.vnet.ibm.com, nic_swsd@realtek.com, arnd@arndb.de, will.deacon@arm.com, michael@ellerman.id.au, tony.luck@intel.com, torvalds@linux-foundation.org, oleg@redhat.com, schwidefsky@de.ibm.com, fweisbec@gmail.com, davem@davemloft.net
+Message-ID: <20141125183248.LRuFHlxGF9JOqZsx0ZmSzHsy86tQO4LatlbDkjSj3FU@z>
 
-On Tue, Nov 25, 2014 at 09:28:33AM -0800, Linus Torvalds wrote:
-> On Tue, Nov 25, 2014 at 7:59 AM, Paul E. McKenney
-> <paulmck@linux.vnet.ibm.com> wrote:
-> >
-> > We really need something like this to catch invalid sizes:
-> >
-> >         default: invoke_nonexistent_function();
-> 
-> Actually, I wonder if we should make the default: case actually just
-> do something like
-> 
->    barrier();
->    memcpy(res, p, size);
->    barrier();
-> 
-> which in no way guarantees that it's an _atomic_ access, but it does
-> guarantee the semantics that you get one particular value and it won't
-> get reloaded later..
-> 
-> That would solve the crazy sparc pte issue too.
+There are a number of situations where the mandatory barriers rmb() and
+wmb() are used to order memory/memory operations in the device drivers
+and those barriers are much heavier than they actually need to be.  For
+example in the case of PowerPC wmb() calls the heavy-weight sync
+instruction when for coherent memory operations all that is really needed
+is an lsync or eieio instruction.
 
-I would be really worried about confusion due to load/store tearing,
-where a READ_ONCE() reads part of its value from one ASSIGN_ONCE()
-and the other part from some other ASSIGN_ONCE().  Don't get me wrong,
-there are cases where the load/store tearing is harmless, it is just
-that in my experience that these cases are anything but the common case.
+This commit adds a coherent only version of the mandatory memory barriers
+rmb() and wmb().  In most cases this should result in the barrier being the
+same as the SMP barriers for the SMP case, however in some cases we use a
+barrier that is somewhere in between rmb() and smp_rmb().  For example on
+ARM the rmb barriers break down as follows:
 
-That said, I do not claim to be familiar with more than a microscopic
-fraction of the Linux kernel.
+  Barrier   Call     Explanation
+  --------- -------- ----------------------------------
+  rmb()     dsb()    Data synchronization barrier - system
+  dma_rmb() dmb(osh) data memory barrier - outer sharable
+  smp_rmb() dmb(ish) data memory barrier - inner sharable
 
-Of course, one way to resolve this would be to have one variant that did
-the memcpy() and another that threw a build error, maybe READ_ONCE_FORCE()
-and ASSIGN_ONCE_FORC() or some such.  I would -really- like to be informed
-if I do READ_ONCE() of a long long on a 32-bit system.  ;-)
+These new barriers are not as safe as the standard rmb() and wmb().
+Specifically they do not guarantee ordering between coherent and incoherent
+memories.  The primary use case for these would be to enforce ordering of
+reads and writes when accessing coherent memory that is shared between the
+CPU and a device.
 
-/me goes off to see if there are any ACCESS_ONCE() of long longs in RCU...
+It may also be noted that there is no dma_mb().  Most architectures don't
+provide a good mechanism for performing a coherent only full barrier without
+resorting to the same mechanism used in mb().  As such there isn't much to
+be gained in trying to define such a function.
 
-							Thanx, Paul
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Frederic Weisbecker <fweisbec@gmail.com>
+Cc: Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>
+Cc: Michael Ellerman <michael@ellerman.id.au>
+Cc: Michael Neuling <mikey@neuling.org>
+Cc: Russell King <linux@arm.linux.org.uk>
+Cc: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Cc: Tony Luck <tony.luck@intel.com>
+Cc: Oleg Nesterov <oleg@redhat.com>
+Cc: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: Ingo Molnar <mingo@kernel.org>
+Cc: David Miller <davem@davemloft.net>
+Acked-by: Will Deacon <will.deacon@arm.com>
+Signed-off-by: Alexander Duyck <alexander.h.duyck@redhat.com>
+---
+ Documentation/memory-barriers.txt   |   42 +++++++++++++++++++++++++++++++++++
+ arch/arm/include/asm/barrier.h      |    4 +++
+ arch/arm64/include/asm/barrier.h    |    3 +++
+ arch/ia64/include/asm/barrier.h     |    3 +++
+ arch/metag/include/asm/barrier.h    |   14 ++++++------
+ arch/mips/include/asm/barrier.h     |    9 ++++----
+ arch/powerpc/include/asm/barrier.h  |   13 +++++++----
+ arch/s390/include/asm/barrier.h     |    2 ++
+ arch/sparc/include/asm/barrier_64.h |    3 +++
+ arch/x86/include/asm/barrier.h      |   11 ++++++---
+ arch/x86/um/asm/barrier.h           |   13 ++++++-----
+ include/asm-generic/barrier.h       |    8 +++++++
+ 12 files changed, 99 insertions(+), 26 deletions(-)
+
+diff --git a/Documentation/memory-barriers.txt b/Documentation/memory-barriers.txt
+index ef0ca7c..a85694b 100644
+--- a/Documentation/memory-barriers.txt
++++ b/Documentation/memory-barriers.txt
+@@ -1664,6 +1664,48 @@ There are some more advanced barrier functions:
+      operations" subsection for information on where to use these.
+ 
+ 
++ (*) dma_wmb();
++ (*) dma_rmb();
++
++     These are for use with consistent memory to guarantee the ordering
++     of writes or reads of shared memory accessible to both the CPU and a
++     DMA capable device.
++
++     For example, consider a device driver that shares memory with a device
++     and uses a descriptor status value to indicate if the descriptor belongs
++     to the device or the CPU, and a doorbell to notify it when new
++     descriptors are available:
++
++	if (desc->status != DEVICE_OWN) {
++		/* do not read data until we own descriptor */
++		dma_rmb();
++
++		/* read/modify data */
++		read_data = desc->data;
++		desc->data = write_data;
++
++		/* flush modifications before status update */
++		dma_wmb();
++
++		/* assign ownership */
++		desc->status = DEVICE_OWN;
++
++		/* force memory to sync before notifying device via MMIO */
++		wmb();
++
++		/* notify device of new descriptors */
++		writel(DESC_NOTIFY, doorbell);
++	}
++
++     The dma_rmb() allows us guarantee the device has released ownership
++     before we read the data from the descriptor, and he dma_wmb() allows
++     us to guarantee the data is written to the descriptor before the device
++     can see it now has ownership.  The wmb() is needed to guarantee that the
++     cache coherent memory writes have completed before attempting a write to
++     the cache incoherent MMIO region.
++
++     See Documentation/DMA-API.txt for more information on consistent memory.
++
+ MMIO WRITE BARRIER
+ ------------------
+ 
+diff --git a/arch/arm/include/asm/barrier.h b/arch/arm/include/asm/barrier.h
+index c6a3e73..d2f81e6 100644
+--- a/arch/arm/include/asm/barrier.h
++++ b/arch/arm/include/asm/barrier.h
+@@ -43,10 +43,14 @@
+ #define mb()		do { dsb(); outer_sync(); } while (0)
+ #define rmb()		dsb()
+ #define wmb()		do { dsb(st); outer_sync(); } while (0)
++#define dma_rmb()	dmb(osh)
++#define dma_wmb()	dmb(oshst)
+ #else
+ #define mb()		barrier()
+ #define rmb()		barrier()
+ #define wmb()		barrier()
++#define dma_rmb()	barrier()
++#define dma_wmb()	barrier()
+ #endif
+ 
+ #ifndef CONFIG_SMP
+diff --git a/arch/arm64/include/asm/barrier.h b/arch/arm64/include/asm/barrier.h
+index 6389d60..a5abb00 100644
+--- a/arch/arm64/include/asm/barrier.h
++++ b/arch/arm64/include/asm/barrier.h
+@@ -32,6 +32,9 @@
+ #define rmb()		dsb(ld)
+ #define wmb()		dsb(st)
+ 
++#define dma_rmb()	dmb(oshld)
++#define dma_wmb()	dmb(oshst)
++
+ #ifndef CONFIG_SMP
+ #define smp_mb()	barrier()
+ #define smp_rmb()	barrier()
+diff --git a/arch/ia64/include/asm/barrier.h b/arch/ia64/include/asm/barrier.h
+index e8fffb0..f6769eb 100644
+--- a/arch/ia64/include/asm/barrier.h
++++ b/arch/ia64/include/asm/barrier.h
+@@ -39,6 +39,9 @@
+ #define rmb()		mb()
+ #define wmb()		mb()
+ 
++#define dma_rmb()	mb()
++#define dma_wmb()	mb()
++
+ #ifdef CONFIG_SMP
+ # define smp_mb()	mb()
+ #else
+diff --git a/arch/metag/include/asm/barrier.h b/arch/metag/include/asm/barrier.h
+index 6d8b8c9..d703d8e 100644
+--- a/arch/metag/include/asm/barrier.h
++++ b/arch/metag/include/asm/barrier.h
+@@ -4,8 +4,6 @@
+ #include <asm/metag_mem.h>
+ 
+ #define nop()		asm volatile ("NOP")
+-#define mb()		wmb()
+-#define rmb()		barrier()
+ 
+ #ifdef CONFIG_METAG_META21
+ 
+@@ -41,11 +39,13 @@ static inline void wr_fence(void)
+ 
+ #endif /* !CONFIG_METAG_META21 */
+ 
+-static inline void wmb(void)
+-{
+-	/* flush writes through the write combiner */
+-	wr_fence();
+-}
++/* flush writes through the write combiner */
++#define mb()		wr_fence()
++#define rmb()		barrier()
++#define wmb()		mb()
++
++#define dma_rmb()	rmb()
++#define dma_wmb()	wmb()
+ 
+ #ifndef CONFIG_SMP
+ #define fence()		do { } while (0)
+diff --git a/arch/mips/include/asm/barrier.h b/arch/mips/include/asm/barrier.h
+index 3d69aa8..2b8bbbc 100644
+--- a/arch/mips/include/asm/barrier.h
++++ b/arch/mips/include/asm/barrier.h
+@@ -75,20 +75,21 @@
+ 
+ #include <asm/wbflush.h>
+ 
+-#define wmb()		fast_wmb()
+-#define rmb()		fast_rmb()
+ #define mb()		wbflush()
+ #define iob()		wbflush()
+ 
+ #else /* !CONFIG_CPU_HAS_WB */
+ 
+-#define wmb()		fast_wmb()
+-#define rmb()		fast_rmb()
+ #define mb()		fast_mb()
+ #define iob()		fast_iob()
+ 
+ #endif /* !CONFIG_CPU_HAS_WB */
+ 
++#define wmb()		fast_wmb()
++#define rmb()		fast_rmb()
++#define dma_wmb()	fast_wmb()
++#define dma_rmb()	fast_rmb()
++
+ #if defined(CONFIG_WEAK_ORDERING) && defined(CONFIG_SMP)
+ # ifdef CONFIG_CPU_CAVIUM_OCTEON
+ #  define smp_mb()	__sync()
+diff --git a/arch/powerpc/include/asm/barrier.h b/arch/powerpc/include/asm/barrier.h
+index cb6d66c..a3bf5be 100644
+--- a/arch/powerpc/include/asm/barrier.h
++++ b/arch/powerpc/include/asm/barrier.h
+@@ -36,8 +36,6 @@
+ 
+ #define set_mb(var, value)	do { var = value; mb(); } while (0)
+ 
+-#ifdef CONFIG_SMP
+-
+ #ifdef __SUBARCH_HAS_LWSYNC
+ #    define SMPWMB      LWSYNC
+ #else
+@@ -45,12 +43,17 @@
+ #endif
+ 
+ #define __lwsync()	__asm__ __volatile__ (stringify_in_c(LWSYNC) : : :"memory")
++#define dma_rmb()	__lwsync()
++#define dma_wmb()	__asm__ __volatile__ (stringify_in_c(SMPWMB) : : :"memory")
++
++#ifdef CONFIG_SMP
++#define smp_lwsync()	__lwsync()
+ 
+ #define smp_mb()	mb()
+ #define smp_rmb()	__lwsync()
+ #define smp_wmb()	__asm__ __volatile__ (stringify_in_c(SMPWMB) : : :"memory")
+ #else
+-#define __lwsync()	barrier()
++#define smp_lwsync()	barrier()
+ 
+ #define smp_mb()	barrier()
+ #define smp_rmb()	barrier()
+@@ -72,7 +75,7 @@
+ #define smp_store_release(p, v)						\
+ do {									\
+ 	compiletime_assert_atomic_type(*p);				\
+-	__lwsync();							\
++	smp_lwsync();							\
+ 	ACCESS_ONCE(*p) = (v);						\
+ } while (0)
+ 
+@@ -80,7 +83,7 @@ do {									\
+ ({									\
+ 	typeof(*p) ___p1 = ACCESS_ONCE(*p);				\
+ 	compiletime_assert_atomic_type(*p);				\
+-	__lwsync();							\
++	smp_lwsync();							\
+ 	___p1;								\
+ })
+ 
+diff --git a/arch/s390/include/asm/barrier.h b/arch/s390/include/asm/barrier.h
+index 33d191d..8d72471 100644
+--- a/arch/s390/include/asm/barrier.h
++++ b/arch/s390/include/asm/barrier.h
+@@ -24,6 +24,8 @@
+ 
+ #define rmb()				mb()
+ #define wmb()				mb()
++#define dma_rmb()			rmb()
++#define dma_wmb()			wmb()
+ #define smp_mb()			mb()
+ #define smp_rmb()			rmb()
+ #define smp_wmb()			wmb()
+diff --git a/arch/sparc/include/asm/barrier_64.h b/arch/sparc/include/asm/barrier_64.h
+index 6c974c0..7664894 100644
+--- a/arch/sparc/include/asm/barrier_64.h
++++ b/arch/sparc/include/asm/barrier_64.h
+@@ -37,6 +37,9 @@ do {	__asm__ __volatile__("ba,pt	%%xcc, 1f\n\t" \
+ #define rmb()	__asm__ __volatile__("":::"memory")
+ #define wmb()	__asm__ __volatile__("":::"memory")
+ 
++#define dma_rmb()	rmb()
++#define dma_wmb()	wmb()
++
+ #define set_mb(__var, __value) \
+ 	do { __var = __value; membar_safe("#StoreLoad"); } while(0)
+ 
+diff --git a/arch/x86/include/asm/barrier.h b/arch/x86/include/asm/barrier.h
+index 5238000..2ab1eb3 100644
+--- a/arch/x86/include/asm/barrier.h
++++ b/arch/x86/include/asm/barrier.h
+@@ -24,13 +24,16 @@
+ #define wmb()	asm volatile("sfence" ::: "memory")
+ #endif
+ 
+-#ifdef CONFIG_SMP
+-#define smp_mb()	mb()
+ #ifdef CONFIG_X86_PPRO_FENCE
+-# define smp_rmb()	rmb()
++#define dma_rmb()	rmb()
+ #else
+-# define smp_rmb()	barrier()
++#define dma_rmb()	barrier()
+ #endif
++#define dma_wmb()	barrier()
++
++#ifdef CONFIG_SMP
++#define smp_mb()	mb()
++#define smp_rmb()	dma_rmb()
+ #define smp_wmb()	barrier()
+ #define set_mb(var, value) do { (void)xchg(&var, value); } while (0)
+ #else /* !SMP */
+diff --git a/arch/x86/um/asm/barrier.h b/arch/x86/um/asm/barrier.h
+index d6511d9..2d7d9a1 100644
+--- a/arch/x86/um/asm/barrier.h
++++ b/arch/x86/um/asm/barrier.h
+@@ -29,17 +29,18 @@
+ 
+ #endif /* CONFIG_X86_32 */
+ 
+-#ifdef CONFIG_SMP
+-
+-#define smp_mb()	mb()
+ #ifdef CONFIG_X86_PPRO_FENCE
+-#define smp_rmb()	rmb()
++#define dma_rmb()	rmb()
+ #else /* CONFIG_X86_PPRO_FENCE */
+-#define smp_rmb()	barrier()
++#define dma_rmb()	barrier()
+ #endif /* CONFIG_X86_PPRO_FENCE */
++#define dma_wmb()	barrier()
+ 
+-#define smp_wmb()	barrier()
++#ifdef CONFIG_SMP
+ 
++#define smp_mb()	mb()
++#define smp_rmb()	dma_rmb()
++#define smp_wmb()	barrier()
+ #define set_mb(var, value) do { (void)xchg(&var, value); } while (0)
+ 
+ #else /* CONFIG_SMP */
+diff --git a/include/asm-generic/barrier.h b/include/asm-generic/barrier.h
+index 1402fa8..f5c40b0 100644
+--- a/include/asm-generic/barrier.h
++++ b/include/asm-generic/barrier.h
+@@ -42,6 +42,14 @@
+ #define wmb()	mb()
+ #endif
+ 
++#ifndef dma_rmb
++#define dma_rmb()	rmb()
++#endif
++
++#ifndef dma_wmb
++#define dma_wmb()	wmb()
++#endif
++
+ #ifndef read_barrier_depends
+ #define read_barrier_depends()		do { } while (0)
+ #endif
 
