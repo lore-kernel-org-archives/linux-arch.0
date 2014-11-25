@@ -1,15 +1,15 @@
 From: Christian Borntraeger <borntraeger@de.ibm.com>
-Subject: [PATCHv2 08/10] arm: Replace ACCESS_ONCE for spinlock code with READ_ONCE
-Date: Tue, 25 Nov 2014 13:38:35 +0100
-Message-ID: <1416919117-50652-9-git-send-email-borntraeger__41978.9394749843$1416919197$gmane$org@de.ibm.com>
+Subject: [PATCHv2 06/10] mips: Replace ACCESS_ONCE in gup with READ_ONCE
+Date: Tue, 25 Nov 2014 13:38:33 +0100
+Message-ID: <1416919117-50652-7-git-send-email-borntraeger__8025.45226547426$1416919198$gmane$org@de.ibm.com>
 References: <1416919117-50652-1-git-send-email-borntraeger@de.ibm.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e06smtp14.uk.ibm.com ([195.75.94.110]:43371 "EHLO
-	e06smtp14.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754165AbaKYMir (ORCPT
+Received: from e06smtp16.uk.ibm.com ([195.75.94.112]:36476 "EHLO
+	e06smtp16.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754131AbaKYMir (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>); Tue, 25 Nov 2014 07:38:47 -0500
 Received: from /spool/local
-	by e06smtp14.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	by e06smtp16.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
 	for <linux-arch@vger.kernel.org> from <borntraeger@de.ibm.com>;
 	Tue, 25 Nov 2014 12:38:45 -0000
 In-Reply-To: <1416919117-50652-1-git-send-email-borntraeger@de.ibm.com>
@@ -21,33 +21,27 @@ Cc: "linux-arch@vger.kernel.org, linux-mips@linux-mips.org, linux-x86_64@vger.ke
 ACCESS_ONCE does not work reliably on non-scalar types. For
 example gcc 4.6 and 4.7 might remove the volatile tag for such
 accesses during the SRA (scalar replacement of aggregates) step
-(https://gcc.gnu.org/bugzilla/show_bug.cgi?id=58145)
+https://gcc.gnu.org/bugzilla/show_bug.cgi?id=58145)
 
-Change the spinlock code to replace ACCESS_ONCE with READ_ONCE.
+Change the gup code to replace ACCESS_ONCE with READ_ONCE.
 
 Signed-off-by: Christian Borntraeger <borntraeger@de.ibm.com>
 ---
- arch/arm/include/asm/spinlock.h | 4 ++--
- 1 file changed, 2 insertions(+), 2 deletions(-)
+ arch/mips/mm/gup.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/arch/arm/include/asm/spinlock.h b/arch/arm/include/asm/spinlock.h
-index ac4bfae..0fa4184 100644
---- a/arch/arm/include/asm/spinlock.h
-+++ b/arch/arm/include/asm/spinlock.h
-@@ -120,12 +120,12 @@ static inline int arch_spin_value_unlocked(arch_spinlock_t lock)
+diff --git a/arch/mips/mm/gup.c b/arch/mips/mm/gup.c
+index 06ce17c..8aa50e3 100644
+--- a/arch/mips/mm/gup.c
++++ b/arch/mips/mm/gup.c
+@@ -30,7 +30,7 @@ retry:
  
- static inline int arch_spin_is_locked(arch_spinlock_t *lock)
- {
--	return !arch_spin_value_unlocked(ACCESS_ONCE(*lock));
-+	return !arch_spin_value_unlocked(READ_ONCE(*lock));
+ 	return pte;
+ #else
+-	return ACCESS_ONCE(*ptep);
++	return READ_ONCE(*ptep);
+ #endif
  }
  
- static inline int arch_spin_is_contended(arch_spinlock_t *lock)
- {
--	struct __raw_tickets tickets = ACCESS_ONCE(lock->tickets);
-+	struct __raw_tickets tickets = READ_ONCE(lock->tickets);
- 	return (tickets.next - tickets.owner) > 1;
- }
- #define arch_spin_is_contended	arch_spin_is_contended
 -- 
 1.9.3
