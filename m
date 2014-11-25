@@ -1,87 +1,53 @@
 From: Christian Borntraeger <borntraeger@de.ibm.com>
-Subject: [PATCHv2 10/10] KVM: s390: change ipte lock from barrier to READ_ONCE
-Date: Tue, 25 Nov 2014 13:38:37 +0100
-Message-ID: <1416919117-50652-11-git-send-email-borntraeger__40395.2312459753$1416919147$gmane$org@de.ibm.com>
+Subject: [PATCHv2 08/10] arm: Replace ACCESS_ONCE for spinlock code with READ_ONCE
+Date: Tue, 25 Nov 2014 13:38:35 +0100
+Message-ID: <1416919117-50652-9-git-send-email-borntraeger__41978.9394749843$1416919197$gmane$org@de.ibm.com>
 References: <1416919117-50652-1-git-send-email-borntraeger@de.ibm.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e06smtp13.uk.ibm.com ([195.75.94.109]:41425 "EHLO
-	e06smtp13.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752287AbaKYMiq (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 25 Nov 2014 07:38:46 -0500
+Received: from e06smtp14.uk.ibm.com ([195.75.94.110]:43371 "EHLO
+	e06smtp14.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754165AbaKYMir (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 25 Nov 2014 07:38:47 -0500
 Received: from /spool/local
-	by e06smtp13.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	by e06smtp14.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
 	for <linux-arch@vger.kernel.org> from <borntraeger@de.ibm.com>;
-	Tue, 25 Nov 2014 12:38:44 -0000
+	Tue, 25 Nov 2014 12:38:45 -0000
 In-Reply-To: <1416919117-50652-1-git-send-email-borntraeger@de.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
 Cc: "linux-arch@vger.kernel.org, linux-mips@linux-mips.org, linux-x86_64@vger.kernel.org, linux-s390"@vger.kernel.org, Paolo Bonzini <pbonzini@redhat.com>, paulmck@linux.vnet.ibm.com, mingo@kernel.org, torvalds@linux-foundation.org, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Alexei Starovoitov <alexei.starovoitov@gmail.com>, David Howells <dhowells@redhat.com>, Russell King <linux@arm.linux.org.uk>, Christian Borntraeger <borntraeger@de.ibm.com>
 
-Now that we have the READ_ONCE solution, we can change the ipte lock
-from a barrier solution to READ_ONCE. The barrier and the explanation
-of the bug was introduced in commit 1365039d0cb3 ("KVM: s390: Fix
-ipte locking")
+ACCESS_ONCE does not work reliably on non-scalar types. For
+example gcc 4.6 and 4.7 might remove the volatile tag for such
+accesses during the SRA (scalar replacement of aggregates) step
+(https://gcc.gnu.org/bugzilla/show_bug.cgi?id=58145)
 
-Cc: Paolo Bonzini <pbonzini@redhat.com>
+Change the spinlock code to replace ACCESS_ONCE with READ_ONCE.
+
 Signed-off-by: Christian Borntraeger <borntraeger@de.ibm.com>
 ---
- arch/s390/kvm/gaccess.c | 18 ++++++------------
- 1 file changed, 6 insertions(+), 12 deletions(-)
+ arch/arm/include/asm/spinlock.h | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
 
-diff --git a/arch/s390/kvm/gaccess.c b/arch/s390/kvm/gaccess.c
-index 6dc0ad9..8f195fa 100644
---- a/arch/s390/kvm/gaccess.c
-+++ b/arch/s390/kvm/gaccess.c
-@@ -229,12 +229,10 @@ static void ipte_lock_simple(struct kvm_vcpu *vcpu)
- 		goto out;
- 	ic = &vcpu->kvm->arch.sca->ipte_control;
- 	do {
--		old = *ic;
--		barrier();
-+		old = READ_ONCE(*ic);
- 		while (old.k) {
- 			cond_resched();
--			old = *ic;
--			barrier();
-+			old = READ_ONCE(*ic);
- 		}
- 		new = old;
- 		new.k = 1;
-@@ -253,8 +251,7 @@ static void ipte_unlock_simple(struct kvm_vcpu *vcpu)
- 		goto out;
- 	ic = &vcpu->kvm->arch.sca->ipte_control;
- 	do {
--		old = *ic;
--		barrier();
-+		old = READ_ONCE(*ic);
- 		new = old;
- 		new.k = 0;
- 	} while (cmpxchg(&ic->val, old.val, new.val) != old.val);
-@@ -269,12 +266,10 @@ static void ipte_lock_siif(struct kvm_vcpu *vcpu)
+diff --git a/arch/arm/include/asm/spinlock.h b/arch/arm/include/asm/spinlock.h
+index ac4bfae..0fa4184 100644
+--- a/arch/arm/include/asm/spinlock.h
++++ b/arch/arm/include/asm/spinlock.h
+@@ -120,12 +120,12 @@ static inline int arch_spin_value_unlocked(arch_spinlock_t lock)
  
- 	ic = &vcpu->kvm->arch.sca->ipte_control;
- 	do {
--		old = *ic;
--		barrier();
-+		old = READ_ONCE(*ic);
- 		while (old.kg) {
- 			cond_resched();
--			old = *ic;
--			barrier();
-+			old = READ_ONCE(*ic);
- 		}
- 		new = old;
- 		new.k = 1;
-@@ -288,8 +283,7 @@ static void ipte_unlock_siif(struct kvm_vcpu *vcpu)
+ static inline int arch_spin_is_locked(arch_spinlock_t *lock)
+ {
+-	return !arch_spin_value_unlocked(ACCESS_ONCE(*lock));
++	return !arch_spin_value_unlocked(READ_ONCE(*lock));
+ }
  
- 	ic = &vcpu->kvm->arch.sca->ipte_control;
- 	do {
--		old = *ic;
--		barrier();
-+		old = READ_ONCE(*ic);
- 		new = old;
- 		new.kh--;
- 		if (!new.kh)
+ static inline int arch_spin_is_contended(arch_spinlock_t *lock)
+ {
+-	struct __raw_tickets tickets = ACCESS_ONCE(lock->tickets);
++	struct __raw_tickets tickets = READ_ONCE(lock->tickets);
+ 	return (tickets.next - tickets.owner) > 1;
+ }
+ #define arch_spin_is_contended	arch_spin_is_contended
 -- 
 1.9.3
