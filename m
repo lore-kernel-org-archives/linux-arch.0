@@ -1,86 +1,47 @@
-From: David Hildenbrand <dahi@linux.vnet.ibm.com>
-Subject: [RFC 2/2] mm, sched: trigger might_sleep() in might_fault() when atomic
-Date: Tue, 25 Nov 2014 12:43:26 +0100
-Message-ID: <1416915806-24757-3-git-send-email-dahi@linux.vnet.ibm.com>
-References: <1416915806-24757-1-git-send-email-dahi@linux.vnet.ibm.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1416915806-24757-1-git-send-email-dahi@linux.vnet.ibm.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: linuxppc-dev@lists.ozlabs.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: benh@kernel.crashing.org, paulus@samba.org, akpm@linux-foundation.org, heiko.carstens@de.ibm.com, dahi@linux.vnet.ibm.com, schwidefsky@de.ibm.com, borntraeger@de.ibm.com
+From: Dan Carpenter <dan.carpenter-QHcLZuEGTsvQT0dZR+AlfA@public.gmane.org>
+Subject: Re: [PATCHv10 2/5] x86: Hook up execveat system call.
+Date: Tue, 25 Nov 2014 15:16:00 +0300
+Message-ID: <20141125121600.GE4893@mwanda>
+References: <1416830039-21952-1-git-send-email-drysdale@google.com>
+ <1416830039-21952-3-git-send-email-drysdale@google.com>
+ <20141124170626.GA5316@mwanda>
+ <CAHse=S-DS=NGC619Uhzkbd-EKa0D+HgBq3rE1czmLdoxAFswPg@mail.gmail.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+Content-Disposition: inline
+In-Reply-To: <CAHse=S-DS=NGC619Uhzkbd-EKa0D+HgBq3rE1czmLdoxAFswPg-JsoAwUIsXosN+BqQ9rBEUg@public.gmane.org>
+Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: David Drysdale <drysdale-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>
+Cc: "Eric W. Biederman" <ebiederm-aS9lmoZGLiVWk0Htik3J/w@public.gmane.org>, Andy Lutomirski <luto-kltTT9wpgjJwATOyAt5JVQ@public.gmane.org>, Alexander Viro <viro-RmSDqhL/yNMiFSDQTTA3OLVCufUGDwFn@public.gmane.org>, Meredydd Luff <meredydd-zPN50pYk8eUaUu29zAJCuw@public.gmane.org>, "linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, David Miller <davem-fT/PcQaiUtIeIZ0/mPfg9Q@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, Stephen Rothwell <sfr-3FnU+UHB4dNDw9hX6IcOSA@public.gmane.org>, Oleg Nesterov <oleg-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Michael Kerrisk <mtk.manpages-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Ingo Molnar <mingo-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>, Kees Cook <keescook-F7+t8E8rja9g9hUCZPvPmw@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Rich Felker <dalias-/miJ2pyFWUyWIDz0JBNUog@public.gmane.org>, Christoph Hellwig <hch-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>, X86 ML <x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, linux-arch <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Linux API <linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, sparclinux-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
 List-Id: linux-arch.vger.kernel.org
 
-Commit 662bbcb2747c2422cf98d3d97619509379eee466 disabled in atomic checks
-for all user access code (that uses might_fault()).
+On Mon, Nov 24, 2014 at 06:26:24PM +0000, David Drysdale wrote:
+> On Mon, Nov 24, 2014 at 5:06 PM, Dan Carpenter <dan.carpenter-QHcLZuEGTsvQT0dZR+AlfA@public.gmane.org> wrote:
+> > On Mon, Nov 24, 2014 at 11:53:56AM +0000, David Drysdale wrote:
+> >> Hook up x86-64, i386 and x32 ABIs.
+> >>
+> >> Signed-off-by: David Drysdale <drysdale-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>
+> >
+> > This one has been breaking my linux-next build for the past week.  I'm
+> > not sure what's going on.
+> 
+> Hi Dan,
+> 
+> Sorry if this has been causing you problems -- I've not had any
+> errors from the kbuild robots or my local builds.
+> 
 
-That change basically disabled CONFIG_DEBUG_ATOMIC_SLEEP for all user access
-functions. However, this is a mighty debugging aid that we want.
+For some reason I had a stale copy of
+arch/x86/include/generated/asm/unistd_32.h and it was using that in
+preference to the arch/x86/include/generated/uapi/asm/unistd_32.h file.
+Once I did ran:
 
-If user memory is to be accessed while pagefault_disabled() is set, the atomic
-variants of copy_(to|from)_user can be used.
+	arch/x86/include/generated/ -rf
 
-This patch reverts commit 662bbcb2747c2422cf98d3d97619509379eee466 taking care
-of the !MMU optimization.
+Then it builds now.
 
-Signed-off-by: David Hildenbrand <dahi@linux.vnet.ibm.com>
----
- include/linux/kernel.h |  8 ++++++--
- mm/memory.c            | 11 ++++-------
- 2 files changed, 10 insertions(+), 9 deletions(-)
+I'm not sure what that's all about but it's fixed now.
 
-diff --git a/include/linux/kernel.h b/include/linux/kernel.h
-index 3d770f55..1d3397c 100644
---- a/include/linux/kernel.h
-+++ b/include/linux/kernel.h
-@@ -225,9 +225,13 @@ static inline u32 reciprocal_scale(u32 val, u32 ep_ro)
- 	return (u32)(((u64) val * ep_ro) >> 32);
- }
- 
--#if defined(CONFIG_MMU) && \
--	(defined(CONFIG_PROVE_LOCKING) || defined(CONFIG_DEBUG_ATOMIC_SLEEP))
-+#if defined(CONFIG_MMU) && defined(CONFIG_PROVE_LOCKING)
- void might_fault(void);
-+#elif defined(CONFIG_MMU) && defined(CONFIG_DEBUG_ATOMIC_SLEEP)
-+static inline void might_fault(void)
-+{
-+	__might_sleep(__FILE__, __LINE__, 0);
-+}
- #else
- static inline void might_fault(void) { }
- #endif
-diff --git a/mm/memory.c b/mm/memory.c
-index 3e50383..fe0c815 100644
---- a/mm/memory.c
-+++ b/mm/memory.c
-@@ -3699,7 +3699,7 @@ void print_vma_addr(char *prefix, unsigned long ip)
- 	up_read(&mm->mmap_sem);
- }
- 
--#if defined(CONFIG_PROVE_LOCKING) || defined(CONFIG_DEBUG_ATOMIC_SLEEP)
-+#ifdef CONFIG_PROVE_LOCKING
- void might_fault(void)
- {
- 	/*
-@@ -3711,17 +3711,14 @@ void might_fault(void)
- 	if (segment_eq(get_fs(), KERNEL_DS))
- 		return;
- 
-+	__might_sleep(__FILE__, __LINE__, 0);
-+
- 	/*
- 	 * it would be nicer only to annotate paths which are not under
- 	 * pagefault_disable, however that requires a larger audit and
- 	 * providing helpers like get_user_atomic.
- 	 */
--	if (in_atomic())
--		return;
--
--	__might_sleep(__FILE__, __LINE__, 0);
--
--	if (current->mm)
-+	if (!in_atomic() && current->mm)
- 		might_lock_read(&current->mm->mmap_sem);
- }
- EXPORT_SYMBOL(might_fault);
--- 
-1.8.5.5
+regards,
+dan carpenter
