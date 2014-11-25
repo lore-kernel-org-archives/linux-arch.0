@@ -1,80 +1,81 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e06smtp15.uk.ibm.com ([195.75.94.111]:50547 "EHLO
-	e06smtp15.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754183AbaKYMir (ORCPT
+Received: from e06smtp14.uk.ibm.com ([195.75.94.110]:43379 "EHLO
+	e06smtp14.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754207AbaKYMir (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>); Tue, 25 Nov 2014 07:38:47 -0500
 Received: from /spool/local
-	by e06smtp15.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	by e06smtp14.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
 	for <linux-arch@vger.kernel.org> from <borntraeger@de.ibm.com>;
-	Tue, 25 Nov 2014 12:38:45 -0000
+	Tue, 25 Nov 2014 12:38:46 -0000
 From: Christian Borntraeger <borntraeger@de.ibm.com>
-Subject: [PATCHv2 00/10] ACCESS_ONCE and non-scalar accesses
-Date: Tue, 25 Nov 2014 13:38:27 +0100
-Message-Id: <1416919117-50652-1-git-send-email-borntraeger@de.ibm.com>
+Subject: [PATCHv2 02/10] kernel: Provide READ_ONCE and ASSIGN_ONCE
+Date: Tue, 25 Nov 2014 13:38:29 +0100
+Message-Id: <1416919117-50652-3-git-send-email-borntraeger@de.ibm.com>
+In-Reply-To: <1416919117-50652-1-git-send-email-borntraeger@de.ibm.com>
+References: <1416919117-50652-1-git-send-email-borntraeger@de.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
 Cc: "linux-arch@vger.kernel.org, linux-mips@linux-mips.org, linux-x86_64@vger.kernel.org, linux-s390"@vger.kernel.org, Paolo Bonzini <pbonzini@redhat.com>, paulmck@linux.vnet.ibm.com, mingo@kernel.org, torvalds@linux-foundation.org, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Alexei Starovoitov <alexei.starovoitov@gmail.com>, David Howells <dhowells@redhat.com>, Russell King <linux@arm.linux.org.uk>, Christian Borntraeger <borntraeger@de.ibm.com>
 
-As discussed on LKML http://marc.info/?i=54611D86.4040306%40de.ibm.com
-ACCESS_ONCE might fail with specific compiler for non-scalar accesses.
+ACCESS_ONCE does not work reliably on non-scalar types. For
+example gcc 4.6 and 4.7 might remove the volatile tag for such
+accesses during the SRA (scalar replacement of aggregates) step
+https://gcc.gnu.org/bugzilla/show_bug.cgi?id=58145)
 
-Here is a set of patches to tackle that problem.
+Let's provide READ_ONCE/ASSIGN_ONCE that will do all accesses via
+scalar types.
 
-The first patch is already in kvm/next and this series is against rc3 (as
-kvm/next so that we can avoid a merge conflict as soon as this series
-has stabilized).
-The 2nd patch introduces READ_ONCE/ASSIGN_ONCE as suggested by Linus.
-The 2nd to last patch will force ACCESS_ONCE to error-out if it is used
-on non-scalar accesses.
+Signed-off-by: Christian Borntraeger <borntraeger@de.ibm.com>
+---
+ include/linux/compiler.h | 34 ++++++++++++++++++++++++++++++++++
+ 1 file changed, 34 insertions(+)
 
-I have cross-compiled the resulting kernel with defconfig for
-microblaze, m68k, alpha, s390,x86_64, i686, sparc, sparc64, mips,
-ia64, arm and arm64.
-Will Deacon pointed me to the right defconfig for arm32 to also trigger
-a finding here.
-Runtime testing was only done on s390x.
-
-There is a small problem left with sparc (32bit) and m68k:
-
-mm/rmap.c: In function 'mm_find_pmd':
-include/linux/compiler.h:220:72: warning: '__val' may be used uninitialized in this function [-Wmaybe-uninitialized]
-       ({ typeof(p) __val; __read_once_size(&p, &__val, sizeof(__val)); __val; })
-                                                                        ^
-include/linux/compiler.h:220:20: note: '__val' was declared here
-       ({ typeof(p) __val; __read_once_size(&p, &__val, sizeof(__val)); __val; })
-                    ^
-mm/rmap.c:584:9: note: in expansion of macro 'READ_ONCE'
-  pmde = READ_ONCE(*pmd);
-
-Reason is that for both architectures pmd_t is long[16]. WTF?
-
-So the next spin will either fix m68k/sparc or use a barrier + ACCESS_ONCE.
-
-Comments?
-
-Christian Borntraeger (10):
-  KVM: s390: Fix ipte locking
-  kernel: Provide READ_ONCE and ASSIGN_ONCE
-  mm: replace ACCESS_ONCE with READ_ONCE
-  x86/spinlock: Replace ACCESS_ONCE with READ_ONCE/ASSIGN_ONCE
-  x86: Replace ACCESS_ONCE in gup with READ_ONCE
-  mips: Replace ACCESS_ONCE in gup with READ_ONCE
-  arm64: Replace ACCESS_ONCE for spinlock code with READ_ONCE
-  arm: Replace ACCESS_ONCE for spinlock code with READ_ONCE
-  tighten rules for ACCESS ONCE
-  KVM: s390: change ipte lock from barrier to READ_ONCE
-
- arch/arm/include/asm/spinlock.h   |  4 ++--
- arch/arm64/include/asm/spinlock.h |  4 ++--
- arch/mips/mm/gup.c                |  2 +-
- arch/s390/kvm/gaccess.c           | 14 +++++++------
- arch/x86/include/asm/spinlock.h   |  8 +++----
- arch/x86/mm/gup.c                 |  2 +-
- include/linux/compiler.h          | 44 ++++++++++++++++++++++++++++++++++++++-
- mm/gup.c                          |  2 +-
- mm/memory.c                       |  2 +-
- mm/rmap.c                         |  2 +-
- 10 files changed, 64 insertions(+), 20 deletions(-)
-
+diff --git a/include/linux/compiler.h b/include/linux/compiler.h
+index d5ad7b1..0ff01f2 100644
+--- a/include/linux/compiler.h
++++ b/include/linux/compiler.h
+@@ -186,6 +186,40 @@ void ftrace_likely_update(struct ftrace_branch_data *f, int val, int expect);
+ # define __UNIQUE_ID(prefix) __PASTE(__PASTE(__UNIQUE_ID_, prefix), __LINE__)
+ #endif
+ 
++#include <linux/types.h>
++
++static __always_inline void __assign_once_size(volatile void *p, void *res, int size)
++{
++	switch (size) {
++	case 1: *(volatile u8 *)p = *(u8 *)res; break;
++	case 2: *(volatile u16 *)p = *(u16 *)res; break;
++	case 4: *(volatile u32 *)p = *(u32 *)res; break;
++#ifdef CONFIG_64BIT
++	case 8: *(volatile u64 *)p = *(u64 *)res; break;
++#endif
++       }
++}
++
++#define ASSIGN_ONCE(val, p) \
++      ({ typeof(p) __val; __val = val; __assign_once_size(&p, &__val, sizeof(__val)); __val; })
++
++
++static __always_inline void __read_once_size(volatile void *p, void *res, int size)
++{
++	switch (size) {
++	case 1: *(u8 *)res = *(volatile u8 *)p; break;
++	case 2: *(u16 *)res = *(volatile u16 *)p; break;
++	case 4: *(u32 *)res = *(volatile u32 *)p; break;
++#ifdef CONFIG_64BIT
++	case 8: *(u64 *)res = *(volatile u64 *)p; break;
++#endif
++       }
++}
++
++#define READ_ONCE(p) \
++      ({ typeof(p) __val; __read_once_size(&p, &__val, sizeof(__val)); __val; })
++
++
+ #endif /* __KERNEL__ */
+ 
+ #endif /* __ASSEMBLY__ */
+-- 
+1.9.3
 
