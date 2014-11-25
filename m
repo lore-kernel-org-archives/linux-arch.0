@@ -1,98 +1,43 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:52532 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750821AbaKYQ20 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 25 Nov 2014 11:28:26 -0500
-Message-ID: <5474ADB4.5070200@redhat.com>
-Date: Tue, 25 Nov 2014 08:26:28 -0800
-From: Alexander Duyck <alexander.h.duyck@redhat.com>
+Received: from mail-qg0-f51.google.com ([209.85.192.51]:33753 "EHLO
+	mail-qg0-f51.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751166AbaKYR2e (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 25 Nov 2014 12:28:34 -0500
 MIME-Version: 1.0
-Subject: Re: [PATCH v5 2/4] arch: Add lightweight memory barriers dma_rmb()
- and dma_wmb()
-References: <20141119012205.9563.95544.stgit@ahduyck-server> <20141119012400.9563.21117.stgit@ahduyck-server> <20141125140130.GC8541@arm.com>
-In-Reply-To: <20141125140130.GC8541@arm.com>
-Content-Type: text/plain; charset=windows-1252; format=flowed
-Content-Transfer-Encoding: 7bit
+In-Reply-To: <20141125155943.GB5050@linux.vnet.ibm.com>
+References: <1416919117-50652-1-git-send-email-borntraeger@de.ibm.com>
+	<1416919117-50652-3-git-send-email-borntraeger@de.ibm.com>
+	<20141125155943.GB5050@linux.vnet.ibm.com>
+Date: Tue, 25 Nov 2014 09:28:33 -0800
+Message-ID: <CA+55aFzY_LSLM8R2cbt=sZe8UeDtUZdX8zO6Bzf52EBg3H30qw@mail.gmail.com>
+Subject: Re: [PATCHv2 02/10] kernel: Provide READ_ONCE and ASSIGN_ONCE
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will.deacon@arm.com>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "netdev@vger.kernel.org" <netdev@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "mathieu.desnoyers@polymtl.ca" <mathieu.desnoyers@polymtl.ca>, "peterz@infradead.org" <peterz@infradead.org>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, "heiko.carstens@de.ibm.com" <heiko.carstens@de.ibm.com>, "mingo@kernel.org" <mingo@kernel.org>, "mikey@neuling.org" <mikey@neuling.org>, "linux@arm.linux.org.uk" <linux@arm.linux.org.uk>, "donald.c.skidmore@intel.com" <donald.c.skidmore@intel.com>, "matthew.vick@intel.com" <matthew.vick@intel.com>, "geert@linux-m68k.org" <geert@linux-m68k.org>, "jeffrey.t.kirsher@intel.com" <jeffrey.t.kirsher@intel.com>, "romieu@fr.zoreil.com" <romieu@fr.zoreil.com>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>, "nic_swsd@realtek.com" <nic_swsd@realtek.com>, "michael@ellerman.id.au" <michael@ellerman.id.au>, "tony.luck@intel.com" <tony.luck@intel.com>, "torvalds@linux-foundation.org" <torvalds@linux-foundation.org>, "oleg@redhat.com" <oleg@redhat.com>, "schwidefsky@de.ibm.com" <schwidefsky@de.ibm.com>, "fweisbec@gmail.com" <fweisbec@gmail.com>, "davem@davemloft.net" <davem@davemloft.net>
-Message-ID: <20141125162628.WvIpAdQFB8BWrMNvuseKq7Ocl_95EkJKPZyi9sZTeG8@z>
+To: Paul McKenney <paulmck@linux.vnet.ibm.com>
+Cc: Christian Borntraeger <borntraeger@de.ibm.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, Ingo Molnar <mingo@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Alexei Starovoitov <alexei.starovoitov@gmail.com>, David Howells <dhowells@redhat.com>, Russell King <linux@arm.linux.org.uk>
+Message-ID: <20141125172833.cpVhxCaepuh6Wp4Lr-NoKRUmV85BxGjqIrK37LA3Su8@z>
 
-
-On 11/25/2014 06:01 AM, Will Deacon wrote:
-> On Wed, Nov 19, 2014 at 01:24:02AM +0000, Alexander Duyck wrote:
->> diff --git a/Documentation/memory-barriers.txt b/Documentation/memory-barriers.txt
->> index 22a969c..a1c589b 100644
->> --- a/Documentation/memory-barriers.txt
->> +++ b/Documentation/memory-barriers.txt
->> @@ -1615,6 +1615,47 @@ There are some more advanced barrier functions:
->>        operations" subsection for information on where to use these.
->>
->>
->> + (*) dma_wmb();
->> + (*) dma_rmb();
->> +
->> +     These are for use with memory based device I/O to guarantee the ordering
->> +     of cache coherent writes or reads with respect to other writes or reads
->> +     to cache coherent DMA memory.
-> Can you please make it crystal clear that "memory based device I/O" != MMIO?
-> If people get these barriers wrong, then debugging will be a nightmare.
-
-I think I'll update that to the following to avoid any confusion:
-      These are for use with consistent memory to guarantee the ordering
-      of writes or reads of shared memory accessible to both the CPU and a
-      DMA capable device.
-
-I will also add a reference to DMA-API.txt at the end for more info on 
-what consistent memory is.
-
->> diff --git a/arch/arm/include/asm/barrier.h b/arch/arm/include/asm/barrier.h
->> index c6a3e73..d2f81e6 100644
->> --- a/arch/arm/include/asm/barrier.h
->> +++ b/arch/arm/include/asm/barrier.h
->> @@ -43,10 +43,14 @@
->>   #define mb()           do { dsb(); outer_sync(); } while (0)
->>   #define rmb()          dsb()
->>   #define wmb()          do { dsb(st); outer_sync(); } while (0)
->> +#define dma_rmb()      dmb(osh)
->> +#define dma_wmb()      dmb(oshst)
->>   #else
->>   #define mb()           barrier()
->>   #define rmb()          barrier()
->>   #define wmb()          barrier()
->> +#define dma_rmb()      barrier()
->> +#define dma_wmb()      barrier()
->>   #endif
->>
->>   #ifndef CONFIG_SMP
->> diff --git a/arch/arm64/include/asm/barrier.h b/arch/arm64/include/asm/barrier.h
->> index 6389d60..a5abb00 100644
->> --- a/arch/arm64/include/asm/barrier.h
->> +++ b/arch/arm64/include/asm/barrier.h
->> @@ -32,6 +32,9 @@
->>   #define rmb()          dsb(ld)
->>   #define wmb()          dsb(st)
->>
->> +#define dma_rmb()      dmb(oshld)
->> +#define dma_wmb()      dmb(oshst)
->> +
->>   #ifndef CONFIG_SMP
->>   #define smp_mb()       barrier()
->>   #define smp_rmb()      barrier()
-> The arm/arm64 bits look fine to me.
+On Tue, Nov 25, 2014 at 7:59 AM, Paul E. McKenney
+<paulmck@linux.vnet.ibm.com> wrote:
 >
->    Acked-by: Will Deacon <will.deacon@arm.com>
+> We really need something like this to catch invalid sizes:
+>
+>         default: invoke_nonexistent_function();
 
-Thanks for the review.
+Actually, I wonder if we should make the default: case actually just
+do something like
 
-> If we ever see platforms using Linux/dma_alloc_coherent with devices
-> mastering from a different outer-shareable domain that the one containing
-> the CPUs, then we'll need to revisit this.
+   barrier();
+   memcpy(res, p, size);
+   barrier();
 
-Would we just need a system wide memory barrier in that case instead of 
-an outer shareable memory barrier, or would we need to look as something 
-like a sync barrier?
+which in no way guarantees that it's an _atomic_ access, but it does
+guarantee the semantics that you get one particular value and it won't
+get reloaded later..
 
-- Alex
+That would solve the crazy sparc pte issue too.
 
+
+               Linus
