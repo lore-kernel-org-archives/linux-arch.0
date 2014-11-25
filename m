@@ -1,53 +1,88 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from aserp1040.oracle.com ([141.146.126.69]:26938 "EHLO
-	aserp1040.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753274AbaKYMRE (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 25 Nov 2014 07:17:04 -0500
-Date: Tue, 25 Nov 2014 15:16:00 +0300
-From: Dan Carpenter <dan.carpenter@oracle.com>
-Subject: Re: [PATCHv10 2/5] x86: Hook up execveat system call.
-Message-ID: <20141125121600.GE4893@mwanda>
-References: <1416830039-21952-1-git-send-email-drysdale@google.com>
- <1416830039-21952-3-git-send-email-drysdale@google.com>
- <20141124170626.GA5316@mwanda>
- <CAHse=S-DS=NGC619Uhzkbd-EKa0D+HgBq3rE1czmLdoxAFswPg@mail.gmail.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <CAHse=S-DS=NGC619Uhzkbd-EKa0D+HgBq3rE1czmLdoxAFswPg@mail.gmail.com>
+Received: from e06smtp13.uk.ibm.com ([195.75.94.109]:41425 "EHLO
+	e06smtp13.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752287AbaKYMiq (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 25 Nov 2014 07:38:46 -0500
+Received: from /spool/local
+	by e06smtp13.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <borntraeger@de.ibm.com>;
+	Tue, 25 Nov 2014 12:38:44 -0000
+From: Christian Borntraeger <borntraeger@de.ibm.com>
+Subject: [PATCHv2 10/10] KVM: s390: change ipte lock from barrier to READ_ONCE
+Date: Tue, 25 Nov 2014 13:38:37 +0100
+Message-Id: <1416919117-50652-11-git-send-email-borntraeger@de.ibm.com>
+In-Reply-To: <1416919117-50652-1-git-send-email-borntraeger@de.ibm.com>
+References: <1416919117-50652-1-git-send-email-borntraeger@de.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Drysdale <drysdale@google.com>
-Cc: "Eric W. Biederman" <ebiederm@xmission.com>, Andy Lutomirski <luto@amacapital.net>, Alexander Viro <viro@zeniv.linux.org.uk>, Meredydd Luff <meredydd@senatehouse.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Thomas Gleixner <tglx@linutronix.de>, Stephen Rothwell <sfr@canb.auug.org.au>, Oleg Nesterov <oleg@redhat.com>, Michael Kerrisk <mtk.manpages@gmail.com>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Rich Felker <dalias@aerifal.cx>, Christoph Hellwig <hch@infradead.org>, X86 ML <x86@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, sparclinux@vger.kernel.org
-Message-ID: <20141125121600.JMwXpbq-pzQgEKpZh-6VMM1xZ8IEwGAciqnUjOLZC6E@z>
+To: linux-kernel@vger.kernel.org
+Cc: "linux-arch@vger.kernel.org, linux-mips@linux-mips.org, linux-x86_64@vger.kernel.org, linux-s390"@vger.kernel.org, Paolo Bonzini <pbonzini@redhat.com>, paulmck@linux.vnet.ibm.com, mingo@kernel.org, torvalds@linux-foundation.org, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Alexei Starovoitov <alexei.starovoitov@gmail.com>, David Howells <dhowells@redhat.com>, Russell King <linux@arm.linux.org.uk>, Christian Borntraeger <borntraeger@de.ibm.com>
 
-On Mon, Nov 24, 2014 at 06:26:24PM +0000, David Drysdale wrote:
-> On Mon, Nov 24, 2014 at 5:06 PM, Dan Carpenter <dan.carpenter@oracle.com> wrote:
-> > On Mon, Nov 24, 2014 at 11:53:56AM +0000, David Drysdale wrote:
-> >> Hook up x86-64, i386 and x32 ABIs.
-> >>
-> >> Signed-off-by: David Drysdale <drysdale@google.com>
-> >
-> > This one has been breaking my linux-next build for the past week.  I'm
-> > not sure what's going on.
-> 
-> Hi Dan,
-> 
-> Sorry if this has been causing you problems -- I've not had any
-> errors from the kbuild robots or my local builds.
-> 
+Now that we have the READ_ONCE solution, we can change the ipte lock
+from a barrier solution to READ_ONCE. The barrier and the explanation
+of the bug was introduced in commit 1365039d0cb3 ("KVM: s390: Fix
+ipte locking")
 
-For some reason I had a stale copy of
-arch/x86/include/generated/asm/unistd_32.h and it was using that in
-preference to the arch/x86/include/generated/uapi/asm/unistd_32.h file.
-Once I did ran:
+Cc: Paolo Bonzini <pbonzini@redhat.com>
+Signed-off-by: Christian Borntraeger <borntraeger@de.ibm.com>
+---
+ arch/s390/kvm/gaccess.c | 18 ++++++------------
+ 1 file changed, 6 insertions(+), 12 deletions(-)
 
-	arch/x86/include/generated/ -rf
-
-Then it builds now.
-
-I'm not sure what that's all about but it's fixed now.
-
-regards,
-dan carpenter
+diff --git a/arch/s390/kvm/gaccess.c b/arch/s390/kvm/gaccess.c
+index 6dc0ad9..8f195fa 100644
+--- a/arch/s390/kvm/gaccess.c
++++ b/arch/s390/kvm/gaccess.c
+@@ -229,12 +229,10 @@ static void ipte_lock_simple(struct kvm_vcpu *vcpu)
+ 		goto out;
+ 	ic = &vcpu->kvm->arch.sca->ipte_control;
+ 	do {
+-		old = *ic;
+-		barrier();
++		old = READ_ONCE(*ic);
+ 		while (old.k) {
+ 			cond_resched();
+-			old = *ic;
+-			barrier();
++			old = READ_ONCE(*ic);
+ 		}
+ 		new = old;
+ 		new.k = 1;
+@@ -253,8 +251,7 @@ static void ipte_unlock_simple(struct kvm_vcpu *vcpu)
+ 		goto out;
+ 	ic = &vcpu->kvm->arch.sca->ipte_control;
+ 	do {
+-		old = *ic;
+-		barrier();
++		old = READ_ONCE(*ic);
+ 		new = old;
+ 		new.k = 0;
+ 	} while (cmpxchg(&ic->val, old.val, new.val) != old.val);
+@@ -269,12 +266,10 @@ static void ipte_lock_siif(struct kvm_vcpu *vcpu)
+ 
+ 	ic = &vcpu->kvm->arch.sca->ipte_control;
+ 	do {
+-		old = *ic;
+-		barrier();
++		old = READ_ONCE(*ic);
+ 		while (old.kg) {
+ 			cond_resched();
+-			old = *ic;
+-			barrier();
++			old = READ_ONCE(*ic);
+ 		}
+ 		new = old;
+ 		new.k = 1;
+@@ -288,8 +283,7 @@ static void ipte_unlock_siif(struct kvm_vcpu *vcpu)
+ 
+ 	ic = &vcpu->kvm->arch.sca->ipte_control;
+ 	do {
+-		old = *ic;
+-		barrier();
++		old = READ_ONCE(*ic);
+ 		new = old;
+ 		new.kh--;
+ 		if (!new.kh)
+-- 
+1.9.3
 
