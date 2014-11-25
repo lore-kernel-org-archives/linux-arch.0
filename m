@@ -1,80 +1,79 @@
-From: Christian Borntraeger <borntraeger@de.ibm.com>
-Subject: [PATCHv2 02/10] kernel: Provide READ_ONCE and ASSIGN_ONCE
-Date: Tue, 25 Nov 2014 13:38:29 +0100
-Message-ID: <1416919117-50652-3-git-send-email-borntraeger__48636.1592695632$1416919395$gmane$org@de.ibm.com>
-References: <1416919117-50652-1-git-send-email-borntraeger@de.ibm.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e06smtp14.uk.ibm.com ([195.75.94.110]:43379 "EHLO
-	e06smtp14.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754207AbaKYMir (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 25 Nov 2014 07:38:47 -0500
-Received: from /spool/local
-	by e06smtp14.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <borntraeger@de.ibm.com>;
-	Tue, 25 Nov 2014 12:38:46 -0000
-In-Reply-To: <1416919117-50652-1-git-send-email-borntraeger@de.ibm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: "linux-arch@vger.kernel.org, linux-mips@linux-mips.org, linux-x86_64@vger.kernel.org, linux-s390"@vger.kernel.org, Paolo Bonzini <pbonzini@redhat.com>, paulmck@linux.vnet.ibm.com, mingo@kernel.org, torvalds@linux-foundation.org, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Alexei Starovoitov <alexei.starovoitov@gmail.com>, David Howells <dhowells@redhat.com>, Russell King <linux@arm.linux.org.uk>, Christian Borntraeger <borntraeger@de.ibm.com>
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [PATCH v5 2/4] arch: Add lightweight memory barriers dma_rmb()
+ and dma_wmb()
+Date: Tue, 25 Nov 2014 14:01:30 +0000
+Message-ID: <20141125140130.GC8541@arm.com>
+References: <20141119012205.9563.95544.stgit@ahduyck-server>
+ <20141119012400.9563.21117.stgit@ahduyck-server>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Return-path: <netdev-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <20141119012400.9563.21117.stgit@ahduyck-server>
+Sender: netdev-owner@vger.kernel.org
+To: Alexander Duyck <alexander.h.duyck@redhat.com>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "netdev@vger.kernel.org" <netdev@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "mathieu.desnoyers@polymtl.ca" <mathieu.desnoyers@polymtl.ca>, "peterz@infradead.org" <peterz@infradead.org>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, "heiko.carstens@de.ibm.com" <heiko.carstens@de.ibm.com>, "mingo@kernel.org" <mingo@kernel.org>, "mikey@neuling.org" <mikey@neuling.org>, "linux@arm.linux.org.uk" <linux@arm.linux.org.uk>, "donald.c.skidmore@intel.com" <donald.c.skidmore@intel.com>, "matthew.vick@intel.com" <matthew.vick@intel.com>, "geert@linux-m68k.org" <geert@linux-m68k.org>, "jeffrey.t.kirsher@intel.com" <jeffrey.t.kirsher@intel.com>, "romieu@fr.zoreil.com" <romieu@fr.zoreil.com>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>, "nic_swsd@realtek.com" <nic_>
+List-Id: linux-arch.vger.kernel.org
 
-ACCESS_ONCE does not work reliably on non-scalar types. For
-example gcc 4.6 and 4.7 might remove the volatile tag for such
-accesses during the SRA (scalar replacement of aggregates) step
-https://gcc.gnu.org/bugzilla/show_bug.cgi?id=58145)
+On Wed, Nov 19, 2014 at 01:24:02AM +0000, Alexander Duyck wrote:
+> diff --git a/Documentation/memory-barriers.txt b/Documentation/memory-barriers.txt
+> index 22a969c..a1c589b 100644
+> --- a/Documentation/memory-barriers.txt
+> +++ b/Documentation/memory-barriers.txt
+> @@ -1615,6 +1615,47 @@ There are some more advanced barrier functions:
+>       operations" subsection for information on where to use these.
+> 
+> 
+> + (*) dma_wmb();
+> + (*) dma_rmb();
+> +
+> +     These are for use with memory based device I/O to guarantee the ordering
+> +     of cache coherent writes or reads with respect to other writes or reads
+> +     to cache coherent DMA memory.
 
-Let's provide READ_ONCE/ASSIGN_ONCE that will do all accesses via
-scalar types.
+Can you please make it crystal clear that "memory based device I/O" != MMIO?
+If people get these barriers wrong, then debugging will be a nightmare.
 
-Signed-off-by: Christian Borntraeger <borntraeger@de.ibm.com>
----
- include/linux/compiler.h | 34 ++++++++++++++++++++++++++++++++++
- 1 file changed, 34 insertions(+)
+> diff --git a/arch/arm/include/asm/barrier.h b/arch/arm/include/asm/barrier.h
+> index c6a3e73..d2f81e6 100644
+> --- a/arch/arm/include/asm/barrier.h
+> +++ b/arch/arm/include/asm/barrier.h
+> @@ -43,10 +43,14 @@
+>  #define mb()           do { dsb(); outer_sync(); } while (0)
+>  #define rmb()          dsb()
+>  #define wmb()          do { dsb(st); outer_sync(); } while (0)
+> +#define dma_rmb()      dmb(osh)
+> +#define dma_wmb()      dmb(oshst)
+>  #else
+>  #define mb()           barrier()
+>  #define rmb()          barrier()
+>  #define wmb()          barrier()
+> +#define dma_rmb()      barrier()
+> +#define dma_wmb()      barrier()
+>  #endif
+> 
+>  #ifndef CONFIG_SMP
+> diff --git a/arch/arm64/include/asm/barrier.h b/arch/arm64/include/asm/barrier.h
+> index 6389d60..a5abb00 100644
+> --- a/arch/arm64/include/asm/barrier.h
+> +++ b/arch/arm64/include/asm/barrier.h
+> @@ -32,6 +32,9 @@
+>  #define rmb()          dsb(ld)
+>  #define wmb()          dsb(st)
+> 
+> +#define dma_rmb()      dmb(oshld)
+> +#define dma_wmb()      dmb(oshst)
+> +
+>  #ifndef CONFIG_SMP
+>  #define smp_mb()       barrier()
+>  #define smp_rmb()      barrier()
 
-diff --git a/include/linux/compiler.h b/include/linux/compiler.h
-index d5ad7b1..0ff01f2 100644
---- a/include/linux/compiler.h
-+++ b/include/linux/compiler.h
-@@ -186,6 +186,40 @@ void ftrace_likely_update(struct ftrace_branch_data *f, int val, int expect);
- # define __UNIQUE_ID(prefix) __PASTE(__PASTE(__UNIQUE_ID_, prefix), __LINE__)
- #endif
- 
-+#include <linux/types.h>
-+
-+static __always_inline void __assign_once_size(volatile void *p, void *res, int size)
-+{
-+	switch (size) {
-+	case 1: *(volatile u8 *)p = *(u8 *)res; break;
-+	case 2: *(volatile u16 *)p = *(u16 *)res; break;
-+	case 4: *(volatile u32 *)p = *(u32 *)res; break;
-+#ifdef CONFIG_64BIT
-+	case 8: *(volatile u64 *)p = *(u64 *)res; break;
-+#endif
-+       }
-+}
-+
-+#define ASSIGN_ONCE(val, p) \
-+      ({ typeof(p) __val; __val = val; __assign_once_size(&p, &__val, sizeof(__val)); __val; })
-+
-+
-+static __always_inline void __read_once_size(volatile void *p, void *res, int size)
-+{
-+	switch (size) {
-+	case 1: *(u8 *)res = *(volatile u8 *)p; break;
-+	case 2: *(u16 *)res = *(volatile u16 *)p; break;
-+	case 4: *(u32 *)res = *(volatile u32 *)p; break;
-+#ifdef CONFIG_64BIT
-+	case 8: *(u64 *)res = *(volatile u64 *)p; break;
-+#endif
-+       }
-+}
-+
-+#define READ_ONCE(p) \
-+      ({ typeof(p) __val; __read_once_size(&p, &__val, sizeof(__val)); __val; })
-+
-+
- #endif /* __KERNEL__ */
- 
- #endif /* __ASSEMBLY__ */
--- 
-1.9.3
+The arm/arm64 bits look fine to me.
+
+  Acked-by: Will Deacon <will.deacon@arm.com>
+
+If we ever see platforms using Linux/dma_alloc_coherent with devices
+mastering from a different outer-shareable domain that the one containing
+the CPUs, then we'll need to revisit this.
+
+Will
