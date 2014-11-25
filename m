@@ -1,47 +1,87 @@
-From: Dan Carpenter <dan.carpenter-QHcLZuEGTsvQT0dZR+AlfA@public.gmane.org>
-Subject: Re: [PATCHv10 2/5] x86: Hook up execveat system call.
-Date: Tue, 25 Nov 2014 15:16:00 +0300
-Message-ID: <20141125121600.GE4893@mwanda>
-References: <1416830039-21952-1-git-send-email-drysdale@google.com>
- <1416830039-21952-3-git-send-email-drysdale@google.com>
- <20141124170626.GA5316@mwanda>
- <CAHse=S-DS=NGC619Uhzkbd-EKa0D+HgBq3rE1czmLdoxAFswPg@mail.gmail.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-Content-Disposition: inline
-In-Reply-To: <CAHse=S-DS=NGC619Uhzkbd-EKa0D+HgBq3rE1czmLdoxAFswPg-JsoAwUIsXosN+BqQ9rBEUg@public.gmane.org>
-Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: David Drysdale <drysdale-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>
-Cc: "Eric W. Biederman" <ebiederm-aS9lmoZGLiVWk0Htik3J/w@public.gmane.org>, Andy Lutomirski <luto-kltTT9wpgjJwATOyAt5JVQ@public.gmane.org>, Alexander Viro <viro-RmSDqhL/yNMiFSDQTTA3OLVCufUGDwFn@public.gmane.org>, Meredydd Luff <meredydd-zPN50pYk8eUaUu29zAJCuw@public.gmane.org>, "linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, David Miller <davem-fT/PcQaiUtIeIZ0/mPfg9Q@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, Stephen Rothwell <sfr-3FnU+UHB4dNDw9hX6IcOSA@public.gmane.org>, Oleg Nesterov <oleg-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Michael Kerrisk <mtk.manpages-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Ingo Molnar <mingo-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>, Kees Cook <keescook-F7+t8E8rja9g9hUCZPvPmw@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Rich Felker <dalias-/miJ2pyFWUyWIDz0JBNUog@public.gmane.org>, Christoph Hellwig <hch-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>, X86 ML <x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, linux-arch <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Linux API <linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, sparclinux-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-List-Id: linux-arch.vger.kernel.org
+From: Christian Borntraeger <borntraeger@de.ibm.com>
+Subject: [PATCHv2 10/10] KVM: s390: change ipte lock from barrier to READ_ONCE
+Date: Tue, 25 Nov 2014 13:38:37 +0100
+Message-ID: <1416919117-50652-11-git-send-email-borntraeger__40395.2312459753$1416919147$gmane$org@de.ibm.com>
+References: <1416919117-50652-1-git-send-email-borntraeger@de.ibm.com>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from e06smtp13.uk.ibm.com ([195.75.94.109]:41425 "EHLO
+	e06smtp13.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752287AbaKYMiq (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 25 Nov 2014 07:38:46 -0500
+Received: from /spool/local
+	by e06smtp13.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <borntraeger@de.ibm.com>;
+	Tue, 25 Nov 2014 12:38:44 -0000
+In-Reply-To: <1416919117-50652-1-git-send-email-borntraeger@de.ibm.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linux-kernel@vger.kernel.org
+Cc: "linux-arch@vger.kernel.org, linux-mips@linux-mips.org, linux-x86_64@vger.kernel.org, linux-s390"@vger.kernel.org, Paolo Bonzini <pbonzini@redhat.com>, paulmck@linux.vnet.ibm.com, mingo@kernel.org, torvalds@linux-foundation.org, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Alexei Starovoitov <alexei.starovoitov@gmail.com>, David Howells <dhowells@redhat.com>, Russell King <linux@arm.linux.org.uk>, Christian Borntraeger <borntraeger@de.ibm.com>
 
-On Mon, Nov 24, 2014 at 06:26:24PM +0000, David Drysdale wrote:
-> On Mon, Nov 24, 2014 at 5:06 PM, Dan Carpenter <dan.carpenter-QHcLZuEGTsvQT0dZR+AlfA@public.gmane.org> wrote:
-> > On Mon, Nov 24, 2014 at 11:53:56AM +0000, David Drysdale wrote:
-> >> Hook up x86-64, i386 and x32 ABIs.
-> >>
-> >> Signed-off-by: David Drysdale <drysdale-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>
-> >
-> > This one has been breaking my linux-next build for the past week.  I'm
-> > not sure what's going on.
-> 
-> Hi Dan,
-> 
-> Sorry if this has been causing you problems -- I've not had any
-> errors from the kbuild robots or my local builds.
-> 
+Now that we have the READ_ONCE solution, we can change the ipte lock
+from a barrier solution to READ_ONCE. The barrier and the explanation
+of the bug was introduced in commit 1365039d0cb3 ("KVM: s390: Fix
+ipte locking")
 
-For some reason I had a stale copy of
-arch/x86/include/generated/asm/unistd_32.h and it was using that in
-preference to the arch/x86/include/generated/uapi/asm/unistd_32.h file.
-Once I did ran:
+Cc: Paolo Bonzini <pbonzini@redhat.com>
+Signed-off-by: Christian Borntraeger <borntraeger@de.ibm.com>
+---
+ arch/s390/kvm/gaccess.c | 18 ++++++------------
+ 1 file changed, 6 insertions(+), 12 deletions(-)
 
-	arch/x86/include/generated/ -rf
-
-Then it builds now.
-
-I'm not sure what that's all about but it's fixed now.
-
-regards,
-dan carpenter
+diff --git a/arch/s390/kvm/gaccess.c b/arch/s390/kvm/gaccess.c
+index 6dc0ad9..8f195fa 100644
+--- a/arch/s390/kvm/gaccess.c
++++ b/arch/s390/kvm/gaccess.c
+@@ -229,12 +229,10 @@ static void ipte_lock_simple(struct kvm_vcpu *vcpu)
+ 		goto out;
+ 	ic = &vcpu->kvm->arch.sca->ipte_control;
+ 	do {
+-		old = *ic;
+-		barrier();
++		old = READ_ONCE(*ic);
+ 		while (old.k) {
+ 			cond_resched();
+-			old = *ic;
+-			barrier();
++			old = READ_ONCE(*ic);
+ 		}
+ 		new = old;
+ 		new.k = 1;
+@@ -253,8 +251,7 @@ static void ipte_unlock_simple(struct kvm_vcpu *vcpu)
+ 		goto out;
+ 	ic = &vcpu->kvm->arch.sca->ipte_control;
+ 	do {
+-		old = *ic;
+-		barrier();
++		old = READ_ONCE(*ic);
+ 		new = old;
+ 		new.k = 0;
+ 	} while (cmpxchg(&ic->val, old.val, new.val) != old.val);
+@@ -269,12 +266,10 @@ static void ipte_lock_siif(struct kvm_vcpu *vcpu)
+ 
+ 	ic = &vcpu->kvm->arch.sca->ipte_control;
+ 	do {
+-		old = *ic;
+-		barrier();
++		old = READ_ONCE(*ic);
+ 		while (old.kg) {
+ 			cond_resched();
+-			old = *ic;
+-			barrier();
++			old = READ_ONCE(*ic);
+ 		}
+ 		new = old;
+ 		new.k = 1;
+@@ -288,8 +283,7 @@ static void ipte_unlock_siif(struct kvm_vcpu *vcpu)
+ 
+ 	ic = &vcpu->kvm->arch.sca->ipte_control;
+ 	do {
+-		old = *ic;
+-		barrier();
++		old = READ_ONCE(*ic);
+ 		new = old;
+ 		new.kh--;
+ 		if (!new.kh)
+-- 
+1.9.3
