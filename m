@@ -1,106 +1,87 @@
-From: Alexei Starovoitov <alexei.starovoitov@gmail.com>
-Subject: Re: [PATCH/RFC 7/7] kernel: Force ACCESS_ONCE to work only on scalar types
-Date: Mon, 24 Nov 2014 18:28:03 -0800
-Message-ID: <CAADnVQJc-RO9EdBY2-Q0mONSLYxsryD3cP8+LPXTaKbjbqtvtg@mail.gmail.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qc0-f170.google.com ([209.85.216.170]:50700 "EHLO
-	mail-qc0-f170.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750836AbaKYC2F (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 24 Nov 2014 21:28:05 -0500
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: David Howells <dhowells@redhat.com>, Christian Borntraeger <borntraeger@de.ibm.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux-mips <linux-mips@linux-mips.org>, linux-x86_64@vger.kernel.org, linux-s390 <linux-s390@vger.kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>
+From: David Hildenbrand <dahi@linux.vnet.ibm.com>
+Subject: [RFC 0/2] Reenable might_sleep() checks for might_fault() when atomic
+Date: Tue, 25 Nov 2014 12:43:24 +0100
+Message-ID: <1416915806-24757-1-git-send-email-dahi@linux.vnet.ibm.com>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: linuxppc-dev@lists.ozlabs.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Cc: benh@kernel.crashing.org, paulus@samba.org, akpm@linux-foundation.org, heiko.carstens@de.ibm.com, dahi@linux.vnet.ibm.com, schwidefsky@de.ibm.com, borntraeger@de.ibm.com
+List-Id: linux-arch.vger.kernel.org
 
-On Mon, Nov 24, 2014 at 4:00 PM, Linus Torvalds
-<torvalds@linux-foundation.org> wrote:
-> On Mon, Nov 24, 2014 at 2:58 PM, Alexei Starovoitov
-> <alexei.starovoitov@gmail.com> wrote:
->>
->> I've changed gcc pr58145-1.c reproducer to use
->> __read_once_size() approach above
->
-> I don't think you did.
->
->> modified reproducer:
->> struct S { unsigned int data; };
->> void bar(int val)
->> {
->>   struct S _s = { .data = val };
->>   *(volatile struct S *) 0x880000UL = ACCESS_ONCE(&_s);
->> }
->
-> My approach never had "volatile struct S *". The only volatile
-> pointers were the actual byte/word/etc pointers, and those generated
+I recently discovered that commit 662bbcb2747c2422cf98d3d97619509379eee466
+removed/skipped all might_sleep checks for might_fault() calls when in atomic.
 
-you're right. In my invalid snippet above the ACCESS_ONCE
-to struct on stack gets optimized away and only 'volatile struct *'
-in left hand side is triggering the bug.
+Reason was to allow calling copy_(to|from)_user while in pagefault_disabled(),
+because otherwise, CONFIG_DEBUG_ATOMIC_SLEEP would find false positives. However
+we have the inatomic variants of these function for this purpose.
 
-Have tried the following which blends your proposal
-with original code from Christian:
-/* bad
-#define ACCESS_ONCE(x) *((volatile typeof(x) *)&(x))
-*/
+The result of this change was that all guest access (that correctly uses
+might_fault()) doesn't perform atomic checks when CONFIG_DEBUG_ATOMIC_SLEEP is
+enabled. We lost a mighty debugging feature for user access.
 
-/* good */
-#define ACCESS_ONCE(p) \
-      ({ typeof(*p) __val; __read_once_size(p, &__val, sizeof(__val)); __val; })
+As I wasn't able to come up with any other reason why this should be
+necessary, I suggest turning the might_sleep() checks on again in the
+might_fault() code.
 
-static __always_inline void __read_once_size(volatile void *p, void
-*res, int size)
-{
-     switch (size) {
-     case 1: *(u8 *)res = *(volatile u8 *)p; break;
-     case 2: *(u16 *)res = *(volatile u16 *)p; break;
-     case 4: *(u32 *)res = *(volatile u32 *)p; break;
-     case 8: *(u64 *)res = *(volatile u64 *)p; break;
-     }
-}
+pagefault_disable/pagefault_enable seems to be used mainly for futex, perf event
+and kmap.
 
-union ipte_control {
-        unsigned long val;
-        struct {
-                unsigned long k  : 1;
-                unsigned long kh : 31;
-                unsigned long kg : 32;
-        };
-};
+Going over all changes since that commit, it seems like most code already uses the
+inatomic variants of copy_(to|from)_user. Code relying on (get|put)_user during
+pagefault_disable() don't make use of any might_fault() in their (get|put)_user
+implementation. Examples:
+- arch/m68k/include/asm/futex.h
+- arch/parisc/include/asm/futex.h
+- arch/sh/include/asm/futex-irq.h
+- arch/tile/include/asm/futex.h
+So changing might_fault() back to trigger might_sleep() won't change a thing for
+them. Hope I haven't missed anything.
 
-struct kvm_vcpu {
-        union ipte_control ic;
-};
+I only identified one might_fault() that would get triggered by get_user() on
+powerpc and fixed it by using the inatomic variant (not tested). I am not sure
+if we need some non-sleeping access_ok() prior to __get_user_inatomic().
 
-void ipte_unlock_siif(struct kvm_vcpu *vcpu)
-{
-        union ipte_control old, new, *ic;
+By looking at the code I was wondering where the correct place for might_fault()
+calls is? Doesn't seem to be very consistent. Examples:
 
-        ic = &vcpu->ic;
-        do {
-                new = old = ACCESS_ONCE(ic);
-                new.kh--;
-                if (!new.kh)
-                        new.k = 0;
-        } while (cmpxchg(&ic->val, old.val, new.val) != old.val);
-}
+                   | asm-generic | arm | arm64 | frv | m32r | x86 and s390
+---------------------------------------------------------------------------
+get_user()         |   Yes       | Yes | Yes   | No  | Yes  |     Yes
+__get_user()       |   No        | Yes | No    | No  | Yes  |     No
+put_user()         |   Yes       | Yes | Yes   | No  | Yes  |     Yes
+__put_user()       |   No        | Yes | No    | No  | Yes  |     No
+copy_to_user()     |   Yes       | No  | No    | Yes | Yes  |     Yes
+__copy_to_user()   |   No        | No  | No    | Yes | No   |     No
+copy_from_user()   |   Yes       | No  | No    | Yes | Yes  |     Yes
+__copy_from_user() |   No        | No  | No    | Yes | No   |     No
 
-generated code looks correct with and without strict-aliasing
-and volatile marking is preserved properly.
-(to check for volatile marks add -fdump-tree-optimized
- and look for {v} in *.optimized)
+So I would have assume that the way asm-generic, x86 and s390 (+ propably
+others) do this is the right way?
+So we can speed up multiple calls to e.g. copy_to_user() by doing the access
+check manually (and also the might_fault() if relevant), then calling
+__copy_to_user().
 
-> Pretty? No. But then, the standard C aliasing rules are so broken that
-> "pretty" doesn't really come into play..
+So in general, I conclude that the concept is:
+1. __.* variants perform no checking and don't call might_fault()
+2. [a-z].* variants perform access checking (access_ok() if implemented)
+3. [a-z].* variants call might_fault()
+4. .*_inatomic variants usually don't perform access checks
+5. .*_inatomic variants don't call might_fault()
+6. If common code uses the __.* variants, it has to trigger access_ok() and
+   call might_fault()
+7. For pagefault_disable(), the inatomic variants are to be used
 
-Agree. I don't see any warnings or code generation issues with and
-without strict-aliasing with your original __read_once_size(), so no need
-to play union tricks. Initially I was worried that extra always_inline
-function will make generated code worse in critical paths where
-ACCESS_ONCE is used, but after looking close enough, it seems
-all should be fine.
+Comments? Opinions?
 
-Note, with unmodified ACCESS_ONCE all architectures (even x64)
-are missing volatile markings with gcc 4.6.3, 4.7.2 for Christian's
-use case.
+
+David Hildenbrand (2):
+  powerpc/fsl-pci: atomic get_user when pagefault_disabled
+  mm, sched: trigger might_sleep() in might_fault() when atomic
+
+ arch/powerpc/sysdev/fsl_pci.c |  2 +-
+ include/linux/kernel.h        |  8 ++++++--
+ mm/memory.c                   | 11 ++++-------
+ 3 files changed, 11 insertions(+), 10 deletions(-)
+
+-- 
+1.8.5.5
