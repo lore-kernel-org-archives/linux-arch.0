@@ -1,7 +1,7 @@
 From: David Hildenbrand <dahi@linux.vnet.ibm.com>
-Subject: [RFC 1/2] powerpc/fsl-pci: atomic get_user when pagefault_disabled
-Date: Tue, 25 Nov 2014 12:43:25 +0100
-Message-ID: <1416915806-24757-2-git-send-email-dahi@linux.vnet.ibm.com>
+Subject: [RFC 2/2] mm, sched: trigger might_sleep() in might_fault() when atomic
+Date: Tue, 25 Nov 2014 12:43:26 +0100
+Message-ID: <1416915806-24757-3-git-send-email-dahi@linux.vnet.ibm.com>
 References: <1416915806-24757-1-git-send-email-dahi@linux.vnet.ibm.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1416915806-24757-1-git-send-email-dahi@linux.vnet.ibm.com>
@@ -10,26 +10,77 @@ To: linuxppc-dev@lists.ozlabs.org, linux-arch@vger.kernel.org, linux-kernel@vger
 Cc: benh@kernel.crashing.org, paulus@samba.org, akpm@linux-foundation.org, heiko.carstens@de.ibm.com, dahi@linux.vnet.ibm.com, schwidefsky@de.ibm.com, borntraeger@de.ibm.com
 List-Id: linux-arch.vger.kernel.org
 
-Whenever we have pagefaults disabled, we have to use the atomic variants of
-(set|get)_user and copy_(from|to)_user.
+Commit 662bbcb2747c2422cf98d3d97619509379eee466 disabled in atomic checks
+for all user access code (that uses might_fault()).
+
+That change basically disabled CONFIG_DEBUG_ATOMIC_SLEEP for all user access
+functions. However, this is a mighty debugging aid that we want.
+
+If user memory is to be accessed while pagefault_disabled() is set, the atomic
+variants of copy_(to|from)_user can be used.
+
+This patch reverts commit 662bbcb2747c2422cf98d3d97619509379eee466 taking care
+of the !MMU optimization.
 
 Signed-off-by: David Hildenbrand <dahi@linux.vnet.ibm.com>
 ---
- arch/powerpc/sysdev/fsl_pci.c | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ include/linux/kernel.h |  8 ++++++--
+ mm/memory.c            | 11 ++++-------
+ 2 files changed, 10 insertions(+), 9 deletions(-)
 
-diff --git a/arch/powerpc/sysdev/fsl_pci.c b/arch/powerpc/sysdev/fsl_pci.c
-index 65d2ed4..c0af4ef 100644
---- a/arch/powerpc/sysdev/fsl_pci.c
-+++ b/arch/powerpc/sysdev/fsl_pci.c
-@@ -1025,7 +1025,7 @@ int fsl_pci_mcheck_exception(struct pt_regs *regs)
- 	if (is_in_pci_mem_space(addr)) {
- 		if (user_mode(regs)) {
- 			pagefault_disable();
--			ret = get_user(regs->nip, &inst);
-+			ret = __get_user_inatomic(regs->nip, &inst);
- 			pagefault_enable();
- 		} else {
- 			ret = probe_kernel_address(regs->nip, inst);
+diff --git a/include/linux/kernel.h b/include/linux/kernel.h
+index 3d770f55..1d3397c 100644
+--- a/include/linux/kernel.h
++++ b/include/linux/kernel.h
+@@ -225,9 +225,13 @@ static inline u32 reciprocal_scale(u32 val, u32 ep_ro)
+ 	return (u32)(((u64) val * ep_ro) >> 32);
+ }
+ 
+-#if defined(CONFIG_MMU) && \
+-	(defined(CONFIG_PROVE_LOCKING) || defined(CONFIG_DEBUG_ATOMIC_SLEEP))
++#if defined(CONFIG_MMU) && defined(CONFIG_PROVE_LOCKING)
+ void might_fault(void);
++#elif defined(CONFIG_MMU) && defined(CONFIG_DEBUG_ATOMIC_SLEEP)
++static inline void might_fault(void)
++{
++	__might_sleep(__FILE__, __LINE__, 0);
++}
+ #else
+ static inline void might_fault(void) { }
+ #endif
+diff --git a/mm/memory.c b/mm/memory.c
+index 3e50383..fe0c815 100644
+--- a/mm/memory.c
++++ b/mm/memory.c
+@@ -3699,7 +3699,7 @@ void print_vma_addr(char *prefix, unsigned long ip)
+ 	up_read(&mm->mmap_sem);
+ }
+ 
+-#if defined(CONFIG_PROVE_LOCKING) || defined(CONFIG_DEBUG_ATOMIC_SLEEP)
++#ifdef CONFIG_PROVE_LOCKING
+ void might_fault(void)
+ {
+ 	/*
+@@ -3711,17 +3711,14 @@ void might_fault(void)
+ 	if (segment_eq(get_fs(), KERNEL_DS))
+ 		return;
+ 
++	__might_sleep(__FILE__, __LINE__, 0);
++
+ 	/*
+ 	 * it would be nicer only to annotate paths which are not under
+ 	 * pagefault_disable, however that requires a larger audit and
+ 	 * providing helpers like get_user_atomic.
+ 	 */
+-	if (in_atomic())
+-		return;
+-
+-	__might_sleep(__FILE__, __LINE__, 0);
+-
+-	if (current->mm)
++	if (!in_atomic() && current->mm)
+ 		might_lock_read(&current->mm->mmap_sem);
+ }
+ EXPORT_SYMBOL(might_fault);
 -- 
 1.8.5.5
