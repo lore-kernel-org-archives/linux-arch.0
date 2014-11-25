@@ -1,51 +1,44 @@
-From: Christian Borntraeger <borntraeger@de.ibm.com>
-Subject: Re: [PATCHv2 04/10] x86/spinlock: Replace ACCESS_ONCE with READ_ONCE/ASSIGN_ONCE
-Date: Tue, 25 Nov 2014 21:29:01 +0100
-Message-ID: <5474E68D.4010707@de.ibm.com>
-References: <1416919117-50652-1-git-send-email-borntraeger@de.ibm.com> <1416919117-50652-5-git-send-email-borntraeger@de.ibm.com>
+From: Alexander Duyck <alexander.h.duyck@redhat.com>
+Subject: Re: [PATCH v6 5/5] patch to allow arm cross-compile
+Date: Tue, 25 Nov 2014 12:29:56 -0800
+Message-ID: <5474E6C4.1000301@redhat.com>
+References: <20141125183009.1486.20845.stgit@ahduyck-server>	 <20141125183322.1486.90766.stgit@ahduyck-server> <1416944122.8358.10.camel@perches.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=windows-1252
+Content-Type: text/plain; charset=windows-1252; format=flowed
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e06smtp11.uk.ibm.com ([195.75.94.107]:48053 "EHLO
-	e06smtp11.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751092AbaKYU3J (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 25 Nov 2014 15:29:09 -0500
-Received: from /spool/local
-	by e06smtp11.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <borntraeger@de.ibm.com>;
-	Tue, 25 Nov 2014 20:29:07 -0000
-In-Reply-To: <1416919117-50652-5-git-send-email-borntraeger@de.ibm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, linux-mips@linux-mips.org, linux-x86_64@vger.kernel.org, linux-s390@vger.kernel.org, Paolo Bonzini <pbonzini@redhat.com>, paulmck@linux.vnet.ibm.com, mingo@kernel.org, torvalds@linux-foundation.org, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Alexei Starovoitov <alexei.starovoitov@gmail.com>, David Howells <dhowells@redhat.com>, Russell King <linux@arm.linux.org.uk>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1416944122.8358.10.camel@perches.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Joe Perches <joe@perches.com>, Russell King <linux@arm.linux.org.uk>
+Cc: linux-arch@vger.kernel.org, netdev@vger.kernel.org, linux-kernel@vger.kernel.org, mathieu.desnoyers@polymtl.ca, peterz@infradead.org, benh@kernel.crashing.org, heiko.carstens@de.ibm.com, mingo@kernel.org, mikey@neuling.org, donald.c.skidmore@intel.com, matthew.vick@intel.com, geert@linux-m68k.org, jeffrey.t.kirsher@intel.com, romieu@fr.zoreil.com, paulmck@linux.vnet.ibm.com, nic_swsd@realtek.com, arnd@arndb.de, will.deacon@arm.com, michael@ellerman.id.au, tony.luck@intel.com, torvalds@linux-foundation.org, oleg@redhat.com, schwidefsky@de.ibm.com, fweisbec@gmail.com, davem@davemloft.net
+List-Id: linux-arch.vger.kernel.org
 
-Am 25.11.2014 um 13:38 schrieb Christian Borntraeger:
-> ACCESS_ONCE does not work reliably on non-scalar types. For
-> example gcc 4.6 and 4.7 might remove the volatile tag for such
-> accesses during the SRA (scalar replacement of aggregates) step
-> (https://gcc.gnu.org/bugzilla/show_bug.cgi?id=58145)
-> 
-> Change the spinlock code to replace ACCESS_ONCE with READ_ONCE
-> and ASSIGN_ONCE.
-> 
-> Signed-off-by: Christian Borntraeger <borntraeger@de.ibm.com>
-> ---
->  arch/x86/include/asm/spinlock.h | 8 ++++----
->  1 file changed, 4 insertions(+), 4 deletions(-)
-> 
-> diff --git a/arch/x86/include/asm/spinlock.h b/arch/x86/include/asm/spinlock.h
-> index 9295016..af6e673 100644
-> --- a/arch/x86/include/asm/spinlock.h
-> +++ b/arch/x86/include/asm/spinlock.h
-> @@ -92,7 +92,7 @@ static __always_inline void arch_spin_lock(arch_spinlock_t *lock)
->  		unsigned count = SPIN_THRESHOLD;
-> 
->  		do {
-> -			if (ACCESS_ONCE(lock->tickets.head) == inc.tail)
-> +			if (ASSIGN_ONCE(inc.tail, lock->tickets.head))
 
-As Mike pointed out: this should be 
-			if (READ_ONCE(lock->tickets.head) == inc.tail)
-of course.
+On 11/25/2014 11:35 AM, Joe Perches wrote:
+> (adding Russell King)
+>
+> On Tue, 2014-11-25 at 10:33 -0800, Alexander Duyck wrote:
+>> ---
+>>   arch/arm/kernel/asm-offsets.c |    4 ----
+>>   1 file changed, 4 deletions(-)
+>>
+>> diff --git a/arch/arm/kernel/asm-offsets.c b/arch/arm/kernel/asm-offsets.c
+>> index 2d2d608..6f8e79c 100644
+>> --- a/arch/arm/kernel/asm-offsets.c
+>> +++ b/arch/arm/kernel/asm-offsets.c
+>> @@ -49,10 +49,6 @@
+>>   #error Your compiler is too buggy; it is known to miscompile kernels.
+>>   #error    Known good compilers: 3.3, 4.x
+>>   #endif
+>> -#if GCC_VERSION >= 40800 && GCC_VERSION < 40803
+>> -#error Your compiler is too buggy; it is known to miscompile kernels
+>> -#error and result in filesystem corruption and oopses.
+>> -#endif
+>>   #endif
+
+Sorry, that was for my testing only.  I will resubmit with that patch 
+dropped.
+
+Thanks,
+
+Alex
