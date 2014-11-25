@@ -1,59 +1,106 @@
-From: Linus Torvalds <torvalds@linux-foundation.org>
+From: Alexei Starovoitov <alexei.starovoitov@gmail.com>
 Subject: Re: [PATCH/RFC 7/7] kernel: Force ACCESS_ONCE to work only on scalar types
-Date: Mon, 24 Nov 2014 16:00:55 -0800
-Message-ID: <CA+55aFyktcMZnQHqoaCePgJVXmbi=9pTS_jz7j+j=QDuSoSFoA@mail.gmail.com>
-References: <CAADnVQ+8d0GC5OwQTdJKkmG8=vshUVqK1pPou1GCGa_iuU2v-g@mail.gmail.com>
+Date: Mon, 24 Nov 2014 18:28:03 -0800
+Message-ID: <CAADnVQJc-RO9EdBY2-Q0mONSLYxsryD3cP8+LPXTaKbjbqtvtg@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qg0-f54.google.com ([209.85.192.54]:34041 "EHLO
-	mail-qg0-f54.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750791AbaKYAA4 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 24 Nov 2014 19:00:56 -0500
-In-Reply-To: <CAADnVQ+8d0GC5OwQTdJKkmG8=vshUVqK1pPou1GCGa_iuU2v-g@mail.gmail.com>
+Received: from mail-qc0-f170.google.com ([209.85.216.170]:50700 "EHLO
+	mail-qc0-f170.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750836AbaKYC2F (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 24 Nov 2014 21:28:05 -0500
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Alexei Starovoitov <alexei.starovoitov@gmail.com>
+To: Linus Torvalds <torvalds@linux-foundation.org>
 Cc: David Howells <dhowells@redhat.com>, Christian Borntraeger <borntraeger@de.ibm.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux-mips <linux-mips@linux-mips.org>, linux-x86_64@vger.kernel.org, linux-s390 <linux-s390@vger.kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>
 
-On Mon, Nov 24, 2014 at 2:58 PM, Alexei Starovoitov
-<alexei.starovoitov@gmail.com> wrote:
+On Mon, Nov 24, 2014 at 4:00 PM, Linus Torvalds
+<torvalds@linux-foundation.org> wrote:
+> On Mon, Nov 24, 2014 at 2:58 PM, Alexei Starovoitov
+> <alexei.starovoitov@gmail.com> wrote:
+>>
+>> I've changed gcc pr58145-1.c reproducer to use
+>> __read_once_size() approach above
 >
-> I've changed gcc pr58145-1.c reproducer to use
-> __read_once_size() approach above
+> I don't think you did.
+>
+>> modified reproducer:
+>> struct S { unsigned int data; };
+>> void bar(int val)
+>> {
+>>   struct S _s = { .data = val };
+>>   *(volatile struct S *) 0x880000UL = ACCESS_ONCE(&_s);
+>> }
+>
+> My approach never had "volatile struct S *". The only volatile
+> pointers were the actual byte/word/etc pointers, and those generated
 
-I don't think you did.
+you're right. In my invalid snippet above the ACCESS_ONCE
+to struct on stack gets optimized away and only 'volatile struct *'
+in left hand side is triggering the bug.
 
-> modified reproducer:
-> struct S { unsigned int data; };
-> void bar(int val)
-> {
->   struct S _s = { .data = val };
->   *(volatile struct S *) 0x880000UL = ACCESS_ONCE(&_s);
-> }
+Have tried the following which blends your proposal
+with original code from Christian:
+/* bad
+#define ACCESS_ONCE(x) *((volatile typeof(x) *)&(x))
+*/
 
-My approach never had "volatile struct S *". The only volatile
-pointers were the actual byte/word/etc pointers, and those generated
-temporary values that were then assigned to the final type through a
-cast.
+/* good */
+#define ACCESS_ONCE(p) \
+      ({ typeof(*p) __val; __read_once_size(p, &__val, sizeof(__val)); __val; })
 
-Also, note that the kernel is compiled without strict aliasing, so the
-casting to 'void *' and various smaller types is "safe" - even if the
-C standard doesn't like it.
+static __always_inline void __read_once_size(volatile void *p, void
+*res, int size)
+{
+     switch (size) {
+     case 1: *(u8 *)res = *(volatile u8 *)p; break;
+     case 2: *(u16 *)res = *(volatile u16 *)p; break;
+     case 4: *(u32 *)res = *(volatile u32 *)p; break;
+     case 8: *(u64 *)res = *(volatile u64 *)p; break;
+     }
+}
 
-With strict aliasing, you'd need to make the read_once() macro not
-just pass in the size, there would have to be some kind of union of
-the type, and that would effectively mean that you can't use an inline
-function, you'd have to do it in a big macro (because the type would
-be per-site).
+union ipte_control {
+        unsigned long val;
+        struct {
+                unsigned long k  : 1;
+                unsigned long kh : 31;
+                unsigned long kg : 32;
+        };
+};
 
-So with strict aliasing, you'd have to make it something like
+struct kvm_vcpu {
+        union ipte_control ic;
+};
 
-        #define ACCESS_ONCE(p) \
-      ({ union { typeof(*p) __val; char __array[sizeof(*p)]} __u;
-__read_once_size(p, __u.__array, sizeof(__u)); __u.__val; })
+void ipte_unlock_siif(struct kvm_vcpu *vcpu)
+{
+        union ipte_control old, new, *ic;
 
-Pretty? No. But then, the standard C aliasing rules are so broken that
-"pretty" doesn't really come into play..
+        ic = &vcpu->ic;
+        do {
+                new = old = ACCESS_ONCE(ic);
+                new.kh--;
+                if (!new.kh)
+                        new.k = 0;
+        } while (cmpxchg(&ic->val, old.val, new.val) != old.val);
+}
 
-                  Linus
+generated code looks correct with and without strict-aliasing
+and volatile marking is preserved properly.
+(to check for volatile marks add -fdump-tree-optimized
+ and look for {v} in *.optimized)
+
+> Pretty? No. But then, the standard C aliasing rules are so broken that
+> "pretty" doesn't really come into play..
+
+Agree. I don't see any warnings or code generation issues with and
+without strict-aliasing with your original __read_once_size(), so no need
+to play union tricks. Initially I was worried that extra always_inline
+function will make generated code worse in critical paths where
+ACCESS_ONCE is used, but after looking close enough, it seems
+all should be fine.
+
+Note, with unmodified ACCESS_ONCE all architectures (even x64)
+are missing volatile markings with gcc 4.6.3, 4.7.2 for Christian's
+use case.
