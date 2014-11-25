@@ -1,45 +1,53 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e06smtp11.uk.ibm.com ([195.75.94.107]:36860 "EHLO
-	e06smtp11.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755842AbaKYLnk (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 25 Nov 2014 06:43:40 -0500
-Received: from /spool/local
-	by e06smtp11.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <dahi@linux.vnet.ibm.com>;
-	Tue, 25 Nov 2014 11:43:38 -0000
-From: David Hildenbrand <dahi@linux.vnet.ibm.com>
-Subject: [RFC 1/2] powerpc/fsl-pci: atomic get_user when pagefault_disabled
-Date: Tue, 25 Nov 2014 12:43:25 +0100
-Message-ID: <1416915806-24757-2-git-send-email-dahi@linux.vnet.ibm.com>
-In-Reply-To: <1416915806-24757-1-git-send-email-dahi@linux.vnet.ibm.com>
-References: <1416915806-24757-1-git-send-email-dahi@linux.vnet.ibm.com>
+Received: from aserp1040.oracle.com ([141.146.126.69]:26938 "EHLO
+	aserp1040.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753274AbaKYMRE (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 25 Nov 2014 07:17:04 -0500
+Date: Tue, 25 Nov 2014 15:16:00 +0300
+From: Dan Carpenter <dan.carpenter@oracle.com>
+Subject: Re: [PATCHv10 2/5] x86: Hook up execveat system call.
+Message-ID: <20141125121600.GE4893@mwanda>
+References: <1416830039-21952-1-git-send-email-drysdale@google.com>
+ <1416830039-21952-3-git-send-email-drysdale@google.com>
+ <20141124170626.GA5316@mwanda>
+ <CAHse=S-DS=NGC619Uhzkbd-EKa0D+HgBq3rE1czmLdoxAFswPg@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <CAHse=S-DS=NGC619Uhzkbd-EKa0D+HgBq3rE1czmLdoxAFswPg@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linuxppc-dev@lists.ozlabs.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: benh@kernel.crashing.org, paulus@samba.org, akpm@linux-foundation.org, heiko.carstens@de.ibm.com, dahi@linux.vnet.ibm.com, schwidefsky@de.ibm.com, borntraeger@de.ibm.com
-Message-ID: <20141125114325.M0LqJK6F9LhusWEBXoJGhYN3fZ8ETJa_sa7ANAk5OpE@z>
+To: David Drysdale <drysdale@google.com>
+Cc: "Eric W. Biederman" <ebiederm@xmission.com>, Andy Lutomirski <luto@amacapital.net>, Alexander Viro <viro@zeniv.linux.org.uk>, Meredydd Luff <meredydd@senatehouse.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Thomas Gleixner <tglx@linutronix.de>, Stephen Rothwell <sfr@canb.auug.org.au>, Oleg Nesterov <oleg@redhat.com>, Michael Kerrisk <mtk.manpages@gmail.com>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Rich Felker <dalias@aerifal.cx>, Christoph Hellwig <hch@infradead.org>, X86 ML <x86@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, sparclinux@vger.kernel.org
+Message-ID: <20141125121600.JMwXpbq-pzQgEKpZh-6VMM1xZ8IEwGAciqnUjOLZC6E@z>
 
-Whenever we have pagefaults disabled, we have to use the atomic variants of
-(set|get)_user and copy_(from|to)_user.
+On Mon, Nov 24, 2014 at 06:26:24PM +0000, David Drysdale wrote:
+> On Mon, Nov 24, 2014 at 5:06 PM, Dan Carpenter <dan.carpenter@oracle.com> wrote:
+> > On Mon, Nov 24, 2014 at 11:53:56AM +0000, David Drysdale wrote:
+> >> Hook up x86-64, i386 and x32 ABIs.
+> >>
+> >> Signed-off-by: David Drysdale <drysdale@google.com>
+> >
+> > This one has been breaking my linux-next build for the past week.  I'm
+> > not sure what's going on.
+> 
+> Hi Dan,
+> 
+> Sorry if this has been causing you problems -- I've not had any
+> errors from the kbuild robots or my local builds.
+> 
 
-Signed-off-by: David Hildenbrand <dahi@linux.vnet.ibm.com>
----
- arch/powerpc/sysdev/fsl_pci.c | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+For some reason I had a stale copy of
+arch/x86/include/generated/asm/unistd_32.h and it was using that in
+preference to the arch/x86/include/generated/uapi/asm/unistd_32.h file.
+Once I did ran:
 
-diff --git a/arch/powerpc/sysdev/fsl_pci.c b/arch/powerpc/sysdev/fsl_pci.c
-index 65d2ed4..c0af4ef 100644
---- a/arch/powerpc/sysdev/fsl_pci.c
-+++ b/arch/powerpc/sysdev/fsl_pci.c
-@@ -1025,7 +1025,7 @@ int fsl_pci_mcheck_exception(struct pt_regs *regs)
- 	if (is_in_pci_mem_space(addr)) {
- 		if (user_mode(regs)) {
- 			pagefault_disable();
--			ret = get_user(regs->nip, &inst);
-+			ret = __get_user_inatomic(regs->nip, &inst);
- 			pagefault_enable();
- 		} else {
- 			ret = probe_kernel_address(regs->nip, inst);
--- 
-1.8.5.5
+	arch/x86/include/generated/ -rf
+
+Then it builds now.
+
+I'm not sure what that's all about but it's fixed now.
+
+regards,
+dan carpenter
 
