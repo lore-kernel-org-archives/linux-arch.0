@@ -1,16 +1,16 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e06smtp13.uk.ibm.com ([195.75.94.109]:41425 "EHLO
-	e06smtp13.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752287AbaKYMiq (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 25 Nov 2014 07:38:46 -0500
+Received: from e06smtp16.uk.ibm.com ([195.75.94.112]:36476 "EHLO
+	e06smtp16.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754131AbaKYMir (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 25 Nov 2014 07:38:47 -0500
 Received: from /spool/local
-	by e06smtp13.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	by e06smtp16.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
 	for <linux-arch@vger.kernel.org> from <borntraeger@de.ibm.com>;
-	Tue, 25 Nov 2014 12:38:44 -0000
+	Tue, 25 Nov 2014 12:38:45 -0000
 From: Christian Borntraeger <borntraeger@de.ibm.com>
-Subject: [PATCHv2 10/10] KVM: s390: change ipte lock from barrier to READ_ONCE
-Date: Tue, 25 Nov 2014 13:38:37 +0100
-Message-Id: <1416919117-50652-11-git-send-email-borntraeger@de.ibm.com>
+Subject: [PATCHv2 06/10] mips: Replace ACCESS_ONCE in gup with READ_ONCE
+Date: Tue, 25 Nov 2014 13:38:33 +0100
+Message-Id: <1416919117-50652-7-git-send-email-borntraeger@de.ibm.com>
 In-Reply-To: <1416919117-50652-1-git-send-email-borntraeger@de.ibm.com>
 References: <1416919117-50652-1-git-send-email-borntraeger@de.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
@@ -18,71 +18,31 @@ List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
 Cc: "linux-arch@vger.kernel.org, linux-mips@linux-mips.org, linux-x86_64@vger.kernel.org, linux-s390"@vger.kernel.org, Paolo Bonzini <pbonzini@redhat.com>, paulmck@linux.vnet.ibm.com, mingo@kernel.org, torvalds@linux-foundation.org, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Alexei Starovoitov <alexei.starovoitov@gmail.com>, David Howells <dhowells@redhat.com>, Russell King <linux@arm.linux.org.uk>, Christian Borntraeger <borntraeger@de.ibm.com>
 
-Now that we have the READ_ONCE solution, we can change the ipte lock
-from a barrier solution to READ_ONCE. The barrier and the explanation
-of the bug was introduced in commit 1365039d0cb3 ("KVM: s390: Fix
-ipte locking")
+ACCESS_ONCE does not work reliably on non-scalar types. For
+example gcc 4.6 and 4.7 might remove the volatile tag for such
+accesses during the SRA (scalar replacement of aggregates) step
+https://gcc.gnu.org/bugzilla/show_bug.cgi?id=58145)
 
-Cc: Paolo Bonzini <pbonzini@redhat.com>
+Change the gup code to replace ACCESS_ONCE with READ_ONCE.
+
 Signed-off-by: Christian Borntraeger <borntraeger@de.ibm.com>
 ---
- arch/s390/kvm/gaccess.c | 18 ++++++------------
- 1 file changed, 6 insertions(+), 12 deletions(-)
+ arch/mips/mm/gup.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/arch/s390/kvm/gaccess.c b/arch/s390/kvm/gaccess.c
-index 6dc0ad9..8f195fa 100644
---- a/arch/s390/kvm/gaccess.c
-+++ b/arch/s390/kvm/gaccess.c
-@@ -229,12 +229,10 @@ static void ipte_lock_simple(struct kvm_vcpu *vcpu)
- 		goto out;
- 	ic = &vcpu->kvm->arch.sca->ipte_control;
- 	do {
--		old = *ic;
--		barrier();
-+		old = READ_ONCE(*ic);
- 		while (old.k) {
- 			cond_resched();
--			old = *ic;
--			barrier();
-+			old = READ_ONCE(*ic);
- 		}
- 		new = old;
- 		new.k = 1;
-@@ -253,8 +251,7 @@ static void ipte_unlock_simple(struct kvm_vcpu *vcpu)
- 		goto out;
- 	ic = &vcpu->kvm->arch.sca->ipte_control;
- 	do {
--		old = *ic;
--		barrier();
-+		old = READ_ONCE(*ic);
- 		new = old;
- 		new.k = 0;
- 	} while (cmpxchg(&ic->val, old.val, new.val) != old.val);
-@@ -269,12 +266,10 @@ static void ipte_lock_siif(struct kvm_vcpu *vcpu)
+diff --git a/arch/mips/mm/gup.c b/arch/mips/mm/gup.c
+index 06ce17c..8aa50e3 100644
+--- a/arch/mips/mm/gup.c
++++ b/arch/mips/mm/gup.c
+@@ -30,7 +30,7 @@ retry:
  
- 	ic = &vcpu->kvm->arch.sca->ipte_control;
- 	do {
--		old = *ic;
--		barrier();
-+		old = READ_ONCE(*ic);
- 		while (old.kg) {
- 			cond_resched();
--			old = *ic;
--			barrier();
-+			old = READ_ONCE(*ic);
- 		}
- 		new = old;
- 		new.k = 1;
-@@ -288,8 +283,7 @@ static void ipte_unlock_siif(struct kvm_vcpu *vcpu)
+ 	return pte;
+ #else
+-	return ACCESS_ONCE(*ptep);
++	return READ_ONCE(*ptep);
+ #endif
+ }
  
- 	ic = &vcpu->kvm->arch.sca->ipte_control;
- 	do {
--		old = *ic;
--		barrier();
-+		old = READ_ONCE(*ic);
- 		new = old;
- 		new.kh--;
- 		if (!new.kh)
 -- 
 1.9.3
 
