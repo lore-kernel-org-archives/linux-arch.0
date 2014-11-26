@@ -1,99 +1,191 @@
-From: Waiman Long <waiman.long@hp.com>
-Subject: Re: [PATCH v12 09/11] pvqspinlock, x86: Add para-virtualization support
-Date: Tue, 25 Nov 2014 19:33:58 -0500
-Message-ID: <54751FF6.5050808@hp.com>
-References: <1413483040-58399-1-git-send-email-Waiman.Long@hp.com> <1413483040-58399-10-git-send-email-Waiman.Long@hp.com> <20141024085437.GV21513@worktop.programming.kicks-ass.net> <544E830C.6070307@hp.com> <20141027180252.GC12989@laptop.dumpdata.com>
+From: "Michael S. Tsirkin" <mst@redhat.com>
+Subject: Re: [RFC 0/2] Reenable might_sleep() checks for might_fault() when
+ atomic
+Date: Wed, 26 Nov 2014 09:02:58 +0200
+Message-ID: <20141126070258.GA25523@redhat.com>
+References: <1416915806-24757-1-git-send-email-dahi@linux.vnet.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from g2t2352.austin.hp.com ([15.217.128.51]:46059 "EHLO
-	g2t2352.austin.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751002AbaKZAeH (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 25 Nov 2014 19:34:07 -0500
-In-Reply-To: <20141027180252.GC12989@laptop.dumpdata.com>
+Received: from mx1.redhat.com ([209.132.183.28]:39010 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752031AbaKZHDS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 26 Nov 2014 02:03:18 -0500
+Content-Disposition: inline
+In-Reply-To: <1416915806-24757-1-git-send-email-dahi@linux.vnet.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
-Cc: Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Rik van Riel <riel@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, David Vrabel <david.vrabel@citrix.com>, Oleg Nesterov <oleg@redhat.com>, Scott J Norton <scott.norton@hp.com>, Douglas Hatch <doug.hatch@hp.com>
+To: David Hildenbrand <dahi@linux.vnet.ibm.com>
+Cc: linuxppc-dev@lists.ozlabs.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, benh@kernel.crashing.org, paulus@samba.org, akpm@linux-foundation.org, heiko.carstens@de.ibm.com, schwidefsky@de.ibm.com, borntraeger@de.ibm.com
 
-On 10/27/2014 02:02 PM, Konrad Rzeszutek Wilk wrote:
-> On Mon, Oct 27, 2014 at 01:38:20PM -0400, Waiman Long wrote:
->>
->> My concern is that spin_unlock() can be called in many places, including
->> loadable kernel modules. Can the paravirt_patch_ident_32() function able to
->> patch all of them in reasonable time? How about a kernel module loaded later
->> at run time?
-> It has too. When the modules are loaded the .paravirt symbols are exposed
-> and the module loader patches that.
->
-> And during bootup time (before modules are loaded) it also patches everything
-> - when it only runs on one CPU.
->
+On Tue, Nov 25, 2014 at 12:43:24PM +0100, David Hildenbrand wrote:
+> I recently discovered that commit 662bbcb2747c2422cf98d3d97619509379eee466
+> removed/skipped all might_sleep checks for might_fault() calls when in atomic.
 
-I have been changing the patching code to patch the unlock call sites 
-and it seems to be working now. However, when I manually inserted a 
-kernel module using insmod and run the code in the newly inserted 
-module, I got memory access violation as follows:
+Yes.  You can add e.g. might_sleep in your code if, for some reason, it is
+illegal to call it in an atomic context.
+But faults are legal in atomic if you handle the possible
+errors, and faults do not necessary cause caller to sleep, so might_fault
+should not call might_sleep.
 
-BUG: unable to handle kernel NULL pointer dereference at           (null)
-IP: [<          (null)>]           (null)
-PGD 18d62f3067 PUD 18d476f067 PMD 0
-Oops: 0010 [#1] SMP
-Modules linked in: locktest(OE) ebtable_nat ebtables xt_CHECKSUM 
-iptable_mangle bridge autofs4 8021q garp stp llc ipt_REJECT 
-nf_conntrack_ipv4 nf_defrag_ipv4 iptable_filter ip_tables ip6t_REJECT 
-nf_conntrack_ipv6 nf_defrag_ipv6 xt_state nf_conntrack ip6table_filter 
-ip6_tables ipv6 vhost_net macvtap macvlan vhost tun uinput ppdev 
-parport_pc parport sg microcode pcspkr virtio_balloon 
-snd_hda_codec_generic virtio_console snd_hda_intel snd_hda_controller 
-snd_hda_codec snd_hwdep snd_seq snd_seq_device snd_pcm snd_timer snd 
-soundcore virtio_net i2c_piix4 i2c_core ext4(E) jbd2(E) mbcache(E) 
-floppy(E) virtio_blk(E) sr_mod(E) cdrom(E) virtio_pci(E) virtio_ring(E) 
-virtio(E) pata_acpi(E) ata_generic(E) ata_piix(E) dm_mirror(E) 
-dm_region_hash(E) dm_log(E) dm_mod(E) [last unloaded: speedstep_lib]
-CPU: 1 PID: 3907 Comm: run-locktest Tainted: G        W  OE  
-3.17.0-pvqlock #3
-Hardware name: Red Hat KVM, BIOS Bochs 01/01/2011
-task: ffff8818cc5baf90 ti: ffff8818b7094000 task.ti: ffff8818b7094000
-RIP: 0010:[<0000000000000000>]  [<          (null)>]           (null)
-RSP: 0018:ffff8818b7097db0  EFLAGS: 00010246
-RAX: 0000000000000000 RBX: 00000000004c4b40 RCX: 0000000000000000
-RDX: 0000000000000001 RSI: 0000000000000000 RDI: ffff8818d3f052c0
-RBP: ffff8818b7097dd8 R08: 0000000080522014 R09: 0000000000000000
-R10: 0000000000001000 R11: 0000000000000001 R12: 0000000000000001
-R13: 0000000000000000 R14: 0000000000000001 R15: ffff8818b7097ea0
-FS:  00007fb828ece700(0000) GS:ffff88193ec20000(0000) knlGS:0000000000000000
-CS:  0010 DS: 0000 ES: 0000 CR0: 000000008005003b
-CR2: 0000000000000000 CR3: 00000018cc7e9000 CR4: 00000000000006e0
-Stack:
-  ffffffffa06ff395 ffff8818d465e000 ffffffff8164bec0 0000000000000001
-  0000000000000050 ffff8818b7097e18 ffffffffa06ff785 ffff8818b7097e38
-  0000000000000246 0000000054755e3a 0000000039f8ba72 ffff8818c174f000
-Call Trace:
-  [<ffffffffa06ff395>] ? test_spinlock+0x65/0x90 [locktest]
-  [<ffffffffa06ff785>] etime_show+0xd5/0x120 [locktest]
-  [<ffffffff812a2dc6>] kobj_attr_show+0x16/0x20
-  [<ffffffff8121a7fa>] sysfs_kf_seq_show+0xca/0x1b0
-  [<ffffffff81218a13>] kernfs_seq_show+0x23/0x30
-  [<ffffffff811c82db>] seq_read+0xbb/0x400
-  [<ffffffff812197e5>] kernfs_fop_read+0x35/0x40
-  [<ffffffff811a4223>] vfs_read+0xa3/0x110
-  [<ffffffff811a47e6>] SyS_read+0x56/0xd0
-  [<ffffffff810f3e16>] ? __audit_syscall_exit+0x216/0x2c0
-  [<ffffffff815b3ca9>] system_call_fastpath+0x16/0x1b
-Code:  Bad RIP value.
-  RSP <ffff8818b7097db0>
-CR2: 0000000000000000
----[ end trace 69d0e259c9ec632f ]---
+> Reason was to allow calling copy_(to|from)_user while in pagefault_disabled(),
+> because otherwise, CONFIG_DEBUG_ATOMIC_SLEEP would find false positives.
 
-It seems like call site patching isn't properly done or the kernel 
-module that I built was missing some critical information necessary for 
-the proper linking. Anyway, I will include the unlock call patching code 
-as a separate patch as it seems there may be problem under certain 
-circumstance.
+That wasn't the only reason BTW.
+Andi Kleen also showed that compiler did a terrible job optimizing
+get/put user when might_sleep was called.
+See e.g. this thread:
+https://lkml.org/lkml/2013/8/14/652
+There was even an lwn.net article about it, that I don't seem to be
+able to locate.
+So might_sleep is not appropriate for lightweight operations like __get_user,
+which people literally expect to be a single instruction.
 
-BTW, the kernel panic problem that your team reported had been fixed. 
-The fix will be in the next version of the patch.
 
--Longman
+I also have a project going which handles very short packets by copying
+them into guest memory directly without waking up a thread.
+I do it by calling recvmsg on a socket, then switching to
+a thread if I get back EFAULT.
+Not yet clean enough to upstream but it does seem to cut
+the latency down quite a bit, so I'd like to have the option.
+
+
+Generally, a caller that does something like this under a spinlock:
+        preempt_disable
+        pagefault_disable
+        error = copy_to_user
+        pagefault_enable
+        preempt_enable_no_resched
+
+is not doing anything wrong and should not get a warning,
+as long as error is handled correctly later.
+
+You can also find the discussion around the patches
+educational:
+http://article.gmane.org/gmane.comp.emulators.kvm.devel/109928
+
+> However
+> we have the inatomic variants of these function for this purpose.
+
+Does inatomic install fixups now?
+
+Last I checked, it didn't so it did not satisfy this purpose.
+See this comment from x86:
+
+ * Copy data from kernel space to user space.  Caller must check
+ * the specified block with access_ok() before calling this function.
+ * The caller should also make sure he pins the user space address
+ * so that we don't result in page fault and sleep.
+
+
+Also - switching to inatomic would scatter if (atomic) all
+over code. It's much better to simply call the same
+function (e.g. recvmsg) and have it fail gracefully:
+after all, we have code to handle get/put user errors
+anyway.
+
+> The result of this change was that all guest access (that correctly uses
+> might_fault()) doesn't perform atomic checks when CONFIG_DEBUG_ATOMIC_SLEEP is
+> enabled. We lost a mighty debugging feature for user access.
+
+What's the path you are trying to debug?
+
+If your code can faults, then it's safe to call
+from atomic context.
+If it can't, it must pin the page.  You can not do access_ok checks and
+then assume access won't fault.
+
+> As I wasn't able to come up with any other reason why this should be
+> necessary, I suggest turning the might_sleep() checks on again in the
+> might_fault() code.
+
+Faults triggered with pagefault_disabled do not cause
+caller to sleep, merely to fail and get an error,
+so might_sleep is simply wrong.
+
+> 
+> pagefault_disable/pagefault_enable seems to be used mainly for futex, perf event
+> and kmap.
+> 
+> Going over all changes since that commit, it seems like most code already uses the
+> inatomic variants of copy_(to|from)_user. Code relying on (get|put)_user during
+> pagefault_disable() don't make use of any might_fault() in their (get|put)_user
+> implementation. Examples:
+> - arch/m68k/include/asm/futex.h
+> - arch/parisc/include/asm/futex.h
+> - arch/sh/include/asm/futex-irq.h
+> - arch/tile/include/asm/futex.h
+> So changing might_fault() back to trigger might_sleep() won't change a thing for
+> them. Hope I haven't missed anything.
+
+Did you check the generated code?
+On x86 it seems to me this patchset is definitely going to
+slow things down, in fact putting back in a performance regression
+that Andi found.
+
+
+> I only identified one might_fault() that would get triggered by get_user() on
+> powerpc and fixed it by using the inatomic variant (not tested). I am not sure
+> if we need some non-sleeping access_ok() prior to __get_user_inatomic().
+> 
+> By looking at the code I was wondering where the correct place for might_fault()
+> calls is? Doesn't seem to be very consistent. Examples:
+> 
+>                    | asm-generic | arm | arm64 | frv | m32r | x86 and s390
+> ---------------------------------------------------------------------------
+> get_user()         |   Yes       | Yes | Yes   | No  | Yes  |     Yes
+> __get_user()       |   No        | Yes | No    | No  | Yes  |     No
+> put_user()         |   Yes       | Yes | Yes   | No  | Yes  |     Yes
+> __put_user()       |   No        | Yes | No    | No  | Yes  |     No
+> copy_to_user()     |   Yes       | No  | No    | Yes | Yes  |     Yes
+> __copy_to_user()   |   No        | No  | No    | Yes | No   |     No
+> copy_from_user()   |   Yes       | No  | No    | Yes | Yes  |     Yes
+> __copy_from_user() |   No        | No  | No    | Yes | No   |     No
+> 
+
+I think it would be a mistake to make this change.
+
+Most call-sites handle faults in atomic just fine by
+returning error to caller.
+
+> So I would have assume that the way asm-generic, x86 and s390 (+ propably
+> others) do this is the right way?
+> So we can speed up multiple calls to e.g. copy_to_user() by doing the access
+> check manually (and also the might_fault() if relevant), then calling
+> __copy_to_user().
+> 
+> So in general, I conclude that the concept is:
+> 1. __.* variants perform no checking and don't call might_fault()
+> 2. [a-z].* variants perform access checking (access_ok() if implemented)
+> 3. [a-z].* variants call might_fault()
+> 4. .*_inatomic variants usually don't perform access checks
+> 5. .*_inatomic variants don't call might_fault()
+> 6. If common code uses the __.* variants, it has to trigger access_ok() and
+>    call might_fault()
+> 7. For pagefault_disable(), the inatomic variants are to be used
+
+inatomic variants don't seem to handle faults, so you
+must pin any memory you pass to them.
+
+
+> Comments? Opinions?
+> 
+
+If the same address is accessed multiple times, access_ok + __
+variant can be used to speed access up a bit.
+This is rarely the case, but this is the case for e.g. vhost.
+But access_ok does not guarantee that no fault will trigger:
+there's really no way to do that ATM except pinning the page.
+
+
+> David Hildenbrand (2):
+>   powerpc/fsl-pci: atomic get_user when pagefault_disabled
+>   mm, sched: trigger might_sleep() in might_fault() when atomic
+> 
+>  arch/powerpc/sysdev/fsl_pci.c |  2 +-
+>  include/linux/kernel.h        |  8 ++++++--
+>  mm/memory.c                   | 11 ++++-------
+>  3 files changed, 11 insertions(+), 10 deletions(-)
+> 
+> -- 
+> 1.8.5.5
