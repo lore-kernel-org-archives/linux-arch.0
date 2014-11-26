@@ -1,141 +1,52 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:34740 "EHLO mx1.redhat.com"
+Received: from arroyo.ext.ti.com ([192.94.94.40]:44055 "EHLO arroyo.ext.ti.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752467AbaKZQuo (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 26 Nov 2014 11:50:44 -0500
-Date: Wed, 26 Nov 2014 18:50:24 +0200
-From: "Michael S. Tsirkin" <mst@redhat.com>
-Subject: Re: [RFC 0/2] Reenable might_sleep() checks for might_fault() when
- atomic
-Message-ID: <20141126165024.GA11202@redhat.com>
-References: <1416915806-24757-1-git-send-email-dahi@linux.vnet.ibm.com>
- <20141126070258.GA25523@redhat.com>
- <20141126110504.511b733a@thinkpad-w530>
- <20141126151729.GB9612@redhat.com>
- <20141126152334.GA9648@redhat.com>
- <20141126163207.63810fcb@thinkpad-w530>
- <20141126154717.GB10568@redhat.com>
- <20141126170223.3b108b94@thinkpad-w530>
- <20141126161947.GA10850@redhat.com>
- <5476002B.30900@de.ibm.com>
+	id S1750895AbaKZVO7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 26 Nov 2014 16:14:59 -0500
+From: Dave Gerlach <d-gerlach@ti.com>
+Subject: [RFC PATCH 0/2] Add ioremap_exec enhancements
+Date: Wed, 26 Nov 2014 15:13:59 -0600
+Message-ID: <cover.1417029918.git.d-gerlach@ti.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <5476002B.30900@de.ibm.com>
+Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christian Borntraeger <borntraeger@de.ibm.com>
-Cc: David Hildenbrand <dahi@linux.vnet.ibm.com>, linuxppc-dev@lists.ozlabs.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, benh@kernel.crashing.org, paulus@samba.org, akpm@linux-foundation.org, heiko.carstens@de.ibm.com, schwidefsky@de.ibm.com, mingo@kernel.org
-Message-ID: <20141126165024.vJV-TCRdL0HVoFqr4Y_ZKioXTghXYRrma2wwb771joY@z>
+To: linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-omap@vger.kernel.org, linux-arch@vger.kernel.org, devicetree@vger.kernel.org
+Cc: Russ Dill <russ.dill@ti.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Arnd Bergmann <arnd@arndb.de>, Philipp Zabel <p.zabel@pengutronix.de>, Shawn Guo <shawn.guo@freescale.com>, Tony Lindgren <tony@atomide.com>, Anson.Huang@freescale.com, Dave Gerlach <d-gerlach@ti.com>
+Message-ID: <20141126211359.38cWByhK9USfWLp2Bv9uTXLNfWCIBPVo6OY78_Wy4-I@z>
 
-On Wed, Nov 26, 2014 at 05:30:35PM +0100, Christian Borntraeger wrote:
-> Am 26.11.2014 um 17:19 schrieb Michael S. Tsirkin:
-> > On Wed, Nov 26, 2014 at 05:02:23PM +0100, David Hildenbrand wrote:
-> >>>> This is what happened on our side (very recent kernel):
-> >>>>
-> >>>> spin_lock(&lock)
-> >>>> copy_to_user(...)
-> >>>> spin_unlock(&lock)
-> >>>
-> >>> That's a deadlock even without copy_to_user - it's
-> >>> enough for the thread to be preempted and another one
-> >>> to try taking the lock.
-> >>>
-> >>>
-> >>>> 1. s390 locks/unlocks a spin lock with a compare and swap, using the _cpu id_
-> >>>>    as "old value"
-> >>>> 2. we slept during copy_to_user()
-> >>>> 3. the thread got scheduled onto another cpu
-> >>>> 4. spin_unlock failed as the _cpu id_ didn't match (another cpu that locked
-> >>>>    the spinlock tried to unlocked it).
-> >>>> 5. lock remained locked -> deadlock
-> >>>>
-> >>>> Christian came up with the following explanation:
-> >>>> Without preemption, spin_lock() will not touch the preempt counter.
-> >>>> disable_pfault() will always touch it.
-> >>>>
-> >>>> Therefore, with preemption disabled, copy_to_user() has no idea that it is
-> >>>> running in atomic context - and will therefore try to sleep.
-> >>>>
-> >>>> So copy_to_user() will on s390:
-> >>>> 1. run "as atomic" while spin_lock() with preemption enabled.
-> >>>> 2. run "as not atomic" while spin_lock() with preemption disabled.
-> >>>> 3.  run "as atomic" while pagefault_disabled() with preemption enabled or
-> >>>> disabled.
-> >>>> 4. run "as not atomic" when really not atomic.
-> >>
-> >> should have been more clear at that point: 
-> >> preemption enabled == kernel compiled with preemption support
-> >> preemption disabled == kernel compiled without preemption support
-> >>
-> >>>>
-> >>>> And exactly nr 2. is the thing that produced the deadlock in our scenario and
-> >>>> the reason why I want a might_sleep() :)
-> >>>
-> >>> IMHO it's not copy to user that causes the problem.
-> >>> It's the misuse of spinlocks with preemption on.
-> >>
-> >> As I said, preemption was off.
-> > 
-> > off -> disabled at compile time?
-> > 
-> > But the code is broken for people that do enable it.
-> [...]
-> > You should normally disable preemption if you take
-> > spinlocks.
-> 
-> Your are telling that any sequence of
-> spin_lock
-> ...
-> spin_unlock
-> 
-> is broken with CONFIG_PREEMPT?
-> Michael, that is bullshit. spin_lock will take care of CONFIG_PREEMPT just fine. 
-> 
-> Only sequences like
-> spin_lock
-> ...
-> schedule
-> ...
-> spin_unlock
-> are broken.
-> 
-> But as I said. That is not the problem that we are discussing here.
-> 
-> Christian
+Hi,
 
-I'm saying spin_lock without _irqsave is often a bug.
+Some platforms need the ability to ioremap memory for use with small
+chunks of code, like in certain PM applications that run from sram.
 
+This series provides a common way to call an arch's ioremap_exec, which
+currently only exists for ARM, so that we can use it in the generic
+sram driver in a forthcoming patch.
 
-I am also saying this code in mm/fault.c:
-__do_page_fault
-...
-        /*
-         * If we're in an interrupt, have no user context or are running
-         * in an atomic region then we must not take the fault:
-         */
-        if (unlikely(in_atomic() || !mm)) {
-                bad_area_nosemaphore(regs, error_code, address);
-                return;
-        }
+This patch is part of a patch series split into several smaller sets
+for introducing suspend on AM335x. I plan to use it to copy several
+pieces of ASM code from an EMIF driver and the SoC PM code to run from
+SRAM on the SoC. I have pushed a branch here [1] based on v3.18-rc6
+with all required patches so that the higher level plan for these
+patches can be seen.
 
-means that a fault won't cause sleep if called in atomic context.
+Regards,
+Dave
 
-And a bunch of code relies on this.
+[1] https://github.com/dgerlach/linux-pm/tree/rfc-pm-am335x-v3.18-rc6
 
-This is why might_fault does:
+Russ Dill (2):
+  asm-generic: io: Add exec versions of ioremap
+  lib: devres: Add exec versions of devm_ioremap_resource and friends
 
-         * it would be nicer only to annotate paths which are not under
-         * pagefault_disable, however that requires a larger audit and
-         * providing helpers like get_user_atomic.
-         */
-        if (in_atomic())
-                return;
-
-        __might_sleep(__FILE__, __LINE__, 0);
-
-
-If you see this violated, let's figure out why.
+ arch/arm/include/asm/io.h   |   2 +
+ include/asm-generic/iomap.h |   5 ++
+ include/linux/device.h      |  19 ++++++-
+ include/linux/io.h          |   9 +++-
+ lib/devres.c                | 125 ++++++++++++++++++++++++++++++++++++++++++--
+ 5 files changed, 154 insertions(+), 6 deletions(-)
 
 -- 
-MST
+2.1.0
+
