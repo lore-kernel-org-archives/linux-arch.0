@@ -1,59 +1,38 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e06smtp13.uk.ibm.com ([195.75.94.109]:53503 "EHLO
-	e06smtp13.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750967AbaKZQCp (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 26 Nov 2014 11:02:45 -0500
-Received: from /spool/local
-	by e06smtp13.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <borntraeger@de.ibm.com>;
-	Wed, 26 Nov 2014 16:02:44 -0000
-Message-ID: <5475F99B.3090307@de.ibm.com>
-Date: Wed, 26 Nov 2014 17:02:35 +0100
-From: Christian Borntraeger <borntraeger@de.ibm.com>
+Received: from foss-mx-na.foss.arm.com ([217.140.108.86]:39856 "EHLO
+	foss-mx-na.foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753374AbaKZQE5 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 26 Nov 2014 11:04:57 -0500
+Date: Wed, 26 Nov 2014 16:04:56 +0000
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [PATCH v5 2/4] arch: Add lightweight memory barriers dma_rmb()
+ and dma_wmb()
+Message-ID: <20141126160456.GJ14866@arm.com>
+References: <20141119012205.9563.95544.stgit@ahduyck-server>
+ <20141119012400.9563.21117.stgit@ahduyck-server>
+ <20141125140130.GC8541@arm.com>
+ <5474ADB4.5070200@redhat.com>
 MIME-Version: 1.0
-Subject: Re: [RFC 0/2] Reenable might_sleep() checks for might_fault() when
- atomic
-References: <1416915806-24757-1-git-send-email-dahi@linux.vnet.ibm.com> <20141126070258.GA25523@redhat.com> <20141126110504.511b733a@thinkpad-w530> <20141126151729.GB9612@redhat.com> <5475F218.4050207@de.ibm.com> <20141126153732.GA10568@redhat.com>
-In-Reply-To: <20141126153732.GA10568@redhat.com>
-Content-Type: text/plain; charset=windows-1252
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <5474ADB4.5070200@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Michael S. Tsirkin" <mst@redhat.com>
-Cc: David Hildenbrand <dahi@linux.vnet.ibm.com>, linuxppc-dev@lists.ozlabs.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, benh@kernel.crashing.org, paulus@samba.org, akpm@linux-foundation.org, heiko.carstens@de.ibm.com, schwidefsky@de.ibm.com, mingo@kernel.org
-Message-ID: <20141126160235.n37Ca7w7mPEVQmWszJtTgwZV7Q4uo0JbNme__qrzlxs@z>
+To: Alexander Duyck <alexander.h.duyck@redhat.com>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "netdev@vger.kernel.org" <netdev@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "mathieu.desnoyers@polymtl.ca" <mathieu.desnoyers@polymtl.ca>, "peterz@infradead.org" <peterz@infradead.org>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, "heiko.carstens@de.ibm.com" <heiko.carstens@de.ibm.com>, "mingo@kernel.org" <mingo@kernel.org>, "mikey@neuling.org" <mikey@neuling.org>, "linux@arm.linux.org.uk" <linux@arm.linux.org.uk>, "donald.c.skidmore@intel.com" <donald.c.skidmore@intel.com>, "matthew.vick@intel.com" <matthew.vick@intel.com>, "geert@linux-m68k.org" <geert@linux-m68k.org>, "jeffrey.t.kirsher@intel.com" <jeffrey.t.kirsher@intel.com>, "romieu@fr.zoreil.com" <romieu@fr.zoreil.com>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>, "nic_swsd@realtek.com" <nic_swsd@realtek.com>, "michael@ellerman.id.au" <michael@ellerman.id.au>, "tony.luck@intel.com" <tony.luck@intel.com>, "torvalds@linux-foundation.org" <torvalds@linux-foundation.org>, "oleg@redhat.com" <oleg@redhat.com>, "schwidefsky@de.ibm.com" <schwidefsky@de.ibm.com>, "fweisbec@gmail.com" <fweisbec@gmail.com>, "davem@davemloft.net" <davem@davemloft.net>
+Message-ID: <20141126160456.kNRLJ2RO_saRXJmbxxSnMUiRU9rJybeCTBH7qFAklzY@z>
 
-Am 26.11.2014 um 16:37 schrieb Michael S. Tsirkin:
-> On Wed, Nov 26, 2014 at 04:30:32PM +0100, Christian Borntraeger wrote:
->> Am 26.11.2014 um 16:17 schrieb Michael S. Tsirkin:
->>> On Wed, Nov 26, 2014 at 11:05:04AM +0100, David Hildenbrand wrote:
->>>>> What's the path you are trying to debug?
->>>>
->>>> Well, we had a problem where we held a spin_lock and called
->>>> copy_(from|to)_user(). We experienced very random deadlocks that took some guy
->>>> almost a week to debug. The simple might_sleep() check would have showed this
->>>> error immediately.
->>>
->>
->>> This must have been a very old kernel.
->>> A modern kernel will return an error from copy_to_user.
->>
->> I disagree. copy_to_user will not return while holding a spinlock, because it does not know! How should it?
->> See: spin_lock will call preempt_disable, but thats a no-op for a non-preempt kernel. So the mere fact that we hold a spin_lock is not known by any user access function. (or others). No?
->>
->> Christian
->>
->>
+On Tue, Nov 25, 2014 at 04:26:28PM +0000, Alexander Duyck wrote:
+> On 11/25/2014 06:01 AM, Will Deacon wrote:
+> > If we ever see platforms using Linux/dma_alloc_coherent with devices
+> > mastering from a different outer-shareable domain that the one containing
+> > the CPUs, then we'll need to revisit this.
 > 
-> Well might_sleep() merely checks preempt count and irqs_disabled too.
-> If you want debugging things to trigger, you need to enable
-> a bunch of config options.  That's not new.
+> Would we just need a system wide memory barrier in that case instead of 
+> an outer shareable memory barrier, or would we need to look as something 
+> like a sync barrier?
 
-You miss the point of the whole thread: The problem is that even with debug options enabled, holding a spinlock would not trigger a bug on copy_to_user. So the problem is not the good path, the problem is that a debugging aid for detecting a broken case was lost. Even with all kernel debugging enabled.
+I think dmb(sy) would do the trick, but let's cross that bridge if/when we
+have to.
 
-That is because CONFIG_DEBUG_ATOMIC_SLEEP selects PREEMPT_COUNT. That means: spin_lock will then be considered as in_atomic and no message comes. Without CONFIG_DEBUG_ATOMIC_SLEEP spin_lock will not touch the preempt_count but we also dont see a message because might_fault is now a nop
-
-I understand that you dont like Davids changes due to other side effects that you have mentioned. So lets focus on how we can fix the debug option. Ok?
-
-Christian
-
+Will
