@@ -1,44 +1,74 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.126.131]:53696 "EHLO
-	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752567AbaKZVdA (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 26 Nov 2014 16:33:00 -0500
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [RFC PATCH 1/2] asm-generic: io: Add exec versions of ioremap
-Date: Wed, 26 Nov 2014 22:32:47 +0100
-Message-ID: <2060921.TrTof4X6qj@wuerfel>
-In-Reply-To: <cb5e9dd7bd71b13551cd3f32f28feb405ea9fcdd.1417029918.git.d-gerlach@ti.com>
-References: <cover.1417029918.git.d-gerlach@ti.com> <cb5e9dd7bd71b13551cd3f32f28feb405ea9fcdd.1417029918.git.d-gerlach@ti.com>
+Received: from e06smtp12.uk.ibm.com ([195.75.94.108]:34045 "EHLO
+	e06smtp12.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754703AbaK0MEw (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 27 Nov 2014 07:04:52 -0500
+Received: from /spool/local
+	by e06smtp12.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <heiko.carstens@de.ibm.com>;
+	Thu, 27 Nov 2014 12:04:50 -0000
+Date: Thu, 27 Nov 2014 13:04:41 +0100
+From: Heiko Carstens <heiko.carstens@de.ibm.com>
+Subject: Re: [RFC 0/2] Reenable might_sleep() checks for might_fault() when
+ atomic
+Message-ID: <20141127120441.GB4390@osiris>
+References: <20141126151729.GB9612@redhat.com>
+ <20141126152334.GA9648@redhat.com>
+ <20141126163207.63810fcb@thinkpad-w530>
+ <20141126154717.GB10568@redhat.com>
+ <5475FAB1.1000802@de.ibm.com>
+ <20141126163216.GB10850@redhat.com>
+ <547604FC.4030300@de.ibm.com>
+ <20141126170447.GC11202@redhat.com>
+ <20141127070919.GA4390@osiris>
+ <20141127090301.3ddc3077@thinkpad-w530>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 7Bit
-Content-Type: text/plain; charset="us-ascii"
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20141127090301.3ddc3077@thinkpad-w530>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dave Gerlach <d-gerlach@ti.com>
-Cc: linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-omap@vger.kernel.org, linux-arch@vger.kernel.org, devicetree@vger.kernel.org, Russ Dill <russ.dill@ti.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Philipp Zabel <p.zabel@pengutronix.de>, Shawn Guo <shawn.guo@freescale.com>, Tony Lindgren <tony@atomide.com>, Anson.Huang@freescale.com, Russ Dill <Russ.Dill@ti.com>
-Message-ID: <20141126213247.CzGBpXeeBkfEzBZGiPCBUBcQvS5OIPyiLeYJLLJy8Kg@z>
+To: David Hildenbrand <dahi@linux.vnet.ibm.com>
+Cc: "Michael S. Tsirkin" <mst@redhat.com>, Christian Borntraeger <borntraeger@de.ibm.com>, linuxppc-dev@lists.ozlabs.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, benh@kernel.crashing.org, paulus@samba.org, akpm@linux-foundation.org, schwidefsky@de.ibm.com, mingo@kernel.org
+Message-ID: <20141127120441.HlL-SWR8WlNchSWncld80rpwLSvUUy9yBq3f-yWmIXw@z>
 
-On Wednesday 26 November 2014 15:14:00 Dave Gerlach wrote:
-> @@ -66,6 +66,11 @@ extern void ioport_unmap(void __iomem *);
->  #define ioremap_wc ioremap_nocache
->  #endif
->  
-> +#ifndef ARCH_HAS_IOREMAP_EXEC
-> +#define ioremap_exec ioremap
-> +#define ioremap_exec_nocache ioremap_nocache
-> +#endif
-> +
->  #ifdef CONFIG_PCI
->  /* Destroy a virtual mapping cookie for a PCI BAR (memory or IO) */
->  struct pci_dev;
+On Thu, Nov 27, 2014 at 09:03:01AM +0100, David Hildenbrand wrote:
+> > Code like
+> > 	spin_lock(&lock);
+> > 	if (copy_to_user(...))
+> > 		rc = ...
+> > 	spin_unlock(&lock);
+> > really *should* generate warnings like it did before.
+> > 
+> > And *only* code like
+> > 	spin_lock(&lock);
 > 
+> Is only code like this valid or also with the spin_lock() dropped?
+> (e.g. the access in patch1 if I remember correctly)
+> 
+> So should page_fault_disable() increment the pagefault counter and the preempt
+> counter or only the first one?
 
-ioremap and ioremap_nocache are the same, and there is no
-architecture-independent interface to map an MMIO range as
-cached because a lot of architectures can't do that.
+Given that a sequence like
 
-Also, I think there are architectures that cannot execute
-from uncached memory, so I think adding this as a generic
-API is not a good idea.
+	page_fault_disable();
+ 	if (copy_to_user(...))
+ 		rc = ...
+ 	page_fault_enable();
 
-	Arnd
+is correct code right now I think page_fault_disable() should increase both.
+No need for surprising semantic changes.
+
+> So we would have pagefault code rely on:
+> 
+> in_disabled_pagefault() ( pagefault_disabled() ... whatever ) instead of
+> in_atomic().
+
+No, let's be more defensive: the page fault handler should do nothing if
+in_atomic() just like now. But it could have a quick check and emit a one
+time warning if page faults aren't disabled in addition.
+That might help debugging but keeps the system more likely alive.
+
+might_fault() however should call might_sleep() if page faults aren't
+disabled, but that's what you proposed anyway I think.
+
