@@ -1,99 +1,120 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e06smtp11.uk.ibm.com ([195.75.94.107]:54700 "EHLO
-	e06smtp11.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751490AbaK0Qt5 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 27 Nov 2014 11:49:57 -0500
+Received: from e06smtp14.uk.ibm.com ([195.75.94.110]:54098 "EHLO
+	e06smtp14.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751172AbaK0RK3 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 27 Nov 2014 12:10:29 -0500
 Received: from /spool/local
-	by e06smtp11.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	by e06smtp14.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
 	for <linux-arch@vger.kernel.org> from <dahi@linux.vnet.ibm.com>;
-	Thu, 27 Nov 2014 16:49:55 -0000
-Date: Thu, 27 Nov 2014 17:49:25 +0100
+	Thu, 27 Nov 2014 17:10:28 -0000
 From: David Hildenbrand <dahi@linux.vnet.ibm.com>
-Subject: Re: [RFC 0/2] Reenable might_sleep() checks for might_fault() when
- atomic
-Message-ID: <20141127174925.53e9d7a6@thinkpad-w530>
-In-Reply-To: <063D6719AE5E284EB5DD2968C1650D6D1C9FDDD6@AcuExch.aculab.com>
-References: <20141126151729.GB9612@redhat.com>
-	<20141126152334.GA9648@redhat.com>
-	<20141126163207.63810fcb@thinkpad-w530>
-	<20141126154717.GB10568@redhat.com>
-	<5475FAB1.1000802@de.ibm.com>
-	<20141126163216.GB10850@redhat.com>
-	<547604FC.4030300@de.ibm.com>
-	<20141126170447.GC11202@redhat.com>
-	<20141127070919.GA4390@osiris>
-	<20141127090301.3ddc3077@thinkpad-w530>
-	<20141127120441.GB4390@osiris>
-	<alpine.DEB.2.11.1411271602320.3961@nanos>
-	<20141127161905.7c6220ee@thinkpad-w530>
-	<063D6719AE5E284EB5DD2968C1650D6D1C9FDD6A@AcuExch.aculab.com>
-	<20141127164555.4bcebfe8@thinkpad-w530>
-	<063D6719AE5E284EB5DD2968C1650D6D1C9FDDD6@AcuExch.aculab.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Subject: [PATCH RFC 2/2] mm, sched: trigger might_sleep() in might_fault() when pagefaults are disabled
+Date: Thu, 27 Nov 2014 18:10:17 +0100
+Message-ID: <1417108217-42687-3-git-send-email-dahi@linux.vnet.ibm.com>
+In-Reply-To: <1417108217-42687-1-git-send-email-dahi@linux.vnet.ibm.com>
+References: <1416915806-24757-1-git-send-email-dahi@linux.vnet.ibm.com>
+ <1417108217-42687-1-git-send-email-dahi@linux.vnet.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Laight <David.Laight@ACULAB.COM>
-Cc: Thomas Gleixner <tglx@linutronix.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "Michael S. Tsirkin" <mst@redhat.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Christian Borntraeger <borntraeger@de.ibm.com>, "paulus@samba.org" <paulus@samba.org>, "schwidefsky@de.ibm.com" <schwidefsky@de.ibm.com>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>, "mingo@kernel.org" <mingo@kernel.org>
-Message-ID: <20141127164925.cxvCz_TTmWhPlMNJXOks5WdiNR2AhITIiO42PaNLvwU@z>
+To: linuxppc-dev@lists.ozlabs.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Cc: benh@kernel.crashing.org, paulus@samba.org, akpm@linux-foundation.org, heiko.carstens@de.ibm.com, dahi@linux.vnet.ibm.com, schwidefsky@de.ibm.com, borntraeger@de.ibm.com, mst@redhat.com, tglx@linutronix.de, David.Laight@ACULAB.COM
+Message-ID: <20141127171017.ujKqamzjdhrJ5l-f7bFhXMmrKtcQ94hOq8hn_bb-YWw@z>
 
-> From: David Hildenbrand [mailto:dahi@linux.vnet.ibm.com]
-> > > From: David Hildenbrand
-> > > ...
-> > > > Although it might not be optimal, but keeping a separate counter for
-> > > > pagefault_disable() as part of the preemption counter seems to be the only
-> > > > doable thing right now. I am not sure if a completely separated counter is even
-> > > > possible, increasing the size of thread_info.
-> > >
-> > > What about adding (say) 0x10000 for the more restrictive test?
-> > >
-> > > 	David
-> > >
-> > 
-> > You mean as part of the preempt counter?
-> > 
-> > The current layout (on my branch) is
-> > 
-> >  * PREEMPT_MASK:        0x000000ff
-> >  * SOFTIRQ_MASK:        0x0000ff00
-> >  * HARDIRQ_MASK:        0x000f0000
-> >  *     NMI_MASK:        0x00100000
-> >  * PREEMPT_ACTIVE:      0x00200000
-> > 
-> > I would have added
-> >  * PAGEFAULT_MASK:      0x03C00000
-> 
-> I'm not sure where you'd need to add the bits.
-> 
-> I think the above works because disabling 'HARDIRQ' implicitly
-> disables 'SOFTIRQ' and 'PREEMPT' (etc), so if 256+ threads
-> disable PREEMPT everything still works.
+Commit 662bbcb2747c2422cf98d3d97619509379eee466 removed might_sleep() checks
+for all user access code (that uses might_fault()).
 
-AFAIK 256+ levels of preempt will break the system :)
+The reason was to disable wrong "sleep in atomic" warnings in the following
+scenario:
+	pagefault_disable();
+	rc = copy_to_user(...);
+	pagefault_enable();
 
-Therefore with CONFIG_DEBUG_PREEMPT we verify that we don't have any
-over/underflows.
+Which is valid, as pagefault_disable() increments the preempt counter and
+therefore disables the pagefault handler. copy_to_user() will not sleep and return
+an invalid return code if a page is not available.
 
-But such bugs can only be found with CONFIG_DEBUG_PREEMPT enabled.
+However, as all might_sleep() checks are removed, CONFIG_DEBUG_ATOMIC_SLEEP
+would no longer detect the following scenario:
+	spin_lock(&lock);
+	rc = copy_to_user(...);
+	spin_unlock(&lock);
 
-> 
-> So if disabling pagefaults implies that pre-emption is disabled
-> (but SOFTIRQ is still allowed) then you need to insert your bit(s)
-> between 0xff00 and 0x00ff.
-> OTOH if disabling pre-emption implies that pagefaults are disabled
-> then you'd need to use the lsb and change all the above values.
-> 
-> Which makes me think that 'PREEMPT_ACTIVE' isn't right at all.
-> Two threads disabling NMIs (or 32  disabling HARDIRQ) won't DTRT.
+If the kernel is compiled with preemption turned on, the preempt counter would
+be incremented and copy_to_user() would never sleep. However, with preemption
+turned off, the preempt counter will not be touched, we will therefore sleep in
+atomic context. We really want to enable CONFIG_DEBUG_ATOMIC_SLEEP checks for
+user access functions again, otherwise horrible deadlocks might be hard to debug.
 
-With threads you mean levels? This is a per thread information.
+Root of all evil is that pagefault_disable() acted almost as preempt_disable(),
+depending on preemption being turned on/off.
 
-> 
-> OTOH I'm only guessing at how this is used.
-> 
-> 	David
-> 
-> 
-> 
+As we now have a fixed pagefault_disable() implementation in place, that uses
+own bits in the preempt counter, we can reenable might_sleep() checks.
+
+This patch reverts commit 662bbcb2747c2422cf98d3d97619509379eee466 taking care
+of the !MMU optimization and the new pagefault_disabled() check.
+
+Signed-off-by: David Hildenbrand <dahi@linux.vnet.ibm.com>
+---
+ include/linux/kernel.h |  9 +++++++--
+ mm/memory.c            | 15 ++++-----------
+ 2 files changed, 11 insertions(+), 13 deletions(-)
+
+diff --git a/include/linux/kernel.h b/include/linux/kernel.h
+index 3d770f55..64b5f93 100644
+--- a/include/linux/kernel.h
++++ b/include/linux/kernel.h
+@@ -225,9 +225,14 @@ static inline u32 reciprocal_scale(u32 val, u32 ep_ro)
+ 	return (u32)(((u64) val * ep_ro) >> 32);
+ }
+ 
+-#if defined(CONFIG_MMU) && \
+-	(defined(CONFIG_PROVE_LOCKING) || defined(CONFIG_DEBUG_ATOMIC_SLEEP))
++#if defined(CONFIG_MMU) && defined(CONFIG_PROVE_LOCKING)
+ void might_fault(void);
++#elif defined(CONFIG_MMU) && defined(CONFIG_DEBUG_ATOMIC_SLEEP)
++static inline void might_fault(void)
++{
++	if (unlikely(!pagefault_disabled()))
++		__might_sleep(__FILE__, __LINE__, 0);
++}
+ #else
+ static inline void might_fault(void) { }
+ #endif
+diff --git a/mm/memory.c b/mm/memory.c
+index 3e50383..0e59db9 100644
+--- a/mm/memory.c
++++ b/mm/memory.c
+@@ -3699,7 +3699,7 @@ void print_vma_addr(char *prefix, unsigned long ip)
+ 	up_read(&mm->mmap_sem);
+ }
+ 
+-#if defined(CONFIG_PROVE_LOCKING) || defined(CONFIG_DEBUG_ATOMIC_SLEEP)
++#ifdef CONFIG_PROVE_LOCKING
+ void might_fault(void)
+ {
+ 	/*
+@@ -3711,17 +3711,10 @@ void might_fault(void)
+ 	if (segment_eq(get_fs(), KERNEL_DS))
+ 		return;
+ 
+-	/*
+-	 * it would be nicer only to annotate paths which are not under
+-	 * pagefault_disable, however that requires a larger audit and
+-	 * providing helpers like get_user_atomic.
+-	 */
+-	if (in_atomic())
+-		return;
+-
+-	__might_sleep(__FILE__, __LINE__, 0);
++	if (unlikely(!pagefault_disabled()))
++		__might_sleep(__FILE__, __LINE__, 0);
+ 
+-	if (current->mm)
++	if (!in_atomic() && current->mm)
+ 		might_lock_read(&current->mm->mmap_sem);
+ }
+ EXPORT_SYMBOL(might_fault);
+-- 
+1.8.5.5
 
