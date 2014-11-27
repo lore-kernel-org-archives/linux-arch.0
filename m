@@ -1,111 +1,64 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [RFC PATCH 2/2] lib: devres: Add exec versions of
- devm_ioremap_resource and friends
-Date: Thu, 27 Nov 2014 10:41:23 +0100
-Message-ID: <CAMuHMdWn3mgzwX55+OCWwMZwvfXkh7B+n-b0uChAW5gbx9b7Dw@mail.gmail.com>
-References: <cover.1417029918.git.d-gerlach@ti.com>
-	<bde13d5e7931af9aa90ddc09a79be5c30e3eef94.1417029918.git.d-gerlach@ti.com>
+From: Heiko Carstens <heiko.carstens@de.ibm.com>
+Subject: Re: [RFC 0/2] Reenable might_sleep() checks for might_fault() when
+ atomic
+Date: Thu, 27 Nov 2014 13:04:41 +0100
+Message-ID: <20141127120441.GB4390@osiris>
+References: <20141126151729.GB9612@redhat.com>
+ <20141126152334.GA9648@redhat.com>
+ <20141126163207.63810fcb@thinkpad-w530>
+ <20141126154717.GB10568@redhat.com>
+ <5475FAB1.1000802@de.ibm.com>
+ <20141126163216.GB10850@redhat.com>
+ <547604FC.4030300@de.ibm.com>
+ <20141126170447.GC11202@redhat.com>
+ <20141127070919.GA4390@osiris>
+ <20141127090301.3ddc3077@thinkpad-w530>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-lb0-f172.google.com ([209.85.217.172]:33029 "EHLO
-	mail-lb0-f172.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754629AbaK0JlZ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 27 Nov 2014 04:41:25 -0500
-In-Reply-To: <bde13d5e7931af9aa90ddc09a79be5c30e3eef94.1417029918.git.d-gerlach@ti.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Dave Gerlach <d-gerlach@ti.com>
-Cc: "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-omap@vger.kernel.org" <linux-omap@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>, Russ Dill <russ.dill@ti.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Arnd Bergmann <arnd@arndb.de>, Philipp Zabel <p.zabel@pengutronix.de>, Shawn Guo <shawn.guo@freescale.com>, Tony Lindgren <tony@atomide.com>, Anson.Huang@freescale.com, Josh Triplett <josh@joshtriplett.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <20141127090301.3ddc3077@thinkpad-w530>
+Sender: linux-kernel-owner@vger.kernel.org
+To: David Hildenbrand <dahi@linux.vnet.ibm.com>
+Cc: "Michael S. Tsirkin" <mst@redhat.com>, Christian Borntraeger <borntraeger@de.ibm.com>, linuxppc-dev@lists.ozlabs.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, benh@kernel.crashing.org, paulus@samba.org, akpm@linux-foundation.org, schwidefsky@de.ibm.com, mingo@kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, Nov 26, 2014 at 10:14 PM, Dave Gerlach <d-gerlach@ti.com> wrote:
-> --- a/lib/devres.c
-> +++ b/lib/devres.c
-> @@ -72,6 +72,64 @@ void __iomem *devm_ioremap_nocache(struct device *dev, resource_size_t offset,
->  EXPORT_SYMBOL(devm_ioremap_nocache);
->
->  /**
-> + * devm_ioremap_exec - Managed ioremap_exec()
-> + * @dev: Generic device to remap IO address for
-> + * @offset: BUS offset to map
-> + * @size: Size of map
-> + *
-> + * Managed ioremap_exec().  Map is automatically unmapped on driver detach.
-> + */
-> +void __iomem *devm_ioremap_exec(struct device *dev, resource_size_t offset,
-> +                               unsigned long size)
-> +{
+On Thu, Nov 27, 2014 at 09:03:01AM +0100, David Hildenbrand wrote:
+> > Code like
+> > 	spin_lock(&lock);
+> > 	if (copy_to_user(...))
+> > 		rc = ...
+> > 	spin_unlock(&lock);
+> > really *should* generate warnings like it did before.
+> > 
+> > And *only* code like
+> > 	spin_lock(&lock);
+> 
+> Is only code like this valid or also with the spin_lock() dropped?
+> (e.g. the access in patch1 if I remember correctly)
+> 
+> So should page_fault_disable() increment the pagefault counter and the preempt
+> counter or only the first one?
 
-[...]
+Given that a sequence like
 
-> +       addr = ioremap_exec(offset, size);
+	page_fault_disable();
+ 	if (copy_to_user(...))
+ 		rc = ...
+ 	page_fault_enable();
 
-[...]
+is correct code right now I think page_fault_disable() should increase both.
+No need for surprising semantic changes.
 
-> +}
-> +EXPORT_SYMBOL(devm_ioremap_exec);
-> +
-> +/**
-> + * devm_ioremap_exec_nocache - Managed ioremap_exec_nocache()
-> + * @dev: Generic device to remap IO address for
-> + * @offset: BUS offset to map
-> + * @size: Size of map
-> + *
-> + * Managed ioremap_exec_nocache().  Map is automatically unmapped on driver
-> + * detach.
-> + */
-> +void __iomem *devm_ioremap_exec_nocache(struct device *dev,
-> +                                       resource_size_t offset,
-> +                                       unsigned long size)
-> +{
+> So we would have pagefault code rely on:
+> 
+> in_disabled_pagefault() ( pagefault_disabled() ... whatever ) instead of
+> in_atomic().
 
-[...]
+No, let's be more defensive: the page fault handler should do nothing if
+in_atomic() just like now. But it could have a quick check and emit a one
+time warning if page faults aren't disabled in addition.
+That might help debugging but keeps the system more likely alive.
 
-> +       addr = ioremap_exec_nocache(offset, size);
-
-[...]
-
-> +}
-> +EXPORT_SYMBOL(devm_ioremap_exec_nocache);
-> +
-
-Both of these are identical to the already-existing devm_ioremap() and
-devm_ioremap_nocache(), except for the call to the underlying
-ioremap*() variant.
-
-Can't the variant selection be done by passing a flag around, set by
-the top-level inline functions, to avoid code duplication?
-Some architecture-specific ioremap() implementations already work that
-way, cfr. arch/m68k/include/asm/io_mm.h:
-
-static inline void __iomem *ioremap(unsigned long physaddr, unsigned long size)
-{
-        return __ioremap(physaddr, size, IOMAP_NOCACHE_SER);
-}
-static inline void __iomem *ioremap_nocache(unsigned long physaddr,
-unsigned lonn
-g size)
-{
-        return __ioremap(physaddr, size, IOMAP_NOCACHE_SER);
-}
-static inline void __iomem *ioremap_writethrough(unsigned long physaddr,
-                                         unsigned long size)
-{
-        return __ioremap(physaddr, size, IOMAP_WRITETHROUGH);
-}
-static inline void __iomem *ioremap_fullcache(unsigned long physaddr,
-                                      unsigned long size)
-{
-        return __ioremap(physaddr, size, IOMAP_FULL_CACHING);
-}
-
-Gr{oetje,eeting}s,
-
-                        Geert
-
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+might_fault() however should call might_sleep() if page faults aren't
+disabled, but that's what you proposed anyway I think.
