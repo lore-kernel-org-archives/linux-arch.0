@@ -1,49 +1,68 @@
-From: "Michael S. Tsirkin" <mst@redhat.com>
-Subject: Re: [PATCH RFC 2/2] mm, sched: trigger might_sleep() in
- might_fault() when pagefaults are disabled
-Date: Thu, 27 Nov 2014 20:27:10 +0200
-Message-ID: <20141127182710.GA30735@redhat.com>
-References: <1416915806-24757-1-git-send-email-dahi@linux.vnet.ibm.com>
- <1417108217-42687-1-git-send-email-dahi@linux.vnet.ibm.com>
- <1417108217-42687-3-git-send-email-dahi@linux.vnet.ibm.com>
- <20141127172449.GA30380@redhat.com>
- <20141127173218.GA30419@redhat.com>
- <20141127190842.75a9cce3@thinkpad-w530>
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: Re: [RFC 0/2] Reenable might_sleep() checks for might_fault() when
+ atomic
+Date: Thu, 27 Nov 2014 22:52:08 +0100 (CET)
+Message-ID: <alpine.DEB.2.11.1411272246110.3961@nanos>
+References: <20141126151729.GB9612@redhat.com> <20141126152334.GA9648@redhat.com> <20141126163207.63810fcb@thinkpad-w530> <20141126154717.GB10568@redhat.com> <5475FAB1.1000802@de.ibm.com> <20141126163216.GB10850@redhat.com> <547604FC.4030300@de.ibm.com>
+ <20141126170447.GC11202@redhat.com> <20141127070919.GA4390@osiris> <20141127090301.3ddc3077@thinkpad-w530> <20141127120441.GB4390@osiris> <alpine.DEB.2.11.1411271602320.3961@nanos> <20141127161905.7c6220ee@thinkpad-w530>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:54945 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750792AbaK0S1i (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 27 Nov 2014 13:27:38 -0500
-Content-Disposition: inline
-In-Reply-To: <20141127190842.75a9cce3@thinkpad-w530>
+Received: from www.linutronix.de ([62.245.132.108]:58990 "EHLO
+	Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750729AbaK0VwS (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 27 Nov 2014 16:52:18 -0500
+In-Reply-To: <20141127161905.7c6220ee@thinkpad-w530>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: David Hildenbrand <dahi@linux.vnet.ibm.com>
-Cc: linuxppc-dev@lists.ozlabs.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, benh@kernel.crashing.org, paulus@samba.org, akpm@linux-foundation.org, heiko.carstens@de.ibm.com, schwidefsky@de.ibm.com, borntraeger@de.ibm.com, tglx@linutronix.de, David.Laight@ACULAB.COM
+Cc: Heiko Carstens <heiko.carstens@de.ibm.com>, "Michael S. Tsirkin" <mst@redhat.com>, Christian Borntraeger <borntraeger@de.ibm.com>, linuxppc-dev@lists.ozlabs.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, benh@kernel.crashing.org, paulus@samba.org, akpm@linux-foundation.org, schwidefsky@de.ibm.com, mingo@kernel.org
 
-On Thu, Nov 27, 2014 at 07:08:42PM +0100, David Hildenbrand wrote:
-> > > > -
-> > > > -	__might_sleep(__FILE__, __LINE__, 0);
-> > > > +	if (unlikely(!pagefault_disabled()))
-> > > > +		__might_sleep(__FILE__, __LINE__, 0);
-> > > >    
+On Thu, 27 Nov 2014, David Hildenbrand wrote:
+> > OTOH, there is no reason why we need to disable preemption over that
+> > page_fault_disabled() region. There are code pathes which really do
+> > not require to disable preemption for that.
 > > 
-> > Same here: so maybe make might_fault a wrapper
-> > around __might_fault as well.
+> > We have that seperated in preempt-rt for obvious reasons and IIRC
+> > Peter Zijlstra tried to distangle it in mainline some time ago. I
+> > forgot why that never got merged.
+> > 
 > 
-> Yes, I also noticed that. It was part of the original code.
-> For now I kept this revert as close as possible to
-> the original patch.
+> Of course, we can completely separate that in our page fault code by doing
+> pagefault_disabled() checks instead of in_atomic() checks (even in add on
+> patches later).
 > 
-> Better fix this in an add-on patch? Or directly in this commit?
-
-IMHO it's up to you really.
-
-> At least for
-> the in-header function it is easy to fix in this patch.
+> > We tie way too much stuff on the preemption count already, which is a
+> > mightmare because we have no clear distinction of protection
+> > scopes. 
 > 
-> Thanks!
+> Although it might not be optimal, but keeping a separate counter for
+> pagefault_disable() as part of the preemption counter seems to be the only
+> doable thing right now.
 
-Right.
+It needs to be seperate, if it should be useful. Otherwise we just
+have a extra accounting in preempt_count() which does exactly the same
+thing as we have now: disabling preemption.
+
+Now you might say, that we could mask out that part when checking
+preempt_count, but that wont work on x86 as x86 has the preempt
+counter as a per cpu variable and not as a per thread one.
+
+But if you want to distangle pagefault disable from preempt disable
+then you must move it to the thread, because it is a property of the
+thread. preempt count is very much a per cpu counter as you can only
+go through schedule when it becomes 0.
+
+Btw, I find the x86 representation way more clear, because it
+documents that preempt count is a per cpu BKL and not a magic thread
+property. And sadly that is how preempt count is used ...
+
+> I am not sure if a completely separated counter is even possible,
+> increasing the size of thread_info.
+
+And adding a ulong to thread_info is going to create exactly which
+problem?
+
+Thanks,
+
+	tglx
