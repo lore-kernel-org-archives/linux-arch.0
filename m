@@ -1,57 +1,105 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e06smtp11.uk.ibm.com ([195.75.94.107]:59786 "EHLO
-	e06smtp11.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750875AbaK0RK2 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 27 Nov 2014 12:10:28 -0500
+Received: from e06smtp13.uk.ibm.com ([195.75.94.109]:39948 "EHLO
+	e06smtp13.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750960AbaK1HfE (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 28 Nov 2014 02:35:04 -0500
 Received: from /spool/local
-	by e06smtp11.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	by e06smtp13.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
 	for <linux-arch@vger.kernel.org> from <dahi@linux.vnet.ibm.com>;
-	Thu, 27 Nov 2014 17:10:26 -0000
+	Fri, 28 Nov 2014 07:35:02 -0000
+Date: Fri, 28 Nov 2014 08:34:54 +0100
 From: David Hildenbrand <dahi@linux.vnet.ibm.com>
-Subject: [PATCH RFC 0/2] Reenable might_sleep() checks for might_fault() when atomic
-Date: Thu, 27 Nov 2014 18:10:15 +0100
-Message-ID: <1417108217-42687-1-git-send-email-dahi@linux.vnet.ibm.com>
-In-Reply-To: <1416915806-24757-1-git-send-email-dahi@linux.vnet.ibm.com>
-References: <1416915806-24757-1-git-send-email-dahi@linux.vnet.ibm.com>
+Subject: Re: [RFC 0/2] Reenable might_sleep() checks for might_fault() when
+ atomic
+Message-ID: <20141128083454.403d5620@thinkpad-w530>
+In-Reply-To: <alpine.DEB.2.11.1411272246110.3961@nanos>
+References: <20141126151729.GB9612@redhat.com>
+	<20141126152334.GA9648@redhat.com>
+	<20141126163207.63810fcb@thinkpad-w530>
+	<20141126154717.GB10568@redhat.com>
+	<5475FAB1.1000802@de.ibm.com>
+	<20141126163216.GB10850@redhat.com>
+	<547604FC.4030300@de.ibm.com>
+	<20141126170447.GC11202@redhat.com>
+	<20141127070919.GA4390@osiris>
+	<20141127090301.3ddc3077@thinkpad-w530>
+	<20141127120441.GB4390@osiris>
+	<alpine.DEB.2.11.1411271602320.3961@nanos>
+	<20141127161905.7c6220ee@thinkpad-w530>
+	<alpine.DEB.2.11.1411272246110.3961@nanos>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linuxppc-dev@lists.ozlabs.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: benh@kernel.crashing.org, paulus@samba.org, akpm@linux-foundation.org, heiko.carstens@de.ibm.com, dahi@linux.vnet.ibm.com, schwidefsky@de.ibm.com, borntraeger@de.ibm.com, mst@redhat.com, tglx@linutronix.de, David.Laight@ACULAB.COM
-Message-ID: <20141127171015.TrUNG9WTMtwVmIeoHNsQqkYCRWgnlk9QVE2fMf36jc0@z>
+To: Thomas Gleixner <tglx@linutronix.de>
+Cc: Heiko Carstens <heiko.carstens@de.ibm.com>, "Michael S. Tsirkin" <mst@redhat.com>, Christian Borntraeger <borntraeger@de.ibm.com>, linuxppc-dev@lists.ozlabs.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, benh@kernel.crashing.org, paulus@samba.org, akpm@linux-foundation.org, schwidefsky@de.ibm.com, mingo@kernel.org
+Message-ID: <20141128073454.pn9NrjNdg0X-uBTtBs9oCEnTKwZIEK3vbU3QrPp1WcE@z>
 
-Simple prototype to enable might_sleep() checks in might_fault(), avoiding false
-positives for scenarios involving explicit pagefault_disable().
+> On Thu, 27 Nov 2014, David Hildenbrand wrote:
+> > > OTOH, there is no reason why we need to disable preemption over that
+> > > page_fault_disabled() region. There are code pathes which really do
+> > > not require to disable preemption for that.
+> > > 
+> > > We have that seperated in preempt-rt for obvious reasons and IIRC
+> > > Peter Zijlstra tried to distangle it in mainline some time ago. I
+> > > forgot why that never got merged.
+> > > 
+> > 
+> > Of course, we can completely separate that in our page fault code by doing
+> > pagefault_disabled() checks instead of in_atomic() checks (even in add on
+> > patches later).
+> > 
+> > > We tie way too much stuff on the preemption count already, which is a
+> > > mightmare because we have no clear distinction of protection
+> > > scopes. 
+> > 
+> > Although it might not be optimal, but keeping a separate counter for
+> > pagefault_disable() as part of the preemption counter seems to be the only
+> > doable thing right now.
+> 
+> It needs to be seperate, if it should be useful. Otherwise we just
+> have a extra accounting in preempt_count() which does exactly the same
+> thing as we have now: disabling preemption.
+> 
+> Now you might say, that we could mask out that part when checking
+> preempt_count, but that wont work on x86 as x86 has the preempt
+> counter as a per cpu variable and not as a per thread one.
 
-So this should work:
-	spin_lock(&lock); /* also if left away */
-	pagefault_disable()
-	rc = copy_to_user(...)
-	pagefault_enable();
-	spin_unlock(&lock); /*
+Ah right, it's per cpu on x86. So it really belongs to a thread if we want to
+demangle preemption and pagefault_disable.
 
-And this should report a warning again:
-	spin_lock(&lock);
-	rc = copy_to_user(...);
-	spin_unlock(&lock);
+Would work for now, but for x86 not on the long run.
 
-Still missing:
-- Split of preempt documentation update + preempt_active define reshuffle
-- Debug version to test for over/underflows
-- Change documentation of user access methods to reflect the real behavior
-- Don't touch the preempt counter, only the pagefault disable counter (future
-  work)
+> 
+> But if you want to distangle pagefault disable from preempt disable
+> then you must move it to the thread, because it is a property of the
+> thread. preempt count is very much a per cpu counter as you can only
+> go through schedule when it becomes 0.
 
-David Hildenbrand (2):
-  preempt: track pagefault_disable() calls in the preempt counter
-  mm, sched: trigger might_sleep() in might_fault() when pagefaults are
-    disabled
+Thinking about it, this makes perfect sense!
 
- include/linux/kernel.h       |  9 +++++++--
- include/linux/preempt_mask.h | 24 +++++++++++++++++++-----
- include/linux/uaccess.h      | 21 ++++++++++++++-------
- mm/memory.c                  | 15 ++++-----------
- 4 files changed, 44 insertions(+), 25 deletions(-)
+> 
+> Btw, I find the x86 representation way more clear, because it
+> documents that preempt count is a per cpu BKL and not a magic thread
+> property. And sadly that is how preempt count is used ...
+> 
+> > I am not sure if a completely separated counter is even possible,
+> > increasing the size of thread_info.
+> 
+> And adding a ulong to thread_info is going to create exactly which
+> problem?
 
--- 
-1.8.5.5
+If we're allowed to increase the size of thread_info - absolutely fine with me!
+(I am not sure if some archs have special constraints on the size)
+
+Will see what I can come up with.
+
+Thanks!
+
+> 
+> Thanks,
+> 
+> 	tglx
+> 
 
