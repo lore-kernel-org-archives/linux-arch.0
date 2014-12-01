@@ -1,105 +1,59 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e06smtp13.uk.ibm.com ([195.75.94.109]:39948 "EHLO
-	e06smtp13.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750960AbaK1HfE (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 28 Nov 2014 02:35:04 -0500
-Received: from /spool/local
-	by e06smtp13.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <dahi@linux.vnet.ibm.com>;
-	Fri, 28 Nov 2014 07:35:02 -0000
-Date: Fri, 28 Nov 2014 08:34:54 +0100
-From: David Hildenbrand <dahi@linux.vnet.ibm.com>
-Subject: Re: [RFC 0/2] Reenable might_sleep() checks for might_fault() when
- atomic
-Message-ID: <20141128083454.403d5620@thinkpad-w530>
-In-Reply-To: <alpine.DEB.2.11.1411272246110.3961@nanos>
-References: <20141126151729.GB9612@redhat.com>
-	<20141126152334.GA9648@redhat.com>
-	<20141126163207.63810fcb@thinkpad-w530>
-	<20141126154717.GB10568@redhat.com>
-	<5475FAB1.1000802@de.ibm.com>
-	<20141126163216.GB10850@redhat.com>
-	<547604FC.4030300@de.ibm.com>
-	<20141126170447.GC11202@redhat.com>
-	<20141127070919.GA4390@osiris>
-	<20141127090301.3ddc3077@thinkpad-w530>
-	<20141127120441.GB4390@osiris>
-	<alpine.DEB.2.11.1411271602320.3961@nanos>
-	<20141127161905.7c6220ee@thinkpad-w530>
-	<alpine.DEB.2.11.1411272246110.3961@nanos>
+Received: from mail-lb0-f171.google.com ([209.85.217.171]:58088 "EHLO
+	mail-lb0-f171.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753740AbaLAOzX (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 1 Dec 2014 09:55:23 -0500
+Received: by mail-lb0-f171.google.com with SMTP id n15so8809950lbi.16
+        for <linux-arch@vger.kernel.org>; Mon, 01 Dec 2014 06:55:21 -0800 (PST)
 MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+In-Reply-To: <5461EA6B.9020305@nod.at>
+References: <43c88012a4959cd427ab634906e697fbc524e847.1414604015.git.luto@amacapital.net>
+ <alpine.DEB.2.11.1410291908290.5308@nanos> <CALCETrWtBCFXzwCAh8fpeFv-EvPxYW20oRmFk1iCYwUvpft=Rw@mail.gmail.com>
+ <20141110.211319.1983610686941713044.davem@davemloft.net> <5461EA6B.9020305@nod.at>
+From: Andy Lutomirski <luto@amacapital.net>
+Date: Mon, 1 Dec 2014 06:55:01 -0800
+Message-ID: <CALCETrUZhbx-PN8A168khFr6ve_9vdkSiwOcQ-hZbqu4po8hnQ@mail.gmail.com>
+Subject: Re: [PATCH v2] all arches, signal: Move restart_block to struct task_struct
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: Heiko Carstens <heiko.carstens@de.ibm.com>, "Michael S. Tsirkin" <mst@redhat.com>, Christian Borntraeger <borntraeger@de.ibm.com>, linuxppc-dev@lists.ozlabs.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, benh@kernel.crashing.org, paulus@samba.org, akpm@linux-foundation.org, schwidefsky@de.ibm.com, mingo@kernel.org
-Message-ID: <20141128073454.pn9NrjNdg0X-uBTtBs9oCEnTKwZIEK3vbU3QrPp1WcE@z>
+To: Richard Weinberger <richard@nod.at>
+Cc: David Miller <davem@davemloft.net>, Thomas Gleixner <tglx@linutronix.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, linux-arch <linux-arch@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, richard -rw- weinberger <richard.weinberger@gmail.com>, "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@kernel.org>, Kees Cook <keescook@chromium.org>
+Message-ID: <20141201145501.vYzLnNwXpABqZ2ISWZZn-ZyPJ01jYtnumkBlOARXju0@z>
 
-> On Thu, 27 Nov 2014, David Hildenbrand wrote:
-> > > OTOH, there is no reason why we need to disable preemption over that
-> > > page_fault_disabled() region. There are code pathes which really do
-> > > not require to disable preemption for that.
-> > > 
-> > > We have that seperated in preempt-rt for obvious reasons and IIRC
-> > > Peter Zijlstra tried to distangle it in mainline some time ago. I
-> > > forgot why that never got merged.
-> > > 
-> > 
-> > Of course, we can completely separate that in our page fault code by doing
-> > pagefault_disabled() checks instead of in_atomic() checks (even in add on
-> > patches later).
-> > 
-> > > We tie way too much stuff on the preemption count already, which is a
-> > > mightmare because we have no clear distinction of protection
-> > > scopes. 
-> > 
-> > Although it might not be optimal, but keeping a separate counter for
-> > pagefault_disable() as part of the preemption counter seems to be the only
-> > doable thing right now.
-> 
-> It needs to be seperate, if it should be useful. Otherwise we just
-> have a extra accounting in preempt_count() which does exactly the same
-> thing as we have now: disabling preemption.
-> 
-> Now you might say, that we could mask out that part when checking
-> preempt_count, but that wont work on x86 as x86 has the preempt
-> counter as a per cpu variable and not as a per thread one.
+On Tue, Nov 11, 2014 at 2:52 AM, Richard Weinberger <richard@nod.at> wrote:
+> Am 11.11.2014 um 03:13 schrieb David Miller:
+>> From: Andy Lutomirski <luto@amacapital.net>
+>> Date: Mon, 10 Nov 2014 14:03:23 -0800
+>>
+>>> On Wed, Oct 29, 2014 at 11:12 AM, Thomas Gleixner <tglx@linutronix.de> wrote:
+>>>> On Wed, 29 Oct 2014, Andy Lutomirski wrote:
+>>>>
+>>>>> If an attacker can cause a controlled kernel stack overflow,
+>>>>> overwriting the restart block is a very juicy exploit target.
+>>>>> Moving the restart block to struct task_struct prevents this
+>>>>> exploit.
+>>>>>
+>>>>> Note that there are other fields in thread_info that are also easy
+>>>>> targets, at least on some architectures.
+>>>>>
+>>>>> It's also a decent simplification, since the restart code is more or
+>>>>> less identical on all architectures.
+>>>>
+>>>> I think that's the most important change. Moving common stuff into
+>>>> common code. The side effect of slightly reducing the attack surface
+>>>> is nice, but as Al pointed out not really the big win here.
+>>>
+>>> Having gotten exactly zero feedback from any arch maintainer outside
+>>> of x86, am I supposed to pester people further?
+>>
+>> No objections wrt. sparc and if things break I'll help fix it.
+>
+> Same for UML.
+> Acked-by: Richard Weinberger <richard@nod.at>
 
-Ah right, it's per cpu on x86. So it really belongs to a thread if we want to
-demangle preemption and pagefault_disable.
+akpm, do you consider this appropriate for either 3.19 or 3.20?  If
+so, can you add it to the appropriate part of -mm?
 
-Would work for now, but for x86 not on the long run.
-
-> 
-> But if you want to distangle pagefault disable from preempt disable
-> then you must move it to the thread, because it is a property of the
-> thread. preempt count is very much a per cpu counter as you can only
-> go through schedule when it becomes 0.
-
-Thinking about it, this makes perfect sense!
-
-> 
-> Btw, I find the x86 representation way more clear, because it
-> documents that preempt count is a per cpu BKL and not a magic thread
-> property. And sadly that is how preempt count is used ...
-> 
-> > I am not sure if a completely separated counter is even possible,
-> > increasing the size of thread_info.
-> 
-> And adding a ulong to thread_info is going to create exactly which
-> problem?
-
-If we're allowed to increase the size of thread_info - absolutely fine with me!
-(I am not sure if some archs have special constraints on the size)
-
-Will see what I can come up with.
-
-Thanks!
-
-> 
-> Thanks,
-> 
-> 	tglx
-> 
-
+Thanks,
+Andy
