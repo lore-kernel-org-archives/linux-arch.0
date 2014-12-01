@@ -1,59 +1,179 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-lb0-f171.google.com ([209.85.217.171]:58088 "EHLO
-	mail-lb0-f171.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753740AbaLAOzX (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 1 Dec 2014 09:55:23 -0500
-Received: by mail-lb0-f171.google.com with SMTP id n15so8809950lbi.16
-        for <linux-arch@vger.kernel.org>; Mon, 01 Dec 2014 06:55:21 -0800 (PST)
+Received: from aserp1040.oracle.com ([141.146.126.69]:26079 "EHLO
+	aserp1040.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932636AbaLAWIs (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 1 Dec 2014 17:08:48 -0500
+Date: Mon, 1 Dec 2014 11:40:35 -0500
+From: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
+Subject: Re: [PATCH v13 09/11] pvqspinlock, x86: Add para-virtualization
+ support
+Message-ID: <20141201164035.GF3180@laptop.dumpdata.com>
+References: <1414613951-32532-1-git-send-email-Waiman.Long@hp.com>
+ <1414613951-32532-10-git-send-email-Waiman.Long@hp.com>
 MIME-Version: 1.0
-In-Reply-To: <5461EA6B.9020305@nod.at>
-References: <43c88012a4959cd427ab634906e697fbc524e847.1414604015.git.luto@amacapital.net>
- <alpine.DEB.2.11.1410291908290.5308@nanos> <CALCETrWtBCFXzwCAh8fpeFv-EvPxYW20oRmFk1iCYwUvpft=Rw@mail.gmail.com>
- <20141110.211319.1983610686941713044.davem@davemloft.net> <5461EA6B.9020305@nod.at>
-From: Andy Lutomirski <luto@amacapital.net>
-Date: Mon, 1 Dec 2014 06:55:01 -0800
-Message-ID: <CALCETrUZhbx-PN8A168khFr6ve_9vdkSiwOcQ-hZbqu4po8hnQ@mail.gmail.com>
-Subject: Re: [PATCH v2] all arches, signal: Move restart_block to struct task_struct
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1414613951-32532-10-git-send-email-Waiman.Long@hp.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Richard Weinberger <richard@nod.at>
-Cc: David Miller <davem@davemloft.net>, Thomas Gleixner <tglx@linutronix.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, linux-arch <linux-arch@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, richard -rw- weinberger <richard.weinberger@gmail.com>, "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@kernel.org>, Kees Cook <keescook@chromium.org>
-Message-ID: <20141201145501.vYzLnNwXpABqZ2ISWZZn-ZyPJ01jYtnumkBlOARXju0@z>
+To: Waiman Long <Waiman.Long@hp.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Peter Zijlstra <peterz@infradead.org>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Rik van Riel <riel@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, David Vrabel <david.vrabel@citrix.com>, Oleg Nesterov <oleg@redhat.com>, Scott J Norton <scott.norton@hp.com>, Douglas Hatch <doug.hatch@hp.com>
+Message-ID: <20141201164035.9LShADsXCjNqc8oFsw6tnIw3mkMhCLlzyi_7LQbpdC0@z>
 
-On Tue, Nov 11, 2014 at 2:52 AM, Richard Weinberger <richard@nod.at> wrote:
-> Am 11.11.2014 um 03:13 schrieb David Miller:
->> From: Andy Lutomirski <luto@amacapital.net>
->> Date: Mon, 10 Nov 2014 14:03:23 -0800
->>
->>> On Wed, Oct 29, 2014 at 11:12 AM, Thomas Gleixner <tglx@linutronix.de> wrote:
->>>> On Wed, 29 Oct 2014, Andy Lutomirski wrote:
->>>>
->>>>> If an attacker can cause a controlled kernel stack overflow,
->>>>> overwriting the restart block is a very juicy exploit target.
->>>>> Moving the restart block to struct task_struct prevents this
->>>>> exploit.
->>>>>
->>>>> Note that there are other fields in thread_info that are also easy
->>>>> targets, at least on some architectures.
->>>>>
->>>>> It's also a decent simplification, since the restart code is more or
->>>>> less identical on all architectures.
->>>>
->>>> I think that's the most important change. Moving common stuff into
->>>> common code. The side effect of slightly reducing the attack surface
->>>> is nice, but as Al pointed out not really the big win here.
->>>
->>> Having gotten exactly zero feedback from any arch maintainer outside
->>> of x86, am I supposed to pester people further?
->>
->> No objections wrt. sparc and if things break I'll help fix it.
->
-> Same for UML.
-> Acked-by: Richard Weinberger <richard@nod.at>
+On Wed, Oct 29, 2014 at 04:19:09PM -0400, Waiman Long wrote:
+> This patch adds para-virtualization support to the queue spinlock
+> code base with minimal impact to the native case. There are some
+> minor code changes in the generic qspinlock.c file which should be
+> usable in other architectures. The other code changes are specific
+> to x86 processors and so are all put under the arch/x86 directory.
+> 
+> On the lock side, the slowpath code is split into 2 separate functions
+> generated from the same code - one for bare metal and one for PV guest.
+> The switching is done in the _raw_spin_lock* functions. This makes
+> sure that the performance impact to the bare metal case is minimal,
+> just a few NOPs in the _raw_spin_lock* functions. In the PV slowpath
+> code, there are 2 paravirt callee saved calls that minimize register
+> pressure.
+> 
+> On the unlock side, however, the disabling of unlock function inlining
+> does have some slight impact on bare metal performance.
+> 
+> The actual paravirt code comes in 5 parts;
+> 
+>  - init_node; this initializes the extra data members required for PV
+>    state. PV state data is kept 1 cacheline ahead of the regular data.
+> 
+>  - link_and_wait_node; this replaces the regular MCS queuing code. CPU
+>    halting can happen if the wait is too long.
+> 
+>  - wait_head; this waits until the lock is avialable and the CPU will
+>    be halted if the wait is too long.
+> 
+>  - wait_check; this is called after acquiring the lock to see if the
+>    next queue head CPU is halted. If this is the case, the lock bit is
+>    changed to indicate the queue head will have to be kicked on unlock.
+> 
+>  - queue_unlock;  this routine has a jump label to check if paravirt
+>    is enabled. If yes, it has to do an atomic cmpxchg to clear the lock
+>    bit or call the slowpath function to kick the queue head cpu.
+> 
+> Tracking the head is done in two parts, firstly the pv_wait_head will
+> store its cpu number in whichever node is pointed to by the tail part
+> of the lock word. Secondly, pv_link_and_wait_node() will propagate the
+> existing head from the old to the new tail node.
+> 
+> Signed-off-by: Waiman Long <Waiman.Long@hp.com>
+> ---
+>  arch/x86/include/asm/paravirt.h       |   19 ++
+>  arch/x86/include/asm/paravirt_types.h |   20 ++
+>  arch/x86/include/asm/pvqspinlock.h    |  411 +++++++++++++++++++++++++++++++++
+>  arch/x86/include/asm/qspinlock.h      |   71 ++++++-
+>  arch/x86/kernel/paravirt-spinlocks.c  |    6 +
+>  include/asm-generic/qspinlock.h       |    2 +
+>  kernel/locking/qspinlock.c            |   69 +++++-
+>  7 files changed, 591 insertions(+), 7 deletions(-)
+>  create mode 100644 arch/x86/include/asm/pvqspinlock.h
+> 
+> diff --git a/arch/x86/include/asm/paravirt.h b/arch/x86/include/asm/paravirt.h
+> index cd6e161..7e296e6 100644
+> --- a/arch/x86/include/asm/paravirt.h
+> +++ b/arch/x86/include/asm/paravirt.h
+> @@ -712,6 +712,24 @@ static inline void __set_fixmap(unsigned /* enum fixed_addresses */ idx,
+>  
+>  #if defined(CONFIG_SMP) && defined(CONFIG_PARAVIRT_SPINLOCKS)
+>  
+> +#ifdef CONFIG_QUEUE_SPINLOCK
+> +
+> +static __always_inline void pv_kick_cpu(int cpu)
+> +{
+> +	PVOP_VCALLEE1(pv_lock_ops.kick_cpu, cpu);
+> +}
+> +
+> +static __always_inline void pv_lockwait(u8 *lockbyte)
+> +{
+> +	PVOP_VCALLEE1(pv_lock_ops.lockwait, lockbyte);
+> +}
+> +
+> +static __always_inline void pv_lockstat(enum pv_lock_stats type)
+> +{
+> +	PVOP_VCALLEE1(pv_lock_ops.lockstat, type);
+> +}
+> +
+> +#else
+>  static __always_inline void __ticket_lock_spinning(struct arch_spinlock *lock,
+>  							__ticket_t ticket)
+>  {
+> @@ -723,6 +741,7 @@ static __always_inline void __ticket_unlock_kick(struct arch_spinlock *lock,
+>  {
+>  	PVOP_VCALL2(pv_lock_ops.unlock_kick, lock, ticket);
+>  }
+> +#endif
+>  
+>  #endif
+>  
+> diff --git a/arch/x86/include/asm/paravirt_types.h b/arch/x86/include/asm/paravirt_types.h
+> index 7549b8b..49e4b76 100644
+> --- a/arch/x86/include/asm/paravirt_types.h
+> +++ b/arch/x86/include/asm/paravirt_types.h
+> @@ -326,6 +326,9 @@ struct pv_mmu_ops {
+>  			   phys_addr_t phys, pgprot_t flags);
+>  };
+>  
+> +struct mcs_spinlock;
+> +struct qspinlock;
+> +
+>  struct arch_spinlock;
+>  #ifdef CONFIG_SMP
+>  #include <asm/spinlock_types.h>
+> @@ -333,9 +336,26 @@ struct arch_spinlock;
+>  typedef u16 __ticket_t;
+>  #endif
+>  
+> +#ifdef CONFIG_QUEUE_SPINLOCK
+> +enum pv_lock_stats {
+> +	PV_HALT_QHEAD,		/* Queue head halting	    */
+> +	PV_HALT_QNODE,		/* Other queue node halting */
+> +	PV_HALT_ABORT,		/* Halting aborted	    */
+> +	PV_WAKE_KICKED,		/* Wakeup by kicking	    */
+> +	PV_WAKE_SPURIOUS,	/* Spurious wakeup	    */
+> +	PV_KICK_NOHALT		/* Kick but CPU not halted  */
+> +};
+> +#endif
+> +
+>  struct pv_lock_ops {
+> +#ifdef CONFIG_QUEUE_SPINLOCK
+> +	struct paravirt_callee_save kick_cpu;
+> +	struct paravirt_callee_save lockstat;
+> +	struct paravirt_callee_save lockwait;
+> +#else
+>  	struct paravirt_callee_save lock_spinning;
+>  	void (*unlock_kick)(struct arch_spinlock *lock, __ticket_t ticket);
+> +#endif
+>  };
+>  
+>  /* This contains all the paravirt structures: we get a convenient
+> diff --git a/arch/x86/include/asm/pvqspinlock.h b/arch/x86/include/asm/pvqspinlock.h
+> new file mode 100644
+> index 0000000..85ccde6
+> --- /dev/null
+> +++ b/arch/x86/include/asm/pvqspinlock.h
+> @@ -0,0 +1,411 @@
+> +#ifndef _ASM_X86_PVQSPINLOCK_H
+> +#define _ASM_X86_PVQSPINLOCK_H
+> +
+> +/*
+> + *	Queue Spinlock Para-Virtualization (PV) Support
+> + *
+> + * The PV support code for queue spinlock is roughly the same as that
+> + * of the ticket spinlock. Each CPU waiting for the lock will spin until it
+> + * reaches a threshold. When that happens, it will put itself to a halt state
+> + * so that the hypervisor can reuse the CPU cycles in some other guests as
+> + * well as returning other hold-up CPUs faster.
 
-akpm, do you consider this appropriate for either 3.19 or 3.20?  If
-so, can you add it to the appropriate part of -mm?
+Kind of. There is a lot more of going to sleep here than the PV ticketlock.
+In there the CPU would go to sleep and wait until it was its turn in. Here
+we need go to sleep when we are at the queue and then wake up to move a bit.
 
-Thanks,
-Andy
+That means the next in the line has at least two halt and wakeups?
+
+How does it compare to the PV ticketlocks that exists right now?
