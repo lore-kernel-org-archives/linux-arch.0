@@ -1,114 +1,64 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e06smtp17.uk.ibm.com ([195.75.94.113]:33958 "EHLO
-	e06smtp17.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751124AbaLCWa1 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 3 Dec 2014 17:30:27 -0500
+Received: from e06smtp13.uk.ibm.com ([195.75.94.109]:58432 "EHLO
+	e06smtp13.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751959AbaLCWa2 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 3 Dec 2014 17:30:28 -0500
 Received: from /spool/local
-	by e06smtp17.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	by e06smtp13.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
 	for <linux-arch@vger.kernel.org> from <borntraeger@de.ibm.com>;
-	Wed, 3 Dec 2014 22:30:25 -0000
+	Wed, 3 Dec 2014 22:30:26 -0000
 From: Christian Borntraeger <borntraeger@de.ibm.com>
-Subject: [PATCH 1/9] kernel: Provide READ_ONCE and ASSIGN_ONCE
-Date: Wed,  3 Dec 2014 23:30:13 +0100
-Message-ID: <1417645821-54731-2-git-send-email-borntraeger@de.ibm.com>
-In-Reply-To: <1417645821-54731-1-git-send-email-borntraeger@de.ibm.com>
-References: <1417645821-54731-1-git-send-email-borntraeger@de.ibm.com>
+Subject: [PATCHv4 0/9] ACCESS_ONCE and non-scalar accesses
+Date: Wed,  3 Dec 2014 23:30:12 +0100
+Message-ID: <1417645821-54731-1-git-send-email-borntraeger@de.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
 Cc: linux-arch@vger.kernel.org, paulmck@linux.vnet.ibm.com, torvalds@linux-foundation.org, Christian Borntraeger <borntraeger@de.ibm.com>
-Message-ID: <20141203223013.dN5csNy6doAr5AFKHtg-rj0NDB8CPAeN_jiDIFp29tU@z>
+Message-ID: <20141203223012.e3aiepHdzibzvt3WY9YhG0x_QID-mUFidNXH9fY6OVY@z>
 
-ACCESS_ONCE does not work reliably on non-scalar types. For
-example gcc 4.6 and 4.7 might remove the volatile tag for such
-accesses during the SRA (scalar replacement of aggregates) step
-https://gcc.gnu.org/bugzilla/show_bug.cgi?id=58145)
+As discussed on LKML http://marc.info/?i=54611D86.4040306%40de.ibm.com
+ACCESS_ONCE might fail with specific compiler for non-scalar accesses.
 
-Let's provide READ_ONCE/ASSIGN_ONCE that will do all accesses via
-scalar types as suggested by Linus Torvalds. Accesses larger than
-the machines word size cannot be guaranteed to be atomic. These
-macros will use memcpy and emit a build warning.
+Here is a set of patches to tackle that problem.
 
-Signed-off-by: Christian Borntraeger <borntraeger@de.ibm.com>
----
- include/linux/compiler.h | 64 ++++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 64 insertions(+)
+The first patch introduce READ_ONCE and ASSIGN_ONCE. If the data structure
+is larger than the machine word size memcpy is used and a warning is emitted.
+The next patches fix up all in-tree users of ACCESS_ONCE on non-scalar types.
+The last patch forces ACCESS_ONCE to work only on scalar types. 
 
-diff --git a/include/linux/compiler.h b/include/linux/compiler.h
-index d5ad7b1..947710e 100644
---- a/include/linux/compiler.h
-+++ b/include/linux/compiler.h
-@@ -186,6 +186,70 @@ void ftrace_likely_update(struct ftrace_branch_data *f, int val, int expect);
- # define __UNIQUE_ID(prefix) __PASTE(__PASTE(__UNIQUE_ID_, prefix), __LINE__)
- #endif
- 
-+#include <linux/types.h>
-+
-+void data_access_exceeds_word_size(void)
-+__compiletime_warning("data access exceeds word size and won't be atomic");
-+
-+static __always_inline void __read_once_size(volatile void *p, void *res, int size)
-+{
-+	switch (size) {
-+	case 1: *(u8 *)res = *(volatile u8 *)p; break;
-+	case 2: *(u16 *)res = *(volatile u16 *)p; break;
-+	case 4: *(u32 *)res = *(volatile u32 *)p; break;
-+#ifdef CONFIG_64BIT
-+	case 8: *(u64 *)res = *(volatile u64 *)p; break;
-+#endif
-+	default:
-+		barrier();
-+		__builtin_memcpy((void *)res, (const void *)p, size);
-+		data_access_exceeds_word_size();
-+		barrier();
-+	}
-+}
-+
-+static __always_inline void __assign_once_size(volatile void *p, void *res, int size)
-+{
-+	switch (size) {
-+	case 1: *(volatile u8 *)p = *(u8 *)res; break;
-+	case 2: *(volatile u16 *)p = *(u16 *)res; break;
-+	case 4: *(volatile u32 *)p = *(u32 *)res; break;
-+#ifdef CONFIG_64BIT
-+	case 8: *(volatile u64 *)p = *(u64 *)res; break;
-+#endif
-+	default:
-+		barrier();
-+		__builtin_memcpy((void *)p, (const void *)res, size);
-+		data_access_exceeds_word_size();
-+		barrier();
-+	}
-+}
-+
-+/*
-+ * Prevent the compiler from merging or refetching reads or writes. The compiler
-+ * is also forbidden from reordering successive instances of READ_ONCE,
-+ * ASSIGN_ONCE and ACCESS_ONCE (see below), but only when the compiler is aware
-+ * of some particular ordering.  One way to make the compiler aware of ordering
-+ * is to put the two invocations of READ_ONCE, ASSIGN_ONCE or ACCESS_ONCE() in
-+ * different C statements.
-+ *
-+ * In contrast to ACCESS_ONCE these two macros will also work on aggregate data
-+ * types like structs or unions. If the size of the accessed data type exceeds
-+ * the word size of the machine (e.g. 32bit or 64bit), the access might happen
-+ * in multiple chunks, though.
-+ *
-+ * These macros do absolutely -nothing- to prevent the CPU from reordering,
-+ * merging, or refetching absolutely anything at any time.  Their main intended
-+ * use is to mediate communication between process-level code and irq/NMI
-+ * handlers, all running on the same CPU.
-+ */
-+
-+#define READ_ONCE(p) \
-+      ({ typeof(p) __val; __read_once_size(&p, &__val, sizeof(__val)); __val; })
-+
-+#define ASSIGN_ONCE(val, p) \
-+      ({ typeof(p) __val; __val = val; __assign_once_size(&p, &__val, sizeof(__val)); __val; })
-+
- #endif /* __KERNEL__ */
- 
- #endif /* __ASSEMBLY__ */
+I have cross-compiled the resulting kernel with defconfig and gcc 4.9 for
+microblaze, m68k, alpha, s390,x86_64, i686, sparc, sparc64, mips,
+ia64, arm and arm64.
+
+Runtime tested on s390x and x86_64. I have also verified that ASSIGN_ONCE works
+as expected with some test changes as there are no user in this patch series.
+
+Linus, ok for the next merge window?
+
+Christian Borntraeger (9):
+  kernel: Provide READ_ONCE and ASSIGN_ONCE
+  mm: replace ACCESS_ONCE with READ_ONCE or barriers
+  x86/spinlock: Replace ACCESS_ONCE with READ_ONCE
+  x86/gup: Replace ACCESS_ONCE with READ_ONCE
+  mips/gup: Replace ACCESS_ONCE with READ_ONCE
+  arm64/spinlock: Replace ACCESS_ONCE READ_ONCE
+  arm/spinlock: Replace ACCESS_ONCE with READ_ONCE
+  s390/kvm: REPLACE ACCESS_ONCE with READ_ONCE
+  kernel: tighten rules for ACCESS ONCE
+
+ arch/arm/include/asm/spinlock.h   |  4 +--
+ arch/arm64/include/asm/spinlock.h |  4 +--
+ arch/mips/mm/gup.c                |  2 +-
+ arch/s390/kvm/gaccess.c           | 14 ++++----
+ arch/x86/include/asm/spinlock.h   |  8 ++---
+ arch/x86/mm/gup.c                 |  2 +-
+ include/linux/compiler.h          | 74 ++++++++++++++++++++++++++++++++++++++-
+ mm/gup.c                          |  2 +-
+ mm/memory.c                       |  2 +-
+ mm/rmap.c                         |  3 +-
+ 10 files changed, 95 insertions(+), 20 deletions(-)
+
 -- 
 1.9.3
 
