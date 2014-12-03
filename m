@@ -1,48 +1,49 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail1.SerNet.de ([193.175.80.2]:58957 "EHLO mail.SerNet.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750845AbaLCJo5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 3 Dec 2014 04:44:57 -0500
-Date: Wed, 3 Dec 2014 10:10:43 +0100
-From: Volker Lendecke <Volker.Lendecke@SerNet.DE>
-Subject: Re: [PATCH v6 0/7] vfs: Non-blockling buffered fs read (page cache
- only)
-Reply-To: Volker.Lendecke@SerNet.DE
-References: <cover.1415636409.git.milosz@adfin.com>
- <20141125150101.9596a09e.akpm@linux-foundation.org>
- <CANP1eJEALZTwMv0Z1udmPWKhfGmpe+idtdRASp62Jm_V0N2HcQ@mail.gmail.com>
- <20141202144200.a4ca81a46a43563a8874fd8e@linux-foundation.org>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
-Content-Disposition: inline
-Content-Transfer-Encoding: 8bit
-In-Reply-To: <20141202144200.a4ca81a46a43563a8874fd8e@linux-foundation.org>
-Message-ID: <E1Xw5xg-00EfRs-CM@intern.SerNet.DE>
+Received: from e06smtp12.uk.ibm.com ([195.75.94.108]:49020 "EHLO
+	e06smtp12.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752117AbaLCWa2 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 3 Dec 2014 17:30:28 -0500
+Received: from /spool/local
+	by e06smtp12.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <borntraeger@de.ibm.com>;
+	Wed, 3 Dec 2014 22:30:27 -0000
+From: Christian Borntraeger <borntraeger@de.ibm.com>
+Subject: [PATCH 5/9] mips/gup: Replace ACCESS_ONCE with READ_ONCE
+Date: Wed,  3 Dec 2014 23:30:17 +0100
+Message-ID: <1417645821-54731-6-git-send-email-borntraeger@de.ibm.com>
+In-Reply-To: <1417645821-54731-1-git-send-email-borntraeger@de.ibm.com>
+References: <1417645821-54731-1-git-send-email-borntraeger@de.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Milosz Tanski <milosz@adfin.com>, LKML <linux-kernel@vger.kernel.org>, Christoph Hellwig <hch@infradead.org>, "linux-fsdevel@vger.kernel.org" <linux-fsdevel@vger.kernel.org>, "linux-aio@kvack.org" <linux-aio@kvack.org>, Mel Gorman <mgorman@suse.de>, Tejun Heo <tj@kernel.org>, Jeff Moyer <jmoyer@redhat.com>, Theodore Ts'o <tytso@mit.edu>, Al Viro <viro@zeniv.linux.org.uk>, Linux API <linux-api@vger.kernel.org>, Michael Kerrisk <mtk.manpages@gmail.com>, linux-arch@vger.kernel.org
-Message-ID: <20141203091043.Plm3Ir4RbZboBIGkYW-wk-NM4LlJ7vGlGyLtQy810os@z>
+To: linux-kernel@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, paulmck@linux.vnet.ibm.com, torvalds@linux-foundation.org, Christian Borntraeger <borntraeger@de.ibm.com>
+Message-ID: <20141203223017.k_aVIeRRcpcAbbxcPa89gOOKacrhRbbl1_GFkD09SO4@z>
 
-On Tue, Dec 02, 2014 at 02:42:00PM -0800, Andrew Morton wrote:
-> The question is whether a simpler approach such as fincore() will be
-> sufficient.
+ACCESS_ONCE does not work reliably on non-scalar types. For
+example gcc 4.6 and 4.7 might remove the volatile tag for such
+accesses during the SRA (scalar replacement of aggregates) step
+https://gcc.gnu.org/bugzilla/show_bug.cgi?id=58145)
 
-For many use cases in Samba, fincore will probably be
-enough. But Windows clients become more and more
-multi-threaded, so Samba sees multiple parallel active read
-requests. Samba's core SMB processing engine is single
-threaded, and if due to that race we get blocked, more than
-one data stream will be affected. We might make it an option
-to use the fincore alternative, but I don't see it as a
-default. The default will be the strict threadpool.
+Change the gup code to replace ACCESS_ONCE with READ_ONCE.
 
-With best regards,
+Signed-off-by: Christian Borntraeger <borntraeger@de.ibm.com>
+---
+ arch/mips/mm/gup.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-Volker Lendecke
-
+diff --git a/arch/mips/mm/gup.c b/arch/mips/mm/gup.c
+index 06ce17c..8aa50e3 100644
+--- a/arch/mips/mm/gup.c
++++ b/arch/mips/mm/gup.c
+@@ -30,7 +30,7 @@ retry:
+ 
+ 	return pte;
+ #else
+-	return ACCESS_ONCE(*ptep);
++	return READ_ONCE(*ptep);
+ #endif
+ }
+ 
 -- 
-SerNet GmbH, Bahnhofsallee 1b, 37081 Göttingen
-phone: +49-551-370000-0, fax: +49-551-370000-9
-AG Göttingen, HRB 2816, GF: Dr. Johannes Loxen
-http://www.sernet.de, mailto:kontakt@sernet.de
+1.9.3
+
