@@ -1,75 +1,114 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e06smtp11.uk.ibm.com ([195.75.94.107]:39627 "EHLO
-	e06smtp11.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751992AbaLCWa2 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 3 Dec 2014 17:30:28 -0500
+Received: from e06smtp17.uk.ibm.com ([195.75.94.113]:33958 "EHLO
+	e06smtp17.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751124AbaLCWa1 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 3 Dec 2014 17:30:27 -0500
 Received: from /spool/local
-	by e06smtp11.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	by e06smtp17.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
 	for <linux-arch@vger.kernel.org> from <borntraeger@de.ibm.com>;
-	Wed, 3 Dec 2014 22:30:26 -0000
+	Wed, 3 Dec 2014 22:30:25 -0000
 From: Christian Borntraeger <borntraeger@de.ibm.com>
-Subject: [PATCH 3/9] x86/spinlock: Replace ACCESS_ONCE with READ_ONCE
-Date: Wed,  3 Dec 2014 23:30:15 +0100
-Message-ID: <1417645821-54731-4-git-send-email-borntraeger@de.ibm.com>
+Subject: [PATCH 1/9] kernel: Provide READ_ONCE and ASSIGN_ONCE
+Date: Wed,  3 Dec 2014 23:30:13 +0100
+Message-ID: <1417645821-54731-2-git-send-email-borntraeger@de.ibm.com>
 In-Reply-To: <1417645821-54731-1-git-send-email-borntraeger@de.ibm.com>
 References: <1417645821-54731-1-git-send-email-borntraeger@de.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
 Cc: linux-arch@vger.kernel.org, paulmck@linux.vnet.ibm.com, torvalds@linux-foundation.org, Christian Borntraeger <borntraeger@de.ibm.com>
-Message-ID: <20141203223015.RMcz-5jm-hE2XYlOlPUzCH5Ze-2xuH7Z_fI-IIqfwpo@z>
+Message-ID: <20141203223013.dN5csNy6doAr5AFKHtg-rj0NDB8CPAeN_jiDIFp29tU@z>
 
 ACCESS_ONCE does not work reliably on non-scalar types. For
 example gcc 4.6 and 4.7 might remove the volatile tag for such
 accesses during the SRA (scalar replacement of aggregates) step
-(https://gcc.gnu.org/bugzilla/show_bug.cgi?id=58145)
+https://gcc.gnu.org/bugzilla/show_bug.cgi?id=58145)
 
-Change the spinlock code to replace ACCESS_ONCE with READ_ONCE.
+Let's provide READ_ONCE/ASSIGN_ONCE that will do all accesses via
+scalar types as suggested by Linus Torvalds. Accesses larger than
+the machines word size cannot be guaranteed to be atomic. These
+macros will use memcpy and emit a build warning.
 
 Signed-off-by: Christian Borntraeger <borntraeger@de.ibm.com>
 ---
- arch/x86/include/asm/spinlock.h | 8 ++++----
- 1 file changed, 4 insertions(+), 4 deletions(-)
+ include/linux/compiler.h | 64 ++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 64 insertions(+)
 
-diff --git a/arch/x86/include/asm/spinlock.h b/arch/x86/include/asm/spinlock.h
-index 9295016..12a69b4 100644
---- a/arch/x86/include/asm/spinlock.h
-+++ b/arch/x86/include/asm/spinlock.h
-@@ -92,7 +92,7 @@ static __always_inline void arch_spin_lock(arch_spinlock_t *lock)
- 		unsigned count = SPIN_THRESHOLD;
+diff --git a/include/linux/compiler.h b/include/linux/compiler.h
+index d5ad7b1..947710e 100644
+--- a/include/linux/compiler.h
++++ b/include/linux/compiler.h
+@@ -186,6 +186,70 @@ void ftrace_likely_update(struct ftrace_branch_data *f, int val, int expect);
+ # define __UNIQUE_ID(prefix) __PASTE(__PASTE(__UNIQUE_ID_, prefix), __LINE__)
+ #endif
  
- 		do {
--			if (ACCESS_ONCE(lock->tickets.head) == inc.tail)
-+			if (READ_ONCE(lock->tickets.head) == inc.tail)
- 				goto out;
- 			cpu_relax();
- 		} while (--count);
-@@ -105,7 +105,7 @@ static __always_inline int arch_spin_trylock(arch_spinlock_t *lock)
- {
- 	arch_spinlock_t old, new;
++#include <linux/types.h>
++
++void data_access_exceeds_word_size(void)
++__compiletime_warning("data access exceeds word size and won't be atomic");
++
++static __always_inline void __read_once_size(volatile void *p, void *res, int size)
++{
++	switch (size) {
++	case 1: *(u8 *)res = *(volatile u8 *)p; break;
++	case 2: *(u16 *)res = *(volatile u16 *)p; break;
++	case 4: *(u32 *)res = *(volatile u32 *)p; break;
++#ifdef CONFIG_64BIT
++	case 8: *(u64 *)res = *(volatile u64 *)p; break;
++#endif
++	default:
++		barrier();
++		__builtin_memcpy((void *)res, (const void *)p, size);
++		data_access_exceeds_word_size();
++		barrier();
++	}
++}
++
++static __always_inline void __assign_once_size(volatile void *p, void *res, int size)
++{
++	switch (size) {
++	case 1: *(volatile u8 *)p = *(u8 *)res; break;
++	case 2: *(volatile u16 *)p = *(u16 *)res; break;
++	case 4: *(volatile u32 *)p = *(u32 *)res; break;
++#ifdef CONFIG_64BIT
++	case 8: *(volatile u64 *)p = *(u64 *)res; break;
++#endif
++	default:
++		barrier();
++		__builtin_memcpy((void *)p, (const void *)res, size);
++		data_access_exceeds_word_size();
++		barrier();
++	}
++}
++
++/*
++ * Prevent the compiler from merging or refetching reads or writes. The compiler
++ * is also forbidden from reordering successive instances of READ_ONCE,
++ * ASSIGN_ONCE and ACCESS_ONCE (see below), but only when the compiler is aware
++ * of some particular ordering.  One way to make the compiler aware of ordering
++ * is to put the two invocations of READ_ONCE, ASSIGN_ONCE or ACCESS_ONCE() in
++ * different C statements.
++ *
++ * In contrast to ACCESS_ONCE these two macros will also work on aggregate data
++ * types like structs or unions. If the size of the accessed data type exceeds
++ * the word size of the machine (e.g. 32bit or 64bit), the access might happen
++ * in multiple chunks, though.
++ *
++ * These macros do absolutely -nothing- to prevent the CPU from reordering,
++ * merging, or refetching absolutely anything at any time.  Their main intended
++ * use is to mediate communication between process-level code and irq/NMI
++ * handlers, all running on the same CPU.
++ */
++
++#define READ_ONCE(p) \
++      ({ typeof(p) __val; __read_once_size(&p, &__val, sizeof(__val)); __val; })
++
++#define ASSIGN_ONCE(val, p) \
++      ({ typeof(p) __val; __val = val; __assign_once_size(&p, &__val, sizeof(__val)); __val; })
++
+ #endif /* __KERNEL__ */
  
--	old.tickets = ACCESS_ONCE(lock->tickets);
-+	old.tickets = READ_ONCE(lock->tickets);
- 	if (old.tickets.head != (old.tickets.tail & ~TICKET_SLOWPATH_FLAG))
- 		return 0;
- 
-@@ -162,14 +162,14 @@ static __always_inline void arch_spin_unlock(arch_spinlock_t *lock)
- 
- static inline int arch_spin_is_locked(arch_spinlock_t *lock)
- {
--	struct __raw_tickets tmp = ACCESS_ONCE(lock->tickets);
-+	struct __raw_tickets tmp = READ_ONCE(lock->tickets);
- 
- 	return tmp.tail != tmp.head;
- }
- 
- static inline int arch_spin_is_contended(arch_spinlock_t *lock)
- {
--	struct __raw_tickets tmp = ACCESS_ONCE(lock->tickets);
-+	struct __raw_tickets tmp = READ_ONCE(lock->tickets);
- 
- 	return (__ticket_t)(tmp.tail - tmp.head) > TICKET_LOCK_INC;
- }
+ #endif /* __ASSEMBLY__ */
 -- 
 1.9.3
 
