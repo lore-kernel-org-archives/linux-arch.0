@@ -1,114 +1,49 @@
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [PATCH v13 10/11] pvqspinlock, x86: Enable PV qspinlock for
- KVM
-Date: Wed, 3 Dec 2014 01:40:53 +0100 (CET)
-Message-ID: <alpine.DEB.2.11.1412030115100.16275@nanos>
-References: <1414613951-32532-1-git-send-email-Waiman.Long@hp.com>
-	<1414613951-32532-11-git-send-email-Waiman.Long@hp.com>
+From: Volker Lendecke <Volker.Lendecke@SerNet.DE>
+Subject: Re: [PATCH v6 0/7] vfs: Non-blockling buffered fs read (page cache
+ only)
+Date: Wed, 3 Dec 2014 10:10:43 +0100
+Message-ID: <E1Xw5xg-00EfRs-CM@intern.SerNet.DE>
+References: <cover.1415636409.git.milosz@adfin.com>
+ <20141125150101.9596a09e.akpm@linux-foundation.org>
+ <CANP1eJEALZTwMv0Z1udmPWKhfGmpe+idtdRASp62Jm_V0N2HcQ@mail.gmail.com>
+ <20141202144200.a4ca81a46a43563a8874fd8e@linux-foundation.org>
+Reply-To: Volker.Lendecke@SerNet.DE
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <virtualization-bounces@lists.linux-foundation.org>
-In-Reply-To: <1414613951-32532-11-git-send-email-Waiman.Long@hp.com>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
-List-Post: <mailto:virtualization@lists.linux-foundation.org>
-List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
-Sender: virtualization-bounces@lists.linux-foundation.org
-Errors-To: virtualization-bounces@lists.linux-foundation.org
-To: Waiman Long <Waiman.Long@hp.com>
-Cc: linux-arch@vger.kernel.org, Rik van Riel <riel@redhat.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, kvm@vger.kernel.org, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Peter Zijlstra <peterz@infradead.org>, Scott J Norton <scott.norton@hp.com>, x86@kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, Ingo Molnar <mingo@redhat.com>, David Vrabel <david.vrabel@citrix.com>, "H. Peter Anvin" <hpa@zytor.com>, xen-devel@lists.xenproject.org, Boris Ostrovsky <boris.ostrovsky@oracle.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Oleg Nesterov <oleg@redhat.com>, Douglas Hatch <doug.hatch@hp.com>
+Content-Type: text/plain; charset=iso-8859-1
+Content-Transfer-Encoding: quoted-printable
+Return-path: <owner-linux-aio@kvack.org>
+Content-Disposition: inline
+In-Reply-To: <20141202144200.a4ca81a46a43563a8874fd8e@linux-foundation.org>
+Sender: owner-linux-aio@kvack.org
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Milosz Tanski <milosz@adfin.com>, LKML <linux-kernel@vger.kernel.org>, Christoph Hellwig <hch@infradead.org>, "linux-fsdevel@vger.kernel.org" <linux-fsdevel@vger.kernel.org>, "linux-aio@kvack.org" <linux-aio@kvack.org>, Mel Gorman <mgorman@suse.de>, Tejun Heo <tj@kernel.org>, Jeff Moyer <jmoyer@redhat.com>, Theodore Ts'o <tytso@mit.edu>, Al Viro <viro@zeniv.linux.org.uk>, Linux API <linux-api@vger.kernel.org>, Michael Kerrisk <mtk.manpages@gmail.com>, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, 29 Oct 2014, Waiman Long wrote:
->                 AIM7 XFS Disk Test (no overcommit)
->   kernel                 JPM    Real Time   Sys Time    Usr Time
->   -----                  ---    ---------   --------    --------
->   PV ticketlock         2542373    7.08       98.95       5.44
->   PV qspinlock          2549575    7.06       98.63       5.40
->   unfairlock	        2616279    6.91       97.05       5.42
-> 
->                 AIM7 XFS Disk Test (200% overcommit)
->   kernel                 JPM    Real Time   Sys Time    Usr Time
->   -----                  ---    ---------   --------    --------
->   PV ticketlock         644468    27.93      415.22       6.33
->   PV qspinlock          645624    27.88      419.84       0.39
+On Tue, Dec 02, 2014 at 02:42:00PM -0800, Andrew Morton wrote:
+> The question is whether a simpler approach such as fincore() will be
+> sufficient.
 
-That number is made up by what? ----------------------------^^^^
+For many use cases in Samba, fincore will probably be
+enough. But Windows clients become more and more
+multi-threaded, so Samba sees multiple parallel active read
+requests. Samba's core SMB processing engine is single
+threaded, and if due to that race we get blocked, more than
+one data stream will be affected. We might make it an option
+to use the fincore alternative, but I don't see it as a
+default. The default will be the strict threadpool.
 
->   unfairlock	        695518    25.88      377.40       4.09
-> 
->                 AIM7 EXT4 Disk Test (no overcommit)
->   kernel                 JPM    Real Time   Sys Time    Usr Time
->   -----                  ---    ---------   --------    --------
->   PV ticketlock         1995565    9.02      103.67       5.76
->   PV qspinlock          2011173    8.95      102.15       5.40
->   unfairlock	        2066590    8.71       98.13       5.46
-> 
->                 AIM7 EXT4 Disk Test (200% overcommit)
->   kernel                 JPM    Real Time   Sys Time    Usr Time
->   -----                  ---    ---------   --------    --------
->   PV ticketlock         478341    37.63      495.81      30.78
->   PV qspinlock          474058    37.97      475.74      30.95
->   unfairlock	        560224    32.13      398.43      26.27
-> 
-> For the AIM7 disk workload, both PV ticketlock and qspinlock have
-> about the same performance. The unfairlock performs slightly better
-> than the PV lock.
+With best regards,
 
-Slightly?
+Volker Lendecke
 
-Taking the PV locks, which are basically the same for the existing
-ticket locks and your new fangled qlocks as a reference then the so
-called 'unfair locks' which are just the native locks w/o the PV
-nonsense are fundamentally better up to a whopping 18% in the
-ext4/200% overcommit case. See below.
- 
->                 EBIZZY-m Test (no overcommit)
->   kernel                Rec/s   Real Time   Sys Time    Usr Time
->   -----                 -----   ---------   --------    --------
->   PV ticketlock         3255      10.00       60.65       3.62
->   PV qspinlock          3318      10.00       54.27       3.60
->   unfairlock	        2833      10.00       26.66       3.09
-> 
->                 EBIZZY-m Test (200% overcommit)
->   kernel                Rec/s   Real Time   Sys Time    Usr Time
->   -----                 -----   ---------   --------    --------
->   PV ticketlock          841      10.00       71.03       2.37
->   PV qspinlock           834      10.00       68.27       2.39
->   unfairlock	         865      10.00       27.08       1.51
-> 
->   futextest (no overcommit)
->   kernel               kops/s
->   -----                ------
->   PV ticketlock        11523
->   PV qspinlock         12328
->   unfairlock	        9478
-> 
->   futextest (200% overcommit)
->   kernel               kops/s
->   -----                ------
->   PV ticketlock         7276
->   PV qspinlock          7095
->   unfairlock	        5614
-> 
-> The ebizzy and futextest have much higher spinlock contention than
-> the AIM7 disk workload. In this case, the unfairlock performs worse
-> than both the PV ticketlock and qspinlock. The performance of the 2
-> PV locks are comparable.
+--=20
+SerNet GmbH, Bahnhofsallee 1b, 37081 G=F6ttingen
+phone: +49-551-370000-0, fax: +49-551-370000-9
+AG G=F6ttingen, HRB 2816, GF: Dr. Johannes Loxen
+http://www.sernet.de, mailto:kontakt@sernet.de
 
-While I can see that the PV lock stuff performs 13% better for the
-ebizzy no overcommit case, what about the very interresting numbers
-for the same test with 200% overcommit?
-
-The regular lock has a slightly better performance, but significantly
-less sys/usr time. How do you explain that?
-
-'Lies, damned lies and statistics' comes to my mind.
-
-Thanks,
-
-	tglx
+--
+To unsubscribe, send a message with 'unsubscribe linux-aio' in
+the body to majordomo@kvack.org.  For more info on Linux AIO,
+see: http://www.kvack.org/aio/
+Don't email: <a href=3Dmailto:"aart@kvack.org">aart@kvack.org</a>
