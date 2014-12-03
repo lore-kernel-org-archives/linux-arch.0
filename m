@@ -1,65 +1,54 @@
 From: Christian Borntraeger <borntraeger@de.ibm.com>
-Subject: [PATCH 3/9] x86/spinlock: Replace ACCESS_ONCE with READ_ONCE
-Date: Wed,  3 Dec 2014 23:30:15 +0100
-Message-ID: <1417645821-54731-4-git-send-email-borntraeger@de.ibm.com>
-References: <1417645821-54731-1-git-send-email-borntraeger@de.ibm.com>
+Subject: [PATCHv4 0/9] ACCESS_ONCE and non-scalar accesses
+Date: Wed,  3 Dec 2014 23:30:12 +0100
+Message-ID: <1417645821-54731-1-git-send-email-borntraeger@de.ibm.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1417645821-54731-1-git-send-email-borntraeger@de.ibm.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
 Cc: linux-arch@vger.kernel.org, paulmck@linux.vnet.ibm.com, torvalds@linux-foundation.org, Christian Borntraeger <borntraeger@de.ibm.com>
 List-Id: linux-arch.vger.kernel.org
 
-ACCESS_ONCE does not work reliably on non-scalar types. For
-example gcc 4.6 and 4.7 might remove the volatile tag for such
-accesses during the SRA (scalar replacement of aggregates) step
-(https://gcc.gnu.org/bugzilla/show_bug.cgi?id=58145)
+As discussed on LKML http://marc.info/?i=54611D86.4040306%40de.ibm.com
+ACCESS_ONCE might fail with specific compiler for non-scalar accesses.
 
-Change the spinlock code to replace ACCESS_ONCE with READ_ONCE.
+Here is a set of patches to tackle that problem.
 
-Signed-off-by: Christian Borntraeger <borntraeger@de.ibm.com>
----
- arch/x86/include/asm/spinlock.h | 8 ++++----
- 1 file changed, 4 insertions(+), 4 deletions(-)
+The first patch introduce READ_ONCE and ASSIGN_ONCE. If the data structure
+is larger than the machine word size memcpy is used and a warning is emitted.
+The next patches fix up all in-tree users of ACCESS_ONCE on non-scalar types.
+The last patch forces ACCESS_ONCE to work only on scalar types. 
 
-diff --git a/arch/x86/include/asm/spinlock.h b/arch/x86/include/asm/spinlock.h
-index 9295016..12a69b4 100644
---- a/arch/x86/include/asm/spinlock.h
-+++ b/arch/x86/include/asm/spinlock.h
-@@ -92,7 +92,7 @@ static __always_inline void arch_spin_lock(arch_spinlock_t *lock)
- 		unsigned count = SPIN_THRESHOLD;
- 
- 		do {
--			if (ACCESS_ONCE(lock->tickets.head) == inc.tail)
-+			if (READ_ONCE(lock->tickets.head) == inc.tail)
- 				goto out;
- 			cpu_relax();
- 		} while (--count);
-@@ -105,7 +105,7 @@ static __always_inline int arch_spin_trylock(arch_spinlock_t *lock)
- {
- 	arch_spinlock_t old, new;
- 
--	old.tickets = ACCESS_ONCE(lock->tickets);
-+	old.tickets = READ_ONCE(lock->tickets);
- 	if (old.tickets.head != (old.tickets.tail & ~TICKET_SLOWPATH_FLAG))
- 		return 0;
- 
-@@ -162,14 +162,14 @@ static __always_inline void arch_spin_unlock(arch_spinlock_t *lock)
- 
- static inline int arch_spin_is_locked(arch_spinlock_t *lock)
- {
--	struct __raw_tickets tmp = ACCESS_ONCE(lock->tickets);
-+	struct __raw_tickets tmp = READ_ONCE(lock->tickets);
- 
- 	return tmp.tail != tmp.head;
- }
- 
- static inline int arch_spin_is_contended(arch_spinlock_t *lock)
- {
--	struct __raw_tickets tmp = ACCESS_ONCE(lock->tickets);
-+	struct __raw_tickets tmp = READ_ONCE(lock->tickets);
- 
- 	return (__ticket_t)(tmp.tail - tmp.head) > TICKET_LOCK_INC;
- }
+I have cross-compiled the resulting kernel with defconfig and gcc 4.9 for
+microblaze, m68k, alpha, s390,x86_64, i686, sparc, sparc64, mips,
+ia64, arm and arm64.
+
+Runtime tested on s390x and x86_64. I have also verified that ASSIGN_ONCE works
+as expected with some test changes as there are no user in this patch series.
+
+Linus, ok for the next merge window?
+
+Christian Borntraeger (9):
+  kernel: Provide READ_ONCE and ASSIGN_ONCE
+  mm: replace ACCESS_ONCE with READ_ONCE or barriers
+  x86/spinlock: Replace ACCESS_ONCE with READ_ONCE
+  x86/gup: Replace ACCESS_ONCE with READ_ONCE
+  mips/gup: Replace ACCESS_ONCE with READ_ONCE
+  arm64/spinlock: Replace ACCESS_ONCE READ_ONCE
+  arm/spinlock: Replace ACCESS_ONCE with READ_ONCE
+  s390/kvm: REPLACE ACCESS_ONCE with READ_ONCE
+  kernel: tighten rules for ACCESS ONCE
+
+ arch/arm/include/asm/spinlock.h   |  4 +--
+ arch/arm64/include/asm/spinlock.h |  4 +--
+ arch/mips/mm/gup.c                |  2 +-
+ arch/s390/kvm/gaccess.c           | 14 ++++----
+ arch/x86/include/asm/spinlock.h   |  8 ++---
+ arch/x86/mm/gup.c                 |  2 +-
+ include/linux/compiler.h          | 74 ++++++++++++++++++++++++++++++++++++++-
+ mm/gup.c                          |  2 +-
+ mm/memory.c                       |  2 +-
+ mm/rmap.c                         |  3 +-
+ 10 files changed, 95 insertions(+), 20 deletions(-)
+
 -- 
 1.9.3
