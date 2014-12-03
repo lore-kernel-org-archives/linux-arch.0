@@ -1,54 +1,74 @@
-From: Christian Borntraeger <borntraeger@de.ibm.com>
-Subject: [PATCHv4 0/9] ACCESS_ONCE and non-scalar accesses
-Date: Wed,  3 Dec 2014 23:30:12 +0100
-Message-ID: <1417645821-54731-1-git-send-email-borntraeger@de.ibm.com>
+From: Andrew Morton <akpm@linux-foundation.org>
+Subject: Re: [PATCH v2] all arches, signal: Move restart_block to struct
+ task_struct
+Date: Wed, 3 Dec 2014 15:37:21 -0800
+Message-ID: <20141203153721.30b32472145aa560921bdc1e@linux-foundation.org>
+References: <43c88012a4959cd427ab634906e697fbc524e847.1414604015.git.luto@amacapital.net>
+	<alpine.DEB.2.11.1410291908290.5308@nanos>
+	<CALCETrWtBCFXzwCAh8fpeFv-EvPxYW20oRmFk1iCYwUvpft=Rw@mail.gmail.com>
+	<20141110.211319.1983610686941713044.davem@davemloft.net>
+	<5461EA6B.9020305@nod.at>
+	<CALCETrUZhbx-PN8A168khFr6ve_9vdkSiwOcQ-hZbqu4po8hnQ@mail.gmail.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <CALCETrUZhbx-PN8A168khFr6ve_9vdkSiwOcQ-hZbqu4po8hnQ@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, paulmck@linux.vnet.ibm.com, torvalds@linux-foundation.org, Christian Borntraeger <borntraeger@de.ibm.com>
+To: Andy Lutomirski <luto@amacapital.net>
+Cc: Richard Weinberger <richard@nod.at>, David Miller <davem@davemloft.net>, Thomas Gleixner <tglx@linutronix.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, richard -rw- weinberger <richard.weinberger@gmail.com>, "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@kernel.org>, Kees Cook <keescook@chromium.org>
 List-Id: linux-arch.vger.kernel.org
 
-As discussed on LKML http://marc.info/?i=54611D86.4040306%40de.ibm.com
-ACCESS_ONCE might fail with specific compiler for non-scalar accesses.
+On Mon, 1 Dec 2014 06:55:01 -0800 Andy Lutomirski <luto@amacapital.net> wrote:
 
-Here is a set of patches to tackle that problem.
+> On Tue, Nov 11, 2014 at 2:52 AM, Richard Weinberger <richard@nod.at> wrote:
+> > Am 11.11.2014 um 03:13 schrieb David Miller:
+> >> From: Andy Lutomirski <luto@amacapital.net>
+> >> Date: Mon, 10 Nov 2014 14:03:23 -0800
+> >>
+> >>> On Wed, Oct 29, 2014 at 11:12 AM, Thomas Gleixner <tglx@linutronix.de> wrote:
+> >>>> On Wed, 29 Oct 2014, Andy Lutomirski wrote:
+> >>>>
+> >>>>> If an attacker can cause a controlled kernel stack overflow,
+> >>>>> overwriting the restart block is a very juicy exploit target.
+> >>>>> Moving the restart block to struct task_struct prevents this
+> >>>>> exploit.
+> >>>>>
+> >>>>> Note that there are other fields in thread_info that are also easy
+> >>>>> targets, at least on some architectures.
+> >>>>>
+> >>>>> It's also a decent simplification, since the restart code is more or
+> >>>>> less identical on all architectures.
+> >>>>
+> >>>> I think that's the most important change. Moving common stuff into
+> >>>> common code. The side effect of slightly reducing the attack surface
+> >>>> is nice, but as Al pointed out not really the big win here.
+> >>>
+> >>> Having gotten exactly zero feedback from any arch maintainer outside
+> >>> of x86, am I supposed to pester people further?
+> >>
+> >> No objections wrt. sparc and if things break I'll help fix it.
+> >
+> > Same for UML.
+> > Acked-by: Richard Weinberger <richard@nod.at>
+> 
+> akpm, do you consider this appropriate for either 3.19 or 3.20?  If
+> so, can you add it to the appropriate part of -mm?
 
-The first patch introduce READ_ONCE and ASSIGN_ONCE. If the data structure
-is larger than the machine word size memcpy is used and a warning is emitted.
-The next patches fix up all in-tree users of ACCESS_ONCE on non-scalar types.
-The last patch forces ACCESS_ONCE to work only on scalar types. 
+Yes, I can grab it.  Probably for .20, as the lag times for exposing
+issues in obscures architectures are lengthy.
 
-I have cross-compiled the resulting kernel with defconfig and gcc 4.9 for
-microblaze, m68k, alpha, s390,x86_64, i686, sparc, sparc64, mips,
-ia64, arm and arm64.
+One clarification:
 
-Runtime tested on s390x and x86_64. I have also verified that ASSIGN_ONCE works
-as expected with some test changes as there are no user in this patch series.
+: If an attacker can cause a controlled kernel stack overflow,
+: overwriting the restart block is a very juicy exploit target.
 
-Linus, ok for the next merge window?
+This is because the thread_info actually resides in the memory which
+was allocated for the kernel stack, yes?  Whereas the task_struct is
+separately allocated and is harder to find?
 
-Christian Borntraeger (9):
-  kernel: Provide READ_ONCE and ASSIGN_ONCE
-  mm: replace ACCESS_ONCE with READ_ONCE or barriers
-  x86/spinlock: Replace ACCESS_ONCE with READ_ONCE
-  x86/gup: Replace ACCESS_ONCE with READ_ONCE
-  mips/gup: Replace ACCESS_ONCE with READ_ONCE
-  arm64/spinlock: Replace ACCESS_ONCE READ_ONCE
-  arm/spinlock: Replace ACCESS_ONCE with READ_ONCE
-  s390/kvm: REPLACE ACCESS_ONCE with READ_ONCE
-  kernel: tighten rules for ACCESS ONCE
+Spelling this out in the changelog would be useful for the ignorant and
+the forgetful ;)
 
- arch/arm/include/asm/spinlock.h   |  4 +--
- arch/arm64/include/asm/spinlock.h |  4 +--
- arch/mips/mm/gup.c                |  2 +-
- arch/s390/kvm/gaccess.c           | 14 ++++----
- arch/x86/include/asm/spinlock.h   |  8 ++---
- arch/x86/mm/gup.c                 |  2 +-
- include/linux/compiler.h          | 74 ++++++++++++++++++++++++++++++++++++++-
- mm/gup.c                          |  2 +-
- mm/memory.c                       |  2 +-
- mm/rmap.c                         |  3 +-
- 10 files changed, 95 insertions(+), 20 deletions(-)
-
--- 
-1.9.3
+: Moving the restart block to struct task_struct prevents this
+: exploit.
