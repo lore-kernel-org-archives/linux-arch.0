@@ -1,82 +1,76 @@
 From: Christian Borntraeger <borntraeger@de.ibm.com>
-Subject: [PATCH 2/9] mm: replace ACCESS_ONCE with READ_ONCE or barriers
-Date: Wed,  3 Dec 2014 23:30:14 +0100
-Message-ID: <1417645821-54731-3-git-send-email-borntraeger@de.ibm.com>
+Subject: [PATCH 8/9] s390/kvm: REPLACE ACCESS_ONCE with READ_ONCE
+Date: Wed,  3 Dec 2014 23:30:20 +0100
+Message-ID: <1417645821-54731-9-git-send-email-borntraeger@de.ibm.com>
 References: <1417645821-54731-1-git-send-email-borntraeger@de.ibm.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e06smtp11.uk.ibm.com ([195.75.94.107]:39626 "EHLO
-	e06smtp11.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752024AbaLCWa2 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 3 Dec 2014 17:30:28 -0500
-Received: from /spool/local
-	by e06smtp11.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <borntraeger@de.ibm.com>;
-	Wed, 3 Dec 2014 22:30:26 -0000
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1417645821-54731-1-git-send-email-borntraeger@de.ibm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
 Cc: linux-arch@vger.kernel.org, paulmck@linux.vnet.ibm.com, torvalds@linux-foundation.org, Christian Borntraeger <borntraeger@de.ibm.com>
+List-Id: linux-arch.vger.kernel.org
 
 ACCESS_ONCE does not work reliably on non-scalar types. For
 example gcc 4.6 and 4.7 might remove the volatile tag for such
 accesses during the SRA (scalar replacement of aggregates) step
 (https://gcc.gnu.org/bugzilla/show_bug.cgi?id=58145)
 
-Let's change the code to access the page table elements with
-READ_ONCE that does implicit scalar accesses.
-
-mm_find_pmd is tricky, because m68k and sparc(32bit) define pmd_t
-as array of longs. This code requires just that the pmd_present
-and pmd_trans_huge check are done on the same value, so a barrier
-is sufficent.
+Change the ipte lock code to replace ACCESS_ONCE with READ_ONCE.
 
 Signed-off-by: Christian Borntraeger <borntraeger@de.ibm.com>
 ---
- mm/gup.c    | 2 +-
- mm/memory.c | 2 +-
- mm/rmap.c   | 3 ++-
- 3 files changed, 4 insertions(+), 3 deletions(-)
+ arch/s390/kvm/gaccess.c | 14 ++++++++------
+ 1 file changed, 8 insertions(+), 6 deletions(-)
 
-diff --git a/mm/gup.c b/mm/gup.c
-index cd62c8c..f2305de 100644
---- a/mm/gup.c
-+++ b/mm/gup.c
-@@ -917,7 +917,7 @@ static int gup_pud_range(pgd_t *pgdp, unsigned long addr, unsigned long end,
- 
- 	pudp = pud_offset(pgdp, addr);
+diff --git a/arch/s390/kvm/gaccess.c b/arch/s390/kvm/gaccess.c
+index 0f961a1..8f195fa 100644
+--- a/arch/s390/kvm/gaccess.c
++++ b/arch/s390/kvm/gaccess.c
+@@ -229,10 +229,10 @@ static void ipte_lock_simple(struct kvm_vcpu *vcpu)
+ 		goto out;
+ 	ic = &vcpu->kvm->arch.sca->ipte_control;
  	do {
--		pud_t pud = ACCESS_ONCE(*pudp);
-+		pud_t pud = READ_ONCE(*pudp);
+-		old = ACCESS_ONCE(*ic);
++		old = READ_ONCE(*ic);
+ 		while (old.k) {
+ 			cond_resched();
+-			old = ACCESS_ONCE(*ic);
++			old = READ_ONCE(*ic);
+ 		}
+ 		new = old;
+ 		new.k = 1;
+@@ -251,7 +251,8 @@ static void ipte_unlock_simple(struct kvm_vcpu *vcpu)
+ 		goto out;
+ 	ic = &vcpu->kvm->arch.sca->ipte_control;
+ 	do {
+-		new = old = ACCESS_ONCE(*ic);
++		old = READ_ONCE(*ic);
++		new = old;
+ 		new.k = 0;
+ 	} while (cmpxchg(&ic->val, old.val, new.val) != old.val);
+ 	wake_up(&vcpu->kvm->arch.ipte_wq);
+@@ -265,10 +266,10 @@ static void ipte_lock_siif(struct kvm_vcpu *vcpu)
  
- 		next = pud_addr_end(addr, end);
- 		if (pud_none(pud))
-diff --git a/mm/memory.c b/mm/memory.c
-index 3e50383..9e0c84e 100644
---- a/mm/memory.c
-+++ b/mm/memory.c
-@@ -3202,7 +3202,7 @@ static int handle_pte_fault(struct mm_struct *mm,
- 	pte_t entry;
- 	spinlock_t *ptl;
+ 	ic = &vcpu->kvm->arch.sca->ipte_control;
+ 	do {
+-		old = ACCESS_ONCE(*ic);
++		old = READ_ONCE(*ic);
+ 		while (old.kg) {
+ 			cond_resched();
+-			old = ACCESS_ONCE(*ic);
++			old = READ_ONCE(*ic);
+ 		}
+ 		new = old;
+ 		new.k = 1;
+@@ -282,7 +283,8 @@ static void ipte_unlock_siif(struct kvm_vcpu *vcpu)
  
--	entry = ACCESS_ONCE(*pte);
-+	entry = READ_ONCE(*pte);
- 	if (!pte_present(entry)) {
- 		if (pte_none(entry)) {
- 			if (vma->vm_ops) {
-diff --git a/mm/rmap.c b/mm/rmap.c
-index 19886fb..1e54274 100644
---- a/mm/rmap.c
-+++ b/mm/rmap.c
-@@ -581,7 +581,8 @@ pmd_t *mm_find_pmd(struct mm_struct *mm, unsigned long address)
- 	 * without holding anon_vma lock for write.  So when looking for a
- 	 * genuine pmde (in which to find pte), test present and !THP together.
- 	 */
--	pmde = ACCESS_ONCE(*pmd);
-+	pmde = *pmd;
-+	barrier();
- 	if (!pmd_present(pmde) || pmd_trans_huge(pmde))
- 		pmd = NULL;
- out:
+ 	ic = &vcpu->kvm->arch.sca->ipte_control;
+ 	do {
+-		new = old = ACCESS_ONCE(*ic);
++		old = READ_ONCE(*ic);
++		new = old;
+ 		new.kh--;
+ 		if (!new.kh)
+ 			new.k = 0;
 -- 
 1.9.3
