@@ -1,103 +1,54 @@
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+From: Linus Torvalds <torvalds@linux-foundation.org>
 Subject: Re: [PATCH RFC] locking: Add volatile to arch_spinlock_t structures
-Date: Thu, 4 Dec 2014 10:36:28 -0800
-Message-ID: <20141204183628.GT25340@linux.vnet.ibm.com>
+Date: Thu, 4 Dec 2014 11:18:17 -0800
+Message-ID: <CA+55aFzPZdk5F2q7HjTnjFq673xpZGWUtkMZFx24q8RWQE0-dg@mail.gmail.com>
 References: <20141204062005.GA2553@linux.vnet.ibm.com>
- <CA+55aFzn-6asfWHB8SAvz4GJWz7uEriujgVLfaqoo_VPtNBLuA@mail.gmail.com>
- <CA+55aFxGCxQNE4HzRP_Uk2FmFDn_+Hfm6GBz75S+5+SDeODVJQ@mail.gmail.com>
- <20141204070248.GJ25340@linux.vnet.ibm.com>
- <CA+55aFxDmaA2D37Zz1Zc7y6iD6gVs=wskP5wgJb37R98aN-qmg@mail.gmail.com>
-Reply-To: paulmck@linux.vnet.ibm.com
+	<CA+55aFzn-6asfWHB8SAvz4GJWz7uEriujgVLfaqoo_VPtNBLuA@mail.gmail.com>
+	<CA+55aFxGCxQNE4HzRP_Uk2FmFDn_+Hfm6GBz75S+5+SDeODVJQ@mail.gmail.com>
+	<20141204070248.GJ25340@linux.vnet.ibm.com>
+	<CA+55aFxDmaA2D37Zz1Zc7y6iD6gVs=wskP5wgJb37R98aN-qmg@mail.gmail.com>
+	<20141204183628.GT25340@linux.vnet.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e35.co.us.ibm.com ([32.97.110.153]:33620 "EHLO
-	e35.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932521AbaLDSgh (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 4 Dec 2014 13:36:37 -0500
-Received: from /spool/local
-	by e35.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-	Thu, 4 Dec 2014 11:36:37 -0700
-Content-Disposition: inline
-In-Reply-To: <CA+55aFxDmaA2D37Zz1Zc7y6iD6gVs=wskP5wgJb37R98aN-qmg@mail.gmail.com>
+Received: from mail-qg0-f46.google.com ([209.85.192.46]:56567 "EHLO
+	mail-qg0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932315AbaLDTSS (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 4 Dec 2014 14:18:18 -0500
+In-Reply-To: <20141204183628.GT25340@linux.vnet.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
+To: Paul McKenney <paulmck@linux.vnet.ibm.com>
 Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Davidlohr Bueso <dave@stgolabs.net>, Dmitry Vyukov <dvyukov@google.com>, Peter Zijlstra <peterz@infradead.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@kernel.org>
 
-On Thu, Dec 04, 2014 at 10:02:14AM -0800, Linus Torvalds wrote:
-> On Wed, Dec 3, 2014 at 11:02 PM, Paul E. McKenney
-> <paulmck@linux.vnet.ibm.com> wrote:
-> > On Wed, Dec 03, 2014 at 10:40:45PM -0800, Linus Torvalds wrote:
-> >> On Dec 3, 2014 10:31 PM, "Linus Torvalds" <torvalds@linux-foundation.org>
-> >> wrote:
-> >> >
-> >> > So no, no, no. C got this wrong. Volatile data structures are a
-> >> fundamental mistake and a bug.
-> >>
-> >> BTW, I'm not at all interested in language lawyering and people who say
-> >> "but but we can do x". A compiler that modifies adjacent fields because the
-> >> standard leaves is open is a crap compiler, and we won't use it, or disable
-> >> the broken optimization. It is wrong from a concurrency standpoint anyway,
-> >> and adding broken volatiles is just making things worse.
-> >
-> > Understood, for example, adjacent fields protected by different locks
-> > as one example, where adjacent-field overwriting completely breaks even
-> > very conservatively designed code.
-> 
-> Exactly. Compilers that "optimize" things to touch fields that aren't
-> touched by the source code are simply inherently buggy shit. I'm not
-> at all interested in catering to their insanity.
-> 
-> It doesn't matter one whit if they can point to the legacy C "virtual
-> machine" definition and say that those accesses are invisible in the
-> virtual machine. They are not invisible in real life, and it is
-> entirely possible that two adjacent variables or fields are protected
-> by different locks - even in non-kernel code. Claiming that they need
-> to be marked volatile is a symptom of a diseased compiler writer.
-> 
-> Now, the one exception to this is generally bitfields, because there
-> the programmer knowingly and intentionally puts the fields together in
-> the same storage unit. I also think that volatile bitfields are an
-> insane concept, even if I think that the standard allows them. So I am
-> not saying that compilers should try to magically make bitfield
-> members not access the members around them.
-> 
-> I also accept that some architectures are broken. Old
-> non-byte/word-access alpha being the really canonical example. It's
-> not the compilers fault if the architecture is broken, and the
-> compiler cannot magically fix it.
+On Thu, Dec 4, 2014 at 10:36 AM, Paul E. McKenney
+<paulmck@linux.vnet.ibm.com> wrote:
+>
+> I have to ask...  Does this mean we can remove the current
+> restrictions against 8-bit and 16-bit access from smp_load_acquire()
+> and smp_store_release()?
 
-I have to ask...  Does this mean we can remove the current
-restrictions against 8-bit and 16-bit access from smp_load_acquire()
-and smp_store_release()?
+I'd certainly be ok with it. Alpha doesn't have acquire/release
+semantics anyway (really, it's the worst memory ordering model
+*ever*), so those will end up being just plain (access-once) loads and
+stores, followed/preceded by a memory barrier anyway. So it arguably
+is no worse than the existing situation with ACCESS_ONCE() on alpha.
 
-> But compilers that think that "hey, vectorization is cool, and I can
-> do load-stores and mask things dynamically" are misguided crap. It may
-> be fancy, it may be really cool compiler technology, but it's
-> fundamentally wrong unless the programmer told it was safe some way
-> (be it with a "pragma" or "restrict" or a compile-time switch or
-> whatever).
+And quite frankly, I simply don't think that an old broken alpha
+architecture should be something we worry about. Remember: the byte
+and word ops were introduced in 21164, and released in 1996, so it's
+not even like "alpha has broken behavior". It's literally just "the
+very earliest alphas were broken", and I suspect most of those
+machines (at least running Linux) weren't even SMP (ie somebody may
+still have a Multia around for sentimental reasons, but SMP? No).
 
-You might be happy to hear that I just sent an email to the C++ standards
-committee noting that valid C11 compilers are not supposed to be able to
-introduce data races [1].  I further argued that any store-widening access
-affecting any non-private adjacent variable must be assumed to (illegally
-per the C11 standard) introduce a data race, even if there are no locks,
-atomic accesses, transactions, or any other synchronization mechanism
-anywhere in that translation unit.  After all, any non-static function
-in that translation unit might be called from some other translation
-unit that -did- use locking or whatever.
+Of course, I'd like there to be a real reason to do so, not just "who
+cares about really old alphas, nyaah, nyaah, nyaah"? But if there is a
+clear case where a byte load-acquire and store-release would improve
+on something important, then yes, I think we should do it.
 
-I will let you know how it goes.  ;-)
+We dropped support for the original i386, we can drop support for old
+broken alphas. People running them for sentimental reasons might as
+well be sentimental about software too, and run old kernels ;)
 
-							Thanx, Paul
-
-[1]	A "data race" occurs in any C11 program where multiple threads
-	might be accessing a non-atomic variable, and where at least
-	one of the accesses is a write.  C11 states that data races
-	result in undefined behavior.  Therefore, if the source code
-	does not contain a data race, the object code had also better
-	be free of data races.  Otherwise, the compiler inflicted
-	undefined behavior on a perfectly legitimate program.
+                    Linus
