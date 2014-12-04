@@ -1,74 +1,78 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-lb0-f170.google.com ([209.85.217.170]:59481 "EHLO
-	mail-lb0-f170.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751567AbaLDABw (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 3 Dec 2014 19:01:52 -0500
-Received: by mail-lb0-f170.google.com with SMTP id w7so13378927lbi.1
-        for <linux-arch@vger.kernel.org>; Wed, 03 Dec 2014 16:01:50 -0800 (PST)
+Received: from e06smtp17.uk.ibm.com ([195.75.94.113]:36504 "EHLO
+	e06smtp17.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932432AbaLDPYH (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 4 Dec 2014 10:24:07 -0500
+Received: from /spool/local
+	by e06smtp17.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <borntraeger@de.ibm.com>;
+	Thu, 4 Dec 2014 15:24:06 -0000
+Message-ID: <54807C92.1010405@de.ibm.com>
+Date: Thu, 04 Dec 2014 16:24:02 +0100
+From: Christian Borntraeger <borntraeger@de.ibm.com>
 MIME-Version: 1.0
-In-Reply-To: <20141203155352.ea5322ff45c6200238c7ef51@linux-foundation.org>
-References: <43c88012a4959cd427ab634906e697fbc524e847.1414604015.git.luto@amacapital.net>
- <alpine.DEB.2.11.1410291908290.5308@nanos> <CALCETrWtBCFXzwCAh8fpeFv-EvPxYW20oRmFk1iCYwUvpft=Rw@mail.gmail.com>
- <20141110.211319.1983610686941713044.davem@davemloft.net> <5461EA6B.9020305@nod.at>
- <CALCETrUZhbx-PN8A168khFr6ve_9vdkSiwOcQ-hZbqu4po8hnQ@mail.gmail.com>
- <20141203153721.30b32472145aa560921bdc1e@linux-foundation.org>
- <CALCETrVk0EBL0vk8kjOhjkMAOaxXukCdSptzfHU=g1s7JChXiQ@mail.gmail.com> <20141203155352.ea5322ff45c6200238c7ef51@linux-foundation.org>
-From: Andy Lutomirski <luto@amacapital.net>
-Date: Wed, 3 Dec 2014 16:01:30 -0800
-Message-ID: <CALCETrX7HFqurW066+UL92GnR3Ue32xG0-etb7g97Y5+jN+rQg@mail.gmail.com>
-Subject: Re: [PATCH v2] all arches, signal: Move restart_block to struct task_struct
-Content-Type: text/plain; charset=UTF-8
+Subject: Re: [PATCHv4 0/9] ACCESS_ONCE and non-scalar accesses
+References: <1417645821-54731-1-git-send-email-borntraeger@de.ibm.com>
+In-Reply-To: <1417645821-54731-1-git-send-email-borntraeger@de.ibm.com>
+Content-Type: text/plain; charset=iso-8859-15
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Richard Weinberger <richard@nod.at>, David Miller <davem@davemloft.net>, Thomas Gleixner <tglx@linutronix.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, richard -rw- weinberger <richard.weinberger@gmail.com>, "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@kernel.org>, Kees Cook <keescook@chromium.org>
-Message-ID: <20141204000130.ZNfg2xZKFImCqn9wqJDiPLwt5ybucJdCrJVg557vGQM@z>
+To: linux-kernel@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, paulmck@linux.vnet.ibm.com, torvalds@linux-foundation.org
+Message-ID: <20141204152402.JgSNXzryVk8UgdZGXaGgXKPoJ4uOuWJ9QwU5ZNuH7OA@z>
 
-On Wed, Dec 3, 2014 at 3:53 PM, Andrew Morton <akpm@linux-foundation.org> wrote:
-> On Wed, 3 Dec 2014 15:38:29 -0800 Andy Lutomirski <luto@amacapital.net> wrote:
->
->> Yes, exactly.
->>
->> >
->> > Spelling this out in the changelog would be useful for the ignorant and
->> > the forgetful ;)
->>
->> Want a new version, or will you fix it up yourself?
->>
->
-> I think I can work that out.
->
-> A couple of linux-next things to check:
->
-> - arch/arm/include/asm/thread_info.h:arm_restart_block has
->   disappeared from the thread_info.
->
-> - the reference to ti->restart_block in arch/arm/kernel/traps.c has
->   vanished.  I couldn't find anywhere where it was moved to.
+Am 03.12.2014 um 23:30 schrieb Christian Borntraeger:
+> As discussed on LKML http://marc.info/?i=54611D86.4040306%40de.ibm.com
+> ACCESS_ONCE might fail with specific compiler for non-scalar accesses.
+> 
+> Here is a set of patches to tackle that problem.
+> 
+> The first patch introduce READ_ONCE and ASSIGN_ONCE. If the data structure
+> is larger than the machine word size memcpy is used and a warning is emitted.
+> The next patches fix up all in-tree users of ACCESS_ONCE on non-scalar types.
+> The last patch forces ACCESS_ONCE to work only on scalar types. 
+> 
+> I have cross-compiled the resulting kernel with defconfig and gcc 4.9 for
+> microblaze, m68k, alpha, s390,x86_64, i686, sparc, sparc64, mips,
+> ia64, arm and arm64.
+> 
+> Runtime tested on s390x and x86_64. I have also verified that ASSIGN_ONCE works
+> as expected with some test changes as there are no user in this patch series.
+> 
+> Linus, ok for the next merge window?
+> 
+> Christian Borntraeger (9):
+>   kernel: Provide READ_ONCE and ASSIGN_ONCE
+>   mm: replace ACCESS_ONCE with READ_ONCE or barriers
+>   x86/spinlock: Replace ACCESS_ONCE with READ_ONCE
+>   x86/gup: Replace ACCESS_ONCE with READ_ONCE
+>   mips/gup: Replace ACCESS_ONCE with READ_ONCE
+>   arm64/spinlock: Replace ACCESS_ONCE READ_ONCE
+>   arm/spinlock: Replace ACCESS_ONCE with READ_ONCE
+>   s390/kvm: REPLACE ACCESS_ONCE with READ_ONCE
+>   kernel: tighten rules for ACCESS ONCE
+> 
+>  arch/arm/include/asm/spinlock.h   |  4 +--
+>  arch/arm64/include/asm/spinlock.h |  4 +--
+>  arch/mips/mm/gup.c                |  2 +-
+>  arch/s390/kvm/gaccess.c           | 14 ++++----
+>  arch/x86/include/asm/spinlock.h   |  8 ++---
+>  arch/x86/mm/gup.c                 |  2 +-
+>  include/linux/compiler.h          | 74 ++++++++++++++++++++++++++++++++++++++-
+>  mm/gup.c                          |  2 +-
+>  mm/memory.c                       |  2 +-
+>  mm/rmap.c                         |  3 +-
+>  10 files changed, 95 insertions(+), 20 deletions(-)
+> 
 
-This looks like it's:
+FWIW, the code is on
 
-commit 3f4aa45ceea5789a4aade536acc27f2e0d3da5e1
-Author: Vladimir Murzin <vladimir.murzin@arm.com>
-Date:   Thu Nov 27 11:39:04 2014 +0100
+git://git.kernel.org/pub/scm/linux/kernel/git/borntraeger/linux.git linux-next
+and
+git://git.kernel.org/pub/scm/linux/kernel/git/borntraeger/linux.git ACCESS_ONCE
 
-    ARM: 8226/1: cacheflush: get rid of restarting block
+I rebased the queue against rc3 + the initial patch that triggered the  whole discussion.
 
-    We cannot restart cacheflush safely if a process provides user-defined
-    signal handler and signal is pending. In this case -EINTR is returned
-    and it is expected that process re-invokes syscall. However, there are
-    a few problems with that:
-     * looks like nobody bothers checking return value from cacheflush
-     * but if it did, we don't provide the restart address for that, so the
-       process has to use the same range again
-     * ...and again, what might lead to looping forever
+Christian
 
-    So, remove cacheflush restarting code and terminate cache flushing
-    as early as fatal signal is pending.
-
-If you haven't already done the obvious fixup (just drop the offending
-hunk), I can send a new version.
-
--- 
-Andy Lutomirski
-AMA Capital Management, LLC
