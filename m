@@ -1,46 +1,40 @@
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+From: One Thousand Gnomes <gnomes@lxorguk.ukuu.org.uk>
 Subject: Re: [PATCH RFC] locking: Add volatile to arch_spinlock_t structures
-Date: Thu, 4 Dec 2014 12:12:05 -0800
-Message-ID: <20141204201205.GA27787@linux.vnet.ibm.com>
+Date: Thu, 4 Dec 2014 21:45:46 +0000
+Message-ID: <20141204214546.76b7b7cd@lxorguk.ukuu.org.uk>
 References: <20141204062005.GA2553@linux.vnet.ibm.com>
- <CA+55aFzn-6asfWHB8SAvz4GJWz7uEriujgVLfaqoo_VPtNBLuA@mail.gmail.com>
- <CA+55aFxGCxQNE4HzRP_Uk2FmFDn_+Hfm6GBz75S+5+SDeODVJQ@mail.gmail.com>
- <20141204070248.GJ25340@linux.vnet.ibm.com>
- <CA+55aFxDmaA2D37Zz1Zc7y6iD6gVs=wskP5wgJb37R98aN-qmg@mail.gmail.com>
- <20141204183628.GT25340@linux.vnet.ibm.com>
- <CA+55aFzPZdk5F2q7HjTnjFq673xpZGWUtkMZFx24q8RWQE0-dg@mail.gmail.com>
- <20141204200052.GY25340@linux.vnet.ibm.com>
-Reply-To: paulmck@linux.vnet.ibm.com
+	<CA+55aFzn-6asfWHB8SAvz4GJWz7uEriujgVLfaqoo_VPtNBLuA@mail.gmail.com>
+	<CA+55aFxGCxQNE4HzRP_Uk2FmFDn_+Hfm6GBz75S+5+SDeODVJQ@mail.gmail.com>
+	<20141204070248.GJ25340@linux.vnet.ibm.com>
+	<CA+55aFxDmaA2D37Zz1Zc7y6iD6gVs=wskP5wgJb37R98aN-qmg@mail.gmail.com>
+	<20141204183628.GT25340@linux.vnet.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e37.co.us.ibm.com ([32.97.110.158]:53721 "EHLO
-	e37.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754053AbaLDUMM (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 4 Dec 2014 15:12:12 -0500
-Received: from /spool/local
-	by e37.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-	Thu, 4 Dec 2014 13:12:12 -0700
-Content-Disposition: inline
-In-Reply-To: <20141204200052.GY25340@linux.vnet.ibm.com>
+Received: from 251.110.2.81.in-addr.arpa ([81.2.110.251]:58660 "EHLO
+	lxorguk.ukuu.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753381AbaLDVrR (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 4 Dec 2014 16:47:17 -0500
+In-Reply-To: <20141204183628.GT25340@linux.vnet.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Davidlohr Bueso <dave@stgolabs.net>, Dmitry Vyukov <dvyukov@google.com>, Peter Zijlstra <peterz@infradead.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@kernel.org>
+To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Davidlohr Bueso <dave@stgolabs.net>, Dmitry Vyukov <dvyukov@google.com>, Peter Zijlstra <peterz@infradead.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@kernel.org>
 
-On Thu, Dec 04, 2014 at 12:00:52PM -0800, Paul E. McKenney wrote:
-
-[ . . . ]
-
-> So any compiler that clobbers some adjacent non-bitfield variable or
-> field that is accessible by other threads is not just despicable, it
-> fails to conform to the standard.
+> anywhere in that translation unit.  After all, any non-static function
+> in that translation unit might be called from some other translation
+> unit that -did- use locking or whatever.
 > 
-> Whew!  ;-)
+> I will let you know how it goes.  ;-)
 
-And part of the reason for my confusion is that I am using an old version
-of gcc, 4.6.3.  Apparently this aspect of gcc wasn't fixed until 4.7
-or thereabouts.
+It breaks DEC10 ;-)
 
-							Thanx, Paul
+If there is kickback over things like optimisation perhaps the gcc
+maintainers could at least consider something like
+
+	int __attribute((threadsafe)) fred;
+
+??
+
+Alan
