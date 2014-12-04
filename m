@@ -1,78 +1,72 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e06smtp17.uk.ibm.com ([195.75.94.113]:36504 "EHLO
-	e06smtp17.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932432AbaLDPYH (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 4 Dec 2014 10:24:07 -0500
-Received: from /spool/local
-	by e06smtp17.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <borntraeger@de.ibm.com>;
-	Thu, 4 Dec 2014 15:24:06 -0000
-Message-ID: <54807C92.1010405@de.ibm.com>
-Date: Thu, 04 Dec 2014 16:24:02 +0100
-From: Christian Borntraeger <borntraeger@de.ibm.com>
+Received: from mail-qg0-f44.google.com ([209.85.192.44]:41346 "EHLO
+	mail-qg0-f44.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932382AbaLDSCP (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 4 Dec 2014 13:02:15 -0500
 MIME-Version: 1.0
-Subject: Re: [PATCHv4 0/9] ACCESS_ONCE and non-scalar accesses
-References: <1417645821-54731-1-git-send-email-borntraeger@de.ibm.com>
-In-Reply-To: <1417645821-54731-1-git-send-email-borntraeger@de.ibm.com>
-Content-Type: text/plain; charset=iso-8859-15
-Content-Transfer-Encoding: 7bit
+In-Reply-To: <20141204070248.GJ25340@linux.vnet.ibm.com>
+References: <20141204062005.GA2553@linux.vnet.ibm.com>
+	<CA+55aFzn-6asfWHB8SAvz4GJWz7uEriujgVLfaqoo_VPtNBLuA@mail.gmail.com>
+	<CA+55aFxGCxQNE4HzRP_Uk2FmFDn_+Hfm6GBz75S+5+SDeODVJQ@mail.gmail.com>
+	<20141204070248.GJ25340@linux.vnet.ibm.com>
+Date: Thu, 4 Dec 2014 10:02:14 -0800
+Message-ID: <CA+55aFxDmaA2D37Zz1Zc7y6iD6gVs=wskP5wgJb37R98aN-qmg@mail.gmail.com>
+Subject: Re: [PATCH RFC] locking: Add volatile to arch_spinlock_t structures
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, paulmck@linux.vnet.ibm.com, torvalds@linux-foundation.org
-Message-ID: <20141204152402.JgSNXzryVk8UgdZGXaGgXKPoJ4uOuWJ9QwU5ZNuH7OA@z>
+To: Paul McKenney <paulmck@linux.vnet.ibm.com>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Davidlohr Bueso <dave@stgolabs.net>, Dmitry Vyukov <dvyukov@google.com>, Peter Zijlstra <peterz@infradead.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@kernel.org>
+Message-ID: <20141204180214.nTWzAYeqFuVXC3oYxSV15X5KLnvMHIeurbGwxCpAmDw@z>
 
-Am 03.12.2014 um 23:30 schrieb Christian Borntraeger:
-> As discussed on LKML http://marc.info/?i=54611D86.4040306%40de.ibm.com
-> ACCESS_ONCE might fail with specific compiler for non-scalar accesses.
-> 
-> Here is a set of patches to tackle that problem.
-> 
-> The first patch introduce READ_ONCE and ASSIGN_ONCE. If the data structure
-> is larger than the machine word size memcpy is used and a warning is emitted.
-> The next patches fix up all in-tree users of ACCESS_ONCE on non-scalar types.
-> The last patch forces ACCESS_ONCE to work only on scalar types. 
-> 
-> I have cross-compiled the resulting kernel with defconfig and gcc 4.9 for
-> microblaze, m68k, alpha, s390,x86_64, i686, sparc, sparc64, mips,
-> ia64, arm and arm64.
-> 
-> Runtime tested on s390x and x86_64. I have also verified that ASSIGN_ONCE works
-> as expected with some test changes as there are no user in this patch series.
-> 
-> Linus, ok for the next merge window?
-> 
-> Christian Borntraeger (9):
->   kernel: Provide READ_ONCE and ASSIGN_ONCE
->   mm: replace ACCESS_ONCE with READ_ONCE or barriers
->   x86/spinlock: Replace ACCESS_ONCE with READ_ONCE
->   x86/gup: Replace ACCESS_ONCE with READ_ONCE
->   mips/gup: Replace ACCESS_ONCE with READ_ONCE
->   arm64/spinlock: Replace ACCESS_ONCE READ_ONCE
->   arm/spinlock: Replace ACCESS_ONCE with READ_ONCE
->   s390/kvm: REPLACE ACCESS_ONCE with READ_ONCE
->   kernel: tighten rules for ACCESS ONCE
-> 
->  arch/arm/include/asm/spinlock.h   |  4 +--
->  arch/arm64/include/asm/spinlock.h |  4 +--
->  arch/mips/mm/gup.c                |  2 +-
->  arch/s390/kvm/gaccess.c           | 14 ++++----
->  arch/x86/include/asm/spinlock.h   |  8 ++---
->  arch/x86/mm/gup.c                 |  2 +-
->  include/linux/compiler.h          | 74 ++++++++++++++++++++++++++++++++++++++-
->  mm/gup.c                          |  2 +-
->  mm/memory.c                       |  2 +-
->  mm/rmap.c                         |  3 +-
->  10 files changed, 95 insertions(+), 20 deletions(-)
-> 
+On Wed, Dec 3, 2014 at 11:02 PM, Paul E. McKenney
+<paulmck@linux.vnet.ibm.com> wrote:
+> On Wed, Dec 03, 2014 at 10:40:45PM -0800, Linus Torvalds wrote:
+>> On Dec 3, 2014 10:31 PM, "Linus Torvalds" <torvalds@linux-foundation.org>
+>> wrote:
+>> >
+>> > So no, no, no. C got this wrong. Volatile data structures are a
+>> fundamental mistake and a bug.
+>>
+>> BTW, I'm not at all interested in language lawyering and people who say
+>> "but but we can do x". A compiler that modifies adjacent fields because the
+>> standard leaves is open is a crap compiler, and we won't use it, or disable
+>> the broken optimization. It is wrong from a concurrency standpoint anyway,
+>> and adding broken volatiles is just making things worse.
+>
+> Understood, for example, adjacent fields protected by different locks
+> as one example, where adjacent-field overwriting completely breaks even
+> very conservatively designed code.
 
-FWIW, the code is on
+Exactly. Compilers that "optimize" things to touch fields that aren't
+touched by the source code are simply inherently buggy shit. I'm not
+at all interested in catering to their insanity.
 
-git://git.kernel.org/pub/scm/linux/kernel/git/borntraeger/linux.git linux-next
-and
-git://git.kernel.org/pub/scm/linux/kernel/git/borntraeger/linux.git ACCESS_ONCE
+It doesn't matter one whit if they can point to the legacy C "virtual
+machine" definition and say that those accesses are invisible in the
+virtual machine. They are not invisible in real life, and it is
+entirely possible that two adjacent variables or fields are protected
+by different locks - even in non-kernel code. Claiming that they need
+to be marked volatile is a symptom of a diseased compiler writer.
 
-I rebased the queue against rc3 + the initial patch that triggered the  whole discussion.
+Now, the one exception to this is generally bitfields, because there
+the programmer knowingly and intentionally puts the fields together in
+the same storage unit. I also think that volatile bitfields are an
+insane concept, even if I think that the standard allows them. So I am
+not saying that compilers should try to magically make bitfield
+members not access the members around them.
 
-Christian
+I also accept that some architectures are broken. Old
+non-byte/word-access alpha being the really canonical example. It's
+not the compilers fault if the architecture is broken, and the
+compiler cannot magically fix it.
 
+But compilers that think that "hey, vectorization is cool, and I can
+do load-stores and mask things dynamically" are misguided crap. It may
+be fancy, it may be really cool compiler technology, but it's
+fundamentally wrong unless the programmer told it was safe some way
+(be it with a "pragma" or "restrict" or a compile-time switch or
+whatever).
+
+                            Linus
