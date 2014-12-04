@@ -1,72 +1,111 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qg0-f44.google.com ([209.85.192.44]:41346 "EHLO
-	mail-qg0-f44.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932382AbaLDSCP (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 4 Dec 2014 13:02:15 -0500
+Received: from mail-pd0-f170.google.com ([209.85.192.170]:61280 "EHLO
+	mail-pd0-f170.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751825AbaLDW4o (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 4 Dec 2014 17:56:44 -0500
+Message-ID: <5480E715.3020900@gmail.com>
+Date: Fri, 05 Dec 2014 06:58:29 +0800
+From: Chen Gang <gang.chen.5i5j@gmail.com>
 MIME-Version: 1.0
-In-Reply-To: <20141204070248.GJ25340@linux.vnet.ibm.com>
-References: <20141204062005.GA2553@linux.vnet.ibm.com>
-	<CA+55aFzn-6asfWHB8SAvz4GJWz7uEriujgVLfaqoo_VPtNBLuA@mail.gmail.com>
-	<CA+55aFxGCxQNE4HzRP_Uk2FmFDn_+Hfm6GBz75S+5+SDeODVJQ@mail.gmail.com>
-	<20141204070248.GJ25340@linux.vnet.ibm.com>
-Date: Thu, 4 Dec 2014 10:02:14 -0800
-Message-ID: <CA+55aFxDmaA2D37Zz1Zc7y6iD6gVs=wskP5wgJb37R98aN-qmg@mail.gmail.com>
-Subject: Re: [PATCH RFC] locking: Add volatile to arch_spinlock_t structures
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Content-Type: text/plain; charset=UTF-8
+Subject: [PATCH] arch: uapi: asm: mman.h: Let MADV_FREE have same value for
+ all architectures
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Paul McKenney <paulmck@linux.vnet.ibm.com>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Davidlohr Bueso <dave@stgolabs.net>, Dmitry Vyukov <dvyukov@google.com>, Peter Zijlstra <peterz@infradead.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@kernel.org>
-Message-ID: <20141204180214.nTWzAYeqFuVXC3oYxSV15X5KLnvMHIeurbGwxCpAmDw@z>
+To: "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "rth@twiddle.net" <rth@twiddle.net>, "ink@jurassic.park.msu.ru" <ink@jurassic.park.msu.ru>, "mattst88@gmail.com" <mattst88@gmail.com>, Ralf Baechle <ralf@linux-mips.org>, "jejb@parisc-linux.org" <jejb@parisc-linux.org>, "deller@gmx.de" <deller@gmx.de>, "chris@zankel.net" <chris@zankel.net>, "jcmvbkbc@gmail.com" <jcmvbkbc@gmail.com>, Arnd Bergmann <arnd@arndb.de>, minchan@kernel.org
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
+Message-ID: <20141204225829.NI_sym4xUpDf_Tfdc0Jhza0lCRHGXCHPf3kIFKkpnd0@z>
 
-On Wed, Dec 3, 2014 at 11:02 PM, Paul E. McKenney
-<paulmck@linux.vnet.ibm.com> wrote:
-> On Wed, Dec 03, 2014 at 10:40:45PM -0800, Linus Torvalds wrote:
->> On Dec 3, 2014 10:31 PM, "Linus Torvalds" <torvalds@linux-foundation.org>
->> wrote:
->> >
->> > So no, no, no. C got this wrong. Volatile data structures are a
->> fundamental mistake and a bug.
->>
->> BTW, I'm not at all interested in language lawyering and people who say
->> "but but we can do x". A compiler that modifies adjacent fields because the
->> standard leaves is open is a crap compiler, and we won't use it, or disable
->> the broken optimization. It is wrong from a concurrency standpoint anyway,
->> and adding broken volatiles is just making things worse.
->
-> Understood, for example, adjacent fields protected by different locks
-> as one example, where adjacent-field overwriting completely breaks even
-> very conservatively designed code.
+For uapi, need try to let all macros have same value, and MADV_FREE is
+added into main branch recently, so need redefine MADV_FREE for it.
 
-Exactly. Compilers that "optimize" things to touch fields that aren't
-touched by the source code are simply inherently buggy shit. I'm not
-at all interested in catering to their insanity.
+At present, '8' can be shared with all architectures, so redefine it to
+'8'.
 
-It doesn't matter one whit if they can point to the legacy C "virtual
-machine" definition and say that those accesses are invisible in the
-virtual machine. They are not invisible in real life, and it is
-entirely possible that two adjacent variables or fields are protected
-by different locks - even in non-kernel code. Claiming that they need
-to be marked volatile is a symptom of a diseased compiler writer.
+Signed-off-by: Chen Gang <gang.chen.5i5j@gmail.com>
+---
+ arch/alpha/include/uapi/asm/mman.h     | 2 +-
+ arch/mips/include/uapi/asm/mman.h      | 2 +-
+ arch/parisc/include/uapi/asm/mman.h    | 2 +-
+ arch/xtensa/include/uapi/asm/mman.h    | 2 +-
+ include/uapi/asm-generic/mman-common.h | 2 +-
+ 5 files changed, 5 insertions(+), 5 deletions(-)
 
-Now, the one exception to this is generally bitfields, because there
-the programmer knowingly and intentionally puts the fields together in
-the same storage unit. I also think that volatile bitfields are an
-insane concept, even if I think that the standard allows them. So I am
-not saying that compilers should try to magically make bitfield
-members not access the members around them.
-
-I also accept that some architectures are broken. Old
-non-byte/word-access alpha being the really canonical example. It's
-not the compilers fault if the architecture is broken, and the
-compiler cannot magically fix it.
-
-But compilers that think that "hey, vectorization is cool, and I can
-do load-stores and mask things dynamically" are misguided crap. It may
-be fancy, it may be really cool compiler technology, but it's
-fundamentally wrong unless the programmer told it was safe some way
-(be it with a "pragma" or "restrict" or a compile-time switch or
-whatever).
-
-                            Linus
+diff --git a/arch/alpha/include/uapi/asm/mman.h b/arch/alpha/include/uapi/asm/mman.h
+index 836fbd4..0b8a5de 100644
+--- a/arch/alpha/include/uapi/asm/mman.h
++++ b/arch/alpha/include/uapi/asm/mman.h
+@@ -44,9 +44,9 @@
+ #define MADV_WILLNEED	3		/* will need these pages */
+ #define	MADV_SPACEAVAIL	5		/* ensure resources are available */
+ #define MADV_DONTNEED	6		/* don't need these pages */
+-#define MADV_FREE	7		/* free pages only if memory pressure */
+ 
+ /* common/generic parameters */
++#define MADV_FREE	8		/* free pages only if memory pressure */
+ #define MADV_REMOVE	9		/* remove these pages & resources */
+ #define MADV_DONTFORK	10		/* don't inherit across fork */
+ #define MADV_DOFORK	11		/* do inherit across fork */
+diff --git a/arch/mips/include/uapi/asm/mman.h b/arch/mips/include/uapi/asm/mman.h
+index 106e741..d247f54 100644
+--- a/arch/mips/include/uapi/asm/mman.h
++++ b/arch/mips/include/uapi/asm/mman.h
+@@ -67,9 +67,9 @@
+ #define MADV_SEQUENTIAL 2		/* expect sequential page references */
+ #define MADV_WILLNEED	3		/* will need these pages */
+ #define MADV_DONTNEED	4		/* don't need these pages */
+-#define MADV_FREE	5		/* free pages only if memory pressure */
+ 
+ /* common parameters: try to keep these consistent across architectures */
++#define MADV_FREE	8		/* free pages only if memory pressure */
+ #define MADV_REMOVE	9		/* remove these pages & resources */
+ #define MADV_DONTFORK	10		/* don't inherit across fork */
+ #define MADV_DOFORK	11		/* do inherit across fork */
+diff --git a/arch/parisc/include/uapi/asm/mman.h b/arch/parisc/include/uapi/asm/mman.h
+index 6cb8db7..700d83f 100644
+--- a/arch/parisc/include/uapi/asm/mman.h
++++ b/arch/parisc/include/uapi/asm/mman.h
+@@ -40,9 +40,9 @@
+ #define MADV_SPACEAVAIL 5               /* insure that resources are reserved */
+ #define MADV_VPS_PURGE  6               /* Purge pages from VM page cache */
+ #define MADV_VPS_INHERIT 7              /* Inherit parents page size */
+-#define MADV_FREE	8		/* free pages only if memory pressure */
+ 
+ /* common/generic parameters */
++#define MADV_FREE	8		/* free pages only if memory pressure */
+ #define MADV_REMOVE	9		/* remove these pages & resources */
+ #define MADV_DONTFORK	10		/* don't inherit across fork */
+ #define MADV_DOFORK	11		/* do inherit across fork */
+diff --git a/arch/xtensa/include/uapi/asm/mman.h b/arch/xtensa/include/uapi/asm/mman.h
+index 1b19f25..77eaca4 100644
+--- a/arch/xtensa/include/uapi/asm/mman.h
++++ b/arch/xtensa/include/uapi/asm/mman.h
+@@ -80,9 +80,9 @@
+ #define MADV_SEQUENTIAL	2		/* expect sequential page references */
+ #define MADV_WILLNEED	3		/* will need these pages */
+ #define MADV_DONTNEED	4		/* don't need these pages */
+-#define MADV_FREE	5		/* free pages only if memory pressure */
+ 
+ /* common parameters: try to keep these consistent across architectures */
++#define MADV_FREE	8		/* free pages only if memory pressure */
+ #define MADV_REMOVE	9		/* remove these pages & resources */
+ #define MADV_DONTFORK	10		/* don't inherit across fork */
+ #define MADV_DOFORK	11		/* do inherit across fork */
+diff --git a/include/uapi/asm-generic/mman-common.h b/include/uapi/asm-generic/mman-common.h
+index 7a94102..8695959 100644
+--- a/include/uapi/asm-generic/mman-common.h
++++ b/include/uapi/asm-generic/mman-common.h
+@@ -34,9 +34,9 @@
+ #define MADV_SEQUENTIAL	2		/* expect sequential page references */
+ #define MADV_WILLNEED	3		/* will need these pages */
+ #define MADV_DONTNEED	4		/* don't need these pages */
+-#define MADV_FREE	5		/* free pages only if memory pressure */
+ 
+ /* common parameters: try to keep these consistent across architectures */
++#define MADV_FREE	8		/* free pages only if memory pressure */
+ #define MADV_REMOVE	9		/* remove these pages & resources */
+ #define MADV_DONTFORK	10		/* don't inherit across fork */
+ #define MADV_DOFORK	11		/* do inherit across fork */
+-- 
+1.9.3
