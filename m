@@ -1,40 +1,56 @@
-From: One Thousand Gnomes <gnomes@lxorguk.ukuu.org.uk>
+From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
 Subject: Re: [PATCH RFC] locking: Add volatile to arch_spinlock_t structures
-Date: Thu, 4 Dec 2014 21:45:46 +0000
-Message-ID: <20141204214546.76b7b7cd@lxorguk.ukuu.org.uk>
+Date: Thu, 4 Dec 2014 14:06:57 -0800
+Message-ID: <20141204220657.GB25340@linux.vnet.ibm.com>
 References: <20141204062005.GA2553@linux.vnet.ibm.com>
-	<CA+55aFzn-6asfWHB8SAvz4GJWz7uEriujgVLfaqoo_VPtNBLuA@mail.gmail.com>
-	<CA+55aFxGCxQNE4HzRP_Uk2FmFDn_+Hfm6GBz75S+5+SDeODVJQ@mail.gmail.com>
-	<20141204070248.GJ25340@linux.vnet.ibm.com>
-	<CA+55aFxDmaA2D37Zz1Zc7y6iD6gVs=wskP5wgJb37R98aN-qmg@mail.gmail.com>
-	<20141204183628.GT25340@linux.vnet.ibm.com>
+ <CA+55aFzn-6asfWHB8SAvz4GJWz7uEriujgVLfaqoo_VPtNBLuA@mail.gmail.com>
+ <CA+55aFxGCxQNE4HzRP_Uk2FmFDn_+Hfm6GBz75S+5+SDeODVJQ@mail.gmail.com>
+ <20141204070248.GJ25340@linux.vnet.ibm.com>
+ <CA+55aFxDmaA2D37Zz1Zc7y6iD6gVs=wskP5wgJb37R98aN-qmg@mail.gmail.com>
+ <20141204183628.GT25340@linux.vnet.ibm.com>
+ <20141204214546.76b7b7cd@lxorguk.ukuu.org.uk>
+Reply-To: paulmck@linux.vnet.ibm.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 251.110.2.81.in-addr.arpa ([81.2.110.251]:58660 "EHLO
-	lxorguk.ukuu.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753381AbaLDVrR (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 4 Dec 2014 16:47:17 -0500
-In-Reply-To: <20141204183628.GT25340@linux.vnet.ibm.com>
+Received: from e34.co.us.ibm.com ([32.97.110.152]:48521 "EHLO
+	e34.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754632AbaLDWIH (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 4 Dec 2014 17:08:07 -0500
+Received: from /spool/local
+	by e34.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
+	Thu, 4 Dec 2014 15:08:06 -0700
+Content-Disposition: inline
+In-Reply-To: <20141204214546.76b7b7cd@lxorguk.ukuu.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+To: One Thousand Gnomes <gnomes@lxorguk.ukuu.org.uk>
 Cc: Linus Torvalds <torvalds@linux-foundation.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Davidlohr Bueso <dave@stgolabs.net>, Dmitry Vyukov <dvyukov@google.com>, Peter Zijlstra <peterz@infradead.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@kernel.org>
 
-> anywhere in that translation unit.  After all, any non-static function
-> in that translation unit might be called from some other translation
-> unit that -did- use locking or whatever.
+On Thu, Dec 04, 2014 at 09:45:46PM +0000, One Thousand Gnomes wrote:
+> > anywhere in that translation unit.  After all, any non-static function
+> > in that translation unit might be called from some other translation
+> > unit that -did- use locking or whatever.
+> > 
+> > I will let you know how it goes.  ;-)
 > 
-> I will let you know how it goes.  ;-)
+> It breaks DEC10 ;-)
 
-It breaks DEC10 ;-)
+To say nothing of CDC 6600 systems lacking the compare-move unit.  ;-)
 
-If there is kickback over things like optimisation perhaps the gcc
-maintainers could at least consider something like
+> If there is kickback over things like optimisation perhaps the gcc
+> maintainers could at least consider something like
+> 
+> 	int __attribute((threadsafe)) fred;
+> 
+> ??
 
-	int __attribute((threadsafe)) fred;
+Not needed for recent gcc versions -- both the C11 and C++11 standards
+require that different threads be permitted to independently access
+different variables, where "different" means "no bits of the two variables
+residing in the same byte".  From what I can see, this would mean that
+a conforming pre-EV56 Alpha C11 compiler would need to use LDL_L and
+STL_C to carry out 8-bit and 16-bit stores.  ;-)
 
-??
-
-Alan
+							Thanx, Paul
