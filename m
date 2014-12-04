@@ -1,150 +1,92 @@
 From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: Re: [PATCH 1/9] kernel: Provide READ_ONCE and ASSIGN_ONCE
-Date: Wed, 3 Dec 2014 16:07:49 -0800
-Message-ID: <20141204000749.GX25340@linux.vnet.ibm.com>
+Subject: Re: [PATCH 2/9] mm: replace ACCESS_ONCE with READ_ONCE or barriers
+Date: Wed, 3 Dec 2014 16:09:52 -0800
+Message-ID: <20141204000952.GY25340@linux.vnet.ibm.com>
 References: <1417645821-54731-1-git-send-email-borntraeger@de.ibm.com>
- <1417645821-54731-2-git-send-email-borntraeger@de.ibm.com>
+ <1417645821-54731-3-git-send-email-borntraeger@de.ibm.com>
 Reply-To: paulmck@linux.vnet.ibm.com
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e31.co.us.ibm.com ([32.97.110.149]:34242 "EHLO
-	e31.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751030AbaLDAHy (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 3 Dec 2014 19:07:54 -0500
+Received: from e39.co.us.ibm.com ([32.97.110.160]:45672 "EHLO
+	e39.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751639AbaLDAJ6 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 3 Dec 2014 19:09:58 -0500
 Received: from /spool/local
-	by e31.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	by e39.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
 	for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-	Wed, 3 Dec 2014 17:07:53 -0700
+	Wed, 3 Dec 2014 17:09:58 -0700
 Content-Disposition: inline
-In-Reply-To: <1417645821-54731-2-git-send-email-borntraeger@de.ibm.com>
+In-Reply-To: <1417645821-54731-3-git-send-email-borntraeger@de.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Christian Borntraeger <borntraeger@de.ibm.com>
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, torvalds@linux-foundation.org
 
-On Wed, Dec 03, 2014 at 11:30:13PM +0100, Christian Borntraeger wrote:
+On Wed, Dec 03, 2014 at 11:30:14PM +0100, Christian Borntraeger wrote:
 > ACCESS_ONCE does not work reliably on non-scalar types. For
 > example gcc 4.6 and 4.7 might remove the volatile tag for such
 > accesses during the SRA (scalar replacement of aggregates) step
-> https://gcc.gnu.org/bugzilla/show_bug.cgi?id=58145)
+> (https://gcc.gnu.org/bugzilla/show_bug.cgi?id=58145)
 > 
-> Let's provide READ_ONCE/ASSIGN_ONCE that will do all accesses via
-> scalar types as suggested by Linus Torvalds. Accesses larger than
-> the machines word size cannot be guaranteed to be atomic. These
-> macros will use memcpy and emit a build warning.
+> Let's change the code to access the page table elements with
+> READ_ONCE that does implicit scalar accesses.
+> 
+> mm_find_pmd is tricky, because m68k and sparc(32bit) define pmd_t
+> as array of longs. This code requires just that the pmd_present
+> and pmd_trans_huge check are done on the same value, so a barrier
+> is sufficent.
 > 
 > Signed-off-by: Christian Borntraeger <borntraeger@de.ibm.com>
 
-With or without some nits below addressed:
-
-Reviewed-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
+Acked-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
 
 > ---
->  include/linux/compiler.h | 64 ++++++++++++++++++++++++++++++++++++++++++++++++
->  1 file changed, 64 insertions(+)
+>  mm/gup.c    | 2 +-
+>  mm/memory.c | 2 +-
+>  mm/rmap.c   | 3 ++-
+>  3 files changed, 4 insertions(+), 3 deletions(-)
 > 
-> diff --git a/include/linux/compiler.h b/include/linux/compiler.h
-> index d5ad7b1..947710e 100644
-> --- a/include/linux/compiler.h
-> +++ b/include/linux/compiler.h
-> @@ -186,6 +186,70 @@ void ftrace_likely_update(struct ftrace_branch_data *f, int val, int expect);
->  # define __UNIQUE_ID(prefix) __PASTE(__PASTE(__UNIQUE_ID_, prefix), __LINE__)
->  #endif
+> diff --git a/mm/gup.c b/mm/gup.c
+> index cd62c8c..f2305de 100644
+> --- a/mm/gup.c
+> +++ b/mm/gup.c
+> @@ -917,7 +917,7 @@ static int gup_pud_range(pgd_t *pgdp, unsigned long addr, unsigned long end,
 > 
-> +#include <linux/types.h>
-> +
-> +void data_access_exceeds_word_size(void)
-> +__compiletime_warning("data access exceeds word size and won't be atomic");
-> +
-> +static __always_inline void __read_once_size(volatile void *p, void *res, int size)
-> +{
-> +	switch (size) {
-> +	case 1: *(u8 *)res = *(volatile u8 *)p; break;
-> +	case 2: *(u16 *)res = *(volatile u16 *)p; break;
-> +	case 4: *(u32 *)res = *(volatile u32 *)p; break;
-> +#ifdef CONFIG_64BIT
-> +	case 8: *(u64 *)res = *(volatile u64 *)p; break;
-> +#endif
-
-You could get rid of the #ifdef above by doing "case sizeof(long)"
-and switching the casts from u64 to unsigned long.
-
-> +	default:
-> +		barrier();
-> +		__builtin_memcpy((void *)res, (const void *)p, size);
-> +		data_access_exceeds_word_size();
-> +		barrier();
-> +	}
-> +}
-> +
-> +static __always_inline void __assign_once_size(volatile void *p, void *res, int size)
-> +{
-> +	switch (size) {
-> +	case 1: *(volatile u8 *)p = *(u8 *)res; break;
-> +	case 2: *(volatile u16 *)p = *(u16 *)res; break;
-> +	case 4: *(volatile u32 *)p = *(u32 *)res; break;
-> +#ifdef CONFIG_64BIT
-> +	case 8: *(volatile u64 *)p = *(u64 *)res; break;
-> +#endif
-
-Ditto.
-
-> +	default:
-> +		barrier();
-> +		__builtin_memcpy((void *)p, (const void *)res, size);
-> +		data_access_exceeds_word_size();
-> +		barrier();
-> +	}
-> +}
-> +
-> +/*
-> + * Prevent the compiler from merging or refetching reads or writes. The compiler
-> + * is also forbidden from reordering successive instances of READ_ONCE,
-> + * ASSIGN_ONCE and ACCESS_ONCE (see below), but only when the compiler is aware
-> + * of some particular ordering.  One way to make the compiler aware of ordering
-> + * is to put the two invocations of READ_ONCE, ASSIGN_ONCE or ACCESS_ONCE() in
-> + * different C statements.
-> + *
-> + * In contrast to ACCESS_ONCE these two macros will also work on aggregate data
-> + * types like structs or unions. If the size of the accessed data type exceeds
-> + * the word size of the machine (e.g. 32bit or 64bit), the access might happen
-> + * in multiple chunks, though.
-
-This last sentence might be more clear if it was something like the
-following:
-
-	If the size of the accessed data type exceeeds the word size of
-	the machine (e.g., 32 bits or 64 bits), ACCESS_ONCE() might
-	carry out the access in multiple chunks, but READ_ONCE() and
-	ASSIGN_ONCE() will give a link-time error.
-
-> + *
-> + * These macros do absolutely -nothing- to prevent the CPU from reordering,
-> + * merging, or refetching absolutely anything at any time.  Their main intended
-> + * use is to mediate communication between process-level code and irq/NMI
-> + * handlers, all running on the same CPU.
-
-This last sentence is now obsolete.  How about something like this?
-
-	Their two major use cases are: (1) Mediating communication
-	between process-level code and irq/NMI handlers, all running
-	on the same CPU, and (2) Ensuring that the compiler does not
-	fold, spindle, or otherwise mutilate accesses that either do
-	not require ordering or that interact with an explicit memory
-	barrier or atomic instruction that provides the required ordering.
-
-> + */
-> +
-> +#define READ_ONCE(p) \
-> +      ({ typeof(p) __val; __read_once_size(&p, &__val, sizeof(__val)); __val; })
-> +
-> +#define ASSIGN_ONCE(val, p) \
-> +      ({ typeof(p) __val; __val = val; __assign_once_size(&p, &__val, sizeof(__val)); __val; })
-> +
->  #endif /* __KERNEL__ */
+>  	pudp = pud_offset(pgdp, addr);
+>  	do {
+> -		pud_t pud = ACCESS_ONCE(*pudp);
+> +		pud_t pud = READ_ONCE(*pudp);
 > 
->  #endif /* __ASSEMBLY__ */
+>  		next = pud_addr_end(addr, end);
+>  		if (pud_none(pud))
+> diff --git a/mm/memory.c b/mm/memory.c
+> index 3e50383..9e0c84e 100644
+> --- a/mm/memory.c
+> +++ b/mm/memory.c
+> @@ -3202,7 +3202,7 @@ static int handle_pte_fault(struct mm_struct *mm,
+>  	pte_t entry;
+>  	spinlock_t *ptl;
+> 
+> -	entry = ACCESS_ONCE(*pte);
+> +	entry = READ_ONCE(*pte);
+>  	if (!pte_present(entry)) {
+>  		if (pte_none(entry)) {
+>  			if (vma->vm_ops) {
+> diff --git a/mm/rmap.c b/mm/rmap.c
+> index 19886fb..1e54274 100644
+> --- a/mm/rmap.c
+> +++ b/mm/rmap.c
+> @@ -581,7 +581,8 @@ pmd_t *mm_find_pmd(struct mm_struct *mm, unsigned long address)
+>  	 * without holding anon_vma lock for write.  So when looking for a
+>  	 * genuine pmde (in which to find pte), test present and !THP together.
+>  	 */
+> -	pmde = ACCESS_ONCE(*pmd);
+> +	pmde = *pmd;
+> +	barrier();
+>  	if (!pmd_present(pmde) || pmd_trans_huge(pmde))
+>  		pmd = NULL;
+>  out:
 > -- 
 > 1.9.3
 > 
