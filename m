@@ -1,67 +1,150 @@
-From: Andy Lutomirski <luto@amacapital.net>
-Subject: Re: [PATCH v2] all arches, signal: Move restart_block to struct task_struct
-Date: Wed, 3 Dec 2014 16:01:30 -0800
-Message-ID: <CALCETrX7HFqurW066+UL92GnR3Ue32xG0-etb7g97Y5+jN+rQg@mail.gmail.com>
-References: <43c88012a4959cd427ab634906e697fbc524e847.1414604015.git.luto@amacapital.net>
- <alpine.DEB.2.11.1410291908290.5308@nanos> <CALCETrWtBCFXzwCAh8fpeFv-EvPxYW20oRmFk1iCYwUvpft=Rw@mail.gmail.com>
- <20141110.211319.1983610686941713044.davem@davemloft.net> <5461EA6B.9020305@nod.at>
- <CALCETrUZhbx-PN8A168khFr6ve_9vdkSiwOcQ-hZbqu4po8hnQ@mail.gmail.com>
- <20141203153721.30b32472145aa560921bdc1e@linux-foundation.org>
- <CALCETrVk0EBL0vk8kjOhjkMAOaxXukCdSptzfHU=g1s7JChXiQ@mail.gmail.com> <20141203155352.ea5322ff45c6200238c7ef51@linux-foundation.org>
+From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Subject: Re: [PATCH 1/9] kernel: Provide READ_ONCE and ASSIGN_ONCE
+Date: Wed, 3 Dec 2014 16:07:49 -0800
+Message-ID: <20141204000749.GX25340@linux.vnet.ibm.com>
+References: <1417645821-54731-1-git-send-email-borntraeger@de.ibm.com>
+ <1417645821-54731-2-git-send-email-borntraeger@de.ibm.com>
+Reply-To: paulmck@linux.vnet.ibm.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20141203155352.ea5322ff45c6200238c7ef51@linux-foundation.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Richard Weinberger <richard@nod.at>, David Miller <davem@davemloft.net>, Thomas Gleixner <tglx@linutronix.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, richard -rw- weinberger <richard.weinberger@gmail.com>, "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@kernel.org>, Kees Cook <keescook@chromium.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from e31.co.us.ibm.com ([32.97.110.149]:34242 "EHLO
+	e31.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751030AbaLDAHy (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 3 Dec 2014 19:07:54 -0500
+Received: from /spool/local
+	by e31.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
+	Wed, 3 Dec 2014 17:07:53 -0700
+Content-Disposition: inline
+In-Reply-To: <1417645821-54731-2-git-send-email-borntraeger@de.ibm.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Christian Borntraeger <borntraeger@de.ibm.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, torvalds@linux-foundation.org
 
-On Wed, Dec 3, 2014 at 3:53 PM, Andrew Morton <akpm@linux-foundation.org> wrote:
-> On Wed, 3 Dec 2014 15:38:29 -0800 Andy Lutomirski <luto@amacapital.net> wrote:
->
->> Yes, exactly.
->>
->> >
->> > Spelling this out in the changelog would be useful for the ignorant and
->> > the forgetful ;)
->>
->> Want a new version, or will you fix it up yourself?
->>
->
-> I think I can work that out.
->
-> A couple of linux-next things to check:
->
-> - arch/arm/include/asm/thread_info.h:arm_restart_block has
->   disappeared from the thread_info.
->
-> - the reference to ti->restart_block in arch/arm/kernel/traps.c has
->   vanished.  I couldn't find anywhere where it was moved to.
+On Wed, Dec 03, 2014 at 11:30:13PM +0100, Christian Borntraeger wrote:
+> ACCESS_ONCE does not work reliably on non-scalar types. For
+> example gcc 4.6 and 4.7 might remove the volatile tag for such
+> accesses during the SRA (scalar replacement of aggregates) step
+> https://gcc.gnu.org/bugzilla/show_bug.cgi?id=58145)
+> 
+> Let's provide READ_ONCE/ASSIGN_ONCE that will do all accesses via
+> scalar types as suggested by Linus Torvalds. Accesses larger than
+> the machines word size cannot be guaranteed to be atomic. These
+> macros will use memcpy and emit a build warning.
+> 
+> Signed-off-by: Christian Borntraeger <borntraeger@de.ibm.com>
 
-This looks like it's:
+With or without some nits below addressed:
 
-commit 3f4aa45ceea5789a4aade536acc27f2e0d3da5e1
-Author: Vladimir Murzin <vladimir.murzin@arm.com>
-Date:   Thu Nov 27 11:39:04 2014 +0100
+Reviewed-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
 
-    ARM: 8226/1: cacheflush: get rid of restarting block
+> ---
+>  include/linux/compiler.h | 64 ++++++++++++++++++++++++++++++++++++++++++++++++
+>  1 file changed, 64 insertions(+)
+> 
+> diff --git a/include/linux/compiler.h b/include/linux/compiler.h
+> index d5ad7b1..947710e 100644
+> --- a/include/linux/compiler.h
+> +++ b/include/linux/compiler.h
+> @@ -186,6 +186,70 @@ void ftrace_likely_update(struct ftrace_branch_data *f, int val, int expect);
+>  # define __UNIQUE_ID(prefix) __PASTE(__PASTE(__UNIQUE_ID_, prefix), __LINE__)
+>  #endif
+> 
+> +#include <linux/types.h>
+> +
+> +void data_access_exceeds_word_size(void)
+> +__compiletime_warning("data access exceeds word size and won't be atomic");
+> +
+> +static __always_inline void __read_once_size(volatile void *p, void *res, int size)
+> +{
+> +	switch (size) {
+> +	case 1: *(u8 *)res = *(volatile u8 *)p; break;
+> +	case 2: *(u16 *)res = *(volatile u16 *)p; break;
+> +	case 4: *(u32 *)res = *(volatile u32 *)p; break;
+> +#ifdef CONFIG_64BIT
+> +	case 8: *(u64 *)res = *(volatile u64 *)p; break;
+> +#endif
 
-    We cannot restart cacheflush safely if a process provides user-defined
-    signal handler and signal is pending. In this case -EINTR is returned
-    and it is expected that process re-invokes syscall. However, there are
-    a few problems with that:
-     * looks like nobody bothers checking return value from cacheflush
-     * but if it did, we don't provide the restart address for that, so the
-       process has to use the same range again
-     * ...and again, what might lead to looping forever
+You could get rid of the #ifdef above by doing "case sizeof(long)"
+and switching the casts from u64 to unsigned long.
 
-    So, remove cacheflush restarting code and terminate cache flushing
-    as early as fatal signal is pending.
+> +	default:
+> +		barrier();
+> +		__builtin_memcpy((void *)res, (const void *)p, size);
+> +		data_access_exceeds_word_size();
+> +		barrier();
+> +	}
+> +}
+> +
+> +static __always_inline void __assign_once_size(volatile void *p, void *res, int size)
+> +{
+> +	switch (size) {
+> +	case 1: *(volatile u8 *)p = *(u8 *)res; break;
+> +	case 2: *(volatile u16 *)p = *(u16 *)res; break;
+> +	case 4: *(volatile u32 *)p = *(u32 *)res; break;
+> +#ifdef CONFIG_64BIT
+> +	case 8: *(volatile u64 *)p = *(u64 *)res; break;
+> +#endif
 
-If you haven't already done the obvious fixup (just drop the offending
-hunk), I can send a new version.
+Ditto.
 
--- 
-Andy Lutomirski
-AMA Capital Management, LLC
+> +	default:
+> +		barrier();
+> +		__builtin_memcpy((void *)p, (const void *)res, size);
+> +		data_access_exceeds_word_size();
+> +		barrier();
+> +	}
+> +}
+> +
+> +/*
+> + * Prevent the compiler from merging or refetching reads or writes. The compiler
+> + * is also forbidden from reordering successive instances of READ_ONCE,
+> + * ASSIGN_ONCE and ACCESS_ONCE (see below), but only when the compiler is aware
+> + * of some particular ordering.  One way to make the compiler aware of ordering
+> + * is to put the two invocations of READ_ONCE, ASSIGN_ONCE or ACCESS_ONCE() in
+> + * different C statements.
+> + *
+> + * In contrast to ACCESS_ONCE these two macros will also work on aggregate data
+> + * types like structs or unions. If the size of the accessed data type exceeds
+> + * the word size of the machine (e.g. 32bit or 64bit), the access might happen
+> + * in multiple chunks, though.
+
+This last sentence might be more clear if it was something like the
+following:
+
+	If the size of the accessed data type exceeeds the word size of
+	the machine (e.g., 32 bits or 64 bits), ACCESS_ONCE() might
+	carry out the access in multiple chunks, but READ_ONCE() and
+	ASSIGN_ONCE() will give a link-time error.
+
+> + *
+> + * These macros do absolutely -nothing- to prevent the CPU from reordering,
+> + * merging, or refetching absolutely anything at any time.  Their main intended
+> + * use is to mediate communication between process-level code and irq/NMI
+> + * handlers, all running on the same CPU.
+
+This last sentence is now obsolete.  How about something like this?
+
+	Their two major use cases are: (1) Mediating communication
+	between process-level code and irq/NMI handlers, all running
+	on the same CPU, and (2) Ensuring that the compiler does not
+	fold, spindle, or otherwise mutilate accesses that either do
+	not require ordering or that interact with an explicit memory
+	barrier or atomic instruction that provides the required ordering.
+
+> + */
+> +
+> +#define READ_ONCE(p) \
+> +      ({ typeof(p) __val; __read_once_size(&p, &__val, sizeof(__val)); __val; })
+> +
+> +#define ASSIGN_ONCE(val, p) \
+> +      ({ typeof(p) __val; __val = val; __assign_once_size(&p, &__val, sizeof(__val)); __val; })
+> +
+>  #endif /* __KERNEL__ */
+> 
+>  #endif /* __ASSEMBLY__ */
+> -- 
+> 1.9.3
+> 
