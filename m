@@ -1,83 +1,57 @@
 From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: Re: [PATCH 3/9] x86/spinlock: Replace ACCESS_ONCE with READ_ONCE
-Date: Wed, 3 Dec 2014 16:10:28 -0800
-Message-ID: <20141204001028.GZ25340@linux.vnet.ibm.com>
+Subject: Re: [PATCH 4/9] x86/gup: Replace ACCESS_ONCE with READ_ONCE
+Date: Wed, 3 Dec 2014 16:10:51 -0800
+Message-ID: <20141204001051.GA25340@linux.vnet.ibm.com>
 References: <1417645821-54731-1-git-send-email-borntraeger@de.ibm.com>
- <1417645821-54731-4-git-send-email-borntraeger@de.ibm.com>
+ <1417645821-54731-5-git-send-email-borntraeger@de.ibm.com>
 Reply-To: paulmck@linux.vnet.ibm.com
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e36.co.us.ibm.com ([32.97.110.154]:50349 "EHLO
-	e36.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752394AbaLDAKe (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 3 Dec 2014 19:10:34 -0500
+Received: from e34.co.us.ibm.com ([32.97.110.152]:37546 "EHLO
+	e34.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752390AbaLDAK4 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 3 Dec 2014 19:10:56 -0500
 Received: from /spool/local
-	by e36.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	by e34.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
 	for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-	Wed, 3 Dec 2014 17:10:34 -0700
+	Wed, 3 Dec 2014 17:10:55 -0700
 Content-Disposition: inline
-In-Reply-To: <1417645821-54731-4-git-send-email-borntraeger@de.ibm.com>
+In-Reply-To: <1417645821-54731-5-git-send-email-borntraeger@de.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Christian Borntraeger <borntraeger@de.ibm.com>
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, torvalds@linux-foundation.org
 
-On Wed, Dec 03, 2014 at 11:30:15PM +0100, Christian Borntraeger wrote:
+On Wed, Dec 03, 2014 at 11:30:16PM +0100, Christian Borntraeger wrote:
 > ACCESS_ONCE does not work reliably on non-scalar types. For
 > example gcc 4.6 and 4.7 might remove the volatile tag for such
 > accesses during the SRA (scalar replacement of aggregates) step
 > (https://gcc.gnu.org/bugzilla/show_bug.cgi?id=58145)
 > 
-> Change the spinlock code to replace ACCESS_ONCE with READ_ONCE.
+> Change the gup code to replace ACCESS_ONCE with READ_ONCE.
 > 
 > Signed-off-by: Christian Borntraeger <borntraeger@de.ibm.com>
 
 Acked-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
 
 > ---
->  arch/x86/include/asm/spinlock.h | 8 ++++----
->  1 file changed, 4 insertions(+), 4 deletions(-)
+>  arch/x86/mm/gup.c | 2 +-
+>  1 file changed, 1 insertion(+), 1 deletion(-)
 > 
-> diff --git a/arch/x86/include/asm/spinlock.h b/arch/x86/include/asm/spinlock.h
-> index 9295016..12a69b4 100644
-> --- a/arch/x86/include/asm/spinlock.h
-> +++ b/arch/x86/include/asm/spinlock.h
-> @@ -92,7 +92,7 @@ static __always_inline void arch_spin_lock(arch_spinlock_t *lock)
->  		unsigned count = SPIN_THRESHOLD;
-> 
->  		do {
-> -			if (ACCESS_ONCE(lock->tickets.head) == inc.tail)
-> +			if (READ_ONCE(lock->tickets.head) == inc.tail)
->  				goto out;
->  			cpu_relax();
->  		} while (--count);
-> @@ -105,7 +105,7 @@ static __always_inline int arch_spin_trylock(arch_spinlock_t *lock)
+> diff --git a/arch/x86/mm/gup.c b/arch/x86/mm/gup.c
+> index 207d9aef..d754782 100644
+> --- a/arch/x86/mm/gup.c
+> +++ b/arch/x86/mm/gup.c
+> @@ -15,7 +15,7 @@
+>  static inline pte_t gup_get_pte(pte_t *ptep)
 >  {
->  	arch_spinlock_t old, new;
-> 
-> -	old.tickets = ACCESS_ONCE(lock->tickets);
-> +	old.tickets = READ_ONCE(lock->tickets);
->  	if (old.tickets.head != (old.tickets.tail & ~TICKET_SLOWPATH_FLAG))
->  		return 0;
-> 
-> @@ -162,14 +162,14 @@ static __always_inline void arch_spin_unlock(arch_spinlock_t *lock)
-> 
->  static inline int arch_spin_is_locked(arch_spinlock_t *lock)
->  {
-> -	struct __raw_tickets tmp = ACCESS_ONCE(lock->tickets);
-> +	struct __raw_tickets tmp = READ_ONCE(lock->tickets);
-> 
->  	return tmp.tail != tmp.head;
->  }
-> 
->  static inline int arch_spin_is_contended(arch_spinlock_t *lock)
->  {
-> -	struct __raw_tickets tmp = ACCESS_ONCE(lock->tickets);
-> +	struct __raw_tickets tmp = READ_ONCE(lock->tickets);
-> 
->  	return (__ticket_t)(tmp.tail - tmp.head) > TICKET_LOCK_INC;
->  }
+>  #ifndef CONFIG_X86_PAE
+> -	return ACCESS_ONCE(*ptep);
+> +	return READ_ONCE(*ptep);
+>  #else
+>  	/*
+>  	 * With get_user_pages_fast, we walk down the pagetables without taking
 > -- 
 > 1.9.3
 > 
