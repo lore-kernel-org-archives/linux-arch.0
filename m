@@ -1,32 +1,27 @@
-From: Christian Borntraeger <borntraeger@de.ibm.com>
-Subject: Re: [PATCH 1/9] kernel: Provide READ_ONCE and ASSIGN_ONCE
-Date: Fri, 05 Dec 2014 10:19:30 +0100
-Message-ID: <548178A2.9050409@de.ibm.com>
-References: <20141205021217.5337.qmail@ns.horizon.com>
+From: Chuck Ebbert <cebbert.lkml@gmail.com>
+Subject: Re: [PATCH v2] all arches, signal: Move restart_block to struct
+ task_struct
+Date: Fri, 5 Dec 2014 06:13:56 -0500
+Message-ID: <20141205061356.1f3f9015@as>
+References: <43c88012a4959cd427ab634906e697fbc524e847.1414604015.git.luto@amacapital.net>
+	<alpine.DEB.2.11.1410291908290.5308@nanos>
+	<CALCETrWtBCFXzwCAh8fpeFv-EvPxYW20oRmFk1iCYwUvpft=Rw@mail.gmail.com>
+	<20141110.211319.1983610686941713044.davem@davemloft.net>
+	<5461EA6B.9020305@nod.at>
+	<CALCETrUZhbx-PN8A168khFr6ve_9vdkSiwOcQ-hZbqu4po8hnQ@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-15
+Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20141205021217.5337.qmail@ns.horizon.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: George Spelvin <linux@horizon.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, paulmck@linux.vnet.ibm.com, torvalds@linux-foundation.org
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-ie0-f176.google.com ([209.85.223.176]:55031 "EHLO
+	mail-ie0-f176.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751053AbaLELOK (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 5 Dec 2014 06:14:10 -0500
+In-Reply-To: <CALCETrUZhbx-PN8A168khFr6ve_9vdkSiwOcQ-hZbqu4po8hnQ@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Andy Lutomirski <luto@amacapital.net>
+Cc: Richard Weinberger <richard@nod.at>, David Miller <davem@davemloft.net>, Thomas Gleixner <tglx@linutronix.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, linux-arch <linux-arch@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, richard -rw- weinberger <richard.weinberger@gmail.com>, "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@kernel.org>, Kees Cook <keescook@chromium.org>
 
-Am 05.12.2014 um 03:12 schrieb George Spelvin:
->> +#define READ_ONCE(p) \
->> +	 typeof(p) __val; __read_once_size(&p, &__val, sizeof(__val)); __val; })
->> +
->> +#define ASSIGN_ONCE(val, p) \
->> +	({ typeof(p) __val; __val = val; __assign_once_size(&p, &__val, sizeof(__val)); __val; })
-> 
-> Minor style nit: is it necessary to name a non-pointer variable "p"?
-> I expect typeof(p) to be a pointer type.
-
-v might be better.
-> 
-> (The other fun style question, which is a lot less minor, is whether
-> ASSIGN_ONCE should be (src,dst) as above, or (dst,src) like = and
-> <string.h>.)
-
-I tend to prefer dst, src, but Linus used src, dst in his proposal - so I used that.
+Should the completely pointless supervisor_stack[] be removed as well?
+I had a patch to do that but I never sent it.
