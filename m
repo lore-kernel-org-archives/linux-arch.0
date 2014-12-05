@@ -1,67 +1,43 @@
-From: David Hildenbrand <dahi@linux.vnet.ibm.com>
-Subject: Re: [PATCH v1 3/5] mm, uaccess: trigger might_sleep() in
- might_fault() when pagefaults are disabled
-Date: Fri, 5 Dec 2014 14:30:12 +0100
-Message-ID: <20141205143012.5692acd8@thinkpad-w530>
-References: <1417778289-51567-1-git-send-email-dahi@linux.vnet.ibm.com>
-	<1417778289-51567-4-git-send-email-dahi@linux.vnet.ibm.com>
-	<20141205114529.GD4213@osiris>
-	<20141205124629.2c77290f@thinkpad-w530>
-	<063D6719AE5E284EB5DD2968C1650D6D1CA035A5@AcuExch.aculab.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+From: "George Spelvin" <linux@horizon.com>
+Subject: Re: [PATCH 1/9] kernel: Provide READ_ONCE and ASSIGN_ONCE
+Date: 5 Dec 2014 11:00:20 -0500
+Message-ID: <20141205160020.5785.qmail@ns.horizon.com>
+References: <548178A2.9050409@de.ibm.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e06smtp10.uk.ibm.com ([195.75.94.106]:47649 "EHLO
-	e06smtp10.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751156AbaLENaX (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 5 Dec 2014 08:30:23 -0500
-Received: from /spool/local
-	by e06smtp10.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <dahi@linux.vnet.ibm.com>;
-	Fri, 5 Dec 2014 13:30:21 -0000
-In-Reply-To: <063D6719AE5E284EB5DD2968C1650D6D1CA035A5@AcuExch.aculab.com>
+Received: from ns.horizon.com ([71.41.210.147]:63676 "HELO ns.horizon.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with SMTP
+	id S1751026AbaLEQAX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 5 Dec 2014 11:00:23 -0500
+In-Reply-To: <548178A2.9050409@de.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Laight <David.Laight@ACULAB.COM>
-Cc: Heiko Carstens <heiko.carstens@de.ibm.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, "paulus@samba.org" <paulus@samba.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "schwidefsky@de.ibm.com" <schwidefsky@de.ibm.com>, "borntraeger@de.ibm.com" <borntraeger@de.ibm.com>, "mst@redhat.com" <mst@redhat.com>, "tglx@linutronix.de" <tglx@linutronix.de>, "peterz@infradead.org" <peterz@infradead.org>, "hughd@google.com" <hughd@google.com>, "hocko@suse.cz" <hocko@suse.cz>
+To: borntraeger@de.ibm.com, linux@horizon.com
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, paulmck@linux.vnet.ibm.com, torvalds@linux-foundation.org
 
-> From: David Hildenbrand [...
-> > > This should be likely() instead of unlikely(), no?
-> > > I'd rather write this
-> > >
-> > > 	if (pagefault_disabled())
-> > >  		return;
-> > > 	__might_sleep(file, line, 0);
-> > >
-> > > and leave the likely stuff completely away.
-> > 
-> > Makes perfect sense!
-> 
-> From my experience of getting (an older version of) gcc to emit
-> 'correctly' statically predicted branches I found that code that
-> looks like (I don't think return/goto make any difference):
-> 
-> 	If (unlikely(condition)) {
-> 		code;
-> 	}
-> 	more_code;
-> 
-> is compile with a forwards conditional branch (ie ignoring the unlikely()).
-> Similarly 'if () continue' is likely to generate a 'predicted taken'
-> backwards conditional branch.
-> 
-> To get the desired effect you need a non-empty 'else' part, an assembler
-> comment will suffice, eg: asm volatile("# comment").
-> 
-> 	David
-> 
-> 
-> 
+>> Minor style nit: is it necessary to name a non-pointer variable "p"?
+>> I expect typeof(p) to be a pointer type.
 
-Thanks for the hint David!
+> v might be better.
 
-I'm going to drop that unlikely and simply replace in_atomic() by
-pagefault_disabled() - will also keep the change minimal!
+The current ACCESS_ONCE uses x.  I also considered "var" and "mem".
 
-David
+>> (The other fun style question, which is a lot less minor, is whether
+>> ASSIGN_ONCE should be (src,dst) as above, or (dst,src) like = and
+>> <string.h>.)
+
+> I tend to prefer dst, src, but Linus used src, dst in his proposal -
+> so I used that.
+
+The question is, does Linus actually care (hey, Linus, do you?), or was
+that just a thoughtless part of a discussion about semantics?
+
+Because if you prefer it too, there are arguments...
+There are plenty of "store" operations with (src, dst) arguments,
+because the focus is on the value being stored, so it comes first.
+
+But the name "assign" almost always refers to the ":=" operation,
+with the focus more on the destination.
+
+(Now you have me thinking about German grammar and how the destination
+can be identified by the dative "dem".  But even though German depends
+on word order less than English, normally the dative comes first.)
