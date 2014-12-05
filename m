@@ -1,128 +1,112 @@
 From: David Hildenbrand <dahi@linux.vnet.ibm.com>
-Subject: [PATCH v1 0/5] Reenable might_sleep() checks for might_fault()
-Date: Fri,  5 Dec 2014 12:18:04 +0100
-Message-ID: <1417778289-51567-1-git-send-email-dahi@linux.vnet.ibm.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e06smtp17.uk.ibm.com ([195.75.94.113]:37108 "EHLO
-	e06smtp17.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750724AbaLELSU (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 5 Dec 2014 06:18:20 -0500
-Received: from /spool/local
-	by e06smtp17.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <dahi@linux.vnet.ibm.com>;
-	Fri, 5 Dec 2014 11:18:19 -0000
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Subject: [PATCH v1 3/5] mm, uaccess: trigger might_sleep() in might_fault() when pagefaults are disabled
+Date: Fri,  5 Dec 2014 12:18:07 +0100
+Message-ID: <1417778289-51567-4-git-send-email-dahi@linux.vnet.ibm.com>
+References: <1417778289-51567-1-git-send-email-dahi@linux.vnet.ibm.com>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1417778289-51567-1-git-send-email-dahi@linux.vnet.ibm.com>
+Sender: linux-kernel-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 Cc: benh@kernel.crashing.org, paulus@samba.org, akpm@linux-foundation.org, heiko.carstens@de.ibm.com, dahi@linux.vnet.ibm.com, schwidefsky@de.ibm.com, borntraeger@de.ibm.com, mst@redhat.com, tglx@linutronix.de, David.Laight@ACULAB.COM, peterz@infradead.org, hughd@google.com, hocko@suse.cz
+List-Id: linux-arch.vger.kernel.org
 
-I recently discovered that might_fault() doesn't call might_sleep() anymore.
-Therefore bugs like:
-	spin_lock(&lock);
-	rc = copy_to_user(...);
-	spin_unlock(&lock);
-would not be detected with CONFIG_DEBUG_ATOMIC_SLEEP. The code was changed to
-disable false positives for code like:
-	pagefault_disable();
-	rc = copy_to_user(...);
-	pagefault_enable();
+Commit 662bbcb2747c ("mm, sched: Allow uaccess in atomic with
+pagefault_disable()") removed might_sleep() checks for all user access code
+(that uses might_fault()).
 
-Until now, pagefault_disable() and pagefault_enable() simply modified the
-preempt count, therefore telling the pagefault handler that the context is
-atomic and sleeping is disallowed.
+The reason was to disable wrong "sleep in atomic" warnings in the following
+scenario:
+    pagefault_disable()
+    rc = copy_to_user(...)
+    pagefault_enable()
 
-In order to reenable might_sleep() checks for the correct path, we need a way to
-detect whether we run in a pagefault_disable() context.
+Which is valid, as pagefault_disable() increments the preempt counter and
+therefore disables the pagefault handler. copy_to_user() will not sleep and return
+an invalid return code if a page is not available.
 
-This series therefore introduces a separate pagefault_count and uses it to count
-the levels of pagefault_disable() per thread. might_sleep() checks are
-reactivated for the !pagefault_disable() path.
+However, as all might_sleep() checks are removed, CONFIG_DEBUG_ATOMIC_SLEEP
+would no longer detect the following scenario:
+    spin_lock(&lock);
+    rc = copy_to_user(...)
+    spin_unlock(&lock)
 
-So this should now work:
-	spin_lock(&lock); /* also if left away */
-	pagefault_disable()
-	rc = copy_to_user(...);
-	pagefault_enable();
-	spin_unlock(&lock);
-And this should report a warning again:
-	spin_lock(&lock);
-	rc = copy_to_user(...);
-	spin_unlock(&lock);
+If the kernel is compiled with preemption turned on, the preempt counter would
+be incremented and copy_to_user() would never sleep. However, with preemption
+turned off, the preempt counter will not be touched, we will therefore sleep in
+atomic context. We really want to enable CONFIG_DEBUG_ATOMIC_SLEEP checks for
+user access functions again, otherwise horrible deadlocks might be hard to debug.
 
-Please note that this series will not completely split the handling of
-pagefault_disable() and the preempt count. This will be done in another series.
-Purpose of this series is to reenable might_sleep() checks for might_fault(),
-avoiding to produce false positives.
+Root of all evil is that pagefault_disable() acted almost as preempt_disable(),
+depending on preemption being turned on/off.
 
-Cross compiled on powerpc, arm, sparc, sparc64, arm64, x86_64, i386, mips,
-alpha, ia64, xtensa, m68k, microblaze.
+As we now have pagefault_disabled(), we can use it to distingusih whether user
+acces functions might sleep.
 
-Tested on s390. Would be good to get some feedback on the ASM offsets for m32r,
-sparc and xtensa (or if I should simply move the count to the end of the struct
-for these archs ...).
+Convert might_fault() into a makro that calls __might_fault(), to allow proper
+file + line messages in case of a might_sleep() warning. We can't move the code
+directly into kernel.h for now, as that results in ugly header recursions we
+can't avoid for now.
 
-Thanks!
+Signed-off-by: David Hildenbrand <dahi@linux.vnet.ibm.com>
+---
+ include/linux/kernel.h |  3 ++-
+ mm/memory.c            | 19 +++++++------------
+ 2 files changed, 9 insertions(+), 13 deletions(-)
 
-David
-
-
-David Hildenbrand (5):
-  uaccess: add pagefault_count to thread_info
-  uaccess: count pagefault_disable() levels in pagefault_count
-  mm, uaccess: trigger might_sleep() in might_fault() when pagefaults
-    are disabled
-  uaccess: clearify that uaccess may only sleep if pagefaults are not
-    disabled
-  uaccess: CONFIG_DEBUG_PAGEFAULT_COUNT to debug pagefault_count
-
- arch/alpha/include/asm/thread_info.h      |  1 +
- arch/arc/include/asm/thread_info.h        |  1 +
- arch/arm/include/asm/thread_info.h        |  1 +
- arch/arm64/include/asm/thread_info.h      |  1 +
- arch/avr32/include/asm/thread_info.h      |  1 +
- arch/avr32/include/asm/uaccess.h          | 12 +++++---
- arch/blackfin/include/asm/thread_info.h   |  1 +
- arch/c6x/include/asm/thread_info.h        |  1 +
- arch/cris/include/asm/thread_info.h       |  1 +
- arch/frv/include/asm/thread_info.h        |  1 +
- arch/hexagon/include/asm/thread_info.h    |  1 +
- arch/hexagon/include/asm/uaccess.h        |  3 +-
- arch/ia64/include/asm/thread_info.h       |  1 +
- arch/m32r/include/asm/thread_info.h       |  5 +--
- arch/m32r/include/asm/uaccess.h           | 30 ++++++++++++------
- arch/m68k/include/asm/thread_info.h       |  1 +
- arch/metag/include/asm/thread_info.h      |  1 +
- arch/microblaze/include/asm/thread_info.h |  1 +
- arch/microblaze/include/asm/uaccess.h     |  6 ++--
- arch/mips/include/asm/thread_info.h       |  1 +
- arch/mips/include/asm/uaccess.h           | 45 ++++++++++++++++++---------
- arch/mn10300/include/asm/thread_info.h    |  1 +
- arch/openrisc/include/asm/thread_info.h   |  1 +
- arch/parisc/include/asm/thread_info.h     |  1 +
- arch/powerpc/include/asm/thread_info.h    |  1 +
- arch/s390/include/asm/thread_info.h       |  1 +
- arch/s390/include/asm/uaccess.h           | 15 ++++++---
- arch/score/include/asm/thread_info.h      |  1 +
- arch/score/include/asm/uaccess.h          | 15 ++++++---
- arch/sh/include/asm/thread_info.h         |  1 +
- arch/sparc/include/asm/thread_info_32.h   | 20 ++++++------
- arch/sparc/include/asm/thread_info_64.h   | 17 ++++++-----
- arch/tile/include/asm/thread_info.h       |  1 +
- arch/tile/include/asm/uaccess.h           | 21 ++++++++-----
- arch/um/include/asm/thread_info.h         |  1 +
- arch/unicore32/include/asm/thread_info.h  |  1 +
- arch/x86/include/asm/thread_info.h        |  1 +
- arch/x86/include/asm/uaccess.h            | 15 ++++++---
- arch/x86/include/asm/uaccess_32.h         |  6 ++--
- arch/x86/lib/usercopy_32.c                |  6 ++--
- arch/xtensa/include/asm/thread_info.h     |  5 +--
- include/linux/kernel.h                    |  3 +-
- include/linux/uaccess.h                   | 51 ++++++++++++++++++++++++++-----
- lib/Kconfig.debug                         |  9 ++++++
- lib/strnlen_user.c                        |  6 ++--
- mm/maccess.c                              | 11 +++++++
- mm/memory.c                               | 19 +++++-------
- 47 files changed, 245 insertions(+), 101 deletions(-)
-
+diff --git a/include/linux/kernel.h b/include/linux/kernel.h
+index 3d770f55..aa0907e 100644
+--- a/include/linux/kernel.h
++++ b/include/linux/kernel.h
+@@ -227,7 +227,8 @@ static inline u32 reciprocal_scale(u32 val, u32 ep_ro)
+ 
+ #if defined(CONFIG_MMU) && \
+ 	(defined(CONFIG_PROVE_LOCKING) || defined(CONFIG_DEBUG_ATOMIC_SLEEP))
+-void might_fault(void);
++#define might_fault() __might_fault(__FILE__, __LINE__)
++void __might_fault(const char *file, int line);
+ #else
+ static inline void might_fault(void) { }
+ #endif
+diff --git a/mm/memory.c b/mm/memory.c
+index d5f2ae9..54dde04 100644
+--- a/mm/memory.c
++++ b/mm/memory.c
+@@ -3700,7 +3700,7 @@ void print_vma_addr(char *prefix, unsigned long ip)
+ }
+ 
+ #if defined(CONFIG_PROVE_LOCKING) || defined(CONFIG_DEBUG_ATOMIC_SLEEP)
+-void might_fault(void)
++void __might_fault(const char *file, int line)
+ {
+ 	/*
+ 	 * Some code (nfs/sunrpc) uses socket ops on kernel memory while
+@@ -3710,21 +3710,16 @@ void might_fault(void)
+ 	 */
+ 	if (segment_eq(get_fs(), KERNEL_DS))
+ 		return;
+-
+-	/*
+-	 * it would be nicer only to annotate paths which are not under
+-	 * pagefault_disable, however that requires a larger audit and
+-	 * providing helpers like get_user_atomic.
+-	 */
+-	if (in_atomic())
++	if (unlikely(!pagefault_disabled())) {
++		__might_sleep(file, line, 0);
+ 		return;
+-
+-	__might_sleep(__FILE__, __LINE__, 0);
+-
++	}
++#if defined(CONFIG_DEBUG_ATOMIC_SLEEP)
+ 	if (current->mm)
+ 		might_lock_read(&current->mm->mmap_sem);
++#endif
+ }
+-EXPORT_SYMBOL(might_fault);
++EXPORT_SYMBOL(__might_fault);
+ #endif
+ 
+ #if defined(CONFIG_TRANSPARENT_HUGEPAGE) || defined(CONFIG_HUGETLBFS)
 -- 
 1.8.5.5
