@@ -1,47 +1,41 @@
-From: "George Spelvin" <linux@horizon.com>
-Subject: Re: [PATCH 1/9] kernel: Provide READ_ONCE and ASSIGN_ONCE
-Date: 5 Dec 2014 16:38:01 -0500
-Message-ID: <20141205213801.3844.qmail@ns.horizon.com>
-References: <CA+55aFzzEhbkoXnVGXAbq-HxejmWSyjMBN_aQM61J_zZLPXwAw@mail.gmail.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from ns.horizon.com ([71.41.210.147]:49072 "HELO ns.horizon.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with SMTP
-	id S1751848AbaLEViD (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 5 Dec 2014 16:38:03 -0500
-In-Reply-To: <CA+55aFzzEhbkoXnVGXAbq-HxejmWSyjMBN_aQM61J_zZLPXwAw@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: borntraeger@de.ibm.com
-Cc: linux@horizon.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, paulmck@linux.vnet.ibm.com, torvalds@linux-foundation.org
+From: Chen Gang <gang.chen.5i5j-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
+Subject: Re: [PATCH] arch: uapi: asm: mman.h: Let MADV_FREE have same value
+ for all architectures
+Date: Sat, 06 Dec 2014 05:51:49 +0800
+Message-ID: <548228F5.4020801@gmail.com>
+References: <5480E715.3020900@gmail.com> <20141205001446.GC10064@birch.djwong.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+In-Reply-To: <20141205001446.GC10064-PTl6brltDGh4DFYR7WNSRA@public.gmane.org>
+Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: "Darrick J. Wong" <darrick.wong-QHcLZuEGTsvQT0dZR+AlfA@public.gmane.org>
+Cc: "akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org" <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, "rth-hL46jP5Bxq7R7s880joybQ@public.gmane.org" <rth-hL46jP5Bxq7R7s880joybQ@public.gmane.org>, "ink-biIs/Y0ymYJMZLIVYojuPNP0rXTJTi09@public.gmane.org" <ink-biIs/Y0ymYJMZLIVYojuPNP0rXTJTi09@public.gmane.org>, "mattst88-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org" <mattst88-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Ralf Baechle <ralf-6z/3iImG2C8G8FEW9MqTrA@public.gmane.org>, "jejb-6jwH94ZQLHl74goWV3ctuw@public.gmane.org" <jejb-6jwH94ZQLHl74goWV3ctuw@public.gmane.org>, "deller-Mmb7MZpHnFY@public.gmane.org" <deller-Mmb7MZpHnFY@public.gmane.org>, "chris-YvXeqwSYzG2sTnJN9+BGXg@public.gmane.org" <chris-YvXeqwSYzG2sTnJN9+BGXg@public.gmane.org>, "jcmvbkbc-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org" <jcmvbkbc-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, minchan-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, "linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+List-Id: linux-arch.vger.kernel.org
 
-> Of prefer it to match the put_user model, which is (val, ptr). But as long
-> as there is your safety (and the whole point of the macro is that it
-> figures out the type from the pointer), I guess it doesn't matter too much
-> in practice.
+On 12/05/2014 08:14 AM, Darrick J. Wong wrote:
+> On Fri, Dec 05, 2014 at 06:58:29AM +0800, Chen Gang wrote:
+>> For uapi, need try to let all macros have same value, and MADV_FREE is
+>> added into main branch recently, so need redefine MADV_FREE for it.
+>>
+>> At present, '8' can be shared with all architectures, so redefine it to
+>> '8'.
 > 
-> I think my original suggestion also wrote it in lower case, since it
-> actually works like a function (well, template, whatever). Again kind of
-> like the user copy "functions".
+> Hmmm... you might want to talk to the dietlibc people if you do this:
 > 
-> But I don't care *that* strongly.
+> $ grep -rn MADV_FREE /usr/include/
+> /usr/include/diet/sys/mman.h:101:#define MADV_FREE      0x5             /* (Solaris) contents can be freed */
+> 
+> Though the sole definition only exists on sparc/powerpc/powerpc64, so who
+> knows...
+>
 
-That's an excellent point.  But it means that Christian, you're free to
-do whatever seems good to you.
+Excuse me, I am not quite familiar about dietlibc. If possible, please
+help forward this mail to them, and Cc me (if necessary).
 
-I'm not rabid about it, either; I just figure that now is a good time
-to think carefully about it.
+Thanks.
+-- 
+Chen Gang
 
-Personally, after running through some different names that work
-with (src,dst) order I'd try the pairs:
-
-	READ_ONCE(var) / WRITE_ONCE(value,var)
-or
-	LOAD_ONCE(var) / STORE_ONCE(value,var)
-
-Of the two, I think I prefer the latter, because that's what the
-operations are called at the hardware level, so it's most evocative of
-the actual semantics.  "Assignment" is a higher-level concept.
-
-But as I said, whatever you think best.  I'd just like to advocate for
-some actual thinking, because it's going to be all over the kernel and
-a pain to change.
+Open share and attitude like air water and life which God blessed
