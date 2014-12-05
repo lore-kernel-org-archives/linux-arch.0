@@ -1,118 +1,39 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e06smtp15.uk.ibm.com ([195.75.94.111]:52131 "EHLO
-	e06smtp15.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750903AbaLELSW (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 5 Dec 2014 06:18:22 -0500
-Received: from /spool/local
-	by e06smtp15.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <dahi@linux.vnet.ibm.com>;
-	Fri, 5 Dec 2014 11:18:21 -0000
-From: David Hildenbrand <dahi@linux.vnet.ibm.com>
-Subject: [PATCH v1 2/5] uaccess: count pagefault_disable() levels in pagefault_count
-Date: Fri,  5 Dec 2014 12:18:06 +0100
-Message-ID: <1417778289-51567-3-git-send-email-dahi@linux.vnet.ibm.com>
-In-Reply-To: <1417778289-51567-1-git-send-email-dahi@linux.vnet.ibm.com>
+Received: from mx0.aculab.com ([213.249.233.131]:49009 "HELO mx0.aculab.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with SMTP
+	id S1750800AbaLEMJD convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 5 Dec 2014 07:09:03 -0500
+Received: from mx0.aculab.com ([127.0.0.1])
+ by localhost (mx0.aculab.com [127.0.0.1]) (amavisd-new, port 10024) with SMTP
+ id 16562-04 for <linux-arch@vger.kernel.org>;
+ Fri,  5 Dec 2014 12:08:54 +0000 (GMT)
+From: David Laight <David.Laight@ACULAB.COM>
+Subject: RE: [PATCH v1 3/5] mm, uaccess: trigger might_sleep() in
+ might_fault() when pagefaults are disabled
+Date: Fri, 5 Dec 2014 12:08:19 +0000
+Message-ID: <063D6719AE5E284EB5DD2968C1650D6D1CA035A5@AcuExch.aculab.com>
 References: <1417778289-51567-1-git-send-email-dahi@linux.vnet.ibm.com>
+	<1417778289-51567-4-git-send-email-dahi@linux.vnet.ibm.com>
+	<20141205114529.GD4213@osiris> <20141205124629.2c77290f@thinkpad-w530>
+In-Reply-To: <20141205124629.2c77290f@thinkpad-w530>
+Content-Language: en-US
+Content-Type: text/plain; charset="Windows-1252"
+Content-Transfer-Encoding: 8BIT
+MIME-Version: 1.0
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: benh@kernel.crashing.org, paulus@samba.org, akpm@linux-foundation.org, heiko.carstens@de.ibm.com, dahi@linux.vnet.ibm.com, schwidefsky@de.ibm.com, borntraeger@de.ibm.com, mst@redhat.com, tglx@linutronix.de, David.Laight@ACULAB.COM, peterz@infradead.org, hughd@google.com, hocko@suse.cz
-Message-ID: <20141205111806.QGvx-5PaHbhX_txP1wiDHvtxRhpoD7ZbdqAEfo_z9l8@z>
+To: 'David Hildenbrand' <dahi@linux.vnet.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, "paulus@samba.org" <paulus@samba.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "schwidefsky@de.ibm.com" <schwidefsky@de.ibm.com>, "borntraeger@de.ibm.com" <borntraeger@de.ibm.com>, "mst@redhat.com" <mst@redhat.com>, "tglx@linutronix.de" <tglx@linutronix.de>, "peterz@infradead.org" <peterz@infradead.org>, "hughd@google.com" <hughd@google.com>, "hocko@suse.cz" <hocko@suse.cz>
+Message-ID: <20141205120819.arv1yqgQUavEeScemL3FAqf4976nYDDBN7UnxA2gorw@z>
 
-pagefault_disable() and pagefault_enable() have to increment/decrement the
-pagefault_count. We keep manipulating the preempt count to retain compability
-to existing pagefault handlers. This has to be demangled in separate patches.
-
-It is now possible to verify whether in a pagefault_disable() envionment by
-calling pagefault_disabled().
-
-Signed-off-by: David Hildenbrand <dahi@linux.vnet.ibm.com>
----
- include/linux/uaccess.h | 45 ++++++++++++++++++++++++++++++++++++++-------
- 1 file changed, 38 insertions(+), 7 deletions(-)
-
-diff --git a/include/linux/uaccess.h b/include/linux/uaccess.h
-index ecd3319..1dfc678 100644
---- a/include/linux/uaccess.h
-+++ b/include/linux/uaccess.h
-@@ -2,20 +2,45 @@
- #define __LINUX_UACCESS_H__
- 
- #include <linux/preempt.h>
-+#include <linux/thread_info.h>
- #include <asm/uaccess.h>
- 
-+static __always_inline int pagefault_count(void)
-+{
-+	return current_thread_info()->pagefault_count;
-+}
-+
-+static __always_inline int *pagefault_count_ptr(void)
-+{
-+	return &current_thread_info()->pagefault_count;
-+}
-+
-+static __always_inline void pagefault_count_inc(void)
-+{
-+	(*pagefault_count_ptr())++;
-+}
-+
-+static __always_inline void pagefault_count_dec(void)
-+{
-+	(*pagefault_count_ptr())--;
-+}
-+
- /*
-- * These routines enable/disable the pagefault handler in that
-- * it will not take any locks and go straight to the fixup table.
-+ * These routines enable/disable the pagefault handler. If disabled, it will
-+ * not take any locks and go straight to the fixup table.
-+ *
-+ * We increase the preempt and the pagefault count, to be able to distinguish
-+ * whether we run in simple atomic context or in a real pagefault_disable()
-+ * context.
-+ *
-+ * For now, after pagefault_disabled() has been called, we run in atomic
-+ * context. User access methods will not sleep.
-  *
-- * They have great resemblance to the preempt_disable/enable calls
-- * and in fact they are identical; this is because currently there is
-- * no other way to make the pagefault handlers do this. So we do
-- * disable preemption but we don't necessarily care about that.
-  */
- static inline void pagefault_disable(void)
- {
- 	preempt_count_inc();
-+	pagefault_count_inc();
- 	/*
- 	 * make sure to have issued the store before a pagefault
- 	 * can hit.
-@@ -25,18 +50,24 @@ static inline void pagefault_disable(void)
- 
- static inline void pagefault_enable(void)
- {
--#ifndef CONFIG_PREEMPT
- 	/*
- 	 * make sure to issue those last loads/stores before enabling
- 	 * the pagefault handler again.
- 	 */
- 	barrier();
-+	pagefault_count_dec();
-+#ifndef CONFIG_PREEMPT
- 	preempt_count_dec();
- #else
- 	preempt_enable();
- #endif
- }
- 
-+/*
-+ * Is the pagefault handler disabled? If so, user access methods will not sleep.
-+ */
-+#define pagefault_disabled() (pagefault_count() != 0)
-+
- #ifndef ARCH_HAS_NOCACHE_UACCESS
- 
- static inline unsigned long __copy_from_user_inatomic_nocache(void *to,
--- 
-1.8.5.5
-
+From: David Hildenbrand [...
+> > This should be likely() instead of unlikely(), no?
+> > I'd rather write this
+> >
+> > 	if (pagefault_disabled())
+> >  		return;
+> > 	__might_sleep(file, line, 0);
+> >
+> > and leave the likely stuff completely away.
+> 
+> Makes perfect sense!
