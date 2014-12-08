@@ -1,26 +1,63 @@
-From: christain147@gmail.com
-Subject: Re
-Date: Mon, 08 Dec 2014 08:05:25 -0600
-Message-ID: <SERVER01PB47GRRoALj0003aabb__44069.2952754491$1418051413$gmane$org@mail.besto.be>
-Reply-To: mrsalimqadri@yahoo.com.mx
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Subject: Re: [RFC][PATCHES] iov_iter.c rewrite
+Date: Mon, 8 Dec 2014 11:48:52 -0800
+Message-ID: <CA+55aFxSYbDN23MHBRL=neOXJkM4h_GU3qniyYTWwCm_EcGpsQ@mail.gmail.com>
+References: <20141204202011.GO29748@ZenIV.linux.org.uk>
+	<20141208164650.GB29028@node.dhcp.inet.fi>
+	<20141208175805.GB22149@ZenIV.linux.org.uk>
+	<20141208180824.GC22149@ZenIV.linux.org.uk>
+	<CA+55aFxwrH4vsyw2ix=HqDK9Z=fw98xtOL8=57prm8qgVmAFfA@mail.gmail.com>
+	<20141208182012.GE22149@ZenIV.linux.org.uk>
+	<CA+55aFxrrTV-xBbvEzVKsXRVKyvZhQZj-6BNDpTsG4J5k6CJEg@mail.gmail.com>
+	<20141208184632.GG22149@ZenIV.linux.org.uk>
+	<CA+55aFyh0cV+ztK47mu1QN6aF4VvPE1V5zF7_X2TdYxZ38zZRA@mail.gmail.com>
+	<20141208192816.GH22149@ZenIV.linux.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7BIT
+Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.besto.be ([81.83.12.83]:50274 "EHLO mail.besto.be"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755909AbaLHPJr convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 8 Dec 2014 10:09:47 -0500
-Content-Description: Mail message body
+Received: from mail-qg0-f50.google.com ([209.85.192.50]:54536 "EHLO
+	mail-qg0-f50.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752909AbaLHTsx (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 8 Dec 2014 14:48:53 -0500
+In-Reply-To: <20141208192816.GH22149@ZenIV.linux.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Recipients <christain147@gmail.com>
+To: Al Viro <viro@zeniv.linux.org.uk>
+Cc: "Kirill A. Shutemov" <kirill@shutemov.name>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-fsdevel <linux-fsdevel@vger.kernel.org>, Network Development <netdev@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
 
-Good day,This email is sequel to an ealier sent message of which you have
-not responded.I have a personal charity project which I will want you to
-execute on my behalf.Please kindly get back to me with this code
-MHR/3910/2014 .You can reach me on mrsalimqadri@gmail.com .
+On Mon, Dec 8, 2014 at 11:28 AM, Al Viro <viro@zeniv.linux.org.uk> wrote:
+>
+> On x86 it does, but I don't see anything obvious in generic version in
+> mm/gup.c, so the old code might still have a problem on some architectures.
+> What am I missing here?
 
-Thank you
+Hmm. You may be right. The "access_ok()" is supposed to protect
+things, but for cases like finit_module() that has explicitly said
+"kernel addresses are ok", that check doesn't work.
 
-Salim Qadri
+Maybe  something like this..
+
+    diff --git a/mm/gup.c b/mm/gup.c
+    index cd62c8c90d4a..6234b1e6ced9 100644
+    --- a/mm/gup.c
+    +++ b/mm/gup.c
+    @@ -951,6 +951,9 @@ int __get_user_pages_fast(unsigned long start,
+int nr_pages, int write,
+            len = (unsigned long) nr_pages << PAGE_SHIFT;
+            end = start + len;
+
+    +       if (unlikely(segment_eq(get_fs(), KERNEL_DS)))
+    +               return 0;
+    +
+            if (unlikely(!access_ok(write ? VERIFY_WRITE : VERIFY_READ,
+                                            start, len)))
+                    return 0;
+
+Completely untested, obviously. That code isn't even compiled on x86.
+Adding linux-arch for more comments.
+
+(Background: the generic non-x86 "get_user_pages_fast()" function
+cannot check that the page tables are actually *user* page tables,
+so..)
+
+                      Linus
