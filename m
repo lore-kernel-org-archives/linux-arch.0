@@ -1,34 +1,122 @@
-From: Andy Lutomirski <luto@amacapital.net>
-Subject: Re: [PATCH v2] all arches, signal: Move restart_block to struct task_struct
-Date: Mon, 8 Dec 2014 14:51:06 -0800
-Message-ID: <CALCETrUCXgAMyddaKcWWhUs5sus-TBkrJbbPsAdHwmPd_g1Okg@mail.gmail.com>
-References: <43c88012a4959cd427ab634906e697fbc524e847.1414604015.git.luto@amacapital.net>
- <alpine.DEB.2.11.1410291908290.5308@nanos> <CALCETrWtBCFXzwCAh8fpeFv-EvPxYW20oRmFk1iCYwUvpft=Rw@mail.gmail.com>
- <20141110.211319.1983610686941713044.davem@davemloft.net> <5461EA6B.9020305@nod.at>
- <CALCETrUZhbx-PN8A168khFr6ve_9vdkSiwOcQ-hZbqu4po8hnQ@mail.gmail.com> <20141205061356.1f3f9015@as>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: [GIT PULL] asm-generic: asm/io.h rewrite
+Date: Tue, 09 Dec 2014 23:01:03 +0100
+Message-ID: <4703362.Atfd0HgCCK@wuerfel>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7Bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-lb0-f175.google.com ([209.85.217.175]:57082 "EHLO
-	mail-lb0-f175.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750776AbaLHWv1 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 8 Dec 2014 17:51:27 -0500
-Received: by mail-lb0-f175.google.com with SMTP id u10so4446230lbd.20
-        for <linux-arch@vger.kernel.org>; Mon, 08 Dec 2014 14:51:26 -0800 (PST)
-In-Reply-To: <20141205061356.1f3f9015@as>
+Received: from mout.kundenserver.de ([212.227.17.24]:62512 "EHLO
+	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750992AbaLIWCB (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 9 Dec 2014 17:02:01 -0500
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Chuck Ebbert <cebbert.lkml@gmail.com>
-Cc: Richard Weinberger <richard@nod.at>, David Miller <davem@davemloft.net>, Thomas Gleixner <tglx@linutronix.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, linux-arch <linux-arch@vger.kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, richard -rw- weinberger <richard.weinberger@gmail.com>, "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@kernel.org>, Kees Cook <keescook@chromium.org>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: will.deacon@arm.com, thierry.reding@gmail.com, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org
 
-On Fri, Dec 5, 2014 at 3:13 AM, Chuck Ebbert <cebbert.lkml@gmail.com> wrote:
-> Should the completely pointless supervisor_stack[] be removed as well?
-> I had a patch to do that but I never sent it.
+The following changes since commit f114040e3ea6e07372334ade75d1ee0775c355e1:
 
-Might as well.
+  Linux 3.18-rc1 (2014-10-19 18:08:38 -0700)
 
---Andy
+are available in the git repository at:
 
--- 
-Andy Lutomirski
-AMA Capital Management, LLC
+  git://git.kernel.org/pub/scm/linux/kernel/git/arnd/asm-generic.git tags/asm-generic-for-linus
+
+for you to fetch changes up to cb61f6769b8836081940ba26249f1b756400c7df:
+
+  ARM64: use GENERIC_PCI_IOMAP (2014-11-19 14:09:07 +0100)
+
+----------------------------------------------------------------
+asm-generic: asm/io.h rewrite
+
+While there normally is no reason to have a pull request for asm-generic
+but have all changes get merged through whichever tree needs them, I do
+have a series for 3.19. There are two sets of patches that change
+significant portions of asm/io.h, and this branch contains both in order
+to resolve the conflicts:
+
+- Will Deacon has done a set of patches to ensure that all architectures
+  define {read,write}{b,w,l,q}_relaxed() functions or get them by
+  including asm-generic/io.h. These functions are commonly used on ARM
+  specific drivers to avoid expensive L2 cache synchronization implied by
+  the normal {read,write}{b,w,l,q}, but we need to define them on all
+  architectures in order to share the drivers across architectures and
+  to enable CONFIG_COMPILE_TEST configurations for them
+
+- Thierry Reding has done an unrelated set of patches that extends
+  the asm-generic/io.h file to the degree necessary to make it useful
+  on ARM64 and potentially other architectures.
+
+----------------------------------------------------------------
+Arnd Bergmann (5):
+      ARM: ixp4xx: Fix build with IXP4XX_INDIRECT_PCI
+      Merge branch 'asm-generic-io' of https://github.com/thierryreding/linux into asm-generic
+      Merge branch 'io' of git://git.kernel.org/.../will/linux into asm-generic
+      sparc: io: remove duplicate relaxed accessors on sparc32
+      ARM64: use GENERIC_PCI_IOMAP
+
+Thierry Reding (10):
+      ARC: Remove redundant PCI_IOBASE declaration
+      ARM: ebsa110: Properly override I/O accessors
+      ARM: ixp4xx: Properly override I/O accessors
+      Change xlate_dev_{kmem,mem}_ptr() prototypes
+      /dev/mem: Use more consistent data types
+      asm-generic/io.h: Reconcile I/O accessor overrides
+      asm-generic/io.h: Implement generic {read,write}s*()
+      ARM: Use include/asm-generic/io.h
+      arm64: Use include/asm-generic/io.h
+      ARM: sa11x0: Use void __iomem * in MMIO accessors
+
+Will Deacon (16):
+      asm-generic: io: implement relaxed accessor macros as conditional wrappers
+      microblaze: io: remove dummy relaxed accessor macros
+      s390: io: remove dummy relaxed accessor macros for reads
+      xtensa: io: remove dummy relaxed accessor macros for reads
+      frv: io: implement dummy relaxed accessor macros for writes
+      cris: io: implement dummy relaxed accessor macros for writes
+      ia64: io: implement dummy relaxed accessor macros for writes
+      m32r: io: implement dummy relaxed accessor macros for writes
+      m68k: io: implement dummy relaxed accessor macros for writes
+      mn10300: io: implement dummy relaxed accessor macros for writes
+      parisc: io: implement dummy relaxed accessor macros for writes
+      powerpc: io: implement dummy relaxed accessor macros for writes
+      sparc: io: implement dummy relaxed accessor macros for writes
+      tile: io: implement dummy relaxed accessor macros for writes
+      x86: io: implement dummy relaxed accessor macros for writes
+      documentation: memory-barriers: clarify relaxed io accessor semantics
+
+ Documentation/memory-barriers.txt       |  13 +-
+ arch/arc/include/asm/io.h               |   2 -
+ arch/arm/include/asm/io.h               |  89 ++--
+ arch/arm/include/asm/memory.h           |   4 +
+ arch/arm/mach-ebsa110/include/mach/io.h |  25 +-
+ arch/arm/mach-ebsa110/io.c              |  14 +-
+ arch/arm/mach-ixp4xx/common.c           |   2 +-
+ arch/arm/mach-ixp4xx/include/mach/io.h  |  28 +-
+ arch/arm/mach-sa1100/pci-nanoengine.c   |   8 +-
+ arch/arm64/Kconfig                      |   2 +-
+ arch/arm64/include/asm/io.h             | 122 ++----
+ arch/arm64/include/asm/memory.h         |   2 +
+ arch/cris/include/asm/io.h              |   3 +
+ arch/frv/include/asm/io.h               |   3 +
+ arch/ia64/include/asm/io.h              |   4 +
+ arch/ia64/include/asm/uaccess.h         |  16 +-
+ arch/m32r/include/asm/io.h              |   3 +
+ arch/m68k/include/asm/io.h              |   8 +
+ arch/m68k/include/asm/io_no.h           |   4 -
+ arch/microblaze/include/asm/io.h        |   8 -
+ arch/mn10300/include/asm/io.h           |   4 +
+ arch/parisc/include/asm/io.h            |  12 +-
+ arch/powerpc/include/asm/io.h           |  12 +-
+ arch/s390/include/asm/io.h              |  10 +-
+ arch/s390/mm/maccess.c                  |   4 +-
+ arch/sparc/include/asm/io_32.h          |   4 -
+ arch/sparc/include/asm/io_64.h          |  14 +-
+ arch/tile/include/asm/io.h              |   4 +
+ arch/x86/include/asm/io.h               |   8 +-
+ arch/x86/mm/ioremap.c                   |   4 +-
+ arch/xtensa/include/asm/io.h            |   7 -
+ drivers/char/mem.c                      |  13 +-
+ include/asm-generic/io.h                | 751 ++++++++++++++++++++++++++------
+ 33 files changed, 837 insertions(+), 370 deletions(-)
