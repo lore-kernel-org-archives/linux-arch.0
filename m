@@ -1,122 +1,58 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: [GIT PULL] asm-generic: asm/io.h rewrite
-Date: Tue, 09 Dec 2014 23:01:03 +0100
-Message-ID: <4703362.Atfd0HgCCK@wuerfel>
+From: Chen Gang <gang.chen.5i5j-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
+Subject: Re: [PATCH] arch: uapi: asm: mman.h: Let MADV_FREE have same value
+ for all architectures
+Date: Wed, 10 Dec 2014 09:45:16 +0800
+Message-ID: <5487A5AC.8050503@gmail.com>
+References: <5480E715.3020900@gmail.com> <20141205065417.GA3358@bbox> <54822B19.2070804@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7Bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.17.24]:62512 "EHLO
-	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750992AbaLIWCB (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 9 Dec 2014 17:02:01 -0500
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: will.deacon@arm.com, thierry.reding@gmail.com, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+In-Reply-To: <54822B19.2070804-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
+Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: "akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org" <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>
+Cc: Minchan Kim <minchan-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, "rth-hL46jP5Bxq7R7s880joybQ@public.gmane.org" <rth-hL46jP5Bxq7R7s880joybQ@public.gmane.org>, "ink-biIs/Y0ymYJMZLIVYojuPNP0rXTJTi09@public.gmane.org" <ink-biIs/Y0ymYJMZLIVYojuPNP0rXTJTi09@public.gmane.org>, "mattst88-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org" <mattst88-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Ralf Baechle <ralf-6z/3iImG2C8G8FEW9MqTrA@public.gmane.org>, "jejb-6jwH94ZQLHl74goWV3ctuw@public.gmane.org" <jejb-6jwH94ZQLHl74goWV3ctuw@public.gmane.org>, "deller-Mmb7MZpHnFY@public.gmane.org" <deller-Mmb7MZpHnFY@public.gmane.org>, "chris-YvXeqwSYzG2sTnJN9+BGXg@public.gmane.org" <chris-YvXeqwSYzG2sTnJN9+BGXg@public.gmane.org>, "jcmvbkbc-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org" <jcmvbkbc-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, "linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Geert Uytterhoeven <geert-Td1EMuHUCqxL1ZNQvxDV9g@public.gmane.org>, Carlos O'Donell <carlos-v2tUB8YBRSi3e3T8WW9gsA@public.gmane.org>, "Darrick J. Wong" <darrick.wong-QHcLZuEGTsvQT0dZR+AlfA@public.gmane.org>, dietlibc-a6ha8lKT7ZQ@public.gmane.org, Felix von Leitner <felix-a6ha8lKT7ZQ@public.gmane.org>
+List-Id: linux-arch.vger.kernel.org
 
-The following changes since commit f114040e3ea6e07372334ade75d1ee0775c355e1:
+Hello Andrew:
 
-  Linux 3.18-rc1 (2014-10-19 18:08:38 -0700)
+Could you help check this patch, when you have time. And apply it if
+possible.
 
-are available in the git repository at:
+I guess, this patch is a little urgent, since it changes uapi, if wait
+a little longer, more user mode programs (e.g. libc) may use MADV_FREE
+as various values.
 
-  git://git.kernel.org/pub/scm/linux/kernel/git/arnd/asm-generic.git tags/asm-generic-for-linus
+Thanks.
 
-for you to fetch changes up to cb61f6769b8836081940ba26249f1b756400c7df:
+On 12/6/14 06:00, Chen Gang wrote:
+> On 12/05/2014 02:54 PM, Minchan Kim wrote:
+>> On Fri, Dec 05, 2014 at 06:58:29AM +0800, Chen Gang wrote:
+>>> For uapi, need try to let all macros have same value, and MADV_FREE is
+>>> added into main branch recently, so need redefine MADV_FREE for it.
+>>>
+>>> At present, '8' can be shared with all architectures, so redefine it to
+>>> '8'.
+>>>
+>>> Signed-off-by: Chen Gang <gang.chen.5i5j-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
+>>
+>>
+>> Hello Chen,
+>>
+>> Thanks for looking at this.
+>> Feel free to add my sign.
+>>
+>> Acked-by: Minchan Kim <minchan-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>
+>>
+> 
+> OK, thanks.
+> 
+> Originally I sent the same patch like you sent (but later than yours).
+> Geert suggested to use same value for MADV_FREE, and Carlos confirmed
+> it and suggested more things (sorry, I forgot to Cc them in this mail).
+> 
 
-  ARM64: use GENERIC_PCI_IOMAP (2014-11-19 14:09:07 +0100)
+-- 
+Chen Gang
 
-----------------------------------------------------------------
-asm-generic: asm/io.h rewrite
-
-While there normally is no reason to have a pull request for asm-generic
-but have all changes get merged through whichever tree needs them, I do
-have a series for 3.19. There are two sets of patches that change
-significant portions of asm/io.h, and this branch contains both in order
-to resolve the conflicts:
-
-- Will Deacon has done a set of patches to ensure that all architectures
-  define {read,write}{b,w,l,q}_relaxed() functions or get them by
-  including asm-generic/io.h. These functions are commonly used on ARM
-  specific drivers to avoid expensive L2 cache synchronization implied by
-  the normal {read,write}{b,w,l,q}, but we need to define them on all
-  architectures in order to share the drivers across architectures and
-  to enable CONFIG_COMPILE_TEST configurations for them
-
-- Thierry Reding has done an unrelated set of patches that extends
-  the asm-generic/io.h file to the degree necessary to make it useful
-  on ARM64 and potentially other architectures.
-
-----------------------------------------------------------------
-Arnd Bergmann (5):
-      ARM: ixp4xx: Fix build with IXP4XX_INDIRECT_PCI
-      Merge branch 'asm-generic-io' of https://github.com/thierryreding/linux into asm-generic
-      Merge branch 'io' of git://git.kernel.org/.../will/linux into asm-generic
-      sparc: io: remove duplicate relaxed accessors on sparc32
-      ARM64: use GENERIC_PCI_IOMAP
-
-Thierry Reding (10):
-      ARC: Remove redundant PCI_IOBASE declaration
-      ARM: ebsa110: Properly override I/O accessors
-      ARM: ixp4xx: Properly override I/O accessors
-      Change xlate_dev_{kmem,mem}_ptr() prototypes
-      /dev/mem: Use more consistent data types
-      asm-generic/io.h: Reconcile I/O accessor overrides
-      asm-generic/io.h: Implement generic {read,write}s*()
-      ARM: Use include/asm-generic/io.h
-      arm64: Use include/asm-generic/io.h
-      ARM: sa11x0: Use void __iomem * in MMIO accessors
-
-Will Deacon (16):
-      asm-generic: io: implement relaxed accessor macros as conditional wrappers
-      microblaze: io: remove dummy relaxed accessor macros
-      s390: io: remove dummy relaxed accessor macros for reads
-      xtensa: io: remove dummy relaxed accessor macros for reads
-      frv: io: implement dummy relaxed accessor macros for writes
-      cris: io: implement dummy relaxed accessor macros for writes
-      ia64: io: implement dummy relaxed accessor macros for writes
-      m32r: io: implement dummy relaxed accessor macros for writes
-      m68k: io: implement dummy relaxed accessor macros for writes
-      mn10300: io: implement dummy relaxed accessor macros for writes
-      parisc: io: implement dummy relaxed accessor macros for writes
-      powerpc: io: implement dummy relaxed accessor macros for writes
-      sparc: io: implement dummy relaxed accessor macros for writes
-      tile: io: implement dummy relaxed accessor macros for writes
-      x86: io: implement dummy relaxed accessor macros for writes
-      documentation: memory-barriers: clarify relaxed io accessor semantics
-
- Documentation/memory-barriers.txt       |  13 +-
- arch/arc/include/asm/io.h               |   2 -
- arch/arm/include/asm/io.h               |  89 ++--
- arch/arm/include/asm/memory.h           |   4 +
- arch/arm/mach-ebsa110/include/mach/io.h |  25 +-
- arch/arm/mach-ebsa110/io.c              |  14 +-
- arch/arm/mach-ixp4xx/common.c           |   2 +-
- arch/arm/mach-ixp4xx/include/mach/io.h  |  28 +-
- arch/arm/mach-sa1100/pci-nanoengine.c   |   8 +-
- arch/arm64/Kconfig                      |   2 +-
- arch/arm64/include/asm/io.h             | 122 ++----
- arch/arm64/include/asm/memory.h         |   2 +
- arch/cris/include/asm/io.h              |   3 +
- arch/frv/include/asm/io.h               |   3 +
- arch/ia64/include/asm/io.h              |   4 +
- arch/ia64/include/asm/uaccess.h         |  16 +-
- arch/m32r/include/asm/io.h              |   3 +
- arch/m68k/include/asm/io.h              |   8 +
- arch/m68k/include/asm/io_no.h           |   4 -
- arch/microblaze/include/asm/io.h        |   8 -
- arch/mn10300/include/asm/io.h           |   4 +
- arch/parisc/include/asm/io.h            |  12 +-
- arch/powerpc/include/asm/io.h           |  12 +-
- arch/s390/include/asm/io.h              |  10 +-
- arch/s390/mm/maccess.c                  |   4 +-
- arch/sparc/include/asm/io_32.h          |   4 -
- arch/sparc/include/asm/io_64.h          |  14 +-
- arch/tile/include/asm/io.h              |   4 +
- arch/x86/include/asm/io.h               |   8 +-
- arch/x86/mm/ioremap.c                   |   4 +-
- arch/xtensa/include/asm/io.h            |   7 -
- drivers/char/mem.c                      |  13 +-
- include/asm-generic/io.h                | 751 ++++++++++++++++++++++++++------
- 33 files changed, 837 insertions(+), 370 deletions(-)
+Open, share, and attitude like air, water, and life which God blessed
