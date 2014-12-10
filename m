@@ -1,694 +1,132 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e06smtp14.uk.ibm.com ([195.75.94.110]:38096 "EHLO
-	e06smtp14.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757602AbaLJOXp (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 10 Dec 2014 09:23:45 -0500
+Received: from e06smtp15.uk.ibm.com ([195.75.94.111]:50193 "EHLO
+	e06smtp15.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1757497AbaLJOXm (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 10 Dec 2014 09:23:42 -0500
 Received: from /spool/local
-	by e06smtp14.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	by e06smtp15.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
 	for <linux-arch@vger.kernel.org> from <dahi@linux.vnet.ibm.com>;
-	Wed, 10 Dec 2014 14:23:43 -0000
+	Wed, 10 Dec 2014 14:23:41 -0000
 From: David Hildenbrand <dahi@linux.vnet.ibm.com>
-Subject: [PATCH v2 4/5] uaccess: clarify that uaccess may only sleep if pagefaults are not disabled
-Date: Wed, 10 Dec 2014 15:23:33 +0100
-Message-ID: <1418221414-60110-5-git-send-email-dahi@linux.vnet.ibm.com>
-In-Reply-To: <1418221414-60110-1-git-send-email-dahi@linux.vnet.ibm.com>
-References: <1418221414-60110-1-git-send-email-dahi@linux.vnet.ibm.com>
+Subject: [PATCH v2 0/5] Reenable might_sleep() checks for might_fault()
+Date: Wed, 10 Dec 2014 15:23:29 +0100
+Message-ID: <1418221414-60110-1-git-send-email-dahi@linux.vnet.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 Cc: benh@kernel.crashing.org, paulus@samba.org, akpm@linux-foundation.org, heiko.carstens@de.ibm.com, dahi@linux.vnet.ibm.com, schwidefsky@de.ibm.com, borntraeger@de.ibm.com, mst@redhat.com, tglx@linutronix.de, David.Laight@ACULAB.COM, peterz@infradead.org, hughd@google.com, hocko@suse.cz
-Message-ID: <20141210142333.4ki4hIcS0jYMFHfItiYCj-rj2FgTkUzdyOim6Ctr0iw@z>
+Message-ID: <20141210142329.2fROL3OUM62wb3FA62nSh-JDhJeTZ-pQs0BKIgABQ0A@z>
 
-In general, non-atomic variants of user access functions may not sleep if
-pagefaults are disabled.
+v1 -> v2:
+- moved pagefault_count to the end of thread_info for all archs that would have
+  required manually calculating asm-offsets - to keep changes minimal.
+- remove unlikely() from "mm, uaccess: trigger might_sleep() in" and keep
+  changes minimal (in_atomic() -> pagefault_disabled())
 
-Let's update all relevant comments in uaccess code. This also refelects the
-might_sleep() checks in might_fault().
+----
 
-Signed-off-by: David Hildenbrand <dahi@linux.vnet.ibm.com>
----
- arch/avr32/include/asm/uaccess.h      | 12 ++++++----
- arch/hexagon/include/asm/uaccess.h    |  3 ++-
- arch/m32r/include/asm/uaccess.h       | 30 +++++++++++++++--------
- arch/microblaze/include/asm/uaccess.h |  6 +++--
- arch/mips/include/asm/uaccess.h       | 45 +++++++++++++++++++++++------------
- arch/s390/include/asm/uaccess.h       | 15 ++++++++----
- arch/score/include/asm/uaccess.h      | 15 ++++++++----
- arch/tile/include/asm/uaccess.h       | 21 ++++++++++------
- arch/x86/include/asm/uaccess.h        | 15 ++++++++----
- arch/x86/include/asm/uaccess_32.h     |  6 +++--
- arch/x86/lib/usercopy_32.c            |  6 +++--
- lib/strnlen_user.c                    |  6 +++--
- 12 files changed, 120 insertions(+), 60 deletions(-)
+I recently discovered that might_fault() doesn't call might_sleep() anymore.
+Therefore bugs like:
+	spin_lock(&lock);
+	rc = copy_to_user(...);
+	spin_unlock(&lock);
+would not be detected with CONFIG_DEBUG_ATOMIC_SLEEP. The code was changed to
+disable false positives for code like:
+	pagefault_disable();
+	rc = copy_to_user(...);
+	pagefault_enable();
 
-diff --git a/arch/avr32/include/asm/uaccess.h b/arch/avr32/include/asm/uaccess.h
-index 245b2ee..6b6dd58 100644
---- a/arch/avr32/include/asm/uaccess.h
-+++ b/arch/avr32/include/asm/uaccess.h
-@@ -97,7 +97,8 @@ static inline __kernel_size_t __copy_from_user(void *to,
-  * @x:   Value to copy to user space.
-  * @ptr: Destination address, in user space.
-  *
-- * Context: User context only.  This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are not
-+ *          disabled.
-  *
-  * This macro copies a single simple value from kernel space to user
-  * space.  It supports simple types like char and int, but not larger
-@@ -116,7 +117,8 @@ static inline __kernel_size_t __copy_from_user(void *to,
-  * @x:   Variable to store result.
-  * @ptr: Source address, in user space.
-  *
-- * Context: User context only.  This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are not
-+ *          disabled.
-  *
-  * This macro copies a single simple variable from user space to kernel
-  * space.  It supports simple types like char and int, but not larger
-@@ -136,7 +138,8 @@ static inline __kernel_size_t __copy_from_user(void *to,
-  * @x:   Value to copy to user space.
-  * @ptr: Destination address, in user space.
-  *
-- * Context: User context only.  This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are not
-+ *          disabled.
-  *
-  * This macro copies a single simple value from kernel space to user
-  * space.  It supports simple types like char and int, but not larger
-@@ -158,7 +161,8 @@ static inline __kernel_size_t __copy_from_user(void *to,
-  * @x:   Variable to store result.
-  * @ptr: Source address, in user space.
-  *
-- * Context: User context only.  This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are not
-+ *          disabled.
-  *
-  * This macro copies a single simple variable from user space to kernel
-  * space.  It supports simple types like char and int, but not larger
-diff --git a/arch/hexagon/include/asm/uaccess.h b/arch/hexagon/include/asm/uaccess.h
-index e4127e4..af98618 100644
---- a/arch/hexagon/include/asm/uaccess.h
-+++ b/arch/hexagon/include/asm/uaccess.h
-@@ -36,7 +36,8 @@
-  * @addr: User space pointer to start of block to check
-  * @size: Size of block to check
-  *
-- * Context: User context only.  This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are not
-+ * disabled.
-  *
-  * Checks if a pointer to a block of memory in user space is valid.
-  *
-diff --git a/arch/m32r/include/asm/uaccess.h b/arch/m32r/include/asm/uaccess.h
-index 84fe7ba..83bfa33 100644
---- a/arch/m32r/include/asm/uaccess.h
-+++ b/arch/m32r/include/asm/uaccess.h
-@@ -91,7 +91,8 @@ static inline void set_fs(mm_segment_t s)
-  * @addr: User space pointer to start of block to check
-  * @size: Size of block to check
-  *
-- * Context: User context only.  This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are not
-+ *          disabled.
-  *
-  * Checks if a pointer to a block of memory in user space is valid.
-  *
-@@ -155,7 +156,8 @@ extern int fixup_exception(struct pt_regs *regs);
-  * @x:   Variable to store result.
-  * @ptr: Source address, in user space.
-  *
-- * Context: User context only.  This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are not
-+ *          disabled.
-  *
-  * This macro copies a single simple variable from user space to kernel
-  * space.  It supports simple types like char and int, but not larger
-@@ -175,7 +177,8 @@ extern int fixup_exception(struct pt_regs *regs);
-  * @x:   Value to copy to user space.
-  * @ptr: Destination address, in user space.
-  *
-- * Context: User context only.  This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are not
-+ *          disabled.
-  *
-  * This macro copies a single simple value from kernel space to user
-  * space.  It supports simple types like char and int, but not larger
-@@ -194,7 +197,8 @@ extern int fixup_exception(struct pt_regs *regs);
-  * @x:   Variable to store result.
-  * @ptr: Source address, in user space.
-  *
-- * Context: User context only.  This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are not
-+ *          disabled.
-  *
-  * This macro copies a single simple variable from user space to kernel
-  * space.  It supports simple types like char and int, but not larger
-@@ -274,7 +278,8 @@ do {									\
-  * @x:   Value to copy to user space.
-  * @ptr: Destination address, in user space.
-  *
-- * Context: User context only.  This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are not
-+ *          disabled.
-  *
-  * This macro copies a single simple value from kernel space to user
-  * space.  It supports simple types like char and int, but not larger
-@@ -568,7 +573,8 @@ unsigned long __generic_copy_from_user(void *, const void __user *, unsigned lon
-  * @from: Source address, in kernel space.
-  * @n:    Number of bytes to copy.
-  *
-- * Context: User context only.  This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are not
-+ *          disabled.
-  *
-  * Copy data from kernel space to user space.  Caller must check
-  * the specified block with access_ok() before calling this function.
-@@ -588,7 +594,8 @@ unsigned long __generic_copy_from_user(void *, const void __user *, unsigned lon
-  * @from: Source address, in kernel space.
-  * @n:    Number of bytes to copy.
-  *
-- * Context: User context only.  This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are not
-+ *          disabled.
-  *
-  * Copy data from kernel space to user space.
-  *
-@@ -606,7 +613,8 @@ unsigned long __generic_copy_from_user(void *, const void __user *, unsigned lon
-  * @from: Source address, in user space.
-  * @n:    Number of bytes to copy.
-  *
-- * Context: User context only.  This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are not
-+ *          disabled.
-  *
-  * Copy data from user space to kernel space.  Caller must check
-  * the specified block with access_ok() before calling this function.
-@@ -626,7 +634,8 @@ unsigned long __generic_copy_from_user(void *, const void __user *, unsigned lon
-  * @from: Source address, in user space.
-  * @n:    Number of bytes to copy.
-  *
-- * Context: User context only.  This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are not
-+ *          disabled.
-  *
-  * Copy data from user space to kernel space.
-  *
-@@ -677,7 +686,8 @@ unsigned long clear_user(void __user *mem, unsigned long len);
-  * strlen_user: - Get the size of a string in user space.
-  * @str: The string to measure.
-  *
-- * Context: User context only.  This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are not
-+ *          disabled.
-  *
-  * Get the size of a NUL-terminated string in user space.
-  *
-diff --git a/arch/microblaze/include/asm/uaccess.h b/arch/microblaze/include/asm/uaccess.h
-index 59a89a6..53bfbb8 100644
---- a/arch/microblaze/include/asm/uaccess.h
-+++ b/arch/microblaze/include/asm/uaccess.h
-@@ -178,7 +178,8 @@ extern long __user_bad(void);
-  * @x:   Variable to store result.
-  * @ptr: Source address, in user space.
-  *
-- * Context: User context only.  This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are not
-+ *          disabled.
-  *
-  * This macro copies a single simple variable from user space to kernel
-  * space.  It supports simple types like char and int, but not larger
-@@ -290,7 +291,8 @@ extern long __user_bad(void);
-  * @x:   Value to copy to user space.
-  * @ptr: Destination address, in user space.
-  *
-- * Context: User context only.  This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are not
-+ *          disabled.
-  *
-  * This macro copies a single simple value from kernel space to user
-  * space.  It supports simple types like char and int, but not larger
-diff --git a/arch/mips/include/asm/uaccess.h b/arch/mips/include/asm/uaccess.h
-index 22a5624..eded117 100644
---- a/arch/mips/include/asm/uaccess.h
-+++ b/arch/mips/include/asm/uaccess.h
-@@ -103,7 +103,8 @@ extern u64 __ua_limit;
-  * @addr: User space pointer to start of block to check
-  * @size: Size of block to check
-  *
-- * Context: User context only.	This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are not
-+ *          disabled.
-  *
-  * Checks if a pointer to a block of memory in user space is valid.
-  *
-@@ -138,7 +139,8 @@ extern u64 __ua_limit;
-  * @x:	 Value to copy to user space.
-  * @ptr: Destination address, in user space.
-  *
-- * Context: User context only.	This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are not
-+ *          disabled.
-  *
-  * This macro copies a single simple value from kernel space to user
-  * space.  It supports simple types like char and int, but not larger
-@@ -157,7 +159,8 @@ extern u64 __ua_limit;
-  * @x:	 Variable to store result.
-  * @ptr: Source address, in user space.
-  *
-- * Context: User context only.	This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are not
-+ *          disabled.
-  *
-  * This macro copies a single simple variable from user space to kernel
-  * space.  It supports simple types like char and int, but not larger
-@@ -177,7 +180,8 @@ extern u64 __ua_limit;
-  * @x:	 Value to copy to user space.
-  * @ptr: Destination address, in user space.
-  *
-- * Context: User context only.	This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are not
-+ *          disabled.
-  *
-  * This macro copies a single simple value from kernel space to user
-  * space.  It supports simple types like char and int, but not larger
-@@ -199,7 +203,8 @@ extern u64 __ua_limit;
-  * @x:	 Variable to store result.
-  * @ptr: Source address, in user space.
-  *
-- * Context: User context only.	This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are not
-+ *          disabled.
-  *
-  * This macro copies a single simple variable from user space to kernel
-  * space.  It supports simple types like char and int, but not larger
-@@ -498,7 +503,8 @@ extern void __put_user_unknown(void);
-  * @x:	 Value to copy to user space.
-  * @ptr: Destination address, in user space.
-  *
-- * Context: User context only.	This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are not
-+ *          disabled.
-  *
-  * This macro copies a single simple value from kernel space to user
-  * space.  It supports simple types like char and int, but not larger
-@@ -517,7 +523,8 @@ extern void __put_user_unknown(void);
-  * @x:	 Variable to store result.
-  * @ptr: Source address, in user space.
-  *
-- * Context: User context only.	This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are not
-+ *          disabled.
-  *
-  * This macro copies a single simple variable from user space to kernel
-  * space.  It supports simple types like char and int, but not larger
-@@ -537,7 +544,8 @@ extern void __put_user_unknown(void);
-  * @x:	 Value to copy to user space.
-  * @ptr: Destination address, in user space.
-  *
-- * Context: User context only.	This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are not
-+ *          disabled.
-  *
-  * This macro copies a single simple value from kernel space to user
-  * space.  It supports simple types like char and int, but not larger
-@@ -559,7 +567,8 @@ extern void __put_user_unknown(void);
-  * @x:	 Variable to store result.
-  * @ptr: Source address, in user space.
-  *
-- * Context: User context only.	This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are not
-+ *          disabled.
-  *
-  * This macro copies a single simple variable from user space to kernel
-  * space.  It supports simple types like char and int, but not larger
-@@ -815,7 +824,8 @@ extern size_t __copy_user(void *__to, const void *__from, size_t __n);
-  * @from: Source address, in kernel space.
-  * @n:	  Number of bytes to copy.
-  *
-- * Context: User context only.	This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are not
-+ *          disabled.
-  *
-  * Copy data from kernel space to user space.  Caller must check
-  * the specified block with access_ok() before calling this function.
-@@ -888,7 +898,8 @@ extern size_t __copy_user_inatomic(void *__to, const void *__from, size_t __n);
-  * @from: Source address, in kernel space.
-  * @n:	  Number of bytes to copy.
-  *
-- * Context: User context only.	This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are not
-+ *          disabled.
-  *
-  * Copy data from kernel space to user space.
-  *
-@@ -1075,7 +1086,8 @@ extern size_t __copy_in_user_eva(void *__to, const void *__from, size_t __n);
-  * @from: Source address, in user space.
-  * @n:	  Number of bytes to copy.
-  *
-- * Context: User context only.	This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are not
-+ *          disabled.
-  *
-  * Copy data from user space to kernel space.  Caller must check
-  * the specified block with access_ok() before calling this function.
-@@ -1107,7 +1119,8 @@ extern size_t __copy_in_user_eva(void *__to, const void *__from, size_t __n);
-  * @from: Source address, in user space.
-  * @n:	  Number of bytes to copy.
-  *
-- * Context: User context only.	This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are not
-+ *          disabled.
-  *
-  * Copy data from user space to kernel space.
-  *
-@@ -1356,7 +1369,8 @@ static inline long __strlen_user(const char __user *s)
-  * strlen_user: - Get the size of a string in user space.
-  * @str: The string to measure.
-  *
-- * Context: User context only.	This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are not
-+ *          disabled.
-  *
-  * Get the size of a NUL-terminated string in user space.
-  *
-@@ -1425,7 +1439,8 @@ static inline long __strnlen_user(const char __user *s, long n)
-  * strnlen_user: - Get the size of a string in user space.
-  * @str: The string to measure.
-  *
-- * Context: User context only.	This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are not
-+ *          disabled.
-  *
-  * Get the size of a NUL-terminated string in user space.
-  *
-diff --git a/arch/s390/include/asm/uaccess.h b/arch/s390/include/asm/uaccess.h
-index cd4c68e..1291da5 100644
---- a/arch/s390/include/asm/uaccess.h
-+++ b/arch/s390/include/asm/uaccess.h
-@@ -98,7 +98,8 @@ static inline unsigned long extable_fixup(const struct exception_table_entry *x)
-  * @from: Source address, in user space.
-  * @n:	  Number of bytes to copy.
-  *
-- * Context: User context only.	This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are not
-+ *          disabled.
-  *
-  * Copy data from user space to kernel space.  Caller must check
-  * the specified block with access_ok() before calling this function.
-@@ -118,7 +119,8 @@ unsigned long __must_check __copy_from_user(void *to, const void __user *from,
-  * @from: Source address, in kernel space.
-  * @n:	  Number of bytes to copy.
-  *
-- * Context: User context only.	This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are not
-+ *          disabled.
-  *
-  * Copy data from kernel space to user space.  Caller must check
-  * the specified block with access_ok() before calling this function.
-@@ -264,7 +266,8 @@ int __get_user_bad(void) __attribute__((noreturn));
-  * @from: Source address, in kernel space.
-  * @n:    Number of bytes to copy.
-  *
-- * Context: User context only.  This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are not
-+ *          disabled.
-  *
-  * Copy data from kernel space to user space.
-  *
-@@ -290,7 +293,8 @@ __compiletime_warning("copy_from_user() buffer size is not provably correct")
-  * @from: Source address, in user space.
-  * @n:    Number of bytes to copy.
-  *
-- * Context: User context only.  This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are not
-+ *          disabled.
-  *
-  * Copy data from user space to kernel space.
-  *
-@@ -348,7 +352,8 @@ static inline unsigned long strnlen_user(const char __user *src, unsigned long n
-  * strlen_user: - Get the size of a string in user space.
-  * @str: The string to measure.
-  *
-- * Context: User context only.  This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are not
-+ *          disabled.
-  *
-  * Get the size of a NUL-terminated string in user space.
-  *
-diff --git a/arch/score/include/asm/uaccess.h b/arch/score/include/asm/uaccess.h
-index ab66ddd..010a800 100644
---- a/arch/score/include/asm/uaccess.h
-+++ b/arch/score/include/asm/uaccess.h
-@@ -36,7 +36,8 @@
-  * @addr: User space pointer to start of block to check
-  * @size: Size of block to check
-  *
-- * Context: User context only.  This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are not
-+ *          disabled.
-  *
-  * Checks if a pointer to a block of memory in user space is valid.
-  *
-@@ -61,7 +62,8 @@
-  * @x:   Value to copy to user space.
-  * @ptr: Destination address, in user space.
-  *
-- * Context: User context only.  This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are not
-+ *          disabled.
-  *
-  * This macro copies a single simple value from kernel space to user
-  * space.  It supports simple types like char and int, but not larger
-@@ -79,7 +81,8 @@
-  * @x:   Variable to store result.
-  * @ptr: Source address, in user space.
-  *
-- * Context: User context only.  This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are not
-+ *          disabled.
-  *
-  * This macro copies a single simple variable from user space to kernel
-  * space.  It supports simple types like char and int, but not larger
-@@ -98,7 +101,8 @@
-  * @x:   Value to copy to user space.
-  * @ptr: Destination address, in user space.
-  *
-- * Context: User context only.  This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are not
-+ *          disabled.
-  *
-  * This macro copies a single simple value from kernel space to user
-  * space.  It supports simple types like char and int, but not larger
-@@ -119,7 +123,8 @@
-  * @x:   Variable to store result.
-  * @ptr: Source address, in user space.
-  *
-- * Context: User context only.  This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are not
-+ *          disabled.
-  *
-  * This macro copies a single simple variable from user space to kernel
-  * space.  It supports simple types like char and int, but not larger
-diff --git a/arch/tile/include/asm/uaccess.h b/arch/tile/include/asm/uaccess.h
-index b6cde32..9efe668 100644
---- a/arch/tile/include/asm/uaccess.h
-+++ b/arch/tile/include/asm/uaccess.h
-@@ -78,7 +78,8 @@ int __range_ok(unsigned long addr, unsigned long size);
-  * @addr: User space pointer to start of block to check
-  * @size: Size of block to check
-  *
-- * Context: User context only.  This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are not
-+ *          disabled.
-  *
-  * Checks if a pointer to a block of memory in user space is valid.
-  *
-@@ -192,7 +193,8 @@ extern int __get_user_bad(void)
-  * @x:   Variable to store result.
-  * @ptr: Source address, in user space.
-  *
-- * Context: User context only.  This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are not
-+ *          disabled.
-  *
-  * This macro copies a single simple variable from user space to kernel
-  * space.  It supports simple types like char and int, but not larger
-@@ -272,7 +274,8 @@ extern int __put_user_bad(void)
-  * @x:   Value to copy to user space.
-  * @ptr: Destination address, in user space.
-  *
-- * Context: User context only.  This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are not
-+ *          disabled.
-  *
-  * This macro copies a single simple value from kernel space to user
-  * space.  It supports simple types like char and int, but not larger
-@@ -327,7 +330,8 @@ extern int __put_user_bad(void)
-  * @from: Source address, in kernel space.
-  * @n:    Number of bytes to copy.
-  *
-- * Context: User context only.  This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are not
-+ *          disabled.
-  *
-  * Copy data from kernel space to user space.  Caller must check
-  * the specified block with access_ok() before calling this function.
-@@ -363,7 +367,8 @@ copy_to_user(void __user *to, const void *from, unsigned long n)
-  * @from: Source address, in user space.
-  * @n:    Number of bytes to copy.
-  *
-- * Context: User context only.  This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are not
-+ *          disabled.
-  *
-  * Copy data from user space to kernel space.  Caller must check
-  * the specified block with access_ok() before calling this function.
-@@ -434,7 +439,8 @@ static inline unsigned long __must_check copy_from_user(void *to,
-  * @from: Source address, in user space.
-  * @n:    Number of bytes to copy.
-  *
-- * Context: User context only.  This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are not
-+ *          disabled.
-  *
-  * Copy data from user space to user space.  Caller must check
-  * the specified blocks with access_ok() before calling this function.
-@@ -466,7 +472,8 @@ copy_in_user(void __user *to, const void __user *from, unsigned long n)
-  * strlen_user: - Get the size of a string in user space.
-  * @str: The string to measure.
-  *
-- * Context: User context only.  This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are not
-+ *          disabled.
-  *
-  * Get the size of a NUL-terminated string in user space.
-  *
-diff --git a/arch/x86/include/asm/uaccess.h b/arch/x86/include/asm/uaccess.h
-index 0d592e0..014d8cb 100644
---- a/arch/x86/include/asm/uaccess.h
-+++ b/arch/x86/include/asm/uaccess.h
-@@ -74,7 +74,8 @@ static inline bool __chk_range_not_ok(unsigned long addr, unsigned long size, un
-  * @addr: User space pointer to start of block to check
-  * @size: Size of block to check
-  *
-- * Context: User context only.  This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are not
-+ *          disabled.
-  *
-  * Checks if a pointer to a block of memory in user space is valid.
-  *
-@@ -145,7 +146,8 @@ __typeof__(__builtin_choose_expr(sizeof(x) > sizeof(0UL), 0ULL, 0UL))
-  * @x:   Variable to store result.
-  * @ptr: Source address, in user space.
-  *
-- * Context: User context only.  This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are not
-+ *          disabled.
-  *
-  * This macro copies a single simple variable from user space to kernel
-  * space.  It supports simple types like char and int, but not larger
-@@ -240,7 +242,8 @@ extern void __put_user_8(void);
-  * @x:   Value to copy to user space.
-  * @ptr: Destination address, in user space.
-  *
-- * Context: User context only.  This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are not
-+ *          disabled.
-  *
-  * This macro copies a single simple value from kernel space to user
-  * space.  It supports simple types like char and int, but not larger
-@@ -455,7 +458,8 @@ struct __large_struct { unsigned long buf[100]; };
-  * @x:   Variable to store result.
-  * @ptr: Source address, in user space.
-  *
-- * Context: User context only.  This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are not
-+ *          disabled.
-  *
-  * This macro copies a single simple variable from user space to kernel
-  * space.  It supports simple types like char and int, but not larger
-@@ -479,7 +483,8 @@ struct __large_struct { unsigned long buf[100]; };
-  * @x:   Value to copy to user space.
-  * @ptr: Destination address, in user space.
-  *
-- * Context: User context only.  This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are not
-+ *          disabled.
-  *
-  * This macro copies a single simple value from kernel space to user
-  * space.  It supports simple types like char and int, but not larger
-diff --git a/arch/x86/include/asm/uaccess_32.h b/arch/x86/include/asm/uaccess_32.h
-index 3c03a5d..ae5b37f 100644
---- a/arch/x86/include/asm/uaccess_32.h
-+++ b/arch/x86/include/asm/uaccess_32.h
-@@ -70,7 +70,8 @@ __copy_to_user_inatomic(void __user *to, const void *from, unsigned long n)
-  * @from: Source address, in kernel space.
-  * @n:    Number of bytes to copy.
-  *
-- * Context: User context only.  This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are not
-+ *          disabled.
-  *
-  * Copy data from kernel space to user space.  Caller must check
-  * the specified block with access_ok() before calling this function.
-@@ -117,7 +118,8 @@ __copy_from_user_inatomic(void *to, const void __user *from, unsigned long n)
-  * @from: Source address, in user space.
-  * @n:    Number of bytes to copy.
-  *
-- * Context: User context only.  This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are not
-+ *          disabled.
-  *
-  * Copy data from user space to kernel space.  Caller must check
-  * the specified block with access_ok() before calling this function.
-diff --git a/arch/x86/lib/usercopy_32.c b/arch/x86/lib/usercopy_32.c
-index e2f5e21..64ba86e 100644
---- a/arch/x86/lib/usercopy_32.c
-+++ b/arch/x86/lib/usercopy_32.c
-@@ -647,7 +647,8 @@ EXPORT_SYMBOL(__copy_from_user_ll_nocache_nozero);
-  * @from: Source address, in kernel space.
-  * @n:    Number of bytes to copy.
-  *
-- * Context: User context only.  This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are not
-+ *          disabled.
-  *
-  * Copy data from kernel space to user space.
-  *
-@@ -668,7 +669,8 @@ EXPORT_SYMBOL(_copy_to_user);
-  * @from: Source address, in user space.
-  * @n:    Number of bytes to copy.
-  *
-- * Context: User context only.  This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are not
-+ *          disabled.
-  *
-  * Copy data from user space to kernel space.
-  *
-diff --git a/lib/strnlen_user.c b/lib/strnlen_user.c
-index a28df52..0013abd 100644
---- a/lib/strnlen_user.c
-+++ b/lib/strnlen_user.c
-@@ -84,7 +84,8 @@ static inline long do_strnlen_user(const char __user *src, unsigned long count,
-  * @str: The string to measure.
-  * @count: Maximum count (including NUL character)
-  *
-- * Context: User context only.  This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are not
-+ *          disabled.
-  *
-  * Get the size of a NUL-terminated string in user space.
-  *
-@@ -113,7 +114,8 @@ EXPORT_SYMBOL(strnlen_user);
-  * strlen_user: - Get the size of a user string INCLUDING final NUL.
-  * @str: The string to measure.
-  *
-- * Context: User context only.  This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are not
-+ *          disabled.
-  *
-  * Get the size of a NUL-terminated string in user space.
-  *
+Until now, pagefault_disable() and pagefault_enable() simply modified the
+preempt count, therefore telling the pagefault handler that the context is
+atomic and sleeping is disallowed.
+
+In order to reenable might_sleep() checks for the correct path, we need a way to
+detect whether we run in a pagefault_disable() context.
+
+This series therefore introduces a separate pagefault_count and uses it to count
+the levels of pagefault_disable() per thread. might_sleep() checks are
+reactivated for the !pagefault_disable() path.
+
+So this should now work:
+	spin_lock(&lock); /* also if left away */
+	pagefault_disable()
+	rc = copy_to_user(...);
+	pagefault_enable();
+	spin_unlock(&lock);
+And this should report a warning again:
+	spin_lock(&lock);
+	rc = copy_to_user(...);
+	spin_unlock(&lock);
+
+Please note that this series will not completely split the handling of
+pagefault_disable() and the preempt count. This will be done in another series.
+Purpose of this series is to reenable might_sleep() checks for might_fault(),
+avoiding to produce false positives.
+
+Cross compiled on powerpc, arm, sparc, sparc64, arm64, x86_64, i386, mips,
+alpha, ia64, xtensa, m68k, microblaze.
+
+Tested on s390.
+
+
+David Hildenbrand (5):
+  uaccess: add pagefault_count to thread_info
+  uaccess: count pagefault_disable() levels in pagefault_count
+  mm, uaccess: trigger might_sleep() in might_fault() when pagefaults
+    are disabled
+  uaccess: clarify that uaccess may only sleep if pagefaults are not
+    disabled
+  uaccess: CONFIG_DEBUG_PAGEFAULT_COUNT to debug pagefault_count
+
+ arch/alpha/include/asm/thread_info.h      |  1 +
+ arch/arc/include/asm/thread_info.h        |  1 +
+ arch/arm/include/asm/thread_info.h        |  1 +
+ arch/arm64/include/asm/thread_info.h      |  1 +
+ arch/avr32/include/asm/thread_info.h      |  1 +
+ arch/avr32/include/asm/uaccess.h          | 12 +++++---
+ arch/blackfin/include/asm/thread_info.h   |  1 +
+ arch/c6x/include/asm/thread_info.h        |  1 +
+ arch/cris/include/asm/thread_info.h       |  1 +
+ arch/frv/include/asm/thread_info.h        |  1 +
+ arch/hexagon/include/asm/thread_info.h    |  1 +
+ arch/hexagon/include/asm/uaccess.h        |  3 +-
+ arch/ia64/include/asm/thread_info.h       |  1 +
+ arch/m32r/include/asm/thread_info.h       |  1 +
+ arch/m32r/include/asm/uaccess.h           | 30 ++++++++++++------
+ arch/m68k/include/asm/thread_info.h       |  1 +
+ arch/metag/include/asm/thread_info.h      |  1 +
+ arch/microblaze/include/asm/thread_info.h |  1 +
+ arch/microblaze/include/asm/uaccess.h     |  6 ++--
+ arch/mips/include/asm/thread_info.h       |  1 +
+ arch/mips/include/asm/uaccess.h           | 45 ++++++++++++++++++---------
+ arch/mn10300/include/asm/thread_info.h    |  1 +
+ arch/openrisc/include/asm/thread_info.h   |  1 +
+ arch/parisc/include/asm/thread_info.h     |  1 +
+ arch/powerpc/include/asm/thread_info.h    |  1 +
+ arch/s390/include/asm/thread_info.h       |  1 +
+ arch/s390/include/asm/uaccess.h           | 15 ++++++---
+ arch/score/include/asm/thread_info.h      |  1 +
+ arch/score/include/asm/uaccess.h          | 15 ++++++---
+ arch/sh/include/asm/thread_info.h         |  1 +
+ arch/sparc/include/asm/thread_info_32.h   |  1 +
+ arch/sparc/include/asm/thread_info_64.h   |  1 +
+ arch/tile/include/asm/thread_info.h       |  1 +
+ arch/tile/include/asm/uaccess.h           | 21 ++++++++-----
+ arch/um/include/asm/thread_info.h         |  1 +
+ arch/unicore32/include/asm/thread_info.h  |  1 +
+ arch/x86/include/asm/thread_info.h        |  1 +
+ arch/x86/include/asm/uaccess.h            | 15 ++++++---
+ arch/x86/include/asm/uaccess_32.h         |  6 ++--
+ arch/x86/lib/usercopy_32.c                |  6 ++--
+ arch/xtensa/include/asm/thread_info.h     |  1 +
+ include/linux/kernel.h                    |  3 +-
+ include/linux/uaccess.h                   | 51 ++++++++++++++++++++++++++-----
+ lib/Kconfig.debug                         |  9 ++++++
+ lib/strnlen_user.c                        |  6 ++--
+ mm/maccess.c                              | 11 +++++++
+ mm/memory.c                               | 18 ++++-------
+ 47 files changed, 222 insertions(+), 80 deletions(-)
+
 -- 
 1.8.5.5
 
