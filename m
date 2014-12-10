@@ -1,58 +1,122 @@
-From: Chen Gang <gang.chen.5i5j-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
-Subject: Re: [PATCH] arch: uapi: asm: mman.h: Let MADV_FREE have same value
- for all architectures
-Date: Wed, 10 Dec 2014 09:45:16 +0800
-Message-ID: <5487A5AC.8050503@gmail.com>
-References: <5480E715.3020900@gmail.com> <20141205065417.GA3358@bbox> <54822B19.2070804@gmail.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <54822B19.2070804-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
-Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: "akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org" <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>
-Cc: Minchan Kim <minchan-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, "rth-hL46jP5Bxq7R7s880joybQ@public.gmane.org" <rth-hL46jP5Bxq7R7s880joybQ@public.gmane.org>, "ink-biIs/Y0ymYJMZLIVYojuPNP0rXTJTi09@public.gmane.org" <ink-biIs/Y0ymYJMZLIVYojuPNP0rXTJTi09@public.gmane.org>, "mattst88-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org" <mattst88-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Ralf Baechle <ralf-6z/3iImG2C8G8FEW9MqTrA@public.gmane.org>, "jejb-6jwH94ZQLHl74goWV3ctuw@public.gmane.org" <jejb-6jwH94ZQLHl74goWV3ctuw@public.gmane.org>, "deller-Mmb7MZpHnFY@public.gmane.org" <deller-Mmb7MZpHnFY@public.gmane.org>, "chris-YvXeqwSYzG2sTnJN9+BGXg@public.gmane.org" <chris-YvXeqwSYzG2sTnJN9+BGXg@public.gmane.org>, "jcmvbkbc-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org" <jcmvbkbc-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, "linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Geert Uytterhoeven <geert-Td1EMuHUCqxL1ZNQvxDV9g@public.gmane.org>, Carlos O'Donell <carlos-v2tUB8YBRSi3e3T8WW9gsA@public.gmane.org>, "Darrick J. Wong" <darrick.wong-QHcLZuEGTsvQT0dZR+AlfA@public.gmane.org>, dietlibc-a6ha8lKT7ZQ@public.gmane.org, Felix von Leitner <felix-a6ha8lKT7ZQ@public.gmane.org>
+From: David Hildenbrand <dahi@linux.vnet.ibm.com>
+Subject: [PATCH v2 0/5] Reenable might_sleep() checks for might_fault()
+Date: Wed, 10 Dec 2014 15:23:29 +0100
+Message-ID: <1418221414-60110-1-git-send-email-dahi@linux.vnet.ibm.com>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: benh@kernel.crashing.org, paulus@samba.org, akpm@linux-foundation.org, heiko.carstens@de.ibm.com, dahi@linux.vnet.ibm.com, schwidefsky@de.ibm.com, borntraeger@de.ibm.com, mst@redhat.com, tglx@linutronix.de, David.Laight@ACULAB.COM, peterz@infradead.org, hughd@google.com, hocko@suse.cz
 List-Id: linux-arch.vger.kernel.org
 
-Hello Andrew:
+v1 -> v2:
+- moved pagefault_count to the end of thread_info for all archs that would have
+  required manually calculating asm-offsets - to keep changes minimal.
+- remove unlikely() from "mm, uaccess: trigger might_sleep() in" and keep
+  changes minimal (in_atomic() -> pagefault_disabled())
 
-Could you help check this patch, when you have time. And apply it if
-possible.
+----
 
-I guess, this patch is a little urgent, since it changes uapi, if wait
-a little longer, more user mode programs (e.g. libc) may use MADV_FREE
-as various values.
+I recently discovered that might_fault() doesn't call might_sleep() anymore.
+Therefore bugs like:
+	spin_lock(&lock);
+	rc = copy_to_user(...);
+	spin_unlock(&lock);
+would not be detected with CONFIG_DEBUG_ATOMIC_SLEEP. The code was changed to
+disable false positives for code like:
+	pagefault_disable();
+	rc = copy_to_user(...);
+	pagefault_enable();
 
-Thanks.
+Until now, pagefault_disable() and pagefault_enable() simply modified the
+preempt count, therefore telling the pagefault handler that the context is
+atomic and sleeping is disallowed.
 
-On 12/6/14 06:00, Chen Gang wrote:
-> On 12/05/2014 02:54 PM, Minchan Kim wrote:
->> On Fri, Dec 05, 2014 at 06:58:29AM +0800, Chen Gang wrote:
->>> For uapi, need try to let all macros have same value, and MADV_FREE is
->>> added into main branch recently, so need redefine MADV_FREE for it.
->>>
->>> At present, '8' can be shared with all architectures, so redefine it to
->>> '8'.
->>>
->>> Signed-off-by: Chen Gang <gang.chen.5i5j-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
->>
->>
->> Hello Chen,
->>
->> Thanks for looking at this.
->> Feel free to add my sign.
->>
->> Acked-by: Minchan Kim <minchan-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>
->>
-> 
-> OK, thanks.
-> 
-> Originally I sent the same patch like you sent (but later than yours).
-> Geert suggested to use same value for MADV_FREE, and Carlos confirmed
-> it and suggested more things (sorry, I forgot to Cc them in this mail).
-> 
+In order to reenable might_sleep() checks for the correct path, we need a way to
+detect whether we run in a pagefault_disable() context.
+
+This series therefore introduces a separate pagefault_count and uses it to count
+the levels of pagefault_disable() per thread. might_sleep() checks are
+reactivated for the !pagefault_disable() path.
+
+So this should now work:
+	spin_lock(&lock); /* also if left away */
+	pagefault_disable()
+	rc = copy_to_user(...);
+	pagefault_enable();
+	spin_unlock(&lock);
+And this should report a warning again:
+	spin_lock(&lock);
+	rc = copy_to_user(...);
+	spin_unlock(&lock);
+
+Please note that this series will not completely split the handling of
+pagefault_disable() and the preempt count. This will be done in another series.
+Purpose of this series is to reenable might_sleep() checks for might_fault(),
+avoiding to produce false positives.
+
+Cross compiled on powerpc, arm, sparc, sparc64, arm64, x86_64, i386, mips,
+alpha, ia64, xtensa, m68k, microblaze.
+
+Tested on s390.
+
+
+David Hildenbrand (5):
+  uaccess: add pagefault_count to thread_info
+  uaccess: count pagefault_disable() levels in pagefault_count
+  mm, uaccess: trigger might_sleep() in might_fault() when pagefaults
+    are disabled
+  uaccess: clarify that uaccess may only sleep if pagefaults are not
+    disabled
+  uaccess: CONFIG_DEBUG_PAGEFAULT_COUNT to debug pagefault_count
+
+ arch/alpha/include/asm/thread_info.h      |  1 +
+ arch/arc/include/asm/thread_info.h        |  1 +
+ arch/arm/include/asm/thread_info.h        |  1 +
+ arch/arm64/include/asm/thread_info.h      |  1 +
+ arch/avr32/include/asm/thread_info.h      |  1 +
+ arch/avr32/include/asm/uaccess.h          | 12 +++++---
+ arch/blackfin/include/asm/thread_info.h   |  1 +
+ arch/c6x/include/asm/thread_info.h        |  1 +
+ arch/cris/include/asm/thread_info.h       |  1 +
+ arch/frv/include/asm/thread_info.h        |  1 +
+ arch/hexagon/include/asm/thread_info.h    |  1 +
+ arch/hexagon/include/asm/uaccess.h        |  3 +-
+ arch/ia64/include/asm/thread_info.h       |  1 +
+ arch/m32r/include/asm/thread_info.h       |  1 +
+ arch/m32r/include/asm/uaccess.h           | 30 ++++++++++++------
+ arch/m68k/include/asm/thread_info.h       |  1 +
+ arch/metag/include/asm/thread_info.h      |  1 +
+ arch/microblaze/include/asm/thread_info.h |  1 +
+ arch/microblaze/include/asm/uaccess.h     |  6 ++--
+ arch/mips/include/asm/thread_info.h       |  1 +
+ arch/mips/include/asm/uaccess.h           | 45 ++++++++++++++++++---------
+ arch/mn10300/include/asm/thread_info.h    |  1 +
+ arch/openrisc/include/asm/thread_info.h   |  1 +
+ arch/parisc/include/asm/thread_info.h     |  1 +
+ arch/powerpc/include/asm/thread_info.h    |  1 +
+ arch/s390/include/asm/thread_info.h       |  1 +
+ arch/s390/include/asm/uaccess.h           | 15 ++++++---
+ arch/score/include/asm/thread_info.h      |  1 +
+ arch/score/include/asm/uaccess.h          | 15 ++++++---
+ arch/sh/include/asm/thread_info.h         |  1 +
+ arch/sparc/include/asm/thread_info_32.h   |  1 +
+ arch/sparc/include/asm/thread_info_64.h   |  1 +
+ arch/tile/include/asm/thread_info.h       |  1 +
+ arch/tile/include/asm/uaccess.h           | 21 ++++++++-----
+ arch/um/include/asm/thread_info.h         |  1 +
+ arch/unicore32/include/asm/thread_info.h  |  1 +
+ arch/x86/include/asm/thread_info.h        |  1 +
+ arch/x86/include/asm/uaccess.h            | 15 ++++++---
+ arch/x86/include/asm/uaccess_32.h         |  6 ++--
+ arch/x86/lib/usercopy_32.c                |  6 ++--
+ arch/xtensa/include/asm/thread_info.h     |  1 +
+ include/linux/kernel.h                    |  3 +-
+ include/linux/uaccess.h                   | 51 ++++++++++++++++++++++++++-----
+ lib/Kconfig.debug                         |  9 ++++++
+ lib/strnlen_user.c                        |  6 ++--
+ mm/maccess.c                              | 11 +++++++
+ mm/memory.c                               | 18 ++++-------
+ 47 files changed, 222 insertions(+), 80 deletions(-)
 
 -- 
-Chen Gang
-
-Open, share, and attitude like air, water, and life which God blessed
+1.8.5.5
