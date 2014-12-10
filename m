@@ -1,119 +1,108 @@
 From: David Hildenbrand <dahi@linux.vnet.ibm.com>
-Subject: [PATCH v2 3/5] mm, uaccess: trigger might_sleep() in might_fault() when pagefaults are disabled
-Date: Wed, 10 Dec 2014 15:23:32 +0100
-Message-ID: <1418221414-60110-4-git-send-email-dahi@linux.vnet.ibm.com>
+Subject: [PATCH v2 2/5] uaccess: count pagefault_disable() levels in pagefault_count
+Date: Wed, 10 Dec 2014 15:23:31 +0100
+Message-ID: <1418221414-60110-3-git-send-email-dahi@linux.vnet.ibm.com>
 References: <1418221414-60110-1-git-send-email-dahi@linux.vnet.ibm.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e06smtp13.uk.ibm.com ([195.75.94.109]:49364 "EHLO
-	e06smtp13.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757609AbaLJOXp (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 10 Dec 2014 09:23:45 -0500
-Received: from /spool/local
-	by e06smtp13.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <dahi@linux.vnet.ibm.com>;
-	Wed, 10 Dec 2014 14:23:43 -0000
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1418221414-60110-1-git-send-email-dahi@linux.vnet.ibm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 Cc: benh@kernel.crashing.org, paulus@samba.org, akpm@linux-foundation.org, heiko.carstens@de.ibm.com, dahi@linux.vnet.ibm.com, schwidefsky@de.ibm.com, borntraeger@de.ibm.com, mst@redhat.com, tglx@linutronix.de, David.Laight@ACULAB.COM, peterz@infradead.org, hughd@google.com, hocko@suse.cz
+List-Id: linux-arch.vger.kernel.org
 
-Commit 662bbcb2747c ("mm, sched: Allow uaccess in atomic with
-pagefault_disable()") removed might_sleep() checks for all user access code
-(that uses might_fault()).
+pagefault_disable() and pagefault_enable() have to increment/decrement the
+pagefault_count. We keep manipulating the preempt count to retain compability
+to existing pagefault handlers. This has to be demangled in separate patches.
 
-The reason was to disable wrong "sleep in atomic" warnings in the following
-scenario:
-    pagefault_disable()
-    rc = copy_to_user(...)
-    pagefault_enable()
-
-Which is valid, as pagefault_disable() increments the preempt counter and
-therefore disables the pagefault handler. copy_to_user() will not sleep and return
-an invalid return code if a page is not available.
-
-However, as all might_sleep() checks are removed, CONFIG_DEBUG_ATOMIC_SLEEP
-would no longer detect the following scenario:
-    spin_lock(&lock);
-    rc = copy_to_user(...)
-    spin_unlock(&lock)
-
-If the kernel is compiled with preemption turned on, the preempt counter would
-be incremented and copy_to_user() would never sleep. However, with preemption
-turned off, the preempt counter will not be touched, we will therefore sleep in
-atomic context. We really want to enable CONFIG_DEBUG_ATOMIC_SLEEP checks for
-user access functions again, otherwise horrible deadlocks might be hard to debug.
-
-Root of all evil is that pagefault_disable() acted almost as preempt_disable(),
-depending on preemption being turned on/off.
-
-As we now have pagefault_disabled(), we can use it to distingusih whether user
-acces functions might sleep.
-
-Convert might_fault() into a makro that calls __might_fault(), to allow proper
-file + line messages in case of a might_sleep() warning. We can't move the code
-directly into kernel.h for now, as that results in ugly header recursions we
-can't avoid for now.
+It is now possible to verify whether in a pagefault_disable() envionment by
+calling pagefault_disabled().
 
 Signed-off-by: David Hildenbrand <dahi@linux.vnet.ibm.com>
 ---
- include/linux/kernel.h |  3 ++-
- mm/memory.c            | 18 ++++++------------
- 2 files changed, 8 insertions(+), 13 deletions(-)
+ include/linux/uaccess.h | 45 ++++++++++++++++++++++++++++++++++++++-------
+ 1 file changed, 38 insertions(+), 7 deletions(-)
 
-diff --git a/include/linux/kernel.h b/include/linux/kernel.h
-index 446d76a..7e65a55 100644
---- a/include/linux/kernel.h
-+++ b/include/linux/kernel.h
-@@ -232,7 +232,8 @@ static inline u32 reciprocal_scale(u32 val, u32 ep_ro)
+diff --git a/include/linux/uaccess.h b/include/linux/uaccess.h
+index ecd3319..1dfc678 100644
+--- a/include/linux/uaccess.h
++++ b/include/linux/uaccess.h
+@@ -2,20 +2,45 @@
+ #define __LINUX_UACCESS_H__
  
- #if defined(CONFIG_MMU) && \
- 	(defined(CONFIG_PROVE_LOCKING) || defined(CONFIG_DEBUG_ATOMIC_SLEEP))
--void might_fault(void);
-+#define might_fault() __might_fault(__FILE__, __LINE__)
-+void __might_fault(const char *file, int line);
- #else
- static inline void might_fault(void) { }
- #endif
-diff --git a/mm/memory.c b/mm/memory.c
-index 0b3f6c7..563720a 100644
---- a/mm/memory.c
-+++ b/mm/memory.c
-@@ -3686,7 +3686,7 @@ void print_vma_addr(char *prefix, unsigned long ip)
- }
+ #include <linux/preempt.h>
++#include <linux/thread_info.h>
+ #include <asm/uaccess.h>
  
- #if defined(CONFIG_PROVE_LOCKING) || defined(CONFIG_DEBUG_ATOMIC_SLEEP)
--void might_fault(void)
-+void __might_fault(const char *file, int line)
++static __always_inline int pagefault_count(void)
++{
++	return current_thread_info()->pagefault_count;
++}
++
++static __always_inline int *pagefault_count_ptr(void)
++{
++	return &current_thread_info()->pagefault_count;
++}
++
++static __always_inline void pagefault_count_inc(void)
++{
++	(*pagefault_count_ptr())++;
++}
++
++static __always_inline void pagefault_count_dec(void)
++{
++	(*pagefault_count_ptr())--;
++}
++
+ /*
+- * These routines enable/disable the pagefault handler in that
+- * it will not take any locks and go straight to the fixup table.
++ * These routines enable/disable the pagefault handler. If disabled, it will
++ * not take any locks and go straight to the fixup table.
++ *
++ * We increase the preempt and the pagefault count, to be able to distinguish
++ * whether we run in simple atomic context or in a real pagefault_disable()
++ * context.
++ *
++ * For now, after pagefault_disabled() has been called, we run in atomic
++ * context. User access methods will not sleep.
+  *
+- * They have great resemblance to the preempt_disable/enable calls
+- * and in fact they are identical; this is because currently there is
+- * no other way to make the pagefault handlers do this. So we do
+- * disable preemption but we don't necessarily care about that.
+  */
+ static inline void pagefault_disable(void)
  {
+ 	preempt_count_inc();
++	pagefault_count_inc();
  	/*
- 	 * Some code (nfs/sunrpc) uses socket ops on kernel memory while
-@@ -3696,21 +3696,15 @@ void might_fault(void)
- 	 */
- 	if (segment_eq(get_fs(), KERNEL_DS))
- 		return;
--
--	/*
--	 * it would be nicer only to annotate paths which are not under
--	 * pagefault_disable, however that requires a larger audit and
--	 * providing helpers like get_user_atomic.
--	 */
--	if (in_atomic())
-+	if (pagefault_disabled())
- 		return;
--
--	__might_sleep(__FILE__, __LINE__, 0);
--
-+	__might_sleep(file, line, 0);
-+#if defined(CONFIG_DEBUG_ATOMIC_SLEEP)
- 	if (current->mm)
- 		might_lock_read(&current->mm->mmap_sem);
-+#endif
- }
--EXPORT_SYMBOL(might_fault);
-+EXPORT_SYMBOL(__might_fault);
- #endif
+ 	 * make sure to have issued the store before a pagefault
+ 	 * can hit.
+@@ -25,18 +50,24 @@ static inline void pagefault_disable(void)
  
- #if defined(CONFIG_TRANSPARENT_HUGEPAGE) || defined(CONFIG_HUGETLBFS)
+ static inline void pagefault_enable(void)
+ {
+-#ifndef CONFIG_PREEMPT
+ 	/*
+ 	 * make sure to issue those last loads/stores before enabling
+ 	 * the pagefault handler again.
+ 	 */
+ 	barrier();
++	pagefault_count_dec();
++#ifndef CONFIG_PREEMPT
+ 	preempt_count_dec();
+ #else
+ 	preempt_enable();
+ #endif
+ }
+ 
++/*
++ * Is the pagefault handler disabled? If so, user access methods will not sleep.
++ */
++#define pagefault_disabled() (pagefault_count() != 0)
++
+ #ifndef ARCH_HAS_NOCACHE_UACCESS
+ 
+ static inline unsigned long __copy_from_user_inatomic_nocache(void *to,
 -- 
 1.8.5.5
