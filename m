@@ -1,100 +1,198 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e06smtp11.uk.ibm.com ([195.75.94.107]:44808 "EHLO
-	e06smtp11.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757445AbaLJOXq (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 10 Dec 2014 09:23:46 -0500
-Received: from /spool/local
-	by e06smtp11.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <dahi@linux.vnet.ibm.com>;
-	Wed, 10 Dec 2014 14:23:44 -0000
-From: David Hildenbrand <dahi@linux.vnet.ibm.com>
-Subject: [PATCH v2 5/5] uaccess: CONFIG_DEBUG_PAGEFAULT_COUNT to debug pagefault_count
-Date: Wed, 10 Dec 2014 15:23:34 +0100
-Message-ID: <1418221414-60110-6-git-send-email-dahi@linux.vnet.ibm.com>
-In-Reply-To: <1418221414-60110-1-git-send-email-dahi@linux.vnet.ibm.com>
-References: <1418221414-60110-1-git-send-email-dahi@linux.vnet.ibm.com>
+Received: from mail-wg0-f46.google.com ([74.125.82.46]:45733 "EHLO
+	mail-wg0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755862AbaLKJ2P (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 11 Dec 2014 04:28:15 -0500
+Received: by mail-wg0-f46.google.com with SMTP id x13so5858512wgg.19
+        for <linux-arch@vger.kernel.org>; Thu, 11 Dec 2014 01:28:13 -0800 (PST)
+Message-ID: <548963AA.6040305@monstr.eu>
+Date: Thu, 11 Dec 2014 10:28:10 +0100
+From: Michal Simek <monstr@monstr.eu>
+Reply-To: monstr@monstr.eu
+MIME-Version: 1.0
+Subject: Re: [RESENT PATCH] dma-mapping: Add BUG_ON for uninitialized dma_ops
+References: <385664132d1ef60c582b0045afaa36a1895685dc.1415965161.git.michal.simek@xilinx.com>
+In-Reply-To: <385664132d1ef60c582b0045afaa36a1895685dc.1415965161.git.michal.simek@xilinx.com>
+Content-Type: multipart/signed; micalg=pgp-sha1;
+ protocol="application/pgp-signature";
+ boundary="1o6H7k67PHOLL2ETS7uodaeObAwM0IQoV"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: benh@kernel.crashing.org, paulus@samba.org, akpm@linux-foundation.org, heiko.carstens@de.ibm.com, dahi@linux.vnet.ibm.com, schwidefsky@de.ibm.com, borntraeger@de.ibm.com, mst@redhat.com, tglx@linutronix.de, David.Laight@ACULAB.COM, peterz@infradead.org, hughd@google.com, hocko@suse.cz
-Message-ID: <20141210142334.AWjmMN7MaLo7uXOkLwWs0VNkn5nTo-nctAFa6gGfaKA@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Michal Simek <michal.simek@xilinx.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20141211092810.qyvI4MEJ3tpcGESJLRYkkO8kxDyQWGBcCNHq-r5CRdc@z>
 
-This patch introduces CONFIG_DEBUG_PAGEFAULT_COUNT, to detect over-/underflows
-in the pagefault_count resulting from a wrong usage of pagefault_enable() and
-pagefault_disable().
+This is an OpenPGP/MIME signed message (RFC 4880 and 3156)
+--1o6H7k67PHOLL2ETS7uodaeObAwM0IQoV
+Content-Type: text/plain; charset=windows-1252
+Content-Transfer-Encoding: quoted-printable
 
-Signed-off-by: David Hildenbrand <dahi@linux.vnet.ibm.com>
----
- include/linux/uaccess.h |  8 +++++++-
- lib/Kconfig.debug       |  9 +++++++++
- mm/maccess.c            | 11 +++++++++++
- 3 files changed, 27 insertions(+), 1 deletion(-)
+Hi Arnd,
 
-diff --git a/include/linux/uaccess.h b/include/linux/uaccess.h
-index 1dfc678..6ffb90b 100644
---- a/include/linux/uaccess.h
-+++ b/include/linux/uaccess.h
-@@ -20,11 +20,17 @@ static __always_inline void pagefault_count_inc(void)
- 	(*pagefault_count_ptr())++;
- }
- 
--static __always_inline void pagefault_count_dec(void)
-+static __always_inline void __pagefault_count_dec(void)
- {
- 	(*pagefault_count_ptr())--;
- }
- 
-+#ifdef CONFIG_DEBUG_PAGEFAULT_COUNT
-+extern void pagefault_count_dec(void);
-+#else
-+#define pagefault_count_dec() __pagefault_count_dec()
-+#endif
-+
- /*
-  * These routines enable/disable the pagefault handler. If disabled, it will
-  * not take any locks and go straight to the fixup table.
-diff --git a/lib/Kconfig.debug b/lib/Kconfig.debug
-index d780351..9dea6e0 100644
---- a/lib/Kconfig.debug
-+++ b/lib/Kconfig.debug
-@@ -860,6 +860,15 @@ config DEBUG_PREEMPT
- 	  if kernel code uses it in a preemption-unsafe way. Also, the kernel
- 	  will detect preemption count underflows.
- 
-+config DEBUG_PAGEFAULT_COUNT
-+	bool "Debug pagefault_disable / pagefault_enable"
-+	depends on DEBUG_KERNEL
-+	default n
-+	help
-+	  If you say Y here then the kernel will detect pagefault count
-+	  over-/underflows and therefore non-matching pagefault_enable() and
-+	  pagefault_disable() calls.
-+
- menu "Lock Debugging (spinlocks, mutexes, etc...)"
- 
- config DEBUG_RT_MUTEXES
-diff --git a/mm/maccess.c b/mm/maccess.c
-index d53adf9..4b72aa1 100644
---- a/mm/maccess.c
-+++ b/mm/maccess.c
-@@ -5,6 +5,17 @@
- #include <linux/mm.h>
- #include <linux/uaccess.h>
- 
-+#ifdef CONFIG_DEBUG_PAGEFAULT_COUNT
-+void pagefault_count_dec(void)
-+{
-+	__pagefault_count_dec();
-+
-+	/* underflow / previous overflow ? */
-+	WARN_ON(pagefault_count() < 0);
-+}
-+EXPORT_SYMBOL(pagefault_count_dec);
-+#endif
-+
- /**
-  * probe_kernel_read(): safely attempt to read from a location
-  * @dst: pointer to the buffer that shall take the data
--- 
-1.8.5.5
+any update on this one?
 
+Thanks,
+Michal
+
+On 11/14/2014 12:39 PM, Michal Simek wrote:
+> Check that dma_ops are initialized correctly.
+>=20
+> Signed-off-by: Michal Simek <michal.simek@xilinx.com>
+> ---
+>=20
+> Functions dma_mmap_attrs(), dma_get_sgtable_attrs()
+> already have this checking.
+>=20
+> The whole discussion was originally here:
+> https://lkml.org/lkml/2013/6/3/255
+>=20
+> We have middle solution where some functions have this checking
+> and some not. Based on get_maintainer scripts Arnd should do that decis=
+ion
+> to accept or reject this patch.
+>=20
+> ---
+>  include/asm-generic/dma-mapping-common.h | 12 ++++++++++++
+>  1 file changed, 12 insertions(+)
+>=20
+> diff --git a/include/asm-generic/dma-mapping-common.h b/include/asm-gen=
+eric/dma-mapping-common.h
+> index de8bf89940f8..d430cabd2975 100644
+> --- a/include/asm-generic/dma-mapping-common.h
+> +++ b/include/asm-generic/dma-mapping-common.h
+> @@ -16,6 +16,7 @@ static inline dma_addr_t dma_map_single_attrs(struct =
+device *dev, void *ptr,
+>  	dma_addr_t addr;
+>=20
+>  	kmemcheck_mark_initialized(ptr, size);
+> +	BUG_ON(!ops);
+>  	BUG_ON(!valid_dma_direction(dir));
+>  	addr =3D ops->map_page(dev, virt_to_page(ptr),
+>  			     (unsigned long)ptr & ~PAGE_MASK, size,
+> @@ -33,6 +34,7 @@ static inline void dma_unmap_single_attrs(struct devi=
+ce *dev, dma_addr_t addr,
+>  {
+>  	struct dma_map_ops *ops =3D get_dma_ops(dev);
+>=20
+> +	BUG_ON(!ops);
+>  	BUG_ON(!valid_dma_direction(dir));
+>  	if (ops->unmap_page)
+>  		ops->unmap_page(dev, addr, size, dir, attrs);
+> @@ -49,6 +51,7 @@ static inline int dma_map_sg_attrs(struct device *dev=
+, struct scatterlist *sg,
+>=20
+>  	for_each_sg(sg, s, nents, i)
+>  		kmemcheck_mark_initialized(sg_virt(s), s->length);
+> +	BUG_ON(!ops);
+>  	BUG_ON(!valid_dma_direction(dir));
+>  	ents =3D ops->map_sg(dev, sg, nents, dir, attrs);
+>  	debug_dma_map_sg(dev, sg, nents, ents, dir);
+> @@ -62,6 +65,7 @@ static inline void dma_unmap_sg_attrs(struct device *=
+dev, struct scatterlist *sg
+>  {
+>  	struct dma_map_ops *ops =3D get_dma_ops(dev);
+>=20
+> +	BUG_ON(!ops);
+>  	BUG_ON(!valid_dma_direction(dir));
+>  	debug_dma_unmap_sg(dev, sg, nents, dir);
+>  	if (ops->unmap_sg)
+> @@ -76,6 +80,7 @@ static inline dma_addr_t dma_map_page(struct device *=
+dev, struct page *page,
+>  	dma_addr_t addr;
+>=20
+>  	kmemcheck_mark_initialized(page_address(page) + offset, size);
+> +	BUG_ON(!ops);
+>  	BUG_ON(!valid_dma_direction(dir));
+>  	addr =3D ops->map_page(dev, page, offset, size, dir, NULL);
+>  	debug_dma_map_page(dev, page, offset, size, dir, addr, false);
+> @@ -88,6 +93,7 @@ static inline void dma_unmap_page(struct device *dev,=
+ dma_addr_t addr,
+>  {
+>  	struct dma_map_ops *ops =3D get_dma_ops(dev);
+>=20
+> +	BUG_ON(!ops);
+>  	BUG_ON(!valid_dma_direction(dir));
+>  	if (ops->unmap_page)
+>  		ops->unmap_page(dev, addr, size, dir, NULL);
+> @@ -100,6 +106,7 @@ static inline void dma_sync_single_for_cpu(struct d=
+evice *dev, dma_addr_t addr,
+>  {
+>  	struct dma_map_ops *ops =3D get_dma_ops(dev);
+>=20
+> +	BUG_ON(!ops);
+>  	BUG_ON(!valid_dma_direction(dir));
+>  	if (ops->sync_single_for_cpu)
+>  		ops->sync_single_for_cpu(dev, addr, size, dir);
+> @@ -112,6 +119,7 @@ static inline void dma_sync_single_for_device(struc=
+t device *dev,
+>  {
+>  	struct dma_map_ops *ops =3D get_dma_ops(dev);
+>=20
+> +	BUG_ON(!ops);
+>  	BUG_ON(!valid_dma_direction(dir));
+>  	if (ops->sync_single_for_device)
+>  		ops->sync_single_for_device(dev, addr, size, dir);
+> @@ -126,6 +134,7 @@ static inline void dma_sync_single_range_for_cpu(st=
+ruct device *dev,
+>  {
+>  	const struct dma_map_ops *ops =3D get_dma_ops(dev);
+>=20
+> +	BUG_ON(!ops);
+>  	BUG_ON(!valid_dma_direction(dir));
+>  	if (ops->sync_single_for_cpu)
+>  		ops->sync_single_for_cpu(dev, addr + offset, size, dir);
+> @@ -140,6 +149,7 @@ static inline void dma_sync_single_range_for_device=
+(struct device *dev,
+>  {
+>  	const struct dma_map_ops *ops =3D get_dma_ops(dev);
+>=20
+> +	BUG_ON(!ops);
+>  	BUG_ON(!valid_dma_direction(dir));
+>  	if (ops->sync_single_for_device)
+>  		ops->sync_single_for_device(dev, addr + offset, size, dir);
+> @@ -152,6 +162,7 @@ dma_sync_sg_for_cpu(struct device *dev, struct scat=
+terlist *sg,
+>  {
+>  	struct dma_map_ops *ops =3D get_dma_ops(dev);
+>=20
+> +	BUG_ON(!ops);
+>  	BUG_ON(!valid_dma_direction(dir));
+>  	if (ops->sync_sg_for_cpu)
+>  		ops->sync_sg_for_cpu(dev, sg, nelems, dir);
+> @@ -164,6 +175,7 @@ dma_sync_sg_for_device(struct device *dev, struct s=
+catterlist *sg,
+>  {
+>  	struct dma_map_ops *ops =3D get_dma_ops(dev);
+>=20
+> +	BUG_ON(!ops);
+>  	BUG_ON(!valid_dma_direction(dir));
+>  	if (ops->sync_sg_for_device)
+>  		ops->sync_sg_for_device(dev, sg, nelems, dir);
+> --
+> 1.8.2.3
+>=20
+
+
+--=20
+Michal Simek, Ing. (M.Eng), OpenPGP -> KeyID: FE3D1F91
+w: www.monstr.eu p: +42-0-721842854
+Maintainer of Linux kernel - Microblaze cpu - http://www.monstr.eu/fdt/
+Maintainer of Linux kernel - Xilinx Zynq ARM architecture
+Microblaze U-BOOT custodian and responsible for u-boot arm zynq platform
+
+
+
+--1o6H7k67PHOLL2ETS7uodaeObAwM0IQoV
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: OpenPGP digital signature
+Content-Disposition: attachment; filename="signature.asc"
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.10 (GNU/Linux)
+
+iEYEARECAAYFAlSJY6sACgkQykllyylKDCEP2QCdE6y7QFxxnzBGcWHw1XTDytxD
+JF8AnRCJsCpuMEGhdBVHIEdwkt8rGfHE
+=gPvx
+-----END PGP SIGNATURE-----
+
+--1o6H7k67PHOLL2ETS7uodaeObAwM0IQoV--
