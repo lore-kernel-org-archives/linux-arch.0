@@ -1,117 +1,191 @@
-From: Alexander Duyck <alexander.duyck@gmail.com>
-Subject: Re: [PATCH v7 0/4] arch: Add lightweight memory barriers for coherent
- memory access
-Date: Wed, 10 Dec 2014 21:28:39 -0800
-Message-ID: <54892B87.3020909@gmail.com>
-References: <20141125203310.8240.27370.stgit@ahduyck-server>
+From: Michal Simek <monstr@monstr.eu>
+Subject: Re: [RESENT PATCH] dma-mapping: Add BUG_ON for uninitialized dma_ops
+Date: Thu, 11 Dec 2014 10:28:10 +0100
+Message-ID: <548963AA.6040305@monstr.eu>
+References: <385664132d1ef60c582b0045afaa36a1895685dc.1415965161.git.michal.simek@xilinx.com>
+Reply-To: monstr@monstr.eu
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pd0-f171.google.com ([209.85.192.171]:35819 "EHLO
-	mail-pd0-f171.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757052AbaLKF2l (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 11 Dec 2014 00:28:41 -0500
-In-Reply-To: <20141125203310.8240.27370.stgit@ahduyck-server>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Alexander Duyck <alexander.h.duyck@redhat.com>, linux-arch@vger.kernel.org, netdev@vger.kernel.org, linux-kernel@vger.kernel.org, arnd@arndb.de, davem@davemloft.net
-Cc: mathieu.desnoyers@polymtl.ca, peterz@infradead.org, benh@kernel.crashing.org, heiko.carstens@de.ibm.com, mingo@kernel.org, mikey@neuling.org, linux@arm.linux.org.uk, donald.c.skidmore@intel.com, matthew.vick@intel.com, geert@linux-m68k.org, jeffrey.t.kirsher@intel.com, romieu@fr.zoreil.com, paulmck@linux.vnet.ibm.com, nic_swsd@realtek.com, will.deacon@arm.com, michael@ellerman.id.au, tony.luck@intel.com, torvalds@linux-foundation.org, oleg@redhat.com, schwidefsky@de.ibm.com, fweisbec@gmail.com
+Content-Type: multipart/signed; micalg=pgp-sha1;
+ protocol="application/pgp-signature";
+ boundary="1o6H7k67PHOLL2ETS7uodaeObAwM0IQoV"
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <385664132d1ef60c582b0045afaa36a1895685dc.1415965161.git.michal.simek@xilinx.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Michal Simek <michal.simek@xilinx.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On 11/25/2014 12:35 PM, Alexander Duyck wrote:
-> These patches introduce two new primitives for synchronizing cache coherent
-> memory writes and reads.  These two new primitives are:
-> 
-> 	dma_rmb()
-> 	dma_wmb()
-> 
-> The first patch cleans up some unnecessary overhead related to the
-> definition of read_barrier_depends, smp_read_barrier_depends, and comments
-> related to the barrier.
-> 
-> The second patch adds the primitives for the applicable architectures and
-> asm-generic.
-> 
-> The third patch adds the barriers to r8169 which turns out to be a good
-> example of where the new barriers might be useful as they have full
-> rmb()/wmb() barriers ordering accesses to the descriptors and the DescOwn
-> bit.
-> 
-> The fourth patch adds support for coherent_rmb() to the Intel fm10k, igb,
-> and ixgbe drivers.  Testing with the ixgbe driver has shown a processing
-> time reduction of at least 7ns per 64B frame on a Core i7-4930K.
-> 
-> This patch series is essentially the v7 for:
-> v4-6:	Add lightweight memory barriers for coherent memory access
-> v3:	Add lightweight memory barriers fast_rmb() and fast_wmb()
-> v2:	Introduce load_acquire() and store_release()
-> v1:	Introduce read_acquire()
-> 
-> The key changes in this patch series versus the earlier patches are:
-> v7:
-> 	- Dropped test/debug patch that was accidentally slipped in
-> v6:
-> 	- Replaced "memory based device I/O" with "consistent memory" in
-> 	  docs
-> 	- Added reference to DMA-API.txt to explain consistent memory
-> v5:
-> 	- Renamed barriers dma_rmb and dma_wmb
-> 	- Undid smp_wmb changes in x86 and PowerPC
-> 	- Defined smp_rmb as __lwsync for SMP case on PowerPC
-> v4:
-> 	- Renamed barriers coherent_rmb and coherent_wmb
-> 	- Added smp_lwsync for use in smp_load_acquire/smp_store_release
-> v3:
-> 	- Moved away from acquire()/store() and instead focused on barriers
-> 	- Added cleanup of read_barrier_depends
-> 	- Added change in r8169 to fix cur_tx/DescOwn ordering
-> 	- Simplified changes to just replacing/moving barriers in r8169
-> 	- Added update to documentation with code example
-> v2:
-> 	- Renamed read_acquire() to be consistent with smp_load_acquire()
-> 	- Changed barrier used to be consistent with smp_load_acquire()
-> 	- Updated PowerPC code to use __lwsync based on IBM article
-> 	- Added store_release() as this is a viable use case for drivers
-> 	- Added r8169 patch which is able to fully use primitives
-> 	- Added fm10k/igb/ixgbe patch which is able to test performance
-> 
+This is an OpenPGP/MIME signed message (RFC 4880 and 3156)
+--1o6H7k67PHOLL2ETS7uodaeObAwM0IQoV
+Content-Type: text/plain; charset=windows-1252
+Content-Transfer-Encoding: quoted-printable
+
+Hi Arnd,
+
+any update on this one?
+
+Thanks,
+Michal
+
+On 11/14/2014 12:39 PM, Michal Simek wrote:
+> Check that dma_ops are initialized correctly.
+>=20
+> Signed-off-by: Michal Simek <michal.simek@xilinx.com>
 > ---
-> 
-> Alexander Duyck (4):
->       arch: Cleanup read_barrier_depends() and comments
->       arch: Add lightweight memory barriers dma_rmb() and dma_wmb()
->       r8169: Use dma_rmb() and dma_wmb() for DescOwn checks
->       fm10k/igb/ixgbe: Use dma_rmb on Rx descriptor reads
-> 
-> 
->  Documentation/memory-barriers.txt             |   42 +++++++++++++++
->  arch/alpha/include/asm/barrier.h              |   51 ++++++++++++++++++
->  arch/arm/include/asm/barrier.h                |    4 +
->  arch/arm64/include/asm/barrier.h              |    3 +
->  arch/blackfin/include/asm/barrier.h           |   51 ++++++++++++++++++
->  arch/ia64/include/asm/barrier.h               |   25 ++++-----
->  arch/metag/include/asm/barrier.h              |   19 ++++---
->  arch/mips/include/asm/barrier.h               |   61 ++--------------------
->  arch/powerpc/include/asm/barrier.h            |   19 ++++---
->  arch/s390/include/asm/barrier.h               |    7 ++-
->  arch/sparc/include/asm/barrier_64.h           |    7 ++-
->  arch/x86/include/asm/barrier.h                |   70 ++++---------------------
->  arch/x86/um/asm/barrier.h                     |   20 ++++---
->  drivers/net/ethernet/intel/fm10k/fm10k_main.c |    6 +-
->  drivers/net/ethernet/intel/igb/igb_main.c     |    6 +-
->  drivers/net/ethernet/intel/ixgbe/ixgbe_main.c |    9 +--
->  drivers/net/ethernet/realtek/r8169.c          |   29 ++++++++--
->  include/asm-generic/barrier.h                 |    8 +++
->  18 files changed, 258 insertions(+), 179 deletions(-)
-> 
+>=20
+> Functions dma_mmap_attrs(), dma_get_sgtable_attrs()
+> already have this checking.
+>=20
+> The whole discussion was originally here:
+> https://lkml.org/lkml/2013/6/3/255
+>=20
+> We have middle solution where some functions have this checking
+> and some not. Based on get_maintainer scripts Arnd should do that decis=
+ion
+> to accept or reject this patch.
+>=20
+> ---
+>  include/asm-generic/dma-mapping-common.h | 12 ++++++++++++
+>  1 file changed, 12 insertions(+)
+>=20
+> diff --git a/include/asm-generic/dma-mapping-common.h b/include/asm-gen=
+eric/dma-mapping-common.h
+> index de8bf89940f8..d430cabd2975 100644
+> --- a/include/asm-generic/dma-mapping-common.h
+> +++ b/include/asm-generic/dma-mapping-common.h
+> @@ -16,6 +16,7 @@ static inline dma_addr_t dma_map_single_attrs(struct =
+device *dev, void *ptr,
+>  	dma_addr_t addr;
+>=20
+>  	kmemcheck_mark_initialized(ptr, size);
+> +	BUG_ON(!ops);
+>  	BUG_ON(!valid_dma_direction(dir));
+>  	addr =3D ops->map_page(dev, virt_to_page(ptr),
+>  			     (unsigned long)ptr & ~PAGE_MASK, size,
+> @@ -33,6 +34,7 @@ static inline void dma_unmap_single_attrs(struct devi=
+ce *dev, dma_addr_t addr,
+>  {
+>  	struct dma_map_ops *ops =3D get_dma_ops(dev);
+>=20
+> +	BUG_ON(!ops);
+>  	BUG_ON(!valid_dma_direction(dir));
+>  	if (ops->unmap_page)
+>  		ops->unmap_page(dev, addr, size, dir, attrs);
+> @@ -49,6 +51,7 @@ static inline int dma_map_sg_attrs(struct device *dev=
+, struct scatterlist *sg,
+>=20
+>  	for_each_sg(sg, s, nents, i)
+>  		kmemcheck_mark_initialized(sg_virt(s), s->length);
+> +	BUG_ON(!ops);
+>  	BUG_ON(!valid_dma_direction(dir));
+>  	ents =3D ops->map_sg(dev, sg, nents, dir, attrs);
+>  	debug_dma_map_sg(dev, sg, nents, ents, dir);
+> @@ -62,6 +65,7 @@ static inline void dma_unmap_sg_attrs(struct device *=
+dev, struct scatterlist *sg
+>  {
+>  	struct dma_map_ops *ops =3D get_dma_ops(dev);
+>=20
+> +	BUG_ON(!ops);
+>  	BUG_ON(!valid_dma_direction(dir));
+>  	debug_dma_unmap_sg(dev, sg, nents, dir);
+>  	if (ops->unmap_sg)
+> @@ -76,6 +80,7 @@ static inline dma_addr_t dma_map_page(struct device *=
+dev, struct page *page,
+>  	dma_addr_t addr;
+>=20
+>  	kmemcheck_mark_initialized(page_address(page) + offset, size);
+> +	BUG_ON(!ops);
+>  	BUG_ON(!valid_dma_direction(dir));
+>  	addr =3D ops->map_page(dev, page, offset, size, dir, NULL);
+>  	debug_dma_map_page(dev, page, offset, size, dir, addr, false);
+> @@ -88,6 +93,7 @@ static inline void dma_unmap_page(struct device *dev,=
+ dma_addr_t addr,
+>  {
+>  	struct dma_map_ops *ops =3D get_dma_ops(dev);
+>=20
+> +	BUG_ON(!ops);
+>  	BUG_ON(!valid_dma_direction(dir));
+>  	if (ops->unmap_page)
+>  		ops->unmap_page(dev, addr, size, dir, NULL);
+> @@ -100,6 +106,7 @@ static inline void dma_sync_single_for_cpu(struct d=
+evice *dev, dma_addr_t addr,
+>  {
+>  	struct dma_map_ops *ops =3D get_dma_ops(dev);
+>=20
+> +	BUG_ON(!ops);
+>  	BUG_ON(!valid_dma_direction(dir));
+>  	if (ops->sync_single_for_cpu)
+>  		ops->sync_single_for_cpu(dev, addr, size, dir);
+> @@ -112,6 +119,7 @@ static inline void dma_sync_single_for_device(struc=
+t device *dev,
+>  {
+>  	struct dma_map_ops *ops =3D get_dma_ops(dev);
+>=20
+> +	BUG_ON(!ops);
+>  	BUG_ON(!valid_dma_direction(dir));
+>  	if (ops->sync_single_for_device)
+>  		ops->sync_single_for_device(dev, addr, size, dir);
+> @@ -126,6 +134,7 @@ static inline void dma_sync_single_range_for_cpu(st=
+ruct device *dev,
+>  {
+>  	const struct dma_map_ops *ops =3D get_dma_ops(dev);
+>=20
+> +	BUG_ON(!ops);
+>  	BUG_ON(!valid_dma_direction(dir));
+>  	if (ops->sync_single_for_cpu)
+>  		ops->sync_single_for_cpu(dev, addr + offset, size, dir);
+> @@ -140,6 +149,7 @@ static inline void dma_sync_single_range_for_device=
+(struct device *dev,
+>  {
+>  	const struct dma_map_ops *ops =3D get_dma_ops(dev);
+>=20
+> +	BUG_ON(!ops);
+>  	BUG_ON(!valid_dma_direction(dir));
+>  	if (ops->sync_single_for_device)
+>  		ops->sync_single_for_device(dev, addr + offset, size, dir);
+> @@ -152,6 +162,7 @@ dma_sync_sg_for_cpu(struct device *dev, struct scat=
+terlist *sg,
+>  {
+>  	struct dma_map_ops *ops =3D get_dma_ops(dev);
+>=20
+> +	BUG_ON(!ops);
+>  	BUG_ON(!valid_dma_direction(dir));
+>  	if (ops->sync_sg_for_cpu)
+>  		ops->sync_sg_for_cpu(dev, sg, nelems, dir);
+> @@ -164,6 +175,7 @@ dma_sync_sg_for_device(struct device *dev, struct s=
+catterlist *sg,
+>  {
+>  	struct dma_map_ops *ops =3D get_dma_ops(dev);
+>=20
+> +	BUG_ON(!ops);
+>  	BUG_ON(!valid_dma_direction(dir));
+>  	if (ops->sync_sg_for_device)
+>  		ops->sync_sg_for_device(dev, sg, nelems, dir);
 > --
+> 1.8.2.3
+>=20
 
-It occurs to me that I never got a sign off from any of the maintainers
-on getting this pulled in.
 
-Since the merge window is open I was wondering which tree I should make
-sure these patches apply to and who will be the one to pull them in?
-Since I was modifying network drivers should I resubmit them for netdev,
-or should I submit them for asm-generic or some other tree?
+--=20
+Michal Simek, Ing. (M.Eng), OpenPGP -> KeyID: FE3D1F91
+w: www.monstr.eu p: +42-0-721842854
+Maintainer of Linux kernel - Microblaze cpu - http://www.monstr.eu/fdt/
+Maintainer of Linux kernel - Xilinx Zynq ARM architecture
+Microblaze U-BOOT custodian and responsible for u-boot arm zynq platform
 
-- Alex
+
+
+--1o6H7k67PHOLL2ETS7uodaeObAwM0IQoV
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: OpenPGP digital signature
+Content-Disposition: attachment; filename="signature.asc"
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.10 (GNU/Linux)
+
+iEYEARECAAYFAlSJY6sACgkQykllyylKDCEP2QCdE6y7QFxxnzBGcWHw1XTDytxD
+JF8AnRCJsCpuMEGhdBVHIEdwkt8rGfHE
+=gPvx
+-----END PGP SIGNATURE-----
+
+--1o6H7k67PHOLL2ETS7uodaeObAwM0IQoV--
