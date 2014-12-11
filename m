@@ -1,7 +1,7 @@
 From: Christian Borntraeger <borntraeger@de.ibm.com>
-Subject: [PATCH 6/8] arm64/spinlock: Replace ACCESS_ONCE READ_ONCE
-Date: Thu, 11 Dec 2014 15:05:09 +0100
-Message-ID: <1418306712-17245-7-git-send-email-borntraeger@de.ibm.com>
+Subject: [PATCH 8/8] s390/kvm: REPLACE barrier fixup with READ_ONCE
+Date: Thu, 11 Dec 2014 15:05:11 +0100
+Message-ID: <1418306712-17245-9-git-send-email-borntraeger@de.ibm.com>
 References: <1418306712-17245-1-git-send-email-borntraeger@de.ibm.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1418306712-17245-1-git-send-email-borntraeger@de.ibm.com>
@@ -15,32 +15,68 @@ example gcc 4.6 and 4.7 might remove the volatile tag for such
 accesses during the SRA (scalar replacement of aggregates) step
 (https://gcc.gnu.org/bugzilla/show_bug.cgi?id=58145)
 
-Change the spinlock code to replace ACCESS_ONCE with READ_ONCE.
+Commit 1365039d0cb3 ("KVM: s390: Fix ipte locking") replace
+ACCESS_ONCE with barriers. Lets use READ_ONCE instead.
 
 Signed-off-by: Christian Borntraeger <borntraeger@de.ibm.com>
 Acked-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
 ---
- arch/arm64/include/asm/spinlock.h | 4 ++--
- 1 file changed, 2 insertions(+), 2 deletions(-)
+ arch/s390/kvm/gaccess.c | 18 ++++++------------
+ 1 file changed, 6 insertions(+), 12 deletions(-)
 
-diff --git a/arch/arm64/include/asm/spinlock.h b/arch/arm64/include/asm/spinlock.h
-index c45b7b1..cee1287 100644
---- a/arch/arm64/include/asm/spinlock.h
-+++ b/arch/arm64/include/asm/spinlock.h
-@@ -99,12 +99,12 @@ static inline int arch_spin_value_unlocked(arch_spinlock_t lock)
+diff --git a/arch/s390/kvm/gaccess.c b/arch/s390/kvm/gaccess.c
+index 6dc0ad9..8f195fa 100644
+--- a/arch/s390/kvm/gaccess.c
++++ b/arch/s390/kvm/gaccess.c
+@@ -229,12 +229,10 @@ static void ipte_lock_simple(struct kvm_vcpu *vcpu)
+ 		goto out;
+ 	ic = &vcpu->kvm->arch.sca->ipte_control;
+ 	do {
+-		old = *ic;
+-		barrier();
++		old = READ_ONCE(*ic);
+ 		while (old.k) {
+ 			cond_resched();
+-			old = *ic;
+-			barrier();
++			old = READ_ONCE(*ic);
+ 		}
+ 		new = old;
+ 		new.k = 1;
+@@ -253,8 +251,7 @@ static void ipte_unlock_simple(struct kvm_vcpu *vcpu)
+ 		goto out;
+ 	ic = &vcpu->kvm->arch.sca->ipte_control;
+ 	do {
+-		old = *ic;
+-		barrier();
++		old = READ_ONCE(*ic);
+ 		new = old;
+ 		new.k = 0;
+ 	} while (cmpxchg(&ic->val, old.val, new.val) != old.val);
+@@ -269,12 +266,10 @@ static void ipte_lock_siif(struct kvm_vcpu *vcpu)
  
- static inline int arch_spin_is_locked(arch_spinlock_t *lock)
- {
--	return !arch_spin_value_unlocked(ACCESS_ONCE(*lock));
-+	return !arch_spin_value_unlocked(READ_ONCE(*lock));
- }
+ 	ic = &vcpu->kvm->arch.sca->ipte_control;
+ 	do {
+-		old = *ic;
+-		barrier();
++		old = READ_ONCE(*ic);
+ 		while (old.kg) {
+ 			cond_resched();
+-			old = *ic;
+-			barrier();
++			old = READ_ONCE(*ic);
+ 		}
+ 		new = old;
+ 		new.k = 1;
+@@ -288,8 +283,7 @@ static void ipte_unlock_siif(struct kvm_vcpu *vcpu)
  
- static inline int arch_spin_is_contended(arch_spinlock_t *lock)
- {
--	arch_spinlock_t lockval = ACCESS_ONCE(*lock);
-+	arch_spinlock_t lockval = READ_ONCE(*lock);
- 	return (lockval.next - lockval.owner) > 1;
- }
- #define arch_spin_is_contended	arch_spin_is_contended
+ 	ic = &vcpu->kvm->arch.sca->ipte_control;
+ 	do {
+-		old = *ic;
+-		barrier();
++		old = READ_ONCE(*ic);
+ 		new = old;
+ 		new.kh--;
+ 		if (!new.kh)
 -- 
 1.9.3
