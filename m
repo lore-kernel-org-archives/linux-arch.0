@@ -1,7 +1,7 @@
 From: Christian Borntraeger <borntraeger@de.ibm.com>
-Subject: [PATCH 4/8] x86/gup: Replace ACCESS_ONCE with READ_ONCE
-Date: Thu, 11 Dec 2014 15:05:07 +0100
-Message-ID: <1418306712-17245-5-git-send-email-borntraeger@de.ibm.com>
+Subject: [PATCH 3.20] kernel: tighten rules for ACCESS ONCE
+Date: Thu, 11 Dec 2014 15:05:12 +0100
+Message-ID: <1418306712-17245-10-git-send-email-borntraeger@de.ibm.com>
 References: <1418306712-17245-1-git-send-email-borntraeger@de.ibm.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1418306712-17245-1-git-send-email-borntraeger@de.ibm.com>
@@ -10,31 +10,49 @@ To: linux-kernel@vger.kernel.org
 Cc: linux-arch@vger.kernel.org, paulmck@linux.vnet.ibm.com, torvalds@linux-foundation.org, George Spelvin <linux@horizon.com>, Christian Borntraeger <borntraeger@de.ibm.com>
 List-Id: linux-arch.vger.kernel.org
 
-ACCESS_ONCE does not work reliably on non-scalar types. For
-example gcc 4.6 and 4.7 might remove the volatile tag for such
-accesses during the SRA (scalar replacement of aggregates) step
-(https://gcc.gnu.org/bugzilla/show_bug.cgi?id=58145)
-
-Change the gup code to replace ACCESS_ONCE with READ_ONCE.
+Now that all non-scalar users of ACCESS_ONCE have been converted
+to READ_ONCE or ASSIGN once, lets tighten ACCESS_ONCE to only
+work on scalar types.
+This variant was proposed by Alexei Starovoitov.
 
 Signed-off-by: Christian Borntraeger <borntraeger@de.ibm.com>
-Acked-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
+Reviewed-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
 ---
- arch/x86/mm/gup.c | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ include/linux/compiler.h | 21 ++++++++++++++++-----
+ 1 file changed, 16 insertions(+), 5 deletions(-)
 
-diff --git a/arch/x86/mm/gup.c b/arch/x86/mm/gup.c
-index 207d9aef..d754782 100644
---- a/arch/x86/mm/gup.c
-+++ b/arch/x86/mm/gup.c
-@@ -15,7 +15,7 @@
- static inline pte_t gup_get_pte(pte_t *ptep)
- {
- #ifndef CONFIG_X86_PAE
--	return ACCESS_ONCE(*ptep);
-+	return READ_ONCE(*ptep);
- #else
- 	/*
- 	 * With get_user_pages_fast, we walk down the pagetables without taking
+diff --git a/include/linux/compiler.h b/include/linux/compiler.h
+index 1437f02..6253521 100644
+--- a/include/linux/compiler.h
++++ b/include/linux/compiler.h
+@@ -443,12 +443,23 @@ static __always_inline void __assign_once_size(volatile void *p, void *res, int
+  * to make the compiler aware of ordering is to put the two invocations of
+  * ACCESS_ONCE() in different C statements.
+  *
+- * This macro does absolutely -nothing- to prevent the CPU from reordering,
+- * merging, or refetching absolutely anything at any time.  Its main intended
+- * use is to mediate communication between process-level code and irq/NMI
+- * handlers, all running on the same CPU.
++ * ACCESS_ONCE will only work on scalar types. For union types, ACCESS_ONCE
++ * on a union member will work as long as the size of the member matches the
++ * size of the union and the size is smaller than word size.
++ *
++ * The major use cases of ACCESS_ONCE used to be (1) Mediating communication
++ * between process-level code and irq/NMI handlers, all running on the same CPU,
++ * and (2) Ensuring that the compiler does not  fold, spindle, or otherwise
++ * mutilate accesses that either do not require ordering or that interact
++ * with an explicit memory barrier or atomic instruction that provides the
++ * required ordering.
++ *
++ * If possible use READ_ONCE/ASSIGN_ONCE instead.
+  */
+-#define ACCESS_ONCE(x) (*(volatile typeof(x) *)&(x))
++#define __ACCESS_ONCE(x) ({ \
++	 __maybe_unused typeof(x) __var = 0; \
++	(volatile typeof(x) *)&(x); })
++#define ACCESS_ONCE(x) (*__ACCESS_ONCE(x))
+ 
+ /* Ignore/forbid kprobes attach on very low level functions marked by this attribute: */
+ #ifdef CONFIG_KPROBES
 -- 
 1.9.3
