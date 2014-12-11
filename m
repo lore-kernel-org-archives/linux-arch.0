@@ -1,123 +1,36 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga11.intel.com ([192.55.52.93]:56316 "EHLO mga11.intel.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S933815AbaLKVA3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 11 Dec 2014 16:00:29 -0500
-From: "Skidmore, Donald C" <donald.c.skidmore@intel.com>
-Subject: RE: [PATCH v7 0/4] arch: Add lightweight memory barriers for
- coherent memory access
-Date: Thu, 11 Dec 2014 21:00:02 +0000
-Message-ID: <F6FB0E698C9B3143BDF729DF222866469126E75A@ORSMSX110.amr.corp.intel.com>
-References: <20141125203310.8240.27370.stgit@ahduyck-server>
- <54892B87.3020909@gmail.com>
-In-Reply-To: <54892B87.3020909@gmail.com>
-Content-Language: en-US
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
+Received: from mail-qg0-f48.google.com ([209.85.192.48]:51285 "EHLO
+	mail-qg0-f48.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S965499AbaLKVde (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 11 Dec 2014 16:33:34 -0500
 MIME-Version: 1.0
+In-Reply-To: <20141211.153204.228153607927530694.davem@davemloft.net>
+References: <20141125203310.8240.27370.stgit@ahduyck-server>
+	<54892B87.3020909@gmail.com>
+	<20141211.153204.228153607927530694.davem@davemloft.net>
+Date: Thu, 11 Dec 2014 13:33:32 -0800
+Message-ID: <CA+55aFxE-zT9De8A-nwqtPiVn2ON19go76ui6buYskOU3L3a7g@mail.gmail.com>
+Subject: Re: [PATCH v7 0/4] arch: Add lightweight memory barriers for coherent
+ memory access
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Alexander Duyck <alexander.duyck@gmail.com>, Alexander Duyck <alexander.h.duyck@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "netdev@vger.kernel.org" <netdev@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "arnd@arndb.de" <arnd@arndb.de>, "davem@davemloft.net" <davem@davemloft.net>
-Cc: "mathieu.desnoyers@polymtl.ca" <mathieu.desnoyers@polymtl.ca>, "peterz@infradead.org" <peterz@infradead.org>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, "heiko.carstens@de.ibm.com" <heiko.carstens@de.ibm.com>, "mingo@kernel.org" <mingo@kernel.org>, "mikey@neuling.org" <mikey@neuling.org>, "linux@arm.linux.org.uk" <linux@arm.linux.org.uk>, "Vick, Matthew" <matthew.vick@intel.com>, "geert@linux-m68k.org" <geert@linux-m68k.org>, "Kirsher, Jeffrey T" <jeffrey.t.kirsher@intel.com>, "romieu@fr.zoreil.com" <romieu@fr.zoreil.com>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>, "nic_swsd@realtek.com" <nic_swsd@realtek.com>, "will.deacon@arm.com" <will.deacon@arm.com>, "michael@ellerman.id.au" <michael@ellerman.id.au>, "Luck, Tony" <tony.luck@intel.com>, "torvalds@linux-foundation.org" <torvalds@linux-foundation.org>, "oleg@redhat.com" <oleg@redhat.com>, "schwidefsky@de.ibm.com" <schwidefsky@de.ibm.com>, "fweisbec@gmail.com" <fweisbec@gmail.com>
-Message-ID: <20141211210002.gUkT4FX4JCtg9a58xmEthOEvLJ-h2cj9mlRspj8v8Dk@z>
+To: David Miller <davem@davemloft.net>
+Cc: Alexander Duyck <alexander.duyck@gmail.com>, Alexander Duyck <alexander.h.duyck@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Network Development <netdev@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Mathieu Desnoyers <mathieu.desnoyers@polymtl.ca>, Peter Zijlstra <peterz@infradead.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, Ingo Molnar <mingo@kernel.org>, Michael Neuling <mikey@neuling.org>, Russell King - ARM Linux <linux@arm.linux.org.uk>, donald.c.skidmore@intel.com, matthew.vick@intel.com, Geert Uytterhoeven <geert@linux-m68k.org>, Jeff Kirsher <jeffrey.t.kirsher@intel.com>, Francois Romieu <romieu@fr.zoreil.com>, Paul McKenney <paulmck@linux.vnet.ibm.com>, nic_swsd@realtek.com, Will Deacon <will.deacon@arm.com>, Michael Ellerman <michael@ellerman.id.au>, Tony Luck <tony.luck@intel.com>, Oleg Nesterov <oleg@redhat.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, =?UTF-8?B?RnLDqWTDqXJpYyBXZWlzYmVja2Vy?= <fweisbec@gmail.com>
+Message-ID: <20141211213332.n88kEviDyf9p829WUZsq4FS2GQ7rdHUGwoEiKDcRuf4@z>
 
-PiAtLS0tLU9yaWdpbmFsIE1lc3NhZ2UtLS0tLQ0KPiBGcm9tOiBBbGV4YW5kZXIgRHV5Y2sgW21h
-aWx0bzphbGV4YW5kZXIuZHV5Y2tAZ21haWwuY29tXQ0KPiBTZW50OiBXZWRuZXNkYXksIERlY2Vt
-YmVyIDEwLCAyMDE0IDk6MjkgUE0NCj4gVG86IEFsZXhhbmRlciBEdXljazsgbGludXgtYXJjaEB2
-Z2VyLmtlcm5lbC5vcmc7IG5ldGRldkB2Z2VyLmtlcm5lbC5vcmc7DQo+IGxpbnV4LWtlcm5lbEB2
-Z2VyLmtlcm5lbC5vcmc7IGFybmRAYXJuZGIuZGU7IGRhdmVtQGRhdmVtbG9mdC5uZXQNCj4gQ2M6
-IG1hdGhpZXUuZGVzbm95ZXJzQHBvbHltdGwuY2E7IHBldGVyekBpbmZyYWRlYWQub3JnOw0KPiBi
-ZW5oQGtlcm5lbC5jcmFzaGluZy5vcmc7IGhlaWtvLmNhcnN0ZW5zQGRlLmlibS5jb207IG1pbmdv
-QGtlcm5lbC5vcmc7DQo+IG1pa2V5QG5ldWxpbmcub3JnOyBsaW51eEBhcm0ubGludXgub3JnLnVr
-OyBTa2lkbW9yZSwgRG9uYWxkIEM7IFZpY2ssDQo+IE1hdHRoZXc7IGdlZXJ0QGxpbnV4LW02OGsu
-b3JnOyBLaXJzaGVyLCBKZWZmcmV5IFQ7IHJvbWlldUBmci56b3JlaWwuY29tOw0KPiBwYXVsbWNr
-QGxpbnV4LnZuZXQuaWJtLmNvbTsgbmljX3N3c2RAcmVhbHRlay5jb207DQo+IHdpbGwuZGVhY29u
-QGFybS5jb207IG1pY2hhZWxAZWxsZXJtYW4uaWQuYXU7IEx1Y2ssIFRvbnk7IHRvcnZhbGRzQGxp
-bnV4LQ0KPiBmb3VuZGF0aW9uLm9yZzsgb2xlZ0ByZWRoYXQuY29tOyBzY2h3aWRlZnNreUBkZS5p
-Ym0uY29tOw0KPiBmd2Vpc2JlY0BnbWFpbC5jb20NCj4gU3ViamVjdDogUmU6IFtQQVRDSCB2NyAw
-LzRdIGFyY2g6IEFkZCBsaWdodHdlaWdodCBtZW1vcnkgYmFycmllcnMgZm9yDQo+IGNvaGVyZW50
-IG1lbW9yeSBhY2Nlc3MNCj4gDQo+IE9uIDExLzI1LzIwMTQgMTI6MzUgUE0sIEFsZXhhbmRlciBE
-dXljayB3cm90ZToNCj4gPiBUaGVzZSBwYXRjaGVzIGludHJvZHVjZSB0d28gbmV3IHByaW1pdGl2
-ZXMgZm9yIHN5bmNocm9uaXppbmcgY2FjaGUNCj4gPiBjb2hlcmVudCBtZW1vcnkgd3JpdGVzIGFu
-ZCByZWFkcy4gIFRoZXNlIHR3byBuZXcgcHJpbWl0aXZlcyBhcmU6DQo+ID4NCj4gPiAJZG1hX3Jt
-YigpDQo+ID4gCWRtYV93bWIoKQ0KPiA+DQo+ID4gVGhlIGZpcnN0IHBhdGNoIGNsZWFucyB1cCBz
-b21lIHVubmVjZXNzYXJ5IG92ZXJoZWFkIHJlbGF0ZWQgdG8gdGhlDQo+ID4gZGVmaW5pdGlvbiBv
-ZiByZWFkX2JhcnJpZXJfZGVwZW5kcywgc21wX3JlYWRfYmFycmllcl9kZXBlbmRzLCBhbmQNCj4g
-PiBjb21tZW50cyByZWxhdGVkIHRvIHRoZSBiYXJyaWVyLg0KPiA+DQo+ID4gVGhlIHNlY29uZCBw
-YXRjaCBhZGRzIHRoZSBwcmltaXRpdmVzIGZvciB0aGUgYXBwbGljYWJsZSBhcmNoaXRlY3R1cmVz
-DQo+ID4gYW5kIGFzbS1nZW5lcmljLg0KPiA+DQo+ID4gVGhlIHRoaXJkIHBhdGNoIGFkZHMgdGhl
-IGJhcnJpZXJzIHRvIHI4MTY5IHdoaWNoIHR1cm5zIG91dCB0byBiZSBhDQo+ID4gZ29vZCBleGFt
-cGxlIG9mIHdoZXJlIHRoZSBuZXcgYmFycmllcnMgbWlnaHQgYmUgdXNlZnVsIGFzIHRoZXkgaGF2
-ZQ0KPiA+IGZ1bGwNCj4gPiBybWIoKS93bWIoKSBiYXJyaWVycyBvcmRlcmluZyBhY2Nlc3NlcyB0
-byB0aGUgZGVzY3JpcHRvcnMgYW5kIHRoZQ0KPiA+IERlc2NPd24gYml0Lg0KPiA+DQo+ID4gVGhl
-IGZvdXJ0aCBwYXRjaCBhZGRzIHN1cHBvcnQgZm9yIGNvaGVyZW50X3JtYigpIHRvIHRoZSBJbnRl
-bCBmbTEwaywNCj4gPiBpZ2IsIGFuZCBpeGdiZSBkcml2ZXJzLiAgVGVzdGluZyB3aXRoIHRoZSBp
-eGdiZSBkcml2ZXIgaGFzIHNob3duIGENCj4gPiBwcm9jZXNzaW5nIHRpbWUgcmVkdWN0aW9uIG9m
-IGF0IGxlYXN0IDducyBwZXIgNjRCIGZyYW1lIG9uIGEgQ29yZSBpNy00OTMwSy4NCj4gPg0KPiA+
-IFRoaXMgcGF0Y2ggc2VyaWVzIGlzIGVzc2VudGlhbGx5IHRoZSB2NyBmb3I6DQo+ID4gdjQtNjoJ
-QWRkIGxpZ2h0d2VpZ2h0IG1lbW9yeSBiYXJyaWVycyBmb3IgY29oZXJlbnQgbWVtb3J5IGFjY2Vz
-cw0KPiA+IHYzOglBZGQgbGlnaHR3ZWlnaHQgbWVtb3J5IGJhcnJpZXJzIGZhc3Rfcm1iKCkgYW5k
-IGZhc3Rfd21iKCkNCj4gPiB2MjoJSW50cm9kdWNlIGxvYWRfYWNxdWlyZSgpIGFuZCBzdG9yZV9y
-ZWxlYXNlKCkNCj4gPiB2MToJSW50cm9kdWNlIHJlYWRfYWNxdWlyZSgpDQo+ID4NCj4gPiBUaGUg
-a2V5IGNoYW5nZXMgaW4gdGhpcyBwYXRjaCBzZXJpZXMgdmVyc3VzIHRoZSBlYXJsaWVyIHBhdGNo
-ZXMgYXJlOg0KPiA+IHY3Og0KPiA+IAktIERyb3BwZWQgdGVzdC9kZWJ1ZyBwYXRjaCB0aGF0IHdh
-cyBhY2NpZGVudGFsbHkgc2xpcHBlZCBpbg0KPiA+IHY2Og0KPiA+IAktIFJlcGxhY2VkICJtZW1v
-cnkgYmFzZWQgZGV2aWNlIEkvTyIgd2l0aCAiY29uc2lzdGVudCBtZW1vcnkiIGluDQo+ID4gCSAg
-ZG9jcw0KPiA+IAktIEFkZGVkIHJlZmVyZW5jZSB0byBETUEtQVBJLnR4dCB0byBleHBsYWluIGNv
-bnNpc3RlbnQgbWVtb3J5DQo+ID4gdjU6DQo+ID4gCS0gUmVuYW1lZCBiYXJyaWVycyBkbWFfcm1i
-IGFuZCBkbWFfd21iDQo+ID4gCS0gVW5kaWQgc21wX3dtYiBjaGFuZ2VzIGluIHg4NiBhbmQgUG93
-ZXJQQw0KPiA+IAktIERlZmluZWQgc21wX3JtYiBhcyBfX2x3c3luYyBmb3IgU01QIGNhc2Ugb24g
-UG93ZXJQQw0KPiA+IHY0Og0KPiA+IAktIFJlbmFtZWQgYmFycmllcnMgY29oZXJlbnRfcm1iIGFu
-ZCBjb2hlcmVudF93bWINCj4gPiAJLSBBZGRlZCBzbXBfbHdzeW5jIGZvciB1c2UgaW4NCj4gc21w
-X2xvYWRfYWNxdWlyZS9zbXBfc3RvcmVfcmVsZWFzZQ0KPiA+IHYzOg0KPiA+IAktIE1vdmVkIGF3
-YXkgZnJvbSBhY3F1aXJlKCkvc3RvcmUoKSBhbmQgaW5zdGVhZCBmb2N1c2VkIG9uIGJhcnJpZXJz
-DQo+ID4gCS0gQWRkZWQgY2xlYW51cCBvZiByZWFkX2JhcnJpZXJfZGVwZW5kcw0KPiA+IAktIEFk
-ZGVkIGNoYW5nZSBpbiByODE2OSB0byBmaXggY3VyX3R4L0Rlc2NPd24gb3JkZXJpbmcNCj4gPiAJ
-LSBTaW1wbGlmaWVkIGNoYW5nZXMgdG8ganVzdCByZXBsYWNpbmcvbW92aW5nIGJhcnJpZXJzIGlu
-IHI4MTY5DQo+ID4gCS0gQWRkZWQgdXBkYXRlIHRvIGRvY3VtZW50YXRpb24gd2l0aCBjb2RlIGV4
-YW1wbGUNCj4gPiB2MjoNCj4gPiAJLSBSZW5hbWVkIHJlYWRfYWNxdWlyZSgpIHRvIGJlIGNvbnNp
-c3RlbnQgd2l0aCBzbXBfbG9hZF9hY3F1aXJlKCkNCj4gPiAJLSBDaGFuZ2VkIGJhcnJpZXIgdXNl
-ZCB0byBiZSBjb25zaXN0ZW50IHdpdGggc21wX2xvYWRfYWNxdWlyZSgpDQo+ID4gCS0gVXBkYXRl
-ZCBQb3dlclBDIGNvZGUgdG8gdXNlIF9fbHdzeW5jIGJhc2VkIG9uIElCTSBhcnRpY2xlDQo+ID4g
-CS0gQWRkZWQgc3RvcmVfcmVsZWFzZSgpIGFzIHRoaXMgaXMgYSB2aWFibGUgdXNlIGNhc2UgZm9y
-IGRyaXZlcnMNCj4gPiAJLSBBZGRlZCByODE2OSBwYXRjaCB3aGljaCBpcyBhYmxlIHRvIGZ1bGx5
-IHVzZSBwcmltaXRpdmVzDQo+ID4gCS0gQWRkZWQgZm0xMGsvaWdiL2l4Z2JlIHBhdGNoIHdoaWNo
-IGlzIGFibGUgdG8gdGVzdCBwZXJmb3JtYW5jZQ0KPiA+DQo+ID4gLS0tDQo+ID4NCj4gPiBBbGV4
-YW5kZXIgRHV5Y2sgKDQpOg0KPiA+ICAgICAgIGFyY2g6IENsZWFudXAgcmVhZF9iYXJyaWVyX2Rl
-cGVuZHMoKSBhbmQgY29tbWVudHMNCj4gPiAgICAgICBhcmNoOiBBZGQgbGlnaHR3ZWlnaHQgbWVt
-b3J5IGJhcnJpZXJzIGRtYV9ybWIoKSBhbmQgZG1hX3dtYigpDQo+ID4gICAgICAgcjgxNjk6IFVz
-ZSBkbWFfcm1iKCkgYW5kIGRtYV93bWIoKSBmb3IgRGVzY093biBjaGVja3MNCj4gPiAgICAgICBm
-bTEway9pZ2IvaXhnYmU6IFVzZSBkbWFfcm1iIG9uIFJ4IGRlc2NyaXB0b3IgcmVhZHMNCj4gPg0K
-PiA+DQo+ID4gIERvY3VtZW50YXRpb24vbWVtb3J5LWJhcnJpZXJzLnR4dCAgICAgICAgICAgICB8
-ICAgNDIgKysrKysrKysrKysrKysrDQo+ID4gIGFyY2gvYWxwaGEvaW5jbHVkZS9hc20vYmFycmll
-ci5oICAgICAgICAgICAgICB8ICAgNTEgKysrKysrKysrKysrKysrKysrDQo+ID4gIGFyY2gvYXJt
-L2luY2x1ZGUvYXNtL2JhcnJpZXIuaCAgICAgICAgICAgICAgICB8ICAgIDQgKw0KPiA+ICBhcmNo
-L2FybTY0L2luY2x1ZGUvYXNtL2JhcnJpZXIuaCAgICAgICAgICAgICAgfCAgICAzICsNCj4gPiAg
-YXJjaC9ibGFja2Zpbi9pbmNsdWRlL2FzbS9iYXJyaWVyLmggICAgICAgICAgIHwgICA1MSArKysr
-KysrKysrKysrKysrKysNCj4gPiAgYXJjaC9pYTY0L2luY2x1ZGUvYXNtL2JhcnJpZXIuaCAgICAg
-ICAgICAgICAgIHwgICAyNSArKysrLS0tLS0NCj4gPiAgYXJjaC9tZXRhZy9pbmNsdWRlL2FzbS9i
-YXJyaWVyLmggICAgICAgICAgICAgIHwgICAxOSArKysrLS0tDQo+ID4gIGFyY2gvbWlwcy9pbmNs
-dWRlL2FzbS9iYXJyaWVyLmggICAgICAgICAgICAgICB8ICAgNjEgKystLS0tLS0tLS0tLS0tLS0t
-LS0tLQ0KPiA+ICBhcmNoL3Bvd2VycGMvaW5jbHVkZS9hc20vYmFycmllci5oICAgICAgICAgICAg
-fCAgIDE5ICsrKystLS0NCj4gPiAgYXJjaC9zMzkwL2luY2x1ZGUvYXNtL2JhcnJpZXIuaCAgICAg
-ICAgICAgICAgIHwgICAgNyArKy0NCj4gPiAgYXJjaC9zcGFyYy9pbmNsdWRlL2FzbS9iYXJyaWVy
-XzY0LmggICAgICAgICAgIHwgICAgNyArKy0NCj4gPiAgYXJjaC94ODYvaW5jbHVkZS9hc20vYmFy
-cmllci5oICAgICAgICAgICAgICAgIHwgICA3MCArKysrLS0tLS0tLS0tLS0tLS0tLS0tLS0tDQo+
-ID4gIGFyY2gveDg2L3VtL2FzbS9iYXJyaWVyLmggICAgICAgICAgICAgICAgICAgICB8ICAgMjAg
-KysrKy0tLQ0KPiA+ICBkcml2ZXJzL25ldC9ldGhlcm5ldC9pbnRlbC9mbTEway9mbTEwa19tYWlu
-LmMgfCAgICA2ICstDQo+ID4gIGRyaXZlcnMvbmV0L2V0aGVybmV0L2ludGVsL2lnYi9pZ2JfbWFp
-bi5jICAgICB8ICAgIDYgKy0NCj4gPiAgZHJpdmVycy9uZXQvZXRoZXJuZXQvaW50ZWwvaXhnYmUv
-aXhnYmVfbWFpbi5jIHwgICAgOSArLS0NCj4gPiAgZHJpdmVycy9uZXQvZXRoZXJuZXQvcmVhbHRl
-ay9yODE2OS5jICAgICAgICAgIHwgICAyOSArKysrKysrKy0tDQo+ID4gIGluY2x1ZGUvYXNtLWdl
-bmVyaWMvYmFycmllci5oICAgICAgICAgICAgICAgICB8ICAgIDggKysrDQo+ID4gIDE4IGZpbGVz
-IGNoYW5nZWQsIDI1OCBpbnNlcnRpb25zKCspLCAxNzkgZGVsZXRpb25zKC0pDQo+ID4NCj4gPiAt
-LQ0KPiANCj4gSXQgb2NjdXJzIHRvIG1lIHRoYXQgSSBuZXZlciBnb3QgYSBzaWduIG9mZiBmcm9t
-IGFueSBvZiB0aGUgbWFpbnRhaW5lcnMgb24NCj4gZ2V0dGluZyB0aGlzIHB1bGxlZCBpbi4NCj4g
-DQo+IFNpbmNlIHRoZSBtZXJnZSB3aW5kb3cgaXMgb3BlbiBJIHdhcyB3b25kZXJpbmcgd2hpY2gg
-dHJlZSBJIHNob3VsZCBtYWtlDQo+IHN1cmUgdGhlc2UgcGF0Y2hlcyBhcHBseSB0byBhbmQgd2hv
-IHdpbGwgYmUgdGhlIG9uZSB0byBwdWxsIHRoZW0gaW4/DQo+IFNpbmNlIEkgd2FzIG1vZGlmeWlu
-ZyBuZXR3b3JrIGRyaXZlcnMgc2hvdWxkIEkgcmVzdWJtaXQgdGhlbSBmb3IgbmV0ZGV2LCBvcg0K
-PiBzaG91bGQgSSBzdWJtaXQgdGhlbSBmb3IgYXNtLWdlbmVyaWMgb3Igc29tZSBvdGhlciB0cmVl
-Pw0KPiANCj4gLSBBbGV4DQoNCkZvciBhdCBsZWFzdCBpeGdiZSwgaXQgbG9va3MgZ29vZCB0byBt
-ZS4NCg0KQWNrZWQtYnk6IERvbiBTa2lkbW9yZSA8ZG9uYWxkLmMuc2tpZG1vcmVAaW50ZWwuY29t
-Pg0KDQo=
+On Thu, Dec 11, 2014 at 12:32 PM, David Miller <davem@davemloft.net> wrote:
+>
+> I have no problem taking this via my tree, but I want to see agreement
+> from other interested parties.
+
+Since the early users are network drivers, and since it's otherwise
+cross-architecture and not clear under any other maintainership, that
+sounds good to me.
+
+The arch parts were, I think, largely uncontroversial once naming and
+a couple of small arch details were fixed up, so I don't think there's
+any problem there.
+
+                      Linus
