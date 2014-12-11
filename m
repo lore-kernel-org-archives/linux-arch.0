@@ -1,111 +1,49 @@
-From: Alexander Duyck <alexander.h.duyck@redhat.com>
-Subject: [net-next PATCH v7 resubmit 4/4] fm10k/igb/ixgbe: Use dma_rmb on Rx
- descriptor reads
-Date: Thu, 11 Dec 2014 15:02:28 -0800
-Message-ID: <20141211230227.25464.647.stgit@ahduyck-server>
-References: <20141211225250.25464.30291.stgit@ahduyck-server>
+From: "Michael S. Tsirkin" <mst@redhat.com>
+Subject: Re: [PATCH RFC 3/5] pci: add pci_iomap_range
+Date: Fri, 12 Dec 2014 01:49:36 +0200
+Message-ID: <20141211234936.GB9439@redhat.com>
+References: <1418326570-9541-1-git-send-email-mst@redhat.com>
+	<1418326570-9541-4-git-send-email-mst@redhat.com>
+	<11102634.nzYXXfUH5X@wuerfel>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
+Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:59783 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S934114AbaLKXDm (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 11 Dec 2014 18:03:42 -0500
-In-Reply-To: <20141211225250.25464.30291.stgit@ahduyck-server>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: netdev@vger.kernel.org, linux-kernel@vger.kernel.org, davem@davemloft.net
-Cc: mathieu.desnoyers@polymtl.ca, peterz@infradead.org, benh@kernel.crashing.org, heiko.carstens@de.ibm.com, mingo@kernel.org, linux-arch@vger.kernel.org, mikey@neuling.org, linux@arm.linux.org.uk, donald.c.skidmore@intel.com, matthew.vick@intel.com, geert@linux-m68k.org, jeffrey.t.kirsher@intel.com, romieu@fr.zoreil.com, paulmck@linux.vnet.ibm.com, nic_swsd@realtek.com, arnd@arndb.de, will.deacon@arm.com, michael@ellerman.id.au, tony.luck@intel.com, torvalds@linux-foundation.org, oleg@redhat.com, schwidefsky@de.ibm.com, fweisbec@gmail.com
+Return-path: <virtualization-bounces@lists.linux-foundation.org>
+Content-Disposition: inline
+In-Reply-To: <11102634.nzYXXfUH5X@wuerfel>
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
+List-Post: <mailto:virtualization@lists.linux-foundation.org>
+List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
+Sender: virtualization-bounces@lists.linux-foundation.org
+Errors-To: virtualization-bounces@lists.linux-foundation.org
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org
+List-Id: linux-arch.vger.kernel.org
 
-This change makes it so that dma_rmb is used when reading the Rx
-descriptor.  The advantage of dma_rmb is that it allows for a much
-lower cost barrier on x86, powerpc, arm, and arm64 architectures than a
-traditional memory barrier when dealing with reads that only have to
-synchronize to coherent memory.
+On Thu, Dec 11, 2014 at 11:27:54PM +0100, Arnd Bergmann wrote:
+> On Thursday 11 December 2014 21:37:34 Michael S. Tsirkin wrote:
+> >         if (flags & IORESOURCE_MEM) {
+> > -               if (flags & IORESOURCE_CACHEABLE)
+> > +               if (!force_nocache && (flags & IORESOURCE_CACHEABLE))
+> >                         return ioremap(start, len);
+> >                 return ioremap_nocache(start, len);
+> >         }
+> > 
+> 
+> ioremap is the same as ioremap_nocache, so this doesn't really make any
+> sense. IORESOURCE_CACHEABLE is practically only set for ROM bars, which
+> we rarely map.
+> 
+> 	Arnd
 
-In addition I have updated the code so that it just checks to see if any
-bits have been set instead of just the DD bit since the DD bit will always
-be set as a part of a descriptor write-back so we just need to check for a
-non-zero value being present at that memory location rather than just
-checking for any specific bit.  This allows the code itself to appear much
-cleaner and allows the compiler more room to optimize.
+Hmm I think you are right.
+It's an old patch - I think at one point in time we did set it when we
+now set IORESOURCE_PREFETCH.
+I'll drop this parameter.
 
-Cc: Matthew Vick <matthew.vick@intel.com>
-Cc: Don Skidmore <donald.c.skidmore@intel.com>
-Acked-by: Jeff Kirsher <jeffrey.t.kirsher@intel.com>
-Signed-off-by: Alexander Duyck <alexander.h.duyck@redhat.com>
----
- drivers/net/ethernet/intel/fm10k/fm10k_main.c |    6 +++---
- drivers/net/ethernet/intel/igb/igb_main.c     |    6 +++---
- drivers/net/ethernet/intel/ixgbe/ixgbe_main.c |    9 ++++-----
- 3 files changed, 10 insertions(+), 11 deletions(-)
-
-diff --git a/drivers/net/ethernet/intel/fm10k/fm10k_main.c b/drivers/net/ethernet/intel/fm10k/fm10k_main.c
-index ee1ecb1..eb088b1 100644
---- a/drivers/net/ethernet/intel/fm10k/fm10k_main.c
-+++ b/drivers/net/ethernet/intel/fm10k/fm10k_main.c
-@@ -615,14 +615,14 @@ static bool fm10k_clean_rx_irq(struct fm10k_q_vector *q_vector,
- 
- 		rx_desc = FM10K_RX_DESC(rx_ring, rx_ring->next_to_clean);
- 
--		if (!fm10k_test_staterr(rx_desc, FM10K_RXD_STATUS_DD))
-+		if (!rx_desc->d.staterr)
- 			break;
- 
- 		/* This memory barrier is needed to keep us from reading
- 		 * any other fields out of the rx_desc until we know the
--		 * RXD_STATUS_DD bit is set
-+		 * descriptor has been written back
- 		 */
--		rmb();
-+		dma_rmb();
- 
- 		/* retrieve a buffer from the ring */
- 		skb = fm10k_fetch_rx_buffer(rx_ring, rx_desc, skb);
-diff --git a/drivers/net/ethernet/intel/igb/igb_main.c b/drivers/net/ethernet/intel/igb/igb_main.c
-index 485d2c6..44f1174 100644
---- a/drivers/net/ethernet/intel/igb/igb_main.c
-+++ b/drivers/net/ethernet/intel/igb/igb_main.c
-@@ -6912,14 +6912,14 @@ static bool igb_clean_rx_irq(struct igb_q_vector *q_vector, const int budget)
- 
- 		rx_desc = IGB_RX_DESC(rx_ring, rx_ring->next_to_clean);
- 
--		if (!igb_test_staterr(rx_desc, E1000_RXD_STAT_DD))
-+		if (!rx_desc->wb.upper.status_error)
- 			break;
- 
- 		/* This memory barrier is needed to keep us from reading
- 		 * any other fields out of the rx_desc until we know the
--		 * RXD_STAT_DD bit is set
-+		 * descriptor has been written back
- 		 */
--		rmb();
-+		dma_rmb();
- 
- 		/* retrieve a buffer from the ring */
- 		skb = igb_fetch_rx_buffer(rx_ring, rx_desc, skb);
-diff --git a/drivers/net/ethernet/intel/ixgbe/ixgbe_main.c b/drivers/net/ethernet/intel/ixgbe/ixgbe_main.c
-index 798b055..2ed2c7d 100644
---- a/drivers/net/ethernet/intel/ixgbe/ixgbe_main.c
-+++ b/drivers/net/ethernet/intel/ixgbe/ixgbe_main.c
-@@ -2009,15 +2009,14 @@ static int ixgbe_clean_rx_irq(struct ixgbe_q_vector *q_vector,
- 
- 		rx_desc = IXGBE_RX_DESC(rx_ring, rx_ring->next_to_clean);
- 
--		if (!ixgbe_test_staterr(rx_desc, IXGBE_RXD_STAT_DD))
-+		if (!rx_desc->wb.upper.status_error)
- 			break;
- 
--		/*
--		 * This memory barrier is needed to keep us from reading
-+		/* This memory barrier is needed to keep us from reading
- 		 * any other fields out of the rx_desc until we know the
--		 * RXD_STAT_DD bit is set
-+		 * descriptor has been written back
- 		 */
--		rmb();
-+		dma_rmb();
- 
- 		/* retrieve a buffer from the ring */
- 		skb = ixgbe_fetch_rx_buffer(rx_ring, rx_desc);
+-- 
+MST
