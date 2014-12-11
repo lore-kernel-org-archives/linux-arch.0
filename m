@@ -1,92 +1,136 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e06smtp15.uk.ibm.com ([195.75.94.111]:50117 "EHLO
-	e06smtp15.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S964784AbaLKOF2 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 11 Dec 2014 09:05:28 -0500
-Received: from /spool/local
-	by e06smtp15.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <borntraeger@de.ibm.com>;
-	Thu, 11 Dec 2014 14:05:27 -0000
-From: Christian Borntraeger <borntraeger@de.ibm.com>
-Subject: [PATCH 8/8] s390/kvm: REPLACE barrier fixup with READ_ONCE
-Date: Thu, 11 Dec 2014 15:05:11 +0100
-Message-ID: <1418306712-17245-9-git-send-email-borntraeger@de.ibm.com>
-In-Reply-To: <1418306712-17245-1-git-send-email-borntraeger@de.ibm.com>
-References: <1418306712-17245-1-git-send-email-borntraeger@de.ibm.com>
+Received: from mx1.redhat.com ([209.132.183.28]:41895 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1758797AbaLKThv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 11 Dec 2014 14:37:51 -0500
+Date: Thu, 11 Dec 2014 21:37:34 +0200
+From: "Michael S. Tsirkin" <mst@redhat.com>
+Subject: [PATCH RFC 3/5] pci: add pci_iomap_range
+Message-ID: <1418326570-9541-4-git-send-email-mst@redhat.com>
+References: <1418326570-9541-1-git-send-email-mst@redhat.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1418326570-9541-1-git-send-email-mst@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, paulmck@linux.vnet.ibm.com, torvalds@linux-foundation.org, George Spelvin <linux@horizon.com>, Christian Borntraeger <borntraeger@de.ibm.com>
-Message-ID: <20141211140511.Ynfgw4x9wyYsGMABR_CI35EnTHrYPGuu8vDer8h_bDM@z>
+Cc: Rusty Russell <rusty@rustcorp.com.au>, virtualization@lists.linux-foundation.org, cornelia.huck@de.ibm.com, Michael S Tsirkin <mst@redhat.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org
+Message-ID: <20141211193734.6Op_ybe5PgbxngyJTuQIUoZFNd3NXujE6XvFGfJakO8@z>
 
-ACCESS_ONCE does not work reliably on non-scalar types. For
-example gcc 4.6 and 4.7 might remove the volatile tag for such
-accesses during the SRA (scalar replacement of aggregates) step
-(https://gcc.gnu.org/bugzilla/show_bug.cgi?id=58145)
+From: Michael S Tsirkin <mst@redhat.com>
 
-Commit 1365039d0cb3 ("KVM: s390: Fix ipte locking") replace
-ACCESS_ONCE with barriers. Lets use READ_ONCE instead.
+Virtio drivers should map the part of the range they need, not necessarily
+all of it. They also need non-cacheable mapping even for
+prefetchable BARs.
 
-Signed-off-by: Christian Borntraeger <borntraeger@de.ibm.com>
-Acked-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
+Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
+Signed-off-by: Rusty Russell <rusty@rustcorp.com.au>
 ---
- arch/s390/kvm/gaccess.c | 18 ++++++------------
- 1 file changed, 6 insertions(+), 12 deletions(-)
+ include/asm-generic/pci_iomap.h |  5 +++++
+ lib/pci_iomap.c                 | 46 +++++++++++++++++++++++++++++++++++------
+ 2 files changed, 45 insertions(+), 6 deletions(-)
 
-diff --git a/arch/s390/kvm/gaccess.c b/arch/s390/kvm/gaccess.c
-index 6dc0ad9..8f195fa 100644
---- a/arch/s390/kvm/gaccess.c
-+++ b/arch/s390/kvm/gaccess.c
-@@ -229,12 +229,10 @@ static void ipte_lock_simple(struct kvm_vcpu *vcpu)
- 		goto out;
- 	ic = &vcpu->kvm->arch.sca->ipte_control;
- 	do {
--		old = *ic;
--		barrier();
-+		old = READ_ONCE(*ic);
- 		while (old.k) {
- 			cond_resched();
--			old = *ic;
--			barrier();
-+			old = READ_ONCE(*ic);
- 		}
- 		new = old;
- 		new.k = 1;
-@@ -253,8 +251,7 @@ static void ipte_unlock_simple(struct kvm_vcpu *vcpu)
- 		goto out;
- 	ic = &vcpu->kvm->arch.sca->ipte_control;
- 	do {
--		old = *ic;
--		barrier();
-+		old = READ_ONCE(*ic);
- 		new = old;
- 		new.k = 0;
- 	} while (cmpxchg(&ic->val, old.val, new.val) != old.val);
-@@ -269,12 +266,10 @@ static void ipte_lock_siif(struct kvm_vcpu *vcpu)
+diff --git a/include/asm-generic/pci_iomap.h b/include/asm-generic/pci_iomap.h
+index ce37349..8777331 100644
+--- a/include/asm-generic/pci_iomap.h
++++ b/include/asm-generic/pci_iomap.h
+@@ -15,6 +15,11 @@ struct pci_dev;
+ #ifdef CONFIG_PCI
+ /* Create a virtual mapping cookie for a PCI BAR (memory or IO) */
+ extern void __iomem *pci_iomap(struct pci_dev *dev, int bar, unsigned long max);
++extern void __iomem *pci_iomap_range(struct pci_dev *dev, int bar,
++				     unsigned offset,
++				     unsigned long minlen,
++				     unsigned long maxlen,
++				     bool force_nocache);
+ /* Create a virtual mapping cookie for a port on a given PCI device.
+  * Do not call this directly, it exists to make it easier for architectures
+  * to override */
+diff --git a/lib/pci_iomap.c b/lib/pci_iomap.c
+index 0d83ea8..1ac4def 100644
+--- a/lib/pci_iomap.c
++++ b/lib/pci_iomap.c
+@@ -10,33 +10,47 @@
  
- 	ic = &vcpu->kvm->arch.sca->ipte_control;
- 	do {
--		old = *ic;
--		barrier();
-+		old = READ_ONCE(*ic);
- 		while (old.kg) {
- 			cond_resched();
--			old = *ic;
--			barrier();
-+			old = READ_ONCE(*ic);
- 		}
- 		new = old;
- 		new.k = 1;
-@@ -288,8 +283,7 @@ static void ipte_unlock_siif(struct kvm_vcpu *vcpu)
+ #ifdef CONFIG_PCI
+ /**
+- * pci_iomap - create a virtual mapping cookie for a PCI BAR
++ * pci_iomap_range - create a virtual mapping cookie for a PCI BAR
+  * @dev: PCI device that owns the BAR
+  * @bar: BAR number
+- * @maxlen: length of the memory to map
++ * @offset: map memory at the given offset in BAR
++ * @minlen: min length of the memory to map
++ * @maxlen: max length of the memory to map
+  *
+  * Using this function you will get a __iomem address to your device BAR.
+  * You can access it using ioread*() and iowrite*(). These functions hide
+  * the details if this is a MMIO or PIO address space and will just do what
+  * you expect from them in the correct way.
+  *
++ * @minlen specifies the minimum length to map. We check that BAR is
++ * large enough.
+  * @maxlen specifies the maximum length to map. If you want to get access to
+- * the complete BAR without checking for its length first, pass %0 here.
++ * the complete BAR from offset to the end, pass %0 here.
++ * @force_nocache makes the mapping noncacheable even if the BAR
++ * is prefetcheable. It has no effect otherwise.
+  * */
+-void __iomem *pci_iomap(struct pci_dev *dev, int bar, unsigned long maxlen)
++void __iomem *pci_iomap_range(struct pci_dev *dev, int bar,
++			      unsigned offset,
++			      unsigned long minlen,
++			      unsigned long maxlen,
++			      bool force_nocache)
+ {
+ 	resource_size_t start = pci_resource_start(dev, bar);
+ 	resource_size_t len = pci_resource_len(dev, bar);
+ 	unsigned long flags = pci_resource_flags(dev, bar);
  
- 	ic = &vcpu->kvm->arch.sca->ipte_control;
- 	do {
--		old = *ic;
--		barrier();
-+		old = READ_ONCE(*ic);
- 		new = old;
- 		new.kh--;
- 		if (!new.kh)
+-	if (!len || !start)
++	if (len <= offset || !start)
++		return NULL;
++	len -= offset;
++	start += offset;
++	if (len < minlen)
+ 		return NULL;
+ 	if (maxlen && len > maxlen)
+ 		len = maxlen;
+ 	if (flags & IORESOURCE_IO)
+ 		return __pci_ioport_map(dev, start, len);
+ 	if (flags & IORESOURCE_MEM) {
+-		if (flags & IORESOURCE_CACHEABLE)
++		if (!force_nocache && (flags & IORESOURCE_CACHEABLE))
+ 			return ioremap(start, len);
+ 		return ioremap_nocache(start, len);
+ 	}
+@@ -44,5 +58,25 @@ void __iomem *pci_iomap(struct pci_dev *dev, int bar, unsigned long maxlen)
+ 	return NULL;
+ }
+ 
++/**
++ * pci_iomap - create a virtual mapping cookie for a PCI BAR
++ * @dev: PCI device that owns the BAR
++ * @bar: BAR number
++ * @maxlen: length of the memory to map
++ *
++ * Using this function you will get a __iomem address to your device BAR.
++ * You can access it using ioread*() and iowrite*(). These functions hide
++ * the details if this is a MMIO or PIO address space and will just do what
++ * you expect from them in the correct way.
++ *
++ * @maxlen specifies the maximum length to map. If you want to get access to
++ * the complete BAR without checking for its length first, pass %0 here.
++ * */
++void __iomem *pci_iomap(struct pci_dev *dev, int bar, unsigned long maxlen)
++{
++	return pci_iomap_range(dev, bar, 0, 0, maxlen, false);
++}
++
+ EXPORT_SYMBOL(pci_iomap);
++EXPORT_SYMBOL(pci_iomap_range);
+ #endif /* CONFIG_PCI */
 -- 
-1.9.3
+MST
 
