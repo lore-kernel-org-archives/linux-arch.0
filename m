@@ -1,198 +1,77 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wg0-f46.google.com ([74.125.82.46]:45733 "EHLO
-	mail-wg0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755862AbaLKJ2P (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 11 Dec 2014 04:28:15 -0500
-Received: by mail-wg0-f46.google.com with SMTP id x13so5858512wgg.19
-        for <linux-arch@vger.kernel.org>; Thu, 11 Dec 2014 01:28:13 -0800 (PST)
-Message-ID: <548963AA.6040305@monstr.eu>
-Date: Thu, 11 Dec 2014 10:28:10 +0100
-From: Michal Simek <monstr@monstr.eu>
-Reply-To: monstr@monstr.eu
-MIME-Version: 1.0
-Subject: Re: [RESENT PATCH] dma-mapping: Add BUG_ON for uninitialized dma_ops
-References: <385664132d1ef60c582b0045afaa36a1895685dc.1415965161.git.michal.simek@xilinx.com>
-In-Reply-To: <385664132d1ef60c582b0045afaa36a1895685dc.1415965161.git.michal.simek@xilinx.com>
-Content-Type: multipart/signed; micalg=pgp-sha1;
- protocol="application/pgp-signature";
- boundary="1o6H7k67PHOLL2ETS7uodaeObAwM0IQoV"
+Received: from e06smtp13.uk.ibm.com ([195.75.94.109]:53495 "EHLO
+	e06smtp13.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S934026AbaLKOFc (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 11 Dec 2014 09:05:32 -0500
+Received: from /spool/local
+	by e06smtp13.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <borntraeger@de.ibm.com>;
+	Thu, 11 Dec 2014 14:05:31 -0000
+From: Christian Borntraeger <borntraeger@de.ibm.com>
+Subject: [PATCHv5 0/8]  ACCESS_ONCE and non-scalar accesses
+Date: Thu, 11 Dec 2014 15:05:03 +0100
+Message-ID: <1418306712-17245-1-git-send-email-borntraeger@de.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Michal Simek <michal.simek@xilinx.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20141211092810.qyvI4MEJ3tpcGESJLRYkkO8kxDyQWGBcCNHq-r5CRdc@z>
+To: linux-kernel@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, paulmck@linux.vnet.ibm.com, torvalds@linux-foundation.org, George Spelvin <linux@horizon.com>, Christian Borntraeger <borntraeger@de.ibm.com>, linux-mm@kvack.org
+Message-ID: <20141211140503.AhJSOCbrq7tabeRJii2-IaIcEdLhIdX1Frp8pHtdd8Q@z>
 
-This is an OpenPGP/MIME signed message (RFC 4880 and 3156)
---1o6H7k67PHOLL2ETS7uodaeObAwM0IQoV
-Content-Type: text/plain; charset=windows-1252
-Content-Transfer-Encoding: quoted-printable
+As discussed on LKML http://marc.info/?i=54611D86.4040306%40de.ibm.com
+ACCESS_ONCE might fail with specific compilers for non-scalar accesses.
 
-Hi Arnd,
+Here is a set of patches to tackle that problem.
 
-any update on this one?
+The first patch introduce READ_ONCE and ASSIGN_ONCE. If the data structure
+is larger than the machine word size memcpy is used and a warning is emitted.
+The next patches fix up all in-tree users of ACCESS_ONCE on non-scalar types.
 
-Thanks,
-Michal
+Due to all the trouble when dealing with linux-next, I will defer the patch
+that forces ACCESS_ONCE to work only on scalar types after rc1 to give it
+a full spin in linux-next.
 
-On 11/14/2014 12:39 PM, Michal Simek wrote:
-> Check that dma_ops are initialized correctly.
->=20
-> Signed-off-by: Michal Simek <michal.simek@xilinx.com>
-> ---
->=20
-> Functions dma_mmap_attrs(), dma_get_sgtable_attrs()
-> already have this checking.
->=20
-> The whole discussion was originally here:
-> https://lkml.org/lkml/2013/6/3/255
->=20
-> We have middle solution where some functions have this checking
-> and some not. Based on get_maintainer scripts Arnd should do that decis=
-ion
-> to accept or reject this patch.
->=20
-> ---
->  include/asm-generic/dma-mapping-common.h | 12 ++++++++++++
->  1 file changed, 12 insertions(+)
->=20
-> diff --git a/include/asm-generic/dma-mapping-common.h b/include/asm-gen=
-eric/dma-mapping-common.h
-> index de8bf89940f8..d430cabd2975 100644
-> --- a/include/asm-generic/dma-mapping-common.h
-> +++ b/include/asm-generic/dma-mapping-common.h
-> @@ -16,6 +16,7 @@ static inline dma_addr_t dma_map_single_attrs(struct =
-device *dev, void *ptr,
->  	dma_addr_t addr;
->=20
->  	kmemcheck_mark_initialized(ptr, size);
-> +	BUG_ON(!ops);
->  	BUG_ON(!valid_dma_direction(dir));
->  	addr =3D ops->map_page(dev, virt_to_page(ptr),
->  			     (unsigned long)ptr & ~PAGE_MASK, size,
-> @@ -33,6 +34,7 @@ static inline void dma_unmap_single_attrs(struct devi=
-ce *dev, dma_addr_t addr,
->  {
->  	struct dma_map_ops *ops =3D get_dma_ops(dev);
->=20
-> +	BUG_ON(!ops);
->  	BUG_ON(!valid_dma_direction(dir));
->  	if (ops->unmap_page)
->  		ops->unmap_page(dev, addr, size, dir, attrs);
-> @@ -49,6 +51,7 @@ static inline int dma_map_sg_attrs(struct device *dev=
-, struct scatterlist *sg,
->=20
->  	for_each_sg(sg, s, nents, i)
->  		kmemcheck_mark_initialized(sg_virt(s), s->length);
-> +	BUG_ON(!ops);
->  	BUG_ON(!valid_dma_direction(dir));
->  	ents =3D ops->map_sg(dev, sg, nents, dir, attrs);
->  	debug_dma_map_sg(dev, sg, nents, ents, dir);
-> @@ -62,6 +65,7 @@ static inline void dma_unmap_sg_attrs(struct device *=
-dev, struct scatterlist *sg
->  {
->  	struct dma_map_ops *ops =3D get_dma_ops(dev);
->=20
-> +	BUG_ON(!ops);
->  	BUG_ON(!valid_dma_direction(dir));
->  	debug_dma_unmap_sg(dev, sg, nents, dir);
->  	if (ops->unmap_sg)
-> @@ -76,6 +80,7 @@ static inline dma_addr_t dma_map_page(struct device *=
-dev, struct page *page,
->  	dma_addr_t addr;
->=20
->  	kmemcheck_mark_initialized(page_address(page) + offset, size);
-> +	BUG_ON(!ops);
->  	BUG_ON(!valid_dma_direction(dir));
->  	addr =3D ops->map_page(dev, page, offset, size, dir, NULL);
->  	debug_dma_map_page(dev, page, offset, size, dir, addr, false);
-> @@ -88,6 +93,7 @@ static inline void dma_unmap_page(struct device *dev,=
- dma_addr_t addr,
->  {
->  	struct dma_map_ops *ops =3D get_dma_ops(dev);
->=20
-> +	BUG_ON(!ops);
->  	BUG_ON(!valid_dma_direction(dir));
->  	if (ops->unmap_page)
->  		ops->unmap_page(dev, addr, size, dir, NULL);
-> @@ -100,6 +106,7 @@ static inline void dma_sync_single_for_cpu(struct d=
-evice *dev, dma_addr_t addr,
->  {
->  	struct dma_map_ops *ops =3D get_dma_ops(dev);
->=20
-> +	BUG_ON(!ops);
->  	BUG_ON(!valid_dma_direction(dir));
->  	if (ops->sync_single_for_cpu)
->  		ops->sync_single_for_cpu(dev, addr, size, dir);
-> @@ -112,6 +119,7 @@ static inline void dma_sync_single_for_device(struc=
-t device *dev,
->  {
->  	struct dma_map_ops *ops =3D get_dma_ops(dev);
->=20
-> +	BUG_ON(!ops);
->  	BUG_ON(!valid_dma_direction(dir));
->  	if (ops->sync_single_for_device)
->  		ops->sync_single_for_device(dev, addr, size, dir);
-> @@ -126,6 +134,7 @@ static inline void dma_sync_single_range_for_cpu(st=
-ruct device *dev,
->  {
->  	const struct dma_map_ops *ops =3D get_dma_ops(dev);
->=20
-> +	BUG_ON(!ops);
->  	BUG_ON(!valid_dma_direction(dir));
->  	if (ops->sync_single_for_cpu)
->  		ops->sync_single_for_cpu(dev, addr + offset, size, dir);
-> @@ -140,6 +149,7 @@ static inline void dma_sync_single_range_for_device=
-(struct device *dev,
->  {
->  	const struct dma_map_ops *ops =3D get_dma_ops(dev);
->=20
-> +	BUG_ON(!ops);
->  	BUG_ON(!valid_dma_direction(dir));
->  	if (ops->sync_single_for_device)
->  		ops->sync_single_for_device(dev, addr + offset, size, dir);
-> @@ -152,6 +162,7 @@ dma_sync_sg_for_cpu(struct device *dev, struct scat=
-terlist *sg,
->  {
->  	struct dma_map_ops *ops =3D get_dma_ops(dev);
->=20
-> +	BUG_ON(!ops);
->  	BUG_ON(!valid_dma_direction(dir));
->  	if (ops->sync_sg_for_cpu)
->  		ops->sync_sg_for_cpu(dev, sg, nelems, dir);
-> @@ -164,6 +175,7 @@ dma_sync_sg_for_device(struct device *dev, struct s=
-catterlist *sg,
->  {
->  	struct dma_map_ops *ops =3D get_dma_ops(dev);
->=20
-> +	BUG_ON(!ops);
->  	BUG_ON(!valid_dma_direction(dir));
->  	if (ops->sync_sg_for_device)
->  		ops->sync_sg_for_device(dev, sg, nelems, dir);
-> --
-> 1.8.2.3
->=20
+If nobody complains I will ask Linus to pull this for 3.19 next week.
+The tree can be found at 
 
+git://git.kernel.org/pub/scm/linux/kernel/git/borntraeger/linux.git linux-next
 
---=20
-Michal Simek, Ing. (M.Eng), OpenPGP -> KeyID: FE3D1F91
-w: www.monstr.eu p: +42-0-721842854
-Maintainer of Linux kernel - Microblaze cpu - http://www.monstr.eu/fdt/
-Maintainer of Linux kernel - Xilinx Zynq ARM architecture
-Microblaze U-BOOT custodian and responsible for u-boot arm zynq platform
+Changelog:
+v4->v5:
+1. READ_ONCE/ASSIGN_ONCE use x instead of p
+2. linux/types.h --> uapi/linux/types.h u??-->__u?? to avoid header
+   inclusion fun and compile errors
+3. Actually provide data_access_exceeds_word_size.
+4. also move handle_pte_fault to a barrier as there is ppc44x which has
+   64bit ptes and 32bit word size. Some sanity check from a VM person
+   would be good.
 
+Cc: linux-mm@kvack.org
 
+Christian Borntraeger (8):
+  kernel: Provide READ_ONCE and ASSIGN_ONCE
+  mm: replace ACCESS_ONCE with READ_ONCE or barriers
+  x86/spinlock: Replace ACCESS_ONCE with READ_ONCE
+  x86/gup: Replace ACCESS_ONCE with READ_ONCE
+  mips/gup: Replace ACCESS_ONCE with READ_ONCE
+  arm64/spinlock: Replace ACCESS_ONCE READ_ONCE
+  arm/spinlock: Replace ACCESS_ONCE with READ_ONCE
+  s390/kvm: REPLACE barrier fixup with READ_ONCE
 
---1o6H7k67PHOLL2ETS7uodaeObAwM0IQoV
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: OpenPGP digital signature
-Content-Disposition: attachment; filename="signature.asc"
+ arch/arm/include/asm/spinlock.h   |  4 +--
+ arch/arm64/include/asm/spinlock.h |  4 +--
+ arch/mips/mm/gup.c                |  2 +-
+ arch/s390/kvm/gaccess.c           | 18 ++++------
+ arch/x86/include/asm/spinlock.h   |  8 ++---
+ arch/x86/mm/gup.c                 |  2 +-
+ include/linux/compiler.h          | 70 +++++++++++++++++++++++++++++++++++++++
+ lib/Makefile                      |  2 +-
+ lib/access.c                      |  8 +++++
+ mm/gup.c                          |  2 +-
+ mm/memory.c                       | 11 +++++-
+ mm/rmap.c                         |  3 +-
+ 12 files changed, 108 insertions(+), 26 deletions(-)
+ create mode 100644 lib/access.c
 
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.10 (GNU/Linux)
+-- 
+1.9.3
 
-iEYEARECAAYFAlSJY6sACgkQykllyylKDCEP2QCdE6y7QFxxnzBGcWHw1XTDytxD
-JF8AnRCJsCpuMEGhdBVHIEdwkt8rGfHE
-=gPvx
------END PGP SIGNATURE-----
-
---1o6H7k67PHOLL2ETS7uodaeObAwM0IQoV--
