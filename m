@@ -1,49 +1,28 @@
-From: "Michael S. Tsirkin" <mst@redhat.com>
-Subject: Re: [PATCH RFC 3/5] pci: add pci_iomap_range
-Date: Fri, 12 Dec 2014 01:49:36 +0200
-Message-ID: <20141211234936.GB9439@redhat.com>
-References: <1418326570-9541-1-git-send-email-mst@redhat.com>
-	<1418326570-9541-4-git-send-email-mst@redhat.com>
-	<11102634.nzYXXfUH5X@wuerfel>
+From: David Miller <davem@davemloft.net>
+Subject: Re: [net-next PATCH v7 resubmit 0/4] arch: Add lightweight memory
+ barriers for coherent memory access
+Date: Thu, 11 Dec 2014 21:16:02 -0500 (EST)
+Message-ID: <20141211.211602.1228496215945360802.davem@davemloft.net>
+References: <20141125203310.8240.27370.stgit@ahduyck-server>
+	<20141211225250.25464.30291.stgit@ahduyck-server>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
+Content-Type: Text/Plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
-Return-path: <virtualization-bounces@lists.linux-foundation.org>
-Content-Disposition: inline
-In-Reply-To: <11102634.nzYXXfUH5X@wuerfel>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
-List-Post: <mailto:virtualization@lists.linux-foundation.org>
-List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
-Sender: virtualization-bounces@lists.linux-foundation.org
-Errors-To: virtualization-bounces@lists.linux-foundation.org
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from shards.monkeyblade.net ([149.20.54.216]:58792 "EHLO
+	shards.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754720AbaLLCQH (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 11 Dec 2014 21:16:07 -0500
+In-Reply-To: <20141211225250.25464.30291.stgit@ahduyck-server>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: alexander.h.duyck@redhat.com
+Cc: netdev@vger.kernel.org, linux-kernel@vger.kernel.org, mathieu.desnoyers@polymtl.ca, peterz@infradead.org, benh@kernel.crashing.org, heiko.carstens@de.ibm.com, mingo@kernel.org, linux-arch@vger.kernel.org, mikey@neuling.org, linux@arm.linux.org.uk, donald.c.skidmore@intel.com, matthew.vick@intel.com, geert@linux-m68k.org, jeffrey.t.kirsher@intel.com, romieu@fr.zoreil.com, paulmck@linux.vnet.ibm.com, nic_swsd@realtek.com, arnd@arndb.de, will.deacon@arm.com, michael@ellerman.id.au, tony.luck@intel.com, torvalds@linux-foundation.org, oleg@redhat.com, schwidefsky@de.ibm.com, fweisbec@gmail.com
 
-On Thu, Dec 11, 2014 at 11:27:54PM +0100, Arnd Bergmann wrote:
-> On Thursday 11 December 2014 21:37:34 Michael S. Tsirkin wrote:
-> >         if (flags & IORESOURCE_MEM) {
-> > -               if (flags & IORESOURCE_CACHEABLE)
-> > +               if (!force_nocache && (flags & IORESOURCE_CACHEABLE))
-> >                         return ioremap(start, len);
-> >                 return ioremap_nocache(start, len);
-> >         }
-> > 
-> 
-> ioremap is the same as ioremap_nocache, so this doesn't really make any
-> sense. IORESOURCE_CACHEABLE is practically only set for ROM bars, which
-> we rarely map.
-> 
-> 	Arnd
+From: Alexander Duyck <alexander.h.duyck@redhat.com>
+Date: Thu, 11 Dec 2014 15:01:43 -0800
 
-Hmm I think you are right.
-It's an old patch - I think at one point in time we did set it when we
-now set IORESOURCE_PREFETCH.
-I'll drop this parameter.
+> These patches introduce two new primitives for synchronizing cache coherent
+> memory writes and reads.
 
--- 
-MST
+Series applied, thanks Alex.
