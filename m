@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:53026 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:53000 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752532AbaLNQxO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 14 Dec 2014 11:53:14 -0500
-Date: Sun, 14 Dec 2014 18:52:59 +0200
+	id S1752532AbaLNQxF (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 14 Dec 2014 11:53:05 -0500
+Date: Sun, 14 Dec 2014 18:52:22 +0200
 From: "Michael S. Tsirkin" <mst@redhat.com>
-Subject: [PATCH 15/18] sparc/uaccess: fix sparse errors
-Message-ID: <1418575877-21488-16-git-send-email-mst@redhat.com>
+Subject: [PATCH 06/18] cris/uaccess: fix sparse errors
+Message-ID: <1418575877-21488-7-git-send-email-mst@redhat.com>
 References: <1418575877-21488-1-git-send-email-mst@redhat.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
@@ -15,8 +15,8 @@ In-Reply-To: <1418575877-21488-1-git-send-email-mst@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, "David S. Miller" <davem@davemloft.net>, Sam Ravnborg <sam@ravnborg.org>, sparclinux@vger.kernel.org
-Message-ID: <20141214165259.ZIpPbo45k-1Fet7oXYg8dw3vhuJLg_-Xt_hyA2jKNxg@z>
+Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Mikael Starvik <starvik@axis.com>, Jesper Nilsson <jesper.nilsson@axis.com>, linux-cris-kernel@axis.com
+Message-ID: <20141214165222.C_WymOp9s5kkIXDAeSmfZG6qhuwATpQlZkbZ31JjMdc@z>
 
 virtio wants to read bitwise types from userspace using get_user.  At the
 moment this triggers sparse errors, since the value is passed through an
@@ -26,49 +26,31 @@ Fix that up using __force.
 
 Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
 ---
- arch/sparc/include/asm/uaccess_32.h | 8 ++++----
- 1 file changed, 4 insertions(+), 4 deletions(-)
+ arch/cris/include/asm/uaccess.h | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
 
-diff --git a/arch/sparc/include/asm/uaccess_32.h b/arch/sparc/include/asm/uaccess_32.h
-index 9634d08..8b571a0 100644
---- a/arch/sparc/include/asm/uaccess_32.h
-+++ b/arch/sparc/include/asm/uaccess_32.h
-@@ -164,7 +164,7 @@ case 2: __get_user_asm(__gu_val,uh,addr,__gu_ret); break; \
- case 4: __get_user_asm(__gu_val,,addr,__gu_ret); break; \
- case 8: __get_user_asm(__gu_val,d,addr,__gu_ret); break; \
- default: __gu_val = 0; __gu_ret = __get_user_bad(); break; \
--} } else { __gu_val = 0; __gu_ret = -EFAULT; } x = (type) __gu_val; __gu_ret; })
-+} } else { __gu_val = 0; __gu_ret = -EFAULT; } x = (__force type) __gu_val; __gu_ret; })
+diff --git a/arch/cris/include/asm/uaccess.h b/arch/cris/include/asm/uaccess.h
+index 9145408..958a350 100644
+--- a/arch/cris/include/asm/uaccess.h
++++ b/arch/cris/include/asm/uaccess.h
+@@ -153,7 +153,7 @@ struct __large_struct { unsigned long buf[100]; };
+ ({								\
+ 	long __gu_err, __gu_val;				\
+ 	__get_user_size(__gu_val,(ptr),(size),__gu_err);	\
+-	(x) = (__typeof__(*(ptr)))__gu_val;			\
++	(x) = (__force __typeof__(*(ptr)))__gu_val;			\
+ 	__gu_err;						\
+ })
  
- #define __get_user_check_ret(x,addr,size,type,retval) ({ \
- register unsigned long __gu_val __asm__ ("l1"); \
-@@ -175,7 +175,7 @@ case 2: __get_user_asm_ret(__gu_val,uh,addr,retval); break; \
- case 4: __get_user_asm_ret(__gu_val,,addr,retval); break; \
- case 8: __get_user_asm_ret(__gu_val,d,addr,retval); break; \
- default: if (__get_user_bad()) return retval; \
--} x = (type) __gu_val; } else return retval; })
-+} x = (__force type) __gu_val; } else return retval; })
+@@ -163,7 +163,7 @@ struct __large_struct { unsigned long buf[100]; };
+ 	const __typeof__(*(ptr)) *__gu_addr = (ptr);			\
+ 	if (access_ok(VERIFY_READ,__gu_addr,size))			\
+ 		__get_user_size(__gu_val,__gu_addr,(size),__gu_err);	\
+-	(x) = (__typeof__(*(ptr)))__gu_val;				\
++	(x) = (__force __typeof__(*(ptr)))__gu_val;				\
+ 	__gu_err;							\
+ })
  
- #define __get_user_nocheck(x,addr,size,type) ({ \
- register int __gu_ret; \
-@@ -186,7 +186,7 @@ case 2: __get_user_asm(__gu_val,uh,addr,__gu_ret); break; \
- case 4: __get_user_asm(__gu_val,,addr,__gu_ret); break; \
- case 8: __get_user_asm(__gu_val,d,addr,__gu_ret); break; \
- default: __gu_val = 0; __gu_ret = __get_user_bad(); break; \
--} x = (type) __gu_val; __gu_ret; })
-+} x = (__force type) __gu_val; __gu_ret; })
- 
- #define __get_user_nocheck_ret(x,addr,size,type,retval) ({ \
- register unsigned long __gu_val __asm__ ("l1"); \
-@@ -196,7 +196,7 @@ case 2: __get_user_asm_ret(__gu_val,uh,addr,retval); break; \
- case 4: __get_user_asm_ret(__gu_val,,addr,retval); break; \
- case 8: __get_user_asm_ret(__gu_val,d,addr,retval); break; \
- default: if (__get_user_bad()) return retval; \
--} x = (type) __gu_val; })
-+} x = (__force type) __gu_val; })
- 
- #define __get_user_asm(x,size,addr,ret)					\
- __asm__ __volatile__(							\
 -- 
 MST
 
