@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:33002 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:49444 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752532AbaLNQxY (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 14 Dec 2014 11:53:24 -0500
-Date: Sun, 14 Dec 2014 18:53:14 +0200
+	id S1752615AbaLNQxM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 14 Dec 2014 11:53:12 -0500
+Date: Sun, 14 Dec 2014 18:52:51 +0200
 From: "Michael S. Tsirkin" <mst@redhat.com>
-Subject: [PATCH 18/18] m68k/uaccess: fix sparse errors
-Message-ID: <1418575877-21488-19-git-send-email-mst@redhat.com>
+Subject: [PATCH 13/18] powerpc/uaccess: fix sparse errors
+Message-ID: <1418575877-21488-14-git-send-email-mst@redhat.com>
 References: <1418575877-21488-1-git-send-email-mst@redhat.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
@@ -15,8 +15,8 @@ In-Reply-To: <1418575877-21488-1-git-send-email-mst@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Geert Uytterhoeven <geert@linux-m68k.org>, linux-m68k@vger.kernel.org
-Message-ID: <20141214165314.wAzp8wCpmeoRvnMKXXGkra5w0k4O6enE8l4vt-omehM@z>
+Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, linuxppc-dev@lists.ozlabs.org
+Message-ID: <20141214165251.lFZ02YIEoo2x1H8wW37esycqQLyW9CKrU3Xr-Lekq-A@z>
 
 virtio wants to read bitwise types from userspace using get_user.  At the
 moment this triggers sparse errors, since the value is passed through an
@@ -26,31 +26,40 @@ Fix that up using __force.
 
 Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
 ---
- arch/m68k/include/asm/uaccess_mm.h | 4 ++--
- 1 file changed, 2 insertions(+), 2 deletions(-)
+ arch/powerpc/include/asm/uaccess.h | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
 
-diff --git a/arch/m68k/include/asm/uaccess_mm.h b/arch/m68k/include/asm/uaccess_mm.h
-index 15901db..c31f53f 100644
---- a/arch/m68k/include/asm/uaccess_mm.h
-+++ b/arch/m68k/include/asm/uaccess_mm.h
-@@ -146,7 +146,7 @@ asm volatile ("\n"					\
- 		"	.previous"				\
- 		: "+d" (res), "=&" #reg (__gu_val)		\
- 		: "m" (*(ptr)), "i" (err));			\
--	(x) = (typeof(*(ptr)))(unsigned long)__gu_val;		\
-+	(x) = (__force typeof(*(ptr)))(__force unsigned long)__gu_val;		\
+diff --git a/arch/powerpc/include/asm/uaccess.h b/arch/powerpc/include/asm/uaccess.h
+index 9485b43..a0c071d 100644
+--- a/arch/powerpc/include/asm/uaccess.h
++++ b/arch/powerpc/include/asm/uaccess.h
+@@ -284,7 +284,7 @@ do {								\
+ 	if (!is_kernel_addr((unsigned long)__gu_addr))		\
+ 		might_fault();					\
+ 	__get_user_size(__gu_val, __gu_addr, (size), __gu_err);	\
+-	(x) = (__typeof__(*(ptr)))__gu_val;			\
++	(x) = (__force __typeof__(*(ptr)))__gu_val;			\
+ 	__gu_err;						\
+ })
+ #endif /* __powerpc64__ */
+@@ -297,7 +297,7 @@ do {								\
+ 	might_fault();							\
+ 	if (access_ok(VERIFY_READ, __gu_addr, (size)))			\
+ 		__get_user_size(__gu_val, __gu_addr, (size), __gu_err);	\
+-	(x) = (__typeof__(*(ptr)))__gu_val;				\
++	(x) = (__force __typeof__(*(ptr)))__gu_val;				\
+ 	__gu_err;							\
  })
  
- #define __get_user(x, ptr)						\
-@@ -188,7 +188,7 @@ asm volatile ("\n"					\
- 			  "+a" (__gu_ptr)				\
- 			: "i" (-EFAULT)					\
- 			: "memory");					\
--		(x) = (typeof(*(ptr)))__gu_val;				\
-+		(x) = (__force typeof(*(ptr)))__gu_val;				\
- 		break;							\
- 	    }	*/							\
- 	default:							\
+@@ -308,7 +308,7 @@ do {								\
+ 	const __typeof__(*(ptr)) __user *__gu_addr = (ptr);	\
+ 	__chk_user_ptr(ptr);					\
+ 	__get_user_size(__gu_val, __gu_addr, (size), __gu_err);	\
+-	(x) = (__typeof__(*(ptr)))__gu_val;			\
++	(x) = (__force __typeof__(*(ptr)))__gu_val;			\
+ 	__gu_err;						\
+ })
+ 
 -- 
 MST
 
