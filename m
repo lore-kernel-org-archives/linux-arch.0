@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:49325 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:52953 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751935AbaLNQwj (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 14 Dec 2014 11:52:39 -0500
-Date: Sun, 14 Dec 2014 18:52:27 +0200
+	id S1751719AbaLNQwf (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 14 Dec 2014 11:52:35 -0500
+Date: Sun, 14 Dec 2014 18:52:18 +0200
 From: "Michael S. Tsirkin" <mst@redhat.com>
-Subject: [PATCH 07/18] ia64/uaccess: fix sparse errors
-Message-ID: <1418575877-21488-8-git-send-email-mst@redhat.com>
+Subject: [PATCH 05/18] blackfin/uaccess: fix sparse errors
+Message-ID: <1418575877-21488-6-git-send-email-mst@redhat.com>
 References: <1418575877-21488-1-git-send-email-mst@redhat.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
@@ -15,8 +15,8 @@ In-Reply-To: <1418575877-21488-1-git-send-email-mst@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, linux-ia64@vger.kernel.org
-Message-ID: <20141214165227.oXO3gE3lj2S4SevCPK-cSgskDYJlm6QSrL-rhnT-q5M@z>
+Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Steven Miao <realmz6@gmail.com>, adi-buildroot-devel@lists.sourceforge.net
+Message-ID: <20141214165218.wYZuB5gFjJk1DnaGO1hTyF1U2MfV0uMGwbn_rnfzIYs@z>
 
 virtio wants to read bitwise types from userspace using get_user.  At the
 moment this triggers sparse errors, since the value is passed through an
@@ -26,20 +26,20 @@ Fix that up using __force.
 
 Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
 ---
- arch/ia64/include/asm/uaccess.h | 2 +-
+ arch/blackfin/include/asm/uaccess.h | 2 +-
  1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/arch/ia64/include/asm/uaccess.h b/arch/ia64/include/asm/uaccess.h
-index 449c8c0..d818ae4 100644
---- a/arch/ia64/include/asm/uaccess.h
-+++ b/arch/ia64/include/asm/uaccess.h
-@@ -197,7 +197,7 @@ extern void __get_user_unknown (void);
- 		      case 8: __get_user_size(__gu_val, __gu_ptr, 8, __gu_err); break;	\
- 		      default: __get_user_unknown(); break;				\
- 		}									\
--	(x) = (__typeof__(*(__gu_ptr))) __gu_val;					\
-+	(x) = (__force __typeof__(*(__gu_ptr))) __gu_val;					\
- 	__gu_err;									\
+diff --git a/arch/blackfin/include/asm/uaccess.h b/arch/blackfin/include/asm/uaccess.h
+index 57701c3..6a46e7d 100644
+--- a/arch/blackfin/include/asm/uaccess.h
++++ b/arch/blackfin/include/asm/uaccess.h
+@@ -147,7 +147,7 @@ static inline int bad_user_access_length(void)
+ 		}						\
+ 	} else							\
+ 		_err = -EFAULT;					\
+-	x = (typeof(*(ptr)))_val;				\
++	x = (__force typeof(*(ptr)))_val;				\
+ 	_err;							\
  })
  
 -- 
