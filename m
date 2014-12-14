@@ -1,16 +1,16 @@
 From: "Michael S. Tsirkin" <mst@redhat.com>
-Subject: [PATCH 14/18] sh/uaccess: fix sparse errors
-Date: Sun, 14 Dec 2014 18:52:56 +0200
-Message-ID: <1418575877-21488-15-git-send-email-mst@redhat.com>
+Subject: [PATCH 09/18] metag/uaccess: fix sparse errors
+Date: Sun, 14 Dec 2014 18:52:35 +0200
+Message-ID: <1418575877-21488-10-git-send-email-mst@redhat.com>
 References: <1418575877-21488-1-git-send-email-mst@redhat.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-sh-owner@vger.kernel.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
 In-Reply-To: <1418575877-21488-1-git-send-email-mst@redhat.com>
-Sender: linux-sh-owner@vger.kernel.org
+Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
-Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-sh@vger.kernel.org
+Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, James Hogan <james.hogan@imgtec.com>, linux-metag@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
 virtio wants to read bitwise types from userspace using get_user.  At the
@@ -21,31 +21,30 @@ Fix that up using __force.
 
 Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
 ---
- arch/sh/include/asm/uaccess.h | 4 ++--
+ arch/metag/include/asm/uaccess.h | 4 ++--
  1 file changed, 2 insertions(+), 2 deletions(-)
 
-diff --git a/arch/sh/include/asm/uaccess.h b/arch/sh/include/asm/uaccess.h
-index 9486376..484b1f9 100644
---- a/arch/sh/include/asm/uaccess.h
-+++ b/arch/sh/include/asm/uaccess.h
-@@ -60,7 +60,7 @@ struct __large_struct { unsigned long buf[100]; };
- 	const __typeof__(*(ptr)) __user *__gu_addr = (ptr);	\
- 	__chk_user_ptr(ptr);					\
- 	__get_user_size(__gu_val, __gu_addr, (size), __gu_err);	\
--	(x) = (__typeof__(*(ptr)))__gu_val;			\
-+	(x) = (__force __typeof__(*(ptr)))__gu_val;			\
- 	__gu_err;						\
+diff --git a/arch/metag/include/asm/uaccess.h b/arch/metag/include/asm/uaccess.h
+index 0748b0a..c314b45 100644
+--- a/arch/metag/include/asm/uaccess.h
++++ b/arch/metag/include/asm/uaccess.h
+@@ -135,7 +135,7 @@ extern long __get_user_bad(void);
+ ({                                                              \
+ 	long __gu_err, __gu_val;                                \
+ 	__get_user_size(__gu_val, (ptr), (size), __gu_err);	\
+-	(x) = (__typeof__(*(ptr)))__gu_val;                     \
++	(x) = (__force __typeof__(*(ptr)))__gu_val;                     \
+ 	__gu_err;                                               \
  })
  
-@@ -71,7 +71,7 @@ struct __large_struct { unsigned long buf[100]; };
- 	const __typeof__(*(ptr)) *__gu_addr = (ptr);			\
- 	if (likely(access_ok(VERIFY_READ, __gu_addr, (size))))		\
+@@ -145,7 +145,7 @@ extern long __get_user_bad(void);
+ 	const __typeof__(*(ptr)) __user *__gu_addr = (ptr);		\
+ 	if (access_ok(VERIFY_READ, __gu_addr, size))			\
  		__get_user_size(__gu_val, __gu_addr, (size), __gu_err);	\
--	(x) = (__typeof__(*(ptr)))__gu_val;				\
-+	(x) = (__force __typeof__(*(ptr)))__gu_val;				\
- 	__gu_err;							\
+-	(x) = (__typeof__(*(ptr)))__gu_val;                             \
++	(x) = (__force __typeof__(*(ptr)))__gu_val;                             \
+ 	__gu_err;                                                       \
  })
  
 -- 
 MST
-
