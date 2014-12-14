@@ -1,42 +1,39 @@
-From: "Michael S. Tsirkin" <mst@redhat.com>
-Subject: [PATCH 07/18] ia64/uaccess: fix sparse errors
-Date: Sun, 14 Dec 2014 18:52:27 +0200
-Message-ID: <1418575877-21488-8-git-send-email-mst@redhat.com>
+From: Hans-Christian Egtvedt <egtvedt@samfundet.no>
+Subject: Re: [PATCH 04/18] avr32/uaccess: fix sparse errors
+Date: Sun, 14 Dec 2014 21:35:46 +0100
+Message-ID: <20141214203544.GA21391@samfundet.no>
 References: <1418575877-21488-1-git-send-email-mst@redhat.com>
+ <1418575877-21488-5-git-send-email-mst@redhat.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-ia64-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from cassarossa.samfundet.no ([193.35.52.29]:42530 "EHLO
+	cassarossa.samfundet.no" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751274AbaLNUfz (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 14 Dec 2014 15:35:55 -0500
 Content-Disposition: inline
-In-Reply-To: <1418575877-21488-1-git-send-email-mst@redhat.com>
-Sender: linux-ia64-owner@vger.kernel.org
-To: linux-kernel@vger.kernel.org
-Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, linux-ia64@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <1418575877-21488-5-git-send-email-mst@redhat.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: "Michael S. Tsirkin" <mst@redhat.com>
+Cc: linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Haavard Skinnemoen <hskinnemoen@gmail.com>
 
-virtio wants to read bitwise types from userspace using get_user.  At the
-moment this triggers sparse errors, since the value is passed through an
-integer.
+Around Sun 14 Dec 2014 18:52:14 +0200 or thereabout, Michael S. Tsirkin wrote:
+> virtio wants to read bitwise types from userspace using get_user.  At the
+> moment this triggers sparse errors, since the value is passed through an
+> integer.
+> 
+> Fix that up using __force.
+> 
+> Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
 
-Fix that up using __force.
+Acked-by: Hans-Christian Egtvedt <egtvedt@samfundet.no>
 
-Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
----
- arch/ia64/include/asm/uaccess.h | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+> ---
+>  arch/avr32/include/asm/uaccess.h | 4 ++--
+>  1 file changed, 2 insertions(+), 2 deletions(-)
 
-diff --git a/arch/ia64/include/asm/uaccess.h b/arch/ia64/include/asm/uaccess.h
-index 449c8c0..d818ae4 100644
---- a/arch/ia64/include/asm/uaccess.h
-+++ b/arch/ia64/include/asm/uaccess.h
-@@ -197,7 +197,7 @@ extern void __get_user_unknown (void);
- 		      case 8: __get_user_size(__gu_val, __gu_ptr, 8, __gu_err); break;	\
- 		      default: __get_user_unknown(); break;				\
- 		}									\
--	(x) = (__typeof__(*(__gu_ptr))) __gu_val;					\
-+	(x) = (__force __typeof__(*(__gu_ptr))) __gu_val;					\
- 	__gu_err;									\
- })
- 
+<snipp diff>
+
 -- 
-MST
-
+Hans-Christian Egtvedt
