@@ -1,59 +1,132 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:52580 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:48708 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752300AbaLOKWl (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 15 Dec 2014 05:22:41 -0500
-Date: Mon, 15 Dec 2014 12:22:27 +0200
+	id S1750809AbaLOVd1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 15 Dec 2014 16:33:27 -0500
+Date: Mon, 15 Dec 2014 23:33:09 +0200
 From: "Michael S. Tsirkin" <mst@redhat.com>
-Subject: Re: [PATCH 00/18] uaccess: fix sparse warning on get_user for
- bitwise types
-Message-ID: <20141215102227.GA26178@redhat.com>
-References: <1418575877-21488-1-git-send-email-mst@redhat.com>
- <1418604052.19970.6.camel@ellerman.id.au>
+Subject: [PATCH RFC 1/5] pci: add pci_iomap_range
+Message-ID: <1418679168-1011-2-git-send-email-mst@redhat.com>
+References: <1418679168-1011-1-git-send-email-mst@redhat.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <1418604052.19970.6.camel@ellerman.id.au>
+In-Reply-To: <1418679168-1011-1-git-send-email-mst@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Michael Ellerman <mpe@ellerman.id.au>
-Cc: linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org
-Message-ID: <20141215102227.JjLq6DZcO31xK8ptw8Lv6d25hI7_C6-SpL8gMtZvV2o@z>
+To: linux-kernel@vger.kernel.org
+Cc: Rusty Russell <rusty@rustcorp.com.au>, virtualization@lists.linux-foundation.org, linux-sh@vger.kernel.org, cornelia.huck@de.ibm.com, Michael S Tsirkin <mst@redhat.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org
+Message-ID: <20141215213309.6RKnUNvAs2r7QEsqmTHfbBRqfzDwcyZ6avzKwMndmnc@z>
 
-On Mon, Dec 15, 2014 at 11:40:52AM +1100, Michael Ellerman wrote:
-> On Sun, 2014-12-14 at 18:51 +0200, Michael S. Tsirkin wrote:
-> > At the moment, if p and x are both tagged as bitwise types,
-> > get_user(x, p) produces a sparse warning on many architectures.
-> > This is because *p on these architectures is loaded into long
-> > (typically using asm), then cast back to typeof(*p).
-> > 
-> > When typeof(*p) is a bitwise type (which is uncommon), such a cast needs
-> > __force, otherwise sparse produces a warning.
-> 
-> What does __force actually mean? Force the cast even though it's a bitfield? Or
-> does it mean more than that?
+From: Michael S Tsirkin <mst@redhat.com>
 
-It's not a bitfield = it's a bitwise integer.
-Once you tag a typedef as bitwise, casts to and from
-an untypedefed integer cause sparse warnings.
+Virtio drivers should map the part of the BAR they need, not necessarily
+all of it.
 
-> ie. are we loosing the ability to detect any actual errors by adding force?
-> 
-> cheers
+Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
+Signed-off-by: Rusty Russell <rusty@rustcorp.com.au>
+---
+ include/asm-generic/pci_iomap.h | 10 ++++++++++
+ lib/pci_iomap.c                 | 35 ++++++++++++++++++++++++++++++-----
+ 2 files changed, 40 insertions(+), 5 deletions(-)
 
-I think we aren't:
-get_user(x, p) should be equivalent to x = *p except it
-validates the pointer is to userspace memory,
-and can handle pagefaults.
-
-Sparse warnings are triggered because these macros use
-an untyped integer internally.
-
-Note that we are casting to typeof(*p) not typeof(x).
-Even with the cast, if x and *p are of different types we should get the
-warning, so I think we are not loosing the ability to detect any actual
-errors.
-
-
+diff --git a/include/asm-generic/pci_iomap.h b/include/asm-generic/pci_iomap.h
+index ce37349..7389c87 100644
+--- a/include/asm-generic/pci_iomap.h
++++ b/include/asm-generic/pci_iomap.h
+@@ -15,6 +15,9 @@ struct pci_dev;
+ #ifdef CONFIG_PCI
+ /* Create a virtual mapping cookie for a PCI BAR (memory or IO) */
+ extern void __iomem *pci_iomap(struct pci_dev *dev, int bar, unsigned long max);
++extern void __iomem *pci_iomap_range(struct pci_dev *dev, int bar,
++				     unsigned long offset,
++				     unsigned long maxlen);
+ /* Create a virtual mapping cookie for a port on a given PCI device.
+  * Do not call this directly, it exists to make it easier for architectures
+  * to override */
+@@ -30,6 +33,13 @@ static inline void __iomem *pci_iomap(struct pci_dev *dev, int bar, unsigned lon
+ {
+ 	return NULL;
+ }
++
++static inline void __iomem *pci_iomap_range(struct pci_dev *dev, int bar,
++					    unsigned long offset,
++					    unsigned long maxlen)
++{
++	return NULL;
++}
+ #endif
+ 
+ #endif /* __ASM_GENERIC_IO_H */
+diff --git a/lib/pci_iomap.c b/lib/pci_iomap.c
+index 0d83ea8..bcce5f1 100644
+--- a/lib/pci_iomap.c
++++ b/lib/pci_iomap.c
+@@ -10,10 +10,11 @@
+ 
+ #ifdef CONFIG_PCI
+ /**
+- * pci_iomap - create a virtual mapping cookie for a PCI BAR
++ * pci_iomap_range - create a virtual mapping cookie for a PCI BAR
+  * @dev: PCI device that owns the BAR
+  * @bar: BAR number
+- * @maxlen: length of the memory to map
++ * @offset: map memory at the given offset in BAR
++ * @maxlen: max length of the memory to map
+  *
+  * Using this function you will get a __iomem address to your device BAR.
+  * You can access it using ioread*() and iowrite*(). These functions hide
+@@ -21,16 +22,21 @@
+  * you expect from them in the correct way.
+  *
+  * @maxlen specifies the maximum length to map. If you want to get access to
+- * the complete BAR without checking for its length first, pass %0 here.
++ * the complete BAR from offset to the end, pass %0 here.
+  * */
+-void __iomem *pci_iomap(struct pci_dev *dev, int bar, unsigned long maxlen)
++void __iomem *pci_iomap_range(struct pci_dev *dev,
++			      int bar,
++			      unsigned long offset,
++			      unsigned long maxlen)
+ {
+ 	resource_size_t start = pci_resource_start(dev, bar);
+ 	resource_size_t len = pci_resource_len(dev, bar);
+ 	unsigned long flags = pci_resource_flags(dev, bar);
+ 
+-	if (!len || !start)
++	if (len <= offset || !start)
+ 		return NULL;
++	len -= offset;
++	start += offset;
+ 	if (maxlen && len > maxlen)
+ 		len = maxlen;
+ 	if (flags & IORESOURCE_IO)
+@@ -43,6 +49,25 @@ void __iomem *pci_iomap(struct pci_dev *dev, int bar, unsigned long maxlen)
+ 	/* What? */
+ 	return NULL;
+ }
++EXPORT_SYMBOL(pci_iomap_range);
+ 
++/**
++ * pci_iomap - create a virtual mapping cookie for a PCI BAR
++ * @dev: PCI device that owns the BAR
++ * @bar: BAR number
++ * @maxlen: length of the memory to map
++ *
++ * Using this function you will get a __iomem address to your device BAR.
++ * You can access it using ioread*() and iowrite*(). These functions hide
++ * the details if this is a MMIO or PIO address space and will just do what
++ * you expect from them in the correct way.
++ *
++ * @maxlen specifies the maximum length to map. If you want to get access to
++ * the complete BAR without checking for its length first, pass %0 here.
++ * */
++void __iomem *pci_iomap(struct pci_dev *dev, int bar, unsigned long maxlen)
++{
++	return pci_iomap_range(dev, bar, 0, maxlen);
++}
+ EXPORT_SYMBOL(pci_iomap);
+ #endif /* CONFIG_PCI */
 -- 
 MST
+
