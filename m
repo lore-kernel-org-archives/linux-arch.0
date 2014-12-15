@@ -1,35 +1,78 @@
-From: Michael Ellerman <mpe@ellerman.id.au>
-Subject: Re: [PATCH 00/18] uaccess: fix sparse warning on get_user for
- bitwise types
-Date: Mon, 15 Dec 2014 11:40:52 +1100
-Message-ID: <1418604052.19970.6.camel@ellerman.id.au>
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Subject: Re: [PATCH 13/18] powerpc/uaccess: fix sparse errors
+Date: Mon, 15 Dec 2014 12:37:46 +1100
+Message-ID: <1418607466.5111.38.camel@kernel.crashing.org>
 References: <1418575877-21488-1-git-send-email-mst@redhat.com>
+	 <1418575877-21488-14-git-send-email-mst@redhat.com>
+	 <1418601906.5111.37.camel@kernel.crashing.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from ozlabs.org ([103.22.144.67]:57405 "EHLO ozlabs.org"
+Received: from gate.crashing.org ([63.228.1.57]:50517 "EHLO gate.crashing.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752728AbaLOAlD (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 14 Dec 2014 19:41:03 -0500
-In-Reply-To: <1418575877-21488-1-git-send-email-mst@redhat.com>
+	id S1751181AbaLOBiO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 14 Dec 2014 20:38:14 -0500
+In-Reply-To: <1418601906.5111.37.camel@kernel.crashing.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: "Michael S. Tsirkin" <mst@redhat.com>
-Cc: linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org
+Cc: linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, linuxppc-dev@lists.ozlabs.org
 
-On Sun, 2014-12-14 at 18:51 +0200, Michael S. Tsirkin wrote:
-> At the moment, if p and x are both tagged as bitwise types,
-> get_user(x, p) produces a sparse warning on many architectures.
-> This is because *p on these architectures is loaded into long
-> (typically using asm), then cast back to typeof(*p).
+On Mon, 2014-12-15 at 11:05 +1100, Benjamin Herrenschmidt wrote:
+> On Sun, 2014-12-14 at 18:52 +0200, Michael S. Tsirkin wrote:
+> > virtio wants to read bitwise types from userspace using get_user.  At the
+> > moment this triggers sparse errors, since the value is passed through an
+> > integer.
+> > 
+> > Fix that up using __force.
 > 
-> When typeof(*p) is a bitwise type (which is uncommon), such a cast needs
-> __force, otherwise sparse produces a warning.
+> You mean bitfields ? Argh ... we should just remove them from the
+> compiler and be done with it :-(
 
-What does __force actually mean? Force the cast even though it's a bitfield? Or
-does it mean more than that?
+Oh... no I suppose you actually meant explicit endian fields, ie, __be32
+or __le32 right ? Ack on that. It sucks a bit but I think it's
+acceptable.
 
-ie. are we loosing the ability to detect any actual errors by adding force?
+Cheers,
+Ben.
 
-cheers
+> Ben.
+> 
+> > Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
+> > ---
+> >  arch/powerpc/include/asm/uaccess.h | 6 +++---
+> >  1 file changed, 3 insertions(+), 3 deletions(-)
+> > 
+> > diff --git a/arch/powerpc/include/asm/uaccess.h b/arch/powerpc/include/asm/uaccess.h
+> > index 9485b43..a0c071d 100644
+> > --- a/arch/powerpc/include/asm/uaccess.h
+> > +++ b/arch/powerpc/include/asm/uaccess.h
+> > @@ -284,7 +284,7 @@ do {								\
+> >  	if (!is_kernel_addr((unsigned long)__gu_addr))		\
+> >  		might_fault();					\
+> >  	__get_user_size(__gu_val, __gu_addr, (size), __gu_err);	\
+> > -	(x) = (__typeof__(*(ptr)))__gu_val;			\
+> > +	(x) = (__force __typeof__(*(ptr)))__gu_val;			\
+> >  	__gu_err;						\
+> >  })
+> >  #endif /* __powerpc64__ */
+> > @@ -297,7 +297,7 @@ do {								\
+> >  	might_fault();							\
+> >  	if (access_ok(VERIFY_READ, __gu_addr, (size)))			\
+> >  		__get_user_size(__gu_val, __gu_addr, (size), __gu_err);	\
+> > -	(x) = (__typeof__(*(ptr)))__gu_val;				\
+> > +	(x) = (__force __typeof__(*(ptr)))__gu_val;				\
+> >  	__gu_err;							\
+> >  })
+> >  
+> > @@ -308,7 +308,7 @@ do {								\
+> >  	const __typeof__(*(ptr)) __user *__gu_addr = (ptr);	\
+> >  	__chk_user_ptr(ptr);					\
+> >  	__get_user_size(__gu_val, __gu_addr, (size), __gu_err);	\
+> > -	(x) = (__typeof__(*(ptr)))__gu_val;			\
+> > +	(x) = (__force __typeof__(*(ptr)))__gu_val;			\
+> >  	__gu_err;						\
+> >  })
+> >  
+> 
