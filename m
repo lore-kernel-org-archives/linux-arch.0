@@ -1,52 +1,135 @@
-From: David Hildenbrand <dahi@linux.vnet.ibm.com>
-Subject: Re: [PATCH v2 1/5] uaccess: add pagefault_count to thread_info
-Date: Mon, 15 Dec 2014 12:23:01 +0100
-Message-ID: <20141215122301.0eac5f19@thinkpad-w530>
-References: <1418221414-60110-1-git-send-email-dahi@linux.vnet.ibm.com>
-	<1418221414-60110-2-git-send-email-dahi@linux.vnet.ibm.com>
-	<CAFiDJ59Y9y4VrcVfyo8rrQV-NtM=1G=kQScBtEvnuC3MpXt0KA@mail.gmail.com>
+From: "Michael S. Tsirkin" <mst@redhat.com>
+Subject: [PATCH RFC 1/5] pci: add pci_iomap_range
+Date: Mon, 15 Dec 2014 23:33:09 +0200
+Message-ID: <1418679168-1011-2-git-send-email-mst@redhat.com>
+References: <1418679168-1011-1-git-send-email-mst@redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e06smtp15.uk.ibm.com ([195.75.94.111]:45146 "EHLO
-	e06smtp15.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750894AbaLOQca (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 15 Dec 2014 11:32:30 -0500
-Received: from /spool/local
-	by e06smtp15.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <dahi@linux.vnet.ibm.com>;
-	Mon, 15 Dec 2014 11:23:07 -0000
-In-Reply-To: <CAFiDJ59Y9y4VrcVfyo8rrQV-NtM=1G=kQScBtEvnuC3MpXt0KA@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: "LF.Tan" <lftan.linux@gmail.com>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, benh@kernel.crashing.org, paulus@samba.org, akpm@linux-foundation.org, heiko.carstens@de.ibm.com, schwidefsky@de.ibm.com, borntraeger@de.ibm.com, "Michael S. Tsirkin" <mst@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, David.Laight@aculab.com, peterz@infradead.org, hughd@google.com, hocko@suse.cz
+Return-path: <virtualization-bounces@lists.linux-foundation.org>
+Content-Disposition: inline
+In-Reply-To: <1418679168-1011-1-git-send-email-mst@redhat.com>
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
+List-Post: <mailto:virtualization@lists.linux-foundation.org>
+List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
+Sender: virtualization-bounces@lists.linux-foundation.org
+Errors-To: virtualization-bounces@lists.linux-foundation.org
+To: linux-kernel@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-sh@vger.kernel.org, virtualization@lists.linux-foundation.org, Michael S Tsirkin <mst@redhat.com>
+List-Id: linux-arch.vger.kernel.org
 
-> On Wed, Dec 10, 2014 at 10:23 PM, David Hildenbrand
-> <dahi@linux.vnet.ibm.com> wrote:
-> > This patch adds the pagefault_count to the thread_info of all
-> > architectures. It will be used to count the pagefault_disable() levels
-> > on a per-thread basis.
-> >
-> > We are not reusing the preempt_count as this is per cpu on x86 and we want to
-> > demangle pagefault_disable() from preemption in the future.
-> >
-> > The new counter is added directly below the preempt_count, except for archs
-> > relying on a manual calculation of asm offsets - to minimize the changes.
-> >
-> Hi David
-> 
-> Is this patchset targeted for 3.19? If yes, then we need this for
-> arch/nios2 as well (new arch in 3.19).
-> 
+From: Michael S Tsirkin <mst@redhat.com>
 
-Hi,
+Virtio drivers should map the part of the BAR they need, not necessarily
+all of it.
 
-Peter just showed my that there is some work ongoing on that
-pagefault_disable() topic. So I am not sure if the arch-specific part of this
-series is still relevant.
+Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
+Signed-off-by: Rusty Russell <rusty@rustcorp.com.au>
+---
+ include/asm-generic/pci_iomap.h | 10 ++++++++++
+ lib/pci_iomap.c                 | 35 ++++++++++++++++++++++++++++++-----
+ 2 files changed, 40 insertions(+), 5 deletions(-)
 
-But thanks for the info!
-
-David
+diff --git a/include/asm-generic/pci_iomap.h b/include/asm-generic/pci_iomap.h
+index ce37349..7389c87 100644
+--- a/include/asm-generic/pci_iomap.h
++++ b/include/asm-generic/pci_iomap.h
+@@ -15,6 +15,9 @@ struct pci_dev;
+ #ifdef CONFIG_PCI
+ /* Create a virtual mapping cookie for a PCI BAR (memory or IO) */
+ extern void __iomem *pci_iomap(struct pci_dev *dev, int bar, unsigned long max);
++extern void __iomem *pci_iomap_range(struct pci_dev *dev, int bar,
++				     unsigned long offset,
++				     unsigned long maxlen);
+ /* Create a virtual mapping cookie for a port on a given PCI device.
+  * Do not call this directly, it exists to make it easier for architectures
+  * to override */
+@@ -30,6 +33,13 @@ static inline void __iomem *pci_iomap(struct pci_dev *dev, int bar, unsigned lon
+ {
+ 	return NULL;
+ }
++
++static inline void __iomem *pci_iomap_range(struct pci_dev *dev, int bar,
++					    unsigned long offset,
++					    unsigned long maxlen)
++{
++	return NULL;
++}
+ #endif
+ 
+ #endif /* __ASM_GENERIC_IO_H */
+diff --git a/lib/pci_iomap.c b/lib/pci_iomap.c
+index 0d83ea8..bcce5f1 100644
+--- a/lib/pci_iomap.c
++++ b/lib/pci_iomap.c
+@@ -10,10 +10,11 @@
+ 
+ #ifdef CONFIG_PCI
+ /**
+- * pci_iomap - create a virtual mapping cookie for a PCI BAR
++ * pci_iomap_range - create a virtual mapping cookie for a PCI BAR
+  * @dev: PCI device that owns the BAR
+  * @bar: BAR number
+- * @maxlen: length of the memory to map
++ * @offset: map memory at the given offset in BAR
++ * @maxlen: max length of the memory to map
+  *
+  * Using this function you will get a __iomem address to your device BAR.
+  * You can access it using ioread*() and iowrite*(). These functions hide
+@@ -21,16 +22,21 @@
+  * you expect from them in the correct way.
+  *
+  * @maxlen specifies the maximum length to map. If you want to get access to
+- * the complete BAR without checking for its length first, pass %0 here.
++ * the complete BAR from offset to the end, pass %0 here.
+  * */
+-void __iomem *pci_iomap(struct pci_dev *dev, int bar, unsigned long maxlen)
++void __iomem *pci_iomap_range(struct pci_dev *dev,
++			      int bar,
++			      unsigned long offset,
++			      unsigned long maxlen)
+ {
+ 	resource_size_t start = pci_resource_start(dev, bar);
+ 	resource_size_t len = pci_resource_len(dev, bar);
+ 	unsigned long flags = pci_resource_flags(dev, bar);
+ 
+-	if (!len || !start)
++	if (len <= offset || !start)
+ 		return NULL;
++	len -= offset;
++	start += offset;
+ 	if (maxlen && len > maxlen)
+ 		len = maxlen;
+ 	if (flags & IORESOURCE_IO)
+@@ -43,6 +49,25 @@ void __iomem *pci_iomap(struct pci_dev *dev, int bar, unsigned long maxlen)
+ 	/* What? */
+ 	return NULL;
+ }
++EXPORT_SYMBOL(pci_iomap_range);
+ 
++/**
++ * pci_iomap - create a virtual mapping cookie for a PCI BAR
++ * @dev: PCI device that owns the BAR
++ * @bar: BAR number
++ * @maxlen: length of the memory to map
++ *
++ * Using this function you will get a __iomem address to your device BAR.
++ * You can access it using ioread*() and iowrite*(). These functions hide
++ * the details if this is a MMIO or PIO address space and will just do what
++ * you expect from them in the correct way.
++ *
++ * @maxlen specifies the maximum length to map. If you want to get access to
++ * the complete BAR without checking for its length first, pass %0 here.
++ * */
++void __iomem *pci_iomap(struct pci_dev *dev, int bar, unsigned long maxlen)
++{
++	return pci_iomap_range(dev, bar, 0, maxlen);
++}
+ EXPORT_SYMBOL(pci_iomap);
+ #endif /* CONFIG_PCI */
+-- 
+MST
