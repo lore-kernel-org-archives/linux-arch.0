@@ -1,54 +1,29 @@
-From: "Michael S. Tsirkin" <mst@redhat.com>
-Subject: Re: [PATCH 00/18] uaccess: fix sparse warning on get_user for
- bitwise types
-Date: Mon, 15 Dec 2014 12:22:27 +0200
-Message-ID: <20141215102227.GA26178@redhat.com>
-References: <1418575877-21488-1-git-send-email-mst@redhat.com>
- <1418604052.19970.6.camel@ellerman.id.au>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH v2 0/5] Reenable might_sleep() checks for might_fault()
+Date: Mon, 15 Dec 2014 11:45:49 +0100
+Message-ID: <20141215104549.GY29390@twins.programming.kicks-ass.net>
+References: <1418221414-60110-1-git-send-email-dahi@linux.vnet.ibm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from casper.infradead.org ([85.118.1.10]:38087 "EHLO
+	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750723AbaLOKqH (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 15 Dec 2014 05:46:07 -0500
 Content-Disposition: inline
-In-Reply-To: <1418604052.19970.6.camel@ellerman.id.au>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Michael Ellerman <mpe@ellerman.id.au>
-Cc: linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <1418221414-60110-1-git-send-email-dahi@linux.vnet.ibm.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: David Hildenbrand <dahi@linux.vnet.ibm.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, benh@kernel.crashing.org, paulus@samba.org, akpm@linux-foundation.org, heiko.carstens@de.ibm.com, schwidefsky@de.ibm.com, borntraeger@de.ibm.com, mst@redhat.com, tglx@linutronix.de, David.Laight@ACULAB.COM, hughd@google.com, hocko@suse.cz
 
-On Mon, Dec 15, 2014 at 11:40:52AM +1100, Michael Ellerman wrote:
-> On Sun, 2014-12-14 at 18:51 +0200, Michael S. Tsirkin wrote:
-> > At the moment, if p and x are both tagged as bitwise types,
-> > get_user(x, p) produces a sparse warning on many architectures.
-> > This is because *p on these architectures is loaded into long
-> > (typically using asm), then cast back to typeof(*p).
-> > 
-> > When typeof(*p) is a bitwise type (which is uncommon), such a cast needs
-> > __force, otherwise sparse produces a warning.
-> 
-> What does __force actually mean? Force the cast even though it's a bitfield? Or
-> does it mean more than that?
+On Wed, Dec 10, 2014 at 03:23:29PM +0100, David Hildenbrand wrote:
 
-It's not a bitfield = it's a bitwise integer.
-Once you tag a typedef as bitwise, casts to and from
-an untypedefed integer cause sparse warnings.
+Did you look at the -rt patches where this comes from?
 
-> ie. are we loosing the ability to detect any actual errors by adding force?
-> 
-> cheers
-
-I think we aren't:
-get_user(x, p) should be equivalent to x = *p except it
-validates the pointer is to userspace memory,
-and can handle pagefaults.
-
-Sparse warnings are triggered because these macros use
-an untyped integer internally.
-
-Note that we are casting to typeof(*p) not typeof(x).
-Even with the cast, if x and *p are of different types we should get the
-warning, so I think we are not loosing the ability to detect any actual
-errors.
-
-
--- 
-MST
+https://git.kernel.org/cgit/linux/kernel/git/clrkwllms/rt-linux.git/commit/?h=v3.14.21-rt9&id=b389ced19ab649438196d132768fe6522d2f052b
+https://git.kernel.org/cgit/linux/kernel/git/clrkwllms/rt-linux.git/commit/?h=v3.14.21-rt9&id=4fb7f9d416f7b34036d9d1b209e77c462ac0ee10
+https://git.kernel.org/cgit/linux/kernel/git/clrkwllms/rt-linux.git/commit/?h=v3.14.21-rt9&id=c730a4aade9e5c9b84f65de01d6612bf70c577e3
+https://git.kernel.org/cgit/linux/kernel/git/clrkwllms/rt-linux.git/commit/?h=v3.14.21-rt9&id=d365f5bf933e988a39874b33302f02ff6c7989b7
+https://git.kernel.org/cgit/linux/kernel/git/clrkwllms/rt-linux.git/commit/?h=v3.14.21-rt9&id=93eb18f43dfa5d49d99e2b8ad236eea2c35dd539
+https://git.kernel.org/cgit/linux/kernel/git/clrkwllms/rt-linux.git/commit/?h=v3.14.21-rt9&id=8947442e896921e1b645f9e1fd0f2beee103bba0
