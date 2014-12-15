@@ -1,35 +1,63 @@
-From: "LF.Tan" <lftan.linux@gmail.com>
-Subject: Re: [PATCH v2 1/5] uaccess: add pagefault_count to thread_info
-Date: Mon, 15 Dec 2014 18:07:56 +0800
-Message-ID: <CAFiDJ59Y9y4VrcVfyo8rrQV-NtM=1G=kQScBtEvnuC3MpXt0KA@mail.gmail.com>
-References: <1418221414-60110-1-git-send-email-dahi@linux.vnet.ibm.com>
-	<1418221414-60110-2-git-send-email-dahi@linux.vnet.ibm.com>
+From: "Michael S. Tsirkin" <mst@redhat.com>
+Subject: Re: [PATCH 00/18] uaccess: fix sparse warning on get_user for
+ bitwise types
+Date: Mon, 15 Dec 2014 12:17:03 +0200
+Message-ID: <20141215101703.GA26156@redhat.com>
+References: <1418575877-21488-1-git-send-email-mst@redhat.com>
+ <CAFiDJ5_fGWx2E1jvU+k0Tv_esRpWmC-p+kq7Y_VOr5bx2ZUFzg@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-lb0-f182.google.com ([209.85.217.182]:48106 "EHLO
-	mail-lb0-f182.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752063AbaLOKH6 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 15 Dec 2014 05:07:58 -0500
-In-Reply-To: <1418221414-60110-2-git-send-email-dahi@linux.vnet.ibm.com>
+Received: from mx1.redhat.com ([209.132.183.28]:46064 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752036AbaLOKRO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 15 Dec 2014 05:17:14 -0500
+Content-Disposition: inline
+In-Reply-To: <CAFiDJ5_fGWx2E1jvU+k0Tv_esRpWmC-p+kq7Y_VOr5bx2ZUFzg@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Hildenbrand <dahi@linux.vnet.ibm.com>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, benh@kernel.crashing.org, paulus@samba.org, akpm@linux-foundation.org, heiko.carstens@de.ibm.com, schwidefsky@de.ibm.com, borntraeger@de.ibm.com, "Michael S. Tsirkin" <mst@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, David.Laight@aculab.com, peterz@infradead.org, hughd@google.com, hocko@suse.cz
+To: "LF.Tan" <lftan.linux@gmail.com>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Linux-Arch <linux-arch@vger.kernel.org>
 
-On Wed, Dec 10, 2014 at 10:23 PM, David Hildenbrand
-<dahi@linux.vnet.ibm.com> wrote:
-> This patch adds the pagefault_count to the thread_info of all
-> architectures. It will be used to count the pagefault_disable() levels
-> on a per-thread basis.
->
-> We are not reusing the preempt_count as this is per cpu on x86 and we want to
-> demangle pagefault_disable() from preemption in the future.
->
-> The new counter is added directly below the preempt_count, except for archs
-> relying on a manual calculation of asm offsets - to minimize the changes.
->
-Hi David
+On Mon, Dec 15, 2014 at 06:03:10PM +0800, LF.Tan wrote:
+> On Mon, Dec 15, 2014 at 12:51 AM, Michael S. Tsirkin <mst@redhat.com> wrote:
+> > At the moment, if p and x are both tagged as bitwise types,
+> > get_user(x, p) produces a sparse warning on many architectures.
+> > This is because *p on these architectures is loaded into long
+> > (typically using asm), then cast back to typeof(*p).
+> >
+> > When typeof(*p) is a bitwise type (which is uncommon), such a cast needs
+> > __force, otherwise sparse produces a warning.
+> >
+> > Some architectures already have the __force tag, add it
+> > where it's missing.
+> >
+> > Specificlly, vhost wants to read bitwise types from userspace using get_user.
+> > At the moment this triggers sparse errors, since the value is passed through an
+> > integer.
+> >
+> > For now, I worked around this by converting vhost code to access_ok +
+> > __get_user, but that's not robust, I'd like to switch to get_user for 3.19.
+> >
+> > I tested this on x86 only so far. Since it's just adding __force, should be
+> > trivially safe everywhere?
+> >
+> > Please review, and consider for 3.19.
+> >
+> > Who can merge this? Arnd?
+> Hi Michael
+> 
+> FYI, there is new arch (arch/nios2) in 3.19. Is your patchset include
+> the fix for it?
+> Thanks.
+> 
+> Regards
+> Ley Foon
 
-Is this patchset targeted for 3.19? If yes, then we need this for
-arch/nios2 as well (new arch in 3.19).
+Thanks for the heads up.
+No - it will probably need a similar fix for __get_user and get_user.
+It's just a parse warning so it's not a blocker.
+Can you fix it yourself or prefer me to?
+
+-- 
+MST
