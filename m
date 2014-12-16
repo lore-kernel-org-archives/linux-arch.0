@@ -1,8 +1,8 @@
 From: "Michael S. Tsirkin" <mst@redhat.com>
 Subject: Re: [PATCH 00/18] uaccess: fix sparse warning on get_user for
  bitwise types
-Date: Tue, 16 Dec 2014 08:57:32 +0200
-Message-ID: <20141216065732.GA9832@redhat.com>
+Date: Tue, 16 Dec 2014 18:45:28 +0200
+Message-ID: <20141216164527.GA21863@redhat.com>
 References: <1418575877-21488-1-git-send-email-mst@redhat.com>
  <CAFiDJ5_fGWx2E1jvU+k0Tv_esRpWmC-p+kq7Y_VOr5bx2ZUFzg@mail.gmail.com>
  <20141215101703.GA26156@redhat.com>
@@ -10,10 +10,10 @@ References: <1418575877-21488-1-git-send-email-mst@redhat.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:56929 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:32960 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750836AbaLPG5q (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 16 Dec 2014 01:57:46 -0500
+	id S1750942AbaLPQpi (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 16 Dec 2014 11:45:38 -0500
 Content-Disposition: inline
 In-Reply-To: <CAFiDJ5_BSMXBsv0gmzogyJi1x9-4vAhPpZBwn-_CHYDs0pOfvA@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
@@ -28,11 +28,16 @@ On Tue, Dec 16, 2014 at 02:06:50PM +0800, Ley Foon Tan wrote:
 > > It's just a parse warning so it's not a blocker.
 > > Can you fix it yourself or prefer me to?
 > Do you have newer revision of this series?
-
-I didn't find a reason to create a newer revision yet.
-
 > If yes, then it is great if you can include it. Otherwise, I can fix it.
 > 
 > Regards
 > 
 > Ley Foon
+
+Arnd said he'll merge whatever is not fixed in -rc1 through his tree for
+3.20.
+So it's up to you - fix it up in your tree before -rc1 or wait for
+mer to fix it after rc1 and have Arnd merge it for 3.20.
+
+-- 
+MST
