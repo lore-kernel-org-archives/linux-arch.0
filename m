@@ -1,43 +1,55 @@
 From: "Michael S. Tsirkin" <mst@redhat.com>
-Subject: Re: [PATCH 00/18] uaccess: fix sparse warning on get_user for
- bitwise types
-Date: Tue, 16 Dec 2014 18:45:28 +0200
-Message-ID: <20141216164527.GA21863@redhat.com>
+Subject: Re: [PATCH 01/18] x86/uaccess: fix sparse errors
+Date: Tue, 16 Dec 2014 18:47:17 +0200
+Message-ID: <20141216164717.GA21876@redhat.com>
 References: <1418575877-21488-1-git-send-email-mst@redhat.com>
- <CAFiDJ5_fGWx2E1jvU+k0Tv_esRpWmC-p+kq7Y_VOr5bx2ZUFzg@mail.gmail.com>
- <20141215101703.GA26156@redhat.com>
- <CAFiDJ5_BSMXBsv0gmzogyJi1x9-4vAhPpZBwn-_CHYDs0pOfvA@mail.gmail.com>
+ <1418575877-21488-2-git-send-email-mst@redhat.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:32960 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:59325 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750942AbaLPQpi (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 16 Dec 2014 11:45:38 -0500
+	id S1751006AbaLPQr3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 16 Dec 2014 11:47:29 -0500
 Content-Disposition: inline
-In-Reply-To: <CAFiDJ5_BSMXBsv0gmzogyJi1x9-4vAhPpZBwn-_CHYDs0pOfvA@mail.gmail.com>
+In-Reply-To: <1418575877-21488-2-git-send-email-mst@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ley Foon Tan <lftan@altera.com>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Linux-Arch <linux-arch@vger.kernel.org>
+To: linux-kernel@vger.kernel.org
+Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Qiaowei Ren <qiaowei.ren@intel.com>
 
-On Tue, Dec 16, 2014 at 02:06:50PM +0800, Ley Foon Tan wrote:
-> On Mon, Dec 15, 2014 at 6:17 PM, Michael S. Tsirkin <mst@redhat.com> wrote:
-> > Thanks for the heads up.
-> > No - it will probably need a similar fix for __get_user and get_user.
-> > It's just a parse warning so it's not a blocker.
-> > Can you fix it yourself or prefer me to?
-> Do you have newer revision of this series?
-> If yes, then it is great if you can include it. Otherwise, I can fix it.
+On Sun, Dec 14, 2014 at 06:51:57PM +0200, Michael S. Tsirkin wrote:
+> virtio wants to read bitwise types from userspace using get_user.  At the
+> moment this triggers sparse errors, since the value is passed through an
+> integer.
 > 
-> Regards
+> Fix that up using __force.
 > 
-> Ley Foon
+> Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
+> ---
 
-Arnd said he'll merge whatever is not fixed in -rc1 through his tree for
-3.20.
-So it's up to you - fix it up in your tree before -rc1 or wait for
-mer to fix it after rc1 and have Arnd merge it for 3.20.
+Ping.
+Do x86 maintainers consider fixing sparse errors
+applicable for 3.19?
+If yes, can you pls merge this patch?
 
--- 
-MST
+
+>  arch/x86/include/asm/uaccess.h | 2 +-
+>  1 file changed, 1 insertion(+), 1 deletion(-)
+> 
+> diff --git a/arch/x86/include/asm/uaccess.h b/arch/x86/include/asm/uaccess.h
+> index 0d592e0..8ce1af8 100644
+> --- a/arch/x86/include/asm/uaccess.h
+> +++ b/arch/x86/include/asm/uaccess.h
+> @@ -179,7 +179,7 @@ __typeof__(__builtin_choose_expr(sizeof(x) > sizeof(0UL), 0ULL, 0UL))
+>  	asm volatile("call __get_user_%P3"				\
+>  		     : "=a" (__ret_gu), "=r" (__val_gu)			\
+>  		     : "0" (ptr), "i" (sizeof(*(ptr))));		\
+> -	(x) = (__typeof__(*(ptr))) __val_gu;				\
+> +	(x) = (__force __typeof__(*(ptr))) __val_gu;				\
+>  	__ret_gu;							\
+>  })
+>  
+> -- 
+> MST
+> 
