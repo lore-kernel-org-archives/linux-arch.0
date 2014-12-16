@@ -1,72 +1,65 @@
-From: "Michael S. Tsirkin" <mst@redhat.com>
-Subject: Re: [PATCH 13/18] powerpc/uaccess: fix sparse errors
-Date: Tue, 16 Dec 2014 18:47:46 +0200
-Message-ID: <20141216164746.GB21876@redhat.com>
+From: Michael Ellerman <mpe@ellerman.id.au>
+Subject: Re: [PATCH 00/18] uaccess: fix sparse warning on get_user for
+ bitwise types
+Date: Wed, 17 Dec 2014 10:49:42 +1100
+Message-ID: <1418773782.6400.5.camel@ellerman.id.au>
 References: <1418575877-21488-1-git-send-email-mst@redhat.com>
- <1418575877-21488-14-git-send-email-mst@redhat.com>
+	 <1418604052.19970.6.camel@ellerman.id.au>
+	 <20141215102227.GA26178@redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:59617 "EHLO mx1.redhat.com"
+Received: from ozlabs.org ([103.22.144.67]:55110 "EHLO ozlabs.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751260AbaLPQsE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 16 Dec 2014 11:48:04 -0500
-Content-Disposition: inline
-In-Reply-To: <1418575877-21488-14-git-send-email-mst@redhat.com>
+	id S1750899AbaLPXuO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 16 Dec 2014 18:50:14 -0500
+In-Reply-To: <20141215102227.GA26178@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, linuxppc-dev@lists.ozlabs.org
+To: "Michael S. Tsirkin" <mst@redhat.com>
+Cc: linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org
 
-On Sun, Dec 14, 2014 at 06:52:51PM +0200, Michael S. Tsirkin wrote:
-> virtio wants to read bitwise types from userspace using get_user.  At the
-> moment this triggers sparse errors, since the value is passed through an
-> integer.
+On Mon, 2014-12-15 at 12:22 +0200, Michael S. Tsirkin wrote:
+> On Mon, Dec 15, 2014 at 11:40:52AM +1100, Michael Ellerman wrote:
+> > On Sun, 2014-12-14 at 18:51 +0200, Michael S. Tsirkin wrote:
+> > > At the moment, if p and x are both tagged as bitwise types,
+> > > get_user(x, p) produces a sparse warning on many architectures.
+> > > This is because *p on these architectures is loaded into long
+> > > (typically using asm), then cast back to typeof(*p).
+> > > 
+> > > When typeof(*p) is a bitwise type (which is uncommon), such a cast needs
+> > > __force, otherwise sparse produces a warning.
+> > 
+> > What does __force actually mean? Force the cast even though it's a bitfield? Or
+> > does it mean more than that?
 > 
-> Fix that up using __force.
-> 
-> Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
+> It's not a bitfield = it's a bitwise integer.
 
-Ping.
-Do powerpc maintainers consider fixing sparse errors
-applicable for 3.19?
-If yes, can you pls merge this patch?
+OK. I didn't know what that meant, but Documentation/sparse.txt taught me.
 
-> ---
->  arch/powerpc/include/asm/uaccess.h | 6 +++---
->  1 file changed, 3 insertions(+), 3 deletions(-)
+So it's a sparse only thing.
+
+> Once you tag a typedef as bitwise, casts to and from
+> an untypedefed integer cause sparse warnings.
 > 
-> diff --git a/arch/powerpc/include/asm/uaccess.h b/arch/powerpc/include/asm/uaccess.h
-> index 9485b43..a0c071d 100644
-> --- a/arch/powerpc/include/asm/uaccess.h
-> +++ b/arch/powerpc/include/asm/uaccess.h
-> @@ -284,7 +284,7 @@ do {								\
->  	if (!is_kernel_addr((unsigned long)__gu_addr))		\
->  		might_fault();					\
->  	__get_user_size(__gu_val, __gu_addr, (size), __gu_err);	\
-> -	(x) = (__typeof__(*(ptr)))__gu_val;			\
-> +	(x) = (__force __typeof__(*(ptr)))__gu_val;			\
->  	__gu_err;						\
->  })
->  #endif /* __powerpc64__ */
-> @@ -297,7 +297,7 @@ do {								\
->  	might_fault();							\
->  	if (access_ok(VERIFY_READ, __gu_addr, (size)))			\
->  		__get_user_size(__gu_val, __gu_addr, (size), __gu_err);	\
-> -	(x) = (__typeof__(*(ptr)))__gu_val;				\
-> +	(x) = (__force __typeof__(*(ptr)))__gu_val;				\
->  	__gu_err;							\
->  })
->  
-> @@ -308,7 +308,7 @@ do {								\
->  	const __typeof__(*(ptr)) __user *__gu_addr = (ptr);	\
->  	__chk_user_ptr(ptr);					\
->  	__get_user_size(__gu_val, __gu_addr, (size), __gu_err);	\
-> -	(x) = (__typeof__(*(ptr)))__gu_val;			\
-> +	(x) = (__force __typeof__(*(ptr)))__gu_val;			\
->  	__gu_err;						\
->  })
->  
-> -- 
-> MST
+> > ie. are we loosing the ability to detect any actual errors by adding force?
+> > 
+> > cheers
 > 
+> I think we aren't:
+> get_user(x, p) should be equivalent to x = *p except it
+> validates the pointer is to userspace memory,
+> and can handle pagefaults.
+> 
+> Sparse warnings are triggered because these macros use
+> an untyped integer internally.
+> 
+> Note that we are casting to typeof(*p) not typeof(x).
+> Even with the cast, if x and *p are of different types we should get the
+> warning, so I think we are not loosing the ability to detect any actual
+> errors.
+
+OK. Sounds good then.
+
+cheers
