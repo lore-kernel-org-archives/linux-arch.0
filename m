@@ -1,45 +1,42 @@
-From: Kevin Cernekee <cernekee@gmail.com>
+From: =?iso-8859-1?Q?M=E5ns_Rullg=E5rd?= <mans@mansr.com>
 Subject: Re: rfc: remove early_printk from a few arches? (blackfin, m68k, mips)
-Date: Wed, 17 Dec 2014 13:30:02 -0800
-Message-ID: <CAJiQ=7DE1ojVRW6LqZg2LiqTQ0cgDY_a0nMGn=_Rs1mkuEgwoA@mail.gmail.com>
+Date: Wed, 17 Dec 2014 22:30:16 +0000
+Message-ID: <yw1xk31phptz.fsf@unicorn.mansr.com>
 References: <1418849927.28384.1.camel@perches.com>
+	<CAJiQ=7DE1ojVRW6LqZg2LiqTQ0cgDY_a0nMGn=_Rs1mkuEgwoA@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qg0-f50.google.com ([209.85.192.50]:39352 "EHLO
-	mail-qg0-f50.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750995AbaLQVaX (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 17 Dec 2014 16:30:23 -0500
-In-Reply-To: <1418849927.28384.1.camel@perches.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Joe Perches <joe@perches.com>
-Cc: linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Geert Uytterhoeven <geert@linux-m68k.org>, linux-m68k <linux-m68k@lists.linux-m68k.org>, Steven Miao <realmz6@gmail.com>, Ralf Baechle <ralf@linux-mips.org>, linux-mips <linux-mips@linux-mips.org>
+Content-Type: text/plain; charset=iso-8859-1
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <CAJiQ=7DE1ojVRW6LqZg2LiqTQ0cgDY_a0nMGn=_Rs1mkuEgwoA@mail.gmail.com>
+	(Kevin Cernekee's message of "Wed, 17 Dec 2014 13:30:02 -0800")
+Sender: linux-kernel-owner@vger.kernel.org
+To: Kevin Cernekee <cernekee@gmail.com>
+Cc: Joe Perches <joe@perches.com>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Geert Uytterhoeven <geert@linux-m68k.org>, linux-m68k <linux-m68k@lists.linux-m68k.org>, Steven Miao <realmz6@gmail.com>, Ralf Baechle <ralf@linux-mips.org>, linux-mips <linux-mips@linux-mips.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, Dec 17, 2014 at 12:58 PM, Joe Perches <joe@perches.com> wrote:
-> It seems like early_printk can be configured into
-> a few architectures but also appear not to be used.
+Kevin Cernekee <cernekee@gmail.com> writes:
+
+> On Wed, Dec 17, 2014 at 12:58 PM, Joe Perches <joe@perches.com> wrote=
+:
+>> It seems like early_printk can be configured into
+>> a few architectures but also appear not to be used.
+>>
+>> $ git grep -w "early_printk"
+> [snip]
+>> arch/mips/kernel/Makefile:obj-$(CONFIG_EARLY_PRINTK)    +=3D early_p=
+rintk.o
 >
-> $ git grep -w "early_printk"
-[snip]
-> arch/mips/kernel/Makefile:obj-$(CONFIG_EARLY_PRINTK)    += early_printk.o
+> Nowadays I try to use OF_EARLYCON whenever possible, but when that ha=
+s
+> been unavailable, I have used arch/mips/kernel/early_printk.c to get
+> console output before the serial driver is initialized.  It runs very
+> early in the boot sequence and has very few dependencies, which makes
+> it useful for board bringup.
 
-Nowadays I try to use OF_EARLYCON whenever possible, but when that has
-been unavailable, I have used arch/mips/kernel/early_printk.c to get
-console output before the serial driver is initialized.  It runs very
-early in the boot sequence and has very few dependencies, which makes
-it useful for board bringup.
+EARLY_PRINTK on MIPS is enabled just after prom_init(), well before
+OF_EARLYCON is usable.  I'd prefer if it stayed that way.
 
-At least on MIPS, the EARLY_PRINTK implementation registers itself as
-a console and works with standard printk() calls.  It doesn't rely on
-arch/driver code explicitly calling early_printk().
-
-Side note: looking through kernel/printk/printk.c it looks like
-there's a space missing in the description string:
-
-MODULE_PARM_DESC(ignore_loglevel, "ignore loglevel setting, to"
-        "print all kernel messages to the console.");
-
-But since CONFIG_PRINTK is a bool option, I don't know if the
-description string actually shows up anywhere.  Should it be converted
-into a comment?
+--=20
+M=E5ns Rullg=E5rd
+mans@mansr.com
