@@ -1,132 +1,44 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:48708 "EHLO mx1.redhat.com"
+Received: from unicorn.mansr.com ([81.2.72.234]:54596 "EHLO unicorn.mansr.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750809AbaLOVd1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 15 Dec 2014 16:33:27 -0500
-Date: Mon, 15 Dec 2014 23:33:09 +0200
-From: "Michael S. Tsirkin" <mst@redhat.com>
-Subject: [PATCH RFC 1/5] pci: add pci_iomap_range
-Message-ID: <1418679168-1011-2-git-send-email-mst@redhat.com>
-References: <1418679168-1011-1-git-send-email-mst@redhat.com>
+	id S1751155AbaLQWgV convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 17 Dec 2014 17:36:21 -0500
+From: =?iso-8859-1?Q?M=E5ns_Rullg=E5rd?= <mans@mansr.com>
+Subject: Re: rfc: remove early_printk from a few arches? (blackfin, m68k, mips)
+References: <1418849927.28384.1.camel@perches.com>
+	<CAJiQ=7DE1ojVRW6LqZg2LiqTQ0cgDY_a0nMGn=_Rs1mkuEgwoA@mail.gmail.com>
+Date: Wed, 17 Dec 2014 22:30:16 +0000
+In-Reply-To: <CAJiQ=7DE1ojVRW6LqZg2LiqTQ0cgDY_a0nMGn=_Rs1mkuEgwoA@mail.gmail.com>
+	(Kevin Cernekee's message of "Wed, 17 Dec 2014 13:30:02 -0800")
+Message-ID: <yw1xk31phptz.fsf@unicorn.mansr.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1418679168-1011-1-git-send-email-mst@redhat.com>
+Content-Type: text/plain; charset=iso-8859-1
+Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: Rusty Russell <rusty@rustcorp.com.au>, virtualization@lists.linux-foundation.org, linux-sh@vger.kernel.org, cornelia.huck@de.ibm.com, Michael S Tsirkin <mst@redhat.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org
-Message-ID: <20141215213309.6RKnUNvAs2r7QEsqmTHfbBRqfzDwcyZ6avzKwMndmnc@z>
+To: Kevin Cernekee <cernekee@gmail.com>
+Cc: Joe Perches <joe@perches.com>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Geert Uytterhoeven <geert@linux-m68k.org>, linux-m68k <linux-m68k@lists.linux-m68k.org>, Steven Miao <realmz6@gmail.com>, Ralf Baechle <ralf@linux-mips.org>, linux-mips <linux-mips@linux-mips.org>
+Message-ID: <20141217223016.EwW9zpWQH54N3d0lS1uhiOa_ZhOZAs6CmYBSXgWVf6I@z>
 
-From: Michael S Tsirkin <mst@redhat.com>
+Kevin Cernekee <cernekee@gmail.com> writes:
 
-Virtio drivers should map the part of the BAR they need, not necessarily
-all of it.
+> On Wed, Dec 17, 2014 at 12:58 PM, Joe Perches <joe@perches.com> wrote:
+>> It seems like early_printk can be configured into
+>> a few architectures but also appear not to be used.
+>>
+>> $ git grep -w "early_printk"
+> [snip]
+>> arch/mips/kernel/Makefile:obj-$(CONFIG_EARLY_PRINTK)    += early_printk.o
+>
+> Nowadays I try to use OF_EARLYCON whenever possible, but when that has
+> been unavailable, I have used arch/mips/kernel/early_printk.c to get
+> console output before the serial driver is initialized.  It runs very
+> early in the boot sequence and has very few dependencies, which makes
+> it useful for board bringup.
 
-Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
-Signed-off-by: Rusty Russell <rusty@rustcorp.com.au>
----
- include/asm-generic/pci_iomap.h | 10 ++++++++++
- lib/pci_iomap.c                 | 35 ++++++++++++++++++++++++++++++-----
- 2 files changed, 40 insertions(+), 5 deletions(-)
+EARLY_PRINTK on MIPS is enabled just after prom_init(), well before
+OF_EARLYCON is usable.  I'd prefer if it stayed that way.
 
-diff --git a/include/asm-generic/pci_iomap.h b/include/asm-generic/pci_iomap.h
-index ce37349..7389c87 100644
---- a/include/asm-generic/pci_iomap.h
-+++ b/include/asm-generic/pci_iomap.h
-@@ -15,6 +15,9 @@ struct pci_dev;
- #ifdef CONFIG_PCI
- /* Create a virtual mapping cookie for a PCI BAR (memory or IO) */
- extern void __iomem *pci_iomap(struct pci_dev *dev, int bar, unsigned long max);
-+extern void __iomem *pci_iomap_range(struct pci_dev *dev, int bar,
-+				     unsigned long offset,
-+				     unsigned long maxlen);
- /* Create a virtual mapping cookie for a port on a given PCI device.
-  * Do not call this directly, it exists to make it easier for architectures
-  * to override */
-@@ -30,6 +33,13 @@ static inline void __iomem *pci_iomap(struct pci_dev *dev, int bar, unsigned lon
- {
- 	return NULL;
- }
-+
-+static inline void __iomem *pci_iomap_range(struct pci_dev *dev, int bar,
-+					    unsigned long offset,
-+					    unsigned long maxlen)
-+{
-+	return NULL;
-+}
- #endif
- 
- #endif /* __ASM_GENERIC_IO_H */
-diff --git a/lib/pci_iomap.c b/lib/pci_iomap.c
-index 0d83ea8..bcce5f1 100644
---- a/lib/pci_iomap.c
-+++ b/lib/pci_iomap.c
-@@ -10,10 +10,11 @@
- 
- #ifdef CONFIG_PCI
- /**
-- * pci_iomap - create a virtual mapping cookie for a PCI BAR
-+ * pci_iomap_range - create a virtual mapping cookie for a PCI BAR
-  * @dev: PCI device that owns the BAR
-  * @bar: BAR number
-- * @maxlen: length of the memory to map
-+ * @offset: map memory at the given offset in BAR
-+ * @maxlen: max length of the memory to map
-  *
-  * Using this function you will get a __iomem address to your device BAR.
-  * You can access it using ioread*() and iowrite*(). These functions hide
-@@ -21,16 +22,21 @@
-  * you expect from them in the correct way.
-  *
-  * @maxlen specifies the maximum length to map. If you want to get access to
-- * the complete BAR without checking for its length first, pass %0 here.
-+ * the complete BAR from offset to the end, pass %0 here.
-  * */
--void __iomem *pci_iomap(struct pci_dev *dev, int bar, unsigned long maxlen)
-+void __iomem *pci_iomap_range(struct pci_dev *dev,
-+			      int bar,
-+			      unsigned long offset,
-+			      unsigned long maxlen)
- {
- 	resource_size_t start = pci_resource_start(dev, bar);
- 	resource_size_t len = pci_resource_len(dev, bar);
- 	unsigned long flags = pci_resource_flags(dev, bar);
- 
--	if (!len || !start)
-+	if (len <= offset || !start)
- 		return NULL;
-+	len -= offset;
-+	start += offset;
- 	if (maxlen && len > maxlen)
- 		len = maxlen;
- 	if (flags & IORESOURCE_IO)
-@@ -43,6 +49,25 @@ void __iomem *pci_iomap(struct pci_dev *dev, int bar, unsigned long maxlen)
- 	/* What? */
- 	return NULL;
- }
-+EXPORT_SYMBOL(pci_iomap_range);
- 
-+/**
-+ * pci_iomap - create a virtual mapping cookie for a PCI BAR
-+ * @dev: PCI device that owns the BAR
-+ * @bar: BAR number
-+ * @maxlen: length of the memory to map
-+ *
-+ * Using this function you will get a __iomem address to your device BAR.
-+ * You can access it using ioread*() and iowrite*(). These functions hide
-+ * the details if this is a MMIO or PIO address space and will just do what
-+ * you expect from them in the correct way.
-+ *
-+ * @maxlen specifies the maximum length to map. If you want to get access to
-+ * the complete BAR without checking for its length first, pass %0 here.
-+ * */
-+void __iomem *pci_iomap(struct pci_dev *dev, int bar, unsigned long maxlen)
-+{
-+	return pci_iomap_range(dev, bar, 0, maxlen);
-+}
- EXPORT_SYMBOL(pci_iomap);
- #endif /* CONFIG_PCI */
 -- 
-MST
-
+Måns Rullgård
+mans@mansr.com
