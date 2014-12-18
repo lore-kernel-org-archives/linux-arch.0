@@ -1,42 +1,40 @@
-From: Ley Foon Tan <lftan@altera.com>
-Subject: Re: [PATCH 00/18] uaccess: fix sparse warning on get_user for bitwise types
-Date: Thu, 18 Dec 2014 14:54:17 +0800
-Message-ID: <CAFiDJ5862C1bjeh+jAp2saJHUtTBOvjp9Vz2PvfuwZ2MBocFQw@mail.gmail.com>
-References: <1418575877-21488-1-git-send-email-mst@redhat.com>
-	<CAFiDJ5_fGWx2E1jvU+k0Tv_esRpWmC-p+kq7Y_VOr5bx2ZUFzg@mail.gmail.com>
-	<20141215101703.GA26156@redhat.com>
-	<CAFiDJ5_BSMXBsv0gmzogyJi1x9-4vAhPpZBwn-_CHYDs0pOfvA@mail.gmail.com>
-	<20141216164527.GA21863@redhat.com>
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: Re: rfc: remove early_printk from a few arches? (blackfin, m68k,
+ mips)
+Date: Fri, 19 Dec 2014 00:33:49 +0100 (CET)
+Message-ID: <alpine.DEB.2.11.1412190031530.17382@nanos>
+References: <1418849927.28384.1.camel@perches.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20141216164527.GA21863@redhat.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: "Michael S. Tsirkin" <mst@redhat.com>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Linux-Arch <linux-arch@vger.kernel.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: TEXT/PLAIN; charset=US-ASCII
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from www.linutronix.de ([62.245.132.108]:60646 "EHLO
+	Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751116AbaLRXd6 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 18 Dec 2014 18:33:58 -0500
+In-Reply-To: <1418849927.28384.1.camel@perches.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Joe Perches <joe@perches.com>
+Cc: linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Geert Uytterhoeven <geert@linux-m68k.org>, linux-m68k <linux-m68k@lists.linux-m68k.org>, Steven Miao <realmz6@gmail.com>, Ralf Baechle <ralf@linux-mips.org>, linux-mips <linux-mips@linux-mips.org>
 
-On Wed, Dec 17, 2014 at 12:45 AM, Michael S. Tsirkin <mst@redhat.com> wrote:
-> On Tue, Dec 16, 2014 at 02:06:50PM +0800, Ley Foon Tan wrote:
->> On Mon, Dec 15, 2014 at 6:17 PM, Michael S. Tsirkin <mst@redhat.com> wrote:
->> > Thanks for the heads up.
->> > No - it will probably need a similar fix for __get_user and get_user.
->> > It's just a parse warning so it's not a blocker.
->> > Can you fix it yourself or prefer me to?
->> Do you have newer revision of this series?
->> If yes, then it is great if you can include it. Otherwise, I can fix it.
->>
->> Regards
->>
->> Ley Foon
->
-> Arnd said he'll merge whatever is not fixed in -rc1 through his tree for
-> 3.20.
-> So it's up to you - fix it up in your tree before -rc1 or wait for
-> mer to fix it after rc1 and have Arnd merge it for 3.20.
-I will fix it in nios2 tree.
+On Wed, 17 Dec 2014, Joe Perches wrote:
+> It seems like early_printk can be configured into
+> a few architectures but also appear not to be used.
+> 
+> $ git grep -w "early_printk"
+...
+> These seem to the only uses:
+... 
+> So blackfin, m68k, and mips seems to have it possible to enable,
+> but also don't appear at first glance to use it,
 
-Thanks.
+Hint: CONFIG_EARLY_PRINTK covers far more than early_printk()
+ 
+> Is early_printk really used by these architectures?
+> Should it be removed?
 
-Regards
-Ley Foon
+Sure, if you have a good reason to remove working functionality.
+
+Thanks,
+
+	tglx
