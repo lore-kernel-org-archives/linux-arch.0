@@ -1,44 +1,47 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from unicorn.mansr.com ([81.2.72.234]:54596 "EHLO unicorn.mansr.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751155AbaLQWgV convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 17 Dec 2014 17:36:21 -0500
-From: =?iso-8859-1?Q?M=E5ns_Rullg=E5rd?= <mans@mansr.com>
-Subject: Re: rfc: remove early_printk from a few arches? (blackfin, m68k, mips)
-References: <1418849927.28384.1.camel@perches.com>
-	<CAJiQ=7DE1ojVRW6LqZg2LiqTQ0cgDY_a0nMGn=_Rs1mkuEgwoA@mail.gmail.com>
-Date: Wed, 17 Dec 2014 22:30:16 +0000
-In-Reply-To: <CAJiQ=7DE1ojVRW6LqZg2LiqTQ0cgDY_a0nMGn=_Rs1mkuEgwoA@mail.gmail.com>
-	(Kevin Cernekee's message of "Wed, 17 Dec 2014 13:30:02 -0800")
-Message-ID: <yw1xk31phptz.fsf@unicorn.mansr.com>
+Received: from mail-la0-f50.google.com ([209.85.215.50]:43111 "EHLO
+	mail-la0-f50.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751113AbaLRGyT (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 18 Dec 2014 01:54:19 -0500
 MIME-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
-Content-Transfer-Encoding: 8BIT
+In-Reply-To: <20141216164527.GA21863@redhat.com>
+References: <1418575877-21488-1-git-send-email-mst@redhat.com>
+	<CAFiDJ5_fGWx2E1jvU+k0Tv_esRpWmC-p+kq7Y_VOr5bx2ZUFzg@mail.gmail.com>
+	<20141215101703.GA26156@redhat.com>
+	<CAFiDJ5_BSMXBsv0gmzogyJi1x9-4vAhPpZBwn-_CHYDs0pOfvA@mail.gmail.com>
+	<20141216164527.GA21863@redhat.com>
+Date: Thu, 18 Dec 2014 14:54:17 +0800
+Message-ID: <CAFiDJ5862C1bjeh+jAp2saJHUtTBOvjp9Vz2PvfuwZ2MBocFQw@mail.gmail.com>
+Subject: Re: [PATCH 00/18] uaccess: fix sparse warning on get_user for bitwise types
+From: Ley Foon Tan <lftan@altera.com>
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Kevin Cernekee <cernekee@gmail.com>
-Cc: Joe Perches <joe@perches.com>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Geert Uytterhoeven <geert@linux-m68k.org>, linux-m68k <linux-m68k@lists.linux-m68k.org>, Steven Miao <realmz6@gmail.com>, Ralf Baechle <ralf@linux-mips.org>, linux-mips <linux-mips@linux-mips.org>
-Message-ID: <20141217223016.EwW9zpWQH54N3d0lS1uhiOa_ZhOZAs6CmYBSXgWVf6I@z>
+To: "Michael S. Tsirkin" <mst@redhat.com>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Linux-Arch <linux-arch@vger.kernel.org>
+Message-ID: <20141218065417.e5UkvIu2vNKkPHsftG7p5H1kpsVD1YLYQzgbtAdhXic@z>
 
-Kevin Cernekee <cernekee@gmail.com> writes:
-
-> On Wed, Dec 17, 2014 at 12:58 PM, Joe Perches <joe@perches.com> wrote:
->> It seems like early_printk can be configured into
->> a few architectures but also appear not to be used.
+On Wed, Dec 17, 2014 at 12:45 AM, Michael S. Tsirkin <mst@redhat.com> wrote:
+> On Tue, Dec 16, 2014 at 02:06:50PM +0800, Ley Foon Tan wrote:
+>> On Mon, Dec 15, 2014 at 6:17 PM, Michael S. Tsirkin <mst@redhat.com> wrote:
+>> > Thanks for the heads up.
+>> > No - it will probably need a similar fix for __get_user and get_user.
+>> > It's just a parse warning so it's not a blocker.
+>> > Can you fix it yourself or prefer me to?
+>> Do you have newer revision of this series?
+>> If yes, then it is great if you can include it. Otherwise, I can fix it.
 >>
->> $ git grep -w "early_printk"
-> [snip]
->> arch/mips/kernel/Makefile:obj-$(CONFIG_EARLY_PRINTK)    += early_printk.o
+>> Regards
+>>
+>> Ley Foon
 >
-> Nowadays I try to use OF_EARLYCON whenever possible, but when that has
-> been unavailable, I have used arch/mips/kernel/early_printk.c to get
-> console output before the serial driver is initialized.  It runs very
-> early in the boot sequence and has very few dependencies, which makes
-> it useful for board bringup.
+> Arnd said he'll merge whatever is not fixed in -rc1 through his tree for
+> 3.20.
+> So it's up to you - fix it up in your tree before -rc1 or wait for
+> mer to fix it after rc1 and have Arnd merge it for 3.20.
+I will fix it in nios2 tree.
 
-EARLY_PRINTK on MIPS is enabled just after prom_init(), well before
-OF_EARLYCON is usable.  I'd prefer if it stayed that way.
+Thanks.
 
--- 
-Måns Rullgård
-mans@mansr.com
+Regards
+Ley Foon
