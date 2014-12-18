@@ -1,49 +1,42 @@
-From: Steven Miao <realmz6@gmail.com>
-Subject: Re: [PATCH 05/18] blackfin/uaccess: fix sparse errors
-Date: Thu, 18 Dec 2014 11:11:32 +0800
-Message-ID: <CAMk6uBm_z98dHB3WvJ==ozb4p2uRx3fQa7CWHqDdYpducwxrqg@mail.gmail.com>
+From: Ley Foon Tan <lftan@altera.com>
+Subject: Re: [PATCH 00/18] uaccess: fix sparse warning on get_user for bitwise types
+Date: Thu, 18 Dec 2014 14:54:17 +0800
+Message-ID: <CAFiDJ5862C1bjeh+jAp2saJHUtTBOvjp9Vz2PvfuwZ2MBocFQw@mail.gmail.com>
 References: <1418575877-21488-1-git-send-email-mst@redhat.com>
-	<1418575877-21488-6-git-send-email-mst@redhat.com>
+	<CAFiDJ5_fGWx2E1jvU+k0Tv_esRpWmC-p+kq7Y_VOr5bx2ZUFzg@mail.gmail.com>
+	<20141215101703.GA26156@redhat.com>
+	<CAFiDJ5_BSMXBsv0gmzogyJi1x9-4vAhPpZBwn-_CHYDs0pOfvA@mail.gmail.com>
+	<20141216164527.GA21863@redhat.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ob0-f180.google.com ([209.85.214.180]:34694 "EHLO
-	mail-ob0-f180.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751307AbaLRDLd (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 17 Dec 2014 22:11:33 -0500
-In-Reply-To: <1418575877-21488-6-git-send-email-mst@redhat.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20141216164527.GA21863@redhat.com>
+Sender: linux-kernel-owner@vger.kernel.org
 To: "Michael S. Tsirkin" <mst@redhat.com>
-Cc: "open list:CAN NETWORK DRIVERS <linux-can@vger.kernel.org>, open
-	list:NETWORKING DRIVERS <netdev@vger.kernel.org>, open list" <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, bfin <adi-buildroot-devel@lists.sourceforge.net>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Linux-Arch <linux-arch@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Mon, Dec 15, 2014 at 12:52 AM, Michael S. Tsirkin <mst@redhat.com> wrote:
-> virtio wants to read bitwise types from userspace using get_user.  At the
-> moment this triggers sparse errors, since the value is passed through an
-> integer.
+On Wed, Dec 17, 2014 at 12:45 AM, Michael S. Tsirkin <mst@redhat.com> wrote:
+> On Tue, Dec 16, 2014 at 02:06:50PM +0800, Ley Foon Tan wrote:
+>> On Mon, Dec 15, 2014 at 6:17 PM, Michael S. Tsirkin <mst@redhat.com> wrote:
+>> > Thanks for the heads up.
+>> > No - it will probably need a similar fix for __get_user and get_user.
+>> > It's just a parse warning so it's not a blocker.
+>> > Can you fix it yourself or prefer me to?
+>> Do you have newer revision of this series?
+>> If yes, then it is great if you can include it. Otherwise, I can fix it.
+>>
+>> Regards
+>>
+>> Ley Foon
 >
-> Fix that up using __force.
->
-> Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
-> ---
->  arch/blackfin/include/asm/uaccess.h | 2 +-
->  1 file changed, 1 insertion(+), 1 deletion(-)
->
-> diff --git a/arch/blackfin/include/asm/uaccess.h b/arch/blackfin/include/asm/uaccess.h
-> index 57701c3..6a46e7d 100644
-> --- a/arch/blackfin/include/asm/uaccess.h
-> +++ b/arch/blackfin/include/asm/uaccess.h
-> @@ -147,7 +147,7 @@ static inline int bad_user_access_length(void)
->                 }                                               \
->         } else                                                  \
->                 _err = -EFAULT;                                 \
-> -       x = (typeof(*(ptr)))_val;                               \
-> +       x = (__force typeof(*(ptr)))_val;                               \
->         _err;                                                   \
->  })
->
-> --
-> MST
->
-Acked-by: Steven Miao <realmz6@gmail.com>
+> Arnd said he'll merge whatever is not fixed in -rc1 through his tree for
+> 3.20.
+> So it's up to you - fix it up in your tree before -rc1 or wait for
+> mer to fix it after rc1 and have Arnd merge it for 3.20.
+I will fix it in nios2 tree.
+
+Thanks.
+
+Regards
+Ley Foon
