@@ -1,84 +1,123 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from us01smtprelay-2.synopsys.com ([198.182.60.111]:43441 "EHLO
-	smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752329AbaLXM3x convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 24 Dec 2014 07:29:53 -0500
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: Re: [PATCH 10/38] arc: drop _PAGE_FILE and pte_file()-related
- helpers
-Date: Wed, 24 Dec 2014 12:29:44 +0000
-Message-ID: <C2D7FE5348E1B147BCA15975FBA2307565BC95FE@IN01WEMBXA.internal.synopsys.com>
+Received: from mga11.intel.com ([192.55.52.93]:39291 "EHLO mga11.intel.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752029AbaLXMXJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 24 Dec 2014 07:23:09 -0500
+From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+Subject: [PATCH 18/38] hexagon: drop _PAGE_FILE and pte_file()-related helpers
+Date: Wed, 24 Dec 2014 14:22:26 +0200
+Message-ID: <1419423766-114457-19-git-send-email-kirill.shutemov@linux.intel.com>
+In-Reply-To: <1419423766-114457-1-git-send-email-kirill.shutemov@linux.intel.com>
 References: <1419423766-114457-1-git-send-email-kirill.shutemov@linux.intel.com>
- <1419423766-114457-11-git-send-email-kirill.shutemov@linux.intel.com>
-Content-Language: en-US
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 8BIT
-MIME-Version: 1.0
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>
-Cc: "peterz@infradead.org" <peterz@infradead.org>, "mingo@kernel.org" <mingo@kernel.org>, "davej@redhat.com" <davej@redhat.com>, "sasha.levin@oracle.com" <sasha.levin@oracle.com>, "hughd@google.com" <hughd@google.com>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Message-ID: <20141224122944.tSQOlAE9A9CrQn5fxB1ZhMV4wh-BGcOUxpr-l0fyOVY@z>
+To: akpm@linux-foundation.org
+Cc: peterz@infradead.org, mingo@kernel.org, davej@redhat.com, sasha.levin@oracle.com, hughd@google.com, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Richard Kuo <rkuo@codeaurora.org>
+Message-ID: <20141224122226.myir213XWfBULIwJWopsAG8zZlu4HwyJnpkoq840iWE@z>
 
-Hi Kirill,
+We've replaced remap_file_pages(2) implementation with emulation.
+Nobody creates non-linear mapping anymore.
 
-On Wednesday 24 December 2014 05:54 PM, Kirill A. Shutemov wrote:
-> We've replaced remap_file_pages(2) implementation with emulation.
-> Nobody creates non-linear mapping anymore.
->
-> Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
-> Cc: Vineet Gupta <vgupta@synopsys.com>
-> ---
->  arch/arc/include/asm/pgtable.h | 15 ++-------------
->  1 file changed, 2 insertions(+), 13 deletions(-)
->
-> diff --git a/arch/arc/include/asm/pgtable.h b/arch/arc/include/asm/pgtable.h
-> index 6b0b7f7ef783..55694ee428d4 100644
-> --- a/arch/arc/include/asm/pgtable.h
-> +++ b/arch/arc/include/asm/pgtable.h
-> @@ -61,7 +61,6 @@
->  #define _PAGE_WRITE         (1<<4)	/* Page has user write perm (H) */
->  #define _PAGE_READ          (1<<5)	/* Page has user read perm (H) */
->  #define _PAGE_MODIFIED      (1<<6)	/* Page modified (dirty) (S) */
-> -#define _PAGE_FILE          (1<<7)	/* page cache/ swap (S) */
->  #define _PAGE_GLOBAL        (1<<8)	/* Page is global (H) */
->  #define _PAGE_PRESENT       (1<<10)	/* TLB entry is valid (H) */
->  
-> @@ -73,7 +72,6 @@
->  #define _PAGE_READ          (1<<3)	/* Page has user read perm (H) */
->  #define _PAGE_ACCESSED      (1<<4)	/* Page is accessed (S) */
->  #define _PAGE_MODIFIED      (1<<5)	/* Page modified (dirty) (S) */
-> -#define _PAGE_FILE          (1<<6)	/* page cache/ swap (S) */
->  #define _PAGE_GLOBAL        (1<<8)	/* Page is global (H) */
->  #define _PAGE_PRESENT       (1<<9)	/* TLB entry is valid (H) */
->  #define _PAGE_SHARED_CODE   (1<<11)	/* Shared Code page with cmn vaddr
-> @@ -268,15 +266,6 @@ static inline void pmd_set(pmd_t *pmdp, pte_t *ptep)
->  	pte;								\
->  })
->  
-> -/* TBD: Non linear mapping stuff */
-> -static inline int pte_file(pte_t pte)
-> -{
-> -	return pte_val(pte) & _PAGE_FILE;
-> -}
-> -
-> -#define PTE_FILE_MAX_BITS	30
-> -#define pgoff_to_pte(x)         __pte(x)
-> -#define pte_to_pgoff(x)		(pte_val(x) >> 2)
->  #define pte_pfn(pte)		(pte_val(pte) >> PAGE_SHIFT)
->  #define pfn_pte(pfn, prot)	(__pte(((pfn) << PAGE_SHIFT) | pgprot_val(prot)))
->  #define __pte_index(addr)	(((addr) >> PAGE_SHIFT) & (PTRS_PER_PTE - 1))
-> @@ -358,13 +347,13 @@ static inline void set_pte_at(struct mm_struct *mm, unsigned long addr,
->  #endif
->  
->  extern void paging_init(void);
-> -extern pgd_t swapper_pg_dir[] __aligned(PAGE_SIZE);
-> +xtern pgd_t swapper_pg_dir[] __aligned(PAGE_SIZE);
+This patch also increase number of bits availble for swap offset.
 
-I don't think u intended that. Otherwise
+Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
+Cc: Richard Kuo <rkuo@codeaurora.org>
+---
+ arch/hexagon/include/asm/pgtable.h | 60 ++++++++++----------------------------
+ 1 file changed, 16 insertions(+), 44 deletions(-)
 
-Acked-by: Vineet Gupta <vgupta@synopsys.com>
-
-Thx,
--Vineet
+diff --git a/arch/hexagon/include/asm/pgtable.h b/arch/hexagon/include/asm/pgtable.h
+index d8bd54fa431e..6e35e71d2aea 100644
+--- a/arch/hexagon/include/asm/pgtable.h
++++ b/arch/hexagon/include/asm/pgtable.h
+@@ -62,13 +62,6 @@ extern unsigned long zero_page_mask;
+ #define _PAGE_ACCESSED	(1<<2)
+ 
+ /*
+- * _PAGE_FILE is only meaningful if _PAGE_PRESENT is false, while
+- * _PAGE_DIRTY is only meaningful if _PAGE_PRESENT is true.
+- * So we can overload the bit...
+- */
+-#define _PAGE_FILE	_PAGE_DIRTY /* set:  pagecache, unset = swap */
+-
+-/*
+  * For now, let's say that Valid and Present are the same thing.
+  * Alternatively, we could say that it's the "or" of R, W, and X
+  * permissions.
+@@ -456,57 +449,36 @@ static inline int pte_exec(pte_t pte)
+ #define pgtable_cache_init()    do { } while (0)
+ 
+ /*
+- * Swap/file PTE definitions.  If _PAGE_PRESENT is zero, the rest of the
+- * PTE is interpreted as swap information.  Depending on the _PAGE_FILE
+- * bit, the remaining free bits are eitehr interpreted as a file offset
+- * or a swap type/offset tuple.  Rather than have the TLB fill handler
+- * test _PAGE_PRESENT, we're going to reserve the permissions bits
+- * and set them to all zeros for swap entries, which speeds up the
+- * miss handler at the cost of 3 bits of offset.  That trade-off can
+- * be revisited if necessary, but Hexagon processor architecture and
+- * target applications suggest a lot of TLB misses and not much swap space.
++ * Swap/file PTE definitions.  If _PAGE_PRESENT is zero, the rest of the PTE is
++ * interpreted as swap information.  The remaining free bits are interpreted as
++ * swap type/offset tuple.  Rather than have the TLB fill handler test
++ * _PAGE_PRESENT, we're going to reserve the permissions bits and set them to
++ * all zeros for swap entries, which speeds up the miss handler at the cost of
++ * 3 bits of offset.  That trade-off can be revisited if necessary, but Hexagon
++ * processor architecture and target applications suggest a lot of TLB misses
++ * and not much swap space.
+  *
+  * Format of swap PTE:
+  *	bit	0:	Present (zero)
+- *	bit	1:	_PAGE_FILE (zero)
+- *	bits	2-6:	swap type (arch independent layer uses 5 bits max)
+- *	bits	7-9:	bits 2:0 of offset
+- *	bits 10-12:	effectively _PAGE_PROTNONE (all zero)
+- *	bits 13-31:  bits 21:3 of swap offset
+- *
+- * Format of file PTE:
+- *	bit	0:	Present (zero)
+- *	bit	1:	_PAGE_FILE (zero)
+- *	bits	2-9:	bits 7:0 of offset
+- *	bits 10-12:	effectively _PAGE_PROTNONE (all zero)
+- *	bits 13-31:  bits 26:8 of swap offset
++ *	bits	1-5:	swap type (arch independent layer uses 5 bits max)
++ *	bits	6-9:	bits 3:0 of offset
++ *	bits	10-12:	effectively _PAGE_PROTNONE (all zero)
++ *	bits	13-31:  bits 22:4 of swap offset
+  *
+  * The split offset makes some of the following macros a little gnarly,
+  * but there's plenty of precedent for this sort of thing.
+  */
+-#define PTE_FILE_MAX_BITS     27
+ 
+ /* Used for swap PTEs */
+-#define __swp_type(swp_pte)		(((swp_pte).val >> 2) & 0x1f)
++#define __swp_type(swp_pte)		(((swp_pte).val >> 1) & 0x1f)
+ 
+ #define __swp_offset(swp_pte) \
+-	((((swp_pte).val >> 7) & 0x7) | (((swp_pte).val >> 10) & 0x003ffff8))
++	((((swp_pte).val >> 6) & 0xf) | (((swp_pte).val >> 9) & 0x7ffff0))
+ 
+ #define __swp_entry(type, offset) \
+ 	((swp_entry_t)	{ \
+-		((type << 2) | \
+-		 ((offset & 0x3ffff8) << 10) | ((offset & 0x7) << 7)) })
+-
+-/* Used for file PTEs */
+-#define pte_file(pte) \
+-	((pte_val(pte) & (_PAGE_FILE | _PAGE_PRESENT)) == _PAGE_FILE)
+-
+-#define pte_to_pgoff(pte) \
+-	(((pte_val(pte) >> 2) & 0xff) | ((pte_val(pte) >> 5) & 0x07ffff00))
+-
+-#define pgoff_to_pte(off) \
+-	((pte_t) { ((((off) & 0x7ffff00) << 5) | (((off) & 0xff) << 2)\
+-	| _PAGE_FILE) })
++		((type << 1) | \
++		 ((offset & 0x7ffff0) << 9) | ((offset & 0xf) << 6)) })
+ 
+ /*  Oh boy.  There are a lot of possible arch overrides found in this file.  */
+ #include <asm-generic/pgtable.h>
+-- 
+2.1.3
 
