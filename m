@@ -1,77 +1,76 @@
 From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: [PATCH 27/38] openrisc: drop _PAGE_FILE and pte_file()-related helpers
-Date: Wed, 24 Dec 2014 14:22:35 +0200
-Message-ID: <1419423766-114457-28-git-send-email-kirill.shutemov@linux.intel.com>
+Subject: [PATCH 25/38] mn10300: drop _PAGE_FILE and pte_file()-related helpers
+Date: Wed, 24 Dec 2014 14:22:33 +0200
+Message-ID: <1419423766-114457-26-git-send-email-kirill.shutemov@linux.intel.com>
 References: <1419423766-114457-1-git-send-email-kirill.shutemov@linux.intel.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mga09.intel.com ([134.134.136.24]:50935 "EHLO mga09.intel.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752077AbaLXMXL (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 24 Dec 2014 07:23:11 -0500
+Return-path: <owner-linux-mm@kvack.org>
 In-Reply-To: <1419423766-114457-1-git-send-email-kirill.shutemov@linux.intel.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: owner-linux-mm@kvack.org
 To: akpm@linux-foundation.org
-Cc: peterz@infradead.org, mingo@kernel.org, davej@redhat.com, sasha.levin@oracle.com, hughd@google.com, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Jonas Bonn <jonas@southpole.se>
+Cc: peterz@infradead.org, mingo@kernel.org, davej@redhat.com, sasha.levin@oracle.com, hughd@google.com, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, David Howells <dhowells@redhat.com>, Koichi Yasutake <yasutake.koichi@jp.panasonic.com>
+List-Id: linux-arch.vger.kernel.org
 
 We've replaced remap_file_pages(2) implementation with emulation.
 Nobody creates non-linear mapping anymore.
 
-Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
-Cc: Jonas Bonn <jonas@southpole.se>
----
- arch/openrisc/include/asm/pgtable.h | 8 --------
- arch/openrisc/kernel/head.S         | 5 -----
- 2 files changed, 13 deletions(-)
+This patch also increase number of bits availble for swap offset.
 
-diff --git a/arch/openrisc/include/asm/pgtable.h b/arch/openrisc/include/asm/pgtable.h
-index 37bf6a3ef8f4..18994ccb1185 100644
---- a/arch/openrisc/include/asm/pgtable.h
-+++ b/arch/openrisc/include/asm/pgtable.h
-@@ -125,7 +125,6 @@ extern void paging_init(void);
- #define _PAGE_CC       0x001 /* software: pte contains a translation */
- #define _PAGE_CI       0x002 /* cache inhibit          */
- #define _PAGE_WBC      0x004 /* write back cache       */
--#define _PAGE_FILE     0x004 /* set: pagecache, unset: swap (when !PRESENT) */
- #define _PAGE_WOM      0x008 /* weakly ordered memory  */
+Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
+Cc: David Howells <dhowells@redhat.com>
+Cc: Koichi Yasutake <yasutake.koichi@jp.panasonic.com>
+---
+ arch/mn10300/include/asm/pgtable.h | 17 +++--------------
+ 1 file changed, 3 insertions(+), 14 deletions(-)
+
+diff --git a/arch/mn10300/include/asm/pgtable.h b/arch/mn10300/include/asm/pgtable.h
+index 2ddaa67e7983..629181ae111e 100644
+--- a/arch/mn10300/include/asm/pgtable.h
++++ b/arch/mn10300/include/asm/pgtable.h
+@@ -134,7 +134,6 @@ extern pte_t kernel_vmalloc_ptes[(VMALLOC_END - VMALLOC_START) / PAGE_SIZE];
+ #define _PAGE_NX		0			/* no-execute bit */
  
- #define _PAGE_A        0x010 /* accessed               */
-@@ -240,7 +239,6 @@ static inline int pte_write(pte_t pte) { return pte_val(pte) & _PAGE_WRITE; }
- static inline int pte_exec(pte_t pte)  { return pte_val(pte) & _PAGE_EXEC; }
- static inline int pte_dirty(pte_t pte) { return pte_val(pte) & _PAGE_DIRTY; }
- static inline int pte_young(pte_t pte) { return pte_val(pte) & _PAGE_ACCESSED; }
--static inline int pte_file(pte_t pte)  { return pte_val(pte) & _PAGE_FILE; }
- static inline int pte_special(pte_t pte) { return 0; }
- static inline pte_t pte_mkspecial(pte_t pte) { return pte; }
+ /* If _PAGE_VALID is clear, we use these: */
+-#define _PAGE_FILE		xPTEL2_C	/* set:pagecache unset:swap */
+ #define _PAGE_PROTNONE		0x000		/* If not present */
  
-@@ -438,12 +436,6 @@ static inline void update_mmu_cache(struct vm_area_struct *vma,
- #define __pte_to_swp_entry(pte)		((swp_entry_t) { pte_val(pte) })
- #define __swp_entry_to_pte(x)		((pte_t) { (x).val })
+ #define __PAGE_PROT_UWAUX	0x010
+@@ -241,11 +240,6 @@ static inline int pte_young(pte_t pte)	{ return pte_val(pte) & _PAGE_ACCESSED; }
+ static inline int pte_write(pte_t pte)	{ return pte_val(pte) & __PAGE_PROT_WRITE; }
+ static inline int pte_special(pte_t pte){ return 0; }
  
--/* Encode and decode a nonlinear file mapping entry */
--
--#define PTE_FILE_MAX_BITS               26
--#define pte_to_pgoff(x)	                (pte_val(x) >> 6)
--#define pgoff_to_pte(x)	                __pte(((x) << 6) | _PAGE_FILE)
--
- #define kern_addr_valid(addr)           (1)
- 
- #include <asm-generic/pgtable.h>
-diff --git a/arch/openrisc/kernel/head.S b/arch/openrisc/kernel/head.S
-index 1d3c9c28ac25..f14793306b03 100644
---- a/arch/openrisc/kernel/head.S
-+++ b/arch/openrisc/kernel/head.S
-@@ -754,11 +754,6 @@ _dc_enable:
- 
- /* ===============================================[ page table masks ]=== */
- 
--/* bit 4 is used in hardware as write back cache bit. we never use this bit
-- * explicitly, so we can reuse it as _PAGE_FILE bit and mask it out when
-- * writing into hardware pte's
+-/*
+- * The following only works if pte_present() is not true.
 - */
+-static inline int pte_file(pte_t pte)	{ return pte_val(pte) & _PAGE_FILE; }
 -
- #define DTLB_UP_CONVERT_MASK  0x3fa
- #define ITLB_UP_CONVERT_MASK  0x3a
+ static inline pte_t pte_rdprotect(pte_t pte)
+ {
+ 	pte_val(pte) &= ~(__PAGE_PROT_USER|__PAGE_PROT_UWAUX); return pte;
+@@ -338,16 +332,11 @@ static inline int pte_exec_kernel(pte_t pte)
+ 	return 1;
+ }
+ 
+-#define PTE_FILE_MAX_BITS	30
+-
+-#define pte_to_pgoff(pte)	(pte_val(pte) >> 2)
+-#define pgoff_to_pte(off)	__pte((off) << 2 | _PAGE_FILE)
+-
+ /* Encode and de-code a swap entry */
+-#define __swp_type(x)			(((x).val >> 2) & 0x3f)
+-#define __swp_offset(x)			((x).val >> 8)
++#define __swp_type(x)			(((x).val >> 1) & 0x3f)
++#define __swp_offset(x)			((x).val >> 7)
+ #define __swp_entry(type, offset) \
+-	((swp_entry_t) { ((type) << 2) | ((offset) << 8) })
++	((swp_entry_t) { ((type) << 1) | ((offset) << 7) })
+ #define __pte_to_swp_entry(pte)		((swp_entry_t) { pte_val(pte) })
+ #define __swp_entry_to_pte(x)		__pte((x).val)
  
 -- 
 2.1.3
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
