@@ -1,73 +1,88 @@
-From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: [PATCH 25/38] mn10300: drop _PAGE_FILE and pte_file()-related helpers
-Date: Wed, 24 Dec 2014 14:22:33 +0200
-Message-ID: <1419423766-114457-26-git-send-email-kirill.shutemov@linux.intel.com>
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Subject: Re: [PATCH 10/38] arc: drop _PAGE_FILE and pte_file()-related
+ helpers
+Date: Wed, 24 Dec 2014 12:29:44 +0000
+Message-ID: <C2D7FE5348E1B147BCA15975FBA2307565BC95FE@IN01WEMBXA.internal.synopsys.com>
 References: <1419423766-114457-1-git-send-email-kirill.shutemov@linux.intel.com>
+ <1419423766-114457-11-git-send-email-kirill.shutemov@linux.intel.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: quoted-printable
 Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <1419423766-114457-1-git-send-email-kirill.shutemov@linux.intel.com>
+Content-Language: en-US
 Sender: owner-linux-mm@kvack.org
-To: akpm@linux-foundation.org
-Cc: peterz@infradead.org, mingo@kernel.org, davej@redhat.com, sasha.levin@oracle.com, hughd@google.com, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, David Howells <dhowells@redhat.com>, Koichi Yasutake <yasutake.koichi@jp.panasonic.com>
+To: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>
+Cc: "peterz@infradead.org" <peterz@infradead.org>, "mingo@kernel.org" <mingo@kernel.org>, "davej@redhat.com" <davej@redhat.com>, "sasha.levin@oracle.com" <sasha.levin@oracle.com>, "hughd@google.com" <hughd@google.com>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Vineet Gupta <Vineet.Gupta1@synopsys.com>
 List-Id: linux-arch.vger.kernel.org
 
-We've replaced remap_file_pages(2) implementation with emulation.
-Nobody creates non-linear mapping anymore.
-
-This patch also increase number of bits availble for swap offset.
-
-Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
-Cc: David Howells <dhowells@redhat.com>
-Cc: Koichi Yasutake <yasutake.koichi@jp.panasonic.com>
----
- arch/mn10300/include/asm/pgtable.h | 17 +++--------------
- 1 file changed, 3 insertions(+), 14 deletions(-)
-
-diff --git a/arch/mn10300/include/asm/pgtable.h b/arch/mn10300/include/asm/pgtable.h
-index 2ddaa67e7983..629181ae111e 100644
---- a/arch/mn10300/include/asm/pgtable.h
-+++ b/arch/mn10300/include/asm/pgtable.h
-@@ -134,7 +134,6 @@ extern pte_t kernel_vmalloc_ptes[(VMALLOC_END - VMALLOC_START) / PAGE_SIZE];
- #define _PAGE_NX		0			/* no-execute bit */
- 
- /* If _PAGE_VALID is clear, we use these: */
--#define _PAGE_FILE		xPTEL2_C	/* set:pagecache unset:swap */
- #define _PAGE_PROTNONE		0x000		/* If not present */
- 
- #define __PAGE_PROT_UWAUX	0x010
-@@ -241,11 +240,6 @@ static inline int pte_young(pte_t pte)	{ return pte_val(pte) & _PAGE_ACCESSED; }
- static inline int pte_write(pte_t pte)	{ return pte_val(pte) & __PAGE_PROT_WRITE; }
- static inline int pte_special(pte_t pte){ return 0; }
- 
--/*
-- * The following only works if pte_present() is not true.
-- */
--static inline int pte_file(pte_t pte)	{ return pte_val(pte) & _PAGE_FILE; }
--
- static inline pte_t pte_rdprotect(pte_t pte)
- {
- 	pte_val(pte) &= ~(__PAGE_PROT_USER|__PAGE_PROT_UWAUX); return pte;
-@@ -338,16 +332,11 @@ static inline int pte_exec_kernel(pte_t pte)
- 	return 1;
- }
- 
--#define PTE_FILE_MAX_BITS	30
--
--#define pte_to_pgoff(pte)	(pte_val(pte) >> 2)
--#define pgoff_to_pte(off)	__pte((off) << 2 | _PAGE_FILE)
--
- /* Encode and de-code a swap entry */
--#define __swp_type(x)			(((x).val >> 2) & 0x3f)
--#define __swp_offset(x)			((x).val >> 8)
-+#define __swp_type(x)			(((x).val >> 1) & 0x3f)
-+#define __swp_offset(x)			((x).val >> 7)
- #define __swp_entry(type, offset) \
--	((swp_entry_t) { ((type) << 2) | ((offset) << 8) })
-+	((swp_entry_t) { ((type) << 1) | ((offset) << 7) })
- #define __pte_to_swp_entry(pte)		((swp_entry_t) { pte_val(pte) })
- #define __swp_entry_to_pte(x)		__pte((x).val)
- 
--- 
-2.1.3
+Hi Kirill,=0A=
+=0A=
+On Wednesday 24 December 2014 05:54 PM, Kirill A. Shutemov wrote:=0A=
+> We've replaced remap_file_pages(2) implementation with emulation.=0A=
+> Nobody creates non-linear mapping anymore.=0A=
+>=0A=
+> Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>=0A=
+> Cc: Vineet Gupta <vgupta@synopsys.com>=0A=
+> ---=0A=
+>  arch/arc/include/asm/pgtable.h | 15 ++-------------=0A=
+>  1 file changed, 2 insertions(+), 13 deletions(-)=0A=
+>=0A=
+> diff --git a/arch/arc/include/asm/pgtable.h b/arch/arc/include/asm/pgtabl=
+e.h=0A=
+> index 6b0b7f7ef783..55694ee428d4 100644=0A=
+> --- a/arch/arc/include/asm/pgtable.h=0A=
+> +++ b/arch/arc/include/asm/pgtable.h=0A=
+> @@ -61,7 +61,6 @@=0A=
+>  #define _PAGE_WRITE         (1<<4)	/* Page has user write perm (H) */=0A=
+>  #define _PAGE_READ          (1<<5)	/* Page has user read perm (H) */=0A=
+>  #define _PAGE_MODIFIED      (1<<6)	/* Page modified (dirty) (S) */=0A=
+> -#define _PAGE_FILE          (1<<7)	/* page cache/ swap (S) */=0A=
+>  #define _PAGE_GLOBAL        (1<<8)	/* Page is global (H) */=0A=
+>  #define _PAGE_PRESENT       (1<<10)	/* TLB entry is valid (H) */=0A=
+>  =0A=
+> @@ -73,7 +72,6 @@=0A=
+>  #define _PAGE_READ          (1<<3)	/* Page has user read perm (H) */=0A=
+>  #define _PAGE_ACCESSED      (1<<4)	/* Page is accessed (S) */=0A=
+>  #define _PAGE_MODIFIED      (1<<5)	/* Page modified (dirty) (S) */=0A=
+> -#define _PAGE_FILE          (1<<6)	/* page cache/ swap (S) */=0A=
+>  #define _PAGE_GLOBAL        (1<<8)	/* Page is global (H) */=0A=
+>  #define _PAGE_PRESENT       (1<<9)	/* TLB entry is valid (H) */=0A=
+>  #define _PAGE_SHARED_CODE   (1<<11)	/* Shared Code page with cmn vaddr=
+=0A=
+> @@ -268,15 +266,6 @@ static inline void pmd_set(pmd_t *pmdp, pte_t *ptep)=
+=0A=
+>  	pte;								\=0A=
+>  })=0A=
+>  =0A=
+> -/* TBD: Non linear mapping stuff */=0A=
+> -static inline int pte_file(pte_t pte)=0A=
+> -{=0A=
+> -	return pte_val(pte) & _PAGE_FILE;=0A=
+> -}=0A=
+> -=0A=
+> -#define PTE_FILE_MAX_BITS	30=0A=
+> -#define pgoff_to_pte(x)         __pte(x)=0A=
+> -#define pte_to_pgoff(x)		(pte_val(x) >> 2)=0A=
+>  #define pte_pfn(pte)		(pte_val(pte) >> PAGE_SHIFT)=0A=
+>  #define pfn_pte(pfn, prot)	(__pte(((pfn) << PAGE_SHIFT) | pgprot_val(pro=
+t)))=0A=
+>  #define __pte_index(addr)	(((addr) >> PAGE_SHIFT) & (PTRS_PER_PTE - 1))=
+=0A=
+> @@ -358,13 +347,13 @@ static inline void set_pte_at(struct mm_struct *mm,=
+ unsigned long addr,=0A=
+>  #endif=0A=
+>  =0A=
+>  extern void paging_init(void);=0A=
+> -extern pgd_t swapper_pg_dir[] __aligned(PAGE_SIZE);=0A=
+> +xtern pgd_t swapper_pg_dir[] __aligned(PAGE_SIZE);=0A=
+=0A=
+I don't think u intended that. Otherwise=0A=
+=0A=
+Acked-by: Vineet Gupta <vgupta@synopsys.com>=0A=
+=0A=
+Thx,=0A=
+-Vineet=0A=
+=0A=
 
 --
 To unsubscribe, send a message with 'unsubscribe linux-mm' in
