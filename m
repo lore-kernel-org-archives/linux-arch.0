@@ -1,92 +1,75 @@
 From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: [PATCH 16/38] cris: drop _PAGE_FILE and pte_file()-related helpers
-Date: Wed, 24 Dec 2014 14:22:24 +0200
-Message-ID: <1419423766-114457-17-git-send-email-kirill.shutemov@linux.intel.com>
+Subject: [PATCH 10/38] arc: drop _PAGE_FILE and pte_file()-related helpers
+Date: Wed, 24 Dec 2014 14:22:18 +0200
+Message-ID: <1419423766-114457-11-git-send-email-kirill.shutemov@linux.intel.com>
 References: <1419423766-114457-1-git-send-email-kirill.shutemov@linux.intel.com>
-Return-path: <owner-linux-mm@kvack.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1419423766-114457-1-git-send-email-kirill.shutemov@linux.intel.com>
-Sender: owner-linux-mm@kvack.org
+Sender: linux-kernel-owner@vger.kernel.org
 To: akpm@linux-foundation.org
-Cc: peterz@infradead.org, mingo@kernel.org, davej@redhat.com, sasha.levin@oracle.com, hughd@google.com, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Mikael Starvik <starvik@axis.com>, Jesper Nilsson <jesper.nilsson@axis.com>
+Cc: peterz@infradead.org, mingo@kernel.org, davej@redhat.com, sasha.levin@oracle.com, hughd@google.com, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Vineet Gupta <vgupta@synopsys.com>
 List-Id: linux-arch.vger.kernel.org
 
 We've replaced remap_file_pages(2) implementation with emulation.
 Nobody creates non-linear mapping anymore.
 
 Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
-Cc: Mikael Starvik <starvik@axis.com>
-Cc: Jesper Nilsson <jesper.nilsson@axis.com>
+Cc: Vineet Gupta <vgupta@synopsys.com>
 ---
- arch/cris/include/arch-v10/arch/mmu.h | 3 ---
- arch/cris/include/arch-v32/arch/mmu.h | 3 ---
- arch/cris/include/asm/pgtable.h       | 4 ----
- 3 files changed, 10 deletions(-)
+ arch/arc/include/asm/pgtable.h | 15 ++-------------
+ 1 file changed, 2 insertions(+), 13 deletions(-)
 
-diff --git a/arch/cris/include/arch-v10/arch/mmu.h b/arch/cris/include/arch-v10/arch/mmu.h
-index e829e5a37bbe..47a5dd21749d 100644
---- a/arch/cris/include/arch-v10/arch/mmu.h
-+++ b/arch/cris/include/arch-v10/arch/mmu.h
-@@ -58,7 +58,6 @@ typedef struct
- /* Bits the HW doesn't care about but the kernel uses them in SW */
+diff --git a/arch/arc/include/asm/pgtable.h b/arch/arc/include/asm/pgtable.h
+index 6b0b7f7ef783..55694ee428d4 100644
+--- a/arch/arc/include/asm/pgtable.h
++++ b/arch/arc/include/asm/pgtable.h
+@@ -61,7 +61,6 @@
+ #define _PAGE_WRITE         (1<<4)	/* Page has user write perm (H) */
+ #define _PAGE_READ          (1<<5)	/* Page has user read perm (H) */
+ #define _PAGE_MODIFIED      (1<<6)	/* Page modified (dirty) (S) */
+-#define _PAGE_FILE          (1<<7)	/* page cache/ swap (S) */
+ #define _PAGE_GLOBAL        (1<<8)	/* Page is global (H) */
+ #define _PAGE_PRESENT       (1<<10)	/* TLB entry is valid (H) */
  
- #define _PAGE_PRESENT   (1<<4)  /* page present in memory */
--#define _PAGE_FILE      (1<<5)  /* set: pagecache, unset: swap (when !PRESENT) */
- #define _PAGE_ACCESSED	(1<<5)  /* simulated in software using valid bit */
- #define _PAGE_MODIFIED	(1<<6)  /* simulated in software using we bit */
- #define _PAGE_READ      (1<<7)  /* read-enabled */
-@@ -105,6 +104,4 @@ typedef struct
- #define __S110	PAGE_SHARED
- #define __S111	PAGE_SHARED
+@@ -73,7 +72,6 @@
+ #define _PAGE_READ          (1<<3)	/* Page has user read perm (H) */
+ #define _PAGE_ACCESSED      (1<<4)	/* Page is accessed (S) */
+ #define _PAGE_MODIFIED      (1<<5)	/* Page modified (dirty) (S) */
+-#define _PAGE_FILE          (1<<6)	/* page cache/ swap (S) */
+ #define _PAGE_GLOBAL        (1<<8)	/* Page is global (H) */
+ #define _PAGE_PRESENT       (1<<9)	/* TLB entry is valid (H) */
+ #define _PAGE_SHARED_CODE   (1<<11)	/* Shared Code page with cmn vaddr
+@@ -268,15 +266,6 @@ static inline void pmd_set(pmd_t *pmdp, pte_t *ptep)
+ 	pte;								\
+ })
  
--#define PTE_FILE_MAX_BITS	26
+-/* TBD: Non linear mapping stuff */
+-static inline int pte_file(pte_t pte)
+-{
+-	return pte_val(pte) & _PAGE_FILE;
+-}
 -
+-#define PTE_FILE_MAX_BITS	30
+-#define pgoff_to_pte(x)         __pte(x)
+-#define pte_to_pgoff(x)		(pte_val(x) >> 2)
+ #define pte_pfn(pte)		(pte_val(pte) >> PAGE_SHIFT)
+ #define pfn_pte(pfn, prot)	(__pte(((pfn) << PAGE_SHIFT) | pgprot_val(prot)))
+ #define __pte_index(addr)	(((addr) >> PAGE_SHIFT) & (PTRS_PER_PTE - 1))
+@@ -358,13 +347,13 @@ static inline void set_pte_at(struct mm_struct *mm, unsigned long addr,
  #endif
-diff --git a/arch/cris/include/arch-v32/arch/mmu.h b/arch/cris/include/arch-v32/arch/mmu.h
-index c1a13e05e963..e6db1616dee5 100644
---- a/arch/cris/include/arch-v32/arch/mmu.h
-+++ b/arch/cris/include/arch-v32/arch/mmu.h
-@@ -53,7 +53,6 @@ typedef struct
-  * software.
+ 
+ extern void paging_init(void);
+-extern pgd_t swapper_pg_dir[] __aligned(PAGE_SIZE);
++xtern pgd_t swapper_pg_dir[] __aligned(PAGE_SIZE);
+ void update_mmu_cache(struct vm_area_struct *vma, unsigned long address,
+ 		      pte_t *ptep);
+ 
+ /* Encode swap {type,off} tuple into PTE
+  * We reserve 13 bits for 5-bit @type, keeping bits 12-5 zero, ensuring that
+- * both PAGE_FILE and PAGE_PRESENT are zero in a PTE holding swap "identifier"
++ * PAGE_PRESENT is zero in a PTE holding swap "identifier"
   */
- #define _PAGE_PRESENT   (1 << 5)   /* Page is present in memory. */
--#define _PAGE_FILE      (1 << 6)   /* 1=pagecache, 0=swap (when !present) */
- #define _PAGE_ACCESSED  (1 << 6)   /* Simulated in software using valid bit. */
- #define _PAGE_MODIFIED  (1 << 7)   /* Simulated in software using we bit. */
- #define _PAGE_READ      (1 << 8)   /* Read enabled. */
-@@ -108,6 +107,4 @@ typedef struct
- #define __S110  PAGE_SHARED_EXEC
- #define __S111  PAGE_SHARED_EXEC
- 
--#define PTE_FILE_MAX_BITS	25
--
- #endif /* _ASM_CRIS_ARCH_MMU_H */
-diff --git a/arch/cris/include/asm/pgtable.h b/arch/cris/include/asm/pgtable.h
-index 8b8c86793225..e824257971c4 100644
---- a/arch/cris/include/asm/pgtable.h
-+++ b/arch/cris/include/asm/pgtable.h
-@@ -114,7 +114,6 @@ extern unsigned long empty_zero_page;
- static inline int pte_write(pte_t pte)          { return pte_val(pte) & _PAGE_WRITE; }
- static inline int pte_dirty(pte_t pte)          { return pte_val(pte) & _PAGE_MODIFIED; }
- static inline int pte_young(pte_t pte)          { return pte_val(pte) & _PAGE_ACCESSED; }
--static inline int pte_file(pte_t pte)           { return pte_val(pte) & _PAGE_FILE; }
- static inline int pte_special(pte_t pte)	{ return 0; }
- 
- static inline pte_t pte_wrprotect(pte_t pte)
-@@ -290,9 +289,6 @@ static inline void update_mmu_cache(struct vm_area_struct * vma,
-  */
- #define pgtable_cache_init()   do { } while (0)
- 
--#define pte_to_pgoff(x)	(pte_val(x) >> 6)
--#define pgoff_to_pte(x)	__pte(((x) << 6) | _PAGE_FILE)
--
- typedef pte_t *pte_addr_t;
- 
- #endif /* __ASSEMBLY__ */
+ #define __swp_entry(type, off)	((swp_entry_t) { \
+ 					((type) & 0x1f) | ((off) << 13) })
 -- 
 2.1.3
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
