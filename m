@@ -1,78 +1,67 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga11.intel.com ([192.55.52.93]:11489 "EHLO mga11.intel.com"
+Received: from mga14.intel.com ([192.55.52.115]:54991 "EHLO mga14.intel.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752132AbaLXMXP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 24 Dec 2014 07:23:15 -0500
+	id S1752118AbaLXMXO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 24 Dec 2014 07:23:14 -0500
 From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: [PATCH 38/38] xtensa: drop _PAGE_FILE and pte_file()-related helpers
-Date: Wed, 24 Dec 2014 14:22:46 +0200
-Message-ID: <1419423766-114457-39-git-send-email-kirill.shutemov@linux.intel.com>
+Subject: [PATCH 34/38] tile: drop pte_file()-related helpers
+Date: Wed, 24 Dec 2014 14:22:42 +0200
+Message-ID: <1419423766-114457-35-git-send-email-kirill.shutemov@linux.intel.com>
 In-Reply-To: <1419423766-114457-1-git-send-email-kirill.shutemov@linux.intel.com>
 References: <1419423766-114457-1-git-send-email-kirill.shutemov@linux.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: akpm@linux-foundation.org
-Cc: peterz@infradead.org, mingo@kernel.org, davej@redhat.com, sasha.levin@oracle.com, hughd@google.com, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Max Filippov <jcmvbkbc@gmail.com>
-Message-ID: <20141224122246.aeM9IyghHfnLa0V6OFX3-FFMH2QuYDfSAxUjnEHGlrs@z>
+Cc: peterz@infradead.org, mingo@kernel.org, davej@redhat.com, sasha.levin@oracle.com, hughd@google.com, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Chris Metcalf <cmetcalf@ezchip.com>
+Message-ID: <20141224122242.xLGdJIIZRFuXSzhlLml0QcfrVVq1FVXOPJRasPSH-V8@z>
 
 We've replaced remap_file_pages(2) implementation with emulation.
 Nobody creates non-linear mapping anymore.
 
 Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
-Cc: Max Filippov <jcmvbkbc@gmail.com>
+Cc: Chris Metcalf <cmetcalf@ezchip.com>
 ---
- arch/xtensa/include/asm/pgtable.h | 10 ----------
- 1 file changed, 10 deletions(-)
+ arch/tile/include/asm/pgtable.h | 11 -----------
+ arch/tile/mm/homecache.c        |  4 ----
+ 2 files changed, 15 deletions(-)
 
-diff --git a/arch/xtensa/include/asm/pgtable.h b/arch/xtensa/include/asm/pgtable.h
-index 872bf0194e6d..01b80dce9d65 100644
---- a/arch/xtensa/include/asm/pgtable.h
-+++ b/arch/xtensa/include/asm/pgtable.h
-@@ -89,8 +89,6 @@
-  *   (PAGE_NONE)|    PPN    | 0 | 00 | ADW | 01 | 11 | 11 |
-  *		+-----------------------------------------+
-  *   swap	|     index     |   type   | 01 | 11 | 00 |
-- *		+- - - - - - - - - - - - - - - - - - - - -+
-- *   file	|        file offset       | 01 | 11 | 10 |
-  *		+-----------------------------------------+
-  *
-  * For T1050 hardware and earlier the layout differs for present and (PAGE_NONE)
-@@ -111,7 +109,6 @@
-  *   index      swap offset / PAGE_SIZE (bit 11-31: 21 bits -> 8 GB)
-  *		(note that the index is always non-zero)
-  *   type       swap type (5 bits -> 32 types)
-- *   file offset 26-bit offset into the file, in increments of PAGE_SIZE
-  *
-  *  Notes:
-  *   - (PROT_NONE) is a special case of 'present' but causes an exception for
-@@ -144,7 +141,6 @@
- #define _PAGE_HW_VALID		0x00
- #define _PAGE_NONE		0x0f
- #endif
--#define _PAGE_FILE		(1<<1)	/* file mapped page, only if !present */
+diff --git a/arch/tile/include/asm/pgtable.h b/arch/tile/include/asm/pgtable.h
+index 5d1950788c69..bc75b6ef2e79 100644
+--- a/arch/tile/include/asm/pgtable.h
++++ b/arch/tile/include/asm/pgtable.h
+@@ -285,17 +285,6 @@ extern void start_mm_caching(struct mm_struct *mm);
+ extern void check_mm_caching(struct mm_struct *prev, struct mm_struct *next);
  
- #define _PAGE_USER		(1<<4)	/* user access (ring=1) */
- 
-@@ -260,7 +256,6 @@ static inline void pgtable_cache_init(void) { }
- static inline int pte_write(pte_t pte) { return pte_val(pte) & _PAGE_WRITABLE; }
- static inline int pte_dirty(pte_t pte) { return pte_val(pte) & _PAGE_DIRTY; }
- static inline int pte_young(pte_t pte) { return pte_val(pte) & _PAGE_ACCESSED; }
--static inline int pte_file(pte_t pte)  { return pte_val(pte) & _PAGE_FILE; }
- static inline int pte_special(pte_t pte) { return 0; }
- 
- static inline pte_t pte_wrprotect(pte_t pte)	
-@@ -390,11 +385,6 @@ ptep_set_wrprotect(struct mm_struct *mm, unsigned long addr, pte_t *ptep)
- #define __pte_to_swp_entry(pte)	((swp_entry_t) { pte_val(pte) })
- #define __swp_entry_to_pte(x)	((pte_t) { (x).val })
- 
--#define PTE_FILE_MAX_BITS	26
--#define pte_to_pgoff(pte)	(pte_val(pte) >> 6)
--#define pgoff_to_pte(off)	\
--	((pte_t) { ((off) << 6) | _PAGE_CA_INVALID | _PAGE_FILE | _PAGE_USER })
+ /*
+- * Support non-linear file mappings (see sys_remap_file_pages).
+- * This is defined by CLIENT1 set but CLIENT0 and _PAGE_PRESENT clear, and the
+- * file offset in the 32 high bits.
+- */
+-#define _PAGE_FILE        HV_PTE_CLIENT1
+-#define PTE_FILE_MAX_BITS 32
+-#define pte_file(pte)     (hv_pte_get_client1(pte) && !hv_pte_get_client0(pte))
+-#define pte_to_pgoff(pte) ((pte).val >> 32)
+-#define pgoff_to_pte(off) ((pte_t) { (((long long)(off)) << 32) | _PAGE_FILE })
 -
- #endif /*  !defined (__ASSEMBLY__) */
- 
- 
+-/*
+  * Encode and de-code a swap entry (see <linux/swapops.h>).
+  * We put the swap file type+offset in the 32 high bits;
+  * I believe we can just leave the low bits clear.
+diff --git a/arch/tile/mm/homecache.c b/arch/tile/mm/homecache.c
+index cd3387370ebb..0029b3fb651b 100644
+--- a/arch/tile/mm/homecache.c
++++ b/arch/tile/mm/homecache.c
+@@ -263,10 +263,6 @@ static int pte_to_home(pte_t pte)
+ /* Update the home of a PTE if necessary (can also be used for a pgprot_t). */
+ pte_t pte_set_home(pte_t pte, int home)
+ {
+-	/* Check for non-linear file mapping "PTEs" and pass them through. */
+-	if (pte_file(pte))
+-		return pte;
+-
+ #if CHIP_HAS_MMIO()
+ 	/* Check for MMIO mappings and pass them through. */
+ 	if (hv_pte_get_mode(pte) == HV_PTE_MODE_MMIO)
 -- 
 2.1.3
 
