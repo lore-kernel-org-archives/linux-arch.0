@@ -1,94 +1,63 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga09.intel.com ([134.134.136.24]:50935 "EHLO mga09.intel.com"
+Received: from mga14.intel.com ([192.55.52.115]:42326 "EHLO mga14.intel.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751992AbaLXMXH (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 24 Dec 2014 07:23:07 -0500
+	id S1751962AbaLXMXF (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 24 Dec 2014 07:23:05 -0500
 From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: [PATCH 13/38] avr32: drop _PAGE_FILE and pte_file()-related helpers
-Date: Wed, 24 Dec 2014 14:22:21 +0200
-Message-ID: <1419423766-114457-14-git-send-email-kirill.shutemov@linux.intel.com>
+Subject: [PATCH 09/38] alpha: drop _PAGE_FILE and pte_file()-related helpers
+Date: Wed, 24 Dec 2014 14:22:17 +0200
+Message-ID: <1419423766-114457-10-git-send-email-kirill.shutemov@linux.intel.com>
 In-Reply-To: <1419423766-114457-1-git-send-email-kirill.shutemov@linux.intel.com>
 References: <1419423766-114457-1-git-send-email-kirill.shutemov@linux.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: akpm@linux-foundation.org
-Cc: peterz@infradead.org, mingo@kernel.org, davej@redhat.com, sasha.levin@oracle.com, hughd@google.com, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Haavard Skinnemoen <hskinnemoen@gmail.com>, Hans-Christian Egtvedt <egtvedt@samfundet.no>
-Message-ID: <20141224122221.PuzWNsbxTC-mhtEv-_I-6str8ftBWZ-50hNY89X_7pM@z>
+Cc: peterz@infradead.org, mingo@kernel.org, davej@redhat.com, sasha.levin@oracle.com, hughd@google.com, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>
+Message-ID: <20141224122217.ErdI-y7eihPYkqgXbQeIea_tOPF50LqZnI22exOa89E@z>
 
 We've replaced remap_file_pages(2) implementation with emulation.
 Nobody creates non-linear mapping anymore.
 
 Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
-Cc: Haavard Skinnemoen <hskinnemoen@gmail.com>
-Cc: Hans-Christian Egtvedt <egtvedt@samfundet.no>
+Cc: Richard Henderson <rth@twiddle.net>
+Cc: Ivan Kokshaysky <ink@jurassic.park.msu.ru>
+Cc: Matt Turner <mattst88@gmail.com>
 ---
- arch/avr32/include/asm/pgtable.h | 25 -------------------------
- 1 file changed, 25 deletions(-)
+ arch/alpha/include/asm/pgtable.h | 7 -------
+ 1 file changed, 7 deletions(-)
 
-diff --git a/arch/avr32/include/asm/pgtable.h b/arch/avr32/include/asm/pgtable.h
-index 4beff97e2033..ac7a817e2126 100644
---- a/arch/avr32/include/asm/pgtable.h
-+++ b/arch/avr32/include/asm/pgtable.h
-@@ -86,9 +86,6 @@ extern struct page *empty_zero_page;
- #define _PAGE_BIT_PRESENT	10
- #define _PAGE_BIT_ACCESSED	11 /* software: page was accessed */
- 
--/* The following flags are only valid when !PRESENT */
--#define _PAGE_BIT_FILE		0 /* software: pagecache or swap? */
--
- #define _PAGE_WT		(1 << _PAGE_BIT_WT)
- #define _PAGE_DIRTY		(1 << _PAGE_BIT_DIRTY)
- #define _PAGE_EXECUTE		(1 << _PAGE_BIT_EXECUTE)
-@@ -101,7 +98,6 @@ extern struct page *empty_zero_page;
- /* Software flags */
- #define _PAGE_ACCESSED		(1 << _PAGE_BIT_ACCESSED)
- #define _PAGE_PRESENT		(1 << _PAGE_BIT_PRESENT)
--#define _PAGE_FILE		(1 << _PAGE_BIT_FILE)
+diff --git a/arch/alpha/include/asm/pgtable.h b/arch/alpha/include/asm/pgtable.h
+index d8f9b7e89234..fce22cf88ee9 100644
+--- a/arch/alpha/include/asm/pgtable.h
++++ b/arch/alpha/include/asm/pgtable.h
+@@ -73,7 +73,6 @@ struct vm_area_struct;
+ /* .. and these are ours ... */
+ #define _PAGE_DIRTY	0x20000
+ #define _PAGE_ACCESSED	0x40000
+-#define _PAGE_FILE	0x80000	/* set:pagecache, unset:swap */
  
  /*
-  * Page types, i.e. sizes. _PAGE_TYPE_NONE corresponds to what is
-@@ -210,14 +206,6 @@ static inline int pte_special(pte_t pte)
- 	return 0;
- }
+  * NOTE! The "accessed" bit isn't necessarily exact:  it can be kept exactly
+@@ -268,7 +267,6 @@ extern inline void pgd_clear(pgd_t * pgdp)	{ pgd_val(*pgdp) = 0; }
+ extern inline int pte_write(pte_t pte)		{ return !(pte_val(pte) & _PAGE_FOW); }
+ extern inline int pte_dirty(pte_t pte)		{ return pte_val(pte) & _PAGE_DIRTY; }
+ extern inline int pte_young(pte_t pte)		{ return pte_val(pte) & _PAGE_ACCESSED; }
+-extern inline int pte_file(pte_t pte)		{ return pte_val(pte) & _PAGE_FILE; }
+ extern inline int pte_special(pte_t pte)	{ return 0; }
  
--/*
-- * The following only work if pte_present() is not true.
-- */
--static inline int pte_file(pte_t pte)
--{
--	return pte_val(pte) & _PAGE_FILE;
--}
--
- /* Mutator functions for PTE bits */
- static inline pte_t pte_wrprotect(pte_t pte)
- {
-@@ -329,7 +317,6 @@ extern void update_mmu_cache(struct vm_area_struct * vma,
-  * Encode and decode a swap entry
-  *
-  * Constraints:
-- *   _PAGE_FILE at bit 0
-  *   _PAGE_TYPE_* at bits 2-3 (for emulating _PAGE_PROTNONE)
-  *   _PAGE_PRESENT at bit 10
-  *
-@@ -346,18 +333,6 @@ extern void update_mmu_cache(struct vm_area_struct * vma,
+ extern inline pte_t pte_wrprotect(pte_t pte)	{ pte_val(pte) |= _PAGE_FOW; return pte; }
+@@ -345,11 +343,6 @@ extern inline pte_t mk_swap_pte(unsigned long type, unsigned long offset)
  #define __pte_to_swp_entry(pte)	((swp_entry_t) { pte_val(pte) })
  #define __swp_entry_to_pte(x)	((pte_t) { (x).val })
  
--/*
-- * Encode and decode a nonlinear file mapping entry. We have to
-- * preserve _PAGE_FILE and _PAGE_PRESENT here. _PAGE_TYPE_* isn't
-- * necessary, since _PAGE_FILE implies !_PAGE_PROTNONE (?)
-- */
--#define PTE_FILE_MAX_BITS	30
--#define pte_to_pgoff(pte)	(((pte_val(pte) >> 1) & 0x1ff)		\
--				 | ((pte_val(pte) >> 11) << 9))
--#define pgoff_to_pte(off)	((pte_t) { ((((off) & 0x1ff) << 1)	\
--					    | (((off) >> 9) << 11)	\
--					    | _PAGE_FILE) })
+-#define pte_to_pgoff(pte)	(pte_val(pte) >> 32)
+-#define pgoff_to_pte(off)	((pte_t) { ((off) << 32) | _PAGE_FILE })
 -
- typedef pte_t *pte_addr_t;
- 
+-#define PTE_FILE_MAX_BITS	32
+-
+ #ifndef CONFIG_DISCONTIGMEM
  #define kern_addr_valid(addr)	(1)
+ #endif
 -- 
 2.1.3
 
