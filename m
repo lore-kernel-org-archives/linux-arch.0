@@ -1,79 +1,88 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga09.intel.com ([134.134.136.24]:50935 "EHLO mga09.intel.com"
+Received: from mga09.intel.com ([134.134.136.24]:55472 "EHLO mga09.intel.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752060AbaLXMXK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 24 Dec 2014 07:23:10 -0500
+	id S1752097AbaLXMXN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 24 Dec 2014 07:23:13 -0500
 From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: [PATCH 20/38] m32r: drop _PAGE_FILE and pte_file()-related helpers
-Date: Wed, 24 Dec 2014 14:22:28 +0200
-Message-ID: <1419423766-114457-21-git-send-email-kirill.shutemov@linux.intel.com>
+Subject: [PATCH 31/38] score: drop _PAGE_FILE and pte_file()-related helpers
+Date: Wed, 24 Dec 2014 14:22:39 +0200
+Message-ID: <1419423766-114457-32-git-send-email-kirill.shutemov@linux.intel.com>
 In-Reply-To: <1419423766-114457-1-git-send-email-kirill.shutemov@linux.intel.com>
 References: <1419423766-114457-1-git-send-email-kirill.shutemov@linux.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: akpm@linux-foundation.org
-Cc: peterz@infradead.org, mingo@kernel.org, davej@redhat.com, sasha.levin@oracle.com, hughd@google.com, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Message-ID: <20141224122228.xQUk_9D8PFqvOaZmZOb5paEFFtJJHmUMwlu7mdEpXGw@z>
+Cc: peterz@infradead.org, mingo@kernel.org, davej@redhat.com, sasha.levin@oracle.com, hughd@google.com, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Chen Liqin <liqin.linux@gmail.com>, Lennox Wu <lennox.wu@gmail.com>
+Message-ID: <20141224122239.puXacfUiLO4mWXOR3_B-BI6tJGv7SKSIWnWKxSqw60o@z>
 
 We've replaced remap_file_pages(2) implementation with emulation.
 Nobody creates non-linear mapping anymore.
 
-Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
----
- arch/m32r/include/asm/pgtable-2level.h |  4 ----
- arch/m32r/include/asm/pgtable.h        | 11 -----------
- 2 files changed, 15 deletions(-)
+This patch also increase number of bits availble for swap offset.
 
-diff --git a/arch/m32r/include/asm/pgtable-2level.h b/arch/m32r/include/asm/pgtable-2level.h
-index 9cdaf7350ef6..8fd8ee70266a 100644
---- a/arch/m32r/include/asm/pgtable-2level.h
-+++ b/arch/m32r/include/asm/pgtable-2level.h
-@@ -70,9 +70,5 @@ static inline pmd_t *pmd_offset(pgd_t * dir, unsigned long address)
- #define pfn_pte(pfn, prot)	__pte(((pfn) << PAGE_SHIFT) | pgprot_val(prot))
- #define pfn_pmd(pfn, prot)	__pmd(((pfn) << PAGE_SHIFT) | pgprot_val(prot))
+Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
+Cc: Chen Liqin <liqin.linux@gmail.com>
+Cc: Lennox Wu <lennox.wu@gmail.com>
+---
+ arch/score/include/asm/pgtable-bits.h |  1 -
+ arch/score/include/asm/pgtable.h      | 18 ++----------------
+ 2 files changed, 2 insertions(+), 17 deletions(-)
+
+diff --git a/arch/score/include/asm/pgtable-bits.h b/arch/score/include/asm/pgtable-bits.h
+index 7d65a96a82e5..0e5c6f466520 100644
+--- a/arch/score/include/asm/pgtable-bits.h
++++ b/arch/score/include/asm/pgtable-bits.h
+@@ -6,7 +6,6 @@
+ #define _PAGE_WRITE			(1<<7)	/* implemented in software */
+ #define _PAGE_PRESENT			(1<<9)	/* implemented in software */
+ #define _PAGE_MODIFIED			(1<<10)	/* implemented in software */
+-#define _PAGE_FILE			(1<<10)
  
--#define PTE_FILE_MAX_BITS	29
--#define pte_to_pgoff(pte)	(((pte_val(pte) >> 2) & 0x7f) | (((pte_val(pte) >> 10)) << 7))
--#define pgoff_to_pte(off)	((pte_t) { (((off) & 0x7f) << 2) | (((off) >> 7) << 10) | _PAGE_FILE })
--
- #endif /* __KERNEL__ */
- #endif /* _ASM_M32R_PGTABLE_2LEVEL_H */
-diff --git a/arch/m32r/include/asm/pgtable.h b/arch/m32r/include/asm/pgtable.h
-index 103ce6710f07..050f7a686e3d 100644
---- a/arch/m32r/include/asm/pgtable.h
-+++ b/arch/m32r/include/asm/pgtable.h
-@@ -80,8 +80,6 @@ extern unsigned long empty_zero_page[1024];
-  */
- 
- #define _PAGE_BIT_DIRTY		0	/* software: page changed */
--#define _PAGE_BIT_FILE		0	/* when !present: nonlinear file
--					   mapping */
- #define _PAGE_BIT_PRESENT	1	/* Valid: page is valid */
- #define _PAGE_BIT_GLOBAL	2	/* Global */
- #define _PAGE_BIT_LARGE		3	/* Large */
-@@ -93,7 +91,6 @@ extern unsigned long empty_zero_page[1024];
- #define _PAGE_BIT_PROTNONE	9	/* software: if not present */
- 
- #define _PAGE_DIRTY		(1UL << _PAGE_BIT_DIRTY)
--#define _PAGE_FILE		(1UL << _PAGE_BIT_FILE)
- #define _PAGE_PRESENT		(1UL << _PAGE_BIT_PRESENT)
- #define _PAGE_GLOBAL		(1UL << _PAGE_BIT_GLOBAL)
- #define _PAGE_LARGE		(1UL << _PAGE_BIT_LARGE)
-@@ -206,14 +203,6 @@ static inline int pte_write(pte_t pte)
- 	return pte_val(pte) & _PAGE_WRITE;
- }
+ #define _PAGE_GLOBAL			(1<<0)
+ #define _PAGE_VALID			(1<<1)
+diff --git a/arch/score/include/asm/pgtable.h b/arch/score/include/asm/pgtable.h
+index db96ad9afc03..5170ffdea643 100644
+--- a/arch/score/include/asm/pgtable.h
++++ b/arch/score/include/asm/pgtable.h
+@@ -90,15 +90,6 @@ static inline void pmd_clear(pmd_t *pmdp)
+ 	((pte_t *)page_address(pmd_page(*(dir))) + __pte_offset(address))
+ #define pte_unmap(pte) ((void)(pte))
  
 -/*
-- * The following only works if pte_present() is not true.
+- * Bits 9(_PAGE_PRESENT) and 10(_PAGE_FILE)are taken,
+- * split up 30 bits of offset into this range:
 - */
+-#define PTE_FILE_MAX_BITS	30
+-#define pte_to_pgoff(_pte)		\
+-	(((_pte).pte & 0x1ff) | (((_pte).pte >> 11) << 9))
+-#define pgoff_to_pte(off)		\
+-	((pte_t) {((off) & 0x1ff) | (((off) >> 9) << 11) | _PAGE_FILE})
+ #define __pte_to_swp_entry(pte)		\
+ 	((swp_entry_t) { pte_val(pte)})
+ #define __swp_entry_to_pte(x)	((pte_t) {(x).val})
+@@ -169,8 +160,8 @@ static inline pgprot_t pgprot_noncached(pgprot_t _prot)
+ }
+ 
+ #define __swp_type(x)		((x).val & 0x1f)
+-#define __swp_offset(x) 	((x).val >> 11)
+-#define __swp_entry(type, offset) ((swp_entry_t){(type) | ((offset) << 11)})
++#define __swp_offset(x) 	((x).val >> 10)
++#define __swp_entry(type, offset) ((swp_entry_t){(type) | ((offset) << 10)})
+ 
+ extern unsigned long empty_zero_page;
+ extern unsigned long zero_page_mask;
+@@ -198,11 +189,6 @@ static inline int pte_young(pte_t pte)
+ 	return pte_val(pte) & _PAGE_ACCESSED;
+ }
+ 
 -static inline int pte_file(pte_t pte)
 -{
 -	return pte_val(pte) & _PAGE_FILE;
 -}
 -
- static inline int pte_special(pte_t pte)
- {
- 	return 0;
+ #define pte_special(pte)	(0)
+ 
+ static inline pte_t pte_wrprotect(pte_t pte)
 -- 
 2.1.3
 
