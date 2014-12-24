@@ -1,81 +1,72 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga11.intel.com ([192.55.52.93]:27731 "EHLO mga11.intel.com"
+Received: from mga11.intel.com ([192.55.52.93]:17823 "EHLO mga11.intel.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752244AbaLXMXe (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 24 Dec 2014 07:23:34 -0500
+	id S1752361AbaLXMXm (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 24 Dec 2014 07:23:42 -0500
 From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: [PATCH 10/38] arc: drop _PAGE_FILE and pte_file()-related helpers
-Date: Wed, 24 Dec 2014 14:22:18 +0200
-Message-ID: <1419423766-114457-11-git-send-email-kirill.shutemov@linux.intel.com>
+Subject: [PATCH 28/38] parisc: drop _PAGE_FILE and pte_file()-related helpers
+Date: Wed, 24 Dec 2014 14:22:36 +0200
+Message-ID: <1419423766-114457-29-git-send-email-kirill.shutemov@linux.intel.com>
 In-Reply-To: <1419423766-114457-1-git-send-email-kirill.shutemov@linux.intel.com>
 References: <1419423766-114457-1-git-send-email-kirill.shutemov@linux.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: akpm@linux-foundation.org
-Cc: peterz@infradead.org, mingo@kernel.org, davej@redhat.com, sasha.levin@oracle.com, hughd@google.com, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Vineet Gupta <vgupta@synopsys.com>
-Message-ID: <20141224122218.UbZl-U4sUOKY9G47lNQnJA6hTWx5fNKreGrvCqKRe7U@z>
+Cc: peterz@infradead.org, mingo@kernel.org, davej@redhat.com, sasha.levin@oracle.com, hughd@google.com, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>
+Message-ID: <20141224122236.JEDR08lyDc9y9tAMIvf3INB745Mlc63f2bVMDj9b-F8@z>
 
 We've replaced remap_file_pages(2) implementation with emulation.
 Nobody creates non-linear mapping anymore.
 
 Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
-Cc: Vineet Gupta <vgupta@synopsys.com>
+Cc: "James E.J. Bottomley" <jejb@parisc-linux.org>
+Cc: Helge Deller <deller@gmx.de>
 ---
- arch/arc/include/asm/pgtable.h | 15 ++-------------
- 1 file changed, 2 insertions(+), 13 deletions(-)
+ arch/parisc/include/asm/pgtable.h | 10 ----------
+ 1 file changed, 10 deletions(-)
 
-diff --git a/arch/arc/include/asm/pgtable.h b/arch/arc/include/asm/pgtable.h
-index 6b0b7f7ef783..55694ee428d4 100644
---- a/arch/arc/include/asm/pgtable.h
-+++ b/arch/arc/include/asm/pgtable.h
-@@ -61,7 +61,6 @@
- #define _PAGE_WRITE         (1<<4)	/* Page has user write perm (H) */
- #define _PAGE_READ          (1<<5)	/* Page has user read perm (H) */
- #define _PAGE_MODIFIED      (1<<6)	/* Page modified (dirty) (S) */
--#define _PAGE_FILE          (1<<7)	/* page cache/ swap (S) */
- #define _PAGE_GLOBAL        (1<<8)	/* Page is global (H) */
- #define _PAGE_PRESENT       (1<<10)	/* TLB entry is valid (H) */
+diff --git a/arch/parisc/include/asm/pgtable.h b/arch/parisc/include/asm/pgtable.h
+index 22b89d1edba7..1d49a4a7749b 100644
+--- a/arch/parisc/include/asm/pgtable.h
++++ b/arch/parisc/include/asm/pgtable.h
+@@ -146,7 +146,6 @@ extern void purge_tlb_entries(struct mm_struct *, unsigned long);
+ #define _PAGE_GATEWAY_BIT  28   /* (0x008) privilege promotion allowed */
+ #define _PAGE_DMB_BIT      27   /* (0x010) Data Memory Break enable (B bit) */
+ #define _PAGE_DIRTY_BIT    26   /* (0x020) Page Dirty (D bit) */
+-#define _PAGE_FILE_BIT	_PAGE_DIRTY_BIT	/* overload this bit */
+ #define _PAGE_REFTRAP_BIT  25   /* (0x040) Page Ref. Trap enable (T bit) */
+ #define _PAGE_NO_CACHE_BIT 24   /* (0x080) Uncached Page (U bit) */
+ #define _PAGE_ACCESSED_BIT 23   /* (0x100) Software: Page Accessed */
+@@ -167,13 +166,6 @@ extern void purge_tlb_entries(struct mm_struct *, unsigned long);
+ /* PFN_PTE_SHIFT defines the shift of a PTE value to access the PFN field */
+ #define PFN_PTE_SHIFT		12
  
-@@ -73,7 +72,6 @@
- #define _PAGE_READ          (1<<3)	/* Page has user read perm (H) */
- #define _PAGE_ACCESSED      (1<<4)	/* Page is accessed (S) */
- #define _PAGE_MODIFIED      (1<<5)	/* Page modified (dirty) (S) */
--#define _PAGE_FILE          (1<<6)	/* page cache/ swap (S) */
- #define _PAGE_GLOBAL        (1<<8)	/* Page is global (H) */
- #define _PAGE_PRESENT       (1<<9)	/* TLB entry is valid (H) */
- #define _PAGE_SHARED_CODE   (1<<11)	/* Shared Code page with cmn vaddr
-@@ -268,15 +266,6 @@ static inline void pmd_set(pmd_t *pmdp, pte_t *ptep)
- 	pte;								\
- })
- 
--/* TBD: Non linear mapping stuff */
--static inline int pte_file(pte_t pte)
--{
--	return pte_val(pte) & _PAGE_FILE;
--}
 -
--#define PTE_FILE_MAX_BITS	30
--#define pgoff_to_pte(x)         __pte(x)
--#define pte_to_pgoff(x)		(pte_val(x) >> 2)
- #define pte_pfn(pte)		(pte_val(pte) >> PAGE_SHIFT)
- #define pfn_pte(pfn, prot)	(__pte(((pfn) << PAGE_SHIFT) | pgprot_val(prot)))
- #define __pte_index(addr)	(((addr) >> PAGE_SHIFT) & (PTRS_PER_PTE - 1))
-@@ -358,13 +347,13 @@ static inline void set_pte_at(struct mm_struct *mm, unsigned long addr,
- #endif
+-/* this is how many bits may be used by the file functions */
+-#define PTE_FILE_MAX_BITS	(BITS_PER_LONG - PTE_SHIFT)
+-
+-#define pte_to_pgoff(pte) (pte_val(pte) >> PTE_SHIFT)
+-#define pgoff_to_pte(off) ((pte_t) { ((off) << PTE_SHIFT) | _PAGE_FILE })
+-
+ #define _PAGE_READ     (1 << xlate_pabit(_PAGE_READ_BIT))
+ #define _PAGE_WRITE    (1 << xlate_pabit(_PAGE_WRITE_BIT))
+ #define _PAGE_RW       (_PAGE_READ | _PAGE_WRITE)
+@@ -186,7 +178,6 @@ extern void purge_tlb_entries(struct mm_struct *, unsigned long);
+ #define _PAGE_ACCESSED (1 << xlate_pabit(_PAGE_ACCESSED_BIT))
+ #define _PAGE_PRESENT  (1 << xlate_pabit(_PAGE_PRESENT_BIT))
+ #define _PAGE_USER     (1 << xlate_pabit(_PAGE_USER_BIT))
+-#define _PAGE_FILE     (1 << xlate_pabit(_PAGE_FILE_BIT))
  
- extern void paging_init(void);
--extern pgd_t swapper_pg_dir[] __aligned(PAGE_SIZE);
-+xtern pgd_t swapper_pg_dir[] __aligned(PAGE_SIZE);
- void update_mmu_cache(struct vm_area_struct *vma, unsigned long address,
- 		      pte_t *ptep);
+ #define _PAGE_TABLE	(_PAGE_PRESENT | _PAGE_READ | _PAGE_WRITE |  _PAGE_DIRTY | _PAGE_ACCESSED)
+ #define _PAGE_CHG_MASK	(PAGE_MASK | _PAGE_ACCESSED | _PAGE_DIRTY)
+@@ -344,7 +335,6 @@ static inline void pgd_clear(pgd_t * pgdp)	{ }
+ static inline int pte_dirty(pte_t pte)		{ return pte_val(pte) & _PAGE_DIRTY; }
+ static inline int pte_young(pte_t pte)		{ return pte_val(pte) & _PAGE_ACCESSED; }
+ static inline int pte_write(pte_t pte)		{ return pte_val(pte) & _PAGE_WRITE; }
+-static inline int pte_file(pte_t pte)		{ return pte_val(pte) & _PAGE_FILE; }
+ static inline int pte_special(pte_t pte)	{ return 0; }
  
- /* Encode swap {type,off} tuple into PTE
-  * We reserve 13 bits for 5-bit @type, keeping bits 12-5 zero, ensuring that
-- * both PAGE_FILE and PAGE_PRESENT are zero in a PTE holding swap "identifier"
-+ * PAGE_PRESENT is zero in a PTE holding swap "identifier"
-  */
- #define __swp_entry(type, off)	((swp_entry_t) { \
- 					((type) & 0x1f) | ((off) << 13) })
+ static inline pte_t pte_mkclean(pte_t pte)	{ pte_val(pte) &= ~_PAGE_DIRTY; return pte; }
 -- 
 2.1.3
 
