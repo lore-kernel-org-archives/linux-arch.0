@@ -1,127 +1,108 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga14.intel.com ([192.55.52.115]:42326 "EHLO mga14.intel.com"
+Received: from mga09.intel.com ([134.134.136.24]:50935 "EHLO mga09.intel.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752015AbaLXMXI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 24 Dec 2014 07:23:08 -0500
+	id S1751893AbaLXMXE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 24 Dec 2014 07:23:04 -0500
 From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: [PATCH 12/38] arm: drop L_PTE_FILE and pte_file()-related helpers
-Date: Wed, 24 Dec 2014 14:22:20 +0200
-Message-ID: <1419423766-114457-13-git-send-email-kirill.shutemov@linux.intel.com>
+Subject: [PATCH 06/38] mm: replace vma->sharead.linear with vma->shared
+Date: Wed, 24 Dec 2014 14:22:14 +0200
+Message-ID: <1419423766-114457-7-git-send-email-kirill.shutemov@linux.intel.com>
 In-Reply-To: <1419423766-114457-1-git-send-email-kirill.shutemov@linux.intel.com>
 References: <1419423766-114457-1-git-send-email-kirill.shutemov@linux.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: akpm@linux-foundation.org
-Cc: peterz@infradead.org, mingo@kernel.org, davej@redhat.com, sasha.levin@oracle.com, hughd@google.com, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Russell King <linux@arm.linux.org.uk>
-Message-ID: <20141224122220.3mkS0o3zX4pOC2ugwT5h9_Fr-eM-0bA_jxXlLTFWuVQ@z>
+Cc: peterz@infradead.org, mingo@kernel.org, davej@redhat.com, sasha.levin@oracle.com, hughd@google.com, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+Message-ID: <20141224122214.4Ss54_rYyBkPJyrfda2N2KzqmhqZ2wTpj2HB3rGoBZU@z>
 
-We've replaced remap_file_pages(2) implementation with emulation.
-Nobody creates non-linear mapping anymore.
+After removing vma->shared.nonlinear we have only one member of
+vma->shared union, which doesn't make much sense.
 
-This patch also adjust __SWP_TYPE_SHIFT, effectively increase size of
-possible swap file to 128G.
+This patch drops the union and move struct vma->shared.linear to
+vma->shared.
 
 Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
-Cc: Russell King <linux@arm.linux.org.uk>
 ---
- arch/arm/include/asm/pgtable-2level.h |  1 -
- arch/arm/include/asm/pgtable-3level.h |  1 -
- arch/arm/include/asm/pgtable-nommu.h  |  2 --
- arch/arm/include/asm/pgtable.h        | 20 +++-----------------
- arch/arm/mm/proc-macros.S             |  2 +-
- 5 files changed, 4 insertions(+), 22 deletions(-)
+ include/linux/mm_types.h |  8 +++-----
+ mm/interval_tree.c       | 34 +++++++++++++++++-----------------
+ 2 files changed, 20 insertions(+), 22 deletions(-)
 
-diff --git a/arch/arm/include/asm/pgtable-2level.h b/arch/arm/include/asm/pgtable-2level.h
-index f0279411847d..bcc5e300413f 100644
---- a/arch/arm/include/asm/pgtable-2level.h
-+++ b/arch/arm/include/asm/pgtable-2level.h
-@@ -118,7 +118,6 @@
- #define L_PTE_VALID		(_AT(pteval_t, 1) << 0)		/* Valid */
- #define L_PTE_PRESENT		(_AT(pteval_t, 1) << 0)
- #define L_PTE_YOUNG		(_AT(pteval_t, 1) << 1)
--#define L_PTE_FILE		(_AT(pteval_t, 1) << 2)	/* only when !PRESENT */
- #define L_PTE_DIRTY		(_AT(pteval_t, 1) << 6)
- #define L_PTE_RDONLY		(_AT(pteval_t, 1) << 7)
- #define L_PTE_USER		(_AT(pteval_t, 1) << 8)
-diff --git a/arch/arm/include/asm/pgtable-3level.h b/arch/arm/include/asm/pgtable-3level.h
-index 54dc91486c16..dd6dd555ad58 100644
---- a/arch/arm/include/asm/pgtable-3level.h
-+++ b/arch/arm/include/asm/pgtable-3level.h
-@@ -77,7 +77,6 @@
-  */
- #define L_PTE_VALID		(_AT(pteval_t, 1) << 0)		/* Valid */
- #define L_PTE_PRESENT		(_AT(pteval_t, 3) << 0)		/* Present */
--#define L_PTE_FILE		(_AT(pteval_t, 1) << 2)		/* only when !PRESENT */
- #define L_PTE_USER		(_AT(pteval_t, 1) << 6)		/* AP[1] */
- #define L_PTE_SHARED		(_AT(pteval_t, 3) << 8)		/* SH[1:0], inner shareable */
- #define L_PTE_YOUNG		(_AT(pteval_t, 1) << 10)	/* AF */
-diff --git a/arch/arm/include/asm/pgtable-nommu.h b/arch/arm/include/asm/pgtable-nommu.h
-index 0642228ff785..c35e53ee6663 100644
---- a/arch/arm/include/asm/pgtable-nommu.h
-+++ b/arch/arm/include/asm/pgtable-nommu.h
-@@ -54,8 +54,6 @@
+diff --git a/include/linux/mm_types.h b/include/linux/mm_types.h
+index 3b1d20fb0848..07c8bd3f7b48 100644
+--- a/include/linux/mm_types.h
++++ b/include/linux/mm_types.h
+@@ -275,11 +275,9 @@ struct vm_area_struct {
+ 	 * For areas with an address space and backing store,
+ 	 * linkage into the address_space->i_mmap interval tree.
+ 	 */
+-	union {
+-		struct {
+-			struct rb_node rb;
+-			unsigned long rb_subtree_last;
+-		} linear;
++	struct {
++		struct rb_node rb;
++		unsigned long rb_subtree_last;
+ 	} shared;
  
- typedef pte_t *pte_addr_t;
+ 	/*
+diff --git a/mm/interval_tree.c b/mm/interval_tree.c
+index 8da581fa9060..f2c2492681bf 100644
+--- a/mm/interval_tree.c
++++ b/mm/interval_tree.c
+@@ -21,8 +21,8 @@ static inline unsigned long vma_last_pgoff(struct vm_area_struct *v)
+ 	return v->vm_pgoff + ((v->vm_end - v->vm_start) >> PAGE_SHIFT) - 1;
+ }
  
--static inline int pte_file(pte_t pte) { return 0; }
--
- /*
-  * ZERO_PAGE is a global shared page that is always zero: used
-  * for zero-mapped memory areas etc..
-diff --git a/arch/arm/include/asm/pgtable.h b/arch/arm/include/asm/pgtable.h
-index d5cac545ba33..f40354198bad 100644
---- a/arch/arm/include/asm/pgtable.h
-+++ b/arch/arm/include/asm/pgtable.h
-@@ -318,12 +318,12 @@ static inline pte_t pte_modify(pte_t pte, pgprot_t newprot)
-  *
-  *   3 3 2 2 2 2 2 2 2 2 2 2 1 1 1 1 1 1 1 1 1 1
-  *   1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0
-- *   <--------------- offset ----------------------> < type -> 0 0 0
-+ *   <--------------- offset ------------------------> < type -> 0 0
-  *
-- * This gives us up to 31 swap files and 64GB per swap file.  Note that
-+ * This gives us up to 31 swap files and 128GB per swap file.  Note that
-  * the offset field is always non-zero.
-  */
--#define __SWP_TYPE_SHIFT	3
-+#define __SWP_TYPE_SHIFT	2
- #define __SWP_TYPE_BITS		5
- #define __SWP_TYPE_MASK		((1 << __SWP_TYPE_BITS) - 1)
- #define __SWP_OFFSET_SHIFT	(__SWP_TYPE_BITS + __SWP_TYPE_SHIFT)
-@@ -342,20 +342,6 @@ static inline pte_t pte_modify(pte_t pte, pgprot_t newprot)
-  */
- #define MAX_SWAPFILES_CHECK() BUILD_BUG_ON(MAX_SWAPFILES_SHIFT > __SWP_TYPE_BITS)
+-INTERVAL_TREE_DEFINE(struct vm_area_struct, shared.linear.rb,
+-		     unsigned long, shared.linear.rb_subtree_last,
++INTERVAL_TREE_DEFINE(struct vm_area_struct, shared.rb,
++		     unsigned long, shared.rb_subtree_last,
+ 		     vma_start_pgoff, vma_last_pgoff,, vma_interval_tree)
  
--/*
-- * Encode and decode a file entry.  File entries are stored in the Linux
-- * page tables as follows:
-- *
-- *   3 3 2 2 2 2 2 2 2 2 2 2 1 1 1 1 1 1 1 1 1 1
-- *   1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0
-- *   <----------------------- offset ------------------------> 1 0 0
-- */
--#define pte_file(pte)		(pte_val(pte) & L_PTE_FILE)
--#define pte_to_pgoff(x)		(pte_val(x) >> 3)
--#define pgoff_to_pte(x)		__pte(((x) << 3) | L_PTE_FILE)
--
--#define PTE_FILE_MAX_BITS	29
--
- /* Needs to be defined here and not in linux/mm.h, as it is arch dependent */
- /* FIXME: this is not correct */
- #define kern_addr_valid(addr)	(1)
-diff --git a/arch/arm/mm/proc-macros.S b/arch/arm/mm/proc-macros.S
-index ba1196c968d8..082b9f2f7e90 100644
---- a/arch/arm/mm/proc-macros.S
-+++ b/arch/arm/mm/proc-macros.S
-@@ -98,7 +98,7 @@
- #endif
- #if !defined (CONFIG_ARM_LPAE) && \
- 	(L_PTE_XN+L_PTE_USER+L_PTE_RDONLY+L_PTE_DIRTY+L_PTE_YOUNG+\
--	 L_PTE_FILE+L_PTE_PRESENT) > L_PTE_SHARED
-+	 L_PTE_PRESENT) > L_PTE_SHARED
- #error Invalid Linux PTE bit settings
- #endif
- #endif	/* CONFIG_MMU */
+ /* Insert node immediately after prev in the interval tree */
+@@ -36,26 +36,26 @@ void vma_interval_tree_insert_after(struct vm_area_struct *node,
+ 
+ 	VM_BUG_ON_VMA(vma_start_pgoff(node) != vma_start_pgoff(prev), node);
+ 
+-	if (!prev->shared.linear.rb.rb_right) {
++	if (!prev->shared.rb.rb_right) {
+ 		parent = prev;
+-		link = &prev->shared.linear.rb.rb_right;
++		link = &prev->shared.rb.rb_right;
+ 	} else {
+-		parent = rb_entry(prev->shared.linear.rb.rb_right,
+-				  struct vm_area_struct, shared.linear.rb);
+-		if (parent->shared.linear.rb_subtree_last < last)
+-			parent->shared.linear.rb_subtree_last = last;
+-		while (parent->shared.linear.rb.rb_left) {
+-			parent = rb_entry(parent->shared.linear.rb.rb_left,
+-				struct vm_area_struct, shared.linear.rb);
+-			if (parent->shared.linear.rb_subtree_last < last)
+-				parent->shared.linear.rb_subtree_last = last;
++		parent = rb_entry(prev->shared.rb.rb_right,
++				  struct vm_area_struct, shared.rb);
++		if (parent->shared.rb_subtree_last < last)
++			parent->shared.rb_subtree_last = last;
++		while (parent->shared.rb.rb_left) {
++			parent = rb_entry(parent->shared.rb.rb_left,
++				struct vm_area_struct, shared.rb);
++			if (parent->shared.rb_subtree_last < last)
++				parent->shared.rb_subtree_last = last;
+ 		}
+-		link = &parent->shared.linear.rb.rb_left;
++		link = &parent->shared.rb.rb_left;
+ 	}
+ 
+-	node->shared.linear.rb_subtree_last = last;
+-	rb_link_node(&node->shared.linear.rb, &parent->shared.linear.rb, link);
+-	rb_insert_augmented(&node->shared.linear.rb, root,
++	node->shared.rb_subtree_last = last;
++	rb_link_node(&node->shared.rb, &parent->shared.rb, link);
++	rb_insert_augmented(&node->shared.rb, root,
+ 			    &vma_interval_tree_augment);
+ }
+ 
 -- 
 2.1.3
 
