@@ -1,88 +1,91 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga09.intel.com ([134.134.136.24]:55472 "EHLO mga09.intel.com"
+Received: from mga14.intel.com ([192.55.52.115]:7892 "EHLO mga14.intel.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752097AbaLXMXN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	id S1752091AbaLXMXN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
 	Wed, 24 Dec 2014 07:23:13 -0500
 From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: [PATCH 31/38] score: drop _PAGE_FILE and pte_file()-related helpers
-Date: Wed, 24 Dec 2014 14:22:39 +0200
-Message-ID: <1419423766-114457-32-git-send-email-kirill.shutemov@linux.intel.com>
+Subject: [PATCH 30/38] s390: drop pte_file()-related helpers
+Date: Wed, 24 Dec 2014 14:22:38 +0200
+Message-ID: <1419423766-114457-31-git-send-email-kirill.shutemov@linux.intel.com>
 In-Reply-To: <1419423766-114457-1-git-send-email-kirill.shutemov@linux.intel.com>
 References: <1419423766-114457-1-git-send-email-kirill.shutemov@linux.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: akpm@linux-foundation.org
-Cc: peterz@infradead.org, mingo@kernel.org, davej@redhat.com, sasha.levin@oracle.com, hughd@google.com, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Chen Liqin <liqin.linux@gmail.com>, Lennox Wu <lennox.wu@gmail.com>
-Message-ID: <20141224122239.puXacfUiLO4mWXOR3_B-BI6tJGv7SKSIWnWKxSqw60o@z>
+Cc: peterz@infradead.org, mingo@kernel.org, davej@redhat.com, sasha.levin@oracle.com, hughd@google.com, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>
+Message-ID: <20141224122238.HKm9ZX3jcAwHkJM7iwBWyMg5URZsJ_LZbWO-aOPB5hw@z>
 
 We've replaced remap_file_pages(2) implementation with emulation.
 Nobody creates non-linear mapping anymore.
 
-This patch also increase number of bits availble for swap offset.
-
 Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
-Cc: Chen Liqin <liqin.linux@gmail.com>
-Cc: Lennox Wu <lennox.wu@gmail.com>
+Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
 ---
- arch/score/include/asm/pgtable-bits.h |  1 -
- arch/score/include/asm/pgtable.h      | 18 ++----------------
- 2 files changed, 2 insertions(+), 17 deletions(-)
+ arch/s390/include/asm/pgtable.h | 29 ++++-------------------------
+ 1 file changed, 4 insertions(+), 25 deletions(-)
 
-diff --git a/arch/score/include/asm/pgtable-bits.h b/arch/score/include/asm/pgtable-bits.h
-index 7d65a96a82e5..0e5c6f466520 100644
---- a/arch/score/include/asm/pgtable-bits.h
-+++ b/arch/score/include/asm/pgtable-bits.h
-@@ -6,7 +6,6 @@
- #define _PAGE_WRITE			(1<<7)	/* implemented in software */
- #define _PAGE_PRESENT			(1<<9)	/* implemented in software */
- #define _PAGE_MODIFIED			(1<<10)	/* implemented in software */
--#define _PAGE_FILE			(1<<10)
+diff --git a/arch/s390/include/asm/pgtable.h b/arch/s390/include/asm/pgtable.h
+index 5e102422c9ab..ffb1d8ce97ae 100644
+--- a/arch/s390/include/asm/pgtable.h
++++ b/arch/s390/include/asm/pgtable.h
+@@ -249,10 +249,10 @@ static inline int is_module_addr(void *addr)
+ 				 _PAGE_YOUNG)
  
- #define _PAGE_GLOBAL			(1<<0)
- #define _PAGE_VALID			(1<<1)
-diff --git a/arch/score/include/asm/pgtable.h b/arch/score/include/asm/pgtable.h
-index db96ad9afc03..5170ffdea643 100644
---- a/arch/score/include/asm/pgtable.h
-+++ b/arch/score/include/asm/pgtable.h
-@@ -90,15 +90,6 @@ static inline void pmd_clear(pmd_t *pmdp)
- 	((pte_t *)page_address(pmd_page(*(dir))) + __pte_offset(address))
- #define pte_unmap(pte) ((void)(pte))
+ /*
+- * handle_pte_fault uses pte_present, pte_none and pte_file to find out the
+- * pte type WITHOUT holding the page table lock. The _PAGE_PRESENT bit
+- * is used to distinguish present from not-present ptes. It is changed only
+- * with the page table lock held.
++ * handle_pte_fault uses pte_present and pte_none to find out the pte type
++ * WITHOUT holding the page table lock. The _PAGE_PRESENT bit is used to
++ * distinguish present from not-present ptes. It is changed only with the page
++ * table lock held.
+  *
+  * The following table gives the different possible bit combinations for
+  * the pte hardware and software bits in the last 12 bits of a pte:
+@@ -279,7 +279,6 @@ static inline int is_module_addr(void *addr)
+  *
+  * pte_present is true for the bit pattern .xx...xxxxx1, (pte & 0x001) == 0x001
+  * pte_none    is true for the bit pattern .10...xxxx00, (pte & 0x603) == 0x400
+- * pte_file    is true for the bit pattern .11...xxxxx0, (pte & 0x601) == 0x600
+  * pte_swap    is true for the bit pattern .10...xxxx10, (pte & 0x603) == 0x402
+  */
  
--/*
-- * Bits 9(_PAGE_PRESENT) and 10(_PAGE_FILE)are taken,
-- * split up 30 bits of offset into this range:
-- */
--#define PTE_FILE_MAX_BITS	30
--#define pte_to_pgoff(_pte)		\
--	(((_pte).pte & 0x1ff) | (((_pte).pte >> 11) << 9))
--#define pgoff_to_pte(off)		\
--	((pte_t) {((off) & 0x1ff) | (((off) >> 9) << 11) | _PAGE_FILE})
- #define __pte_to_swp_entry(pte)		\
- 	((swp_entry_t) { pte_val(pte)})
- #define __swp_entry_to_pte(x)	((pte_t) {(x).val})
-@@ -169,8 +160,8 @@ static inline pgprot_t pgprot_noncached(pgprot_t _prot)
- }
- 
- #define __swp_type(x)		((x).val & 0x1f)
--#define __swp_offset(x) 	((x).val >> 11)
--#define __swp_entry(type, offset) ((swp_entry_t){(type) | ((offset) << 11)})
-+#define __swp_offset(x) 	((x).val >> 10)
-+#define __swp_entry(type, offset) ((swp_entry_t){(type) | ((offset) << 10)})
- 
- extern unsigned long empty_zero_page;
- extern unsigned long zero_page_mask;
-@@ -198,11 +189,6 @@ static inline int pte_young(pte_t pte)
- 	return pte_val(pte) & _PAGE_ACCESSED;
+@@ -671,13 +670,6 @@ static inline int pte_swap(pte_t pte)
+ 		== (_PAGE_INVALID | _PAGE_TYPE);
  }
  
 -static inline int pte_file(pte_t pte)
 -{
--	return pte_val(pte) & _PAGE_FILE;
+-	/* Bit pattern: (pte & 0x601) == 0x600 */
+-	return (pte_val(pte) & (_PAGE_INVALID | _PAGE_PROTECT | _PAGE_PRESENT))
+-		== (_PAGE_INVALID | _PAGE_PROTECT);
 -}
 -
- #define pte_special(pte)	(0)
+ static inline int pte_special(pte_t pte)
+ {
+ 	return (pte_val(pte) & _PAGE_SPECIAL);
+@@ -1756,19 +1748,6 @@ static inline pte_t mk_swap_pte(unsigned long type, unsigned long offset)
+ #define __pte_to_swp_entry(pte)	((swp_entry_t) { pte_val(pte) })
+ #define __swp_entry_to_pte(x)	((pte_t) { (x).val })
  
- static inline pte_t pte_wrprotect(pte_t pte)
+-#ifndef CONFIG_64BIT
+-# define PTE_FILE_MAX_BITS	26
+-#else /* CONFIG_64BIT */
+-# define PTE_FILE_MAX_BITS	59
+-#endif /* CONFIG_64BIT */
+-
+-#define pte_to_pgoff(__pte) \
+-	((((__pte).pte >> 12) << 7) + (((__pte).pte >> 1) & 0x7f))
+-
+-#define pgoff_to_pte(__off) \
+-	((pte_t) { ((((__off) & 0x7f) << 1) + (((__off) >> 7) << 12)) \
+-		   | _PAGE_INVALID | _PAGE_PROTECT })
+-
+ #endif /* !__ASSEMBLY__ */
+ 
+ #define kern_addr_valid(addr)   (1)
 -- 
 2.1.3
 
