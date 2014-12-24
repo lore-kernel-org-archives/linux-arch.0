@@ -1,118 +1,160 @@
 From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: [PATCH 18/38] hexagon: drop _PAGE_FILE and pte_file()-related helpers
-Date: Wed, 24 Dec 2014 14:22:26 +0200
-Message-ID: <1419423766-114457-19-git-send-email-kirill.shutemov@linux.intel.com>
+Subject: [PATCH 32/38] sh: drop _PAGE_FILE and pte_file()-related helpers
+Date: Wed, 24 Dec 2014 14:22:40 +0200
+Message-ID: <1419423766-114457-33-git-send-email-kirill.shutemov@linux.intel.com>
 References: <1419423766-114457-1-git-send-email-kirill.shutemov@linux.intel.com>
 Return-path: <owner-linux-mm@kvack.org>
 In-Reply-To: <1419423766-114457-1-git-send-email-kirill.shutemov@linux.intel.com>
 Sender: owner-linux-mm@kvack.org
 To: akpm@linux-foundation.org
-Cc: peterz@infradead.org, mingo@kernel.org, davej@redhat.com, sasha.levin@oracle.com, hughd@google.com, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Richard Kuo <rkuo@codeaurora.org>
+Cc: peterz@infradead.org, mingo@kernel.org, davej@redhat.com, sasha.levin@oracle.com, hughd@google.com, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, linux-sh@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
 We've replaced remap_file_pages(2) implementation with emulation.
 Nobody creates non-linear mapping anymore.
 
-This patch also increase number of bits availble for swap offset.
-
 Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
-Cc: Richard Kuo <rkuo@codeaurora.org>
+Cc: linux-sh@vger.kernel.org
 ---
- arch/hexagon/include/asm/pgtable.h | 60 ++++++++++----------------------------
- 1 file changed, 16 insertions(+), 44 deletions(-)
+ arch/sh/include/asm/pgtable_32.h | 31 ++++---------------------------
+ arch/sh/include/asm/pgtable_64.h |  9 +--------
+ 2 files changed, 5 insertions(+), 35 deletions(-)
 
-diff --git a/arch/hexagon/include/asm/pgtable.h b/arch/hexagon/include/asm/pgtable.h
-index d8bd54fa431e..6e35e71d2aea 100644
---- a/arch/hexagon/include/asm/pgtable.h
-+++ b/arch/hexagon/include/asm/pgtable.h
-@@ -62,13 +62,6 @@ extern unsigned long zero_page_mask;
- #define _PAGE_ACCESSED	(1<<2)
- 
- /*
-- * _PAGE_FILE is only meaningful if _PAGE_PRESENT is false, while
-- * _PAGE_DIRTY is only meaningful if _PAGE_PRESENT is true.
-- * So we can overload the bit...
-- */
--#define _PAGE_FILE	_PAGE_DIRTY /* set:  pagecache, unset = swap */
--
--/*
-  * For now, let's say that Valid and Present are the same thing.
-  * Alternatively, we could say that it's the "or" of R, W, and X
-  * permissions.
-@@ -456,57 +449,36 @@ static inline int pte_exec(pte_t pte)
- #define pgtable_cache_init()    do { } while (0)
- 
- /*
-- * Swap/file PTE definitions.  If _PAGE_PRESENT is zero, the rest of the
-- * PTE is interpreted as swap information.  Depending on the _PAGE_FILE
-- * bit, the remaining free bits are eitehr interpreted as a file offset
-- * or a swap type/offset tuple.  Rather than have the TLB fill handler
-- * test _PAGE_PRESENT, we're going to reserve the permissions bits
-- * and set them to all zeros for swap entries, which speeds up the
-- * miss handler at the cost of 3 bits of offset.  That trade-off can
-- * be revisited if necessary, but Hexagon processor architecture and
-- * target applications suggest a lot of TLB misses and not much swap space.
-+ * Swap/file PTE definitions.  If _PAGE_PRESENT is zero, the rest of the PTE is
-+ * interpreted as swap information.  The remaining free bits are interpreted as
-+ * swap type/offset tuple.  Rather than have the TLB fill handler test
-+ * _PAGE_PRESENT, we're going to reserve the permissions bits and set them to
-+ * all zeros for swap entries, which speeds up the miss handler at the cost of
-+ * 3 bits of offset.  That trade-off can be revisited if necessary, but Hexagon
-+ * processor architecture and target applications suggest a lot of TLB misses
-+ * and not much swap space.
+diff --git a/arch/sh/include/asm/pgtable_32.h b/arch/sh/include/asm/pgtable_32.h
+index 0bce3d81569e..a2eca7158fd0 100644
+--- a/arch/sh/include/asm/pgtable_32.h
++++ b/arch/sh/include/asm/pgtable_32.h
+@@ -26,8 +26,6 @@
+  *   and timing control which (together with bit 0) are moved into the
+  *   old-style PTEA on the parts that support it.
   *
-  * Format of swap PTE:
-  *	bit	0:	Present (zero)
-- *	bit	1:	_PAGE_FILE (zero)
-- *	bits	2-6:	swap type (arch independent layer uses 5 bits max)
-- *	bits	7-9:	bits 2:0 of offset
-- *	bits 10-12:	effectively _PAGE_PROTNONE (all zero)
-- *	bits 13-31:  bits 21:3 of swap offset
+- * XXX: Leave the _PAGE_FILE and _PAGE_WT overhaul for a rainy day.
 - *
-- * Format of file PTE:
-- *	bit	0:	Present (zero)
-- *	bit	1:	_PAGE_FILE (zero)
-- *	bits	2-9:	bits 7:0 of offset
-- *	bits 10-12:	effectively _PAGE_PROTNONE (all zero)
-- *	bits 13-31:  bits 26:8 of swap offset
-+ *	bits	1-5:	swap type (arch independent layer uses 5 bits max)
-+ *	bits	6-9:	bits 3:0 of offset
-+ *	bits	10-12:	effectively _PAGE_PROTNONE (all zero)
-+ *	bits	13-31:  bits 22:4 of swap offset
+  * SH-X2 MMUs and extended PTEs
   *
-  * The split offset makes some of the following macros a little gnarly,
-  * but there's plenty of precedent for this sort of thing.
+  * SH-X2 supports an extended mode TLB with split data arrays due to the
+@@ -51,7 +49,6 @@
+ #define _PAGE_PRESENT	0x100		/* V-bit   : page is valid */
+ #define _PAGE_PROTNONE	0x200		/* software: if not present  */
+ #define _PAGE_ACCESSED	0x400		/* software: page referenced */
+-#define _PAGE_FILE	_PAGE_WT	/* software: pagecache or swap? */
+ #define _PAGE_SPECIAL	0x800		/* software: special page */
+ 
+ #define _PAGE_SZ_MASK	(_PAGE_SZ0 | _PAGE_SZ1)
+@@ -105,14 +102,13 @@ static inline unsigned long copy_ptea_attributes(unsigned long x)
+ /* Mask which drops unused bits from the PTEL value */
+ #if defined(CONFIG_CPU_SH3)
+ #define _PAGE_CLEAR_FLAGS	(_PAGE_PROTNONE | _PAGE_ACCESSED| \
+-				 _PAGE_FILE	| _PAGE_SZ1	| \
+-				 _PAGE_HW_SHARED)
++				  _PAGE_SZ1	| _PAGE_HW_SHARED)
+ #elif defined(CONFIG_X2TLB)
+ /* Get rid of the legacy PR/SZ bits when using extended mode */
+ #define _PAGE_CLEAR_FLAGS	(_PAGE_PROTNONE | _PAGE_ACCESSED | \
+-				 _PAGE_FILE | _PAGE_PR_MASK | _PAGE_SZ_MASK)
++				 _PAGE_PR_MASK | _PAGE_SZ_MASK)
+ #else
+-#define _PAGE_CLEAR_FLAGS	(_PAGE_PROTNONE | _PAGE_ACCESSED | _PAGE_FILE)
++#define _PAGE_CLEAR_FLAGS	(_PAGE_PROTNONE | _PAGE_ACCESSED)
+ #endif
+ 
+ #define _PAGE_FLAGS_HARDWARE_MASK	(phys_addr_mask() & ~(_PAGE_CLEAR_FLAGS))
+@@ -343,7 +339,6 @@ static inline void set_pte(pte_t *ptep, pte_t pte)
+ #define pte_not_present(pte)	(!((pte).pte_low & _PAGE_PRESENT))
+ #define pte_dirty(pte)		((pte).pte_low & _PAGE_DIRTY)
+ #define pte_young(pte)		((pte).pte_low & _PAGE_ACCESSED)
+-#define pte_file(pte)		((pte).pte_low & _PAGE_FILE)
+ #define pte_special(pte)	((pte).pte_low & _PAGE_SPECIAL)
+ 
+ #ifdef CONFIG_X2TLB
+@@ -445,7 +440,6 @@ static inline pte_t pte_modify(pte_t pte, pgprot_t newprot)
+  * Encode and de-code a swap entry
+  *
+  * Constraints:
+- *	_PAGE_FILE at bit 0
+  *	_PAGE_PRESENT at bit 8
+  *	_PAGE_PROTNONE at bit 9
+  *
+@@ -453,9 +447,7 @@ static inline pte_t pte_modify(pte_t pte, pgprot_t newprot)
+  * swap offset into bits 10:30. For the 64-bit PTE case, we keep the
+  * preserved bits in the low 32-bits and use the upper 32 as the swap
+  * offset (along with a 5-bit type), following the same approach as x86
+- * PAE. This keeps the logic quite simple, and allows for a full 32
+- * PTE_FILE_MAX_BITS, as opposed to the 29-bits we're constrained with
+- * in the pte_low case.
++ * PAE. This keeps the logic quite simple.
+  *
+  * As is evident by the Alpha code, if we ever get a 64-bit unsigned
+  * long (swp_entry_t) to match up with the 64-bit PTEs, this all becomes
+@@ -471,13 +463,6 @@ static inline pte_t pte_modify(pte_t pte, pgprot_t newprot)
+ #define __pte_to_swp_entry(pte)		((swp_entry_t){ (pte).pte_high })
+ #define __swp_entry_to_pte(x)		((pte_t){ 0, (x).val })
+ 
+-/*
+- * Encode and decode a nonlinear file mapping entry
+- */
+-#define pte_to_pgoff(pte)		((pte).pte_high)
+-#define pgoff_to_pte(off)		((pte_t) { _PAGE_FILE, (off) })
+-
+-#define PTE_FILE_MAX_BITS		32
+ #else
+ #define __swp_type(x)			((x).val & 0xff)
+ #define __swp_offset(x)			((x).val >> 10)
+@@ -486,13 +471,5 @@ static inline pte_t pte_modify(pte_t pte, pgprot_t newprot)
+ #define __pte_to_swp_entry(pte)		((swp_entry_t) { pte_val(pte) >> 1 })
+ #define __swp_entry_to_pte(x)		((pte_t) { (x).val << 1 })
+ 
+-/*
+- * Encode and decode a nonlinear file mapping entry
+- */
+-#define PTE_FILE_MAX_BITS	29
+-#define pte_to_pgoff(pte)	(pte_val(pte) >> 1)
+-#define pgoff_to_pte(off)	((pte_t) { ((off) << 1) | _PAGE_FILE })
+-#endif
+-
+ #endif /* __ASSEMBLY__ */
+ #endif /* __ASM_SH_PGTABLE_32_H */
+diff --git a/arch/sh/include/asm/pgtable_64.h b/arch/sh/include/asm/pgtable_64.h
+index dda8c82601b9..07424968df62 100644
+--- a/arch/sh/include/asm/pgtable_64.h
++++ b/arch/sh/include/asm/pgtable_64.h
+@@ -107,7 +107,6 @@ static __inline__ void set_pte(pte_t *pteptr, pte_t pteval)
+ #define _PAGE_DEVICE	0x001  /* CB0: if uncacheable, 1->device (i.e. no write-combining or reordering at bus level) */
+ #define _PAGE_CACHABLE	0x002  /* CB1: uncachable/cachable */
+ #define _PAGE_PRESENT	0x004  /* software: page referenced */
+-#define _PAGE_FILE	0x004  /* software: only when !present */
+ #define _PAGE_SIZE0	0x008  /* SZ0-bit : size of page */
+ #define _PAGE_SIZE1	0x010  /* SZ1-bit : size of page */
+ #define _PAGE_SHARED	0x020  /* software: reflects PTEH's SH */
+@@ -129,7 +128,7 @@ static __inline__ void set_pte(pte_t *pteptr, pte_t pteval)
+ #define _PAGE_WIRED	_PAGE_EXT(0x001) /* software: wire the tlb entry */
+ #define _PAGE_SPECIAL	_PAGE_EXT(0x002)
+ 
+-#define _PAGE_CLEAR_FLAGS	(_PAGE_PRESENT | _PAGE_FILE | _PAGE_SHARED | \
++#define _PAGE_CLEAR_FLAGS	(_PAGE_PRESENT | _PAGE_SHARED | \
+ 				 _PAGE_DIRTY | _PAGE_ACCESSED | _PAGE_WIRED)
+ 
+ /* Mask which drops software flags */
+@@ -260,7 +259,6 @@ static __inline__ void set_pte(pte_t *pteptr, pte_t pteval)
   */
--#define PTE_FILE_MAX_BITS     27
+ static inline int pte_dirty(pte_t pte)  { return pte_val(pte) & _PAGE_DIRTY; }
+ static inline int pte_young(pte_t pte)  { return pte_val(pte) & _PAGE_ACCESSED; }
+-static inline int pte_file(pte_t pte)   { return pte_val(pte) & _PAGE_FILE; }
+ static inline int pte_write(pte_t pte)  { return pte_val(pte) & _PAGE_WRITE; }
+ static inline int pte_special(pte_t pte){ return pte_val(pte) & _PAGE_SPECIAL; }
  
- /* Used for swap PTEs */
--#define __swp_type(swp_pte)		(((swp_pte).val >> 2) & 0x1f)
-+#define __swp_type(swp_pte)		(((swp_pte).val >> 1) & 0x1f)
+@@ -304,11 +302,6 @@ static inline pte_t pte_modify(pte_t pte, pgprot_t newprot)
+ #define __pte_to_swp_entry(pte)		((swp_entry_t) { pte_val(pte) })
+ #define __swp_entry_to_pte(x)		((pte_t) { (x).val })
  
- #define __swp_offset(swp_pte) \
--	((((swp_pte).val >> 7) & 0x7) | (((swp_pte).val >> 10) & 0x003ffff8))
-+	((((swp_pte).val >> 6) & 0xf) | (((swp_pte).val >> 9) & 0x7ffff0))
- 
- #define __swp_entry(type, offset) \
- 	((swp_entry_t)	{ \
--		((type << 2) | \
--		 ((offset & 0x3ffff8) << 10) | ((offset & 0x7) << 7)) })
+-/* Encode and decode a nonlinear file mapping entry */
+-#define PTE_FILE_MAX_BITS		29
+-#define pte_to_pgoff(pte)		(pte_val(pte))
+-#define pgoff_to_pte(off)		((pte_t) { (off) | _PAGE_FILE })
 -
--/* Used for file PTEs */
--#define pte_file(pte) \
--	((pte_val(pte) & (_PAGE_FILE | _PAGE_PRESENT)) == _PAGE_FILE)
--
--#define pte_to_pgoff(pte) \
--	(((pte_val(pte) >> 2) & 0xff) | ((pte_val(pte) >> 5) & 0x07ffff00))
--
--#define pgoff_to_pte(off) \
--	((pte_t) { ((((off) & 0x7ffff00) << 5) | (((off) & 0xff) << 2)\
--	| _PAGE_FILE) })
-+		((type << 1) | \
-+		 ((offset & 0x7ffff0) << 9) | ((offset & 0xf) << 6)) })
+ #endif /* !__ASSEMBLY__ */
  
- /*  Oh boy.  There are a lot of possible arch overrides found in this file.  */
- #include <asm-generic/pgtable.h>
+ #define pfn_pte(pfn, prot)	__pte(((pfn) << PAGE_SHIFT) | pgprot_val(prot))
 -- 
 2.1.3
 
