@@ -1,56 +1,64 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:32891 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752285AbaLYJ25 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 25 Dec 2014 04:28:57 -0500
-Date: Thu, 25 Dec 2014 11:28:37 +0200
-From: "Michael S. Tsirkin" <mst@redhat.com>
-Subject: [PATCH repost 02/16] alpha/uaccess: fix sparse errors
-Message-ID: <1419499661-8566-3-git-send-email-mst@redhat.com>
-References: <1419499661-8566-1-git-send-email-mst@redhat.com>
+Received: from mail-la0-f53.google.com ([209.85.215.53]:59643 "EHLO
+	mail-la0-f53.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752027AbaLYKIO (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 25 Dec 2014 05:08:14 -0500
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1419499661-8566-1-git-send-email-mst@redhat.com>
+In-Reply-To: <1419423766-114457-25-git-send-email-kirill.shutemov@linux.intel.com>
+References: <1419423766-114457-1-git-send-email-kirill.shutemov@linux.intel.com>
+	<1419423766-114457-25-git-send-email-kirill.shutemov@linux.intel.com>
+Date: Thu, 25 Dec 2014 11:08:11 +0100
+Message-ID: <CAMuHMdWKNEeb3uOJ+gct06mbuD4RqP7F32FhMtax-tG7d_Yj1g@mail.gmail.com>
+Subject: Re: [PATCH 24/38] mips: drop _PAGE_FILE and pte_file()-related helpers
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, linux-alpha@vger.kernel.org
-Message-ID: <20141225092837.cU-9VKAv1DBATaVT_7vrpT-80irii80DZMlcflFwjdU@z>
+To: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@kernel.org>, Dave Jones <davej@redhat.com>, Sasha Levin <sasha.levin@oracle.com>, Hugh Dickins <hughd@google.com>, Linux MM <linux-mm@kvack.org>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Ralf Baechle <ralf@linux-mips.org>
+Message-ID: <20141225100811.6fjiK9IpD01FHN_8k7mGSeljBMXCxrPvHzafYBa9z1I@z>
 
-virtio wants to read bitwise types from userspace using get_user.  At the
-moment this triggers sparse errors, since the value is passed through an
-integer.
+On Wed, Dec 24, 2014 at 1:22 PM, Kirill A. Shutemov
+<kirill.shutemov@linux.intel.com> wrote:
+> We've replaced remap_file_pages(2) implementation with emulation.
+> Nobody creates non-linear mapping anymore.
+>
+> Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
+> Cc: Ralf Baechle <ralf@linux-mips.org>
+> ---
+>  arch/m68k/include/asm/mcf_pgtable.h  |  6 ++----
 
-Fix that up using __force.
+This contains a change to an m68k header file.
+The same file was modified in the m68k part of the series, but this change was
+not included?
 
-Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
----
- arch/alpha/include/asm/uaccess.h | 4 ++--
- 1 file changed, 2 insertions(+), 2 deletions(-)
+> --- a/arch/m68k/include/asm/mcf_pgtable.h
+> +++ b/arch/m68k/include/asm/mcf_pgtable.h
+> @@ -385,15 +385,13 @@ static inline void cache_page(void *vaddr)
+>         *ptep = pte_mkcache(*ptep);
+>  }
+>
+> -#define PTE_FILE_SHIFT         11
+> -
+>  /*
+>   * Encode and de-code a swap entry (must be !pte_none(e) && !pte_present(e))
+>   */
+>  #define __swp_type(x)          ((x).val & 0xFF)
+> -#define __swp_offset(x)                ((x).val >> PTE_FILE_SHIFT)
+> +#define __swp_offset(x)                ((x).val >> 11)
+>  #define __swp_entry(typ, off)  ((swp_entry_t) { (typ) | \
+> -                                       (off << PTE_FILE_SHIFT) })
+> +                                       (off << 11) })
+>  #define __pte_to_swp_entry(pte)        ((swp_entry_t) { pte_val(pte) })
+>  #define __swp_entry_to_pte(x)  (__pte((x).val))
 
-diff --git a/arch/alpha/include/asm/uaccess.h b/arch/alpha/include/asm/uaccess.h
-index 766fdfd..fbe1d1e 100644
---- a/arch/alpha/include/asm/uaccess.h
-+++ b/arch/alpha/include/asm/uaccess.h
-@@ -96,7 +96,7 @@ extern void __get_user_unknown(void);
- 	  case 8: __get_user_64(ptr); break;			\
- 	  default: __get_user_unknown(); break;			\
- 	}							\
--	(x) = (__typeof__(*(ptr))) __gu_val;			\
-+	(x) = (__force __typeof__(*(ptr))) __gu_val;			\
- 	__gu_err;						\
- })
- 
-@@ -115,7 +115,7 @@ extern void __get_user_unknown(void);
- 		  default: __get_user_unknown(); break;			\
- 		}							\
- 	}								\
--	(x) = (__typeof__(*(ptr))) __gu_val;				\
-+	(x) = (__force __typeof__(*(ptr))) __gu_val;				\
- 	__gu_err;							\
- })
- 
--- 
-MST
+Gr{oetje,eeting}s,
 
+                        Geert
+
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
