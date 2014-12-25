@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:48901 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:32891 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752328AbaLYJ3D (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 25 Dec 2014 04:29:03 -0500
-Date: Thu, 25 Dec 2014 11:28:52 +0200
+	id S1752285AbaLYJ25 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 25 Dec 2014 04:28:57 -0500
+Date: Thu, 25 Dec 2014 11:28:37 +0200
 From: "Michael S. Tsirkin" <mst@redhat.com>
-Subject: [PATCH repost 06/16] cris/uaccess: fix sparse errors
-Message-ID: <1419499661-8566-7-git-send-email-mst@redhat.com>
+Subject: [PATCH repost 02/16] alpha/uaccess: fix sparse errors
+Message-ID: <1419499661-8566-3-git-send-email-mst@redhat.com>
 References: <1419499661-8566-1-git-send-email-mst@redhat.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
@@ -15,8 +15,8 @@ In-Reply-To: <1419499661-8566-1-git-send-email-mst@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Mikael Starvik <starvik@axis.com>, Jesper Nilsson <jesper.nilsson@axis.com>, linux-cris-kernel@axis.com
-Message-ID: <20141225092852.0kY-CURxe6n_KAPozijC_DOeqCe88glb5pLKKOYY7r4@z>
+Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, linux-alpha@vger.kernel.org
+Message-ID: <20141225092837.cU-9VKAv1DBATaVT_7vrpT-80irii80DZMlcflFwjdU@z>
 
 virtio wants to read bitwise types from userspace using get_user.  At the
 moment this triggers sparse errors, since the value is passed through an
@@ -26,28 +26,28 @@ Fix that up using __force.
 
 Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
 ---
- arch/cris/include/asm/uaccess.h | 4 ++--
+ arch/alpha/include/asm/uaccess.h | 4 ++--
  1 file changed, 2 insertions(+), 2 deletions(-)
 
-diff --git a/arch/cris/include/asm/uaccess.h b/arch/cris/include/asm/uaccess.h
-index 9145408..958a350 100644
---- a/arch/cris/include/asm/uaccess.h
-+++ b/arch/cris/include/asm/uaccess.h
-@@ -153,7 +153,7 @@ struct __large_struct { unsigned long buf[100]; };
- ({								\
- 	long __gu_err, __gu_val;				\
- 	__get_user_size(__gu_val,(ptr),(size),__gu_err);	\
--	(x) = (__typeof__(*(ptr)))__gu_val;			\
-+	(x) = (__force __typeof__(*(ptr)))__gu_val;			\
+diff --git a/arch/alpha/include/asm/uaccess.h b/arch/alpha/include/asm/uaccess.h
+index 766fdfd..fbe1d1e 100644
+--- a/arch/alpha/include/asm/uaccess.h
++++ b/arch/alpha/include/asm/uaccess.h
+@@ -96,7 +96,7 @@ extern void __get_user_unknown(void);
+ 	  case 8: __get_user_64(ptr); break;			\
+ 	  default: __get_user_unknown(); break;			\
+ 	}							\
+-	(x) = (__typeof__(*(ptr))) __gu_val;			\
++	(x) = (__force __typeof__(*(ptr))) __gu_val;			\
  	__gu_err;						\
  })
  
-@@ -163,7 +163,7 @@ struct __large_struct { unsigned long buf[100]; };
- 	const __typeof__(*(ptr)) *__gu_addr = (ptr);			\
- 	if (access_ok(VERIFY_READ,__gu_addr,size))			\
- 		__get_user_size(__gu_val,__gu_addr,(size),__gu_err);	\
--	(x) = (__typeof__(*(ptr)))__gu_val;				\
-+	(x) = (__force __typeof__(*(ptr)))__gu_val;				\
+@@ -115,7 +115,7 @@ extern void __get_user_unknown(void);
+ 		  default: __get_user_unknown(); break;			\
+ 		}							\
+ 	}								\
+-	(x) = (__typeof__(*(ptr))) __gu_val;				\
++	(x) = (__force __typeof__(*(ptr))) __gu_val;				\
  	__gu_err;							\
  })
  
