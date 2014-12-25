@@ -1,37 +1,29 @@
-From: Max Filippov <jcmvbkbc@gmail.com>
-Subject: Re: [PATCH 38/38] xtensa: drop _PAGE_FILE and pte_file()-related helpers
-Date: Thu, 25 Dec 2014 13:25:28 +0300
-Message-ID: <CAMo8BfLdm0dRd60ZQ9rROg3QvDR_Zjz0qW31e8LgxyhrsKMCwA@mail.gmail.com>
+From: Tobias Klauser <tklauser@distanz.ch>
+Subject: Re: [PATCH 26/38] nios2: drop _PAGE_FILE and pte_file()-related
+ helpers
+Date: Thu, 25 Dec 2014 13:30:15 +0100
+Message-ID: <20141225123014.GO16916@distanz.ch>
 References: <1419423766-114457-1-git-send-email-kirill.shutemov@linux.intel.com>
-	<1419423766-114457-39-git-send-email-kirill.shutemov@linux.intel.com>
+ <1419423766-114457-27-git-send-email-kirill.shutemov@linux.intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <1419423766-114457-39-git-send-email-kirill.shutemov@linux.intel.com>
-Sender: owner-linux-mm@kvack.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from sym2.noone.org ([178.63.92.236]:42409 "EHLO sym2.noone.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752154AbaLYMaS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 25 Dec 2014 07:30:18 -0500
+Content-Disposition: inline
+In-Reply-To: <1419423766-114457-27-git-send-email-kirill.shutemov@linux.intel.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@kernel.org>, davej@redhat.com, sasha.levin@oracle.com, Hugh Dickins <hughd@google.com>, "linux-mm@kvack.org" <linux-mm@kvack.org>, Linux-Arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>
-List-Id: linux-arch.vger.kernel.org
+Cc: akpm@linux-foundation.org, peterz@infradead.org, mingo@kernel.org, davej@redhat.com, sasha.levin@oracle.com, hughd@google.com, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Ley Foon Tan <lftan@altera.com>
 
-On Wed, Dec 24, 2014 at 3:22 PM, Kirill A. Shutemov
-<kirill.shutemov@linux.intel.com> wrote:
+On 2014-12-24 at 13:22:34 +0100, Kirill A. Shutemov <kirill.shutemov@linux.intel.com> wrote:
 > We've replaced remap_file_pages(2) implementation with emulation.
 > Nobody creates non-linear mapping anymore.
->
+> 
 > Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
-> Cc: Max Filippov <jcmvbkbc@gmail.com>
-> ---
->  arch/xtensa/include/asm/pgtable.h | 10 ----------
->  1 file changed, 10 deletions(-)
+> Cc: Ley Foon Tan <lftan@altera.com>
 
-Acked-by: Max Filippov <jcmvbkbc@gmail.com>
-
--- 
-Thanks.
--- Max
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+Reviewed-by: Tobias Klauser <tklauser@distanz.ch>
