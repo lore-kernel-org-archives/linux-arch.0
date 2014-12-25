@@ -1,37 +1,80 @@
-From: Chris Metcalf <cmetcalf@ezchip.com>
-Subject: Re: [PATCH 34/38] tile: drop pte_file()-related helpers
-Date: Wed, 24 Dec 2014 21:57:48 -0500
-Message-ID: <549B7D2C.4000201@ezchip.com>
-References: <1419423766-114457-1-git-send-email-kirill.shutemov@linux.intel.com> <1419423766-114457-35-git-send-email-kirill.shutemov@linux.intel.com>
+From: "Michael S. Tsirkin" <mst@redhat.com>
+Subject: [PATCH repost 00/16] uaccess: fix sparse warning on get_user for
+ bitwise types
+Date: Thu, 25 Dec 2014 11:28:31 +0200
+Message-ID: <1419499661-8566-1-git-send-email-mst@redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="windows-1252"; format=flowed
-Content-Transfer-Encoding: 7bit
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <1419423766-114457-35-git-send-email-kirill.shutemov@linux.intel.com>
-Sender: owner-linux-mm@kvack.org
-To: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, akpm@linux-foundation.org
-Cc: peterz@infradead.org, mingo@kernel.org, davej@redhat.com, sasha.levin@oracle.com, hughd@google.com, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mx1.redhat.com ([209.132.183.28]:38942 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751731AbaLYJ2k (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 25 Dec 2014 04:28:40 -0500
+Content-Disposition: inline
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linux-kernel@vger.kernel.org
+Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org
 
-On 12/24/2014 7:22 AM, Kirill A. Shutemov wrote:
-> We've replaced remap_file_pages(2) implementation with emulation.
-> Nobody creates non-linear mapping anymore.
->
-> Signed-off-by: Kirill A. Shutemov<kirill.shutemov@linux.intel.com>
-> Cc: Chris Metcalf<cmetcalf@ezchip.com>
-> ---
->   arch/tile/include/asm/pgtable.h | 11 -----------
->   arch/tile/mm/homecache.c        |  4 ----
->   2 files changed, 15 deletions(-)
+At Arnd's request, reposting now that 3.19-rc1 is out.
+No changes from the original post, except that xtensa
+and powerpc patches have been merged by maintainers.
+Please review, and consider for 3.20.
 
-Acked-by: Chris Metcalf <cmetcalf@ezchip.com>
+At the moment, if p and x are both tagged as bitwise types,
+get_user(x, p) produces a sparse warning on many architectures.
+This is because *p on these architectures is loaded into long
+(typically using asm), then cast back to typeof(*p).
+
+When typeof(*p) is a bitwise type (which is uncommon), such a cast needs
+__force, otherwise sparse produces a warning.
+
+Some architectures already have the __force tag, add it
+where it's missing.
+
+Specificlly, vhost wants to read bitwise types from userspace using get_user.
+At the moment this triggers sparse errors, since the value is passed through an
+integer.
+
+I tested this on x86 only. Since it's just adding __force, should be
+trivially safe everywhere?
+
+
+Michael S. Tsirkin (16):
+  x86/uaccess: fix sparse errors
+  alpha/uaccess: fix sparse errors
+  arm64/uaccess: fix sparse errors
+  avr32/uaccess: fix sparse errors
+  blackfin/uaccess: fix sparse errors
+  cris/uaccess: fix sparse errors
+  ia64/uaccess: fix sparse errors
+  m32r/uaccess: fix sparse errors
+  metag/uaccess: fix sparse errors
+  microblaze/uaccess: fix sparse errors
+  openrisc/uaccess: fix sparse errors
+  parisc/uaccess: fix sparse errors
+  sh/uaccess: fix sparse errors
+  sparc/uaccess: fix sparse errors
+  sparc/uaccess: fix sparse errors
+  m68k/uaccess: fix sparse errors
+
+ arch/alpha/include/asm/uaccess.h      | 4 ++--
+ arch/arm64/include/asm/uaccess.h      | 2 +-
+ arch/avr32/include/asm/uaccess.h      | 4 ++--
+ arch/blackfin/include/asm/uaccess.h   | 2 +-
+ arch/cris/include/asm/uaccess.h       | 4 ++--
+ arch/ia64/include/asm/uaccess.h       | 2 +-
+ arch/m32r/include/asm/uaccess.h       | 4 ++--
+ arch/m68k/include/asm/uaccess_mm.h    | 4 ++--
+ arch/metag/include/asm/uaccess.h      | 4 ++--
+ arch/microblaze/include/asm/uaccess.h | 4 ++--
+ arch/openrisc/include/asm/uaccess.h   | 4 ++--
+ arch/parisc/include/asm/uaccess.h     | 2 +-
+ arch/sh/include/asm/uaccess.h         | 4 ++--
+ arch/sparc/include/asm/uaccess_32.h   | 8 ++++----
+ arch/sparc/include/asm/uaccess_64.h   | 4 ++--
+ arch/x86/include/asm/uaccess.h        | 2 +-
+ 16 files changed, 29 insertions(+), 29 deletions(-)
 
 -- 
-Chris Metcalf, EZChip Semiconductor
-http://www.ezchip.com
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+MST
