@@ -1,21 +1,17 @@
 From: "Michael S. Tsirkin" <mst@redhat.com>
-Subject: [PATCH repost 01/16] x86/uaccess: fix sparse errors
-Date: Thu, 25 Dec 2014 11:28:33 +0200
-Message-ID: <1419499661-8566-2-git-send-email-mst@redhat.com>
+Subject: [PATCH repost 08/16] m32r/uaccess: fix sparse errors
+Date: Thu, 25 Dec 2014 11:28:59 +0200
+Message-ID: <1419499661-8566-9-git-send-email-mst@redhat.com>
 References: <1419499661-8566-1-git-send-email-mst@redhat.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:40192 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752279AbaLYJ2u (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 25 Dec 2014 04:28:50 -0500
+Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
 In-Reply-To: <1419499661-8566-1-git-send-email-mst@redhat.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
-Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org
+Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
 virtio wants to read bitwise types from userspace using get_user.  At the
 moment this triggers sparse errors, since the value is passed through an
@@ -25,20 +21,29 @@ Fix that up using __force.
 
 Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
 ---
- arch/x86/include/asm/uaccess.h | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ arch/m32r/include/asm/uaccess.h | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
 
-diff --git a/arch/x86/include/asm/uaccess.h b/arch/x86/include/asm/uaccess.h
-index 0d592e0..8ce1af8 100644
---- a/arch/x86/include/asm/uaccess.h
-+++ b/arch/x86/include/asm/uaccess.h
-@@ -179,7 +179,7 @@ __typeof__(__builtin_choose_expr(sizeof(x) > sizeof(0UL), 0ULL, 0UL))
- 	asm volatile("call __get_user_%P3"				\
- 		     : "=a" (__ret_gu), "=r" (__val_gu)			\
- 		     : "0" (ptr), "i" (sizeof(*(ptr))));		\
--	(x) = (__typeof__(*(ptr))) __val_gu;				\
-+	(x) = (__force __typeof__(*(ptr))) __val_gu;				\
- 	__ret_gu;							\
+diff --git a/arch/m32r/include/asm/uaccess.h b/arch/m32r/include/asm/uaccess.h
+index 84fe7ba..ee4a212 100644
+--- a/arch/m32r/include/asm/uaccess.h
++++ b/arch/m32r/include/asm/uaccess.h
+@@ -218,7 +218,7 @@ extern int fixup_exception(struct pt_regs *regs);
+ 	unsigned long __gu_val;						\
+ 	might_fault();							\
+ 	__get_user_size(__gu_val,(ptr),(size),__gu_err);		\
+-	(x) = (__typeof__(*(ptr)))__gu_val;				\
++	(x) = (__force __typeof__(*(ptr)))__gu_val;				\
+ 	__gu_err;							\
+ })
+ 
+@@ -230,7 +230,7 @@ extern int fixup_exception(struct pt_regs *regs);
+ 	might_fault();							\
+ 	if (access_ok(VERIFY_READ,__gu_addr,size))			\
+ 		__get_user_size(__gu_val,__gu_addr,(size),__gu_err);	\
+-	(x) = (__typeof__(*(ptr)))__gu_val;				\
++	(x) = (__force __typeof__(*(ptr)))__gu_val;				\
+ 	__gu_err;							\
  })
  
 -- 
