@@ -1,42 +1,32 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mta-out1.inet.fi ([62.71.2.195]:51548 "EHLO kirsi1.inet.fi"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751968AbaLYK1B (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 25 Dec 2014 05:27:01 -0500
-Date: Thu, 25 Dec 2014 12:18:16 +0200
-From: "Kirill A. Shutemov" <kirill@shutemov.name>
-Subject: Re: [PATCH 24/38] mips: drop _PAGE_FILE and pte_file()-related
- helpers
-Message-ID: <20141225101816.GA6695@node.dhcp.inet.fi>
-References: <1419423766-114457-1-git-send-email-kirill.shutemov@linux.intel.com>
- <1419423766-114457-25-git-send-email-kirill.shutemov@linux.intel.com>
- <CAMuHMdWKNEeb3uOJ+gct06mbuD4RqP7F32FhMtax-tG7d_Yj1g@mail.gmail.com>
+Received: from mail-lb0-f181.google.com ([209.85.217.181]:40987 "EHLO
+	mail-lb0-f181.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750969AbaLZFw3 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 26 Dec 2014 00:52:29 -0500
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <CAMuHMdWKNEeb3uOJ+gct06mbuD4RqP7F32FhMtax-tG7d_Yj1g@mail.gmail.com>
+In-Reply-To: <20141225123014.GO16916@distanz.ch>
+References: <1419423766-114457-1-git-send-email-kirill.shutemov@linux.intel.com>
+	<1419423766-114457-27-git-send-email-kirill.shutemov@linux.intel.com>
+	<20141225123014.GO16916@distanz.ch>
+Date: Fri, 26 Dec 2014 13:52:27 +0800
+Message-ID: <CAFiDJ59P7DPTfBN5PrhXjTLhku0U+ZYBv_0qdmjtbBNN0T2h3A@mail.gmail.com>
+Subject: Re: [PATCH 26/38] nios2: drop _PAGE_FILE and pte_file()-related helpers
+From: Ley Foon Tan <lftan@altera.com>
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Andrew Morton <akpm@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@kernel.org>, Dave Jones <davej@redhat.com>, Sasha Levin <sasha.levin@oracle.com>, Hugh Dickins <hughd@google.com>, Linux MM <linux-mm@kvack.org>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Ralf Baechle <ralf@linux-mips.org>
-Message-ID: <20141225101816.v3KQh0PoYzFRahp34nHMKwiDDsLPu0grbocrfa8KAxI@z>
+To: Tobias Klauser <tklauser@distanz.ch>
+Cc: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, akpm@linux-foundation.org, peterz@infradead.org, mingo@kernel.org, davej@redhat.com, sasha.levin@oracle.com, Hugh Dickins <hughd@google.com>, linux-mm@kvack.org, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
+Message-ID: <20141226055227.40I4Mj-ztE4dztbzKdp3C4YVgv4iGGUD3ASG6EGIPk8@z>
 
-On Thu, Dec 25, 2014 at 11:08:11AM +0100, Geert Uytterhoeven wrote:
-> On Wed, Dec 24, 2014 at 1:22 PM, Kirill A. Shutemov
-> <kirill.shutemov@linux.intel.com> wrote:
-> > We've replaced remap_file_pages(2) implementation with emulation.
-> > Nobody creates non-linear mapping anymore.
-> >
-> > Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
-> > Cc: Ralf Baechle <ralf@linux-mips.org>
-> > ---
-> >  arch/m68k/include/asm/mcf_pgtable.h  |  6 ++----
-> 
-> This contains a change to an m68k header file.
-> The same file was modified in the m68k part of the series, but this change was
-> not included?
+On Thu, Dec 25, 2014 at 8:30 PM, Tobias Klauser <tklauser@distanz.ch> wrote:
+> On 2014-12-24 at 13:22:34 +0100, Kirill A. Shutemov <kirill.shutemov@linux.intel.com> wrote:
+>> We've replaced remap_file_pages(2) implementation with emulation.
+>> Nobody creates non-linear mapping anymore.
+>>
+>> Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
+>> Cc: Ley Foon Tan <lftan@altera.com>
+>
+> Reviewed-by: Tobias Klauser <tklauser@distanz.ch>
 
-Oops. I've folded this into wrong patch. Will fix.
-
--- 
- Kirill A. Shutemov
+Acked-by: Ley Foon Tan <lftan@altera.com>
