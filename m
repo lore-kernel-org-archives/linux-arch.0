@@ -1,36 +1,33 @@
-From: David Miller <davem@davemloft.net>
-Subject: Re: [PATCH repost 15/16] sparc/uaccess: fix sparse errors
-Date: Thu, 25 Dec 2014 18:39:30 -0500 (EST)
-Message-ID: <20141225.183930.2234745020223954872.davem@davemloft.net>
-References: <1419499661-8566-1-git-send-email-mst@redhat.com>
-	<1419499661-8566-16-git-send-email-mst@redhat.com>
+From: Ley Foon Tan <lftan@altera.com>
+Subject: Re: [PATCH 26/38] nios2: drop _PAGE_FILE and pte_file()-related helpers
+Date: Fri, 26 Dec 2014 13:52:27 +0800
+Message-ID: <CAFiDJ59P7DPTfBN5PrhXjTLhku0U+ZYBv_0qdmjtbBNN0T2h3A@mail.gmail.com>
+References: <1419423766-114457-1-git-send-email-kirill.shutemov@linux.intel.com>
+	<1419423766-114457-27-git-send-email-kirill.shutemov@linux.intel.com>
+	<20141225123014.GO16916@distanz.ch>
 Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from shards.monkeyblade.net ([149.20.54.216]:58712 "EHLO
-	shards.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751002AbaLYXjd (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 25 Dec 2014 18:39:33 -0500
-In-Reply-To: <1419499661-8566-16-git-send-email-mst@redhat.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: mst@redhat.com
-Cc: linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, sam@ravnborg.org, dave.kleikamp@oracle.com, sparclinux@vger.kernel.org
+Content-Type: text/plain; charset=UTF-8
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <20141225123014.GO16916@distanz.ch>
+Sender: owner-linux-mm@kvack.org
+To: Tobias Klauser <tklauser@distanz.ch>
+Cc: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, akpm@linux-foundation.org, peterz@infradead.org, mingo@kernel.org, davej@redhat.com, sasha.levin@oracle.com, Hugh Dickins <hughd@google.com>, linux-mm@kvack.org, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-From: "Michael S. Tsirkin" <mst@redhat.com>
-Date: Thu, 25 Dec 2014 11:30:22 +0200
+On Thu, Dec 25, 2014 at 8:30 PM, Tobias Klauser <tklauser@distanz.ch> wrote:
+> On 2014-12-24 at 13:22:34 +0100, Kirill A. Shutemov <kirill.shutemov@linux.intel.com> wrote:
+>> We've replaced remap_file_pages(2) implementation with emulation.
+>> Nobody creates non-linear mapping anymore.
+>>
+>> Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
+>> Cc: Ley Foon Tan <lftan@altera.com>
+>
+> Reviewed-by: Tobias Klauser <tklauser@distanz.ch>
 
-> virtio wants to read bitwise types from userspace using get_user.  At the
-> moment this triggers sparse errors, since the value is passed through an
-> integer.
-> 
-> Fix that up using __force.
-> 
-> Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
+Acked-by: Ley Foon Tan <lftan@altera.com>
 
-Patches #14 and #15 have identical commit message header lines, you
-need to say "sparc32: " or "sparc64: " so that shortlog scanners can
-distinguish them.
-
-Thanks.
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
