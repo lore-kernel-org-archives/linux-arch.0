@@ -1,80 +1,99 @@
-From: Felipe Balbi <balbi@ti.com>
-Subject: Re: [PATCH 00/38] mm: remove non-linear mess
-Date: Fri, 26 Dec 2014 15:10:55 -0600
-Message-ID: <20141226211055.GM17430@saruman>
-References: <1419423766-114457-1-git-send-email-kirill.shutemov@linux.intel.com>
-Reply-To: <balbi@ti.com>
+From: "Michael S. Tsirkin" <mst@redhat.com>
+Subject: Re: [PATCH repost 12/16] parisc/uaccess: fix sparse errors
+Date: Sat, 27 Dec 2014 18:14:14 +0200
+Message-ID: <20141227161414.GA2571@redhat.com>
+References: <1419499661-8566-1-git-send-email-mst@redhat.com>
+ <1419499661-8566-13-git-send-email-mst@redhat.com>
+ <549C91B9.8080009@gmx.de>
 Mime-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha1;
-	protocol="application/pgp-signature"; boundary="q8dntDJTu318bll0"
-Return-path: <owner-linux-mm@kvack.org>
-Content-Disposition: inline
-In-Reply-To: <1419423766-114457-1-git-send-email-kirill.shutemov@linux.intel.com>
-Sender: owner-linux-mm@kvack.org
-To: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Cc: akpm@linux-foundation.org, peterz@infradead.org, mingo@kernel.org, davej@redhat.com, sasha.levin@oracle.com, hughd@google.com, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
-
---q8dntDJTu318bll0
 Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mx1.redhat.com ([209.132.183.28]:49302 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1750748AbaL0QOd (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sat, 27 Dec 2014 11:14:33 -0500
 Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+In-Reply-To: <549C91B9.8080009@gmx.de>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Helge Deller <deller@gmx.de>
+Cc: linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, "James E.J. Bottomley" <jejb@parisc-linux.org>, linux-parisc@vger.kernel.org
 
-On Wed, Dec 24, 2014 at 02:22:08PM +0200, Kirill A. Shutemov wrote:
-> We have remap_file_pages(2) emulation in -mm tree for few release cycles
-> and we plan to have it mainline in v3.20. This patchset removes rest of
-> VM_NONLINEAR infrastructure.
->=20
-> Patches 1-8 take care about generic code. They are pretty
-> straight-forward and can be applied without other of patches.
->=20
-> Rest patches removes pte_file()-related stuff from architecture-specific
-> code. It usually frees up one bit in non-present pte. I've tried to reuse
-> that bit for swap offset, where I was able to figure out how to do that.
->=20
-> For obvious reason I cannot test all that arch-specific code and would
-> like to see acks from maintainers.
->=20
-> In total, remap_file_pages(2) required about 1.4K lines of not-so-trivial
-> kernel code. That's too much for functionality nobody uses.
->=20
-> git://git.kernel.org/pub/scm/linux/kernel/git/kas/linux.git remap_file_pa=
-ges
+On Thu, Dec 25, 2014 at 11:37:45PM +0100, Helge Deller wrote:
+> Hi Michael,
+> 
+> On 12/25/2014 10:29 AM, Michael S. Tsirkin wrote:
+> >virtio wants to read bitwise types from userspace using get_user.  At the
+> 
+> I don't know the virtio code much yet, but does it makes sense to read bitwise types?
+> Will virtio then get possible troubles because of endianess correct as well?
 
-have been running this for a while on a three different ARM boards I
-have around, haven't noticed anything wrong.
+There's no conversion: we are reading from __virtio16 __user *
+pointer into __virtio16 v value.
 
-Tested-by: Felipe Balbi <balbi@ti.com>
+> Do you have a code example, or the sparse error message ?
+> 
+> Helge
 
---=20
-balbi
+Sure. the code is upstream now.
+The warning is below.
 
---q8dntDJTu318bll0
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: Digital signature
+sparse warnings: (new ones prefixed by >>)
 
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1
+>> drivers/vhost/vringh.c:554:18: sparse: cast to restricted __virtio16
 
-iQIcBAEBAgAGBQJUnc7fAAoJEIaOsuA1yqREWbsQAIONHDDofx75YXCcFBBg1zDy
-idy1wuwS2Dk3Po1MGqXvAo/xwmAVTI1xq6cDSyz16gUYnWc553l1seeSIHU0AnON
-Vz5Ik/Hhdnm7S4z2bDWFmsLDyEq5OH7MSc31GvTnKNPXUs0ZXqp58kiGDxQHN4JN
-5qrEVYhkqNWKsONprnZ0Tu4lTkz8fZb1hY2tBeBEeyJFrxTmgVwMavcEk8is3Fwm
-M2vibrHWSMyBlBl6daPV9aCoqdcxFnwdW+g0TILL7u7tWJnb7HxVaSOJ9avZxQVK
-lxBXvwKAWHuqZPWP9eScUWEZklpl2U3E/SDOm5156HNq3N8LFmVQUfTndARwYr1W
-2hmopRMignA+EuH0fRdpUXXjv5RGZnFUWHyZkWOsYvwe0WfhBRgbE8Q4Shagn+6z
-OzaH94Gg3104OCE5Ro3WITfpcbr6rUzClNtUvcfTe/8A4dAEvTKGZhdbB48LnBJp
-N0/bhyU0O0MKSE51BZM7s65L5uL+cMRBQmScCCmqB0QphjvMMZy3gWuiVOn7knJg
-ZSac+3mKz0I9sRFm33rB59/6QyCP3CzGk4omNiNyqdFdaHsKf7kJ5P3/nuVAeRTU
-50/phJWyQsXxo5Isdgnz5Lgbx5AOeuHulaLHdTOYNVNJTmt8V0VI9tE05/kNpTHG
-4SlaWuL1So+z26SMg3E9
-=pBan
------END PGP SIGNATURE-----
+vim +554 drivers/vhost/vringh.c
 
---q8dntDJTu318bll0--
+   538                                                           __virtio16 *p, u16 val))
+   539  {
+   540          if (!vrh->event_indices) {
+   541                  /* Old-school; update flags. */
+   542                  if (putu16(vrh, &vrh->vring.used->flags,
+   543                             VRING_USED_F_NO_NOTIFY)) {
+   544                          vringh_bad("Setting used flags %p",
+   545                                     &vrh->vring.used->flags);
+   546                  }
+   547          }
+   548  }
+   549
+   550  /* Userspace access helpers: in this case, addresses are really userspace. */
+   551  static inline int getu16_user(const struct vringh *vrh, u16 *val, const __virtio16 *p)
+   552  {
+   553          __virtio16 v = 0;
+ > 554          int rc = get_user(v, (__force __virtio16 __user *)p);
+   555          *val = vringh16_to_cpu(vrh, v);
+   556          return rc;
+   557  }
+   558
+   559  static inline int putu16_user(const struct vringh *vrh, __virtio16 *p, u16 val)
+   560  {
+   561          __virtio16 v = cpu_to_vringh16(vrh, val);
+   562          return put_user(v, (__force __virtio16 __user *)p);
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+
+
+> 
+> >moment this triggers sparse errors, since the value is passed through an
+> >integer.
+> >
+> >Fix that up using __force.
+> >
+> >Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
+> >---
+> >  arch/parisc/include/asm/uaccess.h | 2 +-
+> >  1 file changed, 1 insertion(+), 1 deletion(-)
+> >
+> >diff --git a/arch/parisc/include/asm/uaccess.h b/arch/parisc/include/asm/uaccess.h
+> >index a5cb070..3a20da6 100644
+> >--- a/arch/parisc/include/asm/uaccess.h
+> >+++ b/arch/parisc/include/asm/uaccess.h
+> >@@ -104,7 +104,7 @@ struct exception_data {
+> >  	    }                                           \
+> >  	}                                               \
+> >  							\
+> >-	(x) = (__typeof__(*(ptr))) __gu_val;            \
+> >+	(x) = (__force __typeof__(*(ptr))) __gu_val;            \
+> >  	__gu_err;                                       \
+> >  })
+> >
+> >
