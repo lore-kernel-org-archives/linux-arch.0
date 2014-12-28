@@ -1,101 +1,62 @@
 From: Pavel Machek <pavel@ucw.cz>
 Subject: Re: rfc: remove early_printk from a few arches? (blackfin, m68k,
  mips)
-Date: Sun, 28 Dec 2014 19:33:07 +0100
-Message-ID: <20141228183306.GD3922@amd>
+Date: Sun, 28 Dec 2014 19:36:25 +0100
+Message-ID: <20141228183625.GE3922@amd>
 References: <1418849927.28384.1.camel@perches.com>
+ <alpine.DEB.2.11.1412190031530.17382@nanos>
+ <1418951658.28384.20.camel@perches.com>
+ <yw1x388ch0su.fsf@unicorn.mansr.com>
+ <1418954914.25129.1.camel@perches.com>
+ <yw1xy4q4exo9.fsf@unicorn.mansr.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=iso-8859-1
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-m68k-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <1418849927.28384.1.camel@perches.com>
+In-Reply-To: <yw1xy4q4exo9.fsf@unicorn.mansr.com>
 Sender: linux-m68k-owner@vger.kernel.org
-To: Joe Perches <joe@perches.com>
-Cc: linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Geert Uytterhoeven <geert@linux-m68k.org>, linux-m68k <linux-m68k@lists.linux-m68k.org>, Steven Miao <realmz6@gmail.com>, Ralf Baechle <ralf@linux-mips.org>, linux-mips <linux-mips@linux-mips.org>
+To: =?iso-8859-1?Q?M=E5ns_Rullg=E5rd?= <mans@mansr.com>
+Cc: Joe Perches <joe@perches.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Geert Uytterhoeven <geert@linux-m68k.org>, linux-m68k <linux-m68k@lists.linux-m68k.org>, Steven Miao <realmz6@gmail.com>, Ralf Baechle <ralf@linux-mips.org>, linux-mips <linux-mips@linux-mips.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed 2014-12-17 12:58:47, Joe Perches wrote:
-> It seems like early_printk can be configured into
-> a few architectures but also appear not to be used.
-> 
-> $ git grep -w "early_printk"
-> arch/arm/kernel/Makefile:obj-$(CONFIG_EARLY_PRINTK)	+= early_printk.o
-> arch/arm/kernel/early_printk.c: *  linux/arch/arm/kernel/early_printk.c
-> arch/arm/mach-socfpga/socfpga.c:	early_printk("Early printk initialized\n");
-> arch/blackfin/kernel/Makefile:obj-$(CONFIG_EARLY_PRINTK)           += early_printk.o
-> arch/blackfin/kernel/bfin_dma.c:#include <asm/early_printk.h>
-> arch/blackfin/kernel/early_printk.c: * derived from arch/x86/kernel/early_printk.c
-> arch/blackfin/kernel/early_printk.c:#include <asm/early_printk.h>
-> arch/blackfin/kernel/setup.c:#include <asm/early_printk.h>
-> arch/blackfin/kernel/shadow_console.c:#include <asm/early_printk.h>
-> arch/blackfin/mm/init.c:#include <asm/early_printk.h>
-> arch/ia64/sn/kernel/setup.c:	 * IO on SN2 is done via SAL calls, early_printk won't work without this.
-> arch/m68k/kernel/Makefile:obj-$(CONFIG_EARLY_PRINTK)	+= early_printk.o
-> arch/microblaze/kernel/Makefile:obj-$(CONFIG_EARLY_PRINTK)	+= early_printk.o
-> arch/microblaze/kernel/cpu/cpuinfo-pvr-full.c:	early_printk("ERROR: Microblaze " x "-different for PVR and DTS\n");
-> arch/microblaze/kernel/cpu/cpuinfo-static.c:	early_printk("ERROR: Microblaze " x "-different for kernel and DTS\n");
-> arch/microblaze/kernel/setup.c:/* initialize device tree for usage in early_printk */
-> arch/mips/ath25/Makefile:obj-$(CONFIG_EARLY_PRINTK) += early_printk.o
-> arch/mips/ath79/Makefile:obj-$(CONFIG_EARLY_PRINTK)		+= early_printk.o
-> arch/mips/bcm63xx/Makefile:obj-$(CONFIG_EARLY_PRINTK)	+= early_printk.o
-> arch/mips/include/asm/mach-lantiq/falcon/lantiq_soc.h: * during early_printk no ioremap possible at this early stage
-> arch/mips/include/asm/mach-lantiq/xway/lantiq_soc.h: * during early_printk no ioremap is possible
-> arch/mips/kernel/Makefile:obj-$(CONFIG_EARLY_PRINTK)	+= early_printk.o
-> arch/mips/lantiq/Makefile:obj-$(CONFIG_EARLY_PRINTK) += early_printk.o
-> arch/mips/loongson/common/Makefile:obj-$(CONFIG_EARLY_PRINTK) += early_printk.o
-> arch/mips/ralink/Makefile:obj-$(CONFIG_EARLY_PRINTK) += early_printk.o
-> arch/tile/kernel/Makefile:obj-$(CONFIG_EARLY_PRINTK)	+= early_printk.o
-> arch/tile/kernel/early_printk.c:	early_printk("Kernel panic - not syncing: %pV", &vaf);
-> arch/um/kernel/Makefile:obj-$(CONFIG_EARLY_PRINTK) += early_printk.o
-> arch/unicore32/kernel/Makefile:obj-$(CONFIG_EARLY_PRINTK)	+= early_printk.o
-> arch/unicore32/kernel/early_printk.c: * linux/arch/unicore32/kernel/early_printk.c
-> arch/x86/kernel/Makefile:obj-$(CONFIG_EARLY_PRINTK)	+= early_printk.o
-> arch/x86/kernel/e820.c:	early_printk(msg);
-> arch/x86/kernel/head64.c:		early_printk("Kernel alive\n");
-> arch/x86/kernel/head_64.S:	call early_printk
-> arch/x86/platform/efi/Makefile:obj-$(CONFIG_EARLY_PRINTK_EFI)	+= early_printk.o
-> drivers/tty/serial/8250/8250_early.c: * and on early_printk.c by Andi Kleen.
-> drivers/tty/serial/sn_console.c: * synchronous (raw) and asynchronous (buffered).  initially, early_printk
-> drivers/tty/serial/sn_console.c:	/* without early_printk, we may be invoked late enough to race
-> drivers/tty/serial/sn_console.c:	/* early_printk invocation may have done this for us */
-> include/linux/printk.h:void early_printk(const char *fmt, ...);
-> include/linux/printk.h:void early_printk(const char *s, ...) { }
-> kernel/events/core.c:		early_printk("perf interrupt took too long (%lld > %lld), lowering "
-> kernel/locking/lockdep.c: * We cannot printk in early bootup code. Not even early_printk()
-> kernel/printk/printk.c:asmlinkage __visible void early_printk(const char *fmt, ...)
-> kernel/printk/printk.c: * early_printk) - sometimes before setup_arch() completes - be careful
-> kernel/printk/printk.c: * There are two types of consoles - bootconsoles (early_printk) and
-> 
-> These seem to the only uses:
-> 
-> arch/arm/mach-socfpga/socfpga.c:	early_printk("Early printk initialized\n");
-> []
-> arch/microblaze/kernel/cpu/cpuinfo-pvr-full.c:	early_printk("ERROR: Microblaze " x "-different for PVR and DTS\n");
-> arch/microblaze/kernel/cpu/cpuinfo-static.c:	early_printk("ERROR: Microblaze " x "-different for kernel and DTS\n");
-> []
-> arch/tile/kernel/early_printk.c:	early_printk("Kernel panic - not syncing: %pV", &vaf);
-> []
-> arch/x86/kernel/e820.c:	early_printk(msg);
-> arch/x86/kernel/head64.c:		early_printk("Kernel alive\n");
-> arch/x86/kernel/head_64.S:	call early_printk
-> []
-> kernel/events/core.c:		early_printk("perf interrupt took too long (%lld > %lld), lowering "
-> 
-> So blackfin, m68k, and mips seems to have it possible to enable,
-> but also don't appear at first glance to use it,
-> 
-> Is early_printk really used by these architectures?
-> Should it be removed?
+On Fri 2014-12-19 10:33:42, M=E5ns Rullg=E5rd wrote:
+> Joe Perches <joe@perches.com> writes:
+>=20
+> > On Fri, 2014-12-19 at 01:43 +0000, M=E5ns Rullg=E5rd wrote:
+> >> What exactly are you proposing to remove?
+> >
+> > Optionally compile out
+> > kernel/printk/printk.c:early_printk()
+> > even if CONFIG_EARLY_PRINTK is enabled.
+> >
+> >> I see no unused code related
+> >> to early printk (in any variant) under arch/mips.
+> >
+> > I think there could be yet another CONFIG option
+> > to specifically enable the early_printk function
+> > for the arches that use it.
+>=20
+> Why bother?  On MIPS it would save 132 bytes of compiled code.
+>=20
+> > The kernel/printk/early_printk() function seems
+> > used only by arm/microblaze/tile/x86.
+>=20
+> Rather than introduce more config complexity, you could try to remove
+> the 7 remaining uses of early_printk().
+>=20
+> - arch/arm/mach-socfpga
+>   Single early_printk("Early printk initialized\n") call serving no
+>   apparent purpose can probably be safely deleted.  Since there are n=
+o
+>   other early_printk() calls, this information seems rather useless.
 
-early_printk() is for debugging. Actually, feel free to remove:
+=46eel free to do that, but please keep early_printk() available...
 
-arch/arm/mach-socfpga/socfpga.c:      early_printk("Early printk initialized\n");
+=2E..so that I can debug the socfpga early boot when needed.
 
-Its debugging output I added and should have been removed. So... early_printk()s
-_should_ be unused in the mainline code, but functionality should be
-kept, so that when someone needs it, he can enable it.
-
-									Pavel
--- 
+								Pavel
+--=20
 (english) http://www.livejournal.com/~pavelmachek
-(cesky, pictures) http://atrey.karlin.mff.cuni.cz/~pavel/picture/horses/blog.html
+(cesky, pictures) http://atrey.karlin.mff.cuni.cz/~pavel/picture/horses=
+/blog.html
