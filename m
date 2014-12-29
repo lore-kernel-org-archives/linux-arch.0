@@ -1,62 +1,51 @@
-From: Pavel Machek <pavel@ucw.cz>
-Subject: Re: rfc: remove early_printk from a few arches? (blackfin, m68k,
- mips)
-Date: Sun, 28 Dec 2014 19:36:25 +0100
-Message-ID: <20141228183625.GE3922@amd>
-References: <1418849927.28384.1.camel@perches.com>
- <alpine.DEB.2.11.1412190031530.17382@nanos>
- <1418951658.28384.20.camel@perches.com>
- <yw1x388ch0su.fsf@unicorn.mansr.com>
- <1418954914.25129.1.camel@perches.com>
- <yw1xy4q4exo9.fsf@unicorn.mansr.com>
+From: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Subject: Re: [PATCH 30/38] s390: drop pte_file()-related helpers
+Date: Mon, 29 Dec 2014 11:07:27 +0100
+Message-ID: <20141229110727.75afa56d@mschwide>
+References: <1419423766-114457-1-git-send-email-kirill.shutemov@linux.intel.com>
+	<1419423766-114457-31-git-send-email-kirill.shutemov@linux.intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-m68k-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <yw1xy4q4exo9.fsf@unicorn.mansr.com>
-Sender: linux-m68k-owner@vger.kernel.org
-To: =?iso-8859-1?Q?M=E5ns_Rullg=E5rd?= <mans@mansr.com>
-Cc: Joe Perches <joe@perches.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Geert Uytterhoeven <geert@linux-m68k.org>, linux-m68k <linux-m68k@lists.linux-m68k.org>, Steven Miao <realmz6@gmail.com>, Ralf Baechle <ralf@linux-mips.org>, linux-mips <linux-mips@linux-mips.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from e06smtp13.uk.ibm.com ([195.75.94.109]:32839 "EHLO
+	e06smtp13.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751114AbaL2KHf (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 29 Dec 2014 05:07:35 -0500
+Received: from /spool/local
+	by e06smtp13.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <schwidefsky@de.ibm.com>;
+	Mon, 29 Dec 2014 10:07:34 -0000
+In-Reply-To: <1419423766-114457-31-git-send-email-kirill.shutemov@linux.intel.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+Cc: akpm@linux-foundation.org, peterz@infradead.org, mingo@kernel.org, davej@redhat.com, sasha.levin@oracle.com, hughd@google.com, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Heiko Carstens <heiko.carstens@de.ibm.com>
 
-On Fri 2014-12-19 10:33:42, M=E5ns Rullg=E5rd wrote:
-> Joe Perches <joe@perches.com> writes:
->=20
-> > On Fri, 2014-12-19 at 01:43 +0000, M=E5ns Rullg=E5rd wrote:
-> >> What exactly are you proposing to remove?
-> >
-> > Optionally compile out
-> > kernel/printk/printk.c:early_printk()
-> > even if CONFIG_EARLY_PRINTK is enabled.
-> >
-> >> I see no unused code related
-> >> to early printk (in any variant) under arch/mips.
-> >
-> > I think there could be yet another CONFIG option
-> > to specifically enable the early_printk function
-> > for the arches that use it.
->=20
-> Why bother?  On MIPS it would save 132 bytes of compiled code.
->=20
-> > The kernel/printk/early_printk() function seems
-> > used only by arm/microblaze/tile/x86.
->=20
-> Rather than introduce more config complexity, you could try to remove
-> the 7 remaining uses of early_printk().
->=20
-> - arch/arm/mach-socfpga
->   Single early_printk("Early printk initialized\n") call serving no
->   apparent purpose can probably be safely deleted.  Since there are n=
-o
->   other early_printk() calls, this information seems rather useless.
+On Wed, 24 Dec 2014 14:22:38 +0200
+"Kirill A. Shutemov" <kirill.shutemov@linux.intel.com> wrote:
 
-=46eel free to do that, but please keep early_printk() available...
+> We've replaced remap_file_pages(2) implementation with emulation.
+> Nobody creates non-linear mapping anymore.
+> 
+> Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
+> Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>
+> Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
+> ---
+> @@ -279,7 +279,6 @@ static inline int is_module_addr(void *addr)
+>   *
+>   * pte_present is true for the bit pattern .xx...xxxxx1, (pte & 0x001) == 0x001
+>   * pte_none    is true for the bit pattern .10...xxxx00, (pte & 0x603) == 0x400
+> - * pte_file    is true for the bit pattern .11...xxxxx0, (pte & 0x601) == 0x600
+>   * pte_swap    is true for the bit pattern .10...xxxx10, (pte & 0x603) == 0x402
+>   */
+ 
+Nice, once this is upstream I can free up one of the software bits in
+the pte by redefining the type bits. Right now all of them are used up.
+Is the removal of non-linear mappings a done deal ?
 
-=2E..so that I can debug the socfpga early boot when needed.
+-- 
+blue skies,
+   Martin.
 
-								Pavel
---=20
-(english) http://www.livejournal.com/~pavelmachek
-(cesky, pictures) http://atrey.karlin.mff.cuni.cz/~pavel/picture/horses=
-/blog.html
+"Reality continues to ruin my life." - Calvin.
