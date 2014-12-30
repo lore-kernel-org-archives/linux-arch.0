@@ -1,64 +1,70 @@
-From: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Subject: Re: [PATCH 30/38] s390: drop pte_file()-related helpers
-Date: Tue, 30 Dec 2014 11:55:56 +0100
-Message-ID: <20141230115556.1a8b1a94@mschwide>
-References: <1419423766-114457-1-git-send-email-kirill.shutemov@linux.intel.com>
-	<1419423766-114457-31-git-send-email-kirill.shutemov@linux.intel.com>
-	<20141229110727.75afa56d@mschwide>
-	<20141229103757.GA379@node.dhcp.inet.fi>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <20141229103757.GA379@node.dhcp.inet.fi>
-Sender: owner-linux-mm@kvack.org
-To: "Kirill A. Shutemov" <kirill@shutemov.name>
-Cc: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, akpm@linux-foundation.org, peterz@infradead.org, mingo@kernel.org, davej@redhat.com, sasha.levin@oracle.com, hughd@google.com, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Heiko Carstens <heiko.carstens@de.ibm.com>
-List-Id: linux-arch.vger.kernel.org
+From: Tobias Klauser <tklauser@distanz.ch>
+Subject: [PATCH] nios2: Use preempt_schedule_irq
+Date: Tue, 30 Dec 2014 15:02:27 +0100
+Message-ID: <1419948147-19123-1-git-send-email-tklauser@distanz.ch>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from sym2.noone.org ([178.63.92.236]:41035 "EHLO sym2.noone.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1750880AbaL3OCa (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 30 Dec 2014 09:02:30 -0500
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Ley Foon Tan <lftan@altera.com>
+Cc: nios2-dev@lists.rocketboards.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>
 
-On Mon, 29 Dec 2014 12:37:57 +0200
-"Kirill A. Shutemov" <kirill@shutemov.name> wrote:
+Follow aa0d53260596 ("ia64: Use preempt_schedule_irq") and use
+preempt_schedule_irq instead of enabling/disabling interrupts and messing around
+with PREEMPT_ACTIVE in the nios2 low-level preemption code ourselves. Also get
+rid of the now needless re-check for TIF_NEED_RESCHED, preempt_schedule_irq
+will already take care of rescheduling.
 
-> On Mon, Dec 29, 2014 at 11:07:27AM +0100, Martin Schwidefsky wrote:
-> > On Wed, 24 Dec 2014 14:22:38 +0200
-> > "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com> wrote:
-> > 
-> > > We've replaced remap_file_pages(2) implementation with emulation.
-> > > Nobody creates non-linear mapping anymore.
-> > > 
-> > > Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
-> > > Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>
-> > > Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
-> > > ---
-> > > @@ -279,7 +279,6 @@ static inline int is_module_addr(void *addr)
-> > >   *
-> > >   * pte_present is true for the bit pattern .xx...xxxxx1, (pte & 0x001) == 0x001
-> > >   * pte_none    is true for the bit pattern .10...xxxx00, (pte & 0x603) == 0x400
-> > > - * pte_file    is true for the bit pattern .11...xxxxx0, (pte & 0x601) == 0x600
-> > >   * pte_swap    is true for the bit pattern .10...xxxx10, (pte & 0x603) == 0x402
-> > >   */
-> >  
-> > Nice, once this is upstream I can free up one of the software bits in
-> > the pte by redefining the type bits. Right now all of them are used up.
-> > Is the removal of non-linear mappings a done deal ?
-> 
-> Yes, if no horrible regression will be reported. We don't create
-> non-linear mapping in -mm (and -next) tree for a few release cycles.
-> Nobody complained so far.
-> 
-> Ack?
+This also fixes the following build error when building with CONFIG_PREEMPT:
 
-Yes, ack! 
+arch/nios2/kernel/built-in.o: In function `need_resched':
+arch/nios2/kernel/entry.S:374: undefined reference to `PREEMPT_ACTIVE'
 
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Signed-off-by: Tobias Klauser <tklauser@distanz.ch>
+---
+ arch/nios2/kernel/entry.S | 20 ++------------------
+ 1 file changed, 2 insertions(+), 18 deletions(-)
 
+diff --git a/arch/nios2/kernel/entry.S b/arch/nios2/kernel/entry.S
+index 83bca17..0bdfd13 100644
+--- a/arch/nios2/kernel/entry.S
++++ b/arch/nios2/kernel/entry.S
+@@ -365,30 +365,14 @@ ENTRY(ret_from_interrupt)
+ 	GET_THREAD_INFO	r1
+ 	ldw	r4, TI_PREEMPT_COUNT(r1)
+ 	bne	r4, r0, restore_all
+-
+-need_resched:
+ 	ldw	r4, TI_FLAGS(r1)		/* ? Need resched set */
+ 	BTBZ	r10, r4, TIF_NEED_RESCHED, restore_all
+ 	ldw	r4, PT_ESTATUS(sp)	/* ? Interrupts off */
+ 	andi	r10, r4, ESTATUS_EPIE
+ 	beq	r10, r0, restore_all
+-	movia	r4, PREEMPT_ACTIVE
+-	stw	r4, TI_PREEMPT_COUNT(r1)
+-	rdctl	r10, status		/* enable intrs again */
+-	ori	r10, r10 ,STATUS_PIE
+-	wrctl	status, r10
+-	PUSH	r1
+-	call	schedule
+-	POP	r1
+-	mov	r4, r0
+-	stw	r4, TI_PREEMPT_COUNT(r1)
+-	rdctl	r10, status		/* disable intrs */
+-	andi	r10, r10, %lo(~STATUS_PIE)
+-	wrctl	status, r10
+-	br	need_resched
+-#else
+-	br	restore_all
++	call	preempt_schedule_irq
+ #endif
++	br	restore_all
+ 
+ /***********************************************************************
+  * A few syscall wrappers
 -- 
-blue skies,
-   Martin.
-
-"Reality continues to ruin my life." - Calvin.
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+2.2.0
