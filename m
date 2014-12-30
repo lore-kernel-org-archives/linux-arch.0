@@ -1,70 +1,126 @@
-From: Tobias Klauser <tklauser@distanz.ch>
-Subject: [PATCH] nios2: Use preempt_schedule_irq
-Date: Tue, 30 Dec 2014 15:02:27 +0100
-Message-ID: <1419948147-19123-1-git-send-email-tklauser@distanz.ch>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from sym2.noone.org ([178.63.92.236]:41035 "EHLO sym2.noone.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750880AbaL3OCa (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 30 Dec 2014 09:02:30 -0500
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Ley Foon Tan <lftan@altera.com>
-Cc: nios2-dev@lists.rocketboards.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>
+From: "Michael S. Tsirkin" <mst@redhat.com>
+Subject: [PATCH RFC v2 2/7] pci: add pci_iomap_range
+Date: Tue, 30 Dec 2014 18:35:36 +0200
+Message-ID: <1419957310-26009-3-git-send-email-mst@redhat.com>
+References: <1419957310-26009-1-git-send-email-mst@redhat.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <1419957310-26009-1-git-send-email-mst@redhat.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: linux-kernel@vger.kernel.org
+Cc: Rusty Russell <rusty@rustcorp.com.au>, cornelia.huck@de.ibm.com, Michael S Tsirkin <mst@redhat.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-Follow aa0d53260596 ("ia64: Use preempt_schedule_irq") and use
-preempt_schedule_irq instead of enabling/disabling interrupts and messing around
-with PREEMPT_ACTIVE in the nios2 low-level preemption code ourselves. Also get
-rid of the now needless re-check for TIF_NEED_RESCHED, preempt_schedule_irq
-will already take care of rescheduling.
+From: Michael S Tsirkin <mst@redhat.com>
 
-This also fixes the following build error when building with CONFIG_PREEMPT:
+Virtio drivers should map the part of the BAR they need, not necessarily
+all of it.
 
-arch/nios2/kernel/built-in.o: In function `need_resched':
-arch/nios2/kernel/entry.S:374: undefined reference to `PREEMPT_ACTIVE'
-
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Signed-off-by: Tobias Klauser <tklauser@distanz.ch>
+Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
+Signed-off-by: Rusty Russell <rusty@rustcorp.com.au>
 ---
- arch/nios2/kernel/entry.S | 20 ++------------------
- 1 file changed, 2 insertions(+), 18 deletions(-)
+ include/asm-generic/pci_iomap.h | 10 ++++++++++
+ lib/pci_iomap.c                 | 35 ++++++++++++++++++++++++++++++-----
+ 2 files changed, 40 insertions(+), 5 deletions(-)
 
-diff --git a/arch/nios2/kernel/entry.S b/arch/nios2/kernel/entry.S
-index 83bca17..0bdfd13 100644
---- a/arch/nios2/kernel/entry.S
-+++ b/arch/nios2/kernel/entry.S
-@@ -365,30 +365,14 @@ ENTRY(ret_from_interrupt)
- 	GET_THREAD_INFO	r1
- 	ldw	r4, TI_PREEMPT_COUNT(r1)
- 	bne	r4, r0, restore_all
--
--need_resched:
- 	ldw	r4, TI_FLAGS(r1)		/* ? Need resched set */
- 	BTBZ	r10, r4, TIF_NEED_RESCHED, restore_all
- 	ldw	r4, PT_ESTATUS(sp)	/* ? Interrupts off */
- 	andi	r10, r4, ESTATUS_EPIE
- 	beq	r10, r0, restore_all
--	movia	r4, PREEMPT_ACTIVE
--	stw	r4, TI_PREEMPT_COUNT(r1)
--	rdctl	r10, status		/* enable intrs again */
--	ori	r10, r10 ,STATUS_PIE
--	wrctl	status, r10
--	PUSH	r1
--	call	schedule
--	POP	r1
--	mov	r4, r0
--	stw	r4, TI_PREEMPT_COUNT(r1)
--	rdctl	r10, status		/* disable intrs */
--	andi	r10, r10, %lo(~STATUS_PIE)
--	wrctl	status, r10
--	br	need_resched
--#else
--	br	restore_all
-+	call	preempt_schedule_irq
+diff --git a/include/asm-generic/pci_iomap.h b/include/asm-generic/pci_iomap.h
+index ce37349..7389c87 100644
+--- a/include/asm-generic/pci_iomap.h
++++ b/include/asm-generic/pci_iomap.h
+@@ -15,6 +15,9 @@ struct pci_dev;
+ #ifdef CONFIG_PCI
+ /* Create a virtual mapping cookie for a PCI BAR (memory or IO) */
+ extern void __iomem *pci_iomap(struct pci_dev *dev, int bar, unsigned long max);
++extern void __iomem *pci_iomap_range(struct pci_dev *dev, int bar,
++				     unsigned long offset,
++				     unsigned long maxlen);
+ /* Create a virtual mapping cookie for a port on a given PCI device.
+  * Do not call this directly, it exists to make it easier for architectures
+  * to override */
+@@ -30,6 +33,13 @@ static inline void __iomem *pci_iomap(struct pci_dev *dev, int bar, unsigned lon
+ {
+ 	return NULL;
+ }
++
++static inline void __iomem *pci_iomap_range(struct pci_dev *dev, int bar,
++					    unsigned long offset,
++					    unsigned long maxlen)
++{
++	return NULL;
++}
  #endif
-+	br	restore_all
  
- /***********************************************************************
-  * A few syscall wrappers
+ #endif /* __ASM_GENERIC_IO_H */
+diff --git a/lib/pci_iomap.c b/lib/pci_iomap.c
+index 0d83ea8..bcce5f1 100644
+--- a/lib/pci_iomap.c
++++ b/lib/pci_iomap.c
+@@ -10,10 +10,11 @@
+ 
+ #ifdef CONFIG_PCI
+ /**
+- * pci_iomap - create a virtual mapping cookie for a PCI BAR
++ * pci_iomap_range - create a virtual mapping cookie for a PCI BAR
+  * @dev: PCI device that owns the BAR
+  * @bar: BAR number
+- * @maxlen: length of the memory to map
++ * @offset: map memory at the given offset in BAR
++ * @maxlen: max length of the memory to map
+  *
+  * Using this function you will get a __iomem address to your device BAR.
+  * You can access it using ioread*() and iowrite*(). These functions hide
+@@ -21,16 +22,21 @@
+  * you expect from them in the correct way.
+  *
+  * @maxlen specifies the maximum length to map. If you want to get access to
+- * the complete BAR without checking for its length first, pass %0 here.
++ * the complete BAR from offset to the end, pass %0 here.
+  * */
+-void __iomem *pci_iomap(struct pci_dev *dev, int bar, unsigned long maxlen)
++void __iomem *pci_iomap_range(struct pci_dev *dev,
++			      int bar,
++			      unsigned long offset,
++			      unsigned long maxlen)
+ {
+ 	resource_size_t start = pci_resource_start(dev, bar);
+ 	resource_size_t len = pci_resource_len(dev, bar);
+ 	unsigned long flags = pci_resource_flags(dev, bar);
+ 
+-	if (!len || !start)
++	if (len <= offset || !start)
+ 		return NULL;
++	len -= offset;
++	start += offset;
+ 	if (maxlen && len > maxlen)
+ 		len = maxlen;
+ 	if (flags & IORESOURCE_IO)
+@@ -43,6 +49,25 @@ void __iomem *pci_iomap(struct pci_dev *dev, int bar, unsigned long maxlen)
+ 	/* What? */
+ 	return NULL;
+ }
++EXPORT_SYMBOL(pci_iomap_range);
+ 
++/**
++ * pci_iomap - create a virtual mapping cookie for a PCI BAR
++ * @dev: PCI device that owns the BAR
++ * @bar: BAR number
++ * @maxlen: length of the memory to map
++ *
++ * Using this function you will get a __iomem address to your device BAR.
++ * You can access it using ioread*() and iowrite*(). These functions hide
++ * the details if this is a MMIO or PIO address space and will just do what
++ * you expect from them in the correct way.
++ *
++ * @maxlen specifies the maximum length to map. If you want to get access to
++ * the complete BAR without checking for its length first, pass %0 here.
++ * */
++void __iomem *pci_iomap(struct pci_dev *dev, int bar, unsigned long maxlen)
++{
++	return pci_iomap_range(dev, bar, 0, maxlen);
++}
+ EXPORT_SYMBOL(pci_iomap);
+ #endif /* CONFIG_PCI */
 -- 
-2.2.0
+MST
