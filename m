@@ -1,70 +1,223 @@
 From: "Michael S. Tsirkin" <mst@redhat.com>
-Subject: [PATCH v2 17/40] arm: fix put_user sparse errors
-Date: Tue, 6 Jan 2015 17:44:27 +0200
-Message-ID: <1420558883-10131-18-git-send-email-mst@redhat.com>
+Subject: [PATCH v2 40/40] xtensa: macro whitespace fixes
+Date: Tue, 6 Jan 2015 17:45:45 +0200
+Message-ID: <1420558883-10131-41-git-send-email-mst@redhat.com>
 References: <1420558883-10131-1-git-send-email-mst@redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
 In-Reply-To: <1420558883-10131-1-git-send-email-mst@redhat.com>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Nicolas Pitre <nicolas.pitre@linaro.org>, Daniel Thompson <daniel.thompson@linaro.org>, Russell King <linux@arm.linux.org.uk>, Arnd Bergmann <arnd@arndb.de>, Victor Kamensky <victor.kamensky@linaro.org>, Andrey Ryabinin <a.ryabinin@samsung.com>, =?us-ascii?B?PT9VVEYtOD9xP1V3ZT0yMEtsZWluZS1LPUMzPUI2bmlnPz0=?= <u.kleine-koenig@pengutronix.de>, linux-arm-kernel@lists.infradead.org
+Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, linux-xtensa@linux-xtensa.org
 List-Id: linux-arch.vger.kernel.org
 
-virtio wants to write bitwise types to userspace using put_user.
-At the moment this triggers sparse errors, since the value is passed
-through an integer.
+While working on arch/xtensa/include/asm/uaccess.h, I noticed
+that some macros within this header are made harder to read because they
+violate a coding style rule: space is missing after comma.
 
-For example:
-
-	__le32 __user *p;
-	__le32 x;
-	put_user(x, p);
-
-is safe, but currently triggers a sparse warning.
-
-Fix that up using __force.
-
-Note: this does not suppress any useful sparse checks since caller
-assigns x to typeof(*p), which in turn forces all the necessary type
-checks.
+Fix it up.
 
 Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
 ---
- arch/arm/include/asm/uaccess.h | 4 ++--
- 1 file changed, 2 insertions(+), 2 deletions(-)
+ arch/xtensa/include/asm/uaccess.h | 90 +++++++++++++++++++--------------------
+ 1 file changed, 45 insertions(+), 45 deletions(-)
 
-diff --git a/arch/arm/include/asm/uaccess.h b/arch/arm/include/asm/uaccess.h
-index 4767eb9..74fcde7 100644
---- a/arch/arm/include/asm/uaccess.h
-+++ b/arch/arm/include/asm/uaccess.h
-@@ -413,14 +413,14 @@ do {									\
- #ifndef __ARMEB__
- #define __put_user_asm_half(x,__pu_addr,err)			\
- ({								\
--	unsigned long __temp = (unsigned long)(x);		\
-+	unsigned long __temp = (__force unsigned long)(x);	\
- 	__put_user_asm_byte(__temp, __pu_addr, err);		\
- 	__put_user_asm_byte(__temp >> 8, __pu_addr + 1, err);	\
+diff --git a/arch/xtensa/include/asm/uaccess.h b/arch/xtensa/include/asm/uaccess.h
+index 876eb38..147b26e 100644
+--- a/arch/xtensa/include/asm/uaccess.h
++++ b/arch/xtensa/include/asm/uaccess.h
+@@ -182,13 +182,13 @@
+ #define get_fs()	(current->thread.current_ds)
+ #define set_fs(val)	(current->thread.current_ds = (val))
+ 
+-#define segment_eq(a,b)	((a).seg == (b).seg)
++#define segment_eq(a, b)	((a).seg == (b).seg)
+ 
+ #define __kernel_ok (segment_eq(get_fs(), KERNEL_DS))
+-#define __user_ok(addr,size) \
++#define __user_ok(addr, size) \
+ 		(((size) <= TASK_SIZE)&&((addr) <= TASK_SIZE-(size)))
+-#define __access_ok(addr,size) (__kernel_ok || __user_ok((addr),(size)))
+-#define access_ok(type,addr,size) __access_ok((unsigned long)(addr),(size))
++#define __access_ok(addr, size) (__kernel_ok || __user_ok((addr), (size)))
++#define access_ok(type, addr, size) __access_ok((unsigned long)(addr), (size))
+ 
+ /*
+  * These are the main single-value transfer routines.  They
+@@ -204,8 +204,8 @@
+  * (a) re-use the arguments for side effects (sizeof is ok)
+  * (b) require any knowledge of processes at this stage
+  */
+-#define put_user(x,ptr)	__put_user_check((x),(ptr),sizeof(*(ptr)))
+-#define get_user(x,ptr) __get_user_check((x),(ptr),sizeof(*(ptr)))
++#define put_user(x, ptr)	__put_user_check((x), (ptr), sizeof(*(ptr)))
++#define get_user(x, ptr) __get_user_check((x), (ptr), sizeof(*(ptr)))
+ 
+ /*
+  * The "__xxx" versions of the user access functions are versions that
+@@ -213,39 +213,39 @@
+  * with a separate "access_ok()" call (this is used when we do multiple
+  * accesses to the same area of user memory).
+  */
+-#define __put_user(x,ptr) __put_user_nocheck((x),(ptr),sizeof(*(ptr)))
+-#define __get_user(x,ptr) __get_user_nocheck((x),(ptr),sizeof(*(ptr)))
++#define __put_user(x, ptr) __put_user_nocheck((x), (ptr), sizeof(*(ptr)))
++#define __get_user(x, ptr) __get_user_nocheck((x), (ptr), sizeof(*(ptr)))
+ 
+ 
+ extern long __put_user_bad(void);
+ 
+-#define __put_user_nocheck(x,ptr,size)			\
++#define __put_user_nocheck(x, ptr, size)		\
+ ({							\
+ 	long __pu_err;					\
+-	__put_user_size((x),(ptr),(size),__pu_err);	\
++	__put_user_size((x), (ptr), (size), __pu_err);	\
+ 	__pu_err;					\
  })
- #else
- #define __put_user_asm_half(x,__pu_addr,err)			\
- ({								\
--	unsigned long __temp = (unsigned long)(x);		\
-+	unsigned long __temp = (__force unsigned long)(x);	\
- 	__put_user_asm_byte(__temp >> 8, __pu_addr, err);	\
- 	__put_user_asm_byte(__temp, __pu_addr + 1, err);	\
+ 
+-#define __put_user_check(x,ptr,size)				\
+-({								\
+-	long __pu_err = -EFAULT;				\
+-	__typeof__(*(ptr)) *__pu_addr = (ptr);			\
+-	if (access_ok(VERIFY_WRITE,__pu_addr,size))		\
+-		__put_user_size((x),__pu_addr,(size),__pu_err);	\
+-	__pu_err;						\
++#define __put_user_check(x, ptr, size)					\
++({									\
++	long __pu_err = -EFAULT;					\
++	__typeof__(*(ptr)) *__pu_addr = (ptr);				\
++	if (access_ok(VERIFY_WRITE, __pu_addr, size))			\
++		__put_user_size((x), __pu_addr, (size), __pu_err);	\
++	__pu_err;							\
  })
+ 
+-#define __put_user_size(x,ptr,size,retval)				\
++#define __put_user_size(x, ptr, size, retval)				\
+ do {									\
+ 	int __cb;							\
+ 	retval = 0;							\
+ 	switch (size) {							\
+-	case 1: __put_user_asm(x,ptr,retval,1,"s8i",__cb);  break;	\
+-	case 2: __put_user_asm(x,ptr,retval,2,"s16i",__cb); break;	\
+-	case 4: __put_user_asm(x,ptr,retval,4,"s32i",__cb); break;	\
++	case 1: __put_user_asm(x, ptr, retval, 1, "s8i", __cb);  break;	\
++	case 2: __put_user_asm(x, ptr, retval, 2, "s16i", __cb); break;	\
++	case 4: __put_user_asm(x, ptr, retval, 4, "s32i", __cb); break;	\
+ 	case 8: {							\
+ 		     __typeof__(*ptr) __v64 = x;			\
+-		     retval = __copy_to_user(ptr,&__v64,8);		\
++		     retval = __copy_to_user(ptr, &__v64, 8);		\
+ 		     break;						\
+ 	        }							\
+ 	default: __put_user_bad();					\
+@@ -316,35 +316,35 @@ __asm__ __volatile__(					\
+ 	:"=r" (err), "=r" (cb)				\
+ 	:"r" ((int)(x)), "r" (addr), "i" (-EFAULT), "0" (err))
+ 
+-#define __get_user_nocheck(x,ptr,size)				\
++#define __get_user_nocheck(x, ptr, size)			\
+ ({								\
+ 	long __gu_err, __gu_val;				\
+-	__get_user_size(__gu_val,(ptr),(size),__gu_err);	\
+-	(x) = (__force __typeof__(*(ptr)))__gu_val;			\
++	__get_user_size(__gu_val, (ptr), (size), __gu_err);	\
++	(x) = (__force __typeof__(*(ptr)))__gu_val;		\
+ 	__gu_err;						\
+ })
+ 
+-#define __get_user_check(x,ptr,size)					\
++#define __get_user_check(x, ptr, size)					\
+ ({									\
+ 	long __gu_err = -EFAULT, __gu_val = 0;				\
+ 	const __typeof__(*(ptr)) *__gu_addr = (ptr);			\
+-	if (access_ok(VERIFY_READ,__gu_addr,size))			\
+-		__get_user_size(__gu_val,__gu_addr,(size),__gu_err);	\
+-	(x) = (__force __typeof__(*(ptr)))__gu_val;				\
++	if (access_ok(VERIFY_READ, __gu_addr, size))			\
++		__get_user_size(__gu_val, __gu_addr, (size), __gu_err);	\
++	(x) = (__force __typeof__(*(ptr)))__gu_val;			\
+ 	__gu_err;							\
+ })
+ 
+ extern long __get_user_bad(void);
+ 
+-#define __get_user_size(x,ptr,size,retval)				\
++#define __get_user_size(x, ptr, size, retval)				\
+ do {									\
+ 	int __cb;							\
+ 	retval = 0;							\
+ 	switch (size) {							\
+-	case 1: __get_user_asm(x,ptr,retval,1,"l8ui",__cb);  break;	\
+-	case 2: __get_user_asm(x,ptr,retval,2,"l16ui",__cb); break;	\
+-	case 4: __get_user_asm(x,ptr,retval,4,"l32i",__cb);  break;	\
+-	case 8: retval = __copy_from_user(&x,ptr,8);    break;	\
++	case 1: __get_user_asm(x, ptr, retval, 1, "l8ui", __cb);  break;\
++	case 2: __get_user_asm(x, ptr, retval, 2, "l16ui", __cb); break;\
++	case 4: __get_user_asm(x, ptr, retval, 4, "l32i", __cb);  break;\
++	case 8: retval = __copy_from_user(&x, ptr, 8);    break;	\
+ 	default: (x) = __get_user_bad();				\
+ 	}								\
+ } while (0)
+@@ -390,19 +390,19 @@ __asm__ __volatile__(			\
+  */
+ 
+ extern unsigned __xtensa_copy_user(void *to, const void *from, unsigned n);
+-#define __copy_user(to,from,size) __xtensa_copy_user(to,from,size)
++#define __copy_user(to, from, size) __xtensa_copy_user(to, from, size)
+ 
+ 
+ static inline unsigned long
+ __generic_copy_from_user_nocheck(void *to, const void *from, unsigned long n)
+ {
+-	return __copy_user(to,from,n);
++	return __copy_user(to, from, n);
+ }
+ 
+ static inline unsigned long
+ __generic_copy_to_user_nocheck(void *to, const void *from, unsigned long n)
+ {
+-	return __copy_user(to,from,n);
++	return __copy_user(to, from, n);
+ }
+ 
+ static inline unsigned long
+@@ -410,7 +410,7 @@ __generic_copy_to_user(void *to, const void *from, unsigned long n)
+ {
+ 	prefetch(from);
+ 	if (access_ok(VERIFY_WRITE, to, n))
+-		return __copy_user(to,from,n);
++		return __copy_user(to, from, n);
+ 	return n;
+ }
+ 
+@@ -419,18 +419,18 @@ __generic_copy_from_user(void *to, const void *from, unsigned long n)
+ {
+ 	prefetchw(to);
+ 	if (access_ok(VERIFY_READ, from, n))
+-		return __copy_user(to,from,n);
++		return __copy_user(to, from, n);
+ 	else
+ 		memset(to, 0, n);
+ 	return n;
+ }
+ 
+-#define copy_to_user(to,from,n) __generic_copy_to_user((to),(from),(n))
+-#define copy_from_user(to,from,n) __generic_copy_from_user((to),(from),(n))
+-#define __copy_to_user(to,from,n) \
+-	__generic_copy_to_user_nocheck((to),(from),(n))
+-#define __copy_from_user(to,from,n) \
+-	__generic_copy_from_user_nocheck((to),(from),(n))
++#define copy_to_user(to, from, n) __generic_copy_to_user((to), (from), (n))
++#define copy_from_user(to, from, n) __generic_copy_from_user((to), (from), (n))
++#define __copy_to_user(to, from, n) \
++	__generic_copy_to_user_nocheck((to), (from), (n))
++#define __copy_from_user(to, from, n) \
++	__generic_copy_from_user_nocheck((to), (from), (n))
+ #define __copy_to_user_inatomic __copy_to_user
+ #define __copy_from_user_inatomic __copy_from_user
+ 
 -- 
 MST
