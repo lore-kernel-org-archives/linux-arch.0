@@ -1,17 +1,21 @@
 From: "Michael S. Tsirkin" <mst@redhat.com>
-Subject: [PATCH v2 09/40] metag/uaccess: fix sparse errors
-Date: Tue, 6 Jan 2015 17:43:59 +0200
-Message-ID: <1420558883-10131-10-git-send-email-mst@redhat.com>
+Subject: [PATCH v2 15/40] sparc64/uaccess: fix sparse errors
+Date: Tue, 6 Jan 2015 17:44:20 +0200
+Message-ID: <1420558883-10131-16-git-send-email-mst@redhat.com>
 References: <1420558883-10131-1-git-send-email-mst@redhat.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mx1.redhat.com ([209.132.183.28]:37937 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1755801AbbAFPod (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 6 Jan 2015 10:44:33 -0500
 Content-Disposition: inline
 In-Reply-To: <1420558883-10131-1-git-send-email-mst@redhat.com>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, James Hogan <james.hogan@imgtec.com>, linux-metag@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, "David S. Miller" <davem@davemloft.net>, Sam Ravnborg <sam@ravnborg.org>, sparclinux@vger.kernel.org
 
 virtio wants to read bitwise types from userspace using get_user.  At the
 moment this triggers sparse errors, since the value is passed through an
@@ -21,30 +25,30 @@ Fix that up using __force.
 
 Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
 ---
- arch/metag/include/asm/uaccess.h | 4 ++--
+ arch/sparc/include/asm/uaccess_64.h | 4 ++--
  1 file changed, 2 insertions(+), 2 deletions(-)
 
-diff --git a/arch/metag/include/asm/uaccess.h b/arch/metag/include/asm/uaccess.h
-index 0748b0a..c314b45 100644
---- a/arch/metag/include/asm/uaccess.h
-+++ b/arch/metag/include/asm/uaccess.h
-@@ -135,7 +135,7 @@ extern long __get_user_bad(void);
- ({                                                              \
- 	long __gu_err, __gu_val;                                \
- 	__get_user_size(__gu_val, (ptr), (size), __gu_err);	\
--	(x) = (__typeof__(*(ptr)))__gu_val;                     \
-+	(x) = (__force __typeof__(*(ptr)))__gu_val;                     \
- 	__gu_err;                                               \
- })
+diff --git a/arch/sparc/include/asm/uaccess_64.h b/arch/sparc/include/asm/uaccess_64.h
+index c990a5e..b80866d 100644
+--- a/arch/sparc/include/asm/uaccess_64.h
++++ b/arch/sparc/include/asm/uaccess_64.h
+@@ -145,7 +145,7 @@ case 2: __get_user_asm(__gu_val,uh,addr,__gu_ret); break; \
+ case 4: __get_user_asm(__gu_val,uw,addr,__gu_ret); break; \
+ case 8: __get_user_asm(__gu_val,x,addr,__gu_ret); break; \
+ default: __gu_val = 0; __gu_ret = __get_user_bad(); break; \
+-} data = (type) __gu_val; __gu_ret; })
++} data = (__force type) __gu_val; __gu_ret; })
  
-@@ -145,7 +145,7 @@ extern long __get_user_bad(void);
- 	const __typeof__(*(ptr)) __user *__gu_addr = (ptr);		\
- 	if (access_ok(VERIFY_READ, __gu_addr, size))			\
- 		__get_user_size(__gu_val, __gu_addr, (size), __gu_err);	\
--	(x) = (__typeof__(*(ptr)))__gu_val;                             \
-+	(x) = (__force __typeof__(*(ptr)))__gu_val;                             \
- 	__gu_err;                                                       \
- })
+ #define __get_user_nocheck_ret(data,addr,size,type,retval) ({ \
+ register unsigned long __gu_val __asm__ ("l1"); \
+@@ -155,7 +155,7 @@ case 2: __get_user_asm_ret(__gu_val,uh,addr,retval); break; \
+ case 4: __get_user_asm_ret(__gu_val,uw,addr,retval); break; \
+ case 8: __get_user_asm_ret(__gu_val,x,addr,retval); break; \
+ default: if (__get_user_bad()) return retval; \
+-} data = (type) __gu_val; })
++} data = (__force type) __gu_val; })
  
+ #define __get_user_asm(x,size,addr,ret)					\
+ __asm__ __volatile__(							\
 -- 
 MST
