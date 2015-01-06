@@ -1,54 +1,70 @@
 From: "Michael S. Tsirkin" <mst@redhat.com>
-Subject: [PATCH v2 38/40] s390: macro whitespace fixes
-Date: Tue, 6 Jan 2015 17:45:38 +0200
-Message-ID: <1420558883-10131-39-git-send-email-mst@redhat.com>
+Subject: [PATCH v2 17/40] arm: fix put_user sparse errors
+Date: Tue, 6 Jan 2015 17:44:27 +0200
+Message-ID: <1420558883-10131-18-git-send-email-mst@redhat.com>
 References: <1420558883-10131-1-git-send-email-mst@redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:51446 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1756082AbbAFPpy (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 6 Jan 2015 10:45:54 -0500
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
 Content-Disposition: inline
 In-Reply-To: <1420558883-10131-1-git-send-email-mst@redhat.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
 To: linux-kernel@vger.kernel.org
-Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux390@de.ibm.com, linux-s390@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, Nicolas Pitre <nicolas.pitre@linaro.org>, Daniel Thompson <daniel.thompson@linaro.org>, Russell King <linux@arm.linux.org.uk>, Arnd Bergmann <arnd@arndb.de>, Victor Kamensky <victor.kamensky@linaro.org>, Andrey Ryabinin <a.ryabinin@samsung.com>, =?us-ascii?B?PT9VVEYtOD9xP1V3ZT0yMEtsZWluZS1LPUMzPUI2bmlnPz0=?= <u.kleine-koenig@pengutronix.de>, linux-arm-kernel@lists.infradead.org
+List-Id: linux-arch.vger.kernel.org
 
-While working on arch/s390/include/asm/uaccess.h, I noticed
-that a couple of macros within this header are made harder to read
-because they violate a coding style rule: space is missing after comma.
+virtio wants to write bitwise types to userspace using put_user.
+At the moment this triggers sparse errors, since the value is passed
+through an integer.
 
-Fix it up.
+For example:
+
+	__le32 __user *p;
+	__le32 x;
+	put_user(x, p);
+
+is safe, but currently triggers a sparse warning.
+
+Fix that up using __force.
+
+Note: this does not suppress any useful sparse checks since caller
+assigns x to typeof(*p), which in turn forces all the necessary type
+checks.
 
 Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
 ---
- arch/s390/include/asm/uaccess.h | 4 ++--
+ arch/arm/include/asm/uaccess.h | 4 ++--
  1 file changed, 2 insertions(+), 2 deletions(-)
 
-diff --git a/arch/s390/include/asm/uaccess.h b/arch/s390/include/asm/uaccess.h
-index cd4c68e..71b9c40 100644
---- a/arch/s390/include/asm/uaccess.h
-+++ b/arch/s390/include/asm/uaccess.h
-@@ -46,7 +46,7 @@
- 	__ctl_load(__pto, 7, 7);					\
+diff --git a/arch/arm/include/asm/uaccess.h b/arch/arm/include/asm/uaccess.h
+index 4767eb9..74fcde7 100644
+--- a/arch/arm/include/asm/uaccess.h
++++ b/arch/arm/include/asm/uaccess.h
+@@ -413,14 +413,14 @@ do {									\
+ #ifndef __ARMEB__
+ #define __put_user_asm_half(x,__pu_addr,err)			\
+ ({								\
+-	unsigned long __temp = (unsigned long)(x);		\
++	unsigned long __temp = (__force unsigned long)(x);	\
+ 	__put_user_asm_byte(__temp, __pu_addr, err);		\
+ 	__put_user_asm_byte(__temp >> 8, __pu_addr + 1, err);	\
  })
- 
--#define segment_eq(a,b) ((a).ar4 == (b).ar4)
-+#define segment_eq(a, b) ((a).ar4 == (b).ar4)
- 
- static inline int __range_ok(unsigned long addr, unsigned long size)
- {
-@@ -147,7 +147,7 @@ unsigned long __must_check __copy_to_user(void __user *to, const void *from,
- 		"3:	lhi	%0,%5\n"			\
- 		"	jg	2b\n"				\
- 		".popsection\n"					\
--		EX_TABLE(0b,3b) EX_TABLE(1b,3b)			\
-+		EX_TABLE(0b, 3b) EX_TABLE(1b, 3b)		\
- 		: "=d" (__rc), "=Q" (*(to))			\
- 		: "d" (size), "Q" (*(from)),			\
- 		  "d" (__reg0), "K" (-EFAULT)			\
+ #else
+ #define __put_user_asm_half(x,__pu_addr,err)			\
+ ({								\
+-	unsigned long __temp = (unsigned long)(x);		\
++	unsigned long __temp = (__force unsigned long)(x);	\
+ 	__put_user_asm_byte(__temp >> 8, __pu_addr, err);	\
+ 	__put_user_asm_byte(__temp, __pu_addr + 1, err);	\
+ })
 -- 
 MST
