@@ -1,36 +1,60 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.126.130]:52711 "EHLO
-	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751159AbbAFTJG (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 6 Jan 2015 14:09:06 -0500
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH v2 00/40] uaccess: fix sparse warning on get/put_user for bitwise types
-Date: Tue, 06 Jan 2015 20:08:57 +0100
-Message-ID: <4461163.Sc5FsMDTBa@wuerfel>
-In-Reply-To: <1420558883-10131-1-git-send-email-mst@redhat.com>
+Received: from foss-mx-na.foss.arm.com ([217.140.108.86]:56189 "EHLO
+	foss-mx-na.foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754154AbbAFTOm (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 6 Jan 2015 14:14:42 -0500
+Date: Tue, 6 Jan 2015 19:14:32 +0000
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [PATCH v2 03/40] arm64/uaccess: fix sparse errors
+Message-ID: <20150106191432.GC32449@arm.com>
 References: <1420558883-10131-1-git-send-email-mst@redhat.com>
+ <1420558883-10131-4-git-send-email-mst@redhat.com>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 7Bit
-Content-Type: text/plain; charset="us-ascii"
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1420558883-10131-4-git-send-email-mst@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: "Michael S. Tsirkin" <mst@redhat.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20150106190857.nOi_oJVN8DcgEGJ_IVGrb27Wzs8nSVaRxoc-6B7ECnU@z>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Catalin Marinas <Catalin.Marinas@arm.com>, Christopher Covington <cov@codeaurora.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
+Message-ID: <20150106191432.ZtFfLGOaZVnpF5IXCQvbSWmj-e7smUxSrzDkbSo1jxs@z>
 
-On Tuesday 06 January 2015 17:43:28 Michael S. Tsirkin wrote:
-> 
-> I tested this on x86 only. Since it's just adding __force, should be
-> trivially safe everywhere?
-> 
-> 
-> Arnd, did you merge v1 already? If yes, can you please replace with
-> this version?
-> 
+Hi Michael,
 
-I haven't merged it yet. I see that more Acks and some comments are
-coming in. Once those are done, could you send a pull request? It
-might be useful to have a branch that can be shared with architecture
-trees if necessary to avoid merge conflicts.
+On Tue, Jan 06, 2015 at 03:43:40PM +0000, Michael S. Tsirkin wrote:
+> virtio wants to read bitwise types from userspace using get_user.  At the
+> moment this triggers sparse errors, since the value is passed through an
+> integer.
+> 
+> Fix that up using __force.
+> 
+> Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
+> 
+> Acked-by: Will Deacon <will.deacon@arm.com>
+> ---
 
-	Arnd
+Did you want us to take this via the arm64 tree, or are you planning to
+merge it via another route?
+
+Will
+
+>  arch/arm64/include/asm/uaccess.h | 2 +-
+>  1 file changed, 1 insertion(+), 1 deletion(-)
+> 
+> diff --git a/arch/arm64/include/asm/uaccess.h b/arch/arm64/include/asm/uaccess.h
+> index 3bf8f4e..9a2069b 100644
+> --- a/arch/arm64/include/asm/uaccess.h
+> +++ b/arch/arm64/include/asm/uaccess.h
+> @@ -147,7 +147,7 @@ do {									\
+>  	default:							\
+>  		BUILD_BUG();						\
+>  	}								\
+> -	(x) = (__typeof__(*(ptr)))__gu_val;				\
+> +	(x) = (__force __typeof__(*(ptr)))__gu_val;			\
+>  } while (0)
+>  
+>  #define __get_user(x, ptr)						\
+> -- 
+> MST
+> 
+> 
