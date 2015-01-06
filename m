@@ -1,59 +1,84 @@
 From: "Michael S. Tsirkin" <mst@redhat.com>
-Subject: [PATCH v2 11/40] openrisc/uaccess: fix sparse errors
-Date: Tue, 6 Jan 2015 17:44:06 +0200
-Message-ID: <1420558883-10131-12-git-send-email-mst@redhat.com>
+Subject: [PATCH v2 20/40] metag: fix put_user sparse errors
+Date: Tue, 6 Jan 2015 17:44:38 +0200
+Message-ID: <1420558883-10131-21-git-send-email-mst@redhat.com>
 References: <1420558883-10131-1-git-send-email-mst@redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-bounces@lists.openrisc.net>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mx1.redhat.com ([209.132.183.28]:50935 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1755871AbbAFPot (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 6 Jan 2015 10:44:49 -0500
 Content-Disposition: inline
 In-Reply-To: <1420558883-10131-1-git-send-email-mst@redhat.com>
-List-Unsubscribe: <http://lists.openrisc.net/options/linux>,
-	<mailto:linux-request@lists.openrisc.net?subject=unsubscribe>
-List-Archive: <http://lists.openrisc.net/pipermail/linux>
-List-Post: <mailto:linux@lists.openrisc.net>
-List-Help: <mailto:linux-request@lists.openrisc.net?subject=help>
-List-Subscribe: <http://lists.openrisc.net/listinfo/linux>,
-	<mailto:linux-request@lists.openrisc.net?subject=subscribe>
-Sender: linux-bounces@lists.openrisc.net
-Errors-To: linux-bounces@lists.openrisc.net
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, linux@openrisc.net, Arnd Bergmann <arnd@arndb.de>
-List-Id: linux-arch.vger.kernel.org
+Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, James Hogan <james.hogan@imgtec.com>, linux-metag@vger.kernel.org
 
-virtio wants to read bitwise types from userspace using get_user.  At the
-moment this triggers sparse errors, since the value is passed through an
-integer.
+virtio wants to write bitwise types to userspace using put_user.
+At the moment this triggers sparse errors, since the value is passed
+through an integer.
+
+For example:
+
+	__le32 __user *p;
+	__le32 x;
+	put_user(x, p);
+
+is safe, but currently triggers a sparse warning.
 
 Fix that up using __force.
 
+This also fixes warnings due to writing a pointer out to
+userland.
+
+Note: this does not suppress any useful sparse checks since callers
+do a cast (__typeof__(*(ptr))) (x) which in turn forces all the
+necessary type checks.
+
+Suggested-by: James Hogan <james.hogan@imgtec.com>
 Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
 ---
- arch/openrisc/include/asm/uaccess.h | 4 ++--
- 1 file changed, 2 insertions(+), 2 deletions(-)
+ arch/metag/include/asm/uaccess.h | 21 +++++++++++++--------
+ 1 file changed, 13 insertions(+), 8 deletions(-)
 
-diff --git a/arch/openrisc/include/asm/uaccess.h b/arch/openrisc/include/asm/uaccess.h
-index ab2e7a1..a6bd07c 100644
---- a/arch/openrisc/include/asm/uaccess.h
-+++ b/arch/openrisc/include/asm/uaccess.h
-@@ -192,7 +192,7 @@ struct __large_struct {
- ({								\
- 	long __gu_err, __gu_val;				\
- 	__get_user_size(__gu_val, (ptr), (size), __gu_err);	\
--	(x) = (__typeof__(*(ptr)))__gu_val;			\
-+	(x) = (__force __typeof__(*(ptr)))__gu_val;		\
- 	__gu_err;						\
- })
+diff --git a/arch/metag/include/asm/uaccess.h b/arch/metag/include/asm/uaccess.h
+index c314b45..9627c19 100644
+--- a/arch/metag/include/asm/uaccess.h
++++ b/arch/metag/include/asm/uaccess.h
+@@ -107,18 +107,23 @@ extern long __put_user_asm_w(unsigned int x, void __user *addr);
+ extern long __put_user_asm_d(unsigned int x, void __user *addr);
+ extern long __put_user_asm_l(unsigned long long x, void __user *addr);
  
-@@ -202,7 +202,7 @@ struct __large_struct {
- 	const __typeof__(*(ptr)) * __gu_addr = (ptr);			\
- 	if (access_ok(VERIFY_READ, __gu_addr, size))			\
- 		__get_user_size(__gu_val, __gu_addr, (size), __gu_err);	\
--	(x) = (__typeof__(*(ptr)))__gu_val;				\
-+	(x) = (__force __typeof__(*(ptr)))__gu_val;			\
- 	__gu_err;							\
- })
- 
+-#define __put_user_size(x, ptr, size, retval)			\
+-do {                                                            \
+-	retval = 0;                                             \
+-	switch (size) {                                         \
++#define __put_user_size(x, ptr, size, retval)				\
++do {                                                            	\
++	retval = 0;                                             	\
++	switch (size) {                                         	\
+ 	case 1:								\
+-		retval = __put_user_asm_b((unsigned int)x, ptr); break;	\
++		retval = __put_user_asm_b((__force unsigned int)x, ptr);\
++		break;							\
+ 	case 2:								\
+-		retval = __put_user_asm_w((unsigned int)x, ptr); break;	\
++		retval = __put_user_asm_w((__force unsigned int)x, ptr);\
++		break;							\
+ 	case 4:								\
+-		retval = __put_user_asm_d((unsigned int)x, ptr); break;	\
++		retval = __put_user_asm_d((__force unsigned int)x, ptr);\
++		break;							\
+ 	case 8:								\
+-		retval = __put_user_asm_l((unsigned long long)x, ptr); break; \
++		retval = __put_user_asm_l((__force unsigned long long)x,\
++					  ptr);				\
++		break;							\
+ 	default:							\
+ 		__put_user_bad();					\
+ 	}								\
 -- 
 MST
