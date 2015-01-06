@@ -1,92 +1,31 @@
-From: Sam Ravnborg <sam@ravnborg.org>
-Subject: Re: [PATCH v2 26/40] arch/sparc: uaccess_64 macro whitespace fixes
-Date: Tue, 6 Jan 2015 19:27:49 +0100
-Message-ID: <20150106182749.GA19490@ravnborg.org>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH v2 00/40] uaccess: fix sparse warning on get/put_user for bitwise types
+Date: Tue, 06 Jan 2015 20:08:57 +0100
+Message-ID: <4461163.Sc5FsMDTBa@wuerfel>
 References: <1420558883-10131-1-git-send-email-mst@redhat.com>
- <1420558883-10131-27-git-send-email-mst@redhat.com>
- <20150106165339.GA11270@ravnborg.org>
- <20150106171902.GA11577@redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <sparclinux-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20150106171902.GA11577@redhat.com>
-Sender: sparclinux-owner@vger.kernel.org
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7Bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1420558883-10131-1-git-send-email-mst@redhat.com>
+Sender: linux-kernel-owner@vger.kernel.org
 To: "Michael S. Tsirkin" <mst@redhat.com>
-Cc: linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, "David S. Miller" <davem@davemloft.net>, sparclinux@vger.kernel.org
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Jan 06, 2015 at 07:19:02PM +0200, Michael S. Tsirkin wrote:
-> On Tue, Jan 06, 2015 at 05:53:39PM +0100, Sam Ravnborg wrote:
-> > On Tue, Jan 06, 2015 at 05:44:56PM +0200, Michael S. Tsirkin wrote:
-> > > Macros within arch/sparc/include/asm/uaccess_64.h are made harder to
-> > > read because they violate a bunch of coding style rules.
-> > > 
-> > > Fix it up.
-> > As per Davem's earlier mail please prefix using sparc32/sparc64.
+On Tuesday 06 January 2015 17:43:28 Michael S. Tsirkin wrote:
 > 
-> I did put in uaccess_64 - insufficient?
-sparc32: bla bla
-For sparc32 specific changes.
-
-sparc64: bla bla
-For sparc64 specific changes
-
-sparc: bla bla
-For general sparce changes
-
-
-In this case you could have used:
-sparc64: fix coding style in uaccess_64.h
-
-> 
-> > > -#define __put_user_nocheck(data,addr,size) ({ \
-> > > -register int __pu_ret; \
-> > > -switch (size) { \
-> > > -case 1: __put_user_asm(data,b,addr,__pu_ret); break; \
-> > > -case 2: __put_user_asm(data,h,addr,__pu_ret); break; \
-> > > -case 4: __put_user_asm(data,w,addr,__pu_ret); break; \
-> > > -case 8: __put_user_asm(data,x,addr,__pu_ret); break; \
-> > > -default: __pu_ret = __put_user_bad(); break; \
-> > > -} __pu_ret; })
-> > > -
-> > > -#define __put_user_asm(x,size,addr,ret)					\
-> > > +#define __put_user_nocheck(data, addr, size) ({ \
-> > > +	register int __pu_ret; \
-> > > +	switch (size) { \
-> > > +	case 1: \
-> > > +		__put_user_asm(data, b, addr, __pu_ret); \
-> > > +		break; \
-> > > +	case 2: \
-> > > +		__put_user_asm(data, h, addr, __pu_ret); \
-> > > +		break; \
-> > > +	case 4: \
-> > > +		__put_user_asm(data, w, addr, __pu_ret); \
-> > > +		break; \
-> > > +	case 8: \
-> > > +		__put_user_asm(data, x, addr, __pu_ret); \
-> > > +		break; \
-> > > +	default: \
-> > > +		__pu_ret = __put_user_bad(); \
-> > > +		break; \
-> > > +	} \
-> > > +	__pu_ret; \
-> > > +})
-> > 
-> > No matter what coding style says - the above is much less readable than the
-> > original version.
-> > 
-> > 
-> I guess you approve the rest of the changes then?
-I did not look to carefully - but what I saw looked good.
-
+> I tested this on x86 only. Since it's just adding __force, should be
+> trivially safe everywhere?
 > 
 > 
-> I get it you like it that 
-> 	case 1: __get_user_asm(__gu_val,ub,addr,__gu_ret); break;
-> has the whole case on the same line?
-> Is that the issue?
-Exactly - much easier to read this way.
-That the "\" was not aligned in these parts of the code did not help either.
+> Arnd, did you merge v1 already? If yes, can you please replace with
+> this version?
+> 
 
-	Sam
+I haven't merged it yet. I see that more Acks and some comments are
+coming in. Once those are done, could you send a pull request? It
+might be useful to have a branch that can be shared with architecture
+trees if necessary to avoid merge conflicts.
+
+	Arnd
