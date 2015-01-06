@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:51125 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:37783 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755887AbbAFPo4 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 6 Jan 2015 10:44:56 -0500
-Date: Tue, 6 Jan 2015 17:44:47 +0200
+	id S1755707AbbAFPoS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 6 Jan 2015 10:44:18 -0500
+Date: Tue, 6 Jan 2015 17:43:40 +0200
 From: "Michael S. Tsirkin" <mst@redhat.com>
-Subject: [PATCH v2 23/40] tile: enable sparse checks for get/put_user
-Message-ID: <1420558883-10131-24-git-send-email-mst@redhat.com>
+Subject: [PATCH v2 03/40] arm64/uaccess: fix sparse errors
+Message-ID: <1420558883-10131-4-git-send-email-mst@redhat.com>
 References: <1420558883-10131-1-git-send-email-mst@redhat.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
@@ -15,50 +15,35 @@ In-Reply-To: <1420558883-10131-1-git-send-email-mst@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Chris Metcalf <cmetcalf@ezchip.com>
-Message-ID: <20150106154447.0qQQSvgJllSyAwffWGgDGP2bgIfJIBjdeP-WPGy10nw@z>
+Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Will Deacon <will.deacon@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Christopher Covington <cov@codeaurora.org>, linux-arm-kernel@lists.infradead.org
+Message-ID: <20150106154340.m4Rcs1tOU4kj79nt8sb6REHo7NwfSHVhNc4XP4EzVXU@z>
 
-Tile currently does not trigger sparse warnings when get_user
-causes an illegal assignment across bitwise types.
+virtio wants to read bitwise types from userspace using get_user.  At the
+moment this triggers sparse errors, since the value is passed through an
+integer.
 
-For example:
-
-__le32 __user *p;
-__u32 x;
-put_user(x, p);
-
-violates endian-ness rules, but currently does not trigger sparse
-warning on tile.
-
-Fix this by adding some dead code.
+Fix that up using __force.
 
 Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
----
- arch/tile/include/asm/uaccess.h | 4 ++++
- 1 file changed, 4 insertions(+)
 
-diff --git a/arch/tile/include/asm/uaccess.h b/arch/tile/include/asm/uaccess.h
-index 22cffa1..03d905c 100644
---- a/arch/tile/include/asm/uaccess.h
-+++ b/arch/tile/include/asm/uaccess.h
-@@ -218,6 +218,8 @@ extern int __get_user_bad(void)
- 		case 8: __get_user_8(x, ptr, __ret); break;		\
- 		default: __ret = __get_user_bad(); break;		\
- 		}							\
-+		if (0)							\
-+			x = *(__force typeof(*ptr) *)(ptr);		\
- 		__ret;							\
- 	})
- 
-@@ -297,6 +299,8 @@ extern int __put_user_bad(void)
- 	case 8: __put_user_8(x, ptr, __ret); break;			\
- 	default: __ret = __put_user_bad(); break;			\
+Acked-by: Will Deacon <will.deacon@arm.com>
+---
+ arch/arm64/include/asm/uaccess.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/arch/arm64/include/asm/uaccess.h b/arch/arm64/include/asm/uaccess.h
+index 3bf8f4e..9a2069b 100644
+--- a/arch/arm64/include/asm/uaccess.h
++++ b/arch/arm64/include/asm/uaccess.h
+@@ -147,7 +147,7 @@ do {									\
+ 	default:							\
+ 		BUILD_BUG();						\
  	}								\
-+	if (0)								\
-+		*(__force typeof(*ptr) *)(ptr) = x;			\
- 	__ret;								\
- })
+-	(x) = (__typeof__(*(ptr)))__gu_val;				\
++	(x) = (__force __typeof__(*(ptr)))__gu_val;			\
+ } while (0)
  
+ #define __get_user(x, ptr)						\
 -- 
 MST
 
