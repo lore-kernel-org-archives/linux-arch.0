@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtprelay4.synopsys.com ([198.182.47.9]:40482 "EHLO
+Received: from smtprelay4.synopsys.com ([198.182.47.9]:40481 "EHLO
 	smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754517AbbAFN6r (ORCPT
+	with ESMTP id S1755250AbbAFN6r (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>); Tue, 6 Jan 2015 08:58:47 -0500
 From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: [PATCH 2/5] perf tools: [uclibc] Elide strlcpy warning
-Date: Tue, 6 Jan 2015 19:22:12 +0530
-Message-ID: <1420552335-26886-3-git-send-email-vgupta@synopsys.com>
+Subject: [PATCH 5/5] perf tools: [uclibc] provide stub for pthread_attr_setaffinity_np
+Date: Tue, 6 Jan 2015 19:22:15 +0530
+Message-ID: <1420552335-26886-6-git-send-email-vgupta@synopsys.com>
 In-Reply-To: <1420552335-26886-1-git-send-email-vgupta@synopsys.com>
 References: <1420552335-26886-1-git-send-email-vgupta@synopsys.com>
 MIME-Version: 1.0
@@ -15,42 +15,130 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: acme@redhat.com, peterz@infradead.org
 Cc: jolsa@kernel.org, mingo@kernel.org, linux-kernel@vger.kernel.org, linux-perf-users@vger.kernel.org, bp@suse.de, linux-arch@vger.kernel.org, Alexey.Brodkin@synopsys.com, Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Message-ID: <20150106135212.Vlcje2HZLmucbkae6biEgvZnQJ3KJDEMQp8A_v9Hyg4@z>
+Message-ID: <20150106135215.xUvi4HdO6llm_KKBZTpZSWFcSvI3KOIApk3C9rSTswQ@z>
 
------------------>8------------------
-  CC       bench/sched-pipe.o
-In file included from builtin-annotate.c:13:0:
-util/cache.h:76:15: warning: redundant redeclaration of 'strlcpy'
-[-Wredundant-decls]
- extern size_t strlcpy(char *dest, const char *src, size_t size);
-               ^
-In file included from util/util.h:55:0,
-                 from builtin.h:4,
-                 from builtin-annotate.c:8:
-~/vineetg/arc/gnu/INSTALL_1412-arc-2014.12-rc1/arc-snps-linux-uclibc/sysroot/usr/include/string.h:396:15:
-note: previous declaration of 'strlcpy' was here
- extern size_t strlcpy(char *__restrict dst, const char *__restrict src,
------------------>8------------------
+uClibc Linuxthreads.old doesnt support pthread_attr_setaffinity_np()
+call
+
+----------------->8-----------------------
+  CC       bench/futex-hash.o
+  CC       bench/futex-wake.o
+bench/futex-hash.c: In function 'bench_futex_hash':
+bench/futex-hash.c:161:3: error: implicit declaration of function
+'pthread_attr_setaffinity_np' [-Werror=implicit-function-declaration]
+   ret = pthread_attr_setaffinity_np(&thread_attr, sizeof(cpu_set_t),
+&cpu);
+   ^
+bench/futex-hash.c:161:3: error: nested extern declaration of
+'pthread_attr_setaffinity_np' [-Werror=nested-externs]
+----------------->8-----------------------
 
 Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
 ---
- tools/perf/util/cache.h | 2 ++
- 1 file changed, 2 insertions(+)
+ tools/perf/bench/futex.h                    | 13 +++++++++++++
+ tools/perf/config/Makefile                  |  6 ++++++
+ tools/perf/config/feature-checks/Makefile   |  4 ++++
+ tools/perf/config/feature-checks/test-all.c |  5 +++++
+ 4 files changed, 28 insertions(+)
 
-diff --git a/tools/perf/util/cache.h b/tools/perf/util/cache.h
-index 5cf9e1b5989d..d04d770d90f6 100644
---- a/tools/perf/util/cache.h
-+++ b/tools/perf/util/cache.h
-@@ -71,7 +71,9 @@ extern char *perf_path(const char *fmt, ...) __attribute__((format (printf, 1, 2
- extern char *perf_pathdup(const char *fmt, ...)
- 	__attribute__((format (printf, 1, 2)));
+diff --git a/tools/perf/bench/futex.h b/tools/perf/bench/futex.h
+index 71f2844cf97f..7ed22ff1e1ac 100644
+--- a/tools/perf/bench/futex.h
++++ b/tools/perf/bench/futex.h
+@@ -68,4 +68,17 @@ futex_cmp_requeue(u_int32_t *uaddr, u_int32_t val, u_int32_t *uaddr2, int nr_wak
+ 		 val, opflags);
+ }
  
-+#ifndef __UCLIBC__
- /* Matches the libc/libbsd function attribute so we declare this unconditionally: */
- extern size_t strlcpy(char *dest, const char *src, size_t size);
++#ifndef HAVE_PTHREAD_ATTR_SETAFFINITY_NP
++#include <pthread.h>
++static inline int pthread_attr_setaffinity_np(pthread_attr_t *attr,
++					      size_t cpusetsize,
++					      cpu_set_t *cpuset)
++{
++	attr = attr;
++	cpusetsize = cpusetsize;
++	cpuset = cpuset;
++	return 0;
++}
 +#endif
++
+ #endif /* _FUTEX_H */
+diff --git a/tools/perf/config/Makefile b/tools/perf/config/Makefile
+index 5d4b039fe1ed..6b59662136fa 100644
+--- a/tools/perf/config/Makefile
++++ b/tools/perf/config/Makefile
+@@ -198,6 +198,7 @@ CORE_FEATURE_TESTS =			\
+ 	libpython-version		\
+ 	libslang			\
+ 	libunwind			\
++	pthread-attr-setaffinity-np	\
+ 	stackprotector-all		\
+ 	timerfd				\
+ 	libdw-dwarf-unwind		\
+@@ -226,6 +227,7 @@ VF_FEATURE_TESTS =			\
+ 	libelf-getphdrnum		\
+ 	libelf-mmap			\
+ 	libpython-version		\
++	pthread-attr-setaffinity-np	\
+ 	stackprotector-all		\
+ 	timerfd				\
+ 	libunwind-debug-frame		\
+@@ -301,6 +303,10 @@ ifeq ($(feature-sync-compare-and-swap), 1)
+   CFLAGS += -DHAVE_SYNC_COMPARE_AND_SWAP_SUPPORT
+ endif
  
- #endif /* __PERF_CACHE_H */
++ifeq ($(feature-pthread-attr-setaffinity-np), 1)
++  CFLAGS += -DHAVE_PTHREAD_ATTR_SETAFFINITY_NP
++endif
++
+ ifndef NO_BIONIC
+   $(call feature_check,bionic)
+   ifeq ($(feature-bionic), 1)
+diff --git a/tools/perf/config/feature-checks/Makefile b/tools/perf/config/feature-checks/Makefile
+index 53f19b5dbc37..e9b99bb29348 100644
+--- a/tools/perf/config/feature-checks/Makefile
++++ b/tools/perf/config/feature-checks/Makefile
+@@ -25,6 +25,7 @@ FILES=					\
+ 	test-libslang.bin		\
+ 	test-libunwind.bin		\
+ 	test-libunwind-debug-frame.bin	\
++	test-pthread-attr-setaffinity-np.bin	\
+ 	test-stackprotector-all.bin	\
+ 	test-timerfd.bin		\
+ 	test-libdw-dwarf-unwind.bin	\
+@@ -47,6 +48,9 @@ test-all.bin:
+ test-hello.bin:
+ 	$(BUILD)
+ 
++test-pthread-attr-setaffinity-np.bin:
++	$(BUILD) -Werror
++
+ test-stackprotector-all.bin:
+ 	$(BUILD) -Werror -fstack-protector-all
+ 
+diff --git a/tools/perf/config/feature-checks/test-all.c b/tools/perf/config/feature-checks/test-all.c
+index 652e0098eba6..6d4d09323922 100644
+--- a/tools/perf/config/feature-checks/test-all.c
++++ b/tools/perf/config/feature-checks/test-all.c
+@@ -97,6 +97,10 @@
+ # include "test-zlib.c"
+ #undef main
+ 
++#define main main_test_pthread_attr_setaffinity_np
++# include "test-pthread_attr_setaffinity_np.c"
++#undef main
++
+ int main(int argc, char *argv[])
+ {
+ 	main_test_libpython();
+@@ -121,6 +125,7 @@ int main(int argc, char *argv[])
+ 	main_test_libdw_dwarf_unwind();
+ 	main_test_sync_compare_and_swap(argc, argv);
+ 	main_test_zlib();
++	main_test_pthread_attr_setaffinity_np();
+ 
+ 	return 0;
+ }
 -- 
 1.9.1
 
