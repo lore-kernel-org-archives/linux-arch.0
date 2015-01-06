@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:50848 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:36116 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755741AbbAFPoW (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	id S1755733AbbAFPoW (ORCPT <rfc822;linux-arch@vger.kernel.org>);
 	Tue, 6 Jan 2015 10:44:22 -0500
-Date: Tue, 6 Jan 2015 17:44:06 +0200
+Date: Tue, 6 Jan 2015 17:44:14 +0200
 From: "Michael S. Tsirkin" <mst@redhat.com>
-Subject: [PATCH v2 11/40] openrisc/uaccess: fix sparse errors
-Message-ID: <1420558883-10131-12-git-send-email-mst@redhat.com>
+Subject: [PATCH v2 13/40] sh/uaccess: fix sparse errors
+Message-ID: <1420558883-10131-14-git-send-email-mst@redhat.com>
 References: <1420558883-10131-1-git-send-email-mst@redhat.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
@@ -15,8 +15,8 @@ In-Reply-To: <1420558883-10131-1-git-send-email-mst@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Jonas Bonn <jonas@southpole.se>, linux@openrisc.net
-Message-ID: <20150106154406.JJV379W9ixNY2vTkNlc1oMKseyRUFvrGOpqgLZA93GY@z>
+Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-sh@vger.kernel.org
+Message-ID: <20150106154414.oAlO3ofeaK9aNTZtkBgiMqBSgUi6UkPREKVr1pNIC64@z>
 
 virtio wants to read bitwise types from userspace using get_user.  At the
 moment this triggers sparse errors, since the value is passed through an
@@ -26,25 +26,25 @@ Fix that up using __force.
 
 Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
 ---
- arch/openrisc/include/asm/uaccess.h | 4 ++--
+ arch/sh/include/asm/uaccess.h | 4 ++--
  1 file changed, 2 insertions(+), 2 deletions(-)
 
-diff --git a/arch/openrisc/include/asm/uaccess.h b/arch/openrisc/include/asm/uaccess.h
-index ab2e7a1..a6bd07c 100644
---- a/arch/openrisc/include/asm/uaccess.h
-+++ b/arch/openrisc/include/asm/uaccess.h
-@@ -192,7 +192,7 @@ struct __large_struct {
- ({								\
- 	long __gu_err, __gu_val;				\
- 	__get_user_size(__gu_val, (ptr), (size), __gu_err);	\
+diff --git a/arch/sh/include/asm/uaccess.h b/arch/sh/include/asm/uaccess.h
+index 9486376..a49635c 100644
+--- a/arch/sh/include/asm/uaccess.h
++++ b/arch/sh/include/asm/uaccess.h
+@@ -60,7 +60,7 @@ struct __large_struct { unsigned long buf[100]; };
+ 	const __typeof__(*(ptr)) __user *__gu_addr = (ptr);	\
+ 	__chk_user_ptr(ptr);					\
+ 	__get_user_size(__gu_val, __gu_addr, (size), __gu_err);	\
 -	(x) = (__typeof__(*(ptr)))__gu_val;			\
 +	(x) = (__force __typeof__(*(ptr)))__gu_val;		\
  	__gu_err;						\
  })
  
-@@ -202,7 +202,7 @@ struct __large_struct {
- 	const __typeof__(*(ptr)) * __gu_addr = (ptr);			\
- 	if (access_ok(VERIFY_READ, __gu_addr, size))			\
+@@ -71,7 +71,7 @@ struct __large_struct { unsigned long buf[100]; };
+ 	const __typeof__(*(ptr)) *__gu_addr = (ptr);			\
+ 	if (likely(access_ok(VERIFY_READ, __gu_addr, (size))))		\
  		__get_user_size(__gu_val, __gu_addr, (size), __gu_err);	\
 -	(x) = (__typeof__(*(ptr)))__gu_val;				\
 +	(x) = (__force __typeof__(*(ptr)))__gu_val;			\
