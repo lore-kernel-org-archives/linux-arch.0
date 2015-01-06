@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtprelay2.synopsys.com ([198.182.60.111]:52846 "EHLO
+Received: from us01smtprelay-2.synopsys.com ([198.182.60.111]:52850 "EHLO
 	smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755582AbbAFNwr (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 6 Jan 2015 08:52:47 -0500
+	with ESMTP id S1755430AbbAFNxC (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 6 Jan 2015 08:53:02 -0500
 From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: [PATCH 1/5] perf tools: [uclibc] fix statfs.f_type data type mismatch build error
-Date: Tue, 6 Jan 2015 19:22:11 +0530
-Message-ID: <1420552335-26886-2-git-send-email-vgupta@synopsys.com>
+Subject: [PATCH 3/5] perf tools: [uclibc] Avoid build splat for syscall numbers
+Date: Tue, 6 Jan 2015 19:22:13 +0530
+Message-ID: <1420552335-26886-4-git-send-email-vgupta@synopsys.com>
 In-Reply-To: <1420552335-26886-1-git-send-email-vgupta@synopsys.com>
 References: <1420552335-26886-1-git-send-email-vgupta@synopsys.com>
 MIME-Version: 1.0
@@ -14,77 +14,92 @@ Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: acme@redhat.com, peterz@infradead.org
-Cc: jolsa@kernel.org, mingo@kernel.org, linux-kernel@vger.kernel.org, linux-perf-users@vger.kernel.org, bp@suse.de, linux-arch@vger.kernel.org, Alexey.Brodkin@synopsys.com, Cody P Schafer <dev@codyps.com>, Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Message-ID: <20150106135211.FLtUkPFQmP9-VP8ZEoT_bw2K2RUpdXSheEJIj0JaL28@z>
+Cc: jolsa@kernel.org, mingo@kernel.org, linux-kernel@vger.kernel.org, linux-perf-users@vger.kernel.org, bp@suse.de, linux-arch@vger.kernel.org, Alexey.Brodkin@synopsys.com, Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Message-ID: <20150106135213.KlTNIPJYNNoFopDjEdaSmHU7_nSm43A57u-OvXuq7zw@z>
 
-From: Alexey Brodkin <abrodkin@synopsys.com>
+This is due to duplicated unistd inclusion (via uClibc headers + kernel headers)
+Also seen on ARM uClibc based tools
 
-ARC Linux uses the no legacy syscalls abi and corresponding uClibc headers
-statfs defines f_type to be U32 which causes perf build breakage
+------- ARC build ---------->8-------------
 
-http://git.uclibc.org/uClibc/tree/libc/sysdeps/linux/common-generic/bits/statfs.h
+  CC       util/evlist.o
+In file included from
+~/arc/k.org/arch/arc/include/uapi/asm/unistd.h:25:0,
+                 from util/../perf-sys.h:10,
+                 from util/../perf.h:15,
+                 from util/event.h:7,
+                 from util/event.c:3:
+~/arc/k.org/include/uapi/asm-generic/unistd.h:906:0:
+warning: "__NR_fcntl64" redefined [enabled by default]
+ #define __NR_fcntl64 __NR3264_fcntl
+ ^
+In file included from
+~/arc/gnu/INSTALL_1412-arc-2014.12-rc1/arc-snps-linux-uclibc/sysroot/usr/include/sys/syscall.h:24:0,
+                 from util/../perf-sys.h:6,
+----------------->8-------------------
 
------------>8---------------
-  CC       fs/fs.o
-fs/fs.c: In function 'fs__valid_mount':
-fs/fs.c:82:24: error: comparison between signed and unsigned integer
-expressions [-Werror=sign-compare]
-  else if (st_fs.f_type != magic)
-                        ^
-cc1: all warnings being treated as errors
------------>8---------------
+------- ARM build ---------->8-------------
 
-Cc: Borislav Petkov <bp@suse.de>
-Cc: Jiri Olsa <jolsa@kernel.org>
-Cc: Cody P Schafer <dev@codyps.com>
-Cc: Arnaldo Carvalho de Melo <acme@redhat.com>
-Cc: linux-perf-users@vger.kernel.org
-Cc: linux-kernel@vger.kernel.org
-Signed-off-by: Alexey Brodkin <abrodkin@synopsys.com>
-
----
-v3: Changes since v2 [2]
- * Made Changelog a bit more concise, no code changes [vgupta]
-
-v2: Changes since v1 [1]
- * Added type cast to DEBUGFS_MAGIC in "debugfs.c" [Arnaldo]
- * Added verbose explanation of root cause
-
-[2] https://lkml.org/lkml/2014/9/16/296
-[1] https://lkml.org/lkml/2014/8/13/529
+  CC FPIC  plugin_scsi.o
+In file included from util/../perf-sys.h:9:0,
+                 from util/../perf.h:15,
+                 from util/cache.h:7,
+                 from perf.c:12:
+~/arc/k.org/arch/arm/include/uapi/asm/unistd.h:28:0:
+warning: "__NR_restart_syscall" redefined [enabled by default]
+In file included from
+~/buildroot/host/usr/arm-buildroot-linux-uclibcgnueabi/sysroot/usr/include/sys/syscall.h:25:0,
+                 from util/../perf-sys.h:6,
+                 from util/../perf.h:15,
+                 from util/cache.h:7,
+                 from perf.c:12:
+~/buildroot/host/usr/arm-buildroot-linux-uclibcgnueabi/sysroot/usr/include/bits/sysnum.h:17:0:
+note: this is the location of the previous definition
+----------------->8-------------------
 
 Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
 ---
- tools/lib/api/fs/debugfs.c | 2 +-
- tools/lib/api/fs/fs.c      | 2 +-
- 2 files changed, 2 insertions(+), 2 deletions(-)
+ tools/perf/bench/sched-pipe.c | 1 -
+ tools/perf/builtin-top.c      | 1 -
+ tools/perf/perf-sys.h         | 1 -
+ 3 files changed, 3 deletions(-)
 
-diff --git a/tools/lib/api/fs/debugfs.c b/tools/lib/api/fs/debugfs.c
-index a74fba6d7743..93aa4cd2416f 100644
---- a/tools/lib/api/fs/debugfs.c
-+++ b/tools/lib/api/fs/debugfs.c
-@@ -67,7 +67,7 @@ int debugfs_valid_mountpoint(const char *debugfs)
+diff --git a/tools/perf/bench/sched-pipe.c b/tools/perf/bench/sched-pipe.c
+index 07a8d7646a15..59b1af5b9447 100644
+--- a/tools/perf/bench/sched-pipe.c
++++ b/tools/perf/bench/sched-pipe.c
+@@ -19,7 +19,6 @@
+ #include <stdlib.h>
+ #include <signal.h>
+ #include <sys/wait.h>
+-#include <linux/unistd.h>
+ #include <string.h>
+ #include <errno.h>
+ #include <assert.h>
+diff --git a/tools/perf/builtin-top.c b/tools/perf/builtin-top.c
+index 0aa7747ff139..233ffff1b31b 100644
+--- a/tools/perf/builtin-top.c
++++ b/tools/perf/builtin-top.c
+@@ -66,7 +66,6 @@
+ #include <sys/utsname.h>
+ #include <sys/mman.h>
  
- 	if (statfs(debugfs, &st_fs) < 0)
- 		return -ENOENT;
--	else if (st_fs.f_type != (long) DEBUGFS_MAGIC)
-+	else if ((long) st_fs.f_type != (long) DEBUGFS_MAGIC)
- 		return -ENOENT;
+-#include <linux/unistd.h>
+ #include <linux/types.h>
  
- 	return 0;
-diff --git a/tools/lib/api/fs/fs.c b/tools/lib/api/fs/fs.c
-index 65d9be3f9887..15e64921ea84 100644
---- a/tools/lib/api/fs/fs.c
-+++ b/tools/lib/api/fs/fs.c
-@@ -79,7 +79,7 @@ static int fs__valid_mount(const char *fs, long magic)
+ static volatile int done;
+diff --git a/tools/perf/perf-sys.h b/tools/perf/perf-sys.h
+index 3183809ff6d9..7b7cb7396b69 100644
+--- a/tools/perf/perf-sys.h
++++ b/tools/perf/perf-sys.h
+@@ -6,7 +6,6 @@
+ #include <sys/syscall.h>
+ #include <linux/types.h>
+ #include <linux/perf_event.h>
+-#include <asm/unistd.h>
  
- 	if (statfs(fs, &st_fs) < 0)
- 		return -ENOENT;
--	else if (st_fs.f_type != magic)
-+	else if ((long) st_fs.f_type != magic)
- 		return -ENOENT;
- 
- 	return 0;
+ #if defined(__i386__)
+ #define mb()		asm volatile("lock; addl $0,0(%%esp)" ::: "memory")
 -- 
 1.9.1
 
