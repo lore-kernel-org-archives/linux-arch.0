@@ -1,263 +1,433 @@
 From: "Michael S. Tsirkin" <mst@redhat.com>
-Subject: [PATCH v2 29/40] alpha: macro whitespace fixes
-Date: Tue, 6 Jan 2015 17:45:06 +0200
-Message-ID: <1420558883-10131-30-git-send-email-mst@redhat.com>
+Subject: [PATCH v2 25/40] arch/sparc: uaccess_32 macro whitespace fixes
+Date: Tue, 6 Jan 2015 17:44:53 +0200
+Message-ID: <1420558883-10131-26-git-send-email-mst@redhat.com>
 References: <1420558883-10131-1-git-send-email-mst@redhat.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-alpha-owner@vger.kernel.org>
+Return-path: <sparclinux-owner@vger.kernel.org>
 Content-Disposition: inline
 In-Reply-To: <1420558883-10131-1-git-send-email-mst@redhat.com>
-Sender: linux-alpha-owner@vger.kernel.org
+Sender: sparclinux-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
-Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, linux-alpha@vger.kernel.org
+Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, "David S. Miller" <davem@davemloft.net>, Sam Ravnborg <sam@ravnborg.org>, sparclinux@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-While working on arch/alpha/include/asm/uaccess.h, I noticed
-that some macros within this header are made harder to read because they
-violate a coding style rule: space is missing after comma.
+Macros within arch/sparc/include/asm/uaccess_32.h are made harder to
+read because they violate a bunch of coding style rules.
 
 Fix it up.
 
 Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
 ---
- arch/alpha/include/asm/uaccess.h | 82 ++++++++++++++++++++--------------------
- 1 file changed, 41 insertions(+), 41 deletions(-)
+ arch/sparc/include/asm/uaccess_32.h | 364 ++++++++++++++++++++++--------------
+ 1 file changed, 226 insertions(+), 138 deletions(-)
 
-diff --git a/arch/alpha/include/asm/uaccess.h b/arch/alpha/include/asm/uaccess.h
-index a234de7..9b0d400 100644
---- a/arch/alpha/include/asm/uaccess.h
-+++ b/arch/alpha/include/asm/uaccess.h
-@@ -27,7 +27,7 @@
- #define get_ds()  (KERNEL_DS)
- #define set_fs(x) (current_thread_info()->addr_limit = (x))
+diff --git a/arch/sparc/include/asm/uaccess_32.h b/arch/sparc/include/asm/uaccess_32.h
+index 8b571a0..03230cb 100644
+--- a/arch/sparc/include/asm/uaccess_32.h
++++ b/arch/sparc/include/asm/uaccess_32.h
+@@ -37,7 +37,7 @@
+ #define get_fs()	(current->thread.current_ds)
+ #define set_fs(val)	((current->thread.current_ds) = (val))
  
 -#define segment_eq(a,b)	((a).seg == (b).seg)
-+#define segment_eq(a, b)	((a).seg == (b).seg)
++#define segment_eq(a, b) ((a).seg == (b).seg)
+ 
+ /* We have there a nice not-mapped page at PAGE_OFFSET - PAGE_SIZE, so that this test
+  * can be fairly lightweight.
+@@ -46,8 +46,8 @@
+  */
+ #define __user_ok(addr, size) ({ (void)(size); (addr) < STACK_TOP; })
+ #define __kernel_ok (segment_eq(get_fs(), KERNEL_DS))
+-#define __access_ok(addr,size) (__user_ok((addr) & get_fs().seg,(size)))
+-#define access_ok(type, addr, size)					\
++#define __access_ok(addr, size) (__user_ok((addr) & get_fs().seg, (size)))
++#define access_ok(type, addr, size) \
+ 	({ (void)(type); __access_ok((unsigned long)(addr), size); })
  
  /*
-  * Is a address valid? This does a straightforward calculation rather
-@@ -39,13 +39,13 @@
-  *  - AND "addr+size" doesn't have any high-bits set
-  *  - OR we are in kernel mode.
+@@ -91,158 +91,246 @@ void __ret_efault(void);
+  * of a performance impact. Thus we have a few rather ugly macros here,
+  * and hide all the ugliness from the user.
   */
--#define __access_ok(addr,size,segment) \
-+#define __access_ok(addr, size, segment) \
- 	(((segment).seg & (addr | size | (addr+size))) == 0)
- 
--#define access_ok(type,addr,size)				\
-+#define access_ok(type, addr, size)				\
- ({								\
- 	__chk_user_ptr(addr);					\
--	__access_ok(((unsigned long)(addr)),(size),get_fs());	\
-+	__access_ok(((unsigned long)(addr)), (size), get_fs());	\
- })
- 
- /*
-@@ -60,20 +60,20 @@
-  * (a) re-use the arguments for side effects (sizeof/typeof is ok)
-  * (b) require any knowledge of processes at this stage
-  */
--#define put_user(x,ptr) \
--  __put_user_check((__typeof__(*(ptr)))(x),(ptr),sizeof(*(ptr)),get_fs())
--#define get_user(x,ptr) \
--  __get_user_check((x),(ptr),sizeof(*(ptr)),get_fs())
-+#define put_user(x, ptr) \
-+  __put_user_check((__typeof__(*(ptr)))(x), (ptr), sizeof(*(ptr)), get_fs())
-+#define get_user(x, ptr) \
-+  __get_user_check((x), (ptr), sizeof(*(ptr)), get_fs())
+-#define put_user(x,ptr) ({ \
+-unsigned long __pu_addr = (unsigned long)(ptr); \
+-__chk_user_ptr(ptr); \
+-__put_user_check((__typeof__(*(ptr)))(x),__pu_addr,sizeof(*(ptr))); })
+-
+-#define get_user(x,ptr) ({ \
+-unsigned long __gu_addr = (unsigned long)(ptr); \
+-__chk_user_ptr(ptr); \
+-__get_user_check((x),__gu_addr,sizeof(*(ptr)),__typeof__(*(ptr))); })
++#define put_user(x, ptr) ({ \
++	unsigned long __pu_addr = (unsigned long)(ptr); \
++	__chk_user_ptr(ptr); \
++	__put_user_check((__typeof__(*(ptr)))(x), __pu_addr, sizeof(*(ptr))); \
++})
++
++#define get_user(x, ptr) ({ \
++	unsigned long __gu_addr = (unsigned long)(ptr); \
++	__chk_user_ptr(ptr); \
++	__get_user_check((x), __gu_addr, sizeof(*(ptr)), __typeof__(*(ptr))); \
++})
  
  /*
   * The "__xxx" versions do not do address space checking, useful when
-  * doing multiple accesses to the same area (the programmer has to do the
+  * doing multiple accesses to the same area (the user has to do the
   * checks by hand with "access_ok()")
   */
--#define __put_user(x,ptr) \
--  __put_user_nocheck((__typeof__(*(ptr)))(x),(ptr),sizeof(*(ptr)))
--#define __get_user(x,ptr) \
--  __get_user_nocheck((x),(ptr),sizeof(*(ptr)))
+-#define __put_user(x,ptr) __put_user_nocheck((__typeof__(*(ptr)))(x),(ptr),sizeof(*(ptr)))
+-#define __get_user(x,ptr) __get_user_nocheck((x),(ptr),sizeof(*(ptr)),__typeof__(*(ptr)))
 +#define __put_user(x, ptr) \
-+  __put_user_nocheck((__typeof__(*(ptr)))(x), (ptr), sizeof(*(ptr)))
++	__put_user_nocheck((__typeof__(*(ptr)))(x), (ptr), sizeof(*(ptr)))
 +#define __get_user(x, ptr) \
-+  __get_user_nocheck((x), (ptr), sizeof(*(ptr)))
-   
- /*
-  * The "lda %1, 2b-1b(%0)" bits are magic to get the assembler to
-@@ -84,7 +84,7 @@
++    __get_user_nocheck((x), (ptr), sizeof(*(ptr)), __typeof__(*(ptr)))
  
- extern void __get_user_unknown(void);
+ struct __large_struct { unsigned long buf[100]; };
+ #define __m(x) ((struct __large_struct __user *)(x))
  
--#define __get_user_nocheck(x,ptr,size)				\
-+#define __get_user_nocheck(x, ptr, size)			\
- ({								\
- 	long __gu_err = 0;					\
- 	unsigned long __gu_val;					\
-@@ -100,12 +100,12 @@ extern void __get_user_unknown(void);
- 	__gu_err;						\
- })
+-#define __put_user_check(x,addr,size) ({ \
+-register int __pu_ret; \
+-if (__access_ok(addr,size)) { \
+-switch (size) { \
+-case 1: __put_user_asm(x,b,addr,__pu_ret); break; \
+-case 2: __put_user_asm(x,h,addr,__pu_ret); break; \
+-case 4: __put_user_asm(x,,addr,__pu_ret); break; \
+-case 8: __put_user_asm(x,d,addr,__pu_ret); break; \
+-default: __pu_ret = __put_user_bad(); break; \
+-} } else { __pu_ret = -EFAULT; } __pu_ret; })
+-
+-#define __put_user_nocheck(x,addr,size) ({ \
+-register int __pu_ret; \
+-switch (size) { \
+-case 1: __put_user_asm(x,b,addr,__pu_ret); break; \
+-case 2: __put_user_asm(x,h,addr,__pu_ret); break; \
+-case 4: __put_user_asm(x,,addr,__pu_ret); break; \
+-case 8: __put_user_asm(x,d,addr,__pu_ret); break; \
+-default: __pu_ret = __put_user_bad(); break; \
+-} __pu_ret; })
+-
+-#define __put_user_asm(x,size,addr,ret)					\
++#define __put_user_check(x, addr, size) ({ \
++	register int __pu_ret; \
++	if (__access_ok(addr, size)) { \
++		switch (size) { \
++		case 1: \
++			__put_user_asm(x, b, addr, __pu_ret); \
++			break; \
++		case 2: \
++			__put_user_asm(x, h, addr, __pu_ret); \
++			break; \
++		case 4: \
++			__put_user_asm(x, , addr, __pu_ret); \
++			break; \
++		case 8: \
++			__put_user_asm(x, d, addr, __pu_ret); \
++			break; \
++		default: \
++			__pu_ret = __put_user_bad(); \
++			break; \
++		} \
++	} else { \
++		__pu_ret = -EFAULT; \
++	} \
++	__pu_ret; \
++})
++
++#define __put_user_nocheck(x, addr, size) ({ \
++	register int __pu_ret; \
++	switch (size) { \
++	case 1: \
++		__put_user_asm(x, b, addr, __pu_ret); \
++		break; \
++	case 2: \
++		__put_user_asm(x, h, addr, __pu_ret); \
++		break; \
++	case 4: \
++		__put_user_asm(x, , addr, __pu_ret); \
++		break; \
++	case 8: \
++		__put_user_asm(x, d, addr, __pu_ret); \
++		break; \
++	default: \
++		__pu_ret = __put_user_bad(); \
++		break; \
++	} __pu_ret; \
++})
++
++#define __put_user_asm(x, size, addr, ret)				\
+ __asm__ __volatile__(							\
+-	"/* Put user asm, inline. */\n"					\
+-"1:\t"	"st"#size " %1, %2\n\t"						\
+-	"clr	%0\n"							\
+-"2:\n\n\t"								\
+-	".section .fixup,#alloc,#execinstr\n\t"				\
+-	".align	4\n"							\
+-"3:\n\t"								\
+-	"b	2b\n\t"							\
+-	" mov	%3, %0\n\t"						\
+-        ".previous\n\n\t"						\
+-	".section __ex_table,#alloc\n\t"				\
+-	".align	4\n\t"							\
+-	".word	1b, 3b\n\t"						\
+-	".previous\n\n\t"						\
+-       : "=&r" (ret) : "r" (x), "m" (*__m(addr)),			\
+-	 "i" (-EFAULT))
++		"/* Put user asm, inline. */\n"				\
++	"1:\t"	"st"#size " %1, %2\n\t"					\
++		"clr	%0\n"						\
++	"2:\n\n\t"							\
++		".section .fixup,#alloc,#execinstr\n\t"			\
++		".align	4\n"						\
++	"3:\n\t"							\
++		"b	2b\n\t"						\
++		" mov	%3, %0\n\t"					\
++		".previous\n\n\t"					\
++		".section __ex_table,#alloc\n\t"			\
++		".align	4\n\t"						\
++		".word	1b, 3b\n\t"					\
++		".previous\n\n\t"					\
++	       : "=&r" (ret) : "r" (x), "m" (*__m(addr)),		\
++		 "i" (-EFAULT))
  
--#define __get_user_check(x,ptr,size,segment)				\
-+#define __get_user_check(x, ptr, size, segment)				\
- ({									\
- 	long __gu_err = -EFAULT;					\
- 	unsigned long __gu_val = 0;					\
- 	const __typeof__(*(ptr)) __user *__gu_addr = (ptr);		\
--	if (__access_ok((unsigned long)__gu_addr,size,segment)) {	\
-+	if (__access_ok((unsigned long)__gu_addr, size, segment)) {	\
- 		__gu_err = 0;						\
- 		switch (size) {						\
- 		  case 1: __get_user_8(__gu_addr); break;		\
-@@ -201,31 +201,31 @@ struct __large_struct { unsigned long buf[100]; };
+ int __put_user_bad(void);
  
- extern void __put_user_unknown(void);
+-#define __get_user_check(x,addr,size,type) ({ \
+-register int __gu_ret; \
+-register unsigned long __gu_val; \
+-if (__access_ok(addr,size)) { \
+-switch (size) { \
+-case 1: __get_user_asm(__gu_val,ub,addr,__gu_ret); break; \
+-case 2: __get_user_asm(__gu_val,uh,addr,__gu_ret); break; \
+-case 4: __get_user_asm(__gu_val,,addr,__gu_ret); break; \
+-case 8: __get_user_asm(__gu_val,d,addr,__gu_ret); break; \
+-default: __gu_val = 0; __gu_ret = __get_user_bad(); break; \
+-} } else { __gu_val = 0; __gu_ret = -EFAULT; } x = (__force type) __gu_val; __gu_ret; })
+-
+-#define __get_user_check_ret(x,addr,size,type,retval) ({ \
+-register unsigned long __gu_val __asm__ ("l1"); \
+-if (__access_ok(addr,size)) { \
+-switch (size) { \
+-case 1: __get_user_asm_ret(__gu_val,ub,addr,retval); break; \
+-case 2: __get_user_asm_ret(__gu_val,uh,addr,retval); break; \
+-case 4: __get_user_asm_ret(__gu_val,,addr,retval); break; \
+-case 8: __get_user_asm_ret(__gu_val,d,addr,retval); break; \
+-default: if (__get_user_bad()) return retval; \
+-} x = (__force type) __gu_val; } else return retval; })
+-
+-#define __get_user_nocheck(x,addr,size,type) ({ \
+-register int __gu_ret; \
+-register unsigned long __gu_val; \
+-switch (size) { \
+-case 1: __get_user_asm(__gu_val,ub,addr,__gu_ret); break; \
+-case 2: __get_user_asm(__gu_val,uh,addr,__gu_ret); break; \
+-case 4: __get_user_asm(__gu_val,,addr,__gu_ret); break; \
+-case 8: __get_user_asm(__gu_val,d,addr,__gu_ret); break; \
+-default: __gu_val = 0; __gu_ret = __get_user_bad(); break; \
+-} x = (__force type) __gu_val; __gu_ret; })
+-
+-#define __get_user_nocheck_ret(x,addr,size,type,retval) ({ \
+-register unsigned long __gu_val __asm__ ("l1"); \
+-switch (size) { \
+-case 1: __get_user_asm_ret(__gu_val,ub,addr,retval); break; \
+-case 2: __get_user_asm_ret(__gu_val,uh,addr,retval); break; \
+-case 4: __get_user_asm_ret(__gu_val,,addr,retval); break; \
+-case 8: __get_user_asm_ret(__gu_val,d,addr,retval); break; \
+-default: if (__get_user_bad()) return retval; \
+-} x = (__force type) __gu_val; })
+-
+-#define __get_user_asm(x,size,addr,ret)					\
++#define __get_user_check(x, addr, size, type) ({ \
++	register int __gu_ret; \
++	register unsigned long __gu_val; \
++	if (__access_ok(addr, size)) { \
++		switch (size) { \
++		case 1: \
++			 __get_user_asm(__gu_val, ub, addr, __gu_ret); \
++			break; \
++		case 2: \
++			__get_user_asm(__gu_val, uh, addr, __gu_ret); \
++			break; \
++		case 4: \
++			__get_user_asm(__gu_val, , addr, __gu_ret); \
++			break; \
++		case 8: \
++			__get_user_asm(__gu_val, d, addr, __gu_ret); \
++			break; \
++		default: \
++			__gu_val = 0; \
++			__gu_ret = __get_user_bad(); \
++			break; \
++		} \
++	 } else { \
++		 __gu_val = 0; \
++		 __gu_ret = -EFAULT; \
++	} \
++	x = (__force type) __gu_val; \
++	__gu_ret; \
++})
++
++#define __get_user_check_ret(x, addr, size, type, retval) ({ \
++	register unsigned long __gu_val __asm__ ("l1"); \
++	if (__access_ok(addr, size)) { \
++		switch (size) { \
++		case 1: \
++			__get_user_asm_ret(__gu_val, ub, addr, retval); \
++			break; \
++		case 2: \
++			__get_user_asm_ret(__gu_val, uh, addr, retval); \
++			break; \
++		case 4: \
++			__get_user_asm_ret(__gu_val, , addr, retval); \
++			break; \
++		case 8: \
++			__get_user_asm_ret(__gu_val, d, addr, retval); \
++			break; \
++		default: \
++			if (__get_user_bad()) \
++				return retval; \
++		} \
++		x = (__force type) __gu_val; \
++	} else \
++		return retval; \
++})
++
++#define __get_user_nocheck(x, addr, size, type) ({ \
++	register int __gu_ret; \
++	register unsigned long __gu_val; \
++	switch (size) { \
++	case 1: \
++		__get_user_asm(__gu_val, ub, addr, __gu_ret); \
++		break; \
++	case 2: \
++		__get_user_asm(__gu_val, uh, addr, __gu_ret); \
++		break; \
++	case 4: \
++		__get_user_asm(__gu_val, , addr, __gu_ret); \
++		break; \
++	case 8: \
++		__get_user_asm(__gu_val, d, addr, __gu_ret); \
++		break; \
++	default: \
++		__gu_val = 0; \
++		__gu_ret = __get_user_bad(); \
++		break; \
++	} \
++	x = (__force type) __gu_val; \
++	__gu_ret; \
++})
++
++#define __get_user_nocheck_ret(x, addr, size, type, retval) ({ \
++	register unsigned long __gu_val __asm__ ("l1"); \
++	switch (size) { \
++	case 1: \
++		__get_user_asm_ret(__gu_val, ub, addr, retval); \
++		break; \
++	case 2: \
++		__get_user_asm_ret(__gu_val, uh, addr, retval); \
++		break; \
++	case 4: \
++		__get_user_asm_ret(__gu_val, , addr, retval); \
++		break; \
++	case 8: \
++		__get_user_asm_ret(__gu_val, d, addr, retval); \
++		break; \
++	default: \
++		if (__get_user_bad()) \
++			return retval; \
++	} \
++	x = (__force type) __gu_val; \
++})
++
++#define __get_user_asm(x, size, addr, ret)				\
+ __asm__ __volatile__(							\
+-	"/* Get user asm, inline. */\n"					\
+-"1:\t"	"ld"#size " %2, %1\n\t"						\
+-	"clr	%0\n"							\
+-"2:\n\n\t"								\
+-	".section .fixup,#alloc,#execinstr\n\t"				\
+-	".align	4\n"							\
+-"3:\n\t"								\
+-	"clr	%1\n\t"							\
+-	"b	2b\n\t"							\
+-	" mov	%3, %0\n\n\t"						\
+-	".previous\n\t"							\
+-	".section __ex_table,#alloc\n\t"				\
+-	".align	4\n\t"							\
+-	".word	1b, 3b\n\n\t"						\
+-	".previous\n\t"							\
+-       : "=&r" (ret), "=&r" (x) : "m" (*__m(addr)),			\
+-	 "i" (-EFAULT))
+-
+-#define __get_user_asm_ret(x,size,addr,retval)				\
++		"/* Get user asm, inline. */\n"				\
++	"1:\t"	"ld"#size " %2, %1\n\t"					\
++		"clr	%0\n"						\
++	"2:\n\n\t"							\
++		".section .fixup,#alloc,#execinstr\n\t"			\
++		".align	4\n"						\
++	"3:\n\t"							\
++		"clr	%1\n\t"						\
++		"b	2b\n\t"						\
++		" mov	%3, %0\n\n\t"					\
++		".previous\n\t"						\
++		".section __ex_table,#alloc\n\t"			\
++		".align	4\n\t"						\
++		".word	1b, 3b\n\n\t"					\
++		".previous\n\t"						\
++	       : "=&r" (ret), "=&r" (x) : "m" (*__m(addr)),		\
++		 "i" (-EFAULT))
++
++#define __get_user_asm_ret(x, size, addr, retval)			\
+ if (__builtin_constant_p(retval) && retval == -EFAULT)			\
+-__asm__ __volatile__(							\
+-	"/* Get user asm ret, inline. */\n"				\
+-"1:\t"	"ld"#size " %1, %0\n\n\t"					\
+-	".section __ex_table,#alloc\n\t"				\
+-	".align	4\n\t"							\
+-	".word	1b,__ret_efault\n\n\t"					\
+-	".previous\n\t"							\
+-       : "=&r" (x) : "m" (*__m(addr)));					\
++	__asm__ __volatile__(						\
++			"/* Get user asm ret, inline. */\n"		\
++		"1:\t"	"ld"#size " %1, %0\n\n\t"			\
++			".section __ex_table,#alloc\n\t"		\
++			".align	4\n\t"					\
++			".word	1b,__ret_efault\n\n\t"			\
++			".previous\n\t"					\
++		       : "=&r" (x) : "m" (*__m(addr)));			\
+ else									\
+-__asm__ __volatile__(							\
+-	"/* Get user asm ret, inline. */\n"				\
+-"1:\t"	"ld"#size " %1, %0\n\n\t"					\
+-	".section .fixup,#alloc,#execinstr\n\t"				\
+-	".align	4\n"							\
+-"3:\n\t"								\
+-	"ret\n\t"							\
+-	" restore %%g0, %2, %%o0\n\n\t"					\
+-	".previous\n\t"							\
+-	".section __ex_table,#alloc\n\t"				\
+-	".align	4\n\t"							\
+-	".word	1b, 3b\n\n\t"						\
+-	".previous\n\t"							\
+-       : "=&r" (x) : "m" (*__m(addr)), "i" (retval))
++	__asm__ __volatile__(						\
++			"/* Get user asm ret, inline. */\n"		\
++		"1:\t"	"ld"#size " %1, %0\n\n\t"			\
++			".section .fixup,#alloc,#execinstr\n\t"		\
++			".align	4\n"					\
++		"3:\n\t"						\
++			"ret\n\t"					\
++			" restore %%g0, %2, %%o0\n\n\t"			\
++			".previous\n\t"					\
++			".section __ex_table,#alloc\n\t"		\
++			".align	4\n\t"					\
++			".word	1b, 3b\n\n\t"				\
++			".previous\n\t"					\
++		       : "=&r" (x) : "m" (*__m(addr)), "i" (retval))
  
--#define __put_user_nocheck(x,ptr,size)				\
-+#define __put_user_nocheck(x, ptr, size)			\
- ({								\
- 	long __pu_err = 0;					\
- 	__chk_user_ptr(ptr);					\
- 	switch (size) {						\
--	  case 1: __put_user_8(x,ptr); break;			\
--	  case 2: __put_user_16(x,ptr); break;			\
--	  case 4: __put_user_32(x,ptr); break;			\
--	  case 8: __put_user_64(x,ptr); break;			\
-+	  case 1: __put_user_8(x, ptr); break;			\
-+	  case 2: __put_user_16(x, ptr); break;			\
-+	  case 4: __put_user_32(x, ptr); break;			\
-+	  case 8: __put_user_64(x, ptr); break;			\
- 	  default: __put_user_unknown(); break;			\
- 	}							\
- 	__pu_err;						\
- })
- 
--#define __put_user_check(x,ptr,size,segment)				\
-+#define __put_user_check(x, ptr, size, segment)				\
- ({									\
- 	long __pu_err = -EFAULT;					\
- 	__typeof__(*(ptr)) __user *__pu_addr = (ptr);			\
--	if (__access_ok((unsigned long)__pu_addr,size,segment)) {	\
-+	if (__access_ok((unsigned long)__pu_addr, size, segment)) {	\
- 		__pu_err = 0;						\
- 		switch (size) {						\
--		  case 1: __put_user_8(x,__pu_addr); break;		\
--		  case 2: __put_user_16(x,__pu_addr); break;		\
--		  case 4: __put_user_32(x,__pu_addr); break;		\
--		  case 8: __put_user_64(x,__pu_addr); break;		\
-+		  case 1: __put_user_8(x, __pu_addr); break;		\
-+		  case 2: __put_user_16(x, __pu_addr); break;		\
-+		  case 4: __put_user_32(x, __pu_addr); break;		\
-+		  case 8: __put_user_64(x, __pu_addr); break;		\
- 		  default: __put_user_unknown(); break;			\
- 		}							\
- 	}								\
-@@ -237,7 +237,7 @@ extern void __put_user_unknown(void);
-  * instead of writing: this is because they do not write to
-  * any memory gcc knows about, so there are no aliasing issues
-  */
--#define __put_user_64(x,addr)					\
-+#define __put_user_64(x, addr)					\
- __asm__ __volatile__("1: stq %r2,%1\n"				\
- 	"2:\n"							\
- 	".section __ex_table,\"a\"\n"				\
-@@ -247,7 +247,7 @@ __asm__ __volatile__("1: stq %r2,%1\n"				\
- 		: "=r"(__pu_err)				\
- 		: "m" (__m(addr)), "rJ" (x), "0"(__pu_err))
- 
--#define __put_user_32(x,addr)					\
-+#define __put_user_32(x, addr)					\
- __asm__ __volatile__("1: stl %r2,%1\n"				\
- 	"2:\n"							\
- 	".section __ex_table,\"a\"\n"				\
-@@ -260,7 +260,7 @@ __asm__ __volatile__("1: stl %r2,%1\n"				\
- #ifdef __alpha_bwx__
- /* Those lucky bastards with ev56 and later CPUs can do byte/word moves.  */
- 
--#define __put_user_16(x,addr)					\
-+#define __put_user_16(x, addr)					\
- __asm__ __volatile__("1: stw %r2,%1\n"				\
- 	"2:\n"							\
- 	".section __ex_table,\"a\"\n"				\
-@@ -270,7 +270,7 @@ __asm__ __volatile__("1: stw %r2,%1\n"				\
- 		: "=r"(__pu_err)				\
- 		: "m"(__m(addr)), "rJ"(x), "0"(__pu_err))
- 
--#define __put_user_8(x,addr)					\
-+#define __put_user_8(x, addr)					\
- __asm__ __volatile__("1: stb %r2,%1\n"				\
- 	"2:\n"							\
- 	".section __ex_table,\"a\"\n"				\
-@@ -283,7 +283,7 @@ __asm__ __volatile__("1: stb %r2,%1\n"				\
- /* Unfortunately, we can't get an unaligned access trap for the sub-word
-    write, so we have to do a general unaligned operation.  */
- 
--#define __put_user_16(x,addr)					\
-+#define __put_user_16(x, addr)					\
- {								\
- 	long __pu_tmp1, __pu_tmp2, __pu_tmp3, __pu_tmp4;	\
- 	__asm__ __volatile__(					\
-@@ -308,13 +308,13 @@ __asm__ __volatile__("1: stb %r2,%1\n"				\
- 	"	.long 4b - .\n"					\
- 	"	lda $31, 5b-4b(%0)\n"				\
- 	".previous"						\
--		: "=r"(__pu_err), "=&r"(__pu_tmp1),		\
--		  "=&r"(__pu_tmp2), "=&r"(__pu_tmp3),		\
-+		: "=r"(__pu_err), "=&r"(__pu_tmp1), 		\
-+		  "=&r"(__pu_tmp2), "=&r"(__pu_tmp3), 		\
- 		  "=&r"(__pu_tmp4)				\
- 		: "r"(addr), "r"((unsigned long)(x)), "0"(__pu_err)); \
- }
- 
--#define __put_user_8(x,addr)					\
-+#define __put_user_8(x, addr)					\
- {								\
- 	long __pu_tmp1, __pu_tmp2;				\
- 	__asm__ __volatile__(					\
-@@ -330,7 +330,7 @@ __asm__ __volatile__("1: stb %r2,%1\n"				\
- 	"	.long 2b - .\n"					\
- 	"	lda $31, 3b-2b(%0)\n"				\
- 	".previous"						\
--		: "=r"(__pu_err),				\
-+		: "=r"(__pu_err), 				\
- 	  	  "=&r"(__pu_tmp1), "=&r"(__pu_tmp2)		\
- 		: "r"((unsigned long)(x)), "r"(addr), "0"(__pu_err)); \
- }
-@@ -366,7 +366,7 @@ __copy_tofrom_user_nocheck(void *to, const void *from, long len)
- 		: "=r" (__cu_len), "=r" (__cu_from), "=r" (__cu_to)
- 		: __module_address(__copy_user)
- 		  "0" (__cu_len), "1" (__cu_from), "2" (__cu_to)
--		: "$1","$2","$3","$4","$5","$28","memory");
-+		: "$1", "$2", "$3", "$4", "$5", "$28", "memory");
- 
- 	return __cu_len;
- }
-@@ -379,15 +379,15 @@ __copy_tofrom_user(void *to, const void *from, long len, const void __user *vali
- 	return len;
- }
- 
--#define __copy_to_user(to,from,n)					\
-+#define __copy_to_user(to, from, n)					\
- ({									\
- 	__chk_user_ptr(to);						\
--	__copy_tofrom_user_nocheck((__force void *)(to),(from),(n));	\
-+	__copy_tofrom_user_nocheck((__force void *)(to), (from), (n));	\
- })
--#define __copy_from_user(to,from,n)					\
-+#define __copy_from_user(to, from, n)					\
- ({									\
- 	__chk_user_ptr(from);						\
--	__copy_tofrom_user_nocheck((to),(__force void *)(from),(n));	\
-+	__copy_tofrom_user_nocheck((to), (__force void *)(from), (n));	\
- })
- 
- #define __copy_to_user_inatomic __copy_to_user
-@@ -418,7 +418,7 @@ __clear_user(void __user *to, long len)
- 		: "=r"(__cl_len), "=r"(__cl_to)
- 		: __module_address(__do_clear_user)
- 		  "0"(__cl_len), "1"(__cl_to)
--		: "$1","$2","$3","$4","$5","$28","memory");
-+		: "$1", "$2", "$3", "$4", "$5", "$28", "memory");
- 	return __cl_len;
- }
+ int __get_user_bad(void);
  
 -- 
 MST
