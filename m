@@ -1,17 +1,21 @@
 From: "Michael S. Tsirkin" <mst@redhat.com>
-Subject: [PATCH v2 16/40] m68k/uaccess: fix sparse errors
-Date: Tue, 6 Jan 2015 17:44:24 +0200
-Message-ID: <1420558883-10131-17-git-send-email-mst@redhat.com>
+Subject: [PATCH v2 12/40] parisc/uaccess: fix sparse errors
+Date: Tue, 6 Jan 2015 17:44:10 +0200
+Message-ID: <1420558883-10131-13-git-send-email-mst@redhat.com>
 References: <1420558883-10131-1-git-send-email-mst@redhat.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mx1.redhat.com ([209.132.183.28]:50804 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1755771AbbAFPoa (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 6 Jan 2015 10:44:30 -0500
 Content-Disposition: inline
 In-Reply-To: <1420558883-10131-1-git-send-email-mst@redhat.com>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Geert Uytterhoeven <geert@linux-m68k.org>, linux-m68k@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Helge Deller <deller@gmx.de>, "James E.J. Bottomley" <jejb@parisc-linux.org>, linux-parisc@vger.kernel.org
 
 virtio wants to read bitwise types from userspace using get_user.  At the
 moment this triggers sparse errors, since the value is passed through an
@@ -20,67 +24,23 @@ integer.
 Fix that up using __force.
 
 Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
+Acked-by: Helge Deller <deller@gmx.de>
 ---
- arch/m68k/include/asm/uaccess_mm.h | 40 +++++++++++++++++++-------------------
- 1 file changed, 20 insertions(+), 20 deletions(-)
+ arch/parisc/include/asm/uaccess.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/arch/m68k/include/asm/uaccess_mm.h b/arch/m68k/include/asm/uaccess_mm.h
-index 15901db..d228601 100644
---- a/arch/m68k/include/asm/uaccess_mm.h
-+++ b/arch/m68k/include/asm/uaccess_mm.h
-@@ -128,25 +128,25 @@ asm volatile ("\n"					\
- #define put_user(x, ptr)	__put_user(x, ptr)
- 
- 
--#define __get_user_asm(res, x, ptr, type, bwl, reg, err) ({	\
--	type __gu_val;						\
--	asm volatile ("\n"					\
--		"1:	"MOVES"."#bwl"	%2,%1\n"		\
--		"2:\n"						\
--		"	.section .fixup,\"ax\"\n"		\
--		"	.even\n"				\
--		"10:	move.l	%3,%0\n"			\
--		"	sub.l	%1,%1\n"			\
--		"	jra	2b\n"				\
--		"	.previous\n"				\
--		"\n"						\
--		"	.section __ex_table,\"a\"\n"		\
--		"	.align	4\n"				\
--		"	.long	1b,10b\n"			\
--		"	.previous"				\
--		: "+d" (res), "=&" #reg (__gu_val)		\
--		: "m" (*(ptr)), "i" (err));			\
--	(x) = (typeof(*(ptr)))(unsigned long)__gu_val;		\
-+#define __get_user_asm(res, x, ptr, type, bwl, reg, err) ({		\
-+	type __gu_val;							\
-+	asm volatile ("\n"						\
-+		"1:	"MOVES"."#bwl"	%2,%1\n"			\
-+		"2:\n"							\
-+		"	.section .fixup,\"ax\"\n"			\
-+		"	.even\n"					\
-+		"10:	move.l	%3,%0\n"				\
-+		"	sub.l	%1,%1\n"				\
-+		"	jra	2b\n"					\
-+		"	.previous\n"					\
-+		"\n"							\
-+		"	.section __ex_table,\"a\"\n"			\
-+		"	.align	4\n"					\
-+		"	.long	1b,10b\n"				\
-+		"	.previous"					\
-+		: "+d" (res), "=&" #reg (__gu_val)			\
-+		: "m" (*(ptr)), "i" (err));				\
-+	(x) = (__force typeof(*(ptr)))(__force unsigned long)__gu_val;	\
+diff --git a/arch/parisc/include/asm/uaccess.h b/arch/parisc/include/asm/uaccess.h
+index a5cb070..6c79311 100644
+--- a/arch/parisc/include/asm/uaccess.h
++++ b/arch/parisc/include/asm/uaccess.h
+@@ -104,7 +104,7 @@ struct exception_data {
+ 	    }                                           \
+ 	}                                               \
+ 							\
+-	(x) = (__typeof__(*(ptr))) __gu_val;            \
++	(x) = (__force __typeof__(*(ptr))) __gu_val;	\
+ 	__gu_err;                                       \
  })
  
- #define __get_user(x, ptr)						\
-@@ -188,7 +188,7 @@ asm volatile ("\n"					\
- 			  "+a" (__gu_ptr)				\
- 			: "i" (-EFAULT)					\
- 			: "memory");					\
--		(x) = (typeof(*(ptr)))__gu_val;				\
-+		(x) = (__force typeof(*(ptr)))__gu_val;			\
- 		break;							\
- 	    }	*/							\
- 	default:							\
 -- 
 MST
