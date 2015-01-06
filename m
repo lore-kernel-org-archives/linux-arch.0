@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:36505 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:51316 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755793AbbAFPpQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 6 Jan 2015 10:45:16 -0500
-Date: Tue, 6 Jan 2015 17:44:27 +0200
+	id S1756014AbbAFPpd (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 6 Jan 2015 10:45:33 -0500
+Date: Tue, 6 Jan 2015 17:45:25 +0200
 From: "Michael S. Tsirkin" <mst@redhat.com>
-Subject: [PATCH v2 17/40] arm: fix put_user sparse errors
-Message-ID: <1420558883-10131-18-git-send-email-mst@redhat.com>
+Subject: [PATCH v2 34/40] frv: macro whitespace fixes
+Message-ID: <1420558883-10131-35-git-send-email-mst@redhat.com>
 References: <1420558883-10131-1-git-send-email-mst@redhat.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
@@ -15,53 +15,33 @@ In-Reply-To: <1420558883-10131-1-git-send-email-mst@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Russell King <linux@arm.linux.org.uk>, Daniel Thompson <daniel.thompson@linaro.org>, Nicolas Pitre <nicolas.pitre@linaro.org>, Victor Kamensky <victor.kamensky@linaro.org>, =?us-ascii?B?PT9VVEYtOD9xP1V3ZT0yMEtsZWluZS1LPUMzPUI2bmlnPz0=?= <u.kleine-koenig@pengutronix.de>, Andrey Ryabinin <a.ryabinin@samsung.com>, linux-arm-kernel@lists.infradead.org
-Message-ID: <20150106154427.y6Mu5-WUFrrx-d0o-Id1uoYBUByzuqmkSq84IBTDUUs@z>
+Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, David Howells <dhowells@redhat.com>
+Message-ID: <20150106154525.8zN9HykBmdy0sVfj3RxyJBZtR_4kxF36SRtTUEnBlSY@z>
 
-virtio wants to write bitwise types to userspace using put_user.
-At the moment this triggers sparse errors, since the value is passed
-through an integer.
+While working on arch/frv/include/asm/uaccess.h, I noticed
+that one macro within this header is made harder to read because it
+violates a coding style rule: space is missing after comma.
 
-For example:
-
-	__le32 __user *p;
-	__le32 x;
-	put_user(x, p);
-
-is safe, but currently triggers a sparse warning.
-
-Fix that up using __force.
-
-Note: this does not suppress any useful sparse checks since caller
-assigns x to typeof(*p), which in turn forces all the necessary type
-checks.
+Fix it up.
 
 Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
 ---
- arch/arm/include/asm/uaccess.h | 4 ++--
- 1 file changed, 2 insertions(+), 2 deletions(-)
+ arch/frv/include/asm/segment.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/arch/arm/include/asm/uaccess.h b/arch/arm/include/asm/uaccess.h
-index 4767eb9..74fcde7 100644
---- a/arch/arm/include/asm/uaccess.h
-+++ b/arch/arm/include/asm/uaccess.h
-@@ -413,14 +413,14 @@ do {									\
- #ifndef __ARMEB__
- #define __put_user_asm_half(x,__pu_addr,err)			\
- ({								\
--	unsigned long __temp = (unsigned long)(x);		\
-+	unsigned long __temp = (__force unsigned long)(x);	\
- 	__put_user_asm_byte(__temp, __pu_addr, err);		\
- 	__put_user_asm_byte(__temp >> 8, __pu_addr + 1, err);	\
- })
- #else
- #define __put_user_asm_half(x,__pu_addr,err)			\
- ({								\
--	unsigned long __temp = (unsigned long)(x);		\
-+	unsigned long __temp = (__force unsigned long)(x);	\
- 	__put_user_asm_byte(__temp >> 8, __pu_addr, err);	\
- 	__put_user_asm_byte(__temp, __pu_addr + 1, err);	\
- })
+diff --git a/arch/frv/include/asm/segment.h b/arch/frv/include/asm/segment.h
+index a2320a4..4377c89 100644
+--- a/arch/frv/include/asm/segment.h
++++ b/arch/frv/include/asm/segment.h
+@@ -31,7 +31,7 @@ typedef struct {
+ 
+ #define get_ds()		(KERNEL_DS)
+ #define get_fs()		(__current_thread_info->addr_limit)
+-#define segment_eq(a,b)		((a).seg == (b).seg)
++#define segment_eq(a, b)	((a).seg == (b).seg)
+ #define __kernel_ds_p()		segment_eq(get_fs(), KERNEL_DS)
+ #define get_addr_limit()	(get_fs().seg)
+ 
 -- 
 MST
 
