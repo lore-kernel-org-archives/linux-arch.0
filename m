@@ -1,7 +1,7 @@
 From: "Michael S. Tsirkin" <mst@redhat.com>
-Subject: [PATCH v2 19/40] ia64: fix put_user sparse errors
-Date: Tue, 6 Jan 2015 17:44:34 +0200
-Message-ID: <1420558883-10131-20-git-send-email-mst@redhat.com>
+Subject: [PATCH v2 14/40] sparc32/uaccess: fix sparse errors
+Date: Tue, 6 Jan 2015 17:44:17 +0200
+Message-ID: <1420558883-10131-15-git-send-email-mst@redhat.com>
 References: <1420558883-10131-1-git-send-email-mst@redhat.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
@@ -10,51 +10,59 @@ Content-Disposition: inline
 In-Reply-To: <1420558883-10131-1-git-send-email-mst@redhat.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
-Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Thierry Reding <treding@nvidia.com>, linux-ia64@vger.kernel.org
+Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, "David S. Miller" <davem@davemloft.net>, Sam Ravnborg <sam@ravnborg.org>, sparclinux@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-virtio wants to write bitwise types to userspace using put_user.
-At the moment this triggers sparse errors, since the value is passed
-through an integer.
-
-For example:
-
-	__le32 __user *p;
-	__le32 x;
-	put_user(x, p);
-
-is safe, but currently triggers a sparse warning.
+virtio wants to read bitwise types from userspace using get_user.  At the
+moment this triggers sparse errors, since the value is passed through an
+integer.
 
 Fix that up using __force.
 
-Note: this does not suppress any useful sparse checks since callers
-do a cast (__typeof__(*(ptr))) (x) which in turn forces all the
-necessary type checks.
-
 Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
 ---
- arch/ia64/include/asm/uaccess.h | 9 +++++----
- 1 file changed, 5 insertions(+), 4 deletions(-)
+ arch/sparc/include/asm/uaccess_32.h | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
 
-diff --git a/arch/ia64/include/asm/uaccess.h b/arch/ia64/include/asm/uaccess.h
-index 967c312..4f3fb6cc 100644
---- a/arch/ia64/include/asm/uaccess.h
-+++ b/arch/ia64/include/asm/uaccess.h
-@@ -169,10 +169,11 @@ do {									\
- 	(err) = ia64_getreg(_IA64_REG_R8);				\
- 	(val) = ia64_getreg(_IA64_REG_R9);				\
- } while (0)
--# define __put_user_size(val, addr, n, err)							\
--do {												\
--	__st_user("__ex_table", (unsigned long) addr, n, RELOC_TYPE, (unsigned long) (val));	\
--	(err) = ia64_getreg(_IA64_REG_R8);							\
-+# define __put_user_size(val, addr, n, err)				\
-+do {									\
-+	__st_user("__ex_table", (unsigned long) addr, n, RELOC_TYPE,	\
-+		  (__force unsigned long) (val));			\
-+	(err) = ia64_getreg(_IA64_REG_R8);				\
- } while (0)
- #endif /* !ASM_SUPPORTED */
+diff --git a/arch/sparc/include/asm/uaccess_32.h b/arch/sparc/include/asm/uaccess_32.h
+index 9634d08..8b571a0 100644
+--- a/arch/sparc/include/asm/uaccess_32.h
++++ b/arch/sparc/include/asm/uaccess_32.h
+@@ -164,7 +164,7 @@ case 2: __get_user_asm(__gu_val,uh,addr,__gu_ret); break; \
+ case 4: __get_user_asm(__gu_val,,addr,__gu_ret); break; \
+ case 8: __get_user_asm(__gu_val,d,addr,__gu_ret); break; \
+ default: __gu_val = 0; __gu_ret = __get_user_bad(); break; \
+-} } else { __gu_val = 0; __gu_ret = -EFAULT; } x = (type) __gu_val; __gu_ret; })
++} } else { __gu_val = 0; __gu_ret = -EFAULT; } x = (__force type) __gu_val; __gu_ret; })
  
+ #define __get_user_check_ret(x,addr,size,type,retval) ({ \
+ register unsigned long __gu_val __asm__ ("l1"); \
+@@ -175,7 +175,7 @@ case 2: __get_user_asm_ret(__gu_val,uh,addr,retval); break; \
+ case 4: __get_user_asm_ret(__gu_val,,addr,retval); break; \
+ case 8: __get_user_asm_ret(__gu_val,d,addr,retval); break; \
+ default: if (__get_user_bad()) return retval; \
+-} x = (type) __gu_val; } else return retval; })
++} x = (__force type) __gu_val; } else return retval; })
+ 
+ #define __get_user_nocheck(x,addr,size,type) ({ \
+ register int __gu_ret; \
+@@ -186,7 +186,7 @@ case 2: __get_user_asm(__gu_val,uh,addr,__gu_ret); break; \
+ case 4: __get_user_asm(__gu_val,,addr,__gu_ret); break; \
+ case 8: __get_user_asm(__gu_val,d,addr,__gu_ret); break; \
+ default: __gu_val = 0; __gu_ret = __get_user_bad(); break; \
+-} x = (type) __gu_val; __gu_ret; })
++} x = (__force type) __gu_val; __gu_ret; })
+ 
+ #define __get_user_nocheck_ret(x,addr,size,type,retval) ({ \
+ register unsigned long __gu_val __asm__ ("l1"); \
+@@ -196,7 +196,7 @@ case 2: __get_user_asm_ret(__gu_val,uh,addr,retval); break; \
+ case 4: __get_user_asm_ret(__gu_val,,addr,retval); break; \
+ case 8: __get_user_asm_ret(__gu_val,d,addr,retval); break; \
+ default: if (__get_user_bad()) return retval; \
+-} x = (type) __gu_val; })
++} x = (__force type) __gu_val; })
+ 
+ #define __get_user_asm(x,size,addr,ret)					\
+ __asm__ __volatile__(							\
 -- 
 MST
