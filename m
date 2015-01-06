@@ -1,190 +1,90 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:43059 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753956AbbAENBD (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 5 Jan 2015 08:01:03 -0500
-Date: Mon, 5 Jan 2015 15:00:43 +0200
-From: "Michael S. Tsirkin" <mst@redhat.com>
-Subject: Re: [PATCH repost 09/16] metag/uaccess: fix sparse errors
-Message-ID: <20150105130042.GA21602@redhat.com>
-References: <1419499661-8566-1-git-send-email-mst@redhat.com>
- <1419499661-8566-10-git-send-email-mst@redhat.com>
- <54A6BC0E.50008@imgtec.com>
- <20150104105218.GA3208@redhat.com>
- <54AA5CEE.9050205@imgtec.com>
+Received: from smtprelay2.synopsys.com ([198.182.60.111]:52846 "EHLO
+	smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755582AbbAFNwr (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 6 Jan 2015 08:52:47 -0500
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Subject: [PATCH 1/5] perf tools: [uclibc] fix statfs.f_type data type mismatch build error
+Date: Tue, 6 Jan 2015 19:22:11 +0530
+Message-ID: <1420552335-26886-2-git-send-email-vgupta@synopsys.com>
+In-Reply-To: <1420552335-26886-1-git-send-email-vgupta@synopsys.com>
+References: <1420552335-26886-1-git-send-email-vgupta@synopsys.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <54AA5CEE.9050205@imgtec.com>
+Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: James Hogan <james.hogan@imgtec.com>
-Cc: linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-metag@vger.kernel.org
-Message-ID: <20150105130043.7wzbH0SUo8bpI_xWtjj-0EkmU9Zw4vZBqDmBUW22YCA@z>
+To: acme@redhat.com, peterz@infradead.org
+Cc: jolsa@kernel.org, mingo@kernel.org, linux-kernel@vger.kernel.org, linux-perf-users@vger.kernel.org, bp@suse.de, linux-arch@vger.kernel.org, Alexey.Brodkin@synopsys.com, Cody P Schafer <dev@codyps.com>, Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Message-ID: <20150106135211.FLtUkPFQmP9-VP8ZEoT_bw2K2RUpdXSheEJIj0JaL28@z>
 
-On Mon, Jan 05, 2015 at 09:44:14AM +0000, James Hogan wrote:
-> On 04/01/15 10:52, Michael S. Tsirkin wrote:
-> > On Fri, Jan 02, 2015 at 03:41:02PM +0000, James Hogan wrote:
-> >> Hi,
-> >>
-> >> On 25/12/14 09:29, Michael S. Tsirkin wrote:
-> >>> virtio wants to read bitwise types from userspace using get_user.  At the
-> >>> moment this triggers sparse errors, since the value is passed through an
-> >>> integer.
-> >>>
-> >>> Fix that up using __force.
-> >>
-> >> I still see these sparse warnings with metag even with your patch:
-> >>
-> >>   CHECK   drivers/vhost/vhost.c
-> >> drivers/vhost/vhost.c:1004:13: warning: cast from restricted __virtio16
-> >> drivers/vhost/vhost.c:1004:13: warning: cast from restricted __virtio16
-> >> drivers/vhost/vhost.c:1004:13: warning: cast from restricted __virtio16
-> >> drivers/vhost/vhost.c:1004:13: warning: cast from restricted __virtio16
-> >> drivers/vhost/vhost.c:1022:13: warning: cast from restricted __virtio16
-> >> drivers/vhost/vhost.c:1022:13: warning: cast from restricted __virtio16
-> >> drivers/vhost/vhost.c:1022:13: warning: cast from restricted __virtio16
-> >> drivers/vhost/vhost.c:1022:13: warning: cast from restricted __virtio16
-> >> drivers/vhost/vhost.c:1373:21: warning: cast from restricted __virtio32
-> >> drivers/vhost/vhost.c:1373:21: warning: cast from restricted __virtio32
-> >> drivers/vhost/vhost.c:1373:21: warning: cast from restricted __virtio32
-> >> drivers/vhost/vhost.c:1373:21: warning: cast from restricted __virtio32
-> >> drivers/vhost/vhost.c:1377:21: warning: cast from restricted __virtio32
-> >> drivers/vhost/vhost.c:1377:21: warning: cast from restricted __virtio32
-> >> drivers/vhost/vhost.c:1377:21: warning: cast from restricted __virtio32
-> >> drivers/vhost/vhost.c:1377:21: warning: cast from restricted __virtio32
-> >> drivers/vhost/vhost.c:1425:13: warning: cast from restricted __virtio16
-> >> drivers/vhost/vhost.c:1425:13: warning: cast from restricted __virtio16
-> >> drivers/vhost/vhost.c:1425:13: warning: cast from restricted __virtio16
-> >> drivers/vhost/vhost.c:1425:13: warning: cast from restricted __virtio16
-> >>
-> >> Which something like the following hunk fixes in a similar way to yours:
-> >>
-> >> diff --git a/arch/metag/include/asm/uaccess.h b/arch/metag/include/asm/uaccess.h
-> >> index 0748b0a97986..594497053748 100644
-> >> --- a/arch/metag/include/asm/uaccess.h
-> >> +++ b/arch/metag/include/asm/uaccess.h
-> >> @@ -112,13 +112,17 @@ do {                                                            \
-> >>  	retval = 0;                                             \
-> >>  	switch (size) {                                         \
-> >>  	case 1:								\
-> >> -		retval = __put_user_asm_b((unsigned int)x, ptr); break;	\
-> >> +		retval = __put_user_asm_b((__force unsigned int)x, ptr); \
-> >> +		break;							\
-> >>  	case 2:								\
-> >> -		retval = __put_user_asm_w((unsigned int)x, ptr); break;	\
-> >> +		retval = __put_user_asm_w((__force unsigned int)x, ptr); \
-> >> +		break;							\
-> >>  	case 4:								\
-> >> -		retval = __put_user_asm_d((unsigned int)x, ptr); break;	\
-> >> +		retval = __put_user_asm_d((__force unsigned int)x, ptr); \
-> >> +		break;							\
-> >>  	case 8:								\
-> >> -		retval = __put_user_asm_l((unsigned long long)x, ptr); break; \
-> >> +		retval = __put_user_asm_l((__force unsigned long long)x, ptr); \
-> >> +		break;							\
-> >>  	default:							\
-> >>  		__put_user_bad();					\
-> >>  	}	
-> >>
-> >> As far as I understand it, using __force on the value (as opposed to the
-> >> pointer) is safe here, in the sense of not masking any genuine defects.
-> >> Do you agree? Do you want to apply that hunk with your patch too?
-> > 
-> > what about this code:
-> >              u16 v = 0;
-> >              int rc = get_user(v, (__force __le16 __user *)p);
-> > 
-> > it should trigger a warning, does it?
-> 
-> No, but it didn't previously either, and doesn't seem to with x86_64 either.
-> 
-> I tried __be16 too, since I presume you're referring to a discrepancy
-> between the native byte order of v (u16) and the foreign byte order of
-> *p (__be16)?
-> 
-> Cheers
-> James
+From: Alexey Brodkin <abrodkin@synopsys.com>
 
-Yes.
-It certainly does for me.
-Did you define __CHECK_ENDIAN__?
+ARC Linux uses the no legacy syscalls abi and corresponding uClibc headers
+statfs defines f_type to be U32 which causes perf build breakage
 
-Documentation/sparse.txt says:
+http://git.uclibc.org/uClibc/tree/libc/sysdeps/linux/common-generic/bits/statfs.h
 
-To perform endianness
-checks, you may define __CHECK_ENDIAN__:
+----------->8---------------
+  CC       fs/fs.o
+fs/fs.c: In function 'fs__valid_mount':
+fs/fs.c:82:24: error: comparison between signed and unsigned integer
+expressions [-Werror=sign-compare]
+  else if (st_fs.f_type != magic)
+                        ^
+cc1: all warnings being treated as errors
+----------->8---------------
 
-        make C=2 CF="-D__CHECK_ENDIAN__"
+Cc: Borislav Petkov <bp@suse.de>
+Cc: Jiri Olsa <jolsa@kernel.org>
+Cc: Cody P Schafer <dev@codyps.com>
+Cc: Arnaldo Carvalho de Melo <acme@redhat.com>
+Cc: linux-perf-users@vger.kernel.org
+Cc: linux-kernel@vger.kernel.org
+Signed-off-by: Alexey Brodkin <abrodkin@synopsys.com>
 
-These checks are disabled by default as they generate a host of warnings.
+---
+v3: Changes since v2 [2]
+ * Made Changelog a bit more concise, no code changes [vgupta]
 
+v2: Changes since v1 [1]
+ * Added type cast to DEBUGFS_MAGIC in "debugfs.c" [Arnaldo]
+ * Added verbose explanation of root cause
 
-Or just try with __virtio16 instead of __le16 - I think these are
-enabled unconditionally.
+[2] https://lkml.org/lkml/2014/9/16/296
+[1] https://lkml.org/lkml/2014/8/13/529
 
+Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
+---
+ tools/lib/api/fs/debugfs.c | 2 +-
+ tools/lib/api/fs/fs.c      | 2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
 
-> > 
-> > 
-> > 
-> >> Note, this change also suppresses warnings for writing a pointer to
-> >> userland due to the casts to unsigned int / unsigned long long, such as
-> >> the following (each 4 times due to 4 cases above):
-> >>
-> >> kernel/signal.c:2740:25: warning: cast removes address space of expression
-> >> kernel/signal.c:2747:24: warning: cast removes address space of expression
-> >> kernel/signal.c:2760:24: warning: cast removes address space of expression
-> >> kernel/signal.c:2761:24: warning: cast removes address space of expression
-> >> kernel/signal.c:2775:24: warning: cast removes address space of expression
-> >> kernel/signal.c:2779:24: warning: cast removes address space of expression
-> >> kernel/signal.c:3202:25: warning: cast removes address space of expression
-> >> kernel/signal.c:3225:17: warning: cast removes address space of expression
-> >> kernel/futex.c:2769:16: warning: cast removes address space of expression
-> >>
-> >>>
-> >>> Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
-> >>> ---
-> >>>  arch/metag/include/asm/uaccess.h | 4 ++--
-> >>>  1 file changed, 2 insertions(+), 2 deletions(-)
-> >>>
-> >>> diff --git a/arch/metag/include/asm/uaccess.h b/arch/metag/include/asm/uaccess.h
-> >>> index 0748b0a..c314b45 100644
-> >>> --- a/arch/metag/include/asm/uaccess.h
-> >>> +++ b/arch/metag/include/asm/uaccess.h
-> >>> @@ -135,7 +135,7 @@ extern long __get_user_bad(void);
-> >>>  ({                                                              \
-> >>>  	long __gu_err, __gu_val;                                \
-> >>>  	__get_user_size(__gu_val, (ptr), (size), __gu_err);	\
-> >>> -	(x) = (__typeof__(*(ptr)))__gu_val;                     \
-> >>> +	(x) = (__force __typeof__(*(ptr)))__gu_val;                     \
-> >>
-> >> Can you adjust the position of the \ to line up please
-> >>
-> >>>  	__gu_err;                                               \
-> >>>  })
-> >>>  
-> >>> @@ -145,7 +145,7 @@ extern long __get_user_bad(void);
-> >>>  	const __typeof__(*(ptr)) __user *__gu_addr = (ptr);		\
-> >>>  	if (access_ok(VERIFY_READ, __gu_addr, size))			\
-> >>>  		__get_user_size(__gu_val, __gu_addr, (size), __gu_err);	\
-> >>> -	(x) = (__typeof__(*(ptr)))__gu_val;                             \
-> >>> +	(x) = (__force __typeof__(*(ptr)))__gu_val;                             \
-> >>
-> >> same here (this one causes a checkpatch error due to 80 column limit)
-> >>
-> >>>  	__gu_err;                                                       \
-> >>>  })
-> >>>  
-> >>>
-> >>
-> >> With those changes,
-> >> Acked-by: James Hogan <james.hogan@imgtec.com>
-> >>
-> >> Cheers
-> >> James
-> >>
-> > 
-> > 
-> 
-
+diff --git a/tools/lib/api/fs/debugfs.c b/tools/lib/api/fs/debugfs.c
+index a74fba6d7743..93aa4cd2416f 100644
+--- a/tools/lib/api/fs/debugfs.c
++++ b/tools/lib/api/fs/debugfs.c
+@@ -67,7 +67,7 @@ int debugfs_valid_mountpoint(const char *debugfs)
+ 
+ 	if (statfs(debugfs, &st_fs) < 0)
+ 		return -ENOENT;
+-	else if (st_fs.f_type != (long) DEBUGFS_MAGIC)
++	else if ((long) st_fs.f_type != (long) DEBUGFS_MAGIC)
+ 		return -ENOENT;
+ 
+ 	return 0;
+diff --git a/tools/lib/api/fs/fs.c b/tools/lib/api/fs/fs.c
+index 65d9be3f9887..15e64921ea84 100644
+--- a/tools/lib/api/fs/fs.c
++++ b/tools/lib/api/fs/fs.c
+@@ -79,7 +79,7 @@ static int fs__valid_mount(const char *fs, long magic)
+ 
+ 	if (statfs(fs, &st_fs) < 0)
+ 		return -ENOENT;
+-	else if (st_fs.f_type != magic)
++	else if ((long) st_fs.f_type != magic)
+ 		return -ENOENT;
+ 
+ 	return 0;
+-- 
+1.9.1
 
