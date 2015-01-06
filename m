@@ -1,144 +1,69 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtprelay4.synopsys.com ([198.182.47.9]:40481 "EHLO
-	smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755250AbbAFN6r (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 6 Jan 2015 08:58:47 -0500
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: [PATCH 5/5] perf tools: [uclibc] provide stub for pthread_attr_setaffinity_np
-Date: Tue, 6 Jan 2015 19:22:15 +0530
-Message-ID: <1420552335-26886-6-git-send-email-vgupta@synopsys.com>
-In-Reply-To: <1420552335-26886-1-git-send-email-vgupta@synopsys.com>
+Received: from mx1.redhat.com ([209.132.183.28]:37101 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1753623AbbAFPNe (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 6 Jan 2015 10:13:34 -0500
+Date: Tue, 6 Jan 2015 13:13:29 -0200
+From: Arnaldo Carvalho de Melo <acme@redhat.com>
+Subject: Re: [PATCH 0/5] Perf fixes for ARC + uClibc
+Message-ID: <20150106151329.GD2517@redhat.com>
 References: <1420552335-26886-1-git-send-email-vgupta@synopsys.com>
 MIME-Version: 1.0
-Content-Type: text/plain
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1420552335-26886-1-git-send-email-vgupta@synopsys.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: acme@redhat.com, peterz@infradead.org
-Cc: jolsa@kernel.org, mingo@kernel.org, linux-kernel@vger.kernel.org, linux-perf-users@vger.kernel.org, bp@suse.de, linux-arch@vger.kernel.org, Alexey.Brodkin@synopsys.com, Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Message-ID: <20150106135215.xUvi4HdO6llm_KKBZTpZSWFcSvI3KOIApk3C9rSTswQ@z>
+To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Cc: peterz@infradead.org, jolsa@kernel.org, mingo@kernel.org, linux-kernel@vger.kernel.org, linux-perf-users@vger.kernel.org, bp@suse.de, linux-arch@vger.kernel.org, Alexey.Brodkin@synopsys.com
+Message-ID: <20150106151329.keM0AY5cdnCv-DO5_vKdQHIlNgR6395KOFAuMjb03v0@z>
 
-uClibc Linuxthreads.old doesnt support pthread_attr_setaffinity_np()
-call
+Em Tue, Jan 06, 2015 at 07:22:10PM +0530, Vineet Gupta escreveu:
+> Hi,
+> 
+> This series based off linux-next of 20150105 allows us to build/use perf
+> for ARC with uClibc based userland.
 
------------------>8-----------------------
-  CC       bench/futex-hash.o
-  CC       bench/futex-wake.o
-bench/futex-hash.c: In function 'bench_futex_hash':
-bench/futex-hash.c:161:3: error: implicit declaration of function
-'pthread_attr_setaffinity_np' [-Werror=implicit-function-declaration]
-   ret = pthread_attr_setaffinity_np(&thread_attr, sizeof(cpu_set_t),
-&cpu);
-   ^
-bench/futex-hash.c:161:3: error: nested extern declaration of
-'pthread_attr_setaffinity_np' [-Werror=nested-externs]
------------------>8-----------------------
+Do you have some ready made ARC VM image with devel tools I could use with qemu?
 
-Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
----
- tools/perf/bench/futex.h                    | 13 +++++++++++++
- tools/perf/config/Makefile                  |  6 ++++++
- tools/perf/config/feature-checks/Makefile   |  4 ++++
- tools/perf/config/feature-checks/test-all.c |  5 +++++
- 4 files changed, 28 insertions(+)
-
-diff --git a/tools/perf/bench/futex.h b/tools/perf/bench/futex.h
-index 71f2844cf97f..7ed22ff1e1ac 100644
---- a/tools/perf/bench/futex.h
-+++ b/tools/perf/bench/futex.h
-@@ -68,4 +68,17 @@ futex_cmp_requeue(u_int32_t *uaddr, u_int32_t val, u_int32_t *uaddr2, int nr_wak
- 		 val, opflags);
- }
+- Arnaldo
  
-+#ifndef HAVE_PTHREAD_ATTR_SETAFFINITY_NP
-+#include <pthread.h>
-+static inline int pthread_attr_setaffinity_np(pthread_attr_t *attr,
-+					      size_t cpusetsize,
-+					      cpu_set_t *cpuset)
-+{
-+	attr = attr;
-+	cpusetsize = cpusetsize;
-+	cpuset = cpuset;
-+	return 0;
-+}
-+#endif
-+
- #endif /* _FUTEX_H */
-diff --git a/tools/perf/config/Makefile b/tools/perf/config/Makefile
-index 5d4b039fe1ed..6b59662136fa 100644
---- a/tools/perf/config/Makefile
-+++ b/tools/perf/config/Makefile
-@@ -198,6 +198,7 @@ CORE_FEATURE_TESTS =			\
- 	libpython-version		\
- 	libslang			\
- 	libunwind			\
-+	pthread-attr-setaffinity-np	\
- 	stackprotector-all		\
- 	timerfd				\
- 	libdw-dwarf-unwind		\
-@@ -226,6 +227,7 @@ VF_FEATURE_TESTS =			\
- 	libelf-getphdrnum		\
- 	libelf-mmap			\
- 	libpython-version		\
-+	pthread-attr-setaffinity-np	\
- 	stackprotector-all		\
- 	timerfd				\
- 	libunwind-debug-frame		\
-@@ -301,6 +303,10 @@ ifeq ($(feature-sync-compare-and-swap), 1)
-   CFLAGS += -DHAVE_SYNC_COMPARE_AND_SWAP_SUPPORT
- endif
- 
-+ifeq ($(feature-pthread-attr-setaffinity-np), 1)
-+  CFLAGS += -DHAVE_PTHREAD_ATTR_SETAFFINITY_NP
-+endif
-+
- ifndef NO_BIONIC
-   $(call feature_check,bionic)
-   ifeq ($(feature-bionic), 1)
-diff --git a/tools/perf/config/feature-checks/Makefile b/tools/perf/config/feature-checks/Makefile
-index 53f19b5dbc37..e9b99bb29348 100644
---- a/tools/perf/config/feature-checks/Makefile
-+++ b/tools/perf/config/feature-checks/Makefile
-@@ -25,6 +25,7 @@ FILES=					\
- 	test-libslang.bin		\
- 	test-libunwind.bin		\
- 	test-libunwind-debug-frame.bin	\
-+	test-pthread-attr-setaffinity-np.bin	\
- 	test-stackprotector-all.bin	\
- 	test-timerfd.bin		\
- 	test-libdw-dwarf-unwind.bin	\
-@@ -47,6 +48,9 @@ test-all.bin:
- test-hello.bin:
- 	$(BUILD)
- 
-+test-pthread-attr-setaffinity-np.bin:
-+	$(BUILD) -Werror
-+
- test-stackprotector-all.bin:
- 	$(BUILD) -Werror -fstack-protector-all
- 
-diff --git a/tools/perf/config/feature-checks/test-all.c b/tools/perf/config/feature-checks/test-all.c
-index 652e0098eba6..6d4d09323922 100644
---- a/tools/perf/config/feature-checks/test-all.c
-+++ b/tools/perf/config/feature-checks/test-all.c
-@@ -97,6 +97,10 @@
- # include "test-zlib.c"
- #undef main
- 
-+#define main main_test_pthread_attr_setaffinity_np
-+# include "test-pthread_attr_setaffinity_np.c"
-+#undef main
-+
- int main(int argc, char *argv[])
- {
- 	main_test_libpython();
-@@ -121,6 +125,7 @@ int main(int argc, char *argv[])
- 	main_test_libdw_dwarf_unwind();
- 	main_test_sync_compare_and_swap(argc, argv);
- 	main_test_zlib();
-+	main_test_pthread_attr_setaffinity_np();
- 
- 	return 0;
- }
--- 
-1.9.1
-
+> * 1/5 is really a resend of old patch posted by Alexey a while back
+> * 2/5 is uClibc build spew seen on ARM as well
+> * 3/5 likewise
+> * 4/5 is uClibc config specific
+> * 5/5 is uClibc pthread library flavour specific
+>   It adds a stub for pthread_attr_setaffinity_np
+>   I can rework it to disable the futex tests altogether if people think that is
+>   cleaner
+> 
+> Please review and consider applying.
+> W/o these perf doesn't build and/or work for ARC.
+> 
+> Thx,
+> -Vineet
+> 
+> Alexey Brodkin (1):
+>   perf tools: [uclibc] fix statfs.f_type data type mismatch build error
+> 
+> Vineet Gupta (4):
+>   perf tools: [uclibc] Elide strlcpy warning
+>   perf tools: [uclibc] Avoid build splat for syscall numbers
+>   perf tools: [uclibc] don't rely on glibc malloc working for sz 0
+>   perf tools: [uclibc] provide stub for pthread_attr_setaffinity_np
+> 
+>  tools/lib/api/fs/debugfs.c                  |  2 +-
+>  tools/lib/api/fs/fs.c                       |  2 +-
+>  tools/perf/bench/futex.h                    | 13 +++++++++++++
+>  tools/perf/bench/sched-pipe.c               |  1 -
+>  tools/perf/builtin-top.c                    |  1 -
+>  tools/perf/config/Makefile                  |  6 ++++++
+>  tools/perf/config/feature-checks/Makefile   |  4 ++++
+>  tools/perf/config/feature-checks/test-all.c |  5 +++++
+>  tools/perf/perf-sys.h                       |  1 -
+>  tools/perf/util/cache.h                     |  2 ++
+>  tools/perf/util/header.c                    |  2 +-
+>  11 files changed, 33 insertions(+), 6 deletions(-)
+> 
+> -- 
+> 1.9.1
