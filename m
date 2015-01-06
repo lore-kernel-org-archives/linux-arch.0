@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:36283 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:50836 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755847AbbAFPoq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 6 Jan 2015 10:44:46 -0500
-Date: Tue, 6 Jan 2015 17:44:41 +0200
+	id S1755805AbbAFPoe (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 6 Jan 2015 10:44:34 -0500
+Date: Tue, 6 Jan 2015 17:44:24 +0200
 From: "Michael S. Tsirkin" <mst@redhat.com>
-Subject: [PATCH v2 21/40] sh: fix put_user sparse errors
-Message-ID: <1420558883-10131-22-git-send-email-mst@redhat.com>
+Subject: [PATCH v2 16/40] m68k/uaccess: fix sparse errors
+Message-ID: <1420558883-10131-17-git-send-email-mst@redhat.com>
 References: <1420558883-10131-1-git-send-email-mst@redhat.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
@@ -15,60 +15,78 @@ In-Reply-To: <1420558883-10131-1-git-send-email-mst@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-sh@vger.kernel.org
-Message-ID: <20150106154441.5NUT0jHPnZ7kYUD7hHfPXeSonXl2GBfjXIeQJCmUlWQ@z>
+Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Geert Uytterhoeven <geert@linux-m68k.org>, linux-m68k@vger.kernel.org
+Message-ID: <20150106154424.KYlKH7DSJWCNf_dTQmtaGaCZDsqYFDaoE2SY7tyBnyM@z>
 
-virtio wants to write bitwise types to userspace using put_user.
-At the moment this triggers sparse errors, since the value is passed
-through an integer.
-
-For example:
-
-	__le32 __user *p;
-	__le32 x;
-	put_user(x, p);
-
-is safe, but currently triggers a sparse warning.
+virtio wants to read bitwise types from userspace using get_user.  At the
+moment this triggers sparse errors, since the value is passed through an
+integer.
 
 Fix that up using __force.
 
-Note: this does not suppress any useful sparse checks since caller
-assigns x to typeof(*p), which in turn forces all the necessary type
-checks.
-
 Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
 ---
- arch/sh/include/asm/uaccess_64.h | 8 ++++----
- 1 file changed, 4 insertions(+), 4 deletions(-)
+ arch/m68k/include/asm/uaccess_mm.h | 40 +++++++++++++++++++-------------------
+ 1 file changed, 20 insertions(+), 20 deletions(-)
 
-diff --git a/arch/sh/include/asm/uaccess_64.h b/arch/sh/include/asm/uaccess_64.h
-index 2e07e0f..c01376c 100644
---- a/arch/sh/include/asm/uaccess_64.h
-+++ b/arch/sh/include/asm/uaccess_64.h
-@@ -59,19 +59,19 @@ do {								\
- 	switch (size) {						\
- 	case 1:							\
- 		retval = __put_user_asm_b((void *)&x,		\
--					  (long)ptr);		\
-+					  (__force long)ptr);	\
- 		break;						\
- 	case 2:							\
- 		retval = __put_user_asm_w((void *)&x,		\
--					  (long)ptr);		\
-+					  (__force long)ptr);	\
- 		break;						\
- 	case 4:							\
- 		retval = __put_user_asm_l((void *)&x,		\
--					  (long)ptr);		\
-+					  (__force long)ptr);	\
- 		break;						\
- 	case 8:							\
- 		retval = __put_user_asm_q((void *)&x,		\
--					  (long)ptr);		\
-+					  (__force long)ptr);	\
- 		break;						\
- 	default:						\
- 		__put_user_unknown();				\
+diff --git a/arch/m68k/include/asm/uaccess_mm.h b/arch/m68k/include/asm/uaccess_mm.h
+index 15901db..d228601 100644
+--- a/arch/m68k/include/asm/uaccess_mm.h
++++ b/arch/m68k/include/asm/uaccess_mm.h
+@@ -128,25 +128,25 @@ asm volatile ("\n"					\
+ #define put_user(x, ptr)	__put_user(x, ptr)
+ 
+ 
+-#define __get_user_asm(res, x, ptr, type, bwl, reg, err) ({	\
+-	type __gu_val;						\
+-	asm volatile ("\n"					\
+-		"1:	"MOVES"."#bwl"	%2,%1\n"		\
+-		"2:\n"						\
+-		"	.section .fixup,\"ax\"\n"		\
+-		"	.even\n"				\
+-		"10:	move.l	%3,%0\n"			\
+-		"	sub.l	%1,%1\n"			\
+-		"	jra	2b\n"				\
+-		"	.previous\n"				\
+-		"\n"						\
+-		"	.section __ex_table,\"a\"\n"		\
+-		"	.align	4\n"				\
+-		"	.long	1b,10b\n"			\
+-		"	.previous"				\
+-		: "+d" (res), "=&" #reg (__gu_val)		\
+-		: "m" (*(ptr)), "i" (err));			\
+-	(x) = (typeof(*(ptr)))(unsigned long)__gu_val;		\
++#define __get_user_asm(res, x, ptr, type, bwl, reg, err) ({		\
++	type __gu_val;							\
++	asm volatile ("\n"						\
++		"1:	"MOVES"."#bwl"	%2,%1\n"			\
++		"2:\n"							\
++		"	.section .fixup,\"ax\"\n"			\
++		"	.even\n"					\
++		"10:	move.l	%3,%0\n"				\
++		"	sub.l	%1,%1\n"				\
++		"	jra	2b\n"					\
++		"	.previous\n"					\
++		"\n"							\
++		"	.section __ex_table,\"a\"\n"			\
++		"	.align	4\n"					\
++		"	.long	1b,10b\n"				\
++		"	.previous"					\
++		: "+d" (res), "=&" #reg (__gu_val)			\
++		: "m" (*(ptr)), "i" (err));				\
++	(x) = (__force typeof(*(ptr)))(__force unsigned long)__gu_val;	\
+ })
+ 
+ #define __get_user(x, ptr)						\
+@@ -188,7 +188,7 @@ asm volatile ("\n"					\
+ 			  "+a" (__gu_ptr)				\
+ 			: "i" (-EFAULT)					\
+ 			: "memory");					\
+-		(x) = (typeof(*(ptr)))__gu_val;				\
++		(x) = (__force typeof(*(ptr)))__gu_val;			\
+ 		break;							\
+ 	    }	*/							\
+ 	default:							\
 -- 
 MST
 
