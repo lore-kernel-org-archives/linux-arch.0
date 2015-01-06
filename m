@@ -1,54 +1,60 @@
 From: "Michael S. Tsirkin" <mst@redhat.com>
-Subject: [PATCH v2 15/40] sparc64/uaccess: fix sparse errors
-Date: Tue, 6 Jan 2015 17:44:20 +0200
-Message-ID: <1420558883-10131-16-git-send-email-mst@redhat.com>
+Subject: [PATCH v2 19/40] ia64: fix put_user sparse errors
+Date: Tue, 6 Jan 2015 17:44:34 +0200
+Message-ID: <1420558883-10131-20-git-send-email-mst@redhat.com>
 References: <1420558883-10131-1-git-send-email-mst@redhat.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:37937 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755801AbbAFPod (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 6 Jan 2015 10:44:33 -0500
+Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
 In-Reply-To: <1420558883-10131-1-git-send-email-mst@redhat.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
-Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, "David S. Miller" <davem@davemloft.net>, Sam Ravnborg <sam@ravnborg.org>, sparclinux@vger.kernel.org
+Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Thierry Reding <treding@nvidia.com>, linux-ia64@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-virtio wants to read bitwise types from userspace using get_user.  At the
-moment this triggers sparse errors, since the value is passed through an
-integer.
+virtio wants to write bitwise types to userspace using put_user.
+At the moment this triggers sparse errors, since the value is passed
+through an integer.
+
+For example:
+
+	__le32 __user *p;
+	__le32 x;
+	put_user(x, p);
+
+is safe, but currently triggers a sparse warning.
 
 Fix that up using __force.
 
+Note: this does not suppress any useful sparse checks since callers
+do a cast (__typeof__(*(ptr))) (x) which in turn forces all the
+necessary type checks.
+
 Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
 ---
- arch/sparc/include/asm/uaccess_64.h | 4 ++--
- 1 file changed, 2 insertions(+), 2 deletions(-)
+ arch/ia64/include/asm/uaccess.h | 9 +++++----
+ 1 file changed, 5 insertions(+), 4 deletions(-)
 
-diff --git a/arch/sparc/include/asm/uaccess_64.h b/arch/sparc/include/asm/uaccess_64.h
-index c990a5e..b80866d 100644
---- a/arch/sparc/include/asm/uaccess_64.h
-+++ b/arch/sparc/include/asm/uaccess_64.h
-@@ -145,7 +145,7 @@ case 2: __get_user_asm(__gu_val,uh,addr,__gu_ret); break; \
- case 4: __get_user_asm(__gu_val,uw,addr,__gu_ret); break; \
- case 8: __get_user_asm(__gu_val,x,addr,__gu_ret); break; \
- default: __gu_val = 0; __gu_ret = __get_user_bad(); break; \
--} data = (type) __gu_val; __gu_ret; })
-+} data = (__force type) __gu_val; __gu_ret; })
+diff --git a/arch/ia64/include/asm/uaccess.h b/arch/ia64/include/asm/uaccess.h
+index 967c312..4f3fb6cc 100644
+--- a/arch/ia64/include/asm/uaccess.h
++++ b/arch/ia64/include/asm/uaccess.h
+@@ -169,10 +169,11 @@ do {									\
+ 	(err) = ia64_getreg(_IA64_REG_R8);				\
+ 	(val) = ia64_getreg(_IA64_REG_R9);				\
+ } while (0)
+-# define __put_user_size(val, addr, n, err)							\
+-do {												\
+-	__st_user("__ex_table", (unsigned long) addr, n, RELOC_TYPE, (unsigned long) (val));	\
+-	(err) = ia64_getreg(_IA64_REG_R8);							\
++# define __put_user_size(val, addr, n, err)				\
++do {									\
++	__st_user("__ex_table", (unsigned long) addr, n, RELOC_TYPE,	\
++		  (__force unsigned long) (val));			\
++	(err) = ia64_getreg(_IA64_REG_R8);				\
+ } while (0)
+ #endif /* !ASM_SUPPORTED */
  
- #define __get_user_nocheck_ret(data,addr,size,type,retval) ({ \
- register unsigned long __gu_val __asm__ ("l1"); \
-@@ -155,7 +155,7 @@ case 2: __get_user_asm_ret(__gu_val,uh,addr,retval); break; \
- case 4: __get_user_asm_ret(__gu_val,uw,addr,retval); break; \
- case 8: __get_user_asm_ret(__gu_val,x,addr,retval); break; \
- default: if (__get_user_bad()) return retval; \
--} data = (type) __gu_val; })
-+} data = (__force type) __gu_val; })
- 
- #define __get_user_asm(x,size,addr,ret)					\
- __asm__ __volatile__(							\
 -- 
 MST
