@@ -1,25 +1,25 @@
 From: "Michael S. Tsirkin" <mst@redhat.com>
-Subject: [PATCH v2 03/40] arm64/uaccess: fix sparse errors
-Date: Tue, 6 Jan 2015 17:43:40 +0200
-Message-ID: <1420558883-10131-4-git-send-email-mst@redhat.com>
+Subject: [PATCH v2 11/40] openrisc/uaccess: fix sparse errors
+Date: Tue, 6 Jan 2015 17:44:06 +0200
+Message-ID: <1420558883-10131-12-git-send-email-mst@redhat.com>
 References: <1420558883-10131-1-git-send-email-mst@redhat.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+Return-path: <linux-bounces@lists.openrisc.net>
 Content-Disposition: inline
 In-Reply-To: <1420558883-10131-1-git-send-email-mst@redhat.com>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+List-Unsubscribe: <http://lists.openrisc.net/options/linux>,
+	<mailto:linux-request@lists.openrisc.net?subject=unsubscribe>
+List-Archive: <http://lists.openrisc.net/pipermail/linux>
+List-Post: <mailto:linux@lists.openrisc.net>
+List-Help: <mailto:linux-request@lists.openrisc.net?subject=help>
+List-Subscribe: <http://lists.openrisc.net/listinfo/linux>,
+	<mailto:linux-request@lists.openrisc.net?subject=subscribe>
+Sender: linux-bounces@lists.openrisc.net
+Errors-To: linux-bounces@lists.openrisc.net
 To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Christopher Covington <cov@codeaurora.org>, linux-arm-kernel@lists.infradead.org
+Cc: linux-arch@vger.kernel.org, linux@openrisc.net, Arnd Bergmann <arnd@arndb.de>
 List-Id: linux-arch.vger.kernel.org
 
 virtio wants to read bitwise types from userspace using get_user.  At the
@@ -29,24 +29,31 @@ integer.
 Fix that up using __force.
 
 Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
-
-Acked-by: Will Deacon <will.deacon@arm.com>
 ---
- arch/arm64/include/asm/uaccess.h | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ arch/openrisc/include/asm/uaccess.h | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
 
-diff --git a/arch/arm64/include/asm/uaccess.h b/arch/arm64/include/asm/uaccess.h
-index 3bf8f4e..9a2069b 100644
---- a/arch/arm64/include/asm/uaccess.h
-+++ b/arch/arm64/include/asm/uaccess.h
-@@ -147,7 +147,7 @@ do {									\
- 	default:							\
- 		BUILD_BUG();						\
- 	}								\
+diff --git a/arch/openrisc/include/asm/uaccess.h b/arch/openrisc/include/asm/uaccess.h
+index ab2e7a1..a6bd07c 100644
+--- a/arch/openrisc/include/asm/uaccess.h
++++ b/arch/openrisc/include/asm/uaccess.h
+@@ -192,7 +192,7 @@ struct __large_struct {
+ ({								\
+ 	long __gu_err, __gu_val;				\
+ 	__get_user_size(__gu_val, (ptr), (size), __gu_err);	\
+-	(x) = (__typeof__(*(ptr)))__gu_val;			\
++	(x) = (__force __typeof__(*(ptr)))__gu_val;		\
+ 	__gu_err;						\
+ })
+ 
+@@ -202,7 +202,7 @@ struct __large_struct {
+ 	const __typeof__(*(ptr)) * __gu_addr = (ptr);			\
+ 	if (access_ok(VERIFY_READ, __gu_addr, size))			\
+ 		__get_user_size(__gu_val, __gu_addr, (size), __gu_err);	\
 -	(x) = (__typeof__(*(ptr)))__gu_val;				\
 +	(x) = (__force __typeof__(*(ptr)))__gu_val;			\
- } while (0)
+ 	__gu_err;							\
+ })
  
- #define __get_user(x, ptr)						\
 -- 
 MST
