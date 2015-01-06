@@ -1,21 +1,17 @@
 From: "Michael S. Tsirkin" <mst@redhat.com>
-Subject: [PATCH v2 05/40] blackfin/uaccess: fix sparse errors
-Date: Tue, 6 Jan 2015 17:43:47 +0200
-Message-ID: <1420558883-10131-6-git-send-email-mst@redhat.com>
+Subject: [PATCH v2 04/40] avr32/uaccess: fix sparse errors
+Date: Tue, 6 Jan 2015 17:43:44 +0200
+Message-ID: <1420558883-10131-5-git-send-email-mst@redhat.com>
 References: <1420558883-10131-1-git-send-email-mst@redhat.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:50656 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755559AbbAFPoE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 6 Jan 2015 10:44:04 -0500
+Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
 In-Reply-To: <1420558883-10131-1-git-send-email-mst@redhat.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
-Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Steven Miao <realmz6@gmail.com>, adi-buildroot-devel@lists.sourceforge.net
+Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Hans-Christian Egtvedt <egtvedt@samfundet.no>, Haavard Skinnemoen <hskinnemoen@gmail.com>
+List-Id: linux-arch.vger.kernel.org
 
 virtio wants to read bitwise types from userspace using get_user.  At the
 moment this triggers sparse errors, since the value is passed through an
@@ -24,22 +20,31 @@ integer.
 Fix that up using __force.
 
 Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
-Acked-by: Steven Miao <realmz6@gmail.com>
+Acked-by: Hans-Christian Egtvedt <egtvedt@samfundet.no>
 ---
- arch/blackfin/include/asm/uaccess.h | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ arch/avr32/include/asm/uaccess.h | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
 
-diff --git a/arch/blackfin/include/asm/uaccess.h b/arch/blackfin/include/asm/uaccess.h
-index 57701c3..2dcc930 100644
---- a/arch/blackfin/include/asm/uaccess.h
-+++ b/arch/blackfin/include/asm/uaccess.h
-@@ -147,7 +147,7 @@ static inline int bad_user_access_length(void)
- 		}						\
- 	} else							\
- 		_err = -EFAULT;					\
--	x = (typeof(*(ptr)))_val;				\
-+	x = (__force typeof(*(ptr)))_val;			\
- 	_err;							\
+diff --git a/arch/avr32/include/asm/uaccess.h b/arch/avr32/include/asm/uaccess.h
+index 245b2ee..ccd07c4 100644
+--- a/arch/avr32/include/asm/uaccess.h
++++ b/arch/avr32/include/asm/uaccess.h
+@@ -191,7 +191,7 @@ extern int __put_user_bad(void);
+ 	default: __gu_err = __get_user_bad(); break;			\
+ 	}								\
+ 									\
+-	x = (typeof(*(ptr)))__gu_val;					\
++	x = (__force typeof(*(ptr)))__gu_val;				\
+ 	__gu_err;							\
+ })
+ 
+@@ -222,7 +222,7 @@ extern int __put_user_bad(void);
+ 	} else {							\
+ 		__gu_err = -EFAULT;					\
+ 	}								\
+-	x = (typeof(*(ptr)))__gu_val;					\
++	x = (__force typeof(*(ptr)))__gu_val;				\
+ 	__gu_err;							\
  })
  
 -- 
