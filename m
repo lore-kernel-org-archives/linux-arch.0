@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:43805 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:37592 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755672AbbAFPoO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 6 Jan 2015 10:44:14 -0500
-Date: Tue, 6 Jan 2015 17:43:59 +0200
+	id S1755437AbbAFPn7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 6 Jan 2015 10:43:59 -0500
+Date: Tue, 6 Jan 2015 17:43:34 +0200
 From: "Michael S. Tsirkin" <mst@redhat.com>
-Subject: [PATCH v2 09/40] metag/uaccess: fix sparse errors
-Message-ID: <1420558883-10131-10-git-send-email-mst@redhat.com>
+Subject: [PATCH v2 02/40] alpha/uaccess: fix sparse errors
+Message-ID: <1420558883-10131-3-git-send-email-mst@redhat.com>
 References: <1420558883-10131-1-git-send-email-mst@redhat.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
@@ -15,8 +15,8 @@ In-Reply-To: <1420558883-10131-1-git-send-email-mst@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, James Hogan <james.hogan@imgtec.com>, linux-metag@vger.kernel.org
-Message-ID: <20150106154359.aMIVVS8njOvn4xKwWgAv9Yjk_1sdbiA79SCOezc8Bio@z>
+Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, linux-alpha@vger.kernel.org
+Message-ID: <20150106154334.kCsgOd-a51smVJKJy9MgpouLW5-x2fGxq9ObiJ48ro4@z>
 
 virtio wants to read bitwise types from userspace using get_user.  At the
 moment this triggers sparse errors, since the value is passed through an
@@ -26,29 +26,29 @@ Fix that up using __force.
 
 Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
 ---
- arch/metag/include/asm/uaccess.h | 4 ++--
+ arch/alpha/include/asm/uaccess.h | 4 ++--
  1 file changed, 2 insertions(+), 2 deletions(-)
 
-diff --git a/arch/metag/include/asm/uaccess.h b/arch/metag/include/asm/uaccess.h
-index 0748b0a..c314b45 100644
---- a/arch/metag/include/asm/uaccess.h
-+++ b/arch/metag/include/asm/uaccess.h
-@@ -135,7 +135,7 @@ extern long __get_user_bad(void);
- ({                                                              \
- 	long __gu_err, __gu_val;                                \
- 	__get_user_size(__gu_val, (ptr), (size), __gu_err);	\
--	(x) = (__typeof__(*(ptr)))__gu_val;                     \
-+	(x) = (__force __typeof__(*(ptr)))__gu_val;                     \
- 	__gu_err;                                               \
+diff --git a/arch/alpha/include/asm/uaccess.h b/arch/alpha/include/asm/uaccess.h
+index 766fdfd..a234de7 100644
+--- a/arch/alpha/include/asm/uaccess.h
++++ b/arch/alpha/include/asm/uaccess.h
+@@ -96,7 +96,7 @@ extern void __get_user_unknown(void);
+ 	  case 8: __get_user_64(ptr); break;			\
+ 	  default: __get_user_unknown(); break;			\
+ 	}							\
+-	(x) = (__typeof__(*(ptr))) __gu_val;			\
++	(x) = (__force __typeof__(*(ptr))) __gu_val;		\
+ 	__gu_err;						\
  })
  
-@@ -145,7 +145,7 @@ extern long __get_user_bad(void);
- 	const __typeof__(*(ptr)) __user *__gu_addr = (ptr);		\
- 	if (access_ok(VERIFY_READ, __gu_addr, size))			\
- 		__get_user_size(__gu_val, __gu_addr, (size), __gu_err);	\
--	(x) = (__typeof__(*(ptr)))__gu_val;                             \
-+	(x) = (__force __typeof__(*(ptr)))__gu_val;                             \
- 	__gu_err;                                                       \
+@@ -115,7 +115,7 @@ extern void __get_user_unknown(void);
+ 		  default: __get_user_unknown(); break;			\
+ 		}							\
+ 	}								\
+-	(x) = (__typeof__(*(ptr))) __gu_val;				\
++	(x) = (__force __typeof__(*(ptr))) __gu_val;			\
+ 	__gu_err;							\
  })
  
 -- 
