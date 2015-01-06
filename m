@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:37592 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:35963 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755437AbbAFPn7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 6 Jan 2015 10:43:59 -0500
-Date: Tue, 6 Jan 2015 17:43:34 +0200
+	id S1755479AbbAFPoA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 6 Jan 2015 10:44:00 -0500
+Date: Tue, 6 Jan 2015 17:43:44 +0200
 From: "Michael S. Tsirkin" <mst@redhat.com>
-Subject: [PATCH v2 02/40] alpha/uaccess: fix sparse errors
-Message-ID: <1420558883-10131-3-git-send-email-mst@redhat.com>
+Subject: [PATCH v2 04/40] avr32/uaccess: fix sparse errors
+Message-ID: <1420558883-10131-5-git-send-email-mst@redhat.com>
 References: <1420558883-10131-1-git-send-email-mst@redhat.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
@@ -15,8 +15,8 @@ In-Reply-To: <1420558883-10131-1-git-send-email-mst@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, linux-alpha@vger.kernel.org
-Message-ID: <20150106154334.kCsgOd-a51smVJKJy9MgpouLW5-x2fGxq9ObiJ48ro4@z>
+Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Hans-Christian Egtvedt <egtvedt@samfundet.no>, Haavard Skinnemoen <hskinnemoen@gmail.com>
+Message-ID: <20150106154344.F4aI0pT2UAlRFMP7oSTXfVymMrfzKxQjRk50Tj_dGxU@z>
 
 virtio wants to read bitwise types from userspace using get_user.  At the
 moment this triggers sparse errors, since the value is passed through an
@@ -25,29 +25,30 @@ integer.
 Fix that up using __force.
 
 Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
+Acked-by: Hans-Christian Egtvedt <egtvedt@samfundet.no>
 ---
- arch/alpha/include/asm/uaccess.h | 4 ++--
+ arch/avr32/include/asm/uaccess.h | 4 ++--
  1 file changed, 2 insertions(+), 2 deletions(-)
 
-diff --git a/arch/alpha/include/asm/uaccess.h b/arch/alpha/include/asm/uaccess.h
-index 766fdfd..a234de7 100644
---- a/arch/alpha/include/asm/uaccess.h
-+++ b/arch/alpha/include/asm/uaccess.h
-@@ -96,7 +96,7 @@ extern void __get_user_unknown(void);
- 	  case 8: __get_user_64(ptr); break;			\
- 	  default: __get_user_unknown(); break;			\
- 	}							\
--	(x) = (__typeof__(*(ptr))) __gu_val;			\
-+	(x) = (__force __typeof__(*(ptr))) __gu_val;		\
- 	__gu_err;						\
+diff --git a/arch/avr32/include/asm/uaccess.h b/arch/avr32/include/asm/uaccess.h
+index 245b2ee..ccd07c4 100644
+--- a/arch/avr32/include/asm/uaccess.h
++++ b/arch/avr32/include/asm/uaccess.h
+@@ -191,7 +191,7 @@ extern int __put_user_bad(void);
+ 	default: __gu_err = __get_user_bad(); break;			\
+ 	}								\
+ 									\
+-	x = (typeof(*(ptr)))__gu_val;					\
++	x = (__force typeof(*(ptr)))__gu_val;				\
+ 	__gu_err;							\
  })
  
-@@ -115,7 +115,7 @@ extern void __get_user_unknown(void);
- 		  default: __get_user_unknown(); break;			\
- 		}							\
+@@ -222,7 +222,7 @@ extern int __put_user_bad(void);
+ 	} else {							\
+ 		__gu_err = -EFAULT;					\
  	}								\
--	(x) = (__typeof__(*(ptr))) __gu_val;				\
-+	(x) = (__force __typeof__(*(ptr))) __gu_val;			\
+-	x = (typeof(*(ptr)))__gu_val;					\
++	x = (__force typeof(*(ptr)))__gu_val;				\
  	__gu_err;							\
  })
  
