@@ -1,49 +1,59 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from asavdk3.altibox.net ([109.247.116.14]:44254 "EHLO
-	asavdk3.altibox.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753884AbbAFUqN (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 6 Jan 2015 15:46:13 -0500
-Date: Tue, 6 Jan 2015 21:46:07 +0100
-From: Sam Ravnborg <sam@ravnborg.org>
+Received: from mx1.redhat.com ([209.132.183.28]:60413 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S932536AbbAFVoW (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 6 Jan 2015 16:44:22 -0500
+Date: Tue, 6 Jan 2015 23:44:07 +0200
+From: "Michael S. Tsirkin" <mst@redhat.com>
 Subject: Re: [PATCH v2 26/40] arch/sparc: uaccess_64 macro whitespace fixes
-Message-ID: <20150106204607.GA22468@ravnborg.org>
+Message-ID: <20150106214407.GA15535@redhat.com>
 References: <1420558883-10131-1-git-send-email-mst@redhat.com>
  <1420558883-10131-27-git-send-email-mst@redhat.com>
  <20150106165339.GA11270@ravnborg.org>
  <20150106171902.GA11577@redhat.com>
  <20150106182749.GA19490@ravnborg.org>
  <20150106202342.GB12455@redhat.com>
+ <20150106204607.GA22468@ravnborg.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20150106202342.GB12455@redhat.com>
+In-Reply-To: <20150106204607.GA22468@ravnborg.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Michael S. Tsirkin" <mst@redhat.com>
+To: Sam Ravnborg <sam@ravnborg.org>
 Cc: linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, "David S. Miller" <davem@davemloft.net>, sparclinux@vger.kernel.org
-Message-ID: <20150106204607.eN9ZDZwKKX8oyzJDSCp_-VCnqJkCYK2Xn9SEIpuqDLU@z>
+Message-ID: <20150106214407.QPjLAZ_XPT7B2ATwTjPtTz9RPHvSb41Jld8PbQX2JvE@z>
 
-> > sparc64: fix coding style in uaccess_64.h
-> 
-> OK.
-> I see David reviewed and sent acks, so I won't bother
-> reposting, but I'll tweak this in my tree.
-OK.
-
-> > > I get it you like it that 
-> > > 	case 1: __get_user_asm(__gu_val,ub,addr,__gu_ret); break;
-> > > has the whole case on the same line?
-> > > Is that the issue?
-> > Exactly - much easier to read this way.
-> > That the "\" was not aligned in these parts of the code did not help either.
+On Tue, Jan 06, 2015 at 09:46:07PM +0100, Sam Ravnborg wrote:
+> > > sparc64: fix coding style in uaccess_64.h
 > > 
-> > 	Sam
+> > OK.
+> > I see David reviewed and sent acks, so I won't bother
+> > reposting, but I'll tweak this in my tree.
+> OK.
 > 
-> I see David acked this already - I'll do a patch on top to tweak just
-> these two places to your liking?
+> > > > I get it you like it that 
+> > > > 	case 1: __get_user_asm(__gu_val,ub,addr,__gu_ret); break;
+> > > > has the whole case on the same line?
+> > > > Is that the issue?
+> > > Exactly - much easier to read this way.
+> > > That the "\" was not aligned in these parts of the code did not help either.
+> > > 
+> > > 	Sam
+> > 
+> > I see David acked this already - I'll do a patch on top to tweak just
+> > these two places to your liking?
+> 
+> Thanks.
 
+OK, sent.
+Mind sending acks for these and the original patches?
+You can add that your ack is conditional on applying the tweak on top.
+
+> When you have done so please wait for David's ack before you
+> sent then upstream. That I like it does not make it universally accepted.
+> 
+> 	Sam
+
+Sure.
 Thanks.
-When you have done so please wait for David's ack before you
-sent then upstream. That I like it does not make it universally accepted.
-
-	Sam
