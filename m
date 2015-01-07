@@ -1,77 +1,124 @@
-From: "Michael S. Tsirkin" <mst-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>
-Subject: Re: [PATCH v2 09/40] metag/uaccess: fix sparse errors
-Date: Wed, 7 Jan 2015 11:55:10 +0200
-Message-ID: <20150107095510.GA24828@redhat.com>
-References: <1420558883-10131-1-git-send-email-mst@redhat.com>
- <1420558883-10131-10-git-send-email-mst@redhat.com>
- <54AD00AC.2030801@imgtec.com>
+From: James Hogan <james.hogan@imgtec.com>
+Subject: Re: [PATCH v2 20/40] metag: fix put_user sparse errors
+Date: Wed, 7 Jan 2015 09:55:04 +0000
+Message-ID: <54AD0278.1040909@imgtec.com>
+References: <1420558883-10131-1-git-send-email-mst@redhat.com> <1420558883-10131-21-git-send-email-mst@redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-metag-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-Content-Disposition: inline
-In-Reply-To: <54AD00AC.2030801-1AXoQHu6uovQT0dZR+AlfA@public.gmane.org>
-Sender: linux-metag-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: James Hogan <james.hogan-1AXoQHu6uovQT0dZR+AlfA@public.gmane.org>
-Cc: linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-metag-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+Content-Type: multipart/signed; micalg=pgp-sha1;
+	protocol="application/pgp-signature";
+	boundary="X7dVsXX01wr6Mfoij5v0F1Sh5JLoQXdBF"
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1420558883-10131-21-git-send-email-mst@redhat.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: "Michael S. Tsirkin" <mst@redhat.com>, linux-kernel@vger.kernel.org
+Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-metag@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Jan 07, 2015 at 09:47:24AM +0000, James Hogan wrote:
-> Hi Machael,
-> 
-> On 06/01/15 15:43, Michael S. Tsirkin wrote:
-> > virtio wants to read bitwise types from userspace using get_user.  At the
-> > moment this triggers sparse errors, since the value is passed through an
-> > integer.
-> > 
-> > Fix that up using __force.
-> > 
-> > Signed-off-by: Michael S. Tsirkin <mst-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>
-> > ---
-> >  arch/metag/include/asm/uaccess.h | 4 ++--
-> >  1 file changed, 2 insertions(+), 2 deletions(-)
-> > 
-> > diff --git a/arch/metag/include/asm/uaccess.h b/arch/metag/include/asm/uaccess.h
-> > index 0748b0a..c314b45 100644
-> > --- a/arch/metag/include/asm/uaccess.h
-> > +++ b/arch/metag/include/asm/uaccess.h
-> > @@ -135,7 +135,7 @@ extern long __get_user_bad(void);
-> >  ({                                                              \
-> >  	long __gu_err, __gu_val;                                \
-> >  	__get_user_size(__gu_val, (ptr), (size), __gu_err);	\
-> > -	(x) = (__typeof__(*(ptr)))__gu_val;                     \
-> > +	(x) = (__force __typeof__(*(ptr)))__gu_val;                     \
-> 
-> As I mentioned before, can you please adjust the position of the \ to
-> line up.
-> >  	__gu_err;                                               \
-> >  })
-> >  
-> > @@ -145,7 +145,7 @@ extern long __get_user_bad(void);
-> >  	const __typeof__(*(ptr)) __user *__gu_addr = (ptr);		\
-> >  	if (access_ok(VERIFY_READ, __gu_addr, size))			\
-> >  		__get_user_size(__gu_val, __gu_addr, (size), __gu_err);	\
-> > -	(x) = (__typeof__(*(ptr)))__gu_val;                             \
-> > +	(x) = (__force __typeof__(*(ptr)))__gu_val;                             \
-> 
-> same here (this one causes checkpatch error due to 80 column limit).
+--X7dVsXX01wr6Mfoij5v0F1Sh5JLoQXdBF
+Content-Type: text/plain; charset=windows-1252
+Content-Transfer-Encoding: quoted-printable
 
-Oops. Sorry. Will fix both. I won't repost unless there are more issues.
+On 06/01/15 15:44, Michael S. Tsirkin wrote:
+> virtio wants to write bitwise types to userspace using put_user.
+> At the moment this triggers sparse errors, since the value is passed
+> through an integer.
+>=20
+> For example:
+>=20
+> 	__le32 __user *p;
+> 	__le32 x;
+> 	put_user(x, p);
+>=20
+> is safe, but currently triggers a sparse warning.
+>=20
+> Fix that up using __force.
+>=20
+> This also fixes warnings due to writing a pointer out to
+> userland.
+>=20
+> Note: this does not suppress any useful sparse checks since callers
+> do a cast (__typeof__(*(ptr))) (x) which in turn forces all the
+> necessary type checks.
+>=20
+> Suggested-by: James Hogan <james.hogan@imgtec.com>
+> Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
+> ---
+>  arch/metag/include/asm/uaccess.h | 21 +++++++++++++--------
+>  1 file changed, 13 insertions(+), 8 deletions(-)
+>=20
+> diff --git a/arch/metag/include/asm/uaccess.h b/arch/metag/include/asm/=
+uaccess.h
+> index c314b45..9627c19 100644
+> --- a/arch/metag/include/asm/uaccess.h
+> +++ b/arch/metag/include/asm/uaccess.h
+> @@ -107,18 +107,23 @@ extern long __put_user_asm_w(unsigned int x, void=
+ __user *addr);
+>  extern long __put_user_asm_d(unsigned int x, void __user *addr);
+>  extern long __put_user_asm_l(unsigned long long x, void __user *addr);=
 
-> 
-> >  	__gu_err;                                                       \
-> >  })
-> >  
-> > 
-> 
-> With those changes,
-> Acked-by: James Hogan <james.hogan-1AXoQHu6uovQT0dZR+AlfA@public.gmane.org>
-> 
-> Cheers
-> James
-> 
+> =20
+> -#define __put_user_size(x, ptr, size, retval)			\
+> -do {                                                            \
+> -	retval =3D 0;                                             \
+> -	switch (size) {                                         \
+> +#define __put_user_size(x, ptr, size, retval)				\
+> +do {                                                            	\
+> +	retval =3D 0;                                             	\
+> +	switch (size) {                                         	\
+
+On the last 3 lines here you've added a tab after spaces which
+checkpatch complains about. With that fixed (or converted to tabs properl=
+y):
+
+Acked-by: James Hogan <james.hogan@imgtec.com>
+
+Cheers
+James
+
+>  	case 1:								\
+> -		retval =3D __put_user_asm_b((unsigned int)x, ptr); break;	\
+> +		retval =3D __put_user_asm_b((__force unsigned int)x, ptr);\
+> +		break;							\
+>  	case 2:								\
+> -		retval =3D __put_user_asm_w((unsigned int)x, ptr); break;	\
+> +		retval =3D __put_user_asm_w((__force unsigned int)x, ptr);\
+> +		break;							\
+>  	case 4:								\
+> -		retval =3D __put_user_asm_d((unsigned int)x, ptr); break;	\
+> +		retval =3D __put_user_asm_d((__force unsigned int)x, ptr);\
+> +		break;							\
+>  	case 8:								\
+> -		retval =3D __put_user_asm_l((unsigned long long)x, ptr); break; \
+> +		retval =3D __put_user_asm_l((__force unsigned long long)x,\
+> +					  ptr);				\
+> +		break;							\
+>  	default:							\
+>  		__put_user_bad();					\
+>  	}								\
+>=20
 
 
---
-To unsubscribe from this list: send the line "unsubscribe linux-metag" in
-the body of a message to majordomo-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-More majordomo info at  http://vger.kernel.org/majordomo-info.html
+--X7dVsXX01wr6Mfoij5v0F1Sh5JLoQXdBF
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: OpenPGP digital signature
+Content-Disposition: attachment; filename="signature.asc"
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v2
+
+iQIcBAEBAgAGBQJUrQJ4AAoJEGwLaZPeOHZ6lAAQALPhV+Zf5mFvIe1IxWW48QIZ
+V5ftcbjErBcgGXZXFtcQEsUkiCda6TE+xbEtOyXi0ze8KtEIyaig2JFRdBMe96Mh
+HYFhb5hqvApRdMm/iBWocvAr8FYE2iO8sqGh2EgVVByQpiEP/dQmRrtYYoa7/+kC
+8yHLQToC2e2SEbQJdgjYp7X7xh0EmjI4TarBhtKzRaL4Dv3pHAuyUHhqDn6ZqaD/
+IkZDSx8UYaavJ7FgeheTz7nh2vaQfZbtXdW6WhJzMf5G9rtw74euQEJ2e3n06mEU
+/fPO4/K+adOGINPI53k2Y+Wjn8rZ6cOsYhn8kqm136o0BFxuhAleqr0K+t62W/0N
+Cl0fPjAvPrNa03X8WyPSuDbY8PLEKE33z/5hkBZjpMWB37Za1ADog4nTRyf9+z5n
+ZDItZuu4PDTnqvr+YXhBLPc+dxpZZZ9QkVbRHYLx6hSrsr+jEHa1pqZwTkl1tmg1
+NecBuxDk+lqoHqdfs3ncMLZpXRnc93/vB5skK3W65psRykAPpgshKwRAbLOnvYox
++LtwtnkjGS7+M13LxeTLNk/DlSHbiBqjn7Qoz4tcfv40hs4Jm0xLd8zwevNM6H1E
+sPiMjYLHLD8vmthAm5B656ZB5a4iDWFz+k/CMimwbWmjd9+MxTOc++IKRYZODQ46
+h7SXOni+zGWd39HmD0wg
+=R+gX
+-----END PGP SIGNATURE-----
+
+--X7dVsXX01wr6Mfoij5v0F1Sh5JLoQXdBF--
