@@ -1,60 +1,69 @@
 From: Michal Simek <monstr@monstr.eu>
-Subject: Re: [PATCH v2 28/40] microblaze: whitespace fix
-Date: Wed, 07 Jan 2015 11:14:19 +0100
-Message-ID: <54AD06FB.6070800@monstr.eu>
-References: <1420558883-10131-1-git-send-email-mst@redhat.com> <1420558883-10131-29-git-send-email-mst@redhat.com>
+Subject: Re: [PATCH v2 10/40] microblaze/uaccess: fix sparse errors
+Date: Wed, 07 Jan 2015 11:14:02 +0100
+Message-ID: <54AD06EA.6030105@monstr.eu>
+References: <1420558883-10131-1-git-send-email-mst@redhat.com> <1420558883-10131-11-git-send-email-mst@redhat.com>
 Reply-To: monstr@monstr.eu
 Mime-Version: 1.0
 Content-Type: multipart/signed; micalg=pgp-sha1;
  protocol="application/pgp-signature";
- boundary="4gWoPVG5f4iU5Sr9loFpDwqnRfstQj3CO"
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wg0-f45.google.com ([74.125.82.45]:35663 "EHLO
-	mail-wg0-f45.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752367AbbAGKOX (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 7 Jan 2015 05:14:23 -0500
-Received: by mail-wg0-f45.google.com with SMTP id b13so883606wgh.4
-        for <linux-arch@vger.kernel.org>; Wed, 07 Jan 2015 02:14:22 -0800 (PST)
-In-Reply-To: <1420558883-10131-29-git-send-email-mst@redhat.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+ boundary="XKncbsgA7xI3dS2mdHUeDkBEeboEli5jR"
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1420558883-10131-11-git-send-email-mst@redhat.com>
+Sender: linux-kernel-owner@vger.kernel.org
 To: "Michael S. Tsirkin" <mst@redhat.com>, linux-kernel@vger.kernel.org
 Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Chen Gang <gang.chen.5i5j@gmail.com>
+List-Id: linux-arch.vger.kernel.org
 
 This is an OpenPGP/MIME signed message (RFC 4880 and 3156)
---4gWoPVG5f4iU5Sr9loFpDwqnRfstQj3CO
+--XKncbsgA7xI3dS2mdHUeDkBEeboEli5jR
 Content-Type: text/plain; charset=windows-1252
 Content-Transfer-Encoding: quoted-printable
 
-On 01/06/2015 04:45 PM, Michael S. Tsirkin wrote:
-> Align using tabs to make code prettier.
+On 01/06/2015 04:44 PM, Michael S. Tsirkin wrote:
+> virtio wants to read bitwise types from userspace using get_user.  At t=
+he
+> moment this triggers sparse errors, since the value is passed through a=
+n
+> integer.
+>=20
+> Fix that up using __force.
 >=20
 > Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
 > ---
->  arch/microblaze/include/asm/uaccess.h | 2 +-
->  1 file changed, 1 insertion(+), 1 deletion(-)
+>  arch/microblaze/include/asm/uaccess.h | 4 ++--
+>  1 file changed, 2 insertions(+), 2 deletions(-)
 >=20
 > diff --git a/arch/microblaze/include/asm/uaccess.h b/arch/microblaze/in=
 clude/asm/uaccess.h
-> index e41bebf..62942fd 100644
+> index 59a89a6..e41bebf 100644
 > --- a/arch/microblaze/include/asm/uaccess.h
 > +++ b/arch/microblaze/include/asm/uaccess.h
-> @@ -306,7 +306,7 @@ extern long __user_bad(void);
+> @@ -220,7 +220,7 @@ extern long __user_bad(void);
+>  	} else {							\
+>  		__gu_err =3D -EFAULT;					\
+>  	}								\
+> -	x =3D (typeof(*(ptr)))__gu_val;					\
+> +	x =3D (__force typeof(*(ptr)))__gu_val;				\
+>  	__gu_err;							\
+>  })
 > =20
->  #define __put_user_check(x, ptr, size)					\
->  ({									\
-> -	typeof(*(ptr)) volatile __pu_val =3D x;					\
-> +	typeof(*(ptr)) volatile __pu_val =3D x;				\
->  	typeof(*(ptr)) __user *__pu_addr =3D (ptr);			\
->  	int __pu_err =3D 0;						\
->  									\
+> @@ -242,7 +242,7 @@ extern long __user_bad(void);
+>  	default:							\
+>  		/* __gu_val =3D 0; __gu_err =3D -EINVAL;*/ __gu_err =3D __user_bad()=
+;\
+>  	}								\
+> -	x =3D (__typeof__(*(ptr))) __gu_val;				\
+> +	x =3D (__force __typeof__(*(ptr))) __gu_val;			\
+>  	__gu_err;							\
+>  })
+> =20
 >=20
 
 Applied.
 
 Thanks,
 Michal
-
 --=20
 Michal Simek, Ing. (M.Eng), OpenPGP -> KeyID: FE3D1F91
 w: www.monstr.eu p: +42-0-721842854
@@ -64,7 +73,7 @@ Microblaze U-BOOT custodian and responsible for u-boot arm zynq platform
 
 
 
---4gWoPVG5f4iU5Sr9loFpDwqnRfstQj3CO
+--XKncbsgA7xI3dS2mdHUeDkBEeboEli5jR
 Content-Type: application/pgp-signature; name="signature.asc"
 Content-Description: OpenPGP digital signature
 Content-Disposition: attachment; filename="signature.asc"
@@ -72,9 +81,9 @@ Content-Disposition: attachment; filename="signature.asc"
 -----BEGIN PGP SIGNATURE-----
 Version: GnuPG v1.4.10 (GNU/Linux)
 
-iEYEARECAAYFAlStBvsACgkQykllyylKDCHcnQCcDjtdGVQLUSO7422jDKh6MWxz
-qeAAnAqjxN2cOOx4Sh11snlljapKa6ez
-=6eIE
+iEYEARECAAYFAlStBu4ACgkQykllyylKDCHjNQCdHZv2XJpcmTzpFxgf1PUaP6Om
+/dIAoITgLXlEybEuWG0G7LT0C937QrAd
+=7tKI
 -----END PGP SIGNATURE-----
 
---4gWoPVG5f4iU5Sr9loFpDwqnRfstQj3CO--
+--XKncbsgA7xI3dS2mdHUeDkBEeboEli5jR--
