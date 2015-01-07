@@ -1,68 +1,104 @@
-From: "Michael S. Tsirkin" <mst@redhat.com>
-Subject: Re: [PATCH v2 38/40] s390: macro whitespace fixes
-Date: Wed, 7 Jan 2015 11:07:31 +0200
-Message-ID: <20150107090731.GB24298@redhat.com>
-References: <1420558883-10131-1-git-send-email-mst@redhat.com>
- <1420558883-10131-39-git-send-email-mst@redhat.com>
- <20150107083339.GB4365@osiris>
+From: James Hogan <james.hogan-1AXoQHu6uovQT0dZR+AlfA@public.gmane.org>
+Subject: Re: [PATCH v2 09/40] metag/uaccess: fix sparse errors
+Date: Wed, 7 Jan 2015 09:47:24 +0000
+Message-ID: <54AD00AC.2030801@imgtec.com>
+References: <1420558883-10131-1-git-send-email-mst@redhat.com> <1420558883-10131-10-git-send-email-mst@redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:41394 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752430AbbAGJHo (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 7 Jan 2015 04:07:44 -0500
-Content-Disposition: inline
-In-Reply-To: <20150107083339.GB4365@osiris>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Heiko Carstens <heiko.carstens@de.ibm.com>
-Cc: linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Martin Schwidefsky <schwidefsky@de.ibm.com>, linux390@de.ibm.com, linux-s390@vger.kernel.org
+Content-Type: multipart/signed; micalg=pgp-sha1;
+	protocol="application/pgp-signature";
+	boundary="wG9dUoEoOim5rPkFTQRge26B0AnONhSbC"
+Return-path: <linux-metag-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+In-Reply-To: <1420558883-10131-10-git-send-email-mst-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>
+Sender: linux-metag-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: "Michael S. Tsirkin" <mst-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+Cc: Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-metag-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, Jan 07, 2015 at 09:33:39AM +0100, Heiko Carstens wrote:
-> On Tue, Jan 06, 2015 at 05:45:38PM +0200, Michael S. Tsirkin wrote:
-> > While working on arch/s390/include/asm/uaccess.h, I noticed
-> > that a couple of macros within this header are made harder to read
-> > because they violate a coding style rule: space is missing after comma.
-> > 
-> > Fix it up.
-> > 
-> > Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
-> > ---
-> >  arch/s390/include/asm/uaccess.h | 4 ++--
-> >  1 file changed, 2 insertions(+), 2 deletions(-)
-> > 
-> > diff --git a/arch/s390/include/asm/uaccess.h b/arch/s390/include/asm/uaccess.h
-> > index cd4c68e..71b9c40 100644
-> > --- a/arch/s390/include/asm/uaccess.h
-> > +++ b/arch/s390/include/asm/uaccess.h
-> > @@ -46,7 +46,7 @@
-> >  	__ctl_load(__pto, 7, 7);					\
-> >  })
-> > 
-> > -#define segment_eq(a,b) ((a).ar4 == (b).ar4)
-> > +#define segment_eq(a, b) ((a).ar4 == (b).ar4)
-> > 
-> >  static inline int __range_ok(unsigned long addr, unsigned long size)
-> >  {
-> > @@ -147,7 +147,7 @@ unsigned long __must_check __copy_to_user(void __user *to, const void *from,
-> >  		"3:	lhi	%0,%5\n"			\
-> >  		"	jg	2b\n"				\
-> >  		".popsection\n"					\
-> > -		EX_TABLE(0b,3b) EX_TABLE(1b,3b)			\
-> > +		EX_TABLE(0b, 3b) EX_TABLE(1b, 3b)		\
-> 
-> Most EX_TABLE() usages within s390 are without space after comma.
-> No need to change that. Also I don't like the change of the seqment_eq()
-> macro.
-> I won't apply trivial whitespace patches, since this would make 'git blame'
-> useless and in addition invite more people to send whitespace patches.
-> 
-> Thanks,
-> Heiko
+--wG9dUoEoOim5rPkFTQRge26B0AnONhSbC
+Content-Type: text/plain; charset=windows-1252
+Content-Transfer-Encoding: quoted-printable
 
-There's always git blame -w. Anyway, I'll drop s390 patches.
-Fix it up yourself if you wish.
+Hi Machael,
 
--- 
-MST
+On 06/01/15 15:43, Michael S. Tsirkin wrote:
+> virtio wants to read bitwise types from userspace using get_user.  At t=
+he
+> moment this triggers sparse errors, since the value is passed through a=
+n
+> integer.
+>=20
+> Fix that up using __force.
+>=20
+> Signed-off-by: Michael S. Tsirkin <mst-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>
+> ---
+>  arch/metag/include/asm/uaccess.h | 4 ++--
+>  1 file changed, 2 insertions(+), 2 deletions(-)
+>=20
+> diff --git a/arch/metag/include/asm/uaccess.h b/arch/metag/include/asm/=
+uaccess.h
+> index 0748b0a..c314b45 100644
+> --- a/arch/metag/include/asm/uaccess.h
+> +++ b/arch/metag/include/asm/uaccess.h
+> @@ -135,7 +135,7 @@ extern long __get_user_bad(void);
+>  ({                                                              \
+>  	long __gu_err, __gu_val;                                \
+>  	__get_user_size(__gu_val, (ptr), (size), __gu_err);	\
+> -	(x) =3D (__typeof__(*(ptr)))__gu_val;                     \
+> +	(x) =3D (__force __typeof__(*(ptr)))__gu_val;                     \
+
+As I mentioned before, can you please adjust the position of the \ to
+line up.
+
+>  	__gu_err;                                               \
+>  })
+> =20
+> @@ -145,7 +145,7 @@ extern long __get_user_bad(void);
+>  	const __typeof__(*(ptr)) __user *__gu_addr =3D (ptr);		\
+>  	if (access_ok(VERIFY_READ, __gu_addr, size))			\
+>  		__get_user_size(__gu_val, __gu_addr, (size), __gu_err);	\
+> -	(x) =3D (__typeof__(*(ptr)))__gu_val;                             \
+> +	(x) =3D (__force __typeof__(*(ptr)))__gu_val;                        =
+     \
+
+same here (this one causes checkpatch error due to 80 column limit).
+
+>  	__gu_err;                                                       \
+>  })
+> =20
+>=20
+
+With those changes,
+Acked-by: James Hogan <james.hogan-1AXoQHu6uovQT0dZR+AlfA@public.gmane.org>
+
+Cheers
+James
+
+
+--wG9dUoEoOim5rPkFTQRge26B0AnONhSbC
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: OpenPGP digital signature
+Content-Disposition: attachment; filename="signature.asc"
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v2
+
+iQIcBAEBAgAGBQJUrQCzAAoJEGwLaZPeOHZ6ho8P/ij5ANUeelvOYnmpKda00EsN
+YgLDZzZg+meMDzDoBp1jpqeJYSCPL3lV2Ln5/prbdlXXEX4CGeS8K/DfnRX4v7TL
+r4Oc3u8ei2Q7MRPOB5hGuUS5Qj23QlSP599Jq7sUhF7FKGgcIJ9/xFhXlktG61GF
+CE1z7QroVNhQpv2va/Xasgc07qVN+X9h105aEb9TjPi+BcCfs6Gldg2jLpxrpx8/
+6RbCWXKchrVD9NILdTqzG3ZxVyZnhO5BFb9ko5/Di+7SEdQU70ZsBVYhoEoZjLqZ
+8891LmYli7pqW4nFV28uQw5yVJMlSzhdIqHugDAvRaw8VPgwO6ZmoH/XovaHk4Dz
+4tNoVjMkjT2Mh3tOgfJVe6B3x97g6iIIvbumnGNNUI9LEX4zlmLVhe8eiG0cs3iu
+b4nxpAmZjt32PZHBBRTGjgCrj06UpZNsTSdmztKme8wSIQe+YrEWyva/PtMBLrbI
+33HYra5g4HIv9oHGb5VPLf2kGhKRBAuAdrhrcz61+VdoZ72Mz20Rk5j9y+lOR7cN
+Ix98BCttozR/Ik7C/YmyjKoeM80YTGri1rGgCtyB+no/F6nuhlbiH1C1obW/Wymq
+lCf/JoQ2hS1FHITPMpMj+fzf+bs1PzvXRDwKIYLYCDJ5RCA4sxbclbmj2i68yneF
+a4DjAMOF7+jDBqk+js4M
+=Xkhs
+-----END PGP SIGNATURE-----
+
+--wG9dUoEoOim5rPkFTQRge26B0AnONhSbC--
+--
+To unsubscribe from this list: send the line "unsubscribe linux-metag" in
+the body of a message to majordomo-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+More majordomo info at  http://vger.kernel.org/majordomo-info.html
