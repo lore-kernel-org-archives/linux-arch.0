@@ -1,39 +1,43 @@
-From: Hans-Christian Egtvedt <egtvedt@samfundet.no>
-Subject: Re: [PATCH v2 32/40] avr32: macro whitespace fixes
-Date: Wed, 7 Jan 2015 07:52:35 +0100
-Message-ID: <20150107065235.GB18142@samfundet.no>
-References: <1420558883-10131-1-git-send-email-mst@redhat.com>
- <1420558883-10131-33-git-send-email-mst@redhat.com>
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Subject: Re: [PATCH 0/5] Perf fixes for ARC + uClibc
+Date: Wed, 7 Jan 2015 07:38:47 +0000
+Message-ID: <C2D7FE5348E1B147BCA15975FBA2307565BCA4D7@IN01WEMBXA.internal.synopsys.com>
+References: <1420552335-26886-1-git-send-email-vgupta@synopsys.com>
+ <20150106151329.GD2517@redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <1420558883-10131-33-git-send-email-mst@redhat.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: "Michael S. Tsirkin" <mst@redhat.com>
-Cc: linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Haavard Skinnemoen <hskinnemoen@gmail.com>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 8BIT
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from smtprelay.synopsys.com ([198.182.47.9]:39815 "EHLO
+	smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755212AbbAGHix convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 7 Jan 2015 02:38:53 -0500
+Content-Language: en-US
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Arnaldo Carvalho de Melo <acme@redhat.com>
+Cc: "peterz@infradead.org" <peterz@infradead.org>, "jolsa@kernel.org" <jolsa@kernel.org>, "mingo@kernel.org" <mingo@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-perf-users@vger.kernel.org" <linux-perf-users@vger.kernel.org>, "bp@suse.de" <bp@suse.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "Alexey.Brodkin@synopsys.com" <Alexey.Brodkin@synopsys.com>
 
-Around Tue 06 Jan 2015 17:45:18 +0200 or thereabout, Michael S. Tsirkin wrote:
-> While working on arch/avr32/include/asm/uaccess.h, I noticed
-> that some macros within this header are made harder to read because they
-> violate a coding style rule: space is missing after comma.
-> 
-> Fix it up.
+On Tuesday 06 January 2015 08:43 PM, Arnaldo Carvalho de Melo wrote:
 
-Thank you (-:
+Em Tue, Jan 06, 2015 at 07:22:10PM +0530, Vineet Gupta escreveu:
 
-> Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
+
+> Hi,
 >
+> This series based off linux-next of 20150105 allows us to build/use perf
+> for ARC with uClibc based userland.
 
-Acked-by: Hans-Christian Egtvedt <egtvedt@samfundet.no>
 
-> ---
->  arch/avr32/include/asm/uaccess.h | 18 +++++++++---------
->  1 file changed, 9 insertions(+), 9 deletions(-)
+Do you have some ready made ARC VM image with devel tools I could use with qemu?
 
-<snipp diff>
+- Arnaldo
 
--- 
-mvh
-Hans-Christian Egtvedt
+
+
+FWIW, most of the issues I posted fixes for can be reproduced with building perf with ARC buildroot !
+
+git://github.com:foss-for-synopsys-dwc-arc-processors/buildroot.git
+
+Thx,
+-Vineet
