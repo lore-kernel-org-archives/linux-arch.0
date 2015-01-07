@@ -1,54 +1,80 @@
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [PATCH v2 31/40] arm64: macro whitespace fixes
-Date: Wed, 7 Jan 2015 10:10:56 +0000
-Message-ID: <20150107101055.GB7485@arm.com>
-References: <1420558883-10131-1-git-send-email-mst@redhat.com>
- <1420558883-10131-32-git-send-email-mst@redhat.com>
+From: Michal Simek <monstr@monstr.eu>
+Subject: Re: [PATCH v2 28/40] microblaze: whitespace fix
+Date: Wed, 07 Jan 2015 11:14:19 +0100
+Message-ID: <54AD06FB.6070800@monstr.eu>
+References: <1420558883-10131-1-git-send-email-mst@redhat.com> <1420558883-10131-29-git-send-email-mst@redhat.com>
+Reply-To: monstr@monstr.eu
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: multipart/signed; micalg=pgp-sha1;
+ protocol="application/pgp-signature";
+ boundary="4gWoPVG5f4iU5Sr9loFpDwqnRfstQj3CO"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss-mx-na.foss.arm.com ([217.140.108.86]:56464 "EHLO
-	foss-mx-na.foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751489AbbAGKLG (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 7 Jan 2015 05:11:06 -0500
-Content-Disposition: inline
-In-Reply-To: <1420558883-10131-32-git-send-email-mst@redhat.com>
+Received: from mail-wg0-f45.google.com ([74.125.82.45]:35663 "EHLO
+	mail-wg0-f45.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752367AbbAGKOX (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 7 Jan 2015 05:14:23 -0500
+Received: by mail-wg0-f45.google.com with SMTP id b13so883606wgh.4
+        for <linux-arch@vger.kernel.org>; Wed, 07 Jan 2015 02:14:22 -0800 (PST)
+In-Reply-To: <1420558883-10131-29-git-send-email-mst@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Michael S. Tsirkin" <mst@redhat.com>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Catalin Marinas <Catalin.Marinas@arm.com>, Christopher Covington <cov@codeaurora.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
+To: "Michael S. Tsirkin" <mst@redhat.com>, linux-kernel@vger.kernel.org
+Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Chen Gang <gang.chen.5i5j@gmail.com>
 
-On Tue, Jan 06, 2015 at 03:45:15PM +0000, Michael S. Tsirkin wrote:
-> While working on arch/arm64/include/asm/uaccess.h, I noticed
-> that one macro within this header is made harder to read because it
-> violates a coding style rule: space is missing after comma.
-> 
-> Fix it up.
-> 
+This is an OpenPGP/MIME signed message (RFC 4880 and 3156)
+--4gWoPVG5f4iU5Sr9loFpDwqnRfstQj3CO
+Content-Type: text/plain; charset=windows-1252
+Content-Transfer-Encoding: quoted-printable
+
+On 01/06/2015 04:45 PM, Michael S. Tsirkin wrote:
+> Align using tabs to make code prettier.
+>=20
 > Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
 > ---
-
-Acked-by: Will Deacon <will.deacon@arm.com>
-
-Will
-
->  arch/arm64/include/asm/uaccess.h | 2 +-
+>  arch/microblaze/include/asm/uaccess.h | 2 +-
 >  1 file changed, 1 insertion(+), 1 deletion(-)
-> 
-> diff --git a/arch/arm64/include/asm/uaccess.h b/arch/arm64/include/asm/uaccess.h
-> index 9a2069b..07e1ba44 100644
-> --- a/arch/arm64/include/asm/uaccess.h
-> +++ b/arch/arm64/include/asm/uaccess.h
-> @@ -63,7 +63,7 @@ static inline void set_fs(mm_segment_t fs)
->  	current_thread_info()->addr_limit = fs;
->  }
->  
-> -#define segment_eq(a,b)	((a) == (b))
-> +#define segment_eq(a, b)	((a) == (b))
->  
->  /*
->   * Return 1 if addr < current->addr_limit, 0 otherwise.
-> -- 
-> MST
-> 
-> 
+>=20
+> diff --git a/arch/microblaze/include/asm/uaccess.h b/arch/microblaze/in=
+clude/asm/uaccess.h
+> index e41bebf..62942fd 100644
+> --- a/arch/microblaze/include/asm/uaccess.h
+> +++ b/arch/microblaze/include/asm/uaccess.h
+> @@ -306,7 +306,7 @@ extern long __user_bad(void);
+> =20
+>  #define __put_user_check(x, ptr, size)					\
+>  ({									\
+> -	typeof(*(ptr)) volatile __pu_val =3D x;					\
+> +	typeof(*(ptr)) volatile __pu_val =3D x;				\
+>  	typeof(*(ptr)) __user *__pu_addr =3D (ptr);			\
+>  	int __pu_err =3D 0;						\
+>  									\
+>=20
+
+Applied.
+
+Thanks,
+Michal
+
+--=20
+Michal Simek, Ing. (M.Eng), OpenPGP -> KeyID: FE3D1F91
+w: www.monstr.eu p: +42-0-721842854
+Maintainer of Linux kernel - Microblaze cpu - http://www.monstr.eu/fdt/
+Maintainer of Linux kernel - Xilinx Zynq ARM architecture
+Microblaze U-BOOT custodian and responsible for u-boot arm zynq platform
+
+
+
+--4gWoPVG5f4iU5Sr9loFpDwqnRfstQj3CO
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: OpenPGP digital signature
+Content-Disposition: attachment; filename="signature.asc"
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.10 (GNU/Linux)
+
+iEYEARECAAYFAlStBvsACgkQykllyylKDCHcnQCcDjtdGVQLUSO7422jDKh6MWxz
+qeAAnAqjxN2cOOx4Sh11snlljapKa6ez
+=6eIE
+-----END PGP SIGNATURE-----
+
+--4gWoPVG5f4iU5Sr9loFpDwqnRfstQj3CO--
