@@ -1,41 +1,96 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-lb0-f170.google.com ([209.85.217.170]:37556 "EHLO
-	mail-lb0-f170.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751698AbbAGJ4C (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 7 Jan 2015 04:56:02 -0500
+Received: from mail-wg0-f41.google.com ([74.125.82.41]:44380 "EHLO
+	mail-wg0-f41.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751021AbbAGKV6 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 7 Jan 2015 05:21:58 -0500
+Received: by mail-wg0-f41.google.com with SMTP id l18so880389wgh.28
+        for <linux-arch@vger.kernel.org>; Wed, 07 Jan 2015 02:21:56 -0800 (PST)
+Message-ID: <54AD06EA.6030105@monstr.eu>
+Date: Wed, 07 Jan 2015 11:14:02 +0100
+From: Michal Simek <monstr@monstr.eu>
+Reply-To: monstr@monstr.eu
 MIME-Version: 1.0
-In-Reply-To: <1420558883-10131-37-git-send-email-mst@redhat.com>
-References: <1420558883-10131-1-git-send-email-mst@redhat.com>
-	<1420558883-10131-37-git-send-email-mst@redhat.com>
-Date: Wed, 7 Jan 2015 10:56:00 +0100
-Message-ID: <CAMuHMdXsBsdUH-C2rHTDf4csYsNjsx2_nn4jfNEgm-akduSUAw@mail.gmail.com>
-Subject: Re: [PATCH v2 36/40] m68k: macro whitespace fixes
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Content-Type: text/plain; charset=UTF-8
+Subject: Re: [PATCH v2 10/40] microblaze/uaccess: fix sparse errors
+References: <1420558883-10131-1-git-send-email-mst@redhat.com> <1420558883-10131-11-git-send-email-mst@redhat.com>
+In-Reply-To: <1420558883-10131-11-git-send-email-mst@redhat.com>
+Content-Type: multipart/signed; micalg=pgp-sha1;
+ protocol="application/pgp-signature";
+ boundary="XKncbsgA7xI3dS2mdHUeDkBEeboEli5jR"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Michael S. Tsirkin" <mst@redhat.com>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Linux-Arch <linux-arch@vger.kernel.org>, Linux/m68k <linux-m68k@vger.kernel.org>
-Message-ID: <20150107095600.M4DrS9pKCmTG8TP7VC6ecTaHkAYCL8Rk-yd5pBXQxm8@z>
+To: "Michael S. Tsirkin" <mst@redhat.com>, linux-kernel@vger.kernel.org
+Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Chen Gang <gang.chen.5i5j@gmail.com>
+Message-ID: <20150107101402.EkNDZ7N3UosBMB6g1rM6RrPj-s58FnG--GQynmumfDg@z>
 
-On Tue, Jan 6, 2015 at 4:45 PM, Michael S. Tsirkin <mst@redhat.com> wrote:
-> While working on arch/m68k/include/asm/uaccess.h, I noticed
-> that one macro within this header is made harder to read because it
-> violates a coding style rule: space is missing after comma.
->
-> Fix it up.
->
+This is an OpenPGP/MIME signed message (RFC 4880 and 3156)
+--XKncbsgA7xI3dS2mdHUeDkBEeboEli5jR
+Content-Type: text/plain; charset=windows-1252
+Content-Transfer-Encoding: quoted-printable
+
+On 01/06/2015 04:44 PM, Michael S. Tsirkin wrote:
+> virtio wants to read bitwise types from userspace using get_user.  At t=
+he
+> moment this triggers sparse errors, since the value is passed through a=
+n
+> integer.
+>=20
+> Fix that up using __force.
+>=20
 > Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
+> ---
+>  arch/microblaze/include/asm/uaccess.h | 4 ++--
+>  1 file changed, 2 insertions(+), 2 deletions(-)
+>=20
+> diff --git a/arch/microblaze/include/asm/uaccess.h b/arch/microblaze/in=
+clude/asm/uaccess.h
+> index 59a89a6..e41bebf 100644
+> --- a/arch/microblaze/include/asm/uaccess.h
+> +++ b/arch/microblaze/include/asm/uaccess.h
+> @@ -220,7 +220,7 @@ extern long __user_bad(void);
+>  	} else {							\
+>  		__gu_err =3D -EFAULT;					\
+>  	}								\
+> -	x =3D (typeof(*(ptr)))__gu_val;					\
+> +	x =3D (__force typeof(*(ptr)))__gu_val;				\
+>  	__gu_err;							\
+>  })
+> =20
+> @@ -242,7 +242,7 @@ extern long __user_bad(void);
+>  	default:							\
+>  		/* __gu_val =3D 0; __gu_err =3D -EINVAL;*/ __gu_err =3D __user_bad()=
+;\
+>  	}								\
+> -	x =3D (__typeof__(*(ptr))) __gu_val;				\
+> +	x =3D (__force __typeof__(*(ptr))) __gu_val;			\
+>  	__gu_err;							\
+>  })
+> =20
+>=20
 
-Acked-by: Geert Uytterhoeven <geert@linux-m68k.org>
+Applied.
 
-Gr{oetje,eeting}s,
+Thanks,
+Michal
+--=20
+Michal Simek, Ing. (M.Eng), OpenPGP -> KeyID: FE3D1F91
+w: www.monstr.eu p: +42-0-721842854
+Maintainer of Linux kernel - Microblaze cpu - http://www.monstr.eu/fdt/
+Maintainer of Linux kernel - Xilinx Zynq ARM architecture
+Microblaze U-BOOT custodian and responsible for u-boot arm zynq platform
 
-                        Geert
 
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
 
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+--XKncbsgA7xI3dS2mdHUeDkBEeboEli5jR
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: OpenPGP digital signature
+Content-Disposition: attachment; filename="signature.asc"
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.10 (GNU/Linux)
+
+iEYEARECAAYFAlStBu4ACgkQykllyylKDCHjNQCdHZv2XJpcmTzpFxgf1PUaP6Om
+/dIAoITgLXlEybEuWG0G7LT0C937QrAd
+=7tKI
+-----END PGP SIGNATURE-----
+
+--XKncbsgA7xI3dS2mdHUeDkBEeboEli5jR--
