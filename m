@@ -1,36 +1,54 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [PATCH v2 36/40] m68k: macro whitespace fixes
-Date: Wed, 7 Jan 2015 10:56:00 +0100
-Message-ID: <CAMuHMdXsBsdUH-C2rHTDf4csYsNjsx2_nn4jfNEgm-akduSUAw@mail.gmail.com>
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [PATCH v2 03/40] arm64/uaccess: fix sparse errors
+Date: Wed, 7 Jan 2015 10:09:10 +0000
+Message-ID: <20150107100910.GA7485@arm.com>
 References: <1420558883-10131-1-git-send-email-mst@redhat.com>
-	<1420558883-10131-37-git-send-email-mst@redhat.com>
+ <1420558883-10131-4-git-send-email-mst@redhat.com>
+ <20150106191432.GC32449@arm.com>
+ <20150106214820.GA18895@redhat.com>
+ <20150106215115.GA21594@redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1420558883-10131-37-git-send-email-mst@redhat.com>
-Sender: linux-kernel-owner@vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from foss-mx-na.foss.arm.com ([217.140.108.86]:56457 "EHLO
+	foss-mx-na.foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750939AbbAGKJZ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 7 Jan 2015 05:09:25 -0500
+Content-Disposition: inline
+In-Reply-To: <20150106215115.GA21594@redhat.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: "Michael S. Tsirkin" <mst@redhat.com>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Linux-Arch <linux-arch@vger.kernel.org>, Linux/m68k <linux-m68k@vger.kernel.org>
-List-Id: linux-arch.vger.kernel.org
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Catalin Marinas <Catalin.Marinas@arm.com>, Christopher Covington <cov@codeaurora.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
 
-On Tue, Jan 6, 2015 at 4:45 PM, Michael S. Tsirkin <mst@redhat.com> wrote:
-> While working on arch/m68k/include/asm/uaccess.h, I noticed
-> that one macro within this header is made harder to read because it
-> violates a coding style rule: space is missing after comma.
->
-> Fix it up.
->
-> Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
+On Tue, Jan 06, 2015 at 09:51:15PM +0000, Michael S. Tsirkin wrote:
+> On Tue, Jan 06, 2015 at 11:48:20PM +0200, Michael S. Tsirkin wrote:
+> > On Tue, Jan 06, 2015 at 07:14:32PM +0000, Will Deacon wrote:
+> > > Hi Michael,
+> > > 
+> > > On Tue, Jan 06, 2015 at 03:43:40PM +0000, Michael S. Tsirkin wrote:
+> > > > virtio wants to read bitwise types from userspace using get_user.  At the
+> > > > moment this triggers sparse errors, since the value is passed through an
+> > > > integer.
+> > > > 
+> > > > Fix that up using __force.
+> > > > 
+> > > > Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
+> > > > 
+> > > > Acked-by: Will Deacon <will.deacon@arm.com>
+> > > > ---
+> > > 
+> > > Did you want us to take this via the arm64 tree, or are you planning to
+> > > merge it via another route?
+> > > 
+> > > Will
+> > 
+> > Up to you really: if you don't pick it up, Arnd said he'll merge
+> > through his tree.
+> 
+> Though if you do pick it up, need to also pick up the follow-up
+> patch - maybe my tree is easier.
 
-Acked-by: Geert Uytterhoeven <geert@linux-m68k.org>
+Ok, I'll go ack that whitespace fix for you to take then.
 
-Gr{oetje,eeting}s,
-
-                        Geert
-
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+Will
