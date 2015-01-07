@@ -1,36 +1,41 @@
-From: Max Filippov <jcmvbkbc@gmail.com>
-Subject: Re: [PATCH v2 40/40] xtensa: macro whitespace fixes
-Date: Wed, 7 Jan 2015 02:12:39 +0300
-Message-ID: <CAMo8Bf+omBm1DkfHYiidcY54b+-cRe2CEx1S_17OL70-K7hHJw@mail.gmail.com>
-References: <1420558883-10131-1-git-send-email-mst@redhat.com>
-	<1420558883-10131-41-git-send-email-mst@redhat.com>
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Subject: Re: [PATCH 0/5] Perf fixes for ARC + uClibc
+Date: Wed, 7 Jan 2015 05:16:43 +0000
+Message-ID: <C2D7FE5348E1B147BCA15975FBA2307565BCA467@IN01WEMBXA.internal.synopsys.com>
+References: <1420552335-26886-1-git-send-email-vgupta@synopsys.com>
+ <20150106151329.GD2517@redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 8BIT
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ob0-f172.google.com ([209.85.214.172]:45238 "EHLO
-	mail-ob0-f172.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750753AbbAFXMk (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 6 Jan 2015 18:12:40 -0500
-In-Reply-To: <1420558883-10131-41-git-send-email-mst@redhat.com>
+Received: from smtprelay.synopsys.com ([198.182.47.9]:38071 "EHLO
+	smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750750AbbAGFQu convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 7 Jan 2015 00:16:50 -0500
+Content-Language: en-US
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Michael S. Tsirkin" <mst@redhat.com>
-Cc: LKML <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Linux-Arch <linux-arch@vger.kernel.org>, Chris Zankel <chris@zankel.net>, "linux-xtensa@linux-xtensa.org" <linux-xtensa@linux-xtensa.org>
+To: Arnaldo Carvalho de Melo <acme@redhat.com>
+Cc: Francois Bedard <Francois.Bedard@synopsys.com>, "peterz@infradead.org" <peterz@infradead.org>, "jolsa@kernel.org" <jolsa@kernel.org>, "mingo@kernel.org" <mingo@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-perf-users@vger.kernel.org" <linux-perf-users@vger.kernel.org>, "bp@suse.de" <bp@suse.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "Alexey.Brodkin@synopsys.com" <Alexey.Brodkin@synopsys.com>
 
-On Tue, Jan 6, 2015 at 6:45 PM, Michael S. Tsirkin <mst@redhat.com> wrote:
-> While working on arch/xtensa/include/asm/uaccess.h, I noticed
-> that some macros within this header are made harder to read because they
-> violate a coding style rule: space is missing after comma.
+On Tuesday 06 January 2015 08:43 PM, Arnaldo Carvalho de Melo wrote:
+
+Em Tue, Jan 06, 2015 at 07:22:10PM +0530, Vineet Gupta escreveu:
+
+
+> Hi,
 >
-> Fix it up.
->
-> Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
-> ---
->  arch/xtensa/include/asm/uaccess.h | 90 +++++++++++++++++++--------------------
->  1 file changed, 45 insertions(+), 45 deletions(-)
+> This series based off linux-next of 20150105 allows us to build/use perf
+> for ARC with uClibc based userland.
 
-Acked-by: Max Filippov <jcmvbkbc@gmail.com>
 
--- 
-Thanks.
--- Max
+Do you have some ready made ARC VM image with devel tools I could use with qemu?
+
+- Arnaldo
+
+
+
+Nope we don't have a QEMU port or plans for it. We have a non FOSS Instruction set simulator - and an upcoming tools release might have a free / lite version of it. I need to check with higher powers to possibly provide u a VM equipped with that !
+
+Thx,
+-Vineet
