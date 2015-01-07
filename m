@@ -1,54 +1,54 @@
 From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [PATCH v2 03/40] arm64/uaccess: fix sparse errors
-Date: Wed, 7 Jan 2015 10:09:10 +0000
-Message-ID: <20150107100910.GA7485@arm.com>
+Subject: Re: [PATCH v2 31/40] arm64: macro whitespace fixes
+Date: Wed, 7 Jan 2015 10:10:56 +0000
+Message-ID: <20150107101055.GB7485@arm.com>
 References: <1420558883-10131-1-git-send-email-mst@redhat.com>
- <1420558883-10131-4-git-send-email-mst@redhat.com>
- <20150106191432.GC32449@arm.com>
- <20150106214820.GA18895@redhat.com>
- <20150106215115.GA21594@redhat.com>
+ <1420558883-10131-32-git-send-email-mst@redhat.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss-mx-na.foss.arm.com ([217.140.108.86]:56457 "EHLO
+Received: from foss-mx-na.foss.arm.com ([217.140.108.86]:56464 "EHLO
 	foss-mx-na.foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750939AbbAGKJZ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 7 Jan 2015 05:09:25 -0500
+	with ESMTP id S1751489AbbAGKLG (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 7 Jan 2015 05:11:06 -0500
 Content-Disposition: inline
-In-Reply-To: <20150106215115.GA21594@redhat.com>
+In-Reply-To: <1420558883-10131-32-git-send-email-mst@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: "Michael S. Tsirkin" <mst@redhat.com>
 Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Catalin Marinas <Catalin.Marinas@arm.com>, Christopher Covington <cov@codeaurora.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
 
-On Tue, Jan 06, 2015 at 09:51:15PM +0000, Michael S. Tsirkin wrote:
-> On Tue, Jan 06, 2015 at 11:48:20PM +0200, Michael S. Tsirkin wrote:
-> > On Tue, Jan 06, 2015 at 07:14:32PM +0000, Will Deacon wrote:
-> > > Hi Michael,
-> > > 
-> > > On Tue, Jan 06, 2015 at 03:43:40PM +0000, Michael S. Tsirkin wrote:
-> > > > virtio wants to read bitwise types from userspace using get_user.  At the
-> > > > moment this triggers sparse errors, since the value is passed through an
-> > > > integer.
-> > > > 
-> > > > Fix that up using __force.
-> > > > 
-> > > > Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
-> > > > 
-> > > > Acked-by: Will Deacon <will.deacon@arm.com>
-> > > > ---
-> > > 
-> > > Did you want us to take this via the arm64 tree, or are you planning to
-> > > merge it via another route?
-> > > 
-> > > Will
-> > 
-> > Up to you really: if you don't pick it up, Arnd said he'll merge
-> > through his tree.
+On Tue, Jan 06, 2015 at 03:45:15PM +0000, Michael S. Tsirkin wrote:
+> While working on arch/arm64/include/asm/uaccess.h, I noticed
+> that one macro within this header is made harder to read because it
+> violates a coding style rule: space is missing after comma.
 > 
-> Though if you do pick it up, need to also pick up the follow-up
-> patch - maybe my tree is easier.
+> Fix it up.
+> 
+> Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
+> ---
 
-Ok, I'll go ack that whitespace fix for you to take then.
+Acked-by: Will Deacon <will.deacon@arm.com>
 
 Will
+
+>  arch/arm64/include/asm/uaccess.h | 2 +-
+>  1 file changed, 1 insertion(+), 1 deletion(-)
+> 
+> diff --git a/arch/arm64/include/asm/uaccess.h b/arch/arm64/include/asm/uaccess.h
+> index 9a2069b..07e1ba44 100644
+> --- a/arch/arm64/include/asm/uaccess.h
+> +++ b/arch/arm64/include/asm/uaccess.h
+> @@ -63,7 +63,7 @@ static inline void set_fs(mm_segment_t fs)
+>  	current_thread_info()->addr_limit = fs;
+>  }
+>  
+> -#define segment_eq(a,b)	((a) == (b))
+> +#define segment_eq(a, b)	((a) == (b))
+>  
+>  /*
+>   * Return 1 if addr < current->addr_limit, 0 otherwise.
+> -- 
+> MST
+> 
+> 
