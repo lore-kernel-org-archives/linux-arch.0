@@ -1,41 +1,52 @@
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: Re: [PATCH 0/5] Perf fixes for ARC + uClibc
-Date: Wed, 7 Jan 2015 05:16:43 +0000
-Message-ID: <C2D7FE5348E1B147BCA15975FBA2307565BCA467@IN01WEMBXA.internal.synopsys.com>
-References: <1420552335-26886-1-git-send-email-vgupta@synopsys.com>
- <20150106151329.GD2517@redhat.com>
+From: Hans-Christian Egtvedt <egtvedt@samfundet.no>
+Subject: Re: [PATCH v2 24/40] avr32: whitespace fix
+Date: Wed, 7 Jan 2015 07:50:55 +0100
+Message-ID: <20150107065055.GA18142@samfundet.no>
+References: <1420558883-10131-1-git-send-email-mst@redhat.com>
+ <1420558883-10131-25-git-send-email-mst@redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 8BIT
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtprelay.synopsys.com ([198.182.47.9]:38071 "EHLO
-	smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750750AbbAGFQu convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 7 Jan 2015 00:16:50 -0500
-Content-Language: en-US
+Received: from cassarossa.samfundet.no ([193.35.52.29]:49385 "EHLO
+	cassarossa.samfundet.no" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751607AbbAGGvD (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 7 Jan 2015 01:51:03 -0500
+Content-Disposition: inline
+In-Reply-To: <1420558883-10131-25-git-send-email-mst@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnaldo Carvalho de Melo <acme@redhat.com>
-Cc: Francois Bedard <Francois.Bedard@synopsys.com>, "peterz@infradead.org" <peterz@infradead.org>, "jolsa@kernel.org" <jolsa@kernel.org>, "mingo@kernel.org" <mingo@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-perf-users@vger.kernel.org" <linux-perf-users@vger.kernel.org>, "bp@suse.de" <bp@suse.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "Alexey.Brodkin@synopsys.com" <Alexey.Brodkin@synopsys.com>
+To: "Michael S. Tsirkin" <mst@redhat.com>
+Cc: linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Haavard Skinnemoen <hskinnemoen@gmail.com>
 
-On Tuesday 06 January 2015 08:43 PM, Arnaldo Carvalho de Melo wrote:
-
-Em Tue, Jan 06, 2015 at 07:22:10PM +0530, Vineet Gupta escreveu:
-
-
-> Hi,
+Around Tue 06 Jan 2015 17:44:50 +0200 or thereabout, Michael S. Tsirkin wrote:
+> Align using tabs to make code prettier.
 >
-> This series based off linux-next of 20150105 allows us to build/use perf
-> for ARC with uClibc based userland.
 
+It is already aligned using tabs, but there is one too much. Thanks for
+cleaning.
 
-Do you have some ready made ARC VM image with devel tools I could use with qemu?
+> Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
+>
 
-- Arnaldo
+Acked-by: Hans-Christian Egtvedt <egtvedt@samfundet.no>
 
-
-
-Nope we don't have a QEMU port or plans for it. We have a non FOSS Instruction set simulator - and an upcoming tools release might have a free / lite version of it. I need to check with higher powers to possibly provide u a VM equipped with that !
-
-Thx,
--Vineet
+> ---
+>  arch/avr32/include/asm/uaccess.h | 2 +-
+>  1 file changed, 1 insertion(+), 1 deletion(-)
+> 
+> diff --git a/arch/avr32/include/asm/uaccess.h b/arch/avr32/include/asm/uaccess.h
+> index ccd07c4..72607f3 100644
+> --- a/arch/avr32/include/asm/uaccess.h
+> +++ b/arch/avr32/include/asm/uaccess.h
+> @@ -278,7 +278,7 @@ extern int __put_user_bad(void);
+>  				       __pu_err);			\
+>  			break;						\
+>  		case 8:							\
+> -			__put_user_asm("d", __pu_addr, __pu_val,		\
+> +			__put_user_asm("d", __pu_addr, __pu_val,	\
+>  				       __pu_err);			\
+>  			break;						\
+>  		default:						\
+-- 
+mvh
+Hans-Christian Egtvedt
