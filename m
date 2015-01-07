@@ -1,49 +1,44 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:44860 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754299AbbAFVyS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 6 Jan 2015 16:54:18 -0500
-Date: Tue, 6 Jan 2015 23:54:11 +0200
-From: "Michael S. Tsirkin" <mst@redhat.com>
-Subject: Re: [PATCH v2 00/40] uaccess: fix sparse warning on get/put_user for
- bitwise types
-Message-ID: <20150106215410.GA22927@redhat.com>
+Received: from cassarossa.samfundet.no ([193.35.52.29]:57093 "EHLO
+	cassarossa.samfundet.no" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750967AbbAGGwi (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 7 Jan 2015 01:52:38 -0500
+Date: Wed, 7 Jan 2015 07:52:35 +0100
+From: Hans-Christian Egtvedt <egtvedt@samfundet.no>
+Subject: Re: [PATCH v2 32/40] avr32: macro whitespace fixes
+Message-ID: <20150107065235.GB18142@samfundet.no>
 References: <1420558883-10131-1-git-send-email-mst@redhat.com>
- <4461163.Sc5FsMDTBa@wuerfel>
+ <1420558883-10131-33-git-send-email-mst@redhat.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <4461163.Sc5FsMDTBa@wuerfel>
+In-Reply-To: <1420558883-10131-33-git-send-email-mst@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20150106215411.8VpG8j50q9Zj9EquwgplYYMR7JNkUxB5MbnDzOCLVI8@z>
+To: "Michael S. Tsirkin" <mst@redhat.com>
+Cc: linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Haavard Skinnemoen <hskinnemoen@gmail.com>
+Message-ID: <20150107065235.AP739oLLZPz1zx7q5hByJCTDg9TSP0C_8-YHKCSZ-Kk@z>
 
-On Tue, Jan 06, 2015 at 08:08:57PM +0100, Arnd Bergmann wrote:
-> On Tuesday 06 January 2015 17:43:28 Michael S. Tsirkin wrote:
-> > 
-> > I tested this on x86 only. Since it's just adding __force, should be
-> > trivially safe everywhere?
-> > 
-> > 
-> > Arnd, did you merge v1 already? If yes, can you please replace with
-> > this version?
-> > 
+Around Tue 06 Jan 2015 17:45:18 +0200 or thereabout, Michael S. Tsirkin wrote:
+> While working on arch/avr32/include/asm/uaccess.h, I noticed
+> that some macros within this header are made harder to read because they
+> violate a coding style rule: space is missing after comma.
 > 
-> I haven't merged it yet. I see that more Acks and some comments are
-> coming in. Once those are done, could you send a pull request?
+> Fix it up.
 
-Sure. So I'll wait some then send you a pull request and you'll merge?
+Thank you (-:
 
-> It
-> might be useful to have a branch that can be shared with architecture
-> trees if necessary to avoid merge conflicts.
-> 
-> 	Arnd
+> Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
+>
 
-In a couple of days, I'll put it on my linux-next branch and wait for
-a bit. That will tell us whether there are any merge conflicts.
+Acked-by: Hans-Christian Egtvedt <egtvedt@samfundet.no>
+
+> ---
+>  arch/avr32/include/asm/uaccess.h | 18 +++++++++---------
+>  1 file changed, 9 insertions(+), 9 deletions(-)
+
+<snipp diff>
 
 -- 
-MSR
+mvh
+Hans-Christian Egtvedt
