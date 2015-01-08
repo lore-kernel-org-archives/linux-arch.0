@@ -1,41 +1,90 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-la0-f42.google.com ([209.85.215.42]:40823 "EHLO
-	mail-la0-f42.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751158AbbAGKir (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 7 Jan 2015 05:38:47 -0500
+Received: from lgeamrelo04.lge.com ([156.147.1.127]:51811 "EHLO
+	lgeamrelo04.lge.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752692AbbAHHxb (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 8 Jan 2015 02:53:31 -0500
+Date: Thu, 8 Jan 2015 16:51:25 +0900
+From: Namhyung Kim <namhyung@kernel.org>
+Subject: Re: [PATCH 4/5] perf tools: [uclibc] don't rely on glibc malloc
+ working for sz 0
+Message-ID: <20150108075125.GF7268@sejong>
+References: <1420552335-26886-1-git-send-email-vgupta@synopsys.com>
+ <1420552335-26886-5-git-send-email-vgupta@synopsys.com>
 MIME-Version: 1.0
-In-Reply-To: <1420558883-10131-17-git-send-email-mst@redhat.com>
-References: <1420558883-10131-1-git-send-email-mst@redhat.com>
-	<1420558883-10131-17-git-send-email-mst@redhat.com>
-Date: Wed, 7 Jan 2015 11:38:43 +0100
-Message-ID: <CAMuHMdXx+LEHjOoA3q6hs2_Lm4Ma+svGRT10ux_uHgBbbzooUQ@mail.gmail.com>
-Subject: Re: [PATCH v2 16/40] m68k/uaccess: fix sparse errors
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <1420552335-26886-5-git-send-email-vgupta@synopsys.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Michael S. Tsirkin" <mst@redhat.com>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Linux-Arch <linux-arch@vger.kernel.org>, Linux/m68k <linux-m68k@vger.kernel.org>
-Message-ID: <20150107103843.zhdY0_bXqkyERvLV01uN3M3U6KJh370qI6WzcXTtwog@z>
+To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Cc: acme@redhat.com, peterz@infradead.org, jolsa@kernel.org, mingo@kernel.org, linux-kernel@vger.kernel.org, linux-perf-users@vger.kernel.org, bp@suse.de, linux-arch@vger.kernel.org, Alexey.Brodkin@synopsys.com
+Message-ID: <20150108075125.IszdFo0CqpUosnAKwWm_u1eXWzBMYddfmo5gG1tpaUM@z>
 
-On Tue, Jan 6, 2015 at 4:44 PM, Michael S. Tsirkin <mst@redhat.com> wrote:
-> virtio wants to read bitwise types from userspace using get_user.  At the
-> moment this triggers sparse errors, since the value is passed through an
-> integer.
->
-> Fix that up using __force.
->
-> Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
+Hi Vineet,
 
-Acked-by: Geert Uytterhoeven <geert@linux-m68k.org>
+On Tue, Jan 06, 2015 at 07:22:14PM +0530, Vineet Gupta wrote:
+> When running perf on ARC (uClibc based userspace), ran into this issue
+> ------------->8----------------
+> 	[ARCLinux]$ ./perf record ls
+> 	bin             etc             perf            sys
+> 	debug           init            perf.data       tmp
+> 	[ perf record: Woken up 1 times to write data ]
+> 	[ perf record: Captured and wrote 0.001 MB perf.data (~24 samples) ]
+> 
+> 	[ARCLinux]$ ./perf report
+> 	incompatible file format (rerun with -v to learn more)
+> ------------->8----------------
+> 
+> The problem happens in the following call stack when zalloc is called
+> with size zero
+> 
+> glibc default / uClibc with MALLOC_GLIBC_COMPAT are OK, but not if that
+> config option is not enabled.
+> 
+>   cmd_report
+>      perf_session__new
+> 	perf_session__open
+> 	    perf_session__read_header
+> 		read_attr(fd, header, &f_attr)
+> 		nr_ids = f_attr.ids.size / sizeof(u64); <-- 0
+> 		perf_evsel__alloc_id(vsel, 1, nr_ids)
+> 			zalloc(ncpus * nthreads * sizeof(u64)) <-- 0
+> 
+> header.c: read_attr()
+> 
+> (gdb) p *f_attr
+> $17 = {
+>   attr = {
+>     type = 0,
+>     size = 96,
+>     config = 0,
+>     {
+>       sample_period = 4000,
+>       sample_freq = 4000
+>     },
+> ...
+>   ids = {
+>     offset = 104,
+>     size = 0      <------
+>   }
+> }
 
-Gr{oetje,eeting}s,
+Hmm.. okay.  I think we don't need to allocate the id arrays when size
+is 0.  So perf_event__process_attr() will have the same problem IMHO.
+How about this?
 
-                        Geert
 
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+diff --git a/tools/perf/util/evsel.c b/tools/perf/util/evsel.c
+index 1e90c8557ede..1d826d63bc20 100644
+--- a/tools/perf/util/evsel.c
++++ b/tools/perf/util/evsel.c
+@@ -797,6 +797,9 @@ int perf_evsel__enable(struct perf_evsel *evsel, int ncpus, int nthreads)
+ 
+ int perf_evsel__alloc_id(struct perf_evsel *evsel, int ncpus, int nthreads)
+ {
++	if (ncpus == 0 || nthreads == 0)
++		return 0;
++
+ 	if (evsel->system_wide)
+ 		nthreads = 1;
+ 
