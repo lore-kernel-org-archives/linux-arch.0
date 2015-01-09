@@ -1,70 +1,56 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from 216-12-86-13.cv.mvl.ntelos.net ([216.12.86.13]:36281 "EHLO
-	brightrain.aerifal.cx" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752189AbbAIVcL (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 9 Jan 2015 16:32:11 -0500
-Date: Fri, 9 Jan 2015 16:31:18 -0500
-From: Rich Felker <dalias@aerifal.cx>
-Subject: Re: [PATCHv10 man-pages 5/5] execveat.2: initial man page for
- execveat(2)
-Message-ID: <20150109213118.GV4574@brightrain.aerifal.cx>
+Received: from out03.mta.xmission.com ([166.70.13.233]:57345 "EHLO
+	out03.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751217AbbAIWQO (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 9 Jan 2015 17:16:14 -0500
+From: ebiederm@xmission.com (Eric W. Biederman)
 References: <1416830039-21952-1-git-send-email-drysdale@google.com>
- <1416830039-21952-6-git-send-email-drysdale@google.com>
- <54AFF813.7050604@gmail.com>
- <20150109161302.GQ4574@brightrain.aerifal.cx>
- <CAHse=S88Jy5ZKM_VY5onfvxX7dTMngnxuHfuLeSuzvKvQNP19A@mail.gmail.com>
- <20150109204815.GR4574@brightrain.aerifal.cx>
- <20150109205626.GK22149@ZenIV.linux.org.uk>
- <20150109205926.GT4574@brightrain.aerifal.cx>
- <877fwvy7ln.fsf@x220.int.ebiederm.org>
+	<1416830039-21952-6-git-send-email-drysdale@google.com>
+	<54AFF813.7050604@gmail.com>
+	<20150109161302.GQ4574@brightrain.aerifal.cx>
+	<CAHse=S88Jy5ZKM_VY5onfvxX7dTMngnxuHfuLeSuzvKvQNP19A@mail.gmail.com>
+	<20150109204815.GR4574@brightrain.aerifal.cx>
+	<20150109205626.GK22149@ZenIV.linux.org.uk>
+	<20150109205926.GT4574@brightrain.aerifal.cx>
+	<20150109210941.GL22149@ZenIV.linux.org.uk>
+	<20150109212852.GU4574@brightrain.aerifal.cx>
+Date: Fri, 09 Jan 2015 16:13:27 -0600
+In-Reply-To: <20150109212852.GU4574@brightrain.aerifal.cx> (Rich Felker's
+	message of "Fri, 9 Jan 2015 16:28:52 -0500")
+Message-ID: <87lhlbvbzs.fsf@x220.int.ebiederm.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <877fwvy7ln.fsf@x220.int.ebiederm.org>
+Content-Type: text/plain
+Subject: Re: [PATCHv10 man-pages 5/5] execveat.2: initial man page for execveat(2)
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Eric W. Biederman" <ebiederm@xmission.com>
+To: Rich Felker <dalias@aerifal.cx>
 Cc: Al Viro <viro@ZenIV.linux.org.uk>, David Drysdale <drysdale@google.com>, "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>, Andy Lutomirski <luto@amacapital.net>, Meredydd Luff <meredydd@senatehouse.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Thomas Gleixner <tglx@linutronix.de>, Stephen Rothwell <sfr@canb.auug.org.au>, Oleg Nesterov <oleg@redhat.com>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Christoph Hellwig <hch@infradead.org>, X86 ML <x86@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, sparclinux@vger.kernel.org
-Message-ID: <20150109213118.51bc2So1ePXUSYOKdouPyBvAQ-nwyF9JAUPm1rshIZ4@z>
+Message-ID: <20150109221327.Mfjj1XoCts2tIZ9atfvRd3inrjHytnsd6nvb_DOgL8o@z>
 
-On Fri, Jan 09, 2015 at 03:20:04PM -0600, Eric W. Biederman wrote:
-> Rich Felker <dalias@aerifal.cx> writes:
-> 
-> > On Fri, Jan 09, 2015 at 08:56:26PM +0000, Al Viro wrote:
-> >> On Fri, Jan 09, 2015 at 03:48:15PM -0500, Rich Felker wrote:
-> >> > I think this is a case that needs to be fixed, though it's hard. The
-> >> > normal correct usage for fexecve is to always pass an O_CLOEXEC file
-> >> > descriptor, and the caller can't really be expected to know whether
-> >> > the file is a script or not. We discussed workarounds before and one
-> >> > idea I proposed was having fexecve provide a "one open only" magic
-> >> > symlink in /proc/self/ to pass to the interpreter. It would behave
-> >> > like an O_PATH file descriptor magic symlink in /proc/self/fd, but
-> >> > would automatically cease to exist on the first open (at which point
-> >> > the interpreter would have a real O_RDONLY file descriptor for the
-> >> > underlying file).
-> >> 
-> >> For fsck sake, folks, if you have bloody /proc, you don't need that shite
-> >> at all!  Just do execve on /proc/self/fd/n, and be done with that.
-> >> 
-> >> The sole excuse for merging that thing in the first place had been
-> >> "would anybody think of children^Wsclerotic^Whardened environments
-> >> where they have no /proc at all".
-> >
-> > That doesn't work. With O_CLOEXEC, /proc/self/fd/n is already gone at
-> > the time the interpreter runs, whether you're using fexecveat or
-> > execve with "/proc/self/fd/n" to implement POSIX fexecve(). That's the
-> > problem. This breaks the intended idiom for fexecve.
-> 
-> O_CLOEXEC with a #! intepreter can not work.  If the file descriptor is
-> closed a #! interpreter can not open it.   So I don't know why or how
-> you want that to work but it is nonsense.
+Rich Felker <dalias@aerifal.cx> writes:
 
-The why is simple: fexecve always expects a close-on-exec file
-descriptor. Otherwise the program being executed would need to take a
-special option telling it to close the spurious fd it inherits. Most
-programs don't have such an option, and there's no way to do it
-without application-specific knowledge.
+> On Fri, Jan 09, 2015 at 09:09:41PM +0000, Al Viro wrote:
 
-The how is difficult, but it can be done.
+> The "magic open-once magic symlink" approach is really the cleanest
+> solution I can find. In the case where the interpreter does not open
+> the script, nothing terribly bad happens; the magic symlink just
+> sticks around until _exit or exec. In the case where the interpreter
+> opens it more than once, you get a failure, but as far as I know
+> existing interpreters don't do this, and it's arguably bad design. In
+> any case it's a caught error.
 
-Rich
+And it doesn't work without introducing security vulnerabilities into
+the kernel, because it breaks close-on-exec semantics.
+
+All you have to do is pick a file descriptor, good canidates are 0 and
+255 and make it a convention that that file descriptor is used for
+fexecve.  At least when you want to support scripts.  Otherwise you can
+set close-on-exec.
+
+That results in no accumulation of file descriptors  because everyone
+always uses the same file descriptor.
+
+Regardless you don't have a patch and you aren't proposing code and the
+code isn't actually broken so please go away.
+
+Eric
