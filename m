@@ -1,62 +1,54 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtprelay.synopsys.com ([198.182.47.9]:52386 "EHLO
-	smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751139AbbAISxr convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 9 Jan 2015 13:53:47 -0500
-From: Alexey Brodkin <Alexey.Brodkin@synopsys.com>
-Subject: Re: [PATCH 0/5] Perf fixes for ARC + uClibc
-Date: Fri, 9 Jan 2015 18:47:08 +0000
-Message-ID: <1420829227.5917.5.camel@synopsys.com>
-References: <1420552335-26886-1-git-send-email-vgupta@synopsys.com>
-	 <20150106151329.GD2517@redhat.com>
-	 <C2D7FE5348E1B147BCA15975FBA2307565BCA4D7@IN01WEMBXA.internal.synopsys.com>
-In-Reply-To: <C2D7FE5348E1B147BCA15975FBA2307565BCA4D7@IN01WEMBXA.internal.synopsys.com>
-Reply-To: Alexey Brodkin <Alexey.Brodkin@synopsys.com>
-Content-Language: en-US
-Content-Type: text/plain; charset=US-ASCII
-Content-ID: <A5AB0857DFB8D84981436CA330C02280@internal.synopsys.com>
-Content-Transfer-Encoding: 7BIT
+Received: from 216-12-86-13.cv.mvl.ntelos.net ([216.12.86.13]:36226 "EHLO
+	brightrain.aerifal.cx" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752612AbbAIUtF (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 9 Jan 2015 15:49:05 -0500
+Date: Fri, 9 Jan 2015 15:48:15 -0500
+From: Rich Felker <dalias@aerifal.cx>
+Subject: Re: [PATCHv10 man-pages 5/5] execveat.2: initial man page for
+ execveat(2)
+Message-ID: <20150109204815.GR4574@brightrain.aerifal.cx>
+References: <1416830039-21952-1-git-send-email-drysdale@google.com>
+ <1416830039-21952-6-git-send-email-drysdale@google.com>
+ <54AFF813.7050604@gmail.com>
+ <20150109161302.GQ4574@brightrain.aerifal.cx>
+ <CAHse=S88Jy5ZKM_VY5onfvxX7dTMngnxuHfuLeSuzvKvQNP19A@mail.gmail.com>
 MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <CAHse=S88Jy5ZKM_VY5onfvxX7dTMngnxuHfuLeSuzvKvQNP19A@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "acme@redhat.com" <acme@redhat.com>
-Cc: "mingo@kernel.org" <mingo@kernel.org>, "peterz@infradead.org" <peterz@infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "bp@suse.de" <bp@suse.de>, "jolsa@kernel.org" <jolsa@kernel.org>, "linux-perf-users@vger.kernel.org" <linux-perf-users@vger.kernel.org>, Vineet Gupta <Vineet.Gupta1@synopsys.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
-Message-ID: <20150109184708.JkfpUNn3jutkjdt7Fsu9o5lX78vWkuRlTzCGzqO1Q04@z>
+To: David Drysdale <drysdale@google.com>
+Cc: "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>, "Eric W. Biederman" <ebiederm@xmission.com>, Andy Lutomirski <luto@amacapital.net>, Alexander Viro <viro@zeniv.linux.org.uk>, Meredydd Luff <meredydd@senatehouse.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Thomas Gleixner <tglx@linutronix.de>, Stephen Rothwell <sfr@canb.auug.org.au>, Oleg Nesterov <oleg@redhat.com>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Christoph Hellwig <hch@infradead.org>, X86 ML <x86@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, sparclinux@vger.kernel.org
+Message-ID: <20150109204815.DVYiQth58NwNYm6XRxj2cU-Ma4lRVlAvWlP5Q6GVjhU@z>
 
-Hi Arnaldo,
-
-On Wed, 2015-01-07 at 07:38 +0000, Vineet Gupta wrote:
-> On Tuesday 06 January 2015 08:43 PM, Arnaldo Carvalho de Melo wrote:
+On Fri, Jan 09, 2015 at 05:46:28PM +0000, David Drysdale wrote:
+> > It's AT_EXECFN,
+> > /proc/self/exe, and filenames shown elsewhere in /proc that may be
+> > derived in odd ways.
+> >
+> > I would also move the text about O_CLOEXEC to a BUGS or NOTES section
+> > rather than the main description. The long-term intent should be that
+> > script execution this way should work. IIRC this was discussed earlier
+> > in the thread.
 > 
-> > Em Tue, Jan 06, 2015 at 07:22:10PM +0530, Vineet Gupta escreveu:
-> > > > Hi,
-> > > > 
-> > > > This series based off linux-next of 20150105 allows us to build/use perf
-> > > > for ARC with uClibc based userland.
-> > Do you have some ready made ARC VM image with devel tools I could use with qemu?
-> > 
-> > - Arnaldo
-> >  
-> 
-> FWIW, most of the issues I posted fixes for can be reproduced with
-> building perf with ARC buildroot !
-> 
-> git://github.com:foss-for-synopsys-dwc-arc-processors/buildroot.git
+> I may be misremembering, but I thought we hoped to be able to fix
+> execveat of a script without /proc in future, but didn't expect to fix
+> execveat of a script via an O_CLOEXEC fd (because in the latter
+> case the fd gets closed before the script interpreter runs, so even
+> if the interpreter (or a special filesystem) does clever things for names
+> starting with "/dev/fd/..." the file descriptor is already gone).
 
-To reproduce described build problems (covered in patches 1, 2, 3, 5) you may indeed use Buildroot.
-Just get the most recent release from here http://buildroot.uclibc.org/downloads/buildroot-2014.11.tar.gz
-and use load following configuration in "menuconfig":
---->---
-BR2_arcle=y
-BR2_TOOLCHAIN_BUILDROOT_LARGEFILE=y
-BR2_LINUX_KERNEL=y
-BR2_LINUX_KERNEL_DEFCONFIG="fpga"
-BR2_PACKAGE_PERF=y
-BR2_TARGET_ROOTFS_INITRAMFS=y 
---->---
+I think this is a case that needs to be fixed, though it's hard. The
+normal correct usage for fexecve is to always pass an O_CLOEXEC file
+descriptor, and the caller can't really be expected to know whether
+the file is a script or not. We discussed workarounds before and one
+idea I proposed was having fexecve provide a "one open only" magic
+symlink in /proc/self/ to pass to the interpreter. It would behave
+like an O_PATH file descriptor magic symlink in /proc/self/fd, but
+would automatically cease to exist on the first open (at which point
+the interpreter would have a real O_RDONLY file descriptor for the
+underlying file).
 
-Then say "make" and you'll see the problem.
-If you experience any problems trying to follow my advice please let me
-know and I'll try to help you.
-
--Alexey
+Rich
