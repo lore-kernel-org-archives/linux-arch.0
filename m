@@ -1,15 +1,14 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from 216-12-86-13.cv.mvl.ntelos.net ([216.12.86.13]:36335 "EHLO
-	brightrain.aerifal.cx" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752261AbbAIWni (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 9 Jan 2015 17:43:38 -0500
-Date: Fri, 9 Jan 2015 17:42:52 -0500
-From: Rich Felker <dalias@aerifal.cx>
+Received: from zeniv.linux.org.uk ([195.92.253.2]:33095 "EHLO
+	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752378AbbAIW5u (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 9 Jan 2015 17:57:50 -0500
+Date: Fri, 9 Jan 2015 22:57:43 +0000
+From: Al Viro <viro@ZenIV.linux.org.uk>
 Subject: Re: [PATCHv10 man-pages 5/5] execveat.2: initial man page for
  execveat(2)
-Message-ID: <20150109224252.GY4574@brightrain.aerifal.cx>
-References: <20150109161302.GQ4574@brightrain.aerifal.cx>
- <CAHse=S88Jy5ZKM_VY5onfvxX7dTMngnxuHfuLeSuzvKvQNP19A@mail.gmail.com>
+Message-ID: <20150109225743.GP22149@ZenIV.linux.org.uk>
+References: <CAHse=S88Jy5ZKM_VY5onfvxX7dTMngnxuHfuLeSuzvKvQNP19A@mail.gmail.com>
  <20150109204815.GR4574@brightrain.aerifal.cx>
  <20150109205626.GK22149@ZenIV.linux.org.uk>
  <20150109205926.GT4574@brightrain.aerifal.cx>
@@ -18,46 +17,31 @@ References: <20150109161302.GQ4574@brightrain.aerifal.cx>
  <20150109215042.GM22149@ZenIV.linux.org.uk>
  <20150109221728.GW4574@brightrain.aerifal.cx>
  <20150109223300.GO22149@ZenIV.linux.org.uk>
+ <20150109224252.GY4574@brightrain.aerifal.cx>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20150109223300.GO22149@ZenIV.linux.org.uk>
+In-Reply-To: <20150109224252.GY4574@brightrain.aerifal.cx>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Al Viro <viro@ZenIV.linux.org.uk>
+To: Rich Felker <dalias@aerifal.cx>
 Cc: David Drysdale <drysdale@google.com>, "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>, "Eric W. Biederman" <ebiederm@xmission.com>, Andy Lutomirski <luto@amacapital.net>, Meredydd Luff <meredydd@senatehouse.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Thomas Gleixner <tglx@linutronix.de>, Stephen Rothwell <sfr@canb.auug.org.au>, Oleg Nesterov <oleg@redhat.com>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Christoph Hellwig <hch@infradead.org>, X86 ML <x86@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, sparclinux@vger.kernel.org
-Message-ID: <20150109224252.ypurqI5kSZV6DuE_7xOwwV2OivmcF-k6G2ItIFAZ_2w@z>
+Message-ID: <20150109225743.8YzRGTLObjw7Kf4HB6FNLY84Lz83dIX0cxHJ-RKGnYw@z>
 
-On Fri, Jan 09, 2015 at 10:33:00PM +0000, Al Viro wrote:
-> On Fri, Jan 09, 2015 at 05:17:28PM -0500, Rich Felker wrote:
-> > > Back then the procfs-free environments had been pushed as a serious argument
-> > > in favour of merging the damn thing.  Now you guys turn around and say that
-> > > we not only need procfs mounted, we need a yet-to-be-added kludge in there
-> > > to cope with the actual intended uses.
-> > 
-> > Reverting does not fix the problem. There is no way to make fexecve
-> > work for scripts without kernel support, and the needed kernel support
-> > without fexecve would be even nastier, since handling of /proc/self/fd
-> > magic-symlinks would need to be special-cased. The added fexecveat
-> > syscall supports fully /proc-less operation for non-scripts.
-> 
-> Oh, yes it does.  It's not *our* problem if it's out of tree and not
-> a part of ABI.  That way if you need it, *you* get to come up with clean
-> implementation.  If it's in-tree you get leverage to push ugly kludges
-> further in.  And frankly, I don't trust you to abstain from using that
-> leverage in rather nasty ways.
-> 
-> Out of curiosity, how would you expect that "open only once" to work?
-> All reliable variants I see are beyond sick...
+On Fri, Jan 09, 2015 at 05:42:52PM -0500, Rich Felker wrote:
 
-Here's a very simple way it could work -- it could put the O_PATH fd
-on a previously-unused fd number, and put a special flag on the fd,
-like FD_CLOEXEC, but that causes the kernel to close it whenever it's
-opened. The pathname passed could then simply be /dev/fd/%d or
-/proc/self/fd/%d, and although this is presently dependent on /proc
-being mounted, virtual /dev/fd/* could someday be something completely
-independent of procfs. The kernel keeps all the freedom to choose how
-to pass the name to the interpreter. I'm not proposing any kernel
-API/ABI lock-in and I'm with you in opposing such lock-in.
+> Here's a very simple way it could work -- it could put the O_PATH fd
+> on a previously-unused fd number, and put a special flag on the fd,
+> like FD_CLOEXEC, but that causes the kernel to close it whenever it's
+> opened. The pathname passed could then simply be /dev/fd/%d or
+> /proc/self/fd/%d, and although this is presently dependent on /proc
+> being mounted, virtual /dev/fd/* could someday be something completely
+> independent of procfs. The kernel keeps all the freedom to choose how
+> to pass the name to the interpreter. I'm not proposing any kernel
+> API/ABI lock-in and I'm with you in opposing such lock-in.
 
-Rich
+Huh?  open() on procfs symlinks does *NOT* work the way - the symlink is
+traversed and after that point there is no information whatsoever how we
+got to that vfsmount/dentry pair.  I can imagine several kludges that would
+work, but they are unspeakably ugly, and do_last() is already far too
+convoluted as it is.
