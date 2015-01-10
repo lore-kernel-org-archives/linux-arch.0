@@ -1,67 +1,53 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtprelay.synopsys.com ([198.182.47.9]:59962 "EHLO
-	smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751655AbbAJKbA convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 10 Jan 2015 05:31:00 -0500
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: Re: [PATCH 5/5] perf tools: [uclibc] provide stub for
- pthread_attr_setaffinity_np
-Date: Sat, 10 Jan 2015 10:30:54 +0000
-Message-ID: <C2D7FE5348E1B147BCA15975FBA2307565BCA76A@IN01WEMBXA.internal.synopsys.com>
+Received: from mail-pd0-f171.google.com ([209.85.192.171]:49081 "EHLO
+	mail-pd0-f171.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750962AbbAJKpI (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 10 Jan 2015 05:45:08 -0500
+Date: Sat, 10 Jan 2015 19:44:58 +0900
+From: Namhyung Kim <namhyung@kernel.org>
+Subject: Re: [PATCH 4/5] perf tools: [uclibc] don't rely on glibc malloc
+ working for sz 0
+Message-ID: <20150110104458.GC29697@danjae>
 References: <1420552335-26886-1-git-send-email-vgupta@synopsys.com>
- <1420552335-26886-6-git-send-email-vgupta@synopsys.com>
- <20150108075653.GG7268@sejong>
-Content-Language: en-US
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 8BIT
+ <1420552335-26886-5-git-send-email-vgupta@synopsys.com>
+ <20150108075125.GF7268@sejong>
+ <C2D7FE5348E1B147BCA15975FBA2307565BCA731@IN01WEMBXA.internal.synopsys.com>
 MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <C2D7FE5348E1B147BCA15975FBA2307565BCA731@IN01WEMBXA.internal.synopsys.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Namhyung Kim <namhyung@kernel.org>
+To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
 Cc: "acme@redhat.com" <acme@redhat.com>, "peterz@infradead.org" <peterz@infradead.org>, "jolsa@kernel.org" <jolsa@kernel.org>, "mingo@kernel.org" <mingo@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-perf-users@vger.kernel.org" <linux-perf-users@vger.kernel.org>, "bp@suse.de" <bp@suse.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "Alexey.Brodkin@synopsys.com" <Alexey.Brodkin@synopsys.com>
-Message-ID: <20150110103054.Nt1sDSqcRggDOBJF1o5lXAboOovLdMWxP2gH9zy04iY@z>
+Message-ID: <20150110104458.B1jDdzp0BELr2GLfZpFky7YV61tSD8xuAuz1ZtAk2hQ@z>
 
-Hi Namhyung,
+On Sat, Jan 10, 2015 at 10:16:06AM +0000, Vineet Gupta wrote:
+> On Thursday 08 January 2015 01:23 PM, Namhyung Kim wrote:
+> > Hmm.. okay.  I think we don't need to allocate the id arrays when size
+> > is 0.  So perf_event__process_attr() will have the same problem IMHO.
+> > How about this?
+> >
+> >
+> > diff --git a/tools/perf/util/evsel.c b/tools/perf/util/evsel.c
+> > index 1e90c8557ede..1d826d63bc20 100644
+> > --- a/tools/perf/util/evsel.c
+> > +++ b/tools/perf/util/evsel.c
+> > @@ -797,6 +797,9 @@ int perf_evsel__enable(struct perf_evsel *evsel, int ncpus, int nthreads)
+> >  
+> >  int perf_evsel__alloc_id(struct perf_evsel *evsel, int ncpus, int nthreads)
+> >  {
+> > +	if (ncpus == 0 || nthreads == 0)
+> > +		return 0;
+> > +
+> >  	if (evsel->system_wide)
+> >  		nthreads = 1;
+> 
+> Fine by me as I'm not too familiar with perf tools internals.
+> So I need to spin a v2 for this or would you rather create a patch with me as
+> Reported-by:
 
+Please include this in your v2 and adds me as Suggested-by:
 
-
-On Thursday 08 January 2015 01:28 PM, Namhyung Kim wrote:
-> On Tue, Jan 06, 2015 at 07:22:15PM +0530, Vineet Gupta wrote:
->> > uClibc Linuxthreads.old doesnt support pthread_attr_setaffinity_np()
->> > call
->> > 
->> > ----------------->8-----------------------
->> >   CC       bench/futex-hash.o
->> >   CC       bench/futex-wake.o
->> > bench/futex-hash.c: In function 'bench_futex_hash':
->> > bench/futex-hash.c:161:3: error: implicit declaration of function
->> > 'pthread_attr_setaffinity_np' [-Werror=implicit-function-declaration]
->> >    ret = pthread_attr_setaffinity_np(&thread_attr, sizeof(cpu_set_t),
->> > &cpu);
->> >    ^
->> > bench/futex-hash.c:161:3: error: nested extern declaration of
->> > 'pthread_attr_setaffinity_np' [-Werror=nested-externs]
->> > ----------------->8-----------------------
->> > 
->> > Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
->> > ---
->> >  tools/perf/bench/futex.h                    | 13 +++++++++++++
->> >  tools/perf/config/Makefile                  |  6 ++++++
->> >  tools/perf/config/feature-checks/Makefile   |  4 ++++
->> >  tools/perf/config/feature-checks/test-all.c |  5 +++++
->> >  4 files changed, 28 insertions(+)
-> It seems that you fotgot to add the real test file
-> (test-pthread_attr_setaffinity_np.c?) here..
-
-Indeed, apologies for the snafu. I'll include it in v2 for the series.
-Any thoughts on rest of patches for the series.
-Thanks for the careful review so far.
-
--Vineet
-
->
-> Thanks,
-> Namhyung
->
->
-
+Thanks,
+Namhyung
