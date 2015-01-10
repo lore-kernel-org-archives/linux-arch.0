@@ -1,64 +1,93 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from 216-12-86-13.cv.mvl.ntelos.net ([216.12.86.13]:36389 "EHLO
-	brightrain.aerifal.cx" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752939AbbAJBe0 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 9 Jan 2015 20:34:26 -0500
-Date: Fri, 9 Jan 2015 20:33:24 -0500
-From: Rich Felker <dalias@aerifal.cx>
+Received: from zeniv.linux.org.uk ([195.92.253.2]:34014 "EHLO
+	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751267AbbAJDDL (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 9 Jan 2015 22:03:11 -0500
+Date: Sat, 10 Jan 2015 03:03:00 +0000
+From: Al Viro <viro@ZenIV.linux.org.uk>
 Subject: Re: [PATCHv10 man-pages 5/5] execveat.2: initial man page for
  execveat(2)
-Message-ID: <20150110013324.GB4574@brightrain.aerifal.cx>
-References: <20150109161302.GQ4574@brightrain.aerifal.cx>
- <CAHse=S88Jy5ZKM_VY5onfvxX7dTMngnxuHfuLeSuzvKvQNP19A@mail.gmail.com>
- <20150109204815.GR4574@brightrain.aerifal.cx>
- <20150109205626.GK22149@ZenIV.linux.org.uk>
- <20150109205926.GT4574@brightrain.aerifal.cx>
+Message-ID: <20150110030300.GU22149@ZenIV.linux.org.uk>
+References: <20150109205926.GT4574@brightrain.aerifal.cx>
  <20150109210941.GL22149@ZenIV.linux.org.uk>
  <20150109212852.GU4574@brightrain.aerifal.cx>
- <87lhlbvbzs.fsf@x220.int.ebiederm.org>
- <20150109223843.GX4574@brightrain.aerifal.cx>
- <87mw5rtowa.fsf@x220.int.ebiederm.org>
+ <20150109215042.GM22149@ZenIV.linux.org.uk>
+ <20150109221728.GW4574@brightrain.aerifal.cx>
+ <20150109223300.GO22149@ZenIV.linux.org.uk>
+ <20150109224252.GY4574@brightrain.aerifal.cx>
+ <20150109225743.GP22149@ZenIV.linux.org.uk>
+ <20150109231248.GZ4574@brightrain.aerifal.cx>
+ <20150109233644.GR22149@ZenIV.linux.org.uk>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <87mw5rtowa.fsf@x220.int.ebiederm.org>
+In-Reply-To: <20150109233644.GR22149@ZenIV.linux.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Eric W. Biederman" <ebiederm@xmission.com>
-Cc: Al Viro <viro@ZenIV.linux.org.uk>, David Drysdale <drysdale@google.com>, "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>, Andy Lutomirski <luto@amacapital.net>, Meredydd Luff <meredydd@senatehouse.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Thomas Gleixner <tglx@linutronix.de>, Stephen Rothwell <sfr@canb.auug.org.au>, Oleg Nesterov <oleg@redhat.com>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Christoph Hellwig <hch@infradead.org>, X86 ML <x86@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, sparclinux@vger.kernel.org
-Message-ID: <20150110013324.abFcjEEpsiAXkl0Nla3P9hmg6DAltB8NwwA9adns124@z>
+To: Rich Felker <dalias@aerifal.cx>
+Cc: David Drysdale <drysdale@google.com>, "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>, "Eric W. Biederman" <ebiederm@xmission.com>, Andy Lutomirski <luto@amacapital.net>, Meredydd Luff <meredydd@senatehouse.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Thomas Gleixner <tglx@linutronix.de>, Stephen Rothwell <sfr@canb.auug.org.au>, Oleg Nesterov <oleg@redhat.com>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Christoph Hellwig <hch@infradead.org>, X86 ML <x86@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, sparclinux@vger.kernel.org
+Message-ID: <20150110030300.cyNXcJh2mSB3_--ffOfvD3MbOl2eUp1iMEDD7PhBg6w@z>
 
-On Fri, Jan 09, 2015 at 07:17:41PM -0600, Eric W. Biederman wrote:
-> Rich Felker <dalias@aerifal.cx> writes:
+On Fri, Jan 09, 2015 at 11:36:44PM +0000, Al Viro wrote:
+> On Fri, Jan 09, 2015 at 06:12:48PM -0500, Rich Felker wrote:
 > 
-> > I'm not proposing code because I'm a libc developer not a kernel
-> > developer. I know what's needed for userspace to provide a conforming
-> > fexecve to applications, not how to implement that on the kernel side,
-> > although I'm trying to provide constructive ideas. The hostility is
-> > really not necessary.
+> > I'm not sure where you're disagreeing with me. open of procfs symlinks
+> > does not resolve the symlink and open the resulting pathname. They are
+> > "magic symlinks" which are bound to the inode of the open file. I
+> > don't see why this action, which is already special for magic
+> > symlinks, can't check a flag on the magic symlink and possibly close
+> > the corresponding file descriptor as part of its action.
 > 
-> Conforming to what?
-> 
-> The open group fexecve says nothing about requiring a file descriptor
-> passed to fexecve to have O_CLOEXEC.
+> _What_ action?  ->follow_link()?  As in "the same thing that e.g.
+> stat(2) would trigger"?
 
-It doesn't require it but it allows it, and in multithreaded programs
-that might run child processes (or library code that might be used in
-such situations), O_CLOEXEC is mandatory everywhere to avoid fd leaks.
+To elaborate a bit: the fundamental method for symlink traversal is
+->follow_link().  It gets dentry of the object itself + opaque context.
+Usually it just obtains some string (== symlink contents) and calls
+nd_set_link(context, string).  In that case the string will be interpreted
+by its callers in usual way.  Another possibility is to call
+nd_jump_link(context, location), which will reset the current position
+(directory in which the symlink has been found and relative to which it
+would be interpreted) to given location in tree.  It might actually do
+both - then the string will be interpreted relative to the new location.
+Once the pathname resolution is done with the string stored by nd_set_link(),
+it calls another method - ->put_link().  That one releases the object
+that contains this string; it gets an opaque pointer returned by
+->follow_link().  Returning ERR_PTR(-Esomething) indicates an error, so does
+nd_set_link(context, ERR_PTR(-Esomething)).
 
-> Further looking at open group specification of exec it seems to indicate
-> the preferred way to handle this is for the kernel to return O_NOEXEC
-> and then libc gets to figure out how to run the shell script.  Is that
-> the kind of ``conforming'' implementation you are looking for?
+readlink(2) is using a different method (->readlink()) and any object whose
+->follow_link() only uses nd_set_link() can use generic_readlink as its
+->readlink instance - that will call ->follow_link(), copy the string
+stored by nd_set_link() to userland buffer and use ->put_link() to release
+whatever needs to be released.  Most of the symlinks are doing just that.
 
-This is a complex issue, and does not apply to native #! support
-(which is a supported executable format and thus not ENOEXEC) but
-rather standard POSIX shell scripts (which don't have a #! line at
-all). In this case the behavior of fexecve is perhaps under-specified.
-However, in cases where execve would succeed (without causing
-ENOEXEC), I think it's at least undesirable, if not non-conforming,
-for fexecve to fail.
+procfs "magical" symlinks have ->follow_link() that uses nd_jump_link();
+they obviously can't use generic_readlink() (there is no string left
+by ->follow_link() for caller to traverse), so they have non-standard
+->readlink() instances - ones that use d_path() to generate a plausible
+pathname of the would-be destination of their ->follow_link().  Or something
+like pipe:[696969], etc.
 
-Should we request clarification from the Austin Group?
+Note, however, that ->readlink() is used only by readlink(2) syscall; as far
+as pathname resolution is concerned it is completely irrelevant.  What matters
+is ->follow_link().
 
-Rich
+Now, the callers do not know (and do not care) what a particular symlink _is_.
+A symlink is just a dentry with inode that has non-NULL ->follow_link()
+method.  That's it.  Moreover, _any_ pathname resolution is using the
+same method for symlink traversal, be it open(2), stat(2), whatever.  If
+a symlink is to be traversed, that's it - the only choice VFS has is whether
+to traverse it at all or not (think of stat(2) vs lstat(2) difference, or
+O_NOFOLLOW, etc.)
+
+_After_ the traversal it's too late to do this sort of thing - after all,
+how do you tell if your current position had been set by the traversal of
+your symlink or that of any normal /proc/self/fd/<n>?
+
+And doing that _during_ the traversal would really suck - stray ls -lR /proc
+could race with that open() done by script interpreter.
+
+It might be possible to work around that, but trying that rapidly gets into
+very ugly territory, *especially* since the handling of the final component
+of open(2) (fs/namei.c:do_last()) is already far too convoluted.
