@@ -1,67 +1,89 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from 216-12-86-13.cv.mvl.ntelos.net ([216.12.86.13]:36426 "EHLO
-	brightrain.aerifal.cx" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750933AbbAJF6Q (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 10 Jan 2015 00:58:16 -0500
-Date: Sat, 10 Jan 2015 00:57:13 -0500
-From: Rich Felker <dalias@aerifal.cx>
-Subject: Re: [PATCHv10 man-pages 5/5] execveat.2: initial man page for
- execveat(2)
-Message-ID: <20150110055713.GE4574@brightrain.aerifal.cx>
-References: <20150109215042.GM22149@ZenIV.linux.org.uk>
- <20150109221728.GW4574@brightrain.aerifal.cx>
- <20150109223300.GO22149@ZenIV.linux.org.uk>
- <20150109224252.GY4574@brightrain.aerifal.cx>
- <20150109225743.GP22149@ZenIV.linux.org.uk>
- <20150109231248.GZ4574@brightrain.aerifal.cx>
- <20150109233644.GR22149@ZenIV.linux.org.uk>
- <20150110030300.GU22149@ZenIV.linux.org.uk>
- <20150110034144.GC4574@brightrain.aerifal.cx>
- <20150110041457.GV22149@ZenIV.linux.org.uk>
+Received: from mail-we0-f177.google.com ([74.125.82.177]:47730 "EHLO
+	mail-we0-f177.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752147AbbAJHiQ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 10 Jan 2015 02:38:16 -0500
+Message-ID: <54B0D6E3.5030804@gmail.com>
+Date: Sat, 10 Jan 2015 08:38:11 +0100
+From: "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20150110041457.GV22149@ZenIV.linux.org.uk>
+Subject: Re: [PATCHv10 man-pages 5/5] execveat.2: initial man page for execveat(2)
+References: <1416830039-21952-1-git-send-email-drysdale@google.com> <1416830039-21952-6-git-send-email-drysdale@google.com> <54AFF813.7050604@gmail.com> <20150109161302.GQ4574@brightrain.aerifal.cx>
+In-Reply-To: <20150109161302.GQ4574@brightrain.aerifal.cx>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Al Viro <viro@ZenIV.linux.org.uk>
-Cc: David Drysdale <drysdale@google.com>, "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>, "Eric W. Biederman" <ebiederm@xmission.com>, Andy Lutomirski <luto@amacapital.net>, Meredydd Luff <meredydd@senatehouse.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Thomas Gleixner <tglx@linutronix.de>, Stephen Rothwell <sfr@canb.auug.org.au>, Oleg Nesterov <oleg@redhat.com>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Christoph Hellwig <hch@infradead.org>, X86 ML <x86@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, sparclinux@vger.kernel.org
-Message-ID: <20150110055713.JOrSsbQfGS7gV-TtYt2DTbXb-h_Bx9M4CI6R8IcLN5g@z>
+To: Rich Felker <dalias@aerifal.cx>
+Cc: mtk.manpages@gmail.com, David Drysdale <drysdale@google.com>, "Eric W. Biederman" <ebiederm@xmission.com>, Andy Lutomirski <luto@amacapital.net>, Alexander Viro <viro@zeniv.linux.org.uk>, Meredydd Luff <meredydd@senatehouse.org>, linux-kernel@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Thomas Gleixner <tglx@linutronix.de>, Stephen Rothwell <sfr@canb.auug.org.au>, Oleg Nesterov <oleg@redhat.com>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Christoph Hellwig <hch@infradead.org>, x86@kernel.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, sparclinux@vger.kernel.org
+Message-ID: <20150110073811.2l0_wCzmEKAOC6be5RIz4_NaujJxOC2VanV02QcsAwo@z>
 
-On Sat, Jan 10, 2015 at 04:14:57AM +0000, Al Viro wrote:
-> On Fri, Jan 09, 2015 at 10:41:44PM -0500, Rich Felker wrote:
-> > > _After_ the traversal it's too late to do this sort of thing - after all,
-> > > how do you tell if your current position had been set by the traversal of
-> > > your symlink or that of any normal /proc/self/fd/<n>?
-> > 
-> > Thanks for clarifying how this all works in the kernel. It makes it
-> > easier to understand what the costs (especially complexity costs) of
-> > different implementation options might be for the kernel.
-> > 
-> > > And doing that _during_ the traversal would really suck - stray ls -lR /proc
-> > > could race with that open() done by script interpreter.
-> > 
-> > IMO this one issue is easily solvable by limiting the special action
-> > to calls by the owning pid.
+On 01/09/2015 05:13 PM, Rich Felker wrote:
+> On Fri, Jan 09, 2015 at 04:47:31PM +0100, Michael Kerrisk (man-pages) wrote:
+>> On 11/24/2014 12:53 PM, David Drysdale wrote:
+>>> Signed-off-by: David Drysdale <drysdale@google.com>
+>>> ---
+>>>  man2/execveat.2 | 153 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+>>>  1 file changed, 153 insertions(+)
+>>>  create mode 100644 man2/execveat.2
+>>
+>> David,
+>>
+>> Thanks for the very nicely prepared man page. I've done 
+>> a few very light edits, and will release the version below 
+>> with the next man-pages release.
+>>
+>> I have one question. In the message accompanying
+>> commit 51f39a1f0cea1cacf8c787f652f26dfee9611874 you wrote:
+>>
+>>   The filename fed to the executed program as argv[0] (or the name of the
+>>   script fed to a script interpreter) will be of the form "/dev/fd/<fd>"
+>>   (for an empty filename) or "/dev/fd/<fd>/<filename>", effectively
+>>   reflecting how the executable was found.  This does however mean that
+>>   execution of a script in a /proc-less environment won't work; also, script
+>>   execution via an O_CLOEXEC file descriptor fails (as the file will not be
+>>   accessible after exec).
+>>
+>> How does one produce this situation where the execed program sees 
+>> argv[0] as a /dev/fd path? (i.e., what would the execveat()
+>> call look like?) I tried to produce this scenario, but could not.
 > 
-> Except that if your interpreter does stat(2) (or access(2), or getxattr(2),
-> etc.) before bothering with open(2), you'll get screwed.
+> I think this is wrong. argv[0] is an arbitrary string provided by the
+> caller and would never be derived from the fd passed. It's AT_EXECFN,
+> /proc/self/exe, and filenames shown elsewhere in /proc that may be
+> derived in odd ways.
+> 
+> I would also move the text about O_CLOEXEC to a BUGS or NOTES section
+> rather than the main description. The long-term intent should be that
+> script execution this way should work. IIRC this was discussed earlier
+> in the thread.
 
-Yes, but I think that would be very bad interpreter design.
-stat/getxattr/access/whatever followed by open is always a TOCTOU
-race. The correct sequence of actions is always open followed by
-fstat/fgetxattr/...
+I agree, that something needs to be said. What I instead did was 
+added "See BUGS" to the ENOEXEC error, and then this text:
 
-> Moreover, if it
-> does so only in case when you have something specific in environment,
-> you'll have the devil of the time trying to figure out how to reproduce
-> such a bug report...
+   BUGS
+       The  ENOENT  error  described above means that it is not possible
+       possible to set the close-on-exec flag  on  the  file  descriptor
+       given to a call of the form:
 
-Yes, this is a more serious concern. For example, if a shell processes
-$HISTFILE or something before opening the script. I'm starting to
-prefer the idea of just refusing to honor the close-on-exec flag for
-the fd passed to fexecve but preserving it, and letting the
-interpreter close the file itself if it wants to. This could be done
-with or without the new auxv entry stuff.
+           execveat(fd, "", argv, envp, AT_EMPTY_PATH);
 
-Rich
+       However, the inability to set the close-on-exec flag means that a
+       file descriptor referring to the  script  leaks  through  to  the
+       script  itself.  As well as wasting a file descriptor, this leak‐
+       age can lead to file-descriptor  exhaustion  in  scenarios  where
+       scripts  recursively  employ  exceveat()  (or a future fexecve(3)
+       implementation that might be based on execveat()).
+
+Okay?
+
+Thanks,
+
+Michael
+
+
+
+-- 
+Michael Kerrisk
+Linux man-pages maintainer; http://www.kernel.org/doc/man-pages/
+Linux/UNIX System Programming Training: http://man7.org/training/
