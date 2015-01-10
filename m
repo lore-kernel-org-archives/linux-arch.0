@@ -1,53 +1,166 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pd0-f171.google.com ([209.85.192.171]:49081 "EHLO
-	mail-pd0-f171.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750962AbbAJKpI (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 10 Jan 2015 05:45:08 -0500
-Date: Sat, 10 Jan 2015 19:44:58 +0900
-From: Namhyung Kim <namhyung@kernel.org>
-Subject: Re: [PATCH 4/5] perf tools: [uclibc] don't rely on glibc malloc
- working for sz 0
-Message-ID: <20150110104458.GC29697@danjae>
-References: <1420552335-26886-1-git-send-email-vgupta@synopsys.com>
- <1420552335-26886-5-git-send-email-vgupta@synopsys.com>
- <20150108075125.GF7268@sejong>
- <C2D7FE5348E1B147BCA15975FBA2307565BCA731@IN01WEMBXA.internal.synopsys.com>
+Received: from smtprelay.synopsys.com ([198.182.60.111]:44624 "EHLO
+	smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753328AbbAJLL6 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 10 Jan 2015 06:11:58 -0500
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Subject: [PATCH v2 5/5] perf tools: [uclibc] provide stub for pthread_attr_setaffinity_np
+Date: Sat, 10 Jan 2015 16:40:54 +0530
+Message-ID: <1420888254-17504-6-git-send-email-vgupta@synopsys.com>
+In-Reply-To: <1420888254-17504-1-git-send-email-vgupta@synopsys.com>
+References: <1420888254-17504-1-git-send-email-vgupta@synopsys.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-In-Reply-To: <C2D7FE5348E1B147BCA15975FBA2307565BCA731@IN01WEMBXA.internal.synopsys.com>
+Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Cc: "acme@redhat.com" <acme@redhat.com>, "peterz@infradead.org" <peterz@infradead.org>, "jolsa@kernel.org" <jolsa@kernel.org>, "mingo@kernel.org" <mingo@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-perf-users@vger.kernel.org" <linux-perf-users@vger.kernel.org>, "bp@suse.de" <bp@suse.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "Alexey.Brodkin@synopsys.com" <Alexey.Brodkin@synopsys.com>
-Message-ID: <20150110104458.B1jDdzp0BELr2GLfZpFky7YV61tSD8xuAuz1ZtAk2hQ@z>
+To: acme@redhat.com, namhyung@kernel.org
+Cc: peterz@infradead.org, jolsa@kernel.org, mingo@kernel.org, linux-kernel@vger.kernel.org, linux-perf-users@vger.kernel.org, linux-arch@vger.kernel.org, Alexey.Brodkin@synopsys.com, Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Message-ID: <20150110111054.TyGR-7w-UTRK8QU9R4-379hsCC42MwnsYfVtb1wgIg4@z>
 
-On Sat, Jan 10, 2015 at 10:16:06AM +0000, Vineet Gupta wrote:
-> On Thursday 08 January 2015 01:23 PM, Namhyung Kim wrote:
-> > Hmm.. okay.  I think we don't need to allocate the id arrays when size
-> > is 0.  So perf_event__process_attr() will have the same problem IMHO.
-> > How about this?
-> >
-> >
-> > diff --git a/tools/perf/util/evsel.c b/tools/perf/util/evsel.c
-> > index 1e90c8557ede..1d826d63bc20 100644
-> > --- a/tools/perf/util/evsel.c
-> > +++ b/tools/perf/util/evsel.c
-> > @@ -797,6 +797,9 @@ int perf_evsel__enable(struct perf_evsel *evsel, int ncpus, int nthreads)
-> >  
-> >  int perf_evsel__alloc_id(struct perf_evsel *evsel, int ncpus, int nthreads)
-> >  {
-> > +	if (ncpus == 0 || nthreads == 0)
-> > +		return 0;
-> > +
-> >  	if (evsel->system_wide)
-> >  		nthreads = 1;
-> 
-> Fine by me as I'm not too familiar with perf tools internals.
-> So I need to spin a v2 for this or would you rather create a patch with me as
-> Reported-by:
+uClibc Linuxthreads.old doesnt support pthread_attr_setaffinity_np()
+call
 
-Please include this in your v2 and adds me as Suggested-by:
+----------------->8-----------------------
+  CC       bench/futex-hash.o
+  CC       bench/futex-wake.o
+bench/futex-hash.c: In function 'bench_futex_hash':
+bench/futex-hash.c:161:3: error: implicit declaration of function
+'pthread_attr_setaffinity_np' [-Werror=implicit-function-declaration]
+   ret = pthread_attr_setaffinity_np(&thread_attr, sizeof(cpu_set_t),
+&cpu);
+   ^
+bench/futex-hash.c:161:3: error: nested extern declaration of
+'pthread_attr_setaffinity_np' [-Werror=nested-externs]
+----------------->8-----------------------
 
-Thanks,
-Namhyung
+Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
+---
+ tools/perf/bench/futex.h                                   | 13 +++++++++++++
+ tools/perf/config/Makefile                                 |  6 ++++++
+ tools/perf/config/feature-checks/Makefile                  |  4 ++++
+ tools/perf/config/feature-checks/test-all.c                |  5 +++++
+ .../feature-checks/test-pthread-attr-setaffinity-np.c      | 14 ++++++++++++++
+ 5 files changed, 42 insertions(+)
+ create mode 100644 tools/perf/config/feature-checks/test-pthread-attr-setaffinity-np.c
+
+diff --git a/tools/perf/bench/futex.h b/tools/perf/bench/futex.h
+index 71f2844cf97f..7ed22ff1e1ac 100644
+--- a/tools/perf/bench/futex.h
++++ b/tools/perf/bench/futex.h
+@@ -68,4 +68,17 @@ futex_cmp_requeue(u_int32_t *uaddr, u_int32_t val, u_int32_t *uaddr2, int nr_wak
+ 		 val, opflags);
+ }
+ 
++#ifndef HAVE_PTHREAD_ATTR_SETAFFINITY_NP
++#include <pthread.h>
++static inline int pthread_attr_setaffinity_np(pthread_attr_t *attr,
++					      size_t cpusetsize,
++					      cpu_set_t *cpuset)
++{
++	attr = attr;
++	cpusetsize = cpusetsize;
++	cpuset = cpuset;
++	return 0;
++}
++#endif
++
+ #endif /* _FUTEX_H */
+diff --git a/tools/perf/config/Makefile b/tools/perf/config/Makefile
+index 5d4b039fe1ed..6b59662136fa 100644
+--- a/tools/perf/config/Makefile
++++ b/tools/perf/config/Makefile
+@@ -198,6 +198,7 @@ CORE_FEATURE_TESTS =			\
+ 	libpython-version		\
+ 	libslang			\
+ 	libunwind			\
++	pthread-attr-setaffinity-np	\
+ 	stackprotector-all		\
+ 	timerfd				\
+ 	libdw-dwarf-unwind		\
+@@ -226,6 +227,7 @@ VF_FEATURE_TESTS =			\
+ 	libelf-getphdrnum		\
+ 	libelf-mmap			\
+ 	libpython-version		\
++	pthread-attr-setaffinity-np	\
+ 	stackprotector-all		\
+ 	timerfd				\
+ 	libunwind-debug-frame		\
+@@ -301,6 +303,10 @@ ifeq ($(feature-sync-compare-and-swap), 1)
+   CFLAGS += -DHAVE_SYNC_COMPARE_AND_SWAP_SUPPORT
+ endif
+ 
++ifeq ($(feature-pthread-attr-setaffinity-np), 1)
++  CFLAGS += -DHAVE_PTHREAD_ATTR_SETAFFINITY_NP
++endif
++
+ ifndef NO_BIONIC
+   $(call feature_check,bionic)
+   ifeq ($(feature-bionic), 1)
+diff --git a/tools/perf/config/feature-checks/Makefile b/tools/perf/config/feature-checks/Makefile
+index 53f19b5dbc37..e9b99bb29348 100644
+--- a/tools/perf/config/feature-checks/Makefile
++++ b/tools/perf/config/feature-checks/Makefile
+@@ -25,6 +25,7 @@ FILES=					\
+ 	test-libslang.bin		\
+ 	test-libunwind.bin		\
+ 	test-libunwind-debug-frame.bin	\
++	test-pthread-attr-setaffinity-np.bin	\
+ 	test-stackprotector-all.bin	\
+ 	test-timerfd.bin		\
+ 	test-libdw-dwarf-unwind.bin	\
+@@ -47,6 +48,9 @@ test-all.bin:
+ test-hello.bin:
+ 	$(BUILD)
+ 
++test-pthread-attr-setaffinity-np.bin:
++	$(BUILD) -Werror
++
+ test-stackprotector-all.bin:
+ 	$(BUILD) -Werror -fstack-protector-all
+ 
+diff --git a/tools/perf/config/feature-checks/test-all.c b/tools/perf/config/feature-checks/test-all.c
+index 652e0098eba6..6d4d09323922 100644
+--- a/tools/perf/config/feature-checks/test-all.c
++++ b/tools/perf/config/feature-checks/test-all.c
+@@ -97,6 +97,10 @@
+ # include "test-zlib.c"
+ #undef main
+ 
++#define main main_test_pthread_attr_setaffinity_np
++# include "test-pthread_attr_setaffinity_np.c"
++#undef main
++
+ int main(int argc, char *argv[])
+ {
+ 	main_test_libpython();
+@@ -121,6 +125,7 @@ int main(int argc, char *argv[])
+ 	main_test_libdw_dwarf_unwind();
+ 	main_test_sync_compare_and_swap(argc, argv);
+ 	main_test_zlib();
++	main_test_pthread_attr_setaffinity_np();
+ 
+ 	return 0;
+ }
+diff --git a/tools/perf/config/feature-checks/test-pthread-attr-setaffinity-np.c b/tools/perf/config/feature-checks/test-pthread-attr-setaffinity-np.c
+new file mode 100644
+index 000000000000..0a0d3ecb4e8a
+--- /dev/null
++++ b/tools/perf/config/feature-checks/test-pthread-attr-setaffinity-np.c
+@@ -0,0 +1,14 @@
++#include <stdint.h>
++#include <pthread.h>
++
++int main(void)
++{
++	int ret = 0;
++	pthread_attr_t thread_attr;
++
++	pthread_attr_init(&thread_attr);
++	/* don't care abt exact args, just the API itself in libpthread */
++	ret = pthread_attr_setaffinity_np(&thread_attr, 0, NULL);
++
++	return ret;
++}
+-- 
+1.9.1
+
