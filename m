@@ -1,16 +1,16 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from us01smtprelay-2.synopsys.com ([198.182.60.111]:44348 "EHLO
+Received: from smtprelay.synopsys.com ([198.182.47.9]:59962 "EHLO
 	smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751965AbbAJKQM convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 10 Jan 2015 05:16:12 -0500
+	with ESMTP id S1751655AbbAJKbA convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 10 Jan 2015 05:31:00 -0500
 From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: Re: [PATCH 4/5] perf tools: [uclibc] don't rely on glibc malloc
- working for sz 0
-Date: Sat, 10 Jan 2015 10:16:06 +0000
-Message-ID: <C2D7FE5348E1B147BCA15975FBA2307565BCA731@IN01WEMBXA.internal.synopsys.com>
+Subject: Re: [PATCH 5/5] perf tools: [uclibc] provide stub for
+ pthread_attr_setaffinity_np
+Date: Sat, 10 Jan 2015 10:30:54 +0000
+Message-ID: <C2D7FE5348E1B147BCA15975FBA2307565BCA76A@IN01WEMBXA.internal.synopsys.com>
 References: <1420552335-26886-1-git-send-email-vgupta@synopsys.com>
- <1420552335-26886-5-git-send-email-vgupta@synopsys.com>
- <20150108075125.GF7268@sejong>
+ <1420552335-26886-6-git-send-email-vgupta@synopsys.com>
+ <20150108075653.GG7268@sejong>
 Content-Language: en-US
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 8BIT
@@ -19,78 +19,49 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Namhyung Kim <namhyung@kernel.org>
 Cc: "acme@redhat.com" <acme@redhat.com>, "peterz@infradead.org" <peterz@infradead.org>, "jolsa@kernel.org" <jolsa@kernel.org>, "mingo@kernel.org" <mingo@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-perf-users@vger.kernel.org" <linux-perf-users@vger.kernel.org>, "bp@suse.de" <bp@suse.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "Alexey.Brodkin@synopsys.com" <Alexey.Brodkin@synopsys.com>
-Message-ID: <20150110101606.pwow7aScLmGL6IzqhmIBbVEXBawmF9MBeL0XZaqn_fI@z>
+Message-ID: <20150110103054.Nt1sDSqcRggDOBJF1o5lXAboOovLdMWxP2gH9zy04iY@z>
 
-On Thursday 08 January 2015 01:23 PM, Namhyung Kim wrote:
-> Hi Vineet,
->
-> On Tue, Jan 06, 2015 at 07:22:14PM +0530, Vineet Gupta wrote:
->> When running perf on ARC (uClibc based userspace), ran into this issue
->> ------------->8----------------
->> 	[ARCLinux]$ ./perf record ls
->> 	bin             etc             perf            sys
->> 	debug           init            perf.data       tmp
->> 	[ perf record: Woken up 1 times to write data ]
->> 	[ perf record: Captured and wrote 0.001 MB perf.data (~24 samples) ]
->>
->> 	[ARCLinux]$ ./perf report
->> 	incompatible file format (rerun with -v to learn more)
->> ------------->8----------------
->>
->> The problem happens in the following call stack when zalloc is called
->> with size zero
->>
->> glibc default / uClibc with MALLOC_GLIBC_COMPAT are OK, but not if that
->> config option is not enabled.
->>
->>   cmd_report
->>      perf_session__new
->> 	perf_session__open
->> 	    perf_session__read_header
->> 		read_attr(fd, header, &f_attr)
->> 		nr_ids = f_attr.ids.size / sizeof(u64); <-- 0
->> 		perf_evsel__alloc_id(vsel, 1, nr_ids)
->> 			zalloc(ncpus * nthreads * sizeof(u64)) <-- 0
->>
->> header.c: read_attr()
->>
->> (gdb) p *f_attr
->> $17 = {
->>   attr = {
->>     type = 0,
->>     size = 96,
->>     config = 0,
->>     {
->>       sample_period = 4000,
->>       sample_freq = 4000
->>     },
->> ...
->>   ids = {
->>     offset = 104,
->>     size = 0      <------
->>   }
->> }
-> Hmm.. okay.  I think we don't need to allocate the id arrays when size
-> is 0.  So perf_event__process_attr() will have the same problem IMHO.
-> How about this?
->
->
-> diff --git a/tools/perf/util/evsel.c b/tools/perf/util/evsel.c
-> index 1e90c8557ede..1d826d63bc20 100644
-> --- a/tools/perf/util/evsel.c
-> +++ b/tools/perf/util/evsel.c
-> @@ -797,6 +797,9 @@ int perf_evsel__enable(struct perf_evsel *evsel, int ncpus, int nthreads)
->  
->  int perf_evsel__alloc_id(struct perf_evsel *evsel, int ncpus, int nthreads)
->  {
-> +	if (ncpus == 0 || nthreads == 0)
-> +		return 0;
-> +
->  	if (evsel->system_wide)
->  		nthreads = 1;
+Hi Namhyung,
 
-Fine by me as I'm not too familiar with perf tools internals.
-So I need to spin a v2 for this or would you rather create a patch with me as
-Reported-by:
+
+
+On Thursday 08 January 2015 01:28 PM, Namhyung Kim wrote:
+> On Tue, Jan 06, 2015 at 07:22:15PM +0530, Vineet Gupta wrote:
+>> > uClibc Linuxthreads.old doesnt support pthread_attr_setaffinity_np()
+>> > call
+>> > 
+>> > ----------------->8-----------------------
+>> >   CC       bench/futex-hash.o
+>> >   CC       bench/futex-wake.o
+>> > bench/futex-hash.c: In function 'bench_futex_hash':
+>> > bench/futex-hash.c:161:3: error: implicit declaration of function
+>> > 'pthread_attr_setaffinity_np' [-Werror=implicit-function-declaration]
+>> >    ret = pthread_attr_setaffinity_np(&thread_attr, sizeof(cpu_set_t),
+>> > &cpu);
+>> >    ^
+>> > bench/futex-hash.c:161:3: error: nested extern declaration of
+>> > 'pthread_attr_setaffinity_np' [-Werror=nested-externs]
+>> > ----------------->8-----------------------
+>> > 
+>> > Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
+>> > ---
+>> >  tools/perf/bench/futex.h                    | 13 +++++++++++++
+>> >  tools/perf/config/Makefile                  |  6 ++++++
+>> >  tools/perf/config/feature-checks/Makefile   |  4 ++++
+>> >  tools/perf/config/feature-checks/test-all.c |  5 +++++
+>> >  4 files changed, 28 insertions(+)
+> It seems that you fotgot to add the real test file
+> (test-pthread_attr_setaffinity_np.c?) here..
+
+Indeed, apologies for the snafu. I'll include it in v2 for the series.
+Any thoughts on rest of patches for the series.
+Thanks for the careful review so far.
 
 -Vineet
+
+>
+> Thanks,
+> Namhyung
+>
+>
+
