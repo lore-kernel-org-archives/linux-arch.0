@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from us01smtprelay-2.synopsys.com ([198.182.47.9]:60135 "EHLO
+Received: from smtprelay2.synopsys.com ([198.182.60.111]:44619 "EHLO
 	smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753611AbbAJLLe (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 10 Jan 2015 06:11:34 -0500
+	with ESMTP id S1752424AbbAJLLt (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 10 Jan 2015 06:11:49 -0500
 From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: [PATCH v2 2/5] perf tools: [uclibc] Elide strlcpy warning
-Date: Sat, 10 Jan 2015 16:40:51 +0530
-Message-ID: <1420888254-17504-3-git-send-email-vgupta@synopsys.com>
+Subject: [PATCH v2 4/5] perf tools: [uclibc] don't rely on glibc malloc working for sz 0
+Date: Sat, 10 Jan 2015 16:40:53 +0530
+Message-ID: <1420888254-17504-5-git-send-email-vgupta@synopsys.com>
 In-Reply-To: <1420888254-17504-1-git-send-email-vgupta@synopsys.com>
 References: <1420888254-17504-1-git-send-email-vgupta@synopsys.com>
 MIME-Version: 1.0
@@ -15,42 +15,74 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: acme@redhat.com, namhyung@kernel.org
 Cc: peterz@infradead.org, jolsa@kernel.org, mingo@kernel.org, linux-kernel@vger.kernel.org, linux-perf-users@vger.kernel.org, linux-arch@vger.kernel.org, Alexey.Brodkin@synopsys.com, Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Message-ID: <20150110111051.597hpW7cpmEulkOKVcKWrf3sqz537MXWMFJn-_qvHb0@z>
+Message-ID: <20150110111053.8qso1FuVaqesoRua3nVx8hlLV7j2qWv5zcbAd2t6o6s@z>
 
------------------>8------------------
-  CC       bench/sched-pipe.o
-In file included from builtin-annotate.c:13:0:
-util/cache.h:76:15: warning: redundant redeclaration of 'strlcpy'
-[-Wredundant-decls]
- extern size_t strlcpy(char *dest, const char *src, size_t size);
-               ^
-In file included from util/util.h:55:0,
-                 from builtin.h:4,
-                 from builtin-annotate.c:8:
-~/vineetg/arc/gnu/INSTALL_1412-arc-2014.12-rc1/arc-snps-linux-uclibc/sysroot/usr/include/string.h:396:15:
-note: previous declaration of 'strlcpy' was here
- extern size_t strlcpy(char *__restrict dst, const char *__restrict src,
------------------>8------------------
+When running perf on ARC (uClibc based userspace), ran into this issue
+------------->8----------------
+	[ARCLinux]$ ./perf record ls
+	bin             etc             perf            sys
+	debug           init            perf.data       tmp
+	[ perf record: Woken up 1 times to write data ]
+	[ perf record: Captured and wrote 0.001 MB perf.data (~24 samples) ]
 
+	[ARCLinux]$ ./perf report
+	incompatible file format (rerun with -v to learn more)
+------------->8----------------
+
+The problem happens in the following call stack when zalloc is called
+with size zero
+
+glibc default / uClibc with MALLOC_GLIBC_COMPAT are OK, but not if that
+config option is not enabled.
+
+  cmd_report
+     perf_session__new
+	perf_session__open
+	    perf_session__read_header
+		read_attr(fd, header, &f_attr)
+		nr_ids = f_attr.ids.size / sizeof(u64); <-- 0
+		perf_evsel__alloc_id(vsel, 1, nr_ids)
+			zalloc(ncpus * nthreads * sizeof(u64)) <-- 0
+
+header.c: read_attr()
+
+(gdb) p *f_attr
+$17 = {
+  attr = {
+    type = 0,
+    size = 96,
+    config = 0,
+    {
+      sample_period = 4000,
+      sample_freq = 4000
+    },
+...
+  ids = {
+    offset = 104,
+    size = 0      <------
+  }
+}
+
+Suggested-by: Namhyung Kim <namhyung@kernel.org>
 Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
 ---
- tools/perf/util/cache.h | 2 ++
- 1 file changed, 2 insertions(+)
+ tools/perf/util/evsel.c | 3 +++
+ 1 file changed, 3 insertions(+)
 
-diff --git a/tools/perf/util/cache.h b/tools/perf/util/cache.h
-index 5cf9e1b5989d..d04d770d90f6 100644
---- a/tools/perf/util/cache.h
-+++ b/tools/perf/util/cache.h
-@@ -71,7 +71,9 @@ extern char *perf_path(const char *fmt, ...) __attribute__((format (printf, 1, 2
- extern char *perf_pathdup(const char *fmt, ...)
- 	__attribute__((format (printf, 1, 2)));
+diff --git a/tools/perf/util/evsel.c b/tools/perf/util/evsel.c
+index 1e90c8557ede..1d826d63bc20 100644
+--- a/tools/perf/util/evsel.c
++++ b/tools/perf/util/evsel.c
+@@ -797,6 +797,9 @@ int perf_evsel__enable(struct perf_evsel *evsel, int ncpus, int nthreads)
  
-+#ifndef __UCLIBC__
- /* Matches the libc/libbsd function attribute so we declare this unconditionally: */
- extern size_t strlcpy(char *dest, const char *src, size_t size);
-+#endif
+ int perf_evsel__alloc_id(struct perf_evsel *evsel, int ncpus, int nthreads)
+ {
++	if (ncpus == 0 || nthreads == 0)
++		return 0;
++
+ 	if (evsel->system_wide)
+ 		nthreads = 1;
  
- #endif /* __PERF_CACHE_H */
 -- 
 1.9.1
 
