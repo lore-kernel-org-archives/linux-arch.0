@@ -1,160 +1,97 @@
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: [PATCH v2 5/5] perf tools: [uclibc] provide stub for pthread_attr_setaffinity_np
-Date: Sat, 10 Jan 2015 16:40:54 +0530
-Message-ID: <1420888254-17504-6-git-send-email-vgupta@synopsys.com>
-References: <1420888254-17504-1-git-send-email-vgupta@synopsys.com>
+From: Rich Felker <dalias@aerifal.cx>
+Subject: Re: [PATCHv10 man-pages 5/5] execveat.2: initial man page for
+ execveat(2)
+Date: Sat, 10 Jan 2015 08:31:20 -0500
+Message-ID: <20150110133120.GF4574@brightrain.aerifal.cx>
+References: <1416830039-21952-1-git-send-email-drysdale@google.com>
+ <1416830039-21952-6-git-send-email-drysdale@google.com>
+ <54AFF813.7050604@gmail.com>
+ <20150109161302.GQ4574@brightrain.aerifal.cx>
+ <CAHse=S88Jy5ZKM_VY5onfvxX7dTMngnxuHfuLeSuzvKvQNP19A@mail.gmail.com>
+ <54B0E282.7090203@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1420888254-17504-1-git-send-email-vgupta@synopsys.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: acme@redhat.com, namhyung@kernel.org
-Cc: peterz@infradead.org, jolsa@kernel.org, mingo@kernel.org, linux-kernel@vger.kernel.org, linux-perf-users@vger.kernel.org, linux-arch@vger.kernel.org, Alexey.Brodkin@synopsys.com, Vineet Gupta <Vineet.Gupta1@synopsys.com>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from 216-12-86-13.cv.mvl.ntelos.net ([216.12.86.13]:36444 "EHLO
+	brightrain.aerifal.cx" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752047AbbAJNcI (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 10 Jan 2015 08:32:08 -0500
+Content-Disposition: inline
+In-Reply-To: <54B0E282.7090203@gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>
+Cc: David Drysdale <drysdale@google.com>, "Eric W. Biederman" <ebiederm@xmission.com>, Andy Lutomirski <luto@amacapital.net>, Alexander Viro <viro@zeniv.linux.org.uk>, Meredydd Luff <meredydd@senatehouse.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Thomas Gleixner <tglx@linutronix.de>, Stephen Rothwell <sfr@canb.auug.org.au>, Oleg Nesterov <oleg@redhat.com>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Christoph Hellwig <hch@infradead.org>, X86 ML <x86@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, sparclinux@vger.kernel.org
 
-uClibc Linuxthreads.old doesnt support pthread_attr_setaffinity_np()
-call
+On Sat, Jan 10, 2015 at 09:27:46AM +0100, Michael Kerrisk (man-pages) wrote:
+> On 01/09/2015 06:46 PM, David Drysdale wrote:
+> > On Fri, Jan 9, 2015 at 4:13 PM, Rich Felker <dalias@aerifal.cx> wrote:
+> >> On Fri, Jan 09, 2015 at 04:47:31PM +0100, Michael Kerrisk (man-pages) wrote:
+> >>> On 11/24/2014 12:53 PM, David Drysdale wrote:
+> >>>> Signed-off-by: David Drysdale <drysdale@google.com>
+> >>>> ---
+> >>>>  man2/execveat.2 | 153 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+> >>>>  1 file changed, 153 insertions(+)
+> >>>>  create mode 100644 man2/execveat.2
+> >>>
+> >>> David,
+> >>>
+> >>> Thanks for the very nicely prepared man page. I've done
+> >>> a few very light edits, and will release the version below
+> >>> with the next man-pages release.
+> >>>
+> >>> I have one question. In the message accompanying
+> >>> commit 51f39a1f0cea1cacf8c787f652f26dfee9611874 you wrote:
+> >>>
+> >>>   The filename fed to the executed program as argv[0] (or the name of the
+> >>>   script fed to a script interpreter) will be of the form "/dev/fd/<fd>"
+> >>>   (for an empty filename) or "/dev/fd/<fd>/<filename>", effectively
+> >>>   reflecting how the executable was found.  This does however mean that
+> >>>   execution of a script in a /proc-less environment won't work; also, script
+> >>>   execution via an O_CLOEXEC file descriptor fails (as the file will not be
+> >>>   accessible after exec).
+> >>>
+> >>> How does one produce this situation where the execed program sees
+> >>> argv[0] as a /dev/fd path? (i.e., what would the execveat()
+> >>> call look like?) I tried to produce this scenario, but could not.
+> >>
+> >> I think this is wrong. argv[0] is an arbitrary string provided by the
+> >> caller and would never be derived from the fd passed.
+> > 
+> > Yeah, I think I just wrote that wrong, it's only relevant for scripts.
+> > As Rich says, for normal binaries argv[0] is just the argv[0] that
+> > was passed into the execve[at] call.  For a script, the code in
+> > fs/binfmt_script.c will remove the original argv[0] and put the
+> > interpreter name and the script filename (e.g. "/bin/sh",
+> > "/dev/fd/6/script") in as 2 arguments in its place.
+> 
+> So, on reflection, I think it's worth saying something about this, and 
+> I added the following text to the man page:
+> 
+>    NOTES
+>        When asked to execute a script file, the argv[0] that  is  passed
+>        to  the  script  interpreter is a string of the form /dev/fd/N or
+>        /dev/fd/N/P, where N is the number of the file descriptor  passed
+>        via  the  dirfd argument.  A string of the first form occurs when
+>        AT_EMPTY_PATH is employed.  A string of the  second  form  occurs
+>        when the script is specified via both dirfd and pathname; in this
+>        case, P is the value given in pathname.
 
------------------>8-----------------------
-  CC       bench/futex-hash.o
-  CC       bench/futex-wake.o
-bench/futex-hash.c: In function 'bench_futex_hash':
-bench/futex-hash.c:161:3: error: implicit declaration of function
-'pthread_attr_setaffinity_np' [-Werror=implicit-function-declaration]
-   ret = pthread_attr_setaffinity_np(&thread_attr, sizeof(cpu_set_t),
-&cpu);
-   ^
-bench/futex-hash.c:161:3: error: nested extern declaration of
-'pthread_attr_setaffinity_np' [-Werror=nested-externs]
------------------>8-----------------------
+While I'm aware that you're simply documenting, it seems unnecessary
+to me (and unnecessarily complicating of the cloexec issue) to have
+the /dev/fd/N/P form. This could always be resolved by the kernel to a
+single temp fd for the new process to use, and in fact it's probably
+preferable to always get a "temp fd" in case the fd passed to fexecve
+is NOT a throwaway one (e.g. if the original fd was stdin or
+something); the program being executed should not have to use ugly and
+error-prone heuristics to decide if it should close the exec fd.
 
-Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
----
- tools/perf/bench/futex.h                                   | 13 +++++++++++++
- tools/perf/config/Makefile                                 |  6 ++++++
- tools/perf/config/feature-checks/Makefile                  |  4 ++++
- tools/perf/config/feature-checks/test-all.c                |  5 +++++
- .../feature-checks/test-pthread-attr-setaffinity-np.c      | 14 ++++++++++++++
- 5 files changed, 42 insertions(+)
- create mode 100644 tools/perf/config/feature-checks/test-pthread-attr-setaffinity-np.c
+On the other hand, this resolution could be done by userspace (open
+with O_PATH|O_CLOEXEC prior to making the fexecveat syscall, and
+always passing AT_EMPTY_PATH to the kernel) if desirable, so maybe it
+doesn't make sense to have the kernel do it. In this sense the whole
+"at" part of fexecveat becomes vestigial, though.
 
-diff --git a/tools/perf/bench/futex.h b/tools/perf/bench/futex.h
-index 71f2844cf97f..7ed22ff1e1ac 100644
---- a/tools/perf/bench/futex.h
-+++ b/tools/perf/bench/futex.h
-@@ -68,4 +68,17 @@ futex_cmp_requeue(u_int32_t *uaddr, u_int32_t val, u_int32_t *uaddr2, int nr_wak
- 		 val, opflags);
- }
- 
-+#ifndef HAVE_PTHREAD_ATTR_SETAFFINITY_NP
-+#include <pthread.h>
-+static inline int pthread_attr_setaffinity_np(pthread_attr_t *attr,
-+					      size_t cpusetsize,
-+					      cpu_set_t *cpuset)
-+{
-+	attr = attr;
-+	cpusetsize = cpusetsize;
-+	cpuset = cpuset;
-+	return 0;
-+}
-+#endif
-+
- #endif /* _FUTEX_H */
-diff --git a/tools/perf/config/Makefile b/tools/perf/config/Makefile
-index 5d4b039fe1ed..6b59662136fa 100644
---- a/tools/perf/config/Makefile
-+++ b/tools/perf/config/Makefile
-@@ -198,6 +198,7 @@ CORE_FEATURE_TESTS =			\
- 	libpython-version		\
- 	libslang			\
- 	libunwind			\
-+	pthread-attr-setaffinity-np	\
- 	stackprotector-all		\
- 	timerfd				\
- 	libdw-dwarf-unwind		\
-@@ -226,6 +227,7 @@ VF_FEATURE_TESTS =			\
- 	libelf-getphdrnum		\
- 	libelf-mmap			\
- 	libpython-version		\
-+	pthread-attr-setaffinity-np	\
- 	stackprotector-all		\
- 	timerfd				\
- 	libunwind-debug-frame		\
-@@ -301,6 +303,10 @@ ifeq ($(feature-sync-compare-and-swap), 1)
-   CFLAGS += -DHAVE_SYNC_COMPARE_AND_SWAP_SUPPORT
- endif
- 
-+ifeq ($(feature-pthread-attr-setaffinity-np), 1)
-+  CFLAGS += -DHAVE_PTHREAD_ATTR_SETAFFINITY_NP
-+endif
-+
- ifndef NO_BIONIC
-   $(call feature_check,bionic)
-   ifeq ($(feature-bionic), 1)
-diff --git a/tools/perf/config/feature-checks/Makefile b/tools/perf/config/feature-checks/Makefile
-index 53f19b5dbc37..e9b99bb29348 100644
---- a/tools/perf/config/feature-checks/Makefile
-+++ b/tools/perf/config/feature-checks/Makefile
-@@ -25,6 +25,7 @@ FILES=					\
- 	test-libslang.bin		\
- 	test-libunwind.bin		\
- 	test-libunwind-debug-frame.bin	\
-+	test-pthread-attr-setaffinity-np.bin	\
- 	test-stackprotector-all.bin	\
- 	test-timerfd.bin		\
- 	test-libdw-dwarf-unwind.bin	\
-@@ -47,6 +48,9 @@ test-all.bin:
- test-hello.bin:
- 	$(BUILD)
- 
-+test-pthread-attr-setaffinity-np.bin:
-+	$(BUILD) -Werror
-+
- test-stackprotector-all.bin:
- 	$(BUILD) -Werror -fstack-protector-all
- 
-diff --git a/tools/perf/config/feature-checks/test-all.c b/tools/perf/config/feature-checks/test-all.c
-index 652e0098eba6..6d4d09323922 100644
---- a/tools/perf/config/feature-checks/test-all.c
-+++ b/tools/perf/config/feature-checks/test-all.c
-@@ -97,6 +97,10 @@
- # include "test-zlib.c"
- #undef main
- 
-+#define main main_test_pthread_attr_setaffinity_np
-+# include "test-pthread_attr_setaffinity_np.c"
-+#undef main
-+
- int main(int argc, char *argv[])
- {
- 	main_test_libpython();
-@@ -121,6 +125,7 @@ int main(int argc, char *argv[])
- 	main_test_libdw_dwarf_unwind();
- 	main_test_sync_compare_and_swap(argc, argv);
- 	main_test_zlib();
-+	main_test_pthread_attr_setaffinity_np();
- 
- 	return 0;
- }
-diff --git a/tools/perf/config/feature-checks/test-pthread-attr-setaffinity-np.c b/tools/perf/config/feature-checks/test-pthread-attr-setaffinity-np.c
-new file mode 100644
-index 000000000000..0a0d3ecb4e8a
---- /dev/null
-+++ b/tools/perf/config/feature-checks/test-pthread-attr-setaffinity-np.c
-@@ -0,0 +1,14 @@
-+#include <stdint.h>
-+#include <pthread.h>
-+
-+int main(void)
-+{
-+	int ret = 0;
-+	pthread_attr_t thread_attr;
-+
-+	pthread_attr_init(&thread_attr);
-+	/* don't care abt exact args, just the API itself in libpthread */
-+	ret = pthread_attr_setaffinity_np(&thread_attr, 0, NULL);
-+
-+	return ret;
-+}
--- 
-1.9.1
+Any thoughts?
+
+Rich
