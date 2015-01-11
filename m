@@ -1,53 +1,32 @@
-From: "Michael S. Tsirkin" <mst@redhat.com>
-Subject: Re: [PATCH v2 00/40] uaccess: fix sparse warning on get/put_user for
- bitwise types
-Date: Sun, 11 Jan 2015 13:55:04 +0200
-Message-ID: <20150111115504.GA13570@redhat.com>
-References: <1420558883-10131-1-git-send-email-mst@redhat.com>
- <4461163.Sc5FsMDTBa@wuerfel>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:59965 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750807AbbAKLzM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 11 Jan 2015 06:55:12 -0500
-Content-Disposition: inline
-In-Reply-To: <4461163.Sc5FsMDTBa@wuerfel>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+From: Dmitry Voytik <voytikd@gmail.com>
+Subject: [PATCH] bug: add comments for BUG_ON() and BUG()
+Date: Sun, 11 Jan 2015 23:06:18 +0300
+Message-ID: <1421006778-11148-1-git-send-email-voytikd@gmail.com>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Dmitry Voytik <voytikd@gmail.com>
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, Jan 06, 2015 at 08:08:57PM +0100, Arnd Bergmann wrote:
-> On Tuesday 06 January 2015 17:43:28 Michael S. Tsirkin wrote:
-> > 
-> > I tested this on x86 only. Since it's just adding __force, should be
-> > trivially safe everywhere?
-> > 
-> > 
-> > Arnd, did you merge v1 already? If yes, can you please replace with
-> > this version?
-> > 
-> 
-> I haven't merged it yet. I see that more Acks and some comments are
-> coming in. Once those are done, could you send a pull request? It
-> might be useful to have a branch that can be shared with architecture
-> trees if necessary to avoid merge conflicts.
-> 
-> 	Arnd
+Signed-off-by: Dmitry Voytik <voytikd@gmail.com>
+---
+ include/asm-generic/bug.h | 4 ++++
+ 1 file changed, 4 insertions(+)
 
-OK, I got a bunch of acks, mostly it seems to have calmed down.
-Heiko Carstens (s390 maintainer) says he won't apply whitespace changes:
-http://mid.gmane.org/20150107083339.GB4365@osiris
-so I dropped s390 patches.
-
-The rest is tagged:
-  git://git.kernel.org/pub/scm/linux/kernel/git/mst/vhost.git tags/uaccess_for_upstream
-and pushed out to linux-next.
-
-I'll give it a couple of days there, then send a pull request - Arnd, you
-meant I should send it to you, right?
-
+diff --git a/include/asm-generic/bug.h b/include/asm-generic/bug.h
+index 630dd23..b0aa488 100644
+--- a/include/asm-generic/bug.h
++++ b/include/asm-generic/bug.h
+@@ -43,6 +43,10 @@ struct bug_entry {
+  * If you're tempted to BUG(), think again:  is completely giving up
+  * really the *only* solution?  There are usually better options, where
+  * users don't need to reboot ASAP and can mostly shut down cleanly.
++ *
++ * Use BUG_ON(unexpected_fatal_condition) instead of just:
++ * if (unexpected_fatal_condition)
++ *	BUG();
+  */
+ #ifndef HAVE_ARCH_BUG
+ #define BUG() do { \
 -- 
-MST
+1.9.1
