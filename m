@@ -1,44 +1,38 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.9]:37702 "EHLO
-	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751465AbbAKLDJ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 11 Jan 2015 06:03:09 -0500
-Date: Sun, 11 Jan 2015 03:02:56 -0800
-From: Christoph Hellwig <hch@infradead.org>
-Subject: Re: [PATCHv10 man-pages 5/5] execveat.2: initial man page for
- execveat(2)
-Message-ID: <20150111110256.GA18765@infradead.org>
-References: <20150109225743.GP22149@ZenIV.linux.org.uk>
- <20150109231248.GZ4574@brightrain.aerifal.cx>
- <20150109233644.GR22149@ZenIV.linux.org.uk>
- <20150110030300.GU22149@ZenIV.linux.org.uk>
- <20150110034144.GC4574@brightrain.aerifal.cx>
- <20150110041457.GV22149@ZenIV.linux.org.uk>
- <20150110055713.GE4574@brightrain.aerifal.cx>
- <878uhaqnjo.fsf@x220.int.ebiederm.org>
- <20150111011559.GG4574@brightrain.aerifal.cx>
- <87oaq6oypl.fsf@x220.int.ebiederm.org>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <87oaq6oypl.fsf@x220.int.ebiederm.org>
+Received: from mail-lb0-f180.google.com ([209.85.217.180]:43484 "EHLO
+	mail-lb0-f180.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751655AbbAKUGR (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 11 Jan 2015 15:06:17 -0500
+From: Dmitry Voytik <voytikd@gmail.com>
+Subject: [PATCH] bug: add comments for BUG_ON() and BUG()
+Date: Sun, 11 Jan 2015 23:06:18 +0300
+Message-ID: <1421006778-11148-1-git-send-email-voytikd@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Eric W. Biederman" <ebiederm@xmission.com>
-Cc: Rich Felker <dalias@aerifal.cx>, Al Viro <viro@ZenIV.linux.org.uk>, David Drysdale <drysdale@google.com>, "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>, Andy Lutomirski <luto@amacapital.net>, Meredydd Luff <meredydd@senatehouse.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Thomas Gleixner <tglx@linutronix.de>, Stephen Rothwell <sfr@canb.auug.org.au>, Oleg Nesterov <oleg@redhat.com>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Christoph Hellwig <hch@infradead.org>, X86 ML <x86@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, sparclinux@vger.kernel.org
-Message-ID: <20150111110256.BVNzXKIiXAbsSkfVcsgtzSwuh79Qt2tXV2Dl_SCaLjM@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Dmitry Voytik <voytikd@gmail.com>
+Message-ID: <20150111200618.NpPf5I3SSLx0Pxl6inWt5c_jQdZGJwhQYWj-YW8ZQ2k@z>
 
-On Sat, Jan 10, 2015 at 08:09:10PM -0600, Eric W. Biederman wrote:
-> In implementation /proc/self/exe is a named rather than a numbered file
-> descriptor.  Essentially when loading an elf executable the file
-> descriptor is duped to the name /proc/self/exe.  The implementation
-> otherwise is the same as /proc/self/fd/N.
-> 
-> The downside of course is that I expect if we were actually to change
-> /proc/self/exe from to point at the script instead of the shell some
-> piece of software somewhere would come melting down.  I am totally not
-> ready to consider that kind of mine field today.
+Signed-off-by: Dmitry Voytik <voytikd@gmail.com>
+---
+ include/asm-generic/bug.h | 4 ++++
+ 1 file changed, 4 insertions(+)
 
-We could add a /proc/self/script that points to the script, and either
-is not available or still points to the executable if we are not running
-a script.
+diff --git a/include/asm-generic/bug.h b/include/asm-generic/bug.h
+index 630dd23..b0aa488 100644
+--- a/include/asm-generic/bug.h
++++ b/include/asm-generic/bug.h
+@@ -43,6 +43,10 @@ struct bug_entry {
+  * If you're tempted to BUG(), think again:  is completely giving up
+  * really the *only* solution?  There are usually better options, where
+  * users don't need to reboot ASAP and can mostly shut down cleanly.
++ *
++ * Use BUG_ON(unexpected_fatal_condition) instead of just:
++ * if (unexpected_fatal_condition)
++ *	BUG();
+  */
+ #ifndef HAVE_ARCH_BUG
+ #define BUG() do { \
+-- 
+1.9.1
+
