@@ -1,39 +1,53 @@
-From: Christoph Hellwig <hch-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>
-Subject: Re: [PATCHv10 man-pages 5/5] execveat.2: initial man page for
- execveat(2)
-Date: Sun, 11 Jan 2015 03:02:56 -0800
-Message-ID: <20150111110256.GA18765@infradead.org>
-References: <20150109225743.GP22149@ZenIV.linux.org.uk>
- <20150109231248.GZ4574@brightrain.aerifal.cx>
- <20150109233644.GR22149@ZenIV.linux.org.uk>
- <20150110030300.GU22149@ZenIV.linux.org.uk>
- <20150110034144.GC4574@brightrain.aerifal.cx>
- <20150110041457.GV22149@ZenIV.linux.org.uk>
- <20150110055713.GE4574@brightrain.aerifal.cx>
- <878uhaqnjo.fsf@x220.int.ebiederm.org>
- <20150111011559.GG4574@brightrain.aerifal.cx>
- <87oaq6oypl.fsf@x220.int.ebiederm.org>
+From: "Michael S. Tsirkin" <mst@redhat.com>
+Subject: Re: [PATCH v2 00/40] uaccess: fix sparse warning on get/put_user for
+ bitwise types
+Date: Sun, 11 Jan 2015 13:55:04 +0200
+Message-ID: <20150111115504.GA13570@redhat.com>
+References: <1420558883-10131-1-git-send-email-mst@redhat.com>
+ <4461163.Sc5FsMDTBa@wuerfel>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mx1.redhat.com ([209.132.183.28]:59965 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1750807AbbAKLzM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 11 Jan 2015 06:55:12 -0500
 Content-Disposition: inline
-In-Reply-To: <87oaq6oypl.fsf-JOvCrm2gF+uungPnsOpG7nhyD016LWXt@public.gmane.org>
-Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: "Eric W. Biederman" <ebiederm-aS9lmoZGLiVWk0Htik3J/w@public.gmane.org>
-Cc: Rich Felker <dalias-/miJ2pyFWUyWIDz0JBNUog@public.gmane.org>, Al Viro <viro-3bDd1+5oDREiFSDQTTA3OLVCufUGDwFn@public.gmane.org>, David Drysdale <drysdale-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, "Michael Kerrisk (man-pages)" <mtk.manpages-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Andy Lutomirski <luto-kltTT9wpgjJwATOyAt5JVQ@public.gmane.org>, Meredydd Luff <meredydd-zPN50pYk8eUaUu29zAJCuw@public.gmane.org>, "linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, David Miller <davem-fT/PcQaiUtIeIZ0/mPfg9Q@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, Stephen Rothwell <sfr-3FnU+UHB4dNDw9hX6IcOSA@public.gmane.org>, Oleg Nesterov <oleg-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Ingo Molnar <mingo-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>, Kees Cook <keescook-F7+t8E8rja9g9hUCZPvPmw@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Christoph Hellwig <hch-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>, X86 ML <x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, linux-arch <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Linux API <linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, sparclinux-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <4461163.Sc5FsMDTBa@wuerfel>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Sat, Jan 10, 2015 at 08:09:10PM -0600, Eric W. Biederman wrote:
-> In implementation /proc/self/exe is a named rather than a numbered file
-> descriptor.  Essentially when loading an elf executable the file
-> descriptor is duped to the name /proc/self/exe.  The implementation
-> otherwise is the same as /proc/self/fd/N.
+On Tue, Jan 06, 2015 at 08:08:57PM +0100, Arnd Bergmann wrote:
+> On Tuesday 06 January 2015 17:43:28 Michael S. Tsirkin wrote:
+> > 
+> > I tested this on x86 only. Since it's just adding __force, should be
+> > trivially safe everywhere?
+> > 
+> > 
+> > Arnd, did you merge v1 already? If yes, can you please replace with
+> > this version?
+> > 
 > 
-> The downside of course is that I expect if we were actually to change
-> /proc/self/exe from to point at the script instead of the shell some
-> piece of software somewhere would come melting down.  I am totally not
-> ready to consider that kind of mine field today.
+> I haven't merged it yet. I see that more Acks and some comments are
+> coming in. Once those are done, could you send a pull request? It
+> might be useful to have a branch that can be shared with architecture
+> trees if necessary to avoid merge conflicts.
+> 
+> 	Arnd
 
-We could add a /proc/self/script that points to the script, and either
-is not available or still points to the executable if we are not running
-a script.
+OK, I got a bunch of acks, mostly it seems to have calmed down.
+Heiko Carstens (s390 maintainer) says he won't apply whitespace changes:
+http://mid.gmane.org/20150107083339.GB4365@osiris
+so I dropped s390 patches.
+
+The rest is tagged:
+  git://git.kernel.org/pub/scm/linux/kernel/git/mst/vhost.git tags/uaccess_for_upstream
+and pushed out to linux-next.
+
+I'll give it a couple of days there, then send a pull request - Arnd, you
+meant I should send it to you, right?
+
+-- 
+MST
