@@ -1,90 +1,59 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtprelay.synopsys.com ([198.182.60.111]:44612 "EHLO
-	smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752079AbbAJLL0 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 10 Jan 2015 06:11:26 -0500
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: [PATCH v2 1/5] perf tools: [uclibc] fix statfs.f_type data type mismatch build error
-Date: Sat, 10 Jan 2015 16:40:50 +0530
-Message-ID: <1420888254-17504-2-git-send-email-vgupta@synopsys.com>
-In-Reply-To: <1420888254-17504-1-git-send-email-vgupta@synopsys.com>
-References: <1420888254-17504-1-git-send-email-vgupta@synopsys.com>
+Received: from 216-12-86-13.cv.mvl.ntelos.net ([216.12.86.13]:36462 "EHLO
+	brightrain.aerifal.cx" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750866AbbAKBRQ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 10 Jan 2015 20:17:16 -0500
+Date: Sat, 10 Jan 2015 20:15:59 -0500
+From: Rich Felker <dalias@aerifal.cx>
+Subject: Re: [PATCHv10 man-pages 5/5] execveat.2: initial man page for
+ execveat(2)
+Message-ID: <20150111011559.GG4574@brightrain.aerifal.cx>
+References: <20150109223300.GO22149@ZenIV.linux.org.uk>
+ <20150109224252.GY4574@brightrain.aerifal.cx>
+ <20150109225743.GP22149@ZenIV.linux.org.uk>
+ <20150109231248.GZ4574@brightrain.aerifal.cx>
+ <20150109233644.GR22149@ZenIV.linux.org.uk>
+ <20150110030300.GU22149@ZenIV.linux.org.uk>
+ <20150110034144.GC4574@brightrain.aerifal.cx>
+ <20150110041457.GV22149@ZenIV.linux.org.uk>
+ <20150110055713.GE4574@brightrain.aerifal.cx>
+ <878uhaqnjo.fsf@x220.int.ebiederm.org>
 MIME-Version: 1.0
-Content-Type: text/plain
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <878uhaqnjo.fsf@x220.int.ebiederm.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: acme@redhat.com, namhyung@kernel.org
-Cc: peterz@infradead.org, jolsa@kernel.org, mingo@kernel.org, linux-kernel@vger.kernel.org, linux-perf-users@vger.kernel.org, linux-arch@vger.kernel.org, Alexey.Brodkin@synopsys.com, Borislav Petkov <bp@suse.de>, Cody P Schafer <dev@codyps.com>, Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Message-ID: <20150110111050.jaPakwelC9287hQ6Cstxw6SKsjH0LsDKdH7uve4qThI@z>
+To: "Eric W. Biederman" <ebiederm@xmission.com>
+Cc: Al Viro <viro@ZenIV.linux.org.uk>, David Drysdale <drysdale@google.com>, "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>, Andy Lutomirski <luto@amacapital.net>, Meredydd Luff <meredydd@senatehouse.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Thomas Gleixner <tglx@linutronix.de>, Stephen Rothwell <sfr@canb.auug.org.au>, Oleg Nesterov <oleg@redhat.com>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Christoph Hellwig <hch@infradead.org>, X86 ML <x86@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, sparclinux@vger.kernel.org
+Message-ID: <20150111011559.URgnMxzSzTBsWROj72WS67hpHmxj1At90YNEYx_Ohzw@z>
 
-From: Alexey Brodkin <abrodkin@synopsys.com>
+On Sat, Jan 10, 2015 at 04:27:23PM -0600, Eric W. Biederman wrote:
+> Rich Felker <dalias@aerifal.cx> writes:
+> 
+> > On Sat, Jan 10, 2015 at 04:14:57AM +0000, Al Viro wrote:
+> 
+> >> Except that if your interpreter does stat(2) (or access(2), or getxattr(2),
+> >> etc.) before bothering with open(2), you'll get screwed.
+> >
+> > Yes, but I think that would be very bad interpreter design.
+> > stat/getxattr/access/whatever followed by open is always a TOCTOU
+> > race. The correct sequence of actions is always open followed by
+> > fstat/fgetxattr/...
+> 
+> Sigh.  I think everyone who has looked at this has been blind.
+> 
+> If userspace is reasonable all we have to do is fix /proc/self/exe
+> for shell scripts to point at the actual script,
+> and then pass /proc/self/exe on the shell scripts command line.
+> 
+> At a practical level we have to worry about backwards compability and
+> chroot jails.  But the existence of a clean implementation with
+> /proc/self/exe serves a proof of concept that it would not be too
+> difficult.  When someone cares enough to implement it.
 
-ARC Linux uses the no legacy syscalls abi and corresponding uClibc headers
-statfs defines f_type to be U32 which causes perf build breakage
+Is /proc/self/exe a "magic symlink" that's bound to the inode, or just
+a regular symlink? In the latter case it defeats the whole purpose of
+using O_EXEC fds and fexecve rather than pathnames.
 
-http://git.uclibc.org/uClibc/tree/libc/sysdeps/linux/common-generic/bits/statfs.h
-
------------>8---------------
-  CC       fs/fs.o
-fs/fs.c: In function 'fs__valid_mount':
-fs/fs.c:82:24: error: comparison between signed and unsigned integer
-expressions [-Werror=sign-compare]
-  else if (st_fs.f_type != magic)
-                        ^
-cc1: all warnings being treated as errors
------------>8---------------
-
-Cc: Borislav Petkov <bp@suse.de>
-Cc: Jiri Olsa <jolsa@kernel.org>
-Cc: Cody P Schafer <dev@codyps.com>
-Cc: Arnaldo Carvalho de Melo <acme@redhat.com>
-Cc: linux-perf-users@vger.kernel.org
-Cc: linux-kernel@vger.kernel.org
-Signed-off-by: Alexey Brodkin <abrodkin@synopsys.com>
-
----
-v3: Changes since v2 [2]
- * Made Changelog a bit more concise, no code changes [vgupta]
-
-v2: Changes since v1 [1]
- * Added type cast to DEBUGFS_MAGIC in "debugfs.c" [Arnaldo]
- * Added verbose explanation of root cause
-
-[2] https://lkml.org/lkml/2014/9/16/296
-[1] https://lkml.org/lkml/2014/8/13/529
-
-Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
----
- tools/lib/api/fs/debugfs.c | 2 +-
- tools/lib/api/fs/fs.c      | 2 +-
- 2 files changed, 2 insertions(+), 2 deletions(-)
-
-diff --git a/tools/lib/api/fs/debugfs.c b/tools/lib/api/fs/debugfs.c
-index a74fba6d7743..93aa4cd2416f 100644
---- a/tools/lib/api/fs/debugfs.c
-+++ b/tools/lib/api/fs/debugfs.c
-@@ -67,7 +67,7 @@ int debugfs_valid_mountpoint(const char *debugfs)
- 
- 	if (statfs(debugfs, &st_fs) < 0)
- 		return -ENOENT;
--	else if (st_fs.f_type != (long) DEBUGFS_MAGIC)
-+	else if ((long) st_fs.f_type != (long) DEBUGFS_MAGIC)
- 		return -ENOENT;
- 
- 	return 0;
-diff --git a/tools/lib/api/fs/fs.c b/tools/lib/api/fs/fs.c
-index 65d9be3f9887..15e64921ea84 100644
---- a/tools/lib/api/fs/fs.c
-+++ b/tools/lib/api/fs/fs.c
-@@ -79,7 +79,7 @@ static int fs__valid_mount(const char *fs, long magic)
- 
- 	if (statfs(fs, &st_fs) < 0)
- 		return -ENOENT;
--	else if (st_fs.f_type != magic)
-+	else if ((long) st_fs.f_type != magic)
- 		return -ENOENT;
- 
- 	return 0;
--- 
-1.9.1
-
+Rich
