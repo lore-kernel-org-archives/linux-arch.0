@@ -1,99 +1,73 @@
 From: Jiri Olsa <jolsa@redhat.com>
-Subject: Re: [PATCH v2 1/5] perf tools: [uclibc] fix statfs.f_type data type
- mismatch build error
-Date: Mon, 12 Jan 2015 12:05:22 +0100
-Message-ID: <20150112110522.GC26229@krava.redhat.com>
+Subject: Re: [PATCH v2 3/5] perf tools: [uclibc] Avoid build splat for
+ syscall numbers
+Date: Mon, 12 Jan 2015 12:09:07 +0100
+Message-ID: <20150112110907.GD26229@krava.redhat.com>
 References: <1420888254-17504-1-git-send-email-vgupta@synopsys.com>
- <1420888254-17504-2-git-send-email-vgupta@synopsys.com>
+ <1420888254-17504-4-git-send-email-vgupta@synopsys.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:55988 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:49443 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752924AbbALLF4 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 12 Jan 2015 06:05:56 -0500
+	id S1752217AbbALLJg (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 12 Jan 2015 06:09:36 -0500
 Content-Disposition: inline
-In-Reply-To: <1420888254-17504-2-git-send-email-vgupta@synopsys.com>
+In-Reply-To: <1420888254-17504-4-git-send-email-vgupta@synopsys.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Cc: acme@redhat.com, namhyung@kernel.org, peterz@infradead.org, jolsa@kernel.org, mingo@kernel.org, linux-kernel@vger.kernel.org, linux-perf-users@vger.kernel.org, linux-arch@vger.kernel.org, Alexey.Brodkin@synopsys.com, Borislav Petkov <bp@suse.de>, Cody P Schafer <dev@codyps.com>
+Cc: acme@redhat.com, namhyung@kernel.org, peterz@infradead.org, jolsa@kernel.org, mingo@kernel.org, linux-kernel@vger.kernel.org, linux-perf-users@vger.kernel.org, linux-arch@vger.kernel.org, Alexey.Brodkin@synopsys.com
 
-On Sat, Jan 10, 2015 at 04:40:50PM +0530, Vineet Gupta wrote:
-> From: Alexey Brodkin <abrodkin@synopsys.com>
+On Sat, Jan 10, 2015 at 04:40:52PM +0530, Vineet Gupta wrote:
+> This is due to duplicated unistd inclusion (via uClibc headers + kernel headers)
+> Also seen on ARM uClibc based tools
 > 
-> ARC Linux uses the no legacy syscalls abi and corresponding uClibc headers
-> statfs defines f_type to be U32 which causes perf build breakage
+> ------- ARC build ---------->8-------------
 > 
-> http://git.uclibc.org/uClibc/tree/libc/sysdeps/linux/common-generic/bits/statfs.h
+>   CC       util/evlist.o
+> In file included from
+> ~/arc/k.org/arch/arc/include/uapi/asm/unistd.h:25:0,
+>                  from util/../perf-sys.h:10,
+>                  from util/../perf.h:15,
+>                  from util/event.h:7,
+>                  from util/event.c:3:
+> ~/arc/k.org/include/uapi/asm-generic/unistd.h:906:0:
+> warning: "__NR_fcntl64" redefined [enabled by default]
+>  #define __NR_fcntl64 __NR3264_fcntl
+>  ^
+> In file included from
+> ~/arc/gnu/INSTALL_1412-arc-2014.12-rc1/arc-snps-linux-uclibc/sysroot/usr/include/sys/syscall.h:24:0,
+>                  from util/../perf-sys.h:6,
+> ----------------->8-------------------
 > 
-> ----------->8---------------
->   CC       fs/fs.o
-> fs/fs.c: In function 'fs__valid_mount':
-> fs/fs.c:82:24: error: comparison between signed and unsigned integer
-> expressions [-Werror=sign-compare]
->   else if (st_fs.f_type != magic)
->                         ^
-> cc1: all warnings being treated as errors
-> ----------->8---------------
+> ------- ARM build ---------->8-------------
 > 
-> Cc: Borislav Petkov <bp@suse.de>
-> Cc: Jiri Olsa <jolsa@kernel.org>
-> Cc: Cody P Schafer <dev@codyps.com>
-> Cc: Arnaldo Carvalho de Melo <acme@redhat.com>
-> Cc: linux-perf-users@vger.kernel.org
-> Cc: linux-kernel@vger.kernel.org
-> Signed-off-by: Alexey Brodkin <abrodkin@synopsys.com>
+>   CC FPIC  plugin_scsi.o
+> In file included from util/../perf-sys.h:9:0,
+>                  from util/../perf.h:15,
+>                  from util/cache.h:7,
+>                  from perf.c:12:
+> ~/arc/k.org/arch/arm/include/uapi/asm/unistd.h:28:0:
+> warning: "__NR_restart_syscall" redefined [enabled by default]
+> In file included from
+> ~/buildroot/host/usr/arm-buildroot-linux-uclibcgnueabi/sysroot/usr/include/sys/syscall.h:25:0,
+>                  from util/../perf-sys.h:6,
+>                  from util/../perf.h:15,
+>                  from util/cache.h:7,
+>                  from perf.c:12:
+> ~/buildroot/host/usr/arm-buildroot-linux-uclibcgnueabi/sysroot/usr/include/bits/sysnum.h:17:0:
+> note: this is the location of the previous definition
+> ----------------->8-------------------
 
-Acked-by: Jiri Olsa <jolsa@kernel.org>
+Could you please point out what's the right logic for including those headers?
 
-thanks,
+I've always thought that just adding:
+
+  #include <linux/unistd.h>
+
+should be safe no matter what.. feels like bug in one of those
+header files? (uClibc headers & kernel headers)
+
+thanks for info,
 jirka
-
-> 
-> ---
-> v3: Changes since v2 [2]
->  * Made Changelog a bit more concise, no code changes [vgupta]
-> 
-> v2: Changes since v1 [1]
->  * Added type cast to DEBUGFS_MAGIC in "debugfs.c" [Arnaldo]
->  * Added verbose explanation of root cause
-> 
-> [2] https://lkml.org/lkml/2014/9/16/296
-> [1] https://lkml.org/lkml/2014/8/13/529
-> 
-> Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
-> ---
->  tools/lib/api/fs/debugfs.c | 2 +-
->  tools/lib/api/fs/fs.c      | 2 +-
->  2 files changed, 2 insertions(+), 2 deletions(-)
-> 
-> diff --git a/tools/lib/api/fs/debugfs.c b/tools/lib/api/fs/debugfs.c
-> index a74fba6d7743..93aa4cd2416f 100644
-> --- a/tools/lib/api/fs/debugfs.c
-> +++ b/tools/lib/api/fs/debugfs.c
-> @@ -67,7 +67,7 @@ int debugfs_valid_mountpoint(const char *debugfs)
->  
->  	if (statfs(debugfs, &st_fs) < 0)
->  		return -ENOENT;
-> -	else if (st_fs.f_type != (long) DEBUGFS_MAGIC)
-> +	else if ((long) st_fs.f_type != (long) DEBUGFS_MAGIC)
->  		return -ENOENT;
->  
->  	return 0;
-> diff --git a/tools/lib/api/fs/fs.c b/tools/lib/api/fs/fs.c
-> index 65d9be3f9887..15e64921ea84 100644
-> --- a/tools/lib/api/fs/fs.c
-> +++ b/tools/lib/api/fs/fs.c
-> @@ -79,7 +79,7 @@ static int fs__valid_mount(const char *fs, long magic)
->  
->  	if (statfs(fs, &st_fs) < 0)
->  		return -ENOENT;
-> -	else if (st_fs.f_type != magic)
-> +	else if ((long) st_fs.f_type != magic)
->  		return -ENOENT;
->  
->  	return 0;
-> -- 
-> 1.9.1
-> 
