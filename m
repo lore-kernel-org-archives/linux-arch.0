@@ -1,100 +1,60 @@
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: Re: [PATCH v2 3/5] perf tools: [uclibc] Avoid build splat for
- syscall numbers
-Date: Mon, 12 Jan 2015 12:00:02 +0000
-Message-ID: <C2D7FE5348E1B147BCA15975FBA2307565BCBA99@IN01WEMBXA.internal.synopsys.com>
-References: <1420888254-17504-1-git-send-email-vgupta@synopsys.com>
- <1420888254-17504-4-git-send-email-vgupta@synopsys.com>
- <20150112110907.GD26229@krava.redhat.com>
+From: David Drysdale <drysdale@google.com>
+Subject: Re: [PATCHv10 man-pages 5/5] execveat.2: initial man page for execveat(2)
+Date: Mon, 12 Jan 2015 14:18:18 +0000
+Message-ID: <CAHse=S9qP19WrNRefOzJ1yKiT9qWof67-y5wHBcxAfR-r4HzmQ@mail.gmail.com>
+References: <1416830039-21952-1-git-send-email-drysdale@google.com>
+ <1416830039-21952-6-git-send-email-drysdale@google.com> <54AFF813.7050604@gmail.com>
+ <20150109161302.GQ4574@brightrain.aerifal.cx> <CAHse=S88Jy5ZKM_VY5onfvxX7dTMngnxuHfuLeSuzvKvQNP19A@mail.gmail.com>
+ <20150109204815.GR4574@brightrain.aerifal.cx> <20150109205626.GK22149@ZenIV.linux.org.uk>
+ <20150109205926.GT4574@brightrain.aerifal.cx> <20150109210941.GL22149@ZenIV.linux.org.uk>
+ <20150109212852.GU4574@brightrain.aerifal.cx> <20150109215042.GM22149@ZenIV.linux.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 8BIT
+Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtprelay4.synopsys.com ([198.182.47.9]:48660 "EHLO
-	smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750997AbbALMAI convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 12 Jan 2015 07:00:08 -0500
-Content-Language: en-US
+Received: from mail-qc0-f181.google.com ([209.85.216.181]:34258 "EHLO
+	mail-qc0-f181.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751879AbbALOSj (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 12 Jan 2015 09:18:39 -0500
+Received: by mail-qc0-f181.google.com with SMTP id m20so18107254qcx.12
+        for <linux-arch@vger.kernel.org>; Mon, 12 Jan 2015 06:18:39 -0800 (PST)
+In-Reply-To: <20150109215042.GM22149@ZenIV.linux.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jiri Olsa <jolsa@redhat.com>
-Cc: "acme@redhat.com" <acme@redhat.com>, "namhyung@kernel.org" <namhyung@kernel.org>, "peterz@infradead.org" <peterz@infradead.org>, "jolsa@kernel.org" <jolsa@kernel.org>, "mingo@kernel.org" <mingo@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-perf-users@vger.kernel.org" <linux-perf-users@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "Alexey.Brodkin@synopsys.com" <Alexey.Brodkin@synopsys.com>
+To: Al Viro <viro@zeniv.linux.org.uk>
+Cc: Rich Felker <dalias@aerifal.cx>, "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>, "Eric W. Biederman" <ebiederm@xmission.com>, Andy Lutomirski <luto@amacapital.net>, Meredydd Luff <meredydd@senatehouse.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Thomas Gleixner <tglx@linutronix.de>, Stephen Rothwell <sfr@canb.auug.org.au>, Oleg Nesterov <oleg@redhat.com>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Christoph Hellwig <hch@infradead.org>, X86 ML <x86@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, sparclinux@vger.kernel.org
 
-Hi Jiri,
-
-On Monday 12 January 2015 04:39 PM, Jiri Olsa wrote:
-> On Sat, Jan 10, 2015 at 04:40:52PM +0530, Vineet Gupta wrote:
->> This is due to duplicated unistd inclusion (via uClibc headers + kernel headers)
->> Also seen on ARM uClibc based tools
->>
->> ------- ARC build ---------->8-------------
->>
->>   CC       util/evlist.o
->> In file included from
->> ~/arc/k.org/arch/arc/include/uapi/asm/unistd.h:25:0,
->>                  from util/../perf-sys.h:10,
->>                  from util/../perf.h:15,
->>                  from util/event.h:7,
->>                  from util/event.c:3:
->> ~/arc/k.org/include/uapi/asm-generic/unistd.h:906:0:
->> warning: "__NR_fcntl64" redefined [enabled by default]
->>  #define __NR_fcntl64 __NR3264_fcntl
->>  ^
->> In file included from
->> ~/arc/gnu/INSTALL_1412-arc-2014.12-rc1/arc-snps-linux-uclibc/sysroot/usr/include/sys/syscall.h:24:0,
->>                  from util/../perf-sys.h:6,
->> ----------------->8-------------------
->>
->> ------- ARM build ---------->8-------------
->>
->>   CC FPIC  plugin_scsi.o
->> In file included from util/../perf-sys.h:9:0,
->>                  from util/../perf.h:15,
->>                  from util/cache.h:7,
->>                  from perf.c:12:
->> ~/arc/k.org/arch/arm/include/uapi/asm/unistd.h:28:0:
->> warning: "__NR_restart_syscall" redefined [enabled by default]
->> In file included from
->> ~/buildroot/host/usr/arm-buildroot-linux-uclibcgnueabi/sysroot/usr/include/sys/syscall.h:25:0,
->>                  from util/../perf-sys.h:6,
->>                  from util/../perf.h:15,
->>                  from util/cache.h:7,
->>                  from perf.c:12:
->> ~/buildroot/host/usr/arm-buildroot-linux-uclibcgnueabi/sysroot/usr/include/bits/sysnum.h:17:0:
->> note: this is the location of the previous definition
->> ----------------->8-------------------
-> Could you please point out what's the right logic for including those headers?
-
-I'm not sure why you were including <linux/unistd.h> in first place. Vanilla
-<unistd.h> shd suffice for the functions exported by that file. OTOH, if the
-intent was to get SYS_xxx or NR_xxx, then per syscall man page, <sys/syscall.h> is
-the recommended way.
-
-I just tried a small test program which uses __NR_restart_syscall for both x86
-(glibc) and ARC (uClibc) and including <sys/syscall.h> seems to work.
-
-Also replacing <linux/unistd.h> with <sys/syscall.h> in the first 2 hunks of this
-patch equally fixes my perf build splat. The 3rd one (perf-sys.h) already includes
-<sys/syscall.h> so no change required there.
-
-I'll send out a v3 to same effect.
-
+On Fri, Jan 9, 2015 at 9:50 PM, Al Viro <viro@zeniv.linux.org.uk> wrote:
+> On Fri, Jan 09, 2015 at 04:28:52PM -0500, Rich Felker wrote:
 >
-> I've always thought that just adding:
+>> The "magic open-once magic symlink" approach is really the cleanest
+>> solution I can find. In the case where the interpreter does not open
+>> the script, nothing terribly bad happens; the magic symlink just
+>> sticks around until _exit or exec. In the case where the interpreter
+>> opens it more than once, you get a failure, but as far as I know
+>> existing interpreters don't do this, and it's arguably bad design. In
+>> any case it's a caught error.
 >
->   #include <linux/unistd.h>
+> You know what's cleaner than that?  git revert 27d6ec7ad
+> It has just been merged; until 3.19 it's fair game for removal.
 >
-> should be safe no matter what.. feels like bug in one of those
-> header files? (uClibc headers & kernel headers)
+> And yes, I should've NAKed the damn thing loud and clear, rather than
+> asking questions back then, getting no answers and letting it slip.
+> Mea culpa.
 
-Well the design of asm-generic/unistd.h (no legacy syscalls ABI) which ARC uses
-does require duplicate inclusion of asm/unistd.h so a simple guard in header is
-not sufficient (and actually caused me embarrassing grief when I naively submitted
-that into mainline some time last year)
+Al, I'm sorry if I missed a question or concern of yours back in
+October -- I certainly didn't intend to (that would be foolish indeed!).
 
-Thx,
--Vineet
+[I thought the main open question was whether a dupfs
+implementation would help with /dev/fd/ and /proc/ semantics, but I
+had the (possibly incorrect) understanding that that was somewhat
+orthogonal to the execveat implementation.]
 
->
-> thanks for info,
-> jirka
+Are there any changes/fixes/refactorings that I could do (especially
+within the 3.19 timeframe) that would help mollify at all?
+
+> Back then the procfs-free environments had been pushed as a serious argument
+> in favour of merging the damn thing.  Now you guys turn around and say that
+> we not only need procfs mounted, we need a yet-to-be-added kludge in there
+> to cope with the actual intended uses.
+
+Not me!
