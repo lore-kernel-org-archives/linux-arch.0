@@ -1,32 +1,138 @@
-From: Dmitry Voytik <voytikd@gmail.com>
-Subject: [PATCH] bug: add comments for BUG_ON() and BUG()
-Date: Sun, 11 Jan 2015 23:06:18 +0300
-Message-ID: <1421006778-11148-1-git-send-email-voytikd@gmail.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Dmitry Voytik <voytikd@gmail.com>
-List-Id: linux-arch.vger.kernel.org
+From: Jiri Olsa <jolsa@redhat.com>
+Subject: Re: [PATCH v2 5/5] perf tools: [uclibc] provide stub for
+ pthread_attr_setaffinity_np
+Date: Mon, 12 Jan 2015 12:04:43 +0100
+Message-ID: <20150112110443.GB26229@krava.redhat.com>
+References: <1420888254-17504-1-git-send-email-vgupta@synopsys.com>
+ <1420888254-17504-6-git-send-email-vgupta@synopsys.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mx1.redhat.com ([209.132.183.28]:58301 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752726AbbALLFQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 12 Jan 2015 06:05:16 -0500
+Content-Disposition: inline
+In-Reply-To: <1420888254-17504-6-git-send-email-vgupta@synopsys.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Cc: acme@redhat.com, namhyung@kernel.org, peterz@infradead.org, jolsa@kernel.org, mingo@kernel.org, linux-kernel@vger.kernel.org, linux-perf-users@vger.kernel.org, linux-arch@vger.kernel.org, Alexey.Brodkin@synopsys.com
 
-Signed-off-by: Dmitry Voytik <voytikd@gmail.com>
----
- include/asm-generic/bug.h | 4 ++++
- 1 file changed, 4 insertions(+)
+On Sat, Jan 10, 2015 at 04:40:54PM +0530, Vineet Gupta wrote:
 
-diff --git a/include/asm-generic/bug.h b/include/asm-generic/bug.h
-index 630dd23..b0aa488 100644
---- a/include/asm-generic/bug.h
-+++ b/include/asm-generic/bug.h
-@@ -43,6 +43,10 @@ struct bug_entry {
-  * If you're tempted to BUG(), think again:  is completely giving up
-  * really the *only* solution?  There are usually better options, where
-  * users don't need to reboot ASAP and can mostly shut down cleanly.
-+ *
-+ * Use BUG_ON(unexpected_fatal_condition) instead of just:
-+ * if (unexpected_fatal_condition)
-+ *	BUG();
-  */
- #ifndef HAVE_ARCH_BUG
- #define BUG() do { \
--- 
-1.9.1
+SNIP
+
+> @@ -198,6 +198,7 @@ CORE_FEATURE_TESTS =3D			\
+>  	libpython-version		\
+>  	libslang			\
+>  	libunwind			\
+> +	pthread-attr-setaffinity-np	\
+>  	stackprotector-all		\
+>  	timerfd				\
+>  	libdw-dwarf-unwind		\
+> @@ -226,6 +227,7 @@ VF_FEATURE_TESTS =3D			\
+>  	libelf-getphdrnum		\
+>  	libelf-mmap			\
+>  	libpython-version		\
+> +	pthread-attr-setaffinity-np	\
+>  	stackprotector-all		\
+>  	timerfd				\
+>  	libunwind-debug-frame		\
+> @@ -301,6 +303,10 @@ ifeq ($(feature-sync-compare-and-swap), 1)
+>    CFLAGS +=3D -DHAVE_SYNC_COMPARE_AND_SWAP_SUPPORT
+>  endif
+> =20
+> +ifeq ($(feature-pthread-attr-setaffinity-np), 1)
+> +  CFLAGS +=3D -DHAVE_PTHREAD_ATTR_SETAFFINITY_NP
+> +endif
+> +
+>  ifndef NO_BIONIC
+>    $(call feature_check,bionic)
+>    ifeq ($(feature-bionic), 1)
+> diff --git a/tools/perf/config/feature-checks/Makefile b/tools/perf/c=
+onfig/feature-checks/Makefile
+> index 53f19b5dbc37..e9b99bb29348 100644
+> --- a/tools/perf/config/feature-checks/Makefile
+> +++ b/tools/perf/config/feature-checks/Makefile
+> @@ -25,6 +25,7 @@ FILES=3D					\
+>  	test-libslang.bin		\
+>  	test-libunwind.bin		\
+>  	test-libunwind-debug-frame.bin	\
+> +	test-pthread-attr-setaffinity-np.bin	\
+>  	test-stackprotector-all.bin	\
+>  	test-timerfd.bin		\
+>  	test-libdw-dwarf-unwind.bin	\
+> @@ -47,6 +48,9 @@ test-all.bin:
+>  test-hello.bin:
+>  	$(BUILD)
+> =20
+> +test-pthread-attr-setaffinity-np.bin:
+> +	$(BUILD) -Werror
+
+this does not works for me unless I add -lpthread (check patch below)
+is it possible you pushed that through LDFLAGS?
+
+otherwise I'm getting following error:
+	---
+	In file included from bench/futex-hash.c:17:0:
+	bench/futex.h:73:19: error: conflicting types for =E2=80=98pthread_att=
+r_setaffinity_np=E2=80=99
+	 static inline int pthread_attr_setaffinity_np(pthread_attr_t *attr,
+			   ^
+	In file included from bench/futex.h:72:0,
+			 from bench/futex-hash.c:17:
+	/usr/include/pthread.h:407:12: note: previous declaration of =E2=80=98=
+pthread_attr_setaffinity_np=E2=80=99 was here
+	 extern int pthread_attr_setaffinity_np (pthread_attr_t *__attr,
+		    ^
+	make[1]: *** [bench/futex-hash.o] Error 1
+	make[1]: *** Waiting for unfinished jobs....
+	In file included from bench/futex-wake.c:17:0:
+	bench/futex.h:73:19: error: conflicting types for =E2=80=98pthread_att=
+r_setaffinity_np=E2=80=99
+	 static inline int pthread_attr_setaffinity_np(pthread_attr_t *attr,
+			   ^
+	In file included from bench/futex.h:72:0,
+			 from bench/futex-wake.c:17:
+	/usr/include/pthread.h:407:12: note: previous declaration of =E2=80=98=
+pthread_attr_setaffinity_np=E2=80=99 was here
+	 extern int pthread_attr_setaffinity_np (pthread_attr_t *__attr,
+		    ^
+	make[1]: *** [bench/futex-wake.o] Error 1
+	In file included from bench/futex-requeue.c:17:0:
+	bench/futex.h:73:19: error: conflicting types for =E2=80=98pthread_att=
+r_setaffinity_np=E2=80=99
+	 static inline int pthread_attr_setaffinity_np(pthread_attr_t *attr,
+			   ^
+	In file included from bench/futex.h:72:0,
+			 from bench/futex-requeue.c:17:
+	/usr/include/pthread.h:407:12: note: previous declaration of =E2=80=98=
+pthread_attr_setaffinity_np=E2=80=99 was here
+	 extern int pthread_attr_setaffinity_np (pthread_attr_t *__attr,
+		    ^
+	make[1]: *** [bench/futex-requeue.o] Error 1
+	make: *** [all] Error 2
+	---
+
+my system is x86_64 on F20
+
+thanks,
+jirka
+
+
+diff --git a/tools/perf/config/feature-checks/Makefile b/tools/perf/con=
+fig/feature-checks/Makefile
+index e9b99bb29348..42ac05aaf8ac 100644
+--- a/tools/perf/config/feature-checks/Makefile
++++ b/tools/perf/config/feature-checks/Makefile
+@@ -49,7 +49,7 @@ test-hello.bin:
+ 	$(BUILD)
+=20
+ test-pthread-attr-setaffinity-np.bin:
+-	$(BUILD) -Werror
++	$(BUILD) -Werror -lpthread
+=20
+ test-stackprotector-all.bin:
+ 	$(BUILD) -Werror -fstack-protector-all
