@@ -1,146 +1,67 @@
-From: David Hildenbrand <dahi@linux.vnet.ibm.com>
-Subject: Re: [PATCH v2 0/5] Reenable might_sleep() checks for might_fault()
-Date: Mon, 12 Jan 2015 15:19:11 +0100
-Message-ID: <20150112151911.4a51f09d@thinkpad-w530>
-References: <1418221414-60110-1-git-send-email-dahi@linux.vnet.ibm.com>
+From: Rich Felker <dalias@aerifal.cx>
+Subject: Re: [PATCHv10 man-pages 5/5] execveat.2: initial man page for
+ execveat(2)
+Date: Mon, 12 Jan 2015 11:07:21 -0500
+Message-ID: <20150112160721.GJ4574@brightrain.aerifal.cx>
+References: <20150109204815.GR4574@brightrain.aerifal.cx>
+ <20150109205626.GK22149@ZenIV.linux.org.uk>
+ <20150109205926.GT4574@brightrain.aerifal.cx>
+ <20150109210941.GL22149@ZenIV.linux.org.uk>
+ <20150109212852.GU4574@brightrain.aerifal.cx>
+ <87lhlbvbzs.fsf@x220.int.ebiederm.org>
+ <20150109223843.GX4574@brightrain.aerifal.cx>
+ <87mw5rtowa.fsf@x220.int.ebiederm.org>
+ <20150110013324.GB4574@brightrain.aerifal.cx>
+ <CAHse=S822QjRE_FF6JHi-5cUsrXHJnyjRwYJuyYn2O6tsz2dHQ@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e06smtp11.uk.ibm.com ([195.75.94.107]:38838 "EHLO
-	e06smtp11.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751220AbbALOT0 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 12 Jan 2015 09:19:26 -0500
-Received: from /spool/local
-	by e06smtp11.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <dahi@linux.vnet.ibm.com>;
-	Mon, 12 Jan 2015 14:19:24 -0000
-In-Reply-To: <1418221414-60110-1-git-send-email-dahi@linux.vnet.ibm.com>
+Received: from 216-12-86-13.cv.mvl.ntelos.net ([216.12.86.13]:36487 "EHLO
+	brightrain.aerifal.cx" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751537AbbALQIH (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 12 Jan 2015 11:08:07 -0500
+Content-Disposition: inline
+In-Reply-To: <CAHse=S822QjRE_FF6JHi-5cUsrXHJnyjRwYJuyYn2O6tsz2dHQ@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, tglx@linutronix.de, peterz@infradead.org
-Cc: benh@kernel.crashing.org, paulus@samba.org, akpm@linux-foundation.org, heiko.carstens@de.ibm.com, schwidefsky@de.ibm.com, borntraeger@de.ibm.com, mst@redhat.com, David.Laight@ACULAB.COM, hughd@google.com, hocko@suse.cz
+To: David Drysdale <drysdale@google.com>
+Cc: "Eric W. Biederman" <ebiederm@xmission.com>, Al Viro <viro@zeniv.linux.org.uk>, "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>, Andy Lutomirski <luto@amacapital.net>, Meredydd Luff <meredydd@senatehouse.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Thomas Gleixner <tglx@linutronix.de>, Stephen Rothwell <sfr@canb.auug.org.au>, Oleg Nesterov <oleg@redhat.com>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Christoph Hellwig <hch@infradead.org>, X86 ML <x86@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, sparclinux@vger.kernel.org
 
-Thomas, Peter,
+On Mon, Jan 12, 2015 at 11:33:49AM +0000, David Drysdale wrote:
+> On Sat, Jan 10, 2015 at 1:33 AM, Rich Felker <dalias@aerifal.cx> wrote:
+> > On Fri, Jan 09, 2015 at 07:17:41PM -0600, Eric W. Biederman wrote:
+> >> Rich Felker <dalias@aerifal.cx> writes:
+> >>
+> >> > I'm not proposing code because I'm a libc developer not a kernel
+> >> > developer. I know what's needed for userspace to provide a conforming
+> >> > fexecve to applications, not how to implement that on the kernel side,
+> >> > although I'm trying to provide constructive ideas. The hostility is
+> >> > really not necessary.
+> >>
+> >> Conforming to what?
+> >>
+> >> The open group fexecve says nothing about requiring a file descriptor
+> >> passed to fexecve to have O_CLOEXEC.
+> >
+> > It doesn't require it but it allows it, and in multithreaded programs
+> > that might run child processes (or library code that might be used in
+> > such situations), O_CLOEXEC is mandatory everywhere to avoid fd leaks.
+> 
+> As a naive idea related to Andy's suggestion elsewhere, could you
+> just have an environment convention for fexecve-ing scripts?  That
+> would reduce FD leaks without any need for kernel involvement/changes.
+> 
+> For example, set _FEXECVED_VIA_FD=4 but don't set
+> O_CLOEXEC before fexecve, and the interpreter reads then
+> closes that FD.  Or just get the interpreter to spot scripts named
+> "/dev/fd/%d" and read-then-close the FD that way, cf. Eric's suggestion
+> at https://lkml.org/lkml/2014/10/22/652.
 
-anything that speaks against putting the pagefault_disable counter into
-thread_info (my series) instead of task_struct (rt tree)?
+No. Any omission of O_CLOEXEC even momentarily is a potentially
+dangerous fd leak. This is the case whenever the process is
+multithreaded and it's possible that other threads might fork and
+exec. Think of the case of a privileged daemon re-execing itself (e.g.
+to switch to an updated version) while there are potentially other
+threads spawning non-privileged processes.
 
-IOW, what would be the right place for it?
-
-Would be good to know for me how to proceed with this series.
-
-Thanks!
-
-David
-
-> v1 -> v2:
-> - moved pagefault_count to the end of thread_info for all archs that would have
->   required manually calculating asm-offsets - to keep changes minimal.
-> - remove unlikely() from "mm, uaccess: trigger might_sleep() in" and keep
->   changes minimal (in_atomic() -> pagefault_disabled())
-> 
-> ----
-> 
-> I recently discovered that might_fault() doesn't call might_sleep() anymore.
-> Therefore bugs like:
-> 	spin_lock(&lock);
-> 	rc = copy_to_user(...);
-> 	spin_unlock(&lock);
-> would not be detected with CONFIG_DEBUG_ATOMIC_SLEEP. The code was changed to
-> disable false positives for code like:
-> 	pagefault_disable();
-> 	rc = copy_to_user(...);
-> 	pagefault_enable();
-> 
-> Until now, pagefault_disable() and pagefault_enable() simply modified the
-> preempt count, therefore telling the pagefault handler that the context is
-> atomic and sleeping is disallowed.
-> 
-> In order to reenable might_sleep() checks for the correct path, we need a way to
-> detect whether we run in a pagefault_disable() context.
-> 
-> This series therefore introduces a separate pagefault_count and uses it to count
-> the levels of pagefault_disable() per thread. might_sleep() checks are
-> reactivated for the !pagefault_disable() path.
-> 
-> So this should now work:
-> 	spin_lock(&lock); /* also if left away */
-> 	pagefault_disable()
-> 	rc = copy_to_user(...);
-> 	pagefault_enable();
-> 	spin_unlock(&lock);
-> And this should report a warning again:
-> 	spin_lock(&lock);
-> 	rc = copy_to_user(...);
-> 	spin_unlock(&lock);
-> 
-> Please note that this series will not completely split the handling of
-> pagefault_disable() and the preempt count. This will be done in another series.
-> Purpose of this series is to reenable might_sleep() checks for might_fault(),
-> avoiding to produce false positives.
-> 
-> Cross compiled on powerpc, arm, sparc, sparc64, arm64, x86_64, i386, mips,
-> alpha, ia64, xtensa, m68k, microblaze.
-> 
-> Tested on s390.
-> 
-> 
-> David Hildenbrand (5):
->   uaccess: add pagefault_count to thread_info
->   uaccess: count pagefault_disable() levels in pagefault_count
->   mm, uaccess: trigger might_sleep() in might_fault() when pagefaults
->     are disabled
->   uaccess: clarify that uaccess may only sleep if pagefaults are not
->     disabled
->   uaccess: CONFIG_DEBUG_PAGEFAULT_COUNT to debug pagefault_count
-> 
->  arch/alpha/include/asm/thread_info.h      |  1 +
->  arch/arc/include/asm/thread_info.h        |  1 +
->  arch/arm/include/asm/thread_info.h        |  1 +
->  arch/arm64/include/asm/thread_info.h      |  1 +
->  arch/avr32/include/asm/thread_info.h      |  1 +
->  arch/avr32/include/asm/uaccess.h          | 12 +++++---
->  arch/blackfin/include/asm/thread_info.h   |  1 +
->  arch/c6x/include/asm/thread_info.h        |  1 +
->  arch/cris/include/asm/thread_info.h       |  1 +
->  arch/frv/include/asm/thread_info.h        |  1 +
->  arch/hexagon/include/asm/thread_info.h    |  1 +
->  arch/hexagon/include/asm/uaccess.h        |  3 +-
->  arch/ia64/include/asm/thread_info.h       |  1 +
->  arch/m32r/include/asm/thread_info.h       |  1 +
->  arch/m32r/include/asm/uaccess.h           | 30 ++++++++++++------
->  arch/m68k/include/asm/thread_info.h       |  1 +
->  arch/metag/include/asm/thread_info.h      |  1 +
->  arch/microblaze/include/asm/thread_info.h |  1 +
->  arch/microblaze/include/asm/uaccess.h     |  6 ++--
->  arch/mips/include/asm/thread_info.h       |  1 +
->  arch/mips/include/asm/uaccess.h           | 45 ++++++++++++++++++---------
->  arch/mn10300/include/asm/thread_info.h    |  1 +
->  arch/openrisc/include/asm/thread_info.h   |  1 +
->  arch/parisc/include/asm/thread_info.h     |  1 +
->  arch/powerpc/include/asm/thread_info.h    |  1 +
->  arch/s390/include/asm/thread_info.h       |  1 +
->  arch/s390/include/asm/uaccess.h           | 15 ++++++---
->  arch/score/include/asm/thread_info.h      |  1 +
->  arch/score/include/asm/uaccess.h          | 15 ++++++---
->  arch/sh/include/asm/thread_info.h         |  1 +
->  arch/sparc/include/asm/thread_info_32.h   |  1 +
->  arch/sparc/include/asm/thread_info_64.h   |  1 +
->  arch/tile/include/asm/thread_info.h       |  1 +
->  arch/tile/include/asm/uaccess.h           | 21 ++++++++-----
->  arch/um/include/asm/thread_info.h         |  1 +
->  arch/unicore32/include/asm/thread_info.h  |  1 +
->  arch/x86/include/asm/thread_info.h        |  1 +
->  arch/x86/include/asm/uaccess.h            | 15 ++++++---
->  arch/x86/include/asm/uaccess_32.h         |  6 ++--
->  arch/x86/lib/usercopy_32.c                |  6 ++--
->  arch/xtensa/include/asm/thread_info.h     |  1 +
->  include/linux/kernel.h                    |  3 +-
->  include/linux/uaccess.h                   | 51 ++++++++++++++++++++++++++-----
->  lib/Kconfig.debug                         |  9 ++++++
->  lib/strnlen_user.c                        |  6 ++--
->  mm/maccess.c                              | 11 +++++++
->  mm/memory.c                               | 18 ++++-------
->  47 files changed, 222 insertions(+), 80 deletions(-)
-> 
+Rich
