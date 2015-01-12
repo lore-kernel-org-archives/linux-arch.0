@@ -1,53 +1,100 @@
-From: David Drysdale <drysdale@google.com>
-Subject: Re: [PATCHv10 man-pages 5/5] execveat.2: initial man page for execveat(2)
-Date: Mon, 12 Jan 2015 11:33:49 +0000
-Message-ID: <CAHse=S822QjRE_FF6JHi-5cUsrXHJnyjRwYJuyYn2O6tsz2dHQ@mail.gmail.com>
-References: <20150109161302.GQ4574@brightrain.aerifal.cx> <CAHse=S88Jy5ZKM_VY5onfvxX7dTMngnxuHfuLeSuzvKvQNP19A@mail.gmail.com>
- <20150109204815.GR4574@brightrain.aerifal.cx> <20150109205626.GK22149@ZenIV.linux.org.uk>
- <20150109205926.GT4574@brightrain.aerifal.cx> <20150109210941.GL22149@ZenIV.linux.org.uk>
- <20150109212852.GU4574@brightrain.aerifal.cx> <87lhlbvbzs.fsf@x220.int.ebiederm.org>
- <20150109223843.GX4574@brightrain.aerifal.cx> <87mw5rtowa.fsf@x220.int.ebiederm.org>
- <20150110013324.GB4574@brightrain.aerifal.cx>
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Subject: Re: [PATCH v2 3/5] perf tools: [uclibc] Avoid build splat for
+ syscall numbers
+Date: Mon, 12 Jan 2015 12:00:02 +0000
+Message-ID: <C2D7FE5348E1B147BCA15975FBA2307565BCBA99@IN01WEMBXA.internal.synopsys.com>
+References: <1420888254-17504-1-git-send-email-vgupta@synopsys.com>
+ <1420888254-17504-4-git-send-email-vgupta@synopsys.com>
+ <20150112110907.GD26229@krava.redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <sparclinux-owner@vger.kernel.org>
-In-Reply-To: <20150110013324.GB4574@brightrain.aerifal.cx>
-Sender: sparclinux-owner@vger.kernel.org
-To: Rich Felker <dalias@aerifal.cx>
-Cc: "Eric W. Biederman" <ebiederm@xmission.com>, Al Viro <viro@zeniv.linux.org.uk>, "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>, Andy Lutomirski <luto@amacapital.net>, Meredydd Luff <meredydd@senatehouse.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Thomas Gleixner <tglx@linutronix.de>, Stephen Rothwell <sfr@canb.auug.org.au>, Oleg Nesterov <oleg@redhat.com>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Christoph Hellwig <hch@infradead.org>, X86 ML <x86@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, sparclinux@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 8BIT
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from smtprelay4.synopsys.com ([198.182.47.9]:48660 "EHLO
+	smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750997AbbALMAI convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 12 Jan 2015 07:00:08 -0500
+Content-Language: en-US
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Jiri Olsa <jolsa@redhat.com>
+Cc: "acme@redhat.com" <acme@redhat.com>, "namhyung@kernel.org" <namhyung@kernel.org>, "peterz@infradead.org" <peterz@infradead.org>, "jolsa@kernel.org" <jolsa@kernel.org>, "mingo@kernel.org" <mingo@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-perf-users@vger.kernel.org" <linux-perf-users@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "Alexey.Brodkin@synopsys.com" <Alexey.Brodkin@synopsys.com>
 
-On Sat, Jan 10, 2015 at 1:33 AM, Rich Felker <dalias@aerifal.cx> wrote:
-> On Fri, Jan 09, 2015 at 07:17:41PM -0600, Eric W. Biederman wrote:
->> Rich Felker <dalias@aerifal.cx> writes:
+Hi Jiri,
+
+On Monday 12 January 2015 04:39 PM, Jiri Olsa wrote:
+> On Sat, Jan 10, 2015 at 04:40:52PM +0530, Vineet Gupta wrote:
+>> This is due to duplicated unistd inclusion (via uClibc headers + kernel headers)
+>> Also seen on ARM uClibc based tools
 >>
->> > I'm not proposing code because I'm a libc developer not a kernel
->> > developer. I know what's needed for userspace to provide a conforming
->> > fexecve to applications, not how to implement that on the kernel side,
->> > although I'm trying to provide constructive ideas. The hostility is
->> > really not necessary.
+>> ------- ARC build ---------->8-------------
 >>
->> Conforming to what?
+>>   CC       util/evlist.o
+>> In file included from
+>> ~/arc/k.org/arch/arc/include/uapi/asm/unistd.h:25:0,
+>>                  from util/../perf-sys.h:10,
+>>                  from util/../perf.h:15,
+>>                  from util/event.h:7,
+>>                  from util/event.c:3:
+>> ~/arc/k.org/include/uapi/asm-generic/unistd.h:906:0:
+>> warning: "__NR_fcntl64" redefined [enabled by default]
+>>  #define __NR_fcntl64 __NR3264_fcntl
+>>  ^
+>> In file included from
+>> ~/arc/gnu/INSTALL_1412-arc-2014.12-rc1/arc-snps-linux-uclibc/sysroot/usr/include/sys/syscall.h:24:0,
+>>                  from util/../perf-sys.h:6,
+>> ----------------->8-------------------
 >>
->> The open group fexecve says nothing about requiring a file descriptor
->> passed to fexecve to have O_CLOEXEC.
+>> ------- ARM build ---------->8-------------
+>>
+>>   CC FPIC  plugin_scsi.o
+>> In file included from util/../perf-sys.h:9:0,
+>>                  from util/../perf.h:15,
+>>                  from util/cache.h:7,
+>>                  from perf.c:12:
+>> ~/arc/k.org/arch/arm/include/uapi/asm/unistd.h:28:0:
+>> warning: "__NR_restart_syscall" redefined [enabled by default]
+>> In file included from
+>> ~/buildroot/host/usr/arm-buildroot-linux-uclibcgnueabi/sysroot/usr/include/sys/syscall.h:25:0,
+>>                  from util/../perf-sys.h:6,
+>>                  from util/../perf.h:15,
+>>                  from util/cache.h:7,
+>>                  from perf.c:12:
+>> ~/buildroot/host/usr/arm-buildroot-linux-uclibcgnueabi/sysroot/usr/include/bits/sysnum.h:17:0:
+>> note: this is the location of the previous definition
+>> ----------------->8-------------------
+> Could you please point out what's the right logic for including those headers?
+
+I'm not sure why you were including <linux/unistd.h> in first place. Vanilla
+<unistd.h> shd suffice for the functions exported by that file. OTOH, if the
+intent was to get SYS_xxx or NR_xxx, then per syscall man page, <sys/syscall.h> is
+the recommended way.
+
+I just tried a small test program which uses __NR_restart_syscall for both x86
+(glibc) and ARC (uClibc) and including <sys/syscall.h> seems to work.
+
+Also replacing <linux/unistd.h> with <sys/syscall.h> in the first 2 hunks of this
+patch equally fixes my perf build splat. The 3rd one (perf-sys.h) already includes
+<sys/syscall.h> so no change required there.
+
+I'll send out a v3 to same effect.
+
 >
-> It doesn't require it but it allows it, and in multithreaded programs
-> that might run child processes (or library code that might be used in
-> such situations), O_CLOEXEC is mandatory everywhere to avoid fd leaks.
+> I've always thought that just adding:
+>
+>   #include <linux/unistd.h>
+>
+> should be safe no matter what.. feels like bug in one of those
+> header files? (uClibc headers & kernel headers)
 
-As a naive idea related to Andy's suggestion elsewhere, could you
-just have an environment convention for fexecve-ing scripts?  That
-would reduce FD leaks without any need for kernel involvement/changes.
+Well the design of asm-generic/unistd.h (no legacy syscalls ABI) which ARC uses
+does require duplicate inclusion of asm/unistd.h so a simple guard in header is
+not sufficient (and actually caused me embarrassing grief when I naively submitted
+that into mainline some time last year)
 
-For example, set _FEXECVED_VIA_FD=4 but don't set
-O_CLOEXEC before fexecve, and the interpreter reads then
-closes that FD.  Or just get the interpreter to spot scripts named
-"/dev/fd/%d" and read-then-close the FD that way, cf. Eric's suggestion
-at https://lkml.org/lkml/2014/10/22/652.
+Thx,
+-Vineet
 
-By the way, FreeBSD has a fexecve(2) syscall that behaves
-in the same way as the current Linux code for an O_CLOEXEC
-script -- the interpreter fails to open "/dev/fd/6" as it's gone.
-Do you know if there are any other OSes that already do
-something more sophisticated for this case?
+>
+> thanks for info,
+> jirka
