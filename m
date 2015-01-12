@@ -1,60 +1,146 @@
-From: David Drysdale <drysdale@google.com>
-Subject: Re: [PATCHv10 man-pages 5/5] execveat.2: initial man page for execveat(2)
-Date: Mon, 12 Jan 2015 14:18:18 +0000
-Message-ID: <CAHse=S9qP19WrNRefOzJ1yKiT9qWof67-y5wHBcxAfR-r4HzmQ@mail.gmail.com>
-References: <1416830039-21952-1-git-send-email-drysdale@google.com>
- <1416830039-21952-6-git-send-email-drysdale@google.com> <54AFF813.7050604@gmail.com>
- <20150109161302.GQ4574@brightrain.aerifal.cx> <CAHse=S88Jy5ZKM_VY5onfvxX7dTMngnxuHfuLeSuzvKvQNP19A@mail.gmail.com>
- <20150109204815.GR4574@brightrain.aerifal.cx> <20150109205626.GK22149@ZenIV.linux.org.uk>
- <20150109205926.GT4574@brightrain.aerifal.cx> <20150109210941.GL22149@ZenIV.linux.org.uk>
- <20150109212852.GU4574@brightrain.aerifal.cx> <20150109215042.GM22149@ZenIV.linux.org.uk>
+From: David Hildenbrand <dahi@linux.vnet.ibm.com>
+Subject: Re: [PATCH v2 0/5] Reenable might_sleep() checks for might_fault()
+Date: Mon, 12 Jan 2015 15:19:11 +0100
+Message-ID: <20150112151911.4a51f09d@thinkpad-w530>
+References: <1418221414-60110-1-git-send-email-dahi@linux.vnet.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qc0-f181.google.com ([209.85.216.181]:34258 "EHLO
-	mail-qc0-f181.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751879AbbALOSj (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 12 Jan 2015 09:18:39 -0500
-Received: by mail-qc0-f181.google.com with SMTP id m20so18107254qcx.12
-        for <linux-arch@vger.kernel.org>; Mon, 12 Jan 2015 06:18:39 -0800 (PST)
-In-Reply-To: <20150109215042.GM22149@ZenIV.linux.org.uk>
+Received: from e06smtp11.uk.ibm.com ([195.75.94.107]:38838 "EHLO
+	e06smtp11.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751220AbbALOT0 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 12 Jan 2015 09:19:26 -0500
+Received: from /spool/local
+	by e06smtp11.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <dahi@linux.vnet.ibm.com>;
+	Mon, 12 Jan 2015 14:19:24 -0000
+In-Reply-To: <1418221414-60110-1-git-send-email-dahi@linux.vnet.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Al Viro <viro@zeniv.linux.org.uk>
-Cc: Rich Felker <dalias@aerifal.cx>, "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>, "Eric W. Biederman" <ebiederm@xmission.com>, Andy Lutomirski <luto@amacapital.net>, Meredydd Luff <meredydd@senatehouse.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Thomas Gleixner <tglx@linutronix.de>, Stephen Rothwell <sfr@canb.auug.org.au>, Oleg Nesterov <oleg@redhat.com>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Christoph Hellwig <hch@infradead.org>, X86 ML <x86@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, sparclinux@vger.kernel.org
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, tglx@linutronix.de, peterz@infradead.org
+Cc: benh@kernel.crashing.org, paulus@samba.org, akpm@linux-foundation.org, heiko.carstens@de.ibm.com, schwidefsky@de.ibm.com, borntraeger@de.ibm.com, mst@redhat.com, David.Laight@ACULAB.COM, hughd@google.com, hocko@suse.cz
 
-On Fri, Jan 9, 2015 at 9:50 PM, Al Viro <viro@zeniv.linux.org.uk> wrote:
-> On Fri, Jan 09, 2015 at 04:28:52PM -0500, Rich Felker wrote:
->
->> The "magic open-once magic symlink" approach is really the cleanest
->> solution I can find. In the case where the interpreter does not open
->> the script, nothing terribly bad happens; the magic symlink just
->> sticks around until _exit or exec. In the case where the interpreter
->> opens it more than once, you get a failure, but as far as I know
->> existing interpreters don't do this, and it's arguably bad design. In
->> any case it's a caught error.
->
-> You know what's cleaner than that?  git revert 27d6ec7ad
-> It has just been merged; until 3.19 it's fair game for removal.
->
-> And yes, I should've NAKed the damn thing loud and clear, rather than
-> asking questions back then, getting no answers and letting it slip.
-> Mea culpa.
+Thomas, Peter,
 
-Al, I'm sorry if I missed a question or concern of yours back in
-October -- I certainly didn't intend to (that would be foolish indeed!).
+anything that speaks against putting the pagefault_disable counter into
+thread_info (my series) instead of task_struct (rt tree)?
 
-[I thought the main open question was whether a dupfs
-implementation would help with /dev/fd/ and /proc/ semantics, but I
-had the (possibly incorrect) understanding that that was somewhat
-orthogonal to the execveat implementation.]
+IOW, what would be the right place for it?
 
-Are there any changes/fixes/refactorings that I could do (especially
-within the 3.19 timeframe) that would help mollify at all?
+Would be good to know for me how to proceed with this series.
 
-> Back then the procfs-free environments had been pushed as a serious argument
-> in favour of merging the damn thing.  Now you guys turn around and say that
-> we not only need procfs mounted, we need a yet-to-be-added kludge in there
-> to cope with the actual intended uses.
+Thanks!
 
-Not me!
+David
+
+> v1 -> v2:
+> - moved pagefault_count to the end of thread_info for all archs that would have
+>   required manually calculating asm-offsets - to keep changes minimal.
+> - remove unlikely() from "mm, uaccess: trigger might_sleep() in" and keep
+>   changes minimal (in_atomic() -> pagefault_disabled())
+> 
+> ----
+> 
+> I recently discovered that might_fault() doesn't call might_sleep() anymore.
+> Therefore bugs like:
+> 	spin_lock(&lock);
+> 	rc = copy_to_user(...);
+> 	spin_unlock(&lock);
+> would not be detected with CONFIG_DEBUG_ATOMIC_SLEEP. The code was changed to
+> disable false positives for code like:
+> 	pagefault_disable();
+> 	rc = copy_to_user(...);
+> 	pagefault_enable();
+> 
+> Until now, pagefault_disable() and pagefault_enable() simply modified the
+> preempt count, therefore telling the pagefault handler that the context is
+> atomic and sleeping is disallowed.
+> 
+> In order to reenable might_sleep() checks for the correct path, we need a way to
+> detect whether we run in a pagefault_disable() context.
+> 
+> This series therefore introduces a separate pagefault_count and uses it to count
+> the levels of pagefault_disable() per thread. might_sleep() checks are
+> reactivated for the !pagefault_disable() path.
+> 
+> So this should now work:
+> 	spin_lock(&lock); /* also if left away */
+> 	pagefault_disable()
+> 	rc = copy_to_user(...);
+> 	pagefault_enable();
+> 	spin_unlock(&lock);
+> And this should report a warning again:
+> 	spin_lock(&lock);
+> 	rc = copy_to_user(...);
+> 	spin_unlock(&lock);
+> 
+> Please note that this series will not completely split the handling of
+> pagefault_disable() and the preempt count. This will be done in another series.
+> Purpose of this series is to reenable might_sleep() checks for might_fault(),
+> avoiding to produce false positives.
+> 
+> Cross compiled on powerpc, arm, sparc, sparc64, arm64, x86_64, i386, mips,
+> alpha, ia64, xtensa, m68k, microblaze.
+> 
+> Tested on s390.
+> 
+> 
+> David Hildenbrand (5):
+>   uaccess: add pagefault_count to thread_info
+>   uaccess: count pagefault_disable() levels in pagefault_count
+>   mm, uaccess: trigger might_sleep() in might_fault() when pagefaults
+>     are disabled
+>   uaccess: clarify that uaccess may only sleep if pagefaults are not
+>     disabled
+>   uaccess: CONFIG_DEBUG_PAGEFAULT_COUNT to debug pagefault_count
+> 
+>  arch/alpha/include/asm/thread_info.h      |  1 +
+>  arch/arc/include/asm/thread_info.h        |  1 +
+>  arch/arm/include/asm/thread_info.h        |  1 +
+>  arch/arm64/include/asm/thread_info.h      |  1 +
+>  arch/avr32/include/asm/thread_info.h      |  1 +
+>  arch/avr32/include/asm/uaccess.h          | 12 +++++---
+>  arch/blackfin/include/asm/thread_info.h   |  1 +
+>  arch/c6x/include/asm/thread_info.h        |  1 +
+>  arch/cris/include/asm/thread_info.h       |  1 +
+>  arch/frv/include/asm/thread_info.h        |  1 +
+>  arch/hexagon/include/asm/thread_info.h    |  1 +
+>  arch/hexagon/include/asm/uaccess.h        |  3 +-
+>  arch/ia64/include/asm/thread_info.h       |  1 +
+>  arch/m32r/include/asm/thread_info.h       |  1 +
+>  arch/m32r/include/asm/uaccess.h           | 30 ++++++++++++------
+>  arch/m68k/include/asm/thread_info.h       |  1 +
+>  arch/metag/include/asm/thread_info.h      |  1 +
+>  arch/microblaze/include/asm/thread_info.h |  1 +
+>  arch/microblaze/include/asm/uaccess.h     |  6 ++--
+>  arch/mips/include/asm/thread_info.h       |  1 +
+>  arch/mips/include/asm/uaccess.h           | 45 ++++++++++++++++++---------
+>  arch/mn10300/include/asm/thread_info.h    |  1 +
+>  arch/openrisc/include/asm/thread_info.h   |  1 +
+>  arch/parisc/include/asm/thread_info.h     |  1 +
+>  arch/powerpc/include/asm/thread_info.h    |  1 +
+>  arch/s390/include/asm/thread_info.h       |  1 +
+>  arch/s390/include/asm/uaccess.h           | 15 ++++++---
+>  arch/score/include/asm/thread_info.h      |  1 +
+>  arch/score/include/asm/uaccess.h          | 15 ++++++---
+>  arch/sh/include/asm/thread_info.h         |  1 +
+>  arch/sparc/include/asm/thread_info_32.h   |  1 +
+>  arch/sparc/include/asm/thread_info_64.h   |  1 +
+>  arch/tile/include/asm/thread_info.h       |  1 +
+>  arch/tile/include/asm/uaccess.h           | 21 ++++++++-----
+>  arch/um/include/asm/thread_info.h         |  1 +
+>  arch/unicore32/include/asm/thread_info.h  |  1 +
+>  arch/x86/include/asm/thread_info.h        |  1 +
+>  arch/x86/include/asm/uaccess.h            | 15 ++++++---
+>  arch/x86/include/asm/uaccess_32.h         |  6 ++--
+>  arch/x86/lib/usercopy_32.c                |  6 ++--
+>  arch/xtensa/include/asm/thread_info.h     |  1 +
+>  include/linux/kernel.h                    |  3 +-
+>  include/linux/uaccess.h                   | 51 ++++++++++++++++++++++++++-----
+>  lib/Kconfig.debug                         |  9 ++++++
+>  lib/strnlen_user.c                        |  6 ++--
+>  mm/maccess.c                              | 11 +++++++
+>  mm/memory.c                               | 18 ++++-------
+>  47 files changed, 222 insertions(+), 80 deletions(-)
+> 
