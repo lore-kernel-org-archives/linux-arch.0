@@ -1,88 +1,53 @@
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: Re: [PATCH v2 5/5] perf tools: [uclibc] provide stub for
- pthread_attr_setaffinity_np
-Date: Mon, 12 Jan 2015 11:13:17 +0000
-Message-ID: <C2D7FE5348E1B147BCA15975FBA2307565BCBA7D@IN01WEMBXA.internal.synopsys.com>
-References: <1420888254-17504-1-git-send-email-vgupta@synopsys.com>
- <1420888254-17504-6-git-send-email-vgupta@synopsys.com>
- <20150112110443.GB26229@krava.redhat.com>
+From: David Drysdale <drysdale@google.com>
+Subject: Re: [PATCHv10 man-pages 5/5] execveat.2: initial man page for execveat(2)
+Date: Mon, 12 Jan 2015 11:33:49 +0000
+Message-ID: <CAHse=S822QjRE_FF6JHi-5cUsrXHJnyjRwYJuyYn2O6tsz2dHQ@mail.gmail.com>
+References: <20150109161302.GQ4574@brightrain.aerifal.cx> <CAHse=S88Jy5ZKM_VY5onfvxX7dTMngnxuHfuLeSuzvKvQNP19A@mail.gmail.com>
+ <20150109204815.GR4574@brightrain.aerifal.cx> <20150109205626.GK22149@ZenIV.linux.org.uk>
+ <20150109205926.GT4574@brightrain.aerifal.cx> <20150109210941.GL22149@ZenIV.linux.org.uk>
+ <20150109212852.GU4574@brightrain.aerifal.cx> <87lhlbvbzs.fsf@x220.int.ebiederm.org>
+ <20150109223843.GX4574@brightrain.aerifal.cx> <87mw5rtowa.fsf@x220.int.ebiederm.org>
+ <20150110013324.GB4574@brightrain.aerifal.cx>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=Windows-1252
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from us01smtprelay-2.synopsys.com ([198.182.60.111]:33157 "EHLO
-	smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752234AbbALLNW convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 12 Jan 2015 06:13:22 -0500
-Content-Language: en-US
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Jiri Olsa <jolsa@redhat.com>
-Cc: "acme@redhat.com" <acme@redhat.com>, "namhyung@kernel.org" <namhyung@kernel.org>, "peterz@infradead.org" <peterz@infradead.org>, "jolsa@kernel.org" <jolsa@kernel.org>, "mingo@kernel.org" <mingo@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-perf-users@vger.kernel.org" <linux-perf-users@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "Alexey.Brodkin@synopsys.com" <Alexey.Brodkin@synopsys.com>
+Content-Type: text/plain; charset=UTF-8
+Return-path: <sparclinux-owner@vger.kernel.org>
+In-Reply-To: <20150110013324.GB4574@brightrain.aerifal.cx>
+Sender: sparclinux-owner@vger.kernel.org
+To: Rich Felker <dalias@aerifal.cx>
+Cc: "Eric W. Biederman" <ebiederm@xmission.com>, Al Viro <viro@zeniv.linux.org.uk>, "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>, Andy Lutomirski <luto@amacapital.net>, Meredydd Luff <meredydd@senatehouse.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Thomas Gleixner <tglx@linutronix.de>, Stephen Rothwell <sfr@canb.auug.org.au>, Oleg Nesterov <oleg@redhat.com>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Christoph Hellwig <hch@infradead.org>, X86 ML <x86@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, sparclinux@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-Hi Jiri,
+On Sat, Jan 10, 2015 at 1:33 AM, Rich Felker <dalias@aerifal.cx> wrote:
+> On Fri, Jan 09, 2015 at 07:17:41PM -0600, Eric W. Biederman wrote:
+>> Rich Felker <dalias@aerifal.cx> writes:
+>>
+>> > I'm not proposing code because I'm a libc developer not a kernel
+>> > developer. I know what's needed for userspace to provide a conforming
+>> > fexecve to applications, not how to implement that on the kernel side,
+>> > although I'm trying to provide constructive ideas. The hostility is
+>> > really not necessary.
+>>
+>> Conforming to what?
+>>
+>> The open group fexecve says nothing about requiring a file descriptor
+>> passed to fexecve to have O_CLOEXEC.
+>
+> It doesn't require it but it allows it, and in multithreaded programs
+> that might run child processes (or library code that might be used in
+> such situations), O_CLOEXEC is mandatory everywhere to avoid fd leaks.
 
-On Monday 12 January 2015 04:35 PM, Jiri Olsa wrote:
-> On Sat, Jan 10, 2015 at 04:40:54PM +0530, Vineet Gupta wrote:
->
-> SNIP
->
->> [SNIP]
->>  	test-timerfd.bin		\
->>  	test-libdw-dwarf-unwind.bin	\
->> @@ -47,6 +48,9 @@ test-all.bin:
->>  test-hello.bin:
->>  	$(BUILD)
->> =20
->> +test-pthread-attr-setaffinity-np.bin:
->> +	$(BUILD) -Werror
-> this does not works for me unless I add -lpthread (check patch below)
-> is it possible you pushed that through LDFLAGS?
->
-> otherwise I'm getting following error:
-> 	---
-> 	In file included from bench/futex-hash.c:17:0:
-> 	bench/futex.h:73:19: error: conflicting types for =91pthread_attr_se=
-taffinity_np=92
-> 	 static inline int pthread_attr_setaffinity_np(pthread_attr_t *attr,
-> [snip]
-> 			   ^
-> 	In file included from bench/futex.h:72:0,
-> 			 from bench/futex-requeue.c:17:
-> 	/usr/include/pthread.h:407:12: note: previous declaration of =91pthr=
-ead_attr_setaffinity_np=92 was here
-> 	 extern int pthread_attr_setaffinity_np (pthread_attr_t *__attr,
-> 		    ^
-> 	make[1]: *** [bench/futex-requeue.o] Error 1
-> 	make: *** [all] Error 2
-> 	---
->
-> my system is x86_64 on F20
->
-> thanks,
-> jirka
->
->
-> diff --git a/tools/perf/config/feature-checks/Makefile b/tools/perf/c=
-onfig/feature-checks/Makefile
-> index e9b99bb29348..42ac05aaf8ac 100644
-> --- a/tools/perf/config/feature-checks/Makefile
-> +++ b/tools/perf/config/feature-checks/Makefile
-> @@ -49,7 +49,7 @@ test-hello.bin:
->  	$(BUILD)
-> =20
->  test-pthread-attr-setaffinity-np.bin:
-> -	$(BUILD) -Werror
-> +	$(BUILD) -Werror -lpthread
-> =20
->  test-stackprotector-all.bin:
->  	$(BUILD) -Werror -fstack-protector-all
+As a naive idea related to Andy's suggestion elsewhere, could you
+just have an environment convention for fexecve-ing scripts?  That
+would reduce FD leaks without any need for kernel involvement/changes.
 
-Right - that fix is indeed needed to make it pass. Thing is, with my uC=
-libc config
-it always fails - so I couldn't make it fail because of this reason :-)
+For example, set _FEXECVED_VIA_FD=4 but don't set
+O_CLOEXEC before fexecve, and the interpreter reads then
+closes that FD.  Or just get the interpreter to spot scripts named
+"/dev/fd/%d" and read-then-close the FD that way, cf. Eric's suggestion
+at https://lkml.org/lkml/2014/10/22/652.
 
-I'll add that hunk in v3.
-
-Thx,
--Vineet
+By the way, FreeBSD has a fexecve(2) syscall that behaves
+in the same way as the current Linux code for an O_CLOEXEC
+script -- the interpreter fails to open "/dev/fd/6" as it's gone.
+Do you know if there are any other OSes that already do
+something more sophisticated for this case?
