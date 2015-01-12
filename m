@@ -1,67 +1,95 @@
-From: Rich Felker <dalias@aerifal.cx>
-Subject: Re: [PATCHv10 man-pages 5/5] execveat.2: initial man page for
- execveat(2)
-Date: Mon, 12 Jan 2015 11:07:21 -0500
-Message-ID: <20150112160721.GJ4574@brightrain.aerifal.cx>
-References: <20150109204815.GR4574@brightrain.aerifal.cx>
- <20150109205626.GK22149@ZenIV.linux.org.uk>
- <20150109205926.GT4574@brightrain.aerifal.cx>
- <20150109210941.GL22149@ZenIV.linux.org.uk>
- <20150109212852.GU4574@brightrain.aerifal.cx>
- <87lhlbvbzs.fsf@x220.int.ebiederm.org>
- <20150109223843.GX4574@brightrain.aerifal.cx>
- <87mw5rtowa.fsf@x220.int.ebiederm.org>
- <20150110013324.GB4574@brightrain.aerifal.cx>
- <CAHse=S822QjRE_FF6JHi-5cUsrXHJnyjRwYJuyYn2O6tsz2dHQ@mail.gmail.com>
+From: Chris Metcalf <cmetcalf@ezchip.com>
+Subject: Re: [PATCH v2 22/40] tile: fix put_user sparse errors
+Date: Mon, 12 Jan 2015 16:56:54 -0500
+Message-ID: <54B44326.6010501@ezchip.com>
+References: <1420558883-10131-1-git-send-email-mst@redhat.com> <1420558883-10131-23-git-send-email-mst@redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 216-12-86-13.cv.mvl.ntelos.net ([216.12.86.13]:36487 "EHLO
-	brightrain.aerifal.cx" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751537AbbALQIH (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 12 Jan 2015 11:08:07 -0500
-Content-Disposition: inline
-In-Reply-To: <CAHse=S822QjRE_FF6JHi-5cUsrXHJnyjRwYJuyYn2O6tsz2dHQ@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: David Drysdale <drysdale@google.com>
-Cc: "Eric W. Biederman" <ebiederm@xmission.com>, Al Viro <viro@zeniv.linux.org.uk>, "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>, Andy Lutomirski <luto@amacapital.net>, Meredydd Luff <meredydd@senatehouse.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Thomas Gleixner <tglx@linutronix.de>, Stephen Rothwell <sfr@canb.auug.org.au>, Oleg Nesterov <oleg@redhat.com>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Christoph Hellwig <hch@infradead.org>, X86 ML <x86@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, sparclinux@vger.kernel.org
+Content-Type: text/plain; charset="windows-1252"; format=flowed
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1420558883-10131-23-git-send-email-mst@redhat.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: "Michael S. Tsirkin" <mst@redhat.com>, linux-kernel@vger.kernel.org
+Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Mon, Jan 12, 2015 at 11:33:49AM +0000, David Drysdale wrote:
-> On Sat, Jan 10, 2015 at 1:33 AM, Rich Felker <dalias@aerifal.cx> wrote:
-> > On Fri, Jan 09, 2015 at 07:17:41PM -0600, Eric W. Biederman wrote:
-> >> Rich Felker <dalias@aerifal.cx> writes:
-> >>
-> >> > I'm not proposing code because I'm a libc developer not a kernel
-> >> > developer. I know what's needed for userspace to provide a conforming
-> >> > fexecve to applications, not how to implement that on the kernel side,
-> >> > although I'm trying to provide constructive ideas. The hostility is
-> >> > really not necessary.
-> >>
-> >> Conforming to what?
-> >>
-> >> The open group fexecve says nothing about requiring a file descriptor
-> >> passed to fexecve to have O_CLOEXEC.
-> >
-> > It doesn't require it but it allows it, and in multithreaded programs
-> > that might run child processes (or library code that might be used in
-> > such situations), O_CLOEXEC is mandatory everywhere to avoid fd leaks.
-> 
-> As a naive idea related to Andy's suggestion elsewhere, could you
-> just have an environment convention for fexecve-ing scripts?  That
-> would reduce FD leaks without any need for kernel involvement/changes.
-> 
-> For example, set _FEXECVED_VIA_FD=4 but don't set
-> O_CLOEXEC before fexecve, and the interpreter reads then
-> closes that FD.  Or just get the interpreter to spot scripts named
-> "/dev/fd/%d" and read-then-close the FD that way, cf. Eric's suggestion
-> at https://lkml.org/lkml/2014/10/22/652.
+Nack for this patch as-is.
 
-No. Any omission of O_CLOEXEC even momentarily is a potentially
-dangerous fd leak. This is the case whenever the process is
-multithreaded and it's possible that other threads might fork and
-exec. Think of the case of a privileged daemon re-execing itself (e.g.
-to switch to an updated version) while there are potentially other
-threads spawning non-privileged processes.
+On 1/6/2015 10:44 AM, Michael S. Tsirkin wrote:
+> virtio wants to write bitwise types to userspace using put_user.
+> At the moment this triggers sparse errors, since the value is passed
+> through an integer.
+>
+> For example:
+>
+> 	__le32 __user *p;
+> 	__le32 x;
+> 	put_user(x, p);
+>
+> is safe, but currently triggers a sparse warning on tile.
+>
+> The reason has to do with this code:
+> 	__typeof((x)-(x))
+> which seems to be a way to force check for an integer type.
 
-Rich
+No, it's purely a way to avoid
+
+   warning: cast from pointer to integer of different size
+
+at every place we invoke put_user() with a pointer - which is
+in fact pretty frequent throughout the kernel.  The idiom of
+casting to the difference of the type converts it to a type
+of the same size as the input (whether integral or pointer),
+but guaranteed to be an integral type.  Then from there it's safe
+to cast it on to a u64 without generating a warning.
+
+I agree that letting sparse work correctly in this case seems
+like an important goal.  But I don't think we can tolerate
+adding a raft of warnings to the standard kernel build for this
+case, and we also can't just delete the put_user_8 case altogether,
+since it's used for various things even in 32-bit kernels.
+
+I suppose we could do something like the following.  It's mildly
+unfortunate that we'd lose out on some inlining optimization, though:
+
+--- a/arch/tile/include/asm/uaccess.h
++++ b/arch/tile/include/asm/uaccess.h
+@@ -244,24 +244,8 @@ extern int __get_user_bad(void)
+  #define __put_user_1(x, ptr, ret) __put_user_asm(sb, x, ptr, ret)
+  #define __put_user_2(x, ptr, ret) __put_user_asm(sh, x, ptr, ret)
+  #define __put_user_4(x, ptr, ret) __put_user_asm(sw, x, ptr, ret)
+-#define __put_user_8(x, ptr, ret)                                      \
+-       ({                                                              \
+-               u64 __x = (__typeof((x)-(x)))(x);                       \
+-               int __lo = (int) __x, __hi = (int) (__x >> 32);         \
+-               asm volatile("1: { sw %1, %2; addi %0, %1, 4 }\n"       \
+-                            "2: { sw %0, %3; movei %0, 0 }\n"          \
+-                            ".pushsection .fixup,\"ax\"\n"             \
+-                            "0: { movei %0, %4; j 9f }\n"              \
+-                            ".section __ex_table,\"a\"\n"              \
+-                            ".align 4\n"                               \
+-                            ".word 1b, 0b\n"                           \
+-                            ".word 2b, 0b\n"                           \
+-                            ".popsection\n"                            \
+-                            "9:"                                       \
+-                            : "=&r" (ret)                              \
+-                            : "r" (ptr), "r" (__lo32(__lo, __hi)),     \
+-                            "r" (__hi32(__lo, __hi)), "i" (-EFAULT));  \
+-       })
++#define __put_user_8(x, ptr, ret) \
++  (ret = __copy_to_user_inatomic(ptr, &x, 8) == 0 ? 0 : -EFAULT)
+  #endif
+
+  extern int __put_user_bad(void)
+
+
+> Since this is part of __put_user_8 which is only ever used
+> for unsigned and signed char types, this seems unnecessary -
+> I also note that no other architecture has such protections.
+
+Maybe because none of the other 32-bit kernel architectures provide
+a 64-bit inline for put_user().
+
+-- 
+Chris Metcalf, EZChip Semiconductor
+http://www.ezchip.com
