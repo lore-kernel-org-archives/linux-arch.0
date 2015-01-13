@@ -1,34 +1,80 @@
-From: Chris Metcalf <cmetcalf@ezchip.com>
-Subject: Re: [PATCH v2 22/40] tile: fix put_user sparse errors
-Date: Tue, 13 Jan 2015 08:30:41 -0500
-Message-ID: <54B51E01.20509@ezchip.com>
-References: <1420558883-10131-1-git-send-email-mst@redhat.com> <1420558883-10131-23-git-send-email-mst@redhat.com> <54B44326.6010501@ezchip.com> <20150113093535.GA4434@redhat.com>
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Subject: [PATCH v3 0/5] Perf tool fixes for ARC + uClibc
+Date: Tue, 13 Jan 2015 19:13:19 +0530
+Message-ID: <1421156604-30603-1-git-send-email-vgupta@synopsys.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="windows-1252"; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-db3on0092.outbound.protection.outlook.com ([157.55.234.92]:49010
-	"EHLO emea01-db3-obe.outbound.protection.outlook.com"
-	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1751093AbbAMNa4 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 13 Jan 2015 08:30:56 -0500
-In-Reply-To: <20150113093535.GA4434@redhat.com>
+Received: from us01smtprelay-2.synopsys.com ([198.182.47.9]:38982 "EHLO
+	smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752063AbbAMNnr (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 13 Jan 2015 08:43:47 -0500
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Michael S. Tsirkin" <mst@redhat.com>
-Cc: linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org
+To: acme@redhat.com, namhyung@kernel.org, jolsa@kernel.org
+Cc: peterz@infradead.org, mingo@kernel.org, linux-kernel@vger.kernel.org, linux-perf-users@vger.kernel.org, linux-arch@vger.kernel.org, Alexey.Brodkin@synopsys.com, Vineet Gupta <Vineet.Gupta1@synopsys.com>
 
-On 1/13/2015 4:35 AM, Michael S. Tsirkin wrote:
-> I wonder why didn't
-> kbuild notify me about new warnings. Doesn't it build tile?
+Hi,
 
-Kbuild builds tilegx, which is an LP64 kernel.  These issues are with the
-older platform, tilepro, which is an ILP32 kernel.
+This series based off linux-next of 20150105 allows us to build/use perf
+for ARC with uClibc based userland.
 
-There's certainly no reason we couldn't be building that with kbuild
-as well, but for whatever reason it just never started up, and I'm
-primarily concerned with tilegx anyway, so I haven't pushed.
+v3: Changes since v2 [2]
+* 1/5	: Ack from Jiri
+* 2/5	: no changes
+* 3/5	: sys/syscall.h included	  [Jiri]
+* 4/5	: no changes
+* 5/5	: -lpthread added to link target  [Jiri]
+* {1,5} : Changelog updated so scissor lines don't start at column 1
+
+v2: Change since v1 [1]
+* [1-3]/5 : no changes
+* 4/5     : Make perf_evsel__alloc_id agnostic of zero threads [Namhyung Kim]
+* 5/5     : Add missing test file
+
+v1:
+* 1/5 is really a resend of old patch posted by Alexey a while back
+* 2/5 is uClibc build spew seen on ARM as well
+* 3/5 likewise
+* 4/5 is uClibc config specific
+* 5/5 is uClibc pthread library flavour specific
+  It adds a stub for pthread_attr_setaffinity_np
+  I can rework it to disable the futex tests altogether if people think that is
+  cleaner
+
+Please review and consider applying.
+W/o these perf doesn't build and/or work for ARC.
+
+[1] http://www.spinics.net/linux/lists/kernel/msg1897268.html
+[2] http://www.spinics.net/linux/lists/kernel/msg1900706.html
+
+Thx,
+-Vineet
+
+
+Alexey Brodkin (1):
+  perf tools: [uclibc] fix statfs.f_type data type mismatch build error
+
+Vineet Gupta (4):
+  perf tools: [uclibc] Elide strlcpy warning
+  perf tools: [uclibc] Avoid build splat for syscall numbers
+  perf tools: [uclibc] don't rely on glibc malloc working for sz 0
+  perf tools: [uclibc] provide stub for pthread_attr_setaffinity_np
+
+ tools/lib/api/fs/debugfs.c                                 |  2 +-
+ tools/lib/api/fs/fs.c                                      |  2 +-
+ tools/perf/bench/futex.h                                   | 13 +++++++++++++
+ tools/perf/bench/sched-pipe.c                              |  2 +-
+ tools/perf/builtin-top.c                                   |  1 -
+ tools/perf/config/Makefile                                 |  6 ++++++
+ tools/perf/config/feature-checks/Makefile                  |  4 ++++
+ tools/perf/config/feature-checks/test-all.c                |  5 +++++
+ .../feature-checks/test-pthread-attr-setaffinity-np.c      | 14 ++++++++++++++
+ tools/perf/perf-sys.h                                      |  1 -
+ tools/perf/util/cache.h                                    |  2 ++
+ tools/perf/util/evsel.c                                    |  3 +++
+ 12 files changed, 50 insertions(+), 5 deletions(-)
+ create mode 100644 tools/perf/config/feature-checks/test-pthread-attr-setaffinity-np.c
 
 -- 
-Chris Metcalf, EZChip Semiconductor
-http://www.ezchip.com
+1.9.1
