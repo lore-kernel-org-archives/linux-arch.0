@@ -1,63 +1,47 @@
-From: "Michael S. Tsirkin" <mst@redhat.com>
-Subject: Re: [PATCH v2 23/40] tile: enable sparse checks for get/put_user
-Date: Tue, 13 Jan 2015 18:05:04 +0200
-Message-ID: <20150113160504.GA19487@redhat.com>
-References: <1420558883-10131-1-git-send-email-mst@redhat.com>
- <1420558883-10131-24-git-send-email-mst@redhat.com>
- <54B46204.1010003@ezchip.com>
- <20150113094554.GB4434@redhat.com>
- <54B53FEE.2090903@ezchip.com>
+From: Will Deacon <will.deacon@arm.com>
+Subject: Behaviour of smp_mb__{before,after}_spin* and acquire/release
+Date: Tue, 13 Jan 2015 16:33:54 +0000
+Message-ID: <20150113163353.GE31784@arm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:57634 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752473AbbAMQFS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 13 Jan 2015 11:05:18 -0500
+Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <54B53FEE.2090903@ezchip.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Chris Metcalf <cmetcalf@ezchip.com>
-Cc: linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org
+Sender: linux-kernel-owner@vger.kernel.org
+To: paulmck@linux.vnet.ibm.com, peterz@infradead.org
+Cc: torvalds@linux-foundation.org, oleg@redhat.com, benh@kernel.crashing.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, Jan 13, 2015 at 10:55:26AM -0500, Chris Metcalf wrote:
-> On 1/13/2015 4:45 AM, Michael S. Tsirkin wrote:
-> >On Mon, Jan 12, 2015 at 07:08:36PM -0500, Chris Metcalf wrote:
-> >>The key changes are to copy the x86 definition of __inttype(), and then to
-> >>arrange to use an intermediate integral type that gets assigned to or from
-> >>the actual typed value so as to expose any sparse issues.
-> >>
-> >>If this works for you, I'm happy to queue it in the tile tree, or I can
-> >>provide a proper git commit for you to include in your series, whichever
-> >>works better for you.
-> >Please queue it up for 3.20. Extra __force is needed in a couple of
-> >places - would you like to fix this up yourself, or do you want me to
-> >write a patch on top?
-> 
-> I'll fold in your suggestions to my patch.
-> 
-> >>@@ -178,7 +178,7 @@ extern int fixup_exception(struct pt_regs *regs);
-> >>                              "9:"                                       \
-> >>                              : "=r" (ret), "=r" (__a), "=&r" (__b)      \
-> >>                              : "r" (ptr), "i" (-EFAULT));               \
-> >>-               (x) = (__typeof(x))(__typeof((x)-(x)))                  \
-> >>+               (x) = (__typeof(x))(__inttype(x))                       \
-> >>                         (((u64)__hi32(__a, __b) << 32) |                \
-> >>                          __lo32(__a, __b));                             \
-> >>         })
-> >This cast to __typeof(x) needs to be done with __force, otherwise
-> >there will be a warning with bitwise types.
-> 
-> Actually, this place no longer needs any casting at all, on reflection.
-> I've changed the __get_user() code to do the "get" into an __inttype
-> uniformly, so __get_user_8 will always have a u64 type for "x" here.
-> 
-> I'll cc you on the updated patch, so if you'd like to add your
-> Reviewed-by tag to it, let me know.
+Hi Paul,
 
-Sure.
+I started dusting off a series I've been working to implement a relaxed
+atomic API in Linux (i.e. things like atomic_read(v, ACQUIRE)) but I'm
+having trouble making sense of the ordering semantics we have in mainline
+today:
 
-> -- 
-> Chris Metcalf, EZChip Semiconductor
-> http://www.ezchip.com
+  1. Does smp_mb__before_spinlock actually have to order prior loads
+     against later loads and stores? Documentation/memory-barriers.txt
+     says it does, but that doesn't match the comment (or implementation)
+     in include/linux/spinlock.h
+
+  2. Does smp_mb__after_unlock_lock order smp_store_release against
+     smp_load_acquire? Again, Documentation/memory-barriers.txt puts
+     these operations into the RELEASE and ACQUIRE classes respectively,
+     but since smp_mb__after_unlock_lock is a NOP everywhere other than
+     PowerPC, I don't think this is enforced by the current code. Most
+     architectures follow the pattern used by asm-generic/barrier.h:
+
+       release: smp_mb(); STORE
+       acquire: LOAD; smp_mb();
+
+     which doesn't provide any release -> acquire ordering afaict.
+
+My plan for the atomics was to add acquire, release, acquire + release
+and unordered variants, where the acquire/release semantics would
+actually be sequentially consistent. That allows us to implement the
+existing atomics easily in terms of the new API, but it's different
+to what we're doing for the smp_load_acquire and smp_store_release
+functions above.
+
+Cheers,
+
+Will
