@@ -1,77 +1,74 @@
-From: Christian Borntraeger <borntraeger@de.ibm.com>
-Subject: [GIT PULL 1/1] kernel: Change ASSIGN_ONCE(val, x) to WRITE_ONCE(x, val)
-Date: Tue, 13 Jan 2015 21:25:05 +0100
-Message-ID: <1421180705-44875-2-git-send-email-borntraeger@de.ibm.com>
-References: <1421180705-44875-1-git-send-email-borntraeger@de.ibm.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e06smtp11.uk.ibm.com ([195.75.94.107]:42525 "EHLO
-	e06smtp11.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751540AbbAMUZM (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 13 Jan 2015 15:25:12 -0500
-Received: from /spool/local
-	by e06smtp11.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <borntraeger@de.ibm.com>;
-	Tue, 13 Jan 2015 20:25:10 -0000
-In-Reply-To: <1421180705-44875-1-git-send-email-borntraeger@de.ibm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, torvalds@linux-foundation.org
-Cc: Peter Zijlstra <peterz@infradead.org>, Davidlohr Bueso <dave@stgolabs.net>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, linux-arch@vger.kernel.org, Christian Borntraeger <borntraeger@de.ibm.com>
+From: "Michael S. Tsirkin" <mst@redhat.com>
+Subject: Re: [PATCH 1/2] tile: fix put_user sparse errors
+Date: Wed, 14 Jan 2015 00:29:25 +0200
+Message-ID: <20150113222925.GA23641@redhat.com>
+References: <201501131950.t0DJognR027020@lab-37.internal.tilera.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <201501131950.t0DJognR027020@lab-37.internal.tilera.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Chris Metcalf <cmetcalf@ezchip.com>
+Cc: linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-Feedback has shown that WRITE_ONCE(x, val) is easier to use than
-ASSIGN_ONCE(val,x).
-There are no in-tree users yet, so lets change it for 3.19.
+On Tue, Jan 13, 2015 at 02:39:05PM -0500, Chris Metcalf wrote:
+> Use x86's __inttype macro instead of using the typeof(x-x) trick to
+> generate a suitable integer size type.  This avoids a sparse warning
+> when examining the x-x type with a bitwise type.
+> 
+> Signed-off-by: Chris Metcalf <cmetcalf@ezchip.com>
 
-Signed-off-by: Christian Borntraeger <borntraeger@de.ibm.com>
-Acked-by: Peter Zijlstra <peterz@infradead.org>
-Acked-by: Davidlohr Bueso <dave@stgolabs.net>
-Acked-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
----
- include/linux/compiler.h | 12 ++++++------
- 1 file changed, 6 insertions(+), 6 deletions(-)
+Reviewed-by: Michael S. Tsirkin <mst@redhat.com>
 
-diff --git a/include/linux/compiler.h b/include/linux/compiler.h
-index a1c81f8..33063f8 100644
---- a/include/linux/compiler.h
-+++ b/include/linux/compiler.h
-@@ -215,7 +215,7 @@ static __always_inline void __read_once_size(volatile void *p, void *res, int si
- 	}
- }
- 
--static __always_inline void __assign_once_size(volatile void *p, void *res, int size)
-+static __always_inline void __write_once_size(volatile void *p, void *res, int size)
- {
- 	switch (size) {
- 	case 1: *(volatile __u8 *)p = *(__u8 *)res; break;
-@@ -235,15 +235,15 @@ static __always_inline void __assign_once_size(volatile void *p, void *res, int
- /*
-  * Prevent the compiler from merging or refetching reads or writes. The
-  * compiler is also forbidden from reordering successive instances of
-- * READ_ONCE, ASSIGN_ONCE and ACCESS_ONCE (see below), but only when the
-+ * READ_ONCE, WRITE_ONCE and ACCESS_ONCE (see below), but only when the
-  * compiler is aware of some particular ordering.  One way to make the
-  * compiler aware of ordering is to put the two invocations of READ_ONCE,
-- * ASSIGN_ONCE or ACCESS_ONCE() in different C statements.
-+ * WRITE_ONCE or ACCESS_ONCE() in different C statements.
-  *
-  * In contrast to ACCESS_ONCE these two macros will also work on aggregate
-  * data types like structs or unions. If the size of the accessed data
-  * type exceeds the word size of the machine (e.g., 32 bits or 64 bits)
-- * READ_ONCE() and ASSIGN_ONCE()  will fall back to memcpy and print a
-+ * READ_ONCE() and WRITE_ONCE()  will fall back to memcpy and print a
-  * compile-time warning.
-  *
-  * Their two major use cases are: (1) Mediating communication between
-@@ -257,8 +257,8 @@ static __always_inline void __assign_once_size(volatile void *p, void *res, int
- #define READ_ONCE(x) \
- 	({ typeof(x) __val; __read_once_size(&x, &__val, sizeof(__val)); __val; })
- 
--#define ASSIGN_ONCE(val, x) \
--	({ typeof(x) __val; __val = val; __assign_once_size(&x, &__val, sizeof(__val)); __val; })
-+#define WRITE_ONCE(x, val) \
-+	({ typeof(x) __val; __val = val; __write_once_size(&x, &__val, sizeof(__val)); __val; })
- 
- #endif /* __KERNEL__ */
- 
--- 
-1.9.3
+> ---
+>  arch/tile/include/asm/uaccess.h | 18 +++++++++---------
+>  1 file changed, 9 insertions(+), 9 deletions(-)
+> 
+> diff --git a/arch/tile/include/asm/uaccess.h b/arch/tile/include/asm/uaccess.h
+> index b6cde3209b96..b81b24a8489b 100644
+> --- a/arch/tile/include/asm/uaccess.h
+> +++ b/arch/tile/include/asm/uaccess.h
+> @@ -114,14 +114,14 @@ struct exception_table_entry {
+>  extern int fixup_exception(struct pt_regs *regs);
+>  
+>  /*
+> + * This is a type: either unsigned long, if the argument fits into
+> + * that type, or otherwise unsigned long long.
+> + */
+> +#define __inttype(x) \
+> +	__typeof__(__builtin_choose_expr(sizeof(x) > sizeof(0UL), 0ULL, 0UL))
+> +
+> +/*
+>   * Support macros for __get_user().
+> - *
+> - * Implementation note: The "case 8" logic of casting to the type of
+> - * the result of subtracting the value from itself is basically a way
+> - * of keeping all integer types the same, but casting any pointers to
+> - * ptrdiff_t, i.e. also an integer type.  This way there are no
+> - * questionable casts seen by the compiler on an ILP32 platform.
+> - *
+>   * Note that __get_user() and __put_user() assume proper alignment.
+>   */
+>  
+> @@ -178,7 +178,7 @@ extern int fixup_exception(struct pt_regs *regs);
+>  			     "9:"					\
+>  			     : "=r" (ret), "=r" (__a), "=&r" (__b)	\
+>  			     : "r" (ptr), "i" (-EFAULT));		\
+> -		(x) = (__typeof(x))(__typeof((x)-(x)))			\
+> +		(x) = (__force __typeof(x))(__inttype(x))		\
+>  			(((u64)__hi32(__a, __b) << 32) |		\
+>  			 __lo32(__a, __b));				\
+>  	})
+> @@ -246,7 +246,7 @@ extern int __get_user_bad(void)
+>  #define __put_user_4(x, ptr, ret) __put_user_asm(sw, x, ptr, ret)
+>  #define __put_user_8(x, ptr, ret)					\
+>  	({								\
+> -		u64 __x = (__typeof((x)-(x)))(x);			\
+> +		u64 __x = (__force __inttype(x))(x);			\
+>  		int __lo = (int) __x, __hi = (int) (__x >> 32);		\
+>  		asm volatile("1: { sw %1, %2; addi %0, %1, 4 }\n"	\
+>  			     "2: { sw %0, %3; movei %0, 0 }\n"		\
+> -- 
+> 2.1.2
