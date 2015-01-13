@@ -1,160 +1,57 @@
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: [PATCH v3 5/5] perf tools: [uclibc] provide stub for pthread_attr_setaffinity_np
-Date: Tue, 13 Jan 2015 19:13:24 +0530
-Message-ID: <1421156604-30603-6-git-send-email-vgupta@synopsys.com>
-References: <1421156604-30603-1-git-send-email-vgupta@synopsys.com>
+From: Chris Metcalf <cmetcalf@ezchip.com>
+Subject: Re: [PATCH v2 23/40] tile: enable sparse checks for get/put_user
+Date: Tue, 13 Jan 2015 10:55:26 -0500
+Message-ID: <54B53FEE.2090903@ezchip.com>
+References: <1420558883-10131-1-git-send-email-mst@redhat.com> <1420558883-10131-24-git-send-email-mst@redhat.com> <54B46204.1010003@ezchip.com> <20150113094554.GB4434@redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1421156604-30603-1-git-send-email-vgupta@synopsys.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: acme@redhat.com, namhyung@kernel.org, jolsa@kernel.org
-Cc: peterz@infradead.org, mingo@kernel.org, linux-kernel@vger.kernel.org, linux-perf-users@vger.kernel.org, linux-arch@vger.kernel.org, Alexey.Brodkin@synopsys.com, Vineet Gupta <Vineet.Gupta1@synopsys.com>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="windows-1252"; format=flowed
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-db3on0068.outbound.protection.outlook.com ([157.55.234.68]:7403
+	"EHLO emea01-db3-obe.outbound.protection.outlook.com"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1752603AbbAMPzq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 13 Jan 2015 10:55:46 -0500
+In-Reply-To: <20150113094554.GB4434@redhat.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: "Michael S. Tsirkin" <mst@redhat.com>
+Cc: linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org
 
-uClibc Linuxthreads.old doesnt support pthread_attr_setaffinity_np()
-call
+On 1/13/2015 4:45 AM, Michael S. Tsirkin wrote:
+> On Mon, Jan 12, 2015 at 07:08:36PM -0500, Chris Metcalf wrote:
+>> The key changes are to copy the x86 definition of __inttype(), and then to
+>> arrange to use an intermediate integral type that gets assigned to or from
+>> the actual typed value so as to expose any sparse issues.
+>>
+>> If this works for you, I'm happy to queue it in the tile tree, or I can
+>> provide a proper git commit for you to include in your series, whichever
+>> works better for you.
+> Please queue it up for 3.20. Extra __force is needed in a couple of
+> places - would you like to fix this up yourself, or do you want me to
+> write a patch on top?
 
-   ----------------->8-----------------------
-  CC       bench/futex-hash.o
-  CC       bench/futex-wake.o
-bench/futex-hash.c: In function 'bench_futex_hash':
-bench/futex-hash.c:161:3: error: implicit declaration of function
-'pthread_attr_setaffinity_np' [-Werror=implicit-function-declaration]
-   ret = pthread_attr_setaffinity_np(&thread_attr, sizeof(cpu_set_t),
-&cpu);
-   ^
-bench/futex-hash.c:161:3: error: nested extern declaration of
-'pthread_attr_setaffinity_np' [-Werror=nested-externs]
-   ----------------->8-----------------------
+I'll fold in your suggestions to my patch.
 
-Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
----
- tools/perf/bench/futex.h                                   | 13 +++++++++++++
- tools/perf/config/Makefile                                 |  6 ++++++
- tools/perf/config/feature-checks/Makefile                  |  4 ++++
- tools/perf/config/feature-checks/test-all.c                |  5 +++++
- .../feature-checks/test-pthread-attr-setaffinity-np.c      | 14 ++++++++++++++
- 5 files changed, 42 insertions(+)
- create mode 100644 tools/perf/config/feature-checks/test-pthread-attr-setaffinity-np.c
+>> @@ -178,7 +178,7 @@ extern int fixup_exception(struct pt_regs *regs);
+>>                               "9:"                                       \
+>>                               : "=r" (ret), "=r" (__a), "=&r" (__b)      \
+>>                               : "r" (ptr), "i" (-EFAULT));               \
+>> -               (x) = (__typeof(x))(__typeof((x)-(x)))                  \
+>> +               (x) = (__typeof(x))(__inttype(x))                       \
+>>                          (((u64)__hi32(__a, __b) << 32) |                \
+>>                           __lo32(__a, __b));                             \
+>>          })
+> This cast to __typeof(x) needs to be done with __force, otherwise
+> there will be a warning with bitwise types.
 
-diff --git a/tools/perf/bench/futex.h b/tools/perf/bench/futex.h
-index 71f2844cf97f..7ed22ff1e1ac 100644
---- a/tools/perf/bench/futex.h
-+++ b/tools/perf/bench/futex.h
-@@ -68,4 +68,17 @@ futex_cmp_requeue(u_int32_t *uaddr, u_int32_t val, u_int32_t *uaddr2, int nr_wak
- 		 val, opflags);
- }
- 
-+#ifndef HAVE_PTHREAD_ATTR_SETAFFINITY_NP
-+#include <pthread.h>
-+static inline int pthread_attr_setaffinity_np(pthread_attr_t *attr,
-+					      size_t cpusetsize,
-+					      cpu_set_t *cpuset)
-+{
-+	attr = attr;
-+	cpusetsize = cpusetsize;
-+	cpuset = cpuset;
-+	return 0;
-+}
-+#endif
-+
- #endif /* _FUTEX_H */
-diff --git a/tools/perf/config/Makefile b/tools/perf/config/Makefile
-index 5d4b039fe1ed..6b59662136fa 100644
---- a/tools/perf/config/Makefile
-+++ b/tools/perf/config/Makefile
-@@ -198,6 +198,7 @@ CORE_FEATURE_TESTS =			\
- 	libpython-version		\
- 	libslang			\
- 	libunwind			\
-+	pthread-attr-setaffinity-np	\
- 	stackprotector-all		\
- 	timerfd				\
- 	libdw-dwarf-unwind		\
-@@ -226,6 +227,7 @@ VF_FEATURE_TESTS =			\
- 	libelf-getphdrnum		\
- 	libelf-mmap			\
- 	libpython-version		\
-+	pthread-attr-setaffinity-np	\
- 	stackprotector-all		\
- 	timerfd				\
- 	libunwind-debug-frame		\
-@@ -301,6 +303,10 @@ ifeq ($(feature-sync-compare-and-swap), 1)
-   CFLAGS += -DHAVE_SYNC_COMPARE_AND_SWAP_SUPPORT
- endif
- 
-+ifeq ($(feature-pthread-attr-setaffinity-np), 1)
-+  CFLAGS += -DHAVE_PTHREAD_ATTR_SETAFFINITY_NP
-+endif
-+
- ifndef NO_BIONIC
-   $(call feature_check,bionic)
-   ifeq ($(feature-bionic), 1)
-diff --git a/tools/perf/config/feature-checks/Makefile b/tools/perf/config/feature-checks/Makefile
-index 53f19b5dbc37..42ac05aaf8ac 100644
---- a/tools/perf/config/feature-checks/Makefile
-+++ b/tools/perf/config/feature-checks/Makefile
-@@ -25,6 +25,7 @@ FILES=					\
- 	test-libslang.bin		\
- 	test-libunwind.bin		\
- 	test-libunwind-debug-frame.bin	\
-+	test-pthread-attr-setaffinity-np.bin	\
- 	test-stackprotector-all.bin	\
- 	test-timerfd.bin		\
- 	test-libdw-dwarf-unwind.bin	\
-@@ -47,6 +48,9 @@ test-all.bin:
- test-hello.bin:
- 	$(BUILD)
- 
-+test-pthread-attr-setaffinity-np.bin:
-+	$(BUILD) -Werror -lpthread
-+
- test-stackprotector-all.bin:
- 	$(BUILD) -Werror -fstack-protector-all
- 
-diff --git a/tools/perf/config/feature-checks/test-all.c b/tools/perf/config/feature-checks/test-all.c
-index 652e0098eba6..6d4d09323922 100644
---- a/tools/perf/config/feature-checks/test-all.c
-+++ b/tools/perf/config/feature-checks/test-all.c
-@@ -97,6 +97,10 @@
- # include "test-zlib.c"
- #undef main
- 
-+#define main main_test_pthread_attr_setaffinity_np
-+# include "test-pthread_attr_setaffinity_np.c"
-+#undef main
-+
- int main(int argc, char *argv[])
- {
- 	main_test_libpython();
-@@ -121,6 +125,7 @@ int main(int argc, char *argv[])
- 	main_test_libdw_dwarf_unwind();
- 	main_test_sync_compare_and_swap(argc, argv);
- 	main_test_zlib();
-+	main_test_pthread_attr_setaffinity_np();
- 
- 	return 0;
- }
-diff --git a/tools/perf/config/feature-checks/test-pthread-attr-setaffinity-np.c b/tools/perf/config/feature-checks/test-pthread-attr-setaffinity-np.c
-new file mode 100644
-index 000000000000..0a0d3ecb4e8a
---- /dev/null
-+++ b/tools/perf/config/feature-checks/test-pthread-attr-setaffinity-np.c
-@@ -0,0 +1,14 @@
-+#include <stdint.h>
-+#include <pthread.h>
-+
-+int main(void)
-+{
-+	int ret = 0;
-+	pthread_attr_t thread_attr;
-+
-+	pthread_attr_init(&thread_attr);
-+	/* don't care abt exact args, just the API itself in libpthread */
-+	ret = pthread_attr_setaffinity_np(&thread_attr, 0, NULL);
-+
-+	return ret;
-+}
+Actually, this place no longer needs any casting at all, on reflection.
+I've changed the __get_user() code to do the "get" into an __inttype
+uniformly, so __get_user_8 will always have a u64 type for "x" here.
+
+I'll cc you on the updated patch, so if you'd like to add your
+Reviewed-by tag to it, let me know.
+
 -- 
-1.9.1
+Chris Metcalf, EZChip Semiconductor
+http://www.ezchip.com
