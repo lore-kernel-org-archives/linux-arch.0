@@ -1,68 +1,110 @@
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: Re: [PATCH v2 1/5] perf tools: [uclibc] fix statfs.f_type data type
- mismatch build error
-Date: Tue, 13 Jan 2015 04:49:42 +0000
-Message-ID: <C2D7FE5348E1B147BCA15975FBA2307565BCBBD6@IN01WEMBXA.internal.synopsys.com>
-References: <1420888254-17504-1-git-send-email-vgupta@synopsys.com>
- <1420888254-17504-2-git-send-email-vgupta@synopsys.com>
- <20150112110522.GC26229@krava.redhat.com> <20150113014757.GG29743@kernel.org>
+From: "Michael S. Tsirkin" <mst@redhat.com>
+Subject: Re: [PATCH v2 22/40] tile: fix put_user sparse errors
+Date: Tue, 13 Jan 2015 11:35:35 +0200
+Message-ID: <20150113093535.GA4434@redhat.com>
+References: <1420558883-10131-1-git-send-email-mst@redhat.com>
+ <1420558883-10131-23-git-send-email-mst@redhat.com>
+ <54B44326.6010501@ezchip.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 8BIT
-Return-path: <linux-perf-users-owner@vger.kernel.org>
-Content-Language: en-US
-Sender: linux-perf-users-owner@vger.kernel.org
-To: Arnaldo Carvalho de Melo <acme@redhat.com>, Jiri Olsa <jolsa@redhat.com>
-Cc: "namhyung@kernel.org" <namhyung@kernel.org>, "peterz@infradead.org" <peterz@infradead.org>, "jolsa@kernel.org" <jolsa@kernel.org>, "mingo@kernel.org" <mingo@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-perf-users@vger.kernel.org" <linux-perf-users@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "Alexey.Brodkin@synopsys.com" <Alexey.Brodkin@synopsys.com>, Borislav Petkov <bp@suse.de>, Cody P Schafer <dev@codyps.com>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mx1.redhat.com ([209.132.183.28]:49546 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751075AbbAMJft (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 13 Jan 2015 04:35:49 -0500
+Content-Disposition: inline
+In-Reply-To: <54B44326.6010501@ezchip.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Chris Metcalf <cmetcalf@ezchip.com>
+Cc: linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org
 
-On Tuesday 13 January 2015 07:18 AM, Arnaldo Carvalho de Melo wrote:
-
-Em Mon, Jan 12, 2015 at 12:05:22PM +0100, Jiri Olsa escreveu:
-
-
-> On Sat, Jan 10, 2015 at 04:40:50PM +0530, Vineet Gupta wrote:
-
-
-> > From: Alexey Brodkin <abrodkin@synopsys.com><mailto:abrodkin@synopsys.com>
+On Mon, Jan 12, 2015 at 04:56:54PM -0500, Chris Metcalf wrote:
+> Nack for this patch as-is.
+> 
+> On 1/6/2015 10:44 AM, Michael S. Tsirkin wrote:
+> >virtio wants to write bitwise types to userspace using put_user.
+> >At the moment this triggers sparse errors, since the value is passed
+> >through an integer.
 > >
-> > ARC Linux uses the no legacy syscalls abi and corresponding uClibc headers
-> > statfs defines f_type to be U32 which causes perf build breakage
+> >For example:
 > >
-> > http://git.uclibc.org/uClibc/tree/libc/sysdeps/linux/common-generic/bits/statfs.h
+> >	__le32 __user *p;
+> >	__le32 x;
+> >	put_user(x, p);
 > >
-> > ----------->8---------------
-> >   CC       fs/fs.o
-> > fs/fs.c: In function 'fs__valid_mount':
-> > fs/fs.c:82:24: error: comparison between signed and unsigned integer
-> > expressions [-Werror=sign-compare]
-> >   else if (st_fs.f_type != magic)
-> >                         ^
-> > cc1: all warnings being treated as errors
-> > ----------->8---------------
+> >is safe, but currently triggers a sparse warning on tile.
 > >
-> > Cc: Borislav Petkov <bp@suse.de><mailto:bp@suse.de>
-> > Cc: Jiri Olsa <jolsa@kernel.org><mailto:jolsa@kernel.org>
-> > Cc: Cody P Schafer <dev@codyps.com><mailto:dev@codyps.com>
-> > Cc: Arnaldo Carvalho de Melo <acme@redhat.com><mailto:acme@redhat.com>
-> > Cc: linux-perf-users@vger.kernel.org<mailto:linux-perf-users@vger.kernel.org>
-> > Cc: linux-kernel@vger.kernel.org<mailto:linux-kernel@vger.kernel.org>
-> > Signed-off-by: Alexey Brodkin <abrodkin@synopsys.com><mailto:abrodkin@synopsys.com>
-
-
+> >The reason has to do with this code:
+> >	__typeof((x)-(x))
+> >which seems to be a way to force check for an integer type.
+> 
+> No, it's purely a way to avoid
+> 
+>   warning: cast from pointer to integer of different size
+> 
+> at every place we invoke put_user() with a pointer - which is
+> in fact pretty frequent throughout the kernel.
 >
-> Acked-by: Jiri Olsa <jolsa@kernel.org><mailto:jolsa@kernel.org>
+>  The idiom of
+> casting to the difference of the type converts it to a type
+> of the same size as the input (whether integral or pointer),
+> but guaranteed to be an integral type.  Then from there it's safe
+> to cast it on to a u64 without generating a warning.
 
+Thanks for the comments.  OK, I see, though I wonder why didn't
+kbuild notify me about new warnings. Doesn't it build tile?
 
-Thanks, applied, but please do not start lines in the changelog comment
-with ---, that breaks some patch applying scripts. I fixed it up this
-time.
+So if you want to merge your patch, please let me know.
 
-Thx. I've udpated the changelogs so scissor lines start at column 3 with leading whitespace, is that OK or do you want me to remove those lines altogether. Also do u want me to drop this patch from v3 of series as I have some fixups for other patches.
+But I think the fix can be much simpler: unsigned long has the same property
+without any of the complexity, or problems with sparse.  So how about this:
 
-Thx,
--Vineet
+--->
 
+tile: fix put_user sparse errors
 
+virtio wants to write bitwise types to userspace using put_user.
+At the moment this triggers sparse errors, since the value is passed
+through an integer.
 
-- Arnaldo
+For example:
+
+__le32 __user *p;
+__le32 x;
+put_user(x, p);
+
+is safe, but currently triggers a sparse warning on tile.
+
+The reason has to do with this code:
+__typeof((x)-(x))
+which is a way to avoid cast from pointer to integer of different size
+warnings.
+
+Fix that up using __force unsigned long cast instead:
+this is similar to what many other architectures do.
+
+Note: this does not suppress any useful sparse checks since
+the original merely casted x to typeof(x-x).
+
+Tile currently does not trigger sparse warnings when get_user
+causes an illegal assignment across bitwise types.
+This patch does not attempt to fix this.
+
+Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
+
+---->
+
+diff --git a/arch/tile/include/asm/uaccess.h b/arch/tile/include/asm/uaccess.h
+index b6cde32..9fcbe6f 100644
+--- a/arch/tile/include/asm/uaccess.h
++++ b/arch/tile/include/asm/uaccess.h
+@@ -246,7 +246,7 @@ extern int __get_user_bad(void)
+ #define __put_user_4(x, ptr, ret) __put_user_asm(sw, x, ptr, ret)
+ #define __put_user_8(x, ptr, ret)					\
+ 	({								\
+-		u64 __x = (__typeof((x)-(x)))(x);			\
++		u64 __x = (u64)(__force unsigned long)(x);		\
+ 		int __lo = (int) __x, __hi = (int) (__x >> 32);		\
+ 		asm volatile("1: { sw %1, %2; addi %0, %1, 4 }\n"	\
+ 			     "2: { sw %0, %3; movei %0, 0 }\n"		\
