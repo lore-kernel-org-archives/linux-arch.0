@@ -1,45 +1,77 @@
 From: Christian Borntraeger <borntraeger@de.ibm.com>
-Subject: [GIT PULL 0/1] Change ASSIGN_ONCE(val, x) to WRITE_ONCE(x, val)
-Date: Tue, 13 Jan 2015 21:25:04 +0100
-Message-ID: <1421180705-44875-1-git-send-email-borntraeger@de.ibm.com>
+Subject: [GIT PULL 1/1] kernel: Change ASSIGN_ONCE(val, x) to WRITE_ONCE(x, val)
+Date: Tue, 13 Jan 2015 21:25:05 +0100
+Message-ID: <1421180705-44875-2-git-send-email-borntraeger@de.ibm.com>
+References: <1421180705-44875-1-git-send-email-borntraeger@de.ibm.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e06smtp15.uk.ibm.com ([195.75.94.111]:51080 "EHLO
-	e06smtp15.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751364AbbAMUZK (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 13 Jan 2015 15:25:10 -0500
+Received: from e06smtp11.uk.ibm.com ([195.75.94.107]:42525 "EHLO
+	e06smtp11.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751540AbbAMUZM (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 13 Jan 2015 15:25:12 -0500
 Received: from /spool/local
-	by e06smtp15.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	by e06smtp11.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
 	for <linux-arch@vger.kernel.org> from <borntraeger@de.ibm.com>;
-	Tue, 13 Jan 2015 20:25:08 -0000
+	Tue, 13 Jan 2015 20:25:10 -0000
+In-Reply-To: <1421180705-44875-1-git-send-email-borntraeger@de.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, torvalds@linux-foundation.org
 Cc: Peter Zijlstra <peterz@infradead.org>, Davidlohr Bueso <dave@stgolabs.net>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, linux-arch@vger.kernel.org, Christian Borntraeger <borntraeger@de.ibm.com>
 
-Linus,
+Feedback has shown that WRITE_ONCE(x, val) is easier to use than
+ASSIGN_ONCE(val,x).
+There are no in-tree users yet, so lets change it for 3.19.
 
-The following changes since commit eaa27f34e91a14cdceed26ed6c6793ec1d186115:
-
-  linux 3.19-rc4 (2015-01-11 12:44:53 -0800)
-
-are available in the git repository at:
-
-  git://git.kernel.org/pub/scm/linux/kernel/git/borntraeger/linux.git  tags/for-linus
-
-for you to fetch changes up to 43239cbe79fc369f5d2160bd7f69e28b5c50a58c:
-
-  kernel: Change ASSIGN_ONCE(val, x) to WRITE_ONCE(x, val) (2015-01-13 20:39:09 +0100)
-
-----------------------------------------------------------------
-As discussed on LKML http://marc.info/?l=linux-kernel&m=142081181707596
-it was agreement that WRITE_ONCE(x, val) is better than ASSIGN_ONCE(val, x)
-
-Lets change that for 3.19 as 3.19 has no user yet, but the first users
-will hit linux-next soon.
-
-----------------------------------------------------------------
-Christian Borntraeger (1):
-      kernel: Change ASSIGN_ONCE(val, x) to WRITE_ONCE(x, val)
-
+Signed-off-by: Christian Borntraeger <borntraeger@de.ibm.com>
+Acked-by: Peter Zijlstra <peterz@infradead.org>
+Acked-by: Davidlohr Bueso <dave@stgolabs.net>
+Acked-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
+---
  include/linux/compiler.h | 12 ++++++------
  1 file changed, 6 insertions(+), 6 deletions(-)
+
+diff --git a/include/linux/compiler.h b/include/linux/compiler.h
+index a1c81f8..33063f8 100644
+--- a/include/linux/compiler.h
++++ b/include/linux/compiler.h
+@@ -215,7 +215,7 @@ static __always_inline void __read_once_size(volatile void *p, void *res, int si
+ 	}
+ }
+ 
+-static __always_inline void __assign_once_size(volatile void *p, void *res, int size)
++static __always_inline void __write_once_size(volatile void *p, void *res, int size)
+ {
+ 	switch (size) {
+ 	case 1: *(volatile __u8 *)p = *(__u8 *)res; break;
+@@ -235,15 +235,15 @@ static __always_inline void __assign_once_size(volatile void *p, void *res, int
+ /*
+  * Prevent the compiler from merging or refetching reads or writes. The
+  * compiler is also forbidden from reordering successive instances of
+- * READ_ONCE, ASSIGN_ONCE and ACCESS_ONCE (see below), but only when the
++ * READ_ONCE, WRITE_ONCE and ACCESS_ONCE (see below), but only when the
+  * compiler is aware of some particular ordering.  One way to make the
+  * compiler aware of ordering is to put the two invocations of READ_ONCE,
+- * ASSIGN_ONCE or ACCESS_ONCE() in different C statements.
++ * WRITE_ONCE or ACCESS_ONCE() in different C statements.
+  *
+  * In contrast to ACCESS_ONCE these two macros will also work on aggregate
+  * data types like structs or unions. If the size of the accessed data
+  * type exceeds the word size of the machine (e.g., 32 bits or 64 bits)
+- * READ_ONCE() and ASSIGN_ONCE()  will fall back to memcpy and print a
++ * READ_ONCE() and WRITE_ONCE()  will fall back to memcpy and print a
+  * compile-time warning.
+  *
+  * Their two major use cases are: (1) Mediating communication between
+@@ -257,8 +257,8 @@ static __always_inline void __assign_once_size(volatile void *p, void *res, int
+ #define READ_ONCE(x) \
+ 	({ typeof(x) __val; __read_once_size(&x, &__val, sizeof(__val)); __val; })
+ 
+-#define ASSIGN_ONCE(val, x) \
+-	({ typeof(x) __val; __val = val; __assign_once_size(&x, &__val, sizeof(__val)); __val; })
++#define WRITE_ONCE(x, val) \
++	({ typeof(x) __val; __val = val; __write_once_size(&x, &__val, sizeof(__val)); __val; })
+ 
+ #endif /* __KERNEL__ */
+ 
+-- 
+1.9.3
