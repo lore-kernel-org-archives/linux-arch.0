@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtprelay2.synopsys.com ([198.182.60.111]:52360 "EHLO
+Received: from us01smtprelay-2.synopsys.com ([198.182.60.111]:52348 "EHLO
 	smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752071AbbAMNoT (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 13 Jan 2015 08:44:19 -0500
+	with ESMTP id S1752456AbbAMNn4 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 13 Jan 2015 08:43:56 -0500
 From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: [PATCH v3 4/5] perf tools: [uclibc] don't rely on glibc malloc working for sz 0
-Date: Tue, 13 Jan 2015 19:13:23 +0530
-Message-ID: <1421156604-30603-5-git-send-email-vgupta@synopsys.com>
+Subject: [PATCH v3 1/5] perf tools: [uclibc] fix statfs.f_type data type mismatch build error
+Date: Tue, 13 Jan 2015 19:13:20 +0530
+Message-ID: <1421156604-30603-2-git-send-email-vgupta@synopsys.com>
 In-Reply-To: <1421156604-30603-1-git-send-email-vgupta@synopsys.com>
 References: <1421156604-30603-1-git-send-email-vgupta@synopsys.com>
 MIME-Version: 1.0
@@ -14,75 +14,80 @@ Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: acme@redhat.com, namhyung@kernel.org, jolsa@kernel.org
-Cc: peterz@infradead.org, mingo@kernel.org, linux-kernel@vger.kernel.org, linux-perf-users@vger.kernel.org, linux-arch@vger.kernel.org, Alexey.Brodkin@synopsys.com, Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Message-ID: <20150113134323.p3NC5DAErz_ynz0dXNHBr17Y9QuTQcqs_FcfmPyn-k4@z>
+Cc: peterz@infradead.org, mingo@kernel.org, linux-kernel@vger.kernel.org, linux-perf-users@vger.kernel.org, linux-arch@vger.kernel.org, Alexey.Brodkin@synopsys.com, Borislav Petkov <bp@suse.de>, Cody P Schafer <dev@codyps.com>, Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Message-ID: <20150113134320.aAF2HLq1TnrmpsFEdENnTfWiSaSwbs-eylUsKsX4C0g@z>
 
-When running perf on ARC (uClibc based userspace), ran into this issue
-   ------------->8----------------
-	[ARCLinux]$ ./perf record ls
-	bin             etc             perf            sys
-	debug           init            perf.data       tmp
-	[ perf record: Woken up 1 times to write data ]
-	[ perf record: Captured and wrote 0.001 MB perf.data (~24 samples) ]
+From: Alexey Brodkin <abrodkin@synopsys.com>
 
-	[ARCLinux]$ ./perf report
-	incompatible file format (rerun with -v to learn more)
-   ------------->8----------------
+ARC Linux uses the no legacy syscalls abi and corresponding uClibc headers
+statfs defines f_type to be U32 which causes perf build breakage
 
-The problem happens in the following call stack when zalloc is called
-with size zero
+http://git.uclibc.org/uClibc/tree/libc/sysdeps/linux/common-generic/bits/statfs.h
 
-glibc default / uClibc with MALLOC_GLIBC_COMPAT are OK, but not if that
-config option is not enabled.
+   ----------->8---------------
+  CC       fs/fs.o
+fs/fs.c: In function 'fs__valid_mount':
+fs/fs.c:82:24: error: comparison between signed and unsigned integer
+expressions [-Werror=sign-compare]
+  else if (st_fs.f_type != magic)
+                        ^
+cc1: all warnings being treated as errors
+   ----------->8---------------
 
-  cmd_report
-     perf_session__new
-	perf_session__open
-	    perf_session__read_header
-		read_attr(fd, header, &f_attr)
-		nr_ids = f_attr.ids.size / sizeof(u64); <-- 0
-		perf_evsel__alloc_id(vsel, 1, nr_ids)
-			zalloc(ncpus * nthreads * sizeof(u64)) <-- 0
+Cc: Borislav Petkov <bp@suse.de>
+Cc: Cody P Schafer <dev@codyps.com>
+Cc: Arnaldo Carvalho de Melo <acme@redhat.com>
+Cc: linux-perf-users@vger.kernel.org
+Cc: linux-kernel@vger.kernel.org
+Acked-by: Jiri Olsa <jolsa@kernel.org>
+Signed-off-by: Alexey Brodkin <abrodkin@synopsys.com>
 
-header.c: read_attr()
+---
+v4:
+ * Add Ack from Jiri Olsa
 
-(gdb) p *f_attr
-$17 = {
-  attr = {
-    type = 0,
-    size = 96,
-    config = 0,
-    {
-      sample_period = 4000,
-      sample_freq = 4000
-    },
-...
-  ids = {
-    offset = 104,
-    size = 0      <------
-  }
-}
+v3: Changes since v2 [2]
+ * Made Changelog a bit more concise, no code changes [vgupta]
 
-Suggested-by: Namhyung Kim <namhyung@kernel.org>
+v2: Changes since v1 [1]
+ * Added type cast to DEBUGFS_MAGIC in "debugfs.c" [Arnaldo]
+ * Added verbose explanation of root cause
+
+[2] https://lkml.org/lkml/2014/9/16/296
+[1] https://lkml.org/lkml/2014/8/13/529
+
 Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
 ---
- tools/perf/util/evsel.c | 3 +++
- 1 file changed, 3 insertions(+)
+ tools/lib/api/fs/debugfs.c | 2 +-
+ tools/lib/api/fs/fs.c      | 2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
 
-diff --git a/tools/perf/util/evsel.c b/tools/perf/util/evsel.c
-index 1e90c8557ede..1d826d63bc20 100644
---- a/tools/perf/util/evsel.c
-+++ b/tools/perf/util/evsel.c
-@@ -797,6 +797,9 @@ int perf_evsel__enable(struct perf_evsel *evsel, int ncpus, int nthreads)
+diff --git a/tools/lib/api/fs/debugfs.c b/tools/lib/api/fs/debugfs.c
+index a74fba6d7743..93aa4cd2416f 100644
+--- a/tools/lib/api/fs/debugfs.c
++++ b/tools/lib/api/fs/debugfs.c
+@@ -67,7 +67,7 @@ int debugfs_valid_mountpoint(const char *debugfs)
  
- int perf_evsel__alloc_id(struct perf_evsel *evsel, int ncpus, int nthreads)
- {
-+	if (ncpus == 0 || nthreads == 0)
-+		return 0;
-+
- 	if (evsel->system_wide)
- 		nthreads = 1;
+ 	if (statfs(debugfs, &st_fs) < 0)
+ 		return -ENOENT;
+-	else if (st_fs.f_type != (long) DEBUGFS_MAGIC)
++	else if ((long) st_fs.f_type != (long) DEBUGFS_MAGIC)
+ 		return -ENOENT;
  
+ 	return 0;
+diff --git a/tools/lib/api/fs/fs.c b/tools/lib/api/fs/fs.c
+index 65d9be3f9887..15e64921ea84 100644
+--- a/tools/lib/api/fs/fs.c
++++ b/tools/lib/api/fs/fs.c
+@@ -79,7 +79,7 @@ static int fs__valid_mount(const char *fs, long magic)
+ 
+ 	if (statfs(fs, &st_fs) < 0)
+ 		return -ENOENT;
+-	else if (st_fs.f_type != magic)
++	else if ((long) st_fs.f_type != magic)
+ 		return -ENOENT;
+ 
+ 	return 0;
 -- 
 1.9.1
 
