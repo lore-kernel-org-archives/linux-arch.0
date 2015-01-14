@@ -1,77 +1,69 @@
-From: "Michael S. Tsirkin" <mst@redhat.com>
-Subject: Re: [PATCH 2/2] tile: enable sparse checks for get/put_user
-Date: Wed, 14 Jan 2015 00:29:35 +0200
-Message-ID: <20150113222935.GB23641@redhat.com>
-References: <201501131950.t0DJognR027020@lab-37.internal.tilera.com>
- <201501131951.t0DJpIKt027023@lab-37.internal.tilera.com>
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: Behaviour of smp_mb__{before,after}_spin* and acquire/release
+Date: Wed, 14 Jan 2015 11:31:47 +0000
+Message-ID: <20150114113147.GG4050@arm.com>
+References: <20150113163353.GE31784@arm.com>
+ <20150113184510.GA31525@redhat.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.136]:49556 "EHLO mail.kernel.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751388AbbAMW3l (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 13 Jan 2015 17:29:41 -0500
+Received: from foss-mx-na.foss.arm.com ([217.140.108.86]:33767 "EHLO
+	foss-mx-na.foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751920AbbANLbw (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 14 Jan 2015 06:31:52 -0500
 Content-Disposition: inline
-In-Reply-To: <201501131951.t0DJpIKt027023@lab-37.internal.tilera.com>
+In-Reply-To: <20150113184510.GA31525@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Chris Metcalf <cmetcalf@ezchip.com>
-Cc: linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org
+To: Oleg Nesterov <oleg@redhat.com>
+Cc: "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>, "peterz@infradead.org" <peterz@infradead.org>, "torvalds@linux-foundation.org" <torvalds@linux-foundation.org>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
 
-On Tue, Jan 13, 2015 at 02:41:20PM -0500, Chris Metcalf wrote:
-> Add an extra intermediate variable to __get_user and __put_user
-> to give sparse an opportunity to detect mismatches.
+Hi Oleg,
+
+On Tue, Jan 13, 2015 at 06:45:10PM +0000, Oleg Nesterov wrote:
+> On 01/13, Will Deacon wrote:
+> >
+> >   1. Does smp_mb__before_spinlock actually have to order prior loads
+> >      against later loads and stores? Documentation/memory-barriers.txt
+> >      says it does, but that doesn't match the comment
 > 
-> Signed-off-by: Chris Metcalf <cmetcalf@ezchip.com>
+> The comment says that smp_mb__before_spinlock() + spin_lock() should
+> only serialize STOREs with LOADs. This is because it was added to ensure
+> that the setting of condition can't race with ->state check in ttwu().
 
-Reviewed-by: Michael S. Tsirkin <mst@redhat.com>
+Yup, that makes sense. The comment is consistent with the code, and I think
+the code is doing what it's supposed to do.
 
-> ---
->  arch/tile/include/asm/uaccess.h | 19 +++++++++++--------
->  1 file changed, 11 insertions(+), 8 deletions(-)
-> 
-> diff --git a/arch/tile/include/asm/uaccess.h b/arch/tile/include/asm/uaccess.h
-> index b81b24a8489b..f41cb53cf645 100644
-> --- a/arch/tile/include/asm/uaccess.h
-> +++ b/arch/tile/include/asm/uaccess.h
-> @@ -210,14 +210,16 @@ extern int __get_user_bad(void)
->  #define __get_user(x, ptr)						\
->  	({								\
->  		int __ret;						\
-> +		typeof(x) _x;						\
->  		__chk_user_ptr(ptr);					\
->  		switch (sizeof(*(ptr))) {				\
-> -		case 1: __get_user_1(x, ptr, __ret); break;		\
-> -		case 2: __get_user_2(x, ptr, __ret); break;		\
-> -		case 4: __get_user_4(x, ptr, __ret); break;		\
-> -		case 8: __get_user_8(x, ptr, __ret); break;		\
-> +		case 1: __get_user_1(_x, ptr, __ret); break;		\
-> +		case 2: __get_user_2(_x, ptr, __ret); break;		\
-> +		case 4: __get_user_4(_x, ptr, __ret); break;		\
-> +		case 8: __get_user_8(_x, ptr, __ret); break;		\
->  		default: __ret = __get_user_bad(); break;		\
->  		}							\
-> +		(x) = (typeof(*(ptr))) _x;				\
->  		__ret;							\
->  	})
->  
-> @@ -289,12 +291,13 @@ extern int __put_user_bad(void)
->  #define __put_user(x, ptr)						\
->  ({									\
->  	int __ret;							\
-> +	typeof(*(ptr)) _x = (x);					\
->  	__chk_user_ptr(ptr);						\
->  	switch (sizeof(*(ptr))) {					\
-> -	case 1: __put_user_1(x, ptr, __ret); break;			\
-> -	case 2: __put_user_2(x, ptr, __ret); break;			\
-> -	case 4: __put_user_4(x, ptr, __ret); break;			\
-> -	case 8: __put_user_8(x, ptr, __ret); break;			\
-> +	case 1: __put_user_1(_x, ptr, __ret); break;			\
-> +	case 2: __put_user_2(_x, ptr, __ret); break;			\
-> +	case 4: __put_user_4(_x, ptr, __ret); break;			\
-> +	case 8: __put_user_8(_x, ptr, __ret); break;			\
->  	default: __ret = __put_user_bad(); break;			\
->  	}								\
->  	__ret;								\
-> -- 
-> 2.1.2
+> But since we use wmb() it obviously serializes STOREs with STORES. I do
+> not know if this should be documented, but we already have another user
+> which seems to rely on this fact: set_tlb_flush_pending().
+
+In which case, it's probably a good idea to document that too.
+
+> As for "prior loads", this doesn't look true...
+
+Agreed. I'd propose something like the diff below, but it also depends on
+my second question since none of this is true for smp_load_acquire.
+
+Will
+
+--->8
+
+diff --git a/Documentation/memory-barriers.txt b/Documentation/memory-barriers.txt
+index 70a09f8a0383..9c0e3c45a807 100644
+--- a/Documentation/memory-barriers.txt
++++ b/Documentation/memory-barriers.txt
+@@ -1724,10 +1724,9 @@ for each construct.  These operations all imply certain barriers:
+ 
+      Memory operations issued before the ACQUIRE may be completed after
+      the ACQUIRE operation has completed.  An smp_mb__before_spinlock(),
+-     combined with a following ACQUIRE, orders prior loads against
+-     subsequent loads and stores and also orders prior stores against
+-     subsequent stores.  Note that this is weaker than smp_mb()!  The
+-     smp_mb__before_spinlock() primitive is free on many architectures.
++     combined with a following ACQUIRE, orders prior stores against
++     subsequent loads and stores. Note that this is weaker than smp_mb()!
++     The smp_mb__before_spinlock() primitive is free on many architectures.
+ 
+  (2) RELEASE operation implication:
+ 
