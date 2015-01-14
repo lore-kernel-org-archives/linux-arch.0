@@ -1,69 +1,37 @@
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: Behaviour of smp_mb__{before,after}_spin* and acquire/release
-Date: Wed, 14 Jan 2015 11:31:47 +0000
-Message-ID: <20150114113147.GG4050@arm.com>
-References: <20150113163353.GE31784@arm.com>
- <20150113184510.GA31525@redhat.com>
+From: Jiri Olsa <jolsa@redhat.com>
+Subject: Re: [PATCH v3 0/5] Perf tool fixes for ARC + uClibc
+Date: Wed, 14 Jan 2015 13:00:00 +0100
+Message-ID: <20150114120000.GB11443@krava.brq.redhat.com>
+References: <1421156604-30603-1-git-send-email-vgupta@synopsys.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss-mx-na.foss.arm.com ([217.140.108.86]:33767 "EHLO
-	foss-mx-na.foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751920AbbANLbw (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 14 Jan 2015 06:31:52 -0500
+Received: from mx1.redhat.com ([209.132.183.28]:56653 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752053AbbANMAf (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 14 Jan 2015 07:00:35 -0500
 Content-Disposition: inline
-In-Reply-To: <20150113184510.GA31525@redhat.com>
+In-Reply-To: <1421156604-30603-1-git-send-email-vgupta@synopsys.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Oleg Nesterov <oleg@redhat.com>
-Cc: "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>, "peterz@infradead.org" <peterz@infradead.org>, "torvalds@linux-foundation.org" <torvalds@linux-foundation.org>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Cc: acme@redhat.com, namhyung@kernel.org, jolsa@kernel.org, peterz@infradead.org, mingo@kernel.org, linux-kernel@vger.kernel.org, linux-perf-users@vger.kernel.org, linux-arch@vger.kernel.org, Alexey.Brodkin@synopsys.com
 
-Hi Oleg,
-
-On Tue, Jan 13, 2015 at 06:45:10PM +0000, Oleg Nesterov wrote:
-> On 01/13, Will Deacon wrote:
-> >
-> >   1. Does smp_mb__before_spinlock actually have to order prior loads
-> >      against later loads and stores? Documentation/memory-barriers.txt
-> >      says it does, but that doesn't match the comment
+On Tue, Jan 13, 2015 at 07:13:19PM +0530, Vineet Gupta wrote:
+> Hi,
 > 
-> The comment says that smp_mb__before_spinlock() + spin_lock() should
-> only serialize STOREs with LOADs. This is because it was added to ensure
-> that the setting of condition can't race with ->state check in ttwu().
+> This series based off linux-next of 20150105 allows us to build/use perf
+> for ARC with uClibc based userland.
+> 
+> v3: Changes since v2 [2]
+> * 1/5	: Ack from Jiri
+> * 2/5	: no changes
+> * 3/5	: sys/syscall.h included	  [Jiri]
+> * 4/5	: no changes
+> * 5/5	: -lpthread added to link target  [Jiri]
+> * {1,5} : Changelog updated so scissor lines don't start at column 1
 
-Yup, that makes sense. The comment is consistent with the code, and I think
-the code is doing what it's supposed to do.
+Acked-by: Jiri Olsa <jolsa@kernel.org>
 
-> But since we use wmb() it obviously serializes STOREs with STORES. I do
-> not know if this should be documented, but we already have another user
-> which seems to rely on this fact: set_tlb_flush_pending().
-
-In which case, it's probably a good idea to document that too.
-
-> As for "prior loads", this doesn't look true...
-
-Agreed. I'd propose something like the diff below, but it also depends on
-my second question since none of this is true for smp_load_acquire.
-
-Will
-
---->8
-
-diff --git a/Documentation/memory-barriers.txt b/Documentation/memory-barriers.txt
-index 70a09f8a0383..9c0e3c45a807 100644
---- a/Documentation/memory-barriers.txt
-+++ b/Documentation/memory-barriers.txt
-@@ -1724,10 +1724,9 @@ for each construct.  These operations all imply certain barriers:
- 
-      Memory operations issued before the ACQUIRE may be completed after
-      the ACQUIRE operation has completed.  An smp_mb__before_spinlock(),
--     combined with a following ACQUIRE, orders prior loads against
--     subsequent loads and stores and also orders prior stores against
--     subsequent stores.  Note that this is weaker than smp_mb()!  The
--     smp_mb__before_spinlock() primitive is free on many architectures.
-+     combined with a following ACQUIRE, orders prior stores against
-+     subsequent loads and stores. Note that this is weaker than smp_mb()!
-+     The smp_mb__before_spinlock() primitive is free on many architectures.
- 
-  (2) RELEASE operation implication:
- 
+thanks,
+jirka
