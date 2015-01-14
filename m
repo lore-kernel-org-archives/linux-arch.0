@@ -1,79 +1,41 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.136]:49528 "EHLO mail.kernel.org"
+Received: from mx1.redhat.com ([209.132.183.28]:50758 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751388AbbAMW3c (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 13 Jan 2015 17:29:32 -0500
-Date: Wed, 14 Jan 2015 00:29:25 +0200
-From: "Michael S. Tsirkin" <mst@redhat.com>
-Subject: Re: [PATCH 1/2] tile: fix put_user sparse errors
-Message-ID: <20150113222925.GA23641@redhat.com>
-References: <201501131950.t0DJognR027020@lab-37.internal.tilera.com>
+	id S1753251AbbANN7f (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 14 Jan 2015 08:59:35 -0500
+Date: Wed, 14 Jan 2015 11:59:30 -0200
+From: Arnaldo Carvalho de Melo <acme@redhat.com>
+Subject: Re: [PATCH v3 0/5] Perf tool fixes for ARC + uClibc
+Message-ID: <20150114135930.GA2463@redhat.com>
+References: <1421156604-30603-1-git-send-email-vgupta@synopsys.com>
+ <20150114120000.GB11443@krava.brq.redhat.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <201501131950.t0DJognR027020@lab-37.internal.tilera.com>
+In-Reply-To: <20150114120000.GB11443@krava.brq.redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Chris Metcalf <cmetcalf@ezchip.com>
-Cc: linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org
-Message-ID: <20150113222925.jdgl8juvOA_FspuWzLY8VPyXPphHPVWhbTwqA3vgD2M@z>
+To: Jiri Olsa <jolsa@redhat.com>
+Cc: Vineet Gupta <Vineet.Gupta1@synopsys.com>, namhyung@kernel.org, jolsa@kernel.org, peterz@infradead.org, mingo@kernel.org, linux-kernel@vger.kernel.org, linux-perf-users@vger.kernel.org, linux-arch@vger.kernel.org, Alexey.Brodkin@synopsys.com
+Message-ID: <20150114135930.j7tvl6YPPHtBN3VM_B75shGdTOI55ghfwU6P0YUdxWA@z>
 
-On Tue, Jan 13, 2015 at 02:39:05PM -0500, Chris Metcalf wrote:
-> Use x86's __inttype macro instead of using the typeof(x-x) trick to
-> generate a suitable integer size type.  This avoids a sparse warning
-> when examining the x-x type with a bitwise type.
+Em Wed, Jan 14, 2015 at 01:00:00PM +0100, Jiri Olsa escreveu:
+> On Tue, Jan 13, 2015 at 07:13:19PM +0530, Vineet Gupta wrote:
+> > Hi,
+> > 
+> > This series based off linux-next of 20150105 allows us to build/use perf
+> > for ARC with uClibc based userland.
+> > 
+> > v3: Changes since v2 [2]
+> > * 1/5	: Ack from Jiri
+> > * 2/5	: no changes
+> > * 3/5	: sys/syscall.h included	  [Jiri]
+> > * 4/5	: no changes
+> > * 5/5	: -lpthread added to link target  [Jiri]
+> > * {1,5} : Changelog updated so scissor lines don't start at column 1
 > 
-> Signed-off-by: Chris Metcalf <cmetcalf@ezchip.com>
+> Acked-by: Jiri Olsa <jolsa@kernel.org>
 
-Reviewed-by: Michael S. Tsirkin <mst@redhat.com>
+Most are already in my perf/urgent branch.
 
-> ---
->  arch/tile/include/asm/uaccess.h | 18 +++++++++---------
->  1 file changed, 9 insertions(+), 9 deletions(-)
-> 
-> diff --git a/arch/tile/include/asm/uaccess.h b/arch/tile/include/asm/uaccess.h
-> index b6cde3209b96..b81b24a8489b 100644
-> --- a/arch/tile/include/asm/uaccess.h
-> +++ b/arch/tile/include/asm/uaccess.h
-> @@ -114,14 +114,14 @@ struct exception_table_entry {
->  extern int fixup_exception(struct pt_regs *regs);
->  
->  /*
-> + * This is a type: either unsigned long, if the argument fits into
-> + * that type, or otherwise unsigned long long.
-> + */
-> +#define __inttype(x) \
-> +	__typeof__(__builtin_choose_expr(sizeof(x) > sizeof(0UL), 0ULL, 0UL))
-> +
-> +/*
->   * Support macros for __get_user().
-> - *
-> - * Implementation note: The "case 8" logic of casting to the type of
-> - * the result of subtracting the value from itself is basically a way
-> - * of keeping all integer types the same, but casting any pointers to
-> - * ptrdiff_t, i.e. also an integer type.  This way there are no
-> - * questionable casts seen by the compiler on an ILP32 platform.
-> - *
->   * Note that __get_user() and __put_user() assume proper alignment.
->   */
->  
-> @@ -178,7 +178,7 @@ extern int fixup_exception(struct pt_regs *regs);
->  			     "9:"					\
->  			     : "=r" (ret), "=r" (__a), "=&r" (__b)	\
->  			     : "r" (ptr), "i" (-EFAULT));		\
-> -		(x) = (__typeof(x))(__typeof((x)-(x)))			\
-> +		(x) = (__force __typeof(x))(__inttype(x))		\
->  			(((u64)__hi32(__a, __b) << 32) |		\
->  			 __lo32(__a, __b));				\
->  	})
-> @@ -246,7 +246,7 @@ extern int __get_user_bad(void)
->  #define __put_user_4(x, ptr, ret) __put_user_asm(sw, x, ptr, ret)
->  #define __put_user_8(x, ptr, ret)					\
->  	({								\
-> -		u64 __x = (__typeof((x)-(x)))(x);			\
-> +		u64 __x = (__force __inttype(x))(x);			\
->  		int __lo = (int) __x, __hi = (int) (__x >> 32);		\
->  		asm volatile("1: { sw %1, %2; addi %0, %1, 4 }\n"	\
->  			     "2: { sw %0, %3; movei %0, 0 }\n"		\
-> -- 
-> 2.1.2
+- Arnaldo
