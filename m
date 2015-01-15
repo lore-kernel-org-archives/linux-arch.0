@@ -1,45 +1,40 @@
 From: Christian Borntraeger <borntraeger@de.ibm.com>
-Subject: [PATCH 0/8] current ACCESS_ONCE patch queue
-Date: Thu, 15 Jan 2015 09:58:26 +0100
-Message-ID: <1421312314-72330-1-git-send-email-borntraeger@de.ibm.com>
+Subject: [PATCH 3/8] x86/xen/p2m: Replace ACCESS_ONCE with READ_ONCE
+Date: Thu, 15 Jan 2015 09:58:29 +0100
+Message-ID: <1421312314-72330-4-git-send-email-borntraeger@de.ibm.com>
+References: <1421312314-72330-1-git-send-email-borntraeger@de.ibm.com>
 Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <1421312314-72330-1-git-send-email-borntraeger@de.ibm.com>
 Sender: owner-linux-mm@kvack.org
 To: linux-kernel@vger.kernel.org
 Cc: linux-arch@vger.kernel.org, kvm@vger.kernel.org, kvm-ppc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, x86@kernel.org, xen-devel@lists.xenproject.org, linux-mm@kvack.org, Christian Borntraeger <borntraeger@de.ibm.com>
 List-Id: linux-arch.vger.kernel.org
 
-Folks,
+ACCESS_ONCE does not work reliably on non-scalar types. For
+example gcc 4.6 and 4.7 might remove the volatile tag for such
+accesses during the SRA (scalar replacement of aggregates) step
+(https://gcc.gnu.org/bugzilla/show_bug.cgi?id=58145)
 
-fyi, this is my current patch queue for the next merge window. It
-does contain a patch that will disallow ACCESS_ONCE on non-scalar
-types.
+Change the p2m code to replace ACCESS_ONCE with READ_ONCE.
 
-The tree is part of linux-next and can be found at
-git://git.kernel.org/pub/scm/linux/kernel/git/borntraeger/linux.git linux-next
+Signed-off-by: Christian Borntraeger <borntraeger@de.ibm.com>
+---
+ arch/x86/xen/p2m.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-
-Christian Borntraeger (7):
-  ppc/kvm: Replace ACCESS_ONCE with READ_ONCE
-  ppc/hugetlbfs: Replace ACCESS_ONCE with READ_ONCE
-  x86/xen/p2m: Replace ACCESS_ONCE with READ_ONCE
-  x86/spinlock: Leftover conversion ACCESS_ONCE->READ_ONCE
-  mm/gup: Replace ACCESS_ONCE with READ_ONCE
-  kernel: tighten rules for ACCESS ONCE
-  kernel: Fix sparse warning for ACCESS_ONCE
-
-Guenter Roeck (1):
-  next: sh: Fix compile error
-
- arch/powerpc/kvm/book3s_hv_rm_xics.c |  8 ++++----
- arch/powerpc/kvm/book3s_xics.c       | 16 ++++++++--------
- arch/powerpc/mm/hugetlbpage.c        |  4 ++--
- arch/sh/mm/gup.c                     |  2 +-
- arch/x86/include/asm/spinlock.h      |  2 +-
- arch/x86/xen/p2m.c                   |  2 +-
- include/linux/compiler.h             | 21 ++++++++++++++++-----
- mm/gup.c                             |  2 +-
- 8 files changed, 34 insertions(+), 23 deletions(-)
-
+diff --git a/arch/x86/xen/p2m.c b/arch/x86/xen/p2m.c
+index edbc7a6..cb71016 100644
+--- a/arch/x86/xen/p2m.c
++++ b/arch/x86/xen/p2m.c
+@@ -554,7 +554,7 @@ static bool alloc_p2m(unsigned long pfn)
+ 		mid_mfn = NULL;
+ 	}
+ 
+-	p2m_pfn = pte_pfn(ACCESS_ONCE(*ptep));
++	p2m_pfn = pte_pfn(READ_ONCE(*ptep));
+ 	if (p2m_pfn == PFN_DOWN(__pa(p2m_identity)) ||
+ 	    p2m_pfn == PFN_DOWN(__pa(p2m_missing))) {
+ 		/* p2m leaf page is missing */
 -- 
 1.9.3
 
