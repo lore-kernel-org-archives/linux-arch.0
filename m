@@ -1,37 +1,54 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PULL] uaccess: fix sparse warning on get/put_user for bitwise types
-Date: Wed, 14 Jan 2015 23:19:14 +0100
-Message-ID: <5209009.XRo9cTX8bb@wuerfel>
-References: <20150114173618.GA12436@redhat.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7Bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.126.187]:55998 "EHLO
-	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752057AbbANWTl (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 14 Jan 2015 17:19:41 -0500
-In-Reply-To: <20150114173618.GA12436@redhat.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: "Michael S. Tsirkin" <mst@redhat.com>
-Cc: kvm@vger.kernel.org, virtualization@lists.linux-foundation.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, davem@davemloft.net, deller@gmx.de, egtvedt@samfundet.no, geert@linux-m68k.org, james.hogan@imgtec.com, jcmvbkbc@gmail.com, realmz6@gmail.com, sam@ravnborg.org, tglx@linutronix.de, will.deacon@arm.com
+From: Christian Borntraeger <borntraeger@de.ibm.com>
+Subject: [PATCH 2/8] ppc/hugetlbfs: Replace ACCESS_ONCE with READ_ONCE
+Date: Thu, 15 Jan 2015 09:58:28 +0100
+Message-ID: <1421312314-72330-3-git-send-email-borntraeger@de.ibm.com>
+References: <1421312314-72330-1-git-send-email-borntraeger@de.ibm.com>
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <1421312314-72330-1-git-send-email-borntraeger@de.ibm.com>
+Sender: owner-linux-mm@kvack.org
+To: linux-kernel@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, kvm@vger.kernel.org, kvm-ppc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, x86@kernel.org, xen-devel@lists.xenproject.org, linux-mm@kvack.org, Christian Borntraeger <borntraeger@de.ibm.com>
+List-Id: linux-arch.vger.kernel.org
 
-On Wednesday 14 January 2015 19:36:18 Michael S. Tsirkin wrote:
-> As you asked, here's a pull request.
-> This has been in linux-next apparently with no ill effects.
-> 
-> The following changes since commit 99975cc6ada0d5f2675e83abecae05aba5f437d2:
-> 
->   vhost/net: length miscalculation (2015-01-07 12:22:00 +0200)
-> 
-> are available in the git repository at:
-> 
->   git://git.kernel.org/pub/scm/linux/kernel/git/mst/vhost.git tags/uaccess_for_upstream
-> 
-> for you to fetch changes up to 0795cb1b46e7938ed679ccd48f933e75272b30e3:
-> 
+ACCESS_ONCE does not work reliably on non-scalar types. For
+example gcc 4.6 and 4.7 might remove the volatile tag for such
+accesses during the SRA (scalar replacement of aggregates) step
+(https://gcc.gnu.org/bugzilla/show_bug.cgi?id=58145)
 
-Pulled into my asm-generic now, thanks!
+Change the ppc/hugetlbfs code to replace ACCESS_ONCE with READ_ONCE.
 
-	Arnd
+Signed-off-by: Christian Borntraeger <borntraeger@de.ibm.com>
+---
+ arch/powerpc/mm/hugetlbpage.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/arch/powerpc/mm/hugetlbpage.c b/arch/powerpc/mm/hugetlbpage.c
+index 5ff4e07..620d0ec 100644
+--- a/arch/powerpc/mm/hugetlbpage.c
++++ b/arch/powerpc/mm/hugetlbpage.c
+@@ -978,7 +978,7 @@ pte_t *find_linux_pte_or_hugepte(pgd_t *pgdir, unsigned long ea, unsigned *shift
+ 		 */
+ 		pdshift = PUD_SHIFT;
+ 		pudp = pud_offset(&pgd, ea);
+-		pud  = ACCESS_ONCE(*pudp);
++		pud  = READ_ONCE(*pudp);
+ 
+ 		if (pud_none(pud))
+ 			return NULL;
+@@ -990,7 +990,7 @@ pte_t *find_linux_pte_or_hugepte(pgd_t *pgdir, unsigned long ea, unsigned *shift
+ 		else {
+ 			pdshift = PMD_SHIFT;
+ 			pmdp = pmd_offset(&pud, ea);
+-			pmd  = ACCESS_ONCE(*pmdp);
++			pmd  = READ_ONCE(*pmdp);
+ 			/*
+ 			 * A hugepage collapse is captured by pmd_none, because
+ 			 * it mark the pmd none and do a hpte invalidate.
+-- 
+1.9.3
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
