@@ -1,51 +1,51 @@
-From: Christian Borntraeger <borntraeger@de.ibm.com>
-Subject: Re: [PATCH 4/8] x86/spinlock: Leftover conversion ACCESS_ONCE->READ_ONCE
-Date: Thu, 15 Jan 2015 22:00:59 +0100
-Message-ID: <54B82A8B.7000809@de.ibm.com>
-References: <1421312314-72330-1-git-send-email-borntraeger@de.ibm.com> <1421312314-72330-5-git-send-email-borntraeger@de.ibm.com> <20150115193839.GA28727@redhat.com> <54B81A37.80109@de.ibm.com> <20150115200119.GA29684@redhat.com>
+From: Michael Ellerman <mpe@ellerman.id.au>
+Subject: Re: [PATCH 1/8] ppc/kvm: Replace ACCESS_ONCE with READ_ONCE
+Date: Fri, 16 Jan 2015 10:09:29 +1100
+Message-ID: <1421363369.23332.8.camel@ellerman.id.au>
+References: <1421312314-72330-1-git-send-email-borntraeger@de.ibm.com>
+	 <1421312314-72330-2-git-send-email-borntraeger@de.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=windows-1252
+Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: 7bit
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <20150115200119.GA29684@redhat.com>
-Sender: owner-linux-mm@kvack.org
-To: Oleg Nesterov <oleg@redhat.com>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from ozlabs.org ([103.22.144.67]:49678 "EHLO ozlabs.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1753899AbbAOXJd (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 15 Jan 2015 18:09:33 -0500
+In-Reply-To: <1421312314-72330-2-git-send-email-borntraeger@de.ibm.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Christian Borntraeger <borntraeger@de.ibm.com>
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kvm@vger.kernel.org, kvm-ppc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, x86@kernel.org, xen-devel@lists.xenproject.org, linux-mm@kvack.org
-List-Id: linux-arch.vger.kernel.org
 
-Am 15.01.2015 um 21:01 schrieb Oleg Nesterov:
-> On 01/15, Christian Borntraeger wrote:
->>
->> Am 15.01.2015 um 20:38 schrieb Oleg Nesterov:
->>> On 01/15, Christian Borntraeger wrote:
->>>>
->>>> --- a/arch/x86/include/asm/spinlock.h
->>>> +++ b/arch/x86/include/asm/spinlock.h
->>>> @@ -186,7 +186,7 @@ static inline void arch_spin_unlock_wait(arch_spinlock_t *lock)
->>>>  	__ticket_t head = ACCESS_ONCE(lock->tickets.head);
->>>>
->>>>  	for (;;) {
->>>> -		struct __raw_tickets tmp = ACCESS_ONCE(lock->tickets);
->>>> +		struct __raw_tickets tmp = READ_ONCE(lock->tickets);
->>>
->>> Agreed, but what about another ACCESS_ONCE() above?
->>>
->>> Oleg.
->>
->> tickets.head is a scalar type, so ACCESS_ONCE does work fine with gcc 4.6/4.7.
->> My goal was to convert all accesses on non-scalar types
+On Thu, 2015-01-15 at 09:58 +0100, Christian Borntraeger wrote:
+> ACCESS_ONCE does not work reliably on non-scalar types. For
+> example gcc 4.6 and 4.7 might remove the volatile tag for such
+> accesses during the SRA (scalar replacement of aggregates) step
+> (https://gcc.gnu.org/bugzilla/show_bug.cgi?id=58145)
 > 
-> I understand, but READ_ONCE(lock->tickets.head) looks better anyway and
-> arch_spin_lock() already use READ_ONCE() for this.
+> Change the ppc/kvm code to replace ACCESS_ONCE with READ_ONCE.
 > 
-> So why we should keep the last ACCESS_ONCE() in spinlock.h ? Just to make
-> another cosmetic cleanup which touches the same function later?
+> Signed-off-by: Christian Borntraeger <borntraeger@de.ibm.com>
+> ---
+>  arch/powerpc/kvm/book3s_hv_rm_xics.c |  8 ++++----
+>  arch/powerpc/kvm/book3s_xics.c       | 16 ++++++++--------
+>  2 files changed, 12 insertions(+), 12 deletions(-)
+> 
+> diff --git a/arch/powerpc/kvm/book3s_hv_rm_xics.c b/arch/powerpc/kvm/book3s_hv_rm_xics.c
+> index 7b066f6..7c22997 100644
+> --- a/arch/powerpc/kvm/book3s_hv_rm_xics.c
+> +++ b/arch/powerpc/kvm/book3s_hv_rm_xics.c
+> @@ -152,7 +152,7 @@ static void icp_rm_down_cppr(struct kvmppc_xics *xics, struct kvmppc_icp *icp,
+>  	 * in virtual mode.
+>  	 */
+>  	do {
+> -		old_state = new_state = ACCESS_ONCE(icp->state);
+> +		old_state = new_state = READ_ONCE(icp->state);
 
-OK, I will change that one as well.
+These are all icp->state.
 
+Which is a union, but it's only the size of unsigned long. So in practice there
+shouldn't be a bug here right?
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+cheers
