@@ -1,58 +1,54 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e06smtp16.uk.ibm.com ([195.75.94.112]:60937 "EHLO
-	e06smtp16.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752505AbbAOI6W (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 15 Jan 2015 03:58:22 -0500
+Received: from e06smtp14.uk.ibm.com ([195.75.94.110]:44469 "EHLO
+	e06smtp14.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752380AbbAOI6S (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 15 Jan 2015 03:58:18 -0500
 Received: from /spool/local
-	by e06smtp16.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	by e06smtp14.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
 	for <linux-arch@vger.kernel.org> from <borntraeger@de.ibm.com>;
-	Thu, 15 Jan 2015 08:58:19 -0000
+	Thu, 15 Jan 2015 08:58:17 -0000
 From: Christian Borntraeger <borntraeger@de.ibm.com>
-Subject: [PATCH 7/8] next: sh: Fix compile error
-Date: Thu, 15 Jan 2015 09:58:33 +0100
-Message-ID: <1421312314-72330-8-git-send-email-borntraeger@de.ibm.com>
-In-Reply-To: <1421312314-72330-1-git-send-email-borntraeger@de.ibm.com>
-References: <1421312314-72330-1-git-send-email-borntraeger@de.ibm.com>
+Subject: [PATCH 0/8] current ACCESS_ONCE patch queue
+Date: Thu, 15 Jan 2015 09:58:26 +0100
+Message-ID: <1421312314-72330-1-git-send-email-borntraeger@de.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, kvm@vger.kernel.org, kvm-ppc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, x86@kernel.org, xen-devel@lists.xenproject.org, linux-mm@kvack.org, Guenter Roeck <linux@roeck-us.net>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Christian Borntraeger <borntraeger@de.ibm.com>
-Message-ID: <20150115085833.nNld-GFJI6uTioeyQ3mcRq0yJQtnqEsT-2opkN56Aes@z>
+Cc: linux-arch@vger.kernel.org, kvm@vger.kernel.org, kvm-ppc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, x86@kernel.org, xen-devel@lists.xenproject.org, linux-mm@kvack.org, Christian Borntraeger <borntraeger@de.ibm.com>
+Message-ID: <20150115085826.DYshglsVng71v3qcAiOgm97ETODenfTe0CXFFh4dJgY@z>
 
-From: Guenter Roeck <linux@roeck-us.net>
+Folks,
 
-Commit a91ed664749c ("kernel: tighten rules for ACCESS ONCE") results in a
-compile failure for sh builds with CONFIG_X2TLB enabled.
+fyi, this is my current patch queue for the next merge window. It
+does contain a patch that will disallow ACCESS_ONCE on non-scalar
+types.
 
-arch/sh/mm/gup.c: In function 'gup_get_pte':
-arch/sh/mm/gup.c:20:2: error: invalid initializer
-make[1]: *** [arch/sh/mm/gup.o] Error 1
+The tree is part of linux-next and can be found at
+git://git.kernel.org/pub/scm/linux/kernel/git/borntraeger/linux.git linux-next
 
-Replace ACCESS_ONCE with READ_ONCE to fix the problem.
 
-Fixes: a91ed664749c ("kernel: tighten rules for ACCESS ONCE")
-Cc: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
-Cc: Christian Borntraeger <borntraeger@de.ibm.com>
-Signed-off-by: Guenter Roeck <linux@roeck-us.net>
-Reviewed-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
-Signed-off-by: Christian Borntraeger <borntraeger@de.ibm.com>
----
- arch/sh/mm/gup.c | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+Christian Borntraeger (7):
+  ppc/kvm: Replace ACCESS_ONCE with READ_ONCE
+  ppc/hugetlbfs: Replace ACCESS_ONCE with READ_ONCE
+  x86/xen/p2m: Replace ACCESS_ONCE with READ_ONCE
+  x86/spinlock: Leftover conversion ACCESS_ONCE->READ_ONCE
+  mm/gup: Replace ACCESS_ONCE with READ_ONCE
+  kernel: tighten rules for ACCESS ONCE
+  kernel: Fix sparse warning for ACCESS_ONCE
 
-diff --git a/arch/sh/mm/gup.c b/arch/sh/mm/gup.c
-index 37458f3..e113bb4 100644
---- a/arch/sh/mm/gup.c
-+++ b/arch/sh/mm/gup.c
-@@ -17,7 +17,7 @@
- static inline pte_t gup_get_pte(pte_t *ptep)
- {
- #ifndef CONFIG_X2TLB
--	return ACCESS_ONCE(*ptep);
-+	return READ_ONCE(*ptep);
- #else
- 	/*
- 	 * With get_user_pages_fast, we walk down the pagetables without
+Guenter Roeck (1):
+  next: sh: Fix compile error
+
+ arch/powerpc/kvm/book3s_hv_rm_xics.c |  8 ++++----
+ arch/powerpc/kvm/book3s_xics.c       | 16 ++++++++--------
+ arch/powerpc/mm/hugetlbpage.c        |  4 ++--
+ arch/sh/mm/gup.c                     |  2 +-
+ arch/x86/include/asm/spinlock.h      |  2 +-
+ arch/x86/xen/p2m.c                   |  2 +-
+ include/linux/compiler.h             | 21 ++++++++++++++++-----
+ mm/gup.c                             |  2 +-
+ 8 files changed, 34 insertions(+), 23 deletions(-)
+
 -- 
 1.9.3
 
