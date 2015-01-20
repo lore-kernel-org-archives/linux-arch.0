@@ -1,48 +1,67 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from us01smtprelay-2.synopsys.com ([198.182.60.111]:42730 "EHLO
-	smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751090AbbASEfc (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 18 Jan 2015 23:35:32 -0500
-Message-ID: <54BC897C.7070309@synopsys.com>
-Date: Mon, 19 Jan 2015 10:05:08 +0530
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Received: from foss-mx-na.foss.arm.com ([217.140.108.86]:38841 "EHLO
+	foss-mx-na.foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753491AbbATKoB (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 20 Jan 2015 05:44:01 -0500
+Date: Tue, 20 Jan 2015 10:43:59 +0000
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: Behaviour of smp_mb__{before,after}_spin* and acquire/release
+Message-ID: <20150120104359.GC24303@arm.com>
+References: <20150113163353.GE31784@arm.com>
+ <20150113184510.GA31525@redhat.com>
+ <20150114113147.GG4050@arm.com>
+ <20150120034040.GN9719@linux.vnet.ibm.com>
 MIME-Version: 1.0
-Subject: Re: [PATCH v3 0/5] Perf tool fixes for ARC + uClibc
-References: <1421156604-30603-1-git-send-email-vgupta@synopsys.com> <20150114120000.GB11443@krava.brq.redhat.com> <20150114135930.GA2463@redhat.com>
-In-Reply-To: <20150114135930.GA2463@redhat.com>
-Content-Type: text/plain; charset="windows-1252"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20150120034040.GN9719@linux.vnet.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnaldo Carvalho de Melo <acme@redhat.com>, Jiri Olsa <jolsa@redhat.com>
-Cc: namhyung@kernel.org, jolsa@kernel.org, peterz@infradead.org, mingo@kernel.org, linux-kernel@vger.kernel.org, linux-perf-users@vger.kernel.org, linux-arch@vger.kernel.org, Alexey.Brodkin@synopsys.com
-Message-ID: <20150119043508.qbPl_fPrmgq14eqg58J4tS2yLDPRxxbgMSV5qw0kTrM@z>
+To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Cc: Oleg Nesterov <oleg@redhat.com>, "peterz@infradead.org" <peterz@infradead.org>, "torvalds@linux-foundation.org" <torvalds@linux-foundation.org>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+Message-ID: <20150120104359.hfeHPORJKuMRBXbf3I_gNviQz9JbpDb0O-BgI6QFUPo@z>
 
-Hi Arnaldo,
+Hi Paul,
 
-On Wednesday 14 January 2015 07:29 PM, Arnaldo Carvalho de Melo wrote:
-> Em Wed, Jan 14, 2015 at 01:00:00PM +0100, Jiri Olsa escreveu:
->> > On Tue, Jan 13, 2015 at 07:13:19PM +0530, Vineet Gupta wrote:
->>> > > Hi,
->>> > > 
->>> > > This series based off linux-next of 20150105 allows us to build/use perf
->>> > > for ARC with uClibc based userland.
->>> > > 
->>> > > v3: Changes since v2 [2]
->>> > > * 1/5	: Ack from Jiri
->>> > > * 2/5	: no changes
->>> > > * 3/5	: sys/syscall.h included	  [Jiri]
->>> > > * 4/5	: no changes
->>> > > * 5/5	: -lpthread added to link target  [Jiri]
->>> > > * {1,5} : Changelog updated so scissor lines don't start at column 1
->> > 
->> > Acked-by: Jiri Olsa <jolsa@kernel.org>
-> Most are already in my perf/urgent branch.
+On Tue, Jan 20, 2015 at 03:40:40AM +0000, Paul E. McKenney wrote:
+> On Wed, Jan 14, 2015 at 11:31:47AM +0000, Will Deacon wrote:
+> > On Tue, Jan 13, 2015 at 06:45:10PM +0000, Oleg Nesterov wrote:
+> > > On 01/13, Will Deacon wrote:
+> > > >
+> > > >   1. Does smp_mb__before_spinlock actually have to order prior loads
+> > > >      against later loads and stores? Documentation/memory-barriers.txt
+> > > >      says it does, but that doesn't match the comment
+> > > 
+> > > The comment says that smp_mb__before_spinlock() + spin_lock() should
+> > > only serialize STOREs with LOADs. This is because it was added to ensure
+> > > that the setting of condition can't race with ->state check in ttwu().
+> > 
+> > Yup, that makes sense. The comment is consistent with the code, and I think
+> > the code is doing what it's supposed to do.
+> > 
+> > > But since we use wmb() it obviously serializes STOREs with STORES. I do
+> > > not know if this should be documented, but we already have another user
+> > > which seems to rely on this fact: set_tlb_flush_pending().
+> > 
+> > In which case, it's probably a good idea to document that too.
+> > 
+> > > As for "prior loads", this doesn't look true...
+> > 
+> > Agreed. I'd propose something like the diff below, but it also depends on
+> > my second question since none of this is true for smp_load_acquire.
 > 
-> - Arnaldo
+> OK, finally getting to this, apologies for the delay...
 
-Are you planning to add {4,5}/5 for next window or did u drop/miss them ?
+No problem, it's hardly urgent :)
 
-Thx,
--Vineet
+> It does look like I was momentarily confusing the memory ordering implied
+> by lock acquisition with that by smp_lock_acquire().  Your patch looks good,
+> would you be willing to resend with commit log and Signed-off-by?
 
+Hey, if you get confused by it then what hope do the rest of us have?
+
+Patch below, thanks.
+
+Will
+
+--->8
