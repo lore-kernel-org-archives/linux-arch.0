@@ -1,131 +1,175 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from g4t3426.houston.hp.com ([15.201.208.54]:52575 "EHLO
-	g4t3426.houston.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752275AbbATUNG (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 20 Jan 2015 15:13:06 -0500
+Received: from g4t3425.houston.hp.com ([15.201.208.53]:21705 "EHLO
+	g4t3425.houston.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753304AbbATUNR (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 20 Jan 2015 15:13:17 -0500
 From: Waiman Long <Waiman.Long@hp.com>
-Subject: [PATCH v14 02/11] qspinlock, x86: Enable x86-64 to use queue spinlock
-Date: Tue, 20 Jan 2015 15:12:26 -0500
-Message-ID: <1421784755-21945-3-git-send-email-Waiman.Long@hp.com>
+Subject: [PATCH v14 04/11] qspinlock: Extract out code snippets for the next patch
+Date: Tue, 20 Jan 2015 15:12:28 -0500
+Message-ID: <1421784755-21945-5-git-send-email-Waiman.Long@hp.com>
 In-Reply-To: <1421784755-21945-1-git-send-email-Waiman.Long@hp.com>
 References: <1421784755-21945-1-git-send-email-Waiman.Long@hp.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Peter Zijlstra <peterz@infradead.org>
 Cc: linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Rik van Riel <riel@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, David Vrabel <david.vrabel@citrix.com>, Oleg Nesterov <oleg@redhat.com>, Scott J Norton <scott.norton@hp.com>, Douglas Hatch <doug.hatch@hp.com>, Waiman Long <Waiman.Long@hp.com>
-Message-ID: <20150120201226.s84sRQG_S7EkCnblSSYmAp7JAYCGcB9yTXFoN3RaKfE@z>
+Message-ID: <20150120201228.GRTZANFiQdaoIPdunk1sYoUQkMazbCFP6kUN6hdUNFo@z>
 
-This patch makes the necessary changes at the x86 architecture
-specific layer to enable the use of queue spinlock for x86-64. As
-x86-32 machines are typically not multi-socket. The benefit of queue
-spinlock may not be apparent. So queue spinlock is not enabled.
+This is a preparatory patch that extracts out the following 2 code
+snippets to prepare for the next performance optimization patch.
 
-Currently, there is some incompatibilities between the para-virtualized
-spinlock code (which hard-codes the use of ticket spinlock) and the
-queue spinlock. Therefore, the use of queue spinlock is disabled when
-the para-virtualized spinlock is enabled.
+ 1) the logic for the exchange of new and previous tail code words
+    into a new xchg_tail() function.
+ 2) the logic for clearing the pending bit and setting the locked bit
+    into a new clear_pending_set_locked() function.
 
-The arch/x86/include/asm/qspinlock.h header file includes some x86
-specific optimization which will make the queue spinlock code perform
-better than the generic implementation.
+This patch also simplifies the trylock operation before queuing by
+calling queue_spin_trylock() directly.
 
 Signed-off-by: Waiman Long <Waiman.Long@hp.com>
 Signed-off-by: Peter Zijlstra <peterz@infradead.org>
 ---
- arch/x86/Kconfig                      |    1 +
- arch/x86/include/asm/qspinlock.h      |   25 +++++++++++++++++++++++++
- arch/x86/include/asm/spinlock.h       |    5 +++++
- arch/x86/include/asm/spinlock_types.h |    4 ++++
- 4 files changed, 35 insertions(+), 0 deletions(-)
- create mode 100644 arch/x86/include/asm/qspinlock.h
+ include/asm-generic/qspinlock_types.h |    2 +
+ kernel/locking/qspinlock.c            |   91 +++++++++++++++++++++-----------
+ 2 files changed, 62 insertions(+), 31 deletions(-)
 
-diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
-index ba397bd..420f057 100644
---- a/arch/x86/Kconfig
-+++ b/arch/x86/Kconfig
-@@ -123,6 +123,7 @@ config X86
- 	select MODULES_USE_ELF_RELA if X86_64
- 	select CLONE_BACKWARDS if X86_32
- 	select ARCH_USE_BUILTIN_BSWAP
-+	select ARCH_USE_QUEUE_SPINLOCK
- 	select ARCH_USE_QUEUE_RWLOCK
- 	select OLD_SIGSUSPEND3 if X86_32 || IA32_EMULATION
- 	select OLD_SIGACTION if X86_32
-diff --git a/arch/x86/include/asm/qspinlock.h b/arch/x86/include/asm/qspinlock.h
-new file mode 100644
-index 0000000..a6a8762
---- /dev/null
-+++ b/arch/x86/include/asm/qspinlock.h
-@@ -0,0 +1,25 @@
-+#ifndef _ASM_X86_QSPINLOCK_H
-+#define _ASM_X86_QSPINLOCK_H
+diff --git a/include/asm-generic/qspinlock_types.h b/include/asm-generic/qspinlock_types.h
+index 4196694..88d647c 100644
+--- a/include/asm-generic/qspinlock_types.h
++++ b/include/asm-generic/qspinlock_types.h
+@@ -58,6 +58,8 @@ typedef struct qspinlock {
+ #define _Q_TAIL_CPU_BITS	(32 - _Q_TAIL_CPU_OFFSET)
+ #define _Q_TAIL_CPU_MASK	_Q_SET_MASK(TAIL_CPU)
+ 
++#define _Q_TAIL_MASK		(_Q_TAIL_IDX_MASK | _Q_TAIL_CPU_MASK)
 +
-+#include <asm-generic/qspinlock_types.h>
-+
-+#ifndef CONFIG_X86_PPRO_FENCE
-+
-+#define	queue_spin_unlock queue_spin_unlock
-+/**
-+ * queue_spin_unlock - release a queue spinlock
-+ * @lock : Pointer to queue spinlock structure
+ #define _Q_LOCKED_VAL		(1U << _Q_LOCKED_OFFSET)
+ #define _Q_PENDING_VAL		(1U << _Q_PENDING_OFFSET)
+ 
+diff --git a/kernel/locking/qspinlock.c b/kernel/locking/qspinlock.c
+index 226b11d..48bd2ad 100644
+--- a/kernel/locking/qspinlock.c
++++ b/kernel/locking/qspinlock.c
+@@ -95,6 +95,54 @@ static inline struct mcs_spinlock *decode_tail(u32 tail)
+ #define _Q_LOCKED_PENDING_MASK (_Q_LOCKED_MASK | _Q_PENDING_MASK)
+ 
+ /**
++ * clear_pending_set_locked - take ownership and clear the pending bit.
++ * @lock: Pointer to queue spinlock structure
++ * @val : Current value of the queue spinlock 32-bit word
 + *
-+ * An effective smp_store_release() on the least-significant byte.
++ * *,1,0 -> *,0,1
 + */
-+static inline void queue_spin_unlock(struct qspinlock *lock)
++static __always_inline void
++clear_pending_set_locked(struct qspinlock *lock, u32 val)
 +{
-+	barrier();
-+	ACCESS_ONCE(*(u8 *)lock) = 0;
++	u32 new, old;
++
++	for (;;) {
++		new = (val & ~_Q_PENDING_MASK) | _Q_LOCKED_VAL;
++
++		old = atomic_cmpxchg(&lock->val, val, new);
++		if (old == val)
++			break;
++
++		val = old;
++	}
 +}
 +
-+#endif /* !CONFIG_X86_PPRO_FENCE */
++/**
++ * xchg_tail - Put in the new queue tail code word & retrieve previous one
++ * @lock : Pointer to queue spinlock structure
++ * @tail : The new queue tail code word
++ * Return: The previous queue tail code word
++ *
++ * xchg(lock, tail)
++ *
++ * p,*,* -> n,*,* ; prev = xchg(lock, node)
++ */
++static __always_inline u32 xchg_tail(struct qspinlock *lock, u32 tail)
++{
++	u32 old, new, val = atomic_read(&lock->val);
 +
-+#include <asm-generic/qspinlock.h>
++	for (;;) {
++		new = (val & _Q_LOCKED_PENDING_MASK) | tail;
++		old = atomic_cmpxchg(&lock->val, val, new);
++		if (old == val)
++			break;
 +
-+#endif /* _ASM_X86_QSPINLOCK_H */
-diff --git a/arch/x86/include/asm/spinlock.h b/arch/x86/include/asm/spinlock.h
-index 625660f..5a5b90c 100644
---- a/arch/x86/include/asm/spinlock.h
-+++ b/arch/x86/include/asm/spinlock.h
-@@ -42,6 +42,10 @@
- extern struct static_key paravirt_ticketlocks_enabled;
- static __always_inline bool static_key_false(struct static_key *key);
- 
-+#ifdef CONFIG_QUEUE_SPINLOCK
-+#include <asm/qspinlock.h>
-+#else
++		val = old;
++	}
++	return old;
++}
 +
- #ifdef CONFIG_PARAVIRT_SPINLOCKS
++/**
+  * queue_spin_lock_slowpath - acquire the queue spinlock
+  * @lock: Pointer to queue spinlock structure
+  * @val: Current value of the queue spinlock 32-bit word
+@@ -176,15 +224,7 @@ void queue_spin_lock_slowpath(struct qspinlock *lock, u32 val)
+ 	 *
+ 	 * *,1,0 -> *,0,1
+ 	 */
+-	for (;;) {
+-		new = (val & ~_Q_PENDING_MASK) | _Q_LOCKED_VAL;
+-
+-		old = atomic_cmpxchg(&lock->val, val, new);
+-		if (old == val)
+-			break;
+-
+-		val = old;
+-	}
++	clear_pending_set_locked(lock, val);
+ 	return;
  
- static inline void __ticket_enter_slowpath(arch_spinlock_t *lock)
-@@ -198,6 +202,7 @@ static inline void arch_spin_unlock_wait(arch_spinlock_t *lock)
- 		cpu_relax();
- 	}
- }
-+#endif /* CONFIG_QUEUE_SPINLOCK */
+ 	/*
+@@ -201,37 +241,26 @@ queue:
+ 	node->next = NULL;
  
- /*
-  * Read-write spinlocks, allowing multiple readers
-diff --git a/arch/x86/include/asm/spinlock_types.h b/arch/x86/include/asm/spinlock_types.h
-index 5f9d757..5d654a1 100644
---- a/arch/x86/include/asm/spinlock_types.h
-+++ b/arch/x86/include/asm/spinlock_types.h
-@@ -23,6 +23,9 @@ typedef u32 __ticketpair_t;
+ 	/*
+-	 * We have already touched the queueing cacheline; don't bother with
+-	 * pending stuff.
+-	 *
+-	 * trylock || xchg(lock, node)
+-	 *
+-	 * 0,0,0 -> 0,0,1 ; no tail, not locked -> no tail, locked.
+-	 * p,y,x -> n,y,x ; tail was p -> tail is n; preserving locked.
++	 * We touched a (possibly) cold cacheline in the per-cpu queue node;
++	 * attempt the trylock once more in the hope someone let go while we
++	 * weren't watching.
+ 	 */
+-	for (;;) {
+-		new = _Q_LOCKED_VAL;
+-		if (val)
+-			new = tail | (val & _Q_LOCKED_PENDING_MASK);
+-
+-		old = atomic_cmpxchg(&lock->val, val, new);
+-		if (old == val)
+-			break;
+-
+-		val = old;
+-	}
++	if (queue_spin_trylock(lock))
++		goto release;
  
- #define TICKET_SHIFT	(sizeof(__ticket_t) * 8)
+ 	/*
+-	 * we won the trylock; forget about queueing.
++	 * We have already touched the queueing cacheline; don't bother with
++	 * pending stuff.
++	 *
++	 * p,*,* -> n,*,*
+ 	 */
+-	if (new == _Q_LOCKED_VAL)
+-		goto release;
++	old = xchg_tail(lock, tail);
  
-+#ifdef CONFIG_QUEUE_SPINLOCK
-+#include <asm-generic/qspinlock_types.h>
-+#else
- typedef struct arch_spinlock {
- 	union {
- 		__ticketpair_t head_tail;
-@@ -33,6 +36,7 @@ typedef struct arch_spinlock {
- } arch_spinlock_t;
- 
- #define __ARCH_SPIN_LOCK_UNLOCKED	{ { 0 } }
-+#endif /* CONFIG_QUEUE_SPINLOCK */
- 
- #include <asm-generic/qrwlock_types.h>
+ 	/*
+ 	 * if there was a previous node; link it and wait until reaching the
+ 	 * head of the waitqueue.
+ 	 */
+-	if (old & ~_Q_LOCKED_PENDING_MASK) {
++	if (old & _Q_TAIL_MASK) {
+ 		prev = decode_tail(old);
+ 		ACCESS_ONCE(prev->next) = node;
  
 -- 
 1.7.1
