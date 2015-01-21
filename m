@@ -1,118 +1,41 @@
-From: David Vrabel <david.vrabel@citrix.com>
-Subject: Re: [Xen-devel] [PATCH v14 11/11] pvqspinlock,
-	x86: Enable PV qspinlock for XEN
-Date: Wed, 21 Jan 2015 10:29:41 +0000
-Message-ID: <54BF7F95.70507@citrix.com>
-References: <1421784755-21945-1-git-send-email-Waiman.Long@hp.com>
-	<1421784755-21945-12-git-send-email-Waiman.Long@hp.com>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: [PATCH 04/16] h8300: Memory management
+Date: Wed, 21 Jan 2015 11:57:45 +0100
+Message-ID: <CAMuHMdUCiWyFVASJjwTbwqjUxVWLwGAqDstZDpirvh6r4WNcig@mail.gmail.com>
+References: <cover.1421813622.git.ysato@users.sourceforge.jp>
+	<87twzkvjz8.wl-ysato@users.sourceforge.jp>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <virtualization-bounces@lists.linux-foundation.org>
-In-Reply-To: <1421784755-21945-12-git-send-email-Waiman.Long@hp.com>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
-List-Post: <mailto:virtualization@lists.linux-foundation.org>
-List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
-Sender: virtualization-bounces@lists.linux-foundation.org
-Errors-To: virtualization-bounces@lists.linux-foundation.org
-To: Waiman Long <Waiman.Long@hp.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Peter Zijlstra <peterz@infradead.org>
-Cc: linux-arch@vger.kernel.org, x86@kernel.org, kvm@vger.kernel.org, Scott J Norton <scott.norton@hp.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, Paolo Bonzini <paolo.bonzini@gmail.com>, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, David Vrabel <david.vrabel@citrix.com>, Oleg Nesterov <oleg@redhat.com>, xen-devel@lists.xenproject.org, Boris Ostrovsky <boris.ostrovsky@oracle.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Douglas Hatch <doug.hatch@hp.com>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=UTF-8
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-la0-f48.google.com ([209.85.215.48]:57572 "EHLO
+	mail-la0-f48.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752233AbbAUK5r (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 21 Jan 2015 05:57:47 -0500
+Received: by mail-la0-f48.google.com with SMTP id gf13so39371355lab.7
+        for <linux-arch@vger.kernel.org>; Wed, 21 Jan 2015 02:57:45 -0800 (PST)
+In-Reply-To: <87twzkvjz8.wl-ysato@users.sourceforge.jp>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Yoshinori Sato <ysato@users.sourceforge.jp>
+Cc: Linux-Arch <linux-arch@vger.kernel.org>
 
-On 20/01/15 20:12, Waiman Long wrote:
-> This patch adds the necessary XEN specific code to allow XEN to
-> support the CPU halting and kicking operations needed by the queue
-> spinlock PV code.
+On Wed, Jan 21, 2015 at 5:24 AM, Yoshinori Sato
+<ysato@users.sourceforge.jp> wrote:
+> --- /dev/null
+> +++ b/arch/h8300/mm/Makefile
+> @@ -0,0 +1,5 @@
+> +#
+> +# Makefile for the linux m68k-specific parts of the memory manager.
 
-Xen is a word, please don't capitalize it.
+H8/300
 
-> +void xen_lock_stats(int stat_types)
-> +{
-> +	if (stat_types & PV_LOCKSTAT_WAKE_KICKED)
-> +		add_smp(&wake_kick_stats, 1);
-> +	if (stat_types & PV_LOCKSTAT_WAKE_SPURIOUS)
-> +		add_smp(&wake_spur_stats, 1);
-> +	if (stat_types & PV_LOCKSTAT_KICK_NOHALT)
-> +		add_smp(&kick_nohlt_stats, 1);
-> +	if (stat_types & PV_LOCKSTAT_HALT_QHEAD)
-> +		add_smp(&halt_qhead_stats, 1);
-> +	if (stat_types & PV_LOCKSTAT_HALT_QNODE)
-> +		add_smp(&halt_qnode_stats, 1);
-> +	if (stat_types & PV_LOCKSTAT_HALT_ABORT)
-> +		add_smp(&halt_abort_stats, 1);
-> +}
-> +PV_CALLEE_SAVE_REGS_THUNK(xen_lock_stats);
+Gr{oetje,eeting}s,
 
-This is not inlined and the 6 test-and-branch cannot be optimized away.
+                        Geert
 
-> +/*
-> + * Halt the current CPU & release it back to the host
-> + * Return 0 if halted, -1 otherwise.
-> + */
-> +int xen_halt_cpu(u8 *byte, u8 val)
-> +{
-> +	int irq = __this_cpu_read(lock_kicker_irq);
-> +	unsigned long flags;
-> +	u64 start;
-> +
-> +	/* If kicker interrupts not initialized yet, just spin */
-> +	if (irq == -1)
-> +		return -1;
-> +
-> +	/*
-> +	 * Make sure an interrupt handler can't upset things in a
-> +	 * partially setup state.
-> +	 */
-> +	local_irq_save(flags);
-> +	start = spin_time_start();
-> +
-> +	/* clear pending */
-> +	xen_clear_irq_pending(irq);
-> +
-> +	/* Allow interrupts while blocked */
-> +	local_irq_restore(flags);
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
 
-It's not clear what "partially setup state" is being protected here.
-xen_clear_irq_pending() is an atomic bit clear.
-
-I think you can drop the irq save/restore here.
-
-> +	/*
-> +	 * Don't halt if the content of the given byte address differs from
-> +	 * the expected value. A read memory barrier is added to make sure that
-> +	 * the latest value of the byte address is fetched.
-> +	 */
-> +	smp_rmb();
-
-The atomic bit clear in xen_clear_irq_pending() acts as a full memory
-barrier.  I don't think you need an additional memory barrier here, only
-a compiler one.  I suggest using READ_ONCE().
-
-> +	if (*byte != val) {
-> +		xen_lock_stats(PV_LOCKSTAT_HALT_ABORT);
-> +		return -1;
-> +	}
-> +	/*
-> +	 * If an interrupt happens here, it will leave the wakeup irq
-> +	 * pending, which will cause xen_poll_irq() to return
-> +	 * immediately.
-> +	 */
-> +
-> +	/* Block until irq becomes pending (or perhaps a spurious wakeup) */
-> +	xen_poll_irq(irq);
-> +	spin_time_accum_blocked(start);
-> +	return 0;
-> +}
-> +PV_CALLEE_SAVE_REGS_THUNK(xen_halt_cpu);
-> +
-> +#endif /* CONFIG_QUEUE_SPINLOCK */
-> +
->  static irqreturn_t dummy_handler(int irq, void *dev_id)
->  {
->  	BUG();
-
-David
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
