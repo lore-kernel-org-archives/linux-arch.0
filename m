@@ -1,24 +1,75 @@
-From: Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>
-Subject: Re: [PATCH v14 08/11] qspinlock, x86: Rename paravirt_ticketlocks_enabled
-Date: Wed, 21 Jan 2015 17:38:06 +0530
-Message-ID: <54BF96A6.1060702@linux.vnet.ibm.com>
-References: <1421784755-21945-1-git-send-email-Waiman.Long@hp.com> <1421784755-21945-9-git-send-email-Waiman.Long@hp.com>
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: Behaviour of smp_mb__{before,after}_spin* and acquire/release
+Date: Wed, 21 Jan 2015 13:56:59 +0000
+Message-ID: <20150121135659.GG4549@arm.com>
+References: <20150113163353.GE31784@arm.com>
+ <20150120093443.GA11596@twins.programming.kicks-ass.net>
+ <20150120213545.GT9719@linux.vnet.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
-Content-Transfer-Encoding: 7bit
-Return-path: <kvm-owner@vger.kernel.org>
-In-Reply-To: <1421784755-21945-9-git-send-email-Waiman.Long@hp.com>
-Sender: kvm-owner@vger.kernel.org
-To: Waiman Long <Waiman.Long@hp.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Peter Zijlstra <peterz@infradead.org>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Rik van Riel <riel@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, David Vrabel <david.vrabel@citrix.com>, Oleg Nesterov <oleg@redhat.com>, Scott J Norton <scott.norton@hp.com>, Douglas Hatch <doug.hatch@hp.com>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from foss-mx-na.foss.arm.com ([217.140.108.86]:40008 "EHLO
+	foss-mx-na.foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751972AbbAUN5Q (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 21 Jan 2015 08:57:16 -0500
+Content-Disposition: inline
+In-Reply-To: <20150120213545.GT9719@linux.vnet.ibm.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Cc: Peter Zijlstra <peterz@infradead.org>, "torvalds@linux-foundation.org" <torvalds@linux-foundation.org>, "oleg@redhat.com" <oleg@redhat.com>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
 
-On 01/21/2015 01:42 AM, Waiman Long wrote:
-> This patch renames the paravirt_ticketlocks_enabled static key to a
-> more generic paravirt_spinlocks_enabled name.
->
-> Signed-off-by: Waiman Long <Waiman.Long@hp.com>
-> Signed-off-by: Peter Zijlstra <peterz@infradead.org>
-> ---
-Reviewed-by: Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>
+On Tue, Jan 20, 2015 at 09:35:45PM +0000, Paul E. McKenney wrote:
+> On Tue, Jan 20, 2015 at 10:34:43AM +0100, Peter Zijlstra wrote:
+> > On Tue, Jan 13, 2015 at 04:33:54PM +0000, Will Deacon wrote:
+> > > Hi Paul,
+> > > 
+> > > I started dusting off a series I've been working to implement a relaxed
+> > > atomic API in Linux (i.e. things like atomic_read(v, ACQUIRE)) but I'm
+> > > having trouble making sense of the ordering semantics we have in mainline
+> > > today:
+> > 
+> > >   2. Does smp_mb__after_unlock_lock order smp_store_release against
+> > >      smp_load_acquire? Again, Documentation/memory-barriers.txt puts
+> > >      these operations into the RELEASE and ACQUIRE classes respectively,
+> > >      but since smp_mb__after_unlock_lock is a NOP everywhere other than
+> > >      PowerPC, I don't think this is enforced by the current code. 
+> > 
+> > Yeah, wasn't Paul going to talk to Ben about that? PPC is the only arch
+> > that has the weak ACQUIRE/RELEASE for its spinlocks.
+> 
+> I thought that you guys were going to propose something and we would see
+> what the reaction was.  ;-)
+> 
+> > >      Most
+> > >      architectures follow the pattern used by asm-generic/barrier.h:
+> > > 
+> > >        release: smp_mb(); STORE
+> > >        acquire: LOAD; smp_mb();
+> > > 
+> > >      which doesn't provide any release -> acquire ordering afaict.
+> > 
+> > Only when combined on the same address, if the LOAD observes the result
+> > of the STORE we can guarantee the rest of the ordering. And if you
+> > build a locking primitive with them (or circular lists or whatnot) you
+> > have that extra condition.
+> > 
+> > But yes, I see your argument that this implementation is weak like the
+> > PPC.
+> 
+> A more complete example would be as follows:
+> 
+>        STOREs followed by release: smp_mb(); STORE A
+>        acquire: LOAD A; smp_mb(); preceding LOADs
+> 
+> If the LOAD A gets the value from the STORE A, then the LOADs following
+> the acquire are guaranteed to see the STOREs preceding the release.
+> 
+> And yes, this really truly does work fine with weaker ordering.
 
+I agree, but if we consider the case where the acquire and the release are
+operating on *different* addresses, then the current Documentation would
+tell us to use smp_mb__after_unlock_lock to ensure ordering, which won't
+work on anything other than Power.
+
+Will
