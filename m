@@ -1,115 +1,33 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp02.citrix.com ([66.165.176.63]:42992 "EHLO
-	SMTP02.CITRIX.COM" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752747AbbAUKaR (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 21 Jan 2015 05:30:17 -0500
-Message-ID: <54BF7F95.70507@citrix.com>
-Date: Wed, 21 Jan 2015 10:29:41 +0000
-From: David Vrabel <david.vrabel@citrix.com>
+Received: from e23smtp03.au.ibm.com ([202.81.31.145]:48571 "EHLO
+	e23smtp03.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750813AbbAUMKY (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 21 Jan 2015 07:10:24 -0500
+Received: from /spool/local
+	by e23smtp03.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <raghavendra.kt@linux.vnet.ibm.com>;
+	Wed, 21 Jan 2015 22:10:22 +1000
+Message-ID: <54BF96A6.1060702@linux.vnet.ibm.com>
+Date: Wed, 21 Jan 2015 17:38:06 +0530
+From: Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>
 MIME-Version: 1.0
-Subject: Re: [Xen-devel] [PATCH v14 11/11] pvqspinlock, x86: Enable PV qspinlock
- for XEN
-References: <1421784755-21945-1-git-send-email-Waiman.Long@hp.com> <1421784755-21945-12-git-send-email-Waiman.Long@hp.com>
-In-Reply-To: <1421784755-21945-12-git-send-email-Waiman.Long@hp.com>
-Content-Type: text/plain; charset="windows-1252"
-Content-Transfer-Encoding: 8bit
+Subject: Re: [PATCH v14 08/11] qspinlock, x86: Rename paravirt_ticketlocks_enabled
+References: <1421784755-21945-1-git-send-email-Waiman.Long@hp.com> <1421784755-21945-9-git-send-email-Waiman.Long@hp.com>
+In-Reply-To: <1421784755-21945-9-git-send-email-Waiman.Long@hp.com>
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Waiman Long <Waiman.Long@hp.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Peter Zijlstra <peterz@infradead.org>
-Cc: linux-arch@vger.kernel.org, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, kvm@vger.kernel.org, Scott J Norton <scott.norton@hp.com>, x86@kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, David Vrabel <david.vrabel@citrix.com>, Oleg Nesterov <oleg@redhat.com>, xen-devel@lists.xenproject.org, Boris Ostrovsky <boris.ostrovsky@oracle.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Douglas Hatch <doug.hatch@hp.com>
-Message-ID: <20150121102941.ycLNi5ENVDVLUqAeyUh1iolZeNt9izxREgFFHBAhDLc@z>
+To: Waiman Long <Waiman.Long@hp.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Peter Zijlstra <peterz@infradead.org>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Rik van Riel <riel@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, David Vrabel <david.vrabel@citrix.com>, Oleg Nesterov <oleg@redhat.com>, Scott J Norton <scott.norton@hp.com>, Douglas Hatch <doug.hatch@hp.com>
+Message-ID: <20150121120806.Ci0S1u8DtLtBCaq6I-qjZBAxHDOKcmImRARY8Iz-s9E@z>
 
-On 20/01/15 20:12, Waiman Long wrote:
-> This patch adds the necessary XEN specific code to allow XEN to
-> support the CPU halting and kicking operations needed by the queue
-> spinlock PV code.
-
-Xen is a word, please don't capitalize it.
-
-> +void xen_lock_stats(int stat_types)
-> +{
-> +	if (stat_types & PV_LOCKSTAT_WAKE_KICKED)
-> +		add_smp(&wake_kick_stats, 1);
-> +	if (stat_types & PV_LOCKSTAT_WAKE_SPURIOUS)
-> +		add_smp(&wake_spur_stats, 1);
-> +	if (stat_types & PV_LOCKSTAT_KICK_NOHALT)
-> +		add_smp(&kick_nohlt_stats, 1);
-> +	if (stat_types & PV_LOCKSTAT_HALT_QHEAD)
-> +		add_smp(&halt_qhead_stats, 1);
-> +	if (stat_types & PV_LOCKSTAT_HALT_QNODE)
-> +		add_smp(&halt_qnode_stats, 1);
-> +	if (stat_types & PV_LOCKSTAT_HALT_ABORT)
-> +		add_smp(&halt_abort_stats, 1);
-> +}
-> +PV_CALLEE_SAVE_REGS_THUNK(xen_lock_stats);
-
-This is not inlined and the 6 test-and-branch cannot be optimized away.
-
-> +/*
-> + * Halt the current CPU & release it back to the host
-> + * Return 0 if halted, -1 otherwise.
-> + */
-> +int xen_halt_cpu(u8 *byte, u8 val)
-> +{
-> +	int irq = __this_cpu_read(lock_kicker_irq);
-> +	unsigned long flags;
-> +	u64 start;
-> +
-> +	/* If kicker interrupts not initialized yet, just spin */
-> +	if (irq == -1)
-> +		return -1;
-> +
-> +	/*
-> +	 * Make sure an interrupt handler can't upset things in a
-> +	 * partially setup state.
-> +	 */
-> +	local_irq_save(flags);
-> +	start = spin_time_start();
-> +
-> +	/* clear pending */
-> +	xen_clear_irq_pending(irq);
-> +
-> +	/* Allow interrupts while blocked */
-> +	local_irq_restore(flags);
-
-It's not clear what "partially setup state" is being protected here.
-xen_clear_irq_pending() is an atomic bit clear.
-
-I think you can drop the irq save/restore here.
-
-> +	/*
-> +	 * Don't halt if the content of the given byte address differs from
-> +	 * the expected value. A read memory barrier is added to make sure that
-> +	 * the latest value of the byte address is fetched.
-> +	 */
-> +	smp_rmb();
-
-The atomic bit clear in xen_clear_irq_pending() acts as a full memory
-barrier.  I don't think you need an additional memory barrier here, only
-a compiler one.  I suggest using READ_ONCE().
-
-> +	if (*byte != val) {
-> +		xen_lock_stats(PV_LOCKSTAT_HALT_ABORT);
-> +		return -1;
-> +	}
-> +	/*
-> +	 * If an interrupt happens here, it will leave the wakeup irq
-> +	 * pending, which will cause xen_poll_irq() to return
-> +	 * immediately.
-> +	 */
-> +
-> +	/* Block until irq becomes pending (or perhaps a spurious wakeup) */
-> +	xen_poll_irq(irq);
-> +	spin_time_accum_blocked(start);
-> +	return 0;
-> +}
-> +PV_CALLEE_SAVE_REGS_THUNK(xen_halt_cpu);
-> +
-> +#endif /* CONFIG_QUEUE_SPINLOCK */
-> +
->  static irqreturn_t dummy_handler(int irq, void *dev_id)
->  {
->  	BUG();
-
-David
+On 01/21/2015 01:42 AM, Waiman Long wrote:
+> This patch renames the paravirt_ticketlocks_enabled static key to a
+> more generic paravirt_spinlocks_enabled name.
+>
+> Signed-off-by: Waiman Long <Waiman.Long@hp.com>
+> Signed-off-by: Peter Zijlstra <peterz@infradead.org>
+> ---
+Reviewed-by: Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>
 
