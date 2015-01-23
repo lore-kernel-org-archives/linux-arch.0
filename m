@@ -1,40 +1,41 @@
-From: Will Deacon <will.deacon@arm.com>
+From: Catalin Marinas <catalin.marinas@arm.com>
 Subject: Re: [PATCH repost 03/16] arm64/uaccess: fix sparse errors
-Date: Fri, 23 Jan 2015 15:42:14 +0000
-Message-ID: <20150123154213.GB31460@arm.com>
+Date: Fri, 23 Jan 2015 16:35:01 +0000
+Message-ID: <20150123163500.GE9557@e104818-lin.cambridge.arm.com>
 References: <1419499661-8566-1-git-send-email-mst@redhat.com>
  <1419499661-8566-4-git-send-email-mst@redhat.com>
  <20150123153316.GB9557@e104818-lin.cambridge.arm.com>
+ <20150123154213.GB31460@arm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss-mx-na.foss.arm.com ([217.140.108.86]:41961 "EHLO
-	foss-mx-na.foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754545AbbAWPmW (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 23 Jan 2015 10:42:22 -0500
+Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20150123153316.GB9557@e104818-lin.cambridge.arm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>
+In-Reply-To: <20150123154213.GB31460@arm.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Will Deacon <will.deacon@arm.com>
 Cc: "Michael S. Tsirkin" <mst@redhat.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Christopher Covington <cov@codeaurora.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Fri, Jan 23, 2015 at 03:33:16PM +0000, Catalin Marinas wrote:
-> On Thu, Dec 25, 2014 at 09:28:41AM +0000, Michael S. Tsirkin wrote:
-> > virtio wants to read bitwise types from userspace using get_user.  At the
-> > moment this triggers sparse errors, since the value is passed through an
-> > integer.
+On Fri, Jan 23, 2015 at 03:42:14PM +0000, Will Deacon wrote:
+> On Fri, Jan 23, 2015 at 03:33:16PM +0000, Catalin Marinas wrote:
+> > On Thu, Dec 25, 2014 at 09:28:41AM +0000, Michael S. Tsirkin wrote:
+> > > virtio wants to read bitwise types from userspace using get_user.  At the
+> > > moment this triggers sparse errors, since the value is passed through an
+> > > integer.
+> > > 
+> > > Fix that up using __force.
+> > > 
+> > > Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
+> > > 
+> > > Acked-by: Will Deacon <will.deacon@arm.com>
 > > 
-> > Fix that up using __force.
-> > 
-> > Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
-> > 
-> > Acked-by: Will Deacon <will.deacon@arm.com>
+> > I'm not sure who's going to merge this series. In the meantime, I
+> > cherry-picked the arm64 patch. Thanks.
 > 
-> I'm not sure who's going to merge this series. In the meantime, I
-> cherry-picked the arm64 patch. Thanks.
+> I think there was a pull request for the whole series that went to Arnd, so
+> I don't think we need to do anything on the arm64 side.
 
-I think there was a pull request for the whole series that went to Arnd, so
-I don't think we need to do anything on the arm64 side.
+OK. I dropped the patch.
 
-Will
+-- 
+Catalin
