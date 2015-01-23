@@ -1,56 +1,57 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mailout4.w1.samsung.com ([210.118.77.14]:37326 "EHLO
-	mailout4.w1.samsung.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754200AbbAUQwg (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 21 Jan 2015 11:52:36 -0500
-From: Andrey Ryabinin <a.ryabinin@samsung.com>
-Subject: [PATCH v9 15/17] kernel: add support for .init_array.* constructors
-Date: Wed, 21 Jan 2015 19:51:43 +0300
-Message-ID: <1421859105-25253-16-git-send-email-a.ryabinin@samsung.com>
-In-reply-to: <1421859105-25253-1-git-send-email-a.ryabinin@samsung.com>
-References: <1404905415-9046-1-git-send-email-a.ryabinin@samsung.com>
- <1421859105-25253-1-git-send-email-a.ryabinin@samsung.com>
+Received: from foss-mx-na.foss.arm.com ([217.140.108.86]:41803 "EHLO
+	foss-mx-na.foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751741AbbAWOIl (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 23 Jan 2015 09:08:41 -0500
+Date: Fri, 23 Jan 2015 14:08:32 +0000
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: Behaviour of smp_mb__{before,after}_spin* and acquire/release
+Message-ID: <20150123140832.GE23058@arm.com>
+References: <20150113163353.GE31784@arm.com>
+ <20150120093443.GA11596@twins.programming.kicks-ass.net>
+ <20150120213545.GT9719@linux.vnet.ibm.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20150120213545.GT9719@linux.vnet.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: Andrey Ryabinin <a.ryabinin@samsung.com>, Dmitry Vyukov <dvyukov@google.com>, Konstantin Serebryany <kcc@google.com>, Dmitry Chernenkov <dmitryc@google.com>, Andrey Konovalov <adech.fo@gmail.com>, Yuri Gribov <tetra2005@gmail.com>, Konstantin Khlebnikov <koct9i@gmail.com>, Sasha Levin <sasha.levin@oracle.com>, Christoph Lameter <cl@linux.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Andrew Morton <akpm@linux-foundation.org>, Dave Hansen <dave.hansen@intel.com>, Andi Kleen <andi@firstfloor.org>, x86@kernel.org, linux-mm@kvack.org, Arnd Bergmann <arnd@arndb.de>, "open list:GENERIC INCLUDE/A..." <linux-arch@vger.kernel.org>
-Message-ID: <20150121165143.4UDUu9eipy9KWdoiQO8RglADl0KJr_jieP6cFwTPaj0@z>
+To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Cc: Peter Zijlstra <peterz@infradead.org>, "torvalds@linux-foundation.org" <torvalds@linux-foundation.org>, "oleg@redhat.com" <oleg@redhat.com>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+Message-ID: <20150123140832.zjNGKg1cTMEQ6z5OBupFtxC4qQPDq47uYU-1U0elyvA@z>
 
-KASan uses constructors for initializing redzones for global
-variables. Actually KASan doesn't need priorities for constructors,
-so they were removed from GCC 5.0, but GCC 4.9.2 still generates
-constructors with priorities.
+On Tue, Jan 20, 2015 at 09:35:45PM +0000, Paul E. McKenney wrote:
+> On Tue, Jan 20, 2015 at 10:34:43AM +0100, Peter Zijlstra wrote:
+> > On Tue, Jan 13, 2015 at 04:33:54PM +0000, Will Deacon wrote:
+> > > I started dusting off a series I've been working to implement a relaxed
+> > > atomic API in Linux (i.e. things like atomic_read(v, ACQUIRE)) but I'm
+> > > having trouble making sense of the ordering semantics we have in mainline
+> > > today:
+> > 
+> > >   2. Does smp_mb__after_unlock_lock order smp_store_release against
+> > >      smp_load_acquire? Again, Documentation/memory-barriers.txt puts
+> > >      these operations into the RELEASE and ACQUIRE classes respectively,
+> > >      but since smp_mb__after_unlock_lock is a NOP everywhere other than
+> > >      PowerPC, I don't think this is enforced by the current code. 
+> > 
+> > Yeah, wasn't Paul going to talk to Ben about that? PPC is the only arch
+> > that has the weak ACQUIRE/RELEASE for its spinlocks.
+> 
+> I thought that you guys were going to propose something and we would see
+> what the reaction was.  ;-)
 
-Signed-off-by: Andrey Ryabinin <a.ryabinin@samsung.com>
----
- include/asm-generic/vmlinux.lds.h | 1 +
- scripts/module-common.lds         | 3 +++
- 2 files changed, 4 insertions(+)
+Well, ripping it out is quite easy (patch below) :)
 
-diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-index bee5d68..ac78910 100644
---- a/include/asm-generic/vmlinux.lds.h
-+++ b/include/asm-generic/vmlinux.lds.h
-@@ -478,6 +478,7 @@
- #define KERNEL_CTORS()	. = ALIGN(8);			   \
- 			VMLINUX_SYMBOL(__ctors_start) = .; \
- 			*(.ctors)			   \
-+			*(SORT(.init_array.*))		   \
- 			*(.init_array)			   \
- 			VMLINUX_SYMBOL(__ctors_end) = .;
- #else
-diff --git a/scripts/module-common.lds b/scripts/module-common.lds
-index 0865b3e..01c5849 100644
---- a/scripts/module-common.lds
-+++ b/scripts/module-common.lds
-@@ -16,4 +16,7 @@ SECTIONS {
- 	__kcrctab_unused	: { *(SORT(___kcrctab_unused+*)) }
- 	__kcrctab_unused_gpl	: { *(SORT(___kcrctab_unused_gpl+*)) }
- 	__kcrctab_gpl_future	: { *(SORT(___kcrctab_gpl_future+*)) }
-+
-+	. = ALIGN(8);
-+	.init_array		: { *(SORT(.init_array.*)) *(.init_array) }
- }
--- 
-2.2.1
+I didn't fully grok the comment in the MCS code, since mcs_lock uses an
+xchg, which does have full barrier semantics and therefore mcs_unlock +
+mcs_lock also has full barrier semantics afaict.
 
+The remaining problem it that this puts PowerPC back into its original state
+(before the barrier) where UNLOCK + LOCK doesn't imply a full barrier, so
+that would need to be fixed.
+
+Anyway, kicking this out there for comments.
+
+Will
+
+--->8
