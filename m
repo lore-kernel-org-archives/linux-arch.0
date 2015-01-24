@@ -1,21 +1,25 @@
-From: mno-19806@kopteri.net
+From: STANDARD KREDITA PLC 2015 <mno-19806@kopteri.net>
 Subject: NAPOMENA: Odgovor =?utf-8?b?cG/FoWFsaml0ZQ==?= na ovaj e-mail:
  standardloanofficial2015@gmail.com SAMO
-Date: Sat, 24 Jan 2015 10:17:54 +0200
-Message-ID: <20150124101754.Horde.2VtRwGxfG5C37mNgvRROaA2@webmail.kopteri.net>
+Date: Sat, 24 Jan 2015 13:46:41 +0200
+Message-ID: <20150124134641.Horde.ACaT8FI1gCBscWxZlwrebg1@webmail.kopteri.net>
+Reply-To: standardloanofficial2015@gmail.com
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8;
 	format=flowed	DelSp=Yes
 Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp4.kopteri.net ([80.95.135.71]:34623 "EHLO smtp4.kopteri.net"
+Received: from mail.kopteri.net ([80.95.128.13]:45714 "EHLO mail.kopteri.net"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750913AbbAXI1V convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 24 Jan 2015 03:27:21 -0500
+	id S1752051AbbAXL5D convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 24 Jan 2015 06:57:03 -0500
 Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
+
+
+--=20
 Trebate li financiranje?
 Trebate li poslovne i osobne kredite?
 =C5=BDelite li va=C5=A1a tvrtka za refinanciranje?
