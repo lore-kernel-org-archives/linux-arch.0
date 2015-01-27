@@ -1,46 +1,46 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss-mx-na.foss.arm.com ([217.140.108.86]:42040 "EHLO
-	foss-mx-na.foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752537AbbAWQfK (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 23 Jan 2015 11:35:10 -0500
-Date: Fri, 23 Jan 2015 16:35:01 +0000
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH repost 03/16] arm64/uaccess: fix sparse errors
-Message-ID: <20150123163500.GE9557@e104818-lin.cambridge.arm.com>
-References: <1419499661-8566-1-git-send-email-mst@redhat.com>
- <1419499661-8566-4-git-send-email-mst@redhat.com>
- <20150123153316.GB9557@e104818-lin.cambridge.arm.com>
- <20150123154213.GB31460@arm.com>
+Received: from mx1.redhat.com ([209.132.183.28]:37459 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751501AbbA0O3K (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 27 Jan 2015 09:29:10 -0500
+Date: Tue, 27 Jan 2015 12:29:02 -0200
+From: Arnaldo Carvalho de Melo <acme@redhat.com>
+Subject: Re: [PATCH v3 0/5] Perf tool fixes for ARC + uClibc
+Message-ID: <20150127142902.GB2406@redhat.com>
+References: <1421156604-30603-1-git-send-email-vgupta@synopsys.com>
+ <20150114120000.GB11443@krava.brq.redhat.com>
+ <20150114135930.GA2463@redhat.com>
+ <54BC897C.7070309@synopsys.com>
+ <20150119135843.GA2276@redhat.com>
+ <54C768A7.8020505@synopsys.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20150123154213.GB31460@arm.com>
+In-Reply-To: <54C768A7.8020505@synopsys.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will.deacon@arm.com>
-Cc: "Michael S. Tsirkin" <mst@redhat.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Christopher Covington <cov@codeaurora.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
-Message-ID: <20150123163501.DYGBVbJ8QhZxMLBjWCpSLIJJEx32cKDRJsiydIZRkFc@z>
+To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Cc: Jiri Olsa <jolsa@redhat.com>, namhyung@kernel.org, jolsa@kernel.org, peterz@infradead.org, mingo@kernel.org, linux-kernel@vger.kernel.org, linux-perf-users@vger.kernel.org, linux-arch@vger.kernel.org, Alexey.Brodkin@synopsys.com
+Message-ID: <20150127142902.0q7GFvr4fKPWKp2-yiQlJCKDYyFuYSTL-7WoAAsRRMA@z>
 
-On Fri, Jan 23, 2015 at 03:42:14PM +0000, Will Deacon wrote:
-> On Fri, Jan 23, 2015 at 03:33:16PM +0000, Catalin Marinas wrote:
-> > On Thu, Dec 25, 2014 at 09:28:41AM +0000, Michael S. Tsirkin wrote:
-> > > virtio wants to read bitwise types from userspace using get_user.  At the
-> > > moment this triggers sparse errors, since the value is passed through an
-> > > integer.
-> > > 
-> > > Fix that up using __force.
-> > > 
-> > > Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
-> > > 
-> > > Acked-by: Will Deacon <will.deacon@arm.com>
-> > 
-> > I'm not sure who's going to merge this series. In the meantime, I
-> > cherry-picked the arm64 patch. Thanks.
+Em Tue, Jan 27, 2015 at 03:59:59PM +0530, Vineet Gupta escreveu:
+> Hi Arnaldo,
 > 
-> I think there was a pull request for the whole series that went to Arnd, so
-> I don't think we need to do anything on the arm64 side.
+> On Monday 19 January 2015 07:28 PM, Arnaldo Carvalho de Melo wrote:
+> >>>>> Acked-by: Jiri Olsa <jolsa@kernel.org>
+> >>> > > Most are already in my perf/urgent branch.
+> >> > Are you planning to add {4,5}/5 for next window or did u drop/miss them ?
+> > I will, IIRC those were not that trivial, so could wait, I'll make sure
+> > I review them and merge for perf/core if I find no issues.
+> 
+> Sorry for annoying pestering on this. I don't see the patches in ur perf/core yet
+> and given that we are so close to next window, I fear that we will miss them if we
+> don't add them soon.
+> 
+> We need them to be able to use perf on ARC - fixing build issue (5/5) as well as
+> run time issue (4/5)
 
-OK. I dropped the patch.
+Applied the remaining ones to my perf/core branch, will be on my next
+pull req to Ingo.
 
--- 
-Catalin
+- Arnaldo
