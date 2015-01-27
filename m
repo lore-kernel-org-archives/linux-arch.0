@@ -1,46 +1,37 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:37459 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751501AbbA0O3K (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 27 Jan 2015 09:29:10 -0500
-Date: Tue, 27 Jan 2015 12:29:02 -0200
-From: Arnaldo Carvalho de Melo <acme@redhat.com>
-Subject: Re: [PATCH v3 0/5] Perf tool fixes for ARC + uClibc
-Message-ID: <20150127142902.GB2406@redhat.com>
-References: <1421156604-30603-1-git-send-email-vgupta@synopsys.com>
- <20150114120000.GB11443@krava.brq.redhat.com>
- <20150114135930.GA2463@redhat.com>
- <54BC897C.7070309@synopsys.com>
- <20150119135843.GA2276@redhat.com>
- <54C768A7.8020505@synopsys.com>
+Received: from ares61.inai.de ([5.9.23.85]:44836 "EHLO ares60.inai.de"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1753450AbbA0VUT (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 27 Jan 2015 16:20:19 -0500
+Date: Tue, 27 Jan 2015 22:12:07 +0100 (CET)
+From: Jan Engelhardt <jengelh@inai.de>
+Subject: Re: [opensuse-factory] Re: [opensuse-kernel] libsigsegv build fail
+ with kernel 3.18.3
+In-Reply-To: <CA+55aFyzy_wYHHnr2gDcYr7qcgOKM2557bRdg6RBa=cxrynd+Q@mail.gmail.com>
+Message-ID: <alpine.LSU.2.11.1501272205130.3450@nerf60.vanv.qr>
+References: <1422361485.6648.71.camel@opensuse.org> <54C78756.9090605@suse.cz> <alpine.LSU.2.11.1501271347440.30227@nerf60.vanv.qr> <1422364084.6648.82.camel@opensuse.org> <s5h7fw8hvdp.wl-tiwai@suse.de>
+ <CA+55aFyzy_wYHHnr2gDcYr7qcgOKM2557bRdg6RBa=cxrynd+Q@mail.gmail.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <54C768A7.8020505@synopsys.com>
+Content-Type: text/plain; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Cc: Jiri Olsa <jolsa@redhat.com>, namhyung@kernel.org, jolsa@kernel.org, peterz@infradead.org, mingo@kernel.org, linux-kernel@vger.kernel.org, linux-perf-users@vger.kernel.org, linux-arch@vger.kernel.org, Alexey.Brodkin@synopsys.com
-Message-ID: <20150127142902.0q7GFvr4fKPWKp2-yiQlJCKDYyFuYSTL-7WoAAsRRMA@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Takashi Iwai <tiwai@suse.de>, opensuse-factory@opensuse.org, OpenSUSE Kernel Team <opensuse-kernel@opensuse.org>, linux-arch@vger.kernel.org
+Message-ID: <20150127211207.GAU3Wu8ygtEkEquSUo94xc_sb5bGX4mzFEKaFubW_zg@z>
 
-Em Tue, Jan 27, 2015 at 03:59:59PM +0530, Vineet Gupta escreveu:
-> Hi Arnaldo,
-> 
-> On Monday 19 January 2015 07:28 PM, Arnaldo Carvalho de Melo wrote:
-> >>>>> Acked-by: Jiri Olsa <jolsa@kernel.org>
-> >>> > > Most are already in my perf/urgent branch.
-> >> > Are you planning to add {4,5}/5 for next window or did u drop/miss them ?
-> > I will, IIRC those were not that trivial, so could wait, I'll make sure
-> > I review them and merge for perf/core if I find no issues.
-> 
-> Sorry for annoying pestering on this. I don't see the patches in ur perf/core yet
-> and given that we are so close to next window, I fear that we will miss them if we
-> don't add them soon.
-> 
-> We need them to be able to use perf on ARC - fixing build issue (5/5) as well as
-> run time issue (4/5)
 
-Applied the remaining ones to my perf/core branch, will be on my next
-pull req to Ingo.
+On Tuesday 2015-01-27 21:36, Linus Torvalds wrote:
+>The only reason it returns SIGBUS is that we don't have an equivalent
+>VM_FAULT_SIGSEGV error return.  Which is something of an oversight,
+>but adding it is a pain too, simply because the callers are mainly the
+>architecture page fault handlers, so the VM_FAULT_SIGSEGV handling has
+>to be added to all of them.
+>
+>Very annoying. The patch would look something like the attached -
+>TOTALLY UNTESTED.
+>
+>Does this fix things for you?
 
-- Arnaldo
+The 2nd patch (from 12:57:20 -0800) plus the one-liner for mm/memory.c
+at the callsite for check_stack_guard_page makes the test still 
+not succeed.
