@@ -1,12 +1,12 @@
 From: Yoshinori Sato <ysato@users.sourceforge.jp>
-Subject: [PATCH v2 08/15] h8300: Memory management
-Date: Wed, 28 Jan 2015 22:32:02 +0900
-Message-ID: <ac9d53f4ef4d88648789a3302b178ac0e0df99ac.1422429854.git.ysato@users.sourceforge.jp>
+Subject: [PATCH v2 10/15] h8300: Build scripts
+Date: Wed, 28 Jan 2015 22:32:04 +0900
+Message-ID: <b8435d23d68380f04af334f6616c43004f711258.1422429854.git.ysato@users.sourceforge.jp>
 References: <cover.1422429854.git.ysato@users.sourceforge.jp>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail1.asahi-net.or.jp ([202.224.39.197]:18980 "EHLO
+Received: from mail1.asahi-net.or.jp ([202.224.39.197]:18985 "EHLO
 	mail1.asahi-net.or.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1761306AbbA1UjP (ORCPT
+	with ESMTP id S1761304AbbA1UjP (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>); Wed, 28 Jan 2015 15:39:15 -0500
 In-Reply-To: <cover.1422429854.git.ysato@users.sourceforge.jp>
 In-Reply-To: <cover.1422429854.git.ysato@users.sourceforge.jp>
@@ -18,369 +18,518 @@ Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
 
 Signed-off-by: Yoshinori Sato <ysato@users.sourceforge.jp>
 
- create mode 100644 arch/h8300/mm/Makefile
- create mode 100644 arch/h8300/mm/fault.c
- create mode 100644 arch/h8300/mm/init.c
- create mode 100644 arch/h8300/mm/kmap.c
- create mode 100644 arch/h8300/mm/memory.c
+ create mode 100644 arch/h8300/Kconfig
+ create mode 100644 arch/h8300/Kconfig.cpu
+ create mode 100644 arch/h8300/Kconfig.debug
+ create mode 100644 arch/h8300/Makefile
+ create mode 100644 arch/h8300/kernel/Makefile
+ create mode 100644 arch/h8300/kernel/vmlinux.lds.S
 
-diff --git a/arch/h8300/mm/Makefile b/arch/h8300/mm/Makefile
+diff --git a/arch/h8300/Kconfig b/arch/h8300/Kconfig
 new file mode 100644
-index 0000000..117d71f
+index 0000000..df8c760
 --- /dev/null
-+++ b/arch/h8300/mm/Makefile
-@@ -0,0 +1,5 @@
++++ b/arch/h8300/Kconfig
+@@ -0,0 +1,123 @@
++config H8300
++	bool
++	default y
++	select HAVE_IDE
++	select GENERIC_ATOMIC64
++	select HAVE_UID16
++	select VIRT_TO_BUS
++	select ARCH_WANT_IPC_PARSE_VERSION
++	select GENERIC_IRQ_SHOW
++	select ARCH_WANT_FRAME_POINTER
++	select GENERIC_CPU_DEVICES
++	select MODULES_USE_ELF_RELA
++	select GENERIC_CLOCKEVENTS
++	select CLKDEV_LOOKUP
++	select COMMON_CLK
++	select HAVE_ARCH_TRACEHOOK
++
++config MMU
++	bool
++	default n
++
++config SWAP
++	bool
++	default n
++
++config ZONE_DMA
++	bool
++	default y
++
++config FPU
++	bool
++	default n
++
++config RWSEM_GENERIC_SPINLOCK
++	bool
++	default y
++
++config RWSEM_XCHGADD_ALGORITHM
++	bool
++	default n
++
++config ARCH_HAS_ILOG2_U32
++	bool
++	default n
++
++config ARCH_HAS_ILOG2_U64
++	bool
++	default n
++
++config GENERIC_HWEIGHT
++	bool
++	default y
++
++config GENERIC_CALIBRATE_DELAY
++	bool
++	default y
++
++config GENERIC_BUG
++        bool
++        depends on BUG
++
++config TIME_LOW_RES
++	bool
++	default y
++
++config NO_IOPORT
++	def_bool y
++
++config NO_DMA
++	def_bool y
++
++config ISA
++	bool
++	default y
++
++config PCI
++	bool
++	default n
++
++config HZ
++	int
++	default 100
++
++config NR_CPUS
++        int
++	default 1
++
++config NO_IOPORT_MAP
++        def_bool y
++
++source "init/Kconfig"
++
++source "kernel/Kconfig.freezer"
++
++source "arch/h8300/Kconfig.cpu"
++
++menu "Kernel Features"
++
++source "kernel/Kconfig.preempt"
++
++source "mm/Kconfig"
++
++endmenu
++
++menu "Executable file formats"
++
++source "fs/Kconfig.binfmt"
++
++endmenu
++
++source "net/Kconfig"
++
++source "drivers/Kconfig"
++
++source "fs/Kconfig"
++
++source "arch/h8300/Kconfig.debug"
++
++source "security/Kconfig"
++
++source "crypto/Kconfig"
++
++source "lib/Kconfig"
+diff --git a/arch/h8300/Kconfig.cpu b/arch/h8300/Kconfig.cpu
+new file mode 100644
+index 0000000..2eaa797
+--- /dev/null
++++ b/arch/h8300/Kconfig.cpu
+@@ -0,0 +1,136 @@
++menu "Processor type and features"
++
++choice
++	prompt "H8/300 platform"
++
++config H8300_AE3068
++	bool "AE-3068/69"
++	select H83069
++	select RAMKERNEL
++	help
++	  AKI-H8/3068F / AKI-H8/3069F Flashmicom LAN Board Support
++	  More Information. (Japanese Only)
++	  <http://akizukidenshi.com/catalog/default.aspx>
++	  AE-3068/69 Evaluation Board Support
++	  More Information.
++	  <http://www.microtronique.com/ae3069lan.htm>
++
++config H8300_H8MAX
++	bool "H8MAX"
++	select H83069
++	select RAMKERNEL
++	help
++	  H8MAX Evaluation Board Support
++	  More Information. (Japanese Only)
++	  <http://strawberry-linux.com/h8/index.html>
++
++config H8300_KANEBEBE
++	bool "KaneBebe"
++	select H83069
++	select RAMKERNEL
++	help
++	  KaneBebe Evalition Board Support
++
++config H8300H_SIM
++	bool "H8/300H GDB Simulator"
++	select H83069
++	select ROMKERNEL
++	help
++	  GDB Simulator Support
++	  More Information.
++	  <http://sourceware.org/sid/>
++
++config H8S_EDOSK2674
++	bool "EDOSK-2674"
++	select H8S2678
++	select RAMKERNEL
++	help
++	  Renesas EDOSK-2674 Evaluation Board Support
++	  More Information.
++	  <http://www.azpower.com/H8-uClinux/index.html>
++ 	  <http://www.renesas.eu/products/tools/introductory_evaluation_tools/evaluation_development_os_kits/edosk2674r/edosk2674r_software_tools_root.jsp>
++
++config H8S_SIM
++	bool "H8S GDB Simulator"
++	select H8S2678
++	select ROMKERNEL
++	help
++	  GDB Simulator Support
++	  More Information.
++	  <http://sourceware.org/sid/>
++
++endchoice
++
++choice
++	prompt "CPU Selection"
++
++config H83069
++	bool "H8/3065,3066,3067,3068,3069"
++	select CPU_H8300H
++	select H8300_TMR8
++	select H8300_TMR16
++
++config H8S2678
++	bool "H8S/2670,2673,2674R,2675,2676"
++	select CPU_H8S
++	select H8300_TMR8
++	select H8300_TPU
++
++endchoice
++
++config CPU_CLOCK
++	int "CPU Clock Frequency"
++	depends on ROMKERNEL
++	default "200000000" if H8300H_AKI3068NET || H8300H_SIM
++	default "250000000" if H8300H_H8MAX || H8300H_KANEBEBE
++	default "333333333" if H8S_EDOSK2674 || H8S_SIM
++	help
++	  CPU Clock Frequency
++
++choice
++	prompt "Kernel executes from"
++	---help---
++	  Choose the memory type that the kernel will be running in.
++
++config RAMKERNEL
++	bool "RAM"
++	help
++	  The kernel will be resident in RAM when running.
++
++config ROMKERNEL
++	bool "ROM"
++	help
++	  The kernel will be resident in FLASH/ROM when running.
++endchoice
++
++config CPU_H8300H
++	bool
++	depends on H83069
++	default y
++
++config CPU_H8S
++	bool
++	depends on H8S2678
++	default y
++
++config ROMSIZE
++	hex "ROM size"
++	depends on ROMKERNEL
++	default 0x200000
++
++config RAMBASE
++	hex "RAM base address"
++	default 0x400000
++
++config RAMSIZE
++	hex "RAM size"
++	depends on ROMKERNEL
++	default 0x200000 if H8300_AE3068 || H8300_H8MAX || H8300H_SIM
++	default 0x400000 if H8300_KANEBEBE
++	default 0x800000 if H8S_EDOSK2674 || H8S_SIM
++
++config OFFSET
++        hex "Load offset"
++	default 0
++
++endmenu
+diff --git a/arch/h8300/Kconfig.debug b/arch/h8300/Kconfig.debug
+new file mode 100644
+index 0000000..ff2e592
+--- /dev/null
++++ b/arch/h8300/Kconfig.debug
+@@ -0,0 +1,65 @@
++menu "Kernel hacking"
++
++source "lib/Kconfig.debug"
++
++config FULLDEBUG
++	bool "Full Symbolic/Source Debugging support"
++	help
++	  Enable debugging symbols on kernel build.
++
++config HIGHPROFILE
++	bool "Use fast second timer for profiling"
++	help
++	  Use a fast secondary clock to produce profiling information.
++
++config NO_KERNEL_MSG
++	bool "Suppress Kernel BUG Messages"
++	help
++	  Do not output any debug BUG messages within the kernel.
++
++config EARLY_PRINTK
++        bool "Early printk support"
++
++config SYSCALL_PRINT
++	bool "SystemCall trace print"
++	help
++	  output history of systemcall
++
++config GDB_DEBUG
++   	bool "Use gdb stub"
++	depends on (!H8300H_SIM && !H8S_SIM)
++	help
++	  gdb stub exception support
++
++config SH_STANDARD_BIOS
++	bool "Use gdb protocol serial console"
++	depends on (!H8300H_SIM && !H8S_SIM)
++	help
++	  serial console output using GDB protocol.
++	  Require eCos/RedBoot
++
++config DEFAULT_CMDLINE
++	bool "Use builtin commandline"
++	default n
++	help
++	  builtin kernel commandline enabled.
++
++config KERNEL_COMMAND
++	string "Buildin command string"
++	depends on DEFAULT_CMDLINE
++	help
++	  builtin kernel commandline strings.
++
++config BLKDEV_RESERVE
++	bool "BLKDEV Reserved Memory"
++	default n
++	help
++	  Reserved BLKDEV area.
++
++config BLKDEV_RESERVE_ADDRESS
++	hex 'start address'
++	depends on BLKDEV_RESERVE
++	help
++	  BLKDEV start address.
++
++endmenu
+diff --git a/arch/h8300/Makefile b/arch/h8300/Makefile
+new file mode 100644
+index 0000000..44e915c
+--- /dev/null
++++ b/arch/h8300/Makefile
+@@ -0,0 +1,45 @@
 +#
-+# Makefile for the linux h8300-specific parts of the memory manager.
++# arch/h8300/Makefile
++#
++# This file is subject to the terms and conditions of the GNU General Public
++# License.  See the file "COPYING" in the main directory of this archive
++# for more details.
++#
++# (C) Copyright 2002-2015 Yoshinori Sato <ysato@users.sourceforge.jp>
 +#
 +
-+obj-y	 := init.o fault.o memory.o kmap.o
-diff --git a/arch/h8300/mm/fault.c b/arch/h8300/mm/fault.c
++cflags-$(CONFIG_CPU_H8300H)	:= -mh
++aflags-$(CONFIG_CPU_H8300H)	:= -mh -Wa,--mach=h8300h
++ldflags-$(CONFIG_CPU_H8300H)	:= -mh8300helf_linux
++cflags-$(CONFIG_CPU_H8S)	:= -ms
++aflags-$(CONFIG_CPU_H8S)	:= -ms -Wa,--mach=h8300s
++ldflags-$(CONFIG_CPU_H8S)	:= -mh8300self_linux
++
++KBUILD_CFLAGS += $(cflags-y)
++KBUILD_CFLAGS += -mint32 -fno-builtin
++KBUILD_CFLAGS += -D__linux__
++KBUILD_CFLAGS += -DUTS_SYSNAME=\"uClinux\"
++KBUILD_AFLAGS += $(aflags-y)
++LDFLAGS += $(ldflags-y)
++
++CROSS_COMPILE := h8300-unknown-linux-
++
++core-y	+= arch/$(ARCH)/kernel/ arch/$(ARCH)/mm/
++
++libs-y	+= arch/$(ARCH)/lib/
++
++boot := arch/h8300/boot
++
++archmrproper:
++
++archclean:
++	$(Q)$(MAKE) $(clean)=$(boot)
++
++vmlinux.srec vmlinux.bin zImage uImage.bin: vmlinux
++	$(Q)$(MAKE) $(build)=$(boot) $(boot)/$@
++
++define archhelp
++  @echo  'vmlinux.bin  - Create raw binary'
++  @echo  'vmlinux.srec - Create srec binary'
++  @echo  'zImage       - Compressed kernel image'
++endef
+diff --git a/arch/h8300/kernel/Makefile b/arch/h8300/kernel/Makefile
 new file mode 100644
-index 0000000..d0d6759
+index 0000000..dc133e3
 --- /dev/null
-+++ b/arch/h8300/mm/fault.c
-@@ -0,0 +1,58 @@
-+/*
-+ *  linux/arch/h8300/mm/fault.c
-+ *
-+ *  Copyright (C) 1998  D. Jeff Dionne <jeff@lineo.ca>,
-+ *  Copyright (C) 2000  Lineo, Inc.  (www.lineo.com)
-+ *
-+ *  Based on:
-+ *
-+ *  linux/arch/m68knommu/mm/fault.c
-+ *  linux/arch/m68k/mm/fault.c
-+ *
-+ *  Copyright (C) 1995  Hamish Macdonald
-+ */
++++ b/arch/h8300/kernel/Makefile
+@@ -0,0 +1,16 @@
++#
++# Makefile for the linux kernel.
++#
 +
-+#include <linux/mman.h>
-+#include <linux/mm.h>
-+#include <linux/kernel.h>
-+#include <linux/ptrace.h>
++extra-y := vmlinux.lds
 +
-+#include <asm/pgtable.h>
++obj-y := process.o traps.o ptrace.o \
++	 signal.o setup.o syscalls.o \
++	 irq.o entry.o cpu/
 +
-+void die(const char *str, struct pt_regs *fp, unsigned long err);
++obj-$(CONFIG_ROMKERNEL) += head_rom.o
++obj-$(CONFIG_RAMKERNEL) += head_ram.o
 +
-+/*
-+ * This routine handles page faults.  It determines the problem, and
-+ * then passes it off to one of the appropriate routines.
-+ *
-+ * error_code:
-+ *	bit 0 == 0 means no page found, 1 means protection fault
-+ *	bit 1 == 0 means read, 1 means write
-+ *
-+ * If this routine detects a bad access, it returns 1, otherwise it
-+ * returns 0.
-+ */
-+asmlinkage int do_page_fault(struct pt_regs *regs, unsigned long address,
-+			      unsigned long error_code)
-+{
-+#ifdef DEBUG
-+	pr_debug("regs->sr=%#x, regs->pc=%#lx, address=%#lx, %ld\n",
-+		 regs->sr, regs->pc, address, error_code);
-+#endif
-+
-+/*
-+ * Oops. The kernel tried to access some bad page. We'll have to
-+ * terminate things with extreme prejudice.
-+ */
-+	if ((unsigned long) address < PAGE_SIZE)
-+		pr_alert("Unable to handle kernel NULL pointer dereference");
-+	else
-+		pr_alert("Unable to handle kernel access");
-+	printk(" at virtual address %08lx\n", address);
-+	if (!user_mode(regs))
-+		die("Oops", regs, error_code);
-+	do_exit(SIGKILL);
-+
-+	return 1;
-+}
-+
-diff --git a/arch/h8300/mm/init.c b/arch/h8300/mm/init.c
++obj-$(CONFIG_MODULES) += module.o h8300_ksyms.o
++obj-$(CONFIG_H8300H_SIM) += sim-console.o
++obj-$(CONFIG_H8S_SIM) += sim-console.o
+diff --git a/arch/h8300/kernel/vmlinux.lds.S b/arch/h8300/kernel/vmlinux.lds.S
 new file mode 100644
-index 0000000..ddad9e8
+index 0000000..e1b49aa
 --- /dev/null
-+++ b/arch/h8300/mm/init.c
-@@ -0,0 +1,153 @@
-+/*
-+ *  linux/arch/h8300/mm/init.c
-+ *
-+ *  Copyright (C) 1998  D. Jeff Dionne <jeff@lineo.ca>,
-+ *                      Kenneth Albanowski <kjahds@kjahds.com>,
-+ *  Copyright (C) 2000  Lineo, Inc.  (www.lineo.com)
-+ *
-+ *  Based on:
-+ *
-+ *  linux/arch/m68knommu/mm/init.c
-+ *  linux/arch/m68k/mm/init.c
-+ *
-+ *  Copyright (C) 1995  Hamish Macdonald
-+ *
-+ *  JAN/1999 -- hacked to support ColdFire (gerg@snapgear.com)
-+ *  DEC/2000 -- linux 2.4 support <davidm@snapgear.com>
-+ */
-+
-+#include <linux/signal.h>
-+#include <linux/sched.h>
-+#include <linux/kernel.h>
-+#include <linux/errno.h>
-+#include <linux/string.h>
-+#include <linux/types.h>
-+#include <linux/ptrace.h>
-+#include <linux/mman.h>
-+#include <linux/mm.h>
-+#include <linux/swap.h>
-+#include <linux/init.h>
-+#include <linux/highmem.h>
-+#include <linux/pagemap.h>
-+#include <linux/bootmem.h>
-+#include <linux/gfp.h>
-+
-+#include <asm/setup.h>
-+#include <asm/segment.h>
++++ b/arch/h8300/kernel/vmlinux.lds.S
+@@ -0,0 +1,85 @@
++#include <asm-generic/vmlinux.lds.h>
 +#include <asm/page.h>
-+#include <asm/pgtable.h>
-+#include <asm/sections.h>
 +
-+#undef DEBUG
++#define ROMTOP 0x000000
++#define RAMTOP CONFIG_RAMBASE
 +
-+/*
-+ * BAD_PAGE is the page that is used for page faults when linux
-+ * is out-of-memory. Older versions of linux just did a
-+ * do_exit(), but using this instead means there is less risk
-+ * for a process dying in kernel mode, possibly leaving a inode
-+ * unused etc..
-+ *
-+ * BAD_PAGETABLE is the accompanying page-table: it is initialized
-+ * to point to BAD_PAGE entries.
-+ *
-+ * ZERO_PAGE is a special page that is used for zero-initialized
-+ * data and COW.
-+ */
-+static unsigned long empty_bad_page_table;
++jiffies = jiffies_64 + 4;
 +
-+static unsigned long empty_bad_page;
++ENTRY(_start)
 +
-+unsigned long empty_zero_page;
-+
-+extern unsigned long rom_length;
-+
-+extern unsigned long memory_start;
-+extern unsigned long memory_end;
-+
-+/*
-+ * paging_init() continues the virtual memory environment setup which
-+ * was begun by the code in arch/head.S.
-+ * The parameters are pointers to where to stick the starting and ending
-+ * addresses of available kernel virtual memory.
-+ */
-+void __init paging_init(void)
++SECTIONS
 +{
-+	/*
-+	 * Make sure start_mem is page aligned,  otherwise bootmem and
-+	 * page_alloc get different views og the world.
-+	 */
-+#ifdef DEBUG
-+	unsigned long start_mem = PAGE_ALIGN(memory_start);
-+#endif
-+	unsigned long end_mem   = memory_end & PAGE_MASK;
-+
-+#ifdef DEBUG
-+	pr_debug("start_mem is %#lx\nvirtual_end is %#lx\n",
-+		 start_mem, end_mem);
-+#endif
-+
-+	/*
-+	 * Initialize the bad page table and bad page to point
-+	 * to a couple of allocated pages.
-+	 */
-+	empty_bad_page_table = (unsigned long)alloc_bootmem_pages(PAGE_SIZE);
-+	empty_bad_page = (unsigned long)alloc_bootmem_pages(PAGE_SIZE);
-+	empty_zero_page = (unsigned long)alloc_bootmem_pages(PAGE_SIZE);
-+	memset((void *)empty_zero_page, 0, PAGE_SIZE);
-+
-+	/*
-+	 * Set up SFC/DFC registers (user data space).
-+	 */
-+	set_fs(USER_DS);
-+
-+#ifdef DEBUG
-+	pr_debug("before free_area_init\n");
-+
-+	pr_debug("free_area_init -> start_mem is %#lx\nvirtual_end is %#lx\n",
-+		 start_mem, end_mem);
-+#endif
-+
++#if defined(CONFIG_ROMKERNEL)
++	. = ROMTOP;
++	.vectors :
 +	{
-+		unsigned long zones_size[MAX_NR_ZONES] = {0, };
-+
-+		zones_size[ZONE_DMA]    = 0 >> PAGE_SHIFT;
-+		zones_size[ZONE_NORMAL] = (end_mem - PAGE_OFFSET) >> PAGE_SHIFT;
-+#ifdef CONFIG_HIGHMEM
-+		zones_size[ZONE_HIGHMEM] = 0;
-+#endif
-+		free_area_init(zones_size);
++	_vector = . ;
++		*(.vector*)
 +	}
-+}
-+
-+void __init mem_init(void)
-+{
-+	unsigned long codesize = _etext - _stext;
-+
-+	pr_devel("Mem_init: start=%lx, end=%lx\n", memory_start, memory_end);
-+
-+	high_memory = (void *) (memory_end & PAGE_MASK);
-+	max_mapnr = MAP_NR(high_memory);
-+
-+	/* this will put all low memory onto the freelists */
-+	free_all_bootmem();
-+
-+	mem_init_print_info(NULL);
-+	if (rom_length > 0 && rom_length > codesize)
-+		pr_info("Memory available: %luK/%luK ROM\n",
-+			(rom_length - codesize) >> 10, rom_length >> 10);
-+}
-+
-+
-+#ifdef CONFIG_BLK_DEV_INITRD
-+void free_initrd_mem(unsigned long start, unsigned long end)
-+{
-+	free_reserved_area((void *)start, (void *)end, -1, "initrd");
-+}
++#else
++	. = RAMTOP;
++	_ramstart = .;
++	. = . + CONFIG_OFFSET;
 +#endif
-+
-+void
-+free_initmem(void)
-+{
-+	free_initmem_default(-1);
++	_text = .;
++	HEAD_TEXT_SECTION
++	.text : {
++	_stext = . ;
++		TEXT_TEXT
++		SCHED_TEXT
++		LOCK_TEXT
++#if defined(CONFIG_ROMKERNEL)
++		*(.int_redirect)
++#endif
++	_etext = . ;
++	}
++	EXCEPTION_TABLE(16)
++	NOTES
++	RO_DATA(4)
++#if defined(CONFIG_ROMKERNEL)
++	.init.text : {
++		_sinittext = .;
++		INIT_TEXT
++		_einittext = .;
++	}
++	SECURITY_INIT
++#endif
++	ROMEND = .;
++#if defined(CONFIG_ROMKERNEL)
++	. = RAMTOP;
++	_ramstart = .;
++	.data :	AT(ROMEND)
++#else
++	.data :
++#endif
++	{
++	_sdata = . ;
++	__data_start = . ;
++		INIT_TASK_DATA(0x2000)
++		NOSAVE_DATA
++		PAGE_ALIGNED_DATA(0x1000)
++		CACHELINE_ALIGNED_DATA(0x0002)
++		READ_MOSTLY_DATA(0x0002)
++		DATA_DATA
++		CONSTRUCTORS
++	}
++	. = ALIGN(0x4) ;
++	__init_begin = .;
++#if defined(CONFIG_RAMKERNEL)
++	INIT_TEXT_SECTION(4)
++#endif
++	INIT_DATA_SECTION(4)
++#if defined(CONFIG_RAMKERNEL)
++	SECURITY_INIT
++#endif
++	__init_end = .;
++	_edata = . ;
++	_begin_data = LOADADDR(.data);
++	_sbss =.;
++	BSS_SECTION(4,4,4)
++	_ebss =.;
++	_ramend = .;
++	_end = .;
++	DISCARDS
 +}
-+
-diff --git a/arch/h8300/mm/kmap.c b/arch/h8300/mm/kmap.c
-new file mode 100644
-index 0000000..877e890
---- /dev/null
-+++ b/arch/h8300/mm/kmap.c
-@@ -0,0 +1,58 @@
-+/*
-+ *  linux/arch/h8300/mm/kmap.c
-+ *
-+ *  Based on
-+ *  linux/arch/m68knommu/mm/kmap.c
-+ *
-+ *  Copyright (C) 2000 Lineo, <davidm@snapgear.com>
-+ *  Copyright (C) 2000-2002 David McCullough <davidm@snapgear.com>
-+ */
-+
-+#include <linux/mm.h>
-+#include <linux/kernel.h>
-+#include <linux/string.h>
-+#include <linux/types.h>
-+#include <linux/vmalloc.h>
-+
-+#include <asm/setup.h>
-+#include <asm/segment.h>
-+#include <asm/page.h>
-+#include <asm/pgalloc.h>
-+#include <asm/io.h>
-+
-+#undef DEBUG
-+
-+#define VIRT_OFFSET (0x01000000)
-+
-+/*
-+ * Map some physical address range into the kernel address space.
-+ */
-+void *__ioremap(unsigned long physaddr, unsigned long size, int cacheflag)
-+{
-+	return (void *)(physaddr + VIRT_OFFSET);
-+}
-+
-+/*
-+ * Unmap a ioremap()ed region again.
-+ */
-+void iounmap(void *addr)
-+{
-+}
-+
-+/*
-+ * __iounmap unmaps nearly everything, so be careful
-+ * it doesn't free currently pointer/page tables anymore but it
-+ * wans't used anyway and might be added later.
-+ */
-+void __iounmap(void *addr, unsigned long size)
-+{
-+}
-+
-+/*
-+ * Set new cache mode for some kernel address space.
-+ * The caller must push data for that range itself, if such data may already
-+ * be in the cache.
-+ */
-+void kernel_set_cachemode(void *addr, unsigned long size, int cmode)
-+{
-+}
-diff --git a/arch/h8300/mm/memory.c b/arch/h8300/mm/memory.c
-new file mode 100644
-index 0000000..c8178a7
---- /dev/null
-+++ b/arch/h8300/mm/memory.c
-@@ -0,0 +1,54 @@
-+/*
-+ *  linux/arch/h8300/mm/memory.c
-+ *
-+ *  Copyright (C) 2002  Yoshinori Sato <ysato@users.sourceforge.jp>,
-+ *
-+ *  Based on:
-+ *
-+ *  linux/arch/m68knommu/mm/memory.c
-+ *
-+ *  Copyright (C) 1998  Kenneth Albanowski <kjahds@kjahds.com>,
-+ *  Copyright (C) 1999-2002, Greg Ungerer (gerg@snapgear.com)
-+ *
-+ *  Based on:
-+ *
-+ *  linux/arch/m68k/mm/memory.c
-+ *
-+ *  Copyright (C) 1995  Hamish Macdonald
-+ */
-+
-+#include <linux/mm.h>
-+#include <linux/kernel.h>
-+#include <linux/string.h>
-+#include <linux/types.h>
-+
-+#include <asm/setup.h>
-+#include <asm/segment.h>
-+#include <asm/page.h>
-+#include <asm/pgtable.h>
-+#include <asm/traps.h>
-+#include <asm/io.h>
-+
-+void cache_clear(unsigned long paddr, int len)
-+{
-+}
-+
-+
-+void cache_push(unsigned long paddr, int len)
-+{
-+}
-+
-+void cache_push_v(unsigned long vaddr, int len)
-+{
-+}
-+
-+/*
-+ * Map some physical address range into the kernel address space.
-+ */
-+
-+unsigned long kernel_map(unsigned long paddr, unsigned long size,
-+			 int nocacheflag, unsigned long *memavailp)
-+{
-+	return paddr;
-+}
-+
 -- 
 2.1.3
