@@ -1,13 +1,13 @@
 From: Yoshinori Sato <ysato@users.sourceforge.jp>
-Subject: [PATCH v2 07/15] h8300: miscellaneous functions
-Date: Wed, 28 Jan 2015 22:32:01 +0900
-Message-ID: <975eb288f372354a5b87857f27ee615de3d19578.1422429854.git.ysato@users.sourceforge.jp>
+Subject: [PATCH v2 02/15] h8300: UAPI headers
+Date: Wed, 28 Jan 2015 22:31:56 +0900
+Message-ID: <64a79ba06bf07c4f88b3897a9b3d5c1dc079efd8.1422429854.git.ysato@users.sourceforge.jp>
 References: <cover.1422429854.git.ysato@users.sourceforge.jp>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail2.asahi-net.or.jp ([202.224.39.198]:57226 "EHLO
+Received: from mail2.asahi-net.or.jp ([202.224.39.198]:57219 "EHLO
 	mail2.asahi-net.or.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755737AbbA1U60 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 28 Jan 2015 15:58:26 -0500
+	with ESMTP id S1755735AbbA1U6a (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 28 Jan 2015 15:58:30 -0500
 In-Reply-To: <cover.1422429854.git.ysato@users.sourceforge.jp>
 In-Reply-To: <cover.1422429854.git.ysato@users.sourceforge.jp>
 References: <cover.1422429854.git.ysato@users.sourceforge.jp>
@@ -18,292 +18,281 @@ Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
 
 Signed-off-by: Yoshinori Sato <ysato@users.sourceforge.jp>
 
- create mode 100644 arch/h8300/kernel/asm-offsets.c
- create mode 100644 arch/h8300/kernel/h8300_ksyms.c
- create mode 100644 arch/h8300/kernel/module.c
- create mode 100644 arch/h8300/kernel/sim-console.c
- create mode 100644 arch/h8300/kernel/syscalls.c
+ create mode 100644 arch/h8300/include/uapi/asm/Kbuild
+ create mode 100644 arch/h8300/include/uapi/asm/auxvec.h
+ create mode 100644 arch/h8300/include/uapi/asm/byteorder.h
+ create mode 100644 arch/h8300/include/uapi/asm/ptrace.h
+ create mode 100644 arch/h8300/include/uapi/asm/sigcontext.h
+ create mode 100644 arch/h8300/include/uapi/asm/signal.h
+ create mode 100644 arch/h8300/include/uapi/asm/swab.h
+ create mode 100644 arch/h8300/include/uapi/asm/unistd.h
 
-diff --git a/arch/h8300/kernel/asm-offsets.c b/arch/h8300/kernel/asm-offsets.c
+diff --git a/arch/h8300/include/uapi/asm/Kbuild b/arch/h8300/include/uapi/asm/Kbuild
 new file mode 100644
-index 0000000..8f8fad6
+index 0000000..077e720
 --- /dev/null
-+++ b/arch/h8300/kernel/asm-offsets.c
-@@ -0,0 +1,60 @@
-+/*
-+ * This program is used to generate definitions needed by
-+ * assembly language modules.
-+ *
-+ * We use the technique used in the OSF Mach kernel code:
-+ * generate asm statements containing #defines,
-+ * compile this file to assembler, and then extract the
-+ * #defines from the assembly-language output.
-+ */
++++ b/arch/h8300/include/uapi/asm/Kbuild
+@@ -0,0 +1,29 @@
++# UAPI Header export list
++include include/uapi/asm-generic/Kbuild.asm
 +
-+#include <linux/stddef.h>
-+#include <linux/sched.h>
-+#include <linux/kernel_stat.h>
-+#include <linux/ptrace.h>
-+#include <linux/hardirq.h>
-+#include <linux/kbuild.h>
-+#include <asm/irq.h>
-+#include <asm/ptrace.h>
++header-y += auxvec.h
++header-y += bitsperlong.h
++header-y += errno.h
++header-y += fcntl.h
++header-y += ioctl.h
++header-y += ioctls.h
++header-y += ipcbuf.h
++header-y += kvm_para.h
++header-y += mman.h
++header-y += msgbuf.h
++header-y += param.h
++header-y += poll.h
++header-y += posix_types.h
++header-y += resource.h
++header-y += sembuf.h
++header-y += setup.h
++header-y += shmbuf.h
++header-y += siginfo.h
++header-y += socket.h
++header-y += sockios.h
++header-y += stat.h
++header-y += statfs.h
++header-y += termbits.h
++header-y += termios.h
++header-y += types.h
++header-y += unistd.h
+diff --git a/arch/h8300/include/uapi/asm/auxvec.h b/arch/h8300/include/uapi/asm/auxvec.h
+new file mode 100644
+index 0000000..1d36fe38
+--- /dev/null
++++ b/arch/h8300/include/uapi/asm/auxvec.h
+@@ -0,0 +1,4 @@
++#ifndef __ASMH8300_AUXVEC_H
++#define __ASMH8300_AUXVEC_H
 +
-+int main(void)
-+{
-+	/* offsets into the task struct */
-+	DEFINE(TASK_STATE, offsetof(struct task_struct, state));
-+	DEFINE(TASK_FLAGS, offsetof(struct task_struct, flags));
-+	DEFINE(TASK_PTRACE, offsetof(struct task_struct, ptrace));
-+	DEFINE(TASK_BLOCKED, offsetof(struct task_struct, blocked));
-+	DEFINE(TASK_THREAD, offsetof(struct task_struct, thread));
-+	DEFINE(TASK_THREAD_INFO, offsetof(struct task_struct, stack));
-+	DEFINE(TASK_MM, offsetof(struct task_struct, mm));
-+	DEFINE(TASK_ACTIVE_MM, offsetof(struct task_struct, active_mm));
-+
-+	/* offsets into the irq_cpustat_t struct */
-+	DEFINE(CPUSTAT_SOFTIRQ_PENDING, offsetof(irq_cpustat_t, __softirq_pending));
-+
-+	/* offsets into the thread struct */
-+	DEFINE(THREAD_KSP, offsetof(struct thread_struct, ksp));
-+	DEFINE(THREAD_USP, offsetof(struct thread_struct, usp));
-+	DEFINE(THREAD_CCR, offsetof(struct thread_struct, ccr));
-+
-+	/* offsets into the pt_regs struct */
-+	DEFINE(LER0,  offsetof(struct pt_regs, er0)      - sizeof(long));
-+	DEFINE(LER1,  offsetof(struct pt_regs, er1)      - sizeof(long));
-+	DEFINE(LER2,  offsetof(struct pt_regs, er2)      - sizeof(long));
-+	DEFINE(LER3,  offsetof(struct pt_regs, er3)      - sizeof(long));
-+	DEFINE(LER4,  offsetof(struct pt_regs, er4)      - sizeof(long));
-+	DEFINE(LER5,  offsetof(struct pt_regs, er5)      - sizeof(long));
-+	DEFINE(LER6,  offsetof(struct pt_regs, er6)      - sizeof(long));
-+	DEFINE(LORIG, offsetof(struct pt_regs, orig_er0) - sizeof(long));
-+	DEFINE(LSP ,  offsetof(struct pt_regs, sp)       - sizeof(long));
-+	DEFINE(LCCR,  offsetof(struct pt_regs, ccr)      - sizeof(long));
-+	DEFINE(LVEC,  offsetof(struct pt_regs, vector)   - sizeof(long));
-+#if defined(CONFIG_CPU_H8S)
-+	DEFINE(LEXR,  offsetof(struct pt_regs, exr)      - sizeof(long));
 +#endif
-+	DEFINE(LRET,  offsetof(struct pt_regs, pc)       - sizeof(long));
-+
-+	DEFINE(PT_PTRACED, PT_PTRACED);
-+
-+	return 0;
-+}
-diff --git a/arch/h8300/kernel/h8300_ksyms.c b/arch/h8300/kernel/h8300_ksyms.c
+diff --git a/arch/h8300/include/uapi/asm/byteorder.h b/arch/h8300/include/uapi/asm/byteorder.h
 new file mode 100644
-index 0000000..ead83c4
+index 0000000..13539da
 --- /dev/null
-+++ b/arch/h8300/kernel/h8300_ksyms.c
-@@ -0,0 +1,28 @@
-+#include <linux/module.h>
-+#include <linux/linkage.h>
++++ b/arch/h8300/include/uapi/asm/byteorder.h
+@@ -0,0 +1,6 @@
++#ifndef _H8300_BYTEORDER_H
++#define _H8300_BYTEORDER_H
++
++#include <linux/byteorder/big_endian.h>
++
++#endif /* _H8300_BYTEORDER_H */
+diff --git a/arch/h8300/include/uapi/asm/ptrace.h b/arch/h8300/include/uapi/asm/ptrace.h
+new file mode 100644
+index 0000000..e132670d
+--- /dev/null
++++ b/arch/h8300/include/uapi/asm/ptrace.h
+@@ -0,0 +1,42 @@
++#ifndef _UAPI_H8300_PTRACE_H
++#define _UAPI_H8300_PTRACE_H
++
++#ifndef __ASSEMBLY__
++
++#define PT_ER1	   0
++#define PT_ER2	   1
++#define PT_ER3	   2
++#define PT_ER4	   3
++#define PT_ER5	   4
++#define PT_ER6	   5
++#define PT_ER0	   6
++#define PT_USP	   7
++#define PT_ORIG_ER0	   8
++#define PT_CCR	   9
++#define PT_PC	   10
++#define PT_EXR     11
++
++/* this struct defines the way the registers are stored on the
++   stack during a system call. */
++
++struct pt_regs {
++	long     retpc;
++	long     er4;
++	long     er5;
++	long     er6;
++	long     er3;
++	long     er2;
++	long     er1;
++	long     orig_er0;
++	long	 sp;
++	unsigned short	 ccr;
++	long     er0;
++	long     vector;
++#if defined(__H8300S__)
++	unsigned short	 exr;
++#endif
++	unsigned long  pc;
++} __attribute__((aligned(2), packed));
++
++#endif /* __ASSEMBLY__ */
++#endif /* _UAPI_H8300_PTRACE_H */
+diff --git a/arch/h8300/include/uapi/asm/sigcontext.h b/arch/h8300/include/uapi/asm/sigcontext.h
+new file mode 100644
+index 0000000..c41fdaa
+--- /dev/null
++++ b/arch/h8300/include/uapi/asm/sigcontext.h
+@@ -0,0 +1,18 @@
++#ifndef _ASM_H8300_SIGCONTEXT_H
++#define _ASM_H8300_SIGCONTEXT_H
++
++struct sigcontext {
++	unsigned long  sc_mask;		/* old sigmask */
++	unsigned long  sc_usp;		/* old user stack pointer */
++	unsigned long  sc_er0;
++	unsigned long  sc_er1;
++	unsigned long  sc_er2;
++	unsigned long  sc_er3;
++	unsigned long  sc_er4;
++	unsigned long  sc_er5;
++	unsigned long  sc_er6;
++	unsigned short sc_ccr;
++	unsigned long  sc_pc;
++};
++
++#endif
+diff --git a/arch/h8300/include/uapi/asm/signal.h b/arch/h8300/include/uapi/asm/signal.h
+new file mode 100644
+index 0000000..af3a6c3
+--- /dev/null
++++ b/arch/h8300/include/uapi/asm/signal.h
+@@ -0,0 +1,115 @@
++#ifndef _UAPI_H8300_SIGNAL_H
++#define _UAPI_H8300_SIGNAL_H
++
++#include <linux/types.h>
++
++/* Avoid too many header ordering problems.  */
++struct siginfo;
++
++#ifndef __KERNEL__
++/* Here we must cater to libcs that poke about in kernel headers.  */
++
++#define NSIG		32
++typedef unsigned long sigset_t;
++
++#endif /* __KERNEL__ */
++
++#define SIGHUP		 1
++#define SIGINT		 2
++#define SIGQUIT		 3
++#define SIGILL		 4
++#define SIGTRAP		 5
++#define SIGABRT		 6
++#define SIGIOT		 6
++#define SIGBUS		 7
++#define SIGFPE		 8
++#define SIGKILL		 9
++#define SIGUSR1		10
++#define SIGSEGV		11
++#define SIGUSR2		12
++#define SIGPIPE		13
++#define SIGALRM		14
++#define SIGTERM		15
++#define SIGSTKFLT	16
++#define SIGCHLD		17
++#define SIGCONT		18
++#define SIGSTOP		19
++#define SIGTSTP		20
++#define SIGTTIN		21
++#define SIGTTOU		22
++#define SIGURG		23
++#define SIGXCPU		24
++#define SIGXFSZ		25
++#define SIGVTALRM	26
++#define SIGPROF		27
++#define SIGWINCH	28
++#define SIGIO		29
++#define SIGPOLL		SIGIO
++/*
++#define SIGLOST		29
++*/
++#define SIGPWR		30
++#define SIGSYS		31
++#define	SIGUNUSED	31
++
++/* These should not be considered constants from userland.  */
++#define SIGRTMIN	32
++#define SIGRTMAX	_NSIG
 +
 +/*
-+ * libgcc functions - functions that are used internally by the
-+ * compiler...  (prototypes are not correct though, but that
-+ * doesn't really matter since they're not versioned).
-+ */
-+asmlinkage long long __ashldi3(long long, int);
-+asmlinkage long long __ashrdi3(long long, int);
-+asmlinkage long long __lshrdi3(long long, int);
-+asmlinkage long __divsi3(long, long);
-+asmlinkage long __modsi3(long, long);
-+asmlinkage unsigned long __umodsi3(unsigned long, unsigned long);
-+asmlinkage long long __muldi3(long long, long long);
-+asmlinkage long __mulsi3(long, long);
-+asmlinkage long __udivsi3(long, long);
-+
-+	/* gcc lib functions */
-+EXPORT_SYMBOL(__ashldi3);
-+EXPORT_SYMBOL(__ashrdi3);
-+EXPORT_SYMBOL(__lshrdi3);
-+EXPORT_SYMBOL(__divsi3);
-+EXPORT_SYMBOL(__modsi3);
-+EXPORT_SYMBOL(__umodsi3);
-+EXPORT_SYMBOL(__muldi3);
-+EXPORT_SYMBOL(__mulsi3);
-+EXPORT_SYMBOL(__udivsi3);
-diff --git a/arch/h8300/kernel/module.c b/arch/h8300/kernel/module.c
-new file mode 100644
-index 0000000..515f6c4
---- /dev/null
-+++ b/arch/h8300/kernel/module.c
-@@ -0,0 +1,70 @@
-+#include <linux/moduleloader.h>
-+#include <linux/elf.h>
-+#include <linux/vmalloc.h>
-+#include <linux/fs.h>
-+#include <linux/string.h>
-+#include <linux/kernel.h>
-+
-+int apply_relocate_add(Elf32_Shdr *sechdrs,
-+		       const char *strtab,
-+		       unsigned int symindex,
-+		       unsigned int relsec,
-+		       struct module *me)
-+{
-+	unsigned int i;
-+	Elf32_Rela *rela = (void *)sechdrs[relsec].sh_addr;
-+
-+	pr_debug("Applying relocate section %u to %u\n", relsec,
-+	       sechdrs[relsec].sh_info);
-+	for (i = 0; i < sechdrs[relsec].sh_size / sizeof(*rela); i++) {
-+		/* This is where to make the change */
-+		uint32_t *loc =
-+			(uint32_t *)(sechdrs[sechdrs[relsec].sh_info].sh_addr
-+					     + rela[i].r_offset);
-+		/* This is the symbol it is referring to.  Note that all
-+		   undefined symbols have been resolved.  */
-+		Elf32_Sym *sym = (Elf32_Sym *)sechdrs[symindex].sh_addr
-+			+ ELF32_R_SYM(rela[i].r_info);
-+		uint32_t v = sym->st_value + rela[i].r_addend;
-+
-+		switch (ELF32_R_TYPE(rela[i].r_info)) {
-+		case R_H8_DIR24R8:
-+			loc = (uint32_t *)((uint32_t)loc - 1);
-+			*loc = (*loc & 0xff000000) | ((*loc & 0xffffff) + v);
-+			break;
-+		case R_H8_DIR24A8:
-+			if (ELF32_R_SYM(rela[i].r_info))
-+				*loc += v;
-+			break;
-+		case R_H8_DIR32:
-+		case R_H8_DIR32A16:
-+			*loc += v;
-+			break;
-+		case R_H8_PCREL16:
-+			v -= (unsigned long)loc + 2;
-+			if ((Elf32_Sword)v > 0x7fff ||
-+			    (Elf32_Sword)v < -(Elf32_Sword)0x8000)
-+				goto overflow;
-+			else
-+				*(unsigned short *)loc = v;
-+			break;
-+		case R_H8_PCREL8:
-+			v -= (unsigned long)loc + 1;
-+			if ((Elf32_Sword)v > 0x7f ||
-+			    (Elf32_Sword)v < -(Elf32_Sword)0x80)
-+				goto overflow;
-+			else
-+				*(unsigned char *)loc = v;
-+			break;
-+		default:
-+			pr_err("module %s: Unknown relocation: %u\n",
-+			       me->name, ELF32_R_TYPE(rela[i].r_info));
-+			return -ENOEXEC;
-+		}
-+	}
-+	return 0;
-+ overflow:
-+	pr_err("module %s: relocation offset overflow: %08x\n",
-+	       me->name, rela[i].r_offset);
-+	return -ENOEXEC;
-+}
-diff --git a/arch/h8300/kernel/sim-console.c b/arch/h8300/kernel/sim-console.c
-new file mode 100644
-index 0000000..a15edf0
---- /dev/null
-+++ b/arch/h8300/kernel/sim-console.c
-@@ -0,0 +1,79 @@
-+/*
-+ * arch/h8300/kernel/early_printk.c
++ * SA_FLAGS values:
 + *
-+ *  Copyright (C) 2009 Yoshinori Sato <ysato@users.sourceforge.jp>
++ * SA_ONSTACK indicates that a registered stack_t will be used.
++ * SA_RESTART flag to get restarting signals (which were the default long ago)
++ * SA_NOCLDSTOP flag to turn off SIGCHLD when children stop.
++ * SA_RESETHAND clears the handler when the signal is delivered.
++ * SA_NOCLDWAIT flag on SIGCHLD to inhibit zombies.
++ * SA_NODEFER prevents the current signal from being masked in the handler.
 + *
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License.  See the file "COPYING" in the main directory of this archive
-+ * for more details.
++ * SA_ONESHOT and SA_NOMASK are the historical Linux names for the Single
++ * Unix names RESETHAND and NODEFER respectively.
 + */
-+#include <linux/console.h>
-+#include <linux/tty.h>
-+#include <linux/init.h>
-+#include <linux/io.h>
-+#include <linux/platform_device.h>
++#define SA_NOCLDSTOP	0x00000001
++#define SA_NOCLDWAIT	0x00000002 /* not supported yet */
++#define SA_SIGINFO	0x00000004
++#define SA_ONSTACK	0x08000000
++#define SA_RESTART	0x10000000
++#define SA_NODEFER	0x40000000
++#define SA_RESETHAND	0x80000000
 +
-+static void sim_write(struct console *co, const char *ptr,
-+				 unsigned len)
-+{
-+	register const int fd __asm__("er0") = 1; /* stdout */
-+	register const char *_ptr __asm__("er1") = ptr;
-+	register const unsigned _len __asm__("er2") = len;
++#define SA_NOMASK	SA_NODEFER
++#define SA_ONESHOT	SA_RESETHAND
 +
-+	__asm__(".byte 0x5e,0x00,0x00,0xc7\n\t" /* jsr @0xc7 (sys_write) */
-+		: : "g"(fd), "g"(_ptr), "g"(_len));
-+}
++#define SA_RESTORER	0x04000000
 +
-+static struct console sim_console = {
-+	.name		= "sim_console",
-+	.write		= sim_write,
-+	.setup		= NULL,
-+	.flags		= CON_PRINTBUFFER,
-+	.index		= -1,
++#define MINSIGSTKSZ	2048
++#define SIGSTKSZ	8192
++
++#include <asm-generic/signal-defs.h>
++
++#ifndef __KERNEL__
++/* Here we must cater to libcs that poke about in kernel headers.  */
++
++struct sigaction {
++	union {
++	  __sighandler_t _sa_handler;
++	  void (*_sa_sigaction)(int, struct siginfo *, void *);
++	} _u;
++	sigset_t sa_mask;
++	unsigned long sa_flags;
++	void (*sa_restorer)(void);
 +};
 +
-+static char sim_console_buf[32];
++#define sa_handler	_u._sa_handler
++#define sa_sigaction	_u._sa_sigaction
 +
-+static int sim_probe(struct platform_device *pdev)
-+{
-+	if (sim_console.data)
-+		return -EEXIST;
++#endif /* __KERNEL__ */
 +
-+	if (!strstr(sim_console_buf, "keep"))
-+		sim_console.flags |= CON_BOOT;
++typedef struct sigaltstack {
++	void *ss_sp;
++	int ss_flags;
++	size_t ss_size;
++} stack_t;
 +
-+	register_console(&sim_console);
-+	return 0;
-+}
 +
-+static int sim_remove(struct platform_device *pdev)
-+{
-+	return 0;
-+}
-+
-+static struct platform_driver sim_driver = {
-+	.probe		= sim_probe,
-+	.remove		= sim_remove,
-+	.driver		= {
-+		.name	= "h8300-sim",
-+		.owner	= THIS_MODULE,
-+	},
-+};
-+
-+early_platform_init_buffer("earlyprintk", &sim_driver,
-+			   sim_console_buf, ARRAY_SIZE(sim_console_buf));
-+
-+static struct platform_device sim_console_device = {
-+	.name		= "h8300-sim",
-+	.id		= 0,
-+};
-+
-+static struct platform_device *devices[] __initdata = {
-+	&sim_console_device,
-+};
-+
-+void __init sim_console_register(void)
-+{
-+	early_platform_add_devices(devices,
-+				   ARRAY_SIZE(devices));
-+}
-diff --git a/arch/h8300/kernel/syscalls.c b/arch/h8300/kernel/syscalls.c
++#endif /* _UAPI_H8300_SIGNAL_H */
+diff --git a/arch/h8300/include/uapi/asm/swab.h b/arch/h8300/include/uapi/asm/swab.h
 new file mode 100644
-index 0000000..1f9123a
+index 0000000..7847e56
 --- /dev/null
-+++ b/arch/h8300/kernel/syscalls.c
-@@ -0,0 +1,14 @@
-+#include <linux/syscalls.h>
-+#include <linux/signal.h>
-+#include <linux/unistd.h>
++++ b/arch/h8300/include/uapi/asm/swab.h
+@@ -0,0 +1 @@
++#include <asm-generic/swab.h>
+diff --git a/arch/h8300/include/uapi/asm/unistd.h b/arch/h8300/include/uapi/asm/unistd.h
+new file mode 100644
+index 0000000..49108ac
+--- /dev/null
++++ b/arch/h8300/include/uapi/asm/unistd.h
+@@ -0,0 +1,4 @@
++#define __ARCH_NOMMU
++#define __ARCH_WANT_SYS_CLONE
 +
-+#undef __SYSCALL
-+#define __SYSCALL(nr, call) [nr] = (call),
-+
-+#define sys_mmap2 sys_mmap_pgoff
-+
-+asmlinkage int sys_rt_sigreturn(void);
-+
-+void *_sys_call_table[__NR_syscalls] = {
-+#include <asm/unistd.h>
-+};
++#include <asm-generic/unistd.h>
 -- 
 2.1.3
