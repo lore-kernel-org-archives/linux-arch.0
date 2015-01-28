@@ -1,13 +1,13 @@
 From: Yoshinori Sato <ysato@users.sourceforge.jp>
-Subject: [PATCH v2 02/15] h8300: UAPI headers
-Date: Wed, 28 Jan 2015 22:31:56 +0900
-Message-ID: <64a79ba06bf07c4f88b3897a9b3d5c1dc079efd8.1422429854.git.ysato@users.sourceforge.jp>
+Subject: [PATCH v2 09/15] h8300: library functions
+Date: Wed, 28 Jan 2015 22:32:03 +0900
+Message-ID: <05ece0a283e859c41deac881b04124c27ae53bec.1422429854.git.ysato@users.sourceforge.jp>
 References: <cover.1422429854.git.ysato@users.sourceforge.jp>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail2.asahi-net.or.jp ([202.224.39.198]:57219 "EHLO
+Received: from mail2.asahi-net.or.jp ([202.224.39.198]:57229 "EHLO
 	mail2.asahi-net.or.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755735AbbA1U6a (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 28 Jan 2015 15:58:30 -0500
+	with ESMTP id S1755738AbbA1U60 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 28 Jan 2015 15:58:26 -0500
 In-Reply-To: <cover.1422429854.git.ysato@users.sourceforge.jp>
 In-Reply-To: <cover.1422429854.git.ysato@users.sourceforge.jp>
 References: <cover.1422429854.git.ysato@users.sourceforge.jp>
@@ -18,281 +18,1206 @@ Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
 
 Signed-off-by: Yoshinori Sato <ysato@users.sourceforge.jp>
 
- create mode 100644 arch/h8300/include/uapi/asm/Kbuild
- create mode 100644 arch/h8300/include/uapi/asm/auxvec.h
- create mode 100644 arch/h8300/include/uapi/asm/byteorder.h
- create mode 100644 arch/h8300/include/uapi/asm/ptrace.h
- create mode 100644 arch/h8300/include/uapi/asm/sigcontext.h
- create mode 100644 arch/h8300/include/uapi/asm/signal.h
- create mode 100644 arch/h8300/include/uapi/asm/swab.h
- create mode 100644 arch/h8300/include/uapi/asm/unistd.h
+ create mode 100644 arch/h8300/lib/Makefile
+ create mode 100644 arch/h8300/lib/abs.S
+ create mode 100644 arch/h8300/lib/ashldi3.c
+ create mode 100644 arch/h8300/lib/ashrdi3.c
+ create mode 100644 arch/h8300/lib/checksum.c
+ create mode 100644 arch/h8300/lib/libgcc.h
+ create mode 100644 arch/h8300/lib/lshrdi3.c
+ create mode 100644 arch/h8300/lib/memcpy.S
+ create mode 100644 arch/h8300/lib/memset.S
+ create mode 100644 arch/h8300/lib/moddivsi3.S
+ create mode 100644 arch/h8300/lib/modsi3.S
+ create mode 100644 arch/h8300/lib/muldi3.c
+ create mode 100644 arch/h8300/lib/mulsi3.S
+ create mode 100644 arch/h8300/lib/strncpy.S
+ create mode 100644 arch/h8300/lib/udivsi3.S
 
-diff --git a/arch/h8300/include/uapi/asm/Kbuild b/arch/h8300/include/uapi/asm/Kbuild
+diff --git a/arch/h8300/lib/Makefile b/arch/h8300/lib/Makefile
 new file mode 100644
-index 0000000..077e720
+index 0000000..c59fb45
 --- /dev/null
-+++ b/arch/h8300/include/uapi/asm/Kbuild
-@@ -0,0 +1,29 @@
-+# UAPI Header export list
-+include include/uapi/asm-generic/Kbuild.asm
++++ b/arch/h8300/lib/Makefile
+@@ -0,0 +1,7 @@
++#
++# Makefile for H8/300-specific library files..
++#
 +
-+header-y += auxvec.h
-+header-y += bitsperlong.h
-+header-y += errno.h
-+header-y += fcntl.h
-+header-y += ioctl.h
-+header-y += ioctls.h
-+header-y += ipcbuf.h
-+header-y += kvm_para.h
-+header-y += mman.h
-+header-y += msgbuf.h
-+header-y += param.h
-+header-y += poll.h
-+header-y += posix_types.h
-+header-y += resource.h
-+header-y += sembuf.h
-+header-y += setup.h
-+header-y += shmbuf.h
-+header-y += siginfo.h
-+header-y += socket.h
-+header-y += sockios.h
-+header-y += stat.h
-+header-y += statfs.h
-+header-y += termbits.h
-+header-y += termios.h
-+header-y += types.h
-+header-y += unistd.h
-diff --git a/arch/h8300/include/uapi/asm/auxvec.h b/arch/h8300/include/uapi/asm/auxvec.h
++lib-y  = checksum.o memcpy.o memset.o abs.o strncpy.o \
++	 mulsi3.o udivsi3.o muldi3.o moddivsi3.o \
++	 ashldi3.o lshrdi3.o ashrdi3.o
+diff --git a/arch/h8300/lib/abs.S b/arch/h8300/lib/abs.S
 new file mode 100644
-index 0000000..1d36fe38
+index 0000000..efda749
 --- /dev/null
-+++ b/arch/h8300/include/uapi/asm/auxvec.h
-@@ -0,0 +1,4 @@
-+#ifndef __ASMH8300_AUXVEC_H
-+#define __ASMH8300_AUXVEC_H
++++ b/arch/h8300/lib/abs.S
+@@ -0,0 +1,20 @@
++;;; abs.S
 +
++#include <asm/linkage.h>
++
++#if defined(CONFIG_CPU_H8300H)
++	.h8300h
 +#endif
-diff --git a/arch/h8300/include/uapi/asm/byteorder.h b/arch/h8300/include/uapi/asm/byteorder.h
-new file mode 100644
-index 0000000..13539da
---- /dev/null
-+++ b/arch/h8300/include/uapi/asm/byteorder.h
-@@ -0,0 +1,6 @@
-+#ifndef _H8300_BYTEORDER_H
-+#define _H8300_BYTEORDER_H
-+
-+#include <linux/byteorder/big_endian.h>
-+
-+#endif /* _H8300_BYTEORDER_H */
-diff --git a/arch/h8300/include/uapi/asm/ptrace.h b/arch/h8300/include/uapi/asm/ptrace.h
-new file mode 100644
-index 0000000..e132670d
---- /dev/null
-+++ b/arch/h8300/include/uapi/asm/ptrace.h
-@@ -0,0 +1,42 @@
-+#ifndef _UAPI_H8300_PTRACE_H
-+#define _UAPI_H8300_PTRACE_H
-+
-+#ifndef __ASSEMBLY__
-+
-+#define PT_ER1	   0
-+#define PT_ER2	   1
-+#define PT_ER3	   2
-+#define PT_ER4	   3
-+#define PT_ER5	   4
-+#define PT_ER6	   5
-+#define PT_ER0	   6
-+#define PT_USP	   7
-+#define PT_ORIG_ER0	   8
-+#define PT_CCR	   9
-+#define PT_PC	   10
-+#define PT_EXR     11
-+
-+/* this struct defines the way the registers are stored on the
-+   stack during a system call. */
-+
-+struct pt_regs {
-+	long     retpc;
-+	long     er4;
-+	long     er5;
-+	long     er6;
-+	long     er3;
-+	long     er2;
-+	long     er1;
-+	long     orig_er0;
-+	long	 sp;
-+	unsigned short	 ccr;
-+	long     er0;
-+	long     vector;
-+#if defined(__H8300S__)
-+	unsigned short	 exr;
++#if defined(CONFIG_CPU_H8S)
++	.h8300s
 +#endif
-+	unsigned long  pc;
-+} __attribute__((aligned(2), packed));
++	.text
++.global _abs
 +
-+#endif /* __ASSEMBLY__ */
-+#endif /* _UAPI_H8300_PTRACE_H */
-diff --git a/arch/h8300/include/uapi/asm/sigcontext.h b/arch/h8300/include/uapi/asm/sigcontext.h
++;;; int abs(int n)
++_abs:
++	mov.l	er0,er0
++	bpl	1f
++	neg.l	er0
++1:
++	rts
+diff --git a/arch/h8300/lib/ashldi3.c b/arch/h8300/lib/ashldi3.c
 new file mode 100644
-index 0000000..c41fdaa
+index 0000000..d40cdc8
 --- /dev/null
-+++ b/arch/h8300/include/uapi/asm/sigcontext.h
-@@ -0,0 +1,18 @@
-+#ifndef _ASM_H8300_SIGCONTEXT_H
-+#define _ASM_H8300_SIGCONTEXT_H
++++ b/arch/h8300/lib/ashldi3.c
+@@ -0,0 +1,58 @@
++/* More subroutines needed by GCC output code on some machines.  */
++/* Compile this one with gcc.  */
++/* Copyright (C) 1989, 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999,
++   2000, 2001, 2002, 2003, 2004, 2005  Free Software Foundation, Inc.
 +
-+struct sigcontext {
-+	unsigned long  sc_mask;		/* old sigmask */
-+	unsigned long  sc_usp;		/* old user stack pointer */
-+	unsigned long  sc_er0;
-+	unsigned long  sc_er1;
-+	unsigned long  sc_er2;
-+	unsigned long  sc_er3;
-+	unsigned long  sc_er4;
-+	unsigned long  sc_er5;
-+	unsigned long  sc_er6;
-+	unsigned short sc_ccr;
-+	unsigned long  sc_pc;
-+};
++This file is part of GCC.
 +
-+#endif
-diff --git a/arch/h8300/include/uapi/asm/signal.h b/arch/h8300/include/uapi/asm/signal.h
++GCC is free software; you can redistribute it and/or modify it under
++the terms of the GNU General Public License as published by the Free
++Software Foundation; either version 2, or (at your option) any later
++version.
++
++In addition to the permissions in the GNU General Public License, the
++Free Software Foundation gives you unlimited permission to link the
++compiled version of this file into combinations with other programs,
++and to distribute those combinations without any restriction coming
++from the use of this file.  (The General Public License restrictions
++do apply in other respects; for example, they cover modification of
++the file, and distribution when not linked into a combine
++executable.)
++
++GCC is distributed in the hope that it will be useful, but WITHOUT ANY
++WARRANTY; without even the implied warranty of MERCHANTABILITY or
++FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
++for more details.
++
++You should have received a copy of the GNU General Public License
++along with GCC; see the file COPYING.  If not, write to the Free
++Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
++02110-1301, USA.  */
++
++#include "libgcc.h"
++
++DWtype
++__ashldi3 (DWtype u, word_type b)
++{
++  if (b == 0)
++    return u;
++
++  const DWunion uu = {.ll = u};
++  const word_type bm = (sizeof (Wtype) * BITS_PER_UNIT) - b;
++  DWunion w;
++
++  if (bm <= 0)
++    {
++      w.s.low = 0;
++      w.s.high = (UWtype) uu.s.low << -bm;
++    }
++  else
++    {
++      const UWtype carries = (UWtype) uu.s.low >> bm;
++
++      w.s.low = (UWtype) uu.s.low << b;
++      w.s.high = ((UWtype) uu.s.high << b) | carries;
++    }
++
++  return w.ll;
++}
+diff --git a/arch/h8300/lib/ashrdi3.c b/arch/h8300/lib/ashrdi3.c
 new file mode 100644
-index 0000000..af3a6c3
+index 0000000..134f884
 --- /dev/null
-+++ b/arch/h8300/include/uapi/asm/signal.h
-@@ -0,0 +1,115 @@
-+#ifndef _UAPI_H8300_SIGNAL_H
-+#define _UAPI_H8300_SIGNAL_H
++++ b/arch/h8300/lib/ashrdi3.c
+@@ -0,0 +1,59 @@
++/* More subroutines needed by GCC output code on some machines.  */
++/* Compile this one with gcc.  */
++/* Copyright (C) 1989, 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999,
++   2000, 2001, 2002, 2003, 2004, 2005  Free Software Foundation, Inc.
 +
-+#include <linux/types.h>
++This file is part of GCC.
 +
-+/* Avoid too many header ordering problems.  */
-+struct siginfo;
++GCC is free software; you can redistribute it and/or modify it under
++the terms of the GNU General Public License as published by the Free
++Software Foundation; either version 2, or (at your option) any later
++version.
 +
-+#ifndef __KERNEL__
-+/* Here we must cater to libcs that poke about in kernel headers.  */
++In addition to the permissions in the GNU General Public License, the
++Free Software Foundation gives you unlimited permission to link the
++compiled version of this file into combinations with other programs,
++and to distribute those combinations without any restriction coming
++from the use of this file.  (The General Public License restrictions
++do apply in other respects; for example, they cover modification of
++the file, and distribution when not linked into a combine
++executable.)
 +
-+#define NSIG		32
-+typedef unsigned long sigset_t;
++GCC is distributed in the hope that it will be useful, but WITHOUT ANY
++WARRANTY; without even the implied warranty of MERCHANTABILITY or
++FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
++for more details.
 +
-+#endif /* __KERNEL__ */
++You should have received a copy of the GNU General Public License
++along with GCC; see the file COPYING.  If not, write to the Free
++Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
++02110-1301, USA.  */
 +
-+#define SIGHUP		 1
-+#define SIGINT		 2
-+#define SIGQUIT		 3
-+#define SIGILL		 4
-+#define SIGTRAP		 5
-+#define SIGABRT		 6
-+#define SIGIOT		 6
-+#define SIGBUS		 7
-+#define SIGFPE		 8
-+#define SIGKILL		 9
-+#define SIGUSR1		10
-+#define SIGSEGV		11
-+#define SIGUSR2		12
-+#define SIGPIPE		13
-+#define SIGALRM		14
-+#define SIGTERM		15
-+#define SIGSTKFLT	16
-+#define SIGCHLD		17
-+#define SIGCONT		18
-+#define SIGSTOP		19
-+#define SIGTSTP		20
-+#define SIGTTIN		21
-+#define SIGTTOU		22
-+#define SIGURG		23
-+#define SIGXCPU		24
-+#define SIGXFSZ		25
-+#define SIGVTALRM	26
-+#define SIGPROF		27
-+#define SIGWINCH	28
-+#define SIGIO		29
-+#define SIGPOLL		SIGIO
++#include "libgcc.h"
++
++DWtype
++__ashrdi3 (DWtype u, word_type b)
++{
++  if (b == 0)
++    return u;
++
++  const DWunion uu = {.ll = u};
++  const word_type bm = (sizeof (Wtype) * BITS_PER_UNIT) - b;
++  DWunion w;
++
++  if (bm <= 0)
++    {
++      /* w.s.high = 1..1 or 0..0 */
++      w.s.high = uu.s.high >> (sizeof (Wtype) * BITS_PER_UNIT - 1);
++      w.s.low = uu.s.high >> -bm;
++    }
++  else
++    {
++      const UWtype carries = (UWtype) uu.s.high << bm;
++
++      w.s.high = uu.s.high >> b;
++      w.s.low = ((UWtype) uu.s.low >> b) | carries;
++    }
++
++  return w.ll;
++}
+diff --git a/arch/h8300/lib/checksum.c b/arch/h8300/lib/checksum.c
+new file mode 100644
+index 0000000..40ec5de
+--- /dev/null
++++ b/arch/h8300/lib/checksum.c
+@@ -0,0 +1,167 @@
 +/*
-+#define SIGLOST		29
-+*/
-+#define SIGPWR		30
-+#define SIGSYS		31
-+#define	SIGUNUSED	31
-+
-+/* These should not be considered constants from userland.  */
-+#define SIGRTMIN	32
-+#define SIGRTMAX	_NSIG
-+
-+/*
-+ * SA_FLAGS values:
++ * INET		An implementation of the TCP/IP protocol suite for the LINUX
++ *		operating system.  INET is implemented using the  BSD Socket
++ *		interface as the means of communication with the user level.
 + *
-+ * SA_ONSTACK indicates that a registered stack_t will be used.
-+ * SA_RESTART flag to get restarting signals (which were the default long ago)
-+ * SA_NOCLDSTOP flag to turn off SIGCHLD when children stop.
-+ * SA_RESETHAND clears the handler when the signal is delivered.
-+ * SA_NOCLDWAIT flag on SIGCHLD to inhibit zombies.
-+ * SA_NODEFER prevents the current signal from being masked in the handler.
++ *		IP/TCP/UDP checksumming routines
 + *
-+ * SA_ONESHOT and SA_NOMASK are the historical Linux names for the Single
-+ * Unix names RESETHAND and NODEFER respectively.
++ * Authors:	Jorge Cwik, <jorge@laser.satlink.net>
++ *		Arnt Gulbrandsen, <agulbra@nvg.unit.no>
++ *		Tom May, <ftom@netcom.com>
++ *		Andreas Schwab, <schwab@issan.informatik.uni-dortmund.de>
++ *		Lots of code moved from tcp.c and ip.c; see those files
++ *		for more names.
++ *
++ * 03/02/96	Jes Sorensen, Andreas Schwab, Roman Hodek:
++ *		Fixed some nasty bugs, causing some horrible crashes.
++ *		A: At some points, the sum (%0) was used as
++ *		length-counter instead of the length counter
++ *		(%1). Thanks to Roman Hodek for pointing this out.
++ *		B: GCC seems to mess up if one uses too many
++ *		data-registers to hold input values and one tries to
++ *		specify d0 and d1 as scratch registers. Letting gcc choose these
++ *      registers itself solves the problem.
++ *
++ *		This program is free software; you can redistribute it and/or
++ *		modify it under the terms of the GNU General Public License
++ *		as published by the Free Software Foundation; either version
++ *		2 of the License, or (at your option) any later version.
 + */
-+#define SA_NOCLDSTOP	0x00000001
-+#define SA_NOCLDWAIT	0x00000002 /* not supported yet */
-+#define SA_SIGINFO	0x00000004
-+#define SA_ONSTACK	0x08000000
-+#define SA_RESTART	0x10000000
-+#define SA_NODEFER	0x40000000
-+#define SA_RESETHAND	0x80000000
 +
-+#define SA_NOMASK	SA_NODEFER
-+#define SA_ONESHOT	SA_RESETHAND
++/* Revised by Kenneth Albanowski for m68knommu. Basic problem: unaligned access kills, so most
++   of the assembly has to go. */
 +
-+#define SA_RESTORER	0x04000000
++#include <net/checksum.h>
++#include <linux/module.h>
 +
-+#define MINSIGSTKSZ	2048
-+#define SIGSTKSZ	8192
++static inline unsigned short from32to16(unsigned long x)
++{
++	/* add up 16-bit and 16-bit for 16+c bit */
++	x = (x & 0xffff) + (x >> 16);
++	/* add up carry.. */
++	x = (x & 0xffff) + (x >> 16);
++	return x;
++}
 +
-+#include <asm-generic/signal-defs.h>
++static unsigned long do_csum(const unsigned char *buff, int len)
++{
++	int odd, count;
++	unsigned long result = 0;
 +
-+#ifndef __KERNEL__
-+/* Here we must cater to libcs that poke about in kernel headers.  */
++	if (len <= 0)
++		goto out;
++	odd = 1 & (unsigned long) buff;
++	if (odd) {
++		result = *buff;
++		len--;
++		buff++;
++	}
++	count = len >> 1;		/* nr of 16-bit words.. */
++	if (count) {
++		if (2 & (unsigned long) buff) {
++			result += *(unsigned short *) buff;
++			count--;
++			len -= 2;
++			buff += 2;
++		}
++		count >>= 1;		/* nr of 32-bit words.. */
++		if (count) {
++			unsigned long carry = 0;
++			
++			do {
++				unsigned long w = *(unsigned long *) buff;
 +
-+struct sigaction {
-+	union {
-+	  __sighandler_t _sa_handler;
-+	  void (*_sa_sigaction)(int, struct siginfo *, void *);
-+	} _u;
-+	sigset_t sa_mask;
-+	unsigned long sa_flags;
-+	void (*sa_restorer)(void);
-+};
++				count--;
++				buff += 4;
++				result += carry;
++				result += w;
++				carry = (w > result);
++			} while (count);
++			result += carry;
++			result = (result & 0xffff) + (result >> 16);
++		}
++		if (len & 2) {
++			result += *(unsigned short *) buff;
++			buff += 2;
++		}
++	}
++	if (len & 1)
++		result += (*buff << 8);
++	result = from32to16(result);
++	if (odd)
++		result = ((result >> 8) & 0xff) | ((result & 0xff) << 8);
++out:
++	return result;
++}
 +
-+#define sa_handler	_u._sa_handler
-+#define sa_sigaction	_u._sa_sigaction
++/*
++ *	This is a version of ip_compute_csum() optimized for IP headers,
++ *	which always checksum on 4 octet boundaries.
++ */
++__sum16 ip_fast_csum(const void *iph, unsigned int ihl)
++{
++	return (__force __sum16)~do_csum(iph, ihl*4);
++}
 +
-+#endif /* __KERNEL__ */
++/*
++ * computes the checksum of a memory block at buff, length len,
++ * and adds in "sum" (32-bit)
++ *
++ * returns a 32-bit number suitable for feeding into itself
++ * or csum_tcpudp_magic
++ *
++ * this function must be called with even lengths, except
++ * for the last fragment, which may be odd
++ *
++ * it's best to have buff aligned on a 32-bit boundary
++ */
++/*
++ * Egads...  That thing apparently assumes that *all* checksums it ever sees will
++ * be folded.  Very likely a bug.
++ */
++__wsum csum_partial(const void *buff, int len, __wsum sum)
++{
++	unsigned int result = do_csum(buff, len);
 +
-+typedef struct sigaltstack {
-+	void *ss_sp;
-+	int ss_flags;
-+	size_t ss_size;
-+} stack_t;
++	/* add in old sum, and carry.. */
++	result += (__force u32)sum;
++	/* 16+c bits -> 16 bits */
++	result = (result & 0xffff) + (result >> 16);
++	return (__force __wsum)result;
++}
 +
++EXPORT_SYMBOL(csum_partial);
 +
-+#endif /* _UAPI_H8300_SIGNAL_H */
-diff --git a/arch/h8300/include/uapi/asm/swab.h b/arch/h8300/include/uapi/asm/swab.h
++/*
++ * this routine is used for miscellaneous IP-like checksums, mainly
++ * in icmp.c
++ */
++__sum16 ip_compute_csum(const void *buff, int len)
++{
++	return (__force __sum16)~do_csum(buff, len);
++}
++
++/*
++ * copy from fs while checksumming, otherwise like csum_partial
++ */
++
++__wsum
++csum_partial_copy_from_user(const void __user *src, void *dst, int len,
++			    __wsum sum, int *csum_err)
++{
++	if (csum_err)
++		*csum_err = 0;
++	memcpy(dst, (__force const void *)src, len);
++	return csum_partial(dst, len, sum);
++}
++
++/*
++ * copy from ds while checksumming, otherwise like csum_partial
++ */
++
++__wsum
++csum_partial_copy_nocheck(const void *src, void *dst, int len, __wsum sum)
++{
++	memcpy(dst, src, len);
++	return csum_partial(dst, len, sum);
++}
+diff --git a/arch/h8300/lib/libgcc.h b/arch/h8300/lib/libgcc.h
 new file mode 100644
-index 0000000..7847e56
+index 0000000..8de547ee
 --- /dev/null
-+++ b/arch/h8300/include/uapi/asm/swab.h
-@@ -0,0 +1 @@
-+#include <asm-generic/swab.h>
-diff --git a/arch/h8300/include/uapi/asm/unistd.h b/arch/h8300/include/uapi/asm/unistd.h
-new file mode 100644
-index 0000000..49108ac
---- /dev/null
-+++ b/arch/h8300/include/uapi/asm/unistd.h
-@@ -0,0 +1,4 @@
-+#define __ARCH_NOMMU
-+#define __ARCH_WANT_SYS_CLONE
++++ b/arch/h8300/lib/libgcc.h
+@@ -0,0 +1,76 @@
++#ifndef __H8300_LIBGCC_H__
++#define __H8300_LIBGCC_H__
 +
-+#include <asm-generic/unistd.h>
++#ifdef __ASSEMBLY__
++#define A0 r0
++#define A0L r0l
++#define A0H r0h
++
++#define A1 r1
++#define A1L r1l
++#define A1H r1h
++
++#define A2 r2
++#define A2L r2l
++#define A2H r2h
++
++#define A3 r3
++#define A3L r3l
++#define A3H r3h
++
++#define S0 r4
++#define S0L r4l
++#define S0H r4h
++
++#define S1 r5
++#define S1L r5l
++#define S1H r5h
++
++#define S2 r6
++#define S2L r6l
++#define S2H r6h
++
++#define PUSHP	push.l
++#define POPP	pop.l
++
++#define A0P	er0
++#define A1P	er1
++#define A2P	er2
++#define A3P	er3
++#define S0P	er4
++#define S1P	er5
++#define S2P	er6
++
++#define A0E	e0
++#define A1E	e1
++#define A2E	e2
++#define A3E	e3
++#else
++#define Wtype   SItype
++#define UWtype  USItype
++#define HWtype  SItype
++#define UHWtype USItype
++#define DWtype  DItype
++#define UDWtype UDItype
++#define UWtype  USItype
++#define Wtype   SItype
++#define UWtype  USItype
++#define W_TYPE_SIZE (4 * BITS_PER_UNIT)
++#define BITS_PER_UNIT (8)
++
++typedef          int SItype     __attribute__ ((mode (SI)));
++typedef unsigned int USItype    __attribute__ ((mode (SI)));
++typedef		 int DItype	__attribute__ ((mode (DI)));
++typedef unsigned int UDItype	__attribute__ ((mode (DI)));
++struct DWstruct {Wtype high, low;};
++typedef union
++{
++  struct DWstruct s;
++  DWtype ll;
++} DWunion;
++
++typedef int word_type __attribute__ ((mode (__word__)));
++
++#endif
++
++#endif
+diff --git a/arch/h8300/lib/lshrdi3.c b/arch/h8300/lib/lshrdi3.c
+new file mode 100644
+index 0000000..8e3e839
+--- /dev/null
++++ b/arch/h8300/lib/lshrdi3.c
+@@ -0,0 +1,58 @@
++/* More subroutines needed by GCC output code on some machines.  */
++/* Compile this one with gcc.  */
++/* Copyright (C) 1989, 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999,
++   2000, 2001, 2002, 2003, 2004, 2005  Free Software Foundation, Inc.
++
++This file is part of GCC.
++
++GCC is free software; you can redistribute it and/or modify it under
++the terms of the GNU General Public License as published by the Free
++Software Foundation; either version 2, or (at your option) any later
++version.
++
++In addition to the permissions in the GNU General Public License, the
++Free Software Foundation gives you unlimited permission to link the
++compiled version of this file into combinations with other programs,
++and to distribute those combinations without any restriction coming
++from the use of this file.  (The General Public License restrictions
++do apply in other respects; for example, they cover modification of
++the file, and distribution when not linked into a combine
++executable.)
++
++GCC is distributed in the hope that it will be useful, but WITHOUT ANY
++WARRANTY; without even the implied warranty of MERCHANTABILITY or
++FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
++for more details.
++
++You should have received a copy of the GNU General Public License
++along with GCC; see the file COPYING.  If not, write to the Free
++Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
++02110-1301, USA.  */
++
++#include "libgcc.h"
++
++DWtype
++__lshrdi3 (DWtype u, word_type b)
++{
++  if (b == 0)
++    return u;
++
++  const DWunion uu = {.ll = u};
++  const word_type bm = (sizeof (Wtype) * BITS_PER_UNIT) - b;
++  DWunion w;
++
++  if (bm <= 0)
++    {
++      w.s.high = 0;
++      w.s.low = (UWtype) uu.s.high >> -bm;
++    }
++  else
++    {
++      const UWtype carries = (UWtype) uu.s.high << bm;
++
++      w.s.high = (UWtype) uu.s.high >> b;
++      w.s.low = ((UWtype) uu.s.low >> b) | carries;
++    }
++
++  return w.ll;
++}
+diff --git a/arch/h8300/lib/memcpy.S b/arch/h8300/lib/memcpy.S
+new file mode 100644
+index 0000000..0c9a51f
+--- /dev/null
++++ b/arch/h8300/lib/memcpy.S
+@@ -0,0 +1,85 @@
++;;; memcpy.S
++
++#include <asm/linkage.h>
++
++#if defined(CONFIG_CPU_H8300H)
++	.h8300h
++#endif
++#if defined(CONFIG_CPU_H8S)
++	.h8300s
++#endif
++	.text
++.global memcpy
++
++;;; void *memcpy(void *to, void *from, size_t n)
++memcpy:
++	mov.l	er2,er2
++	bne	1f
++	rts
++1:
++	;; address check
++	bld	#0,r0l
++	bxor	#0,r1l
++	bcs	4f
++	mov.l	er4,@-sp
++	mov.l	er0,@-sp
++	btst	#0,r0l
++	beq	1f
++	;; (aligned even) odd address
++	mov.b	@er1,r3l
++	mov.b	r3l,@er0
++	adds	#1,er1
++	adds	#1,er0
++	dec.l	#1,er2
++	beq	3f
++1:
++	;; n < sizeof(unsigned long) check
++	sub.l	er4,er4
++	adds	#4,er4		; loop count check value
++	cmp.l	er4,er2
++	blo	2f
++	;; unsigned long copy
++1:
++	mov.l	@er1,er3
++	mov.l	er3,@er0
++	adds	#4,er0
++	adds	#4,er1
++	subs	#4,er2
++	cmp.l	er4,er2
++	bcc	1b
++	;; rest
++2:
++	mov.l	er2,er2
++	beq	3f
++1:
++	mov.b	@er1,r3l
++	mov.b	r3l,@er0
++	adds	#1,er1
++	adds	#1,er0
++	dec.l	#1,er2
++	bne	1b
++3:
++	mov.l	@sp+,er0
++	mov.l	@sp+,er4
++	rts
++
++	;; odd <- even / even <- odd
++4:
++	mov.l	er4,er3
++	mov.l	er2,er4
++	mov.l	er5,er2
++	mov.l	er1,er5
++	mov.l	er6,er1
++	mov.l	er0,er6
++1:
++	eepmov.w
++	mov.w	r4,r4
++	bne	1b
++	dec.w	#1,e4
++	bpl	1b
++	mov.l	er1,er6
++	mov.l	er2,er5
++	mov.l	er3,er4
++	rts
++
++	.end
+diff --git a/arch/h8300/lib/memset.S b/arch/h8300/lib/memset.S
+new file mode 100644
+index 0000000..18d4e70
+--- /dev/null
++++ b/arch/h8300/lib/memset.S
+@@ -0,0 +1,69 @@
++/* memset.S */
++
++#include <asm/linkage.h>
++
++#if defined(CONFIG_CPU_H8300H)
++	.h8300h
++#endif
++#if defined(CONFIG_CPU_H8S)
++	.h8300s
++#endif
++	.text
++
++.global	memset
++.global	clear_user
++
++;;void *memset(*ptr, int c, size_t count)
++;; ptr = er0
++;; c   = er1(r1l)
++;; count = er2
++memset:
++	btst	#0,r0l
++	beq	2f
++
++	;; odd address
++1:
++	mov.b	r1l,@er0
++	adds	#1,er0
++	dec.l	#1,er2
++	beq	6f
++
++	;; even address
++2:
++	mov.l	er2,er3
++	cmp.l	#4,er2
++	blo	4f
++	;; count>=4 -> count/4
++#if defined(CONFIG_CPU_H8300H)
++	shlr.l	er2
++	shlr.l	er2
++#endif
++#if defined(CONFIG_CPU_H8S)
++	shlr.l	#2,er2
++#endif
++	;; byte -> long
++	mov.b	r1l,r1h
++	mov.w	r1,e1
++3:
++	mov.l	er1,@er0
++	adds	#4,er0
++	dec.l	#1,er2
++	bne	3b
++4:
++	;; count % 4
++	and.b	#3,r3l
++	beq	6f
++5:
++	mov.b	r1l,@er0
++	adds	#1,er0
++	dec.b	r3l
++	bne	5b
++6:
++	rts
++
++clear_user:
++	mov.l	er1, er2
++	sub.l	er1, er1
++	bra	memset
++
++	.end
+diff --git a/arch/h8300/lib/moddivsi3.S b/arch/h8300/lib/moddivsi3.S
+new file mode 100644
+index 0000000..fae89d6
+--- /dev/null
++++ b/arch/h8300/lib/moddivsi3.S
+@@ -0,0 +1,106 @@
++;; libgcc routines for the Renesas H8/300 CPU.
++;; Contributed by Steve Chamberlain <sac@cygnus.com>
++;; Optimizations by Toshiyasu Morita <toshiyasu.morita@renesas.com>
++
++/* Copyright (C) 1994, 2000, 2001, 2002, 2003, 2004
++   Free Software Foundation, Inc.
++
++This file is free software; you can redistribute it and/or modify it
++under the terms of the GNU General Public License as published by the
++Free Software Foundation; either version 2, or (at your option) any
++later version.
++
++In addition to the permissions in the GNU General Public License, the
++Free Software Foundation gives you unlimited permission to link the
++compiled version of this file into combinations with other programs,
++and to distribute those combinations without any restriction coming
++from the use of this file.  (The General Public License restrictions
++do apply in other respects; for example, they cover modification of
++the file, and distribution when not linked into a combine
++executable.)
++
++This file is distributed in the hope that it will be useful, but
++WITHOUT ANY WARRANTY; without even the implied warranty of
++MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++General Public License for more details.
++
++You should have received a copy of the GNU General Public License
++along with this program; see the file COPYING.  If not, write to
++the Free Software Foundation, 51 Franklin Street, Fifth Floor,
++Boston, MA 02110-1301, USA.  */
++
++#include "libgcc.h"
++
++; numerator in A0/A1
++; denominator in A2/A3
++	.global	__modsi3
++__modsi3:
++	PUSHP	S2P
++	bsr	modnorm
++	bsr	__divsi3
++	mov.l	er3,er0
++	bra	exitdiv
++
++	;; H8/300H and H8S version of ___udivsi3 is defined later in
++	;; the file.
++
++	.global	__umodsi3
++__umodsi3:
++	bsr	__udivsi3:16
++	mov.l	er3,er0
++	rts
++
++	.global	__divsi3
++__divsi3:
++	PUSHP	S2P
++	bsr	divnorm
++	bsr	__udivsi3:16
++
++	; examine what the sign should be
++exitdiv:
++	btst	#3,S2L
++	beq	reti
++
++	; should be -ve
++	neg.l	A0P
++
++reti:
++	POPP	S2P
++	rts
++
++divnorm:
++	mov.l	A0P,A0P		; is the numerator -ve
++	stc	ccr,S2L		; keep the sign in bit 3 of S2L
++	bge	postive
++
++	neg.l	A0P		; negate arg
++
++postive:
++	mov.l	A1P,A1P		; is the denominator -ve
++	bge	postive2
++
++	neg.l	A1P		; negate arg
++	xor.b	#0x08,S2L	; toggle the result sign
++
++postive2:
++	rts
++
++;; Basically the same, except that the sign of the divisor determines
++;; the sign.
++modnorm:
++	mov.l	A0P,A0P		; is the numerator -ve
++	stc	ccr,S2L		; keep the sign in bit 3 of S2L
++	bge	mpostive
++
++	neg.l	A0P		; negate arg
++
++mpostive:
++	mov.l	A1P,A1P		; is the denominator -ve
++	bge	mpostive2
++
++	neg.l	A1P		; negate arg
++
++mpostive2:
++	rts
++
++	.end
+diff --git a/arch/h8300/lib/modsi3.S b/arch/h8300/lib/modsi3.S
+new file mode 100644
+index 0000000..69ed7ff
+--- /dev/null
++++ b/arch/h8300/lib/modsi3.S
+@@ -0,0 +1,106 @@
++;; libgcc routines for the Renesas H8/300 CPU.
++;; Contributed by Steve Chamberlain <sac@cygnus.com>
++;; Optimizations by Toshiyasu Morita <toshiyasu.morita@renesas.com>
++
++/* Copyright (C) 1994, 2000, 2001, 2002, 2003, 2004
++   Free Software Foundation, Inc.
++
++This file is free software; you can redistribute it and/or modify it
++under the terms of the GNU General Public License as published by the
++Free Software Foundation; either version 2, or (at your option) any
++later version.
++
++In addition to the permissions in the GNU General Public License, the
++Free Software Foundation gives you unlimited permission to link the
++compiled version of this file into combinations with other programs,
++and to distribute those combinations without any restriction coming
++from the use of this file.  (The General Public License restrictions
++do apply in other respects; for example, they cover modification of
++the file, and distribution when not linked into a combine
++executable.)
++
++This file is distributed in the hope that it will be useful, but
++WITHOUT ANY WARRANTY; without even the implied warranty of
++MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++General Public License for more details.
++
++You should have received a copy of the GNU General Public License
++along with this program; see the file COPYING.  If not, write to
++the Free Software Foundation, 51 Franklin Street, Fifth Floor,
++Boston, MA 02110-1301, USA.  */
++
++#include "libgcc.h"
++
++; numerator in A0/A1
++; denominator in A2/A3
++	.global	__modsi3
++__modsi3:
++	PUSHP	S2P
++	bsr	modnorm
++	bsr	__divsi3
++	mov.l	er3,er0
++	bra	exitdiv
++
++	;; H8/300H and H8S version of ___udivsi3 is defined later in
++	;; the file.
++
++	.global	__umodsi3
++__umodsi3:
++	bsr	__udivsi3
++	mov.l	er3,er0
++	rts
++
++	.global	__divsi3
++__divsi3:
++	PUSHP	S2P
++	jsr	divnorm
++	bsr	__udivsi3
++
++	; examine what the sign should be
++exitdiv:
++	btst	#3,S2L
++	beq	reti
++
++	; should be -ve
++	neg.l	A0P
++
++reti:
++	POPP	S2P
++	rts
++
++divnorm:
++	mov.l	A0P,A0P		; is the numerator -ve
++	stc	ccr,S2L		; keep the sign in bit 3 of S2L
++	bge	postive
++
++	neg.l	A0P		; negate arg
++
++postive:
++	mov.l	A1P,A1P		; is the denominator -ve
++	bge	postive2
++
++	neg.l	A1P		; negate arg
++	xor.b	#0x08,S2L	; toggle the result sign
++
++postive2:
++	rts
++
++;; Basically the same, except that the sign of the divisor determines
++;; the sign.
++modnorm:
++	mov.l	A0P,A0P		; is the numerator -ve
++	stc	ccr,S2L		; keep the sign in bit 3 of S2L
++	bge	mpostive
++
++	neg.l	A0P		; negate arg
++
++mpostive:
++	mov.l	A1P,A1P		; is the denominator -ve
++	bge	mpostive2
++
++	neg.l	A1P		; negate arg
++
++mpostive2:
++	rts
++
++	.end
+diff --git a/arch/h8300/lib/muldi3.c b/arch/h8300/lib/muldi3.c
+new file mode 100644
+index 0000000..d34b030
+--- /dev/null
++++ b/arch/h8300/lib/muldi3.c
+@@ -0,0 +1,76 @@
++/* More subroutines needed by GCC output code on some machines.  */
++/* Compile this one with gcc.  */
++/* Copyright (C) 1989, 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999,
++   2000, 2001, 2002, 2003, 2004, 2005  Free Software Foundation, Inc.
++
++This file is part of GCC.
++
++GCC is free software; you can redistribute it and/or modify it under
++the terms of the GNU General Public License as published by the Free
++Software Foundation; either version 2, or (at your option) any later
++version.
++
++In addition to the permissions in the GNU General Public License, the
++Free Software Foundation gives you unlimited permission to link the
++compiled version of this file into combinations with other programs,
++and to distribute those combinations without any restriction coming
++from the use of this file.  (The General Public License restrictions
++do apply in other respects; for example, they cover modification of
++the file, and distribution when not linked into a combine
++executable.)
++
++GCC is distributed in the hope that it will be useful, but WITHOUT ANY
++WARRANTY; without even the implied warranty of MERCHANTABILITY or
++FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
++for more details.
++
++You should have received a copy of the GNU General Public License
++along with GCC; see the file COPYING.  If not, write to the Free
++Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
++02110-1301, USA.  */
++
++#include "libgcc.h"
++
++#define __ll_B ((UWtype) 1 << (W_TYPE_SIZE / 2))
++#define __ll_lowpart(t) ((UWtype) (t) & (__ll_B - 1))
++#define __ll_highpart(t) ((UWtype) (t) >> (W_TYPE_SIZE / 2))
++
++#define umul_ppmm(w1,w0,u,v) \
++  do { \
++    UWtype __x0, __x1, __x2, __x3; \
++    UHWtype __ul, __vl, __uh, __vh; \
++    __ul = __ll_lowpart (u); \
++    __uh = __ll_highpart (u); \
++    __vl = __ll_lowpart (v); \
++    __vh = __ll_highpart (v); \
++    __x0 = (UWtype) __ul * __vl; \
++    __x1 = (UWtype) __ul * __vh; \
++    __x2 = (UWtype) __uh * __vl; \
++    __x3 = (UWtype) __uh * __vh; \
++    __x1 += __ll_highpart (__x0); \
++    __x1 += __x2; \
++    if (__x1 < __x2) \
++      __x3 += __ll_B; \
++    (w1) = __x3 + __ll_highpart (__x1); \
++    (w0) = __ll_lowpart (__x1) * __ll_B + __ll_lowpart (__x0); \
++  } while (0)
++
++#define __umulsidi3(u,v) ( 			\
++    { 						\
++      DWunion __w; 				\
++      umul_ppmm (__w.s.high, __w.s.low, u, v); 	\
++      __w.ll; } 				\
++    )
++
++DWtype
++__muldi3 (DWtype u, DWtype v)
++{
++  const DWunion uu = {.ll = u};
++  const DWunion vv = {.ll = v};
++  DWunion w = {.ll = __umulsidi3 (uu.s.low, vv.s.low)};
++
++  w.s.high += ((UWtype) uu.s.low * (UWtype) vv.s.high
++	       + (UWtype) uu.s.high * (UWtype) vv.s.low);
++
++  return w.ll;
++}
+diff --git a/arch/h8300/lib/mulsi3.S b/arch/h8300/lib/mulsi3.S
+new file mode 100644
+index 0000000..4e29a19
+--- /dev/null
++++ b/arch/h8300/lib/mulsi3.S
+@@ -0,0 +1,67 @@
++;; libgcc routines for the Renesas H8/300 CPU.
++;; Contributed by Steve Chamberlain <sac@cygnus.com>
++;; Optimizations by Toshiyasu Morita <toshiyasu.morita@renesas.com>
++
++/* Copyright (C) 1994, 2000, 2001, 2002, 2003, 2004
++   Free Software Foundation, Inc.
++
++This file is free software; you can redistribute it and/or modify it
++under the terms of the GNU General Public License as published by the
++Free Software Foundation; either version 2, or (at your option) any
++later version.
++
++In addition to the permissions in the GNU General Public License, the
++Free Software Foundation gives you unlimited permission to link the
++compiled version of this file into combinations with other programs,
++and to distribute those combinations without any restriction coming
++from the use of this file.  (The General Public License restrictions
++do apply in other respects; for example, they cover modification of
++the file, and distribution when not linked into a combine
++executable.)
++
++This file is distributed in the hope that it will be useful, but
++WITHOUT ANY WARRANTY; without even the implied warranty of
++MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++General Public License for more details.
++
++You should have received a copy of the GNU General Public License
++along with this program; see the file COPYING.  If not, write to
++the Free Software Foundation, 51 Franklin Street, Fifth Floor,
++Boston, MA 02110-1301, USA.  */
++
++;
++; mulsi3 for H8/300H - based on Renesas SH implementation
++;
++; by Toshiyasu Morita
++;
++; Old code:
++;
++; 16b * 16b = 372 states (worst case)
++; 32b * 32b = 724 states (worst case)
++;
++; New code:
++;
++; 16b * 16b =  48 states
++; 16b * 32b =  72 states
++; 32b * 32b =  92 states
++;
++
++	.global __mulsi3
++__mulsi3:
++	mov.w	r1,r2   ; ( 2 states) b * d
++	mulxu	r0,er2  ; (22 states)
++
++	mov.w	e0,r3   ; ( 2 states) a * d
++	beq	L_skip1 ; ( 4 states)
++	mulxu	r1,er3  ; (22 states)
++	add.w	r3,e2   ; ( 2 states)
++
++L_skip1:
++	mov.w	e1,r3   ; ( 2 states) c * b
++	beq	L_skip2 ; ( 4 states)
++	mulxu	r0,er3  ; (22 states)
++	add.w	r3,e2   ; ( 2 states)
++
++L_skip2:
++	mov.l	er2,er0	; ( 2 states)
++	rts		; (10 states)
+diff --git a/arch/h8300/lib/strncpy.S b/arch/h8300/lib/strncpy.S
+new file mode 100644
+index 0000000..d00396a
+--- /dev/null
++++ b/arch/h8300/lib/strncpy.S
+@@ -0,0 +1,34 @@
++;;; strncpy.S
++
++#include <asm/linkage.h>
++
++	.text
++.global strncpy_from_user
++
++;;; long strncpy_from_user(void *to, void *from, size_t n)
++strncpy_from_user:
++	mov.l	er2,er2
++	bne	1f
++	sub.l	er0,er0
++	rts
++1:
++	mov.l	er4,@-sp
++	sub.l	er3,er3
++2:
++	mov.b	@er1+,r4l
++	mov.b	r4l,@er0
++	adds	#1,er0
++	beq	3f
++	inc.l	#1,er3
++	dec.l	#1,er2
++	bne	2b
++3:
++	dec.l	#1,er2
++4:
++	mov.b	r4l,@er0
++	adds	#1,er0
++	dec.l	#1,er2
++	bne	4b
++	mov.l	er3,er0
++	mov.l	@sp+,er4
++	rts
+diff --git a/arch/h8300/lib/udivsi3.S b/arch/h8300/lib/udivsi3.S
+new file mode 100644
+index 0000000..bd2d721
+--- /dev/null
++++ b/arch/h8300/lib/udivsi3.S
+@@ -0,0 +1,107 @@
++;; libgcc routines for the Renesas H8/300 CPU.
++;; Contributed by Steve Chamberlain <sac@cygnus.com>
++;; Optimizations by Toshiyasu Morita <toshiyasu.morita@renesas.com>
++
++/* Copyright (C) 1994, 2000, 2001, 2002, 2003, 2004
++   Free Software Foundation, Inc.
++
++This file is free software; you can redistribute it and/or modify it
++under the terms of the GNU General Public License as published by the
++Free Software Foundation; either version 2, or (at your option) any
++later version.
++
++In addition to the permissions in the GNU General Public License, the
++Free Software Foundation gives you unlimited permission to link the
++compiled version of this file into combinations with other programs,
++and to distribute those combinations without any restriction coming
++from the use of this file.  (The General Public License restrictions
++do apply in other respects; for example, they cover modification of
++the file, and distribution when not linked into a combine
++executable.)
++
++This file is distributed in the hope that it will be useful, but
++WITHOUT ANY WARRANTY; without even the implied warranty of
++MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++General Public License for more details.
++
++You should have received a copy of the GNU General Public License
++along with this program; see the file COPYING.  If not, write to
++the Free Software Foundation, 51 Franklin Street, Fifth Floor,
++Boston, MA 02110-1301, USA.  */
++
++#include "libgcc.h"
++	
++	;; This function also computes the remainder and stores it in er3.
++	.global	__udivsi3
++__udivsi3:
++	mov.w	A1E,A1E		; denominator top word 0?
++	bne	DenHighNonZero
++
++	; do it the easy way, see page 107 in manual
++	mov.w	A0E,A2
++	extu.l	A2P
++	divxu.w	A1,A2P
++	mov.w	A2E,A0E
++	divxu.w	A1,A0P
++	mov.w	A0E,A3
++	mov.w	A2,A0E
++	extu.l	A3P
++	rts
++
++ 	; er0 = er0 / er1
++ 	; er3 = er0 % er1
++ 	; trashes er1 er2
++ 	; expects er1 >= 2^16
++DenHighNonZero:
++	mov.l	er0,er3
++	mov.l	er1,er2
++#ifdef CONFIG_CPU_H8300H
++divmod_L21:
++	shlr.l	er0
++	shlr.l	er2		; make divisor < 2^16
++	mov.w	e2,e2
++	bne	divmod_L21
++#else
++	shlr.l	#2,er2		; make divisor < 2^16
++	mov.w	e2,e2
++	beq	divmod_L22A
++divmod_L21:
++	shlr.l	#2,er0
++divmod_L22:
++	shlr.l	#2,er2		; make divisor < 2^16
++	mov.w	e2,e2
++	bne	divmod_L21
++divmod_L22A:
++	rotxl.w	r2
++	bcs	divmod_L23
++	shlr.l	er0
++	bra	divmod_L24
++divmod_L23:
++	rotxr.w	r2
++	shlr.l	#2,er0
++divmod_L24:
++#endif
++	;; At this point,
++	;;  er0 contains shifted dividend
++	;;  er1 contains divisor
++	;;  er2 contains shifted divisor
++	;;  er3 contains dividend, later remainder
++	divxu.w	r2,er0		; r0 now contains the approximate quotient (AQ)
++	extu.l	er0
++	beq	divmod_L25
++	subs	#1,er0		; er0 = AQ - 1
++	mov.w	e1,r2
++	mulxu.w	r0,er2		; er2 = upper (AQ - 1) * divisor
++	sub.w	r2,e3		; dividend - 65536 * er2
++	mov.w	r1,r2
++	mulxu.w	r0,er2		; compute er3 = remainder (tentative)
++	sub.l	er2,er3		; er3 = dividend - (AQ - 1) * divisor
++divmod_L25:
++ 	cmp.l	er1,er3		; is divisor < remainder?
++	blo	divmod_L26
++ 	adds	#1,er0
++	sub.l	er1,er3		; correct the remainder
++divmod_L26:
++	rts
++
++	.end
 -- 
 2.1.3
