@@ -1,12 +1,12 @@
 From: Yoshinori Sato <ysato@users.sourceforge.jp>
-Subject: [PATCH v2 11/15] h8300: clock driver
-Date: Wed, 28 Jan 2015 22:32:05 +0900
-Message-ID: <1b647e750f7a03ae17526203be912934840cbb80.1422429854.git.ysato@users.sourceforge.jp>
+Subject: [PATCH v2 04/15] h8300: kernel booting
+Date: Wed, 28 Jan 2015 22:31:58 +0900
+Message-ID: <c3fb9cf4b9cc7a4ed58b3235221ed3675c4fd0e6.1422429854.git.ysato@users.sourceforge.jp>
 References: <cover.1422429854.git.ysato@users.sourceforge.jp>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail1.asahi-net.or.jp ([202.224.39.197]:19010 "EHLO
+Received: from mail1.asahi-net.or.jp ([202.224.39.197]:19011 "EHLO
 	mail1.asahi-net.or.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754652AbbA1UjR (ORCPT
+	with ESMTP id S1755703AbbA1UjR (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>); Wed, 28 Jan 2015 15:39:17 -0500
 In-Reply-To: <cover.1422429854.git.ysato@users.sourceforge.jp>
 In-Reply-To: <cover.1422429854.git.ysato@users.sourceforge.jp>
@@ -18,299 +18,636 @@ Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
 
 Signed-off-by: Yoshinori Sato <ysato@users.sourceforge.jp>
 
- create mode 100644 drivers/clk/h8300/Makefile
- create mode 100644 drivers/clk/h8300/clk-h83069.c
- create mode 100644 drivers/clk/h8300/clk-h8s2678.c
+ create mode 100644 arch/h8300/boot/Makefile
+ create mode 100644 arch/h8300/boot/compressed/Makefile
+ create mode 100644 arch/h8300/boot/compressed/head.S
+ create mode 100644 arch/h8300/boot/compressed/misc.c
+ create mode 100644 arch/h8300/boot/compressed/vmlinux.lds
+ create mode 100644 arch/h8300/boot/compressed/vmlinux.scr
+ create mode 100644 arch/h8300/kernel/head_ram.S
+ create mode 100644 arch/h8300/kernel/head_rom.S
+ create mode 100644 arch/h8300/kernel/setup.c
 
-diff --git a/drivers/clk/Makefile b/drivers/clk/Makefile
-index d5fba5b..37b6e87 100644
---- a/drivers/clk/Makefile
-+++ b/drivers/clk/Makefile
-@@ -68,3 +68,4 @@ obj-$(CONFIG_ARCH_U8500)		+= ux500/
- obj-$(CONFIG_COMMON_CLK_VERSATILE)	+= versatile/
- obj-$(CONFIG_X86)			+= x86/
- obj-$(CONFIG_ARCH_ZYNQ)			+= zynq/
-+obj-$(CONFIG_H8300)		+= h8300/
-diff --git a/drivers/clk/h8300/Makefile b/drivers/clk/h8300/Makefile
+diff --git a/arch/h8300/boot/Makefile b/arch/h8300/boot/Makefile
 new file mode 100644
-index 0000000..82eab42
+index 0000000..5072b36
 --- /dev/null
-+++ b/drivers/clk/h8300/Makefile
-@@ -0,0 +1,2 @@
-+obj-$(CONFIG_H83069) += clk-h83069.o
-+obj-$(CONFIG_H8S2678) += clk-h8s2678.o
-diff --git a/drivers/clk/h8300/clk-h83069.c b/drivers/clk/h8300/clk-h83069.c
++++ b/arch/h8300/boot/Makefile
+@@ -0,0 +1,27 @@
++# arch/h8300/boot/Makefile
++
++targets := vmlinux.srec vmlinux.bin zImage
++subdir- := compressed
++
++OBJCOPYFLAGS_vmlinux.srec := -Osrec
++OBJCOPYFLAGS_vmlinux.bin  := -Obinary
++OBJCOPYFLAGS_zImage := -O binary -R .note -R .comment -R .stab -R .stabstr -S
++
++UIMAGE_LOADADDR = $(CONFIG_RAMBASE)
++UIMAGE_ENTRYADDR = $(shell /bin/bash -c 'printf "0x%08x" \
++	$$[$(CONFIG_RAMBASE) + $(CONFIG_OFFSET)]')
++
++$(obj)/vmlinux.srec $(obj)/vmlinux.bin:  vmlinux FORCE
++	$(call if_changed,objcopy)
++
++$(obj)/zImage: $(obj)/compressed/vmlinux FORCE
++	$(call if_changed,objcopy)
++
++$(obj)/compressed/vmlinux: FORCE
++	$(Q)$(MAKE) $(build)=$(obj)/compressed $@
++
++$(obj)/uImage.bin: $(obj)/vmlinux.bin
++	$(call if_changed,uimage,none)
++
++CLEAN_FILES += arch/$(ARCH)/vmlinux.bin arch/$(ARCH)/vmlinux.srec arch/$(ARCH)/uImage.bin
++
+diff --git a/arch/h8300/boot/compressed/Makefile b/arch/h8300/boot/compressed/Makefile
 new file mode 100644
-index 0000000..3334f49
+index 0000000..87d03b7
 --- /dev/null
-+++ b/drivers/clk/h8300/clk-h83069.c
-@@ -0,0 +1,73 @@
++++ b/arch/h8300/boot/compressed/Makefile
+@@ -0,0 +1,37 @@
++#
++# linux/arch/sh/boot/compressed/Makefile
++#
++# create a compressed vmlinux image from the original vmlinux
++#
++
++targets		:= vmlinux vmlinux.bin vmlinux.bin.gz head.o misc.o piggy.o
++
++OBJECTS = $(obj)/head.o $(obj)/misc.o
++
++#
++# IMAGE_OFFSET is the load offset of the compression loader
++# Assign dummy values if these 2 variables are not defined,
++# in order to suppress error message.
++#
++CONFIG_MEMORY_START     ?= 0x00400000
++CONFIG_BOOT_LINK_OFFSET ?= 0x00140000
++IMAGE_OFFSET := $(shell printf "0x%08x" $$(($(CONFIG_MEMORY_START)+$(CONFIG_BOOT_LINK_OFFSET))))
++
++LIBGCC := $(shell $(CROSS-COMPILE)$(CC) $(KBUILD_CFLAGS) -print-libgcc-file-name)
++LDFLAGS_vmlinux := -Ttext $(IMAGE_OFFSET) -estartup $(obj)/vmlinux.lds
++
++$(obj)/vmlinux: $(OBJECTS) $(obj)/piggy.o $(LIBGCC) FORCE
++	$(call if_changed,ld)
++	@:
++
++$(obj)/vmlinux.bin: vmlinux FORCE
++	$(call if_changed,objcopy)
++
++$(obj)/vmlinux.bin.gz: $(obj)/vmlinux.bin FORCE
++	$(call if_changed,gzip)
++
++LDFLAGS_piggy.o := -r --format binary --oformat elf32-h8300-linux -T
++OBJCOPYFLAGS := -O binary
++
++$(obj)/piggy.o: $(obj)/vmlinux.scr $(obj)/vmlinux.bin.gz FORCE
++	$(call if_changed,ld)
+diff --git a/arch/h8300/boot/compressed/head.S b/arch/h8300/boot/compressed/head.S
+new file mode 100644
+index 0000000..74c0d8cc
+--- /dev/null
++++ b/arch/h8300/boot/compressed/head.S
+@@ -0,0 +1,48 @@
 +/*
-+ * H8/3069 clock driver
++ *  linux/arch/h8300/boot/compressed/head.S
 + *
-+ * Copyright 2015 Yoshinori Sato <ysato@users.sourceforge.jp>
++ *  Copyright (C) 2006 Yoshinori Sato
 + */
 +
-+#include <linux/clk.h>
-+#include <linux/clkdev.h>
-+#include <linux/clk-provider.h>
-+#include <linux/err.h>
-+#include <linux/device.h>
-+#include <linux/platform_device.h>
++#include <linux/linkage.h>
 +
-+static DEFINE_SPINLOCK(clklock);
++	.section	.text..startup,"ax"
++	.global	startup
++startup:
++	mov.l	er0, er4
++	mov.l	er0, sp
++	mov.l	#__sbss, er0
++	mov.l	#__ebss, er1
++	sub.l	er0, er1
++	shlr	er1
++	shlr	er1
++	sub.l	er2, er2
++1:
++	mov.l	er2, @er0
++	adds	#4, er0
++	dec.l	#1, er1
++	bne	1b
++	jsr	@decompress_kernel
++	mov.l	er4, er0
++	jmp	@0x400000
 +
-+#define DIVCR (unsigned char *)0xfee01b
-+#define DEVNAME "h83069-cpg"
++	.align	9
++fake_headers_as_bzImage:
++	.word	0
++	.ascii	"HdrS"		; header signature
++	.word	0x0202		; header version number (>= 0x0105)
++				; or else old loadlin-1.5 will fail)
++	.word	0		; default_switch
++	.word	0		; SETUPSEG
++	.word	0x1000
++	.word	0		; pointing to kernel version string
++	.byte	0		; = 0, old one (LILO, Loadlin,
++				; 0xTV: T=0 for LILO
++				;       V = version
++	.byte	1		; Load flags bzImage=1
++	.word	0x8000		; size to move, when setup is not
++	.long	0x100000	; 0x100000 = default for big kernel
++	.long	0		; address of loaded ramdisk image
++	.long	0		; its size in bytes
 +
-+static int clk_probe(struct platform_device *pdev)
-+{
-+	struct clk *clk;
-+	int *hz = dev_get_platdata(&pdev->dev);
-+
-+	clk = clk_register_fixed_rate(&pdev->dev, "master_clk", NULL,
-+				      CLK_IS_ROOT, *hz);
-+	if (IS_ERR(clk)) {
-+		dev_err(&pdev->dev, "failed to register clock");
-+		return PTR_ERR(clk);
-+	}
-+	clk_register_clkdev(clk, "master_clk", DEVNAME ".%d", 0);
-+
-+	clk = clk_register_divider(&pdev->dev, "core_clk", "master_clk",
-+				   CLK_SET_RATE_GATE, DIVCR, 0, 2,
-+				   CLK_DIVIDER_POWER_OF_TWO, &clklock);
-+	if (IS_ERR(clk)) {
-+		dev_err(&pdev->dev, "failed to register clock");
-+		return PTR_ERR(clk);
-+	}
-+	clk_register_clkdev(clk, "core_clk", DEVNAME ".%d", 0);
-+
-+	clk_add_alias("peripheral_clk", NULL, "core_clk", &pdev->dev);
-+	return 0;
-+}
-+
-+static struct platform_driver cpg_driver = {
-+	.driver = {
-+		.name = DEVNAME,
-+	},
-+	.probe = clk_probe,
-+};
-+
-+early_platform_init(DEVNAME, &cpg_driver);
-+
-+static struct platform_device clk_device = {
-+	.name		= DEVNAME,
-+	.id		= 0,
-+};
-+
-+static struct platform_device *devices[] __initdata = {
-+	&clk_device,
-+};
-+
-+int __init h8300_clk_init(int hz)
-+{
-+	static int master_hz;
-+	master_hz = hz;
-+	clk_device.dev.platform_data = &master_hz;
-+	early_platform_add_devices(devices,
-+				   ARRAY_SIZE(devices));
-+	early_platform_driver_register_all(DEVNAME);
-+	early_platform_driver_probe(DEVNAME, 1, 0);
-+	return 0;
-+}
-diff --git a/drivers/clk/h8300/clk-h8s2678.c b/drivers/clk/h8300/clk-h8s2678.c
++	.end
+diff --git a/arch/h8300/boot/compressed/misc.c b/arch/h8300/boot/compressed/misc.c
 new file mode 100644
-index 0000000..98cb28f
+index 0000000..7042741
 --- /dev/null
-+++ b/drivers/clk/h8300/clk-h8s2678.c
-@@ -0,0 +1,165 @@
++++ b/arch/h8300/boot/compressed/misc.c
+@@ -0,0 +1,74 @@
 +/*
-+ * H8S2678 clock driver
++ * arch/h8300/boot/compressed/misc.c
 + *
-+ * Copyright 2015 Yoshinori Sato <ysato@users.sourceforge.jp>
++ * This is a collection of several routines from gzip-1.0.3
++ * adapted for Linux.
++ *
++ * malloc by Hannu Savolainen 1993 and Matthias Urlichs 1994
++ *
++ * Adapted for h8300 by Yoshinori Sato 2006
 + */
 +
-+#include <linux/clk.h>
-+#include <linux/clkdev.h>
-+#include <linux/clk-provider.h>
-+#include <linux/err.h>
-+#include <linux/device.h>
++#include <asm/uaccess.h>
++
++/*
++ * gzip declarations
++ */
++
++#define OF(args)  args
++#define STATIC static
++
++#undef memset
++#undef memcpy
++#define memzero(s, n)     memset((s), (0), (n))
++
++extern int _end;
++static unsigned long free_mem_ptr;
++static unsigned long free_mem_end_ptr;
++
++extern char input_data[];
++extern int input_len;
++static unsigned char *output;
++
++#define HEAP_SIZE             0x10000
++
++#include "../../../../lib/decompress_inflate.c"
++
++void *memset(void *s, int c, size_t n)
++{
++	int i;
++	char *ss = (char *)s;
++
++	for (i = 0; i < n; i++)
++		ss[i] = c;
++	return s;
++}
++
++void *memcpy(void *dest, const void *src, size_t n)
++{
++	int i;
++	char *d = (char *)dest, *s = (char *)src;
++
++	for (i = 0; i < n; i++)
++		d[i] = s[i];
++	return dest;
++}
++
++static void error(char *x)
++{
++
++	while (1)
++		;	/* Halt */
++}
++
++#define STACK_SIZE (4096)
++long user_stack[STACK_SIZE];
++long *stack_start = &user_stack[STACK_SIZE];
++
++void decompress_kernel(void)
++{
++	free_mem_ptr = (unsigned long)&_end;
++	free_mem_end_ptr = free_mem_ptr + HEAP_SIZE;
++
++	decompress(input_data, input_len, NULL, NULL, output, NULL, error);
++}
+diff --git a/arch/h8300/boot/compressed/vmlinux.lds b/arch/h8300/boot/compressed/vmlinux.lds
+new file mode 100644
+index 0000000..a0a3a0e
+--- /dev/null
++++ b/arch/h8300/boot/compressed/vmlinux.lds
+@@ -0,0 +1,32 @@
++SECTIONS
++{
++        .text :
++        {
++        __stext = . ;
++	__text = .;
++	       *(.text..startup)
++	       *(.text)
++        __etext = . ;
++        }
++
++	.rodata :
++	{
++		*(.rodata)
++	}
++        .data :
++
++        {
++        __sdata = . ;
++        ___data_start = . ;
++                *(.data.*)
++	}
++        .bss :
++        {
++        . = ALIGN(0x4) ;
++        __sbss = . ;
++                *(.bss*)
++        . = ALIGN(0x4) ;
++        __ebss = . ;
++        __end = . ;
++        }
++}
+diff --git a/arch/h8300/boot/compressed/vmlinux.scr b/arch/h8300/boot/compressed/vmlinux.scr
+new file mode 100644
+index 0000000..a0849036
+--- /dev/null
++++ b/arch/h8300/boot/compressed/vmlinux.scr
+@@ -0,0 +1,9 @@
++SECTIONS
++{
++  .data : {
++	input_len = .;
++	LONG(input_data_end - input_data) input_data = .;
++	*(.data)
++	input_data_end = .;
++	}
++}
+diff --git a/arch/h8300/kernel/head_ram.S b/arch/h8300/kernel/head_ram.S
+new file mode 100644
+index 0000000..f64b3d9
+--- /dev/null
++++ b/arch/h8300/kernel/head_ram.S
+@@ -0,0 +1,60 @@
++
++#include <linux/sys.h>
++#include <linux/init.h>
++#include <asm/unistd.h>
++#include <asm/setup.h>
++#include <asm/segment.h>
++#include <asm/linkage.h>
++#include <asm/asm-offsets.h>
++#include <asm/thread_info.h>
++#include <asm/errno.h>
++
++#if defined(CONFIG_CPU_H8300H)
++	.h8300h
++#define SYSCR 0xfee012
++#define IRAMTOP 0xffff20
++#endif
++#if defined(CONFIG_CPU_H8S)
++	.h8300s
++#define INTCR 0xffff31
++#define IRAMTOP 0xffc000
++#endif
++
++	__HEAD
++	.global	_start
++_start:
++	mov.l	#IRAMTOP,sp
++	/* .bss clear */
++	mov.l	#_sbss,er5
++	mov.l	#_ebss,er4
++	sub.l	er5,er4
++	shlr	er4
++	shlr	er4
++	sub.l	er1,er1
++1:
++	mov.l	er1,@er5
++	adds	#4,er5
++	dec.l	#1,er4
++	bne	1b
++	jsr	@parse_bootparam
++
++	/* linux kernel start */
++#if defined(CONFIG_CPU_H8300H)
++	ldc	#0xd0,ccr	/* running kernel */
++	mov.l	#SYSCR,er0
++	bclr	#3,@er0
++#endif
++#if defined(CONFIG_CPU_H8S)
++	ldc	#0x07,exr
++	bclr	#4,@INTCR:8
++	bset	#5,@INTCR:8	/* Interrupt mode 2 */
++	ldc	#0x90,ccr	/* running kernel */
++#endif
++	mov.l	#init_thread_union,sp
++	add.l	#0x2000,sp
++	jsr	@start_kernel
++
++1:
++	bra	1b
++
++	.end
+diff --git a/arch/h8300/kernel/head_rom.S b/arch/h8300/kernel/head_rom.S
+new file mode 100644
+index 0000000..60ca8fa
+--- /dev/null
++++ b/arch/h8300/kernel/head_rom.S
+@@ -0,0 +1,108 @@
++#include <linux/init.h>
++#include <asm/thread_info.h>
++
++#if defined(CONFIG_CPU_H8300H)
++	.h8300h
++#define SYSCR 0xfee012
++#define IRAMTOP 0xffff20
++#define NR_INT 64
++#endif
++#if defined(CONFIG_CPU_H8S)
++	.h8300s
++#define INTCR 0xffff31
++#define IRAMTOP 0xffc000
++#define NR_INT 128
++#endif
++
++	__HEAD
++	.global	_start
++_start:
++	mov.l	#IRAMTOP,sp
++#if !defined(CONFIG_H8300H_SIM) && \
++    !defined(CONFIG_H8S_SIM)
++	jsr	@lowlevel_init
++
++	/* copy .data */
++	mov.l	#_begin_data,er5
++	mov.l	#_sdata,er6
++	mov.l	#_edata,er4
++	sub.l	er6,er4
++	shlr.l	er4
++	shlr.l	er4
++1:
++	mov.l	@er5+,er0
++	mov.l	er0,@er6
++	adds	#4,er6
++	dec.l	#1,er4
++	bne	1b
++	/* .bss clear */
++	mov.l	#_sbss,er5
++	mov.l	#_ebss,er4
++	sub.l	er5,er4
++	shlr	er4
++	shlr	er4
++	sub.l	er0,er0
++1:
++	mov.l	er0,@er5
++	adds	#4,er5
++	dec.l	#1,er4
++	bne	1b
++#else
++	/* get cmdline from gdb */
++	jsr	@0xcc
++	;; er0 - argc
++	;; er1 - argv
++	mov.l	#command_line,er3
++	adds	#4,er1
++	dec.l	#1,er0
++	beq	4f
++1:
++	mov.l	@er1+,er2
++2:
++	mov.b	@er2+,r4l
++	beq	3f
++	mov.b	r4l,@er3
++	adds	#1,er3
++	bra	2b
++3:
++	mov.b	#' ',r4l
++	mov.b	r4l,@er3
++	adds	#1,er3
++	dec.l	#1,er0
++	bne	1b
++	subs	#1,er3
++	mov.b	#0,r4l
++	mov.b	r4l,@er3
++4:
++#endif
++	/* linux kernel start */
++#if defined(CONFIG_CPU_H8300H)
++	ldc	#0xd0,ccr	/* running kernel */
++	mov.l	#SYSCR,er0
++	bclr	#3,@er0
++#endif
++#if defined(CONFIG_CPU_H8S)
++	ldc	#0x07,exr
++	bclr	#4,@INTCR:8
++	bset	#5,@INTCR:8	/* Interrupt mode 2 */
++	ldc	#0x90,ccr	/* running kernel */
++#endif
++	mov.l	#init_thread_union,sp
++	add.l	#0x2000,sp
++	jsr	@start_kernel
++
++1:
++	bra	1b
++
++#if defined(CONFIG_ROMKERNEL)
++	/* interrupt vector */
++	.section .vectors,"ax"
++	.long	_start
++	.long	_start
++vector	=	2
++	.rept	NR_INT - 2
++	.long	_interrupt_redirect_table+vector*4
++vector	=	vector + 1
++	.endr
++#endif
++	.end
+diff --git a/arch/h8300/kernel/setup.c b/arch/h8300/kernel/setup.c
+new file mode 100644
+index 0000000..443f743
+--- /dev/null
++++ b/arch/h8300/kernel/setup.c
+@@ -0,0 +1,172 @@
++/*
++ *  linux/arch/h8300/kernel/setup.c
++ *
++ *  Copyright (C) 2001-2014 Yoshinori Sato <ysato@users.sourceforge.jp>
++ */
++
++/*
++ * This file handles the architecture-dependent parts of system setup
++ */
++
++#include <linux/kernel.h>
++#include <linux/sched.h>
++#include <linux/delay.h>
++#include <linux/interrupt.h>
++#include <linux/mm.h>
++#include <linux/fs.h>
++#include <linux/console.h>
++#include <linux/errno.h>
++#include <linux/string.h>
++#include <linux/bootmem.h>
++#include <linux/seq_file.h>
++#include <linux/init.h>
 +#include <linux/platform_device.h>
 +
-+static DEFINE_SPINLOCK(clklock);
++#include <asm/setup.h>
++#include <asm/irq.h>
++#include <asm/pgtable.h>
++#include <asm/sections.h>
++#include <asm/bootparams.h>
 +
-+#define SCKCR 0xffff3b
-+#define PLLCR 0xffff45
-+#define DEVNAME "h8s2679-cpg"
-+#define MAX_FREQ 33333333
-+#define MIN_FREQ  8000000
++#if defined(CONFIG_CPU_H8300H)
++#define CPU "H8/300H"
++#elif defined(CONFIG_CPU_H8S)
++#define CPU "H8S"
++#else
++#define CPU "Unknown"
++#endif
 +
-+static unsigned long pll_recalc_rate(struct clk_hw *hw,
-+		unsigned long parent_rate)
++struct bootparams bootparams;
++unsigned long rom_length;
++unsigned long memory_start;
++unsigned long memory_end;
++
++char __initdata command_line[COMMAND_LINE_SIZE];
++
++extern unsigned long _ramend;
++void sim_console_register(void);
++int h8300_clk_init(unsigned long hz);
++
++void __init __attribute__((weak)) early_device_init(void)
 +{
-+	int mul = 1 << (ctrl_inb(PLLCR) & 3);
-+
-+	return parent_rate * mul;
 +}
 +
-+static long pll_round_rate(struct clk_hw *hw, unsigned long rate,
-+				unsigned long *prate)
++void __init setup_arch(char **cmdline_p)
 +{
-+	int i, m = -1;
-+	long offset[3];
++	int bootmap_size;
 +
-+	if (rate > MAX_FREQ)
-+		rate = MAX_FREQ;
-+	if (rate < MIN_FREQ)
-+		rate = MIN_FREQ;
++#if defined(CONFIG_ROMKERNEL)
++	bootparams.ram_end = CONFIG_RAMBASE + CONFIG_RAMSIZE;
++	bootparams.clock_freq = CONFIG_CPU_CLOCK;
++#endif
 +
-+	for (i = 0; i < 3; i++)
-+		offset[i] = abs(rate - (*prate * (1 << i)));
-+	for (i = 0; i < 3; i++)
-+		if (m < 0)
-+			m = i;
-+		else
-+			m = (offset[i] < offset[m])?i:m;
-+	
-+	return *prate * (1 << m);
++	memory_start = (unsigned long) &_ramend;
++
++	memory_start = PAGE_ALIGN(memory_start);
++	memory_end = bootparams.ram_end;
++
++	init_mm.start_code = (unsigned long) _stext;
++	init_mm.end_code = (unsigned long) _etext;
++	init_mm.end_data = (unsigned long) _edata;
++	init_mm.brk = (unsigned long) 0;
++
++	pr_notice("\r\n\nuClinux " CPU "\n");
++	pr_notice("Flat model support (C) 1998,1999 Kenneth Albanowski, D. Jeff Dionne\n");
++
++	strcpy(boot_command_line, command_line);
++	*cmdline_p = command_line;
++
++	parse_early_param();
++
++	/*
++	 * give all the memory to the bootmap allocator,  tell it to put the
++	 * boot mem_map at the start of memory
++	 */
++	bootmap_size = init_bootmem_node(
++			NODE_DATA(0),
++			memory_start >> PAGE_SHIFT, /* map goes here */
++			PAGE_OFFSET >> PAGE_SHIFT,	/* 0 on coldfire */
++			memory_end >> PAGE_SHIFT);
++	/*
++	 * free the usable memory,  we have to make sure we do not free
++	 * the bootmem bitmap so we then reserve it after freeing it :-)
++	 */
++	free_bootmem(memory_start, memory_end - memory_start);
++	reserve_bootmem(memory_start, bootmap_size, BOOTMEM_DEFAULT);
++#if defined(CONFIG_H8300H_SIM) || defined(CONFIG_H8S_SIM)
++	sim_console_register();
++#endif
++
++	early_device_init();
++	early_platform_driver_probe("earlyprintk", 1, 0);
++	/*
++	 * get kmalloc into gear
++	 */
++	paging_init();
 +}
 +
-+static int pll_set_rate(struct clk_hw *hw, unsigned long rate,
-+			unsigned long parent_rate)
-+{
-+	int pll;
-+	unsigned char val;
-+	unsigned long flags;
++/*
++ *	Get CPU information for use by the procfs.
++ */
 +
-+	pll = ((rate / parent_rate) / 2) & 0x03;
-+	spin_lock_irqsave(&clklock, flags);
-+	val = ctrl_inb(SCKCR);
-+	val |= 0x08;
-+	ctrl_outb(val, SCKCR);
-+	val = ctrl_inb(PLLCR);
-+	val &= ~0x03;
-+	val |= pll;
-+	ctrl_outb(val, PLLCR);
-+	spin_unlock_irqrestore(&clklock, flags);
++static int show_cpuinfo(struct seq_file *m, void *v)
++{
++	char *cpu;
++	u_long clockfreq;
++
++	cpu = CPU;
++	clockfreq = bootparams.clock_freq;
++
++	seq_printf(m,  "CPU:\t\t%s\n"
++		   "Clock:\t\t%lu.%1luMHz\n"
++		   "BogoMips:\t%lu.%02lu\n"
++		   "Calibration:\t%lu loops\n",
++		   cpu,
++		   clockfreq/1000, clockfreq%1000,
++		   (loops_per_jiffy*HZ)/500000,
++		   ((loops_per_jiffy*HZ)/5000)%100,
++		   (loops_per_jiffy*HZ));
++
 +	return 0;
 +}
 +
-+const static struct clk_ops pll_ops = {
-+	.recalc_rate = pll_recalc_rate,
-+	.round_rate = pll_round_rate,
-+	.set_rate = pll_set_rate,
++static void *c_start(struct seq_file *m, loff_t *pos)
++{
++	return *pos < num_possible_cpus() ?
++		((void *) 0x12345678) : NULL;
++}
++
++static void *c_next(struct seq_file *m, void *v, loff_t *pos)
++{
++	++*pos;
++	return c_start(m, pos);
++}
++
++static void c_stop(struct seq_file *m, void *v)
++{
++}
++
++const struct seq_operations cpuinfo_op = {
++	.start	= c_start,
++	.next	= c_next,
++	.stop	= c_stop,
++	.show	= show_cpuinfo,
 +};
 +
-+static struct clk *pll_clk_register(struct device *dev, const char *name,
-+				const char *parent)
++void __init parse_bootparam(struct bootparams *bp)
 +{
-+	struct clk_hw *hw;
-+	struct clk *clk;
-+	struct clk_init_data init;
-+
-+	hw = kzalloc(sizeof(struct clk_hw), GFP_KERNEL);
-+	if (!hw) {
-+		dev_err(dev, "failed to allocate hw\n");
-+		return ERR_PTR(-ENOMEM);
-+	}
-+	init.name = name;
-+	init.ops = &pll_ops;
-+	init.flags = CLK_IS_BASIC;
-+	init.parent_names = &parent;
-+	init.num_parents = 1;
-+	hw->init = &init;
-+
-+	clk = clk_register(dev, hw);
-+	if (IS_ERR(clk))
-+		kfree(hw);
-+
-+	return clk;
-+}
-+	
-+static int clk_probe(struct platform_device *pdev)
-+{
-+	struct clk *clk;
-+	int *hz = dev_get_platdata(&pdev->dev);
-+
-+	clk = clk_register_fixed_rate(&pdev->dev, "master_clk", NULL,
-+				      CLK_IS_ROOT, *hz);
-+	if (IS_ERR(clk)) {
-+		dev_err(&pdev->dev, "failed to register clock");
-+		return PTR_ERR(clk);
-+	}
-+	clk_register_clkdev(clk, "master_clk", DEVNAME ".%d", 0);
-+
-+	clk = pll_clk_register(&pdev->dev, "pll_clk", "master_clk");
-+	if (IS_ERR(clk)) {
-+		dev_err(&pdev->dev, "failed to register clock");
-+		return PTR_ERR(clk);
-+	}
-+	clk_register_clkdev(clk, "pll_clk", DEVNAME ".%d", 0);
-+	
-+	clk = clk_register_divider(&pdev->dev, "core_clk", "pll_clk",
-+				   CLK_SET_RATE_GATE, (unsigned char *)SCKCR,
-+				   0, 3, CLK_DIVIDER_POWER_OF_TWO, &clklock);
-+	if (IS_ERR(clk)) {
-+		dev_err(&pdev->dev, "failed to register clock");
-+		return PTR_ERR(clk);
-+	}
-+	clk_register_clkdev(clk, "core_clk", DEVNAME ".%d", 0);
-+
-+	clk_add_alias("peripheral_clk", NULL, "core_clk", &pdev->dev);
-+	return 0;
++	memcpy(&bootparams, bp, bp->size);
++	strncpy(command_line, bootparams.command_line, sizeof(command_line));
 +}
 +
-+static struct platform_driver cpg_driver = {
-+	.driver = {
-+		.name = DEVNAME,
-+	},
-+	.probe = clk_probe,
-+};
-+
-+early_platform_init(DEVNAME, &cpg_driver);
-+
-+static struct platform_device clk_device = {
-+	.name		= DEVNAME,
-+	.id		= 0,
-+};
-+
-+static struct platform_device *devices[] __initdata = {
-+	&clk_device,
-+};
-+
-+int __init h8300_clk_init(int hz)
++static void __init timer_setup(void)
 +{
-+	static int master_hz;
-+	master_hz = hz;
-+	clk_device.dev.platform_data = &master_hz;
-+	early_platform_add_devices(devices,
-+				   ARRAY_SIZE(devices));
-+	early_platform_driver_register_all(DEVNAME);
-+	early_platform_driver_probe(DEVNAME, 1, 0);
-+	return 0;
-+}
-diff --git a/include/linux/clk-provider.h b/include/linux/clk-provider.h
-index d936409..d4a41b5 100644
---- a/include/linux/clk-provider.h
-+++ b/include/linux/clk-provider.h
-@@ -635,6 +635,18 @@ static inline void clk_writel(u32 val, u32 __iomem *reg)
- 	iowrite32be(val, reg);
- }
- 
-+#elif IS_ENABLED(CONFIG_H8300)
-+
-+static inline u32 clk_readl(u32 __iomem *reg)
-+{
-+	return readb(reg);
++	early_platform_driver_register_all("earlytimer");
++	early_platform_driver_probe("earlytimer", 1, 0);
 +}
 +
-+static inline void clk_writel(u32 val, u32 __iomem *reg)
++void __init time_init(void)
 +{
-+	writeb(val, reg);
++	h8300_clk_init(bootparams.clock_freq);
++	late_time_init = timer_setup;
 +}
-+
- #else	/* platform dependent I/O accessors */
- 
- static inline u32 clk_readl(u32 __iomem *reg)
 -- 
 2.1.3
