@@ -1,35 +1,170 @@
-From: Andrew Morton <akpm@linux-foundation.org>
-Subject: Re: [PATCH v10 15/17] kernel: add support for .init_array.*
- constructors
-Date: Thu, 29 Jan 2015 15:13:01 -0800
-Message-ID: <20150129151301.006abdbcf9e0dd136dd6ed2f@linux-foundation.org>
-References: <1404905415-9046-1-git-send-email-a.ryabinin@samsung.com>
-	<1422544321-24232-1-git-send-email-a.ryabinin@samsung.com>
-	<1422544321-24232-16-git-send-email-a.ryabinin@samsung.com>
+From: Christian Borntraeger <borntraeger@de.ibm.com>
+Subject: Re: [PATCH v2 0/5] Reenable might_sleep() checks for might_fault()
+Date: Fri, 30 Jan 2015 16:52:15 +0100
+Message-ID: <54CBA8AF.2010009@de.ibm.com>
+References: <1418221414-60110-1-git-send-email-dahi@linux.vnet.ibm.com> <20150112151911.4a51f09d@thinkpad-w530>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+Content-Type: text/plain; charset=windows-1252
 Content-Transfer-Encoding: 7bit
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <1422544321-24232-16-git-send-email-a.ryabinin@samsung.com>
-Sender: owner-linux-mm@kvack.org
-To: Andrey Ryabinin <a.ryabinin@samsung.com>
-Cc: linux-kernel@vger.kernel.org, Dmitry Vyukov <dvyukov@google.com>, Konstantin Serebryany <kcc@google.com>, Dmitry Chernenkov <dmitryc@google.com>, Andrey Konovalov <adech.fo@gmail.com>, Yuri Gribov <tetra2005@gmail.com>, Konstantin Khlebnikov <koct9i@gmail.com>, Sasha Levin <sasha.levin@oracle.com>, Christoph Lameter <cl@linux.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Dave Hansen <dave.hansen@intel.com>, Andi Kleen <andi@firstfloor.org>, x86@kernel.org, linux-mm@kvack.org, Arnd Bergmann <arnd@arndb.de>, "open list:GENERIC
- INCLUDE/A..." <linux-arch@vger.kernel.org>
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from e06smtp16.uk.ibm.com ([195.75.94.112]:40625 "EHLO
+	e06smtp16.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753532AbbA3PwW (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 30 Jan 2015 10:52:22 -0500
+Received: from /spool/local
+	by e06smtp16.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <borntraeger@de.ibm.com>;
+	Fri, 30 Jan 2015 15:52:20 -0000
+In-Reply-To: <20150112151911.4a51f09d@thinkpad-w530>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: David Hildenbrand <dahi@linux.vnet.ibm.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, tglx@linutronix.de, peterz@infradead.org
+Cc: benh@kernel.crashing.org, paulus@samba.org, akpm@linux-foundation.org, heiko.carstens@de.ibm.com, schwidefsky@de.ibm.com, mst@redhat.com, David.Laight@ACULAB.COM, hughd@google.com, hocko@suse.cz
 
-On Thu, 29 Jan 2015 18:11:59 +0300 Andrey Ryabinin <a.ryabinin@samsung.com> wrote:
+Am 12.01.2015 um 15:19 schrieb David Hildenbrand:
+> Thomas, Peter,
+> 
+> anything that speaks against putting the pagefault_disable counter into
+> thread_info (my series) instead of task_struct (rt tree)?
+> 
+> IOW, what would be the right place for it?
+> 
+> Would be good to know for me how to proceed with this series.
 
-> KASan uses constructors for initializing redzones for global
-> variables. Actually KASan doesn't need priorities for constructors,
-> so they were removed from GCC 5.0, but GCC 4.9.2 still generates
-> constructors with priorities.
+Given that I just had to debug another piece of code were the might sleep
+check would have shown the problem, I want some progress here. From the
+non-rt perspective thread_info looks as good as task_struct, so for
+whatever its worth
 
-I don't understand this changelog either.  What's wrong with priorities
-and what is the patch doing about it?  More details, please.
+Acked-by: Christian Borntraeger <borntraeger@de.ibm.com>
 
+to the approach that has a smaller patch (to improve upstreaming and review).
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+If my assumption is true, rt should be able to cope with both ways and the
+adoption should be small in case of thread_info.
+Would be good if Thomas/Ingo can ack or nack, though
+
+Christian
+
+> 
+> Thanks!
+> 
+> David
+> 
+>> v1 -> v2:
+>> - moved pagefault_count to the end of thread_info for all archs that would have
+>>   required manually calculating asm-offsets - to keep changes minimal.
+>> - remove unlikely() from "mm, uaccess: trigger might_sleep() in" and keep
+>>   changes minimal (in_atomic() -> pagefault_disabled())
+>>
+>> ----
+>>
+>> I recently discovered that might_fault() doesn't call might_sleep() anymore.
+>> Therefore bugs like:
+>> 	spin_lock(&lock);
+>> 	rc = copy_to_user(...);
+>> 	spin_unlock(&lock);
+>> would not be detected with CONFIG_DEBUG_ATOMIC_SLEEP. The code was changed to
+>> disable false positives for code like:
+>> 	pagefault_disable();
+>> 	rc = copy_to_user(...);
+>> 	pagefault_enable();
+>>
+>> Until now, pagefault_disable() and pagefault_enable() simply modified the
+>> preempt count, therefore telling the pagefault handler that the context is
+>> atomic and sleeping is disallowed.
+>>
+>> In order to reenable might_sleep() checks for the correct path, we need a way to
+>> detect whether we run in a pagefault_disable() context.
+>>
+>> This series therefore introduces a separate pagefault_count and uses it to count
+>> the levels of pagefault_disable() per thread. might_sleep() checks are
+>> reactivated for the !pagefault_disable() path.
+>>
+>> So this should now work:
+>> 	spin_lock(&lock); /* also if left away */
+>> 	pagefault_disable()
+>> 	rc = copy_to_user(...);
+>> 	pagefault_enable();
+>> 	spin_unlock(&lock);
+>> And this should report a warning again:
+>> 	spin_lock(&lock);
+>> 	rc = copy_to_user(...);
+>> 	spin_unlock(&lock);
+>>
+>> Please note that this series will not completely split the handling of
+>> pagefault_disable() and the preempt count. This will be done in another series.
+>> Purpose of this series is to reenable might_sleep() checks for might_fault(),
+>> avoiding to produce false positives.
+>>
+>> Cross compiled on powerpc, arm, sparc, sparc64, arm64, x86_64, i386, mips,
+>> alpha, ia64, xtensa, m68k, microblaze.
+>>
+>> Tested on s390.
+>>
+>>
+>> David Hildenbrand (5):
+>>   uaccess: add pagefault_count to thread_info
+>>   uaccess: count pagefault_disable() levels in pagefault_count
+>>   mm, uaccess: trigger might_sleep() in might_fault() when pagefaults
+>>     are disabled
+>>   uaccess: clarify that uaccess may only sleep if pagefaults are not
+>>     disabled
+>>   uaccess: CONFIG_DEBUG_PAGEFAULT_COUNT to debug pagefault_count
+>>
+>>  arch/alpha/include/asm/thread_info.h      |  1 +
+>>  arch/arc/include/asm/thread_info.h        |  1 +
+>>  arch/arm/include/asm/thread_info.h        |  1 +
+>>  arch/arm64/include/asm/thread_info.h      |  1 +
+>>  arch/avr32/include/asm/thread_info.h      |  1 +
+>>  arch/avr32/include/asm/uaccess.h          | 12 +++++---
+>>  arch/blackfin/include/asm/thread_info.h   |  1 +
+>>  arch/c6x/include/asm/thread_info.h        |  1 +
+>>  arch/cris/include/asm/thread_info.h       |  1 +
+>>  arch/frv/include/asm/thread_info.h        |  1 +
+>>  arch/hexagon/include/asm/thread_info.h    |  1 +
+>>  arch/hexagon/include/asm/uaccess.h        |  3 +-
+>>  arch/ia64/include/asm/thread_info.h       |  1 +
+>>  arch/m32r/include/asm/thread_info.h       |  1 +
+>>  arch/m32r/include/asm/uaccess.h           | 30 ++++++++++++------
+>>  arch/m68k/include/asm/thread_info.h       |  1 +
+>>  arch/metag/include/asm/thread_info.h      |  1 +
+>>  arch/microblaze/include/asm/thread_info.h |  1 +
+>>  arch/microblaze/include/asm/uaccess.h     |  6 ++--
+>>  arch/mips/include/asm/thread_info.h       |  1 +
+>>  arch/mips/include/asm/uaccess.h           | 45 ++++++++++++++++++---------
+>>  arch/mn10300/include/asm/thread_info.h    |  1 +
+>>  arch/openrisc/include/asm/thread_info.h   |  1 +
+>>  arch/parisc/include/asm/thread_info.h     |  1 +
+>>  arch/powerpc/include/asm/thread_info.h    |  1 +
+>>  arch/s390/include/asm/thread_info.h       |  1 +
+>>  arch/s390/include/asm/uaccess.h           | 15 ++++++---
+>>  arch/score/include/asm/thread_info.h      |  1 +
+>>  arch/score/include/asm/uaccess.h          | 15 ++++++---
+>>  arch/sh/include/asm/thread_info.h         |  1 +
+>>  arch/sparc/include/asm/thread_info_32.h   |  1 +
+>>  arch/sparc/include/asm/thread_info_64.h   |  1 +
+>>  arch/tile/include/asm/thread_info.h       |  1 +
+>>  arch/tile/include/asm/uaccess.h           | 21 ++++++++-----
+>>  arch/um/include/asm/thread_info.h         |  1 +
+>>  arch/unicore32/include/asm/thread_info.h  |  1 +
+>>  arch/x86/include/asm/thread_info.h        |  1 +
+>>  arch/x86/include/asm/uaccess.h            | 15 ++++++---
+>>  arch/x86/include/asm/uaccess_32.h         |  6 ++--
+>>  arch/x86/lib/usercopy_32.c                |  6 ++--
+>>  arch/xtensa/include/asm/thread_info.h     |  1 +
+>>  include/linux/kernel.h                    |  3 +-
+>>  include/linux/uaccess.h                   | 51 ++++++++++++++++++++++++++-----
+>>  lib/Kconfig.debug                         |  9 ++++++
+>>  lib/strnlen_user.c                        |  6 ++--
+>>  mm/maccess.c                              | 11 +++++++
+>>  mm/memory.c                               | 18 ++++-------
+>>  47 files changed, 222 insertions(+), 80 deletions(-)
+>>
+> 
+> --
+> To unsubscribe from this list: send the line "unsubscribe linux-kernel" in
+> the body of a message to majordomo@vger.kernel.org
+> More majordomo info at  http://vger.kernel.org/majordomo-info.html
+> Please read the FAQ at  http://www.tux.org/lkml/
+> 
