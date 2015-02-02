@@ -1,91 +1,48 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [PATCH] Add ARCH_MIGHT_HAVE_VGA_CONSOLE
-Date: Mon, 2 Feb 2015 09:10:06 +0100
-Message-ID: <CAMuHMdV8hyDWwz8V5rvrthcV8NyNk4J+9Opmxt3opqi5rtQoJw@mail.gmail.com>
-References: <877fw093oa.wl-ysato@users.sourceforge.jp>
+From: Ricardo Ribalda Delgado <ricardo.ribalda@gmail.com>
+Subject: Can this be a invalid memory access? (was: Re: [PATCH] spi/xilinx:
+ Cast ioread32/iowrite32 function pointers)
+Date: Mon, 2 Feb 2015 13:49:20 +0100
+Message-ID: <CAPybu_16LBPDjuhL-Vw-rqFK-13+gLHrRc-3KuYwUTi0XyDX7Q@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-oi0-f46.google.com ([209.85.218.46]:32938 "EHLO
-	mail-oi0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932677AbbBBIKH (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 2 Feb 2015 03:10:07 -0500
-In-Reply-To: <877fw093oa.wl-ysato@users.sourceforge.jp>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Yoshinori Sato <ysato@users.sourceforge.jp>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, LKML <linux-kernel@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-Hi Sato-san,
+Hello
+
+Regarding ioread8 et al.
+
+On include/asm-generic/io.h is defined as:
+extern unsigned int ioread8(void __iomem *);
+
+On include/asm-generic/io.h:
+static inline u8 ioread8(const volatile void __iomem *addr)
+
+Please ignore the qualifiers right now. The first function returns an
+unsigned integer, the second a u8.
+
+Through #ifdefs, different arches uses the first or the second definitions.
+
+If we consider this code:
+
+u8 varA;
+u8 varB;
+u8 varC;
+void * pvar=varB;
+*pvar = ioread8(valid_memory);
+
+Depending if ioread8 returns a u8 or a unsigned int, aren't we also
+accessing varC?
+
+Could not this be a problem?
+
+If I decide to send a patch and fix it, is there a clever script that
+I can run on my x86 computer to test if the patch works on all arches?
 
 
-On Mon, Feb 2, 2015 at 8:24 AM, Yoshinori Sato
-<ysato@users.sourceforge.jp> wrote:
-> The dependence of VGA_CONSOLE is complicated.
-> We need clean up.
+Thanks
 
-Thanks!
-
-> Signed-off-by: Yoshinori Sato <ysato@users.sourceforge.jp>
->
-> ---
->  arch/alpha/Kconfig            | 1 +
->  arch/arc/Kconfig              | 1 +
->  arch/arm/Kconfig              | 1 +
->  arch/c6x/Kconfig              | 1 +
->  arch/hexagon/Kconfig          | 1 +
->  arch/ia64/Kconfig             | 1 +
->  arch/m32r/Kconfig             | 1 +
->  arch/metag/Kconfig            | 1 +
->  arch/microblaze/Kconfig       | 1 +
->  arch/mips/Kconfig             | 1 +
->  arch/nios2/Kconfig            | 1 +
->  arch/openrisc/Kconfig         | 1 +
->  arch/powerpc/Kconfig          | 1 +
->  arch/s390/Kconfig             | 1 +
->  arch/score/Kconfig            | 1 +
->  arch/tile/Kconfig             | 1 +
->  arch/um/Kconfig.common        | 1 +
->  arch/unicore32/Kconfig        | 1 +
->  arch/x86/Kconfig              | 1 +
->  arch/xtensa/Kconfig           | 1 +
-
-While I know you just kept the existing logic from
-drivers/video/console/kconfig,
-I doubt all of the architectures listed above do support VGA.
-I guest most of them were just too lazy to update the dependency list.
-
-I think only alpha, arm, ia64, mips, powerpc, and x86 can have VGA.
-
-> --- a/drivers/video/console/Kconfig
-> +++ b/drivers/video/console/rconfig
-> @@ -2,14 +2,14 @@
->  # Video configuration
->  #
->
-> +config ARCH_MIGHT_HAVE_VGA_CONSOLE
-> +        bool
-> +
->  menu "Console display driver support"
->
->  config VGA_CONSOLE
->         bool "VGA text console" if EXPERT || !X86
-> -       depends on !4xx && !8xx && !SPARC && !M68K && !PARISC && !FRV && \
-> -               !SUPERH && !BLACKFIN && !AVR32 && !MN10300 && !CRIS && \
-> -               (!ARM || ARCH_FOOTBRIDGE || ARCH_INTEGRATOR || ARCH_NETWINDER) && \
-> -               !ARM64
-> +       depends on ARCH_MIGHT_HAVE_VGA_CONSOLE
->         default y
->         help
->           Saying Y here will allow you to use Linux in text mode through a
-
-Gr{oetje,eeting}s,
-
-                        Geert
-
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+-- 
+Ricardo Ribalda
