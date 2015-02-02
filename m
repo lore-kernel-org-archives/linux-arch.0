@@ -1,72 +1,91 @@
-From: "Wang, Yalin" <Yalin.Wang@sonymobile.com>
-Subject: [RFC] change non-atomic bitops method
-Date: Mon, 2 Feb 2015 11:55:03 +0800
-Message-ID: <35FD53F367049845BC99AC72306C23D1044A02027E0A@CNBJMBX05.corpusers.net>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: [PATCH] Add ARCH_MIGHT_HAVE_VGA_CONSOLE
+Date: Mon, 2 Feb 2015 09:10:06 +0100
+Message-ID: <CAMuHMdV8hyDWwz8V5rvrthcV8NyNk4J+9Opmxt3opqi5rtQoJw@mail.gmail.com>
+References: <877fw093oa.wl-ysato@users.sourceforge.jp>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 8BIT
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Language: en-US
-Sender: linux-kernel-owner@vger.kernel.org
-To: "'arnd@arndb.de'" <arnd@arndb.de>, "'linux-arch@vger.kernel.org'" <linux-arch@vger.kernel.org>, "'linux-kernel@vger.kernel.org'" <linux-kernel@vger.kernel.org>, "'linux@arm.linux.org.uk'" <linux@arm.linux.org.uk>, "'linux-arm-kernel@lists.infradead.org'" <linux-arm-kernel@lists.infradead.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=UTF-8
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-oi0-f46.google.com ([209.85.218.46]:32938 "EHLO
+	mail-oi0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932677AbbBBIKH (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 2 Feb 2015 03:10:07 -0500
+In-Reply-To: <877fw093oa.wl-ysato@users.sourceforge.jp>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Yoshinori Sato <ysato@users.sourceforge.jp>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
 
-This patch change non-atomic bitops,
-add a if() condition to test it, before set/clear the bit.
-so that we don't need dirty the cache line, if this bit
-have been set or clear. On SMP system, dirty cache line will
-need invalidate other processors cache line, this will have
-some impact on SMP systems.
+Hi Sato-san,
 
-Signed-off-by: Yalin Wang <yalin.wang@sonymobile.com>
----
- include/asm-generic/bitops/non-atomic.h | 13 +++++++++----
- 1 file changed, 9 insertions(+), 4 deletions(-)
 
-diff --git a/include/asm-generic/bitops/non-atomic.h b/include/asm-generic/bitops/non-atomic.h
-index 697cc2b..e4ef18a 100644
---- a/include/asm-generic/bitops/non-atomic.h
-+++ b/include/asm-generic/bitops/non-atomic.h
-@@ -17,7 +17,9 @@ static inline void __set_bit(int nr, volatile unsigned long *addr)
- 	unsigned long mask = BIT_MASK(nr);
- 	unsigned long *p = ((unsigned long *)addr) + BIT_WORD(nr);
- 
--	*p  |= mask;
-+	if ((*p & mask) == 0)
-+		*p  |= mask;
-+
- }
- 
- static inline void __clear_bit(int nr, volatile unsigned long *addr)
-@@ -25,7 +27,8 @@ static inline void __clear_bit(int nr, volatile unsigned long *addr)
- 	unsigned long mask = BIT_MASK(nr);
- 	unsigned long *p = ((unsigned long *)addr) + BIT_WORD(nr);
- 
--	*p &= ~mask;
-+	if ((*p & mask) != 0)
-+		*p &= ~mask;
- }
- 
- /**
-@@ -60,7 +63,8 @@ static inline int __test_and_set_bit(int nr, volatile unsigned long *addr)
- 	unsigned long *p = ((unsigned long *)addr) + BIT_WORD(nr);
- 	unsigned long old = *p;
- 
--	*p = old | mask;
-+	if ((old & mask) == 0)
-+		*p = old | mask;
- 	return (old & mask) != 0;
- }
- 
-@@ -79,7 +83,8 @@ static inline int __test_and_clear_bit(int nr, volatile unsigned long *addr)
- 	unsigned long *p = ((unsigned long *)addr) + BIT_WORD(nr);
- 	unsigned long old = *p;
- 
--	*p = old & ~mask;
-+	if ((old & mask) != 0)
-+		*p = old & ~mask;
- 	return (old & mask) != 0;
- }
- 
--- 
-2.2.2
+On Mon, Feb 2, 2015 at 8:24 AM, Yoshinori Sato
+<ysato@users.sourceforge.jp> wrote:
+> The dependence of VGA_CONSOLE is complicated.
+> We need clean up.
+
+Thanks!
+
+> Signed-off-by: Yoshinori Sato <ysato@users.sourceforge.jp>
+>
+> ---
+>  arch/alpha/Kconfig            | 1 +
+>  arch/arc/Kconfig              | 1 +
+>  arch/arm/Kconfig              | 1 +
+>  arch/c6x/Kconfig              | 1 +
+>  arch/hexagon/Kconfig          | 1 +
+>  arch/ia64/Kconfig             | 1 +
+>  arch/m32r/Kconfig             | 1 +
+>  arch/metag/Kconfig            | 1 +
+>  arch/microblaze/Kconfig       | 1 +
+>  arch/mips/Kconfig             | 1 +
+>  arch/nios2/Kconfig            | 1 +
+>  arch/openrisc/Kconfig         | 1 +
+>  arch/powerpc/Kconfig          | 1 +
+>  arch/s390/Kconfig             | 1 +
+>  arch/score/Kconfig            | 1 +
+>  arch/tile/Kconfig             | 1 +
+>  arch/um/Kconfig.common        | 1 +
+>  arch/unicore32/Kconfig        | 1 +
+>  arch/x86/Kconfig              | 1 +
+>  arch/xtensa/Kconfig           | 1 +
+
+While I know you just kept the existing logic from
+drivers/video/console/kconfig,
+I doubt all of the architectures listed above do support VGA.
+I guest most of them were just too lazy to update the dependency list.
+
+I think only alpha, arm, ia64, mips, powerpc, and x86 can have VGA.
+
+> --- a/drivers/video/console/Kconfig
+> +++ b/drivers/video/console/rconfig
+> @@ -2,14 +2,14 @@
+>  # Video configuration
+>  #
+>
+> +config ARCH_MIGHT_HAVE_VGA_CONSOLE
+> +        bool
+> +
+>  menu "Console display driver support"
+>
+>  config VGA_CONSOLE
+>         bool "VGA text console" if EXPERT || !X86
+> -       depends on !4xx && !8xx && !SPARC && !M68K && !PARISC && !FRV && \
+> -               !SUPERH && !BLACKFIN && !AVR32 && !MN10300 && !CRIS && \
+> -               (!ARM || ARCH_FOOTBRIDGE || ARCH_INTEGRATOR || ARCH_NETWINDER) && \
+> -               !ARM64
+> +       depends on ARCH_MIGHT_HAVE_VGA_CONSOLE
+>         default y
+>         help
+>           Saying Y here will allow you to use Linux in text mode through a
+
+Gr{oetje,eeting}s,
+
+                        Geert
+
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
